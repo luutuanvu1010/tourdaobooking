@@ -1,7 +1,9 @@
 // SQL CHUYẾN XE của van-chuyen (ADR-0049 D1, D2; ADR-0050 VK1-A, VK1-B; kế hoạch mục 1.3–1.5, Task A13 / A15). Tệp thứ HAI của module nghiêm (STRICT —
 // src/architecture.test.ts nạp và EXPLAIN từng câu; R-P4 (ii) đã thử thật "bài nhận hai tệp"). Mọi câu TĨNH qua defineSql, tham số ?N; import đuôi .ts.
 // - Chỉ đọc bảng vc_ của mình và VIEW công bố: v_ord_leg_key / v_ord_order_flag (cờ chặng — lý do giữ cụ thể, I38), v_loc_location_label (tên điểm danh
-//   mục), v_pty_party_label / v_pty_owner_company (tên chủ xe). Không đọc audit_log (lính gác lô = DẤU LỆNH `last_cmd_id` trên vc_trip — ADR-0049 D1).
+//   mục), v_pty_party_label / v_pty_owner_company (tên chủ xe). Không đọc thẳng audit_log (lính gác lô = DẤU LỆNH `last_cmd_id` trên vc_trip — ADR-0049 D1);
+//   riêng câu cổng của máy đồng bộ chuyến theo đơn (`TRIP_GATE_THEO_DON`, ADR-0104 Đ2.2) hỏi "câu cổng đơn đã thắng" qua view công bố v_aud_order_cmd (0089),
+//   và câu đọc cam kết chặng qua v_ord_leg_commit (0089, phán quyết G10).
 // - Câu GHI sau câu cổng đều mang `EXISTS (SELECT 1 FROM vc_trip WHERE id = ?T AND last_cmd_id = ?cmd)` (bài thứ tự lô — Task A14). Mỗi suất MỘT câu INSERT
 //   (trigger sức chứa theo dòng — kế hoạch mục 4 điểm 3). Không câu DELETE nào (không xoá cứng).
 import { defineSql } from "../../shared/sql-registry.ts";
@@ -344,6 +346,17 @@ export const TRIP_GATE = defineSql(
   "van-chuyen",
   "trip_gate",
   "UPDATE vc_trip SET version = version + 1, last_cmd_id = ?3, updated_at = ?4, updated_by = ?5 WHERE id = ?1 AND version = ?2 AND status = 'PLANNED'",
+);
+/**
+ * Câu cổng của MỘT khúc chuyến trong lô ĐỒNG BỘ THEO ĐƠN (ADR-0104 Đ2.2, Đ2.3): như TRIP_GATE + "câu cổng đơn đứng trước trong CÙNG lô đã thắng" — dòng
+ * nhật ký ?6 của ĐÚNG đơn ?7 có trong v_aud_order_cmd (đơn thua lặng lẽ thì không có dòng ⇒ cổng chuyến thua theo, không câu chuyến nào chạy). Điều kiện
+ * `order_id` chặn truyền nhầm mã nhật ký của đơn khác. ?1 chuyến, ?2 version đã đọc, ?3 dấu lệnh của khúc, ?4 lúc, ?5 người sửa đơn, ?6 id nhật ký đơn, ?7 đơn.
+ */
+export const TRIP_GATE_THEO_DON = defineSql(
+  "van-chuyen",
+  "trip_gate_theo_don",
+  `UPDATE vc_trip SET version = version + 1, last_cmd_id = ?3, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND version = ?2 AND status = 'PLANNED' AND EXISTS (SELECT 1 FROM v_aud_order_cmd WHERE id = ?6 AND order_id = ?7)`,
 );
 /**
  * Câu cổng lệnh KẾ HOẠCH có chạm CHI PHÍ chuyến xe thuê (ADR-0057 C4 — sửa, huỷ; kế hoạch Đợt 4 TC-8): như TRIP_GATE + "số dòng chi phí của chuyến vẫn bằng ?6 đã

@@ -11,6 +11,7 @@
 | `v_aud_trip_event` | view công bố | cột: id, trip_id, staff_id, action, created_at |
 | `v_aud_account_event` | view công bố | cột: id, account_id, staff_id, action, created_at |
 | `v_aud_order_change` | view công bố | cột: id, order_id, staff_id, action, detail, created_at, leg_id |
+| `v_aud_order_cmd` | view công bố | cột: id, order_id, action |
 
 ## auth
 
@@ -115,6 +116,7 @@
 | `v_ord_order_state` | view công bố | cột: id, status, delivered_at, completed_at |
 | `v_ord_cancel_state` | view công bố | cột: order_id, group_code, reason_code, cancelled_date, legacy, depart_last_date, refund_deadline |
 | `v_ord_leg_key` | view công bố | cột: id, order_id, order_service_id, is_open |
+| `v_ord_leg_commit` | view công bố | cột: id, order_id, exclusive_vehicle, min_vehicle_seats |
 | `v_ord_passenger_key` | view công bố | cột: person_key, order_id, has_current_row |
 | `v_ord_passenger_row` | view công bố | cột: id, person_key, order_id, is_current |
 
