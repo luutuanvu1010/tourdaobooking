@@ -37,6 +37,8 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
 - **A1** (ADR-0097 Đ1–Đ5; ADR-0096 Đ1 LC-19, Đ2 LC-20; nút ↑/↓ cho chuyến PLANNED — C30; HT-02, HT-16, C50, C58): trợ lý thi công, nhánh `a1-luat-loi-chuyen`. Theo lộ trình `2026-10-03-khac-phuc-kiem-theo-vai-00-lo-trinh.md` §5 V3.1–V3.8; ADR thắng kế hoạch khi lệch.
 - **A3** (ADR-0062 tin "đơn đổi" qua view `v_aud_order_change`; ADR-0052 D6.2 MQ-07 tin giờ hẹn đổi cho tài xế): trợ lý thi công, nhánh `a3-tin-don-doi`. Không làm đếm lượt đổi giờ (thuộc ADR-0063, chờ duyệt), không làm ma trận V5.
 - **A2** chờ chủ duyệt bản tóm ADR-0063 (tệp 01 của lượt duyệt 8/10).
+- **A3 — thi công xong, đã gộp** (`e2d930b6`; bảy commit `62f97d74`…`5bc7c3dd`, migration `0086_aud_order_change.sql`). Người thi công khai: typecheck 0, npm test 0 đỏ, e2e đủ bộ 51/51, hai kịch bản Chrome. Lúc gộp vướng dòng nhập của `orders/dat-gap.ts` (đã gỡ). Điều phối thêm `replaceLeg` (C14) ghi `target_id` = id chặng cũ cho cùng khuôn với `changeLeg`. Sau gộp: typecheck 0, npm test 3501 bài 0 đỏ. **Đang kiểm độc lập.** Hai thay đổi hợp đồng router ↔ gốc lắp ráp người thi công tự đưa: `injected.baoThayDoi` thêm tham số `batDau`, `chuyenChoTin` nhận thêm `legIds`. Không đổi API, không đổi ô quyền.
+- **Chặn PHÁT HÀNH (không chặn bàn giao):** `MOC_TIN_DOI` ở `src/shared/thong-bao.ts` đang là giá trị tạm `2026-09-30T00:00:00.000Z`. Phải đặt bằng ngày phát hành ngay trước khi đưa lệnh gộp. Nếu không, dòng đổi của những ngày trước sẽ hiện thành tin ngay ngày triển khai.
 
 ## Việc song song
 
