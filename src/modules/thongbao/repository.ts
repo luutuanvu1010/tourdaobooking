@@ -226,7 +226,8 @@ export const hetHanStatement = (db: D1Database, endpoints: string[], at: string)
 // ADR-0052 D6.1: tin chuyến đọc v_aud_trip_event (audit) — chỉ khoá; danh sách hành động truyền bằng tham số JSON từ HANH_DONG_TIN_CHUYEN (một nguồn).
 // Phiếu kiểm D1 CAO-3: HAI lần đọc, mỗi lần một trần — nhóm cũ (`HANH_DONG_TIN_THUONG`, trần 3000 như trước) và ba lệnh khách (`HANH_DONG_TIN_KHACH`, trần
 // riêng `GIOI_HAN_TIN_KHACH`) — dòng xếp / rút / dời (đa số không sinh tin) không đẩy tin huỷ chuyến, xếp lái, khách vắng… ra khỏi hộp. Không lọc được "chỉ dòng
-// mang cờ mốc" ở câu này: cờ ở `vc_trip_event` (van-chuyen), thongbao chỉ đọc view audit — lọc cờ do dữ kiện tiêm (`khanCap`) làm như cũ.
+// mang cờ bỏ qua luật" ở câu này: cờ ở `vc_trip_event` (van-chuyen), thongbao chỉ đọc view audit — lọc cờ do dữ kiện tiêm (`khanCap` — CAO-C: mọi luật bị bỏ
+// qua, không chỉ mốc) làm như cũ.
 const LIST_TIN_CHUYEN = defineSql("thongbao", "list_tin_chuyen", `
   SELECT e.id, e.trip_id, e.staff_id AS actor_id, e.action, e.created_at AS luc FROM v_aud_trip_event e
   WHERE e.created_at >= ?1 AND e.action IN (SELECT value FROM json_each(?2)) ORDER BY e.created_at DESC LIMIT 3000`);
