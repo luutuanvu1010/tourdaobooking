@@ -1006,9 +1006,11 @@ export async function updateDraftOrder(
  * để client còn giữ mốc cũ không lọt qua khoá lạc quan của `PUT /trip` dù xác nhận rơi vào cùng mili-giây với một lần ghi khác.
  * ADR-0047 Ruling R4c: câu ĐẦU lô điền ngày đón = ngày đi cho chặng mở còn trống ngày (trigger `orders_confirm_requires_leg_date` xét lúc đổi trạng thái)
  * — nên câu UPDATE đổi trạng thái nay là `results[1]`. Không thêm lý do "chưa đủ chuyến" mới cho người dùng (`confirmGaps` không đổi).
+ * `alsoConfirm(at)` (Sổ đại lý đợt 1, ADR-0077 điều 8): các câu kèm do route dựng, dùng đúng mốc `at` của lô.
  */
 export async function confirmOrder(
   db: D1Database, id: string, staffId: string, today: string, prevUpdatedAt: string, nguongMoc: string, detail?: string,
+  alsoConfirm?: (at: string) => D1PreparedStatement[],
 ): Promise<boolean> {
   const at = nextStamp(prevUpdatedAt);
   const { from, to } = confirmWindow(today);
@@ -1017,6 +1019,9 @@ export async function confirmOrder(
     legFillDateOnConfirm(db, id, at),
     orderConfirm(db, id, at, from, to, nguongMoc),
     auditStatement(db, { orderId: id, staffId, action: "confirmed", at, detail }, "changes() > 0"),
+    // Câu kèm (bản chụp thương mại — ADR-0077) đứng SAU nhật ký confirmed: chuỗi changes() > 0 nối từ UPDATE orders → nhật ký → từng câu chụp;
+    // results[1] vẫn quyết định thắng thua.
+    ...(alsoConfirm?.(at) ?? []),
   ]);
   return (results[1]!.meta.changes ?? 0) > 0;
 }

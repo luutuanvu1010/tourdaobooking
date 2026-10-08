@@ -2,6 +2,7 @@
 // Mọi nhân viên đang hoạt động xem được mọi đơn (§2.4-4); chỉ người lập đơn, người phụ trách đang mở của đơn (ADR-0009) hoặc admin được sửa/xác nhận/huỷ.
 // "Người phụ trách" do module `dispatch` giữ: `orders` KHÔNG import `dispatch` mà hỏi qua `ctx.isAssigned(orderId)` (gốc lắp ráp tiêm — ADR-0007 điều 4(b)).
 import { auditStatement, getAuditTrail } from "../audit";
+import { chupDon, docBangChoChup } from "../pricing";
 import type {
   CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, DraftCountResponse, IncompleteTripBody, MyAssignmentDto, NhapTayResponse, OrderDetailDto, OrderDetailResponse,
   OrderListResponse, MocToiThieuResponse, NguoiLapResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
@@ -33,6 +34,8 @@ import { maskLongDigits } from "../../shared/text-guards";
 import { docLyDoHuy, docPhanLoai, nhanNhomHuy, type LyDoHuy } from "../../shared/ly-do-huy";
 import { lyDoHienHanh, phanLoaiStatement } from "./huy-don-repo";
 import { toPoolOrders } from "./pool";
+import { dongGhiTuChup, moTaChup } from "./thuong-mai";
+import { cauChupChuoi } from "./thuong-mai-repo";
 import { laThanDonCu, laThanTripCu } from "./than-cu";
 import {
   PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, duocNhapTay, holdsPartner, lyDoKhongNhapTay, manualFreezeViolation,
@@ -1049,14 +1052,30 @@ export const ordersModule: AppModule = {
         const moc = await mocToiThieu();
         if (!moc) return MOC_CHUA_CO();
         const nowMs = Date.now();
+        // Sổ đại lý đợt 1 (ADR-0077 điều 8; đặc tả §5): đọc bảng ở ngày xác nhận rồi gửi các câu chụp trong CÙNG lô. Đơn đang nháp nên
+        // dịch vụ đọc từ `order` là số hiện hành (chưa có dòng điều chỉnh). Câu chụp lỗi ⇒ cả lô rơi (đơn vẫn nháp).
+        const bang = order ? await docBangChoChup(env.DB, { bookerPartyId: order.bookerPartyId, catalogCodes: order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : [])), ngay: today }) : null;
+        const chup = order && bang ? chupDon({
+          nguoiHuong: bang.nguoiHuong, ngay: today, muc: bang.muc, dieuKhoan: bang.dieuKhoan,
+          dong: order.services.map((s) => ({ serviceId: s.id, catalogCode: s.catalogCode, groupCode: s.catalogCode ? (bang.nhom.get(s.catalogCode) ?? null) : null })),
+        }) : [];
+        const kemChup = (at: string): D1PreparedStatement[] => [
+          ...cauChupChuoi(env.DB, chup.map((c) => dongGhiTuChup(c, { id: crypto.randomUUID(), orderId: id, ngay: today, at, by: staff.id, source: "AUTO", reason: null, supersedesId: null }))),
+          auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "order_terms_captured", at, detail: moTaChup(chup) }, "changes() > 0"),
+        ];
         let daXacNhan: boolean;
         try {
-          daXacNhan = await confirmOrder(env.DB, id, staff.id, today, meta.updatedAt, nguongMocVn(nowMs, moc.phut), detail);
+          daXacNhan = await confirmOrder(env.DB, id, staff.id, today, meta.updatedAt, nguongMocVn(nowMs, moc.phut), detail, kemChup);
         } catch (e) {
           // F-03 (0081): tạm tính đã lưu lệch Σ thành tiền dòng (nháp cũ / SQL tay) — CSDL chặn; Lưu nháp lại thì máy chủ tính lại từ các dòng.
           if (/order_subtotal_mismatch/.test(String((e as Error)?.message ?? e))) {
             return error(409, "order_subtotal_mismatch", "Tiền của đơn chưa khớp các dòng dịch vụ — mở đơn, bấm Lưu rồi xác nhận lại.");
           }
+          const loi = e instanceof Error ? e.message : String(e);
+          // Bảng mức / điều khoản đổi giữa lúc đọc và lúc ghi (trigger terms_rule_stale / terms_term_stale): cả lô rơi, đơn vẫn nháp — bấm lại là chụp theo bảng mới.
+          if (/\bterms_(rule|term)_stale:/.test(loi)) return error(409, "bang_muc_doi", "Bảng mức vừa đổi — thử lại");
+          // Người khác lưu nháp giữa lúc đọc và lúc ghi, dòng dịch vụ đổi mã (lưu nháp xoá–chèn lại dịch vụ): bản chụp trỏ dòng không còn ⇒ cả lô rơi (trigger terms_service_mismatch).
+          if (/\bterms_service_mismatch:/.test(loi)) return STALE();
           throw e;
         }
         if (!daXacNhan) {
