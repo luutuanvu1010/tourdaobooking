@@ -301,11 +301,13 @@ const NOW = () => new Date("2026-09-23T03:04:05.000Z");
 /** Lệnh in cho chủ tự chạy khi migration ĐÃ áp mà Worker chưa deploy: kiểm cây sạch → về đúng mã đã kiểm → kiểm lại → deploy → kiểm dữ liệu → cổng sau. */
 function assertLenhDeployDungMa(t: string) {
   const thuTu = ["git status --short", `git switch --detach ${HEAD}`, "git status --short", "CI=1 npx wrangler deploy", "node scripts/audit-invariants.mjs --db remote", "node scripts/kiem-phien-ban.mjs --sau-deploy", "git switch main"];
+  // Mỗi lệnh phải là MỘT DÒNG TRƠN (bỏ mã màu và khoảng trắng đầu/cuối thì đúng bằng lệnh): chép-dán chạy được trong zsh, không chú thích cùng dòng.
+  const dong = t.replace(/\x1b\[[0-9;]*m/g, "").split("\n").map((x) => x.trim());
   let tu = 0;
   for (const l of thuTu) {
-    const i = t.indexOf(l, tu);
-    assert.ok(i >= 0, `thiếu hoặc sai thứ tự lệnh "${l}" trong hướng dẫn deploy tay`);
-    tu = i + l.length;
+    const i = dong.indexOf(l, tu);
+    assert.ok(i >= 0, `thiếu, sai thứ tự, hoặc không đứng một mình trên dòng: lệnh "${l}" trong hướng dẫn deploy tay`);
+    tu = i + 1;
   }
 }
 

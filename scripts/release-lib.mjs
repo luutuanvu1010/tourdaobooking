@@ -146,14 +146,20 @@ const MA_DOI_HUONG_DAN = "Thường do `npm run day-len` hay lệnh git khác ch
  *  mang theo thay đổi chưa commit, deploy lúc đó đưa mã chưa kiểm lên production. */
 function inLenhDeployDungMa(log, ma) {
   log(`${RED}${BOLD}CẢNH BÁO: migration ĐÃ ÁP lên production nhưng Worker CHƯA deploy. Mã cũ đang chạy trên dữ liệu mới — deploy NGAY đúng mã đã kiểm (${ma.slice(0, 8)}).${RESET}`);
-  log(`${RED}Chờ lệnh git đang chạy ở thư mục này (nếu có) xong, rồi chạy lần lượt, mỗi dòng một lệnh:${RESET}`);
-  log(`${RED}  git status --short        (phải KHÔNG in dòng nào — in ra thì DỪNG, hỏi người phụ trách kỹ thuật)${RESET}`);
-  log(`${RED}  git switch --detach ${ma}${RESET}`);
-  log(`${RED}  git status --short        (lại phải KHÔNG in dòng nào)${RESET}`);
-  log(`${RED}  ${DEPLOY_CMD}${RESET}`);
-  log(`${RED}  node scripts/audit-invariants.mjs --db remote${RESET}`);
-  log(`${RED}  ${GATE_POST_CMD}${RESET}`);
-  log(`${RED}  git switch main${RESET}`);
+  // Mỗi lệnh một dòng TRƠN (chép-dán chạy được trong zsh): lời giải thích ở dòng riêng, không ngoặc / dấu nháy / `#` cạnh lệnh — zsh tương tác không coi
+  // `#` là chú thích, `git status --short # …` sẽ lọc theo đường dẫn và báo "sạch" giả.
+  const buoc = [
+    ["Bước 1, kiểm thư mục sạch. Lệnh này phải KHÔNG in dòng nào, in ra thì DỪNG và hỏi người phụ trách kỹ thuật", ["git status --short"]],
+    ["Bước 2, về đúng mã đã kiểm", [`git switch --detach ${ma}`]],
+    ["Bước 3, kiểm lại, vẫn phải KHÔNG in dòng nào", ["git status --short"]],
+    ["Bước 4, phát hành, kiểm dữ liệu, so số phiên bản", [DEPLOY_CMD, "node scripts/audit-invariants.mjs --db remote", GATE_POST_CMD]],
+    ["Bước 5, về lại nhánh chính", ["git switch main"]],
+  ];
+  log(`${RED}Chờ lệnh git đang chạy ở thư mục này xong (nếu có). Rồi ở thư mục tourdao-sales, chạy LẦN LƯỢT từng dòng lệnh thụt vào dưới đây:${RESET}`);
+  for (const [giaiThich, lenh] of buoc) {
+    log(`${RED}${giaiThich}${RESET}`);
+    for (const l of lenh) log(`${RED}  ${l}${RESET}`);
+  }
 }
 
 // ─────────────────────────────── day-len ───────────────────────────────
