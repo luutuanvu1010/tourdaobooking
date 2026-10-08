@@ -13,7 +13,7 @@ const T0 = "2027-03-11T01:00:00.000Z", T1 = "2027-03-11T02:00:00.000Z", T2 = "20
 const nguoi = (id: string, permissions: PermissionCode[], partyId: string | null = null): NguoiNhanChuyen => ({ id, permissions, partyId });
 const dong = (v: Partial<DongChuyen>): DongChuyen => ({
   id: "ev", tripId: "t1", maChuyen: "CX-1103-02", ngayChay: "2027-03-11", action: "trip_edited", actorId: "sales", luc: T1,
-  lai: [{ partyId: "p-a", tu: T0, den: T1 }, { partyId: "p-b", tu: T1, den: null }], don: [], xuatBen: null, khanCap: false, ...v,
+  lai: [{ partyId: "p-a", tu: T0, den: T1 }, { partyId: "p-b", tu: T1, den: null }], don: [], xuatBen: null, khanCap: false, vuotMoc: false, ...v,
 });
 const TX_A = nguoi("tx-a", ["DRIVER"], "p-a"), TX_B = nguoi("tx-b", ["DRIVER"], "p-b");
 
@@ -97,8 +97,9 @@ test("câu tin không chứa gì ngoài mã chuyến, ngày, mã đơn — khoá
   const d = dong({ action: "trip_passenger_no_show", don: [{ orderId: "o1", maDon: "DH-0001", ownerId: "lap", handlerStaffId: null }] });
   const t = tinChuyenCho(nguoi("lap", ["SALES"]), d)!;
   assert.equal(t.cau, "Có khách vắng ở chuyến CX-1103-02 ngày 11/03 (đơn DH-0001)");
-  // ADR-0104 Đ1 mục 6 (thêm có tên): `khanCap` — cờ boolean (sự kiện mang luật vượt MOC_TOI_THIEU), không phải dữ kiện người.
-  assert.deepEqual(Object.keys(d).sort(), ["action", "actorId", "don", "id", "khanCap", "lai", "luc", "maChuyen", "ngayChay", "tripId", "xuatBen"]);
+  // ADR-0104 Đ1 mục 6 (thêm có tên): `khanCap` — cờ boolean (sự kiện mang luật bị bỏ qua — CAO-C), không phải dữ kiện người.
+  // CAO-C (thêm có tên, lời chủ 2026-10-08): `vuotMoc` — cờ boolean (luật bị bỏ qua là MOC_TOI_THIEU — chọn câu "khẩn cấp"), không phải dữ kiện người.
+  assert.deepEqual(Object.keys(d).sort(), ["action", "actorId", "don", "id", "khanCap", "lai", "luc", "maChuyen", "ngayChay", "tripId", "vuotMoc", "xuatBen"]);
   assert.doesNotMatch(t.cau, /\d{8,}/);
 });
 
@@ -279,7 +280,7 @@ test("ADR-0097 Đ5: thu hồi xuất bến (sau lệnh chuyến không còn gi�
 const KHAN_CAP = ["trip_allocated", "trip_allocation_removed", "trip_allocation_moved"] as const;
 test("NT-11: xếp / rút / dời có điều chỉnh khẩn cấp (khanCap) → ĐÚNG tài xế có dòng lái lúc sự kiện nhận 'khan_cap'; không khanCap → không ai; người tự làm, văn phòng, tài xế đã gỡ không", () => {
   for (const action of KHAN_CAP) {
-    const d = dong({ action, actorId: "sales", luc: T2, khanCap: true });
+    const d = dong({ action, actorId: "sales", luc: T2, khanCap: true, vuotMoc: true });
     const t = tinChuyenCho(TX_B, d);
     assert.equal(t?.loai, "khan_cap", action);
     assert.equal(t!.lienKet, "/cuoc-chuyen?id=t1");
@@ -292,12 +293,34 @@ test("NT-11: xếp / rút / dời có điều chỉnh khẩn cấp (khanCap) →
     assert.equal(tinChuyenCho(TX_B, dong({ action, actorId: "sales", luc: T2, khanCap: false })), null, `${action}: không vượt mốc → không tin`);
   }
 });
-test("NT-11: dungDongChuyen gắn khanCap theo id sự kiện của dữ kiện (`khanCap` = id sự kiện mang MOC_TOI_THIEU); HANH_DONG_TIN_CHUYEN có ba lệnh khách", () => {
-  const f = { chuyen: [{ tripId: "t1", ma: "CX-1", ngayChay: "2027-03-11", lai: [], xuatBen: null }], vang: [], khanCap: ["e1"] };
-  const r = dungDongChuyen([{ id: "e1", tripId: "t1", actorId: "a", action: "trip_allocated", luc: T1 }, { id: "e2", tripId: "t1", actorId: "a", action: "trip_allocated", luc: T1 }], f, []);
-  assert.deepEqual(r.map((x) => [x.id, x.khanCap]), [["e1", true], ["e2", false]]);
+test("NT-11 + CAO-C: dungDongChuyen gắn khanCap (id sự kiện có bỏ qua luật) và vuotMoc (id sự kiện mang MOC_TOI_THIEU) theo dữ kiện; HANH_DONG_TIN_CHUYEN có ba lệnh khách", () => {
+  // CAO-C: `khanCap` = id sự kiện mang BẤT KỲ luật bị bỏ qua (cờ tin); `vuotMoc` = tập con mang MOC_TOI_THIEU (câu "khẩn cấp"). Vắng `vuotMoc` → false.
+  const f = { chuyen: [{ tripId: "t1", ma: "CX-1", ngayChay: "2027-03-11", lai: [], xuatBen: null }], vang: [], khanCap: ["e1", "e3"], vuotMoc: ["e1"] };
+  const tho = ["e1", "e2", "e3"].map((id) => ({ id, tripId: "t1", actorId: "a", action: "trip_allocated", luc: T1 }));
+  const r = dungDongChuyen(tho, f, []);
+  assert.deepEqual(r.map((x) => [x.id, x.khanCap, x.vuotMoc]), [["e1", true, true], ["e2", false, false], ["e3", true, false]]);
+  assert.deepEqual(dungDongChuyen(tho, { ...f, vuotMoc: undefined }, []).map((x) => x.vuotMoc), [false, false, false], "dữ kiện không có vuotMoc → false");
   for (const a of KHAN_CAP) assert.ok((HANH_DONG_TIN_CHUYEN as readonly string[]).includes(a), a);
 });
+// ---- CAO-C (lời chủ 2026-10-08 "Báo mọi lệnh có bỏ qua luật (Recommended)"; lệch có chủ ý với chữ ADR-0104 :95 — SYSTEM-DESIGN §16) ----
+test("CAO-C: xếp / rút / dời có bỏ qua luật KHÁC mốc (khanCap, không vuotMoc) → tài xế đang lái nhận câu TRUNG TÍNH (không 'khẩn cấp', không '6 giờ'); dời: tài xế nguồn cũng nhận câu trung tính; người làm, văn phòng, tài xế đã gỡ không", () => {
+  for (const action of KHAN_CAP) {
+    const d = dong({ action, actorId: "adm", luc: T2, khanCap: true, vuotMoc: false });
+    const t = tinChuyenCho(TX_B, d);
+    assert.equal(t?.loai, "khan_cap", action);
+    assert.equal(t!.lienKet, "/cuoc-chuyen?id=t1");
+    assert.match(t!.cau, /^Văn phòng vừa điều chỉnh chuyến CX-1103-02 ngày 11\/03 \((xếp thêm khách|rút khách|chuyển khách tới)\) — mở để xem$/, action);
+    assert.doesNotMatch(t!.cau, /khẩn cấp|6 giờ|phá lệ/, action);
+    assert.equal(tinChuyenCho(TX_A, d), null, `${action}: tài xế đã gỡ`);
+    assert.equal(tinChuyenCho(nguoi("adm2", ["ADMIN"]), d), null, `${action}: văn phòng`);
+    assert.equal(tinChuyenCho({ ...TX_B, id: "adm" }, d), null, `${action}: người tự làm`);
+  }
+  const nguon = { tripId: "t0", ma: "CX-1103-01", ngayChay: "2027-03-11", lai: [{ partyId: "p-c", tu: T0, den: null }] };
+  const d = dong({ action: "trip_allocation_moved", actorId: "sales", luc: T2, khanCap: true, vuotMoc: false, nguon });
+  assert.deepEqual(tinChuyenCho(nguoi("tx-c", ["DRIVER"], "p-c"), d), { loai: "khan_cap", cau: "Văn phòng vừa điều chỉnh chuyến CX-1103-01 ngày 11/03 (chuyển khách đi) — mở để xem", lienKet: "/cuoc-chuyen?id=t0" });
+  assert.equal(tinChuyenCho(nguoi("tx-c", ["DRIVER"], "p-c"), { ...d, vuotMoc: true })?.cau, "Văn phòng vừa điều chỉnh khẩn cấp chuyến CX-1103-01 ngày 11/03 (chuyển khách đi) — mở để xem", "nguồn, có mốc: câu khẩn cấp");
+});
+
 // ---- Phiếu kiểm D1 CAO-3: dòng xếp / rút / dời KHÔNG khẩn cấp không làm chuông văn phòng gọi lại, không gõ cửa ----
 test("CAO-3: thayDoiCoTheCoTin — tập CỤ THỂ (viết tay, không suy từ danh sách): máy có quyền Tài xế gọi lại chuông ở tao/sua/huy/gian_doan/vang/xe_chay + xep/rut/doi; máy KHÔNG có quyền Tài xế bỏ xep/rut/doi", () => {
   // ADR-0104 Đ2.10 (NỚI có tên N7): + "cap_nhat" (máy đồng bộ chuyến theo đơn — tin "khach_doi" chỉ cho tài xế đang lái) — máy văn phòng KHÔNG thêm.
@@ -330,7 +353,7 @@ test("CAO-3: dongCoTheSinhTin — ba lệnh khách chỉ khi sự kiện mang c�
 // ---- Phiếu kiểm D1 CAO-2 (ADR-0104 Đ1.6 :95, :232): dời điều chỉnh khẩn cấp → cả tài xế chuyến NGUỒN ("chuyển khách đi") ----
 test("CAO-2: dời khẩn cấp — tài xế đang lái chuyến NGUỒN lúc sự kiện nhận 'khan_cap' (câu, liên kết chuyến nguồn); tài xế nguồn đã gỡ, người làm, văn phòng, không cờ, hành động khác không; người lái cả hai chuyến nhận tin chuyến đích", () => {
   const nguon = { tripId: "t0", ma: "CX-1103-01", ngayChay: "2027-03-11", lai: [{ partyId: "p-c", tu: T0, den: null }, { partyId: "p-a", tu: T0, den: T1 }] };
-  const d = dong({ action: "trip_allocation_moved", actorId: "sales", luc: T2, khanCap: true, nguon });
+  const d = dong({ action: "trip_allocation_moved", actorId: "sales", luc: T2, khanCap: true, vuotMoc: true, nguon });
   const TX_C = nguoi("tx-c", ["DRIVER"], "p-c");
   assert.deepEqual(tinChuyenCho(TX_C, d), { loai: "khan_cap", cau: "Văn phòng vừa điều chỉnh khẩn cấp chuyến CX-1103-01 ngày 11/03 (chuyển khách đi) — mở để xem", lienKet: "/cuoc-chuyen?id=t0" });
   assert.equal(tinChuyenCho(TX_B, d)?.cau, "Văn phòng vừa điều chỉnh khẩn cấp chuyến CX-1103-02 ngày 11/03 (chuyển khách tới) — mở để xem", "tài xế đích giữ nguyên");

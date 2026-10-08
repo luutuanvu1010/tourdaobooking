@@ -4,6 +4,9 @@
 // tài xế chuyến ĐÍCH ("chuyển khách tới") và tài xế chuyến NGUỒN ("chuyển khách đi" — nguồn = `related_trip_id` của sự kiện, không thêm hành động, không thêm
 // dòng nhật ký). Nguồn: hộp thông báo `GET /api/thong-bao` + dữ kiện `chuyenChoTinTheoId` (khoá `khanCap` = id sự kiện) + dòng gõ cửa `dongChuyenTheoId`
 // + người nhận gõ cửa `nguoiNhanDay` (cùng hàm với hộp).
+// CAO-C (lời chủ 2026-10-08 "Báo mọi lệnh có bỏ qua luật (Recommended)" — lệch có chủ ý với chữ ADR-0104 :95, SYSTEM-DESIGN §16): lệnh khách mang BẤT KỲ luật bị
+// bỏ qua (`override_rule_code IS NOT NULL`) cũng báo tài xế; câu "điều chỉnh khẩn cấp" chỉ khi luật là `MOC_TOI_THIEU`, luật khác câu trung tính "Văn phòng vừa
+// điều chỉnh chuyến …". Bài "không tin" dùng `tinLenhKhach` (bắt CẢ hai câu) — tin trung tính sai chỗ cũng đỏ.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
@@ -18,6 +21,9 @@ const xep = async (w: any, as: string, tripId: string, chang: unknown[], extra: 
   goi(w, as, "POST", `/${tripId}/phan-bo`, { version: await phienBan(w, tripId), chang, ...extra });
 const tinKhanCap = async (w: any, as: string): Promise<string[]> =>
   (await w.call("GET", "/api/thong-bao", { as })).json.tin.filter((x: any) => x.loai === "chuyen" && /điều chỉnh khẩn cấp/.test(x.cau)).map((x: any) => x.cau);
+/** Mọi tin của ba lệnh khách (câu khẩn cấp HOẶC câu trung tính CAO-C) — dùng cho kỳ vọng "không tin". */
+const tinLenhKhach = async (w: any, as: string): Promise<string[]> =>
+  (await w.call("GET", "/api/thong-bao", { as })).json.tin.filter((x: any) => x.loai === "chuyen" && /^Văn phòng vừa điều chỉnh (khẩn cấp )?chuyến/.test(x.cau)).map((x: any) => x.cau);
 const lienKetTin = async (w: any, as: string, mau: RegExp): Promise<string[]> =>
   (await w.call("GET", "/api/thong-bao", { as })).json.tin.filter((x: any) => x.loai === "chuyen" && mau.test(x.cau)).map((x: any) => x.lienKet);
 /** Tài khoản cho người nhận gõ cửa (cùng quyền với khung thử — dieu-phoi-khung.mjs). */
@@ -43,8 +49,8 @@ test("NT-11 (ADR-0104 Đ1 mục 6): xếp / rút dưới mốc có điều chỉ
     assert.equal(x.status, 200, x.text);
     const tin1 = await tinKhanCap(w, DRIVER);
     assert.deepEqual(tin1, [`Văn phòng vừa điều chỉnh khẩn cấp chuyến ${t.chuyen.ma} ngày 11/03 (xếp thêm khách) — mở để xem`]);
-    assert.deepEqual(await tinKhanCap(w, SALES), [], "người làm không tự nhận");
-    assert.deepEqual(await tinKhanCap(w, ADM), [], "không tin cho Quản trị");
+    assert.deepEqual(await tinLenhKhach(w, SALES), [], "người làm không tự nhận");
+    assert.deepEqual(await tinLenhKhach(w, ADM), [], "không tin cho Quản trị");
     const rut = await goi(w, SALES, "POST", `/${t.chuyen.id}/rut`, { version: await phienBan(w, t.chuyen.id), suatIds: [x.json.suat[0].id], phaLe: PL });
     assert.equal(rut.status, 200, rut.text);
     assert.equal((await tinKhanCap(w, DRIVER)).filter((c) => /rút khách/.test(c)).length, 1);
@@ -61,7 +67,7 @@ test("NT-11 (ADR-0104 Đ1 mục 6): xếp / rút dưới mốc có điều chỉ
   }
 });
 
-test("NT-11: cùng lệnh KHÔNG vượt mốc → không tin — xếp chuyến ngoài mốc; xếp chặng đặt gấp vào chuyến dưới mốc (không cờ mốc)", async () => {
+test("NT-11 + CAO-C: cùng lệnh KHÔNG bỏ qua luật nào → không tin (cả câu trung tính) — xếp chuyến ngoài mốc; xếp chặng đặt gấp vào chuyến dưới mốc (không cờ)", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
@@ -72,8 +78,9 @@ test("NT-11: cùng lệnh KHÔNG vượt mốc → không tin — xếp chuyến
     assert.equal((await w.call("POST", `/api/orders/${gap.id}/legs/${gap.legId}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } })).status, 200);
     const t2 = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}`, bd: "11:00", kt: "15:00" }); // dưới mốc
     assert.equal((await xep(w, SALES, t2.chuyen.id, [{ legId: gap.legId, soSuat: 2 }])).status, 200);
-    assert.deepEqual(await tinKhanCap(w, DRIVER), []);
-    assert.deepEqual(await tinKhanCap(w, DRIVER2), []);
+    assert.deepEqual(w.q("SELECT override_rule_code r FROM vc_trip_event WHERE kind = 'ALLOCATED'").map((x: any) => x.r), [null, null], "không luật bỏ qua");
+    assert.deepEqual(await tinLenhKhach(w, DRIVER), []);
+    assert.deepEqual(await tinLenhKhach(w, DRIVER2), []);
   } finally {
     tat();
   }
@@ -95,8 +102,8 @@ test("NT-11 + phiếu D1 CAO-2 (ADR-0104 Đ1.6 :95, :232): dời có điều ch�
     assert.deepEqual(await tinKhanCap(w, DRIVER2), [`Văn phòng vừa điều chỉnh khẩn cấp chuyến ${dich.chuyen.ma} ngày 11/03 (chuyển khách tới) — mở để xem`]);
     assert.deepEqual((await tinKhanCap(w, DRIVER)).filter((c) => /chuyển khách/.test(c)), [`Văn phòng vừa điều chỉnh khẩn cấp chuyến ${nguon.chuyen.ma} ngày 11/03 (chuyển khách đi) — mở để xem`], "tài xế nguồn: đúng một tin dời");
     assert.deepEqual(await lienKetTin(w, DRIVER, /chuyển khách đi/), [`/cuoc-chuyen?id=${encodeURIComponent(nguon.chuyen.id)}`]);
-    assert.deepEqual(await tinKhanCap(w, ADM), [], "văn phòng không nhận");
-    assert.deepEqual(await tinKhanCap(w, SALES), [], "người làm không tự nhận");
+    assert.deepEqual(await tinLenhKhach(w, ADM), [], "văn phòng không nhận");
+    assert.deepEqual(await tinLenhKhach(w, SALES), [], "người làm không tự nhận");
     assert.deepEqual(await goCuaDoi(w, dich.chuyen.id, nguon.chuyen.id), [DRIVER, DRIVER2].sort(), "gõ cửa tới cả hai tài xế");
     // Dữ kiện: hỏi CHỈ chuyến đích + sự kiện dời → chuyến nguồn (kèm khoảng lái) tự có trong dữ kiện, khanCapNguon chỉ đúng nguồn — hộp không phải tự biết nguồn.
     const evDoi = w.q("SELECT id FROM vc_trip_event WHERE trip_id = ? AND kind = 'ALLOCATION_MOVED'", dich.chuyen.id)[0].id;
@@ -123,8 +130,8 @@ test("Phiếu D1 CAO-2: dời KHÔNG vượt mốc (hai chuyến ngoài mốc, k
       version: await phienBan(w, nguon.chuyen.id), suatIds: x.json.suat.map((s: any) => s.id), denChuyenId: dich.chuyen.id, denVersion: await phienBan(w, dich.chuyen.id),
     });
     assert.equal(d.status, 200, d.text);
-    assert.deepEqual(await tinKhanCap(w, DRIVER), []);
-    assert.deepEqual(await tinKhanCap(w, DRIVER2), []);
+    assert.deepEqual(await tinLenhKhach(w, DRIVER), []);
+    assert.deepEqual(await tinLenhKhach(w, DRIVER2), []);
     assert.deepEqual(await goCuaDoi(w, dich.chuyen.id, nguon.chuyen.id), []);
   } finally {
     tat();
@@ -156,7 +163,8 @@ test("Phiếu D1 CAO-3 (a): 3001 dòng xếp KHÔNG khẩn cấp MỚI HƠN (vư
   }
 });
 
-test("Phiếu D1 THẤP-7 (ghim hiện trạng — tin bám mã luật MOC_TOI_THIEU, không bám lớp): Bán hàng xếp chặng ĐẶT GẤP vào chuyến dưới mốc có tài xế, CHỈ kèm camKetPhaLe (lớp điều chỉnh khẩn cấp) → 200, tài xế KHÔNG có tin", async () => {
+// CAO-C (lời chủ 2026-10-08 "Báo mọi lệnh có bỏ qua luật"): bài này từng ghim hiện trạng "tài xế KHÔNG có tin" — đổi màu có tên theo lời chủ.
+test("Phiếu D1 THẤP-7 + CAO-C (báo mọi lệnh có bỏ qua luật — chủ chọn 2026-10-08): Bán hàng xếp chặng ĐẶT GẤP vào chuyến dưới mốc có tài xế, CHỈ kèm camKetPhaLe → 200, sự kiện mang CAM_KET; tài xế có ĐÚNG MỘT tin câu TRUNG TÍNH (không 'khẩn cấp'); người làm, Quản trị không", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
@@ -167,7 +175,10 @@ test("Phiếu D1 THẤP-7 (ghim hiện trạng — tin bám mã luật MOC_TOI_T
     const r = await xep(w, SALES, t.chuyen.id, [{ legId: gap.legId, soSuat: 2 }], { camKetPhaLe: PL });
     assert.equal(r.status, 200, r.text);
     assert.deepEqual(w.q("SELECT override_rule_code r FROM vc_trip_event WHERE trip_id = ? AND kind = 'ALLOCATED'", t.chuyen.id).map((x: any) => x.r), ["CAM_KET"]);
-    assert.deepEqual(await tinKhanCap(w, DRIVER), [], "hiện trạng: không tin (cùng gốc bốn ca lệch nhãn — ADR :90)");
+    assert.deepEqual(await tinLenhKhach(w, DRIVER), [`Văn phòng vừa điều chỉnh chuyến ${t.chuyen.ma} ngày 11/03 (xếp thêm khách) — mở để xem`], "câu trung tính");
+    assert.deepEqual(await lienKetTin(w, DRIVER, /xếp thêm khách/), [`/cuoc-chuyen?id=${encodeURIComponent(t.chuyen.id)}`]);
+    assert.deepEqual(await tinLenhKhach(w, SALES), [], "người làm không tự nhận");
+    assert.deepEqual(await tinLenhKhach(w, ADM), [], "văn phòng không nhận");
   } finally {
     tat();
   }
@@ -183,9 +194,8 @@ async function datGap(w: any, d: { id: string; legId: string }) {
 async function doiHet(w: any, nguon: string, dich: string, suatIds: string[], co: Record<string, unknown>) {
   return goi(w, SALES, "POST", `/${nguon}/doi`, { version: await phienBan(w, nguon), suatIds, denChuyenId: dich, denVersion: await phienBan(w, dich), ...co });
 }
-// HIỆN TRẠNG CHỜ CHỦ QUYẾT (ADR-0104 :95 "lệnh khách lớp KHAN_CAP … → tin tới tài xế đang lái" vs :90 hoãn lưu lớp vào sự kiện) — bài này ĐỔI MÀU khi chủ chọn
-// (ghi lệch ở SYSTEM-DESIGN §16 thì giữ; tin theo mọi luật hoặc lưu lớp thì đổi kỳ vọng thành "có tin" cùng quyết định đó).
-test("Phiếu hẹp D1 CAO-C (ghim HIỆN TRẠNG chờ chủ quyết — ADR-0104 :95 vs :90): Bán hàng DỜI chặng ĐẶT GẤP từ chuyến NGOÀI mốc sang chuyến DƯỚI mốc, CHỈ kèm camKetPhaLe (lớp điều chỉnh khẩn cấp) → 200, sự kiện mang CAM_KET; tài xế đích và tài xế nguồn đều KHÔNG có tin", async () => {
+// Bài này từng ghim HIỆN TRẠNG "không tin" chờ chủ quyết (ADR-0104 :95 vs :90). Chủ chọn 2026-10-08 "Báo mọi lệnh có bỏ qua luật (Recommended)" — đổi màu có tên.
+test("Phiếu hẹp D1 CAO-C (báo mọi lệnh có bỏ qua luật — chủ chọn 2026-10-08): Bán hàng DỜI chặng ĐẶT GẤP từ chuyến NGOÀI mốc sang chuyến DƯỚI mốc, CHỈ kèm camKetPhaLe → 200, sự kiện mang CAM_KET; tài xế đích ('chuyển khách tới') và tài xế nguồn ('chuyển khách đi', liên kết chuyến nguồn) mỗi người ĐÚNG MỘT tin câu TRUNG TÍNH; dữ kiện tự nạp chuyến nguồn; gõ cửa cả hai", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
@@ -199,8 +209,21 @@ test("Phiếu hẹp D1 CAO-C (ghim HIỆN TRẠNG chờ chủ quyết — ADR-01
     const d = await doiHet(w, nguon.chuyen.id, dich.chuyen.id, x.json.suat.map((s: any) => s.id), { camKetPhaLe: PL });
     assert.equal(d.status, 200, d.text);
     assert.deepEqual(w.q("SELECT override_rule_code r FROM vc_trip_event WHERE trip_id = ? AND kind = 'ALLOCATION_MOVED'", dich.chuyen.id).map((r: any) => r.r), ["CAM_KET"]);
-    assert.deepEqual(await tinKhanCap(w, DRIVER2), [], "hiện trạng: tài xế đích không tin");
-    assert.deepEqual(await tinKhanCap(w, DRIVER), [], "hiện trạng: tài xế nguồn không tin");
+    assert.deepEqual(await tinLenhKhach(w, DRIVER2), [`Văn phòng vừa điều chỉnh chuyến ${dich.chuyen.ma} ngày 11/03 (chuyển khách tới) — mở để xem`], "tài xế đích: câu trung tính");
+    assert.deepEqual(await tinLenhKhach(w, DRIVER), [`Văn phòng vừa điều chỉnh chuyến ${nguon.chuyen.ma} ngày 11/03 (chuyển khách đi) — mở để xem`], "tài xế nguồn: câu trung tính");
+    assert.deepEqual(await lienKetTin(w, DRIVER, /chuyển khách đi/), [`/cuoc-chuyen?id=${encodeURIComponent(nguon.chuyen.id)}`]);
+    assert.deepEqual(await tinLenhKhach(w, SALES), [], "người làm không tự nhận");
+    assert.deepEqual(await tinLenhKhach(w, ADM), [], "văn phòng không nhận");
+    assert.deepEqual(await goCuaDoi(w, dich.chuyen.id, nguon.chuyen.id), [DRIVER, DRIVER2].sort(), "gõ cửa tới cả hai tài xế");
+    // Dữ kiện: hỏi CHỈ chuyến đích + sự kiện dời mang CAM_KET → chuyến nguồn (kèm khoảng lái) tự có trong dữ kiện; cờ tin có, cờ mốc không.
+    const evDoi = w.q("SELECT id FROM vc_trip_event WHERE trip_id = ? AND kind = 'ALLOCATION_MOVED'", dich.chuyen.id)[0].id;
+    const f = await app.chuyenChoTinTheoId(w.env.DB, { tripIds: [dich.chuyen.id], suKienIds: [evDoi] });
+    assert.deepEqual(f.khanCap, [evDoi], "cờ tin: sự kiện có bỏ qua luật");
+    assert.deepEqual(f.vuotMoc ?? [], [], "cờ mốc: không (câu trung tính)");
+    assert.deepEqual(f.khanCapNguon, [{ suKienId: evDoi, tripId: nguon.chuyen.id }]);
+    const cn = f.chuyen.find((c: any) => c.tripId === nguon.chuyen.id);
+    assert.ok(cn, "chuyến nguồn có trong dữ kiện");
+    assert.deepEqual(cn.lai.map((l: any) => l.partyId), [`pty-${DRIVER}`]);
   } finally {
     tat();
   }
@@ -220,6 +243,37 @@ test("Phiếu hẹp D1 CAO-C (ca biên): dời chặng thường từ chuyến N
     assert.deepEqual(w.q("SELECT override_rule_code r FROM vc_trip_event WHERE trip_id = ? AND kind = 'ALLOCATION_MOVED'", dich.chuyen.id).map((r: any) => r.r), ["MOC_TOI_THIEU"]);
     assert.deepEqual(await tinKhanCap(w, DRIVER), [`Văn phòng vừa điều chỉnh khẩn cấp chuyến ${nguon.chuyen.ma} ngày 11/03 (chuyển khách đi) — mở để xem`]);
     assert.deepEqual(await tinKhanCap(w, DRIVER2), [`Văn phòng vừa điều chỉnh khẩn cấp chuyến ${dich.chuyen.ma} ngày 11/03 (chuyển khách tới) — mở để xem`]);
+    // CAO-C: sự kiện mang MOC_TOI_THIEU ⇒ có trong CẢ cờ tin lẫn cờ mốc (câu "khẩn cấp"); không thêm tin trung tính.
+    const evDoi = w.q("SELECT id FROM vc_trip_event WHERE trip_id = ? AND kind = 'ALLOCATION_MOVED'", dich.chuyen.id)[0].id;
+    const f = await app.chuyenChoTinTheoId(w.env.DB, { tripIds: [dich.chuyen.id], suKienIds: [evDoi] });
+    assert.deepEqual([f.khanCap, f.vuotMoc], [[evDoi], [evDoi]]);
+    assert.equal((await tinLenhKhach(w, DRIVER)).length, 1, "tài xế nguồn: một tin, không thêm câu trung tính");
+  } finally {
+    tat();
+  }
+});
+
+test("CAO-C (báo mọi lệnh có bỏ qua luật — chủ chọn 2026-10-08, ca 'ồn' chủ chấp nhận): Quản trị xếp đơn thường vào chuyến NGOÀI mốc có tài xế, CHỈ kèm camKetPhaLe → 200, sự kiện mang CAM_KET; tài xế có ĐÚNG MỘT tin câu TRUNG TÍNH (không 'khẩn cấp', không '6 giờ'); Quản trị (người làm), Bán hàng không; gõ cửa tới tài xế", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const a = await don(w, { ngay: NGAY_SAU, gio: "09:00", soNguoi: 2 });
+    w.sqlite.prepare("UPDATE ord_transfer_leg SET min_vehicle_seats = 30 WHERE id = ?").run(a.legId); // xe 15 chỗ trái cam kết số chỗ
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, ngay: NGAY_SAU, bd: "08:00", kt: "12:00" }); // ngoài mốc
+    const r = await xep(w, ADM, t.chuyen.id, [{ legId: a.legId, soSuat: 2 }], { camKetPhaLe: PL });
+    assert.equal(r.status, 200, r.text);
+    const ev = w.q("SELECT id, override_rule_code r FROM vc_trip_event WHERE trip_id = ? AND kind = 'ALLOCATED'", t.chuyen.id);
+    assert.deepEqual(ev.map((x: any) => x.r), ["CAM_KET"]);
+    const tin = await tinLenhKhach(w, DRIVER);
+    assert.deepEqual(tin, [`Văn phòng vừa điều chỉnh chuyến ${t.chuyen.ma} ngày 12/03 (xếp thêm khách) — mở để xem`]);
+    assert.doesNotMatch(tin[0]!, /khẩn cấp|6 giờ|phá lệ/);
+    assert.deepEqual(await tinLenhKhach(w, ADM), [], "người làm không tự nhận");
+    assert.deepEqual(await tinLenhKhach(w, SALES), [], "văn phòng không nhận");
+    // Đường gõ cửa (gốc lắp ráp): dòng của lệnh xếp mang cờ tin ⇒ dongCoTheSinhTin đúng; người nhận gõ cửa chỉ tài xế.
+    const kq = await app.dongChuyenTheoId(w.env.DB, ev[0].id, (q: any) => app.chuyenChoTinTheoId(w.env.DB, q));
+    assert.equal(kq?.dong.khanCap, true, "cờ tin");
+    assert.equal(kq?.dong.vuotMoc, false, "cờ mốc");
+    assert.deepEqual(nguoiNhanDay(TAI_KHOAN as any, { chuyen: kq!.dong }, new Date(Date.parse(kq!.dong.luc) + 1).toISOString()), [DRIVER]);
   } finally {
     tat();
   }
