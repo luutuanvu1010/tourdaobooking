@@ -189,7 +189,7 @@ console.log("✓ khai trùng cùng mã trên một đơn 409 bank_txn_duplicate;
   assert.equal(maLoi(kq2.find((r) => r.status === 409)), "bank_txn_over");
   assert.equal((await sqlRows(`SELECT count(*) AS n FROM bil_receipt_bank_txn WHERE txn_code = '${MA("56")}'`))[0].n, 1, "tổng theo mã không vượt số thực chuyển");
 }
-console.log("✓ đua thật: hai lệnh một khoản ⇒ 200 + 409; hai khoản một mã ⇒ 200 + 409 bank_txn_over, D1 chỉ có một dòng nối");
+console.log("✓ ca đua (một thắng, một 409): hai lệnh một khoản ⇒ 200 + 409; hai khoản một mã ⇒ 200 + 409 bank_txn_over, D1 chỉ có một dòng nối");
 
 // ---- 8) Kế toán tự ghi (đường 2): CK – Công ty thu cần mã; ô mã miễn luật 8 chữ số, ghi chú vẫn chặn; tiền mặt không cần
 {

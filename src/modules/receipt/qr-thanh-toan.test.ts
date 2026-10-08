@@ -92,6 +92,34 @@ test("§8.3 phạm vi, cổng orders: HDV phụ trách 200, HDV khác 404; Đố
   assert.equal((await qr(w, TX, cuaSales)).status, 403);
 });
 
+const INTERN = "99999999-9999-4999-8999-999999999999";
+
+test("Thứ tự 'quyền trước tài khoản': công ty CHƯA cài tài khoản mà người không được xem đơn vẫn nhận 404 / 403 — không lộ 409 'chưa cài'; người được xem mới nhận 409", async () => {
+  const w = setup();
+  seedStaff(w.sqlite, { id: INTERN, phone: "0900000009", name: "Thực Tập", perms: ["INTERN"] });
+  const cuaSales = don(w, "99999999-9999-4999-8999-000000000051", "TD-20261008-0051", SALES);
+  const cuaDt = don(w, "99999999-9999-4999-8999-000000000052", "TD-20261008-0052", DT);
+  const cuaThucTap = don(w, "99999999-9999-4999-8999-000000000053", "TD-20261008-0053", INTERN);
+  const CHUA_CAI = /chưa cài tài khoản nhận tiền/;
+  // CHƯA cài: người KHÔNG được xem đơn bị từ chối ĐÚNG như khi đã cài (404 cho HDV không phụ trách; 403 cho Đối tác / Thực tập xem đơn người khác) và câu trả lời không nhắc tài khoản.
+  for (const [ai, id, trangThai] of [[HDV2, cuaSales, 404], [DT, cuaSales, 403], [INTERN, cuaSales, 403]] as const) {
+    const r = await qr(w, ai, id);
+    assert.equal(r.status, trangThai, `${ai} → ${id}: ${r.text}`);
+    assert.doesNotMatch(r.text, CHUA_CAI, `${ai}: quyền phải được hỏi TRƯỚC tài khoản — không lộ việc công ty chưa cài`);
+  }
+  // Đối chứng: người ĐƯỢC xem đơn (chính chủ) vẫn gặp 409 'chưa cài' — chứng tỏ lời đọc tài khoản vẫn nằm sau cổng quyền chứ không biến mất.
+  for (const [ai, id] of [[SALES, cuaSales], [DT, cuaDt], [INTERN, cuaThucTap]] as const) {
+    const r = await qr(w, ai, id);
+    assert.equal(r.status, 409, `${ai} (đơn của mình): ${r.text}`);
+    assert.match(r.json.error.message, CHUA_CAI);
+  }
+  // ĐÃ cài: Thực tập xem được đơn MÌNH lập, đơn người khác bị từ chối như Đối tác (403, không phải 404 — Thực tập không thuộc nhóm chỉ-xem-đơn-được-giao).
+  await caiTaiKhoan(w);
+  assert.equal((await qr(w, INTERN, cuaThucTap)).status, 200);
+  assert.equal((await qr(w, INTERN, cuaSales)).status, 403);
+  assert.equal((await qr(w, DT, cuaSales)).status, 403);
+});
+
 test("§8.4: đơn huỷ / đã thu đủ ⇒ 409 không còn tiền; đơn đã Đã giao ⇒ 409 'Đơn đã giao' (kiểm trước còn lại)", async () => {
   const w = setup();
   await caiTaiKhoan(w);

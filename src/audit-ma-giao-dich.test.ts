@@ -91,7 +91,7 @@ test("R-BIL-D6b ghim hai điều kiện then chốt: nửa thu chuyển cọc (t
 });
 
 // BỔ SUNG của người thi công (ngoài ba bài gốc của kế hoạch): xoá thử từng MỆNH ĐỀ loại trừ của hai luật cho thấy ba bài gốc không khoá chúng. Cả hai luật mức LỖI
-// (chặn `npm run trien-khai`), nên một mệnh đề loại trừ bị mất là báo NHẦM dữ liệu đúng: lệnh Thay dùng lại mã, lần thu đã bị đảo, dòng đảo, lần thu cũ hơn mốc, tiền mặt,
+// (`audit-invariants --db remote` thoát 1 và báo KHÔNG ĐẠT ở bước kiểm dữ liệu SAU deploy — không chặn deploy), nên một mệnh đề loại trừ bị mất là báo NHẦM dữ liệu đúng: lệnh Thay dùng lại mã, lần thu đã bị đảo, dòng đảo, lần thu cũ hơn mốc, tiền mặt,
 // nhân viên thu, lần trả lại khách. Mỗi lần chèn kèm MỘT khẳng định, để mỗi mệnh đề bị xoá làm đỏ đúng một khẳng định.
 interface Khac { kind?: string; role?: string; method?: string; luc?: string; dao?: string }
 const lanKhac = (db: DatabaseSync, ct: string, order: string, amount: number, o: Khac = {}) => {
@@ -124,4 +124,18 @@ test("(bổ sung) R-BIL-D6a / D6b không báo nhầm: Thay dùng lại mã, lầ
   assert.equal(dem(db, "R-BIL-D6b"), 0, "D6b: nhân viên thu (không phải Công ty thu) không đòi mã");
   lanKhac(db, ct, "o1", 50, { kind: "CUSTOMER_REFUND" });
   assert.equal(dem(db, "R-BIL-D6b"), 0, "D6b: lần trả lại khách không đòi mã");
+});
+
+// Ghim ĐIỂM MỐC của D6b (người kiểm cuối 2026-10-08: đổi `>=` thành `>` ở so sánh mốc mà bài vẫn xanh vì mọi ca đều đặt `created_at` xa mốc — năm 2000 hoặc 2099).
+// Chỉ D6b dùng mốc `R-BIL-D6`; câu SQL của D6a không nhắc `bil_audit_cutoff`. Mốc đọc từ chính CSDL thử (= lúc áp migration 0088), không đoán.
+test("R-BIL-D6b đúng TẠI mốc: lần thu có created_at BẰNG ĐÚNG cutoff_at của 'R-BIL-D6' bị tính (>=, không phải >); sớm hơn một mili giây thì không", () => {
+  const { db, ct } = moi();
+  const moc = (db.prepare("SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-D6'").get() as { cutoff_at: string }).cutoff_at;
+  assert.match(moc, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/, "mốc có dạng ISO mili giây nên so chuỗi = so thời gian");
+  const truoc = new Date(Date.parse(moc) - 1).toISOString();
+  assert.ok(truoc < moc);
+  lanKhac(db, ct, "o1", 100, { luc: truoc });
+  assert.equal(dem(db, "R-BIL-D6b"), 0, "sớm hơn mốc một mili giây ⇒ không bị đòi mã");
+  lanKhac(db, ct, "o2", 100, { luc: moc });
+  assert.equal(dem(db, "R-BIL-D6b"), 1, "BẰNG ĐÚNG mốc ⇒ bị tính (thiếu mã)");
 });
