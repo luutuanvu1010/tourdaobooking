@@ -42,6 +42,15 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
 - **Câu hỏi thêm thứ hai 8/10** (phiếu kiểm bản chép nêu: ca một lệnh PUT vừa dời giờ vào trong 6 giờ vừa vượt khoảng nghỉ/cam kết), chủ trả lời **"Cho qua, tính là sát giờ (Recommended)"**, tức cách (a): mỗi lệnh một định nghĩa "dưới mốc" là `min(cũ, mới, sớm nhất)`.
 - Việc kế: chép ADR-0063 (D1 accepted) và ADR-0104 vào `docs/adr/` (người soạn chuẩn bị bản chép theo Q-1 b, Q-2 a; điều phối chép bằng công cụ sửa tệp để chủ được hỏi). A2 bắt đầu thi công. ADR-0104 thi công SAU khi A1 gộp, vì cả hai cùng sửa `van-chuyen/dieu-phoi*`.
 
+## Lượt duyệt 8b — chủ trả lời 2026-10-08 (AskUserQuestion, nguyên văn nhãn đã chọn)
+
+- Trình cùng báo cáo Giai đoạn 2. Câu hỏi đã ghép hệ quả của 8a vào Q-3 (Bán hàng trong 6 giờ làm được trọn: đặt gấp mọi đơn, xếp/rút/dời, đổi xe, đổi tài xế, huỷ chuyến còn khách, bỏ qua khoảng nghỉ và cam kết; nhãn "Điều chỉnh khẩn cấp") và nói rủi ro một chiều của nút Chỉ đường ngay trong câu hỏi (P18, một lần): địa chỉ — thường là nhà riêng của khách — ra Google, có thể nằm lại trong lịch sử tài khoản Google trên máy tài xế, không thu lại được, chưa kiểm theo luật bảo vệ dữ liệu cá nhân; nút không phải theo dõi xe thời gian thực.
+- Tệp 03 (ADR-0105 nút Chỉ đường), Q-1: **"Duyệt, hai nút Google và Apple"** — tức Q-1 = **b**, khác khuyến nghị. Chủ chấp nhận rủi ro địa chỉ ra bên thứ ba (nay là cả Google lẫn Apple).
+- Tệp 03, Q-2: **"Có, trong khung giờ đã được phép (Recommended)"** — Q-2 = a (tài xế đối tác thấy nút trong khung `trongKhungXemKhach`, ADR-0053 D7.2, khi Đợt 6 mở).
+- Tệp 04 (ADR-0106 mốc chụp khoảng nghỉ): **"Duyệt đúng như mã đang làm (Recommended)"**.
+- Tệp 05 (ADR-0107 Bán hàng đặt gấp): **"Duyệt cả hai ý (Recommended)"** — Q-3 = a; nhãn "Điều chỉnh khẩn cấp" vì ADR-0104 đã duyệt.
+- Việc kế: người soạn chuẩn bị bản chép ADR-0105 (viết lại theo Q-1 b: hai nút, chỗ "ngoài phạm vi: Apple Maps" bỏ), ADR-0106, ADR-0107 + dòng mục lục + dòng trỏ ADR cũ; một vòng kiểm; điều phối chép vào `docs/adr/`. Số 0105–0107 còn trống (0108 VietQR ở nhánh khác, 0103 bỏ trống).
+
 ## Giai đoạn 2 — bắt đầu 8/10 (phần đã duyệt, không chờ câu trả lời)
 
 - **Số migration giữ chỗ** (đo 8/10 trên mọi nhánh: lớn nhất `0083`): A1 = `0084` (+ `0085` nếu tách); A3 = `0086`. Đo lại trước khi gộp `main`.
