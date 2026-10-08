@@ -18,7 +18,9 @@
     "thongbao",
     "van-chuyen",
     "tro-ly",
-    "lan-gui"
+    "lan-gui",
+    "pricing",
+    "ky-so"
   ],
   "tables": [
     {
@@ -591,6 +593,42 @@
       "module": "tro-ly",
       "kind": "table",
       "note": "dấu vân nghĩa (embedding OpenAI, ADR-0082 Đ2) của đoạn kho tri thức trợ lý — CHỈ nội dung kho (hướng dẫn, kiến trúc, sơ đồ trang, ngữ cảnh bổ sung đã lọc), KHÔNG câu hỏi / người hỏi; khoá = SHA-256 của đoạn đã định dạng + mẫu + số chiều; vec = BLOB float32 dài so_chieu × 4 (CHECK); CHỈ-THÊM, ghi bằng ON CONFLICT(khoa) DO NOTHING khi máy chủ tính bù; không route nào đọc / ghi trực tiếp"
+    },
+    {
+      "name": "prc_beneficiary_role",
+      "module": "pricing",
+      "kind": "table",
+      "note": "danh sách vai hồ sơ được hưởng hoa hồng (ADR-0077 điều 3, C3 = A; migration 0090): gieo năm vai (Công ty lữ hành, HDV độc lập, Lễ tân khách sạn, Tài xế taxi, Cộng tác viên). Không xoá; tắt một vai bằng active = 0 (dòng mức cũ vẫn giữ, R-PRC-2 báo)"
+    },
+    {
+      "name": "prc_commission_rule",
+      "module": "pricing",
+      "kind": "table",
+      "note": "bảng mức hoa hồng đối tác (ADR-0077 điều 4; migration 0090), chính sách có hiệu lực: áp cho một hồ sơ HOẶC cho một vai; phạm vi dịch vụ / nhóm / mọi dịch vụ; kiểu tỷ lệ (phần vạn) hoặc đ/khách. Không xoá, chỉ đóng hiệu lực một lần, không hai dòng cùng đối tượng + phạm vi chồng khoảng ngày; đối tượng phải mang vai đang bật trong prc_beneficiary_role. Tỷ lệ và đ/khách KHÔNG vào DTO của Đối tác (C9 = A)"
+    },
+    {
+      "name": "prc_supply_term",
+      "module": "pricing",
+      "kind": "table",
+      "note": "điều khoản cung ứng — người bán của dịch vụ (ADR-0078 điều 2; migration 0090), chính sách có hiệu lực: phạm vi dịch vụ / nhóm / mọi dịch vụ. Người bán = công ty chủ thì không có nhà cung cấp; người bán khác phải đang mang vai SUPPLIER và có tỷ lệ mua lại a% (cost_rate_bp). Không xoá, chỉ đóng một lần, không chồng; dòng ALL chỉ cho công ty chủ; luật X3: không ghi a% cho nhóm Thuê xe (TXE). Gieo một dòng ALL của công ty chủ từ 2025-01-01. a% KHÔNG vào DTO của Đối tác"
+    },
+    {
+      "name": "ord_service_terms",
+      "module": "orders",
+      "kind": "table",
+      "note": "bản chụp thương mại của từng dòng dịch vụ trong đơn đã xác nhận (ADR-0077 điều 8, ADR-0078 điều 5; migration 0090), CHỈ-THÊM: người hưởng, hoa hồng (trạng thái NONE / SET / MISSING kèm lý do thiếu), mức đã chụp và dòng mức nguồn, người bán / nhà cung cấp / a%. Bản mới trỏ supersedes_id (UNIQUE) tới bản hiện hành. Bản AUTO phải khớp dòng mức và điều khoản còn hiệu lực ở captured_date (trigger terms_rule_stale / terms_term_stale — bảng mức đổi giữa lúc đọc và lúc ghi thì cả lô rơi); MANUAL cần lý do ≥ 10 ký tự. Không chụp cho đơn nháp hay đơn đã Đã giao. Tỷ lệ, a%, nguồn chụp KHÔNG vào DTO của Đối tác"
+    },
+    {
+      "name": "ord_audit_cutoff",
+      "module": "orders",
+      "kind": "table",
+      "note": "mốc của kiểm định kỳ R-ORD-T1 (đặc tả sổ đại lý đợt 1 §9; khuôn bil_audit_cutoff; migration 0090), CHỈ-THÊM: code → cutoff_at = lúc áp migration. Đơn xác nhận từ mốc + 60 phút mà thiếu bản chụp = LỖI, trước đó = cảnh báo kèm danh sách. Không tiền, không dữ liệu cá nhân"
+    },
+    {
+      "name": "ky_period_close",
+      "module": "ky-so",
+      "kind": "table",
+      "note": "tháng đã khoá sổ (ADR-0080 D1; migration 0090), CHỈ-THÊM và KHÔNG có đường mở lại: period 'YYYY-MM' là khoá chính; bảng rỗng thì khoá tháng nào cũng được, sau đó chỉ tháng liền kề sau tháng lớn nhất. Bốn trigger *_period_closed (bil_payment_receipt, bil_posting, bil_outside_refund, vc_trip_cost_line) chặn dòng mới có ngày phát sinh thuộc tháng đã khoá. Khoá nhầm chỉ cứu bằng khôi phục Time Travel"
     }
   ],
   "views": [
@@ -859,6 +897,76 @@
         "counterparty_id",
         "order_id",
         "balance"
+      ]
+    },
+    {
+      "name": "v_pty_open_role",
+      "module": "parties",
+      "columns": [
+        "party_id",
+        "role_type_code",
+        "role_group"
+      ]
+    },
+    {
+      "name": "v_ctl_service_group",
+      "module": "catalog",
+      "columns": [
+        "catalog_code",
+        "group_code"
+      ]
+    },
+    {
+      "name": "v_prc_beneficiary_role",
+      "module": "pricing",
+      "columns": [
+        "role_type_code"
+      ]
+    },
+    {
+      "name": "v_prc_commission_rule",
+      "module": "pricing",
+      "columns": [
+        "id",
+        "target_party_id",
+        "target_role_code",
+        "scope",
+        "catalog_code",
+        "group_code",
+        "kind",
+        "rate_bp",
+        "per_pax_amount",
+        "valid_from_date",
+        "valid_to_date"
+      ]
+    },
+    {
+      "name": "v_prc_supply_term",
+      "module": "pricing",
+      "columns": [
+        "id",
+        "scope",
+        "catalog_code",
+        "group_code",
+        "seller_party_id",
+        "supplier_party_id",
+        "cost_rate_bp",
+        "valid_from_date",
+        "valid_to_date"
+      ]
+    },
+    {
+      "name": "v_ord_terms_missing",
+      "module": "orders",
+      "columns": [
+        "order_id"
+      ]
+    },
+    {
+      "name": "v_ky_closed_period",
+      "module": "ky-so",
+      "columns": [
+        "period"
       ]
     }
   ],

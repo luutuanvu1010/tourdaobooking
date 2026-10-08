@@ -51,6 +51,7 @@
 | `catalog_sync` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `ctl_group` | bảng tra cứu | nhóm dịch vụ của danh mục (ADR-0058, 0055): gieo 14 nhóm từ ảnh chụp Sheet 30/9, sau đó Quản trị quản lý trong app. Không xoá (trigger ctl_group_no_delete — tắt bằng active = 0); tên chỉ cấm trùng giữa các nhóm đang dùng (chỉ mục duy nhất một phần ctl_group_name_active) |
 | `ctl_service_group` | bảng | LỊCH SỬ gán nhóm cho từng dịch vụ (ADR-0058, 0055): chỉ thêm (trigger cấm sửa/xoá), seq tăng theo từng dịch vụ, dòng seq lớn nhất là nhóm hiện hành, group_code NULL = Chưa phân loại. Gán vào nhóm đang tắt bị trigger ctl_service_group_active_group chặn; service_code phải có trong catalog_item |
+| `v_ctl_service_group` | view công bố | cột: catalog_code, group_code |
 
 ## company
 
@@ -109,6 +110,8 @@
 | `ord_cancel_reason` | bảng | lý do huỷ đơn (ADR-0089 đ8, X-2, X-3; migration 0078), CHỈ-THÊM (trigger cấm sửa/xoá). Mỗi đơn huỷ đúng một dòng gốc (chỉ mục duy nhất một phần) + tối đa một dòng PHÂN LOẠI trỏ dòng gốc 'chưa kết luận' (reclassifies_id; giữ ngày huỷ và cờ legacy). reason_code / group_code (KHACH_HUY, CONG_TY_HUY, LAP_LAI, CHUA_KET_LUAN) kiểm ở mã (src/shared/ly-do-huy.ts); note = ghi chú 'Khác' / lý do phân loại, không SĐT. cancelled_date = ngày VN. legacy = 1: đơn huỷ trước bản này — gieo MỘT LẦN trong migration 0078 (nhóm chưa kết luận, mã LEGACY, ngày = ngày VN của nhật ký huỷ mới nhất, không có thì của updated_at; người ghi 'he-thong'). Trigger orders_cancel_requires_reason: đơn chỉ chuyển sang huỷ khi đã có dòng lý do. Đọc xuyên module qua v_ord_cancel_state (nhóm hiện hành + hạn hoàn cọc refund_deadline) |
 | `ord_passenger` | bảng |  |
 | `ord_manual_service_policy` | bảng | công tắc "Dịch vụ nhập tay" (ADR-0061, migration 0052), CHỈ-THÊM; dòng hiệu lực = valid_from_at lớn nhất ≤ bây giờ, bảng rỗng = TẮT; gieo một dòng TẮT; chỉ Toàn quyền thêm dòng mới (settings.ops) |
+| `ord_service_terms` | bảng | bản chụp thương mại của từng dòng dịch vụ trong đơn đã xác nhận (ADR-0077 điều 8, ADR-0078 điều 5; migration 0090), CHỈ-THÊM: người hưởng, hoa hồng (trạng thái NONE / SET / MISSING kèm lý do thiếu), mức đã chụp và dòng mức nguồn, người bán / nhà cung cấp / a%. Bản mới trỏ supersedes_id (UNIQUE) tới bản hiện hành. Bản AUTO phải khớp dòng mức và điều khoản còn hiệu lực ở captured_date (trigger terms_rule_stale / terms_term_stale — bảng mức đổi giữa lúc đọc và lúc ghi thì cả lô rơi); MANUAL cần lý do ≥ 10 ký tự. Không chụp cho đơn nháp hay đơn đã Đã giao. Tỷ lệ, a%, nguồn chụp KHÔNG vào DTO của Đối tác |
+| `ord_audit_cutoff` | bảng | mốc của kiểm định kỳ R-ORD-T1 (đặc tả sổ đại lý đợt 1 §9; khuôn bil_audit_cutoff; migration 0090), CHỈ-THÊM: code → cutoff_at = lúc áp migration. Đơn xác nhận từ mốc + 60 phút mà thiếu bản chụp = LỖI, trước đó = cảnh báo kèm danh sách. Không tiền, không dữ liệu cá nhân |
 | `v_ord_order_label` | view công bố | cột: id, order_code |
 | `v_ord_order_owner` | view công bố | cột: id, staff_id |
 | `v_ord_order_flag` | view công bố | cột: id, is_confirmed, is_cancelled |
@@ -117,6 +120,7 @@
 | `v_ord_leg_key` | view công bố | cột: id, order_id, order_service_id, is_open |
 | `v_ord_passenger_key` | view công bố | cột: person_key, order_id, has_current_row |
 | `v_ord_passenger_row` | view công bố | cột: id, person_key, order_id, is_current |
+| `v_ord_terms_missing` | view công bố | cột: order_id |
 
 ## parties
 
@@ -142,6 +146,7 @@
 | `v_pty_carrier` | view công bố | cột: party_id |
 | `v_pty_carrier_driver` | view công bố | cột: carrier_party_id, driver_party_id |
 | `v_pty_person_xung_ho` | view công bố | cột: party_id, given_name, gender |
+| `v_pty_open_role` | view công bố | cột: party_id, role_type_code, role_group |
 
 ## staff
 
@@ -214,6 +219,24 @@
 |---|---|---|
 | `lg_lan_gui` | bảng | vé chống ghi trùng (ADR-0094, migration 0074): dữ liệu KỸ THUẬT, không dữ liệu cá nhân — mỗi dòng một Idempotency-Key của một lệnh ghi có đăng nhập, chèn CUỐI lô ghi đầu tiên thành công của lệnh (có vé ⇔ lô đã ghi). Khoá chính (staff_id, khoa), WITHOUT ROWID; van_tay = HMAC (khoá LAN_GUI_SECRET); duong = mẫu route; ket_qua = đường dẫn nội bộ chỉ chứa id. Không xoá ở bản này (đường dọn theo thời hạn: bản sau, A-11) |
 | `lg_chinh_sach_giu` | bảng | thời hạn giữ vé (ADR-0094 đ8a, migration 0074): dữ liệu kỹ thuật; dòng hiệu lực = valid_from_at mới nhất ≤ bây giờ; chỉ thêm (trigger cấm sửa/xoá); so_ngay NULL = Không dọn; sàn cứng 90 ngày ở CHECK; gieo 365 ngày |
+
+## pricing
+
+| Đối tượng | Loại | Ghi chú |
+|---|---|---|
+| `prc_beneficiary_role` | bảng | danh sách vai hồ sơ được hưởng hoa hồng (ADR-0077 điều 3, C3 = A; migration 0090): gieo năm vai (Công ty lữ hành, HDV độc lập, Lễ tân khách sạn, Tài xế taxi, Cộng tác viên). Không xoá; tắt một vai bằng active = 0 (dòng mức cũ vẫn giữ, R-PRC-2 báo) |
+| `prc_commission_rule` | bảng | bảng mức hoa hồng đối tác (ADR-0077 điều 4; migration 0090), chính sách có hiệu lực: áp cho một hồ sơ HOẶC cho một vai; phạm vi dịch vụ / nhóm / mọi dịch vụ; kiểu tỷ lệ (phần vạn) hoặc đ/khách. Không xoá, chỉ đóng hiệu lực một lần, không hai dòng cùng đối tượng + phạm vi chồng khoảng ngày; đối tượng phải mang vai đang bật trong prc_beneficiary_role. Tỷ lệ và đ/khách KHÔNG vào DTO của Đối tác (C9 = A) |
+| `prc_supply_term` | bảng | điều khoản cung ứng — người bán của dịch vụ (ADR-0078 điều 2; migration 0090), chính sách có hiệu lực: phạm vi dịch vụ / nhóm / mọi dịch vụ. Người bán = công ty chủ thì không có nhà cung cấp; người bán khác phải đang mang vai SUPPLIER và có tỷ lệ mua lại a% (cost_rate_bp). Không xoá, chỉ đóng một lần, không chồng; dòng ALL chỉ cho công ty chủ; luật X3: không ghi a% cho nhóm Thuê xe (TXE). Gieo một dòng ALL của công ty chủ từ 2025-01-01. a% KHÔNG vào DTO của Đối tác |
+| `v_prc_beneficiary_role` | view công bố | cột: role_type_code |
+| `v_prc_commission_rule` | view công bố | cột: id, target_party_id, target_role_code, scope, catalog_code, group_code, kind, rate_bp, per_pax_amount, valid_from_date, valid_to_date |
+| `v_prc_supply_term` | view công bố | cột: id, scope, catalog_code, group_code, seller_party_id, supplier_party_id, cost_rate_bp, valid_from_date, valid_to_date |
+
+## ky-so
+
+| Đối tượng | Loại | Ghi chú |
+|---|---|---|
+| `ky_period_close` | bảng | tháng đã khoá sổ (ADR-0080 D1; migration 0090), CHỈ-THÊM và KHÔNG có đường mở lại: period 'YYYY-MM' là khoá chính; bảng rỗng thì khoá tháng nào cũng được, sau đó chỉ tháng liền kề sau tháng lớn nhất. Bốn trigger *_period_closed (bil_payment_receipt, bil_posting, bil_outside_refund, vc_trip_cost_line) chặn dòng mới có ngày phát sinh thuộc tháng đã khoá. Khoá nhầm chỉ cứu bằng khôi phục Time Travel |
+| `v_ky_closed_period` | view công bố | cột: period |
 
 ## Cạnh toàn vẹn (khoá ngoại có sẵn, không phải phụ thuộc mã — ADR-0002 điều 6)
 

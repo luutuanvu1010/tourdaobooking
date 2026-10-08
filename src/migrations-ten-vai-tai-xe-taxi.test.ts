@@ -36,7 +36,8 @@ test("(a) đúng một tệp *_ten_vai_tai_xe_taxi.sql; không phải migration 
 
 test("(b) sau migration: TAXI_DRIVER tên 'Tài xế taxi (giới thiệu khách)' = ROLES; mọi dòng khác của pty_role_type và cột khác giữ nguyên", () => {
   const truoc = rows(open(files.filter((f) => f < FILE)), "SELECT * FROM pty_role_type ORDER BY code");
-  const sau = rows(open(files), "SELECT * FROM pty_role_type ORDER BY code");
+  // "Sau migration" = ngay sau tệp này (không phải sau mọi migration về sau): migration 0090 thêm vai SUPPLIER vào pty_role_type nên so với toàn bộ sẽ lệch dòng.
+  const sau = rows(open(files.filter((f) => f <= FILE)), "SELECT * FROM pty_role_type ORDER BY code");
   assert.equal(ROLES.TAXI_DRIVER.name, "Tài xế taxi (giới thiệu khách)");
   const taxi = sau.find((r) => r.code === "TAXI_DRIVER")!;
   assert.equal(taxi.name, ROLES.TAXI_DRIVER.name);
