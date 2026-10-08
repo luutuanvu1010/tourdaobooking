@@ -12,6 +12,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Vòng focus của ô số bộ đếm (bị luật focus ô nhập của 1c718023 đè — a2-smoke-form bước 4b). Số 1.85 = main 1.84 + 1.
+    version: "1.85",
+    date: "2026-10-08",
+    items: [
+      { kind: "sua", text: "Ô số khách ở bộ đếm (màn tạo và sửa đơn) hiện lại viền đậm khi đang gõ, dễ thấy mình đang sửa ô nào." },
+    ],
+  },
+  {
     // Năm lỗi tiền (TNV-G1 ADR-0089, F-03, TNV-G3 ADR-0088, TNV-G4 + TNV-VP01 ADR-0092), migration 0078–0083. Dựng lại 2026-10-06 lên trên bản 1.83 (Tốc độ đợt 1) đã vào main trước — số đổi thành 1.84 = main 1.83 + 1.
     version: "1.84",
     date: "2026-10-06",

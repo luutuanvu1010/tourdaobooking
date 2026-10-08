@@ -23,6 +23,10 @@ const donMoi = async (ai, ten) => {
   return r.json.order;
 };
 const legOf = (o) => o.services[0].legs[0];
+// 2026-10-08 (ADR-0074/ADR-0075): `call` của dp-lib giữ MỘT phiên mỗi tài khoản, nhưng `env.as` đăng nhập lại và kết thúc phiên giữ sẵn đó ("bi_thay") →
+// lời đọc bằng `call` sau khi mở trang của CÙNG tài khoản nhận 401 (bước 3, 7, 8, 10 từng đỏ "Cannot read properties of undefined"). Khi trang của tài
+// khoản đó đang mở, đọc đơn QUA TRANG: cùng phiên, cùng người xem (Đối tác vẫn nhận DTO của Đối tác ở bước 10).
+const donQuaTrang = async (p, id) => (await p.ev(`fetch('/api/orders/' + ${JSON.stringify(id)}).then((r) => r.json())`)).order;
 const CAU_MOC = /^Giờ đón cách bây giờ \d+ giờ( \d+ phút)? — dưới mốc 48 giờ$/;
 const LY_DO = ["Khách đoàn gọi gấp", "Chuyến bay đổi giờ", "Đơn bù cho khách bị lỡ chuyến", "Lý do khác"];
 const card0 = `document.querySelector('#services .svc')`;
@@ -108,7 +112,7 @@ try {
     const dong = await s.ev(`[...document.querySelectorAll('#error .banner-lines li')].map((l) => l.textContent)`);
     assert.equal(dong.length, 1);
     assert.match(dong[0], /^Chiều đi · Tour 4 đảo Nha Trang: Giờ đón cách bây giờ \d+ giờ( \d+ phút)? — dưới mốc 48 giờ$/);
-    assert.equal((await call(ACCOUNTS.salesA, "GET", `/api/orders/${o1.id}`)).json.order.status, "draft");
+    assert.equal((await donQuaTrang(s, o1.id)).status, "draft");
     assert.equal(await s.ev(noCode), "");
   });
 
@@ -166,7 +170,7 @@ try {
     assert.match(await a.ev(txt("#order .dg-mark")), /^Đặt gấp — Khách đoàn gọi gấp — Quản Trị duyệt \d\d:\d\d “Khách đoàn gọi lúc 07:40”$/);
     assert.equal(await a.ev(`!!document.querySelector('#order .dg-warn')`), false);
     assert.equal(await a.ev(`!!document.querySelector('#actions [data-chan]')`), false);
-    const leg = legOf((await call(ACCOUNTS.admin, "GET", `/api/orders/${o1.id}`)).json.order);
+    const leg = legOf(await donQuaTrang(a, o1.id));
     assert.deepEqual([leg.datGap.lyDo, leg.datGap.ghiChu], ["KHACH_DOAN_GOI_GAP", "Khách đoàn gọi lúc 07:40"]);
     await axe(a, "nhãn đặt gấp 1040");
     await shotFull(a, "b7-da-dat-gap-quan-tri-may-tinh.png");
@@ -193,7 +197,7 @@ try {
     assert.equal(put.length, 2, "hai lần gửi: lần đầu không datGap (409), lần sau có");
     assert.equal(JSON.parse(put[0].body).datGap, undefined);
     assert.deepEqual(JSON.parse(put[1].body).datGap, { lyDo: "CHUYEN_BAY_DOI_GIO", ghiChu: null });
-    const leg = legOf((await call(ACCOUNTS.admin, "GET", `/api/orders/${o3.id}`)).json.order);
+    const leg = legOf(await donQuaTrang(a, o3.id));
     assert.deepEqual([leg.pickupTime, leg.datGap.lyDo], ["11:30", "CHUYEN_BAY_DOI_GIO"]);
     assert.match(await a.ev(txt("#order .dg-mark")), /^Đặt gấp — Chuyến bay đổi giờ — Quản Trị duyệt \d\d:\d\d$/);
   });
@@ -234,7 +238,7 @@ try {
     // Khối dịch vụ (phần V12) không có lý do / ghi chú. Khối "Lịch sử" (nhật ký đơn của MÁY CHỦ) kiểm riêng ở bước 10b (bài canh R-P21).
     assert.equal(await d.ev(`(() => { const t = document.querySelector('#order .services').innerText; return t.includes('Ghi chú nội bộ') || t.includes('Khách đoàn gọi gấp'); })()`), false);
     assert.equal(await d.ev(`document.body.innerText.includes('Ghi chú nội bộ')`), false, "ghi chú đặt gấp không lộ ở đâu trên trang");
-    const leg = legOf((await call(DOI_TAC, "GET", `/api/orders/${o2.id}`)).json.order);
+    const leg = legOf(await donQuaTrang(d, o2.id));
     assert.deepEqual(leg.datGap, { daDuyet: true });
     await axe(d, "trang đơn Đối tác");
     await shotFull(d, "b7-don-doi-tac-dien-thoai.png");
