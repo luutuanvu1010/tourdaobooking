@@ -8,6 +8,8 @@
 
 **Tech Stack:** TypeScript, Cloudflare Worker + D1 (SQLite), giao diện thuần dựng bằng `h()`, esbuild, `node --test` (Node 22), khung thử `tests/audit/harness.mjs`.
 
+**Chủ dự án duyệt 2026-10-08:** kế hoạch "Duyệt"; cách thi công "Mỗi bước một trợ lý" (subagent-driven); "Cho phép" tải `qrcode-generator@2.0.4` (MIT, registry npm) để chép một tệp — đây là lời cho phép tải ở Task 9 Bước 1, áp đúng phiên bản này.
+
 **Spec:** `docs/superpowers/specs/2026-10-08-qr-thanh-toan/README.md` (ĐÃ DUYỆT) + `docs/adr/ADR-0108-qr-thanh-toan-vietqr.md` (accepted) + `docs/superpowers/specs/2026-10-08-qr-thanh-toan/trang-ghep.md`. Người thi công đọc cả ba trước Task 1.
 
 ## Global Constraints
