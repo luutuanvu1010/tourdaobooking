@@ -102,6 +102,9 @@ try {
   await k.waitFor("!!document.querySelector('[data-khoi=\"xac-nhan-xac-nhan-ck\"]')", "hàng xác nhận CK");
   assert.equal((await tien2()).keToan.choXacNhan.length, 1, "chưa bấm lần hai: chưa ghi");
   await k.shot(`${OUT}/5-ke-toan-xac-nhan-ck-390.png`);
+  // ADR-0092 Đ6 (C1, 2026-10-08): xác nhận khoản CK – Công ty thu phải kèm mã giao dịch + số thực chuyển theo sao kê (kế hoạch QR + Đ6, Task 10 Bước 10).
+  await k.ev(setInput("document.querySelector('[data-khoi=\"xac-nhan-xac-nhan-ck\"] [data-o=\"ma-giao-dich\"] input')", "FT26100800001"));
+  await k.ev(setInput("document.querySelector('[data-khoi=\"xac-nhan-xac-nhan-ck\"] [data-o=\"so-thuc-chuyen\"] input')", "300000"));
   await k.ev("document.querySelector('[data-khoi=\"xac-nhan-xac-nhan-ck\"] button[type=\"submit\"]').click(); true");
   await k.waitFor("!document.querySelector('[data-action=\"xac-nhan-ck\"]')", "hết nút xác nhận CK", 10000);
   assert.deepEqual((await tien2()).keToan.dangGiu.map((d) => d.soTien), [1200000], "sau xác nhận: Bán hàng còn giữ 1.200.000");
