@@ -61,6 +61,18 @@ const TRIPS_TOUCHING = defineSql(
    WHERE t.status = 'RUNNING' OR (t.status <> 'CANCELLED' AND t.planned_start_ms < ?2 AND COALESCE(t.ended_ms, t.planned_end_ms) > ?1)
    ORDER BY t.planned_start_ms, t.code`,
 );
+/**
+ * Chuyến đã KẾT THÚC THẬT trong [?1, ?2] (ms, theo `ended_ms` — giờ xảy ra) — cho lệnh xuất bến và lý do giữ dự phóng: luật nghỉ (CH-02, ADR-0049 "từ giờ kết
+ * thúc thật") và chống xuất bến trước khi chuyến trước kết thúc (ADR-0050) so giờ THẬT, nên khung KẾ HOẠCH ±1 ngày của `trips_touching` không đủ khi cửa sổ
+ * xuất bến > 24 giờ (LC-20 cho tới 48 giờ). Nơi gọi lọc cùng xe / cùng tài xế.
+ */
+const TRIPS_ENDED_BETWEEN = defineSql(
+  "van-chuyen",
+  "trips_ended_between",
+  `SELECT ${COT_CHUYEN} FROM vc_trip t
+   WHERE t.status IN ('ENDED', 'ENDED_INTERRUPTED') AND t.ended_ms >= ?1 AND t.ended_ms <= ?2
+   ORDER BY t.planned_start_ms, t.code`,
+);
 /** Số chuyến đã có của một ngày chạy (đặt mã CX-DDMM-NN). */
 const TRIP_COUNT_BY_DATE = defineSql("van-chuyen", "trip_count_by_date", "SELECT count(*) AS n FROM vc_trip WHERE service_date = ?1");
 /**
@@ -81,6 +93,9 @@ export async function tripsByDate(db: D1Database, ngay: string): Promise<TripRow
 }
 export async function tripsTouching(db: D1Database, tuMs: number, denMs: number): Promise<TripRow[]> {
   return (await db.prepare(TRIPS_TOUCHING).bind(tuMs, denMs).all<TripRow>()).results;
+}
+export async function tripsEndedBetween(db: D1Database, tuMs: number, denMs: number): Promise<TripRow[]> {
+  return (await db.prepare(TRIPS_ENDED_BETWEEN).bind(tuMs, denMs).all<TripRow>()).results;
 }
 export async function tripCountByDate(db: D1Database, ngay: string): Promise<number> {
   return (await db.prepare(TRIP_COUNT_BY_DATE).bind(ngay).first<{ n: number }>())?.n ?? 0;

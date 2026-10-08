@@ -589,7 +589,7 @@ Các bước: `markAttempt` → `fetchSheetCsv` → `parseCatalogSheet` (cột b
 |---|---|
 | Chồng giờ LC-03 `[planned_start, COALESCE(ended_ms, planned_end))` | `ended_ms` = giờ XẢY RA kết thúc |
 | "Một chuyến đang chạy mỗi xe, mỗi tài xế" | trạng thái, không theo giờ |
-| Khoảng nghỉ lúc xuất bến | giờ xảy ra xuất bến − giờ xảy ra kết thúc chuyến trước |
+| Khoảng nghỉ lúc xuất bến | giờ xảy ra xuất bến − giờ xảy ra kết thúc chuyến trước; lệnh xuất bến và màn chi tiết (chuyến, cuốc) đọc mọi chuyến đã KẾT THÚC THẬT trong [khởi hành dự kiến − (trần cửa sổ 48 giờ + trần nghỉ 8 giờ), bây giờ] — không chỉ khung kế hoạch ±1 ngày (`docNguCanh` + `tripsEndedBetween`), nên cửa sổ > 24 giờ vẫn thấy chuyến vừa xong |
 | Mốc 6 giờ (khoá dính) | giờ DỰ KIẾN + "bây giờ" |
 | Hạn giấy tờ "tới hết chuyến" | giờ kết thúc DỰ KIẾN (ngày VN) |
 | "Trong ngày chạy" (DTO tài xế) | ngày chạy + trạng thái + ngày VN của giờ xuất bến (ADR-0053 D7.2, Q-L3-B) |

@@ -62,7 +62,7 @@ export async function lenhXuatBen(
   const t = nen.trip;
   if (t.status !== "PLANNED") return loi409(t.status === "RUNNING" ? "da_xuat_ben" : "chuyen_da_ket_thuc", [lyDoGiu("CHUYEN_KHONG_CON_LEN_KE_HOACH", t.code)]);
   const chung = await docChung(db, new Date(bayGioMs).toISOString(), msToVnLocal(bayGioMs).date);
-  const nc = await docNguCanh(db, nen, lich, chung);
+  const nc = await docNguCanh(db, nen, lich, chung, [], bayGioMs);
   const cs = chung.chinhSach;
   const n: NenGio = { events: nen.events, kepLuiPhut: cs?.proxy_backdate_max_minutes ?? null, truoc: ketThucTruoc(nc.chuyenKhacRow, t), bayGioMs };
   if (b.xayRaMs !== null && n.kepLuiPhut === null) return CHUA_CO_KEP();

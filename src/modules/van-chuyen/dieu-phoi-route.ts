@@ -293,7 +293,7 @@ export async function chiTietChuyen(
 ): Promise<ChuyenChiTietResponse> {
   const nowIso = new Date(bayGioMs).toISOString();
   const c = chung ?? (await docChung(db, nowIso, msToVnLocal(bayGioMs).date));
-  const nc: NguCanhChuyen = await docNguCanh(db, nen, lich, c);
+  const nc: NguCanhChuyen = await docNguCanh(db, nen, lich, c, [], bayGioMs);
   const t = nen.trip;
   const cs = chinhSachVao(c.chinhSach);
   const lyDoGiu = lyDoGiuDuPhong(t, nc, c, bayGioMs, true);
@@ -365,7 +365,7 @@ export async function cuocChiTiet(
   nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>, bayGioMs: number, trongNgay: boolean,
 ): Promise<CuocChiTietResponse> {
   const c = await docChung(db, new Date(bayGioMs).toISOString(), msToVnLocal(bayGioMs).date);
-  const nc = await docNguCanh(db, nen, lich, c);
+  const nc = await docNguCanh(db, nen, lich, c, [], bayGioMs);
   const t = nen.trip;
   const nhan = await nhanNhanVien([...new Set(nen.events.flatMap((e) => (e.created_by && e.occurred_source === "VAN_PHONG_KHAI" ? [e.created_by] : [])))]);
   const tenDiKem = nen.allocs.some((a) => a.kind === "CREW" && a.valid_to_at === null) ? await tenNguoiDiKem(db, nen.trip.id) : undefined;
@@ -393,7 +393,7 @@ export async function danhSachCuoc(db: D1Database, trips: readonly TripRow[], li
       trip: t, stops: stops.filter((x) => x.trip_id === t.id), allocs: a, events: events.filter((e) => e.trip_id === t.id || e.related_trip_id === t.id),
       legIds: [...new Set(a.flatMap((x) => (x.kind === "PASSENGER" && x.leg_id !== null ? [x.leg_id] : [])))], tu: "", den: "",
     };
-    const conThieu = t.status === "PLANNED" ? lyDoGiuDuPhong(t, await docNguCanh(db, nen, lich, c), c, bayGioMs, false) : [];
+    const conThieu = t.status === "PLANNED" ? lyDoGiuDuPhong(t, await docNguCanh(db, nen, lich, c, [], bayGioMs), c, bayGioMs, false) : [];
     ra.push(cuocCuaToiItem(t, { xe: c.xe.find((x) => x.id === t.vehicle_id), stops: nen.stops, allocs: a, conThieu }));
   }
   return ra;

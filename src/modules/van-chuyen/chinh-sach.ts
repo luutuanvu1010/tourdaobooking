@@ -20,6 +20,10 @@ const coNgayHieuLuc = (body: Record<string, unknown>): boolean => Object.keys(bo
 const CAU_HIEU_LUC = "Không gửi ngày hiệu lực — dòng mới có hiệu lực ngay lúc lưu.";
 
 // ---- Chính sách điều phối ----------------------------------------------------------------------------------------------------------------------------------
+/** Trần khoảng nghỉ giữa hai chuyến (phút) — cùng CHECK của `vc_dispatch_policy.rest_minutes` / `vc_trip.rest_minutes_snapshot` (0041, 0042). */
+export const NGHI_TOI_DA_PHUT = 480;
+/** Trần cửa sổ xuất bến (phút, ADR-0096 Đ2.3 LC-20) — cùng CHECK của `vc_dispatch_policy.departure_window_minutes` (0084). */
+export const CUA_SO_XUAT_BEN_TOI_DA_PHUT = 2880;
 export interface ChinhSachMoi {
   minLeadMinutes: number;
   warnLeadMinutes: number;
@@ -41,7 +45,7 @@ export function kiemChinhSachMoi(body: Record<string, unknown> | null): Result<C
     departureWindowMinutes } = body;
   if (!soNguyen(minLeadMinutes, 1, 2880)) return fail("Mốc tối thiểu là số phút nguyên từ 1 đến 2880 — không tắt được; muốn nới thì giảm con số.");
   if (!soNguyen(warnLeadMinutes, 0, 1440)) return fail("Cảnh báo sát mốc là số phút nguyên từ 0 đến 1440.");
-  if (!soNguyen(restMinutes, 0, 480)) return fail("Khoảng nghỉ giữa hai chuyến là số phút nguyên từ 0 đến 480.");
+  if (!soNguyen(restMinutes, 0, NGHI_TOI_DA_PHUT)) return fail(`Khoảng nghỉ giữa hai chuyến là số phút nguyên từ 0 đến ${NGHI_TOI_DA_PHUT}.`);
   if (typeof requireManifest !== "boolean") return fail("Chọn có hay không bắt đủ danh sách hành khách.");
   if (requireContract !== undefined && requireContract !== false) return fail("Chưa bật được yêu cầu hợp đồng vận chuyển — cần một quyết định riêng.");
   if (!soNguyen(proxyBackdateMaxMinutes, 1, 1440)) return fail("Giờ văn phòng khai lùi tối đa là số phút nguyên từ 1 đến 1440.");
@@ -51,7 +55,7 @@ export function kiemChinhSachMoi(body: Record<string, unknown> | null): Result<C
   if (!soNguyen(tripNoBreakMaxMinutes, 30, 720)) return fail("Chuyến dài cần nhắc nghỉ là số phút nguyên từ 30 đến 720.");
   // ADR-0096 Đ2.3 (khuôn I43): thiếu cửa sổ xuất bến → nói rõ, không tự điền.
   if (departureWindowMinutes === undefined) return fail("Thiếu cửa sổ xuất bến — tải lại trang rồi lưu lại.");
-  if (!soNguyen(departureWindowMinutes, 60, 2880)) return fail("Cửa sổ xuất bến là số phút nguyên từ 60 đến 2880 (1 đến 48 giờ).");
+  if (!soNguyen(departureWindowMinutes, 60, CUA_SO_XUAT_BEN_TOI_DA_PHUT)) return fail(`Cửa sổ xuất bến là số phút nguyên từ 60 đến ${CUA_SO_XUAT_BEN_TOI_DA_PHUT} (1 đến ${CUA_SO_XUAT_BEN_TOI_DA_PHUT / 60} giờ).`);
   return { ok: true, value: { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, proxyBackdateMaxMinutes, dutyDayMaxMinutes, tripNoBreakMaxMinutes, departureWindowMinutes } };
 }
 export function chiTietChinhSach(cu: ChinhSachMoi | null, moi: ChinhSachMoi): string {
