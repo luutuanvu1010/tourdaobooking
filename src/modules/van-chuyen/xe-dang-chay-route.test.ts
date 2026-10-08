@@ -42,7 +42,11 @@ const dong = (x: any[]) => x.map((r) => ({ ...r }));
 /** Chuỗi nhật ký không được có: tên khách, khoá so sánh nơi, số điện thoại (mã đơn có 8 số ngày — được phép). */
 const LO = /Dò Tìm|L:|T:|0\d{9}/;
 
-test("D5.1 thêm điểm: chặng thường — Bán hàng 409 'cần Quản trị phá lệ', gửi phá lệ 403; Kế toán 403; Quản trị phá lệ 200 + cờ + bản chốt + mốc XEP + nhật ký", async () => {
+// NỚI có tên (kế hoạch ADR-0104 §6 N4; ADR-0104 Đ1, Q-1 b; ADR-0052 `:29`, `:192` theo bảng "Câu ADR bị thay"): trước đây Bán hàng thêm khách thường khi xe
+// chạy → 409 "cần Quản trị phá lệ", gửi phá lệ → 403. Nay xe đang chạy luôn dưới mốc ⇒ lớp KHAN_CAP: Bán hàng 409 canQuyen true, gửi điều chỉnh khẩn cấp →
+// 200. Không có ca "ngoài mốc" cho xe đang chạy nên không có vế 403 của Bán hàng ở đây — rào còn lại: Kế toán 403 (không xếp xe); ghim "xe đang chạy luôn
+// dưới mốc" ở src/shared/moc-toi-thieu.test.ts.
+test("D5.1 thêm điểm (ADR-0104 Đ1): chặng thường — Bán hàng 409 'cần điều chỉnh khẩn cấp' (lớp KHAN_CAP, canQuyen true); Kế toán 403; Bán hàng điều chỉnh khẩn cấp 200 + cờ + bản chốt + mốc XEP + nhật ký", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
@@ -50,12 +54,13 @@ test("D5.1 thêm điểm: chặng thường — Bán hàng 409 'cần Quản tr�
     const r1 = await themDiem(w, a.id, SALES, [{ legId: b.legId, soSuat: 2 }]);
     assert.equal(r1.status, 409, r1.text);
     assert.equal(r1.json.error.code, "can_pha_le");
-    assert.equal(r1.json.error.canQuyen, false);
-    assert.match(r1.json.error.message, /Khách không đặt gấp — cần Quản trị phá lệ/);
-    assert.equal((await themDiem(w, a.id, SALES, [{ legId: b.legId, soSuat: 2 }], PHA_LE)).status, 403);
+    assert.equal(r1.json.error.canQuyen, true);
+    assert.equal(r1.json.error.lop, "KHAN_CAP", "xe đang chạy luôn dưới mốc");
+    assert.equal(r1.json.error.message, "Khách không đặt gấp — cần điều chỉnh khẩn cấp kèm lý do.");
     assert.equal((await themDiem(w, a.id, ACC, [{ legId: b.legId, soSuat: 2 }])).status, 403);
+    assert.equal((await themDiem(w, a.id, ACC, [{ legId: b.legId, soSuat: 2 }], PHA_LE)).status, 403);
     assert.equal(w.q("SELECT count(*) n FROM vc_trip_event WHERE kind = 'STOP_ADDED_RUNNING'")[0].n, 0, "từ chối thì không ghi");
-    const r = await themDiem(w, a.id, ADM, [{ legId: b.legId, soSuat: 2 }], PHA_LE);
+    const r = await themDiem(w, a.id, SALES, [{ legId: b.legId, soSuat: 2 }], PHA_LE);
     assert.equal(r.status, 200, r.text);
     const moi = r.json.diem.filter((d: any) => d.themKhiChay);
     assert.deepEqual(moi.map((d: any) => [d.loai, d.soNguoi]), [["PICKUP", 2]], "điểm đón mới mang cờ; điểm trả dùng lại (bến) không mang cờ");

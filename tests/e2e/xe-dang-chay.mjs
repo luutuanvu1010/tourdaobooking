@@ -62,27 +62,27 @@ assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.chuyen.trangThai, "RUNNING");
 console.log("✓ chưa xuất bến → thêm điểm 409 chuyen_chua_chay; tài xế xuất bến sớm → xe đang chạy");
 
-// --- 1. D5.1 thêm điểm ---
+// --- 1. D5.1 thêm điểm (ADR-0104 Đ1 — NỚI có tên N4: xe đang chạy luôn dưới mốc ⇒ "điều chỉnh khẩn cấp", Bán hàng làm được; Kế toán vẫn 403) ---
 r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${id}/them-diem`, { version: await version(), requestId: uuid(), chang: [{ legId: dB.legId, soSuat: 2 }] });
 assert.equal(r.status, 409, JSON.stringify(r.body));
-assert.deepEqual([r.body.error.code, r.body.error.canQuyen], ["can_pha_le", false]);
-assert.match(r.body.error.message, /Khách không đặt gấp — cần Quản trị phá lệ/);
-assert.equal((await call(SALES, "POST", `/api/van-chuyen/chuyen/${id}/them-diem`, { version: await version(), requestId: uuid(), chang: [{ legId: dB.legId, soSuat: 2 }], phaLe: { lyDo: "PHA_LE_SU_CO" } })).status, 403);
+assert.deepEqual([r.body.error.code, r.body.error.canQuyen, r.body.error.lop], ["can_pha_le", true, "KHAN_CAP"]);
+assert.match(r.body.error.message, /Khách không đặt gấp — cần điều chỉnh khẩn cấp/);
 assert.equal((await call(KE_TOAN, "POST", `/api/van-chuyen/chuyen/${id}/them-diem`, { version: await version(), requestId: uuid(), chang: [{ legId: dB.legId, soSuat: 2 }] })).status, 403);
+assert.equal((await call(KE_TOAN, "POST", `/api/van-chuyen/chuyen/${id}/them-diem`, { version: await version(), requestId: uuid(), chang: [{ legId: dB.legId, soSuat: 2 }], phaLe: { lyDo: "PHA_LE_SU_CO" } })).status, 403);
 const ridThem = uuid();
 const thanThem = { version: await version(), requestId: ridThem, chang: [{ legId: dB.legId, soSuat: 2 }], phaLe: { lyDo: "PHA_LE_SU_CO" } };
-r = await call(ADMIN, "POST", `/api/van-chuyen/chuyen/${id}/them-diem`, thanThem);
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${id}/them-diem`, thanThem);
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.chuyen.tai, 4);
 assert.deepEqual(r.body.diem.filter((d) => d.themKhiChay).map((d) => d.loai), ["PICKUP"]);
 assert.doesNotMatch(JSON.stringify(r.body), /Khách Xe Chạy|0913579248/, "phản hồi lệnh ghi không kèm tên / SĐT");
-r = await call(ADMIN, "POST", `/api/van-chuyen/chuyen/${id}/them-diem`, thanThem);
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${id}/them-diem`, thanThem);
 assert.equal(r.status, 200, "gửi lại cùng requestId → kết quả cũ");
 const [ev] = await sqlRows(`SELECT count(*) AS n, max(override_rule_code) AS luat FROM vc_trip_event WHERE trip_id = '${id}' AND kind = 'STOP_ADDED_RUNNING'`);
 assert.deepEqual([ev.n, ev.luat], [1, "MOC_TOI_THIEU"], "một sự kiện, có phá lệ mốc");
 const [mf] = await sqlRows(`SELECT count(*) AS n FROM vc_trip_manifest WHERE trip_id = '${id}' AND check_id IS NULL AND added_after_departure = 1`);
 assert.equal(mf.n, 1, "bản chốt thêm đúng một dòng (một khách có tên)");
-console.log("✓ thêm điểm: Bán hàng 409 cần phá lệ / gửi phá lệ 403; Kế toán 403; Quản trị phá lệ 200, cờ điểm mới, bản chốt; lặp requestId → một sự kiện");
+console.log("✓ thêm điểm: Bán hàng 409 lớp điều chỉnh khẩn cấp (canQuyen đúng); Kế toán 403; Bán hàng điều chỉnh khẩn cấp 200, cờ điểm mới, bản chốt; lặp requestId → một sự kiện");
 
 // --- 2. D5.2 báo huỷ ---
 const suatB = r.body.suat.filter((s) => s.maDon === dB.code).map((s) => s.id);

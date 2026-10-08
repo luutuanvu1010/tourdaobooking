@@ -9,7 +9,7 @@ import type { KetQuaKiem, LoaiSuKienChuyen, MaLuatPhaLe, TrangThaiChuyen } from 
 import { dungLichChung } from "../../shared/dieu-phoi-lich-chung";
 import { error, json } from "../../shared/http";
 import { lyDoGiu, type LyDoGiu, type MaGiu } from "../../shared/ly-do-giu";
-import { can, type PermissionHolder } from "../../shared/permissions";
+import { duQuyen, lopCanCho, lopVuotMoc, lopVuotNghiCamKet, type LenhVuotMoc, type LopVuot } from "../../shared/moc-toi-thieu";
 import { maskLongDigits } from "../../shared/text-guards";
 import { daoMoiSauDoi, diemDonChuaToiCuaDiemTra, sapDonTruocTra } from "../../shared/thu-tu-diem";
 import { msToVnLocal, ngayNgan } from "../../shared/vn-date";
@@ -29,7 +29,16 @@ import { loiRangBuocChuyen } from "./rules";
 // ---- Lỗi ----------------------------------------------------------------------------------------------------------------------------------------------------
 export const CAN_XEM_CHUYEN = () => error(403, "forbidden", "Tài khoản này không xem được lịch xe.");
 export const CAN_DIEU_PHOI = () => error(403, "forbidden", "Tài khoản này không xếp xe được.");
-export const CAN_PHA_LE = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền phá lệ được.");
+/**
+ * 403 khi người gọi gửi cờ vượt luật mà không có ô của LỚP (ADR-0104 Đ1 mục 2): QUAN_TRI giữ nguyên câu cũ ("Phá lệ" — khoảng nghỉ, cam kết khi chuyến
+ * ngoài mốc); KHAN_CAP câu "điều chỉnh khẩn cấp". Ô `trip.urgent_adjust` bằng `trip.dispatch` (bài ghim ⊆) nên câu KHAN_CAP hôm nay không ai chạm tới được
+ * (người không xếp xe đã bị 403 `CAN_DIEU_PHOI` trước) — giữ để tách lớp sau không thiếu câu.
+ */
+const CAU_CAN_VUOT: Record<LopVuot, string> = {
+  QUAN_TRI: "Chỉ Quản trị hoặc Toàn quyền phá lệ được.",
+  KHAN_CAP: "Chỉ Bán hàng, Quản trị, Toàn quyền điều chỉnh khẩn cấp được.",
+};
+export const canVuot = (lop: LopVuot) => error(403, "forbidden", CAU_CAN_VUOT[lop]);
 export const KHONG_CO_CHUYEN = () => error(404, "not_found", "Không tìm thấy chuyến.");
 export const CHUYEN_CU = () => error(409, "stale", "Chuyến vừa được người khác sửa, tải lại.");
 const THONG_BAO_409: Record<string, string> = {
@@ -50,6 +59,7 @@ const THONG_BAO_409: Record<string, string> = {
   xe_khong_dung: "Xe đang bảo dưỡng hoặc đã ngừng dùng.",
   gio_chuyen_khong_hop_le: "Giờ kết thúc phải sau giờ bắt đầu và chuyến không quá 24 giờ.",
   chinh_sach_rong: "Chưa có chính sách điều phối đang hiệu lực — báo người phụ trách hệ thống.",
+  // Ba câu dưới là lớp QUAN_TRI ("Phá lệ" — ADR-0104 Đ1); lớp KHAN_CAP dùng `THONG_BAO_KHAN_CAP`. Mã lỗi (code) không đổi theo lớp.
   can_pha_le: "Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ.",
   chua_du_nghi: "Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ.",
   can_pha_le_cam_ket: "Chuyến trái cam kết xe riêng / số chỗ của khách — cần Quản trị phá lệ kèm lý do.", // ADR-0056 VK3-A (kế hoạch Đợt 7 C9)
@@ -79,6 +89,12 @@ const THONG_BAO_409: Record<string, string> = {
   da_co_tien_do: "Chuyến đã có tiến độ sau xuất bến nên không thu hồi được — sửa từng khách bằng \"Điều chỉnh…\", hoặc \"Kết thúc gián đoạn\" nếu xe thật sự không chạy tiếp.",
   qua_gio_thu_hoi: "Đã quá thời gian được thu hồi xuất bến.",
 };
+/** ADR-0104 Đ1: câu 409 khi mọi luật đang thiếu thuộc lớp KHAN_CAP (chuyến dưới mốc) — người xếp xe tự điều chỉnh khẩn cấp kèm lý do. */
+const THONG_BAO_KHAN_CAP: Record<"can_pha_le" | "chua_du_nghi" | "can_pha_le_cam_ket", string> = {
+  can_pha_le: "Trong mốc tối thiểu trước giờ xuất bến — cần điều chỉnh khẩn cấp kèm lý do.",
+  chua_du_nghi: "Chưa đủ khoảng nghỉ giữa hai chuyến — cần điều chỉnh khẩn cấp kèm lý do.",
+  can_pha_le_cam_ket: "Chuyến trái cam kết xe riêng / số chỗ của khách — cần điều chỉnh khẩn cấp kèm lý do.",
+};
 const MA_LOI_THEO_GIU: Partial<Record<MaGiu, string>> = {
   NGUOI_DA_O_CHUYEN_KHAC: "nguoi_da_o_chuyen_khac", VUOT_SO_NGUOI_CHANG: "vuot_so_nguoi_chang", VUOT_SO_CHO: "vuot_so_cho", TRUNG_GIO_XE: "trung_gio_xe",
   TRUNG_GIO_TAI_XE: "trung_gio_tai_xe", GPLX_THIEU: "khong_du_dieu_kien_lai", GPLX_THIEU_HANG: "khong_du_dieu_kien_lai", GPLX_HET_HAN: "khong_du_dieu_kien_lai",
@@ -89,14 +105,34 @@ const MA_LOI_THEO_GIU: Partial<Record<MaGiu, string>> = {
 export function loi409(code: string, lyDo: readonly LyDoGiu[] = [], extra: Omit<LenhChuyenLoiBody["error"], "code" | "message" | "lyDo"> = {}, thongBao?: string): Response {
   return json({ error: { code, message: thongBao ?? THONG_BAO_409[code] ?? "Lệnh chưa làm được.", lyDo: lyDo.map(lyDoGiuDto), ...extra } } satisfies LenhChuyenLoiBody, 409);
 }
+/** Route đổi lớp ra ô bằng chữ viết thẳng (ADR-0104 Đ1 mục 2; bài lop-vuot.test.ts) rồi truyền hàm này xuống lệnh. */
+export type QuyenVuot = (lop: LopVuot) => boolean;
 /**
- * Kết quả luật thuần → 409 (kế hoạch mục 1.1 bảng mã lỗi — lớp ROUTE): `chan` → mã theo lý do ĐẦU (mọi lý do đi kèm); chỉ `canPhaLe` còn thiếu phá lệ →
- * `can_pha_le` (mốc) > `chua_du_nghi` (khoảng nghỉ) > `can_pha_le_cam_ket` (cam kết xe riêng / số chỗ — ADR-0056 VK3-A; thứ tự ưu tiên C6), danh sách lý do
- * mang ĐỦ mọi mã còn thiếu, kèm `canQuyen` = người gọi có ô `trip.override`. `co.*` = lệnh đã có phá lệ cho luật đó (lệnh không thể sinh luật đó: true).
- * `null` = cho qua.
+ * Ngữ cảnh lớp của MỘT lệnh (ADR-0104 Đ1 mục 0, 2): `duoiMoc` = chuyến dưới mốc theo định nghĩa của lệnh (`chuyenDuoiMoc`); `lenhMoc` = lệnh bị khoá theo mốc
+ * mà request này làm (rỗng = lệnh không sinh luật mốc); `quyenVuot` = hàm của route.
+ */
+export interface VuotLenh {
+  duoiMoc: boolean;
+  lenhMoc: readonly LenhVuotMoc[];
+  quyenVuot: QuyenVuot;
+}
+/**
+ * Cờ vượt người gọi GỬI (`phaLe` → luật mốc; `nghiPhaLe` / `camKetPhaLe` → khoảng nghỉ, cam kết) mà thiếu ô của lớp → 403, kiểm TRƯỚC luật (ADR-0104 Đ1
+ * mục 2). Chạy sau khi lệnh đọc chuyến + chính sách (cần "dưới mốc"), nên 404 chuyến, lệnh lặp (LC-11), 409 trạng thái, 400 thân đi trước 403 này.
+ */
+export function chanCoVuot(co: { moc: boolean; nghiCamKet: boolean }, v: VuotLenh): Response | null {
+  if (co.moc && !v.quyenVuot(lopVuotMoc(...v.lenhMoc))) return canVuot(lopVuotMoc(...v.lenhMoc));
+  if (co.nghiCamKet && !v.quyenVuot(lopVuotNghiCamKet(v.duoiMoc))) return canVuot(lopVuotNghiCamKet(v.duoiMoc));
+  return null;
+}
+/**
+ * Kết quả luật thuần → 409 (kế hoạch mục 1.1 bảng mã lỗi — lớp ROUTE): `chan` → mã theo lý do ĐẦU (mọi lý do đi kèm); chỉ `canPhaLe` còn thiếu → `can_pha_le`
+ * (mốc) > `chua_du_nghi` (khoảng nghỉ) > `can_pha_le_cam_ket` (cam kết xe riêng / số chỗ — ADR-0056 VK3-A; thứ tự ưu tiên C6), danh sách lý do mang ĐỦ mọi mã
+ * còn thiếu. ADR-0104 Đ1: kèm `lop` (KHAN_CAP / QUAN_TRI — `lopCanCho`, hộp xác nhận chọn chữ) và `canQuyen` = người gọi đủ ô cho MỌI luật đang thiếu theo
+ * lớp (`duQuyen`); câu theo lớp. `co.*` = lệnh đã có cờ cho luật đó (lệnh không thể sinh luật đó: true). `null` = cho qua.
  */
 export function loiKiem(
-  kq: KetQuaKiem, staff: PermissionHolder, trangThai: TrangThaiChuyen | null, co: { moc: boolean; nghi: boolean; camKet: boolean }, thongBaoMoc?: string,
+  kq: KetQuaKiem, v: VuotLenh, trangThai: TrangThaiChuyen | null, co: { moc: boolean; nghi: boolean; camKet: boolean }, thongBaoMoc?: string,
 ): Response | null {
   if (kq.chan.length > 0) {
     const dau = kq.chan[0]!.ma;
@@ -105,9 +141,12 @@ export function loiKiem(
   }
   const thieu = kq.canPhaLe.filter((l) => (l.ma === "MOC_TOI_THIEU" && !co.moc) || (l.ma === "KHOANG_NGHI" && !co.nghi) || (l.ma === "CAM_KET" && !co.camKet));
   if (thieu.length === 0) return null;
-  const moc = thieu.some((l) => l.ma === "MOC_TOI_THIEU");
-  const code = moc ? "can_pha_le" : thieu.some((l) => l.ma === "KHOANG_NGHI") ? "chua_du_nghi" : "can_pha_le_cam_ket";
-  return loi409(code, thieu, { canQuyen: can(staff, "trip.override") }, moc ? thongBaoMoc : undefined);
+  const luat = [...new Set(thieu.map((l) => l.ma as MaLuatPhaLe))];
+  const moc = luat.includes("MOC_TOI_THIEU");
+  const code = moc ? "can_pha_le" : luat.includes("KHOANG_NGHI") ? "chua_du_nghi" : "can_pha_le_cam_ket";
+  const lop = lopCanCho(luat, v.duoiMoc, v.lenhMoc);
+  const cau = lop === "QUAN_TRI" ? undefined : moc && thongBaoMoc ? thongBaoMoc : THONG_BAO_KHAN_CAP[code];
+  return loi409(code, thieu, { canQuyen: duQuyen(luat, v.duoiMoc, v.lenhMoc, v.quyenVuot), lop }, cau);
 }
 // ---- Thứ tự điểm (ADR-0096 Đ1, gói A1) -----------------------------------------------------------------------------------------------------------------
 /**
