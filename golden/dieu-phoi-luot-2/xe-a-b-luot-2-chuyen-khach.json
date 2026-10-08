@@ -325,7 +325,7 @@
     },
     {
       "ma": "TH07-CUU-HO-CO-NOI-GAP",
-      "mo_ta": "Xe A hỏng giữa đường lúc 06:25: 5 khách đã lên xe (Sheraton 4, Amiana 1), 3 khách còn chờ ở Mường Thanh, và một người đi kèm (hướng dẫn viên của đoàn) đang trên xe. Tài xế A chọn xe cứu hộ C đang chạy và ghi nơi gặp; tài xế C bấm Nhận: 5 khách và người đi kèm lên xe C ở nơi gặp, 3 khách được xe C đón ở Mường Thanh; sau đó tài xế A bấm Kết thúc gián đoạn. Người đi kèm sang xe C cùng khách và được tính vào số chỗ (ADR-0052:129 'mọi suất mở'; ADR-0111 Đ4). Nếu lượt 8d-2 duyệt Đ4, xe C phải đang chạy.",
+      "mo_ta": "Xe A hỏng giữa đường lúc 06:25: 5 khách đã lên xe (Sheraton 4, Amiana 1), 3 khách còn chờ ở Mường Thanh, và một người đi kèm (hướng dẫn viên của đoàn) đang trên xe. Tài xế A chọn xe cứu hộ C đang chạy và ghi nơi gặp; tài xế C bấm Nhận: 5 khách và người đi kèm lên xe C ở nơi gặp, 3 khách được xe C đón ở Mường Thanh; sau đó tài xế A bấm Kết thúc gián đoạn. Người đi kèm sang xe C cùng khách và được tính vào số chỗ (ADR-0052:129 'mọi suất mở'; ADR-0111 Đ4). Theo Đ4 (chủ duyệt hộp 5 lượt 8d-2), xe C phải đang chạy.",
       "nen_rieng": {
         "chuyen.CX07": { "tai": 9, "nhom": [
           { "chang": "$nen.chang.SHERATON", "so": 4, "trangThai": "BOARDED", "len": "d7-sheraton", "xuong": "d7-cang" },
