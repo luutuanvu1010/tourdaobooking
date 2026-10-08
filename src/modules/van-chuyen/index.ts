@@ -1,6 +1,6 @@
 // Module van-chuyen — phân hệ Vận chuyển, lượt 1a (ADR-0040 D1): xe, giấy tờ xe, danh mục loại giấy tờ xe, ngưỡng "sắp hết hạn", danh sách giấy tờ sắp hết
 // hạn (xe + tài xế). Route: /api/van-chuyen/*. Tiền tố bảng vc_ (module nghiêm — STRICT). Phụ thuộc: parties (hàm công bố ownerCompany — chủ xe;
-// expiringDriverDocuments — giấy tờ tài xế, KHÔNG số; nhaXeDangHopTac — nhà xe đối tác, ADR-0048 D1) và audit (auditStatement). KHÔNG module nào import van-chuyen; ngoài AppModule chỉ xuất năm hàm công bố cho gốc lắp ráp: mocToiThieuHienHanh (ADR-0049 D2), nguongHetHanHienHanh (ADR-0040 D1), viecXeCuaNguoi (ADR-0068 Đ2), suKienTheoYeuCau và chuyenChoTinTheoId (tin chuyến — ADR-0052 D6.3).
+// expiringDriverDocuments — giấy tờ tài xế, KHÔNG số; nhaXeDangHopTac — nhà xe đối tác, ADR-0048 D1), audit (auditStatement) và ky-so (tháng đã khoá — ADR-0080: dòng chi phí xe không ghi được vào tháng khoá, lỗi trigger dịch ra 409). KHÔNG module nào import van-chuyen; ngoài AppModule chỉ xuất năm hàm công bố cho gốc lắp ráp: mocToiThieuHienHanh (ADR-0049 D2), nguongHetHanHienHanh (ADR-0040 D1), viecXeCuaNguoi (ADR-0068 Đ2), suKienTheoYeuCau và chuyenChoTinTheoId (tin chuyến — ADR-0052 D6.3).
 // Ô quyền: vehicle.manage (Quản trị + Toàn quyền) hỏi ở ĐẦU thân mọi route, trước khi đọc thân yêu cầu (403 trước 400).
 import { auditStatement } from "../audit";
 import { expiringDriverDocuments, nhaXeDangHopTac, ownerCompany } from "../parties";
@@ -78,10 +78,10 @@ import { lyDoGiuDto, xeCuaDonDto } from "./dieu-phoi-dto";
 import type { BangGiaDongResponse, CoXeListResponse, TuyenListResponse } from "../../shared/contracts";
 import { bangGiaDto, coXeDto, tuyenDto } from "./tien-xe-dto";
 import { phanLoaiThue } from "./tien-xe";
-import { chiTietChiPhiNhatKy, keHoachChiPhiKhiDoi } from "./tien-xe-lo";
+import { chiTietChiPhiNhatKy, keHoachChiPhiKhiDoi, ngayCuaKeHoach } from "./tien-xe-lo";
 import { CAU_NHA_XE_THOI } from "./rules";
 import {
-  docBangGia, docChiPhiChoLenh, lenhKetThucGia, tenTuyen, tenTuyenDangDung, lenhSuaCoXe, lenhSuaTuyen, lenhThemCoXe, lenhThemGia, lenhThemTuyen,
+  docBangGia, docChiPhiChoLenh, lenhKetThucGia, loiKhoaThangXe, loiThangDaKhoa, tenTuyen, tenTuyenDangDung, lenhSuaCoXe, lenhSuaTuyen, lenhThemCoXe, lenhThemGia, lenhThemTuyen,
 } from "./tien-xe-lenh";
 import { listRoutes, listSizes } from "./tien-xe-repo";
 import { MA_TUYEN_CO_RE, docCoXeMoi, docKetThucGia, docSuaCoXe, docSuaTuyen, docThemGia, docTuyenMoi } from "./tien-xe-than";
@@ -1147,10 +1147,10 @@ export const vanChuyenModule: AppModule = {
         const cp = await docChiPhiChoLenh(env.DB, { tripId: null, chuXe: xeRow.owner_party_id, homNay: vnToday(new Date(bayGioMs)) });
         const thue = phanLoaiThue({ chuXePartyId: xeRow.owner_party_id, congTyChuId: cp.congTyChuId, nhaXeDangMo: cp.nhaXeDangMo, cuRented: null });
         const kh = keHoachChiPhiKhiDoi({
-          dong: [], homNay: vnToday(new Date(bayGioMs)), rentedMoi: thue, chuXeMoi: xeRow.owner_party_id, nhaXeDangMo: cp.nhaXeDangMo, laTaoMoi: true, doiXeHoacNhaXe: false, doiTuyen: false, doiNgay: false,
-          tuyenMoi: t.tuyen, soChoMoi: xeRow.passenger_capacity, ngayChayMoi: ngayChay, gia: cp.gia, coXe: cp.coXe,
+          dong: [], homNay: vnToday(new Date(bayGioMs)), kyDaKhoa: cp.kyDaKhoa, rentedMoi: thue, chuXeMoi: xeRow.owner_party_id, nhaXeDangMo: cp.nhaXeDangMo, laTaoMoi: true, doiXeHoacNhaXe: false,
+          doiTuyen: false, doiNgay: false, tuyenMoi: t.tuyen, soChoMoi: xeRow.passenger_capacity, ngayChayMoi: ngayChay, gia: cp.gia, coXe: cp.coXe,
         });
-        if (!kh.ok) return error(409, "carrier_inactive", CAU_NHA_XE_THOI);
+        if (!kh.ok) return kh.loi === "period_closed" ? loiThangDaKhoa(kh.thang) : error(409, "carrier_inactive", CAU_NHA_XE_THOI); // ADR-0080: ngày chạy ở tháng đã khoá ⇒ cả lệnh 409
         const tenT = t.tuyen ? ` · tuyến ${await tenTuyen(env.DB, t.tuyen)}` : "";
         const id = crypto.randomUUID();
         canhBaoLenh = nhacGioLaiDto(kq.nhacGioLai, id);
@@ -1172,6 +1172,8 @@ export const vanChuyenModule: AppModule = {
             if (!r.ok) return r.res;
             break;
           } catch (e) {
+            const khoa = await loiKhoaThangXe(env.DB, e, ngayCuaKeHoach(kh.kh)); // tháng khoá GIỮA lúc đọc và lúc ghi (trigger period_closed:) ⇒ 409 đúng câu, không 500
+            if (khoa) return khoa;
             if (lan < 3 && e instanceof Error && /UNIQUE constraint failed: vc_trip\.service_date, vc_trip\.code/.test(e.message)) continue;
             throw e;
           }
