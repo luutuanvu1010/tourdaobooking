@@ -55,12 +55,20 @@ console.log("✓ (1) bảng giá thuê xe: tuyến, giá, chồng 409, Bán hàn
 // --- (2) T2 ---
 const D = vnDate(1); // ADR-0096 Đ2 (LC-20): chuyến NGÀY MAI + cửa sổ 48 giờ — xuất bến ngay được, giờ đón vẫn ngoài mốc 6 giờ
 await moCuaSoXuatBen48Gio();
-const tx = uuid();
-await sql(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('${tx}', 'PERSON', 'Tài xế nhà xe E2E ${duoi}', 1, '${AT}', '${AT}')`);
-await sql(`INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES ('${tx}', 'Tài xế nhà xe E2E ${duoi}', '${AT}', '${AT}')`);
-await sql(`INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, created_at, updated_at) VALUES ('${uuid()}', '${tx}', '${nx}', 'DRIVES_FOR', '2026-09-01', '${AT}', '${AT}')`);
-await sql(`INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, issued_place, license_class_code, expiry_date, created_at, updated_at)
-  VALUES ('${uuid()}', '${tx}', 'GPLX', '79${String(Date.now()).slice(-10)}', '79${String(Date.now()).slice(-10)}', 'Nơi cấp E2E', 'D', '${vnDate(400)}', '${AT}', '${AT}')`);
+// Tài xế của nhà xe (GPLX hạng D còn hạn). Hai chuyến dùng HAI tài xế: chuyến B xuất bến ngay sau khi chuyến A kết thúc THẬT, nên cùng một tài xế thì
+// luật nghỉ theo giờ kết thúc thật (CH-02) chặn đúng — mà chặn hay không lại tuỳ giờ chạy bài (chuyến ngày mai: A lọt khung ±1 ngày của B khi đồng hồ đã
+// qua giờ bắt đầu của B). Phát hiện ở e2e đủ bộ 8/10 sau khi gói A1 dời chuyến sang ngày mai.
+const taiXeNx = async (ten, soGplx) => {
+  const id = uuid();
+  await sql(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('${id}', 'PERSON', '${ten}', 1, '${AT}', '${AT}')`);
+  await sql(`INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES ('${id}', '${ten}', '${AT}', '${AT}')`);
+  await sql(`INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, created_at, updated_at) VALUES ('${uuid()}', '${id}', '${nx}', 'DRIVES_FOR', '2026-09-01', '${AT}', '${AT}')`);
+  await sql(`INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, issued_place, license_class_code, expiry_date, created_at, updated_at)
+    VALUES ('${uuid()}', '${id}', 'GPLX', '${soGplx}', '${soGplx}', 'Nơi cấp E2E', 'D', '${vnDate(400)}', '${AT}', '${AT}')`);
+  return id;
+};
+const tx = await taiXeNx(`Tài xế nhà xe E2E ${duoi}`, `79${String(Date.now()).slice(-10)}`);
+const tx2 = await taiXeNx(`Tài xế nhà xe E2E hai ${duoi}`, `78${String(Date.now()).slice(-10)}`);
 const xeNx = async (cho, bienDuoi) => {
   const id = uuid();
   await sql(`INSERT INTO vc_vehicle (id, plate_number, plate_key, chassis_number, chassis_key, name, model_year, passenger_capacity, owner_party_id, status, valid_from_date, created_at, updated_at)
@@ -92,7 +100,7 @@ r = await call(SALES, "GET", `/api/van-chuyen/chuyen/${tA}`);
 r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${tA}/xuat-ben`, { requestId: uuid() });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 // Chuyến 29 chỗ không tuyến (không giá nào khớp) → không dòng; xuất bến 409 có lý do "Chuyến xe thuê chưa có giá".
-r = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId: x29, taiXePartyId: tx, batDau: { ngay: D, gio: "10:00" }, ketThuc: { ngay: D, gio: "11:00" } });
+r = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId: x29, taiXePartyId: tx2, batDau: { ngay: D, gio: "10:00" }, ketThuc: { ngay: D, gio: "11:00" } });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 const tB = r.body.chuyen.id;
 assert.deepEqual(await sqlRows(`SELECT id FROM vc_trip_cost_line WHERE trip_id = '${tB}'`), []);
@@ -108,7 +116,7 @@ assert.equal(r.body.chiPhi.coTheNhapThoaThuan, true);
 r = await call(ACC, "POST", `/api/van-chuyen/chuyen/${tB}/chi-phi/gia-thoa-thuan`, { requestId: uuid(), phienBanChiPhi: r.body.chiPhi.phienBanChiPhi, soTien: 1350000, ghiChu: "Thoả thuận E2E" });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.equal(r.body.chiPhi.tong, 1350000);
-assert.equal((await call(SALES, "POST", `/api/van-chuyen/chuyen/${tA}/ket-thuc`, { requestId: uuid() })).status, 200, "tài xế xong chuyến trước");
+assert.equal((await call(SALES, "POST", `/api/van-chuyen/chuyen/${tA}/ket-thuc`, { requestId: uuid() })).status, 200, "chuyến A kết thúc (bảng kê có một chuyến đã chạy xong)");
 r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${tB}/xuat-ben`, { requestId: uuid() });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal((await call(SALES, "GET", `/api/van-chuyen/chuyen/${tB}/chi-phi`)).status, 403);
