@@ -14,7 +14,7 @@
 
 | # | Việc | Xong khi | Trạng thái |
 |---|---|---|---|
-| 1 | ADR-0104 Đ2 — máy tự cập nhật chuyến khi đơn sửa / huỷ (nhánh `adr-0104-d2`) | Phiếu kiểm độc lập không còn CHẶN / CAO; đã gộp; `npm test`, typecheck, e2e đủ bộ xanh trên nhánh làm việc | Thi công xong; đang kiểm (`wf_d43e9ed8-afa`) |
+| 1 | ADR-0104 Đ2 — máy tự cập nhật chuyến khi đơn sửa / huỷ (nhánh `adr-0104-d2`) | Phiếu kiểm độc lập không còn CHẶN / CAO; đã gộp; `npm test`, typecheck, e2e đủ bộ xanh trên nhánh làm việc | Kiểm độc lập đạt có điều kiện, điều kiện đã làm (`aea0c542`); **đã gộp `78fd5752`**; typecheck 0, `npm test` 3723 / 0 đỏ + 1 / 0. Còn: e2e đủ bộ (chạy sau việc 2 để không tranh máy) |
 | 2 | Màu nút gửi hộp "Điều chỉnh kết quả" (`web/chuyen.ts`, `dieu-chinh-gui`) | `cuoc-smoke` chạy **có `AXE_JS`** in "CUOC SMOKE OK (18 bước)" | Chưa làm |
 | 3 | CAO-C — báo tài xế mọi lệnh có bỏ qua luật (chủ duyệt "Báo mọi lệnh có bỏ qua luật") | Đủ sáu phần ghi ở sổ thi công (câu cờ, chữ tin trung tính, hướng dẫn tài xế, đảo bài ghim, dòng §16, câu trỏ ADR-0104 chép SAU câu 8d); test xanh; kiểm độc lập | Chưa làm |
 | 4 | ADR-0105 — hai nút Chỉ đường (migration 0090) | Theo kế hoạch ADR-0105; thêm dòng bản đồ vào `RANG_BUOC_NGOAI.md`; kịch bản Chrome nhóm Chỉ đường xanh có `AXE_JS`; kiểm độc lập | Chưa làm |
