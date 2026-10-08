@@ -36,7 +36,8 @@
 
 ## Nợ để sau (không chặn phát hành)
 
-- Lô `POST …/passengers` với đơn rất lớn (200 khách, sửa nhiều lần) vượt trần 1000 câu một lần gọi — có từ trước Đ2; đang chờ người kiểm Đ2 xác nhận cả lô bị từ chối, không ghi dở.
-- Hướng dẫn Bán hàng bước 5 "Khách đổi giờ đón" có thể lạc hậu (ADR-0062) — chưa kiểm.
+- Lô `POST …/passengers` với đơn rất lớn (200 khách, sửa nhiều lần) tới 1002 câu — có từ trước Đ2; D1 từ chối thì cả lô không ghi, route trả 500 (không ghi dở). Giới hạn D1 thật chưa kiểm; trần tổng lô cần ADR mới.
+- Hướng dẫn Bán hàng `src/shared/huong-dan-ban-hang.ts:140` lạc hậu từ trước (nói "app chưa tự báo … khi giờ hoặc nơi đón đổi", trong khi ADR-0062 đã có tin) và dùng chữ "app" — chữ hiển thị, chủ duyệt riêng.
+- Nợ bài từ phiếu kiểm Đ2: vế `status = 'PLANNED'` của cổng chuyến; biên trần 74/75; `order_id` của câu cổng chỉ khoá bằng chuỗi; luật (iv) cam kết chỉ có bài thuần; bốn hàm ghi cũ còn xuất mà không qua máy đồng bộ (`cancelOrder`, `writePassengerChange`, `replaceLeg`, `changeLeg`); bài quyền ghép Đối tác / Thực tập; tên tham số `sn` né bài canh `so-nguoi-chang-mot-luat`.
 - `golden/README.md`, `ADR-0110:71` có chữ cũ; sổ hàng rào chép quan sát chặn K1–K8, M-A, M-B, M-D.
 - Câu chờ lượt sau: tài khoản nhiều quyền tự duyệt đề nghị của mình; văn phòng gửi thay không nhận tin bác / hết hạn.
