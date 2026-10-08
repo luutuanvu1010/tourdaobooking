@@ -1,40 +1,44 @@
 # Trang ghép — lượt duyệt 8c (2026-10-08)
 
-> **Hồ sơ có ngày 2026-10-08, vai soạn.** Bắt buộc theo `CLAUDE.md` §9 ("bước ghép khi duyệt"), vì lượt có ba quyết định chạm dữ liệu, tiền hoặc luật dữ liệu — đúng trần 3. Trang này ghép ba văn bản cùng thư mục:
+> **Hồ sơ có ngày 2026-10-08, vai soạn.** Bắt buộc theo `CLAUDE.md` §9 ("bước ghép khi duyệt"), vì lượt có hai quyết định chạm tiền hoặc luật dữ liệu, cộng một việc tự áp chạm dữ liệu nhật ký — dưới trần 3. Trang này ghép ba văn bản cùng thư mục:
 > - `01-de-xuat-adr-0109-tong-tien-am.md` — ADR-0109, phải thu của đơn không dưới 0;
 > - `02-hai-cho-ma-lech-adr-0096.md` — giữ mã hay sửa mã ở hai chỗ lệch ADR-0096 (nếu giữ: ADR-0110, số tạm);
-> - `03-sua-thong-tin-chuyen-chua-bao-xe.md` — `PUT /api/orders/:id/trip` chưa trả ghế, chưa báo tài xế (nếu chọn (a): ADR-0111, số tạm).
+> - `03-sua-thong-tin-chuyen-chua-bao-xe.md` — `PUT /api/orders/:id/trip` chưa trả ghế, chưa báo tài xế (không hỏi chủ: giữ ADR-0104 Đ2.4; báo tài xế tự áp theo ADR-0052 D6.2).
 >
 > Mọi `tệp:dòng` đo trên `luot-duyet-8c` @ `b8927c27`. Số 0110, 0111 là số tạm, chốt khi gộp.
 
 ## Cho chủ dự án
 
-Lượt này có ba quyết định. Quyết định thứ nhất đụng tiền: đơn bớt khách tới mức tiền dịch vụ nhỏ hơn giảm giá thì phải thu tính bằng 0, để Kế toán hoàn đúng tiền khách đã trả và đơn lên "Đã giao" được. Quyết định thứ hai không đổi gì trong mã, chỉ ghi thành luật hai chỗ mã đang làm khác chữ quyết định về thứ tự điểm dừng. Quyết định thứ ba cho bảng "Sửa thông tin chuyến" của đơn trả ghế trên xe khi bỏ chặng và báo tài xế khi đổi ngày, giống các nút sửa chặng khác.
+Lượt này có hai quyết định. Quyết định thứ nhất đụng tiền: đơn bớt khách tới mức tiền dịch vụ nhỏ hơn giảm giá thì phải thu tính bằng 0, để Kế toán hoàn đúng tiền khách đã trả và đơn lên "Đã giao" được. Quyết định thứ hai không đổi gì trong mã, chỉ ghi thành luật hai chỗ mã đang làm khác chữ quyết định về thứ tự điểm dừng. Việc thứ ba không cần bạn chọn: bảng 'Sửa thông tin chuyến' đổi ngày đi mà chưa báo tài xế. Đây là chỗ Nền tảng làm thiếu so với quyết định về tin báo ngày 30/9, nên tôi sửa theo quyết định đó. Còn việc bỏ chặng qua bảng này chỉ còn ở máy chưa cập nhật bản mới, nên tôi giữ như quyết định 8/10.
 
-Ghép ba việc lại, tôi không thấy lỗ mới, và không ai được thêm quyền. Có bốn điều bạn nên biết:
+Ghép ba việc lại, tôi không thấy lỗ mới, và không ai được thêm quyền. Có ba điều bạn nên biết:
 1. **Một con số dùng ở nhiều màn.** Quyết định thứ nhất đổi con số "phải thu" mà trang đơn, biên nhận gửi khách, doanh thu tuần trên Trang chủ và sổ tiền cùng dùng. Chỉ đơn đang âm mới đổi số, nhưng nút "Đã giao" của các đơn đó sẽ mở lại được sau khi hoàn tiền.
 2. **Câu cảnh báo phải đổi điều kiện hiện.** Hôm nay câu cảnh báo trên trang đơn hiện khi tổng tiền âm. Sau quyết định thứ nhất, tổng không còn âm, nên nếu giữ điều kiện cũ thì câu này sẽ lặng lẽ biến mất. Vì vậy điều kiện mới là "giảm giá lớn hơn tiền dịch vụ".
 3. **Đơn của đại lý chịu phần giảm giá thực dùng.** Phần sổ hoa hồng của đại lý đã duyệt nhưng chưa làm. Theo quyết định thứ nhất, với đơn đại lý bị bớt khách tới mức tổng âm, đại lý nợ công ty phần giảm giá thực dùng chứ không phải toàn bộ số giảm giá đã cho, nếu không thì sổ không cân. Hôm nay chưa có số nào đổi.
-4. **Người dùng bảng "Sửa thông tin chuyến" đều đã có quyền xếp xe.** Nên khi máy trả ghế thay họ, không ai làm được việc gì mới với xe. Điều này khác với Đối tác, Thực tập hay hướng dẫn viên ở quyết định 8/10, những người không có quyền xếp xe mà vẫn làm máy trả ghế.
 
-## Ba câu hỏi cho chủ (chép thẳng vào hộp hỏi; phương án khuyến nghị đứng đầu)
+Người kiểm đã chạy thử cách khuyến nghị trên bản sao của mã; chưa ai xem bản chạy thật có bao nhiêu đơn tổng âm.
 
-**Câu 1** — tiêu đề ngắn: `Tổng âm`. Câu hỏi: "Đơn bớt khách tới mức tiền dịch vụ nhỏ hơn giảm giá (tổng tiền âm): tính phải thu thế nào? (ADR-0109)"
-- **Phải thu tối thiểu bằng 0 (Recommended)** — Kế toán hoàn đúng số khách đã trả là đơn lên Đã giao được; giảm giá giữ số đã ghi; trang đơn vẫn cảnh báo; đơn đại lý chịu phần giảm giá thực dùng.
-- **Giảm giá co theo tỷ lệ số khách** — khách vẫn trả một phần; tiền của mọi đơn có giảm giá đã sửa số khách đều đổi; trái câu "giảm giá giữ nguyên" đã duyệt.
-- **Giữ như hôm nay** — đơn tổng âm kẹt, không bao giờ lên Đã giao; không có đường tay để gỡ.
+## Hai câu hỏi cho chủ (chép thẳng vào hộp hỏi; phương án khuyến nghị đứng đầu)
 
-**Câu 2** — tiêu đề ngắn: `Thứ tự điểm`. Câu hỏi: "Hai chỗ mã đang làm khác chữ quyết định thứ tự điểm dừng (ADR-0096): giữ mã hay sửa mã?"
-- **Giữ mã cả hai, ghi thành ADR-0110 (Recommended)** — chỗ sai thứ tự có sẵn được sửa dần bằng ↑ ↓; nút ↑ ↓ của chuyến chưa chạy đi qua lệnh Sửa chuyến; không chuyến nào kẹt.
-- **Giữ cách sửa dần, làm lệnh riêng cho nút ↑ ↓** — nhật ký ghi "đổi thứ tự", không vướng lỗi khác của chuyến; thêm một lệnh và bài kiểm.
-- **Sửa mã theo đúng chữ** — chuyến có từ hai chỗ sai trở lên bị kẹt; phải làm thêm nút sắp lại tự động.
+**Câu 1**
+- Tiêu đề: `Tổng âm`
+- Câu hỏi: Khi văn phòng bớt khách, tiền dịch vụ có thể còn nhỏ hơn số giảm giá đã cho: ví dụ đơn 2 người, mỗi người 500.000, giảm giá 800.000, khách đã trả 200.000, bớt còn 1 người thì tổng tiền thành âm 300.000. Hôm nay đơn như vậy bị kẹt, vì Kế toán hoàn hết 200.000 mà Nền tảng vẫn báo khách còn dư 300.000, nên không bấm được "Đã giao". Hai cách sửa đều phải đổi chữ hai quyết định bạn đã duyệt: quyết định sửa số khách ngày 8/10 (đoạn nói tổng âm thì khách được ghi dư nhiều hơn số đã trả) và quyết định sổ đại lý ngày 1/10 (đoạn nói đại lý chịu đúng số giảm giá đã cho; phần này chưa làm nên hôm nay chưa có số nào đổi). Bạn muốn Nền tảng tính tiền khách phải trả thế nào?
+- Phương án 1, nhãn `Phải thu không âm (Recommended)`. Mô tả: Được: đơn gỡ được bằng một lần hoàn (ở ví dụ người khách còn lại không phải trả gì, Kế toán hoàn đủ 200.000), giảm giá vẫn lưu 800.000, trang đơn vẫn cảnh báo, và đơn không âm không đổi đồng nào; mất: 300.000 giảm giá vượt coi như bỏ, biên nhận gửi khách ghi giảm giá 500.000 thay vì 800.000, và với đơn đại lý thì đại lý chịu 500.000 chứ không phải 800.000.
+- Phương án 2, nhãn `Giảm giá theo số khách`. Mô tả: Được: khách vẫn trả một phần (ở ví dụ giảm giá co còn 400.000, khách trả 100.000 và được hoàn 100.000); mất: tiền của mọi đơn có giảm giá từng sửa số khách đều đổi, kể cả đơn cũ và đơn đã giao (khối thanh toán của đơn đã giao sẽ lệch số đã chốt), phải thêm luật làm tròn, và trái thêm câu "giảm giá giữ nguyên" bạn duyệt ngày 8/10.
+- Phương án 3, nhãn `Giữ như hôm nay`. Mô tả: Được: không đổi gì và không sửa quyết định nào; mất: đơn tổng âm kẹt mãi không lên "Đã giao", và cách gỡ duy nhất là tăng số khách trở lại, tức ghi sai thực tế.
 
-**Câu 3** — tiêu đề ngắn: `Sửa chuyến`. Câu hỏi: "Bảng 'Sửa thông tin chuyến' của đơn bỏ chặng hoặc đổi ngày đón: máy có trả ghế trên xe và báo tài xế không?"
-- **Trả ghế khi bỏ chặng, báo tài xế khi đổi ngày (Recommended)** — làm giống các nút sửa chặng khác; quyết ngay để làm chung đợt Đồng bộ chuyến; không mở thêm quyền.
-- **Chỉ báo tài xế** — ghế của chặng đã bỏ để người xếp xe tự gỡ bằng nút; hai nút bỏ chặng cho hai kết quả khác nhau.
-- **Giữ nguyên cả hai** — tài xế không biết giờ hẹn đã đổi cho tới khi văn phòng gỡ khách khỏi chuyến.
+**Câu 2**
+- Tiêu đề: `Thứ tự điểm`
+- Câu hỏi: Quyết định ngày 3/10 về thứ tự điểm đón, điểm trả có hai chỗ Nền tảng đang làm khác chữ. Chỗ thứ nhất: chữ ghi lần đổi thứ tự nào làm sai luật cũng bị từ chối, còn Nền tảng chỉ từ chối lần đổi tạo ra chỗ sai mới, nên chuyến đã sai từ trước vẫn sửa dần được bằng nút lên/xuống. Chỗ thứ hai: chữ ghi nút lên/xuống của chuyến chưa chạy là một lệnh riêng, còn Nền tảng dùng lại lệnh "Sửa chuyến" có sẵn. Hai cách đầu đều phải ghi một quyết định mới sửa chữ ngày 3/10; bạn chọn cách nào?
+- Phương án 1, nhãn `Giữ cách đang làm (Recommended)`. Mô tả: Được: không chuyến nào kẹt vì thứ tự, không phải làm thêm gì, và chuyến chưa chạy vẫn không xuất bến được khi còn chỗ sai; mất: chuyến đang chạy mà sai từ trước chỉ bị phát hiện qua lượt kiểm tra định kỳ chứ không bị chặn, và hai điều mới đọc mã chưa chạy thử là tài xế đã được xếp sẽ nhận một tin "chuyến vừa sửa" sau mỗi lần bấm, còn một lần bấm có thể bị từ chối vì lỗi khác của chuyến như trùng giờ hay giấy tờ tài xế.
+- Phương án 2, nhãn `Lệnh riêng cho nút`. Mô tả: Được: vẫn sửa dần được, nhật ký ghi đúng "đổi thứ tự" và nút không vướng lỗi khác của chuyến; mất: phải làm thêm một lệnh mới cùng các bài kiểm, và chỗ thứ nhất vẫn cần quyết định mới sửa chữ.
+- Phương án 3, nhãn `Sửa theo đúng chữ`. Mô tả: Được: Nền tảng khớp từng chữ quyết định 3/10 và không cần quyết định mới; mất: chuyến nào mà một lần bấm không sửa hết chỗ sai sẽ kẹt, kể cả chuyến chỉ có một chỗ sai khi điểm đón và điểm trả của khách đó không đứng cạnh nhau, nên phải làm thêm nút "Sắp lại tự động" hoặc kéo-thả trên màn hình và một lệnh riêng cho nút lên/xuống.
 
-Ghi chú cho điều phối: phần "báo tài xế khi đổi ngày" của câu 3 có thể là mã thiếu so với ADR-0052 D6.2 đã duyệt, nên tự áp được mà không cần hỏi (tệp 03 §4). Nếu điều phối tự áp, câu 3 rút còn hai phương án: "Trả ghế khi bỏ chặng (Recommended)" và "Giữ như ADR-0104, ghế để người xếp xe gỡ".
+## Ghi chú cho điều phối (không dán vào hộp hỏi)
+
+- Phần "báo tài xế khi đổi ngày" của bảng "Sửa thông tin chuyến" là mã thiếu so với ADR-0052 D6.2 đã duyệt, nên tự áp theo ADR-0052 D6.2, kèm điều kiện ở mục 3 phiếu tổng hợp (chép ở tệp 03 §4).
+- Câu 3 (Sửa chuyến) đã bỏ khỏi hộp: giữ ADR-0104 Đ2.4; đường thân cũ mất khi Nền tảng ngừng nhận bản cũ (ADR-0047 §6).
+- Chỉ hỏi lại câu 3 nếu chủ chạy lệnh đếm dòng `client_outdated_body` loại `sua_chuyen` gần đây và thấy còn đáng kể (lệnh đọc D1 remote, chủ tự chạy). Khi đó dùng nguyên văn câu 3 ở mục 4 phiếu tổng hợp.
 
 ---
 
@@ -46,7 +50,9 @@ Ghi chú cho điều phối: phần "báo tài xế khi đổi ngày" của câu
 |---|---|---|---|
 | 1 | ADR-0109 — phải thu ≥ 0, một hàm | tiền (số dẫn xuất), nghĩa cổng hoàn / Đã giao; không ghi bảng mới | 01 |
 | 2 | ADR-0110 (tạm) — đọc lại ADR-0096 Đ1.3b, Đ1.3c | luật dữ liệu chuyến (LC-19), không đổi mã | 02 |
-| 3 | ADR-0111 (tạm) — `PUT /trip` gọi đồng bộ + báo tài xế | dữ liệu (máy ghi suất; view `v_aud_order_cmd`; dòng nhật ký chặng mới) | 03 |
+| 3 | **Không phải quyết định trình chủ.** `PUT /trip`: bỏ chặng giữ ADR-0104 Đ2.4 (G8 đóng); báo tài xế khi đổi ngày tự áp theo ADR-0052 D6.2 (tệp 03 §4) | dữ liệu nhật ký (dòng `order_leg_updated` mới, target = chặng); không đổi chữ ADR | 03 |
+
+Lượt còn hai quyết định trình chủ (#1, #2), dưới trần 3. Ở các bảng dưới, "#3 (a)" là phương án "tự trả ghế" không được chọn (giữ lại để đối chiếu nếu chủ vẫn được hỏi); "#3 tin" là phần tự áp.
 
 ### 2. Bảng bị chạm và loại thực thể chứa trong đó
 
@@ -112,7 +118,7 @@ Thứ tự giá trị: SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, SUPER_ADMIN, IN
 | Nút "Ghi hoàn cho khách" `web/order.ts:787-797` | hiện khi có dư | điều kiện không đổi; số dư nhỏ lại |
 | Nút / lý do "Đã giao" (theo `lyDoChuaGiao`, `billing/service.ts:171`) | đơn tổng âm luôn bị giữ `overpaid` | mở được sau khi hoàn |
 | "Tổng cộng" trang đơn `web/order.ts:447`, biên nhận `src/shared/order-confirmation.ts:214-216` | số âm | 0; biên nhận hiện giảm giá hiệu lực (giả định bề mặt) |
-| Nút ↑ ↓ `web/chuyen.ts:351`, `:382` (khoá theo `doiThuTuDuoc`, `src/shared/tien-do-man.ts:108-125`) | khoá khi tạo đảo mới | #2 giữ mã: không đổi. Nếu sửa theo chữ: khoá khi còn bất kỳ đảo nào ⇒ chuyến có từ hai chỗ đảo khoá hết nút |
+| Nút ↑ ↓ `web/chuyen.ts:351`, `:382` (khoá theo `doiThuTuDuoc`, `src/shared/tien-do-man.ts:108-125`) | khoá khi tạo đảo mới | #2 giữ mã: không đổi. Nếu sửa theo chữ: khoá khi còn bất kỳ đảo nào ⇒ chuyến mà một bước không gỡ hết đảo (≥ 2 suất đảo, hoặc 1 suất đảo có điểm khác chen giữa) khoá hết nút |
 | Bảng "Sửa thông tin chuyến" `web/trip-sheet.ts:134` | — | #3 (a): phản hồi có thể mang câu nhắc "văn phòng bấm Báo huỷ" (ADR-0104 Đ2.7) |
 
 ### 5. Ghép lại có sinh lỗ không
@@ -124,12 +130,12 @@ Thứ tự giá trị: SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, SUPER_ADMIN, IN
 | #1 + đơn huỷ | lệch số cọc | `conLai` trả 0/0 cho đơn huỷ (`rules.ts:76-80`) |
 | #3 (a) + #2 cùng chuyến | máy đóng suất trong khi văn phòng ↑ ↓ | câu cổng `version`: một bên thua (Đ2.12) |
 | #3 (a) + xe đang chạy | máy ghi trái LC-15 | không ghi, chỉ nhắc Báo huỷ; trigger `0076:46-80` là lưới |
-| #3 tin + tin đơn đổi | một người nhận hai tin | cùng lô (đơn, người làm, mốc giờ) ⇒ tối đa một tin (`src/shared/thong-bao.ts:144`, `:174-190`) |
+| #3 tin + tin đơn đổi | một người nhận hai tin | hộp thư: cùng lô ⇒ tối đa một tin (`thong-bao.ts:144`, `:174-190`); gõ cửa màn hình khoá: CHƯA bảo đảm — `doiVuaGhi` chỉ đọc một dòng (`thongbao/repository.ts:39-41`, `LIMIT 1`), phải sửa kèm (mục 3 phiếu tổng hợp). |
 | #2 giữ mã + chuyến cũ đang chạy có đảo | trả khách trước khi đón | Đ1.4 chặn "Đã tới" sai (`dieu-phoi-route.ts:140-151`); `R-VC-THU-TU` phát hiện |
 
 ### 6. Sổ dừng dây chuyền (`docs/quyen-hoan.json`, đọc 2026-10-08)
 - HIGH đang mở: TNV-G1, TNV-G3, TNV-G4, HC-5.19, HC-4.2 (hạn 2026-10-31); HC-5.11 (hạn 2026-11-15).
-- #1: không xây trên lỗ đang hở (tệp 01 §8). Sát TNV-G1 (cùng hàm `hoan-tat.ts:9-18`), nhưng đơn huỷ không đổi.
+- #1: xây trên lỗ đang hở: TNV-G1 (cùng hàm `phaiThuCua`, `hoan-tat.ts:9-18`) và TNV-G3 (mở đường Đã giao → Hoàn thành cho đơn tổng âm). Bản vá mã của cả hai đã ở `main` (`0078`–`0079`, `0083`) nhưng chưa lên production; điều kiện: chỉ phát hành sau Sổ tiền, cùng A2. Đơn huỷ không đổi số (`rules.ts:76-80`).
 - #2: không chạm.
 - #3: máy ghi trong lô lệnh của người, ghi `staff_id` người đó, nên không vướng HC-5.11. Đổi sang chạy nền thì phải ghi "xây trên lỗ đang hở: HC-5.11".
 
@@ -141,9 +147,15 @@ Thứ tự giá trị: SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, SUPER_ADMIN, IN
 - ADR-0096 Đ1.3b, Đ1.3c → ADR-0110 nếu giữ mã.
 
 ### 8. Chưa kiểm
-- Toàn bộ là thiết kế trên giấy: chưa chạy mã, chưa xem production.
+- Toàn bộ là thiết kế trên giấy: chưa chạy trên cây thật (người kiểm mới chạy thử #1 (a) trên bản sao của mã), chưa xem production.
 - Chữ V-3, V-5 của phiếu kiểm A2 (không có trong kho).
 - Production có đơn tổng âm nào không.
 - ADR-0081 (đại lý xem sổ) đã thi công tới đâu.
 - Ca ↑ ↓ trên chuyến đang vướng lỗi khác (tệp 02 §3).
 - Khuôn `detail` của dòng `order_leg_updated` thêm vào (tệp 03 §3).
+
+### 9. Ghi lại, chưa sửa (mục THẤP của phiếu kiểm độc lập, phán quyết điều phối: không sửa vòng này)
+- **00:** câu "tôi không thấy lỗ mới" ở phần "Cho chủ" chưa kèm câu về TNV-G1/G3; §3 cột "Áp cho" chưa tách theo loại đơn (bán lẻ, đại lý, Thực tập); §7 thiếu R-BIL-14 (`ADR-0079:98`) và ADR-0081 (`giamGiaMinhChiu`), nếu chọn tự trả ghế thì thiếu cả ADR-0104 Đ2.2 (`:130`); §4 dòng bảng "Sửa thông tin chuyến": `OrderResponse` (`contracts.ts:490`) không có trường mang câu nhắc "Báo huỷ" và `web/trip-sheet.ts:134` bỏ kết quả trả về (chỉ có nghĩa nếu tự trả ghế); §3 "nghĩa rộng ra ở (a)" của `order.trip.edit` chỉ đúng nếu tự trả ghế; các dòng "#3 (a)" ở §2–§5 tả phương án không được chọn, để nguyên.
+- **01:** §6 thiếu năm chỗ sẽ sai hoặc đỏ sau (a) — `tests/e2e/sua-so-khach.mjs:80-89` (CA 3 khoá total −50000), `src/shared/huong-dan-ke-toan.ts:86`, `src/so-vang-sua-so-khach.test.ts:87`, `src/modules/orders/money-adjustment.test.ts:175-177`, mục nhật ký thay đổi `src/shared/changelog.ts` — và việc chạy lại e2e `sua-so-khach`; biên nhận: `ReceiptDto` không có trường giảm giá hiệu lực (`receipt/rules.ts:29-31`, `bien-nhan.test.ts:34`), kế hoạch phải chọn thêm trường hay suy ra, và thêm `receipt/rules.ts`, `contracts.ts` vào danh sách phải sửa; §5 thiếu R-BIL-14, dòng "Sửa:" chưa ghi ADR-0081; §4 có thể nêu thêm "Việc của tôi" của HDV (`orders/index.ts:544` → `web/viec-cua-toi.ts:533`); phần "Cho chủ" ~700 từ, còn mã nội bộ "SV-SK-04", "A2"; dòng "Số:" ghi "cuối README" (thật ra `docs/adr/README.md:113`/135; README nhánh QR ghi "kế tiếp là 0103", phải đối chiếu khi gộp).
+- **02:** mục "Giữ mã thì được và mất gì" thiếu hệ quả tài xế nhận tin "Văn phòng vừa sửa chuyến" sau mỗi lần ↑ ↓ (`HANH_DONG_TIN_CHUYEN`, `tin-chuyen.ts:8-9`; hộp câu 2 đã nêu); dẫn chứng "người kiểm đã thử trong vùng 6 giờ" nên chép từ `SYSTEM-DESIGN.md:1283` vào §3; phần "Cho chủ" ~620 từ, còn "ADR-0096", "ADR-0110", "↑ ↓", "mã".
+- **03:** phần "Cho chủ" ~680 từ; cột (c) "không ai báo tài xế" ở bảng §2 và câu "cửa sổ là bây giờ" ở §3 tả phương án không còn chọn, để nguyên. Hai mục THẤP khác của 03 (trần `db.batch` khi ghi thêm dòng nhật ký; §4 thiếu D6.1 "một chiều" và việc cần người kiểm) đã được phủ khi chép sáu điều kiện tự áp vào §4.

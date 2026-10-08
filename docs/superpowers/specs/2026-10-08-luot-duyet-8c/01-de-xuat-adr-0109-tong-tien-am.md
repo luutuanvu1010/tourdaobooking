@@ -6,8 +6,8 @@
 - **Số:** 0109 lấy từ dòng "số ADR mới kế tiếp" cuối `docs/adr/README.md` (0105–0107 đang chép từ lượt 8b; 0108 là VietQR ở nhánh `claude/ticket-sales-qr-payment-cf8e18`). `git log --all -S "ADR-0109"` chỉ gặp một câu nhắc trong hồ sơ lượt 8a (`2bd077f2`), không ADR nào dùng số này.
 - **Mốc đo mã:** mọi `tệp:dòng` đo trên `luot-duyet-8c` @ `b8927c27` (bằng `claude/van-chuyen-goi-a-c` lúc soạn).
 - **Sửa:** ADR-0063 D1.12 (vế "dư lớn hơn số khách đã trả"); ADR-0079 `:43`, `:57` (iv), `:75` (giảm giá bên đặt chịu = giảm giá hiệu lực). Bảng ở mục 5.
-- **Xây trên lỗ đang hở:** không (mục 8).
-- **Cửa:** hai chiều; không migration.
+- **Xây trên lỗ đang hở:** TNV-G1 (cùng hàm `phaiThuCua`, `hoan-tat.ts:9-18`) và TNV-G3 (mở đường Đã giao → Hoàn thành cho đơn tổng âm). Bản vá mã của cả hai đã ở `main` (`0078`–`0079`, `0083`) nhưng chưa lên production; điều kiện: chỉ phát hành sau Sổ tiền, cùng A2. Đơn huỷ không đổi số (`rules.ts:76-80`).
+- **Cửa:** hai chiều trước khi có đơn nào đi qua; sau đó đổi lại sẽ làm khối Thanh toán của các đơn đã giao ấy hiện dư giả (`billing/service.ts:170`, `:188`; suy từ mã, chưa chạy). Không migration.
 
 ## Lời chủ dự án
 - 2026-09-29: "Không chặn, chờ hoàn" — khách trả dư thành khoản chờ hoàn (chú thích `src/modules/billing/rules.ts:62`; ADR-0063 D1.11).
@@ -21,15 +21,19 @@ Ngày 8/10 bạn duyệt câu "tổng tiền âm thì cảnh báo, không chặn
 Tôi khuyến nghị đặt luật: phải thu của một đơn không bao giờ dưới 0. Với đơn ví dụ, phải thu thành 0 và khách trả dư đúng 200.000. Kế toán hoàn 200.000 là xong, sau đó đơn lên "Đã giao" được. Giảm giá vẫn lưu nguyên 800.000 như đã thoả thuận, nên nếu sau đó khách thêm người lại thì máy tự tính đúng. Trang đơn vẫn hiện câu cảnh báo, nhưng câu sẽ được viết lại cho đúng sự thật mới. Việc này không cần đổi cơ sở dữ liệu. Thật ra cơ sở dữ liệu hôm nay đã cấm sẵn chuyện "phải thu lúc Đã giao nhỏ hơn 0"; chỉ phần tính toán là chưa theo kịp.
 
 Có ba cách:
-1. **Phải thu tối thiểu bằng 0 (khuyến nghị).** Được: đơn gỡ được bằng một lần hoàn; trang đơn, biên nhận và doanh thu tuần không còn hiện số âm. Mất: phần giảm giá vượt tiền dịch vụ (300.000 ở ví dụ) coi như không dùng tới.
+1. **Phải thu tối thiểu bằng 0 (khuyến nghị).** Được: đơn gỡ được bằng một lần hoàn (ở ví dụ, người khách còn lại không phải trả gì, Kế toán hoàn hết số đã nhận); trang đơn, biên nhận và doanh thu tuần không còn hiện số âm. Mất: phần giảm giá vượt tiền dịch vụ (300.000 ở ví dụ) coi như không dùng tới.
 2. **Giảm giá tự co lại theo số khách** (khách còn một nửa thì giảm 400.000). Được: khách vẫn trả một phần (100.000). Mất: tiền của mọi đơn có giảm giá từng được sửa số khách đều đổi, kể cả đơn cũ. Cách này trái câu "giảm giá giữ nguyên" bạn vừa duyệt, và cần thêm một luật làm tròn.
-3. **Giữ như hôm nay.** Đơn kẹt, không bao giờ lên "Đã giao" hay "Hoàn thành". Kế toán cũng không có đường tay nào để gỡ.
+3. **Giữ như hôm nay.** Đơn kẹt, không bao giờ lên "Đã giao" hay "Hoàn thành". Không có đường gỡ đúng sự thật; chỉ còn tăng số khách trở lại, tức ghi sai thực tế.
+
+Cả hai cách đầu đều giữ số giảm giá đã ghi; cách 1 chỉ đổi đơn đang âm, cách 2 đổi mọi đơn đã sửa số khách (vì vậy cách 2 mới trái câu "giảm giá giữ nguyên").
 
 Nếu chọn cách 1, chỉ những đơn đang âm mới đổi số; đơn bình thường không đổi đồng nào. Đơn đã "Đã giao" không bị ảnh hưởng, vì đơn âm chưa từng lên "Đã giao" được. Trên biên nhận gửi khách, tôi giả định dòng "Giảm giá" hiện phần thực dùng (500.000 ở ví dụ) để ba dòng tạm tính, giảm giá, tổng cộng khớp nhau. Trang đơn nội bộ vẫn ghi giảm giá gốc kèm cảnh báo. Đây là chữ trên màn hình, bạn muốn khác thì đổi được.
 
 Có một hệ quả cho đơn của đại lý mà bạn cần biết trước khi duyệt. Phần sổ hoa hồng và giảm giá của đại lý đã được duyệt ngày 1/10 nhưng chưa làm. Quyết định đó ghi rằng đại lý chịu đúng số giảm giá đã cho khách, kể cả khi bớt khách. Theo cách 1, với đơn tổng âm, đại lý chỉ chịu phần giảm giá thực dùng: ở ví dụ là 500.000 chứ không phải 800.000, tức đại lý nợ công ty ít hơn 300.000 so với chữ cũ. Lý do là nếu giữ 800.000 thì công ty thu của đại lý nhiều hơn cả giá dịch vụ, và sổ không cân. Hôm nay chưa có số nào đổi, vì phần đó chưa làm.
 
 Việc này đụng tiền, nên sau khi thi công phải có người kiểm độc lập, và ca mẫu SV-SK-04 phải được Kế toán xác nhận lại theo đáp án mới. Đây cũng là một trong các điều đang chặn phát hành phần sửa số khách (A2).
+
+Việc này đụng vào cùng chỗ tính tiền với hai lỗi đã biết (tiền đơn huỷ và sửa sai sau 'Đã giao'); bản sửa hai lỗi đó đã làm xong nhưng chưa lên bản chạy thật, nên phần này chỉ phát hành sau đợt Sổ tiền.
 
 **Câu duyệt gợi ý:** "Duyệt ADR-0109: phải thu của đơn không dưới 0, tính ở một hàm cho mọi màn; giảm giá giữ số đã ghi; trang đơn cảnh báo khi giảm giá lớn hơn tiền dịch vụ; đơn đại lý chịu phần giảm giá thực dùng; ca SV-SK-04 đổi đáp án theo."
 
@@ -46,7 +50,7 @@ Việc này đụng tiền, nên sau khi thi công phải có người kiểm đ
 - **Nguồn của tổng âm:** lúc lập đơn đã chặn `discount > subtotal` (`src/modules/orders/rules.ts:175`); sau xác nhận cột tiền của đơn bị khoá (`migrations/0081_khoa_tien_don_xac_nhan.sql:20-22`). Vì vậy tổng âm chỉ sinh ra từ dòng điều chỉnh số khách, ở cả route văn phòng (ADR-0063 D1) lẫn route HDV `handler-money-edit` (`src/modules/dispatch/index.ts:247`). Kiểm toán 24/9 đã chứng minh ca này trên route HDV (DK-T2-02, `docs/AUDIT-2026-09-24-DIEM-KHUAT.md:177-190`); chưa thấy mục đó được đóng ở đâu.
 - **Cảnh báo:** `canhBaoTongAm(total)` = câu `CAU_TONG_AM` khi `total < 0` (`src/shared/so-khach-van-phong.ts:49-55`). Câu này hiện ở phản hồi route (`src/modules/orders/index.ts:1087`, `:1096`), ở khối Thanh toán (`web/order.ts:456-457`) và ở dải báo sau khi lưu (`:1082`). Nút "Ghi hoàn cho khách" nằm ở khối Kế toán cùng trang (`web/order.ts:787-797`) và không lặp lại câu. ADR-0063 D1.12 hứa cảnh báo "trong màn hoàn của Kế toán"; tôi coi điều đó đã thoả vì hai khối ở cùng trang, nhưng chưa xem ảnh.
 - **Bài khoá hiện trạng:** TC8 (`src/modules/orders/so-khach-van-phong-route.test.ts:311-328`, ghim dư 500.000) và "TC8 — HIỆN TRẠNG CHỜ CHỦ QUYẾT" (`:330-348`, ghim Đã giao trả 409).
-- **Phương án (c) không có đường tay.** Hoàn bị trần ở số đã thu; chú thích bài `:331-333` ghi đường thoát duy nhất là tăng số khách lại cho tổng ≥ 0.
+- **Phương án (c): không có đường gỡ đúng sự thật; chỉ còn tăng số khách trở lại, tức ghi sai thực tế.** Hoàn bị trần ở số đã thu; chú thích bài `:331-333` ghi đường thoát duy nhất là tăng số khách lại cho tổng ≥ 0.
 
 ### 2. Quyết định đề xuất (phương án a)
 1. **Phải thu hiện hành = `max(0, tạm tính hiện hành − giảm giá)`**, kẹp trong **một** hàm (`effectiveMoney`). `phaiThuCua` (`hoan-tat.ts:15`) đổi sang gọi hàm đó. Mọi bề mặt dùng số này: trang đơn, danh sách, doanh thu tuần, `conLai`, phiếu Đã giao (`due_snapshot`), biên nhận. Đây là biến thể "kẹp ở nguồn". Biến thể "chỉ kẹp phía sổ, trang đơn vẫn hiện số âm" bị loại vì sinh hai con số cho cùng một khái niệm (5.4).
@@ -64,6 +68,7 @@ Việc này đụng tiền, nên sau khi thi công phải có người kiểm đ
 | Lên "Đã giao" | sau khi hoàn 200.000 | sau khi hoàn 100.000 | không bao giờ |
 | Đổi số đơn khác | chỉ đơn đang âm | mọi đơn có giảm giá đã sửa số khách. SV-SK-02: phải thu 2.000.000 → khoảng 1.938.462, cần luật làm tròn | không |
 | Đơn đã "Đã giao" | không đổi (đơn âm chưa từng giao được) | đơn có giảm giá và từng sửa số khách: khối Thanh toán tính lại phải thu (`src/modules/billing/service.ts:170`, `:188`), nên lệch với `due_snapshot` đã chốt lúc giao, và đơn đã chốt hiện "Còn lại" hoặc "Khách trả dư" sai (ADR-0088 `:25`: phải thu của đơn đã giao = `due_snapshot`) | không đổi |
+| Giảm giá đã ghi (`orders.discount`) | giữ; chỉ đổi đơn đang âm | giữ; đổi mọi đơn đã sửa số khách | giữ |
 | Trái câu ADR đã duyệt | ADR-0063 D1.12 (vế "dư lớn hơn số đã trả"); ADR-0079 `:43`, `:75` | ADR-0063 D1.4 "giảm giá giữ nguyên" (`:32`) và D1.12; ADR-0079 `:43`, `:75` | không |
 | Migration | không | không nếu tính lúc đọc; có nếu lưu giảm giá mới (cột tiền khoá `0081:20-22`; bảng điều chỉnh không có cột giảm giá `0021:5-13`) | không |
 
@@ -90,7 +95,7 @@ Biến thể (b) "giảm giá tối đa bằng tạm tính mới" ra **đúng s�
 | ADR-0079 `:57` (iv) | "(giảm giá cấp đơn là phần chênh duy nhất giữa hai số)" | "(giảm giá **hiệu lực** là phần chênh duy nhất — ADR-0109)" |
 | ADR-0079 `:75` | "Dòng `GIAM_GIA_BEN_DAT` vẫn ghi đúng số giảm giá." | "Dòng `GIAM_GIA_BEN_DAT` ghi đúng giảm giá hiệu lực = min(giảm giá, tạm tính hiện hành) (ADR-0109); bằng số giảm giá khi tạm tính còn ≥ giảm giá." |
 
-Không đổi: ADR-0063 D1.4 "giảm giá của đơn giữ nguyên" (`:32`) — đúng nguyên văn với (a).
+Không đổi: ADR-0063 D1.4 "giảm giá của đơn giữ nguyên" (`:32`). Cả (a) lẫn (b) đều giữ số giảm giá đã ghi; (a) chỉ đổi đơn đang âm, (b) đổi mọi đơn đã sửa số khách.
 
 ### 6. Chữ, bài và sổ vàng phải sửa theo
 - **V-3, V-5 của phiếu kiểm A2: chưa tìm thấy chữ.** Sổ chỉ ghi "V-3, V-5 sửa khi chủ quyết tổng âm" (`docs/superpowers/plans/2026-10-08-van-chuyen-goi-a-c-thi-cong-nhat-ky.md:68`). Phiếu kiểm không có trong kho; `git log --all -S "V-5"` chỉ gặp commit ghi sổ `d70c7fde`. Điều phối đối chiếu hai mục đó với danh sách dưới.
@@ -105,7 +110,7 @@ Không đổi: ADR-0063 D1.4 "giảm giá của đơn giữ nguyên" (`:32`) —
 - **SV-SK-04, đáp án mới theo (a):** `sau` = { tam_tinh 500.000, phai_thu 0, con_lai 0, du 200.000 }; `canh_bao_tong_am` true (giảm giá 800.000 > tạm tính 500.000); `truoc` giữ nguyên. Gợi ý thêm ca SV-SK-08: hoàn 200.000 → "Đã giao" được, `due_snapshot` 0. Theo (b): `sau` = {500.000, 100.000, 0, 100.000}, không cảnh báo, và SV-SK-02 đổi. Theo (c): giữ đáp án; ca không xác nhận được, đúng như ghi chú hiện có.
 
 ### 7. Cửa và migration
-- **Hai chiều:** luật nằm ở mã, không ghi dữ liệu mới; đổi lại là sửa một hàm. **Không migration.**
+- **Hai chiều trước khi có đơn nào đi qua; sau đó đổi lại sẽ làm khối Thanh toán của các đơn đã giao ấy hiện dư giả** (`src/modules/billing/service.ts:170`, `:188`; suy từ mã, chưa chạy). Luật nằm ở mã, không ghi dữ liệu mới. **Không migration.**
 - **Phát hành:** cùng A2 (đang chặn phát hành chờ câu này), sau Sổ tiền.
 
 ### Bài kiểm / hàng rào (mỗi rào: sửa cố ý → đỏ → hoàn nguyên, có dòng `docs/SO-HANG-RAO.md` kèm ngày)
@@ -114,13 +119,14 @@ Không đổi: ADR-0063 D1.4 "giảm giá của đơn giữ nguyên" (`:32`) —
 - Bài hành vi: SV-SK-04 mới; "hoàn 200.000 rồi Đã giao trả 200, `due_snapshot` 0"; đơn tổng âm vẫn có câu cảnh báo (điều kiện mới); đơn huỷ không đổi số cọc; doanh thu tuần cộng 0 cho đơn âm.
 
 ### 8. Sổ dừng dây chuyền (`docs/quyen-hoan.json`)
-- Không xây trên lỗ đang hở.
+- Xây trên lỗ đang hở: TNV-G1 và TNV-G3 (dòng đầu tệp). Bản vá mã đã ở `main`, chưa lên production ⇒ chỉ phát hành sau Sổ tiền, cùng A2.
 - TNV-G1 trích đúng `hoan-tat.ts:9-18`. (a) sửa hàm này, nhưng đơn huỷ đi nhánh huỷ của `conLai` (0/0) nên không đổi gì cho đơn huỷ.
+- TNV-G3: (a) cho đơn tổng âm qua phiếu Đã giao với `due_snapshot` = 0 rồi Hoàn thành (I1 = 0); đảo / thay lần thu sau Đã giao đi đường `0083` như mọi đơn. Không đổi mã vùng đó, nhưng dựa vào bản vá chưa lên production ⇒ phát hành sau Sổ tiền.
 - TNV-G4: (a) làm "dư ≤ đã thu" luôn đúng, cùng hướng với "hoàn ≤ người trả đang giữ". Phần còn mở (Đ5d, Đ6, Đ6a) không nằm trên đường này.
 - HC-4.2: (a) không thêm bút toán điều chỉnh nào.
 
 ### 9. Chưa kiểm
 - Production có đơn nào đang tổng âm không (route HDV có từ trước). Muốn biết phải chạy một bước đọc dùng chính hàm tính tiền, không viết lại bằng SQL.
-- Chưa chạy thử (a) trên mã.
+- (a) mới được người kiểm chạy thử trên bản sao của mã; chưa chạy trên cây thật, chưa chạy e2e.
 - ADR-0081 đã thi công tới đâu.
 - Câu cảnh báo và nút hoàn đứng cạnh nhau thế nào trên màn hình (chưa xem ảnh).
