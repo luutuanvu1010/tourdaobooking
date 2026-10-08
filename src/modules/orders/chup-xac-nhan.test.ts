@@ -212,3 +212,82 @@ test("người khác lưu nháp giữa lúc đọc và lúc ghi (dịch vụ xo�
   assert.equal(ds.length, 1);
   assert.equal(ds[0].order_service_id, `${id}-moi`);
 });
+
+// ---- Task 4b: khoá phiên bản đơn ở câu Xác nhận (lời chủ 2026-10-08: "Báo tải lại, bấm lại") ----
+
+const GIO_SAU = "2026-10-01T00:00:05.000Z"; // mốc `updated_at` của một lần lưu nháp chen vào (lớn hơn AT)
+/** Đơn vẫn nháp, không bản chụp, không nhật ký xác nhận / chụp mức — dấu vết của một lô xác nhận KHÔNG ghi gì. */
+function khongGhiGi(w: W, id: string): void {
+  assert.equal(w.q("SELECT status FROM orders WHERE id = ?", id)[0].status, "draft");
+  assert.equal(chup(w, id).length, 0, "không bản chụp nào");
+  assert.equal(Number(w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action IN ('confirmed', 'order_terms_captured')", id)[0].n), 0, "không nhật ký xác nhận / chụp mức");
+}
+/** Câu báo 409 là tiếng Việt, không lộ mã trạng thái thô. */
+function cauBaoSach(r: { json: { error: { message: string } } }): void {
+  assert.match(r.json.error.message, /vừa được người khác sửa/);
+  assert.doesNotMatch(r.json.error.message, /confirmed|draft/);
+}
+
+test("Task 4b ca A: lưu nháp đổi bên đặt thành trống ngay trước lô ⇒ 409 'vừa được sửa', đơn vẫn nháp, không bản chụp (khách lẻ không bị ghi hoa hồng đại lý); bấm lại thì chụp NONE", async () => {
+  const w = setup();
+  await muc(w, { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000 });
+  const id = nhap(w, "pty-dla", [["HONTAM", 1_000_000]]);
+  chenTruocLo(w, /UPDATE orders SET status = 'confirmed'/, () => {
+    // Việc lưu nháp (đổi bên đặt) làm: đổi bên đặt VÀ đẩy mốc `updated_at` của đơn.
+    w.sqlite.prepare("UPDATE orders SET booker_party_id = NULL, updated_at = ? WHERE id = ?").run(GIO_SAU, id);
+  });
+  const r = await xacNhan(w, id);
+  assert.equal(r.status, 409, r.text);
+  cauBaoSach(r);
+  khongGhiGi(w, id);
+  const lai = await xacNhan(w, id);
+  assert.equal(lai.status, 200, lai.text);
+  const [c] = chup(w, id);
+  assert.equal(c.commission_status, "NONE", "bấm lại: bên đặt trống ⇒ không hoa hồng");
+  assert.equal(c.beneficiary_party_id, null);
+});
+
+test("Task 4b ca B: lưu nháp đổi dòng danh mục thành nhập tay (giữ mã dòng dịch vụ) ngay trước lô ⇒ 409, không bản chụp; bấm lại thì dòng nhập tay chụp 'thiếu mức'", async () => {
+  const w = setup();
+  await muc(w, { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000 });
+  const id = nhap(w, "pty-dla", [["HONTAM", 1_000_000]]);
+  chenTruocLo(w, /UPDATE orders SET status = 'confirmed'/, () => {
+    w.sqlite.prepare("UPDATE order_service SET catalog_code = NULL, unit = 'manual' WHERE order_id = ?").run(id);
+    w.sqlite.prepare("UPDATE orders SET updated_at = ? WHERE id = ?").run(GIO_SAU, id);
+  });
+  const r = await xacNhan(w, id);
+  assert.equal(r.status, 409, r.text);
+  cauBaoSach(r);
+  khongGhiGi(w, id);
+  const lai = await xacNhan(w, id);
+  assert.equal(lai.status, 200, lai.text);
+  const [c] = chup(w, id);
+  assert.equal(c.commission_status, "MISSING");
+  assert.equal(c.missing_reason, "MANUAL_LINE");
+});
+
+test("Task 4b đối chứng: không ai chen vào ⇒ 200, mốc `updated_at` đơn tăng, đúng một bộ bản chụp như cũ", async () => {
+  const w = setup();
+  await muc(w, { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000 });
+  const id = nhap(w, "pty-dla", [["HONTAM", 1_000_000]]);
+  const r = await xacNhan(w, id);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(w.q("SELECT status FROM orders WHERE id = ?", id)[0].status, "confirmed");
+  assert.ok(String(w.q("SELECT updated_at FROM orders WHERE id = ?", id)[0].updated_at) > AT, "mốc mới lớn hơn mốc đã đọc");
+  const ds = chup(w, id);
+  assert.equal(ds.length, 1);
+  assert.equal(ds[0].commission_status, "SET");
+  assert.equal(ds[0].beneficiary_party_id, "pty-dla");
+});
+
+test("Task 4b: lưu nháp chen vào mà KHÔNG đổi gì liên quan chụp (chỉ đẩy `updated_at`) vẫn 409 — khoá theo phiên bản, không đoán nội dung; bấm lại xác nhận được", async () => {
+  const w = setup();
+  const id = nhap(w, "pty-dla", [["HONTAM", 1_000_000]]);
+  chenTruocLo(w, /UPDATE orders SET status = 'confirmed'/, () => { w.sqlite.prepare("UPDATE orders SET updated_at = ? WHERE id = ?").run(GIO_SAU, id); });
+  const r = await xacNhan(w, id);
+  assert.equal(r.status, 409, r.text);
+  cauBaoSach(r);
+  khongGhiGi(w, id);
+  assert.equal((await xacNhan(w, id)).status, 200);
+  assert.equal(chup(w, id).length, 1);
+});

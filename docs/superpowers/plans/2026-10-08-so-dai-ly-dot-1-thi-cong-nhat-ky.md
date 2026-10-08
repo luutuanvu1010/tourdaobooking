@@ -104,3 +104,23 @@ Cả bộ: `npm run typecheck` 0 lỗi; `npm test` bước 1 thoát 0 (3507 bài
 - Ruling (Task 4): bước kiểm Step 6 của brief («câu cuối hiện có của lô phải là nhật ký `confirmed` có `changes() > 0`») ĐÚNG — không cần chèn chỗ khác, không lệch brief ở phần này.
 - Lưu ý cho Task 5: dòng `order_terms_captured` (chỉ đếm dòng, không tỷ lệ, không tên) đã vào `audit_log` của đơn từ Task 4; lịch sử đơn cho Đối tác chỉ lọc bỏ `order_terms_*` ở Task 5 — giữa hai task Đối tác có thể thấy một dòng «Chụp mức hoa hồng lúc xác nhận». Không bài hiện có nào đỏ vì dòng này.
 - Nợ / chưa quan sát: khe hẹp «lưu nháp GIỮ NGUYÊN mã dịch vụ nhưng ĐỔI mã danh mục (hoặc số khách) giữa lúc `findOrder` đọc và lúc lô chạy» — bản chụp dùng dữ liệu đọc trước đó; `order_confirm` không khoá `updated_at` (thiết kế có sẵn), nên máy chủ không phát hiện. Chưa có bài (không dựng được cách xác định mà không sửa luật xác nhận); báo điều phối, cần chủ quyết nếu muốn khoá `updated_at = meta.updatedAt` ở câu xác nhận.
+
+## Task 4b — khoá phiên bản đơn ở Xác nhận (lời chủ 2026-10-08)
+Nền `a95bbd6e`, nhánh `claude/sdl-t4b-khoa-phien-ban`. **Số route: +0.** Đóng khoản «Nợ / chưa quan sát» cuối mục Task 4 (khe lưu nháp chen giữa lúc route đọc đơn và lúc lô chạy).
+
+**Lời chủ (AskUserQuestion, 2026-10-08):** «Báo tải lại, bấm lại» — nếu đơn vừa bị sửa trong tích tắc trước lúc xác nhận, máy từ chối và báo câu «vừa được sửa — tải lại» có sẵn.
+
+**Việc đã làm:** câu `order_confirm` (`chang-hanh-khach-repo.ts`) thêm `AND updated_at = ?6` với `prevUpdatedAt` (mốc `meta.updatedAt` mà route đọc ĐẦU request, TRƯỚC `findOrder` và bảng mức). `confirmOrder` truyền `prevUpdatedAt` vào `orderConfirm`; chữ ký công bố của `confirmOrder` không đổi. Mọi điều kiện cũ, thứ tự lô (`legFill → UPDATE orders → nhật ký confirmed → chụp từng dòng → order_terms_captured`) và dịch lỗi cũ giữ nguyên. Khi UPDATE không đổi dòng, chuỗi `changes() > 0` làm cả lô không ghi gì; route vốn đã có nhánh «không xác nhận được ⇒ đọc lại lý do» và rơi xuống `STALE()` (409 «Đơn vừa được người khác sửa, hãy tải lại rồi sửa tiếp.») — nhánh đó nay áp cho cả trường hợp lệch `updated_at` (route chỉ đổi một dòng chú thích). Nơi gọi: chỉ MỘT — `POST /api/orders/:id/status` (đường «Đặt gấp» không xác nhận đơn; đặt gấp xong người dùng bấm Xác nhận lại ⇒ đọc mốc mới).
+
+Bài (đỏ trước, xanh sau) trong `chup-xac-nhan.test.ts`: ca A (chen đổi bên đặt thành trống + đẩy `updated_at`), ca B (chen đổi dòng danh mục thành nhập tay + đẩy `updated_at`), đối chứng không chen, ca «chỉ đẩy `updated_at`». ĐỎ trước khi sửa: A, B và ca chỉ-đẩy-mốc đều «200 !== 409» (đối chứng xanh); XANH sau: 15/15.
+
+**Quan sát chặn thật (P16)** — sao lưu tệp vào thư mục tạm của phiên, phá, chạy bài, khôi phục từ bản sao, `cmp` giống hệt.
+| Hàng rào | Sửa cố ý | Đỏ ở bài | Hoàn nguyên | Ngày |
+|---|---|---|---|---|
+| Khoá `updated_at = ?6` của câu `order_confirm` | Đổi `AND updated_at = ?6` thành `AND ?6 IS NOT NULL` (giữ nguyên số tham số; gỡ hẳn vế thì 500 vì thừa tham số — không phải quan sát hợp lệ) | `chup-xac-nhan.test.ts`: ca A, ca B, ca «chỉ đẩy `updated_at`» đỏ «200 !== 409»; 12 đạt / 3 đỏ (đối chứng và 11 bài cũ vẫn xanh) | Khôi phục từ bản sao; `cmp` giống hệt; 15/15 xanh | 2026-10-08 |
+
+- Ruling (Task 4b): ca A/B mô phỏng lưu nháp bằng SQL chen trước lô (khuôn `chenTruocLo` của Task 4) CÓ đẩy `updated_at` — đúng việc `updateDraftOrder`/`changeBooker` làm thật. Bài cũ «người khác lưu nháp… dịch vụ xoá–chèn lại với mã mới» KHÔNG đẩy `updated_at`, nên vẫn đi tới trigger `terms_service_mismatch` (lưới thứ hai) và xanh nguyên văn — hai lớp cùng tồn tại, không bài nào bị nới.
+- Ruling (Task 4b): khoá theo PHIÊN BẢN, không đoán nội dung — mọi lần sửa đơn nháp sau lúc route đọc đều làm bấm Xác nhận trả 409 (kể cả sửa chẳng liên quan bản chụp, vd đổi tên khách); người dùng tải lại rồi bấm lại. Đúng lời chủ.
+- Ruling (Task 4b): chữ trong 409 dùng lại `STALE()` có sẵn; không câu mới, không lộ mã trạng thái (bài kiểm câu báo không chứa `confirmed`/`draft`).
+- Ruling (Task 4b): thêm một câu vào dòng route `/api/orders/:id/status` của `docs/SYSTEM-DESIGN.md` (tài liệu mô tả, sửa cùng commit); không đổi tài liệu chuẩn tắc.
+- Phụ thuộc: khoá chỉ đúng khi MỌI đường sửa đơn nháp đều đẩy `orders.updated_at` — đã kiểm `updateDraftOrder`, `changeBooker`, `updateTrip`, `cauDoiNguoiDat` (gộp hồ sơ) đều đẩy. Đường mới sửa đơn nháp mà không đẩy `updated_at` sẽ lách khoá.
