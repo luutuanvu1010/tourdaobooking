@@ -166,3 +166,19 @@ test("kiểm chặng: ngày đón đã qua (đơn đã xác nhận) → 400; ngo
   const full = await addLeg(w, cur, SALES, RET);
   assert.equal(full.status, 400, "10 chặng rồi, thêm nữa → 400");
 });
+
+test("MQ-07 (ADR-0052 D6.2): dòng nhật ký sửa / bỏ chặng ghi target_id = id CHẶNG (target_type vẫn 'order') → cột leg_id của v_aud_order_change; thêm chặng thì leg_id NULL", async () => {
+  const w = setup();
+  const o = await order(w);
+  const leg = o.services[0].legs[0];
+  const r = await edit(w, o, SALES, leg.id, leg.updatedAt, LEG_EDIT(leg, { pickupTime: "07:00" }));
+  assert.equal(r.status, 200, r.text);
+  const sua = w.q("SELECT target_type, target_id FROM audit_log WHERE order_id = ? AND action = 'order_leg_updated'", o.id)[0];
+  assert.deepEqual({ ...sua }, { target_type: "order", target_id: leg.id });
+  const moi = r.json.order.services[0].legs[0];
+  assert.equal((await close(w, r.json.order, SALES, moi.id, moi.updatedAt, "WRONG_ENTRY")).status, 200);
+  const o2 = await order(w);
+  assert.equal((await addLeg(w, o2, SALES)).status, 201);
+  const view = w.q("SELECT order_id, action, leg_id FROM v_aud_order_change WHERE action LIKE 'order_leg_%' ORDER BY created_at").map((x: any) => [x.order_id, x.action, x.leg_id]);
+  assert.deepEqual(view, [[o.id, "order_leg_updated", leg.id], [o.id, "order_leg_closed", moi.id], [o2.id, "order_leg_added", null]]);
+});

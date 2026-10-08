@@ -910,6 +910,22 @@ test("ADR-0052 D6.3 (siết): chỉ gốc lắp ráp (src/index.ts) và module v
   assert.deepEqual(problems, [], "thongbao nhận dữ kiện chuyến qua ctx.chuyenChoTin — không gọi thẳng hàm công bố của van-chuyen");
 });
 
+// ADR-0062 Đ1 (siết — hàng rào bù cho ngoại lệ "view có cột detail"): `v_aud_order_change` mang chữ nhật ký (`detail`) nên CHỈ module thongbao được đọc.
+// Quét mã src/ (trừ *.test.ts) và web/, bỏ chú thích, GIỮ chuỗi (tên view nằm trong chuỗi SQL); thêm: mọi câu đã đăng ký nhắc view phải mang tên module thongbao.
+test("ADR-0062 Đ1 (siết): chỉ module thongbao nhắc `v_aud_order_change` trong mã (view có cột detail — chữ nhật ký)", async () => {
+  const problems: string[] = [];
+  for (const file of [...walk(SRC), ...walk(WEB)]) {
+    const rel = relative(ROOT, file).split(sep).join("/");
+    if (rel.startsWith("src/modules/thongbao/")) continue;
+    if (/\bv_aud_order_change\b/i.test(maskSource(readFileSync(file, "utf8"), { strings: false, comments: true }))) problems.push(rel);
+  }
+  for (const s of [...STRICT, ...NUA_NGHIEM]) await import(pathToFileURL(join(SRC, s.file)).href);
+  await import(pathToFileURL(join(SRC, "modules/thongbao/repository.ts")).href);
+  const docView = registeredSql().filter((e) => /\bv_aud_order_change\b/i.test(e.sql));
+  for (const e of docView) if (e.module !== "thongbao") problems.push(`${e.module}.${e.name}`);
+  assert.deepEqual(problems, [], "chữ nhật ký đơn chỉ tới hàm đọc tin (phanDoiCuaTin) của thongbao — module khác không đọc view này");
+});
+
 test("ADR-0068 Đ6 (siết): chỉ gốc lắp ráp (src/index.ts) và module chủ nhắc sáu hàm công bố của gộp hồ sơ (bỏ chú thích)", () => {
   const CHU: Record<string, string> = {
     viecXeCuaNguoi: "src/modules/van-chuyen/",

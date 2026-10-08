@@ -1374,7 +1374,8 @@ export async function changeLeg(
         : legCloseChecked(db, plan.legId, orderId, plan.reason, at, staffId, plan.expected);
   const results = await db.batch([
     first,
-    auditStatement(db, { id: auditId, orderId, staffId, action: plan.kind === "close" ? "order_leg_closed" : "order_leg_updated", at, detail: plan.detail }, "changes() > 0"),
+    // target_id = id CHẶNG (target_type vẫn "order" — mặc định của audit): khoá của tin MQ-07 (ADR-0052 D6.2) qua cột leg_id của v_aud_order_change (0086).
+    auditStatement(db, { id: auditId, orderId, staffId, action: plan.kind === "close" ? "order_leg_closed" : "order_leg_updated", targetType: "order", targetId: plan.legId, at, detail: plan.detail }, "changes() > 0"),
     orderTouchGuarded(db, orderId, at, orderUpdatedAt, auditId),
     serviceMirrorUpdateGuarded(db, plan.serviceId, orderId, plan.mirror, auditId),
   ]);

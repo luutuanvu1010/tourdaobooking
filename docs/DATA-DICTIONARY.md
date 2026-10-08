@@ -10,6 +10,7 @@
 | `v_aud_order_event` | view công bố | cột: id, order_id, staff_id, action, created_at |
 | `v_aud_trip_event` | view công bố | cột: id, trip_id, staff_id, action, created_at |
 | `v_aud_account_event` | view công bố | cột: id, account_id, staff_id, action, created_at |
+| `v_aud_order_change` | view công bố | cột: id, order_id, staff_id, action, detail, created_at, leg_id |
 
 ## auth
 

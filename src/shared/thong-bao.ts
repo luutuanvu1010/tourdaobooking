@@ -4,8 +4,15 @@ import { duocThayTinDon, nhanKetNoi, nhanSuKien, type TrangThaiPhuTrach } from "
 import { can, coQuyenTien, hasPermission, isExternalPermission, isOffice, PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode, type PermissionHolder } from "./permissions.ts";
 import type { GuiThongBaoRequest, HopThongBaoResponse, LoaiTin, NguoiNhanTin, TinDto } from "./contracts.ts";
 import { tinChuyenCho, type DongChuyen } from "./tin-chuyen.ts";
+import { HANH_DONG_DOI_SO_KHACH } from "./audit-actions.ts";
 
 export const HANH_DONG_TIN_DON = ["created", "order_claimed", "order_handler_changed", "confirmed", "cancelled", "order_cancelled_by_field"] as const;
+/**
+ * ADR-0062 Đ1 — tập nguồn ĐÓNG của tin "đơn đổi sau xác nhận" (khai MỘT nơi; view `v_aud_order_change` lọc đúng tập này — bài migrations-tin-doi-don):
+ * sửa thông tin chuyến, sửa / thêm / bỏ chặng, và MỌI hành động mang cờ `doiSoKhach` (dẫn từ AUDIT_ACTIONS — không gõ tay).
+ */
+export const HANH_DONG_TIN_DOI: readonly string[] = ["trip_updated", "order_leg_updated", "order_leg_added", "order_leg_closed", ...HANH_DONG_DOI_SO_KHACH];
+export const laHanhDongTinDoi = (a: string): boolean => HANH_DONG_TIN_DOI.includes(a);
 export const NGAY_GIU_TIN = 30;
 export const TOI_DA_TIN = 100;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

@@ -731,6 +731,19 @@
       ]
     },
     {
+      "name": "v_aud_order_change",
+      "module": "audit",
+      "columns": [
+        "id",
+        "order_id",
+        "staff_id",
+        "action",
+        "detail",
+        "created_at",
+        "leg_id"
+      ]
+    },
+    {
       "name": "v_ord_order_owner",
       "module": "orders",
       "columns": [
