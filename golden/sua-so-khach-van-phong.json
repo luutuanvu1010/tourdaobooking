@@ -5,12 +5,13 @@
     "dich_vu": "nguon = danh_muc (don_gia theo loại khách = đơn giá ĐÃ THOẢ THUẬN đã lưu; khach_truoc = số khách đã lưu lúc xác nhận) | nhap_tay (thanh_tien cố định — không sửa qua đường này, luôn được cộng)",
     "khach_hien_hanh": "số khách của dòng điều chỉnh gần nhất nếu có (lan_sua_truoc), không thì khach_truoc",
     "tam_tinh": "Σ (đơn giá × số khách hiện hành) các dịch vụ danh mục + Σ thành tiền nhập tay",
-    "phai_thu": "tam_tinh − giam_gia (giảm giá KHÔNG đổi khi sửa số khách) — có thể ÂM",
+    "phai_thu": "max(0, tam_tinh − giam_gia) — không bao giờ âm (ADR-0109, chủ chọn 'Phải thu không âm' 8/10); giảm giá đã lưu KHÔNG đổi khi sửa số khách",
     "con_lai": "max(0, phai_thu − da_thu)",
     "du": "max(0, da_thu − phai_thu) — 'khách trả dư, chờ hoàn'",
-    "canh_bao_tong_am": "true khi phai_thu SAU < 0 (không chặn — ADR-0063 D1)",
+    "canh_bao_tong_am": "true khi giam_gia > tam_tinh SAU (ADR-0109 QĐ3; khoá giữ tên cũ) — không chặn (ADR-0063 D1)",
     "nhat_ky": "detail của dòng nhật ký order_money_adjusted: 'số khách: <tên danh mục>: <loại khách> <trước> → <sau>, … · lý do: <nhãn lý do>'; null khi không ghi",
-    "hoa_hong": "PER_PAX: muc_chup × (người lớn + trẻ em + người cao tuổi), KHÔNG đếm em bé; mức chụp lúc Xác nhận, sửa số khách KHÔNG chụp lại (ADR-0077 điều 9–10)"
+    "hoa_hong": "PER_PAX: muc_chup × (người lớn + trẻ em + người cao tuổi), KHÔNG đếm em bé; mức chụp lúc Xác nhận, sửa số khách KHÔNG chụp lại (ADR-0077 điều 9–10)",
+    "buoc_sau": "(tuỳ chọn, ADR-0109) MỘT bước sau lần sửa: dau_vao.buoc_sau = { loai: hoan_roi_giao, hoan: số Kế toán hoàn } | { loai: giao } | { loai: huy }. Đáp án: hoàn / giao → { da_thu, con_lai, du, giao_duoc (bấm Đã giao được không, đơn đã xác nhận, hôm nay = ngày đi, không người hưởng), due_snapshot (phải thu chụp trên phiếu Đã giao; null khi không giao được) }; huỷ → { tong_cong (= phải thu đã kẹp), con_lai, du } — số cọc khách đã trả không đổi"
   },
   "cac_ca": [
     {
@@ -79,8 +80,8 @@
     },
     {
       "ma": "SV-SK-04",
-      "mo_ta": "Tổng âm có cảnh báo: tour 2 người lớn × 500.000 = 1.000.000, giảm 800.000 → phải thu 200.000; khách đã trả đủ 200.000. Kế toán sửa còn 1 người lớn → tạm tính 500.000, phải thu 500.000 − 800.000 = −300.000 (KHÔNG chặn), còn lại 0, khách trả dư chờ hoàn 500.000; trả về câu cảnh báo tổng âm.",
-      "ghi_chu_cho_nguoi_xac_nhan": "Số 'chờ hoàn' 500.000 LỚN HƠN tiền khách thật đã trả (200.000). Hiện trạng mã: Kế toán chỉ hoàn được tối đa 200.000 (không hoàn quá số khách đã trả), sau đó vẫn còn 'dư 300.000' nên đơn không lên được Đã giao. Đáp án ở đây ghi đúng điều mã đang làm; nếu Kế toán thấy con số phải khác (ví dụ chờ hoàn = 200.000, hoặc giảm giá tự co lại), ca này KHÔNG được xác nhận và cần chủ dự án quyết luật.",
+      "mo_ta": "Giảm giá lớn hơn tiền dịch vụ sau khi bớt khách, có cảnh báo (ca hộp hỏi của chủ, ADR-0109): tour 2 người lớn × 500.000 = 1.000.000, giảm 800.000 → phải thu 200.000; khách đã trả đủ 200.000. Kế toán sửa còn 1 người lớn → tạm tính 500.000; giảm giá 800.000 lớn hơn nên phải thu tính bằng 0 (KHÔNG chặn), còn lại 0, khách trả dư chờ hoàn đúng 200.000; trả về câu cảnh báo.",
+      "ghi_chu_cho_nguoi_xac_nhan": "Theo luật chủ chọn 8/10 (ADR-0109 'Phải thu không âm'): giảm giá vẫn lưu 800.000 nhưng chỉ dùng tới 500.000 (bằng tiền dịch vụ còn lại); phần giảm giá vượt 300.000 coi như bỏ; khách được hoàn đúng 200.000 đã trả, hoàn xong đơn lên Đã giao được (ca SV-SK-08). Biên nhận gửi khách ghi giảm giá 500.000. Đáp án cũ (phải thu −300.000, chờ hoàn 500.000) đã bỏ theo quyết định này.",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "dau_vao": {
         "dich_vu": [
@@ -94,7 +95,7 @@
       "dap_an": {
         "ghi_dong_dieu_chinh": true,
         "truoc": { "tam_tinh": 1000000, "phai_thu": 200000, "con_lai": 0, "du": 0 },
-        "sau": { "tam_tinh": 500000, "phai_thu": -300000, "con_lai": 0, "du": 500000 },
+        "sau": { "tam_tinh": 500000, "phai_thu": 0, "con_lai": 0, "du": 200000 },
         "canh_bao_tong_am": true,
         "nhat_ky": "số khách: Tour đảo: người lớn 2 → 1 · lý do: Khách bớt người"
       }
@@ -162,6 +163,98 @@
         "sau": { "tam_tinh": 2500000, "phai_thu": 2500000, "con_lai": 1000000, "du": 0 },
         "canh_bao_tong_am": false,
         "nhat_ky": "số khách: Tour đảo: người lớn 3 → 5 · lý do: Khách thêm người"
+      }
+    },
+    {
+      "ma": "SV-SK-08",
+      "mo_ta": "Như SV-SK-04 (2 người lớn × 500.000, giảm 800.000, khách đã trả 200.000, sửa còn 1 người lớn → phải thu 0, dư 200.000), rồi Kế toán hoàn 200.000 cho khách → đã thu 0, còn lại 0, dư 0; hướng dẫn viên bấm Đã giao được, phiếu Đã giao chụp phải thu 0 (ADR-0109 bài 3).",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "dich_vu": [
+          { "id": "dv-tour", "ten": "Tour đảo", "nguon": "danh_muc", "don_gia": { "adult": 500000 }, "khach_truoc": { "adult": 2, "child": 0, "senior": 0, "infant": 0 } }
+        ],
+        "lan_sua_truoc": null,
+        "giam_gia": 800000,
+        "da_thu": 200000,
+        "sua": { "ly_do": "BOT_NGUOI", "khach_sau": { "dv-tour": { "adult": 1, "child": 0, "senior": 0, "infant": 0 } } },
+        "buoc_sau": { "loai": "hoan_roi_giao", "hoan": 200000 }
+      },
+      "dap_an": {
+        "ghi_dong_dieu_chinh": true,
+        "truoc": { "tam_tinh": 1000000, "phai_thu": 200000, "con_lai": 0, "du": 0 },
+        "sau": { "tam_tinh": 500000, "phai_thu": 0, "con_lai": 0, "du": 200000 },
+        "canh_bao_tong_am": true,
+        "nhat_ky": "số khách: Tour đảo: người lớn 2 → 1 · lý do: Khách bớt người",
+        "buoc_sau": { "da_thu": 0, "con_lai": 0, "du": 0, "giao_duoc": true, "due_snapshot": 0 }
+      }
+    },
+    {
+      "ma": "SV-SK-09",
+      "mo_ta": "Khách CHƯA trả đồng nào: tour 2 người lớn × 500.000, giảm 800.000 → phải thu 200.000, còn lại 200.000. Kế toán sửa còn 1 người lớn → tạm tính 500.000, phải thu 0, còn lại 0, dư 0, có cảnh báo; bấm Đã giao được ngay, phiếu chụp phải thu 0 (trước ADR-0109 đơn này bị giữ 'khách trả dư 300.000' dù khách chưa trả gì).",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "dich_vu": [
+          { "id": "dv-tour", "ten": "Tour đảo", "nguon": "danh_muc", "don_gia": { "adult": 500000 }, "khach_truoc": { "adult": 2, "child": 0, "senior": 0, "infant": 0 } }
+        ],
+        "lan_sua_truoc": null,
+        "giam_gia": 800000,
+        "da_thu": 0,
+        "sua": { "ly_do": "BOT_NGUOI", "khach_sau": { "dv-tour": { "adult": 1, "child": 0, "senior": 0, "infant": 0 } } },
+        "buoc_sau": { "loai": "giao" }
+      },
+      "dap_an": {
+        "ghi_dong_dieu_chinh": true,
+        "truoc": { "tam_tinh": 1000000, "phai_thu": 200000, "con_lai": 200000, "du": 0 },
+        "sau": { "tam_tinh": 500000, "phai_thu": 0, "con_lai": 0, "du": 0 },
+        "canh_bao_tong_am": true,
+        "nhat_ky": "số khách: Tour đảo: người lớn 2 → 1 · lý do: Khách bớt người",
+        "buoc_sau": { "da_thu": 0, "con_lai": 0, "du": 0, "giao_duoc": true, "due_snapshot": 0 }
+      }
+    },
+    {
+      "ma": "SV-SK-10",
+      "mo_ta": "Tạm tính về 0: tour người lớn 500.000, em bé 0 đồng; đơn 1 người lớn + 1 em bé = 500.000, giảm 100.000 → phải thu 400.000, khách đã trả đủ 400.000. Kế toán sửa còn 0 người lớn + 1 em bé → tạm tính 0, phải thu 0, còn lại 0, khách trả dư chờ hoàn 400.000; có cảnh báo (giảm giá 100.000 lớn hơn tạm tính 0).",
+      "ghi_chu_cho_nguoi_xac_nhan": "Giảm giá hiệu lực = 0 (không còn tiền dịch vụ nào để giảm). Nếu là đơn đại lý thì KHÔNG có dòng 'giảm giá bên đặt chịu' (R-BIL-14 — chỉ trên giấy, sổ đại lý chưa thi công).",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "dich_vu": [
+          { "id": "dv-tour", "ten": "Tour đảo", "nguon": "danh_muc", "don_gia": { "adult": 500000, "infant": 0 }, "khach_truoc": { "adult": 1, "child": 0, "senior": 0, "infant": 1 } }
+        ],
+        "lan_sua_truoc": null,
+        "giam_gia": 100000,
+        "da_thu": 400000,
+        "sua": { "ly_do": "BOT_NGUOI", "khach_sau": { "dv-tour": { "adult": 0, "child": 0, "senior": 0, "infant": 1 } } }
+      },
+      "dap_an": {
+        "ghi_dong_dieu_chinh": true,
+        "truoc": { "tam_tinh": 500000, "phai_thu": 400000, "con_lai": 0, "du": 0 },
+        "sau": { "tam_tinh": 0, "phai_thu": 0, "con_lai": 0, "du": 400000 },
+        "canh_bao_tong_am": true,
+        "nhat_ky": "số khách: Tour đảo: người lớn 1 → 0 · lý do: Khách bớt người"
+      }
+    },
+    {
+      "ma": "SV-SK-11",
+      "mo_ta": "Như SV-SK-04 (sửa còn 1 người lớn → phải thu 0, dư 200.000), rồi đơn bị HUỶ → Tổng cộng 0 (trước ADR-0109 hiện −300.000), còn lại 0, dư 0.",
+      "ghi_chu_cho_nguoi_xac_nhan": "Số cọc khách đã trả (200.000) không đổi; đơn huỷ giữ cọc mặc định, hoàn chỉ qua khoản duyệt (ADR-0089). Phần cọc khoá ở bài biên nhận huỷ và bài route TC8d, không ở sổ vàng này.",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "dich_vu": [
+          { "id": "dv-tour", "ten": "Tour đảo", "nguon": "danh_muc", "don_gia": { "adult": 500000 }, "khach_truoc": { "adult": 2, "child": 0, "senior": 0, "infant": 0 } }
+        ],
+        "lan_sua_truoc": null,
+        "giam_gia": 800000,
+        "da_thu": 200000,
+        "sua": { "ly_do": "BOT_NGUOI", "khach_sau": { "dv-tour": { "adult": 1, "child": 0, "senior": 0, "infant": 0 } } },
+        "buoc_sau": { "loai": "huy" }
+      },
+      "dap_an": {
+        "ghi_dong_dieu_chinh": true,
+        "truoc": { "tam_tinh": 1000000, "phai_thu": 200000, "con_lai": 0, "du": 0 },
+        "sau": { "tam_tinh": 500000, "phai_thu": 0, "con_lai": 0, "du": 200000 },
+        "canh_bao_tong_am": true,
+        "nhat_ky": "số khách: Tour đảo: người lớn 2 → 1 · lý do: Khách bớt người",
+        "buoc_sau": { "tong_cong": 0, "con_lai": 0, "du": 0 }
       }
     }
   ]
