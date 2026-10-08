@@ -12,6 +12,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { gieoMocXep } from "../../../tests/audit/gieo-vc.mjs";
+import { kiemDieuChinh } from "../../shared/dieu-chinh-suat.ts";
+import type { TrangThaiSuat } from "../../shared/dieu-phoi-kieu.ts";
 
 const DIR = new URL("../../../migrations/", import.meta.url);
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
@@ -385,4 +387,26 @@ test("lc04_identity: corrects_allocation_id bất biến (không gắn / đổi 
   const a = suat(db, c.id, c.di, d.legs[0]!, { key: d.khach[0]! });
   const b = suat(db, c.id, c.di, d.legs[0]!, { key: d.khach[1]! });
   loi(() => run(db, "UPDATE vc_trip_allocation SET corrects_allocation_id = ? WHERE id = ?", a, b), /lc04_identity/);
+});
+
+// Phiếu kiểm A1 T1 (2026-10-08): hai bài trên chỉ thử 9 cặp trong bảng + 5 cặp ngoài bảng, nên nới trigger thêm DROPPED → WAITING vẫn xanh. Bài này đi
+// ĐỦ 5 × 5 cặp trạng thái × ba thế điểm và đòi lớp CSDL trả CÙNG kết quả với luật máy chủ `kiemDieuChinh` (một bảng Đ2.4, hai lớp).
+test("LC-15 CORRECTION — đủ 25 cặp × 3 thế điểm: CSDL cho qua ⇔ kiemDieuChinh cho qua (bảng Đ2.4 một nguồn)", () => {
+  const db = openDb();
+  const TT: TrangThaiSuat[] = ["WAITING", "BOARDED", "NO_SHOW", "CANCELLED_AT_STOP", "DROPPED"];
+  const THE: { len: "ARRIVED" | "DONE"; xuong: "ARRIVED" | "DONE" }[] = [
+    { len: "ARRIVED", xuong: "ARRIVED" },
+    { len: "DONE", xuong: "ARRIVED" },
+    { len: "DONE", xuong: "DONE" },
+  ];
+  let qua = 0;
+  for (const tu of TT) for (const den of TT) for (const the of THE) {
+    const ten = `${tu} → ${den} (đón ${the.len}, trả ${the.xuong})`;
+    const x = dangChay(db, { trangThai: tu, ...the });
+    if (kiemDieuChinh(tu, den, { diemLen: the.len, diemXuong: the.xuong }) === null) {
+      dieuChinh(db, x, den);
+      qua++;
+    } else loi(() => dieuChinh(db, x, den), /lc15_running/, ten);
+  }
+  assert.equal(qua, 20, "số ca được qua theo bảng Đ2.4 (đổi bảng = đổi ADR-0097, sửa cả luật thuần lẫn trigger)");
 });
