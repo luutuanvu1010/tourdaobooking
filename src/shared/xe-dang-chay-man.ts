@@ -4,6 +4,7 @@
 // - Tài xế thấy giờ đón + TỔNG khách, không tách người lớn / trẻ em (lời chủ 5.3).
 import type { CapNhatDiemResponse, ChangLichDto, ChuyenTomTatDto, CuuHoResponse, GioVnDto, LichChungResponse } from "./contracts.ts";
 import { changChuaXep } from "./dieu-phoi-man.ts";
+import { CAU_NHAC_XE_DANG_CHAY } from "./dong-bo-chuyen-cau.ts";
 import type { DiemVao, SuatVao } from "./tien-do-man.ts";
 import { maskLongDigits } from "./text-guards.ts";
 import { ngayNgan } from "./vn-date.ts";
@@ -75,6 +76,13 @@ export function theXeDangChay(c: ChuyenTomTatDto, ngayXem: string): { tieuDe: st
     phu: [c.taiXe?.ten ?? "Chưa có tài xế", c.xuatBen ? `xuất bến ${hien(c.xuatBen.gioXayRa, ngayXem)}` : null, tiep ? `tiếp theo: ${tiep.tenNoi}` : "đã tới mọi điểm"].filter(Boolean).join(" · "),
   };
 }
+
+/**
+ * ADR-0104 Đ2.7 (T2.16): dòng nhắc trên thẻ xe đang chạy — ĐÚNG câu cố định của máy (`CAU_NHAC_XE_DANG_CHAY`, cùng câu phản hồi lệnh đơn) khi máy chủ báo
+ * chuyến còn khách chờ đón của đơn huỷ (`coKhachDonHuy`, tính lúc đọc). Không mã đơn, không tên.
+ */
+export const nhacXeDangChay = (c: Pick<ChuyenTomTatDto, "trangThai" | "coKhachDonHuy">): string | null =>
+  c.trangThai === "RUNNING" && c.coKhachDonHuy ? CAU_NHAC_XE_DANG_CHAY : null;
 
 export interface LuaChonThemDiem { legId: string; nhan: string; phu: string; noiDon: string; conLai: number; datGap: boolean }
 /** Form "Thêm điểm đón / thêm khách" (V11 bảng 11.4): chặng chờ xếp; điểm đón chỉ đọc (suy từ chặng); số khách ≤ người còn lại của chặng. */

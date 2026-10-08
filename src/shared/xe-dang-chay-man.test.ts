@@ -1,7 +1,8 @@
 // Luật hiển thị THUẦN của "Xe đang chạy" (Vận chuyển Đợt 5, ADR-0052 D5; bản vẽ V11, V6 bổ sung) — src/shared/xe-dang-chay-man.ts.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cauCapNhatDiem, chipDiemChay, chonThemDiem, chuyenDangChay, diemMoiChuaXem, khachDangCho, suatCuaKhach, theCuuHo, theXeDangChay } from "./xe-dang-chay-man.ts";
+import { cauCapNhatDiem, chipDiemChay, chonThemDiem, chuyenDangChay, diemMoiChuaXem, khachDangCho, nhacXeDangChay, suatCuaKhach, theCuuHo, theXeDangChay } from "./xe-dang-chay-man.ts";
+import { CAU_NHAC_XE_DANG_CHAY } from "./dong-bo-chuyen.ts";
 import type { ChangLichDto, ChuyenTomTatDto, CuuHoResponse } from "./contracts.ts";
 import type { DiemVao, SuatVao } from "./tien-do-man.ts";
 
@@ -130,4 +131,12 @@ test("suatCuaKhach (V6 6.3 — D5b): chỉ trong ngày chạy và khi còn suấ
   assert.doesNotMatch(JSON.stringify(r), /Khách Có Tên|1990/);
   assert.equal(suatCuaKhach({ trongNgayChay: false, diem: d, suat } as never), null, "ngoài ngày chạy: không có tên để so — ẩn");
   assert.equal(suatCuaKhach({ trongNgayChay: true, diem: d, suat: [suat[1]] } as never), null, "đủ tên — ẩn");
+});
+
+test("ADR-0104 Đ2.7 (T2.16): dòng nhắc trên thẻ xe đang chạy = ĐÚNG câu cố định của máy khi chuyến có khách chờ đón của đơn huỷ; không thì không dòng", () => {
+  const c = (o: Partial<ChuyenTomTatDto>) => ({ trangThai: "RUNNING", coKhachDonHuy: false, ...o }) as unknown as ChuyenTomTatDto;
+  assert.equal(nhacXeDangChay(c({ coKhachDonHuy: true })), CAU_NHAC_XE_DANG_CHAY);
+  assert.equal(nhacXeDangChay(c({})), null);
+  assert.equal(nhacXeDangChay(c({ coKhachDonHuy: true, trangThai: "ENDED" })), null, "chỉ xe đang chạy");
+  assert.equal(CAU_NHAC_XE_DANG_CHAY, "Đơn có khách trên xe đang chạy — văn phòng bấm Báo huỷ");
 });

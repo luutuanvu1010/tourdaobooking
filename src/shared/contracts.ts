@@ -1256,6 +1256,12 @@ export interface ChuyenTomTatDto {
    * văn phòng (lịch chung, chi tiết chuyến); không vào DTO tài xế.
    */
   khanCap: boolean;
+  /**
+   * ADR-0104 Đ2.7 (kế hoạch T2.16): chuyến ĐANG CHẠY còn suất khách CHỜ ĐÓN (mở, chưa "văn phòng báo huỷ") thuộc đơn ĐÃ HUỶ — máy đồng bộ không ghi lên xe
+   * đang chạy nên màn "Xe đang chạy" nhắc văn phòng bấm Báo huỷ. Tính lúc đọc, cùng nguồn trạng thái đơn với lý do giữ DON_DA_HUY (`v_ord_order_flag` qua
+   * `legFlags`). Chuyến không chạy → false. Chỉ cờ — không mã đơn, không tên.
+   */
+  coKhachDonHuy: boolean;
 }
 export interface ChangLichDto {
   legId: string;

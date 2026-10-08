@@ -167,6 +167,28 @@ test("D5.2 báo huỷ: suất VẪN chiếm chỗ tới khi tài xế bấm 'Kh�
   }
 });
 
+test("ADR-0104 Đ2.7 (T2.16): đơn huỷ còn khách CHỜ ĐÓN trên xe ĐANG CHẠY → lịch chung + chi tiết chuyến trả coKhachDonHuy (máy không ghi lên xe đang chạy); văn phòng Báo huỷ hết suất đó → false; chuyến khác → false", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const { a } = await xeDangChay(w);
+    const lich = async () => (await w.call("GET", "/api/van-chuyen/lich?ngay=2027-03-11", { as: SALES })).json.chuyen as any[];
+    assert.ok((await lich()).every((c) => c.coKhachDonHuy === false), "chống bài rỗng: trước khi huỷ đơn không chuyến nào nhắc");
+    const huy = await w.call("POST", `/api/orders/${a.don.id}/status`, { as: SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
+    assert.equal(huy.status, 200, huy.text);
+    assert.equal(w.q("SELECT count(*) n FROM vc_trip_allocation WHERE trip_id = ? AND valid_to_at IS NULL AND status = 'WAITING'", a.id)[0].n, 2, "máy không ghi lên xe đang chạy");
+    assert.equal((await lich()).find((c) => c.id === a.id).coKhachDonHuy, true, "lịch chung: xe đang chạy có khách của đơn huỷ");
+    assert.equal((await chiTiet(w, a.id, ADM)).chuyen.coKhachDonHuy, true, "chi tiết chuyến cùng kết luận");
+    assert.equal((await baoHuy(w, a.id, a.suat[0], SALES)).status, 200);
+    assert.equal((await lich()).find((c) => c.id === a.id).coKhachDonHuy, true, "còn một suất chưa báo huỷ");
+    assert.equal((await baoHuy(w, a.id, a.suat[1], SALES)).status, 200);
+    assert.equal((await lich()).find((c) => c.id === a.id).coKhachDonHuy, false, "đã báo huỷ mọi suất → hết nhắc");
+    assert.equal((await chiTiet(w, a.id, ADM)).chuyen.coKhachDonHuy, false);
+  } finally {
+    tat();
+  }
+});
+
 test("Chuyến CHƯA chạy: thêm điểm 409 (dùng Xếp khách), báo huỷ 409 (dùng Rút) — không ghi", async () => {
   const tat = batDongHo();
   try {

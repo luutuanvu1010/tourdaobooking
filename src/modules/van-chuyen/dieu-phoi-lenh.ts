@@ -737,6 +737,7 @@ export async function dungLichNgay(
     chinhSach: chinhSachVao(chung.chinhSach), hangBang: chung.hangBang, dieuKien: chung.dieuKien, bayGioMs,
   });
   const nhan = await nhanNhanVien([...new Set(events.flatMap((e) => (e.created_by && e.occurred_source === "VAN_PHONG_KHAI" ? [e.created_by] : [])))]);
+  const legDonHuy = new Set(flags.filter((f) => f.is_cancelled === 1).map((f) => f.id));
   const tripTheoId = new Map([...trips, ...khacNgoai].map((t) => [t.id, t]));
   const moTatCa = [...allocs, ...moCuaChang.filter((a) => !ids.includes(a.trip_id))];
   return {
@@ -746,6 +747,7 @@ export async function dungLichNgay(
     chang: ra.chang.map((x) => changLichDto(changNgay.find((c) => c.legId === x.chang.legId)!, x.trangThai, moTatCa, tripTheoId)),
     chuyen: trips.map((t) => chuyenTomTat(t, {
       xe: chung.xe.find((x) => x.id === t.vehicle_id), chung, stops, allocs, events, lyDoGiu: ra.chuyen.find((c) => c.id === t.id)?.lyDoGiu ?? [], nhan, bayGioMs,
+      legDonHuy, // chặng có suất mà rơi khỏi lịch (lịch chỉ chứa đơn đã xác nhận, chưa huỷ) — cờ của view công bố
     })),
     soNhap: ra.soNhap,
     nhapChoDatGap: xemNhapChoDatGap ? ra.nhapChoDatGap.map((n) => ({ legId: n.legId, orderId: n.orderId, maDon: n.orderCode, ngayDon: n.ngayDon ?? ngay, gioDon: n.gioDon })) : [],

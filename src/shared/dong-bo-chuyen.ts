@@ -27,10 +27,8 @@ export type HanhDongCongDon = (typeof HANH_DONG_CONG_DON)[number];
 
 /** Trần phần CHUYẾN của một lô đồng bộ (ADR-0104 Đ2.5 — bằng lô lớn nhất đang có). Vượt → không nối khúc nào, phản hồi "chuyến cần cập nhật tay". */
 export const TRAN_CAU_CHUYEN = 74;
-/** Câu CỐ ĐỊNH khi đơn có khách trên xe đang chạy (Đ2.7) — không kèm mã chuyến, biển số, tài xế. */
-export const CAU_NHAC_XE_DANG_CHAY = "Đơn có khách trên xe đang chạy — văn phòng bấm Báo huỷ";
-/** Câu cố định khi máy không nối được phần chuyến (vượt trần / thua cổng chuyến) — kế hoạch §8. */
-export const CAU_CAP_NHAT_TAY = "Chuyến cần cập nhật tay — người xếp xe bấm Cập nhật khách theo đơn";
+/** Câu CỐ ĐỊNH (Đ2.7, kế hoạch §8) — định nghĩa ở tệp không phụ thuộc để màn hình dùng chung: src/shared/dong-bo-chuyen-cau.ts. */
+export { CAU_CAP_NHAT_TAY, CAU_NHAC_XE_DANG_CHAY } from "./dong-bo-chuyen-cau.ts";
 
 /** Nguyên nhân dạng nhãn cố định (Đ2.9) — thứ tự in cố định. */
 export const NGUYEN_NHAN_DONG_BO = ["DON_HUY", "DON_KHONG_XAC_NHAN", "BO_CHANG", "DOI_NGUOI", "BOT_KHACH", "THEM_KHACH"] as const;
