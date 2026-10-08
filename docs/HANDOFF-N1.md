@@ -731,6 +731,20 @@ npm run trien-khai
 4. **Thử tay bằng hai tài khoản thật** (hai máy hoặc một máy + một cửa sổ ẩn danh): A mở "Đơn hàng", B lập một đơn → dòng mới hiện ở A trong vài giây không cần bấm tải lại; B bấm "Nhận phụ trách" (hoặc xác nhận/huỷ) một đơn → A thấy thông báo nhỏ. Ghi kết quả vào mục "TRẠNG THÁI TRIỂN KHAI" đầu tệp kèm số phiên bản và Version ID Worker.
 5. Không tạo/sửa tài khoản, quyền, hồ sơ trên production trong "cửa sổ đóng băng" (phần Hoàn tác) — lần này không cần thao tác nào như vậy.
 
+## Lần phát hành kế tiếp: QR thanh toán + mã giao dịch ngân hàng (ADR-0108, ADR-0092 Đ6; migration `0087`, `0088`) — RUNBOOK
+
+**Trạng thái: CHƯA phát hành** (nhánh `claude/ticket-sales-qr-payment-cf8e18`). Mọi bước sau A.0 do `npm run trien-khai` làm như thường; mục này chỉ ghi điều KHÁC. Đặc tả: `docs/superpowers/specs/2026-10-08-qr-thanh-toan/README.md`; nhật ký thi công: `docs/superpowers/plans/2026-10-08-qr-thanh-toan-thi-cong-nhat-ky.md`; công thức và bẫy: `docs/CHANGE-GUIDE.md` (QR / mã giao dịch).
+
+**Điều kiện phát hành (kiểm LÚC phát hành bằng lệnh chỉ đọc, không tin tài liệu):** migration `0078`–`0083` đã có trên production — `npx wrangler d1 migrations list tourdao-sales-db --remote` chỉ được liệt kê `0087_pty_tai_khoan_nhan_tien`, `0088_bil_ma_giao_dich` (và migration của nhánh khác gộp sau) là chưa áp. Không đổi bí mật, không đổi `vars`, không đổi CSP, không migration Durable Object.
+
+**Bước A.0:** mục nhật ký thay đổi do phiên phát hành viết, số = số kế tiếp sau số lớn nhất ở `main` lúc đó (ngày 2026-10-08 dự kiến 1.86; không đặt sẵn ở nhánh).
+
+**Khoảng hở giữa migration và deploy (đọc trước khi chạy):** từ lúc `trien-khai` áp `0088` tới lúc `wrangler deploy` xong (vài phút, hai bước chạy liền nhau), mã CŨ vẫn chạy trên trigger MỚI. Trong khoảng đó: (a) Kế toán bấm "Công ty đã nhận" hoặc "Thay lần thu" cho khoản chuyển khoản bị trigger chặn — mã cũ không dịch lỗi `bank_txn_required` nên thấy lỗi chung; không có gì được ghi (cả lô bị huỷ); bấm lại sau khi bản mới lên là được. (b) Lần thu chuyển khoản – Công ty thu do Kế toán / Toàn quyền tự ghi bằng mã cũ sẽ KHÔNG có mã, và `audit-invariants --db remote` ngay sau deploy báo `R-BIL-D6b`. **Cách tránh:** báo Kế toán không ghi tiền trong lúc phát hành. Nếu vẫn bị báo: Kế toán sửa bằng "Thay lần thu" có nhập mã. Bản mới đã lên thì luồng không còn hở.
+
+**Ngay sau deploy (chủ làm trên Nền tảng thật):** đăng nhập tài khoản Toàn quyền → Danh bạ → hồ sơ công ty chủ → mục "Tài khoản nhận tiền" → cài tài khoản thật của công ty. Chưa cài thì nút "QR thanh toán" báo "Công ty chưa cài tài khoản nhận tiền — báo người phụ trách hệ thống" (không hỏng gì khác). Rồi mở một đơn thật còn tiền cần thu, bấm "QR thanh toán", quét bằng một ứng dụng ngân hàng để thấy đúng tên công ty — không cần bấm chuyển.
+
+**Điểm lùi:** `wrangler rollback` về bản trước được (không có thay đổi Durable Object), nhưng hai migration ở lại: trong lúc chạy mã cũ, "Công ty đã nhận" / "Thay lần thu" cho khoản chuyển khoản ghi từ mốc `R-BIL-D6` vẫn bị trigger chặn như mục (a) ở trên, và lần thu tự ghi thiếu mã như mục (b). Không mất hay hỏng dữ liệu (trigger chặn = cả lô bị huỷ). Lùi hẳn CSDL chỉ bằng điểm khôi phục Time Travel do `trien-khai` tạo trước migration (mất mọi ghi sau điểm đó) — chủ quyết, không làm trong lúc vội.
+
 ## Chế độ bảo trì — đường thoát khẩn
 
 Dùng CHỈ khi chủ dự án bị khoá ngoài (không vào được app để bấm tắt) hoặc chế độ bảo trì kẹt bật. Đây là thao tác GHI lên D1 remote, đi vòng app: theo `CLAUDE.md` §8 chỉ làm khi chủ dự án ra lệnh (hoặc tự chạy bằng `!`). Tác dụng TỨC THÌ (cổng ở máy chủ đọc D1 mỗi request, không đệm), không cần deploy.
