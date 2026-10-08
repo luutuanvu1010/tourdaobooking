@@ -244,16 +244,17 @@ try {
     assert.deepEqual(await p.ev(nutTat), [true, true]);
     await chup(p, `qr-bang-loi-so-lon-${kho}`);
 
-    // Khách đã chuyển khoản: tạo lại 850.000 rồi bấm ⇒ bảng đóng, form ghi lần thu mở sẵn số
-    await p.ev(setInput(`document.getElementById('qr-so-tien')`, "850000"));
+    // Khách đã chuyển khoản: tạo lại mã ở số NHỎ HƠN số còn lại (100.000 < 850.000) rồi bấm ⇒ bảng đóng, form ghi lần thu mở sẵn ĐÚNG số trên mã — không phải số còn lại
+    // (nếu để 850.000 thì "điền từ số trên mã" và "điền số còn lại" cho cùng kết quả, bước này không phân biệt được).
+    await p.ev(setInput(`document.getElementById('qr-so-tien')`, "100000"));
     await p.ev(`document.querySelector('[data-action="qr-tao-lai"]').click(), true`);
-    await p.waitFor(`!document.querySelector('[data-action="qr-da-chuyen"]').disabled`, "nút Khách đã chuyển khoản bật");
+    await p.waitFor(`document.querySelectorAll('[data-khoi="qr-thong-tin"] p')[3]?.textContent === 'Số tiền: 100.000đ' && !document.querySelector('[data-action="qr-da-chuyen"]').disabled`, "mã 100.000đ + nút Khách đã chuyển khoản bật", 15000);
     const soQr = await p.ev("Number(document.getElementById('qr-so-tien').value.replace(/\\D/g, ''))");
     await p.ev(`document.querySelector('[data-action="qr-da-chuyen"]').click(), true`);
     await p.waitFor(`document.querySelector('.sheet[role="dialog"]') === null && !!document.querySelector('[data-khoi="form-lan-thu"]')`, "bảng đóng + form lần thu mở");
-    const f = await p.ev(`(() => { const f = document.querySelector('[data-khoi="form-lan-thu"]'); return { so: Number(f.querySelector('input').value.replace(/\\D/g, '')), hinhThuc: f.querySelector('select').value, focus: document.activeElement === f.querySelector('input'), maHien: !!f.querySelector('[data-o]') }; })()`);
-    assert.deepEqual(f, { so: soQr, hinhThuc: "BANK_TRANSFER", focus: true, maHien: false }, "form điền sẵn đúng số trên QR; ô tiêu điểm; Bán hàng không có ô mã");
-    assert.equal(soQr, 850000);
+    const f = await p.ev(`(() => { const f = document.querySelector('[data-khoi="form-lan-thu"]'); const sel = f.querySelectorAll('select'); return { so: Number(f.querySelector('input').value.replace(/\\D/g, '')), hinhThuc: sel[0].value, nguoiNhan: sel[1].value, focus: document.activeElement === f.querySelector('input'), maHien: !!f.querySelector('[data-o]') }; })()`);
+    assert.equal(soQr, 100000);
+    assert.deepEqual(f, { so: 100000, hinhThuc: "BANK_TRANSFER", nguoiNhan: "cong_ty", focus: true, maHien: false }, "form điền sẵn đúng số trên QR (100.000, KHÔNG phải 850.000 còn lại), Chuyển khoản, người nhận Công ty; ô tiêu điểm; Bán hàng không có ô mã");
     await chup(p, `khach-da-chuyen-form-${kho}`);
     assert.deepEqual(p.consoleErrors.filter((m) => !/400|Failed to load resource/.test(m)), [], `lỗi console: ${p.consoleErrors}`);
     p.close();

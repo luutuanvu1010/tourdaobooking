@@ -4,8 +4,10 @@
 // 409 mang số đã ghi → tổng vượt số thực chuyển 409 → HAI lệnh cùng lúc trên MỘT khoản (một 200, một 409, không 500) và hai khoản cùng một mã (tổng không vượt số
 // thực chuyển ở D1 thật) → Kế toán tự ghi cần mã (ô mã miễn luật 8 chữ số, ghi chú vẫn chặn) → chỉ Kế toán thấy mã → tìm đơn bằng nội dung chuyển khoản → nhật ký không
 // chép mã hay số tài khoản.
-// Dùng superAdmin, salesA/salesB, admin, accountant, field/fieldB (không đổi tài khoản dùng chung). Mã giao dịch theo Date.now() nên chạy lại trên cùng D1 không va chạm.
-// Trigger lớp CSDL của dòng nối mã và ca "hai khoản cùng một mã" chỉ thật sự được thử ở đây (khung thử `world()` chạy tuần tự trên SQLite đồng bộ).
+// Dùng superAdmin, salesA/salesB, admin, accountant, field/fieldB (không đổi tài khoản dùng chung). Mọi mã giao dịch (kể cả mã thuần số 12 chữ số) sinh từ Date.now() nên chạy lại trên cùng D1 không va chạm.
+// Hai ca đua (mục 7) chỉ chứng minh "không ai nhận 500, đúng một người thắng, D1 chỉ có một dòng nối" — KHÔNG chứng minh hai yêu cầu thật sự đan xen: trên `wrangler dev` cục bộ hai yêu cầu
+// thường chạy nối đuôi nhau (người kiểm đã thử: bỏ trigger chống trùng mà không chèn độ trễ thì bài vẫn xanh; chèn trễ ~500ms mới đỏ). Lớp CSDL được ghim ở chỗ khác:
+// src/migrations-ma-giao-dich.test.ts (từng trigger) và src/modules/billing/ma-giao-dich-may-chu.test.ts (kiểm trước lô của máy chủ đứng riêng).
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, catalogService, ensureFakeCatalog, orderInput, session, sqlRows, vnDate } from "./lib.mjs";
 
@@ -22,6 +24,7 @@ const fld = await me(F);
 
 const T = Date.now().toString(36).toUpperCase(); // mỗi lần chạy một dãy mã riêng
 const MA = (s) => `E2EQR${T}${s}`;
+const MA_SO = String(Date.now()).slice(-12); // mã thuần số 12 chữ số (ô mã được miễn luật chặn dãy ≥ 8 chữ số) — cũng riêng cho mỗi lần chạy
 const SO_TAM = "0987654321012";
 const SO_THAT = "0011001234567";
 const TEN_TK = "CONG TY TNHH TOUR DAO";
@@ -194,8 +197,8 @@ console.log("✓ đua thật: hai lệnh một khoản ⇒ 200 + 409; hai khoả
   const thieu = await khai(ACC, don7.id, 300000);
   assert.equal(thieu.status, 400);
   assert.equal(maLoi(thieu), "bank_txn_required");
-  assert.equal((await khai(ACC, don7.id, 1000, { maGiaoDich: MA("7X"), soThucChuyen: 1000, ghiChu: "sao kê 123456789012" })).status, 400, "ghi chú vẫn chặn chuỗi ≥ 8 chữ số");
-  const muoiHai = await khai(ACC, don7.id, 300000, { maGiaoDich: "123456789012", soThucChuyen: 300000 }); // mã thuần số 12 chữ số: ô mã được miễn
+  assert.equal((await khai(ACC, don7.id, 1000, { maGiaoDich: MA("7X"), soThucChuyen: 1000, ghiChu: `sao kê ${MA_SO}` })).status, 400, "ghi chú vẫn chặn chuỗi ≥ 8 chữ số");
+  const muoiHai = await khai(ACC, don7.id, 300000, { maGiaoDich: MA_SO, soThucChuyen: 300000 }); // mã thuần số 12 chữ số: ô mã được miễn
   assert.equal(muoiHai.status, 201, JSON.stringify(muoiHai.body));
   assert.equal((await call(ACC, "POST", `/api/orders/${don7.id}/payments`, { soTien: 100000, hinhThuc: "CASH", nguoiThu: "cong_ty" })).status, 201, "Công ty thu tiền mặt: không cần mã");
 }
@@ -211,7 +214,7 @@ console.log("✓ tìm đơn bằng nội dung chuyển khoản (4 cách gõ) ra 
 
 // ---- 10) Nhật ký không chép mã giao dịch hay số tài khoản
 {
-  const biMat = [MA("1"), MA("2"), MA("3"), MA("3B"), MA("4"), MA("56"), "123456789012", SO_TAM, SO_THAT];
+  const biMat = [MA("1"), MA("2"), MA("3"), MA("3B"), MA("4"), MA("56"), MA_SO, SO_TAM, SO_THAT];
   const cot = "coalesce(detail,'') || '|' || coalesce(target_id,'') || '|' || coalesce(target_type,'')";
   const lo = await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE ${biMat.map((s) => `instr(${cot}, '${s}') > 0`).join(" OR ")}`);
   assert.equal(lo[0].n, 0, "nhật ký không chứa mã giao dịch hay số tài khoản");
