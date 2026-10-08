@@ -17,7 +17,7 @@ Năm văn bản trong thư mục này chứa sáu quyết định đụng tới 
 
 1. **Người không có quyền xếp xe vẫn làm ghế trên xe thay đổi.** Khi hướng dẫn viên, đối tác hay thực tập huỷ đơn hoặc bớt khách, máy trả ghế trên xe. Việc này cố ý, và máy chỉ chạm ghế của đúng đơn đó, không bao giờ đổi xe, tài xế hay giờ chạy.
 2. **Hai người cùng đụng một chuyến đúng lúc.** Nếu cả hai đều đang xếp xe, máy chỉ ghi cho người bấm trước, người kia được báo bấm lại. Nếu một người đang sửa đơn (máy đồng bộ chuyến theo), phần sửa đơn của người đó vẫn được lưu, chỉ phần chuyến bị bỏ qua và chuyến bị giữ để người xếp xe xem lại. Không có trường hợp ghi đè lẫn nhau.
-3. **Sửa đơn và sửa chuyến ghi chung một lần**, đúng luật nền "tất cả hoặc không có gì". Muốn vậy, một bài kiểm tự động về thứ tự ghi phải được nới có tên cho kiểu ghi này, nên câu duyệt của tệp 02 có ghi điều đó.
+3. **Sửa đơn và sửa chuyến ghi chung một lần**, đúng luật nền "tất cả hoặc không có gì". Muốn vậy, một bài kiểm tự động về thứ tự ghi phải được nới có tên cho kiểu ghi này, nên câu duyệt của tệp 02 có ghi điều đó. Chỉ phần đầu là câu của đơn được miễn; mỗi chuyến vẫn bị kiểm đủ bốn luật thứ tự như mọi lệnh xếp xe.
 4. **Xe đang chạy thì máy không tự ghi gì.** Máy chỉ nhắc văn phòng bấm "Báo huỷ" như hôm nay, vì luật xe đang chạy chỉ cho làm từng khách bằng tay.
 5. **Chữ "Phá lệ" vẫn còn** cho đổi xe, đổi tài xế, huỷ chuyến còn khách, khoảng nghỉ và cam kết xe riêng, là việc riêng của Quản trị (nếu bạn chọn Q-1 a). Điều này không trái lời bạn "không dùng xin phá lệ", vì không còn nút xin hay bước chờ duyệt nào: ai có quyền thì tự làm, ai không có thì không thấy nút.
 6. **Địa chỉ nhà khách có thể ra ngoài** qua nút Chỉ đường (lượt 8b). Đây là chỗ duy nhất dữ liệu đi khỏi Nền tảng; tôi đã giới hạn trong ngày chạy, và câu duyệt của tệp 03 ghi rõ bạn chấp nhận rủi ro này.
@@ -83,8 +83,8 @@ Sổ "dừng dây chuyền" (danh sách lỗ an ninh đang mở có hạn vá) k
 |---|---|---|
 | Lệnh xếp / rút / dời / đổi / huỷ chuyến có phá lệ (`src/modules/van-chuyen/index.ts:1124, 1197, 1230, 1277, 1325, 1348, 1373`) | `(phaLe ‖ nghiPhaLe ‖ camKetPhaLe) && !can(trip.override)` | (8a) cờ mốc hỏi theo `lopVuotMoc`: `trip.urgent_adjust` hoặc `trip.override`; khoảng nghỉ, cam kết vẫn `trip.override` |
 | Route văn phòng sửa số khách (#1) | chưa có | `can(order.money.edit, { ownerId })`, không `assigned` |
-| Hook đồng bộ trong tám route ghi đơn (tệp 02 Đ2 mục 4, gồm C14 `replace`) | — | không hỏi ô (ngoại lệ có tên); phạm vi = `orderId`; câu cổng mỗi chuyến: `version` + `status = 'PLANNED'` + `EXISTS (SELECT 1 FROM v_aud_order_cmd WHERE id = :auditIdDon)`; trần 74 câu phần chuyến |
-| Bài thứ tự lô (`src/modules/van-chuyen/thu-tu-lo.test.ts:4, :12-13`) | cổng chuyến đứng đầu lô | ngoại lệ có tên cho lô chung đơn + chuyến (nới — chủ duyệt trong câu duyệt tệp 02) |
+| Hook đồng bộ trong tám route ghi đơn (tệp 02 Đ2 mục 4, gồm C14 `replace`) | — | không hỏi ô (ngoại lệ có tên); phạm vi = `orderId`; câu cổng mỗi chuyến: `version` + `status = 'PLANNED'` + `EXISTS (SELECT 1 FROM v_aud_order_cmd WHERE id = :auditIdDon AND order_id = :orderId)`; mỗi chuyến mã lệnh và `request_id` riêng; trần 74 câu phần chuyến (tổng lô = phần đơn + phần chuyến) |
+| Bài thứ tự lô (`src/modules/van-chuyen/thu-tu-lo.test.ts:4, :12-13`) | cổng chuyến đứng đầu lô | ngoại lệ có tên cho lô chung đơn + chuyến: chỉ miễn phần câu của đơn ở đầu lô, mỗi khúc chuyến vẫn đủ bốn luật (nới — chủ duyệt trong câu duyệt tệp 02) |
 | Đặt gấp (`src/modules/orders/index.ts:930-958`) | ô `order.leg.short_notice`; **không** kiểm đang dưới mốc | (8b) + kiểm dưới mốc lúc gửi |
 | Lưới cuối trong CSDL | trigger LC-02 sức chứa, LC-15 xe đang chạy (`0076:58-80`), báo huỷ (`0076:46-54`), mốc giờ hẹn (`0043:79-81`) | **không đổi** — mọi đường mới đi dưới các trigger này |
 | DTO tài xế (`src/modules/van-chuyen/tai-xe-dto.ts:37`) | dựng từng khoá; tên / năm sinh / liên hệ chỉ `trongNgay` | (8b) + `diaChiChiDuong` chỉ `trongNgay`; bài khoá `tai-xe-dto.test.ts:11` nới có tên |
@@ -115,7 +115,7 @@ Sổ "dừng dây chuyền" (danh sách lỗ an ninh đang mở có hạn vá) k
 | `src/shared/huong-dan-ban-hang.ts:146` | sửa số khách "đang chờ làm" | mô tả nút mới | 8a (#1) |
 | Tên ô cho trợ lý Mai `src/shared/tro-ly-cau-truc-ten.ts:124-125` | "phá lệ khi điều xe … mốc tối thiểu, khoảng nghỉ" | thêm mục `trip.urgent_adjust`; bỏ "mốc" lệnh khách khỏi `trip.override` | 8a |
 | Nhãn "Điều chỉnh khẩn cấp" trên lịch / chi tiết chuyến | chưa có | mới, chỉ từ sự kiện lệnh khách; **không** dán lên đổi xe / tài xế của Quản trị; **không** vào DTO tài xế | 8a |
-| Phản hồi lệnh đơn + màn "Xe đang chạy" | — | câu nhắc "văn phòng bấm Báo huỷ" khi đơn có khách trên xe đang chạy | 8a |
+| Phản hồi lệnh đơn + màn "Xe đang chạy" | — | câu nhắc cố định "văn phòng bấm Báo huỷ" khi đơn có khách trên xe đang chạy, không kèm dữ liệu chuyến; Đối tác, Thực tập, HDV cũng thấy | 8a |
 | `src/shared/dat-gap-hien-thi.ts:28, :59`; `web/dat-gap-ui.ts:101`; `src/shared/order-errors.ts:90`; `huong-dan-ban-hang.ts:152-155`; `huong-dan-doi-tac.ts:92`; `tro-ly-cau-truc-ten.ts:75` | "Quản trị đã duyệt", "Cần Quản trị duyệt đặt gấp" | "Điều chỉnh khẩn cấp" | 8b |
 | Ô điểm đón gõ tay trên đơn | không nhắc | dòng nhắc "chỉ ghi địa chỉ" | 8b |
 
@@ -131,7 +131,7 @@ Sổ "dừng dây chuyền" (danh sách lỗ an ninh đang mở có hạn vá) k
 | HDV / Đối tác huỷ đơn → #3 | leo thang quyền qua hook | hook không nhận tham số chuyến từ người gọi; không trả dữ liệu chuyến |
 | Đơn đoàn lớn → #3 | lô quá dài | trần 74 câu phần chuyến; vượt thì chỉ báo |
 | #6 + mốc | đóng dấu đặt gấp sớm để né mốc | kiểm "đang dưới mốc lúc gửi" cho mọi người |
-| #6 + #2 | Bán hàng vừa đóng dấu vừa xếp khẩn cấp | cùng lý do, cùng nhãn; không mở quyền ngoài lời chủ 2/10 |
+| #6 + #2 | Bán hàng vừa đóng dấu vừa xếp khẩn cấp | cả hai đòi lý do (hai danh sách khác nhau: `LY_DO_DAT_GAP` cố định và nhóm `PHA_LE`); không mở quyền ngoài lời chủ 2/10 |
 | #4 + tài xế đối tác (Đợt 6) | thấy địa chỉ nhà khách ngoài khung | khoá theo `trongKhungXemKhach` (ADR-0053 D7.2) |
 | #4 + chữ tự do có SĐT | SĐT ra Google | `maskLongDigits` (≥ 8 chữ số); SĐT viết tách nhóm ngắn hơn 8 chữ số **không** bị che — chỉ có dòng nhắc (dựa vào kỷ luật) |
 | #5 + #2 | đổi giờ khẩn cấp làm khoảng nghỉ lệch | #5 chỉ áp cho lệnh sửa chuyến; lệnh khách không chụp lại khoảng nghỉ |

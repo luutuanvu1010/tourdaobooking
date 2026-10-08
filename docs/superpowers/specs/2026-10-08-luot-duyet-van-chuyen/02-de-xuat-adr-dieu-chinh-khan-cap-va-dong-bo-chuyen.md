@@ -14,11 +14,11 @@
 
 Hôm nay, trong 6 giờ trước giờ xe chạy, Bán hàng không tự xếp, rút hay dời khách được mà phải nhờ Quản trị; còn khi đơn bị huỷ hay bớt khách, chuyến xe không tự đổi theo, nên có lúc cả xe ghép không xuất bến được. Văn bản này làm hai việc theo lời bạn: "Điều chỉnh khẩn cấp" cho Bán hàng và Quản trị, và "Đồng bộ chuyến theo đơn" để máy tự trả ghế. Bạn cần trả lời hai câu ở cuối rồi duyệt.
 
-**Việc 1 — Điều chỉnh khẩn cấp.** Trong 6 giờ trước giờ chạy, Bán hàng, Quản trị và Toàn quyền tự xếp, rút, dời khách hay thêm khách vào xe đang chạy, cho mọi đơn, vì người trực đêm phải lo cả đơn của người khác. Mỗi lần bấm phải chọn một lý do trong danh sách Quản trị quản lý; mục "Khác" không có ô gõ chữ, theo lựa chọn của bạn ngày 29/9. Nhật ký ghi ai làm, lúc nào, lệnh gì, mã chuyến, mã đơn, số khách, lý do và số phút còn lại, nhưng không ghi tên hay số điện thoại khách. Chuyến mang nhãn "Điều chỉnh khẩn cấp" trên lịch xe và trang chuyến, đúng ý bạn ngày 2/10; tài xế không thấy nhãn nhưng nhận tin "khách trên xe vừa thay đổi". Không ai được chở quá số chỗ của xe, và con số 6 giờ không đổi. Đổi xe, đổi tài xế, huỷ chuyến còn khách, khoảng nghỉ và cam kết xe riêng vẫn là việc riêng của Quản trị, vẫn gọi là "Phá lệ" (nếu bạn chọn Q-1 a); không có nút xin hay bước chờ duyệt nào.
+**Việc 1 — Điều chỉnh khẩn cấp.** Trong 6 giờ trước giờ chạy, Bán hàng, Quản trị và Toàn quyền tự tay xếp, rút, dời khách hay thêm khách vào xe đang chạy (việc do người bấm làm, khác Việc 2 do máy tự làm), cho mọi đơn, vì người trực đêm phải lo cả đơn của người khác. Mỗi lần bấm phải chọn một lý do trong danh sách Quản trị quản lý; mục "Khác" không có ô gõ chữ, theo lựa chọn của bạn ngày 29/9. Nhật ký ghi ai làm, lúc nào, lệnh gì, mã chuyến, mã đơn, số khách, lý do và số phút còn lại, nhưng không ghi tên hay số điện thoại khách. Chuyến mang nhãn "Điều chỉnh khẩn cấp" trên lịch xe và trang chuyến, đúng ý bạn ngày 2/10; tài xế không thấy nhãn nhưng nhận tin "khách trên xe vừa thay đổi". Không ai được chở quá số chỗ của xe, và con số 6 giờ không đổi. Đổi xe, đổi tài xế, huỷ chuyến còn khách, khoảng nghỉ và cam kết xe riêng vẫn là việc riêng của Quản trị, vẫn gọi là "Phá lệ" (nếu bạn chọn Q-1 a); không có nút xin hay bước chờ duyệt nào.
 
 **Việc 2 — Đồng bộ chuyến theo đơn.** Ngay trong lần bấm của người vừa huỷ đơn, bớt khách, đổi danh sách khách hay bỏ một chặng, máy trả ghế của khách không còn đi trên xe chưa chạy, ghi chung một lần với việc sửa đơn, không cần Quản trị và không vướng mốc 6 giờ. Máy trả ghế chưa gắn tên trước; nếu không biết trả ghế nào thì máy không đoán mà giữ xe và báo người xếp xe. Khi đơn thêm khách thì tuỳ câu Q-2; nếu chọn Q-2 a thì cả lúc hướng dẫn viên sửa số khách ở "Việc của tôi", máy cũng tự mở thêm ghế. Trên xe đang chạy, máy không ghi gì, chỉ nhắc văn phòng bấm "Báo huỷ" như hôm nay. Đơn đoàn rất lớn, hoặc khi có người khác đang sửa đúng chuyến đó, thì phần sửa đơn vẫn lưu, còn chuyến bị giữ để người xếp xe bấm "Cập nhật khách theo đơn".
 
-**Điều bạn cần biết (nói một lần — Hiến pháp P18).** Văn bản này đảo hai lựa chọn cũ của bạn: ngày 29/9 chỉ Quản trị, Toàn quyền được vượt mốc 6 giờ, và ngày 29–30/9 "giữ chuyến, có nút cập nhật" thay vì để máy tự sửa chuyến. Máy chạy trong lệnh của người và ghi tên người đó, vì một việc tự chạy ngầm không có tài khoản riêng là đúng loại lỗ đang có hạn vá trong sổ. Hệ quả là hướng dẫn viên hay đối tác huỷ hoặc bớt khách cũng làm máy trả ghế, dù họ không có quyền xếp xe; máy chỉ chạm ghế của đúng đơn đó. Để ghi chung một lần, một bài kiểm tự động về thứ tự ghi phải được nới có tên, nên câu duyệt có ghi điều đó.
+**Điều bạn cần biết (nói một lần — Hiến pháp P18).** Văn bản này đảo hai lựa chọn cũ của bạn: ngày 29/9 chỉ Quản trị, Toàn quyền được vượt mốc 6 giờ, và ngày 29–30/9 "giữ chuyến, có nút cập nhật" thay vì để máy tự sửa chuyến. Máy chạy trong lệnh của người và ghi tên người đó, vì một việc tự chạy ngầm không có tài khoản riêng là đúng loại lỗ đang có hạn vá trong sổ. Hệ quả là hướng dẫn viên hay đối tác huỷ hoặc bớt khách cũng làm máy trả ghế, dù họ không có quyền xếp xe; máy chỉ chạm ghế của đúng đơn đó. Để ghi chung một lần, một bài kiểm tự động về thứ tự ghi phải được nới có tên, nên câu duyệt có ghi điều đó; chỉ phần đầu là câu của đơn được miễn, còn mỗi chuyến vẫn bị kiểm đủ bốn luật thứ tự như mọi lệnh xếp xe.
 
 **Hai câu hỏi.**
 - **Q-1.** Ngoài việc với khách, Bán hàng có được Điều chỉnh khẩn cấp các việc sau sát giờ không: đổi xe, đổi tài xế, huỷ chuyến còn khách, bỏ qua khoảng nghỉ giữa hai chuyến, bỏ qua cam kết xe riêng?
@@ -28,7 +28,7 @@ Hôm nay, trong 6 giờ trước giờ xe chạy, Bán hàng không tự xếp, 
   - (a) **Có (khuyến nghị):** chỉ thêm đúng số khách vừa thêm trên đơn, trên đúng xe đó, cùng điểm đón, khi xe còn chỗ và không phạm cam kết xe riêng. Không đủ chỗ thì giữ xe và báo người xếp xe.
   - (b) Không: máy chỉ tự trả ghế; thêm ghế do người xếp xe làm (dùng Điều chỉnh khẩn cấp nếu đã sát giờ).
 
-**Câu duyệt gợi ý:** "Duyệt ADR-0104: Điều chỉnh khẩn cấp cho Bán hàng, Quản trị (xếp, rút, dời, thêm khách sát giờ; lý do chọn từ danh sách; tài xế nhận tin; chữ 'Phá lệ' giữ cho việc riêng của Quản trị) và Đồng bộ chuyến theo đơn (máy trả ghế trên xe chưa chạy khi đơn huỷ hoặc bớt khách, ghi chung một lần với lệnh sửa đơn; xe đang chạy chỉ nhắc văn phòng Báo huỷ); Q-1 a, Q-2 a; đồng ý nới có tên bài kiểm thứ tự ghi cho kiểu ghi chung đơn và chuyến; bỏ đề xuất ADR-0091 (phần đặt gấp hỏi ở lượt sau)."
+**Câu duyệt gợi ý:** "Duyệt ADR-0104: Điều chỉnh khẩn cấp cho Bán hàng, Quản trị (xếp, rút, dời, thêm khách sát giờ; lý do chọn từ danh sách; tài xế nhận tin; chữ 'Phá lệ' giữ cho việc riêng của Quản trị) và Đồng bộ chuyến theo đơn (máy trả ghế trên xe chưa chạy khi đơn huỷ hoặc bớt khách, kể cả khi người sửa đơn là HDV, Đối tác, Thực tập, ghi chung một lần với lệnh sửa đơn; xe đang chạy chỉ nhắc văn phòng Báo huỷ); Q-1 a, Q-2 a; đồng ý nới có tên bài kiểm thứ tự ghi cho kiểu ghi chung đơn và chuyến (chỉ miễn phần câu của đơn ở đầu lô; mỗi chuyến vẫn đủ bốn luật thứ tự); bỏ đề xuất ADR-0091 (phần đặt gấp hỏi ở lượt sau)."
 
 ---
 
@@ -104,7 +104,7 @@ Hôm nay, trong 6 giờ trước giờ xe chạy, Bán hàng không tự xếp, 
 2. **Điều kiện "cổng đơn đã thắng" — ĐÃ CHỌN phương án (a): view công bố hẹp của `audit`.**
    - Các route sửa đơn **thua lặng lẽ**: câu cổng đơn không khớp thì nhật ký không chèn, mọi câu sau mang `wonGuard` không chạy (`src/modules/orders/repository.ts:769, :944`). Câu chuyến vì vậy phải hỏi đúng dấu đó, nếu không đơn thua mà ghế vẫn bị đóng.
    - **View mới `v_aud_order_cmd`** (tên đề xuất; module `audit`): `SELECT id, order_id, action FROM audit_log WHERE order_id IS NOT NULL AND action IN ('cancelled', 'order_cancelled_by_field', 'order_money_adjusted', 'order_money_adjusted_by_field', 'order_passenger_changed', 'order_leg_updated', 'order_leg_closed')`. Chỉ khoá và nhãn, không `detail`, không người, không giờ.
-   - Câu cổng mỗi chuyến: `UPDATE vc_trip SET version = version + 1, last_cmd_id = :cmd WHERE id = :T AND version = :v AND status = 'PLANNED' AND EXISTS (SELECT 1 FROM v_aud_order_cmd WHERE id = :auditIdDon)`.
+   - Câu cổng mỗi chuyến: `UPDATE vc_trip SET version = version + 1, last_cmd_id = :cmd WHERE id = :T AND version = :v AND status = 'PLANNED' AND EXISTS (SELECT 1 FROM v_aud_order_cmd WHERE id = :auditIdDon AND order_id = :orderId)`. Điều kiện `order_id` chặn trường hợp truyền nhầm mã nhật ký của đơn khác.
    - **Vì sao tạo view mới, không mở rộng `v_aud_order_event`:**
      - `v_aud_order_event` (`migrations/0025_thong_bao.sql:52-56`) là danh sách cho phép của hộp thông báo (`src/shared/audit-actions.ts:42`); thêm hành động vào đó sẽ sinh tin mới cho người dùng;
      - nó còn mang `staff_id`, `created_at` mà `van-chuyen` không cần.
@@ -113,8 +113,9 @@ Hôm nay, trong 6 giờ trước giờ xe chạy, Bán hàng không tự xếp, 
    - **Mỗi điểm gọi phải lộ mã nhật ký của câu cổng đơn** để truyền vào `auditIdDon`. `cancelOrder` hôm nay chưa truyền mã nhật ký rõ: `auditStatement` ở `src/modules/orders/repository.ts:1040` không có `id`. Vì vậy hàm này (và `cancelOrderByHandler` mà `dispatch` gọi, `src/modules/dispatch/index.ts:233`) phải sửa, để sinh `auditId` trước và nhận thêm câu ngoài, như `createOrder` nhận `handler?.statements` (`src/modules/orders/index.ts:734`). Các hàm ghi của năm điểm gọi còn lại: người lập kế hoạch kiểm từng hàm.
 3. **Thứ tự lô chung:**
    - câu ghi đơn (cổng đơn đứng đầu như hôm nay, không đổi);
-   - với mỗi chuyến bị chạm, **mã lệnh riêng** (sự kiện lấy id = mã lệnh, `dieu-phoi.ts:78-82`): câu cổng chuyến ở mục 2 → nhật ký `changes() > 0` → **một** sự kiện → các câu suất / bỏ điểm / cam kết mang `EXISTS (… last_cmd_id = :cmd)` (ADR-0049 `:98-108`).
+   - với mỗi chuyến bị chạm, **một mã lệnh VÀ một `request_id` mới, độc lập** — sự kiện lấy id = mã lệnh và ghi `l.requestId` vào `vc_trip_event.request_id` (`dieu-phoi.ts:78-82`), cột này `UNIQUE` (`migrations/0042_chuyen_xe.sql:161`), nên dùng lại một mã cho hai chuyến thì cả lô hỏng: câu cổng chuyến ở mục 2 → nhật ký `changes() > 0` → **một** sự kiện → các câu suất / bỏ điểm / cam kết mang `EXISTS (… last_cmd_id = :cmd)` (ADR-0049 `:98-108`).
    - Bài `src/modules/van-chuyen/thu-tu-lo.test.ts` hôm nay đòi câu cổng đứng đầu lô (luật 1, `:4`). Lô chung cần một **ngoại lệ có tên** kiểu `GHI_NGOAI` (`:12-13`): phần đầu là câu của `orders`, sau đó từng khúc chuyến phải tự đúng bốn luật. Đây là **nới hàng rào** (Hiến pháp Điều 9.4), nên nằm trong câu duyệt.
+   - **Vì sao một hàm nối cả câu đơn lẫn các khúc chuyến, thay vì hàm lô riêng cho từng chuyến (khỏi phải nới):** câu cổng chuyến hỏi `v_aud_order_cmd`, nên chỉ đúng khi câu nhật ký của đơn đứng **trước** nó trong lô. Nếu `orders` tự ghép các khúc chuyến do từng hàm riêng trả về, không bài nào thấy lô ghép, và một lần ghép sai thứ tự (khúc chuyến đứng trước câu đơn) làm cổng chuyến luôn thua trong im lặng, tức máy không bao giờ đồng bộ mà không ai biết. Một hàm `lo…` trong `dieu-phoi.ts` nhận câu đơn làm đầu vào thì bài thứ tự lô kiểm được cả lô ghép: câu đơn đứng đầu, rồi từng khúc chuyến đủ bốn luật.
 4. **Điểm gọi** — `await` trong request, không `waitUntil`, không hàng đợi (ĐP8, ADR-0049 `:364`):
    - `orders`: `POST /api/orders/:id/status` (huỷ, `src/modules/orders/index.ts:1018`), `POST …/legs/:legId/close` (`:909`), `PUT …/legs/:legId` (`:891`), `POST …/passengers` (`:973`; một route cho thêm, sửa, huỷ dòng khách), route văn phòng sửa số khách của ADR-0063 D1;
    - **C14** `POST /api/orders/:id/legs/:legId/replace` (nhánh `c14-thay-chang`, `src/modules/orders/index.ts:935` ở nhánh đó; lô ghi `order_leg_closed` có `auditId` rồi `order_leg_added`, `src/modules/orders/repository.ts:1355-1361` ở nhánh đó);
@@ -125,7 +126,7 @@ Hôm nay, trong 6 giờ trước giờ xe chạy, Bán hàng không tự xếp, 
 5. **Phạm vi và trần:**
    - Chỉ các chuyến có suất mở của chặng thuộc **đúng đơn đó**.
    - Lệnh mới `DONG_BO_THEO_DON` có trong `LENH_XEP`, **ngoài** `LENH_KHOA_THEO_MOC` (khuôn `DOI_KHACH_THEO_DON`, `moc-toi-thieu.ts:60-61`). **Không** miễn luật lõi (LC-01, 02, 09, 10, 15).
-   - **Trần: phần chuyến của một lô tối đa 74 câu** (bằng lô lớn nhất đang có, `updateDraftOrder`, `docs/SYSTEM-DESIGN.md:1154`). Hàm tính trước khi gộp; vượt thì **không gộp câu chuyến nào**, phản hồi lệnh đơn báo "chuyến cần cập nhật tay", chuyến giữ như hôm nay. Đếm câu ở mục "Đếm câu" bên dưới.
+   - **Trần: phần chuyến của một lô tối đa 74 câu** (bằng lô lớn nhất đang có, `updateDraftOrder`, `docs/SYSTEM-DESIGN.md:1154`). Trần **chỉ tính phần chuyến**; tổng lô = phần đơn của route + phần chuyến. Hàm tính trước khi gộp; vượt thì **không gộp câu chuyến nào**, phản hồi lệnh đơn báo "chuyến cần cập nhật tay", chuyến giữ như hôm nay. Đếm câu ở mục "Đếm câu" bên dưới.
 6. **Luật trên chuyến `PLANNED`.** Một hàm thuần ở `src/shared/`, mở rộng `suatKhachDaDoi` / `moLaiSauDoiKhach`, dùng chung cho máy và cho nút tay:
    - (i) Đơn huỷ, chặng đóng, đơn không còn xác nhận → đóng mọi suất mở của chặng trên chuyến, mã `REMOVED`.
    - (ii) Khoá người không còn trong đơn → đóng `PASSENGER_CHANGED` rồi mở lại theo `moLaiSauDoiKhach` (như lệnh hôm nay).
@@ -135,7 +136,7 @@ Hôm nay, trong 6 giờ trước giờ xe chạy, Bán hàng không tự xếp, 
 7. **Chuyến `RUNNING`: máy không ghi gì vào chuyến.**
    - Lý do: trigger `0076:46-54` chỉ cho đặt cờ báo huỷ khi lệnh cuối của chuyến là sự kiện `ALLOCATION_OFFICE_CANCELLED` của đúng suất đó (bài `xe-dang-chay-csdl.test.ts:297`). Lô đồng bộ mang sự kiện khác nên không đặt được cờ, và mỗi lệnh báo huỷ chỉ phủ một suất.
    - Máy chỉ nhắc, không ghi:
-     - phản hồi của lệnh đơn kèm câu "Đơn có khách trên xe đang chạy — văn phòng bấm Báo huỷ";
+     - phản hồi của lệnh đơn kèm câu **cố định** "Đơn có khách trên xe đang chạy — văn phòng bấm Báo huỷ", không kèm dữ liệu chuyến nào (không mã chuyến, biển số, tài xế); Đối tác, Thực tập, HDV sửa đơn cũng thấy đúng câu này;
      - màn "Xe đang chạy" hiện dòng nhắc tính lúc đọc, cùng nguồn trạng thái đơn mà lý do giữ `DON_DA_HUY` đang dùng (`dieu-phoi-kiem.ts:405`).
    - Tài xế nhận tin khi văn phòng bấm "Báo huỷ", như hôm nay (`trip_allocation_office_cancelled` đã có trong `tin-chuyen.ts:8-12`). ADR-0052 D5.2 không đổi.
 8. **Chuyến đã kết thúc hoặc huỷ:** không làm gì (LC-06).
@@ -217,10 +218,15 @@ Mỗi rào phải quan sát chặn thật: sửa cố ý → đỏ → hoàn ngu
    - HDV huỷ qua `handler-cancel` → như trên, và HDV gọi route xếp vẫn 403.
    - Chuyến `RUNNING` → không suất, không cờ nào đổi; phản hồi có câu nhắc Báo huỷ.
    - Bớt khách khi có suất chưa tên → đóng suất chưa tên; mọi suất mang tên người còn trong đơn → giữ `THUA_SUAT`; chặng trên hai chuyến → giữ.
+   - Đơn huỷ có chặng trên **hai** chuyến `PLANNED` → cả hai chuyến đóng suất trong **một** lô (mỗi chuyến mã lệnh và `request_id` riêng).
    - Thua cổng chuyến → chuyến giữ, lệnh đơn 200; thua cổng đơn → không suất nào đổi.
+   - Bài ghép: mọi `auditId` mà các điểm gọi truyền vào hook đều là nhật ký của một hành động nằm trong danh sách của `v_aud_order_cmd`; thêm điểm gọi mới với hành động ngoài danh sách → đỏ.
    - Vượt trần 74 → không câu chuyến nào, phản hồi báo cập nhật tay.
 6. **Bài tĩnh điểm gọi hook:** bỏ một lời gọi → đỏ.
-7. **Bài thứ tự lô:** ngoại lệ có tên cho lô chung; một hàm khác dùng nhãn đó → đỏ.
+7. **Bài thứ tự lô:**
+   - ngoại lệ có tên cho lô chung; một hàm khác dùng nhãn đó → đỏ;
+   - trong lô chung, một khúc chuyến đứng trước câu nhật ký của đơn → đỏ;
+   - trong lô chung, một khúc chuyến thiếu câu cổng ở đầu khúc, hoặc sai bất kỳ luật nào trong bốn luật thứ tự → đỏ.
 8. **View:** `van-chuyen` đọc `v_aud_order_cmd` → bài kiến trúc xanh; đọc thẳng `audit_log` → đỏ.
 9. **LC-18:** bài quét nhật ký hiện có phủ hành động mới.
 10. **Bộ kiểm chung:** `npm test`, `npm run typecheck` (0 lỗi), `npm run test:e2e`, `node scripts/audit-invariants.mjs --db local`.
@@ -233,7 +239,7 @@ Mỗi rào phải quan sát chặn thật: sửa cố ý → đỏ → hoàn ngu
 - **Đặt cờ báo huỷ trên xe đang chạy trong lô đồng bộ:** trigger `0076:46-54` không cho (phiếu C1).
 - **Cổng đơn đã thắng, phương án (b) — `orders` cấp sẵn biểu thức điều kiện:** biểu thức vẫn là `EXISTS (… audit_log …)` nằm trong câu của `van-chuyen`, tức module nghiêm đọc thẳng bảng của module khác; phiếu người kiểm ghi cách đọc thẳng `audit_log` làm bài kiến trúc đỏ.
 - **Phương án (c) — cổng đơn ở các route đổi sang làm hỏng lô khi thua:** đổi cách xử lý tranh chấp của tám route đang chạy (hôm nay thua lặng lẽ rồi trả 409 riêng như `HANDLER_RACED`), phạm vi rộng hơn nhiều so với một view.
-- **Phương án (d) — gác bằng dấu thời gian mới của đơn** (`orders.updated_at = :at` mà lô đơn vừa ghi, đọc qua một view `v_ord_*`): **chưa thử**; còn phải chứng minh dấu đó duy nhất cho mỗi lệnh, và phải lộ thêm cột giờ của đơn ra view.
+- **Gác bằng mốc đơn** (phương án thêm của người soạn, không phải (d) của phiếu kiểm) — dùng dấu thời gian mới của đơn (`orders.updated_at = :at` mà lô đơn vừa ghi, đọc qua một view `v_ord_*`): **chưa thử**; còn phải chứng minh dấu đó duy nhất cho mỗi lệnh, và phải lộ thêm cột giờ của đơn ra view.
 - **Mã đóng mới cho đồng bộ:** phải dựng lại bảng (xem Cửa một chiều).
 - **Hạ con số mốc cho cả hệ thống:** áp cả lúc đặt đơn, cộng lỗi N3 (báo cáo ERP Gói 0 mục 3).
 
