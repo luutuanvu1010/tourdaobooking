@@ -137,7 +137,7 @@ Mục "Giờ hẹn đổi — gọi báo khách" ở [[Cần xử lý]]: gọi k
 2. Sửa [[Giờ đón]] (hoặc [[Nơi đón]], [[Nơi trả]] của chặng). Ngày khởi hành của cả đơn đổi ở [[Sửa thông tin chuyến]].
 3. Bấm [[Lưu]].
 4. App nhắc bản xác nhận đã gửi khách có thể lỗi thời → bấm [[Xem biên nhận]] và gửi lại ảnh mới.
-5. Tự gọi hoặc nhắn hướng dẫn viên phụ trách: app chưa tự báo cho họ khi giờ hoặc nơi đón đổi (chưa có ở bản này).
+5. Tự gọi hoặc nhắn hướng dẫn viên phụ trách: app chưa tự báo cho họ khi giờ hoặc nơi đón đổi.
 
 > Lưu ý: nếu giờ đón mới cách bây giờ dưới mốc 6 giờ, app từ chối và chỉ Quản trị sửa được — hãy nhờ Quản trị. Muốn đổi hồ sơ khách của đơn đã xác nhận thì bấm [[Đổi khách]].
 
@@ -149,7 +149,7 @@ Sau xác nhận, dịch vụ và tiền **bị khoá**. Số khách của đơn 
 2. Bấm **+** hoặc **−**; dịch vụ nhập tay chỉ để xem.
 3. Chọn lý do ([[Khách thêm người]], [[Khách bớt người]], [[Đổi dịch vụ]], [[Khác]]) rồi bấm [[Lưu số khách]].
 
-Nền tảng tự tính lại tiền (giảm giá giữ nguyên), ghi vào [[Lịch sử]] và báo người phụ trách. Đơn người khác lập: nhờ người lập, Kế toán hoặc Quản trị. Thêm dịch vụ, đổi giá: chưa sửa được, báo Quản trị.
+Nền tảng tự tính lại tiền (giảm giá giữ nguyên), ghi vào [[Lịch sử]] và báo người phụ trách. Đơn đã xếp xe chưa chạy: Nền tảng tự trả ghế, thêm ghế khi xe còn chỗ. Đơn người khác lập: nhờ người lập, Kế toán hoặc Quản trị.
 
 ### Đơn sát giờ — Đặt gấp
 
@@ -170,17 +170,17 @@ Nền tảng tự tính lại tiền (giảm giá giữ nguyên), ghi vào [[L�
 ### Khách huỷ
 
 1. Mở đơn → bấm [[Huỷ đơn]].
-2. App hỏi lại và nhắc việc huỷ không thể hoàn tác → đồng ý.
-3. Đơn chuyển sang [[Đã huỷ]]. Không mở lại được — khách đặt lại thì lập đơn mới.
+2. Chọn lý do (bắt buộc) → bấm [[Huỷ đơn]]. Không hoàn tác được.
+3. Đơn chuyển sang [[Đã huỷ]]. Khách đặt lại thì lập đơn mới.
 
-Huỷ được cả đơn chờ xác nhận lẫn đã xác nhận, nếu là đơn bạn lập hoặc đang phụ trách. Bán hàng không có ô ghi lý do huỷ.
+Huỷ được đơn chờ xác nhận lẫn đã xác nhận mà bạn lập hoặc đang phụ trách. Đơn đã xếp xe chưa chạy: Nền tảng tự trả ghế; xe đang chạy: văn phòng bấm [[Báo huỷ]].
 
 ### Hướng dẫn viên nhận, huỷ, sửa đơn — bạn thấy gì
 
 - **HDV bấm Nhận**: thẻ đơn đổi từ [[Chờ nhận]] sang "HDV: tên"; bạn nhận tin nếu đơn liên quan tới bạn.
 - **HDV huỷ đơn** (họ phải chọn lý do): đơn thành [[Đã huỷ]], bạn nhận tin huỷ; khối [[Lịch sử]] của trang đơn có dòng huỷ đơn kèm lý do.
 - **HDV sửa số khách**: bạn nhận tin đơn đổi; khối [[Lịch sử]] có dòng sửa kèm lý do.
-- **HDV từ chối đơn**: chưa có nút này (chưa có ở bản này).`,
+- **HDV từ chối đơn**: chưa có nút này.`,
     },
     {
       tieuDe: "Thực tập — khác Bán hàng ở đâu",
