@@ -289,8 +289,11 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
     id: "sua-thong-tin-chuyen-don", ten: "Sửa thông tin chuyến của đơn (ngày đi, giờ đón — bảng cũ)", loai: "don_khong_dong_bo", trangThai: "co_ma",
     routes: [{ phuongThuc: "PUT", duongDan: "/api/orders/:id/trip", cong: "orders", o: "order.trip.edit", ngucanh: "ownerId+assigned", ai: O_SUA_CHUYEN_DON, ham: "updateTrip" }],
     trangThaiChuyen: ["PLANNED"], vuot: [], luat: "đơn đã xác nhận đổi chặng dưới mốc → cần đặt gấp (Quản trị, Toàn quyền); chuyến chỉ hiện lý do giữ, người xếp xe bấm nút",
-    bang: ["orders", "ord_transfer_leg", "audit_log"], suKien: null, nhatKy: null, nhatKyDon: ["trip_updated"], lo: null, bao: "khong", tin: null, bangTin: null,
-    nguon: "ADR-0047 R2c; ADR-0104 Đ2.4; G8, G17 (sổ thi công 2026-10-08)",
+    bang: ["orders", "ord_transfer_leg", "audit_log"], suKien: null, nhatKy: null, nhatKyDon: ["trip_updated", "order_leg_updated"], lo: null, bao: "khong", tin: null,
+    // G17 (việc 6, gộp 2a7973d4): mỗi chặng đổi ngày / giờ ghi thêm `order_leg_updated` (target = chặng, cùng lô, `changes() > 0`) → tin giờ hẹn MQ-07.
+    tinDon: { nhom: "gio_hen", nhan: [{ ai: TX_LUC, loai: "gio_hen_tai_xe" }, { ai: ["BAN_HANG_LAP_DON"], loai: "gio_hen_goi_bao" }] },
+    bangTin: null,
+    nguon: "ADR-0047 R2c; ADR-0104 Đ2.4; ADR-0052 D6.2 (MQ-07); G8, G17 (sổ thi công 2026-10-08)",
   },
 
   // Mốc giờ hẹn "đã gọi báo khách" — ADR-0051 GB1, GB2 (không chạm vc_trip; ngoại lệ có tên ở bài thứ tự lô).
@@ -416,14 +419,6 @@ export interface ChoLech {
   dauHieu?: DauHieu;
 }
 export const CHO_LECH: readonly ChoLech[] = [
-  {
-    id: "G17", loai: "LECH_ADR", muc: "CAO", dong: ["sua-thong-tin-chuyen-don"], quyTac: "QT1",
-    maLam: "Bảng cũ \"Sửa thông tin chuyến\" đổi ngày đi / giờ đón của chặng đã xếp xe, chỉ ghi một dòng nhật ký đơn không gắn chặng — tài xế không nhận tin, người lập đơn không được nhắc gọi khách.",
-    adrNoi: "ADR-0052 D6.2: giờ hẹn chặng đổi khi đã xếp → tài xế đang lái chuyến có suất của chặng + người lập / phụ trách đơn nhận tin.",
-    deNghi: "Làm việc 6 (G17) đúng sáu điều kiện đã ghi ở sổ thi công.", viec: "việc 6 — G17",
-    // Hôm nay "order_leg_updated" chỉ ghi ở MỘT chỗ (lệnh sửa chặng `PUT …/legs/:legId`); G17 thêm chỗ ghi thứ hai cho `PUT /trip` → bài đỏ, sửa mục này + dòng.
-    dauHieu: { tep: "src/modules/orders", soLan: 1, chua: "\"order_leg_updated\"" },
-  },
   {
     id: "N-CAP-NHAT-KHACH", loai: "CHUA_CO_LUAT", muc: "VUA", dong: ["cap-nhat-khach"], quyTac: "QT1",
     maLam: "Người xếp xe bấm \"Cập nhật khách theo đơn\" làm đổi khách trên chuyến chưa chạy — tài xế đang lái không nhận tin; còn khi MÁY làm đúng việc đó (sửa đơn) thì tài xế nhận \"Đơn vừa đổi khách\".",
