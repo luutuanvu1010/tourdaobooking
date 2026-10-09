@@ -40,6 +40,9 @@ export const chiTietNhatKyKhung = (bienSo: string, k: { batDauMs: number; ketThu
 export const CAU_KHUNG_VUA_DOI = "Khung bận vừa được người khác rút hoặc lịch xe vừa đổi — tải lại rồi làm lại.";
 /** Lỗi CSDL (lưới thứ hai) → mã lớp CSDL KHÁC mã lớp route (khuôn R15). Lỗi lạ → null (ném tiếp). */
 export function loiRangBuocKhungBan(message: string): { status: number; code: string; message: string } | null {
+  // ADR-0053 D9 B9.2 (0092): khung bận của TÀI XẾ chồng chuyến người đó đang được xếp — lớp máy chủ đã kiểm trước; tới đây là văn phòng vừa xếp giữa lúc đọc
+  // và lúc ghi. TRƯỚC dòng của xe (`unavailability_overlaps_trip` không khớp tên trigger tài xế nhờ \b … _trip).
+  if (/\bunavailability_overlaps_driver_trip/.test(message)) return { status: 409, code: "khung_ban_chong_chuyen_tai_xe_csdl", message: "Bạn vừa được xếp chuyến trùng giờ này — tải lại để xem chuyến, từ chối chuyến (nếu còn hạn) hoặc gọi văn phòng." };
   if (/\bunavailability_overlaps_trip/.test(message)) return { status: 409, code: "khung_ban_chong_chuyen_csdl", message: "Xe vừa được xếp chuyến trùng giờ này — tải lại để xem chuyến, dời hoặc đổi xe chuyến đó trước." };
   if (/vc_unavailability_append_only/.test(message)) return { status: 409, code: "khung_ban_vua_doi", message: CAU_KHUNG_VUA_DOI };
   if (/\bunavailability_reason_group|FOREIGN KEY constraint failed/.test(message)) return { status: 400, code: "invalid_input", message: "Lý do không có trong danh mục lý do xe bận." };

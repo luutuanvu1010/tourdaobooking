@@ -2139,10 +2139,8 @@ test("R-VC-21 (ADR-0055 hệ quả 10): chuyến chưa huỷ, CHƯA kết thúc 
   const huy = chuyenTho(db, { tu: goc + 13 * H, den: goc + 14 * H });
   db.prepare("UPDATE vc_trip SET status = 'CANCELLED', cancel_reason_code = 'HUY_KHAC' WHERE id = ?").run(huy);
   assert.equal(violations(db, c), 1, "chuyến đã kết thúc / đã huỷ không đếm");
-  // Khung DRIVER (Đợt 6 — thả trigger "chưa mở" để dựng) không khớp theo xe.
-  db.exec("DROP TRIGGER vc_unavailability_driver_closed");
-  db.prepare("INSERT INTO vc_reason (code, reason_group, label, sort_order, created_at, updated_at) VALUES ('BAN_TAI_XE_THU', 'BAN_TAI_XE', 'Thử', 1, ?, ?)").run(T1, T1);
-  khung("kb-tx", goc + 8 * H, goc + 17 * H, { subject: "DRIVER", xe: null, taiXe: "p-cty", lyDo: "BAN_TAI_XE_THU" });
+  // Khung DRIVER (ADR-0053 D9 — 0092 đã mở, lý do gieo BTX_*) không khớp theo xe.
+  khung("kb-tx", goc + 8 * H, goc + 17 * H, { subject: "DRIVER", xe: null, taiXe: "p-cty", lyDo: "BTX_OM" });
   assert.equal(violations(db, c), 1, "khung DRIVER không đếm");
   db.prepare("UPDATE vc_unavailability SET withdrawn_at = ?, withdrawn_by = 's', version = 2, updated_at = ?, updated_by = 's' WHERE id = 'kb-1'").run(T2, T2);
   assert.equal(violations(db, c), 0, "khung đã rút");

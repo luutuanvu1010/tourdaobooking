@@ -1139,6 +1139,10 @@ export interface DispatchPolicyDto {
   tripNoBreakMaxMinutes: number;
   /** ADR-0096 Đ2 (0084): cửa sổ xuất bến (phút, 60…2880; mặc định nằm trong bảng chính sách) — chỉ xuất bến từ giờ khởi hành dự kiến − cửa sổ. */
   departureWindowMinutes: number;
+  /** ADR-0053 D8.1 (0092): hạn Từ chối (phút trước giờ chạy, 60…2880; gieo 720). */
+  refuseLeadMinutes: number;
+  /** Lời chủ 6.3 (0092): SĐT văn phòng (0xxxxxxxxx) cho nút "Gọi văn phòng" của tài xế; null = chưa nhập. Chỉ Toàn quyền đọc DTO này. */
+  officePhone: string | null;
   validFrom: string;
   current: boolean;
   /** R-P23: "ai lưu" — TÊN hiển thị người lưu bản này (hàm tiêm nhãn R-P20; không SĐT, không id); null = bản gieo / khung thử không tiêm nhãn. */
@@ -1159,6 +1163,10 @@ export interface DispatchPolicyCreateRequest {
   tripNoBreakMaxMinutes: number;
   /** BẮT BUỘC (I43, ADR-0096 Đ2.3): phút, 60…2880 — màn nhập giờ (1–48). */
   departureWindowMinutes: number;
+  /** BẮT BUỘC (I43, ADR-0053 D8.1): phút, 60…2880 — màn nhập giờ (1–48). */
+  refuseLeadMinutes: number;
+  /** BẮT BUỘC có khoá (I43; lời chủ 6.3): chuỗi SĐT hoặc null / "" = không có. */
+  officePhone: string | null;
   requireContract?: false;
 }
 export interface DepartureRuleDto {

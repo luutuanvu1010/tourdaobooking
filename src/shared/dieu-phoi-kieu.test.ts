@@ -11,8 +11,8 @@ import {
 import { MA_GIU } from "./ly-do-giu.ts";
 import { LENH_XEP } from "./moc-toi-thieu.ts";
 
-test("NHOM_LY_DO: đúng mười nhóm — bảy của thiết kế [TK] §1.9 + BAN_XE từ ADR-0055 + CHI_PHI_XE (ADR-0057 C3) + DIEU_CHINH (ADR-0097 Đ2.5); có nhãn tiếng Việt; isNhomLyDo chỉ nhận đúng mã", () => {
-  assert.deepEqual([...NHOM_LY_DO], ["DOI_GIO_XE", "BAO_HUY_DIEM", "PHA_LE", "TU_CHOI_NHAN", "KET_THUC_GIAN_DOAN", "HUY_CHUYEN", "BO_QUA_DIEM", "BAN_XE", "CHI_PHI_XE", "DIEU_CHINH"]);
+test("NHOM_LY_DO: đúng mười hai nhóm — bảy của thiết kế [TK] §1.9 + BAN_XE từ ADR-0055 + CHI_PHI_XE (ADR-0057 C3) + DIEU_CHINH (ADR-0097 Đ2.5) + TU_CHOI_CHUYEN, BAN_TAI_XE (ADR-0053 D8.1, D9.1); có nhãn tiếng Việt; isNhomLyDo chỉ nhận đúng mã", () => {
+  assert.deepEqual([...NHOM_LY_DO], ["DOI_GIO_XE", "BAO_HUY_DIEM", "PHA_LE", "TU_CHOI_NHAN", "KET_THUC_GIAN_DOAN", "HUY_CHUYEN", "BO_QUA_DIEM", "BAN_XE", "CHI_PHI_XE", "DIEU_CHINH", "TU_CHOI_CHUYEN", "BAN_TAI_XE"]);
   for (const g of NHOM_LY_DO) assert.ok(NHAN_NHOM_LY_DO[g].trim().length > 0, g);
   assert.equal(Object.keys(NHAN_NHOM_LY_DO).length, NHOM_LY_DO.length);
   assert.equal(isNhomLyDo("PHA_LE"), true);

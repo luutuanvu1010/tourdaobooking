@@ -11,7 +11,7 @@ import type { LyDoGiu } from "./ly-do-giu.ts";
 
 // ---- Danh sách mở (kiểm ở mã) -------------------------------------------------------------------------------------------------------------------------------
 /** Nhóm lý do ([TK] §1.9). Máy chỉ rẽ nhánh theo NHÓM; từng lý do là dữ liệu `vc_reason` (Quản trị sửa). Lượt 1 dùng năm nhóm; BAO_HUY_DIEM, TU_CHOI_NHAN từ lượt 2. */
-export const NHOM_LY_DO = ["DOI_GIO_XE", "BAO_HUY_DIEM", "PHA_LE", "TU_CHOI_NHAN", "KET_THUC_GIAN_DOAN", "HUY_CHUYEN", "BO_QUA_DIEM", "BAN_XE", "CHI_PHI_XE", "DIEU_CHINH"] as const;
+export const NHOM_LY_DO = ["DOI_GIO_XE", "BAO_HUY_DIEM", "PHA_LE", "TU_CHOI_NHAN", "KET_THUC_GIAN_DOAN", "HUY_CHUYEN", "BO_QUA_DIEM", "BAN_XE", "CHI_PHI_XE", "DIEU_CHINH", "TU_CHOI_CHUYEN", "BAN_TAI_XE"] as const;
 export type NhomLyDo = (typeof NHOM_LY_DO)[number];
 export const NHAN_NHOM_LY_DO: Readonly<Record<NhomLyDo, string>> = {
   DOI_GIO_XE: "Đổi giờ xe tới",
@@ -24,6 +24,8 @@ export const NHAN_NHOM_LY_DO: Readonly<Record<NhomLyDo, string>> = {
   BAN_XE: "Lý do xe bận", // ADR-0055 VK2-A (0071)
   CHI_PHI_XE: "Chi phí xe thuê", // ADR-0057 C3 (0073): lý do điều chỉnh / đảo / giá thoả thuận của chi phí chuyến xe thuê
   DIEU_CHINH: "Điều chỉnh chuyến đang chạy", // ADR-0097 Đ2.5 (0085): lý do sửa kết quả một khách / thu hồi xuất bến — danh sách đóng, không ô chữ tự do
+  TU_CHOI_CHUYEN: "Tài xế từ chối chuyến", // ADR-0053 D8.1 (0092): lý do tài xế nhà xe đối tác từ chối chuyến trước hạn
+  BAN_TAI_XE: "Tài xế báo bận", // ADR-0053 D9.1 (0092): lý do khung bận của tài xế nhà xe đối tác — văn phòng KHÔNG thấy lý do (lời chủ 6.2)
 };
 export const isNhomLyDo = (v: unknown): v is NhomLyDo => typeof v === "string" && (NHOM_LY_DO as readonly string[]).includes(v);
 /**

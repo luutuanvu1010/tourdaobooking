@@ -9,6 +9,7 @@ import { NHAN_NHOM_LY_DO, isNhomLyDo, type NhomLyDo } from "../../shared/dieu-ph
 import { MA_LOAI_GIAY_TO_RE, kiemTenDanhMuc, kiemThuTu } from "../../shared/giay-to.ts";
 import { CHE_DO_DUA_DON, isCheDoDuaDon, type CheDoDuaDon } from "../../shared/chang-mac-dinh.ts";
 import { UUID_RE } from "../../shared/http.ts";
+import { normalizePhone } from "../../shared/phone.ts";
 import { isHHMM } from "../../shared/vn-date.ts";
 
 export type Result<T> = { ok: true; value: T } | { ok: false; message: string };
@@ -24,6 +25,8 @@ const CAU_HIEU_LUC = "Không gửi ngày hiệu lực — dòng mới có hiệu
 export const NGHI_TOI_DA_PHUT = 480;
 /** Trần cửa sổ xuất bến (phút, ADR-0096 Đ2.3 LC-20) — cùng CHECK của `vc_dispatch_policy.departure_window_minutes` (0084). */
 export const CUA_SO_XUAT_BEN_TOI_DA_PHUT = 2880;
+/** Trần hạn Từ chối (phút, ADR-0053 D8.1; G-A4-13) — cùng CHECK của `vc_dispatch_policy.refuse_lead_minutes` (0092). */
+export const HAN_TU_CHOI_TOI_DA_PHUT = 2880;
 export interface ChinhSachMoi {
   minLeadMinutes: number;
   warnLeadMinutes: number;
@@ -37,12 +40,16 @@ export interface ChinhSachMoi {
   tripNoBreakMaxMinutes: number;
   /** ADR-0096 Đ2.3: cửa sổ xuất bến (phút) 60…2880 (màn nhập 1–48 giờ); BẮT BUỘC (I43 — PWA cũ gửi thiếu thì 400, không chép ngầm từ dòng cũ). */
   departureWindowMinutes: number;
+  /** ADR-0053 D8.1 (0092): số phút hạn Từ chối trước giờ chạy, 60…2880; BẮT BUỘC (I43). Chỉ áp cho cặp (tài xế, chuyến) xếp LẦN ĐẦU sau khi đổi (G-A4-13). */
+  refuseLeadMinutes: number;
+  /** Lời chủ 6.3 (0092): SĐT văn phòng cho nút "Gọi văn phòng" của tài xế — chuẩn hoá 0xxxxxxxxx; null = chưa có. Khoá BẮT BUỘC có mặt (I43; null được). */
+  officePhone: string | null;
 }
 export function kiemChinhSachMoi(body: Record<string, unknown> | null): Result<ChinhSachMoi> {
   if (!body) return fail("Dữ liệu không hợp lệ.");
   if (coNgayHieuLuc(body)) return fail(CAU_HIEU_LUC);
   const { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, requireContract, proxyBackdateMaxMinutes, dutyDayMaxMinutes, tripNoBreakMaxMinutes,
-    departureWindowMinutes } = body;
+    departureWindowMinutes, refuseLeadMinutes, officePhone } = body;
   if (!soNguyen(minLeadMinutes, 1, 2880)) return fail("Mốc tối thiểu là số phút nguyên từ 1 đến 2880 — không tắt được; muốn nới thì giảm con số.");
   if (!soNguyen(warnLeadMinutes, 0, 1440)) return fail("Cảnh báo sát mốc là số phút nguyên từ 0 đến 1440.");
   if (!soNguyen(restMinutes, 0, NGHI_TOI_DA_PHUT)) return fail(`Khoảng nghỉ giữa hai chuyến là số phút nguyên từ 0 đến ${NGHI_TOI_DA_PHUT}.`);
@@ -56,7 +63,21 @@ export function kiemChinhSachMoi(body: Record<string, unknown> | null): Result<C
   // ADR-0096 Đ2.3 (khuôn I43): thiếu cửa sổ xuất bến → nói rõ, không tự điền.
   if (departureWindowMinutes === undefined) return fail("Thiếu cửa sổ xuất bến — tải lại trang rồi lưu lại.");
   if (!soNguyen(departureWindowMinutes, 60, CUA_SO_XUAT_BEN_TOI_DA_PHUT)) return fail(`Cửa sổ xuất bến là số phút nguyên từ 60 đến ${CUA_SO_XUAT_BEN_TOI_DA_PHUT} (1 đến ${CUA_SO_XUAT_BEN_TOI_DA_PHUT / 60} giờ).`);
-  return { ok: true, value: { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, proxyBackdateMaxMinutes, dutyDayMaxMinutes, tripNoBreakMaxMinutes, departureWindowMinutes } };
+  // ADR-0053 D8.1 + lời chủ 6.3 (khuôn I43): màn cũ gửi thiếu → nói rõ, không tự điền.
+  if (refuseLeadMinutes === undefined || officePhone === undefined) return fail("Thiếu hạn từ chối / số điện thoại văn phòng — tải lại trang rồi lưu lại.");
+  if (!soNguyen(refuseLeadMinutes, 60, HAN_TU_CHOI_TOI_DA_PHUT)) return fail(`Hạn từ chối chuyến là số phút nguyên từ 60 đến ${HAN_TU_CHOI_TOI_DA_PHUT} (1 đến ${HAN_TU_CHOI_TOI_DA_PHUT / 60} giờ).`);
+  let sdt: string | null = null;
+  if (officePhone !== null) {
+    if (typeof officePhone !== "string") return fail("Số điện thoại văn phòng không hợp lệ.");
+    if (officePhone.trim() !== "") {
+      sdt = normalizePhone(officePhone);
+      if (sdt === null) return fail("Số điện thoại văn phòng phải là số di động / cố định Việt Nam 10 chữ số (bắt đầu bằng 0), hoặc để trống.");
+    }
+  }
+  return {
+    ok: true,
+    value: { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, proxyBackdateMaxMinutes, dutyDayMaxMinutes, tripNoBreakMaxMinutes, departureWindowMinutes, refuseLeadMinutes, officePhone: sdt },
+  };
 }
 export function chiTietChinhSach(cu: ChinhSachMoi | null, moi: ChinhSachMoi): string {
   const co = (b: boolean) => (b ? "có" : "không");
@@ -70,7 +91,15 @@ export function chiTietChinhSach(cu: ChinhSachMoi | null, moi: ChinhSachMoi): st
     phan("giờ lái tối đa", cu ? `${cu.dutyDayMaxMinutes}` : null, `${moi.dutyDayMaxMinutes} phút`),
     phan("nhắc nghỉ chuyến trên", cu ? `${cu.tripNoBreakMaxMinutes}` : null, `${moi.tripNoBreakMaxMinutes} phút`),
     phan("cửa sổ xuất bến", cu ? `${cu.departureWindowMinutes}` : null, `${moi.departureWindowMinutes} phút`),
+    phan("hạn từ chối", cu ? `${cu.refuseLeadMinutes}` : null, `${moi.refuseLeadMinutes} phút`),
+    // G-A4-12: nhật ký KHÔNG ghi chữ số SĐT (CLAUDE.md §7) — chỉ nói có / đổi / bỏ.
+    cauSdtVanPhong(cu ? cu.officePhone : undefined, moi.officePhone),
   ].join("; ")}`;
+}
+function cauSdtVanPhong(cu: string | null | undefined, moi: string | null): string {
+  if (cu === undefined) return moi === null ? "chưa có số điện thoại văn phòng" : "có số điện thoại văn phòng";
+  if (cu === moi) return moi === null ? "chưa có số điện thoại văn phòng" : "giữ số điện thoại văn phòng";
+  return moi === null ? "bỏ số điện thoại văn phòng" : cu === null ? "thêm số điện thoại văn phòng" : "đổi số điện thoại văn phòng";
 }
 
 // ---- Điều kiện xuất bến ------------------------------------------------------------------------------------------------------------------------------------
