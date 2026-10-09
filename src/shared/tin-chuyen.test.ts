@@ -58,6 +58,23 @@ test("kết thúc gián đoạn → mọi người có trip.dispatch (Bán hàng
   assert.equal(tinChuyenCho(nguoi("tx-a2", ["DRIVER"], "p-b"), d), null);
 });
 
+test("A4 T7 (ADR-0053 D8.4 bước 5): tài xế Từ chối → 'tu_choi' tới mọi người có trip.dispatch (Bán hàng, Quản trị, Toàn quyền); không Kế toán, không tài xế (kể cả chính người từ chối — E3); câu không tên, không lý do, không mã đơn; liên kết màn văn phòng", () => {
+  const d = dong({ action: "trip_driver_refused", actorId: "tx-dt", lai: [{ partyId: "p-b", tu: T0, den: T1 }], don: [{ orderId: "o1", maDon: "DH-0001", ownerId: "lap", handlerStaffId: "pt" }] });
+  for (const p of ["SALES", "ADMIN", "SUPER_ADMIN"] as const) {
+    const t = tinChuyenCho(nguoi("x", [p]), d);
+    assert.equal(t?.loai, "tu_choi", p);
+    assert.equal(t!.cau, "Tài xế đã từ chối chuyến CX-1103-02 ngày 11/03 — cần xếp người khác");
+    assert.equal(t!.lienKet, "/chuyen?id=t1");
+    assert.doesNotMatch(t!.cau, /DH-|TCC_|Bận/);
+  }
+  assert.equal(tinChuyenCho(nguoi("kt", ["ACCOUNTING"]), d), null, "Kế toán: trip.view any nhưng không trip.dispatch");
+  assert.equal(tinChuyenCho(TX_DT, d), null, "chính người từ chối (E3)");
+  assert.equal(tinChuyenCho(nguoi("tx-dt", ["DRIVER_PARTNER"], "p-b"), d), null);
+  assert.equal(tinChuyenCho(TX_A, d), null);
+  assert.equal(tinChuyenCho(nguoi("lap", ["FIELD"]), d), null, "HDV / người lập không trip.dispatch");
+  assert.equal(thayDoiCuaHanhDongChuyen("trip_driver_refused", false), "sua", "Bảng tin: chuyến đổi (mất tài xế) — chuông văn phòng gọi lại");
+});
+
 test("khách vắng → người lập / người phụ trách CÓ trip.view; HDV, Đối tác, Thực tập (không trip.view) không", () => {
   const d = dong({ action: "trip_passenger_no_show", actorId: "tx-b", don: [{ orderId: "o1", maDon: "DH-0001", ownerId: "lap", handlerStaffId: "pt" }] });
   assert.equal(tinChuyenCho(nguoi("lap", ["SALES"]), d)?.loai, "khach_vang");

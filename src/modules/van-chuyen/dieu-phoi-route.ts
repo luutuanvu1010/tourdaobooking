@@ -19,12 +19,14 @@ import {
 } from "./chuyen-repo";
 import type { CauCoNhan, DiemMoi, SuKienCuaLo } from "./dieu-phoi";
 import {
-  banChupDto, canhBaoDto, chuoiDichCuaDiem, chuyenTomTat, diemChuyenDto, lyDoDangDung, lyDoGiuCuaChuyen, lyDoGiuDto, nhatKyChuyenDto, suatChuyenDto, taiXeChon, xeChon,
+  banChupDto, canhBaoDto, chuoiDichCuaDiem, chuyenTomTat, diemChuyenDto, gioVn, lyDoDangDung, lyDoGiuCuaChuyen, lyDoGiuDto, nhatKyChuyenDto, suatChuyenDto, taiXeChon,
+  xeChon,
 } from "./dieu-phoi-dto";
 import { boSungXe, chinhSachVao, docChung, docNguCanh, type DuLieuChung, type NenChuyen, type NguCanhChuyen } from "./dieu-phoi-doc";
 import { gioSomNhatKhaiDto, ketThucTruoc } from "./dieu-phoi-gio";
 import { cuocChiTietDto, cuocCuaToiItem, type KhungTaiXe } from "./tai-xe-dto";
 import { loiRangBuocChuyen } from "./rules";
+import { tuChoiCuaChuyen } from "./han-tu-choi-repo";
 
 // ---- Lỗi ----------------------------------------------------------------------------------------------------------------------------------------------------
 export const CAN_XEM_CHUYEN = () => error(403, "forbidden", "Tài khoản này không xem được lịch xe.");
@@ -355,7 +357,9 @@ export const maDonGon = (codes: readonly string[]): string => [...new Set(codes)
  */
 export async function chiTietChuyen(
   db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], hk: readonly ChangChoChuyen[], kemTen: boolean,
-  nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>, quyenGoiBao: QuyenGoiBao, bayGioMs: number, chung?: DuLieuChung,
+  nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>, quyenGoiBao: QuyenGoiBao, bayGioMs: number,
+  /** G-A4-14: lý do Từ chối chỉ cho người có `trip.dispatch` — nơi gọi truyền `can(staff, "trip.dispatch")`. */
+  xemLyDoTuChoi: boolean, chung?: DuLieuChung,
 ): Promise<ChuyenChiTietResponse> {
   const nowIso = new Date(bayGioMs).toISOString();
   const c = chung ?? (await docChung(db, nowIso, msToVnLocal(bayGioMs).date));
@@ -406,6 +410,11 @@ export async function chiTietChuyen(
       { events: nen.events, kepLuiPhut: c.chinhSach?.proxy_backdate_max_minutes ?? null, truoc: ketThucTruoc(nc.chuyenKhacRow, t), bayGioMs }, t, nen.stops, nen.allocs,
     ),
     goiBao: (await Promise.all(nen.legIds.map((id) => goiBaoChang(id, hk, dGoiBao, quyenGoiBao, nhan)))).filter((x): x is GoiBaoChangDto => x !== null),
+    tuChoi: (await tuChoiCuaChuyen(db, t.id)).map((r) => ({
+      tenTaiXe: c.taiXe.find((x) => x.partyId === r.driver_party_id)?.displayName ?? "(không còn là tài xế)",
+      luc: gioVn(Date.parse(r.valid_to_at)),
+      ...(xemLyDoTuChoi ? { lyDo: r.reason_label ?? "Lý do khác" } : {}),
+    })),
   };
 }
 

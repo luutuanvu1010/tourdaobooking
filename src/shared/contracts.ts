@@ -1414,6 +1414,11 @@ export interface ChuyenChiTietResponse {
   /** ADR-0051 (A-GB): mỗi chặng có suất trên chuyến mà còn mục "Giờ hẹn đổi — gọi báo khách" hoặc đang mang dấu "đã gọi báo". */
   goiBao: GoiBaoChangDto[];
   /**
+   * ADR-0053 D8 (kế hoạch A4 T7, G-A4-14): các lần tài xế Từ chối chuyến này (mới trước). `lyDo` CHỈ khi người gọi có `trip.dispatch` (Kế toán thấy tên + giờ,
+   * không lý do). Không SĐT, không id hồ sơ.
+   */
+  tuChoi: TuChoiChuyenDto[];
+  /**
    * CHỈ ở phản hồi lệnh xếp (`POST …/chuyen/:id/phan-bo`) khi có: cảnh báo sớm CHUA_CO_NOI_TRA / THIEU_TEN của chặng vừa xếp (cùng luật cổng xuất bến —
    * `lyDoNoiTra` / `lyDoThieuTen` ở src/shared/dieu-phoi-kiem.ts). Chỉ nhắc — lệnh đã chạy. Mã đơn + số tên thiếu, không tên khách.
    */
@@ -1658,6 +1663,10 @@ export interface CuocChiTietResponse {
   /** Lời chủ 6.3: SĐT văn phòng (nút "Gọi văn phòng") — chỉ khi chính sách đã có số. */
   sdtVanPhong?: string;
 }
+/** `POST /api/van-chuyen/cuoc-cua-toi/:id/tu-choi` (ADR-0053 D8.6): chỉ cờ — không dữ liệu chuyến (dòng lái đã đóng, tài xế không còn xem chuyến). */
+export interface TuChoiResponse { daTuChoi: true }
+/** Một lần tài xế Từ chối chuyến — chi tiết chuyến văn phòng (G-A4-14). */
+export interface TuChoiChuyenDto { tenTaiXe: string; luc: GioVnDto; lyDo?: string }
 
 // ---- Mẫu đưa đón theo dịch vụ (ADR-0054 D10.1–D10.2; ADR nháp nơi trả mặc định docs/superpowers/specs/2026-10-01-de-xuat-adr-noi-tra-mac-dinh.md) ------------
 /** Một BẢN mẫu (màn Danh mục, cổng admin): chế độ, giờ gợi ý chiều về, nơi trả mặc định (tên + còn dùng), lúc hiệu lực (ISO UTC). */

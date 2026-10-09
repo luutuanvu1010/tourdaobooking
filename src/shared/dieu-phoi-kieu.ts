@@ -50,6 +50,8 @@ export const LOAI_SU_KIEN_CHUYEN = [
   "CORRECTION", "DEPARTURE_REVOKED",
   // ADR-0104 Đ2.9: máy cập nhật chuyến theo đơn — lô của lệnh đơn (huỷ đơn, bỏ chặng, sửa khách / số khách) đóng / mở suất trên chuyến chưa chạy.
   "ALLOCATION_ORDER_SYNCED",
+  // ADR-0053 D8.4 (kế hoạch A4 T7): tài xế (đối tác) từ chối chuyến mình đang lái trước hạn — đóng dòng lái REFUSED.
+  "DRIVER_REFUSED",
 ] as const;
 export type LoaiSuKienChuyen = (typeof LOAI_SU_KIEN_CHUYEN)[number];
 export const NHAN_SU_KIEN_CHUYEN: Readonly<Record<LoaiSuKienChuyen, string>> = {
@@ -76,6 +78,7 @@ export const NHAN_SU_KIEN_CHUYEN: Readonly<Record<LoaiSuKienChuyen, string>> = {
   CORRECTION: "Văn phòng điều chỉnh kết quả khách",
   DEPARTURE_REVOKED: "Văn phòng thu hồi xuất bến",
   ALLOCATION_ORDER_SYNCED: "Máy cập nhật chuyến theo đơn",
+  DRIVER_REFUSED: "Tài xế từ chối chuyến",
 };
 
 /**

@@ -246,15 +246,15 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
   },
 
   // A4 (ADR-0053 D8): tài xế đối tác TỪ CHỐI chuyến trước hạn — chỉ người đang lái bấm (văn phòng không từ chối thay — :105, :224; mục N-TU-CHOI). Khai TRƯỚC
-  // mã (luật bảng 2026-10-09): dòng `chua_co_ma` — bài đỏ khi tên việc nhật ký / loại sự kiện xuất hiện trong mã mà dòng chưa chuyển `co_ma`. Loại tin dự kiến
+  // mã (luật bảng 2026-10-09); có mã từ A4 T7. Loại tin
   // "tu_choi" (D8.4 bước 5: người có trip.dispatch — không tên, không lý do, không mã đơn); tài xế bị đóng dòng là chính người bấm (E3) nên không nhận.
   {
-    id: "tu-choi", ten: "Tài xế đối tác từ chối chuyến (trước hạn)", loai: "tien_do", trangThai: "chua_co_ma",
+    id: "tu-choi", ten: "Tài xế đối tác từ chối chuyến (trước hạn)", loai: "tien_do", trangThai: "co_ma",
     routes: [{ phuongThuc: "POST", duongDan: "/api/van-chuyen/cuoc-cua-toi/:id/tu-choi", cong: "staff", o: "trip.refuse", ngucanh: "assigned", ai: { SUPER_ADMIN: "any", DRIVER_PARTNER: "assigned" }, ham: "lenhTuChoi" }],
     trangThaiChuyen: ["PLANNED"], vuot: [],
     luat: "chuyến mình đang lái, chưa chạy, trước hạn từ chối của cặp (khoá dính, B8.3 — lớp CSDL so giờ CSDL); lý do nhóm TU_CHOI_CHUYEN; người đóng = chính tài xế (B8.2)",
     bang: [...LO_CHUNG, "vc_trip_driver"], suKien: "DRIVER_REFUSED", nhatKy: "trip_driver_refused", lo: "loTuChoi", bao: "route",
-    tin: { nhom: "thuong", nhan: [{ ai: DIEU_PHOI, loai: "chua_dat" }] }, bangTin: "sua", nguon: "ADR-0053 D8.3, D8.4 (bước 5), D8.6; kế hoạch A4 G-A4-14, G-A4-15",
+    tin: { nhom: "thuong", nhan: [{ ai: DIEU_PHOI, loai: "tu_choi" }] }, bangTin: "sua", nguon: "ADR-0053 D8.3, D8.4 (bước 5), D8.6; kế hoạch A4 G-A4-14, G-A4-15",
   },
 
   // Điều chỉnh có lý do (chỉ văn phòng) — ADR-0097.

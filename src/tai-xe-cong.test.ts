@@ -105,6 +105,11 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
     DRIVER: { ma: 404, ly_do: "ô trip.passenger.add assigned; chuyến lạ / không phải chuyến mình đang lái → 404 TRƯỚC khi đọc thân" },
     DRIVER_PARTNER: { ma: 403, ly_do: "ô trip.passenger.add none (chủ 5/10: chỉ tài xế công ty) → 403 ở bước đầu, trước mọi truy vấn" },
   },
+  // A4 T7 (ADR-0053 D8.3): Từ chối chuyến — ô trip.refuse: DRIVER none, DRIVER_PARTNER assigned.
+  "POST /api/van-chuyen/cuoc-cua-toi/:id/tu-choi": {
+    DRIVER: { ma: 403, ly_do: "ô trip.refuse none (tài xế công ty không Từ chối — ADR-0053 D8.3) → 403 ở bước đầu, trước mọi truy vấn" },
+    DRIVER_PARTNER: { ma: 404, ly_do: "ô trip.refuse assigned; chuyến lạ / không phải chuyến mình đang lái → 404 TRƯỚC khi đọc thân (G-A4-15)" },
+  },
 };
 const mucCua = (k: string, ma: string): MucBang => {
   const m = BANG_STAFF[k]!;

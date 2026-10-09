@@ -43,7 +43,10 @@ test("LOAI_SU_KIEN_CHUYEN: đủ 17 loại tương ứng các hành động trip
     "CORRECTION", "DEPARTURE_REVOKED",
     // ADR-0104 Đ2.9: máy cập nhật chuyến theo đơn (lệnh đơn nối khúc chuyến vào cùng lô) — danh sách mở (0042:157), không dựng lại bảng
     "ALLOCATION_ORDER_SYNCED",
+    // ADR-0053 D8 (A4 T7): tài xế đối tác Từ chối chuyến trước hạn — danh sách mở (0042:157)
+    "DRIVER_REFUSED",
   ]);
+  assert.equal(NHAN_SU_KIEN_CHUYEN.DRIVER_REFUSED, "Tài xế từ chối chuyến");
   assert.equal(NHAN_SU_KIEN_CHUYEN.ALLOCATION_ORDER_SYNCED, "Máy cập nhật chuyến theo đơn");
   assert.equal(NHAN_SU_KIEN_CHUYEN.CORRECTION, "Văn phòng điều chỉnh kết quả khách");
   assert.equal(NHAN_SU_KIEN_CHUYEN.DEPARTURE_REVOKED, "Văn phòng thu hồi xuất bến");

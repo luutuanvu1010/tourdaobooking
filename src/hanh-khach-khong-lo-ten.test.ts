@@ -518,6 +518,11 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         assert.deepEqual(Object.keys(r).sort(), ["ok", "soNguoi"], "phản hồi chỉ { ok, soNguoi }");
         assert.equal(w.q("SELECT count(*) n FROM ord_passenger WHERE order_id = ? AND source = 'DRIVER' AND full_name = ?", dJ.id, TEN_VC[1])[0].n, 1, "chống bài rỗng: tên đã ghi");
       },
+      // A4 T7 (ADR-0053 D8): Từ chối chuyến trả ĐÚNG { daTuChoi: true } khi thành công (khoá ở tu-choi.test.ts — bài đó theo luật đồng hồ giờ thật). Ở đây
+      // (đồng hồ NOW_GIA — không đi đường thành công, tránh bom hẹn giờ B8.3) gọi bằng tài xế công ty → 403: thân lỗi cũng được quét "không lộ tên".
+      [`${R}/tu-choi`]: async () => {
+        await goi(`${R}/tu-choi`, "tài xế công ty bấm Từ chối (403)", "POST", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}/tu-choi`, DRIVER, { requestId: rid(), lyDo: "TCC_KHAC" }, 403);
+      },
     };
 
     // (1) ĐỦ TUYẾN
@@ -540,7 +545,9 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
     const KHONG_THE_LO = new Set(["POST /api/van-chuyen/chuyen", "POST /api/van-chuyen/chuyen/:id/huy", `${R}/ket-thuc-gian-doan`, `${V}/ket-thuc-gian-doan`,
       // ADR-0057 T2: bốn lệnh ghi CHI PHÍ — phản hồi là DTO chi phí (không có mảng `suat` bao giờ), phép "không lộ tên" ở (2) vẫn quét thân.
       "POST /api/van-chuyen/chuyen/:id/chi-phi/dieu-chinh", "POST /api/van-chuyen/chuyen/:id/chi-phi/dao", "POST /api/van-chuyen/chuyen/:id/chi-phi/chup-lai",
-      "POST /api/van-chuyen/chuyen/:id/chi-phi/gia-thoa-thuan", `${R}/hanh-khach`]);
+      "POST /api/van-chuyen/chuyen/:id/chi-phi/gia-thoa-thuan", `${R}/hanh-khach`,
+      // A4 T7: Từ chối trả { daTuChoi: true } hoặc thân lỗi — không mảng suất.
+      `${R}/tu-choi`]);
     const phaiCoCaiDeLo = TUYEN_VC_THAT.filter((k) => /^(POST|PUT) \/api\/van-chuyen\/(chuyen\/:id|cuoc-cua-toi\/:id)(\/|$)/.test(k) && !KHONG_THE_LO.has(k));
     assert.equal(phaiCoCaiDeLo.length, 26, "6 lệnh kế hoạch (sửa, xếp, rút, dời, cập nhật điểm, cập nhật khách — R-P29) + 8 lệnh tài xế + 8 lệnh văn phòng bấm thay + 2 lệnh xe đang chạy (thêm điểm, báo huỷ — Đợt 5) + 2 lệnh điều chỉnh (điều chỉnh khách, thu hồi xuất bến — ADR-0097)");
     for (const r of phaiCoCaiDeLo) assert.ok(than.some((t) => t.route === r && t.coCaiDeLo), `${r}: không lần gọi nào có suất đã gắn tên — phép "không lộ tên" vô nghĩa ở route này`);
