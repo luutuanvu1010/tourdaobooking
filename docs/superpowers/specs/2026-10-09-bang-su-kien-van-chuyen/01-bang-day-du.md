@@ -1,5 +1,7 @@
 # Bảng sự kiện Vận chuyển — bản đầy đủ cho người kiểm
 
+> **Ghi chú (2026-10-09, sau phiếu kiểm 6b):** bản chụp trước khi gộp G17; bản sống là `src/shared/bang-su-kien-van-chuyen.ts`.
+
 > Sinh từ `src/shared/bang-su-kien-van-chuyen.ts` (hàm `veBangDayDu`). Đây là bản chụp ngày lập; bản sống là tệp mã. Sinh lại:
 > `node -e "import('./src/shared/bang-su-kien-van-chuyen.ts').then((m) => process.stdout.write(m.veBangDayDu()))" > <tệp>`
 
