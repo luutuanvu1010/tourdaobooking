@@ -2515,3 +2515,20 @@ test("R-VC-16 nới N3 (ADR-0052 :72, D5c): suất chuyển theo đề nghị ON
   suatTho(db, { trip: b, leg: d.leg, board: gap });
   assert.equal(violations(db, c), 1, "suất không do chuyển mà lên ở điểm khác nơi đón: vẫn báo");
 });
+
+test("R-VC-SUA-1 (c) theo trigger thu hồi mới của 0093 (ADR-0111 Đ5): đề nghị chưa thành ở chuyến không là tiến độ → không đếm; xe đã nhận khách (TRANSFER_CONFIRMED ở chuyến) hoặc đã giao khách (TRANSFER_CONFIRMED trỏ chuyến) → đếm", () => {
+  const c = one("R-VC-SUA-1");
+  const db = thoCk();
+  const t = chuyenTho(db);
+  for (const kind of ["DEPARTED", "TRANSFER_SENT", "TRANSFER_ESCALATED", "TRANSFER_REJECTED", "DEPARTURE_REVOKED"]) suKienTho(db, { trip: t, kind, nhatKy: null });
+  assert.equal(violations(db, c), 0, "xe nhận thu hồi xuất bến khi chỉ có đề nghị chưa thành");
+  const nhan = chuyenTho(db, { xe: "xe-2" });
+  for (const kind of ["DEPARTED", "TRANSFER_CONFIRMED", "DEPARTURE_REVOKED"]) suKienTho(db, { trip: nhan, kind, nhatKy: null });
+  assert.equal(violations(db, c), 1, "xe nhận đã nhận khách rồi thu hồi");
+  const nho = chuyenTho(db, { xe: "xe-3" });
+  suKienTho(db, { trip: nho, kind: "DEPARTED", nhatKy: null });
+  const xn = suKienTho(db, { trip: chuyenTho(db, { xe: "xe-4" }), kind: "TRANSFER_CONFIRMED", nhatKy: null });
+  db.prepare("UPDATE vc_trip_event SET related_trip_id = ? WHERE id = ?").run(nho, xn);
+  suKienTho(db, { trip: nho, kind: "DEPARTURE_REVOKED", nhatKy: null });
+  assert.equal(violations(db, c), 2, "xe nhờ đã giao khách rồi thu hồi");
+});

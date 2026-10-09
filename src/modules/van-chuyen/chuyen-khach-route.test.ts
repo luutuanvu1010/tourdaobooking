@@ -3,8 +3,19 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { ACC, ADM, DRIVER, DRIVER2, DRIVER_PARTNER, FIELD, LOC, NGAY, NGAY_SAU, SALES, SUP, batDongHo, chiTiet, chuyenSan, denGio, setup, tienDo, uuid } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { ACC, ADM, DRIVER, DRIVER2, DRIVER_PARTNER, FIELD, LOC, NGAY, NGAY_SAU, SALES, SUP, batDongHo, chiTiet, chuyenSan, denGio, setup, taoChuyen, tienDo, uuid, xe } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
+// Kiểm định kỳ mức fail của vận chuyển (scripts/audit-checks.mjs — kể cả R-VC-26…30, R-VC-SUA-1) trên CSDL sau ca: dữ liệu do chính các lô thật ghi phải sạch.
+const { CHECKS } = (await import(new URL("../../../scripts/audit-checks.mjs", import.meta.url).href)) as { CHECKS: { code: string; sql: string; level: string; mode?: string }[] };
+function kiemDinhKySach(w: any) {
+  const vc = CHECKS.filter((c) => c.code.startsWith("R-VC-") && c.level === "fail");
+  assert.ok(vc.some((c) => c.code === "R-VC-30"), "chống bài rỗng: có các câu chuyển khách");
+  for (const c of vc) {
+    const rows = w.q(c.sql.replace(/\s+/g, " ").trim());
+    const n = c.mode === "rows" ? rows.length : Number(Object.values(rows[0] ?? { n: 0 })[0]);
+    assert.equal(n, 0, `${c.code} có vi phạm`);
+  }
+}
 const xeNhan = (w: any, id: string, as = DRIVER, phamVi?: string) => w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${id}/xe-nhan${phamVi ? `?phamVi=${phamVi}` : ""}`, { as });
 
 test("NT-A5-2 xe nhận: đúng năm khoá; chỉ chuyến cùng ngày, PLANNED / RUNNING, tài xế mở khác người gửi; ONBOARD chỉ RUNNING (Đ4); không khách / biển số / SĐT / mã đơn; 403 / 404", async () => {
@@ -38,6 +49,7 @@ test("NT-A5-2 xe nhận: đúng năm khoá; chỉ chuyến cùng ngày, PLANNED 
     // Quyền: không có ô trip.transfer → 403 trước mọi truy vấn; có ô mà không lái chuyến (kể cả Toàn quyền) → 404.
     for (const as of [SALES, ACC, DRIVER_PARTNER]) assert.equal((await xeNhan(w, a.id, as)).status, 403, as);
     for (const as of [DRIVER2, SUP]) assert.equal((await xeNhan(w, a.id, as)).status, 404, as);
+    kiemDinhKySach(w);
   } finally {
     tat();
   }
@@ -84,6 +96,7 @@ test("NT-A5-3 gửi STOP: 200, đề nghị Chờ đúng số khách, một sự
     assert.equal((await tinCua(w, DRIVER2, /đề nghị chuyển khách tới/)).length, 1, "tài xế xe nhận có tin");
     assert.equal((await tinCua(w, DRIVER, /đề nghị chuyển khách/)).length, 0, "người gửi không tự nhận tin");
     assert.equal((await tinCua(w, SALES, /đề nghị chuyển khách/)).length, 0, "văn phòng không nhận tin gửi");
+    kiemDinhKySach(w);
   } finally {
     tat();
   }
@@ -118,6 +131,7 @@ test("NT-A5-4 gửi bị chặn: 409 có mã, không ghi gì (chưa chạy, khá
     denGio("12:50");
     assert.equal((await tienDo(w, "tai-xe", a.id, `diem/${a.diemDon}/da-toi`)).status, 200);
     await ma(await gui(w, a.id, { denChuyenId: b.id, phamVi: "STOP", diemId: a.diemDon }), "ck_diem_khong_cho");
+    kiemDinhKySach(w);
   } finally {
     tat();
   }
@@ -146,6 +160,7 @@ test("NT-A5-9 rút: chỉ tài xế xe nhờ, chỉ khi Chờ và chưa quá h�
     const muon = await rut(w, id2);
     assert.equal(muon.status, 200, muon.text);
     assert.deepEqual([muon.json.ketQua, muon.json.deNghi.trangThai], ["HET_HAN", "EXPIRED"]);
+    kiemDinhKySach(w);
   } finally {
     tat();
   }
@@ -175,6 +190,7 @@ test("NT-A5-15 văn phòng gửi thay cứu hộ: chỉ ONBOARD (STOP → 403), 
     const nk = mot(w, "SELECT detail FROM audit_log WHERE action = 'trip_transfer_sent'").detail as string;
     assert.ok(nk.includes("văn phòng gửi thay") && !nk.includes("Cây xăng"), nk);
     assert.equal((await tinCua(w, DRIVER2, /đề nghị chuyển khách tới/)).length, 1);
+    kiemDinhKySach(w);
   } finally {
     tat();
   }
@@ -207,6 +223,7 @@ test("NT-A5-21 mã lệnh dùng lại: cùng mã + cùng thân → kết quả c
     const cheo = await rut(w, id2, DRIVER, maRut);
     assert.equal(cheo.status, 409);
     assert.equal(cheo.json.error.code, "request_id_reused");
+    kiemDinhKySach(w);
   } finally {
     tat();
   }
@@ -230,6 +247,8 @@ async function xeNhanChay(w: any) {
   const { a, b } = await haiXe(w);
   denGio("13:35");
   assert.equal((await tienDo(w, "tai-xe", b.id, "xuat-ben", {}, DRIVER2)).status, 200);
+  // Đồng hồ giả đứng yên: tiến một phút để suất mở khi xác nhận không trùng ĐÚNG mili-giây bản chụp xuất bến của B (R-VC-4 đếm suất mở "≤ lúc chụp").
+  denGio("13:36");
   return { a, b };
 }
 const guiDiem = async (w: any, a: any, b: any) => {
@@ -283,6 +302,7 @@ test("NT-A5-6 nhận, máy tự xác nhận (xe nhận đang chạy): suất ngu
     assert.equal(lap.json.ketQua, "DA_CHUYEN");
     assert.equal(mot(w, "SELECT count(*) AS n FROM vc_trip_event WHERE request_id = ?", ma).n, 1);
     tat409(await nhan(w, id2), "da_huy");
+    kiemDinhKySach(w);
   } finally {
     tat();
   }
@@ -336,6 +356,7 @@ test("NT-A5-7, -11 nhận dưới mốc (xe nhận chưa chạy) → leo thang (
     const lap = await nhan(w, id, DRIVER2, maNhan);
     assert.equal(lap.status, 200, `lệnh lặp Nhận sau khi duyệt: ${lap.text}`);
     tat409(await duyet(w, id, "PHA_LE_SU_CO"), "ck_de_nghi_da_dong");
+    kiemDinhKySach(w);
   } finally {
     tat();
   }
@@ -373,6 +394,7 @@ test("NT-A5-12, -29 đơn huỷ sau khi xếp: chặng không còn hiệu lực 
     assert.equal((await tinCua(w, DRIVER, /không duyệt/)).length, 1);
     assert.equal((await tinCua(w, DRIVER2, /không duyệt/)).length, 1);
     tat409(await bac(w, id, "TU_CHOI_KHAC"), "ck_de_nghi_da_dong");
+    kiemDinhKySach(w);
   } finally {
     tat();
   }
@@ -420,6 +442,7 @@ test("NT-A5-8, -10, -5 không nhận (lý do nhóm Không nhận, tin tới xe n
     const id6 = await guiDiem(w, a, b);
     assert.equal(mot(w, "SELECT status FROM vc_transfer_request WHERE id = ?", id5).status, "EXPIRED");
     assert.equal(mot(w, "SELECT status FROM vc_transfer_request WHERE id = ?", id6).status, "PENDING");
+    kiemDinhKySach(w);
   } finally {
     tat();
   }
@@ -438,6 +461,7 @@ test("NT-A5-14 cứu hộ ONBOARD: suất Đã lên sang xe nhận tại điểm
     for (const s of a.suat.slice(0, 2)) assert.equal((await tienDo(w, "tai-xe", a.id, `phan-bo/${s}/don`)).status, 200);
     denGio("13:35");
     assert.equal((await tienDo(w, "tai-xe", b.id, "xuat-ben", {}, DRIVER2)).status, 200);
+    denGio("13:36"); // R-VC-4: suất mở khi xác nhận không trùng mili-giây bản chụp xuất bến của B
     const g = await gui(w, a.id, { denChuyenId: b.id, phamVi: "ONBOARD", noiGap: { chu: "Cây xăng Phước Đồng" } });
     assert.equal(g.status, 200, g.text);
     const id = g.json.deNghi.id;
@@ -458,6 +482,7 @@ test("NT-A5-14 cứu hộ ONBOARD: suất Đã lên sang xe nhận tại điểm
     assert.equal(mot(w, "SELECT status FROM vc_trip WHERE id = ?", a.id).status, "ENDED_INTERRUPTED");
     denGio("13:50");
     assert.equal((await tienDo(w, "tai-xe", b.id, `diem/${moB[0].board_stop_id}/da-toi`, {}, DRIVER2)).status, 200);
+    kiemDinhKySach(w);
   } finally {
     tat();
   }
@@ -482,6 +507,7 @@ test("NT-A5-24 tắt công tắc tự đồng ý SAU khi gửi: Nhận → leo t
     assert.deepEqual(ds(w, "SELECT DISTINCT policy_row_id FROM vc_transfer_check WHERE transfer_id = ?", id), [{ policy_row_id: moi.id }]);
     // Đề nghị gửi SAU khi tắt: hạn 60 phút theo dòng mới; đề nghị đầu (gửi lúc dòng cũ) vẫn hạn 10 phút.
     assert.equal(Date.parse(r.json.deNghi.hanLuc) - Date.parse(r.json.deNghi.guiLuc), 10 * 60_000);
+    kiemDinhKySach(w);
   } finally {
     tat();
   }
@@ -508,6 +534,7 @@ test("NT-A5-13 (MQ-09) tự huỷ: xe nhờ Đã tới điểm nguồn → đề
     assert.equal(mot(w, "SELECT count(*) AS n FROM vc_trip_event").n, truoc + 1, "chỉ sự kiện STOP_ARRIVED của lô Đã tới");
     tat409(await nhan(w, cho), "da_huy");
     tat409(await duyet(w, leo, "PHA_LE_SU_CO"), "da_huy");
+    kiemDinhKySach(w);
   } finally {
     tat();
   }
@@ -548,7 +575,119 @@ test("NT-A5-13 (MQ-09, G-A5-13) cập nhật điểm theo đơn khi xe nhờ đa
     assert.deepEqual({ ...mot(w, "SELECT status, closed_cmd_id FROM vc_transfer_request WHERE id = ?", id) },
       { status: "VOID", closed_cmd_id: mot(w, "SELECT last_cmd_id FROM vc_trip WHERE id = ?", a.id).last_cmd_id });
     tat409(await nhan(w, id), "da_huy");
+    kiemDinhKySach(w);
   } finally {
     tat();
   }
+});
+
+const daHuyBoi = (w: any, rid: string, trip: string) =>
+  assert.deepEqual({ ...mot(w, "SELECT status, closed_cmd_id FROM vc_transfer_request WHERE id = ?", rid) },
+    { status: "VOID", closed_cmd_id: mot(w, "SELECT last_cmd_id FROM vc_trip WHERE id = ?", trip).last_cmd_id });
+const phienBan = (w: any, trip: string) => mot(w, "SELECT version FROM vc_trip WHERE id = ?", trip).version as number;
+const thuHoi = async (w: any, trip: string) =>
+  w.call("POST", `${VC}/chuyen/${trip}/thu-hoi-xuat-ben`, { as: SALES, body: { version: phienBan(w, trip), requestId: uuid(), lyDo: "DIEU_CHINH_BAM_NHAM" } });
+
+test("NT-A5-13 (MQ-09) mỗi lệnh còn lại của G-A5-13 làm đề nghị đang chờ VOID cùng lô, có trong lô thật (trigger nhận): Kết thúc gián đoạn xe nhờ; Kết thúc xe nhận; Báo huỷ suất ở điểm nguồn; Điều chỉnh suất của xe nhờ (ONBOARD); Thu hồi xuất bến xe nhờ / xe nhận; kiểm định kỳ sạch", async (t) => {
+  await t.test("Kết thúc gián đoạn xe nhờ", async () => {
+    const tat = batDongHo();
+    try {
+      const w = setup();
+      const { a, b } = await haiXe(w);
+      const id = await guiDiem(w, a, b);
+      const kt = await tienDo(w, "tai-xe", a.id, "ket-thuc-gian-doan", { lyDo: "GIAN_DOAN_XE_HONG" });
+      assert.equal(kt.status, 200, kt.text);
+      daHuyBoi(w, id, a.id);
+      kiemDinhKySach(w);
+    } finally {
+      tat();
+    }
+  });
+  await t.test("Kết thúc xe nhận (xe nhận không khách, đã chạy)", async () => {
+    const tat = batDongHo();
+    try {
+      const w = setup();
+      const a = await chuyenSan(w);
+      const b = (await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}`, bd: "12:30", kt: "16:00" })).chuyen;
+      denGio("12:40");
+      assert.equal((await tienDo(w, "tai-xe", a.id, "xuat-ben")).status, 200);
+      const xb = await tienDo(w, "tai-xe", b.id, "xuat-ben", {}, DRIVER2);
+      assert.equal(xb.status, 200, xb.text);
+      const id = await guiDiem(w, a, b);
+      denGio("12:45");
+      const kt = await tienDo(w, "tai-xe", b.id, "ket-thuc", {}, DRIVER2);
+      assert.equal(kt.status, 200, kt.text);
+      daHuyBoi(w, id, b.id);
+      kiemDinhKySach(w);
+    } finally {
+      tat();
+    }
+  });
+  await t.test("Báo huỷ suất ở điểm nguồn", async () => {
+    const tat = batDongHo();
+    try {
+      const w = setup();
+      const { a, b } = await haiXe(w);
+      const id = await guiDiem(w, a, b);
+      const bh = await w.call("POST", `${VC}/chuyen/${a.id}/phan-bo/${a.suat[0]}/bao-huy`, { as: SALES, body: { version: phienBan(w, a.id), requestId: uuid(), lyDo: "BAO_HUY_KHONG_DI" } });
+      assert.equal(bh.status, 200, bh.text);
+      daHuyBoi(w, id, a.id);
+      kiemDinhKySach(w);
+    } finally {
+      tat();
+    }
+  });
+  await t.test("Điều chỉnh suất của xe nhờ — đề nghị cứu hộ ONBOARD (tập khách trên xe đổi)", async () => {
+    const tat = batDongHo();
+    try {
+      const w = setup();
+      const a = await chuyenSan(w);
+      const b = await chuyenSan(w, { taiXe: DRIVER2, gio: "14:00", bd: "13:30", kt: "16:00", noiDon: "Khách sạn Hai" });
+      denGio("12:40");
+      assert.equal((await tienDo(w, "tai-xe", a.id, "xuat-ben")).status, 200);
+      denGio("12:50");
+      assert.equal((await tienDo(w, "tai-xe", a.id, `diem/${a.diemDon}/da-toi`)).status, 200);
+      assert.equal((await tienDo(w, "tai-xe", a.id, `phan-bo/${a.suat[0]}/don`)).status, 200);
+      denGio("13:35");
+      assert.equal((await tienDo(w, "tai-xe", b.id, "xuat-ben", {}, DRIVER2)).status, 200);
+      const g = await gui(w, a.id, { denChuyenId: b.id, phamVi: "ONBOARD", noiGap: { chu: "Cây xăng Phước Đồng" } });
+      assert.equal(g.status, 200, g.text);
+      const dc = await w.call("POST", `${VC}/chuyen/${a.id}/phan-bo/${a.suat[0]}/dieu-chinh`, {
+        as: SALES, body: { version: phienBan(w, a.id), requestId: uuid(), trangThai: "NO_SHOW", lyDo: "DIEU_CHINH_BAM_NHAM" },
+      });
+      assert.equal(dc.status, 201, dc.text.slice(0, 300));
+      daHuyBoi(w, g.json.deNghi.id, a.id);
+      kiemDinhKySach(w);
+    } finally {
+      tat();
+    }
+  });
+  await t.test("Thu hồi xuất bến xe nhờ", async () => {
+    const tat = batDongHo();
+    try {
+      const w = setup();
+      const { a, b } = await haiXe(w);
+      const id = await guiDiem(w, a, b);
+      const th = await thuHoi(w, a.id);
+      assert.equal(th.status, 201, th.text.slice(0, 300));
+      daHuyBoi(w, id, a.id);
+      kiemDinhKySach(w);
+    } finally {
+      tat();
+    }
+  });
+  await t.test("Thu hồi xuất bến xe nhận (sự kiện gửi đề nghị ở xe nhận không là tiến độ — Đ5)", async () => {
+    const tat = batDongHo();
+    try {
+      const w = setup();
+      const { a, b } = await xeNhanChay(w);
+      const id = await guiDiem(w, a, b);
+      const th = await thuHoi(w, b.id);
+      assert.equal(th.status, 201, th.text.slice(0, 300));
+      daHuyBoi(w, id, b.id);
+      kiemDinhKySach(w);
+    } finally {
+      tat();
+    }
+  });
 });

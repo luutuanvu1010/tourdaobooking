@@ -899,6 +899,8 @@ export const CHECKS = [
   // đóng bởi lô CORRECTION (đóng REMOVED, dấu lệnh = sự kiện CORRECTION trỏ chính nó) mà không có ĐÚNG một suất thay thế trỏ về nó cùng chặng, người, điểm lên,
   // điểm xuống, mở cùng dấu lệnh — hoặc suất có tên mà suất thay thế thiếu dòng bản chốt thêm sau xuất bến; (b) suất mang corrects_allocation_id mà không do
   // lô CORRECTION mở; (c) DEPARTURE_REVOKED không đứng sau một DEPARTED, hoặc đứng sau một sự kiện tiến độ của lần chạy đó (thứ tự chèn — rowid). Chỉ đếm.
+  // Gói A5 (0093 (6), ADR-0111 Đ5): "tiến độ" theo ĐÚNG trigger vc_trip_revoke_no_progress mới — đề nghị chưa thành ở chuyến (TRANSFER_* trừ CONFIRMED) không
+  // tính; TRANSFER_CONFIRMED có related_trip_id = chuyến (xe đã giao khách) thì tính.
   {
     code: "R-VC-SUA-1",
     what: "điều chỉnh kết quả khách thiếu / thừa suất thay thế hoặc bản chốt; thu hồi xuất bến sau khi đã có tiến độ (ADR-0097)",
@@ -912,7 +914,10 @@ export const CHECKS = [
                    WHERE e.id = n.opened_cmd_id AND e.kind = 'CORRECTION' AND e.allocation_id = n.corrects_allocation_id AND c.closed_cmd_id = e.id AND c.close_reason = 'REMOVED'))
           + (SELECT count(*) FROM vc_trip_event r WHERE r.kind = 'DEPARTURE_REVOKED' AND (
                   NOT EXISTS (SELECT 1 FROM vc_trip_event d WHERE d.trip_id = r.trip_id AND d.kind = 'DEPARTED' AND d.rowid < r.rowid)
-                  OR EXISTS (SELECT 1 FROM vc_trip_event x WHERE x.trip_id = r.trip_id AND x.rowid < r.rowid AND x.kind NOT IN ('DEPARTED', 'DEPARTURE_REVOKED')
+                  OR EXISTS (SELECT 1 FROM vc_trip_event x WHERE x.rowid < r.rowid
+                               AND ((x.trip_id = r.trip_id AND x.kind NOT IN ('DEPARTED', 'DEPARTURE_REVOKED', 'TRANSFER_SENT', 'TRANSFER_WITHDRAWN', 'TRANSFER_DECLINED',
+                                                                              'TRANSFER_EXPIRED', 'TRANSFER_ESCALATED', 'TRANSFER_REJECTED'))
+                                 OR (x.related_trip_id = r.trip_id AND x.kind = 'TRANSFER_CONFIRMED'))
                                AND x.rowid > (SELECT max(d.rowid) FROM vc_trip_event d WHERE d.trip_id = r.trip_id AND d.kind = 'DEPARTED' AND d.rowid < r.rowid))))`,
     level: "fail",
   },
