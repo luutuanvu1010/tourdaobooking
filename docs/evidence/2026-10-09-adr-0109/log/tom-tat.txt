@@ -15,3 +15,12 @@ Chrome (sau = nhánh này; gốc = 1459b834, thư mục goc-1459b834/)
 - v1-xac-nhan-png: đỏ bước b, j — GIỐNG gốc.
 - so-tien-smoke: đỏ "sau xác nhận: Bán hàng còn giữ 1.200.000" — GIỐNG gốc.
 Kết luận: không kịch bản nào đỏ ở chỗ mới; các chỗ đỏ đều đỏ sẵn trên gốc (nguyên nhân chưa điều tra, ngoài phạm vi ADR-0109).
+
+Ảnh (sửa 2026-10-09 07:5x)
+- Ảnh chụp lần chạy này nằm ở anh/ (01–06). Ảnh 01–03 của hồ sơ docs/evidence/2026-10-08-a2-so-khach/ đã trả về bản gốc 1459b834 (hồ sơ có ngày, đóng băng); lần chạy sau đặt OUT=docs/evidence/2026-10-09-adr-0109/anh.
+
+Bộ kiểm chính, chạy lúc máy rảnh — 2026-10-09 07:47–07:49 (+07), tải đầu 4.53, tải cuối 24.26
+- npm run typecheck → thoát 0.
+- npm test → "── npm test: bước 1 thoát 0, bước 2 thoát 0". Bước 1: tests 3743, pass 3740, fail 0, todo 3 (không phải lỗi bị giấu):
+  ADR-0090 đ1(iv) chờ ADR-0074 Phần B; sổ vàng don-huy-coc lớp 2 (chưa ca nào được xác nhận); sổ vàng sua-so-khach-van-phong lớp 2 (11 ca chờ Kế toán xác nhận, hoa hồng PER_PAX chưa có ca).
+  Bước 2 (bài đo giờ chạy một mình): tests 1, pass 1.

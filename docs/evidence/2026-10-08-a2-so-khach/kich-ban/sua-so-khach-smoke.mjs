@@ -7,6 +7,8 @@
 // Tổng cộng 0, khách trả dư = đúng số đã trả; (5b) biên nhận in giảm giá hiệu lực, ảnh xác nhận dựng được; (5c) Kế toán 390: câu cảnh báo và "Ghi hoàn cho
 // khách" cùng trang, hoàn xong hết "Khách trả dư", câu vẫn đúng; (6) đơn Đã giao: không có nút; (7) không lỗi console, không tràn ngang.
 // Có AXE_JS=<…/axe.min.js> thì bước 5 và 5c kiểm axe 0 vi phạm critical/serious.
+// Ảnh 01–03 ở thư mục này là hồ sơ ngày 2026-10-08 (gói A2), đóng băng: chạy lại thì đặt OUT sang thư mục mới
+// (ADR-0109 dùng OUT=docs/evidence/2026-10-09-adr-0109/anh), đừng ghi đè.
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync } from "node:fs";
 import { ACCOUNTS, ok, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
