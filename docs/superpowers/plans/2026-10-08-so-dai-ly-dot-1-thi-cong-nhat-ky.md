@@ -495,3 +495,35 @@ Mỗi lần: sửa MỘT chỗ, chạy bài, `git checkout -- <tệp>`, `git dif
 - `npm run build:web` thoát 0; `npm run typecheck` 0 lỗi; ba tệp rào + bài đặc tả + `giao-dien-hoi-bang-quyen` + `architecture` + `sw-policy` + `trang-chu-o`: 142 / 142 xanh (13,4 s, tải ~9); `node scripts/chup-muc-giao-dien.mjs --so-sanh cd44b76d` ⇒ «GIỐNG HỆT».
 - `npm test` lần 1 (trên `99f3e5f5`, mã như bản cuối): bước 1 thoát 0 — 3719 bài, 3717 đạt, 0 đỏ, 2 todo có sẵn; bước 1 mất 128 s, tải 7 lúc bắt đầu, lên ~75 giữa chừng (không tách được phần do chính bộ kiểm và phần do trợ lý khác). Phần gọi route của ba tệp rào: 47,8 / 41,5 / 68,2 s (đồng thời). Bước 2 thoát 1 — bài đo giờ của hook `quá chậm: lần nhanh nhất 1997 ms CPU` lúc tải ~66 (vòng sửa không chạm hook); chạy lại riêng ngay sau ở tải ~56 vẫn đỏ (1968 ms); chạy lại riêng ở tải ~10: 1/1 xanh. Cả lần 2 phút 19 giây.
 - `npm test` lần 2 (cùng mã, cây làm việc có thêm sửa tài liệu P16 (n)): **bước 1 thoát 0, bước 2 thoát 0** — 3719 bài, 3717 đạt, 0 đỏ, 2 todo; bước 1 mất 54,6 s, tải 7 lúc bắt đầu → 17 lúc xong; phần gọi route của ba tệp rào 14,0 / 13,2 / 17,7 s (đồng thời); bài đo giờ của hook 1/1 xanh; cả lần 57 giây. So với số người kiểm ở tải thấp: bước 1 47,8 s (trước K-c) → 92,8 s (bài rào một tệp) → 54,6 s (ba tệp).
+
+### Bước K-c — vòng sửa 2 (người kiểm lại → điều phối, 2026-10-09)
+
+Người thi công: Opus 5.5, cùng nhánh, nền `c8740b4a`. Yêu cầu: `task-Kc-fix-2.md` của điều phối; người kiểm lại: mọi phát hiện lần 1 đã xử lý, không Critical; I-3 (nối dây ba tệp rào không được canh — tệp 3 gọi nhầm `kiemPhan(1)` + một vi phạm thật ⇒ ba tệp XANH 43/43) và Minor M-a…M-d.
+
+Đã làm:
+- I-3: bài `[tĩnh] (8) nối dây` (hàm `loiNoiDay` ở `tests/audit/muc-hien-mo-duoc-khung.mjs`): đọc `src/`, lấy mọi tệp `muc-hien-mo-duoc-*.test.ts`, bỏ chú thích, rút chữ số trong `kiemPhan(<n>)`; đòi đúng `SO_PHAN` tệp, tên `muc-hien-mo-duoc-<n>.test.ts`, tệp thứ n gọi đúng MỘT lần `kiemPhan(n−1)`, các chỉ số phủ đúng {0..SO_PHAN−1} mỗi số một lần.
+- M-a: «một nguồn» bỏ chú thích (`boChuThich` đưa lên đầu khung, bài (6) dùng chung), gắn khoá với tệp trang (`web/<duong bỏ "/">.ts`; ngoại lệ khai ở `TEP_TRANG`, hôm nay rỗng), đòi mẫu `if (!moTrang("<khoá>", …))`; ngược lại, `web/*.ts` gọi `moTrang` cho khoá không khai ⇒ đỏ; bỏ chốt cứng «ít nhất ba trang».
+- M-b: (a) bài khung thử của MỖI phần đòi có ít nhất một đường vừa 2xx vừa 403 (mạnh hơn «một đường trên toàn bộ»); (b) bài chia đường gọi đòi `GOI_TAT_CA` còn `GET /api/auth/me` (phần chứa đường đó kiểm 1024 tài khoản mang đúng tập quyền).
+- M-c: `docs/CHANGE-GUIDE.md` mục bảng điều khiển trợ lý nay trỏ `TRANG.troLy` + `THANH_BEN` / `TRANG_TOI`. Rà thêm `grep -n "cờ \`\?[a-zA-Z]*\`\? *=\|web/shell.ts, cờ"` ở CHANGE-GUIDE và SYSTEM-DESIGN, và mọi chỗ nhắc `web/shell.ts` gần chữ mục / menu / nhóm / tab: không còn cờ cũ; các chỗ còn lại (`setMaintenanceStrip`, `logout`, `ganPhienThongBaoMayNay`, `batDauBangTin`, thanh tab do shell dựng) vẫn đúng với mã.
+- Sổ hàng rào: dòng rào thêm (8), M-a, M-b vào cột «chặn»; câu giới hạn «một nguồn chỉ đọc mẫu chữ …», trang con cùng sáng, xoá cả ba tệp; P16 (o)–(t).
+
+- Ruling (K-c vòng sửa 2): bài nối dây chạy ở MỌI phần (không chỉ phần 1 như gợi ý) — vì nếu chính tệp phần 1 bị xoá hoặc gọi nhầm số thì kiểm tĩnh của phần 1 không chạy; đọc ba tệp nhỏ, tốn vài mili-giây. Giá nếu sai: ba dòng «not ok» cùng một lỗi thay vì một.
+- Ruling (K-c vòng sửa 2): tệp thứ n phải gọi đúng `kiemPhan(n−1)` (chặt hơn «tập chỉ số đúng») — để nhãn «[phần n/3]» khớp tên tệp khi đọc kết quả. Giá nếu sai: đổi tên tệp phải đổi số theo.
+- Ruling (K-c vòng sửa 2): «một nguồn» suy tệp trang từ `duong` thay vì danh sách tay — ba trang hôm nay đều khớp; trang có tệp khác tên thì bài đỏ «không thấy tệp trang» và người sửa khai `TEP_TRANG`. Trang con cùng sáng (`web/cuoc-chuyen.ts` hỏi thẳng `coCuocCuaToi`, M-d) KHÔNG bị đòi: bài chỉ đòi tệp trang chính.
+- Nợ (M-d, KHÔNG làm theo yêu cầu — T14): `web/cuoc-chuyen.ts` chặn bằng `coCuocCuaToi(staff)` trực tiếp, không qua `moTrang("cuoc", …)`. Cùng hàm với `TRANG.cuoc.moTrang` nên hôm nay không lệch; nếu chủ đổi điều kiện Cuốc ở bảng thì phải nhớ trang này.
+
+### Bước K-c — vòng sửa 2: quan sát chặn thật (P16)
+Mỗi lần: sửa / thêm / xoá đúng một chỗ, chạy, hoàn nguyên (`git checkout -- <tệp>`; tệp thêm tạm thì xoá), `git status` chỉ còn thay đổi đang làm. Ngày 2026-10-09.
+| Hàng rào | Sửa cố ý | Đỏ ở bài | Hoàn nguyên |
+|---|---|---|---|
+| (o) I-3 phép phá của người kiểm | `src/muc-hien-mo-duoc-3.test.ts` gọi `kiemPhan(1)` + `TRANG.giaoDien.hien` → luôn đúng | `not ok 2 / 24 / 36 - [phần …] [tĩnh] (8) nối dây …` «muc-hien-mo-duoc-3.test.ts: gọi kiemPhan(1), cần kiemPhan(2)» (43 / 46 xanh); trước vòng sửa: XANH 43/43 | sạch |
+| (p) thừa tệp | chép tệp 2 thành `src/muc-hien-mo-duoc-4.test.ts` | (8) đỏ ở cả bốn tệp: «có 4 tệp …, cần đúng SO_PHAN = 3», «muc-hien-mo-duoc-4.test.ts: gọi kiemPhan(1), cần kiemPhan(3)», «các chỉ số … = [0,1,1,2], cần đúng [0,1,2]» (56 / 60 xanh) | xoá tệp tạm; sạch |
+| (q) thiếu tệp | xoá tệp 3; rồi riêng một lần xoá tệp 1 | xoá tệp 3: (8) đỏ ở tệp 1, 2 «có 2 tệp …», «[0,1], cần đúng [0,1,2]»; xoá tệp 1: (8) đỏ ở tệp 2, 3 «[1,2], cần đúng [0,1,2]» — kiểm tĩnh phần 1 không chạy mà vẫn đỏ | sạch |
+| (r) M-a phép phá của người kiểm | `web/locations.ts` chặn bằng `if (!can(staff, "admin.manage"))` + thêm chú thích `moTrang("diaDiem", staff)` + import `can`; `TRANG.diaDiem.hien` và `moTrang` → luôn đúng | `not ok 19 - [tĩnh] (1b) một nguồn …` «diaDiem: web/locations.ts không chặn bằng if (!moTrang("diaDiem", …))» (47 / 48 xanh); trước vòng sửa: XANH 45/45 | sạch |
+| (s) gọi `moTrang` cho khoá không khai | `web/locations.ts` thêm `if (!moTrang("khoaThang", staff)) showError(…)` | cùng bài: «web/locations.ts: moTrang("khoaThang") — khoá không khai moTrang ở bảng (luôn đúng, chốt chặn rỗng)» | sạch |
+| (t) M-b (b) | `TRANG.toi.goi` và `TRANG.troGiup.goi` → `GET /api/feedback/mine` | `not ok 13 - [tĩnh] chia đường gọi …` «không trang nào còn dùng GET /api/auth/me làm đường gọi chính …» | sạch |
+M-b (a) («phần có đường vừa mở vừa 403») KHÔNG quan sát chặn thật — dựng phép phá phải làm khung thử trả 200 cho mọi lời gọi; ghi ở sổ hàng rào là chưa quan sát.
+
+### Bước K-c — vòng sửa 2: kết quả và bộ kiểm
+- Ba tệp rào: 48 bài (45 + ba bài nối dây), xanh. Ba tệp rào + bài đặc tả + `giao-dien-hoi-bang-quyen` + `architecture` + `sw-policy` + `trang-chu-o`: 145 / 145 xanh (16,3 s, tải ~3). `npm run build:web` thoát 0; `npm run typecheck` 0 lỗi. Không đụng `web/` (trừ phép phá đã hoàn nguyên) nên không chạy lại `--so-sanh`.
+- `npm test` (trên `c21dc58b`; cây làm việc chỉ khác ở tài liệu đang sửa): **bước 1 thoát 0, bước 2 thoát 0** — 3722 bài, 3720 đạt, 0 đỏ, 2 todo có sẵn; bước 1 mất 61,9 s, tải 3 lúc bắt đầu → ~10 lúc xong; gọi route ba tệp rào 15,9 / 14,7 / 19,3 s (đồng thời); bài đo giờ của hook 1/1 xanh; cả lần 64 giây.
