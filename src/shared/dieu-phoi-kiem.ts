@@ -533,3 +533,28 @@ export function kiemKetThuc(v: { suat: SuatVao[]; diem: DiemVao[] }): { duoc: tr
 export const trongNgayChay = (chuyen: { ngayChay: string; trangThai: TrangThaiChuyen; xuatBenMs: number | null }, homNay: string): boolean =>
   chuyen.ngayChay === homNay ||
   (chuyen.trangThai === "RUNNING" && chuyen.xuatBenMs !== null && vnToday(new Date(chuyen.xuatBenMs)) >= chuyen.ngayChay);
+
+/**
+ * KHUNG XEM KHÁCH (ADR-0053 D7.2 — MỘT hàm cho mọi tài xế; kế hoạch A4 T1). Trong khung thì DTO tài xế có họ tên, năm sinh, liên hệ, chuỗi đích chỉ đường
+ * (ADR-0105) — và, với người có vế hạn, mã đơn (ADR-0053 :30, :70, :171; G-A4-7). `hanTuChoiMs`:
+ *   - `undefined` = người gọi KHÔNG có vế hạn (tài xế công ty — ADR-0053 :64): chỉ vế "trong ngày chạy";
+ *   - `null` = người có vế hạn mà THIẾU dòng hạn của cặp → NGOÀI khung (đóng mặc định — G-A4-2);
+ *   - số = hạn Từ chối của cặp (tài xế, chuyến): trong khung khi `bayGioMs > hạn` (biên NGHIÊM — G-A4-1: khoảng Từ chối được `≤ hạn` và khoảng thấy khách rời
+ *     nhau) VÀ trong ngày chạy.
+ * Ngoài `src/shared/` chỉ gọi qua `khungCuaNguoiGoi` (van-chuyen) — bài src/modules/van-chuyen/mot-ham-khung.test.ts.
+ */
+export function trongKhungXemKhach(
+  chuyen: { ngayChay: string; trangThai: TrangThaiChuyen; xuatBenMs: number | null }, hanTuChoiMs: number | null | undefined, bayGioMs: number,
+): boolean {
+  if (hanTuChoiMs === null) return false;
+  if (hanTuChoiMs !== undefined && !(bayGioMs > hanTuChoiMs)) return false;
+  return trongNgayChay(chuyen, vnToday(new Date(bayGioMs)));
+}
+/**
+ * Lúc khung xem khách BẮT ĐẦU mở khi chuyến chưa xuất bến sớm (dòng "Thấy danh sách khách từ …" — kế hoạch A4 G-A4-17 `thayKhachTu`): 00:00 ngày chạy (giờ VN),
+ * hoặc ngay sau hạn Từ chối nếu muộn hơn. `null` hạn → như không vế hạn (màn chỉ hiện khi máy chủ đã đọc được hạn).
+ */
+export function mocMoKhung(chuyen: { ngayChay: string }, hanTuChoiMs: number | null | undefined): number {
+  const dauNgay = Date.parse(`${chuyen.ngayChay}T00:00:00+07:00`);
+  return typeof hanTuChoiMs === "number" ? Math.max(dauNgay, hanTuChoiMs + 1) : dauNgay;
+}
