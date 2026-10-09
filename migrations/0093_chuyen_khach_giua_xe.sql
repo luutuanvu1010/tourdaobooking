@@ -50,8 +50,8 @@ INSERT INTO vc_transfer_rule (code, label, tier, sort_order, created_at) VALUES
   ('KHOANG_NGHI_DICH', 'Đủ khoảng nghỉ trước chuyến sau của tài xế xe nhận', 'CAU_HINH', 4, '2026-10-09T00:00:00.000Z'),
   ('MOC_TOI_THIEU', 'Còn đủ mốc tối thiểu trước giờ xe nhận chạy', 'CAU_HINH', 5, '2026-10-09T00:00:00.000Z'),
   ('HANG_BANG_DICH', 'Bằng lái tài xế xe nhận đủ hạng', 'LOI', 6, '2026-10-09T00:00:00.000Z'),
-  ('GIAY_TO_DICH', 'Giấy tờ xe nhận còn hạn', 'LOI', 7, '2026-10-09T00:00:00.000Z'),
-  ('KHONG_CHEO', 'Hai xe, hai tài xế khác nhau', 'LOI', 8, '2026-10-09T00:00:00.000Z'),
+  ('GIAY_TO_DICH', 'Giấy tờ xe và tài xế xe nhận còn hạn', 'LOI', 7, '2026-10-09T00:00:00.000Z'),
+  ('KHONG_CHEO', 'Tài xế xe nhận đúng chủ xe (không lái chéo)', 'LOI', 8, '2026-10-09T00:00:00.000Z'),
   ('DIEM_CHUA_TOI', 'Xe nhờ chưa tới điểm đón', 'LOI', 9, '2026-10-09T00:00:00.000Z'),
   ('CAM_KET_DICH', 'Giữ cam kết xe với khách trên xe nhận', 'CAU_HINH', 10, '2026-10-09T00:00:00.000Z'),
   ('CHANG_KHACH_HIEU_LUC', 'Chặng của khách còn hiệu lực', 'LOI', 11, '2026-10-09T00:00:00.000Z');
