@@ -294,6 +294,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "order.service.manual": "none", // ADR-0061 điều 2: Đối tác không bao giờ nhập tay (máy chủ còn chặn mọi tài khoản có quyền Đối tác — holdsPartner)
     "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.urgent_adjust": "none", "trip.progress": "none", "trip.call_ack": "none", "trip.passenger.add": "none", // ADR-0049 D3: Đối tác không thấy lịch xe (C1); ADR-0052 D5b: không bổ sung tên
     "trip.refuse": "none", // ADR-0053 D8 (kế hoạch A4 T3): Đối tác không lái chuyến, không Từ chối
+    "unavailability.self": "none", // ADR-0053 D9 (kế hoạch A4 T8): Đối tác không báo bận tài xế
     "assistant.ask": "any", // ADR-0066 điều 1: hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: sổ phiên chỉ Toàn quyền
   };

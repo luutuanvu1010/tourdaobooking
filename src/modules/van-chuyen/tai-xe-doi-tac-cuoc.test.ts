@@ -80,7 +80,7 @@ test("A4 T6 NT-2 + NT-11: tài xế đối tác A dò chuyến của B → 404 (
     assert.ok(!ds.text.includes(b.ma) && !ds.text.includes(a.don.code) && !ds.text.includes(b.don.code));
     const hk = await w.call("POST", `/api/van-chuyen/cuoc-cua-toi/${a.id}/hanh-khach`, { as: DRIVER_PARTNER, body: { requestId: uuid() } });
     assert.equal(hk.status, 403, "trip.passenger.add none (chủ 5/10)");
-    for (const p of ["/api/orders", "/api/orders/dashboard", "/api/parties", "/api/catalog", `/api/van-chuyen/lich?ngay=${NGAY_SAU}`, "/api/van-chuyen/xe", `/api/van-chuyen/chuyen/${a.id}`]) {
+    for (const p of ["/api/orders", "/api/orders/dashboard", "/api/parties", "/api/catalog", `/api/van-chuyen/lich?ngay=${NGAY_SAU}`, "/api/van-chuyen/xe", `/api/van-chuyen/chuyen/${a.id}`, "/api/van-chuyen/ban-tai-xe"]) { // ban-tai-xe: A4 T8 (NT-11)
       assert.equal((await w.call("GET", p, { as: DRIVER_PARTNER })).status, 403, p);
     }
   } finally {

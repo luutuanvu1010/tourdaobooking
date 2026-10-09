@@ -124,6 +124,7 @@ import type { CanhBaoLichDto } from "../../shared/contracts";
 import { NHAN_CANH_BAO_GIO_LAI, type CanhBaoGioLai } from "../../shared/gio-lai";
 import { khungBanVao, khungTaiXeVao } from "./dieu-phoi-doc";
 import { khungTaiXeTrongKhoang } from "./khung-ban-tai-xe-repo";
+import { banTaiXeResponse, khungCuaToiResponse, lenhGhiKhungBan, lenhRutKhungBan } from "./bao-ban";
 const CAN_XEM_XE_DON = () => error(403, "forbidden", "Tài khoản này không xem được xe đón khách của đơn.");
 const CAN_XEM_CUOC = () => error(403, "forbidden", "Tài khoản này không có cuốc xe.");
 const CAN_BAM_THAY = () => error(403, "forbidden", "Tài khoản này không bấm thay tiến độ chuyến được.");
@@ -677,6 +678,12 @@ export const vanChuyenModule: AppModule = {
       }
       if ((kq[0]!.meta.changes ?? 0) === 0) return error(409, "khung_ban_vua_doi_route", CAU_KHUNG_VUA_DOI);
       return respondKhungBan(env.DB, id);
+    }),
+    // Dải "Tài xế bận" của văn phòng (ADR-0053 D9; kế hoạch A4 T8, G-A4-19): ô trip.dispatch (ô any của văn phòng — không ngữ cảnh là đúng ở đây; Kế toán,
+    // tài xế → 403). Không lý do (lời chủ 6.2). Ô chọn tài xế ở màn sửa chuyến dùng CÙNG route (không thêm route).
+    route("GET", "/api/van-chuyen/ban-tai-xe", "office", async ({ env, url, staff }) => {
+      if (!can(staff, "trip.dispatch")) return error(403, "forbidden", "Tài khoản này không xem lịch tài xế bận.");
+      return banTaiXeResponse(env.DB, url, Date.now());
     }),
     // Trang tuần "Lịch xe bận" (bản vẽ 2/10): ô vehicle.manage (câu 3.4 — chỉ Quản trị + Toàn quyền), 403 trước 400. Tuần = MỘT luật với màn (vnWeekRange),
     // khoảng chặn bằng nửa đêm VN. Chuyến đã xếp chỉ khi có trip.view, DANH SÁCH TRẮNG (câu 3.1).
@@ -1789,6 +1796,27 @@ export const vanChuyenModule: AppModule = {
         return json({ daTuChoi: true } satisfies TuChoiResponse);
       }
       return MA_LENH_DUNG_LAI(); // sự kiện Từ chối cùng mã nhưng KHÔNG của mình (bước 3 đã nhận lệnh lặp của chính mình)
+    }),
+
+    // ---- BÁO BẬN CỦA TÔI (ADR-0053 D9; kế hoạch A4 T8) — cổng staff, ô unavailability.self với ownerId = CHÍNH người gọi; khung luôn của staff.partyId
+    // (không nhận id tài xế từ thân). Thứ tự 403 → 404 → 400. Thân không có requestId (G-A4-28). Không gửi tin (D9.4). Logic ở bao-ban.ts.
+    route("GET", "/api/van-chuyen/ban/cua-toi", "staff", async ({ env, staff }) => {
+      if (!can(staff, "unavailability.self", { ownerId: staff.id }) || !staff.partyId) return error(403, "forbidden", "Tài khoản này không báo bận được.");
+      return khungCuaToiResponse(env.DB, staff.partyId, Date.now());
+    }),
+    route("POST", "/api/van-chuyen/ban", "staff", async ({ env, request, staff }) => {
+      if (!can(staff, "unavailability.self", { ownerId: staff.id }) || !staff.partyId) return error(403, "forbidden", "Tài khoản này không báo bận được.");
+      const bayGioMs = Date.now();
+      const r = await lenhGhiKhungBan(env.DB, request, staff, staff.partyId, bayGioMs);
+      if (r) return r;
+      return kemLocation(await khungCuaToiResponse(env.DB, staff.partyId, bayGioMs, 201), "/ban"); // H7: trang gọi route này (web/ban.ts — T9)
+    }),
+    route("POST", "/api/van-chuyen/ban/:id/rut", "staff", async ({ env, request, params, staff }) => {
+      if (!can(staff, "unavailability.self", { ownerId: staff.id }) || !staff.partyId) return error(403, "forbidden", "Tài khoản này không báo bận được.");
+      const bayGioMs = Date.now();
+      const r = await lenhRutKhungBan(env.DB, request, params.id ?? "", staff, staff.partyId, bayGioMs);
+      if (r) return r;
+      return khungCuaToiResponse(env.DB, staff.partyId, bayGioMs);
     }),
 
     // ---- LỆNH TIẾN ĐỘ — route VĂN PHÒNG BẤM THAY (cổng office; kế hoạch mục 1.7 route 31–39; R-P1 — Task A15) ---------------------------------------------

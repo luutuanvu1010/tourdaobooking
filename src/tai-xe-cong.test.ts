@@ -110,6 +110,19 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
     DRIVER: { ma: 403, ly_do: "ô trip.refuse none (tài xế công ty không Từ chối — ADR-0053 D8.3) → 403 ở bước đầu, trước mọi truy vấn" },
     DRIVER_PARTNER: { ma: 404, ly_do: "ô trip.refuse assigned; chuyến lạ / không phải chuyến mình đang lái → 404 TRƯỚC khi đọc thân (G-A4-15)" },
   },
+  // A4 T8 (ADR-0053 D9): báo bận của tôi — ô unavailability.self: DRIVER none, DRIVER_PARTNER own (khung luôn của chính mình).
+  "GET /api/van-chuyen/ban/cua-toi": {
+    DRIVER: { ma: 403, ly_do: "ô unavailability.self none (Đợt 6 chỉ mở cho tài xế đối tác — 0053:49)" },
+    DRIVER_PARTNER: { ma: 200, ly_do: "khung bận của CHÍNH mình + danh mục lý do bận — không dữ liệu đơn / khách / tiền" },
+  },
+  "POST /api/van-chuyen/ban": {
+    DRIVER: { ma: 403, ly_do: "ô unavailability.self none → 403 trước thân" },
+    DRIVER_PARTNER: { ma: 400, ly_do: "thân rỗng → 400 (khung của chính mình; không nhận id tài xế từ thân)" },
+  },
+  "POST /api/van-chuyen/ban/:id/rut": {
+    DRIVER: { ma: 403, ly_do: "ô unavailability.self none → 403 trước mọi truy vấn" },
+    DRIVER_PARTNER: { ma: 404, ly_do: "khung lạ / không phải của mình → 404 (SQL lọc driver_party_id của người gọi)" },
+  },
 };
 const mucCua = (k: string, ma: string): MucBang => {
   const m = BANG_STAFF[k]!;

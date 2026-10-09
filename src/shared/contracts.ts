@@ -1237,6 +1237,17 @@ export interface KhungBanXeDto {
 export interface KhungBanXeListResponse { dangCo: KhungBanXeDto[]; lichSu: KhungBanXeDto[]; lyDo: { code: string; label: string }[] }
 /** 409 lớp route khi ghi khung chồng chuyến chưa huỷ, chưa kết thúc (Q-L2-1 = a) — chỉ mã chuyến + giờ, không tên khách. */
 export interface KhungBanChongChuyenLoi { error: { code: "khung_ban_chong_chuyen"; message: string; chuyen: { ma: string; gio: string }[] } }
+// ---- Báo bận của tài xế (ADR-0053 D9; kế hoạch A4 T8; G-A4-19, G-A4-28) -------------------------------------------------------------------------------
+/** Một khung bận của CHÍNH tài xế (`GET|POST /api/van-chuyen/ban*`). `lyDo` = nhãn lý do (người xem là chủ khung). */
+export interface KhungBanCuaToiDto { id: string; batDau: string; ketThuc: string; batDauMs: number; ketThucMs: number; lyDoMa: string; lyDo: string; version: number }
+/** `khung` = khung chưa rút, chưa qua của chính mình (giờ bắt đầu tăng); `lyDo` = danh mục BAN_TAI_XE đang dùng. Thân ghi / rút KHÔNG có `requestId` (G-A4-28). */
+export interface KhungBanCuaToiResponse { khung: KhungBanCuaToiDto[]; lyDo: { code: string; label: string }[] }
+/** 409 lớp route khi khung chồng chuyến người gọi đang được xếp — CHỈ chuyến của chính người gọi: id, mã chuyến, giờ (không tên khách, không mã đơn). */
+export interface KhungBanChongChuyenTaiXeLoi { error: { code: "khung_ban_chong_chuyen_tai_xe"; message: string; chuyen: { id: string; ma: string; gio: string }[] } }
+/** Dải "Tài xế bận" của văn phòng (`GET /api/van-chuyen/ban-tai-xe` — trip.dispatch): KHÔNG lý do (lời chủ 6.2). `taiXeId` = hồ sơ tài xế. */
+export interface KhungBanTaiXeDto { id: string; taiXeId: string; tenTaiXe: string; nhaXe: string[]; batDauMs: number; ketThucMs: number; nhan: string }
+/** `tu`..`den` (hai đầu bao gồm, ngày VN): mặc định hôm nay → +6 ngày. */
+export interface BanTaiXeResponse { tu: string; den: string; khung: KhungBanTaiXeDto[] }
 /** Chuyến đã xếp trên lưới tuần Lịch xe bận — DANH SÁCH TRẮNG: không mã đơn, không tên khách, không tài xế (câu 3.1, chủ 2/10). Trạng thái thô chỉ để màn chọn nhãn. */
 export interface ChuyenXeBanDto { id: string; ma: string; xeId: string; batDauMs: number; ketThucMs: number; trangThai: "PLANNED" | "RUNNING" | "ENDED" | "ENDED_INTERRUPTED" }
 /** Dải bận trên lịch chung ngày D (`LichChungResponse.khungBanXe`; trip.view — ADR-0055 A4): DANH SÁCH TRẮNG — không người ghi, không tài xế. Giờ ISO UTC. */

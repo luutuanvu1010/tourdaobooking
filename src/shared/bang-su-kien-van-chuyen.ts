@@ -360,6 +360,8 @@ export const NGOAI_PHAM_VI_NHAT_KY: Readonly<Record<string, string>> = {
   rental_rate_closed: "bảng giá thuê xe",
   route_saved: "danh mục tuyến",
   vehicle_size_saved: "danh mục cỡ xe",
+  driver_unavailability_added: "khung bận của tài xế (ADR-0053 D9) — không ghi chuyến, không sự kiện chuyến, không tin (D9.4); luật chéo với chuyến ở trigger + LC-03",
+  driver_unavailability_withdrawn: "khung bận của tài xế (ADR-0053 D9)",
 };
 /** Route ghi của van-chuyen / dispatch KHÔNG phải lệnh đổi chuyến (bài: thân route không được gọi `baoThayDoiChuyen` / `dongBoChuyen`). */
 export const NGOAI_PHAM_VI_ROUTE: Readonly<Record<string, string>> = {
