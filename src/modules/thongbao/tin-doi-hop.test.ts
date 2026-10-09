@@ -325,3 +325,30 @@ test("G17 màn hình khoá: MỘT lệnh PUT /trip dời ngày đơn có HAI ch�
     tat();
   }
 });
+
+test("G17 (phiếu kiểm T1) gõ cửa chỉ theo LÔ MỚI NHẤT: hai PUT /trip chồng mốc của cùng người (đồng hồ giả ĐỨNG YÊN — lô trước có mốc ≥ batDau của lệnh sau) — lệnh sau chỉ đổi ghi chú → không gõ cửa lại tin dời ngày của lô trước", async () => {
+  const tat = batDongHo();
+  const fetchGoc = globalThis.fetch;
+  try {
+    const w = setup();
+    const a = await chuyenSan(w); // Bán hàng lập, chặng 13:00 xếp lên chuyến của DRIVER
+    await w.choNen();
+    await batGoCua(w, [SALES, ADM, DRIVER]);
+    const goi: string[] = [];
+    globalThis.fetch = (async (u: unknown) => (goi.push(String(u)), new Response(null, { status: 201 }))) as typeof fetch;
+    const nguoiDuocGo = async () => { await w.choNen(); const r = goi.map((u) => u.split("/").pop()!).sort(); goi.length = 0; return r; };
+    denGio("06:10");
+    await doiNgayDi(w, ADM, a.don.id, NGAY_SAU);
+    assert.deepEqual(await nguoiDuocGo(), [SALES, DRIVER].sort(), "lệnh 1 (dời ngày): người lập + tài xế");
+    // Lệnh 2 cùng người, cùng mốc đồng hồ (thật: hai tab chồng nhau) — mốc ghi của lệnh 2 = mốc lệnh 1 + 1 ms, batDau của lệnh 2 = mốc lệnh 1.
+    const o = await donXem(w, a.don.id);
+    const r = await w.call("PUT", `/api/orders/${a.don.id}/trip`, {
+      as: ADM, body: { expectedUpdatedAt: o.updatedAt, services: o.services.map((s: any) => ({ id: s.id, departDate: s.departDate, departTime: s.departTime ?? "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "Ghi chú mới" })) },
+    });
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(await nguoiDuocGo(), [], "lệnh 2 chỉ đổi ghi chú (không tin) → không gõ cửa lại lô dời ngày của lệnh 1");
+  } finally {
+    globalThis.fetch = fetchGoc;
+    tat();
+  }
+});

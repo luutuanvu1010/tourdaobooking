@@ -142,6 +142,19 @@ test("G17: đơn đã xác nhận dời NGÀY ĐI → mỗi chặng dời có m�
   }
 });
 
+test("G17 (phiếu kiểm V1): lệnh THUA (expectedUpdatedAt cũ) dời ngày đi → 409 stale, KHÔNG dòng order_leg_updated nào, chặng không đổi", async () => {
+  const w = setup();
+  const o = await order(w, true);
+  const r1 = await trip(w, o, { note: "Người khác sửa trước" }); // đơn đổi mốc updated_at
+  assert.equal(r1.status, 200, r1.text);
+  const truoc = legs(w, o.id);
+  const r = await trip(w, o, { departDate: inDays(5) }); // mốc CŨ của `o`
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "stale");
+  assert.deepEqual(nhatKyChang(w, o.id), [], "lệnh thua để lại dòng chặng giả trong nhật ký (sẽ thành tin MQ-07 báo tài xế)");
+  assert.deepEqual(legs(w, o.id), truoc);
+});
+
 test("G17: thân cũ đổi giờ + nơi đón → dòng chặng chỉ có giờ đón (KHÔNG giá trị nơi); chỉ đổi nơi / ghi chú → không thêm dòng chặng", async () => {
   const w = setup();
   let o = await order(w, true);
