@@ -12,7 +12,7 @@ const TOAN_QUYEN = await session(ACCOUNTS.superAdmin);
 const duoi = String(Date.now()).slice(-6);
 const MA_LY_DO = `PHA_LE_E2E_${duoi}`;
 const cho = () => new Promise((res) => setTimeout(res, 5)); // valid_from_at duy nhất theo mili-giây
-const GOC = { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720 };
+const GOC = { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720, acceptWaitMinutes: 10, autoConfirmTransfer: true };
 // ADR-0050 VK1-C: hai điều kiện GIEO SẴN (mọi xe) — phải còn nguyên sau kịch bản (không đóng dòng gieo để "cho qua": che TC-52).
 const DIEU_KIEN_GIEO = [[1, "VEHICLE", "INSPECTION"], [1, "VEHICLE", "TPL_INSURANCE"]];
 const dangAp = (rules) => rules.filter((x) => x.active).map((x) => [x.minCapacity, x.subject, x.documentTypeCode]);
@@ -41,7 +41,7 @@ try {
   console.log("✓ TC-52 (VK1-C): D1 thật có đúng hai điều kiện gieo đang áp — Kiểm định, Bảo hiểm (mọi xe)");
 
   // --- 2. Chính sách: thêm bản mới 201 (hiệu lực ngay); thân có ngày hiệu lực / hợp đồng bật → 400 ---
-  r = await call(TOAN_QUYEN, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true, proxyBackdateMaxMinutes: 90, dutyDayMaxMinutes: 540, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 1440 });
+  r = await call(TOAN_QUYEN, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true, proxyBackdateMaxMinutes: 90, dutyDayMaxMinutes: 540, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 1440, acceptWaitMinutes: 10, autoConfirmTransfer: true });
   assert.equal(r.status, 201, JSON.stringify(r.body));
   assert.equal(r.body.current.minLeadMinutes, 240);
   assert.equal(r.body.current.proxyBackdateMaxMinutes, 90);

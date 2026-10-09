@@ -34,8 +34,12 @@ export interface FormChinhSach {
   /** ADR-0096 Đ2.3: cửa sổ xuất bến — ô theo GIỜ (1–48), máy chủ lưu phút. Không có giá trị mặc định trong mã: điền từ bản đang dùng. */
   cuaSoGio: string;
   duDanhSach: boolean;
+  /** ADR-0111 Đ3 (c): phút chờ tài xế xe nhận trả lời đề nghị chuyển khách (1–120). Điền từ bản đang dùng. */
+  choNhanPhut: string;
+  /** ADR-0111 Đ3 (c): tự đồng ý chuyển khách khi đạt mọi điều kiện (công tắc an toàn). */
+  tuDongY: boolean;
 }
-export type TruongChinhSach = "mocGio" | "satMocGio" | "nghiPhut" | "khaiLuiPhut" | "gioLaiGio" | "chuyenDaiGio" | "cuaSoGio";
+export type TruongChinhSach = "mocGio" | "satMocGio" | "nghiPhut" | "khaiLuiPhut" | "gioLaiGio" | "chuyenDaiGio" | "cuaSoGio" | "choNhanPhut";
 export type KetQuaFormChinhSach = { ok: true; value: DispatchPolicyCreateRequest } | { ok: false; loi: Partial<Record<TruongChinhSach, string>> };
 
 /** Chuỗi ô giờ → số phút (chấp nhận "1,5" hay "1.5"); không phải số → null. */
@@ -70,27 +74,34 @@ export function docFormChinhSach(f: FormChinhSach): KetQuaFormChinhSach {
   const cuaSo = phutTuO(f.cuaSoGio);
   if (f.cuaSoGio.trim() === "") loi.cuaSoGio = "Nhập cửa sổ xuất bến (giờ).";
   else if (cuaSo === null || cuaSo < 60 || cuaSo > 2880) loi.cuaSoGio = "Cửa sổ xuất bến là số giờ từ 1 đến 48.";
-  if (Object.keys(loi).length > 0 || moc === null || sat === null || nghi === null || lui === null || gioLai === null || dai === null || cuaSo === null) return { ok: false, loi };
+  const cho = soNguyenO(f.choNhanPhut);
+  if (f.choNhanPhut.trim() === "") loi.choNhanPhut = "Nhập số phút chờ tài xế xe nhận trả lời.";
+  else if (cho === null || cho < 1 || cho > 120) loi.choNhanPhut = "Thời gian chờ tài xế xe nhận trả lời là số phút nguyên từ 1 đến 120.";
+  if (Object.keys(loi).length > 0 || moc === null || sat === null || nghi === null || lui === null || gioLai === null || dai === null || cuaSo === null || cho === null) {
+    return { ok: false, loi };
+  }
   return {
     ok: true,
     value: {
       minLeadMinutes: moc, warnLeadMinutes: sat, restMinutes: nghi, requireManifest: f.duDanhSach, proxyBackdateMaxMinutes: lui, dutyDayMaxMinutes: gioLai, tripNoBreakMaxMinutes: dai,
-      departureWindowMinutes: cuaSo,
+      departureWindowMinutes: cuaSo, acceptWaitMinutes: cho, autoConfirmTransfer: f.tuDongY,
     },
   };
 }
 
 /** Điền form từ bản đang dùng; chưa có bản nào → ô trống (bật "phải đủ danh sách khách" như bản gieo). */
 export function formTuChinhSach(p: DispatchPolicyDto | null): FormChinhSach {
-  if (!p) return { mocGio: "", satMocGio: "", nghiPhut: "", khaiLuiPhut: "", gioLaiGio: "", chuyenDaiGio: "", cuaSoGio: "", duDanhSach: true };
+  if (!p) return { mocGio: "", satMocGio: "", nghiPhut: "", khaiLuiPhut: "", gioLaiGio: "", chuyenDaiGio: "", cuaSoGio: "", duDanhSach: true, choNhanPhut: "", tuDongY: true };
   return {
     mocGio: gioTuPhut(p.minLeadMinutes), satMocGio: gioTuPhut(p.warnLeadMinutes), nghiPhut: String(p.restMinutes), khaiLuiPhut: String(p.proxyBackdateMaxMinutes),
     gioLaiGio: gioTuPhut(p.dutyDayMaxMinutes), chuyenDaiGio: gioTuPhut(p.tripNoBreakMaxMinutes), cuaSoGio: gioTuPhut(p.departureWindowMinutes), duDanhSach: p.requireManifest,
+    choNhanPhut: String(p.acceptWaitMinutes), tuDongY: p.autoConfirmTransfer,
   };
 }
 
 type SoChinhSach = Pick<
   DispatchPolicyDto, "minLeadMinutes" | "warnLeadMinutes" | "restMinutes" | "requireManifest" | "proxyBackdateMaxMinutes" | "dutyDayMaxMinutes" | "tripNoBreakMaxMinutes" | "departureWindowMinutes"
+  | "acceptWaitMinutes" | "autoConfirmTransfer"
 >;
 /** Một dòng tóm tắt bản chính sách (lịch sử bản — bản vẽ 8a "Mốc 6 giờ · sát mốc 2 giờ · nghỉ 30 phút"; thêm khai lùi — thành phần F). */
 export function tomTatChinhSach(p: SoChinhSach): string {
@@ -103,6 +114,8 @@ export function tomTatChinhSach(p: SoChinhSach): string {
     `nhắc nghỉ chuyến trên ${nhanThoiLuong(p.tripNoBreakMaxMinutes)}`,
     `xuất bến sớm nhất ${nhanThoiLuong(p.departureWindowMinutes)} trước giờ khởi hành`,
     p.requireManifest ? "phải đủ danh sách khách" : null,
+    `chờ nhận chuyển khách ${p.acceptWaitMinutes} phút`,
+    p.autoConfirmTransfer ? "tự đồng ý chuyển khách" : "chuyển khách luôn chờ Quản trị",
   ].filter((x) => x !== null).join(" · ");
 }
 
@@ -121,6 +134,8 @@ export function thayDoiChinhSach(cu: DispatchPolicyDto | null, moi: DispatchPoli
   if (cu.tripNoBreakMaxMinutes !== moi.tripNoBreakMaxMinutes) out.push(`Nhắc nghỉ chuyến trên ${nhanThoiLuong(cu.tripNoBreakMaxMinutes)} → ${nhanThoiLuong(moi.tripNoBreakMaxMinutes)}`);
   if (cu.departureWindowMinutes !== moi.departureWindowMinutes) out.push(`Cửa sổ xuất bến ${nhanThoiLuong(cu.departureWindowMinutes)} → ${nhanThoiLuong(moi.departureWindowMinutes)}`);
   if (cu.requireManifest !== moi.requireManifest) out.push(moi.requireManifest ? "Bắt đủ danh sách khách" : "Không bắt đủ danh sách khách");
+  if (cu.acceptWaitMinutes !== moi.acceptWaitMinutes) out.push(`Chờ tài xế xe nhận trả lời ${cu.acceptWaitMinutes} → ${moi.acceptWaitMinutes} phút`);
+  if (cu.autoConfirmTransfer !== moi.autoConfirmTransfer) out.push(moi.autoConfirmTransfer ? "Tự đồng ý chuyển khách" : "Chuyển khách luôn chờ Quản trị duyệt");
   return out;
 }
 
@@ -206,7 +221,7 @@ export function docSoKhachHang(classCode: string, v: string): { ok: true; value:
 
 // ---- danh mục lý do ------------------------------------------------------------------------------------------------------------------------------------------
 /** Nhóm lý do lượt 1, theo thứ tự bản vẽ 8c (Phá lệ, Huỷ chuyến, Kết thúc gián đoạn) rồi hai nhóm lượt 1 bản vẽ không vẽ. */
-export const NHOM_LY_DO_HIEN: readonly NhomLyDo[] = ["PHA_LE", "HUY_CHUYEN", "KET_THUC_GIAN_DOAN", "BO_QUA_DIEM", "DOI_GIO_XE", "BAO_HUY_DIEM"]; // + BAO_HUY_DIEM: ADR-0052 D5.2 (Đợt 5)
+export const NHOM_LY_DO_HIEN: readonly NhomLyDo[] = ["PHA_LE", "HUY_CHUYEN", "KET_THUC_GIAN_DOAN", "BO_QUA_DIEM", "DOI_GIO_XE", "BAO_HUY_DIEM", "TU_CHOI_NHAN"]; // + BAO_HUY_DIEM: ADR-0052 D5.2 (Đợt 5); + TU_CHOI_NHAN: ADR-0111 (A5 — Không nhận / Bác đề nghị chuyển khách)
 export interface NhomHien {
   nhom: NhomLyDo;
   tieuDe: string;

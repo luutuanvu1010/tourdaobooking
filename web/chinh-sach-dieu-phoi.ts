@@ -79,7 +79,7 @@ function baoLoi(o: O, cau: string | null): void {
 function capNhatGoiYSatMoc(): void {
   const o = oSo.find((x) => x.truong === "satMocGio");
   if (!o) return;
-  const r = docFormChinhSach({ ...st, mocGio: "1", nghiPhut: "0", khaiLuiPhut: "1", gioLaiGio: "8", chuyenDaiGio: "4", cuaSoGio: "1" }); // chỉ đọc ô sát mốc
+  const r = docFormChinhSach({ ...st, mocGio: "1", nghiPhut: "0", khaiLuiPhut: "1", gioLaiGio: "8", chuyenDaiGio: "4", cuaSoGio: "1", choNhanPhut: "10" }); // chỉ đọc ô sát mốc
   const khoang = r.ok ? nhanThoiLuong(r.value.warnLeadMinutes) : "khoảng này";
   o.hint.textContent = `Chặng chưa xếp trong ${khoang} trước mốc hiện nhãn “Sát mốc”.`;
 }
@@ -148,6 +148,8 @@ function dung(): void {
     taoO("chuyenDaiGio", "Nhắc nghỉ khi chuyến dài hơn (giờ)", "Chỉ nhắc. Mặc định 4.", true),
     // ADR-0096 Đ2.3: cửa sổ xuất bến — không ai phá lệ; xe thật sự chạy sớm thì văn phòng sửa giờ chuyến. Gợi ý KHÔNG ghi con số mặc định (con số ở bảng).
     taoO("cuaSoGio", "Cửa sổ xuất bến (giờ)", "Chỉ xuất bến được từ giờ khởi hành trừ số giờ này, từ 1 đến 48. Không ai phá lệ.", true),
+    // ADR-0111 Đ3 (c): chuyển khách giữa hai xe — hết giờ chờ thì tài xế nhờ thấy "hết giờ chờ", không ai nhận tin lúc hết giờ.
+    taoO("choNhanPhut", "Chờ tài xế xe nhận trả lời (phút)", "Quá số phút này mà tài xế xe nhận chưa bấm thì lần nhờ hết hạn. Từ 1 đến 120.", false),
   );
   capNhatGoiYSatMoc();
   const toggles = h(
@@ -157,6 +159,10 @@ function dung(): void {
       st = { ...st, duDanhSach: bat };
     }),
     congTac("cs-hop-dong", "Phải có hợp đồng", "Khoá tắt — chưa dùng ở lượt này.", false, true),
+    // ADR-0052 D4.1 + ADR-0111 Đ3 (c): công tắc an toàn — tắt thì mọi lần nhờ tài xế xe nhận đã bấm Nhận đều chờ Quản trị, kể cả lần gửi trước khi tắt.
+    congTac("cs-tu-dong-y", "Tự đồng ý chuyển khách", "Đạt mọi điều kiện thì khách sang xe nhận ngay. Tắt thì mọi lần nhờ chờ Quản trị duyệt.", st.tuDongY, false, (bat) => {
+      st = { ...st, tuDongY: bat };
+    }),
   );
   const dangAp = dieuKien.filter((r) => r.active);
   const rules = h(

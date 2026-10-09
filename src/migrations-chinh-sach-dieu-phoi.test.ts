@@ -149,6 +149,11 @@ test("(c) dữ liệu gieo: đúng một dòng chính sách 360/120/30/1/0 + k�
     "PHA_LE:PHA_LE_SU_CO",
     "PHA_LE:PHA_LE_DON_GAP",
     "PHA_LE:PHA_LE_KHAC",
+    // 0093 (ADR-0111, A5): lý do tài xế xe nhận Không nhận / Quản trị Bác đề nghị chuyển khách
+    "TU_CHOI_NHAN:TU_CHOI_DAY_CHO",
+    "TU_CHOI_NHAN:TU_CHOI_KHONG_KIP",
+    "TU_CHOI_NHAN:TU_CHOI_SU_CO",
+    "TU_CHOI_NHAN:TU_CHOI_KHAC",
   ]);
   for (const r of lyDoGieo) assert.equal(r.active, 1);
   for (const g of new Set(lyDoGieo.map((r) => r.reason_group))) {

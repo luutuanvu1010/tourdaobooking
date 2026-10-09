@@ -1139,6 +1139,10 @@ export interface DispatchPolicyDto {
   tripNoBreakMaxMinutes: number;
   /** ADR-0096 Đ2 (0084): cửa sổ xuất bến (phút, 60…2880; mặc định nằm trong bảng chính sách) — chỉ xuất bến từ giờ khởi hành dự kiến − cửa sổ. */
   departureWindowMinutes: number;
+  /** ADR-0052 D4.1 + ADR-0111 Đ3 (c) (0093): phút chờ tài xế xe nhận trả lời đề nghị chuyển khách (1…120; gieo 10). */
+  acceptWaitMinutes: number;
+  /** ADR-0052 D4.1 + ADR-0111 Đ3 (c) (0093): tự đồng ý chuyển khách khi đạt mọi điều kiện (gieo bật); tắt thì mọi đề nghị chờ Quản trị. */
+  autoConfirmTransfer: boolean;
   validFrom: string;
   current: boolean;
   /** R-P23: "ai lưu" — TÊN hiển thị người lưu bản này (hàm tiêm nhãn R-P20; không SĐT, không id); null = bản gieo / khung thử không tiêm nhãn. */
@@ -1159,6 +1163,10 @@ export interface DispatchPolicyCreateRequest {
   tripNoBreakMaxMinutes: number;
   /** BẮT BUỘC (I43, ADR-0096 Đ2.3): phút, 60…2880 — màn nhập giờ (1–48). */
   departureWindowMinutes: number;
+  /** BẮT BUỘC (I43, ADR-0111 Đ3 (c)): phút, 1…120. */
+  acceptWaitMinutes: number;
+  /** BẮT BUỘC (I43, ADR-0111 Đ3 (c)). */
+  autoConfirmTransfer: boolean;
   requireContract?: false;
 }
 export interface DepartureRuleDto {

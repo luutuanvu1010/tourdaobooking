@@ -37,12 +37,16 @@ export interface ChinhSachMoi {
   tripNoBreakMaxMinutes: number;
   /** ADR-0096 Đ2.3: cửa sổ xuất bến (phút) 60…2880 (màn nhập 1–48 giờ); BẮT BUỘC (I43 — PWA cũ gửi thiếu thì 400, không chép ngầm từ dòng cũ). */
   departureWindowMinutes: number;
+  /** ADR-0052 D4.1 + ADR-0111 Đ3 (c): số phút tài xế xe nhận được trả lời đề nghị chuyển khách (1…120; gieo 10); BẮT BUỘC (I43). */
+  acceptWaitMinutes: number;
+  /** ADR-0052 D4.1 + ADR-0111 Đ3 (c): công tắc an toàn — tắt thì mọi đề nghị tài xế bấm Nhận đều chờ Quản trị; BẮT BUỘC (I43). */
+  autoConfirmTransfer: boolean;
 }
 export function kiemChinhSachMoi(body: Record<string, unknown> | null): Result<ChinhSachMoi> {
   if (!body) return fail("Dữ liệu không hợp lệ.");
   if (coNgayHieuLuc(body)) return fail(CAU_HIEU_LUC);
   const { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, requireContract, proxyBackdateMaxMinutes, dutyDayMaxMinutes, tripNoBreakMaxMinutes,
-    departureWindowMinutes } = body;
+    departureWindowMinutes, acceptWaitMinutes, autoConfirmTransfer } = body;
   if (!soNguyen(minLeadMinutes, 1, 2880)) return fail("Mốc tối thiểu là số phút nguyên từ 1 đến 2880 — không tắt được; muốn nới thì giảm con số.");
   if (!soNguyen(warnLeadMinutes, 0, 1440)) return fail("Cảnh báo sát mốc là số phút nguyên từ 0 đến 1440.");
   if (!soNguyen(restMinutes, 0, NGHI_TOI_DA_PHUT)) return fail(`Khoảng nghỉ giữa hai chuyến là số phút nguyên từ 0 đến ${NGHI_TOI_DA_PHUT}.`);
@@ -56,7 +60,15 @@ export function kiemChinhSachMoi(body: Record<string, unknown> | null): Result<C
   // ADR-0096 Đ2.3 (khuôn I43): thiếu cửa sổ xuất bến → nói rõ, không tự điền.
   if (departureWindowMinutes === undefined) return fail("Thiếu cửa sổ xuất bến — tải lại trang rồi lưu lại.");
   if (!soNguyen(departureWindowMinutes, 60, CUA_SO_XUAT_BEN_TOI_DA_PHUT)) return fail(`Cửa sổ xuất bến là số phút nguyên từ 60 đến ${CUA_SO_XUAT_BEN_TOI_DA_PHUT} (1 đến ${CUA_SO_XUAT_BEN_TOI_DA_PHUT / 60} giờ).`);
-  return { ok: true, value: { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, proxyBackdateMaxMinutes, dutyDayMaxMinutes, tripNoBreakMaxMinutes, departureWindowMinutes } };
+  // ADR-0111 Đ3 (c) (khuôn I43): màn cũ gửi thiếu hai giá trị chuyển khách → nói rõ, không tự điền.
+  if (acceptWaitMinutes === undefined || autoConfirmTransfer === undefined) return fail("Thiếu cài đặt chuyển khách — tải lại trang rồi lưu lại.");
+  if (!soNguyen(acceptWaitMinutes, 1, 120)) return fail("Thời gian chờ tài xế xe nhận trả lời là số phút nguyên từ 1 đến 120.");
+  if (typeof autoConfirmTransfer !== "boolean") return fail("Chọn có hay không tự đồng ý chuyển khách khi đạt mọi điều kiện.");
+  return {
+    ok: true,
+    value: { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, proxyBackdateMaxMinutes, dutyDayMaxMinutes, tripNoBreakMaxMinutes, departureWindowMinutes, acceptWaitMinutes,
+      autoConfirmTransfer },
+  };
 }
 export function chiTietChinhSach(cu: ChinhSachMoi | null, moi: ChinhSachMoi): string {
   const co = (b: boolean) => (b ? "có" : "không");
@@ -70,6 +82,8 @@ export function chiTietChinhSach(cu: ChinhSachMoi | null, moi: ChinhSachMoi): st
     phan("giờ lái tối đa", cu ? `${cu.dutyDayMaxMinutes}` : null, `${moi.dutyDayMaxMinutes} phút`),
     phan("nhắc nghỉ chuyến trên", cu ? `${cu.tripNoBreakMaxMinutes}` : null, `${moi.tripNoBreakMaxMinutes} phút`),
     phan("cửa sổ xuất bến", cu ? `${cu.departureWindowMinutes}` : null, `${moi.departureWindowMinutes} phút`),
+    phan("chờ nhận chuyển khách", cu ? `${cu.acceptWaitMinutes}` : null, `${moi.acceptWaitMinutes} phút`),
+    phan("tự đồng ý chuyển khách", cu ? co(cu.autoConfirmTransfer) : null, co(moi.autoConfirmTransfer)),
   ].join("; ")}`;
 }
 

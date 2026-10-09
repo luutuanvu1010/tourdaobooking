@@ -41,10 +41,10 @@ const loi = (r: { ok: boolean; message?: string }): string => {
 };
 
 test("kiemChinhSachMoi: đủ NĂM giá trị trong khoảng (kẹp lùi giờ khai 1…1440 — ADR-0050 VK1-A, BẮT BUỘC — I43); mốc KHÔNG tắt được (> 0 — chủ trả lời lần 9, GA-5); hợp đồng chỉ nhận false; không nhận ngày hiệu lực (I28); thiếu / sai kiểu → từ chối", () => {
-  const du = { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720 };
+  const du = { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720, acceptWaitMinutes: 10, autoConfirmTransfer: true };
   assert.deepEqual(kiemChinhSachMoi(du), { ok: true, value: du });
   assert.deepEqual(kiemChinhSachMoi({ ...du, minLeadMinutes: 1, warnLeadMinutes: 0, restMinutes: 0, requireManifest: false, requireContract: false, proxyBackdateMaxMinutes: 1 }), {
-    ok: true, value: { minLeadMinutes: 1, warnLeadMinutes: 0, restMinutes: 0, requireManifest: false, proxyBackdateMaxMinutes: 1, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720 },
+    ok: true, value: { minLeadMinutes: 1, warnLeadMinutes: 0, restMinutes: 0, requireManifest: false, proxyBackdateMaxMinutes: 1, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720, acceptWaitMinutes: 10, autoConfirmTransfer: true },
   });
   assert.deepEqual(kiemChinhSachMoi({ ...du, proxyBackdateMaxMinutes: 1440 }), { ok: true, value: { ...du, proxyBackdateMaxMinutes: 1440 } });
   for (const v of [0, 1441, -1, 1.5, "180", null]) assert.match(loi(kiemChinhSachMoi({ ...du, proxyBackdateMaxMinutes: v })), /khai lùi/, `kẹp lùi ${String(v)}`);
@@ -95,7 +95,7 @@ test("kiemLyDoMoi / kiemSuaLyDo: mã chữ HOA; nhóm thuộc NHOM_LY_DO (kiểm
 });
 
 test("VK2-B B1 (khuôn I43): thân THIẾU dutyDayMaxMinutes hoặc tripNoBreakMaxMinutes → 400 câu 'tải lại trang' (Review Focus 5); ngoài khoảng → 400; đủ → ok", () => {
-  const GOC = { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720 };
+  const GOC = { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720, acceptWaitMinutes: 10, autoConfirmTransfer: true };
   assert.equal(kiemChinhSachMoi(GOC).ok, true);
   for (const k of ["dutyDayMaxMinutes", "tripNoBreakMaxMinutes"] as const) {
     const { [k]: _bo, ...thieu } = GOC;
@@ -116,11 +116,25 @@ test("bù lệch I43 (0071 thêm cột bằng ADD COLUMN có DEFAULT): câu chè
 });
 
 test("ADR-0096 Đ2.3 (khuôn I43): thân THIẾU departureWindowMinutes → 400 'tải lại trang'; ngoài 60…2880 phút / không nguyên / chuỗi → 400; biên → ok; nhật ký ghi trước → sau", () => {
-  const GOC = { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720 };
+  const GOC = { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720, acceptWaitMinutes: 10, autoConfirmTransfer: true };
   const { departureWindowMinutes: _bo, ...thieu } = GOC;
   assert.match(loi(kiemChinhSachMoi(thieu)), /cửa sổ xuất bến.*tải lại trang/i);
   for (const v of [59, 2881, 90.5, "720", null]) assert.match(loi(kiemChinhSachMoi({ ...GOC, departureWindowMinutes: v })), /Cửa sổ xuất bến/, String(v));
   assert.equal(kiemChinhSachMoi({ ...GOC, departureWindowMinutes: 60 }).ok, true);
   assert.equal(kiemChinhSachMoi({ ...GOC, departureWindowMinutes: 2880 }).ok, true);
   assert.match(chiTietChinhSach(GOC, { ...GOC, departureWindowMinutes: 1440 }), /cửa sổ xuất bến 720 → 1440 phút/);
+});
+
+test("ADR-0111 Đ3 (c) / ADR-0052 D4.1 (khuôn I43): thân THIẾU acceptWaitMinutes hoặc autoConfirmTransfer → 'tải lại trang'; chờ ngoài 1…120 phút / không nguyên / công tắc không phải đúng-sai → từ chối; biên → ok; nhật ký trước → sau", () => {
+  const GOC = { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240,
+    departureWindowMinutes: 720, acceptWaitMinutes: 10, autoConfirmTransfer: true };
+  for (const k of ["acceptWaitMinutes", "autoConfirmTransfer"] as const) {
+    const { [k]: _bo, ...thieu } = GOC;
+    assert.match(loi(kiemChinhSachMoi(thieu)), /chuyển khách.*tải lại trang/i, k);
+  }
+  for (const v of [0, 121, 5.5, "10", null]) assert.match(loi(kiemChinhSachMoi({ ...GOC, acceptWaitMinutes: v })), /chờ tài xế xe nhận/i, String(v));
+  for (const v of [1, 0, "true", null]) assert.match(loi(kiemChinhSachMoi({ ...GOC, autoConfirmTransfer: v })), /tự đồng ý/i, String(v));
+  assert.equal(kiemChinhSachMoi({ ...GOC, acceptWaitMinutes: 1 }).ok, true);
+  assert.equal(kiemChinhSachMoi({ ...GOC, acceptWaitMinutes: 120, autoConfirmTransfer: false }).ok, true);
+  assert.match(chiTietChinhSach(GOC, { ...GOC, acceptWaitMinutes: 15, autoConfirmTransfer: false }), /chờ nhận chuyển khách 10 → 15 phút; tự đồng ý chuyển khách có → không/);
 });

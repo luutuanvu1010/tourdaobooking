@@ -156,6 +156,7 @@ export async function moCuaSoXuatBen48Gio() {
   const r = await call(toanQuyen, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", {
     minLeadMinutes: c.minLeadMinutes, warnLeadMinutes: c.warnLeadMinutes, restMinutes: c.restMinutes, requireManifest: c.requireManifest,
     proxyBackdateMaxMinutes: c.proxyBackdateMaxMinutes, dutyDayMaxMinutes: c.dutyDayMaxMinutes, tripNoBreakMaxMinutes: c.tripNoBreakMaxMinutes, departureWindowMinutes: 2880,
+    acceptWaitMinutes: c.acceptWaitMinutes, autoConfirmTransfer: c.autoConfirmTransfer,
   });
   if (r.status !== 201) throw new Error(`Không mở được cửa sổ xuất bến 48 giờ: ${r.status} ${JSON.stringify(r.body)}`);
   return c.departureWindowMinutes;
