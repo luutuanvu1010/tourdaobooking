@@ -1,5 +1,5 @@
 // Trang Địa điểm (chỉ quản trị viên): xem, thêm, sửa, ngưng dùng. Dữ liệu qua /api/locations; sửa có khoá lạc quan (expectedUpdatedAt).
-import { can } from "../src/shared/permissions";
+import { moTrang } from "../src/shared/muc-giao-dien";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { initShell, showError } from "./shell";
@@ -139,7 +139,8 @@ addForm.addEventListener("submit", async (e) => {
 // Form "Thêm địa điểm" mặc định ẩn trong HTML tĩnh: chỉ quản trị viên mới được thêm (máy chủ 403 với người khác), và danh sách
 // loại địa điểm của form cũng chỉ nạp được khi load() chạy.
 const staff = await initShell();
-if (!can(staff, "admin.manage")) showError(errorEl, "Chỉ quản trị viên được vào trang này.");
+// Chốt chặn của trang khai ở bảng mục (`TRANG.diaDiem.moTrang` — ô admin.manage): bảng và trang một nguồn, bài rào "mục hiện ⇔ trang mở được" đọc được.
+if (!moTrang("diaDiem", staff)) showError(errorEl, "Chỉ quản trị viên được vào trang này.");
 else {
   const addCard = document.getElementById("add-card"); // chịu được phần tử vắng: HTML cũ trong cache + JS mới không được làm hỏng cả trang
   if (addCard) addCard.hidden = false;

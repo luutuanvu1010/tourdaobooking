@@ -7,7 +7,7 @@
 import { nhomCuoc } from "../src/shared/tien-do-man";
 import { can } from "../src/shared/permissions";
 import type { CuocCuaToiResponse } from "../src/shared/contracts";
-import { coCuocCuaToi } from "../src/shared/start-page";
+import { moTrang } from "../src/shared/muc-giao-dien";
 import { addDays, vnToday } from "../src/shared/vn-date";
 import { api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
@@ -26,7 +26,8 @@ let tuBoSungTen = false;
 
 async function main(): Promise<void> {
   const staff = await initShell();
-  if (!coCuocCuaToi(staff)) return showError(errorEl, "Tài khoản này không có cuốc xe.");
+  // Chốt chặn của trang khai ở bảng mục (`TRANG.cuoc.moTrang` — tài xế công ty): đường gọi chính cho cả văn phòng, trang chỉ cho người lái.
+  if (!moTrang("cuoc", staff)) return showError(errorEl, "Tài khoản này không có cuốc xe.");
   daMo = true;
   tuBoSungTen = can(staff, "trip.passenger.add", { assigned: true });
   await veDanhSach();

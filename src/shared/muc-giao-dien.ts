@@ -2,11 +2,14 @@
 // lại TRANG ở đây). Thuần (không DOM): web/shell.ts, web/account.ts, src/shared/trang-chu-o.ts, bộ sinh kho trợ lý và bài node cùng đọc.
 //
 // Luật (bước K-c sổ đại lý đợt 1; neo Hiến chương K4 "một bản đồ quyền, mọi route hỏi can()" và web/CLAUDE.md "ẩn/hiện hỏi CÙNG bảng với máy chủ; máy chủ
-// luôn kiểm lại"): MỤC HIỆN ⇔ GỌI ĐƯỜNG CHÍNH CỦA TRANG BẰNG CHÍNH TÀI KHOẢN ĐÓ KHÔNG BỊ TỪ CHỐI. Rào máy: src/muc-hien-mo-duoc.test.ts (1024 tập quyền × mọi
-// dòng, gọi route thật qua khung thử). Ai thấy mục nào hôm nay ghim ở src/muc-giao-dien-hien-trang.test.ts.
+// luôn kiểm lại"): MỤC HIỆN ⇔ GỌI ĐƯỜNG CHÍNH CỦA TRANG BẰNG CHÍNH TÀI KHOẢN ĐÓ KHÔNG BỊ TỪ CHỐI và trang không tự chặn ở trình duyệt (`moTrang`). Rào
+// máy: src/muc-hien-mo-duoc-{1,2,3}.test.ts — luật và danh sách chờ chủ ở tests/audit/muc-hien-mo-duoc-khung.mjs (1024 tập quyền × mọi dòng, gọi route thật
+// qua khung thử). Ai thấy mục nào hôm nay ghim ở src/muc-giao-dien-hien-trang.test.ts.
 //
-// THÊM MỘT TRANG CÓ LỐI VÀO: một dòng ở TRANG (đường trang + ĐƯỜNG GỌI CHÍNH + ai thấy — hỏi `can()` / hàm danh tính có sẵn, không hỏi mã quyền thô), rồi một
-// dòng chỗ đặt ở mỗi nơi cần (chữ, nhóm, thứ tự — thứ tự thanh bên và trang Tôi khác nhau nên mỗi nơi một danh sách). Dòng mới tự vào cả hai bài.
+// THÊM MỘT TRANG CÓ LỐI VÀO: một dòng ở TRANG (đường trang + ĐƯỜNG GỌI CHÍNH + ai thấy — hỏi `can()` / hàm danh tính có sẵn, không hỏi mã quyền thô; trang tự
+// chặn ở trình duyệt chặt hơn đường gọi chính thì khai `moTrang` và cho trang gọi `moTrang(k, staff)`), rồi một dòng chỗ đặt ở mỗi nơi cần (chữ, nhóm, thứ
+// tự — thứ tự thanh bên và trang Tôi khác nhau nên mỗi nơi một danh sách). Dòng mới tự vào cả hai bài. Đủ việc khi thêm trang: docs/CHANGE-GUIDE.md công thức
+// "thêm trang".
 // Không có điều kiện nào ở web/shell.ts, web/account.ts: hai tệp đó chỉ vẽ danh sách hàm dưới đây trả về.
 import { thayDieuPhoiXe } from "./dieu-phoi-man.ts";
 import { can, isOffice, seesAllOrders, type PermissionHolder } from "./permissions.ts";
@@ -38,6 +41,11 @@ export interface TrangDich {
   readonly goi: GoiChinh | null;
   /** Ai thấy lối vào trang. */
   readonly hien: (s: PermissionHolder) => boolean;
+  /**
+   * Chốt chặn PHÍA TRÌNH DUYỆT của chính trang (trang tự báo lỗi / chuyển đi khi sai) — CHỈ khai khi nó CHẶT hơn đường gọi chính (máy chủ cho gọi mà trang vẫn
+   * không mở cho người đó). Trang phải dùng chính hàm này qua `moTrang(k, staff)` — bảng và trang là MỘT nguồn. Không khai ⇒ trang mở cho ai qua đường gọi chính.
+   */
+  readonly moTrang?: (s: PermissionHolder) => boolean;
   /** Khung tạm (chỉ bốn cờ của bản nhớ khung). Không khai ⇒ không vẽ ở khung tạm; khung thật vẽ sau một nhịp. */
   readonly tam?: (k: CoKhungNho) => boolean;
 }
@@ -64,7 +72,8 @@ export const TRANG = {
   // ADR-0071: ô account.view (Quản trị, Nhân sự, Toàn quyền). Bản nhớ khung không có cờ này (ADR-0035): khung tạm dùng `admin` — Nhân sự thiếu mục một nhịp.
   taiKhoan: { duong: "/staff", goi: "GET /api/staff", hien: (s) => can(s, "account.view"), tam: (k) => k.admin },
   phien: { duong: "/sessions", goi: "GET /api/sessions", hien: (s) => can(s, "auth.session.viewAll") }, // ADR-0075 điều 7
-  diaDiem: { duong: "/locations", goi: "GET /api/locations", hien: (s) => can(s, "admin.manage"), tam: (k) => k.admin },
+  // GET /api/locations mở cho mọi tài khoản (form đơn, form chuyến cần danh sách) — trang quản lý chỉ mở cho ô admin.manage (web/locations.ts).
+  diaDiem: { duong: "/locations", goi: "GET /api/locations", hien: (s) => can(s, "admin.manage"), moTrang: (s) => can(s, "admin.manage"), tam: (k) => k.admin },
   loaiGiayToNguoi: { duong: "/loai-giay-to-nguoi", goi: "GET /api/parties/documents/meta", hien: (s) => can(s, "admin.manage") },
   // Bảng điều phối (ADR-0049, Q-B-4): ô trip.view không ngữ cảnh — văn phòng.
   dieuPhoi: { duong: "/dieu-phoi", cungSang: ["/chuyen", "/chuyen-sua"], goi: "GET /api/van-chuyen/lich", hien: thayDieuPhoiXe },
@@ -89,9 +98,10 @@ export const TRANG = {
   guiThongBao: { duong: "/gui-thong-bao", goi: "GET /api/thong-bao/da-gui", hien: (s) => can(s, "notice.send") }, // ADR-0034
   troLy: { duong: "/tro-ly-cai-dat", goi: "GET /api/tro-ly/cai-dat", hien: (s) => can(s, "settings.ops") }, // ADR-0069 điều 1
   giaoDien: { duong: "/giao-dien", goi: "GET /api/giao-dien", hien: (s) => can(s, "settings.ops") }, // ADR-0087
-  // Trang đầu của tài khoản "chỉ tài xế" (ADR-0040 D3) — web/tai-xe.ts tự chuyển người khác về "/".
-  trangTaiXe: { duong: TRANG_DAU_TAI_XE, goi: "GET /api/parties/documents/mine", hien: chiTaiXe },
-  cuoc: { duong: TRANG_CUOC, cungSang: ["/cuoc-chuyen"], goi: "GET /api/van-chuyen/cuoc-cua-toi", hien: coCuocCuaToi }, // Q5: tài xế công ty
+  // Trang đầu của tài khoản "chỉ tài xế" (ADR-0040 D3) — web/tai-xe.ts tự chuyển người khác về "/"; giấy tờ của tôi (đường gọi chính) mở cho mọi nhân viên nội bộ.
+  trangTaiXe: { duong: TRANG_DAU_TAI_XE, goi: "GET /api/parties/documents/mine", hien: chiTaiXe, moTrang: chiTaiXe },
+  // Q5: tài xế công ty. Đường gọi chính cho cả văn phòng (ô trip.view mọi chuyến) — web/cuoc.ts báo "Tài khoản này không có cuốc xe." với người không lái.
+  cuoc: { duong: TRANG_CUOC, cungSang: ["/cuoc-chuyen"], goi: "GET /api/van-chuyen/cuoc-cua-toi", hien: coCuocCuaToi, moTrang: coCuocCuaToi },
   toi: { duong: "/account", goi: "GET /api/auth/me", hien: luonCo, tam: luonCo },
   gopY: { duong: "/feedback", goi: "GET /api/feedback/mine", hien: luonCo, tam: luonCo },
   troGiup: { duong: "/help", goi: "GET /api/auth/me", hien: luonCo, tam: luonCo },
@@ -244,6 +254,11 @@ export function coHien(c: ChoDat, n: NguoiXem): boolean {
   const t: TrangDich = TRANG[c.trang];
   if ("staff" in n) return t.hien(n.staff) && (c.chiKhi ? c.chiKhi.that(n.staff) : true);
   return (t.tam?.(n.khungNho) ?? false) && (c.chiKhi ? (c.chiKhi.tam?.(n.khungNho) ?? false) : true);
+}
+
+/** Trang `k` tự mở cho người này (chốt chặn phía trình duyệt — `moTrang`; trang không khai ⇒ đúng). web/locations.ts, web/cuoc.ts, web/tai-xe.ts gọi hàm này. */
+export function moTrang(k: KhoaTrang, s: PermissionHolder): boolean {
+  return (TRANG[k] as TrangDich).moTrang?.(s) ?? true;
 }
 
 /** Trang đang mở có làm sáng mục của trang `k` không (đường trang hoặc trang mở từ nó). */
