@@ -12,7 +12,7 @@
 // "thêm trang".
 // Không có điều kiện nào ở web/shell.ts, web/account.ts: hai tệp đó chỉ vẽ danh sách hàm dưới đây trả về.
 import { thayDieuPhoiXe } from "./dieu-phoi-man.ts";
-import { can, isOffice, seesAllOrders, type PermissionHolder } from "./permissions.ts";
+import { can, holdsPartner, isOffice, seesAllOrders, type PermissionHolder } from "./permissions.ts";
 import { TRANG_CUOC, TRANG_DAU_TAI_XE, chiTaiXe, coCuocCuaToi, coMucDonHang } from "./start-page.ts";
 
 /** Đường gọi chính của một trang: lời gọi mà trang cần để làm việc của nó (đọc, không ghi). Máy chủ không từ chối nó ⇔ trang mở được. */
@@ -94,6 +94,10 @@ export const TRANG = {
   lyDoDieuPhoi: { duong: "/ly-do-dieu-phoi", goi: "GET /api/van-chuyen/ly-do", hien: (s) => quanLyXe(s) && can(s, "admin.manage") },
   // Khoá sổ tháng (sổ đại lý đợt 1 Task 12): ô ledger.view không ngữ cảnh — Kế toán, Toàn quyền.
   khoaThang: { duong: "/khoa-thang", goi: "GET /api/ledger/ky", hien: (s) => can(s, "ledger.view") },
+  // Bảng mức hoa hồng và điều khoản người bán (sổ đại lý đợt 1 Task 10): ô partner.commission.view / supply.terms.view không ngữ cảnh. Bảy route `pricing` chặn THÊM tài khoản giữ quyền
+  // Đối tác (kể cả tài khoản lai, Ruling 12) — mục hiện phải chặn CÙNG điều kiện, nếu không tài khoản lai thấy mục mà bấm vào bị 403.
+  hoaHong: { duong: "/hoa-hong", goi: "GET /api/pricing/hoa-hong", hien: (s) => can(s, "partner.commission.view") && !holdsPartner(s) },
+  nguoiBan: { duong: "/nguoi-ban", goi: "GET /api/pricing/cung-ung", hien: (s) => can(s, "supply.terms.view") && !holdsPartner(s) },
   nhatKy: { duong: "/audit", goi: "GET /api/audit", hien: (s) => can(s, "audit.view") }, // ADR-0038 điều 6: chỉ Toàn quyền
   guiThongBao: { duong: "/gui-thong-bao", goi: "GET /api/thong-bao/da-gui", hien: (s) => can(s, "notice.send") }, // ADR-0034
   troLy: { duong: "/tro-ly-cai-dat", goi: "GET /api/tro-ly/cai-dat", hien: (s) => can(s, "settings.ops") }, // ADR-0069 điều 1
@@ -165,6 +169,8 @@ export const THANH_BEN = [
   { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "chinhSachDieuPhoi", nhan: "Chính sách điều phối" },
   { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "lyDoDieuPhoi", nhan: "Lý do điều phối" },
   { nhom: "QUẢN TRỊ", trang: "khoaThang", nhan: "Khoá sổ tháng", bieuTuong: "lock" },
+  { nhom: "QUẢN TRỊ", trang: "hoaHong", nhan: "Hoa hồng đối tác", bieuTuong: "money" },
+  { nhom: "QUẢN TRỊ", trang: "nguoiBan", nhan: "Người bán dịch vụ", bieuTuong: "assign" },
   { nhom: "QUẢN TRỊ", trang: "nhatKy", nhan: "Nhật ký", bieuTuong: "history" },
   { nhom: "QUẢN TRỊ", trang: "guiThongBao", nhan: "Gửi thông báo", bieuTuong: "megaphone" },
   { nhom: "QUẢN TRỊ", trang: "troLy", nhan: "Trợ lý Hỗ trợ", bieuTuong: "chat" },
@@ -237,6 +243,8 @@ export const TRANG_TOI = [
   { phan: "van-chuyen", trang: "chinhSachDieuPhoi", nhan: "Chính sách điều phối" },
   { phan: "van-chuyen", trang: "lyDoDieuPhoi", nhan: "Lý do điều phối" },
   { phan: "sau", trang: "khoaThang", nhan: "Khoá sổ tháng" },
+  { phan: "sau", trang: "hoaHong", nhan: "Hoa hồng đối tác" },
+  { phan: "sau", trang: "nguoiBan", nhan: "Người bán dịch vụ" },
   { phan: "sau", trang: "nhatKy", nhan: "Nhật ký" },
   { phan: "sau", trang: "phien", nhan: "Phiên đăng nhập" },
   { phan: "sau", trang: "guiThongBao", nhan: "Gửi thông báo" },
