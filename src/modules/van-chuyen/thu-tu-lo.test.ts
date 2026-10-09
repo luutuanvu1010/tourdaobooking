@@ -512,3 +512,37 @@ test("NT-A5-26, -28 (ADR-0111 Sửa chữ 1): lô xác nhận — đếm câu = 
     mo.forEach((i, j) => assert.equal(lo[i]!.stmt.args[2], lo[dong[j]!]!.stmt.args[0], "suất mở chép đúng suất vừa đóng"));
   }
 });
+
+/**
+ * MQ-09 (ADR-0052 D4.2 :79; ADR-0111 Đ5; kế hoạch G-A5-13, T9, NT-A5-13): lệnh làm điểm nguồn / chuyến nguồn hoặc đích đổi → đề nghị chuyển khách đang chờ liên
+ * quan thành VOID TRONG CÙNG LÔ (không sự kiện, không tin; vết ở closed_cmd_id): đúng MỘT câu tự huỷ, sau câu sự kiện, gác chuyến của lô, trước câu trạng thái
+ * cuối. Không có lệnh "Bỏ qua điểm" khi xe đang chạy (điểm chỉ bị bỏ qua trong lô của lệnh khác đã có ở đây / lệnh chưa chạy).
+ */
+const TU_HUY: Record<string, { cau: RegExp; doi: unknown }> = {
+  loDaToi: { cau: /^\s*UPDATE vc_transfer_request SET status = 'VOID'[\s\S]*scope = 'STOP' AND from_stop_id = \?1\b/, doi: "d-1" },
+  loBaoHuy: { cau: /^\s*UPDATE vc_transfer_request SET status = 'VOID'[\s\S]*from_stop_id = \(SELECT a\.board_stop_id FROM vc_trip_allocation a WHERE a\.id = \?1\)/, doi: "a-1" },
+  loDieuChinh: { cau: /^\s*UPDATE vc_transfer_request SET status = 'VOID'[\s\S]*from_stop_id = \(SELECT a\.board_stop_id FROM vc_trip_allocation a WHERE a\.id = \?1\)/, doi: "a-1" },
+  loKetThuc: { cau: /^\s*UPDATE vc_transfer_request SET status = 'VOID'[\s\S]*\(from_trip_id = \?1 OR to_trip_id = \?1\)/, doi: T },
+  loKetThucGianDoan: { cau: /^\s*UPDATE vc_transfer_request SET status = 'VOID'[\s\S]*\(from_trip_id = \?1 OR to_trip_id = \?1\)/, doi: T },
+  loHuy: { cau: /^\s*UPDATE vc_transfer_request SET status = 'VOID'[\s\S]*\(from_trip_id = \?1 OR to_trip_id = \?1\)/, doi: T },
+  loThuHoiXuatBen: { cau: /^\s*UPDATE vc_transfer_request SET status = 'VOID'[\s\S]*\(from_trip_id = \?1 OR to_trip_id = \?1\)/, doi: T },
+};
+test("NT-A5-13 (MQ-09): lô Đã tới / Báo huỷ / Điều chỉnh (theo điểm của suất) / Kết thúc / Kết thúc gián đoạn / Huỷ chuyến / Thu hồi xuất bến có ĐÚNG một câu tự huỷ đề nghị chờ, sau sự kiện, trước trạng thái cuối; lô khác không có", () => {
+  for (const ten of Object.keys(MAU)) {
+    const lo = (MOD[ten] as (db: unknown, l: unknown) => Cau[])(DB, MAU[ten]!.vao);
+    const vt = lo.flatMap((c, i) => (/^\s*UPDATE vc_transfer_request SET status = 'VOID'/.test(c.stmt.sql) ? [i] : []));
+    const k = TU_HUY[ten];
+    if (!k) {
+      // Lô xác nhận có câu tự huỷ RIÊNG theo P4 (G-A5-6) — đếm ở bài lô xác nhận.
+      if (ten !== "loXacNhanDeNghi") assert.equal(vt.length, 0, `${ten}: không có câu tự huỷ đề nghị`);
+      continue;
+    }
+    assert.equal(vt.length, 1, `${ten}: thiếu câu TRANSFERS_VOID_* (đúng một)`);
+    const c = lo[vt[0]!]!;
+    assert.match(c.stmt.sql, k.cau, `${ten}: câu tự huỷ sai phạm vi`);
+    assert.equal(c.stmt.args[0], k.doi, `${ten}: tự huỷ theo đúng điểm / suất / chuyến của lệnh`);
+    assert.ok(vt[0]! > lo.findIndex((x) => x.nhan === "SU_KIEN"), `${ten}: câu tự huỷ sau câu sự kiện`);
+    const cuoi = lo.findIndex((x) => x.nhan === "TRANG_THAI_CUOI");
+    if (cuoi >= 0) assert.ok(vt[0]! < cuoi, `${ten}: câu tự huỷ trước trạng thái cuối`);
+  }
+});

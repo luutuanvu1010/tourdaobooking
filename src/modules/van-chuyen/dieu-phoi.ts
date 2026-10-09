@@ -11,7 +11,7 @@ import {
   TRIP_CAM_KET_PHA_LE, TRIP_GATE_CHI_PHI, TRIP_GATE_DANG_CHAY, TRIP_GATE_DOI, TRIP_GATE_THEO_DON, TRIP_GATE_TIEN_DO, TRIP_INSERT, TRIP_KET_THUC, TRIP_UPDATE_PLAN, TRIP_XUAT_BEN,
   ALLOC_OFFICE_CANCEL, MANIFEST_THEM_SAU, TRIP_CHOT, TRIP_GATE_DANG_CHAY_VERSION, ALLOC_DIEU_CHINH_INSERT, EVENT_DIEU_CHINH_INSERT, TRIP_THU_HOI_XUAT_BEN,
   TRANSFER_DONG, TRANSFER_INSERT, TRIP_GATE_CHAY_HOAC_CHO, TRIP_GATE_DE_NGHI, TRIP_GATE_DOI_CHAY, TRANSFER_QUYET, TRANSFER_DUYET, TRANSFER_CHECK_INSERT,
-  TRANSFERS_VOID_KHAC, ALLOC_CLOSE_TRANSFER, ALLOC_OPEN_TRANSFER, STOP_SET_MOVED, MANIFEST_CHUYEN_KHACH,
+  TRANSFERS_VOID_KHAC, ALLOC_CLOSE_TRANSFER, ALLOC_OPEN_TRANSFER, STOP_SET_MOVED, MANIFEST_CHUYEN_KHACH, TRANSFERS_VOID_BY_STOP, TRANSFERS_VOID_BY_SUAT, TRANSFERS_VOID_BY_TRIP,
 } from "./chuyen-repo";
 import { cauChiPhi, type KeHoachChiPhi } from "./tien-xe-lo";
 import {
@@ -96,6 +96,12 @@ const cong = (db: D1Database, l: LenhChung, tripId: string, version: number): Ca
   stmt: db.prepare(TRIP_GATE).bind(tripId, version, l.cmd, l.lucIso, l.nguoiId),
 });
 const ghi = (stmt: D1PreparedStatement): CauCoNhan => ({ nhan: "GHI", stmt });
+/**
+ * MQ-09 (ADR-0111, kế hoạch G-A5-13 / T9): tự huỷ đề nghị chuyển khách đang chờ liên quan, trong lô của lệnh làm điểm / chuyến đổi — đứng SAU câu sự kiện,
+ * TRƯỚC câu trạng thái cuối; gác chuyến của lô. `theo`: điểm nguồn (Đã tới), điểm lên của suất (Báo huỷ, Điều chỉnh), chuyến là nguồn hoặc đích.
+ */
+const tuHuyDeNghi = (db: D1Database, l: LenhChung, theo: "DIEM" | "SUAT" | "CHUYEN", id: string, gac: string): CauCoNhan =>
+  ghi(db.prepare(theo === "DIEM" ? TRANSFERS_VOID_BY_STOP : theo === "SUAT" ? TRANSFERS_VOID_BY_SUAT : TRANSFERS_VOID_BY_TRIP).bind(id, l.cmd, l.lucIso, l.nguoiId, gac));
 /**
  * Cột phá lệ cam kết của chuyến sau lệnh (ADR-0056 VK3-A; kế hoạch C6–C8): `{ lyDo, khoa }` = ghi (Quản trị phá lệ tập vi phạm hiện tại); `{ null, null }` = xoá
  * (lệnh kiểm thấy hết vi phạm mà cột đang có). `null` ở lệnh = không chạm cột.
@@ -340,6 +346,7 @@ export function loHuy(db: D1Database, l: LenhHuy): CauCoNhan[] {
     ghi(db.prepare(ALLOCS_CLOSE_ALL).bind(l.tripId, l.cmd, LENH_DONG_SUAT.HUY_CO_KHACH, l.lucIso, l.nguoiId)),
     ghi(db.prepare(DRIVER_CLOSE).bind(l.tripId, l.cmd, "TRIP_CANCELLED", l.lucIso, l.nguoiId)),
     ghi(db.prepare(STOPS_SKIP_ALL).bind(l.tripId, l.cmd, l.lyDo, l.lucIso, l.nguoiId)),
+    tuHuyDeNghi(db, l, "CHUYEN", l.tripId, l.tripId),
     ...cauChiPhi(db, l, l.tripId, l.chiPhi).dao,
     { nhan: "TRANG_THAI_CUOI", stmt: db.prepare(TRIP_CANCEL).bind(l.tripId, l.cmd, l.lyDo, l.lucIso, l.nguoiId) },
   ];
@@ -430,6 +437,7 @@ export function loBaoHuy(db: D1Database, l: LenhBaoHuy): CauCoNhan[] {
     nhatKy(db, l, "trip_allocation_office_cancelled", l.tripId, l.detail),
     suKien(db, l, { tripId: l.tripId, loai: "ALLOCATION_OFFICE_CANCELLED", allocationId: l.suatId, soNguoi: 1 }),
     ghi(db.prepare(ALLOC_OFFICE_CANCEL).bind(l.suatId, l.tripId, l.cmd, l.lucIso, l.nguoiId, l.lyDo)),
+    tuHuyDeNghi(db, l, "SUAT", l.suatId, l.tripId),
   ];
 }
 
@@ -498,6 +506,7 @@ export function loDieuChinh(db: D1Database, l: LenhDieuChinh): CauCoNhan[] {
     ghi(db.prepare(ALLOC_DIEU_CHINH_INSERT).bind(l.suatMoiId, l.tripId, l.suatId, l.trangThaiMoi, l.cmd, l.lucIso, l.nguoiId)),
     ...(l.passengerRowId ? [ghi(db.prepare(MANIFEST_THEM_SAU).bind(crypto.randomUUID(), l.tripId, l.suatMoiId, l.passengerRowId, l.lucIso, l.nguoiId, l.cmd))] : []),
     ...l.diemXet.map((d) => xongNeuHet(db, l, l.tripId, d, xayRa)),
+    tuHuyDeNghi(db, l, "SUAT", l.suatId, l.tripId),
     { nhan: "TRANG_THAI_CUOI", stmt: db.prepare(TRIP_CHOT).bind(l.tripId, l.cmd) },
   ];
 }
@@ -516,6 +525,7 @@ export function loThuHoiXuatBen(db: D1Database, l: LenhThuHoiXuatBen): CauCoNhan
     congDangChayVersion(db, l, l.tripId, l.version),
     nhatKy(db, l, "trip_departure_revoked", l.tripId, l.detail),
     suKienDieuChinh(db, l, l.tripId, "DEPARTURE_REVOKED", null, l.lyDo),
+    tuHuyDeNghi(db, l, "CHUYEN", l.tripId, l.tripId),
     { nhan: "TRANG_THAI_CUOI", stmt: db.prepare(TRIP_THU_HOI_XUAT_BEN).bind(l.tripId, l.cmd, l.lucIso, l.nguoiId) },
   ];
 }
@@ -670,6 +680,7 @@ export function loDaToi(db: D1Database, l: LenhDaToi): CauCoNhan[] {
     nhatKy(db, l, "trip_stop_arrived", l.tripId, l.detail),
     suKienTienDo(db, l, { tripId: l.tripId, loai: "STOP_ARRIVED", stopId: l.stopId, xayRa: l.xayRa, policyId: l.policyId }),
     xongNeuHet(db, l, l.tripId, l.stopId, l.xayRa),
+    tuHuyDeNghi(db, l, "DIEM", l.stopId, l.tripId),
   ];
 }
 
@@ -718,6 +729,7 @@ export function loKetThuc(db: D1Database, l: LenhKetThuc): CauCoNhan[] {
     congDangChay(db, l, l.tripId),
     nhatKy(db, l, "trip_ended", l.tripId, l.detail),
     suKienTienDo(db, l, { tripId: l.tripId, loai: "ENDED", xayRa: l.xayRa, policyId: l.policyId }),
+    tuHuyDeNghi(db, l, "CHUYEN", l.tripId, l.tripId),
     { nhan: "TRANG_THAI_CUOI", stmt: db.prepare(TRIP_KET_THUC).bind(l.tripId, l.cmd, "ENDED", null, l.xayRa.iso, l.xayRa.ms, l.lucIso, l.nguoiId) },
   ];
 }
@@ -738,6 +750,7 @@ export function loKetThucGianDoan(db: D1Database, l: LenhKetThucGianDoan): CauCo
     suKienTienDo(db, l, { tripId: l.tripId, loai: "ENDED_INTERRUPTED", soNguoi: l.soSuatDong, xayRa: l.xayRa, policyId: l.policyId }),
     ghi(db.prepare(ALLOCS_DONG_GIAN_DOAN).bind(l.tripId, l.cmd, l.lucIso, l.nguoiId)),
     ghi(db.prepare(STOPS_SKIP_ALL).bind(l.tripId, l.cmd, l.lyDo, l.lucIso, l.nguoiId)),
+    tuHuyDeNghi(db, l, "CHUYEN", l.tripId, l.tripId),
     { nhan: "TRANG_THAI_CUOI", stmt: db.prepare(TRIP_KET_THUC).bind(l.tripId, l.cmd, "ENDED_INTERRUPTED", l.lyDo, l.xayRa.iso, l.xayRa.ms, l.lucIso, l.nguoiId) },
   ];
 }

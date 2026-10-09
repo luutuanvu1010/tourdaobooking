@@ -356,7 +356,7 @@ test("NT-A5-12, -29 đơn huỷ sau khi xếp: chặng không còn hiệu lực 
     const dto = (await w.call("GET", `${VC}/de-nghi?ngay=${NGAY}`, { as: ADM })).json.deNghi.find((x: any) => x.id === id);
     assert.equal(dto.hop, "CHI_BAC");
     const soKiem = mot(w, "SELECT count(*) AS n FROM vc_transfer_check").n;
-    tat409(await duyet(w, id, "PHA_LE_SU_CO"), "ck_chi_bac");
+    tat409(await duyet(w, id, "PHA_LE_SU_CO"), "luat_loi_khong_duyet");
     assert.equal(mot(w, "SELECT count(*) AS n FROM vc_transfer_check").n, soKiem, "duyệt bị chặn: không ghi gì");
     assert.equal(mot(w, "SELECT status FROM vc_transfer_request WHERE id = ?", id).status, "ESCALATED");
     for (const as of [SALES, ACC, DRIVER, DRIVER2]) assert.equal((await bac(w, id, "TU_CHOI_KHAC", as)).status, 403, as);
@@ -484,5 +484,47 @@ test("NT-A5-24 tắt công tắc tự đồng ý SAU khi gửi: Nhận → leo t
     assert.equal(Date.parse(r.json.deNghi.hanLuc) - Date.parse(r.json.deNghi.guiLuc), 10 * 60_000);
   } finally {
     tat();
+  }
+});
+
+test("NT-A5-13 (MQ-09) tự huỷ: xe nhờ Đã tới điểm nguồn → đề nghị Chờ VÀ Leo thang của điểm đó thành VOID trong lô Đã tới (không sự kiện riêng); Nhận / Duyệt sau đó → 409 da_huy; huỷ xe nhận → đề nghị Chờ tới xe đó VOID", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const { a, b } = await haiXe(w);
+    const cho = await guiDiem(w, a, b);
+    const leo = await guiDiem(w, a, b);
+    const r = await nhan(w, leo);
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.ketQua, "LEO_THANG", "B chưa chạy, dưới mốc ⇒ leo thang");
+    const truoc = mot(w, "SELECT count(*) AS n FROM vc_trip_event").n;
+    denGio("13:00");
+    assert.equal((await tienDo(w, "tai-xe", a.id, `diem/${a.diemDon}/da-toi`)).status, 200);
+    const cmdA = mot(w, "SELECT last_cmd_id FROM vc_trip WHERE id = ?", a.id).last_cmd_id;
+    assert.deepEqual(ds(w, "SELECT status, closed_cmd_id FROM vc_transfer_request WHERE id IN (?, ?)", cho, leo), [
+      { status: "VOID", closed_cmd_id: cmdA },
+      { status: "VOID", closed_cmd_id: cmdA },
+    ]);
+    assert.equal(mot(w, "SELECT count(*) AS n FROM vc_trip_event").n, truoc + 1, "chỉ sự kiện STOP_ARRIVED của lô Đã tới");
+    tat409(await nhan(w, cho), "da_huy");
+    tat409(await duyet(w, leo, "PHA_LE_SU_CO"), "da_huy");
+  } finally {
+    tat();
+  }
+  const tat2 = batDongHo();
+  try {
+    // Phía xe nhận (thế giới mới): đề nghị Chờ tới B, rồi văn phòng huỷ B ⇒ VOID trong lô huỷ.
+    const w = setup();
+    const { a, b } = await haiXe(w);
+    const g = { json: { deNghi: { id: await guiDiem(w, a, b) } } };
+    const vB = mot(w, "SELECT version FROM vc_trip WHERE id = ?", b.id).version;
+    const h = await w.call("POST", `${VC}/chuyen/${b.id}/huy`, { as: SALES, body: { version: vB, requestId: uuid(), lyDo: "HUY_KHAC", phaLe: { lyDo: "PHA_LE_SU_CO" } } });
+    assert.equal(h.status, 200, h.text);
+    assert.deepEqual({ ...mot(w, "SELECT status, closed_cmd_id FROM vc_transfer_request WHERE id = ?", g.json.deNghi.id) },
+      { status: "VOID", closed_cmd_id: mot(w, "SELECT last_cmd_id FROM vc_trip WHERE id = ?", b.id).last_cmd_id });
+    assert.equal((await nhan(w, g.json.deNghi.id)).status, 404, "chuyến huỷ đã đóng tài xế: DRIVER2 không còn lái B");
+    assert.equal(mot(w, "SELECT count(*) AS n FROM vc_trip_event WHERE kind LIKE 'TRANSFER_%' AND kind <> 'TRANSFER_SENT'").n, 0, "tự huỷ không có sự kiện riêng");
+  } finally {
+    tat2();
   }
 });

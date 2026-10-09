@@ -194,7 +194,7 @@ export interface ChangChoDeNghi {
 }
 export const DE_NGHI_DA_HUY = () => loi409("da_huy", [], {}, "Đề nghị đã huỷ (khách đã chuyển sang xe khác hoặc chuyến đã đổi) — tải lại.");
 const KHACH_DA_DOI = () => loi409("ck_khach_doi", [], {}, "Khách của đề nghị đã đổi từ lúc gửi — tải lại; xe nhờ gửi đề nghị mới nếu còn cần.");
-const CHI_BAC = () => loi409("ck_chi_bac", [], {}, "Đề nghị có điều kiện bắt buộc không đạt — chỉ Bác được.");
+const CHI_BAC = () => loi409("luat_loi_khong_duyet", [], {}, "Đề nghị có điều kiện bắt buộc không đạt — chỉ Bác được.");
 const KHONG_CO_CHINH_SACH = () => loi409("ck_chua_co_chinh_sach", [], {}, "Chưa có chính sách điều phối hiện hành.");
 const dangChiemCho = (a: AllocRow) => a.valid_to_at === null && (a.status === "WAITING" || a.status === "BOARDED");
 

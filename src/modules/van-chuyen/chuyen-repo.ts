@@ -799,6 +799,33 @@ export const TRANSFERS_VOID_KHAC = defineSql(
      AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?7 AND last_cmd_id = ?4)`,
 );
 /**
+ * MQ-09 (ADR-0052 :79; kế hoạch G-A5-13): tự huỷ đề nghị chờ (Chờ / Leo thang) trong lô của lệnh KHÁC làm điểm nguồn / chuyến đổi. Không sự kiện, không tin;
+ * vết ở closed_cmd_id (trigger ck_trong_lo: dấu lệnh của xe nhờ hoặc xe nhận). Ba phạm vi:
+ *   - THEO ĐIỂM (Đã tới): đề nghị STOP của điểm ?1;
+ *   - THEO SUẤT (Báo huỷ, Điều chỉnh): đề nghị STOP của điểm lên của suất ?1 (tập khách của điểm đổi);
+ *   - THEO CHUYẾN (Kết thúc, Kết thúc gián đoạn, Huỷ, Thu hồi xuất bến): mọi đề nghị có chuyến ?1 là nguồn hoặc đích.
+ * ?2 dấu lệnh, ?3 lúc, ?4 người, ?5 chuyến gác (chuyến của lô).
+ */
+export const TRANSFERS_VOID_BY_STOP = defineSql(
+  "van-chuyen",
+  "transfers_void_by_stop",
+  `UPDATE vc_transfer_request SET status = 'VOID', closed_cmd_id = ?2, updated_at = ?3, updated_by = ?4
+   WHERE scope = 'STOP' AND from_stop_id = ?1 AND status IN ('PENDING', 'ESCALATED') AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?5 AND last_cmd_id = ?2)`,
+);
+export const TRANSFERS_VOID_BY_SUAT = defineSql(
+  "van-chuyen",
+  "transfers_void_by_suat",
+  `UPDATE vc_transfer_request SET status = 'VOID', closed_cmd_id = ?2, updated_at = ?3, updated_by = ?4
+   WHERE scope = 'STOP' AND from_stop_id = (SELECT a.board_stop_id FROM vc_trip_allocation a WHERE a.id = ?1) AND status IN ('PENDING', 'ESCALATED')
+     AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?5 AND last_cmd_id = ?2)`,
+);
+export const TRANSFERS_VOID_BY_TRIP = defineSql(
+  "van-chuyen",
+  "transfers_void_by_trip",
+  `UPDATE vc_transfer_request SET status = 'VOID', closed_cmd_id = ?2, updated_at = ?3, updated_by = ?4
+   WHERE (from_trip_id = ?1 OR to_trip_id = ?1) AND status IN ('PENDING', 'ESCALATED') AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?5 AND last_cmd_id = ?2)`,
+);
+/**
  * Một dòng kiểm của lần bấm (trước câu đổi trạng thái đề nghị). Chính sách = dòng hiện hành lúc kiểm (đọc trong câu). ?1 id, ?2 đề nghị, ?3 dấu lệnh, ?4 mã
  * điều kiện, ?5 tầng (máy chủ — trigger so với danh mục), ?6 kết quả, ?7 giá trị, ?8 giới hạn, ?9 lúc, ?10 người, ?11 chuyến gác (đích).
  */
