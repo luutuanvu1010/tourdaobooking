@@ -1546,6 +1546,10 @@ export type KetQuaDeNghi = "DA_GUI" | "DA_RUT" | "KHONG_NHAN" | "DA_CHUYEN" | "L
 export interface DeNghiLenhResponse { ketQua: KetQuaDeNghi; deNghi: DeNghiDto }
 /** `GET /api/van-chuyen/de-nghi-cua-toi`: đề nghị của chuyến tài xế đang lái (hôm nay / đang chạy) — gửi đi (xe nhờ) và gửi tới (xe nhận). */
 export interface DeNghiCuaToiResponse { guiDi: DeNghiDto[]; guiToi: DeNghiDto[] }
+/** `GET /api/van-chuyen/de-nghi?ngay=` (văn phòng, trip.view): đề nghị của các chuyến chạy ngày `ngay` — kèm dòng kiểm lần bấm gần nhất + hộp duyệt (Leo thang). */
+export interface DeNghiNgayResponse { ngay: string; deNghi: DeNghiDto[] }
+/** Thân Không nhận / Duyệt / Bác: mã lệnh + MÃ lý do (Không nhận, Bác: nhóm TU_CHOI_NHAN; Duyệt: nhóm PHA_LE). Nhận: chỉ mã lệnh. */
+export interface LyDoDeNghiRequest { requestId: string; lyDo: string }
 /** `POST …/cuoc-cua-toi/:id/de-nghi`, `POST …/chuyen/:id/cuu-ho` (văn phòng gửi thay — chỉ ONBOARD). */
 export interface GuiDeNghiRequest {
   requestId: string;

@@ -49,7 +49,7 @@ export const LOAI_SU_KIEN_CHUYEN = [
   // ADR-0104 Đ2.9: máy cập nhật chuyến theo đơn — lô của lệnh đơn (huỷ đơn, bỏ chặng, sửa khách / số khách) đóng / mở suất trên chuyến chưa chạy.
   "ALLOCATION_ORDER_SYNCED",
   // ADR-0111 (gói A5 — thi hành ADR-0052 D4): đề nghị chuyển khách giữa hai xe — ghi ở chuyến ĐÍCH, chuyến nguồn ở related_trip_id (G-A5-25).
-  "TRANSFER_SENT", "TRANSFER_WITHDRAWN",
+  "TRANSFER_SENT", "TRANSFER_WITHDRAWN", "TRANSFER_DECLINED", "TRANSFER_EXPIRED", "TRANSFER_ESCALATED", "TRANSFER_CONFIRMED", "TRANSFER_REJECTED",
 ] as const;
 export type LoaiSuKienChuyen = (typeof LOAI_SU_KIEN_CHUYEN)[number];
 export const NHAN_SU_KIEN_CHUYEN: Readonly<Record<LoaiSuKienChuyen, string>> = {
@@ -78,6 +78,11 @@ export const NHAN_SU_KIEN_CHUYEN: Readonly<Record<LoaiSuKienChuyen, string>> = {
   ALLOCATION_ORDER_SYNCED: "Máy cập nhật chuyến theo đơn",
   TRANSFER_SENT: "Gửi đề nghị chuyển khách",
   TRANSFER_WITHDRAWN: "Rút đề nghị chuyển khách",
+  TRANSFER_DECLINED: "Xe nhận không nhận khách",
+  TRANSFER_EXPIRED: "Đề nghị chuyển khách hết giờ chờ",
+  TRANSFER_ESCALATED: "Đề nghị chuyển khách chờ văn phòng duyệt",
+  TRANSFER_CONFIRMED: "Chuyển khách sang xe khác",
+  TRANSFER_REJECTED: "Văn phòng không duyệt đề nghị chuyển khách",
 };
 
 /**

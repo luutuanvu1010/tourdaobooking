@@ -153,6 +153,11 @@ export const AUDIT_ACTIONS = {
   // đạt (không tên khách, năm sinh, SĐT, chữ nơi gặp, khoá nơi — LC-18).
   trip_transfer_sent: { label: "Gửi đề nghị chuyển khách", group: "trip" },
   trip_transfer_withdrawn: { label: "Rút đề nghị chuyển khách", group: "trip" },
+  trip_transfer_declined: { label: "Xe nhận không nhận khách", group: "trip" },
+  trip_transfer_expired: { label: "Đề nghị chuyển khách hết giờ chờ", group: "trip" },
+  trip_transfer_escalated: { label: "Đề nghị chuyển khách chờ văn phòng duyệt", group: "trip" },
+  trip_transfer_confirmed: { label: "Chuyển khách sang xe khác", group: "trip" },
+  trip_transfer_rejected: { label: "Văn phòng không duyệt đề nghị chuyển khách", group: "trip" },
   // ADR-0051 GB1: mốc giờ hẹn của chặng — orderId NULL (I17); detail danh sách trắng (mã đơn, chiều, "giờ hẹn đón A → B", mã chuyến).
   trip_appt_called: { label: "Đã gọi báo khách giờ hẹn mới", group: "trip" },
   trip_appt_call_undone: { label: "Bỏ đánh dấu đã gọi báo", group: "trip" },

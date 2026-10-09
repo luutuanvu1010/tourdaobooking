@@ -42,6 +42,11 @@ const CHI_PHI = { dao: [DAO_AM, DAO_DUONG], chup: CHUP, phienBan: 2, daoDieuChin
 // ADR-0056 VK3-A (Đợt 7 Task 4): câu ghi / xoá cột phá lệ cam kết của chuyến — nhãn CAM_KET_PHA_LE.
 const CAM_KET_GHI = { lyDo: "PHA_LE_SU_CO", khoa: "xe:x-1|leg-1:XR:1:-|leg-2:XR:0:-" };
 const CAM_KET_XOA = { lyDo: null, khoa: null };
+// ADR-0111 (gói A5): dòng kiểm của lần bấm Nhận / Duyệt.
+const KIEM_MAU = [
+  { ma: "SUC_CHUA_DICH", tang: "LOI", ketQua: "DAT", giaTri: 4, gioiHan: 15 },
+  { ma: "MOC_TOI_THIEU", tang: "CAU_HINH", ketQua: "KHONG_DAT", giaTri: 50, gioiHan: 360 },
+];
 
 // ADR-0104 Đ2 — mẫu lô đồng bộ theo đơn: câu orders đã soạn (giả) + hai khúc chuyến.
 const AUDIT_DON = "a0000000-0000-4000-8000-0000000000d0";
@@ -131,6 +136,20 @@ const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
     gac: T2,
   },
   loRutDeNghi: { vao: { ...L, deNghi: { id: "rq-1", tuChuyen: T, denChuyen: T2 }, soKhach: 3, detail: "d" }, gac: T2 },
+  loKhongNhanDeNghi: { vao: { ...L, deNghi: { id: "rq-1", tuChuyen: T, denChuyen: T2 }, taiXePartyId: "p-tx2", lyDo: "TU_CHOI_DAY_CHO", soKhach: 3, detail: "d" }, gac: T2 },
+  loHetHanDeNghi: { vao: { ...L, deNghi: { id: "rq-1", tuChuyen: T, denChuyen: T2 }, soKhach: 3, detail: "d" }, gac: T2 },
+  loLeoThangDeNghi: { vao: { ...L, deNghi: { id: "rq-1", tuChuyen: T, denChuyen: T2 }, taiXePartyId: "p-tx2", kiem: KIEM_MAU, soKhach: 3, detail: "d" }, gac: T2 },
+  // Lô xác nhận: cổng xe nhờ (T) rồi CONG_DOI xe nhận (T2); mọi câu sau gác T2. Đủ nhánh: điểm mới, sắp lại, hai cặp đóng / mở, điểm nguồn MOVED, bản chốt, cam kết.
+  loXacNhanDeNghi: {
+    vao: {
+      ...L, deNghi: { id: "rq-1", tuChuyen: T, denChuyen: T2 }, nguonVersion: 7, dichVersion: 5, quyet: { kieu: "MAY", taiXePartyId: "p-tx2" }, kiem: KIEM_MAU,
+      diemMoi: [diem("d-9", T2)], doiThuTu: [{ id: "d-8", seq: 4 }], dichDangChay: true,
+      cap: [{ dongId: "a-1", moId: "a-8", len: "d-9", xuong: "d-8" }, { dongId: "a-2", moId: "a-9", len: "d-9", xuong: "d-8" }], diemNguon: "d-1",
+      chot: [{ allocationId: "a-8", passengerRowId: "pr-1", crewPartyId: null }], camKetDich: CAM_KET_GHI, detail: "d",
+    },
+    gac: T2,
+  },
+  loBacDeNghi: { vao: { ...L, deNghi: { id: "rq-1", tuChuyen: T, denChuyen: T2 }, lyDo: "TU_CHOI_KHAC", soKhach: 3, detail: "d" }, gac: T2 },
   lenhDaGoiBao: { vao: { ...L, legId: "leg-1", phienBan: 1, moi: { ngay: "2027-03-11", gio: "09:15" }, cu: { ngay: "2027-03-11", gio: "09:00" }, tripId: T, detail: "d" }, gac: T },
   lenhBoDanhDauGoiBao: {
     vao: { ...L, legId: "leg-1", phienBan: 2, moi: { ngay: "2027-03-11", gio: "09:00" }, cu: { ngay: "2027-03-11", gio: "09:15" }, tripId: T, detail: "d", banChup: "null" }, gac: T,
@@ -415,7 +434,7 @@ test("D5.3a (Đợt 5): loCapNhatDiem trên xe ĐANG CHẠY — cổng có versi
 
 test("Đợt 7 Task 4 (ADR-0056 VK3-A): câu ghi / xoá cột phá lệ cam kết mang nhãn CAM_KET_PHA_LE, đứng SAU nhật ký, TRƯỚC câu trạng thái cuối; mọi câu chạm commitment_override_* đều mang nhãn; lô dời: xoá nguồn + ghi đích, cùng gác chuyến ĐÍCH", () => {
   // Task 5: lệnh giảm khách + cổng xuất bến chỉ XOÁ (C7).
-  const CO_CAM_KET = ["loXep", "loSuaChuyen", "loDoi", "loThemDiemDangChay", "loRut", "loCapNhatDiem", "loCapNhatKhach", "loXuatBen", "loDongBoChuyen"];
+  const CO_CAM_KET = ["loXep", "loSuaChuyen", "loDoi", "loThemDiemDangChay", "loRut", "loCapNhatDiem", "loCapNhatKhach", "loXuatBen", "loDongBoChuyen", "loXacNhanDeNghi"];
   for (const ten of Object.keys(MAU)) {
     const lo = (MOD[ten] as (db: unknown, l: unknown) => Cau[])(DB, MAU[ten]!.vao);
     const sai = lo.filter((c) => /commitment_override/.test(c.stmt.sql) !== (c.nhan === "CAM_KET_PHA_LE"));
@@ -461,4 +480,35 @@ test("Đợt 7 Task 5 (C7): lô rút / cập nhật khách / cập nhật điể
   const chay = (MOD.loCapNhatDiem as (db: unknown, l: unknown) => Cau[])(DB, { ...MAU.loCapNhatDiem!.vao, diemBoQua: [], dangChay: true });
   assert.deepEqual(viPhamLo("loCapNhatDiem(dangChay, camKet)", chay, T), []);
   assert.equal(chay[chay.length - 1]!.nhan, "TRANG_THAI_CUOI");
+});
+
+test("NT-A5-26, -28 (ADR-0111 Sửa chữ 1): lô xác nhận — đếm câu = 4 + K + 1 + D + R + 2N (+N bản chốt) + 1 (MOVED, STOP) + 1 (tự huỷ) + cam kết; dòng kiểm TRƯỚC câu đổi trạng thái đề nghị; thêm điểm → sắp lại → (đóng xe nhờ, mở xe nhận) theo cặp; MỖI suất đúng một INSERT", () => {
+  const f = MOD.loXacNhanDeNghi as (db: unknown, l: unknown) => Cau[];
+  for (const n of [1, 16, 45]) {
+    const cap = Array.from({ length: n }, (_x, i) => ({ dongId: `a-${i}`, moId: `m-${i}`, len: "d-9", xuong: "d-8" }));
+    const chot = cap.map((c) => ({ allocationId: c.moId, passengerRowId: `pr-${c.dongId}`, crewPartyId: null }));
+    const vao = { ...MAU.loXacNhanDeNghi!.vao, cap, chot } as Record<string, unknown> & { kiem: unknown[]; diemMoi: unknown[]; doiThuTu: unknown[] };
+    const lo = f(DB, vao);
+    assert.deepEqual(viPhamLo(`loXacNhanDeNghi(N=${n})`, lo, T2), []);
+    const K = vao.kiem.length;
+    const D = vao.diemMoi.length;
+    const R = vao.doiThuTu.length;
+    assert.equal(lo.length, 4 + K + 1 + D + R + 2 * n + n + 1 + 1 + 1, `N=${n}: số câu`);
+    const vt = (re: RegExp) => lo.flatMap((c, i) => (re.test(c.stmt.sql) ? [i] : []));
+    const kiem = vt(/^\s*INSERT INTO vc_transfer_check\b/);
+    const doiTrangThai = vt(/^\s*UPDATE vc_transfer_request SET status = \?2, decided_mode/);
+    const themDiem = vt(/^\s*INSERT INTO vc_trip_stop\b/);
+    const sapLai = vt(/^\s*UPDATE vc_trip_stop SET seq = \?4/);
+    const dong = vt(/^\s*UPDATE vc_trip_allocation SET valid_to_at = \?4, close_reason = 'TRANSFERRED'/);
+    const mo = vt(/^\s*INSERT INTO vc_trip_allocation\b/);
+    const suKien = vt(/^\s*INSERT INTO vc_trip_event\b/);
+    assert.equal(kiem.length, K);
+    assert.equal(doiTrangThai.length, 1);
+    assert.equal(suKien.length, 1);
+    assert.ok(suKien[0]! < kiem[0]! && Math.max(...kiem) < doiTrangThai[0]!, "sự kiện → dòng kiểm → đổi trạng thái đề nghị");
+    assert.ok(doiTrangThai[0]! < Math.min(...themDiem) && Math.max(...themDiem) < Math.min(...sapLai) && Math.max(...sapLai) < dong[0]!, "đề nghị CONFIRMED → thêm điểm → sắp lại → cặp suất");
+    assert.equal(mo.length, n, "mỗi suất đúng một câu INSERT mở suất");
+    assert.deepEqual(mo.map((i) => i - 1), dong, "mở suất đứng NGAY sau câu đóng suất của nó");
+    mo.forEach((i, j) => assert.equal(lo[i]!.stmt.args[2], lo[dong[j]!]!.stmt.args[0], "suất mở chép đúng suất vừa đóng"));
+  }
 });

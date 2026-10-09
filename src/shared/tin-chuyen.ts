@@ -12,7 +12,9 @@ import { msToVnLocal, ngayNgan } from "./vn-date.ts";
  */
 export const HANH_DONG_TIN_KHACH = ["trip_allocated", "trip_allocation_removed", "trip_allocation_moved"] as const;
 /** ADR-0111 (gói A5): hành động đề nghị chuyển khách CÓ tin (rút lại không có). Sự kiện ghi ở xe nhận; xe nhờ ở `related_trip_id` (đường tin riêng — T10). */
-const HANH_DONG_TIN_CHUYEN_KHACH_CO = ["trip_transfer_sent"] as const;
+const HANH_DONG_TIN_CHUYEN_KHACH_CO = [
+  "trip_transfer_sent", "trip_transfer_declined", "trip_transfer_expired", "trip_transfer_escalated", "trip_transfer_confirmed", "trip_transfer_rejected",
+] as const;
 export const HANH_DONG_TIN_CHUYEN = [
   "trip_created", "trip_edited", "trip_cancelled", "trip_ended_interrupted", "trip_passenger_no_show",
   // Vận chuyển Đợt 5 (ADR-0052 D5, D6): văn phòng thay đổi xe ĐANG CHẠY → tài xế đang lái nhận tin. `trip_stops_synced` CHỈ khi chuyến đã xuất bến lúc sự kiện.
@@ -285,6 +287,9 @@ const THAY_DOI_CUA: Record<string, ThayDoiChuyen> = {
   trip_allocation_corrected: "xe_chay", trip_departure_revoked: "sua",
   // ADR-0104 Đ2.10: máy đồng bộ chuyến theo đơn — loại "cập nhật" (khuôn trip_passengers_synced; kế hoạch T2.15).
   trip_order_synced: "cap_nhat",
+  // ADR-0111 (gói A5): khách sang xe khác = "doi" (khuôn dời); vòng đời đề nghị còn lại "sua" (mặc định) — leo thang KHÔNG "doi": "doi" thuộc nhóm chỉ-tài-xế
+  // (THAY_DOI_CHI_TAI_XE) nên máy văn phòng sẽ không gọi lại và người duyệt lỡ tin "cần duyệt".
+  trip_transfer_confirmed: "doi",
 };
 /** `dangChay` (Đợt 5): chuyến đã xuất bến lúc sự kiện — ba hành động xe đang chạy mang loại `xe_chay` (chuông tài xế gọi lại); còn lại như cũ. */
 export const thayDoiCuaHanhDongChuyen = (action: string, dangChay = false): ThayDoiChuyen =>

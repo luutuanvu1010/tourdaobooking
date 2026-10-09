@@ -120,13 +120,33 @@ import type { CanhBaoLichDto } from "../../shared/contracts";
 import { NHAN_CANH_BAO_GIO_LAI, type CanhBaoGioLai } from "../../shared/gio-lai";
 import { khungBanVao } from "./dieu-phoi-doc";
 // ADR-0111 (kế hoạch A5): chuyển khách giữa hai xe — route tài xế (cổng staff, ô trip.transfer) và văn phòng (cổng office).
-import type { DeNghiCuaToiResponse, DeNghiLenhResponse, XeNhanResponse } from "../../shared/contracts";
-import { deNghiDto, docGuiDeNghi, docMaLenhDeNghi, lenhGuiDeNghi, lenhRutDeNghi, motDeNghiDto, type GuiThan } from "./chuyen-khach-lenh";
-import { deNghiById, deNghiByRequest, deNghiCuaChuyen } from "./chuyen-repo";
+import type { DeNghiCuaToiResponse, DeNghiLenhResponse, DeNghiNgayResponse, KetQuaDeNghi, XeNhanResponse } from "../../shared/contracts";
+import {
+  deNghiDto, docGuiDeNghi, docLyDoDeNghi, docMaLenhDeNghi, lenhBacDeNghi, lenhDuyetDeNghi, lenhGuiDeNghi, lenhKhongNhanDeNghi, lenhNhanDeNghi, lenhRutDeNghi,
+  motDeNghiDto, type GuiThan,
+} from "./chuyen-khach-lenh";
+import { deNghiById, deNghiByRequest, deNghiCuaChuyen, deNghiTheoNgay, kiemCuaDeNghi, type DeNghiRow } from "./chuyen-repo";
 import { MA_LENH_DUNG_LAI } from "./dieu-phoi-route";
 import { xeNhanChoDeNghi } from "./cuu-ho";
 const CAN_CHUYEN_KHACH = () => error(403, "forbidden", "Tài khoản này không nhờ / nhận chuyển khách được.");
 const KHONG_CO_DE_NGHI = () => error(404, "not_found", "Không tìm thấy đề nghị chuyển khách.");
+const CAN_DUYET_DE_NGHI = () => error(403, "forbidden", "Chỉ Quản trị, Toàn quyền duyệt / bác đề nghị chuyển khách.");
+/** Kết quả của lệnh đề nghị theo loại sự kiện của nó (lệnh lặp trả kết quả của lần đầu). */
+const KET_QUA_CUA_SU_KIEN: Readonly<Record<string, KetQuaDeNghi>> = {
+  TRANSFER_SENT: "DA_GUI", TRANSFER_WITHDRAWN: "DA_RUT", TRANSFER_DECLINED: "KHONG_NHAN", TRANSFER_EXPIRED: "HET_HAN", TRANSFER_ESCALATED: "LEO_THANG",
+  TRANSFER_CONFIRMED: "DA_CHUYEN", TRANSFER_REJECTED: "DA_BAC",
+};
+/**
+ * Lệnh lặp (G-A5-22): sự kiện cùng mã lệnh, cùng cặp chuyến phải là lệnh của CHÍNH đề nghị này — dấu lệnh đóng, dấu lệnh quyết, hoặc (Nhận rồi leo thang, sau
+ * đó Duyệt ghi dấu lệnh quyết mới) dấu lệnh của một lần kiểm của đề nghị.
+ */
+async function laLenhCuaDeNghi(db: D1Database, lenhId: string, r: DeNghiRow): Promise<boolean> {
+  if (lenhId === r.closed_cmd_id || lenhId === r.decided_cmd_id) return true;
+  return (await kiemCuaDeNghi(db, [r.id])).some((k) => k.cmd_id === lenhId);
+}
+async function phanHoiDeNghi(db: D1Database, rid: string, ketQua: KetQuaDeNghi, bayGioMs: number, vanPhong: boolean): Promise<Response> {
+  return json({ ketQua, deNghi: (await motDeNghiDto(db, rid, bayGioMs, vanPhong))! } satisfies DeNghiLenhResponse);
+}
 /** Phản hồi lệnh gửi (kể cả lệnh lặp): đề nghị mang request_id này; khác xe nhận / phạm vi / điểm của thân → 409 mã lệnh dùng lại (G-A5-22). */
 async function phanHoiGui(db: D1Database, b: GuiThan, bayGioMs: number): Promise<Response> {
   const r = await deNghiByRequest(db, b.requestId);
@@ -1315,6 +1335,58 @@ export const vanChuyenModule: AppModule = {
       return phanHoiGui(env.DB, b, bayGioMs);
     }),
 
+    // ADR-0111 (kế hoạch A5 T8, T14): đề nghị chuyển khách của các chuyến chạy ngày `ngay` — người có trip.view (văn phòng) xem chỉ-đọc, kèm dòng kiểm lần bấm
+    // gần nhất và hộp duyệt (Leo thang). DTO không tên khách, SĐT; nơi gặp là chữ đã che.
+    route("GET", "/api/van-chuyen/de-nghi", "office", async ({ env, url, staff }) => {
+      if (!can(staff, "trip.view")) return CAN_XEM_CHUYEN();
+      const ngay = url.searchParams.get("ngay") ?? vnToday(new Date());
+      if (!isISODate(ngay)) return error(400, "invalid_input", "Ngày xem: YYYY-MM-DD.");
+      return json({ ngay, deNghi: await deNghiDto(env.DB, await deNghiTheoNgay(env.DB, ngay), Date.now(), true) } satisfies DeNghiNgayResponse);
+    }),
+
+    // ADR-0111 Đ1, Đ3 (b) + ADR-0052 D4.2 ĐP4 (NT-A5-11): Quản trị / Toàn quyền DUYỆT đề nghị leo thang — chạy lại kiểm; có điều kiện tầng LOI không đạt (mọi
+    // lần kiểm) → 409 không ghi; lý do nhóm PHA_LE; cam kết xe nhận không đạt → ghi khoá phá lệ (ADR-0056 A3). Ô trip.override hỏi THẲNG (nới có tên N2 của
+    // lop-vuot NT-3(b): duyệt / bác không qua hàm lớp — không có "dưới mốc / ngoài mốc"). Hàm hẹp của orders gọi ở đây, sau `can()`.
+    route("POST", "/api/van-chuyen/de-nghi/:rid/duyet", "office", async ({ env, request, params, staff, baoThayDoiChuyen }) => {
+      if (!can(staff, "trip.override")) return CAN_DUYET_DE_NGHI();
+      const r = await deNghiById(env.DB, params.rid ?? "");
+      if (!r) return KHONG_CO_DE_NGHI();
+      const than = docLyDoDeNghi(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const bayGioMs = Date.now();
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: r.to_trip_id, nguonId: r.from_trip_id, loai: ["TRANSFER_CONFIRMED"] });
+      if (lap instanceof Response) return lap;
+      if (lap && lap.id !== r.closed_cmd_id) return MA_LENH_DUNG_LAI();
+      if (!lap) {
+        const nguon = await docNen(env.DB, r.from_trip_id);
+        const [lich, hk] = await Promise.all([lichChungChang(env.DB, addDays(r.service_date, -1), addDays(r.service_date, 1)), hanhKhachChoChuyen(env.DB, nguon?.legIds ?? [])]);
+        const k = await lenhDuyetDeNghi(env.DB, r.id, { lich: lich.chang, hk }, than.value, staff.id, bayGioMs);
+        if (k instanceof Response) return k;
+        baoThayDoiChuyen({ tripId: r.to_trip_id, requestId: than.value.requestId });
+      }
+      return phanHoiDeNghi(env.DB, r.id, "DA_CHUYEN", bayGioMs, true);
+    }),
+
+    // ADR-0111 Đ3 (b), (d) (NT-A5-12): Quản trị / Toàn quyền BÁC đề nghị leo thang — lý do nhóm TU_CHOI_NHAN; suất không đổi; tin tới hai tài xế. Ô hỏi thẳng
+    // (nới N2 — như Duyệt).
+    route("POST", "/api/van-chuyen/de-nghi/:rid/bac", "office", async ({ env, request, params, staff, baoThayDoiChuyen }) => {
+      if (!can(staff, "trip.override")) return CAN_DUYET_DE_NGHI();
+      const r = await deNghiById(env.DB, params.rid ?? "");
+      if (!r) return KHONG_CO_DE_NGHI();
+      const than = docLyDoDeNghi(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const bayGioMs = Date.now();
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: r.to_trip_id, nguonId: r.from_trip_id, loai: ["TRANSFER_REJECTED"] });
+      if (lap instanceof Response) return lap;
+      if (lap && lap.id !== r.closed_cmd_id) return MA_LENH_DUNG_LAI();
+      if (!lap) {
+        const k = await lenhBacDeNghi(env.DB, r, than.value, staff.id, bayGioMs);
+        if (k instanceof Response) return k;
+        baoThayDoiChuyen({ tripId: r.to_trip_id, requestId: than.value.requestId });
+      }
+      return phanHoiDeNghi(env.DB, r.id, "DA_BAC", bayGioMs, true);
+    }),
+
     // ADR-0052 D5.1 (Đợt 5): "Thêm điểm khi xe đang chạy" — ô xếp xe (+ ô theo lớp khi vượt mốc / cam kết — ADR-0104 Đ1: xe đang chạy luôn dưới mốc nên
     // là điều chỉnh khẩn cấp). Thân như phan-bo, không người đi kèm. Chuyến RUNNING (chưa chạy → 409 dùng Xếp). Mốc: chặng đặt gấp qua; chặng khác → 409
     // "Khách không đặt gấp — cần điều chỉnh khẩn cấp kèm lý do." trừ khi gửi điều chỉnh khẩn cấp.
@@ -1573,15 +1645,65 @@ export const vanChuyenModule: AppModule = {
       const than = docMaLenhDeNghi(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
       const bayGioMs = Date.now();
-      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: r.to_trip_id, nguonId: r.from_trip_id, loai: ["TRANSFER_WITHDRAWN"] });
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: r.to_trip_id, nguonId: r.from_trip_id, loai: ["TRANSFER_WITHDRAWN", "TRANSFER_EXPIRED"] });
       if (lap instanceof Response) return lap;
       if (lap && lap.id !== r.closed_cmd_id) return MA_LENH_DUNG_LAI(); // G-A5-22: cùng cặp chuyến, khác đề nghị
+      let ketQua = lap ? KET_QUA_CUA_SU_KIEN[lap.kind]! : "DA_RUT";
       if (!lap) {
         const k = await lenhRutDeNghi(env.DB, r, than.value, staff.id, bayGioMs);
-        if (k) return k;
-        baoThayDoiChuyen({ tripId: r.to_trip_id, requestId: than.value.requestId }); // ADR-0052 D6.3: Bảng tin (rút không sinh tin)
+        if (k instanceof Response) return k;
+        ketQua = k.ketQua;
+        baoThayDoiChuyen({ tripId: r.to_trip_id, requestId: than.value.requestId }); // ADR-0052 D6.3: Bảng tin (rút không sinh tin; quá hạn → tin hết giờ)
       }
-      return json({ ketQua: "DA_RUT", deNghi: (await motDeNghiDto(env.DB, r.id, bayGioMs, false))! } satisfies DeNghiLenhResponse);
+      return phanHoiDeNghi(env.DB, r.id, ketQua, bayGioMs, false);
+    }),
+
+    // ADR-0111 Đ3 (b), (c) (NT-A5-6, -7, -10, -20, -21, -24): tài xế XE NHẬN bấm Nhận. Khuôn hai bước lệnh tài xế (403 / 404 — kể cả Toàn quyền không lái xe
+    // nhận). Đọc mới + kiemChuyen (11 điều kiện): đạt hết + công tắc tự đồng ý (chính sách lúc bấm) bật → xác nhận; còn lại leo thang. Quá hạn → Hết hạn (200).
+    // Hàm hẹp của orders (chặng, hành khách cho bản chốt) gọi ở đây, sau `can()`.
+    route("POST", "/api/van-chuyen/de-nghi/:rid/nhan", "staff", async ({ env, request, params, staff, baoThayDoiChuyen }) => {
+      if (!can(staff, "trip.view", { assigned: true })) return CAN_XEM_CUOC();
+      const r = await deNghiById(env.DB, params.rid ?? "");
+      const assigned = r !== null && dangLai(await docNen(env.DB, r.to_trip_id), staff);
+      if (!r || !assigned || !can(staff, "trip.transfer", { assigned })) return KHONG_CO_DE_NGHI();
+      const than = docMaLenhDeNghi(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const bayGioMs = Date.now();
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: r.to_trip_id, nguonId: r.from_trip_id, loai: ["TRANSFER_CONFIRMED", "TRANSFER_ESCALATED", "TRANSFER_EXPIRED"] });
+      if (lap instanceof Response) return lap;
+      if (lap && !(await laLenhCuaDeNghi(env.DB, lap.id, r))) return MA_LENH_DUNG_LAI();
+      let ketQua = lap ? KET_QUA_CUA_SU_KIEN[lap.kind]! : "DA_CHUYEN";
+      if (!lap) {
+        const nguon = await docNen(env.DB, r.from_trip_id);
+        const [lich, hk] = await Promise.all([lichChungChang(env.DB, addDays(r.service_date, -1), addDays(r.service_date, 1)), hanhKhachChoChuyen(env.DB, nguon?.legIds ?? [])]);
+        const k = await lenhNhanDeNghi(env.DB, r.id, { lich: lich.chang, hk }, than.value, staff.id, staff.partyId!, bayGioMs);
+        if (k instanceof Response) return k;
+        ketQua = k.ketQua;
+        baoThayDoiChuyen({ tripId: r.to_trip_id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên
+      }
+      return phanHoiDeNghi(env.DB, r.id, ketQua, bayGioMs, false);
+    }),
+
+    // ADR-0111 Đ3 (b), (d) (NT-A5-8): tài xế XE NHẬN bấm Không nhận — lý do bắt buộc nhóm TU_CHOI_NHAN; tin tới tài xế xe nhờ. Quá hạn → Hết hạn (200).
+    route("POST", "/api/van-chuyen/de-nghi/:rid/khong-nhan", "staff", async ({ env, request, params, staff, baoThayDoiChuyen }) => {
+      if (!can(staff, "trip.view", { assigned: true })) return CAN_XEM_CUOC();
+      const r = await deNghiById(env.DB, params.rid ?? "");
+      const assigned = r !== null && dangLai(await docNen(env.DB, r.to_trip_id), staff);
+      if (!r || !assigned || !can(staff, "trip.transfer", { assigned })) return KHONG_CO_DE_NGHI();
+      const than = docLyDoDeNghi(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const bayGioMs = Date.now();
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: r.to_trip_id, nguonId: r.from_trip_id, loai: ["TRANSFER_DECLINED", "TRANSFER_EXPIRED"] });
+      if (lap instanceof Response) return lap;
+      if (lap && lap.id !== r.closed_cmd_id) return MA_LENH_DUNG_LAI();
+      let ketQua = lap ? KET_QUA_CUA_SU_KIEN[lap.kind]! : "KHONG_NHAN";
+      if (!lap) {
+        const k = await lenhKhongNhanDeNghi(env.DB, r, than.value, staff.id, staff.partyId!, bayGioMs);
+        if (k instanceof Response) return k;
+        ketQua = k.ketQua;
+        baoThayDoiChuyen({ tripId: r.to_trip_id, requestId: than.value.requestId });
+      }
+      return phanHoiDeNghi(env.DB, r.id, ketQua, bayGioMs, false);
     }),
 
     // ADR-0111 (kế hoạch A5 T13): đề nghị của chuyến tài xế đang lái (hôm nay / đang chạy) — gửi đi (xe nhờ) và gửi tới (xe nhận). Chỉ đọc.

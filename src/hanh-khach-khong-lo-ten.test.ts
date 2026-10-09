@@ -227,6 +227,8 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
     const dH = await don(w, { soNguoi: 2, gio: "16:30", namSinh: 1911 });
     // Đợt 5 A-1b (ADR-0052 D5b — chủ duyệt 5/10): đơn J thiếu một tên — tài xế bổ sung tên trên chuyến J (tạo ở ca hanh-khach).
     const dJ = await don(w, { soNguoi: 2, ten: 1, gio: "21:10", namSinh: 1911 });
+    // ADR-0111 (gói A5 lát 3): đơn K — khách có tên đi xe K rồi chuyển sang xe L (ca de-nghi/:rid/*). Xác nhận đơn lúc còn ngoài mốc.
+    const dK = await don(w, { soNguoi: 2, gio: "16:40", namSinh: 1911 });
     const T: Record<string, any> = {};
     const S: Record<string, { don: string; tra: string; suat: string[] }> = {};
     const R = "POST /api/van-chuyen/cuoc-cua-toi/:id"; // tiền tố route tài xế
@@ -542,6 +544,54 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         });
         assert.deepEqual(Object.keys(r).sort(), ["ok", "soNguoi"], "phản hồi chỉ { ok, soNguoi }");
         assert.equal(w.q("SELECT count(*) n FROM ord_passenger WHERE order_id = ? AND source = 'DRIVER' AND full_name = ?", dJ.id, TEN_VC[1])[0].n, 1, "chống bài rỗng: tên đã ghi");
+      },
+      // ADR-0111 (gói A5 lát 3, NT-A5-16): vòng đời đề nghị trên một cặp xe RIÊNG — K (DRIVER3, đơn K có tên, đang chạy) nhờ L (DRIVER4, chưa chạy — dưới mốc ⇒
+      // Nhận thành leo thang). Ba đề nghị cùng điểm đón K: một Không nhận, hai Leo thang; Quản trị bác một, duyệt một (khách có tên sang L). Phản hồi chỉ DTO
+      // đề nghị: không tên / năm sinh / khoá nơi.
+      "POST /api/van-chuyen/de-nghi/:rid/khong-nhan": async () => {
+        const tao = async (taiXe: string, bd: string, kt: string) => {
+          const r = await w.call("POST", "/api/van-chuyen/chuyen", { as: ADM, body: { requestId: rid(), xeId: xe(w), taiXePartyId: `pty-${taiXe}`, batDau: { ngay: NGAY, gio: bd }, ketThuc: { ngay: NGAY, gio: kt } } });
+          assert.equal(r.status, 201, r.text);
+          return r.json.chuyen;
+        };
+        const k = await tao(DRIVER3, "16:20", "17:30");
+        const l = await tao(DRIVER4, "16:30", "17:45");
+        const x = await w.call("POST", `/api/van-chuyen/chuyen/${k.id}/phan-bo`, {
+          as: ADM, body: { version: k.version, requestId: rid(), chang: [{ legId: dK.legId, soSuat: 2 }], phaLe: { lyDo: "PHA_LE_SU_CO" } },
+        });
+        assert.equal(x.status, 200, x.text);
+        const diemK = x.json.diem.find((d: any) => d.loai === "PICKUP").id;
+        assert.equal((await w.call("POST", `/api/van-chuyen/cuoc-cua-toi/${k.id}/xuat-ben`, { as: DRIVER3, body: { requestId: rid() } })).status, 200);
+        const gui = async () => {
+          const r = await w.call("POST", `/api/van-chuyen/cuoc-cua-toi/${k.id}/de-nghi`, { as: DRIVER3, body: { requestId: rid(), denChuyenId: l.id, phamVi: "STOP", diemId: diemK } });
+          assert.equal(r.status, 200, r.text);
+          return r.json.deNghi.id as string;
+        };
+        S.DN2 = { don: await gui(), tra: await gui(), suat: [await gui()] };
+        assert.ok(w.q("SELECT count(*) n FROM vc_trip_allocation WHERE trip_id = ? AND passenger_key IS NOT NULL AND valid_to_at IS NULL", k.id)[0].n === 2, "chống bài rỗng: suất K có tên");
+        await goi("POST /api/van-chuyen/de-nghi/:rid/khong-nhan", "tài xế L không nhận", "POST", `/api/van-chuyen/de-nghi/${S.DN2.suat[0]}/khong-nhan`, DRIVER4, {
+          requestId: rid(), lyDo: "TU_CHOI_DAY_CHO",
+        });
+      },
+      "POST /api/van-chuyen/de-nghi/:rid/nhan": async () => {
+        for (const id of [S.DN2!.don, S.DN2!.tra]) {
+          const r = await goi("POST /api/van-chuyen/de-nghi/:rid/nhan", "tài xế L bấm Nhận (leo thang)", "POST", `/api/van-chuyen/de-nghi/${id}/nhan`, DRIVER4, { requestId: rid() });
+          assert.equal(r.ketQua, "LEO_THANG");
+        }
+      },
+      "GET /api/van-chuyen/de-nghi": async () => {
+        const r = await goi("GET /api/van-chuyen/de-nghi", "văn phòng xem đề nghị trong ngày", "GET", `/api/van-chuyen/de-nghi?ngay=${NGAY}`, ADM);
+        assert.ok(r.deNghi.filter((x: any) => x.trangThai === "ESCALATED" && Array.isArray(x.kiem) && x.kiem.length === 11).length >= 2, "chống bài rỗng: hai đề nghị leo thang có dòng kiểm");
+      },
+      "POST /api/van-chuyen/de-nghi/:rid/bac": async () => {
+        await goi("POST /api/van-chuyen/de-nghi/:rid/bac", "Quản trị bác", "POST", `/api/van-chuyen/de-nghi/${S.DN2!.tra}/bac`, ADM, { requestId: rid(), lyDo: "TU_CHOI_KHAC" });
+      },
+      "POST /api/van-chuyen/de-nghi/:rid/duyet": async () => {
+        const r = await goi("POST /api/van-chuyen/de-nghi/:rid/duyet", "Quản trị duyệt — khách có tên sang L", "POST", `/api/van-chuyen/de-nghi/${S.DN2!.don}/duyet`, ADM, {
+          requestId: rid(), lyDo: "PHA_LE_SU_CO",
+        });
+        assert.equal(r.deNghi.trangThai, "CONFIRMED");
+        assert.equal(w.q("SELECT count(*) n FROM vc_trip_allocation WHERE transfer_id = ? AND passenger_key IS NOT NULL AND valid_to_at IS NULL", S.DN2!.don)[0].n, 2, "chống bài rỗng: khách có tên đã sang L");
       },
     };
 

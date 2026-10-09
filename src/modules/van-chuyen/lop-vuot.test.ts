@@ -3,7 +3,10 @@
 //       `lop === "KHAN_CAP" ? can(staff, "trip.urgent_adjust") : can(staff, "trip.override")` — để hàng rào "mỗi ô phải được máy chủ hỏi"
 //       (src/permission-enforcement.test.ts) đếm được cả hai ô;
 //   (b) ngoài bảy dòng đó, KHÔNG tệp nào khác của src/modules/van-chuyen/ (trừ bài thử) viết chuỗi ô "trip.override" / "trip.urgent_adjust" — không route
-//       nào tự hỏi ô vượt luật mà bỏ qua hàm lớp;
+//       nào tự hỏi ô vượt luật mà bỏ qua hàm lớp. NỚI CÓ TÊN N2 (ADR-0111 mục "Hàng rào nới"; docs/SO-HANG-RAO.md): ĐÚNG hai dòng
+//       `if (!can(staff, "trip.override")) return CAN_DUYET_DE_NGHI();` — mỗi dòng ở thân route DUYỆT / BÁC đề nghị chuyển khách (không có "dưới mốc / ngoài
+//       mốc" để xếp lớp: duyệt / bác luôn là ô vượt luật của Quản trị, Toàn quyền); không dòng nào trong đó có "trip.urgent_adjust". Bài bù: Bán hàng duyệt / bác
+//       → 403 (chuyen-khach-route.test.ts NT-A5-11, -12);
 //   (c) mọi lời gọi `quyenVuot(…)` (module van-chuyen + src/shared/moc-toi-thieu.ts) nhận đối số là lời gọi hàm lớp `lopVuotMoc(` / `lopVuotNghiCamKet(` /
 //       `lopCuaLuat(` — không lớp viết tay; `lopCuaLuat` chỉ dựng từ hai hàm lớp.
 import { test } from "node:test";
@@ -42,9 +45,24 @@ test("NT-3 (a): bảy route nhận cờ vượt — mỗi route đúng MỘT bi�
   }
 });
 
-test("NT-3 (b): ngoài bảy dòng đổi lớp, không tệp nào của module van-chuyen viết chuỗi ô trip.override / trip.urgent_adjust", () => {
+/** Nới N2 (ADR-0111): hai route duyệt / bác đề nghị chuyển khách hỏi THẲNG ô trip.override, đúng một dòng mỗi route, đúng câu này. */
+const N2_ROUTE: [string, string][] = [["POST", "/api/van-chuyen/de-nghi/:rid/duyet"], ["POST", "/api/van-chuyen/de-nghi/:rid/bac"]];
+const N2_DONG = 'if (!can(staff, "trip.override")) return CAN_DUYET_DE_NGHI();';
+/** Khoảng dòng (đánh số từ 1) của thân route `m duong` trong index.ts đã che chú thích. */
+function dongCuaRoute(src: string, m: string, duong: string): [number, number] {
+  const dau = src.indexOf(`route("${m}", "${duong}",`);
+  assert.ok(dau >= 0, `tìm thấy route ${m} ${duong}`);
+  const sau = src.indexOf("route(", dau + 10);
+  const dongDau = src.slice(0, dau).split("\n").length;
+  return [dongDau, sau < 0 ? Infinity : src.slice(0, sau).split("\n").length];
+}
+
+test("NT-3 (b): ngoài bảy dòng đổi lớp, không tệp nào của module van-chuyen viết chuỗi ô trip.override / trip.urgent_adjust (trừ nới N2: đúng hai dòng của duyệt / bác)", () => {
   const thay: string[] = [];
   let tong = 0;
+  let n2 = 0;
+  const idx = khongChuThich(join(DIR, "index.ts"));
+  const khoangN2 = N2_ROUTE.map(([m, d]) => dongCuaRoute(idx, m, d));
   for (const f of tepMa) {
     khongChuThich(join(DIR, f)).split("\n").forEach((dong, i) => {
       if (!/"trip\.(override|urgent_adjust)"/.test(dong)) return;
@@ -52,11 +70,21 @@ test("NT-3 (b): ngoài bảy dòng đổi lớp, không tệp nào của module 
         tong++;
         if (demChuoi(dong, '"trip.override"') === 1 && demChuoi(dong, '"trip.urgent_adjust"') === 1) return;
       }
+      if (f === "index.ts" && dong.trim() === N2_DONG && khoangN2.some(([a, b]) => i + 1 > a && i + 1 < b)) {
+        n2++;
+        return;
+      }
       thay.push(`${f}:${i + 1}`);
     });
   }
   assert.deepEqual(thay, [], "chuỗi ô vượt luật ngoài biểu thức đổi lớp");
   assert.equal(tong, BAY_ROUTE.length, "chống bài rỗng: đủ bảy dòng đổi lớp");
+  assert.equal(n2, N2_ROUTE.length, "nới N2: đúng một dòng hỏi thẳng trip.override ở MỖI route duyệt / bác (không hơn, không thiếu)");
+  for (const [a, b] of khoangN2) {
+    const than = idx.split("\n").slice(a - 1, b - 1).join("\n");
+    assert.equal(demChuoi(than, '"trip.urgent_adjust"'), 0, "nới N2 không kèm ô điều chỉnh khẩn cấp");
+    assert.equal(demChuoi(than, '"trip.override"'), 1, "nới N2: thân route duyệt / bác hỏi trip.override đúng một lần");
+  }
 });
 
 test("NT-3 (c): mọi lời gọi quyenVuot(…) nhận đối số là hàm lớp (lopVuotMoc / lopVuotNghiCamKet / lopCuaLuat); lopCuaLuat dựng từ hai hàm lớp", () => {

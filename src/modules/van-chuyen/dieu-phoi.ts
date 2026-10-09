@@ -10,7 +10,8 @@ import {
   EVENT_INSERT, MANIFEST_INSERT, MOC_GOI_INSERT, MOC_XEP_INSERT, STOP_DA_TOI, STOP_INSERT, STOP_SET_SEQ, STOP_SKIP, STOP_UPDATE_PLAN, STOP_XONG_NEU_HET, STOPS_SKIP_ALL, TRIP_CANCEL, TRIP_GATE,
   TRIP_CAM_KET_PHA_LE, TRIP_GATE_CHI_PHI, TRIP_GATE_DANG_CHAY, TRIP_GATE_DOI, TRIP_GATE_THEO_DON, TRIP_GATE_TIEN_DO, TRIP_INSERT, TRIP_KET_THUC, TRIP_UPDATE_PLAN, TRIP_XUAT_BEN,
   ALLOC_OFFICE_CANCEL, MANIFEST_THEM_SAU, TRIP_CHOT, TRIP_GATE_DANG_CHAY_VERSION, ALLOC_DIEU_CHINH_INSERT, EVENT_DIEU_CHINH_INSERT, TRIP_THU_HOI_XUAT_BEN,
-  TRANSFER_DONG, TRANSFER_INSERT, TRIP_GATE_CHAY_HOAC_CHO, TRIP_GATE_DE_NGHI,
+  TRANSFER_DONG, TRANSFER_INSERT, TRIP_GATE_CHAY_HOAC_CHO, TRIP_GATE_DE_NGHI, TRIP_GATE_DOI_CHAY, TRANSFER_QUYET, TRANSFER_DUYET, TRANSFER_CHECK_INSERT,
+  TRANSFERS_VOID_KHAC, ALLOC_CLOSE_TRANSFER, ALLOC_OPEN_TRANSFER, STOP_SET_MOVED, MANIFEST_CHUYEN_KHACH,
 } from "./chuyen-repo";
 import { cauChiPhi, type KeHoachChiPhi } from "./tien-xe-lo";
 import {
@@ -814,6 +815,153 @@ export function loRutDeNghi(db: D1Database, l: LenhRutDeNghi): CauCoNhan[] {
     nhatKy(db, l, "trip_transfer_withdrawn", r.denChuyen, l.detail),
     suKien(db, l, { tripId: r.denChuyen, relatedTripId: r.tuChuyen, loai: "TRANSFER_WITHDRAWN", soNguoi: l.soKhach }),
     dongDeNghi(db, l, r, "WITHDRAWN", ["PENDING"]),
+  ];
+}
+
+/** Một dòng kiểm của lần bấm (luật thuần `kiemChuyen`; tầng theo danh mục — trigger so lại). */
+export interface DongKiemLo {
+  ma: string;
+  tang: "LOI" | "CAU_HINH";
+  ketQua: "DAT" | "KHONG_DAT" | "CANH_BAO";
+  giaTri: number | null;
+  gioiHan: number | null;
+}
+/** Các dòng kiểm của lần bấm — TRƯỚC câu đổi trạng thái đề nghị (trigger ck_check đòi đề nghị còn Chờ / Leo thang; confirm / escalate đếm đủ dòng). */
+const cauKiem = (db: D1Database, l: LenhChung, r: DeNghiLo, kiem: readonly DongKiemLo[]): CauCoNhan[] =>
+  kiem.map((k) => ghi(db.prepare(TRANSFER_CHECK_INSERT).bind(crypto.randomUUID(), r.id, l.cmd, k.ma, k.tang, k.ketQua, k.giaTri, k.gioiHan, l.lucIso, l.nguoiId, r.denChuyen)));
+
+export interface LenhKhongNhanDeNghi extends LenhChung {
+  deNghi: DeNghiLo;
+  /** Hồ sơ tài xế đang lái xe nhận (Đ3 (b) — người quyết lần thứ nhất). */
+  taiXePartyId: string;
+  lyDo: string;
+  soKhach: number;
+  detail: string;
+}
+/** Lô KHÔNG NHẬN (tài xế xe nhận; Chờ, chưa quá hạn): cổng đích → nhật ký → sự kiện TRANSFER_DECLINED → đề nghị DECLINED (lý do nhóm TU_CHOI_NHAN). */
+export function loKhongNhanDeNghi(db: D1Database, l: LenhKhongNhanDeNghi): CauCoNhan[] {
+  const r = l.deNghi;
+  return [
+    congDeNghi(db, l, r, ["PENDING"]),
+    nhatKy(db, l, "trip_transfer_declined", r.denChuyen, l.detail),
+    suKien(db, l, { tripId: r.denChuyen, relatedTripId: r.tuChuyen, loai: "TRANSFER_DECLINED", soNguoi: l.soKhach }),
+    ghi(db.prepare(TRANSFER_QUYET).bind(r.id, "DECLINED", l.cmd, l.lucIso, l.nguoiId, l.taiXePartyId, null, l.cmd, l.lyDo, r.denChuyen)),
+  ];
+}
+
+export interface LenhHetHanDeNghi extends LenhChung {
+  deNghi: DeNghiLo;
+  soKhach: number;
+  detail: string;
+}
+/** Lô HẾT HẠN (MQ-08 — ghi khi có người bấm tiếp vào đề nghị Chờ đã quá hạn; không Cron): cổng đích → nhật ký → TRANSFER_EXPIRED → đề nghị EXPIRED. */
+export function loHetHanDeNghi(db: D1Database, l: LenhHetHanDeNghi): CauCoNhan[] {
+  const r = l.deNghi;
+  return [
+    congDeNghi(db, l, r, ["PENDING"]),
+    nhatKy(db, l, "trip_transfer_expired", r.denChuyen, l.detail),
+    suKien(db, l, { tripId: r.denChuyen, relatedTripId: r.tuChuyen, loai: "TRANSFER_EXPIRED", soNguoi: l.soKhach, decided: "MAY" }),
+    dongDeNghi(db, l, r, "EXPIRED", ["PENDING"]),
+  ];
+}
+
+export interface LenhLeoThangDeNghi extends LenhChung {
+  deNghi: DeNghiLo;
+  taiXePartyId: string;
+  kiem: DongKiemLo[];
+  soKhach: number;
+  detail: string;
+}
+/** Lô LEO THANG (tài xế xe nhận bấm Nhận; có điều kiện không đạt hoặc công tắc tự đồng ý tắt): cổng đích → nhật ký → TRANSFER_ESCALATED → dòng kiểm → ESCALATED. */
+export function loLeoThangDeNghi(db: D1Database, l: LenhLeoThangDeNghi): CauCoNhan[] {
+  const r = l.deNghi;
+  return [
+    congDeNghi(db, l, r, ["PENDING"]),
+    nhatKy(db, l, "trip_transfer_escalated", r.denChuyen, l.detail),
+    suKien(db, l, { tripId: r.denChuyen, relatedTripId: r.tuChuyen, loai: "TRANSFER_ESCALATED", soNguoi: l.soKhach, decided: "MAY" }),
+    ...cauKiem(db, l, r, l.kiem),
+    ghi(db.prepare(TRANSFER_QUYET).bind(r.id, "ESCALATED", l.cmd, l.lucIso, l.nguoiId, l.taiXePartyId, null, null, null, r.denChuyen)),
+  ];
+}
+
+/** Một suất chuyển: đóng ở xe nhờ (`dongId`) NGAY TRƯỚC khi mở bản sao ở xe nhận (`moId`, điểm lên / xuống của xe nhận). */
+export interface CapChuyenKhach {
+  dongId: string;
+  moId: string;
+  len: string | null;
+  xuong: string | null;
+}
+export interface LenhXacNhanDeNghi extends LenhChung {
+  deNghi: DeNghiLo;
+  /** Version máy chủ đọc: xe nhờ (đang chạy) và xe nhận. */
+  nguonVersion: number;
+  dichVersion: number;
+  /** Nhận (máy tự xác nhận — từ Chờ, chế độ MAY, ghi hồ sơ tài xế xe nhận) hoặc Duyệt (từ Leo thang, chế độ NGUOI, lý do PHA_LE). */
+  quyet: { kieu: "MAY"; taiXePartyId: string } | { kieu: "NGUOI"; lyDo: string };
+  kiem: DongKiemLo[];
+  diemMoi: DiemMoi[];
+  doiThuTu: { id: string; seq: number }[];
+  /** Xe nhận đang chạy: điểm mới mang cờ thêm khi chạy (trigger LC-15 đòi sự kiện TRANSFER_CONFIRMED mang dấu lệnh). */
+  dichDangChay: boolean;
+  cap: CapChuyenKhach[];
+  /** STOP: điểm đón nguồn → MOVED; ONBOARD: null. */
+  diemNguon: string | null;
+  /** Bản chốt dòng thêm sau xuất bến (xe nhận đã xuất bến): khách có tên HOẶC người đi kèm. */
+  chot: { allocationId: string; passengerRowId: string | null; crewPartyId: string | null }[];
+  /** ADR-0056 VK3-A: cột phá lệ cam kết của xe NHẬN (Duyệt: ghi; hết vi phạm: xoá); null = không chạm. Xe nhờ đang chạy — không chạm (khuôn loCapNhatDiem). */
+  camKetDich: CamKetLo | null;
+  detail: string;
+}
+/**
+ * Lô XÁC NHẬN (Nhận tự động / Duyệt — ADR-0111 Sửa chữ 1, cổng đôi khuôn loDoi): cổng xe nhờ (đang chạy, version) → cổng xe nhận (đề nghị còn Chờ / Leo
+ * thang, xe nhờ đã mang dấu lệnh) → nhật ký → sự kiện TRANSFER_CONFIRMED (trigger LC-15 tìm sự kiện mang dấu lệnh) → dòng kiểm → đề nghị CONFIRMED (trigger
+ * suất đòi CONFIRMED trước) → thêm điểm ở xe nhận → sắp lại → từng suất: đóng ở xe nhờ, mở ở xe nhận → điểm nguồn MOVED → bản chốt → tự huỷ đề nghị chờ khác
+ * (P4) → cam kết xe nhận. Mọi câu sau cổng gác xe NHẬN.
+ */
+export function loXacNhanDeNghi(db: D1Database, l: LenhXacNhanDeNghi): CauCoNhan[] {
+  const r = l.deNghi;
+  const gac = r.denChuyen;
+  const may = l.quyet.kieu === "MAY";
+  const lo: CauCoNhan[] = [
+    congDangChayVersion(db, l, r.tuChuyen, l.nguonVersion),
+    {
+      nhan: "CONG_DOI",
+      stmt: db.prepare(TRIP_GATE_DOI_CHAY).bind(gac, l.dichVersion, l.cmd, l.lucIso, l.nguoiId, r.tuChuyen, r.id, JSON.stringify([may ? "PENDING" : "ESCALATED"])),
+    },
+    nhatKy(db, l, "trip_transfer_confirmed", gac, l.detail),
+    suKien(db, l, { tripId: gac, relatedTripId: r.tuChuyen, loai: "TRANSFER_CONFIRMED", soNguoi: l.cap.length, decided: may ? "MAY" : "NGUOI" }),
+    ...cauKiem(db, l, r, l.kiem),
+    l.quyet.kieu === "MAY"
+      ? ghi(db.prepare(TRANSFER_QUYET).bind(r.id, "CONFIRMED", l.cmd, l.lucIso, l.nguoiId, l.quyet.taiXePartyId, "MAY", l.cmd, null, gac))
+      : ghi(db.prepare(TRANSFER_DUYET).bind(r.id, "CONFIRMED", l.cmd, l.lucIso, l.nguoiId, l.quyet.lyDo, null, gac)),
+    ...l.diemMoi.map((d) => chenDiem(db, l, d, l.dichDangChay)),
+    ...l.doiThuTu.map((d) => doiThuTuDiem(db, l, gac, d)),
+  ];
+  for (const c of l.cap) {
+    lo.push(ghi(db.prepare(ALLOC_CLOSE_TRANSFER).bind(c.dongId, r.tuChuyen, l.cmd, l.lucIso, l.nguoiId, r.id, gac)));
+    lo.push(ghi(db.prepare(ALLOC_OPEN_TRANSFER).bind(c.moId, gac, c.dongId, c.len, c.xuong, r.id, l.cmd, l.lucIso, l.nguoiId)));
+  }
+  if (l.diemNguon !== null) lo.push(ghi(db.prepare(STOP_SET_MOVED).bind(l.diemNguon, r.tuChuyen, l.cmd, l.lucIso, l.nguoiId, gac)));
+  lo.push(...l.chot.map((m) => ghi(db.prepare(MANIFEST_CHUYEN_KHACH).bind(crypto.randomUUID(), gac, m.allocationId, m.passengerRowId, m.crewPartyId, l.lucIso, l.nguoiId, l.cmd))));
+  lo.push(ghi(db.prepare(TRANSFERS_VOID_KHAC).bind(r.tuChuyen, r.id, l.diemNguon, l.cmd, l.lucIso, l.nguoiId, gac)));
+  lo.push(...cauCamKet(db, l, gac, l.camKetDich));
+  return lo;
+}
+
+export interface LenhBacDeNghi extends LenhChung {
+  deNghi: DeNghiLo;
+  lyDo: string;
+  soKhach: number;
+  detail: string;
+}
+/** Lô BÁC (Quản trị / Toàn quyền; đề nghị Leo thang): cổng đích → nhật ký → TRANSFER_REJECTED → đề nghị REJECTED (lý do nhóm TU_CHOI_NHAN). Suất không đổi. */
+export function loBacDeNghi(db: D1Database, l: LenhBacDeNghi): CauCoNhan[] {
+  const r = l.deNghi;
+  return [
+    congDeNghi(db, l, r, ["ESCALATED"]),
+    nhatKy(db, l, "trip_transfer_rejected", r.denChuyen, l.detail),
+    suKien(db, l, { tripId: r.denChuyen, relatedTripId: r.tuChuyen, loai: "TRANSFER_REJECTED", soNguoi: l.soKhach }),
+    ghi(db.prepare(TRANSFER_DUYET).bind(r.id, "REJECTED", l.cmd, l.lucIso, l.nguoiId, null, l.lyDo, r.denChuyen)),
   ];
 }
 

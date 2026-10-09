@@ -1,13 +1,26 @@
 // LỆNH ĐỀ NGHỊ CHUYỂN KHÁCH GIỮA HAI XE (ADR-0111, thi hành ADR-0052 D4 / D5c — gói A5): đọc → luật thuần (src/shared/chuyen-khach.ts) → dựng lô
 // (dieu-phoi.ts — mọi câu ghi chuyến ở đó) → chạy (`chayLo`). Trả `Response` khi từ chối. Route đã kiểm quyền + "đang lái" trước khi gọi (404 khi không lái).
 // Không tên khách, năm sinh, SĐT trong DTO / nhật ký; chữ nơi gặp (đã che) chỉ ở DTO đề nghị; khoá nơi không bao giờ ra ngoài (LC-18, G-A5-9).
-import type { DeNghiDto } from "../../shared/contracts";
-import { chuanNoiGap, daHetHan, hetHanLucMs, hopDuyet, kiemGui, NHAN_TRANG_THAI_DE_NGHI, suatCuaDeNghi, trangThaiLucDoc, type MaLoiGui } from "../../shared/chuyen-khach";
+import type { ChangChoChuyen, ChangLichChung } from "../orders";
+import type { DeNghiDto, KetQuaDeNghi } from "../../shared/contracts";
+import {
+  chuanNoiGap, daHetHan, hetHanLucMs, hopDuyet, keHoachDiem, kiemChuyen, kiemGui, NHAN_TRANG_THAI_DE_NGHI, quyetDinhSauKiem, suatCuaDeNghi, trangThaiLucDoc,
+  type DongKiemChuyen, type MaLoiGui,
+} from "../../shared/chuyen-khach";
+import { NHAN_NHOM_LY_DO } from "../../shared/dieu-phoi-kieu";
 import { error, UUID_RE } from "../../shared/http";
-import { deNghiById, kiemCuaDeNghi, lyDoDangDung, stopsByTrips, tenDiem, type DeNghiRow } from "./chuyen-repo";
-import { loGuiDeNghi, loRutDeNghi, type DeNghiLo } from "./dieu-phoi";
-import { suatVao, type NenChuyen } from "./dieu-phoi-doc";
-import { chayLo, loi409 } from "./dieu-phoi-route";
+import { khoaNoi } from "../../shared/khoa-noi";
+import { msToVnLocal } from "../../shared/vn-date";
+import {
+  deNghiById, deNghiCuaChuyen, dieuKienChuyenDangDung, kiemCuaDeNghi, lyDoDangDung, stopsByTrips, tenDiem, tripById, type AllocRow, type DeNghiRow,
+} from "./chuyen-repo";
+import {
+  loBacDeNghi, loGuiDeNghi, loHetHanDeNghi, loKhongNhanDeNghi, loLeoThangDeNghi, loRutDeNghi, loXacNhanDeNghi, type CamKetLo, type CapChuyenKhach, type DeNghiLo,
+  type DiemMoi, type DongKiemLo,
+} from "./dieu-phoi";
+import { boSungXe, chinhSachVao, docChung, docNen, docNguCanh, suatVao, type NenChuyen } from "./dieu-phoi-doc";
+import { chayLo, loi409, sapLaiDiem } from "./dieu-phoi-route";
+import { currentDispatchPolicy } from "./repository";
 
 type KetQua<T> = { ok: true; value: T } | { ok: false; message: string };
 const fail = (message: string): { ok: false; message: string } => ({ ok: false, message });
@@ -71,7 +84,6 @@ const CAU_LOI_GUI: Readonly<Record<MaLoiGui, string>> = {
 const KHONG_CO_DIA_DIEM = () => error(400, "invalid_input", "Địa điểm nơi gặp không có trong danh mục.");
 export const DE_NGHI_DA_DONG = () => loi409("ck_de_nghi_da_dong", [], {}, "Đề nghị đã được trả lời hoặc đã đóng — tải lại.");
 export const DE_NGHI_DA_LEO_THANG = () => loi409("da_leo_thang", [], {}, "Đề nghị đang chờ văn phòng duyệt — không rút được.");
-export const DE_NGHI_HET_GIO = () => loi409("ck_het_gio", [], {}, "Đề nghị đã hết giờ chờ — tải lại.");
 const nowIsoOf = (ms: number) => new Date(ms).toISOString();
 const lenhChung = (requestId: string, nguoiId: string, bayGioMs: number) => ({ cmd: crypto.randomUUID(), requestId, lucIso: nowIsoOf(bayGioMs), nguoiId });
 const deNghiLo = (r: Pick<DeNghiRow, "id" | "from_trip_id" | "to_trip_id">): DeNghiLo => ({ id: r.id, tuChuyen: r.from_trip_id, denChuyen: r.to_trip_id });
@@ -105,9 +117,17 @@ export async function lenhGuiDeNghi(db: D1Database, nen: NenChuyen, dich: NenChu
   if (loi) return loi409(loi, [], {}, CAU_LOI_GUI[loi]);
   if (t.driver_party_id === null) return loi409("ck_nguon_chua_co_tai_xe", [], {}, "Xe nhờ chưa có tài xế đang lái — không gửi đề nghị được.");
   if (b.noiGap.diaDiemId !== null && !(await tenDiem(db, [b.noiGap.diaDiemId])).has(b.noiGap.diaDiemId)) return KHONG_CO_DIA_DIEM();
+  // MQ-08 (NT-A5-5): đề nghị Chờ đã quá hạn của xe nhờ đóng Hết hạn TRƯỚC khi gửi đề nghị mới — mỗi đề nghị một lô riêng (một sự kiện mỗi lô — C38), mã lệnh
+  // mới (không dùng mã của lệnh gửi: UNIQUE request_id sẽ làm lô gửi thành "lệnh lặp"). Lô hết hạn tăng version xe nhận ⇒ đọc lại version trước lô gửi.
+  const quaHan = (await deNghiCuaChuyen(db, [t.id])).filter((r) => r.from_trip_id === t.id && quaHanCho(r, bayGioMs));
+  for (const r of quaHan) {
+    const k = await chayHetHan(db, r, crypto.randomUUID(), nguoi.staffId, bayGioMs);
+    if (k) return k;
+  }
+  const dVersion = quaHan.some((r) => r.to_trip_id === d.id) ? ((await tripById(db, d.id))?.version ?? d.version) : d.version;
   const l = lenhChung(b.requestId, nguoi.staffId, bayGioMs);
   const lo = loGuiDeNghi(db, {
-    ...l, dich: { tripId: d.id, version: d.version }, nguonId: t.id, phamVi: b.phamVi, diemId: b.diemId, noiGap: b.noiGap, soKhach: theoDiem.length,
+    ...l, dich: { tripId: d.id, version: dVersion }, nguonId: t.id, phamVi: b.phamVi, diemId: b.diemId, noiGap: b.noiGap, soKhach: theoDiem.length,
     nguoiGuiPartyId: t.driver_party_id!,
     detail: `${t.code} → ${d.code}: đề nghị chuyển ${theoDiem.length} khách (${phamViNhatKy(b.phamVi)})${nguoi.vanPhong ? " · văn phòng gửi thay" : ""}`,
   });
@@ -116,18 +136,249 @@ export async function lenhGuiDeNghi(db: D1Database, nen: NenChuyen, dich: NenChu
 }
 
 // ---- Rút (tài xế xe nhờ) --------------------------------------------------------------------------------------------------------------------------------
-/** Chỉ khi Chờ và chưa quá hạn (G-A5-19: Leo thang không rút được). Route đã kiểm người bấm đang lái xe nhờ. */
-export async function lenhRutDeNghi(db: D1Database, r: DeNghiRow, b: { requestId: string }, staffId: string, bayGioMs: number): Promise<Response | null> {
+/**
+ * Chỉ khi Chờ (G-A5-19: Leo thang không rút được). Quá hạn → chính lệnh này đóng Hết hạn (MQ-08 — 200 HET_HAN). Route đã kiểm người bấm đang lái xe nhờ.
+ */
+export async function lenhRutDeNghi(db: D1Database, r: DeNghiRow, b: { requestId: string }, staffId: string, bayGioMs: number): Promise<{ ketQua: KetQuaDeNghi } | Response> {
   if (r.status === "ESCALATED") return DE_NGHI_DA_LEO_THANG();
-  if (r.status !== "PENDING") return DE_NGHI_DA_DONG();
-  if (daHetHan(Date.parse(r.proposed_at), r.accept_wait_minutes, bayGioMs)) return DE_NGHI_HET_GIO();
+  if (r.status !== "PENDING") return daDong(r);
+  if (quaHanCho(r, bayGioMs)) return (await chayHetHan(db, r, b.requestId, staffId, bayGioMs)) ?? { ketQua: "HET_HAN" };
   const lo = loRutDeNghi(db, {
     ...lenhChung(b.requestId, staffId, bayGioMs), deNghi: deNghiLo(r), soKhach: r.pax_count,
     detail: `${r.from_code} → ${r.to_code}: rút đề nghị chuyển ${r.pax_count} khách (${phamViNhatKy(r.scope)})`,
   });
   const k = await chayLo(db, lo, b.requestId);
+  return k.ok ? { ketQua: "DA_RUT" } : k.res;
+}
+
+// ---- Hết hạn (MQ-08: đóng khi có người bấm tiếp vào đề nghị Chờ đã quá hạn — không Cron) ------------------------------------------------------------
+function quaHanCho(r: DeNghiRow, bayGioMs: number): boolean {
+  return r.status === "PENDING" && daHetHan(Date.parse(r.proposed_at), r.accept_wait_minutes, bayGioMs);
+}
+/** Đề nghị đã rời Chờ / Leo thang: tự huỷ (P4, MQ-09) → `da_huy`; còn lại → đã đóng. */
+const daDong = (r: DeNghiRow): Response => (r.status === "VOID" ? DE_NGHI_DA_HUY() : DE_NGHI_DA_DONG());
+async function chayHetHan(db: D1Database, r: DeNghiRow, requestId: string, staffId: string, bayGioMs: number): Promise<Response | null> {
+  const lo = loHetHanDeNghi(db, {
+    ...lenhChung(requestId, staffId, bayGioMs), deNghi: deNghiLo(r), soKhach: r.pax_count,
+    detail: `${r.from_code} → ${r.to_code}: đề nghị chuyển ${r.pax_count} khách (${phamViNhatKy(r.scope)}) hết giờ chờ`,
+  });
+  const k = await chayLo(db, lo, requestId);
   return k.ok ? null : k.res;
 }
+
+// ---- Không nhận (tài xế xe nhận) -----------------------------------------------------------------------------------------------------------------------
+const LY_DO_SAI_NHOM = (nhom: keyof typeof NHAN_NHOM_LY_DO) => error(400, "invalid_input", `Lý do không có trong nhóm "${NHAN_NHOM_LY_DO[nhom]}".`);
+async function lyDoTrongNhom(db: D1Database, code: string, nhom: string): Promise<boolean> {
+  return (await lyDoDangDung(db)).some((x) => x.code === code && x.reason_group === nhom);
+}
+/** Đ3 (b): chỉ khi Chờ, trước hạn; lý do nhóm TU_CHOI_NHAN; người quyết = tài xế đang lái xe nhận (`taiXePartyId` — route đã kiểm người bấm). */
+export async function lenhKhongNhanDeNghi(
+  db: D1Database, r: DeNghiRow, b: { requestId: string; lyDo: string }, staffId: string, taiXePartyId: string, bayGioMs: number,
+): Promise<{ ketQua: KetQuaDeNghi } | Response> {
+  if (!(await lyDoTrongNhom(db, b.lyDo, "TU_CHOI_NHAN"))) return LY_DO_SAI_NHOM("TU_CHOI_NHAN");
+  if (r.status !== "PENDING") return daDong(r);
+  if (quaHanCho(r, bayGioMs)) return (await chayHetHan(db, r, b.requestId, staffId, bayGioMs)) ?? { ketQua: "HET_HAN" };
+  const lo = loKhongNhanDeNghi(db, {
+    ...lenhChung(b.requestId, staffId, bayGioMs), deNghi: deNghiLo(r), taiXePartyId, lyDo: b.lyDo, soKhach: r.pax_count,
+    detail: `${r.from_code} → ${r.to_code}: xe nhận không nhận ${r.pax_count} khách (${phamViNhatKy(r.scope)})`,
+  });
+  const k = await chayLo(db, lo, b.requestId);
+  return k.ok ? { ketQua: "KHONG_NHAN" } : k.res;
+}
+
+// ---- Nhận (tài xế xe nhận) / Duyệt (Quản trị, Toàn quyền) -------------------------------------------------------------------------------------------
+/** Dữ liệu của orders do THÂN ROUTE đọc sau `can()` (bài src/orders-cong-bo.test.ts): chặng quanh ngày chạy, hành khách của chặng xe nhờ (bản chốt). */
+export interface ChangChoDeNghi {
+  lich: readonly ChangLichChung[];
+  hk: readonly ChangChoChuyen[];
+}
+export const DE_NGHI_DA_HUY = () => loi409("da_huy", [], {}, "Đề nghị đã huỷ (khách đã chuyển sang xe khác hoặc chuyến đã đổi) — tải lại.");
+const KHACH_DA_DOI = () => loi409("ck_khach_doi", [], {}, "Khách của đề nghị đã đổi từ lúc gửi — tải lại; xe nhờ gửi đề nghị mới nếu còn cần.");
+const CHI_BAC = () => loi409("ck_chi_bac", [], {}, "Đề nghị có điều kiện bắt buộc không đạt — chỉ Bác được.");
+const KHONG_CO_CHINH_SACH = () => loi409("ck_chua_co_chinh_sach", [], {}, "Chưa có chính sách điều phối hiện hành.");
+const dangChiemCho = (a: AllocRow) => a.valid_to_at === null && (a.status === "WAITING" || a.status === "BOARDED");
+
+interface KiemDeNghi {
+  dong: DongKiemChuyen[];
+  congTacBat: boolean;
+  /** Cam kết xe nhận SAU chuyển. */
+  camKet: ReturnType<typeof kiemChuyen>["camKet"];
+  nguon: NenChuyen;
+  dich: NenChuyen;
+  suat: AllocRow[];
+}
+/** Đọc mới (hai chuyến, danh mục, chính sách LÚC BẤM — cùng mốc với trigger, chặng) rồi chạy `kiemChuyen` — MỘT luật cho Nhận và Duyệt. */
+async function kiemLai(db: D1Database, r: DeNghiRow, c: ChangChoDeNghi, bayGioMs: number): Promise<KiemDeNghi | Response> {
+  const luc = nowIsoOf(bayGioMs);
+  const [nguon, dich, danhMuc, cs] = await Promise.all([docNen(db, r.from_trip_id), docNen(db, r.to_trip_id), dieuKienChuyenDangDung(db), currentDispatchPolicy(db, luc)]);
+  if (!nguon || !dich) return DE_NGHI_DA_DONG();
+  const chinhSach = chinhSachVao(cs);
+  if (!cs || !chinhSach) return KHONG_CO_CHINH_SACH();
+  const suatNguon = suatCuaDeNghi(r.scope, nguon.allocs.map(suatVao), r.from_stop_id);
+  if (suatNguon.length !== r.pax_count) return KHACH_DA_DOI();
+  const ids = new Set(suatNguon.map((s) => s.id));
+  const suat = nguon.allocs.filter((a) => ids.has(a.id));
+  const chung = await docChung(db, luc, msToVnLocal(bayGioMs).date);
+  const legKhach = [...new Set(suat.flatMap((a) => (a.kind === "PASSENGER" && a.leg_id ? [a.leg_id] : [])))];
+  const nc = await docNguCanh(db, dich, c.lich, chung, legKhach);
+  await boSungXe(db, chung, [nguon.trip.vehicle_id]);
+  const soChoNguon = chung.xe.find((x) => x.id === nguon.trip.vehicle_id)?.passenger_capacity ?? 0;
+  const t = dich.trip;
+  const legDich = [...new Set(dich.allocs.flatMap((a) => (a.valid_to_at === null && a.kind === "PASSENGER" && a.leg_id ? [a.leg_id] : [])))];
+  const diem = r.from_stop_id ? nguon.stops.find((s) => s.id === r.from_stop_id) ?? null : null;
+  const kq = kiemChuyen({
+    phamVi: r.scope,
+    nguon: { id: nguon.trip.id, soCho: soChoNguon, tai: nguon.allocs.filter(dangChiemCho).length },
+    diemNguon: diem ? { id: diem.id, trangThai: diem.status } : null,
+    dich: {
+      id: t.id, ma: t.code, trangThai: t.status, batDauMs: t.planned_start_ms, batDauSomNhatMs: t.earliest_start_ms, ketThucMs: t.planned_end_ms, ketThucThatMs: t.ended_ms,
+      xe: nc.chuyen.xe, taiXe: nc.chuyen.taiXe, camKetPhaLeKhoa: t.commitment_override_key,
+    },
+    taiDich: dich.allocs.filter(dangChiemCho).length,
+    suatChuyen: suatNguon,
+    changChuyen: legKhach.flatMap((id) => (nc.chang.has(id) ? [nc.chang.get(id)!] : [])),
+    changTrenDich: legDich.flatMap((id) => (nc.chang.has(id) ? [nc.chang.get(id)!] : [])),
+    chuyenKhac: nc.chuyenKhac,
+    chinhSach, hangBang: chung.hangBang, dieuKien: chung.dieuKien,
+    danhMuc: danhMuc.map((m) => ({ code: m.code, tier: m.tier, active: true })),
+    bayGioMs,
+  });
+  return { dong: kq.dong, camKet: kq.camKet, congTacBat: cs.auto_confirm_transfer === 1, nguon, dich, suat };
+}
+const kiemLo = (dong: readonly DongKiemChuyen[]): DongKiemLo[] => dong.map((d) => ({ ma: d.ma, tang: d.tang, ketQua: d.ketQua, giaTri: d.giaTri, gioiHan: d.gioiHan }));
+const khongDatNhatKy = (dong: readonly DongKiemChuyen[]): string => {
+  const ma = dong.filter((d) => d.ketQua === "KHONG_DAT").map((d) => d.ma);
+  return ma.length > 0 ? ` · không đạt: ${ma.join(", ")}` : "";
+};
+
+/**
+ * Kế hoạch ghi của lô xác nhận (MỘT luật cho Nhận và Duyệt): điểm ở xe nhận (`keHoachDiem` — ghép theo khoá nơi, nơi gặp luôn điểm mới), sắp lại đón trước
+ * trả (`sapLaiDiem`), cặp đóng / mở, bản chốt khi xe nhận đã xuất bến (khách có tên + người đi kèm; khách chưa tên vào bản chốt khi được gắn tên).
+ */
+async function keHoachXacNhan(r: DeNghiRow, k: KiemDeNghi, hk: readonly ChangChoChuyen[]) {
+  const b = k.dich.trip;
+  // Nơi gặp (cứu hộ): điểm danh mục → khoá "L:<id>"; chữ → khoá trên chữ ĐÃ CHE (chỉ chữ đã che được lưu — G-A5-9). Điểm nơi gặp luôn là điểm MỚI (không ghép).
+  const noiGapKey = r.scope !== "ONBOARD" ? null : r.meet_location_id ? `L:${r.meet_location_id}` : await khoaNoi({ locationId: null, placeText: r.meet_place_text });
+  const kh = keHoachDiem({
+    suatChuyen: k.suat.map(suatVao),
+    diemNguon: k.nguon.stops.map((s) => ({ id: s.id, loai: s.kind, trangThai: s.status, placeKey: s.place_key, seq: s.seq })),
+    diemDich: k.dich.stops.map((s) => ({ id: s.id, loai: s.kind, trangThai: s.status, placeKey: s.place_key })),
+    noiGapPlaceKey: noiGapKey,
+  });
+  let seq = Math.max(0, ...k.dich.stops.map((s) => s.seq));
+  const diemMoi: DiemMoi[] = [];
+  const idCua = new Map<string, string>();
+  for (const t of kh.them) {
+    const goc = t.noiGap ? null : k.nguon.stops.find((s) => s.kind === t.loai && s.place_key === t.placeKey) ?? null;
+    const id = crypto.randomUUID();
+    idCua.set(t.khoa, id);
+    diemMoi.push({
+      id, tripId: b.id, seq: ++seq, loai: t.loai, placeKey: t.placeKey,
+      locationId: t.noiGap ? r.meet_location_id : goc?.location_id ?? null,
+      placeText: t.noiGap ? (r.meet_location_id ? null : r.meet_place_text) : goc?.place_text ?? null,
+    });
+  }
+  const giai = (x: string | null) => (x === null ? null : idCua.get(x) ?? x);
+  const cap: CapChuyenKhach[] = kh.gan.map((g) => ({ dongId: g.suatId, moId: crypto.randomUUID(), len: giai(g.len), xuong: giai(g.xuong) }));
+  const doiThuTu = sapLaiDiem(k.dich.stops, diemMoi, b.id, [
+    ...k.dich.allocs.filter((a) => a.valid_to_at === null).map((a) => ({ board: a.board_stop_id, alight: a.alight_stop_id })),
+    ...cap.map((c) => ({ board: c.len, alight: c.xuong })),
+  ]);
+  const dong = new Map<string, string>();
+  for (const ch of hk) for (const p of ch.nguoi) dong.set(`${ch.legId}|${p.personKey}`, p.rowId);
+  type DongChot = { allocationId: string; passengerRowId: string | null; crewPartyId: string | null };
+  const chot: DongChot[] = b.status !== "RUNNING" ? [] : cap.flatMap((c): DongChot[] => {
+    const a = k.suat.find((x) => x.id === c.dongId)!;
+    if (a.kind === "CREW") return a.crew_party_id ? [{ allocationId: c.moId, passengerRowId: null, crewPartyId: a.crew_party_id }] : [];
+    const row = a.passenger_key !== null && a.leg_id !== null ? dong.get(`${a.leg_id}|${a.passenger_key}`) : undefined;
+    return row ? [{ allocationId: c.moId, passengerRowId: row, crewPartyId: null }] : [];
+  });
+  return { diemMoi, doiThuTu, cap, chot };
+}
+async function laCu(res: Response): Promise<boolean> {
+  if (res.status !== 409) return false;
+  return ((await res.clone().json()) as { error?: { code?: string } }).error?.code === "stale";
+}
+
+/**
+ * MỘT hàm cho Nhận (tài xế xe nhận) và Duyệt (Quản trị / Toàn quyền, lý do PHA_LE). Đọc mới → kiểm → lô (leo thang / xác nhận). Lô cổng đôi chạy đua với
+ * lệnh khác trên một trong hai chuyến (NT-A5-20): thua cổng vì version → đọc lại và thử LẠI MỘT LẦN.
+ */
+async function quyetDeNghi(
+  db: D1Database, rid: string, c: ChangChoDeNghi, b: { requestId: string }, staffId: string, bayGioMs: number,
+  quyet: { kieu: "NHAN"; taiXePartyId: string } | { kieu: "DUYET"; lyDo: string },
+): Promise<{ ketQua: KetQuaDeNghi } | Response> {
+  for (let lan = 0; ; lan++) {
+    const r = await deNghiById(db, rid);
+    if (!r) return DE_NGHI_DA_DONG();
+    if (quyet.kieu === "NHAN") {
+      if (r.status !== "PENDING") return daDong(r);
+      if (quaHanCho(r, bayGioMs)) return (await chayHetHan(db, r, b.requestId, staffId, bayGioMs)) ?? { ketQua: "HET_HAN" };
+    } else if (r.status !== "ESCALATED") return daDong(r);
+    const k = await kiemLai(db, r, c, bayGioMs);
+    if (k instanceof Response) return k;
+    const l = lenhChung(b.requestId, staffId, bayGioMs);
+    const truoc = `${r.from_code} → ${r.to_code}: ${phamViNhatKy(r.scope)}, ${r.pax_count} khách`;
+    if (quyet.kieu === "NHAN" && quyetDinhSauKiem(k.dong, k.congTacBat) === "ESCALATED") {
+      const lo = loLeoThangDeNghi(db, {
+        ...l, deNghi: deNghiLo(r), taiXePartyId: quyet.taiXePartyId, kiem: kiemLo(k.dong), soKhach: r.pax_count,
+        detail: `${truoc} — chờ văn phòng duyệt${khongDatNhatKy(k.dong)}${k.congTacBat ? "" : " · tự đồng ý đang tắt"}`,
+      });
+      const x = await chayLo(db, lo, b.requestId);
+      if (x.ok) return { ketQua: "LEO_THANG" };
+      if (lan === 0 && (await laCu(x.res))) continue;
+      return x.res;
+    }
+    if (quyet.kieu === "DUYET") {
+      const cu = await kiemCuaDeNghi(db, [r.id]);
+      if (hopDuyet([...cu.map((x) => ({ tang: x.rule_tier, ketQua: x.ket_qua })), ...k.dong]) === "CHI_BAC") return CHI_BAC();
+    }
+    const kh = await keHoachXacNhan(r, k, c.hk);
+    // ADR-0056 A3 (NT-A5-11): Duyệt mà cam kết xe nhận không đạt → ghi khoá phá lệ (lý do của lần duyệt); hết vi phạm mà cột đang có → xoá (chỉ xe chưa chạy —
+    // khuôn loCapNhatDiem: không chạm cột khi xe đang chạy). Nhận tự động không bao giờ ghi (CAM_KET_DICH không đạt ⇒ leo thang).
+    const ck = k.camKet;
+    const camKetDich: CamKetLo | null = quyet.kieu === "DUYET" && ck.khoa !== null && !ck.daPhaLe ? { lyDo: quyet.lyDo, khoa: ck.khoa }
+      : ck.khoa === null && k.dich.trip.commitment_override_key !== null && k.dich.trip.status !== "RUNNING" ? { lyDo: null, khoa: null } : null;
+    const lo = loXacNhanDeNghi(db, {
+      ...l, deNghi: deNghiLo(r), nguonVersion: k.nguon.trip.version, dichVersion: k.dich.trip.version,
+      quyet: quyet.kieu === "NHAN" ? { kieu: "MAY", taiXePartyId: quyet.taiXePartyId } : { kieu: "NGUOI", lyDo: quyet.lyDo },
+      kiem: kiemLo(k.dong), diemMoi: kh.diemMoi, doiThuTu: kh.doiThuTu, dichDangChay: k.dich.trip.status === "RUNNING", cap: kh.cap,
+      diemNguon: r.scope === "STOP" ? r.from_stop_id : null, chot: kh.chot, camKetDich,
+      detail: `${truoc} — ${quyet.kieu === "NHAN" ? "máy tự xác nhận" : "văn phòng duyệt"}${kh.diemMoi.length > 0 ? `; ${kh.diemMoi.length} điểm mới ở xe nhận` : ""}${khongDatNhatKy(k.dong)}`,
+    });
+    const x = await chayLo(db, lo, b.requestId, 2);
+    if (x.ok) return { ketQua: "DA_CHUYEN" };
+    if (lan === 0 && (await laCu(x.res))) continue;
+    return x.res;
+  }
+}
+/** Tài xế xe nhận bấm Nhận (Chờ, trước hạn): mọi điều kiện đạt + công tắc tự đồng ý (chính sách LÚC BẤM) bật → xác nhận (MAY); còn lại leo thang. */
+export function lenhNhanDeNghi(
+  db: D1Database, rid: string, c: ChangChoDeNghi, b: { requestId: string }, staffId: string, taiXePartyId: string, bayGioMs: number,
+): Promise<{ ketQua: KetQuaDeNghi } | Response> {
+  return quyetDeNghi(db, rid, c, b, staffId, bayGioMs, { kieu: "NHAN", taiXePartyId });
+}
+/** ĐP4: chỉ đề nghị Leo thang; lý do nhóm PHA_LE; chạy lại kiểm — có dòng không đạt tầng LOI (mọi lần kiểm) → 409, không ghi. Route đã kiểm trip.override. */
+export async function lenhDuyetDeNghi(
+  db: D1Database, rid: string, c: ChangChoDeNghi, b: { requestId: string; lyDo: string }, staffId: string, bayGioMs: number,
+): Promise<{ ketQua: KetQuaDeNghi } | Response> {
+  if (!(await lyDoTrongNhom(db, b.lyDo, "PHA_LE"))) return LY_DO_SAI_NHOM("PHA_LE");
+  return quyetDeNghi(db, rid, c, b, staffId, bayGioMs, { kieu: "DUYET", lyDo: b.lyDo });
+}
+
+// ---- Bác (Quản trị, Toàn quyền) --------------------------------------------------------------------------------------------------------------------------
+/** Chỉ đề nghị Leo thang; lý do nhóm TU_CHOI_NHAN; suất không đổi. Route đã kiểm trip.override. */
+export async function lenhBacDeNghi(db: D1Database, r: DeNghiRow, b: { requestId: string; lyDo: string }, staffId: string, bayGioMs: number): Promise<{ ketQua: KetQuaDeNghi } | Response> {
+  if (!(await lyDoTrongNhom(db, b.lyDo, "TU_CHOI_NHAN"))) return LY_DO_SAI_NHOM("TU_CHOI_NHAN");
+  if (r.status !== "ESCALATED") return daDong(r);
+  const lo = loBacDeNghi(db, {
+    ...lenhChung(b.requestId, staffId, bayGioMs), deNghi: deNghiLo(r), lyDo: b.lyDo, soKhach: r.pax_count,
+    detail: `${r.from_code} → ${r.to_code}: văn phòng không duyệt đề nghị chuyển ${r.pax_count} khách (${phamViNhatKy(r.scope)})`,
+  });
+  const k = await chayLo(db, lo, b.requestId);
+  return k.ok ? { ketQua: "DA_BAC" } : k.res;
+}
+
 
 // ---- DTO --------------------------------------------------------------------------------------------------------------------------------------------
 /**

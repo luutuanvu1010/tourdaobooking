@@ -117,6 +117,14 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
     DRIVER: { ma: 404, ly_do: "đề nghị lạ / không phải xe mình đang lái → 404 TRƯỚC khi đọc thân" },
     DRIVER_PARTNER: { ma: 403, ly_do: "ô trip.view none → 403 ở bước đầu, trước mọi truy vấn" },
   },
+  "POST /api/van-chuyen/de-nghi/:rid/nhan": {
+    DRIVER: { ma: 404, ly_do: "đề nghị lạ / không phải xe nhận mình đang lái → 404 TRƯỚC khi đọc thân" },
+    DRIVER_PARTNER: { ma: 403, ly_do: "ô trip.view none → 403 ở bước đầu, trước mọi truy vấn" },
+  },
+  "POST /api/van-chuyen/de-nghi/:rid/khong-nhan": {
+    DRIVER: { ma: 404, ly_do: "đề nghị lạ / không phải xe nhận mình đang lái → 404 TRƯỚC khi đọc thân" },
+    DRIVER_PARTNER: { ma: 403, ly_do: "ô trip.view none → 403 ở bước đầu, trước mọi truy vấn" },
+  },
   "GET /api/van-chuyen/de-nghi-cua-toi": {
     DRIVER: { ma: 200, ly_do: "đề nghị chuyển khách của chuyến CHÍNH MÌNH đang lái (mã chuyến, số khách, tên điểm — không tên khách, SĐT, mã đơn)" },
     DRIVER_PARTNER: { ma: 403, ly_do: "ô trip.transfer none → 403 ở bước đầu" },
