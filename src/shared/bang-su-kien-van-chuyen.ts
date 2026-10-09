@@ -384,6 +384,16 @@ export const NGOAI_PHAM_VI_ROUTE: Readonly<Record<string, string>> = {
   "POST /api/orders/:id/legs": "thêm chặng mới — chưa có suất",
   "POST /api/orders/:id/legs/:legId/short-notice": "dấu đặt gấp — không đổi người / chặng / giờ",
 };
+/**
+ * Ngoại lệ route đơn được miễn KHÔNG miễn cả route: ghim ĐÚNG tập hàm ghi chặng / hành khách / huỷ đơn mà thân route được chạm (phiếu kiểm vòng 2,
+ * VỪA-1). Route ở NGOAI_PHAM_VI_ROUTE chạm hàm ghi đơn phải có mục ở đây, và tập hàm thân route chạm phải BẰNG tập khai — chạm thêm hàm (vd. `changeLeg`) → đỏ.
+ */
+export const HAM_GHI_DON_DUOC_CHAM: Readonly<Record<string, readonly string[]>> = {
+  "POST /api/orders": ["createOrder"],
+  "PUT /api/orders/:id": ["updateDraftOrder"],
+  "POST /api/orders/:id/legs": ["addLeg"],
+  "POST /api/orders/:id/legs/:legId/short-notice": ["legShortNotice"],
+};
 
 // ---- Quy tắc chung suy từ bảng (máy kiểm) và chỗ lệch ---------------------------------------------------------------------------------------------------
 /**
@@ -518,7 +528,10 @@ export function veBangDayDu(): string {
   out.push("", "## Ngoài phạm vi", "", "Việc nhật ký:", "");
   for (const [k, v] of Object.entries(NGOAI_PHAM_VI_NHAT_KY)) out.push(`- \`${k}\` — ${v}`);
   out.push("", "Route ghi:", "");
-  for (const [k, v] of Object.entries(NGOAI_PHAM_VI_ROUTE)) out.push(`- \`${k}\` — ${v}`);
+  for (const [k, v] of Object.entries(NGOAI_PHAM_VI_ROUTE)) {
+    const ham = HAM_GHI_DON_DUOC_CHAM[k];
+    out.push(`- \`${k}\` — ${v}${ham ? ` (chỉ được chạm: ${ham.map((x) => `\`${x}\``).join(", ")})` : ""}`);
+  }
   out.push("");
   return out.join("\n");
 }

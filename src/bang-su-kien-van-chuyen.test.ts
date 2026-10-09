@@ -8,9 +8,10 @@
 //       tình huống khả thi của dòng, so với cột tin; cổng gõ cửa (`dongCoTheSinhTin`) phải mở khi có người nhận; loại Bảng tin khớp `thayDoiCuaHanhDongChuyen`;
 //   (c) ô quyền của từng route khớp `MATRIX`;
 //   (d) quét tĩnh: route ghi của van-chuyen / dispatch phải có dòng hoặc mục ngoài phạm vi; route của orders / dispatch gọi máy đồng bộ, hoặc chạm hàm ghi
-//       chặng / hành khách / huỷ đơn (suy bằng điểm bất động từ câu SQL `ord_transfer_leg`, `ord_passenger`, huỷ đơn) cũng vậy; thân route: cổng, ô hỏi đầu
+//       chặng / hành khách / huỷ đơn (suy bằng điểm bất động từ câu SQL `ord_transfer_leg`, `ord_passenger`, huỷ đơn) cũng vậy — ngoại lệ
+//       của route đơn ghim ĐÚNG tập hàm được chạm (`HAM_GHI_DON_DUOC_CHAM`); thân route: cổng, ô hỏi đầu
 //       thân, khoá ngữ cảnh `{ ownerId, assigned }` của mọi lời hỏi ô đó, hàm xử lý, có / không hỏi `trip.urgent_adjust`, có / không báo tin; câu SQL ghi
-//       bảng chuyến (trừ `vc_trip_cost_line`) chỉ nằm ở chuyen-repo.ts và chỉ dieu-phoi.ts dùng; hàm dựng lô ghi đúng việc nhật ký và loại sự kiện;
+//       bảng chuyến (trừ `vc_trip_cost_line`; động từ ghi không phân biệt hoa thường, gồm `INSERT OR …`, `REPLACE INTO`) chỉ nằm ở chuyen-repo.ts và chỉ dieu-phoi.ts dùng; hàm dựng lô ghi đúng việc nhật ký và loại sự kiện;
 //   (e) quy tắc chung QT1–QT3: mọi chỗ vi phạm phải có mục ở `CHO_LECH`, mục không còn vi phạm → đỏ; dấu hiệu của mục lệch hết đúng → đỏ (đã sửa?).
 // KHÔNG kiểm (dựa vào kỷ luật):
 //   - cột "bảng bị ghi", cột "luật", cột `trangThaiChuyen` (bài tin chỉ xét các trạng thái khai ở đây — khai thiếu thì tình huống đó không được xét);
@@ -19,6 +20,10 @@
 //   - người nhận tin ngoài 13 người mẫu (vd. tài khoản nhiều quyền ghép, Đối tác / Thực tập lập đơn);
 //   - lỗ quét tĩnh: lệnh ghi ở module khác van-chuyen / dispatch / orders (vd. billing) chạm chặng / hành khách bằng hàm riêng; hàm ghi gọi qua BIẾN
 //     (không viết tên); câu SQL dựng ghép chuỗi không chứa nguyên cụm "UPDATE vc_trip…" / "INSERT INTO ord_…"; route không khai bằng `route("M", "path", …)`;
+//   - khoá ngữ cảnh: bài so TÊN khoá trong `can(staff, "ô", {…})`, không so GIÁ TRỊ (`{ ownerId, assigned: false }` lọt);
+//   - dạng khai hàm dựng lô `export const f = function …`, `export default function`, `export { x }` lọt bài phủ hàm xuất dieu-phoi.ts;
+//   - phương thức của `class` ghi chặng / hành khách lọt điểm bất động (chỉ xét khai báo `function` / `const` cấp cao nhất);
+//   - câu ghi `vc_leg_appt_ack` (mốc đã gọi báo) không thuộc quét câu ghi bảng chuyến;
 //   - chữ ADR (bài không đọc ADR — chỗ lệch ADR do người khai vào CHO_LECH).
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -34,7 +39,7 @@ import {
   tinGioHenCho, type ChuyenChoTin, type NguoiNhanChuyen,
 } from "./shared/tin-chuyen.ts";
 import {
-  BANG_SU_KIEN_VAN_CHUYEN as BANG, CHO_LECH, NGOAI_PHAM_VI_NHAT_KY, NGOAI_PHAM_VI_ROUTE, NGUOI_MAU, type DongSuKien, type MaQuyTac, type NguoiMau, type Tin,
+  BANG_SU_KIEN_VAN_CHUYEN as BANG, CHO_LECH, HAM_GHI_DON_DUOC_CHAM, NGOAI_PHAM_VI_NHAT_KY, NGOAI_PHAM_VI_ROUTE, NGUOI_MAU, type DongSuKien, type MaQuyTac, type NguoiMau, type Tin,
 } from "./shared/bang-su-kien-van-chuyen.ts";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");
@@ -286,6 +291,12 @@ test("(d) thân route khớp dòng: cổng, ô hỏi, hàm xử lý, lớp vư�
   assert.deepEqual(loi, []);
 });
 
+/**
+ * Động từ ghi của SQLite (không phân biệt hoa thường — phiếu kiểm vòng 2, VỪA-2): `INSERT [OR <xử lý xung đột>] INTO`, `REPLACE INTO`,
+ * `UPDATE [OR <xử lý xung đột>]`, `DELETE FROM`. Chỉ quét phần mã đã che chú thích; chữ trong chuỗi vẫn được quét (câu SQL nằm trong chuỗi).
+ */
+const CAU_GHI = /\b(?:INSERT(?:\s+OR\s+\w+)?\s+INTO|REPLACE\s+INTO|UPDATE(?:\s+OR\s+\w+)?|DELETE\s+FROM)/;
+
 /** Khai báo cấp cao nhất (`function` / `const`) của một tệp: tên → văn bản tới khai báo kế tiếp. */
 function khaiBao(src: string): Map<string, string> {
   const ms = [...src.matchAll(/^(?:export\s+)?(?:async\s+)?(?:function\s+(\w+)|const\s+(\w+)\s*[=:])/gm)];
@@ -299,7 +310,7 @@ const tepTs = (thuMuc: string): string[] =>
  * cấp cao nhất. Route gọi tới tập này làm đổi dữ liệu mà chuyến đang dựa vào (ADR-0104 Đ2.6) — phải có dòng hoặc mục ngoài phạm vi có lý do.
  */
 function hamGhiDon(): Set<string> {
-  const ghi = /\b(INSERT INTO|UPDATE|DELETE FROM)\s+ord_(transfer_leg|passenger)\b|UPDATE orders SET status = 'cancelled'/;
+  const ghi = new RegExp(`${CAU_GHI.source}\\s+ord_(transfer_leg|passenger)\\b|\\bUPDATE\\s+orders\\s+SET\\s+status\\s*=\\s*'cancelled'`, "i");
   const kb = new Map<string, { chu: string; ma: string }>();
   for (const tep of tepTs("src/modules/orders")) {
     const goc = doc(tep);
@@ -334,12 +345,28 @@ test("(d) route đơn / dispatch chạm hàm ghi chặng, hành khách, huỷ đ
     if (cham.length > 0 && trongBang.has(r.khoa) === ngoai.has(r.khoa)) {
       loi.push(`${r.khoa}: chạm ${cham.join(", ")} — phải ở ĐÚNG MỘT trong hai: dòng của bảng / NGOAI_PHAM_VI_ROUTE`);
     }
+    // VỪA-1: ngoại lệ ghim đúng tập hàm được chạm, không miễn cả route.
+    const duoc = HAM_GHI_DON_DUOC_CHAM[r.khoa];
+    if (ngoai.has(r.khoa) && (cham.length > 0 || duoc)) {
+      if (!duoc) loi.push(`${r.khoa}: ngoại lệ chạm ${cham.join(", ")} mà không ghim tập hàm ở HAM_GHI_DON_DUOC_CHAM`);
+      else {
+        const ngoaiTap = cham.filter((x) => !duoc.includes(x));
+        const thua = duoc.filter((x) => !cham.includes(x));
+        if (ngoaiTap.length > 0) loi.push(`${r.khoa}: chạm hàm ghi đơn ngoài tập được phép (${duoc.join(", ")}): ${ngoaiTap.join(", ")}`);
+        if (thua.length > 0) loi.push(`${r.khoa}: HAM_GHI_DON_DUOC_CHAM khai ${thua.join(", ")} mà thân route không chạm (gỡ?)`);
+      }
+    }
+  }
+  const coRoute = new Set(ROUTES.map((r) => r.khoa));
+  for (const k of Object.keys(HAM_GHI_DON_DUOC_CHAM)) {
+    if (!ngoai.has(k) || !coRoute.has(k)) loi.push(`HAM_GHI_DON_DUOC_CHAM: ${k} không phải route có thật ở NGOAI_PHAM_VI_ROUTE`);
+    for (const h of HAM_GHI_DON_DUOC_CHAM[k]!) if (!tap.has(h)) loi.push(`HAM_GHI_DON_DUOC_CHAM: ${k} khai ${h} không thuộc tập hàm ghi đơn`);
   }
   assert.deepEqual(loi, []);
 });
 
 /** Câu ghi bảng chuyến (trừ chi phí xe thuê `vc_trip_cost_line`). */
-const GHI_CHUYEN = /\b(INSERT INTO|UPDATE|DELETE FROM)\s+vc_trip(_allocation|_stop|_driver|_event|_manifest|_departure_check|_departure_check_item)?\b/;
+const GHI_CHUYEN = new RegExp(`${CAU_GHI.source}\\s+vc_trip(_allocation|_stop|_driver|_event|_manifest|_departure_check|_departure_check_item)?\\b`, "i");
 const TEP_CAU_CHUYEN = "src/modules/van-chuyen/chuyen-repo.ts";
 
 test("(d) câu ghi bảng chuyến chỉ khai ở chuyen-repo.ts và chỉ hàm dựng lô (dieu-phoi.ts) dùng", () => {
