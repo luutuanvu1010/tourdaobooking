@@ -3,7 +3,7 @@
 // cùng một db.batch() với thay đổi dữ liệu → ghi nhật ký và đổi dữ liệu thành công/thất bại cùng nhau.
 // Route riêng: GET /api/audit (nhật ký toàn hệ thống) — chỉ admin. Module không phụ thuộc module nào.
 import { error, intParam, json } from "../../shared/http";
-import { can } from "../../shared/permissions";
+import { can, holdsPartner } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import {
   insertStatement, isAuditAction, listAll, listByOrder,
@@ -40,6 +40,7 @@ export const auditModule: AppModule = {
           limit: intParam(url.searchParams.get("limit"), 50, 1, 100),
           offset: intParam(url.searchParams.get("offset"), 0, 0, 100000),
           hideSilent: !can(staff, "admin.manage.superadmin"), // ADR-0038: chỉ Toàn quyền xem thao tác im lặng của Toàn quyền
+          hideThuongMai: holdsPartner(staff), // bước K-a sổ đại lý đợt 1: "có quyền Đối tác là áp" — kể cả tài khoản lai Toàn quyền + Đối tác (`laHanhDongThuongMai`)
         }),
       );
     }),

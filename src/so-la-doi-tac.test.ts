@@ -181,7 +181,8 @@ test("số lạ: tài khoản lai Bán hàng + Đối tác quét đơn của B v
   assert.equal(chiTiet.status, 200, chiTiet.text);
   assert.ok(chiTiet.json.history.length > 0);
   assert.deepEqual(chiTiet.json.history.filter((e: { action: string }) => e.action.startsWith("order_terms_")), []);
-  const doc = await w.call("GET", `/api/orders/${cuaMinh}/thuong-mai`, { as: LAI_BAN });
+  const doc = await quet(`/api/orders/${cuaMinh}/thuong-mai`); // qua `quet` như mọi bề mặt khác (M1 người kiểm Task 5): thân DTO hẹp cũng không được chứa số lạ
+  assert.equal(doc.status, 200, doc.text);
   assert.deepEqual(Object.keys(doc.json), ["doiTac"]);
   assert.equal(doc.json.doiTac.dong[0].hoaHong, 963_400);
   assert.deepEqual(khoaCua(doc.json).filter((k) => /rate|perPax|cost|ruleId|termId|source|supplier/i.test(k)), []);

@@ -221,6 +221,14 @@ export const SILENT_AUDIT_ACTIONS = [
   "session_revoked", // ADR-0075 điều 8: cùng loại với pin_reset, passkey_removed
 ] as const satisfies readonly AuditAction[];
 
+/**
+ * Sổ đại lý đợt 1, bước K-a (luật "ai thấy tiền của ai" — Hiến chương K4; đặc tả đợt 1: "có quyền Đối tác là áp"): hành động mà `detail` chở MỨC thương mại (tỷ lệ,
+ * đ/khách, người bán). Trang Nhật ký (`GET /api/audit`) bỏ các dòng này khi người xem giữ quyền Đối tác — kể cả tài khoản lai Toàn quyền + Đối tác — như lịch sử đơn
+ * lọc `order_terms_*` (`laDongThuongMai`). Theo tiền tố: hành động mới cùng tiền tố tự vào. Danh sách dựng ở máy chủ (`audit/repository.ts`) — tính ở đầu tệp dùng chung
+ * này kéo cả bảng nhãn vào gói giao diện (bài `src/goi-trang-nhe.test.ts`). Bài canh: `src/so-la-thuong-mai-toan-nen-tang.test.ts`.
+ */
+export const laHanhDongThuongMai = (a: string): boolean => a.startsWith("order_terms_") || a.startsWith("prc_");
+
 export const isAuditAction = (v: unknown): v is AuditAction => typeof v === "string" && Object.hasOwn(AUDIT_ACTIONS, v);
 
 export const auditLabel = (a: AuditAction): string => AUDIT_ACTIONS[a].label;
