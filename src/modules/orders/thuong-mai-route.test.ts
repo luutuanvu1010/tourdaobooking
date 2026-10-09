@@ -245,6 +245,38 @@ test("(3d) tài khoản lai Bán hàng + Đối tác KHÔNG mở được phần
   assert.equal((await xem(w, cuaB, KT)).status, 200, "văn phòng không giữ quyền Đối tác vẫn xem được");
 });
 
+test("(3d2) MỌI tài khoản lai — Bán hàng / Kế toán / Quản trị / Toàn quyền / HDV được giao đơn / Thực tập + Đối tác — đọc phần đối tác đơn của đại lý B (xác nhận, nháp) ⇒ 404, thân không có số của B; Thực tập + Đối tác trên đơn CỦA MÌNH mà bên đặt là B ⇒ 404", async () => {
+  // M2 của người kiểm Task 5 (Ruling 23): bài route nối hàm `cheDoThuongMai` với route cho cả sáu loại tài khoản lai — bài 1024 tập quyền chỉ thử hàm thuần.
+  const w = setup();
+  const LAI_QT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3"; // ADMIN + PARTNER
+  const LAI_TQ = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4"; // SUPER_ADMIN + PARTNER
+  const LAI_HDV = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa5"; // FIELD + PARTNER, được giao đơn đã xác nhận của B
+  const LAI_TT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6"; // INTERN + PARTNER
+  for (const [id, phone, name, perms] of [
+    [LAI_QT, "0900000015", "Lai Quản Trị", ["ADMIN", "PARTNER"]], [LAI_TQ, "0900000016", "Lai Toàn Quyền", ["SUPER_ADMIN", "PARTNER"]],
+    [LAI_HDV, "0900000017", "Lai Hướng Dẫn", ["FIELD", "PARTNER"]], [LAI_TT, "0900000018", "Lai Thực Tập", ["INTERN", "PARTNER"]],
+  ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
+  assert.equal((await muc(w, { ...mucVai(), doiTuong: { loai: "DOI_TAC", partyId: `pty-${DT_B}` }, kieu: "PER_PAX", tyLeBp: undefined, moiKhach: 480_017 })).status, 201);
+  const cuaB = await daXacNhan(w, `pty-${DT_B}`, [["HONTAM", 2_000_000]], DT_B);
+  const nhapB = nhap(w, DT_B, `pty-${DT_B}`, [["HONTAM", 2_000_000]]);
+  w.sqlite.prepare("INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, valid_from_at, created_at, updated_at) VALUES ('as-lai-hdv', ?, 'HANDLE', ?, ?, ?, ?)").run(cuaB, `pty-${LAI_HDV}`, AT, AT, AT);
+  const cuaTtBenB = nhap(w, LAI_TT, `pty-${DT_B}`, [["HONTAM", 2_000_000]]);
+  // Răng: văn phòng THẤY số riêng của B ở đúng ba đơn mà các tài khoản lai không được thấy.
+  for (const id of [cuaB, nhapB, cuaTtBenB]) assert.equal((await xem(w, id, KT)).json.vanPhong.dong[0].hoaHong, 480_017, `răng: Kế toán thấy 480.017 ở đơn ${id}`);
+  assert.equal((await w.call("GET", `/api/orders/${cuaB}`, { as: LAI_HDV })).status, 200, "HDV + Đối tác được giao vẫn mở được chi tiết đơn — 404 dưới đây là của phần đối tác, không phải vì không xem được đơn");
+  const ca: [string, string, string][] = [];
+  for (const [ten, as] of [["Bán hàng", LAI_BAN], ["Kế toán", LAI_KT], ["Quản trị", LAI_QT], ["Toàn quyền", LAI_TQ], ["HDV được giao", LAI_HDV], ["Thực tập", LAI_TT]] as const) {
+    ca.push([`${ten} + Đối tác · đơn B đã xác nhận`, as, cuaB], [`${ten} + Đối tác · đơn B nháp`, as, nhapB]);
+  }
+  ca.push(["Thực tập + Đối tác · đơn của mình, bên đặt B (nháp)", LAI_TT, cuaTtBenB]);
+  for (const [ten, as, id] of ca) {
+    const r = await xem(w, id, as);
+    assert.equal(r.status, 404, `${ten}: ${r.text}`);
+    assert.equal(r.json.error.code, "not_found", ten);
+    assert.doesNotMatch(r.text, /480017|480\.017|doiTac|vanPhong|hoaHong/, `${ten}: thân 404 không lộ số của B`);
+  }
+});
+
 test("(3e) Đối tác A có hồ sơ được hưởng, đơn của mình, người hưởng = mình ⇒ 200 DTO Đối tác đúng số — đơn xác nhận lẫn đơn nháp (tính thử)", async () => {
   const w = setup();
   await muc(w, mucVai(1000));
