@@ -499,6 +499,23 @@ test("ck_han_cho (MQ-08): trả lời sau hạn (giờ gửi + 10 phút của ch
   nhan(db, y, r2, { luc: TRE });
 });
 
+test("ck_forward (NT-A5-10, ADR-0052:61): Leo thang không hết hạn — ESCALATED → EXPIRED, kể cả sau hạn chờ và trong lô xe nhận → RAISE ở ck_forward TRƯỚC; bỏ trigger vẫn bị chặn ở hai lớp sau (CHECK decided_at, ck_decided)", () => {
+  const db = openDb();
+  const x = nen(db);
+  const rid = gui(db, x);
+  assert.equal(nhan(db, x, rid, { khac: { SUC_CHUA_DICH: "KHONG_DAT" } }).kq, "ESCALATED");
+  const hetHan = (xoaGioQuyet: boolean) => () => lo(db, () => {
+    const cmd = cong(db, x.b.id);
+    run(db, `UPDATE vc_transfer_request SET status = 'EXPIRED', closed_cmd_id = ?, updated_at = ?${xoaGioQuyet ? ", decided_at = NULL" : ""} WHERE id = ?`, cmd, iso(ms("07:40")), rid);
+  });
+  loi(hetHan(false), /ck_forward/, "lớp một: đồ thị trạng thái");
+  assert.equal(trangThai(db, rid), "ESCALATED");
+  db.exec("DROP TRIGGER vc_transfer_request_status_forward");
+  loi(hetHan(false), /CHECK constraint failed: status NOT IN \('PENDING', 'WITHDRAWN', 'EXPIRED'\) OR decided_at IS NULL/, "lớp hai: Hết hạn không mang giờ quyết");
+  loi(hetHan(true), /ck_decided/, "lớp ba: không xoá giờ quyết của lần leo thang");
+  assert.equal(trangThai(db, rid), "ESCALATED");
+});
+
 test("ck_trong_lo: đóng đề nghị bằng dấu lệnh không phải dấu lệnh hiện hành của nguồn hay đích → RAISE; tự huỷ trong lô của nguồn (MQ-09) → qua; bỏ trigger thì qua", () => {
   const db = openDb();
   const x = nen(db);
@@ -559,12 +576,14 @@ test("ck_check: dòng kiểm sai tầng / điều kiện đã tắt / chính sá
     run(db, `INSERT INTO vc_transfer_check (id, transfer_id, cmd_id, rule_code, rule_tier, ket_qua, policy_row_id, checked_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'DAT', ?, ?, ?, ?)`,
       nid("kc"), rid, o.cmd ?? one<{ c: string }>(db, "SELECT last_cmd_id c FROM vc_trip WHERE id = ?", x.b.id).c, o.rule ?? "SUC_CHUA_DICH", o.tier ?? "LOI", o.policy ?? POLICY, NHAN, NHAN, NHAN);
   loi(ghi({ tier: "CAU_HINH" }), /ck_check/, "sai tầng");
+  loi(ghi({ rule: "MA_LUAT_LA" }), /ck_check/, "mã luật ngoài danh mục — lớp một: trigger");
   loi(ghi({ cmd: randomUUID() }), /ck_check/, "ngoài lô của xe nhận");
   run(db, "UPDATE vc_transfer_rule SET active = 0 WHERE code = 'GIAY_TO_DICH'");
   loi(ghi({ rule: "GIAY_TO_DICH" }), /ck_check/, "điều kiện đã tắt");
   ghi({})();
   db.exec("DROP TRIGGER vc_transfer_check_rule");
   ghi({ rule: "KHONG_CHEO", tier: "CAU_HINH", cmd: randomUUID() })();
+  loi(ghi({ rule: "MA_LUAT_LA" }), /FOREIGN KEY constraint failed/, "mã luật ngoài danh mục — lớp hai: khoá ngoại (còn khi bỏ trigger)");
 });
 
 // ---- (4)(5) Suất và LC-15 ------------------------------------------------------------------------------------------------------------------------------

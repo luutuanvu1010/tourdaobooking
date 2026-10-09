@@ -12,6 +12,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Gói A5 — chuyển khách giữa hai xe (ADR-0111, migration 0093). Số 1.85 = đầu nhánh 1.84 + 1; nhánh khác nhập trước thì đánh lại số khi gộp.
+    version: "1.85",
+    date: "2026-10-09",
+    items: [
+      { kind: "moi", text: "Tài xế không kịp tới một điểm đón có thể nhờ một xe khác cùng ngày đón giúp. Tài xế xe kia bấm Nhận hoặc Không nhận; chưa ai nhận thì khách vẫn ở xe cũ." },
+      { kind: "moi", text: "Xe hỏng giữa đường: tài xế, hoặc văn phòng gửi thay, nhờ một xe đang chạy tới nơi gặp nhận cả khách trên xe lẫn khách đang chờ đón." },
+      { kind: "moi", text: "Việc chuyển khách vượt số chỗ, sai cam kết xe riêng hoặc khi tắt tự đồng ý sẽ chờ Quản trị duyệt hoặc bác ở màn Đề nghị chuyển khách." },
+    ],
+  },
+  {
     // Năm lỗi tiền (TNV-G1 ADR-0089, F-03, TNV-G3 ADR-0088, TNV-G4 + TNV-VP01 ADR-0092), migration 0078–0083. Dựng lại 2026-10-06 lên trên bản 1.83 (Tốc độ đợt 1) đã vào main trước — số đổi thành 1.84 = main 1.83 + 1.
     version: "1.84",
     date: "2026-10-06",
