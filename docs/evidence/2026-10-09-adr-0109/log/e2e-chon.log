@@ -1,0 +1,129 @@
+
+> test:e2e
+> node tests/e2e/run.mjs sua-so-khach so-tien coc-don-huy dispatch
+
+Chạy song song 3 nhóm, mỗi nhóm một D1 tạm + wrangler dev riêng (E2E_SONG_SONG=1: tuần tự như cũ):
+  nhóm 1: dispatch
+  nhóm 2: so-tien
+  nhóm 3: coc-don-huy, sua-so-khach
+
+D1 tạm · nhóm 3: /var/folders/m6/8lb7g7fn35q4s4tm5t6nv21h0000gn/T/tourdao-e2e-OuaJb3
+D1 tạm · nhóm 2: /var/folders/m6/8lb7g7fn35q4s4tm5t6nv21h0000gn/T/tourdao-e2e-mSRcZj
+D1 tạm · nhóm 1: /var/folders/m6/8lb7g7fn35q4s4tm5t6nv21h0000gn/T/tourdao-e2e-PcwKy8
+wrangler dev · nhóm 1: http://127.0.0.1:65280
+wrangler dev · nhóm 2: http://127.0.0.1:65313
+wrangler dev · nhóm 3: http://127.0.0.1:65347
+
+▶ dispatch · nhóm 1
+▶ so-tien · nhóm 2
+▶ coc-don-huy · nhóm 3
+── đầu ra coc-don-huy · nhóm 3 ──
+✓ huỷ bắt buộc lý do (400/403), còn lại 0 ở trang đơn + biên nhận, lần thu lên đơn huỷ chỉ Kế toán, trigger lý do chặn SQL tay (D1 local)
+✓ duyệt (Quản trị) → chi (Kế toán), vượt tiền còn giữ 409, trả dư tự do 409, đảo lần thu khi đã duyệt 409 (trigger trên D1 thật)
+✓ công ty huỷ → duyệt chuyển → chuyển một lô hai đơn; đơn nhận huỷ sau duyệt → 409 không nửa nào lưu; không đảo riêng một nửa (D1 local); tổng HDV giữ không đổi
+✓ đơn huỷ cũ: đối chiếu → Toàn quyền ghi đã hoàn ngoài → tự xác nhận 409 → Quản trị xác nhận → còn giữ 0; ô đếm chỉ Kế toán
+E2E CỌC ĐƠN HUỶ OK
+✔ coc-don-huy (45.8s) · nhóm 3
+
+▶ sua-so-khach · nhóm 3
+── đầu ra sua-so-khach · nhóm 3 ──
+✓ CA 1: Kế toán bớt khách sau khi đã thu → dư chờ hoàn 100.000; một dòng điều chỉnh; nhật ký đúng khuôn; y nguyên không ghi
+✓ CA 2: Bán hàng khác / HDV / lai đang phụ trách → 403; người lập, Quản trị, Toàn quyền → 200; lý do ngoài danh sách → 400
+✓ CA 3: giảm giá 150.000 > tạm tính 100.000 vẫn lưu, có câu cảnh báo; phải thu 0, dư 50.000 = đúng số khách đã trả (ADR-0109)
+✓ CA 3b: hoàn đúng 50.000 khách đã trả → Đã giao 200 (due_snapshot 0) → Hoàn thành 200 (ADR-0109)
+✓ CA 3c: chưa trả đồng nào → phải thu 0, Đã giao 200 (ADR-0109)
+✓ CA 4: đơn nháp → 409; sau Đã giao → 409 order_delivered; SQL chèn tay bị trigger 0044 chặn
+✔ sua-so-khach (70.2s) · nhóm 3
+
+ℹ lớp vé · nhóm 3: ghi nhiều lần ở 0 route []; đụng vé 0 lần; lỗi lạ 0; thiếu vé 0 lần
+── đầu ra so-tien · nhóm 2 ──
+✓ ca R1: RAISE của trigger ở câu thứ 3 trong db.batch() → cả lô quay lại (D1 local)
+✓ luồng chính (D1 local): Công ty thu – CK 100.000 + HDV thu 200.000 lúc Đã giao → đơn khoá → biên nhận đủ → Hoàn thành sau khi xác nhận + nộp
+✓ VP-01 (D1 local): nộp → xác nhận 409; xác nhận → nộp 409; sổ HDV = 0; SQL tay thêm dòng nộp bị trigger chặn
+✓ G3 (D1 local): sau Đã giao Đảo đơn lẻ 409, Thay lệch I1 409, Thay giữ I1 201, hoàn sau Đã giao 409, SQL tay chèn lần thu bị trigger chặn, Hoàn thành được
+✔ so-tien (124.4s) · nhóm 2
+
+ℹ lớp vé · nhóm 2: ghi nhiều lần ở 0 route []; đụng vé 0 lần; lỗi lạ 0; thiếu vé 0 lần
+── đầu ra dispatch · nhóm 1 ──
+✓ đơn mới không chọn người phụ trách: không có dòng HANDLE nào, nhật ký chỉ 'created' (Bán hàng, Quản trị)
+✓ lập đơn kèm người phụ trách được chọn: một lô — đơn + dòng HANDLE của người được chọn + nhật ký, cùng mốc thời gian
+✓ chọn người không đủ điều kiện → 400 invalid_assignee; Đối tác gửi kèm người được chọn → 403; không có đơn nào được tạo
+✓ đơn mới do tài khoản CHỈ Đối tác lập: không có người phụ trách (không dòng HANDLE), nhân viên nhận sau được
+✓ GET /api/dispatch/handlers: tra nhiều đơn, null cho đơn không có người, tối đa 100, giá trị lạ 400, quyền
+✓ GET /api/dispatch/assignees: đúng người đủ điều kiện (kể cả FIELD), chỉ tên + nhãn nhóm
+✓ đổi người phụ trách: dòng cũ đóng, dòng mới mở cùng thời điểm, nhật ký 'từ A sang B' (chỉ tên)
+✓ ai đổi được: người lập (kể cả đã giao lại), người phụ trách hiện tại, quản trị; người khác/kế toán bị từ chối, FIELD không giao hộ được; tự nhận đơn đã có người (kể cả FIELD) → 409 stale
+✓ đổi sang chính người đang phụ trách → 409 no_change
+✓ FIELD nay gán được làm người phụ trách (ADR-0014 điều 6, cấp hẹp)
+✓ giao cho kế toán/đã ngưng/không tồn tại → 400 invalid_assignee; thân sai → 400; đơn lạ → 404
+✓ nhận đơn chưa có người phụ trách: SALES/ADMIN/FIELD nhận cho mình; kế toán/giao hộ (kể cả FIELD giao hộ) bị từ chối
+✓ người phụ trách (khác người lập) sửa được đơn nháp; SALES không liên quan thì không
+✓ tranh chấp song song: đúng một bên thắng, bên thua không để lại dòng nào (409 stale thật gặp 24 lần / 10 vòng)
+✓ canModify đi theo người phụ trách hiện tại (người lập giữ quyền qua mọi lần đổi)
+✓ nhật ký đơn: người phụ trách xem được, người không liên quan thì không
+✓ FIELD không phải người phụ trách → 403
+✓ đơn nháp (chưa xác nhận) → 409, chưa huỷ được qua đường này
+✓ thiếu lý do → 400
+✓ lý do ngoài danh sách đóng → 400
+✓ SALES (không dùng route này, dù là người lập) → 403
+✓ FIELD đang phụ trách huỷ đơn đã xác nhận, đúng lý do → 200, không đổi tiền, có dòng nhật ký riêng cho kế toán
+✓ huỷ đơn đã huỷ rồi → 409
+✓ đơn không tồn tại → 404
+✓ DK-T4-02: tour đã qua ngày đi → HDV huỷ 409 departed (trước 400, sau 403), đơn vẫn xác nhận; HDV sửa số khách 409 departed, Toàn quyền 200; văn phòng huỷ được
+✓ DK-T4-02: ngày đi = hôm nay (giờ VN) → HDV vẫn sửa số khách (200), lý do có SĐT → 400, vẫn huỷ được (200)
+✓ FIELD không phải người phụ trách → 403
+✓ đơn nháp (chưa xác nhận) → 409
+✓ thiếu lý do → 400
+✓ thiếu dịch vụ (đơn có 1 dịch vụ từ danh mục, gửi rỗng) → 400
+✓ SALES (không dùng route này) → 403
+✓ ACCOUNTING/ADMIN không phải người phụ trách đơn này → 403 (route hẹp chỉ dành cho FIELD đang phụ trách)
+✓ FIELD sửa số khách đơn đã xác nhận → 200, order_service gốc không đổi, màn hình hiện số mới, có dòng điều chỉnh + nhật ký
+✓ order.history.view không đổi: ADMIN thấy lý do (any), SALES không liên quan vẫn không thấy gì (ownOrAssigned)
+✓ trang danh sách đơn hiện đúng số tiền LẪN số khách đã sửa, khớp trang chi tiết
+✓ đơn có điều chỉnh rồi bị huỷ: chi tiết lẫn danh sách vẫn hiện đúng cả tiền lẫn số khách đã sửa gần nhất, không lùi về số gốc
+✓ sau khi FIELD sửa số khách: /api/orders, Trang chủ (dashboard.today) và trang chi tiết đơn đều hiện ĐÚNG số khách mới, khớp nhau
+✓ Lỗi 1 đã sửa: after_json hỏng dạng mềm → chi tiết/​danh sách/​Trang chủ CÙNG số khách (2) VÀ CÙNG tiền (600.000, tự tính, không đọc cột subtotal_after đã lưu rác)
+✓ Lỗi 2 đã sửa: after_json hỏng NẶNG (không phải JSON) → /orders và Trang chủ KHÔNG sập, chỉ ĐÚNG đơn hỏng rơi về số gốc, đơn khác không bị kéo theo
+✓ Lỗi 2 đã sửa (biến thể [null]): phần tử KHÔNG phải object trong after_json → /orders và Trang chủ vẫn 200, không sập, tiền tự tính đúng 600.000
+✓ Lỗi 1 đã sửa (biến thể trùng serviceId): after_json có hai phần tử cùng serviceId → chi tiết/​danh sách/​Trang chủ CÙNG lấy phần tử đứng sau (7), CÙNG tự tính tiền 2.100.000, không mỗi bên một số
+✓ Bề mặt thứ tư (GET /api/dispatch/mine) cũng đọc đúng after_json qua parseAdjustmentAfter, không sập, khớp ba bề mặt còn lại
+✓ Lỗi 2 đã sửa: đơn có dòng điều chỉnh hỏng nặng vẫn SỬA LẠI được bằng thao tác bình thường (POST handler-money-edit), không còn kẹt 500
+✓ Lỗi 4 đã có test: chuỗi sửa liên tiếp 2→5→3 — chi tiết/​danh sách/​Trang chủ đều lấy ĐÚNG lần sửa gần nhất, cả số khách lẫn tiền
+✓ SUPER_ADMIN dùng được route dù không phải người phụ trách (any ở mọi thao tác, ADR-0014 điều 2)
+✓ GET /api/dispatch/mine (bản 1.6 + Task 1.8): đơn CHÍNH MÌNH đang phụ trách kể cả nháp, kèm status; tổng tiền trùng chi tiết đơn, không tiền từng dịch vụ
+✓ editablePaxCodes không mất loại khách sau khi bị sửa về 0 (bug tìm được lúc kiểm độc lập, đã vá)
+✓ 8 yêu cầu sửa gần như đồng thời: 2 thành công, seq liên tục không trùng (chỉ mục duy nhất chặn thật mọi lần đụng nhau), còn lại 409 stale
+✓ D1 (chỉ danh mục): tự tính 900.000₫ — chi tiết 900.000₫, /orders 900.000₫, Trang chủ 900.000₫
+✓ D2 (chỉ nhập tay): tự tính 200.000₫ — chi tiết 200.000₫, /orders 200.000₫, Trang chủ 200.000₫; lưu y nguyên → không ghi dòng điều chỉnh
+✓ D3 (TRỘN, ca lỗi gốc): tự tính 1.100.000₫ — chi tiết 1.100.000₫, /orders 1.100.000₫, Trang chủ 1.100.000₫; cột đã lưu [before, after] = [800.000₫, 1.100.000₫]
+✓ D4 (TRỘN, sửa liên tiếp 2→5→6→4): tự tính 1.400.000₫ — chi tiết 1.400.000₫, /orders 1.400.000₫, Trang chủ 1.400.000₫
+✓ D5 (TRỘN + trả trước 300.000): tự tính total 1.400.000₫, còn thu 1.100.000₫ — khớp chi tiết + danh sách + Việc của tôi (một hàm của billing)
+✓ D6 (dữ liệu CŨ, subtotal_after đã lưu SAI = 900.000): tự tính ĐÚNG 1.100.000₫ — cả bốn bề mặt hiện đúng, không đọc lại số đã lưu sai
+✓ DK-T2-01 G1: HDV gửi lại y nguyên số khách → không ghi dòng điều chỉnh, tiền giữ giá thoả thuận ở mọi bề mặt
+✓ DK-T2-01 G2: HDV 2→3 khách → 3 × giá thoả thuận ở chi tiết, /orders, Trang chủ; cột đã lưu cũng đúng
+
+=== Đợt E task 7 — bảng số đo bốn bề mặt (tiền: total, hoặc còn thu của billing cho D5) ===
+D1 chỉ danh mục: tự tính 900.000₫ | chi tiết 900.000₫ | /orders 900.000₫ | Trang chủ 900.000₫
+D2 chỉ nhập tay: tự tính 200.000₫ | chi tiết 200.000₫ | /orders 200.000₫ | Trang chủ 200.000₫
+D3 TRỘN — ca lỗi gốc: tự tính 1.100.000₫ | chi tiết 1.100.000₫ | /orders 1.100.000₫ | Trang chủ 1.100.000₫
+D4 TRỘN, nhiều lần sửa: tự tính 1.400.000₫ | chi tiết 1.400.000₫ | /orders 1.400.000₫ | Trang chủ 1.400.000₫
+D5 TRỘN + trả trước (còn thu — billing): tự tính 1.100.000₫ | chi tiết 1.100.000₫ | /orders 1.100.000₫ | Trang chủ 1.100.000₫
+D6 dữ liệu CŨ đã lưu sai: tự tính 1.100.000₫ | chi tiết 1.100.000₫ | /orders 1.100.000₫ | Trang chủ 1.100.000₫
+✓ L1-6: HDV nhận đơn chờ nhận → 200, thành người phụ trách, đơn rời hàng chờ của cả hai HDV, hiện ở 'Việc của tôi' (kể cả chờ xác nhận)
+✓ L1-6: HDV nhận đơn đã có người → 409 stale; HDV giao hộ → 403; kế toán/Đối tác/Thực tập/tài khoản lai nhận → 403; nhận đơn đã huỷ/đã qua ngày đi → 409
+✓ L1-6 đua: hai HDV (hoặc HDV và Bán hàng) cùng nhận một đơn → đúng một 200 + một 409 stale, đúng một dòng HANDLE đang mở, một dòng nhật ký
+✓ L1-3 tách ba đường: danh sách = đúng đơn mình phụ trách (có tiền/SĐT); hàng chờ = chỉ đơn chưa ai nhận, chưa huỷ, chưa qua ngày đi, phần hẹp, SĐT ở nơi đón bị che; chi tiết đơn người khác/đơn chờ nhận → 404; đơn mình → 200 đủ tiền/SĐT/lịch sử
+E2E DISPATCH OK
+✔ dispatch (254.2s) · nhóm 1
+
+ℹ lớp vé · nhóm 1: ghi nhiều lần ở 0 route []; đụng vé 0 lần; lỗi lạ 0; thiếu vé 0 lần
+── Tóm tắt từng bộ ──
+✔ sua-so-khach
+✔ so-tien
+✔ coc-don-huy
+✔ dispatch
+✔ không có day_loi (thiếu khoá VAPID thì không gửi)
+✔ H5: ghi nhiều lần chỉ ở route có tên trong danh sách nợ (src/shared/lan-gui-no.ts)
+✔ không có lỗi lạ chạm bảng vé (lan_gui_loi_la)
+Thời gian e2e: 307 giây (3 nhóm)
+E2E: 7/7 kịch bản xanh

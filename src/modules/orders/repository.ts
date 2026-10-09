@@ -172,6 +172,9 @@ function toDto(r: OrderRow): OrderDto {
     subtotal: r.subtotal,
     discount: r.discount,
     total: r.total,
+    // ADR-0109 QĐ2: giảm giá hiệu lực của đơn CHƯA điều chỉnh (đơn đã điều chỉnh: `applyAdjustmentToOrder` ghi đè cùng hàm). Bằng `discount` vì lúc lập đã chặn
+    // giảm giá ≤ tạm tính (trigger 0007 giữ total = subtotal − discount ≥ 0).
+    giamGiaHieuLuc: effectiveMoney(r.subtotal, r.discount).giamGiaHieuLuc,
     paymentNote: r.payment_note,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
@@ -1208,7 +1211,7 @@ export async function computeEffectiveMoney(
       continue;
     }
     const subtotal = effectiveSubtotal(servicesByOrder.get(o.id) ?? [], adj.after);
-    out.set(o.id, effectiveMoney(subtotal, o.discount));
+    out.set(o.id, { total: effectiveMoney(subtotal, o.discount).total }); // ADR-0109: phải thu kẹp ≥ 0 trong effectiveMoney
   }
   return out;
 }

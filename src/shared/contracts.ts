@@ -242,8 +242,16 @@ export interface OrderDto {
   customerNote: string | null;
   subtotal: number;
   discount: number;
-  /** Tổng khách phải trả HIỆN HÀNH (sau điều chỉnh). Ba cột cọc cũ KHÔNG còn trong DTO (ADR-0026 đ9): "đã thu / còn lại" lấy qua route của billing. */
+  /**
+   * Tổng khách phải trả HIỆN HÀNH (sau điều chỉnh) = max(0, tạm tính − giảm giá) — không bao giờ âm (ADR-0109). Ba cột cọc cũ KHÔNG còn trong DTO (ADR-0026 đ9):
+   * "đã thu / còn lại" lấy qua route của billing.
+   */
   total: number;
+  /**
+   * Giảm giá hiệu lực = min(giảm giá, tạm tính hiện hành) — ADR-0109 QĐ2; máy chủ tính bằng `effectiveMoney` (không bề mặt nào tự tính). Bằng `discount` trừ khi bớt
+   * khách làm tạm tính nhỏ hơn giảm giá. Trang đơn nội bộ vẫn hiện `discount` (giảm giá đã lưu) kèm cảnh báo; biên nhận gửi khách in số này.
+   */
+  giamGiaHieuLuc: number;
   paymentNote: string | null;
   createdAt: string;
   updatedAt: string;
@@ -506,8 +514,9 @@ export interface SuaSoKhachDichVuDto { serviceId: string; loaiKhach: PaxCode[] }
 /** `suaSoKhach`: có khi người xem sửa được số khách đơn này NGAY LÚC NÀY (`duocSuaSoKhachVanPhong`), còn lại null. */
 export interface OrderDetailResponse { order: OrderDetailDto; history: AuditEntryDto[]; canModify: boolean; mocToiThieuPhut: number | null; suaSoKhach: SuaSoKhachDichVuDto[] | null }
 /**
- * `POST /api/orders/:id/money-edit` (ADR-0063 D1): đơn HIỆN HÀNH sau lần sửa; `daGhi` false = số khách y nguyên, không ghi gì; `canhBaoTongAm` = câu cảnh báo khi
- * tổng tiền âm (không chặn — `canhBaoTongAm` của src/shared/so-khach-van-phong.ts), null khi không âm. `dongBoChuyen` chỉ có khi đã ghi (`daGhi`) — ADR-0104 Đ2.
+ * `POST /api/orders/:id/money-edit` (ADR-0063 D1): đơn HIỆN HÀNH sau lần sửa; `daGhi` false = số khách y nguyên, không ghi gì; `canhBaoTongAm` (tên khoá GIỮ, nghĩa
+ * đổi theo ADR-0109) = câu cảnh báo khi giảm giá > tạm tính hiện hành (không chặn — `canhBaoGiamGiaVuot` của src/shared/so-khach-van-phong.ts), null khi không.
+ * `dongBoChuyen` chỉ có khi đã ghi (`daGhi`) — ADR-0104 Đ2.
  */
 export interface MoneyEditResponse { order: OrderDetailDto; daGhi: boolean; canhBaoTongAm: string | null; dongBoChuyen?: DongBoChuyenDto }
 /** 409 xác nhận đơn khi còn chặng dưới mốc chưa đặt gấp (ADR-0049 D2). */
@@ -1877,6 +1886,7 @@ export interface ReceiptDto {
   customerNote: string | null;
   services: ReceiptServiceDto[];
   subtotal: number;
+  /** Giảm giá IN TRÊN BIÊN NHẬN = giảm giá hiệu lực (`OrderDto.giamGiaHieuLuc`, ADR-0109 QĐ4); bằng giảm giá đã lưu trừ khi tạm tính hiện hành nhỏ hơn. subtotal − discount = total. */
   discount: number;
   total: number;
   /** Đã trả trước (billing `conLai` — một hàm). */

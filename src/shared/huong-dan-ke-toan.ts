@@ -83,7 +83,7 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
 
 Bớt khách sau khi khách đã trả: khối **Thanh toán** hiện **Khách trả dư** — hoàn cho khách bằng [[Ghi hoàn cho khách]] như thường lệ.
 
-Nếu giảm giá lớn hơn tiền dịch vụ còn lại, **Tổng cộng** thành số âm. Nền tảng vẫn lưu nhưng khối **Thanh toán** hiện câu cảnh báo tổng âm. Khi đó số **Khách trả dư** lớn hơn tiền khách thật đã trả: chỉ hoàn tối đa số khách đã trả rồi báo chủ dự án — đơn kiểu này hiện chưa bấm được **Đã giao** (đang chờ chủ dự án quyết cách xử lý).`,
+Nếu giảm giá lớn hơn tiền dịch vụ còn lại, Nền tảng vẫn lưu và tính **Tổng cộng** bằng 0; phần giảm giá vượt không dùng tới. Khối **Thanh toán** hiện câu cảnh báo, và toàn bộ tiền khách đã trả hiện ở **Khách trả dư**. Hoàn bằng [[Ghi hoàn cho khách]] như thường lệ; hoàn xong thì đơn không còn bị giữ **Đã giao** vì khách trả dư.`,
     },
     {
       tieuDe: "Mở biên nhận để gửi khách",

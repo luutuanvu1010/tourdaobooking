@@ -14,7 +14,8 @@
 //      A3 "số khách: <tên>: người lớn A → B · lý do: <nhãn>"; tin "đơn đổi sau xác nhận" tự tới người lập + hướng dẫn viên phụ trách (không tới người sửa).
 //  TC6 Số khách y nguyên → 200 `daGhi: false`, không dòng mới, không nhật ký.
 //  TC7 Văn phòng sửa được cả sau ngày đi (khác hướng dẫn viên).
-//  TC8 Tổng âm (giảm giá > tiền dịch vụ sau khi bớt khách): KHÔNG chặn — 200, dòng được ghi, phản hồi mang câu cảnh báo; GET đơn của Kế toán cũng tính ra câu đó.
+//  TC8 Giảm giá > tiền dịch vụ sau khi bớt khách: KHÔNG chặn — 200, dòng được ghi, phản hồi mang câu cảnh báo; phải thu KẸP 0 (ADR-0109); hoàn hết rồi Đã giao,
+//      Hoàn thành được (TC8b); chưa trả đồng nào cũng Đã giao được (TC8c); đơn huỷ (TC8d); khoá giamGiaHieuLuc (TC8e).
 //  TC9 Bảng tin: route gọi `baoThayDoi` đúng một lần sau khi ghi (bài src/bang-tin-guard.test.ts).
 //  TC10 Đường hướng dẫn viên `handler-money-edit` giữ nguyên hành vi (bài cũ: src/modules/dispatch/sua-so-khach.test.ts, money-edit-plan.test.ts, …; ở đây so số).
 //  TC11 Chỗ cho ADR-0104 Đ2: phần ghi đơn soạn thành danh sách câu CHƯA chạy kèm `auditId` sinh trước, route chạy MỘT `db.batch` (bài tĩnh
@@ -29,7 +30,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { AUDIT_ACTIONS } from "../../shared/audit-actions.ts";
-import { CAU_TONG_AM, LY_DO_SUA_SO_KHACH, MA_LY_DO_SUA_SO_KHACH, duocSuaSoKhachVanPhong } from "../../shared/so-khach-van-phong.ts";
+import { CAU_GIAM_GIA_VUOT, LY_DO_SUA_SO_KHACH, MA_LY_DO_SUA_SO_KHACH, duocSuaSoKhachVanPhong } from "../../shared/so-khach-van-phong.ts";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions.ts";
 
 const ID = {
@@ -306,31 +307,32 @@ test("TC7: văn phòng sửa được cả sau ngày đi (hướng dẫn viên t
   assert.equal(soDong(w, d.id), 1);
 });
 
-// ---------------------------------------------------------------- TC8 tổng âm
+// ---------------------------------------------------------------- TC8 giảm giá vượt tạm tính (ADR-0109: phải thu không âm)
 
-test("TC8: tổng âm sau khi bớt khách — KHÔNG chặn: 200, dòng được ghi, phản hồi có câu cảnh báo; tổng tiền âm hiện trên đơn; 'khách trả dư' lớn hơn tiền đã trả", async () => {
+test("TC8 (ADR-0109): bớt khách tới giảm giá > tạm tính — KHÔNG chặn: 200, dòng được ghi, có câu cảnh báo; phải thu KẸP 0 (giảm giá đã lưu không đổi); dư = đúng số khách đã trả", async () => {
   const w = setup();
-  // 2 NL × 500.000 = 1.000.000, giảm 800.000 ⇒ tổng 200.000; khách trả đủ 200.000.
+  // 2 NL × 500.000 = 1.000.000, giảm 800.000 ⇒ tổng 200.000; khách trả đủ 200.000. (Ca hộp hỏi của chủ — SV-SK-04.)
   const d = await taoDon(w, { discount: 800000 });
   const thu = await w.call("POST", `/api/orders/${d.id}/payments`, { as: ID.ACC, body: { soTien: 200000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" } });
   assert.equal(thu.status, 201, thu.text);
   const r = await sua(w, ID.ACC, d.id, than(d.svc, P(1), "BOT_NGUOI"));
   assert.equal(r.status, 200, r.text);
   assert.equal(r.json.daGhi, true);
-  assert.equal(r.json.canhBaoTongAm, CAU_TONG_AM);
-  assert.equal(r.json.order.total, -300000, "500.000 − 800.000");
+  assert.equal(r.json.canhBaoTongAm, CAU_GIAM_GIA_VUOT);
+  assert.deepEqual([r.json.order.subtotal, r.json.order.discount, r.json.order.total, r.json.order.giamGiaHieuLuc], [500000, 800000, 0, 500000], "max(0, 500.000 − 800.000)");
   assert.equal(soDong(w, d.id), 1);
   const p = (await w.call("GET", `/api/orders/${d.id}/payments`, { as: ID.ACC })).json;
-  assert.deepEqual([p.phaiThu, p.daThu, p.conLai, p.du], [-300000, 200000, 0, 500000], "dư chờ hoàn phồng hơn số khách đã trả — vì vậy phải có cảnh báo");
-  // Sửa tiếp về tổng không âm → phản hồi không còn câu cảnh báo.
+  assert.deepEqual([p.phaiThu, p.daThu, p.conLai, p.du], [0, 200000, 0, 200000], "dư chờ hoàn = đúng số khách đã trả, không phồng");
+  // GET đơn của Kế toán (người không vừa sửa) cũng thấy số đã kẹp.
+  const g = (await w.call("GET", `/api/orders/${d.id}`, { as: ID.ACC })).json.order;
+  assert.deepEqual([g.total, g.giamGiaHieuLuc], [0, 500000]);
+  // Sửa tiếp về tổng không âm → phản hồi không còn câu cảnh báo, tiền y như trước kẹp.
   const r2 = await sua(w, ID.ACC, d.id, than(d.svc, P(2), "THEM_NGUOI"));
   assert.equal(r2.json.canhBaoTongAm, null);
+  assert.deepEqual([r2.json.order.total, r2.json.order.giamGiaHieuLuc], [200000, 800000]);
 });
 
-test("TC8 — HIỆN TRẠNG CHỜ CHỦ QUYẾT (ghi nhận, không phải luật mới): đơn tổng âm không bấm 'Đã giao' được kể cả khi đã hoàn hết tiền khách trả", async () => {
-  // Phát hiện lúc thi công A2 (2026-10-08): `conLai` cho dư = đã thu − phải thu; phải thu âm ⇒ dư > đã thu; route hoàn chặn "Không hoàn quá số khách đã trả"
-  // và phiếu Đã giao có CHECK due_snapshot ≥ 0 ⇒ đơn tổng âm không bao giờ "Đã giao" được (trừ khi tăng số khách lại cho tổng ≥ 0). Bài này GHIM hiện trạng để
-  // người sau thấy; đổi luật (vd trần giảm giá, hay cho hoàn phần dư) thì sửa bài này theo quyết định của chủ.
+test("TC8b (ADR-0109 bài 3, đảo ghim 'HIỆN TRẠNG CHỜ CHỦ QUYẾT' theo chủ chọn 8/10): hoàn 200.000 rồi 'Đã giao' được (due_snapshot 0), rồi 'Hoàn thành' được", async () => {
   const w = setup();
   const d = await taoDon(w, { discount: 800000 });
   await giao(w, d.id, ID.FIELD);
@@ -339,12 +341,51 @@ test("TC8 — HIỆN TRẠNG CHỜ CHỦ QUYẾT (ghi nhận, không phải lu�
   assert.equal((await sua(w, ID.ACC, d.id, than(d.svc, P(1), "BOT_NGUOI"))).status, 200);
   const hoan = await w.call("POST", "/api/ledger/refunds", { as: ID.ACC, body: { orderId: d.id, soTien: 200000, hinhThuc: "BANK_TRANSFER", nguoiTra: "cong_ty" } });
   assert.ok([200, 201].includes(hoan.status), hoan.text);
-  const hoanThem = await w.call("POST", "/api/ledger/refunds", { as: ID.ACC, body: { orderId: d.id, soTien: 300000, hinhThuc: "BANK_TRANSFER", nguoiTra: "cong_ty" } });
+  const hoanThem = await w.call("POST", "/api/ledger/refunds", { as: ID.ACC, body: { orderId: d.id, soTien: 1, hinhThuc: "BANK_TRANSFER", nguoiTra: "cong_ty" } });
   assert.equal(hoanThem.status, 400, "không hoàn quá số khách đã trả");
   const p = (await w.call("GET", `/api/orders/${d.id}/payments`, { as: ID.FIELD })).json;
-  assert.deepEqual([p.daThu, p.du, p.lyDoChuaGiao?.ma], [0, 300000, "overpaid"]);
+  assert.deepEqual([p.phaiThu, p.daThu, p.du, p.lyDoChuaGiao?.ma], [0, 0, 0, undefined], "hoàn xong thì không còn bị giữ vì khách trả dư");
   const giaoR = await w.call("POST", `/api/orders/${d.id}/delivered`, { as: ID.FIELD, body: {} });
-  assert.equal(giaoR.status, 409, giaoR.text);
+  assert.equal(giaoR.status, 200, giaoR.text);
+  // Bản chụp phải thu trên phiếu Đã giao (= 0) khoá ở src/modules/billing/phai-thu-khong-am.test.ts — `orders` không nhắc bảng của billing (ADR-0024 điều 4).
+  const xong = await w.call("POST", `/api/orders/${d.id}/completed`, { as: ID.ACC });
+  assert.equal(xong.status, 200, xong.text);
+});
+
+test("TC8c (ADR-0109, phiếu kiểm 5b): khách CHƯA trả đồng nào, bớt khách tới giảm giá > tạm tính → khối Thanh toán [0, 0, 0, 0]; 'Đã giao' được (trước đây 409 overpaid)", async () => {
+  const w = setup();
+  const d = await taoDon(w, { discount: 800000 });
+  await giao(w, d.id, ID.FIELD);
+  w.sqlite.prepare("UPDATE order_service SET depart_date = ? WHERE order_id = ?").run(vnDay(0), d.id);
+  assert.equal((await sua(w, ID.ACC, d.id, than(d.svc, P(1), "BOT_NGUOI"))).status, 200);
+  const p = (await w.call("GET", `/api/orders/${d.id}/payments`, { as: ID.ACC })).json;
+  assert.deepEqual([p.phaiThu, p.daThu, p.conLai, p.du], [0, 0, 0, 0]);
+  const giaoR = await w.call("POST", `/api/orders/${d.id}/delivered`, { as: ID.FIELD, body: {} });
+  assert.equal(giaoR.status, 200, giaoR.text);
+});
+
+test("TC8d (ADR-0109 QĐ5, bài 6): bớt khách tới giảm giá > tạm tính rồi HUỶ → chi tiết đơn Tổng cộng 0 (không âm); khối Thanh toán còn lại 0, dư 0; số cọc khách đã trả 200.000 không đổi", async () => {
+  const w = setup();
+  const d = await taoDon(w, { discount: 800000 });
+  assert.equal((await w.call("POST", `/api/orders/${d.id}/payments`, { as: ID.ACC, body: { soTien: 200000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" } })).status, 201);
+  assert.equal((await sua(w, ID.ACC, d.id, than(d.svc, P(1), "BOT_NGUOI"))).status, 200);
+  const huy = await w.call("POST", `/api/orders/${d.id}/status`, { as: ID.SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
+  assert.equal(huy.status, 200, huy.text);
+  const g = (await w.call("GET", `/api/orders/${d.id}`, { as: ID.ACC })).json.order;
+  assert.deepEqual([g.status, g.total, g.giamGiaHieuLuc], ["cancelled", 0, 500000]);
+  const p = (await w.call("GET", `/api/orders/${d.id}/payments`, { as: ID.ACC })).json;
+  assert.deepEqual([p.conLai, p.du, p.coc?.daTra], [0, 0, 200000], "đơn huỷ đi nhánh huỷ của conLai (0/0); cọc giữ đúng số khách đã trả");
+});
+
+test("TC8e (ADR-0109 NT-12): GET chi tiết đơn có khoá giamGiaHieuLuc ở CẢ đơn chưa điều chỉnh (= discount) lẫn đơn đã điều chỉnh; tạm tính − giảm giá hiệu lực = tổng", async () => {
+  const w = setup();
+  const d = await taoDon(w, { discount: 100000 });
+  const g0 = (await w.call("GET", `/api/orders/${d.id}`, { as: ID.ACC })).json.order;
+  assert.deepEqual([g0.subtotal, g0.discount, g0.giamGiaHieuLuc, g0.total], [1000000, 100000, 100000, 900000], "đơn chưa điều chỉnh");
+  assert.equal((await sua(w, ID.ACC, d.id, than(d.svc, P(1), "BOT_NGUOI"))).status, 200);
+  const g1 = (await w.call("GET", `/api/orders/${d.id}`, { as: ID.ACC })).json.order;
+  assert.deepEqual([g1.subtotal, g1.discount, g1.giamGiaHieuLuc, g1.total], [500000, 100000, 100000, 400000], "đơn không âm: không đổi đồng nào");
+  for (const o of [g0, g1]) assert.equal(o.subtotal - o.giamGiaHieuLuc, o.total);
 });
 
 // ---------------------------------------------------------------- TC12 GET chi tiết + hàm ẩn/hiện

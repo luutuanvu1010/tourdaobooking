@@ -220,12 +220,31 @@ export function applyAdjustmentToOrder(order: OrderDetailDto, after: readonly { 
 }
 
 /**
- * `total` (khách phải trả HIỆN HÀNH) từ `subtotal` hiệu lực (gốc hoặc đã cộng điều chỉnh) — `discount` KHÔNG đổi qua route sửa số khách. Dùng chung cho
- * overlay CHI TIẾT một đơn (`applyAdjustmentToOrder`) và DANH SÁCH nhiều đơn (`orders/repository.ts`). Sổ tiền lượt 1 (ADR-0026 đ9): bỏ tham số cọc —
- * "đã thu / còn lại" là số của billing (`billing/rules.ts:conLai`, một hàm), `orders` chỉ công bố "phải thu".
+ * PHẢI THU HIỆN HÀNH — MỘT HÀM (ADR-0109 QĐ1, Hiến chương 5.4): `total` = max(0, `subtotal` hiệu lực − `discount`), từ `subtotal` hiệu lực (gốc hoặc đã cộng
+ * điều chỉnh); `discount` KHÔNG đổi qua route sửa số khách (khoá bởi 0081). Trả kèm `giamGiaHieuLuc` = min(`discount`, `subtotal`) — giảm giá THỰC DÙNG (ADR-0109
+ * QĐ2), số dẫn xuất do cùng hàm trả về, để `subtotal − giamGiaHieuLuc = total` luôn đúng (biên nhận in số này — QĐ4). Khi tạm tính ≥ giảm giá thì hai số bằng số
+ * cũ, nên đơn không âm không đổi đồng nào.
+ *
+ * Ai dùng: overlay CHI TIẾT một đơn (`applyAdjustmentToOrder`), DANH SÁCH / Trang chủ / phải thu của billing (`orders/repository.ts:computeEffectiveMoney`, gọi bởi
+ * `hoan-tat.ts:phaiThuCua`), DTO đơn (`repository.ts:toDto`). Sổ tiền lượt 1 (ADR-0026 đ9): bỏ tham số cọc — "đã thu / còn lại" là số của billing
+ * (`billing/rules.ts:conLai`). Bài tĩnh `src/phai-thu-mot-ham.test.ts` cấm chỗ khác trừ / so / kẹp giảm giá ngoài danh sách cho phép.
+ *
+ * "Một hàm" theo đúng chữ chỉ với đơn ĐÃ điều chỉnh số khách: đơn chưa điều chỉnh dùng thẳng `orders.total` đã lưu — số đó ≥ 0 nhờ trigger 0007
+ * `money_invariant` (total = subtotal − discount, remaining = total − cọc ≥ 0), chặn giảm giá > tạm tính lúc lập / lưu nháp (`orders/rules.ts`) và khoá cột tiền
+ * sau xác nhận (0081) — phiếu phản biện ADR-0109 (lệch 3, tiền đề sai 2).
+ *
+ * LUẬT CHO NGƯỜI LÀM SỔ ĐẠI LÝ SAU (ADR-0079, ADR-0081 — chưa thi công; kế hoạch ADR-0109 mục 1c):
+ *  1. dòng `GIAM_GIA_BEN_DAT` ghi GIẢM GIÁ HIỆU LỰC = `gross_snapshot − due_snapshot` (ADR-0079 (iv) đã sửa) — không đọc thẳng `orders.discount`;
+ *  2. R-BIL-14: đơn có người hưởng có đúng một dòng khi giảm giá hiệu lực > 0, không dòng nào khi = 0 (gồm tạm tính về 0 — SV-SK-10);
+ *  3. R-BIL-2: vế giảm giá là giảm giá hiệu lực, cho cả đơn lẻ lẫn đơn đại lý;
+ *  4. cảnh báo "Giảm giá đang lớn hơn hoa hồng…" (ADR-0079 :75) so bằng giảm giá hiệu lực;
+ *  5. `giamGiaMinhChiu` (ADR-0081) suy từ đẳng thức ADR-0081 :43 nên tự theo số hiệu lực;
+ *  6. KHÔNG đổi: hoa hồng RATE tính trước giảm giá cấp đơn, PER_PAX theo số khách, giá vốn trước giảm giá;
+ *  7. sổ vàng đại lý (`golden/hoan-tat-cong-no.json`) phải có bản đại lý của SV-SK-04: đại lý chịu 500.000, không phải 800.000;
+ *  8. mọi chỗ tính mới phải gọi hàm này hoặc xin thêm vào danh sách cho phép của `src/phai-thu-mot-ham.test.ts`, có người rà.
  */
-export function effectiveMoney(subtotal: number, discount: number): { total: number } {
-  return { total: subtotal - discount };
+export function effectiveMoney(subtotal: number, discount: number): { total: number; giamGiaHieuLuc: number } {
+  return { total: Math.max(0, subtotal - discount), giamGiaHieuLuc: Math.min(discount, subtotal) };
 }
 
 // ---- Quyết định một lần "HDV sửa số khách" (luật THUẦN; `orders/index.ts:editMoneyAsHandler` chỉ đọc/ghi D1 quanh hàm này) ------------------

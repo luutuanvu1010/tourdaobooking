@@ -1,0 +1,28 @@
+✓ a) tạo đơn bằng giao diện (dịch vụ theo người có thông tin chuyến + dịch vụ danh mục thứ hai) → tự chuyển tới /order?id=…&moi=1, hộp thoại tự mở đúng một lần, ảnh hiện, URL đã bỏ moi
+✗ b) PNG giải mã được, rộng ≥ 1440, cao đúng bố cục, không trống; chữ đúng vùng và đúng màu; dấu tiếng Việt được vẽ; ảnh giống hệt bản dựng từ mô hình kỳ vọng (và khác mô hình khác)
+    evaluate lỗi: {"exceptionId":1,"text":"Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'company')","lineNumber":718,"columnNumber":29,"scriptId":"7","stackTrace":{"callFrames":[{"functionName":"buildConfirmation","scriptId":"7","url":"","lineNumber":717,"columnNumber":28},{"functionName":"modelOf","scriptId":"6","url":"","lineNumber":31,"columnNumber":19}]},"exception":{"type":"object","subtype":"error","className":"TypeError","description":"TypeError: Cannot read properties of u ← __t.analyze("blob:http://127.0.0.1:49456/6dcc8bb7-0f70-40cd-8a5f-aca5d4268365", "0473759d-eb27-493a-983a-3b9c33ec420b", undefined)
+✓ c) Tải ảnh PNG: <a download> đúng tên tệp trỏ blob: URL giải mã được; mọi blob: URL tạo ra bị thu hồi khi đóng (không còn tải được)
+✓ d) Chia sẻ: nút chỉ hiện khi navigator.canShare({ files }) đúng (cả hai nhánh); bấm → navigator.share nhận đúng tệp PNG; huỷ thì im lặng, lỗi khác thì báo tiếng Việt
+✓ e) tải lại trang không bật lại hộp thoại (URL sạch moi); mở đơn không kèm moi và SỬA đơn nháp cũng không tự bật; nút “Xác nhận gửi khách” luôn có
+✓ f) đơn đã xác nhận / đã huỷ mở lại bằng nút, huy hiệu đúng chữ và đúng màu token; SALES khác và kế toán cũng có nút
+✓ g) người phụ trách BA trạng thái (chủ dự án 2026-09-28): có tên → in tên; API xác nhận RÕ chưa có người → câu chờ nhận (không tên người lập); 404/500/mạng lỗi/hết giờ/dữ liệu hỏng → KHÔNG tạo ảnh, báo lỗi cố định + Thử lại
+✓ g2) đơn THẬT chưa có người phụ trách (đóng dòng HANDLE bằng SQL, không phải giả lập fetch): ảnh ra đúng câu chờ nhận, không tràn/chồng chữ, không lộ tên người lập; lưu bằng chứng
+✓ h) đơn cỡ tối đa (20 dịch vụ, 50 dòng, tên 100+ ký tự liền, tiền 100.000.000.000 ₫, ghi chú dài) và tiền rộng quá cột: không lỗi, không tràn lề, không chữ chồng nhau, mọi chữ có mực, đúng giới hạn diện tích canvas
+✓ i) vẽ lỗi (công ty lỗi, phông lỗi, phông treo, toBlob trả null, getContext null): thông báo tiếng Việt + nút Thử lại, không kẹt (Esc đóng được), Thử lại ra ảnh
+✗ j) hộp thoại: role=dialog + aria-modal + tên, nền inert, focus trong hộp thoại, Esc/chạm nền đóng và trả focus; axe 0 vi phạm (390, 1040, trạng thái lỗi); vùng chạm ≥ 44 px; không tràn ngang; console/CSP sạch
+    axe (390): [{"id":"meta-viewport","impact":"moderate","nodes":1,"help":"Zooming and scaling must not be disabled","mau":["meta[name=\"viewport\"]"]}]
+    + actual - expected
+    
+    + [
+    +   {
+    +     help: 'Zooming and scaling must not be disabled',
+    +     id: 'meta-viewport',
+    +     impact: 'moderate',
+    +     mau: [
+    +       'meta[name="viewport"]'
+    +     ],
+    +     nodes: 1
+✓ k) ảnh mẫu (một dịch vụ, nhiều dịch vụ, đơn dài) qua đúng đường giao diện, ảnh chụp hộp thoại 390×844 và 1040×800; thời gian dựng
+✓ l) HƯỚNG DẪN VIÊN mở biên nhận đơn mình phụ trách: ảnh GIỐNG từng byte bản dựng với tên HDV, KHÁC bản bỏ dòng; KHÔNG gọi GET /api/dispatch/handlers
+
+2 bước ✗ / 11 bước ✓

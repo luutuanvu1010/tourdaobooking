@@ -32,7 +32,7 @@ type DonMau = OrderDetailDto & { paid: number; remaining: number };
 const order = (o: Partial<DonMau> = {}): DonMau => ({
   id: "ord_INTERNAL", orderCode: "TD-20260921-0007", staffId: "stf_INTERNAL", staffName: "Nguyễn Thu Hà", bookerPartyId: null, bookerName: null, status: "draft",
   customerName: "Trần Văn Bình", customerPhone: "0901234567", customerEmail: "binh.tran@example.com", customerNote: "Cả nhà ăn chay, xin xếp ghế gần nhau",
-  subtotal: 3600000, discount: 100000, total: 3500000, deliveredAt: null, completedAt: null, paid: 1000000, remaining: 2500000,
+  subtotal: 3600000, discount: 100000, total: 3500000, giamGiaHieuLuc: 100000, deliveredAt: null, completedAt: null, paid: 1000000, remaining: 2500000,
   paymentNote: "PAYMENT-NOTE-NOI-BO: cọc qua Vietcombank", createdAt: "2026-09-20T18:30:00.000Z", updatedAt: "2026-09-20T18:35:00.000Z", confirmedAt: null,
   services: [svc()], ...o,
 });
@@ -226,14 +226,14 @@ test("người xem KHÔNG được biết người phụ trách (Đối tác —
 
 test("tổng kết: đúng số của đơn (không tự tính lại); chỉ Tổng cộng và Còn lại nổi bật; giảm giá 0 in '0 ₫'; còn lại âm giữ nguyên dấu", () => {
   const rows = (o: OrderDetailDto) => one(build(o), "summary").rows;
-  const a = rows(order({ subtotal: 12345678, discount: 0, total: 12345678, paid: 5000000, remaining: 7345678 }));
+  const a = rows(order({ subtotal: 12345678, discount: 0, giamGiaHieuLuc: 0, total: 12345678, paid: 5000000, remaining: 7345678 }));
   assert.deepEqual(a.map((r) => [r.label, r.value, r.emphasis]), [
     ["Tạm tính", "12.345.678 ₫", false], ["Giảm giá", "0 ₫", false], ["Tổng cộng", "12.345.678 ₫", true], ["Khách hàng đã trả trước", "5.000.000 ₫", false], ["Còn lại", "7.345.678 ₫", true],
   ]);
-  const over = rows(order({ subtotal: 4000000, discount: 0, total: 4000000, paid: 5000000, remaining: -1000000 }));
+  const over = rows(order({ subtotal: 4000000, discount: 0, giamGiaHieuLuc: 0, total: 4000000, paid: 5000000, remaining: -1000000 }));
   assert.equal(over.find((r) => r.label === "Còn lại")!.value, "-1.000.000 ₫");
   // số hiển thị là số của đơn, kể cả khi lệch so với tổng các dòng (máy chủ là nơi tính; ảnh chỉ in lại)
-  const odd = rows(order({ subtotal: 111, total: 222, remaining: 333, paid: 444, discount: 5 }));
+  const odd = rows(order({ subtotal: 111, total: 222, remaining: 333, paid: 444, discount: 5, giamGiaHieuLuc: 5 }));
   assert.deepEqual(odd.map((r) => r.value), ["111 ₫", "-5 ₫", "222 ₫", "444 ₫", "333 ₫"]);
 });
 

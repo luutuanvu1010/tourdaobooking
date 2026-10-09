@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  CAU_TONG_AM, LY_DO_SUA_SO_KHACH, MA_LY_DO_SUA_SO_KHACH, canhBaoTongAm, docThanSuaSoKhach, duocSuaSoKhachVanPhong, nguonBangSuaSoKhach, thanSuaSoKhach,
+  CAU_GIAM_GIA_VUOT, LY_DO_SUA_SO_KHACH, MA_LY_DO_SUA_SO_KHACH, canhBaoGiamGiaVuot, docThanSuaSoKhach, duocSuaSoKhachVanPhong, nguonBangSuaSoKhach, thanSuaSoKhach,
 } from "./so-khach-van-phong.ts";
 import { EDIT_REASON_QUICK } from "./viec-cua-toi.ts";
 import { PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
@@ -73,14 +73,19 @@ test("ai thấy nút: chỉ đơn ĐÃ XÁC NHẬN, chưa 'Đã giao' (sau ngày
   assert.equal(duocSuaSoKhachVanPhong(ktoan, don()), true);
 });
 
-test("tổng âm: chỉ cảnh báo (câu tiếng Việt nói Kế toán xem lại trước khi hoàn), tổng 0 hoặc dương → không có câu", () => {
-  assert.equal(canhBaoTongAm(-1), CAU_TONG_AM);
-  assert.equal(canhBaoTongAm(-300000), CAU_TONG_AM);
-  assert.equal(canhBaoTongAm(0), null);
-  assert.equal(canhBaoTongAm(500000), null);
-  assert.match(CAU_TONG_AM, /Kế toán/);
-  assert.match(CAU_TONG_AM, /hoàn/);
-  assert.doesNotMatch(CAU_TONG_AM, /\d/, "câu cố định, không số tiền");
+test("giảm giá vượt tạm tính (ADR-0109 QĐ3): chỉ cảnh báo, điều kiện giảm giá > tạm tính HIỆN HÀNH (so nghiêm, kể cả tạm tính 0); bằng hoặc nhỏ hơn → không có câu", () => {
+  assert.equal(canhBaoGiamGiaVuot({ subtotal: 500000, discount: 800000 }), CAU_GIAM_GIA_VUOT);
+  assert.equal(canhBaoGiamGiaVuot({ subtotal: 0, discount: 800000 }), CAU_GIAM_GIA_VUOT, "tạm tính về 0 (vd chỉ còn em bé giá 0)");
+  assert.equal(canhBaoGiamGiaVuot({ subtotal: 500000, discount: 500001 }), CAU_GIAM_GIA_VUOT);
+  assert.equal(canhBaoGiamGiaVuot({ subtotal: 500000, discount: 500000 }), null, "bằng nhau: phải thu 0 nhưng không có phần giảm giá vượt");
+  assert.equal(canhBaoGiamGiaVuot({ subtotal: 500000, discount: 0 }), null);
+  assert.equal(canhBaoGiamGiaVuot({ subtotal: 0, discount: 0 }), null);
+  assert.match(CAU_GIAM_GIA_VUOT, /Kế toán/);
+  assert.match(CAU_GIAM_GIA_VUOT, /hoàn/);
+  assert.doesNotMatch(CAU_GIAM_GIA_VUOT, /\d/, "câu cố định, không số tiền");
+  // Phiếu phản biện ADR-0109 (tiền đề sai 3): câu còn hiện sau khi đã hoàn / Đã giao / Hoàn thành ⇒ không được khẳng định "toàn bộ tiền đã trả thành tiền trả dư".
+  assert.doesNotMatch(CAU_GIAM_GIA_VUOT, /Toàn bộ tiền khách đã trả/);
+  assert.match(CAU_GIAM_GIA_VUOT, /nếu chưa hoàn/);
 });
 
 // ---- Bảng "Sửa số khách dịch vụ" trên trang đơn (web/sheet-so-khach.ts): nguồn dòng + thân gửi đi — luật thuần để bài khoá được không cần trình duyệt.

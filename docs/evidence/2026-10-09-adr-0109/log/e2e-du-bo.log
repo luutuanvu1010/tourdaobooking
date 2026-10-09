@@ -1,0 +1,1160 @@
+
+> test:e2e
+> node tests/e2e/run.mjs
+
+Chạy song song 3 nhóm, mỗi nhóm một D1 tạm + wrangler dev riêng (E2E_SONG_SONG=1: tuần tự như cũ):
+  nhóm 1: trip, chang-hanh-khach, admin, dispatch, locations, tro-ly, giao-dien, quyen-tien, chinh-sach-dieu-phoi, cam-ket-xe, dieu-chinh-khan-cap, xe-tren-don, coc-don-huy, sua-so-khach
+  nhóm 2: pwa, nhap-tay-va-gia-doi-tac, mau-chang, admin-race, feedback, company, thongbao, maintenance, roles, van-chuyen, tai-xe-doi-tac, dong-bo-chuyen, tien-xe-thue, tai-xe-cuoc, xe-dang-chay, dieu-phoi-chay-dua, chong-ghi-trung, passkey
+  nhóm 3: platform, orders, turnstile, catalog, parties, gop-ho-so, booker, permissions, bangtin, dieu-phoi, khung-ban-xe, dua-don-dau-cuoi, tin-chuyen, so-tien, nhap-ke-toan, chinh-sach-phien, phien
+
+D1 tạm · nhóm 1: /var/folders/m6/8lb7g7fn35q4s4tm5t6nv21h0000gn/T/tourdao-e2e-ynjOVQ
+D1 tạm · nhóm 3: /var/folders/m6/8lb7g7fn35q4s4tm5t6nv21h0000gn/T/tourdao-e2e-tILNKE
+D1 tạm · nhóm 2: /var/folders/m6/8lb7g7fn35q4s4tm5t6nv21h0000gn/T/tourdao-e2e-xa8SY9
+wrangler dev · nhóm 1: http://127.0.0.1:51682
+wrangler dev · nhóm 2: http://127.0.0.1:51707
+wrangler dev · nhóm 3: http://127.0.0.1:51734
+
+▶ trip · nhóm 1
+▶ pwa · nhóm 2
+▶ platform · nhóm 3
+── đầu ra pwa · nhóm 2 ──
+✓ manifest
+✓ icon
+✓ font tự lưu trữ
+✓ service worker + API no-store + content-type của khung
+✓ thẻ meta iOS, tên và màu nhất quán trên 38 trang
+E2E PWA OK
+✔ pwa (0.5s) · nhóm 2
+
+▶ nhap-tay-va-gia-doi-tac · nhóm 2
+── đầu ra platform · nhóm 3 ──
+✓ 404/405/401/403 thống nhất
+✓ chặn ghi cross-site và thân không phải JSON
+E2E PLATFORM OK
+✔ platform (2.4s) · nhóm 3
+
+▶ orders · nhóm 3
+── đầu ra orders · nhóm 3 ──
+tạo: TD-20261009-0002 1400000 1300000 draft
+lịch sử: created/NV Bán A (test), updated/NV Bán A (test), updated/QTV Test, confirmed/NV Bán A (test), cancelled/QTV Test
+✓ TRIGGER 0017 chặn trạng thái đi lùi và sửa/xoá nhật ký ghi thẳng vào D1
+song song: TD-20261009-0005 TD-20261009-0006 TD-20261009-0007 TD-20261009-0008 TD-20261009-0009 TD-20261009-0010 TD-20261009-0011 TD-20261009-0012 TD-20261009-0013 TD-20261009-0014 TD-20261009-0015 TD-20261009-0016 TD-20261009-0017 TD-20261009-0018 TD-20261009-0019 TD-20261009-0020 TD-20261009-0021 TD-20261009-0022 TD-20261009-0023 TD-20261009-0024 TD-20261009-0025 TD-20261009-0026 TD-20261009-0027 TD-20261009-0028 TD-20261009-0029 TD-20261009-0030 TD-20261009-0031 TD-20261009-0032 TD-20261009-0033 TD-20261009-0034
+✓ dịch vụ nhập tay cũ đọc lại đúng
+✓ TRIGGER chặn số tiền sai ghi thẳng vào D1, API vẫn sửa được
+✓ thao tác thua khi tranh chấp không ghi nhật ký
+✓ người phụ trách (khác người lập) sửa nháp đủ, xác nhận, sửa chuyến, huỷ; người lập vẫn được; SALES khác/kế toán/FIELD 403; số khách/dịch vụ/tiền vẫn khoá sau xác nhận
+✓ người phụ trách huỷ đơn nháp; bị đổi người thì mất quyền ngay, người phụ trách mới có quyền
+✓ bộ lọc danh sách đơn: ngày đi, dịch vụ, trạng thái, người lập chọn đồng thời; tham số sai → 400
+E2E OK
+✔ orders (42.2s) · nhóm 3
+
+▶ turnstile · nhóm 3
+── đầu ra nhap-tay-va-gia-doi-tac · nhóm 2 ──
+✓ R1: POST dịch vụ nhập tay mới → 400 (một mình hay cạnh dịch vụ danh mục), không lưu đơn
+✓ R1: đơn cũ gửi lại NGUYÊN dịch vụ nhập tay → 200, giữ nguyên tên/dòng tiền
+✓ R1: 8 kiểu sửa dịch vụ nhập tay cũ (tên, mô tả, chi tiết, số lượng, đơn giá, thêm dòng, gửi như mới, mượn id) → 400, đơn không đổi
+✓ R1: đổi ngày cả đơn + số khách + điểm đón của dịch vụ nhập tay cũ → 200 (tiền giữ nguyên)
+✓ R1: nhân viên bán hàng xác nhận đơn nháp cũ có dịch vụ nhập tay → 200
+✓ R1: xoá dịch vụ nhập tay cũ khỏi đơn nháp → 200
+✓ R2: Đối tác lập đơn với đơn giá khác giá danh mục (thấp/cao) → 403; dịch vụ nhập tay → 400 (R1)
+✓ R3: Đối tác đúng giá danh mục + giảm giá (1₫ / gần hết tiền) → 403, không lưu; không giảm giá → 201
+✓ R2+R3: Đối tác PUT hạ đơn giá → 403; PUT thêm giảm giá → 403 (đơn không đổi); giữ giá + không giảm → 200; tự xác nhận → 200
+✓ R2: Đối tác xác nhận nháp cũ lệch giá → 403 (vẫn nháp); nháp cũ có nhập tay: xác nhận/sửa 403, xoá dịch vụ nhập tay → 200
+✓ R3: Đối tác xác nhận nháp cũ có giảm giá đã lưu → 403 (vẫn nháp); sửa giảm giá về 0 → 200, xác nhận → 200
+✓ R2+R3: nhân viên bán hàng cùng thân yêu cầu (đơn giá thoả thuận / có giảm giá) → 201, sửa thêm giảm giá → 200, xác nhận 200
+✓ R2+R3: tài khoản có quyền Đối tác KÈM quyền nội bộ (PARTNER+FIELD, dữ liệu lai cũ — gieo SQL; API nay chặn 400) → đơn giá lệch 403, giảm giá 403
+✓ ADR-0061: Quản trị bật công tắc → 403; Toàn quyền bật → 200 + nhật ký; Bán hàng dùng được, lai Đối tác + Bán hàng không
+✓ ADR-0061 tiêu chí 2: công tắc BẬT — Bán hàng, Quản trị lập đơn có dịch vụ nhập tay → 201, tổng tiền máy chủ tính
+✓ ADR-0061 tiêu chí 3 (POST): chỉ-HDV 403; Thực tập, Đối tác, lai Đối tác+Bán hàng, lai Đối tác+HDV 400 invalid_input
+✓ ADR-0061 tiêu chí 3 (PUT): Thực tập, Đối tác, lai Đối tác+Bán hàng sửa nháp thêm dịch vụ nhập tay → 400
+✓ ADR-0061 hệ quả: nội bộ thêm nhập tay vào nháp của Đối tác → Đối tác xác nhận 403 (R2), Quản trị xác nhận thay 200
+✓ ADR-0061 tiêu chí 5: tắt lại → đơn có nhập tay vẫn mở, sửa giá/tên 400, gửi nguyên 200, xác nhận 200
+E2E NHẬP TAY + GIÁ ĐỐI TÁC OK
+✔ nhap-tay-va-gia-doi-tac (59.1s) · nhóm 2
+
+▶ mau-chang · nhóm 2
+── đầu ra turnstile · nhóm 3 ──
+✓ GET /api/auth/config: công khai, no-store, đúng khoá site, không lộ secret, chỉ đọc
+✓ thiếu/hỏng token → 403 turnstile_failed (6 lần sai PIN + 9 dạng token hỏng) và không tiêu hao lượt PIN; sau đó đăng nhập đúng vẫn được
+✓ token thử → qua Turnstile, sai PIN → 401 và bị đếm; đủ 5 lần → 429 (chống dò vẫn chạy sau Turnstile)
+✓ Turnstile chạy trước chống dò: thiếu token trên SĐT đang khoá → 403, không ghi thêm lượt
+✓ siteverify thật: đạt / hỏng / token đã dùng → đúng phân loại; secret sai → unavailable
+E2E TURNSTILE OK
+✔ turnstile (18.8s) · nhóm 3
+
+▶ catalog · nhóm 3
+── đầu ra trip · nhóm 1 ──
+✓ máy chủ sinh dòng tiền từ danh mục, bỏ qua số lượng giả
+✓ đơn giá thương lượng: lưu lệch giá + ghi nhật ký, không chặn
+✓ giá danh mục đổi giữa chừng → 409 catalog_changed
+✓ đầu vào sai bị từ chối đúng lý do
+✓ thông tin chuyến lưu và chuẩn hoá
+✓ xác nhận đòi đủ ngày khởi hành; nhật ký khớp
+✓ xác nhận chặn quá khứ / quá xa / 0 khách; biên hôm nay và +365 được
+✓ đua lưu-xoá-ngày với xác nhận: không có đơn xác nhận thiếu ngày
+✓ khoá lạc quan: stale / thiếu mốc / hai PUT cùng mốc
+✓ bản chụp: dịch vụ ẩn/đổi giá vẫn sửa + xác nhận được, đổi số khách thì phải chọn lại
+✓ sửa trường vận hành sau xác nhận: có nhật ký, khoá số khách/dịch vụ, chặn ngày sai
+✓ một ngày cho cả đơn: chặn lập/sửa nháp lệch ngày, chặn sửa chuyến làm lệch (kể cả gửi một phần), gom về một ngày được, đơn cũ sửa ghi chú được
+✓ bất biến SQL: số lượng khớp số khách, đơn xác nhận đủ chuyến, không dòng tiền mồ côi
+E2E OK
+✔ trip (88.6s) · nhóm 1
+
+▶ chang-hanh-khach · nhóm 1
+── đầu ra mau-chang · nhóm 2 ──
+✓ Quản trị ghi Không / Một / Hai chiều + nơi trả gợi ý → 201; lịch sử mới trước, mỗi lần một bản mới, người đổi = id tài khoản
+✓ Bán hàng, Kế toán, Hướng dẫn viên → 403 cả ghi lẫn đọc lịch sử; không thêm bản
+✓ nơi trả gợi ý là điểm đã ngưng / không có → 400, không thêm bản
+✓ route form GET /api/van-chuyen/mau-chang: Bán hàng 200 (ba khoá, nơi trả gợi ý đúng); Kế toán, Hướng dẫn viên 403
+✔ mau-chang (48.9s) · nhóm 2
+
+▶ admin-race · nhóm 2
+── đầu ra admin-race · nhóm 2 ──
+kết quả song song: 200 409
+admin còn lại: Race X
+✓ bên thua không ghi nhật ký
+RACE OK
+✔ admin-race (0.9s) · nhóm 2
+
+▶ feedback · nhóm 2
+── đầu ra feedback · nhóm 2 ──
+✓ 401 khi chưa đăng nhập, 400 khi đầu vào sai
+✓ tạo yêu cầu, gửi lại không tạo trùng, context được lọc
+✓ chỉ chủ và admin xem được; hàng đợi/đổi trạng thái chỉ admin
+✓ hàng đợi admin: mailPending, chưa đọc, thống kê, lọc
+✓ chấm đỏ admin giảm sau khi xem
+✓ chuyển trạng thái theo bảng luật; sai → 409/400
+✓ tin nội bộ ẩn, người gửi trả lời mở lại yêu cầu
+✓ khoá lạc quan: 6 PATCH song song → 1 thắng, 5 thua (bad_transition)
+✓ nhật ký nhận hành động feedback_*
+✓ trần 5 yêu cầu/giờ giữ được khi gửi song song
+✓ trần 30 tin/giờ giữ được khi gửi song song
+feedback: OK
+✔ feedback (3.3s) · nhóm 2
+
+▶ company · nhóm 2
+── đầu ra catalog · nhóm 3 ──
+✓ đọc Sheet thật: TDMCT1 giá người lớn 850.000 ₫, TTBPC (per5Pax) có giá {"adult":1300000,"child":null,"senior":null,"infant":null}
+✓ 5 request đầu tiên song song → một dòng nhật ký đồng bộ
+✓ bootstrap: 112 dịch vụ, lastSuccessAt=có
+✓ giá đúng, không rò Khoá giá/Đường dẫn/Ghi chú nội bộ
+✓ Đối tác + Thực tập đọc danh mục qua /api/catalog/for-order (200, cùng nội dung, không thấy lỗi đồng bộ), /api/catalog 403; Kế toán + Hướng dẫn viên 403 ở route mới; Đối tác lập đơn từ danh mục đúng giá
+✓ NT-A6: Bán hàng, Kế toán, Hướng dẫn viên, Đối tác, Thực tập → 403 ở cả năm route nhóm
+✓ NT-A8: gán 23 mã Thể thao biển (đổi 23), nhật ký mỗi dịch vụ một dòng, lần lặp bỏ qua
+✓ NT-A9: groupCode + groups ở /api/catalog và /api/catalog/for-order, Đối tác cùng nội dung
+✓ NT-A7: 400 lô 51 mã; 409 tắt nhóm còn dịch vụ / trùng tên / bật lại trùng tên / nhóm tắt / sai mốc; 404 nhóm lạ; lịch sử nhóm
+✓ gán nhóm → đồng bộ lại (force) → 200, dòng gán không đổi
+✓ gieo mẫu đưa đón (có nơi trả mặc định) → đồng bộ lại (force) → mẫu y nguyên; form đọc đúng
+✓ kéo lại không đổi gì (unchanged=112, problems=0, warnings=0)
+✓ đổi giá trên Sheet → kéo về, nhật ký ghi 'TDMCT1: giá người lớn 1 ₫ → 850.000 ₫'
+✓ ghi đè giá; kéo lại KHÔNG đè
+✓ xung đột được cảnh báo, 'Giữ ghi đè' xác nhận
+✓ ẩn/hiện dịch vụ
+✓ Cron tự kéo, nhật ký ghi 'Hệ thống (tự động)'
+✓ chốt chặn Sheet hỏng + ép kéo
+E2E CATALOG OK
+✔ catalog (123.6s) · nhóm 3
+
+▶ parties · nhóm 3
+── đầu ra parties · nhóm 3 ──
+✓ danh mục vai trò/quan hệ
+✓ tạo cá nhân + tách tên + liên hệ chính tự đặt
+✓ đầu vào sai, 404
+✓ tra cứu trùng SĐT (không chặn tạo)
+✓ tạo tổ chức
+✓ danh sách + tìm kiếm
+✓ sửa + khoá lạc quan
+✓ song song: một bên thắng, dữ liệu nhất quán
+✓ ngưng dùng thay cho xoá
+✓ liên hệ
+✓ liên hệ chính tự đặt sau khi đóng liên hệ chính
+✓ vai nội bộ/bên ngoài chỉ gán ở trang Nhân viên
+✓ vai trò theo nơi + truy vấn Lái cano @ Bến cảng Vinpearl; loại đã ngưng → 409 role_type_inactive
+✓ quan hệ
+✓ nhật ký, không lộ dữ liệu cá nhân
+✓ ADR-0013: hồ sơ có tài khoản — SALES 403, ADMIN sửa được, không đổi 'đang dùng' (409)
+✓ ADR-0013: SUPER_ADMIN sửa ADMIN được; ADMIN sửa SUPER_ADMIN bị chặn (403)
+E2E PARTIES OK
+✔ parties (2.8s) · nhóm 3
+
+▶ gop-ho-so · nhóm 3
+── đầu ra gop-ho-so · nhóm 3 ──
+✓ C2: chặn tạo trùng; cờ “vẫn tạo hồ sơ mới”
+✓ T1: cặp nghi trùng theo tên
+✓ G10 xem trước; G12 Bán hàng 403
+✓ G13: hai yêu cầu song song — một thành công
+✓ G1–G3, G7, G9: SĐT sang B, A chỉ đọc, đơn nháp đổi người đặt, hai dòng nhật ký sạch
+✔ gop-ho-so (25.1s) · nhóm 3
+
+▶ booker · nhóm 3
+── đầu ra company · nhóm 2 ──
+✓ công khai: 200 khi chưa đăng nhập, no-store, đúng năm trường, giá trị = bản chép từ company_profile
+✓ đã đăng nhập đọc như nhau; ghi bị chặn (405)
+✓ đọc từ hồ sơ công ty chủ: company_profile không còn là nguồn, sửa hồ sơ thì đổi theo, email đóng → null, hết Hotline → 404
+✓ quyền: Bán hàng/Quản trị 403 ở sửa, liên hệ, công việc, gán Công ty chủ; kết thúc vai → 409 kể cả Toàn quyền; không nhật ký; vẫn đúng một
+E2E COMPANY OK
+✔ company (113.8s) · nhóm 2
+
+▶ thongbao · nhóm 2
+── đầu ra booker · nhóm 3 ──
+✓ lập đơn không gắn hồ sơ khách
+✓ gắn hồ sơ có sẵn; tên/SĐT trên đơn là bản chụp
+✓ tạo hồ sơ mới + vai CUSTOMER cùng lúc lưu đơn; nhật ký không lộ SĐT
+✓ đơn lỗi thì không có hồ sơ mồ côi
+✓ id lạ/sai dạng/tổ chức/đã ngưng bị từ chối
+✓ sửa nháp: đổi và bỏ gắn hồ sơ khách
+✓ sửa nháp kèm tạo hồ sơ mới; mốc cũ + hồ sơ mới khác → 409 stale, không ghi đè người đặt
+✓ PUT đơn vắng cả hai khoá người đặt: giữ nguyên (không bỏ gắn) — bảo vệ client cũ
+✓ đơn đã xác nhận không sửa qua PUT đơn
+✓ đổi khách của đơn đã xác nhận; nhật ký 'từ A sang B' bằng tên
+✓ khoá lạc quan; không đổi gì thì không ghi nhật ký
+✓ đổi khách kèm tạo hồ sơ mới
+✓ quyền đổi khách = quyền sửa chuyến
+✓ đơn đã huỷ không đổi khách được; 404; 400
+E2E OK
+✔ booker (47.1s) · nhóm 3
+
+▶ permissions · nhóm 3
+── đầu ra chang-hanh-khach · nhóm 1 ──
+✓ (4)(5) lưu nháp thân CŨ: chiều đi đổi giờ; chiều về, nơi trả, danh sách khách còn nguyên; cột cũ = dẫn xuất
+✓ (4) PUT /trip: không có hai khoá → không đổi; hai khoá rỗng → đóng chiều đi (NOT_NEEDED); lưu nháp sau không chèn lại
+✓ (6) chặng sau xác nhận: thêm 201, sửa 200 (nhật ký trước → sau), đóng 200 (dòng còn); kế toán/HDV 403; nháp 409 use_order_form; mốc cũ 409 stale
+✓ (7) hành khách: nháp 3 → giữ → rỗng; sau xác nhận thêm/sửa (dòng mới cùng person_key)/huỷ (mọi dòng); kế toán GET 200 POST 403; HDV phụ trách 200, đơn khác 404; nhật ký chỉ số lượng
+✓ (8) cờ vượt số khách dùng số khách hiệu lực (HDV sửa 2 → 3 thì tắt)
+✓ (9) mốc 6 giờ: lưu nháp có cảnh báo, xác nhận 409 short_notice_required; Bán hàng đặt gấp 403; Quản trị đặt gấp 200 (360 phút, ghi chú che số); xác nhận 200; CHECK 0040 giữ trên D1
+✓ (10) thay chặng: 200 một lô (chặng cũ đóng REPLACED, chặng mới mở, ghi kép, 2 dòng nhật ký); mốc đơn cũ 409 stale không ghi gì; dưới mốc 409 short_notice_required không ghi gì
+
+E2E CHẶNG + HÀNH KHÁCH OK
+✔ chang-hanh-khach (181.0s) · nhóm 1
+
+▶ admin · nhóm 1
+── đầu ra permissions · nhóm 3 ──
+✓ /me trả quyền + hồ sơ
+✓ FIELD: danh sách đơn 200 (không có đơn người khác), hàng chờ 200, chi tiết đơn không phụ trách 404; lập/sửa/huỷ đơn, danh mục, hồ sơ, quản trị vẫn 403
+✓ Đối tác, Thực tập: Trang chủ (dashboard) 403; Bán hàng 200
+✓ ACCOUNTING xem, không lập/sửa đơn, không quản trị
+✓ SALES nhật ký của mình, ADMIN mọi đơn
+✓ người phụ trách: đủ sáu vai (canModify, nhật ký, đổi người phụ trách) trên route thật
+✓ nhiều quyền + hiệu lực ngay
+✓ ADR-0067 người lập: 200 cho Bán hàng/Kế toán/Quản trị/Toàn quyền/lai Bán hàng+HDV (có Đối tác, người đã nghỉ; đúng 3 khoá); 403 HDV/Đối tác/Thực tập/lai HDV+Thực tập/Tài xế/Tài xế đối tác
+E2E PERMISSIONS OK
+✔ permissions (10.2s) · nhóm 3
+
+▶ bangtin · nhóm 3
+── đầu ra admin · nhóm 1 ──
+✓ lastLoginAt: null khi chưa đăng nhập, ISO sau đăng nhập đúng, sai PIN không đổi
+✓ tạo + đăng nhập bằng PIN sinh ra
+✓ tài khoản mới có hồ sơ + vai trò STAFF, không sao chép SĐT
+✓ nhật ký hiển thị hành động không gắn đơn, không lộ PIN
+✓ sửa/ngưng/kích hoạt, tự khoá bị chặn, ngưng có hiệu lực ngay, đủ nhật ký
+✓ DK-T3-02: Quản trị/Toàn quyền tự đặt lại PIN của mình → 403, phiên và PIN cũ giữ nguyên
+✓ đặt lại PIN thu hồi phiên cũ, nhật ký không lộ PIN
+✓ đổi PIN cá nhân
+✓ khoá sau 5 lần sai, admin mở khoá được
+  song song 40: 5 lần được kiểm, 35 bị chặn
+✓ chống dò song song + đăng nhập đúng xoá bộ đếm
+✓ giới hạn theo IP
+✓ đồng bộ nhân viên từ Sheet đã gỡ
+✓ Hành chính nhân sự: tạo tài khoản, giới hạn vai và hỗ trợ đăng nhập
+E2E ADMIN OK
+✔ admin (8.6s) · nhóm 1
+
+▶ dispatch · nhóm 1
+── đầu ra bangtin · nhóm 3 ──
+✓ ca 1: bắt tay — không cookie → 401; Origin lạ/vắng → 403; thiếu Upgrade → 426; đúng → mở (101)
+✓ ca 2: chuẩn bị phiên salesA/salesB/kế toán/field + hai tài khoản Đối tác mới (dùng một lần)
+✓ ca 3: lập đơn → văn phòng (salesA/salesB/kế toán) nhận đúng một tin 'tao' đủ 5 khoá trong 2 giây; Đối tác/field không nhận
+✓ ca 4: nhận đơn chưa có người → văn phòng 'nhan', field đúng một tin rời hàng chờ; giao cho field → 'giao'; giao tiếp đi → field vẫn nhận (NT-2); văn phòng sửa/xác nhận/huỷ đơn HDV B → fieldB nhận, field không nhận thêm
+✓ ca 5a: PUT /api/orders/:id — thành công → một tin 'sua'; 403 (không liên quan) → không tin nào
+✓ ca 5b: PUT /api/orders/:id/trip — thành công → một tin 'chuyen'; 403 → không tin; thân 'không đổi gì' → không tin
+✓ ca 5c: PUT /api/orders/:id/booker — thành công → một tin 'sua'; 403 → không tin; thân 'không đổi gì' → không tin
+✓ ca 5d: POST /api/orders/:id/status — thành công → một tin 'xac_nhan'; 409 (đã xác nhận rồi) → không tin nào
+✓ ca 5e: POST /api/orders/:id/handler-cancel — thành công (field đang phụ trách) → một tin 'huy'; 403 (chưa được giao) → không tin nào
+✓ ca 5f: POST /api/orders/:id/handler-money-edit — thành công (field đang phụ trách) → một tin 'tien'; 403 (chưa được giao) → không tin nào
+✓ ca 6: Đối tác lập đơn của mình → chính mình nhận 'tao_cho_nhan'; Đối tác khác không nhận; văn phòng nhận; header nhãn giả (BT-2) không mở rộng được phạm vi nhận
+✓ ca 7: gửi 'ping' → nhận 'pong' tự động (không phát vào tin đơn); gửi rác → bị bỏ qua, kết nối vẫn mở
+✓ ca 8: hết hạn sống (BANG_TIN_HAN_GIAY=20) → trạm tự đóng mã 4001 sau 20006ms (không sớm hơn 20s), không phát gì
+✓ ca 9: tạm ngưng tài khoản → kết nối của nó đóng 4003 trong 2 giây; kết nối người khác vẫn mở; kích hoạt lại thành công
+✓ ca 10: bật bảo trì đóng mọi kết nối (4003, kể cả admin); bắt tay lại của tài khoản không được phép → 503; đã tắt bảo trì
+✓ ca 11a: HDV khác (fieldB) và tài khoản lai Đối tác+HDV không nhận tin nào về đơn HDV B đang phụ trách (xác nhận/sửa/sửa chuyến/đổi tiền/huỷ)
+✓ ca 11b: đơn vừa rời hàng chờ (được Nhận) → HDV khác nhận đúng một tin 'nhan' qua cho-nhan; tài khoản lai không nhận (S20-8, S20-9)
+✓ ca 12: đăng nhập máy 2 → kết nối máy 1 đóng 4003 'dang-nhap-may-khac'; máy 2 và người khác vẫn mở
+E2E BANG TIN (ca 1–12) OK
+✔ bangtin (74.8s) · nhóm 3
+
+▶ dieu-phoi · nhóm 3
+── đầu ra thongbao · nhóm 2 ──
+✓ tin về đơn: K1, E3
+✓ K6: người gửi không thấy tin của chính mình
+✓ số chưa đọc khớp danh sách (không vô nghĩa: trước ≥ 1, sau = 0); mở hộp = đọc hết
+✓ tài khoản mới không bị đổ dồn tin cũ (kèm đối chứng âm)
+✓ chuanHoaMocGio: mốc thiếu mili-giây vẫn so đúng thứ tự thời gian thật
+✓ R5: đã hiểu tra thẳng theo id (không qua cửa sổ 30 ngày); bấm hai lần vẫn OK; thu hồi → 404
+✓ gửi: chỉ Toàn quyền, chống trùng (tuần tự lẫn đồng thời), kiểm đầu vào
+✓ đã hiểu (kể cả bấm lại), ai đã hiểu, người ngoài nhóm nhận → 404, nhật ký không chứa nội dung
+✓ I-1: da-gui/nguoi-da-hieu loại đúng người gửi (không phải người xem)
+✓ K3: Đối tác không nhận tin Toàn công ty
+✓ thu hồi
+✓ Web Push: chưa đăng nhập → 401 (may, moi-nhat); POST không Origin → 403
+✓ Web Push: Đối tác đăng ký được; đăng ký lại idempotent; máy dùng chung đổi chủ đúng người
+✓ Web Push: endpoint ngoài danh sách dịch vụ đẩy → 400
+✓ Web Push: huỷ tatCa → soMay = 0, không xoá cứng (revoke_reason = dang-xuat)
+✓ Web Push: moi-nhat trả câu của tin chưa đọc mới nhất; null sau khi đã đọc; imLang khớp giờ yên lặng VN (ADR-0039)
+✓ I-2: mayNay đúng theo endpoint của CHÍNH tài khoản, không suy từ soMay, không lộ máy người khác
+✓ Web Push: đổi PIN → máy của người đó tự tắt
+✓ Web Push: ngưng tài khoản → máy tắt; bật lại không tự bật máy
+✓ Web Push: bật/tắt bảo trì không tắt máy
+✓ Web Push: thiếu khoá VAPID → gửi tin / lập đơn vẫn 201, máy không bị đụng
+✓ Web Push (ADR-0046): đổi quyền không tắt máy; đăng xuất chỉ tắt đúng máy đó
+✓ ADR-0062: đổi giờ đón sau xác nhận → người lập + HDV phụ trách; người sửa không; sửa lúc nháp không
+✓ ADR-0062: đổi nơi đón không lộ nơi; thêm chặng; HDV sửa số khách → người lập (không lý do)
+THONGBAO OK
+✔ thongbao (146.1s) · nhóm 2
+
+▶ maintenance · nhóm 2
+── đầu ra maintenance · nhóm 2 ──
+✓ nền TẮT: mọi tài khoản dùng bình thường; GET/PUT /api/maintenance chỉ Toàn quyền (Quản trị 403 dù SĐT trong danh sách cũ)
+✓ kiểm đầu vào: thiếu/sai `on`, thiếu/rác/quá khứ/quá 7 ngày/không múi giờ/ngày không có thật → 400 tiếng Việt, không bật
+✓ đổi SĐT của tài khoản trong danh sách cũ: được (luật phoneChangeProblem đã bỏ)
+✓ dựng tài khoản Toàn quyền đã ngưng (vai IT)
+✓ BẬT: phiên đang mở của salesA/kế toán/FIELD/Quản trị bị 503 `maintenance` (kèm giờ dự kiến + đúng câu chữ) ở mọi route, kể cả ghi và route ADMIN
+✓ BẬT: đăng nhập → 503 cùng thân cho đúng PIN/sai PIN/SĐT lạ/SĐT Quản trị/Toàn quyền đã ngưng, không tiêu hao lượt PIN, không ghi lastLoginAt; thiếu token Turnstile vẫn 403
+✓ BẬT: chủ dùng bình thường (phiên cũ, phiên thứ hai, đăng nhập mới)
+✓ BẬT: /api/auth/config (on + giờ dự kiến, không lộ danh sách), /api/company, logout vẫn chạy
+✓ TỰ TẮT: qua giờ dự kiến thì không chặn ai (phiên cũ, config, trang Tôi) dù dòng cài đặt còn bật
+✓ TẮT: phiên cũ dùng lại được, đăng nhập lại được ngay (không bị khoá), config trở về tắt
+✓ nhật ký: đủ lần bật + lần tắt, không lộ SĐT
+✓ đường thoát khẩn: UPDATE mnt_setting SET enabled = 0 → vào lại được ngay
+E2E MAINTENANCE OK
+✔ maintenance (115.1s) · nhóm 2
+
+▶ roles · nhóm 2
+── đầu ra roles · nhóm 2 ──
+✓ tạo tài khoản theo vai: quyền = bộ mặc định, hồ sơ mang đúng vai
+✓ route cũ /api/parties/:id/roles/:rid/end khoá với vai gán qua tài khoản (role_via_account)
+✓ đổi vai + chỉnh tay có lý do; nhật ký ghi trước → sau, không chứa SĐT
+✓ luật cứng LC-1, LC-3, LC-4 ở API thật
+✓ route cũ: khoá với tài khoản đã gán vai; chỉ Toàn quyền dùng; chặn lai nội bộ + bên ngoài
+✓ tự gán vai: quyền không đổi thì cho, đổi thì 409
+✓ tạo tài khoản trên hồ sơ có sẵn, không tạo hồ sơ trùng
+✓ hồ sơ có sẵn giữ vai tài khoản: thiếu vai → 409 account_rule; chọn đủ → quyền = hợp, không trùng vai
+✓ Thực tập sinh: lập đơn, chỉ thấy đơn của mình
+E2E ROLES OK
+✔ roles (17.1s) · nhóm 2
+
+▶ van-chuyen · nhóm 2
+── đầu ra dieu-phoi · nhóm 3 ──
+✓ (1) CX-1010-01: xếp 2 chặng, giữ "thiếu tên — văn phòng"; nhập tên ở đơn → hết giữ
+✓ (2) TC-51: giữ NOI_HEN_DOI → cập nhật điểm theo đơn 200 (2 suất đóng STOP_CHANGED + mở lại), hết giữ; không lộ khoá nơi
+✓ (2b) R-P29: khách đổi sau khi gắn tên → màn + lệnh xuất bến cùng giữ KHACH_DA_DOI; Kế toán 403; cập nhật khách theo đơn 200 (1 suất PASSENGER_CHANGED, mở lại khoá mới), hết giữ; không lộ tên
+✓ (3) TC-29: bấm thay xuất bến 200; bản chụp ĐẠT (dấu lệnh), bản chốt 4 dòng trỏ đúng người, suất đã gắn tên; nhật ký 'văn phòng bấm thay'
+✓ (4) TC-47: khai giờ 'đã tới' → VAN_PHONG_KHAI (đúng khuôn, có chính sách); khai lùi quá kẹp → 409 kèm giờ sớm nhất
+✓ (5) D1 thật: sự kiện MAY_CHU lệch giờ ghi nhận → CHECK chặn; sửa sự kiện → trigger chặn
+✓ (6) ADR-0051: xếp chụp mốc XEP; đổi giờ → mục; Bán hàng khác 403 (không nút); người lập bấm → hết; bỏ đánh dấu → lại; đổi tiếp → lại
+✓ (6b) hai người bấm song song → một 200, một 409 (khong_con_can_goi), đúng một dòng mới
+✓ (6c) D1 thật: chuỗi mốc với giờ NULL ('chưa chốt giờ') — IS NULL nối đúng; lệch → gb_chain
+✓ (7) cảnh báo sớm lúc xếp: thiếu nơi trả → xếp được + canhBaoXep CHUA_CO_NOI_TRA; gửi lại cùng requestId → 200 không cảnh báo
+✓ (8) người đi kèm: chỉ HDV đang hoạt động, không SĐT; người khác 409; HDV 200 có tên
+✓ (9) HT-01: hai đơn cùng Bến tàu → [Đón MT, Đón Novotel, Trả]; xếp thêm đoàn sau → điểm trả cũ đổi số, vẫn cuối; không cảnh báo trả trước đón
+✔ dieu-phoi (191.1s) · nhóm 3
+
+▶ khung-ban-xe · nhóm 3
+── đầu ra van-chuyen · nhóm 2 ──
+✓ tài khoản Tài xế công ty: 201, quyền đúng [DRIVER], đăng nhập được
+✓ cổng: tài xế 403 ở đơn, Trang chủ, Danh bạ, xe, tài khoản, việc HDV; giấy tờ của mình 200
+✓ vai hồ sơ cũ DRIVER đã ngưng: 409 role_type_inactive
+✓ giấy tờ của người: thêm 201 (số che), Bán hàng 403, tài xế thấy của mình (GPLX gần hạn trước)
+✓ xem đủ số: Quản trị 403; Toàn quyền đúng số; nhật ký chỉ tên loại
+✓ CCCD trùng 409 cccd_taken (không số); gia hạn chép số; sửa sai dòng cũ 409
+✓ xe: thêm 201, trùng biển 409 vehicle_plate_taken, dùng lại xe khi biển có chủ 409; giấy tờ xe; danh sách sắp hết hạn gộp xe + tài xế, có count
+✓ ngưỡng: Quản trị 403; Toàn quyền đổi 7 → danh sách đổi theo; khôi phục 30 (dòng mới)
+✓ nhật ký không chứa số giấy tờ
+✓ D1 local: xoá giấy tờ, sửa đè dòng đã gia hạn, CCCD của người khác, biển số trùng, xoá xe, sửa chính sách — đều bị CSDL chặn
+✓ ADR-0097 HT-03: xuất bến nhầm → Kế toán / tài xế 403, lý do ngoài nhóm 400; văn phòng thu hồi 201 (chuyến về chưa chạy, lặp → 200, một sự kiện có lý do); xuất bến chuyến đúng 200
+✓ ADR-0097 HT-04: Đã đón nhầm → văn phòng điều chỉnh thành Vắng 201 (tài xế 403; suất cũ đóng, suất thay thế trỏ về; không tên); đã có tiến độ → thu hồi 409
+✓ ADR-0097 HT-04: Khách huỷ nhầm → Quản trị điều chỉnh thành Đã đón 201 → tài xế trả khách → Kết thúc 200; nhật ký không tên / SĐT; dọn chuyến bấm nhầm: 200
+E2E VAN CHUYEN OK
+✔ van-chuyen (65.5s) · nhóm 2
+
+▶ tai-xe-doi-tac · nhóm 2
+── đầu ra khung-ban-xe · nhóm 3 ──
+✓ (1) Bán hàng, Kế toán → 403 ở lịch xe bận (một xe + trang tuần); Quản trị đọc được 4 lý do xe bận
+✓ (2) ghi khung 08:00–17:00 chồng CX-1210-01 → 409 khung_ban_chong_chuyen (chỉ mã chuyến + giờ)
+✓ (3) huỷ chuyến → ghi khung 201; nhật ký có biển số + giờ VN + lý do, không SĐT
+✓ (4) D1 thật: chèn tay chuyến chồng khung → trigger lc03_unavailable; tạo qua route → 409 'lịch xe bận' (lớp máy chủ nói trước)
+✓ (5) khung 23:00 D → 07:00 D+1 ghi được; dời giờ chuyến vào khung → 409; Kế toán thấy dải bận ở D, D+1, không ở D+2
+✓ (6) rút: version sai 409; đúng 200 (daRut); rút lần hai 409; đúng một nhật ký
+✓ (7) D1 thật: sửa / xoá khung bị chặn; ghi khung tài xế bị chặn (chưa mở)
+✓ (7b) trang tuần: khung 23:00 2026-10-18 → 07:00 2026-10-19 có ở cả hai tuần; chuyến chỉ mã + giờ
+✓ (8) giờ lái: chuyến thứ ba (tổng 9 giờ) → 201 kèm nhắc 'Tài xế lái quá giờ tối đa trong ngày'; chi tiết chuyến có cảnh báo cùng loại
+E2E KHUNG BAN XE OK
+✔ khung-ban-xe (42.7s) · nhóm 3
+
+▶ dua-don-dau-cuoi · nhóm 3
+── đầu ra dua-don-dau-cuoi · nhóm 3 ──
+✓ (1) lập nháp bằng thân form mới (legs có nơi trả: điểm + gõ tự do; passengers 2/2; không pickupTime/pickupPlace) → xác nhận 200
+✓ (2) xếp chặng chiều đi: canhBaoXep rỗng; lý do giữ không có CHUA_CO_NOI_TRA / THIEU_TEN
+✓ (3) cập nhật điểm theo đơn 200 → xuất bến 200 (RUNNING) — không bị giữ CHUA_CO_NOI_TRA / THIEU_TEN
+✓ (4) đối chứng: thiếu nơi trả + thiếu tên → xác nhận 200, xếp 200 kèm canhBaoXep [CHUA_CO_NOI_TRA, THIEU_TEN], xuất bến 409 giữ đúng hai mã
+✔ dua-don-dau-cuoi (18.2s) · nhóm 3
+
+▶ tin-chuyen · nhóm 3
+── đầu ra tai-xe-doi-tac · nhóm 2 ──
+✓ tài khoản Tài xế đối tác: 201, quyền đúng [DRIVER_PARTNER]; 403 ở đơn, Trang chủ, Danh bạ, danh mục lập đơn, xe, nhà xe; giấy tờ của mình 200; góp ý 201
+✓ tài khoản lai: POST có vai, POST đường cũ, PUT …/permissions, PUT …/roles → 400 (không 500), quyền giữ nguyên
+✓ 5b: Tài xế taxi → Tài xế đối tác → Tài xế taxi, 200 cả hai chiều, mỗi lần đúng một quyền mở
+✓ D1 local: LC-1b chặn (a)(b)(c) cả hai chiều; LC-1 mới chặn SALES, DRIVER cho vai bên ngoài; DRIVER_PARTNER được (d)
+✓ nhà xe: vai Nhà xe đối tác, Tài xế của (người → nhà xe 201; từ tổ chức 409), xe của nhà xe 201, của hồ sơ thường 409; danh sách nhà xe đúng số xe, số tài xế; SQL gõ tay bị trigger chủ xe / Tài xế của chặn
+✓ sắp hết hạn: dòng tài xế đối tác mang tên nhà xe, không số; tài xế đối tác xem giấy tờ của mình (số che)
+✓ thông báo: Toàn công ty không tới tài xế đối tác; nhóm Tài xế đối tác thì tới
+E2E TAI XE DOI TAC OK
+✔ tai-xe-doi-tac (40.0s) · nhóm 2
+
+▶ dong-bo-chuyen · nhóm 2
+── đầu ra dispatch · nhóm 1 ──
+✓ đơn mới không chọn người phụ trách: không có dòng HANDLE nào, nhật ký chỉ 'created' (Bán hàng, Quản trị)
+✓ lập đơn kèm người phụ trách được chọn: một lô — đơn + dòng HANDLE của người được chọn + nhật ký, cùng mốc thời gian
+✓ chọn người không đủ điều kiện → 400 invalid_assignee; Đối tác gửi kèm người được chọn → 403; không có đơn nào được tạo
+✓ đơn mới do tài khoản CHỈ Đối tác lập: không có người phụ trách (không dòng HANDLE), nhân viên nhận sau được
+✓ GET /api/dispatch/handlers: tra nhiều đơn, null cho đơn không có người, tối đa 100, giá trị lạ 400, quyền
+✓ GET /api/dispatch/assignees: đúng người đủ điều kiện (kể cả FIELD), chỉ tên + nhãn nhóm
+✓ đổi người phụ trách: dòng cũ đóng, dòng mới mở cùng thời điểm, nhật ký 'từ A sang B' (chỉ tên)
+✓ ai đổi được: người lập (kể cả đã giao lại), người phụ trách hiện tại, quản trị; người khác/kế toán bị từ chối, FIELD không giao hộ được; tự nhận đơn đã có người (kể cả FIELD) → 409 stale
+✓ đổi sang chính người đang phụ trách → 409 no_change
+✓ FIELD nay gán được làm người phụ trách (ADR-0014 điều 6, cấp hẹp)
+✓ giao cho kế toán/đã ngưng/không tồn tại → 400 invalid_assignee; thân sai → 400; đơn lạ → 404
+✓ nhận đơn chưa có người phụ trách: SALES/ADMIN/FIELD nhận cho mình; kế toán/giao hộ (kể cả FIELD giao hộ) bị từ chối
+✓ người phụ trách (khác người lập) sửa được đơn nháp; SALES không liên quan thì không
+✓ tranh chấp song song: đúng một bên thắng, bên thua không để lại dòng nào (409 stale thật gặp 25 lần / 10 vòng)
+✓ canModify đi theo người phụ trách hiện tại (người lập giữ quyền qua mọi lần đổi)
+✓ nhật ký đơn: người phụ trách xem được, người không liên quan thì không
+✓ FIELD không phải người phụ trách → 403
+✓ đơn nháp (chưa xác nhận) → 409, chưa huỷ được qua đường này
+✓ thiếu lý do → 400
+✓ lý do ngoài danh sách đóng → 400
+✓ SALES (không dùng route này, dù là người lập) → 403
+✓ FIELD đang phụ trách huỷ đơn đã xác nhận, đúng lý do → 200, không đổi tiền, có dòng nhật ký riêng cho kế toán
+✓ huỷ đơn đã huỷ rồi → 409
+✓ đơn không tồn tại → 404
+✓ DK-T4-02: tour đã qua ngày đi → HDV huỷ 409 departed (trước 400, sau 403), đơn vẫn xác nhận; HDV sửa số khách 409 departed, Toàn quyền 200; văn phòng huỷ được
+✓ DK-T4-02: ngày đi = hôm nay (giờ VN) → HDV vẫn sửa số khách (200), lý do có SĐT → 400, vẫn huỷ được (200)
+✓ FIELD không phải người phụ trách → 403
+✓ đơn nháp (chưa xác nhận) → 409
+✓ thiếu lý do → 400
+✓ thiếu dịch vụ (đơn có 1 dịch vụ từ danh mục, gửi rỗng) → 400
+✓ SALES (không dùng route này) → 403
+✓ ACCOUNTING/ADMIN không phải người phụ trách đơn này → 403 (route hẹp chỉ dành cho FIELD đang phụ trách)
+✓ FIELD sửa số khách đơn đã xác nhận → 200, order_service gốc không đổi, màn hình hiện số mới, có dòng điều chỉnh + nhật ký
+✓ order.history.view không đổi: ADMIN thấy lý do (any), SALES không liên quan vẫn không thấy gì (ownOrAssigned)
+✓ trang danh sách đơn hiện đúng số tiền LẪN số khách đã sửa, khớp trang chi tiết
+✓ đơn có điều chỉnh rồi bị huỷ: chi tiết lẫn danh sách vẫn hiện đúng cả tiền lẫn số khách đã sửa gần nhất, không lùi về số gốc
+✓ sau khi FIELD sửa số khách: /api/orders, Trang chủ (dashboard.today) và trang chi tiết đơn đều hiện ĐÚNG số khách mới, khớp nhau
+✓ Lỗi 1 đã sửa: after_json hỏng dạng mềm → chi tiết/​danh sách/​Trang chủ CÙNG số khách (2) VÀ CÙNG tiền (600.000, tự tính, không đọc cột subtotal_after đã lưu rác)
+✓ Lỗi 2 đã sửa: after_json hỏng NẶNG (không phải JSON) → /orders và Trang chủ KHÔNG sập, chỉ ĐÚNG đơn hỏng rơi về số gốc, đơn khác không bị kéo theo
+✓ Lỗi 2 đã sửa (biến thể [null]): phần tử KHÔNG phải object trong after_json → /orders và Trang chủ vẫn 200, không sập, tiền tự tính đúng 600.000
+✓ Lỗi 1 đã sửa (biến thể trùng serviceId): after_json có hai phần tử cùng serviceId → chi tiết/​danh sách/​Trang chủ CÙNG lấy phần tử đứng sau (7), CÙNG tự tính tiền 2.100.000, không mỗi bên một số
+✓ Bề mặt thứ tư (GET /api/dispatch/mine) cũng đọc đúng after_json qua parseAdjustmentAfter, không sập, khớp ba bề mặt còn lại
+✓ Lỗi 2 đã sửa: đơn có dòng điều chỉnh hỏng nặng vẫn SỬA LẠI được bằng thao tác bình thường (POST handler-money-edit), không còn kẹt 500
+✓ Lỗi 4 đã có test: chuỗi sửa liên tiếp 2→5→3 — chi tiết/​danh sách/​Trang chủ đều lấy ĐÚNG lần sửa gần nhất, cả số khách lẫn tiền
+✓ SUPER_ADMIN dùng được route dù không phải người phụ trách (any ở mọi thao tác, ADR-0014 điều 2)
+✓ GET /api/dispatch/mine (bản 1.6 + Task 1.8): đơn CHÍNH MÌNH đang phụ trách kể cả nháp, kèm status; tổng tiền trùng chi tiết đơn, không tiền từng dịch vụ
+✓ editablePaxCodes không mất loại khách sau khi bị sửa về 0 (bug tìm được lúc kiểm độc lập, đã vá)
+✓ 8 yêu cầu sửa gần như đồng thời: 2 thành công, seq liên tục không trùng (chỉ mục duy nhất chặn thật mọi lần đụng nhau), còn lại 409 stale
+✓ D1 (chỉ danh mục): tự tính 900.000₫ — chi tiết 900.000₫, /orders 900.000₫, Trang chủ 900.000₫
+✓ D2 (chỉ nhập tay): tự tính 200.000₫ — chi tiết 200.000₫, /orders 200.000₫, Trang chủ 200.000₫; lưu y nguyên → không ghi dòng điều chỉnh
+✓ D3 (TRỘN, ca lỗi gốc): tự tính 1.100.000₫ — chi tiết 1.100.000₫, /orders 1.100.000₫, Trang chủ 1.100.000₫; cột đã lưu [before, after] = [800.000₫, 1.100.000₫]
+✓ D4 (TRỘN, sửa liên tiếp 2→5→6→4): tự tính 1.400.000₫ — chi tiết 1.400.000₫, /orders 1.400.000₫, Trang chủ 1.400.000₫
+✓ D5 (TRỘN + trả trước 300.000): tự tính total 1.400.000₫, còn thu 1.100.000₫ — khớp chi tiết + danh sách + Việc của tôi (một hàm của billing)
+✓ D6 (dữ liệu CŨ, subtotal_after đã lưu SAI = 900.000): tự tính ĐÚNG 1.100.000₫ — cả bốn bề mặt hiện đúng, không đọc lại số đã lưu sai
+✓ DK-T2-01 G1: HDV gửi lại y nguyên số khách → không ghi dòng điều chỉnh, tiền giữ giá thoả thuận ở mọi bề mặt
+✓ DK-T2-01 G2: HDV 2→3 khách → 3 × giá thoả thuận ở chi tiết, /orders, Trang chủ; cột đã lưu cũng đúng
+
+=== Đợt E task 7 — bảng số đo bốn bề mặt (tiền: total, hoặc còn thu của billing cho D5) ===
+D1 chỉ danh mục: tự tính 900.000₫ | chi tiết 900.000₫ | /orders 900.000₫ | Trang chủ 900.000₫
+D2 chỉ nhập tay: tự tính 200.000₫ | chi tiết 200.000₫ | /orders 200.000₫ | Trang chủ 200.000₫
+D3 TRỘN — ca lỗi gốc: tự tính 1.100.000₫ | chi tiết 1.100.000₫ | /orders 1.100.000₫ | Trang chủ 1.100.000₫
+D4 TRỘN, nhiều lần sửa: tự tính 1.400.000₫ | chi tiết 1.400.000₫ | /orders 1.400.000₫ | Trang chủ 1.400.000₫
+D5 TRỘN + trả trước (còn thu — billing): tự tính 1.100.000₫ | chi tiết 1.100.000₫ | /orders 1.100.000₫ | Trang chủ 1.100.000₫
+D6 dữ liệu CŨ đã lưu sai: tự tính 1.100.000₫ | chi tiết 1.100.000₫ | /orders 1.100.000₫ | Trang chủ 1.100.000₫
+✓ L1-6: HDV nhận đơn chờ nhận → 200, thành người phụ trách, đơn rời hàng chờ của cả hai HDV, hiện ở 'Việc của tôi' (kể cả chờ xác nhận)
+✓ L1-6: HDV nhận đơn đã có người → 409 stale; HDV giao hộ → 403; kế toán/Đối tác/Thực tập/tài khoản lai nhận → 403; nhận đơn đã huỷ/đã qua ngày đi → 409
+✓ L1-6 đua: hai HDV (hoặc HDV và Bán hàng) cùng nhận một đơn → đúng một 200 + một 409 stale, đúng một dòng HANDLE đang mở, một dòng nhật ký
+✓ L1-3 tách ba đường: danh sách = đúng đơn mình phụ trách (có tiền/SĐT); hàng chờ = chỉ đơn chưa ai nhận, chưa huỷ, chưa qua ngày đi, phần hẹp, SĐT ở nơi đón bị che; chi tiết đơn người khác/đơn chờ nhận → 404; đơn mình → 200 đủ tiền/SĐT/lịch sử
+E2E DISPATCH OK
+✔ dispatch (339.4s) · nhóm 1
+
+▶ locations · nhóm 1
+── đầu ra locations · nhóm 1 ──
+✓ đọc danh sách
+✓ tạo: quyền, trùng mã, đầu vào sai
+✓ sửa: khoá lạc quan, 404, 400
+✓ ngưng dùng thay cho xoá
+✓ nhật ký
+E2E LOCATIONS OK
+✔ locations (0.9s) · nhóm 1
+
+▶ tro-ly · nhóm 1
+── đầu ra tin-chuyen · nhóm 3 ──
+✓ tạo chuyến: tài xế được xếp nhận "Bạn được xếp lái …"; người tạo, Kế toán, Tài xế đối tác, tài xế khác không
+✓ đổi tài xế: người cũ "Bạn không còn lái …", người mới "Bạn được xếp lái …"; cả hai nhận khung Bảng tin của lệnh đổi
+✓ huỷ: chỉ tài xế đang lái nhận "… đã bị huỷ"
+✓ Bảng tin: khung huỷ tới tài xế đang lái + Kế toán (nhóm điều xe), đúng 4 khoá; không tới tài xế đã bị đổi ra, không tới Tài xế đối tác
+✓ không lộ: hộp thông báo + khung Bảng tin không tên, không SĐT khách, không dãy ≥ 8 chữ số
+✔ tin-chuyen (28.1s) · nhóm 3
+
+▶ so-tien · nhóm 3
+── đầu ra tro-ly · nhóm 1 ──
+✓ chưa đăng nhập → 401
+✓ hỏi thường → 200 + nguồn; một dòng tl_luot_hoi không nội dung, chi phí = mẫu 450 + embedding micro-USD
+  vn = {"n":236,"b":236,"mn":2048,"mx":2048,"sc":512} | lần gọi embeddings: 2 | tiền embeddings lượt đầu: 49 | chi phí lượt: 499
+  ô thử: lần gọi embeddings 1 | chiPhiVanNghiaMicroUsd 1
+✓ dấu vân nghĩa: BLOB trên D1 thật, câu sau không tính lại đoạn, ô thử có đoạn khớp nghĩa (véc-tơ giải mã đúng)
+✓ SĐT, email bị che trước khi rời máy chủ
+✓ OpenAI lỗi → 502 câu tiếng Việt
+✓ Embeddings lỗi → vẫn trả lời (lùi về từ khoá)
+✓ cài đặt: Toàn quyền 200, Quản trị / Bán hàng 403
+✓ tắt → 503 'Trợ lý chưa bật', không gọi OpenAI
+✓ trần tháng → 429, không gọi OpenAI
+✓ trần ngày → 429 cho người đã đủ câu; người khác vẫn hỏi được
+✓ mọi mã quyền hỏi được (SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, SUPER_ADMIN, INTERN, DRIVER, DRIVER_PARTNER)
+✓ Quản trị, Bán hàng 403 ở cả 14 route quản lý
+✓ vai tắt → 403, không gọi OpenAI, nút ẩn; tài khoản lai vẫn hỏi được
+✓ lời dặn có SĐT → 400; lời dặn mới hiện ở khung
+✓ ADR-0084: giới tính Nữ ⇒ khung 'chị Lanh'; máy giả nhận dòng Mai 'chị Lanh', không họ / tên đệm / SĐT / id; thân yêu cầu không đổi được cách gọi
+✓ lịch sử có câu đã che, không có SĐT gốc (cả phản hồi lẫn CSDL)
+✓ key chỉ lộ 4 ký tự cuối; Thử key: sai key (401), hết tiền (429), được
+✓ bộ não: danh sách mẫu, PUT sai 400, PUT đúng ⇒ câu hỏi dùng đúng cấu hình
+✓ nhớ 3 lượt: cùng người cùng mã có nhớ; người khác không; mã sai 400
+✓ ô thử: cấu hình chưa lưu, la_thu = 1, không lịch sử, không đổi cấu hình
+✓ số tiền bị ẩn ở câu trả lời và lịch sử
+✓ trần tháng kiểm bằng chi phí tối đa trước khi gọi mẫu
+✓ lịch sử bản bộ não
+✔ tro-ly (33.5s) · nhóm 1
+
+▶ giao-dien · nhóm 1
+── đầu ra dong-bo-chuyen · nhóm 2 ──
+✓ (1) CX-1010-03: đổi khách đơn A (một lệnh) → 1 suất PASSENGER_CHANGED + suất mới mang khoá mới cùng lô; không giữ KHACH_DA_DOI; nhật ký + sự kiện cùng id, người sửa đơn
+✓ (2) HDV tăng số khách đơn B 2 → 3 → máy mở thêm 1 suất; phản hồi HDV chỉ { ok, dongBoChuyen }
+✓ (3) huỷ đơn A → 2 suất đóng REMOVED cùng lô; không giữ DON_DA_HUY; ba dòng nhật ký máy không tên
+✓ (4) HDV huỷ đơn B → 3 suất đóng REMOVED cùng lô, nhật ký mang HDV; phản hồi HDV chỉ { ok, dongBoChuyen }
+✓ (5) xe đang chạy: huỷ đơn E → 200 + câu nhắc Báo huỷ; suất, cờ báo huỷ, phiên bản chuyến không đổi; chi tiết chuyến coKhachDonHuy; dọn bằng kết thúc gián đoạn
+✔ dong-bo-chuyen (46.9s) · nhóm 2
+
+▶ tien-xe-thue · nhóm 2
+── đầu ra giao-dien · nhóm 1 ──
+✓ CSS công khai, mặc định rỗng, 304 theo ETag
+✓ chỉ Toàn quyền đọc/ghi
+✓ 400 khi khó đọc / chèn CSS / ô lạ — không ghi
+✓ áp dụng: CSS mới + ETag mới + một dòng nhật ký
+✓ 409 khi lưu chồng
+✓ dòng cũ hỏng không làm hỏng CSS
+✓ bảo trì không chặn CSS
+✓ về mặc định
+✔ giao-dien (17.3s) · nhóm 1
+
+▶ quyen-tien · nhóm 1
+── đầu ra quyen-tien · nhóm 1 ──
+✓ QT04: Quản trị đặt lại PIN Kế toán → 403 (câu đ1), không ghi gì; cờ theo dòng khớp
+✓ QT04 biến thể: Quản trị / Nhân sự gán vai hoặc cộng tay Kế toán → 403
+✓ GD-P-01: Nhân sự tạo tài khoản Kế toán (đường vai + đường cũ) → 403, không tạo
+✓ đ3: Quản trị vẫn đổi tên, mở khoá tài khoản Kế toán; PIN Kế toán không đổi
+✓ Toàn quyền gán vai Kế toán được
+✔ quyen-tien (1.1s) · nhóm 1
+
+▶ chinh-sach-dieu-phoi · nhóm 1
+── đầu ra so-tien · nhóm 3 ──
+✓ ca R1: RAISE của trigger ở câu thứ 3 trong db.batch() → cả lô quay lại (D1 local)
+✓ luồng chính (D1 local): Công ty thu – CK 100.000 + HDV thu 200.000 lúc Đã giao → đơn khoá → biên nhận đủ → Hoàn thành sau khi xác nhận + nộp
+✓ VP-01 (D1 local): nộp → xác nhận 409; xác nhận → nộp 409; sổ HDV = 0; SQL tay thêm dòng nộp bị trigger chặn
+✓ G3 (D1 local): sau Đã giao Đảo đơn lẻ 409, Thay lệch I1 409, Thay giữ I1 201, hoàn sau Đã giao 409, SQL tay chèn lần thu bị trigger chặn, Hoàn thành được
+✔ so-tien (48.5s) · nhóm 3
+
+▶ nhap-ke-toan · nhóm 3
+── đầu ra nhap-ke-toan · nhóm 3 ──
+✓ đơn nháp 409; Quản trị, Bán hàng, HDV, Đối tác, lai SALES+PARTNER, Thực tập ghi dấu → 403
+✓ Kế toán đánh dấu (HD-000123): lọc 'chưa nhập' bỏ đơn, 'đã nhập' có; nhãn thẻ; chi tiết + lịch sử
+✓ lọc thiếu khoảng ngày 400; HDV, Thực tập, Đối tác, lai PARTNER+FIELD gửi tham số lọc 403
+✓ Đối tác một mình không thấy (chi tiết 403, thẻ vắng nhãn, lịch sử không dòng); lai SALES+PARTNER thấy; lai PARTNER+FIELD không
+✓ bỏ dấu: thiếu lý do 400, có lý do → quay lại 'chưa nhập'; lần trước chỉ Kế toán xem; truocDo cũ 409
+✔ nhap-ke-toan (12.2s) · nhóm 3
+
+▶ chinh-sach-phien · nhóm 3
+── đầu ra chinh-sach-dieu-phoi · nhóm 1 ──
+✓ cổng + ô: Bán hàng, Quản trị 403; Toàn quyền đọc chính sách (mốc hiện 360 phút, kẹp lùi 180 phút)
+✓ TC-52 (VK1-C): D1 thật có đúng hai điều kiện gieo đang áp — Kiểm định, Bảo hiểm (mọi xe)
+✓ chính sách: Toàn quyền thêm bản 240 phút, kẹp lùi 90 → 201, hiệu lực ngay; ngày hiệu lực / hợp đồng bật / mốc 0 (không tắt được) / thiếu kẹp lùi / kẹp 1441 / thiếu cửa sổ xuất bến / cửa sổ 59, 2881 → 400; nhật ký trước → sau
+✓ hạng bằng: D2 = 30 → 201, dòng 29 còn nguyên; hạng lạ → 400 (khoá ngoại trên D1)
+✓ điều kiện xuất bến: thêm 201; loại giấy tờ lạ → 400 (khoá ngoại D1); đóng 200, lần hai 409
+✓ danh mục lý do: Quản trị thêm 201; Bán hàng 403 ở cổng admin; ngưng 200, mốc cũ 409
+✓ D1 local: sửa / xoá chính sách, bật hợp đồng, mốc 0, kẹp lùi 1441 / thiếu kẹp lùi, cửa sổ 2881, sửa hạng bằng, đóng điều kiện lần hai, xoá / đổi nhóm lý do — đều bị CSDL chặn
+✓ khôi phục: chính sách 360/120/30/có/kẹp 180/cửa sổ 720, D2 = 29, điều kiện đã thêm đều đóng, hai điều kiện gieo còn nguyên
+E2E CHINH SACH DIEU PHOI OK
+✔ chinh-sach-dieu-phoi (31.9s) · nhóm 1
+
+▶ cam-ket-xe · nhóm 1
+── đầu ra tien-xe-thue · nhóm 2 ──
+✓ (1) bảng giá thuê xe: tuyến, giá, chồng 409, Bán hàng chỉ đọc tên tuyến
+✓ (2) chi phí chuyến: chụp lúc xếp, đảo + chụp lại khi đổi tuyến, thiếu giá không xuất bến
+✓ (3) giá thoả thuận → xuất bến; bảng kê tổng do máy chủ; Bán hàng không xem chi phí
+tien-xe-thue: OK
+✔ tien-xe-thue (50.6s) · nhóm 2
+
+▶ tai-xe-cuoc · nhóm 2
+── đầu ra chinh-sach-phien · nhóm 3 ──
+✓ 403 Quản trị/Nhân sự; 400 SUPER_ADMIN/mã lạ
+✓ AC2: Bán hàng Nhiều máy — hai máy cùng sống
+✓ AC3: siết — máy cũ 401 'Không còn quyền dùng nhiều máy', thông báo máy cũ tắt, máy giữ lại còn bật
+✓ AC7: hai lần lưu đè nhau → 200 + 409
+✓ AC4: một quyền Nhiều máy là đủ
+✓ AC9: đổi vai → máy thừa đăng xuất ngay (Quản trị 403 vì ADR-0090, Toàn quyền làm)
+✓ AC10: siết 1000 tài khoản Đối tác — một lô, 59 ms (chỉ PUT), 1000 máy / 1000 người
+✓ đã khôi phục chính sách
+✔ chinh-sach-phien (55.9s) · nhóm 3
+
+▶ phien · nhóm 3
+── đầu ra cam-ket-xe · nhóm 1 ──
+✓ (1) Đối tác lập nháp có xe riêng → 201, cờ đọc lại đúng; văn phòng xác nhận A, B, C
+✓ (2) xếp B: 409 can_pha_le_cam_ket (canQuyen sai/đúng theo vai); Bán hàng phá lệ 403 không ghi; Quản trị phá lệ 200, hai cột phá lệ có
+✓ (3) xếp C 409 → phá lệ 200; rút B, rút C → hai cột trống (đọc D1); ghép lại B → 409 cần phá lệ mới
+✓ (4) bật minVehicleSeats 30 trên xe 15 chỗ → xuất bến 409 chua_du_dieu_kien_xuat_ben có lý do CAM_KET; chuyến vẫn PLANNED
+✓ (5) chuyến dưới mốc: Bán hàng xếp đơn thường vào chuyến xe riêng → 409 lớp KHAN_CAP (canQuyen đúng); kèm điều chỉnh khẩn cấp → 200, cột cam kết có
+✔ cam-ket-xe (140.5s) · nhóm 1
+
+▶ dieu-chinh-khan-cap · nhóm 1
+── đầu ra tai-xe-cuoc · nhóm 2 ──
+✓ route 19 / 20: chỉ chuyến mình lái; ngoài ngày chạy không tên, không liên hệ; tài xế khác / Bán hàng → 404
+✓ tài xế đối tác: 403 ở cả 11 route tài xế
+✓ LC-20 (ADR-0096 Đ2): chuyến ba ngày sau → xuất bến 409 NGOAI_CUA_SO_XUAT_BEN (Văn phòng xử lý), không ghi, chuyến vẫn kế hoạch
+✓ lệnh tài xế: xayRaLuc → 400; xuất bến MAY_CHU; xuất bến sớm (trước ngày chạy) vẫn KHÔNG tên, liên hệ (Q-L3-B); đã tới; 'đã đón' lặp cùng requestId → một sự kiện; tài xế khác 404; kết thúc gián đoạn
+✓ trong ngày chạy (ngày chạy = hôm nay, đặt gấp đúng đường, đã xuất bến): GET chi tiết có họ tên, năm sinh, liên hệ (Q-L3-B VỪA-1)
+✔ tai-xe-cuoc (208.8s) · nhóm 2
+
+▶ xe-dang-chay · nhóm 2
+── đầu ra dieu-chinh-khan-cap · nhóm 1 ──
+✓ (1) chuyến dưới mốc: Bán hàng đổi xe 409 lớp KHAN_CAP (canQuyen đúng); Kế toán 403 không ghi; Bán hàng kèm lý do 200, nhãn khẩn cấp ở chi tiết và lịch
+✓ (2) chuyến ngoài mốc: Bán hàng 409 lớp QUAN_TRI (canQuyen sai, câu cũ); gửi lý do 403 không ghi; Quản trị 201, không nhãn khẩn cấp
+✔ dieu-chinh-khan-cap (121.6s) · nhóm 1
+
+▶ xe-tren-don · nhóm 1
+── đầu ra xe-dang-chay · nhóm 2 ──
+✓ chưa xuất bến → thêm điểm 409 chuyen_chua_chay; tài xế xuất bến sớm → xe đang chạy
+✓ thêm điểm: Bán hàng 409 lớp điều chỉnh khẩn cấp (canQuyen đúng); Kế toán 403; Bán hàng điều chỉnh khẩn cấp 200, cờ điểm mới, bản chốt; lặp requestId → một sự kiện
+✓ báo huỷ: Kế toán 403; lý do ngoài nhóm 400; 200 vẫn chiếm chỗ; lần hai 409; tài xế thấy giờ + lý do, không người bấm
+✓ cập nhật điểm khi xe chạy: không lệch → 200 / 0
+✓ cứu hộ: xe còn chạy → 409 chua_gian_doan
+✓ cứu hộ: Kế toán / tài xế 403; sau gián đoạn 200 — chặng cần chuyển, xe nhận cùng ngày (tài xế công ty), không tên / SĐT / mã đơn; dọn chuyến thứ hai: 200
+✓ dọn: kết thúc gián đoạn; nhật ký thêm điểm / báo huỷ không tên, không SĐT
+✔ xe-dang-chay (78.1s) · nhóm 2
+
+▶ dieu-phoi-chay-dua · nhóm 2
+── đầu ra dieu-phoi-chay-dua · nhóm 2 ──
+kết quả: 3 × 200; mã khác: ["409 vuot_so_cho","409 vuot_so_cho","409 vuot_so_cho","409 vuot_so_cho","409 vuot_so_cho","409 vuot_so_cho","409 vuot_so_cho"]; suất mở 3/3; lần thử lại tối đa 3
+✓ TC-33: 10 yêu cầu song song vào chuyến 3 chỗ → 3 thành công, không vượt số chỗ
+✔ dieu-phoi-chay-dua (24.3s) · nhóm 2
+
+▶ chong-ghi-trung · nhóm 2
+── đầu ra xe-tren-don · nhóm 1 ──
+✓ (1) đơn TD-20261009-0086 chia hai xe (79G-079.1638, 79G-179.1638): biển số, tên tài xế, 2 + 2 khách, trạng thái; đơn chưa xếp → "chưa xếp xe"
+✓ (2) chuyến huỷ → không hiện trên đơn
+✓ (3) Kế toán, Quản trị, Toàn quyền, lai Bán hàng + HDV → 200; HDV phụ trách, Đối tác, Thực tập (cả đơn mình lập), tài xế đang lái, lai HDV + Thực tập → 403; đơn lạ → 404
+✓ (4) thân đúng 4 khoá mỗi xe, không SĐT / tên khách / khoá nơi / mã chuyến; lịch sử đơn không có dòng trip_*
+✔ xe-tren-don (64.8s) · nhóm 1
+
+▶ coc-don-huy · nhóm 1
+── đầu ra phien · nhóm 3 ──
+✓ đăng xuất kết thúc dòng phiên (dang_xuat), cookie cũ → 401, session-ended báo 'Đã đăng xuất'
+✓ đăng xuất không cookie / cookie rác: 200, sổ phiên không đổi
+✓ máy 2 đăng nhập → máy 1 bị đá (bi_thay), 401, không đổi PIN/credentials_changed_at
+✓ session-ended: máy bị đá nhận 'Bị thay bởi máy khác' + ISO; máy sống / token rác / sai chữ ký → rỗng
+✓ đăng xuất không ghi đè lý do kết thúc có sẵn
+✓ cf-connecting-ip 300 ký tự: đăng nhập trả 200, không 500
+✓ đổi PIN (Toàn quyền, hai máy): máy kia kết thúc 'doi_pin' trong cùng lô, máy đang thao tác giữ mã phiên, last_seen_at = mốc đổi
+✓ gỡ một Face ID: máy kia kết thúc 'doi_face_id'; khoá không tồn tại → 404, không đá ai
+✓ gỡ mọi Face ID: máy kia kết thúc 'doi_face_id', máy đang thao tác giữ phiên
+✓ đặt PIN bằng Face ID: máy kia kết thúc 'doi_pin', máy đang thao tác giữ phiên
+✓ gỡ mọi Face ID khi không còn khoá nào (tự phục vụ / Quản trị): không phiên nào bị kết thúc
+✓ Quản trị đặt lại PIN: mọi phiên của tài khoản kết thúc 'dat_lai_pin', ended_by = Quản trị
+✓ máy 2 đăng nhập → đăng ký thông báo của máy 1 tắt (bi-thay)
+✓ đăng nhập khi không phiên nào bị thay vẫn tắt đăng ký cũ; đăng ký lại → dòng mới mang phiên mới
+✓ Toàn quyền: đăng ký lại cùng máy bằng phiên mới cập nhật mã phiên, không tắt máy nào
+✓ Quản trị / Nhân sự: GET /api/sessions và POST …/revoke → 403
+✓ GET /api/account/sessions: chỉ phiên của mình, đánh dấu máy này, không User-Agent thô
+✓ Toàn quyền gỡ phiên salesA: 401 + 'Bị IT/Toàn quyền gỡ'; gỡ lại / tự gỡ → 409; chỉ đăng ký thông báo của máy bị gỡ tắt (bi-go)
+✓ nhật ký session_revoked: một dòng, không IP; Quản trị 403 ở trang Nhật ký, Toàn quyền thấy
+✓ bỏ Toàn quyền của tài khoản đang mở 2 máy → còn phiên mới nhất (single=1), máy cũ 401 'Không còn quyền dùng nhiều máy'; máy sau đá máy trước
+✓ chạy đua: 5 vòng × 2 lần đăng nhập đồng thời cùng tài khoản thường → mỗi vòng đúng một phiên sống, một cookie dùng được; trạng thái [200,200,200,200,200,200,200,200,200,200] (không 500)
+phien.mjs: xong
+✔ phien (296.9s) · nhóm 3
+
+▶ audit-invariants · nhóm 3
+── đầu ra audit-invariants · nhóm 3 ──
+✓ R-N1-1   mọi tài khoản có party_id
+✓ R-N1-1   một hồ sơ tối đa một tài khoản
+✓ R-ADR13-1 tài khoản đang hoạt động ⇒ hồ sơ của nó đang hoạt động (ADR-0013 điều 5; chiều ngược lại là 'tạm khoá', hợp lệ)
+✓ R-N1-2   cá nhân ⇔ có pty_person (không có pty_organization); tổ chức ngược lại
+✓ R-N1-3   display_name của cá nhân = họ + tên đệm + tên
+✓ R-N1-4   vai trò hồ sơ không chồng lấn (cùng hồ sơ, vai trò, nơi)
+✓ R-N1-4   quan hệ hồ sơ không chồng lấn
+✓ R-N1-5   còn ít nhất một quản trị viên đang hoạt động
+✓ R-N1-10  khoá ngoại toàn vẹn (PRAGMA foreign_key_check)
+✓ R-N1-13  SĐT đăng nhập không được sao chép thành liên hệ do hệ thống tạo
+✓ thông tin nhân sự đã có hồ sơ nhưng không có vai STAFF (cũ) hay vai nội bộ/bên ngoài nào đang mở (ADR-0018)
+✓ thông tin tài khoản đang hoạt động không có quyền nào (đăng nhập được nhưng không làm được gì)
+✓ thông tin đơn còn lần thu người thu chưa rõ (cọc cũ chuyển sang sổ — Kế toán đảo rồi ghi lại đúng người thu)
+✓ R-LC-1   tài khoản có vai bên ngoài đang mở chỉ giữ quyền bên ngoài (Đối tác hoặc Tài xế đối tác)
+✓ R-LC-1b  tài khoản giữ quyền Tài xế đối tác không giữ thêm quyền nào khác (không tài khoản lai)
+✓ R-LC-3   một hồ sơ không giữ cùng lúc vai nội bộ và vai bên ngoài đang mở
+✓ R-PTY-1  đúng một hồ sơ đang mở vai công ty chủ (OWNER_COMPANY)
+✓ R-PTY-MERGE-1 không chuỗi gộp: hồ sơ đích của một lần gộp không tự gộp tiếp; hai đầu đều là hồ sơ cá nhân
+✓ R-PTY-MERGE-2 hồ sơ đã gộp: ngưng dùng, có mốc gộp, không còn liên hệ / công việc / quan hệ mở sau ngày gộp
+✓ R-PTY-MERGE-3 hồ sơ đã gộp không gắn tài khoản
+✓ R-PTY-MERGE-4 hồ sơ đã gộp không còn là người phụ trách đơn chưa xong, tài xế / người đi kèm / nhà xe của chuyến chưa chốt, chủ xe chưa ngừng
+✓ R-PTY-MERGE-5 đơn chưa giao, chưa huỷ không còn người đặt là hồ sơ đã gộp
+✓ R-BIL-1  đơn Đã giao: tổng lần thu còn hiệu lực bằng phải thu phiếu Đã giao đã chụp, mọi lúc (ghi từ mốc 0083)
+✓ R-BIL-1w đơn Đã giao lệch tiền (đã thu khác phải thu lúc giao) — dữ liệu TRƯỚC mốc 0083 (Kế toán sửa bằng “Thay lần thu”)
+✓ R-BIL-3a lần thu đảo khớp lần thu gốc (cùng đơn, cùng loại, cùng số; gốc không phải dòng đảo)
+✓ R-BIL-3b dòng nợ đảo khớp dòng gốc (cùng số, đổi chỗ hai bên, cùng loại, cùng nguồn)
+✓ R-BIL-4a đơn Đã giao có đúng một phiếu Đã giao; đơn chưa Đã giao không có phiếu Đã giao
+✓ R-BIL-4b đơn Hoàn thành có đúng một phiếu Hoàn thành; đơn chưa Hoàn thành không có phiếu Hoàn thành
+✓ R-BIL-6  đơn Đã giao không còn lần thu người thu chưa rõ
+✓ R-BIL-S9 mọi lần thu ghi 'thu cho' công ty chủ (lượt 1)
+✓ R-BIL-M1 đơn Hoàn thành thì đã Đã giao
+✓ R-BIL-M2 đơn Đã giao vẫn ở trạng thái đã xác nhận
+✓ R-ORD-H1 đơn huỷ có dòng lý do huỷ, và dòng lý do chỉ thuộc đơn đã huỷ
+✓ R-BIL-C1 đơn huỷ: đã chi + đã chuyển ≤ đã duyệt ≤ tiền còn giữ lúc huỷ
+✓ R-BIL-C2 đơn huỷ (sau bản cọc) không có lần trả lại khách tự do ghi sau lúc huỷ
+✓ R-BIL-C3 tách người: người chi / chuyển khác người duyệt; người xác nhận dòng hoàn ngoài khác người ghi
+✓ R-BIL-C4 mỗi đơn tối đa một dòng đã hoàn ngoài hệ thống đang hiệu lực, chỉ đơn huỷ cũ
+✓ R-BIL-C5 chuyển tiền sang đơn mới đủ hai nửa (đơn nhận, cùng số, cùng người giữ) — nửa chi còn hiệu lực ⇔ nửa thu khớp còn hiệu lực
+✓ R-ORD-15 đơn đã xác nhận có tạm tính khác tổng thành tiền các dòng (xác nhận từ mốc 0080/0081)
+✓ R-ORD-15w đơn đã xác nhận có tạm tính khác tổng thành tiền các dòng — xác nhận TRƯỚC mốc 0080/0081 (rà tay theo mã đơn)
+✓ R-BIL-8  đã thu ròng của đơn không âm (đơn có lần thu ghi từ mốc 0082)
+✓ R-BIL-8w đã thu ròng của đơn âm — chỉ có lần thu TRƯỚC mốc 0082 (Kế toán sửa bằng lệnh đảo lần hoàn)
+✓ R-BIL-13 số dư người giữ tiền trên đơn không âm do nộp / tất toán giữ hộ hai lần (ghi từ mốc 0080)
+✓ R-BIL-13w số dư người giữ tiền âm do nộp / tất toán giữ hộ hai lần — dữ liệu TRƯỚC mốc 0080 (Kế toán sửa bằng lệnh đảo lần nộp)
+✓ R-BIL-C6 khoản duyệt hoàn cọc của đơn khách huỷ nằm trong hạn
+✓ R-PTY-2  một số CCCD thuộc đúng một người (dòng chưa huỷ)
+✓ R-PTY-3  dòng gia hạn giấy tờ của người cùng người, cùng loại với dòng trước; mỗi dòng tối đa một dòng gia hạn chưa huỷ
+✓ R-PTY-4  nhật ký không chứa số giấy tờ của người (CCCD, bằng lái…)
+✓ R-PTY-5  quan hệ 'Tài xế của' đang mở đi từ hồ sơ cá nhân (người lái), không từ hồ sơ tổ chức
+✓ R-PTY-6  vai hồ sơ / quan hệ hồ sơ có ngày kết thúc sau hôm nay (giờ Việt Nam)
+✓ R-VC-1   biển số không trùng giữa các xe chưa ngừng
+✓ R-VC-2   dòng gia hạn giấy tờ xe cùng xe, cùng loại với dòng trước; mỗi dòng tối đa một dòng gia hạn chưa huỷ
+✓ R-VC-11  xe chưa ngừng có từ 2 dòng giấy tờ HIỆN HÀNH cùng loại trở lên (hai chuỗi giấy tờ song song)
+✓ R-VC-3   chặng có số suất khách MỞ nhiều hơn số người của chặng (L-D1; chặng về có số người riêng — ADR-0054 D10.3)
+✓ R-VC-4   bản chốt danh sách lúc xuất bến ít dòng hơn suất khách có tên + người đi kèm đang mở lúc đó (L-B1)
+✓ R-VC-5a  chuyến ĐANG CHẠY có tài xế không đủ điều kiện lái (GPLX thiếu / hết hạn trước giờ kết thúc / hạng không chở đủ số chỗ) (L-B2)
+✓ R-VC-5b  chuyến CHƯA CHẠY xuất bến trong 48 giờ tới có tài xế không đủ điều kiện lái (L-B2)
+✓ R-VC-6   sự kiện chuyến không có dòng nhật ký cùng id, hoặc nhật ký lệnh chuyến không có sự kiện cùng id
+✓ R-VC-7   chặng của đơn đã xác nhận, giờ đón đã vào mốc tối thiểu mà chưa xếp đủ khách lên xe
+✓ R-VC-8   chuyến chưa kết thúc dùng xe của nhà xe đã thôi hợp tác, hoặc tài xế không còn là tài xế của nhà xe đó (B1.5)
+✓ R-VC-9   chuyến chưa kết thúc chở quá số chỗ của xe, hoặc hai điểm dừng còn dùng trùng thứ tự
+✓ R-VC-10  bản chốt trỏ dòng hành khách không thuộc đơn của chặng / không phải người của suất
+✓ R-VC-12  cột giờ nghiệp vụ (xuất bến, kết thúc, đã tới, xong điểm) khác giờ xảy ra của sự kiện tương ứng
+✓ R-VC-13  kết thúc khai lùi quá 15 phút mà chuyến kế cùng xe / tài xế đã xuất bến trong khoảng nghỉ tính theo GIỜ GHI NHẬN
+⚠ R-VC-14  xe chưa ngừng thiếu dòng hiện hành của một loại giấy tờ đang là điều kiện xuất bến — 6 vi phạm (cảnh báo: xe này sẽ bị giữ ở cổng xuất bến — Quản trị thêm giấy tờ còn thiếu)
+✓ R-VC-15  sự kiện của suất xảy ra sớm hơn lúc mở suất, hoặc 'đã tới' xảy ra sớm hơn lần đổi thứ tự điểm ghi trước nó
+✓ R-VC-16  suất khách mở của chuyến chưa kết thúc có điểm DANH MỤC khác nơi đón / trả hiện hành của chặng (không phủ chữ tự do)
+✓ R-VC-17  suất khách đang mở mà chặng không có dòng mốc giờ hẹn nào
+✓ R-VC-18  chuỗi mốc giờ hẹn của chặng hỏng: không bắt đầu từ seq 1 / đứt đoạn, seq 1 không phải XEP, giờ 'trước' lệch giờ của dòng trước
+✓ R-VC-19  tham chiếu logic từ vận chuyển sang chặng / khách của đơn bị treo: suất trỏ chặng không còn hoặc người (passenger_key) không có dòng ord_passenger nào thuộc đơn của chặng; dòng mốc giờ hẹn trỏ chặng không còn
+✓ R-VC-20  dịch vụ có mẫu đưa đón hiện hành trỏ nơi trả mặc định đã ngưng dùng (Quản trị cài lại ở màn Danh mục)
+✓ R-VC-RATE-1 dòng giá thuê xe còn hiệu lực của hồ sơ đã thôi vai nhà xe
+✓ R-VC-COST-1 chuyến xe thuê chưa huỷ có nhiều hơn một nguồn giá còn hiệu lực
+✓ R-VC-COST-1b chuyến xe thuê chưa xuất bến đang thiếu giá (thông tin cho Kế toán)
+✓ R-VC-COST-2 dòng đảo không đối dấu đúng dòng gốc cùng chuyến
+✓ R-VC-COST-3 chuyến không phải xe thuê còn nguồn giá chưa đảo hoặc tổng chi phí khác 0 (ngoài phí huỷ muộn cho nhà xe cũ)
+✓ R-VC-COST-4 chuyến đã huỷ có tiền chi phí còn treo từ trước lúc huỷ (tổng khác tổng các dòng ghi sau lúc huỷ)
+✓ R-VC-COST-5 chuyến xe thuê đã xuất bến mà không có nguồn giá còn hiệu lực
+✓ R-VC-COST-6 chuyến chưa huỷ không đánh dấu xe thuê mà chủ xe không phải công ty chủ hiện tại (kẽ C2a — nợ N-T1)
+✓ R-VC-COST-8 phí huỷ muộn của nhà xe cũ bị đảo tự động khi đổi / huỷ chuyến mà chưa ghi lại (ADR-0095 Q5b)
+✓ R-VC-21  chuyến chưa kết thúc chồng lịch xe bận còn hiệu lực
+✓ R-VC-22  suất mang cờ văn phòng báo huỷ không có sự kiện báo huỷ đúng suất, hoặc đặt khi khách đã có kết quả
+✓ R-VC-23  điểm mang cờ thêm khi xe đang chạy trên chuyến chưa xuất bến, hoặc tạo trước giờ xuất bến
+✓ R-VC-24  suất đổi điểm khi xe đang chạy bị đóng mà không mở lại cùng người, cùng chặng, cùng lệnh
+✓ R-VC-25  chuyến đang chạy / đã chạy trái cam kết xe riêng hoặc số chỗ tối thiểu của khách mà không có phá lệ cam kết
+✓ R-VC-THU-TU chuyến đang chạy có khách chờ lên mà điểm trả đứng trước điểm đón (ADR-0096 Đ1)
+✓ R-VC-SUA-1 điều chỉnh kết quả khách thiếu / thừa suất thay thế hoặc bản chốt; thu hồi xuất bến sau khi đã có tiến độ (ADR-0097)
+✓ R-DSP-1  mỗi đơn tối đa một người phụ trách (HANDLE) đang mở
+✓ R-DSP-2a người phụ trách đang mở là hồ sơ có tài khoản còn quyền Bán hàng/Quản trị/Hướng dẫn viên
+✓ R-DSP-2b người phụ trách đang mở có tài khoản đã ngưng hoạt động
+✓ R-DSP-3  các dòng người phụ trách (HANDLE) của một đơn không chồng lấn theo khoảng nửa mở [từ, đến)
+✓ R-ORD-4  seq của order_money_adjustment liên tục từ 1 theo từng đơn
+✓ R-ORD-5  after_json của điều chỉnh gần nhất liệt kê ĐÚNG tập dịch vụ từ danh mục của đơn (không thiếu, không thừa, không trùng) — CHỈ đếm số lượng + đối chiếu serviceId, KHÔNG kiểm bên trong pax
+✓ R-ORD-6a dòng điều chỉnh ĐẦU TIÊN (seq=1) của một đơn: subtotal_before phải khớp orders.subtotal đã lưu (trước khi có điều chỉnh nào, tiền chưa đổi gì)
+✓ R-ORD-6b chuỗi tiền của một đơn liên tục: subtotal_before của dòng SAU phải khớp subtotal_after của dòng NGAY TRƯỚC (không có gì xen giữa)
+✓ R-ORD-NT1 đơn có dịch vụ nhập tay do tài khoản đang giữ quyền Đối tác lập, tạo sau mốc phát hành ADR-0061
+✓ R-ORD-7  hai cột cũ pickup_time/pickup_place của dịch vụ = dẫn xuất của chặng chiều đi đầu còn mở (ghi kép phát hành 1 — ADR-0047 R3)
+⚠ R-ORD-8  chặng mở của đơn đã xác nhận, ngày đón từ hôm nay trở đi, chưa chốt nơi trả (văn phòng bổ sung) — 2 vi phạm (cảnh báo (tình trạng nghiệp vụ, không chặn phát hành): văn phòng bổ sung nơi trả cho các chặng này)
+✓ R-ORD-9  đơn có số người có tên (dòng hiện hành) nhiều hơn số khách hiệu lực của dịch vụ đông nhất (cờ cho văn phòng — ADR-0047 L-A1)
+✓ R-ORD-10 nhật ký order_passenger_changed ĐÚNG khuôn 'thêm N, sửa N, huỷ N khách' (không tên, không năm sinh)
+✓ R-ORD-11 chuỗi hành khách đúng (dòng thay thế cùng đơn + person_key; dòng đầu person_key = id); dòng nguồn DRIVER là đầu chuỗi và có sự kiện tài xế bổ sung tên
+⚠ R-ORD-12 chặng mở của đơn chưa huỷ còn nơi đón tạm '(chưa ghi nơi đón)' (văn phòng bổ sung) — 2 vi phạm (cảnh báo (không chặn phát hành): văn phòng bổ sung nơi đón cho các chặng này)
+✓ R-ORD-13 chặng có số người riêng (pax_override) mà không phải chiều về
+✓ R-ORD-14 chặng về còn mở của đơn chưa huỷ có số người riêng nhiều hơn số khách hiệu lực của dịch vụ (L-R1)
+✓ R-AUT-1  không có Face ID còn hiệu lực của tài khoản đã ngưng
+✓ R-AUT-SESSION-1 không tài khoản một máy nào có hơn một phiên đăng nhập sống
+✓ R-AUT-SESSION-2 không có phiên đăng nhập chưa kết thúc của tài khoản đã ngưng
+✓ R-AUT-SESSION-3 tài khoản theo chính sách hiện hành là một máy mà có hơn một phiên sống
+⚠ R-CTL-1  dịch vụ đang hiện mà chưa phân loại nhóm (Quản trị gán nhóm ở màn Danh mục) — 91 vi phạm (cảnh báo (không chặn phát hành): Quản trị gán nhóm cho các dịch vụ này ở màn Danh mục)
+· R-BIL-2  chưa áp dụng (lượt 2 sổ tiền: phần Tour Đảo = giá bán − giá vốn − hoa hồng theo số đã lưu)
+· R-BIL-5  chưa áp dụng (lượt 2 sổ tiền: mỗi dòng dịch vụ của đơn đã chụp có người bán)
+· R-BIL-7  đúng một hồ sơ công ty chủ — dùng lại R-PTY-1 (không kiểm trùng)
+
+Mọi bất biến đạt, 4 cảnh báo (D1 local, --strict).
+✔ audit-invariants · nhóm 3
+
+ℹ lớp vé · nhóm 3: ghi nhiều lần ở 3 route [POST /api/staff/:id/unlock; POST /api/catalog/sync; POST /api/staff/:id/reset-pin]; đụng vé 0 lần; lỗi lạ 0; thiếu vé 2 lần (POST /api/orders ×1; POST /api/account/pin-by-passkey ×1)
+── đầu ra coc-don-huy · nhóm 1 ──
+✓ huỷ bắt buộc lý do (400/403), còn lại 0 ở trang đơn + biên nhận, lần thu lên đơn huỷ chỉ Kế toán, trigger lý do chặn SQL tay (D1 local)
+✓ duyệt (Quản trị) → chi (Kế toán), vượt tiền còn giữ 409, trả dư tự do 409, đảo lần thu khi đã duyệt 409 (trigger trên D1 thật)
+✓ công ty huỷ → duyệt chuyển → chuyển một lô hai đơn; đơn nhận huỷ sau duyệt → 409 không nửa nào lưu; không đảo riêng một nửa (D1 local); tổng HDV giữ không đổi
+✓ đơn huỷ cũ: đối chiếu → Toàn quyền ghi đã hoàn ngoài → tự xác nhận 409 → Quản trị xác nhận → còn giữ 0; ô đếm chỉ Kế toán
+E2E CỌC ĐƠN HUỶ OK
+✔ coc-don-huy (19.2s) · nhóm 1
+
+▶ sua-so-khach · nhóm 1
+── đầu ra chong-ghi-trung · nhóm 2 ──
+✓ 11: lập đơn gửi lại cùng vé (tuần tự, song song) ⇒ một đơn; cùng vé khác thân ⇒ 422
+✓ 12: ghi lần thu gửi lại cùng vé ⇒ một lần thu; T4 hai lần thật ⇒ hai; T5 đổi số ⇒ không chặn
+✓ 13: lập đơn kèm khách mới gửi lại cùng vé ⇒ một hồ sơ, một đơn
+✓ HD10: HDV ghi lần thu gửi lại cùng vé ⇒ một lần thu
+✓ KT03: ghi hoàn gửi lại cùng vé ⇒ một lần hoàn
+✓ KT04: ghi nộp và đảo lần thu gửi lại cùng vé ⇒ một lần mỗi việc
+✓ N2: D1 thật (wrangler dev) — lô đụng khoá vé được nhận ra đúng (409 dang_xu_ly), cả lô huỷ
+✓ T14: lệnh thiếu vé được cho qua (giai đoạn 1) — hai lần gửi ra hai đơn; bản siết sẽ trả 400
+E2E CHỐNG GHI TRÙNG OK
+✔ chong-ghi-trung (36.9s) · nhóm 2
+
+▶ passkey · nhóm 2
+── đầu ra sua-so-khach · nhóm 1 ──
+✓ CA 1: Kế toán bớt khách sau khi đã thu → dư chờ hoàn 100.000; một dòng điều chỉnh; nhật ký đúng khuôn; y nguyên không ghi
+✓ CA 2: Bán hàng khác / HDV / lai đang phụ trách → 403; người lập, Quản trị, Toàn quyền → 200; lý do ngoài danh sách → 400
+✓ CA 3: giảm giá 150.000 > tạm tính 100.000 vẫn lưu, có câu cảnh báo; phải thu 0, dư 50.000 = đúng số khách đã trả (ADR-0109)
+✓ CA 3b: hoàn đúng 50.000 khách đã trả → Đã giao 200 (due_snapshot 0) → Hoàn thành 200 (ADR-0109)
+✓ CA 3c: chưa trả đồng nào → phải thu 0, Đã giao 200 (ADR-0109)
+✓ CA 4: đơn nháp → 409; sau Đã giao → 409 order_delivered; SQL chèn tay bị trigger 0044 chặn
+✔ sua-so-khach (17.1s) · nhóm 1
+
+▶ audit-invariants · nhóm 1
+── đầu ra audit-invariants · nhóm 1 ──
+✓ R-N1-1   mọi tài khoản có party_id
+✓ R-N1-1   một hồ sơ tối đa một tài khoản
+✓ R-ADR13-1 tài khoản đang hoạt động ⇒ hồ sơ của nó đang hoạt động (ADR-0013 điều 5; chiều ngược lại là 'tạm khoá', hợp lệ)
+✓ R-N1-2   cá nhân ⇔ có pty_person (không có pty_organization); tổ chức ngược lại
+✓ R-N1-3   display_name của cá nhân = họ + tên đệm + tên
+✓ R-N1-4   vai trò hồ sơ không chồng lấn (cùng hồ sơ, vai trò, nơi)
+✓ R-N1-4   quan hệ hồ sơ không chồng lấn
+✓ R-N1-5   còn ít nhất một quản trị viên đang hoạt động
+✓ R-N1-10  khoá ngoại toàn vẹn (PRAGMA foreign_key_check)
+✓ R-N1-13  SĐT đăng nhập không được sao chép thành liên hệ do hệ thống tạo
+✓ thông tin nhân sự đã có hồ sơ nhưng không có vai STAFF (cũ) hay vai nội bộ/bên ngoài nào đang mở (ADR-0018)
+✓ thông tin tài khoản đang hoạt động không có quyền nào (đăng nhập được nhưng không làm được gì)
+✓ thông tin đơn còn lần thu người thu chưa rõ (cọc cũ chuyển sang sổ — Kế toán đảo rồi ghi lại đúng người thu)
+✓ R-LC-1   tài khoản có vai bên ngoài đang mở chỉ giữ quyền bên ngoài (Đối tác hoặc Tài xế đối tác)
+✓ R-LC-1b  tài khoản giữ quyền Tài xế đối tác không giữ thêm quyền nào khác (không tài khoản lai)
+✓ R-LC-3   một hồ sơ không giữ cùng lúc vai nội bộ và vai bên ngoài đang mở
+✓ R-PTY-1  đúng một hồ sơ đang mở vai công ty chủ (OWNER_COMPANY)
+✓ R-PTY-MERGE-1 không chuỗi gộp: hồ sơ đích của một lần gộp không tự gộp tiếp; hai đầu đều là hồ sơ cá nhân
+✓ R-PTY-MERGE-2 hồ sơ đã gộp: ngưng dùng, có mốc gộp, không còn liên hệ / công việc / quan hệ mở sau ngày gộp
+✓ R-PTY-MERGE-3 hồ sơ đã gộp không gắn tài khoản
+✓ R-PTY-MERGE-4 hồ sơ đã gộp không còn là người phụ trách đơn chưa xong, tài xế / người đi kèm / nhà xe của chuyến chưa chốt, chủ xe chưa ngừng
+✓ R-PTY-MERGE-5 đơn chưa giao, chưa huỷ không còn người đặt là hồ sơ đã gộp
+✓ R-BIL-1  đơn Đã giao: tổng lần thu còn hiệu lực bằng phải thu phiếu Đã giao đã chụp, mọi lúc (ghi từ mốc 0083)
+✓ R-BIL-1w đơn Đã giao lệch tiền (đã thu khác phải thu lúc giao) — dữ liệu TRƯỚC mốc 0083 (Kế toán sửa bằng “Thay lần thu”)
+✓ R-BIL-3a lần thu đảo khớp lần thu gốc (cùng đơn, cùng loại, cùng số; gốc không phải dòng đảo)
+✓ R-BIL-3b dòng nợ đảo khớp dòng gốc (cùng số, đổi chỗ hai bên, cùng loại, cùng nguồn)
+✓ R-BIL-4a đơn Đã giao có đúng một phiếu Đã giao; đơn chưa Đã giao không có phiếu Đã giao
+✓ R-BIL-4b đơn Hoàn thành có đúng một phiếu Hoàn thành; đơn chưa Hoàn thành không có phiếu Hoàn thành
+✓ R-BIL-6  đơn Đã giao không còn lần thu người thu chưa rõ
+✓ R-BIL-S9 mọi lần thu ghi 'thu cho' công ty chủ (lượt 1)
+✓ R-BIL-M1 đơn Hoàn thành thì đã Đã giao
+✓ R-BIL-M2 đơn Đã giao vẫn ở trạng thái đã xác nhận
+✓ R-ORD-H1 đơn huỷ có dòng lý do huỷ, và dòng lý do chỉ thuộc đơn đã huỷ
+✓ R-BIL-C1 đơn huỷ: đã chi + đã chuyển ≤ đã duyệt ≤ tiền còn giữ lúc huỷ
+✓ R-BIL-C2 đơn huỷ (sau bản cọc) không có lần trả lại khách tự do ghi sau lúc huỷ
+✓ R-BIL-C3 tách người: người chi / chuyển khác người duyệt; người xác nhận dòng hoàn ngoài khác người ghi
+✓ R-BIL-C4 mỗi đơn tối đa một dòng đã hoàn ngoài hệ thống đang hiệu lực, chỉ đơn huỷ cũ
+✓ R-BIL-C5 chuyển tiền sang đơn mới đủ hai nửa (đơn nhận, cùng số, cùng người giữ) — nửa chi còn hiệu lực ⇔ nửa thu khớp còn hiệu lực
+✓ R-ORD-15 đơn đã xác nhận có tạm tính khác tổng thành tiền các dòng (xác nhận từ mốc 0080/0081)
+✓ R-ORD-15w đơn đã xác nhận có tạm tính khác tổng thành tiền các dòng — xác nhận TRƯỚC mốc 0080/0081 (rà tay theo mã đơn)
+✓ R-BIL-8  đã thu ròng của đơn không âm (đơn có lần thu ghi từ mốc 0082)
+✓ R-BIL-8w đã thu ròng của đơn âm — chỉ có lần thu TRƯỚC mốc 0082 (Kế toán sửa bằng lệnh đảo lần hoàn)
+✓ R-BIL-13 số dư người giữ tiền trên đơn không âm do nộp / tất toán giữ hộ hai lần (ghi từ mốc 0080)
+✓ R-BIL-13w số dư người giữ tiền âm do nộp / tất toán giữ hộ hai lần — dữ liệu TRƯỚC mốc 0080 (Kế toán sửa bằng lệnh đảo lần nộp)
+✓ R-BIL-C6 khoản duyệt hoàn cọc của đơn khách huỷ nằm trong hạn
+✓ R-PTY-2  một số CCCD thuộc đúng một người (dòng chưa huỷ)
+✓ R-PTY-3  dòng gia hạn giấy tờ của người cùng người, cùng loại với dòng trước; mỗi dòng tối đa một dòng gia hạn chưa huỷ
+✓ R-PTY-4  nhật ký không chứa số giấy tờ của người (CCCD, bằng lái…)
+✓ R-PTY-5  quan hệ 'Tài xế của' đang mở đi từ hồ sơ cá nhân (người lái), không từ hồ sơ tổ chức
+✓ R-PTY-6  vai hồ sơ / quan hệ hồ sơ có ngày kết thúc sau hôm nay (giờ Việt Nam)
+✓ R-VC-1   biển số không trùng giữa các xe chưa ngừng
+✓ R-VC-2   dòng gia hạn giấy tờ xe cùng xe, cùng loại với dòng trước; mỗi dòng tối đa một dòng gia hạn chưa huỷ
+✓ R-VC-11  xe chưa ngừng có từ 2 dòng giấy tờ HIỆN HÀNH cùng loại trở lên (hai chuỗi giấy tờ song song)
+✓ R-VC-3   chặng có số suất khách MỞ nhiều hơn số người của chặng (L-D1; chặng về có số người riêng — ADR-0054 D10.3)
+✓ R-VC-4   bản chốt danh sách lúc xuất bến ít dòng hơn suất khách có tên + người đi kèm đang mở lúc đó (L-B1)
+✓ R-VC-5a  chuyến ĐANG CHẠY có tài xế không đủ điều kiện lái (GPLX thiếu / hết hạn trước giờ kết thúc / hạng không chở đủ số chỗ) (L-B2)
+✓ R-VC-5b  chuyến CHƯA CHẠY xuất bến trong 48 giờ tới có tài xế không đủ điều kiện lái (L-B2)
+✓ R-VC-6   sự kiện chuyến không có dòng nhật ký cùng id, hoặc nhật ký lệnh chuyến không có sự kiện cùng id
+⚠ R-VC-7   chặng của đơn đã xác nhận, giờ đón đã vào mốc tối thiểu mà chưa xếp đủ khách lên xe — 1 vi phạm (cảnh báo: khách sắp tới giờ đón mà chưa có xe — văn phòng xếp ngay (trong mốc cần Quản trị phá lệ, trừ chặng đặt gấp))
+✓ R-VC-8   chuyến chưa kết thúc dùng xe của nhà xe đã thôi hợp tác, hoặc tài xế không còn là tài xế của nhà xe đó (B1.5)
+✓ R-VC-9   chuyến chưa kết thúc chở quá số chỗ của xe, hoặc hai điểm dừng còn dùng trùng thứ tự
+✓ R-VC-10  bản chốt trỏ dòng hành khách không thuộc đơn của chặng / không phải người của suất
+✓ R-VC-12  cột giờ nghiệp vụ (xuất bến, kết thúc, đã tới, xong điểm) khác giờ xảy ra của sự kiện tương ứng
+✓ R-VC-13  kết thúc khai lùi quá 15 phút mà chuyến kế cùng xe / tài xế đã xuất bến trong khoảng nghỉ tính theo GIỜ GHI NHẬN
+✓ R-VC-14  xe chưa ngừng thiếu dòng hiện hành của một loại giấy tờ đang là điều kiện xuất bến
+✓ R-VC-15  sự kiện của suất xảy ra sớm hơn lúc mở suất, hoặc 'đã tới' xảy ra sớm hơn lần đổi thứ tự điểm ghi trước nó
+✓ R-VC-16  suất khách mở của chuyến chưa kết thúc có điểm DANH MỤC khác nơi đón / trả hiện hành của chặng (không phủ chữ tự do)
+✓ R-VC-17  suất khách đang mở mà chặng không có dòng mốc giờ hẹn nào
+✓ R-VC-18  chuỗi mốc giờ hẹn của chặng hỏng: không bắt đầu từ seq 1 / đứt đoạn, seq 1 không phải XEP, giờ 'trước' lệch giờ của dòng trước
+✓ R-VC-19  tham chiếu logic từ vận chuyển sang chặng / khách của đơn bị treo: suất trỏ chặng không còn hoặc người (passenger_key) không có dòng ord_passenger nào thuộc đơn của chặng; dòng mốc giờ hẹn trỏ chặng không còn
+✓ R-VC-20  dịch vụ có mẫu đưa đón hiện hành trỏ nơi trả mặc định đã ngưng dùng (Quản trị cài lại ở màn Danh mục)
+✓ R-VC-RATE-1 dòng giá thuê xe còn hiệu lực của hồ sơ đã thôi vai nhà xe
+✓ R-VC-COST-1 chuyến xe thuê chưa huỷ có nhiều hơn một nguồn giá còn hiệu lực
+✓ R-VC-COST-1b chuyến xe thuê chưa xuất bến đang thiếu giá (thông tin cho Kế toán)
+✓ R-VC-COST-2 dòng đảo không đối dấu đúng dòng gốc cùng chuyến
+✓ R-VC-COST-3 chuyến không phải xe thuê còn nguồn giá chưa đảo hoặc tổng chi phí khác 0 (ngoài phí huỷ muộn cho nhà xe cũ)
+✓ R-VC-COST-4 chuyến đã huỷ có tiền chi phí còn treo từ trước lúc huỷ (tổng khác tổng các dòng ghi sau lúc huỷ)
+✓ R-VC-COST-5 chuyến xe thuê đã xuất bến mà không có nguồn giá còn hiệu lực
+✓ R-VC-COST-6 chuyến chưa huỷ không đánh dấu xe thuê mà chủ xe không phải công ty chủ hiện tại (kẽ C2a — nợ N-T1)
+✓ R-VC-COST-8 phí huỷ muộn của nhà xe cũ bị đảo tự động khi đổi / huỷ chuyến mà chưa ghi lại (ADR-0095 Q5b)
+✓ R-VC-21  chuyến chưa kết thúc chồng lịch xe bận còn hiệu lực
+✓ R-VC-22  suất mang cờ văn phòng báo huỷ không có sự kiện báo huỷ đúng suất, hoặc đặt khi khách đã có kết quả
+✓ R-VC-23  điểm mang cờ thêm khi xe đang chạy trên chuyến chưa xuất bến, hoặc tạo trước giờ xuất bến
+✓ R-VC-24  suất đổi điểm khi xe đang chạy bị đóng mà không mở lại cùng người, cùng chặng, cùng lệnh
+✓ R-VC-25  chuyến đang chạy / đã chạy trái cam kết xe riêng hoặc số chỗ tối thiểu của khách mà không có phá lệ cam kết
+✓ R-VC-THU-TU chuyến đang chạy có khách chờ lên mà điểm trả đứng trước điểm đón (ADR-0096 Đ1)
+✓ R-VC-SUA-1 điều chỉnh kết quả khách thiếu / thừa suất thay thế hoặc bản chốt; thu hồi xuất bến sau khi đã có tiến độ (ADR-0097)
+✓ R-DSP-1  mỗi đơn tối đa một người phụ trách (HANDLE) đang mở
+✓ R-DSP-2a người phụ trách đang mở là hồ sơ có tài khoản còn quyền Bán hàng/Quản trị/Hướng dẫn viên
+✓ R-DSP-2b người phụ trách đang mở có tài khoản đã ngưng hoạt động
+✓ R-DSP-3  các dòng người phụ trách (HANDLE) của một đơn không chồng lấn theo khoảng nửa mở [từ, đến)
+✓ R-ORD-4  seq của order_money_adjustment liên tục từ 1 theo từng đơn
+✓ R-ORD-5  after_json của điều chỉnh gần nhất liệt kê ĐÚNG tập dịch vụ từ danh mục của đơn (không thiếu, không thừa, không trùng) — CHỈ đếm số lượng + đối chiếu serviceId, KHÔNG kiểm bên trong pax
+⚠ R-ORD-6a dòng điều chỉnh ĐẦU TIÊN (seq=1) của một đơn: subtotal_before phải khớp orders.subtotal đã lưu (trước khi có điều chỉnh nào, tiền chưa đổi gì) — 1 vi phạm (cảnh báo (KHÔNG chặn phát hành — xem chú thích trong scripts/audit-checks.mjs): lệch có thể là dữ liệu LỊCH SỬ từ trước bản vá Task 7 (bảng chỉ-thêm, không sửa lại được), cần rà soát tay theo order_id; nếu KHÔNG đúng lý do đó (đơn mới, sau khi bản vá đã triển khai) thì là lỗi thật ở nơi ghi)
+⚠ R-ORD-6b chuỗi tiền của một đơn liên tục: subtotal_before của dòng SAU phải khớp subtotal_after của dòng NGAY TRƯỚC (không có gì xen giữa) — 2 vi phạm (cảnh báo (KHÔNG chặn phát hành — cùng lý do R-ORD-6a): lệch có thể là dữ liệu LỊCH SỬ từ trước bản vá Task 7, cần rà soát tay theo order_id)
+✓ R-ORD-NT1 đơn có dịch vụ nhập tay do tài khoản đang giữ quyền Đối tác lập, tạo sau mốc phát hành ADR-0061
+✓ R-ORD-7  hai cột cũ pickup_time/pickup_place của dịch vụ = dẫn xuất của chặng chiều đi đầu còn mở (ghi kép phát hành 1 — ADR-0047 R3)
+✓ R-ORD-8  chặng mở của đơn đã xác nhận, ngày đón từ hôm nay trở đi, chưa chốt nơi trả (văn phòng bổ sung)
+✓ R-ORD-9  đơn có số người có tên (dòng hiện hành) nhiều hơn số khách hiệu lực của dịch vụ đông nhất (cờ cho văn phòng — ADR-0047 L-A1)
+✓ R-ORD-10 nhật ký order_passenger_changed ĐÚNG khuôn 'thêm N, sửa N, huỷ N khách' (không tên, không năm sinh)
+✓ R-ORD-11 chuỗi hành khách đúng (dòng thay thế cùng đơn + person_key; dòng đầu person_key = id); dòng nguồn DRIVER là đầu chuỗi và có sự kiện tài xế bổ sung tên
+✓ R-ORD-12 chặng mở của đơn chưa huỷ còn nơi đón tạm '(chưa ghi nơi đón)' (văn phòng bổ sung)
+✓ R-ORD-13 chặng có số người riêng (pax_override) mà không phải chiều về
+✓ R-ORD-14 chặng về còn mở của đơn chưa huỷ có số người riêng nhiều hơn số khách hiệu lực của dịch vụ (L-R1)
+✓ R-AUT-1  không có Face ID còn hiệu lực của tài khoản đã ngưng
+✓ R-AUT-SESSION-1 không tài khoản một máy nào có hơn một phiên đăng nhập sống
+✓ R-AUT-SESSION-2 không có phiên đăng nhập chưa kết thúc của tài khoản đã ngưng
+✓ R-AUT-SESSION-3 tài khoản theo chính sách hiện hành là một máy mà có hơn một phiên sống
+⚠ R-CTL-1  dịch vụ đang hiện mà chưa phân loại nhóm (Quản trị gán nhóm ở màn Danh mục) — 2 vi phạm (cảnh báo (không chặn phát hành): Quản trị gán nhóm cho các dịch vụ này ở màn Danh mục)
+· R-BIL-2  chưa áp dụng (lượt 2 sổ tiền: phần Tour Đảo = giá bán − giá vốn − hoa hồng theo số đã lưu)
+· R-BIL-5  chưa áp dụng (lượt 2 sổ tiền: mỗi dòng dịch vụ của đơn đã chụp có người bán)
+· R-BIL-7  đúng một hồ sơ công ty chủ — dùng lại R-PTY-1 (không kiểm trùng)
+
+Mọi bất biến đạt, 4 cảnh báo (D1 local, --strict).
+✔ audit-invariants · nhóm 1
+
+ℹ lớp vé · nhóm 1: ghi nhiều lần ở 3 route [POST /api/staff/:id/reset-pin; POST /api/staff/:id/unlock; POST /api/tro-ly/hoi]; đụng vé 0 lần; lỗi lạ 0; thiếu vé 0 lần
+── đầu ra passkey · nhóm 2 ──
+✓ config.passkey = true
+✓ bật Face ID đòi nhập lại PIN đúng
+✓ bật Face ID; nhật ký không chứa id khoá
+✓ bật trùng khoá → 409
+✓ đăng nhập Face ID; bộ đếm 0 lặp lại vẫn được
+✓ thách thức dùng một lần
+✓ chữ ký/origin/rpId/UV sai bị từ chối
+✓ cookie thách thức không phải phiên
+✓ bảo trì chặn đăng nhập Face ID
+✓ đặt PIN bằng Face ID
+✓ dùng lại thách thức PIN cũ (cookie + chữ ký) → bị từ chối, PIN không đổi lần hai
+✓ không dùng Face ID của người khác
+✓ gỡ Face ID: máy đang thao tác nhận phiên mới; khoá đã gỡ bị từ chối rõ ràng (đá máy khác: phien.mjs 8–9)
+✓ không gỡ được Face ID của người khác qua route tự phục vụ
+✓ tài khoản ngưng bằng SQL (passkey chưa gỡ) → Face ID vẫn bị từ chối
+✓ tự gỡ hết Face ID (còn ≥1 khoá): máy hiện tại nhận phiên mới (đá máy khác: phien.mjs 9)
+✓ ngưng tài khoản chặn đăng nhập Face ID ngay (kể cả khi thách thức đã lấy trước), gỡ mọi Face ID + một dòng nhật ký; kích hoạt lại không làm khoá cũ sống lại
+✓ đặt lại PIN (admin) gỡ Face ID; passkeyCount về 0; đúng một dòng nhật ký
+✓ quản trị viên gỡ Face ID trực tiếp; passkeyCount về 0; khoá đã gỡ bị từ chối
+✓ sai PIN khi bật Face ID tính chung bộ đếm chống dò với đăng nhập; admin mở khoá xong
+✓ gỡ hết khi không có passkey nào → removed: 0, không cấp phiên mới
+✓ đặt PIN mới bằng Face ID gỡ khoá sai PIN quá nhiều; đăng nhập bằng PIN mới được ngay
+✓ nhật ký passkey_added/passkey_removed/pin_set_by_passkey không chứa id khoá nào
+E2E PASSKEY OK
+✔ passkey (20.8s) · nhóm 2
+
+▶ audit-invariants · nhóm 2
+── đầu ra audit-invariants · nhóm 2 ──
+✓ R-N1-1   mọi tài khoản có party_id
+✓ R-N1-1   một hồ sơ tối đa một tài khoản
+✓ R-ADR13-1 tài khoản đang hoạt động ⇒ hồ sơ của nó đang hoạt động (ADR-0013 điều 5; chiều ngược lại là 'tạm khoá', hợp lệ)
+✓ R-N1-2   cá nhân ⇔ có pty_person (không có pty_organization); tổ chức ngược lại
+✓ R-N1-3   display_name của cá nhân = họ + tên đệm + tên
+✓ R-N1-4   vai trò hồ sơ không chồng lấn (cùng hồ sơ, vai trò, nơi)
+✓ R-N1-4   quan hệ hồ sơ không chồng lấn
+✓ R-N1-5   còn ít nhất một quản trị viên đang hoạt động
+✓ R-N1-10  khoá ngoại toàn vẹn (PRAGMA foreign_key_check)
+✓ R-N1-13  SĐT đăng nhập không được sao chép thành liên hệ do hệ thống tạo
+✓ thông tin nhân sự đã có hồ sơ nhưng không có vai STAFF (cũ) hay vai nội bộ/bên ngoài nào đang mở (ADR-0018)
+✓ thông tin tài khoản đang hoạt động không có quyền nào (đăng nhập được nhưng không làm được gì)
+✓ thông tin đơn còn lần thu người thu chưa rõ (cọc cũ chuyển sang sổ — Kế toán đảo rồi ghi lại đúng người thu)
+✓ R-LC-1   tài khoản có vai bên ngoài đang mở chỉ giữ quyền bên ngoài (Đối tác hoặc Tài xế đối tác)
+✓ R-LC-1b  tài khoản giữ quyền Tài xế đối tác không giữ thêm quyền nào khác (không tài khoản lai)
+✓ R-LC-3   một hồ sơ không giữ cùng lúc vai nội bộ và vai bên ngoài đang mở
+✓ R-PTY-1  đúng một hồ sơ đang mở vai công ty chủ (OWNER_COMPANY)
+✓ R-PTY-MERGE-1 không chuỗi gộp: hồ sơ đích của một lần gộp không tự gộp tiếp; hai đầu đều là hồ sơ cá nhân
+✓ R-PTY-MERGE-2 hồ sơ đã gộp: ngưng dùng, có mốc gộp, không còn liên hệ / công việc / quan hệ mở sau ngày gộp
+✓ R-PTY-MERGE-3 hồ sơ đã gộp không gắn tài khoản
+✓ R-PTY-MERGE-4 hồ sơ đã gộp không còn là người phụ trách đơn chưa xong, tài xế / người đi kèm / nhà xe của chuyến chưa chốt, chủ xe chưa ngừng
+✓ R-PTY-MERGE-5 đơn chưa giao, chưa huỷ không còn người đặt là hồ sơ đã gộp
+✓ R-BIL-1  đơn Đã giao: tổng lần thu còn hiệu lực bằng phải thu phiếu Đã giao đã chụp, mọi lúc (ghi từ mốc 0083)
+✓ R-BIL-1w đơn Đã giao lệch tiền (đã thu khác phải thu lúc giao) — dữ liệu TRƯỚC mốc 0083 (Kế toán sửa bằng “Thay lần thu”)
+✓ R-BIL-3a lần thu đảo khớp lần thu gốc (cùng đơn, cùng loại, cùng số; gốc không phải dòng đảo)
+✓ R-BIL-3b dòng nợ đảo khớp dòng gốc (cùng số, đổi chỗ hai bên, cùng loại, cùng nguồn)
+✓ R-BIL-4a đơn Đã giao có đúng một phiếu Đã giao; đơn chưa Đã giao không có phiếu Đã giao
+✓ R-BIL-4b đơn Hoàn thành có đúng một phiếu Hoàn thành; đơn chưa Hoàn thành không có phiếu Hoàn thành
+✓ R-BIL-6  đơn Đã giao không còn lần thu người thu chưa rõ
+✓ R-BIL-S9 mọi lần thu ghi 'thu cho' công ty chủ (lượt 1)
+✓ R-BIL-M1 đơn Hoàn thành thì đã Đã giao
+✓ R-BIL-M2 đơn Đã giao vẫn ở trạng thái đã xác nhận
+✓ R-ORD-H1 đơn huỷ có dòng lý do huỷ, và dòng lý do chỉ thuộc đơn đã huỷ
+✓ R-BIL-C1 đơn huỷ: đã chi + đã chuyển ≤ đã duyệt ≤ tiền còn giữ lúc huỷ
+✓ R-BIL-C2 đơn huỷ (sau bản cọc) không có lần trả lại khách tự do ghi sau lúc huỷ
+✓ R-BIL-C3 tách người: người chi / chuyển khác người duyệt; người xác nhận dòng hoàn ngoài khác người ghi
+✓ R-BIL-C4 mỗi đơn tối đa một dòng đã hoàn ngoài hệ thống đang hiệu lực, chỉ đơn huỷ cũ
+✓ R-BIL-C5 chuyển tiền sang đơn mới đủ hai nửa (đơn nhận, cùng số, cùng người giữ) — nửa chi còn hiệu lực ⇔ nửa thu khớp còn hiệu lực
+✓ R-ORD-15 đơn đã xác nhận có tạm tính khác tổng thành tiền các dòng (xác nhận từ mốc 0080/0081)
+✓ R-ORD-15w đơn đã xác nhận có tạm tính khác tổng thành tiền các dòng — xác nhận TRƯỚC mốc 0080/0081 (rà tay theo mã đơn)
+✓ R-BIL-8  đã thu ròng của đơn không âm (đơn có lần thu ghi từ mốc 0082)
+✓ R-BIL-8w đã thu ròng của đơn âm — chỉ có lần thu TRƯỚC mốc 0082 (Kế toán sửa bằng lệnh đảo lần hoàn)
+✓ R-BIL-13 số dư người giữ tiền trên đơn không âm do nộp / tất toán giữ hộ hai lần (ghi từ mốc 0080)
+✓ R-BIL-13w số dư người giữ tiền âm do nộp / tất toán giữ hộ hai lần — dữ liệu TRƯỚC mốc 0080 (Kế toán sửa bằng lệnh đảo lần nộp)
+✓ R-BIL-C6 khoản duyệt hoàn cọc của đơn khách huỷ nằm trong hạn
+✓ R-PTY-2  một số CCCD thuộc đúng một người (dòng chưa huỷ)
+✓ R-PTY-3  dòng gia hạn giấy tờ của người cùng người, cùng loại với dòng trước; mỗi dòng tối đa một dòng gia hạn chưa huỷ
+✓ R-PTY-4  nhật ký không chứa số giấy tờ của người (CCCD, bằng lái…)
+✓ R-PTY-5  quan hệ 'Tài xế của' đang mở đi từ hồ sơ cá nhân (người lái), không từ hồ sơ tổ chức
+✓ R-PTY-6  vai hồ sơ / quan hệ hồ sơ có ngày kết thúc sau hôm nay (giờ Việt Nam)
+✓ R-VC-1   biển số không trùng giữa các xe chưa ngừng
+✓ R-VC-2   dòng gia hạn giấy tờ xe cùng xe, cùng loại với dòng trước; mỗi dòng tối đa một dòng gia hạn chưa huỷ
+✓ R-VC-11  xe chưa ngừng có từ 2 dòng giấy tờ HIỆN HÀNH cùng loại trở lên (hai chuỗi giấy tờ song song)
+✓ R-VC-3   chặng có số suất khách MỞ nhiều hơn số người của chặng (L-D1; chặng về có số người riêng — ADR-0054 D10.3)
+✓ R-VC-4   bản chốt danh sách lúc xuất bến ít dòng hơn suất khách có tên + người đi kèm đang mở lúc đó (L-B1)
+✓ R-VC-5a  chuyến ĐANG CHẠY có tài xế không đủ điều kiện lái (GPLX thiếu / hết hạn trước giờ kết thúc / hạng không chở đủ số chỗ) (L-B2)
+✓ R-VC-5b  chuyến CHƯA CHẠY xuất bến trong 48 giờ tới có tài xế không đủ điều kiện lái (L-B2)
+✓ R-VC-6   sự kiện chuyến không có dòng nhật ký cùng id, hoặc nhật ký lệnh chuyến không có sự kiện cùng id
+✓ R-VC-7   chặng của đơn đã xác nhận, giờ đón đã vào mốc tối thiểu mà chưa xếp đủ khách lên xe
+✓ R-VC-8   chuyến chưa kết thúc dùng xe của nhà xe đã thôi hợp tác, hoặc tài xế không còn là tài xế của nhà xe đó (B1.5)
+✓ R-VC-9   chuyến chưa kết thúc chở quá số chỗ của xe, hoặc hai điểm dừng còn dùng trùng thứ tự
+✓ R-VC-10  bản chốt trỏ dòng hành khách không thuộc đơn của chặng / không phải người của suất
+✓ R-VC-12  cột giờ nghiệp vụ (xuất bến, kết thúc, đã tới, xong điểm) khác giờ xảy ra của sự kiện tương ứng
+✓ R-VC-13  kết thúc khai lùi quá 15 phút mà chuyến kế cùng xe / tài xế đã xuất bến trong khoảng nghỉ tính theo GIỜ GHI NHẬN
+⚠ R-VC-14  xe chưa ngừng thiếu dòng hiện hành của một loại giấy tờ đang là điều kiện xuất bến — 5 vi phạm (cảnh báo: xe này sẽ bị giữ ở cổng xuất bến — Quản trị thêm giấy tờ còn thiếu)
+✓ R-VC-15  sự kiện của suất xảy ra sớm hơn lúc mở suất, hoặc 'đã tới' xảy ra sớm hơn lần đổi thứ tự điểm ghi trước nó
+✓ R-VC-16  suất khách mở của chuyến chưa kết thúc có điểm DANH MỤC khác nơi đón / trả hiện hành của chặng (không phủ chữ tự do)
+✓ R-VC-17  suất khách đang mở mà chặng không có dòng mốc giờ hẹn nào
+✓ R-VC-18  chuỗi mốc giờ hẹn của chặng hỏng: không bắt đầu từ seq 1 / đứt đoạn, seq 1 không phải XEP, giờ 'trước' lệch giờ của dòng trước
+✓ R-VC-19  tham chiếu logic từ vận chuyển sang chặng / khách của đơn bị treo: suất trỏ chặng không còn hoặc người (passenger_key) không có dòng ord_passenger nào thuộc đơn của chặng; dòng mốc giờ hẹn trỏ chặng không còn
+✓ R-VC-20  dịch vụ có mẫu đưa đón hiện hành trỏ nơi trả mặc định đã ngưng dùng (Quản trị cài lại ở màn Danh mục)
+✓ R-VC-RATE-1 dòng giá thuê xe còn hiệu lực của hồ sơ đã thôi vai nhà xe
+✓ R-VC-COST-1 chuyến xe thuê chưa huỷ có nhiều hơn một nguồn giá còn hiệu lực
+✓ R-VC-COST-1b chuyến xe thuê chưa xuất bến đang thiếu giá (thông tin cho Kế toán)
+✓ R-VC-COST-2 dòng đảo không đối dấu đúng dòng gốc cùng chuyến
+✓ R-VC-COST-3 chuyến không phải xe thuê còn nguồn giá chưa đảo hoặc tổng chi phí khác 0 (ngoài phí huỷ muộn cho nhà xe cũ)
+✓ R-VC-COST-4 chuyến đã huỷ có tiền chi phí còn treo từ trước lúc huỷ (tổng khác tổng các dòng ghi sau lúc huỷ)
+✓ R-VC-COST-5 chuyến xe thuê đã xuất bến mà không có nguồn giá còn hiệu lực
+✓ R-VC-COST-6 chuyến chưa huỷ không đánh dấu xe thuê mà chủ xe không phải công ty chủ hiện tại (kẽ C2a — nợ N-T1)
+✓ R-VC-COST-8 phí huỷ muộn của nhà xe cũ bị đảo tự động khi đổi / huỷ chuyến mà chưa ghi lại (ADR-0095 Q5b)
+✓ R-VC-21  chuyến chưa kết thúc chồng lịch xe bận còn hiệu lực
+✓ R-VC-22  suất mang cờ văn phòng báo huỷ không có sự kiện báo huỷ đúng suất, hoặc đặt khi khách đã có kết quả
+✓ R-VC-23  điểm mang cờ thêm khi xe đang chạy trên chuyến chưa xuất bến, hoặc tạo trước giờ xuất bến
+✓ R-VC-24  suất đổi điểm khi xe đang chạy bị đóng mà không mở lại cùng người, cùng chặng, cùng lệnh
+✓ R-VC-25  chuyến đang chạy / đã chạy trái cam kết xe riêng hoặc số chỗ tối thiểu của khách mà không có phá lệ cam kết
+✓ R-VC-THU-TU chuyến đang chạy có khách chờ lên mà điểm trả đứng trước điểm đón (ADR-0096 Đ1)
+✓ R-VC-SUA-1 điều chỉnh kết quả khách thiếu / thừa suất thay thế hoặc bản chốt; thu hồi xuất bến sau khi đã có tiến độ (ADR-0097)
+✓ R-DSP-1  mỗi đơn tối đa một người phụ trách (HANDLE) đang mở
+✓ R-DSP-2a người phụ trách đang mở là hồ sơ có tài khoản còn quyền Bán hàng/Quản trị/Hướng dẫn viên
+✓ R-DSP-2b người phụ trách đang mở có tài khoản đã ngưng hoạt động
+✓ R-DSP-3  các dòng người phụ trách (HANDLE) của một đơn không chồng lấn theo khoảng nửa mở [từ, đến)
+✓ R-ORD-4  seq của order_money_adjustment liên tục từ 1 theo từng đơn
+✓ R-ORD-5  after_json của điều chỉnh gần nhất liệt kê ĐÚNG tập dịch vụ từ danh mục của đơn (không thiếu, không thừa, không trùng) — CHỈ đếm số lượng + đối chiếu serviceId, KHÔNG kiểm bên trong pax
+✓ R-ORD-6a dòng điều chỉnh ĐẦU TIÊN (seq=1) của một đơn: subtotal_before phải khớp orders.subtotal đã lưu (trước khi có điều chỉnh nào, tiền chưa đổi gì)
+✓ R-ORD-6b chuỗi tiền của một đơn liên tục: subtotal_before của dòng SAU phải khớp subtotal_after của dòng NGAY TRƯỚC (không có gì xen giữa)
+⚠ R-ORD-NT1 đơn có dịch vụ nhập tay do tài khoản đang giữ quyền Đối tác lập, tạo sau mốc phát hành ADR-0061 — 1 vi phạm (cảnh báo (máy chủ đã chặn — duocNhapTay, Đối tác trước): rà soát tay theo mã đơn; có thể là dòng nhập tay nội bộ thêm vào nháp của Đối tác (hợp lệ))
+✓ R-ORD-7  hai cột cũ pickup_time/pickup_place của dịch vụ = dẫn xuất của chặng chiều đi đầu còn mở (ghi kép phát hành 1 — ADR-0047 R3)
+⚠ R-ORD-8  chặng mở của đơn đã xác nhận, ngày đón từ hôm nay trở đi, chưa chốt nơi trả (văn phòng bổ sung) — 2 vi phạm (cảnh báo (tình trạng nghiệp vụ, không chặn phát hành): văn phòng bổ sung nơi trả cho các chặng này)
+✓ R-ORD-9  đơn có số người có tên (dòng hiện hành) nhiều hơn số khách hiệu lực của dịch vụ đông nhất (cờ cho văn phòng — ADR-0047 L-A1)
+✓ R-ORD-10 nhật ký order_passenger_changed ĐÚNG khuôn 'thêm N, sửa N, huỷ N khách' (không tên, không năm sinh)
+✓ R-ORD-11 chuỗi hành khách đúng (dòng thay thế cùng đơn + person_key; dòng đầu person_key = id); dòng nguồn DRIVER là đầu chuỗi và có sự kiện tài xế bổ sung tên
+⚠ R-ORD-12 chặng mở của đơn chưa huỷ còn nơi đón tạm '(chưa ghi nơi đón)' (văn phòng bổ sung) — 3 vi phạm (cảnh báo (không chặn phát hành): văn phòng bổ sung nơi đón cho các chặng này)
+✓ R-ORD-13 chặng có số người riêng (pax_override) mà không phải chiều về
+✓ R-ORD-14 chặng về còn mở của đơn chưa huỷ có số người riêng nhiều hơn số khách hiệu lực của dịch vụ (L-R1)
+✓ R-AUT-1  không có Face ID còn hiệu lực của tài khoản đã ngưng
+✓ R-AUT-SESSION-1 không tài khoản một máy nào có hơn một phiên đăng nhập sống
+✓ R-AUT-SESSION-2 không có phiên đăng nhập chưa kết thúc của tài khoản đã ngưng
+✓ R-AUT-SESSION-3 tài khoản theo chính sách hiện hành là một máy mà có hơn một phiên sống
+⚠ R-CTL-1  dịch vụ đang hiện mà chưa phân loại nhóm (Quản trị gán nhóm ở màn Danh mục) — 3 vi phạm (cảnh báo (không chặn phát hành): Quản trị gán nhóm cho các dịch vụ này ở màn Danh mục)
+· R-BIL-2  chưa áp dụng (lượt 2 sổ tiền: phần Tour Đảo = giá bán − giá vốn − hoa hồng theo số đã lưu)
+· R-BIL-5  chưa áp dụng (lượt 2 sổ tiền: mỗi dòng dịch vụ của đơn đã chụp có người bán)
+· R-BIL-7  đúng một hồ sơ công ty chủ — dùng lại R-PTY-1 (không kiểm trùng)
+
+Mọi bất biến đạt, 5 cảnh báo (D1 local, --strict).
+✔ audit-invariants · nhóm 2
+
+ℹ lớp vé · nhóm 2: ghi nhiều lần ở 5 route [POST /api/feedback; POST /api/feedback/:id/messages; POST /api/account/pin-by-passkey; POST /api/staff/:id/reset-pin; POST /api/staff/:id/unlock]; đụng vé 1 lần; lỗi lạ 0; thiếu vé 2 lần (POST /api/orders ×2)
+── Tóm tắt từng bộ ──
+✔ platform
+✔ pwa
+✔ orders
+✔ trip
+✔ chang-hanh-khach
+✔ nhap-tay-va-gia-doi-tac
+✔ admin
+✔ turnstile
+✔ catalog
+✔ mau-chang
+✔ dispatch
+✔ admin-race
+✔ locations
+✔ parties
+✔ gop-ho-so
+✔ booker
+✔ permissions
+✔ feedback
+✔ company
+✔ bangtin
+✔ thongbao
+✔ tro-ly
+✔ giao-dien
+✔ maintenance
+✔ roles
+✔ quyen-tien
+✔ van-chuyen
+✔ tai-xe-doi-tac
+✔ chinh-sach-dieu-phoi
+✔ dieu-phoi
+✔ khung-ban-xe
+✔ cam-ket-xe
+✔ dieu-chinh-khan-cap
+✔ dong-bo-chuyen
+✔ tien-xe-thue
+✔ dua-don-dau-cuoi
+✔ tai-xe-cuoc
+✔ tin-chuyen
+✔ xe-tren-don
+✔ xe-dang-chay
+✔ dieu-phoi-chay-dua
+✔ so-tien
+✔ coc-don-huy
+✔ chong-ghi-trung
+✔ nhap-ke-toan
+✔ chinh-sach-phien
+✔ phien
+✔ sua-so-khach
+✔ passkey
+✔ audit-invariants
+✔ không có day_loi (thiếu khoá VAPID thì không gửi)
+✔ H5: ghi nhiều lần chỉ ở route có tên trong danh sách nợ (src/shared/lan-gui-no.ts)
+✔ không có lỗi lạ chạm bảng vé (lan_gui_loi_la)
+✔ không có nội dung câu hỏi trợ lý trong log Worker
+Thời gian e2e: 1105 giây (3 nhóm)
+E2E: 54/54 kịch bản xanh

@@ -47,12 +47,16 @@ export function duocSuaSoKhachVanPhong(viewer: PermissionHolder, don: { staffId:
 }
 
 /**
- * Tổng tiền âm (giảm giá lớn hơn tiền dịch vụ sau khi bớt khách — giảm giá không sửa được sau xác nhận): KHÔNG chặn (chủ duyệt 2026-10-08 "tổng tiền âm thì
- * cảnh báo, không chặn"), chỉ cảnh báo. Tính từ trạng thái HIỆN HÀNH của đơn (không lưu cờ), nên Kế toán mở đơn lúc nào cũng thấy, không riêng người vừa sửa.
+ * Giảm giá lớn hơn tạm tính HIỆN HÀNH (ADR-0109 QĐ3; trước đây gọi "tổng âm"): sau khi bớt khách, tiền dịch vụ có thể nhỏ hơn giảm giá đã lưu (giảm giá không sửa
+ * được sau xác nhận). KHÔNG chặn (chủ duyệt 2026-10-08 "cảnh báo, không chặn"; ADR-0063 D1.12), chỉ cảnh báo. Phải thu nay KẸP về 0 (`effectiveMoney`), nên điều
+ * kiện không còn là "tổng < 0" mà là giảm giá > tạm tính (so nghiêm: bằng nhau thì phải thu 0 nhưng không có phần vượt). Tính từ trạng thái HIỆN HÀNH của đơn
+ * (không lưu cờ), nên Kế toán mở đơn lúc nào cũng thấy. Câu đúng ở MỌI trạng thái (chưa hoàn, đã hoàn, Đã giao, Hoàn thành — phiếu phản biện ADR-0109) và không
+ * có chữ số. Một hàm dùng chung máy chủ (phản hồi route) ↔ giao diện (khối Thanh toán); khoá JSON `canhBaoTongAm`, khoá sổ vàng `canh_bao_tong_am`, thuộc tính
+ * `data-canh-bao="tong-am"` GIỮ tên cũ (không đổi hợp đồng).
  */
-export const CAU_TONG_AM =
-  "Tổng tiền của đơn đang âm vì giảm giá lớn hơn tiền dịch vụ sau khi bớt khách. Số “khách trả dư” vì vậy lớn hơn tiền khách thật đã trả — Kế toán xem lại trước khi hoàn tiền cho khách.";
-export const canhBaoTongAm = (total: number): string | null => (total < 0 ? CAU_TONG_AM : null);
+export const CAU_GIAM_GIA_VUOT =
+  "Giảm giá lớn hơn tiền dịch vụ sau khi bớt khách, nên khách không còn phải trả gì và phần giảm giá vượt không dùng tới. Khách đã trả bao nhiêu thì số đó là tiền trả dư; nếu chưa hoàn thì Kế toán hoàn lại cho khách.";
+export const canhBaoGiamGiaVuot = (don: { subtotal: number; discount: number }): string | null => (don.discount > don.subtotal ? CAU_GIAM_GIA_VUOT : null);
 
 /**
  * Nguồn dòng của bảng "Sửa số khách dịch vụ" (web/sheet-so-khach.ts): mỗi dịch vụ của đơn (số khách HIỆN HÀNH — đã áp dòng điều chỉnh gần nhất) kèm loại

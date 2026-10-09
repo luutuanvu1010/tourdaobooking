@@ -1,10 +1,14 @@
 // Sổ vàng golden/sua-so-khach-van-phong.json (Hiến chương 5.17; ADR-0063 D1 — gói A2). Khuôn src/so-vang-don-huy.test.ts:
 //  LỚP 1 tự cân MỌI ca bằng số học viết tay (bắt CA MẪU viết sai — không gọi mã).
 //  LỚP 2 chạy từng ca qua CHÍNH luật thật: bộ đọc thân văn phòng `docThanSuaSoKhach` (mã lý do → nhãn), `planMoneyEdit` (luật tiền chung HDV + văn phòng),
-//  `effectiveSubtotal` / `effectiveMoney` (phải thu), `billing/rules.ts:conLai` (còn lại, dư chờ hoàn), `canhBaoTongAm`, `doanSoKhach` + `ghepLyDo` (dòng nhật ký —
-//  cùng cách `orders/index.ts:soanSuaSoKhach` ghép). CHỈ ca "da_xac_nhan" được tính đạt (chưa có ⇒ `todo`, không "xanh vì rỗng"); ca chờ xác nhận chỉ in chẩn đoán
-//  "khớp / lệch mã". Hoa hồng PER_PAX (ADR-0077) CHỈ TRÊN GIẤY: mã `hoaHongDong` chưa thi công ⇒ lớp 2 bỏ qua phần đó, in "chưa chạy trên mã".
+//  `effectiveSubtotal` / `effectiveMoney` (phải thu), `billing/rules.ts:conLai` (còn lại, dư chờ hoàn), `canhBaoGiamGiaVuot`, `doanSoKhach` + `ghepLyDo` (dòng nhật ký —
+//  cùng cách `orders/index.ts:soanSuaSoKhach` ghép). CHỈ ca "da_xac_nhan" được tính đạt (chưa có ⇒ `todo`, không "xanh vì rỗng"); ca chờ xác nhận in chẩn đoán
+//  "khớp / lệch mã" và từ ADR-0109 lệch là ĐỎ (siết). Hoa hồng PER_PAX (ADR-0077) CHỈ TRÊN GIẤY: mã `hoaHongDong` chưa thi công ⇒ lớp 2 bỏ qua phần đó, in "chưa chạy trên mã".
 // Hành vi QUA ROUTE THẬT (cùng các con số SV-SK-02, 03, 04) đã khoá ở src/modules/orders/so-khach-van-phong-route.test.ts (TC4, TC8).
+// ADR-0109 (phải thu không âm): phải thu = max(0, tạm tính − giảm giá); cảnh báo ⇔ giảm giá > tạm tính SAU. Khoá tuỳ chọn `dau_vao.buoc_sau` / `dap_an.buoc_sau`
+// (chỉ thêm) mô tả MỘT bước sau lần sửa: hoàn rồi Đã giao, Đã giao ngay, hay huỷ — lớp 2 chạy `conLai` + `lyDoChuaGiaoDuoc` (hàm thuần của billing) với ngữ cảnh
+// cố định (đã xác nhận, hôm nay = ngày đi, không người hưởng, không lần thu "chưa rõ"); hành vi route của cùng các ca ở TC8–TC8d và
+// src/modules/billing/phai-thu-khong-am.test.ts. Lớp 2 SIẾT: mọi ca, kể cả chờ xác nhận, phải "khớp mã" (chẩn đoán lệch → đỏ).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -12,10 +16,10 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isISODate } from "./shared/vn-date.ts";
 import { PAX_ORDER, type PaxCode, type PaxCounts } from "./shared/order-lines.ts";
-import { MA_LY_DO_SUA_SO_KHACH, LY_DO_SUA_SO_KHACH, canhBaoTongAm, docThanSuaSoKhach, type MaLyDoSuaSoKhach } from "./shared/so-khach-van-phong.ts";
+import { MA_LY_DO_SUA_SO_KHACH, LY_DO_SUA_SO_KHACH, canhBaoGiamGiaVuot, docThanSuaSoKhach, type MaLyDoSuaSoKhach } from "./shared/so-khach-van-phong.ts";
 import { doanSoKhach, ghepLyDo } from "./shared/tin-doi-don.ts";
 import { effectiveMoney, effectiveSubtotal, planMoneyEdit, type SubtotalServiceInput } from "./modules/orders/money-adjustment.ts";
-import { conLai, type ReceiptRow } from "./modules/billing/rules.ts";
+import { conLai, lyDoChuaGiaoDuoc, type ReceiptRow } from "./modules/billing/rules.ts";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");
 
@@ -23,9 +27,12 @@ type DichVu =
   | { id: string; ten: string; nguon: "danh_muc"; don_gia: Partial<Record<PaxCode, number>>; khach_truoc: PaxCounts }
   | { id: string; ten: string; nguon: "nhap_tay"; thanh_tien: number };
 type Tien = { tam_tinh: number; phai_thu: number; con_lai: number; du: number };
+type BuocSau = { loai: "hoan_roi_giao"; hoan: number } | { loai: "giao" } | { loai: "huy" };
+type DapAnBuocSau = { da_thu: number; con_lai: number; du: number; giao_duoc: boolean; due_snapshot: number | null } | { tong_cong: number; con_lai: number; du: number };
 type DapAn = {
   ghi_dong_dieu_chinh: boolean; truoc: Tien; sau: Tien; canh_bao_tong_am: boolean; nhat_ky: string | null;
   hoa_hong?: { truoc: number; sau: number; chay_tren_ma: boolean };
+  buoc_sau?: DapAnBuocSau;
 };
 type Ca = {
   ma: string;
@@ -34,6 +41,7 @@ type Ca = {
     dich_vu: DichVu[]; lan_sua_truoc: Record<string, PaxCounts> | null; giam_gia: number; da_thu: number;
     hoa_hong_chup?: { kieu: "PER_PAX"; muc: number };
     sua: { ly_do: MaLyDoSuaSoKhach; khach_sau: Record<string, PaxCounts> };
+    buoc_sau?: BuocSau;
   };
   dap_an: DapAn;
 };
@@ -46,8 +54,9 @@ test("sổ vàng golden/sua-so-khach-van-phong.json LỚP 1: đủ ca bắt bu�
   const cases = load();
   assert.ok(cases.length >= 7, "chống rỗng: ≥ 7 ca");
   const seen = new Set<string>();
-  // Bộ ca bắt buộc của gói A2: giảm sau đã thu (dư), tăng khách, có nhập tay, tổng âm có cảnh báo, hoa hồng PER_PAX, y nguyên, sửa lần hai.
-  const co = { du: false, tang: false, nhapTay: false, am: false, hoaHong: false, yNguyen: false, lanHai: false };
+  // Bộ ca bắt buộc của gói A2: giảm sau đã thu (dư), tăng khách, có nhập tay, giảm giá vượt tạm tính có cảnh báo, hoa hồng PER_PAX, y nguyên, sửa lần hai;
+  // thêm của ADR-0109 (phiếu kiểm 5b): chưa trả đồng nào, tạm tính về 0, đơn huỷ, hoàn rồi Đã giao.
+  const co = { du: false, tang: false, nhapTay: false, am: false, hoaHong: false, yNguyen: false, lanHai: false, chuaTra: false, tamTinh0: false, huy: false, giaoSauHoan: false };
   for (const c of cases) {
     assert.ok(!seen.has(c.ma), `mã trùng: ${c.ma}`);
     seen.add(c.ma);
@@ -64,7 +73,8 @@ test("sổ vàng golden/sua-so-khach-van-phong.json LỚP 1: đủ ca bắt bu�
       for (const k of PAX_ORDER) {
         const gia = d.don_gia[k];
         if (gia === undefined) assert.equal(d.khach_truoc[k], 0, `${c.ma}: loại khách không có giá thì số lưu = 0`);
-        else assert.ok(dong(gia) && gia > 0 && d.khach_truoc[k] > 0, `${c.ma}: loại khách có giá đã lưu ⇒ lúc xác nhận có khách (dòng giá tồn tại)`);
+        // N5 (ADR-0109): giá 0 có thật (em bé miễn phí) — `gia ≥ 0`.
+        else assert.ok(dong(gia) && gia >= 0 && d.khach_truoc[k] > 0, `${c.ma}: loại khách có giá đã lưu ⇒ lúc xác nhận có khách (dòng giá tồn tại)`);
       }
       assert.ok(laPax(v.sua.khach_sau[d.id]), `${c.ma}: thân gửi đủ mọi dịch vụ danh mục`);
       for (const k of PAX_ORDER) if (d.don_gia[k] === undefined) assert.equal(v.sua.khach_sau[d.id]![k], 0, `${c.ma}: không thêm loại khách chưa có giá`);
@@ -77,14 +87,31 @@ test("sổ vàng golden/sua-so-khach-van-phong.json LỚP 1: đủ ca bắt bu�
     const tamTinh = (khach: (d: (typeof danhMuc)[number]) => PaxCounts) =>
       danhMuc.reduce((s, d) => s + PAX_ORDER.reduce((n, k) => n + (d.don_gia[k] ?? 0) * khach(d)[k], 0), 0) + nhapTay.reduce((s, d) => s + d.thanh_tien, 0);
     const tien = (tt: number): Tien => {
-      const phaiThu = tt - v.giam_gia;
+      const phaiThu = Math.max(0, tt - v.giam_gia); // ADR-0109: không bao giờ âm
       return { tam_tinh: tt, phai_thu: phaiThu, con_lai: Math.max(0, phaiThu - v.da_thu), du: Math.max(0, v.da_thu - phaiThu) };
     };
     const ghi = danhMuc.some((d) => PAX_ORDER.some((k) => hienHanh(d.id, d.khach_truoc)[k] !== v.sua.khach_sau[d.id]![k]));
     assert.equal(a.ghi_dong_dieu_chinh, ghi, `${c.ma}: ghi dòng điều chỉnh ⇔ có số khách đổi so với HIỆN HÀNH`);
     assert.deepEqual(a.truoc, tien(tamTinh((d) => hienHanh(d.id, d.khach_truoc))), `${c.ma}: tiền TRƯỚC`);
     assert.deepEqual(a.sau, ghi ? tien(tamTinh((d) => v.sua.khach_sau[d.id]!)) : a.truoc, `${c.ma}: tiền SAU`);
-    assert.equal(a.canh_bao_tong_am, a.sau.phai_thu < 0, `${c.ma}: cảnh báo ⇔ phải thu sau < 0`);
+    assert.equal(a.canh_bao_tong_am, v.giam_gia > a.sau.tam_tinh, `${c.ma}: cảnh báo ⇔ giảm giá > tạm tính SAU (ADR-0109)`);
+    assert.ok(a.truoc.phai_thu >= 0 && a.sau.phai_thu >= 0, `${c.ma}: phải thu không âm`);
+    assert.equal(v.buoc_sau === undefined, a.buoc_sau === undefined, `${c.ma}: có bước sau ⇔ có đáp án bước sau`);
+    if (v.buoc_sau && a.buoc_sau) {
+      const pt = a.sau.phai_thu;
+      if (v.buoc_sau.loai === "huy") {
+        assert.deepEqual(a.buoc_sau, { tong_cong: pt, con_lai: 0, du: 0 }, `${c.ma}: đơn huỷ — tổng cộng = phải thu đã kẹp, còn lại / dư 0`);
+        co.huy = true;
+      } else {
+        const hoan = v.buoc_sau.loai === "hoan_roi_giao" ? v.buoc_sau.hoan : 0;
+        assert.ok(dong(hoan) && hoan <= v.da_thu, `${c.ma}: không hoàn quá số khách đã trả`);
+        const daThu = v.da_thu - hoan;
+        const conL = Math.max(0, pt - daThu), duL = Math.max(0, daThu - pt);
+        const giaoDuoc = conL === 0 && duL === 0;
+        assert.deepEqual(a.buoc_sau, { da_thu: daThu, con_lai: conL, du: duL, giao_duoc: giaoDuoc, due_snapshot: giaoDuoc ? pt : null }, `${c.ma}: bước sau`);
+        if (hoan > 0 && giaoDuoc) co.giaoSauHoan = true;
+      }
+    }
     if (!ghi) assert.equal(a.nhat_ky, null, `${c.ma}: không ghi thì không nhật ký`);
     else {
       const doan = danhMuc.flatMap((d) => {
@@ -108,10 +135,16 @@ test("sổ vàng golden/sua-so-khach-van-phong.json LỚP 1: đủ ca bắt bu�
     if (ghi && a.sau.tam_tinh > a.truoc.tam_tinh) co.tang = true;
     if (nhapTay.length) co.nhapTay = true;
     if (a.canh_bao_tong_am) co.am = true;
+    if (a.canh_bao_tong_am && v.da_thu === 0) co.chuaTra = true;
+    if (ghi && a.sau.tam_tinh === 0) co.tamTinh0 = true;
     if (!ghi) co.yNguyen = true;
     if (v.lan_sua_truoc) co.lanHai = true;
   }
-  assert.deepEqual(co, { du: true, tang: true, nhapTay: true, am: true, hoaHong: true, yNguyen: true, lanHai: true }, "đủ bộ ca bắt buộc của gói A2");
+  assert.deepEqual(
+    co,
+    { du: true, tang: true, nhapTay: true, am: true, hoaHong: true, yNguyen: true, lanHai: true, chuaTra: true, tamTinh0: true, huy: true, giaoSauHoan: true },
+    "đủ bộ ca bắt buộc của gói A2 + ADR-0109",
+  );
 });
 
 /** Chạy một ca qua luật thật — đúng thứ tự route văn phòng: đọc thân (mã → nhãn) → planMoneyEdit → nhật ký; tiền đơn qua effectiveMoney + conLai. */
@@ -144,16 +177,30 @@ function chayTrenMa(c: Ca): DapAn | string {
     ghi_dong_dieu_chinh: plan.write,
     truoc,
     sau,
-    canh_bao_tong_am: canhBaoTongAm(sau.phai_thu) !== null,
+    canh_bao_tong_am: canhBaoGiamGiaVuot({ subtotal: sau.tam_tinh, discount: v.giam_gia }) !== null,
     nhat_ky: plan.write ? ghepLyDo(doanSoKhach(plan.before, plan.after, services), plan.reason) : null,
   };
   if (plan.write && plan.subtotalBefore !== hienHanh) return `subtotalBefore ${plan.subtotalBefore} ≠ tạm tính hiện hành ${hienHanh}`;
+  // Bước sau (ADR-0109): hàm thuần của billing với ngữ cảnh cố định — đã xác nhận, hôm nay = ngày đi, không người hưởng, không lần thu "chưa rõ".
+  if (v.buoc_sau) {
+    const pt = sau.phai_thu;
+    if (v.buoc_sau.loai === "huy") {
+      const s = conLai(receipts, pt, "cancelled");
+      dap.buoc_sau = { tong_cong: pt, con_lai: s.conLai, du: s.du };
+    } else {
+      const hoan = v.buoc_sau.loai === "hoan_roi_giao" ? v.buoc_sau.hoan : 0;
+      const sau2: ReceiptRow[] = hoan > 0 ? [...receipts, { id: "h1", kind: "CUSTOMER_REFUND", amount: hoan, collectorRole: "COMPANY", collectorPartyId: "cong-ty", reversesId: null }] : receipts;
+      const s = conLai(sau2, pt, "confirmed");
+      const ly = lyDoChuaGiaoDuoc({ status: "confirmed", deliveredAt: null, homNay: "2026-10-08", ngayDi: ["2026-10-08"], dichVuThieuNgay: [], coNguoiHuong: false, so: s });
+      dap.buoc_sau = { da_thu: s.daThu, con_lai: s.conLai, du: s.du, giao_duoc: ly === null, due_snapshot: ly === null ? pt : null };
+    }
+  }
   // Hoa hồng (ADR-0077) chưa có mã — mang nguyên đáp án giấy sang để so phần TIỀN ĐƠN; lớp 2 không tính đạt phần này.
   if (c.dap_an.hoa_hong) dap.hoa_hong = c.dap_an.hoa_hong;
   return dap;
 }
 
-test("sổ vàng golden/sua-so-khach-van-phong.json LỚP 2 (mã thật): ca ĐÃ XÁC NHẬN khớp từng đồng; ca chờ xác nhận chỉ chẩn đoán; hoa hồng PER_PAX chưa chạy trên mã", (t) => {
+test("sổ vàng golden/sua-so-khach-van-phong.json LỚP 2 (mã thật): ca ĐÃ XÁC NHẬN khớp từng đồng; ca chờ xác nhận cũng phải khớp mã (siết ADR-0109); hoa hồng PER_PAX chưa chạy trên mã", (t) => {
   let daChay = 0;
   const cho: string[] = [];
   const chanDoan: string[] = [];
@@ -174,6 +221,8 @@ test("sổ vàng golden/sua-so-khach-van-phong.json LỚP 2 (mã thật): ca Đ�
     assert.deepEqual(dap, c.dap_an, `${c.ma}: đáp án (mã thật)`);
     daChay++;
   }
+  // Siết (ADR-0109 kế hoạch C6): ca CHỜ xác nhận cũng phải khớp mã — lệch là đỏ, không chỉ in chẩn đoán.
+  assert.deepEqual(chanDoan.filter((x) => !x.endsWith(": khớp mã")), [], "mọi ca (kể cả chờ xác nhận) phải khớp mã thật");
   t.diagnostic(`sửa số khách — đã chạy trên mã thật: ${daChay} ca đã xác nhận; chờ xác nhận: ${cho.length} (${chanDoan.join(" | ")}); hoa hồng chỉ trên giấy: ${giay.join(", ") || "không"}`);
   console.log(`sổ vàng sửa số khách lớp 2: đã chạy ${daChay}; chờ xác nhận ${cho.length}: ${chanDoan.join(" | ")}; hoa hồng chỉ trên giấy: ${giay.join(", ") || "không"}`);
   if (daChay === 0) t.todo("chưa có ca sửa số khách nào được Kế toán / chủ dự án xác nhận — đường văn phòng sửa số khách CHƯA được phát hành theo sổ vàng (Hiến chương 5.17)");

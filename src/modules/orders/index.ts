@@ -32,7 +32,7 @@ import { soNguoiChang, tongKhach } from "../../shared/so-nguoi-chang";
 import { maskLongDigits } from "../../shared/text-guards";
 import { doanSoKhach, ghepLyDo } from "../../shared/tin-doi-don";
 import type { HanhDongDoiSoKhach } from "../../shared/audit-actions";
-import { canhBaoTongAm, docThanSuaSoKhach, duocSuaSoKhachVanPhong } from "../../shared/so-khach-van-phong";
+import { canhBaoGiamGiaVuot, docThanSuaSoKhach, duocSuaSoKhachVanPhong } from "../../shared/so-khach-van-phong";
 import { docLyDoHuy, docPhanLoai, nhanNhomHuy, type LyDoHuy } from "../../shared/ly-do-huy";
 import { lyDoHienHanh, phanLoaiStatement } from "./huy-don-repo";
 import { toPoolOrders } from "./pool";
@@ -1145,7 +1145,7 @@ export const ordersModule: AppModule = {
     // ---- VĂN PHÒNG SỬA SỐ KHÁCH sau xác nhận (ADR-0063 D1, chủ duyệt 2026-10-08). Ô `order.money.edit` hỏi KHÔNG truyền `assigned`: Bán hàng chỉ đơn MÌNH lập
     // (own), Kế toán / Quản trị / Toàn quyền mọi đơn (any); HDV giữ route hẹp `handler-money-edit` (dispatch). Thứ tự: 404 → 403 → 409 Đã giao (trước khi đọc
     // thân; trigger 0044 là lưới cuối) → 409 nháp / huỷ → 400 thân (lý do MÃ ĐÓNG ADR-0023 điều 4, không chữ tự gõ, không số tiền) → 409 stale. KHÔNG chặn theo
-    // ngày đi; KHÔNG chặn tổng âm (chỉ cảnh báo). Tiền: `planMoneyEdit` (một luật với đường HDV) — không bao giờ tin số từ trình duyệt. Đây không phải đường
+    // ngày đi; KHÔNG chặn giảm giá vượt tạm tính (chỉ cảnh báo — ADR-0109; phải thu kẹp 0 ở effectiveMoney). Tiền: `planMoneyEdit` (một luật với đường HDV) — không bao giờ tin số từ trình duyệt. Đây không phải đường
     // thêm / sửa dịch vụ nhập tay (chỉ số khách của dịch vụ danh mục đã có — ADR-0061 điều 5 không áp, câu duyệt của chủ).
     route("POST", "/api/orders/:id/money-edit", "office", async ({ env, request, params, staff, baoThayDoi, dongBoChuyen }) => {
       const id = params.id!;
@@ -1163,7 +1163,7 @@ export const ordersModule: AppModule = {
       if (!soan.ok) return error(400, "invalid_input", soan.message);
       if (!soan.ghi) {
         const order = (await loadOrderView(env.DB, id, xemDuDatGap(staff)))!;
-        return json({ order, daGhi: false, canhBaoTongAm: canhBaoTongAm(order.total) } satisfies MoneyEditResponse);
+        return json({ order, daGhi: false, canhBaoTongAm: canhBaoGiamGiaVuot(order) } satisfies MoneyEditResponse);
       }
       // ADR-0104 Đ2 (điểm gọi 6): máy đồng bộ chuyến nối khúc chuyến SAU câu đơn — MỘT lô; số người từng chặng sau lệnh + phần vừa tăng (Q-2 = a).
       const dong = await dongBoChuyen({
@@ -1182,7 +1182,7 @@ export const ordersModule: AppModule = {
       const { dto } = dong.sauKhiGhi(kq);
       baoThayDoi({ orderId: id, thayDoi: "tien" });
       const order = (await loadOrderView(env.DB, id, xemDuDatGap(staff)))!;
-      return json({ order, daGhi: true, canhBaoTongAm: canhBaoTongAm(order.total), dongBoChuyen: dto } satisfies MoneyEditResponse);
+      return json({ order, daGhi: true, canhBaoTongAm: canhBaoGiamGiaVuot(order), dongBoChuyen: dto } satisfies MoneyEditResponse);
     }),
 
     // Đổi khách (hồ sơ người đặt + tên/SĐT trên đơn) — đơn nháp HOẶC đã xác nhận: coi như thông tin vận hành, cùng quyền với sửa chuyến (ADR-0011 điều 2).

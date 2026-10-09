@@ -36,7 +36,7 @@ import { banner, classifyOrderError, type Banner } from "../src/shared/order-err
 import { cauDongBoChuyen } from "../src/shared/dong-bo-chuyen-cau";
 import { cauKhoaXacNhan, khongQuyenSuaText, orderActions, paxFullText, suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
 import { CHUA_XEP_XE, dongXeTrenDon, duocXemXeTrenDon } from "../src/shared/xe-tren-don";
-import { canhBaoTongAm, duocSuaSoKhachVanPhong, nguonBangSuaSoKhach } from "../src/shared/so-khach-van-phong";
+import { canhBaoGiamGiaVuot, duocSuaSoKhachVanPhong, nguonBangSuaSoKhach } from "../src/shared/so-khach-van-phong";
 import type { MoneyEditSource } from "../src/shared/viec-cua-toi";
 import type { SuKienDon } from "../src/shared/bang-tin";
 
@@ -464,8 +464,8 @@ function tienCard(order: Order): HTMLElement {
     rows.push(t.du > 0 ? kv("Khách trả dư", `${vnd(t.du)} — chờ Kế toán hoàn`, "strong") : kv("Còn lại", vnd(t.conLai), "strong"));
   } else rows.push(kv("Đã thu / còn lại", "Chưa tải được"));
   rows.push(kv("Ghi chú thanh toán", order.paymentNote));
-  // ADR-0063 D1: bớt khách làm tổng âm KHÔNG bị chặn — câu cảnh báo hiện thường trực trên khối tiền để Kế toán xem lại trước khi hoàn.
-  const tongAm = order.status === "confirmed" ? canhBaoTongAm(order.total) : null;
+  // ADR-0063 D1 + ADR-0109 QĐ3: bớt khách tới mức giảm giá lớn hơn tạm tính KHÔNG bị chặn — câu cảnh báo hiện thường trực trên khối tiền (phải thu đã kẹp 0).
+  const tongAm = order.status === "confirmed" ? canhBaoGiamGiaVuot(order) : null;
   if (tongAm) rows.push(h("p", { class: "dd-canh-xn", "data-canh-bao": "tong-am" }, icon("alert", 16), tongAm));
   const lanThu =
     t && t.lanThu.length
@@ -1079,7 +1079,7 @@ function bookerButton(order: Order): HTMLButtonElement {
 
 const focusSoKhach = (): void => document.querySelector<HTMLElement>('[data-action="sua-so-khach"]')?.focus();
 
-/** Đơn đã xác nhận, chưa Đã giao: mở bảng "Sửa số khách dịch vụ" (web/sheet-so-khach.ts). Lưu xong tải lại đơn; tổng âm thì dải vàng kèm câu cảnh báo. */
+/** Đơn đã xác nhận, chưa Đã giao: mở bảng "Sửa số khách dịch vụ" (web/sheet-so-khach.ts). Lưu xong tải lại đơn; giảm giá vượt tạm tính thì dải vàng kèm câu cảnh báo. */
 function nutSuaSoKhach(order: Order, nguon: MoneyEditSource[]): HTMLButtonElement {
   const btn = h("button", { type: "button", class: "btn", "data-action": "sua-so-khach" }, "Sửa số khách dịch vụ");
   btn.addEventListener("click", () =>
@@ -1092,7 +1092,9 @@ function nutSuaSoKhach(order: Order, nguon: MoneyEditSource[]): HTMLButtonElemen
           void load().then(() => {
             // tải lại lỗi thì giữ banner lỗi, không đè (baoSauLenh)
             const xanh = r.daGhi ? "Đã lưu số khách mới, Nền tảng đã tính lại tiền." : "Số khách không đổi nên không ghi gì.";
-            baoSauLenh(r.canhBaoTongAm ? "Đã lưu số khách mới — tổng tiền của đơn đang âm." : xanh, xanh, [r.dongBoChuyen], r.canhBaoTongAm ? [r.canhBaoTongAm] : []);
+            // Tiêu đề "Đã lưu…" chỉ khi đã ghi (phiếu phản biện ADR-0109 thiếu 9); câu cảnh báo giảm giá vượt (ADR-0109) đi kèm như dòng phụ.
+            const vang = r.daGhi ? "Đã lưu số khách mới — giảm giá đang lớn hơn tiền dịch vụ." : xanh;
+            baoSauLenh(r.canhBaoTongAm ? vang : xanh, xanh, [r.dongBoChuyen], r.canhBaoTongAm ? [r.canhBaoTongAm] : []);
             focusSoKhach();
           }),
         onReload: () => void load().then(focusSoKhach),

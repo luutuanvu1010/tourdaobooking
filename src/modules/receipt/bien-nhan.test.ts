@@ -17,7 +17,7 @@ const COMPANY: CompanyDto = { name: "CÔNG TY TNHH TOUR ĐẢO", taxCode: "42019
 const donBiMat = (): OrderDetailDto => ({
   id: `ord-${LA}`, orderCode: "TD-20260930-0001", staffId: `stf-${LA}`, staffName: `NV ${LA}`, bookerPartyId: `pty-${LA}`, bookerName: `Đại lý ${LA}`,
   status: "confirmed", customerName: "Trần Văn Bình", customerPhone: "0901234567", customerEmail: null, customerNote: null,
-  subtotal: 1_000_000, discount: 0, total: 1_000_000, paymentNote: `ghi chú thanh toán ${LA}`, createdAt: "2026-09-30T01:00:00.000Z", updatedAt: `upd-${LA}`,
+  subtotal: 1_000_000, discount: 0, total: 1_000_000, giamGiaHieuLuc: 0, paymentNote: `ghi chú thanh toán ${LA}`, createdAt: "2026-09-30T01:00:00.000Z", updatedAt: `upd-${LA}`,
   confirmedAt: `cf-${LA}`, deliveredAt: null, completedAt: null,
   services: [{
     id: `svc-${LA}`, kind: "catalog", catalogCode: `TD${LA}`, name: "Vé Hòn Tằm", unit: "perPax", pax: { adult: 2, child: 0, senior: 0, infant: 0 },
@@ -66,4 +66,49 @@ test("NT-B1 (route thật): GET /api/orders/:id/receipt — số lạ ở ô bí
   assert.deepEqual([r.json.receipt.daTra, r.json.receipt.conLai, r.json.receipt.total], [300_000, 700_000, 1_000_000]);
   assert.equal((await w.call("GET", `/api/orders/${id}/receipt`, { as: DT })).status, 403, "Đối tác đơn người khác");
   assert.equal((await w.call("GET", `/api/orders/${id}/receipt`, { as: HDV })).status, 200, "HDV đang phụ trách");
+});
+
+// ---- ADR-0109 QĐ4: biên nhận gửi khách in GIẢM GIÁ HIỆU LỰC (= min(giảm giá, tạm tính hiện hành) — số máy chủ tính bằng `effectiveMoney`, đọc khoá
+// `OrderDto.giamGiaHieuLuc`), để ba dòng Tạm tính − Giảm giá = Tổng cộng luôn cân. `ReceiptDto` giữ đúng 15 khoá (bài NT-B1 ở trên không đổi).
+test("ADR-0109 (luật): biên nhận in giảm giá hiệu lực — đơn âm 500.000 / giảm 800.000 → [500.000, 500.000, 0]; bất biến tạm tính − giảm giá = tổng trên ba mẫu", () => {
+  const am = dungBienNhan({ ...donBiMat(), subtotal: 500_000, discount: 800_000, total: 0, giamGiaHieuLuc: 500_000 }, COMPANY, { daTra: 200_000, conLai: 0 });
+  assert.deepEqual([am.subtotal, am.discount, am.total], [500_000, 500_000, 0]);
+  const mau = [
+    { ...donBiMat(), subtotal: 1_000_000, discount: 100_000, total: 900_000, giamGiaHieuLuc: 100_000 }, // thường
+    { ...donBiMat(), subtotal: 500_000, discount: 800_000, total: 0, giamGiaHieuLuc: 500_000 }, // giảm giá vượt tạm tính
+    { ...donBiMat(), subtotal: 0, discount: 100_000, total: 0, giamGiaHieuLuc: 0 }, // tạm tính về 0
+  ];
+  for (const o of mau) {
+    const r = dungBienNhan(o, COMPANY, { daTra: 0, conLai: o.total });
+    assert.equal(r.subtotal - r.discount, r.total, JSON.stringify([r.subtotal, r.discount, r.total]));
+  }
+});
+
+test("ADR-0109 (route thật): bớt khách tới giảm giá > tạm tính → biên nhận [500.000, 500.000, 0], đã trả 200.000, còn lại 0; huỷ đơn → biên nhận huỷ Tổng cộng 0, đã trả trước 200.000", async () => {
+  const w = world();
+  const SALES = "11111111-1111-4111-8111-111111111111";
+  const ACC = "33333333-3333-4333-8333-333333333333";
+  seedStaff(w.sqlite, { id: SALES, phone: "0900000011", name: "An", perms: ["SALES"] });
+  seedStaff(w.sqlite, { id: ACC, phone: "0900000013", name: "Cúc", perms: ["ACCOUNTING"] });
+  w.sqlite.exec(
+    "INSERT INTO catalog_item (code, name, unit, price_adult, price_child, price_infant, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 500000, 300000, 50000, 1, '2026-01-01', '2026-01-01')",
+  );
+  const ngay = new Date(Date.now() + 7 * 3600e3 + 3 * 86400e3).toISOString().slice(0, 10);
+  const P = (adult: number) => ({ adult, child: 0, senior: 0, infant: 0 });
+  const tao = await w.call("POST", "/api/orders", {
+    as: SALES,
+    body: { customerName: "Khách Thử", customerPhone: "0912345678", discount: 800000, services: [{ kind: "catalog", catalogCode: "ZA1", pax: P(2), catalogPriceSeen: { adult: 500000, child: 300000, infant: 50000 }, departDate: ngay }] },
+  });
+  assert.equal(tao.status, 201, tao.text);
+  const id = tao.json.order.id as string;
+  assert.equal((await w.call("POST", `/api/orders/${id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${id}/payments`, { as: ACC, body: { soTien: 200000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" } })).status, 201);
+  const sua = await w.call("POST", `/api/orders/${id}/money-edit`, { as: ACC, body: { lyDo: "BOT_NGUOI", services: [{ id: tao.json.order.services[0].id, pax: P(1) }] } });
+  assert.equal(sua.status, 200, sua.text);
+  const bn = (await w.call("GET", `/api/orders/${id}/receipt`, { as: SALES })).json.receipt;
+  assert.deepEqual([bn.subtotal, bn.discount, bn.total, bn.daTra, bn.conLai], [500000, 500000, 0, 200000, 0]);
+  const huy = await w.call("POST", `/api/orders/${id}/status`, { as: SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
+  assert.equal(huy.status, 200, huy.text);
+  const bnHuy = (await w.call("GET", `/api/orders/${id}/receipt`, { as: SALES })).json.receipt;
+  assert.deepEqual([bnHuy.subtotal, bnHuy.discount, bnHuy.total, bnHuy.huy?.daTra], [500000, 500000, 0, 200000], "đơn huỷ từng âm: Tổng cộng 0, số cọc không đổi (ADR-0109 QĐ5)");
 });
