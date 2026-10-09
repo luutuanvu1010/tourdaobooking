@@ -1,8 +1,8 @@
 import { ApiError, api, type Api } from "./api";
 import { chipHan, coMucGiayToCuaToi, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
-import { PERMISSION_LABEL, can, hasPermission, isOffice } from "../src/shared/permissions";
-import { chiTaiXe, coCuocCuaToi, coPhanTaiXe } from "../src/shared/start-page";
-import { thayDieuPhoiXe } from "../src/shared/dieu-phoi-man";
+import { PERMISSION_LABEL, can, hasPermission } from "../src/shared/permissions";
+import { coPhanTaiXe } from "../src/shared/start-page";
+import { trangToi, type MucHien } from "../src/shared/muc-giao-dien";
 import { canHuyDangKyCu } from "../src/shared/push-khoa";
 import { vnDateTimeText, vnLocalToIso } from "../src/shared/vn-date";
 import { byId, h, replaceChildren } from "./dom";
@@ -41,37 +41,22 @@ void feedbackBadge().then((n) => {
     feedbackBadgeEl.hidden = false;
   }
 });
-const lienKetDau = [
-  isOffice(staff) && h("a", { class: "row-link", href: "/parties" }, "Danh bạ", icon("next", 20)),
-  can(staff, "admin.manage") && h("a", { class: "row-link", href: "/locations" }, "Địa điểm", icon("next", 20)),
-  // Loại giấy tờ cá nhân (loại giấy tờ của người + hạng giấy phép lái xe — danh mục chung, giấy tờ thuộc về người). Tách 2026-09-28 khỏi dòng "Danh mục giấy tờ"
-  // cũ (ADR-0040 D1, D2; Task A19); "Loại giấy tờ xe" nay ở nhóm VẬN CHUYỂN bên dưới. Ô admin.manage (như dòng cũ).
-  can(staff, "admin.manage") && h("a", { class: "row-link", href: "/loai-giay-to-nguoi" }, "Loại giấy tờ cá nhân", icon("next", 20)),
-];
-const lienKetSau = [
-  // Khoá sổ tháng (sổ đại lý đợt 1 Task 12): ô ledger.view không ngữ cảnh (Kế toán, Toàn quyền) — cùng điều kiện mục thanh bên ở web/shell.ts và route GET /api/ledger/ky.
-  can(staff, "ledger.view") && h("a", { class: "row-link", href: "/khoa-thang" }, "Khoá sổ tháng", icon("next", 20)),
-  can(staff, "audit.view") && h("a", { class: "row-link", href: "/audit" }, "Nhật ký", icon("next", 20)), // ADR-0038 điều 6: chỉ Toàn quyền
-  // ADR-0075 điều 7: sổ phiên đăng nhập của mọi tài khoản — chỉ IT/Toàn quyền (ô auth.session.viewAll); lối vào ở điện thoại (thanh bên máy tính có mục riêng).
-  can(staff, "auth.session.viewAll") && h("a", { class: "row-link", href: "/sessions" }, "Phiên đăng nhập", icon("next", 20)),
-  can(staff, "notice.send") && h("a", { class: "row-link", href: "/gui-thong-bao" }, "Gửi thông báo", icon("next", 20)),
-  // ADR-0069 điều 1: cài đặt trợ lý chuyển từ khối ở trang này sang trang riêng — chỉ Toàn quyền (ô settings.ops).
-  can(staff, "settings.ops") && h("a", { class: "row-link", href: "/tro-ly-cai-dat" }, "Trợ lý Hỗ trợ", icon("next", 20)),
-  can(staff, "settings.ops") && h("a", { class: "row-link", href: "/giao-dien" }, "Giao diện", icon("next", 20)), // ADR-0087
-  h("a", { class: "row-link", href: "/feedback" }, "Góp ý / Báo lỗi", feedbackBadgeEl, icon("next", 20)),
-  h("a", { class: "row-link", href: "/help" }, "Trợ giúp", helpHasNews() && newDot(), icon("next", 20)),
-  logoutBtn,
-];
-const quanLyXe = can(staff, "vehicle.manage");
-// Tiền xe thuê (bản vẽ Đợt 4): "Bảng giá thuê xe" (ô transport.rate.view), "Bảng kê chi phí xe" (ô transport.cost.view) ngay sau "Điều phối xe".
-const bangGiaXe = can(staff, "transport.rate.view");
-const bangKeXe = can(staff, "transport.cost.view");
-if (quanLyXe || thayDieuPhoiXe(staff) || bangGiaXe || bangKeXe) {
-  // Vận chuyển (ADR-0040 D1; bản vẽ 00, điện thoại): Danh bạ / Địa điểm / Loại giấy tờ cá nhân → nhãn "VẬN CHUYỂN" → Điều phối xe (ô trip.view — Q-B-4, cả Bán
-  // hàng, Kế toán) / Xe / Giấy tờ sắp hết hạn (huy hiệu cát) / Loại giấy tờ xe (tách 2026-09-28; thêm ô admin.manage — route sửa danh mục hỏi ô này) → phần còn lại.
-  // `#links` giữ phần còn lại (Góp ý, Trợ giúp, Đăng xuất…) để mọi chỗ đang tìm các dòng đó trong #links vẫn đúng; tài khoản không có ô nào của nhóm: DOM như cũ.
-  const soSapHet = h("span", { class: "vc-badge", hidden: true });
-  if (quanLyXe) {
+// LỐI VÀO CÁC TRANG ở trang Tôi: dòng nào hiện cho ai, chữ và thứ tự khai ở bảng mục (src/shared/muc-giao-dien.ts — TRANG_TOI, cùng bảng quyền với máy chủ;
+// rào máy src/muc-hien-mo-duoc.test.ts). Ở đây chỉ vẽ. Bố cục: Danh bạ / Địa điểm / Loại giấy tờ cá nhân → nhãn "VẬN CHUYỂN" + nhóm (ADR-0040 D1; bản vẽ 00 điện
+// thoại — chỉ dựng khi có dòng mở nhóm) → phần còn lại + Đăng xuất. `#links` giữ phần còn lại (Góp ý, Trợ giúp, Đăng xuất…) để mọi chỗ đang tìm các dòng đó trong
+// #links vẫn đúng; tài khoản không có dòng nào của nhóm: DOM như cũ (một danh sách).
+// sinh-so-do-trang: nhãn các dòng TRANG_TOI (trừ nhóm VẬN CHUYỂN) chèn vào kho trợ lý ở ĐÚNG chỗ này.
+const toi = trangToi(staff);
+const soSapHet = h("span", { class: "vc-badge", hidden: true });
+/** Một dòng lối vào. Phần chỉ trình bày (không quyết ai thấy): huy hiệu Góp ý, chấm "Có bản mới" của Trợ giúp, số giấy tờ xe đã hết + sắp hết hạn (màu cát). */
+function dongToi(m: MucHien, nhomVanChuyen: boolean): HTMLElement {
+  const them = m.trang === "gopY" ? feedbackBadgeEl : m.trang === "troGiup" ? helpHasNews() && newDot() : m.trang === "sapHetHan" ? soSapHet : null;
+  return h("a", { class: "row-link", href: m.href }, nhomVanChuyen ? h("span", { class: "vc-row-label" }, m.nhan) : m.nhan, them, icon("next", 20));
+}
+const lienKetDau = toi.dau.map((m) => dongToi(m, false));
+const lienKetSau = [...toi.sau.map((m) => dongToi(m, false)), logoutBtn];
+if (toi.vanChuyen) {
+  if (toi.vanChuyen.some((m) => m.trang === "sapHetHan")) {
     void demSapHetHan().then((n) => {
       if (n > 0) {
         soSapHet.textContent = String(n);
@@ -82,26 +67,7 @@ if (quanLyXe || thayDieuPhoiXe(staff) || bangGiaXe || bangKeXe) {
   byId("links").before(
     h("section", { id: "links-top", class: "card list-card" }, ...lienKetDau),
     h("div", { id: "vc-eyebrow", class: "vc-eyebrow" }, "VẬN CHUYỂN"),
-    h(
-      "section",
-      { id: "vc-links", class: "card list-card", "aria-labelledby": "vc-eyebrow" },
-      thayDieuPhoiXe(staff) && h("a", { class: "row-link", href: "/dieu-phoi" }, h("span", { class: "vc-row-label" }, "Điều phối xe"), icon("next", 20)),
-      thayDieuPhoiXe(staff) && h("a", { class: "row-link", href: "/xe-dang-chay" }, h("span", { class: "vc-row-label" }, "Xe đang chạy"), icon("next", 20)),
-      bangGiaXe && h("a", { class: "row-link", href: "/bang-gia-xe" }, h("span", { class: "vc-row-label" }, "Bảng giá thuê xe"), icon("next", 20)),
-      bangKeXe && h("a", { class: "row-link", href: "/bang-ke-xe" }, h("span", { class: "vc-row-label" }, "Bảng kê chi phí xe"), icon("next", 20)),
-      // Kiểm độc lập K2b T2 (điều phối chốt, GA-K2b-T2): tài khoản vừa tài xế công ty vừa văn phòng — lối tới "Cuốc của tôi" ở điện thoại (tài khoản chỉ tài xế
-      // có tab riêng; trang đầu của tổ hợp này KHÔNG đổi).
-      coCuocCuaToi(staff) && !chiTaiXe(staff) && h("a", { class: "row-link", href: "/cuoc" }, h("span", { class: "vc-row-label" }, "Cuốc của tôi"), icon("next", 20)),
-      quanLyXe && h("a", { class: "row-link", href: "/xe" }, h("span", { class: "vc-row-label" }, "Xe"), icon("next", 20)),
-      // ADR-0055 VK2-A (Đợt 3): trang tuần "Lịch xe bận" — ô vehicle.manage (câu 3.4).
-      quanLyXe && h("a", { class: "row-link", href: "/lich-xe-ban" }, h("span", { class: "vc-row-label" }, "Lịch xe bận"), icon("next", 20)),
-      quanLyXe && h("a", { class: "row-link", href: "/giay-to-sap-het-han" }, h("span", { class: "vc-row-label" }, "Giấy tờ sắp hết hạn"), soSapHet, icon("next", 20)),
-      quanLyXe && can(staff, "admin.manage") && h("a", { class: "row-link", href: "/loai-giay-to-xe" }, h("span", { class: "vc-row-label" }, "Loại giấy tờ xe"), icon("next", 20)),
-      // Bảng điều phối lượt 1 (ADR-0049; bản vẽ 08 khung 8b / 8d — điện thoại mở từ trang Tôi): Chính sách điều phối (chỉ Toàn quyền — ô settings.ops),
-      // Lý do điều phối (ô admin.manage). Giữ đúng điều kiện cũ (trong nhóm của người có ô vehicle.manage).
-      quanLyXe && can(staff, "settings.ops") && h("a", { class: "row-link", href: "/chinh-sach-dieu-phoi" }, h("span", { class: "vc-row-label" }, "Chính sách điều phối"), icon("next", 20)),
-      quanLyXe && can(staff, "admin.manage") && h("a", { class: "row-link", href: "/ly-do-dieu-phoi" }, h("span", { class: "vc-row-label" }, "Lý do điều phối"), icon("next", 20)),
-    ),
+    h("section", { id: "vc-links", class: "card list-card", "aria-labelledby": "vc-eyebrow" }, ...toi.vanChuyen.map((m) => dongToi(m, true))),
   );
   replaceChildren(byId("links"), ...lienKetSau);
 } else replaceChildren(byId("links"), ...lienKetDau, ...lienKetSau);
