@@ -1,0 +1,107 @@
+// BÀI ĐẶC TẢ HIỆN TRẠNG CỦA MỤC ĐIỀU HƯỚNG (bước K-c sổ đại lý đợt 1).
+//
+// Chặn: đổi NGOÀI Ý MUỐN ai thấy mục nào, chữ, nhóm, thứ tự — ở thanh bên máy tính, thanh tab điện thoại, thanh trên, trang Tôi, ô Trang chủ, khung tạm (bản
+// nhớ khung ADR-0035) và khung mất mạng — trên ĐỦ 1024 tập quyền (mọi tập con của PERMISSION_CODES, kể cả tập hôm nay CSDL không cho tạo).
+// Cách: src/muc-giao-dien-hien-trang.json là ảnh chụp mã giao diện CŨ (trước khi gom về bảng src/shared/muc-giao-dien.ts), sinh bằng cách CHẠY chính
+// web/account.ts + web/shell.ts trên DOM giả (`node scripts/chup-muc-giao-dien.mjs --ghi src/muc-giao-dien-hien-trang.json --rev cd44b76d`); bài này tính lại
+// bằng các hàm thuần của bảng mới và đòi khớp từng tập. Bài rào src/muc-hien-mo-duoc.test.ts chỉ thấy "mục hiện ⇔ trang mở được" — không thấy đổi chữ, đổi
+// nhóm, đổi thứ tự, hay một mục "được mà ẩn" nay lặng lẽ hiện/ẩn thêm; bài này thấy (vì sao giữ lại sau khi gom bảng — Ruling K-c ở sổ thi công).
+//
+// Giới hạn: mục MỚI (chuỗi chưa có trong ảnh chụp) được bỏ qua — bài rào lo mục mới; đổi chữ một mục cũ thì chuỗi cũ biến mất ⇒ ĐỎ. Đổi có chủ ý (chủ duyệt):
+// chụp lại bằng lệnh trên với `--rev <mã lần lưu đã duyệt>` và ghi lý do trong lần lưu. Huy hiệu, chấm "Có bản mới", trạng thái sáng không thuộc bài này
+// (scripts/chup-muc-giao-dien.mjs --so-sanh <mã> so DOM đầy đủ khi cần).
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { PERMISSION_CODES, type PermissionHolder } from "./shared/permissions.ts";
+import { KHUNG_MAT_MANG, coKhungNho, thanhBen, thanhTab, thanhTren, trangToi, type NguoiXem } from "./shared/muc-giao-dien.ts";
+import { nhomMayTinh } from "./shared/trang-chu-o.ts";
+
+interface AnhChup {
+  maQuyen: string[];
+  noi: Record<string, { muc: string[]; tap: string[] }>;
+  ngoaiTuyen: { thanhBen: string[]; thanhTab: string[]; thanhTren: string[]; trangToi: string[] };
+}
+const ANH = JSON.parse(readFileSync(new URL("./muc-giao-dien-hien-trang.json", import.meta.url), "utf8")) as AnhChup;
+
+/** Đường trang lúc chụp (Góp ý mở form mới kèm `from` = trang đang đứng). */
+const DUONG_CHUP = "/account";
+const TAP = Array.from({ length: 1 << PERMISSION_CODES.length }, (_, m) => m);
+const nguoi = (m: number): PermissionHolder => ({ id: `tap-${m}`, permissions: PERMISSION_CODES.filter((_, i) => m & (1 << i)) });
+const co = (b64: string, m: number): boolean => ((Buffer.from(b64, "base64")[m >> 3]! >> (m & 7)) & 1) === 1;
+
+/** Chuỗi so sánh — ĐÚNG dạng scripts/chup-muc-giao-dien.mjs đọc từ DOM (docMuc). */
+function chuoiThanhBen(n: NguoiXem): string[] {
+  return thanhBen(n, DUONG_CHUP).flatMap(({ nhom, muc }) =>
+    muc.map((x) => (x.kieu === "cha" ? `${nhom}|cha|${x.nhan}|` : `${nhom}|${x.con ? "con" : ""}|${x.nhan}|${x.href}`)),
+  );
+}
+const chuoiThanhTab = (n: NguoiXem): string[] => thanhTab(n).map((t) => `${t.nhan}|${t.href}`);
+const chuoiThanhTren = (n: NguoiXem): string[] => thanhTren(n).map((t) => (t.kieu === "o-tim" ? `Tìm đơn|${t.href}` : `${t.nhan}|${t.href}`));
+function chuoiTrangToi(s: PermissionHolder): string[] {
+  const t = trangToi(s);
+  const dong = (id: string, ds: readonly { nhan: string; href: string }[]) => ds.map((m) => `${id}|${m.nhan}|${m.href}`);
+  return t.vanChuyen ? [...dong("links-top", t.dau), ...dong("vc-links", t.vanChuyen), ...dong("links", t.sau)] : [...dong("links", t.dau), ...dong("links", t.sau)];
+}
+const chuoiTrangChu = (s: PermissionHolder): string[] => nhomMayTinh(s).flatMap((g) => g.o.map((x) => `${g.ten}|${x.khoa}|${x.nhan}|${x.href}`));
+
+const NOI: Record<string, (s: PermissionHolder) => string[]> = {
+  "thanh-ben": (s) => chuoiThanhBen({ staff: s }),
+  "thanh-tab": (s) => chuoiThanhTab({ staff: s }),
+  "thanh-tren": (s) => chuoiThanhTren({ staff: s }),
+  "trang-toi": chuoiTrangToi,
+  "trang-chu": chuoiTrangChu,
+  // Khung tạm: lần mở trang sau, bản nhớ khung là bốn cờ ghi từ chính tài khoản đó.
+  "khung-tam:thanh-ben": (s) => chuoiThanhBen({ khungNho: coKhungNho(s) }),
+  "khung-tam:thanh-tab": (s) => chuoiThanhTab({ khungNho: coKhungNho(s) }),
+  "khung-tam:thanh-tren": (s) => chuoiThanhTren({ khungNho: coKhungNho(s) }),
+};
+
+/**
+ * Mục "hiện mà bị máy chủ từ chối" đã ẨN ở bước K-c (bước 4 của đề bài: siết). Dạng: "<nơi>|<chuỗi>" → các tập (m) nay không còn thấy.
+ * Rỗng: bài rào không tìm thấy mục nào hiện mà bị từ chối trên 1024 tập — không ẩn gì.
+ */
+const AN_DI: Record<string, readonly number[]> = {};
+
+test("ảnh chụp đủ 1024 tập, đúng thứ tự mã quyền, đủ tám nơi", () => {
+  assert.deepEqual(ANH.maQuyen, [...PERMISSION_CODES], "thứ tự mã quyền đổi ⇒ mặt nạ của ảnh chụp sai nghĩa — chụp lại");
+  assert.deepEqual(Object.keys(ANH.noi).sort(), Object.keys(NOI).sort());
+  for (const [noi, { muc, tap }] of Object.entries(ANH.noi)) {
+    assert.equal(tap.length, muc.length, noi);
+    for (const t of tap) assert.equal(Buffer.from(t, "base64").length, TAP.length / 8, noi);
+  }
+});
+
+for (const [noi, tinh] of Object.entries(NOI)) {
+  test(`${noi}: mỗi tập quyền thấy đúng các mục, đúng thứ tự như mã cũ (trừ mục đã ẩn có ghi ở AN_DI)`, () => {
+    const { muc, tap } = ANH.noi[noi]!;
+    const daBiet = new Set(muc);
+    const lech: string[] = [];
+    for (const m of TAP) {
+      const cu = muc.filter((x, i) => co(tap[i]!, m) && !(AN_DI[`${noi}|${x}`] ?? []).includes(m));
+      const moi = tinh(nguoi(m)).filter((x) => daBiet.has(x)); // mục mới (chưa có trong ảnh chụp): bài rào lo
+      if (JSON.stringify(cu) !== JSON.stringify(moi)) {
+        lech.push(`tập ${m} [${nguoi(m).permissions.join(", ") || "không quyền"}]: cũ ${JSON.stringify(cu)} ≠ mới ${JSON.stringify(moi)}`);
+        if (lech.length >= 5) break;
+      }
+    }
+    assert.deepEqual(lech, [], `${noi}: mục hiện khác ảnh chụp mã cũ (src/muc-giao-dien-hien-trang.json). Đổi có chủ ý thì chụp lại — xem đầu tệp.`);
+  });
+}
+
+test("mất mạng lúc mở trang, chưa có bản nhớ khung: bốn tab cơ bản, không thanh bên, không thanh trên — như mã cũ", () => {
+  const n: NguoiXem = { khungNho: KHUNG_MAT_MANG };
+  assert.deepEqual(chuoiThanhTab(n), ANH.ngoaiTuyen.thanhTab);
+  assert.deepEqual(ANH.ngoaiTuyen.thanhBen, [], "mã cũ không dựng thanh bên khi mất mạng — shell.ts giữ (addNav không có staff, không có bản nhớ)");
+  assert.deepEqual(ANH.ngoaiTuyen.thanhTren, []);
+});
+
+test("AN_DI không thừa: mỗi dòng trỏ tới chuỗi có trong ảnh chụp và tập từng thấy nó", () => {
+  for (const [khoa, ds] of Object.entries(AN_DI)) {
+    const [noi, ...phan] = khoa.split("|");
+    const { muc, tap } = ANH.noi[noi!]!;
+    const i = muc.indexOf(phan.join("|"));
+    assert.ok(i >= 0, `AN_DI: ${khoa} không có trong ảnh chụp`);
+    for (const m of ds) assert.ok(co(tap[i]!, m), `AN_DI: ${khoa} — tập ${m} vốn không thấy mục này`);
+  }
+});

@@ -17,7 +17,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, posix } from "node:path";
+import { join, posix, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import * as esbuild from "esbuild";
 import { PERMISSION_CODES } from "../src/shared/permissions.ts";
@@ -545,7 +545,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
     const ng = nguon(arg("--rev"));
     const t = Date.now();
     const kq = await chup(ng);
-    writeFileSync(join(ROOT, ghi), `${JSON.stringify(anhChup(kq, ng), null, 1)}\n`);
+    writeFileSync(resolve(ROOT, ghi), `${JSON.stringify(anhChup(kq, ng), null, 1)}\n`);
     console.log(`Đã ghi ${ghi} từ ${ng.ten} (${Date.now() - t} ms).`);
   } else if (ssRev) {
     const a = await chup(nguon(ssRev));
