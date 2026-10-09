@@ -2,10 +2,14 @@
 // Không I/O, không import module khác. MỘT hàm chọn mức (`chonMuc`), MỘT hàm chọn điều khoản (`chonDieuKhoan`), MỘT cách làm tròn (`lamTronNuaLen`).
 // Tỷ lệ tính bằng phần vạn (1250 = 12,5%). Thành tiền / số khách là số HIỆN HÀNH của dòng; mức là mức ĐÃ CHỤP (A-2).
 import { parseUnit, payingGuests, type PaxCounts } from "../../shared/order-lines.ts";
+import { giaVonDong, hoaHongDong, lamTronNuaLen, tinhDongDoiTac, type BanChup, type DongPhanDoiTac, type KieuMuc, type LyDoThieu } from "../../shared/hoa-hong-dong.ts";
+import { nhanMuc } from "../../shared/so-dai-ly-nhan.ts";
 
-export type KieuMuc = "RATE" | "PER_PAX";
+// Phép tính tiền MỘT dòng (làm tròn nửa lên, hoa hồng, giá vốn, `tinhDongDoiTac`) và kiểu bản chụp nằm ở src/shared/hoa-hong-dong.ts để `orders/thuong-mai.ts` (DTO) chạy được bằng node trực tiếp
+// mà không nhập index.ts của module khác; ở đây chỉ tái xuất — vẫn MỘT định nghĩa (Task 5, Ruling ở sổ thi công).
+export { giaVonDong, hoaHongDong, lamTronNuaLen, tinhDongDoiTac, type BanChup, type DongPhanDoiTac, type KieuMuc, type LyDoThieu };
+
 export type PhamVi = "SERVICE" | "GROUP" | "ALL";
-export type LyDoThieu = "NO_RULE" | "RULE_CONFLICT" | "MANUAL_LINE" | "BOOKER_NOT_BENEFICIARY" | "NOT_CAPTURED";
 
 export interface DongMuc {
   id: string;
@@ -95,30 +99,12 @@ export function chonDieuKhoan(v: { catalogCode: string | null; groupCode: string
   return { trangThai: "MISSING" };
 }
 
-/** Làm tròn NỬA LÊN tới đồng của `tu / mau` (tu ≥ 0, mau > 0, số nguyên) — điều A1, chủ duyệt 2026-10-08. */
-export const lamTronNuaLen = (tu: number, mau: number): number => Math.floor((2 * tu + mau) / (2 * mau));
-export function hoaHongDong(v: { kind: KieuMuc; rateBp: number | null; perPaxAmount: number | null; thanhTien: number; soKhachTinh: number }): number {
-  return v.kind === "RATE" ? lamTronNuaLen(v.rateBp! * v.thanhTien, 10_000) : v.perPaxAmount! * v.soKhachTinh;
-}
-/** Giá vốn trên thành tiền TRƯỚC giảm giá cấp đơn (H8 = A), cùng cách làm tròn. */
-export const giaVonDong = (v: { costRateBp: number; thanhTien: number }): number => lamTronNuaLen(v.costRateBp * v.thanhTien, 10_000);
 /** Số khách tính hoa hồng (H7): người lớn + trẻ em + người cao tuổi (không em bé); dịch vụ theo nhóm đếm lượt (tổng quantity các dòng tiền). */
 export function soKhachTinhHoaHong(v: { unit: string; pax: PaxCounts; items: readonly { quantity: number }[] }): number {
   return parseUnit(v.unit).kind === "group" ? v.items.reduce((s, i) => s + i.quantity, 0) : payingGuests(v.pax);
 }
 
 export interface DongDon { serviceId: string; catalogCode: string | null; groupCode: string | null }
-/** Bản chụp của một dòng — cùng dạng cho bản mới tính và bản đọc từ `ord_service_terms` (ruleId null = ghi tay). */
-export interface BanChup {
-  serviceId: string;
-  beneficiaryPartyId: string | null;
-  hoaHong:
-    | { status: "NONE" }
-    | { status: "SET"; kind: KieuMuc; rateBp: number | null; perPax: number | null; ruleId: string | null }
-    | { status: "MISSING"; reason: LyDoThieu };
-  cungUng: { status: "SET"; termId: string | null; sellerPartyId: string; supplierPartyId: string | null; costRateBp: number | null } | { status: "MISSING" };
-}
-
 /** Tính bản chụp cho mọi dòng của đơn ở `ngay` (Xác nhận / đổi bên đặt). */
 export function chupDon(v: { nguoiHuong: NguoiHuong; ngay: string; dong: readonly DongDon[]; muc: readonly DongMuc[]; dieuKhoan: readonly DongDieuKhoan[] }): BanChup[] {
   const beneficiaryPartyId = v.nguoiHuong.loai === "NONE" ? null : v.nguoiHuong.partyId;
@@ -134,26 +120,6 @@ export function chupDon(v: { nguoiHuong: NguoiHuong; ngay: string; dong: readonl
       : { status: "SET", kind: m.dong.kind, rateBp: m.dong.rateBp, perPax: m.dong.perPaxAmount, ruleId: m.dong.id };
     return { serviceId: d.serviceId, beneficiaryPartyId, hoaHong, cungUng };
   });
-}
-
-export interface DongPhanDoiTac {
-  serviceId: string;
-  thanhTien: number;
-  soKhachTinh: number;
-  /** null = thiếu mức (không bao giờ tự lấy 0); 0 khi đơn không có người hưởng. */
-  hoaHong: number | null;
-  /** Thành tiền − hoa hồng; null khi thiếu mức. Chỉ hiển thị, không lưu. */
-  giaDaiLy: number | null;
-  /** Chỉ khi người bán là nhà cung cấp. */
-  giaVon: number | null;
-}
-export function tinhDongDoiTac(c: BanChup, tien: { thanhTien: number; soKhachTinh: number }): DongPhanDoiTac {
-  const h = c.hoaHong;
-  const hoaHong = h.status === "NONE" ? 0 : h.status === "MISSING" ? null
-    : hoaHongDong({ kind: h.kind, rateBp: h.rateBp, perPaxAmount: h.perPax, thanhTien: tien.thanhTien, soKhachTinh: tien.soKhachTinh });
-  const cu = c.cungUng;
-  const giaVon = cu.status === "SET" && cu.supplierPartyId !== null && cu.costRateBp !== null ? giaVonDong({ costRateBp: cu.costRateBp, thanhTien: tien.thanhTien }) : null;
-  return { serviceId: c.serviceId, thanhTien: tien.thanhTien, soKhachTinh: tien.soKhachTinh, hoaHong, giaDaiLy: hoaHong === null ? null : tien.thanhTien - hoaHong, giaVon };
 }
 
 // ===== Kiểm thân route của bảng mức và điều khoản (Task 3; đặc tả §6). Chỉ thêm, không đổi hàm ở trên. =====
@@ -235,15 +201,8 @@ export function kiemNgayDong(raw: unknown, tuNgay: string): Ket<string> {
   return { ok: true, value: d };
 }
 
-const nhanBp = (bp: number): string => {
-  const nguyen = Math.floor(bp / 100);
-  const le = String(bp % 100).padStart(2, "0").replace(/0+$/, "");
-  return le ? `${nguyen},${le}%` : `${nguyen}%`;
-};
-const nhanDong = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-/** Mô tả một dòng mức cho nhật ký: "<đối tượng> · <phạm vi> · <mức>". Không SĐT, không tiền khách. */
+/** Mô tả một dòng mức cho nhật ký: "<đối tượng> · <phạm vi> · <mức>". Không SĐT, không tiền khách. Nhãn mức đi qua MỘT nguồn `nhanMuc` (src/shared/so-dai-ly-nhan.ts). */
 export function moTaMuc(v: { doiTuong: string; scope: PhamVi; catalogCode: string | null; groupCode: string | null; kind: KieuMuc; rateBp: number | null; perPaxAmount: number | null }): string {
   const pv = v.scope === "ALL" ? "mọi dịch vụ" : v.scope === "GROUP" ? `nhóm ${v.groupCode}` : `dịch vụ ${v.catalogCode}`;
-  const muc = v.kind === "RATE" ? nhanBp(v.rateBp ?? 0) : `${nhanDong(v.perPaxAmount ?? 0)}đ/khách`;
-  return `${v.doiTuong} · ${pv} · ${muc}`;
+  return `${v.doiTuong} · ${pv} · ${nhanMuc({ kind: v.kind, rateBp: v.rateBp, perPax: v.perPaxAmount })}`;
 }

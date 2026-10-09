@@ -174,6 +174,9 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/pricing/cung-ung", access: "office" }, // supply.terms.write
   { method: "POST", path: "/api/pricing/cung-ung/:id/dong", access: "office" }, // supply.terms.write
   { method: "GET", path: "/api/pricing/nguoi-huong", access: "orders" }, // order.create và không phải Đối tác — tìm người hưởng theo tên cho form lập đơn
+  // Sổ đại lý đợt 1 (module orders — ADR-0077 điều 10–11; đặc tả §6, Task 5): phần thương mại của đơn. Đọc: order.view + order.terms.view phạm vi đơn (Đối tác nhận DTO hẹp); ghi: order.terms.override, không bao giờ cho tài khoản có quyền Đối tác.
+  { method: "GET", path: "/api/orders/:id/thuong-mai", access: "orders" },
+  { method: "POST", path: "/api/orders/:id/thuong-mai/:serviceId", access: "office" }, // order.terms.override — ghi mức tay (Kế toán, Quản trị, Toàn quyền)
   { method: "POST", path: "/api/orders/:id/status", access: "orders" },
   { method: "POST", path: "/api/orders/:id/cancel-reason", access: "orders" }, // ADR-0089 đ8: phân loại lý do huỷ — tự kiểm can(order.cancel.classify) bên trong
   // ADR-0089 (cọc đơn huỷ, migration 0079): sáu lệnh ghi văn phòng (tự kiểm ô bên trong) + ba route đọc của Kế toán (ledger.view any).
@@ -459,6 +462,7 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-08 (ADR-0108 đ3): + GET /api/orders/:id/qr-thanh-toan (orders) = 256.
   // 2026-10-08 (sổ đại lý đợt 1, module pricing — ADR-0077/0078): + 8 route /api/pricing/* (hoa-hong ×3, thu-tra, cung-ung ×3, nguoi-huong) = 264.
   // 2026-10-08 (sổ đại lý đợt 1, Task 7 — khoá sổ tháng, module billing; ADR-0080 D1): + GET /api/ledger/ky, POST /api/ledger/ky/:period/khoa (office) = HIỆU +2 trên nền 264 (= 266 nếu đứng riêng; điều phối chỉnh số tuyệt đối lúc gộp).
-  assert.equal(actual.length, 266, "số route thực tế lệch 266 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 266, "SNAPSHOT phải có đúng 266 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-08 (sổ đại lý đợt 1, Task 5 — phần thương mại của đơn, module orders; ADR-0077 điều 10–11): + GET /api/orders/:id/thuong-mai (orders), POST /api/orders/:id/thuong-mai/:serviceId (office) = HIỆU +2 (tuyệt đối 268 khi cả Task 3, 5, 7 đã gộp).
+  assert.equal(actual.length, 268, "số route thực tế lệch 268 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 268, "SNAPSHOT phải có đúng 268 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

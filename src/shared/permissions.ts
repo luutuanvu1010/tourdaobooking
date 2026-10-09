@@ -129,6 +129,12 @@ export const MATRIX = {
   "partner.commission.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   "supply.terms.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // Bán hàng KHÔNG xem tỷ lệ mua lại của nhà cung cấp
   "supply.terms.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  // Phần đối tác của đơn (đặc tả §6; Task 5): xem = bằng `order.view` ở MỌI cột (supply.terms.view ⊆ order.terms.view ⊆ money.view — bài khoá ở permissions.test.ts), nhưng tài khoản giữ
+  // PARTNER (kể cả lai) nhận DTO HẸP (`holdsPartner` ở route — "có quyền Đối tác là áp") VÀ chỉ mở đơn của chính mình có người hưởng là hồ sơ của mình hoặc không ai (còn lại 404 — hàm thuần
+  // `cheDoThuongMai` ở orders/thuong-mai.ts; ô `any` của Bán hàng / Kế toán KHÔNG cứu được tài khoản lai); ghi mức tay chỉ Kế toán, Quản trị, Toàn quyền (Bán hàng KHÔNG). Cột HR, DRIVER, DRIVER_PARTNER = none.
+  // Route: GET /api/orders/:id/thuong-mai, POST /api/orders/:id/thuong-mai/:serviceId (module orders).
+  "order.terms.view": row("any", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"),
+  "order.terms.override": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   "invoice.request": row("own", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // ghi yêu cầu hoá đơn + thông tin xuất
   "invoice.issue": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // đánh dấu hoá đơn đã xuất
   // ADR-0060 (accepted 2026-09-30): dấu "đã nhập phần mềm kế toán" + "Số hoá đơn đã nhập" (bảng chỉ-thêm bil_accounting_entry, module billing). KHÔNG dùng lại

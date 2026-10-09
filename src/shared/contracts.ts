@@ -2097,3 +2097,26 @@ export interface ThuTraResponse {
   ketQua: { trangThai: "NONE" } | { trangThai: "SET"; bac: 1 | 2 | 3 | 4 | 5 | 6; muc: CommissionRuleDto } | { trangThai: "MISSING"; lyDo: string };
 }
 export interface NguoiHuongTimResponse { ketQua: { partyId: string; ten: string; loai: "PERSON" | "ORGANIZATION" }[] }
+
+// ===== Phần thương mại của đơn (sổ đại lý đợt 1 — ADR-0077 điều 10–11; đặc tả §6). HAI DTO danh sách trắng: văn phòng thấy mức, hoa hồng, giá đại lý, cờ thiếu mức;
+// Đối tác (`holdsPartner`, kể cả tài khoản lai) CHỈ thấy số tiền hoa hồng của mình — không tỷ lệ, không đ/khách, không giá vốn, không mã nguồn (C9 = A).
+export interface ThuongMaiDongVanPhong {
+  serviceId: string; ten: string; thanhTien: number; soKhachTinh: number;
+  /** "12%" / "50.000đ/khách"; null khi thiếu mức hoặc không người hưởng. */
+  muc: string | null; hoaHong: number | null; giaDaiLy: number | null; ghiTay: boolean;
+  /** Câu tiếng Việt khi thiếu mức; null khi đủ. Giao diện ghi thêm "Thiếu mức — Kế toán xử lý". */
+  thieu: string | null;
+  nguoiBan: { ten: string; laCongTy: boolean } | null;
+  /** Chỉ khi người gọi có `supply.terms.view` VÀ người bán là nhà cung cấp. */
+  nhaCungCap?: { tyLeMua: string; giaVon: number };
+}
+export interface ThuongMaiVanPhongDto {
+  duKien: boolean; chuaChup: boolean; nguoiHuong: { ten: string } | null;
+  dong: ThuongMaiDongVanPhong[]; tong: { thanhTien: number; hoaHong: number | null; giaDaiLy: number | null };
+}
+export interface ThuongMaiDoiTacDto {
+  duKien: boolean; choCongTyCaiMuc: boolean;
+  dong: { serviceId: string; ten: string; thanhTien: number; hoaHong: number | null; giaDaiLy: number | null }[];
+  tong: { thanhTien: number; hoaHong: number | null; giaDaiLy: number | null };
+}
+export type ThuongMaiResponse = { vanPhong: ThuongMaiVanPhongDto } | { doiTac: ThuongMaiDoiTacDto };

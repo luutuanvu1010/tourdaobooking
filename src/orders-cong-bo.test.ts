@@ -63,7 +63,8 @@ test("ADR-0047 A3: ngoài src/modules/orders/, không tệp mã nào (src, web; 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 // ADR-0049 A11 (siết — kế hoạch mục 1.6): thêm hai hàm hẹp mới `lichChungChang`, `lienHeChoTaiXe` (liên hệ khách có SĐT) — cùng luật "chỉ trong thân route, sau can()".
 // Đợt 5 A-1b (ADR-0052 D5b, siết): `cauThemHanhKhachTaiXe` (câu GHI họ tên khách do tài xế nhập) — cùng luật "chỉ trong thân route, sau can()".
-const CONG_BO = /\b(soKhachHieuLuc|hanhKhachChoChuyen|lichChungChang|lienHeChoTaiXe|cauThemHanhKhachTaiXe)\s*\(/g;
+// Sổ đại lý đợt 1 (Task 5, siết): thêm `phanThuongMaiCuaDon`.
+const CONG_BO = /\b(soKhachHieuLuc|hanhKhachChoChuyen|lichChungChang|lienHeChoTaiXe|cauThemHanhKhachTaiXe|phanThuongMaiCuaDon)\s*\(/g;
 
 /** Khoảng [mở, đóng] của thân `{…}` các handler `route(…, async (…) => { … })` trên bản ĐÃ CHE (chuỗi + chú thích). */
 function routeBodies(masked: string): { start: number; end: number }[] {
@@ -117,6 +118,9 @@ test("bộ bắt nơi gọi hàm công bố: có can( trước trong thân route
   // Đợt 5 A-1b: câu ghi tên do tài xế nhập — gọi trong lô (dieu-phoi.ts) không qua thân route → đỏ; trong route sau can( → qua.
   assert.equal(congBoCallHits("mau/dieu-phoi.ts", "const c = await cauThemHanhKhachTaiXe(db, v, id);", false).length, 1, "cauThemHanhKhachTaiXe ngoài index.ts");
   assert.deepEqual(congBoCallHits("mau/index.ts", 'route("POST", "/x", "staff", async ({ env, staff }) => {\n  if (!can(staff, "trip.passenger.add", { assigned })) return deny();\n  const c = await cauThemHanhKhachTaiXe(env.DB, v, id);\n});', true), [], "sau can( trong thân route → qua");
+  // Sổ đại lý đợt 1 (Task 5, siết): `phanThuongMaiCuaDon` (phần thương mại của đơn — tỷ lệ, hoa hồng, a%; chưa phân quyền) cùng luật "chỉ trong thân route, sau can()".
+  assert.equal(congBoCallHits("mau/billing.ts", "const p = await phanThuongMaiCuaDon(db, id);", false).length, 1, "phanThuongMaiCuaDon ngoài index.ts");
+  assert.equal(congBoCallHits("mau/index.ts", 'route("GET", "/x", "office", async ({ env }) => {\n  return json(await phanThuongMaiCuaDon(env.DB, id));\n});', true).length, 1, "phanThuongMaiCuaDon không có can(");
 });
 
 test("ADR-0047 A3: ở module KHÁC orders, mọi lời gọi soKhachHieuLuc / hanhKhachChoChuyen nằm trong thân route của index.ts, sau can() (hôm nay 0 nơi gọi)", () => {

@@ -97,6 +97,8 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "partner.commission.write": { ten: "đặt mức hoa hồng đối tác", moTa: "Thêm mức hoa hồng mới, đóng mức cũ (không sửa, không xoá)." },
   "supply.terms.view": { ten: "xem người bán dịch vụ", moTa: "Xem dịch vụ nào do Tour Đảo bán, dịch vụ nào do nhà cung cấp bán và tỷ lệ mua lại." },
   "supply.terms.write": { ten: "đặt người bán dịch vụ", moTa: "Thêm điều khoản người bán mới, đóng điều khoản cũ." },
+  "order.terms.view": { ten: "xem phần đối tác của đơn", moTa: "Xem hoa hồng, giá đại lý của từng dịch vụ trên đơn; Đối tác chỉ thấy số tiền hoa hồng của mình." },
+  "order.terms.override": { ten: "ghi mức hoa hồng tay", moTa: "Ghi mức hoa hồng hoặc người bán cho một dịch vụ của đơn đã xác nhận, có lý do." },
   "invoice.request": { ten: "yêu cầu xuất hoá đơn", moTa: "Ghi yêu cầu và thông tin xuất hoá đơn." },
   "invoice.issue": { ten: "đánh dấu đã xuất hoá đơn", moTa: "Ghi hoá đơn đã xuất." },
   "accounting.entry.mark": { ten: "đánh dấu đã nhập phần mềm kế toán", moTa: "Ghi đơn đã nhập vào phần mềm kế toán và số hoá đơn đã nhập." },
