@@ -3125,3 +3125,21 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .bk-tong-so { font-family: var(--font-display); font-weight: var(--fw-heavy); font-size: var(--fs-step-11); color: var(--c-total-num); white-space: nowrap; }
 @media (min-width: 900px) { .bk-the-ds { display: none; } }
 @media (max-width: 899px) { .bk-bang { display: none; } }
+/* ---------- Báo bận của tôi (/ban — ADR-0053 D9; kế hoạch A4 T9) + dải "Tài xế bận" của Điều phối xe — chỉ token ---------- */
+.bb-trang { display: flex; flex-direction: column; gap: var(--s4); }
+.bb-trang > .banner { margin: 0; }
+.bb-form { display: flex; flex-direction: column; gap: var(--s3); padding: var(--s4); }
+.bb-form .vc-card-title, .bb-ds .vc-card-title { margin: 0; }
+.bb-o { display: flex; flex-wrap: wrap; gap: var(--s3); }
+.bb-o > .vc-field { flex: 1 1 var(--w-tx-o); }
+.bb-hanh-dong { display: flex; justify-content: flex-end; }
+.bb-ds { display: flex; flex-direction: column; gap: var(--s3); }
+.bb-khung { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s1) var(--s3); padding: var(--s3) var(--s4); }
+.bb-khung-gio { font-weight: var(--fw-bold); }
+.bb-khung > .dp-note { grid-column: 1; }
+.bb-khung > .vc-btn { grid-column: 2; grid-row: 1 / span 2; }
+.bb-khung > .banner { grid-column: 1 / -1; margin: 0; }
+.bb-trung { margin: var(--s2) 0 0; padding-left: var(--s4); }
+.dp-tx-ban { margin: 0; }
+.dp-tx-ban-ds { margin: var(--s2) 0 0; padding-left: var(--s4); }
+.dp-cc-thay-khach { display: flex; align-items: center; gap: var(--s2); }

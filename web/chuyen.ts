@@ -256,6 +256,17 @@ function ve(): void {
     dieuKien = h("section", { class: "vc-card dp-side-card" }, h("div", { class: "dp-card-head" }, h("h2", { class: "dp-card-title" }, "Điều kiện xuất bến")), h("div", { class: "dp-cond dp-hist-sub" }, "Chuyến không còn lên kế hoạch."));
   }
 
+  // A4 T9 (G-A4-14, NT-7): "Tài xế <tên> đã từ chối lúc …" — lý do chỉ khi máy chủ gửi (người có trip.dispatch); Kế toán thấy câu không lý do.
+  const tuChoi = r.tuChoi.length
+    ? h(
+        "section",
+        { class: "vc-card dp-side-card", "aria-labelledby": "ct-tc-title", "data-khoi": "tu-choi" },
+        h("div", { class: "dp-card-head" }, icon("alert", 16), h("h2", { id: "ct-tc-title", class: "dp-card-title" }, "Tài xế đã từ chối")),
+        ...r.tuChoi.map((t) =>
+          h("div", { class: "dp-cond" }, h("span", { class: "dp-cond-text" }, h("span", { class: "dp-cond-nhan" }, `${t.tenTaiXe} đã từ chối lúc ${gioHien(t.luc, ngay)}`), t.lyDo ? h("span", { class: "dp-cond-sub" }, `Lý do: ${t.lyDo}`) : null))),
+      )
+    : null;
+
   const nhatKy = h(
     "section",
     { class: "vc-card dp-side-card", "aria-labelledby": "ct-nk-title" },
@@ -278,7 +289,7 @@ function ve(): void {
     khoa,
     baoCao,
     ...dais,
-    h("div", { class: "dp-ct-layout" }, h("div", { class: "dp-ct-main" }, dongDt, soLieu, chay ? h("div", { class: "dp-xc" }, theViecVanPhong(), theKhachCho()) : null, theCuuHoKhoi(), diem, keHoach ? theKhach() : null, chiPhi.el), h("div", { class: "dp-ct-side" }, dieuKien, nhatKy)),
+    h("div", { class: "dp-ct-layout" }, h("div", { class: "dp-ct-main" }, dongDt, soLieu, chay ? h("div", { class: "dp-xc" }, theViecVanPhong(), theKhachCho()) : null, theCuuHoKhoi(), diem, keHoach ? theKhach() : null, chiPhi.el), h("div", { class: "dp-ct-side" }, dieuKien, tuChoi, nhatKy)),
   );
   // Điện thoại: nút ở cuối trang, lưới hai cột (bản vẽ 2b); máy tính: nút ở đầu trang.
   const huyDay = nutHuy("vc-btn-danger");

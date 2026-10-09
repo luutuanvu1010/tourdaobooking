@@ -7,9 +7,12 @@
 //   Đ1): chuyến dưới mốc "Điều chỉnh khẩn cấp và lưu" (Bán hàng, Quản trị, Toàn quyền), ngoài mốc "Phá lệ và lưu" (Quản trị, Toàn quyền); thiếu ô thấy câu.
 // - Ô "Tuyến" (Đợt 4 G3 — không có trong bản vẽ, theo khuôn ô Xe): danh sách tuyến đang dùng (GET /api/van-chuyen/tuyen — chỉ tên, không giá); sửa chuyến gửi
 //   `tuyen` CHỈ khi đổi; tuyến cũ đã ngưng dùng vẫn hiện là lựa chọn đang chọn. Lỗi tải danh mục thì ẩn ô, không chặn form. Màn không báo số tiền nào.
+// - A4 T9 (ADR-0053 D9, lời chủ 6.4, G-A4-19): ô Tài xế ghi "Bận <giờ>" cạnh tên tài xế có khung báo bận giao ngày chạy (GET /ban-tai-xe — cùng route dải "Tài xế
+//   bận", ô trip.dispatch; không lý do). Chỉ là nhãn — vẫn chọn được; câu chặn (409 TRUNG_GIO_TAI_XE "<Tên> bận từ … đến …") hiện dưới ô Tài xế khi Lưu. Lỗi
+//   đọc thì không nhãn, form vẫn dùng được.
 // - Cột phải "<biển số> trong ngày" (máy tính): các chuyến của xe đang chọn trong ngày (từ GET /lich); chuyến máy chủ báo trùng giờ tô đỏ.
 import { NUT_VUOT, gioHien, thanPhaLe, truongLoiChuyen } from "../src/shared/dieu-phoi-man";
-import type { ChuyenChiTietResponse, ChuyenTomTatDto, GioVnDto, LichChungResponse, LyDoDangDungDto, TaiXeChonDto, TuyenDto, TuyenListResponse, XeChonDto } from "../src/shared/contracts";
+import type { BanTaiXeResponse, ChuyenChiTietResponse, ChuyenTomTatDto, GioVnDto, LichChungResponse, LyDoDangDungDto, TaiXeChonDto, TuyenDto, TuyenListResponse, XeChonDto } from "../src/shared/contracts";
 import { can } from "../src/shared/permissions";
 import { addDays, isISODate, ngayNgan, vnToday } from "../src/shared/vn-date";
 import { byId, h, replaceChildren } from "./dom";
@@ -70,6 +73,8 @@ async function main(): Promise<void> {
   const lich = await api<LichChungResponse>(`/api/van-chuyen/lich?ngay=${ngay}`).catch(() => null);
   // Danh mục tuyến (ô trip.dispatch — đúng người dùng trang này): lỗi tải thì ẩn ô Tuyến, form vẫn lưu được (không gửi `tuyen`).
   const tuyen = await api<TuyenListResponse>("/api/van-chuyen/tuyen").then((r) => r.tuyen).catch(() => null);
+  // A4 T9: khung bận của tài xế giao ngày chạy (và ngày sau — chuyến qua đêm) → nhãn "Bận" ở ô Tài xế.
+  const ban = await api<BanTaiXeResponse>(`/api/van-chuyen/ban-tai-xe?tu=${ngay}&den=${addDays(ngay, 1)}`).then((r) => r.khung).catch(() => []);
   const quayLai = chuyen ? `/chuyen?id=${encodeURIComponent(chuyen.id)}` : `/dieu-phoi?ngay=${ngay}`;
   const back = byId<HTMLAnchorElement>("cx-back");
   back.href = quayLai;
@@ -80,10 +85,10 @@ async function main(): Promise<void> {
   document.title = `${tieuDe} — Island Booking System`;
   setBarTitle(chuyen ? `Sửa chuyến ${chuyen.ma}` : "Chuyến mới");
   datCrumb("Vận chuyển › Điều phối xe", chuyen ? `Sửa ${chuyen.ma}` : "Chuyến mới");
-  dung(ngay, chuyen, xe, taiXe, lyDo, lich, tuyen);
+  dung(ngay, chuyen, xe, taiXe, lyDo, lich, tuyen, ban);
 }
 
-function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: XeChonDto[], taiXe: TaiXeChonDto[], lyDo: LyDoDangDungDto[], lich: LichChungResponse | null, tuyen: TuyenDto[] | null): void {
+function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: XeChonDto[], taiXe: TaiXeChonDto[], lyDo: LyDoDangDungDto[], lich: LichChungResponse | null, tuyen: TuyenDto[] | null, ban: BanTaiXeResponse["khung"] = []): void {
   const tuyenCu = chuyen?.tuyen?.ma ?? "";
   const st: TrangThai = { ngay, xeId: chuyen?.xe.id ?? "", taiXe: chuyen?.taiXe?.partyId ?? "", tuyen: tuyenCu, tu: chuyen?.batDau.gio ?? "", den: chuyen?.ketThuc.gio ?? "" };
   let dangGui = false;
@@ -139,7 +144,9 @@ function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: 
     const n = t.nhaXe[0] ?? "Nhà xe";
     nhaXe.set(n, [...(nhaXe.get(n) ?? []), t]);
   }
-  const opt = (t: TaiXeChonDto) => h("option", { value: t.partyId }, t.ten);
+  const banCua = new Map<string, string[]>();
+  for (const k of ban) banCua.set(k.taiXeId, [...(banCua.get(k.taiXeId) ?? []), k.nhan]);
+  const opt = (t: TaiXeChonDto) => h("option", { value: t.partyId }, banCua.has(t.partyId) ? `${t.ten} · Bận ${banCua.get(t.partyId)!.join(", ")}` : t.ten);
   const selTx = h("select", { id: "cx-tai-xe", class: "vc-input", "aria-describedby": "cx-tai-xe-error" },
     h("option", { value: "" }, "Chọn tài xế"),
     congTy.length ? h("optgroup", { label: "Tài xế công ty" }, ...congTy.map(opt)) : null,

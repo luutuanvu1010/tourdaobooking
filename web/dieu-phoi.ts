@@ -8,13 +8,15 @@
 // - Khoá theo mốc: chỉ theo cờ `khoaMoc` của từng chuyến (R-P13). Vạch mốc trên dòng thời gian vẽ từ `mocToiThieuPhut` (R-P12) — chỉ để nhìn, KHÔNG tô vùng
 //   khoá theo giờ hiện tại (lệnh điều phối vòng 3).
 // - Kế toán (ô trip.view, không trip.dispatch): xem đủ, không nút, dải "Chỉ xem". Không "Gọi tài xế" (H7), không "Đã gọi báo" (Q2 / ADR-0051 — Task B-GB sau).
+// - A4 T9 (ADR-0053 D9.4, G-A4-19): dải "Tài xế bận" (khung báo bận của tài xế đối tác, 7 ngày từ ngày đang xem) — CHỈ người có ô trip.dispatch (ô `any` của
+//   văn phòng: hỏi không ngữ cảnh là đúng); ẩn khi rỗng. Không lý do (văn phòng chỉ thấy "bận"). Kế toán không gọi route (máy chủ cũng 403).
 // - CHỜ A15: thẻ chuyến đang chạy (mốc tiến độ, "giờ do văn phòng khai") — chưa dựng.
 import { daiBanTrenLich } from "../src/shared/khung-ban-hien-thi";
 import {
   NHAN_KHAN_CAP, NUT_VUOT, cauKhoaMoc, changChuaXep, chipChang, chuyenXepDuoc, hinhDongThoiGian, kieuChuyen, nhanNgayXem, soLieuDieuPhoi, tuyenChuyen, viecCanXuLy,
   type HangXe, type KhoiChuyen, type ViecCanXuLy,
 } from "../src/shared/dieu-phoi-man";
-import type { ChangLichDto, ChuyenChiTietResponse, ChuyenTomTatDto, CapNhatDiemResponse, CapNhatKhachResponse, GoiBaoChangDto, LichChungResponse, NhacGoiKhachResponse } from "../src/shared/contracts";
+import type { BanTaiXeResponse, ChangLichDto, ChuyenChiTietResponse, ChuyenTomTatDto, CapNhatDiemResponse, CapNhatKhachResponse, GoiBaoChangDto, LichChungResponse, NhacGoiKhachResponse } from "../src/shared/contracts";
 import { NUT_CAP_NHAT_KHACH, giuCapNhatKhach } from "../src/shared/ly-do-giu";
 import { NHAN_TU_CHOI_GOI_BAO, type MaTuChoiGoiBao } from "../src/shared/goi-bao";
 import { ApiError } from "./api";
@@ -54,6 +56,9 @@ let ngay = tu && isISODate(tu) ? tu : homNay;
 let lich: LichChungResponse | null = null;
 /** ADR-0051: danh sách nhắc "gọi báo khách" (theo HÔM NAY, không theo ngày đang xem) — tải lại cùng mỗi lần tải lịch. */
 let nhac: NhacGoiKhachResponse | null = null;
+/** A4 T9: khung bận của tài xế (7 ngày từ ngày đang xem) — chỉ khi `co.dieuPhoi`; lỗi đọc → không vẽ dải (không chặn bảng). */
+let banTx: BanTaiXeResponse | null = null;
+const txBanEl = byId("dp-tx-ban");
 let chon: string | null = null;
 let tab: "chua-xep" | "xe" | "can-xu-ly" = "chua-xep";
 
@@ -67,9 +72,10 @@ async function nap(): Promise<void> {
   nutMoi.href = `/chuyen-sua?ngay=${ngay}`;
   nutMoi.hidden = !co.dieuPhoi;
   try {
-    [lich, nhac] = await Promise.all([
+    [lich, nhac, banTx] = await Promise.all([
       api<LichChungResponse>(`/api/van-chuyen/lich?ngay=${ngay}`),
       api<NhacGoiKhachResponse>("/api/van-chuyen/nhac-goi-khach").catch(() => null),
+      co.dieuPhoi ? api<BanTaiXeResponse>(`/api/van-chuyen/ban-tai-xe?tu=${ngay}`).catch(() => null) : Promise.resolve(null),
     ]);
   } catch (e) {
     trangEl.hidden = true;
@@ -118,11 +124,24 @@ function ve(): void {
   replaceChildren(soMEl, om("chặng", s.chang), om("đã xếp", s.daXep), om("chưa xếp", s.chuaXep, true), om("chuyến", s.chuyen));
   soPhuEl.textContent = [s.chuaXep ? `Chưa xếp: ${[s.satMoc ? `${s.satMoc} sát mốc` : null, s.quaMoc ? `${s.quaMoc} quá mốc` : null].filter(Boolean).join(", ") || "chưa tới mốc"}` : null, s.nhap ? `${s.nhap} đơn nháp` : null].filter(Boolean).join(" · ");
 
+  veTaiXeBan();
   veTabs(s.chuaXep, s.chuyen, s.canXuLy);
   veChuaXep();
   veXe();
   veCanXuLy(viec);
   trangEl.hidden = false;
+}
+
+/** Dải "Tài xế bận" (A4 T9): một dòng mỗi khung — tên · nhà xe — khoảng giờ. Rỗng / không ô → ẩn. */
+function veTaiXeBan(): void {
+  const ds = banTx?.khung ?? [];
+  txBanEl.hidden = ds.length === 0;
+  if (ds.length === 0) return replaceChildren(txBanEl);
+  const tieuDe = `Tài xế bận từ ${ngayNgan(banTx!.tu, homNay)} tới ${ngayNgan(banTx!.den, homNay)}`;
+  replaceChildren(
+    txBanEl,
+    Object.assign(dai("info", tieuDe, ds.map((k) => `${k.tenTaiXe}${k.nhaXe.length ? ` (${k.nhaXe.join(", ")})` : ""} — ${k.nhan}`)), { className: "banner banner-info dp-tx-ban" }),
+  );
 }
 
 function veTabs(nChua: number, nXe: number, nCxl: number): void {
