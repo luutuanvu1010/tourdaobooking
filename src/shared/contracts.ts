@@ -1505,6 +1505,13 @@ export interface CuuHoResponse {
   xeNhan: { tripId: string; maChuyen: string; trangThai: "PLANNED" | "RUNNING"; tenTaiXe: string; choTrong: number; diemSapToi: string | null; version: number }[];
 }
 /**
+ * Xe nhận được đề nghị chuyển khách (ADR-0052 D4; ADR-0111 Đ4; kế hoạch A5 NT-A5-2) — `GET /api/van-chuyen/cuoc-cua-toi/:id/xe-nhan?phamVi=STOP|ONBOARD`
+ * (tài xế đang lái chuyến nguồn). Đúng năm khoá: không khách, không biển số, không SĐT, không mã đơn. Chuyến cùng ngày chạy, có tài xế mở khác người gửi;
+ * `STOP`: PLANNED / RUNNING; `ONBOARD` (cứu hộ): chỉ RUNNING (Đ4). Trước khi A4 gộp: chỉ tài xế công ty (G-A5-20).
+ */
+export interface XeNhanDto { tripId: string; maChuyen: string; tenTaiXe: string; choTrong: number; diemSapToi: string | null }
+export interface XeNhanResponse { phamVi: "STOP" | "ONBOARD"; xe: XeNhanDto[] }
+/**
  * `POST /api/van-chuyen/chuyen/:id/cap-nhat-khach` (R-P29, chủ lần 16 — khuôn route 40; ADR-0104 Đ2.11): thân như `CapNhatDiemRequest`. `daCapNhat` = số suất
  * khách ĐÃ ĐÓNG theo đơn (khách đổi: PASSENGER_CHANGED rồi mở lại tới số người của chặng; đơn huỷ / chặng bỏ / đơn không xác nhận / thừa suất chưa tên:
  * REMOVED) — bằng cột `count` của sự kiện (lệnh lặp đọc lại số này). 0 = không có gì cần đổi (không ghi). Phản hồi KHÔNG tên (GA-55).

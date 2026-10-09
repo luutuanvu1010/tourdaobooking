@@ -199,6 +199,11 @@ export const MATRIX = {
   // trong ngày chạy (route POST /api/van-chuyen/cuoc-cua-toi/:id/hanh-khach). Văn phòng không có route riêng (nhập tên ở đơn) — Bán hàng, Quản trị none; Toàn
   // quyền any. Tài xế đối tác none (chủ 5/10: chỉ tài xế công ty; ADR-0053 để Đợt 6). NỚI bài ghim hàng DRIVER (3 ô assigned).
   "trip.passenger.add": row("none", "none", "none", "none", "none", "any", "none", "assigned", "none", "none"),
+  // ADR-0052 D4 :84 (ĐP2, chủ duyệt A-1 30/9) + ADR-0111 (accepted 8/10): CHUYỂN KHÁCH giữa hai xe — tài xế gửi / rút đề nghị của chuyến MÌNH ĐANG LÁI
+  // (nguồn) và nhận / không nhận đề nghị gửi tới chuyến MÌNH ĐANG LÁI (đích). `assigned` = dòng lái mở trên đúng chuyến đó (van-chuyen tính). Toàn quyền any
+  // nhưng vẫn phải là tài xế đang lái (route trả 404 — :84 "áp cả Toàn quyền"; CSDL: trigger vc_transfer_request_nguoi_nhan). Văn phòng KHÔNG: gửi thay cứu hộ
+  // đi ô trip.progress (D5c), duyệt / bác đề nghị leo thang đi ô trip.override. NỚI N1 bài ghim hàng DRIVER (ADR-0052:190). Tài xế đối tác none tới khi A4 gộp.
+  "trip.transfer": row("none", "none", "none", "none", "none", "any", "none", "assigned", "none", "none"),
   // ADR-0051 GB2 (Task A-GB): ghi / bỏ dấu "đã gọi báo khách" giờ hẹn mới của chặng đang trên xe — "đơn của ai người đó lo" (Hiến chương 5.8, ĐP6): Bán hàng
   // CHỈ đơn mình lập hoặc mình đang phụ trách (route truyền cả ownerId lẫn assigned — ctx.isAssigned của người phụ trách ĐƠN); Quản trị, Toàn quyền mọi chặng.
   // Ô riêng (không dùng lại order.trip.edit — một mã một nghĩa, R-K1); bài ghim: không rộng hơn order.trip.edit ở mọi cột.

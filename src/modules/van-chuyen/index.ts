@@ -119,6 +119,10 @@ import { lyDoDangDung, xeDieuPhoi } from "./chuyen-repo";
 import type { CanhBaoLichDto } from "../../shared/contracts";
 import { NHAN_CANH_BAO_GIO_LAI, type CanhBaoGioLai } from "../../shared/gio-lai";
 import { khungBanVao } from "./dieu-phoi-doc";
+// ADR-0111 (kế hoạch A5): chuyển khách giữa hai xe — route tài xế (cổng staff, ô trip.transfer) và văn phòng (cổng office).
+import type { XeNhanResponse } from "../../shared/contracts";
+import { xeNhanChoDeNghi } from "./cuu-ho";
+const CAN_CHUYEN_KHACH = () => error(403, "forbidden", "Tài khoản này không nhờ / nhận chuyển khách được.");
 const CAN_XEM_XE_DON = () => error(403, "forbidden", "Tài khoản này không xem được xe đón khách của đơn.");
 const CAN_XEM_CUOC = () => error(403, "forbidden", "Tài khoản này không có cuốc xe.");
 const CAN_BAM_THAY = () => error(403, "forbidden", "Tài khoản này không bấm thay tiến độ chuyến được.");
@@ -1489,6 +1493,22 @@ export const vanChuyenModule: AppModule = {
       const donIds = [...new Set(lich.chang.filter((c) => nen.allocs.some((a) => a.valid_to_at === null && a.leg_id === c.legId)).map((c) => c.orderId))];
       const lienHe = trongNgay ? await lienHeChoTaiXe(env.DB, donIds) : null;
       return json(await cuocChiTiet(env.DB, nen, lich.chang, hk, lienHe, nhanNhanVien, bayGioMs, trongNgay, true) satisfies CuocChiTietResponse);
+    }),
+
+    // ADR-0052 D4 + ADR-0111 Đ4 (kế hoạch A5 T7a, NT-A5-2): xe nhận được đề nghị chuyển khách của chuyến MÌNH ĐANG LÁI. Khuôn hai bước như lệnh tiến độ:
+    // không có ô trip.transfer nào → 403 trước mọi truy vấn; không lái chuyến này (kể cả Toàn quyền — ADR-0052:84) → 404. Chỉ đọc; DTO đúng năm khoá.
+    route("GET", "/api/van-chuyen/cuoc-cua-toi/:id/xe-nhan", "staff", async ({ env, url, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.transfer", { assigned: true })) return CAN_CHUYEN_KHACH();
+      const nen = await docNen(env.DB, params.id ?? "");
+      const assigned = dangLai(nen, staff);
+      if (!nen || !assigned || !can(staff, "trip.transfer", { assigned })) return KHONG_CO_CHUYEN();
+      const phamVi = url.searchParams.get("phamVi") ?? "STOP";
+      if (phamVi !== "STOP" && phamVi !== "ONBOARD") return error(400, "invalid_input", "Phạm vi chuyển: STOP (một điểm đón) hoặc ONBOARD (cứu hộ).");
+      if (nen.trip.status !== "RUNNING") return loi409("ck_nguon_khong_chay", [], {}, "Chỉ nhờ xe khác khi xe của bạn đang chạy.");
+      const ngay = nen.trip.service_date;
+      const [trips, lich] = await Promise.all([tripsByDate(env.DB, ngay), lichChungChang(env.DB, addDays(ngay, -1), addDays(ngay, 1))]);
+      const l = await dungLichNgay(env.DB, ngay, trips, lich, nhanNhanVien, Date.now(), false);
+      return json({ phamVi, xe: xeNhanChoDeNghi({ id: nen.trip.id, ngayChay: ngay }, l.chuyen, phamVi, staff.partyId!) } satisfies XeNhanResponse);
     }),
 
     // route 21 ↔ 31

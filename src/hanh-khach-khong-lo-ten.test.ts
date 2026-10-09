@@ -408,6 +408,11 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         const b = await ct(T.B.chuyen.id);
         assert.deepEqual(b.suat.map((s: any) => s.hoTen).sort(), TEN_VC, "chống bài rỗng: chi tiết chuyến văn phòng CÓ tên");
       },
+      // ADR-0111 (gói A5, NT-A5-2): tài xế A xem xe nhận được đề nghị chuyển khách — B (DRIVER2, đang chạy, suất đã gắn tên) phải có trong danh sách, không tên.
+      "GET /api/van-chuyen/cuoc-cua-toi/:id/xe-nhan": async () => {
+        const r = await goi("GET /api/van-chuyen/cuoc-cua-toi/:id/xe-nhan", "xe nhận của A", "GET", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}/xe-nhan?phamVi=ONBOARD`, DRIVER);
+        assert.ok(r.xe.some((x: any) => x.tripId === T.B.chuyen.id), "chống bài rỗng: xe B đang chạy có trong danh sách");
+      },
       // ADR-0097 Đ3 (gói A1, V3-B): văn phòng thu hồi xuất bến B (chưa có tiến độ) rồi xuất bến lại — phản hồi thu hồi không kèm tên (suất B đã gắn tên).
       [`${V}/thu-hoi-xuat-ben`]: async () => {
         const b = await ct(T.B.chuyen.id);
