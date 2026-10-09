@@ -45,3 +45,4 @@
 - Cùng lỗi tương phản lúc vừa mở khoá ở nút ngoài Vận chuyển `.sheet-foot .btn-primary` (luật khoá `public/app.css` :573), ví dụ `luu-so-khach` (`web/sheet-so-khach.ts`).
 - Chú thích `docs/SYSTEM-DESIGN.md` mục "Điều chỉnh khẩn cấp và phá lệ" chưa nhắc tin trung tính (THẤP-2 phiếu CAO-C).
 - Câu chờ lượt sau: tài khoản nhiều quyền tự duyệt đề nghị của mình; văn phòng gửi thay không nhận tin bác / hết hạn.
+- Câu chờ chủ (phiếu kiểm G17, T2, 2026-10-09): Tài xế đối tác lái chuyến KHÔNG nhận tin đổi ngày / giờ đón — đúng luật ADR-0052 D6.2 (mọi người nhận phải qua `trip.view`, Tài xế đối tác `none`). Muốn họ được báo là quyết định quyền, cần ADR riêng; liên quan A4 (tài xế đối tác dùng Nền tảng).
