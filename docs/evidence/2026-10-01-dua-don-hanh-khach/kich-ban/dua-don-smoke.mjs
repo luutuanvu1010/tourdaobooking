@@ -69,6 +69,14 @@ try {
     assert.equal(opts.at(-1), "Gõ tự do…");
     assert.ok(opts.includes("Khách sạn Mường Thanh Luxury Nha Trang · khách sạn"), opts.join(" | "));
     assert.equal(await f.ev(`[...document.querySelector('${chang("OUT")} [data-o$=":tra"]').options][0].textContent`), "Chưa chốt");
+    // Việc 11 — C4 (C10): ô tìm điểm trên ô chọn nơi; gõ không dấu thu hẹp danh sách, xoá trống thì đủ lại, điểm đang chọn giữ (kịch bản riêng: docs/evidence/2026-10-09-c4/).
+    const goTim = (v) => `(() => { const el = document.querySelector('${chang("OUT")} [data-o$=":don-tim"]'); el.value = ${JSON.stringify(v)}; el.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`;
+    const dsDon = `[...document.querySelector('${chang("OUT")} [data-o$=":don"]').options].map((o) => o.textContent)`;
+    await f.ev(goTim("muong"));
+    assert.deepEqual(await f.ev(dsDon), ["Chọn nơi đón…", "Khách sạn Mường Thanh Luxury Nha Trang · khách sạn", "Gõ tự do…"]);
+    await f.ev(goTim(""));
+    assert.deepEqual(await f.ev(dsDon), opts);
+    assert.equal(await f.ev(`document.querySelector('${chang("OUT")} [data-o$=":don"]').value`), KS);
     assert.equal(await f.ev(noCode), "");
     await axe(f, "form M6");
     await shotFull(f, "m6-form-hai-chieu-1040.png");
