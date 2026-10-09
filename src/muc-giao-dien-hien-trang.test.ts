@@ -4,7 +4,7 @@
 // nhớ khung ADR-0035) và khung mất mạng — trên ĐỦ 1024 tập quyền (mọi tập con của PERMISSION_CODES, kể cả tập hôm nay CSDL không cho tạo).
 // Cách: src/muc-giao-dien-hien-trang.json là ảnh chụp mã giao diện CŨ (trước khi gom về bảng src/shared/muc-giao-dien.ts), sinh bằng cách CHẠY chính
 // web/account.ts + web/shell.ts trên DOM giả (`node scripts/chup-muc-giao-dien.mjs --ghi src/muc-giao-dien-hien-trang.json --rev cd44b76d`); bài này tính lại
-// bằng các hàm thuần của bảng mới và đòi khớp từng tập. Bài rào src/muc-hien-mo-duoc.test.ts chỉ thấy "mục hiện ⇔ trang mở được" — không thấy đổi chữ, đổi
+// bằng các hàm thuần của bảng mới và đòi khớp từng tập. Bài rào src/muc-hien-mo-duoc-{1,2,3}.test.ts chỉ thấy "mục hiện ⇔ trang mở được" — không thấy đổi chữ, đổi
 // nhóm, đổi thứ tự, hay một mục "được mà ẩn" nay lặng lẽ hiện/ẩn thêm; bài này thấy (vì sao giữ lại sau khi gom bảng — Ruling K-c ở sổ thi công).
 //
 // Giới hạn: mục MỚI (chuỗi chưa có trong ảnh chụp) được bỏ qua — bài rào lo mục mới; đổi chữ một mục cũ thì chuỗi cũ biến mất ⇒ ĐỎ. Đổi có chủ ý (chủ duyệt):

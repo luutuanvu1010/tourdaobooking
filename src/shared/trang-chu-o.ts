@@ -3,7 +3,7 @@
 // theo đúng quyền hiện có). Logic thuần, có test cạnh tệp; web/home.ts dựng ô và gắn biểu tượng.
 //
 // KHÔNG đổi bản đồ quyền: mỗi ô trỏ tới MỘT trang của bảng mục (src/shared/muc-giao-dien.ts — TRANG): đường trang và ai thấy lấy từ đó, cùng câu mà thanh bên
-// máy tính và trang Tôi hỏi; ô hẹp hơn trang thì khai `chiKhi` (bài rào src/muc-hien-mo-duoc.test.ts đòi ghi lý do). Máy chủ vẫn kiểm lại ở từng trang; lưới chỉ
+// máy tính và trang Tôi hỏi; ô hẹp hơn trang thì khai `chiKhi` (bài rào src/muc-hien-mo-duoc-{1,2,3}.test.ts đòi ghi lý do). Máy chủ vẫn kiểm lại ở từng trang; lưới chỉ
 // là lối vào.
 import { TRANG, coHien, type ChoDat } from "./muc-giao-dien.ts";
 import type { PermissionHolder } from "./permissions.ts";

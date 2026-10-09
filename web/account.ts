@@ -42,7 +42,7 @@ void feedbackBadge().then((n) => {
   }
 });
 // LỐI VÀO CÁC TRANG ở trang Tôi: dòng nào hiện cho ai, chữ và thứ tự khai ở bảng mục (src/shared/muc-giao-dien.ts — TRANG_TOI, cùng bảng quyền với máy chủ;
-// rào máy src/muc-hien-mo-duoc.test.ts). Ở đây chỉ vẽ. Bố cục: Danh bạ / Địa điểm / Loại giấy tờ cá nhân → nhãn "VẬN CHUYỂN" + nhóm (ADR-0040 D1; bản vẽ 00 điện
+// rào máy src/muc-hien-mo-duoc-{1,2,3}.test.ts). Ở đây chỉ vẽ. Bố cục: Danh bạ / Địa điểm / Loại giấy tờ cá nhân → nhãn "VẬN CHUYỂN" + nhóm (ADR-0040 D1; bản vẽ 00 điện
 // thoại — chỉ dựng khi có dòng mở nhóm) → phần còn lại + Đăng xuất. `#links` giữ phần còn lại (Góp ý, Trợ giúp, Đăng xuất…) để mọi chỗ đang tìm các dòng đó trong
 // #links vẫn đúng; tài khoản không có dòng nào của nhóm: DOM như cũ (một danh sách).
 // sinh-so-do-trang: nhãn các dòng TRANG_TOI (trừ nhóm VẬN CHUYỂN) chèn vào kho trợ lý ở ĐÚNG chỗ này.

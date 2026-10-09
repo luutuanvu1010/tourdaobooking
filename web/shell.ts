@@ -29,7 +29,7 @@ import { KHOA_GAN_PHIEN_THONG_BAO, thietBiTu } from "./push-ui";
 import { ganTroLy } from "./tro-ly";
 
 // MỤC NÀO HIỆN CHO AI (thanh bên, thanh tab, thanh trên) KHAI Ở MỘT NƠI: src/shared/muc-giao-dien.ts — tệp này chỉ vẽ danh sách bảng đó trả về, không tự hỏi quyền.
-// Rào máy: src/muc-hien-mo-duoc.test.ts (mục hiện ⇔ đường gọi chính của trang không bị máy chủ từ chối, 1024 tập quyền), src/muc-giao-dien-hien-trang.test.ts.
+// Rào máy: src/muc-hien-mo-duoc-{1,2,3}.test.ts (mục hiện ⇔ đường gọi chính của trang không bị máy chủ từ chối, 1024 tập quyền), src/muc-giao-dien-hien-trang.test.ts.
 // Biểu tượng khai trong bảng phải là tên có ở web/icons.ts — kiểm lúc biên dịch (thêm mục với tên sai ⇒ `npm run typecheck` đỏ).
 ([] as (
   | Extract<(typeof THANH_BEN)[number], { bieuTuong: string }>["bieuTuong"]
