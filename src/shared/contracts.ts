@@ -1625,7 +1625,8 @@ export interface CuocChiTietResponse {
     id: string;
     /** `CREW` = người đi kèm (hướng dẫn viên) — không phải khách, không gắn điểm dừng; vẫn phải "Đã lên xe" → "Đã xuống" mới kết thúc thường được. */
     loai: "PASSENGER" | "CREW";
-    maDon: string | null;
+    /** Kế hoạch A4 G-A4-7 (ADR-0053 D7.2): người có vế hạn Từ chối NGOÀI khung xem khách → khoá VẮNG MẶT; tài xế công ty có mọi lúc. */
+    maDon?: string | null;
     diemLen: string | null;
     diemXuong: string | null;
     trangThai: "WAITING" | "BOARDED" | "NO_SHOW" | "CANCELLED_AT_STOP" | "DROPPED";
@@ -1644,7 +1645,18 @@ export interface CuocChiTietResponse {
   dieuKienConThieu: DieuKienConThieuDto[];
   /** Lý do kết thúc gián đoạn đang dùng (I5). */
   lyDo: { code: string; nhan: string }[];
+  /** Tên giữ vì PWA cũ (G-A4-6) — nghĩa: TRONG KHUNG XEM KHÁCH của người gọi (ADR-0053 D7.2). */
   trongNgayChay: boolean;
+  /** ADR-0053 D8.6: nút "Từ chối chuyến" hiện chỉ theo cờ này (máy chủ tính: đang lái, có vế hạn, chuyến chưa chạy, chưa quá hạn). Tài xế công ty: luôn false. */
+  tuChoiDuoc: boolean;
+  /** ADR-0053 D8.6: hạn Từ chối của chính người gọi — chỉ người có vế hạn. */
+  hanTuChoi?: GioVnDto;
+  /** Đợt 6 mục 1, 9: "Thấy danh sách khách từ …" — chỉ khi đang ngoài khung và mốc ở tương lai. */
+  thayKhachTu?: GioVnDto;
+  /** Đợt 6 mục 2: lý do Từ chối đang dùng — chỉ khi `tuChoiDuoc`. */
+  lyDoTuChoi?: { code: string; nhan: string }[];
+  /** Lời chủ 6.3: SĐT văn phòng (nút "Gọi văn phòng") — chỉ khi chính sách đã có số. */
+  sdtVanPhong?: string;
 }
 
 // ---- Mẫu đưa đón theo dịch vụ (ADR-0054 D10.1–D10.2; ADR nháp nơi trả mặc định docs/superpowers/specs/2026-10-01-de-xuat-adr-noi-tra-mac-dinh.md) ------------

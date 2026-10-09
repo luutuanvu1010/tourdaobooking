@@ -80,7 +80,7 @@ export interface DiemVao {
 export interface SuatVao {
   id: string;
   loai?: "PASSENGER" | "CREW";
-  maDon: string | null;
+  maDon?: string | null; // vắng mặt với người có vế hạn Từ chối ngoài khung xem khách (kế hoạch A4 G-A4-7)
   diemLen: string | null;
   diemXuong: string | null;
   trangThai: "WAITING" | "BOARDED" | "NO_SHOW" | "CANCELLED_AT_STOP" | "DROPPED";

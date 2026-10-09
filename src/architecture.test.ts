@@ -85,6 +85,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "van-chuyen", file: "modules/van-chuyen/chuyen-repo.ts" }, // ADR-0049 D1 (siết, Task A13 — R-P4 (ii) "bài nhận hai tệp"): SQL chuyến xe
   { module: "van-chuyen", file: "modules/van-chuyen/tien-xe-repo.ts" }, // ADR-0057 T1/T2 (kế hoạch Đợt 4 Task 4): SQL bảng giá thuê, chi phí chuyến — siết như chuyen-repo
   { module: "van-chuyen", file: "modules/van-chuyen/khung-ban-repo.ts" }, // ADR-0055 VK2-A (Đợt 3, K15): SQL khung bận — EXPLAIN từng câu
+  { module: "van-chuyen", file: "modules/van-chuyen/han-tu-choi-repo.ts" }, // ADR-0053 D7.2, D8 (kế hoạch A4 T3): SQL đọc hạn Từ chối, dấu Từ chối — EXPLAIN từng câu
   { module: "tro-ly", file: "modules/tro-ly/repository.ts" }, // ADR-0066: nghiêm từ ngày đầu
 ];
 

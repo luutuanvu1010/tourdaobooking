@@ -23,7 +23,7 @@ import {
 } from "./dieu-phoi-dto";
 import { boSungXe, chinhSachVao, docChung, docNguCanh, type DuLieuChung, type NenChuyen, type NguCanhChuyen } from "./dieu-phoi-doc";
 import { gioSomNhatKhaiDto, ketThucTruoc } from "./dieu-phoi-gio";
-import { cuocChiTietDto, cuocCuaToiItem } from "./tai-xe-dto";
+import { cuocChiTietDto, cuocCuaToiItem, type KhungTaiXe } from "./tai-xe-dto";
 import { loiRangBuocChuyen } from "./rules";
 
 // ---- Lỗi ----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -428,12 +428,14 @@ function lyDoGiuDuPhong(t: TripRow, nc: NguCanhChuyen, c: DuLieuChung, bayGioMs:
  * Chi tiết một chuyến tài xế đang lái. `lich` (chặng — mã đơn, giờ hẹn, điều kiện còn thiếu), `hk` (tên khách — rỗng ngoài ngày chạy), `lienHe` (chỉ GET
  * chi tiết trong ngày chạy; null ở chỗ khác) do THÂN ROUTE đọc sau `can(trip.view / trip.progress, { assigned })`. Nhãn người văn phòng khai giờ qua hàm tiêm
  * (R-P11 / R-P20 — một lần mỗi request). `kemChiDuong` (ADR-0105, tự áp G18-B): chữ `true` CHỈ ở GET chi tiết — trong ngày chạy mọi điểm có chuỗi đích "Chỉ
- * đường"; phản hồi lệnh truyền chữ `false` (bài 3 của src/hanh-khach-khong-lo-ten.test.ts quét mã).
+ * đường"; phản hồi lệnh truyền chữ `false` (bài 3 của src/hanh-khach-khong-lo-ten.test.ts quét mã). `khung` (kế hoạch A4 T3): cờ khung xem khách + vế hạn
+ * Từ chối của NGƯỜI GỌI — chỉ lấy từ `khungCuaNguoiGoi` (index.ts). Lý do Từ chối (nhóm TU_CHOI_CHUYEN) chỉ kèm khi `tuChoiDuoc`; SĐT văn phòng khi chính sách có.
  */
 export async function cuocChiTiet(
   db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], hk: readonly ChangChoChuyen[], lienHe: readonly LienHeTaiXe[] | null,
-  nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>, bayGioMs: number, trongNgay: boolean, kemChiDuong: boolean,
+  nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>, bayGioMs: number, khung: KhungTaiXe, kemChiDuong: boolean,
 ): Promise<CuocChiTietResponse> {
+  const trongNgay = khung.trongKhung;
   const c = await docChung(db, new Date(bayGioMs).toISOString(), msToVnLocal(bayGioMs).date);
   const nc = await docNguCanh(db, nen, lich, c, [], bayGioMs);
   const t = nen.trip;
@@ -449,6 +451,9 @@ export async function cuocChiTiet(
     suat: nen.allocs.filter((a) => a.valid_to_at === null).map((a) => suatChuyenDto(a, { changLich: nc.changLich, changNgoai: nc.changNgoai, ten, events: nen.events, nhan, tenDiKem, lyDoNhan })),
     lienHe, conThieu: lyDoGiuCuaChuyen(t, lyDoGiuDuPhong(t, nc, c, bayGioMs, true), bayGioMs, c.chinhSach?.min_lead_minutes ?? null), lyDo: c.lyDo.filter((r) => r.reason_group === "KET_THUC_GIAN_DOAN"), nhan, trongNgay,
     chiDuong,
+    khung,
+    lyDoTuChoi: khung.tuChoiDuoc ? c.lyDo.filter((r) => r.reason_group === "TU_CHOI_CHUYEN") : [],
+    sdtVanPhong: c.chinhSach?.office_phone ?? null,
   });
 }
 /** "Cuốc của tôi" (route 19, R-P17): mỗi chuyến — không tên, không SĐT; điều kiện còn thiếu = lý do giữ dự phóng (chuyến chưa chạy). */

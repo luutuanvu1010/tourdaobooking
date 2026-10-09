@@ -47,7 +47,7 @@ export function khachDangCho(suat: readonly SuatVao[], diem: readonly DiemVao[],
       return {
         suatId: x.id,
         ten: x.hoTen ? maskLongDigits(x.hoTen) : `Khách ${i + 1}`,
-        maDon: x.maDon,
+        maDon: x.maDon ?? null, // khoá vắng (vế hạn ngoài khung — G-A4-7) → null, như "không có mã"
         noiDon: d ? [`Điểm ${d.thuTu}`, d.tenNoi, d.gioHen ? hien(d.gioHen, ngayXem) : null].filter(Boolean).join(" · ") : "—",
         baoHuy: bh ? { nhan: "Văn phòng đã báo huỷ", phu: `Vẫn chiếm chỗ cho đến khi tài xế xác nhận · ${hien(bh.luc, ngayXem)} · ${bh.lyDoNhan}` } : null,
       };

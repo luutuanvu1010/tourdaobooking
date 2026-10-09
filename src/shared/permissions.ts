@@ -199,6 +199,12 @@ export const MATRIX = {
   // trong ngày chạy (route POST /api/van-chuyen/cuoc-cua-toi/:id/hanh-khach). Văn phòng không có route riêng (nhập tên ở đơn) — Bán hàng, Quản trị none; Toàn
   // quyền any. Tài xế đối tác none (chủ 5/10: chỉ tài xế công ty; ADR-0053 để Đợt 6). NỚI bài ghim hàng DRIVER (3 ô assigned).
   "trip.passenger.add": row("none", "none", "none", "none", "none", "any", "none", "assigned", "none", "none"),
+  // ADR-0053 D8 (accepted; kế hoạch A4 T3): tài xế TỪ CHỐI chuyến MÌNH ĐANG LÁI trước hạn (route POST /api/van-chuyen/cuoc-cua-toi/:id/tu-choi — T7). Ô này CŨNG
+  // bật VẾ HẠN của khung xem khách và của mã đơn (D7.2; G-A4-2): người gọi có `can(trip.refuse, {assigned:true})` chỉ thấy khách, liên hệ, mã đơn SAU hạn Từ chối
+  // của cặp — máy chủ hỏi ô ở `khungCuaNguoiGoi` (van-chuyen/index.ts). ĐÓNG ô này cho một mã quyền thì khung của mã đó RỘNG ra (thấy từ 00:00 ngày chạy):
+  // ADR nào đóng ô phải xét lại khung (kế hoạch A4 §6.1). Tài xế công ty none (D8.3 — không Từ chối, không vế hạn); văn phòng none (không từ chối thay —
+  // N-TU-CHOI); Toàn quyền any (chỉ có hiệu lực khi chính mình lái). Tài xế đối tác: none ở T3, lật assigned ở T6 CÙNG LÚC với trip.view.
+  "trip.refuse": row("none", "none", "none", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0051 GB2 (Task A-GB): ghi / bỏ dấu "đã gọi báo khách" giờ hẹn mới của chặng đang trên xe — "đơn của ai người đó lo" (Hiến chương 5.8, ĐP6): Bán hàng
   // CHỈ đơn mình lập hoặc mình đang phụ trách (route truyền cả ownerId lẫn assigned — ctx.isAssigned của người phụ trách ĐƠN); Quản trị, Toàn quyền mọi chặng.
   // Ô riêng (không dùng lại order.trip.edit — một mã một nghĩa, R-K1); bài ghim: không rộng hơn order.trip.edit ở mọi cột.

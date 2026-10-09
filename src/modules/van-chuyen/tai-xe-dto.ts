@@ -3,11 +3,25 @@
 // chạy — ngoài ngày chạy các khoá đó VẮNG MẶT. KHÔNG BAO GIỜ: tiền,
 // dịch vụ khác, ghi chú đơn, người lập, người phụ trách, số giấy tờ, hạn GPLX, khoá so sánh nơi (`L:…` / `T:…`), id người bấm, SĐT người bấm.
 // Tên người đi kèm (HDV — nhân viên, không phải khách): mọi lúc, chỉ tên.
+// Kế hoạch A4 T3 (ADR-0053 D7.2, D8.6; G-A4-7, G-A4-17): "trong ngày chạy" nay là KHUNG XEM KHÁCH của người gọi (`KhungTaiXe` — một hàm `khungCuaNguoiGoi`).
+// Người có VẾ HẠN (`han !== undefined`) ngoài khung: `suat[].maDon` VẮNG MẶT; tài xế công ty giữ mã đơn mọi lúc. Khoá thêm: `tuChoiDuoc` (mọi tài xế),
+// `hanTuChoi` (chỉ vế hạn, có hạn), `thayKhachTu` (ngoài khung, mốc ở tương lai), `lyDoTuChoi` (chỉ khi `tuChoiDuoc`), `sdtVanPhong` (khi chính sách có số).
 import type { LienHeTaiXe } from "../orders";
 import type { CuocChiTietResponse, CuocCuaToiItemDto, DieuKienConThieuDto, DiemChuyenDto, SuatChuyenDto } from "../../shared/contracts";
 import type { LyDoGiu } from "../../shared/ly-do-giu";
 import type { AllocRow, StopRow, TripRow, XeDieuPhoiRow } from "./chuyen-repo";
 import { NHAN_TRANG_THAI_CHUYEN, gioVn, mocTienDo } from "./dieu-phoi-dto";
+
+/** Khung xem khách + vế hạn Từ chối của NGƯỜI GỌI trên một chuyến — chỉ dựng ở `khungCuaNguoiGoi` (van-chuyen/index.ts). */
+export interface KhungTaiXe {
+  trongKhung: boolean;
+  /** `undefined` = không có vế hạn (tài xế công ty); `null` = có vế hạn mà thiếu dòng hạn (ngoài khung); số = hạn Từ chối (ms) của cặp. */
+  han: number | null | undefined;
+  /** Đang lái + có vế hạn + chuyến PLANNED + bây giờ ≤ hạn (G-A4-16 — nút "Từ chối chuyến" chỉ theo cờ này). */
+  tuChoiDuoc: boolean;
+  /** Mốc khung mở (ms) khi đang NGOÀI khung và mốc ở tương lai; `null` = không kèm. */
+  thayKhachTuMs: number | null;
+}
 import type { EventRow } from "./chuyen-repo";
 
 export const dieuKienConThieuDto = (l: LyDoGiu): DieuKienConThieuDto => ({ ma: l.ma, loiNhan: l.loiNhan, aiXuLy: l.aiXuLy });
@@ -49,8 +63,13 @@ export function cuocChiTietDto(v: {
   trongNgay: boolean;
   /** ADR-0105: id điểm → chuỗi đích chỉ đường; `null` = không kèm (ngoài ngày chạy, phản hồi lệnh). */
   chiDuong: ReadonlyMap<string, string> | null;
+  khung: KhungTaiXe;
+  /** Lý do Từ chối đang dùng (nhóm TU_CHOI_CHUYEN) — chỉ kèm khi `khung.tuChoiDuoc`. */
+  lyDoTuChoi: readonly { code: string; label: string }[];
+  sdtVanPhong: string | null;
 }): CuocChiTietResponse {
   const t = v.trip;
+  const anMaDon = v.khung.han !== undefined && !v.khung.trongKhung; // G-A4-7: mã đơn theo khung với người có vế hạn
   const maDonCuaSuat = new Set(v.suat.flatMap((s) => (s.maDon ? [s.maDon] : [])));
   return {
     chuyen: {
@@ -71,7 +90,7 @@ export function cuocChiTietDto(v: {
       ...(v.trongNgay && v.chiDuong ? { diaChiChiDuong: v.chiDuong.get(d.id) ?? d.tenNoi } : {}),
     })),
     suat: v.suat.map((s) => ({
-      id: s.id, loai: s.loai, maDon: s.maDon, diemLen: s.diemLen, diemXuong: s.diemXuong, trangThai: s.trangThai, daDon: s.daDon, daTra: s.daTra, soHieuChuyenBay: s.soHieuChuyenBay,
+      id: s.id, loai: s.loai, ...(anMaDon ? {} : { maDon: s.maDon }), diemLen: s.diemLen, diemXuong: s.diemXuong, trangThai: s.trangThai, daDon: s.daDon, daTra: s.daTra, soHieuChuyenBay: s.soHieuChuyenBay,
       vanPhongBaoHuy: s.vanPhongBaoHuy === null ? null : { luc: s.vanPhongBaoHuy.luc, lyDoNhan: s.vanPhongBaoHuy.lyDoNhan }, // giờ + lý do, không người bấm
       ...(v.trongNgay && s.hoTen !== undefined && s.namSinh !== undefined ? { hoTen: s.hoTen, namSinh: s.namSinh } : {}),
       ...(s.tenNguoiDiKem !== undefined ? { tenNguoiDiKem: s.tenNguoiDiKem } : {}), // tên HDV đi kèm — mọi lúc, chỉ tên (lời chủ 2026-10-01; T-5)
@@ -82,5 +101,10 @@ export function cuocChiTietDto(v: {
     dieuKienConThieu: v.conThieu.map(dieuKienConThieuDto),
     lyDo: v.lyDo.map((r) => ({ code: r.code, nhan: r.label })),
     trongNgayChay: v.trongNgay,
+    tuChoiDuoc: v.khung.tuChoiDuoc,
+    ...(typeof v.khung.han === "number" ? { hanTuChoi: gioVn(v.khung.han) } : {}),
+    ...(v.khung.thayKhachTuMs !== null ? { thayKhachTu: gioVn(v.khung.thayKhachTuMs) } : {}),
+    ...(v.khung.tuChoiDuoc ? { lyDoTuChoi: v.lyDoTuChoi.map((r) => ({ code: r.code, nhan: r.label })) } : {}),
+    ...(v.sdtVanPhong ? { sdtVanPhong: v.sdtVanPhong } : {}),
   };
 }

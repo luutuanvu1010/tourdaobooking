@@ -29,6 +29,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "trip.urgent_adjust": ["any", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0104 Đ1 (Q-1 b): ô MỚI — điều chỉnh khẩn cấp: Bán hàng, Quản trị, Toàn quyền; còn lại none
   "trip.progress": ["any", "none", "any", "none", "none", "any", "none", "assigned", "none", "none"], // ADR-0049 D3 (A15): ô MỚI — lệnh tiến độ; DRIVER assigned (NỚI ghim DRIVER — ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2); văn phòng bấm thay (R-P1)
   "trip.passenger.add": ["none", "none", "none", "none", "none", "any", "none", "assigned", "none", "none"], // ADR-0052 D5b (Đợt 5 A-1b): ô MỚI — tài xế bổ sung tên khách chưa có tên trên chuyến mình đang lái; DRIVER assigned (nới ghim DRIVER — chủ DUYỆT 5/10, đề xuất luật A-1b mục 1); DRIVER_PARTNER none (chủ 5/10: chỉ tài xế công ty)
+  "trip.refuse": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0053 D8 (kế hoạch A4 T3): ô MỚI — tài xế từ chối chuyến MÌNH ĐANG LÁI trước hạn; cũng bật VẾ HẠN của khung xem khách (G-A4-2). T3: chỉ Toàn quyền any; DRIVER_PARTNER lật assigned ở T6; DRIVER none (tài xế công ty không Từ chối — D8.3)
   "trip.call_ack": ["ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0051 GB2: ô MỚI — "Đã gọi báo" / "Bỏ đánh dấu": người lập / người phụ trách đơn, Quản trị, Toàn quyền
   "order.passenger.write": ["ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none", "none"], // ADR-0047 A2: ô MỚI — nhập/sửa (dòng mới)/huỷ dòng trong danh sách hành khách; bằng order.modify
   // ADR-0061 điều 2 (accepted 2026-09-30): ô MỚI — thêm/sửa dịch vụ nhập tay khi công tắc BẬT. ACCOUNTING any nhưng CHƯA có tác dụng (Kế toán không lập/sửa
@@ -257,6 +258,7 @@ const ADMIN_NONE_OPS: readonly OperationCode[] = [
   "auth.session.viewAll", "auth.session.revoke", "auth.session.policy", // ADR-0075 điều 7: sổ phiên của mọi người, gỡ phiên — chỉ Toàn quyền (Quản trị không giữ Toàn quyền → 403)
   "party.document.reveal", // ADR-0083 điều 2: xem đủ số giấy tờ chỉ Toàn quyền — Quản trị chỉ thấy số đã che
   "trip.passenger.add", // ADR-0052 D5b (Đợt 5 A-1b): chỉ tài xế đang lái bổ sung tên — văn phòng nhập tên ở đơn (không route văn phòng)
+  "trip.refuse", // ADR-0053 D8.3 (kế hoạch A4 T3): Từ chối chuyến chỉ tài xế đang lái — văn phòng không từ chối thay (đổi người bằng xếp xe; N-TU-CHOI)
 ];
 
 test("FIELD không xem đơn/tiền/nhật ký của đơn KHÔNG được giao; ADMIN làm mọi thao tác của bản đồ TRỪ các thao tác hẹp cố ý không mở (ADMIN_NONE_OPS)", () => {
@@ -341,6 +343,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "trip.view": "assigned", "trip.dispatch": "none", "trip.override": "none", "trip.urgent_adjust": "none", "trip.progress": "assigned", "trip.call_ack": "none",
     // ADR-0052 D5b — NỚI (chủ duyệt 5/10, đề xuất luật A-1b mục 1): tài xế công ty bổ sung tên khách chưa có tên trên chuyến MÌNH ĐANG LÁI (ô assigned thứ ba).
     "trip.passenger.add": "assigned",
+    "trip.refuse": "none", // ADR-0053 D8.3: tài xế công ty KHÔNG Từ chối (không có vế hạn của khung xem khách — D7.2)
     // Sổ tiền lượt 1 (bản làm mới §2): tài xế không thu tiền khách — none ở cả bốn ô mới (ledger.view none, không phải own: tài xế không bao giờ là người thu).
     "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none",
     "assistant.ask": "any", // ngoại lệ có tên (ADR-0066 điều 1): hỏi trợ lý Hỗ trợ cách dùng app — trợ lý không đọc dữ liệu nghiệp vụ
@@ -373,6 +376,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     "trip.passenger.add": "none", // ADR-0052 D5b × lời chủ 5/10 ("chỉ tài xế công ty"): tài xế đối tác KHÔNG bổ sung tên
+    "trip.refuse": "none", // ADR-0053 D8 — kế hoạch A4: ô tạo ở T3 với none; lật assigned ở T6 CÙNG LÚC với trip.view (vế hạn áp ngay từ lúc thấy chuyến)
     "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.urgent_adjust": "none", "trip.progress": "none", "trip.call_ack": "none", // ADR-0049 D3 × ADR-0048 D2: tài xế đối tác chưa dùng app cho chuyến (D7 — lượt sau)
     "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none", // sổ tiền lượt 1 (bản làm mới §2) — mọi ô tiền = none
     "assistant.ask": "any", // ngoại lệ có tên (ADR-0066 điều 1): hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
@@ -402,6 +406,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.urgent_adjust": "none", "trip.progress": "none", "trip.call_ack": "none", "trip.passenger.add": "none",
+    "trip.refuse": "none", // ADR-0053 D8: Nhân sự không lái chuyến
     "assistant.ask": "any",
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
   };
