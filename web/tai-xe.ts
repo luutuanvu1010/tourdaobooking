@@ -2,7 +2,8 @@
 // chỗ (lượt 1b thay nội dung), "Giấy tờ của tôi" tóm tắt HAI giấy gần hạn nhất (điều phối chốt theo bản vẽ), "Xem tất cả" → trang Tôi (danh sách đủ).
 // Chỉ gọi GET /api/parties/documents/mine (cổng "staff", số CHE) — không lời gọi đơn hàng nào. Tài khoản không phải "chỉ tài xế" → về Trang chủ "/".
 import { chipHan, coMucGiayToCuaToi, haiGiayGanHan, loiChao, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
-import { chiTaiXe, coCuocCuaToi, TRANG_CUOC } from "../src/shared/start-page";
+import { coCuocCuaToi, TRANG_CUOC } from "../src/shared/start-page";
+import { moTrang } from "../src/shared/muc-giao-dien";
 import { api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { chipEl, loiCua } from "./giay-to-ui";
@@ -14,7 +15,8 @@ byId("tx-cuoc").prepend(icon("truck", 40, 1.5));
 async function main(): Promise<void> {
   const staff = await initShell();
   // Trang này chỉ dành cho tài khoản "chỉ tài xế" (homeRedirect của "/" đưa họ tới đây); tài khoản khác gõ thẳng địa chỉ thì về Trang chủ của mình.
-  if (!chiTaiXe(staff)) {
+  // Chốt chặn khai ở bảng mục (`TRANG.trangTaiXe.moTrang` = chiTaiXe) — bảng và trang một nguồn.
+  if (!moTrang("trangTaiXe", staff)) {
     location.replace("/");
     return;
   }
