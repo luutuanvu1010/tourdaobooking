@@ -1,4 +1,5 @@
-// BÀI RÀO "MỤC HIỆN ⇔ TRANG MỞ ĐƯỢC" (bước K-c sổ đại lý đợt 1; vòng sửa 1: chốt chặn phía trình duyệt `moTrang`, chia ba tệp theo đường gọi).
+// BÀI RÀO "MỤC HIỆN ⇔ TRANG MỞ ĐƯỢC" (bước K-c sổ đại lý đợt 1; vòng sửa 1: chốt chặn phía trình duyệt `moTrang`, chia ba tệp theo đường gọi; vòng sửa 2:
+// canh nối dây ba tệp (8), "một nguồn" đọc đúng tệp trang và bỏ chú thích).
 // Neo: Hiến chương K4 (docs/ARCHITECTURE.md — một bản đồ quyền; mọi route hỏi `can()`) và web/CLAUDE.md ("ẩn/hiện hỏi CÙNG bảng với máy chủ; máy chủ luôn kiểm
 // lại"). Bảng mục: src/shared/muc-giao-dien.ts (TRANG + các nơi đặt) và src/shared/trang-chu-o.ts (O_TRANG_CHU).
 //
@@ -17,7 +18,9 @@
 //   (4) khung tạm (bản nhớ khung, ADR-0035) vẽ mục mà khung thật của cùng tài khoản không vẽ ⇒ ĐỎ;
 //   (5) logo (về "/", trang chuyển tiếp theo `homeRedirect`) đưa tài khoản tới trang đầu không vào được ⇒ ĐỎ (trừ CHO_CHU_TRANG_DAU);
 //   (6) web/shell.ts, web/account.ts viết tay `href: "<chuỗi>"` ngoài LIEN_KET_VIET_TAY ⇒ ĐỎ;
-//   (7) đường trang / trang cùng sáng của bảng không có trong PAGES (src/shared/sw-policy.ts — trang có thật) ⇒ ĐỎ.
+//   (7) đường trang / trang cùng sáng của bảng không có trong PAGES (src/shared/sw-policy.ts — trang có thật) ⇒ ĐỎ;
+//   (8) nối dây ba tệp (vòng sửa 2): số tệp src/muc-hien-mo-duoc-<n>.test.ts khác SO_PHAN, tệp thứ n không gọi đúng một lần `kiemPhan(n−1)`, hay các chỉ số
+//       không phủ đúng {0..SO_PHAN−1} mỗi số một lần ⇒ ĐỎ — bài này chạy ở MỌI phần (thiếu tệp phần 1 thì hai tệp kia vẫn đỏ).
 // Mục / trang MỚI khai ở bảng tự vào bài (bài lặp THANH_BEN, THANH_TAB, THANH_TREN, TRANG_TOI, O_TRANG_CHU và mọi khoá TRANG).
 //
 // QUY ƯỚC "bị từ chối": 401 / 403. 404 chỉ khi đường gọi đó dùng 404 làm câu từ chối (TU_CHOI_BANG_404 — hôm nay rỗng). 2xx = mở được. Mã khác (400, 5xx, 404
@@ -29,8 +32,9 @@
 // GIỚI HẠN (dựa vào kỷ luật / bài khác): chỉ lối vào ĐIỀU HƯỚNG (thanh bên, thanh tab, thanh trên, trang Tôi, ô Trang chủ — ô lưới điện thoại và lối tắt máy tính
 // là tập con của `nhomMayTinh` mà bài dùng). KHÔNG phủ: nút ghi trong trang; trạng thái dữ liệu (chỉ phủ quyền); liên kết trong nội dung trang (khối "Cần xem
 // lại" src/shared/dashboard-review.ts, dải chào web/trang-chu-may-tinh.ts, `data-back`); huy hiệu số; chốt chặn phía trình duyệt CHỈ phủ trang có khai
-// `moTrang` (hôm nay: Địa điểm, Trang chủ tài xế, Cuốc của tôi — trang tự hỏi quyền theo cách khác mà không khai thì bài không thấy); khung mất mạng (bốn tab
-// cơ bản khi không biết vai). Đường gọi chính là MỘT lời gọi đọc đại diện cho trang; trang cần thêm lời gọi khác thì bài không thấy.
+// `moTrang` (hôm nay: Địa điểm, Trang chủ tài xế, Cuốc của tôi — trang tự hỏi quyền theo cách khác mà không khai thì bài không thấy); "một nguồn" chỉ đọc MẪU
+// chữ `if (!moTrang("<khoá>", …))` trong tệp trang (đã bỏ chú thích) — không chứng minh nhánh đó thật sự dừng trang; khung mất mạng (bốn tab cơ bản khi không
+// biết vai). Đường gọi chính là MỘT lời gọi đọc đại diện cho trang; trang cần thêm lời gọi khác thì bài không thấy. Xoá CẢ ba tệp mỏng thì không còn bài nào.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
@@ -48,6 +52,8 @@ const idCua = (m) => `00000000-0000-4000-8000-${String(m).padStart(12, "0")}`;
 const nguoi = (m) => ({ id: idCua(m), permissions: PERMISSION_CODES.filter((_, i) => m & (1 << i)) });
 const ten = (m) => `tập ${m} [${nguoi(m).permissions.join(", ") || "không quyền"}]`;
 const ROOT = new URL("../../", import.meta.url);
+/** Bỏ chú thích khối và dòng (giữ `//` đứng sau `:` / dấu nháy — URL, chuỗi). */
+const boChuThich = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
 // Các nơi đặt lối vào: dòng khai + mục THẬT SỰ hiện (đọc từ chính hàm mà web/shell.ts, web/account.ts, web/home.ts vẽ).
@@ -134,6 +140,13 @@ const LIEN_KET_VIET_TAY = [
   { tep: "web/shell.ts", href: "", lan: 1, lyDo: "mục cha 'Vận chuyển' — vẽ thành <div>, không phải liên kết" },
 ];
 
+/**
+ * Tệp trang của khoá có `moTrang` — mặc định `web/<duong bỏ "/">.ts` (Địa điểm /locations → web/locations.ts, Cuốc /cuoc → web/cuoc.ts, Trang chủ tài xế
+ * /tai-xe → web/tai-xe.ts). Trang có tệp khác tên thì khai ở đây.
+ */
+const TEP_TRANG = {};
+const tepTrang = (k) => TEP_TRANG[k] ?? `web/${TRANG[k].duong.slice(1)}.ts`;
+
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
 // Chia đường gọi chính thành SO_PHAN phần.
 
@@ -141,6 +154,30 @@ const LIEN_KET_VIET_TAY = [
 export const GOI_TAT_CA = [...new Set(KHOA_TRANG.map((k) => TRANG[k].goi).filter((g) => typeof g === "string"))].sort();
 export const goiCuaPhan = (phan) => GOI_TAT_CA.filter((_, i) => i % SO_PHAN === phan);
 const goiCua = (k) => (typeof TRANG[k].goi === "string" ? TRANG[k].goi : null);
+
+/**
+ * Nối dây (vòng sửa 2, I-3): tệp mỏng src/muc-hien-mo-duoc-<n>.test.ts nào gọi `kiemPhan(<số>)` nào. Trả danh sách lỗi (rỗng = đúng): đúng SO_PHAN tệp; tệp thứ
+ * n gọi đúng MỘT lần `kiemPhan(n−1)` viết bằng chữ số (đã bỏ chú thích); các chỉ số phủ đúng {0..SO_PHAN−1}, mỗi số một lần.
+ */
+function loiNoiDay() {
+  const thuMuc = new URL("src/", ROOT);
+  const tep = readdirSync(thuMuc).filter((f) => /^muc-hien-mo-duoc-.*\.test\.ts$/.test(f)).sort();
+  const loi = [];
+  if (tep.length !== SO_PHAN) loi.push(`có ${tep.length} tệp src/muc-hien-mo-duoc-*.test.ts (${tep.join(", ")}), cần đúng SO_PHAN = ${SO_PHAN}`);
+  const tatCa = [];
+  for (const f of tep) {
+    const so = [...boChuThich(readFileSync(new URL(f, thuMuc), "utf8")).matchAll(/\bkiemPhan\s*\(\s*(\d+)\s*\)/g)].map((x) => Number(x[1]));
+    tatCa.push(...so);
+    const thu = f.match(/^muc-hien-mo-duoc-(\d+)\.test\.ts$/);
+    if (so.length !== 1) loi.push(`${f}: gọi kiemPhan(<chữ số>) ${so.length} lần, cần đúng 1`);
+    if (!thu) loi.push(`${f}: tên phải là muc-hien-mo-duoc-<1..${SO_PHAN}>.test.ts`);
+    else if (so.length === 1 && so[0] !== Number(thu[1]) - 1) loi.push(`${f}: gọi kiemPhan(${so[0]}), cần kiemPhan(${Number(thu[1]) - 1})`);
+  }
+  const mong = Array.from({ length: SO_PHAN }, (_, i) => i);
+  tatCa.sort((a, b) => a - b);
+  if (JSON.stringify(tatCa) !== JSON.stringify(mong)) loi.push(`các chỉ số kiemPhan của mọi tệp = [${tatCa}], cần đúng [${mong}] (mỗi phần đúng một tệp)`);
+  return loi;
+}
 
 /** Mục hiện theo (nơi, tập) — tính một lần (thuần, không gọi máy chủ). */
 const HIEN = Object.fromEntries(Object.entries(NOI).map(([noi, { hien }]) => [noi, TAP.map((m) => new Set(hien(nguoi(m))))]));
@@ -185,11 +222,19 @@ export async function kiemPhan(phan) {
     assert.ok(coTrigger, `không thấy trigger ${TRIGGER_BO} trong CSDL thử — đổi tên? sửa bài cho đúng (đừng bỏ trigger khác)`);
     assert.ok(goiPhan.length > 0, "phần này không có đường gọi nào — SO_PHAN lớn hơn số đường?");
     for (const [g, ds] of MA) assert.ok(ds.some((x) => x !== 401), `${g}: mọi tập đều 401 — phiên của khung thử hỏng`);
+    assert.ok(
+      [...MA.values()].some((ds) => ds.some((x) => x >= 200 && x < 300) && ds.some((x) => x === 403)),
+      "phần này không có đường nào vừa mở vừa bị từ chối (403) tuỳ tập — khung thử không phân quyền? (bài (1) của phần thành rỗng nghĩa; nếu chỉ do cách chia, đổi SO_PHAN)",
+    );
     if (goiPhan.includes("GET /api/auth/me")) {
       const lech = TAP.filter((m) => JSON.stringify(quyenThat[m]) !== JSON.stringify([...nguoi(m).permissions].sort()));
       assert.deepEqual(lech.slice(0, 5).map(ten), [], "tài khoản thử không mang đúng tập quyền (đọc lại qua /api/auth/me)");
       assert.ok(MA.get("GET /api/auth/me").every((x) => x === 200), "trang Tôi phải mở được với mọi tập (dải bảo trì, mục 'Của tôi', tab 'Tôi')");
     }
+  });
+
+  test(`${nhan} [tĩnh] (8) nối dây: đúng ${SO_PHAN} tệp src/muc-hien-mo-duoc-<n>.test.ts, tệp thứ n gọi đúng một lần kiemPhan(n−1) — chạy ở mọi phần`, () => {
+    assert.deepEqual(loiNoiDay(), [], "tệp mỏng gọi nhầm / thiếu / thừa phần ⇒ một phần ba đường gọi lặng lẽ thôi được canh — sửa tệp mỏng (hoặc SO_PHAN)");
   });
 
   test(`${nhan} (3) mã trạng thái của các đường gọi chính chỉ là 2xx / 401 / 403 (404 khi có khai) — mã lạ là đường gọi khai sai`, () => {
@@ -256,6 +301,10 @@ function kiemTinh() {
     assert.deepEqual(phan.flat().sort(), [...GOI_TAT_CA].sort(), "đường gọi bị bỏ sót hoặc lặp giữa các phần");
     assert.equal(new Set(phan.flat()).size, phan.flat().length, "một đường gọi nằm ở hai phần");
     assert.ok(phan.every((p) => p.length > 0), "có phần không có đường gọi nào");
+    assert.ok(
+      GOI_TAT_CA.includes("GET /api/auth/me"),
+      "không trang nào còn dùng GET /api/auth/me làm đường gọi chính ⇒ kiểm 'tài khoản thử mang đúng tập quyền' (bài khung thử của phần chứa đường đó) mất — thêm khẳng định thay thế",
+    );
   });
 
   test("[tĩnh] (3) mọi trang có đường gọi chính dạng `GET /api/…` — hoặc nằm ở MIEN kèm lý do; MIEN không thừa", () => {
@@ -280,13 +329,21 @@ function kiemTinh() {
     assert.deepEqual(loi.slice(0, 10), [], `${loi.length} lần mục hiện mà chính trang tự chặn (thấy nút mà bấm không vào được) — ẩn mục, hoặc sửa chốt chặn của trang theo bảng`);
   });
 
-  test("[tĩnh] (1b) trang có khai `moTrang` thì chính trang chặn bằng `moTrang(\"<khoá>\", …)` của bảng (một nguồn) — không tự hỏi lại theo cách khác", () => {
+  test("[tĩnh] (1b) một nguồn: khoá khai `moTrang` ⇔ tệp trang của nó chặn bằng `if (!moTrang(\"<khoá>\", …))` (đã bỏ chú thích); web/ không gọi `moTrang` cho khoá không khai", () => {
     const thuMuc = new URL("web/", ROOT);
-    const nguon = readdirSync(thuMuc).filter((f) => f.endsWith(".ts")).map((f) => readFileSync(new URL(f, thuMuc), "utf8")).join("\n");
+    const nguon = new Map(readdirSync(thuMuc).filter((f) => f.endsWith(".ts")).map((f) => [`web/${f}`, boChuThich(readFileSync(new URL(f, thuMuc), "utf8"))]));
     const coKhai = KHOA_TRANG.filter((k) => typeof TRANG[k].moTrang === "function");
-    assert.ok(coKhai.length >= 3, "bài mong ít nhất ba trang có chốt chặn trình duyệt (Địa điểm, Trang chủ tài xế, Cuốc của tôi)");
-    const thieu = coKhai.filter((k) => !nguon.includes(`moTrang("${k}"`));
-    assert.deepEqual(thieu, [], "trang khai `moTrang` ở bảng mà web/*.ts không gọi `moTrang(\"<khoá>\", staff)` — chốt chặn của trang và bảng phải là MỘT hàm");
+    const loi = [];
+    for (const k of coKhai) {
+      const tep = tepTrang(k);
+      const src = nguon.get(tep);
+      if (src === undefined) loi.push(`${k}: không thấy tệp trang ${tep} — khai tệp ở TEP_TRANG`);
+      else if (!new RegExp(`\\bif\\s*\\(\\s*!\\s*moTrang\\(\\s*"${k}"\\s*,`).test(src)) loi.push(`${k}: ${tep} không chặn bằng if (!moTrang("${k}", …))`);
+    }
+    for (const [tep, src] of nguon) {
+      for (const x of src.matchAll(/\bmoTrang\(\s*"([^"]+)"/g)) if (!coKhai.includes(x[1])) loi.push(`${tep}: moTrang("${x[1]}") — khoá không khai moTrang ở bảng (luôn đúng, chốt chặn rỗng)`);
+    }
+    assert.deepEqual(loi, [], "chốt chặn trình duyệt của trang và bảng mục phải là MỘT hàm: khai `moTrang` ở TRANG VÀ tệp trang chặn bằng if (!moTrang(\"<khoá>\", staff))");
   });
 
   test("[tĩnh] bài không rỗng: mỗi nơi có mục hiện và mục ẩn tuỳ tập; mọi dòng DUOC_MA_AN trỏ tới (nơi, trang) có dòng đặt thật", () => {
@@ -316,7 +373,6 @@ function kiemTinh() {
   });
 
   test("[tĩnh] (6) web/shell.ts, web/account.ts không viết tay liên kết ngoài bảng mục (trừ LIEN_KET_VIET_TAY); trang Tôi không có chốt chặn riêng", () => {
-    const boChuThich = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
     const dem = new Map();
     for (const tep of ["web/shell.ts", "web/account.ts"]) {
       const src = boChuThich(readFileSync(new URL(tep, ROOT), "utf8"));
