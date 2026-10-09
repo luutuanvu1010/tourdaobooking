@@ -128,9 +128,10 @@ export function taoChonPhamVi(dm: DanhMuc, idTienTo: string, bangLoi: BangLoi): 
   const pv = h(
     "select",
     { id: `${idTienTo}-pham-vi` },
-    h("option", { value: "ALL" }, "Mọi dịch vụ"),
-    h("option", { value: "GROUP" }, "Một nhóm dịch vụ"),
+    // Mặc định «Một dịch vụ» (đứng đầu, đúng thứ tự brief): một mức «Mọi dịch vụ» phủ rộng nên phải chọn có chủ ý, không nằm sẵn ở ô.
     h("option", { value: "SERVICE" }, "Một dịch vụ"),
+    h("option", { value: "GROUP" }, "Một nhóm dịch vụ"),
+    h("option", { value: "ALL" }, "Mọi dịch vụ"),
   );
   const dichVu = taoChonDichVu(dm, `${idTienTo}-dich-vu`);
   const nhom = h("select", { id: `${idTienTo}-nhom`, "aria-label": "Nhóm dịch vụ" }, h("option", { value: "" }, "— Chọn nhóm —"), ...dm.nhom.map((g) => h("option", { value: g.code }, g.name)));
@@ -147,7 +148,7 @@ export function taoChonPhamVi(dm: DanhMuc, idTienTo: string, bangLoi: BangLoi): 
     root,
     doc: () => ({ phamVi: pv.value as PhamViForm, catalogCode: pv.value === "SERVICE" ? dichVu.ma() : "", groupCode: pv.value === "GROUP" ? nhom.value : "" }),
     datLai() {
-      pv.value = "ALL";
+      pv.value = "SERVICE";
       dichVu.datLai();
       nhom.value = "";
       veKhu();
