@@ -230,6 +230,20 @@ test("ba route điều phối (chi tiết chuyến, cuốc của tôi, xuất b�
     const muc = w.q("SELECT * FROM vc_trip_departure_check_item WHERE check_id = ?", chup[0].id);
     assert.ok(muc.length >= 5, `chống bài rỗng: bản chụp có GPLX + khám sức khoẻ + Kiểm định + Bảo hiểm + phù hiệu (${muc.length})`);
 
+    // ADR-0111 (gói A5 T11): đề nghị chuyển khách A → B (B thiếu giấy tờ) — Nhận chạy 11 điều kiện, GIAY_TO_DICH không đạt ⇒ leo thang. Thân gửi / nhận / danh
+    // sách văn phòng và DÒNG KIỂM (gia_tri = ngày hết hạn sớm nhất yyyymmdd, không số giấy tờ) không chứa số của người, không nơi cấp.
+    const diemA = w.q("SELECT id FROM vc_trip_stop WHERE trip_id = ? AND kind = 'PICKUP'", A.chuyen.id)[0].id;
+    const gui = await goi("gửi đề nghị A → B", "POST", `/api/van-chuyen/cuoc-cua-toi/${A.chuyen.id}/de-nghi`, DRIVER, { requestId: uuid(), denChuyenId: B.chuyen.id, phamVi: "STOP", diemId: diemA });
+    assert.equal(gui.status, 200, gui.text);
+    const nhan = await goi("nhận đề nghị (B thiếu giấy tờ)", "POST", `/api/van-chuyen/de-nghi/${gui.json.deNghi.id}/nhan`, DRIVER2, { requestId: uuid() });
+    assert.equal(nhan.status, 200, nhan.text);
+    assert.equal(nhan.json.ketQua, "LEO_THANG", "chống bài rỗng: giấy tờ thiếu ⇒ leo thang");
+    assert.equal((await goi("đề nghị trong ngày (văn phòng)", "GET", "/api/van-chuyen/de-nghi", ADM)).status, 200);
+    const gt = w.q("SELECT ket_qua, gia_tri, gioi_han FROM vc_transfer_check WHERE transfer_id = ? AND rule_code = 'GIAY_TO_DICH'", gui.json.deNghi.id);
+    assert.equal(gt.length, 1, "chống bài rỗng: có dòng kiểm giấy tờ");
+    assert.equal(gt[0].ket_qua, "KHONG_DAT");
+    for (const x of [gt[0].gia_tri, gt[0].gioi_han]) assert.ok(x === null || /^20\d{6}$/.test(String(x)), `gia_tri / gioi_han của GIAY_TO_DICH chỉ là ngày yyyymmdd: ${x}`);
+
     const soNguoi = [SO_CCCD_TX, SO_SK_TX, SO_CCCD_TX2, ...SO_GPLX_KHUNG].flatMap((s) => [s, s.slice(0, 8), s.slice(-8)]);
     const noiCap = [NOI_TX, NOI_KHUNG];
     // Thân của ba route: không số người, không nơi cấp.
@@ -238,7 +252,8 @@ test("ba route điều phối (chi tiết chuyến, cuốc của tôi, xuất b�
       for (const n of noiCap) assert.ok(!t.text.includes(n), `thân "${t.khoa}" lộ nơi cấp "${n}"`);
     }
     // Nhật ký + bản chụp: không số (người lẫn xe), không nơi cấp; bỏ dấu cách / chấm / gạch cũng không có.
-    for (const [ten, dl] of [["nhật ký", w.q("SELECT * FROM audit_log")], ["bản chụp xuất bến", [...w.q("SELECT * FROM vc_trip_departure_check"), ...w.q("SELECT * FROM vc_trip_departure_check_item")]]] as const) {
+    for (const [ten, dl] of [["nhật ký", w.q("SELECT * FROM audit_log")], ["bản chụp xuất bến", [...w.q("SELECT * FROM vc_trip_departure_check"), ...w.q("SELECT * FROM vc_trip_departure_check_item")]],
+      ["đề nghị + dòng kiểm chuyển khách", [...w.q("SELECT * FROM vc_transfer_request"), ...w.q("SELECT * FROM vc_transfer_check")]]] as const) {
       const txt = JSON.stringify(dl);
       const gon = txt.replace(/[\s.\-]/g, "");
       for (const s of [...soNguoi, SO_PHU_HIEU, "DANHDAU"]) assert.ok(!txt.includes(s) && !gon.includes(s.replace(/[\s.\-]/g, "")), `${ten} lộ số "${s}"`);
