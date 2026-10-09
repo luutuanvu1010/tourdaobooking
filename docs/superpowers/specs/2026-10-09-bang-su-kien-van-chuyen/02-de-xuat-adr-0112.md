@@ -1,13 +1,13 @@
 # ĐỀ XUẤT ADR-0112 — Báo tài xế khi văn phòng bấm "Cập nhật khách / điểm theo đơn" lúc xe chưa chạy
 
-**Cho chủ dự án.** Hôm nay, khi người xếp xe bấm tay "Cập nhật khách theo đơn" hoặc "Cập nhật điểm theo đơn" lúc xe chưa chạy, tài xế đã được xếp lái không nhận tin gì, trong khi máy tự cập nhật thì tài xế có tin. Quyết định này cho hai nút tay gửi đúng câu tin máy đang gửi, tới đúng người đang được xếp lái chuyến đó; xe đang chạy giữ như cũ. Không đổi dữ liệu, không thêm quyền, không cần sửa cơ sở dữ liệu.
+**Cho chủ dự án.** Hôm nay, khi người xếp xe bấm tay "Cập nhật khách theo đơn" hoặc "Cập nhật điểm theo đơn" lúc xe chưa chạy, tài xế đã được xếp lái không nhận tin gì, trong khi máy tự cập nhật thì tài xế có tin. Quyết định này cho hai nút tay gửi đúng câu tin máy đang gửi, tới đúng người đang được xếp lái chuyến đó; xe đang chạy giữ như cũ. Tin chỉ tính cho những lần bấm từ ngày phát hành, để tài xế không thấy tin cũ hiện lại. Không đổi dữ liệu, không thêm quyền, không cần sửa cơ sở dữ liệu.
 
 **Câu hỏi duyệt duy nhất:** Bạn có duyệt ADR-0112 (báo tài xế khi văn phòng bấm "Cập nhật khách / điểm theo đơn" lúc xe chưa chạy, cùng câu với tin máy) không? *Khuyến nghị: duyệt.*
 
 ---
 
 - **Trạng thái:** đề xuất, chưa duyệt. Số 0112 là số dự kiến (`docs/adr/README.md` ghi "kế tiếp là 0112"; không nhánh nào có tệp `ADR-0112*` lúc soạn) — kiểm lại lúc chép vào `docs/adr/` (bài học số 0103 trùng).
-- **Nguồn lời chủ:** `00-trang-trinh.md` cùng thư mục, câu 2, chủ trả lời 2026-10-09: *"Có, soạn quyết định mới"*.
+- **Nguồn lời chủ:** câu hỏi ở `00-trang-trinh.md` cùng thư mục, câu 2 (khuyến nghị "có, báo cùng câu với tin máy đang gửi"). Câu trả lời 2026-10-09 ghi ở `docs/superpowers/plans/2026-10-08-van-chuyen-goi-a-c-danh-sach-viec.md:23` (commit `6499745e`): *"(2) có báo tài xế khi bấm tay "Cập nhật khách / điểm theo đơn" lúc xe chưa chạy — soạn ADR-0112 cho chủ duyệt, CHƯA sửa mã"*. Nhãn phương án chủ chọn theo lời điều phối: "Có, soạn quyết định mới" (không có bản ghi nguyên văn nhãn trong kho).
 - **Mốc đo mã:** nhánh `claude/van-chuyen-goi-a-c` @ `6499745e`.
 - **Một quyết định**, chạm danh sách tin (một chiều nhẹ), không chạm dữ liệu / quyền / tiền: không vượt trần 3 của `CLAUDE.md` §9; bảng dùng chung không nhận loại dữ liệu mới nên không cần trang ghép.
 - **Xây trên lỗ đang hở:** không. Sáu mục HIGH ở `docs/quyen-hoan.json` (TNV-G1, G3, G4, HC-4.2, HC-5.19, HC-5.11): không mục nào chạm tin chuyến; HC-5.11 không áp vì người bấm nút là người thật, nhật ký mang `staff_id` của họ.
@@ -31,14 +31,14 @@ Mã loại tin (`LoaiTinChuyen`) chỉ dùng trong mã và bài kiểm, không r
 
 **Đ3. Người nhận (cả hai nút) — đúng nhánh của máy đồng bộ** (`loaiCho`: dòng lái bao lúc sự kiện **và** `can(trip.view, { assigned: true })`):
 - nhận: người có dòng lái chuyến đó mở ≤ lúc sự kiện và (còn mở hoặc đóng ≥ lúc đó) — trong bảng là `TX_LUC` (đang lái, vừa xếp, vừa gỡ đúng lúc);
-- không nhận: người bấm (không tự nhận tin của mình), văn phòng (Bán hàng, Kế toán, Quản trị, Toàn quyền), HDV, Đối tác, Thực tập;
+- không nhận: người bấm (không tự nhận tin của mình), văn phòng (Bán hàng, Kế toán, Quản trị, Toàn quyền — trừ khi chính người đó đang được xếp lái chuyến này, vì máy chọn theo dòng lái chứ không theo vai), HDV, Đối tác, Thực tập;
 - **Tài xế đối tác: không nhận**, vì ô `trip.view` của `DRIVER_PARTNER` hôm nay là `none` (`src/shared/permissions.ts`, dòng `"trip.view"`) — giống hệt tin máy. Nếu sau này ô đó mở, họ tự nhận qua cùng hàm, không cần văn bản mới cho phần này.
 
 **Đ4. Không đổi:** xe đang chạy giữ nguyên (cập nhật điểm vẫn câu và loại cũ; cập nhật khách vẫn 409). Câu tin không có tên khách, SĐT, nơi đón (luật Điều phối xe, `CLAUDE.md` §10) — chỉ mã chuyến và ngày. Gõ cửa màn hình khoá đi đường sẵn có: route đã gọi `baoThayDoiChuyen` khi có ghi, gốc lắp ráp gõ cửa khi `dongCoTheSinhTin` đúng. Nút bấm mà không có gì lệch thì không ghi, không tin; lệnh lặp (`requestId` cũ) trả kết quả cũ, không tin mới.
 
 **Đ5. Tin cũ không hiện lại:** hộp thông báo tính lại từ nhật ký 30 ngày, nên nếu không chặn, các lần bấm trước ngày phát hành sẽ hiện ra thành tin cũ. Tin MỚI của quyết định này (cập nhật khách; cập nhật điểm khi xe chưa chạy) chỉ tính cho sự kiện **từ mốc phát hành** trở đi (khuôn `MOC_TIN_DOI` của ADR-0062 Đ1); tin cập nhật điểm khi xe đang chạy giữ như cũ.
 
-**Đ6. Nới bài kiểm có tên (Hiến pháp Điều 9.4):** bài *"Đợt 5: cập nhật điểm trên chuyến CHƯA chạy … → không ai nhận tin"* ở `src/shared/tin-chuyen.test.ts` được viết lại thành bài ngược (tài xế đang lái nhận đúng câu Đ2). Không bài nào khác được nới.
+**Đ6. Nới bài kiểm có tên (Hiến pháp Điều 9.4):** bài *"Đợt 5: cập nhật điểm trên chuyến CHƯA chạy … → không ai nhận tin"* ở `src/shared/tin-chuyen.test.ts` được viết lại thành bài ngược (tài xế đang lái nhận đúng câu Đ2). Đã quét mọi `src/**/*.test.ts` @ `79b06a39`: chỉ bài này khoá hành vi cũ. Các bài của Bảng sự kiện (`src/bang-su-kien-van-chuyen.test.ts`) sẽ đỏ theo thiết kế và được sửa bằng dòng bảng (mục Hệ quả), không phải nới; bài 1024 tập con quyền và bài loại thay đổi Bảng tin ở `tin-chuyen.test.ts` vẫn xanh.
 
 ## Hệ quả
 
@@ -64,6 +64,6 @@ Mã loại tin (`LoaiTinChuyen`) chỉ dùng trong mã và bài kiểm, không r
 
 ## Điều chưa chắc
 
-- **Trùng tin:** không có trùng cho cùng một thay đổi — máy đã đồng bộ thì nút không còn lệch để ghi. Có thể có **hai tin hợp lệ** cho một lần sửa đơn: máy đồng bộ một phần rồi văn phòng bấm nút cho phần còn lại; hoặc sửa chặng đổi cả giờ lẫn nơi (tin "đổi giờ đón" lúc sửa đơn, tin "đổi điểm đón" lúc bấm nút). Sửa chỉ nơi thì tin giờ hẹn không ra (`phanDoiCuaTin` đặt `gioHen` theo trường ngày / giờ), trừ khi chữ nhật ký không đọc được (máy chọn câu chung, coi như có đổi giờ) — chưa kiểm bằng bài.
+- **Trùng tin:** không có trùng cho cùng một thay đổi — máy đã đồng bộ thì nút không còn lệch để ghi; máy và nút chạy sát nhau thì cổng phiên bản chuyến chỉ cho một bên ghi. Có thể có **hai tin hợp lệ** cho một lần sửa đơn: máy đồng bộ một phần rồi văn phòng bấm nút cho phần còn lại; hoặc sửa chặng đổi cả giờ lẫn nơi (tin "đổi giờ đón" lúc sửa đơn, tin "đổi điểm đón" lúc bấm nút). Sửa chỉ nơi thì tin giờ hẹn không ra (`phanDoiCuaTin` đặt `gioHen` theo trường ngày / giờ), trừ khi chữ nhật ký không đọc được (máy chọn câu chung, coi như có đổi giờ) — chưa kiểm bằng bài.
 - **Đ5 (mốc phát hành)** là chi tiết AI thêm để tránh tin cũ; nếu chủ thấy không cần thì bỏ, phần còn lại không đổi.
 - Lượng dòng thật của hai nút trên production: chưa đo.
