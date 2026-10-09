@@ -4,7 +4,7 @@
 
 ## Vì sao
 Lời chủ 2026-10-09: *"dường như chúng ta đang đi làm lắt nhắt từng việc mà không phải là ép hệ thống vào 1 khuôn khổ rồi tự suy ra những quy tắc hay việc cần làm?"* Đến hết việc 12, người kiểm độc lập tìm ra **11 lỗi nặng** ở sổ đại lý đợt 1; **ít nhất 6** thuộc hai nhóm lặp lại: (1) tài khoản có quyền Đối tác — cả Đối tác thường lẫn tài khoản vừa là nhân viên vừa là đối tác — thấy hoặc chọn được tiền của bên khác (việc 3, việc 5 hai lần, việc 6); (2) dữ liệu đổi giữa lúc máy đọc và lúc máy ghi (việc 4, việc 6; việc 1 cũng gần loại này). Con số chưa chốt: việc 10, 11, 13, 14 chưa làm.
-Hiện trạng luật: Phần I **chưa có** điều nào về "ai thấy tiền của ai" trong Nền tảng (4.4 chỉ nói chứng từ gửi khách). Nhóm "đọc rồi ghi" **đã có luật** ở Phần II (khoá lạc quan, lô có điều kiện) nhưng **không có rào máy chung**, nên việc 4 và việc 6 vẫn lọt. Nhóm giao diện đã có luật "ẩn/hiện phải hỏi bảng quyền" và một rào, nhưng rào đó không đối chiếu với đường gọi của máy chủ; đợt 1 chưa có lỗi nặng nào thuộc nhóm này — điều 5.22 là phòng trước, vì việc 10–11 thêm mục menu và khối hiện tiền.
+Hiện trạng luật: Phần I **chưa có** điều nào về "ai thấy tiền của ai" trong Nền tảng (4.4 chỉ nói chứng từ gửi khách). Nhóm "đọc rồi ghi" **đã có luật** ở Phần II (khoá lạc quan, lô có điều kiện) nhưng **không có rào máy chung**, nên việc 4 và việc 6 vẫn lọt. Nhóm giao diện đã có luật "ẩn/hiện phải hỏi bảng quyền" và một rào, nhưng rào đó không đối chiếu với đường gọi của máy chủ; đợt 1 chưa thấy lỗi nặng nào thuộc nhóm này — điều 5.22 là phòng trước, vì việc 10–11 thêm mục menu và khối hiện tiền.
 
 ## Ba điều đề xuất
 
@@ -26,7 +26,7 @@ Hiện trạng luật: Phần I **chưa có** điều nào về "ai thấy tiề
 | 5.20 | bản chụp mức trên đơn, mức hoa hồng, điều khoản người bán; (b) thêm: dòng sổ, số dư từng bên | `order.terms.view`*, `partner.commission.view`, `supply.terms.view`, `money.view`; (b) thêm `ledger.view` | cổng đường gọi + hàm góc nhìn + khối ẩn/hiện giao diện |
 | 5.21 | mọi bảng có lô ghi nhiều câu | không đổi quyền | câu quyết định của lô + chuỗi `changes() > 0` |
 | 5.22 | không dữ liệu | mọi ô có trang giao diện | cổng đường gọi ⇔ điều kiện hiện mục |
-\* ô của việc 5, đang ở bản sửa chưa nhập. Không điều nào mở quyền máy chủ mới. 5.20 xét theo quyền của người xem **cộng** vai của họ trên đơn (người hưởng) nên khớp 5.8; nó không đụng lệch tạm ADR-0029 (luật giá Đối tác xét theo người thao tác — vẫn chờ gỡ theo đúng ADR đó). Mỗi điều được duyệt sẽ có dòng ở bảng thi hành (Điều 6.2) và ở `docs/SO-HANG-RAO.md` khi rào đã thấy chặn thật.
+\* ô của việc 5, đang ở bản sửa chưa nhập. Không điều nào mở quyền máy chủ mới. 5.20 nói về việc **xem**, không về bước của luồng (5.8). Trần "nhiều nhất là của mình" xét theo quyền của người xem — cùng kiểu ADR-0027 điều 2, mà ADR-0029 ghi là lệch tạm khỏi 5.8 — cộng vai người hưởng của họ trên đơn; duyệt 5.20 là chấp nhận kiểu xét này cho việc xem tiền. Lệch tạm của luật giá ở ADR-0029 giữ nguyên. Mỗi điều được duyệt sẽ có dòng ở bảng thi hành (Điều 6.2) và ở `docs/SO-HANG-RAO.md` khi rào đã thấy chặn thật.
 
 ## Hệ quả và thứ tự (đề nghị)
 1. Rào 5.20 và rào 5.22 làm **trước việc 10–11** (hai việc này hiện tiền và thêm mục menu). Rào 5.20 có sẵn khuôn chạy được nên nhanh; rào 5.22 phải gom lại khai báo menu.
