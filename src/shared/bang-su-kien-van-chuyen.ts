@@ -388,8 +388,10 @@ export const QUY_TAC = {
 } as const;
 export type MaQuyTac = keyof typeof QUY_TAC;
 export interface DauHieu {
-  /** Đường dẫn từ gốc repo. */
+  /** Đường dẫn từ gốc repo. Với `soLan`: thư mục — đếm `chua` trên mọi tệp .ts (trừ *.test.ts) trong thư mục đó. */
   tep: string;
+  /** Số lần `chua` xuất hiện (đã che chú thích) — thêm một chỗ ghi mới ở bất kỳ tệp nào cũng làm bài đỏ, buộc người sửa xem lại mục lệch. */
+  soLan?: number;
   /** Chỉ xét thân hàm này (từ `function <ham>` tới khai báo `export` kế tiếp). */
   ham?: string;
   chua?: string;
@@ -419,7 +421,8 @@ export const CHO_LECH: readonly ChoLech[] = [
     maLam: "Bảng cũ \"Sửa thông tin chuyến\" đổi ngày đi / giờ đón của chặng đã xếp xe, chỉ ghi một dòng nhật ký đơn không gắn chặng — tài xế không nhận tin, người lập đơn không được nhắc gọi khách.",
     adrNoi: "ADR-0052 D6.2: giờ hẹn chặng đổi khi đã xếp → tài xế đang lái chuyến có suất của chặng + người lập / phụ trách đơn nhận tin.",
     deNghi: "Làm việc 6 (G17) đúng sáu điều kiện đã ghi ở sổ thi công.", viec: "việc 6 — G17",
-    dauHieu: { tep: "src/modules/orders/repository.ts", ham: "updateTrip", khongChua: "order_leg_updated" },
+    // Hôm nay "order_leg_updated" chỉ ghi ở MỘT chỗ (lệnh sửa chặng `PUT …/legs/:legId`); G17 thêm chỗ ghi thứ hai cho `PUT /trip` → bài đỏ, sửa mục này + dòng.
+    dauHieu: { tep: "src/modules/orders", soLan: 1, chua: "\"order_leg_updated\"" },
   },
   {
     id: "N-CAP-NHAT-KHACH", loai: "CHUA_CO_LUAT", muc: "VUA", dong: ["cap-nhat-khach"], quyTac: "QT1",

@@ -9,11 +9,11 @@
 //   (d) quét tĩnh route của van-chuyen / dispatch / orders: route ghi phải có dòng hoặc mục ngoài phạm vi; thân route hỏi đúng ô, gọi đúng hàm, có / không hỏi
 //       lớp vượt, có / không báo tin đúng như bảng; hàm dựng lô ghi đúng việc nhật ký và loại sự kiện;
 //   (e) quy tắc chung QT1–QT3 (bảng): mọi chỗ vi phạm phải có mục ở `CHO_LECH`, mục không còn vi phạm → đỏ; dấu hiệu của mục lệch hết đúng → đỏ (đã sửa?).
-// KHÔNG kiểm (dựa vào kỷ luật): cột "bảng bị ghi", cột "luật"; lệnh mới viết mà không qua route có tên / không ghi việc nhật ký nhóm chuyến; chữ ADR (bài không
+// KHÔNG kiểm (dựa vào kỷ luật): cột "bảng bị ghi", cột "luật", cột việc nhật ký phía ĐƠN (`nhatKyDon` — chỉ kiểm tên có trong audit-actions); lệnh mới viết mà không qua route có tên / không ghi việc nhật ký nhóm chuyến; chữ ADR (bài không
 // đọc ADR — chỗ lệch ADR do người khai vào CHO_LECH).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { maskSource } from "../scripts/source-mask-lib.mjs";
@@ -329,6 +329,12 @@ test("(e) dấu hiệu của từng chỗ lệch vẫn đúng (hết đúng = c�
   for (const l of CHO_LECH) {
     const h = l.dauHieu;
     if (!h) continue;
+    if (h.soLan !== undefined) {
+      const tep = readdirSync(join(ROOT, h.tep)).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"));
+      const dem = tep.reduce((n, f) => n + maskSource(doc(`${h.tep}/${f}`), { strings: false }).split(h.chua!).length - 1, 0);
+      assert.equal(dem, h.soLan, `${l.id}: "${h.chua}" xuất hiện ${dem} lần ở ${h.tep} (khai ${h.soLan}) — chỗ lệch đã sửa? cập nhật CHO_LECH và dòng của bảng`);
+      continue;
+    }
     const src = maskSource(doc(h.tep), { strings: false });
     const vung = h.ham ? thanHam(src, h.ham) : src;
     assert.ok(vung !== null, `${l.id}: không thấy hàm ${h.ham} ở ${h.tep}`);
