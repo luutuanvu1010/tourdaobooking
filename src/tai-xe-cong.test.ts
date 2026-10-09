@@ -89,13 +89,15 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
   // ADR-0049 D3 (Task A15, TC-36): "Cuốc của tôi" + lệnh tiến độ của tài xế công ty — TÁCH theo mã (kế hoạch mục 1.2: 403 → 404 → 400).
   "GET /api/van-chuyen/cuoc-cua-toi": {
     DRIVER: { ma: 200, ly_do: "chuyến MÌNH đang lái (trip.view assigned) — tài khoản thử không lái chuyến nào → danh sách rỗng" },
-    DRIVER_PARTNER: { ma: 403, ly_do: "tài xế đối tác chưa dùng app cho chuyến (trip.view none — ADR-0048 D2 × ADR-0049 D3)" },
+    // NỚI có tên (kế hoạch A4 §3.1 hàng T6; ADR-0053 D7.1; SO-HANG-RAO "cổng tài xế đối tác"): trước 403 (trip.view none).
+    DRIVER_PARTNER: { ma: 200, ly_do: "ADR-0053 D7.1 (A4 T6): chuyến MÌNH đang lái (trip.view assigned) — tài khoản thử không lái chuyến nào → danh sách rỗng" },
   },
   ...Object.fromEntries(
     ["GET /api/van-chuyen/cuoc-cua-toi/:id", ...["xuat-ben", "diem/:sid/da-toi", "phan-bo/:aid/don", "phan-bo/:aid/vang", "phan-bo/:aid/khach-huy", "phan-bo/:aid/tra",
       "ket-thuc", "ket-thuc-gian-doan", "thu-tu"].map((d) => `POST /api/van-chuyen/cuoc-cua-toi/:id/${d}`)].map((k) => [k, {
       DRIVER: { ma: 404, ly_do: "chuyến lạ / không phải chuyến mình đang lái → 404 TRƯỚC khi đọc thân (mục 1.2)" },
-      DRIVER_PARTNER: { ma: 403, ly_do: "ô trip.view none → 403 ở bước đầu, trước mọi truy vấn" },
+      // NỚI có tên (kế hoạch A4 §3.1 hàng T6): trước 403 (trip.view none).
+      DRIVER_PARTNER: { ma: 404, ly_do: "ADR-0053 D7.1 (A4 T6): ô assigned; chuyến lạ / không phải chuyến mình đang lái → 404 TRƯỚC khi đọc thân" },
     }]),
   ),
   // ADR-0052 D5b (Đợt 5 A-1b — chủ duyệt 5/10): tài xế bổ sung tên khách chưa có tên — ô trip.passenger.add.

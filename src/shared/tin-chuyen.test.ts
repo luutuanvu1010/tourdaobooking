@@ -1,4 +1,6 @@
 // TIN CHUYẾN (ADR-0052 D6.2) — bảng ca theo vai + mọi tập con quyền (khuôn NT-3, suy kỳ vọng từ can(), không chép tay) + khoá không lộ.
+// NỚI có tên (kế hoạch A4 §3.1 hàng T6, NT-14; ADR-0053 D7.5 :79; SO-HANG-RAO "tin chuyến — chỉ-DRIVER_PARTNER không nhận"): sau khi tài xế đối tác có
+// `trip.view` assigned, tài xế đối tác ĐANG LÁI nhận ĐÚNG như tài xế công ty (cùng hàm, cùng câu — câu tin tài xế không có mã đơn, không tên); không lái → không.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PERMISSION_CODES, can, type PermissionCode } from "./permissions.ts";
@@ -16,6 +18,7 @@ const dong = (v: Partial<DongChuyen>): DongChuyen => ({
   lai: [{ partyId: "p-a", tu: T0, den: T1 }, { partyId: "p-b", tu: T1, den: null }], don: [], xuatBen: null, khanCap: false, vuotMoc: false, ...v,
 });
 const TX_A = nguoi("tx-a", ["DRIVER"], "p-a"), TX_B = nguoi("tx-b", ["DRIVER"], "p-b");
+const TX_DT = nguoi("tx-dt", ["DRIVER_PARTNER"], "p-b");
 
 test("đổi tài xế (trip_edited cùng mốc): A nhận 'không còn lái', B nhận 'được xếp'; văn phòng khác không nhận", () => {
   const d = dong({});
@@ -36,9 +39,11 @@ test("tạo chuyến → tài xế được xếp; huỷ → tài xế có dòng
   assert.equal(tinChuyenCho(TX_B, dong({ action: "trip_cancelled", luc: T2, lai: [{ partyId: "p-b", tu: T1, den: T2 }] }))?.loai, "huy_chuyen");
 });
 
-test("hết quyền: tài khoản mất quyền DRIVER (hoặc chỉ DRIVER_PARTNER) không nhận dù có dòng lái", () => {
+test("hết quyền: tài khoản mất quyền DRIVER không nhận dù có dòng lái; chỉ DRIVER_PARTNER có dòng lái → nhận như tài xế công ty (A4 T6, D7.5)", () => {
   assert.equal(tinChuyenCho(nguoi("tx-b", [], "p-b"), dong({})), null);
-  assert.equal(tinChuyenCho(nguoi("tx-dt", ["DRIVER_PARTNER"], "p-b"), dong({})), null);
+  assert.deepEqual(tinChuyenCho(TX_DT, dong({})), tinChuyenCho(TX_B, dong({})));
+  assert.equal(tinChuyenCho(TX_DT, dong({}))?.loai, "xep_lai");
+  assert.equal(tinChuyenCho(nguoi("tx-dt", ["DRIVER_PARTNER"], "p-z"), dong({})), null, "tài xế đối tác không lái chuyến này");
 });
 
 test("người tự làm không tự nhận (E3)", () => {
@@ -72,7 +77,7 @@ function moiTapCon<T>(m: readonly T[]): T[][] {
   const c = moiTapCon(con);
   return [...c, ...c.map((t) => [dau as T, ...t])];
 }
-test("mọi tập con quyền × mọi hành động × cờ khẩn cấp: nhận ⇒ qua can(trip.view) (tài xế: assigned + có dòng lái lúc đó); tin khẩn cấp chỉ cho tài xế đang lái; chỉ-DRIVER_PARTNER không bao giờ", () => {
+test("mọi tập con quyền × mọi hành động × cờ khẩn cấp: nhận ⇒ qua can(trip.view) (tài xế: assigned + có dòng lái lúc đó); tin khẩn cấp chỉ cho tài xế đang lái; người nhận CHỈ qua nhánh tài xế không bao giờ thấy mã đơn (A4 NT-14)", () => {
   const tap = moiTapCon(PERMISSION_CODES as readonly PermissionCode[]);
   assert.equal(tap.length, 1024);
   for (const permissions of tap) {
@@ -87,7 +92,11 @@ test("mọi tập con quyền × mọi hành động × cờ khẩn cấp: nhậ
         assert.ok(laiDung || can(n, "trip.view"), `nhận mà không có trip.view: ${JSON.stringify(permissions)} ${action}`);
         if (t.loai === "khan_cap") assert.ok(laiDung && khanCap, `tin khẩn cấp cho người không lái / không cờ: ${JSON.stringify(permissions)} ${action}`);
         assert.ok((HANH_DONG_TIN_CHUYEN as readonly string[]).includes(action), `hành động ngoài danh sách D6.1 sinh tin: ${action}`);
-        assert.notDeepEqual(permissions, ["DRIVER_PARTNER"]);
+        // A4 T6 (NT-14, thay vế "chỉ-DRIVER_PARTNER không bao giờ"): ai nhận mà KHÔNG có trip.view any (chỉ nhánh tài xế) → câu không có mã đơn.
+        if (!can(n, "trip.view")) {
+          assert.ok(laiDung, `${JSON.stringify(permissions)} ${action}`);
+          assert.doesNotMatch(t.cau, /DH-1/, `câu tin tài xế lộ mã đơn: ${JSON.stringify(permissions)} ${action}`);
+        }
       }
     }
   }
@@ -123,7 +132,8 @@ test("dungDongChuyen: ghép mã/ngày/khoảng lái theo chuyến, đơn theo s�
 
 test("taiXeNhanSuKien: chỉ tài khoản có dòng lái lúc t VÀ qua can(trip.view, assigned)", () => {
   const lai = [{ partyId: "p-a", tu: T0, den: T1 }, { partyId: "p-b", tu: T1, den: null }];
-  assert.deepEqual(taiXeNhanSuKien([TX_A, TX_B, nguoi("dt", ["DRIVER_PARTNER"], "p-b")], lai, T2), ["tx-b"]);
+  // A4 T6 (NT-14): tài xế đối tác có dòng lái lúc t → cũng nhận; không dòng lái → không.
+  assert.deepEqual(taiXeNhanSuKien([TX_A, TX_B, nguoi("dt", ["DRIVER_PARTNER"], "p-b"), nguoi("dt2", ["DRIVER_PARTNER"], "p-z")], lai, T2), ["tx-b", "dt"]);
 });
 
 test("thayDoiCuaHanhDongChuyen: mọi trip_* có loại thay đổi; hành động lạ → 'sua'", () => {
@@ -163,7 +173,7 @@ test("Đợt 5: thêm điểm / báo huỷ / cập nhật điểm khi xe đang c
     assert.match(t!.cau, /CX-1103-02/);
     assert.equal(tinChuyenCho(TX_A, d), null, `${action}: tài xế bị gỡ trước sự kiện`);
     for (const p of ["SALES", "ADMIN", "ACCOUNTING", "SUPER_ADMIN"] as const) assert.equal(tinChuyenCho(nguoi("x", [p]), d), null, `${action}: ${p}`);
-    assert.equal(tinChuyenCho(nguoi("tx-dt", ["DRIVER_PARTNER"], "p-b"), d), null, `${action}: chỉ DRIVER_PARTNER`);
+    assert.deepEqual(tinChuyenCho(TX_DT, d), t, `${action}: tài xế đối tác đang lái nhận như tài xế công ty (A4 T6)`);
     assert.doesNotMatch(t!.cau, /\d{8,}|L:|T:/);
   }
   assert.equal(tinChuyenCho(TX_B, dangChay({ action: "trip_stop_added_running" }))!.cau, "Văn phòng vừa thêm khách vào chuyến CX-1103-02 ngày 11/03 — mở để xem điểm, giờ đón và số khách");
@@ -197,7 +207,10 @@ test("tinGioHenCho: người lập / phụ trách qua trip.call_ack → 'gọi b
   assert.equal(tinGioHenCho(nguoi("lap", ["ACCOUNTING"]), gh()), null, "Kế toán người lập: trip.view any nhưng call_ack none");
   assert.deepEqual(tinGioHenCho(TX_B, gh()), { cau: "Văn phòng vừa đổi giờ đón ở chuyến CX-1103-02 ngày 11/03 — mở để xem", lienKet: "/cuoc-chuyen?id=t1" });
   assert.equal(tinGioHenCho(TX_A, gh({ luc: T2 })), null, "dòng lái của A đóng ở T1 < lúc sự kiện");
-  assert.equal(tinGioHenCho(nguoi("tx-p", ["DRIVER_PARTNER"], "p-b"), gh()), null, "Tài xế đối tác: trip.view none");
+  // G17 (A4 T6, NT-14): tài xế đối tác đang lái nhận tin đổi giờ đón QUA CÙNG HÀM — câu không mã đơn; không lái → không.
+  assert.deepEqual(tinGioHenCho(nguoi("tx-p", ["DRIVER_PARTNER"], "p-b"), gh()), { cau: "Văn phòng vừa đổi giờ đón ở chuyến CX-1103-02 ngày 11/03 — mở để xem", lienKet: "/cuoc-chuyen?id=t1" });
+  assert.doesNotMatch(tinGioHenCho(nguoi("tx-p", ["DRIVER_PARTNER"], "p-b"), gh())!.cau, /DH-1/);
+  assert.equal(tinGioHenCho(nguoi("tx-p", ["DRIVER_PARTNER"], "p-z"), gh()), null, "tài xế đối tác không lái");
   assert.equal(tinGioHenCho(nguoi("lap", ["SALES"]), gh({ actorId: "lap" })), null, "E3");
   assert.equal(tinGioHenCho(nguoi("lap", ["SALES"]), gh({ chuyen: [] })), null, "chặng chưa xếp");
 });
@@ -288,7 +301,7 @@ test("NT-11: xếp / rút / dời có điều chỉnh khẩn cấp (khanCap) →
     assert.equal(tinChuyenCho(TX_A, d), null, `${action}: tài xế đã gỡ trước sự kiện`);
     assert.equal(tinChuyenCho(nguoi("sales2", ["SALES"]), d), null, `${action}: văn phòng không nhận`);
     assert.equal(tinChuyenCho(nguoi("adm", ["ADMIN"]), d), null, `${action}: Quản trị không nhận (không tin cho Quản trị — Đ1 mục 5)`);
-    assert.equal(tinChuyenCho(nguoi("tx-dt", ["DRIVER_PARTNER"], "p-b"), d), null, `${action}: chỉ-DRIVER_PARTNER`);
+    assert.deepEqual(tinChuyenCho(TX_DT, d), t, `${action}: tài xế đối tác đang lái nhận như tài xế công ty (A4 T6, D7.5)`);
     assert.equal(tinChuyenCho({ ...TX_B, id: "sales" }, d), null, `${action}: người tự làm không tự nhận (E3)`);
     assert.equal(tinChuyenCho(TX_B, dong({ action, actorId: "sales", luc: T2, khanCap: false })), null, `${action}: không vượt mốc → không tin`);
   }
@@ -360,7 +373,7 @@ test("CAO-2: dời khẩn cấp — tài xế đang lái chuyến NGUỒN lúc s
   assert.equal(tinChuyenCho(TX_A, d), null, "tài xế nguồn đã gỡ trước sự kiện");
   assert.equal(tinChuyenCho({ ...TX_C, id: "sales" }, d), null, "người tự làm");
   assert.equal(tinChuyenCho(nguoi("adm", ["ADMIN"]), d), null, "văn phòng");
-  assert.equal(tinChuyenCho(nguoi("tx-dt", ["DRIVER_PARTNER"], "p-c"), d), null, "chỉ-DRIVER_PARTNER");
+  assert.deepEqual(tinChuyenCho(nguoi("tx-dt", ["DRIVER_PARTNER"], "p-c"), d), tinChuyenCho(TX_C, d), "tài xế đối tác lái chuyến nguồn nhận như tài xế công ty (A4 T6)");
   assert.equal(tinChuyenCho(TX_C, { ...d, khanCap: false }), null, "không vượt mốc");
   assert.equal(tinChuyenCho(TX_C, { ...d, action: "trip_allocated" }), null, "chỉ sự kiện dời");
   const caHai = { ...nguon, lai: [{ partyId: "p-b", tu: T0, den: null }] };
@@ -376,12 +389,12 @@ test("CAO-2: dungDongChuyen gắn chuyến nguồn theo `khanCapNguon` (id sự 
 });
 
 // ---- ADR-0104 Đ2.10 (kế hoạch T2.15): máy đồng bộ chuyến theo đơn (`trip_order_synced`) → tài xế đang lái nhận tin "khach_doi" ----
-test("Đ2.10: trip_order_synced → ĐÚNG tài xế có dòng lái lúc sự kiện nhận 'khach_doi' (câu cố định, liên kết /cuoc-chuyen); người sửa đơn, văn phòng, Quản trị, Kế toán, Toàn quyền, tài xế đã gỡ, chỉ-DRIVER_PARTNER không", () => {
+test("Đ2.10: trip_order_synced → ĐÚNG tài xế có dòng lái lúc sự kiện nhận 'khach_doi' (câu cố định, liên kết /cuoc-chuyen) — kể cả tài xế đối tác (A4 T6); người sửa đơn, văn phòng, Quản trị, Kế toán, Toàn quyền, tài xế đã gỡ không", () => {
   const d = dong({ action: "trip_order_synced", actorId: "sales", luc: T2 });
   assert.deepEqual(tinChuyenCho(TX_B, d), { loai: "khach_doi", cau: "Đơn vừa đổi khách ở chuyến CX-1103-02 ngày 11/03 — mở để xem", lienKet: "/cuoc-chuyen?id=t1" });
   assert.equal(tinChuyenCho(TX_A, d), null, "tài xế đã gỡ trước sự kiện");
   for (const p of ["SALES", "ADMIN", "ACCOUNTING", "SUPER_ADMIN", "FIELD", "PARTNER", "INTERN", "HR"] as const) assert.equal(tinChuyenCho(nguoi("x", [p]), d), null, p);
-  assert.equal(tinChuyenCho(nguoi("tx-dt", ["DRIVER_PARTNER"], "p-b"), d), null, "chỉ-DRIVER_PARTNER");
+  assert.deepEqual(tinChuyenCho(TX_DT, d), tinChuyenCho(TX_B, d), "tài xế đối tác đang lái (A4 T6, NT-14)");
   assert.equal(tinChuyenCho({ ...TX_B, id: "sales" }, d), null, "người sửa đơn là tài xế đang lái: không tự nhận (E3)");
 });
 test("Đ2.10: trip_order_synced thuộc nhóm tin THƯỜNG (hộp đọc trần 3000), KHÔNG thuộc ba lệnh khách (trần 1000, chỉ sự kiện MOC_TOI_THIEU); gõ cửa luôn xét; Bảng tin 'cap_nhat' — chuông máy văn phòng không gọi lại (tin chỉ cho tài xế)", () => {

@@ -23,13 +23,13 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "order.trip.edit": ["ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"],
   "order.leg.short_notice": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0049 D3: ô MỚI — đặt gấp chặng dưới mốc 6 giờ; chỉ Quản trị, Toàn quyền
   "order.leg.short_notice.view": ["any", "any", "any", "none", "none", "any", "none", "none", "none", "none"], // chủ H4/N-14 (29/9, Trả lời lần 12): ô MỚI — xem ĐỦ dấu đặt gấp; mã khác chỉ cờ
-  "trip.view": ["any", "any", "any", "none", "none", "any", "none", "assigned", "none", "none"], // ADR-0049 D3: ô MỚI — DRIVER assigned (NỚI ghim DRIVER — ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2)
+  "trip.view": ["any", "any", "any", "none", "none", "any", "none", "assigned", "assigned", "none"], // ADR-0049 D3: ô MỚI — DRIVER assigned (NỚI ghim DRIVER — ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2); ADR-0053 D7.1 (A4 T6): DRIVER_PARTNER assigned
   "trip.dispatch": ["any", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0049 D3: ô MỚI
   "trip.override": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0049 D3: ô MỚI — phá lệ luật cấu hình, chỉ Quản trị, Toàn quyền (ADR-0104 Đ1: khoảng nghỉ, cam kết khi chuyến ngoài mốc)
   "trip.urgent_adjust": ["any", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0104 Đ1 (Q-1 b): ô MỚI — điều chỉnh khẩn cấp: Bán hàng, Quản trị, Toàn quyền; còn lại none
-  "trip.progress": ["any", "none", "any", "none", "none", "any", "none", "assigned", "none", "none"], // ADR-0049 D3 (A15): ô MỚI — lệnh tiến độ; DRIVER assigned (NỚI ghim DRIVER — ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2); văn phòng bấm thay (R-P1)
+  "trip.progress": ["any", "none", "any", "none", "none", "any", "none", "assigned", "assigned", "none"], // ADR-0053 D7.1 (A4 T6): DRIVER_PARTNER assigned; ADR-0049 D3 (A15): ô MỚI — lệnh tiến độ; DRIVER assigned (NỚI ghim DRIVER — ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2); văn phòng bấm thay (R-P1)
   "trip.passenger.add": ["none", "none", "none", "none", "none", "any", "none", "assigned", "none", "none"], // ADR-0052 D5b (Đợt 5 A-1b): ô MỚI — tài xế bổ sung tên khách chưa có tên trên chuyến mình đang lái; DRIVER assigned (nới ghim DRIVER — chủ DUYỆT 5/10, đề xuất luật A-1b mục 1); DRIVER_PARTNER none (chủ 5/10: chỉ tài xế công ty)
-  "trip.refuse": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0053 D8 (kế hoạch A4 T3): ô MỚI — tài xế từ chối chuyến MÌNH ĐANG LÁI trước hạn; cũng bật VẾ HẠN của khung xem khách (G-A4-2). T3: chỉ Toàn quyền any; DRIVER_PARTNER lật assigned ở T6; DRIVER none (tài xế công ty không Từ chối — D8.3)
+  "trip.refuse": ["none", "none", "none", "none", "none", "any", "none", "none", "assigned", "none"], // ADR-0053 D8 (kế hoạch A4 T3; DRIVER_PARTNER assigned ở T6): ô MỚI — tài xế từ chối chuyến MÌNH ĐANG LÁI trước hạn; cũng bật VẾ HẠN của khung xem khách (G-A4-2). T3: chỉ Toàn quyền any; DRIVER_PARTNER lật assigned ở T6; DRIVER none (tài xế công ty không Từ chối — D8.3)
   "trip.call_ack": ["ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0051 GB2: ô MỚI — "Đã gọi báo" / "Bỏ đánh dấu": người lập / người phụ trách đơn, Quản trị, Toàn quyền
   "order.passenger.write": ["ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none", "none"], // ADR-0047 A2: ô MỚI — nhập/sửa (dòng mới)/huỷ dòng trong danh sách hành khách; bằng order.modify
   // ADR-0061 điều 2 (accepted 2026-09-30): ô MỚI — thêm/sửa dịch vụ nhập tay khi công tắc BẬT. ACCOUNTING any nhưng CHƯA có tác dụng (Kế toán không lập/sửa
@@ -376,13 +376,19 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     "trip.passenger.add": "none", // ADR-0052 D5b × lời chủ 5/10 ("chỉ tài xế công ty"): tài xế đối tác KHÔNG bổ sung tên
-    "trip.refuse": "none", // ADR-0053 D8 — kế hoạch A4: ô tạo ở T3 với none; lật assigned ở T6 CÙNG LÚC với trip.view (vế hạn áp ngay từ lúc thấy chuyến)
-    "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.urgent_adjust": "none", "trip.progress": "none", "trip.call_ack": "none", // ADR-0049 D3 × ADR-0048 D2: tài xế đối tác chưa dùng app cho chuyến (D7 — lượt sau)
+    // NỚI có tên (Điều 9.4) — ADR-0053 D7.1, :49, :200 (kế hoạch A4 T6, NT-1): tài xế đối tác xem + bấm tiến độ + Từ chối chuyến MÌNH ĐANG LÁI. trip.refuse
+    // lật CÙNG LÚC với trip.view (vế hạn của khung xem khách áp ngay từ lúc thấy chuyến). Còn none: trip.passenger.add (chủ 5/10, §16), dispatch, override,
+    // urgent_adjust, call_ack. 7 ô có tên ≠ none: 4 ô cũ + 3 ô này.
+    "trip.refuse": "assigned",
+    "trip.view": "assigned", "trip.dispatch": "none", "trip.override": "none", "trip.urgent_adjust": "none", "trip.progress": "assigned", "trip.call_ack": "none", // ADR-0053 D7.1 (A4 T6)
     "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none", // sổ tiền lượt 1 (bản làm mới §2) — mọi ô tiền = none
     "assistant.ask": "any", // ngoại lệ có tên (ADR-0066 điều 1): hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER_PARTNER])), DRIVER_PARTNER_ROW);
+  // NT-1 (kế hoạch A4): đúng 7 ô ≠ none sau T6 — 4 ô cũ (feedback.submit, feedback.view, party.document.view, assistant.ask) + trip.view, trip.progress, trip.refuse.
+  assert.deepEqual(Object.entries(DRIVER_PARTNER_ROW).filter(([, v]) => v !== "none").map(([k]) => k).sort(),
+    ["assistant.ask", "feedback.submit", "feedback.view", "party.document.view", "trip.progress", "trip.refuse", "trip.view"]);
 });
 
 // ADR-0071 (accepted 2026-10-01): cột Nhân sự (HR — vai "Hành chính nhân sự") — chỉ ba ô tài khoản (tạo / xem / sửa); MỌI ô nghiệp vụ khác = none: không đơn,
@@ -441,8 +447,10 @@ test("ADR-0049 D3: trip.override CHỈ ADMIN + SUPER_ADMIN; trip.view = any ⇒ 
   for (const p of PERMISSION_CODES) if (MATRIX["trip.view"][p] === "any") assert.equal(MATRIX["contact.view"][p], "any", `${p}: trip.view any mà contact.view không any`);
   assert.deepEqual(PERMISSION_CODES.filter((p) => MATRIX["trip.dispatch"][p] !== "none"), ["SALES", "ADMIN", "SUPER_ADMIN"]);
   // TC-35 (A15): lệnh tiến độ — văn phòng bấm thay (Bán hàng, Quản trị, Toàn quyền — R-P1) + tài xế công ty CHỈ chuyến mình lái; Kế toán KHÔNG.
-  assert.deepEqual(PERMISSION_CODES.filter((p) => MATRIX["trip.progress"][p] !== "none"), ["SALES", "ADMIN", "SUPER_ADMIN", "DRIVER"]);
+  // NỚI có tên (kế hoạch A4 §3.1 hàng T6; ADR-0053 :49, :200): + tài xế đối tác, cũng CHỈ chuyến mình lái (assigned).
+  assert.deepEqual(PERMISSION_CODES.filter((p) => MATRIX["trip.progress"][p] !== "none"), ["SALES", "ADMIN", "SUPER_ADMIN", "DRIVER", "DRIVER_PARTNER"]);
   assert.equal(MATRIX["trip.progress"].DRIVER, "assigned");
+  assert.equal(MATRIX["trip.progress"].DRIVER_PARTNER, "assigned");
 });
 
 // ADR-0051 GB2 (siết): người không được đổi giờ hẹn thì không được xác nhận đã báo giờ hẹn — trip.call_ack KHÔNG rộng hơn order.trip.edit ở mọi cột; ai có ô

@@ -1,7 +1,7 @@
 // "Cuốc của tôi" + lệnh tiến độ của TÀI XẾ (ADR-0049 D3; kế hoạch mục 1.2, 1.7 route 19–29, 1.8; TC-36, TC-38, TC-39; ruling R-P17 — Task A15) trên API THẬT
 // (wrangler dev, D1 local tạm), tài khoản tài xế công ty thật (đăng nhập bằng PIN): danh sách chỉ chuyến mình lái (không tên, không SĐT); chi tiết ngoài ngày
-// chạy không tên / liên hệ, sau xuất bến (đang chạy) có; tài xế khác / Bán hàng gọi route tài xế cho chuyến không lái → 404; tài khoản chỉ-DRIVER_PARTNER gọi
-// MỌI route tài xế → 403; `xayRaLuc` → 400 `xay_ra_khong_nhan`; "đã đón" hai lần cùng requestId → một sự kiện. Dữ liệu độc nhất theo lần chạy. Tên, số GIẢ.
+// chạy không tên / liên hệ, sau xuất bến (đang chạy) có; tài xế khác / Bán hàng gọi route tài xế cho chuyến không lái → 404; tài khoản chỉ-DRIVER_PARTNER
+// (ADR-0053 D7.1 — kế hoạch A4 T6, nới có tên) gọi route tài xế cho chuyến KHÔNG lái → 404 (danh sách 200 rỗng), bổ sung tên → 403; `xayRaLuc` → 400 `xay_ra_khong_nhan`; "đã đón" hai lần cùng requestId → một sự kiện. Dữ liệu độc nhất theo lần chạy. Tên, số GIẢ.
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, catalogService, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows, vnDate, moCuaSoXuatBen48Gio } from "./lib.mjs";
 
@@ -74,12 +74,15 @@ assert.ok(r.body.diem.length > 0 && r.body.diem.every((d) => !("diaChiChiDuong" 
 for (const [who, ten] of [[TX2.cookie, "tài xế khác"], [SALES, "Bán hàng"]]) assert.equal((await call(who, "GET", `/api/van-chuyen/cuoc-cua-toi/${id}`)).status, 404, ten);
 console.log("✓ route 19 / 20: chỉ chuyến mình lái; ngoài ngày chạy không tên, không liên hệ; tài xế khác / Bán hàng → 404");
 
-// --- 2. Tài khoản chỉ-DRIVER_PARTNER → 403 ở MỌI route tài xế ---
+// --- 2. Tài khoản chỉ-DRIVER_PARTNER không lái chuyến này → 404 ở route tài xế (ADR-0053 D7.1, A4 T6 — trước: 403); bổ sung tên → 403 (ô none) ---
 const DUOI = ["xuat-ben", "diem/x/da-toi", "phan-bo/x/don", "phan-bo/x/vang", "phan-bo/x/khach-huy", "phan-bo/x/tra", "ket-thuc", "ket-thuc-gian-doan", "thu-tu"];
-assert.equal((await call(TXDT.cookie, "GET", "/api/van-chuyen/cuoc-cua-toi")).status, 403);
-assert.equal((await call(TXDT.cookie, "GET", `/api/van-chuyen/cuoc-cua-toi/${id}`)).status, 403);
-for (const d of DUOI) assert.equal((await call(TXDT.cookie, "POST", `/api/van-chuyen/cuoc-cua-toi/${id}/${d}`, { requestId: uuid() })).status, 403, d);
-console.log("✓ tài xế đối tác: 403 ở cả 11 route tài xế");
+const dsDt = await call(TXDT.cookie, "GET", "/api/van-chuyen/cuoc-cua-toi");
+assert.equal(dsDt.status, 200, JSON.stringify(dsDt.body));
+assert.ok(!dsDt.body.chuyen.some((c) => c.id === id), "danh sách của tài xế đối tác không có chuyến người khác");
+assert.equal((await call(TXDT.cookie, "GET", `/api/van-chuyen/cuoc-cua-toi/${id}`)).status, 404);
+for (const d of DUOI) assert.equal((await call(TXDT.cookie, "POST", `/api/van-chuyen/cuoc-cua-toi/${id}/${d}`, { requestId: uuid() })).status, 404, d);
+assert.equal((await call(TXDT.cookie, "POST", `/api/van-chuyen/cuoc-cua-toi/${id}/hanh-khach`, { requestId: uuid() })).status, 403, "trip.passenger.add none");
+console.log("✓ tài xế đối tác không lái: 404 ở 10 route chuyến, danh sách không có chuyến người khác, bổ sung tên 403");
 
 // --- 2b. ADR-0096 Đ2 (LC-20) trên D1 thật: chuyến BA ngày sau (ngoài cửa sổ 48 giờ mở ở đầu kịch bản) → tài xế bấm Xuất bến 409 NGOAI_CUA_SO_XUAT_BEN
 // (Ai xử lý: Văn phòng), không ghi sự kiện, chuyến vẫn kế hoạch. Lớp trigger (vc_trip_departure_window): src/modules/van-chuyen/cua-so-thu-tu-csdl.test.ts.
