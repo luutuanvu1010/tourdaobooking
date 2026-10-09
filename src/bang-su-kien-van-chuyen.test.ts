@@ -1,16 +1,25 @@
-// BÀI ĐỐI CHIẾU BẢNG SỰ KIỆN VẬN CHUYỂN ↔ MÃ (việc 6b, 2026-10-09; bảng: src/shared/bang-su-kien-van-chuyen.ts — ĐỀ XUẤT, chưa vào sổ hàng rào).
+// BÀI ĐỐI CHIẾU BẢNG SỰ KIỆN VẬN CHUYỂN ↔ MÃ (việc 6b, 2026-10-09; bảng: src/shared/bang-su-kien-van-chuyen.ts — chủ duyệt làm luật 2026-10-09; dòng ở
+// docs/SO-HANG-RAO.md).
 //
 // Bảng ghi điều MÃ đang làm; bài đối chiếu HAI CHIỀU những gì máy thấy được:
 //   (a) phủ: mọi việc nhật ký nhóm chuyến (nhóm "trip" hoặc tên `trip_*`), mọi `LOAI_SU_KIEN_CHUYEN`, mọi phần tử `HANH_DONG_TIN_*`, mọi hàm xuất của
-//       dieu-phoi.ts đều có dòng (hoặc mục ngoài phạm vi) — và ngược lại; dòng "chưa có mã" (A5) đỏ ngay khi tên của nó xuất hiện trong mã;
-//   (b) người nhận tin: gọi hàm thuần thật (`tinChuyenCho`, `tinGioHenCho`) với người mẫu × tình huống khả thi của dòng, so với cột tin của bảng; cổng gõ cửa
-//       (`dongCoTheSinhTin`) phải mở khi có người nhận; loại Bảng tin khớp `thayDoiCuaHanhDongChuyen`;
+//       dieu-phoi.ts (mọi dạng khai hàm) đều có dòng (hoặc mục ngoài phạm vi) — và ngược lại; dòng "chưa có mã" (A5) đỏ ngay khi tên của nó xuất hiện trong mã;
+//   (b) người nhận tin: gọi hàm thuần thật (`tinChuyenCho`, `tinGioHenCho`) với người mẫu (gồm người lập VÀ người phụ trách là văn phòng, HDV phụ trách) ×
+//       tình huống khả thi của dòng, so với cột tin; cổng gõ cửa (`dongCoTheSinhTin`) phải mở khi có người nhận; loại Bảng tin khớp `thayDoiCuaHanhDongChuyen`;
 //   (c) ô quyền của từng route khớp `MATRIX`;
-//   (d) quét tĩnh route của van-chuyen / dispatch / orders: route ghi phải có dòng hoặc mục ngoài phạm vi; thân route hỏi đúng ô, gọi đúng hàm, có / không hỏi
-//       lớp vượt, có / không báo tin đúng như bảng; hàm dựng lô ghi đúng việc nhật ký và loại sự kiện;
-//   (e) quy tắc chung QT1–QT3 (bảng): mọi chỗ vi phạm phải có mục ở `CHO_LECH`, mục không còn vi phạm → đỏ; dấu hiệu của mục lệch hết đúng → đỏ (đã sửa?).
-// KHÔNG kiểm (dựa vào kỷ luật): cột "bảng bị ghi", cột "luật", cột việc nhật ký phía ĐƠN (`nhatKyDon` — chỉ kiểm tên có trong audit-actions); lệnh mới viết mà không qua route có tên / không ghi việc nhật ký nhóm chuyến; chữ ADR (bài không
-// đọc ADR — chỗ lệch ADR do người khai vào CHO_LECH).
+//   (d) quét tĩnh: route ghi của van-chuyen / dispatch phải có dòng hoặc mục ngoài phạm vi; route của orders / dispatch gọi máy đồng bộ, hoặc chạm hàm ghi
+//       chặng / hành khách / huỷ đơn (suy bằng điểm bất động từ câu SQL `ord_transfer_leg`, `ord_passenger`, huỷ đơn) cũng vậy; thân route: cổng, ô hỏi đầu
+//       thân, khoá ngữ cảnh `{ ownerId, assigned }` của mọi lời hỏi ô đó, hàm xử lý, có / không hỏi `trip.urgent_adjust`, có / không báo tin; câu SQL ghi
+//       bảng chuyến (trừ `vc_trip_cost_line`) chỉ nằm ở chuyen-repo.ts và chỉ dieu-phoi.ts dùng; hàm dựng lô ghi đúng việc nhật ký và loại sự kiện;
+//   (e) quy tắc chung QT1–QT3: mọi chỗ vi phạm phải có mục ở `CHO_LECH`, mục không còn vi phạm → đỏ; dấu hiệu của mục lệch hết đúng → đỏ (đã sửa?).
+// KHÔNG kiểm (dựa vào kỷ luật):
+//   - cột "bảng bị ghi", cột "luật", cột `trangThaiChuyen` (bài tin chỉ xét các trạng thái khai ở đây — khai thiếu thì tình huống đó không được xét);
+//   - nội dung `vuot`: bài chỉ đòi "có hỏi `trip.urgent_adjust`" ⇔ "danh sách khác rỗng", không kiểm luật NÀO bỏ qua được;
+//   - cột việc nhật ký phía ĐƠN (`nhatKyDon` — chỉ kiểm tên có trong audit-actions và nhóm tin giờ hẹn);
+//   - người nhận tin ngoài 13 người mẫu (vd. tài khoản nhiều quyền ghép, Đối tác / Thực tập lập đơn);
+//   - lỗ quét tĩnh: lệnh ghi ở module khác van-chuyen / dispatch / orders (vd. billing) chạm chặng / hành khách bằng hàm riêng; hàm ghi gọi qua BIẾN
+//     (không viết tên); câu SQL dựng ghép chuỗi không chứa nguyên cụm "UPDATE vc_trip…" / "INSERT INTO ord_…"; route không khai bằng `route("M", "path", …)`;
+//   - chữ ADR (bài không đọc ADR — chỗ lệch ADR do người khai vào CHO_LECH).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
@@ -106,12 +115,14 @@ const nguoi = (id: string, permissions: PermissionCode[], partyId: string | null
 const NGUOI: Readonly<Record<NguoiMau, NguoiNhanChuyen>> = {
   TX_DANG_LAI: nguoi("s-tx1", ["DRIVER"], "p-tx1"), TX_VUA_XEP: nguoi("s-tx2", ["DRIVER"], "p-tx2"), TX_VUA_GO: nguoi("s-tx3", ["DRIVER"], "p-tx3"),
   TX_NGUON: nguoi("s-tx4", ["DRIVER"], "p-tx4"), TX_KHAC: nguoi("s-tx5", ["DRIVER"], "p-tx5"),
-  BAN_HANG: nguoi("s-bh", ["SALES"]), BAN_HANG_LAP_DON: nguoi("s-lap", ["SALES"]), KE_TOAN: nguoi("s-kt", ["ACCOUNTING"]), QUAN_TRI: nguoi("s-qt", ["ADMIN"]),
+  BAN_HANG: nguoi("s-bh", ["SALES"]), BAN_HANG_LAP_DON: nguoi("s-lap", ["SALES"]), BAN_HANG_PHU_TRACH: nguoi("s-pt", ["SALES"]), KE_TOAN: nguoi("s-kt", ["ACCOUNTING"]), QUAN_TRI: nguoi("s-qt", ["ADMIN"]),
   TOAN_QUYEN: nguoi("s-tq", ["SUPER_ADMIN"]), HDV_PHU_TRACH: nguoi("s-hdv", ["FIELD"]), NGUOI_LAM: nguoi("s-lam", ["SALES"]),
 };
 const LAI_DICH = [{ partyId: "p-tx1", tu: TRUOC, den: null }, { partyId: "p-tx2", tu: LUC, den: null }, { partyId: "p-tx3", tu: TRUOC, den: LUC }];
 const LAI_NGUON = [{ partyId: "p-tx4", tu: TRUOC, den: null }];
-const DON = { orderId: "o-1", maDon: "DH-0001", ownerId: NGUOI.BAN_HANG_LAP_DON.id, handlerStaffId: NGUOI.HDV_PHU_TRACH.id };
+/** Hai đơn của suất: đơn 1 — Bán hàng lập, Bán hàng KHÁC phụ trách (nhánh `handlerStaffId` / `assigned`); đơn 2 — người lập ngoài người mẫu, HDV phụ trách. */
+const DON = { orderId: "o-1", maDon: "DH-0001", ownerId: NGUOI.BAN_HANG_LAP_DON.id, handlerStaffId: NGUOI.BAN_HANG_PHU_TRACH.id };
+const DON_HDV = { orderId: "o-2", maDon: "DH-0002", ownerId: "s-lap-khac", handlerStaffId: NGUOI.HDV_PHU_TRACH.id };
 
 interface TinhHuong { chay: boolean; boQua: boolean }
 const tinhHuong = (d: DongSuKien): TinhHuong[] =>
@@ -126,11 +137,11 @@ function dongMau(d: DongSuKien, t: TinhHuong) {
       { tripId: "t-dich", ma: "CX-1103-01", ngayChay: "2027-03-11", lai: LAI_DICH, xuatBen: t.chay ? TRUOC : null },
       { tripId: "t-nguon", ma: "CX-1103-02", ngayChay: "2027-03-11", lai: LAI_NGUON, xuatBen: null },
     ],
-    vang: [{ suKienId: id, orderId: DON.orderId }],
+    vang: [{ suKienId: id, orderId: DON.orderId }, { suKienId: id, orderId: DON_HDV.orderId }],
     khanCap: t.boQua ? [id] : [], vuotMoc: t.boQua ? [id] : [],
     khanCapNguon: t.boQua && d.suKienCoChuyenNguon ? [{ suKienId: id, tripId: "t-nguon" }] : [],
   };
-  const r = dungDongChuyen([{ id, tripId: "t-dich", actorId: NGUOI.NGUOI_LAM.id, action: d.nhatKy!, luc: LUC }], f, [DON]);
+  const r = dungDongChuyen([{ id, tripId: "t-dich", actorId: NGUOI.NGUOI_LAM.id, action: d.nhatKy!, luc: LUC }], f, [DON, DON_HDV]);
   assert.equal(r.length, 1);
   return r[0]!;
 }
@@ -199,7 +210,12 @@ function routeCua(tep: string): RouteMa[] {
     const pos = m.index!;
     const h = /^route\(\s*"(GET|POST|PUT|PATCH|DELETE)",\s*"([^"]+)",\s*"(\w+)"/.exec(goc.slice(pos, pos + 300));
     assert.ok(h, `${tep}: route( ở vị trí ${pos} không khớp khuôn route("METHOD", "path", "cổng", …)`);
-    const open = che.indexOf("{", che.indexOf("=>", pos + h![0].length));
+    // Handler phải là hàm mũi tên viết tại chỗ, thân khối `{…}` — dạng khác (biến, biểu thức) thì bài không đọc được thân → đỏ, không im lặng.
+    const sau = che.slice(pos + h![0].length);
+    assert.match(sau, /^\s*,\s*(async\s*)?\(/, `${tep} ${h![1]} ${h![2]}: handler không phải hàm mũi tên viết tại chỗ`);
+    const mui = che.indexOf("=>", pos + h![0].length);
+    assert.match(che.slice(mui + 2, mui + 40), /^\s*\{/, `${tep} ${h![1]} ${h![2]}: handler không có thân khối {…}`);
+    const open = che.indexOf("{", mui);
     let depth = 0;
     let i = open;
     for (; i < che.length; i++) {
@@ -248,6 +264,15 @@ test("(d) thân route khớp dòng: cổng, ô hỏi, hàm xử lý, lớp vư�
       if (m.cong !== r.cong) loi.push(`${d.id} ${m.khoa}: cổng mã "${m.cong}" — bảng "${r.cong}"`);
       const hoi = r.ngucanh === "khong" ? `can(staff, "${r.o}")` : r.ngucanh === "MATRIX_TRUC_TIEP" ? `MATRIX["${r.o}"]` : `can(staff, "${r.o}", {`;
       if (!co(hoi)) loi.push(`${d.id} ${m.khoa}: thân không có ${hoi}`);
+      if (r.ngucanh === "assigned" || r.ngucanh === "ownerId" || r.ngucanh === "ownerId+assigned") {
+        // Khoá ngữ cảnh của MỌI lời hỏi ô này trong thân phải đúng cột `ngucanh` (đổi `{ ownerId, assigned }` thành `{ assigned }` = đổi ai bấm được).
+        const ky = r.ngucanh.split("+").sort().join(",");
+        for (const mm of t.matchAll(new RegExp(`can\\(staff, "${r.o.replace(/\./g, "\\.")}", \\{`, "g"))) {
+          const a = mm.index! + mm[0].length;
+          const khoa = t.slice(a, t.indexOf("}", a)).split(",").map((x) => x.split(":")[0]!.trim()).filter((x) => x !== "").sort().join(",");
+          if (khoa !== ky) loi.push(`${d.id} ${m.khoa}: can(staff, "${r.o}", { ${khoa} }) — bảng ngữ cảnh ${r.ngucanh}`);
+        }
+      }
       const dau = /\bcan\(staff, "([\w.]+)"/.exec(t)?.[1];
       if (r.ngucanh !== "MATRIX_TRUC_TIEP" && dau !== (r.oDau ?? r.o)) loi.push(`${d.id} ${m.khoa}: ô hỏi đầu thân là "${dau}" — bảng "${r.oDau ?? r.o}"`);
       if (!new RegExp(`\\b${r.ham}\\s*\\(`).test(t)) loi.push(`${d.id} ${m.khoa}: thân không gọi ${r.ham}(`);
@@ -257,6 +282,85 @@ test("(d) thân route khớp dòng: cổng, ô hỏi, hàm xử lý, lớp vư�
       if (baoRoute !== (d.bao === "route")) loi.push(`${d.id} ${m.khoa}: gọi baoThayDoiChuyen ${baoRoute ? "có" : "không"} — bảng "${d.bao}"`);
       if (may !== (d.bao === "may_dong_bo")) loi.push(`${d.id} ${m.khoa}: gọi dongBoChuyen ${may ? "có" : "không"} — bảng "${d.bao}"`);
     }
+  }
+  assert.deepEqual(loi, []);
+});
+
+/** Khai báo cấp cao nhất (`function` / `const`) của một tệp: tên → văn bản tới khai báo kế tiếp. */
+function khaiBao(src: string): Map<string, string> {
+  const ms = [...src.matchAll(/^(?:export\s+)?(?:async\s+)?(?:function\s+(\w+)|const\s+(\w+)\s*[=:])/gm)];
+  return new Map(ms.map((m, i) => [(m[1] ?? m[2])!, src.slice(m.index!, ms[i + 1]?.index ?? src.length)]));
+}
+const tepTs = (thuMuc: string): string[] =>
+  readdirSync(join(ROOT, thuMuc), { recursive: true, encoding: "utf8" }).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts")).map((f) => `${thuMuc}/${f}`);
+
+/**
+ * Hàm / hằng của orders GHI chặng, hành khách, hoặc huỷ đơn — trực tiếp (câu SQL) hoặc gián tiếp (gọi hàm trong tập), suy bằng điểm bất động trên khai báo
+ * cấp cao nhất. Route gọi tới tập này làm đổi dữ liệu mà chuyến đang dựa vào (ADR-0104 Đ2.6) — phải có dòng hoặc mục ngoài phạm vi có lý do.
+ */
+function hamGhiDon(): Set<string> {
+  const ghi = /\b(INSERT INTO|UPDATE|DELETE FROM)\s+ord_(transfer_leg|passenger)\b|UPDATE orders SET status = 'cancelled'/;
+  const kb = new Map<string, { chu: string; ma: string }>();
+  for (const tep of tepTs("src/modules/orders")) {
+    const goc = doc(tep);
+    const chu = khaiBao(maskSource(goc, { strings: false }));
+    const ma = khaiBao(maskSource(goc));
+    for (const [ten, t] of chu) kb.set(ten, { chu: t, ma: ma.get(ten) ?? "" });
+  }
+  const tap = new Set([...kb].filter(([, v]) => ghi.test(v.chu)).map(([k]) => k));
+  for (let doi = true; doi; ) {
+    doi = false;
+    for (const [ten, v] of kb) {
+      if (tap.has(ten)) continue;
+      if ([...tap].some((x) => new RegExp(`\\b${x}\\b`).test(v.ma))) {
+        tap.add(ten);
+        doi = true;
+      }
+    }
+  }
+  return tap;
+}
+
+test("(d) route đơn / dispatch chạm hàm ghi chặng, hành khách, huỷ đơn phải có dòng hoặc mục ngoài phạm vi có lý do", () => {
+  const tap = hamGhiDon();
+  assert.ok(tap.size >= 10, `chỉ suy được ${tap.size} hàm ghi đơn — khuôn quét hỏng?`);
+  const trongBang = new Set(BANG.flatMap((d) => d.routes.map(khoaRoute)));
+  const ngoai = new Set(Object.keys(NGOAI_PHAM_VI_ROUTE));
+  const loi: string[] = [];
+  for (const r of ROUTES) {
+    if (!GHI.test(r.khoa) || r.tep.includes("/van-chuyen/")) continue;
+    const che = maskSource(r.than);
+    const cham = [...tap].filter((x) => new RegExp(`\\b${x}\\b`).test(che));
+    if (cham.length > 0 && trongBang.has(r.khoa) === ngoai.has(r.khoa)) {
+      loi.push(`${r.khoa}: chạm ${cham.join(", ")} — phải ở ĐÚNG MỘT trong hai: dòng của bảng / NGOAI_PHAM_VI_ROUTE`);
+    }
+  }
+  assert.deepEqual(loi, []);
+});
+
+/** Câu ghi bảng chuyến (trừ chi phí xe thuê `vc_trip_cost_line`). */
+const GHI_CHUYEN = /\b(INSERT INTO|UPDATE|DELETE FROM)\s+vc_trip(_allocation|_stop|_driver|_event|_manifest|_departure_check|_departure_check_item)?\b/;
+const TEP_CAU_CHUYEN = "src/modules/van-chuyen/chuyen-repo.ts";
+
+test("(d) câu ghi bảng chuyến chỉ khai ở chuyen-repo.ts và chỉ hàm dựng lô (dieu-phoi.ts) dùng", () => {
+  const tatCa = tepTs("src");
+  const coCau = tatCa.filter((f) => GHI_CHUYEN.test(maskSource(doc(f), { strings: false })));
+  assert.deepEqual(coCau, [TEP_CAU_CHUYEN], "câu SQL ghi bảng chuyến xuất hiện ngoài chuyen-repo.ts — lệnh mới phải đi qua hàm dựng lô có dòng trong bảng");
+  const kb = khaiBao(maskSource(doc(TEP_CAU_CHUYEN), { strings: false }));
+  const cau = [...kb].filter(([, t]) => GHI_CHUYEN.test(t)).map(([k]) => k);
+  assert.ok(cau.length >= 20, `chỉ thấy ${cau.length} câu ghi bảng chuyến`);
+  const loi: string[] = [];
+  const khaiCheMa = khaiBao(maskSource(doc(TEP_CAU_CHUYEN)));
+  for (const [ten, t] of khaiCheMa) {
+    if (cau.includes(ten)) continue;
+    const dung = cau.filter((x) => new RegExp(`\\b${x}\\b`).test(t));
+    if (dung.length > 0) loi.push(`${TEP_CAU_CHUYEN}:${ten} dùng ${dung.join(", ")} — câu ghi chuyến chỉ được chạy trong hàm dựng lô`);
+  }
+  for (const f of tatCa) {
+    if (f === TEP_CAU_CHUYEN || f === TEP_LO) continue;
+    const che = maskSource(doc(f));
+    const dung = cau.filter((x) => new RegExp(`\\b${x}\\b`).test(che));
+    if (dung.length > 0) loi.push(`${f} dùng ${dung.join(", ")} — câu ghi chuyến chỉ được chạy trong hàm dựng lô (${TEP_LO})`);
   }
   assert.deepEqual(loi, []);
 });
@@ -271,7 +375,10 @@ const thanHam = (src: string, ten: string): string | null => {
 };
 
 test("(d) hàm dựng lô: mọi hàm xuất của dieu-phoi.ts có dòng; lô ghi đúng việc nhật ký và loại sự kiện của dòng", () => {
-  const xuat = [...LO_GOC.matchAll(/^export function (\w+)/gm)].map((m) => m[1]!);
+  // Mọi dạng hàm xuất: `export function`, `export async function`, `export const x = (…) =>` / `= async (…) =>`.
+  const xuat = [...LO_GOC.matchAll(/^export (?:async )?function (\w+)|^export const (\w+)\s*(?::[^=\n]*)?=\s*(?:async\s*)?(?:\([^)]*\)|\w+)\s*(?::[^=\n]*)?=>/gm)].map((m) => (m[1] ?? m[2])!);
+  const soDongXuatHam = LO_GOC.split("\n").filter((x) => /^export (async )?function |^export const \w+.*=>/.test(x)).length;
+  assert.equal(xuat.length, soDongXuatHam, `${TEP_LO}: đọc được ${xuat.length} hàm xuất nhưng có ${soDongXuatHam} dòng khai hàm xuất — khuôn regex sót dạng mới`);
   assert.ok(xuat.length >= 20, `chỉ thấy ${xuat.length} hàm xuất ở ${TEP_LO}`);
   const dung = CO_MA.map((d) => d.lo).filter((x): x is string => x !== null);
   assert.deepEqual(tapKhac(xuat, dung), [], "hàm dựng lô chưa có dòng (lệnh mới?)");

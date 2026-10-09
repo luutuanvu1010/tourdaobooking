@@ -1,4 +1,4 @@
-// BẢNG SỰ KIỆN VẬN CHUYỂN (việc 6b, 2026-10-09 — ĐỀ XUẤT, chủ chưa duyệt làm luật). Mỗi dòng = MỘT lệnh làm đổi dữ liệu chuyến xe (`vc_trip*`), ghi mốc giờ
+// BẢNG SỰ KIỆN VẬN CHUYỂN (việc 6b, 2026-10-09 — ĐỀ XUẤT, chủ chưa duyệt làm luật). Mỗi dòng = MỘT lệnh làm đổi dữ liệu chuyến xe (`vc_trip*`, ngoại trừ dòng chi phí `vc_trip_cost_line`), ghi mốc giờ
 // hẹn (`vc_leg_appt_ack`), hoặc lệnh đơn làm máy đổi chuyến theo đơn (gọi `ctx.dongBoChuyen`) — kèm lệnh đơn đổi giờ chặng đã xếp mà KHÔNG đồng bộ (`PUT /trip`,
 // G17) và các lệnh A5 đã duyệt nhưng chưa có mã (ADR-0111 Đ3). Mọi thứ khác (cấu hình, xe, giá, chi phí xe thuê) ở `NGOAI_PHAM_VI_*` kèm lý do.
 //
@@ -15,20 +15,23 @@ import type { LoaiTinChuyen } from "./tin-chuyen.ts";
 // ---- Người mẫu (bài gọi hàm tin thật với từng người mẫu) ------------------------------------------------------------------------------------------------
 /**
  * TX_* = tài khoản Tài xế công ty: ĐANG LÁI (dòng lái mở trước sự kiện, còn mở), VỪA XẾP (dòng lái mở đúng lúc sự kiện), VỪA GỠ (dòng lái đóng đúng lúc sự
- * kiện), NGUỒN (lái chuyến nguồn của lệnh dời / chuyển khách), KHÁC (không lái chuyến nào). Văn phòng: Bán hàng (không dính đơn), Bán hàng lập đơn, Kế toán,
+ * kiện), NGUỒN (lái chuyến nguồn của lệnh dời / chuyển khách), KHÁC (không lái chuyến nào). Văn phòng: Bán hàng (không dính đơn), Bán hàng lập đơn, Bán hàng
+ * đang PHỤ TRÁCH đơn (người lập là người khác), Kế toán,
  * Quản trị, Toàn quyền; HDV phụ trách đơn; NGUOI_LAM = người bấm lệnh (Bán hàng) — không bao giờ tự nhận tin của mình.
  */
 export const NGUOI_MAU = [
-  "TX_DANG_LAI", "TX_VUA_XEP", "TX_VUA_GO", "TX_NGUON", "TX_KHAC", "BAN_HANG", "BAN_HANG_LAP_DON", "KE_TOAN", "QUAN_TRI", "TOAN_QUYEN", "HDV_PHU_TRACH", "NGUOI_LAM",
+  "TX_DANG_LAI", "TX_VUA_XEP", "TX_VUA_GO", "TX_NGUON", "TX_KHAC", "BAN_HANG", "BAN_HANG_LAP_DON", "BAN_HANG_PHU_TRACH", "KE_TOAN", "QUAN_TRI", "TOAN_QUYEN", "HDV_PHU_TRACH", "NGUOI_LAM",
 ] as const;
 export type NguoiMau = (typeof NGUOI_MAU)[number];
 /** Tài xế có dòng lái bao lúc sự kiện (ADR-0052 D6.2 "tài xế có dòng lái mở lúc sự kiện"). */
 const TX_LUC: readonly NguoiMau[] = ["TX_DANG_LAI", "TX_VUA_XEP", "TX_VUA_GO"];
 /** Người có `trip.dispatch` không ngữ cảnh (ô `any`): Bán hàng, Quản trị, Toàn quyền. */
-const DIEU_PHOI: readonly NguoiMau[] = ["BAN_HANG", "BAN_HANG_LAP_DON", "QUAN_TRI", "TOAN_QUYEN"];
+const DIEU_PHOI: readonly NguoiMau[] = ["BAN_HANG", "BAN_HANG_LAP_DON", "BAN_HANG_PHU_TRACH", "QUAN_TRI", "TOAN_QUYEN"];
+/** Người lập + người phụ trách đơn là văn phòng (có `trip.view`) — người nhận "khách vắng", "gọi báo khách" (ADR-0052 D6.2). */
+const LAP_VA_PHU_TRACH: readonly NguoiMau[] = ["BAN_HANG_LAP_DON", "BAN_HANG_PHU_TRACH"];
 export const NHAN_NGUOI_MAU: Readonly<Record<NguoiMau, string>> = {
   TX_DANG_LAI: "tài xế đang lái", TX_VUA_XEP: "tài xế vừa được xếp", TX_VUA_GO: "tài xế vừa bị gỡ", TX_NGUON: "tài xế chuyến nguồn", TX_KHAC: "tài xế khác",
-  BAN_HANG: "Bán hàng", BAN_HANG_LAP_DON: "người lập đơn (Bán hàng)", KE_TOAN: "Kế toán", QUAN_TRI: "Quản trị", TOAN_QUYEN: "Toàn quyền",
+  BAN_HANG: "Bán hàng", BAN_HANG_LAP_DON: "người lập đơn (Bán hàng)", BAN_HANG_PHU_TRACH: "người phụ trách đơn (Bán hàng)", KE_TOAN: "Kế toán", QUAN_TRI: "Quản trị", TOAN_QUYEN: "Toàn quyền",
   HDV_PHU_TRACH: "HDV phụ trách đơn", NGUOI_LAM: "người bấm",
 };
 
@@ -204,7 +207,7 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
   {
     id: "vang", ten: "Khách vắng", loai: "tien_do", trangThai: "co_ma", routes: capTienDo("/phan-bo/:aid/vang", "lenhVang"), trangThaiChuyen: ["RUNNING"], vuot: [],
     luat: "điểm lên đã tới; từ Chờ", bang: [...LO_CHUNG, "vc_trip_allocation", "vc_trip_stop"], suKien: "PASSENGER_NO_SHOW", nhatKy: "trip_passenger_no_show",
-    lo: "loSuat", loKhoa: "VANG", bao: "route", tin: { nhom: "thuong", nhan: [{ ai: ["BAN_HANG_LAP_DON"], loai: "khach_vang" }] }, bangTin: "vang",
+    lo: "loSuat", loKhoa: "VANG", bao: "route", tin: { nhom: "thuong", nhan: [{ ai: LAP_VA_PHU_TRACH, loai: "khach_vang" }] }, bangTin: "vang",
     nguon: "ADR-0049 D3; ADR-0052 D6.2 (người lập + phụ trách có trip.view)",
   },
   {
@@ -279,7 +282,7 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
     bao: "may_dong_bo", tin: { nhom: "thuong", nhan: [{ ai: TX_LUC, loai: "khach_doi" }] },
     // MQ-07 (ADR-0052 D6.2): sửa chặng đang có suất mở → tin giờ hẹn cho tài xế đang lái + người lập / phụ trách qua được ô "Đã gọi báo".
     ...((nhatKyDon as readonly string[]).includes("order_leg_updated")
-      ? { tinDon: { nhom: "gio_hen", nhan: [{ ai: TX_LUC, loai: "gio_hen_tai_xe" }, { ai: ["BAN_HANG_LAP_DON"], loai: "gio_hen_goi_bao" }] } as const }
+      ? { tinDon: { nhom: "gio_hen", nhan: [{ ai: TX_LUC, loai: "gio_hen_tai_xe" }, { ai: LAP_VA_PHU_TRACH, loai: "gio_hen_goi_bao" }] } as const }
       : {}),
     bangTin: "cap_nhat", nguon: "ADR-0104 Đ2.4, Đ2.9, Đ2.10; ADR-0052 D6.2 (MQ-07)",
   })),
@@ -291,7 +294,7 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
     trangThaiChuyen: ["PLANNED"], vuot: [], luat: "đơn đã xác nhận đổi chặng dưới mốc → cần đặt gấp (Quản trị, Toàn quyền); chuyến chỉ hiện lý do giữ, người xếp xe bấm nút",
     bang: ["orders", "ord_transfer_leg", "audit_log"], suKien: null, nhatKy: null, nhatKyDon: ["trip_updated", "order_leg_updated"], lo: null, bao: "khong", tin: null,
     // G17 (việc 6, gộp 2a7973d4): mỗi chặng đổi ngày / giờ ghi thêm `order_leg_updated` (target = chặng, cùng lô, `changes() > 0`) → tin giờ hẹn MQ-07.
-    tinDon: { nhom: "gio_hen", nhan: [{ ai: TX_LUC, loai: "gio_hen_tai_xe" }, { ai: ["BAN_HANG_LAP_DON"], loai: "gio_hen_goi_bao" }] },
+    tinDon: { nhom: "gio_hen", nhan: [{ ai: TX_LUC, loai: "gio_hen_tai_xe" }, { ai: LAP_VA_PHU_TRACH, loai: "gio_hen_goi_bao" }] },
     bangTin: null,
     nguon: "ADR-0047 R2c; ADR-0104 Đ2.4; ADR-0052 D6.2 (MQ-07); G8, G17 (sổ thi công 2026-10-08)",
   },
@@ -375,6 +378,11 @@ export const NGOAI_PHAM_VI_ROUTE: Readonly<Record<string, string>> = {
   "POST /api/van-chuyen/chuyen/:id/chi-phi/chup-lai": "chi phí xe thuê",
   "POST /api/van-chuyen/chuyen/:id/chi-phi/gia-thoa-thuan": "chi phí xe thuê",
   "PUT /api/orders/:id/handler": "đổi người phụ trách đơn (dispatch)",
+  // Route đơn GHI chặng / hành khách mà không đổi chuyến (ADR-0104 Đ2.4 "Không cần hook" — đã đối chiếu mọi route ghi của orders, dispatch).
+  "POST /api/orders": "lập đơn — chặng mới chưa có suất",
+  "PUT /api/orders/:id": "chỉ đơn nháp — đơn nháp không có suất (lc09)",
+  "POST /api/orders/:id/legs": "thêm chặng mới — chưa có suất",
+  "POST /api/orders/:id/legs/:legId/short-notice": "dấu đặt gấp — không đổi người / chặng / giờ",
 };
 
 // ---- Quy tắc chung suy từ bảng (máy kiểm) và chỗ lệch ---------------------------------------------------------------------------------------------------
@@ -432,11 +440,11 @@ export const CHO_LECH: readonly ChoLech[] = [
     deNghi: "Hỏi chủ: tài xế đã được xếp lái có cần tin khi điểm đón đổi trước giờ chạy không (khuyến nghị: có, cùng câu \"đổi điểm đón\").",
   },
   {
-    id: "N-BAM-THAY", loai: "CHUA_CO_LUAT", muc: "THAP", quyTac: "QT1",
+    id: "N-BAM-THAY", loai: "DA_DUYET", muc: null, quyTac: "QT1",
     dong: ["xuat-ben", "da-toi", "da-don", "vang", "khach-huy-tai-diem", "da-tra", "ket-thuc", "ket-thuc-gian-doan", "doi-thu-tu"],
     maLam: "Văn phòng bấm thay tiến độ (xuất bến, đã đón, vắng, kết thúc…) trên chuyến của tài xế — tài xế không nhận tin đẩy, chỉ màn đang mở tự tải lại.",
-    adrNoi: "ADR-0049 D3, ADR-0050 VK1-A không nói tới tin cho tài xế khi văn phòng bấm thay.",
-    deNghi: "Hỏi chủ khi làm C2 (màn tài xế); khuyến nghị giữ như hiện tại (bấm thay thường khi tài xế không bấm được).",
+    adrNoi: "ADR-0049 D3, ADR-0050 VK1-A không nói tới; chủ quyết 2026-10-09 (trang trình câu 3): giữ như hiện tại.",
+    deNghi: "Giữ; xem lại ở việc 9 (màn tài xế).",
   },
   {
     id: "N-XEP-RUT-DOI", loai: "DA_DUYET", muc: null, dong: ["xep", "rut", "doi"], quyTac: "QT1", chiKhiKhongBoQua: true,
