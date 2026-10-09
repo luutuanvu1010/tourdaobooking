@@ -101,6 +101,9 @@ export interface DongSuKien {
 const O_DIEU_PHOI = { SALES: "any", ADMIN: "any", SUPER_ADMIN: "any" } as const;
 const O_TIEN_DO = { SALES: "any", ADMIN: "any", SUPER_ADMIN: "any", DRIVER: "assigned" } as const;
 const O_SUA_CHUYEN_DON = { SALES: "ownOrAssigned", ADMIN: "any", SUPER_ADMIN: "any" } as const;
+/** Ô `trip.transfer` (ADR-0052 D4.3; ADR-0111 N1) — tài xế đối tác chưa có (A4 / N4). */
+const O_CHUYEN_KHACH = { SUPER_ADMIN: "any", DRIVER: "assigned" } as const;
+const O_VUOT = { ADMIN: "any", SUPER_ADMIN: "any" } as const;
 const vp = (duongDan: string, o: OperationCode, ai: RouteDong["ai"], ham: string, ngucanh: RouteDong["ngucanh"] = "khong"): RouteDong =>
   ({ phuongThuc: "POST", duongDan, cong: "office", o, ngucanh, ai, ham });
 /** Cặp route tiến độ: tài xế bấm (cổng staff, ô assigned) ↔ văn phòng bấm thay (cổng office, ô không ngữ cảnh) — CÙNG một hàm xử lý. */
@@ -313,20 +316,72 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
     lo: "lenhBoDanhDauGoiBao", bao: "khong", tin: null, bangTin: null, nguon: "ADR-0051 GB1, GB2",
   },
 
-  // Chuyển khách giữa hai xe — A5, ADR-0111 Đ3 (+ ADR-0052 D4, D6.2). CHƯA CÓ MÃ: khai trước, bài đỏ khi mã xuất hiện mà dòng chưa chuyển `co_ma`.
-  ...([
-    ["a5-gui", "Gửi đề nghị chuyển khách", "trip_transfer_sent", "TRANSFER_SENT", [{ ai: ["TX_DANG_LAI"], loai: "chua_dat" }]],
-    ["a5-rut-lai", "Rút lại đề nghị", "trip_transfer_withdrawn", "TRANSFER_WITHDRAWN", null],
-    ["a5-khong-nhan", "Tài xế đích không nhận", "trip_transfer_declined", "TRANSFER_DECLINED", [{ ai: ["TX_NGUON"], loai: "chua_dat" }]],
-    ["a5-het-han", "Đề nghị hết hạn (máy)", "trip_transfer_expired", "TRANSFER_EXPIRED", [{ ai: ["TX_DANG_LAI", "TX_NGUON"], loai: "chua_dat" }]],
-    ["a5-leo-thang", "Đề nghị leo thang chờ Quản trị", "trip_transfer_escalated", "TRANSFER_ESCALATED", [{ ai: ["QUAN_TRI", "TOAN_QUYEN"], loai: "chua_dat" }]],
-    ["a5-xac-nhan", "Đề nghị được xác nhận (khách sang xe nhận)", "trip_transfer_confirmed", "TRANSFER_CONFIRMED", [{ ai: ["TX_DANG_LAI", "TX_NGUON"], loai: "chua_dat" }]],
-    ["a5-bac", "Quản trị bác đề nghị", "trip_transfer_rejected", "TRANSFER_REJECTED", [{ ai: ["TX_DANG_LAI", "TX_NGUON"], loai: "chua_dat" }]],
-  ] as const).map(([id, ten, nhatKy, suKien, nhan]): DongSuKien => ({
-    id, ten, loai: "chuyen_khach", trangThai: "chua_co_ma", routes: [], trangThaiChuyen: ["PLANNED", "RUNNING"], vuot: [],
-    luat: "danh mục luật vc_transfer_rule (11 dòng, hai tầng); ô dự kiến trip.transfer", bang: [...LO_CHUNG, "vc_transfer_request", "vc_transfer_check", "vc_trip_allocation"],
-    suKien, nhatKy, lo: null, bao: "route", suKienCoChuyenNguon: true, tin: nhan ? { nhom: "thuong", nhan } : null, bangTin: null, nguon: "ADR-0111 Đ3; ADR-0052 D4, D6.2",
-  })),
+  // Chuyển khách giữa hai xe — A5, ADR-0111 (thi hành ADR-0052 D4, D5c). Sự kiện ghi ở chuyến ĐÍCH, chuyến nguồn ở `related_trip_id` (Đ3 (d)); nhật ký `target_id`
+  // = chuyến đích, `detail` chỉ mã chuyến, phạm vi, số khách, mã luật không đạt (không tên, năm sinh, SĐT, chữ nơi gặp, khoá nơi). Không lệnh nào bỏ qua luật theo
+  // lớp `trip.urgent_adjust` (vuot rỗng): mốc 6 giờ / khoảng nghỉ / cam kết là luật CAU_HINH — không đạt thì LEO THANG, Quản trị / Toàn quyền duyệt bằng ô
+  // `trip.override` kèm lý do PHA_LE (ADR-0052 D4.2 ĐP4; ADR-0111 Đ1, Đ2, N2). Đặt gấp KHÔNG miễn (Đ6). Lý do Không nhận / Bác: nhóm TU_CHOI_NHAN.
+  // Rút lại / tự huỷ (VOID) không sinh tin. Bảng tin: xác nhận = "doi" (khách đổi xe), còn lại "sua" (giả định của người thi công — ADR không nói).
+  {
+    id: "a5-gui", ten: "Gửi đề nghị chuyển khách (tài xế nhờ xe khác / văn phòng gửi thay cứu hộ)", loai: "chuyen_khach", trangThai: "chua_co_ma",
+    routes: [
+      { phuongThuc: "POST", duongDan: "/api/van-chuyen/cuoc-cua-toi/:id/de-nghi", cong: "staff", o: "trip.transfer", oDau: "trip.view", ngucanh: "assigned", ai: O_CHUYEN_KHACH, ham: "lenhGuiDeNghi" },
+      vp("/api/van-chuyen/chuyen/:id/cuu-ho", "trip.progress", O_TIEN_DO, "lenhGuiDeNghi"),
+    ],
+    trangThaiChuyen: ["PLANNED", "RUNNING"], vuot: [],
+    luat: "LC-14: nguồn ĐANG CHẠY, người gửi đang lái nguồn (văn phòng chỉ gửi thay cứu hộ ONBOARD — STOP → 403); đích cùng ngày, có tài xế đang lái khác tài xế nguồn; STOP: điểm chưa tới, mọi suất Chờ, không suất phụ xe; ONBOARD: đích ĐANG CHẠY (Đ4), một nơi gặp; chụp số khách và chính sách hiện hành (hạn chờ)",
+    bang: [...LO_CHUNG, "vc_transfer_request"], suKien: "TRANSFER_SENT", nhatKy: "trip_transfer_sent", lo: "loGuiDeNghi", bao: "route", suKienCoChuyenNguon: true,
+    tin: { nhom: "thuong", nhan: [{ ai: TX_LUC, loai: "chua_dat" }] }, bangTin: "sua", nguon: "ADR-0111 Đ3 (b), (d), Đ4, Đ6; ADR-0052 D4.1, D4.2 (LC-14), D5c",
+  },
+  {
+    id: "a5-rut-lai", ten: "Tài xế nguồn rút lại đề nghị", loai: "chuyen_khach", trangThai: "chua_co_ma",
+    routes: [{ phuongThuc: "POST", duongDan: "/api/van-chuyen/de-nghi/:rid/rut", cong: "staff", o: "trip.transfer", oDau: "trip.view", ngucanh: "assigned", ai: O_CHUYEN_KHACH, ham: "lenhRutDeNghi" }],
+    trangThaiChuyen: ["PLANNED", "RUNNING"], vuot: [], luat: "người bấm đang lái chuyến nguồn; đề nghị còn Chờ trả lời và chưa quá hạn; không tin",
+    bang: [...LO_CHUNG, "vc_transfer_request"], suKien: "TRANSFER_WITHDRAWN", nhatKy: "trip_transfer_withdrawn", lo: "loRutDeNghi", bao: "route", suKienCoChuyenNguon: true,
+    tin: null, bangTin: "sua", nguon: "ADR-0111 Đ3 (b), (d); ADR-0052 D4.1",
+  },
+  {
+    id: "a5-khong-nhan", ten: "Tài xế xe nhận bấm Không nhận", loai: "chuyen_khach", trangThai: "chua_co_ma",
+    routes: [{ phuongThuc: "POST", duongDan: "/api/van-chuyen/de-nghi/:rid/khong-nhan", cong: "staff", o: "trip.transfer", oDau: "trip.view", ngucanh: "assigned", ai: O_CHUYEN_KHACH, ham: "lenhKhongNhanDeNghi" }],
+    trangThaiChuyen: ["PLANNED", "RUNNING"], vuot: [],
+    luat: "người bấm đang lái chuyến đích (máy chủ; CSDL: decided_by_party_id = tài xế đang lái đích); đề nghị Chờ, chưa quá hạn; lý do bắt buộc nhóm TU_CHOI_NHAN",
+    bang: [...LO_CHUNG, "vc_transfer_request"], suKien: "TRANSFER_DECLINED", nhatKy: "trip_transfer_declined", lo: "loKhongNhanDeNghi", bao: "route", suKienCoChuyenNguon: true,
+    tin: { nhom: "thuong", nhan: [{ ai: ["TX_NGUON"], loai: "chua_dat" }] }, bangTin: "sua", nguon: "ADR-0111 Đ3 (b), (d) (tin mới cho tài xế nguồn); ADR-0052 D4.1",
+  },
+  {
+    id: "a5-het-han", ten: "Đề nghị hết hạn (đóng khi có người bấm tiếp vào đề nghị quá hạn)", loai: "chuyen_khach", trangThai: "chua_co_ma", routes: [],
+    trangThaiChuyen: ["PLANNED", "RUNNING"], vuot: [],
+    luat: "MQ-08: hạn = giờ gửi + accept_wait_minutes của chính sách lúc gửi; đọc không ghi, không cron; tài xế nhận bấm Nhận / Không nhận muộn → đóng Hết hạn (200, ketQua HET_HAN)",
+    bang: [...LO_CHUNG, "vc_transfer_request"], suKien: "TRANSFER_EXPIRED", nhatKy: "trip_transfer_expired", lo: "loHetHanDeNghi", bao: "route", suKienCoChuyenNguon: true,
+    tin: { nhom: "thuong", nhan: [{ ai: TX_LUC, loai: "chua_dat" }, { ai: ["TX_NGUON"], loai: "chua_dat" }] }, bangTin: "sua", nguon: "ADR-0111 Đ3 (c), (d); ADR-0052 D4.2 MQ-08",
+  },
+  {
+    id: "a5-leo-thang", ten: "Đề nghị leo thang chờ Quản trị (luật không đạt hoặc tắt tự đồng ý)", loai: "chuyen_khach", trangThai: "chua_co_ma", routes: [],
+    trangThaiChuyen: ["PLANNED", "RUNNING"], vuot: [],
+    luat: "tài xế nhận bấm Nhận; kiemChuyen 11 luật (vc_transfer_rule): có luật không đạt, hoặc công tắc tự đồng ý (chính sách lúc bấm) tắt; ghi dòng kiểm; không đổi suất",
+    bang: [...LO_CHUNG, "vc_transfer_request", "vc_transfer_check"], suKien: "TRANSFER_ESCALATED", nhatKy: "trip_transfer_escalated", lo: "loLeoThangDeNghi", bao: "route",
+    suKienCoChuyenNguon: true, tin: { nhom: "thuong", nhan: [{ ai: ["QUAN_TRI", "TOAN_QUYEN"], loai: "chua_dat" }] }, bangTin: "sua",
+    nguon: "ADR-0111 Đ1, Đ2, Đ3 (c), (d); ADR-0052 D4.2 MQ-02/MQ-03",
+  },
+  {
+    id: "a5-xac-nhan", ten: "Đề nghị được xác nhận — khách sang xe nhận (máy tự đồng ý / Quản trị duyệt)", loai: "chuyen_khach", trangThai: "chua_co_ma",
+    routes: [
+      { phuongThuc: "POST", duongDan: "/api/van-chuyen/de-nghi/:rid/nhan", cong: "staff", o: "trip.transfer", oDau: "trip.view", ngucanh: "assigned", ai: O_CHUYEN_KHACH, ham: "lenhNhanDeNghi" },
+      vp("/api/van-chuyen/de-nghi/:rid/duyet", "trip.override", O_VUOT, "lenhDuyetDeNghi"),
+    ],
+    trangThaiChuyen: ["PLANNED", "RUNNING"], vuot: [],
+    luat: "cổng đôi (nguồn rồi đích); Nhận: mọi luật đạt + công tắc bật → MAY; Duyệt: đề nghị leo thang mà mọi dòng không đạt (mọi lần kiểm) là CAU_HINH → NGUOI, lý do PHA_LE, cam kết đích ghi khoá; đóng suất nguồn TRANSFERRED rồi mở suất đích giữ trạng thái; STOP: điểm nguồn MOVED; ONBOARD kèm phụ xe; danh sách mới nếu đích đã xuất bến; tự huỷ đề nghị chờ khác (P4)",
+    bang: [...LO_CHUNG, "vc_transfer_request", "vc_transfer_check", "vc_trip_allocation", "vc_trip_stop", "vc_trip_manifest"], suKien: "TRANSFER_CONFIRMED",
+    nhatKy: "trip_transfer_confirmed", lo: "loXacNhanDeNghi", bao: "route", suKienCoChuyenNguon: true,
+    tin: { nhom: "thuong", nhan: [{ ai: TX_LUC, loai: "chua_dat" }, { ai: ["TX_NGUON"], loai: "chua_dat" }] }, bangTin: "doi",
+    nguon: "ADR-0111 Đ2, Đ3, Đ4, Sửa chữ 1 (thứ tự lô), P4; ADR-0052 D4.2, D5c",
+  },
+  {
+    id: "a5-bac", ten: "Quản trị bác đề nghị leo thang", loai: "chuyen_khach", trangThai: "chua_co_ma",
+    routes: [vp("/api/van-chuyen/de-nghi/:rid/bac", "trip.override", O_VUOT, "lenhBacDeNghi")],
+    trangThaiChuyen: ["PLANNED", "RUNNING"], vuot: [], luat: "đề nghị đang leo thang; lý do bắt buộc nhóm TU_CHOI_NHAN; không đổi suất",
+    bang: [...LO_CHUNG, "vc_transfer_request"], suKien: "TRANSFER_REJECTED", nhatKy: "trip_transfer_rejected", lo: "loBacDeNghi", bao: "route", suKienCoChuyenNguon: true,
+    tin: { nhom: "thuong", nhan: [{ ai: TX_LUC, loai: "chua_dat" }, { ai: ["TX_NGUON"], loai: "chua_dat" }] }, bangTin: "sua", nguon: "ADR-0111 Đ3 (b), (d); ADR-0052 D4.2",
+  },
 ];
 
 // ---- Ngoài phạm vi (kèm lý do) ------------------------------------------------------------------------------------------------------------------------------
