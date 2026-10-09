@@ -1,6 +1,10 @@
 # Đề xuất: khuôn ba luật xuyên suốt (2026-10-09)
 
-**Trạng thái:** đề xuất, đã qua một vòng kiểm sự thật (người kiểm độc lập, 2026-10-09), chờ chủ dự án duyệt từng điều. Đây là đề xuất thêm điều vào Hiến chương (`docs/ARCHITECTURE.md` Phần I, Điều 5); AI không tự sửa Phần I (Điều 6.4). Số điều bắt đầu từ **5.20** vì kho luật gốc đã dùng 5.18, 5.19 với nghĩa khác (nhiều khách thuê, sao lưu).
+**Trạng thái:** đã có lời chủ (xem mục Kết quả); đề xuất đã qua một vòng kiểm sự thật (người kiểm độc lập, 2026-10-09). Đây là đề xuất thêm điều vào Hiến chương (`docs/ARCHITECTURE.md` Phần I, Điều 5); AI không tự sửa Phần I (Điều 6.4). Số điều bắt đầu từ **5.20** vì kho luật gốc đã dùng 5.18, 5.19 với nghĩa khác (nhiều khách thuê, sao lưu).
+
+## Kết quả (2026-10-09)
+Lời chủ, nguyên văn: luật 5.20 ⇒ *"dựa vào hiến pháp và khung Oracle để quyết định"*; luật 5.21 ⇒ *"Chưa duyệt, để tôi đọc"*; luật 5.22 ⇒ *"dựa vào khung và hiến pháp , oracle để quyết định"*.
+AI tra và áp (Ruling 22 ở sổ điều phối): nguyên tắc của 5.20 và 5.22 **đã có** trong luật được duyệt — K4 "Quyền = Ai × Thao tác × Phạm vi; mọi route hỏi một bản đồ" (gộp từ "Role & Permission + Data Scope" của bản mẫu Oracle), 2.3 (điều khoản thương mại gắn hồ sơ, không gắn tài khoản), đặc tả đợt 1 đã duyệt (Đối tác kể cả tài khoản lai chỉ thấy phần của mình), `web/CLAUDE.md` (ẩn/hiện hỏi cùng bảng với máy chủ). Vì vậy **không thêm điều mới vào Phần I**; dựng hai rào máy như hàng rào siết, neo vào K4 và `web/CLAUDE.md`. Phạm vi 5.20 = **hẹp**, vì ADR-0081 điều 1–2 đã duyệt. Luật 5.21: chưa dựng rào, chờ chủ đọc.
 
 ## Vì sao
 Lời chủ 2026-10-09: *"dường như chúng ta đang đi làm lắt nhắt từng việc mà không phải là ép hệ thống vào 1 khuôn khổ rồi tự suy ra những quy tắc hay việc cần làm?"* Đến hết việc 12, người kiểm độc lập tìm ra **11 lỗi nặng** ở sổ đại lý đợt 1; **ít nhất 6** thuộc hai nhóm lặp lại: (1) tài khoản có quyền Đối tác — cả Đối tác thường lẫn tài khoản vừa là nhân viên vừa là đối tác — thấy hoặc chọn được tiền của bên khác (việc 3, việc 5 hai lần, việc 6); (2) dữ liệu đổi giữa lúc máy đọc và lúc máy ghi (việc 4, việc 6; việc 1 cũng gần loại này). Con số chưa chốt: việc 10, 11, 13, 14 chưa làm.
