@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import {
-  ACC, ADM, DRIVER, DRIVER2, FIELD, LOC, NGAY, PARTNER, SALES, batDongHo, chuyenSan, denGio, setup, xepHet,
+  ACC, ADM, DRIVER, DRIVER2, FIELD, LOC, NGAY, NGAY_SAU, PARTNER, SALES, batDongHo, chuyenSan, denGio, don, setup, taoChuyen, xe, xepHet,
 } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
 type Tin = { loai: string; cau: string; lienKet: string; cuaToi: boolean; maDon: string | null };
@@ -246,6 +246,107 @@ test("màn hình khoá (gõ cửa THẬT qua gốc lắp ráp, fetch giả): s�
     const thu2 = await w.call("POST", `/api/orders/${a.don.id}/payments`, { as: FIELD, body: { soTien: 100000, hinhThuc: "CASH", nguoiThu: "cong_ty" } });
     assert.equal(thu2.status, 201, thu2.text);
     assert.deepEqual(await nguoiDuocGo(), [], "HDV ghi lần thu cùng mốc với dòng đổi của Quản trị → không gõ cửa dòng của người khác");
+  } finally {
+    globalThis.fetch = fetchGoc;
+    tat();
+  }
+});
+
+// ---- G17 (sổ thi công 2026-10-08 mục G17; kế hoạch docs/superpowers/plans/2026-10-09-g17-bao-tai-xe-doi-ngay.md): "Sửa thông tin chuyến" (`PUT /trip`, thân MỚI
+// — không khoá giờ / nơi đón) dời NGÀY ĐI của đơn có chặng đã xếp ⇒ MQ-07 như sửa chặng: tài xế đang lái được báo, người lập đúng một tin, người sửa không.
+/** `PUT /trip` thân mới: mọi dịch vụ dời sang `ngay`, giữ các trường khác. */
+async function doiNgayDi(w: any, as: string, orderId: string, ngay: string) {
+  const o = await donXem(w, orderId);
+  const r = await w.call("PUT", `/api/orders/${orderId}/trip`, {
+    as,
+    body: {
+      expectedUpdatedAt: o.updatedAt,
+      services: o.services.map((s: any) => ({
+        id: s.id, departDate: ngay, departTime: s.departTime ?? "", checkinDate: s.checkinDate ?? "", checkinTime: s.checkinTime ?? "", checkinPlace: s.checkinPlace ?? "", note: s.note ?? "",
+      })),
+    },
+  });
+  assert.equal(r.status, 200, r.text);
+}
+
+test("G17 hộp thư: Quản trị dời ngày đi (PUT /trip) của đơn có chặng ĐÃ XẾP → tài xế đang lái nhận 'đổi giờ đón'; tài xế khác không; người lập (Bán hàng) ĐÚNG MỘT tin 'gọi báo khách'; HDV phụ trách tin đơn đổi; người sửa không", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const a = await chuyenSan(w); // Bán hàng lập, chặng 13:00 ngày NGAY xếp lên chuyến của DRIVER
+    assert.equal((await w.call("PUT", `/api/orders/${a.don.id}/handler`, { as: SALES, body: { staffId: FIELD } })).status, 200);
+    denGio("06:10");
+    await doiNgayDi(w, ADM, a.don.id, NGAY_SAU);
+
+    const tx = await gioHenCua(w, DRIVER);
+    assert.deepEqual(tx.map((x) => [x.cau, x.lienKet]), [[`Văn phòng vừa đổi giờ đón ở chuyến ${a.ma} ngày 11/03 — mở để xem`, `/cuoc-chuyen?id=${a.id}`]]);
+    assert.deepEqual(await gioHenCua(w, DRIVER2, "tat-ca"), [], "tài xế không lái chuyến này");
+    for (const ngan of ["cua-toi", "tat-ca"] as const) {
+      const cuaBan = (await hopCua(w, SALES, ngan)).filter((x) => x.cau.includes(a.don.code));
+      assert.deepEqual(cuaBan.map((x) => [x.loai, x.cau]), [["chuyen", `Đơn ${a.don.code}: giờ hẹn đổi ở chuyến ${a.ma} ngày 11/03 — gọi báo khách`]], ngan);
+    }
+    const hdv = await doiCua(w, FIELD);
+    assert.equal(hdv.length, 1, JSON.stringify(hdv));
+    assert.match(hdv[0]!.cau, /Chiều đi: ngày đón 11\/03\/2027 → 12\/03\/2027/);
+    assert.deepEqual([...(await gioHenCua(w, ADM, "tat-ca")), ...(await doiCua(w, ADM, "tat-ca"))], [], "người sửa không nhận");
+    for (const as of [DRIVER, SALES, FIELD]) assert.ok(!/Khách|Dò Tìm|0912345678/.test(JSON.stringify(await hopCua(w, as, "tat-ca"))), as);
+  } finally {
+    tat();
+  }
+});
+
+test("G17 màn hình khoá: MỘT lệnh PUT /trip dời ngày đơn có HAI chặng trên HAI chuyến (DRIVER, DRIVER2) → gõ cửa CẢ HAI tài xế + người lập; không người sửa, Kế toán", async () => {
+  const tat = batDongHo();
+  const fetchGoc = globalThis.fetch;
+  try {
+    const w = setup();
+    const d = await don(w, { soNguoi: 2 }); // Bán hàng lập, chiều đi 13:00 ngày NGAY
+    const o = await donXem(w, d.id);
+    const ve = await w.call("POST", `/api/orders/${d.id}/legs`, {
+      as: ADM,
+      body: { expectedUpdatedAt: o.updatedAt, serviceId: o.services[0].id, leg: { direction: "RETURN", pickupDate: NGAY, pickupTime: "17:00", pickupLocationId: LOC, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "Khách sạn Dò Tìm" } },
+    });
+    assert.equal(ve.status, 201, ve.text);
+    const veId = ve.json.order.services[0].legs.find((l: any) => l.direction === "RETURN").id;
+    const c1 = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    await xepHet(w, c1, d, 2);
+    const c2 = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}`, bd: "16:30", kt: "19:00" });
+    await xepHet(w, c2, { legId: veId }, 2);
+    await w.choNen();
+    await batGoCua(w, [SALES, ADM, ACC, DRIVER, DRIVER2]);
+    const goi: string[] = [];
+    globalThis.fetch = (async (u: unknown) => (goi.push(String(u)), new Response(null, { status: 201 }))) as typeof fetch;
+    denGio("06:10");
+    await doiNgayDi(w, ADM, d.id, NGAY_SAU);
+    await w.choNen();
+    assert.deepEqual(goi.map((u) => u.split("/").pop()!).sort(), [SALES, DRIVER, DRIVER2].sort(), "hai tài xế (MQ-07 mỗi chặng) + người lập; không Quản trị (người sửa), Kế toán");
+  } finally {
+    globalThis.fetch = fetchGoc;
+    tat();
+  }
+});
+
+test("G17 (phiếu kiểm T1) gõ cửa chỉ theo LÔ MỚI NHẤT: hai PUT /trip chồng mốc của cùng người (đồng hồ giả ĐỨNG YÊN — lô trước có mốc ≥ batDau của lệnh sau) — lệnh sau chỉ đổi ghi chú → không gõ cửa lại tin dời ngày của lô trước", async () => {
+  const tat = batDongHo();
+  const fetchGoc = globalThis.fetch;
+  try {
+    const w = setup();
+    const a = await chuyenSan(w); // Bán hàng lập, chặng 13:00 xếp lên chuyến của DRIVER
+    await w.choNen();
+    await batGoCua(w, [SALES, ADM, DRIVER]);
+    const goi: string[] = [];
+    globalThis.fetch = (async (u: unknown) => (goi.push(String(u)), new Response(null, { status: 201 }))) as typeof fetch;
+    const nguoiDuocGo = async () => { await w.choNen(); const r = goi.map((u) => u.split("/").pop()!).sort(); goi.length = 0; return r; };
+    denGio("06:10");
+    await doiNgayDi(w, ADM, a.don.id, NGAY_SAU);
+    assert.deepEqual(await nguoiDuocGo(), [SALES, DRIVER].sort(), "lệnh 1 (dời ngày): người lập + tài xế");
+    // Lệnh 2 cùng người, cùng mốc đồng hồ (thật: hai tab chồng nhau) — mốc ghi của lệnh 2 = mốc lệnh 1 + 1 ms, batDau của lệnh 2 = mốc lệnh 1.
+    const o = await donXem(w, a.don.id);
+    const r = await w.call("PUT", `/api/orders/${a.don.id}/trip`, {
+      as: ADM, body: { expectedUpdatedAt: o.updatedAt, services: o.services.map((s: any) => ({ id: s.id, departDate: s.departDate, departTime: s.departTime ?? "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "Ghi chú mới" })) },
+    });
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(await nguoiDuocGo(), [], "lệnh 2 chỉ đổi ghi chú (không tin) → không gõ cửa lại lô dời ngày của lệnh 1");
   } finally {
     globalThis.fetch = fetchGoc;
     tat();

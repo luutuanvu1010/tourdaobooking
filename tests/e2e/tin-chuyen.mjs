@@ -71,6 +71,25 @@ for (const [who, ten] of [[SALES, "Bán hàng (người tạo)"], [KT, "Kế to�
 }
 console.log("✓ tạo chuyến: tài xế được xếp nhận \"Bạn được xếp lái …\"; người tạo, Kế toán, Tài xế đối tác, tài xế khác không");
 
+// --- 1b. G17 (ADR-0052 D6.2 MQ-07): "Sửa thông tin chuyến" (PUT /trip, thân MỚI) dời ngày đi của đơn có chặng đã xếp → tài xế đang lái nhận "đổi giờ đón";
+// Kế toán, tài xế khác không; người sửa (Bán hàng, cũng là người lập) không. Đường thật: view v_aud_order_change trên D1 local, cột leg_id. ---
+{
+  const don = (await call(SALES, "GET", `/api/orders/${o.body.order.id}`)).body.order;
+  const sua = await call(SALES, "PUT", `/api/orders/${don.id}/trip`, {
+    expectedUpdatedAt: don.updatedAt,
+    services: don.services.map((s) => ({ id: s.id, departDate: vnDate(3), departTime: s.departTime ?? "", checkinDate: s.checkinDate ?? "", checkinTime: s.checkinTime ?? "", checkinPlace: s.checkinPlace ?? "", note: s.note ?? "" })),
+  });
+  assert.equal(sua.status, 200, JSON.stringify(sua.body));
+  const gioHen = `Văn phòng vừa đổi giờ đón ở ${c1} — mở để xem`;
+  assert.ok((await cauCua(TX.cookie)).includes(gioHen), JSON.stringify(await cauCua(TX.cookie)));
+  for (const [who, ten] of [[SALES, "người sửa"], [KT, "Kế toán"], [TX2.cookie, "tài xế khác"]]) {
+    assert.ok(!(await cauCua(who)).some((x) => x.includes("đổi giờ đón") || x.includes("giờ hẹn")), `${ten} không nhận tin giờ hẹn`);
+  }
+  const [{ n }] = await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE order_id = '${don.id}' AND action = 'order_leg_updated' AND target_id = '${don.services[0].legs[0].id}'`);
+  assert.equal(n, 1, "đúng một dòng nhật ký chặng (target = chặng)");
+  console.log("✓ G17: Sửa thông tin chuyến dời ngày đi → tài xế đang lái nhận \"Văn phòng vừa đổi giờ đón …\"; người sửa, Kế toán, tài xế khác không");
+}
+
 // --- 4 (mở trước bước 2–3). Bảng tin: kết nối của TX, TX2, Kế toán, Tài xế đối tác ---
 const btTX = await moBangTin(TX.cookie);
 const btTX2 = await moBangTin(TX2.cookie);
@@ -85,6 +104,7 @@ r = await call(SALES, "PUT", `/api/van-chuyen/chuyen/${id}`, { version: v, reque
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.ok((await cauCua(TX.cookie)).includes(`Bạn không còn lái ${c1}`), JSON.stringify(await cauCua(TX.cookie)));
 assert.ok((await cauCua(TX2.cookie)).includes(`Bạn được xếp lái ${c1}`), JSON.stringify(await cauCua(TX2.cookie)));
+assert.ok(!(await cauCua(TX2.cookie)).some((x) => x.includes("đổi giờ đón")), "G17: tài xế được xếp SAU lần dời ngày không nhận tin giờ hẹn cũ");
 assert.ok(await btTX.cho(() => khungChuyen(btTX).some((x) => x.thayDoi === "sua"), 3000), "TX (bị đổi ra, đúng mốc) nhận khung sửa");
 assert.ok(await btTX2.cho(() => khungChuyen(btTX2).some((x) => x.thayDoi === "sua"), 3000), "TX2 nhận khung sửa");
 console.log("✓ đổi tài xế: người cũ \"Bạn không còn lái …\", người mới \"Bạn được xếp lái …\"; cả hai nhận khung Bảng tin của lệnh đổi");

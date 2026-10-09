@@ -76,10 +76,11 @@ export function hanhDongCuaThayDoi(t: ThayDoiDon): string | null {
  */
 export function nguoiNhanDay(
   taiKhoan: (PermissionHolder & { readonly partyId?: string | null })[],
-  tin: { don: DongDon } | { thuCong: DongThuCong } | { chuyen: DongChuyen },
+  tin: { don: DongDon } | { loDoi: readonly DongDon[] } | { thuCong: DongThuCong } | { chuyen: DongChuyen },
   now: string,
 ): string[] {
-  const don = "don" in tin ? [tin.don] : [];
+  // `loDoi` (G17): một LÔ dòng đổi của cùng lệnh (cùng đơn + người làm + mốc) — locHopThongBao gom lô, mỗi tài khoản tối đa một tin.
+  const don = "don" in tin ? [tin.don] : "loDoi" in tin ? [...tin.loDoi] : [];
   const thuCong = "thuCong" in tin ? [tin.thuCong] : [];
   const chuyen = "chuyen" in tin ? [tin.chuyen] : []; // ADR-0052 D6.2: tin chuyến — cùng hàm người nhận (tinChuyenCho) qua locHopThongBao
   return taiKhoan

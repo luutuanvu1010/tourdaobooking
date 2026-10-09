@@ -78,17 +78,17 @@ export async function ganChuyenCuaChang(dong: DongDon[], noi: NoiChuyen): Promis
 }
 
 /**
- * Gõ cửa tin đổi (ADR-0062 Đ4 + MQ-07) — gốc lắp ráp gọi sau lệnh đổi chuyến / chặng / số khách (`baoThayDoi` loại "chuyen" / "tien"): đọc LẠI dòng đổi người đó
- * vừa ghi (route không truyền chữ nhật ký qua ctx), ghép chuyến của chặng, rồi gõ cửa qua CHÍNH locHopThongBao (nguoiNhanDay). Không dòng đổi → thôi.
+ * Gõ cửa tin đổi (ADR-0062 Đ4 + MQ-07) — gốc lắp ráp gọi sau lệnh đổi chuyến / chặng / số khách (`baoThayDoi` loại "chuyen" / "tien"): đọc LẠI LÔ dòng đổi người
+ * đó vừa ghi (route không truyền chữ nhật ký qua ctx; G17: mọi dòng cùng mốc), ghép chuyến của chặng, rồi gõ cửa qua CHÍNH locHopThongBao (nguoiNhanDay). Không dòng đổi → thôi.
  * "Sau xác nhận" tính bằng cùng câu với hộp thư (dòng `confirmed` trước dòng đổi).
  */
 export async function dayGoCuaDoi(
   env: Env, orderId: string, actorId: string, tuLuc: string, noi: NoiChuyen, giaoLo: (ds: string[]) => Promise<string[]>,
 ): Promise<void> {
-  const d = await doiVuaGhi(env.DB, orderId, actorId, tuLuc);
-  if (!d) return;
-  const [dong] = await ganChuyenCuaChang([d], noi);
-  await dayGoCua(env, { don: dong!, quanTrong: false }, giaoLo);
+  const lo = await doiVuaGhi(env.DB, orderId, actorId, tuLuc);
+  if (lo.length === 0) return;
+  // G17: CẢ lô (một lần gọi hàm tiêm cho mọi chặng) — locHopThongBao gom lô nên mỗi người vẫn tối đa một tin; tài xế của MỌI chặng đổi được gõ cửa.
+  await dayGoCua(env, { loDoi: await ganChuyenCuaChang(lo, noi), quanTrong: false }, giaoLo);
 }
 
 async function hop(db: D1Database, staff: StaffProfile, ngan: "cua-toi" | "tat-ca", chuyenChoTin: Ctx["chuyenChoTin"]): Promise<HopThongBaoResponse> {
@@ -130,7 +130,7 @@ const GUI_THANG_TOI_DA = 40;
  */
 export async function dayGoCua(
   env: Env,
-  tin: ({ don: DongDon } | { thuCong: DongThuCong } | { chuyen: DongChuyen }) & { quanTrong: boolean },
+  tin: ({ don: DongDon } | { loDoi: readonly DongDon[] } | { thuCong: DongThuCong } | { chuyen: DongChuyen }) & { quanTrong: boolean },
   giaoLo: (ds: string[]) => Promise<string[]>,
 ): Promise<void> {
   const khoa = khoaVapid(env);

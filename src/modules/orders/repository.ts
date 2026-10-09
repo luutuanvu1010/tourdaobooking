@@ -842,7 +842,8 @@ export type LegMeta = ReadonlyMap<string, { createdAt: string; createdBy: string
 
 /** Một thao tác trên chặng của `PUT /trip` tương thích (ADR-0047 R2c, R4e) — `service.ts:keHoachChangTrip` lập, `updateTrip` ghi. */
 export type LegOp =
-  | { kind: "update"; legId: string; fields: LegFields }
+  /** `nhatKy` (G17): chữ dòng `order_leg_updated` khi ngày / giờ đón đổi (khuôn chặng, `keHoachChangTrip`; route nối đuôi đặt gấp) — vắng = không dòng chặng. */
+  | { kind: "update"; legId: string; fields: LegFields; nhatKy?: string }
   | { kind: "insert"; serviceId: string; leg: ChangHopLe }
   | { kind: "close"; legId: string; reason: LyDoDongChang };
 
@@ -1303,10 +1304,17 @@ export async function updateTrip(
         .bind(t.departDate, t.departTime, t.pickupTime, t.pickupPlace, t.checkinDate, t.checkinTime, t.checkinPlace, t.note, id, orderId, ...guard.binds),
     ),
     // ADR-0047 R2c/R4e: thao tác trên chặng (dời ngày, trộn giờ/nơi cũ, thêm/đóng chiều đi) — mọi câu có lính gác.
-    ...legOps.map((op) => {
-      if (op.kind === "update") return legUpdateGuarded(db, op.legId, orderId, op.fields, at, staffId, auditId, datGap);
-      if (op.kind === "close") return legCloseGuarded(db, op.legId, orderId, op.reason, at, staffId, auditId);
-      return legInsertGuarded(db, legWriteOf(op.leg, op.serviceId, orderId, staffId, at, new Map(), datGap), auditId);
+    // G17 (ADR-0052 D6.2 MQ-07): chặng đổi ngày / giờ đón → dòng `order_leg_updated` NGAY SAU câu chặng của nó (target = id chặng → cột `leg_id` của
+    // v_aud_order_change; cùng mốc `at` = cùng lô tin với `trip_updated`). `changes() > 0` = câu chặng (có lính gác) vừa sửa đúng một dòng ⇔ lệnh thắng và chặng
+    // còn mở — không câu mới đọc audit_log. Trần số câu của lô: bài `trip-chang.test.ts` (G17 điều kiện 4).
+    ...legOps.flatMap((op) => {
+      if (op.kind === "update") {
+        const sua = legUpdateGuarded(db, op.legId, orderId, op.fields, at, staffId, auditId, datGap);
+        if (op.nhatKy === undefined) return [sua];
+        return [sua, auditStatement(db, { orderId, staffId, action: "order_leg_updated", targetType: "order", targetId: op.legId, at, detail: op.nhatKy }, "changes() > 0")];
+      }
+      if (op.kind === "close") return [legCloseGuarded(db, op.legId, orderId, op.reason, at, staffId, auditId)];
+      return [legInsertGuarded(db, legWriteOf(op.leg, op.serviceId, orderId, staffId, at, new Map(), datGap), auditId)];
     }),
   ]);
   return (results[0]!.meta.changes ?? 0) > 0;
