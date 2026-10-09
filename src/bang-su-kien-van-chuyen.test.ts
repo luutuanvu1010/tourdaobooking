@@ -248,6 +248,8 @@ test("(d) thân route khớp dòng: cổng, ô hỏi, hàm xử lý, lớp vư�
       if (m.cong !== r.cong) loi.push(`${d.id} ${m.khoa}: cổng mã "${m.cong}" — bảng "${r.cong}"`);
       const hoi = r.ngucanh === "khong" ? `can(staff, "${r.o}")` : r.ngucanh === "MATRIX_TRUC_TIEP" ? `MATRIX["${r.o}"]` : `can(staff, "${r.o}", {`;
       if (!co(hoi)) loi.push(`${d.id} ${m.khoa}: thân không có ${hoi}`);
+      const dau = /\bcan\(staff, "([\w.]+)"/.exec(t)?.[1];
+      if (r.ngucanh !== "MATRIX_TRUC_TIEP" && dau !== (r.oDau ?? r.o)) loi.push(`${d.id} ${m.khoa}: ô hỏi đầu thân là "${dau}" — bảng "${r.oDau ?? r.o}"`);
       if (!new RegExp(`\\b${r.ham}\\s*\\(`).test(t)) loi.push(`${d.id} ${m.khoa}: thân không gọi ${r.ham}(`);
       if (co(`"trip.urgent_adjust"`) !== d.vuot.length > 0) loi.push(`${d.id} ${m.khoa}: hỏi lớp vượt (trip.urgent_adjust) ${co(`"trip.urgent_adjust"`) ? "có" : "không"} — bảng vượt [${d.vuot}]`);
       const baoRoute = /\bbaoThayDoiChuyen\s*\(/.test(t);

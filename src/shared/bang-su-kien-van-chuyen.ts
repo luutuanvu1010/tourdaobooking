@@ -58,6 +58,8 @@ export interface RouteDong {
   ai: Partial<Record<PermissionCode, Scope>>;
   /** Hàm xử lý mà thân route gọi. */
   ham: string;
+  /** Ô hỏi ĐẦU TIÊN trong thân (lọc thô trước khi đọc chuyến) khi khác `o` — vd. route tài xế hỏi `trip.view` trước `trip.progress`. */
+  oDau?: OperationCode;
 }
 export type LoaiLenh = "ke_hoach" | "tien_do" | "dieu_chinh" | "may_dong_bo" | "don_khong_dong_bo" | "moc_gio_hen" | "chuyen_khach";
 export interface DongSuKien {
@@ -100,7 +102,7 @@ const vp = (duongDan: string, o: OperationCode, ai: RouteDong["ai"], ham: string
   ({ phuongThuc: "POST", duongDan, cong: "office", o, ngucanh, ai, ham });
 /** Cặp route tiến độ: tài xế bấm (cổng staff, ô assigned) ↔ văn phòng bấm thay (cổng office, ô không ngữ cảnh) — CÙNG một hàm xử lý. */
 const capTienDo = (duoi: string, ham: string): RouteDong[] => [
-  { phuongThuc: "POST", duongDan: `/api/van-chuyen/cuoc-cua-toi/:id${duoi}`, cong: "staff", o: "trip.progress", ngucanh: "assigned", ai: O_TIEN_DO, ham },
+  { phuongThuc: "POST", duongDan: `/api/van-chuyen/cuoc-cua-toi/:id${duoi}`, cong: "staff", o: "trip.progress", oDau: "trip.view", ngucanh: "assigned", ai: O_TIEN_DO, ham },
   vp(`/api/van-chuyen/chuyen/:id${duoi}`, "trip.progress", O_TIEN_DO, ham),
 ];
 const LO_CHUNG = ["vc_trip", "vc_trip_event", "audit_log"] as const;
@@ -294,13 +296,13 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
   // Mốc giờ hẹn "đã gọi báo khách" — ADR-0051 GB1, GB2 (không chạm vc_trip; ngoại lệ có tên ở bài thứ tự lô).
   {
     id: "da-goi-bao", ten: "Đánh dấu đã gọi báo khách giờ hẹn mới", loai: "moc_gio_hen", trangThai: "co_ma",
-    routes: [vp("/api/van-chuyen/chang/:legId/da-goi-bao", "trip.call_ack", { SALES: "ownOrAssigned", ADMIN: "any", SUPER_ADMIN: "any" }, "xuLyMoc", "ownerId+assigned")],
+    routes: [{ ...vp("/api/van-chuyen/chang/:legId/da-goi-bao", "trip.call_ack", { SALES: "ownOrAssigned", ADMIN: "any", SUPER_ADMIN: "any" }, "xuLyMoc", "ownerId+assigned"), oDau: "trip.view" }],
     trangThaiChuyen: ["PLANNED", "RUNNING"], vuot: [], luat: "giờ hẹn còn cần gọi; giờ hẹn không vừa đổi", bang: ["vc_leg_appt_ack", "audit_log"], suKien: null,
     nhatKy: "trip_appt_called", lo: "lenhDaGoiBao", bao: "khong", tin: null, bangTin: null, nguon: "ADR-0051 GB1, GB2",
   },
   {
     id: "bo-danh-dau-goi-bao", ten: "Bỏ đánh dấu đã gọi báo", loai: "moc_gio_hen", trangThai: "co_ma",
-    routes: [vp("/api/van-chuyen/chang/:legId/bo-danh-dau-goi-bao", "trip.call_ack", { SALES: "ownOrAssigned", ADMIN: "any", SUPER_ADMIN: "any" }, "xuLyMoc", "ownerId+assigned")],
+    routes: [{ ...vp("/api/van-chuyen/chang/:legId/bo-danh-dau-goi-bao", "trip.call_ack", { SALES: "ownOrAssigned", ADMIN: "any", SUPER_ADMIN: "any" }, "xuLyMoc", "ownerId+assigned"), oDau: "trip.view" }],
     trangThaiChuyen: ["PLANNED", "RUNNING"], vuot: [], luat: "dấu gần nhất là Đã gọi", bang: ["vc_leg_appt_ack", "audit_log"], suKien: null, nhatKy: "trip_appt_call_undone",
     lo: "lenhBoDanhDauGoiBao", bao: "khong", tin: null, bangTin: null, nguon: "ADR-0051 GB1, GB2",
   },
