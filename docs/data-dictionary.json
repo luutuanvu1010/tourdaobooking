@@ -600,6 +600,15 @@
       ]
     },
     {
+      "name": "v_loc_location_dia_chi",
+      "module": "locations",
+      "columns": [
+        "id",
+        "address",
+        "active"
+      ]
+    },
+    {
       "name": "v_ord_order_label",
       "module": "orders",
       "columns": [

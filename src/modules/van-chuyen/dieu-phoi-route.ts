@@ -19,7 +19,7 @@ import {
 } from "./chuyen-repo";
 import type { CauCoNhan, DiemMoi, SuKienCuaLo } from "./dieu-phoi";
 import {
-  banChupDto, canhBaoDto, chuyenTomTat, diemChuyenDto, lyDoDangDung, lyDoGiuCuaChuyen, lyDoGiuDto, nhatKyChuyenDto, suatChuyenDto, taiXeChon, xeChon,
+  banChupDto, canhBaoDto, chuoiDichCuaDiem, chuyenTomTat, diemChuyenDto, lyDoDangDung, lyDoGiuCuaChuyen, lyDoGiuDto, nhatKyChuyenDto, suatChuyenDto, taiXeChon, xeChon,
 } from "./dieu-phoi-dto";
 import { boSungXe, chinhSachVao, docChung, docNguCanh, type DuLieuChung, type NenChuyen, type NguCanhChuyen } from "./dieu-phoi-doc";
 import { gioSomNhatKhaiDto, ketThucTruoc } from "./dieu-phoi-gio";
@@ -427,11 +427,12 @@ function lyDoGiuDuPhong(t: TripRow, nc: NguCanhChuyen, c: DuLieuChung, bayGioMs:
 /**
  * Chi tiết một chuyến tài xế đang lái. `lich` (chặng — mã đơn, giờ hẹn, điều kiện còn thiếu), `hk` (tên khách — rỗng ngoài ngày chạy), `lienHe` (chỉ GET
  * chi tiết trong ngày chạy; null ở chỗ khác) do THÂN ROUTE đọc sau `can(trip.view / trip.progress, { assigned })`. Nhãn người văn phòng khai giờ qua hàm tiêm
- * (R-P11 / R-P20 — một lần mỗi request).
+ * (R-P11 / R-P20 — một lần mỗi request). `kemChiDuong` (ADR-0105, tự áp G18-B): chữ `true` CHỈ ở GET chi tiết — trong ngày chạy mọi điểm có chuỗi đích "Chỉ
+ * đường"; phản hồi lệnh truyền chữ `false` (bài 3 của src/hanh-khach-khong-lo-ten.test.ts quét mã).
  */
 export async function cuocChiTiet(
   db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], hk: readonly ChangChoChuyen[], lienHe: readonly LienHeTaiXe[] | null,
-  nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>, bayGioMs: number, trongNgay: boolean,
+  nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>, bayGioMs: number, trongNgay: boolean, kemChiDuong: boolean,
 ): Promise<CuocChiTietResponse> {
   const c = await docChung(db, new Date(bayGioMs).toISOString(), msToVnLocal(bayGioMs).date);
   const nc = await docNguCanh(db, nen, lich, c, [], bayGioMs);
@@ -441,11 +442,13 @@ export async function cuocChiTiet(
   const ten = new Map<string, { fullName: string; birthYear: number }>();
   const lyDoNhan = new Map(c.lyDo.map((r) => [r.code, r.label]));
   if (trongNgay) for (const ch of hk) for (const n of ch.nguoi) ten.set(n.personKey, { fullName: n.fullName, birthYear: n.birthYear });
+  const chiDuong = trongNgay && kemChiDuong ? new Map(nen.stops.map((s) => [s.id, chuoiDichCuaDiem(s)])) : null;
   return cuocChiTietDto({
     trip: t, xe: c.xe.find((x) => x.id === t.vehicle_id), events: nen.events,
     diem: nen.stops.map((s) => diemChuyenDto(s, { allocs: nen.allocs, chang: nc.chang, stops: nen.stops, events: nen.events, nhan })),
     suat: nen.allocs.filter((a) => a.valid_to_at === null).map((a) => suatChuyenDto(a, { changLich: nc.changLich, changNgoai: nc.changNgoai, ten, events: nen.events, nhan, tenDiKem, lyDoNhan })),
     lienHe, conThieu: lyDoGiuCuaChuyen(t, lyDoGiuDuPhong(t, nc, c, bayGioMs, true), bayGioMs, c.chinhSach?.min_lead_minutes ?? null), lyDo: c.lyDo.filter((r) => r.reason_group === "KET_THUC_GIAN_DOAN"), nhan, trongNgay,
+    chiDuong,
   });
 }
 /** "Cuốc của tôi" (route 19, R-P17): mỗi chuyến — không tên, không SĐT; điều kiện còn thiếu = lý do giữ dự phóng (chuyến chưa chạy). */

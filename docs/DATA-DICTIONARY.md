@@ -91,6 +91,7 @@
 | `loc_location` | bảng |  |
 | `loc_location_type` | bảng tra cứu |  |
 | `v_loc_location_label` | view công bố | cột: id, code, name, location_type_code, active |
+| `v_loc_location_dia_chi` | view công bố | cột: id, address, active |
 
 ## maintenance
 

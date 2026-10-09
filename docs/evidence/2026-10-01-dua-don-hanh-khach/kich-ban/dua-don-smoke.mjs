@@ -81,7 +81,13 @@ try {
     await f.ev(typeInto("#orderDate", NGAY));
     await f.ev(typeInto(`${chang("OUT")} [data-o$=":tra"]`, "tudo"));
     await f.waitFor(`!!document.querySelector('${chang("OUT")} [data-o$=":tra-chu"]')`, "ô Địa chỉ trả");
-    assert.match(await f.ev(txt(`${chang("OUT")}`)), /Địa chỉ trả.*Chỉ hiện trong trang đơn\./);
+    // ADR-0105 mục 7 (tự áp G18-C): chữ tự do đi tới tài xế và tới bản đồ (nút "Chỉ đường") — dòng nhắc thay câu sai "Chỉ hiện trong trang đơn.".
+    assert.match(await f.ev(txt(`${chang("OUT")}`)), /Địa chỉ trả.*Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách/);
+    await f.ev(typeInto(`${chang("OUT")} [data-o$=":don"]`, "tudo"));
+    await f.waitFor(`!!document.querySelector('${chang("OUT")} [data-o$=":don-chu"]')`, "ô Địa chỉ đón");
+    assert.match(await f.ev(txt(`${chang("OUT")}`)), /Địa chỉ đón.*Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách/);
+    assert.doesNotMatch(await f.ev(txt(`${chang("OUT")}`)), /Chỉ hiện trong trang đơn/);
+    await f.ev(typeInto(`${chang("OUT")} [data-o$=":don"]`, KS));
     await f.ev(typeInto(`${chang("OUT")} [data-o$=":tra"]`, SB));
     await f.waitFor(`!!document.querySelector('${chang("OUT")} [data-o$=":bay"]')`, "ô số hiệu chuyến bay khi nơi trả là sân bay");
     assert.match(await f.ev(txt(`${chang("OUT")}`)), /Số hiệu chuyến bay.*Tài xế tự tra giờ bay/);

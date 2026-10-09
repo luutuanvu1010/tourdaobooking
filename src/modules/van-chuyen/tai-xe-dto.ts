@@ -1,5 +1,6 @@
 // DTO TÀI XẾ (ADR-0049 D3; kế hoạch mục 1.8; ruling R-P11, R-P17 — Task A15). Dựng MỚI TỪNG KHOÁ (khuôn `pool.ts` — không trải đối tượng nguồn): danh sách
-// trắng. Họ tên + năm sinh khách, liên hệ (tên + SĐT người liên hệ của đơn) CHỈ trong ngày chạy — ngoài ngày chạy các khoá đó VẮNG MẶT. KHÔNG BAO GIỜ: tiền,
+// trắng. Họ tên + năm sinh khách, liên hệ (tên + SĐT người liên hệ của đơn), chuỗi đích "Chỉ đường" của điểm (ADR-0105 — chỉ GET chi tiết) CHỈ trong ngày
+// chạy — ngoài ngày chạy các khoá đó VẮNG MẶT. KHÔNG BAO GIỜ: tiền,
 // dịch vụ khác, ghi chú đơn, người lập, người phụ trách, số giấy tờ, hạn GPLX, khoá so sánh nơi (`L:…` / `T:…`), id người bấm, SĐT người bấm.
 // Tên người đi kèm (HDV — nhân viên, không phải khách): mọi lúc, chỉ tên.
 import type { LienHeTaiXe } from "../orders";
@@ -32,7 +33,8 @@ export function cuocCuaToiItem(t: TripRow, v: { xe: XeDieuPhoiRow | undefined; s
 
 /**
  * Route 20 (và phản hồi lệnh tiến độ của tài xế). `diem` / `suat` lấy từ DTO văn phòng rồi CHỌN TỪNG KHOÁ (một chỗ tính giờ hẹn, mốc) — không trải. Trong ngày
- * chạy: `suat[].hoTen/namSinh` (khi có tên) + `lienHe` (khi route đọc — chỉ GET chi tiết). Ngoài ngày chạy: ba khoá đó vắng mặt.
+ * chạy: `suat[].hoTen/namSinh` (khi có tên) + `lienHe` (khi route đọc — chỉ GET chi tiết) + `diem[].diaChiChiDuong` (khi route truyền `chiDuong` — chỉ GET
+ * chi tiết, ADR-0105, tự áp G18-B). Ngoài ngày chạy: các khoá đó vắng mặt.
  */
 export function cuocChiTietDto(v: {
   trip: TripRow;
@@ -45,6 +47,8 @@ export function cuocChiTietDto(v: {
   lyDo: readonly { code: string; label: string }[];
   nhan: ReadonlyMap<string, string> | null;
   trongNgay: boolean;
+  /** ADR-0105: id điểm → chuỗi đích chỉ đường; `null` = không kèm (ngoài ngày chạy, phản hồi lệnh). */
+  chiDuong: ReadonlyMap<string, string> | null;
 }): CuocChiTietResponse {
   const t = v.trip;
   const maDonCuaSuat = new Set(v.suat.flatMap((s) => (s.maDon ? [s.maDon] : [])));
@@ -64,6 +68,7 @@ export function cuocChiTietDto(v: {
     diem: v.diem.map((d) => ({
       id: d.id, thuTu: d.thuTu, loai: d.loai, tenNoi: d.tenNoi, gioHen: d.gioHen, gioXeToi: d.gioXeToi, trangThai: d.trangThai, soNguoi: d.soNguoi, daToi: d.daToi,
       themKhiChay: d.themKhiChay,
+      ...(v.trongNgay && v.chiDuong ? { diaChiChiDuong: v.chiDuong.get(d.id) ?? d.tenNoi } : {}),
     })),
     suat: v.suat.map((s) => ({
       id: s.id, loai: s.loai, maDon: s.maDon, diemLen: s.diemLen, diemXuong: s.diemXuong, trangThai: s.trangThai, daDon: s.daDon, daTra: s.daTra, soHieuChuyenBay: s.soHieuChuyenBay,

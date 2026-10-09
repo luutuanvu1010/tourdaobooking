@@ -13,6 +13,7 @@ import { NHAN_TRANG_THAI_CHANG, type TrangThaiChangRa } from "../../shared/dieu-
 import { NHAN_AI_XU_LY, lyDoTheoMoc, type LyDoGiu } from "../../shared/ly-do-giu";
 import { chuyenDuoiMoc, gioXetMocXep } from "../../shared/moc-toi-thieu";
 import { maskLongDigits } from "../../shared/text-guards";
+import { chuoiDichChiDuong } from "../../shared/chi-duong";
 import { msToVnLocal, vnLocalToMs } from "../../shared/vn-date";
 import type { AllocRow, BanChupRow, EventRow, StopRow, TripRow, XeCuaDonRow, XeDieuPhoiRow } from "./chuyen-repo";
 import { diemVao, suatVao, type DuLieuChung } from "./dieu-phoi-doc";
@@ -36,6 +37,8 @@ export const lyDoGiuDto = (l: LyDoGiu): LyDoGiuDto => ({ ma: l.ma, loiNhan: l.lo
 export const canhBaoDto = (c: CanhBaoLich): CanhBaoLichDto => ({ loai: c.loai, nhan: NHAN_CANH_BAO_LICH[c.loai], legId: c.legId, tripId: c.tripId, maDon: c.orderCode });
 /** Tên nơi của điểm: tên danh mục, hoặc chữ tự do ĐÃ CHE dãy số (lưu đã che — che lần nữa cho chắc). */
 export const tenNoi = (s: StopRow): string => s.location_name ?? maskLongDigits(s.place_text ?? "");
+/** ADR-0105 mục 3: chuỗi đích chỉ đường — điểm danh mục: địa chỉ (đã trim) nếu có, không thì tên; chữ tự do: ĐÚNG `tenNoi` (đã che). Không bao giờ place_key. */
+export const chuoiDichCuaDiem = (s: StopRow): string => chuoiDichChiDuong({ laDanhMuc: s.location_id !== null, diaChi: s.location_address, tenNoi: tenNoi(s) });
 
 /**
  * Một mốc tiến độ (ADR-0050 VK1-A): giờ xảy ra + giờ ghi nhận; `nguoiBam` CHỈ khi văn phòng khai giờ (R-P11) — chuỗi tên hiển thị từ hàm tiêm `nhanNhanVien`

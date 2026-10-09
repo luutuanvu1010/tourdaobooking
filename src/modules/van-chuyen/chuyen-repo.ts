@@ -3,7 +3,8 @@
 // - Chỉ đọc bảng vc_ của mình và VIEW công bố: v_ord_leg_key / v_ord_order_flag (cờ chặng — lý do giữ cụ thể, I38), v_loc_location_label (tên điểm danh
 //   mục), v_pty_party_label / v_pty_owner_company (tên chủ xe). Không đọc thẳng audit_log (lính gác lô = DẤU LỆNH `last_cmd_id` trên vc_trip — ADR-0049 D1);
 //   riêng câu cổng của máy đồng bộ chuyến theo đơn (`TRIP_GATE_THEO_DON`, ADR-0104 Đ2.2) hỏi "câu cổng đơn đã thắng" qua view công bố v_aud_order_cmd (0089),
-//   và câu đọc cam kết chặng qua v_ord_leg_commit (0089, phán quyết G10).
+//   và câu đọc cam kết chặng qua v_ord_leg_commit (0089, phán quyết G10). Câu điểm dừng (`stops_by_trips`) đọc thêm v_loc_location_dia_chi (0091 — địa chỉ
+//   điểm danh mục, CHỈ cho chuỗi đích "Chỉ đường" của DTO tài xế, ADR-0105).
 // - Câu GHI sau câu cổng đều mang `EXISTS (SELECT 1 FROM vc_trip WHERE id = ?T AND last_cmd_id = ?cmd)` (bài thứ tự lô — Task A14). Mỗi suất MỘT câu INSERT
 //   (trigger sức chứa theo dòng — kế hoạch mục 4 điểm 3). Không câu DELETE nào (không xoá cứng).
 import { defineSql } from "../../shared/sql-registry.ts";
@@ -126,6 +127,8 @@ export interface StopRow {
   place_key: string;
   /** Tên điểm danh mục (view công bố của locations) hoặc NULL (chữ tự do — dùng place_text đã che). */
   location_name: string | null;
+  /** ADR-0105: địa chỉ điểm danh mục (view v_loc_location_dia_chi) — CHỈ cho chuỗi đích chỉ đường của DTO tài xế; NULL với chữ tự do / chưa nhập. Không vào DTO văn phòng. */
+  location_address: string | null;
   planned_date: string | null;
   planned_time: string | null;
   status: "PENDING" | "ARRIVED" | "DONE" | "SKIPPED" | "MOVED";
@@ -138,9 +141,9 @@ export interface StopRow {
 const STOPS_BY_TRIPS = defineSql(
   "van-chuyen",
   "stops_by_trips",
-  `SELECT s.id, s.trip_id, s.seq, s.kind, s.location_id, s.place_text, s.place_key, l.name AS location_name, s.planned_date, s.planned_time, s.status, s.arrived_at,
-          s.done_at, s.skip_reason_code, s.added_while_running
-   FROM vc_trip_stop s LEFT JOIN v_loc_location_label l ON l.id = s.location_id
+  `SELECT s.id, s.trip_id, s.seq, s.kind, s.location_id, s.place_text, s.place_key, l.name AS location_name, d.address AS location_address, s.planned_date,
+          s.planned_time, s.status, s.arrived_at, s.done_at, s.skip_reason_code, s.added_while_running
+   FROM vc_trip_stop s LEFT JOIN v_loc_location_label l ON l.id = s.location_id LEFT JOIN v_loc_location_dia_chi d ON d.id = s.location_id
    WHERE s.trip_id IN (SELECT value FROM json_each(?1))
    ORDER BY s.trip_id, s.seq, s.created_at, s.id`,
 );

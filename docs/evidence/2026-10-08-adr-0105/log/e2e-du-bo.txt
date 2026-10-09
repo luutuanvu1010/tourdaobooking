@@ -1,0 +1,112 @@
+✔ pwa (0.5s) · nhóm 2
+✔ platform (2.0s) · nhóm 3
+✔ orders (23.5s) · nhóm 3
+✔ nhap-tay-va-gia-doi-tac (31.2s) · nhóm 2
+✔ turnstile (8.3s) · nhóm 3
+✓ bất biến SQL: số lượng khớp số khách, đơn xác nhận đủ chuyến, không dòng tiền mồ côi
+✔ trip (37.6s) · nhóm 1
+✔ mau-chang (10.7s) · nhóm 2
+✔ admin-race (0.8s) · nhóm 2
+✔ feedback (2.8s) · nhóm 2
+✔ catalog (65.9s) · nhóm 3
+✔ parties (3.4s) · nhóm 3
+✔ company (71.6s) · nhóm 2
+✔ gop-ho-so (24.2s) · nhóm 3
+✔ chang-hanh-khach (147.3s) · nhóm 1
+✔ booker (62.7s) · nhóm 3
+✔ admin (10.5s) · nhóm 1
+✔ permissions (14.9s) · nhóm 3
+✔ thongbao (148.7s) · nhóm 2
+✔ bangtin (76.3s) · nhóm 3
+✔ maintenance (34.6s) · nhóm 2
+✔ roles (13.5s) · nhóm 2
+✔ van-chuyen (83.1s) · nhóm 2
+✔ dieu-phoi (117.1s) · nhóm 3
+✔ dispatch (265.6s) · nhóm 1
+✔ locations (0.9s) · nhóm 1
+✔ tai-xe-doi-tac (65.9s) · nhóm 2
+✔ khung-ban-xe (68.9s) · nhóm 3
+✔ dua-don-dau-cuoi (29.0s) · nhóm 3
+✔ tro-ly (45.7s) · nhóm 1
+✔ dong-bo-chuyen (57.4s) · nhóm 2
+✔ giao-dien (13.8s) · nhóm 1
+✔ tin-chuyen (26.5s) · nhóm 3
+✔ quyen-tien (1.7s) · nhóm 1
+✔ chinh-sach-dieu-phoi (49.4s) · nhóm 1
+✔ tien-xe-thue (79.6s) · nhóm 2
+✔ so-tien (85.6s) · nhóm 3
+✔ nhap-ke-toan (22.9s) · nhóm 3
+✔ cam-ket-xe (64.6s) · nhóm 1
+✔ chinh-sach-phien (85.3s) · nhóm 3
+✔ dieu-chinh-khan-cap (91.9s) · nhóm 1
+✔ tai-xe-cuoc (130.8s) · nhóm 2
+✔ xe-dang-chay (40.8s) · nhóm 2
+✔ xe-tren-don (63.7s) · nhóm 1
+✔ dieu-phoi-chay-dua (26.9s) · nhóm 2
+✔ coc-don-huy (31.0s) · nhóm 1
+✔ sua-so-khach (18.5s) · nhóm 1
+✔ chong-ghi-trung (44.1s) · nhóm 2
+Mọi bất biến đạt, 4 cảnh báo (D1 local, --strict).
+✔ audit-invariants · nhóm 1
+✔ phien (134.7s) · nhóm 3
+Mọi bất biến đạt, 4 cảnh báo (D1 local, --strict).
+✔ audit-invariants · nhóm 3
+✔ passkey (21.0s) · nhóm 2
+Mọi bất biến đạt, 5 cảnh báo (D1 local, --strict).
+✔ audit-invariants · nhóm 2
+✔ platform
+✔ pwa
+✔ orders
+✔ trip
+✔ chang-hanh-khach
+✔ nhap-tay-va-gia-doi-tac
+✔ admin
+✔ turnstile
+✔ catalog
+✔ mau-chang
+✔ dispatch
+✔ admin-race
+✔ locations
+✔ parties
+✔ gop-ho-so
+✔ booker
+✔ permissions
+✔ feedback
+✔ company
+✔ bangtin
+✔ thongbao
+✔ tro-ly
+✔ giao-dien
+✔ maintenance
+✔ roles
+✔ quyen-tien
+✔ van-chuyen
+✔ tai-xe-doi-tac
+✔ chinh-sach-dieu-phoi
+✔ dieu-phoi
+✔ khung-ban-xe
+✔ cam-ket-xe
+✔ dieu-chinh-khan-cap
+✔ dong-bo-chuyen
+✔ tien-xe-thue
+✔ dua-don-dau-cuoi
+✔ tai-xe-cuoc
+✔ tin-chuyen
+✔ xe-tren-don
+✔ xe-dang-chay
+✔ dieu-phoi-chay-dua
+✔ so-tien
+✔ coc-don-huy
+✔ chong-ghi-trung
+✔ nhap-ke-toan
+✔ chinh-sach-phien
+✔ phien
+✔ sua-so-khach
+✔ passkey
+✔ audit-invariants
+✔ không có day_loi (thiếu khoá VAPID thì không gửi)
+✔ H5: ghi nhiều lần chỉ ở route có tên trong danh sách nợ (src/shared/lan-gui-no.ts)
+✔ không có lỗi lạ chạm bảng vé (lan_gui_loi_la)
+✔ không có nội dung câu hỏi trợ lý trong log Worker
+Thời gian e2e: 889 giây (3 nhóm)
+E2E: 54/54 kịch bản xanh

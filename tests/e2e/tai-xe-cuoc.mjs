@@ -70,6 +70,7 @@ assert.equal(r.status, 200);
 assert.equal(r.body.trongNgayChay, false);
 assert.equal("lienHe" in r.body, false);
 assert.ok(r.body.suat.every((s) => !("hoTen" in s)));
+assert.ok(r.body.diem.length > 0 && r.body.diem.every((d) => !("diaChiChiDuong" in d)), "ngoài ngày chạy: không chuỗi đích chỉ đường (ADR-0105)");
 for (const [who, ten] of [[TX2.cookie, "tài xế khác"], [SALES, "Bán hàng"]]) assert.equal((await call(who, "GET", `/api/van-chuyen/cuoc-cua-toi/${id}`)).status, 404, ten);
 console.log("✓ route 19 / 20: chỉ chuyến mình lái; ngoài ngày chạy không tên, không liên hệ; tài xế khác / Bán hàng → 404");
 
@@ -102,6 +103,7 @@ assert.equal(r.body.chuyen.trangThai, "RUNNING");
 // → KHÔNG trong ngày chạy; tên / liên hệ vẫn vắng. Ca "có tên" trong ngày chạy trên API thật: mục 4 dưới; qua nửa đêm dùng đồng hồ giả: src/modules/van-chuyen/tai-xe-dto.test.ts.
 assert.equal(r.body.trongNgayChay, false, "xuất bến sớm (trước ngày chạy) → KHÔNG trong ngày chạy");
 assert.ok(r.body.suat.length > 0 && r.body.suat.every((s) => !("hoTen" in s) && !("namSinh" in s)) && !("lienHe" in r.body), "phản hồi lệnh tiến độ không kèm tên / liên hệ (TC-39 — chỉ GET chi tiết)");
+assert.ok(r.body.diem.every((d) => !("diaChiChiDuong" in d)), "phản hồi xuất bến (sớm): không chuỗi đích chỉ đường (ADR-0105)");
 const [e] = await sqlRows(`SELECT occurred_source, occurred_at, created_at FROM vc_trip_event WHERE trip_id = '${id}' AND kind = 'DEPARTED'`);
 assert.deepEqual([e.occurred_source, e.occurred_at], ["MAY_CHU", e.created_at]);
 r = await call(TX.cookie, "GET", `/api/van-chuyen/cuoc-cua-toi/${id}`);
@@ -109,6 +111,7 @@ assert.equal(r.body.chuyen.trangThai, "RUNNING");
 assert.equal(r.body.trongNgayChay, false);
 assert.ok(r.body.suat.length === 2 && r.body.suat.every((s) => !("hoTen" in s) && !("namSinh" in s)), "xuất bến sớm không mở họ tên / năm sinh (Q-L3-B)");
 assert.equal("lienHe" in r.body, false, "xuất bến sớm không mở liên hệ (Q-L3-B)");
+assert.ok(r.body.diem.every((d) => !("diaChiChiDuong" in d)), "xuất bến sớm không mở chuỗi đích chỉ đường (Q-L3-B, ADR-0105)");
 assert.doesNotMatch(JSON.stringify(r.body), /Khách Cuốc|0913579246|Liên Hệ Cuốc/);
 const diemDon = r.body.diem.find((d) => d.loai === "PICKUP").id;
 assert.equal((await call(TX.cookie, "POST", `/api/van-chuyen/cuoc-cua-toi/${id}/diem/${diemDon}/da-toi`, { requestId: uuid() })).status, 200);
@@ -132,9 +135,13 @@ const gioVnBayGio = new Date(Date.now() + 7 * 3600_000).toISOString().slice(11, 
 if (gioVnBayGio >= "23:40") {
   console.log(`- BỎ QUA ca trong ngày chạy: bây giờ ${gioVnBayGio} giờ VN, sát nửa đêm`);
 } else {
+  // ADR-0105: nơi TRẢ là một địa điểm mới có địa chỉ (Quản trị tạo bằng route thật) → giá trị chuỗi đích đã biết trước.
+  const DIA_CHI_E2E = `Số 5 Đường Chỉ Đường E2E ${duoi}`;
+  const loc = await call(ADMIN, "POST", "/api/locations", { code: `KS_CD_E2E_${duoi}`, name: `Khách sạn Chỉ Đường E2E ${duoi}`, locationTypeCode: "HOTEL", address: `  ${DIA_CHI_E2E}  ` });
+  assert.equal(loc.status, 201, JSON.stringify(loc.body));
   const o = await call(SALES, "POST", "/api/orders", orderInput({
     customerName: "Liên Hệ Hôm Nay E2E", customerPhone: "0913579247",
-    services: [catalogService({ pax: { adult: 1 }, departDate: H, legs: [{ direction: "OUT", pickupDate: H, pickupTime: "23:50", pickupLocationId: null, pickupPlace: `Khách sạn Hôm Nay E2E ${duoi}`, dropoffLocationId: LOC, dropoffPlace: "" }] })],
+    services: [catalogService({ pax: { adult: 1 }, departDate: H, legs: [{ direction: "OUT", pickupDate: H, pickupTime: "23:50", pickupLocationId: null, pickupPlace: `Khách sạn Hôm Nay E2E ${duoi}`, dropoffLocationId: loc.body.location.id, dropoffPlace: "" }] })],
     passengers: [{ fullName: "Khách Hôm Nay E2E", birthYear: 1950, paxCode: null }],
   }));
   assert.equal(o.status, 201, JSON.stringify(o.body));
@@ -151,13 +158,21 @@ if (gioVnBayGio >= "23:40") {
   r = await call(TX2.cookie, "POST", `/api/van-chuyen/cuoc-cua-toi/${idH}/xuat-ben`, { requestId: uuid() });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(r.body.chuyen.trangThai, "RUNNING");
+  assert.equal(r.body.trongNgayChay, true);
+  assert.ok(r.body.diem.every((d) => !("diaChiChiDuong" in d)), "phản hồi lệnh trong ngày chạy: không chuỗi đích chỉ đường (ADR-0105, G18-B)");
   r = await call(TX2.cookie, "GET", `/api/van-chuyen/cuoc-cua-toi/${idH}`);
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(r.body.trongNgayChay, true, "ngày chạy = hôm nay, đã xuất bến → TRONG ngày chạy");
   assert.deepEqual(r.body.suat.map((s) => [s.hoTen, s.namSinh]), [["Khách Hôm Nay E2E", 1950]], "trong ngày chạy có họ tên + năm sinh");
   assert.ok(Array.isArray(r.body.lienHe) && r.body.lienHe.length > 0, "trong ngày chạy có liên hệ (khác rỗng)");
   assert.deepEqual(r.body.lienHe.map((x) => [x.maDon, x.tenLienHe, x.sdtLienHe]), [[r.body.suat[0].maDon, "Liên Hệ Hôm Nay E2E", "0913579247"]]);
+  assert.ok(r.body.diem.length === 2 && r.body.diem.every((d) => "diaChiChiDuong" in d), "GET trong ngày chạy: MỌI điểm có chuỗi đích chỉ đường (ADR-0105)");
+  const donH = r.body.diem.find((d) => d.loai === "PICKUP");
+  const traH = r.body.diem.find((d) => d.loai === "DROPOFF");
+  assert.equal(donH.diaChiChiDuong, donH.tenNoi, "điểm đón chữ tự do: chuỗi đích = tên nơi đang thấy");
+  assert.equal(traH.diaChiChiDuong, DIA_CHI_E2E, "điểm trả danh mục: địa chỉ đã trim");
+  assert.notEqual(traH.tenNoi, DIA_CHI_E2E, "tên nơi vẫn là tên điểm");
   r = await call(TX2.cookie, "POST", `/api/van-chuyen/cuoc-cua-toi/${idH}/ket-thuc-gian-doan`, { requestId: uuid(), lyDo: "GIAN_DOAN_KHAC" });
   assert.equal(r.status, 200, JSON.stringify(r.body));
-  console.log("✓ trong ngày chạy (ngày chạy = hôm nay, đặt gấp đúng đường, đã xuất bến): GET chi tiết có họ tên, năm sinh, liên hệ (Q-L3-B VỪA-1)");
+  console.log("✓ trong ngày chạy (ngày chạy = hôm nay, đặt gấp đúng đường, đã xuất bến): GET chi tiết có họ tên, năm sinh, liên hệ (Q-L3-B VỪA-1), chuỗi đích chỉ đường ở mọi điểm (địa chỉ danh mục / tên nơi) — phản hồi lệnh không có (ADR-0105)");
 }
