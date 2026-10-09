@@ -1502,7 +1502,9 @@ export const vanChuyenModule: AppModule = {
       const trips = staff.partyId ? await tripsCuaTaiXe(env.DB, staff.partyId, tu, den) : [];
       const ngay = trips.map((t) => t.service_date).sort();
       const lich = trips.length === 0 ? { chang: [] } : await lichChungChang(env.DB, addDays(ngay[0]!, -1), addDays(ngay[ngay.length - 1]!, 1));
-      return json({ tu, den, chuyen: await danhSachCuoc(env.DB, trips, lich.chang, bayGioMs) } satisfies CuocCuaToiResponse);
+      // Vế hạn Từ chối (G-A4-2): danh sách không tính khung từng chuyến → điều kiện còn thiếu chỉ câu gốc (không mã đơn trong chi tiết).
+      const veHan = can(staff, "trip.refuse", { assigned: true });
+      return json({ tu, den, chuyen: await danhSachCuoc(env.DB, trips, lich.chang, bayGioMs, veHan) } satisfies CuocCuaToiResponse);
     }),
 
     route("GET", "/api/van-chuyen/cuoc-cua-toi/:id", "staff", async ({ env, params, staff, nhanNhanVien }) => {

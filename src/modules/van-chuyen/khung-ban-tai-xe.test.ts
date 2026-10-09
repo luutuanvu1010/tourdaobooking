@@ -67,5 +67,7 @@ test("A4 T4 G-A4-8: mọi câu ĐỌC của khung-ban-tai-xe-repo.ts lọc subje
     if (ten !== "khung_tai_xe_cua_toi") assert.doesNotMatch(sql!, /reason|vc_reason/, `${ten}: câu cho văn phòng / LC-03 không đọc lý do (lời chủ 6.2)`);
   }
   const lenh = readFileSync(new URL("./dieu-phoi-lenh.ts", import.meta.url), "utf8");
-  assert.doesNotMatch(lenh.slice(lenh.indexOf("export async function dungLichNgay")), /khungTaiXe|khung-ban-tai-xe-repo/, "lịch chung (trip.view — Kế toán) không nhận khung tài xế (ADR-0053 :147)");
+  const i = lenh.indexOf("export async function dungLichNgay");
+  assert.ok(i >= 0, "không thấy dungLichNgay — đổi tên thì sửa bài này");
+  assert.doesNotMatch(lenh.slice(i), /khungTaiXe|khung-ban-tai-xe-repo/, "lịch chung (trip.view — Kế toán) không nhận khung tài xế (ADR-0053 :147)");
 });

@@ -304,3 +304,28 @@ test("A4 T3 NT-10 / NT-13 (lời chủ 6.3, miễn có tên): sdtVanPhong = ĐÚ
     tat();
   }
 });
+
+test("A4 T3b NT-3 (mã đơn trong CÂU điều kiện còn thiếu — phiếu tư vấn 9/10): người có vế hạn NGOÀI khung — dieuKienConThieu chỉ câu gốc của mã (không chi tiết mang mã đơn) ở GET chi tiết và danh sách Cuốc; tài xế công ty giữ chi tiết", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    await chinhSach(w, null); // requireManifest = true → lý do giữ THIEU_TEN mang "<mã đơn> thiếu N tên"
+    thanhTaiXe(w, `pty-${SUP}`);
+    const a = await chuyenSan(w, { taiXe: SUP, ngay: NGAY_SAU, bd: "12:30", kt: "15:00", gio: "13:00", soNguoi: 2, ten: 1 });
+    const b = await chuyenSan(w, { ngay: NGAY_SAU, bd: "12:30", kt: "15:00", gio: "13:00", soNguoi: 2, ten: 1 });
+    const vp = await chiTiet(w, a.id);
+    assert.ok(JSON.stringify(vp).includes(a.don.code), "chống bài rỗng: văn phòng thấy mã đơn trong lý do giữ");
+    const r = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${a.id}`, { as: SUP });
+    assert.equal(r.status, 200, r.text);
+    assert.ok(r.json.dieuKienConThieu.some((l: any) => l.ma === "THIEU_TEN"), r.text);
+    assert.ok(!r.text.includes(a.don.code), `GET chi tiết ngoài khung lộ mã đơn: ${r.text}`);
+    const ds = await w.call("GET", "/api/van-chuyen/cuoc-cua-toi", { as: SUP });
+    assert.equal(ds.status, 200, ds.text);
+    assert.ok(ds.json.chuyen.some((c: any) => c.id === a.id));
+    assert.ok(!ds.text.includes(a.don.code), `danh sách Cuốc lộ mã đơn: ${ds.text}`);
+    const t = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${b.id}`, { as: DRIVER });
+    assert.ok(t.json.dieuKienConThieu.some((l: any) => l.ma === "THIEU_TEN" && l.loiNhan.includes(b.don.code)), "tài xế công ty: giữ chi tiết (không đổi)");
+  } finally {
+    tat();
+  }
+});

@@ -456,8 +456,11 @@ export async function cuocChiTiet(
     sdtVanPhong: c.chinhSach?.office_phone ?? null,
   });
 }
-/** "Cuốc của tôi" (route 19, R-P17): mỗi chuyến — không tên, không SĐT; điều kiện còn thiếu = lý do giữ dự phóng (chuyến chưa chạy). */
-export async function danhSachCuoc(db: D1Database, trips: readonly TripRow[], lich: readonly ChangLichChung[], bayGioMs: number): Promise<CuocCuaToiItemDto[]> {
+/**
+ * "Cuốc của tôi" (route 19, R-P17): mỗi chuyến — không tên, không SĐT; điều kiện còn thiếu = lý do giữ dự phóng (chuyến chưa chạy). `chiCauGoc` (người gọi có vế
+ * hạn Từ chối — kế hoạch A4): điều kiện chỉ câu gốc, không chi tiết (chi tiết có thể mang mã đơn; danh sách không tính khung từng chuyến).
+ */
+export async function danhSachCuoc(db: D1Database, trips: readonly TripRow[], lich: readonly ChangLichChung[], bayGioMs: number, chiCauGoc: boolean): Promise<CuocCuaToiItemDto[]> {
   if (trips.length === 0) return [];
   const c = await docChung(db, new Date(bayGioMs).toISOString(), msToVnLocal(bayGioMs).date);
   const ids = trips.map((t) => t.id);
@@ -473,7 +476,7 @@ export async function danhSachCuoc(db: D1Database, trips: readonly TripRow[], li
     const conThieu = t.status === "PLANNED"
       ? lyDoGiuCuaChuyen(t, lyDoGiuDuPhong(t, await docNguCanh(db, nen, lich, c, [], bayGioMs), c, bayGioMs, false), bayGioMs, c.chinhSach?.min_lead_minutes ?? null)
       : [];
-    ra.push(cuocCuaToiItem(t, { xe: c.xe.find((x) => x.id === t.vehicle_id), stops: nen.stops, allocs: a, conThieu }));
+    ra.push(cuocCuaToiItem(t, { xe: c.xe.find((x) => x.id === t.vehicle_id), stops: nen.stops, allocs: a, conThieu, chiCauGoc }));
   }
   return ra;
 }
