@@ -11,7 +11,7 @@ import {
   TRIP_CAM_KET_PHA_LE, TRIP_GATE_CHI_PHI, TRIP_GATE_DANG_CHAY, TRIP_GATE_DOI, TRIP_GATE_THEO_DON, TRIP_GATE_TIEN_DO, TRIP_INSERT, TRIP_KET_THUC, TRIP_UPDATE_PLAN, TRIP_XUAT_BEN,
   ALLOC_OFFICE_CANCEL, MANIFEST_THEM_SAU, TRIP_CHOT, TRIP_GATE_DANG_CHAY_VERSION, ALLOC_DIEU_CHINH_INSERT, EVENT_DIEU_CHINH_INSERT, TRIP_THU_HOI_XUAT_BEN,
   TRANSFER_DONG, TRANSFER_INSERT, TRIP_GATE_CHAY_HOAC_CHO, TRIP_GATE_DE_NGHI, TRIP_GATE_DOI_CHAY, TRANSFER_QUYET, TRANSFER_DUYET, TRANSFER_CHECK_INSERT,
-  TRANSFERS_VOID_KHAC, ALLOC_CLOSE_TRANSFER, ALLOC_OPEN_TRANSFER, STOP_SET_MOVED, MANIFEST_CHUYEN_KHACH, TRANSFERS_VOID_BY_STOP, TRANSFERS_VOID_BY_SUAT, TRANSFERS_VOID_BY_TRIP,
+  TRANSFERS_VOID_KHAC, ALLOC_CLOSE_TRANSFER, ALLOC_OPEN_TRANSFER, STOP_SET_MOVED, MANIFEST_CHUYEN_KHACH, TRANSFERS_VOID_BY_STOP, TRANSFERS_VOID_BY_SUAT, TRANSFERS_VOID_BY_TRIP, TRANSFERS_VOID_BY_DOI_DIEM,
 } from "./chuyen-repo";
 import { cauChiPhi, type KeHoachChiPhi } from "./tien-xe-lo";
 import {
@@ -387,6 +387,8 @@ export function loCapNhatDiem(db: D1Database, l: LenhCapNhatDiem): CauCoNhan[] {
   }
   lo.push(...l.diemBoQua.map((id) => boQuaDiem(db, l, l.tripId, id, LY_DO_BO_QUA_KHONG_CON_KHACH)));
   lo.push(...cauCamKet(db, l, l.tripId, l.camKet)); // trước câu chốt (xe đang chạy) — nơi gọi không xoá khi xe đang chạy
+  // MQ-09 (G-A5-13): xe đang chạy là xe nhờ được — đề nghị chờ của điểm vừa đổi / bỏ qua (hoặc ONBOARD khi tập khách đổi) tự huỷ; sau câu đóng / bỏ qua.
+  if (chay) lo.push(ghi(db.prepare(TRANSFERS_VOID_BY_DOI_DIEM).bind(l.tripId, l.cmd, l.lucIso, l.nguoiId, l.tripId)));
   if (chay) lo.push({ nhan: "TRANG_THAI_CUOI", stmt: db.prepare(TRIP_CHOT).bind(l.tripId, l.cmd) });
   return lo;
 }

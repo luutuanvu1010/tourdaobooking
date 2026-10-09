@@ -528,3 +528,27 @@ test("NT-A5-13 (MQ-09) tự huỷ: xe nhờ Đã tới điểm nguồn → đề
     tat2();
   }
 });
+
+test("NT-A5-13 (MQ-09, G-A5-13) cập nhật điểm theo đơn khi xe nhờ đang chạy: suất của điểm nguồn đổi sang nơi mới → đề nghị Chờ của điểm đó VOID trong cùng lô; Nhận → 409 da_huy", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const { a, b } = await haiXe(w);
+    const id = await guiDiem(w, a, b);
+    const o = (await w.call("GET", `/api/orders/${a.don.id}`, { as: ADM })).json.order;
+    const l = o.services[0].legs[0];
+    const sua = await w.call("PUT", `/api/orders/${a.don.id}/legs/${l.id}`, {
+      as: ADM, body: { expectedUpdatedAt: l.updatedAt, leg: { pickupDate: l.pickupDate, pickupTime: l.pickupTime, pickupLocationId: null, pickupPlace: "Khách sạn Đổi Nơi", dropoffLocationId: LOC, dropoffPlace: "" }, datGap: { lyDo: "KHAC" } },
+    });
+    assert.equal(sua.status, 200, sua.text);
+    const v = mot(w, "SELECT version FROM vc_trip WHERE id = ?", a.id).version;
+    const r = await w.call("POST", `${VC}/chuyen/${a.id}/cap-nhat-diem`, { as: SALES, body: { version: v, requestId: uuid() } });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.daCapNhat, 2, "chống bài rỗng: hai suất của điểm nguồn đổi");
+    assert.deepEqual({ ...mot(w, "SELECT status, closed_cmd_id FROM vc_transfer_request WHERE id = ?", id) },
+      { status: "VOID", closed_cmd_id: mot(w, "SELECT last_cmd_id FROM vc_trip WHERE id = ?", a.id).last_cmd_id });
+    tat409(await nhan(w, id), "da_huy");
+  } finally {
+    tat();
+  }
+});

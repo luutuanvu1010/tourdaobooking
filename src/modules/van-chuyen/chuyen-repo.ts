@@ -826,6 +826,20 @@ export const TRANSFERS_VOID_BY_TRIP = defineSql(
    WHERE (from_trip_id = ?1 OR to_trip_id = ?1) AND status IN ('PENDING', 'ESCALATED') AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?5 AND last_cmd_id = ?2)`,
 );
 /**
+ * MQ-09 cho "Cập nhật điểm theo đơn" khi xe nhờ ĐANG CHẠY (đường bỏ qua điểm nguồn / đổi tập khách — G-A5-13): đề nghị chờ của chuyến ?1 mà (STOP) điểm nguồn là
+ * điểm lên của suất do CHÍNH lệnh ?2 đóng, hoặc điểm nguồn đã hết PENDING; (ONBOARD) lệnh ?2 có đóng suất của chuyến. Đứng SAU câu đóng suất / bỏ qua điểm.
+ */
+export const TRANSFERS_VOID_BY_DOI_DIEM = defineSql(
+  "van-chuyen",
+  "transfers_void_by_doi_diem",
+  `UPDATE vc_transfer_request SET status = 'VOID', closed_cmd_id = ?2, updated_at = ?3, updated_by = ?4
+   WHERE from_trip_id = ?1 AND status IN ('PENDING', 'ESCALATED')
+     AND ((scope = 'STOP' AND (from_stop_id IN (SELECT a.board_stop_id FROM vc_trip_allocation a WHERE a.trip_id = ?1 AND a.closed_cmd_id = ?2)
+                               OR from_stop_id IN (SELECT s.id FROM vc_trip_stop s WHERE s.trip_id = ?1 AND s.status <> 'PENDING')))
+       OR (scope = 'ONBOARD' AND EXISTS (SELECT 1 FROM vc_trip_allocation a WHERE a.trip_id = ?1 AND a.closed_cmd_id = ?2)))
+     AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?5 AND last_cmd_id = ?2)`,
+);
+/**
  * Một dòng kiểm của lần bấm (trước câu đổi trạng thái đề nghị). Chính sách = dòng hiện hành lúc kiểm (đọc trong câu). ?1 id, ?2 đề nghị, ?3 dấu lệnh, ?4 mã
  * điều kiện, ?5 tầng (máy chủ — trigger so với danh mục), ?6 kết quả, ?7 giá trị, ?8 giới hạn, ?9 lúc, ?10 người, ?11 chuyến gác (đích).
  */

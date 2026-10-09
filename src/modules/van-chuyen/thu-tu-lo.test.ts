@@ -545,4 +545,15 @@ test("NT-A5-13 (MQ-09): lô Đã tới / Báo huỷ / Điều chỉnh (theo đi�
     const cuoi = lo.findIndex((x) => x.nhan === "TRANG_THAI_CUOI");
     if (cuoi >= 0) assert.ok(vt[0]! < cuoi, `${ten}: câu tự huỷ trước trạng thái cuối`);
   }
+  // Cập nhật điểm theo đơn khi xe ĐANG CHẠY là đường "bỏ qua điểm nguồn" / đổi tập khách của xe nhờ (G-A5-13): MỘT câu tự huỷ theo DẤU LỆNH (điểm lên của suất lô
+  // này đóng, điểm hết PENDING, ONBOARD khi tập khách đổi), SAU câu đóng suất / bỏ qua điểm, TRƯỚC câu chốt. Xe chưa chạy không là xe nhờ — không có (vòng trên).
+  const chay = (MOD.loCapNhatDiem as (db: unknown, l: unknown) => Cau[])(DB, { ...MAU.loCapNhatDiem!.vao, dangChay: true });
+  const vc = chay.flatMap((c, i) => (/^\s*UPDATE vc_transfer_request SET status = 'VOID'/.test(c.stmt.sql) ? [i] : []));
+  assert.equal(vc.length, 1, "loCapNhatDiem(dangChay): thiếu câu tự huỷ (đúng một)");
+  const cc = chay[vc[0]!]!;
+  assert.match(cc.stmt.sql, /a\.closed_cmd_id = \?2/, "loCapNhatDiem(dangChay): tự huỷ theo suất đóng bởi CHÍNH lệnh này");
+  assert.equal(cc.stmt.args[0], T);
+  const sauCung = Math.max(...chay.flatMap((c, i) => (/^\s*UPDATE vc_(trip_allocation SET valid_to_at|trip_stop SET status = 'SKIPPED')/.test(c.stmt.sql) ? [i] : [])));
+  assert.ok(vc[0]! > sauCung, "loCapNhatDiem(dangChay): tự huỷ sau câu đóng suất / bỏ qua điểm cuối cùng");
+  assert.ok(vc[0]! < chay.findIndex((x) => x.nhan === "TRANG_THAI_CUOI"), "loCapNhatDiem(dangChay): trước câu chốt");
 });
