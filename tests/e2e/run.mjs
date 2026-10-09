@@ -41,6 +41,8 @@ const ROOT = join(HERE, "..", "..");
 // "xe-tren-don" (ADR-0059) ngay sau "tai-xe-cuoc", cùng khuôn: tài xế / xe / đơn / chuyến / tài khoản lai dùng một lần, chuyến NGÀY MAI; không đụng salesB/field.
 // "xe-dang-chay" (ADR-0052 D5 — Vận chuyển Đợt 5) ngay sau "xe-tren-don", cùng khuôn: tài xế / xe / đơn / chuyến dùng một lần, chuyến NGÀY MAI (xuất bến sớm);
 // dọn bằng kết thúc gián đoạn; không đụng salesB/field.
+// "chuyen-khach" (gói A5 — ADR-0111) ngay sau "xe-dang-chay", cùng khuôn: tài xế / xe / đơn / chuyến dùng một lần, chuyến NGÀY MAI (xuất bến sớm). Đổi chính sách
+// điều phối (chờ 1 phút, tắt tự đồng ý) rồi KHÔI PHỤC (10 phút, bật) ở `finally`; có một lần chờ thật ~1 phút (hết hạn đề nghị); không đụng salesB/field.
 // "dieu-phoi-chay-dua" (TC-33, Task A14) sau đó: 10 yêu cầu xếp song song vào chuyến 3 chỗ trên dữ liệu dùng một lần (chạy riêng: npm run test:e2e -- dieu-phoi-chay-dua).
 // "coc-don-huy" (ADR-0089, năm lỗi tiền Đợt 1) đứng ngay sau "so-tien", TRƯỚC "passkey": dùng salesA/admin/kế toán/superAdmin/field, tự cài/gỡ trigger thử.
 // "so-tien" (sổ tiền lượt 1 — ADR-0024/0025/0026) đứng TRƯỚC "passkey": dùng field/fieldB/salesA/kế toán; tự cài/gỡ trigger thử trên D1 tạm
@@ -52,7 +54,7 @@ const ROOT = join(HERE, "..", "..");
 // "phien" (ADR-0075 Task 4) đứng TRƯỚC "passkey": đăng nhập lại salesA nhiều lần (luật một máy đá cookie cũ) rồi `sessionMoi` để lại phiên sống; không đổi PIN/quyền của ai.
 // "mau-chang" (nợ nhỏ đưa đón 2026-10-01) ngay sau "catalog", TRƯỚC "maintenance": mã dịch vụ riêng ZMC1 + một điểm đã ngưng dùng một lần; bảng mẫu chỉ-thêm.
 // "passkey" đứng CUỐI CÙNG: đổi PIN của salesB, tạm ngưng rồi kích hoạt lại field — mọi kịch bản CÙNG NHÓM dùng chung một D1 tạm (passkey luôn cuối nhóm của nó).
-const ALL = ["platform", "pwa", "orders", "trip", "chang-hanh-khach", "nhap-tay-va-gia-doi-tac", "admin", "turnstile", "catalog", "mau-chang", "dispatch", "admin-race", "locations", "parties", "gop-ho-so", "booker", "permissions", "feedback", "company", "bangtin", "thongbao", "tro-ly", "giao-dien", "maintenance", "roles", "quyen-tien", "van-chuyen", "tai-xe-doi-tac", "chinh-sach-dieu-phoi", "dieu-phoi", "khung-ban-xe", "cam-ket-xe", "dieu-chinh-khan-cap", "dong-bo-chuyen", "tien-xe-thue", "dua-don-dau-cuoi", "tai-xe-cuoc", "tin-chuyen", "xe-tren-don", "xe-dang-chay", "dieu-phoi-chay-dua", "so-tien", "coc-don-huy", "chong-ghi-trung", "nhap-ke-toan", "chinh-sach-phien", "phien", "sua-so-khach", "passkey"];
+const ALL = ["platform", "pwa", "orders", "trip", "chang-hanh-khach", "nhap-tay-va-gia-doi-tac", "admin", "turnstile", "catalog", "mau-chang", "dispatch", "admin-race", "locations", "parties", "gop-ho-so", "booker", "permissions", "feedback", "company", "bangtin", "thongbao", "tro-ly", "giao-dien", "maintenance", "roles", "quyen-tien", "van-chuyen", "tai-xe-doi-tac", "chinh-sach-dieu-phoi", "dieu-phoi", "khung-ban-xe", "cam-ket-xe", "dieu-chinh-khan-cap", "dong-bo-chuyen", "tien-xe-thue", "dua-don-dau-cuoi", "tai-xe-cuoc", "tin-chuyen", "xe-tren-don", "xe-dang-chay", "chuyen-khach", "dieu-phoi-chay-dua", "so-tien", "coc-don-huy", "chong-ghi-trung", "nhap-ke-toan", "chinh-sach-phien", "phien", "sua-so-khach", "passkey"];
 const picked = process.argv.slice(2);
 const scripts = picked.length ? picked : ALL;
 for (const s of scripts) if (!ALL.includes(s)) throw new Error(`Không có kịch bản "${s}" (có: ${ALL.join(", ")})`);
@@ -75,7 +77,7 @@ const THOI_GIAN = {
   platform: 1.4, pwa: 0.3, orders: 13.1, trip: 27.7, "chang-hanh-khach": 22.4, "nhap-tay-va-gia-doi-tac": 15.2, admin: 10.4, turnstile: 5.8,
   catalog: 28.6, "mau-chang": 6.4, dispatch: 165.8, "admin-race": 0.5, locations: 0.5, parties: 1, "gop-ho-so": 8, booker: 20.2, permissions: 5.2, feedback: 1.3, company: 28.8,
   bangtin: 59.1, thongbao: 67.1, "tro-ly": 8.9, "giao-dien": 4, maintenance: 32.8, roles: 5.8, "quyen-tien": 3, "van-chuyen": 14.4, "tai-xe-doi-tac": 27.9, "chinh-sach-dieu-phoi": 19.3,
-  "dieu-phoi": 53.1, "khung-ban-xe": 15, "cam-ket-xe": 15, "dieu-chinh-khan-cap": 8, "dong-bo-chuyen": 15, "tien-xe-thue": 20, "dua-don-dau-cuoi": 20, "tai-xe-cuoc": 32, "tin-chuyen": 15, "xe-dang-chay": 15, "dieu-phoi-chay-dua": 8.2, "so-tien": 24.7, "coc-don-huy": 20, "chong-ghi-trung": 20, "chinh-sach-phien": 30, phien: 19.4, "sua-so-khach": 15, passkey: 24.2,
+  "dieu-phoi": 53.1, "khung-ban-xe": 15, "cam-ket-xe": 15, "dieu-chinh-khan-cap": 8, "dong-bo-chuyen": 15, "tien-xe-thue": 20, "dua-don-dau-cuoi": 20, "tai-xe-cuoc": 32, "tin-chuyen": 15, "xe-dang-chay": 15, "chuyen-khach": 90, "dieu-phoi-chay-dua": 8.2, "so-tien": 24.7, "coc-don-huy": 20, "chong-ghi-trung": 20, "chinh-sach-phien": 30, phien: 19.4, "sua-so-khach": 15, passkey: 24.2,
 };
 const nang = (name) => THOI_GIAN[name] ?? 15;
 
