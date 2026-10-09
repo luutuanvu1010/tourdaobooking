@@ -17,7 +17,7 @@ import { KET_QUA_CUOI_SUAT } from "./dieu-phoi-kieu.ts";
 import { kiemCamKet, type KetQuaCamKet } from "./cam-ket-xe.ts";
 import { LOAI_CO_DINH } from "./giay-to.ts";
 import { canhBaoGioLai, type CanhBaoGioLai, type ChuyenGioLai } from "./gio-lai.ts";
-import { chongNuaMo, nhanKhoangGio } from "./khung-ban.ts";
+import { chongNuaMo, nhanKhoangGio, nhanTuDen } from "./khung-ban.ts";
 import { lyDoGiu, type LyDoGiu } from "./ly-do-giu.ts";
 import { gioXetSuaChuyen, kiemMocXep, type LenhXep } from "./moc-toi-thieu.ts";
 import { suatTraTruocDon } from "./thu-tu-diem.ts";
@@ -132,11 +132,13 @@ export function kiemTaoSuaChuyen(v: KiemTaoSuaChuyenVao): KetQuaTaoSua {
   }
   // ADR-0055 VK2-A A2 (i) + ADR-0053 D9 B9.3: khung bận còn hiệu lực là KHOẢNG CHẶN như chuyến khác — MỘT hàm cho xe và tài xế (không luật thứ hai).
   // Mã: dùng lại TRUNG_GIO_XE / TRUNG_GIO_TAI_XE (ADR-0055 "không thêm mã vào MA_GIU"; chủ không trả lời Lượt III câu 7) — chi tiết nói rõ là lịch bận.
+  // Kế hoạch A4 G-A4-9 (lời chủ 6.2): nhánh TÀI XẾ không có lý do — "<Tên> bận từ … đến …. Chọn tài xế khác hoặc đổi giờ chuyến."; nhánh XE giữ lý do.
   for (const k of v.khungBan ?? []) {
     if (!chongNuaMo(c.batDauMs, c.ketThucMs, k.batDauMs, k.ketThucMs)) continue;
-    const gio = `${k.lyDoNhan} ${nhanKhoangGio(k.batDauMs, k.ketThucMs)}`;
-    if (k.doiTuong === "VEHICLE" && k.xeId === c.xe.id) chan.push(lyDoGiu("TRUNG_GIO_XE", `lịch xe bận: ${gio}`));
-    if (k.doiTuong === "DRIVER" && c.taiXe !== null && k.taiXePartyId === c.taiXe.partyId) chan.push(lyDoGiu("TRUNG_GIO_TAI_XE", `lịch tài xế bận: ${gio}`));
+    if (k.doiTuong === "VEHICLE" && k.xeId === c.xe.id) chan.push(lyDoGiu("TRUNG_GIO_XE", `lịch xe bận: ${k.lyDoNhan ?? ""} ${nhanKhoangGio(k.batDauMs, k.ketThucMs)}`));
+    if (k.doiTuong === "DRIVER" && c.taiXe !== null && k.taiXePartyId === c.taiXe.partyId) {
+      chan.push(lyDoGiu("TRUNG_GIO_TAI_XE", `${c.taiXe.displayName || "Tài xế"} bận ${nhanTuDen(k.batDauMs, k.ketThucMs)}. Chọn tài xế khác hoặc đổi giờ chuyến.`));
+    }
   }
   if (c.taiXe) {
     const lai = kiemLai(c.taiXe, c.xe.soCho, c.ketThucMs, v.hangBang);

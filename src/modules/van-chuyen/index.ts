@@ -120,7 +120,8 @@ import { insertKhungBanStatement, khungBanCuaXe, khungBanTheoId, khungBanXeTrong
 import { lyDoDangDung, xeDieuPhoi } from "./chuyen-repo";
 import type { CanhBaoLichDto } from "../../shared/contracts";
 import { NHAN_CANH_BAO_GIO_LAI, type CanhBaoGioLai } from "../../shared/gio-lai";
-import { khungBanVao } from "./dieu-phoi-doc";
+import { khungBanVao, khungTaiXeVao } from "./dieu-phoi-doc";
+import { khungTaiXeTrongKhoang } from "./khung-ban-tai-xe-repo";
 const CAN_XEM_XE_DON = () => error(403, "forbidden", "Tài khoản này không xem được xe đón khách của đơn.");
 const CAN_XEM_CUOC = () => error(403, "forbidden", "Tài khoản này không có cuốc xe.");
 const CAN_BAM_THAY = () => error(403, "forbidden", "Tài khoản này không bấm thay tiến độ chuyến được.");
@@ -1173,7 +1174,12 @@ export const vanChuyenModule: AppModule = {
         if (!chung.taiXe.some((x) => x.partyId === t.taiXePartyId)) return loi409("cheo_xe_tai_xe", [lyDoGiu("CHEO_XE_TAI_XE")]);
         const khac = await tripsTouching(env.DB, t.batDauMs - NGAY_MS, t.ketThucMs + NGAY_MS);
         // ADR-0055 VK2-A A2 (i): khung bận còn hiệu lực là khoảng chặn (lớp máy chủ nói trước — trigger vc_trip_unavailable_ins là lưới thứ hai).
-        const khungBan = (await khungBanXeTrongKhoang(env.DB, t.batDauMs, t.ketThucMs)).map(khungBanVao);
+        // ADR-0053 D9 B9.3 (kế hoạch A4 T4): khung bận của TÀI XẾ cũng là khoảng chặn — lớp máy chủ nói trước bằng câu không lý do (trigger
+        // vc_trip_driver_unavailable_ins là lưới thứ hai).
+        const khungBan = [
+          ...(await khungBanXeTrongKhoang(env.DB, t.batDauMs, t.ketThucMs)).map(khungBanVao),
+          ...(await khungTaiXeTrongKhoang(env.DB, t.taiXePartyId, t.batDauMs, t.ketThucMs)).map(khungTaiXeVao),
+        ];
         const kq = kiemTaoSuaChuyen({
           lenh: "TAO", chuyen: { id: null, batDauMs: t.batDauMs, ketThucMs: t.ketThucMs, xe: xeVao(xeRow, chung.giayToXe), taiXe: taiXeVao(t.taiXePartyId, chung.taiXe), nghiPhaLe: t.nghiPhaLe !== null },
           chuyenKhac: khac.map(khungChuyen), khungBan, chinhSach: chinhSachVao(chung.chinhSach), hangBang: chung.hangBang, bayGioMs,

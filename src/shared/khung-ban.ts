@@ -9,6 +9,11 @@ const ngan = (ms: number, thamChieu: string): string => {
   const { date, time } = msToVnLocal(ms);
   return `${time} ${ngayNgan(date, thamChieu)}`;
 };
+/** "từ 08:00 03/10 đến 17:00 03/10" (giờ VN) — câu chặn khung bận tài xế (kế hoạch A4 G-A4-9). */
+export const nhanTuDen = (batDauMs: number, ketThucMs: number): string => {
+  const ref = msToVnLocal(batDauMs).date;
+  return `từ ${ngan(batDauMs, ref)} đến ${ngan(ketThucMs, ref)}`;
+};
 /** "08:00 03/10 → 17:00 03/10" (giờ VN); năm khi khác năm của giờ bắt đầu (Kiểu D — `ngayNgan`). */
 export const nhanKhoangGio = (batDauMs: number, ketThucMs: number): string => {
   const ref = msToVnLocal(batDauMs).date;

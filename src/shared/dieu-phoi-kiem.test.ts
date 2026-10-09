@@ -536,10 +536,15 @@ test("VK2-A A2 (i) lớp máy chủ: tạo / dời giờ / đổi xe vào khung 
   assert.ok(doiXe.chan.some((l) => l.ma === "TRUNG_GIO_XE" && /lịch xe bận/.test(l.loiNhan)));
 });
 
-test("D9 B9.3 (MỘT hàm cho xe và tài xế — chuẩn bị Đợt 6): khung DRIVER của tài xế được gán → chặn TRUNG_GIO_TAI_XE kèm 'lịch tài xế bận'", () => {
+// Kế hoạch A4 G-A4-9 (lời chủ 6.2 — SIẾT có tên): câu chặn khung TÀI XẾ không còn kèm lý do (trước: "lịch tài xế bận: <lý do> <giờ>"); kể cả khi đầu vào
+// lỡ mang nhãn lý do, câu không in nhãn đó.
+test("D9 B9.3 (MỘT hàm cho xe và tài xế): khung DRIVER của tài xế được gán → chặn TRUNG_GIO_TAI_XE, câu '<Tên> bận từ … đến …. Chọn tài xế khác hoặc đổi giờ chuyến.' KHÔNG lý do", () => {
   const kb: KhungBanVao = { id: "kb2", doiTuong: "DRIVER", xeId: null, taiXePartyId: "tx-an", batDauMs: ms("2026-09-30", "05:00"), ketThucMs: ms("2026-09-30", "12:00"), lyDoNhan: "Việc riêng" };
   const kq = kiemTaoSuaChuyen(tao({}, [], { khungBan: [kb] }));
-  assert.ok(kq.chan.some((l) => l.ma === "TRUNG_GIO_TAI_XE" && /lịch tài xế bận/.test(l.loiNhan)));
+  const l = kq.chan.find((x) => x.ma === "TRUNG_GIO_TAI_XE");
+  assert.ok(l, JSON.stringify(kq.chan));
+  assert.match(l.loiNhan, / bận từ 05:00 30\/09 đến 12:00 30\/09\. Chọn tài xế khác hoặc đổi giờ chuyến\.$/);
+  assert.doesNotMatch(l.loiNhan, /Việc riêng/);
 });
 
 test("VK2-B B3: kiemTaoSuaChuyen trả nhacGioLai cho CHÍNH chuyến đang tạo/gán (không đổi ok); chuyến mới 4 giờ 30 + chuyến khác 4 giờ → CHUYEN_DAI_CAN_NGHI + GIO_LAI_VUOT", () => {

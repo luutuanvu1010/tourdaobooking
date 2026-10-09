@@ -288,7 +288,8 @@ export interface KhungBanVao {
   taiXePartyId: string | null;
   batDauMs: number;
   ketThucMs: number;
-  lyDoNhan: string;
+  /** Nhãn lý do — chỉ khung XE; khung TÀI XẾ là `null` (lời chủ 6.2: văn phòng không thấy lý do bận của tài xế — kế hoạch A4 G-A4-9). */
+  lyDoNhan: string | null;
 }
 /** Một chuyến đủ dữ liệu cho cổng xuất bến. */
 export interface ChuyenVao {
