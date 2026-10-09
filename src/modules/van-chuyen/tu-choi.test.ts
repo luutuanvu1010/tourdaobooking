@@ -254,7 +254,10 @@ test("A4 T7 NT-4 LỆNH LẶP (G-A4-15, TĐ-2): tài xế MỚI được xếp d
     // Người cũ được xếp chuyến khác: cùng requestId cho chuyến KHÁC → 404 (không có lệnh Từ chối của mình ở chuyến đó, và đang lái thì requestId đã dùng → 409).
     const b = await chuyenSan(w, { taiXe: DRIVER_PARTNER, xe: xeNhaXe(w, w.q("SELECT owner_party_id o FROM vc_vehicle WHERE id = ?", xe1)[0].o), ngay, bd: "16:00", kt: "18:00", gio: "16:30" });
     const k = await tuChoi(w, b.id, { requestId: rid, lyDo: "TCC_KHAC" });
-    assert.notEqual(k.status, 200, k.text);
+    // Lệch chữ NT-4 ("chuyến khác → 404") có ghi: người gọi ĐANG lái chuyến b nên qua cổng 404; mã đã dùng cho chuyến khác → 409 request_id_reused
+    // (traLenhLap — khuôn chung). 404 chỉ khi người gọi không lái chuyến đó (dòng dưới).
+    assert.equal(k.status, 409, k.text);
+    assert.equal(k.json.error.code, "request_id_reused");
     assert.equal(soNhatKy(w, b.id), 0);
     assert.equal((await tuChoi(w, uuid(), { requestId: rid, lyDo: "TCC_KHAC" })).status, 404, "chuyến không có");
   } finally {

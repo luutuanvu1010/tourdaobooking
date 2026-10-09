@@ -8,7 +8,7 @@ import {
   HANH_DONG_TIN_CHUYEN, HANH_DONG_TIN_KHACH, HANH_DONG_TIN_THUONG, chuyenCuaChangLuc, dangChayLucSuKien, dongCoTheSinhTin, dungDongChuyen, laiLucSuKien, taiXeNhanSuKien, thayDoiCoTheCoTin, thayDoiCuaHanhDongChuyen,
   tinChuyenCho, tinGioHenCho, type DongChuyen, type DongGioHen, type NguoiNhanChuyen,
 } from "./tin-chuyen.ts";
-import { THAY_DOI_CHUYEN } from "./bang-tin.ts";
+import { THAY_DOI_CHUYEN, nhanKetNoi, nhanSuKienChuyen } from "./bang-tin.ts";
 import { readFileSync } from "node:fs";
 
 const T0 = "2027-03-11T01:00:00.000Z", T1 = "2027-03-11T02:00:00.000Z", T2 = "2027-03-11T03:00:00.000Z";
@@ -73,6 +73,13 @@ test("A4 T7 (ADR-0053 D8.4 bước 5): tài xế Từ chối → 'tu_choi' tới
   assert.equal(tinChuyenCho(TX_A, d), null);
   assert.equal(tinChuyenCho(nguoi("lap", ["FIELD"]), d), null, "HDV / người lập không trip.dispatch");
   assert.equal(thayDoiCuaHanhDongChuyen("trip_driver_refused", false), "sua", "Bảng tin: chuyến đổi (mất tài xế) — chuông văn phòng gọi lại");
+  // NT-7 (ADR-0052 D6.4 — hành vi đã duyệt): Bảng tin của sự kiện Từ chối mang nhãn `dieu-xe` (chỉ mã chuyến + loại thay đổi + giờ), nên Kế toán (trip.view any)
+  // vẫn thấy màn tự tải lại; không bao giờ `tat-ca`. Tài xế vừa từ chối (dòng lái đóng đúng mốc) nhận `nguoi:<id>` — màn của chính họ tải lại.
+  const nhan = nhanSuKienChuyen(taiXeNhanSuKien([TX_DT, nguoi("kt", ["ACCOUNTING"]), TX_A], d.lai, d.luc));
+  assert.ok(nhan.includes("dieu-xe"), JSON.stringify(nhan));
+  assert.ok(!nhan.includes("tat-ca"));
+  assert.ok(nhan.every((x) => x === "dieu-xe" || x === "nguoi:tx-dt"), JSON.stringify(nhan));
+  assert.ok(nhanKetNoi({ id: "kt", permissions: ["ACCOUNTING"] }).includes("dieu-xe"), "Kế toán kết nối nhóm dieu-xe");
 });
 
 test("khách vắng → người lập / người phụ trách CÓ trip.view; HDV, Đối tác, Thực tập (không trip.view) không", () => {
