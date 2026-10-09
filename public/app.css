@@ -127,6 +127,7 @@
   --w-gd-o: 160px;         /* ADR-0087: bề rộng ô chọn phông / độ đậm / cỡ chữ ở màn Giao diện */
   --w-gd-xem: 360px;        /* ADR-0087: bề rộng cột xem trước ở màn Giao diện (máy tính) */
   --w-qr: 18rem;            /* QR thanh toán (ADR-0108): bề rộng tối đa ảnh mã trong bảng QR ở trang đơn */
+  --w-hh-loc: 14rem;        /* Hoa hồng đối tác / Người bán dịch vụ (sổ đại lý đợt 1 Task 10): bề rộng tối thiểu một ô lọc trên hàng lọc — hẹp hơn thì xuống dòng */
   --tabbar-h: 56px;         /* thanh tab dưới đáy, chưa tính vùng an toàn */
   --h-trang-toi-thieu: calc(100vh + env(safe-area-inset-bottom)); /* trang có thanh tab luôn cao ≥ cả màn hình kể cả vùng vạch vuốt: iPhone (app cài ra màn hình chính) đặt thanh tab cao hơn đúng một vùng an toàn khi trang NGẮN hơn màn hình → thanh nhảy khi dữ liệu về (video của chủ dự án 2026-09-27) */
   --tab-icon: 36px;
@@ -3136,7 +3137,7 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 
 /* Hoa hồng đối tác + Người bán dịch vụ (web/hoa-hong.ts, web/nguoi-ban.ts; sổ đại lý đợt 1 Task 10): bộ lọc danh sách, nhóm «Áp cho», ô tìm đối tác và kết quả tìm, chữ nhỏ dưới tên, câu kết quả «Thử tra». Chỉ token. */
 .hh-loc { display: flex; flex-wrap: wrap; gap: var(--s3); margin-bottom: var(--s3); }
-.hh-loc label { flex: 1 1 14rem; min-width: 0; }
+.hh-loc label { flex: 1 1 var(--w-hh-loc); min-width: 0; }
 .hh-nhan-nho { display: block; font-size: var(--fs-label); font-weight: var(--fw-medium); color: var(--c-text-muted); }
 #muc-add-form, #dk-add-form, #thu-tra-form, .hh-pham-vi { display: grid; gap: var(--s3); }
 .hh-nhom { min-width: 0; margin: 0; padding: 0; border: 0; }
