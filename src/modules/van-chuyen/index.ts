@@ -64,7 +64,7 @@ import {
 } from "./dieu-phoi-tien-do";
 // ADR-0097 (gói A1, V3-B): hai lệnh điều chỉnh CHỈ văn phòng — tệp riêng (không phải cặp route tiến độ).
 import { lenhDieuChinhSuat, lenhThuHoiXuatBen } from "./dieu-phoi-dieu-chinh";
-import type { GoiBaoChangDto, NhacGoiKhachResponse } from "../../shared/contracts";
+import type { GoiBaoChangDto, LyDoDangDungDto, NhacGoiKhachResponse } from "../../shared/contracts";
 // Mẫu đưa đón theo dịch vụ (ADR-0054 D10.1; ADR nháp nơi trả mặc định — kế hoạch 2026-10-01-may-chu-o-moi-chang Task 6, 7).
 import type { MauChangBanDto, MauChangFormResponse, MauChangLichSuResponse } from "../../shared/contracts";
 import { CATALOG_CODE_RE } from "../../shared/order-lines";
@@ -191,6 +191,9 @@ const khungBanXeDto = (r: KhungBanRow, bayGioMs: number): KhungBanXeDto => ({
 /** Lý do ĐANG DÙNG của nhóm BAN_XE (danh mục — câu 3.2, chủ 2/10). */
 const lyDoBanXe = async (db: D1Database): Promise<{ code: string; label: string }[]> =>
   (await lyDoDangDung(db)).filter((r) => r.reason_group === "BAN_XE").map((r) => ({ code: r.code, label: r.label }));
+/** Lý do đang dùng của các nhóm `nhom` (DTO danh mục — mã, nhóm, nhãn) cho màn đề nghị chuyển khách (ADR-0111; gói A5 T13 / T14). */
+const lyDoNhom = async (db: D1Database, nhom: readonly NhomLyDo[]): Promise<LyDoDangDungDto[]> =>
+  (await lyDoDangDung(db)).flatMap((r) => (nhom.includes(r.reason_group as NhomLyDo) ? [{ code: r.code, nhom: r.reason_group as NhomLyDo, nhan: r.label }] : []));
 /** Nhắc giờ lái của lệnh tạo / sửa chuyến → `canhBaoLenh` (id tạm "__moi__" của luật thuần đổi sang id thật). */
 const nhacGioLaiDto = (ds: readonly CanhBaoGioLai[], tripId: string): CanhBaoLichDto[] =>
   ds.map((w) => ({ loai: w.loai, nhan: NHAN_CANH_BAO_GIO_LAI[w.loai], legId: null, tripId, maDon: null }));
@@ -1314,6 +1317,19 @@ export const vanChuyenModule: AppModule = {
       return json(cuuHoTu(nen, l) satisfies CuuHoResponse);
     }),
 
+    // ADR-0111 Đ4 (gói A5 T14): xe nhận cho văn phòng GỬI THAY đề nghị cứu hộ — chỉ ONBOARD (xe đang chạy khác, cùng ngày, tài xế công ty khác tài xế xe
+    // nhờ); CÙNG hàm lọc + năm khoá với danh sách của tài xế. Ô trip.progress như route gửi thay; xe nhờ phải đang chạy.
+    route("GET", "/api/van-chuyen/chuyen/:id/xe-nhan", "office", async ({ env, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.progress")) return CAN_BAM_THAY();
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      if (nen.trip.status !== "RUNNING" || nen.trip.driver_party_id === null) return loi409("ck_nguon_khong_chay", [], {}, "Chỉ gửi đề nghị cứu hộ cho xe đang chạy.");
+      const ngay = nen.trip.service_date;
+      const [trips, lich] = await Promise.all([tripsByDate(env.DB, ngay), lichChungChang(env.DB, addDays(ngay, -1), addDays(ngay, 1))]);
+      const l = await dungLichNgay(env.DB, ngay, trips, lich, nhanNhanVien, Date.now(), false);
+      return json({ phamVi: "ONBOARD", xe: xeNhanChoDeNghi({ id: nen.trip.id, ngayChay: ngay }, l.chuyen, "ONBOARD", nen.trip.driver_party_id) } satisfies XeNhanResponse);
+    }),
+
     // ADR-0111 Đ3 (b), Đ4 (kế hoạch A5 T8; NT-A5-15): văn phòng (trip.progress) GỬI THAY đề nghị cứu hộ cho xe đang chạy — chỉ ONBOARD (STOP → 403: nhờ đón
     // một điểm do tài xế gửi). Người gửi (hồ sơ) = tài xế đang lái xe nhờ; `proposed_by_staff_id` = người bấm. CÙNG hàm xử lý với route tài xế.
     route("POST", "/api/van-chuyen/chuyen/:id/cuu-ho", "office", async ({ env, request, params, staff, baoThayDoiChuyen }) => {
@@ -1341,7 +1357,9 @@ export const vanChuyenModule: AppModule = {
       if (!can(staff, "trip.view")) return CAN_XEM_CHUYEN();
       const ngay = url.searchParams.get("ngay") ?? vnToday(new Date());
       if (!isISODate(ngay)) return error(400, "invalid_input", "Ngày xem: YYYY-MM-DD.");
-      return json({ ngay, deNghi: await deNghiDto(env.DB, await deNghiTheoNgay(env.DB, ngay), Date.now(), true) } satisfies DeNghiNgayResponse);
+      return json({
+        ngay, deNghi: await deNghiDto(env.DB, await deNghiTheoNgay(env.DB, ngay), Date.now(), true), lyDo: await lyDoNhom(env.DB, ["PHA_LE", "TU_CHOI_NHAN"]),
+      } satisfies DeNghiNgayResponse);
     }),
 
     // ADR-0111 Đ1, Đ3 (b) + ADR-0052 D4.2 ĐP4 (NT-A5-11): Quản trị / Toàn quyền DUYỆT đề nghị leo thang — chạy lại kiểm; có điều kiện tầng LOI không đạt (mọi
@@ -1713,7 +1731,9 @@ export const vanChuyenModule: AppModule = {
       const hom = vnToday(new Date(bayGioMs));
       const ids = new Set((staff.partyId ? await tripsCuaTaiXe(env.DB, staff.partyId, hom, hom) : []).map((t) => t.id));
       const ds = await deNghiDto(env.DB, await deNghiCuaChuyen(env.DB, [...ids]), bayGioMs, false);
-      return json({ guiDi: ds.filter((d) => ids.has(d.tuChuyenId)), guiToi: ds.filter((d) => ids.has(d.denChuyenId)) } satisfies DeNghiCuaToiResponse);
+      return json({
+        guiDi: ds.filter((d) => ids.has(d.tuChuyenId)), guiToi: ds.filter((d) => ids.has(d.denChuyenId)), lyDo: await lyDoNhom(env.DB, ["TU_CHOI_NHAN"]),
+      } satisfies DeNghiCuaToiResponse);
     }),
 
     // route 21 ↔ 31

@@ -31,6 +31,8 @@ const TRANG_LOAI_GIAY_TO_NGUOI = "/loai-giay-to-nguoi";
 const TRANG_DIEU_PHOI = ["/dieu-phoi", "/chuyen", "/chuyen-sua"];
 /** Vận chuyển Đợt 5 (bản vẽ V11 bảng 11.1): mục con "Xe đang chạy" ngay sau "Điều phối xe", cùng ô trip.view; chuyến mở từ đây vẫn là Chi tiết chuyến. */
 const TRANG_XE_DANG_CHAY = "/xe-dang-chay";
+/** Gói A5 (ADR-0111; bản vẽ V10): mục con "Đề nghị chuyển khách" sau "Xe đang chạy" — CHỈ ô trip.override (Quản trị, Toàn quyền duyệt / bác đề nghị leo thang). */
+const TRANG_DE_NGHI = "/de-nghi";
 /** "Cuốc của tôi" của tài xế (Q5): danh sách + màn một chuyến (xuất bến / đang chạy). */
 const TRANG_CUOC_CAC = [TRANG_CUOC, "/cuoc-chuyen"];
 const TRANG_CHINH_SACH = ["/chinh-sach-dieu-phoi", "/dieu-kien-xuat-ben"];
@@ -77,7 +79,7 @@ function tabsFor(admin: boolean, seesAll: boolean, canCreate: boolean, taiXe = f
   return [
     ...officeTabs,
     ...adminTabs,
-    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" || p === "/help" || p === "/gui-thong-bao" || TRANG_XE.includes(p) || p === TRANG_LICH_XE_BAN || p === TRANG_SAP_HET_HAN || p === TRANG_LOAI_GIAY_TO_XE || p === TRANG_LOAI_GIAY_TO_NGUOI || TRANG_CHINH_SACH.includes(p) || p === TRANG_LY_DO || TRANG_DIEU_PHOI.includes(p) || p === TRANG_TRO_LY || p === TRANG_GIAO_DIEN || p === TRANG_PHIEN || p === TRANG_BANG_GIA || p === TRANG_BANG_KE || p === TRANG_XE_DANG_CHAY || (!cuoc && TRANG_CUOC_CAC.includes(p)) },
+    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" || p === "/help" || p === "/gui-thong-bao" || TRANG_XE.includes(p) || p === TRANG_LICH_XE_BAN || p === TRANG_SAP_HET_HAN || p === TRANG_LOAI_GIAY_TO_XE || p === TRANG_LOAI_GIAY_TO_NGUOI || TRANG_CHINH_SACH.includes(p) || p === TRANG_LY_DO || TRANG_DIEU_PHOI.includes(p) || p === TRANG_TRO_LY || p === TRANG_GIAO_DIEN || p === TRANG_PHIEN || p === TRANG_BANG_GIA || p === TRANG_BANG_KE || p === TRANG_XE_DANG_CHAY || p === TRANG_DE_NGHI || (!cuoc && TRANG_CUOC_CAC.includes(p)) },
   ];
 }
 
@@ -224,7 +226,7 @@ interface NavGroup {
  * tabsFor()/nav ngang cũ (office/admin/canCreate) — KHÔNG tự đổi bản đồ quyền (đặc tả §3.1). Nhóm rỗng bị lọc ở
  * sidebar() (ẩn cả tiêu đề, đặc tả §3.1).
  */
-function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, nhatKy: boolean, path: string, taiXe = false, vehicle = false, danhMuc = false, chinhSach = false, dieuPhoi = false, cuoc = false, taiKhoan = admin, guiThongBao = false, phien = false, bangGia = false, bangKe = false): NavGroup[] {
+function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, nhatKy: boolean, path: string, taiXe = false, vehicle = false, danhMuc = false, chinhSach = false, dieuPhoi = false, cuoc = false, taiKhoan = admin, guiThongBao = false, phien = false, bangGia = false, bangKe = false, duyetDeNghi = false): NavGroup[] {
   const sales: NavItem[] = [];
   // Đợt D Task 5 (ADR-0015 điều 4): "/" nay là Trang chủ, "/orders" là Đơn hàng — active() của "/" phải khớp
   // CHÍNH XÁC "/" (không phải mọi đường dẫn bắt đầu bằng "/").
@@ -252,13 +254,14 @@ function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate:
   if (vehicle || dieuPhoi || bangGia || bangKe) {
     management.push({
       href: "", label: "Vận chuyển", icon: "truck", kind: "parent",
-      active: (p) => TRANG_DIEU_PHOI.includes(p) || p === TRANG_XE_DANG_CHAY || p === TRANG_BANG_GIA || p === TRANG_BANG_KE || TRANG_XE.includes(p) || p === TRANG_LICH_XE_BAN || p === TRANG_SAP_HET_HAN || p === TRANG_LOAI_GIAY_TO_XE || TRANG_CHINH_SACH.includes(p) || p === TRANG_LY_DO,
+      active: (p) => TRANG_DIEU_PHOI.includes(p) || p === TRANG_XE_DANG_CHAY || p === TRANG_DE_NGHI || p === TRANG_BANG_GIA || p === TRANG_BANG_KE || TRANG_XE.includes(p) || p === TRANG_LICH_XE_BAN || p === TRANG_SAP_HET_HAN || p === TRANG_LOAI_GIAY_TO_XE || TRANG_CHINH_SACH.includes(p) || p === TRANG_LY_DO,
     });
     if (dieuPhoi) {
       management.push(
         { href: TRANG_DIEU_PHOI[0]!, label: "Điều phối xe", kind: "sub", active: (p) => TRANG_DIEU_PHOI.includes(p) },
         { href: TRANG_XE_DANG_CHAY, label: "Xe đang chạy", kind: "sub", active: (p) => p === TRANG_XE_DANG_CHAY },
       );
+      if (duyetDeNghi) management.push({ href: TRANG_DE_NGHI, label: "Đề nghị chuyển khách", kind: "sub", active: (p) => p === TRANG_DE_NGHI });
     }
     // Tiền xe thuê (bản vẽ Đợt 4 — thứ tự "Chuyến xe, Bảng giá thuê xe, Bảng kê chi phí xe"; "Chuyến xe" của bản vẽ = "Điều phối xe"): không biểu tượng, không huy hiệu.
     // Gộp Đợt 4 vào Đợt 5: "Xe đang chạy" (Đợt 5) đứng ngay sau "Điều phối xe", trước hai mục tiền xe thuê.
@@ -345,7 +348,7 @@ function sidebarGroup(group: NavGroup, path: string, loaders: (() => void)[]): H
  * cũng có "Đăng xuất" riêng, `web/account.ts`) — thêm một liên kết nhỏ, không đổi khối nào bản mẫu đã vẽ.
  */
 function sidebar(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, path: string, staff: Staff | null, loaders: (() => void)[], tat = "", nhatKy = false, taiXe = false, vehicle = false, danhMuc = false, chinhSach = false, dieuPhoi = false, cuoc = false, taiKhoan = admin, guiThongBao = false, phien = false, bangGia = false, bangKe = false): HTMLElement {
-  const groups = navGroups(admin, seesAll, office, canCreate, nhatKy, path, taiXe, vehicle, danhMuc, chinhSach, dieuPhoi, cuoc, taiKhoan, guiThongBao, phien, bangGia, bangKe)
+  const groups = navGroups(admin, seesAll, office, canCreate, nhatKy, path, taiXe, vehicle, danhMuc, chinhSach, dieuPhoi, cuoc, taiKhoan, guiThongBao, phien, bangGia, bangKe, staff !== null && can(staff, "trip.override"))
     .map((g) => sidebarGroup(g, path, loaders))
     .filter((g): g is HTMLElement => g !== null);
   // `staff` null = khung tạm từ bản nhớ (ADR-0035): chân thanh chỉ có chữ cái đầu, tên/vai điền khi /api/auth/me về.

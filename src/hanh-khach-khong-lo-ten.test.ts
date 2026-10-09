@@ -415,6 +415,11 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         const r = await goi("GET /api/van-chuyen/cuoc-cua-toi/:id/xe-nhan", "xe nhận của A", "GET", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}/xe-nhan?phamVi=ONBOARD`, DRIVER);
         assert.ok(r.xe.some((x: any) => x.tripId === T.B.chuyen.id), "chống bài rỗng: xe B đang chạy có trong danh sách");
       },
+      // ADR-0111 (gói A5 T14): văn phòng xem xe nhận để gửi thay cứu hộ cho A — cùng năm khoá như danh sách của tài xế, không tên.
+      "GET /api/van-chuyen/chuyen/:id/xe-nhan": async () => {
+        const r = await goi("GET /api/van-chuyen/chuyen/:id/xe-nhan", "văn phòng xem xe nhận của A", "GET", `/api/van-chuyen/chuyen/${T.A.chuyen.id}/xe-nhan`, SALES);
+        assert.ok(r.xe.some((x: any) => x.tripId === T.B.chuyen.id), "chống bài rỗng: xe B đang chạy có trong danh sách");
+      },
       // ADR-0111 (gói A5, NT-A5-16): đề nghị chuyển khách — tài xế A nhờ B đón điểm A (suất đã gắn tên), văn phòng gửi thay cứu hộ (nơi gặp chữ có dãy số), tài
       // xế A rút một đề nghị, tài xế B xem đề nghị gửi tới. Phản hồi không tên / năm sinh / khoá nơi; chữ nơi gặp (đã che) chỉ ở DTO đề nghị.
       [`${R}/de-nghi`]: async () => {

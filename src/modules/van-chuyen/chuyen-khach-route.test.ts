@@ -155,7 +155,10 @@ test("NT-A5-9 rút: chỉ tài xế xe nhờ, chỉ khi Chờ và chưa quá h�
     // Quá hạn (10 phút): danh sách hiện "Hết giờ chờ" (tính lúc đọc, chưa ghi); bấm Rút lúc đó → chính lệnh đóng Hết hạn (MQ-08), không rút.
     const id2 = (await gui(w, a.id, { denChuyenId: b.id, phamVi: "STOP", diemId: a.diemDon })).json.deNghi.id;
     denGio("12:51");
-    assert.equal((await w.call("GET", `${VC}/de-nghi-cua-toi`, { as: DRIVER })).json.guiDi.find((x: any) => x.id === id2).trangThai, "HET_GIO");
+    const cuaToi = (await w.call("GET", `${VC}/de-nghi-cua-toi`, { as: DRIVER })).json;
+    assert.equal(cuaToi.guiDi.find((x: any) => x.id === id2).trangThai, "HET_GIO");
+    // T13: lý do Không nhận (nhóm TU_CHOI_NHAN) đi kèm danh sách của tài xế — màn tài xế chọn lý do từ đây.
+    assert.deepEqual(cuaToi.lyDo.map((x: any) => x.nhom), ["TU_CHOI_NHAN", "TU_CHOI_NHAN", "TU_CHOI_NHAN", "TU_CHOI_NHAN"]);
     assert.equal(mot(w, "SELECT status FROM vc_transfer_request WHERE id = ?", id2).status, "PENDING", "đọc không ghi");
     const muon = await rut(w, id2);
     assert.equal(muon.status, 200, muon.text);
@@ -173,6 +176,13 @@ test("NT-A5-15 văn phòng gửi thay cứu hộ: chỉ ONBOARD (STOP → 403), 
     const { a, b } = await haiXe(w);
     denGio("13:35");
     assert.equal((await tienDo(w, "tai-xe", b.id, "xuat-ben", {}, DRIVER2)).status, 200);
+    // T14: danh sách xe nhận cho văn phòng gửi thay (chỉ xe ĐANG CHẠY khác, cùng ngày; không xe của chính tài xế xe nhờ) — trip.progress; xe nhờ phải đang chạy.
+    const dsXe = await w.call("GET", `${VC}/chuyen/${a.id}/xe-nhan`, { as: SALES });
+    assert.equal(dsXe.status, 200, dsXe.text);
+    assert.deepEqual(dsXe.json.xe.map((x: any) => x.tripId), [b.id]);
+    assert.deepEqual(Object.keys(dsXe.json.xe[0]).sort(), ["choTrong", "diemSapToi", "maChuyen", "tenTaiXe", "tripId"], "đúng năm khoá như danh sách của tài xế");
+    assert.equal((await w.call("GET", `${VC}/chuyen/${a.id}/xe-nhan`, { as: ACC })).status, 403, "Kế toán không có trip.progress");
+    assert.equal((await w.call("GET", `${VC}/chuyen/${b.id}/xe-nhan`, { as: SALES })).json.xe.length, 1, "xe nhận cũng xem được danh sách của mình (A đang chạy)");
     assert.equal((await cuuHo(w, a.id, { denChuyenId: b.id, phamVi: "STOP", diemId: a.diemDon })).status, 403);
     assert.equal((await cuuHo(w, a.id, { denChuyenId: b.id, phamVi: "ONBOARD", noiGap: { chu: "Cây xăng" } }, ACC)).status, 403, "Kế toán không có trip.progress");
     const maCuuHo = uuid();
@@ -332,6 +342,9 @@ test("NT-A5-7, -11 nhận dưới mốc (xe nhận chưa chạy) → leo thang (
     const dto = dsVp.json.deNghi.find((x: any) => x.id === id);
     assert.equal(dto.kiem.length, 11);
     assert.equal(dto.hop, "DUYET_HOAC_BAC");
+    // T14: lý do cho hộp Duyệt (PHA_LE) / Bác (TU_CHOI_NHAN) đi kèm danh sách — màn văn phòng không gọi route danh mục lý do (chỉ Quản trị).
+    assert.deepEqual([...new Set(dsVp.json.lyDo.map((x: any) => x.nhom))].sort(), ["PHA_LE", "TU_CHOI_NHAN"]);
+    assert.ok(dsVp.json.lyDo.every((x: any) => x.code && x.nhan), "mỗi lý do có mã + nhãn");
     assert.equal((await w.call("GET", `${VC}/de-nghi?ngay=${NGAY}`, { as: DRIVER })).status, 403, "danh sách văn phòng: tài xế không xem");
     // Duyệt (NT-A5-11).
     for (const as of [SALES, ACC, DRIVER2]) assert.equal((await duyet(w, id, "PHA_LE_SU_CO", as)).status, 403, as);

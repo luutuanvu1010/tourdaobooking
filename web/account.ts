@@ -85,6 +85,8 @@ if (quanLyXe || thayDieuPhoiXe(staff) || bangGiaXe || bangKeXe) {
       { id: "vc-links", class: "card list-card", "aria-labelledby": "vc-eyebrow" },
       thayDieuPhoiXe(staff) && h("a", { class: "row-link", href: "/dieu-phoi" }, h("span", { class: "vc-row-label" }, "Điều phối xe"), icon("next", 20)),
       thayDieuPhoiXe(staff) && h("a", { class: "row-link", href: "/xe-dang-chay" }, h("span", { class: "vc-row-label" }, "Xe đang chạy"), icon("next", 20)),
+      // Gói A5 (ADR-0111): duyệt / bác đề nghị chuyển khách leo thang — CHỈ ô trip.override (Quản trị, Toàn quyền).
+      thayDieuPhoiXe(staff) && can(staff, "trip.override") && h("a", { class: "row-link", href: "/de-nghi" }, h("span", { class: "vc-row-label" }, "Đề nghị chuyển khách"), icon("next", 20)),
       bangGiaXe && h("a", { class: "row-link", href: "/bang-gia-xe" }, h("span", { class: "vc-row-label" }, "Bảng giá thuê xe"), icon("next", 20)),
       bangKeXe && h("a", { class: "row-link", href: "/bang-ke-xe" }, h("span", { class: "vc-row-label" }, "Bảng kê chi phí xe"), icon("next", 20)),
       // Kiểm độc lập K2b T2 (điều phối chốt, GA-K2b-T2): tài khoản vừa tài xế công ty vừa văn phòng — lối tới "Cuốc của tôi" ở điện thoại (tài khoản chỉ tài xế
