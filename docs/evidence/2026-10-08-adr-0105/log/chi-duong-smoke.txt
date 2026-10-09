@@ -1,4 +1,4 @@
-Lần chạy cuối 2026-10-09 07:32 giờ VN (sau `npm run build:web`, AXE_JS có), chép từ màn hình phiên thi công:
+Lần chạy cuối 2026-10-09 07:32 giờ VN (sau `npm run build:web`, AXE_JS có). Log thô KHÔNG được lưu (chạy thẳng ra màn hình); các dòng ✓ dưới đây dựng lại từ màn hình phiên thi công và đã đối chiếu khớp nhãn `b.step(...)` trong kich-ban/chi-duong-smoke.mjs — không phải log thô:
 ✓ 1) 390 An: chuyến NGÀY MAI trước xuất bến KHÔNG nhóm Chỉ đường; xuất bến SỚM (Q-L3-B) vẫn không; GET không có khoá diaChiChiDuong
 ✓ 2) 390 iPhone, chuyến hôm nay TRƯỚC xuất bến: mọi điểm có "Google Maps" + "Apple Maps"; điểm đến = địa chỉ (H1) / tên đã che (H2) / tên bến tàu; chỉ tham số đích; _blank + noreferrer noopener; không tên / SĐT khách, axe không vi phạm critical/serious
 ✓ 3) 390 iPhone: Xuất bến (hộp xác nhận) → đang chạy, nhóm còn đủ; "Đã tới" H1 → vẫn có; "Đã đón" hết khách H1 (điểm DONE) → điểm H1 hết nhóm, điểm khác còn
