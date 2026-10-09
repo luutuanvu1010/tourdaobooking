@@ -33,12 +33,14 @@ const DOI_CHON = `
 const LIST_DOI = defineSql("thongbao", "list_doi", `${DOI_CHON}
   WHERE e.created_at >= ?1 AND e.created_at >= ?2
   ORDER BY e.created_at DESC LIMIT 3000`);
-// Gõ cửa (ADR-0062 Đ4): dòng đổi MỚI NHẤT của người vừa làm trên đơn này, ghi từ ?3 — gốc lắp ráp gọi ngay sau lệnh đổi (route không truyền chữ nhật ký).
-// Thứ tự phụ `e.id` (view không có rowid): lô thay chặng (replaceLeg) ghi HAI dòng cùng mốc (bỏ + thêm) — chọn dòng nào cũng ra cùng người nhận (cả hai không
-// sinh MQ-07; người nhận tin đơn đổi theo đơn), thứ tự phụ chỉ để lần đọc nào cũng như nhau (phiếu kiểm A3 T3).
+// Gõ cửa (ADR-0062 Đ4): LÔ dòng đổi MỚI NHẤT của người vừa làm trên đơn này, ghi từ ?3 — gốc lắp ráp gọi ngay sau lệnh đổi (route không truyền chữ nhật ký).
+// G17: trả MỌI dòng ở mốc mới nhất (một lô = cùng đơn + người làm + mốc, đúng định nghĩa lô của locHopThongBao) — `PUT /trip` ghi `trip_updated` + một
+// `order_leg_updated` mỗi chặng đổi ngày / giờ cùng mốc; đọc MỘT dòng thì tài xế của các chặng khác không được gõ cửa. Mốc mới nhất (không phải mọi dòng từ ?3):
+// hai lệnh chồng nhau của cùng người (hai tab) không gộp thành một lô. Trần 500 > lô lớn nhất (1 + 20 dịch vụ × 10 chặng). Thứ tự `e.id` để lần đọc nào cũng như nhau.
 const DOI_VUA_GHI = defineSql("thongbao", "doi_vua_ghi", `${DOI_CHON}
   WHERE e.order_id = ?1 AND e.staff_id = ?2 AND e.created_at >= ?3
-  ORDER BY e.created_at DESC, e.id LIMIT 1`);
+    AND e.created_at = (SELECT MAX(x.created_at) FROM v_aud_order_change x WHERE x.order_id = ?1 AND x.staff_id = ?2 AND x.created_at >= ?3)
+  ORDER BY e.id LIMIT 500`);
 const LIST_THU_CONG = defineSql("thongbao", "list_thu_cong", `
   SELECT n.id, n.tieu_de, n.noi_dung, n.quan_trong, n.created_by, COALESCE(s.label, '') AS ten_nguoi_gui, n.created_at, (n.valid_to IS NOT NULL) AS thu_hoi,
          (SELECT group_concat(t.tag, ' ') FROM ntf_notice_target t WHERE t.notice_id = n.id) AS tags,
@@ -109,10 +111,12 @@ const dongDoi = (x: DoiRow): DongDon => ({ id: x.id, orderId: x.order_id, maDon:
 export async function listDoi(db: D1Database, tu: string, mocTinDoi: string): Promise<DongDon[]> {
   return (await db.prepare(LIST_DOI).bind(tu, mocTinDoi).all<DoiRow>()).results.map(dongDoi);
 }
-/** Dòng đổi mới nhất của `actorId` trên đơn, ghi từ `tuLuc` (= mốc bắt đầu request — chỉ dòng do chính request ghi) — null = lệnh không ghi dòng đổi (vd số khách y nguyên, đặt gấp, ghi lần thu). */
-export async function doiVuaGhi(db: D1Database, orderId: string, actorId: string, tuLuc: string): Promise<DongDon | null> {
-  const r = await db.prepare(DOI_VUA_GHI).bind(orderId, actorId, tuLuc).first<DoiRow>();
-  return r ? dongDoi(r) : null;
+/**
+ * LÔ dòng đổi mới nhất của `actorId` trên đơn, ghi từ `tuLuc` (= mốc bắt đầu request — chỉ dòng do chính request ghi) — rỗng = lệnh không ghi dòng đổi (vd số
+ * khách y nguyên, đặt gấp, ghi lần thu). G17: mọi dòng cùng mốc (sửa chuyến ghi một dòng mỗi chặng đổi).
+ */
+export async function doiVuaGhi(db: D1Database, orderId: string, actorId: string, tuLuc: string): Promise<DongDon[]> {
+  return (await db.prepare(DOI_VUA_GHI).bind(orderId, actorId, tuLuc).all<DoiRow>()).results.map(dongDoi);
 }
 export async function listThuCong(db: D1Database, tu: string, staffId: string): Promise<DongThuCong[]> {
   const r = (await db.prepare(LIST_THU_CONG).bind(tu, staffId).all<ThuCongRow>()).results;
