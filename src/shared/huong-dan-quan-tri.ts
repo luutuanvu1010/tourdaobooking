@@ -150,7 +150,8 @@ Mở [[Sắp hết hạn]] (điện thoại: [[Giấy tờ sắp hết hạn]] �
 
 1. Thao tác như thường trên [[Điều phối xe]] hoặc màn chuyến.
 2. Hộp hỏi hiện nút như [[Điều chỉnh khẩn cấp và rút]], [[Điều chỉnh khẩn cấp và lưu]], [[Phá lệ và xếp]], [[Phá lệ và lưu]].
-3. Chọn lý do, bấm nút đó. Việc này ghi vào nhật ký chuyến kèm tên bạn.
+3. Chọn lý do, bấm nút đó.
+4. Chờ duyệt chuyển khách: mở [[Đề nghị chuyển khách]], [[Duyệt]] hoặc [[Bác]].
 
 ### Lịch xe bận
 [[Lịch xe bận]]: ghi giờ xe vào xưởng; giờ đó không xếp chuyến cho xe được. Bấm ✕ để rút.`,

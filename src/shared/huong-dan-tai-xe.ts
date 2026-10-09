@@ -57,9 +57,11 @@ Trên máy tính, menu bên trái có: [[Trang chủ]], [[Cuốc của tôi]], [
 - **Muốn ghé điểm khác trước:** khi xe đang chạy, điểm chưa tới có nút mũi tên lên và mũi tên xuống để đổi thứ tự.
 - **Cần đường tới điểm:** trong ngày chạy, mỗi điểm chưa xong có nhóm **Chỉ đường**. Bấm [[Google Maps]] để mở bản đồ với điểm đến điền sẵn; iPhone, iPad, máy Mac có thêm [[Apple Maps]]. Bản đồ chỉ nhận địa chỉ điểm đến, không nhận tên hay số điện thoại khách. Điểm đã xong hoặc chuyến đã kết thúc thì không còn nút. Điểm chưa có địa chỉ thì bản đồ tìm theo tên điểm, có thể sai — báo văn phòng.
 - **Xe hỏng, không đi tiếp được:**
-  1. Bấm [[Kết thúc gián đoạn]].
-  2. Chọn một lý do trong danh sách.
-  3. Bấm [[Kết thúc gián đoạn]] trong bảng. Văn phòng nhận tin ngay và xếp xe cứu hộ; cần gấp thì gọi văn phòng.
+  1. Bấm [[Chuyển khách sang xe khác]], chọn một xe đang chạy còn đủ chỗ, gõ nơi gặp, bấm [[Gửi đề nghị]].
+  2. Tài xế xe kia bấm Nhận thì khách trên xe và khách đang chờ đã sang xe đó. Hết giờ chờ hoặc bị từ chối thì gọi văn phòng.
+  3. Bấm [[Kết thúc gián đoạn]], chọn lý do, bấm [[Kết thúc gián đoạn]] trong bảng. Văn phòng nhận tin ngay và xếp xe cho khách còn lại.
+- **Không kịp tới một điểm đón:** ở điểm đó bấm [[Nhờ xe khác đón]], chọn xe cùng ngày, bấm [[Gửi đề nghị]]. Chưa ai nhận thì khách vẫn ở xe bạn; không cần nữa thì bấm [[Rút lại]].
+- **Xe khác nhờ bạn đón khách:** thẻ đề nghị hiện trên chuyến của bạn, có đếm ngược giờ chờ. Bấm [[Nhận]] để nhận khách, hoặc [[Không nhận]] rồi chọn lý do. Có lúc Nền tảng cần văn phòng duyệt; kết quả báo sau.
 - **Mất mạng:** dòng chưa gửi ghi **Chưa gửi được** kèm nút [[Bấm lại]]. Có mạng thì bấm lại đúng dòng đó. Máy không tự gửi lại. **Đừng tắt app** trước khi bấm lại. Lỡ tắt thì gọi văn phòng bấm thay.
 - **Chỉ thấy "Khách 1", "Khách 2":** tên, năm sinh và số liên hệ khách chỉ hiện **trong ngày chạy**. Xuất bến từ tối hôm trước cũng không hiện sớm.
 - **Mở lại chuyến đang chạy:** ở [[Cuốc của tôi]], bấm [[Mở chuyến đang chạy]].`,
