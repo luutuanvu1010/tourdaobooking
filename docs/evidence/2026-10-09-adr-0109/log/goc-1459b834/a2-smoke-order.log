@@ -1,0 +1,12 @@
+✓ đơn nháp: 2 khối dịch vụ, chip, số khách, chuyến, dòng tiền, nhãn lệch giá (chỉ dịch vụ danh mục), tổng, thanh toán, 3 nút
+✓ xác nhận thiếu ngày: banner nguy hiểm, dòng 'Xe đưa đón riêng — chưa có ngày khởi hành' + liên kết Sửa đúng dịch vụ (KHÔNG có nút 'Tải lại đơn'), đơn vẫn nháp
+file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/agent-a2599ff8ee5c5bb26/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:186
+        if (Date.now() > end) throw new Error(`hết giờ chờ: ${what}\n${expression}`);
+                                    ^
+
+Error: hết giờ chờ: form mở lại đơn
+location.pathname === '/order-form' && document.querySelectorAll('#services .svc').length === 2
+    at Object.waitFor (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/agent-a2599ff8ee5c5bb26/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:186:37)
+    at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/agent-a2599ff8ee5c5bb26/docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-order.mjs:88:3
+
+Node.js v22.22.3

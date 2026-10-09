@@ -1,0 +1,17 @@
+ADR-0109 (phải thu không âm) — nhật ký chạy kiểm, 2026-10-09, nhánh adr-0109-phai-thu-khong-am (gốc claude/van-chuyen-goi-a-c @ 1459b834).
+Mọi kịch bản Chrome chạy với AXE_JS=/Users/tuanbao/.claude/jobs/5d57641a/tmp/axe.min.js, sau npm run build:web, Chrome qua chrome-wrap.sh.
+
+e2e
+- e2e-chon.log: npm run test:e2e -- sua-so-khach so-tien coc-don-huy dispatch  → "E2E: 7/7 kịch bản xanh" (gồm CA 3, 3b, 3c mới).
+- e2e-du-bo.log: npm run test:e2e  → "E2E: 54/54 kịch bản xanh", ba nhóm "Mọi bất biến đạt" (audit-invariants --strict, D1 local tạm).
+
+Chrome (sau = nhánh này; gốc = 1459b834, thư mục goc-1459b834/)
+- sua-so-khach-smoke: thoát 0, đủ bước 1–7 + 5b, 5c; axe 0 critical/serious ở bước 5 (1040) và 5c (390).
+- coc-don-huy-smoke: thoát 0.
+- a2-smoke-order: đỏ "hết giờ chờ: form mở lại đơn" — GIỐNG gốc (đỏ sẵn, kế hoạch đã nêu).
+- a2-smoke-form: đỏ "vòng focus của ô số bộ đếm …" — GIỐNG gốc.
+- a2-smoke-sheet: đỏ "hết giờ chờ: đóng bảng + banner đã lưu" — GIỐNG gốc.
+- v1-nguoi-phu-trach: đỏ bước h, j, l — gốc đỏ h, j, o, l (bước o ở gốc đỏ, nhánh này xanh; không có bước đỏ mới).
+- v1-xac-nhan-png: đỏ bước b, j — GIỐNG gốc.
+- so-tien-smoke: đỏ "sau xác nhận: Bán hàng còn giữ 1.200.000" — GIỐNG gốc.
+Kết luận: không kịch bản nào đỏ ở chỗ mới; các chỗ đỏ đều đỏ sẵn trên gốc (nguyên nhân chưa điều tra, ngoài phạm vi ADR-0109).

@@ -1,0 +1,3 @@
+✓ Bán hàng 390: huỷ bắt chọn lý do (không nhóm Công ty huỷ; Khác bắt ghi rõ); đơn huỷ không còn 'Còn lại', nhãn 'Cọc giữ lại – khách huỷ' + hạn; không nút tiền
+✓ Quản trị 390: Duyệt hoàn cọc 200.000 bằng giao diện; khoản duyệt hiện; không có nút Ghi chi hoàn
+✓ Kế toán 1040: Ghi chi hoàn theo khoản duyệt → 'Đã hoàn', công ty còn giữ 300.000; không tràn
