@@ -162,6 +162,9 @@ export function loiRangBuocChuyen(message: string): { status: number; code: stri
   if (/\bdc_revoke_progress:/.test(message)) return { status: 409, code: "trip_rule", message: CAU_THU_HOI_DA_CO_TIEN_DO };
   if (/\bdc_(scope|balance):/.test(message)) return { status: 409, code: "trip_rule", message: CAU_LUAT_CHUYEN };
   if (/\b(lc0[1-9]|lc1[0-6])_|\bvk1a_|vc_trip_append_only|\bgb_(needs_appt|snapshot)/.test(message)) return { status: 409, code: "trip_rule", message: CAU_LUAT_CHUYEN };
+  // ADR-0111 (0093): đề nghị chuyển khách — LC-14 (`lc14_transfer` — khớp dòng trên), cột / đồ thị / dòng kiểm (`ck_*:`). Lớp máy chủ đã kiểm trước; tới đây là
+  // dữ liệu đổi giữa lúc đọc và lúc ghi (câu chung "tải lại").
+  if (/\bck_[a-z_]+:/.test(message)) return { status: 409, code: "trip_rule", message: CAU_LUAT_CHUYEN };
   // ADR-0051: chuỗi mốc, "còn khách chờ", chỉ-thêm, hai người bấm cùng lúc (UNIQUE (leg_id, seq)) — lớp CSDL của "Đã gọi báo" / "Bỏ đánh dấu".
   if (/\bgb_(chain|active|append_only)|UNIQUE constraint failed: vc_leg_appt_ack\./.test(message)) return { status: 409, code: "gio_hen_vua_doi", message: CAU_GIO_HEN_VUA_DOI };
   if (/UNIQUE constraint failed: vc_trip_allocation\.leg_id|UNIQUE constraint failed: vc_trip\.vehicle_id|UNIQUE constraint failed: vc_trip_driver\.trip_id/.test(message)) {

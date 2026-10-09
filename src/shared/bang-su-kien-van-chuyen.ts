@@ -322,7 +322,7 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
   // `trip.override` kèm lý do PHA_LE (ADR-0052 D4.2 ĐP4; ADR-0111 Đ1, Đ2, N2). Đặt gấp KHÔNG miễn (Đ6). Lý do Không nhận / Bác: nhóm TU_CHOI_NHAN.
   // Rút lại / tự huỷ (VOID) không sinh tin. Bảng tin: xác nhận = "doi" (khách đổi xe), còn lại "sua" (giả định của người thi công — ADR không nói).
   {
-    id: "a5-gui", ten: "Gửi đề nghị chuyển khách (tài xế nhờ xe khác / văn phòng gửi thay cứu hộ)", loai: "chuyen_khach", trangThai: "chua_co_ma",
+    id: "a5-gui", ten: "Gửi đề nghị chuyển khách (tài xế nhờ xe khác / văn phòng gửi thay cứu hộ)", loai: "chuyen_khach", trangThai: "co_ma",
     routes: [
       { phuongThuc: "POST", duongDan: "/api/van-chuyen/cuoc-cua-toi/:id/de-nghi", cong: "staff", o: "trip.transfer", oDau: "trip.view", ngucanh: "assigned", ai: O_CHUYEN_KHACH, ham: "lenhGuiDeNghi" },
       vp("/api/van-chuyen/chuyen/:id/cuu-ho", "trip.progress", O_TIEN_DO, "lenhGuiDeNghi"),
@@ -330,10 +330,10 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
     trangThaiChuyen: ["PLANNED", "RUNNING"], vuot: [],
     luat: "LC-14: nguồn ĐANG CHẠY, người gửi đang lái nguồn (văn phòng chỉ gửi thay cứu hộ ONBOARD — STOP → 403); đích cùng ngày, có tài xế đang lái khác tài xế nguồn; STOP: điểm chưa tới, mọi suất Chờ, không suất phụ xe; ONBOARD: đích ĐANG CHẠY (Đ4), một nơi gặp; chụp số khách và chính sách hiện hành (hạn chờ)",
     bang: [...LO_CHUNG, "vc_transfer_request"], suKien: "TRANSFER_SENT", nhatKy: "trip_transfer_sent", lo: "loGuiDeNghi", bao: "route", suKienCoChuyenNguon: true,
-    tin: { nhom: "thuong", nhan: [{ ai: TX_LUC, loai: "chua_dat" }] }, bangTin: "sua", nguon: "ADR-0111 Đ3 (b), (d), Đ4, Đ6; ADR-0052 D4.1, D4.2 (LC-14), D5c",
+    tin: { nhom: "thuong", nhan: [{ ai: TX_LUC, loai: "de_nghi_toi" }] }, bangTin: "sua", nguon: "ADR-0111 Đ3 (b), (d), Đ4, Đ6; ADR-0052 D4.1, D4.2 (LC-14), D5c",
   },
   {
-    id: "a5-rut-lai", ten: "Tài xế nguồn rút lại đề nghị", loai: "chuyen_khach", trangThai: "chua_co_ma",
+    id: "a5-rut-lai", ten: "Tài xế nguồn rút lại đề nghị", loai: "chuyen_khach", trangThai: "co_ma",
     routes: [{ phuongThuc: "POST", duongDan: "/api/van-chuyen/de-nghi/:rid/rut", cong: "staff", o: "trip.transfer", oDau: "trip.view", ngucanh: "assigned", ai: O_CHUYEN_KHACH, ham: "lenhRutDeNghi" }],
     trangThaiChuyen: ["PLANNED", "RUNNING"], vuot: [], luat: "người bấm đang lái chuyến nguồn; đề nghị còn Chờ trả lời và chưa quá hạn; không tin",
     bang: [...LO_CHUNG, "vc_transfer_request"], suKien: "TRANSFER_WITHDRAWN", nhatKy: "trip_transfer_withdrawn", lo: "loRutDeNghi", bao: "route", suKienCoChuyenNguon: true,

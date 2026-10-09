@@ -80,7 +80,7 @@ export async function lenhThuHoiXuatBen(db: D1Database, nen: NenChuyen, b: ThuHo
   if (chan) return chan;
   const lyDo = await lyDoDieuChinh(db, b.lyDo);
   if (!lyDo) return LY_DO_DIEU_CHINH_SAI();
-  if (coTienDoSauXuatBen(nen.events.filter((e) => e.trip_id === t.id).map((e) => e.kind))) return loi409("da_co_tien_do");
+  if (coTienDoSauXuatBen(nen.events.map((e) => ({ loai: e.kind, chuyenKhac: e.trip_id !== t.id })))) return loi409("da_co_tien_do");
   const cs = await chinhSachHienHanh(db);
   if (!cs) return CHUA_CO_KEP();
   if (t.departed_ms === null || bayGioMs > t.departed_ms + cs.proxy_backdate_max_minutes * 60_000) {

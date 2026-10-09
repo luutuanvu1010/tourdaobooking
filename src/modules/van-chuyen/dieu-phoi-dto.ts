@@ -172,7 +172,7 @@ export function suatChuyenDto(
 }
 
 /** Nhật ký chuyến: loại (nhãn), giờ xảy ra / ghi nhận, người bấm (nhãn — R-P20), máy hay người, số người, phá lệ (mã luật + nhãn lý do). */
-export function nhatKyChuyenDto(events: readonly EventRow[], nhan: ReadonlyMap<string, string> | null, lyDo: ReadonlyMap<string, string>): NhatKyChuyenDto[] {
+export function nhatKyChuyenDto(events: readonly EventRow[], nhan: ReadonlyMap<string, string> | null, lyDo: ReadonlyMap<string, string>, tripId: string): NhatKyChuyenDto[] {
   return events.map((e) => ({
     id: e.id,
     loai: e.kind,
@@ -184,6 +184,7 @@ export function nhatKyChuyenDto(events: readonly EventRow[], nhan: ReadonlyMap<s
     may: e.decided_mode === "MAY",
     soNguoi: e.count,
     phaLe: e.override_rule_code && e.override_reason_code ? { luat: e.override_rule_code, lyDoNhan: lyDo.get(e.override_reason_code) ?? "Phá lệ" } : null,
+    chuyenKhac: e.trip_id !== tripId,
   }));
 }
 

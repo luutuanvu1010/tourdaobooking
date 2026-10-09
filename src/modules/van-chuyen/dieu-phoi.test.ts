@@ -405,7 +405,8 @@ test("R-P20: nhật ký chuyến có nhãn người bấm (tên hiển thị) qu
   assert.doesNotMatch(JSON.stringify(ct.nhatKy), /0900000001/, "không SĐT người bấm");
   // Ghim khoá DTO (điều kiện 3 của R-P20): mỗi dòng nhật ký đúng bộ khoá này; nguoiBam là CHUỖI (tên), không đối tượng; không khoá SĐT / email / id người.
   for (const d of ct.nhatKy) {
-    assert.deepEqual(Object.keys(d).sort(), ["gioGhiNhan", "gioXayRa", "id", "loai", "may", "nguoiBam", "nhan", "phaLe", "soNguoi", "vanPhongKhai"]);
+    // ADR-0111 Đ5 (gói A5): + `chuyenKhac` (sự kiện ghi ở chuyến khác mà chuyến này là chuyến liên quan — luật "đã có tiến độ sau xuất bến").
+    assert.deepEqual(Object.keys(d).sort(), ["chuyenKhac", "gioGhiNhan", "gioXayRa", "id", "loai", "may", "nguoiBam", "nhan", "phaLe", "soNguoi", "vanPhongKhai"]);
     assert.ok(d.nguoiBam === null || typeof d.nguoiBam === "string");
   }
   assert.doesNotMatch(JSON.stringify(ct), /"(sdt|soDienThoai|phone|email|staffId|createdBy|nguoiId)"\s*:/i, "chi tiết chuyến không có khoá SĐT / email / id người bấm");

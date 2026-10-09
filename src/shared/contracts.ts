@@ -1384,6 +1384,8 @@ export interface NhatKyChuyenDto {
   may: boolean;
   soNguoi: number | null;
   phaLe: { luat: string; lyDoNhan: string } | null;
+  /** Sự kiện ghi ở CHUYẾN KHÁC mà chuyến này là chuyến liên quan (dời / chuyển khách đi — ADR-0111 Đ5; luật "đã có tiến độ sau xuất bến"). */
+  chuyenKhac: boolean;
 }
 export interface BanChupDto {
   ketQua: "DAT" | "KHONG_DAT";
@@ -1511,6 +1513,47 @@ export interface CuuHoResponse {
  */
 export interface XeNhanDto { tripId: string; maChuyen: string; tenTaiXe: string; choTrong: number; diemSapToi: string | null }
 export interface XeNhanResponse { phamVi: "STOP" | "ONBOARD"; xe: XeNhanDto[] }
+/**
+ * Đề nghị chuyển khách (ADR-0111; LC-18 — không tên, năm sinh, SĐT khách; chữ nơi gặp đã che CHỈ ở DTO này, không vào nhật ký / tin; khoá nơi không bao giờ).
+ * `trangThai` tính LÚC ĐỌC (MQ-08 — `HET_GIO` = còn Chờ trong CSDL nhưng đã quá hạn; lần bấm tiếp theo mới ghi Hết hạn). `kiem` = dòng kiểm của lần bấm gần
+ * nhất (chỉ DTO văn phòng); `hop` = hộp duyệt khi Leo thang (`CHI_BAC` khi có điều kiện lõi không đạt ở BẤT KỲ lần kiểm nào).
+ */
+export interface DeNghiDto {
+  id: string;
+  tuChuyenId: string;
+  tuMaChuyen: string;
+  denChuyenId: string;
+  denMaChuyen: string;
+  phamVi: "STOP" | "ONBOARD";
+  soKhach: number;
+  /** STOP: điểm đón của xe nhờ (id + tên nơi); ONBOARD: null. */
+  diemId: string | null;
+  tenDiem: string | null;
+  /** ONBOARD: nơi gặp (tên địa điểm danh mục hoặc chữ đã che); STOP: null. */
+  noiGap: string | null;
+  trangThai: "PENDING" | "WITHDRAWN" | "DECLINED" | "EXPIRED" | "VOID" | "CONFIRMED" | "ESCALATED" | "REJECTED" | "HET_GIO";
+  nhanTrangThai: string;
+  guiLuc: string;
+  hanLuc: string;
+  quyetLuc: string | null;
+  /** Nhãn lý do Không nhận / Bác / Duyệt (danh mục); null = không có. */
+  lyDo: string | null;
+  kiem?: { ma: string; nhan: string; tang: "LOI" | "CAU_HINH"; ketQua: "DAT" | "KHONG_DAT" | "CANH_BAO"; giaTri: number | null; gioiHan: number | null }[];
+  hop?: "CHI_BAC" | "DUYET_HOAC_BAC";
+}
+/** Kết quả một lệnh đề nghị (HTTP 200): đã gửi / đã rút / không nhận / đã chuyển / leo thang / hết hạn (nhận hoặc không nhận muộn) / đã bác. */
+export type KetQuaDeNghi = "DA_GUI" | "DA_RUT" | "KHONG_NHAN" | "DA_CHUYEN" | "LEO_THANG" | "HET_HAN" | "DA_BAC";
+export interface DeNghiLenhResponse { ketQua: KetQuaDeNghi; deNghi: DeNghiDto }
+/** `GET /api/van-chuyen/de-nghi-cua-toi`: đề nghị của chuyến tài xế đang lái (hôm nay / đang chạy) — gửi đi (xe nhờ) và gửi tới (xe nhận). */
+export interface DeNghiCuaToiResponse { guiDi: DeNghiDto[]; guiToi: DeNghiDto[] }
+/** `POST …/cuoc-cua-toi/:id/de-nghi`, `POST …/chuyen/:id/cuu-ho` (văn phòng gửi thay — chỉ ONBOARD). */
+export interface GuiDeNghiRequest {
+  requestId: string;
+  denChuyenId: string;
+  phamVi: "STOP" | "ONBOARD";
+  diemId?: string;
+  noiGap?: { diaDiemId?: string | null; chu?: string | null };
+}
 /**
  * `POST /api/van-chuyen/chuyen/:id/cap-nhat-khach` (R-P29, chủ lần 16 — khuôn route 40; ADR-0104 Đ2.11): thân như `CapNhatDiemRequest`. `daCapNhat` = số suất
  * khách ĐÃ ĐÓNG theo đơn (khách đổi: PASSENGER_CHANGED rồi mở lại tới số người của chặng; đơn huỷ / chặng bỏ / đơn không xác nhận / thừa suất chưa tên:

@@ -395,7 +395,7 @@ export async function chiTietChuyen(
     diem: nen.stops.map((s) => diemChuyenDto(s, { allocs: nen.allocs, chang: nc.chang, stops: nen.stops, events: nen.events, nhan })),
     suat: nen.allocs.filter((a) => a.valid_to_at === null).map((a) => suatChuyenDto(a, { changLich: nc.changLich, changNgoai: nc.changNgoai, ten, events: nen.events, nhan, tenDiKem, lyDoNhan })),
     canhBao: canhBao.map(canhBaoDto),
-    nhatKy: nhatKyChuyenDto(nen.events, nhan, lyDoNhan),
+    nhatKy: nhatKyChuyenDto(nen.events, nhan, lyDoNhan, nen.trip.id),
     banChup: banChupDto(await banChupCuoi(db, t.id)),
     lyDo: lyDoDangDung(c),
     xe: xeChon(c),

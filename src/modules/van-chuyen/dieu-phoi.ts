@@ -10,6 +10,7 @@ import {
   EVENT_INSERT, MANIFEST_INSERT, MOC_GOI_INSERT, MOC_XEP_INSERT, STOP_DA_TOI, STOP_INSERT, STOP_SET_SEQ, STOP_SKIP, STOP_UPDATE_PLAN, STOP_XONG_NEU_HET, STOPS_SKIP_ALL, TRIP_CANCEL, TRIP_GATE,
   TRIP_CAM_KET_PHA_LE, TRIP_GATE_CHI_PHI, TRIP_GATE_DANG_CHAY, TRIP_GATE_DOI, TRIP_GATE_THEO_DON, TRIP_GATE_TIEN_DO, TRIP_INSERT, TRIP_KET_THUC, TRIP_UPDATE_PLAN, TRIP_XUAT_BEN,
   ALLOC_OFFICE_CANCEL, MANIFEST_THEM_SAU, TRIP_CHOT, TRIP_GATE_DANG_CHAY_VERSION, ALLOC_DIEU_CHINH_INSERT, EVENT_DIEU_CHINH_INSERT, TRIP_THU_HOI_XUAT_BEN,
+  TRANSFER_DONG, TRANSFER_INSERT, TRIP_GATE_CHAY_HOAC_CHO, TRIP_GATE_DE_NGHI,
 } from "./chuyen-repo";
 import { cauChiPhi, type KeHoachChiPhi } from "./tien-xe-lo";
 import {
@@ -753,6 +754,66 @@ export function loDoiThuTu(db: D1Database, l: LenhDoiThuTu): CauCoNhan[] {
     nhatKy(db, l, "trip_stops_reordered", l.tripId, l.detail),
     suKienTienDo(db, l, { tripId: l.tripId, loai: "STOPS_REORDERED", soNguoi: l.diem.length, xayRa: { iso: l.lucIso, ms: Date.parse(l.lucIso), nguon: "MAY_CHU" }, policyId: l.policyId }),
     ...l.diem.map((d) => ghi(db.prepare(STOP_SET_SEQ).bind(d.id, l.tripId, l.cmd, d.seq, l.lucIso, l.nguoiId))),
+  ];
+}
+
+// =========================================================================================================================================================
+// CHUYỂN KHÁCH GIỮA HAI XE (ADR-0111, thi hành ADR-0052 D4 / D5c — gói A5). Sự kiện + nhật ký ghi ở chuyến ĐÍCH (B), nguồn (A) ở related_trip_id (G-A5-11);
+// nhật ký `detail` chỉ mã chuyến, phạm vi, số khách, mã luật không đạt (không tên, chữ nơi gặp, khoá nơi). Mọi câu sau câu cổng gác theo B. Sự kiện không
+// mang luật bị bỏ qua (G-A5-3) — `decided` = MAY khi máy quyết (xác nhận tự động / leo thang), NGUOI còn lại.
+// =========================================================================================================================================================
+/** Đề nghị mà lô vòng đời nhắm: id, hai chuyến. */
+export interface DeNghiLo {
+  id: string;
+  tuChuyen: string;
+  denChuyen: string;
+}
+export interface LenhGuiDeNghi extends LenhChung {
+  /** Chuyến đích + version máy chủ đọc (cổng). */
+  dich: { tripId: string; version: number };
+  nguonId: string;
+  phamVi: "STOP" | "ONBOARD";
+  diemId: string | null;
+  noiGap: { diaDiemId: string | null; chu: string | null };
+  soKhach: number;
+  /** Hồ sơ tài xế ĐANG LÁI nguồn (người gửi — LC-14); tài khoản bấm (tài xế, hoặc văn phòng gửi thay cứu hộ) ở `nguoiId`. */
+  nguoiGuiPartyId: string;
+  detail: string;
+}
+/** Lô GỬI (LC-14): cổng đích → nhật ký → sự kiện TRANSFER_SENT (đích, nguồn ở related) → dòng đề nghị (id = dấu lệnh; trigger đòi đích mang dấu lệnh = id). */
+export function loGuiDeNghi(db: D1Database, l: LenhGuiDeNghi): CauCoNhan[] {
+  const b = l.dich.tripId;
+  return [
+    { nhan: "CONG", stmt: db.prepare(TRIP_GATE_CHAY_HOAC_CHO).bind(b, l.dich.version, l.cmd, l.lucIso, l.nguoiId) },
+    nhatKy(db, l, "trip_transfer_sent", b, l.detail),
+    suKien(db, l, { tripId: b, relatedTripId: l.nguonId, loai: "TRANSFER_SENT", soNguoi: l.soKhach }),
+    ghi(db.prepare(TRANSFER_INSERT).bind(
+      l.cmd, l.nguonId, b, l.phamVi, l.diemId, l.noiGap.diaDiemId, l.noiGap.chu, l.soKhach, l.nguoiGuiPartyId, l.nguoiId, l.lucIso, l.requestId, l.nguoiId,
+    )),
+  ];
+}
+/** Cổng lô vòng đời ở chuyến đích: đề nghị còn ở một trạng thái thuộc `tu` (bấm hai lần / hai người cùng bấm: một lô thắng). */
+const congDeNghi = (db: D1Database, l: LenhChung, r: DeNghiLo, tu: readonly string[]): CauCoNhan => ({
+  nhan: "CONG",
+  stmt: db.prepare(TRIP_GATE_DE_NGHI).bind(r.denChuyen, l.cmd, l.lucIso, l.nguoiId, r.id, JSON.stringify(tu)),
+});
+/** Đóng đề nghị không đụng cột quyết định (Rút / Hết hạn — Đ3 (b)), gác chuyến đích. */
+const dongDeNghi = (db: D1Database, l: LenhChung, r: DeNghiLo, moi: "WITHDRAWN" | "EXPIRED", tu: readonly string[]): CauCoNhan =>
+  ghi(db.prepare(TRANSFER_DONG).bind(r.id, moi, l.cmd, l.lucIso, l.nguoiId, r.denChuyen, JSON.stringify(tu)));
+
+export interface LenhRutDeNghi extends LenhChung {
+  deNghi: DeNghiLo;
+  soKhach: number;
+  detail: string;
+}
+/** Lô RÚT (tài xế nguồn; chỉ khi Chờ): cổng đích (đề nghị Chờ) → nhật ký → sự kiện TRANSFER_WITHDRAWN → đề nghị WITHDRAWN. */
+export function loRutDeNghi(db: D1Database, l: LenhRutDeNghi): CauCoNhan[] {
+  const r = l.deNghi;
+  return [
+    congDeNghi(db, l, r, ["PENDING"]),
+    nhatKy(db, l, "trip_transfer_withdrawn", r.denChuyen, l.detail),
+    suKien(db, l, { tripId: r.denChuyen, relatedTripId: r.tuChuyen, loai: "TRANSFER_WITHDRAWN", soNguoi: l.soKhach }),
+    dongDeNghi(db, l, r, "WITHDRAWN", ["PENDING"]),
   ];
 }
 

@@ -36,6 +36,10 @@ const BANG: Record<string, { loai: string; giu: Giu }> = {
   // ADR-0097 (gói A1, V3-B): hai lệnh điều chỉnh của văn phòng — lần đầu 201 (+ Location), lần lặp 200 (quét bên dưới với `lan1` = 201).
   [`POST ${VC}/chuyen/:id/phan-bo/:aid/dieu-chinh`]: { loai: "CORRECTION", giu: "quét" },
   [`POST ${VC}/chuyen/:id/thu-hoi-xuat-ben`]: { loai: "DEPARTURE_REVOKED", giu: "quét" },
+  // ADR-0111 (gói A5): đề nghị chuyển khách — sự kiện ghi ở xe NHẬN, xe nhờ ở related; so thêm phạm vi / điểm / đề nghị (G-A5-22).
+  [`POST ${VC}/cuoc-cua-toi/:id/de-nghi`]: { loai: "TRANSFER_SENT", giu: { tep: "chuyen-khach-route.test.ts", bai: "NT-A5-21 mã lệnh dùng lại" } },
+  [`POST ${VC}/chuyen/:id/cuu-ho`]: { loai: "TRANSFER_SENT", giu: { tep: "chuyen-khach-route.test.ts", bai: "NT-A5-15 văn phòng gửi thay cứu hộ" } },
+  [`POST ${VC}/de-nghi/:rid/rut`]: { loai: "TRANSFER_WITHDRAWN", giu: { tep: "chuyen-khach-route.test.ts", bai: "NT-A5-21 mã lệnh dùng lại" } },
   ...Object.fromEntries(
     ["cuoc-cua-toi", "chuyen"].flatMap((goc) => Object.entries(TIEN_DO).map(([duoi, loai]) => [`POST ${VC}/${goc}/:id/${duoi}`, { loai, giu: "quét" as Giu }])),
   ),
@@ -65,7 +69,7 @@ test("bảng lệnh lặp: route nào của index.ts gọi `traLenhLap` thì có
     khai[khoa] = [...goi[0]![1]!.matchAll(/"([A-Z_]+)"/g)].map((x) => x[1]).join(",");
   });
   assert.deepEqual(khai, Object.fromEntries(Object.entries(BANG).map(([k, v]) => [k, v.loai])), "route lệnh chuyến ↔ BANG (thêm route mới thì thêm dòng và cách giữ)");
-  assert.equal(Object.keys(BANG).length, 31);
+  assert.equal(Object.keys(BANG).length, 34);
   assert.deepEqual(khongQua, NGOAI_LE, "route mới nhận requestId phải đi qua traLenhLap");
   for (const [khoa, { giu }] of Object.entries(BANG)) {
     if (giu === "quét") continue;

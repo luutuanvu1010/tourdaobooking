@@ -412,7 +412,7 @@ function nutThuTuKeHoach(d: DiemChuyenDto): HTMLElement | null {
 }
 
 /** "Chưa có tiến độ nào sau xuất bến" (ADR-0097 Đ3.2) — CÙNG hàm với máy chủ, trên nhật ký chuyến của lần đọc (thứ tự ghi); máy chủ vẫn là cổng. */
-const chuaCoTienDo = (r: ChuyenChiTietResponse): boolean => !coTienDoSauXuatBen(r.nhatKy.map((n) => n.loai));
+const chuaCoTienDo = (r: ChuyenChiTietResponse): boolean => !coTienDoSauXuatBen(r.nhatKy.map((n) => ({ loai: n.loai, chuyenKhac: n.chuyenKhac })));
 
 const lenhThuHoi = new Map<string, ReturnType<typeof taoLenh>>();
 /** ADR-0097 Đ3: hộp "Thu hồi xuất bến" — lý do nhóm Điều chỉnh (không ô chữ), chuyến về chưa chạy; tài xế nhận tin và bấm Xuất bến lại khi xe thật sự chạy. */

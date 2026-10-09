@@ -55,7 +55,17 @@ export const cauDieuChinh = (tu: TrangThaiSuat, den: TrangThaiSuat, nhanLyDo: st
  * máy chủ (`lenhThuHoiXuatBen` → 409 `da_co_tien_do`) và màn văn phòng (ẩn nút "Thu hồi xuất bến"); lớp CSDL: trigger vc_trip_revoke_no_progress (thứ tự chèn).
  * Mọi loại sự kiện đều tính (kể cả thêm điểm / báo huỷ / đổi thứ tự khi xe chạy): thu hồi sau chúng sẽ để cờ "thêm khi xe chạy" trên chuyến chưa chạy.
  */
-export function coTienDoSauXuatBen(loai: readonly string[]): boolean {
-  const cuoi = loai.lastIndexOf("DEPARTED");
-  return loai.slice(cuoi + 1).some((k) => k !== "DEPARTED" && k !== "DEPARTURE_REVOKED");
+/**
+ * ADR-0111 Đ5 (dựng lại vc_trip_revoke_no_progress — 0093): `sk` = dòng thời gian của chuyến X theo thứ tự ghi — sự kiện CỦA X (`chuyenKhac` false) và sự kiện
+ * ghi ở chuyến khác mà X là chuyến liên quan (`chuyenKhac` true — vd dời / chuyển khách mà X là xe nhờ). Sau lần xuất bến CUỐI của X: sự kiện của X tính là tiến
+ * độ TRỪ DEPARTED, DEPARTURE_REVOKED và đề nghị chuyển khách CHƯA thành (gửi, rút, không nhận, hết hạn, leo thang, bác — không là tiến độ); sự kiện của chuyến
+ * khác chỉ tính khi là TRANSFER_CONFIRMED (X đã giao khách cho xe khác).
+ */
+const KHONG_LA_TIEN_DO: ReadonlySet<string> = new Set([
+  "DEPARTED", "DEPARTURE_REVOKED", "TRANSFER_SENT", "TRANSFER_WITHDRAWN", "TRANSFER_DECLINED", "TRANSFER_EXPIRED", "TRANSFER_ESCALATED", "TRANSFER_REJECTED",
+]);
+export function coTienDoSauXuatBen(sk: readonly { loai: string; chuyenKhac: boolean }[]): boolean {
+  let cuoi = -1;
+  sk.forEach((x, i) => { if (!x.chuyenKhac && x.loai === "DEPARTED") cuoi = i; });
+  return sk.slice(cuoi + 1).some((x) => (x.chuyenKhac ? x.loai === "TRANSFER_CONFIRMED" : !KHONG_LA_TIEN_DO.has(x.loai)));
 }

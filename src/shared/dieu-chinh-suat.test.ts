@@ -65,10 +65,25 @@ test("nhãn + câu nhật ký (Đ2.6): 'một suất Đã đón → Vắng · B�
 });
 
 test("coTienDoSauXuatBen (Đ3.2 — MỘT luật cho máy chủ 409 da_co_tien_do và nút 'Thu hồi xuất bến'): chỉ xét sự kiện SAU lần xuất bến cuối; DEPARTED / DEPARTURE_REVOKED không tính", () => {
-  assert.equal(coTienDoSauXuatBen(["CREATED", "ALLOCATED", "DEPARTED"]), false, "vừa xuất bến");
-  assert.equal(coTienDoSauXuatBen(["CREATED", "DEPARTED", "STOP_ARRIVED"]), true, "đã tới một điểm");
-  assert.equal(coTienDoSauXuatBen(["DEPARTED", "STOPS_REORDERED"]), true, "đổi thứ tự cũng là tiến độ (ADR Đ3.2)");
-  assert.equal(coTienDoSauXuatBen(["DEPARTED", "STOP_ADDED_RUNNING"]), true, "thêm điểm khi xe chạy — thu hồi sẽ để cờ thêm-khi-chạy trên chuyến chưa chạy");
-  assert.equal(coTienDoSauXuatBen(["DEPARTED", "STOP_ARRIVED", "DEPARTURE_REVOKED", "DEPARTED"]), false, "chỉ tính từ lần xuất bến CUỐI");
-  assert.equal(coTienDoSauXuatBen(["DEPARTED", "DEPARTURE_REVOKED", "DEPARTED", "DEPARTED"]), false);
+  const cua = (...loai: string[]) => loai.map((l) => ({ loai: l, chuyenKhac: false }));
+  assert.equal(coTienDoSauXuatBen(cua("CREATED", "ALLOCATED", "DEPARTED")), false, "vừa xuất bến");
+  assert.equal(coTienDoSauXuatBen(cua("CREATED", "DEPARTED", "STOP_ARRIVED")), true, "đã tới một điểm");
+  assert.equal(coTienDoSauXuatBen(cua("DEPARTED", "STOPS_REORDERED")), true, "đổi thứ tự cũng là tiến độ (ADR Đ3.2)");
+  assert.equal(coTienDoSauXuatBen(cua("DEPARTED", "STOP_ADDED_RUNNING")), true, "thêm điểm khi xe chạy — thu hồi sẽ để cờ thêm-khi-chạy trên chuyến chưa chạy");
+  assert.equal(coTienDoSauXuatBen(cua("DEPARTED", "STOP_ARRIVED", "DEPARTURE_REVOKED", "DEPARTED")), false, "chỉ tính từ lần xuất bến CUỐI");
+  assert.equal(coTienDoSauXuatBen(cua("DEPARTED", "DEPARTURE_REVOKED", "DEPARTED", "DEPARTED")), false);
+});
+
+test("coTienDoSauXuatBen — ADR-0111 Đ5 (NT-A5-19): đề nghị chuyển khách chưa thành không là tiến độ; xe nhờ đã giao khách (TRANSFER_CONFIRMED ghi ở xe nhận) là tiến độ", () => {
+  const cua = (loai: string) => ({ loai, chuyenKhac: false });
+  const khac = (loai: string) => ({ loai, chuyenKhac: true });
+  for (const l of ["TRANSFER_SENT", "TRANSFER_WITHDRAWN", "TRANSFER_DECLINED", "TRANSFER_EXPIRED", "TRANSFER_ESCALATED", "TRANSFER_REJECTED"]) {
+    assert.equal(coTienDoSauXuatBen([cua("DEPARTED"), cua(l)]), false, `xe nhận: ${l} không chặn`);
+    assert.equal(coTienDoSauXuatBen([cua("DEPARTED"), khac(l)]), false, `xe nhờ: ${l} không chặn`);
+  }
+  assert.equal(coTienDoSauXuatBen([cua("DEPARTED"), cua("TRANSFER_CONFIRMED")]), true, "xe nhận đã nhận khách");
+  assert.equal(coTienDoSauXuatBen([cua("DEPARTED"), khac("TRANSFER_CONFIRMED")]), true, "xe nhờ đã giao khách");
+  assert.equal(coTienDoSauXuatBen([cua("DEPARTED"), khac("ALLOCATION_MOVED")]), false, "dời khách đi từ chuyến khác (sự kiện ghi ở đích) — như trước");
+  assert.equal(coTienDoSauXuatBen([khac("TRANSFER_CONFIRMED"), cua("DEPARTED")]), false, "trước lần xuất bến cuối thì không tính");
+  assert.equal(coTienDoSauXuatBen([cua("DEPARTED"), khac("STOP_ARRIVED")]), false, "sự kiện của chuyến khác chỉ tính khi là TRANSFER_CONFIRMED");
 });

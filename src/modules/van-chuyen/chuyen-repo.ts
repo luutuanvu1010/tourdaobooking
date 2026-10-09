@@ -1012,13 +1012,15 @@ export interface DeNghiRow {
   id: string; from_trip_id: string; to_trip_id: string; scope: "STOP" | "ONBOARD"; from_stop_id: string | null; meet_location_id: string | null;
   meet_place_text: string | null; pax_count: number; proposed_by_party_id: string; proposed_by_staff_id: string; proposed_at: string;
   status: "PENDING" | "WITHDRAWN" | "DECLINED" | "EXPIRED" | "VOID" | "CONFIRMED" | "ESCALATED" | "REJECTED"; decided_mode: "MAY" | "NGUOI" | null;
-  decided_by: string | null; decided_at: string | null; decided_by_party_id: string | null; policy_id: string; decline_reason_code: string | null;
+  decided_by: string | null; decided_at: string | null; decided_by_party_id: string | null; decided_cmd_id: string | null; closed_cmd_id: string | null;
+  policy_id: string; decline_reason_code: string | null;
   override_reason_code: string | null; reject_reason_code: string | null; request_id: string; updated_at: string;
   /** Hạn chờ (phút) của dòng chính sách LÚC GỬI (MQ-08). */ accept_wait_minutes: number;
   from_code: string; to_code: string; service_date: string;
 }
 const COT_DE_NGHI = `r.id, r.from_trip_id, r.to_trip_id, r.scope, r.from_stop_id, r.meet_location_id, r.meet_place_text, r.pax_count, r.proposed_by_party_id,
-  r.proposed_by_staff_id, r.proposed_at, r.status, r.decided_mode, r.decided_by, r.decided_at, r.decided_by_party_id, r.policy_id, r.decline_reason_code,
+  r.proposed_by_staff_id, r.proposed_at, r.status, r.decided_mode, r.decided_by, r.decided_at, r.decided_by_party_id, r.decided_cmd_id, r.closed_cmd_id,
+  r.policy_id, r.decline_reason_code,
   r.override_reason_code, r.reject_reason_code, r.request_id, r.updated_at, p.accept_wait_minutes, f.code AS from_code, t.code AS to_code, t.service_date`;
 const TU_DE_NGHI = `vc_transfer_request r JOIN vc_dispatch_policy p ON p.id = r.policy_id JOIN vc_trip f ON f.id = r.from_trip_id JOIN vc_trip t ON t.id = r.to_trip_id`;
 const DE_NGHI_BY_ID = defineSql("van-chuyen", "de_nghi_by_id", `SELECT ${COT_DE_NGHI} FROM ${TU_DE_NGHI} WHERE r.id = ?1`);
@@ -1071,12 +1073,20 @@ const SU_KIEN_THEO_YEU_CAU = defineSql("van-chuyen", "su_kien_theo_yeu_cau", `SE
 // CAO-C (lời chủ 2026-10-08 "Báo mọi lệnh có bỏ qua luật"): cùng vị từ với cờ tin `khan_cap_cho_tin` — `override_rule_code IS NOT NULL`, mọi luật.
 const CHUYEN_NGUON_KHAN_CAP = `SELECT e.related_trip_id FROM vc_trip_event e
   WHERE e.id IN (SELECT value FROM json_each(?2)) AND e.kind = 'ALLOCATION_MOVED' AND e.override_rule_code IS NOT NULL AND e.related_trip_id IS NOT NULL`;
+// ADR-0111 (gói A5, kế hoạch T10 — đường tin chuyển khách RIÊNG): chuyến XE NHỜ (`related_trip_id`) của sự kiện TRANSFER_* trong số được hỏi (?2) — tài xế xe
+// nhờ nhận kết quả đề nghị dù sự kiện không mang luật bị bỏ qua.
+const CHUYEN_NGUON_CHUYEN_KHACH = `SELECT e.related_trip_id FROM vc_trip_event e
+  WHERE e.id IN (SELECT value FROM json_each(?2)) AND e.kind LIKE 'TRANSFER\\_%' ESCAPE '\\' AND e.related_trip_id IS NOT NULL`;
 const CHUYEN_CHO_TIN = defineSql("van-chuyen", "chuyen_cho_tin",
   `SELECT t.id AS trip_id, t.code AS ma, t.service_date AS ngay_chay, t.departed_at AS xuat_ben FROM vc_trip t
-   WHERE t.id IN (SELECT value FROM json_each(?1)) OR t.id IN (${CHUYEN_NGUON_KHAN_CAP})`);
+   WHERE t.id IN (SELECT value FROM json_each(?1)) OR t.id IN (${CHUYEN_NGUON_KHAN_CAP}) OR t.id IN (${CHUYEN_NGUON_CHUYEN_KHACH})`);
 const LAI_CHO_TIN = defineSql("van-chuyen", "lai_cho_tin",
   `SELECT d.trip_id, d.driver_party_id AS party_id, d.valid_from_at AS tu, d.valid_to_at AS den FROM vc_trip_driver d
-   WHERE d.trip_id IN (SELECT value FROM json_each(?1)) OR d.trip_id IN (${CHUYEN_NGUON_KHAN_CAP})`);
+   WHERE d.trip_id IN (SELECT value FROM json_each(?1)) OR d.trip_id IN (${CHUYEN_NGUON_KHAN_CAP}) OR d.trip_id IN (${CHUYEN_NGUON_CHUYEN_KHACH})`);
+/** ADR-0111 (T10): id sự kiện TRANSFER_* (trong số được hỏi) → chuyến xe nhờ. */
+const CHUYEN_KHACH_CHO_TIN = defineSql("van-chuyen", "chuyen_khach_cho_tin",
+  `SELECT e.id, e.related_trip_id AS nguon FROM vc_trip_event e
+   WHERE e.id IN (SELECT value FROM json_each(?1)) AND e.kind LIKE 'TRANSFER\\_%' ESCAPE '\\' AND e.related_trip_id IS NOT NULL`);
 const VANG_CHO_TIN = defineSql("van-chuyen", "vang_cho_tin", `
   SELECT e.id AS su_kien_id, k.order_id FROM vc_trip_event e
   JOIN vc_trip_allocation a ON a.id = e.allocation_id JOIN v_ord_leg_key k ON k.id = a.leg_id
@@ -1103,11 +1113,12 @@ export async function chuyenChoTinTheoId(db: D1Database, q: HoiChuyenChoTin): Pr
     : null;
   const tj = JSON.stringify([...new Set([...q.tripIds, ...(suat ?? []).map((x) => x.trip_id)])]);
   const sk = JSON.stringify([...new Set(q.suKienIds)]);
-  const [t, l, v, k] = await Promise.all([
+  const [t, l, v, k, ck] = await Promise.all([
     db.prepare(CHUYEN_CHO_TIN).bind(tj, sk).all<{ trip_id: string; ma: string; ngay_chay: string; xuat_ben: string | null }>(),
     db.prepare(LAI_CHO_TIN).bind(tj, sk).all<{ trip_id: string; party_id: string; tu: string; den: string | null }>(),
     q.suKienIds.length ? db.prepare(VANG_CHO_TIN).bind(sk).all<{ su_kien_id: string; order_id: string }>() : Promise.resolve({ results: [] }),
     q.suKienIds.length ? db.prepare(KHAN_CAP_CHO_TIN).bind(sk).all<{ id: string; nguon: string | null; moc: number }>() : Promise.resolve({ results: [] }),
+    q.suKienIds.length ? db.prepare(CHUYEN_KHACH_CHO_TIN).bind(sk).all<{ id: string; nguon: string }>() : Promise.resolve({ results: [] }),
   ]);
   return {
     chuyen: t.results.map((c) => ({ tripId: c.trip_id, ma: c.ma, ngayChay: c.ngay_chay, xuatBen: c.xuat_ben,
@@ -1116,6 +1127,7 @@ export async function chuyenChoTinTheoId(db: D1Database, q: HoiChuyenChoTin): Pr
     khanCap: k.results.map((x) => x.id),
     vuotMoc: k.results.filter((x) => x.moc === 1).map((x) => x.id),
     khanCapNguon: k.results.flatMap((x) => (x.nguon ? [{ suKienId: x.id, tripId: x.nguon }] : [])),
+    chuyenKhachNguon: ck.results.map((x) => ({ suKienId: x.id, tripId: x.nguon })),
     ...(suat ? { suatChang: suat.map((x) => ({ legId: x.leg_id, tripId: x.trip_id, tu: x.tu, den: x.den })) } : {}),
   };
 }

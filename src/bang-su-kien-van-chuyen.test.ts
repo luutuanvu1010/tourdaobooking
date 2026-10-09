@@ -145,6 +145,8 @@ function dongMau(d: DongSuKien, t: TinhHuong) {
     vang: [{ suKienId: id, orderId: DON.orderId }, { suKienId: id, orderId: DON_HDV.orderId }],
     khanCap: t.boQua ? [id] : [], vuotMoc: t.boQua ? [id] : [],
     khanCapNguon: t.boQua && d.suKienCoChuyenNguon ? [{ suKienId: id, tripId: "t-nguon" }] : [],
+    // ADR-0111 (T10): đường tin chuyển khách — chuyen-repo trả chuyến xe nhờ cho MỌI sự kiện TRANSFER_* (không đòi cờ bỏ qua luật).
+    chuyenKhachNguon: typeof d.suKien === "string" && d.suKien.startsWith("TRANSFER_") ? [{ suKienId: id, tripId: "t-nguon" }] : [],
   };
   const r = dungDongChuyen([{ id, tripId: "t-dich", actorId: NGUOI.NGUOI_LAM.id, action: d.nhatKy!, luc: LUC }], f, [DON, DON_HDV]);
   assert.equal(r.length, 1);
