@@ -127,6 +127,7 @@
   --w-gd-o: 160px;         /* ADR-0087: bề rộng ô chọn phông / độ đậm / cỡ chữ ở màn Giao diện */
   --w-gd-xem: 360px;        /* ADR-0087: bề rộng cột xem trước ở màn Giao diện (máy tính) */
   --w-qr: 18rem;            /* QR thanh toán (ADR-0108): bề rộng tối đa ảnh mã trong bảng QR ở trang đơn */
+  --w-hh-loc: 14rem;        /* Hoa hồng đối tác / Người bán dịch vụ (sổ đại lý đợt 1 Task 10): bề rộng tối thiểu một ô lọc trên hàng lọc — hẹp hơn thì xuống dòng */
   --tabbar-h: 56px;         /* thanh tab dưới đáy, chưa tính vùng an toàn */
   --h-trang-toi-thieu: calc(100vh + env(safe-area-inset-bottom)); /* trang có thanh tab luôn cao ≥ cả màn hình kể cả vùng vạch vuốt: iPhone (app cài ra màn hình chính) đặt thanh tab cao hơn đúng một vùng an toàn khi trang NGẮN hơn màn hình → thanh nhảy khi dữ liệu về (video của chủ dự án 2026-09-27) */
   --tab-icon: 36px;
@@ -3133,3 +3134,19 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .ky-dong:last-child { border-bottom: 0; }
 .ky-dong-tien { white-space: nowrap; font-weight: var(--fw-bold); }
 #ky-khoa-khu { margin-top: var(--s4); }
+
+/* Hoa hồng đối tác + Người bán dịch vụ (web/hoa-hong.ts, web/nguoi-ban.ts; sổ đại lý đợt 1 Task 10): bộ lọc danh sách, nhóm «Áp cho», ô tìm đối tác và kết quả tìm, chữ nhỏ dưới tên, câu kết quả «Thử tra». Chỉ token. */
+.hh-loc { display: flex; flex-wrap: wrap; gap: var(--s3); margin-bottom: var(--s3); }
+.hh-loc label { flex: 1 1 var(--w-hh-loc); min-width: 0; }
+.hh-nhan-nho { display: block; font-size: var(--fs-label); font-weight: var(--fw-medium); color: var(--c-text-muted); }
+#muc-add-form, #dk-add-form, #thu-tra-form, .hh-pham-vi { display: grid; gap: var(--s3); }
+.hh-nhom { min-width: 0; margin: 0; padding: 0; border: 0; }
+.hh-nhom legend { padding: 0; font-size: var(--fs-old-label); color: var(--c-muted); }
+.hh-radio { display: flex; flex-wrap: wrap; gap: var(--s4); margin: var(--s1) 0 var(--s2); }
+.hh-truong-nhan { display: block; font-size: var(--fs-old-label); color: var(--c-muted); }
+.hh-chon { display: grid; gap: var(--s2); }
+.hh-tim-ket-qua { display: grid; gap: var(--s2); margin-top: var(--s2); }
+.hh-tim-ket-qua .btn { min-height: var(--tap-min); text-align: left; }
+.hh-da-chon { margin: var(--s1) 0 0; }
+.hh-ket-qua { margin: var(--s3) 0 var(--s1); font-weight: var(--fw-bold); }
+#muc-dong-khu, #dk-dong-khu { margin-top: var(--s4); }
