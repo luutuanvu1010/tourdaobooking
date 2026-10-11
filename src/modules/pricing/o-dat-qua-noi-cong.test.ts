@@ -3,12 +3,13 @@
 //  - ô "Đặt qua đối tác"  ⇔ `GET /api/pricing/nguoi-huong` trả 200  (`coODatQuaDoiTac`);
 //  - khối người bán       ⇔ `GET /api/pricing/cung-ung` trả 200       (`coXemNguoiBan`);
 //  - nút "Ghi mức tay"    ⇔ `POST /api/orders/:id/thuong-mai/:serviceId` KHÔNG bị 403 (`duocGhiTay` với đơn đã xác nhận, chưa giao) — id đơn lạ nên qua cổng quyền thì nhận 404, không phải 403.
+// Bài thứ hai nối cổng THỨ TƯ — khối "Phần đối tác" ở trang đơn (`coXemPhanDoiTac`, truyền `assigned: true` vì trang chỉ vẽ khi người xem đã mở được đơn) với `GET /api/orders/:id/thuong-mai`.
 // Tài khoản lai (Bán hàng / Kế toán / Quản trị + Đối tác) nằm trong tập thử: "có quyền Đối tác là áp" (Ruling 12).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
-import { coODatQuaDoiTac, coXemNguoiBan, duocGhiTay } from "../../shared/phan-doi-tac-hien-thi.ts";
+import { coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, duocGhiTay } from "../../shared/phan-doi-tac-hien-thi.ts";
 import type { PermissionCode } from "../../shared/permissions.ts";
 
 const TAP: { ten: string; perms: PermissionCode[] }[] = [
@@ -50,4 +51,58 @@ test("ba cổng ẩn/hiện khớp ĐÚNG câu trả lời của route thật, c
   assert.equal(coODatQuaDoiTac({ id: "x", permissions: ["SALES"] }), true);
   assert.equal(coODatQuaDoiTac({ id: "x", permissions: ["SALES", "PARTNER"] }), false);
   assert.equal(duocGhiTay({ id: "x", permissions: ["ACCOUNTING"] }, { status: "confirmed", deliveredAt: null }), true);
+});
+
+
+// ---- cổng khối "Phần đối tác" ở trang đơn ----
+
+const AT = "2026-10-01T00:00:00.000Z";
+const vnHomNay = () => new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
+
+test("cổng khối Phần đối tác: người ĐÃ mở được trang đơn thì giao diện luôn gắn khối và route phần đối tác không bao giờ 403 (chỉ 200 hoặc 404 — ẩn lặng lẽ); đơn của mình, của người khác, được giao", async () => {
+  const w = world();
+  const CHU = "77777777-7777-4777-8777-777777777700";
+  seedStaff(w.sqlite, { id: CHU, phone: "0900000100", name: "Chủ đơn", perms: ["SALES"] });
+  const ids = TAP.map((t, i) => {
+    const id = `77777777-7777-4777-8777-7777777777${String(10 + i).padStart(2, "0")}`;
+    seedStaff(w.sqlite, { id, phone: `09000001${String(10 + i).padStart(2, "0")}`, name: t.ten, perms: t.perms });
+    return id;
+  });
+  let seq = 0;
+  const taoDon = (chu: string): string => {
+    const id = `99999999-9999-4999-8999-${String(++seq).padStart(12, "0")}`;
+    w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, booker_party_id, created_at, updated_at)
+      VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', 1000000, 1000000, 1000000, NULL, ?, ?)`).run(id, `TD-${seq}`, chu, AT, AT);
+    w.sqlite.prepare(`INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, ?, 0, NULL, 'DV 0', 'manual', 1, ?)`).run(`${id}-s0`, id, vnHomNay());
+    w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, NULL, NULL, 'Người lớn', 1, 1000000, NULL, 1000000)`).run(`${id}-i0`, id, `${id}-s0`);
+    return id;
+  };
+  const donCuaNguoiKhac = taoDon(CHU);
+  const donCuaMinh = ids.map((id) => taoDon(id));
+  const donDuocGiao = ids.map((id, i) => {
+    const don = taoDon(CHU);
+    w.sqlite.prepare("INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, valid_from_at, created_at, updated_at) VALUES (?, ?, 'HANDLE', ?, ?, ?, ?)").run(`as-${i}`, don, `pty-${id}`, AT, AT, AT);
+    return don;
+  });
+  const sai: string[] = [];
+  const tk = { mo: 0, khongMo: 0, koAn404: 0, hien200: 0 };
+  for (const [i, t] of TAP.entries()) {
+    const staff = { id: ids[i]!, permissions: t.perms };
+    const ca: [string, string, string][] = [["đơn của mình", donCuaMinh[i]!, ids[i]!], ["đơn người khác", donCuaNguoiKhac, CHU], ["đơn được giao", donDuocGiao[i]!, CHU]];
+    for (const [nhan, don, chu] of ca) {
+      const trang = await w.call("GET", `/api/orders/${don}`, { as: ids[i] });
+      if (trang.status !== 200) { tk.khongMo++; continue; } // không mở được trang đơn ⇒ không có khối nào để bàn
+      tk.mo++;
+      const gate = coXemPhanDoiTac(staff, { staffId: chu });
+      const route = await w.call("GET", `/api/orders/${don}/thuong-mai`, { as: ids[i] });
+      if (!gate) sai.push(`${t.ten} · ${nhan}: mở được trang đơn nhưng giao diện không gắn khối (route trả ${route.status})`);
+      if (route.status === 403) sai.push(`${t.ten} · ${nhan}: giao diện gắn khối nhưng route trả 403 (khối sẽ báo lỗi mãi, nút Tải lại vô dụng)`);
+      if (route.status === 404) tk.koAn404++;
+      if (route.status === 200) tk.hien200++;
+      if (route.status !== 200 && route.status !== 404 && route.status !== 403) sai.push(`${t.ten} · ${nhan}: route trả ${route.status}`);
+    }
+  }
+  assert.deepEqual(sai, []);
+  // đối chứng: bài có răng — có tài khoản mở được và không mở được trang đơn, có khối hiện (200) và có khối bị ẩn lặng lẽ (404)
+  assert.ok(tk.mo >= 10 && tk.khongMo >= 3 && tk.hien200 >= 5 && tk.koAn404 >= 2, JSON.stringify(tk));
 });
