@@ -197,6 +197,13 @@ test("NT-8 lớp CSDL Báo bận: khung DRIVER không chồng chuyến → ghi �
   const k = khungTaiXe(db, a, tu + 4 * H, tu + 8 * H); // sau chuyến: được
   assert.throws(() => khungTaiXe(db, a, tu + H, tu + 3 * H), /unavailability_overlaps_driver_trip/, "chồng chuyến đang xếp");
   assert.throws(() => khungTaiXe(db, a, tu + 10 * H, tu + 11 * H, "BAN_XE_KHAC"), /unavailability_reason_group/, "lý do nhóm xe bận");
+  // B9.2 với chuyến ĐANG CHẠY (vế `RUNNING` của trigger — phiếu kiểm độc lập VỪA-3): tài xế đang chạy chuyến thì không ghi được khung bận chồng giờ chuyến đó.
+  const b = nguoi(db);
+  const tb = chuyen(db, BAY_GIO + H); // trong cửa sổ xuất bến (chính sách gieo 720 phút) để UPDATE sang RUNNING qua được lc20
+  lai(db, tb, b);
+  db.exec("DROP TRIGGER vc_trip_running_requires_check"); // cô lập: chỉ B9.2 được phép chặn (không dựng bản kiểm xuất bến đạt)
+  run(db, "UPDATE vc_trip SET status = 'RUNNING', departed_at = ?, departed_ms = ?, updated_at = ? WHERE id = ?", AT, BAY_GIO, AT, tb);
+  assert.throws(() => khungTaiXe(db, b, BAY_GIO + 2 * H, BAY_GIO + 4 * H), /unavailability_overlaps_driver_trip/, "chồng chuyến ĐANG CHẠY");
   const t2 = chuyen(db, tu + 5 * H);
   assert.throws(() => lai(db, t2, a), /lc03_driver_unavailable/, "xếp tài xế vào chuyến chồng khung bận");
   assert.throws(() => doiGio(db, t, tu + 3 * H), /lc03_driver_unavailable/, "dời giờ chuyến (tài xế đang mở) vào khung bận");
@@ -204,6 +211,7 @@ test("NT-8 lớp CSDL Báo bận: khung DRIVER không chồng chuyến → ghi �
     assert.throws(() => run(db, sql, k), /vc_unavailability_append_only/, sql);
   }
   run(db, "UPDATE vc_unavailability SET withdrawn_at = ?, withdrawn_by = 's1', version = 2, updated_at = ?, updated_by = 's1' WHERE id = ?", AT, AT, k);
+  doiGio(db, t, tu + 3 * H); // khung đã rút: dời giờ chuyến vào đó cũng không chặn (khoá `withdrawn_at IS NULL` của vc_trip_driver_unavailable_upd — phiếu kiểm độc lập VỪA-3)
   lai(db, t2, a); // khung đã rút: không chặn
   doiGio(db, chuyen(db, tu + 50 * H), tu + 51 * H); // chuyến khác không tài xế: không liên quan
 });
