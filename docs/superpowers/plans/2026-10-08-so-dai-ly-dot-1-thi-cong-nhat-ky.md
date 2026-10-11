@@ -631,3 +631,6 @@ Ngày 2026-10-12. Mỗi phép: sửa MỘT chỗ, chạy bài, hoàn nguyên b�
 | (ae) chữ cho tài khoản chưa tìm được đối tác | bài đổi sang câu mới TRƯỚC khi sửa hằng | `hoa-hong-hien-thi.test.ts` `not ok 9` (8 / 1); sau khi sửa 9/9 | không cần |
 Chưa có rào máy cho việc trang CÓ thật sự truyền `ten` cho `locMuc`: tham số bắt buộc nên `tsc` bắt (đã không thể quên), nhưng trang vẫn có thể truyền một `ten` rỗng — dựa vào kịch bản Chrome Task 13.
 
+### Task 10 — vòng sửa 1: kết quả và bộ kiểm
+- Bộ kiểm (2026-10-12, trên `61a07c18`): `npm run build:web` thoát 0 (kho trợ lý «khớp mã, không đổi», không tệp sinh nào đổi); `npm run typecheck` 0 lỗi; `node --test` riêng 145/145 trên mười một tệp (ba tệp rào K-c, `muc-giao-dien-hien-trang`, `giao-dien-hoi-bang-quyen`, `architecture`, `sw-policy`, `so-dai-ly-nhap`, `hoa-hong-hien-thi`, `co-the-tim-doi-tac`, `tran-moi-khach`) và 21/21 trên `so-la-thuong-mai-toan-nen-tang` + `trang-chu-o`. `npm test`: **bước 1 thoát 0, bước 2 thoát 0** — 3744 bài, 3742 đạt, 0 đỏ, 2 todo có sẵn (3741 → 3744: ba bài mới của vòng này); bài đo giờ của hook 1/1. Chưa chạy: `tests/e2e/pwa.mjs`, `npm run test:e2e`, Chrome, `wrangler dev` (chưa có ảnh thật hai khổ cho hai trang — Task 13).
+
