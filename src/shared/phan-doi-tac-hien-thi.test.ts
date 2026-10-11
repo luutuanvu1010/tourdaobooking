@@ -41,6 +41,7 @@ test("gopBenDat: dòng chỉ đọc hoặc đã chọn đại lý thắng ô tra
   assert.deepEqual(gopBenDat({ chiDoc: null, daChon: null, tra: traMoi }), traMoi);
   assert.deepEqual(gopBenDat({ chiDoc: null, daChon: AGENCY, tra: traMoi }), { bookerPartyId: "pty-1" }, "đã chọn đại lý: bỏ qua hồ sơ mới của ô tra SĐT");
   assert.deepEqual(gopBenDat({ chiDoc: AGENCY, daChon: null, tra }), { bookerPartyId: "pty-1" });
+  assert.deepEqual(gopBenDat({ chiDoc: AGENCY, daChon: { partyId: "pty-2", ten: "Khác" }, tra }), { bookerPartyId: "pty-1" }, "hai bên cùng có (không xảy ra trên giao diện thật): bên máy chủ ép thắng, vì máy chủ cũng ép như vậy");
 });
 
 test("noiNapBenDat: mở lại nháp — bên đặt là đối tác thì vào ô Đặt qua đối tác (khi có ô), không thì vào ô tra SĐT", () => {

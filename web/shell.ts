@@ -315,6 +315,13 @@ function barTitleFor(path: string, dataTitle: string | undefined): string {
   return dataTitle || nhanTheoDuong(path) || APP_NAME;
 }
 
+/**
+ * Bên đặt mà MÁY CHỦ sẽ ép cho tài khoản Đối tác này (trường `benDatCuaToi` của `GET /api/auth/me` — sổ đại lý đợt 1, Task 11; Ruling 21). Gán sau khi `initShell()` có phản hồi `/me`, trước đó null.
+ * Form lập đơn chỉ ĐỌC để hiện dòng "Bên đặt: <tên>"; giao diện không tự suy luật. Không đưa vào bản nhớ khung (ADR-0035: năm trường đã duyệt, không thêm).
+ */
+let benDatMayChuEp: { partyId: string; ten: string } | null = null;
+export const benDatCuaToi = (): { partyId: string; ten: string } | null => benDatMayChuEp;
+
 /** Đổi tiêu đề trên thanh đầu trang (điện thoại) sau khi trang biết nội dung, vd mã đơn. */
 export function setBarTitle(text: string): void {
   const el = document.getElementById("bar-title");
@@ -437,6 +444,7 @@ export async function initShell(): Promise<Staff> {
     return new Promise<never>(() => undefined);
   }
   const { staff } = me;
+  benDatMayChuEp = me.benDatCuaToi ?? null;
   datNguoiDangNhap(staff.id); // ADR-0094: vé chống ghi trùng giữ qua "tải lại trang" theo ngăn của tài khoản này
   if (me.maintenance?.on) setMaintenanceStrip(true);
   // Bốn cờ của bản nhớ khung hỏi CÙNG bảng quyền với máy chủ (ADR-0072 mục 4a: `admin` là ô admin.manage, không hỏi mã Quản trị) — `coKhungNho` của bảng mục.

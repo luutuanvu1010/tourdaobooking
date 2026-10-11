@@ -10,6 +10,7 @@ import type { MauChang } from "../src/shared/chang-mac-dinh";
 import { dongTuDto, loiDanhSachKhach, passengersNhap, type DongKhach } from "../src/shared/hanh-khach-form";
 import { soKhachDoan } from "../src/shared/hanh-khach";
 import { suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
+import { gopBenDat, khoiBenDatForm, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, holdsPartner } from "../src/shared/permissions";
 import {
@@ -23,6 +24,7 @@ import { openAssigneePicker } from "./assignee-picker";
 import { renderBanner } from "./banner";
 import { createBookerPicker } from "./booker-picker";
 import { createCatalogPicker } from "./catalog-picker";
+import { dongBenDatChiDoc, oDatQuaDoiTac, type DatQuaDoiTac } from "./dat-qua-doi-tac";
 import { byId, h, replaceChildren } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
 import { suKienVeDon } from "./lam-moi-logic";
@@ -35,7 +37,7 @@ import { taoKhoiHanhKhach, type KhoiHanhKhach } from "./khoi-hanh-khach";
 import { goiSom } from "./goi-som";
 import { icon } from "./icons";
 import { layKhungNho } from "./khung-nho";
-import { initShell, setBarTitle } from "./shell";
+import { benDatCuaToi, initShell, setBarTitle } from "./shell";
 
 const params = new URLSearchParams(location.search);
 const editId = params.get("id");
@@ -351,7 +353,8 @@ function collect(): OrderInput {
     ...(hk ? { passengers: passengersNhap(hk.rows()) } : {}),
     discount: num("discount"),
     paymentNote: field("paymentNote").value,
-    ...bookerPicker.payload(),
+    // Bên đặt (sổ đại lý đợt 1, Task 11): dòng chỉ đọc của Đối tác hoặc đại lý đã chọn ở ô "Đặt qua đối tác" thắng ô tra SĐT; không thì như hôm nay.
+    ...gopBenDat({ chiDoc: khoiBenDat.kieu === "chi-doc" ? khoiBenDat.benDat : null, daChon: daChonBenDat, tra: bookerPicker.payload() }),
     ...(orderUpdatedAt ? { expectedUpdatedAt: orderUpdatedAt } : {}),
     // Chỉ khi LẬP đơn và đã chọn người: chưa chọn → KHÔNG gửi trường này (đơn "Chờ nhận"), sửa đơn → không bao giờ gửi (PUT không đổi người phụ trách).
     ...(canPickHandler && !editId && handlerPick ? { handlerStaffId: handlerPick.staffId } : {}),
@@ -516,10 +519,28 @@ async function loadCatalog(): Promise<void> {
   }
 }
 
+/**
+ * Nạp bên đặt đang lưu của đơn nháp. Đối tác mà máy chủ ép bên đặt: không nạp gì (dòng chỉ đọc). Bên đặt là đối tác (cờ `bookerLaDoiTac` do MÁY CHỦ tính) và người sửa có ô "Đặt qua đối tác" ⇒ nạp vào ô đó,
+ * không vào ô tra SĐT; còn lại giữ cách cũ (ô tra SĐT nạp hồ sơ đang lưu — kể cả Đối tác / tài khoản lai mở nháp có đại lý do văn phòng gắn). Nạp lại sau 409 phải dọn lựa chọn cũ của ô kia.
+ */
+function napBenDat(o: Api.OrderDetailDto): void {
+  if (khoiBenDat.kieu === "chi-doc") return;
+  if (noiNapBenDat({ coODatQua: datQua !== null, bookerLaDoiTac: o.bookerLaDoiTac, bookerPartyId: o.bookerPartyId }) === "dat-qua" && o.bookerPartyId) {
+    const chon: BenDatChon = { partyId: o.bookerPartyId, ten: o.bookerName ?? "" };
+    datQua?.datChon(chon);
+    datBenDat(chon);
+    bookerPicker.set(null, null);
+    return;
+  }
+  datQua?.datChon(null);
+  datBenDat(null);
+  bookerPicker.set(o.bookerPartyId, o.bookerName);
+}
+
 function fill(o: Api.OrderDetailDto): void {
   field("customerName").value = o.customerName;
   field("customerPhone").value = o.customerPhone;
-  bookerPicker.set(o.bookerPartyId, o.bookerName);
+  napBenDat(o);
   field("customerEmail").value = o.customerEmail ?? "";
   field("customerNote").value = o.customerNote ?? "";
   (field("discount") as HTMLInputElement).value = o.discount ? grouped(o.discount) : "";
@@ -601,6 +622,24 @@ traTruocAn ||= can(staff, "ledger.write");
 picker.setTaiKhoan(staff.id); // ADR-0058 Đ8: chip nhóm nhớ THEO TÀI KHOẢN trên máy — bộ chọn dựng trước khi biết tài khoản, trước dòng này không đọc / ghi bộ nhớ
 retailOnly = holdsPartner(staff); // trước loadCatalog/loadOrder: thẻ dịch vụ dựng sau dòng này
 duocDatGap = can(staff, "order.leg.short_notice");
+// ---- bên đặt (sổ đại lý đợt 1, Task 11; đặc tả §7) ----
+// Quyết định hiện gì do `khoiBenDatForm` (src/shared/phan-doi-tac-hien-thi.ts): Đối tác mà máy chủ ÉP bên đặt (trường `benDatCuaToi` của /api/auth/me — giao diện không suy) → dòng chỉ đọc "Bên đặt: <tên>"
+// thay ô tra hồ sơ khách; văn phòng (người lập đơn, KHÔNG giữ quyền Đối tác) → thêm ô "Đặt qua đối tác"; còn lại → ô tra SĐT như hôm nay. Dựng TRƯỚC loadOrder (nạp nháp cần biết có ô nào).
+const khoiBenDat = khoiBenDatForm(staff, benDatCuaToi());
+let datQua: DatQuaDoiTac | null = null;
+let daChonBenDat: BenDatChon | null = null;
+/** Đã chọn / bỏ chọn đại lý: ô tra hồ sơ khách theo SĐT ẩn khi đã chọn (tên + SĐT khách đi tour vẫn nhập ở hai ô khách); bỏ chọn thì hiện lại như cũ. */
+function datBenDat(chon: BenDatChon | null): void {
+  daChonBenDat = chon;
+  bookerPicker.root.hidden = chon !== null;
+}
+if (khoiBenDat.kieu === "chi-doc") {
+  bookerPicker.tat();
+  bookerPicker.root.replaceWith(dongBenDatChiDoc(khoiBenDat.benDat));
+} else if (khoiBenDat.kieu === "tra-sdt-va-dat-qua") {
+  datQua = oDatQuaDoiTac({ daChon: null, onDoi: datBenDat });
+  bookerPicker.root.before(datQua);
+}
 // R-P15: mốc cho biểu mẫu chưa lưu — chỉ người được lập đơn (máy chủ hỏi order.create). Lỗi / chưa có chính sách (503) → không cảnh báo; máy chủ vẫn chặn lúc xác nhận.
 const layMoc = can(staff, "order.create")
   ? api<Api.MocToiThieuResponse>("/api/orders/moc-toi-thieu").then((r) => r.mocToiThieuPhut, () => null)
