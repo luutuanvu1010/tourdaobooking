@@ -168,9 +168,13 @@ test("NT-6 lớp CSDL Từ chối: người đóng ≠ tài xế → tc82_; sau 
   const t2 = chuyen(db, BAY_GIO + 6 * H);
   const d2 = lai(db, t2, a);
   assert.throws(() => dongLai(db, d2, { nguoiDong: a }), /tc83_/, "sau hạn");
-  // biên: hạn = giờ thật + 1 phút → còn hạn (được); hạn đã lùi về giờ thật − 1 phút → tc83_
-  const t3 = chuyen(db, BAY_GIO + 12 * H + PHUT);
+  // gần biên, cách ±10 phút (không dựa vào ranh giới phút: CSDL so GIỜ THẬT lúc chạy, bài có thể bắt đầu ở giây 59 — phiếu kiểm độc lập VỪA-2):
+  // hạn = giờ thật + 10 phút → còn hạn (được); hạn = giờ thật − 10 phút → tc83_. Biên chính xác "bayGio ≤ hạn" khoá ở bài route bằng đồng hồ giả (tu-choi.test.ts).
+  const t3 = chuyen(db, BAY_GIO + 12 * H + 10 * PHUT);
   const d3 = lai(db, t3, a);
+  const t3b = chuyen(db, BAY_GIO + 12 * H - 10 * PHUT);
+  const a3b = nguoi(db); // tài xế khác: hai chuyến cách 20 phút sẽ trùng giờ nếu cùng tài xế
+  assert.throws(() => dongLai(db, lai(db, t3b, a3b), { nguoiDong: a3b }), /tc83_/, "hạn đã qua 10 phút");
   dongLai(db, d3, { nguoiDong: a });
   assert.deepEqual({ ...one(db, "SELECT close_reason c, refuse_reason_code r, closed_by_party_id p FROM vc_trip_driver WHERE id = ?", d3) }, { c: "REFUSED", r: "TCC_KHAC", p: a });
   assert.throws(() => run(db, "UPDATE vc_trip_driver SET valid_to_at = NULL, close_reason = NULL, refuse_reason_code = NULL, closed_by_party_id = NULL WHERE id = ?", d3), /lc04_close_once/, "mở lại dòng đã đóng");
