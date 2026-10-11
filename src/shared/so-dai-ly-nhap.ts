@@ -1,5 +1,6 @@
 // Đọc ô nhập của màn bảng mức / người bán (thuần). Tỷ lệ lưu bằng PHẦN VẠN nguyên (12,5% = 1250) — không số thực ở bất kỳ đâu.
 // Máy chủ vẫn kiểm lại mọi thân gửi (src/modules/pricing/rules.ts); ở đây chỉ để báo lỗi ngay dưới ô trước khi gửi, bằng chữ tiếng Việt.
+import { nhanDong } from "./so-dai-ly-nhan.ts";
 import { isISODate } from "./vn-date.ts";
 
 export function docTyLePhanTram(raw: string): { ok: true; bp: number } | { ok: false; message: string } {
@@ -10,10 +11,15 @@ export function docTyLePhanTram(raw: string): { ok: true; bp: number } | { ok: f
   return bp <= 10_000 ? { ok: true, bp } : { ok: false, message: "Tỷ lệ không quá 100%." };
 }
 
+/** Trần «Số tiền mỗi khách» (đồng). Cùng giá trị với `kiemThanMuc` của máy chủ (src/modules/pricing/rules.ts); bài `src/modules/pricing/tran-moi-khach.test.ts` nối hai bên bằng hàm thật của máy chủ. */
+export const MOI_KHACH_TOI_DA = 100_000_000;
+
 export function docTienMoiKhach(raw: string): { ok: true; dong: number } | { ok: false; message: string } {
   const s = raw.trim().replace(/\./g, "");
   if (!/^\d{1,9}$/.test(s)) return { ok: false, message: "Số tiền mỗi khách là số nguyên đồng (vd 50.000)." };
-  return { ok: true, dong: Number(s) };
+  const dong = Number(s);
+  if (dong > MOI_KHACH_TOI_DA) return { ok: false, message: `Số tiền mỗi khách không quá ${nhanDong(MOI_KHACH_TOI_DA)}đ.` };
+  return { ok: true, dong };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------

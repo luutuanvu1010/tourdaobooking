@@ -10,7 +10,7 @@ export const CAU_THIEU_MUC = "Thiếu mức — Kế toán xử lý";
 /** Luật X3 (đặc tả Phần A điểm 2): dịch vụ đưa đón / nhóm Thuê xe không ghi nhà cung cấp mua lại. MỘT câu cho trigger `prc_supply_term_x3` (route điều khoản) và cho đường ghi mức tay của đơn. */
 export const NHOM_THUE_XE = "TXE";
 export const CAU_X3_THUE_XE = "Dịch vụ nhóm Thuê xe không ghi nhà cung cấp mua lại (để khỏi tính tiền xe hai lần).";
-const nhanDong = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+export const nhanDong = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 export const nhanTyLeBp = (bp: number): string => {
   const nguyen = Math.floor(bp / 100);
   const le = String(bp % 100).padStart(2, "0").replace(/0+$/, "");

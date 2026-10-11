@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { docNgayDong, docThanDieuKhoan, docThanMuc, docTienMoiKhach, docTyLePhanTram, ngayDongMacDinh, type FormDieuKhoan, type FormMuc } from "./so-dai-ly-nhap.ts";
+import { MOI_KHACH_TOI_DA, docNgayDong, docThanDieuKhoan, docThanMuc, docTienMoiKhach, docTyLePhanTram, ngayDongMacDinh, type FormDieuKhoan, type FormMuc } from "./so-dai-ly-nhap.ts";
 
 test("docTyLePhanTram: dấu phẩy hoặc chấm, tối đa hai chữ số thập phân, 0…100", () => {
   assert.deepEqual(docTyLePhanTram("12,5"), { ok: true, bp: 1250 });
@@ -17,6 +17,18 @@ test("docTienMoiKhach: số nguyên đồng, bỏ dấu chấm nghìn", () => {
   assert.deepEqual(docTienMoiKhach("50.000"), { ok: true, dong: 50_000 });
   assert.deepEqual(docTienMoiKhach("0"), { ok: true, dong: 0 });
   for (const sai of ["", "50,5", "-1", "abc"]) assert.equal(docTienMoiKhach(sai).ok, false, sai);
+});
+
+test("docTienMoiKhach: trần như máy chủ (100.000.000đ) — vừa trần thì qua, quá trần thì báo ngay dưới ô và nói rõ trần", () => {
+  assert.equal(MOI_KHACH_TOI_DA, 100_000_000);
+  assert.deepEqual(docTienMoiKhach("100.000.000"), { ok: true, dong: 100_000_000 });
+  assert.deepEqual(docTienMoiKhach("99.999.999"), { ok: true, dong: 99_999_999 });
+  for (const qua of ["100.000.001", "150.000.000", "999.999.999"]) {
+    const r = docTienMoiKhach(qua);
+    assert.equal(r.ok, false, qua);
+    assert.equal(!r.ok && r.message, "Số tiền mỗi khách không quá 100.000.000đ.", qua);
+  }
+  assert.equal(docTienMoiKhach("1.000.000.000").ok, false, "mười chữ số vẫn bị khuôn số nguyên chặn");
 });
 
 // ---- Đọc cả form thành thân gửi ----
@@ -45,6 +57,8 @@ test("docThanMuc: lỗi gom theo ô, một lượt (chưa chọn đối tượng
   assert.equal(docThanMuc({ ...mucDu, phamVi: "GROUP" }).ok, false, "chọn nhóm mà chưa chọn nhóm");
   assert.equal(docThanMuc({ ...mucDu, ghiChu: "x".repeat(201) }).ok, false);
   assert.equal(docThanMuc({ ...mucDu, kieu: "PER_PAX", moiKhach: "50,5" }).ok, false);
+  const quaTran = docThanMuc({ ...mucDu, kieu: "PER_PAX", moiKhach: "150.000.000" });
+  assert.deepEqual(!quaTran.ok && quaTran.loi, [{ truong: "muc", message: "Số tiền mỗi khách không quá 100.000.000đ." }], "quá trần: lỗi ở ô mức, không gửi lên máy chủ");
   assert.equal(docThanMuc({ ...mucDu, doiTuong: { loai: "DOI_TAC", partyId: "" } }).ok, false);
 });
 
