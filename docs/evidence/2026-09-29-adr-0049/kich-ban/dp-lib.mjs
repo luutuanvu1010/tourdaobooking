@@ -194,6 +194,6 @@ export async function dungDuLieuDieuPhoi(env, call) {
     leg: { pickupDate: NGAY_XA, pickupTime: "15:00", pickupLocationId: null, pickupPlace: "Novotel Nha Trang cổng phụ", dropoffLocationId: LOC_BEN_TAU, dropoffPlace: "" },
   }), 200, "đổi nơi đón O3");
   const T4 = await chuyen(XE_A.id, AN, NGAY_KHOA, "10:00", "11:30");
-  dung(await call(CHU, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 2880, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 2880 }), 201, "mốc 48 giờ");
+  dung(await call(CHU, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 2880, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 2880, acceptWaitMinutes: 10, autoConfirmTransfer: true }), 201, "mốc 48 giờ");
   return { NGAY_XA, NGAY_KHOA, XE_A, XE_B, XE_C, AN, CUONG, BINH, O1, O2, O3, O4, O5, T1, T2, T3, T4 };
 }

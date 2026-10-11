@@ -2736,6 +2736,12 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
 .xdc-the .dp-note { overflow-wrap: anywhere; }
 .xdc-nhac { font-size: var(--fs-label); color: var(--c-danger-text); overflow-wrap: anywhere; } /* ADR-0104 Đ2.7: nhắc Báo huỷ khách của đơn huỷ */
 .xdc-rong { padding: var(--s4); color: var(--c-text-muted); }
+/* Gói A5 (ADR-0111): màn "Đề nghị chuyển khách" (/de-nghi) — thân thẻ leo thang và các khối con có lề trong như dòng .dp-kc. */
+.dn-the > .dp-note, .dn-the > .vc-foot-2 { margin-inline: var(--s4); }
+.dn-the { display: flex; flex-direction: column; gap: var(--s2); padding-bottom: var(--s3); }
+.dn-head { flex-wrap: wrap; }
+.dn-head > .dp-ct-title { flex: 1 1 100%; }
+.dn-ds-leo { display: flex; flex-direction: column; gap: var(--s3); margin-bottom: var(--s3); }
 
 /* ---------- Trợ lý Hỗ trợ (ADR-0066 điều 9; web/tro-ly.ts) — chỉ token ---------- */
 .tl-fab { position: fixed; z-index: var(--z-tl-fab); right: max(var(--s4), env(safe-area-inset-right)); bottom: calc(var(--s5) + var(--tl-nang, var(--tl-nang-0))); display: inline-flex; align-items: center; gap: var(--s1); min-height: var(--tap-min); padding: 0 var(--s4); font: inherit; font-size: var(--fs-label); font-weight: var(--fw-bold); color: var(--c-fab-text); background: var(--c-fab-bg); border: 0; border-radius: var(--radius-pill); box-shadow: var(--shadow-float); cursor: pointer; }

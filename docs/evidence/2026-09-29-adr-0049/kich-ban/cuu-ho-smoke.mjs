@@ -1,5 +1,5 @@
 // Vận chuyển Đợt 5 A-1b — cứu hộ ĐƠN GIẢN (ADR-0052 D5c; lời chủ 5.2b, 5.2c; bản vẽ docs/design/van-chuyen-dot-3-7/Điều phối xe đang chạy.dc.html — 11.3 nút
-// "Cứu hộ", CH.2 khối văn phòng bản đơn giản): màn tài xế có câu "Xe hỏng? Bấm Kết thúc gián đoạn — văn phòng nhận tin ngay và xếp xe cứu hộ" trong hộp Kết thúc
+// "Cứu hộ", CH.2 khối văn phòng bản đơn giản): màn tài xế có câu gói A5 "Xe hỏng mà còn khách? … Chuyển khách sang xe khác … rồi mới kết thúc gián đoạn" trong hộp Kết thúc
 // gián đoạn; văn phòng bấm "Cứu hộ" ở "Việc của văn phòng" → hộp Kết thúc gián đoạn bấm thay (thêm dòng giải thích) → khối "Cứu hộ <mã> · N khách cần chuyển"
 // (chặng cần chuyển, xe cùng ngày của tài xế công ty, "Tạo chuyến cứu hộ"); Kế toán không thấy khối. Không form giá (Đợt 4 — nợ).
 // Chạy từ GỐC repo, sau `npm run build:web` (không cần mạng ngoài):
@@ -17,7 +17,7 @@ const dung = (r, ma, viec) => assert.equal(r.status, ma, `${viec}: ${r.status} $
 // T4 (NGÀY MAI 10:00–11:30, An, 79A-111.11) + O4 (2 khách có tên) xếp bằng phá lệ, mốc về 6 giờ, T5 (cùng ngày, Cường, 79A-222.22 — tài xế công ty, trống)
 // làm xe nhận, rồi văn phòng xuất bến T4 (sớm). Mọi lệnh API làm TRƯỚC khi mở trình duyệt (đăng nhập trình duyệt thay phiên API — ADR-0075).
 dung(await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${d.T4.id}/phan-bo`, { version: d.T4.version, requestId: randomUUID(), chang: [{ legId: d.O4.legId, soSuat: 2 }], phaLe: { lyDo: "PHA_LE_SU_CO" } }), 200, "xếp O4 vào T4");
-dung(await call(CHU, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 2880 }), 201, "mốc 6 giờ");
+dung(await call(CHU, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 2880, acceptWaitMinutes: 10, autoConfirmTransfer: true }), 201, "mốc 6 giờ");
 const t5 = await call(ACCOUNTS.admin, "POST", "/api/van-chuyen/chuyen", { requestId: randomUUID(), xeId: d.XE_B.id, taiXePartyId: d.CUONG.partyId, batDau: { ngay: d.NGAY_KHOA, gio: "10:00" }, ketThuc: { ngay: d.NGAY_KHOA, gio: "11:30" } });
 dung(t5, 201, "tạo T5");
 const T5 = t5.json.chuyen;
@@ -31,12 +31,12 @@ const moChuyen = (p) => p.waitFor(`!!document.querySelector('.dp-run')`, "chuy�
 try {
   // ---- Tài xế (điện thoại) — mở rồi đóng TRƯỚC các trang văn phòng ----------------------------------------------------------------------------------------------
   const t = await env.as(d.AN.account, `/cuoc-chuyen?id=${T.id}`, MOB);
-  await b.step("1", `5.2c 390 tài xế: hộp "Kết thúc gián đoạn" có câu "Xe hỏng? Bấm Kết thúc gián đoạn — văn phòng nhận tin ngay và xếp xe cứu hộ"; đóng hộp không gửi${axeNote()}`, async () => {
+  await b.step("1", `5.2c 390 tài xế: hộp "Kết thúc gián đoạn" có câu gói A5 "Xe hỏng mà còn khách? … Chuyển khách sang xe khác … rồi mới kết thúc gián đoạn"; đóng hộp không gửi${axeNote()}`, async () => {
     await moChuyen(t);
     await t.ev(click('[data-action="ket-thuc-gian-doan"]'));
     await t.waitFor(`!!document.querySelector('[data-action="gian-doan-gui"]')`, "hộp gián đoạn");
     await sleep(500);
-    assert.equal(await t.ev(txt('[data-cau="cuu-ho"]')), "Xe hỏng? Bấm Kết thúc gián đoạn — văn phòng nhận tin ngay và xếp xe cứu hộ");
+    assert.equal(await t.ev(txt('[data-cau="cuu-ho"]')), "Xe hỏng mà còn khách? Đóng hộp này, bấm “Chuyển khách sang xe khác” để nhờ xe đang chạy tới đón trước — rồi mới kết thúc gián đoạn. Văn phòng nhận tin ngay.");
     assert.ok(await t.ev(noOverflowX));
     await axe(t, "Hộp gián đoạn tài xế 390");
     await shotView(t, "d5-cuu-ho-tai-xe-dien-thoai.png");
@@ -48,10 +48,10 @@ try {
 
   // ---- Bán hàng (máy tính): thấy nút, hộp có dòng giải thích, không gửi ----------------------------------------------------------------------------------------
   const s = await env.as(ACCOUNTS.salesA, `/chuyen?id=${T.id}`, DESK);
-  await b.step("2", `11.3 1040 Bán hàng: "Việc của văn phòng" có nút "Cứu hộ" (đỏ) → hộp "Kết thúc gián đoạn" bấm thay + dòng "Xe hỏng: kết thúc gián đoạn rồi xếp khách sang xe cứu hộ."; chuyến đang chạy KHÔNG có khối Cứu hộ, không gọi GET cuu-ho${axeNote()}`, async () => {
+  await b.step("2", `11.3 1040 Bán hàng: "Việc của văn phòng" có nút "Gửi đề nghị cứu hộ" (gói A5) và "Cứu hộ" (đỏ) → hộp "Kết thúc gián đoạn" bấm thay + dòng "Xe hỏng: kết thúc gián đoạn rồi xếp khách sang xe cứu hộ."; chuyến đang chạy KHÔNG có khối Cứu hộ, không gọi GET cuu-ho${axeNote()}`, async () => {
     await moChuyen(s);
     await s.waitFor(`!!document.querySelector('.dp-viec-vp')`, "khối việc văn phòng");
-    assert.deepEqual(await s.ev(`[...document.querySelectorAll('.dp-viec-vp button')].map((x) => x.innerText.trim())`), ["Thêm điểm đón / thêm khách", "Cập nhật điểm theo đơn", "Cứu hộ"]);
+    assert.deepEqual(await s.ev(`[...document.querySelectorAll('.dp-viec-vp button')].map((x) => x.innerText.trim())`), ["Thêm điểm đón / thêm khách", "Cập nhật điểm theo đơn", "Gửi đề nghị cứu hộ", "Cứu hộ"]);
     assert.ok(await s.ev(`document.querySelector('[data-action="cuu-ho"]').classList.contains('vc-btn-danger')`));
     assert.equal(await s.ev(`!!document.querySelector('#ct-cuu-ho')`), false);
     assert.deepEqual(goiCuuHo(s), []);

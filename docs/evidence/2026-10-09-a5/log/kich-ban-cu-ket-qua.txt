@@ -1,0 +1,33 @@
+# Kịch bản Chrome CŨ chạm bởi gói A5 (2026-10-12) — nguyên văn dòng tổng kết
+
+## 1. Trên mã gói A5, TRƯỚC khi cập nhật kỳ vọng
+cuu-ho-smoke exit=0 CUU HO SMOKE OK (6 bước)
+chinh-sach-dieu-phoi-smoke exit=1 CHINH SACH DIEU PHOI SMOKE: 11 ✓, 3 ✗: 1) 8a 1040 Toàn quyền: bốn ô theo bản gieo (6 giờ, 2 giờ, 30 phú
+xe-dang-chay-smoke exit=1 XE DANG CHAY SMOKE: 9 ✓, 1 ✗: 2) 11.2 + 11.3 1040 Bán hàng mở T4: "Việc của văn phòng" (Thêm điểm đó
+dieu-phoi-smoke exit=1 DIEU PHOI SMOKE: 10 ✓, 1 ✗: 7) 1f 1040 Quản trị: menu Vận chuyển đủ mục (Điều phối xe đầu); ch�
+dat-gap-smoke exit=1 DAT GAP SMOKE: 7 ✓, 5 ✗: 3) 409 short_notice_required khi trang đã cũ (bật nút bằng tay, bấm Xác nhận):
+nhat-ky-loc-smoke exit=1 Node.js v22.22.3
+bo-sung-ten-smoke exit=0 BO SUNG TEN SMOKE OK (4 bước)
+cuoc-smoke exit=0 CUOC SMOKE OK (18 bước)
+trang-chu-smoke exit=1 Node.js v22.22.3
+bang-gia-xe-smoke exit=1 BANG GIA XE SMOKE: 9 ✓, 3 ✗: 1) Bán hàng mở thẳng /bang-gia-xe: câu không có quyền, không bảng, không
+lich-xe-ban-smoke exit=0 lich-xe-ban-smoke OK (9 bước)
+XONG
+
+## 2. Cùng kịch bản trên bản NỀN trước A5 (fc94f07b, chép ra thư mục tạm): dat-gap-smoke và bang-gia-xe-smoke đã đỏ sẵn, năm kịch bản còn lại xanh
+chinh-sach-dieu-phoi-smoke exit=0 CHINH SACH DIEU PHOI SMOKE OK (14 bước)
+xe-dang-chay-smoke exit=0 XE DANG CHAY SMOKE OK (10 bước)
+dieu-phoi-smoke exit=0 DIEU PHOI SMOKE OK (11 bước)
+dat-gap-smoke exit=1 DAT GAP SMOKE: 7 ✓, 5 ✗: 3) 409 short_notice_required khi trang đã cũ (bật nút bằng tay, bấm Xác nhận):
+nhat-ky-loc-smoke exit=0 NHAT KY LOC SMOKE OK
+trang-chu-smoke exit=0 TRANG CHU SMOKE OK
+bang-gia-xe-smoke exit=1 BANG GIA XE SMOKE: 9 ✓, 3 ✗: 1) Bán hàng mở thẳng /bang-gia-xe: câu không có quyền, không bảng, không
+XONG
+
+## 3. Sau khi cập nhật kỳ vọng của năm kịch bản A5 làm đỏ
+chinh-sach-dieu-phoi-smoke exit=0 CHINH SACH DIEU PHOI SMOKE OK (14 bước)
+xe-dang-chay-smoke exit=0 XE DANG CHAY SMOKE OK (10 bước)
+dieu-phoi-smoke exit=0 DIEU PHOI SMOKE OK (11 bước)
+nhat-ky-loc-smoke exit=0 NHAT KY LOC SMOKE OK
+trang-chu-smoke exit=0 TRANG CHU SMOKE OK
+XONG

@@ -228,7 +228,7 @@ try {
   await b.step("7", `1f 1040 Quản trị: menu Vận chuyển đủ mục (Điều phối xe đầu); chặng quá mốc KHÔNG dòng khoá, KHÔNG nút vượt luật riêng; xếp vào chuyến đang khoá → hộp "Điều chỉnh khẩn cấp" (ADR-0104 Đ1) → "Điều chỉnh khẩn cấp và xếp" gửi lại kèm phaLe`, async () => {
     await cho(q);
     const nav = await q.ev(vcSub);
-    assert.deepEqual(nav.items, ["Điều phối xe", "Xe đang chạy", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Lịch xe bận", "Sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối"]); // + Đợt 4 + "Lịch xe bận" (Đợt 3, 2/10)
+    assert.deepEqual(nav.items, ["Điều phối xe", "Xe đang chạy", "Đề nghị chuyển khách", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Lịch xe bận", "Sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối"]); // + "Đề nghị chuyển khách" (gói A5, ô trip.override) + Đợt 4 + "Lịch xe bận" (Đợt 3, 2/10)
     assert.equal(nav.current, "Điều phối xe");
     const qm = (await q.ev(viec)).find((x) => x.loai === "CHẶNG QUÁ MỐC");
     assert.deepEqual([qm.khoa, qm.nut], [null, []]);

@@ -17,7 +17,7 @@ const dung = (r, ma, viec) => assert.equal(r.status, ma, `${viec}: ${r.status} $
 // trang Xe đang chạy đọc hôm qua / hôm nay / ngày mai. Mốc trả về 6 giờ để xác nhận được O6 (ngày mai 10:40 ngoài mốc 6 giờ, KHÔNG đặt gấp); xe đang chạy vẫn
 // luôn trong mốc ⇒ thêm khách không đặt gấp là điều chỉnh khẩn cấp (ADR-0104 Đ1 — trước đây Bán hàng thấy dòng khoá, Quản trị qua hộp Phá lệ).
 dung(await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${d.T4.id}/phan-bo`, { version: d.T4.version, requestId: randomUUID(), chang: [{ legId: d.O4.legId, soSuat: 2 }], phaLe: { lyDo: "PHA_LE_SU_CO" } }), 200, "xếp O4 vào T4");
-dung(await call(CHU, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 2880 }), 201, "mốc 6 giờ");
+dung(await call(CHU, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 2880, acceptWaitMinutes: 10, autoConfirmTransfer: true }), 201, "mốc 6 giờ");
 const T = d.T4;
 const o6 = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
   customerName: "Khách Xe Chạy", customerPhone: "0903 100 296", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
@@ -58,7 +58,7 @@ try {
     await s.ev(click(".xdc-the"));
     await moChuyen(s);
     // A-1b (cứu hộ đơn giản): nút "Cứu hộ" ở cuối khối — kịch bản riêng cuu-ho-smoke.mjs kiểm hộp + khối CH.2.
-    assert.deepEqual(await s.ev(`[...document.querySelectorAll('.dp-viec-vp button')].map((x) => x.innerText.trim())`), ["Thêm điểm đón / thêm khách", "Cập nhật điểm theo đơn", "Cứu hộ"]);
+    assert.deepEqual(await s.ev(`[...document.querySelectorAll('.dp-viec-vp button')].map((x) => x.innerText.trim())`), ["Thêm điểm đón / thêm khách", "Cập nhật điểm theo đơn", "Gửi đề nghị cứu hộ", "Cứu hộ"]); // + "Gửi đề nghị cứu hộ" (gói A5, ADR-0111)
     assert.equal(await s.ev(`document.querySelectorAll('.dp-kc').length`), 2);
     assert.equal(await s.ev(`document.querySelectorAll('.dp-kc [data-action="bao-huy"]').length`), 2);
     assert.match(await s.ev(txt(".dp-kc")), /^Hành Khách Thử 5-1 TD-\d{8}-\d{4} · Điểm 1 · Citadines Bayfront · 10:00 Báo huỷ$/);

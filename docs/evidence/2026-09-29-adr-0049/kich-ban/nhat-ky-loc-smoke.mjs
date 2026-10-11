@@ -19,7 +19,7 @@ const MOB = { width: 390, height: 844, mobile: true };
 const CHU = { name: "Chủ Chrome", phone: "0900000299", pin: "135791", permissions: ["SUPER_ADMIN"] };
 const NHOM = "Điều phối xe";
 // ADR-0050 VK1-B thêm hành động thứ bảy "Cập nhật điểm theo đơn" (trip_stops_synced — route ở A13). Từ A13 nhóm `trip` có thêm mọi lệnh chuyến (`trip_*`) mà
-// danh sách cứng bảy nhãn không theo kịp — đỏ sẵn (39 nhãn ở 09f79a21). ADR-0104 Đ2 (2026-10-08): danh sách CỨNG đủ 40 nhãn đúng thứ tự khai ở
+// danh sách cứng bảy nhãn không theo kịp — đỏ sẵn (39 nhãn ở 09f79a21). ADR-0104 Đ2 (2026-10-08): danh sách CỨNG đủ 47 nhãn (40 + bảy nhãn chuyển khách của gói A5, 9/10) đúng thứ tự khai ở
 // src/shared/audit-actions.ts (gồm "Máy cập nhật chuyến theo đơn" — trip_order_synced). Thêm / đổi / bỏ nhãn nhóm này ⇒ sửa danh sách cùng commit (bài cố ý cứng).
 const SAU_HANH_DONG = [
   "Đổi chính sách điều phối",
@@ -52,6 +52,13 @@ const SAU_HANH_DONG = [
   "Tài xế bổ sung tên khách",
   "Văn phòng điều chỉnh kết quả khách",
   "Văn phòng thu hồi xuất bến",
+  "Gửi đề nghị chuyển khách", // gói A5 (ADR-0111): bảy nhãn nhật ký chuyển khách, đúng thứ tự khai ở src/shared/audit-actions.ts
+  "Rút đề nghị chuyển khách",
+  "Xe nhận không nhận khách",
+  "Đề nghị chuyển khách hết giờ chờ",
+  "Đề nghị chuyển khách chờ văn phòng duyệt",
+  "Chuyển khách sang xe khác",
+  "Văn phòng không duyệt đề nghị chuyển khách",
   "Đã gọi báo khách giờ hẹn mới",
   "Bỏ đánh dấu đã gọi báo",
   "Điều chỉnh chi phí xe thuê",
@@ -72,7 +79,7 @@ try {
   const r = await fetch(env.base + "/api/van-chuyen/chinh-sach-dieu-phoi", {
     method: "POST",
     headers: { "content-type": "application/json", origin: env.base, cookie: `${c.name}=${c.value}` },
-    body: JSON.stringify({ minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 2880 }),
+    body: JSON.stringify({ minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 2880, acceptWaitMinutes: 10, autoConfirmTransfer: true }),
   });
   assert.equal(r.status, 201, await r.text());
 

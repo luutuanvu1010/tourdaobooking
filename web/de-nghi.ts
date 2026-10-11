@@ -138,7 +138,7 @@ function ve(): void {
   });
   replaceChildren(
     trangEl,
-    h("div", { class: "xdc-head" }, h("h1", { class: "dp-ct-title" }, "Đề nghị chuyển khách"), chonNgay),
+    h("div", { class: "xdc-head dn-head" }, h("h1", { class: "dp-ct-title" }, "Đề nghị chuyển khách"), chonNgay),
     baoCao,
     leo.length
       ? h("div", { class: "dn-ds-leo" }, h("h2", { class: "dp-card-title" }, `Chờ văn phòng duyệt (${leo.length})`), ...leo.map(theLeoThang))
