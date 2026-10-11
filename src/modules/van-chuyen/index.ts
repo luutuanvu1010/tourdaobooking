@@ -1545,7 +1545,9 @@ export const vanChuyenModule: AppModule = {
       if (!lap) {
         const lich = await lichChungChang(env.DB, nen.tu, nen.den);
         const hk = await hanhKhachChoChuyen(env.DB, nen.legIds);
-        const r = await lenhXuatBen(env.DB, nen, lich.chang, hk, than.value, { id: staff.id, bamThay: false }, bayGioMs);
+        // A4 CAO-1: người có vế hạn NGOÀI khung xem khách → thân 409 chỉ câu gốc của mã (không mã đơn trong chi tiết lý do giữ).
+        const khungTruoc = await khungCuaNguoiGoi(env.DB, nen, staff, bayGioMs);
+        const r = await lenhXuatBen(env.DB, nen, lich.chang, hk, than.value, { id: staff.id, bamThay: false }, bayGioMs, khungTruoc.han !== undefined && !khungTruoc.trongKhung);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
       }
@@ -1729,7 +1731,8 @@ export const vanChuyenModule: AppModule = {
       const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["STOPS_REORDERED"] });
       if (lap instanceof Response) return lap;
       if (!lap) {
-        const r = await lenhDoiThuTu(env.DB, nen, than.value, { id: staff.id, bamThay: false }, bayGioMs);
+        const khungTruoc = await khungCuaNguoiGoi(env.DB, nen, staff, bayGioMs); // A4 CAO-1b: vế hạn NGOÀI khung → thân 409 không mã đơn
+        const r = await lenhDoiThuTu(env.DB, nen, than.value, { id: staff.id, bamThay: false }, bayGioMs, khungTruoc.han !== undefined && !khungTruoc.trongKhung);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
       }

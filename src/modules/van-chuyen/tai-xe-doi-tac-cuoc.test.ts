@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { seedStaff } from "../../../tests/audit/harness.mjs";
 import {
-  ADM, DRIVER_PARTNER, NGAY_SAU, SALES, batDongHo, chuyenSan, denGio, nhaXeKhung, setup, uuid, xeNhaXe,
+  ADM, DRIVER_PARTNER, NGAY, NGAY_SAU, SALES, SUP, batDongHo, chuyenSan, denGio, nhaXeKhung, setup, uuid, xeNhaXe,
 } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
 const DRIVER_PARTNER2 = "66666666-6666-4666-8666-666666666669";
@@ -112,6 +112,33 @@ test("A4 T6 NT-14 / G17 (D7.5): văn phòng dời giờ đón chặng đã xếp
     // Tin "được xếp" lúc tạo chuyến cũng tới tài xế đối tác.
     assert.ok(hop.json.tin.some((t: any) => t.loai === "chuyen" && t.cau.startsWith("Bạn được xếp lái")), JSON.stringify(hop.json.tin));
     void SALES;
+  } finally {
+    tat();
+  }
+});
+
+test("A4 CAO-1 (phiếu kiểm độc lập 12/10): thân 409 của Xuất bến cho tài xế đối tác NGOÀI khung xem khách chỉ có câu gốc của mã — không MÃ ĐƠN; văn phòng cùng ca giữ chi tiết", async () => {
+  const tat = batDongHo();
+  try {
+    const { w, xe1 } = theGioi();
+    const cs = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", {
+      as: SUP,
+      body: { minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true, proxyBackdateMaxMinutes: 90, dutyDayMaxMinutes: 600, tripNoBreakMaxMinutes: 300, departureWindowMinutes: 720, refuseLeadMinutes: 720, officePhone: null },
+    });
+    assert.equal(cs.status, 201, cs.text);
+    // Chuyến 06:00 ngày D, đơn thiếu 1 tên; hạn Từ chối = 18:00 D-1. Lúc 18:30 D-1: qua hạn, trong cửa sổ xuất bến, CHƯA tới ngày chạy → ngoài khung.
+    const a = await chuyenSan(w, { taiXe: DRIVER_PARTNER, xe: xe1, ngay: NGAY_SAU, bd: "06:00", kt: "09:00", gio: "06:30", soNguoi: 2, ten: 1 });
+    denGio("18:30", NGAY);
+    const g = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${a.id}`, { as: DRIVER_PARTNER });
+    assert.equal(g.json.trongNgayChay, false, "chống bài rỗng: đúng ca ngoài khung");
+    assert.ok(!g.text.includes(a.don.code));
+    const vp = await w.call("POST", `/api/van-chuyen/chuyen/${a.id}/xuat-ben`, { as: ADM, body: { requestId: uuid() } });
+    assert.equal(vp.status, 409, vp.text);
+    assert.ok(vp.text.includes(a.don.code), `chống bài rỗng: văn phòng thấy mã đơn trong lý do: ${vp.text}`);
+    const r = await w.call("POST", `/api/van-chuyen/cuoc-cua-toi/${a.id}/xuat-ben`, { as: DRIVER_PARTNER, body: { requestId: uuid() } });
+    assert.equal(r.status, 409, r.text);
+    assert.ok(r.text.includes("THIEU_TEN"), r.text);
+    assert.ok(!r.text.includes(a.don.code), `thân 409 Xuất bến lộ mã đơn: ${r.text}`);
   } finally {
     tat();
   }

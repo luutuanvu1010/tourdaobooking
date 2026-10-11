@@ -169,10 +169,14 @@ export function loiKiem(
  * lý do TRA_TRUOC_DON mỗi đơn (mã đơn + số điểm SAU lệnh). Suất đảo từ trước không chặn (sửa dần bằng ↑ ↓ — diễn giải ghi ở báo cáo A1). null = cho qua.
  * Dùng chung: đổi thứ tự khi đang chạy (tài xế, văn phòng bấm thay) và sửa điểm của chuyến kế hoạch (nút ↑ ↓ của văn phòng).
  */
-export async function chanDaoMoi(db: D1Database, stops: readonly StopRow[], allocs: readonly AllocRow[], doi: readonly { id: string; seq: number }[]): Promise<Response | null> {
+export async function chanDaoMoi(
+  db: D1Database, stops: readonly StopRow[], allocs: readonly AllocRow[], doi: readonly { id: string; seq: number }[], chiCauGoc = false,
+): Promise<Response | null> {
   const cho = allocs.filter((a) => a.valid_to_at === null && a.status === "WAITING");
   const moi = daoMoiSauDoi(stops.map((s) => ({ id: s.id, seq: s.seq })), doi, cho.map((a) => ({ diemLen: a.board_stop_id, diemXuong: a.alight_stop_id })));
   if (moi.length === 0) return null;
+  // A4 CAO-1b: tài xế có vế hạn Từ chối NGOÀI khung xem khách chỉ nhận câu gốc — chi tiết mỗi đơn mang MÃ ĐƠN.
+  if (chiCauGoc) return loi409("thu_tu_dao", [lyDoGiu("TRA_TRUOC_DON")]);
   const sau = new Map(stops.map((s) => [s.id, s.seq]));
   for (const d of doi) sau.set(d.id, d.seq);
   const ma = new Map((await legFlags(db, [...new Set(moi.map((i) => cho[i]!.leg_id).filter((x): x is string => x !== null))])).map((f) => [f.id, f.order_code]));

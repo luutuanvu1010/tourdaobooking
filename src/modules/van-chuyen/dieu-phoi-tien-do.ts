@@ -6,7 +6,7 @@
 import type { ChangChoChuyen, ChangLichChung } from "../orders";
 import { kiemKetThuc, kiemXuatBen } from "../../shared/dieu-phoi-kiem";
 import { error } from "../../shared/http";
-import { lyDoGiu, type LyDoGiu } from "../../shared/ly-do-giu";
+import { lyDoGiu, MA_GIU, type LyDoGiu } from "../../shared/ly-do-giu";
 import { msToVnLocal } from "../../shared/vn-date";
 import { legFlags, lyDoDangDung, tenDiem, tripsTouching, type AllocRow, type TripRow } from "./chuyen-repo";
 import {
@@ -59,6 +59,7 @@ const CHUA_CO_KEP = () => loi409("chinh_sach_rong", [lyDoGiu("CHINH_SACH_RONG")]
  */
 export async function lenhXuatBen(
   db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], hk: readonly ChangChoChuyen[], b: TienDoThan, nguoi: NguoiBam, bayGioMs: number,
+  chiCauGoc = false,
 ): Promise<Response | null> {
   const t = nen.trip;
   if (t.status !== "PLANNED") return loi409(t.status === "RUNNING" ? "da_xuat_ben" : "chuyen_da_ket_thuc", [lyDoGiu("CHUYEN_KHONG_CON_LEN_KE_HOACH", t.code)]);
@@ -83,7 +84,9 @@ export async function lenhXuatBen(
   };
   const kq = kiemXuatBen(vao);
   // ADR-0104 Đ1 mục 9 ★: ai xử lý khoảng nghỉ / nghỉ thiếu / cam kết theo mốc của chuyến lúc lệnh chạy (`lyDoGiuCuaChuyen` — cùng hàm với màn).
-  const lyDoLuc = (ds: readonly LyDoGiu[]) => lyDoGiuCuaChuyen(t, ds, bayGioMs, cs?.min_lead_minutes ?? null);
+  // A4 CAO-1 (phiếu kiểm độc lập 12/10): `chiCauGoc` = người bấm là tài xế có vế hạn Từ chối NGOÀI khung xem khách (route tài xế tính `khungCuaNguoiGoi` TRƯỚC lệnh)
+  // → thân 409 chỉ mang CÂU GỐC của mã (chi tiết `THIEU_TEN` "<mã đơn> thiếu N tên" lộ mã đơn). Cùng luật `dieuKienConThieuDto`; văn phòng / tài xế công ty không đổi.
+  const lyDoLuc = (ds: readonly LyDoGiu[]) => lyDoGiuCuaChuyen(t, ds, bayGioMs, cs?.min_lead_minutes ?? null).map((l) => (chiCauGoc ? { ...l, loiNhan: MA_GIU[l.ma].loiNhan } : l));
   if (!kq.dat || !cs || kq.chup.taiXePartyId === null) return loi409("chua_du_dieu_kien_xuat_ben", lyDoLuc(kq.lyDo));
   // Bản chốt: khách trỏ DÒNG hành khách hiện hành (của đúng chặng, đúng khoá người — sau khi gắn tên còn thiếu); người đi kèm trỏ hồ sơ.
   const dong = new Map<string, string>();
@@ -225,7 +228,7 @@ export async function lenhKetThucGianDoan(db: D1Database, nen: NenChuyen, b: Ket
 }
 
 // ---- Đổi thứ tự điểm chưa tới khi đang chạy (route 29 ↔ 39) — luôn giờ máy chủ ----------------------------------------------------------------------------
-export async function lenhDoiThuTu(db: D1Database, nen: NenChuyen, b: DoiThuTuThan, nguoi: NguoiBam, bayGioMs: number): Promise<Response | null> {
+export async function lenhDoiThuTu(db: D1Database, nen: NenChuyen, b: DoiThuTuThan, nguoi: NguoiBam, bayGioMs: number, chiCauGoc = false): Promise<Response | null> {
   const t = nen.trip;
   const chan = dangChay(t);
   if (chan) return chan;
@@ -240,7 +243,7 @@ export async function lenhDoiThuTu(db: D1Database, nen: NenChuyen, b: DoiThuTuTh
   const doi = b.diem.filter((d) => nen.stops.find((s) => s.id === d.id)!.seq !== d.thuTu);
   if (doi.length === 0) return null; // không đổi gì — không ghi
   // ADR-0096 Đ1.3c (LC-19 lớp máy chủ; đường này không có trigger theo dòng — Đ1.6): thứ tự mới làm khách chờ lên bị đảo mới → 409.
-  const dao = await chanDaoMoi(db, nen.stops, nen.allocs, doi.map((d) => ({ id: d.id, seq: d.thuTu })));
+  const dao = await chanDaoMoi(db, nen.stops, nen.allocs, doi.map((d) => ({ id: d.id, seq: d.thuTu })), chiCauGoc); // A4 CAO-1b: chiCauGoc = câu gốc, không mã đơn
   if (dao) return dao;
   const cs = await chinhSachHienHanh(db);
   const l = lenh(b.requestId, nguoi, bayGioMs);

@@ -329,3 +329,28 @@ test("A4 T3b NT-3 (mã đơn trong CÂU điều kiện còn thiếu — phiếu 
     tat();
   }
 });
+
+test("A4 CAO-1b (phiếu kiểm độc lập 12/10): đổi thứ tự điểm khi ĐANG CHẠY mà ngoài khung xem khách (xuất bến sớm tối hôm trước) — thân 409 thu_tu_dao của người có vế hạn KHÔNG mang mã đơn; văn phòng bấm thay vẫn có", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    await chinhSach(w, null);
+    thanhTaiXe(w, `pty-${SUP}`);
+    const a = await chuyenSan(w, { taiXe: SUP, ngay: NGAY_SAU, bd: "06:00", kt: "09:00", gio: "06:30" });
+    denGio("18:30", NGAY);
+    assert.equal((await tienDo(w, "van-phong", a.id, "xuat-ben", {}, ADM)).status, 200, "văn phòng xuất bến sớm tối hôm trước");
+    const sd = new Map(w.q("SELECT id, seq FROM vc_trip_stop WHERE trip_id = ?", a.id).map((x: any) => [x.id, x.seq]));
+    const diem = [{ id: a.diemTra, thuTu: sd.get(a.diemDon) }, { id: a.diemDon, thuTu: sd.get(a.diemTra) }];
+    const g = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${a.id}`, { as: SUP });
+    assert.equal(g.json.trongNgayChay, false, "chống bài rỗng: chuyến đang chạy mà ngoài khung");
+    const vp = await tienDo(w, "van-phong", a.id, "thu-tu", { diem }, ADM);
+    assert.equal(vp.status, 409, vp.text);
+    assert.ok(vp.text.includes(a.don.code), `chống bài rỗng: văn phòng thấy mã đơn: ${vp.text}`);
+    const r = await tienDo(w, "tai-xe", a.id, "thu-tu", { diem }, SUP);
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.code, "thu_tu_dao");
+    assert.ok(!r.text.includes(a.don.code), `thân 409 đổi thứ tự lộ mã đơn: ${r.text}`);
+  } finally {
+    tat();
+  }
+});
