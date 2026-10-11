@@ -3131,7 +3131,7 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .bb-form { display: flex; flex-direction: column; gap: var(--s3); padding: var(--s4); }
 .bb-form .vc-card-title, .bb-ds .vc-card-title { margin: 0; }
 .bb-o { display: flex; flex-wrap: wrap; gap: var(--s3); }
-.bb-o > .vc-field { flex: 1 1 var(--w-tx-o); }
+.bb-o > .vc-field { flex: 1 1 var(--w-tx-o-rong); }
 .bb-hanh-dong { display: flex; justify-content: flex-end; }
 .bb-ds { display: flex; flex-direction: column; gap: var(--s3); }
 .bb-khung { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s1) var(--s3); padding: var(--s3) var(--s4); }

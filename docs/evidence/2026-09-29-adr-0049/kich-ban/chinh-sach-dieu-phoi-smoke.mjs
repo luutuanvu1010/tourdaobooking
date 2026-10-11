@@ -14,7 +14,7 @@ const O = (truong) => `#cs-${truong}`;
 const loiO = (truong) => txt(`#cs-${truong}-error`);
 const lichSu = `[...document.querySelectorAll('#cs-lich-su .dp-hist-row')].map((r) => r.innerText.replace(/\\s+/g, ' ').trim())`;
 // + nhóm BAN_XE (ADR-0055, Đợt 3 — 0071 gieo 4 lý do); + nhóm BAO_HUY_DIEM (ADR-0052 D5.2, Đợt 5 — 0076 gieo 4 lý do); Đợt 4 (migration 0073, ADR-0057 T2): nhóm "Chi phí xe thuê" ở cuối — do máy chủ gieo, màn Lý do tự hiện. Gói A1 (migration 0085, ADR-0097 Đ2.5): + nhóm "Điều chỉnh chuyến đang chạy" ở cuối.
-const NHOM_BAN_VE = ["Điều chỉnh khẩn cấp, phá lệ", /* ADR-0104 Đ1 mục 9: tên nhóm PHA_LE */ "Huỷ chuyến", "Kết thúc gián đoạn", "Bỏ qua điểm", "Đổi giờ xe tới", "Báo huỷ điểm đón", "Lý do xe bận", "Chi phí xe thuê", "Điều chỉnh chuyến đang chạy"];
+const NHOM_BAN_VE = ["Điều chỉnh khẩn cấp, phá lệ", /* ADR-0104 Đ1 mục 9: tên nhóm PHA_LE */ "Huỷ chuyến", "Kết thúc gián đoạn", "Bỏ qua điểm", "Đổi giờ xe tới", "Báo huỷ điểm đón", "Lý do xe bận", "Chi phí xe thuê", "Điều chỉnh chuyến đang chạy", "Tài xế từ chối chuyến", "Tài xế báo bận"]; // A4 (migration 0092, ADR-0053 D8, D9): + hai nhóm cuối
 
 try {
   // ---- Toàn quyền, máy tính ----------------------------------------------------------------------------------------------------------------------------------
@@ -25,7 +25,7 @@ try {
     const v = await p.ev(`[${["mocGio", "satMocGio", "nghiPhut", "khaiLuiPhut"].map((t) => `document.querySelector('${O(t)}').value`).join(",")}]`);
     assert.deepEqual(v, ["6", "2", "30", "180"]);
     const nhan = await p.ev(`[...document.querySelectorAll('#cs-form .vc-field > label')].map((l) => l.textContent)`);
-    assert.deepEqual(nhan, ["Mốc tối thiểu (giờ)", "Cảnh báo sát mốc (giờ)", "Khoảng nghỉ tài xế (phút)", "Khai lùi tối đa (phút)", "Giờ lái tối đa một ngày (giờ)", "Nhắc nghỉ khi chuyến dài hơn (giờ)", "Cửa sổ xuất bến (giờ)"]); // + hai ô giờ lái (ADR-0055 VK2-B, Đợt 3); + cửa sổ xuất bến (ADR-0096 Đ2.2, gói A1)
+    assert.deepEqual(nhan, ["Mốc tối thiểu (giờ)", "Cảnh báo sát mốc (giờ)", "Khoảng nghỉ tài xế (phút)", "Khai lùi tối đa (phút)", "Giờ lái tối đa một ngày (giờ)", "Nhắc nghỉ khi chuyến dài hơn (giờ)", "Cửa sổ xuất bến (giờ)", "Hạn từ chối chuyến (giờ)", "Số điện thoại văn phòng"]); // + hai ô giờ lái (ADR-0055 VK2-B, Đợt 3); + cửa sổ xuất bến (ADR-0096 Đ2.2, gói A1); + hạn từ chối, SĐT văn phòng (A4 T5, ADR-0053 D8)
     assert.equal(await p.ev(`document.querySelector('${O("cuaSoGio")}').value`), "12", "cửa sổ xuất bến gieo 720 phút = 12 giờ");
     assert.equal(await p.ev(txt(`#cs-satMocGio-hint`)), "Chặng chưa xếp trong 2 giờ trước mốc hiện nhãn “Sát mốc”.");
     assert.equal(await p.ev(txt("#cs-khaiLuiPhut-hint")), "Từ 1 đến 1440, mặc định 180.");
@@ -38,7 +38,7 @@ try {
     assert.match(await p.ev(txt(".dp-cs-note")), /hiệu lực ngay khi lưu/);
     assert.equal(await p.ev(`document.body.innerText.includes('Đang soạn')`), false);
     assert.ok(await p.ev(shown("#cs-lich-su")), "cột lịch sử hiện ở máy tính");
-    assert.deepEqual(await p.ev(lichSu), ["Bản 1 Đang dùng Hiệu lực từ 01/09/2026 Mốc 6 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 8 giờ/ngày · nhắc nghỉ chuyến trên 4 giờ · xuất bến sớm nhất 12 giờ trước giờ khởi hành · phải đủ danh sách khách"]);
+    assert.deepEqual(await p.ev(lichSu), ["Bản 1 Đang dùng Hiệu lực từ 01/09/2026 Mốc 6 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 8 giờ/ngày · nhắc nghỉ chuyến trên 4 giờ · xuất bến sớm nhất 12 giờ trước giờ khởi hành · từ chối chuyến trước 12 giờ · phải đủ danh sách khách"]);
     const nav = await p.ev(vcSub);
     assert.deepEqual(nav.items.slice(-3), ["Loại giấy tờ xe", "Chính sách điều phối", "Lý do điều phối"]);
     assert.equal(nav.items[0], "Điều phối xe", "B1 (vòng 3): mục con đầu dưới Vận chuyển");
@@ -88,13 +88,13 @@ try {
     await p.ev(click(".dp-cs-actions button[type=submit]"));
     await p.waitFor(`${txt("#cs-ok")} === 'Đã lưu bản mới — có hiệu lực từ bây giờ.'`, "báo đã lưu");
     const post = apiCalls(p).filter((r) => r.method === "POST" && r.path === "/api/van-chuyen/chinh-sach-dieu-phoi").at(-1);
-    assert.deepEqual(JSON.parse(post.body), { minLeadMinutes: 300, warnLeadMinutes: 120, restMinutes: 30, requireManifest: false, proxyBackdateMaxMinutes: 240, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720 });
+    assert.deepEqual(JSON.parse(post.body), { minLeadMinutes: 300, warnLeadMinutes: 120, restMinutes: 30, requireManifest: false, proxyBackdateMaxMinutes: 240, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720, refuseLeadMinutes: 720, officePhone: null }); // A4 T5: + hạn từ chối (mặc định 12 giờ), SĐT văn phòng (trống)
     const rows = await p.ev(lichSu);
     assert.equal(rows.length, 2);
     // R-P23: bản vừa lưu có "ai lưu" (tên tài khoản Toàn quyền + lúc lưu); bản gieo (không người lưu) không có dòng đó.
-    assert.match(rows[0], /^Bản 2 Đang dùng Hiệu lực từ \d\d\/\d\d\/\d{4} Mốc 5 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 240 phút · lái tối đa 8 giờ\/ngày · nhắc nghỉ chuyến trên 4 giờ · xuất bến sớm nhất 12 giờ trước giờ khởi hành Chủ Điều Phối lưu \d\d\/\d\d \d\d:\d\d$/);
+    assert.match(rows[0], /^Bản 2 Đang dùng Hiệu lực từ \d\d\/\d\d\/\d{4} Mốc 5 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 240 phút · lái tối đa 8 giờ\/ngày · nhắc nghỉ chuyến trên 4 giờ · xuất bến sớm nhất 12 giờ trước giờ khởi hành · từ chối chuyến trước 12 giờ Chủ Điều Phối lưu \d\d\/\d\d \d\d:\d\d$/);
     assert.equal(await p.ev(`document.querySelectorAll('#cs-lich-su [data-nguoi-luu]').length`), 1, "chỉ bản có người lưu mới có dòng ai lưu");
-    assert.match(rows[1], /^Bản 1 Hết hiệu lực Hiệu lực 01\/09 – \d\d\/\d\d\/\d{4} Mốc 6 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 8 giờ\/ngày · nhắc nghỉ chuyến trên 4 giờ · xuất bến sớm nhất 12 giờ trước giờ khởi hành · phải đủ danh sách khách$/);
+    assert.match(rows[1], /^Bản 1 Hết hiệu lực Hiệu lực 01\/09 – \d\d\/\d\d\/\d{4} Mốc 6 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 8 giờ\/ngày · nhắc nghỉ chuyến trên 4 giờ · xuất bến sớm nhất 12 giờ trước giờ khởi hành · từ chối chuyến trước 12 giờ · phải đủ danh sách khách$/);
     const g = await call(CHU, "GET", "/api/van-chuyen/chinh-sach-dieu-phoi");
     assert.equal(g.json.current.minLeadMinutes, 300);
     assert.equal(g.json.current.proxyBackdateMaxMinutes, 240);
