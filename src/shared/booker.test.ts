@@ -33,7 +33,7 @@ test("canPickMatch / matchNote: chỉ cá nhân đang hoạt động chọn đư
   assert.equal(canPickMatch({ kind: "ORGANIZATION", active: true }), false);
   assert.equal(matchNote({ kind: "PERSON", active: true }), null);
   assert.equal(matchNote({ kind: "PERSON", active: false }), "đã ngưng");
-  assert.equal(matchNote({ kind: "ORGANIZATION", active: true }), "tổ chức — chưa gắn được vào đơn ở bản này");
+  assert.equal(matchNote({ kind: "ORGANIZATION", active: true }), "tổ chức — đại lý thì chọn ở ô “Đặt qua đối tác”");
 });
 
 test("lookupReady: cùng chuẩn với máy chủ (số Việt Nam 10 số)", () => {

@@ -67,7 +67,7 @@ export const canPickMatch = (m: MatchLike): boolean => m.kind === "PERSON" && m.
 /** Lý do một hồ sơ không chọn được (hiện cạnh tên); null = chọn được. */
 export function matchNote(m: MatchLike): string | null {
   if (!m.active) return "đã ngưng";
-  if (m.kind !== "PERSON") return "tổ chức — chưa gắn được vào đơn ở bản này";
+  if (m.kind !== "PERSON") return "tổ chức — đại lý thì chọn ở ô “Đặt qua đối tác”"; // sổ đại lý đợt 1 (Task 11): tổ chức được hưởng gắn vào đơn được, nhưng qua ô riêng (đặc tả §7), không qua ô tra SĐT
   return null;
 }
 
