@@ -3133,3 +3133,32 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .ky-dong:last-child { border-bottom: 0; }
 .ky-dong-tien { white-space: nowrap; font-weight: var(--fw-bold); }
 #ky-khoa-khu { margin-top: var(--s4); }
+
+/* Đặt qua đối tác + Phần đối tác (web/dat-qua-doi-tac.ts, web/phan-doi-tac.ts; sổ đại lý đợt 1 Task 11): ô chọn bên đặt ở form lập đơn / bảng "Đổi khách", dòng "Bên đặt" chỉ đọc của tài khoản Đối tác, khối hoa hồng ở trang đơn. Chỉ token. */
+.dqdt { display: flex; flex-direction: column; gap: var(--s2); margin: var(--s3) 0; }
+.dqdt-chon { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin: 0; }
+.dqdt-chon-ten { overflow-wrap: anywhere; }
+.dqdt-ghi { margin: 0; font-size: var(--fs-label); }
+.dqdt-ket-qua { display: flex; flex-direction: column; gap: var(--s2); }
+.dqdt-ket-qua p { margin: 0; }
+.dqdt-dong { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); width: 100%; min-height: var(--row-h); text-align: left; }
+.dqdt-ten { min-width: 0; overflow-wrap: anywhere; font-weight: var(--fw-semibold); }
+.dqdt-chi-doc { margin: var(--s3) 0; }
+.pdt-nguoi-huong { margin: 0 0 var(--s2); font-weight: var(--fw-semibold); }
+.pdt-trang-thai { margin: 0 0 var(--s3); }
+.pdt-cho-muc { margin: 0 0 var(--s3); padding: var(--s3) var(--s4); color: var(--c-sand-text); background: var(--c-sand-soft); border: 1px solid var(--c-sand-border); border-radius: var(--radius-sm); }
+.pdt-ds { display: flex; flex-direction: column; gap: var(--s3); margin-bottom: var(--s3); }
+.pdt-dong { padding: var(--s3) var(--s4); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-sm); }
+.pdt-dong.is-thieu { background: var(--c-sand-soft); border-color: var(--c-sand-border); }
+.pdt-dong-dau { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s2); margin-bottom: var(--s2); }
+.pdt-ten { margin: 0; font-size: var(--fs-ui); overflow-wrap: anywhere; }
+.pdt-luoi { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2) var(--s4); margin: 0; }
+.pdt-o { min-width: 0; }
+.pdt-o dt { font-size: var(--fs-label); }
+.pdt-o dd { margin: 0; font-weight: var(--fw-semibold); overflow-wrap: anywhere; }
+.pdt-canh { margin: var(--s2) 0 0; font-size: var(--fs-label); font-weight: var(--fw-semibold); color: var(--c-sand-text); }
+.pdt-ncc { margin: var(--s2) 0 0; font-size: var(--fs-label); }
+.pdt-nut { margin-top: var(--s3); }
+.pdt-tong { padding-top: var(--s3); border-top: 1px solid var(--c-border); }
+.pdt-ncc-o { display: flex; flex-direction: column; gap: var(--s2); margin: var(--s2) 0; }
+@media (min-width: 900px) { .pdt-luoi { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
