@@ -38,6 +38,10 @@ const VAI_HUONG = defineSql("pricing", "beneficiary_roles", "SELECT role_type_co
 const VAI_MO = defineSql("pricing", "open_roles_of", "SELECT role_type_code, role_group FROM v_pty_open_role WHERE party_id = ?1");
 const LA_HUONG = defineSql("pricing", "is_beneficiary",
   `SELECT 1 AS ok FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = ?1 LIMIT 1`);
+// Task 11 (Ruling 21): CÙNG điều kiện `is_beneficiary` (không xét `active` của hồ sơ — đúng điều máy chủ dùng để ÉP bên đặt cho tài khoản Đối tác) + tên hồ sơ qua view công bố. Chỉ id + tên.
+const HUONG_CUA_HO_SO = defineSql("pricing", "beneficiary_of_party",
+  `SELECT l.id, l.display_name FROM v_pty_party_label l
+   WHERE l.id = ?1 AND EXISTS (SELECT 1 FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = l.id)`);
 const NHOM_CUA = defineSql("pricing", "groups_of", "SELECT catalog_code, group_code FROM v_ctl_service_group WHERE catalog_code IN (SELECT value FROM json_each(?1))");
 // ?1 đã thoát ký tự đặc biệt của LIKE (escapeLike ở nơi gọi); rỗng = không lọc theo tên.
 const TIM_HUONG = defineSql("pricing", "find_beneficiaries",
@@ -65,6 +69,10 @@ export const closeTermStatement = (db: D1Database, id: string, den: string, at: 
 export const beneficiaryRoles = async (db: D1Database): Promise<string[]> => (await db.prepare(VAI_HUONG).all<{ role_type_code: string }>()).results.map((r) => r.role_type_code);
 export const openRolesOf = async (db: D1Database, partyId: string) => (await db.prepare(VAI_MO).bind(partyId).all<{ role_type_code: string; role_group: string }>()).results;
 export const isBeneficiary = async (db: D1Database, partyId: string): Promise<boolean> => (await db.prepare(LA_HUONG).bind(partyId).first()) !== null;
+export const huongCuaHoSo = async (db: D1Database, partyId: string): Promise<{ partyId: string; ten: string } | null> => {
+  const r = await db.prepare(HUONG_CUA_HO_SO).bind(partyId).first<{ id: string; display_name: string }>();
+  return r ? { partyId: r.id, ten: r.display_name } : null;
+};
 export const groupsOf = async (db: D1Database, codes: readonly string[]): Promise<Map<string, string | null>> =>
   new Map((await db.prepare(NHOM_CUA).bind(JSON.stringify(codes)).all<{ catalog_code: string; group_code: string | null }>()).results.map((r) => [r.catalog_code, r.group_code]));
 export const findBeneficiaries = async (db: D1Database, q: string) => (await db.prepare(TIM_HUONG).bind(q).all<{ id: string; display_name: string; party_kind: "PERSON" | "ORGANIZATION" }>()).results;

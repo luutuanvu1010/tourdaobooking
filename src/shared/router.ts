@@ -161,6 +161,12 @@ export interface Ctx<A extends Access = Access> {
    * nhãn — KHÔNG đoán tên (nhãn chỉ để hiển thị, không quyết quyền).
    */
   nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>;
+  /**
+   * BÊN ĐẶT MÁY CHỦ ÉP CHO NGƯỜI GỌI (sổ đại lý đợt 1, Task 11; Ruling 21) — do gốc lắp ráp tiêm (`pricing.nguoiHuongCuaHoSo`; `auth` KHÔNG import `pricing`, không nới ALLOWED_EDGES — khuôn
+   * `mocToiThieu`, `nhanNhanVien`). Khác null khi và chỉ khi người gọi giữ quyền Đối tác, có hồ sơ, và hồ sơ đó đang mang vai được hưởng hoa hồng — ĐÚNG điều kiện `benDatChoTaiKhoan` ép bên đặt. Chỉ id + tên hồ sơ.
+   * Người gọi không giữ quyền Đối tác thì KHÔNG truy vấn (mọi lời gọi `/api/auth/me` đi qua đây). Môi trường không tiêm (khung thử cũ) ⇒ null.
+   */
+  benDatCuaToi: () => Promise<{ partyId: string; ten: string } | null>;
   /** GỘP HỒ SƠ (ADR-0068) — do gốc lắp ráp tiêm; xem `GopHoSoNoi`. Lười: chỉ gọi hàm tiêm khi route dùng (khung thử cũ không có hàm này vẫn chạy route khác). */
   gopHoSo: GopHoSoNoi;
   /**
@@ -288,6 +294,8 @@ export interface AppOptions {
     huongDanVien: (env: Env) => Promise<{ partyId: string; ten: string }[]>;
     /** R-P20. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nhanNhanVienTheoId` của staff); thiếu (khung thử cố ý) → router trả `null` (route để trống nhãn). */
     nhanNhanVien: (env: Env, ids: readonly string[]) => Promise<Map<string, string>>;
+    /** Task 11 (Ruling 21). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nguoiHuongCuaHoSo` của pricing, chỉ cho tài khoản giữ quyền Đối tác); thiếu (khung thử cũ) → router trả `null`. */
+    benDatCuaToi: (env: Env, actor: StaffProfile) => Promise<{ partyId: string; ten: string } | null>;
     /** GỘP HỒ SƠ (ADR-0068). BẮT BUỘC trong mã chạy thật (`src/index.ts`). */
     gopHoSo: (env: Env) => GopHoSoNoi;
     /** ADR-0060 điều 5. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nhapKeToanCuaDon` của billing); thiếu (khung thử cố ý) → router trả `null`. */
@@ -399,6 +407,7 @@ export function createApp(opts: AppOptions) {
       huongDanVien: () => (typeof opts.injected.huongDanVien === "function" ? opts.injected.huongDanVien(envH) : Promise.resolve([])),
       nhanNhanVien: (ids) =>
         typeof opts.injected.nhanNhanVien !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Map()) : opts.injected.nhanNhanVien(envH, ids),
+      benDatCuaToi: () => (who && typeof opts.injected.benDatCuaToi === "function" ? opts.injected.benDatCuaToi(envH, who) : Promise.resolve(null)),
       // Lười (kế hoạch R9): gọi opts.injected.gopHoSo(env) trong từng phương thức — app dựng bằng injected cũ (src/shared/router.test.ts) không vỡ ở route khác.
       gopHoSo: {
         viecCua: (id) => opts.injected.gopHoSo(envH).viecCua(id),

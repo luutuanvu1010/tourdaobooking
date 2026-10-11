@@ -507,6 +507,40 @@ test("ctx.nhanNhanVien (R-P20): chuyển env + id tới hàm tiêm; mảng rỗn
   assert.deepEqual(await (await khong.fetch(new Request("http://x/api/nhan"), env, {} as ExecutionContext)).json(), { a: null, rong: null });
 });
 
+// BÊN ĐẶT MÁY CHỦ ÉP CHO NGƯỜI GỌI (sổ đại lý đợt 1, Task 11; Ruling 21) — ctx.benDatCuaToi là hàm tiêm của gốc lắp ráp (`auth` không import `pricing`). Có tiêm → chuyển env + NGƯỜI GỌI
+// (hàm tiêm tự quyết có truy vấn hay không), trả nguyên kết quả; KHÔNG tiêm (khung thử cũ) → null, không đoán; route công khai (chưa đăng nhập) → null, không gọi hàm tiêm.
+test("ctx.benDatCuaToi (Ruling 21): chuyển env + người gọi tới hàm tiêm; KHÔNG tiêm → null; chưa đăng nhập → null không gọi", async () => {
+  const seen: unknown[] = [];
+  const env = { ten: "env-thu" } as unknown as Env;
+  const mod: AppModule = {
+    name: "ben-dat-gia",
+    routes: [route("GET", "/api/bd", "staff", async (ctx) => json({ bd: await ctx.benDatCuaToi() })), route("GET", "/api/bd-cong-khai", "public", async (ctx) => json({ bd: await ctx.benDatCuaToi() }))],
+  };
+  const injected = {
+    isAssigned: async () => false,
+    defaultHandlerStatement: () => null,
+    maintenanceBlock: async () => null,
+    partyAccount: async () => ({ linked: false }),
+    baoThayDoi: async () => {},
+    dongBangTin: async () => {},
+    giaoLoDay: async () => [],
+  };
+  const nguoi = staffOf(["PARTNER"]);
+  const tiem = async (e: Env, actor: StaffProfile) => {
+    seen.push([e, actor.id]);
+    return { partyId: "pty-1", ten: "Đại lý Một" };
+  };
+  const dn = { modules: [mod], currentStaff: async () => phien(nguoi) };
+  const co = createApp({ ...dn, injected: { ...injected, benDatCuaToi: tiem } } as any);
+  assert.deepEqual(await (await co.fetch(new Request("http://x/api/bd"), env, {} as ExecutionContext)).json(), { bd: { partyId: "pty-1", ten: "Đại lý Một" } });
+  assert.deepEqual(seen, [[env, "s1"]]);
+  const khong = createApp({ ...dn, injected } as any);
+  assert.deepEqual(await (await khong.fetch(new Request("http://x/api/bd"), env, {} as ExecutionContext)).json(), { bd: null });
+  seen.length = 0;
+  assert.deepEqual(await (await co.fetch(new Request("http://x/api/bd-cong-khai"), env, {} as ExecutionContext)).json(), { bd: null });
+  assert.deepEqual(seen, [], "route công khai (không ai đăng nhập) thì không gọi hàm tiêm");
+});
+
 // Sổ tiền lượt 1 (kiểm độc lập T-1; ADR-0025 đ4): hai người đua — route đã đọc "chưa Đã giao" nhưng lô ghi gặp trigger 0044 (`order_delivered:` /
 // `order_completed:`) → 409 câu tiếng Việt, KHÔNG 500 chung. Lỗi khác vẫn 500 như cũ; chữ thô của trigger không lộ ra.
 function buildThrowing(err: unknown) {

@@ -9,7 +9,7 @@ import { can, holdsPartner } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { CAU_X3_THUE_XE, NHAN_LY_DO_THIEU } from "../../shared/so-dai-ly-nhan";
 import { vnToday } from "../../shared/vn-date";
-import { allRules, allTerms, beneficiaryRoles, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, insertRuleStatement, insertTermStatement, isBeneficiary,
+import { allRules, allTerms, beneficiaryRoles, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, huongCuaHoSo, insertRuleStatement, insertTermStatement, isBeneficiary,
   openRolesOf, ruleById, rulesOn, suppliers, termById, termsOn, type RuleRow, type TermRow } from "./repository";
 import { MA_RE, PARTY_RE, chonMuc, hieuLuc, kiemNgayDong, kiemThanDieuKhoan, kiemThanMuc, laNgay, moTaMuc, nguoiHuongCua, type DongDieuKhoan, type DongMuc,
   type NguoiHuong } from "./rules";
@@ -31,6 +31,11 @@ export async function docBangChoChup(db: D1Database, v: { bookerPartyId: string 
   return { nguoiHuong, muc: muc.map(dongMuc), dieuKhoan: dk.map(dongDk), nhom };
 }
 export const laNguoiHuong = (db: D1Database, partyId: string): Promise<boolean> => isBeneficiary(db, partyId);
+/**
+ * Task 11 (Ruling 21): hồ sơ `partyId` đang mang vai được hưởng (CÙNG điều kiện `laNguoiHuong`) ⇒ `{ partyId, ten }`, không thì null. CHỈ gốc lắp ráp gọi, để `GET /api/auth/me` báo
+ * "bên đặt máy chủ sẽ ép cho tài khoản Đối tác này" (`auth` không import `pricing`). Chỉ id và tên hồ sơ — không liên hệ.
+ */
+export const nguoiHuongCuaHoSo = (db: D1Database, partyId: string): Promise<{ partyId: string; ten: string } | null> => huongCuaHoSo(db, partyId);
 
 /** Cùng câu cho trigger `prc_supplier_mismatch` và cho lời kiểm trước ở route (ràng buộc CHECK của bảng không có tiền tố mã nên không dịch được từ lỗi). */
 const CAU_TY_LE_MUA_LAI = "Tour Đảo bán thì không ghi tỷ lệ mua lại; nhà cung cấp bán thì phải ghi.";
