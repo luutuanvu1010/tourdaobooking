@@ -80,7 +80,7 @@ async function main(): Promise<void> {
   };
 
   function veDanhSach(): void {
-    const dong = locMuc(ds.dong, { chiConHieuLuc: locTrangThaiEl.value !== "tat-ca", tim: locTimEl.value }, ds.homNay);
+    const dong = locMuc(ds.dong, { chiConHieuLuc: locTrangThaiEl.value !== "tat-ca", tim: locTimEl.value }, ds.homNay, dm.ten);
     replaceChildren(
       bangEl,
       ...dong.map((d) => {

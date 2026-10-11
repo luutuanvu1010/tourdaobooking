@@ -73,11 +73,29 @@ test("locMuc: «đang áp» bỏ dòng đã đóng nhưng giữ dòng sắp áp;
     muc({ id: "b", doiTuong: { loai: "DOI_TAC", partyId: "p", ten: "Đại Lý Hòn Tằm" }, conHieuLuc: false, tuNgay: "2026-11-01" }),
     muc({ id: "c", conHieuLuc: false, denNgay: "2026-09-30" }),
   ];
-  assert.deepEqual(locMuc(dong, { chiConHieuLuc: true, tim: "" }, HOM_NAY).map((d) => d.id), ["a", "b"]);
-  assert.deepEqual(locMuc(dong, { chiConHieuLuc: false, tim: "" }, HOM_NAY).map((d) => d.id), ["a", "b", "c"]);
-  assert.deepEqual(locMuc(dong, { chiConHieuLuc: false, tim: "dai ly hon tam" }, HOM_NAY).map((d) => d.id), ["b"]);
-  assert.deepEqual(locMuc(dong, { chiConHieuLuc: false, tim: "ĐẠI LÝ" }, HOM_NAY).map((d) => d.id), ["a", "b", "c"]);
+  assert.deepEqual(locMuc(dong, { chiConHieuLuc: true, tim: "" }, HOM_NAY, ten).map((d) => d.id), ["a", "b"]);
+  assert.deepEqual(locMuc(dong, { chiConHieuLuc: false, tim: "" }, HOM_NAY, ten).map((d) => d.id), ["a", "b", "c"]);
+  assert.deepEqual(locMuc(dong, { chiConHieuLuc: false, tim: "dai ly hon tam" }, HOM_NAY, ten).map((d) => d.id), ["b"]);
+  assert.deepEqual(locMuc(dong, { chiConHieuLuc: false, tim: "ĐẠI LÝ" }, HOM_NAY, ten).map((d) => d.id), ["a", "b", "c"]);
   assert.deepEqual(locDieuKhoan([dk({ id: "x" }), dk({ id: "y", conHieuLuc: false, denNgay: "2026-01-02" })], true, HOM_NAY).map((d) => d.id), ["x"]);
+});
+
+test("locMuc: ô tìm khớp THÊM nhãn phạm vi (tên dịch vụ / nhóm đang hiện ra), tên đối tượng vẫn khớp, không phân biệt hoa thường và dấu", () => {
+  const dong = [
+    muc({ id: "tat-ca" }),
+    muc({ id: "dich-vu", phamVi: "SERVICE", catalogCode: "HONTAM" }),
+    muc({ id: "nhom", doiTuong: { loai: "DOI_TAC", partyId: "p", ten: "Đại Lý Nha Trang" }, phamVi: "GROUP", groupCode: "DTH" }),
+    muc({ id: "ma-la", phamVi: "SERVICE", catalogCode: "MA_LA" }),
+  ];
+  const tim = (q: string): string[] => locMuc(dong, { chiConHieuLuc: false, tim: q }, HOM_NAY, ten).map((d) => d.id);
+  assert.deepEqual(tim("hòn tằm"), ["dich-vu"], "gõ tên dịch vụ ra đúng các mức của dịch vụ đó");
+  assert.deepEqual(tim("HON TAM"), ["dich-vu"], "không phân biệt hoa thường và dấu");
+  assert.deepEqual(tim("du thuyen"), ["nhom"], "gõ tên nhóm");
+  assert.deepEqual(tim("nha trang"), ["nhom"], "gõ tên đối tác vẫn ra");
+  assert.deepEqual(tim("đại lý du lịch"), ["tat-ca", "dich-vu", "ma-la"], "gõ tên loại đối tác vẫn ra");
+  assert.deepEqual(tim("mọi dịch vụ"), ["tat-ca"], "gõ «Mọi dịch vụ» ra mức áp cho mọi dịch vụ");
+  assert.deepEqual(tim("MA_LA"), ["ma-la"], "dịch vụ thiếu tên trong danh mục: nhãn hiện ra là mã nên khớp mã đó");
+  assert.deepEqual(tim("HONTAM"), [], "mã thô của dịch vụ ĐÃ có tên không phải nhãn hiện ra nên không khớp");
 });
 
 test("cauThuTra: sáu bậc có lời riêng, thiếu mức dùng câu của máy chủ, không người hưởng có câu riêng", () => {
@@ -114,5 +132,5 @@ test("coTheTimDoiTac giữ ĐÚNG cổng của route nguoi-huong (order.create, 
   assert.equal(coTheTimDoiTac(ai("ACCOUNTING")), false, "Kế toán không có order.create");
   assert.equal(coTheTimDoiTac(ai("SALES", "PARTNER")), false, "tài khoản lai có quyền Đối tác bị route chặn");
   assert.equal(coTheTimDoiTac(ai("ACCOUNTING", "SALES")), true);
-  assert.match(CAU_CHUA_TIM_DUOC_DOI_TAC, /^Tài khoản của bạn chưa tìm được đối tác/);
+  assert.equal(CAU_CHUA_TIM_DUOC_DOI_TAC, "Tài khoản của bạn chưa tìm được đối tác theo tên. Cần đặt mức riêng cho một đối tác thì nhờ Quản trị hoặc Toàn quyền.", "nói rõ phải làm gì (Ruling 26: chưa nới cổng, ghi nợ)");
 });

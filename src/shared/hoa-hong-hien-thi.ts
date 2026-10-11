@@ -7,7 +7,7 @@ import { nhanMuc, nhanTyLeBp } from "./so-dai-ly-nhan.ts";
 
 export const CAU_KHONG_CO_QUYEN_XEM = "Bạn không có quyền xem trang này.";
 /** Thay ô tìm đối tác ở người không qua cổng của route tìm người hưởng (xem `coTheTimDoiTac`). */
-export const CAU_CHUA_TIM_DUOC_DOI_TAC = "Tài khoản của bạn chưa tìm được đối tác theo tên ở màn này.";
+export const CAU_CHUA_TIM_DUOC_DOI_TAC = "Tài khoản của bạn chưa tìm được đối tác theo tên. Cần đặt mức riêng cho một đối tác thì nhờ Quản trị hoặc Toàn quyền.";
 /** Hộp xác nhận khi đóng dòng «Mọi dịch vụ» của công ty chủ (đặc tả sổ đại lý đợt 1: dòng mặc định gieo sẵn; đóng mà không mở dòng mới thì dịch vụ thiếu người bán). */
 export const CAU_DONG_DONG_MAC_DINH = "Đóng dòng mặc định thì dịch vụ chưa có điều khoản riêng sẽ thiếu người bán cho tới khi mở dòng mới. Vẫn đóng?";
 export const CAU_KHONG_CO_MUC = "Chưa có mức nào.";
@@ -63,13 +63,18 @@ const chuanTim = (s: string): string => s.normalize("NFD").replace(/[\u0300-\u03
 export interface BoLoc {
   /** true = chỉ dòng đang áp và sắp áp (bỏ dòng đã đóng); false = tất cả. */
   readonly chiConHieuLuc: boolean;
-  /** Ô tìm theo tên đối tượng (không phân biệt dấu, hoa thường); rỗng = không lọc. */
+  /** Ô tìm theo tên đối tượng (loại đối tác hoặc đối tác) HOẶC theo nhãn phạm vi đang hiện («Dịch vụ Hòn Tằm», «Nhóm Du thuyền», «Mọi dịch vụ»); không phân biệt dấu, hoa thường; rỗng = không lọc. */
   readonly tim: string;
 }
-/** Lọc danh sách mức trên máy: theo trạng thái và theo tên đối tượng. Giữ thứ tự máy chủ trả. */
-export function locMuc(dong: readonly CommissionRuleDto[], bo: BoLoc, homNay: string): CommissionRuleDto[] {
+/**
+ * Lọc danh sách mức trên máy: theo trạng thái và theo ô tìm (đặc tả sổ đại lý đợt 1 §11: «lọc theo vai / đối tác / dịch vụ»). Ô tìm khớp tên đối tượng và nhãn phạm vi — đúng chữ người dùng
+ * đang thấy ở bảng (`nhanPhamVi`, có tên thì in tên, thiếu tên thì in mã), không khớp mã thô của dịch vụ đã có tên. Giữ thứ tự máy chủ trả.
+ */
+export function locMuc(dong: readonly CommissionRuleDto[], bo: BoLoc, homNay: string, ten: TenDanhMuc): CommissionRuleDto[] {
   const tim = chuanTim(bo.tim);
-  return dong.filter((d) => (!bo.chiConHieuLuc || trangThaiDong(d, homNay) !== "DA_DONG") && (tim === "" || chuanTim(d.doiTuong.ten).includes(tim)));
+  return dong.filter(
+    (d) => (!bo.chiConHieuLuc || trangThaiDong(d, homNay) !== "DA_DONG") && (tim === "" || chuanTim(d.doiTuong.ten).includes(tim) || chuanTim(nhanPhamVi(d, ten)).includes(tim)),
+  );
 }
 /** Lọc danh sách điều khoản: theo trạng thái. */
 export function locDieuKhoan(dong: readonly SupplyTermDto[], chiConHieuLuc: boolean, homNay: string): SupplyTermDto[] {
