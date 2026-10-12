@@ -159,6 +159,7 @@ export function suatChuyenDto(
   return {
     id: a.id, loai: a.kind, maDon, legId: a.leg_id, chieu: ch?.direction ?? null, diemLen: a.board_stop_id, diemXuong: a.alight_stop_id, trangThai: a.status,
     soHieuChuyenBay: ch?.soHieuChuyenBay ?? null,
+    gioHen: ch && ch.pickupDate !== null && ch.pickupTime !== null ? { ngay: ch.pickupDate, gio: ch.pickupTime } : null, // C33: giờ hẹn từng đoàn ở điểm gộp
     coTen: a.passenger_key !== null,
     ...(nguoi ? { hoTen: nguoi.fullName, namSinh: nguoi.birthYear } : {}),
     ...(a.kind === "CREW" && a.crew_party_id !== null && v.tenDiKem?.has(a.crew_party_id) ? { tenNguoiDiKem: v.tenDiKem.get(a.crew_party_id)! } : {}),

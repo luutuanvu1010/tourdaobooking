@@ -1,5 +1,6 @@
 // ĐỌC THÂN YÊU CẦU của các lệnh chuyến xe (kế hoạch mục 1.7; contracts: TaoChuyenRequest …). Danh sách TRẮNG từng khoá — khoá lạ bị bỏ qua, không bao giờ
 // nhận chữ tự do cho lý do (I18: chỉ MÃ lý do), không nhận giờ ghi nhận / dấu lệnh / khoá nơi từ trình duyệt. Logic thuần (không I/O), trả lời báo tiếng Việt.
+import { TOI_DA_CHANG_MOT_LAN } from "../../shared/dieu-phoi-loc";
 import { UUID_RE } from "../../shared/http";
 import { vnLocalToMs } from "../../shared/vn-date";
 
@@ -116,7 +117,7 @@ export function docXep(body: Record<string, unknown> | null): KetQua<XepThan> {
   if (!rid.ok) return rid;
   const chang: XepThan["chang"] = [];
   if (body.chang !== undefined) {
-    if (!Array.isArray(body.chang) || body.chang.length > 50) return fail("Danh sách chặng không hợp lệ.");
+    if (!Array.isArray(body.chang) || body.chang.length > TOI_DA_CHANG_MOT_LAN) return fail("Danh sách chặng không hợp lệ."); // C34: một con số với màn (src/shared/dieu-phoi-loc.ts)
     for (const c of body.chang) {
       if (!c || typeof c !== "object") return fail("Danh sách chặng không hợp lệ.");
       const x = c as Record<string, unknown>;
