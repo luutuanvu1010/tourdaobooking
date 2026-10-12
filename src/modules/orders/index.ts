@@ -31,6 +31,7 @@ import { nguongMocVn, type MocToiThieu } from "../../shared/moc-toi-thieu";
 import { canhBaoMocCua, chepDatGapNhap, docDatGap, duoiMocKhiSua, ghiDatGapNhatKy, lichSuTheoVai } from "./dat-gap";
 import { dongHienHanh, kiemHanhKhach, soKhachDoan } from "../../shared/hanh-khach";
 import type { PaxCode } from "../../shared/order-lines";
+import { cauKhongDoiDuocTrangThai } from "../../shared/order-status-label";
 import { soNguoiChang, tongKhach } from "../../shared/so-nguoi-chang";
 import { maskLongDigits } from "../../shared/text-guards";
 import { CAU_X3_THUE_XE, NHOM_THUE_XE, laDongThuongMai } from "../../shared/so-dai-ly-nhan";
@@ -1159,7 +1160,7 @@ export const ordersModule: AppModule = {
       if (!can(staff, "order.modify", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
       if (meta.deliveredAt) return DA_GIAO();
       const from = meta.status;
-      if (!canTransition(from, to)) return error(409, "invalid_transition", `Không thể chuyển đơn từ "${from}" sang "${to}".`);
+      if (!canTransition(from, to)) return error(409, "invalid_transition", cauKhongDoiDuocTrangThai(from, to)); // nhãn tiếng Việt, không mã thô (Task 14, nợ (g)); mã `invalid_transition` giữ nguyên
 
       if (to === "cancelled") {
         // ADR-0089 đ8 (H-C4): lý do bắt buộc; nhóm "Công ty huỷ" chỉ khi có ô `order.cancel.classify` (Quản trị, Toàn quyền — Đ-2).

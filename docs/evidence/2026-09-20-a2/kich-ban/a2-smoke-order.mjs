@@ -214,7 +214,7 @@ try {
   await p.ev("window.confirm = () => true; true");
   await p.ev(clickText("#actions", "Huỷ đơn")); // trang cũ vẫn tưởng đơn còn nháp → 409 invalid_transition
   await p.ev(`(() => { const f = document.querySelector('[data-khoi="huy-don"]'); f.querySelector('input[value="KHACH_DOI_Y"]').click(); f.querySelector('button[type=submit]').click(); return true; })()`); // ADR-0089 đ8: chọn lý do huỷ rồi bấm "Huỷ đơn" của hàng lý do
-  await p.waitFor("!document.getElementById('error').hidden && /Không thể chuyển đơn từ/.test(document.getElementById('error').textContent)", "banner 409 invalid_transition");
+  await p.waitFor("!document.getElementById('error').hidden && /Đơn đã ở trạng thái/.test(document.getElementById('error').textContent)", "banner 409 invalid_transition");
   assert.equal(await p.ev("[...document.querySelectorAll('#error button')].some((b) => b.textContent === 'Tải lại đơn')"), true, "409 ở trang đơn có nút 'Tải lại đơn'");
   await p.ev(clickText("#error", "Tải lại đơn"));
   await p.waitFor("document.querySelector('#order .badge')?.textContent === 'Đã huỷ' && document.getElementById('error').hidden", "tải lại: thấy trạng thái mới");
