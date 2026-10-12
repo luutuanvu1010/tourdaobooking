@@ -862,3 +862,40 @@ test("khối tài xế có vế hạn NGOÀI khung: mọi route lệnh cuoc-cua-
     tat();
   }
 });
+
+// ---- ADR-0113 Đ2–Đ3 (accepted 2026-10-12), cùng KHỐI vế hạn NGOÀI khung: thân 409 `refuse_blocked_transferred_in` và DTO có `chanTuChoi` KHÔNG kèm tên khách, năm sinh,
+// mã đơn của chuyến nhận, mã đơn / mã chuyến của chuyến NGUỒN, liên hệ — dù tài xế (Toàn quyền tự lái) đang ngoài khung xem khách và trước hạn Từ chối. -------------
+test("khối vế hạn NGOÀI khung (ADR-0113): chuyến nhận khách chuyển vào, Từ chối trước hạn → 409 refuse_blocked_transferred_in không tên / năm sinh / mã đơn / mã chuyến nguồn / liên hệ; chi tiết cuốc có chanTuChoi và cũng sạch", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const cs = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", {
+      as: SUP,
+      body: { minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true, proxyBackdateMaxMinutes: 90, dutyDayMaxMinutes: 600, tripNoBreakMaxMinutes: 300, departureWindowMinutes: 1440, refuseLeadMinutes: 720, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer: true },
+    });
+    assert.equal(cs.status, 201, cs.text);
+    thanhTaiXe(w, `pty-${SUP}`);
+    // S (tài xế công ty, đủ tên, 06:00 ngày D) → B (Toàn quyền tự lái, 15:00 ngày D; hạn Từ chối 03:00 ngày D).
+    const S = await chuyenSan(w, { taiXe: DRIVER, ngay: NGAY_SAU, bd: "06:00", kt: "08:00", gio: "06:30", soNguoi: 2, namSinh: 1911, noiDon: "Khách sạn Nguồn" });
+    const B = await chuyenSan(w, { taiXe: SUP, ngay: NGAY_SAU, bd: "15:00", kt: "17:00", gio: "15:30", soNguoi: 1, namSinh: 1922, noiDon: "Khách sạn Đích" });
+    denGio("18:30", NGAY);
+    assert.equal((await tienDo(w, "van-phong", S.id, "xuat-ben", {}, ADM)).status, 200);
+    const g = await w.call("POST", `/api/van-chuyen/cuoc-cua-toi/${S.id}/de-nghi`, { as: DRIVER, body: { requestId: uuid(), denChuyenId: B.id, phamVi: "STOP", diemId: S.diemDon } });
+    assert.equal(g.status, 200, g.text);
+    const n = await w.call("POST", `/api/van-chuyen/de-nghi/${g.json.deNghi.id}/nhan`, { as: SUP, body: { requestId: uuid() } });
+    assert.equal(n.status, 200, n.text);
+    assert.equal(n.json.ketQua, "DA_CHUYEN", n.text);
+    const cam = (t: string) => [S.don.code, B.don.code, S.ma, ...TEN_VC, "Khách Liên Hệ", "0912345678", "1911", "1922"] /* tên điểm đón (nơi) là dữ liệu chuyến, luôn hiện cho tài xế — không tính */.filter((c) => t.includes(c));
+    const ct = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${B.id}`, { as: SUP });
+    assert.equal(ct.status, 200, ct.text);
+    assert.equal(ct.json.trongNgayChay, false, "chống bài rỗng: ngoài khung xem khách");
+    assert.equal(ct.json.chanTuChoi, "KHACH_CHUYEN_VAO", "chống bài rỗng: khách đã chuyển vào");
+    assert.deepEqual(cam(ct.text), [], `GET chi tiết lộ: ${ct.text}`);
+    const r = await w.call("POST", `/api/van-chuyen/cuoc-cua-toi/${B.id}/tu-choi`, { as: SUP, body: { requestId: uuid(), lyDo: "TCC_KHAC" } });
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.code, "refuse_blocked_transferred_in", r.text);
+    assert.deepEqual(cam(r.text), [], `thân 409 lộ: ${r.text}`);
+  } finally {
+    tat();
+  }
+});

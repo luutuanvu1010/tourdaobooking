@@ -462,7 +462,8 @@ export const TRIP_CANCEL = defineSql(
 );
 /**
  * Câu cổng lô TỪ CHỐI (ADR-0053 D8.4; kế hoạch A4 G-A4-24): ĐỦ điều kiện trong một câu — version đã đọc, chuyến PLANNED, người gọi có dòng lái MỞ, giờ máy chủ
- * ≤ hạn của cặp. Trigger B8.3 (0092, giờ CSDL) là lớp thứ hai. ?1 chuyến, ?2 version, ?3 dấu lệnh, ?4 lúc, ?5 người, ?6 hồ sơ tài xế, ?7 giờ máy chủ (ms).
+ * ≤ hạn của cặp, VÀ (ADR-0113 Đ1) chuyến không còn suất đang mở mang `transfer_id` — lô xác nhận chuyển chen giữa lúc đọc và lúc ghi không lọt (lớp máy chủ,
+ * KHÔNG có trigger). Trigger B8.3 (0092, giờ CSDL) là lớp thứ hai của vế hạn. ?1 chuyến, ?2 version, ?3 dấu lệnh, ?4 lúc, ?5 người, ?6 hồ sơ tài xế, ?7 giờ máy chủ (ms).
  */
 export const TRIP_GATE_TU_CHOI = defineSql(
   "van-chuyen",
@@ -470,7 +471,8 @@ export const TRIP_GATE_TU_CHOI = defineSql(
   `UPDATE vc_trip SET version = version + 1, last_cmd_id = ?3, updated_at = ?4, updated_by = ?5
    WHERE id = ?1 AND version = ?2 AND status = 'PLANNED'
      AND EXISTS (SELECT 1 FROM vc_trip_driver d WHERE d.trip_id = ?1 AND d.valid_to_at IS NULL AND d.driver_party_id = ?6)
-     AND EXISTS (SELECT 1 FROM vc_refuse_deadline r WHERE r.trip_id = ?1 AND r.driver_party_id = ?6 AND ?7 <= r.deadline_ms)`,
+     AND EXISTS (SELECT 1 FROM vc_refuse_deadline r WHERE r.trip_id = ?1 AND r.driver_party_id = ?6 AND ?7 <= r.deadline_ms)
+     AND NOT EXISTS (SELECT 1 FROM vc_trip_allocation a WHERE a.trip_id = ?1 AND a.valid_to_at IS NULL AND a.transfer_id IS NOT NULL)`,
 );
 /**
  * Đóng dòng lái vì TỪ CHỐI (ADR-0053 D8.1, D8.4; B8.2–B8.4): lý do (nhóm TU_CHOI_CHUYEN), người đóng = chính tài xế (hồ sơ + tài khoản). ?1 chuyến, ?2 dấu lệnh,

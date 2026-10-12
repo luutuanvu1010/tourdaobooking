@@ -150,6 +150,8 @@ export function loiRangBuocXe(message: string): { status: number; code: string; 
 export const CAU_LUAT_CHUYEN = "Chuyến vừa thay đổi hoặc lệnh vi phạm luật chuyến xe — tải lại rồi làm lại.";
 /** ADR-0053 D8.4 bước 3 — nguyên văn. */
 export const CAU_QUA_HAN_TU_CHOI = "Đã quá hạn từ chối, hãy gọi văn phòng để đổi người.";
+/** ADR-0113 Đ2 — nguyên văn. Không tên, không số khách, không mã đơn / mã chuyến nguồn (an toàn với người có vế hạn NGOÀI khung xem khách — A4 CAO-1). */
+export const CAU_CHAN_TU_CHOI_KHACH_CHUYEN_VAO = "Chuyến này đang có khách được chuyển từ xe khác sang nên chưa từ chối được — hãy gọi văn phòng để đổi người.";
 /** ADR-0051 (0043): họ lệnh trên mốc giờ hẹn thua đua / chuỗi đổi giữa chừng → MỘT câu "tải lại" (khuôn H10). */
 export const CAU_GIO_HEN_VUA_DOI = "Giờ hẹn vừa đổi hoặc đã có người báo — tải lại.";
 /** ADR-0097 Đ3.2: thu hồi xuất bến khi chuyến đã có tiến độ (lớp CSDL — trigger vc_trip_revoke_no_progress). */

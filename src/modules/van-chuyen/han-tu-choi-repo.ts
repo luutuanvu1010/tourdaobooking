@@ -14,9 +14,20 @@ const TU_CHOI_CUA_CHUYEN = defineSql("van-chuyen", "tu_choi_cua_chuyen",
 const SU_KIEN_TU_CHOI_THEO_YEU_CAU = defineSql("van-chuyen", "su_kien_tu_choi_theo_yeu_cau",
   `SELECT trip_id, kind, created_by FROM vc_trip_event WHERE request_id = ?1`);
 
+/**
+ * ADR-0113 Đ1: chuyến còn ÍT NHẤT MỘT suất ĐANG MỞ mang `transfer_id` (khách chuyển sang từ xe khác — ADR-0111). Suất đã đóng (rút / dời đi) không tính. Riêng
+ * câu này, KHÔNG thêm `transfer_id` vào cột chung của suất (`COT_SUAT` — mọi DTO, bài quét tên không đổi). Lớp thứ hai là mệnh đề NOT EXISTS ở câu cổng
+ * `trip_gate_tu_choi` (chuyen-repo.ts).
+ */
+const CO_SUAT_CHUYEN_VAO = defineSql("van-chuyen", "co_suat_chuyen_vao",
+  `SELECT 1 AS co FROM vc_trip_allocation WHERE trip_id = ?1 AND valid_to_at IS NULL AND transfer_id IS NOT NULL LIMIT 1`);
+
 /** Hạn Từ chối (ms) của cặp (chuyến, tài xế); `null` = thiếu dòng (khung coi là NGOÀI — đóng mặc định, G-A4-2). */
 export async function hanTuChoiCuaCap(db: D1Database, tripId: string, partyId: string): Promise<number | null> {
   return (await db.prepare(HAN_CUA_CAP).bind(tripId, partyId).first<{ deadline_ms: number }>())?.deadline_ms ?? null;
+}
+export async function coSuatChuyenVao(db: D1Database, tripId: string): Promise<boolean> {
+  return (await db.prepare(CO_SUAT_CHUYEN_VAO).bind(tripId).first<{ co: number }>()) !== null;
 }
 export interface TuChoiRow {
   id: string;

@@ -7,8 +7,11 @@ import { ngayNgan } from "./vn-date.ts";
 export const gioNgan = (g: GioVnDto, homNay: string): string => `${g.gio} ${ngayNgan(g.ngay, homNay)}`;
 
 export interface DaiHanTuChoi {
-  /** `con_han` = còn Từ chối được (nút theo `tuChoiDuoc` của máy chủ); `qua_han` = đã quá hạn, chuyến chưa chạy (nút "Gọi văn phòng" khi có số). */
-  loai: "con_han" | "qua_han";
+  /**
+   * `con_han` = còn Từ chối được (nút theo `tuChoiDuoc` của máy chủ); `qua_han` = đã quá hạn, chuyến chưa chạy (nút "Gọi văn phòng" khi có số);
+   * `bi_chan` = còn hạn nhưng chuyến có khách chuyển từ xe khác sang (ADR-0113 Đ3) — không Từ chối được, cũng có nút "Gọi văn phòng" khi có số.
+   */
+  loai: "con_han" | "qua_han" | "bi_chan";
   tieuDe: string;
   dong: string[];
   /** Số văn phòng cho nút "Gọi văn phòng" (`tel:`); `null` = chưa nhập → ẩn nút (lời chủ 6.3). */
@@ -16,14 +19,21 @@ export interface DaiHanTuChoi {
 }
 /**
  * Dải hạn Từ chối trên màn một chuyến CHƯA chạy. Chỉ người có vế hạn (máy chủ gửi `hanTuChoi`); tài xế công ty (không khoá) → null. Nút "Từ chối chuyến" hiện
- * CHỈ theo cờ máy chủ `tuChoiDuoc` (G-A4-16) — hàm không tự so giờ.
+ * CHỈ theo cờ máy chủ `tuChoiDuoc` (G-A4-16) — hàm không tự so giờ. `chanTuChoi` (ADR-0113 Đ3, máy chủ chỉ gửi khi còn hạn mà có khách chuyển vào) chọn nhánh thứ
+ * ba thay cho "Đã quá hạn từ chối"; vắng khoá = hành vi cũ.
  */
-export function daiHanTuChoi(v: { trangThai: string; tuChoiDuoc: boolean; hanTuChoi?: GioVnDto; sdtVanPhong?: string }, homNay: string): DaiHanTuChoi | null {
+export function daiHanTuChoi(
+  v: { trangThai: string; tuChoiDuoc: boolean; hanTuChoi?: GioVnDto; sdtVanPhong?: string; chanTuChoi?: "KHACH_CHUYEN_VAO" },
+  homNay: string,
+): DaiHanTuChoi | null {
   if (v.trangThai !== "PLANNED" || !v.hanTuChoi) return null;
   const han = gioNgan(v.hanTuChoi, homNay);
   const sdt = v.sdtVanPhong ?? null;
   if (v.tuChoiDuoc) {
     return { loai: "con_han", tieuDe: `Từ chối được tới ${han}`, dong: ["Không chạy được chuyến này thì bấm Từ chối chuyến trước giờ đó — văn phòng sẽ xếp người khác."], sdt };
+  }
+  if (v.chanTuChoi === "KHACH_CHUYEN_VAO") {
+    return { loai: "bi_chan", tieuDe: "Chuyến có khách chuyển từ xe khác sang", dong: [sdt ? "Không từ chối được — gọi văn phòng để đổi người." : "Không từ chối được — báo văn phòng để đổi người."], sdt };
   }
   return { loai: "qua_han", tieuDe: `Đã quá hạn từ chối (${han})`, dong: [sdt ? "Không chạy được thì gọi văn phòng ngay." : "Không chạy được thì báo văn phòng ngay."], sdt };
 }
@@ -41,6 +51,7 @@ export interface LoiTuChoi {
 export function loiTuChoi(e: { status: number; code: string; message: string }): LoiTuChoi {
   if (e.status === 409 && e.code === "stale") return { cau: "Văn phòng vừa sửa chuyến này — đã tải lại, xem lại rồi quyết.", hanhDong: "doc_lai" };
   if (e.status === 409 && e.code === "refuse_deadline_passed") return { cau: "Đã quá hạn từ chối — không chạy được thì gọi văn phòng.", hanhDong: "doc_lai" };
+  if (e.status === 409 && e.code === "refuse_blocked_transferred_in") return { cau: "Chuyến này có khách được chuyển từ xe khác sang nên chưa từ chối được — đã tải lại, hãy gọi văn phòng.", hanhDong: "doc_lai" };
   if (e.status === 409 && e.code === "trip_not_planned") return { cau: "Chuyến đã xuất bến, kết thúc hoặc bị huỷ — đã tải lại.", hanhDong: "doc_lai" };
   if (e.status === 404) return { cau: "Chuyến này không còn giao cho bạn.", hanhDong: "ve_cuoc" };
   return { cau: e.message, hanhDong: "giu" };

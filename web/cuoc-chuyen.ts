@@ -23,7 +23,7 @@
 //   ngày chạy); Google Maps mọi máy, Apple Maps chỉ máy Apple (`nutChiDuongCuaDiem`, src/shared/chi-duong.ts). Liên kết `<a>` mở tab mới, `noreferrer noopener`;
 //   trang không đọc vị trí. Đọc lại GET sau lệnh hỏng → giữ chuỗi đích của lần GET trước (`giuChiDuong`).
 // - A4 T9 (ADR-0053 D7.2, D8; G-A4-16): chuyến CHƯA chạy của người có vế hạn (tài xế đối tác) — dải hạn Từ chối (`daiHanTuChoi`, src/shared/tu-choi-man.ts);
-//   nút "Từ chối chuyến" hiện CHỈ theo cờ máy chủ `tuChoiDuoc`; tấm Từ chối (lý do nhóm Từ chối chuyến, "Xác nhận từ chối"); quá hạn → "Gọi văn phòng" (`tel:`,
+//   nút "Từ chối chuyến" hiện CHỈ theo cờ máy chủ `tuChoiDuoc`; tấm Từ chối (lý do nhóm Từ chối chuyến, "Xác nhận từ chối"); quá hạn, hoặc (ADR-0113 Đ3) chuyến có khách chuyển từ xe khác sang (`chanTuChoi`) → dải cảnh báo + "Gọi văn phòng" (`tel:`,
 //   ẩn khi chưa có số); thẻ "thấy tên khách và mã đơn từ …" (`thayKhachTu`). Cờ `trongNgayChay` của DTO nay mang nghĩa "trong khung xem khách" (G-A4-6).
 // - ADR-0111 (gói A5 T13; bản vẽ "Điều phối xe đang chạy" V8, V9): ô trip.transfer — "Nhờ xe khác đón" ở điểm đón chưa tới (đề nghị STOP), "Chuyển khách sang
 //   xe khác" cạnh "Kết thúc gián đoạn" (cứu hộ ONBOARD, có nơi gặp); thẻ đề nghị gửi đi (đếm ngược, Rút lại) và gửi tới (đếm ngược, Nhận / Không nhận). Đếm
@@ -803,7 +803,7 @@ const lenhTuChoi = taoLenh();
 /** Dải hạn Từ chối + thẻ "thấy khách từ …" của chuyến chưa chạy (chỉ người có vế hạn — máy chủ gửi `hanTuChoi` / `thayKhachTu`). */
 function khoiHanTuChoi(r: CuocChiTietResponse): Child[] {
   const homNay = vnToday(new Date());
-  const d = daiHanTuChoi({ trangThai: r.chuyen.trangThai, tuChoiDuoc: r.tuChoiDuoc, hanTuChoi: r.hanTuChoi, sdtVanPhong: r.sdtVanPhong }, homNay);
+  const d = daiHanTuChoi({ trangThai: r.chuyen.trangThai, tuChoiDuoc: r.tuChoiDuoc, hanTuChoi: r.hanTuChoi, sdtVanPhong: r.sdtVanPhong, chanTuChoi: r.chanTuChoi }, homNay);
   const out: Child[] = [];
   if (d) {
     const nut: HTMLElement[] = [];
@@ -812,7 +812,7 @@ function khoiHanTuChoi(r: CuocChiTietResponse): Child[] {
       tc.addEventListener("click", () => moTuChoi(tc));
       nut.push(tc);
     }
-    if (d.loai === "qua_han" && d.sdt) nut.push(h("a", { class: "vc-btn btn", href: `tel:${d.sdt}`, "data-action": "goi-van-phong" }, "Gọi văn phòng"));
+    if (d.loai !== "con_han" && d.sdt) nut.push(h("a", { class: "vc-btn btn", href: `tel:${d.sdt}`, "data-action": "goi-van-phong" }, "Gọi văn phòng"));
     out.push(dai(d.loai === "con_han" ? "info" : "warning", d.tieuDe, d.dong, undefined, nut.length ? [h("div", { class: "banner-actions" }, ...nut)] : []));
   }
   const thay = cauThayKhach(r.thayKhachTu, homNay);
