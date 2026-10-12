@@ -387,4 +387,19 @@ console.log("✓ người phụ trách huỷ đơn nháp; bị đổi người t
   assert.equal((await call(ADMIN, "GET", "/api/orders?tu=2026-02-30")).status, 400);
   console.log("✓ bộ lọc danh sách đơn: ngày đi, dịch vụ, trạng thái, người lập chọn đồng thời; tham số sai → 400");
 }
+// Chữ tìm dài (tên khách có dấu, mẫu LIKE > 50 byte): D1 từ chối mẫu dài hơn 50 byte ("LIKE or GLOB pattern too complex") — trước đây GET này trả 500. Nay máy chủ cắt chữ tìm
+// theo byte (mauLikeChua) nên vẫn 200 và thấy đơn. Đây là bằng chứng trên D1 thật (local) mà khung thử SQLite không cho được.
+{
+  const tenDai = `Nguyễn Thị Phượng Hoàng Yến Nhi Thanh Tâm ${randomPhone().slice(-4)}`; // 46+ ký tự, > 48 byte; đuôi số để chỉ khớp đơn của đoạn này
+  const dai = (await call(A, "POST", "/api/orders", { ...input, customerName: tenDai, discount: 0 }));
+  assert.equal(dai.status, 201, JSON.stringify(dai.body));
+  const tim = await call(ADMIN, "GET", "/api/orders?limit=100&q=" + encodeURIComponent(tenDai));
+  assert.equal(tim.status, 200, `chữ tìm dài phải 200, không 500: ${JSON.stringify(tim.body)}`);
+  assert.ok(tim.body.orders.some((x) => x.id === dai.body.order.id), "thấy đơn có tên khách dài (tìm theo phần đầu)");
+  for (const q of ["ệ".repeat(100), "x".repeat(100), "%".repeat(100)]) {
+    const kq = await call(ADMIN, "GET", "/api/orders?q=" + encodeURIComponent(q));
+    assert.equal(kq.status, 200, `q ${q.length} ký tự phải 200: ${JSON.stringify(kq.body)}`);
+  }
+  console.log("✓ ô tìm danh sách đơn: chữ tìm dài (tên có dấu, 100 ký tự) → 200, không 500");
+}
 console.log("E2E OK");

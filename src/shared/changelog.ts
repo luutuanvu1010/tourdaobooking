@@ -12,6 +12,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa lỗi ô tìm của danh sách đơn (chữ tìm dài → báo lỗi hệ thống; D1 từ chối mẫu LIKE quá 50 byte). Số 1.89 là số TẠM (= 1.88 + 1 lúc soạn 2026-10-13): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
+    version: "1.89",
+    date: "2026-10-13",
+    items: [
+      { kind: "sua", text: "Ô tìm ở danh sách đơn không còn báo lỗi hệ thống khi gõ chữ dài, ví dụ cả họ tên khách có dấu. Chữ quá dài thì Nền tảng tìm theo phần đầu." },
+    ],
+  },
+  {
     // Gói Vận chuyển A + C (ADR-0104 Đ2, 0105, 0109, 0111, 0112, 0113; A4 tài xế nhà xe ngoài; C2 màn tài xế; C3 bảng điều phối), migration 0091–0093.
     // Số 1.88 = main 1.87 + 1 (ghép main 1c471990 vào nhánh gói A+C, 2026-10-12): mục 1.85 cũ của nhánh (chuyển khách giữa hai xe, đã đánh lại số) nằm trong mục này, không nhân đôi.
     version: "1.88",
