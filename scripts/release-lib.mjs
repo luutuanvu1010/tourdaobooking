@@ -121,6 +121,49 @@ async function checkMainCleanFetched(run, stop) {
 
 const yes = (answer) => String(answer ?? "").trim() === "c";
 
+/**
+ * Mã trong thư mục còn ĐÚNG mã đã qua các bước kiểm không: HEAD = commit ghi lúc bắt đầu VÀ cây làm việc sạch. Trả về null khi còn đúng, hoặc câu nói
+ * chỗ đổi. Lệnh git lỗi ⇒ coi là đổi (không đoán). Sự cố 2026-10-08: `npm run day-len` của phiên khác gộp vào CÙNG checkout gốc lúc e2e đang chạy —
+ * máy chủ thử tự nạp mã mới trên D1 thiếu migration mới, e2e đỏ giả; trả lời "c" lúc đó sẽ áp migration và deploy mã chưa qua kiểm.
+ */
+async function maDaDoi(run, goc) {
+  const head = await run("git", ["rev-parse", "HEAD"]);
+  const h = trimOut(head);
+  if (head.code !== 0 || !h) return "không đọc được mã hiện tại (`git rev-parse HEAD` lỗi)";
+  if (h !== goc) return `mã hiện tại ${h.slice(0, 8)} khác mã lúc bắt đầu ${goc.slice(0, 8)}`;
+  const st = await run("git", ["status", "--porcelain"]);
+  if (st.code !== 0) return "không đọc được trạng thái thư mục (`git status` lỗi)";
+  const tep = trimOut(st);
+  if (tep !== "") {
+    const dong = tep.split("\n");
+    return `thư mục có thay đổi chưa commit: ${dong.slice(0, 10).join("; ")}${dong.length > 10 ? `; … (${dong.length} tệp)` : ""}`;
+  }
+  return null;
+}
+const MA_DOI_HUONG_DAN = "Thường do `npm run day-len` hay lệnh git khác chạy ở CÙNG thư mục trong lúc triển khai. Chờ việc đó xong rồi chạy lại `npm run trien-khai` từ đầu.";
+
+/** Migration ĐÃ áp mà Worker chưa deploy: in lệnh deploy ĐÚNG mã đã qua kiểm (không tự chạy). Kiểm cây sạch trước và sau khi đổi sang mã đó — `git switch`
+ *  mang theo thay đổi chưa commit, deploy lúc đó đưa mã chưa kiểm lên production. */
+function inLenhDeployDungMa(log, ma) {
+  log(`${RED}${BOLD}CẢNH BÁO: migration ĐÃ ÁP lên production nhưng Worker CHƯA deploy. Mã cũ đang chạy trên dữ liệu mới — deploy NGAY đúng mã đã kiểm (${ma.slice(0, 8)}).${RESET}`);
+  // Mỗi lệnh một dòng TRƠN (chép-dán chạy được trong zsh): lời giải thích ở dòng riêng, không ngoặc / `#` cạnh lệnh — zsh tương tác không coi `#` là
+  // chú thích, `git status --short # …` sẽ lọc theo đường dẫn và báo "sạch" giả. Kiểm cây sạch + đổi mã + deploy là MỘT dòng móc `&&`: chủ dán cả khối
+  // một lần thì máy vẫn tự dừng trước deploy khi cây bẩn (không dựa vào mắt người đọc kết quả `git status`). Không dùng dấu `!` (zsh mở rộng lịch sử).
+  const buoc = [
+    [
+      "Bước 1, kiểm thư mục sạch, về đúng mã đã kiểm, phát hành. Dòng này tự dừng trước khi phát hành nếu thư mục có thay đổi chưa commit",
+      [`test -z "$(git status --short)" && git switch --detach ${ma} && test -z "$(git status --short)" && ${DEPLOY_CMD} || echo "DỪNG: chưa phát hành, hỏi người phụ trách kỹ thuật"`],
+    ],
+    ["Bước 2, kiểm dữ liệu và so số phiên bản", ["node scripts/audit-invariants.mjs --db remote", GATE_POST_CMD]],
+    ["Bước 3, về lại nhánh chính", ["git switch main"]],
+  ];
+  log(`${RED}Chờ lệnh git đang chạy ở thư mục này xong (nếu có). Rồi ở thư mục tourdao-sales, chạy LẦN LƯỢT từng dòng lệnh thụt vào dưới đây:${RESET}`);
+  for (const [giaiThich, lenh] of buoc) {
+    log(`${RED}${giaiThich}${RESET}`);
+    for (const l of lenh) log(`${RED}  ${l}${RESET}`);
+  }
+}
+
 // ─────────────────────────────── day-len ───────────────────────────────
 
 export async function dayLen({ run, ask, isTTY, log, target }) {
@@ -316,6 +359,9 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), 
   // catalog đỏ vì giá trên Google Sheet thật vừa đổi, không phải lỗi mã). Chỉ trả lời đúng `c` mới đi tiếp.
   log("\n▶ npm run test:e2e (đủ bộ, cần mạng, vài phút)");
   const e2e = await run("npm", ["run", "test:e2e"], { tee: true });
+  // 3c. mã trong thư mục còn đúng mã lúc bắt đầu không — TRƯỚC câu hỏi e2e đỏ: mã đã đổi thì kết quả kiểm (xanh hay đỏ) đều không còn nghĩa.
+  const doiSauKiem = await maDaDoi(run, local);
+  if (doiSauKiem) return stop(`mã trong thư mục đã đổi trong lúc kiểm (${doiSauKiem}) — kết quả kiểm không còn đúng cho mã sắp đưa lên; không áp migration, không deploy.`, MA_DOI_HUONG_DAN);
   let e2eText = "xanh";
   if (e2e.code !== 0) {
     const red = parseE2eFailures(e2e.stdout);
@@ -337,6 +383,9 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), 
     log(`Điểm khôi phục Time Travel (GHI LẠI): ${bookmark}`);
     log(`Lệnh khôi phục nếu cần (KHÔNG chạy lúc này; mất mọi thay đổi sau điểm này): npx wrangler d1 time-travel restore ${DB} --bookmark=${bookmark}`);
     if (!yes(await ask(`Áp ${pending.length} migration này lên production? (c/k) `))) return stop("Không áp migration, không deploy.");
+    // So lại SAU câu hỏi (câu hỏi có thể chờ lâu), sát lệnh ghi.
+    const doiTruocAp = await maDaDoi(run, local);
+    if (doiTruocAp) return stop(`mã trong thư mục đã đổi sau khi kiểm (${doiTruocAp}) — không áp migration, không deploy.`, MA_DOI_HUONG_DAN);
     log("\n▶ Áp migration lên production");
     const ap = await run("npx", ["wrangler", "d1", "migrations", "apply", DB, "--remote"], { env: CI, stream: true });
     if (ap.code !== 0) {
@@ -352,12 +401,19 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), 
   const q = applied.length ? `Migration đã áp — PHẢI deploy ngay. Triển khai Worker lên production? (c/k) ` : "Triển khai Worker lên production? (c/k) ";
   if (!yes(await ask(q))) {
     if (applied.length) {
-      log(`${RED}${BOLD}CẢNH BÁO: migration ĐÃ ÁP lên production nhưng Worker CHƯA deploy. Mã cũ đang chạy trên dữ liệu mới — deploy NGAY:${RESET}`);
-      log(`${RED}  ${DEPLOY_CMD}${RESET}`);
-      log(`${RED}  rồi: node scripts/audit-invariants.mjs --db remote${RESET}`);
+      inLenhDeployDungMa(log, local);
       return 1;
     }
     return stop("Không deploy.");
+  }
+  const doiTruocDeploy = await maDaDoi(run, local);
+  if (doiTruocDeploy) {
+    if (applied.length) {
+      log(`${RED}${BOLD}DỪNG: mã trong thư mục đã đổi sau khi kiểm (${doiTruocDeploy}) — KHÔNG deploy mã chưa qua kiểm.${RESET}`);
+      inLenhDeployDungMa(log, local);
+      return 1;
+    }
+    return stop(`mã trong thư mục đã đổi sau khi kiểm (${doiTruocDeploy}) — không deploy.`, MA_DOI_HUONG_DAN);
   }
   log("\n▶ Deploy Worker");
   const dep = await run("npx", ["wrangler", "deploy"], { env: CI, tee: true });
