@@ -101,6 +101,10 @@ try {
     });
 
     await b.step("2", "trang CŨ: khách chuyển vào sau khi trang mở → bấm Từ chối → 409, không rời trang, dải cảnh báo, nút Từ chối biến mất; một lệnh POST …/tu-choi", async () => {
+      // Ổn định (VỪA-1 người kiểm 12/10): màn tự đọc lại chuyến khi bảng tin phát `chuyen-thay-doi` / `can-tai-lai` (bangtin.ts → window.dispatchEvent) nên nút Từ chối
+      // có thể biến mất TRƯỚC khi script bấm. Nuốt đúng hai sự kiện đó ở `window.dispatchEvent` (không phụ thuộc thứ tự trình nghe) để trang giữ nguyên bản CŨ — đúng
+      // tình huống "mở trang trước, khách chuyển vào sau". Các sự kiện khác vẫn đi qua.
+      await p.ev("(() => { const goc = window.dispatchEvent.bind(window); window.dispatchEvent = (e) => (e.type === 'chuyen-thay-doi' || e.type === 'can-tai-lai') ? true : goc(e); return true; })()");
       const nhan = await fetchTrang(p, "POST", `/api/van-chuyen/de-nghi/${idDeNghi}/nhan`, { requestId: randomUUID() });
       dung(nhan, 200, "Nhận (trong trang)");
       if (nhan.json.ketQua === "LEO_THANG") {
