@@ -11,7 +11,7 @@ export function docTyLePhanTram(raw: string): { ok: true; bp: number } | { ok: f
   return bp <= 10_000 ? { ok: true, bp } : { ok: false, message: "Tỷ lệ không quá 100%." };
 }
 
-/** Trần «Số tiền mỗi khách» (đồng). Cùng giá trị với `kiemThanMuc` của máy chủ (src/modules/pricing/rules.ts); bài `src/modules/pricing/tran-moi-khach.test.ts` nối hai bên bằng hàm thật của máy chủ. */
+/** Trần «Số tiền mỗi khách» (đồng): MỘT định nghĩa duy nhất — giao diện (ô nhập), `kiemThanMuc` của máy chủ (src/modules/pricing/rules.ts) và thân ghi mức tay (src/modules/orders/thuong-mai.ts) cùng nhập hằng này; bài `src/modules/pricing/tran-moi-khach.test.ts` quét để không ai viết lại số thẳng. */
 export const MOI_KHACH_TOI_DA = 100_000_000;
 
 export function docTienMoiKhach(raw: string): { ok: true; dong: number } | { ok: false; message: string } {
