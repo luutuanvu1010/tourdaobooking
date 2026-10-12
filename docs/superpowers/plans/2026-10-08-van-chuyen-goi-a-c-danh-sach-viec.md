@@ -59,6 +59,8 @@
 
 ## Nợ để sau (không chặn phát hành)
 
+- **Chủ gật đầu 2026-10-12 ("Giữ và ghi sổ chờ dọn") cho bốn ngoại lệ nhỏ của bản ghép với `main`** (luật chỉ cho siết, nên ghi nợ phải siết sau): (1) hai đường xe nhận trong `MIEN_200` của `src/so-la-thuong-mai-toan-nen-tang.test.ts` (chưa dựng chuyến đang chạy để quét phản hồi 200 — dựng rồi gỡ hai dòng); (2) hai dòng `DUOC_MA_AN` "đề nghị chuyển khách" và "báo bận" ở `tests/audit/muc-hien-mo-duoc-khung.mjs` (bỏ che ẩn khi mục có cổng riêng). Ghép cũng đo trần `goi-trang-nhe` 95.486 nên trần đặt 96.000.
+
 - **Chủ chốt 2026-10-12, KHÔNG làm trong đợt này:** (1) C28 — ô chọn người cho chặng về ở hộp xếp (cần route mới cho văn phòng đọc khoá / tên khách chặng chưa xếp, và đụng ruling R-P3); (2) Đ5 của ADR-0113 — mở danh sách xe nhận chuyển khách cho tài xế đối tác (phương án khuyến nghị (a) ở ADR; hôm nay giữ nguyên). Cùng lô nợ nhỏ từ phiếu kiểm: bài route cố định cho ca "cả đoàn Vắng" (C57); ca hiếm mất mạng rồi bấm nút chính ở "Đã đón N khách"; lệnh Từ chối chưa tự huỷ đề nghị chuyển còn chờ hướng tới chuyến đó (ADR-0113 ghi là nợ); "giờ khi mất sóng" của tài xế cần đổi hợp đồng API; nút Hỗ trợ ẩn khi xe chạy lệch ADR-0066 điều 9 (ghi `docs/SYSTEM-DESIGN.md` §16); `c3-smoke` bước 6, 7 chạy sai chỗ đua; bài `dispatch` e2e dùng `/09\d{8}/` quét cả chuỗi phản hồi; bài RF1 so chuỗi "900000"/"1200000" quét cả phản hồi; tài xế đối tác đang lái nhận tin đổi khách / điểm (chủ giữ nguyên) — ghi dòng lệch vào §16.
 
 - Lô `POST …/passengers` với đơn rất lớn (200 khách, sửa nhiều lần) tới 1002 câu — có từ trước Đ2; D1 từ chối thì cả lô không ghi, route trả 500 (không ghi dở). Giới hạn D1 thật chưa kiểm; trần tổng lô cần ADR mới.
