@@ -14,13 +14,14 @@ import { lyDoGiu, type LyDoGiu } from "../../shared/ly-do-giu";
 import { batDauSomNhatSauDoiGio, gioXetMocXep, gioXetSuaChuyen, kiemMocXep, type LenhVuotMoc } from "../../shared/moc-toi-thieu";
 import { addDays, msToVnLocal, vnLocalToMs } from "../../shared/vn-date";
 import { khungBanXeTrongKhoang } from "./khung-ban-repo";
+import { khungTaiXeTrongKhoang } from "./khung-ban-tai-xe-repo";
 import type { LichChungResponse } from "../../shared/contracts";
 import { allocsByTrips, allocsOpenByLegs, eventsByTrips, legFlags, stopsByTrips, tenDiem, tripsTouching, type TripRow } from "./chuyen-repo";
 import {
   loBaoHuy, loBoSungTen, loCapNhatDiem, loCapNhatKhach, loDoi, loHuy, loRut, loSuaChuyen, loThemDiemDangChay, loXep, type CamKetLo, type DiemMoi, type PhaLe, type SuatMoi,
 } from "./dieu-phoi";
 import {
-  boSungXe, changVao, chinhSachVao, chuyenVao, diemVao, docChung, docNguCanh, khungBanVao, khungChuyen, lyDoChangNgoai, suatVao, taiXeVao, xeVao, type DuLieuChung, type NenChuyen,
+  boSungXe, changVao, chinhSachVao, chuyenVao, diemVao, docChung, docNguCanh, khungBanVao, khungChuyen, khungTaiXeVao, lyDoChangNgoai, suatVao, taiXeVao, xeVao, type DuLieuChung, type NenChuyen,
 } from "./dieu-phoi-doc";
 import { canhBaoDto, changLichDto, chuyenTomTat, lyDoDangDung, taiXeChon, xeChon } from "./dieu-phoi-dto";
 import {
@@ -149,7 +150,11 @@ export async function lenhSuaChuyen(
   const khac = (await tripsTouching(db, Math.min(batDauMs, t.planned_start_ms) - NGAY_MS, Math.max(ketThucMs, t.planned_end_ms) + NGAY_MS)).filter((x) => x.id !== t.id);
   const tai = nen.allocs.filter((a) => a.valid_to_at === null && (a.status === "WAITING" || a.status === "BOARDED")).length;
   // ADR-0055 VK2-A A2 (i): khung bận còn hiệu lực giao giờ MỚI là khoảng chặn (lớp máy chủ nói trước bằng lời; trigger vc_trip_unavailable_upd là lưới thứ hai).
-  const khungBan = (await khungBanXeTrongKhoang(db, batDauMs, ketThucMs)).map(khungBanVao);
+  // ADR-0053 D9 B9.3 (kế hoạch A4 T4): khung bận của tài xế SẼ lái (mới hoặc giữ) giao giờ MỚI — trigger vc_trip_driver_unavailable_upd / _ins là lưới thứ hai.
+  const khungBan = [
+    ...(await khungBanXeTrongKhoang(db, batDauMs, ketThucMs)).map(khungBanVao),
+    ...(taiXeId ? (await khungTaiXeTrongKhoang(db, taiXeId, batDauMs, ketThucMs)).map(khungTaiXeVao) : []),
+  ];
   const changCamKet = changTrenChuyen(nen, new Map(lich.map((c) => [c.legId, changVao(c)])));
   const doiGio = batDauMs !== t.planned_start_ms;
   const doiKetThuc = ketThucMs !== t.planned_end_ms;

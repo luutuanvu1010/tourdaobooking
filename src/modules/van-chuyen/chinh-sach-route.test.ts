@@ -33,7 +33,7 @@ const dem = (w: any, bang: string): number => w.q(`SELECT count(*) n FROM ${bang
 const CAU_CONG_OFFICE = /chỉ dùng cho việc được giao/;
 const CAU_CONG_ADMIN = /^Chỉ quản trị viên được thực hiện thao tác này\.$/;
 const CAU_O_CHINH_SACH = /Chỉ người phụ trách hệ thống/;
-const CS = { minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true, proxyBackdateMaxMinutes: 90, dutyDayMaxMinutes: 600, tripNoBreakMaxMinutes: 300, departureWindowMinutes: 1440, acceptWaitMinutes: 10, autoConfirmTransfer: true };
+const CS = { minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true, proxyBackdateMaxMinutes: 90, dutyDayMaxMinutes: 600, tripNoBreakMaxMinutes: 300, departureWindowMinutes: 1440, refuseLeadMinutes: 720, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer: true };
 
 const ROUTE_CHINH_SACH: [string, string, unknown][] = [
   ["GET", "/api/van-chuyen/chinh-sach-dieu-phoi", undefined],
@@ -73,7 +73,7 @@ test("TC-2 route 9–10: Toàn quyền xem (bản gieo 360/120/30) và thêm b�
   assert.equal(r.status, 200, r.text);
   assert.deepEqual({ ...r.json.current, id: undefined, validFrom: undefined }, {
     id: undefined, minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, requireContract: false, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240,
-    departureWindowMinutes: 720, acceptWaitMinutes: 10, autoConfirmTransfer: true, validFrom: undefined, current: true, nguoiLuu: null,
+    departureWindowMinutes: 720, refuseLeadMinutes: 720, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer: true, validFrom: undefined, current: true, nguoiLuu: null,
   });
   r = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { as: SUP, body: CS });
   assert.equal(r.status, 201, r.text);
@@ -92,7 +92,7 @@ test("TC-2 route 9–10: Toàn quyền xem (bản gieo 360/120/30) và thêm b�
   const nk = nhatKyCuoi(w, "dispatch_policy_changed");
   assert.deepEqual(nk, {
     staff_id: SUP, order_id: null, target_type: null, target_id: null,
-    detail: "chính sách điều phối: mốc tối thiểu 360 → 240 phút; cảnh báo sát mốc 120 → 60 phút; khoảng nghỉ 30 → 45 phút; bắt đủ danh sách có → có; kẹp lùi giờ khai 180 → 90 phút; giờ lái tối đa 480 → 600 phút; nhắc nghỉ chuyến trên 240 → 300 phút; cửa sổ xuất bến 720 → 1440 phút; chờ nhận chuyển khách 10 → 10 phút; tự đồng ý chuyển khách có → có",
+    detail: "chính sách điều phối: mốc tối thiểu 360 → 240 phút; cảnh báo sát mốc 120 → 60 phút; khoảng nghỉ 30 → 45 phút; bắt đủ danh sách có → có; kẹp lùi giờ khai 180 → 90 phút; giờ lái tối đa 480 → 600 phút; nhắc nghỉ chuyến trên 240 → 300 phút; cửa sổ xuất bến 720 → 1440 phút; hạn từ chối 720 → 720 phút; chưa có số điện thoại văn phòng; chờ nhận chuyển khách 10 → 10 phút; tự đồng ý chuyển khách có → có",
   });
 });
 
@@ -107,7 +107,7 @@ test("R-P23 (điều phối 29/9 đêm): lịch sử bản chính sách có \"ai
   assert.equal(r.json.current.nguoiLuu, `Nhãn ${SUP.slice(0, 4)}`);
   for (const h of r.json.history) {
     assert.deepEqual(Object.keys(h).sort(), [
-      "acceptWaitMinutes", "autoConfirmTransfer", "current", "departureWindowMinutes", "dutyDayMaxMinutes", "id", "minLeadMinutes", "nguoiLuu", "proxyBackdateMaxMinutes", "requireContract", "requireManifest", "restMinutes", "tripNoBreakMaxMinutes", "validFrom", "warnLeadMinutes",
+      "acceptWaitMinutes", "autoConfirmTransfer", "current", "departureWindowMinutes", "dutyDayMaxMinutes", "id", "minLeadMinutes", "nguoiLuu", "officePhone", "proxyBackdateMaxMinutes", "refuseLeadMinutes", "requireContract", "requireManifest", "restMinutes", "tripNoBreakMaxMinutes", "validFrom", "warnLeadMinutes",
     ]);
   }
   assert.doesNotMatch(r.text, /0900000007|createdBy|created_by|staffId/, "không SĐT, không id người lưu");
@@ -131,16 +131,19 @@ test("TC-2 route 10: thân mang ngày hiệu lực → 400 (không nhận); hợ
   const { dutyDayMaxMinutes: _gl, ...thieuGioLai } = CS;
   const { tripNoBreakMaxMinutes: _nn, ...thieuNhacNghi } = CS;
   const { departureWindowMinutes: _cs, ...thieuCuaSo } = CS; // ADR-0096 Đ2.3 (I43): màn cũ gửi thiếu cửa sổ → 400 "tải lại trang"
+  const { refuseLeadMinutes: _hc, ...thieuHanTuChoi } = CS; // ADR-0053 D8.1 (I43): màn cũ gửi thiếu hạn từ chối / SĐT văn phòng → 400 "tải lại trang"
+  const { officePhone: _sdt, ...thieuSdt } = CS;
   const { acceptWaitMinutes: _cn, ...thieuChoNhan } = CS; // ADR-0111 Đ3 (c) (I43): màn cũ gửi thiếu hai cài đặt chuyển khách → 400 "tải lại trang"
   const { autoConfirmTransfer: _td, ...thieuTuDongY } = CS;
-  for (const body of [thieuGioLai, thieuNhacNghi, thieuCuaSo, thieuChoNhan, thieuTuDongY]) {
+  for (const body of [thieuGioLai, thieuNhacNghi, thieuCuaSo, thieuHanTuChoi, thieuSdt, thieuChoNhan, thieuTuDongY]) {
     const r = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { as: SUP, body });
     assert.equal(r.status, 400, r.text);
     assert.match(r.json.error.message, /tải lại trang/);
   }
   for (const body of [{ ...CS, validFrom: "2026-01-01" }, { ...CS, validFromAt: "2026-01-01T00:00:00.000Z" }, { ...CS, requireContract: true }, { ...CS, minLeadMinutes: 2881 }, { ...CS, requireManifest: "có" }, null,
     thieuKep, { ...CS, proxyBackdateMaxMinutes: 0 }, { ...CS, proxyBackdateMaxMinutes: 1441 }, { ...CS, dutyDayMaxMinutes: 59 }, { ...CS, tripNoBreakMaxMinutes: 721 },
-    { ...CS, departureWindowMinutes: 59 }, { ...CS, departureWindowMinutes: 2881 }]) {
+    { ...CS, departureWindowMinutes: 59 }, { ...CS, departureWindowMinutes: 2881 },
+    { ...CS, refuseLeadMinutes: 59 }, { ...CS, refuseLeadMinutes: 2881 }, { ...CS, refuseLeadMinutes: 90.5 }, { ...CS, officePhone: "1900123" }, { ...CS, officePhone: 901234567 }]) {
     const r = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { as: SUP, body });
     assert.equal(r.status, 400, `${JSON.stringify(body)}: ${r.text}`);
     assert.equal(r.json.error.code, "invalid_input");
@@ -240,7 +243,7 @@ test("TC-2 route 16–18 danh mục lý do: Quản trị thêm → 201; Bán hà
   const w = setup();
   let r = await w.call("GET", "/api/van-chuyen/ly-do", { as: ADM });
   assert.equal(r.status, 200, r.text);
-  assert.equal(r.json.reasons.length, 37); // 13 lý do gieo của 0041 + 4 lý do xe bận của 0071 (ADR-0055) + 9 lý do nhóm CHI_PHI_XE (ADR-0057 T2, 0073) + 4 lý do báo huỷ của 0076 (ADR-0052 D5.2) + 3 lý do điều chỉnh của 0085 (ADR-0097 Đ2.5) + 4 lý do Không nhận / Bác của 0093 (ADR-0111)
+  assert.equal(r.json.reasons.length, 44); // 13 lý do gieo của 0041 + 4 lý do xe bận của 0071 (ADR-0055) + 9 lý do nhóm CHI_PHI_XE (ADR-0057 T2, 0073) + 4 lý do báo huỷ của 0076 (ADR-0052 D5.2) + 3 lý do điều chỉnh của 0085 (ADR-0097 Đ2.5) + 4 lý do Không nhận / Bác của 0093 (ADR-0111) + 4 từ chối chuyến + 3 tài xế bận của 0092 (ADR-0053 D8.1, D9.1)
   assert.deepEqual(r.json.reasons.find((x: any) => x.code === "PHA_LE_SU_CO"), {
     code: "PHA_LE_SU_CO", group: "PHA_LE", groupLabel: "Điều chỉnh khẩn cấp, phá lệ", label: "Sự cố vận hành", active: true, sortOrder: 1, updatedAt: "2026-09-29T00:00:00.000Z", heThong: false,
   });
@@ -307,4 +310,21 @@ test("nhật ký sáu hành động mới: nhóm 'Điều phối xe'; chi tiết
     assert.equal(x.order_id, null, x.action);
     assert.doesNotMatch(String(x.detail), /\d{8,}/, x.action);
   }
+});
+
+test("A4 T5 (ADR-0053 D8.1, lời chủ 6.3, G-A4-12): Toàn quyền lưu hạn từ chối + SĐT văn phòng → 201, cột đúng (SĐT chuẩn hoá); nhật ký KHÔNG chứa chữ số SĐT; bỏ số → null", async () => {
+  const w = setup();
+  let r = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { as: SUP, body: { ...CS, refuseLeadMinutes: 600, officePhone: "+84 905 123 456" } });
+  assert.equal(r.status, 201, r.text);
+  assert.equal(r.json.current.refuseLeadMinutes, 600);
+  assert.equal(r.json.current.officePhone, "0905123456");
+  assert.deepEqual({ ...w.q("SELECT refuse_lead_minutes r, office_phone p FROM vc_dispatch_policy WHERE id = ?", r.json.current.id)[0] }, { r: 600, p: "0905123456" });
+  const d1 = nhatKyCuoi(w, "dispatch_policy_changed").detail as string;
+  assert.match(d1, /hạn từ chối 720 → 600 phút; thêm số điện thoại văn phòng; chờ nhận chuyển khách 10 → 10 phút; tự đồng ý chuyển khách có → có$/);
+  assert.doesNotMatch(d1, /905|123456|\d{8,}/, "nhật ký không ghi chữ số SĐT");
+  await new Promise((ok) => setTimeout(ok, 2));
+  r = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { as: SUP, body: { ...CS, refuseLeadMinutes: 600, officePhone: "" } });
+  assert.equal(r.status, 201, r.text);
+  assert.equal(r.json.current.officePhone, null, "để trống = bỏ số");
+  assert.match(nhatKyCuoi(w, "dispatch_policy_changed").detail, /bỏ số điện thoại văn phòng; chờ nhận chuyển khách 10 → 10 phút; tự đồng ý chuyển khách có → có$/);
 });

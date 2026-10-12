@@ -99,3 +99,12 @@ test("phanTich: tiêu đề, đoạn, danh sách số / chấm, ghi chú, mục 
   assert.deepEqual(phanTichDong("Bấm [[Lưu]] rồi **xong**"), [{ k: "chu", t: "Bấm " }, { k: "nut", t: "Lưu" }, { k: "chu", t: " rồi " }, { k: "dam", t: "xong" }]);
   assert.deepEqual(phanTichDong("dấu ** mở không đóng"), [{ k: "chu", t: "dấu ** mở không đóng" }]);
 });
+
+test("A4 T10 (ADR-0053 D8, D9): nhóm Tài xế dạy Từ chối chuyến, Báo bận, Gọi văn phòng; không còn câu giữ chỗ \"sẽ hiện ở đây\" (trang đã bỏ ở A4 T9)", () => {
+  const tx = HUONG_DAN.find((n) => n.id === "tai-xe")!;
+  const nut = nutCuaNhom(tx);
+  for (const x of ["Từ chối chuyến", "Xác nhận từ chối", "Báo bận của tôi", "Lưu khung bận", "Rút khung bận", "Gọi văn phòng"]) assert.ok(nut.includes(x), `thiếu [[${x}]]`);
+  const chu = [tx.gioiThieu, tx.batDauNhanh, ...tx.muc.map((m) => m.noiDung)].join("\n");
+  assert.ok(!chu.includes("sẽ hiện ở đây"), "câu giữ chỗ cũ của trang chủ tài xế");
+  assert.ok(!chu.includes("chưa có phần cuốc xe"), "tài xế đối tác nay có Cuốc của tôi (A4 T6)");
+});

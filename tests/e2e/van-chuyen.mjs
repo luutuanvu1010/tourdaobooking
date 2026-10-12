@@ -275,7 +275,7 @@ console.log(`✓ ADR-0097 HT-04: Khách huỷ nhầm → Quản trị điều ch
   await new Promise((res) => setTimeout(res, 5)); // valid_from_at duy nhất theo mili-giây
   const kp = await call(TOAN_QUYEN, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", {
     minLeadMinutes: cs.minLeadMinutes, warnLeadMinutes: cs.warnLeadMinutes, restMinutes: cs.restMinutes, requireManifest: cs.requireManifest,
-    proxyBackdateMaxMinutes: cs.proxyBackdateMaxMinutes, dutyDayMaxMinutes: cs.dutyDayMaxMinutes, tripNoBreakMaxMinutes: cs.tripNoBreakMaxMinutes, departureWindowMinutes: cuaSoCu,
+    proxyBackdateMaxMinutes: cs.proxyBackdateMaxMinutes, dutyDayMaxMinutes: cs.dutyDayMaxMinutes, tripNoBreakMaxMinutes: cs.tripNoBreakMaxMinutes, departureWindowMinutes: cuaSoCu, refuseLeadMinutes: cs.refuseLeadMinutes, officePhone: cs.officePhone,
     acceptWaitMinutes: cs.acceptWaitMinutes, autoConfirmTransfer: cs.autoConfirmTransfer,
   });
   assert.equal(kp.status, 201, `khôi phục cửa sổ xuất bến: ${JSON.stringify(kp.body)}`);

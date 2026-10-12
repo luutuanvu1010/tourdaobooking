@@ -25,16 +25,19 @@ test("route 19 (R-P17): tài xế thấy ĐÚNG chuyến mình đang lái — m�
     assert.ok(c.dieuKienConThieu.some((x: any) => x.ma === "THIEU_TEN"), JSON.stringify(c.dieuKienConThieu));
     for (const x of c.dieuKienConThieu) assert.deepEqual(Object.keys(x).sort(), ["aiXuLy", "loiNhan", "ma"]);
     assert.doesNotMatch(r.text, /Dò Tìm|0912345678|7911000000|777000/, "không tên khách, SĐT, số giấy tờ, tiền");
-    // Bán hàng (ô any) gọi route tài xế → 200 RỖNG (lọc theo dòng lái của chính mình); tài xế đối tác → 403; khoảng ngày sai → 400.
+    // Bán hàng (ô any) gọi route tài xế → 200 RỖNG (lọc theo dòng lái của chính mình); khoảng ngày sai → 400.
+    // NỚI có tên (kế hoạch A4 §3.1 hàng T6; ADR-0053 :46, D7.1): tài xế đối tác (trip.view assigned) → 200 RỖNG khi không lái chuyến nào (trước: 403).
     assert.deepEqual((await w.call("GET", "/api/van-chuyen/cuoc-cua-toi", { as: SALES })).json.chuyen, []);
-    assert.equal((await w.call("GET", "/api/van-chuyen/cuoc-cua-toi", { as: DRIVER_PARTNER })).status, 403);
+    const dt = await w.call("GET", "/api/van-chuyen/cuoc-cua-toi", { as: DRIVER_PARTNER });
+    assert.equal(dt.status, 200, dt.text);
+    assert.deepEqual(dt.json.chuyen, [], "tài xế đối tác không thấy chuyến người khác");
     assert.equal((await w.call("GET", `/api/van-chuyen/cuoc-cua-toi?tu=${NGAY}&den=2027-05-30`, { as: DRIVER })).status, 400);
   } finally {
     tat();
   }
 });
 
-test("route 20–29 (TC-36): chuyến của tài xế khác → 404; Bán hàng / Kế toán gọi route tài xế cho chuyến mình không lái → 404 (vế !assigned — R-P1); tài xế đối tác → 403; thứ tự 403 → 404 → 400", async () => {
+test("route 20–29 (TC-36): chuyến của tài xế khác → 404; Bán hàng / Kế toán gọi route tài xế cho chuyến mình không lái → 404 (vế !assigned — R-P1); tài xế đối tác không lái → 404 (A4 T6); thứ tự 403 → 404 → 400", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
@@ -46,7 +49,9 @@ test("route 20–29 (TC-36): chuyến của tài xế khác → 404; Bán hàng 
       assert.equal((await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${a.id}`, { as })).status, 404, as);
       assert.equal((await tienDo(w, "tai-xe", a.id, "xuat-ben", {}, as)).status, 404, `${as}: văn phòng bấm thay qua route office`);
     }
-    assert.equal((await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${a.id}`, { as: DRIVER_PARTNER })).status, 403);
+    // NỚI có tên (kế hoạch A4 §3.1 hàng T6; ADR-0053 :46): tài xế đối tác qua cổng ô (assigned) nhưng không lái chuyến này → 404 (trước: 403); lệnh cũng 404.
+    assert.equal((await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${a.id}`, { as: DRIVER_PARTNER })).status, 404);
+    assert.equal((await tienDo(w, "tai-xe", a.id, "xuat-ben", {}, DRIVER_PARTNER)).status, 404);
     // 404 đứng TRƯỚC 400: thân rỗng cho chuyến không phải của mình → 404; cho chuyến của mình → 400.
     assert.equal((await w.call("POST", `/api/van-chuyen/cuoc-cua-toi/${b.id}/xuat-ben`, { as: DRIVER, body: {} })).status, 404);
     assert.equal((await w.call("POST", `/api/van-chuyen/cuoc-cua-toi/${a.id}/xuat-ben`, { as: DRIVER, body: {} })).status, 400);

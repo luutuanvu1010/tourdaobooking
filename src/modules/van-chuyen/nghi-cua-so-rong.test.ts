@@ -14,7 +14,7 @@ const trangThai = (w: any, trip: string): string => w.q("SELECT status s FROM vc
 /** Toàn quyền đặt cửa sổ xuất bến 48 giờ (LC-20 cho tới 2880 phút); khoảng nghỉ 30 phút. */
 async function cuaSo48(w: any): Promise<void> {
   const r = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", {
-    as: SUP, body: { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 2880, acceptWaitMinutes: 10, autoConfirmTransfer: true },
+    as: SUP, body: { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 2880, refuseLeadMinutes: 720, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer: true },
   });
   assert.equal(r.status, 201, r.text);
 }

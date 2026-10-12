@@ -11,7 +11,7 @@ import { ADM, DRIVER, DRIVER2, NGAY, SALES, SUP, batDongHo, chiTiet, denGio, don
 /** Chính sách gieo (0041) — chỉ đổi khoảng nghỉ. */
 const chinhSach = (w: any, restMinutes: number) =>
   w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", {
-    as: SUP, body: { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720, acceptWaitMinutes: 10, autoConfirmTransfer: true },
+    as: SUP, body: { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720, refuseLeadMinutes: 720, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer: true },
   });
 const dongChuyen = (w: any, id: string): { rest_minutes_snapshot: number; rest_override_reason_code: string | null } =>
   ({ ...w.q("SELECT rest_minutes_snapshot, rest_override_reason_code FROM vc_trip WHERE id = ?", id)[0] });

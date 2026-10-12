@@ -53,7 +53,7 @@ test("ADR-0096 Đ2.2 LC-20: dòng chính sách áp = dòng hiệu lực TẠI gi
     const a = await chuyenSan(w, { bd: "19:00", kt: "21:00", gio: "19:15" });
     denGio("06:00");
     const cs = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", {
-      as: SUP, body: { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 1440, acceptWaitMinutes: 10, autoConfirmTransfer: true },
+      as: SUP, body: { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 1440, refuseLeadMinutes: 720, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer: true },
     });
     assert.equal(cs.status, 201, cs.text);
     const khai = await tienDo(w, "van-phong", a.id, "xuat-ben", { xayRaLuc: `${NGAY}T05:00:00+07:00` });

@@ -33,12 +33,15 @@ export const HANH_DONG_TIN_CHUYEN = [
   // vượt). Gửi → tài xế xe nhận; xác nhận / bác / hết hạn → tài xế xe nhận + tài xế xe nhờ; không nhận → tài xế xe nhờ; leo thang → người có trip.override.
   // Rút lại và tự huỷ (VOID) không sinh tin.
   ...HANH_DONG_TIN_CHUYEN_KHACH_CO,
+  // ADR-0053 D8.4 bước 5 (văn bản cho phép mở danh sách đóng; kế hoạch A4 T7): tài xế từ chối chuyến → người có trip.dispatch nhận "tu_choi" (không tên, không
+  // lý do, không mã đơn). Tài xế từ chối là người làm (E3) nên không tự nhận.
+  "trip_driver_refused",
 ] as const;
 /** Phiếu kiểm D1 CAO-3: hành động sinh tin NGOÀI ba lệnh khách — nhóm cũ của hộp thông báo (trần riêng, không bị dòng xếp / rút / dời đẩy ra). */
 export const HANH_DONG_TIN_THUONG: readonly string[] = HANH_DONG_TIN_CHUYEN.filter((a) => !(HANH_DONG_TIN_KHACH as readonly string[]).includes(a));
 export const laHanhDongTinChuyen = (a: string): boolean => (HANH_DONG_TIN_CHUYEN as readonly string[]).includes(a);
 export type LoaiTinChuyen =
-  | "xep_lai" | "go_lai" | "doi_chuyen" | "huy_chuyen" | "gian_doan" | "khach_vang" | "xe_chay_doi" | "thu_hoi_xuat_ben" | "dieu_chinh" | "khan_cap" | "khach_doi"
+  | "xep_lai" | "go_lai" | "doi_chuyen" | "huy_chuyen" | "gian_doan" | "khach_vang" | "xe_chay_doi" | "thu_hoi_xuat_ben" | "dieu_chinh" | "khan_cap" | "khach_doi" | "tu_choi"
   // ADR-0111 (gói A5): xe nhận có đề nghị tới; kết quả đề nghị (xe nhận / xe nhờ); đề nghị leo thang chờ duyệt (trip.override).
   | "de_nghi_toi" | "de_nghi_ket_qua" | "de_nghi_can_duyet";
 /**
@@ -129,6 +132,7 @@ function loaiCho(n: NguoiNhanChuyen, d: DongChuyen): LoaiTinChuyen | null {
   if (d.action === "trip_ended_interrupted" && can(n, "trip.dispatch")) return "gian_doan";
   if (HANH_DONG_DIEU_CHINH.has(d.action) && can(n, "trip.dispatch")) return "dieu_chinh"; // ADR-0097 Đ5 (khuôn tin "gián đoạn")
   if (d.action === "trip_transfer_escalated" && can(n, "trip.override")) return "de_nghi_can_duyet"; // ADR-0111 Đ1, ADR-0052 D4.2: người duyệt
+  if (d.action === "trip_driver_refused" && can(n, "trip.dispatch")) return "tu_choi"; // ADR-0053 D8.4 bước 5 (khuôn "gián đoạn")
   if (d.action === "trip_passenger_no_show" && d.don.some((x) => x.ownerId === n.id || x.handlerStaffId === n.id)) return "khach_vang";
   return null;
 }
@@ -210,6 +214,7 @@ export function tinChuyenCho(n: NguoiNhanChuyen, d: DongChuyen): { loai: LoaiTin
       const cau = d.action === "trip_departure_revoked" ? `${hoa(c)} vừa được thu hồi xuất bến — mở để xem` : `${hoa(c)}: văn phòng vừa điều chỉnh kết quả một khách — mở để xem`;
       return { loai, cau, lienKet: `/chuyen?id=${id}` };
     }
+    case "tu_choi": return { loai, cau: `Tài xế đã từ chối ${c} — cần xếp người khác`, lienKet: `/chuyen?id=${id}` };
     case "khach_vang": {
       const ma = d.don.find((x) => x.ownerId === n.id || x.handlerStaffId === n.id)!.maDon;
       return { loai, cau: `Có khách vắng ở ${c} (đơn ${ma})`, lienKet: `/chuyen?id=${id}` };
@@ -290,6 +295,8 @@ const THAY_DOI_CUA: Record<string, ThayDoiChuyen> = {
   // ADR-0111 (gói A5): khách sang xe khác = "doi" (khuôn dời); vòng đời đề nghị còn lại "sua" (mặc định) — leo thang KHÔNG "doi": "doi" thuộc nhóm chỉ-tài-xế
   // (THAY_DOI_CHI_TAI_XE) nên máy văn phòng sẽ không gọi lại và người duyệt lỡ tin "cần duyệt".
   trip_transfer_confirmed: "doi",
+  // ADR-0053 D8.4 (kế hoạch A4 T7): tài xế từ chối — chuyến đổi (mất tài xế) → "sua" (loại sẵn có tin — chuông văn phòng gọi lại).
+  trip_driver_refused: "sua",
 };
 /** `dangChay` (Đợt 5): chuyến đã xuất bến lúc sự kiện — ba hành động xe đang chạy mang loại `xe_chay` (chuông tài xế gọi lại); còn lại như cũ. */
 export const thayDoiCuaHanhDongChuyen = (action: string, dangChay = false): ThayDoiChuyen =>

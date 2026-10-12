@@ -12,7 +12,7 @@ const TOAN_QUYEN = await session(ACCOUNTS.superAdmin);
 const duoi = String(Date.now()).slice(-6);
 const MA_LY_DO = `PHA_LE_E2E_${duoi}`;
 const cho = () => new Promise((res) => setTimeout(res, 5)); // valid_from_at duy nhất theo mili-giây
-const GOC = { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720, acceptWaitMinutes: 10, autoConfirmTransfer: true };
+const GOC = { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720, refuseLeadMinutes: 720, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer: true }; // A4 (ADR-0053 D8, D9): hạn Từ chối + SĐT văn phòng là hai trường BẮT BUỘC của thân
 // ADR-0050 VK1-C: hai điều kiện GIEO SẴN (mọi xe) — phải còn nguyên sau kịch bản (không đóng dòng gieo để "cho qua": che TC-52).
 const DIEU_KIEN_GIEO = [[1, "VEHICLE", "INSPECTION"], [1, "VEHICLE", "TPL_INSURANCE"]];
 const dangAp = (rules) => rules.filter((x) => x.active).map((x) => [x.minCapacity, x.subject, x.documentTypeCode]);
@@ -41,19 +41,21 @@ try {
   console.log("✓ TC-52 (VK1-C): D1 thật có đúng hai điều kiện gieo đang áp — Kiểm định, Bảo hiểm (mọi xe)");
 
   // --- 2. Chính sách: thêm bản mới 201 (hiệu lực ngay); thân có ngày hiệu lực / hợp đồng bật → 400 ---
-  r = await call(TOAN_QUYEN, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true, proxyBackdateMaxMinutes: 90, dutyDayMaxMinutes: 540, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 1440, acceptWaitMinutes: 10, autoConfirmTransfer: true });
+  r = await call(TOAN_QUYEN, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true, proxyBackdateMaxMinutes: 90, dutyDayMaxMinutes: 540, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 1440, refuseLeadMinutes: 600, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer: true });
   assert.equal(r.status, 201, JSON.stringify(r.body));
   assert.equal(r.body.current.minLeadMinutes, 240);
   assert.equal(r.body.current.proxyBackdateMaxMinutes, 90);
   assert.equal(r.body.current.dutyDayMaxMinutes, 540, "ADR-0055 VK2-B: bản mới mang giờ lái tối đa đã gửi");
   assert.equal(r.body.current.departureWindowMinutes, 1440, "ADR-0096 Đ2.2: bản mới mang cửa sổ xuất bến đã gửi");
+  assert.equal(r.body.current.refuseLeadMinutes, 600, "A4: bản mới mang hạn Từ chối đã gửi");
   assert.ok(r.body.history.length >= 2, "bản cũ còn trong lịch sử");
   assert.ok(typeof r.body.current.nguoiLuu === "string" && r.body.current.nguoiLuu.length > 0, "R-P23: bản vừa lưu có \"ai lưu\" (tên hiển thị)");
   assert.doesNotMatch(r.body.current.nguoiLuu, /\d{8,}/, "R-P23: \"ai lưu\" không phải SĐT");
   const { proxyBackdateMaxMinutes: _kep, ...thieuKep } = GOC;
   const { dutyDayMaxMinutes: _gl, ...thieuGioLai } = GOC; // ADR-0055 VK2-B (Review Focus 5): màn cũ gửi thiếu → 400, không tự điền mặc định
   const { departureWindowMinutes: _cs, ...thieuCuaSo } = GOC; // ADR-0096 Đ2.2: màn cũ (service worker giữ bản trước) gửi thiếu → 400, không tự điền
-  for (const body of [{ ...GOC, validFrom: "2026-01-01" }, { ...GOC, requireContract: true }, { ...GOC, minLeadMinutes: 0 }, thieuKep, { ...GOC, proxyBackdateMaxMinutes: 1441 }, thieuGioLai, thieuCuaSo, { ...GOC, departureWindowMinutes: 59 }, { ...GOC, departureWindowMinutes: 2881 }]) {
+  const { refuseLeadMinutes: _tc, ...thieuHanTuChoi } = GOC; // A4: màn cũ gửi thiếu → 400, không tự điền
+  for (const body of [thieuHanTuChoi, { ...GOC, refuseLeadMinutes: 59 }, { ...GOC, refuseLeadMinutes: 2881 }, { ...GOC, validFrom: "2026-01-01" }, { ...GOC, requireContract: true }, { ...GOC, minLeadMinutes: 0 }, thieuKep, { ...GOC, proxyBackdateMaxMinutes: 1441 }, thieuGioLai, thieuCuaSo, { ...GOC, departureWindowMinutes: 59 }, { ...GOC, departureWindowMinutes: 2881 }]) {
     const x = await call(TOAN_QUYEN, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", body);
     assert.equal(x.status, 400, `${JSON.stringify(body)}: ${JSON.stringify(x.body)}`);
   }

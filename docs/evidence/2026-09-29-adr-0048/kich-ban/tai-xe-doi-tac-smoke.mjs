@@ -1,7 +1,8 @@
 // Kịch bản Chrome — Giấy tờ sắp hết hạn có nhãn nhà xe (Task B4) và trang của tài khoản Tài xế đối tác (Task B5) — ADR-0048 D1, D2; KHUÔN SẴN (dòng phụ
 // `.vc-due-doc` của màn 06; trang đầu tài xế `/tai-xe` màn 07 và khối "Giấy tờ của tôi" màn 05 của lượt 1a — không vẽ mới, giả định G1 của kế hoạch).
-//  1) 390 Tài xế đối tác (chỉ quyền DRIVER_PARTNER) mở "/" → /tai-xe; KHÔNG lời gọi /api/orders* (không dashboard đơn); đúng hai tab Trang chủ + Tôi; khối giấy
-//     tờ có giấy của mình; số đủ không có trong DOM; không lỗi console; axe.
+//  1) 390 Tài xế đối tác (chỉ quyền DRIVER_PARTNER) mở "/" → /cuoc (A4 T6: có ô Cuốc), rồi /tai-xe; KHÔNG lời gọi /api/orders* (không dashboard đơn), Vận chuyển
+//     chỉ route tài xế; bốn tab Trang chủ / Cuốc của tôi / Báo bận của tôi / Tôi (A4 T9, G-A4-16); khối giấy tờ có giấy của mình; số đủ không có trong DOM; không
+//     lỗi console; axe.
 //  2) 1040 Tài xế đối tác /account: khối "Giấy tờ của tôi" (số che, không nút); menu không có mục văn phòng / Vận chuyển / Đơn hàng.
 //  3) 1040 Quản trị /giay-to-sap-het-han: dòng xe của nhà xe X và dòng tài xế đối tác thuộc X có nhãn phụ "Nhà xe: X"; dòng xe công ty KHÔNG có; không số.
 //  4) 390 Quản trị: như trên ở danh sách điện thoại; không tràn ngang; axe.
@@ -42,17 +43,20 @@ try {
   // ---- Trang của tài khoản Tài xế đối tác chạy TRƯỚC trên máy "sạch": env.as gắn cookie phiên thẳng, KHÔNG đi qua /login — mà /login mới là chỗ xoá
   // BẢN NHỚ KHUNG (ADR-0035, web/login.ts xoaKhungNho). Nếu trang Quản trị chạy trước, web/home.ts sẽ gọi sớm dashboard đơn theo khung của Quản trị
   // (403 bị bỏ) — chỉ là giả tạo của cách đăng nhập trong kịch bản; người dùng thật qua /login không gặp. Mỗi trang đóng trước khi mở tài khoản khác.
-  await dem.step("1", "390 Tài xế đối tác mở “/” → /tai-xe; không gọi /api/orders*; hai tab; giấy của mình; số đủ không trong DOM" + axeNote(), async () => {
+  await dem.step("1", "390 Tài xế đối tác mở “/” → /cuoc rồi /tai-xe; không gọi /api/orders*; bốn tab; giấy của mình; số đủ không trong DOM" + axeNote(), async () => {
     const p = await env.as(TX_DT, "/", MOB);
     try {
-      await p.waitFor("location.pathname === '/tai-xe'", "được đưa sang /tai-xe", 10000);
+      await p.waitFor("location.pathname === '/cuoc'", "được đưa sang /cuoc", 10000);
+      await p.send("Page.navigate", { url: env.base + "/tai-xe" });
+      await p.waitFor("location.pathname === '/tai-xe'", "mở /tai-xe", 10000);
       await p.waitFor("document.querySelectorAll('#tx-docs .vc-txdoc').length === 1", "khối giấy tờ", 10000);
       await sleep(1200); // chờ các lời gọi của khung về hết
       const calls = apiCalls(p).map((c) => c.path);
       assert.deepEqual(calls.filter((u) => u.startsWith("/api/orders")), [], `không lời gọi màn đơn: ${JSON.stringify(calls)}`);
-      assert.deepEqual(calls.filter((u) => u.startsWith("/api/van-chuyen")), [], "không gọi API Vận chuyển");
+      assert.deepEqual(calls.filter((u) => u.startsWith("/api/van-chuyen") && !u.startsWith("/api/van-chuyen/cuoc-cua-toi")), [], "chỉ route tài xế của Vận chuyển");
       const tabs = await p.ev("[...document.querySelectorAll('#tabbar a')].filter((a) => a.getClientRects().length > 0).map((a) => ({ href: a.getAttribute('href'), text: a.innerText.replace(/\\s+/g, ' ').trim() }))");
-      assert.deepEqual(tabs, [{ href: "/tai-xe", text: "Trang chủ" }, { href: "/account", text: "Tôi" }]);
+      assert.deepEqual(tabs, [{ href: "/tai-xe", text: "Trang chủ" }, { href: "/cuoc", text: "Cuốc của tôi" }, { href: "/ban", text: "Báo bận của tôi" }, { href: "/account", text: "Tôi" }]);
+      assert.equal(await p.ev("document.querySelector('.vc-cuoc a')?.getAttribute('href')"), "/cuoc", "khối Cuốc xe là liên kết (không còn câu giữ chỗ)");
       assert.deepEqual(await docHang(p, "#tx-docs .vc-txdoc .vc-doc-title"), ["Giấy phép lái xe hạng D2"]);
       const html = await p.ev("document.documentElement.outerHTML");
       for (const so of SO_DU) assert.ok(!html.includes(so), `số đủ ${so} không được có trong DOM`);

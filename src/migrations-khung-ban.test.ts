@@ -92,7 +92,7 @@ test("TC-K2 (ADR tiêu chí 2): tạo chuyến / dời giờ / đổi xe vào kh
   assert.doesNotThrow(() => chuyen(db, x, ms("09:00"), ms("10:00")), "khung đã rút không chặn");
 });
 
-test("TC-K3 (ADR tiêu chí 3): UPDATE giờ / đối tượng / lý do, DELETE, rút lần hai → chặn; ghi khung DRIVER → chặn", () => {
+test("TC-K3 (ADR tiêu chí 3): UPDATE giờ / đối tượng / lý do, DELETE, rút lần hai → chặn; khung DRIVER (mở từ 0092) chồng chuyến đang xếp → chặn", () => {
   const db = openDb();
   const x = xe(db);
   const k = khung(db, { xe: x, tu: ms("08:00"), den: ms("17:00") });
@@ -104,10 +104,13 @@ test("TC-K3 (ADR tiêu chí 3): UPDATE giờ / đối tượng / lý do, DELETE,
   assert.throws(() => run(db, "DELETE FROM vc_unavailability WHERE id = ?", k), /vc_unavailability_append_only/);
   rut(db, k);
   assert.throws(() => rut(db, k, 2), /vc_unavailability_append_only/, "rút lần hai");
-  // Cô lập hàng rào: dòng DRIVER hợp lệ ở MỌI luật khác (lý do nhóm BAN_TAI_XE có thật) — chỉ driver_closed được phép chặn (thứ tự trigger không bảo đảm).
-  run(db, "INSERT INTO vc_reason (code, reason_group, label, sort_order, created_at, updated_at) VALUES ('BAN_TAI_XE_THU', 'BAN_TAI_XE', 'Thử', 1, ?, ?)", AT, AT);
+  // NỚI CÓ TÊN (ADR-0053 D9.1 :137 — 0092 bỏ trigger `vc_unavailability_driver_closed` như 0071 đã hẹn; SO-HANG-RAO dòng driver_closed): khung DRIVER
+  // không chồng chuyến nay GHI ĐƯỢC; khung chồng chuyến người đó đang được xếp → B9.2 chặn (bài đủ ở src/migrations-tu-choi-ban.test.ts NT-8).
   const p = congTyChu(db);
-  assert.throws(() => khung(db, { subject: "DRIVER", taiXe: p, tu: ms("08:00"), den: ms("17:00"), lyDo: "BAN_TAI_XE_THU" }), /unavailability_driver_closed/);
+  khung(db, { subject: "DRIVER", taiXe: p, tu: ms("08:00"), den: ms("17:00"), lyDo: "BTX_OM" });
+  const t = chuyen(db, xe(db), ms("08:00", 3), ms("10:00", 3));
+  run(db, "INSERT INTO vc_trip_driver (id, trip_id, driver_party_id, valid_from_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)", nid("dr"), t, p, AT, AT, AT);
+  assert.throws(() => khung(db, { subject: "DRIVER", taiXe: p, tu: ms("09:00", 3), den: ms("11:00", 3), lyDo: "BTX_OM" }), /unavailability_overlaps_driver_trip/);
 });
 
 test("TC-K4: CHECK hình dạng — đúng một đối tượng; kết thúc > bắt đầu; phút tròn; *_at khớp *_ms; lý do đúng nhóm theo đối tượng; chèn đã rút → chặn", () => {

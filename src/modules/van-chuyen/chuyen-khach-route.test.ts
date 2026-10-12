@@ -4,13 +4,13 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { ACC, ADM, DRIVER, DRIVER2, DRIVER_PARTNER, FIELD, LOC, NGAY, NGAY_SAU, SALES, SUP, batDongHo, chiTiet, chuyenSan, denGio, setup, taoChuyen, tienDo, uuid, xe } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { ACC, ADM, DRIVER, DRIVER2, DRIVER_PARTNER, FIELD, LOC, NGAY, NGAY_SAU, SALES, SUP, batDongHo, chiTiet, chuyenSan, denGio, nhaXeKhung, setup, taoChuyen, tienDo, uuid, xe, xeNhaXe } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
-// Kiểm định kỳ mức fail của vận chuyển (scripts/audit-checks.mjs — kể cả R-VC-26…30, R-VC-SUA-1) trên CSDL sau ca: dữ liệu do chính các lô thật ghi phải sạch.
+// Kiểm định kỳ mức fail của vận chuyển (scripts/audit-checks.mjs — kể cả R-VC-31…35, R-VC-SUA-1) trên CSDL sau ca: dữ liệu do chính các lô thật ghi phải sạch.
 const { CHECKS } = (await import(new URL("../../../scripts/audit-checks.mjs", import.meta.url).href)) as { CHECKS: { code: string; sql: string; level: string; mode?: string }[] };
 function kiemDinhKySach(w: any) {
   const vc = CHECKS.filter((c) => c.code.startsWith("R-VC-") && c.level === "fail");
-  assert.ok(vc.some((c) => c.code === "R-VC-30"), "chống bài rỗng: có các câu chuyển khách");
+  assert.ok(vc.some((c) => c.code === "R-VC-35"), "chống bài rỗng: có các câu chuyển khách");
   for (const c of vc) {
     const rows = w.q(c.sql.replace(/\s+/g, " ").trim());
     const n = c.mode === "rows" ? rows.length : Number(Object.values(rows[0] ?? { n: 0 })[0]);
@@ -48,8 +48,8 @@ test("NT-A5-2 xe nhận: đúng năm khoá; chỉ chuyến cùng ngày, PLANNED 
     assert.deepEqual((await xeNhan(w, a.id, DRIVER, "ONBOARD")).json.xe.map((x: any) => x.tripId), [b.id]);
     assert.equal((await xeNhan(w, a.id, DRIVER, "XYZ")).status, 400);
     // Quyền: không có ô trip.transfer → 403 trước mọi truy vấn; có ô mà không lái chuyến (kể cả Toàn quyền) → 404.
-    for (const as of [SALES, ACC, DRIVER_PARTNER]) assert.equal((await xeNhan(w, a.id, as)).status, 403, as);
-    for (const as of [DRIVER2, SUP]) assert.equal((await xeNhan(w, a.id, as)).status, 404, as);
+    for (const as of [SALES, ACC]) assert.equal((await xeNhan(w, a.id, as)).status, 403, as);
+    for (const as of [DRIVER2, SUP, DRIVER_PARTNER]) assert.equal((await xeNhan(w, a.id, as)).status, 404, `${as}: có ô trip.transfer (DRIVER_PARTNER từ nới N4) mà không lái chuyến này`);
     kiemDinhKySach(w);
   } finally {
     tat();
@@ -278,8 +278,8 @@ test("NT-A5-6 nhận, máy tự xác nhận (xe nhận đang chạy): suất ngu
     const { a, b } = await xeNhanChay(w);
     const id = await guiDiem(w, a, b);
     const id2 = await guiDiem(w, a, b); // P4: hai đề nghị Chờ cùng điểm
-    for (const as of [DRIVER, SUP]) assert.equal((await nhan(w, id, as)).status, 404, `${as}: không lái xe nhận (kể cả Toàn quyền)`);
-    for (const as of [SALES, ACC, ADM, FIELD, DRIVER_PARTNER]) assert.equal((await nhan(w, id, as)).status, 403, `${as}: không có ô trip.transfer`);
+    for (const as of [DRIVER, SUP, DRIVER_PARTNER]) assert.equal((await nhan(w, id, as)).status, 404, `${as}: không lái xe nhận (kể cả Toàn quyền; DRIVER_PARTNER có ô từ nới N4)`);
+    for (const as of [SALES, ACC, ADM, FIELD]) assert.equal((await nhan(w, id, as)).status, 403, `${as}: không có ô trip.transfer`);
     const ma = uuid();
     const r = await nhan(w, id, DRIVER2, ma);
     assert.equal(r.status, 200, r.text);
@@ -348,6 +348,71 @@ test("TH08-4A/4B/4C chạm route THẬT (VỪA-1, kiểm độc lập 12/10): B�
 // NT-A5-20 thua cổng (VỪA-2, kiểm độc lập 12/10). `w.chenTruocLo` (khung thử) giả một người khác đổi dữ liệu giữa lúc route đọc và lúc ghi.
 const laLoDeNghi = (stmts: any[]) => stmts.some((x) => /UPDATE vc_transfer_request/.test(x.sql));
 const tangVersion = (w: any, tripId: string) => w.sqlite.prepare("UPDATE vc_trip SET version = version + 1 WHERE id = ?").run(tripId);
+
+// N4 (nới có tên — ADR-0053 D7.1 :46 + ADR-0111 N4): tài xế ĐỐI TÁC (nhà xe) dùng ô trip.transfer y như tài xế công ty — vừa là xe nhờ vừa là xe nhận.
+const AT_N4 = "2026-09-01T00:00:00.000Z";
+function doiTacLaiChoNhaXe(w: any) {
+  const nx = nhaXeKhung(w, "Nhà xe Chuyển Khách");
+  w.sqlite.prepare(`INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, created_at, updated_at)
+    VALUES (?, ?, ?, 'DRIVES_FOR', '2026-09-01', ?, ?)`).run(uuid(), `pty-${DRIVER_PARTNER}`, nx, AT_N4, AT_N4);
+  w.sqlite.prepare(`INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, issued_place, license_class_code, expiry_date, created_at, updated_at)
+    VALUES (?, ?, 'GPLX', '792200000099', '792200000099', 'Nơi cấp Dò Tìm', 'D', '2030-12-31', ?, ?)`).run(uuid(), `pty-${DRIVER_PARTNER}`, AT_N4, AT_N4);
+  return { xe: xeNhaXe(w, nx), nx };
+}
+test("N4 (ADR-0053:46): tài xế đối tác là XE NHỜ — xuất bến, xem xe nhận, gửi đề nghị, thấy đề nghị của mình, bị xe nhận (công ty) đẩy lên văn phòng, Rút → 409 đã leo thang", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const dt = doiTacLaiChoNhaXe(w);
+    const a = await chuyenSan(w, { taiXe: DRIVER_PARTNER, xe: dt.xe });
+    // Chuyến xe thuê cần giá mới xuất bến được (điều kiện THIEU_GIA, ADR-0057): gieo một dòng giá thoả thuận — chỉ để chuyến đi được tới bước chuyển khách.
+    const lyGia = mot(w, "SELECT code FROM vc_reason WHERE reason_group = 'CHI_PHI_XE' ORDER BY sort_order, code LIMIT 1").code;
+    w.sqlite.prepare("INSERT INTO vc_trip_cost_line (id, trip_id, carrier_party_id, kind, amount, reason_code, occurred_date, cmd_id, created_at, updated_at) VALUES (?, ?, ?, 'AGREED', 1000000, ?, ?, ?, ?, ?)")
+      .run(uuid(), a.id, dt.nx, lyGia, NGAY, uuid(), AT_N4, AT_N4);
+    const b = await chuyenSan(w, { taiXe: DRIVER2, gio: "14:00", bd: "13:30", kt: "16:00", noiDon: "Khách sạn Hai" });
+    denGio("12:40");
+    { const xb = await tienDo(w, "tai-xe", a.id, "xuat-ben", {}, DRIVER_PARTNER); assert.equal(xb.status, 200, xb.text); }
+    const ds = await xeNhan(w, a.id, DRIVER_PARTNER, "STOP");
+    assert.equal(ds.status, 200, ds.text);
+    assert.ok(ds.json.xe.some((x: any) => x.tripId === b.id), "xe nhận của công ty có trong danh sách");
+    const g = await gui(w, a.id, { denChuyenId: b.id, phamVi: "STOP", diemId: a.diemDon }, DRIVER_PARTNER);
+    assert.equal(g.status, 200, g.text);
+    const id = g.json.deNghi.id;
+    const cuaToi = (await w.call("GET", `${VC}/de-nghi-cua-toi`, { as: DRIVER_PARTNER })).json;
+    assert.deepEqual(cuaToi.guiDi.map((x: any) => x.id), [id], "đề nghị của mình hiện ở 'gửi đi'");
+    const n = await nhan(w, id, DRIVER2);
+    assert.equal(n.status, 200, n.text);
+    assert.equal(n.json.ketQua, "LEO_THANG");
+    tat409(await rut(w, id, DRIVER_PARTNER), "da_leo_thang");
+    kiemDinhKySach(w);
+  } finally {
+    tat();
+  }
+});
+
+test("N4 (ADR-0053:46): tài xế đối tác là XE NHẬN — thấy đề nghị gửi tới, Không nhận → tin tới xe nhờ; tài xế công ty khác không bấm thay (404)", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const dt = doiTacLaiChoNhaXe(w);
+    const a = await chuyenSan(w);
+    const b = await chuyenSan(w, { taiXe: DRIVER_PARTNER, xe: dt.xe, gio: "14:00", bd: "13:30", kt: "16:00", noiDon: "Khách sạn Hai" });
+    denGio("12:40");
+    assert.equal((await tienDo(w, "tai-xe", a.id, "xuat-ben")).status, 200);
+    const id = (await gui(w, a.id, { denChuyenId: b.id, phamVi: "STOP", diemId: a.diemDon })).json.deNghi.id;
+    assert.equal((await tinCua(w, DRIVER_PARTNER, /đề nghị chuyển khách tới/)).length, 1, "tin tới tài xế đối tác (xe nhận)");
+    const cuaToi = (await w.call("GET", `${VC}/de-nghi-cua-toi`, { as: DRIVER_PARTNER })).json;
+    assert.deepEqual(cuaToi.guiToi.map((x: any) => x.id), [id], "đề nghị gửi tới hiện ở 'gửi tới'");
+    assert.equal((await khongNhan(w, id, "TU_CHOI_DAY_CHO", DRIVER2)).status, 404, "tài xế công ty khác không lái xe nhận");
+    const k = await khongNhan(w, id, "TU_CHOI_DAY_CHO", DRIVER_PARTNER);
+    assert.equal(k.status, 200, k.text);
+    assert.deepEqual([k.json.ketQua, k.json.deNghi.trangThai], ["KHONG_NHAN", "DECLINED"]);
+    assert.equal((await tinCua(w, DRIVER, /không nhận khách/)).length, 1, "tin Không nhận tới xe nhờ (tài xế công ty)");
+    kiemDinhKySach(w);
+  } finally {
+    tat();
+  }
+});
 
 test("NT-A5-20 thua cổng (1): lô xác nhận thua cổng version một lần → đọc lại và thử LẠI MỘT LẦN → 200 DA_CHUYEN, đúng một sự kiện", async () => {
   const tat = batDongHo();

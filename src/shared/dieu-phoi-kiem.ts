@@ -17,7 +17,7 @@ import { KET_QUA_CUOI_SUAT } from "./dieu-phoi-kieu.ts";
 import { kiemCamKet, type KetQuaCamKet } from "./cam-ket-xe.ts";
 import { LOAI_CO_DINH } from "./giay-to.ts";
 import { canhBaoGioLai, type CanhBaoGioLai, type ChuyenGioLai } from "./gio-lai.ts";
-import { chongNuaMo, nhanKhoangGio } from "./khung-ban.ts";
+import { chongNuaMo, nhanKhoangGio, nhanTuDen } from "./khung-ban.ts";
 import { lyDoGiu, type LyDoGiu } from "./ly-do-giu.ts";
 import { gioXetSuaChuyen, kiemMocXep, type LenhXep } from "./moc-toi-thieu.ts";
 import { suatTraTruocDon } from "./thu-tu-diem.ts";
@@ -132,11 +132,13 @@ export function kiemTaoSuaChuyen(v: KiemTaoSuaChuyenVao): KetQuaTaoSua {
   }
   // ADR-0055 VK2-A A2 (i) + ADR-0053 D9 B9.3: khung bận còn hiệu lực là KHOẢNG CHẶN như chuyến khác — MỘT hàm cho xe và tài xế (không luật thứ hai).
   // Mã: dùng lại TRUNG_GIO_XE / TRUNG_GIO_TAI_XE (ADR-0055 "không thêm mã vào MA_GIU"; chủ không trả lời Lượt III câu 7) — chi tiết nói rõ là lịch bận.
+  // Kế hoạch A4 G-A4-9 (lời chủ 6.2): nhánh TÀI XẾ không có lý do — "<Tên> bận từ … đến …. Chọn tài xế khác hoặc đổi giờ chuyến."; nhánh XE giữ lý do.
   for (const k of v.khungBan ?? []) {
     if (!chongNuaMo(c.batDauMs, c.ketThucMs, k.batDauMs, k.ketThucMs)) continue;
-    const gio = `${k.lyDoNhan} ${nhanKhoangGio(k.batDauMs, k.ketThucMs)}`;
-    if (k.doiTuong === "VEHICLE" && k.xeId === c.xe.id) chan.push(lyDoGiu("TRUNG_GIO_XE", `lịch xe bận: ${gio}`));
-    if (k.doiTuong === "DRIVER" && c.taiXe !== null && k.taiXePartyId === c.taiXe.partyId) chan.push(lyDoGiu("TRUNG_GIO_TAI_XE", `lịch tài xế bận: ${gio}`));
+    if (k.doiTuong === "VEHICLE" && k.xeId === c.xe.id) chan.push(lyDoGiu("TRUNG_GIO_XE", `lịch xe bận: ${k.lyDoNhan ?? ""} ${nhanKhoangGio(k.batDauMs, k.ketThucMs)}`));
+    if (k.doiTuong === "DRIVER" && c.taiXe !== null && k.taiXePartyId === c.taiXe.partyId) {
+      chan.push(lyDoGiu("TRUNG_GIO_TAI_XE", `${c.taiXe.displayName || "Tài xế"} bận ${nhanTuDen(k.batDauMs, k.ketThucMs)}. Chọn tài xế khác hoặc đổi giờ chuyến.`));
+    }
   }
   if (c.taiXe) {
     const lai = kiemLai(c.taiXe, c.xe.soCho, c.ketThucMs, v.hangBang);
@@ -533,3 +535,28 @@ export function kiemKetThuc(v: { suat: SuatVao[]; diem: DiemVao[] }): { duoc: tr
 export const trongNgayChay = (chuyen: { ngayChay: string; trangThai: TrangThaiChuyen; xuatBenMs: number | null }, homNay: string): boolean =>
   chuyen.ngayChay === homNay ||
   (chuyen.trangThai === "RUNNING" && chuyen.xuatBenMs !== null && vnToday(new Date(chuyen.xuatBenMs)) >= chuyen.ngayChay);
+
+/**
+ * KHUNG XEM KHÁCH (ADR-0053 D7.2 — MỘT hàm cho mọi tài xế; kế hoạch A4 T1). Trong khung thì DTO tài xế có họ tên, năm sinh, liên hệ, chuỗi đích chỉ đường
+ * (ADR-0105) — và, với người có vế hạn, mã đơn (ADR-0053 :30, :70, :171; G-A4-7). `hanTuChoiMs`:
+ *   - `undefined` = người gọi KHÔNG có vế hạn (tài xế công ty — ADR-0053 :64): chỉ vế "trong ngày chạy";
+ *   - `null` = người có vế hạn mà THIẾU dòng hạn của cặp → NGOÀI khung (đóng mặc định — G-A4-2);
+ *   - số = hạn Từ chối của cặp (tài xế, chuyến): trong khung khi `bayGioMs > hạn` (biên NGHIÊM — G-A4-1: khoảng Từ chối được `≤ hạn` và khoảng thấy khách rời
+ *     nhau) VÀ trong ngày chạy.
+ * Ngoài `src/shared/` chỉ gọi qua `khungCuaNguoiGoi` (van-chuyen) — bài src/modules/van-chuyen/mot-ham-khung.test.ts.
+ */
+export function trongKhungXemKhach(
+  chuyen: { ngayChay: string; trangThai: TrangThaiChuyen; xuatBenMs: number | null }, hanTuChoiMs: number | null | undefined, bayGioMs: number,
+): boolean {
+  if (hanTuChoiMs === null) return false;
+  if (hanTuChoiMs !== undefined && !(bayGioMs > hanTuChoiMs)) return false;
+  return trongNgayChay(chuyen, vnToday(new Date(bayGioMs)));
+}
+/**
+ * Lúc khung xem khách BẮT ĐẦU mở khi chuyến chưa xuất bến sớm (dòng "Thấy danh sách khách từ …" — kế hoạch A4 G-A4-17 `thayKhachTu`): 00:00 ngày chạy (giờ VN),
+ * hoặc ngay sau hạn Từ chối nếu muộn hơn. `null` hạn → như không vế hạn (màn chỉ hiện khi máy chủ đã đọc được hạn).
+ */
+export function mocMoKhung(chuyen: { ngayChay: string }, hanTuChoiMs: number | null | undefined): number {
+  const dauNgay = Date.parse(`${chuyen.ngayChay}T00:00:00+07:00`);
+  return typeof hanTuChoiMs === "number" ? Math.max(dauNgay, hanTuChoiMs + 1) : dauNgay;
+}

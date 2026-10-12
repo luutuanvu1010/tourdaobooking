@@ -6,7 +6,7 @@
 //       vào khung → 409;
 //   (5) khung 23:00 D → 07:00 D+1 ghi được (nửa đêm VN); lịch chung của Kế toán (trip.view) có dải bận ở D và D+1, không ở D+2;
 //   (6) Review Focus 3: rút version sai → 409; rút đúng → 200; rút lần hai → 409; đúng một nhật ký;
-//   (7) CSDL: sửa / xoá khung → chặn; khung DRIVER → unavailability_driver_closed;
+//   (7) CSDL: sửa / xoá khung → chặn; khung DRIVER lý do nhóm xe → unavailability_reason_group (0092 mở khung DRIVER);
 //   (7b) trang tuần: khung qua nửa đêm Chủ nhật → thứ Hai có ở CẢ hai tuần; `chuyen` chỉ khoá danh sách trắng;
 //   (8) giờ lái: tài xế đã có hai chuyến 4 giờ 30 cùng ngày → tạo chuyến thứ ba 201 kèm `canhBaoLenh` "Tài xế lái quá giờ tối đa trong ngày".
 // Khôi phục: rút mọi khung còn mở của các xe thử ở `finally` (xe dùng một lần). Dữ liệu độc nhất theo lần chạy. Tên khách, số giấy tờ là GIẢ.
@@ -141,9 +141,9 @@ try {
   await assert.rejects(
     sql(`INSERT INTO vc_unavailability (id, subject, driver_party_id, start_ms, end_ms, start_at, end_at, reason_code, created_at, updated_at)
       VALUES ('${uuid()}', 'DRIVER', '${txParty}', ${ms(D2, "08:00")}, ${ms(D2, "09:00")}, '${new Date(ms(D2, "08:00")).toISOString()}', '${new Date(ms(D2, "09:00")).toISOString()}', 'BAN_XE_KHAC', '${AT}', '${AT}')`),
-    /unavailability_driver_closed|unavailability_reason_group/,
+    /unavailability_reason_group|unavailability_overlaps_driver_trip/, // 0092 (ADR-0053 D9) mở khung DRIVER — lý do nhóm XE vẫn bị chặn
   );
-  console.log("✓ (7) D1 thật: sửa / xoá khung bị chặn; ghi khung tài xế bị chặn (chưa mở)");
+  console.log("✓ (7) D1 thật: sửa / xoá khung bị chặn; khung tài xế mang lý do nhóm xe bị chặn");
 
   // --- (7b) trang tuần: khung Chủ nhật 23:00 → thứ Hai 07:00 có ở hai tuần; chuyen chỉ khoá danh sách trắng ---
   const dow = new Date(`${D}T00:00:00Z`).getUTCDay();

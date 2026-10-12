@@ -33,6 +33,9 @@ const BANG: Record<string, { loai: string; giu: Giu }> = {
   [`POST ${VC}/chuyen/:id/cap-nhat-diem`]: { loai: "ALLOCATION_STOP_CHANGED", giu: "quét" },
   [`POST ${VC}/chuyen/:id/cap-nhat-khach`]: { loai: "ALLOCATION_PASSENGER_CHANGED", giu: { tep: "cap-nhat-khach.test.ts", bai: "R-P29: lệnh lặp cùng requestId" } },
   [`POST ${VC}/cuoc-cua-toi/:id/hanh-khach`]: { loai: "PASSENGER_NAMED", giu: { tep: "bo-sung-ten.test.ts", bai: "D5b chuyến LÊN KẾ HOẠCH trong ngày chạy" } },
+  // A4 T7 (ADR-0053 D8): kế hoạch ghi "quét", nhưng bài quét ở đây chạy đồng hồ NOW_GIA — đường Từ chối thành công đi qua trigger B8.3 so GIỜ THẬT (luật đồng
+  // hồ §2) nên giữ ở bài riêng theo giờ thật (lệnh lặp của mình 200, không thêm nhật ký / sự kiện / tin; người khác dùng lại mã → 409 ở bài "LỆNH LẶP").
+  [`POST ${VC}/cuoc-cua-toi/:id/tu-choi`]: { loai: "DRIVER_REFUSED", giu: { tep: "tu-choi.test.ts", bai: "A4 T7 NT-4 + NT-7" } },
   // ADR-0097 (gói A1, V3-B): hai lệnh điều chỉnh của văn phòng — lần đầu 201 (+ Location), lần lặp 200 (quét bên dưới với `lan1` = 201).
   [`POST ${VC}/chuyen/:id/phan-bo/:aid/dieu-chinh`]: { loai: "CORRECTION", giu: "quét" },
   [`POST ${VC}/chuyen/:id/thu-hoi-xuat-ben`]: { loai: "DEPARTURE_REVOKED", giu: "quét" },
@@ -73,7 +76,7 @@ test("bảng lệnh lặp: route nào của index.ts gọi `traLenhLap` thì có
     khai[khoa] = [...goi[0]![1]!.matchAll(/"([A-Z_]+)"/g)].map((x) => x[1]).join(",");
   });
   assert.deepEqual(khai, Object.fromEntries(Object.entries(BANG).map(([k, v]) => [k, v.loai])), "route lệnh chuyến ↔ BANG (thêm route mới thì thêm dòng và cách giữ)");
-  assert.equal(Object.keys(BANG).length, 38);
+  assert.equal(Object.keys(BANG).length, 39);
   assert.deepEqual(khongQua, NGOAI_LE, "route mới nhận requestId phải đi qua traLenhLap");
   for (const [khoa, { giu }] of Object.entries(BANG)) {
     if (giu === "quét") continue;

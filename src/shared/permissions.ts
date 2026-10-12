@@ -67,6 +67,8 @@ const row = (
  * hồ sơ người khác); ngoại lệ có tên: gửi/xem góp ý của mình (như mọi tài khoản) và xem giấy tờ của chính mình. Có bài ghim cả hàng (permissions.test.ts).
  * ADR-0048 D2 (accepted 2026-09-28): cột DRIVER_PARTNER (Tài xế đối tác — người của nhà xe đối tác) — MỌI ô nghiệp vụ = none, kể cả MỌI ô tiền; ngoại lệ có
  * tên: gửi/xem góp ý của mình và xem giấy tờ của chính mình (số che). Không vào cổng nào ngoài "staff". Có bài ghim cả hàng (permissions.test.ts).
+ * ADR-0053 D7.1 (accepted; kế hoạch A4 T6 — NỚI có tên, Điều 9.4): tài xế đối tác xem + bấm tiến độ + Từ chối chuyến MÌNH ĐANG LÁI (`trip.view`, `trip.progress`,
+ * `trip.refuse` = assigned — route tài xế `…/cuoc-cua-toi/*`, cổng staff); khung xem khách có vế hạn Từ chối (D7.2). Vẫn none ở mọi ô tiền, đơn, hồ sơ.
  * ADR-0071 (accepted 2026-10-01): cột HR (Nhân sự — vai "Hành chính nhân sự") — CHỈ ba ô tài khoản (account.create/view/edit) + các ô của mọi tài khoản nội bộ
  * (gửi/xem góp ý của mình, hỏi trợ lý, giấy tờ của chính mình). Vào cổng "staff" và cổng "accounts". Có bài ghim cả hàng (permissions.test.ts).
  */
@@ -184,7 +186,8 @@ export const MATRIX = {
   // CHỈ chuyến mình đang lái — `assigned` = dòng lái mở trên chuyến, tính trong van-chuyen, route tài xế A15). NỚI bài ghim hàng DRIVER — ĐÃ DUYỆT 2026-09-30 (lần 17)
   // (đề xuất luật mục 2). `trip.dispatch` — tạo / sửa / xếp / rút / dời / huỷ chuyến, cập nhật điểm theo đơn (Bán hàng, Quản trị, Toàn quyền). `trip.override`
   // — phá lệ luật CẤU HÌNH (khoảng nghỉ, cam kết KHI chuyến ngoài mốc — ADR-0104 Đ1 thay ĐP3) — chỉ Quản trị, Toàn quyền. Luật lõi LC-01…21 không ai vượt.
-  "trip.view": row("any", "any", "any", "none", "none", "any", "none", "assigned", "none", "none"),
+  // ADR-0053 D7.1 (kế hoạch A4 T6): tài xế đối tác `assigned` — chỉ chuyến mình có dòng lái mở (route tài xế), như tài xế công ty.
+  "trip.view": row("any", "any", "any", "none", "none", "any", "none", "assigned", "assigned", "none"),
   "trip.dispatch": row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
   "trip.override": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0104 Đ1 (accepted 2026-10-08, Q-1 b): "Điều chỉnh khẩn cấp" — vượt mốc ở MỌI lệnh bị khoá (xếp, rút, dời, thêm khách khi xe chạy, đổi xe, đổi tài
@@ -194,7 +197,8 @@ export const MATRIX = {
   // ADR-0049 D3 (Task A15): lệnh TIẾN ĐỘ (xuất bến, đã tới, đã đón, vắng, khách huỷ, đã trả, kết thúc, kết thúc gián đoạn, đổi thứ tự điểm khi đang chạy).
   // Tài xế công ty: CHỈ chuyến mình đang lái (`assigned` — route tài xế `…/cuoc-cua-toi/*`, cổng staff). Văn phòng (Bán hàng, Quản trị, Toàn quyền) bấm thay
   // qua route RIÊNG `…/chuyen/:id/<lệnh>` (cổng office — R-P1), cùng một hàm xử lý. Kế toán: không. NỚI bài ghim hàng DRIVER — ĐÃ DUYỆT 2026-09-30 (lần 17) (đề xuất luật mục 2).
-  "trip.progress": row("any", "none", "any", "none", "none", "any", "none", "assigned", "none", "none"),
+  // ADR-0053 D7.1 (kế hoạch A4 T6): tài xế đối tác `assigned` — cùng chín lệnh tiến độ trên chuyến mình đang lái.
+  "trip.progress": row("any", "none", "any", "none", "none", "any", "none", "assigned", "assigned", "none"),
   // ADR-0052 D5b (Vận chuyển Đợt 5 A-1b — chủ duyệt 5/10, tệp đề xuất luật A-1b mục 1): tài xế công ty BỔ SUNG TÊN khách chưa có tên trên chuyến MÌNH ĐANG LÁI,
   // trong ngày chạy (route POST /api/van-chuyen/cuoc-cua-toi/:id/hanh-khach). Văn phòng không có route riêng (nhập tên ở đơn) — Bán hàng, Quản trị none; Toàn
   // quyền any. Tài xế đối tác none (chủ 5/10: chỉ tài xế công ty; ADR-0053 để Đợt 6). NỚI bài ghim hàng DRIVER (3 ô assigned).
@@ -202,8 +206,18 @@ export const MATRIX = {
   // ADR-0052 D4 :84 (ĐP2, chủ duyệt A-1 30/9) + ADR-0111 (accepted 8/10): CHUYỂN KHÁCH giữa hai xe — tài xế gửi / rút đề nghị của chuyến MÌNH ĐANG LÁI
   // (nguồn) và nhận / không nhận đề nghị gửi tới chuyến MÌNH ĐANG LÁI (đích). `assigned` = dòng lái mở trên đúng chuyến đó (van-chuyen tính). Toàn quyền any
   // nhưng vẫn phải là tài xế đang lái (route trả 404 — :84 "áp cả Toàn quyền"; CSDL: trigger vc_transfer_request_nguoi_nhan). Văn phòng KHÔNG: gửi thay cứu hộ
-  // đi ô trip.progress (D5c), duyệt / bác đề nghị leo thang đi ô trip.override. NỚI N1 bài ghim hàng DRIVER (ADR-0052:190). Tài xế đối tác none tới khi A4 gộp.
-  "trip.transfer": row("none", "none", "none", "none", "none", "any", "none", "assigned", "none", "none"),
+  // đi ô trip.progress (D5c), duyệt / bác đề nghị leo thang đi ô trip.override. NỚI N1 bài ghim hàng DRIVER (ADR-0052:190). Tài xế đối tác assigned (NỚI N4: ADR-0053 D7.1 :46 đã duyệt 30/9 + ADR-0111 N4 — mở khi A4 đã gộp, gói A5 12/10): cùng luật tài xế công ty; mã quyền không đổi nên EXTERNAL_PERMISSIONS và trigger LC-1 không đổi (ADR-0053 :50).
+  "trip.transfer": row("none", "none", "none", "none", "none", "any", "none", "assigned", "assigned", "none"),
+  // ADR-0053 D8 (accepted; kế hoạch A4 T3): tài xế TỪ CHỐI chuyến MÌNH ĐANG LÁI trước hạn (route POST /api/van-chuyen/cuoc-cua-toi/:id/tu-choi — T7). Ô này CŨNG
+  // bật VẾ HẠN của khung xem khách và của mã đơn (D7.2; G-A4-2): người gọi có `can(trip.refuse, {assigned:true})` chỉ thấy khách, liên hệ, mã đơn SAU hạn Từ chối
+  // của cặp — máy chủ hỏi ô ở `khungCuaNguoiGoi` (van-chuyen/index.ts). ĐÓNG ô này cho một mã quyền thì khung của mã đó RỘNG ra (thấy từ 00:00 ngày chạy):
+  // ADR nào đóng ô phải xét lại khung (kế hoạch A4 §6.1). Tài xế công ty none (D8.3 — không Từ chối, không vế hạn); văn phòng none (không từ chối thay —
+  // N-TU-CHOI); Toàn quyền any (chỉ có hiệu lực khi chính mình lái). Tài xế đối tác assigned — lật ở T6 CÙNG LÚC với trip.view (vế hạn áp ngay từ lúc thấy chuyến).
+  "trip.refuse": row("none", "none", "none", "none", "none", "any", "none", "none", "assigned", "none"),
+  // ADR-0053 D9 (accepted; kế hoạch A4 T8): BÁO BẬN CỦA TÔI — tài xế đối tác ghi / xem / rút khung bận của CHÍNH MÌNH (route /api/van-chuyen/ban*, cổng staff;
+  // route luôn dùng staff.partyId và hỏi `can(staff, "unavailability.self", { ownerId: staff.id })`). Văn phòng KHÔNG ghi thay (xem dải "Tài xế bận" qua
+  // trip.dispatch — GET /api/van-chuyen/ban-tai-xe); tài xế công ty none (Đợt 6 chỉ mở cho tài xế đối tác — 0053:49); Toàn quyền any (chỉ khung của chính mình).
+  "unavailability.self": row("none", "none", "none", "none", "none", "any", "none", "none", "own", "none"),
   // ADR-0051 GB2 (Task A-GB): ghi / bỏ dấu "đã gọi báo khách" giờ hẹn mới của chặng đang trên xe — "đơn của ai người đó lo" (Hiến chương 5.8, ĐP6): Bán hàng
   // CHỈ đơn mình lập hoặc mình đang phụ trách (route truyền cả ownerId lẫn assigned — ctx.isAssigned của người phụ trách ĐƠN); Quản trị, Toàn quyền mọi chặng.
   // Ô riêng (không dùng lại order.trip.edit — một mã một nghĩa, R-K1); bài ghim: không rộng hơn order.trip.edit ở mọi cột.

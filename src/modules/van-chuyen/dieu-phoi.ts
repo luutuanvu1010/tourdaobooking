@@ -12,6 +12,7 @@ import {
   ALLOC_OFFICE_CANCEL, MANIFEST_THEM_SAU, TRIP_CHOT, TRIP_GATE_DANG_CHAY_VERSION, ALLOC_DIEU_CHINH_INSERT, EVENT_DIEU_CHINH_INSERT, TRIP_THU_HOI_XUAT_BEN,
   TRANSFER_DONG, TRANSFER_INSERT, TRIP_GATE_CHAY_HOAC_CHO, TRIP_GATE_DE_NGHI, TRIP_GATE_DOI_CHAY, TRANSFER_QUYET, TRANSFER_DUYET, TRANSFER_CHECK_INSERT,
   TRANSFERS_VOID_KHAC, ALLOC_CLOSE_TRANSFER, ALLOC_OPEN_TRANSFER, STOP_SET_MOVED, MANIFEST_CHUYEN_KHACH, TRANSFERS_VOID_BY_STOP, TRANSFERS_VOID_BY_SUAT, TRANSFERS_VOID_BY_TRIP, TRANSFERS_VOID_BY_DOI_DIEM,
+  DRIVER_REFUSE, TRIP_GATE_TU_CHOI,
 } from "./chuyen-repo";
 import { cauChiPhi, type KeHoachChiPhi } from "./tien-xe-lo";
 import {
@@ -349,6 +350,28 @@ export function loHuy(db: D1Database, l: LenhHuy): CauCoNhan[] {
     tuHuyDeNghi(db, l, "CHUYEN", l.tripId, l.tripId),
     ...cauChiPhi(db, l, l.tripId, l.chiPhi).dao,
     { nhan: "TRANG_THAI_CUOI", stmt: db.prepare(TRIP_CANCEL).bind(l.tripId, l.cmd, l.lyDo, l.lucIso, l.nguoiId) },
+  ];
+}
+
+// ---- Từ chối chuyến (ADR-0053 D8.4; kế hoạch A4 T7) ------------------------------------------------------------------------------------------------------
+export interface LenhTuChoi extends LenhChung {
+  tripId: string;
+  version: number;
+  /** Hồ sơ tài xế đang lái = người bấm (B8.2). */
+  taiXePartyId: string;
+  /** Mã lý do nhóm TU_CHOI_CHUYEN (B8.4). */
+  lyDo: string;
+  /** Giờ máy chủ (ms) — so với hạn của cặp ở câu cổng (G-A4-24). */
+  bayGioMs: number;
+  detail: string;
+}
+/** Thứ tự: cổng (đủ điều kiện, G-A4-24) → nhật ký `trip_driver_refused` → sự kiện `DRIVER_REFUSED` → đóng dòng lái REFUSED (lý do, người đóng). */
+export function loTuChoi(db: D1Database, l: LenhTuChoi): CauCoNhan[] {
+  return [
+    { nhan: "CONG", stmt: db.prepare(TRIP_GATE_TU_CHOI).bind(l.tripId, l.version, l.cmd, l.lucIso, l.nguoiId, l.taiXePartyId, l.bayGioMs) },
+    nhatKy(db, l, "trip_driver_refused", l.tripId, l.detail),
+    suKien(db, l, { tripId: l.tripId, loai: "DRIVER_REFUSED" }),
+    ghi(db.prepare(DRIVER_REFUSE).bind(l.tripId, l.cmd, l.lucIso, l.lyDo, l.nguoiId, l.taiXePartyId)),
   ];
 }
 

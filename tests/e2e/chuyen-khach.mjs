@@ -11,7 +11,7 @@
 //   TH09 sai cam kết (xe riêng trên xe nhận) → leo thang → Quản trị duyệt → khoá phá lệ cam kết của xe nhận
 //   TH10 nhờ chéo hai xe, mỗi bên tự đồng ý
 //   NT-A5-20 chạy đua: hai xe cùng Nhận một điểm (một thắng, một 409 da_huy); Nhận đúng lúc xe nhờ Rút (đúng một bên thắng)
-// Cuối: các câu kiểm định kỳ chuyển khách (R-VC-16, R-VC-26…30, R-VC-SUA-1) trên D1 = 0. Chính sách điều phối đổi rồi KHÔI PHỤC ở `finally`.
+// Cuối: các câu kiểm định kỳ chuyển khách (R-VC-16, R-VC-31…35, R-VC-SUA-1) trên D1 = 0. Chính sách điều phối đổi rồi KHÔI PHỤC ở `finally`.
 // Dữ liệu dùng một lần (SĐT ngẫu nhiên, biển số theo Date.now()); chuyến NGÀY MAI + cửa sổ xuất bến 48 giờ (xuất bến ngay được). Tên, số GIẢ.
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, catalogService, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows, vnDate, moCuaSoXuatBen48Gio } from "./lib.mjs";
@@ -421,9 +421,9 @@ try {
 }
 
 // ==== Kiểm định kỳ chuyển khách trên dữ liệu vừa ghi (NT-A5-23) ====
-for (const c of CHECKS.filter((x) => ["R-VC-16", "R-VC-26", "R-VC-27", "R-VC-28", "R-VC-29", "R-VC-30", "R-VC-SUA-1"].includes(x.code))) {
+for (const c of CHECKS.filter((x) => ["R-VC-16", "R-VC-31", "R-VC-32", "R-VC-33", "R-VC-34", "R-VC-35", "R-VC-SUA-1"].includes(x.code))) {
   const rows = await sqlRows(c.sql.replace(/\s+/g, " ").trim());
   const n = c.mode === "rows" ? rows.length : Number(Object.values(rows[0] ?? { n: 0 })[0]);
   assert.equal(n, 0, `${c.code} có vi phạm sau kịch bản: ${JSON.stringify(rows).slice(0, 400)}`);
 }
-console.log("✓ kiểm định kỳ R-VC-16, R-VC-26…30, R-VC-SUA-1 = 0 trên dữ liệu e2e");
+console.log("✓ kiểm định kỳ R-VC-16, R-VC-31…35, R-VC-SUA-1 = 0 trên dữ liệu e2e");

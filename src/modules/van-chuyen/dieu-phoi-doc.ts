@@ -2,6 +2,7 @@
 // chính sách (repository.ts) và hàm công bố `taiXeChoDieuPhoi` của parties. KHÔNG gọi hàm hẹp của orders: dữ liệu chặng (`lichChungChang`) và tên khách
 // (`hanhKhachChoChuyen`) do THÂN ROUTE đọc SAU `can()` rồi truyền vào đây (bài src/orders-cong-bo.test.ts). Hàm `…Vao` là đổi dạng THUẦN (không I/O).
 import type { KhungBanRow } from "./khung-ban-repo";
+import type { KhungTaiXeRow } from "./khung-ban-tai-xe-repo";
 import type { ChangLichChung } from "../orders";
 import { taiXeChoDieuPhoi, type TaiXeDieuPhoi } from "../parties";
 import type {
@@ -77,6 +78,10 @@ export function taiXeVao(partyId: string, ds: readonly TaiXeDieuPhoi[]): TaiXeVa
 /** Khung bận của xe (dòng `khung_ban_*` — đã lọc VEHICLE) → dạng luật thuần (ADR-0055 VK2-A A2 (i)). */
 export const khungBanVao = (r: KhungBanRow): KhungBanVao => ({
   id: r.id, doiTuong: "VEHICLE", xeId: r.vehicle_id, taiXePartyId: null, batDauMs: r.start_ms, ketThucMs: r.end_ms, lyDoNhan: r.reason_label,
+});
+/** Khung bận của TÀI XẾ (dòng `khung_tai_xe_*` — đã lọc DRIVER, không lý do) → dạng luật thuần (ADR-0053 D9 B9.3; kế hoạch A4 T4, G-A4-9). */
+export const khungTaiXeVao = (r: KhungTaiXeRow): KhungBanVao => ({
+  id: r.id, doiTuong: "DRIVER", xeId: null, taiXePartyId: r.driver_party_id, batDauMs: r.start_ms, ketThucMs: r.end_ms, lyDoNhan: null,
 });
 export const khungChuyen = (t: TripRow): KhungChuyen => ({
   id: t.id, ma: t.code, xeId: t.vehicle_id, taiXePartyId: t.driver_party_id, batDauMs: t.planned_start_ms, ketThucMs: t.planned_end_ms, ketThucThatMs: t.ended_ms, trangThai: t.status,

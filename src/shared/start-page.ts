@@ -13,7 +13,7 @@
 // Tài xế (ADR-0040 D3; Ruling R3, R10 của điều phối 2026-09-28): quyền DRIVER không qua cổng orders — ở lại "/" thì Trang chủ gọi dashboard đơn và nhận 403.
 // Tài khoản không xem đơn nào mà có DRIVER được đưa sang trang đầu của tài xế. web/home.ts gọi hàm này và `location.replace` TRƯỚC khi tải dashboard
 // (web/home.ts:255-258), nên tài khoản đó không bao giờ gọi route dashboard (trừ lời gọi sớm theo bản nhớ khung trên máy dùng chung — kết quả 403 bị bỏ).
-import { can, canAccessOrders, hasPermission, seesAllOrders, type PermissionHolder } from "./permissions.ts";
+import { MATRIX, can, canAccessOrders, hasPermission, seesAllOrders, type PermissionHolder } from "./permissions.ts";
 
 /**
  * Trang đầu của tài khoản chỉ có phần Tài xế (ADR-0040 D3, Ruling R3): màn "/tai-xe" (màn 07 của bản vẽ docs/design/van-chuyen-1a/ — public/tai-xe.html,
@@ -31,8 +31,11 @@ export const TRANG_CUOC = "/cuoc";
  * nhận 403). Chỉ dùng khi không có trang đầu nào khác (văn phòng, đơn, tài xế).
  */
 export const TRANG_TAI_KHOAN = "/staff";
-/** Tài xế công ty (DRIVER — ô trip.view / trip.progress "assigned") có "Cuốc của tôi"; tài xế đối tác (DRIVER_PARTNER) chưa dùng chuyến (ADR-0049 D3 × ADR-0048 D2). */
-export const coCuocCuaToi = (who: Pick<PermissionHolder, "permissions">): boolean => hasPermission(who, "DRIVER");
+/**
+ * "Cuốc của tôi": giữ một mã quyền mà ô `trip.view` của mã đó ĐÚNG BẰNG "assigned" (đọc MATRIX — kế hoạch A4 G-A4-5): tài xế công ty (DRIVER) và, từ ADR-0053
+ * D7.1, tài xế đối tác (DRIVER_PARTNER). KHÔNG dùng `can(…, {assigned:true})`: ô `any` của văn phòng cũng trả đúng → Bán hàng sẽ có tab Cuốc.
+ */
+export const coCuocCuaToi = (who: Pick<PermissionHolder, "permissions">): boolean => who.permissions.some((p) => MATRIX["trip.view"][p] === "assigned");
 
 /** Tài khoản "chỉ tài xế" (công ty hoặc đối tác) — trang đầu là /cuoc hoặc /tai-xe: dùng thanh tab / menu của tài xế, mở được /tai-xe. */
 export const chiTaiXe = (who: PermissionHolder): boolean => {

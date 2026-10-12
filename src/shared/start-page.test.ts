@@ -47,7 +47,8 @@ test("homeRedirect: chỉ INTERN (Thực tập) → \"/orders\" (không có Tran
 // ADR-0040 D3 + Ruling R3, R10 (điều phối 2026-09-28): tài khoản chỉ có quyền Tài xế không qua cổng orders — ở lại Trang chủ thì web/home.ts sẽ gọi
 // GET /api/orders/dashboard và nhận 403. Phần A tạm đưa sang trang Tài khoản (R10); Phần B dựng màn /tai-xe theo bản vẽ 07 và đổi hằng này sang "/tai-xe".
 // ADR-0049 Q5 (điều phối vòng 3, 29/9): tài xế CÔNG TY (DRIVER) mở app vào "Cuốc của tôi" (/cuoc — bản vẽ Bảng điều phối 04, tab mở đầu); "/tai-xe" giữ
-// giấy tờ ("Trang chủ" của tài xế). Tài xế đối tác (DRIVER_PARTNER) chưa dùng chuyến (ADR-0049 D3 × ADR-0048 D2) — vẫn /tai-xe.
+// giấy tờ ("Trang chủ" của tài xế). NỚI có tên (kế hoạch A4 §3.1 hàng T6, NT-12; ADR-0053 D7.1, :200): tài xế đối tác (DRIVER_PARTNER — trip.view assigned)
+// cũng có "Cuốc của tôi" và mở app vào /cuoc (trước: /tai-xe, chưa dùng chuyến). `coCuocCuaToi` đọc MATRIX (G-A4-5): văn phòng (ô any) KHÔNG có tab Cuốc.
 test("homeRedirect: chỉ Tài xế (DRIVER) → \"Cuốc của tôi\" /cuoc (Q5) — trang có thật (không 404), không phải Trang chủ (không vòng, không gọi dashboard đơn)", () => {
   assert.equal(TRANG_DAU_TAI_XE, "/tai-xe", "màn giấy tờ của tài xế (bản vẽ Vận chuyển 07) — nay là tab \"Trang chủ\" của tài xế");
   assert.equal(TRANG_CUOC, "/cuoc");
@@ -56,8 +57,9 @@ test("homeRedirect: chỉ Tài xế (DRIVER) → \"Cuốc của tôi\" /cuoc (Q5
   assert.equal(homeRedirect(who("DRIVER")), TRANG_CUOC);
   assert.equal(homeRedirect(who("DRIVER", "DRIVER")), TRANG_CUOC);
   assert.equal(coCuocCuaToi(who("DRIVER")), true);
-  assert.equal(coCuocCuaToi(who("DRIVER_PARTNER")), false, "tài xế đối tác chưa có Cuốc của tôi");
-  assert.equal(coCuocCuaToi(who("SALES")), false);
+  assert.equal(coCuocCuaToi(who("DRIVER_PARTNER")), true, "tài xế đối tác có Cuốc của tôi (A4 T6)");
+  for (const p of ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"] as const) assert.equal(coCuocCuaToi(who(p)), false, `${p}: ô any không phải "assigned" (G-A4-5)`);
+  assert.equal(coCuocCuaToi(who("DRIVER", "SALES")), true);
   assert.deepEqual([chiTaiXe(who("DRIVER")), chiTaiXe(who("DRIVER_PARTNER")), chiTaiXe(who("DRIVER", "SALES")), chiTaiXe(who("SALES"))], [true, true, false, false]);
   for (const office of ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"] as const) assert.equal(homeRedirect(who("DRIVER", office)), null, `DRIVER+${office}`);
   for (const p of ["FIELD", "PARTNER", "INTERN"] as const) assert.equal(homeRedirect(who(p, "DRIVER")), "/orders", `${p}+DRIVER`);
@@ -65,8 +67,9 @@ test("homeRedirect: chỉ Tài xế (DRIVER) → \"Cuốc của tôi\" /cuoc (Q5
 
 // ADR-0048 D2 (giả định I2/G1 của kế hoạch — đã được điều phối chấp nhận): tài khoản chỉ Tài xế đối tác cũng không qua cổng orders; ở lại Trang chủ thì gọi
 // dashboard đơn và nhận 403 — đưa tới CÙNG trang đầu tài xế /tai-xe (trang chỉ gọi GET /api/parties/documents/mine).
-test("homeRedirect: chỉ Tài xế đối tác (DRIVER_PARTNER) → /tai-xe; kèm văn phòng → Trang chủ; kèm FIELD → /orders (hai tổ hợp sau bất hợp lệ theo LC-1b, hàm thuần vẫn đúng công thức)", () => {
-  assert.equal(homeRedirect(who("DRIVER_PARTNER")), TRANG_DAU_TAI_XE);
+// NỚI có tên (kế hoạch A4 §3.1 hàng T6, NT-12; SO-HANG-RAO "trang đầu tài xế"): chỉ tài xế đối tác → /cuoc (trước: /tai-xe).
+test("homeRedirect: chỉ Tài xế đối tác (DRIVER_PARTNER) → /cuoc (A4 T6); kèm văn phòng → Trang chủ; kèm FIELD → /orders (hai tổ hợp sau bất hợp lệ theo LC-1b, hàm thuần vẫn đúng công thức)", () => {
+  assert.equal(homeRedirect(who("DRIVER_PARTNER")), TRANG_CUOC);
   assert.equal(homeRedirect(who("DRIVER_PARTNER", "SALES")), null);
   assert.equal(homeRedirect(who("DRIVER_PARTNER", "FIELD")), "/orders");
   assert.equal(coPhanTaiXe(who("DRIVER")), true);
@@ -81,7 +84,8 @@ test("homeRedirect: 1024 tập con quyền — tập KHÔNG có phần tài xế
   for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++, n++) {
     const w = who(...PERMISSION_CODES.filter((_, i) => mask & (1 << i)));
     const coTaiXe = coPhanTaiXe(w);
-    const truocHr = !coTaiXe || seesAllOrders(w) || canAccessOrders(w) ? cu(w) : w.permissions.includes("DRIVER") ? TRANG_CUOC : TRANG_DAU_TAI_XE;
+    // A4 T6 (NT-12): mọi phần tài xế (DRIVER hoặc DRIVER_PARTNER) nay có Cuốc (trip.view assigned) → /cuoc; /tai-xe không còn là trang đầu của tập nào.
+    const truocHr = !coTaiXe || seesAllOrders(w) || canAccessOrders(w) ? cu(w) : TRANG_CUOC;
     // ADR-0071: tài khoản không có trang đầu nào khác mà xem được Quản lý tài khoản (Hành chính nhân sự) → /staff.
     const kyVong = truocHr === null && !seesAllOrders(w) && can(w, "account.view") ? TRANG_TAI_KHOAN : truocHr;
     assert.equal(homeRedirect(w), kyVong, w.permissions.join("+") || "(không quyền)");

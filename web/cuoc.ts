@@ -16,6 +16,7 @@ import { loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
 import { initShell, showError } from "./shell";
 import { taoBoLamMoi } from "./lam-moi-logic";
+import { dai } from "./dieu-phoi-ui";
 
 const errorEl = byId("error");
 const dsEl = byId("cu-ds");
@@ -45,8 +46,11 @@ async function veDanhSach(): Promise<void> {
     return showError(errorEl, loiCua(e));
   }
   errorEl.hidden = true;
+  // A4 T9 (ADR-0053 D8): vừa Từ chối ở màn một chuyến → dải xác nhận (mã chuyến từ đường dẫn — chỉ là chữ, `h()` thoát ký tự).
+  const daTuChoi = new URLSearchParams(location.search).get("daTuChoi");
   replaceChildren(
     dsEl,
+    daTuChoi ? dai("ok", `Đã từ chối chuyến ${daTuChoi}`, ["Văn phòng đã nhận báo và sẽ xếp người khác."]) : null,
     ...nhomCuoc(r.chuyen, homNay, { tuBoSungTen }).map((g) =>
       h(
         "section",

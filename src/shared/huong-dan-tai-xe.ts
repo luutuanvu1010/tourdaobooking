@@ -6,10 +6,10 @@ export const HD_TAI_XE: NhomHuongDan = {
   tieuDe: "Tài xế",
   quyen: ["DRIVER", "DRIVER_PARTNER"],
   gioiThieu:
-    "Bạn là tài xế. Tài xế công ty xem cuốc mình lái hôm nay và ngày mai, bấm từng bước khi chạy. Mọi tài xế xem được hạn giấy tờ của mình. Bạn không thấy đơn hàng hay tiền.",
+    "Bạn là tài xế. Bạn xem cuốc mình lái, bấm từng bước khi chạy và xem hạn giấy tờ của mình. Bạn không thấy đơn hàng hay tiền.",
   batDauNhanh: `> Lưu ý: cuốc hiện ở đây khi văn phòng xếp bạn lái. Thấy "Không có cuốc nào." nghĩa là bạn chưa được xếp chuyến nào.
 
-> Lưu ý: tài xế của nhà xe đối tác chưa có phần cuốc xe — chỉ làm bước 3–5, rồi đọc mục cuối "Tài xế nhà xe đối tác".
+> Lưu ý: tài xế của nhà xe đối tác đọc thêm mục "Tài xế nhà xe đối tác" (từ chối chuyến, báo bận).
 
 1. Mở app. Bạn vào thẳng [[Cuốc của tôi]].
 2. Xem ba nhóm **Hôm nay**, **Ngày mai**, **Ngày kia**. Vào [[Tôi]] bật thông báo để được báo khi được xếp chuyến.
@@ -19,12 +19,13 @@ export const HD_TAI_XE: NhomHuongDan = {
   muc: [
     {
       tieuDe: "Menu của bạn",
-      noiDung: `Trên điện thoại, thanh dưới đáy của tài xế công ty có: [[Trang chủ]], [[Cuốc của tôi]], [[Tôi]]. Tài xế nhà xe đối tác chỉ có [[Trang chủ]] và [[Tôi]].
+      noiDung: `Trên điện thoại, thanh dưới đáy có: [[Trang chủ]], [[Cuốc của tôi]], [[Tôi]]. Tài xế nhà xe đối tác có thêm [[Báo bận của tôi]].
 - [[Trang chủ]]: lời chào và hai giấy tờ sắp hết hạn nhất.
 - [[Cuốc của tôi]]: các chuyến hôm nay, ngày mai và ngày kia.
+- [[Báo bận của tôi]]: ghi giờ bạn bận để văn phòng không xếp chuyến.
 - [[Tôi]]: đủ **Giấy tờ của tôi**, đổi PIN, bật thông báo.
 
-Trên máy tính, menu bên trái có: [[Trang chủ]], [[Cuốc của tôi]], [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]].`,
+Trên máy tính, menu bên trái có các mục trên, cùng [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]].`,
     },
     {
       tieuDe: "Xem cuốc và chuẩn bị",
@@ -77,9 +78,11 @@ Trên máy tính, menu bên trái có: [[Trang chủ]], [[Cuốc của tôi]], [
     {
       tieuDe: "Tài xế nhà xe đối tác",
       noiDung: `Nếu bạn là tài xế của nhà xe khác:
-- Bạn đăng nhập và xem **Giấy tờ của tôi** ở [[Trang chủ]] và [[Tôi]]. Số giấy tờ bị che một phần.
-- Trang chủ ghi "Cuốc xe của bạn sẽ hiện ở đây". Bạn chưa xem chuyến và chưa bấm được các bước chạy (chưa có ở bản này).
-- Bạn không thấy đơn, giá hay tin nội bộ của công ty.
+- Bạn xem cuốc và bấm các bước chạy như tài xế công ty, trừ bổ sung tên khách.
+- **Từ chối chuyến:** chuyến chưa chạy có dải "Từ chối được tới …". Không chạy được thì bấm [[Từ chối chuyến]], chọn lý do, bấm [[Xác nhận từ chối]]. Chuyến rời khỏi Cuốc của bạn, văn phòng xếp người khác. Quá giờ đó thì không từ chối được nữa: bấm [[Gọi văn phòng]].
+- **Tên khách và mã đơn:** chỉ hiện từ giờ ghi ở dòng "Bạn thấy tên khách và mã đơn từ …".
+- **Báo bận:** ở [[Báo bận của tôi]], chọn giờ bắt đầu, giờ kết thúc, lý do rồi bấm [[Lưu khung bận]]. Văn phòng chỉ thấy bạn bận, không thấy lý do. Giờ đó trùng chuyến bạn đang được xếp thì không lưu được: từ chối chuyến đó trước (nếu còn hạn) hoặc gọi văn phòng. Hết bận thì bấm [[Rút khung bận]].
+- Số giấy tờ bị che một phần. Bạn không thấy đơn, giá hay tin nội bộ của công ty.
 - Giấy tờ sai hoặc có giấy mới: báo văn phòng, hoặc bấm [[Góp ý / Báo lỗi]].`,
     },
     {

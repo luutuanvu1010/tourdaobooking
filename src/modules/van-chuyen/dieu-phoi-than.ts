@@ -269,6 +269,21 @@ export function docKetThucGianDoan(body: Record<string, unknown> | null, v: { nh
   if (typeof lyDo !== "string" || !MA_RE.test(lyDo)) return sai("Chọn lý do kết thúc gián đoạn.");
   return { ok: true, value: { ...t.value, lyDo } };
 }
+/** Từ chối chuyến (ADR-0053 D8.6; kế hoạch A4 T7): `{ lyDo, requestId }` — luôn giờ máy chủ (`xayRaLuc` → 400 `xay_ra_khong_nhan`), version do máy chủ đọc. */
+export interface TuChoiThan { requestId: string; lyDo: string }
+export function docTuChoi(body: Record<string, unknown> | null): KetQuaTienDo<TuChoiThan> {
+  const t = docTienDo(body, { nhanXayRa: false });
+  if (!t.ok) return t;
+  const lyDo = body!.lyDo;
+  if (typeof lyDo !== "string" || !MA_RE.test(lyDo)) return sai("Chọn lý do từ chối chuyến.");
+  return { ok: true, value: { requestId: t.value.requestId, lyDo } };
+}
+/** G-A4-15 bước (2): đọc LỎNG mã yêu cầu (hợp khuôn thì lấy, không thì null) — để nhận ra lệnh lặp của chính mình TRƯỚC khi xét đang lái; không trả 400. */
+export const requestIdLong = (body: Record<string, unknown> | null): string | null => {
+  if (!body) return null;
+  const r = docRequestId(body);
+  return r.ok ? r.value : null;
+};
 export interface DoiThuTuThan { requestId: string; diem: { id: string; thuTu: number }[] }
 /** Đổi thứ tự khi đang chạy — luôn giờ máy chủ: `xayRaLuc` → 400 `xay_ra_khong_nhan` ở CẢ route 29 lẫn 39. */
 export function docDoiThuTu(body: Record<string, unknown> | null): KetQuaTienDo<DoiThuTuThan> {

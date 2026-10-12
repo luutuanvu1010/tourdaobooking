@@ -1,0 +1,6 @@
+✓ 1) 390 Tài xế đối tác mở “/” → /cuoc rồi /tai-xe; không gọi /api/orders*; bốn tab; giấy của mình; số đủ không trong DOM, axe không vi phạm critical/serious
+✓ 2) 1040 Tài xế đối tác /account: khối “Giấy tờ của tôi” số che, không nút; menu không có mục văn phòng / Vận chuyển / Đơn hàng
+✓ 3) 1040 Quản trị: dòng xe của nhà xe và dòng tài xế đối tác có nhãn “Nhà xe: …”; xe công ty không; không số
+✓ 4) 390 Quản trị: danh sách điện thoại có nhãn “Nhà xe: …”; không tràn ngang, axe không vi phạm critical/serious
+
+TAI XE DOI TAC SMOKE OK (4 bước)

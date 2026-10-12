@@ -6,6 +6,7 @@ import {
   TU_DO, coOSoHieu, goiYChang, loiChang, suaChang, themChangDi, themChieuVe, type ChangNhap, type SuaChang,
 } from "../src/shared/chang-form";
 import type { MauChang } from "../src/shared/chang-mac-dinh";
+import { locDiem } from "../src/shared/loc-diem";
 import { h, replaceChildren } from "./dom";
 import { icon } from "./icons";
 
@@ -66,23 +67,45 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
   };
   const sua = (i: number, p: SuaChang, rebuild: boolean) => commit(suaChang(legs, i, p), rebuild);
 
-  /** Ô chọn nơi: điểm danh mục đang dùng + điểm đang lưu đã ngưng (giữ nhãn đã lưu); đầu "Chọn nơi đón…" / "Chưa chốt"; cuối "Gõ tự do…". */
-  function oChonNoi(l: ChangNhap, loai: "don" | "tra", id: string): HTMLSelectElement {
+  /**
+   * Ô chọn nơi: điểm danh mục đang dùng + điểm đang lưu đã ngưng (giữ nhãn đã lưu); đầu "Chọn nơi đón…" / "Chưa chốt"; cuối "Gõ tự do…".
+   * Kèm ô tìm điểm (C10, việc 11 — C4; khuôn ô tìm của `catalog-picker`): gõ thì dựng lại `<option>` của ô chọn TẠI CHỖ (không `build()` — không dựng lại ô
+   * đang gõ; không dùng `option.hidden` vì Safari iPhone bỏ qua). Luôn giữ dòng đầu, điểm đang chọn và "Gõ tự do…"; không tự chọn khi chỉ còn một điểm. Chọn
+   * xong thì khối dựng lại → ô tìm trống (như `catalog-picker` xoá ô tìm sau khi chọn). Chỉ lọc hiển thị — không đụng khoá so sánh nơi.
+   */
+  function oChonNoi(l: ChangNhap, loai: "don" | "tra", id: string): { sel: HTMLSelectElement; tim: HTMLInputElement; timKq: HTMLElement } {
     const gt = l[loai];
     const ds = [...o.diem()];
     if (gt !== "" && gt !== TU_DO && !ds.some((d) => d.id === gt)) {
       const nhan = loai === "don" ? l.goc?.pickupLabel : l.goc?.dropoffLabel;
       ds.push({ id: gt, nhan: nhan ?? "Điểm đã ngưng", sanBay: false });
     }
-    const sel = h(
-      "select",
-      { id, "data-o": `${l.key}:${loai}` },
-      h("option", { value: "" }, loai === "don" ? "Chọn nơi đón…" : "Chưa chốt"),
-      ...ds.map((d) => h("option", { value: d.id }, d.nhan)),
-      h("option", { value: TU_DO }, "Gõ tự do…"),
-    );
-    sel.value = gt;
-    return sel;
+    const sel = h("select", { id, "data-o": `${l.key}:${loai}` });
+    const datOption = (kim: string) => {
+      replaceChildren(
+        sel,
+        h("option", { value: "" }, loai === "don" ? "Chọn nơi đón…" : "Chưa chốt"),
+        ...locDiem(ds, kim, gt).map((d) => h("option", { value: d.id }, d.nhan)),
+        h("option", { value: TU_DO }, "Gõ tự do…"),
+      );
+      sel.value = gt;
+    };
+    datOption("");
+    const tim = h("input", {
+      id: `${id}-tim`, type: "search", autocomplete: "off", placeholder: "Tìm điểm…", "aria-label": loai === "don" ? "Tìm nơi đón" : "Tìm nơi trả", "data-o": `${l.key}:${loai}-tim`,
+    });
+    const timKq = h("span", { class: "hint", role: "status", hidden: true });
+    tim.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") e.preventDefault(); // ô nằm trong <form> đơn: Enter không được gửi form (bẫy đã cắn ở ô tìm danh mục)
+    });
+    tim.addEventListener("input", () => {
+      datOption(tim.value);
+      const kim = tim.value.trim();
+      const n = kim === "" ? 0 : locDiem(o.diem(), kim, "").length;
+      timKq.textContent = kim === "" ? "" : n === 0 ? "Không thấy điểm nào — chọn “Gõ tự do…” để ghi địa chỉ" : `${n} điểm khớp — chọn ở ô bên dưới`;
+      timKq.hidden = kim === "";
+    });
+    return { sel, tim, timKq };
   }
 
   const hint = (text: string) => h("span", { class: "hint" }, text);
@@ -155,7 +178,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     const gioMo = h("span", { class: "dd-gio-mo", "aria-hidden": "true" }, "Chưa chốt giờ");
     const hintGio = hint(g.gio);
 
-    const don = oChonNoi(l, "don", id("don"));
+    const { sel: don, tim: timDon, timKq: timDonKq } = oChonNoi(l, "don", id("don"));
     don.addEventListener("change", () => sua(i, { don: don.value }, true));
     const loiDon = loiEl();
     let donTuDo: HTMLInputElement | null = null;
@@ -165,7 +188,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       donTuDo.addEventListener("input", () => sua(i, { donTuDo: donTuDo!.value }, false));
       loiDonTuDo = loiEl();
     }
-    const tra = oChonNoi(l, "tra", id("tra"));
+    const { sel: tra, tim: timTra, timKq: timTraKq } = oChonNoi(l, "tra", id("tra"));
     tra.addEventListener("change", () => sua(i, { tra: tra.value }, true));
     let traTuDo: HTMLInputElement | null = null;
     if (l.tra === TU_DO) {
@@ -234,8 +257,8 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       h(
         "div",
         { class: "dd-luoi-noi" },
-        h("div", { class: "dd-cot" }, h("label", { for: don.id }, "Nơi đón", don, loiDon, g.don ? hint(g.don) : null), donTuDo && h("label", { for: donTuDo.id }, "Địa chỉ đón", donTuDo, loiDonTuDo, hint("Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách"))),
-        h("div", { class: "dd-cot" }, h("label", { for: tra.id }, "Nơi trả", tra, g.tra ? hint(g.tra) : null), traTuDo && h("label", { for: traTuDo.id }, "Địa chỉ trả", traTuDo, hint("Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách"))),
+        h("div", { class: "dd-cot" }, h("label", { for: don.id }, "Nơi đón", timDon, don, timDonKq, loiDon, g.don ? hint(g.don) : null), donTuDo && h("label", { for: donTuDo.id }, "Địa chỉ đón", donTuDo, loiDonTuDo, hint("Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách"))),
+        h("div", { class: "dd-cot" }, h("label", { for: tra.id }, "Nơi trả", timTra, tra, timTraKq, g.tra ? hint(g.tra) : null), traTuDo && h("label", { for: traTuDo.id }, "Địa chỉ trả", traTuDo, hint("Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách"))),
       ),
       phu.length ? h("div", { class: "dd-luoi-phu" }, ...phu) : null,
       boMo.has(l.key) ? lyDoBo(l, i) : null,

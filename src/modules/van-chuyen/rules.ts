@@ -148,6 +148,8 @@ export function loiRangBuocXe(message: string): { status: number; code: string; 
  * mục 1.1 bảng mã lỗi: lớp CSDL KHÁC mã lớp route — lớp route nói trước bằng lời). Chỉ tới đây khi lớp route bị vượt (hai người ghi cùng lúc). Lỗi lạ → null.
  */
 export const CAU_LUAT_CHUYEN = "Chuyến vừa thay đổi hoặc lệnh vi phạm luật chuyến xe — tải lại rồi làm lại.";
+/** ADR-0053 D8.4 bước 3 — nguyên văn. */
+export const CAU_QUA_HAN_TU_CHOI = "Đã quá hạn từ chối, hãy gọi văn phòng để đổi người.";
 /** ADR-0051 (0043): họ lệnh trên mốc giờ hẹn thua đua / chuỗi đổi giữa chừng → MỘT câu "tải lại" (khuôn H10). */
 export const CAU_GIO_HEN_VUA_DOI = "Giờ hẹn vừa đổi hoặc đã có người báo — tải lại.";
 /** ADR-0097 Đ3.2: thu hồi xuất bến khi chuyến đã có tiến độ (lớp CSDL — trigger vc_trip_revoke_no_progress). */
@@ -161,6 +163,9 @@ export function loiRangBuocChuyen(message: string): { status: number; code: stri
   // ghi (câu chỉ đường riêng) hoặc lô sai hình (câu chung "tải lại").
   if (/\bdc_revoke_progress:/.test(message)) return { status: 409, code: "trip_rule", message: CAU_THU_HOI_DA_CO_TIEN_DO };
   if (/\bdc_(scope|balance):/.test(message)) return { status: 409, code: "trip_rule", message: CAU_LUAT_CHUYEN };
+  // ADR-0053 D8 (0092; kế hoạch A4 G-A4-25): lớp CSDL của Từ chối — cổng máy chủ đã kiểm trước; đua sát hạn (đồng hồ Worker và D1 lệch) → đúng câu quá hạn, không 500.
+  if (/\btc83_/.test(message)) return { status: 409, code: "refuse_deadline_passed", message: CAU_QUA_HAN_TU_CHOI };
+  if (/\b(tc82|tc84|rd)_/.test(message)) return { status: 409, code: "trip_rule", message: CAU_LUAT_CHUYEN };
   if (/\b(lc0[1-9]|lc1[0-6])_|\bvk1a_|vc_trip_append_only|\bgb_(needs_appt|snapshot)/.test(message)) return { status: 409, code: "trip_rule", message: CAU_LUAT_CHUYEN };
   // ADR-0111 (0093): đề nghị chuyển khách — LC-14 (`lc14_transfer` — khớp dòng trên), cột / đồ thị / dòng kiểm (`ck_*:`). Lớp máy chủ đã kiểm trước; tới đây là
   // dữ liệu đổi giữa lúc đọc và lúc ghi (câu chung "tải lại").
