@@ -8,21 +8,24 @@ import { loTuChoi } from "./dieu-phoi";
 import { docNen, type NenChuyen } from "./dieu-phoi-doc";
 import { CHUYEN_CU, chayLo } from "./dieu-phoi-route";
 import type { TuChoiThan } from "./dieu-phoi-than";
-import { hanTuChoiCuaCap } from "./han-tu-choi-repo";
-import { CAU_QUA_HAN_TU_CHOI } from "./rules";
+import { coSuatChuyenVao, hanTuChoiCuaCap } from "./han-tu-choi-repo";
+import { CAU_CHAN_TU_CHOI_KHACH_CHUYEN_VAO, CAU_QUA_HAN_TU_CHOI } from "./rules";
 
 const KHONG_CON_KE_HOACH = () => error(409, "trip_not_planned", "Chuyến đã xuất bến, kết thúc hoặc bị huỷ.");
 const QUA_HAN = () => error(409, "refuse_deadline_passed", CAU_QUA_HAN_TU_CHOI);
+const CHAN_KHACH_CHUYEN_VAO = () => error(409, "refuse_blocked_transferred_in", CAU_CHAN_TU_CHOI_KHACH_CHUYEN_VAO); // ADR-0113 Đ2: không chi tiết
 
 /**
  * G-A4-25: phân loại lý do không Từ chối được, theo thứ tự (a) chuyến không còn PLANNED; (b) người gọi không còn dòng lái mở → stale; (c) quá hạn (hoặc thiếu
- * dòng hạn — đóng mặc định); (d) còn lại → stale. `null` = đủ điều kiện.
+ * dòng hạn — đóng mặc định); (c2) ADR-0113 Đ1: chuyến còn suất đang mở nhận chuyển vào từ xe khác (đặt SAU quá hạn để mọi bài và câu hiện có giữ nguyên);
+ * (d) còn lại → stale. `null` = đủ điều kiện.
  */
 async function lyDoKhongDuoc(db: D1Database, n: NenChuyen | null, partyId: string, bayGioMs: number): Promise<Response | null> {
   if (!n || n.trip.status !== "PLANNED") return KHONG_CON_KE_HOACH();
   if (n.trip.driver_party_id !== partyId) return CHUYEN_CU();
   const han = await hanTuChoiCuaCap(db, n.trip.id, partyId);
   if (han === null || bayGioMs > han) return QUA_HAN(); // G-A4-1: Từ chối được khi bayGio ≤ hạn
+  if (await coSuatChuyenVao(db, n.trip.id)) return CHAN_KHACH_CHUYEN_VAO(); // ADR-0113 Đ1
   return null;
 }
 

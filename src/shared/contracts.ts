@@ -1743,6 +1743,8 @@ export interface CuocChiTietResponse {
   trongNgayChay: boolean;
   /** ADR-0053 D8.6: nút "Từ chối chuyến" hiện chỉ theo cờ này (máy chủ tính: đang lái, có vế hạn, chuyến chưa chạy, chưa quá hạn). Tài xế công ty: luôn false. */
   tuChoiDuoc: boolean;
+  /** ADR-0113 Đ3: chỉ có khi chuyến còn hạn Từ chối nhưng đang có khách được chuyển từ xe khác sang (lúc đó `tuChoiDuoc` = false); không tên, không số khách. */
+  chanTuChoi?: "KHACH_CHUYEN_VAO";
   /** ADR-0053 D8.6: hạn Từ chối của chính người gọi — chỉ người có vế hạn. */
   hanTuChoi?: GioVnDto;
   /** Đợt 6 mục 1, 9: "Thấy danh sách khách từ …" — chỉ khi đang ngoài khung và mốc ở tương lai. */

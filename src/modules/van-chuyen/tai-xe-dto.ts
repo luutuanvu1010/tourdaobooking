@@ -5,7 +5,7 @@
 // Tên người đi kèm (HDV — nhân viên, không phải khách): mọi lúc, chỉ tên.
 // Kế hoạch A4 T3 (ADR-0053 D7.2, D8.6; G-A4-7, G-A4-17): "trong ngày chạy" nay là KHUNG XEM KHÁCH của người gọi (`KhungTaiXe` — một hàm `khungCuaNguoiGoi`).
 // Người có VẾ HẠN (`han !== undefined`) ngoài khung: `suat[].maDon` VẮNG MẶT; tài xế công ty giữ mã đơn mọi lúc. Khoá thêm: `tuChoiDuoc` (mọi tài xế),
-// `hanTuChoi` (chỉ vế hạn, có hạn), `thayKhachTu` (ngoài khung, mốc ở tương lai), `lyDoTuChoi` (chỉ khi `tuChoiDuoc`), `sdtVanPhong` (khi chính sách có số).
+// `hanTuChoi` (chỉ vế hạn, có hạn), `chanTuChoi` (ADR-0113 Đ3 — chỉ khi chuyến còn hạn mà có khách chuyển vào), `thayKhachTu` (ngoài khung, mốc ở tương lai), `lyDoTuChoi` (chỉ khi `tuChoiDuoc`), `sdtVanPhong` (khi chính sách có số).
 import type { LienHeTaiXe } from "../orders";
 import type { CuocChiTietResponse, CuocCuaToiItemDto, DieuKienConThieuDto, DiemChuyenDto, SuatChuyenDto } from "../../shared/contracts";
 import { MA_GIU, type LyDoGiu } from "../../shared/ly-do-giu";
@@ -19,6 +19,8 @@ export interface KhungTaiXe {
   han: number | null | undefined;
   /** Đang lái + có vế hạn + chuyến PLANNED + bây giờ ≤ hạn (G-A4-16 — nút "Từ chối chuyến" chỉ theo cờ này). */
   tuChoiDuoc: boolean;
+  /** ADR-0113 Đ3: `"KHACH_CHUYEN_VAO"` khi Từ chối chỉ còn bị chặn vì chuyến có khách chuyển vào (còn hạn, PLANNED, nhưng `tuChoiDuoc` = false); ngược lại `null`. Không tên, không số. */
+  chanTuChoi: "KHACH_CHUYEN_VAO" | null;
   /** Mốc khung mở (ms) khi đang NGOÀI khung và mốc ở tương lai; `null` = không kèm. */
   thayKhachTuMs: number | null;
 }
@@ -106,6 +108,7 @@ export function cuocChiTietDto(v: {
     lyDo: v.lyDo.map((r) => ({ code: r.code, nhan: r.label })),
     trongNgayChay: v.trongNgay,
     tuChoiDuoc: v.khung.tuChoiDuoc,
+    ...(v.khung.chanTuChoi ? { chanTuChoi: v.khung.chanTuChoi } : {}), // ADR-0113 Đ3: khoá tuỳ chọn, chỉ khi bị chặn vì khách chuyển vào
     ...(typeof v.khung.han === "number" ? { hanTuChoi: gioVn(v.khung.han) } : {}),
     ...(v.khung.thayKhachTuMs !== null ? { thayKhachTu: gioVn(v.khung.thayKhachTuMs) } : {}),
     ...(v.khung.tuChoiDuoc ? { lyDoTuChoi: v.lyDoTuChoi.map((r) => ({ code: r.code, nhan: r.label })) } : {}),

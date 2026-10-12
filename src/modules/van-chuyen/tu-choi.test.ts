@@ -8,7 +8,7 @@ import * as esbuild from "esbuild";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { seedStaff } from "../../../tests/audit/harness.mjs";
 import {
-  ACC, ADM, DRIVER, DRIVER_PARTNER, SALES, SUP, batDongHo, chiTiet, chuyenSan, denGio, nhaXeKhung, setup, thanhTaiXe, tienDo, uuid, xeNhaXe,
+  ACC, ADM, DRIVER, DRIVER2, DRIVER_PARTNER, SALES, SUP, batDongHo, chiTiet, chuyenSan, denGio, nhaXeKhung, setup, thanhTaiXe, tienDo, uuid, xeNhaXe,
 } from "../../../tests/audit/dieu-phoi-khung.mjs";
 import { msToVnLocal } from "../../shared/vn-date.ts";
 
@@ -307,5 +307,170 @@ test("A4 T7 bài canh LUẬT ĐỒNG HỒ (§2, G-A4-26): tệp thử van-chuyen
   }
   assert.ok(soTep >= 1, "chống bài rỗng: ít nhất tệp này gọi route tu-choi");
   assert.deepEqual(loi, []);
+});
+
+// ==== ADR-0113 (accepted 2026-10-12): CHẶN Từ chối chuyến khi chuyến có khách đã được chuyển sang từ xe khác (Đ1–Đ4) ==================================
+// Khung thử như phần trên (luật đồng hồ §2: `theGioi` bật `batDongHo(<giờ thật>)`, chuyến ngày VN thật + 1). Chuyến nguồn `s` (tài xế công ty) xuất bến sớm do
+// văn phòng bấm thay; xe nhận = chuyến `a` của tài xế đối tác (còn trước hạn Từ chối 00:30 ngày chạy, cách giờ chạy > 6 giờ nên Nhận → máy tự xác nhận).
+const CAU_CHAN = "Chuyến này đang có khách được chuyển từ xe khác sang nên chưa từ chối được — hãy gọi văn phòng để đổi người.";
+const VC = "/api/van-chuyen";
+const khachMoLo = (w: any, tripId: string) =>
+  w.q("SELECT id FROM vc_trip_allocation WHERE trip_id = ? AND transfer_id IS NOT NULL AND valid_to_at IS NULL", tripId).map((r: any) => r.id as string);
+/** Chuyến nguồn `s` (DRIVER, xuất bến sớm) có khách chờ ở một điểm đón. */
+async function chuyenNguon(w: any, ngay: string) {
+  const s = await chuyenSan(w, { taiXe: DRIVER, ngay, bd: "05:00", kt: "07:00", gio: "05:30", noiDon: "Khách sạn Nguồn" });
+  denGio("00:05", ngay); // trong cửa sổ xuất bến (24 giờ trước giờ chạy), còn trước hạn Từ chối 00:30 của chuyến nhận
+  const xb = await tienDo(w, "van-phong", s.id, "xuat-ben", {}, ADM);
+  assert.equal(xb.status, 200, xb.text);
+  return s;
+}
+/** Tài xế nguồn gửi đề nghị tới chuyến `den`, tài xế xe nhận bấm Nhận. Trả id đề nghị. Phải ra DA_CHUYEN (xe nhận cách giờ chạy > 6 giờ; không leo thang). */
+async function chuyenKhachSang(w: any, s: any, den: any, taiXeNhan: string) {
+  const g = await w.call("POST", `${VC}/cuoc-cua-toi/${s.id}/de-nghi`, { as: DRIVER, body: { requestId: uuid(), denChuyenId: den.id, phamVi: "STOP", diemId: s.diemDon } });
+  assert.equal(g.status, 200, g.text);
+  const id = g.json.deNghi.id as string;
+  const n = await w.call("POST", `${VC}/de-nghi/${id}/nhan`, { as: taiXeNhan, body: { requestId: uuid() } });
+  assert.equal(n.status, 200, n.text);
+  assert.equal(n.json.ketQua, "DA_CHUYEN", n.text);
+  return id;
+}
+const chiTietCuoc = (w: any, id: string, as = DRIVER_PARTNER) => w.call("GET", `${VC}/cuoc-cua-toi/${id}`, { as });
+const dongGhiTuChoi = (w: any, id: string) => ({
+  nhatKy: soNhatKy(w, id),
+  suKien: w.q("SELECT count(*) n FROM vc_trip_event WHERE trip_id = ? AND kind = 'DRIVER_REFUSED'", id)[0].n as number,
+  dongLaiMo: dongLai(w, id).filter((d: any) => d.valid_to_at === null).length,
+});
+
+test("ADR-0113 Đ1–Đ3 (route): tài xế đối tác có khách chuyển vào → Từ chối trong hạn 409 refuse_blocked_transferred_in (đúng câu, không tên / mã đơn / mã chuyến nguồn); dòng lái vẫn mở, không nhật ký / sự kiện / tin; DTO: tuChoiDuoc false + chanTuChoi, vắng lyDoTuChoi; rút khách vào khỏi chuyến → Từ chối được 200", async () => {
+  const { tat, w, a, ngay } = await theGioi();
+  try {
+    const truoc = await chiTietCuoc(w, a.id);
+    assert.equal(truoc.json.tuChoiDuoc, true, truoc.text);
+    assert.equal("chanTuChoi" in truoc.json, false, "chưa có khách chuyển vào: khoá vắng mặt");
+    const s = await chuyenNguon(w, ngay);
+    await chuyenKhachSang(w, s, a, DRIVER_PARTNER);
+    assert.equal(khachMoLo(w, a.id).length, 2);
+    // DTO (Đ3): cờ chặn; không Từ chối được; không kèm danh sách lý do; hạn vẫn hiện.
+    const g = await chiTietCuoc(w, a.id);
+    assert.equal(g.status, 200, g.text);
+    assert.equal(g.json.chanTuChoi, "KHACH_CHUYEN_VAO");
+    assert.equal(g.json.tuChoiDuoc, false);
+    assert.equal("lyDoTuChoi" in g.json, false, "chặn → không kèm lý do Từ chối");
+    assert.ok(g.json.hanTuChoi, "vẫn còn hạn: dải hạn hiện");
+    // Đ2: thân 409; mọi ca không ghi gì.
+    const r = await tuChoi(w, a.id, { requestId: uuid(), lyDo: "TCC_KHAC" });
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.code, "refuse_blocked_transferred_in");
+    assert.equal(r.json.error.message, CAU_CHAN);
+    for (const lo of [s.ma, s.don.code, a.don.code, "Khách Dò Tìm", "Khách sạn Nguồn", "TCC_KHAC"]) assert.ok(!r.text.includes(lo), `thân 409 lộ "${lo}"`);
+    assert.deepEqual(dongGhiTuChoi(w, a.id), { nhatKy: 0, suKien: 0, dongLaiMo: 1 });
+    assert.equal((await tinTuChoi(w, SALES)).length, 0, "không tin từ chối");
+    assert.equal(w.q("SELECT count(*) n FROM vc_trip WHERE id = ? AND status = 'PLANNED'", a.id)[0].n, 1);
+    // Mọi lần thử đều 409 như nhau (không nuốt requestId).
+    assert.equal((await tuChoi(w, a.id, { requestId: uuid(), lyDo: "TCC_BAN_LICH_KHAC" })).json.error.code, "refuse_blocked_transferred_in");
+    // Đ4 + (c): văn phòng Rút khách chuyển vào → hết suất mở mang transfer_id → chặn tự hết (suất đã đóng không chặn).
+    const c = await chiTiet(w, a.id);
+    const rut = await w.call("POST", `${VC}/chuyen/${a.id}/rut`, { as: SALES, body: { version: c.chuyen.version, requestId: uuid(), suatIds: khachMoLo(w, a.id) } });
+    assert.equal(rut.status, 200, rut.text);
+    assert.equal(khachMoLo(w, a.id).length, 0);
+    assert.ok(w.q("SELECT count(*) n FROM vc_trip_allocation WHERE trip_id = ? AND transfer_id IS NOT NULL AND valid_to_at IS NOT NULL", a.id)[0].n >= 2, "suất chuyển vào đã đóng còn trong lịch sử");
+    const sau = await chiTietCuoc(w, a.id);
+    assert.equal(sau.json.tuChoiDuoc, true);
+    assert.equal("chanTuChoi" in sau.json, false);
+    const rid = uuid();
+    const ok = await tuChoi(w, a.id, { requestId: rid, lyDo: "TCC_KHAC" });
+    assert.equal(ok.status, 200, ok.text);
+    assert.deepEqual(dongGhiTuChoi(w, a.id), { nhatKy: 1, suKien: 1, dongLaiMo: 0 });
+    assert.equal((await tuChoi(w, a.id, { requestId: rid, lyDo: "TCC_KHAC" })).status, 200, "lệnh lặp của chính mình vẫn 200");
+  } finally {
+    tat();
+  }
+});
+
+test("ADR-0113 Đ1 (thứ tự): quá hạn đứng TRƯỚC khách chuyển vào — chuyến quá hạn có khách chuyển vào vẫn 409 refuse_deadline_passed, DTO không có chanTuChoi (dải 'Đã quá hạn')", async () => {
+  const { tat, w, a, ngay } = await theGioi();
+  try {
+    const s = await chuyenNguon(w, ngay);
+    await chuyenKhachSang(w, s, a, DRIVER_PARTNER);
+    denGio("00:31", ngay); // hạn = 12:30 − 12 giờ = 00:30
+    const g = await chiTietCuoc(w, a.id);
+    assert.equal(g.json.tuChoiDuoc, false);
+    assert.equal("chanTuChoi" in g.json, false, "quá hạn: chỉ dải quá hạn");
+    const r = await tuChoi(w, a.id, { requestId: uuid(), lyDo: "TCC_KHAC" });
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.code, "refuse_deadline_passed");
+    assert.deepEqual(dongGhiTuChoi(w, a.id), { nhatKy: 0, suKien: 0, dongLaiMo: 1 });
+  } finally {
+    tat();
+  }
+});
+
+// ĐUA (Đ1 hai lớp). `w.chenTruocLo` chèn thay đổi NGAY TRƯỚC lô Từ chối (sau khi route đã kiểm trước và thấy chưa có khách chuyển vào). Lô Từ chối nhận ra bằng
+// câu cổng `trip_gate_tu_choi` (chạm `vc_refuse_deadline`).
+const laLoTuChoi = (stmts: any[]) => stmts.some((x) => /vc_refuse_deadline/.test(x.sql));
+const phienBan = (w: any, id: string) => w.q("SELECT version v FROM vc_trip WHERE id = ?", id)[0].v as number;
+
+test("ADR-0113 Đ1 (đua 1, lô xác nhận chuyển chen giữa lúc đọc và lúc ghi): xác nhận chuyển tăng version chuyến nhận nên cổng thua → đọc lại → ra ĐÚNG 409 refuse_blocked_transferred_in (không phải stale); không ghi gì", async () => {
+  const { tat, w, a, ngay } = await theGioi();
+  try {
+    const s = await chuyenNguon(w, ngay);
+    const v0 = phienBan(w, a.id);
+    w.chenTruocLo(laLoTuChoi, async () => { await chuyenKhachSang(w, s, a, DRIVER_PARTNER); });
+    const r = await tuChoi(w, a.id, { requestId: uuid(), lyDo: "TCC_KHAC" });
+    assert.ok(phienBan(w, a.id) > v0, "chống bài rỗng: lô xác nhận đã tăng version chuyến nhận");
+    assert.equal(khachMoLo(w, a.id).length, 2, "chống bài rỗng: khách đã chuyển vào");
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.code, "refuse_blocked_transferred_in", r.text);
+    assert.deepEqual(dongGhiTuChoi(w, a.id), { nhatKy: 0, suKien: 0, dongLaiMo: 1 });
+  } finally {
+    tat();
+  }
+});
+
+test("ADR-0113 Đ1 (đua 2, CHỈ mệnh đề NOT EXISTS của câu cổng chặn): khách chuyển vào chen giữa nhưng version chuyến nhận bị trả về giá trị đã đọc → cổng version vẫn qua; chỉ NOT EXISTS giữ được → 409 refuse_blocked_transferred_in, không ghi", async () => {
+  const { tat, w, a, ngay } = await theGioi();
+  try {
+    const s = await chuyenNguon(w, ngay);
+    const v0 = phienBan(w, a.id);
+    w.chenTruocLo(laLoTuChoi, async () => {
+      await chuyenKhachSang(w, s, a, DRIVER_PARTNER);
+      assert.ok(phienBan(w, a.id) > v0, "lô xác nhận tăng version");
+      w.sqlite.prepare("UPDATE vc_trip SET version = ? WHERE id = ?").run(v0, a.id); // cô lập: version khớp ảnh đã đọc
+    });
+    const r = await tuChoi(w, a.id, { requestId: uuid(), lyDo: "TCC_KHAC" });
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.code, "refuse_blocked_transferred_in", r.text);
+    assert.equal(phienBan(w, a.id), v0, "chống bài rỗng: version quay lại giá trị route đã đọc (lô Từ chối không chạy được)");
+    assert.equal(khachMoLo(w, a.id).length, 2, "chống bài rỗng: khách đã chuyển vào");
+    assert.deepEqual(dongGhiTuChoi(w, a.id), { nhatKy: 0, suKien: 0, dongLaiMo: 1 });
+  } finally {
+    tat();
+  }
+});
+
+test("ADR-0113 Đ1 (đường đổi xe + tài xế, Đ4): chuyến của tài xế công ty đã nhận khách chuyển vào; văn phòng đổi cả xe lẫn tài xế sang tài xế đối tác (LC-13) → tài xế đối tác thấy chanTuChoi và Từ chối bị 409; văn phòng Rút khách vào → Từ chối được", async () => {
+  const { tat, w, nx, ngay } = await theGioi();
+  try {
+    const s = await chuyenNguon(w, ngay);
+    const b = await chuyenSan(w, { taiXe: DRIVER2, ngay, bd: "16:00", kt: "18:00", gio: "16:30", noiDon: "Khách sạn Hai" }); // sau chuyến `a` của tài xế đối tác (không trùng giờ lái)
+    await chuyenKhachSang(w, s, b, DRIVER2);
+    assert.equal(khachMoLo(w, b.id).length, 2);
+    const sua = await suaChuyen(w, b.id, { xeId: xeNhaXe(w, nx), taiXePartyId: `pty-${DRIVER_PARTNER}` });
+    assert.equal(sua.status, 200, sua.text);
+    assert.equal(khachMoLo(w, b.id).length, 2, "đổi người lái không động tới khách đã chuyển vào");
+    const g = await chiTietCuoc(w, b.id);
+    assert.equal(g.status, 200, g.text);
+    assert.equal(g.json.chanTuChoi, "KHACH_CHUYEN_VAO");
+    assert.equal(g.json.tuChoiDuoc, false);
+    const r = await tuChoi(w, b.id, { requestId: uuid(), lyDo: "TCC_KHAC" });
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.code, "refuse_blocked_transferred_in");
+    assert.deepEqual(dongGhiTuChoi(w, b.id), { nhatKy: 0, suKien: 0, dongLaiMo: 1 });
+    const c = await chiTiet(w, b.id);
+    assert.equal((await w.call("POST", `${VC}/chuyen/${b.id}/rut`, { as: SALES, body: { version: c.chuyen.version, requestId: uuid(), suatIds: khachMoLo(w, b.id) } })).status, 200);
+    assert.equal((await tuChoi(w, b.id, { requestId: uuid(), lyDo: "TCC_KHAC" })).status, 200);
+  } finally {
+    tat();
+  }
 });
 

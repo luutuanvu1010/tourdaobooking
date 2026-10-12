@@ -20,6 +20,29 @@ test("daiHanTuChoi: chỉ chuyến chưa chạy CÓ hạn; còn hạn theo cờ 
   assert.equal(daiHanTuChoi({ trangThai: "PLANNED", tuChoiDuoc: true, hanTuChoi: { ngay: "2028-01-02", gio: "07:00" } }, "2027-12-31")!.tieuDe, "Từ chối được tới 07:00 02/01/2028");
 });
 
+test("ADR-0113 Đ3 daiHanTuChoi: khoá chanTuChoi → nhánh thứ ba 'bi_chan' (không phải 'Đã quá hạn'); cờ còn hạn thắng; chuyến đã chạy / không vế hạn vẫn null; thiếu khoá = hành vi cũ", () => {
+  const khoa = { trangThai: "PLANNED", tuChoiDuoc: false, hanTuChoi: HAN, chanTuChoi: "KHACH_CHUYEN_VAO" as const };
+  const chan = daiHanTuChoi({ ...khoa, sdtVanPhong: "0258123456" }, "2027-03-11")!;
+  assert.equal(chan.loai, "bi_chan");
+  assert.equal(chan.tieuDe, "Chuyến có khách chuyển từ xe khác sang");
+  assert.deepEqual(chan.dong, ["Không từ chối được — gọi văn phòng để đổi người."]);
+  assert.equal(chan.sdt, "0258123456");
+  assert.doesNotMatch(`${chan.tieuDe} ${chan.dong.join(" ")}`, /quá hạn/);
+  const khongSo = daiHanTuChoi(khoa, "2027-03-11")!;
+  assert.deepEqual([khongSo.loai, khongSo.sdt, khongSo.dong], ["bi_chan", null, ["Không từ chối được — báo văn phòng để đổi người."]]);
+  assert.equal(daiHanTuChoi({ ...khoa, trangThai: "RUNNING" }, "2027-03-11"), null, "chuyến đã chạy");
+  assert.equal(daiHanTuChoi({ trangThai: "PLANNED", tuChoiDuoc: false, chanTuChoi: "KHACH_CHUYEN_VAO" }, "2027-03-11"), null, "không vế hạn → không dải");
+  assert.equal(daiHanTuChoi({ ...khoa, tuChoiDuoc: true }, "2027-03-11")!.loai, "con_han", "máy chủ nói Từ chối được thì theo máy chủ");
+  assert.equal(daiHanTuChoi({ trangThai: "PLANNED", tuChoiDuoc: false, hanTuChoi: HAN }, "2027-03-11")!.loai, "qua_han", "không khoá = quá hạn như cũ");
+});
+
+test("ADR-0113 Đ3 loiTuChoi: refuse_blocked_transferred_in → đọc lại, câu có dấu không lộ mã", () => {
+  const l = loiTuChoi({ status: 409, code: "refuse_blocked_transferred_in", message: "x" });
+  assert.equal(l.hanhDong, "doc_lai");
+  assert.match(l.cau, /khách được chuyển từ xe khác sang/);
+  assert.doesNotMatch(l.cau, /[a-z]+_[a-z]+/);
+});
+
 test("cauThayKhach, loiTuChoi, ô datetime-local", () => {
   assert.equal(cauThayKhach(undefined, "2027-03-11"), null);
   assert.equal(cauThayKhach(HAN, "2027-03-11"), "Bạn thấy tên khách và mã đơn từ 00:30 12/03.");

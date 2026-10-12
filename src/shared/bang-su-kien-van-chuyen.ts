@@ -258,9 +258,9 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
     id: "tu-choi", ten: "Tài xế đối tác từ chối chuyến (trước hạn)", loai: "tien_do", trangThai: "co_ma",
     routes: [{ phuongThuc: "POST", duongDan: "/api/van-chuyen/cuoc-cua-toi/:id/tu-choi", cong: "staff", o: "trip.refuse", ngucanh: "assigned", ai: { SUPER_ADMIN: "any", DRIVER_PARTNER: "assigned" }, ham: "lenhTuChoi" }],
     trangThaiChuyen: ["PLANNED"], vuot: [],
-    luat: "chuyến mình đang lái, chưa chạy, trước hạn từ chối của cặp (khoá dính, B8.3 — lớp CSDL so giờ CSDL); lý do nhóm TU_CHOI_CHUYEN; người đóng = chính tài xế (B8.2)",
+    luat: "chuyến mình đang lái, chưa chạy, trước hạn từ chối của cặp (khoá dính, B8.3 — lớp CSDL so giờ CSDL); lý do nhóm TU_CHOI_CHUYEN; người đóng = chính tài xế (B8.2); chuyến không có suất đang mở nhận chuyển vào (ADR-0113)",
     bang: [...LO_CHUNG, "vc_trip_driver"], suKien: "DRIVER_REFUSED", nhatKy: "trip_driver_refused", lo: "loTuChoi", bao: "route",
-    tin: { nhom: "thuong", nhan: [{ ai: DIEU_PHOI, loai: "tu_choi" }] }, bangTin: "sua", nguon: "ADR-0053 D8.3, D8.4 (bước 5), D8.6; kế hoạch A4 G-A4-14, G-A4-15",
+    tin: { nhom: "thuong", nhan: [{ ai: DIEU_PHOI, loai: "tu_choi" }] }, bangTin: "sua", nguon: "ADR-0053 D8.3, D8.4 (bước 5), D8.6; kế hoạch A4 G-A4-14, G-A4-15; ADR-0113",
   },
 
   // Điều chỉnh có lý do (chỉ văn phòng) — ADR-0097.
@@ -550,10 +550,10 @@ export const CHO_LECH: readonly ChoLech[] = [
   },
   {
     id: "TAI-XE-DOI-TAC", loai: "LECH_ADR", muc: null, dong: ["bo-sung-ten"],
-    maLam: "Tài xế đối tác (từ A4 có ô xem chuyến, tiến độ, Từ chối, Báo bận) KHÔNG có ô bổ sung tên khách, và chưa có ô chuyển khách.",
-    adrNoi: "ADR-0053 D7.1 (:46) nới hai ô này cho tài xế đối tác. Bổ sung tên: chủ 5/10 (a) chọn \"chỉ tài xế công ty\" — lệch có chủ ý, ghi SYSTEM-DESIGN §16 (A4 T11). Chuyển khách: ô `trip.transfer` chưa có, thuộc A5.",
-    deNghi: "Bổ sung tên: giữ, trình chủ ra dòng lịch sử / ADR mới (§16). Chuyển khách: A5 tạo ô `trip.transfer` với cột DRIVER_PARTNER = assigned, cùng commit nâng bài ghim.",
-    viec: "việc 8 — A5 (ô chuyển khách)",
+    maLam: "Tài xế đối tác (từ A4 có ô xem chuyến, tiến độ, Từ chối, Báo bận) KHÔNG có ô bổ sung tên khách. Ô chuyển khách `trip.transfer` đã mở (A5, N4): tài xế đối tác vừa gửi vừa nhận được khách chuyển; chuyến đã nhận khách chuyển vào thì không Từ chối được (ADR-0113).",
+    adrNoi: "ADR-0053 D7.1 (:46) nới hai ô này cho tài xế đối tác. Bổ sung tên: chủ 5/10 (a) chọn \"chỉ tài xế công ty\" — lệch có chủ ý, ghi SYSTEM-DESIGN §16 (A4 T11). Chuyển khách: ô `trip.transfer` (assigned) do A5 mở theo N4 — đã có.",
+    deNghi: "Bổ sung tên: giữ, trình chủ ra dòng lịch sử / ADR mới (§16). Chuyển khách: xong (A5 tạo ô `trip.transfer`, cột DRIVER_PARTNER = assigned).",
+    viec: "việc 8 — A5 (ô chuyển khách): xong; còn lại phần bổ sung tên (lệch có chủ ý)",
   },
 ];
 

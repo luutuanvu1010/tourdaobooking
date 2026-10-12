@@ -403,9 +403,60 @@ try {
   const ridBA = r.body.deNghi.id;
   ok(await nhan(B10, ridAB), "DA_CHUYEN", "CONFIRMED");
   ok(await nhan(A10, ridBA), "DA_CHUYEN", "CONFIRMED");
-  const [mA, mB] = await Promise.all([diemDon(w10.id[0]), diemDon(w10.id[1])]);
+  const mA = await diemDon(w10.id[0]); // tuần tự: hai `wrangler d1 execute` đồng thời hay rơi 'internal error' (D1 local)
+  const mB = await diemDon(w10.id[1]);
   assert.deepEqual([Object.keys(mA).sort(), Object.keys(mB).sort()], [[p2.legId, q1d.legId].sort(), [q2.legId, p1.legId].sort()]);
   console.log("✓ TH10: nhờ chéo hai xe — mỗi lần nhờ xét riêng, cả hai tự đồng ý");
+
+  // ==== TH11 (ADR-0113): tài xế ĐỐI TÁC là xe nhận, khách chuyển vào → Từ chối chuyến bị chặn 409 refuse_blocked_transferred_in (không tên / mã đơn), DTO có chanTuChoi ====
+  {
+    const lead0 = (await call(TOAN_QUYEN, "GET", `${VC}/chinh-sach-dieu-phoi`)).body.current.refuseLeadMinutes;
+    await datChinhSach({ refuseLeadMinutes: 60 }); // hạn Từ chối = giờ chạy − 60 phút (nhỏ nhất cho phép): còn hạn dù kịch bản chạy lúc nào trong ngày (hạn chụp lúc xếp chuyến)
+    try {
+      const nx = await call(ADMIN, "POST", "/api/parties", { kind: "ORGANIZATION", displayName: `Nhà Xe Chặn Từ Chối ${duoi}` });
+      assert.equal(nx.status, 201, JSON.stringify(nx.body));
+      const nhaXe = nx.body.party.id;
+      assert.equal((await call(ADMIN, "POST", `/api/parties/${nhaXe}/roles`, { roleTypeCode: "CARRIER" })).status, 201);
+      const tkp = await call(TOAN_QUYEN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Tài Xế Đối Tác Chặn ${duoi}`, phone: randomPhone(), roles: ["DRIVER_EXTERNAL"] });
+      assert.equal(tkp.status, 201, JSON.stringify(tkp.body));
+      const lgp = await login(tkp.body.staff.phone, tkp.body.pin);
+      assert.equal(lgp.status, 200, JSON.stringify(lgp.body));
+      const [{ party_id: partyP }] = await sqlRows(`SELECT party_id FROM staff WHERE id = '${tkp.body.staff.id}'`);
+      assert.equal((await call(ADMIN, "POST", `/api/parties/${partyP}/documents`, { typeCode: "GPLX", number: `7953${duoi}11`, classCode: "D2", expiryDate: vnDate(400) })).status, 201);
+      assert.equal((await call(ADMIN, "POST", `/api/parties/${nhaXe}/relationships`, { fromPartyId: partyP, toPartyId: nhaXe, relationshipTypeCode: "DRIVES_FOR" })).status, 201);
+      const xeDt = await call(ADMIN, "POST", "/api/van-chuyen/xe", { plateNumber: `79T-${duoi.slice(0, 3)}.${duoi.slice(3)}`, chassisNumber: `E2ECHAN${duoi}`, name: "Xe nhà xe chặn Từ chối E2E", passengerCapacity: 15, ownerPartyId: nhaXe });
+      assert.equal(xeDt.status, 201, JSON.stringify(xeDt.body));
+      for (const typeCode of ["INSPECTION", "TPL_INSURANCE"]) {
+        assert.equal((await call(ADMIN, "POST", `/api/van-chuyen/xe/${xeDt.body.vehicle.id}/giay-to`, { typeCode, number: `${typeCode}-${duoi}`, expiryDate: vnDate(400) })).status, 201, typeCode);
+      }
+      const dX = await don("10:00", "Khách sạn Chặn Từ Chối", 2);
+      const w11 = await theGioi([dX]);
+      const tripB = await chuyen({ cookie: lgp.cookie, party: partyP }, xeDt.body.vehicle.id, [], false);
+      const diem11 = await diemDon(w11.id[0]);
+      r = await gui(w11.tx[0], w11.id[0], { denChuyenId: tripB, phamVi: "STOP", diemId: diem11[dX.legId] });
+      ok(r, "DA_GUI", "PENDING");
+      const rid11 = r.body.deNghi.id;
+      r = await nhan(lgp.cookie, rid11);
+      if (r.body?.ketQua === "LEO_THANG") r = await duyet(ADMIN, rid11); // xe nhận chưa chạy; kịch bản chạy gần giờ chạy → dưới mốc 6 giờ → văn phòng duyệt
+      ok(r, "DA_CHUYEN", "CONFIRMED");
+      assert.equal((await sqlRows(`SELECT count(*) AS n FROM vc_trip_allocation WHERE trip_id = '${tripB}' AND transfer_id IS NOT NULL AND valid_to_at IS NULL`))[0].n, 2, "khách đã chuyển vào chuyến của tài xế đối tác");
+      const cuaB = `${VC}/cuoc-cua-toi/${tripB}`;
+      r = await call(lgp.cookie, "GET", cuaB);
+      assert.equal(r.status, 200, JSON.stringify(r.body));
+      assert.equal(r.body.chanTuChoi, "KHACH_CHUYEN_VAO", JSON.stringify(r.body));
+      assert.equal(r.body.tuChoiDuoc, false);
+      assert.equal("lyDoTuChoi" in r.body, false, "bị chặn → không kèm lý do Từ chối");
+      r = await call(lgp.cookie, "POST", `${cuaB}/tu-choi`, { requestId: uuid(), lyDo: "TCC_KHAC" });
+      loi(r, 409, "refuse_blocked_transferred_in");
+      assert.equal(r.body.error.message, "Chuyến này đang có khách được chuyển từ xe khác sang nên chưa từ chối được — hãy gọi văn phòng để đổi người.");
+      assert.doesNotMatch(JSON.stringify(r.body), /Khách Chuyển E2E|0913579248|TD-\d{8}|CX-\d/, "thân 409 không tên, không mã đơn, không mã chuyến");
+      assert.equal((await sqlRows(`SELECT count(*) AS n FROM vc_trip_driver WHERE trip_id = '${tripB}' AND valid_to_at IS NULL`))[0].n, 1, "dòng lái vẫn mở");
+      assert.equal((await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE action = 'trip_driver_refused' AND target_id = '${tripB}'`))[0].n, 0, "không nhật ký Từ chối");
+      console.log("✓ TH11 (ADR-0113): tài xế đối tác nhận khách chuyển vào → DTO chanTuChoi + tuChoiDuoc false; Từ chối trong hạn → 409 refuse_blocked_transferred_in (đúng câu, không tên / mã đơn), dòng lái vẫn mở, không nhật ký");
+    } finally {
+      await datChinhSach({ refuseLeadMinutes: lead0 });
+    }
+  }
 
   // ==== TH04-4B Nhận muộn (đề nghị gửi lúc chính sách chờ 1 phút) ====
   const conCho = guiHetHanLuc + 62_000 - Date.now();

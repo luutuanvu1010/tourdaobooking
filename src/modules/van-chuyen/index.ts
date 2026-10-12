@@ -43,7 +43,7 @@ import {
 import { cauThemHanhKhachTaiXe, hanhKhachChoChuyen, kiemHanhKhachTaiXe, lichChungChang, lienHeChoTaiXe } from "../orders";
 import type { CapNhatDiemResponse, CuuHoResponse, HuongDanVienListResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiResponse, StaffProfile, TuChoiResponse } from "../../shared/contracts";
 import { kiemTaoSuaChuyen, mocMoKhung, trongKhungXemKhach } from "../../shared/dieu-phoi-kiem";
-import { hanTuChoiCuaCap } from "./han-tu-choi-repo";
+import { coSuatChuyenVao, hanTuChoiCuaCap } from "./han-tu-choi-repo";
 import type { KhungTaiXe } from "./tai-xe-dto";
 import { lyDoGiu, type LyDoGiu } from "../../shared/ly-do-giu";
 import { isISODate, msToVnLocal } from "../../shared/vn-date";
@@ -176,10 +176,14 @@ async function khungCuaNguoiGoi(db: D1Database, nen: NenChuyen, staff: StaffProf
   const chuyen = { ngayChay: nen.trip.service_date, trangThai: nen.trip.status, xuatBenMs: nen.trip.departed_ms };
   const trongKhung = trongKhungXemKhach(chuyen, han, bayGioMs);
   const moc = han === null ? null : mocMoKhung(chuyen, han);
+  const conHan = typeof han === "number" && nen.trip.status === "PLANNED" && bayGioMs <= han; // G-A4-1: Từ chối được khi bayGio ≤ hạn
+  // ADR-0113 Đ1, Đ3: còn hạn mà chuyến có suất đang mở nhận chuyển vào → chặn (cùng thứ tự với `lyDoKhongDuoc`: quá hạn đứng trước). Chỉ hỏi CSDL khi còn hạn.
+  const chan = conHan && (await coSuatChuyenVao(db, nen.trip.id));
   return {
     trongKhung,
     han,
-    tuChoiDuoc: typeof han === "number" && nen.trip.status === "PLANNED" && bayGioMs <= han, // G-A4-1: Từ chối được khi bayGio ≤ hạn
+    tuChoiDuoc: conHan && !chan,
+    chanTuChoi: chan ? "KHACH_CHUYEN_VAO" : null,
     thayKhachTuMs: !trongKhung && moc !== null && moc > bayGioMs ? moc : null, // chỉ mốc ở tương lai (chuyến đã qua ngày chạy: không hứa)
   };
 }
