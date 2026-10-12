@@ -5,6 +5,7 @@ import {
   chonDongGiaThue, coXeCua, daoDuoc, dieuChinhDuoc, dongBiDaoKhi, ngayDieuChinhMacDinh, ngayGhiDao, demDieuChinh, dongChongGia, loaiNguonGia, nhaXeChiuChiPhi, nhomBangKe, dongConHieuLuc, nguonGiaConHieuLuc, phanLoaiThue, thuTuDaoTatCa, tongBangKe, tongChiPhiChuyen, tongDieuChinh,
   type CoXe, type DongChiPhi, type DongGiaThue, type LoaiDongChiPhi,
 } from "./tien-xe.ts";
+import { keHoachChiPhiKhiDoi, keHoachChiPhiKhiHuy, type DongLo } from "./tien-xe-lo.ts";
 
 const HP = "p-hung-phat";
 const CO: CoXe[] = [
@@ -131,17 +132,71 @@ test("nhaXeChiuChiPhi: nhà xe của nguồn giá GHI GẦN NHẤT (kể cả đ
   assert.equal(nhaXeChiuChiPhi([{ kind: "SNAPSHOT", carrierPartyId: "p-a" }, { kind: "REVERSAL", carrierPartyId: "p-a" }, { kind: "AGREED", carrierPartyId: "p-b" }], "p-b"), "p-b");
 });
 
-test("ngayGhiDao (vòng sửa 2, SV-1): dòng đảo mang ngày của DÒNG GỐC; kỳ của dòng gốc đã khoá (chỗ nối ADR-0080) ⇒ ngày hiện tại", () => {
-  assert.equal(ngayGhiDao({ occurredDate: "2026-10-31" }, { homNay: "2026-11-05" }), "2026-10-31");
-  assert.equal(ngayGhiDao({ occurredDate: "2026-10-31" }, { homNay: "2026-11-05", kyDaKhoa: (n) => n.startsWith("2026-10") }), "2026-11-05");
+test("ngayGhiDao (vòng sửa 2, SV-1): dòng đảo mang ngày của DÒNG GỐC; kỳ của dòng gốc đã khoá (ADR-0080) ⇒ ngày hiện tại", () => {
   assert.equal(ngayGhiDao({ occurredDate: "2026-10-31" }, { homNay: "2026-11-05", kyDaKhoa: () => false }), "2026-10-31");
+  assert.equal(ngayGhiDao({ occurredDate: "2026-10-31" }, { homNay: "2026-11-05", kyDaKhoa: (n) => n.startsWith("2026-10") }), "2026-11-05");
 });
 
-test("ngayDieuChinhMacDinh (ADR-0095 Q4 — vòng sửa 3 M1): chuyến đã huỷ ⇒ NGÀY HUỶ; chuyến chưa huỷ ⇒ NGÀY CHẠY (không phải hôm nay)", () => {
-  assert.equal(ngayDieuChinhMacDinh({ trangThai: "CANCELLED", ngayHuy: "2026-10-13", ngayChay: "2026-10-15" }), "2026-10-13");
-  assert.equal(ngayDieuChinhMacDinh({ trangThai: "ENDED", ngayHuy: null, ngayChay: "2026-10-15" }), "2026-10-15");
-  assert.equal(ngayDieuChinhMacDinh({ trangThai: "PLANNED", ngayHuy: null, ngayChay: "2026-10-15" }), "2026-10-15");
-  assert.equal(ngayDieuChinhMacDinh({ trangThai: "ENDED_INTERRUPTED", ngayHuy: null, ngayChay: "2026-10-15" }), "2026-10-15");
+test("ngayGhiDao / ngayDieuChinhMacDinh: tháng đã khoá ⇒ hôm nay; tháng mở ⇒ ngày gốc", () => {
+  const kyDaKhoa = (n: string) => n.startsWith("2026-09");
+  assert.equal(ngayGhiDao({ occurredDate: "2026-09-20" }, { homNay: "2026-10-08", kyDaKhoa }), "2026-10-08");
+  assert.equal(ngayGhiDao({ occurredDate: "2026-10-02" }, { homNay: "2026-10-08", kyDaKhoa }), "2026-10-02");
+  assert.equal(ngayDieuChinhMacDinh({ trangThai: "ENDED", ngayHuy: null, ngayChay: "2026-09-28", homNay: "2026-10-08", kyDaKhoa }), "2026-10-08");
+  assert.equal(ngayDieuChinhMacDinh({ trangThai: "CANCELLED", ngayHuy: "2026-10-01", ngayChay: "2026-09-28", homNay: "2026-10-08", kyDaKhoa }), "2026-10-01");
+  // Chuyến đã huỷ mà NGÀY HUỶ cũng thuộc tháng đã khoá (huỷ từ tháng trước, tháng đó vừa khoá) ⇒ cũng sang hôm nay; tháng mở thì giữ ngày mặc định.
+  assert.equal(ngayDieuChinhMacDinh({ trangThai: "CANCELLED", ngayHuy: "2026-09-30", ngayChay: "2026-10-05", homNay: "2026-10-08", kyDaKhoa }), "2026-10-08");
+  assert.equal(ngayDieuChinhMacDinh({ trangThai: "PLANNED", ngayHuy: null, ngayChay: "2026-10-15", homNay: "2026-10-08", kyDaKhoa }), "2026-10-15");
+});
+
+test("ngayDieuChinhMacDinh (ADR-0095 Q4 — vòng sửa 3 M1): chuyến đã huỷ ⇒ NGÀY HUỶ; chuyến chưa huỷ ⇒ NGÀY CHẠY (không phải hôm nay) khi tháng còn mở", () => {
+  const mo = { homNay: "2026-11-20", kyDaKhoa: () => false };
+  assert.equal(ngayDieuChinhMacDinh({ trangThai: "CANCELLED", ngayHuy: "2026-10-13", ngayChay: "2026-10-15", ...mo }), "2026-10-13");
+  assert.equal(ngayDieuChinhMacDinh({ trangThai: "ENDED", ngayHuy: null, ngayChay: "2026-10-15", ...mo }), "2026-10-15");
+  assert.equal(ngayDieuChinhMacDinh({ trangThai: "PLANNED", ngayHuy: null, ngayChay: "2026-10-15", ...mo }), "2026-10-15");
+  assert.equal(ngayDieuChinhMacDinh({ trangThai: "ENDED_INTERRUPTED", ngayHuy: null, ngayChay: "2026-10-15", ...mo }), "2026-10-15");
+});
+
+// ---- Khoá tháng ở kế hoạch chi phí của lô chuyến (sổ đại lý đợt 1, Task 8; ADR-0080) -----------------------------------------------------------------
+const DL = (id: string, kind: LoaiDongChiPhi, amount: number, occurredDate: string, reversesId: string | null = null): DongLo =>
+  ({ ...D(id, kind, amount, reversesId), carrierPartyId: HP, occurredDate });
+const GIA_THANG_9: DongGiaThue[] = [{ id: "g1", carrierPartyId: HP, routeCode: "T1", sizeCode: "C16", amount: 1_200_000, validFrom: "2026-09-01", validTo: null }];
+const DAU_VAO_DOI = {
+  homNay: "2026-10-08", rentedMoi: 1 as const, chuXeMoi: HP, nhaXeDangMo: new Set([HP]), laTaoMoi: false, doiXeHoacNhaXe: false, doiTuyen: true, doiNgay: false,
+  tuyenMoi: "T1", soChoMoi: 16, ngayChayMoi: "2026-10-15", gia: GIA_THANG_9, coXe: CO,
+};
+const khoaThang9 = (n: string) => n.startsWith("2026-09");
+
+test("keHoachChiPhiKhiDoi (khoá tháng): dòng gốc tháng 9 đã khoá ⇒ dòng đảo mang hôm nay; chụp mới ở tháng mở ⇒ vẫn chụp; dòng gốc tháng mở ⇒ giữ ngày gốc", () => {
+  const dong = [DL("s", "SNAPSHOT", 1_200_000, "2026-09-20"), DL("a", "ADJUSTMENT", 50_000, "2026-10-02")];
+  const kq = keHoachChiPhiKhiDoi({ ...DAU_VAO_DOI, dong, kyDaKhoa: khoaThang9 });
+  assert.equal(kq.ok, true);
+  if (!kq.ok) return;
+  assert.deepEqual(Object.fromEntries(kq.kh.dao.map((d) => [d.goc.id, d.ngay])), { s: "2026-10-08", a: "2026-10-02" }, "chỉ dòng tháng 9 (đã khoá) sang hôm nay; dòng tháng 10 giữ ngày gốc");
+  assert.equal(kq.kh.chup?.ngayChay, "2026-10-15");
+});
+
+test("keHoachChiPhiKhiDoi (khoá tháng): phải chụp giá cho ngày chạy thuộc tháng đã khoá ⇒ { loi: period_closed, thang }; không phải chụp ⇒ không chặn", () => {
+  const dong = [DL("s", "SNAPSHOT", 1_200_000, "2026-09-20")];
+  const kq = keHoachChiPhiKhiDoi({ ...DAU_VAO_DOI, dong, ngayChayMoi: "2026-09-25", doiNgay: true, kyDaKhoa: khoaThang9 });
+  assert.equal(kq.ok, false);
+  if (kq.ok) return;
+  assert.equal(kq.loi, "period_closed");
+  assert.equal("thang" in kq ? kq.thang : null, "2026-09");
+  // Đổi sang xe công ty (không chụp) dù ngày chạy ở tháng khoá: chỉ đảo, đảo mang hôm nay, KHÔNG chặn.
+  const congTy = keHoachChiPhiKhiDoi({ ...DAU_VAO_DOI, dong, ngayChayMoi: "2026-09-25", doiXeHoacNhaXe: true, rentedMoi: 0, chuXeMoi: "p-cty", kyDaKhoa: khoaThang9 });
+  assert.equal(congTy.ok, true);
+  if (congTy.ok) assert.deepEqual(congTy.kh.dao.map((d) => d.ngay), ["2026-10-08"]);
+  // Thuê nhưng KHÔNG có dòng giá khớp (không chụp gì) ở ngày chạy tháng khoá ⇒ không có gì để ghi nên không chặn.
+  const khongGia = keHoachChiPhiKhiDoi({ ...DAU_VAO_DOI, dong: [], laTaoMoi: true, ngayChayMoi: "2026-09-25", gia: [], kyDaKhoa: khoaThang9 });
+  assert.equal(khongGia.ok, true);
+});
+
+test("keHoachChiPhiKhiHuy (khoá tháng): dòng gốc tháng 9 đã khoá ⇒ dòng đảo mang hôm nay; tháng mở ⇒ giữ ngày gốc", () => {
+  const dong = [DL("s", "SNAPSHOT", 1_200_000, "2026-09-20"), DL("a", "ADJUSTMENT", -200_000, "2026-10-05")];
+  const kh = keHoachChiPhiKhiHuy(dong, "2026-10-08", khoaThang9);
+  assert.deepEqual(kh.dao.map((d) => [d.goc.id, d.ngay]), [["a", "2026-10-05"], ["s", "2026-10-08"]], "âm trước dương sau");
+  const mo = keHoachChiPhiKhiHuy(dong, "2026-10-08", () => false);
+  assert.deepEqual(mo.dao.map((d) => d.ngay), ["2026-10-05", "2026-09-20"]);
 });
 
 test("dieuChinhDuoc (ADR-0095 Q5, vòng sửa 2 4.7): xe thuê / đã huỷ ⇒ mọi lý do; đã đổi sang xe công ty chưa huỷ ⇒ CHỈ Phí huỷ muộn", () => {

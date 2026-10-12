@@ -347,7 +347,21 @@ export const authModule: AppModule = {
     }),
 
     // `maintenance` ở đây chỉ tới được Toàn quyền khi đang bảo trì (router chặn người khác trước — ADR-0071) — giao diện dùng để hiện dải "Đang ở chế độ bảo trì".
-    route("GET", "/api/auth/me", "staff", async ({ env, staff, baoTri }) => json({ staff, maintenance: toStatus((baoTri as MaintenanceState | undefined) ?? await getMaintenanceState(env.DB)) } satisfies MeResponse)),
+    // `benDatCuaToi` (sổ đại lý đợt 1, Task 11 — Ruling 21): bên đặt máy chủ SẼ ép cho tài khoản này (chỉ Đối tác có hồ sơ được hưởng), để form lập đơn hiện dòng chỉ đọc mà không tự suy luật. Hai việc đọc chạy song song.
+    route("GET", "/api/auth/me", "staff", async ({ env, staff, baoTri, benDatCuaToi }) => {
+      // `benDatCuaToi` chỉ để HIỂN THỊ (máy chủ vẫn ép bên đặt lúc lập đơn) mà /me đi qua MỌI trang: câu đọc hỏng (kể cả ném ngay trước khi có lời hứa) thì trả null và log một dòng
+      // (chỉ tên sự kiện + câu lỗi — không SĐT, không tên) thay vì kéo cả /me thành 500. Chỉ bọc đúng câu này; việc đọc trạng thái bảo trì giữ nguyên (hỏng thì vẫn là lỗi thật).
+      const docBenDat = async (): Promise<Awaited<ReturnType<typeof benDatCuaToi>>> => {
+        try {
+          return await benDatCuaToi();
+        } catch (e) {
+          console.error(JSON.stringify({ level: "error", event: "ben_dat_cua_toi_failed", message: e instanceof Error ? e.message : String(e) }));
+          return null;
+        }
+      };
+      const [trangThaiBaoTri, benDat] = await Promise.all([(baoTri as MaintenanceState | undefined) ?? getMaintenanceState(env.DB), docBenDat()]);
+      return json({ staff, maintenance: toStatus(trangThaiBaoTri), benDatCuaToi: benDat } satisfies MeResponse);
+    }),
 
     // Đăng xuất kết thúc dòng phiên (ADR-0075): cookie bị xoá VÀ cookie đã chép đi nơi khác cũng hết dùng được. Token rác/hết hạn → chỉ xoá cookie.
     route("POST", "/api/auth/logout", "public", async ({ request, env }) => {

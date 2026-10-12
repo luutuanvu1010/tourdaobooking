@@ -57,7 +57,7 @@ test("G3 (tình huống 30, KD06): sau Đã giao — 'Đảo' đơn lẻ ⇒ 409
   assert.equal(dao.status, 409, dao.text);
   assert.equal(dao.json.error.code, "receipt_after_delivered");
   assert.match(dao.json.error.message, /Thay lần thu/);
-  const r = await thay(w, KT, { orderId: id, cu: [r600], moi: [{ soTien: 600_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" }], lyDo: "Khách chuyển khoản cho công ty, HDV ghi nhầm" });
+  const r = await thay(w, KT, { orderId: id, cu: [r600], moi: [{ soTien: 600_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", maGiaoDich: "FTTH0001", soThucChuyen: 600_000 }], lyDo: "Khách chuyển khoản cho công ty, HDV ghi nhầm" });
   assert.equal(r.status, 201, r.text);
   const t = await tien(w, id);
   assert.equal(t.daThu, 1_000_000, "đã thu không đổi (I1)");
@@ -78,7 +78,7 @@ test("đ2 + đ1: Thay làm lệch I1 (600.000 → 500.000 sau Đã giao) ⇒ 409
   assert.equal(lech.json.error.code, "replacement_i1");
   assert.match(lech.json.error.message, /phải bằng phải thu của đơn lúc Đã giao \(1\.000\.000 ₫\)/);
   assert.equal(dem(w, "SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = ?", id), n0);
-  const dung = { orderId: id, cu: [r600], moi: [{ soTien: 600_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" }] };
+  const dung = { orderId: id, cu: [r600], moi: [{ soTien: 600_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", maGiaoDich: "FTTH0002", soThucChuyen: 600_000 }] };
   assert.equal((await thay(w, KT, { ...dung, lyDo: "nhầm" })).status, 400);
   const truocThang = `${vnHomNay().slice(0, 4)}-01-01` < `${vnHomNay().slice(0, 8)}01` ? `${vnHomNay().slice(0, 4)}-01-01` : "2025-12-31";
   assert.equal((await thay(w, KT, { ...dung, lyDo: "Khách chuyển khoản cho công ty", ngayPhatSinh: truocThang })).status, 400, "tháng đã qua");
@@ -94,7 +94,7 @@ test("đ2 (A-B18): TRƯỚC Đã giao Thay dùng được, kể cả đổi số
   const id = don(w);
   assert.equal((await thu(w, HDV, id, 300_000)).status, 201);
   assert.equal((await thu(w, HDV, id, 200_000)).status, 201);
-  const r = await thay(w, KT, { orderId: id, cu: [lanThu(w, id, 300_000), lanThu(w, id, 200_000)], moi: [{ soTien: 450_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" }], lyDo: "Gộp hai lần ghi nhầm thành một chuyển khoản" });
+  const r = await thay(w, KT, { orderId: id, cu: [lanThu(w, id, 300_000), lanThu(w, id, 200_000)], moi: [{ soTien: 450_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", maGiaoDich: "FTTH0003", soThucChuyen: 450_000 }], lyDo: "Gộp hai lần ghi nhầm thành một chuyển khoản" });
   assert.equal(r.status, 201, r.text);
   assert.equal((await tien(w, id)).daThu, 450_000);
 });
@@ -126,7 +126,7 @@ test("kiểm độc lập vòng 3 (CAO): khoản 'Công ty thu – CK' do HDV kh
   assert.equal((await thu(w, HDV, id, 600_000, "cong_ty", "BANK_TRANSFER")).status, 201, "HDV khai Công ty thu – CK");
   assert.equal((await thu(w, HDV, id, 400_000)).status, 201);
   const ck = lanThu(w, id, 600_000);
-  const r = await thay(w, KT, { orderId: id, cu: [ck], moi: [{ soTien: 500_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" }], lyDo: "HDV khai nhầm số chuyển khoản" });
+  const r = await thay(w, KT, { orderId: id, cu: [ck], moi: [{ soTien: 500_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", maGiaoDich: "FTTH0004", soThucChuyen: 500_000 }], lyDo: "HDV khai nhầm số chuyển khoản" });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "ck_cho_xac_nhan");
   assert.deepEqual((await tien(w, id)).keToan.dangGiu.map((d: { soTien: number }) => d.soTien), [1_000_000], "HDV vẫn giữ (600.000 chờ xác nhận + 400.000)");

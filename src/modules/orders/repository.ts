@@ -81,6 +81,10 @@ const ORDER_SELECT = `SELECT o.*, s.label AS staff_name, b.display_name AS booke
 // được GHI KÉP ở phát hành 1 (R3).
 const SERVICE_SELECT = `SELECT id, catalog_code, name, unit, pax_adult, pax_child, pax_senior, pax_infant, depart_date, depart_time,
   checkin_date, checkin_time, checkin_place, note FROM order_service WHERE order_id = ? ORDER BY sort_order`;
+// Sổ đại lý đợt 1: bên đặt có đang mang một vai được hưởng hoa hồng không (cờ `bookerLaDoiTac` của chi tiết đơn). Chỉ đọc view công bố của `parties` + `pricing`;
+// không đơn / không bên đặt ⇒ 0.
+const BOOKER_LA_DOI_TAC = `SELECT EXISTS (SELECT 1 FROM v_pty_open_role r JOIN v_prc_beneficiary_role b ON b.role_type_code = r.role_type_code
+  WHERE r.party_id = o.booker_party_id) AS la FROM orders o WHERE o.id = ?`;
 const ITEM_SELECT = `SELECT id, service_id, catalog_code, pax_code, description, detail, quantity, unit_price, catalog_price, line_total FROM order_item WHERE order_id = ? ORDER BY sort_order`;
 
 export interface ServiceSummaryRow {
@@ -293,11 +297,12 @@ const toItemDto = (i: ItemRow): OrderItemDto => ({
 
 /** Đơn + dịch vụ + dòng tiền. `catalogStatus` luôn null ở đây — do lớp điều phối (service.ts) điền cho đơn nháp. */
 export async function findOrder(db: D1Database, id: string): Promise<OrderDetailDto | null> {
-  const [orderRes, servicesRes, itemsRes, legsRes] = await db.batch([
+  const [orderRes, servicesRes, itemsRes, legsRes, laDoiTacRes] = await db.batch([
     db.prepare(`${ORDER_SELECT} WHERE o.id = ?`).bind(id),
     db.prepare(SERVICE_SELECT).bind(id),
     db.prepare(ITEM_SELECT).bind(id),
     openLegsStatement(db, [id]),
+    db.prepare(BOOKER_LA_DOI_TAC).bind(id),
   ]);
   const row = (orderRes!.results as OrderRow[])[0];
   if (!row) return null;
@@ -318,7 +323,7 @@ export async function findOrder(db: D1Database, id: string): Promise<OrderDetail
       legs: own.map(toLegDto),
     };
   });
-  return { ...toDto(row), services };
+  return { ...toDto(row), services, bookerLaDoiTac: Number((laDoiTacRes!.results as { la: number }[])[0]?.la ?? 0) === 1 };
 }
 
 /**
@@ -784,10 +789,15 @@ export interface BookerWrite {
 export const NO_BOOKER: BookerWrite = { partyId: null, before: [], note: null };
 
 /**
- * Giá trị ghi vào `orders.booker_party_id`: chỉ khi hồ sơ còn là CÁ NHÂN ĐANG HOẠT ĐỘNG (đọc qua view công bố của `parties`, ADR-0002 điều 3), không thì NULL —
- * lưới cho khoảng giữa lúc service kiểm và lúc ghi; KHÔNG đặt EXISTS vào WHERE (đơn sẽ chèn 0 dòng lặng lẽ). Hai tham số: cùng id.
+ * Giá trị ghi vào `orders.booker_party_id`: chỉ khi hồ sơ còn ĐANG HOẠT ĐỘNG và là CÁ NHÂN, hoặc là TỔ CHỨC đang mang một vai được hưởng hoa hồng (đọc qua
+ * view công bố `v_pty_party_label`, `v_pty_open_role` của `parties` và `v_prc_beneficiary_role` của `pricing`, ADR-0002 điều 3; sổ đại lý đợt 1), không thì
+ * NULL — lưới cho khoảng giữa lúc service kiểm và lúc ghi; KHÔNG đặt EXISTS vào WHERE của `createOrder` / `updateDraftOrder` (đơn sẽ chèn 0 dòng lặng lẽ; ở đó NULL chỉ
+ * rơi vào NHÁP, chưa có bản chụp — lúc xác nhận bên đặt được đọc lại từ CSDL). `changeBooker` thì ĐẶT CHÍNH BIỂU THỨC NÀY vào WHERE có chủ đích (vế "yêu cầu gắn hồ sơ mà
+ * biểu thức ra NULL"): đơn đã xác nhận có bản chụp mà mất bên đặt trong khi bản chụp lại mang người hưởng là sai tiền — UPDATE khớp 0 dòng ⇒ cả chuỗi `changes() > 0`
+ * không ghi gì ⇒ route trả 409 vừa được sửa. MỘT tham số: id hồ sơ (NULL ⇒ NULL).
  */
-const BOOKER_VALUE = `CASE WHEN EXISTS (SELECT 1 FROM v_pty_party_label WHERE id = ? AND active = 1 AND party_kind = 'PERSON') THEN ? END`;
+const BOOKER_VALUE = `(SELECT l.id FROM v_pty_party_label l WHERE l.id = ? AND l.active = 1 AND (l.party_kind = 'PERSON'
+  OR EXISTS (SELECT 1 FROM v_pty_open_role r JOIN v_prc_beneficiary_role b ON b.role_type_code = r.role_type_code WHERE r.party_id = l.id)))`;
 
 const joinDetail = (...parts: (string | null | undefined)[]): string | undefined => parts.filter((p): p is string => !!p).join(" | ") || undefined;
 
@@ -929,7 +939,7 @@ export async function createOrder(
             id, prefix, prefix, `${prefix}%`, staffId, order.customerName, order.customerPhone, order.customerEmail, order.customerNote,
             // Ba cột cọc cũ KHÔNG mang nghĩa nữa (ADR-0026 đ9): đơn mới ghi 0 / NULL / total — chỉ để thoả trigger 0007 (không ai đọc).
             order.subtotal, order.discount, order.total, 0, null, order.total, order.paymentNote, at, at,
-            booker.partyId, booker.partyId,
+            booker.partyId,
           ),
         ...services.stmts,
         ...legs,
@@ -988,7 +998,7 @@ export async function updateDraftOrder(
       .bind(
         order.customerName, order.customerPhone, order.customerEmail, order.customerNote,
         order.subtotal, order.discount, order.total, order.total, order.total, order.total, order.total, order.total, order.paymentNote,
-        booker.partyId, booker.partyId, at, id, order.expectedUpdatedAt,
+        booker.partyId, at, id, order.expectedUpdatedAt,
       ),
     auditStatement(db, { id: auditId, orderId: id, staffId, action: "updated", at, detail: joinDetail(summarizeDeviations(order.items), booker.note, paxNote, ghiChuThem) }, "changes() > 0"),
     db.prepare(`DELETE FROM order_item WHERE order_id = ? AND ${guard.sql}`).bind(id, ...guard.binds),
@@ -1009,19 +1019,25 @@ export async function updateDraftOrder(
  * Trigger `orders_confirm_requires_trip` (0008) là lưới thứ hai cho phần không đổi của luật. Trả false nếu điều kiện không còn đúng.
  * `prevUpdatedAt` là mốc `updated_at` route đọc lúc kiểm quyền: mốc mới đi qua `nextStamp` nên luôn lớn hơn nó (như `updateDraftOrder`/`updateTrip`),
  * để client còn giữ mốc cũ không lọt qua khoá lạc quan của `PUT /trip` dù xác nhận rơi vào cùng mili-giây với một lần ghi khác.
+ * Task 4b: `prevUpdatedAt` cũng là KHOÁ của câu xác nhận (`updated_at = ?`): đơn đổi sau lúc route đọc ⇒ false, không ghi gì (bản chụp mức dựng từ dữ liệu cũ không lọt).
  * ADR-0047 Ruling R4c: câu ĐẦU lô điền ngày đón = ngày đi cho chặng mở còn trống ngày (trigger `orders_confirm_requires_leg_date` xét lúc đổi trạng thái)
  * — nên câu UPDATE đổi trạng thái nay là `results[1]`. Không thêm lý do "chưa đủ chuyến" mới cho người dùng (`confirmGaps` không đổi).
+ * `alsoConfirm(at)` (Sổ đại lý đợt 1, ADR-0077 điều 8): các câu kèm do route dựng, dùng đúng mốc `at` của lô.
  */
 export async function confirmOrder(
   db: D1Database, id: string, staffId: string, today: string, prevUpdatedAt: string, nguongMoc: string, detail?: string,
+  alsoConfirm?: (at: string) => D1PreparedStatement[],
 ): Promise<boolean> {
   const at = nextStamp(prevUpdatedAt);
   const { from, to } = confirmWindow(today);
   // ADR-0049 D2 (I15): câu xác nhận ở tệp nửa nghiêm (`order_confirm`), thêm vế mốc tối thiểu lúc đặt — ngưỡng chuỗi do route tính bằng `nguongMocVn`.
   const results = await db.batch([
     legFillDateOnConfirm(db, id, at),
-    orderConfirm(db, id, at, from, to, nguongMoc),
+    orderConfirm(db, id, at, from, to, nguongMoc, prevUpdatedAt),
     auditStatement(db, { orderId: id, staffId, action: "confirmed", at, detail }, "changes() > 0"),
+    // Câu kèm (bản chụp thương mại — ADR-0077) đứng SAU nhật ký confirmed: chuỗi changes() > 0 nối từ UPDATE orders → nhật ký → từng câu chụp;
+    // results[1] vẫn quyết định thắng thua.
+    ...(alsoConfirm?.(at) ?? []),
   ]);
   return (results[1]!.meta.changes ?? 0) > 0;
 }
@@ -1493,6 +1509,11 @@ export function soanSuaChang(
 /**
  * Đổi khách (ADR-0011 điều 2): hồ sơ người đặt + tên/SĐT chụp trên đơn, cho đơn NHÁP hoặc ĐÃ XÁC NHẬN, còn khớp mốc `updated_at`. Không đụng tiền, dịch vụ,
  * số khách. `booker.before` (hồ sơ mới) đứng TRƯỚC câu UPDATE vì khoá ngoại. Trả false nếu đơn đã huỷ / đã bị người khác sửa.
+ * I1 (vòng sửa 1 của Task 6): yêu cầu GẮN một hồ sơ (`booker.partyId` khác NULL) mà `BOOKER_VALUE` ra NULL lúc lô chạy (hồ sơ vừa bị ngưng / vai vừa đóng / loại vai vừa bị
+ * tắt giữa lúc route kiểm và lúc ghi) ⇒ UPDATE khớp 0 dòng, trả false (route nói 409): không ghi NULL lặng lẽ, không bản chụp mang người hưởng trên đơn mất bên đặt.
+ * `alsoChange` (sổ đại lý đợt 1): các câu CHỤP LẠI mức khi bên đặt đổi trên đơn đã xác nhận có bản chụp — dựng theo mốc `at` của lô, trải CUỐI lô, SAU câu nhật ký
+ * `booker_changed` (chính nó `changes() > 0` nối từ câu UPDATE) nên chuỗi `changes() > 0` của các câu chụp nối thẳng từ UPDATE: UPDATE thua (đơn đã bị sửa / huỷ)
+ * thì không câu nào ghi gì. Trigger `terms_*` rơi ⇒ cả lô rơi (bên đặt cũ giữ nguyên).
  */
 export async function changeBooker(
   db: D1Database,
@@ -1501,6 +1522,7 @@ export async function changeBooker(
   change: { customerName: string; customerPhone: string; expectedUpdatedAt: string },
   booker: BookerWrite,
   detail: string,
+  alsoChange?: (at: string) => D1PreparedStatement[],
 ): Promise<boolean> {
   const at = nextStamp(change.expectedUpdatedAt);
   const results = await db.batch([
@@ -1508,10 +1530,11 @@ export async function changeBooker(
     db
       .prepare(
         `UPDATE orders SET customer_name = ?, customer_phone = ?, booker_party_id = ${BOOKER_VALUE}, updated_at = ?
-         WHERE id = ? AND status IN ('draft', 'confirmed') AND updated_at = ?`,
+         WHERE id = ? AND status IN ('draft', 'confirmed') AND updated_at = ? AND (? IS NULL OR ${BOOKER_VALUE} IS NOT NULL)`,
       )
-      .bind(change.customerName, change.customerPhone, booker.partyId, booker.partyId, at, orderId, change.expectedUpdatedAt),
+      .bind(change.customerName, change.customerPhone, booker.partyId, at, orderId, change.expectedUpdatedAt, booker.partyId, booker.partyId),
     auditStatement(db, { orderId, staffId, action: "booker_changed", at, detail }, "changes() > 0"),
+    ...(alsoChange?.(at) ?? []),
   ]);
   return (results[booker.before.length]!.meta.changes ?? 0) > 0;
 }

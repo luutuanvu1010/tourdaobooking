@@ -15,7 +15,7 @@ const coLo = (json: string) => json.includes(LA) || json.includes("480.017");
 const COMPANY: CompanyDto = { name: "CÔNG TY TNHH TOUR ĐẢO", taxCode: "4201969169", address: "Nha Trang", hotline: "0845 256 256", email: null };
 
 const donBiMat = (): OrderDetailDto => ({
-  id: `ord-${LA}`, orderCode: "TD-20260930-0001", staffId: `stf-${LA}`, staffName: `NV ${LA}`, bookerPartyId: `pty-${LA}`, bookerName: `Đại lý ${LA}`,
+  id: `ord-${LA}`, orderCode: "TD-20260930-0001", staffId: `stf-${LA}`, staffName: `NV ${LA}`, bookerPartyId: `pty-${LA}`, bookerName: `Đại lý ${LA}`, bookerLaDoiTac: true,
   status: "confirmed", customerName: "Trần Văn Bình", customerPhone: "0901234567", customerEmail: null, customerNote: null,
   subtotal: 1_000_000, discount: 0, total: 1_000_000, giamGiaHieuLuc: 0, paymentNote: `ghi chú thanh toán ${LA}`, createdAt: "2026-09-30T01:00:00.000Z", updatedAt: `upd-${LA}`,
   confirmedAt: `cf-${LA}`, deliveredAt: null, completedAt: null,
@@ -102,7 +102,7 @@ test("ADR-0109 (route thật): bớt khách tới giảm giá > tạm tính → 
   assert.equal(tao.status, 201, tao.text);
   const id = tao.json.order.id as string;
   assert.equal((await w.call("POST", `/api/orders/${id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
-  assert.equal((await w.call("POST", `/api/orders/${id}/payments`, { as: ACC, body: { soTien: 200000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" } })).status, 201);
+  assert.equal((await w.call("POST", `/api/orders/${id}/payments`, { as: ACC, body: { soTien: 200000, hinhThuc: "CASH", nguoiThu: "cong_ty" } })).status, 201);
   const sua = await w.call("POST", `/api/orders/${id}/money-edit`, { as: ACC, body: { lyDo: "BOT_NGUOI", services: [{ id: tao.json.order.services[0].id, pax: P(1) }] } });
   assert.equal(sua.status, 200, sua.text);
   const bn = (await w.call("GET", `/api/orders/${id}/receipt`, { as: SALES })).json.receipt;

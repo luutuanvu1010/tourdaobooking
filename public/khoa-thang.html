@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Khoá sổ tháng — Island Booking System</title></head>
+<body data-title="Khoá sổ tháng" data-back="/account">
+<header id="topbar"></header>
+<main>
+  <!-- Khoá sổ tháng (ADR-0080 phần D1; đặc tả sổ đại lý đợt 1 §8, §13). Chỉ Kế toán, Toàn quyền (ô ledger.view không ngữ cảnh); nút khoá hỏi thêm ô ledger.period.close. web/khoa-thang.ts dựng nội dung. -->
+  <h1>Khoá sổ tháng</h1>
+  <p class="muted">Khoá một tháng đã qua: sau khi khoá, không ai ghi thêm tiền có ngày trong tháng đó — sai sót ghi vào tháng đang mở bằng điều chỉnh có lý do. Không mở lại được.</p>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="ok" class="alert ok" role="status" hidden></div>
+  <!-- Ẩn cho tới khi web/khoa-thang.ts xác nhận người xem có ô ledger.view (khỏi hiện tiêu đề trống cho tài khoản không có quyền). -->
+  <div id="ky-noi-dung" hidden>
+    <section class="card" aria-labelledby="ky-da-khoa-tieu-de">
+      <h2 id="ky-da-khoa-tieu-de">Các tháng đã khoá</h2>
+      <div id="ky-da-khoa"></div>
+    </section>
+    <section class="card" aria-labelledby="ky-ke-tiep-tieu-de">
+      <h2 id="ky-ke-tiep-tieu-de">Tháng khoá được kế tiếp</h2>
+      <div id="ky-bang-kiem"></div>
+      <!-- Nút "Khoá tháng MM/YYYY" (#ky-khoa-btn) và hộp xác nhận nằm ở đây, chỉ dựng khi máy chủ báo coTheKhoa. -->
+      <div id="ky-khoa-khu"></div>
+    </section>
+  </div>
+</main>
+<script type="module" src="/js/khoa-thang.js"></script>
+</body></html>

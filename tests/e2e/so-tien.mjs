@@ -98,7 +98,7 @@ const fldB = await me(await session(ACCOUNTS.fieldB));
   const so = (await call(ACC, "GET", "/api/ledger")).body;
   const cho = so.choXacNhan.find((x) => x.orderId === o.id);
   assert.ok(cho, "khoản Công ty thu – CK nằm trong danh sách chờ xác nhận");
-  assert.equal((await call(ACC, "POST", `/api/ledger/company-receipts/${cho.receiptId}/confirm`, {})).status, 200);
+  assert.equal((await call(ACC, "POST", `/api/ledger/company-receipts/${cho.receiptId}/confirm`, { maGiaoDich: "E2EST0001", soThucChuyen: 100000 })).status, 200); // ADR-0092 Đ6: xác nhận khoản CK đòi mã giao dịch + số thực chuyển
   const hdvParty = (await sqlRows(`SELECT collector_party_id AS p FROM bil_payment_receipt WHERE order_id = '${o.id}' AND collector_role_code = 'STAFF'`))[0].p;
   const nop = await call(ACC, "POST", "/api/ledger/settlements", { chieu: "nop", partyId: hdvParty, phanBo: [{ orderId: o.id, soTien: tong - 100000 }] });
   assert.ok([200, 201].includes(nop.status), JSON.stringify(nop.body));
@@ -132,7 +132,7 @@ const fldB = await me(await session(ACCOUNTS.fieldB));
     assert.equal((await call(F, "POST", `/api/orders/${o.id}/payments`, { soTien: 100000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201, "HDV khai Công ty thu – CK");
     const ck = (await sqlRows(`SELECT id FROM bil_payment_receipt WHERE order_id = '${o.id}' AND collector_role_code = 'COMPANY'`))[0].id;
     const nop = () => call(ACC, "POST", "/api/ledger/settlements", { chieu: "nop", partyId: hdvParty, phanBo: [{ orderId: o.id, soTien: 100000 }] });
-    const xacNhan = () => call(ACC, "POST", `/api/ledger/company-receipts/${ck}/confirm`, {});
+    const xacNhan = () => call(ACC, "POST", `/api/ledger/company-receipts/${ck}/confirm`, { maGiaoDich: `E2E-VP01-${thuTu}`, soThucChuyen: 100000 }); // ADR-0092 Đ6
     if (thuTu === "nop-truoc") {
       assert.equal((await nop()).status, 201);
       const x = await xacNhan();
@@ -169,9 +169,9 @@ const fldB = await me(await session(ACCOUNTS.fieldB));
   const cu = (await sqlRows(`SELECT id FROM bil_payment_receipt WHERE order_id = '${o.id}' AND reverses_id IS NULL`))[0].id;
   const dao = await call(ACC, "POST", "/api/ledger/adjustments", { loai: "dao_lan_thu", receiptId: cu, lyDo: "ghi nhầm người thu" });
   assert.equal(dao.body?.error?.code, "receipt_after_delivered", JSON.stringify(dao.body));
-  const lech = await call(ACC, "POST", "/api/ledger/receipt-replacements", { orderId: o.id, cu: [cu], moi: [{ soTien: tong - 1, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" }], lyDo: "Khách chuyển khoản cho công ty" });
+  const lech = await call(ACC, "POST", "/api/ledger/receipt-replacements", { orderId: o.id, cu: [cu], moi: [{ soTien: tong - 1, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", maGiaoDich: "E2EST0002", soThucChuyen: tong - 1 }], lyDo: "Khách chuyển khoản cho công ty" });
   assert.equal(lech.body?.error?.code, "replacement_i1", JSON.stringify(lech.body));
-  const thay = await call(ACC, "POST", "/api/ledger/receipt-replacements", { orderId: o.id, cu: [cu], moi: [{ soTien: tong, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" }], lyDo: "Khách chuyển khoản cho công ty" });
+  const thay = await call(ACC, "POST", "/api/ledger/receipt-replacements", { orderId: o.id, cu: [cu], moi: [{ soTien: tong, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", maGiaoDich: "E2EST0003", soThucChuyen: tong }], lyDo: "Khách chuyển khoản cho công ty" });
   assert.equal(thay.status, 201, JSON.stringify(thay.body));
   const p = (await call(ACC, "GET", `/api/orders/${o.id}/payments`)).body;
   assert.deepEqual([p.daThu, p.keToan.dangGiu.length, p.coTheHoanThanh], [tong, 0, true], "đã thu giữ nguyên; HDV hết giữ; Hoàn thành được");

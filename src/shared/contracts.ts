@@ -47,7 +47,11 @@ export interface StaffRolesRequest { roles: RoleCode[]; adds?: PermissionCode[];
 export interface StaffRolesResponse { roles: RoleCode[]; adds: PermissionCode[]; removes: PermissionCode[]; reason: string | null }
 
 /** `maintenance` chỉ có ở `GET /api/auth/me` (không có ở phản hồi đăng nhập): chế độ bảo trì đang BẬT thì chỉ Toàn quyền mới tới được đây (ADR-0071), để giao diện hiện dải "Đang ở chế độ bảo trì". */
-export interface MeResponse { staff: StaffProfile; maintenance?: MaintenanceStatusDto }
+/**
+ * `benDatCuaToi` chỉ có ở `GET /api/auth/me` (sổ đại lý đợt 1, Task 11; Ruling 21): khác null khi và chỉ khi máy chủ SẼ ép bên đặt của đơn mới về chính hồ sơ của tài khoản này — tài khoản giữ quyền
+ * Đối tác, có hồ sơ, và hồ sơ đang mang ít nhất một vai trong danh sách được hưởng hoa hồng (cùng điều kiện `benDatChoTaiKhoan`). Giao diện chỉ ĐỌC trường này để hiện dòng "Bên đặt: <tên>"; chỉ id + tên, không liên hệ.
+ */
+export interface MeResponse { staff: StaffProfile; maintenance?: MaintenanceStatusDto; benDatCuaToi?: { partyId: string; ten: string } | null }
 /**
  * `GET /api/auth/config` (công khai): khoá site để trang đăng nhập dựng widget Turnstile; null = máy chủ không bật Turnstile (đừng dựng widget, đăng nhập không cần token).
  * `maintenance`: trang đăng nhập hiện banner + đếm ngược khi đang bảo trì. KHÔNG lộ ai được phép.
@@ -264,6 +268,8 @@ export interface OrderDto {
 
 export interface OrderDetailDto extends OrderDto {
   services: OrderServiceDto[];
+  /** Bên đặt đang mang một vai được hưởng hoa hồng (sổ đại lý đợt 1) — máy chủ tính từ vai ĐANG MỞ của hồ sơ bên đặt; false khi đơn không có bên đặt. Chỉ cờ: không tỷ lệ, không tiền. */
+  bookerLaDoiTac: boolean;
 }
 
 /** Thông tin chuyến rút gọn cho thẻ trong danh sách đơn — lấy từ dịch vụ ĐẦU TIÊN theo sort_order của đơn (không gộp nhiều dịch vụ). */
@@ -1812,6 +1818,9 @@ export interface LanThuDto {
   nguoiGhi: string | null;
   ghiChu: string | null;
   ghiLuc: string;
+  /** ADR-0092 Đ6: mã giao dịch ngân hàng đã chuẩn hoá + số tiền thực chuyển — CHỈ có khoá này khi người xem giữ `ledger.write` (Kế toán, Toàn quyền). */
+  maGiaoDich?: string;
+  soThucChuyen?: number;
 }
 
 /** `GET /api/orders/:id/payments` — tiền của MỘT đơn + lý do đang giữ + nút nào được hiện (máy chủ vẫn kiểm lại khi bấm). */
@@ -1933,6 +1942,9 @@ export interface LanThuInput {
   nguoiThu: "toi" | "cong_ty" | { partyId: string };
   ngayPhatSinh?: string;
   ghiChu?: string;
+  /** ADR-0092 Đ6 (C1): BẮT BUỘC khi hình thức chuyển khoản + Công ty thu + người ghi là Kế toán / Toàn quyền; người khác gửi ⇒ 400. */
+  maGiaoDich?: string;
+  soThucChuyen?: number;
 }
 
 /** `POST /api/ledger/balances` — tiền từng đơn (chỉ đơn người gọi được xem tiền; đơn khác bị bỏ khỏi kết quả). */
@@ -1966,6 +1978,23 @@ export interface SoCongNoResponse {
   soDu: { partyId: string; ten: string; dangGiu: number }[];
   choXacNhan: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string; nguoiKhai: string }[];
   chuaRo: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string }[];
+}
+
+/**
+ * `GET /api/ledger/ky` và thân `201` của `POST /api/ledger/ky/:period/khoa` (khoá sổ tháng — ADR-0080 D1; Kế toán, Toàn quyền). `keTiep` = tháng khoá được kế tiếp (null = hết
+ * tháng đã qua để khoá); `bangKiem` = bảng kiểm của tháng đó trước khi bấm khoá (null khi `keTiep` null): khoản "Công ty thu" còn chờ xác nhận, lần thu chưa rõ người thu
+ * (chỉ mã đơn, số tiền, ngày — không SĐT, không mã giao dịch) và số dư mỗi bên với công ty tính đến cuối tháng. `coTheKhoa` = người xem có ô khoá VÀ còn tháng để khoá.
+ */
+export interface KySoResponse {
+  daKhoa: string[];
+  keTiep: string | null;
+  coTheKhoa: boolean;
+  bangKiem: {
+    thang: string;
+    choXacNhanCongTy: { orderCode: string | null; amount: number; ngay: string }[];
+    chuaRoNguoiThu: { orderCode: string | null; amount: number; ngay: string }[];
+    soDuCuoiThang: { ten: string; soDu: number }[];
+  } | null;
 }
 
 // ---- Biên nhận (module receipt — ADR-0024 đ1, ADR-0026 đ11) -------------------------------------------------------------------------------------
@@ -2020,6 +2049,52 @@ export interface ReceiptDto {
   huy: { nhom: "KHACH_HUY" | "CONG_TY_HUY" | "LAP_LAI" | "CHUA_KET_LUAN"; daTra: number; dangDoiChieu: number; daDuyet: number; daChi: number; daChuyen: number; daDuyetChuyen: number; han: string } | null;
 }
 export interface ReceiptResponse { receipt: ReceiptDto }
+
+/** Một ngân hàng trong danh sách chọn (ADR-0108 đ2). */
+export interface NganHangDto {
+  ma: string;
+  ten: string;
+}
+/** Tài khoản nhận tiền đang mở của công ty chủ — CHỈ người giữ ô `company.legal.write` đọc được (route có kiểm). */
+export interface TaiKhoanNhanTienDto {
+  id: string;
+  maNganHang: string;
+  nganHang: string;
+  soTaiKhoan: string;
+  chuTaiKhoan: string;
+  tuLuc: string;
+}
+/** `GET|PUT /api/parties/:id/tai-khoan-nhan-tien`. */
+export interface TaiKhoanNhanTienResponse {
+  hienTai: TaiKhoanNhanTienDto | null;
+  nganHang: NganHangDto[];
+}
+/** Thân `PUT /api/parties/:id/tai-khoan-nhan-tien`. `truocDo` = id dòng đang mở mà người sửa đã thấy (null = chưa có). */
+export interface TaiKhoanNhanTienInput {
+  maNganHang: string;
+  soTaiKhoan: string;
+  chuTaiKhoan: string;
+  truocDo: string | null;
+}
+
+/**
+ * `GET /api/orders/:id/qr-thanh-toan` (ADR-0108 đ3; đặc tả QR §4.2, §7). DANH SÁCH TRẮNG: chuỗi VietQR + đúng các dòng in dưới mã. KHÔNG hoa hồng, giá vốn,
+ * nợ nội bộ, tên người thu (Hiến chương 4.4). Thêm trường = sửa bài khoá khoá ở src/modules/receipt/qr-thanh-toan.test.ts.
+ */
+export interface QrThanhToanDto {
+  payload: string;
+  soTien: number;
+  conLai: number;
+  maDon: string;
+  noiDung: string;
+  congTy: string;
+  nganHang: string;
+  soTaiKhoan: string;
+  chuTaiKhoan: string;
+}
+export interface QrThanhToanResponse {
+  qr: QrThanhToanDto;
+}
 
 // ---- Trợ lý Hỗ trợ (ADR-0066, module tro-ly) ----
 /** Thân `POST /api/tro-ly/hoi`. Máy chủ che SĐT / email / số giấy tờ và cắt 500 ký tự trước khi gửi đi. `cuocTroChuyen` (ADR-0073 Đ4): mã ngẫu nhiên khung sinh —
@@ -2182,3 +2257,47 @@ export interface BangKeResponse {
   soThieuGia: number;
   nhom: BangKeNhomDto[];
 }
+
+// ===== Sổ đại lý đợt 1 (ADR-0077, ADR-0078 B1; module pricing) =====
+/** Đối tượng của một dòng mức: một LOẠI đối tác (vai) hoặc MỘT đối tác cụ thể. `ten` là tên lời thường (tên vai / tên hồ sơ) — không SĐT. */
+export type DoiTuongMucDto = { loai: "VAI"; code: string; ten: string } | { loai: "DOI_TAC"; partyId: string; ten: string };
+export interface CommissionRuleDto {
+  id: string; doiTuong: DoiTuongMucDto; phamVi: "SERVICE" | "GROUP" | "ALL"; catalogCode: string | null; groupCode: string | null;
+  kieu: "RATE" | "PER_PAX"; tyLeBp: number | null; moiKhach: number | null; tuNgay: string; denNgay: string | null; ghiChu: string | null; conHieuLuc: boolean;
+}
+export interface CommissionRuleListResponse { homNay: string; dong: CommissionRuleDto[]; vai: { code: string; ten: string }[] }
+export interface SupplyTermDto {
+  id: string; phamVi: "SERVICE" | "GROUP" | "ALL"; catalogCode: string | null; groupCode: string | null; nguoiBan: { partyId: string; ten: string; laCongTy: boolean };
+  tyLeMuaBp: number | null; tuNgay: string; denNgay: string | null; ghiChu: string | null; conHieuLuc: boolean;
+}
+export interface SupplyTermListResponse { homNay: string; dong: SupplyTermDto[]; nhaCungCap: { partyId: string; ten: string }[]; congTyChu: { partyId: string; ten: string } | null }
+/** Kết quả "thử tra": đối tác + dịch vụ + ngày ⇒ mức nào thắng, ở bậc nào. `lyDo` là câu tiếng Việt (không mã thô). */
+export interface ThuTraResponse {
+  ngay: string;
+  nguoiHuong: { loai: "NONE" | "HUONG" | "KHONG_HUONG"; vai: string[] };
+  ketQua: { trangThai: "NONE" } | { trangThai: "SET"; bac: 1 | 2 | 3 | 4 | 5 | 6; muc: CommissionRuleDto } | { trangThai: "MISSING"; lyDo: string };
+}
+export interface NguoiHuongTimResponse { ketQua: { partyId: string; ten: string; loai: "PERSON" | "ORGANIZATION" }[] }
+
+// ===== Phần thương mại của đơn (sổ đại lý đợt 1 — ADR-0077 điều 10–11; đặc tả §6). HAI DTO danh sách trắng: văn phòng thấy mức, hoa hồng, giá đại lý, cờ thiếu mức;
+// Đối tác (`holdsPartner`, kể cả tài khoản lai) CHỈ thấy số tiền hoa hồng của mình — không tỷ lệ, không đ/khách, không giá vốn, không mã nguồn (C9 = A).
+export interface ThuongMaiDongVanPhong {
+  serviceId: string; ten: string; thanhTien: number; soKhachTinh: number;
+  /** "12%" / "50.000đ/khách"; null khi thiếu mức hoặc không người hưởng. */
+  muc: string | null; hoaHong: number | null; giaDaiLy: number | null; ghiTay: boolean;
+  /** Câu tiếng Việt khi thiếu mức; null khi đủ. Giao diện ghi thêm "Thiếu mức — Kế toán xử lý". */
+  thieu: string | null;
+  nguoiBan: { ten: string; laCongTy: boolean } | null;
+  /** Chỉ khi người gọi có `supply.terms.view` VÀ người bán là nhà cung cấp. */
+  nhaCungCap?: { tyLeMua: string; giaVon: number };
+}
+export interface ThuongMaiVanPhongDto {
+  duKien: boolean; chuaChup: boolean; nguoiHuong: { ten: string } | null;
+  dong: ThuongMaiDongVanPhong[]; tong: { thanhTien: number; hoaHong: number | null; giaDaiLy: number | null };
+}
+export interface ThuongMaiDoiTacDto {
+  duKien: boolean; choCongTyCaiMuc: boolean;
+  dong: { serviceId: string; ten: string; thanhTien: number; hoaHong: number | null; giaDaiLy: number | null }[];
+  tong: { thanhTien: number; hoaHong: number | null; giaDaiLy: number | null };
+}
+export type ThuongMaiResponse = { vanPhong: ThuongMaiVanPhongDto } | { doiTac: ThuongMaiDoiTacDto };

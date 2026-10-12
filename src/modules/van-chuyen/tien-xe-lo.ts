@@ -5,6 +5,9 @@ import type { CauCoNhan, LenhChung } from "./dieu-phoi";
 // Đuôi .ts: sổ vàng (src/so-vang-chi-phi-xe.test.ts) nạp THẲNG tệp này bằng node --test để chạy đúng kế hoạch chi phí của lô chuyến (vòng sửa 1, V-2).
 import { LY_DO_PHI_HUY_MUON, chonDongGiaThue, chuTien, coXeCua, dongBiDaoKhi, ngayGhiDao, tongChiPhiChuyen, type CoXe, type DongChiPhi, type DongGiaThue } from "./tien-xe.ts";
 import { COST_REVERSE, COST_SNAPSHOT, type CostLineRow } from "./tien-xe-repo.ts";
+// Khoá tháng (ADR-0080): `kyCua` lấy THẲNG từ tệp thuần `src/shared/ky-khoa.ts` (kèm đuôi .ts) — sổ vàng nạp tệp này bằng node --test, mà `ky-so/index.ts` kéo theo `audit`
+// (đường dẫn thư mục không đuôi) nên không import được ở đây (cùng cách của billing — Ruling Task 7). Câu báo tháng khoá vẫn MỘT nguồn (`cauKyKhoa`), dựng ở nơi gọi.
+import { kyCua } from "../../shared/ky-khoa.ts";
 
 export type LyDoDaoHeThong = "CPX_DOI_CHUYEN" | "CPX_HUY_CHUYEN";
 export interface ChupMoi { id: string; rateId: string; amount: number; carrierPartyId: string; routeCode: string | null; sizeCode: string | null; soCho: number; ngayChay: string }
@@ -42,8 +45,10 @@ export const dongCua = (r: CostLineRow): DongLo => ({
  */
 export function keHoachChiPhiKhiDoi(v: {
   dong: readonly DongLo[];
-  /** Ngày hiện tại (giờ VN) — `ngayGhiDao` dùng khi kỳ của dòng gốc đã khoá (chỗ nối ADR-0080). */
+  /** Ngày hiện tại (giờ VN) — `ngayGhiDao` dùng khi kỳ của dòng gốc đã khoá (ADR-0080). */
   homNay: string;
+  /** Tháng của ngày này đã khoá sổ chưa — nơi gọi đọc tháng đã khoá MỘT lần (`kyDaKhoaTu`) trước khi lập kế hoạch. */
+  kyDaKhoa: (ngay: string) => boolean;
   rentedMoi: 0 | 1;
   chuXeMoi: string;
   nhaXeDangMo: ReadonlySet<string>;
@@ -56,14 +61,14 @@ export function keHoachChiPhiKhiDoi(v: {
   ngayChayMoi: string;
   gia: readonly DongGiaThue[];
   coXe: readonly CoXe[];
-}): { ok: true; kh: KeHoachChiPhi } | { ok: false; loi: "carrier_inactive" } {
+}): { ok: true; kh: KeHoachChiPhi } | { ok: false; loi: "carrier_inactive" } | { ok: false; loi: "period_closed"; thang: string } {
   const tong = tongChiPhiChuyen(v.dong);
   const canChupLai = v.laTaoMoi || v.doiXeHoacNhaXe || v.doiTuyen || v.doiNgay;
   if (!canChupLai) return { ok: true, kh: KE_HOACH_RONG(v.dong.length, tong) };
   if (v.rentedMoi === 1 && !v.nhaXeDangMo.has(v.chuXeMoi)) return { ok: false, loi: "carrier_inactive" };
   const theoId = new Map(v.dong.map((d) => [d.id, d]));
   const dao: DaoMot[] = dongBiDaoKhi(v.dong, "DOI_CHUYEN").map((d) => ({
-    id: crypto.randomUUID(), goc: { id: d.id, amount: d.amount, carrierPartyId: theoId.get(d.id)!.carrierPartyId }, lyDo: "CPX_DOI_CHUYEN", ngay: ngayGhiDao(theoId.get(d.id)!, { homNay: v.homNay }),
+    id: crypto.randomUUID(), goc: { id: d.id, amount: d.amount, carrierPartyId: theoId.get(d.id)!.carrierPartyId }, lyDo: "CPX_DOI_CHUYEN", ngay: ngayGhiDao(theoId.get(d.id)!, { homNay: v.homNay, kyDaKhoa: v.kyDaKhoa }),
   }));
   let chup: ChupMoi | null = null;
   if (v.rentedMoi === 1) {
@@ -71,6 +76,8 @@ export function keHoachChiPhiKhiDoi(v: {
     const g = chonDongGiaThue({ carrierPartyId: v.chuXeMoi, routeCode: v.tuyenMoi, sizeCode, ngayChay: v.ngayChayMoi }, v.gia);
     if (g) chup = { id: crypto.randomUUID(), rateId: g.id, amount: g.amount, carrierPartyId: v.chuXeMoi, routeCode: v.tuyenMoi, sizeCode, soCho: v.soChoMoi, ngayChay: v.ngayChayMoi };
   }
+  // ADR-0080: dòng CHỤP mang NGÀY CHẠY (không có "hôm nay" thay thế — giá phải tính theo ngày chạy). Ngày chạy thuộc tháng đã khoá ⇒ cả lệnh bị từ chối, không đảo lẻ.
+  if (chup && v.kyDaKhoa(chup.ngayChay)) return { ok: false, loi: "period_closed", thang: kyCua(chup.ngayChay) };
   return {
     ok: true,
     kh: {
@@ -81,13 +88,16 @@ export function keHoachChiPhiKhiDoi(v: {
 }
 
 /** Lô huỷ chuyến trước xuất bến (ADR-0057 C4): đảo MỌI dòng còn hiệu lực (âm trước, dương sau) ⇒ tổng 0; phí huỷ Kế toán ghi tay sau. */
-export function keHoachChiPhiKhiHuy(dong: readonly DongLo[], homNay: string): KeHoachChiPhi {
+export function keHoachChiPhiKhiHuy(dong: readonly DongLo[], homNay: string, kyDaKhoa: (ngay: string) => boolean): KeHoachChiPhi {
   const theoId = new Map(dong.map((d) => [d.id, d]));
   const dao: DaoMot[] = dongBiDaoKhi(dong, "HUY_CHUYEN").map((d) => ({
-    id: crypto.randomUUID(), goc: { id: d.id, amount: d.amount, carrierPartyId: theoId.get(d.id)!.carrierPartyId }, lyDo: "CPX_HUY_CHUYEN", ngay: ngayGhiDao(theoId.get(d.id)!, { homNay }),
+    id: crypto.randomUUID(), goc: { id: d.id, amount: d.amount, carrierPartyId: theoId.get(d.id)!.carrierPartyId }, lyDo: "CPX_HUY_CHUYEN", ngay: ngayGhiDao(theoId.get(d.id)!, { homNay, kyDaKhoa }),
   }));
   return { dao, chup: null, phienBan: dong.length, daoDieuChinh: dao.filter((d) => theoId.get(d.goc.id)!.kind === "ADJUSTMENT").length, tongTruoc: tongChiPhiChuyen(dong), tongSau: 0, phiHuyBiDao: phiHuyBiDaoCua(dao, theoId) };
 }
+
+/** Các ngày phát sinh của dòng chi phí MỚI trong kế hoạch (dòng đảo + dòng chụp) — để dịch lỗi trigger `period_closed:` ra đúng tháng vừa khoá (`cauTriggerKhoa`). */
+export const ngayCuaKeHoach = (kh: KeHoachChiPhi): string[] => [...kh.dao.map((d) => d.ngay), ...(kh.chup ? [kh.chup.ngayChay] : [])];
 
 /** Câu chi phí cho lô (mọi câu mang lính gác dấu lệnh — bài thứ tự lô). `dao` đặt TRƯỚC câu ghi chuyến, `chup` SAU. */
 export function cauChiPhi(db: D1Database, l: LenhChung, tripId: string, kh: KeHoachChiPhi): { dao: CauCoNhan[]; chup: CauCoNhan[] } {

@@ -74,7 +74,7 @@ test("DK-T2-01 effectiveService: dòng đọc lên thiếu đơn giá → lùi v
 });
 
 const order = (): OrderDetailDto => ({
-  id: "o1", orderCode: "TD-1", staffId: "s1", staffName: "A", bookerPartyId: null, bookerName: null,
+  id: "o1", orderCode: "TD-1", staffId: "s1", staffName: "A", bookerPartyId: null, bookerName: null, bookerLaDoiTac: false,
   status: "confirmed", customerName: "K", customerPhone: "090", customerEmail: null, customerNote: null,
   subtotal: 2 * DEAL, discount: 0, total: 2 * DEAL,
   paymentNote: null, createdAt: "t", updatedAt: "t", confirmedAt: "t", deliveredAt: null, completedAt: null,

@@ -6,6 +6,7 @@
 // trigger `bil_posting_delivered_paid` (migration 0045) — bài đối chiếu ở rules.test.ts.
 // "Phải thu hiện hành" KHÔNG tính ở đây: `orders` công bố nó (một hàm tính tiền của đơn — `effectiveMoney`), billing nhận số.
 
+import { cauKyKhoa, kyCua } from "../../shared/ky-khoa.ts";
 import type { NhomHuy } from "../../shared/ly-do-huy.ts";
 
 export type ReceiptKind = "CUSTOMER_PAYMENT" | "CUSTOMER_REFUND";
@@ -456,7 +457,7 @@ export function lyDoChuaGiaoDuoc(input: {
     return { ma: "before_departure", cau: `Chưa tới ngày đi (${ngayVn(muonNhat)}) — bấm từ ngày đi trở đi.`, aiXuLy: "Hướng dẫn viên" };
   }
   if (input.coNguoiHuong) {
-    return { ma: "booker_partner", cau: "Đơn của đối tác (có người hưởng hoa hồng) — chưa bấm Đã giao được cho tới khi có phần hoa hồng.", aiXuLy: "Văn phòng" };
+    return { ma: "booker_partner", cau: "Đơn của đối tác (có người hưởng hoa hồng) — chưa bấm Đã giao được cho tới bản cập nhật sổ đại lý.", aiXuLy: "Văn phòng" };
   }
   if (input.so.chuaRo > 0) {
     return { ma: "unknown_collector", cau: "Còn tiền trả trước chưa rõ người thu — Kế toán xác nhận lại người thu trước.", aiXuLy: "Kế toán" };
@@ -495,8 +496,11 @@ export function lyDoChuaHoanThanh(input: {
   return null;
 }
 
-/** Ngày phát sinh (Hiến chương 5.14): mặc định hôm nay giờ VN; chỉ Kế toán/Toàn quyền chọn ngày khác (NT-S8). Trả lỗi tiếng Việt nếu không được. */
-export function ngayPhatSinh(input: { chon: unknown; homNay: string; laKeToan: boolean }): { ok: true; value: string } | { ok: false; message: string } {
+/**
+ * Ngày phát sinh (Hiến chương 5.14): mặc định hôm nay giờ VN; chỉ Kế toán/Toàn quyền chọn ngày khác (NT-S8). Trả lỗi tiếng Việt nếu không được.
+ * Ngày chọn thuộc tháng ĐÃ KHOÁ sổ (ADR-0080 D1) ⇒ lỗi kèm `khoa: true` (route đổi sang 409 `period_closed`); mặc định hôm nay không cần kiểm (tháng hiện tại không khoá được).
+ */
+export function ngayPhatSinh(input: { chon: unknown; homNay: string; laKeToan: boolean; kyDaKhoa: (ngay: string) => boolean }): { ok: true; value: string } | { ok: false; message: string; khoa?: true } {
   if (input.chon === undefined || input.chon === null || input.chon === "") return { ok: true, value: input.homNay };
   if (typeof input.chon !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(input.chon) || Number.isNaN(Date.parse(`${input.chon}T00:00:00Z`))) {
     return { ok: false, message: "Ngày phát sinh không hợp lệ." };
@@ -504,5 +508,6 @@ export function ngayPhatSinh(input: { chon: unknown; homNay: string; laKeToan: b
   if (new Date(`${input.chon}T00:00:00Z`).toISOString().slice(0, 10) !== input.chon) return { ok: false, message: "Ngày phát sinh không hợp lệ." };
   if (input.chon !== input.homNay && !input.laKeToan) return { ok: false, message: "Chỉ Kế toán chọn được ngày phát sinh khác hôm nay." };
   if (input.chon > input.homNay) return { ok: false, message: "Ngày phát sinh không được sau hôm nay." };
+  if (input.kyDaKhoa(input.chon)) return { ok: false, message: cauKyKhoa(kyCua(input.chon)), khoa: true };
   return { ok: true, value: input.chon };
 }

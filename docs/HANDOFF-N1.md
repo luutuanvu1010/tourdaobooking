@@ -2,7 +2,35 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.81 ĐÃ LÊN PRODUCTION (Vận chuyển Đợt 7: cam kết "xe riêng" / "xe tối thiểu N chỗ" trên chặng đưa đón, ADR-0056 VK3-A) — migration `0077_cam_ket_chang` đã áp (2026-10-05 18:43 giờ VN)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.87 ĐÃ LÊN PRODUCTION (sổ đại lý đợt 1: mức hoa hồng theo đối tác × dịch vụ/nhóm, bản chụp mức lúc xác nhận, màn «Hoa hồng đối tác» / «Người bán dịch vụ» / «Khoá sổ tháng», «Đặt qua đối tác», «Phần đối tác»; ADR-0077, ADR-0078 B1, ADR-0080 D1) — migration `0090_so_dai_ly_dot_1` đã áp (2026-10-12 13:42 giờ VN)
+
+Khối do `npm run trien-khai` in ra (chủ chạy), kèm phần AI tự kiểm lại bằng lệnh chỉ đọc sau khi chủ báo đã triển khai (2026-10-12):
+
+- **Commit:** `857251dc` (= `origin/main` lúc triển khai). Điểm khôi phục Time Travel trước khi áp: `00000ea3-00000004-00005102-3c1385673923edfa361c8f669906bcbe`.
+- **Worker** (`wrangler deployments list`): mới nhất **7710d9bf-37a0-4e14-89cd-6b13eee1422d** (2026-10-12T06:42:51Z, 100%); trước đó d5c6d6a8-e4b4-47ef-b937-9234b6d290fe (2026-10-08T10:35Z = bản 1.86).
+- **Phiên bản:** cổng trước và sau deploy ĐẠT; `GET /api/auth/config` → `"version":"1.87"`, bảo trì TẮT.
+- **Migration:** `wrangler d1 migrations list --remote` → "No migrations to apply!" (`0090` đã áp).
+- **Dữ liệu:** `audit-invariants --db remote` (chủ chạy trong `trien-khai` và AI chạy lại) → "Mọi bất biến đạt, 4 cảnh báo": 22 lần thu «người thu chưa rõ» (cọc cũ chuyển sang sổ — việc Kế toán của sổ tiền lượt 1); `R-VC-14` 7 xe thiếu giấy tờ xuất bến; `R-CTL-1` 3 dịch vụ chưa gán nhóm (Quản trị gán ở màn Danh mục); `R-ORD-T1w` 42 đơn đã xác nhận trước 0090 chưa có bản chụp thương mại (chờ chụp bù ở đợt 2 — đặc tả §9). `R-ORD-T1` (đơn mới sau ân hạn 60 phút) và `R-KY-1`, `R-KY-2`, `R-PRC-1…5`, `R-ORD-T2` đều ✓.
+- **Kiểm trước phát hành (nhánh `claude/so-tien-luot-2-dai-ly`):** typecheck 0; `npm test` 3799 bài / 0 đỏ (một bài `standards` chỉ đỏ khi chạy ngoài kho git); e2e ĐỦ BỘ 54/54 + `audit-invariants --strict` đạt ở cả ba nhóm; Chrome `so-dai-ly-smoke` 80/80 và `a2-smoke-order` 11/11 có `AXE_JS`; 14 phép phá cố ý đều đỏ đúng chỗ; kiểm độc lập toàn nhánh (mô hình mạnh nhất) ĐẠT — `docs/superpowers/specs/2026-10-08-so-dai-ly-dot-1/kiem-doc-lap-thi-cong.md`. Sổ: `docs/superpowers/plans/2026-10-08-so-dai-ly-dot-1-thi-cong-nhat-ky.md`.
+- **Giới hạn đã biết:** đợt 1 chỉ gắn được hoa hồng cho đại lý là hồ sơ CÁ NHÂN có tài khoản đối tác (hồ sơ tổ chức chưa mang được vai được hưởng — cần ADR); mức ghi tay bị tính lại khi đổi bên đặt đơn đã xác nhận (chủ chọn «ghi nợ» 12/10); đợt 2, đợt 3 chưa làm. Nợ và việc treo: `docs/BACKLOG.md` mục 26–27, mục «Việc còn treo» cuối tệp này.
+- **Chưa kiểm:** iPhone thật; các màn mới trên production bằng tài khoản thật (chưa ai mở sau triển khai).
+- Bản 1.86 có mục riêng ngay bên dưới (gồm cả 1.85); các bản 1.82–1.84 xem ghi chú ở mục 1.81 phía dưới nữa.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.86 ĐÃ LÊN PRODUCTION (QR thanh toán VietQR — ADR-0108; mã giao dịch ngân hàng bắt buộc — ADR-0092 Đ6; gồm cả 1.85) — migration `0087_pty_tai_khoan_nhan_tien`, `0088_bil_ma_giao_dich` đã áp (2026-10-08 17:35 giờ VN)
+
+Chủ dự án tự chạy `npm run day-len -- claude/ticket-sales-qr-payment-cf8e18` rồi `npm run trien-khai` (2026-10-08 chiều). Kết quả do `trien-khai` in ra và AI kiểm lại bằng lệnh chỉ đọc ngay sau đó:
+
+- **Phiên bản:** `kiem-phien-ban.mjs` trước deploy ĐẠT (máy 1.86 > production 1.84), sau deploy ĐẠT ("production đang chạy đúng bản 1.86"); `GET /api/auth/config` → `"version":"1.86"`. Mã = `43857d7a` (= `origin/main` lúc phát hành).
+- **Worker** (`wrangler deployments list`): mới nhất **d5c6d6a8-e4b4-47ef-b937-9234b6d290fe** (2026-10-08T10:35Z). Trước đó 72d2dc12-92aa-4149-ab97-97905f0b747d (2026-10-05T23:40Z, bản 1.84).
+- **Migration:** `0087`, `0088` áp lúc phát hành; `wrangler d1 migrations list --remote` sau đó → "No migrations to apply!". Điểm khôi phục Time Travel trước khi áp: `00000cc3-00000000-000050fe-4e5b8fb1acc4d276bbc1e552d0f72f84`.
+- **Dữ liệu:** `audit-invariants --db remote` → "Mọi bất biến đạt, 3 cảnh báo" (R-VC-14: 7 xe thiếu giấy tờ điều kiện xuất bến; R-CTL-1: 3 dịch vụ chưa gán nhóm; thông tin 22 lần thu người thu chưa rõ — cả ba có từ trước); **R-BIL-D6a, R-BIL-D6b (mới) đạt** — không lần thu nào ghi thiếu mã trong khoảng giữa migration và deploy.
+- **Kiểm trước phát hành:** typecheck 0; npm test 3445 (3443 đạt, 0 đỏ, 2 để dành); e2e đủ bộ 52/52 (483 giây, trong `trien-khai`); người kiểm độc lập + người kiểm cuối nhánh ĐẠT sau một lượt sửa; chủ quét QR thật bằng MB Bank và Vietcombank đúng cả bốn thứ. Sổ: `docs/superpowers/plans/2026-10-08-qr-thanh-toan-thi-cong-nhat-ky.md`.
+- **Route mới:** `GET /api/orders/:id/qr-thanh-toan` và `GET /api/parties/:id/tai-khoan-nhan-tien` không đăng nhập → 401 (lần gọi đầu ngay sau deploy có một lần 404 do bản cũ còn ở vài nơi, gọi lại 401).
+- **Bảo trì:** `GET /api/auth/config` báo đang BẬT tới 2026-10-10 11:50 giờ VN (`endsAt` 2026-10-10T04:50Z) — chủ bật từ trước, không do lần phát hành này.
+- **Việc của chủ sau phát hành:** cài tài khoản nhận tiền thật ở Danh bạ → Công ty TNHH Tour Đảo → "Tài khoản nhận tiền" (chưa cài thì nút QR báo "Công ty chưa cài tài khoản nhận tiền"). AI không kiểm được việc này (không đăng nhập production).
+- **Chưa kiểm:** nút "Lưu ảnh" trên iPhone thật.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.81 ĐÃ LÊN PRODUCTION (Vận chuyển Đợt 7: cam kết "xe riêng" / "xe tối thiểu N chỗ" trên chặng đưa đón, ADR-0056 VK3-A) — migration `0077_cam_ket_chang` đã áp (2026-10-05 18:43 giờ VN)
 
 > **Ghi chú 2026-10-06:** bản **1.84** (`kiem-phien-ban.mjs --sau-deploy` ĐẠT; migration remote "No migrations to apply") nay đã chạy trên production và chứa cả **Tốc độ đợt 1** (ADR-0102, mục nhật ký 1.83). Mục trạng thái của 1.83/1.84 do phiên làm bản 1.84 ghi; dòng này chỉ trỏ tới, không thay.
 
@@ -731,6 +759,40 @@ npm run trien-khai
 4. **Thử tay bằng hai tài khoản thật** (hai máy hoặc một máy + một cửa sổ ẩn danh): A mở "Đơn hàng", B lập một đơn → dòng mới hiện ở A trong vài giây không cần bấm tải lại; B bấm "Nhận phụ trách" (hoặc xác nhận/huỷ) một đơn → A thấy thông báo nhỏ. Ghi kết quả vào mục "TRẠNG THÁI TRIỂN KHAI" đầu tệp kèm số phiên bản và Version ID Worker.
 5. Không tạo/sửa tài khoản, quyền, hồ sơ trên production trong "cửa sổ đóng băng" (phần Hoàn tác) — lần này không cần thao tác nào như vậy.
 
+## Lần phát hành kế tiếp: QR thanh toán + mã giao dịch ngân hàng (ADR-0108, ADR-0092 Đ6; migration `0087`, `0088`) — RUNBOOK
+
+**Trạng thái: ĐÃ phát hành bản 1.86 ngày 2026-10-08 17:35 giờ VN** (xem mục "TRẠNG THÁI TRIỂN KHAI" ở đầu tệp; phần dưới giữ làm hướng dẫn điểm lùi). Mọi bước sau A.0 do `npm run trien-khai` làm như thường; mục này chỉ ghi điều KHÁC. Đặc tả: `docs/superpowers/specs/2026-10-08-qr-thanh-toan/README.md`; nhật ký thi công: `docs/superpowers/plans/2026-10-08-qr-thanh-toan-thi-cong-nhat-ky.md`; công thức và bẫy: `docs/CHANGE-GUIDE.md` (QR / mã giao dịch).
+
+**Điều kiện phát hành (kiểm LÚC phát hành bằng lệnh chỉ đọc, không tin tài liệu):** migration `0078`–`0083` đã có trên production — `npx wrangler d1 migrations list tourdao-sales-db --remote` chỉ được liệt kê `0087_pty_tai_khoan_nhan_tien`, `0088_bil_ma_giao_dich` (và migration của nhánh khác gộp sau) là chưa áp. Không đổi bí mật, không đổi `vars`, không đổi CSP, không migration Durable Object.
+
+**Bước A.0:** mục nhật ký thay đổi do phiên phát hành viết, số = số kế tiếp sau số lớn nhất ở `main` lúc đó (ngày 2026-10-08 dự kiến 1.86; không đặt sẵn ở nhánh).
+
+**Khoảng hở giữa migration và deploy (đọc trước khi chạy):** từ lúc `trien-khai` áp `0088` tới lúc `wrangler deploy` xong (vài phút, hai bước chạy liền nhau), mã CŨ vẫn chạy trên trigger MỚI. Trong khoảng đó: (a) Kế toán bấm "Công ty đã nhận" hoặc "Thay lần thu" cho khoản chuyển khoản bị trigger chặn — mã cũ không dịch lỗi `bank_txn_required` nên thấy lỗi chung; không có gì được ghi (cả lô bị huỷ); bấm lại sau khi bản mới lên là được. (b) Lần thu chuyển khoản – Công ty thu do Kế toán / Toàn quyền tự ghi bằng mã cũ sẽ KHÔNG có mã, và `audit-invariants --db remote` ngay sau deploy báo `R-BIL-D6b`. **Cách tránh:** báo Kế toán không ghi tiền trong lúc phát hành. Nếu vẫn bị báo: Kế toán sửa bằng "Thay lần thu" có nhập mã. Bản mới đã lên thì luồng không còn hở.
+
+**Ca xấu: deploy hỏng SAU KHI đã áp `0088`** (`trien-khai` dừng ở bước deploy với câu "`wrangler deploy` LỖI — Worker có thể CHƯA đổi", và không tự lùi): khi đó khoảng hở trên KHÔNG còn là "vài phút" — mã cũ chạy trên trigger mới cho tới khi một bản mới lên, có thể hàng giờ. Làm theo thứ tự: (1) đọc lỗi deploy, sửa nguyên nhân, rồi chạy lại `npm run trien-khai`: migration đã áp nên không áp lại, nhưng script vẫn chạy LẠI toàn bộ các cổng phía trước (số phiên bản, `npm test`, `typecheck`, `build:web`, e2e đủ bộ — mất nhiều phút; e2e đỏ thì hỏi c/k) rồi mới deploy, kiểm dữ liệu và kiểm số phiên bản sau deploy. Cách NHANH hơn (chủ quyết, tự chịu việc bỏ các cổng trước): `CI=1 npx wrangler deploy`, rồi ĐỦ HAI lệnh kiểm theo thứ tự — `node scripts/audit-invariants.mjs --db remote`, sau đó `node scripts/kiem-phien-ban.mjs --sau-deploy` (cổng số phiên bản sau deploy, CLAUDE.md §8); không bỏ lệnh nào; (2) trong lúc đó Kế toán tiếp tục KHÔNG ghi tiền — mục (a) và (b) ở trên đúng suốt khoảng chờ; (3) lần thu chuyển khoản – Công ty thu đã lỡ tự ghi trong lúc đó sẽ không có mã: `R-BIL-D6b` báo ở lần kiểm dữ liệu ngay sau khi bản mới lên (báo, không chặn gì), và Kế toán sửa từng lần bằng "Thay lần thu" có nhập mã ngân hàng. Không lùi CSDL vì ca này (xem "Điểm lùi").
+
+**Ngay sau deploy (chủ làm trên Nền tảng thật):** đăng nhập tài khoản Toàn quyền → Danh bạ → hồ sơ công ty chủ → mục "Tài khoản nhận tiền" → cài tài khoản thật của công ty. Chưa cài thì nút "QR thanh toán" báo "Công ty chưa cài tài khoản nhận tiền — báo người phụ trách hệ thống" (không hỏng gì khác). Rồi mở một đơn thật còn tiền cần thu, bấm "QR thanh toán", quét bằng một ứng dụng ngân hàng để thấy đúng tên công ty — không cần bấm chuyển.
+
+**Điểm lùi:** `wrangler rollback` về bản trước được (không có thay đổi Durable Object), nhưng hai migration ở lại: trong lúc chạy mã cũ, "Công ty đã nhận" / "Thay lần thu" cho khoản chuyển khoản ghi từ mốc `R-BIL-D6` vẫn bị trigger chặn như mục (a) ở trên, và lần thu tự ghi thiếu mã như mục (b). Không mất hay hỏng dữ liệu (trigger chặn = cả lô bị huỷ). Lùi hẳn CSDL chỉ bằng điểm khôi phục Time Travel do `trien-khai` tạo trước migration (mất mọi ghi sau điểm đó) — chủ quyết, không làm trong lúc vội.
+
+## Lần phát hành kế tiếp: sổ đại lý đợt 1 (hoa hồng đại lý, người bán dịch vụ, khoá tháng; ADR-0077/0078/0080; migration `0090`) — RUNBOOK
+
+**Trạng thái: CHƯA phát hành** (nhánh `claude/so-tien-luot-2-dai-ly`; số phiên bản trong `src/shared/changelog.ts` có thể đổi khi dựng lại trên `main` mới). Mọi bước sau A.0 do `npm run trien-khai` làm như thường; mục này chỉ ghi điều KHÁC. Đặc tả: `docs/superpowers/specs/2026-10-08-so-dai-ly-dot-1/README.md` (§13 rủi ro phát hành); nhật ký thi công: `docs/superpowers/plans/2026-10-08-so-dai-ly-dot-1-thi-cong-nhat-ky.md`; công thức và bẫy: `docs/CHANGE-GUIDE.md` (z15, bẫy 64–66); các hàng rào đã quan sát: `docs/SO-HANG-RAO.md`.
+
+**Điều kiện phát hành (kiểm LÚC phát hành bằng lệnh chỉ đọc, không tin tài liệu):** `npx wrangler d1 migrations list tourdao-sales-db --remote` — rà số `0090` còn trống và còn là số kế tiếp trên mọi nhánh chưa gộp (nhánh nào gộp sau phải dựng lại trên `main` mới và chạy lại toàn bộ kiểm; nhánh Vận chuyển giữ `0089`). Không đổi bí mật, `vars`, CSP hay Durable Object.
+
+**Bước A.0:** mục nhật ký thay đổi của đợt này đã có đầu danh sách trong `src/shared/changelog.ts` (Task 14, số 1.87 chỉ là số tạm); phiên phát hành kiểm lại cho đúng số kế tiếp sau số lớn nhất ở `main` lúc đó và chạy lại `node --test src/shared/app-info.test.ts`.
+
+**Không khoá tháng nào trong ngày phát hành.** Tháng đã khoá KHÔNG mở lại được; khoá nhầm chỉ cứu bằng điểm khôi phục Time Travel (lỗ HC-5.19, chưa diễn tập). Màn «Khoá sổ tháng» có hộp xác nhận nói rõ điều này; chủ báo Kế toán chưa khoá cho tới khi đã đọc hộp đó.
+
+**Khoảng hở giữa migration và deploy (vài phút, hai bước liền nhau):** đơn xác nhận bằng mã CŨ trong khoảng đó không có bản chụp mức. Kiểm định kỳ `R-ORD-T1` cho ân hạn 60 phút kể từ mốc lúc áp migration (dòng `ord_audit_cutoff`), nên `audit-invariants --db remote` ngay sau deploy chỉ cảnh báo `R-ORD-T1w`, không đỏ. Trigger khoá tháng không ảnh hưởng vì chưa tháng nào khoá. **Cách tránh:** báo nhân viên không bấm Xác nhận trong lúc phát hành. Đơn lỡ xác nhận trong khoảng hở: chụp bù là việc đợt 2.
+
+**Ca xấu: hoàn tác Worker về bản cũ SAU KHI đã áp `0090`.** `wrangler rollback` làm được (không đổi Durable Object) nhưng migration ở lại: mọi đơn xác nhận trong lúc chạy bản cũ không có bản chụp, nên `R-ORD-T1` ĐỎ ở lần `audit-invariants` kế tiếp và đỏ cho tới khi đợt 2 chụp bù — đây là tín hiệu đúng, không phải dữ liệu hỏng. Trigger khoá tháng vẫn chặn đúng. Lùi hẳn CSDL chỉ bằng điểm khôi phục Time Travel do `trien-khai` tạo trước migration (mất mọi ghi sau điểm đó) — chủ quyết, không làm trong lúc vội.
+
+**Ngay sau deploy (chủ làm trên Nền tảng thật):** đăng nhập Kế toán → mục «Hoa hồng đối tác»: thêm mức đầu tiên rồi thử bằng «Thử tra»; mục «Người bán dịch vụ»: kiểm có đúng MỘT dòng «công ty chủ bán mọi dịch vụ» (gieo sẵn). Xác nhận một đơn thử có bên đặt là đại lý rồi mở khối «Phần đối tác»: phải hiện hoa hồng và giá đại lý. Đơn đại lý mới tạo từ giờ bị giữ ở «Đã giao» tới đợt 2 (đã báo chủ, dữ liệu hiện chỉ là dữ liệu thử).
+
+**Giới hạn đã biết của đợt 1:** đại lý là hồ sơ TỔ CHỨC (công ty lữ hành) chưa mang được vai được hưởng bằng đường quản trị nào, nên đợt 1 chạy trọn cho đại lý là hồ sơ cá nhân (xem «Việc còn treo» và `docs/SYSTEM-DESIGN.md` §17).
+
 ## Chế độ bảo trì — đường thoát khẩn
 
 Dùng CHỈ khi chủ dự án bị khoá ngoài (không vào được app để bấm tắt) hoặc chế độ bảo trì kẹt bật. Đây là thao tác GHI lên D1 remote, đi vòng app: theo `CLAUDE.md` §8 chỉ làm khi chủ dự án ra lệnh (hoặc tự chạy bằng `!`). Tác dụng TỨC THÌ (cổng ở máy chủ đọc D1 mỗi request, không đệm), không cần deploy.
@@ -856,3 +918,11 @@ Ba phương án, chủ dự án chọn một (chưa chọn thay):
   4. **Ngoài phạm vi nhánh này (Đợt E, thị giác, thấy ở ảnh bằng chứng):** chip số khách bị cắt ở 390 px ("2NI") trên danh sách đơn; huy hiệu "Đã xác nhận" xuống dòng lệch cạnh mã đơn ở 1040 px trên `/order`.
   5. **Chưa kiểm/nợ nhỏ:** 8/10 vị trí gọi `dongBangTin` chưa có ca e2e (`docs/SO-HANG-RAO.md`); kiểm lại bảng giá Durable Object trên tài khoản Cloudflare thật; deploy commit cũ trước-DO bằng `wrangler deploy` (chưa kiểm — không thử); danh sách Minor đã hoãn ở bàn giao §6 (vd `laSuKienHopLe` thiếu ca "5 khoá, một khoá sai tên", `docHanGiay` nhận "1e3", `tram.ts` nhận socket trước `setAlarm`, gốc lắp ráp `baoThayDoi` chưa có test đơn vị).
 - **Tốc độ đợt 1 (ADR-0102) — đã gộp vào `main` (commit đầu nhánh `20167ef`) và đã chạy thật trong bản 1.84 trên production** (kiểm 2026-10-06, chỉ đọc: `20167ef` là tổ tiên của `main`; `kiem-phien-ban.mjs --sau-deploy` ĐẠT; `/giao-dien.css` và `/api/giao-dien.css` đều trả 200, `text/css`, `etag "v3"`; trang `/orders` có thẻ `href="/giao-dien.css"`). Sổ: `docs/superpowers/plans/2026-10-05-toc-do-dot-1-thi-cong-nhat-ky.md`. **Chưa kiểm:** iPhone thật (mục "quay lại app", "đổi màu công ty"); hiệu quả Smart Placement — lần thử 01:47Z 2026-10-06 header `cf-placement` ra `local-SIN` (chưa thấy `remote-…`; Cloudflare cần tới ~15 phút phân tích và có thể không đổi gì) nên **chưa kết luận có lợi hay không**; chưa đo số giây. Chủ đo bằng `cf-placement` + biểu đồ Request duration; không lợi thì xoá dòng `placement` ở `wrangler.jsonc` rồi triển khai lại. Đợt 2 (gộp câu D1, chuông thông báo, chỉ mục) chưa làm.
+- **Sổ đại lý đợt 1 (nhánh `claude/so-tien-luot-2-dai-ly`, migration `0090`, CHƯA gộp `main`, CHƯA lên production) — việc còn treo, gom một lần** (runbook: mục «Lần phát hành kế tiếp: sổ đại lý đợt 1» ở trên; nợ nhỏ từng mục: `docs/BACKLOG.md` «Sổ đại lý đợt 1 — nợ nhỏ»):
+  1. **Chụp bù đơn cũ** (đợt 2): đơn xác nhận trước khi có bảng mức không có bản chụp; khối «Phần đối tác» ghi «Đơn xác nhận trước khi có bảng mức», `R-ORD-T1w` cảnh báo vĩnh viễn, `R-ORD-T1` đỏ nếu có đơn xác nhận bằng mã cũ sau ân hạn.
+  2. **Gộp hồ sơ trùng (ADR-0068) với bản chụp:** gộp đổi bên đặt của đơn chưa giao sang hồ sơ giữ lại nhưng bản chụp giữ `beneficiary_party_id` cũ; đợt 2 quyết (chụp lại hay theo chuỗi gộp).
+  3. **`R-BIL-2`** («đơn Đã giao thiếu dòng giá vốn») chưa vào bảng kiểm khoá tháng — đợt 2.
+  4. **Mở khoá «Đã giao» cho đơn có người hưởng:** đơn mới có bên đặt là đại lý bị giữ ở «Đã giao» (nên chưa «Hoàn thành» được) tới đợt 2.
+  5. **Giới hạn «chỉ đại lý cá nhân»:** hồ sơ TỔ CHỨC chưa mang được vai được hưởng (`POST /api/parties/:id/roles` trả 409 `role_via_account` cho vai bên ngoài; tạo tài khoản chỉ gắn hồ sơ cá nhân), nên ô «Đặt qua đối tác» chưa tìm thấy công ty lữ hành. **Cần ADR:** cho Quản trị gán vai cho hồ sơ tổ chức, hoặc ghi rõ đợt 1 chỉ hỗ trợ đại lý cá nhân (chủ chọn để sau 2026-10-09).
+  6. **Chờ chủ:** duyệt nhãn chữ trên các màn mới («Hoa hồng», «Giá đại lý», «Khách tính», «Mức», «Người bán») và bố cục qua ảnh ở `docs/evidence/2026-10-08-so-dai-ly-dot-1/`; ca sổ vàng `golden/so-cong-no-luot-2.json` chờ chủ hoặc Kế toán xác nhận từng ca; các đề xuất sửa luật ở `docs/superpowers/specs/2026-10-08-so-dai-ly-dot-1/de-xuat-luat-dot-1.md`.
+  7. **Chưa kiểm:** kịch bản Chrome `so-dai-ly-smoke.mjs` chỉ chạy trên D1 tạm với danh mục giả; chưa đo mạng điện thoại thật; `audit-invariants --db remote` chưa chạy cho đợt này.

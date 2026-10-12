@@ -256,7 +256,7 @@ test("NT-Q3 / NT-F8 / NT-S1: Hoàn thành — Quản trị → 403; còn HDV gi�
   const soCty = await w.call("GET", "/api/ledger", { as: KT });
   assert.equal(soCty.status, 200);
   assert.equal(soCty.json.choXacNhan.length, 1);
-  assert.equal((await w.call("POST", `/api/ledger/company-receipts/${soCty.json.choXacNhan[0].receiptId}/confirm`, { as: KT, body: {} })).status, 200);
+  assert.equal((await w.call("POST", `/api/ledger/company-receipts/${soCty.json.choXacNhan[0].receiptId}/confirm`, { as: KT, body: { maGiaoDich: "FTLG0001", soThucChuyen: 500_000 } })).status, 200);
   assert.equal(await mine(), 1_000_000);
   assert.equal((await w.call("POST", "/api/ledger/settlements", { as: KT, body: { chieu: "nop", partyId: `pty-${HDV}`, phanBo: [{ orderId: id, soTien: 1_000_000 }] } })).status, 201);
   assert.equal(await mine(), 0);
@@ -380,7 +380,7 @@ test("Thao tác Kế toán trên trang đơn (điều phối 30/9): GET payments
   assert.deepEqual(giu, { [`pty-${HDV}`]: 400_000, [`pty-${SALES}`]: 250_000 });
   assert.ok(kt.keToan.dangGiu.every((d: { ten: string }) => typeof d.ten === "string" && d.ten.length > 0));
   // Kế toán xác nhận CK + ghi HDV nộp — khối cập nhật theo sổ.
-  assert.equal((await w.call("POST", `/api/ledger/company-receipts/${ck}/confirm`, { as: KT, body: {} })).status, 200);
+  assert.equal((await w.call("POST", `/api/ledger/company-receipts/${ck}/confirm`, { as: KT, body: { maGiaoDich: "FTLG0002", soThucChuyen: 250_000 } })).status, 200);
   assert.equal((await w.call("POST", "/api/ledger/settlements", { as: KT, body: { chieu: "nop", partyId: `pty-${HDV}`, phanBo: [{ orderId: id, soTien: 400_000 }] } })).status, 201);
   const sau = (await w.call("GET", `/api/orders/${id}/payments`, { as: KT })).json.keToan;
   assert.deepEqual([sau.choXacNhan, sau.dangGiu], [[], []]);
@@ -415,7 +415,9 @@ test("Kiểm độc lập vòng 2 (V-B): ghi nộp / xác nhận 'Công ty đã 
 const soCuaToi = async (w: W, as: string) => (await w.call("GET", "/api/ledger/mine", { as })).json.dangGiu as number;
 const nopVe = (w: W, orderId: string, soTien: number, partyId = `pty-${HDV}`) =>
   w.call("POST", "/api/ledger/settlements", { as: KT, body: { chieu: "nop", partyId, phanBo: [{ orderId, soTien }] } });
-const xacNhanCk = (w: W, receiptId: string) => w.call("POST", `/api/ledger/company-receipts/${receiptId}/confirm`, { as: KT, body: {} });
+// ADR-0092 Đ6 (C1): xác nhận khoản CK – Công ty thu từ mốc cắt đòi mã giao dịch + số thực chuyển (= số của khoản).
+const xacNhanCk = (w: W, receiptId: string, soTien = 1_000_000, ma = "FTLG0003") =>
+  w.call("POST", `/api/ledger/company-receipts/${receiptId}/confirm`, { as: KT, body: { maGiaoDich: ma, soThucChuyen: soTien } });
 
 test("VP-01 (Đ2b) thứ tự 1: HDV khai 'Công ty thu – CK' 1.000.000 → Kế toán ghi 'Đã nộp' 1.000.000 → 'Xác nhận đã nhận' → 409 kèm câu chỉ đường; sổ của HDV = 0 (không âm)", async () => {
   const w = setup();

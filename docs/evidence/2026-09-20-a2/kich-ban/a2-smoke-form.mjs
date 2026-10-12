@@ -19,7 +19,11 @@ try {
 
   // ---- 1b) bề mặt Tạo đơn (2026-09-25): tiêu đề, thứ tự mục, nút nhập tay ẩn, mặc định Tiền mặt, "Sử dụng thông tin của tôi" ----
   assert.equal(await p.ev("document.getElementById('form-title').textContent"), "Tạo đơn");
-  assert.deepEqual(await p.ev("[...document.querySelectorAll('.form-main > .card > h2')].map((x) => x.textContent)"), ["Chọn ngày", "Dịch vụ", "Thanh toán", "Thông tin khách hàng"]); // YC-0001 (chủ duyệt 30/9): Thanh toán TRƯỚC khách
+  // YC-0001 (chủ duyệt 30/9): Thanh toán TRƯỚC khách. ADR-0047 Phần B (2026-10-01, bản vẽ điện thoại M2 — d045311f, 2d28cf85): dưới 960px khối "Hành khách"
+  // nằm NGAY SAU thẻ "Dịch vụ" (máy tính: trải ngang sau lưới 2 cột, ngoài .form-main) — danh sách dưới ghim cả vị trí đó ở 390px.
+  // Khối đó do mã trang dựng SAU khi khởi động (bước 1 chỉ chờ phần HTML tĩnh) → chờ nó hiện rồi mới đếm (8/10: một lần chạy đếm sớm còn 4 mục).
+  await p.waitFor("!document.getElementById('hk-card').hidden", "khối Hành khách dựng xong");
+  assert.deepEqual(await p.ev("[...document.querySelectorAll('.form-main > .card > h2')].map((x) => x.textContent)"), ["Chọn ngày", "Dịch vụ", "Hành khách", "Thanh toán", "Thông tin khách hàng"]);
   assert.equal(await p.ev("document.getElementById('add-manual').hidden"), true, "nút '+ Dịch vụ nhập tay' ẩn khi danh mục tải được");
   assert.equal(await p.ev("document.getElementById('prepaidMethod').value"), "BANK_TRANSFER", "hình thức trả trước mặc định Chuyển khoản (YC-0002, chủ duyệt 30/9)");
   assert.match(await p.ev("document.querySelector('label:has(#prepaidAmount)').textContent"), /^Thanh toán trước/);
@@ -29,7 +33,7 @@ try {
   assert.deepEqual(await p.ev("[document.getElementById('customerName').value, document.getElementById('customerPhone').value, document.getElementById('customerEmail').value]"), [ACCOUNTS.salesA.name, ACCOUNTS.salesA.phone, ""]);
   await p.ev(setInput("document.getElementById('customerName')", ""));
   await p.ev(setInput("document.getElementById('customerPhone')", ""));
-  ok("Tạo đơn: thứ tự Chọn ngày → Dịch vụ → Thanh toán → Thông tin khách hàng; nhập tay ẩn; Chuyển khoản mặc định, tên khách trống; nút 'của tôi' điền tên + SĐT tài khoản");
+  ok("Tạo đơn: thứ tự Chọn ngày → Dịch vụ → Hành khách → Thanh toán → Thông tin khách hàng; nhập tay ẩn; Chuyển khoản mặc định, tên khách trống; nút 'của tôi' điền tên + SĐT tài khoản");
 
   // ---- 2) ô chọn danh mục: tìm, kết quả, trạng thái rỗng ----
   await p.ev("document.getElementById('catalog-q').focus(); true");
@@ -188,7 +192,12 @@ try {
 
   // ---- 10) xung đột: stale (bản đang gõ mất) và catalog_changed (giữ đơn giá thương lượng) ----
   // (a) người khác sửa đơn trong lúc form đang mở
-  const other = await env.as(ACCOUNTS.salesA, "/order-form"); // cùng người lập, phiên khác
+  // 2026-10-08: trước là `env.as(ACCOUNTS.salesA, …)` ("cùng người lập, phiên khác") — từ ADR-0075 tài khoản Bán hàng chỉ có MỘT phiên, đăng nhập mới
+  // kết thúc phiên của `p` ("bi_thay") và lần Lưu dưới bị đá về /login thay vì 409. Nay mở TAB thứ hai không đăng nhập lại: cùng kho cookie = cùng phiên
+  // của người lập; máy chủ vẫn phát hiện "đã bị sửa" bằng `expectedUpdatedAt`, không phụ thuộc phiên.
+  const other = await env.openPage();
+  await other.send("Page.navigate", { url: `${env.base}/order-form` });
+  await other.waitFor("document.readyState === 'complete'", "tab thứ hai tải xong");
   const upd = await other.ev(`(async () => { const d = await fetch('/api/orders/' + ${JSON.stringify(orderId)}).then((r) => r.json());
     const r = await fetch('/api/orders/' + ${JSON.stringify(orderId)} + '/trip', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedUpdatedAt: d.order.updatedAt, services: d.order.services.map((s) => ({ id: s.id, departDate: s.departDate || '', departTime: '', checkinDate: '', checkinTime: '', checkinPlace: '', note: 'người khác vừa sửa' })) }) });
     return r.status; })()`);

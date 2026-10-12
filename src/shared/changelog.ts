@@ -12,13 +12,52 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Gói A5 — chuyển khách giữa hai xe (ADR-0111, migration 0093). Số 1.85 = đầu nhánh 1.84 + 1; nhánh khác nhập trước thì đánh lại số khi gộp.
-    version: "1.85",
-    date: "2026-10-09",
+    // Gói Vận chuyển A + C (ADR-0104 Đ2, 0105, 0109, 0111, 0112, 0113; A4 tài xế nhà xe ngoài; C2 màn tài xế; C3 bảng điều phối), migration 0091–0093.
+    // Số 1.88 = main 1.87 + 1 (ghép main 1c471990 vào nhánh gói A+C, 2026-10-12): mục 1.85 cũ của nhánh (chuyển khách giữa hai xe, đã đánh lại số) nằm trong mục này, không nhân đôi.
+    version: "1.88",
+    date: "2026-10-12",
     items: [
+      { kind: "moi", text: "Màn tài xế có hai nút Chỉ đường cho mỗi điểm đón, điểm trả: Google Maps trên mọi máy, Apple Maps trên iPhone, iPad và Mac." },
+      { kind: "moi", text: "Tài xế nhà xe ngoài dùng được Nền tảng: xem chuyến của mình, báo bận theo khung giờ và từ chối chuyến khi không nhận được." },
       { kind: "moi", text: "Tài xế không kịp tới một điểm đón có thể nhờ một xe khác cùng ngày đón giúp. Tài xế xe kia bấm Nhận hoặc Không nhận; chưa ai nhận thì khách vẫn ở xe cũ." },
       { kind: "moi", text: "Xe hỏng giữa đường: tài xế, hoặc văn phòng gửi thay, nhờ một xe đang chạy tới nơi gặp nhận cả khách trên xe lẫn khách đang chờ đón." },
       { kind: "moi", text: "Việc chuyển khách vượt số chỗ, sai cam kết xe riêng hoặc khi tắt tự đồng ý sẽ chờ Quản trị duyệt hoặc bác ở màn Đề nghị chuyển khách." },
+      { kind: "moi", text: "Màn tài xế có khối Điểm kế tiếp, nút Kết thúc dính đáy màn hình, hỏi lại \"Đã đón N khách\" và đồng hồ chờ khi khách vắng." },
+      { kind: "moi", text: "Bảng điều phối chọn được nhiều chặng cùng lúc, lọc chặng, hiện tổng khách chưa xếp và ghế trống, tô màu chuyến theo mức đầy." },
+      { kind: "moi", text: "Văn phòng bấm \"Cập nhật khách / điểm theo đơn\" khi xe chưa chạy thì tài xế nhận tin báo ngay." },
+      { kind: "doi", text: "Chuyến đã có khách được chuyển sang từ xe khác thì tài xế không bấm Từ chối chuyến được nữa." },
+      { kind: "sua", text: "Bớt khách mà giảm giá lớn hơn tiền dịch vụ còn lại thì phải thu về 0 chứ không âm; khoản khách đã trả dư được ghi để hoàn." },
+    ],
+  },
+  {
+    // Sổ đại lý đợt 1 (ADR-0077/0078/0080), migration 0090. Số 1.87 là số TẠM (= 1.86 + 1 lúc soạn 2026-10-12): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
+    version: "1.87",
+    date: "2026-10-12",
+    items: [
+      { kind: "moi", text: "Kế toán đặt mức hoa hồng cho đối tác theo từng dịch vụ hoặc nhóm dịch vụ, và ghi rõ ai bán dịch vụ nào, ở hai mục mới dưới Quản trị." },
+      { kind: "moi", text: "Đơn đặt qua đại lý hiện hoa hồng và giá đại lý theo mức đã đặt lúc xác nhận; Kế toán ghi mức riêng cho từng dòng khi chưa có mức." },
+      { kind: "moi", text: "Đối tác thấy số tiền hoa hồng của chính mình trên đơn đặt qua mình. Nhân viên lập đơn chọn đại lý ở ô \"Đặt qua đối tác\"." },
+      { kind: "moi", text: "Kế toán khoá sổ từng tháng đã qua; từ đó không ghi thêm tiền vào tháng đã khoá, và tháng đã khoá không mở lại được." },
+      { kind: "doi", text: "Đơn đặt qua đại lý có hoa hồng chưa bấm được \"Đã giao\" cho tới bản cập nhật sau; hoa hồng vẫn hiện đủ trên đơn." },
+    ],
+  },
+  {
+    // QR thanh toán VietQR (ADR-0108) + mã giao dịch ngân hàng bắt buộc (ADR-0092 Đ6), migration 0087–0088. Chủ duyệt nhật ký 2026-10-08. Số 1.86 = main 1.85 + 1.
+    version: "1.86",
+    date: "2026-10-08",
+    items: [
+      { kind: "moi", text: "Trang đơn có nút \"QR thanh toán\": khách quét bằng ứng dụng ngân hàng là đúng số tiền và nội dung là mã đơn. Lưu được ảnh mã để gửi khách." },
+      { kind: "moi", text: "Bấm \"Khách đã chuyển khoản\" dưới mã QR thì form ghi tiền tự điền sẵn số tiền, hình thức Chuyển khoản và người nhận Công ty." },
+      { kind: "moi", text: "Kế toán xác nhận tiền chuyển khoản về công ty phải nhập mã giao dịch và số tiền thực chuyển như sao kê; một khoản chuyển không ghi được hai lần." },
+      { kind: "doi", text: "Kế toán và người phụ trách hệ thống không còn ô trả trước ở màn tạo đơn; ghi khoản khách trả trước ở trang đơn, mục Thanh toán." },
+    ],
+  },
+  {
+    // Vòng focus của ô số bộ đếm (bị luật focus ô nhập của 1c718023 đè — a2-smoke-form bước 4b). Số 1.85 = main 1.84 + 1.
+    version: "1.85",
+    date: "2026-10-08",
+    items: [
+      { kind: "sua", text: "Ô số khách ở bộ đếm (màn tạo và sửa đơn) hiện lại viền đậm khi đang gõ, dễ thấy mình đang sửa ô nào." },
     ],
   },
   {

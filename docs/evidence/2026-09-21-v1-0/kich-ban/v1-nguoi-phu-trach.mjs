@@ -195,8 +195,11 @@ const createOrder = async (account, customer) => {
 /** Trả đơn về "chưa có người phụ trách" cho các bước cần trạng thái đó (đơn qua `createOrder`/`getMain` nay LUÔN có người ngay sau khi dựng — xem chú
  * thích ở `createOrder`): đóng dòng HANDLE đang mở (`valid_to_at` = `valid_from_at` thoả CHECK, chỉ mục duy nhất chỉ ràng dòng đang mở). */
 const unassign = (orderId) => env.sql(`UPDATE dsp_assignment SET valid_to_at = valid_from_at WHERE order_id = '${orderId}' AND task_kind_code = 'HANDLE' AND valid_to_at IS NULL`);
-const handlerOf = async (orderId, account = A) => (await call(account, "GET", `/api/dispatch/handlers?orderIds=${orderId}`)).json.handlers[orderId];
-const assigneesApi = async () => (await call(A, "GET", "/api/dispatch/assignees")).json.assignees;
+// 2026-10-08 (ADR-0074/ADR-0075): tài khoản Bán hàng / Quản trị chỉ có MỘT phiên — mỗi `call(A, …)` đăng nhập lại A và kết thúc phiên của trang A đang mở
+// ("bi_thay"; bước h: `assignVia(ADMIN, …)` gọi `assigneesApi()` bằng A → trang p1 của A bị đá về /login trước khi bấm Lưu). Hai lời gọi ĐỌC dưới không phụ
+// thuộc người gọi (route chỉ hỏi quyền rồi trả cùng dữ liệu — `src/modules/dispatch/index.ts`) nên đi bằng tài khoản Toàn quyền `ACCOUNTS.chu` (được nhiều máy).
+const handlerOf = async (orderId, account = ACCOUNTS.chu) => (await call(account, "GET", `/api/dispatch/handlers?orderIds=${orderId}`)).json.handlers[orderId];
+const assigneesApi = async () => (await call(ACCOUNTS.chu, "GET", "/api/dispatch/assignees")).json.assignees;
 const assignVia = async (account, orderId, who) => {
   const list = await assigneesApi();
   const target = list.find((x) => x.name === who.name);
@@ -310,9 +313,14 @@ const axeRun = async (p, label) => {
   await sleep(500); // khung mở ≥ 641 px chạy hiệu ứng mờ dần 300 ms: đo tương phản giữa lúc đang mờ cho kết quả sai
   if (!(await p.ev("typeof axe !== 'undefined'"))) await p.ev(`${AXE}\n;true`);
   const v = await p.ev(`axe.run(document).then((r) => r.violations.map((x) => ({ id: x.id, impact: x.impact, nodes: x.nodes.length, help: x.help, mau: x.nodes.slice(0, 2).map((n) => n.target.join(' ')) })))`);
-  results.axe[label] = v;
-  return v;
+  results.axe[label] = v; // kết quả THÔ (kể cả vi phạm đã duyệt dưới đây)
+  // 2026-10-08: chủ dự án khoá phóng to trên điện thoại (9ae19510, 30/9, "khoá chức năng phóng" — sau khi được nêu rủi ro người mắt kém; `src/cham-dup.test.ts`
+  // canh) → mọi trang có `maximum-scale=1, user-scalable=no` và axe LUÔN báo `meta-viewport`. Chỉ bỏ ĐÚNG vi phạm đó: một nút, trên meta[name="viewport"],
+  // và chỉ khi nội dung thẻ đúng chuỗi đã duyệt. Mọi vi phạm khác (mọi mức) vẫn đỏ; đổi chuỗi viewport cũng đỏ (phải xét lại).
+  const viewport = await p.ev("document.querySelector('meta[name=viewport]')?.getAttribute('content') ?? null");
+  return v.filter((x) => !(x.id === "meta-viewport" && x.nodes === 1 && x.mau.length === 1 && x.mau[0] === 'meta[name="viewport"]' && viewport === VIEWPORT_DA_DUYET));
 };
+const VIEWPORT_DA_DUYET = "width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no";
 /** Vùng chạm ≥ 44 px cho mọi điều khiển của khối người phụ trách, bảng chọn và thẻ danh sách; không tràn ngang. */
 const measure = async (p, label) => {
   const m = await p.ev(`(() => {

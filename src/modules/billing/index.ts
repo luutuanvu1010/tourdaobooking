@@ -4,19 +4,21 @@
 // Mỗi route hỏi `can()` với ô của MATRIX TRƯỚC khi đọc thân / ghi (cổng router chỉ lọc thô — ADR-0019). Bảng tin (ADR-0022, ADR-0025 đ8): route ghi dưới
 // /api/orders/* báo `baoThayDoi` ĐÚNG MỘT lần, chỉ ở nhánh thành công, sau khi lô ghi xong (hàng rào src/bang-tin-guard.test.ts phủ tệp này).
 import type {
-  CocDemResponse, CocDoiChieuResponse, CocListResponse, LedgerBalancesResponse, NhapKeToanResponse, OrderPaymentsResponse, ReceiptDto, SoCongNoResponse, SoCuaToiResponse,
+  CocDemResponse, CocDoiChieuResponse, CocListResponse, KySoResponse, LedgerBalancesResponse, NhapKeToanResponse, OrderPaymentsResponse, ReceiptDto, SoCongNoResponse, SoCuaToiResponse,
   UnpaidSummaryResponse,
 } from "../../shared/contracts";
-import { UUID_RE, error, json, readJson, trangDon } from "../../shared/http";
+import { UUID_RE, error, json, kemLocation, readJson, trangDon } from "../../shared/http";
 import { docLenhNhapKeToan } from "../../shared/nhap-ke-toan";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
+import { vnToday } from "../../shared/vn-date";
+import { docGhiChuKy, khoaKyStatements, kiemKhoaKy, thangDaKhoa } from "../ky-so";
 import { donDangThuTien, thongTinGiaoDon } from "../orders";
 import { donChoNhapKeToan, docNhapKeToan, ghiNhapKeToan } from "./nhap-ke-toan";
-import { accountingEnteredAmong, orderOwners, soDongNoCuaNguoiRow } from "./repository";
+import { accountingEnteredAmong, earliestLedgerMonth, orderOwners, soDongNoCuaNguoiRow } from "./repository";
 import { cocChoBienNhan, cocCuaDon, danhSachCoc, demCoc, doiChieuCoc, ghiChiHoan, ghiChuyen, ghiDuyet, ghiHoanNgoai, ghiHuyDuyet, xacNhanHoanNgoai } from "./coc";
 import {
-  daGiao, ghiDieuChinh, ghiHoanKhach, ghiLanThu, ghiQuyetToan, hoanThanh, soCongNo, soCuaToi, tienCuaDon, tienNhieuDon, xacNhanCongTyNhan, type NguoiGoi,
+  daGiao, ghiDieuChinh, ghiHoanKhach, ghiLanThu, ghiQuyetToan, hoanThanh, kySoResponse, soCongNo, soCuaToi, tienCuaDon, tienNhieuDon, xacNhanCongTyNhan, type NguoiGoi,
 } from "./service";
 import { ghiThayLanThu } from "./thay-lan-thu";
 
@@ -31,6 +33,7 @@ const CANNOT_MARK_ENTRY = () => error(403, "forbidden", "Chỉ Kế toán hoặc
 const CANNOT_APPROVE = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền mới duyệt được hoàn cọc / xác nhận dòng đã hoàn ngoài hệ thống.");
 const CANNOT_OUTSIDE = () => error(403, "forbidden", "Chỉ Toàn quyền mới ghi được dòng đã hoàn ngoài hệ thống.");
 const CANNOT_REFUND = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới ghi được hoàn tiền cho khách.");
+const CANNOT_CLOSE_PERIOD = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới khoá được sổ tháng.");
 
 /** Người gọi cho service: `laKeToan` = có ô `ledger.write` (Kế toán, Toàn quyền — ghi người thu là người khác, chọn ngày phát sinh). */
 const nguoiGoi = (staff: PermissionHolder & { partyId: string | null }): NguoiGoi => ({
@@ -344,6 +347,39 @@ export const billingModule: AppModule = {
       baoThayDoi({ orderId: kq.value.orderId, thayDoi: "tien" });
       return json({ ok: true }, 201, { location: trangDon(kq.value.orderId) });
     }),
+
+    // ---- KHOÁ SỔ THÁNG (ADR-0080 phần D1; module ky-so giữ bảng, route ở đây vì cần sổ của billing). Tiền tố tĩnh `/api/ledger/ky`, không nuốt route nào khác.
+    // Xem kỳ: ô `ledger.view` KHÔNG ngữ cảnh (= any — Kế toán, Toàn quyền): tháng đã khoá, tháng khoá được kế tiếp, bảng kiểm của tháng đó (chỉ mã đơn, số tiền, ngày).
+    route("GET", "/api/ledger/ky", "office", async ({ env, staff }) => {
+      if (!can(staff, "ledger.view")) return FORBIDDEN_VIEW();
+      return json((await kySoResponse(env.DB, { homNay: vnToday(new Date()), coQuyenKhoa: can(staff, "ledger.period.close") })) satisfies KySoResponse);
+    }),
+    // Khoá MỘT tháng đã qua, lần lượt từng tháng, không mở lại: ô `ledger.period.close` (Kế toán, Toàn quyền — Quản trị KHÔNG). Thân tuỳ chọn { ghiChu? }. MỘT lô: câu khoá + nhật ký
+    // (`changes() > 0`); lớp CSDL (trigger 0090) kiểm lại "liền kề" và "không sửa / xoá" — lỗi dịch sang 409 tiếng Việt. 201 + Location + `KySoResponse` mới.
+    route("POST", "/api/ledger/ky/:period/khoa", "office", async ({ env, request, params, staff }) => {
+      if (!can(staff, "ledger.period.close")) return CANNOT_CLOSE_PERIOD();
+      const period = params.period!;
+      const homNay = vnToday(new Date());
+      const kiem = async () => kiemKhoaKy({ period, homNay, daKhoa: await thangDaKhoa(env.DB), thangSoSomNhat: await earliestLedgerMonth(env.DB) });
+      const k = await kiem();
+      if (!k.ok) return error(k.status, k.code, k.message);
+      const body = await readJson(request);
+      const gc = docGhiChuKy(body?.ghiChu);
+      if (!gc.ok) return error(400, "invalid_input", gc.message);
+      try {
+        await env.DB.batch(khoaKyStatements(env.DB, { period, note: gc.value, at: new Date().toISOString(), by: staff.id }));
+      } catch (e) {
+        const m = e instanceof Error ? e.message : String(e);
+        // Hai người khoá cùng lúc / tháng vừa được khoá giữa lúc đọc và lúc ghi.
+        if (/UNIQUE constraint failed: ky_period_close\.period/.test(m) || /\bky_append_only:/.test(m)) return error(409, "stale", "Tháng này vừa được khoá — tải lại.");
+        if (/\bperiod_not_adjacent:/.test(m)) {
+          const lai = await kiem();
+          return lai.ok ? error(409, "stale", "Tháng này vừa được khoá — tải lại.") : error(lai.status, lai.code, lai.message);
+        }
+        throw e;
+      }
+      return kemLocation(json((await kySoResponse(env.DB, { homNay, coQuyenKhoa: true })) satisfies KySoResponse, 201), "/khoa-thang");
+    }),
   ],
 };
 
@@ -351,6 +387,12 @@ export const billingModule: AppModule = {
 export async function soTienBienNhan(db: D1Database, orderId: string): Promise<{ daTra: number; conLai: number; huy: ReceiptDto["huy"] } | null> {
   const [t, huy] = await Promise.all([tienNhieuDon(db, [orderId]).then((m) => m.get(orderId)), cocChoBienNhan(db, orderId)]);
   return t ? { daTra: t.daThu, conLai: t.conLai, huy } : null;
+}
+
+/** API công khai cho `receipt` (QR thanh toán — ADR-0108 đ3): còn lại + đơn đã "Đã giao" chưa, cùng hàm `conLai` (một nguồn). KHÔNG tự kiểm quyền. */
+export async function soTienChoQr(db: D1Database, orderId: string): Promise<{ conLai: number; daGiao: boolean } | null> {
+  const t = (await tienNhieuDon(db, [orderId])).get(orderId);
+  return t ? { conLai: t.conLai, daGiao: t.daGiao } : null;
 }
 
 /**

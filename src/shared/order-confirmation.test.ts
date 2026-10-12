@@ -30,7 +30,7 @@ const svc = (o: Partial<OrderServiceDto> = {}): OrderServiceDto => ({
 /** Mẫu dạng đơn + hai số của billing (`paid`, `remaining` — không thuộc đơn, đi vào ReceiptDto). */
 type DonMau = OrderDetailDto & { paid: number; remaining: number };
 const order = (o: Partial<DonMau> = {}): DonMau => ({
-  id: "ord_INTERNAL", orderCode: "TD-20260921-0007", staffId: "stf_INTERNAL", staffName: "Nguyễn Thu Hà", bookerPartyId: null, bookerName: null, status: "draft",
+  id: "ord_INTERNAL", orderCode: "TD-20260921-0007", staffId: "stf_INTERNAL", staffName: "Nguyễn Thu Hà", bookerPartyId: null, bookerName: null, bookerLaDoiTac: false, status: "draft",
   customerName: "Trần Văn Bình", customerPhone: "0901234567", customerEmail: "binh.tran@example.com", customerNote: "Cả nhà ăn chay, xin xếp ghế gần nhau",
   subtotal: 3600000, discount: 100000, total: 3500000, giamGiaHieuLuc: 100000, deliveredAt: null, completedAt: null, paid: 1000000, remaining: 2500000,
   paymentNote: "PAYMENT-NOTE-NOI-BO: cọc qua Vietcombank", createdAt: "2026-09-20T18:30:00.000Z", updatedAt: "2026-09-20T18:35:00.000Z", confirmedAt: null,

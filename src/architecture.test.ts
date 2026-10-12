@@ -22,7 +22,9 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   audit: [],
   // ADR-0024 điều 2 (sổ tiền lượt 1, accepted 2026-09-29): billing giữ lần thu, phiếu sổ, dòng nợ; lấy câu `UPDATE orders` CHƯA chạy từ orders/index.ts và câu
   // bảo vệ "còn là người phụ trách" từ dispatch/index.ts (cạnh billing → dispatch CHỈ cho câu đó — ADR-0024 đ2); nhãn người qua staff/parties; nhật ký qua audit.
-  billing: ["orders", "parties", "staff", "dispatch", "audit"],
+  // + ky-so (ADR-0080 D1, sổ đại lý đợt 1): đọc tháng đã khoá qua view công bố v_ky_closed_period ở thân trigger `bil_*_period_closed` và gộp câu khoá tháng chưa chạy.
+  // NỚI hàng rào đã duyệt (Điều 9.4) — chủ duyệt C12 2026-10-01, xem docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/de-xuat-luat.md.
+  billing: ["orders", "parties", "staff", "dispatch", "audit", "ky-so"],
   // maintenance: đăng nhập bị chặn khi bảo trì; GET /api/auth/config và /me báo trạng thái (chỉ đọc).
   // parties: ADR-0024 6.2 — GET /api/auth/config trả tên + MST công ty chủ qua hàm công bố ownerCompany (chỉ đọc; auth vốn đã tới parties bắc cầu qua
   // staff). NỚI hàng rào đã duyệt (Điều 9.4) — đã duyệt 2026-09-28 (chủ trả lời 'duyệt luật T2b'), xem docs/superpowers/plans/2026-09-28-t2b-de-xuat-luat.md.
@@ -39,6 +41,8 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   dispatch: ["orders", "parties", "locations", "staff", "audit"],
   feedback: ["staff", "audit"], // đọc nhãn nhân viên (v_stf_staff_label) + ghi nhật ký `feedback_*`; không module nào import feedback
   "giao-dien": ["audit"], // ADR-0087: ghi nhật ký giao_dien_changed
+  // ky-so (ADR-0080 D1): khoá tháng — chỉ ghi nhật ký. NỚI hàng rào đã duyệt (Điều 9.4) — chủ duyệt C12 2026-10-01, xem docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/de-xuat-luat.md.
+  "ky-so": ["audit"],
   // ADR-0094 đ2: lớp chống ghi trùng — lá, không import module nào; router dùng nó qua phần tiêm `injected.lanGui` của gốc lắp ráp (không cạnh nào tới lan-gui).
   "lan-gui": [],
   locations: ["audit"],
@@ -46,8 +50,7 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   // pricing: ADR-0024 điều 2 — tỷ lệ chiết khấu/hoa hồng chụp trong luồng của đơn lúc Xác nhận (lượt 2; lượt 1 chưa import).
   orders: ["audit", "catalog", "staff", "parties", "locations", "pricing"],
   parties: ["locations", "audit"],
-  // ADR-0024 điều 1–2: chính sách giá theo ngày (lượt 2). GIẢ ĐỊNH BỀ MẶT (kế hoạch Task 1a): lượt 1 CHƯA tạo thư mục src/modules/pricing/ (không SQL ⇒
-  // chưa vào STRICT được) — chỉ khai ranh giới; tạo thư mục + STRICT ở lượt 2.
+  // ADR-0024 điều 1–2, ADR-0077: bảng mức hoa hồng + điều khoản người bán — tạo ở sổ đại lý đợt 1 (route /api/pricing/*; đọc view công bố của parties, catalog; ghi nhật ký qua audit).
   pricing: ["parties", "catalog", "audit"],
   // ADR-0024 điều 1: biên nhận theo danh sách trắng — KHÔNG bảng, KHÔNG SQL (hạng KHONG_BANG); chuyển tay cầm DB cho hàm công bố của các module dưới.
   receipt: ["orders", "billing", "parties", "company"],
@@ -60,7 +63,9 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   // ADR-0049 D1: suất trỏ chặng `ord_transfer_leg` + hàm hẹp của `orders` (chỉ gọi trong thân route sau `can()` — bài src/orders-cong-bo.test.ts); điểm dừng
   // trỏ `loc_location`. Vẫn KHÔNG module nào import van-chuyen (bài "không module nào import van-chuyen" ở dưới). NỚI hàng rào (Điều 9.4) — ĐÃ DUYỆT 2026-09-30 (lần 17)
   // ở docs/superpowers/plans/2026-09-29-adr-0049-de-xuat-luat.md mục 1.
-  "van-chuyen": ["parties", "audit", "orders", "locations"],
+  // + ky-so (ADR-0080 D1, sổ đại lý đợt 1): tháng đã khoá cho ngày ghi đảo và trigger `vc_trip_cost_line_period_closed` (đọc view v_ky_closed_period).
+  // NỚI hàng rào đã duyệt (Điều 9.4) — chủ duyệt C12 2026-10-01, xem docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/de-xuat-luat.md.
+  "van-chuyen": ["parties", "audit", "orders", "locations", "ky-so"],
   // ADR-0066: trợ lý Hỗ trợ (kho tri thức là tệp thuần ở src/shared/). ADR-0069 (accepted 2026-09-30) kéo theo hai cạnh: `audit` — ghi `tro_ly_settings_changed`
   // cùng lô với bản cài đặt mới (điều 5: "ai đổi lúc nào", không nội dung); `staff` — CHỈ ở tầng SQL, tên người hỏi / người lưu qua view công bố
   // v_stf_staff_label (điều 5: lịch sử "ai hỏi"; mẫu `feedback`). Không module nào import tro-ly. NỚI cạnh (Điều 9.4): ĐÃ DUYỆT 2026-09-30 (chủ chọn 'Đồng ý cả hai' sau báo cáo kiểm độc lập ADR-0069).
@@ -75,10 +80,12 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "dispatch", file: "modules/dispatch/repository.ts" },
   { module: "feedback", file: "modules/feedback/repository.ts" },
   { module: "giao-dien", file: "modules/giao-dien/repository.ts" },
+  { module: "ky-so", file: "modules/ky-so/repository.ts" }, // ADR-0080 D1 (sổ đại lý đợt 1): khoá tháng — nghiêm từ ngày đầu. NỚI hàng rào đã duyệt (Điều 9.4) — chủ duyệt C12 2026-10-01, xem docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/de-xuat-luat.md.
   { module: "lan-gui", file: "modules/lan-gui/repository.ts" }, // ADR-0094 đ2: nghiêm từ ngày đầu
   { module: "locations", file: "modules/locations/repository.ts" },
   { module: "maintenance", file: "modules/maintenance/repository.ts" },
   { module: "parties", file: "modules/parties/repository.ts" },
+  { module: "pricing", file: "modules/pricing/repository.ts" }, // ADR-0077 — sổ đại lý đợt 1: bảng mức, điều khoản người bán
   { module: "staff", file: "modules/staff/repository.ts" },
   { module: "thongbao", file: "modules/thongbao/repository.ts" },
   { module: "van-chuyen", file: "modules/van-chuyen/repository.ts" }, // ADR-0040 D1 (siết: SQL đi qua defineSql, EXPLAIN)
@@ -150,6 +157,8 @@ const NUA_NGHIEM: readonly { module: string; file: string }[] = [
   { module: "orders", file: "modules/orders/nguoi-dat-gop-repo.ts" },
   // ADR-0089 đ8 (SIẾT — năm lỗi tiền Đợt 1): lô huỷ có lý do + phân loại lý do huỷ, mọi câu qua defineSql + EXPLAIN.
   { module: "orders", file: "modules/orders/huy-don-repo.ts" },
+  // Sổ đại lý đợt 1 (ADR-0077 điều 8 — đặc tả §5 cho phép): SQL bản chụp thương mại, mọi câu qua defineSql + EXPLAIN.
+  { module: "orders", file: "modules/orders/thuong-mai-repo.ts" },
   // ADR-0058 Đ6: SQL MỚI của `catalog` (hai bảng `ctl_`) chỉ ở tệp này; `repository.ts` cũ còn LEGACY tới CATALOG_LEGACY_HAN.
   { module: "catalog", file: "modules/catalog/nhom-repo.ts" },
 ];
@@ -186,8 +195,10 @@ const DOC_AUDIT_LOG_WONGUARD = {
 // ĐÃ DUYỆT 2026-09-29 (lần 5) ở docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 1.
 // prc_/prc: ADR-0024 điều 1 (module pricing, bảng ở lượt 2).
 // ctl_/catalog: ADR-0058 điều 1 (nhóm dịch vụ; bảng cũ catalog_* giữ tên) — NỚI hàng rào đã duyệt (Điều 9.4), chủ duyệt ADR-0058 ngày 2026-09-30 (lượt 1a).
-const TABLE_PREFIX: Record<string, string> = { ctl_: "catalog", prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders", tl_: "tro-ly", gd_: "giao-dien", lg_: "lan-gui" };
-const VIEW_PREFIX: Record<string, string> = { prc: "pricing", pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing", aud: "audit", vc: "van-chuyen" };
+// ky_/ky-so (ADR-0080 D1, sổ đại lý đợt 1): khoá tháng. NỚI hàng rào đã duyệt (Điều 9.4) — chủ duyệt C12 2026-10-01, xem docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/de-xuat-luat.md.
+// VIEW_PREFIX thêm `ctl` (view công bố v_ctl_service_group của catalog) và `ky` (v_ky_closed_period của ky-so) — cùng khoản nới đã duyệt.
+const TABLE_PREFIX: Record<string, string> = { ctl_: "catalog", prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders", tl_: "tro-ly", gd_: "giao-dien", lg_: "lan-gui", ky_: "ky-so" };
+const VIEW_PREFIX: Record<string, string> = { prc: "pricing", pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing", aud: "audit", vc: "van-chuyen", ctl: "catalog", ky: "ky-so" };
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Đọc mã nguồn
@@ -864,26 +875,29 @@ test("ADR-0049 D1 (siết): KHÔNG module nào import van-chuyen — không cạ
 });
 
 /**
- * View công bố mà trigger của van-chuyen được đọc (ADR-0049 kế hoạch mục 1.4; Hiến chương 5.3): sáu view của kế hoạch + `v_ord_passenger_row` (R-P19 — chủ
- * chốt 29/9, Trả lời lần 13: bỏ khoá ngoại sang ord_*, bản chốt kiểm bằng trigger đọc view). Thêm tên = NỚI (Điều 9.4).
+ * View công bố mà trigger của van-chuyen được đọc (ADR-0049 kế hoạch mục 1.4; Hiến chương 5.3; hiện là tám view): sáu view của kế hoạch + `v_ord_passenger_row` (R-P19 — chủ
+ * chốt 29/9, Trả lời lần 13: bỏ khoá ngoại sang ord_*, bản chốt kiểm bằng trigger đọc view) + `v_ky_closed_period` (ADR-0080 D1, sổ đại lý đợt 1: trigger
+ * `vc_trip_cost_line_period_closed` đọc tháng đã khoá). Thêm tên = NỚI (Điều 9.4): `v_ky_closed_period` là NỚI hàng rào đã duyệt — chủ duyệt C12 2026-10-01,
+ * xem docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/de-xuat-luat.md.
  */
 const VIEW_CHO_TRIGGER_VC = [
   "v_ord_leg_key", "v_ord_order_flag", "v_ord_passenger_key", "v_ord_passenger_row", "v_pty_carrier_driver", "v_pty_carrier", "v_pty_owner_company",
+  "v_ky_closed_period",
 ] as const;
-/** Tên bảng / view (khác `vc_*` và khác sáu view) xuất hiện trong thân một trigger — câu báo trong dấu nháy đơn bỏ qua. */
+/** Tên bảng / view (khác `vc_*` và khác tám view đã liệt kê ở VIEW_CHO_TRIGGER_VC) xuất hiện trong thân một trigger — câu báo trong dấu nháy đơn bỏ qua. */
 function triggerDocNgoai(sql: string, objects: readonly string[]): string[] {
   const text = sql.replace(/'(?:[^']|'')*'/g, "''");
   return objects.filter((o) => !o.startsWith("vc_") && !(VIEW_CHO_TRIGGER_VC as readonly string[]).includes(o) && new RegExp(`\\b${o}\\b`, "i").test(text));
 }
 
-test("bộ bắt tên ngoài trong thân trigger: bắt JOIN orders / bảng pty_, cho qua vc_ + sáu view, bỏ qua chữ trong câu báo", () => {
+test("bộ bắt tên ngoài trong thân trigger: bắt JOIN orders / bảng pty_, cho qua vc_ + tám view đã liệt kê, bỏ qua chữ trong câu báo", () => {
   const objs = [...names("table"), ...names("view")];
   assert.deepEqual(triggerDocNgoai("CREATE TRIGGER x BEFORE INSERT ON vc_trip WHEN EXISTS (SELECT 1 FROM orders o) BEGIN SELECT RAISE(ABORT, 'x'); END", objs), ["orders"]);
   assert.deepEqual(triggerDocNgoai("CREATE TRIGGER x BEFORE INSERT ON vc_trip WHEN EXISTS (SELECT 1 FROM pty_party_role r) BEGIN SELECT 1; END", objs), ["pty_party_role"]);
   assert.deepEqual(triggerDocNgoai("CREATE TRIGGER x BEFORE INSERT ON vc_trip WHEN EXISTS (SELECT 1 FROM v_ord_leg_key k JOIN vc_trip t ON 1) BEGIN SELECT RAISE(ABORT, 'orders staff'); END", objs), []);
 });
 
-test("ADR-0049 D1 (siết, Hiến chương 5.3): thân MỌI trigger vc_* chỉ đọc bảng vc_ và view công bố đã liệt kê (v_ord_leg_key, v_ord_order_flag, v_ord_passenger_key, v_ord_passenger_row, v_pty_carrier_driver, v_pty_carrier, v_pty_owner_company)", () => {
+test("ADR-0049 D1 (siết, Hiến chương 5.3): thân MỌI trigger vc_* chỉ đọc bảng vc_ và view công bố đã liệt kê (v_ord_leg_key, v_ord_order_flag, v_ord_passenger_key, v_ord_passenger_row, v_pty_carrier_driver, v_pty_carrier, v_pty_owner_company, v_ky_closed_period)", () => {
   const objs = [...names("table"), ...names("view")];
   const trig = db.prepare("SELECT name, sql FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'vc\\_%' ESCAPE '\\'").all() as { name: string; sql: string }[];
   assert.ok(trig.length >= 60, `chống bài rỗng: phải có ≥ 60 trigger vc_ (0033, 0039, 0041, 0042), thấy ${trig.length}`);

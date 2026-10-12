@@ -39,7 +39,7 @@ async function donTongAm(w: any, daTra: number): Promise<string> {
   assert.equal((await w.call("POST", `/api/orders/${id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
   assert.equal((await w.call("PUT", `/api/orders/${id}/handler`, { as: SALES, body: { staffId: HDV } })).status, 200);
   w.sqlite.prepare("UPDATE order_service SET depart_date = ? WHERE order_id = ?").run(vnDay(0), id);
-  if (daTra > 0) assert.equal((await w.call("POST", `/api/orders/${id}/payments`, { as: ACC, body: { soTien: daTra, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" } })).status, 201);
+  if (daTra > 0) assert.equal((await w.call("POST", `/api/orders/${id}/payments`, { as: ACC, body: { soTien: daTra, hinhThuc: "CASH", nguoiThu: "cong_ty" } })).status, 201);
   const sua = await w.call("POST", `/api/orders/${id}/money-edit`, { as: ACC, body: { lyDo: "BOT_NGUOI", services: [{ id: svc, pax: P(1) }] } });
   assert.equal(sua.status, 200, sua.text);
   return id;

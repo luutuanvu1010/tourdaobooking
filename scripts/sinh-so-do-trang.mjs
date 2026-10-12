@@ -8,17 +8,20 @@
 //      - bố cục (e) theo THỨ TỰ TỆP: `<h2>`/`<h3>` mở một mục; `<button>`, `<a class="…btn…">` thuộc mục gần nhất phía trên; khối `form-actions` /
 //        `vc-bottom-bar` mở mục "Thanh nút cuối trang". Phần dựng trong web/X.ts (`h("h2"|"h3"|"button"|"a", …, "Nhãn")`, chuỗi LITERAL) ghi riêng là
 //        "dựng khi trang chạy": danh sách mục và danh sách nút, KHÔNG gán nút vào mục (thứ tự trong mã không phải vị trí trên màn hình);
-//      - menu: `{ href, label }` của web/shell.ts; NHÓM menu (BÁN HÀNG / QUẢN TRỊ / QUẢN TRỊ › Vận chuyển / TÔI) đọc từ hàm `navGroups`.
+//      - menu: bảng mục src/shared/muc-giao-dien.ts — THANH_TAB rồi THANH_BEN (nhãn theo đường trang); NHÓM menu (BÁN HÀNG / QUẢN TRỊ / QUẢN TRỊ › Vận chuyển /
+//        TÔI) từ THANH_BEN. Dòng trang Tôi dựng từ TRANG_TOI (không phải chuỗi literal): nhãn chèn vào phần "dựng khi trang chạy" của /account ở chú thích
+//        `// sinh-so-do-trang: nhãn các dòng TRANG_TOI…` của web/account.ts (CHEN_NHAN dưới đây) — trừ nhóm VẬN CHUYỂN (bộ dò cũ không bắt các dòng đó; giữ nguyên kho).
 //   2. src/shared/tro-ly-cau-truc.ts — kho (d) cấu trúc app (lõi thuần scripts/tro-ly-cau-truc-lib.mjs): phân hệ + phụ thuộc (`ALLOWED_EDGES`), luồng chính,
 //      vai → làm được / không làm được (`MATRIX` + `PERMISSION_CODES`), dịch qua bảng tên src/shared/tro-ly-cau-truc-ten.ts.
 // Nhãn không đủ dạng (không chữ cái, < 2 hoặc > 60 ký tự, có `${`) thì bỏ (không phải nhãn). Nhãn / chữ ĐỦ dạng mà vi phạm luật nội dung (`viPhamChu`) hay bộ lọc
 // tên kỹ thuật (`viPhamKyThuat`) ⇒ NÉM LỖI (ADR-0070 điều 5: không âm thầm bỏ). Thiếu tên lời thường ⇒ ném lỗi (điều 1).
-// Không suy "vai nào thấy trang" từ menu (menu dựng theo cờ quyền bằng mã thủ tục) — kho (d) nói vai làm được gì từ bản đồ quyền.
+// Không suy "vai nào thấy trang" từ menu — kho (d) nói vai làm được gì từ bản đồ quyền.
 // Kết quả ổn định (theo thứ tự PAGES / thứ tự tệp) để bài "chạy lại ra đúng tệp" so được.
 import { existsSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { viPhamChu } from "../src/shared/huong-dan.ts";
+import { THANH_BEN, THANH_TAB, TRANG, TRANG_TOI } from "../src/shared/muc-giao-dien.ts";
 import { MATRIX, PERMISSION_CODES, PERMISSION_LABEL } from "../src/shared/permissions.ts";
 import { LUONG_CHINH, LY_DO_PHU_THUOC, O_HEP, TEN_PHAN_HE, TEN_THAO_TAC } from "../src/shared/tro-ly-cau-truc-ten.ts";
 import { viPhamKyThuat } from "../src/shared/tro-ly-loc-ky-thuat.ts";
@@ -46,57 +49,37 @@ function themNhan(ds, s, noi) {
   if (t && !ds.includes(t)) ds.push(t);
 }
 
-/** Hằng đường dẫn `const TRANG_X = "/…"` hoặc `= ["/…", …]` (lấy phần tử đầu) trong một tệp. */
-function hangDuongDan(src) {
-  const out = new Map();
-  for (const m of src.matchAll(/(?:export\s+)?const\s+(TRANG_[A-Z_]+)\s*(?::[^=]+)?=\s*"([^"]+)"/g)) out.set(m[1], m[2]);
-  for (const m of src.matchAll(/(?:export\s+)?const\s+(TRANG_[A-Z_]+)\s*(?::[^=]+)?=\s*\[\s*(?:([A-Z_]+)|"([^"]+)")/g)) out.set(`${m[1]}[0]`, m[3] ?? m[2]);
-  return out;
-}
-
-const RE_MUC_MENU = /\{\s*href:\s*(?:"([^"]*)"|`([^`$]*)[^`]*`|([A-Z_]+)(\[0\])?!?)\s*,\s*label:\s*"([^"]+)"/g;
-
-/** Menu (thanh bên máy tính + thanh tab điện thoại) của web/shell.ts: đường dẫn → { nhãn, nhóm }. Nhóm chỉ từ `navGroups` (thanh bên). */
-function docMenu(root) {
-  const shell = boChuThich(doc(root, "web/shell.ts"));
-  const hang = new Map([...hangDuongDan(doc(root, "src/shared/start-page.ts")), ...hangDuongDan(shell)]);
-  for (const [k, v] of hang) if (hang.has(v)) hang.set(k, hang.get(v));
-  const giai = (m) => {
-    const d = m[1] ?? m[2] ?? (m[3] ? hang.get(m[4] ? `${m[3]}[0]` : m[3]) : undefined);
-    return d ? d.split("?")[0] : undefined;
-  };
-
-  // Nhóm thanh bên: thân hàm navGroups; biến mảng → tiêu đề nhóm đọc từ `{ title: "…", items: <biến> }`.
-  const iNav = shell.indexOf("function navGroups(");
-  const iReturn = iNav < 0 ? -1 : shell.indexOf("return [", iNav);
-  const iHet = iReturn < 0 ? -1 : shell.indexOf("];", iReturn);
-  if (iNav < 0 || iReturn < 0 || iHet < 0) throw new Error("Không đọc được hàm navGroups ở web/shell.ts — bộ sinh cần nó để biết trang ở nhóm menu nào (sửa scripts/sinh-so-do-trang.mjs).");
-  const tieuDeNhom = new Map([...shell.slice(iReturn, iHet).matchAll(/\{\s*title:\s*"([^"]+)"\s*,\s*items:\s*([A-Za-z]+)\s*\}/g)].map((m) => [m[2], m[1]]));
-  const khai = [...shell.slice(iNav, iReturn).matchAll(/const\s+([A-Za-z]+)\s*:\s*NavItem\[\]/g)].map((m) => ({ bien: m[1], vt: iNav + m.index }));
-  if (!khai.length || khai.some((k) => !tieuDeNhom.has(k.bien))) throw new Error("Không khớp được nhóm menu (biến NavItem[] ↔ title) trong navGroups ở web/shell.ts.");
-
+/** Menu (thanh tab điện thoại + thanh bên máy tính) từ bảng mục: đường trang → { nhãn (tab trước, thanh bên sau), nhóm thanh bên }. */
+function docMenu() {
   const menu = new Map();
-  let cha = null;
-  for (const m of shell.matchAll(RE_MUC_MENU)) {
-    const nhanMuc = m[5];
-    const duoiMuc = shell.slice(m.index, shell.indexOf("}", m.index + m[0].length) + 1);
-    let nhom = null;
-    if (m.index > iNav && m.index < iReturn) {
-      const k = khai.filter((x) => x.vt < m.index).at(-1);
-      if (k) {
-        nhom = tieuDeNhom.get(k.bien);
-        if (/kind:\s*"parent"/.test(duoiMuc)) cha = nhanMuc;
-        else if (/kind:\s*"sub"/.test(duoiMuc) && cha) nhom = `${nhom} › ${cha}`;
-      }
-    }
-    const duong = giai(m);
-    if (!duong) continue; // mục cha "Vận chuyển" (href rỗng) hoặc hằng không giải được: bỏ, không đoán
+  const them = (trang, nhanMuc, nhom) => {
+    const duong = TRANG[trang].duong;
     const o = menu.get(duong) ?? { nhan: [], nhom: [] };
-    themNhan(o.nhan, nhanMuc, "web/shell.ts (menu)");
+    themNhan(o.nhan, nhanMuc, "src/shared/muc-giao-dien.ts (menu)");
     if (nhom && !o.nhom.includes(nhom)) o.nhom.push(nhom);
     menu.set(duong, o);
-  }
+  };
+  for (const c of THANH_TAB) them(c.trang, c.nhan, null);
+  for (const c of THANH_BEN) them(c.trang, c.nhan, "cha" in c ? `${c.nhom} › ${c.cha}` : c.nhom);
   return menu;
+}
+
+/**
+ * Nhãn dòng dựng từ bảng mục (không phải chuỗi literal nên `boCucTs` không thấy): chèn vào nguồn ở ĐÚNG chỗ chú thích đánh dấu, dưới dạng `h("a", null, "Nhãn")`,
+ * để thứ tự "dựng khi trang chạy" như khi các dòng còn viết tay. Thiếu chú thích ⇒ NÉM (không âm thầm mất nhãn).
+ */
+const CHEN_NHAN = [
+  { tep: "web/account.ts", dau: "// sinh-so-do-trang: nhãn các dòng TRANG_TOI", nhan: () => TRANG_TOI.filter((c) => c.phan !== "van-chuyen").map((c) => c.nhan) },
+];
+function chenNhan(tep, src) {
+  let out = src;
+  for (const c of CHEN_NHAN) {
+    if (c.tep !== tep) continue;
+    const i = out.indexOf(c.dau);
+    if (i < 0) throw new Error(`Thiếu chú thích chỗ chèn "${c.dau}" ở ${tep} — bộ sinh cần nó để đặt nhãn dòng đúng thứ tự (sửa scripts/sinh-so-do-trang.mjs nếu đã dời).`);
+    out = out.slice(0, i) + c.nhan().map((n) => `h("a", null, ${JSON.stringify(n)});\n`).join("") + out.slice(i);
+  }
+  return out;
 }
 
 /** Bố cục (e) từ HTML tĩnh — thứ tự tệp. Thuần theo chuỗi vào (dùng được trong bài kiểm). */
@@ -143,7 +126,7 @@ export function dungSoDo(root = ROOT_MAC_DINH) {
   const sw = doc(root, "src/shared/sw-policy.ts");
   const pages = [...(/export const PAGES[^=]*=\s*\[([^\]]*)\]/.exec(sw)?.[1] ?? "").matchAll(/"([^"]+)"/g)].map((m) => m[1]);
   if (!pages.length) throw new Error("Không đọc được PAGES ở src/shared/sw-policy.ts.");
-  const menu = docMenu(root);
+  const menu = docMenu();
   const out = [];
   for (const duongDan of pages) {
     if (duongDan === "/login") continue; // trợ lý chỉ mở sau đăng nhập
@@ -155,7 +138,7 @@ export function dungSoDo(root = ROOT_MAC_DINH) {
     const tieuDe = nhan(/<title>([^<]*?)\s+—\s+Island Booking System<\/title>/.exec(html)?.[1]?.trim() ?? "", `tiêu đề ${tepHtml}`) ?? "";
     const boCuc = boCucHtml(html);
     const tepTs = `web/${script}.ts`;
-    const khiChay = existsSync(join(root, tepTs)) ? boCucTs(doc(root, tepTs)) : { muc: [], nut: [] };
+    const khiChay = existsSync(join(root, tepTs)) ? boCucTs(chenNhan(tepTs, doc(root, tepTs))) : { muc: [], nut: [] };
     // (c) danh sách phẳng như cũ: tiêu đề mục + nút của HTML (theo thứ tự), rồi của web/X.ts.
     const nut = [];
     const hTieuDe = [...html.replace(/<!--[\s\S]*?-->/g, "").matchAll(/<(h[1-3])\b[^>]*>([^<]+)<\/\1>/g)].map((m) => m[2]);

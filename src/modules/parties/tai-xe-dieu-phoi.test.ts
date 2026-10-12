@@ -13,6 +13,7 @@ import { world } from "../../../tests/audit/harness.mjs";
 const built = await esbuild.build({ entryPoints: [new URL("./index.ts", import.meta.url).pathname], bundle: true, format: "esm", platform: "neutral", target: "es2022", write: false });
 const parties = (await import(`data:text/javascript;base64,${Buffer.from(built.outputFiles[0]!.text).toString("base64")}`)) as Record<string, unknown> & {
   taiXeChoDieuPhoi: (db: unknown, v: { today: string }) => Promise<Record<string, unknown>[]>;
+  tenLoaiVai: (db: unknown) => Promise<Map<string, string>>;
 };
 await import("./repository.ts"); // đăng ký câu SQL của parties vào sổ để bài văn bản câu đọc được
 
@@ -145,11 +146,18 @@ test("TC-3 câu SQL của taiXeChoDieuPhoi (đã đăng ký defineSql) không ch
   for (const c of cau) for (const cot of ["document_number", "number_key", "issued_place", "issued_date"]) assert.ok(!c.sql.includes(cot), `${c.name}: không chọn ${cot}`);
 });
 
-test("TC-3 parties/index.ts xuất đúng hai hàm mới (taiXeChoDieuPhoi; hoSoCaNhanKhop — ADR-0068 Đ9) so với trước ADR-0049 — mọi tên khác giữ nguyên (thêm tên = đổi hợp đồng công bố, sửa bài có chủ đích)", () => {
+test("tenLoaiVai (sổ đại lý đợt 1): mã vai → tên tiếng Việt đọc từ pty_role_type, kể cả vai Nhà cung cấp mới", async () => {
+  const w = world();
+  const ten = await parties.tenLoaiVai(w.env.DB);
+  assert.equal(ten.get("TRAVEL_AGENCY"), "Công ty lữ hành");
+  assert.equal(ten.get("SUPPLIER"), "Nhà cung cấp");
+});
+
+test("TC-3 parties/index.ts xuất đúng bốn hàm mới (taiXeChoDieuPhoi; hoSoCaNhanKhop — ADR-0068 Đ9; taiKhoanNhanTienHienHanh — ADR-0108 đ2; tenLoaiVai — sổ đại lý đợt 1) so với trước ADR-0049 — mọi tên khác giữ nguyên (thêm tên = đổi hợp đồng công bố, sửa bài có chủ đích)", () => {
   const TRUOC_ADR_0049 = [
     "accountRolesOf", "closeAccountRoleStatement", "composePersonName", "expiringDriverDocuments", "findPartiesByPhone", "newOrganizationStatements", "newPersonStatements",
     "nhaXeDangHopTac", "openAccountRoleStatement", "openRoleCodesByParty", "ownerCompany", "partiesModule", "partySummary", "renamePersonStatements",
     "reopenAccountRoleStatement", "splitPersonName", "validatePersonFullName",
   ];
-  assert.deepEqual(Object.keys(parties).sort(), [...TRUOC_ADR_0049, "taiXeChoDieuPhoi", "hoSoCaNhanKhop"].sort());
+  assert.deepEqual(Object.keys(parties).sort(), [...TRUOC_ADR_0049, "taiXeChoDieuPhoi", "hoSoCaNhanKhop", "taiKhoanNhanTienHienHanh", "tenLoaiVai"].sort());
 });

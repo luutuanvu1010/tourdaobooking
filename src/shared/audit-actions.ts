@@ -38,6 +38,10 @@ export const AUDIT_ACTIONS = {
   order_money_adjusted_by_field: { label: "Sửa số khách (hướng dẫn viên đang phụ trách)", group: "order", doiSoKhach: true },
   // ADR-0062 Đ1 cách (a): KHAI TRƯỚC cho đường văn phòng sửa số khách (ADR-0063 D1 — chưa duyệt, chưa route nào ghi). Bị bác thì nằm chết, vô hại.
   order_money_adjusted: { label: "Sửa số khách (văn phòng)", group: "order", doiSoKhach: true },
+  // Sổ đại lý đợt 1 (ADR-0077 điều 8): chụp mức hoa hồng + người bán của từng dòng lúc Xác nhận — `detail` chỉ đếm dòng (không tỷ lệ, không tiền, không tên đối tác).
+  order_terms_captured: { label: "Chụp mức hoa hồng lúc xác nhận", group: "order" },
+  order_terms_recaptured: { label: "Chụp lại mức khi đổi bên đặt", group: "order" },
+  order_terms_manual: { label: "Ghi mức hoa hồng tay", group: "order" }, // Task 5: Kế toán / Quản trị / Toàn quyền ghi mức hoặc người bán cho một dịch vụ; detail "<dịch vụ>: mức trước → sau" (không tiền khách, không a%, không lý do); lịch sử đơn lọc bỏ khi người xem giữ quyền Đối tác
   // Sổ tiền lượt 1 (ADR-0025, ADR-0026) — `detail` không SĐT, không số tiền chi tiết (kế hoạch §3.4).
   order_delivered: { label: "Đã giao – đã thu đủ", group: "order" },
   order_completed: { label: "Hoàn thành", group: "order" },
@@ -52,6 +56,9 @@ export const AUDIT_ACTIONS = {
   ledger_adjustment: { label: "Ghi điều chỉnh sổ", group: "ledger" },
   ledger_receipt_replaced: { label: "Thay lần thu", group: "ledger" },
   ledger_reversal: { label: "Ghi dòng đảo sổ", group: "ledger" },
+  // ADR-0092 Đ6 (migration 0088): gắn mã giao dịch ngân hàng vào lần thu — target = lần thu (`ledger`, id lần thu); `detail` = "gắn mã giao dịch ngân hàng"
+  // (chữ cố định); KHÔNG chép mã giao dịch, không số tài khoản.
+  ledger_bank_txn_linked: { label: "Gắn mã giao dịch ngân hàng", group: "ledger" },
   // ADR-0089 (cọc đơn huỷ — migration 0079): duyệt / huỷ duyệt / chi / chuyển / đã hoàn ngoài hệ thống. Không số tiền trong detail (chỉ lý do).
   deposit_refund_approved: { label: "Duyệt hoàn cọc", group: "ledger" },
   deposit_transfer_approved: { label: "Duyệt chuyển tiền sang đơn mới", group: "ledger" },
@@ -62,6 +69,14 @@ export const AUDIT_ACTIONS = {
   deposit_outside_recorded: { label: "Ghi đã hoàn ngoài hệ thống", group: "ledger" },
   deposit_outside_confirmed: { label: "Xác nhận đã hoàn ngoài hệ thống", group: "ledger" },
   deposit_outside_rejected: { label: "Từ chối dòng đã hoàn ngoài hệ thống", group: "ledger" },
+  // Sổ đại lý đợt 1 (ADR-0077, ADR-0078 B1; module pricing): thêm / đóng dòng mức hoa hồng và điều khoản người bán — `order_id` NULL; `detail` = mô tả lời thường
+  // ("<đối tượng> · <phạm vi> · <mức>"), KHÔNG SĐT, không tiền khách.
+  prc_commission_rule_added: { label: "Thêm mức hoa hồng", group: "ledger" },
+  prc_commission_rule_closed: { label: "Đóng mức hoa hồng", group: "ledger" },
+  prc_supply_term_added: { label: "Thêm điều khoản người bán", group: "ledger" },
+  prc_supply_term_closed: { label: "Đóng điều khoản người bán", group: "ledger" },
+  // Khoá sổ tháng (ADR-0080 D1; module ky-so — route ở billing): `order_id` NULL; `detail` = "Khoá sổ tháng MM/YYYY" (không tiền, không SĐT).
+  ledger_period_closed: { label: "Khoá sổ tháng", group: "ledger" },
   order_handler_changed: { label: "Đổi người phụ trách", group: "order" },
   order_claimed: { label: "Tự nhận phụ trách đơn", group: "order" },
   booker_changed: { label: "Đổi khách", group: "order" },
@@ -95,6 +110,8 @@ export const AUDIT_ACTIONS = {
   party_document_corrected: { label: "Sửa sai giấy tờ của người", group: "party" },
   party_document_number_viewed: { label: "Xem đủ số giấy tờ", group: "party" },
   party_document_catalog_changed: { label: "Sửa danh mục giấy tờ của người", group: "party" },
+  // ADR-0108 đ2: cài / đổi tài khoản nhận tiền của công ty chủ — target = hồ sơ công ty; `detail` = "cài|đổi tài khoản nhận tiền" (chữ cố định); KHÔNG chép số tài khoản (5.12).
+  party_bank_account_changed: { label: "Đổi tài khoản nhận tiền", group: "party" },
   vehicle_created: { label: "Thêm xe", group: "vehicle" },
   vehicle_updated: { label: "Sửa xe", group: "vehicle" },
   // Giấy tờ xe — `detail` mở đầu bằng biển số, KHÔNG số giấy tờ (một luật chung với giấy tờ của người — giả định G4).
@@ -236,6 +253,14 @@ export const SILENT_AUDIT_ACTIONS = [
   "session_policy_changed", // ADR-0085 điều 9
   "session_revoked", // ADR-0075 điều 8: cùng loại với pin_reset, passkey_removed
 ] as const satisfies readonly AuditAction[];
+
+/**
+ * Sổ đại lý đợt 1, bước K-a (luật "ai thấy tiền của ai" — Hiến chương K4; đặc tả đợt 1: "có quyền Đối tác là áp"): hành động mà `detail` chở MỨC thương mại (tỷ lệ,
+ * đ/khách, người bán). Trang Nhật ký (`GET /api/audit`) bỏ các dòng này khi người xem giữ quyền Đối tác — kể cả tài khoản lai Toàn quyền + Đối tác — như lịch sử đơn
+ * lọc `order_terms_*` (`laDongThuongMai`). Theo tiền tố: hành động mới cùng tiền tố tự vào. Danh sách dựng ở máy chủ (`audit/repository.ts`) — tính ở đầu tệp dùng chung
+ * này kéo cả bảng nhãn vào gói giao diện (bài `src/goi-trang-nhe.test.ts`). Bài canh: `src/so-la-thuong-mai-toan-nen-tang.test.ts`.
+ */
+export const laHanhDongThuongMai = (a: string): boolean => a.startsWith("order_terms_") || a.startsWith("prc_");
 
 export const isAuditAction = (v: unknown): v is AuditAction => typeof v === "string" && Object.hasOwn(AUDIT_ACTIONS, v);
 

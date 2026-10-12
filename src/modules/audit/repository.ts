@@ -1,4 +1,4 @@
-import { SILENT_AUDIT_ACTIONS, isAuditAction, type AuditAction, type AuditTargetType } from "../../shared/audit-actions";
+import { AUDIT_ACTIONS, SILENT_AUDIT_ACTIONS, isAuditAction, laHanhDongThuongMai, type AuditAction, type AuditTargetType } from "../../shared/audit-actions";
 import type { AuditEntryDto, AuditListResponse, AuditRecordDto } from "../../shared/contracts";
 import { escapeLike } from "../../shared/http";
 
@@ -40,6 +40,9 @@ export function insertStatement(db: D1Database, e: AuditInput, onlyIf?: string):
 
 export const SYSTEM_ACTOR_NAME = "Hệ thống (tự động)";
 
+/** Bước K-a (sổ đại lý đợt 1): hành động chở mức thương mại — trang Nhật ký bỏ khi người xem giữ quyền Đối tác. SUY từ bảng hành động (`laHanhDongThuongMai`). */
+const THUONG_MAI_AUDIT_ACTIONS: readonly AuditAction[] = (Object.keys(AUDIT_ACTIONS) as AuditAction[]).filter(laHanhDongThuongMai);
+
 export async function listByOrder(db: D1Database, orderId: string): Promise<AuditEntry[]> {
   const { results } = await db
     .prepare(
@@ -55,10 +58,16 @@ export async function listByOrder(db: D1Database, orderId: string): Promise<Audi
 /** Nhật ký toàn hệ thống, mới nhất trước; lọc theo hành động và/hoặc tìm theo đối tượng / tên người thao tác. */
 export async function listAll(
   db: D1Database,
-  opts: { action: AuditAction | null; q: string; limit: number; offset: number; hideSilent: boolean },
+  opts: { action: AuditAction | null; q: string; limit: number; offset: number; hideSilent: boolean; hideThuongMai?: boolean },
 ): Promise<AuditListResponse> {
   const where: string[] = [];
   const binds: (string | number)[] = [];
+  if (opts.hideThuongMai) {
+    // Bước K-a (sổ đại lý đợt 1): người xem giữ quyền Đối tác → bỏ dòng chở mức thương mại. Lọc TRONG SQL (trước LIMIT) như thao tác im lặng: phân trang và hasMore
+    // không lộ số dòng bị giấu; lọc theo `action` của chính các hành động này cũng ra rỗng.
+    where.push(`a.action NOT IN (${THUONG_MAI_AUDIT_ACTIONS.map(() => "?").join(", ")})`);
+    binds.push(...THUONG_MAI_AUDIT_ACTIONS);
+  }
   if (opts.hideSilent) {
     // ADR-0038: người xem không phải Toàn quyền → bỏ thao tác im lặng do người đang giữ Toàn quyền làm. Lọc TRONG SQL (trước LIMIT) để
     // phân trang và hasMore không lộ số dòng bị giấu.
