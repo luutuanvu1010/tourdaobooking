@@ -12,6 +12,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sổ đại lý đợt 1 (ADR-0077/0078/0080), migration 0090. Số 1.87 là số TẠM (= 1.86 + 1 lúc soạn 2026-10-12): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
+    version: "1.87",
+    date: "2026-10-12",
+    items: [
+      { kind: "moi", text: "Kế toán đặt mức hoa hồng cho đối tác theo từng dịch vụ hoặc nhóm dịch vụ, và ghi rõ ai bán dịch vụ nào, ở hai mục mới dưới Quản trị." },
+      { kind: "moi", text: "Đơn đặt qua đại lý hiện hoa hồng và giá đại lý theo mức đã đặt lúc xác nhận; Kế toán ghi mức riêng cho từng dòng khi chưa có mức." },
+      { kind: "moi", text: "Đối tác thấy số tiền hoa hồng của chính mình trên đơn đặt qua mình. Nhân viên lập đơn chọn đại lý ở ô \"Đặt qua đối tác\"." },
+      { kind: "moi", text: "Kế toán khoá sổ từng tháng đã qua; từ đó không ghi thêm tiền vào tháng đã khoá, và tháng đã khoá không mở lại được." },
+      { kind: "doi", text: "Đơn đặt qua đại lý có hoa hồng chưa bấm được \"Đã giao\" cho tới bản cập nhật sau; hoa hồng vẫn hiện đủ trên đơn." },
+    ],
+  },
+  {
     // QR thanh toán VietQR (ADR-0108) + mã giao dịch ngân hàng bắt buộc (ADR-0092 Đ6), migration 0087–0088. Chủ duyệt nhật ký 2026-10-08. Số 1.86 = main 1.85 + 1.
     version: "1.86",
     date: "2026-10-08",
