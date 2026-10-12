@@ -10,6 +10,7 @@ import {
 import { NHAN_NHOM_LY_DO } from "../../shared/dieu-phoi-kieu";
 import { error, UUID_RE } from "../../shared/http";
 import { khoaNoi } from "../../shared/khoa-noi";
+import { maskLongDigits } from "../../shared/text-guards";
 import { msToVnLocal } from "../../shared/vn-date";
 import {
   deNghiById, deNghiCuaChuyen, dieuKienChuyenDangDung, kiemCuaDeNghi, lyDoDangDung, stopsByTrips, tenDiem, tripById, type AllocRow, type DeNghiRow,
@@ -19,6 +20,7 @@ import {
   type DiemMoi, type DongKiemLo,
 } from "./dieu-phoi";
 import { boSungXe, chinhSachVao, docChung, docNen, docNguCanh, suatVao, type NenChuyen } from "./dieu-phoi-doc";
+import { tenNoi } from "./dieu-phoi-dto";
 import { chayLo, loi409, sapLaiDiem } from "./dieu-phoi-route";
 import { currentDispatchPolicy } from "./repository";
 
@@ -295,6 +297,7 @@ async function keHoachXacNhan(r: DeNghiRow, k: KiemDeNghi, hk: readonly ChangCho
   });
   return { diemMoi, doiThuTu, cap, chot };
 }
+const LY_DO_NGUNG_DUNG = "Lý do khác";
 async function laCu(res: Response): Promise<boolean> {
   if (res.status !== 409) return false;
   return ((await res.clone().json()) as { error?: { code?: string } }).error?.code === "stale";
@@ -383,7 +386,7 @@ export async function lenhBacDeNghi(db: D1Database, r: DeNghiRow, b: { requestId
 // ---- DTO --------------------------------------------------------------------------------------------------------------------------------------------
 /**
  * DTO đề nghị (LC-18). `vanPhong` = kèm dòng kiểm của lần bấm gần nhất + hộp duyệt (Leo thang). Tên điểm đón: tên danh mục hoặc chữ đã che của điểm; nơi gặp:
- * tên danh mục hoặc chữ đã che. Nhãn lý do theo danh mục đang dùng (mã ngưng dùng → hiện mã).
+ * tên danh mục hoặc chữ đã che. Nhãn lý do theo danh mục đang dùng (mã ngưng dùng → chữ chung "Lý do khác", không lộ mã).
  */
 export async function deNghiDto(db: D1Database, rows: readonly DeNghiRow[], bayGioMs: number, vanPhong: boolean): Promise<DeNghiDto[]> {
   if (rows.length === 0) return [];
@@ -399,10 +402,10 @@ export async function deNghiDto(db: D1Database, rows: readonly DeNghiRow[], bayG
     const ma = r.decline_reason_code ?? r.reject_reason_code ?? r.override_reason_code;
     const dto: DeNghiDto = {
       id: r.id, tuChuyenId: r.from_trip_id, tuMaChuyen: r.from_code, denChuyenId: r.to_trip_id, denMaChuyen: r.to_code, phamVi: r.scope, soKhach: r.pax_count,
-      diemId: r.from_stop_id, tenDiem: s ? s.location_name ?? s.place_text : null,
-      noiGap: r.scope === "ONBOARD" ? (r.meet_location_id ? ten.get(r.meet_location_id) ?? null : r.meet_place_text) : null,
+      diemId: r.from_stop_id, tenDiem: s ? tenNoi(s) : null, // hai lớp che (lúc ghi + ở DTO), khuôn dieu-phoi-dto.ts
+      noiGap: r.scope === "ONBOARD" ? (r.meet_location_id ? ten.get(r.meet_location_id) ?? null : r.meet_place_text === null ? null : maskLongDigits(r.meet_place_text)) : null,
       trangThai: tt, nhanTrangThai: NHAN_TRANG_THAI_DE_NGHI[tt], guiLuc: r.proposed_at, hanLuc: nowIsoOf(hetHanLucMs(guiMs, r.accept_wait_minutes)), quyetLuc: r.decided_at,
-      lyDo: ma ? lyDo.get(ma) ?? ma : null,
+      lyDo: ma ? lyDo.get(ma) ?? LY_DO_NGUNG_DUNG : null, // mã ngưng dùng KHÔNG lộ ra màn: chữ có dấu chung
     };
     if (vanPhong) {
       const cua = kiem.filter((k) => k.transfer_id === r.id);

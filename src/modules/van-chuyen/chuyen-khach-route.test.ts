@@ -396,6 +396,34 @@ test("NT-A5-20 thua cổng (3): lô leo thang thua cổng vì tài xế xe nhờ
   }
 });
 
+test("THẤP-3, THẤP-4 (kiểm độc lập 12/10): DTO đề nghị không lộ mã thô khi lý do bị ngưng dùng (chữ có dấu chung) và che dãy ≥ 8 chữ số ở tên điểm đón (hai lớp che, khuôn tenNoi)", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    // THẤP-4: lớp che thứ HAI. Lúc ghi, đơn đã che dãy số dài; để thử lớp ở DTO, gỡ trigger bất biến điểm dừng (chỉ trong CSDL thử) rồi ghi chữ gốc.
+    const a = await chuyenSan(w);
+    const b = await chuyenSan(w, { taiXe: DRIVER2, gio: "14:00", bd: "13:30", kt: "16:00", noiDon: "Khách sạn Hai" });
+    denGio("12:40");
+    assert.equal((await tienDo(w, "tai-xe", a.id, "xuat-ben")).status, 200);
+    const id = await guiDiem(w, a, b);
+    w.sqlite.exec("DROP TRIGGER vc_trip_stop_identity");
+    w.sqlite.prepare("UPDATE vc_trip_stop SET place_text = 'Số 0912345678 Trần Phú' WHERE id = ?").run(a.diemDon);
+    let ds = (await w.call("GET", `${VC}/de-nghi-cua-toi`, { as: DRIVER })).json.guiDi;
+    const dong = ds.find((x: any) => x.id === id);
+    assert.ok(dong.tenDiem, "có tên điểm");
+    assert.doesNotMatch(dong.tenDiem, /\d{8,}/, `tên điểm lộ dãy số: ${dong.tenDiem}`);
+    // THẤP-3: Không nhận với lý do còn dùng → sau đó danh mục ngưng lý do ấy → DTO vẫn có chữ có dấu, không mã thô.
+    assert.equal((await khongNhan(w, id, "TU_CHOI_DAY_CHO")).status, 200);
+    w.sqlite.prepare("UPDATE vc_reason SET active = 0 WHERE code = 'TU_CHOI_DAY_CHO'").run();
+    ds = (await w.call("GET", `${VC}/de-nghi-cua-toi`, { as: DRIVER })).json.guiDi;
+    const sau = ds.find((x: any) => x.id === id);
+    assert.ok(sau.lyDo, "vẫn có chữ lý do");
+    assert.doesNotMatch(sau.lyDo, /^[A-Z][A-Z_0-9]+$/, `lý do lộ mã thô: ${sau.lyDo}`);
+  } finally {
+    tat();
+  }
+});
+
 test("NT-A5-7, -11 nhận dưới mốc (xe nhận chưa chạy) → leo thang (suất không đổi, tin tới người có trip.override); danh sách văn phòng có dòng kiểm + hộp; Duyệt: chỉ trip.override, lý do nhóm PHA_LE, NGUOI; lệnh lặp Nhận sau duyệt vẫn 200", async () => {
   const tat = batDongHo();
   try {
