@@ -1,0 +1,120 @@
+{
+  "_ghi_chu": "Sổ vàng sổ công nợ lượt 2 — hoa hồng đại lý và giá vốn nhà cung cấp (ADR-0077 'Ví dụ bằng số' A-1…A-5, ADR-0078 B-3). Soạn bởi AI 2026-10-12 (sổ đại lý đợt 1, Task 14). MỌI ca đang 'cho_xac_nhan': chỉ chủ dự án hoặc Kế toán đổi sang 'da_xac_nhan' (Hiến pháp N8, Hiến chương 5.17). Số lấy NGUYÊN từ ví dụ trong ADR; chỗ ADR không nêu số thì để null và ghi 'ADR không nêu — chờ Kế toán', KHÔNG tự đặt số. Ca nào có số không lấy từ ADR thì ghi rõ ở 'nguon' của dòng đó.",
+  "quy_uoc": {
+    "ty_le_bp": "Phần vạn nguyên (12,5% = 1250). Không số thực.",
+    "lam_tron": "Nửa lên, theo từng dòng (điều A1, chủ duyệt 2026-10-08): hoa hồng RATE = nửa-lên(ty_le_bp × thanh_tien / 10.000); PER_PAX = moi_khach × khach_tinh; giá vốn = nửa-lên(ty_le_mua_bp × thanh_tien / 10.000), trên thành tiền TRƯỚC giảm giá (H8 = A).",
+    "gia_dai_ly": "Giá đại lý phải trả Tour Đảo = thành tiền − hoa hồng (ADR-0077 ví dụ A-1)."
+  },
+  "cac_ca": [
+    {
+      "ma": "A-1",
+      "mo_ta": "Chọn mức nhiều dòng (ADR-0077 ví dụ A-1, đặc tả §11). Đơn của đại lý A xác nhận 10/10/2026; ba dòng, ba bậc thắng khác nhau (đối tác + dịch vụ 12%; vai + nhóm 15%; vai + mọi dịch vụ 10%).",
+      "nguon": "ADR-0077, ví dụ A-1 (bảng 'Chọn mức nhiều dòng')",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dong": [
+        {
+          "nhan": "Vé Hòn Tằm — bậc 1 (đối tác + dịch vụ)",
+          "dau_vao": { "thanh_tien": 2000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1200, "moi_khach": null, "ty_le_mua_bp": null },
+          "dap_an": { "hoa_hong": 240000, "gia_dai_ly": 1760000, "gia_von": null }
+        },
+        {
+          "nhan": "Du thuyền — bậc 5 (vai + nhóm)",
+          "dau_vao": { "thanh_tien": 3000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1500, "moi_khach": null, "ty_le_mua_bp": null },
+          "dap_an": { "hoa_hong": 450000, "gia_dai_ly": 2550000, "gia_von": null }
+        },
+        {
+          "nhan": "Tour đảo — bậc 6 (vai + mọi dịch vụ)",
+          "dau_vao": { "thanh_tien": 1000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1000, "moi_khach": null, "ty_le_mua_bp": null },
+          "dap_an": { "hoa_hong": 100000, "gia_dai_ly": 900000, "gia_von": null }
+        }
+      ],
+      "tong": { "thanh_tien": 6000000, "hoa_hong": 790000, "gia_dai_ly": 5210000 }
+    },
+    {
+      "ma": "A-2",
+      "mo_ta": "Mức mỗi khách + HDV sửa số khách sau xác nhận (ADR-0077 ví dụ A-2). Mức 'Lễ tân khách sạn · vé tắm bùn · 50.000 đ/khách' chụp lúc xác nhận GIỮ NGUYÊN; số khách là số HIỆN HÀNH lúc Đã giao. Bước 1: 2 người lớn + 1 trẻ em + 1 em bé ⇒ 3 khách tính. Bước 2: HDV sửa thành 3 người lớn + 1 trẻ em + 1 em bé ⇒ 4 khách tính.",
+      "nguon": "ADR-0077, ví dụ A-2. ADR không nêu thành tiền của dòng ⇒ thanh_tien và gia_dai_ly để null — chờ Kế toán",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dong": [
+        {
+          "nhan": "Bước 1 — lúc xác nhận: 3 khách tính",
+          "dau_vao": { "thanh_tien": null, "khach_tinh": 3, "kieu": "PER_PAX", "ty_le_bp": null, "moi_khach": 50000, "ty_le_mua_bp": null },
+          "dap_an": { "hoa_hong": 150000, "gia_dai_ly": null, "gia_von": null }
+        },
+        {
+          "nhan": "Bước 2 — lúc Đã giao (HDV sửa số khách): 4 khách tính, mức chụp 50.000 giữ nguyên",
+          "dau_vao": { "thanh_tien": null, "khach_tinh": 4, "kieu": "PER_PAX", "ty_le_bp": null, "moi_khach": 50000, "ty_le_mua_bp": null },
+          "dap_an": { "hoa_hong": 200000, "gia_dai_ly": null, "gia_von": null }
+        }
+      ]
+    },
+    {
+      "ma": "A-3",
+      "mo_ta": "Đổi bảng mức sau xác nhận (ADR-0077 ví dụ A-3): đơn xác nhận 10/10 chụp 10% (bậc 6); ngày 15/10 Kế toán đóng dòng 10% (đến 14/10) và mở dòng 12% (từ 15/10). Đơn 10/10 'Đã giao' ngày 20/10 vẫn tính 10%; đơn xác nhận 16/10 tính 12%. Đáp án là MỨC áp dụng, không có số tiền.",
+      "nguon": "ADR-0077, ví dụ A-3. ADR không nêu thành tiền ⇒ hoa_hong và gia_dai_ly để null — chờ Kế toán",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dong": [
+        {
+          "nhan": "Đơn xác nhận 10/10, Đã giao 20/10 (bảng đã đổi ngày 15/10)",
+          "dau_vao": { "thanh_tien": null, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": null, "moi_khach": null, "ty_le_mua_bp": null },
+          "dap_an": { "hoa_hong": null, "gia_dai_ly": null, "gia_von": null, "ty_le_bp_ap_dung": 1000 }
+        },
+        {
+          "nhan": "Đơn xác nhận 16/10",
+          "dau_vao": { "thanh_tien": null, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": null, "moi_khach": null, "ty_le_mua_bp": null },
+          "dap_an": { "hoa_hong": null, "gia_dai_ly": null, "gia_von": null, "ty_le_bp_ap_dung": 1200 }
+        }
+      ]
+    },
+    {
+      "ma": "A-4",
+      "mo_ta": "Thiếu mức rồi ghi tay (ADR-0077 ví dụ A-4). Bảng chỉ có dòng cho Công ty lữ hành; CTV Lan đặt vé Hòn Tằm 1.000.000, xác nhận 10/10 ⇒ bản chụp MISSING (thiếu mức), Đã giao bị giữ. Kế toán ghi tay 15% cho dòng đó (lý do 'thoả thuận miệng với CTV Lan, chờ cài bảng') ⇒ hoa hồng 150.000.",
+      "nguon": "ADR-0077, ví dụ A-4. ADR không nêu giá đại lý ⇒ gia_dai_ly để null — chờ Kế toán",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dong": [
+        {
+          "nhan": "Lúc xác nhận: chưa có dòng mức cho vai CTV ⇒ thiếu mức",
+          "dau_vao": { "thanh_tien": 1000000, "khach_tinh": null, "kieu": null, "ty_le_bp": null, "moi_khach": null, "ty_le_mua_bp": null },
+          "dap_an": { "trang_thai": "MISSING", "hoa_hong": null, "gia_dai_ly": null, "gia_von": null }
+        },
+        {
+          "nhan": "Sau khi Kế toán ghi tay 15%",
+          "dau_vao": { "thanh_tien": 1000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1500, "moi_khach": null, "ty_le_mua_bp": null },
+          "dap_an": { "trang_thai": "SET", "hoa_hong": 150000, "gia_dai_ly": null, "gia_von": null }
+        }
+      ]
+    },
+    {
+      "ma": "A-5",
+      "mo_ta": "Làm tròn ra số lẻ (ADR-0077 ví dụ A-5, ca sổ vàng bắt buộc — chốt cách làm tròn nửa lên theo dòng). Dòng 1: mức riêng 12,5% cho thành tiền 999.999 (3 × 333.333) ⇒ 124.999,875 ⇒ 125.000 (làm tròn xuống sẽ ra 124.999). Dòng 2: đúng nửa đồng — thành tiền 1.000.004 × 12,5% = 125.000,5 ⇒ 125.001; đây là ca DUY NHẤT phân biệt 'nửa lên' với 'nửa về số chẵn' và với 'làm tròn xuống'.",
+      "nguon": "Dòng 1: ADR-0077, ví dụ A-5. Dòng 2 (1.000.004 → 125.001): KHÔNG có trong ADR — lấy từ kế hoạch Task 14 (cột A-5) và bài src/modules/pricing/rules.test.ts «đúng nửa đồng»; AI đề xuất, chờ chủ / Kế toán xác nhận",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dong": [
+        {
+          "nhan": "999.999 × 12,5%",
+          "dau_vao": { "thanh_tien": 999999, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1250, "moi_khach": null, "ty_le_mua_bp": null },
+          "dap_an": { "hoa_hong": 125000, "gia_dai_ly": null, "gia_von": null }
+        },
+        {
+          "nhan": "1.000.004 × 12,5% — đúng nửa đồng (nguồn: kế hoạch, không phải ADR)",
+          "dau_vao": { "thanh_tien": 1000004, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1250, "moi_khach": null, "ty_le_mua_bp": null },
+          "dap_an": { "hoa_hong": 125001, "gia_dai_ly": null, "gia_von": null }
+        }
+      ]
+    },
+    {
+      "ma": "B-3",
+      "mo_ta": "Giảm giá trên dòng nhà cung cấp (ADR-0078 ví dụ B-3, H8 = A). Khách lẻ, vé i-resort 300.000, Tour Đảo giảm 30.000 ⇒ khách trả 270.000; giá vốn vẫn 80% × 300.000 = 240.000 (tính trên thành tiền TRƯỚC giảm). Tour Đảo giữ 270.000 − 240.000 = 30.000.",
+      "nguon": "ADR-0078, ví dụ B-3",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dong": [
+        {
+          "nhan": "Vé i-resort 300.000, người bán i-resort, a = 80%, giảm 30.000",
+          "dau_vao": { "thanh_tien": 300000, "khach_tinh": null, "kieu": null, "ty_le_bp": null, "moi_khach": null, "ty_le_mua_bp": 8000 },
+          "dap_an": { "hoa_hong": null, "gia_dai_ly": null, "gia_von": 240000 },
+          "bo_sung": { "giam_gia": 30000, "khach_tra": 270000, "cong_ty_giu": 30000 }
+        }
+      ]
+    }
+  ]
+}
