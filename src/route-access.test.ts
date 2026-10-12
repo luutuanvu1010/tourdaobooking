@@ -327,6 +327,11 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/van-chuyen/cuoc-cua-toi", access: "staff" }, // ADR-0049 Task A15 route 19 — tài xế (ô trip.view assigned)
   { method: "GET", path: "/api/van-chuyen/cuoc-cua-toi/:id", access: "staff" }, // route 20
   { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/hanh-khach", access: "staff" }, // Đợt 5 A-1b ADR-0052 D5b — tài xế bổ sung tên (trip.passenger.add) — chủ duyệt 5/10
+  { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/tu-choi", access: "staff" }, // A4 T7 ADR-0053 D8 — tài xế đối tác Từ chối chuyến (trip.refuse assigned)
+  { method: "GET", path: "/api/van-chuyen/ban/cua-toi", access: "staff" }, // A4 T8 ADR-0053 D9 — báo bận của tôi (unavailability.self own)
+  { method: "POST", path: "/api/van-chuyen/ban", access: "staff" }, // A4 T8 — ghi khung bận của chính mình (201 + Location /ban)
+  { method: "POST", path: "/api/van-chuyen/ban/:id/rut", access: "staff" }, // A4 T8 — rút khung của chính mình (khung người khác → 404)
+  { method: "GET", path: "/api/van-chuyen/ban-tai-xe", access: "office" }, // A4 T8 G-A4-19 — dải "Tài xế bận" của văn phòng; thân hỏi trip.dispatch; không lý do
   { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/xuat-ben", access: "staff" }, // route 21 — tài xế (trip.progress assigned)
   { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi", access: "staff" }, // route 22 — tài xế (trip.progress assigned)
   { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/don", access: "staff" }, // route 23 — tài xế (trip.progress assigned)
@@ -448,6 +453,8 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-08 (C14, đánh giá ERP 7/10): + POST /api/orders/:id/legs/:legId/replace (orders; thay chặng một lô) = 254.
   // 2026-10-08 (gói A1 vận chuyển, ADR-0097 Đ2, Đ3): + POST /api/van-chuyen/chuyen/:id/phan-bo/:aid/dieu-chinh, POST …/thu-hoi-xuat-ben (office, trip.progress) = 256 (cộng C14 = 254 + 2).
   // 2026-10-08 (gói A2, ADR-0063 D1): + POST /api/orders/:id/money-edit (office; văn phòng sửa số khách sau xác nhận) = 257 (cộng C14 + A1 = 256 + 1).
-  assert.equal(actual.length, 257, "số route thực tế lệch 257 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 257, "SNAPSHOT phải có đúng 257 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-09 (A4 T7, ADR-0053 D8): + POST /api/van-chuyen/cuoc-cua-toi/:id/tu-choi (staff, trip.refuse) = 258.
+  // 2026-10-09 (A4 T8, ADR-0053 D9): + GET /ban/cua-toi, POST /ban, POST /ban/:id/rut (staff, unavailability.self) + GET /ban-tai-xe (office, trip.dispatch) = 262.
+  assert.equal(actual.length, 262, "số route thực tế lệch 262 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 262, "SNAPSHOT phải có đúng 262 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

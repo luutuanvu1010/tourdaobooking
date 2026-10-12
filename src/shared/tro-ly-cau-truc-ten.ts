@@ -127,6 +127,8 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "trip.progress": { ten: "bấm tiến độ chuyến", moTa: "Xuất bến, đã đón, đã trả, kết thúc chuyến (văn phòng bấm thay được)." },
   "trip.call_ack": { ten: "ghi đã gọi báo khách", moTa: "Đánh dấu đã gọi báo khách giờ hẹn mới của chặng." },
   "trip.passenger.add": { ten: "tài xế bổ sung tên khách", moTa: "Tài xế nhập họ tên, năm sinh cho khách chưa có tên trên chuyến mình đang lái, trong ngày chạy." },
+  "trip.refuse": { ten: "từ chối chuyến", moTa: "Tài xế nhà xe trả lại chuyến mình đang được xếp, trước hạn từ chối, kèm lý do; trước hạn đó chưa thấy tên khách, mã đơn." },
+  "unavailability.self": { ten: "báo bận của tôi", moTa: "Tài xế nhà xe ghi, xem, rút khung giờ mình bận để văn phòng không xếp chuyến vào giờ đó; văn phòng chỉ thấy là bận, không thấy lý do." },
   "assistant.ask": { ten: "hỏi trợ lý Hỗ trợ", moTa: "Hỏi cách dùng app qua nút Hỗ trợ." },
   "auth.session.viewAll": { ten: "xem phiên đăng nhập của mọi người", moTa: "Xem ai đang đăng nhập trên máy nào, lúc nào, bằng cách nào." },
   "auth.session.revoke": { ten: "gỡ phiên đăng nhập", moTa: "Đăng xuất ngay một máy đang đăng nhập của tài khoản khác." },

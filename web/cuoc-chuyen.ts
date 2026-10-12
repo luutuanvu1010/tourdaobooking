@@ -17,6 +17,9 @@
 // - ADR-0105 (G13, G18-A): nhóm "Chỉ đường" ở điểm chưa xong (PENDING / ARRIVED) của chuyến kế hoạch / đang chạy, chỉ khi DTO có `diaChiChiDuong` (GET trong
 //   ngày chạy); Google Maps mọi máy, Apple Maps chỉ máy Apple (`nutChiDuongCuaDiem`, src/shared/chi-duong.ts). Liên kết `<a>` mở tab mới, `noreferrer noopener`;
 //   trang không đọc vị trí. Đọc lại GET sau lệnh hỏng → giữ chuỗi đích của lần GET trước (`giuChiDuong`).
+// - A4 T9 (ADR-0053 D7.2, D8; G-A4-16): chuyến CHƯA chạy của người có vế hạn (tài xế đối tác) — dải hạn Từ chối (`daiHanTuChoi`, src/shared/tu-choi-man.ts);
+//   nút "Từ chối chuyến" hiện CHỈ theo cờ máy chủ `tuChoiDuoc`; tấm Từ chối (lý do nhóm Từ chối chuyến, "Xác nhận từ chối"); quá hạn → "Gọi văn phòng" (`tel:`,
+//   ẩn khi chưa có số); thẻ "thấy tên khách và mã đơn từ …" (`thayKhachTu`). Cờ `trongNgayChay` của DTO nay mang nghĩa "trong khung xem khách" (G-A4-6).
 import { CAU_THU_TU_DAO, doiThuTuDuoc, giuTenKhach, ketThucDuoc, chiSuatKhach, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, viecNguoiDiKem, type BuocDiem } from "../src/shared/tien-do-man";
 import type { CuocChiTietResponse } from "../src/shared/contracts";
 import { coCuocCuaToi } from "../src/shared/start-page";
@@ -37,6 +40,7 @@ import { can } from "../src/shared/permissions";
 import { chiThieuTenTuLam, hauToDieuKienTaiXe } from "../src/shared/dieu-phoi-hien-thi";
 import { dongVuaGhi, hopKetThuc, hopTraCaDiem, type HopXacNhan, type LenhVuaGhi } from "../src/shared/xac-nhan-tien-do";
 import { giuChiDuong, nutChiDuongCuaDiem } from "../src/shared/chi-duong";
+import { cauThayKhach, daiHanTuChoi, loiTuChoi } from "../src/shared/tu-choi-man";
 
 const errorEl = byId("error");
 const trangEl = byId("cc-trang");
@@ -444,6 +448,85 @@ function veDiemTruoc(r: CuocChiTietResponse): HTMLElement[] {
   });
 }
 
+// ---- A4 T9: Từ chối chuyến (ADR-0053 D8) -----------------------------------------------------------------------------------------------------------------
+/** Một lệnh Từ chối mỗi trang (cùng requestId khi bấm lại sau mất mạng — `taoLenh`). */
+const lenhTuChoi = taoLenh();
+/** Dải hạn Từ chối + thẻ "thấy khách từ …" của chuyến chưa chạy (chỉ người có vế hạn — máy chủ gửi `hanTuChoi` / `thayKhachTu`). */
+function khoiHanTuChoi(r: CuocChiTietResponse): Child[] {
+  const homNay = vnToday(new Date());
+  const d = daiHanTuChoi({ trangThai: r.chuyen.trangThai, tuChoiDuoc: r.tuChoiDuoc, hanTuChoi: r.hanTuChoi, sdtVanPhong: r.sdtVanPhong }, homNay);
+  const out: Child[] = [];
+  if (d) {
+    const nut: HTMLElement[] = [];
+    if (d.loai === "con_han" && r.tuChoiDuoc) {
+      const tc = h("button", { type: "button", class: "vc-btn vc-btn-stop", "data-action": "tu-choi" }, "Từ chối chuyến");
+      tc.addEventListener("click", () => moTuChoi(tc));
+      nut.push(tc);
+    }
+    if (d.loai === "qua_han" && d.sdt) nut.push(h("a", { class: "vc-btn btn", href: `tel:${d.sdt}`, "data-action": "goi-van-phong" }, "Gọi văn phòng"));
+    out.push(dai(d.loai === "con_han" ? "info" : "warning", d.tieuDe, d.dong, undefined, nut.length ? [h("div", { class: "banner-actions" }, ...nut)] : []));
+  }
+  const thay = cauThayKhach(r.thayKhachTu, homNay);
+  if (thay) out.push(h("div", { class: "dp-note dp-cc-thay-khach", "data-cau": "thay-khach" }, icon("eye", 16, 2), h("span", null, thay)));
+  return out;
+}
+/** Tấm "Từ chối chuyến": chọn lý do (nhóm Từ chối chuyến — máy chủ gửi `lyDoTuChoi` khi `tuChoiDuoc`) → "Xác nhận từ chối". Xong → về Cuốc của tôi. */
+function moTuChoi(opener: HTMLElement): void {
+  const r = duLieu!;
+  const c = r.chuyen;
+  let lyDo: string | null = null;
+  const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
+  const chinh = h("button", { type: "button", class: "vc-btn vc-btn-danger", disabled: true, "data-action": "tu-choi-gui" }, "Xác nhận từ chối");
+  const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Đóng");
+  const bang = moBangTruot({
+    title: "Từ chối chuyến",
+    body: [
+      h("p", { class: "dp-sheet-text" }, `${c.ma} (${c.gioBatDau.gio} ${ngayNgan(c.gioBatDau.ngay, vnToday(new Date()))}) trả lại văn phòng để xếp người khác. Từ chối xong, chuyến không còn trong Cuốc của bạn.`),
+      nhomChon("cc-tc", "Lý do", (r.lyDoTuChoi ?? []).map((x) => ({ code: x.code, nhan: x.nhan })), (code) => {
+        lyDo = code;
+        chinh.disabled = false;
+      }),
+      loi,
+    ],
+    foot: [dong, chinh],
+    footClass: "vc-foot-2",
+    opener,
+  });
+  if (!bang) return;
+  dong.addEventListener("click", () => bang.close());
+  chinh.addEventListener("click", async () => {
+    if (!lyDo) return;
+    bang.setBusy(true);
+    chinh.disabled = true;
+    try {
+      await lenhTuChoi.gui<{ daTuChoi: true }>(`${goc}/tu-choi`, "POST", { lyDo });
+      bang.close(false);
+      location.replace(`/cuoc?daTuChoi=${encodeURIComponent(c.ma)}`);
+    } catch (e) {
+      if (!(e instanceof ApiError)) {
+        replaceChildren(loi, icon("alert", 16, 2), "Chưa gửi được — kiểm tra mạng rồi bấm lại.");
+        loi.hidden = false;
+        chinh.disabled = false;
+        return;
+      }
+      const l = loiTuChoi({ status: e.status, code: e.code, message: e.message });
+      if (l.hanhDong === "giu") {
+        replaceChildren(loi, icon("alert", 16, 2), l.cau);
+        loi.hidden = false;
+        chinh.disabled = false;
+        return;
+      }
+      bang.close(false);
+      if (l.hanhDong === "ve_cuoc") return location.replace("/cuoc");
+      baoCao = dai("warning", l.cau);
+      await nap().catch(() => undefined);
+      ve();
+    } finally {
+      bang.setBusy(false);
+    }
+  });
+}
+
 /** Xuất bến (bản vẽ 6b, 6c — màn tài xế): chỉ điều kiện CÒN THIẾU "(văn phòng lo)" (thiếu tên + tự bổ sung được: chỉ chỗ tự làm — `hauToDieuKienTaiXe`); đạt hết → "Đủ điều kiện xuất bến". Không ô giờ. */
 function veXuatBen(dauMang: HTMLElement | null): void {
   const r = duLieu!;
@@ -455,6 +538,7 @@ function veXuatBen(dauMang: HTMLElement | null): void {
     dauMang,
     baoCao,
     lechNgay ? dai("danger", "Không phải chuyến của hôm nay", [lechNgay]) : null,
+    ...khoiHanTuChoi(r),
     h("div", { class: "dp-note dp-cc-meta" }, `${c.bienSo} · ${ngayNgan(c.gioBatDau.ngay, vnToday(new Date()))} ${c.gioBatDau.gio} · ${chiSuatKhach(r.suat).length} khách`),
     dongDiKem(),
     khoiSuatKhach(),

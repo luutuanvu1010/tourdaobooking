@@ -106,6 +106,9 @@ export const AUDIT_ACTIONS = {
   // ADR-0055 VK2-A A6 (Đợt 3): khung bận của xe — `detail` = biển số + khung giờ VN + nhãn lý do; không dữ liệu cá nhân.
   vehicle_unavailability_added: { label: "Ghi lịch xe bận", group: "vehicle" },
   vehicle_unavailability_withdrawn: { label: "Rút lịch xe bận", group: "vehicle" },
+  // ADR-0053 D9 (kế hoạch A4 T8, G-A4-20): tài xế báo bận / rút khung của CHÍNH mình — detail chỉ khoảng giờ (không lý do, không tên).
+  driver_unavailability_added: { label: "Tài xế báo bận", group: "trip" },
+  driver_unavailability_withdrawn: { label: "Tài xế rút khung bận", group: "trip" },
   // ADR-0049 D2 (lát 1.1): chính sách điều phối, điều kiện xuất bến, hạng bằng (Toàn quyền), danh mục lý do (Quản trị). `detail` chỉ mã, con số, nhãn
   // danh mục; không order_id, không target (khuôn expiry_policy_changed).
   dispatch_policy_changed: { label: "Đổi chính sách điều phối", group: "trip" },
@@ -149,6 +152,8 @@ export const AUDIT_ACTIONS = {
   // thu hồi (không tên khách, không SĐT — Đ2.6).
   trip_allocation_corrected: { label: "Văn phòng điều chỉnh kết quả khách", group: "trip" },
   trip_departure_revoked: { label: "Văn phòng thu hồi xuất bến", group: "trip" },
+  // ADR-0053 D8.4 (kế hoạch A4 T7, G-A4-20): tài xế từ chối chuyến mình đang lái trước hạn — detail: mã chuyến + mã lý do (không tên, không chữ tự do).
+  trip_driver_refused: { label: "Tài xế từ chối chuyến", group: "trip" },
   // ADR-0051 GB1: mốc giờ hẹn của chặng — orderId NULL (I17); detail danh sách trắng (mã đơn, chiều, "giờ hẹn đón A → B", mã chuyến).
   trip_appt_called: { label: "Đã gọi báo khách giờ hẹn mới", group: "trip" },
   trip_appt_call_undone: { label: "Bỏ đánh dấu đã gọi báo", group: "trip" },

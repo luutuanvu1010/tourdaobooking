@@ -125,6 +125,9 @@ const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
     gac: T,
   },
   loThuHoiXuatBen: { vao: { ...L, tripId: T, version: 7, lyDo: "DIEU_CHINH_BAM_NHAM", detail: "d" }, gac: T },
+  // ADR-0053 D8.4 (A4 T7): tài xế Từ chối — cổng đủ điều kiện → nhật ký → sự kiện → đóng dòng lái REFUSED. Mẫu chỉ DỰNG lô trên DB giả (không chạy câu) nên
+  // `bayGioMs` là số bất kỳ — luật đồng hồ §2 áp cho bài CHẠY lô (tu-choi.test.ts).
+  loTuChoi: { vao: { ...L, tripId: T, version: 7, taiXePartyId: "p-tx", lyDo: "TCC_KHAC", bayGioMs: 1, detail: "d" }, gac: T },
   lenhDaGoiBao: { vao: { ...L, legId: "leg-1", phienBan: 1, moi: { ngay: "2027-03-11", gio: "09:15" }, cu: { ngay: "2027-03-11", gio: "09:00" }, tripId: T, detail: "d" }, gac: T },
   lenhBoDanhDauGoiBao: {
     vao: { ...L, legId: "leg-1", phienBan: 2, moi: { ngay: "2027-03-11", gio: "09:00" }, cu: { ngay: "2027-03-11", gio: "09:15" }, tripId: T, detail: "d", banChup: "null" }, gac: T,

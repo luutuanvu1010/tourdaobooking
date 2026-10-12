@@ -1,0 +1,15 @@
+✓ 1) 3a 1040 Bán hàng: tiêu đề "Chuyến mới · 17/10", ô Xe / Tài xế / hai ô giờ; xe bảo dưỡng hiện nhưng không chọn được; tài xế theo nhóm; KHÔNG ô ghi chú (Q1), axe không vi phạm critical/serious
+✓ 2) bấm Lưu khi trống: bốn câu dưới bốn ô + dải 'Chưa lưu được — sửa 4 ô…'; KHÔNG gửi lệnh nào
+✓ 3) 3a: xe 79A-111.11 + tài xế hạng B + 08:00–10:00 → máy chủ từ chối; hạng bằng dưới ô Tài xế, trùng giờ dưới ô Giờ kết thúc, cột phải tô đỏ chuyến trùng; dải đếm 2 ô
+✓ 4) khoảng nghỉ thiếu (Bán hàng — không có ô phá lệ): câu dưới ô Giờ bắt đầu nói cần Quản trị phá lệ; KHÔNG mở hộp Phá lệ
+✓ 5) tạo thành công (79A-222.22 · Phạm Văn Cường · 12:00–13:00) → sang trang chi tiết chuyến mới; thân lệnh không kèm phá lệ
+✓ 5b) Đợt 4 G3: mở sửa chuyến vừa tạo → ô Tuyến điền sẵn tuyến đã chọn; bỏ tuyến → PUT chỉ gửi tuyen: null; tuyến đã ngưng dùng vẫn hiện là lựa chọn đang chọn
+✓ 6) sửa chuyến đang khoá (Bán hàng): dải cảnh báo vùng khoá nói điều chỉnh khẩn cấp; đổi tài xế → câu dưới ô Tài xế + hộp 'Điều chỉnh khẩn cấp' ('Điều chỉnh khẩn cấp và lưu'); đóng, không gửi
+✓ 7) 2.3: dời giờ chuyến đang khoá KHÔNG cần phá lệ (Bán hàng, 10:00 → 10:15) → lưu được, sang trang chi tiết; bấm Lưu khi chưa đổi gì → 'Chưa đổi gì'
+✓ 8) 390 Bán hàng sửa CX-1710-03: một cột, không cột 'trong ngày', nút Huỷ bỏ + Lưu chuyến dính đáy, không tràn ngang, axe không vi phạm critical/serious
+✓ 9) 3b 390 Quản trị: đổi tài xế CX-1310-01 (đang khoá) → hộp "Điều chỉnh khẩn cấp" (ADR-0104 Đ1; lý do nhóm Điều chỉnh khẩn cấp, phá lệ; nút khoá tới khi chọn) → gửi lại CHÍNH lệnh kèm lý do → sang chi tiết, axe không vi phạm critical/serious
+✓ 10) H18 1040 Quản trị: tạo chuyến nghỉ thiếu → câu dưới Giờ bắt đầu + hộp Phá lệ → 'Phá lệ và lưu' gửi nghiPhaLe → tạo được
+✓ 11) Kế toán mở /chuyen-sua: câu 'Tài khoản này không xếp xe được.', không form, không lệnh ghi
+✓ 12) không lỗi console ở mọi trang đã mở
+
+CHUYEN SUA SMOKE OK (13 bước)

@@ -33,9 +33,13 @@ export interface FormChinhSach {
   chuyenDaiGio: string;
   /** ADR-0096 Đ2.3: cửa sổ xuất bến — ô theo GIỜ (1–48), máy chủ lưu phút. Không có giá trị mặc định trong mã: điền từ bản đang dùng. */
   cuaSoGio: string;
+  /** ADR-0053 D8.1 (0092): hạn Từ chối của tài xế nhà xe — ô theo GIỜ (1–48), máy chủ lưu phút. */
+  hanTuChoiGio: string;
+  /** Lời chủ 6.3 (0092): SĐT văn phòng cho nút "Gọi văn phòng" của tài xế — để trống = không có. */
+  sdtVanPhong: string;
   duDanhSach: boolean;
 }
-export type TruongChinhSach = "mocGio" | "satMocGio" | "nghiPhut" | "khaiLuiPhut" | "gioLaiGio" | "chuyenDaiGio" | "cuaSoGio";
+export type TruongChinhSach = "mocGio" | "satMocGio" | "nghiPhut" | "khaiLuiPhut" | "gioLaiGio" | "chuyenDaiGio" | "cuaSoGio" | "hanTuChoiGio" | "sdtVanPhong";
 export type KetQuaFormChinhSach = { ok: true; value: DispatchPolicyCreateRequest } | { ok: false; loi: Partial<Record<TruongChinhSach, string>> };
 
 /** Chuỗi ô giờ → số phút (chấp nhận "1,5" hay "1.5"); không phải số → null. */
@@ -70,27 +74,35 @@ export function docFormChinhSach(f: FormChinhSach): KetQuaFormChinhSach {
   const cuaSo = phutTuO(f.cuaSoGio);
   if (f.cuaSoGio.trim() === "") loi.cuaSoGio = "Nhập cửa sổ xuất bến (giờ).";
   else if (cuaSo === null || cuaSo < 60 || cuaSo > 2880) loi.cuaSoGio = "Cửa sổ xuất bến là số giờ từ 1 đến 48.";
-  if (Object.keys(loi).length > 0 || moc === null || sat === null || nghi === null || lui === null || gioLai === null || dai === null || cuaSo === null) return { ok: false, loi };
+  const hanTc = phutTuO(f.hanTuChoiGio);
+  if (f.hanTuChoiGio.trim() === "") loi.hanTuChoiGio = "Nhập hạn từ chối chuyến (giờ).";
+  else if (hanTc === null || hanTc < 60 || hanTc > 2880) loi.hanTuChoiGio = "Hạn từ chối chuyến là số giờ từ 1 đến 48.";
+  const sdt = f.sdtVanPhong.replace(/[\s.\-()]/g, "");
+  if (sdt !== "" && !/^(0|\+?84)\d{9}$/.test(sdt)) loi.sdtVanPhong = "Số điện thoại văn phòng gồm 10 chữ số, bắt đầu bằng 0 — hoặc để trống.";
+  if (Object.keys(loi).length > 0 || moc === null || sat === null || nghi === null || lui === null || gioLai === null || dai === null || cuaSo === null || hanTc === null) {
+    return { ok: false, loi };
+  }
   return {
     ok: true,
     value: {
       minLeadMinutes: moc, warnLeadMinutes: sat, restMinutes: nghi, requireManifest: f.duDanhSach, proxyBackdateMaxMinutes: lui, dutyDayMaxMinutes: gioLai, tripNoBreakMaxMinutes: dai,
-      departureWindowMinutes: cuaSo,
+      departureWindowMinutes: cuaSo, refuseLeadMinutes: hanTc, officePhone: f.sdtVanPhong.trim() === "" ? null : f.sdtVanPhong.trim(),
     },
   };
 }
 
 /** Điền form từ bản đang dùng; chưa có bản nào → ô trống (bật "phải đủ danh sách khách" như bản gieo). */
 export function formTuChinhSach(p: DispatchPolicyDto | null): FormChinhSach {
-  if (!p) return { mocGio: "", satMocGio: "", nghiPhut: "", khaiLuiPhut: "", gioLaiGio: "", chuyenDaiGio: "", cuaSoGio: "", duDanhSach: true };
+  if (!p) return { mocGio: "", satMocGio: "", nghiPhut: "", khaiLuiPhut: "", gioLaiGio: "", chuyenDaiGio: "", cuaSoGio: "", hanTuChoiGio: "", sdtVanPhong: "", duDanhSach: true };
   return {
     mocGio: gioTuPhut(p.minLeadMinutes), satMocGio: gioTuPhut(p.warnLeadMinutes), nghiPhut: String(p.restMinutes), khaiLuiPhut: String(p.proxyBackdateMaxMinutes),
     gioLaiGio: gioTuPhut(p.dutyDayMaxMinutes), chuyenDaiGio: gioTuPhut(p.tripNoBreakMaxMinutes), cuaSoGio: gioTuPhut(p.departureWindowMinutes), duDanhSach: p.requireManifest,
+    hanTuChoiGio: gioTuPhut(p.refuseLeadMinutes), sdtVanPhong: p.officePhone ?? "",
   };
 }
 
 type SoChinhSach = Pick<
-  DispatchPolicyDto, "minLeadMinutes" | "warnLeadMinutes" | "restMinutes" | "requireManifest" | "proxyBackdateMaxMinutes" | "dutyDayMaxMinutes" | "tripNoBreakMaxMinutes" | "departureWindowMinutes"
+  DispatchPolicyDto, "minLeadMinutes" | "warnLeadMinutes" | "restMinutes" | "requireManifest" | "proxyBackdateMaxMinutes" | "dutyDayMaxMinutes" | "tripNoBreakMaxMinutes" | "departureWindowMinutes" | "refuseLeadMinutes"
 >;
 /** Một dòng tóm tắt bản chính sách (lịch sử bản — bản vẽ 8a "Mốc 6 giờ · sát mốc 2 giờ · nghỉ 30 phút"; thêm khai lùi — thành phần F). */
 export function tomTatChinhSach(p: SoChinhSach): string {
@@ -102,6 +114,7 @@ export function tomTatChinhSach(p: SoChinhSach): string {
     `lái tối đa ${nhanThoiLuong(p.dutyDayMaxMinutes)}/ngày`,
     `nhắc nghỉ chuyến trên ${nhanThoiLuong(p.tripNoBreakMaxMinutes)}`,
     `xuất bến sớm nhất ${nhanThoiLuong(p.departureWindowMinutes)} trước giờ khởi hành`,
+    `từ chối chuyến trước ${nhanThoiLuong(p.refuseLeadMinutes)}`,
     p.requireManifest ? "phải đủ danh sách khách" : null,
   ].filter((x) => x !== null).join(" · ");
 }
@@ -120,6 +133,8 @@ export function thayDoiChinhSach(cu: DispatchPolicyDto | null, moi: DispatchPoli
   if (cu.dutyDayMaxMinutes !== moi.dutyDayMaxMinutes) out.push(`Giờ lái tối đa một ngày ${nhanThoiLuong(cu.dutyDayMaxMinutes)} → ${nhanThoiLuong(moi.dutyDayMaxMinutes)}`);
   if (cu.tripNoBreakMaxMinutes !== moi.tripNoBreakMaxMinutes) out.push(`Nhắc nghỉ chuyến trên ${nhanThoiLuong(cu.tripNoBreakMaxMinutes)} → ${nhanThoiLuong(moi.tripNoBreakMaxMinutes)}`);
   if (cu.departureWindowMinutes !== moi.departureWindowMinutes) out.push(`Cửa sổ xuất bến ${nhanThoiLuong(cu.departureWindowMinutes)} → ${nhanThoiLuong(moi.departureWindowMinutes)}`);
+  if (cu.refuseLeadMinutes !== moi.refuseLeadMinutes) out.push(`Hạn từ chối chuyến ${nhanThoiLuong(cu.refuseLeadMinutes)} → ${nhanThoiLuong(moi.refuseLeadMinutes)}`);
+  if ((cu.officePhone ?? "") !== (moi.officePhone ?? "")) out.push(moi.officePhone ? "Đổi số điện thoại văn phòng" : "Bỏ số điện thoại văn phòng");
   if (cu.requireManifest !== moi.requireManifest) out.push(moi.requireManifest ? "Bắt đủ danh sách khách" : "Không bắt đủ danh sách khách");
   return out;
 }
@@ -223,6 +238,8 @@ const TIEN_TO: Readonly<Record<NhomLyDo, string>> = {
   PHA_LE: "PHA_LE", HUY_CHUYEN: "HUY", KET_THUC_GIAN_DOAN: "GIAN_DOAN", DOI_GIO_XE: "DOI_GIO_XE", BO_QUA_DIEM: "BO_QUA", BAO_HUY_DIEM: "BAO_HUY", TU_CHOI_NHAN: "TU_CHOI", BAN_XE: "BAN_XE",
   CHI_PHI_XE: "CPX", // ADR-0057 T2 (0073): lý do chi phí xe thuê — mã gieo CPX_…
   DIEU_CHINH: "DIEU_CHINH", // ADR-0097 Đ2.5 (0085): mã gieo DIEU_CHINH_…
+  TU_CHOI_CHUYEN: "TCC", // ADR-0053 D8.1 (0092): mã gieo TCC_… — khác tiền tố "TU_CHOI" của TU_CHOI_NHAN (G-A4-11)
+  BAN_TAI_XE: "BTX", // ADR-0053 D9.1 (0092): mã gieo BTX_… — khác "BAN_XE"
 };
 const MA_TOI_DA = 40;
 /**

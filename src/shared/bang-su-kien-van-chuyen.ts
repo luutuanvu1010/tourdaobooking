@@ -99,7 +99,8 @@ export interface DongSuKien {
 
 // ---- Ô quyền (chép từ ma trận — bài so lại) -----------------------------------------------------------------------------------------------------------------
 const O_DIEU_PHOI = { SALES: "any", ADMIN: "any", SUPER_ADMIN: "any" } as const;
-const O_TIEN_DO = { SALES: "any", ADMIN: "any", SUPER_ADMIN: "any", DRIVER: "assigned" } as const;
+// A4 (ADR-0053 D7.1 :46, :51): tài xế đối tác có `trip.view`, `trip.progress` = assigned — khai TRƯỚC mã (luật bảng 2026-10-09); bài (c) đỏ tới khi lật ô (T6).
+const O_TIEN_DO = { SALES: "any", ADMIN: "any", SUPER_ADMIN: "any", DRIVER: "assigned", DRIVER_PARTNER: "assigned" } as const;
 const O_SUA_CHUYEN_DON = { SALES: "ownOrAssigned", ADMIN: "any", SUPER_ADMIN: "any" } as const;
 const vp = (duongDan: string, o: OperationCode, ai: RouteDong["ai"], ham: string, ngucanh: RouteDong["ngucanh"] = "khong"): RouteDong =>
   ({ phuongThuc: "POST", duongDan, cong: "office", o, ngucanh, ai, ham });
@@ -244,6 +245,18 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
     bao: "route", tin: null, bangTin: "sua", nguon: "ADR-0052 D5b",
   },
 
+  // A4 (ADR-0053 D8): tài xế đối tác TỪ CHỐI chuyến trước hạn — chỉ người đang lái bấm (văn phòng không từ chối thay — :105, :224; mục N-TU-CHOI). Khai TRƯỚC
+  // mã (luật bảng 2026-10-09); có mã từ A4 T7. Loại tin
+  // "tu_choi" (D8.4 bước 5: người có trip.dispatch — không tên, không lý do, không mã đơn); tài xế bị đóng dòng là chính người bấm (E3) nên không nhận.
+  {
+    id: "tu-choi", ten: "Tài xế đối tác từ chối chuyến (trước hạn)", loai: "tien_do", trangThai: "co_ma",
+    routes: [{ phuongThuc: "POST", duongDan: "/api/van-chuyen/cuoc-cua-toi/:id/tu-choi", cong: "staff", o: "trip.refuse", ngucanh: "assigned", ai: { SUPER_ADMIN: "any", DRIVER_PARTNER: "assigned" }, ham: "lenhTuChoi" }],
+    trangThaiChuyen: ["PLANNED"], vuot: [],
+    luat: "chuyến mình đang lái, chưa chạy, trước hạn từ chối của cặp (khoá dính, B8.3 — lớp CSDL so giờ CSDL); lý do nhóm TU_CHOI_CHUYEN; người đóng = chính tài xế (B8.2)",
+    bang: [...LO_CHUNG, "vc_trip_driver"], suKien: "DRIVER_REFUSED", nhatKy: "trip_driver_refused", lo: "loTuChoi", bao: "route",
+    tin: { nhom: "thuong", nhan: [{ ai: DIEU_PHOI, loai: "tu_choi" }] }, bangTin: "sua", nguon: "ADR-0053 D8.3, D8.4 (bước 5), D8.6; kế hoạch A4 G-A4-14, G-A4-15",
+  },
+
   // Điều chỉnh có lý do (chỉ văn phòng) — ADR-0097.
   {
     id: "dieu-chinh-suat", ten: "Văn phòng điều chỉnh kết quả một khách", loai: "dieu_chinh", trangThai: "co_ma",
@@ -347,6 +360,8 @@ export const NGOAI_PHAM_VI_NHAT_KY: Readonly<Record<string, string>> = {
   rental_rate_closed: "bảng giá thuê xe",
   route_saved: "danh mục tuyến",
   vehicle_size_saved: "danh mục cỡ xe",
+  driver_unavailability_added: "khung bận của tài xế (ADR-0053 D9) — không ghi chuyến, không sự kiện chuyến, không tin (D9.4); luật chéo với chuyến ở trigger + LC-03",
+  driver_unavailability_withdrawn: "khung bận của tài xế (ADR-0053 D9)",
 };
 /** Route ghi của van-chuyen / dispatch KHÔNG phải lệnh đổi chuyến (bài: thân route không được gọi `baoThayDoiChuyen` / `dongBoChuyen`). */
 export const NGOAI_PHAM_VI_ROUTE: Readonly<Record<string, string>> = {
@@ -357,6 +372,9 @@ export const NGOAI_PHAM_VI_ROUTE: Readonly<Record<string, string>> = {
   "POST /api/van-chuyen/xe/:id/giay-to/:did/sua-sai": "giấy tờ xe",
   "POST /api/van-chuyen/xe/:id/ban": "lịch xe bận (luật chéo với chuyến ở trigger, không ghi chuyến)",
   "POST /api/van-chuyen/xe/:id/ban/:bid/rut": "lịch xe bận",
+  // A4 (ADR-0053 D9): khung bận của CHÍNH tài xế đối tác — luật chéo với chuyến ở trigger B9.2, B9.3; không ghi chuyến, không sự kiện chuyến, không tin (D9.4).
+  "POST /api/van-chuyen/ban": "khung bận của tài xế (ADR-0053 D9)",
+  "POST /api/van-chuyen/ban/:id/rut": "khung bận của tài xế (ADR-0053 D9)",
   "POST /api/van-chuyen/chinh-sach-dieu-phoi": "cấu hình",
   "POST /api/van-chuyen/dieu-kien": "cấu hình",
   "POST /api/van-chuyen/dieu-kien/:id/dong": "cấu hình",
@@ -480,10 +498,16 @@ export const CHO_LECH: readonly ChoLech[] = [
     dauHieu: { tep: "src/shared/tin-chuyen.ts", khongChua: "trip_passenger_named" },
   },
   {
+    id: "N-TU-CHOI", loai: "DA_DUYET", muc: null, dong: ["tu-choi"], quyTac: "QT3",
+    maLam: "Chỉ tài xế đang lái có nút Từ chối chuyến; văn phòng không có nút từ chối thay — muốn đổi người thì sửa chuyến (xếp tài xế khác).",
+    adrNoi: "ADR-0053 D8.3 (:105) và tiêu chí (:224): Toàn quyền không từ chối thay — đổi người bằng xếp xe.", deNghi: "Giữ.",
+  },
+  {
     id: "TAI-XE-DOI-TAC", loai: "LECH_ADR", muc: null, dong: ["bo-sung-ten"],
-    maLam: "Tài xế đối tác chưa có ô bổ sung tên khách (và chưa có ô chuyển khách).",
-    adrNoi: "ADR-0053 nới hai ô này cho tài xế đối tác; chủ 5/10 chọn làm sau (chỉ tài xế công ty trước).",
-    deNghi: "Làm trong A4 (việc 7).", viec: "việc 7 — A4",
+    maLam: "Tài xế đối tác (từ A4 có ô xem chuyến, tiến độ, Từ chối, Báo bận) KHÔNG có ô bổ sung tên khách, và chưa có ô chuyển khách.",
+    adrNoi: "ADR-0053 D7.1 (:46) nới hai ô này cho tài xế đối tác. Bổ sung tên: chủ 5/10 (a) chọn \"chỉ tài xế công ty\" — lệch có chủ ý, ghi SYSTEM-DESIGN §16 (A4 T11). Chuyển khách: ô `trip.transfer` chưa có, thuộc A5.",
+    deNghi: "Bổ sung tên: giữ, trình chủ ra dòng lịch sử / ADR mới (§16). Chuyển khách: A5 tạo ô `trip.transfer` với cột DRIVER_PARTNER = assigned, cùng commit nâng bài ghim.",
+    viec: "việc 8 — A5 (ô chuyển khách)",
   },
 ];
 

@@ -19,12 +19,14 @@ import {
 } from "./chuyen-repo";
 import type { CauCoNhan, DiemMoi, SuKienCuaLo } from "./dieu-phoi";
 import {
-  banChupDto, canhBaoDto, chuoiDichCuaDiem, chuyenTomTat, diemChuyenDto, lyDoDangDung, lyDoGiuCuaChuyen, lyDoGiuDto, nhatKyChuyenDto, suatChuyenDto, taiXeChon, xeChon,
+  banChupDto, canhBaoDto, chuoiDichCuaDiem, chuyenTomTat, diemChuyenDto, gioVn, lyDoDangDung, lyDoGiuCuaChuyen, lyDoGiuDto, nhatKyChuyenDto, suatChuyenDto, taiXeChon,
+  xeChon,
 } from "./dieu-phoi-dto";
 import { boSungXe, chinhSachVao, docChung, docNguCanh, type DuLieuChung, type NenChuyen, type NguCanhChuyen } from "./dieu-phoi-doc";
 import { gioSomNhatKhaiDto, ketThucTruoc } from "./dieu-phoi-gio";
-import { cuocChiTietDto, cuocCuaToiItem } from "./tai-xe-dto";
+import { cuocChiTietDto, cuocCuaToiItem, type KhungTaiXe } from "./tai-xe-dto";
 import { loiRangBuocChuyen } from "./rules";
+import { tuChoiCuaChuyen } from "./han-tu-choi-repo";
 
 // ---- Lỗi ----------------------------------------------------------------------------------------------------------------------------------------------------
 export const CAN_XEM_CHUYEN = () => error(403, "forbidden", "Tài khoản này không xem được lịch xe.");
@@ -167,10 +169,14 @@ export function loiKiem(
  * lý do TRA_TRUOC_DON mỗi đơn (mã đơn + số điểm SAU lệnh). Suất đảo từ trước không chặn (sửa dần bằng ↑ ↓ — diễn giải ghi ở báo cáo A1). null = cho qua.
  * Dùng chung: đổi thứ tự khi đang chạy (tài xế, văn phòng bấm thay) và sửa điểm của chuyến kế hoạch (nút ↑ ↓ của văn phòng).
  */
-export async function chanDaoMoi(db: D1Database, stops: readonly StopRow[], allocs: readonly AllocRow[], doi: readonly { id: string; seq: number }[]): Promise<Response | null> {
+export async function chanDaoMoi(
+  db: D1Database, stops: readonly StopRow[], allocs: readonly AllocRow[], doi: readonly { id: string; seq: number }[], chiCauGoc = false,
+): Promise<Response | null> {
   const cho = allocs.filter((a) => a.valid_to_at === null && a.status === "WAITING");
   const moi = daoMoiSauDoi(stops.map((s) => ({ id: s.id, seq: s.seq })), doi, cho.map((a) => ({ diemLen: a.board_stop_id, diemXuong: a.alight_stop_id })));
   if (moi.length === 0) return null;
+  // A4 CAO-1b: tài xế có vế hạn Từ chối NGOÀI khung xem khách chỉ nhận câu gốc — chi tiết mỗi đơn mang MÃ ĐƠN.
+  if (chiCauGoc) return loi409("thu_tu_dao", [lyDoGiu("TRA_TRUOC_DON")]);
   const sau = new Map(stops.map((s) => [s.id, s.seq]));
   for (const d of doi) sau.set(d.id, d.seq);
   const ma = new Map((await legFlags(db, [...new Set(moi.map((i) => cho[i]!.leg_id).filter((x): x is string => x !== null))])).map((f) => [f.id, f.order_code]));
@@ -355,7 +361,9 @@ export const maDonGon = (codes: readonly string[]): string => [...new Set(codes)
  */
 export async function chiTietChuyen(
   db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], hk: readonly ChangChoChuyen[], kemTen: boolean,
-  nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>, quyenGoiBao: QuyenGoiBao, bayGioMs: number, chung?: DuLieuChung,
+  nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>, quyenGoiBao: QuyenGoiBao, bayGioMs: number,
+  /** G-A4-14: lý do Từ chối chỉ cho người có `trip.dispatch` — nơi gọi truyền `can(staff, "trip.dispatch")`. */
+  xemLyDoTuChoi: boolean, chung?: DuLieuChung,
 ): Promise<ChuyenChiTietResponse> {
   const nowIso = new Date(bayGioMs).toISOString();
   const c = chung ?? (await docChung(db, nowIso, msToVnLocal(bayGioMs).date));
@@ -406,6 +414,11 @@ export async function chiTietChuyen(
       { events: nen.events, kepLuiPhut: c.chinhSach?.proxy_backdate_max_minutes ?? null, truoc: ketThucTruoc(nc.chuyenKhacRow, t), bayGioMs }, t, nen.stops, nen.allocs,
     ),
     goiBao: (await Promise.all(nen.legIds.map((id) => goiBaoChang(id, hk, dGoiBao, quyenGoiBao, nhan)))).filter((x): x is GoiBaoChangDto => x !== null),
+    tuChoi: (await tuChoiCuaChuyen(db, t.id)).map((r) => ({
+      tenTaiXe: c.taiXe.find((x) => x.partyId === r.driver_party_id)?.displayName ?? "(không còn là tài xế)",
+      luc: gioVn(Date.parse(r.valid_to_at)),
+      ...(xemLyDoTuChoi ? { lyDo: r.reason_label ?? "Lý do khác" } : {}),
+    })),
   };
 }
 
@@ -428,12 +441,14 @@ function lyDoGiuDuPhong(t: TripRow, nc: NguCanhChuyen, c: DuLieuChung, bayGioMs:
  * Chi tiết một chuyến tài xế đang lái. `lich` (chặng — mã đơn, giờ hẹn, điều kiện còn thiếu), `hk` (tên khách — rỗng ngoài ngày chạy), `lienHe` (chỉ GET
  * chi tiết trong ngày chạy; null ở chỗ khác) do THÂN ROUTE đọc sau `can(trip.view / trip.progress, { assigned })`. Nhãn người văn phòng khai giờ qua hàm tiêm
  * (R-P11 / R-P20 — một lần mỗi request). `kemChiDuong` (ADR-0105, tự áp G18-B): chữ `true` CHỈ ở GET chi tiết — trong ngày chạy mọi điểm có chuỗi đích "Chỉ
- * đường"; phản hồi lệnh truyền chữ `false` (bài 3 của src/hanh-khach-khong-lo-ten.test.ts quét mã).
+ * đường"; phản hồi lệnh truyền chữ `false` (bài 3 của src/hanh-khach-khong-lo-ten.test.ts quét mã). `khung` (kế hoạch A4 T3): cờ khung xem khách + vế hạn
+ * Từ chối của NGƯỜI GỌI — chỉ lấy từ `khungCuaNguoiGoi` (index.ts). Lý do Từ chối (nhóm TU_CHOI_CHUYEN) chỉ kèm khi `tuChoiDuoc`; SĐT văn phòng khi chính sách có.
  */
 export async function cuocChiTiet(
   db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], hk: readonly ChangChoChuyen[], lienHe: readonly LienHeTaiXe[] | null,
-  nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>, bayGioMs: number, trongNgay: boolean, kemChiDuong: boolean,
+  nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>, bayGioMs: number, khung: KhungTaiXe, kemChiDuong: boolean,
 ): Promise<CuocChiTietResponse> {
+  const trongNgay = khung.trongKhung;
   const c = await docChung(db, new Date(bayGioMs).toISOString(), msToVnLocal(bayGioMs).date);
   const nc = await docNguCanh(db, nen, lich, c, [], bayGioMs);
   const t = nen.trip;
@@ -449,10 +464,16 @@ export async function cuocChiTiet(
     suat: nen.allocs.filter((a) => a.valid_to_at === null).map((a) => suatChuyenDto(a, { changLich: nc.changLich, changNgoai: nc.changNgoai, ten, events: nen.events, nhan, tenDiKem, lyDoNhan })),
     lienHe, conThieu: lyDoGiuCuaChuyen(t, lyDoGiuDuPhong(t, nc, c, bayGioMs, true), bayGioMs, c.chinhSach?.min_lead_minutes ?? null), lyDo: c.lyDo.filter((r) => r.reason_group === "KET_THUC_GIAN_DOAN"), nhan, trongNgay,
     chiDuong,
+    khung,
+    lyDoTuChoi: khung.tuChoiDuoc ? c.lyDo.filter((r) => r.reason_group === "TU_CHOI_CHUYEN") : [],
+    sdtVanPhong: c.chinhSach?.office_phone ?? null,
   });
 }
-/** "Cuốc của tôi" (route 19, R-P17): mỗi chuyến — không tên, không SĐT; điều kiện còn thiếu = lý do giữ dự phóng (chuyến chưa chạy). */
-export async function danhSachCuoc(db: D1Database, trips: readonly TripRow[], lich: readonly ChangLichChung[], bayGioMs: number): Promise<CuocCuaToiItemDto[]> {
+/**
+ * "Cuốc của tôi" (route 19, R-P17): mỗi chuyến — không tên, không SĐT; điều kiện còn thiếu = lý do giữ dự phóng (chuyến chưa chạy). `chiCauGoc` (người gọi có vế
+ * hạn Từ chối — kế hoạch A4): điều kiện chỉ câu gốc, không chi tiết (chi tiết có thể mang mã đơn; danh sách không tính khung từng chuyến).
+ */
+export async function danhSachCuoc(db: D1Database, trips: readonly TripRow[], lich: readonly ChangLichChung[], bayGioMs: number, chiCauGoc: boolean): Promise<CuocCuaToiItemDto[]> {
   if (trips.length === 0) return [];
   const c = await docChung(db, new Date(bayGioMs).toISOString(), msToVnLocal(bayGioMs).date);
   const ids = trips.map((t) => t.id);
@@ -468,7 +489,7 @@ export async function danhSachCuoc(db: D1Database, trips: readonly TripRow[], li
     const conThieu = t.status === "PLANNED"
       ? lyDoGiuCuaChuyen(t, lyDoGiuDuPhong(t, await docNguCanh(db, nen, lich, c, [], bayGioMs), c, bayGioMs, false), bayGioMs, c.chinhSach?.min_lead_minutes ?? null)
       : [];
-    ra.push(cuocCuaToiItem(t, { xe: c.xe.find((x) => x.id === t.vehicle_id), stops: nen.stops, allocs: a, conThieu }));
+    ra.push(cuocCuaToiItem(t, { xe: c.xe.find((x) => x.id === t.vehicle_id), stops: nen.stops, allocs: a, conThieu, chiCauGoc }));
   }
   return ra;
 }

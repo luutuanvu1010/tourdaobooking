@@ -347,7 +347,7 @@
       "name": "vc_dispatch_policy",
       "module": "van-chuyen",
       "kind": "table",
-      "note": "duty_day_max_minutes (480, 60–1440) tổng giờ lái một ngày chạy; trip_no_break_max_minutes (240, 30–720) chuyến dài hơn → nhắc nghỉ — chỉ cảnh báo (ADR-0055 VK2-B); thêm bằng ADD COLUMN có DEFAULT ở 0071 (lệch khuôn I43 có ghi — bù bằng bài 'câu chèn liệt kê đủ cột' và thân yêu cầu bắt buộc hai số). departure_window_minutes (720 = 12 giờ, 60–2880; 0084, ADR-0096 Đ2 LC-20) cửa sổ xuất bến — chỉ xuất bến khi giờ xuất bến ≥ giờ khởi hành dự kiến − cửa sổ của dòng hiệu lực TẠI giờ xuất bến; 720 là DEFAULT của cột (giá trị mặc định trong bảng, không hằng trong mã — bài src/cua-so-khong-hang.test.ts); Toàn quyền đổi ở màn Chính sách điều phối (ô theo giờ 1–48); không phá lệ; trigger vc_trip_departure_window trên cạnh PLANNED → RUNNING (không có dòng chính sách → chặn)"
+      "note": "duty_day_max_minutes (480, 60–1440) tổng giờ lái một ngày chạy; trip_no_break_max_minutes (240, 30–720) chuyến dài hơn → nhắc nghỉ — chỉ cảnh báo (ADR-0055 VK2-B); thêm bằng ADD COLUMN có DEFAULT ở 0071 (lệch khuôn I43 có ghi — bù bằng bài 'câu chèn liệt kê đủ cột' và thân yêu cầu bắt buộc hai số). departure_window_minutes (720 = 12 giờ, 60–2880; 0084, ADR-0096 Đ2 LC-20) cửa sổ xuất bến — chỉ xuất bến khi giờ xuất bến ≥ giờ khởi hành dự kiến − cửa sổ của dòng hiệu lực TẠI giờ xuất bến; 720 là DEFAULT của cột (giá trị mặc định trong bảng, không hằng trong mã — bài src/cua-so-khong-hang.test.ts); Toàn quyền đổi ở màn Chính sách điều phối (ô theo giờ 1–48); không phá lệ; trigger vc_trip_departure_window trên cạnh PLANNED → RUNNING (không có dòng chính sách → chặn) refuse_lead_minutes (720 = 12 giờ, 60–2880; 0092, ADR-0053 D8.1) số phút hạn Từ chối trước giờ chạy — chụp vào vc_refuse_deadline lúc cặp (tài xế, chuyến) được xếp LẦN ĐẦU; office_phone (0092, lời chủ 6.3) SĐT văn phòng cho nút 'Gọi văn phòng' của tài xế (dạng 0xxxxxxxxx, NULL = chưa nhập; nhật ký không ghi chữ số). Cả hai thêm bằng ADD COLUMN (DEFAULT / NULL — lệch I43 có ghi như 0071)."
     },
     {
       "name": "vc_leg_template",
@@ -369,6 +369,12 @@
       "name": "vc_reason",
       "module": "van-chuyen",
       "kind": "lookup"
+    },
+    {
+      "name": "vc_refuse_deadline",
+      "module": "van-chuyen",
+      "kind": "table",
+      "note": "HẠN TỪ CHỐI theo CẶP (tài xế, chuyến) — ADR-0053 D8.1, D8.2 (0092): khoá chính (trip_id, driver_party_id); deadline_ms = giờ chạy dự kiến − lead_minutes (chính sách hiệu lực lúc mở dòng lái; không có dòng chính sách khớp → 720). 'Khoá dính': chèn khi cặp được xếp LẦN ĐẦU (trigger AFTER INSERT trên vc_trip_driver — mọi đường xếp), xếp lại đúng người dùng lại dòng cũ; dời giờ chuyến chỉ HẠ hạn (trigger AFTER UPDATE OF planned_start_ms); trigger cấm tăng / giữ nguyên, cấm đổi cặp / số phút, cấm xoá (rd_). Gieo cho mọi dòng lái đang mở lúc áp (−720 phút). Có cho MỌI cặp (cả tài xế công ty) nhưng chỉ đọc khi người gọi có trip.refuse với {assigned:true} (vế hạn của khung xem khách và mã đơn — ADR-0053 D7.2). Cửa một chiều (mốc chỉ giảm)."
     },
     {
       "name": "vc_route",
@@ -394,7 +400,7 @@
       "name": "vc_unavailability",
       "module": "van-chuyen",
       "kind": "table",
-      "note": "KHUNG BẬN (ADR-0055 VK2-A; hình dùng chung ADR-0053 D9.1, migration 0071): subject VEHICLE (xe vào xưởng, đăng kiểm…) | DRIVER (Báo bận tài xế đối tác — CHƯA MỞ, trigger chặn tới Đợt 6). Đúng một đối tượng theo subject. start_ms/end_ms nửa mở, phút tròn; start_at/end_at ISO UTC cùng mốc. Chỉ thêm; một kiểu sửa: rút một lần (withdrawn_*, version + 1). Lý do: vc_reason nhóm BAN_XE (xe) / BAN_TAI_XE (tài xế). Trigger hai chiều với vc_trip: chuyến chưa huỷ không chồng khung còn hiệu lực; khung không chồng chuyến PLANNED/RUNNING. Không cột ghi chú tự do. Đọc đợt này luôn lọc subject = 'VEHICLE'"
+      "note": "KHUNG BẬN (ADR-0055 VK2-A; hình dùng chung ADR-0053 D9.1, migration 0071): subject VEHICLE (xe vào xưởng, đăng kiểm…) | DRIVER (Báo bận của tài xế nhà xe đối tác — MỞ từ 0092, ADR-0053 D9: tài xế ghi / rút khung của CHÍNH mình, ô unavailability.self; văn phòng xem qua trip.dispatch, KHÔNG thấy lý do — lời chủ 6.2; B9.2 trigger chặn khung chồng chuyến người đó đang được xếp; B9.3 trigger chặn xếp / dời chuyến vào khung còn hiệu lực — lc03_driver_unavailable). Đúng một đối tượng theo subject. start_ms/end_ms nửa mở, phút tròn; start_at/end_at ISO UTC cùng mốc. Chỉ thêm; một kiểu sửa: rút một lần (withdrawn_*, version + 1). Lý do: vc_reason nhóm BAN_XE (xe) / BAN_TAI_XE (tài xế). Trigger hai chiều với vc_trip: chuyến chưa huỷ không chồng khung còn hiệu lực; khung không chồng chuyến PLANNED/RUNNING. Không cột ghi chú tự do. Câu đọc khung của XE luôn lọc subject = 'VEHICLE'; câu đọc khung TÀI XẾ chỉ nằm ở khung-ban-tai-xe-repo.ts (lọc subject = 'DRIVER' và driver_party_id; dải văn phòng không join vc_reason — không lý do)"
     },
     {
       "name": "vc_trip",
@@ -405,7 +411,8 @@
     {
       "name": "vc_trip_driver",
       "module": "van-chuyen",
-      "kind": "table"
+      "kind": "table",
+      "note": "DÒNG LÁI (ADR-0049 D1): mở một lần, đóng một lần (REASSIGNED | TRIP_CANCELLED | REFUSED), không xoá. 0092 (ADR-0053 D8.1) thêm refuse_reason_code (vc_reason nhóm TU_CHOI_CHUYEN; có khi và chỉ khi close_reason = 'REFUSED' — CHECK) và closed_by_party_id (HỒ SƠ người đóng — trigger B8.2: REFUSED ⇒ chính tài xế của dòng). B8.3: REFUSED chỉ khi chuyến PLANNED và giờ CSDL hiện tại ≤ hạn của cặp (vc_refuse_deadline) — ngoại lệ có tên 'giờ CSDL'. Không chèn thẳng dòng REFUSED. Mỗi dòng mở chèn hạn Từ chối của cặp (trigger AFTER INSERT) nếu cặp chưa có."
     },
     {
       "name": "vc_trip_stop",

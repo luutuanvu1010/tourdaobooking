@@ -1,0 +1,16 @@
+✓ 1) 8a 1040 Toàn quyền: bốn ô theo bản gieo (6 giờ, 2 giờ, 30 phút, 180 phút), công tắc đủ danh sách BẬT, hợp đồng KHOÁ TẮT, hai điều kiện gieo sẵn, KHÔNG ô ngày, KHÔNG 'Đang soạn'; thanh bên có Chính sách + Lý do dưới Vận chuyển, KHÔNG 'Điều phối xe'
+✓ 2) F + H19: ô ngoài khoảng báo lời thường dưới ô, không gửi gì (khai lùi 1441, 0; mốc 0, 49 giờ), axe không vi phạm critical/serious
+✓ 3) Không đổi gì → không lưu bản giống hệt (câu nhắc, không gửi)
+✓ 4) Lưu bản mới (mốc 5 giờ, khai lùi 240 phút, tắt đủ danh sách): thân đúng năm khoá theo PHÚT; lịch sử hai bản khác nhau ở ô F; máy chủ lưu đúng
+✓ 5) Điều kiện xuất bến (khuôn sẵn, mở từ liên kết): hai điều kiện gieo 'Đang áp'; thêm 'Phù hiệu xe hợp đồng — xe chở từ 9 người', đóng nó; hạng D1 đổi 16 → 15; không lộ mã
+✓ 6) 8b 390 Toàn quyền: một cột, cột lịch sử ẩn, 'Lịch sử bản (2) ›' mở bảng trượt hai bản, nút 'Lưu thành bản mới' dính đáy, ô gõ ≥ 16px, không tràn ngang
+✓ 7) Trang Tôi (390) của Toàn quyền: nhóm VẬN CHUYỂN có 'Chính sách điều phối' và 'Lý do điều phối'
+✓ 8) 8c 1040 Quản trị: năm nhóm (Phá lệ, Huỷ chuyến, Kết thúc gián đoạn, Bỏ qua điểm, Đổi giờ xe tới) — KHÔNG 'Đặt gấp', 'Bỏ chặng'; số đếm; không lộ mã; thanh bên có 'Lý do điều phối', KHÔNG 'Chính sách điều phối'
+✓ 9) Thêm 'Khách tự đi' vào Bỏ qua điểm (mã sinh từ nhãn, đứng trước 'Khác'); thêm trùng tên → mã hậu tố _2; sửa tên; Ngưng → 'Đã ngưng' + 'Dùng lại'
+✓ 9b) R-P22: trang cũ vẫn hiện nút Ngưng cho lý do hệ thống (giả lập dữ liệu cũ thiếu cờ heThong) → bấm → máy chủ 409 `ly_do_he_thong` → dải lỗi câu lời thường; lý do vẫn đang dùng
+✓ 10) Quản trị mở thẳng /chinh-sach-dieu-phoi → câu tiếng Việt, không form; /dieu-kien-xuat-ben cũng vậy
+✓ 11) 8d 390 Quản trị 'đang thêm': khung thêm trong nhóm, bộ đếm n/80, Thêm / Đóng; Đóng trả focus về nút thêm; không tràn; trang Tôi có 'Lý do điều phối', KHÔNG 'Chính sách điều phối'
+✓ 12) Bán hàng: nhóm Vận chuyển chỉ có "Điều phối xe" (B1, Q-B-4) — không Chính sách, không Lý do; mở thẳng hai trang → câu tiếng Việt, không dựng gì
+✓ 13) Không lỗi console ở mọi trang đã mở
+
+CHINH SACH DIEU PHOI SMOKE OK (14 bước)

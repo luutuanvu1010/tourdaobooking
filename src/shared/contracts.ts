@@ -1139,6 +1139,10 @@ export interface DispatchPolicyDto {
   tripNoBreakMaxMinutes: number;
   /** ADR-0096 Đ2 (0084): cửa sổ xuất bến (phút, 60…2880; mặc định nằm trong bảng chính sách) — chỉ xuất bến từ giờ khởi hành dự kiến − cửa sổ. */
   departureWindowMinutes: number;
+  /** ADR-0053 D8.1 (0092): hạn Từ chối (phút trước giờ chạy, 60…2880; gieo 720). */
+  refuseLeadMinutes: number;
+  /** Lời chủ 6.3 (0092): SĐT văn phòng (0xxxxxxxxx) cho nút "Gọi văn phòng" của tài xế; null = chưa nhập. Chỉ Toàn quyền đọc DTO này. */
+  officePhone: string | null;
   validFrom: string;
   current: boolean;
   /** R-P23: "ai lưu" — TÊN hiển thị người lưu bản này (hàm tiêm nhãn R-P20; không SĐT, không id); null = bản gieo / khung thử không tiêm nhãn. */
@@ -1159,6 +1163,10 @@ export interface DispatchPolicyCreateRequest {
   tripNoBreakMaxMinutes: number;
   /** BẮT BUỘC (I43, ADR-0096 Đ2.3): phút, 60…2880 — màn nhập giờ (1–48). */
   departureWindowMinutes: number;
+  /** BẮT BUỘC (I43, ADR-0053 D8.1): phút, 60…2880 — màn nhập giờ (1–48). */
+  refuseLeadMinutes: number;
+  /** BẮT BUỘC có khoá (I43; lời chủ 6.3): chuỗi SĐT hoặc null / "" = không có. */
+  officePhone: string | null;
   requireContract?: false;
 }
 export interface DepartureRuleDto {
@@ -1229,6 +1237,17 @@ export interface KhungBanXeDto {
 export interface KhungBanXeListResponse { dangCo: KhungBanXeDto[]; lichSu: KhungBanXeDto[]; lyDo: { code: string; label: string }[] }
 /** 409 lớp route khi ghi khung chồng chuyến chưa huỷ, chưa kết thúc (Q-L2-1 = a) — chỉ mã chuyến + giờ, không tên khách. */
 export interface KhungBanChongChuyenLoi { error: { code: "khung_ban_chong_chuyen"; message: string; chuyen: { ma: string; gio: string }[] } }
+// ---- Báo bận của tài xế (ADR-0053 D9; kế hoạch A4 T8; G-A4-19, G-A4-28) -------------------------------------------------------------------------------
+/** Một khung bận của CHÍNH tài xế (`GET|POST /api/van-chuyen/ban*`). `lyDo` = nhãn lý do (người xem là chủ khung). */
+export interface KhungBanCuaToiDto { id: string; batDau: string; ketThuc: string; batDauMs: number; ketThucMs: number; lyDoMa: string; lyDo: string; version: number }
+/** `khung` = khung chưa rút, chưa qua của chính mình (giờ bắt đầu tăng); `lyDo` = danh mục BAN_TAI_XE đang dùng. Thân ghi / rút KHÔNG có `requestId` (G-A4-28). */
+export interface KhungBanCuaToiResponse { khung: KhungBanCuaToiDto[]; lyDo: { code: string; label: string }[] }
+/** 409 lớp route khi khung chồng chuyến người gọi đang được xếp — CHỈ chuyến của chính người gọi: id, mã chuyến, giờ (không tên khách, không mã đơn). */
+export interface KhungBanChongChuyenTaiXeLoi { error: { code: "khung_ban_chong_chuyen_tai_xe"; message: string; chuyen: { id: string; ma: string; gio: string }[] } }
+/** Dải "Tài xế bận" của văn phòng (`GET /api/van-chuyen/ban-tai-xe` — trip.dispatch): KHÔNG lý do (lời chủ 6.2). `taiXeId` = hồ sơ tài xế. */
+export interface KhungBanTaiXeDto { id: string; taiXeId: string; tenTaiXe: string; nhaXe: string[]; batDauMs: number; ketThucMs: number; nhan: string }
+/** `tu`..`den` (hai đầu bao gồm, ngày VN): mặc định hôm nay → +6 ngày. */
+export interface BanTaiXeResponse { tu: string; den: string; khung: KhungBanTaiXeDto[] }
 /** Chuyến đã xếp trên lưới tuần Lịch xe bận — DANH SÁCH TRẮNG: không mã đơn, không tên khách, không tài xế (câu 3.1, chủ 2/10). Trạng thái thô chỉ để màn chọn nhãn. */
 export interface ChuyenXeBanDto { id: string; ma: string; xeId: string; batDauMs: number; ketThucMs: number; trangThai: "PLANNED" | "RUNNING" | "ENDED" | "ENDED_INTERRUPTED" }
 /** Dải bận trên lịch chung ngày D (`LichChungResponse.khungBanXe`; trip.view — ADR-0055 A4): DANH SÁCH TRẮNG — không người ghi, không tài xế. Giờ ISO UTC. */
@@ -1405,6 +1424,11 @@ export interface ChuyenChiTietResponse {
   gioSomNhatKhai: GioSomNhatKhaiDto;
   /** ADR-0051 (A-GB): mỗi chặng có suất trên chuyến mà còn mục "Giờ hẹn đổi — gọi báo khách" hoặc đang mang dấu "đã gọi báo". */
   goiBao: GoiBaoChangDto[];
+  /**
+   * ADR-0053 D8 (kế hoạch A4 T7, G-A4-14): các lần tài xế Từ chối chuyến này (mới trước). `lyDo` CHỈ khi người gọi có `trip.dispatch` (Kế toán thấy tên + giờ,
+   * không lý do). Không SĐT, không id hồ sơ.
+   */
+  tuChoi: TuChoiChuyenDto[];
   /**
    * CHỈ ở phản hồi lệnh xếp (`POST …/chuyen/:id/phan-bo`) khi có: cảnh báo sớm CHUA_CO_NOI_TRA / THIEU_TEN của chặng vừa xếp (cùng luật cổng xuất bến —
    * `lyDoNoiTra` / `lyDoThieuTen` ở src/shared/dieu-phoi-kiem.ts). Chỉ nhắc — lệnh đã chạy. Mã đơn + số tên thiếu, không tên khách.
@@ -1617,7 +1641,8 @@ export interface CuocChiTietResponse {
     id: string;
     /** `CREW` = người đi kèm (hướng dẫn viên) — không phải khách, không gắn điểm dừng; vẫn phải "Đã lên xe" → "Đã xuống" mới kết thúc thường được. */
     loai: "PASSENGER" | "CREW";
-    maDon: string | null;
+    /** Kế hoạch A4 G-A4-7 (ADR-0053 D7.2): người có vế hạn Từ chối NGOÀI khung xem khách → khoá VẮNG MẶT; tài xế công ty có mọi lúc. */
+    maDon?: string | null;
     diemLen: string | null;
     diemXuong: string | null;
     trangThai: "WAITING" | "BOARDED" | "NO_SHOW" | "CANCELLED_AT_STOP" | "DROPPED";
@@ -1636,8 +1661,23 @@ export interface CuocChiTietResponse {
   dieuKienConThieu: DieuKienConThieuDto[];
   /** Lý do kết thúc gián đoạn đang dùng (I5). */
   lyDo: { code: string; nhan: string }[];
+  /** Tên giữ vì PWA cũ (G-A4-6) — nghĩa: TRONG KHUNG XEM KHÁCH của người gọi (ADR-0053 D7.2). */
   trongNgayChay: boolean;
+  /** ADR-0053 D8.6: nút "Từ chối chuyến" hiện chỉ theo cờ này (máy chủ tính: đang lái, có vế hạn, chuyến chưa chạy, chưa quá hạn). Tài xế công ty: luôn false. */
+  tuChoiDuoc: boolean;
+  /** ADR-0053 D8.6: hạn Từ chối của chính người gọi — chỉ người có vế hạn. */
+  hanTuChoi?: GioVnDto;
+  /** Đợt 6 mục 1, 9: "Thấy danh sách khách từ …" — chỉ khi đang ngoài khung và mốc ở tương lai. */
+  thayKhachTu?: GioVnDto;
+  /** Đợt 6 mục 2: lý do Từ chối đang dùng — chỉ khi `tuChoiDuoc`. */
+  lyDoTuChoi?: { code: string; nhan: string }[];
+  /** Lời chủ 6.3: SĐT văn phòng (nút "Gọi văn phòng") — chỉ khi chính sách đã có số. */
+  sdtVanPhong?: string;
 }
+/** `POST /api/van-chuyen/cuoc-cua-toi/:id/tu-choi` (ADR-0053 D8.6): chỉ cờ — không dữ liệu chuyến (dòng lái đã đóng, tài xế không còn xem chuyến). */
+export interface TuChoiResponse { daTuChoi: true }
+/** Một lần tài xế Từ chối chuyến — chi tiết chuyến văn phòng (G-A4-14). */
+export interface TuChoiChuyenDto { tenTaiXe: string; luc: GioVnDto; lyDo?: string }
 
 // ---- Mẫu đưa đón theo dịch vụ (ADR-0054 D10.1–D10.2; ADR nháp nơi trả mặc định docs/superpowers/specs/2026-10-01-de-xuat-adr-noi-tra-mac-dinh.md) ------------
 /** Một BẢN mẫu (màn Danh mục, cổng admin): chế độ, giờ gợi ý chiều về, nơi trả mặc định (tên + còn dùng), lúc hiệu lực (ISO UTC). */

@@ -879,6 +879,56 @@ export const CHECKS = [
     level: "warn",
     note: "cảnh báo: chuyến đã xuất bến trái cam kết xe riêng / số chỗ của khách mà không có phá lệ — rà lại chuyến và lý do",
   },
+  // ---- Tài xế đối tác: Từ chối chuyến, Báo bận, hạn theo cặp (ADR-0053 D8, D9 — kế hoạch A4 T11, migration 0092). Lưới thứ hai của trigger; chỉ đếm, không tên. ----
+  // R-VC-26 (B8.2 — trigger tc82_self): dòng lái đóng REFUSED phải do CHÍNH tài xế của dòng đóng (người đóng theo hồ sơ). Văn phòng / Toàn quyền không từ chối thay.
+  {
+    code: "R-VC-26",
+    what: "dòng lái đóng 'tài xế từ chối' mà người đóng không phải chính tài xế",
+    sql: `SELECT count(*) FROM vc_trip_driver d WHERE d.close_reason = 'REFUSED' AND d.closed_by_party_id IS NOT d.driver_party_id`,
+    level: "fail",
+  },
+  // R-VC-27 (B8.3 — trigger tc83_deadline): Từ chối chỉ khi chuyến còn chưa chạy. Dòng REFUSED ghi lúc / sau giờ xuất bến thật = lọt trigger. (Không so với
+  // hạn: hạn chỉ GIẢM khi dời chuyến sớm hơn, một lần từ chối hợp lệ có thể nằm sau hạn mới — báo nhầm.)
+  {
+    code: "R-VC-27",
+    what: "tài xế từ chối chuyến lúc hoặc sau giờ xuất bến thật",
+    sql: `SELECT count(*) FROM vc_trip_driver d JOIN vc_trip t ON t.id = d.trip_id
+          WHERE d.close_reason = 'REFUSED' AND t.departed_at IS NOT NULL AND d.valid_to_at >= t.departed_at`,
+    level: "fail",
+  },
+  // R-VC-28 (B9.2, B9.3 — trigger vc_unavailability_overlaps_driver_trip, vc_trip_driver_unavailable_*): khung bận DRIVER còn hiệu lực chồng (nửa mở, giờ dự
+  // kiến) chuyến chưa kết thúc mà người đó đang lái. Mức warn như R-VC-21: chuyến đang chạy quá giờ dự kiến có thể lấn vào khung ghi sau.
+  {
+    code: "R-VC-28",
+    what: "chuyến chưa kết thúc đang xếp cho tài xế chồng khung báo bận còn hiệu lực của chính người đó",
+    sql: `SELECT count(*) FROM vc_trip t JOIN vc_trip_driver d ON d.trip_id = t.id AND d.valid_to_at IS NULL
+          JOIN vc_unavailability u ON u.subject = 'DRIVER' AND u.driver_party_id = d.driver_party_id AND u.withdrawn_at IS NULL
+          WHERE t.status IN ('PLANNED', 'RUNNING') AND t.planned_start_ms < u.end_ms AND u.start_ms < t.planned_end_ms`,
+    level: "warn",
+    note: "cảnh báo: văn phòng đổi tài xế / dời chuyến, hoặc tài xế rút khung bận",
+  },
+  // R-VC-29 (D8.1 — trigger vc_trip_driver_refuse_deadline_ins + gieo của 0092): mọi dòng lái ĐANG MỞ có dòng hạn Từ chối của đúng cặp (tài xế, chuyến). Thiếu
+  // = tài xế đối tác không bao giờ thấy khách / mã đơn (khung đóng mặc định — G-A4-2) và không Từ chối được.
+  {
+    code: "R-VC-29",
+    what: "dòng lái đang mở thiếu hạn từ chối của cặp tài xế – chuyến",
+    sql: `SELECT count(*) FROM vc_trip_driver d WHERE d.valid_to_at IS NULL
+          AND NOT EXISTS (SELECT 1 FROM vc_refuse_deadline r WHERE r.trip_id = d.trip_id AND r.driver_party_id = d.driver_party_id)`,
+    level: "fail",
+  },
+  // R-VC-30 (D8, cảnh báo vận hành): chuyến chưa chạy xuất bến trong 48 giờ tới mà chưa có tài xế (vd. tài xế vừa Từ chối, văn phòng chưa xếp người khác).
+  // Giờ hiện tại của CSDL — chỉ để cảnh báo, không chặn.
+  {
+    code: "R-VC-30",
+    what: "chuyến chưa chạy xuất bến trong 48 giờ tới mà chưa có tài xế",
+    sql: `SELECT count(*) FROM vc_trip t
+          WHERE t.status = 'PLANNED'
+            AND t.planned_start_ms >= CAST(strftime('%s', 'now') AS INTEGER) * 1000
+            AND t.planned_start_ms < CAST(strftime('%s', 'now') AS INTEGER) * 1000 + 48 * 3600000
+            AND NOT EXISTS (SELECT 1 FROM vc_trip_driver d WHERE d.trip_id = t.id AND d.valid_to_at IS NULL)`,
+    level: "warn",
+    note: "cảnh báo: xếp tài xế cho chuyến sắp chạy (kể cả chuyến tài xế vừa từ chối)",
+  },
   // R-VC-THU-TU (ADR-0096 Đ1.5, gói A1 — 0084): chuyến ĐANG CHẠY có suất mở CHỜ LÊN mà điểm xuống đứng trước / bằng số điểm lên. Lưới thứ hai của đường đổi thứ
   // tự khi đang chạy — đường này KHÔNG có trigger theo dòng (Đ1.6: lô đổi nhiều điểm đi qua trạng thái trung gian), lớp máy chủ là `chanDaoMoi`. Chuyến kế hoạch
   // vi phạm là "đang bị giữ" hợp lệ (cổng xuất bến LC-19 chặn) — không đếm. Chỉ đếm, không tên.

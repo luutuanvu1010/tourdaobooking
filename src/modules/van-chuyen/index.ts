@@ -41,8 +41,10 @@ import {
 
 // ADR-0049 D1–D3 (Task A13): chuyến xe — hàm hẹp của orders (chỉ gọi trong THÂN route, sau can() — bài src/orders-cong-bo.test.ts), đọc / dựng lô / DTO.
 import { cauThemHanhKhachTaiXe, hanhKhachChoChuyen, kiemHanhKhachTaiXe, lichChungChang, lienHeChoTaiXe } from "../orders";
-import type { CapNhatDiemResponse, CuuHoResponse, HuongDanVienListResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiResponse, StaffProfile } from "../../shared/contracts";
-import { kiemTaoSuaChuyen, trongNgayChay } from "../../shared/dieu-phoi-kiem";
+import type { CapNhatDiemResponse, CuuHoResponse, HuongDanVienListResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiResponse, StaffProfile, TuChoiResponse } from "../../shared/contracts";
+import { kiemTaoSuaChuyen, mocMoKhung, trongKhungXemKhach } from "../../shared/dieu-phoi-kiem";
+import { hanTuChoiCuaCap } from "./han-tu-choi-repo";
+import type { KhungTaiXe } from "./tai-xe-dto";
 import { lyDoGiu, type LyDoGiu } from "../../shared/ly-do-giu";
 import { isISODate, msToVnLocal } from "../../shared/vn-date";
 import { eventByRequest, eventsByTrips, tripCountByDate, tripsByDate, tripsCuaTaiXe, tripsTouching } from "./chuyen-repo";
@@ -52,11 +54,13 @@ import { chinhSachVao, docChung, docNen, khungChuyen, taiXeVao, xeVao, type NenC
 import { CAU_LY_DO_VUOT_LA, dungLichNgay, lenhBaoHuy, lenhBoSungTen, lenhCapNhatDiem, lenhCapNhatKhach, lenhDoi, lenhHuy, lenhRut, lenhSuaChuyen, lenhThemDiemDangChay, lenhXep } from "./dieu-phoi-lenh";
 import {
   CAN_DIEU_PHOI, CAN_XEM_CHUYEN, KHONG_CO_CHUYEN, chanCoVuot, chayLo, chiTietChuyen, cuocChiTiet, danhSachCuoc, gioNgan, loi409, loiKiem, lyDoHopLe, nhanLyDo, phaLeNhatKy,
-  gioKhanCapNhatKy, traLenhLap, vuotLenh, type QuyenVuot,
+  gioKhanCapNhatKy, traLenhLap, vuotLenh, type QuyenVuot, MA_LENH_DUNG_LAI,
 } from "./dieu-phoi-route";
+import { lenhTuChoi } from "./tu-choi";
+import { suKienTheoYeuCau } from "./han-tu-choi-repo";
 import {
   docBaoHuy, docBoSungTen, docCapNhatDiem, docDieuChinhSuat, docDoi, docDoiThuTu, docHuy, docKetThucGianDoan, docRut, docSuaChuyen, docTaoChuyen, docThemDiem, docThuHoiXuatBen,
-  docTienDo, docXep,
+  docTienDo, docXep, docTuChoi, requestIdLong,
 } from "./dieu-phoi-than";
 // Task A15: lệnh tiến độ — MỘT hàm mỗi lệnh cho cả route tài xế lẫn route văn phòng bấm thay (R-P1).
 import {
@@ -118,12 +122,34 @@ import { insertKhungBanStatement, khungBanCuaXe, khungBanTheoId, khungBanXeTrong
 import { lyDoDangDung, xeDieuPhoi } from "./chuyen-repo";
 import type { CanhBaoLichDto } from "../../shared/contracts";
 import { NHAN_CANH_BAO_GIO_LAI, type CanhBaoGioLai } from "../../shared/gio-lai";
-import { khungBanVao } from "./dieu-phoi-doc";
+import { khungBanVao, khungTaiXeVao } from "./dieu-phoi-doc";
+import { khungTaiXeTrongKhoang } from "./khung-ban-tai-xe-repo";
+import { banTaiXeResponse, khungCuaToiResponse, lenhGhiKhungBan, lenhRutKhungBan } from "./bao-ban";
 const CAN_XEM_XE_DON = () => error(403, "forbidden", "Tài khoản này không xem được xe đón khách của đơn.");
 const CAN_XEM_CUOC = () => error(403, "forbidden", "Tài khoản này không có cuốc xe.");
 const CAN_BAM_THAY = () => error(403, "forbidden", "Tài khoản này không bấm thay tiến độ chuyến được.");
 /** `assigned` của route tài xế (kế hoạch mục 1.2): người gọi có hồ sơ và là tài xế ĐANG MỞ dòng lái của chuyến. */
 const dangLai = (nen: NenChuyen | null, staff: StaffProfile): boolean => nen !== null && staff.partyId !== null && nen.trip.driver_party_id === staff.partyId;
+/**
+ * KHUNG XEM KHÁCH của người gọi trên chuyến (ADR-0053 D7.2; kế hoạch A4 T1) — CHỖ DUY NHẤT trong module gọi hàm thuần `trongKhungXemKhach` (bài
+ * mot-ham-khung.test.ts). Mọi route tài xế lấy cờ ở đây: GET chi tiết (tên, liên hệ, chỉ đường), chín lệnh tiến độ (cờ trong phản hồi), bổ sung tên khách.
+ * VẾ HẠN (G-A4-2; kế hoạch A4 T3): người gọi có `can(trip.refuse, {assigned:true})` — đây là chỗ máy chủ hỏi ô `trip.refuse` đầu tiên — thì đọc hạn Từ chối
+ * của cặp (chuyến, chính người gọi); thiếu dòng → `null` (ngoài khung). Không có ô → `undefined` (tài xế công ty: chỉ vế "trong ngày chạy").
+ * Người gọi phải ĐANG LÁI chuyến (`dangLai` — mọi route gọi hàm này đã kiểm trước), nên `tuChoiDuoc` không xét lại dòng lái.
+ */
+async function khungCuaNguoiGoi(db: D1Database, nen: NenChuyen, staff: StaffProfile, bayGioMs: number): Promise<KhungTaiXe> {
+  const coVeHan = staff.partyId !== null && can(staff, "trip.refuse", { assigned: true });
+  const han = coVeHan ? await hanTuChoiCuaCap(db, nen.trip.id, staff.partyId!) : undefined;
+  const chuyen = { ngayChay: nen.trip.service_date, trangThai: nen.trip.status, xuatBenMs: nen.trip.departed_ms };
+  const trongKhung = trongKhungXemKhach(chuyen, han, bayGioMs);
+  const moc = han === null ? null : mocMoKhung(chuyen, han);
+  return {
+    trongKhung,
+    han,
+    tuChoiDuoc: typeof han === "number" && nen.trip.status === "PLANNED" && bayGioMs <= han, // G-A4-1: Từ chối được khi bayGio ≤ hạn
+    thayKhachTuMs: !trongKhung && moc !== null && moc > bayGioMs ? moc : null, // chỉ mốc ở tương lai (chuyến đã qua ngày chạy: không hứa)
+  };
+}
 /** Văn phòng bấm thay: người bấm = tài khoản văn phòng; `bamThay` trừ khi chính người đó là tài xế đang lái chuyến. */
 const nguoiBamVanPhong = (staff: StaffProfile, nen: NenChuyen): NguoiBam => ({ id: staff.id, bamThay: !dangLai(nen, staff) });
 // ADR-0051 (Task A-GB): nhắc "gọi báo khách" khi giờ hẹn đổi — mốc giờ hẹn của chặng, họ lệnh "Đã gọi báo" / "Bỏ đánh dấu", danh sách nhắc.
@@ -210,6 +236,8 @@ const toPolicyDto = (r: DispatchPolicyRow, currentId: string | null, nhan: Reado
   dutyDayMaxMinutes: r.duty_day_max_minutes,
   tripNoBreakMaxMinutes: r.trip_no_break_max_minutes,
   departureWindowMinutes: r.departure_window_minutes,
+  refuseLeadMinutes: r.refuse_lead_minutes,
+  officePhone: r.office_phone,
   validFrom: r.valid_from_at,
   current: r.id === currentId,
   nguoiLuu: r.created_by === null ? null : (nhan?.get(r.created_by) ?? null),
@@ -651,6 +679,12 @@ export const vanChuyenModule: AppModule = {
       if ((kq[0]!.meta.changes ?? 0) === 0) return error(409, "khung_ban_vua_doi_route", CAU_KHUNG_VUA_DOI);
       return respondKhungBan(env.DB, id);
     }),
+    // Dải "Tài xế bận" của văn phòng (ADR-0053 D9; kế hoạch A4 T8, G-A4-19): ô trip.dispatch (ô any của văn phòng — không ngữ cảnh là đúng ở đây; Kế toán,
+    // tài xế → 403). Không lý do (lời chủ 6.2). Ô chọn tài xế ở màn sửa chuyến dùng CÙNG route (không thêm route).
+    route("GET", "/api/van-chuyen/ban-tai-xe", "office", async ({ env, url, staff }) => {
+      if (!can(staff, "trip.dispatch")) return error(403, "forbidden", "Tài khoản này không xem lịch tài xế bận.");
+      return banTaiXeResponse(env.DB, url, Date.now());
+    }),
     // Trang tuần "Lịch xe bận" (bản vẽ 2/10): ô vehicle.manage (câu 3.4 — chỉ Quản trị + Toàn quyền), 403 trước 400. Tuần = MỘT luật với màn (vnWeekRange),
     // khoảng chặn bằng nửa đêm VN. Chuyến đã xếp chỉ khi có trip.view, DANH SÁCH TRẮNG (câu 3.1).
     route("GET", "/api/van-chuyen/ban-xe", "office", async ({ env, url, staff }) => {
@@ -691,7 +725,7 @@ export const vanChuyenModule: AppModule = {
         ? {
           minLeadMinutes: cu.min_lead_minutes, warnLeadMinutes: cu.warn_lead_minutes, restMinutes: cu.rest_minutes, requireManifest: cu.require_manifest === 1,
           proxyBackdateMaxMinutes: cu.proxy_backdate_max_minutes, dutyDayMaxMinutes: cu.duty_day_max_minutes, tripNoBreakMaxMinutes: cu.trip_no_break_max_minutes,
-          departureWindowMinutes: cu.departure_window_minutes,
+          departureWindowMinutes: cu.departure_window_minutes, refuseLeadMinutes: cu.refuse_lead_minutes, officePhone: cu.office_phone,
         }
         : null;
       try {
@@ -1120,7 +1154,7 @@ export const vanChuyenModule: AppModule = {
       if (!nen) return KHONG_CO_CHUYEN();
       const lich = await lichChungChang(env.DB, nen.tu, nen.den);
       const hk = await hanhKhachChoChuyen(env.DB, nen.legIds);
-      return json(await chiTietChuyen(env.DB, nen, lich.chang, hk, true, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), Date.now()) satisfies ChuyenChiTietResponse);
+      return json(await chiTietChuyen(env.DB, nen, lich.chang, hk, true, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), Date.now(), can(staff, "trip.dispatch")) satisfies ChuyenChiTietResponse);
     }),
 
     route("POST", "/api/van-chuyen/chuyen", "office", async ({ env, request, staff, nhanNhanVien, isAssigned, baoThayDoiChuyen }) => {
@@ -1149,7 +1183,12 @@ export const vanChuyenModule: AppModule = {
         if (!chung.taiXe.some((x) => x.partyId === t.taiXePartyId)) return loi409("cheo_xe_tai_xe", [lyDoGiu("CHEO_XE_TAI_XE")]);
         const khac = await tripsTouching(env.DB, t.batDauMs - NGAY_MS, t.ketThucMs + NGAY_MS);
         // ADR-0055 VK2-A A2 (i): khung bận còn hiệu lực là khoảng chặn (lớp máy chủ nói trước — trigger vc_trip_unavailable_ins là lưới thứ hai).
-        const khungBan = (await khungBanXeTrongKhoang(env.DB, t.batDauMs, t.ketThucMs)).map(khungBanVao);
+        // ADR-0053 D9 B9.3 (kế hoạch A4 T4): khung bận của TÀI XẾ cũng là khoảng chặn — lớp máy chủ nói trước bằng câu không lý do (trigger
+        // vc_trip_driver_unavailable_ins là lưới thứ hai).
+        const khungBan = [
+          ...(await khungBanXeTrongKhoang(env.DB, t.batDauMs, t.ketThucMs)).map(khungBanVao),
+          ...(await khungTaiXeTrongKhoang(env.DB, t.taiXePartyId, t.batDauMs, t.ketThucMs)).map(khungTaiXeVao),
+        ];
         const kq = kiemTaoSuaChuyen({
           lenh: "TAO", chuyen: { id: null, batDauMs: t.batDauMs, ketThucMs: t.ketThucMs, xe: xeVao(xeRow, chung.giayToXe), taiXe: taiXeVao(t.taiXePartyId, chung.taiXe), nghiPhaLe: t.nghiPhaLe !== null },
           chuyenKhac: khac.map(khungChuyen), khungBan, chinhSach: chinhSachVao(chung.chinhSach), hangBang: chung.hangBang, bayGioMs,
@@ -1196,7 +1235,7 @@ export const vanChuyenModule: AppModule = {
       if (!nen) return KHONG_CO_CHUYEN();
       const lich = await lichChungChang(env.DB, nen.tu, nen.den);
       const hk = await hanhKhachChoChuyen(env.DB, nen.legIds);
-      const ct = await chiTietChuyen(env.DB, nen, lich.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs);
+      const ct = await chiTietChuyen(env.DB, nen, lich.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch"));
       return json({ ...ct, ...(canhBaoLenh.length > 0 ? { canhBaoLenh } : {}) } satisfies ChuyenChiTietResponse, lap ? 200 : 201, { location: `/chuyen?id=${nen.trip.id}` });
     }),
 
@@ -1222,7 +1261,7 @@ export const vanChuyenModule: AppModule = {
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      const ct = await chiTietChuyen(env.DB, nen2, lich.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs);
+      const ct = await chiTietChuyen(env.DB, nen2, lich.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch"));
       const canhBaoLenh = nhacGioLaiDto(ra.nhacGioLai ?? [], nen.trip.id);
       return json({ ...ct, ...(canhBaoLenh.length > 0 ? { canhBaoLenh } : {}) } satisfies ChuyenChiTietResponse);
     }),
@@ -1261,7 +1300,7 @@ export const vanChuyenModule: AppModule = {
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
       // Cảnh báo sớm (chỉ nhắc): chặng chưa có nơi trả / chưa đủ tên — xe sẽ bị giữ ở xuất bến nếu chưa bổ sung.
-      const ct = await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs);
+      const ct = await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch"));
       return json({ ...ct, ...(canhBaoXep.length > 0 ? { canhBaoXep: canhBaoXep.map(lyDoGiuDto) } : {}) } satisfies ChuyenChiTietResponse);
     }),
 
@@ -1302,7 +1341,7 @@ export const vanChuyenModule: AppModule = {
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch")) satisfies ChuyenChiTietResponse);
     }),
 
     // ADR-0052 D5.2 (Đợt 5): văn phòng báo khách huỷ trên xe đang chạy — chỉ đặt cờ (suất vẫn chiếm chỗ tới khi tài xế bấm "Khách đã huỷ"). Ô trip.dispatch;
@@ -1326,7 +1365,7 @@ export const vanChuyenModule: AppModule = {
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch")) satisfies ChuyenChiTietResponse);
     }),
 
     route("POST", "/api/van-chuyen/chuyen/:id/rut", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned, baoThayDoiChuyen }) => {
@@ -1349,7 +1388,7 @@ export const vanChuyenModule: AppModule = {
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch")) satisfies ChuyenChiTietResponse);
     }),
 
     route("POST", "/api/van-chuyen/chuyen/:id/doi", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned, baoThayDoiChuyen }) => {
@@ -1375,7 +1414,7 @@ export const vanChuyenModule: AppModule = {
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch")) satisfies ChuyenChiTietResponse);
     }),
 
     route("POST", "/api/van-chuyen/chuyen/:id/huy", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned, baoThayDoiChuyen }) => {
@@ -1397,7 +1436,7 @@ export const vanChuyenModule: AppModule = {
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      return json(await chiTietChuyen(env.DB, nen2, lich.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+      return json(await chiTietChuyen(env.DB, nen2, lich.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch")) satisfies ChuyenChiTietResponse);
     }),
 
     // ADR-0050 VK1-B (route 40, I42): "Cập nhật điểm theo đơn" — máy tự tìm MỌI suất khách mở lệch nơi (không chọn tay), đóng STOP_CHANGED + mở suất mới ở điểm
@@ -1426,7 +1465,7 @@ export const vanChuyenModule: AppModule = {
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      const ct = await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs);
+      const ct = await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch"));
       return json({ ...ct, daCapNhat, ...(boQua !== undefined ? { boQua } : {}) } satisfies CapNhatDiemResponse);
     }),
 
@@ -1454,7 +1493,7 @@ export const vanChuyenModule: AppModule = {
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      return json({ ...(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs)), daCapNhat } satisfies CapNhatKhachResponse);
+      return json({ ...(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch"))), daCapNhat } satisfies CapNhatKhachResponse);
     }),
 
     // ---- LỆNH TIẾN ĐỘ — route TÀI XẾ (cổng staff; kế hoạch mục 1.7 route 19–29; Task A15) ------------------------------------------------------------------
@@ -1472,7 +1511,9 @@ export const vanChuyenModule: AppModule = {
       const trips = staff.partyId ? await tripsCuaTaiXe(env.DB, staff.partyId, tu, den) : [];
       const ngay = trips.map((t) => t.service_date).sort();
       const lich = trips.length === 0 ? { chang: [] } : await lichChungChang(env.DB, addDays(ngay[0]!, -1), addDays(ngay[ngay.length - 1]!, 1));
-      return json({ tu, den, chuyen: await danhSachCuoc(env.DB, trips, lich.chang, bayGioMs) } satisfies CuocCuaToiResponse);
+      // Vế hạn Từ chối (G-A4-2): danh sách không tính khung từng chuyến → điều kiện còn thiếu chỉ câu gốc (không mã đơn trong chi tiết).
+      const veHan = can(staff, "trip.refuse", { assigned: true });
+      return json({ tu, den, chuyen: await danhSachCuoc(env.DB, trips, lich.chang, bayGioMs, veHan) } satisfies CuocCuaToiResponse);
     }),
 
     route("GET", "/api/van-chuyen/cuoc-cua-toi/:id", "staff", async ({ env, params, staff, nhanNhanVien }) => {
@@ -1481,12 +1522,13 @@ export const vanChuyenModule: AppModule = {
       const assigned = dangLai(nen, staff);
       if (!nen || !assigned || !can(staff, "trip.view", { assigned })) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
-      const trongNgay = trongNgayChay({ ngayChay: nen.trip.service_date, trangThai: nen.trip.status, xuatBenMs: nen.trip.departed_ms }, vnToday(new Date(bayGioMs)));
+      const khung = await khungCuaNguoiGoi(env.DB, nen, staff, bayGioMs);
+      const trongNgay = khung.trongKhung;
       const lich = await lichChungChang(env.DB, nen.tu, nen.den);
       const hk = trongNgay ? await hanhKhachChoChuyen(env.DB, nen.legIds) : [];
       const donIds = [...new Set(lich.chang.filter((c) => nen.allocs.some((a) => a.valid_to_at === null && a.leg_id === c.legId)).map((c) => c.orderId))];
       const lienHe = trongNgay ? await lienHeChoTaiXe(env.DB, donIds) : null;
-      return json(await cuocChiTiet(env.DB, nen, lich.chang, hk, lienHe, nhanNhanVien, bayGioMs, trongNgay, true) satisfies CuocChiTietResponse);
+      return json(await cuocChiTiet(env.DB, nen, lich.chang, hk, lienHe, nhanNhanVien, bayGioMs, khung, true) satisfies CuocChiTietResponse);
     }),
 
     // route 21 ↔ 31
@@ -1503,15 +1545,17 @@ export const vanChuyenModule: AppModule = {
       if (!lap) {
         const lich = await lichChungChang(env.DB, nen.tu, nen.den);
         const hk = await hanhKhachChoChuyen(env.DB, nen.legIds);
-        const r = await lenhXuatBen(env.DB, nen, lich.chang, hk, than.value, { id: staff.id, bamThay: false }, bayGioMs);
+        // A4 CAO-1: người có vế hạn NGOÀI khung xem khách → thân 409 chỉ câu gốc của mã (không mã đơn trong chi tiết lý do giữ).
+        const khungTruoc = await khungCuaNguoiGoi(env.DB, nen, staff, bayGioMs);
+        const r = await lenhXuatBen(env.DB, nen, lich.chang, hk, than.value, { id: staff.id, bamThay: false }, bayGioMs, khungTruoc.han !== undefined && !khungTruoc.trongKhung);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
-      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
+      const khung = await khungCuaNguoiGoi(env.DB, nen2, staff, bayGioMs);
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
-      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay, false) satisfies CuocChiTietResponse);
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, khung, false) satisfies CuocChiTietResponse);
     }),
 
     // route 22 ↔ 32
@@ -1531,10 +1575,10 @@ export const vanChuyenModule: AppModule = {
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
-      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
+      const khung = await khungCuaNguoiGoi(env.DB, nen2, staff, bayGioMs);
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
-      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay, false) satisfies CuocChiTietResponse);
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, khung, false) satisfies CuocChiTietResponse);
     }),
 
     // route 23 ↔ 33
@@ -1554,10 +1598,10 @@ export const vanChuyenModule: AppModule = {
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
-      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
+      const khung = await khungCuaNguoiGoi(env.DB, nen2, staff, bayGioMs);
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
-      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay, false) satisfies CuocChiTietResponse);
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, khung, false) satisfies CuocChiTietResponse);
     }),
 
     // route 24 ↔ 34
@@ -1577,10 +1621,10 @@ export const vanChuyenModule: AppModule = {
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
-      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
+      const khung = await khungCuaNguoiGoi(env.DB, nen2, staff, bayGioMs);
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
-      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay, false) satisfies CuocChiTietResponse);
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, khung, false) satisfies CuocChiTietResponse);
     }),
 
     // route 25 ↔ 35
@@ -1600,10 +1644,10 @@ export const vanChuyenModule: AppModule = {
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
-      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
+      const khung = await khungCuaNguoiGoi(env.DB, nen2, staff, bayGioMs);
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
-      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay, false) satisfies CuocChiTietResponse);
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, khung, false) satisfies CuocChiTietResponse);
     }),
 
     // route 26 ↔ 36
@@ -1623,10 +1667,10 @@ export const vanChuyenModule: AppModule = {
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
-      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
+      const khung = await khungCuaNguoiGoi(env.DB, nen2, staff, bayGioMs);
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
-      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay, false) satisfies CuocChiTietResponse);
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, khung, false) satisfies CuocChiTietResponse);
     }),
 
     // route 27 ↔ 37
@@ -1646,10 +1690,10 @@ export const vanChuyenModule: AppModule = {
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
-      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
+      const khung = await khungCuaNguoiGoi(env.DB, nen2, staff, bayGioMs);
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
-      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay, false) satisfies CuocChiTietResponse);
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, khung, false) satisfies CuocChiTietResponse);
     }),
 
     // route 28 ↔ 38
@@ -1669,10 +1713,10 @@ export const vanChuyenModule: AppModule = {
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
-      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
+      const khung = await khungCuaNguoiGoi(env.DB, nen2, staff, bayGioMs);
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
-      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay, false) satisfies CuocChiTietResponse);
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, khung, false) satisfies CuocChiTietResponse);
     }),
 
     // route 29 ↔ 39
@@ -1687,15 +1731,16 @@ export const vanChuyenModule: AppModule = {
       const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["STOPS_REORDERED"] });
       if (lap instanceof Response) return lap;
       if (!lap) {
-        const r = await lenhDoiThuTu(env.DB, nen, than.value, { id: staff.id, bamThay: false }, bayGioMs);
+        const khungTruoc = await khungCuaNguoiGoi(env.DB, nen, staff, bayGioMs); // A4 CAO-1b: vế hạn NGOÀI khung → thân 409 không mã đơn
+        const r = await lenhDoiThuTu(env.DB, nen, than.value, { id: staff.id, bamThay: false }, bayGioMs, khungTruoc.han !== undefined && !khungTruoc.trongKhung);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
-      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
+      const khung = await khungCuaNguoiGoi(env.DB, nen2, staff, bayGioMs);
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
-      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay, false) satisfies CuocChiTietResponse);
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, khung, false) satisfies CuocChiTietResponse);
     }),
 
     // ADR-0052 D5b (Vận chuyển Đợt 5 A-1b — chủ duyệt 5/10): tài xế BỔ SUNG TÊN một khách chưa có tên trên chuyến mình đang lái, trong ngày chạy. Thứ tự:
@@ -1708,7 +1753,7 @@ export const vanChuyenModule: AppModule = {
       if (!nen || !assigned || !can(staff, "trip.passenger.add", { assigned })) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
       const homNay = vnToday(new Date(bayGioMs));
-      if (!trongNgayChay({ ngayChay: nen.trip.service_date, trangThai: nen.trip.status, xuatBenMs: nen.trip.departed_ms }, homNay)) return KHONG_CO_CHUYEN();
+      if (!(await khungCuaNguoiGoi(env.DB, nen, staff, bayGioMs)).trongKhung) return KHONG_CO_CHUYEN();
       const body = await readJson(request);
       const than = docBoSungTen(body);
       if (!than.ok) return error(400, than.code, than.message);
@@ -1724,6 +1769,57 @@ export const vanChuyenModule: AppModule = {
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
       }
       return json({ ok: true, soNguoi: 1 });
+    }),
+
+    // ADR-0053 D8.3, D8.4, D8.6 (kế hoạch A4 T7, G-A4-15): tài xế TỪ CHỐI chuyến mình đang lái trước hạn. Thứ tự: (1) ô trip.refuse {assigned} → 403; (2) đọc chuyến
+    // + mã yêu cầu LỎNG; (3) lệnh lặp của CHÍNH MÌNH (sự kiện DRIVER_REFUSED cùng chuyến, cùng người tạo) → 200 — dòng lái đã đóng nên phải xét TRƯỚC "đang lái";
+    // (4) không đang lái → Toàn quyền 403 (không từ chối thay — đổi người bằng xếp xe), còn lại 404; (5) thân sai → 400; (6) mã yêu cầu đã dùng cho việc khác —
+    // kể cả Từ chối của NGƯỜI KHÁC cùng mã → 409 request_id_reused (không lộ việc người khác đã Từ chối); (7) lô (`lenhTuChoi`). Phản hồi không kèm dữ liệu chuyến.
+    route("POST", "/api/van-chuyen/cuoc-cua-toi/:id/tu-choi", "staff", async ({ env, request, params, staff, baoThayDoiChuyen }) => {
+      if (!can(staff, "trip.refuse", { assigned: true })) return error(403, "forbidden", "Tài khoản này không từ chối chuyến được.");
+      const id = params.id ?? "";
+      const nen = await docNen(env.DB, id);
+      const body = await readJson(request);
+      const ridLong = requestIdLong(body);
+      if (ridLong !== null && (await suKienTheoYeuCau(env.DB, ridLong)).some((e) => e.kind === "DRIVER_REFUSED" && e.trip_id === id && e.created_by === staff.id)) {
+        return json({ daTuChoi: true } satisfies TuChoiResponse);
+      }
+      const assigned = dangLai(nen, staff);
+      if (!nen || !assigned || !can(staff, "trip.refuse", { assigned })) {
+        return can(staff, "trip.refuse") ? error(403, "forbidden", "Toàn quyền không từ chối thay — đổi người bằng xếp xe.") : KHONG_CO_CHUYEN();
+      }
+      const than = docTuChoi(body);
+      if (!than.ok) return error(400, than.code, than.message);
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["DRIVER_REFUSED"] });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
+        const r = await lenhTuChoi(env.DB, nen, than.value, staff, Date.now());
+        if (r) return r;
+        baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
+        return json({ daTuChoi: true } satisfies TuChoiResponse);
+      }
+      return MA_LENH_DUNG_LAI(); // sự kiện Từ chối cùng mã nhưng KHÔNG của mình (bước 3 đã nhận lệnh lặp của chính mình)
+    }),
+
+    // ---- BÁO BẬN CỦA TÔI (ADR-0053 D9; kế hoạch A4 T8) — cổng staff, ô unavailability.self với ownerId = CHÍNH người gọi; khung luôn của staff.partyId
+    // (không nhận id tài xế từ thân). Thứ tự 403 → 404 → 400. Thân không có requestId (G-A4-28). Không gửi tin (D9.4). Logic ở bao-ban.ts.
+    route("GET", "/api/van-chuyen/ban/cua-toi", "staff", async ({ env, staff }) => {
+      if (!can(staff, "unavailability.self", { ownerId: staff.id }) || !staff.partyId) return error(403, "forbidden", "Tài khoản này không báo bận được.");
+      return khungCuaToiResponse(env.DB, staff.partyId, Date.now());
+    }),
+    route("POST", "/api/van-chuyen/ban", "staff", async ({ env, request, staff }) => {
+      if (!can(staff, "unavailability.self", { ownerId: staff.id }) || !staff.partyId) return error(403, "forbidden", "Tài khoản này không báo bận được.");
+      const bayGioMs = Date.now();
+      const r = await lenhGhiKhungBan(env.DB, request, staff, staff.partyId, bayGioMs);
+      if (r) return r;
+      return kemLocation(await khungCuaToiResponse(env.DB, staff.partyId, bayGioMs, 201), "/ban"); // H7: trang gọi route này (web/ban.ts — T9)
+    }),
+    route("POST", "/api/van-chuyen/ban/:id/rut", "staff", async ({ env, request, params, staff }) => {
+      if (!can(staff, "unavailability.self", { ownerId: staff.id }) || !staff.partyId) return error(403, "forbidden", "Tài khoản này không báo bận được.");
+      const bayGioMs = Date.now();
+      const r = await lenhRutKhungBan(env.DB, request, params.id ?? "", staff, staff.partyId, bayGioMs);
+      if (r) return r;
+      return khungCuaToiResponse(env.DB, staff.partyId, bayGioMs);
     }),
 
     // ---- LỆNH TIẾN ĐỘ — route VĂN PHÒNG BẤM THAY (cổng office; kế hoạch mục 1.7 route 31–39; R-P1 — Task A15) ---------------------------------------------
@@ -1750,7 +1846,7 @@ export const vanChuyenModule: AppModule = {
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch")) satisfies ChuyenChiTietResponse);
     }),
 
     // route 32 ↔ 22
@@ -1771,7 +1867,7 @@ export const vanChuyenModule: AppModule = {
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch")) satisfies ChuyenChiTietResponse);
     }),
 
     // route 33 ↔ 23
@@ -1792,7 +1888,7 @@ export const vanChuyenModule: AppModule = {
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch")) satisfies ChuyenChiTietResponse);
     }),
 
     // route 34 ↔ 24
@@ -1813,7 +1909,7 @@ export const vanChuyenModule: AppModule = {
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch")) satisfies ChuyenChiTietResponse);
     }),
 
     // route 35 ↔ 25
@@ -1834,7 +1930,7 @@ export const vanChuyenModule: AppModule = {
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch")) satisfies ChuyenChiTietResponse);
     }),
 
     // route 36 ↔ 26
@@ -1855,7 +1951,7 @@ export const vanChuyenModule: AppModule = {
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch")) satisfies ChuyenChiTietResponse);
     }),
 
     // route 37 ↔ 27
@@ -1876,7 +1972,7 @@ export const vanChuyenModule: AppModule = {
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch")) satisfies ChuyenChiTietResponse);
     }),
 
     // route 38 ↔ 28
@@ -1897,7 +1993,7 @@ export const vanChuyenModule: AppModule = {
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch")) satisfies ChuyenChiTietResponse);
     }),
 
     // route 39 ↔ 29
@@ -1918,7 +2014,7 @@ export const vanChuyenModule: AppModule = {
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch")) satisfies ChuyenChiTietResponse);
     }),
 
     // ---- SỰ KIỆN ĐIỀU CHỈNH CÓ LÝ DO (ADR-0097 Đ2, Đ3 — gói A1, V3-B): CHỈ văn phòng — cổng office + ô trip.progress KHÔNG ngữ cảnh ĐẦU thân (Kế toán → 403;
@@ -1943,7 +2039,7 @@ export const vanChuyenModule: AppModule = {
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      const body = (await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs)) satisfies ChuyenChiTietResponse;
+      const body = (await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch"))) satisfies ChuyenChiTietResponse;
       return json(body, lap ? 200 : 201, { location: `/chuyen?id=${nen2.trip.id}` });
     }),
     route("POST", "/api/van-chuyen/chuyen/:id/thu-hoi-xuat-ben", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned, baoThayDoiChuyen }) => {
@@ -1964,7 +2060,7 @@ export const vanChuyenModule: AppModule = {
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      const body = (await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs)) satisfies ChuyenChiTietResponse;
+      const body = (await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs, can(staff, "trip.dispatch"))) satisfies ChuyenChiTietResponse;
       return json(body, lap ? 200 : 201, { location: `/chuyen?id=${nen2.trip.id}` });
     }),
 

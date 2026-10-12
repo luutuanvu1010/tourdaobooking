@@ -1,5 +1,5 @@
-// Trang đầu của tài xế (/tai-xe — ADR-0040 D3; bản vẽ docs/design/van-chuyen-1a/project/07 Trang dau tai xe.dc.html). Lượt 1a: lời chào, khối "Cuốc xe" giữ
-// chỗ (lượt 1b thay nội dung), "Giấy tờ của tôi" tóm tắt HAI giấy gần hạn nhất (điều phối chốt theo bản vẽ), "Xem tất cả" → trang Tôi (danh sách đủ).
+// Trang đầu của tài xế (/tai-xe — ADR-0040 D3; bản vẽ docs/design/van-chuyen-1a/project/07 Trang dau tai xe.dc.html). Lời chào, khối "Cuốc xe" = liên kết
+// sang Cuốc của tôi (A4 T6: tài xế đối tác cũng có ô Cuốc — câu giữ chỗ cũ "sẽ hiện ở đây" đã bỏ ở A4 T9), "Giấy tờ của tôi" tóm tắt HAI giấy gần hạn nhất (điều phối chốt theo bản vẽ), "Xem tất cả" → trang Tôi (danh sách đủ).
 // Chỉ gọi GET /api/parties/documents/mine (cổng "staff", số CHE) — không lời gọi đơn hàng nào. Tài khoản không phải "chỉ tài xế" → về Trang chủ "/".
 import { chipHan, coMucGiayToCuaToi, haiGiayGanHan, loiChao, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
 import { chiTaiXe, coCuocCuaToi, TRANG_CUOC } from "../src/shared/start-page";
@@ -18,10 +18,10 @@ async function main(): Promise<void> {
     location.replace("/");
     return;
   }
-  // Q5 (điều phối vòng 3): tài xế công ty có "Cuốc của tôi" — khối giữ chỗ "Cuốc xe" thành liên kết sang đó (tài xế đối tác giữ câu cũ: chưa dùng chuyến).
+  // Q5 + A4 T9: tài xế (công ty và đối tác — ô trip.view `assigned`) có "Cuốc của tôi" — khối "Cuốc xe" thành liên kết sang đó; không có ô thì ẩn khối.
   if (coCuocCuaToi(staff)) {
     replaceChildren(byId("tx-cuoc"), h("a", { class: "vc-cuoc-link", href: TRANG_CUOC }, icon("truck", 40, 1.5), h("span", null, "Xem cuốc của tôi — hôm nay và ngày mai"), icon("next", 20)));
-  }
+  } else byId("tx-cuoc").hidden = true;
   const now = new Date();
   const thu = new Intl.DateTimeFormat("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", weekday: "long" }).format(now);
   const ngay = now.toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", day: "2-digit", month: "2-digit", year: "numeric" });

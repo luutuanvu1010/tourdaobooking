@@ -10,6 +10,7 @@ import {
   EVENT_INSERT, MANIFEST_INSERT, MOC_GOI_INSERT, MOC_XEP_INSERT, STOP_DA_TOI, STOP_INSERT, STOP_SET_SEQ, STOP_SKIP, STOP_UPDATE_PLAN, STOP_XONG_NEU_HET, STOPS_SKIP_ALL, TRIP_CANCEL, TRIP_GATE,
   TRIP_CAM_KET_PHA_LE, TRIP_GATE_CHI_PHI, TRIP_GATE_DANG_CHAY, TRIP_GATE_DOI, TRIP_GATE_THEO_DON, TRIP_GATE_TIEN_DO, TRIP_INSERT, TRIP_KET_THUC, TRIP_UPDATE_PLAN, TRIP_XUAT_BEN,
   ALLOC_OFFICE_CANCEL, MANIFEST_THEM_SAU, TRIP_CHOT, TRIP_GATE_DANG_CHAY_VERSION, ALLOC_DIEU_CHINH_INSERT, EVENT_DIEU_CHINH_INSERT, TRIP_THU_HOI_XUAT_BEN,
+  DRIVER_REFUSE, TRIP_GATE_TU_CHOI,
 } from "./chuyen-repo";
 import { cauChiPhi, type KeHoachChiPhi } from "./tien-xe-lo";
 import {
@@ -340,6 +341,28 @@ export function loHuy(db: D1Database, l: LenhHuy): CauCoNhan[] {
     ghi(db.prepare(STOPS_SKIP_ALL).bind(l.tripId, l.cmd, l.lyDo, l.lucIso, l.nguoiId)),
     ...cauChiPhi(db, l, l.tripId, l.chiPhi).dao,
     { nhan: "TRANG_THAI_CUOI", stmt: db.prepare(TRIP_CANCEL).bind(l.tripId, l.cmd, l.lyDo, l.lucIso, l.nguoiId) },
+  ];
+}
+
+// ---- Từ chối chuyến (ADR-0053 D8.4; kế hoạch A4 T7) ------------------------------------------------------------------------------------------------------
+export interface LenhTuChoi extends LenhChung {
+  tripId: string;
+  version: number;
+  /** Hồ sơ tài xế đang lái = người bấm (B8.2). */
+  taiXePartyId: string;
+  /** Mã lý do nhóm TU_CHOI_CHUYEN (B8.4). */
+  lyDo: string;
+  /** Giờ máy chủ (ms) — so với hạn của cặp ở câu cổng (G-A4-24). */
+  bayGioMs: number;
+  detail: string;
+}
+/** Thứ tự: cổng (đủ điều kiện, G-A4-24) → nhật ký `trip_driver_refused` → sự kiện `DRIVER_REFUSED` → đóng dòng lái REFUSED (lý do, người đóng). */
+export function loTuChoi(db: D1Database, l: LenhTuChoi): CauCoNhan[] {
+  return [
+    { nhan: "CONG", stmt: db.prepare(TRIP_GATE_TU_CHOI).bind(l.tripId, l.version, l.cmd, l.lucIso, l.nguoiId, l.taiXePartyId, l.bayGioMs) },
+    nhatKy(db, l, "trip_driver_refused", l.tripId, l.detail),
+    suKien(db, l, { tripId: l.tripId, loai: "DRIVER_REFUSED" }),
+    ghi(db.prepare(DRIVER_REFUSE).bind(l.tripId, l.cmd, l.lucIso, l.lyDo, l.nguoiId, l.taiXePartyId)),
   ];
 }
 

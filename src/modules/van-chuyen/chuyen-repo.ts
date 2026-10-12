@@ -460,6 +460,28 @@ export const TRIP_CANCEL = defineSql(
   "trip_cancel",
   "UPDATE vc_trip SET status = 'CANCELLED', cancel_reason_code = ?3, updated_at = ?4, updated_by = ?5 WHERE id = ?1 AND last_cmd_id = ?2",
 );
+/**
+ * Câu cổng lô TỪ CHỐI (ADR-0053 D8.4; kế hoạch A4 G-A4-24): ĐỦ điều kiện trong một câu — version đã đọc, chuyến PLANNED, người gọi có dòng lái MỞ, giờ máy chủ
+ * ≤ hạn của cặp. Trigger B8.3 (0092, giờ CSDL) là lớp thứ hai. ?1 chuyến, ?2 version, ?3 dấu lệnh, ?4 lúc, ?5 người, ?6 hồ sơ tài xế, ?7 giờ máy chủ (ms).
+ */
+export const TRIP_GATE_TU_CHOI = defineSql(
+  "van-chuyen",
+  "trip_gate_tu_choi",
+  `UPDATE vc_trip SET version = version + 1, last_cmd_id = ?3, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND version = ?2 AND status = 'PLANNED'
+     AND EXISTS (SELECT 1 FROM vc_trip_driver d WHERE d.trip_id = ?1 AND d.valid_to_at IS NULL AND d.driver_party_id = ?6)
+     AND EXISTS (SELECT 1 FROM vc_refuse_deadline r WHERE r.trip_id = ?1 AND r.driver_party_id = ?6 AND ?7 <= r.deadline_ms)`,
+);
+/**
+ * Đóng dòng lái vì TỪ CHỐI (ADR-0053 D8.1, D8.4; B8.2–B8.4): lý do (nhóm TU_CHOI_CHUYEN), người đóng = chính tài xế (hồ sơ + tài khoản). ?1 chuyến, ?2 dấu lệnh,
+ * ?3 lúc, ?4 mã lý do, ?5 tài khoản người bấm, ?6 hồ sơ tài xế.
+ */
+export const DRIVER_REFUSE = defineSql(
+  "van-chuyen",
+  "driver_refuse",
+  `UPDATE vc_trip_driver SET valid_to_at = ?3, close_reason = 'REFUSED', refuse_reason_code = ?4, closed_by = ?5, closed_by_party_id = ?6, updated_at = ?3, updated_by = ?5
+   WHERE trip_id = ?1 AND valid_to_at IS NULL AND driver_party_id = ?6 AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?1 AND last_cmd_id = ?2)`,
+);
 /** Mở dòng tài xế. ?1 id, ?2 chuyến, ?3 tài xế, ?4 dấu lệnh, ?5 lúc, ?6 người. */
 export const DRIVER_INSERT = defineSql(
   "van-chuyen",
