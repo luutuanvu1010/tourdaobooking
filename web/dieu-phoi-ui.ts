@@ -81,10 +81,10 @@ export function dai(tone: "danger" | "warning" | "info" | "ok", tieuDe: string, 
   );
 }
 
-/** Nhóm nút chọn một (khuôn "Sửa sai" của lượt 1a — `.vc-reasons`), có phím mũi tên. Trả phần tử + đọc giá trị. */
-export function nhomChon(id: string, nhanNhom: string, ds: readonly { code: string; nhan: string; phu?: string }[], onDoi: (code: string) => void, macDinh?: string): HTMLElement {
+/** Nhóm nút chọn một (khuôn "Sửa sai" của lượt 1a — `.vc-reasons`), có phím mũi tên. Trả phần tử + đọc giá trị. `mo` (C3): lựa chọn vẫn bấm được nhưng làm mờ (chuyến đầy / lệch giờ). */
+export function nhomChon(id: string, nhanNhom: string, ds: readonly { code: string; nhan: string; phu?: string; mo?: boolean }[], onDoi: (code: string) => void, macDinh?: string): HTMLElement {
   const nut = ds.map((l) => {
-    const b = h("button", { type: "button", class: "vc-reason", role: "radio", "aria-checked": String(l.code === macDinh), tabindex: -1, "data-code": l.code },
+    const b = h("button", { type: "button", class: l.mo ? "vc-reason is-mo" : "vc-reason", role: "radio", "aria-checked": String(l.code === macDinh), tabindex: -1, "data-code": l.code },
       h("span", { class: "vc-radio-dot", "aria-hidden": "true" }),
       l.phu ? h("span", { class: "dp-radio-text" }, l.nhan, h("span", { class: "dp-radio-sub" }, l.phu)) : l.nhan);
     b.addEventListener("click", () => chon(b));

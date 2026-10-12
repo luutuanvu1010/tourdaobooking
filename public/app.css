@@ -3149,3 +3149,30 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .dp-tx-ban { margin: 0; }
 .dp-tx-ban-ds { margin: var(--s2) 0 0; padding-left: var(--s4); }
 .dp-cc-thay-khach { display: flex; align-items: center; gap: var(--s2); }
+/* ---------- Bảng điều phối: gói C3 (đánh giá ERP 7/10 C32–C37) — chọn nhiều chặng, lọc, tổng, tải, hộp chọn chuyến, giờ từng đoàn. CHỈ token sẵn có. ---------- */
+.dp-tong { padding: var(--s2) var(--s4); font-size: var(--fs-label); font-weight: var(--fw-semibold); line-height: 1.5; font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--c-border); }
+.dp-loc { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--w-dp-chua-xep)), 1fr)); gap: var(--s2); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--c-border); }
+.dp-loc-o { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; font-size: var(--fs-label); font-weight: var(--fw-semibold); color: var(--c-text-muted); }
+.dp-loc-o .vc-input { width: 100%; min-width: 0; }
+.dp-loc-bo { align-self: flex-start; min-height: var(--tap-min); }
+.dp-leg-hang { display: flex; align-items: stretch; background: var(--c-surface); border-bottom: 1px solid var(--c-border); }
+.dp-leg-hang > .dp-leg { flex: 1 1 auto; width: auto; min-width: 0; background: transparent; border-bottom: 0; border-radius: 0; }
+.dp-leg-hang.is-chon { background: var(--c-primary-soft); }
+.dp-leg-o { display: flex; flex: none; align-items: flex-start; justify-content: center; width: var(--tap-min); padding-top: var(--s3); cursor: pointer; }
+.dp-leg-chon { width: var(--s5); height: var(--s5); margin: 0; accent-color: var(--c-primary); cursor: pointer; }
+@media (min-width: 900px) { .dp-leg-o { width: var(--s6); } }
+.dp-nhieu { position: sticky; bottom: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); padding: var(--s2) var(--s4); background: var(--c-surface-alt); border-top: 1px solid var(--c-border); border-radius: 0 0 var(--radius-md) var(--radius-md); }
+@media (max-width: 640px) { .dp-nhieu { bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); } }
+.dp-nhieu-chu { flex: 1 1 100%; font-size: var(--fs-label); font-weight: var(--fw-semibold); line-height: 1.5; color: var(--c-text); }
+.dp-nhieu .vc-btn { min-height: var(--tap-min); }
+.dp-khoi-bar { position: absolute; left: 0; bottom: 0; height: var(--s1); width: calc(var(--dp-tai, 0) * 100%); background: var(--dp-tai-mau, var(--c-border)); }
+.is-tai-thoang { --dp-tai-mau: var(--c-green-text); }
+.is-tai-gan-day { --dp-tai-mau: var(--c-sand); }
+.is-tai-day { --dp-tai-mau: var(--c-primary); }
+.is-tai-vuot { --dp-tai-mau: var(--c-danger); }
+.dp-lg-tai { width: var(--dp-lg-o); height: var(--s1); border-radius: var(--radius-dp-lg); background: var(--dp-tai-mau, var(--c-border)); }
+.vc-reason.is-mo { font-weight: var(--fw-medium); color: var(--c-text-muted); }
+.vc-reason.is-mo[aria-checked="true"] { color: var(--c-text); }
+.dp-xep-nhac { margin: var(--s3) 0 0; }
+.dp-xep-ds { display: flex; flex-direction: column; gap: var(--s1); margin: 0; padding: 0; list-style: none; font-size: var(--fs-label); line-height: 1.5; }
+.dp-doan { display: block; margin-top: var(--s1); font-size: var(--fs-badge); font-weight: var(--fw-semibold); line-height: 1.5; color: var(--c-text-muted); font-variant-numeric: tabular-nums; }
