@@ -403,14 +403,15 @@ try {
   const ridBA = r.body.deNghi.id;
   ok(await nhan(B10, ridAB), "DA_CHUYEN", "CONFIRMED");
   ok(await nhan(A10, ridBA), "DA_CHUYEN", "CONFIRMED");
-  const [mA, mB] = await Promise.all([diemDon(w10.id[0]), diemDon(w10.id[1])]);
+  const mA = await diemDon(w10.id[0]); // tuần tự: hai `wrangler d1 execute` đồng thời hay rơi 'internal error' (D1 local)
+  const mB = await diemDon(w10.id[1]);
   assert.deepEqual([Object.keys(mA).sort(), Object.keys(mB).sort()], [[p2.legId, q1d.legId].sort(), [q2.legId, p1.legId].sort()]);
   console.log("✓ TH10: nhờ chéo hai xe — mỗi lần nhờ xét riêng, cả hai tự đồng ý");
 
   // ==== TH11 (ADR-0113): tài xế ĐỐI TÁC là xe nhận, khách chuyển vào → Từ chối chuyến bị chặn 409 refuse_blocked_transferred_in (không tên / mã đơn), DTO có chanTuChoi ====
   {
     const lead0 = (await call(TOAN_QUYEN, "GET", `${VC}/chinh-sach-dieu-phoi`)).body.current.refuseLeadMinutes;
-    await datChinhSach({ refuseLeadMinutes: 10 }); // hạn Từ chối = giờ chạy − 10 phút: còn hạn dù kịch bản chạy lúc nào trong ngày (hạn chụp lúc xếp chuyến)
+    await datChinhSach({ refuseLeadMinutes: 60 }); // hạn Từ chối = giờ chạy − 60 phút (nhỏ nhất cho phép): còn hạn dù kịch bản chạy lúc nào trong ngày (hạn chụp lúc xếp chuyến)
     try {
       const nx = await call(ADMIN, "POST", "/api/parties", { kind: "ORGANIZATION", displayName: `Nhà Xe Chặn Từ Chối ${duoi}` });
       assert.equal(nx.status, 201, JSON.stringify(nx.body));
