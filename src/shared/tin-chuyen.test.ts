@@ -1,11 +1,13 @@
 // TIN CHUYẾN (ADR-0052 D6.2) — bảng ca theo vai + mọi tập con quyền (khuôn NT-3, suy kỳ vọng từ can(), không chép tay) + khoá không lộ.
+// NỚI có tên (ADR-0112 Đ6, 2026-10-12): bài "Đợt 5: cập nhật điểm trên chuyến CHƯA chạy … không ai nhận tin" viết lại thành bài ngược (tài xế đang lái nhận đúng
+// câu) — chỉ bài đó khoá hành vi cũ; bài mới ADR-0112 Đ1–Đ5 ở cuối mục "Đợt 5".
 // NỚI có tên (kế hoạch A4 §3.1 hàng T6, NT-14; ADR-0053 D7.5 :79; SO-HANG-RAO "tin chuyến — chỉ-DRIVER_PARTNER không nhận"): sau khi tài xế đối tác có
 // `trip.view` assigned, tài xế đối tác ĐANG LÁI nhận ĐÚNG như tài xế công ty (cùng hàm, cùng câu — câu tin tài xế không có mã đơn, không tên); không lái → không.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PERMISSION_CODES, can, type PermissionCode } from "./permissions.ts";
 import {
-  HANH_DONG_TIN_CHUYEN, HANH_DONG_TIN_KHACH, HANH_DONG_TIN_THUONG, chuyenCuaChangLuc, dangChayLucSuKien, dongCoTheSinhTin, dungDongChuyen, laiLucSuKien, taiXeNhanSuKien, thayDoiCoTheCoTin, thayDoiCuaHanhDongChuyen,
+  HANH_DONG_TIN_CHUYEN, HANH_DONG_TIN_KHACH, HANH_DONG_TIN_THUONG, MOC_TIN_CAP_NHAT, chuyenCuaChangLuc, dangChayLucSuKien, dongCoTheSinhTin, dungDongChuyen, laiLucSuKien, taiXeNhanSuKien, thayDoiCoTheCoTin, thayDoiCuaHanhDongChuyen,
   tinChuyenCho, tinGioHenCho, type DongChuyen, type DongGioHen, type NguoiNhanChuyen,
 } from "./tin-chuyen.ts";
 import { THAY_DOI_CHUYEN, nhanKetNoi, nhanSuKienChuyen } from "./bang-tin.ts";
@@ -204,15 +206,72 @@ test("Đợt 5: thêm điểm / báo huỷ / cập nhật điểm khi xe đang c
   assert.equal(tinChuyenCho(TX_B, dangChay({ action: "trip_allocation_office_cancelled" }))!.cau, "Văn phòng báo có khách huỷ ở chuyến CX-1103-02 ngày 11/03 — mở để xem");
   assert.equal(tinChuyenCho(TX_B, dangChay({ action: "trip_stops_synced" }))!.cau, "Văn phòng vừa đổi điểm đón ở chuyến CX-1103-02 ngày 11/03 — mở để xem");
 });
-test("Đợt 5: cập nhật điểm trên chuyến CHƯA chạy (chưa xuất bến, hoặc xuất bến SAU sự kiện) → không ai nhận tin (giữ như Đợt 2)", () => {
+// NỚI có tên (ADR-0112 Đ6, Hiến pháp Điều 9.4): bài này từng khoá "cập nhật điểm trên chuyến CHƯA chạy → không ai nhận tin" (Đợt 2 / Đợt 5). Nay là bài
+// NGƯỢC: tài xế đang lái nhận đúng câu của xe đang chạy (từ mốc phát hành — Đ5); vẫn không ai khác nhận. Chỉ bài này khoá hành vi cũ (đã quét `src/**/*.test.ts`).
+test("ADR-0112 Đ2 (thay bài Đợt 5 'chưa chạy → không ai nhận'): cập nhật điểm trên chuyến CHƯA chạy (chưa xuất bến, hoặc xuất bến SAU sự kiện) → tài xế đang lái nhận ĐÚNG câu của xe đang chạy; người khác không", () => {
   for (const xuatBen of [null, "2027-03-11T04:00:00.000Z"]) {
     const d = dangChay({ action: "trip_stops_synced", xuatBen });
     assert.equal(dangChayLucSuKien(d), false);
-    assert.equal(tinChuyenCho(TX_B, d), null);
+    assert.deepEqual(tinChuyenCho(TX_B, d), { loai: "xe_chay_doi", cau: "Văn phòng vừa đổi điểm đón ở chuyến CX-1103-02 ngày 11/03 — mở để xem", lienKet: "/cuoc-chuyen?id=t1" });
+    assert.equal(tinChuyenCho(TX_A, d), null, "tài xế đã bị gỡ trước sự kiện");
     assert.equal(tinChuyenCho(nguoi("x", ["SALES"]), d), null);
-    assert.equal(thayDoiCuaHanhDongChuyen(d.action, dangChayLucSuKien(d)), "cap_nhat");
+    assert.equal(thayDoiCuaHanhDongChuyen(d.action, dangChayLucSuKien(d)), "cap_nhat", "Bảng tin: chuyến chưa chạy vẫn loại 'cap_nhat'");
   }
   assert.equal(dangChayLucSuKien(dangChay({ action: "trip_stops_synced" })), true);
+});
+
+// ---- ADR-0112 (accepted 2026-10-09): nút tay "Cập nhật khách / điểm theo đơn" báo tài xế đang lái khi xe CHƯA chạy ------------------------------------------
+const NOI_BAM = "van-phong-bam";
+const CAU_KHACH = "Đơn vừa đổi khách ở chuyến CX-1103-02 ngày 11/03 — mở để xem";
+const CAU_DIEM = "Văn phòng vừa đổi điểm đón ở chuyến CX-1103-02 ngày 11/03 — mở để xem";
+const nutTay = (action: string, v: Partial<DongChuyen> = {}) => dong({ action, actorId: NOI_BAM, luc: T2, xuatBen: null, ...v });
+
+test("ADR-0112 Đ1: trip_passengers_synced → tài xế có dòng lái lúc sự kiện nhận 'khach_doi' đúng câu của máy đồng bộ; thuộc nhóm tin THƯỜNG, không thuộc ba lệnh khách", () => {
+  assert.ok((HANH_DONG_TIN_CHUYEN as readonly string[]).includes("trip_passengers_synced"));
+  assert.ok(HANH_DONG_TIN_THUONG.includes("trip_passengers_synced"));
+  assert.ok(!(HANH_DONG_TIN_KHACH as readonly string[]).includes("trip_passengers_synced"));
+  assert.equal(dongCoTheSinhTin({ action: "trip_passengers_synced", khanCap: false }), true, "gõ cửa luôn xét (nhóm thường)");
+  const d = nutTay("trip_passengers_synced");
+  assert.deepEqual(tinChuyenCho(TX_B, d), { loai: "khach_doi", cau: CAU_KHACH, lienKet: "/cuoc-chuyen?id=t1" });
+  assert.deepEqual(tinChuyenCho(TX_B, d)!.cau, tinChuyenCho(TX_B, nutTay("trip_order_synced"))!.cau, "cùng câu với máy đồng bộ (trip_order_synced)");
+  assert.equal(thayDoiCuaHanhDongChuyen("trip_passengers_synced"), "cap_nhat");
+});
+
+test("ADR-0112 Đ3: cả hai nút — chỉ tài xế có dòng lái lúc sự kiện; tài xế bị gỡ trước sự kiện, người bấm, văn phòng, HDV, Đối tác, Thực tập, Hành chính nhân sự không; tài xế đối tác như máy đồng bộ", () => {
+  for (const action of ["trip_passengers_synced", "trip_stops_synced"]) {
+    const d = nutTay(action);
+    assert.ok(tinChuyenCho(TX_B, d), `${action}: tài xế đang lái nhận`);
+    assert.equal(tinChuyenCho(TX_A, d), null, `${action}: tài xế đã bị gỡ trước sự kiện`);
+    assert.equal(tinChuyenCho({ ...TX_B, id: NOI_BAM }, d), null, `${action}: người bấm là tài xế đang lái — không tự nhận (E3)`);
+    for (const p of ["SALES", "ADMIN", "ACCOUNTING", "SUPER_ADMIN", "FIELD", "PARTNER", "INTERN", "HR"] as const) assert.equal(tinChuyenCho(nguoi("x", [p]), d), null, `${action}: ${p}`);
+    // Tài xế đối tác: GIỐNG HỆT máy đồng bộ (cùng hàm `loaiCho`, cùng ô trip.view). ADR-0112 Đ3 viết "không nhận" theo ô `none` của lúc soạn (9/10); từ A4 T6
+    // (ADR-0053 D7.5) ô là `assigned` nên tài xế đối tác ĐANG LÁI nhận như tài xế công ty — đúng câu "nếu sau này ô đó mở, họ tự nhận qua cùng hàm".
+    assert.deepEqual(tinChuyenCho(TX_DT, d), tinChuyenCho(TX_B, d), `${action}: tài xế đối tác đang lái nhận như tài xế công ty`);
+    assert.equal(tinChuyenCho(nguoi("dt-khac", ["DRIVER_PARTNER"], "p-z"), d), null, `${action}: tài xế đối tác không lái chuyến này`);
+  }
+});
+
+test("ADR-0112 Đ5: sự kiện TRƯỚC mốc phát hành không ra tin (cả hai nút, xe chưa chạy); xe ĐANG CHẠY giữ nguyên không mốc", () => {
+  assert.match(MOC_TIN_CAP_NHAT, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/, "mốc đúng dạng ISO đủ mili-giây (so chuỗi)");
+  assert.equal(new Date(MOC_TIN_CAP_NHAT).toISOString(), MOC_TIN_CAP_NHAT);
+  const truoc = "2026-01-01T03:00:00.000Z";
+  const lai = [{ partyId: "p-b", tu: "2026-01-01T01:00:00.000Z", den: null }];
+  for (const action of ["trip_passengers_synced", "trip_stops_synced"]) {
+    assert.equal(tinChuyenCho(TX_B, nutTay(action, { luc: truoc, lai })), null, `${action}: trước mốc`);
+    assert.ok(tinChuyenCho(TX_B, nutTay(action, { luc: MOC_TIN_CAP_NHAT, lai: [{ partyId: "p-b", tu: "2026-01-01T01:00:00.000Z", den: null }] })), `${action}: đúng mốc trở đi`);
+  }
+  // Xe đang chạy (đã xuất bến trước sự kiện): tin cập nhật điểm như cũ, KHÔNG phụ thuộc mốc.
+  const chay = tinChuyenCho(TX_B, nutTay("trip_stops_synced", { luc: truoc, lai, xuatBen: "2026-01-01T02:00:00.000Z" }));
+  assert.equal(chay?.loai, "xe_chay_doi");
+});
+
+test("ADR-0112 Đ4: câu tin của hai nút không có tên khách, SĐT, nơi đón, mã đơn — chỉ mã chuyến và ngày", () => {
+  for (const action of ["trip_passengers_synced", "trip_stops_synced"]) {
+    const t = tinChuyenCho(TX_B, nutTay(action, { don: [{ orderId: "o-1", maDon: "DH-0001", ownerId: "lap", handlerStaffId: null }] }))!;
+    assert.doesNotMatch(t.cau, /DH-0001|\d{8,}|L:|T:/);
+    assert.match(t.cau, /^(Đơn vừa đổi khách ở|Văn phòng vừa đổi điểm đón ở) chuyến CX-1103-02 ngày 11\/03 — mở để xem$/);
+  }
+  assert.ok([CAU_KHACH, CAU_DIEM].every((c) => c.includes("CX-1103-02")));
 });
 
 // ---- MQ-07 (ADR-0052 D6.2): giờ hẹn chặng đổi khi đã xếp — người nhận tính từ KHOÁ (người lập, người phụ trách, dòng lái), không đọc detail ----------------

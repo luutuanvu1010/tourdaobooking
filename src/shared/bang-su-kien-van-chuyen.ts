@@ -181,15 +181,18 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
     routes: [vp("/api/van-chuyen/chuyen/:id/cap-nhat-diem", "trip.dispatch", O_DIEU_PHOI, "lenhCapNhatDiem")], trangThaiChuyen: ["PLANNED", "RUNNING"], vuot: [],
     luat: "máy tự tìm suất lệch nơi; không khoá theo mốc; không lệch → không ghi", bang: [...LO_CHUNG, "vc_trip_stop", "vc_trip_allocation"],
     suKien: "ALLOCATION_STOP_CHANGED", nhatKy: "trip_stops_synced", lo: "loCapNhatDiem", bao: "route",
-    tin: { nhom: "thuong", nhan: [{ ai: TX_LUC, loai: "xe_chay_doi", khi: "xe_dang_chay" }] }, bangTin: "cap_nhat", bangTinXeChay: "xe_chay",
-    nguon: "ADR-0050 VK1-B; ADR-0052 D5.3a, D6.1",
+    // ADR-0112 Đ2: xe CHƯA chạy cũng báo tài xế đang lái (cùng loại, cùng câu với xe đang chạy) — từ mốc phát hành (Đ5).
+    tin: { nhom: "thuong", nhan: [{ ai: TX_LUC, loai: "xe_chay_doi" }] }, bangTin: "cap_nhat", bangTinXeChay: "xe_chay",
+    nguon: "ADR-0050 VK1-B; ADR-0052 D5.3a, D6.1; ADR-0112 Đ2",
   },
   {
     id: "cap-nhat-khach", ten: "Cập nhật khách theo đơn (nút tay)", loai: "ke_hoach", trangThai: "co_ma",
     routes: [vp("/api/van-chuyen/chuyen/:id/cap-nhat-khach", "trip.dispatch", O_DIEU_PHOI, "lenhCapNhatKhach")], trangThaiChuyen: ["PLANNED"], vuot: [],
     luat: "cùng luật thuần với máy đồng bộ (đơn huỷ, chặng đóng, khách đổi, thừa suất); không khoá theo mốc", bang: [...LO_CHUNG, "vc_trip_allocation", "vc_trip_stop"],
-    suKien: "ALLOCATION_PASSENGER_CHANGED", nhatKy: "trip_passengers_synced", lo: "loCapNhatKhach", bao: "route", tin: null, bangTin: "cap_nhat",
-    nguon: "R-P29 (chủ lần 16); ADR-0104 Đ2.11",
+    suKien: "ALLOCATION_PASSENGER_CHANGED", nhatKy: "trip_passengers_synced", lo: "loCapNhatKhach", bao: "route",
+    // ADR-0112 Đ1: nút tay báo tài xế đang lái cùng tin "khach_doi" với máy đồng bộ — nhóm tin THƯỜNG, từ mốc phát hành (Đ5).
+    tin: { nhom: "thuong", nhan: [{ ai: TX_LUC, loai: "khach_doi" }] }, bangTin: "cap_nhat",
+    nguon: "R-P29 (chủ lần 16); ADR-0104 Đ2.11; ADR-0112 Đ1",
   },
 
   // Tiến độ (tài xế bấm ↔ văn phòng bấm thay) — ADR-0049 D3; giờ xảy ra: ADR-0050 VK1-A.
@@ -510,18 +513,6 @@ export interface ChoLech {
   dauHieu?: DauHieu;
 }
 export const CHO_LECH: readonly ChoLech[] = [
-  {
-    id: "N-CAP-NHAT-KHACH", loai: "CHUA_CO_LUAT", muc: "VUA", dong: ["cap-nhat-khach"], quyTac: "QT1",
-    maLam: "Người xếp xe bấm \"Cập nhật khách theo đơn\" làm đổi khách trên chuyến chưa chạy — tài xế đang lái không nhận tin; còn khi MÁY làm đúng việc đó (sửa đơn) thì tài xế nhận \"Đơn vừa đổi khách\".",
-    adrNoi: "ADR-0052 D6.1 không liệt kê việc này; ADR-0104 Đ2.10 chỉ nói tin cho máy đồng bộ. Không văn bản nào quyết \"nút tay thì không báo\".",
-    deNghi: "Cho nút tay sinh cùng tin \"khach_doi\" với máy (thêm `trip_passengers_synced` vào danh sách tin — cần ADR vì danh sách tin là cửa một chiều).",
-  },
-  {
-    id: "N-CAP-NHAT-DIEM", loai: "CHUA_CO_LUAT", muc: "VUA", dong: ["cap-nhat-diem"], quyTac: "QT1",
-    maLam: "\"Cập nhật điểm theo đơn\" trên chuyến chưa chạy đổi điểm đón của khách — tài xế đang lái không nhận tin (chỉ nhận khi xe đã chạy).",
-    adrNoi: "ADR-0052 D6.1, D6.2 chỉ ghi tin khi xe đang chạy; chuyến chưa chạy không được nói tới.",
-    deNghi: "Hỏi chủ: tài xế đã được xếp lái có cần tin khi điểm đón đổi trước giờ chạy không (khuyến nghị: có, cùng câu \"đổi điểm đón\").",
-  },
   {
     id: "N-BAM-THAY", loai: "DA_DUYET", muc: null, quyTac: "QT1",
     dong: ["xuat-ben", "da-toi", "da-don", "vang", "khach-huy-tai-diem", "da-tra", "ket-thuc", "ket-thuc-gian-doan", "doi-thu-tu"],
