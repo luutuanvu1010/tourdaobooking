@@ -93,7 +93,7 @@ const tienDon = async (id) => (await call(ACC, "GET", `/api/orders/${id}/payment
 // due_snapshot ≥ 0 và trigger bil_posting_delivered_paid của D1 thật nhận) → "Hoàn thành" được.
 {
   const don = await donXacNhan({ adult: 2, discount: 150000, departDate: vnDate(0) });
-  assert.equal((await call(ACC, "POST", `/api/orders/${don.id}/payments`, { soTien: 50000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201, "Kế toán ghi khách đã trả 50.000");
+  assert.equal((await call(ACC, "POST", `/api/orders/${don.id}/payments`, { soTien: 50000, hinhThuc: "CASH", nguoiThu: "cong_ty" })).status, 201, "Kế toán ghi khách đã trả 50.000");
   const r = await sua(ACC, don, 1);
   assert.equal(r.status, 200, JSON.stringify(r.body));
   const hoan = await call(ACC, "POST", "/api/ledger/refunds", { orderId: don.id, soTien: 50000, hinhThuc: "BANK_TRANSFER", nguoiTra: "cong_ty" });
