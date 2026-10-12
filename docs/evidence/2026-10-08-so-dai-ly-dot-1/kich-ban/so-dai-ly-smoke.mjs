@@ -227,7 +227,8 @@ try {
         assert.equal(await p.ev("!!document.getElementById('ky-xac-nhan') && document.getElementById('ky-ghi-chu').value"), "Đối chiếu ngày 30.09.2026", "hộp giữ nguyên cùng chữ đã gõ");
         assert.equal(await p.ev("document.getElementById('ky-xac-nhan-btn').disabled"), false, "nút bấm lại được");
         assert.equal((await p.ev("fetch('/api/ledger/ky').then((r) => r.json())")).daKhoa.length, 0, "chưa khoá tháng nào");
-        await chup(p, `6-khoa-thang-ghi-chu-ngay-cham-${kho}`);
+        // 390: chụp CẢ trang (vòng sửa 1, người kiểm M-5) — khung nhìn điện thoại chỉ thấy câu từ chối ở đầu trang, ô «Ghi chú» với chữ đã gõ nằm dưới thanh tab.
+        await chup(p, `6-khoa-thang-ghi-chu-ngay-cham-${kho}`, kho === "390" ? { ca: true } : {});
       });
       if (kho === "390") {
         await buoc("6-390c", "409 + cuộn (E-1 Task 12): tháng vừa được khoá ở chỗ khác ⇒ câu máy chủ hiện TRONG khung nhìn, hộp đóng, trang tải lại", async () => {
@@ -458,7 +459,11 @@ try {
         await p.ev("document.querySelector('[data-action=\"dat-qua-mo\"]').click(), true");
         await p.ev(setInput("document.querySelector('#dat-qua-doi-tac input[type=search]')", "Lê Thu"));
         await cho(p, `!!document.querySelector('#dat-qua-doi-tac [data-party-id="${DL_ID}"]')`, "kết quả có đại lý");
-        await chupKhung(p, "#dat-qua-doi-tac", `3-form-dat-qua-tim-${kho}`);
+        if (kho === "390") {
+          // Vòng sửa 1 (người kiểm M-5): cắt khung bằng captureBeyondViewport ở 390 làm thanh trên dính «Tạo đơn» đè lên ô gõ — chụp khung nhìn thật sau khi đưa khối vào giữa màn.
+          await p.ev("document.getElementById('dat-qua-doi-tac').scrollIntoView({ block: 'center' }), true");
+          await chup(p, `3-form-dat-qua-tim-${kho}`);
+        } else await chupKhung(p, "#dat-qua-doi-tac", `3-form-dat-qua-tim-${kho}`);
         await p.ev(`document.querySelector('#dat-qua-doi-tac [data-party-id="${DL_ID}"]').click(), true`);
         await cho(p, "!!document.querySelector('#dat-qua-doi-tac .dqdt-chon')", "đã chọn");
         assert.equal(await p.ev("document.querySelector('#dat-qua-doi-tac .dqdt-chon-ten').textContent"), DAI_LY.name);

@@ -48,6 +48,8 @@ Mọi ảnh ở `anh/`, hai khổ `-390` (điện thoại) và `-1040` (máy tí
 | 7. Đối tác thuần form: «Bên đặt: …» | `7-form-ben-dat-chi-doc-*`, `7-form-doi-tac-*` | ✓ `#ben-dat-chi-doc[data-party-id]` «Bên đặt: Lê Thu Hà», không ô «Đặt qua đối tác», không ô tra SĐT; `/api/auth/me` trả `benDatCuaToi` đúng tên. Đối tác ĐƯỢC HƯỞNG gửi bên đặt khác ⇒ máy chủ ÉP về chính mình (201), không 403 |
 | 7. Đối tác thuần trang đơn của mình | `7-doi-tac-don-cua-minh-*` | ✓ «Hoa hồng của bạn», ô của dòng chỉ «Thành tiền / Hoa hồng / Giá đại lý»; số khớp DTO hẹp (1.800.000 · 225.000 · 1.575.000); DOM không tỷ lệ / người bán / giá vốn |
 
+**Vòng sửa 1 (12/10/2026, người kiểm độc lập M-5):** chụp lại riêng hai ảnh khổ 390 — `3-form-dat-qua-tim-390` (khung nhìn thật sau khi đưa khối vào giữa màn; bản cũ cắt khung làm thanh trên «Tạo đơn» đè lên ô gõ) và `6-khoa-thang-ghi-chu-ngay-cham-390` (cả trang: câu từ chối ở đầu VÀ ô «Ghi chú» còn «Đối chiếu ngày 30.09.2026»). Chạy lại đủ kịch bản: SMOKE OK 80/80, cùng `AXE_JS` (axe-core 4.13.0), 0 critical/serious. Hai ảnh khổ 1040 cùng bước vốn đã rõ; mọi ảnh khác giữ bản của lần chạy trước.
+
 Ghi thêm cho chủ khi duyệt ảnh: ở `/hoa-hong` khổ 1040 huy hiệu «Đang áp» xuống hai dòng trong cột Trạng thái hẹp; dòng kết quả Thử tra nói «cho nhóm» mà không nêu tên nhóm.
 
 ## Kịch bản Chrome cũ chạy lại (12/10/2026, cùng `AXE_JS`, ảnh vào thư mục tạm)
