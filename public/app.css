@@ -3150,7 +3150,6 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .dp-tx-ban { margin: 0; }
 .dp-tx-ban-ds { margin: var(--s2) 0 0; padding-left: var(--s4); }
 .dp-cc-thay-khach { display: flex; align-items: center; gap: var(--s2); }
-<<<<<<< HEAD
 
 /* ---------- C2 màn tài xế đang chạy (đánh giá ERP 7/10: C53, C54, C56, C59, C61) — chỉ token; phạm vi `#cc-trang` / `#cc-day` / `body.cc-dang-chay` nên màn văn phòng không đổi ---------- */
 #cc-trang .dp-run-loai { font-size: var(--fs-dp-gio-hen); font-weight: var(--fw-heavy); color: var(--c-text); } /* C54: giờ hẹn ≥ 16px */
@@ -3174,7 +3173,7 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 @media (max-width: 640px) {
   body.has-tabbar.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s3) + var(--tap-min) + var(--s4)); }
 }
-=======
+
 /* ---------- Bảng điều phối: gói C3 (đánh giá ERP 7/10 C32–C37) — chọn nhiều chặng, lọc, tổng, tải, hộp chọn chuyến, giờ từng đoàn. CHỈ token sẵn có. ---------- */
 .dp-tong { padding: var(--s2) var(--s4); font-size: var(--fs-label); font-weight: var(--fw-semibold); line-height: 1.5; font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--c-border); }
 .dp-loc { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--w-dp-chua-xep)), 1fr)); gap: var(--s2); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--c-border); }
@@ -3202,4 +3201,3 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .dp-xep-nhac { margin: var(--s3) 0 0; }
 .dp-xep-ds { display: flex; flex-direction: column; gap: var(--s1); margin: 0; padding: 0; list-style: none; font-size: var(--fs-label); line-height: 1.5; }
 .dp-doan { display: block; margin-top: var(--s1); font-size: var(--fs-badge); font-weight: var(--fw-semibold); line-height: 1.5; color: var(--c-text-muted); font-variant-numeric: tabular-nums; }
->>>>>>> c3-bang-dieu-phoi
