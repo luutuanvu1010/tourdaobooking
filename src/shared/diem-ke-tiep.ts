@@ -40,3 +40,9 @@ export function viecChinh(n: NhomDiemChay, ketThuc: boolean): ViecChinh | null {
   }
   return !n.keTiep && ketThuc ? { loai: "ket-thuc", nhan: "Kết thúc chuyến" } : null;
 }
+
+/** Chữ dưới nút "Kết thúc chuyến" khi máy chủ chưa cho (`xetKetThuc(...).duoc === false`): nói còn bao nhiêu khách / điểm chưa xong. */
+export function cauChuaKetThuc(k: { conSuat: number; conDiem: number }): string {
+  const phan = [k.conSuat > 0 ? `${k.conSuat} khách` : null, k.conDiem > 0 ? `${k.conDiem} điểm` : null].filter((x) => x !== null).join(" và ");
+  return `Bấm được khi xong hết: còn ${phan}.`;
+}

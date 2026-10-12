@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buocDiem, type DiemVao, type SuatVao } from "./tien-do-man.ts";
-import { nhomDiemChay, viecChinh } from "./diem-ke-tiep.ts";
+import { cauChuaKetThuc, nhomDiemChay, viecChinh } from "./diem-ke-tiep.ts";
 
 const diem = (id: string, thuTu: number, loai: "PICKUP" | "DROPOFF", trangThai: DiemVao["trangThai"], tenNoi = `Nơi ${id}`): DiemVao =>
   ({ id, thuTu, loai, tenNoi, gioHen: loai === "PICKUP" ? { ngay: "2026-10-12", gio: "07:30" } : null, gioXeToi: null, trangThai, soNguoi: 2, daToi: null });
@@ -67,4 +67,10 @@ test("viecChinh: hết điểm và máy chủ cho kết thúc → 'Kết thúc c
   assert.equal(viecChinh(xong, false), null);
   const con = nhomDiemChay(buoc([diem("p1", 1, "PICKUP", "PENDING")], [suat("a", "p1", "t", "WAITING")]));
   assert.equal(viecChinh(con, true)?.loai, "da-toi");
+});
+
+test("cauChuaKetThuc: nói còn khách và / hoặc điểm chưa xong (C57 — cả đoàn vắng còn điểm trả)", () => {
+  assert.equal(cauChuaKetThuc({ conSuat: 2, conDiem: 1 }), "Bấm được khi xong hết: còn 2 khách và 1 điểm.");
+  assert.equal(cauChuaKetThuc({ conSuat: 0, conDiem: 1 }), "Bấm được khi xong hết: còn 1 điểm.");
+  assert.equal(cauChuaKetThuc({ conSuat: 3, conDiem: 0 }), "Bấm được khi xong hết: còn 3 khách.");
 });

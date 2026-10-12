@@ -316,6 +316,7 @@
   --dp-run-so: 28px;           /* vòng số điểm của chuyến đang chạy (05, khung 5a) */
   --fs-dp-run-so: var(--fs-step-3);
   --h-dp-khach: 32px;          /* dòng tên khách (05) */
+  --fs-dp-gio-hen: var(--fs-step-5); /* C2/C54: loại điểm + giờ hẹn ở màn tài xế đang chạy — 16px (từng 12px, khó đọc khi lái) */
   --w-dp-khai-gio: 260px;      /* ô "Xảy ra lúc" (06, khung 6d) */
   /* — Riêng: đưa đón / hành khách — trang đơn (ADR-0047 Phần B, bản vẽ docs/design/2026-10-01-dua-don-hanh-khach — mục lục "Kích thước ngoài token"; D9) — */
   --w-dd-noi: 200px;           /* cột tối thiểu ô Nơi đón / Nơi trả (tự xuống một cột ở 390) */
@@ -3149,3 +3150,26 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .dp-tx-ban { margin: 0; }
 .dp-tx-ban-ds { margin: var(--s2) 0 0; padding-left: var(--s4); }
 .dp-cc-thay-khach { display: flex; align-items: center; gap: var(--s2); }
+
+/* ---------- C2 màn tài xế đang chạy (đánh giá ERP 7/10: C53, C54, C56, C59, C61) — chỉ token; phạm vi `#cc-trang` / `#cc-day` / `body.cc-dang-chay` nên màn văn phòng không đổi ---------- */
+#cc-trang .dp-run-loai { font-size: var(--fs-dp-gio-hen); font-weight: var(--fw-heavy); color: var(--c-text); } /* C54: giờ hẹn ≥ 16px */
+.dp-cc-khoi { margin-bottom: var(--s3); }
+.dp-cc-muc { margin: var(--s3) 0 var(--s2); font-family: var(--font-display); font-size: var(--fs-vc-md); font-weight: var(--fw-heavy); }
+#cc-trang .dp-run.is-ke-tiep { border: var(--bw-vc) solid var(--c-primary); box-shadow: var(--shadow-float); }
+#cc-trang .dp-run.is-ke-tiep .dp-run-noi { font-size: var(--fs-title); }
+.dp-cho-vang { display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s4); font-size: var(--fs-label); color: var(--c-sand-text); background: var(--c-sand-soft); border-bottom: 1px solid var(--c-border); }
+.dp-cho-vang svg { flex: none; }
+.dp-cc-xong { margin-bottom: var(--s3); border: 1px solid var(--c-border); border-radius: var(--radius-sm); background: var(--c-surface); }
+.dp-cc-xong-tieu-de { display: flex; align-items: center; min-height: var(--tap-min); padding: 0 var(--s4); font-weight: var(--fw-bold); cursor: pointer; }
+.dp-cc-xong-ds { margin: 0; padding: 0; list-style: none; }
+.dp-cc-xong-dong { display: flex; align-items: flex-start; gap: var(--s3); padding: var(--s2) var(--s4); border-top: 1px solid var(--c-border); font-size: var(--fs-label); }
+.dp-cc-xong-dong .dp-run-so { color: var(--c-green-text); background: var(--c-green-soft); }
+.dp-cc-xong-text { display: flex; flex: 1; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
+.dp-vua-ghi-dau { margin: 0 0 var(--s3); }
+#cc-day .dp-cc-viec { width: 100%; }
+body.cc-dang-chay .tl-fab { display: none; } /* C61: đang chạy thì không nút nổi "Hỗ trợ" (nút dính đáy là việc chính) */
+/* C61 (lỗi cũ BH-23 / VP-13): nút nổi "Hỗ trợ" từng che dòng / liên kết cuối trang ở khổ 390 — khi nút có mặt (web/tro-ly.ts đặt lớp), đệm đáy của <main> chừa đúng chiều cao nút. Không áp khi nút ẩn. */
+body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + var(--tap-min) + var(--s3)); }
+@media (max-width: 640px) {
+  body.has-tabbar.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s3) + var(--tap-min) + var(--s4)); }
+}
