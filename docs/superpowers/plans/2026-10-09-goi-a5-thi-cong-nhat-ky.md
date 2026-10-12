@@ -49,3 +49,20 @@ Hồ sơ có ngày. Kế hoạch: `2026-10-08-giai-doan-3-a5-ke-hoach.md`; quy�
 
 - Trần `db.batch` của lô xác nhận trên D1 production (N = 16, 45 chỉ đo trên D1 giả / local).
 - Chưa đột biến kịch bản e2e; chưa thử iPhone thật; kiểm độc lập (T19) chưa làm.
+
+## Sửa theo phiếu kiểm độc lập (2026-10-12): đạt có điều kiện
+
+| Mục | Việc | Commit / nơi ghi |
+|---|---|---|
+| VỪA-1 | Cổng đầu bốn route tài xế đổi `trip.view` → `trip.transfer` (404 → 403 cho văn phòng; Toàn quyền không lái vẫn 404); bài chạm route thật so thẳng tệp vàng TH08 | `660fb24d` |
+| VỪA-2 | Móc khung thử `w.chenTruocLo`; ba bài ép thua cổng cho nhánh thử lại của Nhận / Duyệt | `b8c65e28` |
+| VỪA-3 | Bài trần lô xác nhận N = 100 (công thức 19 + D + R + 3N, ≤ 900 câu) | `df83f7b7` |
+| THẤP-1 | Xoá khoá cam kết chuyến NGUỒN (ADR-0111 Đ2) không làm: nguồn luôn đang chạy; ghi lệch cho chủ ở `docs/SYSTEM-DESIGN.md` §16 | `8b6569db` |
+| THẤP-2 | Sổ hàng rào: đường dẫn `lop-vuot.test.ts`, ngày quan sát theo lịch commit, bằng chứng độc lập M1–M15 | commit kế tiếp |
+| THẤP-3, -4 | Lý do ngưng dùng hiện "Lý do khác" (không lộ mã); `tenDiem` qua `tenNoi` (hai lớp che); nơi gặp che số ở DTO | `8b6569db` |
+
+**Nợ mới (chưa có bài):** ba ca NT-A5-20 còn lại — Nhận đúng lúc xe nhờ bấm "Đã tới"; văn phòng thêm điểm đúng lúc xe nhận Nhận; hai đề nghị cùng làm xe nhận vượt chỗ. Nay chỉ có luật thuần và cổng version của lô.
+
+**Câu hỏi thêm cho chủ (người kiểm bổ sung):** đề nghị đã LEO THANG rồi mới đổi tài xế xe nhận — Duyệt vẫn qua vì `ck_nguoi_nhan` chỉ chạy ở cạnh rời PENDING (`0093`), nên khách sang xe của người chưa từng đồng ý. Không sai tiền / dữ liệu; khuyến nghị giữ như hiện tại; không sửa mã.
+
+**Chữ giao diện chờ chủ duyệt (chưa đổi):** nhãn tầng "Cấu hình" (màn Đang chạy) khó hiểu với người văn phòng — đề xuất chữ thường hơn, giữ "Bắt buộc"; nhóm lý do "Không nhận chuyển điểm" dùng chung cho Không nhận, Bác và cứu hộ; nhãn "Khác" thay "Lý do khác".
