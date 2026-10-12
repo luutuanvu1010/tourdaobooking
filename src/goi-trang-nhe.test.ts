@@ -16,9 +16,9 @@ const TRANG = [...new Set(kichBan.split("&&").find((c) => c.includes("esbuild we
 /** Trang được phép mang nhật ký thay đổi: chính trang đọc nhật ký. */
 const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 /** Trần dung lượng gói Đơn hàng đã rút gọn (byte, chưa nén): hôm nay ~84 KB sau khi bỏ nhật ký; trước đó 147 KB. Đổi trần = có lý do ghi ở commit. */
-// Nới 95.000 → 97.000 (ghép main 1c471990 vào gói Vận chuyển A+C, 2026-10-12): main một mình 92.686 byte, gói A+C một mình 89.378, hợp cả hai 95.486 — cả hai nhánh
+// Nới 95.000 → 96.000 (ghép main 1c471990 vào gói Vận chuyển A+C, 2026-10-12): main một mình 92.686 byte, gói A+C một mình 89.378, hợp cả hai 95.486 — cả hai nhánh
 // cùng thêm mã vào đường của trang Đơn hàng (phần thương mại của sổ đại lý; chi tiết đơn phải thu không âm, thông tin chuyến), không có gói nào thừa nhật ký thay đổi.
-const TRAN_ORDERS = 97_000;
+const TRAN_ORDERS = 96_000;
 
 function dung(trang: string) {
   const r = buildSync({

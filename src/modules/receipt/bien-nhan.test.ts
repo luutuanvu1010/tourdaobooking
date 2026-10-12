@@ -102,7 +102,7 @@ test("ADR-0109 (route thật): bớt khách tới giảm giá > tạm tính → 
   assert.equal(tao.status, 201, tao.text);
   const id = tao.json.order.id as string;
   assert.equal((await w.call("POST", `/api/orders/${id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
-  assert.equal((await w.call("POST", `/api/orders/${id}/payments`, { as: ACC, body: { soTien: 200000, hinhThuc: "CASH", nguoiThu: "cong_ty" } })).status, 201);
+  assert.equal((await w.call("POST", `/api/orders/${id}/payments`, { as: ACC, body: { soTien: 200000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", maGiaoDich: `BNHN${Date.now()}${Math.floor(Math.random() * 1e6)}`, soThucChuyen: 200000 } })).status, 201);
   const sua = await w.call("POST", `/api/orders/${id}/money-edit`, { as: ACC, body: { lyDo: "BOT_NGUOI", services: [{ id: tao.json.order.services[0].id, pax: P(1) }] } });
   assert.equal(sua.status, 200, sua.text);
   const bn = (await w.call("GET", `/api/orders/${id}/receipt`, { as: SALES })).json.receipt;

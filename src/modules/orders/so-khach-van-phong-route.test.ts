@@ -313,7 +313,7 @@ test("TC8 (ADR-0109): bớt khách tới giảm giá > tạm tính — KHÔNG ch
   const w = setup();
   // 2 NL × 500.000 = 1.000.000, giảm 800.000 ⇒ tổng 200.000; khách trả đủ 200.000. (Ca hộp hỏi của chủ — SV-SK-04.)
   const d = await taoDon(w, { discount: 800000 });
-  const thu = await w.call("POST", `/api/orders/${d.id}/payments`, { as: ID.ACC, body: { soTien: 200000, hinhThuc: "CASH", nguoiThu: "cong_ty" } });
+  const thu = await w.call("POST", `/api/orders/${d.id}/payments`, { as: ID.ACC, body: { soTien: 200000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", maGiaoDich: `SKVP1${Date.now()}${Math.floor(Math.random() * 1e6)}`, soThucChuyen: 200000 } });
   assert.equal(thu.status, 201, thu.text);
   const r = await sua(w, ID.ACC, d.id, than(d.svc, P(1), "BOT_NGUOI"));
   assert.equal(r.status, 200, r.text);
@@ -337,7 +337,7 @@ test("TC8b (ADR-0109 bài 3, đảo ghim 'HIỆN TRẠNG CHỜ CHỦ QUYẾT' th
   const d = await taoDon(w, { discount: 800000 });
   await giao(w, d.id, ID.FIELD);
   w.sqlite.prepare("UPDATE order_service SET depart_date = ? WHERE order_id = ?").run(vnDay(0), d.id);
-  assert.equal((await w.call("POST", `/api/orders/${d.id}/payments`, { as: ID.ACC, body: { soTien: 200000, hinhThuc: "CASH", nguoiThu: "cong_ty" } })).status, 201);
+  assert.equal((await w.call("POST", `/api/orders/${d.id}/payments`, { as: ID.ACC, body: { soTien: 200000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", maGiaoDich: `SKVP2${Date.now()}${Math.floor(Math.random() * 1e6)}`, soThucChuyen: 200000 } })).status, 201);
   assert.equal((await sua(w, ID.ACC, d.id, than(d.svc, P(1), "BOT_NGUOI"))).status, 200);
   const hoan = await w.call("POST", "/api/ledger/refunds", { as: ID.ACC, body: { orderId: d.id, soTien: 200000, hinhThuc: "BANK_TRANSFER", nguoiTra: "cong_ty" } });
   assert.ok([200, 201].includes(hoan.status), hoan.text);
@@ -367,7 +367,7 @@ test("TC8c (ADR-0109, phiếu kiểm 5b): khách CHƯA trả đồng nào, bớt
 test("TC8d (ADR-0109 QĐ5, bài 6): bớt khách tới giảm giá > tạm tính rồi HUỶ → chi tiết đơn Tổng cộng 0 (không âm); khối Thanh toán còn lại 0, dư 0; số cọc khách đã trả 200.000 không đổi", async () => {
   const w = setup();
   const d = await taoDon(w, { discount: 800000 });
-  assert.equal((await w.call("POST", `/api/orders/${d.id}/payments`, { as: ID.ACC, body: { soTien: 200000, hinhThuc: "CASH", nguoiThu: "cong_ty" } })).status, 201);
+  assert.equal((await w.call("POST", `/api/orders/${d.id}/payments`, { as: ID.ACC, body: { soTien: 200000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", maGiaoDich: `SKVP3${Date.now()}${Math.floor(Math.random() * 1e6)}`, soThucChuyen: 200000 } })).status, 201);
   assert.equal((await sua(w, ID.ACC, d.id, than(d.svc, P(1), "BOT_NGUOI"))).status, 200);
   const huy = await w.call("POST", `/api/orders/${d.id}/status`, { as: ID.SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
   assert.equal(huy.status, 200, huy.text);
