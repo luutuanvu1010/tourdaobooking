@@ -28,6 +28,21 @@ export function hopTraCaDiem(v: { tenNoi: string; soKhach: number }): HopXacNhan
   };
 }
 
+/**
+ * C53 — "Đã đón N khách" ở một điểm đón: ghi MỘT LẦN cho mọi khách còn CHỜ ở điểm này (`soKhach` = số khách đó; khách đã Vắng / đã huỷ không tính). Lệnh gửi lần
+ * lượt từng suất bằng đúng lệnh "Đã đón" có sẵn — không thêm lệnh mới.
+ */
+export function hopDonTatCa(v: { tenNoi: string; soKhach: number }): HopXacNhan {
+  const n = Math.max(0, v.soKhach);
+  return {
+    tieuDe: `Đón ${n} khách ở ${v.tenNoi}?`,
+    dong: [["Điểm đón", v.tenNoi], ["Ghi", `${n} khách đã lên xe`]],
+    canhBao: null,
+    nutXacNhan: `Đã đón ${n} khách`,
+    ghiChu: `${SAI_BAO} Khách nào chưa ra thì bấm “Vắng” ở dòng khách đó trước.`,
+  };
+}
+
 /** "Kết thúc chuyến": tóm tắt kết quả khách (bỏ người đi kèm `CREW`). */
 export function hopKetThuc(v: { ma: string; suat: readonly { trangThai: string; loai?: "PASSENGER" | "CREW" }[] }): HopXacNhan {
   const khach = v.suat.filter((x) => (x.loai ?? "PASSENGER") === "PASSENGER");
@@ -43,6 +58,10 @@ export function hopKetThuc(v: { ma: string; suat: readonly { trangThai: string; 
 
 const NHAN_VUA_GHI = { don: "Đã đón", vang: "Vắng", "khach-huy": "Khách đã huỷ", "di-kem-don": "Đã lên xe", "di-kem-tra": "Đã xuống" } as const;
 export type LenhVuaGhi = keyof typeof NHAN_VUA_GHI;
+/** C53: dòng hiện sau "Đã đón N khách": "Vừa ghi: N khách ở <nơi> — Đã đón. Sai? Báo văn phòng." */
+export function dongVuaGhiNhieu(soKhach: number, tenNoi: string): string {
+  return `Vừa ghi: ${soKhach} khách ở ${maskLongDigits(tenNoi)} — Đã đón. Sai? Báo văn phòng.`;
+}
 /** Dòng hiện ngay sau một lệnh suất một chạm thành công: "Vừa ghi: <tên hiện trên màn> — <kết quả>. Sai? Báo văn phòng." Lệnh lạ → null. */
 export function dongVuaGhi(lenh: LenhVuaGhi, ten: string): string | null {
   if (!Object.hasOwn(NHAN_VUA_GHI, lenh)) return null;

@@ -2,7 +2,22 @@
 // sau mỗi lệnh suất một chạm. Hàm thuần — giao diện chỉ vẽ.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { dongVuaGhi, hopKetThuc, hopTraCaDiem } from "./xac-nhan-tien-do.ts";
+import { dongVuaGhi, dongVuaGhiNhieu, hopDonTatCa, hopKetThuc, hopTraCaDiem } from "./xac-nhan-tien-do.ts";
+
+test("hopDonTatCa (C53): nêu nơi đón + số khách sẽ ghi 'Đã đón'; nút nói rõ số khách; ghi chú nhắc không tự sửa được", () => {
+  const h = hopDonTatCa({ tenNoi: "Vinpearl Resort", soKhach: 10 });
+  assert.equal(h.tieuDe, "Đón 10 khách ở Vinpearl Resort?");
+  assert.deepEqual(h.dong, [["Điểm đón", "Vinpearl Resort"], ["Ghi", "10 khách đã lên xe"]]);
+  assert.equal(h.canhBao, null);
+  assert.equal(h.nutXacNhan, "Đã đón 10 khách");
+  assert.match(h.ghiChu, /báo văn phòng/);
+  assert.equal(hopDonTatCa({ tenNoi: "Bến", soKhach: 1 }).nutXacNhan, "Đã đón 1 khách");
+});
+
+test("dongVuaGhiNhieu (C53): 'Vừa ghi: N khách ở <nơi> — Đã đón. Sai? Báo văn phòng.'; tên nơi có dãy số dài bị che", () => {
+  assert.equal(dongVuaGhiNhieu(3, "Vinpearl Resort"), "Vừa ghi: 3 khách ở Vinpearl Resort — Đã đón. Sai? Báo văn phòng.");
+  assert.doesNotMatch(dongVuaGhiNhieu(2, "Nơi 0903123456"), /0903123456/);
+});
 
 test("hopTraCaDiem: nêu nơi trả + số khách sẽ ghi 'Đã trả'; nút nói rõ số khách", () => {
   const h = hopTraCaDiem({ tenNoi: "Bến tàu du lịch Nha Trang", soKhach: 6 });

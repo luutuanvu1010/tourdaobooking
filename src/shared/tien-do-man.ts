@@ -221,6 +221,8 @@ export function soHieuTaiDiemDon(suat: readonly { diemLen: string | null; soHieu
 /**
  * "Kết thúc chuyến" bấm được khi mọi suất MỞ đã có kết quả cuối (Đã trả / Vắng / Khách đã huỷ) — KHỚP `kiemKetThuc` của máy chủ (LC-16 + trigger
  * vc_trip_end_requires_settled): suất người đi kèm (CREW) tính như khách, phải "Đã lên xe" rồi "Đã xuống". Máy chủ vẫn quyết.
+ * C57: hàm này CHỈ nhìn khách — thiếu vế điểm dừng (cả đoàn vắng mà điểm trả còn PENDING thì máy chủ từ chối). Nút "Kết thúc chuyến" của màn tài xế đã đổi sang
+ * `xetKetThuc` (ket-thuc-chuyen.ts, một hàm với máy chủ); màn văn phòng (web/chuyen.ts) còn dùng hàm này — việc nối tiếp của điều phối.
  */
 export function ketThucDuoc(suat: readonly Pick<SuatVao, "trangThai">[]): boolean {
   return !suat.some((x) => x.trangThai === "WAITING" || x.trangThai === "BOARDED");

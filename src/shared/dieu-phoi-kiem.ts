@@ -13,7 +13,7 @@ import type {
   BanChup, ChangVao, ChinhSachVao, ChuyenVao, DieuKienVao, DiemVao, GanTen, HangBangVao, KetQuaKiem, KetQuaXuatBen, KhungBanVao, KhungChuyen, MucChup, SuatVao, TaiXeVao,
   TrangThaiChuyen, XeVao,
 } from "./dieu-phoi-kieu.ts";
-import { KET_QUA_CUOI_SUAT } from "./dieu-phoi-kieu.ts";
+import { xetKetThuc } from "./ket-thuc-chuyen.ts";
 import { kiemCamKet, type KetQuaCamKet } from "./cam-ket-xe.ts";
 import { LOAI_CO_DINH } from "./giay-to.ts";
 import { canhBaoGioLai, type CanhBaoGioLai, type ChuyenGioLai } from "./gio-lai.ts";
@@ -30,7 +30,6 @@ const ngayVn = (ms: number): string => msToVnLocal(ms).date;
 export const conHanToiHet = (expiryDate: string | null, ketThucMs: number): boolean => expiryDate === null || expiryDate >= ngayVn(ketThucMs);
 /** Suất đang chiếm chỗ trên xe (LC-02). */
 const chiemCho = (s: SuatVao): boolean => s.mo && (s.trangThai === "WAITING" || s.trangThai === "BOARDED");
-const laKetQuaCuoi = (s: SuatVao): boolean => (KET_QUA_CUOI_SUAT as readonly string[]).includes(s.trangThai);
 const ketQua = (chan: LyDoGiu[], canPhaLe: LyDoGiu[]): KetQuaKiem => ({ ok: chan.length === 0 && canPhaLe.length === 0, chan, canPhaLe });
 /** Bỏ lý do trùng (cùng mã, cùng câu) — giữ thứ tự xuất hiện. */
 function khongTrung(xs: LyDoGiu[]): LyDoGiu[] {
@@ -522,9 +521,8 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen & { camKet: KetQua
 // ---- Kết thúc (LC-16), "trong ngày chạy" -----------------------------------------------------------------------------------------------------------------
 /** LC-16: kết thúc thường chỉ khi mọi suất mở đã có kết quả cuối và mọi điểm đã DONE / SKIPPED / MOVED; không thì gợi ý "Kết thúc gián đoạn". */
 export function kiemKetThuc(v: { suat: SuatVao[]; diem: DiemVao[] }): { duoc: true } | { duoc: false; goiY: "KET_THUC_GIAN_DOAN"; conSuat: number; conDiem: number } {
-  const conSuat = v.suat.filter((s) => s.mo && !laKetQuaCuoi(s)).length;
-  const conDiem = v.diem.filter((d) => d.trangThai === "PENDING" || d.trangThai === "ARRIVED").length;
-  return conSuat === 0 && conDiem === 0 ? { duoc: true } : { duoc: false, goiY: "KET_THUC_GIAN_DOAN", conSuat, conDiem };
+  // C57: lõi ở ket-thuc-chuyen.ts — màn tài xế gọi CÙNG hàm (bài ket-thuc-chuyen.test.ts ép hai bên cho cùng kết quả).
+  return xetKetThuc(v);
 }
 
 /**
