@@ -2,7 +2,8 @@
 // Không nhập `../pricing` bằng giá trị (index.ts của nó kéo `../audit` không đuôi — node không giải được): phép tính tiền dòng ở src/shared/hoa-hong-dong.ts (pricing tái xuất).
 import type { ThuongMaiDongVanPhong, ThuongMaiResponse } from "../../shared/contracts.ts";
 import { tinhDongDoiTac, type BanChup, type LyDoThieu } from "../../shared/hoa-hong-dong.ts";
-import { NHAN_LY_DO_THIEU, nhanMuc, nhanTyLeBp } from "../../shared/so-dai-ly-nhan.ts";
+import { NHAN_LY_DO_THIEU, nhanDong, nhanMuc, nhanTyLeBp } from "../../shared/so-dai-ly-nhan.ts";
+import { MOI_KHACH_TOI_DA } from "../../shared/so-dai-ly-nhap.ts"; // trần «Số tiền mỗi khách»: MỘT hằng cho giao diện và máy chủ (Task 14, nợ (a))
 import { hasLongDigitRun, maskLongDigits, PHONE_IN_TEXT_MESSAGE } from "../../shared/text-guards.ts";
 
 export interface DongGhiChup {
@@ -161,7 +162,7 @@ function docHoaHongTay(raw: unknown): Ket<NonNullable<ThanGhiTay["hoaHong"]>> {
   }
   if (b.kieu === "PER_PAX") {
     if (coGiaTri(b.tyLeBp)) return { ok: false, message: "Mức theo số tiền mỗi khách thì không kèm tỷ lệ." };
-    if (typeof b.moiKhach !== "number" || !Number.isInteger(b.moiKhach) || b.moiKhach < 0 || b.moiKhach > 100_000_000) return { ok: false, message: "Nhập số tiền mỗi khách không âm, tối đa 100.000.000đ." };
+    if (typeof b.moiKhach !== "number" || !Number.isInteger(b.moiKhach) || b.moiKhach < 0 || b.moiKhach > MOI_KHACH_TOI_DA) return { ok: false, message: `Nhập số tiền mỗi khách không âm, tối đa ${nhanDong(MOI_KHACH_TOI_DA)}đ.` };
     return { ok: true, value: { kieu: "PER_PAX", moiKhach: b.moiKhach } };
   }
   return { ok: false, message: "Chọn kiểu mức: tỷ lệ phần trăm hoặc số tiền mỗi khách." };

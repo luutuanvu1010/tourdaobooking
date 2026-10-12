@@ -103,3 +103,29 @@ test("/api/auth/me đi qua MỌI trang: tài khoản không giữ quyền Đối
   await me(w, DT);
   assert.equal(dem, 1, "Đối tác có hồ sơ: đúng một câu đọc người hưởng");
 });
+
+// Task 14, nợ (c) (T11 M4): `benDatCuaToi` chỉ để HIỂN THỊ dòng «Bên đặt» (máy chủ vẫn ép bên đặt lúc lập đơn). Câu đọc người hưởng hỏng KHÔNG được kéo `/api/auth/me` thành 500 — /me đi qua MỌI trang.
+test("câu đọc bên đặt hỏng (ném ngay lập tức hoặc ném sau) ⇒ /me vẫn 200, benDatCuaToi = null, còn staff + maintenance; log đúng một dòng, không lộ SĐT / tên", async () => {
+  for (const kieu of ["dong-bo", "bat-dong-bo"] as const) {
+    const { w } = setup();
+    const thay = w.env.DB as { prepare: (sql: string) => unknown };
+    const goc = thay.prepare.bind(thay);
+    thay.prepare = (sql: string) => {
+      if (!/prc_beneficiary_role/.test(sql)) return goc(sql);
+      if (kieu === "dong-bo") throw new Error("D1 hỏng giả lập");
+      return { bind: () => ({ first: async () => { throw new Error("D1 hỏng giả lập"); }, all: async () => { throw new Error("D1 hỏng giả lập"); }, run: async () => { throw new Error("D1 hỏng giả lập"); } }) };
+    };
+    const dong: string[] = [];
+    const goiLoi = console.error;
+    console.error = (...a: unknown[]) => { dong.push(a.map(String).join(" ")); };
+    let r: Doc;
+    try { r = await me(w, DT); } finally { console.error = goiLoi; }
+    assert.equal(r.status, 200, `${kieu}: /me không được 500 vì câu chỉ-để-hiển-thị`);
+    assert.equal(r.json.benDatCuaToi, null, `${kieu}: không đọc được ⇒ null (giao diện rơi về ô tra SĐT, máy chủ vẫn ép bên đặt khi lập đơn)`);
+    assert.equal(r.json.staff.id, DT, `${kieu}: vẫn trả hồ sơ tài khoản`);
+    assert.ok("maintenance" in r.json, `${kieu}: vẫn trả trạng thái bảo trì`);
+    const log = dong.filter((d) => d.includes("ben_dat_cua_toi_failed"));
+    assert.equal(log.length, 1, `${kieu}: đúng một dòng log`);
+    assert.ok(!log[0]!.includes("0900000008") && !log[0]!.includes("Đối Tác Một"), `${kieu}: log không có SĐT / tên`);
+  }
+});

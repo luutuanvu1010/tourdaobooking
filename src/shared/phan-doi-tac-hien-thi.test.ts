@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 import {
-  CAU_CHO_CAI_MUC, MOI_KHACH_TOI_DA, canhBaoThieuMuc, chuHoaHongDoiTac, chuNhaCungCap, chuTongHoaHong, coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, demLyDo, docThanGhiTay,
+  CAU_CHO_CAI_MUC, MOI_KHACH_TOI_DA, TIEU_DE_DOI_TAC, TIEU_DE_LOI, TIEU_DE_VAN_PHONG, canhBaoThieuMuc, chuHoaHongDoiTac, chuNhaCungCap, chuTongHoaHong, coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, demLyDo, docThanGhiTay,
   docTienTay, docTyLeTay, duocGhiTay, ghiChuTrangThai, gopBenDat, hienNutGhiTay, khoiBenDatForm, nhanBenDat, nhanNguoiHuong, noiNapBenDat, type FormGhiTay,
 } from "./phan-doi-tac-hien-thi.ts";
 
@@ -163,4 +163,14 @@ test("mọi tập quyền: cổng ẩn/hiện của khối không bao giờ mở
       assert.equal(coODatQuaDoiTac(s), false, perms.join("+"));
     }
   }
+});
+
+// Task 14, nợ (e) (T11 M5): khối «Phần đối tác» ở nhánh LỖI chưa biết người xem là văn phòng hay Đối tác (dạng chỉ biết khi tải được). Tiêu đề lỗi phải trung tính — không là «Phần đối tác» (sai với Đối tác) hay «Hoa hồng của bạn» (sai với văn phòng).
+test("tiêu đề khối lỗi trung tính: khác tiêu đề văn phòng và tiêu đề Đối tác, không nhắc «đối tác» lẫn «của bạn»", () => {
+  assert.equal(TIEU_DE_LOI, "Hoa hồng");
+  assert.notEqual(TIEU_DE_LOI, TIEU_DE_VAN_PHONG);
+  assert.notEqual(TIEU_DE_LOI, TIEU_DE_DOI_TAC);
+  assert.ok(!/đối tác|của bạn/i.test(TIEU_DE_LOI), "không gán nhầm dạng nào cho người xem");
+  assert.equal(TIEU_DE_VAN_PHONG, "Phần đối tác", "tiêu đề khi CÓ dữ liệu không đổi");
+  assert.equal(TIEU_DE_DOI_TAC, "Hoa hồng của bạn", "tiêu đề khi CÓ dữ liệu không đổi");
 });

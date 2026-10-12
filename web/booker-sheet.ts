@@ -24,7 +24,7 @@ export function openBookerSheet(o: BookerSheetOptions, opener: HTMLElement): voi
   let saving = false;
   const nameInput = h("input", { type: "text", maxLength: 200, autocomplete: "off", value: o.order.customerName });
   const phoneInput = h("input", { type: "tel", inputMode: "tel", maxLength: 30, autocomplete: "off", value: o.order.customerPhone });
-  const picker = createBookerPicker({ name: nameInput, phone: phoneInput });
+  const picker = createBookerPicker({ name: nameInput, phone: phoneInput, coODatQuaDoiTac: o.coDatQuaDoiTac });
   // Bên đặt đang lưu là đối tác (cờ `bookerLaDoiTac` do MÁY CHỦ tính) và người sửa có ô "Đặt qua đối tác" ⇒ nạp vào ô đó, không vào ô tra SĐT (đặc tả §7); đã chọn thì ô tra SĐT ẩn.
   let daChon: BenDatChon | null = null;
   const datQua = o.coDatQuaDoiTac

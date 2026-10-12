@@ -116,6 +116,14 @@ App **không cho xác nhận** khi:
 3. Bấm vào một đơn để xem đủ khách, dịch vụ, tiền.`,
     },
     {
+      tieuDe: "Xem hoa hồng của bạn",
+      noiDung: `Nếu Công ty tính hoa hồng cho bạn, trang đơn có khối [[Hoa hồng của bạn]]. Mỗi dịch vụ ghi **Thành tiền**, **Hoa hồng** và **Giá đại lý**, cuối khối có tổng.
+
+- Dòng ghi "Chờ Công ty cài mức" là Công ty chưa đặt mức hoa hồng cho dịch vụ đó. Bạn không cần làm gì; hoa hồng hiện khi Công ty đặt mức.
+- Đơn còn **Chờ xác nhận** ghi "Dự kiến — tính theo bảng mức hôm nay, chưa lưu". Số chốt sau khi đơn được xác nhận.
+- Bạn chỉ thấy tiền của chính mình, không thấy tỷ lệ hay giá vốn của Công ty.`,
+    },
+    {
       tieuDe: "Tình huống hay gặp",
       noiDung: `### Khách muốn đổi giờ đón hoặc điểm đón sau khi đơn đã xác nhận
 

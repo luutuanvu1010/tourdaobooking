@@ -31,9 +31,19 @@ test("canPickMatch / matchNote: chỉ cá nhân đang hoạt động chọn đư
   assert.equal(canPickMatch({ kind: "PERSON", active: true }), true);
   assert.equal(canPickMatch({ kind: "PERSON", active: false }), false);
   assert.equal(canPickMatch({ kind: "ORGANIZATION", active: true }), false);
-  assert.equal(matchNote({ kind: "PERSON", active: true }), null);
-  assert.equal(matchNote({ kind: "PERSON", active: false }), "đã ngưng");
-  assert.equal(matchNote({ kind: "ORGANIZATION", active: true }), "tổ chức — đại lý thì chọn ở ô “Đặt qua đối tác”");
+  for (const coO of [true, false]) {
+    assert.equal(matchNote({ kind: "PERSON", active: true }, coO), null);
+    assert.equal(matchNote({ kind: "PERSON", active: false }, coO), "đã ngưng");
+    assert.equal(matchNote({ kind: "ORGANIZATION", active: false }, coO), "đã ngưng", "ngưng được nói trước tổ chức");
+  }
+});
+
+// Task 14, nợ (d) (T11 M3): câu cạnh hồ sơ tổ chức trỏ tới ô «Đặt qua đối tác» CHỈ khi người đọc có ô đó (người lập đơn không giữ quyền Đối tác); Đối tác và tài khoản lai không có ô ⇒ câu trung tính.
+test("matchNote: tổ chức — chỉ trỏ tới ô «Đặt qua đối tác» khi người đọc CÓ ô đó; không thì câu trung tính, không nhắc ô", () => {
+  assert.equal(matchNote({ kind: "ORGANIZATION", active: true }, true), "tổ chức — đại lý thì chọn ở ô “Đặt qua đối tác”");
+  const trungTinh = matchNote({ kind: "ORGANIZATION", active: true }, false);
+  assert.equal(trungTinh, "tổ chức — do văn phòng gắn bên đặt");
+  assert.ok(!/ ô /.test(trungTinh ?? ""), "câu trung tính không nhắc ô nào");
 });
 
 test("lookupReady: cùng chuẩn với máy chủ (số Việt Nam 10 số)", () => {

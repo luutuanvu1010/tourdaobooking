@@ -20,7 +20,7 @@ export const HD_KE_TOAN: NhomHuongDan = {
 
 Thanh menu dọc bên trái có:
 - Nhóm BÁN HÀNG: [[Trang chủ]], [[Đơn hàng]], [[Danh bạ]]. Cạnh [[Đơn hàng]] có số nhỏ, là số đơn chưa xác nhận.
-- Nhóm QUẢN TRỊ: [[Vận chuyển]], bên dưới là [[Điều phối xe]] và [[Xe đang chạy]].
+- Nhóm QUẢN TRỊ: [[Vận chuyển]], bên dưới là [[Điều phối xe]] và [[Xe đang chạy]]; rồi [[Khoá sổ tháng]], [[Hoa hồng đối tác]] và [[Người bán dịch vụ]].
 - Nhóm TÔI: [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]].
 
 Trên đầu trang có ô tìm kiếm. Gõ mã đơn, tên khách hoặc số điện thoại rồi bấm phím Enter là ra danh sách đơn khớp.
@@ -100,6 +100,40 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
 Kế toán có nút [[+ Hồ sơ mới]] và được thêm, sửa hồ sơ khách hay đại lý. Hồ sơ của người có tài khoản (nhân viên, đối tác) thì chỉ Quản trị sửa được.`,
     },
     {
+      tieuDe: "Đặt mức hoa hồng cho đối tác",
+      noiDung: `Hoa hồng là tiền Công ty trả cho đại lý hoặc cộng tác viên đặt đơn. Khi đơn được xác nhận, app lấy mức đang áp trong bảng, tính hoa hồng một lần rồi giữ nguyên.
+
+1. Bấm [[Hoa hồng đối tác]] để xem các mức đang áp và sắp áp.
+2. Ở khối [[Thêm mức]], chọn áp cho một loại đối tác, chọn phạm vi (một dịch vụ, một nhóm dịch vụ hoặc mọi dịch vụ), chọn **Phần trăm** hoặc **Số tiền mỗi khách**, nhập ngày bắt đầu rồi bấm [[Thêm mức]].
+3. Hết dùng một mức thì bấm [[Đóng mức]] ở dòng đó. Mức không sửa, không xoá được; muốn đổi thì đóng mức cũ và thêm mức mới.
+
+Tài khoản Kế toán chưa tìm được từng đối tác theo tên, nên chưa đặt được mức riêng cho một đối tác và chưa dùng được khối [[Thử tra]]. Cần việc đó thì nhờ Quản trị hoặc Toàn quyền.
+
+Người bán dịch vụ làm tương tự ở trang [[Người bán dịch vụ]]: khối [[Thêm điều khoản]] ghi dịch vụ nào do Tour Đảo bán, dịch vụ nào do nhà cung cấp bán (kèm tỷ lệ Tour Đảo mua lại). Dịch vụ nhóm Thuê xe không ghi nhà cung cấp mua lại.
+
+> Lưu ý: Đổi bảng mức không làm đổi hoa hồng của đơn đã xác nhận.`,
+    },
+    {
+      tieuDe: "Ghi mức tay cho một đơn",
+      noiDung: `Đơn đặt qua đại lý có khối **Phần đối tác**: người hưởng hoa hồng, và với từng dịch vụ là mức, hoa hồng, giá đại lý. Dòng chưa có mức, hoặc có hai mức khác nhau cùng áp, ghi "Thiếu mức — Kế toán xử lý".
+
+1. Mở đơn đã xác nhận và chưa **Đã giao**.
+2. Ở dòng thiếu mức, bấm [[Ghi mức tay]].
+3. Chọn phần trăm hoặc số tiền mỗi khách, chọn người bán nếu cần, ghi lý do (bắt buộc, ít nhất 10 ký tự), rồi bấm [[Ghi mức]].
+
+> Lưu ý: Dòng ghi tay có nhãn "ghi tay"; app lưu lại ai ghi và lý do. Đơn đã **Đã giao** thì không ghi tay được.`,
+    },
+    {
+      tieuDe: "Khoá sổ tháng",
+      noiDung: `Khi một tháng đã qua được đối chiếu xong, bạn khoá sổ tháng đó để không ai ghi thêm tiền vào tháng ấy (lần thu, hoàn tiền, chi phí xe).
+
+1. Bấm [[Khoá sổ tháng]]. Trang ghi các tháng đã khoá và **Tháng khoá được kế tiếp**.
+2. Xem bảng kiểm: khoản Công ty thu chờ xác nhận, lần thu chưa rõ người thu, số dư từng bên. Bảng chỉ để xem, không chặn việc khoá.
+3. Bấm **Khoá tháng** kèm tháng cần khoá, đọc câu cảnh báo, ghi chú nếu muốn, rồi bấm nút xác nhận.
+
+> Lưu ý: Khoá từng tháng theo thứ tự, không khoá tháng chưa qua. Tháng đã khoá **không mở lại được** trong app; sửa sau khi khoá chỉ còn cách khôi phục cả cơ sở dữ liệu, nên hãy chắc chắn trước khi bấm.`,
+    },
+    {
       tieuDe: "Tình huống hay gặp",
       noiDung: `### Thấy một đơn sai tiền
 
@@ -144,6 +178,7 @@ Chuông ở thanh trên báo khi có đơn mới, có người nhận đơn, đ�
 - Sửa tiền, số khách sau khi xác nhận: không. Số khách: báo hướng dẫn viên đang phụ trách đơn. Tiền: chỉ tài khoản Toàn quyền.
 - Nhận phụ trách, giao đơn cho người khác: không. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Duyệt "Đặt gấp": không. Nhờ Quản trị.
+- Đặt mức riêng cho một đối tác, thử tra mức: chưa, vì tài khoản Kế toán không tìm được đối tác theo tên. Nhờ Quản trị hoặc Toàn quyền.
 - Xếp xe, tạo chuyến, bấm tiến độ chuyến: không, bạn chỉ xem. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Bấm **Đã giao – đã thu đủ**: không. Hướng dẫn viên đang phụ trách đơn hoặc Quản trị bấm.
 - Xuất hoá đơn trong app: không có. Xuất ở phần mềm kế toán rồi đánh dấu trên đơn.

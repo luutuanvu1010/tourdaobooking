@@ -13,10 +13,13 @@ export interface BookerPicker {
   set(partyId: string | null, name: string | null): void;
   /** Tắt hẳn (tài khoản Đối tác mà máy chủ ép bên đặt — sổ đại lý đợt 1, Task 11): thôi tra hồ sơ theo SĐT, `set` không còn tra. Khối đã bị gỡ khỏi trang bởi nơi gọi. */
   tat(): void;
+  /** Người đọc CÓ ô «Đặt qua đối tác» không (`coODatQuaDoiTac(staff)`): quyết câu cạnh hồ sơ tổ chức có trỏ tới ô đó không (`matchNote`). Mặc định KHÔNG (câu trung tính); nơi dựng khối trước khi biết tài khoản gọi hàm này sau. */
+  datCoODatQuaDoiTac(co: boolean): void;
 }
 
-export function createBookerPicker(o: { name: HTMLInputElement; phone: HTMLInputElement }): BookerPicker {
+export function createBookerPicker(o: { name: HTMLInputElement; phone: HTMLInputElement; coODatQuaDoiTac?: boolean }): BookerPicker {
   let choice: BookerChoice = { kind: "none" };
+  let coODat = o.coODatQuaDoiTac ?? false;
   let seq = 0; // bỏ kết quả tra cứu cũ về muộn
   let timer: number | undefined;
   let daTat = false;
@@ -70,7 +73,7 @@ export function createBookerPicker(o: { name: HTMLInputElement; phone: HTMLInput
     }
     if (mine !== seq) return;
     const rows = found.map((m) => {
-      const note = matchNote(m);
+      const note = matchNote(m, coODat);
       const use = canPickMatch(m)
         ? linkButton("Dùng hồ sơ này", () => {
             o.name.value = m.displayName; // điền sẵn; ô vẫn sửa được (tên trên đơn là bản chụp, không ghi ngược vào hồ sơ)
@@ -109,6 +112,9 @@ export function createBookerPicker(o: { name: HTMLInputElement; phone: HTMLInput
       daTat = true;
       window.clearTimeout(timer);
       seq++;
+    },
+    datCoODatQuaDoiTac(co) {
+      coODat = co;
     },
   };
 }
