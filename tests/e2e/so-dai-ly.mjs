@@ -1,9 +1,9 @@
 // Sổ đại lý đợt 1 (ADR-0077, ADR-0078 B1; đặc tả docs/superpowers/specs/2026-10-08-so-dai-ly-dot-1/README.md §5–§7) trên D1 local THẬT (wrangler dev):
 // mức hoa hồng (Kế toán thêm / trùng 409 / Bán hàng 403 / HDV 403) → Bán hàng lập đơn qua đại lý (dự kiến) → xác nhận chụp mức trong lô (đối chiếu SQL) → đóng mức + thêm mức riêng
 // của đại lý: đơn đã xác nhận GIỮ mức đã chụp (A-3), đơn nháp mới theo mức mới → khách lẻ không người hưởng → đổi bên đặt sau xác nhận qua route thật (đại lý khác / tổ chức không được
-// hưởng / để trống / về lại đại lý — câu `? IS NULL OR …` của changeBooker trên D1 thật) → ghi mức tay rồi đổi bên đặt (ghi lại hành vi thật) → ghi mức tay cho dòng thiếu mức → hai lần
+// hưởng / để trống / về lại đại lý — câu `? IS NULL OR …` của changeBooker trên D1 thật) → ghi mức tay rồi đổi bên đặt (khoá hành vi hiện tại: mức tay bị chụp lại đè — chủ ghi nợ 2026-10-12) → ghi mức tay cho dòng thiếu mức → hai lần
 // Xác nhận cùng lúc (khoá phiên bản Task 4b) và Xác nhận đua với Lưu nháp.
-// Dùng accountant / admin / salesA / field (không đổi tài khoản dùng chung). Hồ sơ đại lý dùng một lần (tên theo Date.now()). KHÔNG đóng dòng điều khoản gieo sẵn `prc-st-goc-all`, KHÔNG đổi
+// Dùng accountant / admin / hr / salesA / field (không đổi tài khoản dùng chung; Nhân sự chỉ tạo hai tài khoản Đối tác dùng một lần). Hồ sơ đại lý dùng một lần (tên theo Date.now()). KHÔNG đóng dòng điều khoản gieo sẵn `prc-st-goc-all`, KHÔNG đổi
 // công ty chủ (D1 dùng chung — đặc tả §13). Mức theo vai TRAVEL_AGENCY · mọi dịch vụ chỉ thêm được một lần mỗi ngày trên cùng một D1 (dòng đã đóng ở hôm nay vẫn chồng hiệu lực
 // hôm nay) — run.mjs dựng D1 mới mỗi lần nên không vướng; chạy lẻ lại trên server có sẵn trong cùng ngày thì bước 2 sẽ 409.
 // Lệch brief Task 13 bước 1 (ghi ở sổ thi công): route gán vai của Danh bạ là ô `admin.manage` (Kế toán 403) VÀ từ chối mọi vai nhóm bên ngoài (409 `role_via_account`), nên
@@ -226,7 +226,8 @@ const benDatTrenD1 = async (id) => (await sqlRows(`SELECT booker_party_id AS b F
 }
 console.log("✓ 7) Đổi bên đặt sau xác nhận qua route thật: đại lý khác ⇒ 200, cột bên đặt đúng, bản chụp mới trỏ bản cũ; tổ chức không hưởng ⇒ 400 đúng câu, không đổi gì; để trống ⇒ 200, NONE; về lại đại lý ⇒ chụp theo bảng hôm nay (15%)");
 
-// ---- 8) Ghi mức tay rồi đổi bên đặt (Review Focus): GHI LẠI hành vi thật — mức tay có bị bản chụp tự động đè không (đặc tả §5: "chụp lại MỌI dòng theo bên đặt mới")
+// ---- 8) Ghi mức tay rồi đổi bên đặt (Review Focus): mức tay BỊ bản chụp tự động đè (đặc tả §5: "chụp lại MỌI dòng theo bên đặt mới") — khoá bằng assert hành vi hiện tại
+// (chủ quyết «Chưa đổi, ghi nợ» 2026-10-12)
 {
   const don4 = await lapDon({ bookerPartyId: DL.id });
   await xacNhan(don4.id);
@@ -252,9 +253,19 @@ console.log("✓ 7) Đổi bên đặt sau xác nhận qua route thật: đại 
   const conTay = (await sqlRows(`SELECT count(*) AS n FROM ord_service_terms WHERE order_service_id = '${sid}' AND source = 'MANUAL'`))[0].n;
   assert.equal(conTay, 1, "dòng ghi tay còn trong chuỗi lịch sử (chỉ-thêm)");
   assert.equal((await banChup(don4.id)).length, don4.services.length, "mỗi dòng vẫn đúng một bản hiện hành");
-  const ghiTayCon = (await thuongMai(A, don4.id)).vanPhong.dong.find((d) => d.serviceId === sid).ghiTay;
+  const dSau = (await thuongMai(A, don4.id)).vanPhong.dong.find((d) => d.serviceId === sid);
+  const ghiTayCon = dSau.ghiTay;
   console.log(`ℹ 8) ghi mức tay 20% rồi đổi bên đặt: sang đại lý thứ hai ⇒ bản hiện hành ${quaDL2.source} ${quaDL2.bp / 100}% (người hưởng ${quaDL2.ben === DL2.id ? "đại lý thứ hai" : quaDL2.ben}); về lại đại lý đầu ⇒ ${veDL.source} ${veDL.bp / 100}%, cờ «ghi tay» trên khối = ${ghiTayCon}; dòng MANUAL còn ${conTay} trong lịch sử`);
-  console.log("✓ 8) Ghi mức tay: Bán hàng 403, lý do ngắn 400, Kế toán 200 (bản MANUAL có lý do, một dòng nhật ký); đổi bên đặt sau đó: mỗi dòng vẫn một bản hiện hành, bản tay còn trong lịch sử (hành vi ghi ở dòng ℹ)");
+  // HÀNH VI HIỆN TẠI, chủ quyết ghi nợ 2026-10-12 («Chưa đổi, ghi nợ»): đổi bên đặt trên đơn đã xác nhận chụp lại MỌI dòng bằng mức TỰ ĐỘNG theo bên đặt mới
+  // và bảng hôm nay (đặc tả §5), kể cả dòng Kế toán đã ghi tay — mức tay chỉ còn trong bản chụp cũ (lịch sử). Nếu sau này đổi cách xử lý thì sửa assert này theo quyết định mới.
+  assert.deepEqual([quaDL2.source, quaDL2.st, quaDL2.ben, quaDL2.rule, quaDL2.bp, quaDL2.reason, quaDL2.sup], ["AUTO", "SET", DL2.id, MUC_VAI.id, 1000, null, sauTay.id],
+    "hành vi hiện tại: sang đại lý thứ hai ⇒ bản hiện hành của dòng ghi tay là AUTO 10% theo mức vai, không lý do, trỏ supersedes_id về bản MANUAL");
+  assert.deepEqual([veDL.source, veDL.st, veDL.ben, veDL.rule, veDL.bp, veDL.reason, veDL.sup], ["AUTO", "SET", DL.id, MUC_RIENG.id, 1500, null, quaDL2.id],
+    "hành vi hiện tại: về lại đại lý đầu ⇒ AUTO 15% theo mức riêng hôm nay (KHÔNG trở lại mức tay 20%)");
+  assert.deepEqual([dSau.ghiTay, dSau.hoaHong], [false, lamTronNuaLen(1500 * tt4.get(sid), 10000)], "hành vi hiện tại: khối «Phần đối tác» không còn cờ «ghi tay», hoa hồng theo 15%");
+  const banTay = (await sqlRows(`SELECT id, commission_rate_bp AS bp, reason FROM ord_service_terms WHERE order_service_id = '${sid}' AND source = 'MANUAL'`))[0];
+  assert.deepEqual([banTay.id, banTay.bp, banTay.reason], [sauTay.id, 2000, thanTay.lyDo], "hành vi hiện tại: bản MANUAL 20% (có lý do) còn nguyên trong lịch sử, chỉ không còn hiệu lực");
+  console.log("✓ 8) Ghi mức tay: Bán hàng 403, lý do ngắn 400, Kế toán 200 (bản MANUAL có lý do, một dòng nhật ký); đổi bên đặt sau đó (hành vi hiện tại, chủ ghi nợ 12/10): dòng ghi tay bị chụp lại AUTO 10% rồi AUTO 15%, mất cờ «ghi tay»; bản MANUAL còn trong lịch sử; mỗi dòng một bản hiện hành");
 }
 
 // ---- 9) Dòng THIẾU MỨC (bên đặt mang vai được hưởng mà không có mức nào) ⇒ cờ thiếu; Kế toán ghi mức tay 15% ⇒ hết thiếu, cờ ghi tay
