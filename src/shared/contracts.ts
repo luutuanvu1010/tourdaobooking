@@ -47,7 +47,11 @@ export interface StaffRolesRequest { roles: RoleCode[]; adds?: PermissionCode[];
 export interface StaffRolesResponse { roles: RoleCode[]; adds: PermissionCode[]; removes: PermissionCode[]; reason: string | null }
 
 /** `maintenance` chỉ có ở `GET /api/auth/me` (không có ở phản hồi đăng nhập): chế độ bảo trì đang BẬT thì chỉ Toàn quyền mới tới được đây (ADR-0071), để giao diện hiện dải "Đang ở chế độ bảo trì". */
-export interface MeResponse { staff: StaffProfile; maintenance?: MaintenanceStatusDto }
+/**
+ * `benDatCuaToi` chỉ có ở `GET /api/auth/me` (sổ đại lý đợt 1, Task 11; Ruling 21): khác null khi và chỉ khi máy chủ SẼ ép bên đặt của đơn mới về chính hồ sơ của tài khoản này — tài khoản giữ quyền
+ * Đối tác, có hồ sơ, và hồ sơ đang mang ít nhất một vai trong danh sách được hưởng hoa hồng (cùng điều kiện `benDatChoTaiKhoan`). Giao diện chỉ ĐỌC trường này để hiện dòng "Bên đặt: <tên>"; chỉ id + tên, không liên hệ.
+ */
+export interface MeResponse { staff: StaffProfile; maintenance?: MaintenanceStatusDto; benDatCuaToi?: { partyId: string; ten: string } | null }
 /**
  * `GET /api/auth/config` (công khai): khoá site để trang đăng nhập dựng widget Turnstile; null = máy chủ không bật Turnstile (đừng dựng widget, đăng nhập không cần token).
  * `maintenance`: trang đăng nhập hiện banner + đếm ngược khi đang bảo trì. KHÔNG lộ ai được phép.

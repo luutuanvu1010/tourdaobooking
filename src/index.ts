@@ -28,7 +28,7 @@ import { locationsModule } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import { partiesModule } from "./modules/parties";
-import { pricingModule } from "./modules/pricing";
+import { nguoiHuongCuaHoSo, pricingModule } from "./modules/pricing";
 import { cauDoiNguoiDat, donCuaNguoiDat, findOrderRef, ordersModule } from "./modules/orders";
 import { accountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo } from "./modules/staff";
 import { dayGoCua, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
@@ -37,6 +37,7 @@ import { chuyenChoTinTheoId, mocToiThieuHienHanh, nguongHetHanHienHanh, suKienTh
 import { HANDLER_TRUOC_KHONG_BIET, nhanSuKien, nhanSuKienChuyen } from "./shared/bang-tin";
 import { dangChayLucSuKien, laHanhDongTinChuyen, taiXeNhanSuKien, thayDoiCuaHanhDongChuyen } from "./shared/tin-chuyen";
 import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
+import { holdsPartner } from "./shared/permissions";
 import { createApp, type AppOptions } from "./shared/router";
 
 export { BangTin } from "./modules/bangtin/tram";
@@ -164,6 +165,9 @@ const APP_OPTIONS: AppOptions = {
     nguongHetHan: (env) => nguongHetHanHienHanh(env.DB),
     // NHÃN NGƯỜI BẤM (ruling R-P20): van-chuyen không import staff — gốc lắp ráp gọi hàm công bố của staff (chỉ tên hiển thị).
     nhanNhanVien: (env, ids) => nhanNhanVienTheoId(env.DB, ids),
+    // BÊN ĐẶT MÁY CHỦ ÉP (sổ đại lý đợt 1, Task 11 — Ruling 21): `auth` không import `pricing` (không nới ALLOWED_EDGES) — gốc lắp ráp là NƠI DUY NHẤT nối. Chỉ tài khoản giữ quyền Đối tác
+    // CÓ hồ sơ mới tốn một truy vấn; mọi người khác trả null ngay (`/api/auth/me` đi qua đây ở MỌI trang). Điều kiện y hệt `benDatChoTaiKhoan` (holdsPartner + hồ sơ mang vai được hưởng).
+    benDatCuaToi: (env, actor) => (holdsPartner(actor) && actor.partyId !== null ? nguoiHuongCuaHoSo(env.DB, actor.partyId) : Promise.resolve(null)),
     // NGƯỜI ĐI KÈM (lời chủ 2026-10-01 — "Chỉ hướng dẫn viên"): van-chuyen không import staff — gốc lắp ráp đọc tài khoản FIELD đang hoạt động, chỉ tên.
     huongDanVien: async (env) => {
       const ds = (await listStaffAccounts(env.DB)).filter((a) => a.active && a.partyId !== null && a.permissions.includes("FIELD"));

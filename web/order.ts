@@ -32,6 +32,8 @@ import { nhanTienDaTra as nhanTienLuat } from "../src/shared/nhan-tien";
 import { ngayDayDu } from "../src/shared/vn-date";
 import { cauMoc, changDuoiMoc, tomTatChanXacNhan, type ChangCanDatGap } from "../src/shared/dat-gap-hien-thi";
 import { NO_BOOKER_TEXT } from "../src/shared/booker";
+import { coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, duocGhiTay, nhanBenDat } from "../src/shared/phan-doi-tac-hien-thi";
+import { initPhanDoiTac } from "./phan-doi-tac";
 import { NO_HANDLER_TEXT, handlerControls, handlerFailure, handlerSaved, hoiDuocNguoiPhuTrach, nguoiPhuTrachTuPhien } from "../src/shared/handler-view";
 import { HANDLER_HIDDEN } from "../src/shared/order-confirmation";
 import { type PaxCounts } from "../src/shared/order-lines";
@@ -1173,7 +1175,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
           kv("Số điện thoại", order.customerPhone),
           kv("Email", order.customerEmail),
           kv("Ghi chú", order.customerNote),
-          kv("Hồ sơ khách", order.bookerName ?? NO_BOOKER_TEXT),
+          kv(nhanBenDat(order.bookerLaDoiTac), order.bookerName ?? NO_BOOKER_TEXT), // "Bên đặt (đối tác)" khi bên đặt là hồ sơ được hưởng hoa hồng (cờ máy chủ), còn lại "Hồ sơ khách"
           a.editTrip ? bookerButton(order) : null,
         ),
 
@@ -1185,6 +1187,8 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
           const dg = khoiChang(order, sid, canDatGap, duocDatGap);
           return xe && dg ? h("div", null, xe, dg) : xe ?? dg;
         }),
+        // Sổ đại lý đợt 1 (Task 11): "Phần đối tác" — ẩn cho tới khi máy chủ trả dữ liệu (404 ⇒ ẩn luôn); nội dung do web/phan-doi-tac.ts dựng.
+        coXemPhanDoiTac(staff!, order) ? h("section", { class: "card pdt", id: "phan-doi-tac", hidden: true }) : null,
       ),
       h(
         "div",
@@ -1223,6 +1227,9 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
       : null,
   );
 
+  const phanDoiTac = document.getElementById("phan-doi-tac");
+  if (phanDoiTac) void initPhanDoiTac(phanDoiTac, { orderId: order.id, coGhiTay: duocGhiTay(staff!, order), xemNguoiBan: coXemNguoiBan(staff!) });
+
   const btns: HTMLElement[] = [];
   // Quyền sửa/xác nhận/huỷ do MÁY CHỦ quyết (`canModify`, kể cả người phụ trách — ADR-0009); câu này chỉ giải thích cho người không có quyền.
   // Hướng dẫn viên LÀ người phụ trách mà không sửa được (order.modify FIELD = none) → câu riêng, không nói "người phụ trách đơn … mới được sửa" (`khongQuyenSuaText`).
@@ -1255,6 +1262,7 @@ function bookerButton(order: Order): HTMLButtonElement {
     openBookerSheet(
       {
         order,
+        coDatQuaDoiTac: coODatQuaDoiTac(staff!),
         onSaved: () =>
           void load().then(() => {
             if (bannerEl.hidden) show(banner("info", "Đã đổi khách."));

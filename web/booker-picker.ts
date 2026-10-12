@@ -11,12 +11,15 @@ export interface BookerPicker {
   payload(): ReturnType<typeof bookerPayload>;
   /** Đặt lựa chọn khi mở đơn đã lưu (null = chưa gắn) rồi tra lại hồ sơ theo SĐT hiện có. */
   set(partyId: string | null, name: string | null): void;
+  /** Tắt hẳn (tài khoản Đối tác mà máy chủ ép bên đặt — sổ đại lý đợt 1, Task 11): thôi tra hồ sơ theo SĐT, `set` không còn tra. Khối đã bị gỡ khỏi trang bởi nơi gọi. */
+  tat(): void;
 }
 
 export function createBookerPicker(o: { name: HTMLInputElement; phone: HTMLInputElement }): BookerPicker {
   let choice: BookerChoice = { kind: "none" };
   let seq = 0; // bỏ kết quả tra cứu cũ về muộn
   let timer: number | undefined;
+  let daTat = false;
 
   const status = h("p", { class: "booker-status", "aria-live": "polite" });
   const matches = h("div", { class: "booker-matches" });
@@ -53,7 +56,7 @@ export function createBookerPicker(o: { name: HTMLInputElement; phone: HTMLInput
 
   async function lookup(): Promise<void> {
     const mine = ++seq;
-    if (!lookupReady(o.phone.value)) {
+    if (daTat || !lookupReady(o.phone.value)) {
       replaceChildren(matches);
       return;
     }
@@ -101,6 +104,11 @@ export function createBookerPicker(o: { name: HTMLInputElement; phone: HTMLInput
       choice = partyId ? { kind: "existing", partyId, name: name ?? "" } : { kind: "none" };
       renderStatus();
       void lookup();
+    },
+    tat() {
+      daTat = true;
+      window.clearTimeout(timer);
+      seq++;
     },
   };
 }

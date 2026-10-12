@@ -347,7 +347,11 @@ export const authModule: AppModule = {
     }),
 
     // `maintenance` ở đây chỉ tới được Toàn quyền khi đang bảo trì (router chặn người khác trước — ADR-0071) — giao diện dùng để hiện dải "Đang ở chế độ bảo trì".
-    route("GET", "/api/auth/me", "staff", async ({ env, staff, baoTri }) => json({ staff, maintenance: toStatus((baoTri as MaintenanceState | undefined) ?? await getMaintenanceState(env.DB)) } satisfies MeResponse)),
+    // `benDatCuaToi` (sổ đại lý đợt 1, Task 11 — Ruling 21): bên đặt máy chủ SẼ ép cho tài khoản này (chỉ Đối tác có hồ sơ được hưởng), để form lập đơn hiện dòng chỉ đọc mà không tự suy luật. Hai việc đọc chạy song song.
+    route("GET", "/api/auth/me", "staff", async ({ env, staff, baoTri, benDatCuaToi }) => {
+      const [trangThaiBaoTri, benDat] = await Promise.all([(baoTri as MaintenanceState | undefined) ?? getMaintenanceState(env.DB), benDatCuaToi()]);
+      return json({ staff, maintenance: toStatus(trangThaiBaoTri), benDatCuaToi: benDat } satisfies MeResponse);
+    }),
 
     // Đăng xuất kết thúc dòng phiên (ADR-0075): cookie bị xoá VÀ cookie đã chép đi nơi khác cũng hết dùng được. Token rác/hết hạn → chỉ xoá cookie.
     route("POST", "/api/auth/logout", "public", async ({ request, env }) => {
