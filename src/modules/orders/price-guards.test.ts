@@ -1,13 +1,14 @@
 // DK-T3-01 (kiểm toán 24/9; chủ dự án trả lời 2026-09-26): R1 dịch vụ nhập tay "đóng băng", R2 giá bán lẻ cho tài khoản CHỈ Đối tác,
 // R3 trần giảm giá cấp đơn cho tài khoản CHỈ Đối tác (hôm nay trần = 0: "tạm không cho giảm" tới khi có bảng mức chiết khấu).
+// ADR-0100 (accepted 2026-10-03): R2/R3 áp cả cho tài khoản có quyền Thực tập (`giaDanhMucViolation`, `tranGiamGia`, cuối tệp); tập con quyền ở src/shared/permissions.test.ts.
 // ADR-0061 (accepted 2026-09-30) THU HẸP R1 — NỚI hàng rào đã duyệt (Điều 9.4; chủ duyệt ADR-0061 là duyệt việc nới, dòng R1 ở docs/SO-HANG-RAO.md): R1 nay
 // chỉ áp khi công tắc nhập tay TẮT, với người không có ô `order.service.manual`, và LUÔN với tài khoản có quyền Đối tác (`duocNhapTay`, bảng ca dưới cùng).
 // Các ca R1 "mọi tài khoản" cũ đổi thành ca của `manualFreezeViolation` (luật đóng băng giữ nguyên) + câu lỗi theo LÝ DO (ADR-0061 "Mã").
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  NHAP_TAY_MESSAGE, PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, duocNhapTay, holdsPartner, lyDoKhongNhapTay, manualFreezeViolation,
-  retailPricesOnly, type FrozenStored,
+  INTERN_DISCOUNT_CAP, INTERN_PRICE_MESSAGE, NHAP_TAY_MESSAGE, PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, duocNhapTay, giaDanhMucViolation,
+  holdsPartner, lyDoKhongNhapTay, manualFreezeViolation, retailPricesOnly, tranGiamGia, type FrozenStored,
 } from "./price-guards.ts";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions.ts";
 
@@ -163,4 +164,58 @@ test("R3: trần hôm nay = 0 (chủ dự án 26/9 chọn \"Tạm không cho gi�
     PARTNER_DISCOUNT_MESSAGE,
     "Tài khoản đối tác chưa được giảm giá: mức giảm tối đa bằng mức chiết khấu Tour Đảo dành cho đối tác, mà mức này chưa được thiết lập. Muốn giảm cho khách, nhờ văn phòng.",
   );
+});
+
+// ---- ADR-0100: Thực tập theo luật giá R2/R3 — `giaDanhMucViolation` (MỘT hàm cho ba cổng), trần riêng của Thực tập, câu báo theo quyền -------------------
+const dung = [{ catalogPrice: 850000, unitPrice: 850000 }];
+const lech = [{ catalogPrice: 850000, unitPrice: 849999 }];
+const nhapTay = [{ catalogPrice: null, unitPrice: 400000 }]; // dòng nhập tay cũ: không có giá danh mục
+const nguoi = (...permissions: PermissionCode[]) => ({ id: "u1", permissions });
+
+test("ADR-0100 Đ3: câu báo của Thực tập đúng nguyên văn; Đối tác giữ nguyên hai câu cũ", () => {
+  assert.equal(INTERN_PRICE_MESSAGE, "Tài khoản Thực tập chỉ dùng giá danh mục, không giảm giá — nhờ nhân viên Bán hàng nếu cần giá khác.");
+  assert.equal(giaDanhMucViolation(nguoi("PARTNER"), lech, 0), RETAIL_PRICE_MESSAGE);
+  assert.equal(giaDanhMucViolation(nguoi("PARTNER"), dung, 1), PARTNER_DISCOUNT_MESSAGE);
+});
+
+test("ADR-0100 Đ1: Thực tập (đứng một mình hoặc kèm quyền nội bộ) — dòng lệch giá, dòng nhập tay hoặc giảm giá > 0 đều bị chặn bằng câu của Thực tập; giá đúng + giảm 0 thì đạt", () => {
+  for (const lai of [["INTERN"], ["INTERN", "SALES"], ["INTERN", "ADMIN"], ["SUPER_ADMIN", "INTERN"], ["FIELD", "INTERN"]] as PermissionCode[][]) {
+    const tk = nguoi(...lai);
+    const ten = lai.join("+");
+    assert.equal(giaDanhMucViolation(tk, lech, 0), INTERN_PRICE_MESSAGE, `${ten}: đơn giá thấp hơn danh mục`);
+    assert.equal(giaDanhMucViolation(tk, [{ catalogPrice: 850000, unitPrice: 850001 }], 0), INTERN_PRICE_MESSAGE, `${ten}: đơn giá cao hơn danh mục`);
+    assert.equal(giaDanhMucViolation(tk, nhapTay, 0), INTERN_PRICE_MESSAGE, `${ten}: dòng nhập tay (không có giá danh mục)`);
+    assert.equal(giaDanhMucViolation(tk, dung, 1), INTERN_PRICE_MESSAGE, `${ten}: giảm giá 1₫`);
+    assert.equal(giaDanhMucViolation(tk, dung, 0), null, `${ten}: đúng giá danh mục, không giảm → đạt`);
+    assert.equal(giaDanhMucViolation(tk, [], 0), null, `${ten}: không dòng nào`);
+  }
+});
+
+test("ADR-0100 Đ3: tài khoản vừa Đối tác vừa Thực tập dùng câu của Đối tác (cả lỗi giá lẫn giảm giá)", () => {
+  for (const lai of [["PARTNER", "INTERN"], ["PARTNER", "INTERN", "SALES"]] as PermissionCode[][]) {
+    assert.equal(giaDanhMucViolation(nguoi(...lai), lech, 0), RETAIL_PRICE_MESSAGE, lai.join("+"));
+    assert.equal(giaDanhMucViolation(nguoi(...lai), dung, 1), PARTNER_DISCOUNT_MESSAGE, lai.join("+"));
+  }
+});
+
+test("ADR-0100: tài khoản KHÔNG bị áp (Bán hàng, Kế toán, Quản trị, Toàn quyền, HDV, Nhân sự, không quyền) không bị chặn giá hay giảm giá", () => {
+  for (const lai of [["SALES"], ["ACCOUNTING"], ["ADMIN"], ["SUPER_ADMIN"], ["FIELD"], ["HR"], ["SALES", "FIELD"], []] as PermissionCode[][]) {
+    assert.equal(giaDanhMucViolation(nguoi(...lai), lech, 500000), null, lai.join("+") || "(không quyền)");
+    assert.equal(giaDanhMucViolation(nguoi(...lai), nhapTay, 500000), null, lai.join("+") || "(không quyền)");
+  }
+});
+
+test("ADR-0100 Đ1: trần giảm giá của Thực tập luôn 0, KHÔNG đổi theo trần Đối tác; có cả hai quyền thì lấy số nhỏ hơn", () => {
+  assert.equal(INTERN_DISCOUNT_CAP, 0);
+  assert.equal(tranGiamGia(nguoi("PARTNER")), PARTNER_DISCOUNT_CAP);
+  assert.equal(tranGiamGia(nguoi("INTERN")), 0);
+  // Sau này có bảng chiết khấu và trần Đối tác > 0: Thực tập vẫn 0, Đối tác theo bảng, tài khoản có cả hai không vượt 0.
+  assert.equal(tranGiamGia(nguoi("PARTNER"), 50000), 50000);
+  assert.equal(tranGiamGia(nguoi("INTERN"), 50000), 0, "trần Đối tác không kéo theo Thực tập");
+  assert.equal(tranGiamGia(nguoi("INTERN", "SALES"), 50000), 0);
+  assert.equal(tranGiamGia(nguoi("PARTNER", "INTERN"), 50000), 0, "có quyền Thực tập thì không bao giờ được giảm hơn 0");
+  assert.equal(giaDanhMucViolation(nguoi("PARTNER"), dung, 50000, 50000), null, "Đối tác giảm đúng bằng trần bảng → đạt");
+  assert.equal(giaDanhMucViolation(nguoi("INTERN"), dung, 1, 50000), INTERN_PRICE_MESSAGE, "Thực tập giảm 1₫ dù trần Đối tác 50.000 → bị chặn");
+  assert.equal(giaDanhMucViolation(nguoi("PARTNER", "INTERN"), dung, 1, 50000), PARTNER_DISCOUNT_MESSAGE, "có cả hai: số nhỏ hơn (0), câu của Đối tác");
+  assert.equal(tranGiamGia(nguoi("SALES"), 50000), Number.POSITIVE_INFINITY, "tài khoản không bị áp: không có trần");
 });

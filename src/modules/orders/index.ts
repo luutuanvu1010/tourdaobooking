@@ -41,10 +41,7 @@ import { toPoolOrders } from "./pool";
 import { apGhiTay, banChupTuDb, cheDoThuongMai, chuaCoBanChup, dongGhiTuChup, dungThuongMai, kiemGhiTayVoiBanChup, kiemThanGhiTay, moTaChup, moTaGhiTay, type PhanThuongMai } from "./thuong-mai";
 import { banChupHienHanh, cauChupChuoi, cauGhiTay, demBanChup, laNhaCungCap, nhomCuaMa, tenHoSo } from "./thuong-mai-repo";
 import { laThanDonCu, laThanTripCu } from "./than-cu";
-import {
-  PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, duocNhapTay, holdsPartner, lyDoKhongNhapTay, manualFreezeViolation,
-  retailPricesOnly,
-} from "./price-guards";
+import { duocNhapTay, giaDanhMucViolation, holdsPartner, lyDoKhongNhapTay, manualFreezeViolation } from "./price-guards";
 import { canTransition, hasHandlerPick, parseHandlerPick, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
 import {
   keHoachChangTrip, loadOrderView, passengerList, planAddLeg, planCloseLeg, planEditLeg, planPassengerChange, planPaxOverrideNhap, resolveBooker, resolveLegPlaces, validationContext,
@@ -67,8 +64,8 @@ const CANCELLED = () => error(409, "not_editable", "Đơn đã huỷ, không s�
 const DA_GIAO = () => error(409, "order_delivered", "Đơn đã Đã giao – đã thu đủ: không sửa, huỷ hay đổi người phụ trách được nữa. Sai sót thì Kế toán dùng “Thay lần thu”.");
 const STALE = () => error(409, "stale", "Đơn vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
 const RACED = () => error(409, "invalid_transition", "Đơn vừa được người khác đổi trạng thái, hãy tải lại.");
-const PARTNER_PRICE = () => error(403, "forbidden", RETAIL_PRICE_MESSAGE);
-const PARTNER_DISCOUNT = () => error(403, "forbidden", PARTNER_DISCOUNT_MESSAGE);
+/** Luật giá R2/R3 (Đối tác ADR-0027, Thực tập ADR-0100): `cau` là câu lỗi của `giaDanhMucViolation` — câu theo quyền (Đối tác / chỉ Thực tập). */
+const GIA_DANH_MUC = (cau: string) => error(403, "forbidden", cau);
 /** ADR-0047 Ruling R1: chặng / danh sách khách của ĐƠN NHÁP đi trong thân `POST/PUT /api/orders`; route riêng chỉ nhận đơn đã xác nhận. */
 const USE_ORDER_FORM = () => error(409, "use_order_form", "Đơn nháp: sửa đưa đón và danh sách hành khách ngay trong form đơn.");
 const LEG_NOT_FOUND = () => error(404, "leg_not_found", "Không tìm thấy chặng đưa đón của đơn này.");
@@ -235,9 +232,8 @@ function priceGuard(staff: PermissionHolder, order: ValidOrder, ctx: OrderValida
   const lyDo = lyDoKhongNhapTay(staff, batNhapTay);
   const frozen = lyDo === null ? null : manualFreezeViolation(order.services, ctx.stored, lyDo);
   if (frozen) return error(400, "invalid_input", frozen);
-  if (holdsPartner(staff) && !retailPricesOnly(order.items)) return PARTNER_PRICE();
-  if (holdsPartner(staff) && !discountWithinCap(order.discount, PARTNER_DISCOUNT_CAP)) return PARTNER_DISCOUNT();
-  return null;
+  const giaLoi = giaDanhMucViolation(staff, order.items, order.discount); // R2 + R3 cho tài khoản có quyền Đối tác HOẶC Thực tập (`chiGiaDanhMuc`)
+  return giaLoi ? GIA_DANH_MUC(giaLoi) : null;
 }
 
 /** Lỗi kiểm đầu vào → phản hồi: tab cũ 409, giá danh mục vừa đổi 409 kèm chi tiết, còn lại 400. */
@@ -1170,10 +1166,10 @@ export const ordersModule: AppModule = {
       } else {
         const today = vnToday(new Date());
         const order = await findOrder(env.DB, id);
-        // DK-T3-01 R2 + R3: xác nhận là bước phát phiếu gửi khách mang tên/MST công ty → tài khoản có quyền Đối tác chỉ xác nhận được đơn mà MỌI dòng đúng
-        // giá danh mục (bắt cả đơn nháp CŨ lập trước bản vá, và dòng nhập tay cũ — không có giá danh mục) VÀ giảm giá ĐÃ LƯU không vượt trần (hôm nay 0).
-        if (order && holdsPartner(staff) && !retailPricesOnly(order.services.flatMap((s) => s.items))) return PARTNER_PRICE();
-        if (order && holdsPartner(staff) && !discountWithinCap(order.discount, PARTNER_DISCOUNT_CAP)) return PARTNER_DISCOUNT();
+        // DK-T3-01 R2 + R3: xác nhận là bước phát phiếu gửi khách mang tên/MST công ty → tài khoản có quyền Đối tác HOẶC Thực tập (ADR-0100) chỉ xác nhận được đơn
+        // mà MỌI dòng đúng giá danh mục (bắt cả đơn nháp CŨ lập trước bản vá, và dòng nhập tay cũ — không có giá danh mục) VÀ giảm giá ĐÃ LƯU không vượt trần (hôm nay 0).
+        const giaLoi = order ? giaDanhMucViolation(staff, order.services.flatMap((s) => s.items), order.discount) : null;
+        if (giaLoi) return GIA_DANH_MUC(giaLoi);
         const detail = order ? summarizeDeviations(order.services.flatMap((s) => s.items)) : undefined;
         // ADR-0049 D2 (I15, I25): điều kiện mốc nằm TRONG câu xác nhận — ngưỡng chuỗi giờ VN tính bằng `nguongMocVn` (MỘT luật với `kiemMocDat`). Mốc chưa
         // có → 503, không đoán. MỘT mốc giờ (`nowMs`) cho câu ghi và cho việc đọc lại lý do.

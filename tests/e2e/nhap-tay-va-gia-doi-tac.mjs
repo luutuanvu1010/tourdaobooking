@@ -360,4 +360,92 @@ try {
 }
 assert.equal((await congTac()).batNhapTay, false, "cuối kịch bản: công tắc TẮT");
 
+// ============================== ADR-0100 — Thực tập theo luật giá R2/R3 (chỉ giá danh mục, không giảm giá) ==============================
+// Chủ dự án 2026-10-03: "Thực tập như Đối tác, chỉ giá danh mục, không giảm." Luật ADR-0027 Đ2 áp cho tài khoản CÓ quyền Thực tập (kể cả kèm quyền nội bộ khác)
+// ở cả ba cổng: lập đơn, sửa nháp, xác nhận. Trước bản vá chỉ Đối tác bị chặn: Thực tập lập đơn giá 100.000, giảm thêm rồi tự xác nhận → 201 rồi 200 (K-B-1, kiểm toán 12/10).
+// INTERN (chỉ Thực tập, tạo bằng API ở mục ADR-0061); INTERN_SALES (Bán hàng + Thực tập, dữ liệu lai — gieo SQL như mục 8). Kịch bản cố ý KHÔNG gọi GET /api/catalog.
+const CAU_THUC_TAP = "Tài khoản Thực tập chỉ dùng giá danh mục, không giảm giá — nhờ nhân viên Bán hàng nếu cần giá khác.";
+const INTERN_SALES = (await gieoTaiKhoanLai(`Thực Tập Lai Bán ${tag}`, ["SALES", "INTERN"])).cookie;
+const demDon = async (who, name) => {
+  const x = await call(who, "GET", `/api/orders?q=${encodeURIComponent(name)}`);
+  assert.equal(x.status, 200, `đếm đơn "${name}": ${JSON.stringify(x.body)}`);
+  return x.body.orders.length;
+};
+const biChan = (x, cau, what) => {
+  assert.equal(x.status, 403, `${what}: ${JSON.stringify(x.body)}`);
+  assert.equal(x.body.error.code, "forbidden", what);
+  assert.equal(x.body.error.message, cau, what);
+};
+// `ma` ngắn cho tên khách dùng để ĐẾM đơn qua `?q=`: D1 chỉ nhận mẫu LIKE tới khoảng 50 byte (`%chữ tìm%`), tiếng Việt có dấu tốn 2–3 byte mỗi ký tự — chữ tìm dài hơn thì `GET /api/orders` trả 500. Vì vậy tên ở đây ngắn, không dấu.
+for (const [ten, who, ma] of [["Thực tập", INTERN, "a"], ["Thực tập + Bán hàng", INTERN_SALES, "b"]]) {
+  // 10a) LẬP: đơn giá khác giá danh mục (thấp/cao) hoặc giảm giá (dù 1₫ hay gần hết tiền) → 403 đúng câu của Thực tập, không lưu đơn
+  for (const [what, price] of [["thấp hơn", ZE1 - 10000], ["cao hơn", ZE1 + 10000]]) {
+    const name = `TT${ma} gia ${price} ${tag}`;
+    r = await call(who, "POST", "/api/orders", orderInput({ customerName: name, services: [catalogService({ pax: { adult: 2 }, unitPrices: { adult: price } })] }));
+    biChan(r, CAU_THUC_TAP, `${ten}: đơn giá ${what}`);
+    assert.equal(await demDon(who, name), 0, `${ten} ${what}: không lưu đơn`);
+  }
+  for (const d of [1, 2 * ZE1 - 1000]) {
+    const name = `TT${ma} giam ${d} ${tag}`;
+    r = await call(who, "POST", "/api/orders", { ...discountedBody(d), customerName: name });
+    biChan(r, CAU_THUC_TAP, `${ten}: đúng giá + giảm ${d}`);
+    assert.equal(await demDon(who, name), 0, `${ten} giảm ${d}: không lưu đơn`);
+  }
+  // 10b) LẬP đúng việc: đúng giá danh mục, không giảm (mặc định hoặc đơn giá tường minh = giá danh mục, giảm 0) → 201
+  r = await call(who, "POST", "/api/orders", orderInput({ customerName: `TT đúng giá ${ten} ${tag}`, services: [catalogService({ pax: { adult: 2 } })] }));
+  assert.equal(r.status, 201, `${ten}: ${JSON.stringify(r.body)}`);
+  let to = r.body.order;
+  assert.deepEqual([lines(to)[0].unitPrice, lines(to)[0].catalogPrice, to.subtotal, to.discount, to.total], [ZE1, ZE1, 2 * ZE1, 0, 2 * ZE1]);
+  r = await call(who, "POST", "/api/orders", orderInput({ customerName: `TT giá tường minh ${ten} ${tag}`, services: [catalogService({ pax: { adult: 1, child: 1 }, unitPrices: { ...FAKE_CATALOG.ZE1.prices } })], discount: 0 }));
+  assert.equal(r.status, 201, `${ten}: ${JSON.stringify(r.body)}`);
+  // 10c) SỬA NHÁP: hạ đơn giá → 403; giữ giá nhưng thêm giảm giá → 403 (đơn không đổi); giữ giá, không giảm, đổi ghi chú → 200
+  r = await put(who, to, [catalogAsStored(to.services[0], { unitPrices: { adult: ZE1 - 1 } })], { discount: 0 });
+  biChan(r, CAU_THUC_TAP, `${ten}: PUT hạ đơn giá`);
+  r = await put(who, to, [catalogAsStored(to.services[0])], { discount: 1000 });
+  biChan(r, CAU_THUC_TAP, `${ten}: PUT thêm giảm giá`);
+  const toNow = await get(who, to.id);
+  assert.deepEqual([toNow.updatedAt, toNow.discount], [to.updatedAt, 0], `${ten}: bị từ chối thì đơn không đổi`);
+  r = await put(who, to, [catalogAsStored(to.services[0])], { discount: 0, customerNote: "Thực tập sửa ghi chú" });
+  assert.equal(r.status, 200, `${ten}: ${JSON.stringify(r.body)}`);
+  to = r.body.order;
+  // 10d) XÁC NHẬN: đơn đúng giá, không giảm → 200 (ADR-0100 Đ5: giữ việc Thực tập tự xác nhận đơn mình lập)
+  r = await confirm(who, to);
+  assert.equal(r.status, 200, `${ten} tự xác nhận đơn đúng giá danh mục, không giảm: ${JSON.stringify(r.body)}`);
+  // 10e) XÁC NHẬN nháp CŨ lệch giá (dựng bằng SQL — trước bản vá API từng nhận) → 403, vẫn nháp
+  r = await call(who, "POST", "/api/orders", orderInput({ customerName: `TT nháp cũ lệch giá ${ten} ${tag}`, services: [catalogService({ pax: { adult: 2 } })] }));
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const lech = r.body.order;
+  await sql(`UPDATE order_item SET unit_price = 10000, line_total = quantity * 10000 WHERE order_id = '${lech.id}'`);
+  await sql(`UPDATE orders SET subtotal = 20000, total = 20000 - discount, remaining_amount = 20000 - discount - deposit_amount WHERE id = '${lech.id}'`);
+  biChan(await confirm(who, lech), CAU_THUC_TAP, `${ten}: xác nhận nháp cũ lệch giá`);
+  assert.equal((await get(who, lech.id)).status, "draft", `${ten}: đơn vẫn là nháp`);
+  // 10f) XÁC NHẬN nháp CŨ đúng giá nhưng CÓ giảm giá đã lưu → 403 (vẫn nháp); sửa giảm giá về 0 → 200, xác nhận → 200
+  r = await call(who, "POST", "/api/orders", orderInput({ customerName: `TT nháp cũ có giảm giá ${ten} ${tag}`, services: [catalogService({ pax: { adult: 2 } })] }));
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const giam = r.body.order;
+  await sql(`UPDATE orders SET discount = 5000, total = subtotal - 5000, remaining_amount = subtotal - 5000 - deposit_amount WHERE id = '${giam.id}'`);
+  const giamLuu = await get(who, giam.id);
+  assert.deepEqual([giamLuu.discount, giamLuu.total], [5000, 2 * ZE1 - 5000], `${ten}: nháp cũ dựng đúng`);
+  biChan(await confirm(who, giamLuu), CAU_THUC_TAP, `${ten}: xác nhận nháp cũ có giảm giá đã lưu`);
+  assert.equal((await get(who, giam.id)).status, "draft", `${ten}: đơn vẫn là nháp`);
+  r = await put(who, giamLuu, [catalogAsStored(giamLuu.services[0])], { discount: 0 });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal((await confirm(who, r.body.order)).status, 200, `${ten}: sửa giảm giá về 0 rồi xác nhận`);
+  console.log(`✓ ADR-0100 (${ten}): lập lệch giá / giảm giá → 403 đúng câu, không lưu; đúng giá → 201; PUT hạ giá / thêm giảm → 403 (đơn không đổi); đúng giá tự xác nhận → 200; xác nhận nháp cũ lệch giá / có giảm giá → 403 (vẫn nháp), sửa về đúng → 200`);
+}
+// 10g) Đơn nháp CŨ của Thực tập có dịch vụ nhập tay (không có giá danh mục): xác nhận → 403 (R2); xoá dịch vụ nhập tay → 200, xác nhận → 200
+const ttLeg = await legacyDraft(INTERN, `TT nháp cũ nhập tay ${tag}`);
+biChan(await confirm(INTERN, ttLeg), CAU_THUC_TAP, "Thực tập: xác nhận nháp cũ có dịch vụ nhập tay");
+r = await put(INTERN, ttLeg, [catalogAsStored(ttLeg.services[0])]);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal((await confirm(INTERN, r.body.order)).status, 200);
+// 10h) Đối chứng: CÙNG thân yêu cầu bị Thực tập chặn thì Bán hàng thường vẫn 201 (giá thoả thuận / giảm giá); Đối tác vẫn 403 nhưng bằng câu của Đối tác
+r = await call(SALES, "POST", "/api/orders", orderInput({ customerName: `TT đối chứng Bán hàng ${tag}`, services: [catalogService({ pax: { adult: 2 }, unitPrices: { adult: ZE1 - 10000 } })], discount: 5000 }));
+assert.equal(r.status, 201, JSON.stringify(r.body));
+r = await call(P, "POST", "/api/orders", orderInput({ customerName: `TT đối chứng Đối tác ${tag}`, services: [catalogService({ pax: { adult: 2 } })], discount: 1 }));
+assert.equal(r.status, 403, JSON.stringify(r.body));
+assert.match(r.body.error.message, NO_DISCOUNT);
+assert.notEqual(r.body.error.message, CAU_THUC_TAP, "Đối tác giữ câu của Đối tác");
+console.log("✓ ADR-0100: Thực tập (cả Thực tập + Bán hàng) theo luật giá của Đối tác ở ba cổng; xác nhận nháp cũ có nhập tay → 403; Bán hàng thường vẫn giảm giá được, Đối tác vẫn bằng câu của Đối tác");
+
 console.log("E2E NHẬP TAY + GIÁ ĐỐI TÁC OK");

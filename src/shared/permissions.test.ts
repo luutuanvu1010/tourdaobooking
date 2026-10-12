@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  MA_QUYEN_TIEN, MATRIX, O_GHI_TIEN, PERMISSION_CODES, can, canAccessOrders, coQuyenTien, hasPermission, isOffice, isPermissionCode, quyenHienThi, seesOnlyAssignedOrders, type OperationCode, type PermissionCode, type Scope,
+  MA_QUYEN_TIEN, MATRIX, O_GHI_TIEN, PERMISSION_CODES, can, canAccessOrders, chiGiaDanhMuc, coQuyenTien, hasPermission, holdsIntern, holdsPartner, isOffice, isPermissionCode, quyenHienThi, seesOnlyAssignedOrders,
+  type OperationCode, type PermissionCode, type Scope,
 } from "./permissions.ts";
 
 // BẢN ĐỌC THỨ HAI của bảng ADR-0007 điều 1 SAU khi ADR-0009 đổi ba ô của SALES (order.modify, order.history.view, dispatch.assign: own → ownOrAssigned),
@@ -553,4 +554,33 @@ test("sổ đại lý: ghi mức tay (order.terms.override) chỉ Kế toán, Qu
   assert.equal(ai(["FIELD"], "order.terms.view", { assigned: true }), true);
   assert.equal(ai(["FIELD"], "order.terms.view", { assigned: false }), false);
   assert.equal(ai(["SALES"], "supply.terms.view"), false, "Bán hàng thấy hoa hồng, không thấy tỷ lệ mua lại của nhà cung cấp");
+});
+
+// ADR-0100 (accepted 2026-10-03; K-B-1 kiểm toán 12/10): luật giá R2/R3 (chỉ giá danh mục, không giảm giá) áp cho Đối tác VÀ Thực tập — "có quyền … là áp",
+// kể cả kèm quyền nội bộ khác. MỘT hàm thuần `chiGiaDanhMuc` cho máy chủ lẫn form lập đơn. Kỳ vọng VIẾT TAY (không suy từ MATRIX); `holdsPartner` KHÔNG đổi nghĩa
+// (còn dùng cho R1 nhập tay, DTO thương mại hẹp, Nhật ký…) nên bài này quét lại nó cạnh hàm mới.
+test("ADR-0100: chiGiaDanhMuc trên cả 1024 tập con quyền — đúng khi có PARTNER hoặc có INTERN (kể cả kèm quyền nội bộ), và holdsPartner / holdsIntern giữ nguyên nghĩa", () => {
+  let count = 0;
+  let bitChan = 0;
+  for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
+    const permissions = PERMISSION_CODES.filter((_, i) => mask & (1 << i));
+    const who = { id: "u1", permissions };
+    const ten = permissions.join("+") || "(không quyền)";
+    const mong = permissions.includes("PARTNER") || permissions.includes("INTERN");
+    assert.equal(chiGiaDanhMuc(who), mong, `chiGiaDanhMuc: ${ten}`);
+    assert.equal(holdsPartner(who), permissions.includes("PARTNER"), `holdsPartner đổi nghĩa: ${ten}`);
+    assert.equal(holdsIntern(who), permissions.includes("INTERN"), `holdsIntern: ${ten}`);
+    if (mong) bitChan++;
+    count++;
+  }
+  assert.equal(count, 1024);
+  assert.equal(bitChan, 1024 - 256, "chống bài rỗng: 768 tập có PARTNER hoặc INTERN, 256 tập không có cả hai"); // 8 mã còn lại → 2^8 tập không PARTNER, không INTERN
+});
+
+test("ADR-0100: Thực tập đứng một mình, Thực tập kèm Bán hàng / Quản trị / Toàn quyền / HDV đều bị áp; Bán hàng, Kế toán, Quản trị, Toàn quyền, HDV, Nhân sự đứng một mình KHÔNG", () => {
+  const ai = (...permissions: PermissionCode[]) => ({ id: "u1", permissions });
+  for (const lai of [["INTERN"], ["INTERN", "SALES"], ["INTERN", "ADMIN"], ["SUPER_ADMIN", "INTERN"], ["FIELD", "INTERN"], ["PARTNER", "INTERN"]] as PermissionCode[][])
+    assert.equal(chiGiaDanhMuc(ai(...lai)), true, lai.join("+"));
+  for (const p of ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN", "FIELD", "HR", "DRIVER"] as const) assert.equal(chiGiaDanhMuc(ai(p)), false, p);
+  assert.equal(chiGiaDanhMuc(ai()), false);
 });

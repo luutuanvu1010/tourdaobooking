@@ -76,6 +76,8 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
 const STRICT: readonly { module: string; file: string }[] = [
   { module: "auth", file: "modules/auth/repository.ts" },
   { module: "billing", file: "modules/billing/repository.ts" }, // ADR-0024 điều 1: nghiêm từ ngày đầu (sổ tiền lượt 1 — NT-R2)
+  { module: "billing", file: "modules/billing/coc-repo.ts" }, // ADR-0089 (cọc đơn huỷ, migration 0079) — SIẾT theo K-A-1 (kiểm toán 2026-10-12): SQL tiền này từng đứng ngoài bài EXPLAIN / ranh giới
+  { module: "billing", file: "modules/billing/thay-lan-thu-repo.ts" }, // ADR-0088 đ2, đ6 (thay lần thu, migration 0083) — SIẾT theo K-A-1: SQL tiền này từng đứng ngoài bài EXPLAIN / ranh giới
   { module: "company", file: "modules/company/repository.ts" },
   { module: "dispatch", file: "modules/dispatch/repository.ts" },
   { module: "feedback", file: "modules/feedback/repository.ts" },
@@ -553,6 +555,38 @@ test("ADR-0002 điều 8(b) mở rộng: MỌI tệp trong thư mục module ngh
     problems,
     [],
     "SQL viết thẳng (không qua defineSql) ở BẤT KỲ tệp nào trong thư mục module nghiêm — không chỉ repository.ts — đi vòng qua ranh giới EXPLAIN; hãy khai bằng defineSql rồi .prepare(<hằng>)",
+  );
+});
+
+// K-A-1 (kiểm toán toàn Nền tảng 2026-10-12): bài EXPLAIN ở trên chỉ nạp tệp có tên trong STRICT / NUA_NGHIEM, nên một tệp SQL mới của module nghiêm mà quên khai ở đó
+// thì câu của nó KHÔNG chịu bài ranh giới nào (hai tệp tiền của `billing` từng lọt như vậy: người kiểm cấy `UPDATE orders SET total = 0` mà 45/45 vẫn xanh). Bài này
+// khoá cửa từ phía ngược lại: mọi tệp dưới src/modules/** có LỜI GỌI `defineSql(` (đọc trên mã đã che chú thích/chuỗi) phải được khai ở đúng một trong hai danh sách.
+/** Mã đã che chú thích/chuỗi có lời gọi `defineSql(` không (nhắc tên trong chú thích / chuỗi / dòng import thì không tính). */
+const coLoiGoiDefineSql = (source: string): boolean => /\bdefineSql\s*\(/.test(maskSource(source, { strings: true, comments: true }));
+
+test("bộ bắt lời gọi `defineSql(`: bắt lời gọi (kể cả xuống dòng), bỏ qua chú thích, chuỗi và dòng import", () => {
+  const cases: [string, boolean][] = [
+    ['const A = defineSql("billing", "ten", `SELECT 1`);', true],
+    ["const A = defineSql(\n  \"billing\",\n  \"ten\",\n  `SELECT 1`,\n);", true],
+    ['import { defineSql } from "../../shared/sql-registry.ts";', false],
+    ['// const A = defineSql("billing", "ten", `SELECT 1`) — ví dụ trong chú thích', false],
+    ['const mau = "defineSql(x)";', false],
+  ];
+  for (const [src, caught] of cases) assert.equal(coLoiGoiDefineSql(src), caught, src);
+});
+
+test("K-A-1: mọi tệp dưới src/modules/** có lời gọi `defineSql(` phải nằm trong STRICT hoặc NUA_NGHIEM — không thì SQL của nó đi vòng qua bài EXPLAIN / ranh giới", () => {
+  const khaiBao = new Set([...STRICT, ...NUA_NGHIEM].map((s) => s.file));
+  const coDefineSql = walk(join(SRC, "modules"))
+    .map((file) => ({ rel: relative(SRC, file).split(sep).join("/"), file }))
+    .filter(({ file }) => coLoiGoiDefineSql(readFileSync(file, "utf8")))
+    .map(({ rel }) => rel);
+  assert.ok(coDefineSql.length >= khaiBao.size, "tự kiểm bộ quét: phải thấy mọi tệp đã khai — hoặc bộ quét đang mù, hoặc STRICT / NUA_NGHIEM còn khai một tệp không còn lời gọi defineSql( (bỏ dòng thừa)");
+  const chuaKhai = coDefineSql.filter((rel) => !khaiBao.has(rel));
+  assert.deepEqual(
+    chuaKhai,
+    [],
+    `tệp có defineSql( nhưng chưa khai ở STRICT / NUA_NGHIEM — câu SQL của nó không chịu bài EXPLAIN ranh giới (tệp tiền thì càng nguy hiểm): ${chuaKhai.join(", ")}`,
   );
 });
 

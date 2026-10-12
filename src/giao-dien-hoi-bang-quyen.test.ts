@@ -40,6 +40,12 @@ const CHO_PHEP: { file: string; khuon: RegExp; ma: string; lyDo: string }[] = [
     ma: "SUPER_ADMIN",
     lyDo: "như trên",
   },
+  {
+    file: "src/shared/permissions.ts",
+    khuon: /^export const holdsIntern = .*who\.permissions\.includes\("INTERN"\);$/,
+    ma: "INTERN",
+    lyDo: "ADR-0100 Đ2 định nghĩa luật giá của Thực tập thẳng bằng MÃ quyền (\"có quyền Thực tập là áp\", như `holdsPartner` với PARTNER); `chiGiaDanhMuc` chỉ để form khoá ô đơn giá / giảm giá cho khỏi gõ rồi bị từ chối — máy chủ mới là nơi quyết",
+  },
 ];
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------

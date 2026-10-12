@@ -29,7 +29,7 @@ export interface CardOptions {
   onRemove: () => void;
   /** Thẻ khoá: "Chọn lại từ danh mục" (trang xoá thẻ rồi mở ô tìm). */
   onRepick: () => void;
-  /** Tài khoản có quyền Đối tác (ADR-0027 R2): đơn giá luôn là giá danh mục — ô đơn giá CHỈ XEM khi đang bằng giá danh mục; nếu đơn cũ đang lệch thì vẫn
+  /** Tài khoản có quyền Đối tác (ADR-0027 R2) hoặc Thực tập (ADR-0100) — `chiGiaDanhMuc`: đơn giá luôn là giá danh mục — ô đơn giá CHỈ XEM khi đang bằng giá danh mục; nếu đơn cũ đang lệch thì vẫn
    *  sửa được để đưa về đúng giá (máy chủ từ chối mọi giá khác). */
   retailOnly?: boolean;
   /** ADR-0061: người dùng ĐƯỢC nhập tay (`duocDung` của máy chủ) — thẻ nhập tay đã lưu sửa được tên/giá; vắng/false = chỉ xem (máy chủ vẫn kiểm lại). */
