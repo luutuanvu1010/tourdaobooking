@@ -7,7 +7,7 @@
 //   TH05 nhờ hai xe cùng điểm: một xe nhận, đề nghị kia VOID, xe kia Nhận → 409 da_huy
 //   TH06 xe nhờ Đã tới điểm trước → đề nghị VOID trong cùng lô; Nhận → 409 da_huy
 //   TH07 cứu hộ có nơi gặp (chữ, che số): suất Đã lên sang xe nhận tại điểm nơi gặp, suất Chờ ở nơi đón gốc; xe nhờ kết thúc gián đoạn; xe nhận Đã tới nơi gặp
-//   TH08 văn phòng gửi thay cứu hộ (chỉ ONBOARD; người bấm ghi riêng); văn phòng không Nhận thay (404)
+//   TH08 văn phòng gửi thay cứu hộ (chỉ ONBOARD; người bấm ghi riêng); văn phòng không Nhận thay (403)
 //   TH09 sai cam kết (xe riêng trên xe nhận) → leo thang → Quản trị duyệt → khoá phá lệ cam kết của xe nhận
 //   TH10 nhờ chéo hai xe, mỗi bên tự đồng ý
 //   NT-A5-20 chạy đua: hai xe cùng Nhận một điểm (một thắng, một 409 da_huy); Nhận đúng lúc xe nhờ Rút (đúng một bên thắng)
@@ -368,9 +368,9 @@ try {
   const [{ id: salesId }] = await sqlRows(`SELECT id FROM staff WHERE phone = '${ACCOUNTS.salesA.phone}'`);
   const [q8] = await sqlRows(`SELECT proposed_by_party_id AS p, proposed_by_staff_id AS s FROM vc_transfer_request WHERE id = '${rid8}'`);
   assert.deepEqual([q8.p, q8.s], [A8.party, salesId], "người gửi = tài xế xe nhờ; người bấm = Bán hàng");
-  assert.equal((await nhan(SALES, rid8)).status, 404, "văn phòng không bấm Nhận thay");
+  assert.equal((await nhan(SALES, rid8)).status, 403, "văn phòng không bấm Nhận thay (không có ô trip.transfer — ADR-0052:248, golden TH08-4A)");
   ok(await nhan(C8, rid8), "DA_CHUYEN", "CONFIRMED");
-  console.log("✓ TH08: Bán hàng gửi thay cứu hộ (STOP → 403; Kế toán 403); người bấm ghi riêng; văn phòng Nhận → 404; tài xế xe nhận Nhận → chuyển");
+  console.log("✓ TH08: Bán hàng gửi thay cứu hộ (STOP → 403; Kế toán 403); người bấm ghi riêng; văn phòng Nhận → 403; tài xế xe nhận Nhận → chuyển");
 
   // ==== TH09-9A sai cam kết: xe nhận chở đơn xe riêng ====
   const d9 = await don("10:00", "Khách sạn Thêm Khách", 1);

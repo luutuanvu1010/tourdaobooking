@@ -324,7 +324,7 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
   {
     id: "a5-gui", ten: "Gửi đề nghị chuyển khách (tài xế nhờ xe khác / văn phòng gửi thay cứu hộ)", loai: "chuyen_khach", trangThai: "co_ma",
     routes: [
-      { phuongThuc: "POST", duongDan: "/api/van-chuyen/cuoc-cua-toi/:id/de-nghi", cong: "staff", o: "trip.transfer", oDau: "trip.view", ngucanh: "assigned", ai: O_CHUYEN_KHACH, ham: "lenhGuiDeNghi" },
+      { phuongThuc: "POST", duongDan: "/api/van-chuyen/cuoc-cua-toi/:id/de-nghi", cong: "staff", o: "trip.transfer", ngucanh: "assigned", ai: O_CHUYEN_KHACH, ham: "lenhGuiDeNghi" },
       vp("/api/van-chuyen/chuyen/:id/cuu-ho", "trip.progress", O_TIEN_DO, "lenhGuiDeNghi"),
     ],
     trangThaiChuyen: ["PLANNED", "RUNNING"], vuot: [],
@@ -334,14 +334,14 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
   },
   {
     id: "a5-rut-lai", ten: "Tài xế nguồn rút lại đề nghị", loai: "chuyen_khach", trangThai: "co_ma",
-    routes: [{ phuongThuc: "POST", duongDan: "/api/van-chuyen/de-nghi/:rid/rut", cong: "staff", o: "trip.transfer", oDau: "trip.view", ngucanh: "assigned", ai: O_CHUYEN_KHACH, ham: "lenhRutDeNghi" }],
+    routes: [{ phuongThuc: "POST", duongDan: "/api/van-chuyen/de-nghi/:rid/rut", cong: "staff", o: "trip.transfer", ngucanh: "assigned", ai: O_CHUYEN_KHACH, ham: "lenhRutDeNghi" }],
     trangThaiChuyen: ["PLANNED", "RUNNING"], vuot: [], luat: "người bấm đang lái chuyến nguồn; đề nghị còn Chờ trả lời và chưa quá hạn; không tin",
     bang: [...LO_CHUNG, "vc_transfer_request"], suKien: "TRANSFER_WITHDRAWN", nhatKy: "trip_transfer_withdrawn", lo: "loRutDeNghi", bao: "route", suKienCoChuyenNguon: true,
     tin: null, bangTin: "sua", nguon: "ADR-0111 Đ3 (b), (d); ADR-0052 D4.1",
   },
   {
     id: "a5-khong-nhan", ten: "Tài xế xe nhận bấm Không nhận", loai: "chuyen_khach", trangThai: "co_ma",
-    routes: [{ phuongThuc: "POST", duongDan: "/api/van-chuyen/de-nghi/:rid/khong-nhan", cong: "staff", o: "trip.transfer", oDau: "trip.view", ngucanh: "assigned", ai: O_CHUYEN_KHACH, ham: "lenhKhongNhanDeNghi" }],
+    routes: [{ phuongThuc: "POST", duongDan: "/api/van-chuyen/de-nghi/:rid/khong-nhan", cong: "staff", o: "trip.transfer", ngucanh: "assigned", ai: O_CHUYEN_KHACH, ham: "lenhKhongNhanDeNghi" }],
     trangThaiChuyen: ["PLANNED", "RUNNING"], vuot: [],
     luat: "người bấm đang lái chuyến đích (máy chủ; CSDL: decided_by_party_id = tài xế đang lái đích); đề nghị Chờ, chưa quá hạn; lý do bắt buộc nhóm TU_CHOI_NHAN",
     bang: [...LO_CHUNG, "vc_transfer_request"], suKien: "TRANSFER_DECLINED", nhatKy: "trip_transfer_declined", lo: "loKhongNhanDeNghi", bao: "route", suKienCoChuyenNguon: true,
@@ -365,7 +365,7 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
   {
     id: "a5-xac-nhan", ten: "Đề nghị được xác nhận — khách sang xe nhận (máy tự đồng ý / Quản trị duyệt)", loai: "chuyen_khach", trangThai: "co_ma",
     routes: [
-      { phuongThuc: "POST", duongDan: "/api/van-chuyen/de-nghi/:rid/nhan", cong: "staff", o: "trip.transfer", oDau: "trip.view", ngucanh: "assigned", ai: O_CHUYEN_KHACH, ham: "lenhNhanDeNghi" },
+      { phuongThuc: "POST", duongDan: "/api/van-chuyen/de-nghi/:rid/nhan", cong: "staff", o: "trip.transfer", ngucanh: "assigned", ai: O_CHUYEN_KHACH, ham: "lenhNhanDeNghi" },
       vp("/api/van-chuyen/de-nghi/:rid/duyet", "trip.override", O_VUOT, "lenhDuyetDeNghi"),
     ],
     trangThaiChuyen: ["PLANNED", "RUNNING"], vuot: [],

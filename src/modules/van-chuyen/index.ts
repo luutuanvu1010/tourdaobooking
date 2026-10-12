@@ -1633,10 +1633,10 @@ export const vanChuyenModule: AppModule = {
     }),
 
     // ADR-0111 Đ3, Đ4 (kế hoạch A5 T7b; NT-A5-3, -4, -21): tài xế xe nhờ GỬI đề nghị chuyển khách (STOP: một điểm đón; ONBOARD: cứu hộ có nơi gặp). Khuôn hai
-    // bước lệnh tài xế: không trip.view assigned → 403; không lái chuyến (kể cả Toàn quyền — ADR-0052:84) → 404; rồi ô trip.transfer. Mã lệnh dùng lại: khác
+    // bước lệnh tài xế: không có ô trip.transfer → 403 (cổng đầu, ADR-0052:218, :248); không lái chuyến (kể cả Toàn quyền — ADR-0052:84) → 404; rồi ô trip.transfer. Mã lệnh dùng lại: khác
     // cặp chuyến / loại → 409 (traLenhLap); cùng cặp mà khác phạm vi / điểm → 409 (G-A5-22).
     route("POST", "/api/van-chuyen/cuoc-cua-toi/:id/de-nghi", "staff", async ({ env, request, params, staff, baoThayDoiChuyen }) => {
-      if (!can(staff, "trip.view", { assigned: true })) return CAN_XEM_CUOC();
+      if (!can(staff, "trip.transfer", { assigned: true })) return CAN_CHUYEN_KHACH();
       const nen = await docNen(env.DB, params.id ?? "");
       const assigned = dangLai(nen, staff);
       if (!nen || !assigned || !can(staff, "trip.transfer", { assigned })) return KHONG_CO_CHUYEN();
@@ -1656,7 +1656,7 @@ export const vanChuyenModule: AppModule = {
 
     // ADR-0111 Đ3 (b) (NT-A5-9): tài xế xe nhờ RÚT đề nghị còn Chờ (Leo thang: 409 da_leo_thang — G-A5-19). Không tin.
     route("POST", "/api/van-chuyen/de-nghi/:rid/rut", "staff", async ({ env, request, params, staff, baoThayDoiChuyen }) => {
-      if (!can(staff, "trip.view", { assigned: true })) return CAN_XEM_CUOC();
+      if (!can(staff, "trip.transfer", { assigned: true })) return CAN_CHUYEN_KHACH();
       const r = await deNghiById(env.DB, params.rid ?? "");
       const assigned = r !== null && dangLai(await docNen(env.DB, r.from_trip_id), staff);
       if (!r || !assigned || !can(staff, "trip.transfer", { assigned })) return KHONG_CO_DE_NGHI();
@@ -1680,7 +1680,7 @@ export const vanChuyenModule: AppModule = {
     // nhận). Đọc mới + kiemChuyen (11 điều kiện): đạt hết + công tắc tự đồng ý (chính sách lúc bấm) bật → xác nhận; còn lại leo thang. Quá hạn → Hết hạn (200).
     // Hàm hẹp của orders (chặng, hành khách cho bản chốt) gọi ở đây, sau `can()`.
     route("POST", "/api/van-chuyen/de-nghi/:rid/nhan", "staff", async ({ env, request, params, staff, baoThayDoiChuyen }) => {
-      if (!can(staff, "trip.view", { assigned: true })) return CAN_XEM_CUOC();
+      if (!can(staff, "trip.transfer", { assigned: true })) return CAN_CHUYEN_KHACH();
       const r = await deNghiById(env.DB, params.rid ?? "");
       const assigned = r !== null && dangLai(await docNen(env.DB, r.to_trip_id), staff);
       if (!r || !assigned || !can(staff, "trip.transfer", { assigned })) return KHONG_CO_DE_NGHI();
@@ -1704,7 +1704,7 @@ export const vanChuyenModule: AppModule = {
 
     // ADR-0111 Đ3 (b), (d) (NT-A5-8): tài xế XE NHẬN bấm Không nhận — lý do bắt buộc nhóm TU_CHOI_NHAN; tin tới tài xế xe nhờ. Quá hạn → Hết hạn (200).
     route("POST", "/api/van-chuyen/de-nghi/:rid/khong-nhan", "staff", async ({ env, request, params, staff, baoThayDoiChuyen }) => {
-      if (!can(staff, "trip.view", { assigned: true })) return CAN_XEM_CUOC();
+      if (!can(staff, "trip.transfer", { assigned: true })) return CAN_CHUYEN_KHACH();
       const r = await deNghiById(env.DB, params.rid ?? "");
       const assigned = r !== null && dangLai(await docNen(env.DB, r.to_trip_id), staff);
       if (!r || !assigned || !can(staff, "trip.transfer", { assigned })) return KHONG_CO_DE_NGHI();

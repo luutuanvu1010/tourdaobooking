@@ -31,6 +31,7 @@ Hồ sơ có ngày. Kế hoạch: `2026-10-08-giai-doan-3-a5-ke-hoach.md`; quy�
 ## Lệch kế hoạch (ADR thắng hoặc chặt hơn — ghi lại, không hỏi)
 
 - Văn phòng gửi `STOP` → 403 (ADR-0052 :248; kế hoạch NT-A5-15 ghi 400). Route văn phòng trả 200 (không 201).
+- **Sửa 12/10 theo phiếu kiểm độc lập (VỪA-1): 404 → 403 cho khớp ADR.** Bốn route tài xế gửi / rút / nhận / không nhận trước đây mở cổng bằng `trip.view` rồi trả 404 cho Bán hàng, Kế toán, Quản trị; ADR-0052:218, :248 và tệp vàng TH08-4A/4B ghi 403 ("không có ô `trip.transfer`"). Nay cổng đầu là `can(trip.transfer, { assigned: true })` → 403; có ô mà không lái chuyến (kể cả Toàn quyền, TH08-4C) vẫn 404.
 - Rút / Nhận / Không nhận muộn → 200 `HET_HAN` ghi `EXPIRED` (thay 409); đề nghị đã tự huỷ → 409 `da_huy`; khách đổi từ lúc gửi → 409 `ck_khach_doi`; Duyệt bị chặn → 409 `luat_loi_khong_duyet` (theo tệp vàng).
 - R-VC-28 phủ cả `MAY` lẫn `NGUOI` (kế hoạch: `NGUOI`). R-VC-30 không xét "tập khách đổi khi điểm còn Chờ" (máy chủ chặn lúc quyết).
 - Móc tự huỷ ngoài danh sách hàm của kế hoạch: `loCapNhatDiem` khi xe nhờ đang chạy (đường "bỏ qua điểm nguồn" thật); tự huỷ theo suất phủ cả `ONBOARD` của chuyến có suất.

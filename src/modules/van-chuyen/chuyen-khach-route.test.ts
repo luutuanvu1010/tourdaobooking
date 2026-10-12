@@ -2,6 +2,7 @@
 // (tests/audit/dieu-phoi-khung.mjs). Tên khách, SĐT là GIẢ.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { ACC, ADM, DRIVER, DRIVER2, DRIVER_PARTNER, FIELD, LOC, NGAY, NGAY_SAU, SALES, SUP, batDongHo, chiTiet, chuyenSan, denGio, setup, taoChuyen, tienDo, uuid, xe } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
@@ -121,7 +122,9 @@ test("NT-A5-4 gửi bị chặn: 409 có mã, không ghi gì (chưa chạy, khá
     await ma(await gui(w, a.id, { denChuyenId: b.id, phamVi: "ONBOARD", noiGap: { chu: "Cây xăng" } }), "ck_cuu_ho_chi_xe_dang_chay");
     assert.equal((await gui(w, a.id, { denChuyenId: b.id, phamVi: "STOP" })).status, 400);
     assert.equal((await gui(w, a.id, { denChuyenId: b.id, phamVi: "ONBOARD", noiGap: { chu: "Cây xăng", diaDiemId: LOC } })).status, 400, "hai nơi gặp");
-    for (const as of [DRIVER2, SUP, SALES]) assert.equal((await gui(w, a.id, { denChuyenId: b.id, phamVi: "STOP", diemId: a.diemDon }, as)).status, 404, as);
+    // VỪA-1 (kiểm độc lập 12/10, ADR-0052:218, :248; golden TH08-4A/4B): không có ô trip.transfer → 403 ở cổng đầu; có ô mà không lái chuyến (kể cả Toàn quyền) → 404.
+    for (const as of [SALES, ACC, ADM]) assert.equal((await gui(w, a.id, { denChuyenId: b.id, phamVi: "STOP", diemId: a.diemDon }, as)).status, 403, as);
+    for (const as of [DRIVER2, SUP]) assert.equal((await gui(w, a.id, { denChuyenId: b.id, phamVi: "STOP", diemId: a.diemDon }, as)).status, 404, as);
     assert.equal(soDong(), 0, "không ghi gì");
     // P4 (G-A5-6): hai đề nghị Chờ cùng một điểm được phép.
     assert.equal((await gui(w, a.id, { denChuyenId: b.id, phamVi: "STOP", diemId: a.diemDon })).status, 200);
@@ -143,7 +146,8 @@ test("NT-A5-9 rút: chỉ tài xế xe nhờ, chỉ khi Chờ và chưa quá h�
     const w = setup();
     const { a, b } = await haiXe(w);
     const id = (await gui(w, a.id, { denChuyenId: b.id, phamVi: "STOP", diemId: a.diemDon })).json.deNghi.id;
-    for (const as of [DRIVER2, SUP, SALES, ACC]) assert.equal((await rut(w, id, as)).status, 404, as);
+    for (const as of [SALES, ACC, ADM]) assert.equal((await rut(w, id, as)).status, 403, `${as}: không có ô trip.transfer`);
+    for (const as of [DRIVER2, SUP]) assert.equal((await rut(w, id, as)).status, 404, as);
     const r = await rut(w, id);
     assert.equal(r.status, 200, r.text);
     assert.deepEqual([r.json.ketQua, r.json.deNghi.trangThai], ["DA_RUT", "WITHDRAWN"]);
@@ -274,8 +278,8 @@ test("NT-A5-6 nhận, máy tự xác nhận (xe nhận đang chạy): suất ngu
     const { a, b } = await xeNhanChay(w);
     const id = await guiDiem(w, a, b);
     const id2 = await guiDiem(w, a, b); // P4: hai đề nghị Chờ cùng điểm
-    for (const as of [DRIVER, SUP, SALES, ACC]) assert.equal((await nhan(w, id, as)).status, 404, `${as}: không lái xe nhận (kể cả Toàn quyền)`);
-    for (const as of [FIELD, DRIVER_PARTNER]) assert.equal((await nhan(w, id, as)).status, 403, `${as}: không có ô trip.view`);
+    for (const as of [DRIVER, SUP]) assert.equal((await nhan(w, id, as)).status, 404, `${as}: không lái xe nhận (kể cả Toàn quyền)`);
+    for (const as of [SALES, ACC, ADM, FIELD, DRIVER_PARTNER]) assert.equal((await nhan(w, id, as)).status, 403, `${as}: không có ô trip.transfer`);
     const ma = uuid();
     const r = await nhan(w, id, DRIVER2, ma);
     assert.equal(r.status, 200, r.text);
@@ -313,6 +317,29 @@ test("NT-A5-6 nhận, máy tự xác nhận (xe nhận đang chạy): suất ngu
     assert.equal(mot(w, "SELECT count(*) AS n FROM vc_trip_event WHERE request_id = ?", ma).n, 1);
     tat409(await nhan(w, id2), "da_huy");
     kiemDinhKySach(w);
+  } finally {
+    tat();
+  }
+});
+
+test("TH08-4A/4B/4C chạm route THẬT (VỪA-1, kiểm độc lập 12/10): Bán hàng / Quản trị bấm Nhận thay → đúng mã HTTP của tệp vàng (403, không có ô trip.transfer); Toàn quyền → 404 (có ô nhưng không lái xe nhận); không ghi gì", async () => {
+  const tat = batDongHo();
+  try {
+    const vang = JSON.parse(readFileSync(new URL("../../../golden/dieu-phoi-luot-2/xe-a-b-luot-2-chuyen-khach.json", import.meta.url), "utf8"));
+    const buoc = (ma: string) => vang.cac_tinh_huong.flatMap((t: any) => t.cac_buoc).find((b: any) => b.ma === ma)?.dap_an.http as number;
+    const w = setup();
+    const { a, b } = await xeNhanChay(w);
+    const id = await guiDiem(w, a, b);
+    const dongGhi = () => mot(w, "SELECT count(*) AS n FROM vc_trip_event WHERE kind LIKE 'TRANSFER%'").n;
+    const truoc = dongGhi();
+    const ca = [["TH08-4A-BAN-HANG-NHAN-THAY", SALES], ["TH08-4B-QUAN-TRI-NHAN-THAY", ADM], ["TH08-4C-TOAN-QUYEN-NHAN-THAY", SUP]] as const;
+    for (const [ma, as] of ca) {
+      assert.ok(buoc(ma), `tệp vàng thiếu bước ${ma}`);
+      const r = await nhan(w, id, as);
+      assert.equal(r.status, buoc(ma), `${ma}: route thật phải trả đúng mã của tệp vàng — ${r.text}`);
+    }
+    assert.equal(dongGhi(), truoc, "không ghi gì");
+    assert.equal(mot(w, "SELECT status FROM vc_transfer_request WHERE id = ?", id).status, "PENDING");
   } finally {
     tat();
   }
@@ -422,6 +449,8 @@ test("NT-A5-8, -10, -5 không nhận (lý do nhóm Không nhận, tin tới xe n
     assert.equal((await khongNhan(w, id, null)).status, 400, "thiếu lý do");
     assert.equal((await khongNhan(w, id, "PHA_LE_SU_CO")).status, 400, "lý do sai nhóm");
     assert.equal((await khongNhan(w, id, "TU_CHOI_DAY_CHO", DRIVER)).status, 404, "người gửi không bấm Không nhận");
+    for (const as of [SALES, ACC, ADM]) assert.equal((await khongNhan(w, id, "TU_CHOI_DAY_CHO", as)).status, 403, `${as}: không có ô trip.transfer`);
+    assert.equal((await khongNhan(w, id, "TU_CHOI_DAY_CHO", SUP)).status, 404, "Toàn quyền có ô nhưng không lái xe nhận");
     const maKhong = uuid();
     const k = await khongNhan(w, id, "TU_CHOI_DAY_CHO", DRIVER2, maKhong);
     assert.equal(k.status, 200, k.text);
