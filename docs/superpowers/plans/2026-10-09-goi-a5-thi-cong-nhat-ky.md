@@ -25,7 +25,7 @@ Hồ sơ có ngày. Kế hoạch: `2026-10-08-giai-doan-3-a5-ke-hoach.md`; quy�
 - **N1** đã làm (T4): ghim hàng `DRIVER` thêm `trip.transfer: assigned`.
 - **N2** đã làm (lát 3): `lop-vuot.test.ts` NT-3(b) ngoại lệ đúng hai route Duyệt / Bác; câu đỏ trước khi khai: `chuỗi ô vượt luật ngoài biểu thức đổi lớp + [ 'index.ts:1351', 'index.ts:1373' ]`.
 - **N3** đã làm (T11): R-VC-16 miễn suất mở bằng đề nghị `ONBOARD` tại đúng địa điểm nơi gặp.
-- **N4** CHƯA làm: chờ A4 gộp (ghim `DRIVER_PARTNER` `trip.transfer = assigned`). Danh sách xe nhận hôm nay chỉ tài xế công ty.
+- **N4** đã làm (12/10, đợt nhập nền A4 `e27275dc`, đỏ trước xanh sau): ghim `DRIVER_PARTNER` `trip.transfer = assigned` (ADR-0053:46, ADR-0111); tài xế đối tác làm được cả xe nhờ lẫn xe nhận (hai bài N4 ở `chuyen-khach-route.test.ts`). Người kiểm độc lập 12/10: ô về `none` đỏ 6 bài, về `any` đỏ 4 bài. Dòng sổ hàng rào: "ô `trip.transfer` của `DRIVER_PARTNER`".
 - **N5** CHƯA đo: R-VC-17 báo giả hay không — xem kết quả `audit-invariants --strict` cuối e2e đủ bộ.
 
 ## Lệch kế hoạch (ADR thắng hoặc chặt hơn — ghi lại, không hỏi)
@@ -34,6 +34,7 @@ Hồ sơ có ngày. Kế hoạch: `2026-10-08-giai-doan-3-a5-ke-hoach.md`; quy�
 - **Sửa 12/10 theo phiếu kiểm độc lập (VỪA-1): 404 → 403 cho khớp ADR.** Bốn route tài xế gửi / rút / nhận / không nhận trước đây mở cổng bằng `trip.view` rồi trả 404 cho Bán hàng, Kế toán, Quản trị; ADR-0052:218, :248 và tệp vàng TH08-4A/4B ghi 403 ("không có ô `trip.transfer`"). Nay cổng đầu là `can(trip.transfer, { assigned: true })` → 403; có ô mà không lái chuyến (kể cả Toàn quyền, TH08-4C) vẫn 404.
 - Rút / Nhận / Không nhận muộn → 200 `HET_HAN` ghi `EXPIRED` (thay 409); đề nghị đã tự huỷ → 409 `da_huy`; khách đổi từ lúc gửi → 409 `ck_khach_doi`; Duyệt bị chặn → 409 `luat_loi_khong_duyet` (theo tệp vàng).
 - R-VC-28 phủ cả `MAY` lẫn `NGUOI` (kế hoạch: `NGUOI`). R-VC-30 không xét "tập khách đổi khi điểm còn Chờ" (máy chủ chặn lúc quyết).
+- **Đính chính 12/10 (mã kiểm định kỳ):** gói A4 gộp trước và đã dùng R-VC-26…30, nên mã của A5 nay là **R-VC-31…35** (bảng trên "R-VC-26…30" ở T11 và hai dòng "R-VC-28", "R-VC-30" ở mục này là mã cũ: nay R-VC-33 và R-VC-35). Các hồ sơ có ngày khác (kế hoạch A5, tệp lượt duyệt 8d, ADR-0111) giữ nguyên mã cũ; điều phối nối câu trỏ vào ADR-0111.
 - Móc tự huỷ ngoài danh sách hàm của kế hoạch: `loCapNhatDiem` khi xe nhờ đang chạy (đường "bỏ qua điểm nguồn" thật); tự huỷ theo suất phủ cả `ONBOARD` của chuyến có suất.
 - Route mới ngoài kế hoạch: `GET /chuyen/:id/xe-nhan` (văn phòng gửi thay cần danh sách xe nhận; route của tài xế đòi lái xe). Hai phản hồi danh sách kèm `lyDo` (route danh mục lý do chỉ cho Quản trị).
 - Giao diện: Rút chỉ khi Chờ (bản vẽ có ở Chờ duyệt — máy chủ trả 409 `da_leo_thang`); nhãn tầng "Bắt buộc" / "Cấu hình" (bản vẽ "Luật lõi"). Mục menu và tiêu đề màn "Đề nghị chuyển khách" (kế hoạch T15 gọi "[[Đề nghị cần duyệt]]").
@@ -66,3 +67,14 @@ Hồ sơ có ngày. Kế hoạch: `2026-10-08-giai-doan-3-a5-ke-hoach.md`; quy�
 **Câu hỏi thêm cho chủ (người kiểm bổ sung):** đề nghị đã LEO THANG rồi mới đổi tài xế xe nhận — Duyệt vẫn qua vì `ck_nguoi_nhan` chỉ chạy ở cạnh rời PENDING (`0093`), nên khách sang xe của người chưa từng đồng ý. Không sai tiền / dữ liệu; khuyến nghị giữ như hiện tại; không sửa mã.
 
 **Chữ giao diện chờ chủ duyệt (chưa đổi):** nhãn tầng "Cấu hình" (màn Đang chạy) khó hiểu với người văn phòng — đề xuất chữ thường hơn, giữ "Bắt buộc"; nhóm lý do "Không nhận chuyển điểm" dùng chung cho Không nhận, Bác và cứu hộ; nhãn "Khác" thay "Lý do khác".
+
+## Sửa theo phiếu kiểm độc lập vòng 2 (2026-10-12): đạt có điều kiện
+
+Chỉ tài liệu và một bài nhỏ, không sửa hành vi. Không làm VỪA-A (Nhận chuyển khách rồi Từ chối chuyến: chạm quyền tài xế và dữ liệu khách, đang hỏi chủ) và THẤP-4 (số 1.85 có thể va số với `main`: việc của bước A.0 khi phát hành, ghi nợ đã có).
+
+| Mục | Việc | Ghi chú |
+|---|---|---|
+| VỪA-B | Sổ hàng rào có dòng N4; dòng A4 "Hàng DRIVER_PARTNER" sửa thành 9 ô; dòng này của nhật ký ("N4 CHƯA làm") đổi thành đã làm | Tài liệu |
+| THẤP-1 (vòng 2) | Bài canh lớp che thứ hai chữ nơi gặp ở DTO (`chuyen-khach-route.test.ts`, bài "THẤP-1 (kiểm độc lập vòng 2)") | Đỏ khi bỏ `maskLongDigits` ở DTO, hoàn nguyên xanh |
+| THẤP-2 (vòng 2) | Sổ hàng rào: bằng chứng độc lập vòng 1 + vòng 2 ghi vào dòng "máy chủ, quyền, lô xác nhận"; dòng R-VC-31…35 bỏ "(26)…(30)" | Tài liệu |
+| THẤP-3 (vòng 2) | Dòng đính chính mã R-VC-31…35 ở mục "Lệch kế hoạch" | Tài liệu |
