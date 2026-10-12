@@ -19,7 +19,7 @@ const laDoiSoKhach = (a: string): boolean => (HANH_DONG_DOI_SO_KHACH as readonly
  * ADR-0062 Đ1 "mốc bắt đầu": chỉ dòng nguồn ghi TỪ mốc này mới thành tin (đơn đổi + MQ-07) — tránh "Của tôi" bật lên hàng loạt tin cũ ngay sau triển khai.
  * GIÁ TRỊ TẠM trong lúc thi công (e2e thấy tin); K1B đặt = lúc gộp / phát hành, rồi bật bài NT-B16 (thong-bao-doi.test.ts). ISO có mili-giây (so CHUỖI).
  */
-export const MOC_TIN_DOI = "2026-09-30T00:00:00.000Z";
+export const MOC_TIN_DOI = "2026-10-12T23:00:00.000Z";
 export const NGAY_GIU_TIN = 30;
 export const TOI_DA_TIN = 100;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
