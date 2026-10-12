@@ -4,7 +4,7 @@
 // 404 ⇒ ẩn khối LẶNG LẼ (Đối tác không có phần ở đơn này, hoặc đơn không có phần đối tác — Ruling 18); lỗi khác ⇒ dòng lỗi trong khối kèm nút tải lại.
 // Quyết định ẩn/hiện, chữ và dựng thân ghi tay ở src/shared/phan-doi-tac-hien-thi.ts (có bài, và bài nối với route thật); tệp này chỉ dựng DOM. Không innerHTML.
 import {
-  CAU_CHO_CAI_MUC, TIEU_DE_DOI_TAC, TIEU_DE_VAN_PHONG, canhBaoThieuMuc, chuHoaHongDoiTac, chuNhaCungCap, chuTongHoaHong, demLyDo, docThanGhiTay, ghiChuTrangThai, hienNutGhiTay, nhanNguoiHuong,
+  CAU_CHO_CAI_MUC, TIEU_DE_DOI_TAC, TIEU_DE_LOI, TIEU_DE_VAN_PHONG, canhBaoThieuMuc, chuHoaHongDoiTac, chuNhaCungCap, chuTongHoaHong, demLyDo, docThanGhiTay, ghiChuTrangThai, hienNutGhiTay, nhanNguoiHuong,
   type FormGhiTay, type LoiGhiTay, type NguoiBanForm, type TruongGhiTay,
 } from "../src/shared/phan-doi-tac-hien-thi";
 import { ApiError, api, type Api } from "./api";
@@ -43,7 +43,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
   function veLoi(message: string): void {
     const thu = h("button", { type: "button", class: "btn", "data-action": "tai-lai-phan-doi-tac" }, "Tải lại");
     thu.addEventListener("click", () => void napLai());
-    replaceChildren(host, h("h2", null, TIEU_DE_VAN_PHONG), h("p", { class: "alert", role: "alert" }, message), thu);
+    replaceChildren(host, h("h2", null, TIEU_DE_LOI), h("p", { class: "alert", role: "alert" }, message), thu);
     host.hidden = false;
   }
 

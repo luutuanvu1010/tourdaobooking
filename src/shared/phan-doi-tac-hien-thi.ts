@@ -85,6 +85,8 @@ export const hienNutGhiTay = (coGhiTay: boolean, d: Pick<ThuongMaiVanPhongDto, "
 
 export const TIEU_DE_VAN_PHONG = "Phần đối tác";
 export const TIEU_DE_DOI_TAC = "Hoa hồng của bạn";
+/** Tiêu đề khi tải khối THẤT BẠI (mạng / 500): chưa biết người xem là văn phòng hay Đối tác nên không dùng hai tiêu đề trên (Task 14, nợ (e)). Nhánh có dữ liệu không đổi. */
+export const TIEU_DE_LOI = "Hoa hồng";
 export const CAU_CHO_CAI_MUC = "Đang chờ Công ty cài mức cho một số dịch vụ";
 
 export const nhanNguoiHuong = (d: Pick<ThuongMaiVanPhongDto, "nguoiHuong">): string => (d.nguoiHuong ? `Người hưởng: ${d.nguoiHuong.ten}` : "Không có người hưởng hoa hồng");

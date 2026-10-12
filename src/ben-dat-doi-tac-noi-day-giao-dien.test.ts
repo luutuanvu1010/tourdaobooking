@@ -50,6 +50,17 @@ test("bảng \"Ghi mức tay\": id cố định, gọi đúng route, tách ngư�
   assert.match(khoi, /status\s*===\s*404/, "404 ⇒ ẩn khối lặng lẽ");
 });
 
+// Task 14, nợ (e) (T11 M5): nhánh LỖI của khối «Phần đối tác» (chưa biết người xem là văn phòng hay Đối tác) dùng tiêu đề trung tính TIEU_DE_LOI, không phải «Phần đối tác». Tiêu đề khi CÓ dữ liệu không đổi.
+test("khối \"Phần đối tác\": nhánh lỗi dùng tiêu đề trung tính; nhánh có dữ liệu giữ tiêu đề riêng của từng dạng", () => {
+  const khoi = doc("web/phan-doi-tac.ts");
+  const veLoi = /function veLoi\(message: string\): void \{([\s\S]*?)\n  \}\n/.exec(khoi)?.[1] ?? "";
+  assert.ok(veLoi.length > 0, "tìm thấy hàm veLoi");
+  assert.match(veLoi, /h\("h2", null, TIEU_DE_LOI\)/, "veLoi dùng TIEU_DE_LOI");
+  assert.doesNotMatch(veLoi, /TIEU_DE_VAN_PHONG|TIEU_DE_DOI_TAC/, "veLoi không gán dạng nào cho người xem");
+  assert.match(khoi, /h\("h2", null, TIEU_DE_VAN_PHONG\)/, "dạng văn phòng giữ tiêu đề cũ");
+  assert.match(khoi, /h\("h2", null, TIEU_DE_DOI_TAC\)/, "dạng Đối tác giữ tiêu đề cũ");
+});
+
 // Task 14, nợ (d) (T11 M3): câu cạnh hồ sơ TỔ CHỨC trong ô tra SĐT chỉ trỏ tới ô «Đặt qua đối tác» khi form / bảng CÓ ô đó. Luật chữ ở `matchNote` (bài ở src/shared/booker.test.ts); bài này canh dây: cờ tới được khối tra.
 test("ô tra hồ sơ khách nhận cờ «có ô Đặt qua đối tác» từ nơi gọi, không tự giả định", () => {
   const khoi = doc("web/booker-picker.ts");
