@@ -100,8 +100,8 @@ try {
   // ---- 4) + 5) Kiểu A và nút nổi ở màn đang chạy -----------------------------------------------------------------------------------------------------------
   p = await env.as(AN, `/cuoc-chuyen?id=${d.T4.id}`, MOB);
   await b.step("4", `Kiểu A tài xế 390: "Đã đón" → "Vừa ghi … — Sai? Báo văn phòng."; "Đã trả" và "Kết thúc chuyến" mở hộp, lệnh chỉ gửi khi xác nhận`, async () => {
-    await p.waitFor(`!!document.querySelector('.dp-run [data-action="da-toi"]')`, "nút Đã tới", 12000);
-    await p.ev(click('.dp-run [data-action="da-toi"]'));
+    await p.waitFor(`!!document.querySelector('#cc-day [data-action="da-toi"]')`, "nút Đã tới", 12000);
+    await p.ev(click('#cc-day [data-action="da-toi"]'));
     await p.waitFor(`document.querySelectorAll('.dp-khach-btn[data-action="don"]').length === 2`, "nút khách");
     await p.ev(click('.dp-khach-btn[data-action="don"]'));
     await p.waitFor(`!!document.querySelector('.dp-vua-ghi')`, "dòng Vừa ghi");
@@ -112,7 +112,7 @@ try {
     assert.equal(await p.ev(`document.querySelectorAll('.dp-vua-ghi').length`), 1, "chỉ một dòng Vừa ghi — lệnh sau xoá dòng cũ");
     // "Đã trả" cả điểm: hộp trước, chưa gửi.
     const truocTra = posts(p, "/tra").length;
-    await p.ev(click('.dp-run [data-action="tra-het"]'));
+    await p.ev(click('#cc-day [data-action="tra-het"]'));
     await p.waitFor(sheetOpen, "hộp Đã trả");
     assert.deepEqual((await p.ev(sheetRows)).map((r) => r[0]), ["Điểm trả", "Khách xuống"]);
     assert.equal(await p.ev(txt('[data-action="tra-het-xac-nhan"]')), "Đã trả 1 khách");
@@ -123,28 +123,17 @@ try {
     await p.waitFor(`!document.querySelector('[data-action="ket-thuc"]')?.disabled`, "Kết thúc bấm được", 12000);
     assert.equal(posts(p, "/tra").length, truocTra + 1, "trả đúng 1 khách");
   });
-  await b.step("5", `Kiểu D (a) 390 cuộn tới cuối: nút "Hỗ trợ" không giao "Kết thúc chuyến" / "Kết thúc gián đoạn"; gỡ tạm lớp chung → đè lại (phép đo bắt được lỗi cũ)`, async () => {
-    await p.waitFor(`!!document.getElementById('tl-fab')`, "nút Hỗ trợ", 12000);
-    // Dữ liệu thử ngắn (trang không cuộn) → chèn tạm khối 1200px ĐẦU <main> để khối nút cuối nằm ở ĐÁY trang dài như chuyến thật nhiều điểm (khuôn
-    // `khongBiChe` của cuoc-smoke.mjs); gỡ khối khi xong.
+  await b.step("5", `C61 390: màn đang chạy KHÔNG có nút nổi "Hỗ trợ" (đã ẩn; trước đây nó đè nút cuối)`, async () => {
+    await p.waitFor(`!!document.getElementById('tl-fab')`, "nút Hỗ trợ có mặt trong trang (không có nút thì phép kiểm 'ẩn' vô nghĩa)", 12000);
+    // C61 (việc 9 gói A+C, 12/10): màn tài xế ĐANG CHẠY không còn nút nổi "Hỗ trợ" (CSS `body.cc-dang-chay .tl-fab`) — nên nó không thể đè "Kết thúc chuyến" /
+    // "Kết thúc gián đoạn" nữa. Phép đo "nút nổi né thanh nút cuối" (Kiểu D a) của trang CHƯA CHẠY nay ở c2-man-tai-xe-smoke.mjs bước 1.
+    assert.equal(await p.ev(`document.body.classList.contains('cc-dang-chay')`), true);
+    assert.equal(await p.ev(`document.getElementById('tl-fab').getClientRects().length`), 0, "đang chạy: nút Hỗ trợ ẩn");
     await p.ev(`(() => { const dem = document.createElement('div'); dem.id = 'v1-dem'; dem.style.height = '1200px'; document.querySelector('main').prepend(dem); return true; })()`);
-    const cuon = async () => {
-      await p.ev(`window.scrollTo(0, document.documentElement.scrollHeight), window.dispatchEvent(new Event('scroll')), true`);
-      await sleep(500);
-    };
-    await cuon();
-    assert.equal(await p.ev(giao("#tl-fab", '[data-action="ket-thuc"]')), false, "nút nổi không đè Kết thúc chuyến");
-    assert.equal(await p.ev(giao("#tl-fab", '[data-action="ket-thuc-gian-doan"]')), false, "nút nổi không đè Kết thúc gián đoạn");
-    await shotView(p, "5a-cuon-cuoi-nut-noi-dien-thoai.png");
-    // Phản chứng: gỡ lớp chung khỏi khối cuối (như trước V1.5a) → nút nổi đè ít nhất một nút.
-    await p.ev(`document.querySelector('.dp-run-end').classList.remove('thanh-hanh-dong-cuoi'), true`);
-    await cuon();
-    const deLai = (await p.ev(giao("#tl-fab", '[data-action="ket-thuc"]'))) === true || (await p.ev(giao("#tl-fab", '[data-action="ket-thuc-gian-doan"]'))) === true;
-    await shotView(p, "5b-phan-chung-khong-lop-chung-bi-de-dien-thoai.png");
-    assert.ok(deLai, "không có lớp chung thì nút nổi phải đè (nếu không đè, phép đo không chứng minh gì)");
-    await p.ev(`document.querySelector('.dp-run-end').classList.add('thanh-hanh-dong-cuoi'), true`);
-    await cuon();
-    assert.equal(await p.ev(giao("#tl-fab", '[data-action="ket-thuc"]')), false);
+    await p.ev(`window.scrollTo(0, document.documentElement.scrollHeight), window.dispatchEvent(new Event('scroll')), true`);
+    await sleep(500);
+    assert.equal(await p.ev(`document.querySelectorAll('[data-action="ket-thuc"]').length`), 1);
+    await shotView(p, "5a-cuon-cuoi-khong-nut-noi-dien-thoai.png");
     await p.ev(`document.getElementById('v1-dem').remove(), window.dispatchEvent(new Event('scroll')), true`);
   });
   await b.step("4c", `Kiểu A: "Kết thúc chuyến" mở hộp tóm tắt (Đã trả 1 · Vắng 1 · Khách đã huỷ 0), quay lại không gửi, xác nhận → đúng một lệnh`, async () => {

@@ -255,7 +255,7 @@ try {
     assert.deepEqual([...k].sort(), TEN_OH, "đang chạy (trong ngày chạy): có tên khách");
     assert.match(await p.ev(txt(".dp-run-lien-he")), new RegExp(`^Liên hệ: ${LIEN_HE_OH} ${SDT_OH}$`));
     assert.equal(await p.ev(`document.querySelector('.dp-run-lien-he a').getAttribute('href')`), "tel:0903100299");
-    assert.equal(await p.ev(txt('.dp-run [data-action="da-toi"]')), "Đã tới");
+    assert.equal(await p.ev(txt('#cc-day [data-action="da-toi"]')), "Đã tới");
     assert.equal(await p.ev(`document.querySelectorAll('.dp-khach-btn').length`), 0, "chưa tới điểm: chưa đánh dấu khách");
     assert.equal(await p.ev(`document.querySelector('[data-action="ket-thuc"]').disabled`), true);
     assert.equal(await p.ev(`document.querySelectorAll('.dp-thu-tu').length`), 4, "hai điểm chưa tới: nút lên / xuống (không kéo)");
@@ -274,7 +274,7 @@ try {
   });
 
   await b.step("4", `5a: "Đã tới" → khách có Đã đón / Vắng / Khách đã huỷ; "Đã đón" khách 1 → "Đã đón"; phản hồi lệnh không kèm liên hệ — màn GIỮ dòng liên hệ của lần tải`, async () => {
-    await p.ev(click('.dp-run [data-action="da-toi"]'));
+    await p.ev(click('#cc-day [data-action="da-toi"]'));
     await p.waitFor(`document.querySelectorAll('.dp-khach-btn[data-action="don"]').length === 2`, "nút khách").catch(async (e) => {
       throw new Error(`${e.message}\n    trang: ${await p.ev(txt("#cc-trang"))}\n    console: ${JSON.stringify(p.consoleErrors)}\n    POST: ${JSON.stringify(apiCalls(p).filter((r) => r.method === "POST").map((r) => r.path))}`);
     });
@@ -297,11 +297,12 @@ try {
     assert.equal(posts(p, "/vang").length, truoc + 1, "không tự gửi lại");
     await p.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
     await p.ev(click('.dp-khach.is-cho [data-action="bam-lai"]'));
-    await p.waitFor(`!!document.querySelector('.dp-khach-kq.is-vang')`, "khách vắng");
+    // Bố cục "Điểm kế tiếp" (việc 9, 12/10): khách cuối của điểm đã có kết quả → điểm xong, thu gọn vào "Đã xong" (dòng khách không còn) — kết quả Vắng nằm ở dòng tóm tắt.
+    await p.waitFor(`!!document.querySelector('.dp-khach-kq.is-vang') || /vắng/.test(document.querySelector('details.dp-cc-xong')?.textContent ?? '')`, "khách vắng");
     const ids = posts(p, "/vang").slice(truoc).map((r) => JSON.parse(r.body).requestId);
     assert.equal(ids.length, 2);
     assert.equal(ids[0], ids[1], "bấm lại dùng CÙNG requestId");
-    assert.equal(await p.ev(`!!document.querySelector('#cc-trang > .banner-warning')`), false);
+    await p.waitFor(`!document.querySelector('#cc-trang > .banner-warning')`, "dải mất mạng hết sau khi gửi lại"); // chờ lần vẽ cuối của lệnh (tin Bảng tin có thể vẽ trước khi lệnh xong)
   });
 
   await b.step("5b", `C55 (đánh giá ERP 7/10): mất mạng mà trang tự tải lại (tin chuyến / nối lại) → trang KHÔNG ẩn: còn tên khách, số liên hệ, nút; dải "Mất mạng — dữ liệu lúc HH:MM"; có mạng tải lại → dải mất`, async () => {
@@ -312,7 +313,8 @@ try {
     assert.equal(await p.ev(`document.querySelector('#cc-trang').hidden`), false, "trang chuyến không bị ẩn khi mất mạng");
     assert.equal(await p.ev(`document.querySelector('#error')?.hidden !== false`), true, "không câu lỗi che trang");
     assert.deepEqual((await p.ev(`[...document.querySelectorAll('.dp-khach-ten')].map((x) => x.innerText)`)).sort(), tenTruoc, "tên khách còn");
-    assert.ok(await p.ev(`document.querySelectorAll('.dp-run-lien-he a[href^="tel:"]').length > 0`), "số liên hệ (gọi một chạm) còn");
+    // Việc 9 (12/10): điểm đón đã xong thì thu gọn, không còn dòng liên hệ — kiểm "còn nút" thay cho "còn số liên hệ" (số liên hệ của điểm chưa xong do c2-man-tai-xe-smoke giữ).
+    assert.ok(await p.ev(`document.querySelectorAll('#cc-day button, .dp-run button').length > 0`), "nút còn");
     await shotFull(p, "b5-mat-mang-tai-nen-dien-thoai.png");
     await p.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
     await p.ev(`window.dispatchEvent(new Event("can-tai-lai")), true`);
@@ -329,7 +331,7 @@ try {
     await shotView(p, "b5-ket-thuc-gian-doan-dien-thoai.png");
     await p.ev(click(".sheet .vc-btn-ghost-primary"));
     await sleep(500);
-    await p.ev(click('.dp-run [data-action="tra-het"]'));
+    await p.ev(click('#cc-day [data-action="tra-het"]'));
     // Kiểu A (V1.4, 3/10): "Đã trả" cả điểm và "Kết thúc chuyến" mở hộp xác nhận — lệnh chỉ gửi khi bấm nút trong hộp.
     await p.waitFor(`!!document.querySelector('[data-action="tra-het-xac-nhan"]')`, "hộp xác nhận đã trả");
     await p.ev(click('[data-action="tra-het-xac-nhan"]'));
@@ -426,7 +428,7 @@ try {
       ["len", true, CAU_DAO], ["xuong", true, null],
     ]);
     assert.match(await s.ev(txt(".dp-run [data-cho-don]")), /^Còn khách chưa đón ở điểm \d+, \d+ — bấm “Đã tới” ở điểm đón trước\.$/);
-    assert.equal(await s.ev(`!!document.querySelector('.dp-run [data-action="tra-het"]')`), false, "HT-16: điểm trả chưa có nút Đã trả");
+    assert.equal(await s.ev(`!!document.querySelector('[data-action="tra-het"]')`), false, "HT-16: điểm trả chưa có nút Đã trả");
     const truoc = await s.ev(tenDiem);
     assert.equal(truoc.length, 3);
     await s.ev(`document.querySelector('.dp-run .dp-thu-tu[data-action="xuong"]').click()`);

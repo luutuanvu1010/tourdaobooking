@@ -14,6 +14,11 @@
 // - Mất mạng: dòng đó "Chưa gửi được" + "Bấm lại" (CÙNG requestId — bấm lại hai lần vẫn một lệnh); máy KHÔNG tự gửi lại (lệnh điều phối, khác câu 5a).
 //   C55 (đánh giá ERP 7/10): lần tải NỀN hỏng chỉ ẩn trang khi 403 / 404 (`loiTaiNenAnTrang`); mất mạng / lỗi máy chủ GIỮ dữ liệu đang có (chỉ bộ nhớ trang
 //   — ADR-0053 D7.2) và hiện dải "Mất mạng — dữ liệu lúc HH:MM" (`daiMatMang`) có nút "Tải lại".
+// - Việc 9 gói A+C (đánh giá ERP 7/10, C2): ĐANG CHẠY vẽ cho người đang lái — "Điểm kế tiếp" (một thẻ), "Các điểm sau", "Đã xong (N điểm)" thu gọn (`nhomDiemChay`) và MỘT
+//   nút chính dính đáy `#cc-day` (`viecChinh`: Đã tới / Đã đón N khách / Đã trả / Kết thúc chuyến — mỗi nút một chỗ, thẻ không vẽ trùng) (C54); "Đã đón N khách" = hộp
+//   xác nhận + lệnh "Đã đón" có sẵn gửi lần lượt, đọc lại một lần (C53); `dangGui` khoá mọi nút ở trạng thái vẽ khi một lệnh còn bay (C56); nút Kết thúc theo `xetKetThuc`,
+//   MỘT hàm với máy chủ (C57); đồng hồ chờ "Đã chờ N phút" chỉ hiển thị (C59); không nút nổi "Hỗ trợ" khi chạy (`body.cc-dang-chay`) (C61). Điểm xong không còn dòng khách /
+//   liên hệ (đã thu gọn). Kịch bản: docs/evidence/2026-10-12-c2/kich-ban/c2-man-tai-xe-smoke.mjs.
 // - ADR-0105 (G13, G18-A): nhóm "Chỉ đường" ở điểm chưa xong (PENDING / ARRIVED) của chuyến kế hoạch / đang chạy, chỉ khi DTO có `diaChiChiDuong` (GET trong
 //   ngày chạy); Google Maps mọi máy, Apple Maps chỉ máy Apple (`nutChiDuongCuaDiem`, src/shared/chi-duong.ts). Liên kết `<a>` mở tab mới, `noreferrer noopener`;
 //   trang không đọc vị trí. Đọc lại GET sau lệnh hỏng → giữ chuỗi đích của lần GET trước (`giuChiDuong`).
