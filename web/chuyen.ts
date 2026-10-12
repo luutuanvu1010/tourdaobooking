@@ -36,7 +36,8 @@ import { initShell, setBarTitle, showError } from "./shell";
 import { taoBoLamMoi } from "./lam-moi-logic";
 import type { SuKienChuyen } from "../src/shared/bang-tin";
 import { cauLoiTienDo, dongMoc, moKhaiGio, veDiemChay, type LenhDiem } from "./tien-do-ui";
-import { CAU_THU_TU_DAO, doiThuTuDuoc, giuTenKhach, ketThucDuoc, viecNguoiDiKem, type BuocDiem, type KhachDiem } from "../src/shared/tien-do-man";
+import { xetKetThuc } from "../src/shared/ket-thuc-chuyen";
+import { CAU_THU_TU_DAO, doiThuTuDuoc, giuTenKhach, viecNguoiDiKem, type BuocDiem, type KhachDiem } from "../src/shared/tien-do-man";
 import { coTienDoSauXuatBen, dichDieuChinh, nhanDichDieuChinh, nhanTrangThaiDieuChinh } from "../src/shared/dieu-chinh-suat";
 import type { GioVnDto, GoiBaoChangDto } from "../src/shared/contracts";
 import { ngayNgan, vnToday } from "../src/shared/vn-date";
@@ -557,7 +558,7 @@ function moDieuChinh(k: KhachDiem, tu: TrangThaiSuatDto, dich: readonly TrangTha
 function diemChay(): HTMLElement {
   const r = duLieu!;
   const c = r.chuyen;
-  const ketThuc = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: !ketThucDuoc(r.suat), "data-action": "ket-thuc" }, "Kết thúc chuyến");
+  const ketThuc = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: !xetKetThuc({ suat: r.suat, diem: r.diem }).duoc, "data-action": "ket-thuc" }, "Kết thúc chuyến");
   const gianDoan = h("button", { type: "button", class: "vc-btn vc-btn-danger", "data-action": "ket-thuc-gian-doan" }, "Kết thúc gián đoạn");
   ketThuc.addEventListener("click", () => moKhaiGio({
     tieuDe: `Kết thúc ${c.ma} — bấm thay tài xế`, moTa: moTaBamThay(), nutChinh: "Kết thúc chuyến", nutLop: "btn btn-accent",
