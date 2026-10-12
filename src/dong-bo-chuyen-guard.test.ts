@@ -52,6 +52,7 @@ const KHONG_CAN: Readonly<Record<string, string>> = {
   "POST /api/orders/:id/delivered": "billing — Đã giao (không đổi người / chặng)",
   "POST /api/orders/:id/completed": "billing — Hoàn thành (không đổi người / chặng)",
   "POST /api/orders/:id/nhap-ke-toan": "billing — nhập kế toán",
+  "POST /api/orders/:id/thuong-mai/:serviceId": "sổ đại lý đợt 1 — ghi mức hoa hồng tay trên một dòng dịch vụ (ghép main 1c471990 vào gói A+C): chỉ bản chụp thương mại, không đổi người / chặng",
 };
 
 /** Thân `{…}` (đã che chuỗi / chú thích) của từng route ghi `/api/orders*` trong một tệp. */

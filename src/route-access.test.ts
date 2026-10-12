@@ -58,6 +58,7 @@ const MODULES: readonly { entry: string; exportName: string }[] = [
   { entry: "./modules/maintenance/index.ts", exportName: "maintenanceModule" },
   { entry: "./modules/orders/index.ts", exportName: "ordersModule" },
   { entry: "./modules/parties/index.ts", exportName: "partiesModule" },
+  { entry: "./modules/pricing/index.ts", exportName: "pricingModule" }, // sổ đại lý đợt 1 (ADR-0077, ADR-0078 B1)
   { entry: "./modules/receipt/index.ts", exportName: "receiptModule" }, // sổ tiền lượt 1 (ADR-0024 điều 1 — hạng KHONG_BANG)
   { entry: "./modules/thongbao/index.ts", exportName: "thongbaoModule" },
   { entry: "./modules/van-chuyen/index.ts", exportName: "vanChuyenModule" }, // ADR-0040 D1
@@ -160,7 +161,22 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/ledger/refunds", access: "office" }, // payment.refund
   { method: "POST", path: "/api/ledger/adjustments", access: "office" }, // ledger.write
   { method: "POST", path: "/api/ledger/receipt-replacements", access: "office" }, // ledger.write — "Thay lần thu" (ADR-0088 đ2)
+  { method: "GET", path: "/api/ledger/ky", access: "office" }, // khoá sổ tháng (ADR-0080 D1): ledger.view any — tháng đã khoá, tháng khoá kế tiếp, bảng kiểm
+  { method: "POST", path: "/api/ledger/ky/:period/khoa", access: "office" }, // ledger.period.close (Kế toán, Toàn quyền — Quản trị không)
   { method: "GET", path: "/api/orders/:id/receipt", access: "orders" }, // module receipt: order.view + money.view + contact.view phạm vi đơn
+  { method: "GET", path: "/api/orders/:id/qr-thanh-toan", access: "orders" }, // ADR-0108 đ3, module receipt: order.view (HDV không phụ trách → 404) rồi money.view phạm vi đơn
+  // Sổ đại lý đợt 1 (module pricing — ADR-0077, ADR-0078 B1): 8 route; mỗi route tự hỏi can() ở dòng đầu thân (partner.commission.*, supply.terms.*; route tìm người hưởng hỏi order.create).
+  { method: "GET", path: "/api/pricing/hoa-hong", access: "office" }, // partner.commission.view
+  { method: "POST", path: "/api/pricing/hoa-hong", access: "office" }, // partner.commission.write — thêm mức (chỉ thêm)
+  { method: "POST", path: "/api/pricing/hoa-hong/:id/dong", access: "office" }, // partner.commission.write — đóng mức
+  { method: "GET", path: "/api/pricing/thu-tra", access: "office" }, // partner.commission.view — thử tra, chỉ đọc
+  { method: "GET", path: "/api/pricing/cung-ung", access: "office" }, // supply.terms.view — Bán hàng KHÔNG xem
+  { method: "POST", path: "/api/pricing/cung-ung", access: "office" }, // supply.terms.write
+  { method: "POST", path: "/api/pricing/cung-ung/:id/dong", access: "office" }, // supply.terms.write
+  { method: "GET", path: "/api/pricing/nguoi-huong", access: "orders" }, // order.create và không phải Đối tác — tìm người hưởng theo tên cho form lập đơn
+  // Sổ đại lý đợt 1 (module orders — ADR-0077 điều 10–11; đặc tả §6, Task 5): phần thương mại của đơn. Đọc: order.view + order.terms.view phạm vi đơn (Đối tác nhận DTO hẹp); ghi: order.terms.override, không bao giờ cho tài khoản có quyền Đối tác.
+  { method: "GET", path: "/api/orders/:id/thuong-mai", access: "orders" },
+  { method: "POST", path: "/api/orders/:id/thuong-mai/:serviceId", access: "office" }, // order.terms.override — ghi mức tay (Kế toán, Quản trị, Toàn quyền)
   { method: "POST", path: "/api/orders/:id/status", access: "orders" },
   { method: "POST", path: "/api/orders/:id/cancel-reason", access: "orders" }, // ADR-0089 đ8: phân loại lý do huỷ — tự kiểm can(order.cancel.classify) bên trong
   // ADR-0089 (cọc đơn huỷ, migration 0079): sáu lệnh ghi văn phòng (tự kiểm ô bên trong) + ba route đọc của Kế toán (ledger.view any).
@@ -198,6 +214,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "PUT", path: "/api/parties/:id", access: "office" },
   { method: "POST", path: "/api/parties/:id/contacts", access: "office" },
   { method: "POST", path: "/api/parties/:id/contacts/:cid/end", access: "office" },
+  { method: "GET", path: "/api/parties/:id/tai-khoan-nhan-tien", access: "office" }, // ADR-0108 đ2: company.legal.write (chỉ Toàn quyền); hồ sơ phải đang là công ty chủ
+  { method: "PUT", path: "/api/parties/:id/tai-khoan-nhan-tien", access: "office" }, // ADR-0108 đ2: đóng + mở + nhật ký một lô; nhật ký không chép số
   { method: "POST", path: "/api/parties/:id/relationships", access: "admin" },
   { method: "POST", path: "/api/parties/:id/relationships/:rid/end", access: "admin" },
   { method: "POST", path: "/api/parties/:id/roles", access: "admin" },
@@ -471,6 +489,12 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-09 (gói A5 lát 3): + POST …/de-nghi/:rid/nhan, …/khong-nhan (staff), GET …/de-nghi, POST …/de-nghi/:rid/duyet, …/bac (office).
   // 2026-10-09 (gói A5 T14): + GET …/chuyen/:id/xe-nhan (office, trip.progress — văn phòng chọn xe nhận khi gửi thay cứu hộ).
   // 2026-10-12 (nhập nền A4 vào A5): 257 + 5 (A4) + 11 (A5) = 273.
-  assert.equal(actual.length, 273, "số route thực tế lệch 273 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 273, "SNAPSHOT phải có đúng 273 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-12 (ghép main 1c471990 vào gói A+C): 273 (nền A+C) + 15 route của main (QR +3; sổ đại lý đợt 1 +12: pricing +8, khoá sổ +2, phần thương mại của đơn +2) = 288.
+  // 2026-10-08 (ADR-0108 đ2): + GET/PUT /api/parties/:id/tai-khoan-nhan-tien (office) = 255.
+  // 2026-10-08 (ADR-0108 đ3): + GET /api/orders/:id/qr-thanh-toan (orders) = 256.
+  // 2026-10-08 (sổ đại lý đợt 1, module pricing — ADR-0077/0078): + 8 route /api/pricing/* (hoa-hong ×3, thu-tra, cung-ung ×3, nguoi-huong) = 264.
+  // 2026-10-08 (sổ đại lý đợt 1, Task 7 — khoá sổ tháng, module billing; ADR-0080 D1): + GET /api/ledger/ky, POST /api/ledger/ky/:period/khoa (office) = HIỆU +2 trên nền 264 (= 266 nếu đứng riêng; điều phối chỉnh số tuyệt đối lúc gộp).
+  // 2026-10-08 (sổ đại lý đợt 1, Task 5 — phần thương mại của đơn, module orders; ADR-0077 điều 10–11): + GET /api/orders/:id/thuong-mai (orders), POST /api/orders/:id/thuong-mai/:serviceId (office) = HIỆU +2 (tuyệt đối 268 khi cả Task 3, 5, 7 đã gộp).
+  assert.equal(actual.length, 288, "số route thực tế lệch 288 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 288, "SNAPSHOT phải có đúng 288 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

@@ -18,7 +18,7 @@ import { khungTaiXeTrongKhoang } from "./khung-ban-tai-xe-repo";
 import type { LichChungResponse } from "../../shared/contracts";
 import { allocsByTrips, allocsOpenByLegs, eventsByTrips, legFlags, stopsByTrips, tenDiem, tripsTouching, type TripRow } from "./chuyen-repo";
 import {
-  loBaoHuy, loBoSungTen, loCapNhatDiem, loCapNhatKhach, loDoi, loHuy, loRut, loSuaChuyen, loThemDiemDangChay, loXep, type CamKetLo, type DiemMoi, type PhaLe, type SuatMoi,
+  loBaoHuy, loBoSungTen, loCapNhatDiem, loCapNhatKhach, loDoi, loHuy, loRut, loSuaChuyen, loThemDiemDangChay, loXep, type CamKetLo, type CauCoNhan, type DiemMoi, type PhaLe, type SuatMoi,
 } from "./dieu-phoi";
 import {
   boSungXe, changVao, chinhSachVao, chuyenVao, diemVao, docChung, docNguCanh, khungBanVao, khungChuyen, khungTaiXeVao, lyDoChangNgoai, suatVao, taiXeVao, xeVao, type DuLieuChung, type NenChuyen,
@@ -30,8 +30,8 @@ import {
 } from "./dieu-phoi-route";
 import type { BaoHuyThan, DoiThan, HuyThan, RutThan, SuaChuyenThan, XepThan } from "./dieu-phoi-than";
 import { phanLoaiThue } from "./tien-xe";
-import { chiTietChiPhiNhatKy, keHoachChiPhiKhiDoi, keHoachChiPhiKhiHuy } from "./tien-xe-lo";
-import { docChiPhiChoLenh, tenNhaXePhiHuy, tenTuyen, tenTuyenDangDung } from "./tien-xe-lenh";
+import { chiTietChiPhiNhatKy, keHoachChiPhiKhiDoi, keHoachChiPhiKhiHuy, ngayCuaKeHoach, type KeHoachChiPhi } from "./tien-xe-lo";
+import { docChiPhiChoLenh, loiKhoaThangXe, loiThangDaKhoa, tenNhaXePhiHuy, tenTuyen, tenTuyenDangDung } from "./tien-xe-lenh";
 import { cauNhaXeThoi } from "./rules";
 
 const TUYEN_KHONG_HOP_LE = () => error(400, "invalid_input", "Tuyến không có hoặc đã ngưng dùng.");
@@ -76,6 +76,19 @@ const vuotXep = (t: TripRow, chung: DuLieuChung, bayGioMs: number, lenhMoc: read
 /** Đuôi nhật ký khi lệnh sắp lại thứ tự điểm (HT-01) — chỉ con số (danh sách trắng mục 1.1). */
 const sapNhatKy = (doi: readonly unknown[]): string => (doi.length > 0 ? `; sắp lại thứ tự ${doi.length} điểm (đón trước trả)` : "");
 const lenhChung = (requestId: string, staff: StaffProfile, bayGioMs: number) => ({ cmd: crypto.randomUUID(), requestId, lucIso: nowIsoOf(bayGioMs), nguoiId: staff.id });
+/**
+ * `chayLo` cho lô CÓ dòng chi phí xe (sửa chuyến, huỷ chuyến): tháng bị khoá GIỮA lúc đọc và lúc ghi ⇒ trigger `vc_trip_cost_line_period_closed` huỷ cả lô; `chayLo`
+ * không nhận ra lỗi này và ném lên (500) — ở đây dịch ra 409 đúng câu của tháng vừa khoá (ADR-0080; Review Focus 3). Lô không có dòng chi phí không cần bọc.
+ */
+async function chayLoChiPhiXe(db: D1Database, lo: readonly CauCoNhan[], requestId: string, kh: KeHoachChiPhi): Promise<{ ok: true } | { ok: false; res: Response }> {
+  try {
+    return await chayLo(db, lo, requestId);
+  } catch (e) {
+    const khoa = await loiKhoaThangXe(db, e, ngayCuaKeHoach(kh));
+    if (khoa) return { ok: false, res: khoa };
+    throw e;
+  }
+}
 /**
  * ADR-0056 VK3-A: chặng có suất KHÁCH MỞ trên chuyến (trước lệnh) — MỘT định nghĩa với `kiemXuatBen` (mở + PASSENGER + có chặng), giao với chặng đã đọc qua
  * `lichChungChang`. Chặng rơi khỏi lịch (đơn huỷ, chặng bỏ…) không có dữ liệu cam kết và đã có lý do giữ riêng ⇒ bỏ qua.
@@ -143,10 +156,10 @@ export async function lenhSuaChuyen(
   const thue = doiXe ? phanLoaiThue({ chuXePartyId: xeRow.owner_party_id, congTyChuId: cp.congTyChuId, nhaXeDangMo: cp.nhaXeDangMo, cuRented: t.rented }) : t.rented;
   const doiNgay = ngayChayMoi !== t.service_date;
   const kh = keHoachChiPhiKhiDoi({
-    dong: cp.dong, homNay: homNay(bayGioMs), rentedMoi: thue, chuXeMoi: xeRow.owner_party_id, nhaXeDangMo: cp.nhaXeDangMo, laTaoMoi: false, doiXeHoacNhaXe: doiXe, doiTuyen,
-    doiNgay, tuyenMoi, soChoMoi: xeRow.passenger_capacity, ngayChayMoi, gia: cp.gia, coXe: cp.coXe,
+    dong: cp.dong, homNay: homNay(bayGioMs), kyDaKhoa: cp.kyDaKhoa, rentedMoi: thue, chuXeMoi: xeRow.owner_party_id, nhaXeDangMo: cp.nhaXeDangMo, laTaoMoi: false, doiXeHoacNhaXe: doiXe,
+    doiTuyen, doiNgay, tuyenMoi, soChoMoi: xeRow.passenger_capacity, ngayChayMoi, gia: cp.gia, coXe: cp.coXe,
   });
-  if (!kh.ok) return NHA_XE_THOI_HOP_TAC({ doiTuyen, doiNgay: doiNgay && !doiXe });
+  if (!kh.ok) return kh.loi === "period_closed" ? loiThangDaKhoa(kh.thang) : NHA_XE_THOI_HOP_TAC({ doiTuyen, doiNgay: doiNgay && !doiXe }); // ADR-0080: chụp giá vào tháng đã khoá ⇒ cả lệnh 409
   const khac = (await tripsTouching(db, Math.min(batDauMs, t.planned_start_ms) - NGAY_MS, Math.max(ketThucMs, t.planned_end_ms) + NGAY_MS)).filter((x) => x.id !== t.id);
   const tai = nen.allocs.filter((a) => a.valid_to_at === null && (a.status === "WAITING" || a.status === "BOARDED")).length;
   // ADR-0055 VK2-A A2 (i): khung bận còn hiệu lực giao giờ MỚI là khoảng chặn (lớp máy chủ nói trước bằng lời; trigger vc_trip_unavailable_upd là lưới thứ hai).
@@ -218,7 +231,7 @@ export async function lenhSuaChuyen(
     phaLe: phaLe ?? ck.phaLe, policyId: chung.chinhSach?.id ?? null, camKet: ck.lo,
     detail: `${t.code}: ${thay.length > 0 ? `${thay.join("; ")}${duoi}` : duoi.replace(/^ · /, "")}${chiTietChiPhiNhatKy(kh.kh, thue, false, await tenNhaXePhiHuy(db, kh.kh.phiHuyBiDao))}`,
   });
-  const r = await chayLo(db, lo, b.requestId);
+  const r = await chayLoChiPhiXe(db, lo, b.requestId, kh.kh);
   return r.ok ? null : r.res;
 }
 
@@ -587,13 +600,13 @@ export async function lenhHuy(db: D1Database, nen: NenChuyen, b: HuyThan, staff:
   const phaLe = moc ? phaLeCua(chung, "MOC_TOI_THIEU", b.phaLe) : null;
   // ADR-0057 C4: lô huỷ đảo MỌI dòng chi phí còn hiệu lực (âm → dương) trước câu trạng thái cuối; phiên bản chi phí ở câu cổng (TC-8).
   const cp = await docChiPhiChoLenh(db, { tripId: t.id, chuXe: t.carrier_party_id, homNay: homNay(bayGioMs) });
-  const kh = keHoachChiPhiKhiHuy(cp.dong, homNay(bayGioMs));
+  const kh = keHoachChiPhiKhiHuy(cp.dong, homNay(bayGioMs), cp.kyDaKhoa);
   const lo = loHuy(db, {
     ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, lyDo: b.lyDo, phaLe, policyId: chung.chinhSach?.id ?? null, soSuatMo: soMo,
     chiPhi: kh, phienBanChiPhi: kh.phienBan,
     detail: `${t.code}: huỷ — ${nhanLyDo(chung, b.lyDo)}${soMo > 0 ? ` · còn ${soMo} người` : ""}${phaLe ? phaLeNhatKy(phaLe.luat, nhanLyDo(chung, phaLe.lyDo), vuot) : ""}${gioKhanCapNhatKy([phaLe?.luat], vuot)}${chiTietChiPhiNhatKy(kh, t.rented, true, await tenNhaXePhiHuy(db, kh.phiHuyBiDao))}`,
   });
-  const r = await chayLo(db, lo, b.requestId);
+  const r = await chayLoChiPhiXe(db, lo, b.requestId, kh);
   return r.ok ? null : r.res;
 }
 

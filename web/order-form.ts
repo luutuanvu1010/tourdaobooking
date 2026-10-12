@@ -10,6 +10,7 @@ import type { MauChang } from "../src/shared/chang-mac-dinh";
 import { dongTuDto, loiDanhSachKhach, passengersNhap, type DongKhach } from "../src/shared/hanh-khach-form";
 import { soKhachDoan } from "../src/shared/hanh-khach";
 import { suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
+import { gopBenDat, khoiBenDatForm, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, holdsPartner } from "../src/shared/permissions";
 import {
@@ -23,6 +24,7 @@ import { openAssigneePicker } from "./assignee-picker";
 import { renderBanner } from "./banner";
 import { createBookerPicker } from "./booker-picker";
 import { createCatalogPicker } from "./catalog-picker";
+import { dongBenDatChiDoc, oDatQuaDoiTac, type DatQuaDoiTac } from "./dat-qua-doi-tac";
 import { byId, h, replaceChildren } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
 import { suKienVeDon } from "./lam-moi-logic";
@@ -35,10 +37,12 @@ import { taoKhoiHanhKhach, type KhoiHanhKhach } from "./khoi-hanh-khach";
 import { goiSom } from "./goi-som";
 import { icon } from "./icons";
 import { layKhungNho } from "./khung-nho";
-import { initShell, setBarTitle } from "./shell";
+import { benDatCuaToi, initShell, setBarTitle } from "./shell";
 
 const params = new URLSearchParams(location.search);
 const editId = params.get("id");
+/** Tiền trả trước KHÔNG nhận ở form này (ẩn ba ô, không đọc số): đang SỬA đơn, hoặc người lập có quyền ghi sổ (ADR-0092 Đ6 — ô mã chỉ có ở trang đơn). Đặt SAU `initShell()` (cần biết tài khoản); đọc ở `recompute`, `validate` và bước hai của lúc lưu thay cho `editId`. */
+let traTruocAn = Boolean(editId);
 const focusId = params.get("focus");
 const today = vnToday(new Date());
 /** ≥ 960px: form hai cột, banner lỗi nằm ở cột phải dính (luôn thấy). Dưới 960px (điện thoại VÀ iPad dọc 641–959px) form một cột, banner nằm CUỐI form → lỗi phải cuộn tới banner. Đọc LÚC CẦN: xoay iPad đổi khổ. */
@@ -257,7 +261,7 @@ function renderOwner(focus = false): void {
 // ---- tóm tắt tiền và trạng thái nút ----
 function recompute(): void {
   const ds = drafts();
-  const s = orderSummary(ds, num("discount"), editId ? 0 : num("prepaidAmount"));
+  const s = orderSummary(ds, num("discount"), traTruocAn ? 0 : num("prepaidAmount"));
   byId("sum-subtotal").textContent = vnd(s.subtotal);
   byId("sum-total").textContent = vnd(s.total);
   // Sổ tiền lượt 1 (ADR-0026 đ9): KHÔNG tự trừ ra "còn lại" ở trình duyệt — chỉ nhắc lại số trả trước sẽ ghi thành lần thu sau khi lưu.
@@ -326,7 +330,7 @@ function validate(): { banner: Banner; focus: HTMLElement } | null {
     lines.push("Các dịch vụ đang khác ngày — chọn một ngày cho cả đơn.");
     focusables.push(orderDateEl);
   }
-  const s = orderSummary(drafts(), num("discount"), editId ? 0 : num("prepaidAmount"));
+  const s = orderSummary(drafts(), num("discount"), traTruocAn ? 0 : num("prepaidAmount"));
   if (s.discount > s.subtotal) lines.push("Giảm giá không được vượt quá tạm tính.");
   else if (s.traTruoc > s.total) {
     lines.push("Thanh toán trước không được vượt quá tổng cộng.");
@@ -349,7 +353,8 @@ function collect(): OrderInput {
     ...(hk ? { passengers: passengersNhap(hk.rows()) } : {}),
     discount: num("discount"),
     paymentNote: field("paymentNote").value,
-    ...bookerPicker.payload(),
+    // Bên đặt (sổ đại lý đợt 1, Task 11): dòng chỉ đọc của Đối tác hoặc đại lý đã chọn ở ô "Đặt qua đối tác" thắng ô tra SĐT; không thì như hôm nay.
+    ...gopBenDat({ chiDoc: khoiBenDat.kieu === "chi-doc" ? khoiBenDat.benDat : null, daChon: daChonBenDat, tra: bookerPicker.payload() }),
     ...(orderUpdatedAt ? { expectedUpdatedAt: orderUpdatedAt } : {}),
     // Chỉ khi LẬP đơn và đã chọn người: chưa chọn → KHÔNG gửi trường này (đơn "Chờ nhận"), sửa đơn → không bao giờ gửi (PUT không đổi người phụ trách).
     ...(canPickHandler && !editId && handlerPick ? { handlerStaffId: handlerPick.staffId } : {}),
@@ -455,7 +460,7 @@ async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDa
     // BƯỚC HAI (sổ tiền lượt 1 — ADR-0026 đ9, NT-S6): tiền trả trước KHÔNG nằm trong lô tạo đơn; đơn đã lưu xong mới ghi LẦN THU qua billing. Lỗi ở bước này
     // KHÔNG làm mất đơn: vẫn sang trang đơn, kèm `thutruoc=loi` để trang đơn báo "Đơn đã lưu, chưa ghi được tiền trả trước — thử lại".
     let thuTruocLoi = "";
-    const traTruoc = editId ? 0 : num("prepaidAmount");
+    const traTruoc = traTruocAn ? 0 : num("prepaidAmount");
     if (traTruoc > 0) {
       try {
         await api(`/api/orders/${encodeURIComponent(order.id)}/payments`, {
@@ -514,10 +519,28 @@ async function loadCatalog(): Promise<void> {
   }
 }
 
+/**
+ * Nạp bên đặt đang lưu của đơn nháp. Đối tác mà máy chủ ép bên đặt: không nạp gì (dòng chỉ đọc). Bên đặt là đối tác (cờ `bookerLaDoiTac` do MÁY CHỦ tính) và người sửa có ô "Đặt qua đối tác" ⇒ nạp vào ô đó,
+ * không vào ô tra SĐT; còn lại giữ cách cũ (ô tra SĐT nạp hồ sơ đang lưu — kể cả Đối tác / tài khoản lai mở nháp có đại lý do văn phòng gắn). Nạp lại sau 409 phải dọn lựa chọn cũ của ô kia.
+ */
+function napBenDat(o: Api.OrderDetailDto): void {
+  if (khoiBenDat.kieu === "chi-doc") return;
+  if (noiNapBenDat({ coODatQua: datQua !== null, bookerLaDoiTac: o.bookerLaDoiTac, bookerPartyId: o.bookerPartyId }) === "dat-qua" && o.bookerPartyId) {
+    const chon: BenDatChon = { partyId: o.bookerPartyId, ten: o.bookerName ?? "" };
+    datQua?.datChon(chon);
+    datBenDat(chon);
+    bookerPicker.set(null, null);
+    return;
+  }
+  datQua?.datChon(null);
+  datBenDat(null);
+  bookerPicker.set(o.bookerPartyId, o.bookerName);
+}
+
 function fill(o: Api.OrderDetailDto): void {
   field("customerName").value = o.customerName;
   field("customerPhone").value = o.customerPhone;
-  bookerPicker.set(o.bookerPartyId, o.bookerName);
+  napBenDat(o);
   field("customerEmail").value = o.customerEmail ?? "";
   field("customerNote").value = o.customerNote ?? "";
   (field("discount") as HTMLInputElement).value = o.discount ? grouped(o.discount) : "";
@@ -594,9 +617,30 @@ function datViTriKhoiKhach(): void {
 const layDanhMuc = layKhungNho()?.canCreate === true ? goiSom(() => api<Api.CatalogPublicResponse>("/api/catalog/for-order")) : () => api<Api.CatalogPublicResponse>("/api/catalog/for-order");
 const layDon = editId ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(editId)}`)) : null;
 const staff = await initShell();
+// Cờ "không nhận tiền trả trước" bật NGAY khi biết tài khoản (người có quyền ghi sổ): từ đây tới khối ẩn ba ô ở dưới không còn khe nào mà số gõ sớm bị đọc ở `recompute` / `validate` / lúc lưu.
+traTruocAn ||= can(staff, "ledger.write");
 picker.setTaiKhoan(staff.id); // ADR-0058 Đ8: chip nhóm nhớ THEO TÀI KHOẢN trên máy — bộ chọn dựng trước khi biết tài khoản, trước dòng này không đọc / ghi bộ nhớ
 retailOnly = holdsPartner(staff); // trước loadCatalog/loadOrder: thẻ dịch vụ dựng sau dòng này
 duocDatGap = can(staff, "order.leg.short_notice");
+// ---- bên đặt (sổ đại lý đợt 1, Task 11; đặc tả §7) ----
+// Quyết định hiện gì do `khoiBenDatForm` (src/shared/phan-doi-tac-hien-thi.ts): Đối tác mà máy chủ ÉP bên đặt (trường `benDatCuaToi` của /api/auth/me — giao diện không suy) → dòng chỉ đọc "Bên đặt: <tên>"
+// thay ô tra hồ sơ khách; văn phòng (người lập đơn, KHÔNG giữ quyền Đối tác) → thêm ô "Đặt qua đối tác"; còn lại → ô tra SĐT như hôm nay. Dựng TRƯỚC loadOrder (nạp nháp cần biết có ô nào).
+const khoiBenDat = khoiBenDatForm(staff, benDatCuaToi());
+bookerPicker.datCoODatQuaDoiTac(khoiBenDat.kieu === "tra-sdt-va-dat-qua"); // câu cạnh hồ sơ tổ chức chỉ trỏ tới ô «Đặt qua đối tác» khi ô đó CÓ ở form này (Task 14, nợ (d))
+let datQua: DatQuaDoiTac | null = null;
+let daChonBenDat: BenDatChon | null = null;
+/** Đã chọn / bỏ chọn đại lý: ô tra hồ sơ khách theo SĐT ẩn khi đã chọn (tên + SĐT khách đi tour vẫn nhập ở hai ô khách); bỏ chọn thì hiện lại như cũ. */
+function datBenDat(chon: BenDatChon | null): void {
+  daChonBenDat = chon;
+  bookerPicker.root.hidden = chon !== null;
+}
+if (khoiBenDat.kieu === "chi-doc") {
+  bookerPicker.tat();
+  bookerPicker.root.replaceWith(dongBenDatChiDoc(khoiBenDat.benDat));
+} else if (khoiBenDat.kieu === "tra-sdt-va-dat-qua") {
+  datQua = oDatQuaDoiTac({ daChon: null, onDoi: datBenDat });
+  bookerPicker.root.before(datQua);
+}
 // R-P15: mốc cho biểu mẫu chưa lưu — chỉ người được lập đơn (máy chủ hỏi order.create). Lỗi / chưa có chính sách (503) → không cảnh báo; máy chủ vẫn chặn lúc xác nhận.
 const layMoc = can(staff, "order.create")
   ? api<Api.MocToiThieuResponse>("/api/orders/moc-toi-thieu").then((r) => r.mocToiThieuPhut, () => null)
@@ -642,6 +686,15 @@ picker.setNhapTay(duocNhapTay);
 if (editId) {
   for (const f of ["prepaid-amount-field", "prepaid-method-field", "prepaid-collector-field"]) byId(f).hidden = true;
   byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn (mục Thanh toán → Ghi lần thu).";
+}
+// ADR-0092 Đ6 (C1): người có quyền ghi sổ (Toàn quyền) ghi CK – Công ty thu phải kèm mã giao dịch ngân hàng — ô mã chỉ ở trang đơn ⇒ form không nhận tiền trả
+// trước của người này (tránh lần gửi chắc chắn 400 làm rơi tiền trả trước); cùng khuôn với lúc sửa đơn.
+if (!editId && can(staff, "ledger.write")) {
+  for (const f of ["prepaid-amount-field", "prepaid-method-field", "prepaid-collector-field"]) byId(f).hidden = true;
+  byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn sau khi lưu (mục Thanh toán → Ghi lần thu, kèm mã giao dịch ngân hàng nếu chuyển khoản vào tài khoản công ty).";
+  // Form dùng được trong lúc tải (initShell, danh mục…): số đã gõ sớm phải bị xoá (cờ `traTruocAn` đã bật ngay sau `initShell()`, nên số đó không còn được đọc), kẻo vẫn gửi lần thu CK – Công ty thu không mã (400) và làm rơi tiền trả trước.
+  field("prepaidAmount").value = "";
+  recompute();
 }
 if (editId) {
   byId("form-title").textContent = "Sửa đơn";

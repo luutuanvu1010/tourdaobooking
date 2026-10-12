@@ -33,7 +33,9 @@ try {
   env.sql(`UPDATE order_service SET catalog_code = NULL, unit = 'manual', name = 'Xe đưa đón riêng', pax_adult = 3 WHERE id = '${manualId}'`);
   env.sql(`UPDATE order_item SET catalog_code = NULL, pax_code = NULL, catalog_price = NULL, description = 'Xe 7 chỗ 2 chiều', detail = NULL WHERE service_id = '${manualId}'`);
   assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${orderId}/status`, { status: "confirmed" })).status, 200);
-  const getOrder = async () => (await call(ACCOUNTS.salesA, "GET", `/api/orders/${orderId}`)).json;
+  // 2026-10-08 (ADR-0074/ADR-0075): tài khoản Bán hàng chỉ có MỘT phiên — đọc lại đơn bằng `ACCOUNTS.salesA` sẽ đăng nhập lại và kết thúc phiên của trang
+  // salesA đang mở ("bi_thay"; bước 3 từng giết phiên, bước 5 PUT thật bị đá về /login). Đọc bằng tài khoản Toàn quyền `chu` (được nhiều máy).
+  const getOrder = async () => (await call(ACCOUNTS.chu, "GET", `/api/orders/${orderId}`)).json;
   const tripOf = (s, o = {}) => ({ id: s.id, departDate: s.departDate ?? "", departTime: s.departTime ?? "", pickupTime: s.pickupTime ?? "", pickupPlace: s.pickupPlace ?? "", checkinDate: s.checkinDate ?? "", checkinTime: s.checkinTime ?? "", checkinPlace: s.checkinPlace ?? "", note: s.note ?? "", ...o });
   const before = (await getOrder()).order;
 
@@ -168,7 +170,8 @@ try {
   // ---- 6) đơn đã đổi ở nơi khác → stale: bản đang gõ nói rõ sẽ mất, nút tải lại ----
   await open(p);
   const d = (await getOrder()).order;
-  const other = await call(ACCOUNTS.salesA, "PUT", `/api/orders/${orderId}/trip`, { expectedUpdatedAt: d.updatedAt, services: [tripOf(d.services[0]), tripOf(d.services[1], { pickupPlace: "Bến Ninh Chữ" })] });
+  // "người khác" sửa = Toàn quyền (salesA đăng nhập lại sẽ giết phiên của `p`)
+  const other = await call(ACCOUNTS.chu, "PUT", `/api/orders/${orderId}/trip`, { expectedUpdatedAt: d.updatedAt, services: [tripOf(d.services[0]), tripOf(d.services[1], { pickupPlace: "Bến Ninh Chữ" })] });
   assert.equal(other.status, 200, JSON.stringify(other.json));
   await p.ev(setInput(field(0, "note"), "Xung đột"));
   await p.ev(clickText(".sheet", "Lưu thông tin chuyến"));

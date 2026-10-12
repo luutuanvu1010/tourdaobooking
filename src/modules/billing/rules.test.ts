@@ -81,7 +81,8 @@ test("lyDoChuaGiaoDuoc (NT-F1, NT-F6c, M1 = A): thứ tự lý do cố định, 
   assert.deepEqual([thieuNgay.ma, thieuNgay.cau, thieuNgay.aiXuLy], ["missing_date", "Dịch vụ Vé Hòn Tằm chưa có ngày đi — sửa đơn trước.", "Người lập đơn"]);
   const som = lyDoChuaGiaoDuoc({ ...base, homNay: "2026-10-09", so: du(1, 1) })!;
   assert.deepEqual([som.ma, som.cau], ["before_departure", "Chưa tới ngày đi (10/10/2026) — bấm từ ngày đi trở đi."], "ngày đi MUỘN NHẤT");
-  assert.equal(lyDoChuaGiaoDuoc({ ...base, coNguoiHuong: true, so: du(1, 1) })!.ma, "booker_partner");
+  const doiTac = lyDoChuaGiaoDuoc({ ...base, coNguoiHuong: true, so: du(1, 1) })!;
+  assert.deepEqual([doiTac.ma, doiTac.cau, doiTac.aiXuLy], ["booker_partner", "Đơn của đối tác (có người hưởng hoa hồng) — chưa bấm Đã giao được cho tới bản cập nhật sổ đại lý.", "Văn phòng"], "sổ đại lý đợt 1 đổi chữ (N5); luật chặn giữ nguyên");
   const chuaRo = lyDoChuaGiaoDuoc({ ...base, so: du(1_000_000, 1_000_000, 1) })!;
   assert.deepEqual([chuaRo.ma, chuaRo.aiXuLy], ["unknown_collector", "Kế toán"]);
   const thieu = lyDoChuaGiaoDuoc({ ...base, so: du(600_000, 1_000_000) })!;
@@ -101,13 +102,21 @@ test("lyDoChuaHoanThanh: chưa Đã giao; đã Hoàn thành; còn bên nợ côn
 });
 
 test("NT-S8: ngày phát sinh — mặc định hôm nay; Kế toán chọn ngày khác (không sau hôm nay); người khác chọn ngày khác → từ chối; sai dạng → từ chối", () => {
-  assert.deepEqual(ngayPhatSinh({ chon: undefined, homNay: "2026-10-10", laKeToan: false }), { ok: true, value: "2026-10-10" });
-  assert.deepEqual(ngayPhatSinh({ chon: "2026-10-10", homNay: "2026-10-10", laKeToan: false }), { ok: true, value: "2026-10-10" });
-  assert.deepEqual(ngayPhatSinh({ chon: "2026-10-01", homNay: "2026-10-10", laKeToan: true }), { ok: true, value: "2026-10-01" });
-  assert.equal(ngayPhatSinh({ chon: "2026-10-01", homNay: "2026-10-10", laKeToan: false }).ok, false);
-  assert.equal(ngayPhatSinh({ chon: "2026-10-11", homNay: "2026-10-10", laKeToan: true }).ok, false);
-  assert.equal(ngayPhatSinh({ chon: "2026-02-30", homNay: "2026-10-10", laKeToan: true }).ok, false);
-  assert.equal(ngayPhatSinh({ chon: "10/10/2026", homNay: "2026-10-10", laKeToan: true }).ok, false);
+  assert.deepEqual(ngayPhatSinh({ chon: undefined, homNay: "2026-10-10", laKeToan: false, kyDaKhoa: () => false }), { ok: true, value: "2026-10-10" });
+  assert.deepEqual(ngayPhatSinh({ chon: "2026-10-10", homNay: "2026-10-10", laKeToan: false, kyDaKhoa: () => false }), { ok: true, value: "2026-10-10" });
+  assert.deepEqual(ngayPhatSinh({ chon: "2026-10-01", homNay: "2026-10-10", laKeToan: true, kyDaKhoa: () => false }), { ok: true, value: "2026-10-01" });
+  assert.equal(ngayPhatSinh({ chon: "2026-10-01", homNay: "2026-10-10", laKeToan: false, kyDaKhoa: () => false }).ok, false);
+  assert.equal(ngayPhatSinh({ chon: "2026-10-11", homNay: "2026-10-10", laKeToan: true, kyDaKhoa: () => false }).ok, false);
+  assert.equal(ngayPhatSinh({ chon: "2026-02-30", homNay: "2026-10-10", laKeToan: true, kyDaKhoa: () => false }).ok, false);
+  assert.equal(ngayPhatSinh({ chon: "10/10/2026", homNay: "2026-10-10", laKeToan: true, kyDaKhoa: () => false }).ok, false);
+});
+
+test("ngayPhatSinh: Kế toán chọn ngày thuộc tháng đã khoá ⇒ lỗi khoa với câu cauKyKhoa", () => {
+  const kyDaKhoa = (n: string) => n.startsWith("2026-09");
+  const r = ngayPhatSinh({ chon: "2026-09-30", homNay: "2026-10-08", laKeToan: true, kyDaKhoa });
+  assert.deepEqual(r, { ok: false, message: "Tháng 09/2026 đã khoá sổ — ghi vào tháng đang mở (điều chỉnh, có lý do)", khoa: true });
+  assert.deepEqual(ngayPhatSinh({ chon: "2026-10-01", homNay: "2026-10-08", laKeToan: true, kyDaKhoa }), { ok: true, value: "2026-10-01" });
+  assert.deepEqual(ngayPhatSinh({ chon: undefined, homNay: "2026-10-08", laKeToan: false, kyDaKhoa }), { ok: true, value: "2026-10-08" });
 });
 
 test("dong(): định dạng tiền không phụ thuộc máy", () => {

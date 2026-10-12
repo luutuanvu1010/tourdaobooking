@@ -46,6 +46,8 @@ const ROOT = join(HERE, "..", "..");
 // điều phối (chờ 1 phút, tắt tự đồng ý) rồi KHÔI PHỤC (10 phút, bật) ở `finally`; có một lần chờ thật ~1 phút (hết hạn đề nghị); không đụng salesB/field.
 // "dieu-phoi-chay-dua" (TC-33, Task A14) sau đó: 10 yêu cầu xếp song song vào chuyến 3 chỗ trên dữ liệu dùng một lần (chạy riêng: npm run test:e2e -- dieu-phoi-chay-dua).
 // "coc-don-huy" (ADR-0089, năm lỗi tiền Đợt 1) đứng ngay sau "so-tien", TRƯỚC "passkey": dùng salesA/admin/kế toán/superAdmin/field, tự cài/gỡ trigger thử.
+// "qr-thanh-toan" (ADR-0108 + ADR-0092 Đ6) đứng ngay sau "coc-don-huy", TRƯỚC "chong-ghi-trung" và "passkey": dùng superAdmin/salesA/salesB/admin/kế toán/field/fieldB (không đổi tài khoản dùng chung);
+// cài một tài khoản nhận tiền cho công ty chủ (bảng chỉ-thêm: dòng cũ đóng, không xoá được — không đổi công ty chủ) và lập đơn dùng một lần; mã giao dịch theo Date.now() nên chạy lại không va chạm.
 // "so-tien" (sổ tiền lượt 1 — ADR-0024/0025/0026) đứng TRƯỚC "passkey": dùng field/fieldB/salesA/kế toán; tự cài/gỡ trigger thử trên D1 tạm
 // (ca R1, F6) — gỡ ở `finally`.
 // "giao-dien" (ADR-0087) đứng SAU "tro-ly", TRƯỚC "maintenance": tự bật/tắt bảo trì ở ca 7 và khôi phục ở `finally`; cổng bảo trì chặn mọi route cần đăng nhập nên không được chạy khi bảo trì còn bật dở.
@@ -54,8 +56,12 @@ const ROOT = join(HERE, "..", "..");
 // "chinh-sach-phien" (ADR-0085) đứng TRƯỚC "phien": đổi chính sách toàn hệ thống rồi KHÔI PHỤC ở finally; tài khoản thử dùng một lần + 1000 tài khoản Đối tác giả (hồ sơ đầy đủ).
 // "phien" (ADR-0075 Task 4) đứng TRƯỚC "passkey": đăng nhập lại salesA nhiều lần (luật một máy đá cookie cũ) rồi `sessionMoi` để lại phiên sống; không đổi PIN/quyền của ai.
 // "mau-chang" (nợ nhỏ đưa đón 2026-10-01) ngay sau "catalog", TRƯỚC "maintenance": mã dịch vụ riêng ZMC1 + một điểm đã ngưng dùng một lần; bảng mẫu chỉ-thêm.
+// "so-dai-ly" (sổ đại lý đợt 1 — ADR-0077, ADR-0078 B1) ngay sau "qr-thanh-toan": hồ sơ đại lý dùng một lần (tên theo Date.now()), thêm mức theo vai TRAVEL_AGENCY rồi ĐÓNG nó
+// (bảng chỉ-thêm), thêm mức riêng cho đại lý của chính nó; KHÔNG đóng dòng điều khoản gieo sẵn `prc-st-goc-all`, KHÔNG đổi công ty chủ; dùng accountant/admin/hr/salesA/field (hr chỉ tạo hai tài khoản Đối tác dùng một lần).
+// "khoa-thang" (ADR-0080 D1; đặc tả sổ đại lý đợt 1 §12 mục 11c) đứng CUỐI, ngay trước "passkey": khoá tháng 2025-01 và 2025-02 — KHÔNG mở lại được, nên không kịch bản nào được
+// ghi tiền vào năm 2025, và mọi kịch bản ghi tiền của nhóm phải chạy TRƯỚC nó.
 // "passkey" đứng CUỐI CÙNG: đổi PIN của salesB, tạm ngưng rồi kích hoạt lại field — mọi kịch bản CÙNG NHÓM dùng chung một D1 tạm (passkey luôn cuối nhóm của nó).
-const ALL = ["platform", "pwa", "orders", "trip", "chang-hanh-khach", "nhap-tay-va-gia-doi-tac", "admin", "turnstile", "catalog", "mau-chang", "dispatch", "admin-race", "locations", "parties", "gop-ho-so", "booker", "permissions", "feedback", "company", "bangtin", "thongbao", "tro-ly", "giao-dien", "maintenance", "roles", "quyen-tien", "van-chuyen", "tai-xe-doi-tac", "chinh-sach-dieu-phoi", "dieu-phoi", "khung-ban-xe", "cam-ket-xe", "dieu-chinh-khan-cap", "dong-bo-chuyen", "tien-xe-thue", "dua-don-dau-cuoi", "tai-xe-cuoc", "tin-chuyen", "tu-choi-bao-ban", "xe-tren-don", "xe-dang-chay", "chuyen-khach", "dieu-phoi-chay-dua", "so-tien", "coc-don-huy", "chong-ghi-trung", "nhap-ke-toan", "chinh-sach-phien", "phien", "sua-so-khach", "passkey"];
+const ALL = ["platform", "pwa", "orders", "trip", "chang-hanh-khach", "nhap-tay-va-gia-doi-tac", "admin", "turnstile", "catalog", "mau-chang", "dispatch", "admin-race", "locations", "parties", "gop-ho-so", "booker", "permissions", "feedback", "company", "bangtin", "thongbao", "tro-ly", "giao-dien", "maintenance", "roles", "quyen-tien", "van-chuyen", "tai-xe-doi-tac", "chinh-sach-dieu-phoi", "dieu-phoi", "khung-ban-xe", "cam-ket-xe", "dieu-chinh-khan-cap", "dong-bo-chuyen", "tien-xe-thue", "dua-don-dau-cuoi", "tai-xe-cuoc", "tin-chuyen", "tu-choi-bao-ban", "xe-tren-don", "xe-dang-chay", "chuyen-khach", "dieu-phoi-chay-dua", "so-tien", "coc-don-huy", "qr-thanh-toan", "so-dai-ly", "chong-ghi-trung", "nhap-ke-toan", "chinh-sach-phien", "phien", "sua-so-khach", "khoa-thang", "passkey"];
 const picked = process.argv.slice(2);
 const scripts = picked.length ? picked : ALL;
 for (const s of scripts) if (!ALL.includes(s)) throw new Error(`Không có kịch bản "${s}" (có: ${ALL.join(", ")})`);
@@ -78,7 +84,7 @@ const THOI_GIAN = {
   platform: 1.4, pwa: 0.3, orders: 13.1, trip: 27.7, "chang-hanh-khach": 22.4, "nhap-tay-va-gia-doi-tac": 15.2, admin: 10.4, turnstile: 5.8,
   catalog: 28.6, "mau-chang": 6.4, dispatch: 165.8, "admin-race": 0.5, locations: 0.5, parties: 1, "gop-ho-so": 8, booker: 20.2, permissions: 5.2, feedback: 1.3, company: 28.8,
   bangtin: 59.1, thongbao: 67.1, "tro-ly": 8.9, "giao-dien": 4, maintenance: 32.8, roles: 5.8, "quyen-tien": 3, "van-chuyen": 14.4, "tai-xe-doi-tac": 27.9, "chinh-sach-dieu-phoi": 19.3,
-  "dieu-phoi": 53.1, "khung-ban-xe": 15, "cam-ket-xe": 15, "dieu-chinh-khan-cap": 8, "dong-bo-chuyen": 15, "tien-xe-thue": 20, "dua-don-dau-cuoi": 20, "tai-xe-cuoc": 32, "tin-chuyen": 15, "tu-choi-bao-ban": 20, "xe-dang-chay": 15, "chuyen-khach": 90, "dieu-phoi-chay-dua": 8.2, "so-tien": 24.7, "coc-don-huy": 20, "chong-ghi-trung": 20, "chinh-sach-phien": 30, phien: 19.4, "sua-so-khach": 15, passkey: 24.2,
+  "dieu-phoi": 53.1, "khung-ban-xe": 15, "cam-ket-xe": 15, "dieu-chinh-khan-cap": 8, "dong-bo-chuyen": 15, "tien-xe-thue": 20, "dua-don-dau-cuoi": 20, "tai-xe-cuoc": 32, "tin-chuyen": 15, "tu-choi-bao-ban": 20, "xe-dang-chay": 15, "chuyen-khach": 90, "dieu-phoi-chay-dua": 8.2, "so-tien": 24.7, "coc-don-huy": 20, "qr-thanh-toan": 15, "so-dai-ly": 15, "chong-ghi-trung": 20, "chinh-sach-phien": 30, phien: 19.4, "sua-so-khach": 15, "khoa-thang": 5, passkey: 24.2,
 };
 const nang = (name) => THOI_GIAN[name] ?? 15;
 

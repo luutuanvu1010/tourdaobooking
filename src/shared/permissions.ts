@@ -123,6 +123,20 @@ export const MATRIX = {
   "ledger.view": row("own", "any", "own", "own", "none", "any", "own", "none", "none", "none"),
   // Ghi sổ (ADR-0026 đ5, đ8): xác nhận công ty đã nhận, nộp/trả, điều chỉnh, đảo; cũng là "Kế toán" khi ghi lần thu (ghi người thu khác, chọn ngày phát sinh).
   "ledger.write": row("none", "any", "none", "none", "none", "any", "none", "none", "none", "none"),
+  // Khoá sổ tháng (ADR-0080 phần D1; đặc tả sổ đại lý đợt 1 §6): khoá MỘT tháng đã qua, lần lượt, không mở lại — CHỈ Kế toán, Toàn quyền (Quản trị KHÔNG; cột HR, DRIVER, DRIVER_PARTNER = none).
+  // KHÔNG đổi `O_GHI_TIEN` (đặc tả §6, N6). Route: POST /api/ledger/ky/:period/khoa (module billing); xem kỳ dùng ô `ledger.view` any.
+  "ledger.period.close": row("none", "any", "none", "none", "none", "any", "none", "none", "none", "none"),
+  // Sổ đại lý đợt 1 (ADR-0077 điều 11, ADR-0078 điều 6; đặc tả 2026-10-08 §6). Cột HR = none (ADR-0071). Route: /api/pricing/* (module pricing).
+  "partner.commission.view": row("any", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "partner.commission.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "supply.terms.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // Bán hàng KHÔNG xem tỷ lệ mua lại của nhà cung cấp
+  "supply.terms.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  // Phần đối tác của đơn (đặc tả §6; Task 5): xem = bằng `order.view` ở MỌI cột (supply.terms.view ⊆ order.terms.view ⊆ money.view — bài khoá ở permissions.test.ts), nhưng tài khoản giữ
+  // PARTNER (kể cả lai) nhận DTO HẸP (`holdsPartner` ở route — "có quyền Đối tác là áp") VÀ chỉ mở đơn của chính mình có người hưởng là hồ sơ của mình hoặc không ai (còn lại 404 — hàm thuần
+  // `cheDoThuongMai` ở orders/thuong-mai.ts; ô `any` của Bán hàng / Kế toán KHÔNG cứu được tài khoản lai); ghi mức tay chỉ Kế toán, Quản trị, Toàn quyền (Bán hàng KHÔNG). Cột HR, DRIVER, DRIVER_PARTNER = none.
+  // Route: GET /api/orders/:id/thuong-mai, POST /api/orders/:id/thuong-mai/:serviceId (module orders).
+  "order.terms.view": row("any", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"),
+  "order.terms.override": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   "invoice.request": row("own", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // ghi yêu cầu hoá đơn + thông tin xuất
   "invoice.issue": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // đánh dấu hoá đơn đã xuất
   // ADR-0060 (accepted 2026-09-30): dấu "đã nhập phần mềm kế toán" + "Số hoá đơn đã nhập" (bảng chỉ-thêm bil_accounting_entry, module billing). KHÔNG dùng lại

@@ -19,7 +19,7 @@ export const HD_BAN_HANG: NhomHuongDan = {
       noiDung: `### Trên máy tính (thanh bên trái)
 
 - Nhóm **BÁN HÀNG**: [[Trang chủ]], [[Đơn hàng]] (số nhỏ bên cạnh là số đơn đang chờ xác nhận), [[Tạo đơn]], [[Danh bạ]].
-- Nhóm **QUẢN TRỊ**: [[Vận chuyển]] › [[Điều phối xe]] (xem mục riêng).
+- Nhóm **QUẢN TRỊ**: [[Vận chuyển]] › [[Điều phối xe]] (xem mục riêng), [[Hoa hồng đối tác]] (chỉ xem).
 - Nhóm **TÔI**: [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]]. Nút [[Đăng xuất]] ở dưới cùng.
 - Thanh trên cùng: ô tìm đơn, nút [[Tạo đơn]] và cái chuông thông báo.
 
@@ -47,6 +47,7 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
 8. Khối [[Thông tin khách hàng]]: điền **Tên khách**, [[Số điện thoại]] (bắt buộc), [[Email]], [[Ghi chú / yêu cầu đặc biệt]].
    - Gõ xong số điện thoại, app tìm hồ sơ trùng số. Đúng người thì bấm [[Dùng hồ sơ này]]; khách mới thì bấm [[Tạo hồ sơ mới]]. Không chọn gì vẫn lưu được.
    - Nút [[Sử dụng thông tin của tôi]] điền tên và số của chính bạn.
+   - Khách đặt qua đại lý hoặc cộng tác viên: bấm [[Đặt qua đối tác]], chọn người đó để tính hoa hồng.
 9. Khối [[Người phụ trách]]: để trống thì đơn ở trạng thái [[Chờ nhận]] — hướng dẫn viên nào cũng nhận được. Muốn giao luôn thì bấm [[Chọn người phụ trách]], tìm tên, chạm người đó. Đổi ý thì bấm [[Đổi]] hoặc [[Bỏ chọn — để Chờ nhận]].
 10. Xem khối [[Tóm tắt]] rồi bấm [[Lưu, chờ xác nhận]]. Đơn lưu ở trạng thái [[Chờ xác nhận]]; app chuyển sang trang đơn và tự mở hộp ảnh biên nhận.
 
@@ -218,10 +219,6 @@ Hoặc có chặng đón dưới mốc 6 giờ chưa được Quản trị duy�
 ### Sao tôi không thấy nút Sửa, Xác nhận, Huỷ?
 
 Đơn không phải của bạn và bạn không phụ trách; app ghi rõ ai được sửa. Nếu đơn đang [[Chờ nhận]], bạn có thể bấm [[Nhận phụ trách]].
-
-### Gửi biên nhận rồi mới đổi giờ đón thì sao?
-
-Sau khi bấm [[Lưu thông tin chuyến]], bấm [[Xem biên nhận]] và gửi lại ảnh mới cho khách.
 
 ### Hai dịch vụ khác ngày trong cùng một đơn được không?
 

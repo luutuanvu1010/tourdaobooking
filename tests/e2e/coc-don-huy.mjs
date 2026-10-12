@@ -27,7 +27,7 @@ const tien = async (cookie, id) => (await call(cookie, "GET", `/api/orders/${id}
 // ---- 1) Huỷ có lý do; còn lại = 0; lần thu lên đơn huỷ chỉ Kế toán
 {
   const o = await donXacNhan();
-  assert.equal((await call(ACC, "POST", `/api/orders/${o.id}/payments`, { soTien: 100000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201);
+  assert.equal((await call(ACC, "POST", `/api/orders/${o.id}/payments`, { soTien: 100000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", maGiaoDich: "E2ECD0001", soThucChuyen: 100000 })).status, 201); // Kế toán ghi CK – Công ty thu ⇒ đòi mã (ADR-0092 Đ6)
   assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "cancelled" })).status, 400, "thiếu lý do → 400");
   assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "cancelled", lyDo: "THOI_TIET" })).status, 403, "Bán hàng chọn Công ty huỷ → 403");
   const h = await call(A, "POST", `/api/orders/${o.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" });

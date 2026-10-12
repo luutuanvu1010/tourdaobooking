@@ -8,6 +8,16 @@ import type { OrderStatus } from "./contracts.ts";
 export const STATUS_LABEL: Record<OrderStatus, string> = { draft: "Chờ xác nhận", confirmed: "Đã xác nhận", cancelled: "Đã huỷ" };
 
 /**
+ * Câu 409 `invalid_transition` khi đơn không chuyển được từ `tu` sang `sang` (route đổi trạng thái): nêu trạng thái hiện tại BẰNG NHÃN (không lộ mã thô như `confirmed` — CLAUDE.md §7).
+ * Hai trạng thái giống nhau (bấm lại) thì nói «đã ở trạng thái … rồi» cho tự nhiên; khác nhau thì nêu cả hai nhãn. Nhãn lấy từ `STATUS_LABEL` — không bảng nhãn thứ hai.
+ */
+export function cauKhongDoiDuocTrangThai(tu: OrderStatus, sang: OrderStatus): string {
+  return tu === sang
+    ? `Đơn đã ở trạng thái “${STATUS_LABEL[tu]}” rồi.`
+    : `Đơn đang ở trạng thái “${STATUS_LABEL[tu]}”, không thể chuyển sang “${STATUS_LABEL[sang]}”.`;
+}
+
+/**
  * Nhãn trạng thái HIỂN THỊ của đơn kèm hai mốc sổ tiền (ADR-0024 đ3, ADR-0025 đ9): `status` vẫn chỉ ba giá trị; "Đã giao – đã thu đủ" / "Hoàn thành" SUY
  * RA từ mốc. MỘT hàm cho danh sách, chi tiết, Trang chủ, biên nhận — không chép tay nhãn ở `web/`. `khoa` (dùng cho lớp CSS) KHÔNG phải chữ hiển thị.
  */

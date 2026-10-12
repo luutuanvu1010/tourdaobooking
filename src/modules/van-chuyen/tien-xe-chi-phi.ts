@@ -3,6 +3,7 @@
 // `tongChiPhiChuyen` / `tongBangKe` (hàng rào src/tien-xe-mot-nguon.test.ts). Thân route ở index.ts hỏi `can()` trước rồi gọi các hàm ở đây.
 import { auditStatement } from "../audit";
 import { nhaXeDangHopTac } from "../parties";
+import { kyCua } from "../ky-so";
 import type { BangKeResponse, ChiPhiChuyenDto, NhomBangKeDto, StaffProfile } from "../../shared/contracts";
 import { laLyDoHeThong } from "../../shared/dieu-phoi-kieu";
 import { error } from "../../shared/http";
@@ -13,6 +14,7 @@ import { CAU_CHI_PHI_VUA_DOI, CAU_NHA_XE_THOI, CAU_TONG_AM, loiRangBuocChuyen } 
 import { chonDongGiaThue, chuTien, coXeCua, daoDuoc, datGiaDuoc, dieuChinhDuoc, ngayDieuChinhMacDinh, ngayGhiDao, nguonGiaConHieuLuc, nhaXeChiuChiPhi, tongChiPhiChuyen, type DongChiPhi, type DongGiaThue } from "./tien-xe";
 import { bangKeDto, chiPhiChuyenDto } from "./tien-xe-dto";
 import { dongCua } from "./tien-xe-lo";
+import { docKyDaKhoa, loiKhoaThangXe, loiThangDaKhoa } from "./tien-xe-lenh";
 import {
   COST_ADJUST_KT, COST_AGREED_KT, COST_REVERSE_KT, COST_SNAPSHOT_KT, bangKeLines, bangKeTrips, costLinesOfTrip, costReasons, findCostLine, findRoute, listRoutes, listSizes,
   partyName, ratesOfCarrier, tripCancelledAt, type CostLineRow,
@@ -60,11 +62,14 @@ async function daGhi(db: D1Database, requestId: string, tripId: string): Promise
   if (!r) return null;
   return r.trip_id === tripId ? { ok: true, lap: true } : { ok: false, res: error(409, "request_trung", "Mã yêu cầu đã dùng — tải lại trang rồi bấm lại.") };
 }
-async function chayGhi(db: D1Database, lo: D1PreparedStatement[]): Promise<KetQuaGhi> {
+/** `ngays` = ngày phát sinh của dòng chi phí MỚI trong lô — để lỗi trigger `period_closed:` (tháng khoá giữa lúc đọc và lúc ghi) dịch ra đúng câu của tháng vừa khoá. */
+async function chayGhi(db: D1Database, lo: D1PreparedStatement[], ngays: readonly string[]): Promise<KetQuaGhi> {
   try {
     const kq = await db.batch(lo);
     return (kq[0]?.meta.changes ?? 0) === 0 ? { ok: false, res: VUA_DOI() } : { ok: true, lap: false };
   } catch (e) {
+    const khoa = await loiKhoaThangXe(db, e, ngays);
+    if (khoa) return { ok: false, res: khoa };
     const m = e instanceof Error ? e.message : String(e);
     if (/UNIQUE constraint failed: vc_trip_cost_line\.id/.test(m)) return { ok: true, lap: true };
     const r = loiRangBuocChuyen(m);
@@ -104,12 +109,17 @@ export async function lenhDieuChinh(db: D1Database, tripId: string, b: DieuChinh
   const truoc = tongChiPhiChuyen(nc.dong);
   if (truoc + b.soTien < 0) return { ok: false, res: TONG_AM() };
   const at = now.toISOString();
+  // ADR-0080: ngày TỰ CHỌN thuộc tháng đã khoá ⇒ 409 (người ghi phải chọn ngày khác); ngày MẶC ĐỊNH thuộc tháng khoá ⇒ hôm nay (`ngayDieuChinhMacDinh`).
+  const kyDaKhoa = await docKyDaKhoa(db);
+  if (b.ngay !== null && kyDaKhoa(b.ngay)) return { ok: false, res: loiThangDaKhoa(kyCua(b.ngay)) };
   const huyLuc = nc.trip.status === "CANCELLED" && b.ngay === null ? await tripCancelledAt(db, nc.trip.id) : null;
-  const ngay = b.ngay ?? ngayDieuChinhMacDinh({ trangThai: nc.trip.status, ngayHuy: huyLuc === null ? null : vnToday(new Date(huyLuc)), ngayChay: nc.trip.service_date });
+  const ngay = b.ngay ?? ngayDieuChinhMacDinh({
+    trangThai: nc.trip.status, ngayHuy: huyLuc === null ? null : vnToday(new Date(huyLuc)), ngayChay: nc.trip.service_date, homNay: vnToday(now), kyDaKhoa,
+  });
   return chayGhi(db, [
     db.prepare(COST_ADJUST_KT).bind(b.requestId, nc.trip.id, nhaXeCuaChiPhi(nc.rows, nc.trip), b.soTien, b.lyDo, b.ghiChu, ngay, b.requestId, at, staff.id, b.phienBanChiPhi),
     nhatKy(db, { id: b.requestId, staff, at, action: "trip_cost_adjusted", tripId: nc.trip.id, detail: chiTiet(nc.trip, nc.tenNhaXe, truoc, truoc + b.soTien, nhan) }),
-  ]);
+  ], [ngay]);
 }
 
 // ---- Đảo dòng (ADR-0057 C4, C8 — V9) -----------------------------------------------------------------------------------------------------------------------
@@ -136,10 +146,11 @@ export async function lenhDaoDong(db: D1Database, tripId: string, b: DaoDongThan
   const truoc = tongChiPhiChuyen(nc.dong);
   if (truoc - goc.amount < 0) return { ok: false, res: TONG_AM() };
   const at = now.toISOString();
+  const ngay = ngayGhiDao({ occurredDate: nc.rows[i]!.occurred_date }, { homNay, kyDaKhoa: await docKyDaKhoa(db) }); // ADR-0080: dòng gốc ở tháng đã khoá ⇒ dòng đảo mang hôm nay
   return chayGhi(db, [
-    db.prepare(COST_REVERSE_KT).bind(b.requestId, nc.trip.id, nc.rows[i]!.carrier_party_id, -goc.amount, goc.id, b.lyDo, b.ghiChu, ngayGhiDao({ occurredDate: nc.rows[i]!.occurred_date }, { homNay }), b.requestId, at, staff.id, b.phienBanChiPhi),
+    db.prepare(COST_REVERSE_KT).bind(b.requestId, nc.trip.id, nc.rows[i]!.carrier_party_id, -goc.amount, goc.id, b.lyDo, b.ghiChu, ngay, b.requestId, at, staff.id, b.phienBanChiPhi),
     nhatKy(db, { id: b.requestId, staff, at, action: "trip_cost_reversed", tripId: nc.trip.id, detail: chiTiet(nc.trip, nc.tenNhaXe, truoc, truoc - goc.amount, nhan) }),
-  ]);
+  ], [ngay]);
 }
 
 /** Điều kiện chung của "lấy lại giá bảng" và "giá thoả thuận" (ADR-0057 C5): chưa xuất bến, xe thuê, chưa có nguồn giá, nhà xe đang hợp tác. */
@@ -162,6 +173,8 @@ export async function lenhChupLai(db: D1Database, tripId: string, b: { requestId
   if (!nc) return null;
   const chan = await kiemDatGia(db, nc, b.phienBanChiPhi, nc.rows.length);
   if (chan) return { ok: false, res: chan };
+  // ADR-0080: dòng chụp mang NGÀY CHẠY — ngày chạy thuộc tháng đã khoá thì không có giá nào ghi được (giá phải tính theo ngày chạy, không thay bằng hôm nay).
+  if ((await docKyDaKhoa(db))(nc.trip.service_date)) return { ok: false, res: loiThangDaKhoa(kyCua(nc.trip.service_date)) };
   const vao = await dauVaoChupLai(db, nc.trip, homNay);
   const { sizeCode, soCho } = vao.chon;
   const g = chonDongGiaThue(vao.chon, vao.gia);
@@ -171,7 +184,7 @@ export async function lenhChupLai(db: D1Database, tripId: string, b: { requestId
   return chayGhi(db, [
     db.prepare(COST_SNAPSHOT_KT).bind(b.requestId, nc.trip.id, nc.trip.carrier_party_id, g.amount, g.id, nc.trip.route_code, sizeCode, soCho, nc.trip.service_date, b.requestId, at, staff.id, b.phienBanChiPhi),
     nhatKy(db, { id: b.requestId, staff, at, action: "trip_cost_snapshot", tripId: nc.trip.id, detail: chiTiet(nc.trip, nc.tenNhaXe, truoc, truoc + g.amount, "lấy lại giá bảng") }),
-  ]);
+  ], [nc.trip.service_date]);
 }
 
 /** Đầu vào luật chọn giá của "lấy lại giá bảng" — MỘT chỗ cho lệnh chup-lai và gợi ý `giaBangCoThe` (Task 13): nhà xe, tuyến, cỡ theo số chỗ, ngày chạy. */
@@ -193,12 +206,13 @@ export async function lenhGiaThoaThuan(db: D1Database, tripId: string, b: ThoaTh
   if (!nc) return null;
   const chan = await kiemDatGia(db, nc, b.phienBanChiPhi, nc.rows.length);
   if (chan) return { ok: false, res: chan };
+  if ((await docKyDaKhoa(db))(nc.trip.service_date)) return { ok: false, res: loiThangDaKhoa(kyCua(nc.trip.service_date)) }; // ADR-0080: như "lấy lại giá bảng" — ngày chạy ở tháng khoá
   const at = now.toISOString();
   const truoc = tongChiPhiChuyen(nc.dong);
   return chayGhi(db, [
     db.prepare(COST_AGREED_KT).bind(b.requestId, nc.trip.id, nc.trip.carrier_party_id, b.soTien, b.ghiChu, nc.trip.service_date, b.requestId, at, staff.id, b.phienBanChiPhi),
     nhatKy(db, { id: b.requestId, staff, at, action: "trip_cost_agreed", tripId: nc.trip.id, detail: chiTiet(nc.trip, nc.tenNhaXe, truoc, truoc + b.soTien, "giá thoả thuận trước") }),
-  ]);
+  ], [nc.trip.service_date]);
 }
 
 // ---- Bảng kê -------------------------------------------------------------------------------------------------------------------------------------------------

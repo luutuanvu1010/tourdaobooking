@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { bookerPayload, canPickMatch, describeBookerChange, lookupReady, matchNote, parseBooker } from "./booker.ts";
+import { benDatChoTaiKhoan, benDatDoiTacBiCam, bookerPayload, canPickMatch, describeBookerChange, lookupReady, matchNote, parseBooker } from "./booker.ts";
 
 const U = "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0";
 
@@ -31,9 +31,19 @@ test("canPickMatch / matchNote: chỉ cá nhân đang hoạt động chọn đư
   assert.equal(canPickMatch({ kind: "PERSON", active: true }), true);
   assert.equal(canPickMatch({ kind: "PERSON", active: false }), false);
   assert.equal(canPickMatch({ kind: "ORGANIZATION", active: true }), false);
-  assert.equal(matchNote({ kind: "PERSON", active: true }), null);
-  assert.equal(matchNote({ kind: "PERSON", active: false }), "đã ngưng");
-  assert.equal(matchNote({ kind: "ORGANIZATION", active: true }), "tổ chức — chưa gắn được vào đơn ở bản này");
+  for (const coO of [true, false]) {
+    assert.equal(matchNote({ kind: "PERSON", active: true }, coO), null);
+    assert.equal(matchNote({ kind: "PERSON", active: false }, coO), "đã ngưng");
+    assert.equal(matchNote({ kind: "ORGANIZATION", active: false }, coO), "đã ngưng", "ngưng được nói trước tổ chức");
+  }
+});
+
+// Task 14, nợ (d) (T11 M3): câu cạnh hồ sơ tổ chức trỏ tới ô «Đặt qua đối tác» CHỈ khi người đọc có ô đó (người lập đơn không giữ quyền Đối tác); Đối tác và tài khoản lai không có ô ⇒ câu trung tính.
+test("matchNote: tổ chức — chỉ trỏ tới ô «Đặt qua đối tác» khi người đọc CÓ ô đó; không thì câu trung tính, không nhắc ô", () => {
+  assert.equal(matchNote({ kind: "ORGANIZATION", active: true }, true), "tổ chức — đại lý thì chọn ở ô “Đặt qua đối tác”");
+  const trungTinh = matchNote({ kind: "ORGANIZATION", active: true }, false);
+  assert.equal(trungTinh, "tổ chức — do văn phòng gắn bên đặt");
+  assert.ok(!/ ô /.test(trungTinh ?? ""), "câu trung tính không nhắc ô nào");
 });
 
 test("lookupReady: cùng chuẩn với máy chủ (số Việt Nam 10 số)", () => {
@@ -58,4 +68,35 @@ test("describeBookerChange: chỉ tên, null khi không đổi", () => {
   assert.equal(describeBookerChange(none, b), "gắn hồ sơ khách “Trần B”");
   assert.equal(describeBookerChange(a, none), "bỏ gắn hồ sơ khách “Nguyễn A”");
   assert.equal(describeBookerChange(a, b), "đổi hồ sơ khách “Nguyễn A” → “Trần B”");
+});
+
+test("benDatChoTaiKhoan (ADR-0077 đ3 (i), thu hẹp): Đối tác có hồ sơ được hưởng ⇒ chính hồ sơ đó, bất kể thân gửi gì", () => {
+  const nhieu = [{ kind: "none" }, { kind: "existing", partyId: "pty-khac" }, { kind: "new", fullName: "A", phone: "0901234567" }] as const;
+  for (const guiLen of nhieu) assert.deepEqual(benDatChoTaiKhoan({ laDoiTac: true, partyId: "pty-minh", laNguoiHuong: true, guiLen }), { kind: "existing", partyId: "pty-minh" });
+});
+
+test("benDatChoTaiKhoan: Đối tác có hồ sơ nhưng KHÔNG được hưởng, Đối tác chưa gắn hồ sơ, hoặc không phải Đối tác ⇒ giữ nguyên điều thân gửi", () => {
+  const guiLen = { kind: "existing", partyId: "pty-khac" } as const;
+  assert.equal(benDatChoTaiKhoan({ laDoiTac: true, partyId: "pty-minh", laNguoiHuong: false, guiLen }), guiLen);
+  assert.equal(benDatChoTaiKhoan({ laDoiTac: true, partyId: null, laNguoiHuong: false, guiLen }), guiLen);
+  assert.equal(benDatChoTaiKhoan({ laDoiTac: true, partyId: null, laNguoiHuong: true, guiLen }), guiLen, "không có hồ sơ thì không thể ghi hồ sơ của tài khoản");
+  assert.equal(benDatChoTaiKhoan({ laDoiTac: false, partyId: "pty-minh", laNguoiHuong: true, guiLen }), guiLen, "tài khoản không giữ quyền Đối tác không bị ép");
+  assert.equal(benDatChoTaiKhoan({ laDoiTac: false, partyId: "pty-minh", laNguoiHuong: false, guiLen: { kind: "none" } }).kind, "none");
+});
+
+test("benDatDoiTacBiCam (K1, lời chủ 2026-10-09): tài khoản Đối tác gửi hồ sơ CÓ SẴN đang được hưởng mà khác hồ sơ của chính mình và khác bên đặt đang lưu ⇒ bị cấm", () => {
+  const goc = { laDoiTac: true, partyId: "pty-minh", guiLen: { kind: "existing", partyId: "pty-dai-ly" }, guiLaNguoiHuong: true, benDatDangLuu: null } as const;
+  assert.equal(benDatDoiTacBiCam(goc), true);
+  assert.equal(benDatDoiTacBiCam({ ...goc, benDatDangLuu: "pty-khac-nua" }), true, "bên đặt đang lưu là hồ sơ khác thì không được miễn");
+  assert.equal(benDatDoiTacBiCam({ ...goc, partyId: null }), true, "chưa gắn hồ sơ: luật này vẫn cấm (đường lập đơn trả 409 trước, đường đổi khách trả 403)");
+});
+
+test("benDatDoiTacBiCam: các ngoại lệ — bên đặt đang lưu, chính hồ sơ của tài khoản, hồ sơ không được hưởng, không gửi hồ sơ có sẵn, không giữ quyền Đối tác", () => {
+  const goc = { laDoiTac: true, partyId: "pty-minh", guiLen: { kind: "existing", partyId: "pty-dai-ly" }, guiLaNguoiHuong: true, benDatDangLuu: null } as const;
+  assert.equal(benDatDoiTacBiCam({ ...goc, benDatDangLuu: "pty-dai-ly" }), false, "văn phòng đã gắn đúng bên này lên nháp: Đối tác lưu lại nháp không bị chặn");
+  assert.equal(benDatDoiTacBiCam({ ...goc, guiLen: { kind: "existing", partyId: "pty-minh" } }), false, "chọn đúng hồ sơ của chính mình");
+  assert.equal(benDatDoiTacBiCam({ ...goc, guiLaNguoiHuong: false }), false, "khách lẻ / tổ chức không được hưởng: luật khác lo");
+  assert.equal(benDatDoiTacBiCam({ ...goc, guiLen: { kind: "none" } }), false);
+  assert.equal(benDatDoiTacBiCam({ ...goc, guiLen: { kind: "new", fullName: "A", phone: "0901234567" } }), false);
+  assert.equal(benDatDoiTacBiCam({ ...goc, laDoiTac: false }), false, "nhân viên văn phòng không giữ quyền Đối tác chọn tự do");
 });

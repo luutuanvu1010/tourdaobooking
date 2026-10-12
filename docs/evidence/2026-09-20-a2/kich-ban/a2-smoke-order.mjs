@@ -14,6 +14,9 @@ try {
     });
     return { status: r.status, json: await r.json().catch(() => null) };
   };
+  // 2026-10-08 (ADR-0074/ADR-0075): tài khoản Bán hàng chỉ có MỘT phiên — mỗi `call(ACCOUNTS.salesA, …)` đăng nhập lại và kết thúc phiên của trang salesA
+  // đang mở ("bi_thay"), trang đó bị đá về /login ở lời gọi kế tiếp. Lời gọi ĐỌC / sửa "ở nơi khác" trong lúc trang salesA còn dùng đi bằng tài khoản Toàn
+  // quyền `ACCOUNTS.chu` (được nhiều máy, không thay phiên ai); các lời gọi salesA còn lại đều chạy khi không có trang salesA nào mở.
   const NO_TRIP = { departDate: "", departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
   const pax = (adult, child = 0) => ({ adult, child, senior: 0, infant: 0 });
   const dmy = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
@@ -80,7 +83,7 @@ try {
   assert.equal(editHref, `/order-form?id=${order.id}&focus=${order.services[1].id}`);
   assert.ok((await p.ev("(() => { const r = document.querySelector('#error .banner-edit').getBoundingClientRect(); return Math.min(r.width, r.height); })()")) >= 43.5, "liên kết Sửa rộng và cao ≥ 44px");
   assert.equal(await p.ev("[...document.querySelectorAll('#actions button')].every((b) => !b.disabled)"), true, "nút bật lại sau lỗi");
-  assert.equal((await call(ACCOUNTS.salesA, "GET", `/api/orders/${order.id}`)).json.order.status, "draft", "xác nhận thất bại không đổi trạng thái");
+  assert.equal((await call(ACCOUNTS.chu, "GET", `/api/orders/${order.id}`)).json.order.status, "draft", "xác nhận thất bại không đổi trạng thái"); // chu: `p` còn dùng ở bước 3
   ok("xác nhận thiếu ngày: banner nguy hiểm, dòng 'Xe đưa đón riêng — chưa có ngày khởi hành' + liên kết Sửa đúng dịch vụ (KHÔNG có nút 'Tải lại đơn'), đơn vẫn nháp");
 
   // ---- 3) liên kết "Sửa" mở form đúng thẻ (khối chuyến mở sẵn) ----
@@ -117,7 +120,7 @@ try {
     await q.ev(setInput("document.querySelector('#services .svc .counter-field[aria-label=\"Số khách (chỉ để vận hành)\"]')", "4"));
     await q.ev("document.getElementById('save').click(); true");
     await q.waitFor("location.pathname === '/order'", "lưu thành công → trang đơn", 15000);
-    const saved = (await call(ACCOUNTS.salesA, "GET", `/api/orders/${c3.json.order.id}`)).json.order;
+    const saved = (await call(ACCOUNTS.chu, "GET", `/api/orders/${c3.json.order.id}`)).json.order; // chu: `q` còn mở (đọc lỗi console dưới)
     assert.deepEqual([saved.services[0].kind, saved.services[0].name, saved.services[0].pax.adult, saved.subtotal], ["manual", "Xe đưa đón riêng", 4, 800000], JSON.stringify(saved.services[0]));
     assert.deepEqual(saved.services[0].items.map((i) => [i.description, i.quantity, i.unitPrice]), [["Xe 7 chỗ 2 chiều", 1, 800000]]);
     assert.deepEqual(q.consoleErrors, []);
@@ -207,11 +210,11 @@ try {
   assert.equal(fourth.status, 201, JSON.stringify(fourth.json));
   p = await env.as(ACCOUNTS.salesA, `/order?id=${fourth.json.order.id}`);
   await p.waitFor("document.querySelectorAll('#order .svc-view').length === 1", "đơn nháp thứ tư");
-  assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${fourth.json.order.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 200, "đơn bị huỷ ở nơi khác");
+  assert.equal((await call(ACCOUNTS.chu, "POST", `/api/orders/${fourth.json.order.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 200, "đơn bị huỷ ở nơi khác"); // chu: `p` (salesA) còn mở
   await p.ev("window.confirm = () => true; true");
   await p.ev(clickText("#actions", "Huỷ đơn")); // trang cũ vẫn tưởng đơn còn nháp → 409 invalid_transition
   await p.ev(`(() => { const f = document.querySelector('[data-khoi="huy-don"]'); f.querySelector('input[value="KHACH_DOI_Y"]').click(); f.querySelector('button[type=submit]').click(); return true; })()`); // ADR-0089 đ8: chọn lý do huỷ rồi bấm "Huỷ đơn" của hàng lý do
-  await p.waitFor("!document.getElementById('error').hidden && /Không thể chuyển đơn từ/.test(document.getElementById('error').textContent)", "banner 409 invalid_transition");
+  await p.waitFor("!document.getElementById('error').hidden && /Đơn đã ở trạng thái/.test(document.getElementById('error').textContent)", "banner 409 invalid_transition");
   assert.equal(await p.ev("[...document.querySelectorAll('#error button')].some((b) => b.textContent === 'Tải lại đơn')"), true, "409 ở trang đơn có nút 'Tải lại đơn'");
   await p.ev(clickText("#error", "Tải lại đơn"));
   await p.waitFor("document.querySelector('#order .badge')?.textContent === 'Đã huỷ' && document.getElementById('error').hidden", "tải lại: thấy trạng thái mới");

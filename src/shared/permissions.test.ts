@@ -55,6 +55,8 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "order.complete": ["none", "any", "none", "none", "none", "any", "none", "none", "none", "none"],
   "ledger.view": ["own", "any", "own", "own", "none", "any", "own", "none", "none", "none"],
   "ledger.write": ["none", "any", "none", "none", "none", "any", "none", "none", "none", "none"],
+  // Khoá sổ tháng (ADR-0080 phần D1; đặc tả sổ đại lý đợt 1 §6): CHỈ Kế toán, Toàn quyền — Quản trị KHÔNG (lời chủ: "khoá tháng là việc của Kế toán"). Route POST /api/ledger/ky/:period/khoa.
+  "ledger.period.close": ["none", "any", "none", "none", "none", "any", "none", "none", "none", "none"],
   "invoice.request": ["own", "any", "any", "none", "none", "any", "none", "none", "none", "none"],
   "invoice.issue": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"],
   // ADR-0060 (accepted 2026-09-30): dấu "đã nhập phần mềm kế toán" — ghi chỉ Kế toán + Toàn quyền (không Quản trị); xem = order.view trừ Đối tác none (Q-2 "Không").
@@ -89,6 +91,14 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "auth.session.viewAll": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0075 điều 7: xem sổ phiên của MỌI tài khoản — chỉ Toàn quyền (vai IT mang Toàn quyền)
   "auth.session.revoke": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0075 điều 7: gỡ một phiên đăng nhập — chỉ Toàn quyền
   "auth.session.policy": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0085: chỉ Toàn quyền
+  // Sổ đại lý đợt 1 (ADR-0077 điều 11, ADR-0078 điều 6; đặc tả 2026-10-08 §6): xem bảng mức — Bán hàng, Kế toán, Quản trị, Toàn quyền; đặt mức và người bán — Kế toán, Quản trị, Toàn quyền.
+  "partner.commission.view": ["any", "any", "any", "none", "none", "any", "none", "none", "none", "none"],
+  "partner.commission.write": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"],
+  "supply.terms.view": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"], // Bán hàng KHÔNG xem tỷ lệ mua lại của nhà cung cấp
+  "supply.terms.write": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"],
+  // Phần đối tác của đơn (đặc tả §6; Task 5): xem bằng order.view (Đối tác own, nhưng nhận DTO hẹp ở route); ghi mức tay — Kế toán, Quản trị, Toàn quyền (Bán hàng KHÔNG).
+  "order.terms.view": ["any", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"],
+  "order.terms.override": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"],
 };
 const ORDER: readonly PermissionCode[] = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN", "DRIVER", "DRIVER_PARTNER", "HR"];
 const OPS = Object.keys(ADR) as OperationCode[];
@@ -255,6 +265,7 @@ const ADMIN_NONE_OPS: readonly OperationCode[] = [
   "payment.refund", // sổ tiền lượt 1 (ADR-0026 điều 10): hoàn khách chỉ Kế toán, Toàn quyền (H4)
   "order.complete", "ledger.write", // sổ tiền lượt 1: Hoàn thành / ghi sổ chỉ Kế toán, Toàn quyền (ADR-0025 đ6, ADR-0026 đ10)
   "ledger.view", // ADMIN "own" — chỉ sổ của chính mình (ngữ cảnh ownerId người khác → không)
+  "ledger.period.close", // ADR-0080 D1: khoá sổ tháng chỉ Kế toán, Toàn quyền — Quản trị KHÔNG
   "accounting.entry.mark", // ADR-0060: ghi dấu "đã nhập phần mềm kế toán" chỉ Kế toán, Toàn quyền (lời chủ)
   "deposit.outside.record", // ADR-0089 đ16, X-4: ghi "đã hoàn ngoài hệ thống" chỉ Toàn quyền — Quản trị là người XÁC NHẬN (deposit.refund.approve)
   "auth.session.viewAll", "auth.session.revoke", "auth.session.policy", // ADR-0075 điều 7: sổ phiên của mọi người, gỡ phiên — chỉ Toàn quyền (Quản trị không giữ Toàn quyền → 403)
@@ -353,8 +364,11 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "unavailability.self": "none", // ADR-0053 D9 (0053:49): Đợt 6 chỉ mở báo bận cho tài xế đối tác
     // Sổ tiền lượt 1 (bản làm mới §2): tài xế không thu tiền khách — none ở cả bốn ô mới (ledger.view none, không phải own: tài xế không bao giờ là người thu).
     "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none",
+    "ledger.period.close": "none", // khoá sổ tháng (ADR-0080 D1): tài xế không khoá sổ
     "assistant.ask": "any", // ngoại lệ có tên (ADR-0066 điều 1): hỏi trợ lý Hỗ trợ cách dùng app — trợ lý không đọc dữ liệu nghiệp vụ
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
+    "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: tài xế không xem bảng mức, người bán
+    "order.terms.view": "none", "order.terms.override": "none", // Task 5: tài xế không xem phần đối tác của đơn
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER])), DRIVER_ROW);
 });
@@ -394,8 +408,11 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "unavailability.self": "own",
     "trip.view": "assigned", "trip.dispatch": "none", "trip.override": "none", "trip.urgent_adjust": "none", "trip.progress": "assigned", "trip.call_ack": "none", // ADR-0053 D7.1 (A4 T6)
     "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none", // sổ tiền lượt 1 (bản làm mới §2) — mọi ô tiền = none
+    "ledger.period.close": "none", // khoá sổ tháng (ADR-0080 D1): tài xế đối tác không khoá sổ
     "assistant.ask": "any", // ngoại lệ có tên (ADR-0066 điều 1): hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
+    "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: tài xế đối tác không thấy mọi con số hoa hồng
+    "order.terms.view": "none", "order.terms.override": "none", // Task 5: tài xế đối tác không thấy phần đối tác của đơn
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER_PARTNER])), DRIVER_PARTNER_ROW);
   // NT-1 (kế hoạch A4): đúng 8 ô ≠ none sau T8 — 4 ô cũ (feedback.submit, feedback.view, party.document.view, assistant.ask) + trip.view, trip.progress,
@@ -414,6 +431,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "order.trip.edit": "none", "order.leg.short_notice": "none", "order.leg.short_notice.view": "none", "order.passenger.write": "none", "order.service.manual": "none",
     "task.progress": "none", "order.money.edit": "none", "order.cancel": "none", "order.cancel.classify": "none", "deposit.refund.approve": "none", "deposit.outside.record": "none", "dispatch.assign": "none", "dispatch.claim": "none", "dispatch.guides.view": "none",
     "payment.receive": "none", "payment.refund": "none", "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none",
+    "ledger.period.close": "none", // khoá sổ tháng (ADR-0080 D1): Nhân sự chỉ ba ô tài khoản
     "invoice.request": "none", "invoice.issue": "none", "accounting.entry.mark": "none", "accounting.entry.view": "none",
     "party.view": "none", "party.write": "none", "party.staff.write": "none", "admin.manage": "none", "admin.manage.superadmin": "none",
     "account.access.manage": "none", // điều 1e: hỗ trợ đăng nhập vẫn Quản trị + Toàn quyền (ADR-0042)
@@ -430,6 +448,8 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "trip.transfer": "none", // ADR-0111: Nhân sự không điều xe
     "assistant.ask": "any",
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
+    "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1 (ADR-0071: Nhân sự chỉ ba ô tài khoản)
+    "order.terms.view": "none", "order.terms.override": "none", // Task 5: Nhân sự không thấy phần đối tác của đơn
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].HR])), HR_ROW);
 });
@@ -560,4 +580,28 @@ test("ADR-0090 đ0: bốn ô ghi tiền, Quản trị = none; mã quyền tiền
   assert.equal(coQuyenTien(["SALES", "ACCOUNTING"]), true);
   assert.equal(coQuyenTien(["SUPER_ADMIN"]), true);
   assert.equal(coQuyenTien([]), false);
+});
+
+// Khoá GIÁ TRỊ (sổ đại lý đợt 1, Task 5): người thấy tỷ lệ mua lại của nhà cung cấp phải thấy phần đối tác của đơn, người thấy phần đối tác của đơn phải thấy tiền. Chỉ khoá giá trị bảng,
+// KHÔNG phải phép kiểm lúc chạy (sửa hai cột cho khớp nhau thì bài vẫn xanh — xem giới hạn ở docs/SO-HANG-RAO.md).
+test("sổ đại lý: supply.terms.view ⊆ order.terms.view ⊆ money.view ở mọi cột; DRIVER, DRIVER_PARTNER, HR = none ở các ô mới", () => {
+  // Thứ tự rộng hẹp: none ⊂ own, assigned ⊂ ownOrAssigned ⊂ any.
+  const le = (a: Scope, b: Scope) => a === "none" || b === "any" || a === b || (b === "ownOrAssigned" && (a === "own" || a === "assigned"));
+  for (const p of PERMISSION_CODES) {
+    assert.ok(le(MATRIX["supply.terms.view"][p], MATRIX["order.terms.view"][p]), `${p}: supply.terms.view ⊆ order.terms.view`);
+    assert.ok(le(MATRIX["order.terms.view"][p], MATRIX["money.view"][p]), `${p}: order.terms.view ⊆ money.view`);
+  }
+  for (const op of ["partner.commission.view", "partner.commission.write", "order.terms.view", "order.terms.override", "supply.terms.view", "supply.terms.write", "ledger.period.close"] as const)
+    for (const p of ["DRIVER", "DRIVER_PARTNER", "HR"] as const) assert.equal(MATRIX[op][p], "none", `${op}/${p}`);
+});
+
+test("sổ đại lý: ghi mức tay (order.terms.override) chỉ Kế toán, Quản trị, Toàn quyền — Bán hàng, Hướng dẫn viên, Đối tác, Thực tập KHÔNG; Đối tác xem được đơn CỦA MÌNH, không đơn người khác", () => {
+  const ai = (permissions: PermissionCode[], op: OperationCode, ctx = {}) => can({ id: "u1", permissions }, op, ctx);
+  for (const p of ["ACCOUNTING", "ADMIN", "SUPER_ADMIN"] as const) assert.equal(ai([p], "order.terms.override"), true, p);
+  for (const p of ["SALES", "FIELD", "PARTNER", "INTERN"] as const) assert.equal(ai([p], "order.terms.override", { ownerId: "u1", assigned: true }), false, p);
+  assert.equal(ai(["PARTNER"], "order.terms.view", { ownerId: "u1" }), true);
+  assert.equal(ai(["PARTNER"], "order.terms.view", { ownerId: "u2" }), false);
+  assert.equal(ai(["FIELD"], "order.terms.view", { assigned: true }), true);
+  assert.equal(ai(["FIELD"], "order.terms.view", { assigned: false }), false);
+  assert.equal(ai(["SALES"], "supply.terms.view"), false, "Bán hàng thấy hoa hồng, không thấy tỷ lệ mua lại của nhà cung cấp");
 });

@@ -10,6 +10,29 @@ export type BookerInput = { kind: "none" } | { kind: "existing"; partyId: string
 /** Lựa chọn trên giao diện (chưa gửi): hồ sơ có sẵn mang theo tên để hiển thị. */
 export type BookerChoice = { kind: "none" } | { kind: "existing"; partyId: string; name: string } | { kind: "new" };
 
+/**
+ * ADR-0077 điều 3 (i), THU HẸP theo lời chủ (đặc tả sổ đại lý đợt 1 §7): tài khoản Đối tác mà hồ sơ cá nhân đang mang vai được hưởng ⇒ bên đặt = chính hồ sơ đó,
+ * bỏ qua bên đặt trình duyệt gửi. Đối tác khác (hồ sơ không mang vai được hưởng, chưa gắn hồ sơ) và tài khoản không giữ quyền Đối tác giữ điều thân gửi — riêng việc
+ * Đối tác CHỌN một đại lý / cộng tác viên khác thì bị `benDatDoiTacBiCam` chặn. (Tài khoản lai thường không có vai được hưởng trên hồ sơ của nó: chặn ở TẦNG ỨNG DỤNG —
+ * route vai của `parties` trả 409 `role_via_account` cho vai nhóm nội bộ / bên ngoài (`isAccountGroup`), `src/shared/roles.ts` xếp quyền theo nhóm vai — và kiểm định kỳ
+ * `R-LC-1`; KHÔNG có trigger CSDL nào chặn vai bên ngoài trên hồ sơ của tài khoản lai, trigger LC-1 chỉ canh lúc cấp quyền.)
+ * `laDoiTac` = giữ mã quyền Đối tác (`holdsPartner`); `laNguoiHuong` = hồ sơ của tài khoản đang mang vai được hưởng (máy chủ tính, `laNguoiHuong` của pricing).
+ */
+export function benDatChoTaiKhoan(v: { laDoiTac: boolean; partyId: string | null; laNguoiHuong: boolean; guiLen: BookerInput }): BookerInput {
+  return v.laDoiTac && v.partyId !== null && v.laNguoiHuong ? { kind: "existing", partyId: v.partyId } : v.guiLen;
+}
+
+/**
+ * Lời chủ 2026-10-09 (K1): tài khoản giữ quyền Đối tác — kể cả tài khoản lai Bán hàng + Đối tác — KHÔNG chọn được một đại lý / cộng tác viên KHÁC đang được hưởng
+ * hoa hồng làm bên đặt; đơn qua đại lý do văn phòng lập hộ. MỘT luật cho cả ba đường gửi bên đặt (`POST /api/orders`, `PUT /api/orders/:id`, `PUT /api/orders/:id/booker`).
+ * Bị cấm khi bên đặt gửi lên là hồ sơ CÓ SẴN đang được hưởng (cá nhân hay tổ chức) VÀ khác hồ sơ của chính tài khoản VÀ khác bên đặt đang lưu trên đơn (văn phòng đã
+ * gắn rồi thì Đối tác lưu lại nháp / sửa tên khách không bị chặn; đơn mới: `benDatDangLuu` = null). `guiLaNguoiHuong` do máy chủ tính (`laNguoiHuong` của pricing).
+ * Thứ tự ở đường lập đơn / lưu nháp: ép bên đặt (`benDatChoTaiKhoan`) → 409 chưa gắn hồ sơ → luật này.
+ */
+export function benDatDoiTacBiCam(v: { laDoiTac: boolean; partyId: string | null; guiLen: BookerInput; guiLaNguoiHuong: boolean; benDatDangLuu: string | null }): boolean {
+  return v.laDoiTac && v.guiLen.kind === "existing" && v.guiLaNguoiHuong && v.guiLen.partyId !== v.partyId && v.guiLen.partyId !== v.benDatDangLuu;
+}
+
 export const NO_BOOKER_TEXT = "Chưa gắn hồ sơ khách";
 const MAX_NAME = 200;
 
@@ -41,10 +64,15 @@ type MatchLike = Pick<PartyListItemDto, "kind" | "active">;
 /** Hồ sơ trong danh sách trùng số chọn làm người đặt được không: chỉ cá nhân đang hoạt động (đại lý/tổ chức để lát sau — đặc tả §8 mục 2). */
 export const canPickMatch = (m: MatchLike): boolean => m.kind === "PERSON" && m.active;
 
-/** Lý do một hồ sơ không chọn được (hiện cạnh tên); null = chọn được. */
-export function matchNote(m: MatchLike): string | null {
+/**
+ * Lý do một hồ sơ không chọn được (hiện cạnh tên); null = chọn được.
+ * `coODatQuaDoiTac`: người đọc CÓ ô «Đặt qua đối tác» không (`coODatQuaDoiTac(staff)` ở phan-doi-tac-hien-thi.ts — người lập đơn không giữ quyền Đối tác). Không có ô thì câu không được trỏ tới nó
+ * (Đối tác và tài khoản lai nhìn thấy câu này mà không có ô nào để chọn). Tham số BẮT BUỘC để không nơi gọi nào lặng lẽ rơi về câu cũ.
+ */
+export function matchNote(m: MatchLike, coODatQuaDoiTac: boolean): string | null {
   if (!m.active) return "đã ngưng";
-  if (m.kind !== "PERSON") return "tổ chức — chưa gắn được vào đơn ở bản này";
+  // sổ đại lý đợt 1 (Task 11): tổ chức được hưởng gắn vào đơn được, nhưng qua ô riêng (đặc tả §7), không qua ô tra SĐT
+  if (m.kind !== "PERSON") return coODatQuaDoiTac ? "tổ chức — đại lý thì chọn ở ô “Đặt qua đối tác”" : "tổ chức — do văn phòng gắn bên đặt";
   return null;
 }
 

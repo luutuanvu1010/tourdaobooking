@@ -94,20 +94,23 @@ export function daoDuoc(dong: readonly DongChiPhi[], d: DongChiPhi, trangThai: T
 
 /**
  * NGÀY GHI của dòng đảo (ADR-0095 Q2, vòng sửa 2 SV-1): MỘT hàm cho mọi đảo (tự động khi đổi xe / nhà xe / tuyến / ngày, khi huỷ; đảo tay). Mang ngày phát
- * sinh của DÒNG GỐC (kỳ cũ về 0 — vd chuyến 31/10 dời sang 01/11: đảo −1.000.000 ngày 31/10, chụp mới ngày 01/11). Kỳ của dòng gốc ĐÃ KHOÁ ⇒ ngày hiện tại.
- * CHỖ NỐI khoá kỳ (ADR-0080, module `ky-so` — CHƯA có trên main): khi có, truyền `kyDaKhoa` đọc `v_ky_closed_period`; hôm nay không truyền ⇒ luôn ngày gốc.
+ * sinh của DÒNG GỐC (kỳ cũ về 0 — vd chuyến 31/10 dời sang 01/11: đảo −1.000.000 ngày 31/10, chụp mới ngày 01/11). Kỳ của dòng gốc ĐÃ KHOÁ (ADR-0080, module
+ * `ky-so`; trigger `vc_trip_cost_line_period_closed` chặn mọi dòng mới mang ngày thuộc tháng khoá) ⇒ ngày hiện tại. `kyDaKhoa` BẮT BUỘC: nơi gọi đọc tháng đã
+ * khoá MỘT lần rồi truyền vào (`kyDaKhoaTu`); quên truyền thì typecheck đỏ — không có đường nào lặng lẽ bỏ qua khoá tháng.
  */
-export function ngayGhiDao(goc: { occurredDate: string }, v: { homNay: string; kyDaKhoa?: (ngay: string) => boolean }): string {
-  return v.kyDaKhoa?.(goc.occurredDate) ? v.homNay : goc.occurredDate;
+export function ngayGhiDao(goc: { occurredDate: string }, v: { homNay: string; kyDaKhoa: (ngay: string) => boolean }): string {
+  return v.kyDaKhoa(goc.occurredDate) ? v.homNay : goc.occurredDate;
 }
 
 /**
  * NGÀY PHÁT SINH MẶC ĐỊNH của dòng điều chỉnh (ADR-0095 Q4): chuyến ĐÃ HUỶ ⇒ NGÀY HUỶ (phí huỷ muộn là ràng buộc hợp đồng, ghi theo ngày huỷ — vòng sửa 2
- * C1); chuyến CHƯA huỷ ⇒ NGÀY CHẠY (`service_date` — phụ thu chờ, cầu đường… phát sinh trong chuyến; vòng sửa 3 M1). KHÔNG dùng "hôm nay". Người ghi chọn
- * ngày khác thì dùng ngày đó (không qua hàm này).
+ * C1); chuyến CHƯA huỷ ⇒ NGÀY CHẠY (`service_date` — phụ thu chờ, cầu đường… phát sinh trong chuyến; vòng sửa 3 M1). KHÔNG dùng "hôm nay" — TRỪ khi ngày
+ * mặc định đó thuộc tháng đã khoá (ADR-0080): khi ấy là hôm nay, để lệnh không bị chặn vì một ngày người ghi không tự chọn. Người ghi CHỌN ngày khác thì dùng
+ * ngày đó (không qua hàm này) và ngày thuộc tháng khoá bị chặn 409 ở route.
  */
-export function ngayDieuChinhMacDinh(v: { trangThai: TrangThaiChuyenTien; ngayHuy: string | null; ngayChay: string }): string {
-  return v.trangThai === "CANCELLED" && v.ngayHuy !== null ? v.ngayHuy : v.ngayChay;
+export function ngayDieuChinhMacDinh(v: { trangThai: TrangThaiChuyenTien; ngayHuy: string | null; ngayChay: string; homNay: string; kyDaKhoa: (ngay: string) => boolean }): string {
+  const mac = v.trangThai === "CANCELLED" && v.ngayHuy !== null ? v.ngayHuy : v.ngayChay;
+  return v.kyDaKhoa(mac) ? v.homNay : mac;
 }
 
 /**

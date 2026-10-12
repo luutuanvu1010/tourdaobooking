@@ -857,3 +857,73 @@ export const gopChepGiayToStatement = (db: D1Database, v: Nguoi & { du: GopDocRo
     v.at, v.actorId, v.a, v.du.id,
   );
 export const gopLatStatement = (db: D1Database, v: Nguoi & { homNay: string }): D1PreparedStatement => db.prepare(GOP_LAT).bind(v.a, v.b, v.at, v.actorId, v.homNay);
+
+// ---- Tài khoản nhận tiền của công ty chủ (ADR-0108 đ2; migration 0087) — số tài khoản chỉ đi ra route có ô company.legal.write và hàm công bố cho QR. ----
+export interface BankRow {
+  code: string;
+  bin: string;
+  short_name: string;
+  name: string;
+}
+const BANKS_ACTIVE = defineSql("parties", "banks_active", "SELECT code, bin, short_name, name FROM pty_bank WHERE active = 1 ORDER BY sort_order, short_name");
+export async function activeBanks(db: D1Database): Promise<BankRow[]> {
+  return (await db.prepare(BANKS_ACTIVE).all<BankRow>()).results;
+}
+const BANK_ACTIVE_BY_CODE = defineSql("parties", "bank_active_by_code", "SELECT code FROM pty_bank WHERE code = ?1 AND active = 1");
+export async function bankActive(db: D1Database, code: string): Promise<boolean> {
+  return (await db.prepare(BANK_ACTIVE_BY_CODE).bind(code).first()) !== null;
+}
+export interface BankAccountRow {
+  id: string;
+  bank_code: string;
+  bank_short_name: string;
+  account_number: string;
+  account_name: string;
+  valid_from: string;
+}
+const BANK_ACCOUNT_OPEN_OF = defineSql(
+  "parties",
+  "bank_account_open_of",
+  `SELECT a.id, a.bank_code, b.short_name AS bank_short_name, a.account_number, a.account_name, a.valid_from
+   FROM pty_bank_account a JOIN pty_bank b ON b.code = a.bank_code WHERE a.party_id = ?1 AND a.valid_to IS NULL`,
+);
+export async function bankAccountOpenOf(db: D1Database, partyId: string): Promise<BankAccountRow | null> {
+  return db.prepare(BANK_ACCOUNT_OPEN_OF).bind(partyId).first<BankAccountRow>();
+}
+export interface OwnerBankAccountRow {
+  cong_ty: string;
+  bank_short_name: string;
+  bin: string;
+  account_number: string;
+  account_name: string;
+}
+/** Tài khoản mở của hồ sơ ĐANG giữ vai ?1 ("Công ty chủ"). LIMIT 2: nơi gọi coi "không đúng một dòng" là chưa cài. */
+const OWNER_BANK_ACCOUNT = defineSql(
+  "parties",
+  "owner_bank_account",
+  `SELECT COALESCE(o.legal_name, p.display_name) AS cong_ty, b.short_name AS bank_short_name, b.bin, a.account_number, a.account_name
+   FROM pty_party_role r JOIN pty_party p ON p.id = r.party_id LEFT JOIN pty_organization o ON o.party_id = p.id
+   JOIN pty_bank_account a ON a.party_id = p.id AND a.valid_to IS NULL JOIN pty_bank b ON b.code = a.bank_code
+   WHERE r.role_type_code = ?1 AND r.valid_to_date IS NULL LIMIT 2`,
+);
+export async function ownerBankAccountRows(db: D1Database, roleCode: string): Promise<OwnerBankAccountRow[]> {
+  return (await db.prepare(OWNER_BANK_ACCOUNT).bind(roleCode).all<OwnerBankAccountRow>()).results;
+}
+const BANK_ACCOUNT_CLOSE = defineSql(
+  "parties",
+  "bank_account_close",
+  "UPDATE pty_bank_account SET valid_to = ?3, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND party_id = ?2 AND valid_to IS NULL",
+);
+export const bankAccountCloseStatement = (db: D1Database, v: { id: string; partyId: string; at: string; by: string }) =>
+  db.prepare(BANK_ACCOUNT_CLOSE).bind(v.id, v.partyId, v.at, v.by);
+/** Mở dòng mới — lính gác: hồ sơ không còn dòng mở (câu đóng của CHÍNH lô đã chạy trước). Không áp ⇒ changes = 0 ⇒ route trả 409 stale. */
+const BANK_ACCOUNT_INSERT = defineSql(
+  "parties",
+  "bank_account_insert",
+  `INSERT INTO pty_bank_account (id, party_id, bank_code, account_number, account_name, valid_from, valid_to, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, NULL, ?6, ?7, ?6, ?7 WHERE NOT EXISTS (SELECT 1 FROM pty_bank_account WHERE party_id = ?2 AND valid_to IS NULL)`,
+);
+export const bankAccountInsertStatement = (
+  db: D1Database,
+  v: { id: string; partyId: string; bankCode: string; accountNumber: string; accountName: string; at: string; by: string },
+) => db.prepare(BANK_ACCOUNT_INSERT).bind(v.id, v.partyId, v.bankCode, v.accountNumber, v.accountName, v.at, v.by);

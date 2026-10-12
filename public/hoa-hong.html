@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Hoa hồng đối tác — Island Booking System</title></head>
+<body data-title="Hoa hồng đối tác" data-back="/account">
+<header id="topbar"></header>
+<main>
+  <!-- Hoa hồng đối tác (sổ đại lý đợt 1, Task 10; ADR-0077). Xem: ô partner.commission.view; thêm / đóng mức: partner.commission.write. Tài khoản giữ quyền Đối tác không vào được (máy chủ 403).
+       web/hoa-hong.ts dựng nội dung; id cố định cho kịch bản Chrome: #muc-list, #muc-add-form, #thu-tra-form, #thu-tra-ket-qua. -->
+  <h1>Hoa hồng đối tác</h1>
+  <p class="muted">Mức hoa hồng cho đối tác theo dịch vụ. Mức không sửa, không xoá được — chỉ thêm mức mới và đóng mức cũ.</p>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="ok" class="alert ok" role="status" hidden></div>
+  <!-- Ẩn cho tới khi máy chủ trả bảng mức (khỏi hiện khung trống cho tài khoản không có quyền xem). -->
+  <div id="hh-noi-dung" hidden>
+    <section class="card" aria-labelledby="muc-tieu-de">
+      <h2 id="muc-tieu-de">Các mức hiện có</h2>
+      <div class="hh-loc">
+        <label>Hiện<select id="muc-loc-trang-thai"><option value="dang-ap">Đang áp và sắp áp</option><option value="tat-ca">Tất cả</option></select></label>
+        <label>Tìm theo đối tượng hoặc dịch vụ<input id="muc-loc-tim" type="search" autocomplete="off" placeholder="Tên đối tác, loại đối tác hoặc dịch vụ"></label>
+      </div>
+      <div class="table-wrap">
+        <table class="items">
+          <thead><tr><th>Áp cho</th><th>Phạm vi</th><th>Mức</th><th>Từ ngày</th><th>Đến ngày</th><th>Trạng thái</th><th></th></tr></thead>
+          <tbody id="muc-list"></tbody>
+        </table>
+      </div>
+      <div id="muc-list-cards" class="card-list"></div>
+      <p id="muc-rong" class="muted" hidden></p>
+      <!-- Hộp «Đóng mức» (ngày kết thúc) hiện ở đây khi bấm nút của một dòng. -->
+      <div id="muc-dong-khu"></div>
+    </section>
+    <section id="muc-add-card" class="card" aria-labelledby="muc-add-tieu-de" hidden>
+      <h2 id="muc-add-tieu-de">Thêm mức</h2>
+      <form id="muc-add-form" autocomplete="off" novalidate></form>
+    </section>
+    <section class="card" aria-labelledby="thu-tra-tieu-de">
+      <h2 id="thu-tra-tieu-de">Thử tra</h2>
+      <p class="muted">Chọn một đối tác, một dịch vụ và một ngày để xem mức nào sẽ áp.</p>
+      <form id="thu-tra-form" autocomplete="off" novalidate></form>
+      <div id="thu-tra-ket-qua" role="status" aria-live="polite"></div>
+    </section>
+  </div>
+</main>
+<script type="module" src="/js/hoa-hong.js"></script>
+</body></html>

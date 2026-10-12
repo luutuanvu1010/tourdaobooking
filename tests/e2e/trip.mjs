@@ -113,7 +113,7 @@ try {
   r = await confirm(A, r.body.order);
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(r.body.order.status, "confirmed");
-  assert.deepEqual((await get(A, d1)).history.map((h) => h.action), ["created", "updated", "confirmed"]);
+  assert.deepEqual((await get(A, d1)).history.map((h) => h.action), ["created", "updated", "confirmed", "order_terms_captured"]); // sổ đại lý đợt 1: lô Xác nhận ghi thêm dòng chụp mức
   console.log("✓ xác nhận đòi đủ ngày khởi hành; nhật ký khớp");
 
   // 8) QUÁ KHỨ / QUÁ XA / 0 KHÁCH (Q12): nháp lưu được, xác nhận bị chặn; hai đầu khoảng [hôm nay, +365] thì được

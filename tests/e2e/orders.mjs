@@ -132,7 +132,8 @@ assert.equal(r.body.order.status, "cancelled");
 assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 409);
 r = await call(A, "GET", `/api/orders/${o.id}`);
 console.log("lịch sử:", r.body.history.map((h) => `${h.action}/${h.staffName}`).join(", "));
-assert.deepEqual(r.body.history.map((h) => h.action), ["created", "updated", "updated", "confirmed", "cancelled"]);
+// Sổ đại lý đợt 1 (đặc tả §5): lô Xác nhận ghi thêm MỘT dòng `order_terms_captured` ngay sau `confirmed` (cùng mốc giờ, thứ tự chèn) — người xem văn phòng thấy dòng đó.
+assert.deepEqual(r.body.history.map((h) => h.action), ["created", "updated", "updated", "confirmed", "order_terms_captured", "cancelled"]);
 assert.equal(r.body.history.at(-1).staffName, "QTV Test");
 
 // 0017 (P-2 + P-5): trên D1 thật, CSDL chặn đường quay lại của trạng thái đơn và chặn sửa/xoá nhật ký, kể cả SQL chạy tay.
@@ -221,7 +222,10 @@ for (let round = 0; round < 3; round++) {
   // Nếu hai request chạy nối tiếp thì cả hai có thể thắng (draft→confirmed→cancelled); nếu đan xen thì kẻ thua nhận 409.
   // Dù thế nào, số dòng nhật ký phải đúng bằng số thao tác thắng. (Đơn có đủ chuyến nên xác nhận không thua vì thiếu ngày — bài đua này kiểm tranh chấp trạng thái.)
   assert.ok(wins >= 1);
-  assert.equal(hist.length, 1 + wins, `nhật ký phải khớp số thao tác thắng: ${hist} / ${c1.status},${c2.status}`);
+  // Sổ đại lý đợt 1: xác nhận thắng ghi THÊM một dòng `order_terms_captured` trong cùng lô (chụp mức) — đếm riêng: dòng đổi trạng thái khớp số thao tác thắng,
+  // dòng chụp mức có đúng một khi xác nhận thắng và không có khi xác nhận thua.
+  assert.equal(hist.filter((a) => a !== "order_terms_captured").length, 1 + wins, `nhật ký phải khớp số thao tác thắng: ${hist} / ${c1.status},${c2.status}`);
+  assert.equal(hist.filter((a) => a === "order_terms_captured").length, c1.status === 200 ? 1 : 0, `chụp mức chỉ khi xác nhận thắng: ${hist} / ${c1.status},${c2.status}`);
 }
 console.log("✓ thao tác thua khi tranh chấp không ghi nhật ký");
 
@@ -303,8 +307,8 @@ r = await setStatus(Bc, h, "confirmed");
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.order.status, "confirmed");
 h = r.body.order;
-last = await lastAction(A, h);
-assert.deepEqual([last.action, last.staffName], ["confirmed", "NV Bán B (test)"]);
+// Sổ đại lý đợt 1: dòng cuối là `order_terms_captured` (cùng lô, ngay sau `confirmed`) — so hai dòng cuối, cả hai do người phụ trách ghi.
+assert.deepEqual((await detail(A, h)).history.slice(-2).map((x) => [x.action, x.staffName]), [["confirmed", "NV Bán B (test)"], ["order_terms_captured", "NV Bán B (test)"]]);
 
 // --- sau xác nhận: sửa THÔNG TIN CHUYẾN được (order.trip.edit); số khách/dịch vụ/tiền vẫn KHOÁ (order.money.edit không mở)
 assert.equal((await putOrder(Bc, h, bigger)).status, 409, "PUT cả đơn sau xác nhận vẫn 409 (như người lập)");

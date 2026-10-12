@@ -37,12 +37,15 @@ test("(a) đúng một tệp *_ten_vai_tai_xe_taxi.sql; không phải migration 
 test("(b) sau migration: TAXI_DRIVER tên 'Tài xế taxi (giới thiệu khách)' = ROLES; mọi dòng khác của pty_role_type và cột khác giữ nguyên", () => {
   const truoc = rows(open(files.filter((f) => f < FILE)), "SELECT * FROM pty_role_type ORDER BY code");
   const sau = rows(open(files), "SELECT * FROM pty_role_type ORDER BY code");
+  // Vai do migration VỀ SAU thêm (vd SUPPLIER ở 0090 sổ đại lý) không phải dòng có sẵn trước tệp này: chỉ so các vai đã có trước tệp này — mọi dòng cũ vẫn phải
+  // giữ nguyên qua MỌI migration về sau (không thu hẹp bài về "ngay sau tệp này").
+  const coTruoc = new Set(truoc.map((r) => r.code));
   assert.equal(ROLES.TAXI_DRIVER.name, "Tài xế taxi (giới thiệu khách)");
   const taxi = sau.find((r) => r.code === "TAXI_DRIVER")!;
   assert.equal(taxi.name, ROLES.TAXI_DRIVER.name);
   assert.equal(truoc.find((r) => r.code === "TAXI_DRIVER")!.name, "Tài xế taxi", "trước migration là tên cũ");
   assert.deepEqual(
-    sau.map((r) => (r.code === "TAXI_DRIVER" ? { ...r, name: "Tài xế taxi" } : r)),
+    sau.filter((r) => coTruoc.has(r.code)).map((r) => (r.code === "TAXI_DRIVER" ? { ...r, name: "Tài xế taxi" } : r)),
     truoc,
     "chỉ đổi đúng cột name của đúng một dòng",
   );

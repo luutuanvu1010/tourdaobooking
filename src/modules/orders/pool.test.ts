@@ -23,6 +23,7 @@ function fullOrder(over: Partial<OrderDetailDto> = {}): OrderDetailDto & { statu
     staffName: "Người Lập Đơn",
     bookerPartyId: "pty-khach-1",
     bookerName: "Hồ Sơ Khách Riêng",
+    bookerLaDoiTac: true,
     status: "confirmed",
     customerName: "Khách Bí Mật",
     customerPhone: "0912345678",
