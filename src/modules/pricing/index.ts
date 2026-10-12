@@ -4,7 +4,7 @@ import { auditStatement } from "../audit";
 import { getEffectiveServices } from "../catalog";
 import { ownerCompany, tenLoaiVai } from "../parties";
 import type { CommissionRuleDto, CommissionRuleListResponse, NguoiHuongTimResponse, SupplyTermDto, SupplyTermListResponse, ThuTraResponse } from "../../shared/contracts";
-import { error, escapeLike, json, kemLocation, readJson } from "../../shared/http";
+import { error, json, mauLikeChua, kemLocation, readJson } from "../../shared/http";
 import { can, holdsPartner } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { CAU_X3_THUE_XE, NHAN_LY_DO_THIEU } from "../../shared/so-dai-ly-nhan";
@@ -192,7 +192,7 @@ export const pricingModule: AppModule = {
     route("GET", "/api/pricing/nguoi-huong", "orders", async ({ env, url, staff }) => {
       if (!can(staff, "order.create") || holdsPartner(staff)) return FORBIDDEN();
       const q = (url.searchParams.get("q") ?? "").trim().slice(0, 60);
-      const rows = await findBeneficiaries(env.DB, escapeLike(q));
+      const rows = await findBeneficiaries(env.DB, mauLikeChua(q).slice(1, -1)); // câu SQL tự bọc '%'…'%': đưa phần giữa đã cắt theo byte (D1: mẫu ≤ 50 byte)
       return json({ ketQua: rows.map((r) => ({ partyId: r.id, ten: r.display_name, loai: r.party_kind })) } satisfies NguoiHuongTimResponse);
     }),
   ],

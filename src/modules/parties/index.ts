@@ -11,7 +11,7 @@ import { LOAI_CO_DINH, MA_LOAI_GIAY_TO_RE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo,
 import { OWNER_COMPANY_ROLE, thieuChoCongTyChu } from "../../shared/cong-ty-chu";
 import { capNghiTrung, chuanHoaTen } from "../../shared/ho-so-trung";
 import type { RoleCode } from "../../shared/roles";
-import { UUID_RE, error, escapeLike, intParam, json, kemLocation, readJson } from "../../shared/http";
+import { UUID_RE, error, intParam, mauLikeChua, json, kemLocation, readJson } from "../../shared/http";
 import { can, holdsPartner } from "../../shared/permissions";
 import { normalizePhone } from "../../shared/phone";
 import { route, type AppModule, type Ctx } from "../../shared/router";
@@ -596,8 +596,8 @@ export const partiesModule: AppModule = {
       const { rows, hasMore } = await listParties(env.DB, {
         today: vnToday(new Date()),
         kind: (kindRaw as "PERSON" | "ORGANIZATION" | null) || null,
-        q: q ? `%${escapeLike(q)}%` : null,
-        phoneLike: q && digits.length >= 3 ? `%${digits}%` : null,
+        q: q ? mauLikeChua(q) : null,
+        phoneLike: q && digits.length >= 3 ? mauLikeChua(digits) : null,
         roleCode: role,
         locationId: location,
         includeInactive: url.searchParams.get("includeInactive") === "1",

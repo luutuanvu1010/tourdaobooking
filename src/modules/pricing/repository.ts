@@ -43,7 +43,7 @@ const HUONG_CUA_HO_SO = defineSql("pricing", "beneficiary_of_party",
   `SELECT l.id, l.display_name FROM v_pty_party_label l
    WHERE l.id = ?1 AND EXISTS (SELECT 1 FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = l.id)`);
 const NHOM_CUA = defineSql("pricing", "groups_of", "SELECT catalog_code, group_code FROM v_ctl_service_group WHERE catalog_code IN (SELECT value FROM json_each(?1))");
-// ?1 đã thoát ký tự đặc biệt của LIKE (escapeLike ở nơi gọi); rỗng = không lọc theo tên.
+// ?1 đã thoát ký tự đặc biệt của LIKE (`mauLikeChua(q).slice(1, -1)` ở nơi gọi, ≤ 48 byte); rỗng = không lọc theo tên.
 const TIM_HUONG = defineSql("pricing", "find_beneficiaries",
   `SELECT l.id, l.display_name, l.party_kind FROM v_pty_party_label l
    WHERE l.active = 1 AND EXISTS (SELECT 1 FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = l.id)

@@ -1,6 +1,6 @@
 import { AUDIT_ACTIONS, SILENT_AUDIT_ACTIONS, isAuditAction, laHanhDongThuongMai, type AuditAction, type AuditTargetType } from "../../shared/audit-actions";
 import type { AuditEntryDto, AuditListResponse, AuditRecordDto } from "../../shared/contracts";
-import { escapeLike } from "../../shared/http";
+import { mauLikeChua } from "../../shared/http";
 
 export { isAuditAction, type AuditAction, type AuditTargetType };
 
@@ -79,7 +79,7 @@ export async function listAll(
     binds.push(opts.action);
   }
   if (opts.q) {
-    const like = `%${escapeLike(opts.q)}%`;
+    const like = mauLikeChua(opts.q); // D1 từ chối mẫu LIKE > 50 byte
     where.push(
       "(o.order_code LIKE ? ESCAPE '\\' OR s.label LIKE ? ESCAPE '\\' OR t.label LIKE ? ESCAPE '\\' OR pt.display_name LIKE ? ESCAPE '\\' OR (a.target_type = 'catalog' AND a.target_id LIKE ? ESCAPE '\\'))",
     );
