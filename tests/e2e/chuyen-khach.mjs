@@ -46,7 +46,7 @@ async function datChinhSach(patch) {
   const x = await call(TOAN_QUYEN, "POST", `${VC}/chinh-sach-dieu-phoi`, {
     minLeadMinutes: c.minLeadMinutes, warnLeadMinutes: c.warnLeadMinutes, restMinutes: c.restMinutes, requireManifest: c.requireManifest,
     proxyBackdateMaxMinutes: c.proxyBackdateMaxMinutes, dutyDayMaxMinutes: c.dutyDayMaxMinutes, tripNoBreakMaxMinutes: c.tripNoBreakMaxMinutes,
-    departureWindowMinutes: c.departureWindowMinutes, acceptWaitMinutes: c.acceptWaitMinutes, autoConfirmTransfer: c.autoConfirmTransfer, ...patch,
+    departureWindowMinutes: c.departureWindowMinutes, refuseLeadMinutes: c.refuseLeadMinutes, officePhone: c.officePhone, acceptWaitMinutes: c.acceptWaitMinutes, autoConfirmTransfer: c.autoConfirmTransfer, ...patch,
   });
   assert.equal(x.status, 201, JSON.stringify(x.body));
 }
