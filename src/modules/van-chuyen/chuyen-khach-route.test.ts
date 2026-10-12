@@ -489,6 +489,33 @@ test("THẤP-3, THẤP-4 (kiểm độc lập 12/10): DTO đề nghị không l�
   }
 });
 
+test("THẤP-1 (kiểm độc lập vòng 2): chữ nơi gặp được che dãy ≥ 8 chữ số LẦN HAI lúc đọc DTO (lúc ghi đã che; ở đây gieo chuỗi thô vào CSDL thử), ở cả danh sách tài xế lẫn danh sách văn phòng", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const { a, b } = await haiXe(w);
+    denGio("13:35");
+    assert.equal((await tienDo(w, "tai-xe", b.id, "xuat-ben", {}, DRIVER2)).status, 200);
+    const r = await cuuHo(w, a.id, { denChuyenId: b.id, phamVi: "ONBOARD", noiGap: { chu: "Cây xăng km 12" } });
+    assert.equal(r.status, 200, r.text);
+    // Gỡ trigger bất biến nội dung đề nghị (chỉ trong CSDL thử) để ghi chuỗi THÔ như thể lớp che lúc ghi đã bị bỏ.
+    for (const t of w.sqlite.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = 'vc_transfer_request' AND sql LIKE '%BEFORE UPDATE%'").all() as { name: string }[]) w.sqlite.exec(`DROP TRIGGER ${t.name}`);
+    w.sqlite.prepare("UPDATE vc_transfer_request SET meet_place_text = 'Cây xăng km 12345678901' WHERE id = ?").run(r.json.deNghi.id);
+    const taiXe = (await w.call("GET", `${VC}/de-nghi-cua-toi`, { as: DRIVER })).json.guiDi.find((x: any) => x.id === r.json.deNghi.id);
+    assert.ok(taiXe?.noiGap, "có chữ nơi gặp");
+    assert.doesNotMatch(taiXe.noiGap, /\d{8,}/, `danh sách tài xế lộ dãy số: ${taiXe.noiGap}`);
+    assert.match(taiXe.noiGap, /^Cây xăng km/, "vẫn giữ phần chữ");
+    const vp = await w.call("GET", `${VC}/de-nghi`, { as: ADM });
+    assert.equal(vp.status, 200, vp.text);
+    const dong = vp.json.deNghi.find((x: any) => x.id === r.json.deNghi.id);
+    assert.ok(dong?.noiGap, "danh sách văn phòng có đề nghị và chữ nơi gặp");
+    assert.doesNotMatch(dong.noiGap, /\d{8,}/, `danh sách văn phòng lộ dãy số: ${dong.noiGap}`);
+    assert.match(dong.noiGap, /^Cây xăng km/, "vẫn giữ phần chữ");
+  } finally {
+    tat();
+  }
+});
+
 test("NT-A5-7, -11 nhận dưới mốc (xe nhận chưa chạy) → leo thang (suất không đổi, tin tới người có trip.override); danh sách văn phòng có dòng kiểm + hộp; Duyệt: chỉ trip.override, lý do nhóm PHA_LE, NGUOI; lệnh lặp Nhận sau duyệt vẫn 200", async () => {
   const tat = batDongHo();
   try {
