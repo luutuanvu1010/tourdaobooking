@@ -513,6 +513,31 @@ test("NT-A5-26, -28 (ADR-0111 Sửa chữ 1): lô xác nhận — đếm câu = 
   }
 });
 
+// VỪA-3 (kiểm độc lập 12/10): TRẦN SỐ CÂU của lô xác nhận. Công thức = 19 + D + R + 3N (11 dòng kiểm; D điểm đón mới ở xe nhận, R điểm sắp lại, N suất mỗi suất
+// 3 câu: đóng + mở + bản chốt). Xe tối đa 100 chỗ ⇒ N = 100 → 319 + D + R. Trần như `src/modules/orders/tran-lo-sua-chuyen.test.ts`: 1000 câu / lần gọi Worker
+// (CÁCH ÁP cho một `db.batch` chưa kiểm trên D1 thật — nợ), chừa 100 câu cho phần đọc của route ⇒ 900. Ca xấu nhất lấy D = 20 điểm đón mới, R = 60 điểm sắp lại.
+const TRAN_CAU_LO_XAC_NHAN = 1000 - 100;
+test(`NT-A5-26 trần lô xác nhận: N = 100 suất (xe tối đa 100 chỗ), D = 20, R = 60 → đúng công thức 19 + D + R + 3N và ≤ ${TRAN_CAU_LO_XAC_NHAN} câu`, () => {
+  const f = MOD.loXacNhanDeNghi as (db: unknown, l: unknown) => Cau[];
+  const N = 100;
+  const D = 20;
+  const R = 60;
+  const cap = Array.from({ length: N }, (_x, i) => ({ dongId: `a-${i}`, moId: `m-${i}`, len: "d-9", xuong: "d-8" }));
+  const chot = cap.map((c) => ({ allocationId: c.moId, passengerRowId: `pr-${c.dongId}`, crewPartyId: null }));
+  const goc = MAU.loXacNhanDeNghi!.vao as Record<string, unknown> & { kiem: unknown[]; diemMoi: unknown[] };
+  const vao = {
+    ...goc, cap, chot,
+    kiem: Array.from({ length: 11 }, (_x, i) => ({ ...(goc.kiem[i % goc.kiem.length] as object), ma: `DK_${i}` })), // đủ 11 điều kiện của danh mục
+    diemMoi: Array.from({ length: D }, (_x, i) => diem(`d-m${i}`, T2)),
+    doiThuTu: Array.from({ length: R }, (_x, i) => ({ id: `d-s${i}`, seq: 10 + i })),
+  };
+  const lo = f(DB, vao);
+  assert.deepEqual(viPhamLo("loXacNhanDeNghi(N=100)", lo, T2), []);
+  assert.equal(vao.kiem.length, 11, "11 dòng kiểm (danh mục điều kiện)");
+  assert.equal(lo.length, 19 + D + R + 3 * N, "công thức của người kiểm: 19 + D + R + 3N");
+  assert.ok(lo.length <= TRAN_CAU_LO_XAC_NHAN, `lô ${lo.length} câu vượt trần ${TRAN_CAU_LO_XAC_NHAN}`);
+});
+
 /**
  * MQ-09 (ADR-0052 D4.2 :79; ADR-0111 Đ5; kế hoạch G-A5-13, T9, NT-A5-13): lệnh làm điểm nguồn / chuyến nguồn hoặc đích đổi → đề nghị chuyển khách đang chờ liên
  * quan thành VOID TRONG CÙNG LÔ (không sự kiện, không tin; vết ở closed_cmd_id): đúng MỘT câu tự huỷ, sau câu sự kiện, gác chuyến của lô, trước câu trạng thái
