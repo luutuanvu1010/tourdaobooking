@@ -2,7 +2,21 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.81 ĐÃ LÊN PRODUCTION (Vận chuyển Đợt 7: cam kết "xe riêng" / "xe tối thiểu N chỗ" trên chặng đưa đón, ADR-0056 VK3-A) — migration `0077_cam_ket_chang` đã áp (2026-10-05 18:43 giờ VN)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.87 ĐÃ LÊN PRODUCTION (sổ đại lý đợt 1: mức hoa hồng theo đối tác × dịch vụ/nhóm, bản chụp mức lúc xác nhận, màn «Hoa hồng đối tác» / «Người bán dịch vụ» / «Khoá sổ tháng», «Đặt qua đối tác», «Phần đối tác»; ADR-0077, ADR-0078 B1, ADR-0080 D1) — migration `0090_so_dai_ly_dot_1` đã áp (2026-10-12 13:42 giờ VN)
+
+Khối do `npm run trien-khai` in ra (chủ chạy), kèm phần AI tự kiểm lại bằng lệnh chỉ đọc sau khi chủ báo đã triển khai (2026-10-12):
+
+- **Commit:** `857251dc` (= `origin/main` lúc triển khai). Điểm khôi phục Time Travel trước khi áp: `00000ea3-00000004-00005102-3c1385673923edfa361c8f669906bcbe`.
+- **Worker** (`wrangler deployments list`): mới nhất **7710d9bf-37a0-4e14-89cd-6b13eee1422d** (2026-10-12T06:42:51Z, 100%); trước đó d5c6d6a8-e4b4-47ef-b937-9234b6d290fe (2026-10-08T10:35Z = bản 1.86).
+- **Phiên bản:** cổng trước và sau deploy ĐẠT; `GET /api/auth/config` → `"version":"1.87"`, bảo trì TẮT.
+- **Migration:** `wrangler d1 migrations list --remote` → "No migrations to apply!" (`0090` đã áp).
+- **Dữ liệu:** `audit-invariants --db remote` (chủ chạy trong `trien-khai` và AI chạy lại) → "Mọi bất biến đạt, 4 cảnh báo": 22 lần thu «người thu chưa rõ» (cọc cũ chuyển sang sổ — việc Kế toán của sổ tiền lượt 1); `R-VC-14` 7 xe thiếu giấy tờ xuất bến; `R-CTL-1` 3 dịch vụ chưa gán nhóm (Quản trị gán ở màn Danh mục); `R-ORD-T1w` 42 đơn đã xác nhận trước 0090 chưa có bản chụp thương mại (chờ chụp bù ở đợt 2 — đặc tả §9). `R-ORD-T1` (đơn mới sau ân hạn 60 phút) và `R-KY-1`, `R-KY-2`, `R-PRC-1…5`, `R-ORD-T2` đều ✓.
+- **Kiểm trước phát hành (nhánh `claude/so-tien-luot-2-dai-ly`):** typecheck 0; `npm test` 3799 bài / 0 đỏ (một bài `standards` chỉ đỏ khi chạy ngoài kho git); e2e ĐỦ BỘ 54/54 + `audit-invariants --strict` đạt ở cả ba nhóm; Chrome `so-dai-ly-smoke` 80/80 và `a2-smoke-order` 11/11 có `AXE_JS`; 14 phép phá cố ý đều đỏ đúng chỗ; kiểm độc lập toàn nhánh (mô hình mạnh nhất) ĐẠT — `docs/superpowers/specs/2026-10-08-so-dai-ly-dot-1/kiem-doc-lap-thi-cong.md`. Sổ: `docs/superpowers/plans/2026-10-08-so-dai-ly-dot-1-thi-cong-nhat-ky.md`.
+- **Giới hạn đã biết:** đợt 1 chỉ gắn được hoa hồng cho đại lý là hồ sơ CÁ NHÂN có tài khoản đối tác (hồ sơ tổ chức chưa mang được vai được hưởng — cần ADR); mức ghi tay bị tính lại khi đổi bên đặt đơn đã xác nhận (chủ chọn «ghi nợ» 12/10); đợt 2, đợt 3 chưa làm. Nợ và việc treo: `docs/BACKLOG.md` mục 26–27, mục «Việc còn treo» cuối tệp này.
+- **Chưa kiểm:** iPhone thật; các màn mới trên production bằng tài khoản thật (chưa ai mở sau triển khai).
+- Các bản 1.82–1.86 chưa có mục riêng trong tệp này.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.81 ĐÃ LÊN PRODUCTION (Vận chuyển Đợt 7: cam kết "xe riêng" / "xe tối thiểu N chỗ" trên chặng đưa đón, ADR-0056 VK3-A) — migration `0077_cam_ket_chang` đã áp (2026-10-05 18:43 giờ VN)
 
 > **Ghi chú 2026-10-06:** bản **1.84** (`kiem-phien-ban.mjs --sau-deploy` ĐẠT; migration remote "No migrations to apply") nay đã chạy trên production và chứa cả **Tốc độ đợt 1** (ADR-0102, mục nhật ký 1.83). Mục trạng thái của 1.83/1.84 do phiên làm bản 1.84 ghi; dòng này chỉ trỏ tới, không thay.
 
