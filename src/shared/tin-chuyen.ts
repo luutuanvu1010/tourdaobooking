@@ -74,7 +74,7 @@ export interface DonCuaTin { orderId: string; maDon: string; ownerId: string; ha
 export interface DongChuyenTho { id: string; tripId: string; actorId: string | null; action: string; luc: string }
 /** Dữ kiện `van-chuyen` cấp qua hàm tiêm (`ctx.chuyenChoTin`) — thongbao không đọc bảng vc_. */
 export interface ChuyenChoTin {
-  /** `xuatBen` = giờ xuất bến (ISO) của chuyến, null = chưa xuất bến (Đợt 5 — tin "cập nhật điểm" chỉ khi xe đang chạy). */
+  /** `xuatBen` = giờ xuất bến (ISO) của chuyến, null = chưa xuất bến (Đợt 5 + ADR-0112 — tin "cập nhật điểm": xe đang chạy luôn; xe chưa chạy chỉ từ mốc `MOC_TIN_CAP_NHAT`). */
   chuyen: { tripId: string; ma: string; ngayChay: string; lai: KhoangLai[]; xuatBen: string | null }[];
   vang: { suKienId: string; orderId: string }[];
   /**
