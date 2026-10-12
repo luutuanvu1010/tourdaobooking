@@ -36,9 +36,19 @@ export const HANH_DONG_TIN_CHUYEN = [
   // ADR-0053 D8.4 bước 5 (văn bản cho phép mở danh sách đóng; kế hoạch A4 T7): tài xế từ chối chuyến → người có trip.dispatch nhận "tu_choi" (không tên, không
   // lý do, không mã đơn). Tài xế từ chối là người làm (E3) nên không tự nhận.
   "trip_driver_refused",
+  // ADR-0112 (accepted 2026-10-09; văn bản cho phép mở danh sách đóng): nút tay "Cập nhật khách theo đơn" báo tài xế đang lái khi xe CHƯA chạy ("khach_doi",
+  // cùng câu với máy đồng bộ); nhóm tin THƯỜNG, không thuộc ba lệnh khách. `trip_stops_synced` đã ở danh sách — Đ2 thêm nhánh xe chưa chạy trong `loaiCho`.
+  "trip_passengers_synced",
 ] as const;
 /** Phiếu kiểm D1 CAO-3: hành động sinh tin NGOÀI ba lệnh khách — nhóm cũ của hộp thông báo (trần riêng, không bị dòng xếp / rút / dời đẩy ra). */
 export const HANH_DONG_TIN_THUONG: readonly string[] = HANH_DONG_TIN_CHUYEN.filter((a) => !(HANH_DONG_TIN_KHACH as readonly string[]).includes(a));
+/**
+ * ADR-0112 Đ5: tin MỚI của quyết định (cập nhật khách; cập nhật điểm khi xe chưa chạy) chỉ tính cho sự kiện TỪ mốc này — hộp thông báo tính lại từ nhật ký 30
+ * ngày nên các lần bấm trước ngày phát hành sẽ hiện thành tin cũ nếu không chặn. Khuôn `MOC_TIN_DOI` (ADR-0062 Đ1); so CHUỖI ISO đủ mili-giây. KHÔNG có
+ * migration nên không có cổng phát hành tự canh: ĐẶT LẠI = lúc phát hành ở bước phát hành (khuôn dòng nhật ký thay đổi). Tin cập nhật điểm khi xe đang chạy KHÔNG
+ * phụ thuộc mốc này.
+ */
+export const MOC_TIN_CAP_NHAT = "2026-10-12T00:00:00.000Z";
 export const laHanhDongTinChuyen = (a: string): boolean => (HANH_DONG_TIN_CHUYEN as readonly string[]).includes(a);
 export type LoaiTinChuyen =
   | "xep_lai" | "go_lai" | "doi_chuyen" | "huy_chuyen" | "gian_doan" | "khach_vang" | "xe_chay_doi" | "thu_hoi_xuat_ben" | "dieu_chinh" | "khan_cap" | "khach_doi" | "tu_choi"
@@ -125,6 +135,11 @@ function loaiCho(n: NguoiNhanChuyen, d: DongChuyen): LoaiTinChuyen | null {
     if (d.action === "trip_departure_revoked") return "thu_hoi_xuat_ben";
     if (d.khanCap && HANH_DONG_KHAN_CAP.has(d.action)) return "khan_cap"; // ADR-0104 Đ1 mục 6 + CAO-C (mọi luật bị bỏ qua): chỉ tài xế đang lái; văn phòng không nhận
     if (d.action === "trip_order_synced") return "khach_doi"; // ADR-0104 Đ2.10: chỉ tài xế đang lái; người sửa đơn (E3) và văn phòng không nhận
+    // ADR-0112 Đ1, Đ2, Đ5: hai nút tay của văn phòng khi xe CHƯA chạy (xe đang chạy đã trả `xe_chay_doi` ở trên) — cùng nhánh người nhận với máy đồng bộ, chỉ từ mốc phát hành.
+    if (d.luc >= MOC_TIN_CAP_NHAT) {
+      if (d.action === "trip_passengers_synced") return "khach_doi";
+      if (d.action === "trip_stops_synced") return "xe_chay_doi";
+    }
     if (d.action === "trip_transfer_sent") return "de_nghi_toi"; // ADR-0111 Đ3 (d): tài xế xe nhận
     if (KET_QUA_CHO_XE_NHAN.has(d.action)) return "de_nghi_ket_qua";
   }

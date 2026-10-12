@@ -23,6 +23,7 @@ import { NHAN_TU_CHOI_GOI_BAO, type MaTuChoiGoiBao } from "../src/shared/goi-bao
 import { ApiError } from "./api";
 import type { CapNhatDiemResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuuHoResponse, DeNghiLenhResponse, DeNghiNgayResponse, DiemChuyenDto, HuongDanVienListResponse, LichChungResponse, XeNhanResponse } from "../src/shared/contracts";
 import { NUT_CAP_NHAT_KHACH, giuCapNhatKhach } from "../src/shared/ly-do-giu";
+import { canHienDoan, cauDoan, doanTaiDiem } from "../src/shared/dieu-phoi-loc";
 import { can } from "../src/shared/permissions";
 import { api } from "./api";
 import { byId, h, replaceChildren, type Child } from "./dom";
@@ -232,7 +233,7 @@ function ve(): void {
             { class: `dp-stop${d.lechDon && d.trangThai !== "SKIPPED" ? " is-lech" : ""}${d.trangThai === "SKIPPED" ? " is-bo" : ""}`, "data-diem": d.id },
             h("span", { class: "dp-stop-so" }, n.so),
             h("span", { class: "dp-stop-loai" }, n.loai),
-            h("span", { class: "dp-stop-noi" }, h("strong", null, h("span", { class: "dp-stop-loai-m" }, `${n.loai} · `), d.tenNoi), n.ghiChu ? h("span", { class: "dp-stop-note" }, n.ghiChu) : null, ...goiBaoCua(d.id), nutThuTuKeHoach(d)),
+            h("span", { class: "dp-stop-noi" }, h("strong", null, h("span", { class: "dp-stop-loai-m" }, `${n.loai} · `), d.tenNoi), n.ghiChu ? h("span", { class: "dp-stop-note" }, n.ghiChu) : null, ...doanCua(d.id), ...goiBaoCua(d.id), nutThuTuKeHoach(d)),
             h("span", { class: "dp-stop-hen" }, hen),
             h("span", { class: "dp-stop-toi" }, toi, n.muon ? h("span", { class: "dp-stop-muon" }, n.muon) : null),
             h("span", { class: "dp-stop-khach" }, String(d.soNguoi)),
@@ -571,7 +572,7 @@ function diemChay(): HTMLElement {
     "section",
     { class: "dp-run-list", "aria-labelledby": "ct-diem-title" },
     h("div", { class: "dp-card-head dp-run-list-head" }, h("h2", { id: "ct-diem-title", class: "dp-card-title" }, "Điểm dừng"), h("span", { class: "dp-card-note" }, "Tải hiện tại ", h("strong", null, `${c.tai}/${c.xe.soCho}`))),
-    ...veDiemChay({ diem: r.diem, suat: r.suat, trangThai: c.trangThai, ngayXem: c.ngayChay, coNut: coTienDo, onLenh: lenhDiemChay, phuDiem: (b) => ({ ben: nutThuTuVanPhong(b) ?? undefined, duoi: goiBaoCua(b.diem.id).map((x) => h("div", { class: "dp-gb-dong" }, x)) }), phuKhach: linkDieuChinh }),
+    ...veDiemChay({ diem: r.diem, suat: r.suat, trangThai: c.trangThai, ngayXem: c.ngayChay, coNut: coTienDo, onLenh: lenhDiemChay, phuDiem: (b) => ({ ben: nutThuTuVanPhong(b) ?? undefined, duoi: [...doanCua(b.diem.id).map((x) => h("div", { class: "dp-gb-dong" }, x)), ...goiBaoCua(b.diem.id).map((x) => h("div", { class: "dp-gb-dong" }, x))] }), phuKhach: linkDieuChinh }),
     ...khoiDiKemVanPhong(),
     coTienDo ? h("div", { class: "dp-run-end thanh-hanh-dong-cuoi" }, ketThuc, ketThuc.disabled ? h("span", { class: "dp-note" }, "Bấm được khi đã trả hết khách và người đi kèm đã xuống.") : null, gianDoan) : null,
   );
@@ -662,6 +663,17 @@ function lenhDiemChay(l: LenhDiem, nut: HTMLButtonElement): void {
       xong();
     },
   });
+}
+
+// ---- C33 (gói A+C): giờ hẹn TỪNG ĐOÀN ở điểm đón gộp --------------------------------------------------------------------------------------------------
+/**
+ * Điểm đón gộp nhiều đoàn (cùng nơi, khác đơn) chỉ có MỘT giờ hẹn (sớm nhất) ở cột "Giờ hẹn"; văn phòng cần thấy giờ của từng đoàn để biết ai hẹn mấy giờ.
+ * Mỗi đoàn một dòng nhỏ dưới tên điểm: mã đơn · hẹn <giờ> · <số> khách (không tên khách — GA-55). Chỉ khi điểm có TỪ HAI đoàn; không đổi dữ liệu, chỉ đọc suất.
+ */
+function doanCua(diemId: string): HTMLElement[] {
+  const r = duLieu!;
+  const ds = doanTaiDiem(diemId, r.suat);
+  return canHienDoan(ds) ? ds.map((d) => h("span", { class: "dp-doan", "data-doan": d.legId }, cauDoan(d, r.chuyen.ngayChay))) : [];
 }
 
 // ---- ADR-0051: "Đã gọi báo" / "Bỏ đánh dấu" ở dòng điểm dừng (V2) ----------------------------------------------------------------------------------------

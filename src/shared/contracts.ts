@@ -1377,6 +1377,12 @@ export interface SuatChuyenDto {
   trangThai: "WAITING" | "BOARDED" | "NO_SHOW" | "CANCELLED_AT_STOP" | "DROPPED";
   /** Số hiệu chuyến bay của CHẶNG của suất (ADR-0055 VK2-C C3; gắn vào suất, không vào điểm dừng — ruling T1); null = chưa có / suất người đi kèm. */
   soHieuChuyenBay: string | null;
+  /**
+   * C33 (đánh giá ERP 7/10): giờ hẹn ĐÓN hiện hành của CHẶNG của suất (ngày + giờ VN; null = chặng chưa chốt giờ / suất người đi kèm). Nhiều đoàn cùng nơi khác giờ
+   * gộp thành MỘT điểm (ADR-0049 dòng 76) — `DiemChuyenDto.gioHen` chỉ giữ giờ sớm nhất, màn hiện giờ từng đoàn dưới điểm bằng khoá này. Chỉ DTO văn phòng
+   * (chi tiết chuyến); DTO tài xế là danh sách trắng riêng, chưa mang khoá này.
+   */
+  gioHen: GioVnDto | null;
   /** Có tên khách chưa (khoá người đã gắn). */
   coTen: boolean;
   /** Họ tên + năm sinh — CHỈ ở chi tiết chuyến của văn phòng (R-P1; `trip.view = any` ⇒ `contact.view = any`) và DTO tài xế trong ngày chạy (A15). */
