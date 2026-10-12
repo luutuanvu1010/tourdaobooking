@@ -50,7 +50,7 @@ const ROOT = join(HERE, "..", "..");
 // "phien" (ADR-0075 Task 4) đứng TRƯỚC "passkey": đăng nhập lại salesA nhiều lần (luật một máy đá cookie cũ) rồi `sessionMoi` để lại phiên sống; không đổi PIN/quyền của ai.
 // "mau-chang" (nợ nhỏ đưa đón 2026-10-01) ngay sau "catalog", TRƯỚC "maintenance": mã dịch vụ riêng ZMC1 + một điểm đã ngưng dùng một lần; bảng mẫu chỉ-thêm.
 // "so-dai-ly" (sổ đại lý đợt 1 — ADR-0077, ADR-0078 B1) ngay sau "qr-thanh-toan": hồ sơ đại lý dùng một lần (tên theo Date.now()), thêm mức theo vai TRAVEL_AGENCY rồi ĐÓNG nó
-// (bảng chỉ-thêm), thêm mức riêng cho đại lý của chính nó; KHÔNG đóng dòng điều khoản gieo sẵn `prc-st-goc-all`, KHÔNG đổi công ty chủ; dùng accountant/admin/salesA/field.
+// (bảng chỉ-thêm), thêm mức riêng cho đại lý của chính nó; KHÔNG đóng dòng điều khoản gieo sẵn `prc-st-goc-all`, KHÔNG đổi công ty chủ; dùng accountant/admin/hr/salesA/field (hr chỉ tạo hai tài khoản Đối tác dùng một lần).
 // "khoa-thang" (ADR-0080 D1; đặc tả sổ đại lý đợt 1 §12 mục 11c) đứng CUỐI, ngay trước "passkey": khoá tháng 2025-01 và 2025-02 — KHÔNG mở lại được, nên không kịch bản nào được
 // ghi tiền vào năm 2025, và mọi kịch bản ghi tiền của nhóm phải chạy TRƯỚC nó.
 // "passkey" đứng CUỐI CÙNG: đổi PIN của salesB, tạm ngưng rồi kích hoạt lại field — mọi kịch bản CÙNG NHÓM dùng chung một D1 tạm (passkey luôn cuối nhóm của nó).
