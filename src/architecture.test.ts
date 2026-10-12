@@ -564,6 +564,86 @@ test("ADR-0002 điều 8(b) mở rộng: MỌI tệp trong thư mục module ngh
 /** Mã đã che chú thích/chuỗi có lời gọi `defineSql(` không (nhắc tên trong chú thích / chuỗi / dòng import thì không tính). */
 const coLoiGoiDefineSql = (source: string): boolean => /\bdefineSql\s*\(/.test(maskSource(source, { strings: true, comments: true }));
 
+// Vòng sửa sau nghiệm thu (N-3, N-7, 2026-10-12): người kiểm cấy được hai khe vào bài K-A-1 mà cả bộ vẫn xanh — (a) câu SQL tự khai nhãn module KHÁC (`defineSql("orders", …)` đặt
+// trong tệp billing, nên bài EXPLAIN coi nó là câu của `orders` và cho ghi bảng `orders`); (b) `defineSql` đặt trong thân hàm (chỉ đăng ký khi hàm được gọi, bài EXPLAIN chỉ thấy câu đăng ký
+// lúc nạp tệp). Cộng khe (c): đặt bí danh `import { defineSql as dangKy }` làm bài quét tên `defineSql(` mù. Cả ba nay có bài riêng bên dưới.
+// GIỚI HẠN (một dòng mỗi khe): (1) tệp `*.test.ts` nằm ngoài phạm vi (không chạy trong Worker); (2) gán lại không dùng `as` (`const dangKy = defineSql;`) không bị bắt;
+// (3) `maskSource` không hiểu regex literal — một regex chứa `{` hay `}` lẻ làm lệch độ sâu và bài báo "không ở cấp đầu tệp" nhầm (đỏ to, không im); (4) dạng khai báo
+// có chú thích kiểu (`const X: string = defineSql(`) hay nhiều biến một câu `const` không được chấp nhận — bài đỏ, viết lại theo `const X = defineSql(`.
+/** Kết quả quét một tệp của module `moduleDir`: số lời gọi `defineSql(` và danh sách lỗi (nhãn module sai / không ở cấp đầu tệp dạng `const X = defineSql(…)`). */
+function phanTichDefineSql(source: string, moduleDir: string): { soLoiGoi: number; loi: string[] } {
+  const masked = maskSource(source, { strings: true, comments: true });
+  const loi: string[] = [];
+  const re = /\bdefineSql\s*\(/g;
+  let soLoiGoi = 0;
+  let pos = 0;
+  let sau = 0; // độ sâu ngoặc nhọn của mã đã che, tại chỗ gọi
+  for (let m = re.exec(masked); m; m = re.exec(masked)) {
+    soLoiGoi++;
+    for (; pos < m.index; pos++) {
+      const c = masked[pos];
+      if (c === "{") sau++;
+      else if (c === "}") sau--;
+    }
+    const dong = masked.slice(0, m.index).split("\n").length;
+    // Ngay trước lời gọi phải là `const <tên> =` (cho phép tiền tố không gian tên `SR.`): loại cả hàm mũi tên không ngoặc nhọn `() => defineSql(…)`, đối tượng, mảng, biểu thức điều kiện.
+    const truoc = masked.slice(0, m.index).trimEnd().slice(-120);
+    if (sau !== 0 || !/\bconst\s+[A-Za-z_$][\w$]*\s*=\s*(?:[A-Za-z_$][\w$]*\s*\.\s*)?$/.test(truoc)) {
+      loi.push(`dòng ${dong}: \`defineSql(\` phải đứng ở cấp đầu tệp, dạng \`const TÊN = defineSql(…)\` (không trong hàm, đối tượng, mảng hay hàm mũi tên) — nếu không, câu chỉ đăng ký khi mã chạy tới nó và bài EXPLAIN không thấy`);
+    }
+    // Đối số đầu đọc trên mã GỐC (cùng chỉ số): chuỗi nguyên văn "…" / '…' đúng tên module; biến, khuôn chữ hay chuỗi khác đều bị coi là sai.
+    const nhan = /^\s*(["'])([^"'\\\n]*)\1\s*,/.exec(source.slice(m.index + m[0].length));
+    if (!nhan || nhan[2] !== moduleDir) {
+      loi.push(`dòng ${dong}: nhãn module của \`defineSql(\` phải là chuỗi nguyên văn "${moduleDir}" (tên thư mục module), thấy ${nhan ? `"${nhan[2]}"` : "không phải chuỗi nguyên văn"} — nhãn khác làm bài EXPLAIN xét câu này theo quyền của module khác`);
+    }
+  }
+  return { soLoiGoi, loi };
+}
+
+/** Tệp nhập hay xuất lại `defineSql` kèm `as` (bí danh), kể cả khi `import { … }` xuống dòng. Chú thích và chuỗi không tính. */
+const coBiDanhDefineSql = (source: string): boolean => /\bdefineSql\s+as\b/.test(maskSource(source, { strings: true, comments: true }));
+
+test("bộ quét nhãn và cấp đầu tệp của `defineSql(`: nhận `const X = defineSql(\"<m>\", …)` ở cấp đầu; bắt nhãn khác, biến làm nhãn, thân hàm, hàm mũi tên, đối tượng, mảng", () => {
+  const ok = (src: string, m = "billing"): void => assert.deepEqual(phanTichDefineSql(src, m).loi, [], src);
+  const sai = (src: string, bat: RegExp, m = "billing"): void => {
+    const got = phanTichDefineSql(src, m).loi;
+    assert.ok(got.some((l) => bat.test(l)), `${src} → ${JSON.stringify(got)}`);
+  };
+  ok('const A = defineSql("billing", "ten", "SELECT 1");');
+  ok('export const A = defineSql("billing", "ten", "SELECT 1");');
+  ok("const A = defineSql(\n  'billing',\n  'ten',\n  `SELECT 1`,\n);");
+  ok('const A = SR.defineSql("billing", "ten", "SELECT 1");', "billing");
+  ok('const T = "{{{"; // } }\nconst B = `a ${x} {`;\nconst A = defineSql("billing", "ten", "SELECT 1");'); // ngoặc nhọn trong chuỗi / chú thích không tính
+  ok('const A = defineSql("giao-dien", "ten", "SELECT 1");', "giao-dien");
+  ok('// const A = defineSql("orders", "x", "UPDATE orders SET total = 0"); — chú thích\nconst m = "defineSql(M, 1)";');
+  assert.equal(phanTichDefineSql('const A = defineSql("billing", "a", "x");\nconst B = defineSql("billing", "b", "y");', "billing").soLoiGoi, 2);
+  // (a) nhãn module khác / không phải chuỗi nguyên văn
+  sai('const A = defineSql("orders", "pha", "UPDATE orders SET total = 0 WHERE id = ?1");', /nhãn module/);
+  sai('const M = "billing";\nconst A = defineSql(M, "ten", "SELECT 1");', /nhãn module/);
+  sai("const A = defineSql(`billing`, \"ten\", \"SELECT 1\");", /nhãn module/);
+  sai('const A = defineSql("billing" + "", "ten", "SELECT 1");', /nhãn module/);
+  // (b) không ở cấp đầu tệp
+  sai('export function f(db: D) {\n  const q = defineSql("billing", "ten", "SELECT 1");\n  return db.prepare(q);\n}', /cấp đầu tệp/);
+  sai('const f = () => defineSql("billing", "ten", "SELECT 1");', /cấp đầu tệp/);
+  sai('const SQL = { a: defineSql("billing", "a", "SELECT 1") };', /cấp đầu tệp/);
+  sai('const SQL = [defineSql("billing", "a", "SELECT 1")];', /cấp đầu tệp/);
+  sai('const A = cond ? defineSql("billing", "a", "SELECT 1") : null;', /cấp đầu tệp/);
+  sai('let A: string;\nA = defineSql("billing", "a", "SELECT 1");', /cấp đầu tệp/);
+});
+
+test("bộ bắt bí danh `defineSql as …`: bắt import / export lại kèm `as` (kể cả xuống dòng), bỏ qua import thường, chú thích và chuỗi", () => {
+  const cases: [string, boolean][] = [
+    ['import { defineSql as dangKy } from "../../shared/sql-registry.ts";', true],
+    ['import {\n  defineSql\n    as dangKy,\n} from "../../shared/sql-registry.ts";', true],
+    ['export { defineSql as khac } from "../../shared/sql-registry.ts";', true],
+    ['import { defineSql } from "../../shared/sql-registry.ts";', false],
+    ['import { registeredSql as ds, defineSql } from "../../shared/sql-registry.ts";', false],
+    ['// import { defineSql as dangKy } — ví dụ trong chú thích', false],
+    ['const mau = "defineSql as dangKy";', false],
+  ];
+  for (const [src, caught] of cases) assert.equal(coBiDanhDefineSql(src), caught, src);
+});
+
 test("bộ bắt lời gọi `defineSql(`: bắt lời gọi (kể cả xuống dòng), bỏ qua chú thích, chuỗi và dòng import", () => {
   const cases: [string, boolean][] = [
     ['const A = defineSql("billing", "ten", `SELECT 1`);', true],
@@ -581,13 +661,36 @@ test("K-A-1: mọi tệp dưới src/modules/** có lời gọi `defineSql(` ph�
     .map((file) => ({ rel: relative(SRC, file).split(sep).join("/"), file }))
     .filter(({ file }) => coLoiGoiDefineSql(readFileSync(file, "utf8")))
     .map(({ rel }) => rel);
-  assert.ok(coDefineSql.length >= khaiBao.size, "tự kiểm bộ quét: phải thấy mọi tệp đã khai — hoặc bộ quét đang mù, hoặc STRICT / NUA_NGHIEM còn khai một tệp không còn lời gọi defineSql( (bỏ dòng thừa)");
+  // Tự kiểm TỪNG TỆP (N-7): mỗi tệp đã khai là tệp SQL nên phải còn ít nhất một lời gọi `defineSql(` — so số lượng thì một tệp khai thừa bị một tệp lạ có defineSql( bù lại mà không ai thấy.
+  const khaiMaMat = [...khaiBao].filter((rel) => !coDefineSql.includes(rel));
+  assert.deepEqual(khaiMaMat, [], `tự kiểm bộ quét: tệp đã khai ở STRICT / NUA_NGHIEM mà không còn lời gọi defineSql( — hoặc bộ quét đang mù, hoặc dòng khai thừa (bỏ dòng thừa): ${khaiMaMat.join(", ")}`);
   const chuaKhai = coDefineSql.filter((rel) => !khaiBao.has(rel));
   assert.deepEqual(
     chuaKhai,
     [],
     `tệp có defineSql( nhưng chưa khai ở STRICT / NUA_NGHIEM — câu SQL của nó không chịu bài EXPLAIN ranh giới (tệp tiền thì càng nguy hiểm): ${chuaKhai.join(", ")}`,
   );
+});
+
+test("K-A-1 (a)(b): mỗi lời gọi `defineSql(` dưới src/modules/<m>/** ghi nhãn module đúng <m> (chuỗi nguyên văn) và đứng ở cấp đầu tệp dạng `const X = defineSql(…)`", () => {
+  const khaiBao = new Set([...STRICT, ...NUA_NGHIEM].map((s) => s.file));
+  let tongLoiGoi = 0;
+  const loi: string[] = [];
+  for (const file of walk(join(SRC, "modules"))) {
+    const rel = relative(SRC, file).split(sep).join("/");
+    const kq = phanTichDefineSql(readFileSync(file, "utf8"), rel.split("/")[1]!);
+    tongLoiGoi += kq.soLoiGoi;
+    loi.push(...kq.loi.map((l) => `${rel}: ${l}`));
+  }
+  assert.ok(tongLoiGoi >= khaiBao.size, `tự kiểm bộ quét: phải thấy ít nhất một lời gọi ở mỗi tệp đã khai (${khaiBao.size} tệp), thấy ${tongLoiGoi} lời gọi — bộ quét đang mù`);
+  assert.deepEqual(loi, [], "defineSql( sai nhãn module hoặc không ở cấp đầu tệp — câu SQL sẽ bị bài EXPLAIN xét theo quyền của module khác, hoặc không được nạp để xét");
+});
+
+test("K-A-1 (c): không tệp nào dưới src/ nhập hay xuất lại `defineSql` kèm `as` (bí danh) — bí danh làm các bài quét tên `defineSql(` ở trên mù", () => {
+  const coBiDanh = walk(SRC)
+    .filter((file) => coBiDanhDefineSql(readFileSync(file, "utf8")))
+    .map((file) => relative(SRC, file).split(sep).join("/"));
+  assert.deepEqual(coBiDanh, [], `tệp đặt bí danh cho defineSql (\`import { defineSql as … }\`) — bỏ \`as\`, gọi đúng tên defineSql: ${coBiDanh.join(", ")}`);
 });
 
 test("R-N1-12: vai trò hồ sơ không là điều kiện cho phép — chỉ module parties nhắc `pty_party_role`", () => {

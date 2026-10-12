@@ -134,7 +134,7 @@ const picker = createCatalogPicker({
 });
 byId("catalog-slot").append(picker.root);
 
-// Tài khoản có quyền Đối tác (ADR-0027) hoặc Thực tập (ADR-0100) — `chiGiaDanhMuc`, MỘT định nghĩa với máy chủ: đơn giá = giá danh mục, tạm chưa được giảm giá. Máy chủ là nơi chặn; form chỉ khoá ô cho khỏi gõ rồi bị từ chối.
+// Tài khoản có quyền Đối tác (ADR-0027) hoặc Thực tập (ADR-0100) — `chiGiaDanhMuc`, MỘT định nghĩa với máy chủ: đơn giá = giá danh mục; giảm giá: Đối tác tạm chưa được (chủ dự án 26/9), Thực tập không được theo ADR-0100. Máy chủ là nơi chặn; form chỉ khoá ô cho khỏi gõ rồi bị từ chối.
 let retailOnly = false;
 // ADR-0061: người dùng được nhập tay (công tắc BẬT, có ô order.service.manual, không mang quyền Đối tác) — MÁY CHỦ quyết (`duocDung` của
 // GET /api/cai-dat/nhap-tay), giao diện không tự tính luật. Đọc TRƯỚC khi dựng thẻ đã lưu (loadOrder); lỗi / 403 → false (ẩn nút, thẻ chỉ xem).

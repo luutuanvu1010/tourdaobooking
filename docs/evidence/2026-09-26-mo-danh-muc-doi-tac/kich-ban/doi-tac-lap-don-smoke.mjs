@@ -5,6 +5,8 @@
 //   - Đối chứng: tài khoản Bán hàng KHÔNG bị khoá hai ô trên.
 //   - Bước 6–7 (lỗi báo 30/9, L1–L3): trang đơn đã xác nhận của Đối tác / Thực tập không có nút sửa chuyến / đổi khách, không khối người phụ trách, không gọi
 //     GET /api/dispatch/handlers; thanh tab điện thoại có "Đơn hàng"; thanh bên máy tính có mục "Đơn hàng" không huy hiệu.
+//   - Bước 8–10 (vòng sửa sau nghiệm thu ADR-0100, 12/10): form lập đơn của Thực tập — đứng một mình (1040 + 390) và Thực tập + Bán hàng (1040): ô đơn giá readOnly,
+//     ô "Giảm giá" readOnly, dòng báo "Tài khoản Thực tập không được giảm giá." (không phải câu «tạm» của Đối tác), ô trỏ tới dòng báo; bước 10 axe cho Thực tập + Bán hàng.
 // Sửa 2026-09-26 (bản 1.17): dòng báo từng nằm trong cột hẹp của hàng ba ô Thanh toán → xuống 3 hàng ở máy tính. Kịch bản nay tìm dòng báo theo
 // NỘI DUNG (không theo vị trí), đếm số hàng hiển thị thật (Range.getClientRects) — máy tính phải 1 hàng, điện thoại ≤ 2 — và kiểm ô giảm giá
 // trỏ tới nó bằng aria-describedby.
@@ -27,6 +29,7 @@ const DESK = { width: 1040, height: 800, mobile: false };
 const MOB = { width: 390, height: 844, mobile: true };
 
 const PARTNER_NOTE = "Tài khoản đối tác tạm chưa được giảm giá.";
+const INTERN_NOTE = "Tài khoản Thực tập không được giảm giá."; // ADR-0100: trần giảm giá của Thực tập là 0, không phải «tạm» như Đối tác
 const CATALOG_ERR = "Không tải được danh mục";
 const TD101_ADULT = 1350000;
 const PAX = 2;
@@ -126,13 +129,13 @@ try {
     await sleep(150);
     return listed;
   };
-  /** Trạng thái các ô cần kiểm trên form. */
-  const formState = (p) =>
+  /** Trạng thái các ô cần kiểm trên form. `ghiChu`: chữ của dòng báo cần tìm (mặc định câu của Đối tác). */
+  const formState = (p, ghiChu = PARTNER_NOTE) =>
     p.ev(`(() => {
       const card = ${CARD};
       const lines = card ? [...card.querySelectorAll('.line:not([hidden])')] : [];
       const d = document.getElementById('discount');
-      const note = [...document.body.querySelectorAll('*')].find((e) => e.children.length === 0 && e.textContent.trim() === ${JSON.stringify(PARTNER_NOTE)});
+      const note = [...document.body.querySelectorAll('*')].find((e) => e.children.length === 0 && e.textContent.trim() === ${JSON.stringify(ghiChu)});
       const noteRange = note ? document.createRange() : null;
       if (noteRange) noteRange.selectNodeContents(note);
       const adultPrice = card ? card.querySelector('.price-field[aria-label="Đơn giá người lớn"]') : null;
@@ -368,6 +371,74 @@ try {
     await m.shot(join(OUT, "anh", "thuc-tap-don-da-xac-nhan-dien-thoai.png"));
     m.close();
   });
+
+  // ==================================================================================================
+  // 8–10) THỰC TẬP (ADR-0100, vòng sửa sau nghiệm thu 12/10): khẳng định BẰNG TRÌNH DUYỆT rằng ô đơn giá và ô "Giảm giá" bị khoá (readOnly) và dòng báo đúng chữ —
+  //       Thực tập đứng một mình (1040 + 390), rồi Thực tập + Bán hàng (`chiGiaDanhMuc` = có quyền Thực tập là áp, kể cả kèm quyền nội bộ). Mở theo thứ tự
+  //       Thực tập → Thực tập + Bán hàng (kho cookie chung: trang của tài khoản nào phải mở sau cùng; mỗi bước đóng trang trước khi tới bước kế).
+  // ==================================================================================================
+  /** Chọn TD101, 2 người lớn → khẳng định hai ô khoá + dòng báo Thực tập; `rowsMax`: số hàng tối đa của dòng báo (máy tính 1, điện thoại 2). */
+  const kiemKhoaThucTap = async (p, nhan, rowsMax) => {
+    await pickTd101(p);
+    await p.waitFor(`(${ADULT_PRICE}).readOnly === true`, `${nhan}: ô đơn giá người lớn readOnly`, 5000);
+    const s = await formState(p, INTERN_NOTE);
+    assert.equal(s.visibleLines.length, 1, `${nhan}: một dòng tiền (người lớn) — ${JSON.stringify(s)}`);
+    assert.equal(s.visibleLines[0].readOnly, true, `${nhan}: ô đơn giá readOnly — ${JSON.stringify(s.visibleLines)}`);
+    assert.equal(s.visibleLines[0].digits, TD101_ADULT, `${nhan}: ô đơn giá = giá danh mục ${TD101_ADULT} — ${JSON.stringify(s.visibleLines)}`);
+    assert.equal(s.tagShown, false, `${nhan}: không có nhãn “Khác giá danh mục” — ${JSON.stringify(s)}`);
+    assert.equal(s.discountReadOnly, true, `${nhan}: ô “Giảm giá” readOnly — ${JSON.stringify(s)}`);
+    assert.equal(s.note?.visible, true, `${nhan}: có dòng “${INTERN_NOTE}” đang hiện — ${JSON.stringify(s.note)}`);
+    assert.ok(s.note.rows >= 1 && s.note.rows <= rowsMax, `${nhan}: dòng báo tối đa ${rowsMax} hàng — ${JSON.stringify(s.note)}`);
+    assert.ok(s.note.id && s.discountDescribedBy === s.note.id, `${nhan}: ô giảm giá trỏ tới dòng báo bằng aria-describedby — ${s.discountDescribedBy} / ${JSON.stringify(s.note)}`);
+    assert.equal(s.partnerNoteAnywhere, false, `${nhan}: KHÔNG có câu của Đối tác “${PARTNER_NOTE}” (Thực tập không phải «tạm») — ${JSON.stringify(s)}`);
+    assert.equal(s.catalogErrAnywhere, false, `${nhan}: không có “${CATALOG_ERR}”`);
+    assert.match(s.subtotal ?? "", /2\.700\.000/, `${nhan}: tạm tính 2.700.000 — ${s.subtotal}`);
+    assert.deepEqual(p.consoleErrors, [], `${nhan}: lỗi console: ${p.consoleErrors}`);
+    noteErrorLogs(p, nhan);
+    console.log(`    ${nhan}: đơn giá readOnly=${s.visibleLines[0].readOnly} (“${s.visibleLines[0].value}”) · giảm giá readOnly=${s.discountReadOnly} value="${s.discountValue}" · dòng báo ${JSON.stringify(s.note)} · tạm tính ${s.subtotal}`);
+    return s;
+  };
+
+  await step("8", `Thực tập đứng một mình (máy tính 1040): chọn TD101, ${PAX} người lớn → ô đơn giá readOnly (1.350.000), ô “Giảm giá” readOnly, dòng “${INTERN_NOTE}” gọn một hàng, ô trỏ tới nó`, async () => {
+    const p = await openAs(INTERN, "/order-form", DESK);
+    await kiemKhoaThucTap(p, "Thực tập 1040", 1);
+    await p.shot(join(OUT, "anh", "thuc-tap-form-may-tinh.png"));
+    p.close();
+  });
+
+  await step("8m", `Thực tập đứng một mình (điện thoại 390): cùng khẳng định — hai ô readOnly, dòng “${INTERN_NOTE}” tối đa 2 hàng; không tràn ngang`, async () => {
+    const p = await openAs(INTERN, "/order-form", MOB);
+    await kiemKhoaThucTap(p, "Thực tập 390", 2);
+    const overflow = await p.ev("document.documentElement.scrollWidth - document.documentElement.clientWidth");
+    assert.ok(overflow <= 1, `không tràn ngang ở 390px — lệch ${overflow}px`);
+    await p.shot(join(OUT, "anh", "thuc-tap-form-dien-thoai.png"));
+    p.close();
+  });
+
+  // Thực tập + Bán hàng: gieo thẳng hai quyền (như tài khoản Thực tập ở trên). Nếu CSDL từ chối tổ hợp này thì dừng và báo — đừng chữa mã.
+  const INTERN_SALES = { name: "Thực Tập Kiêm Bán Hàng", phone: "0900000273", pin: "246873", permissions: ["INTERN", "SALES"] };
+  {
+    const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
+    for (const stmt of (await insertStaffSql(INTERN_SALES)).split("\n")) env.sql(stmt);
+  }
+  await step("9", `Thực tập + Bán hàng (máy tính 1040): cùng khẳng định — ô đơn giá readOnly, ô “Giảm giá” readOnly, dòng “${INTERN_NOTE}” (có quyền Thực tập là bị áp, kể cả kèm Bán hàng; câu của Thực tập vì không có quyền Đối tác)`, async () => {
+    const p = await openAs(INTERN_SALES, "/order-form", DESK);
+    await kiemKhoaThucTap(p, "Thực tập + Bán hàng 1040", 1);
+    await p.shot(join(OUT, "anh", "thuc-tap-ban-hang-form-may-tinh.png"));
+    p.close();
+  });
+
+  if (AXE) {
+    await step("10", "axe (Thực tập + Bán hàng, /order-form máy tính, sau khi chọn TD101): 0 vi phạm critical/serious", async () => {
+      const p = await openAs(INTERN_SALES, "/order-form", DESK);
+      await pickTd101(p);
+      await p.ev(`${AXE}\n;true`);
+      const v = await p.ev(`axe.run(document).then((r) => r.violations.map((x) => ({ id: x.id, impact: x.impact, nodes: x.nodes.length, help: x.help })))`);
+      const bad = v.filter((x) => x.impact === "critical" || x.impact === "serious");
+      assert.deepEqual(bad, [], `axe: ${JSON.stringify(bad)}`);
+      p.close();
+    });
+  }
 } finally {
   for (const p of pages) try { p.close(); } catch { /* đã đóng */ }
   await env.stop();

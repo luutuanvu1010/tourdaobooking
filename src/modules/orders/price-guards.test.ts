@@ -1,6 +1,7 @@
-// DK-T3-01 (kiểm toán 24/9; chủ dự án trả lời 2026-09-26): R1 dịch vụ nhập tay "đóng băng", R2 giá bán lẻ cho tài khoản CHỈ Đối tác,
-// R3 trần giảm giá cấp đơn cho tài khoản CHỈ Đối tác (hôm nay trần = 0: "tạm không cho giảm" tới khi có bảng mức chiết khấu).
-// ADR-0100 (accepted 2026-10-03): R2/R3 áp cả cho tài khoản có quyền Thực tập (`giaDanhMucViolation`, `tranGiamGia`, cuối tệp); tập con quyền ở src/shared/permissions.test.ts.
+// DK-T3-01 (kiểm toán 24/9; chủ dự án trả lời 2026-09-26): R1 dịch vụ nhập tay "đóng băng", R2 giá bán lẻ cho tài khoản Đối tác (các ca đầu tệp: CHỈ Đối tác),
+// R3 trần giảm giá cấp đơn cho tài khoản Đối tác (hôm nay trần = 0: "tạm không cho giảm" tới khi có bảng mức chiết khấu).
+// ADR-0100 (accepted 2026-10-03): R2/R3 áp cả cho tài khoản có quyền Thực tập (`chiGiaDanhMuc`: Đối tác HOẶC Thực tập; `giaDanhMucViolation`, `tranGiamGia`, cuối tệp), trần giảm giá
+// của Thực tập là 0 riêng; tập con quyền ở src/shared/permissions.test.ts.
 // ADR-0061 (accepted 2026-09-30) THU HẸP R1 — NỚI hàng rào đã duyệt (Điều 9.4; chủ duyệt ADR-0061 là duyệt việc nới, dòng R1 ở docs/SO-HANG-RAO.md): R1 nay
 // chỉ áp khi công tắc nhập tay TẮT, với người không có ô `order.service.manual`, và LUÔN với tài khoản có quyền Đối tác (`duocNhapTay`, bảng ca dưới cùng).
 // Các ca R1 "mọi tài khoản" cũ đổi thành ca của `manualFreezeViolation` (luật đóng băng giữ nguyên) + câu lỗi theo LÝ DO (ADR-0061 "Mã").

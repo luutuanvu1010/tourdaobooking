@@ -223,8 +223,9 @@ async function legRaced(db: D1Database, orderId: string, legId: string): Promise
 /**
  * DK-T3-01 (kiểm toán 24/9; chủ dự án trả lời 2026-09-26) — các kiểm RIÊNG chạy SAU `validateOrder` ở POST/PUT đơn (luật thuần: `price-guards.ts`),
  * theo thứ tự: R1 — khi KHÔNG `duocNhapTay` (ADR-0061: tài khoản có quyền Đối tác TRƯỚC, rồi công tắc TẮT, rồi không có ô `order.service.manual`) dịch vụ
- * nhập tay mới / sửa tên-giá dịch vụ nhập tay cũ → 400 `invalid_input` (câu theo lý do); R2 (tài khoản có quyền Đối tác) đơn giá khác giá danh mục → 403
- * `forbidden`; R3 (tài khoản có quyền Đối tác) giảm giá cấp đơn vượt trần — hôm nay trần 0, "tạm không cho giảm" (chủ dự án 26/9) → 403 `forbidden`.
+ * nhập tay mới / sửa tên-giá dịch vụ nhập tay cũ → 400 `invalid_input` (câu theo lý do); R2 (tài khoản có quyền Đối tác hoặc Thực tập — `chiGiaDanhMuc`, ADR-0100) đơn giá khác
+ * giá danh mục → 403 `forbidden`; R3 (cùng `chiGiaDanhMuc`) giảm giá cấp đơn vượt trần — hôm nay trần 0: Đối tác "tạm không cho giảm" (chủ dự án 26/9), Thực tập không giảm
+ * theo ADR-0100 (trần riêng, không đổi theo trần Đối tác) → 403 `forbidden`.
  * `batNhapTay` = công tắc nhập tay, route đọc MỘT lần mỗi request (`manualPolicy`). null = đạt. MỌI route gọi `validateOrder` phải gọi hàm này (bài tĩnh
  * `src/nhap-tay-guard.test.ts` — route sửa sau xác nhận C2 tương lai không lách được).
  */
