@@ -13,7 +13,10 @@
 //  - 10000 truyền làm đối số cho hàm khác: `chia(x, 10_000)`.
 //  - Viết lại tay phép làm tròn nửa lên: `Math.floor((2 * tu + mau) / (2 * mau))`, `(2 * x * bp + 10000) / 20000`.
 //  - Biến tỷ lệ tên trần `bp` hoặc tên không theo quy ước `…Bp` / `…_bp` (`bp * tien`, `tyLe * tien`); truy cập bằng khoá chuỗi (`r["rate_bp"] * x`, `row[col] * x`).
-//  - SQL ghép từ nhiều mảnh chuỗi hay dựng bằng nối chuỗi: `"… / " + "10000"`.
+//  - Biến tỷ lệ bị bọc nên không còn đứng liền dấu phép tính: `((rateBp))`, `rateBp as number`, `Number(rateBp)`; trong SQL `CAST(rate_bp AS …)`, `IFNULL(rate_bp, 0)`, khuôn `${tyLeBp}`
+//    hay `/ ${10000}`. (Nếu công thức có `/ 10000` viết liền thì vẫn bị bắt ở mẫu 10000.)
+//  - SQL ghép từ nhiều mảnh chuỗi: chỉ bị bắt khi phép tính và con số 10000 còn nằm trong CÙNG một mảnh.
+//  - Ngược chiều (báo NHẦM, đỏ to): viết `rateBp / 100` để HIỂN THỊ phần trăm cũng làm bài đỏ — đưa việc đó vào một hàm ở tệp nguồn, hoặc thêm vào `PHAN_VAN_DA_RA` kèm lý do.
 //  - Đặt bí danh khi nhập (`import { giaVonDong as gv }`) hay gán lại hàm (`const f = hoaHongDong`).
 //  - Mã ngoài `src/` + `web/`: `scripts/`, `tests/`, và SQL ở `migrations/` (trigger).
 //  - Đối số truyền vào hàm công thức có ĐÚNG hay không — việc của bài hành vi (`src/modules/pricing/rules.test.ts`, `src/so-vang-so-dai-ly.test.ts`) và của người rà.

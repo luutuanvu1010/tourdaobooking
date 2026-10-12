@@ -12,6 +12,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Luật giá Thực tập (ADR-0100), không migration. Số 1.88 là số TẠM (= 1.87 + 1 lúc soạn 2026-10-12; nhánh claude/van-chuyen-goi-a-c cũng đang giữ 1.88): nhánh vào main SAU phải đổi sang số kế tiếp (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "1.88",
+    date: "2026-10-12",
+    items: [
+      { kind: "doi", text: "Tài khoản Thực tập chỉ lập và xác nhận được đơn theo giá danh mục, không giảm giá. Cần giá khác thì nhờ nhân viên Bán hàng." },
+      { kind: "doi", text: "Ở màn lập đơn, ô đơn giá và ô giảm giá của tài khoản Thực tập chỉ đọc, kèm một dòng giải thích." },
+    ],
+  },
+  {
     // Sổ đại lý đợt 1 (ADR-0077/0078/0080), migration 0090. Số 1.87 là số TẠM (= 1.86 + 1 lúc soạn 2026-10-12): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
     version: "1.87",
     date: "2026-10-12",

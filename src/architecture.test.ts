@@ -567,9 +567,12 @@ const coLoiGoiDefineSql = (source: string): boolean => /\bdefineSql\s*\(/.test(m
 // Vòng sửa sau nghiệm thu (N-3, N-7, 2026-10-12): người kiểm cấy được hai khe vào bài K-A-1 mà cả bộ vẫn xanh — (a) câu SQL tự khai nhãn module KHÁC (`defineSql("orders", …)` đặt
 // trong tệp billing, nên bài EXPLAIN coi nó là câu của `orders` và cho ghi bảng `orders`); (b) `defineSql` đặt trong thân hàm (chỉ đăng ký khi hàm được gọi, bài EXPLAIN chỉ thấy câu đăng ký
 // lúc nạp tệp). Cộng khe (c): đặt bí danh `import { defineSql as dangKy }` làm bài quét tên `defineSql(` mù. Cả ba nay có bài riêng bên dưới.
-// GIỚI HẠN (một dòng mỗi khe): (1) tệp `*.test.ts` nằm ngoài phạm vi (không chạy trong Worker); (2) gán lại không dùng `as` (`const dangKy = defineSql;`) không bị bắt;
-// (3) `maskSource` không hiểu regex literal — một regex chứa `{` hay `}` lẻ làm lệch độ sâu và bài báo "không ở cấp đầu tệp" nhầm (đỏ to, không im); (4) dạng khai báo
-// có chú thích kiểu (`const X: string = defineSql(`) hay nhiều biến một câu `const` không được chấp nhận — bài đỏ, viết lại theo `const X = defineSql(`.
+// GIỚI HẠN (đọc trước khi tin; đây là lưới chống NHẦM/QUÊN, không chống cố ý lách; một dòng mỗi khe): (1) tệp `*.test.ts` nằm ngoài phạm vi (không chạy trong Worker); (2) gán lại không
+// dùng `as` (`const dangKy = defineSql;`), tách tên khi nhập (`const { defineSql: dk } = SR`), `defineSql.call(null, …)` và `defineSql?.(…)` không bị bắt; (3) CHỈ quét `src/modules/**`:
+// một câu `defineSql("orders", …)` đặt ở tệp mới ngoài đó (vd `src/shared/`) rồi để tệp billing import không bị bài này thấy (hôm nay không có chỗ nào như vậy; muốn lọt phải sai
+// cả nhãn lẫn chỗ đặt); (4) `maskSource` không hiểu regex literal — một regex chứa `{` hay `}` lẻ, hoặc regex URL kiểu `/^https?:\/\//` (bộ che hiểu `//` là chú thích và che mất `{` về sau),
+// làm lệch độ sâu: có thể báo nhầm "không ở cấp đầu tệp", nhưng cũng có thể IM LẶNG cho lọt một `defineSql` trong thân hàm; (5) dạng khai báo có chú thích kiểu
+// (`const X: string = defineSql(`) hay nhiều biến một câu `const` không được chấp nhận — bài đỏ, viết lại theo `const X = defineSql(`.
 /** Kết quả quét một tệp của module `moduleDir`: số lời gọi `defineSql(` và danh sách lỗi (nhãn module sai / không ở cấp đầu tệp dạng `const X = defineSql(…)`). */
 function phanTichDefineSql(source: string, moduleDir: string): { soLoiGoi: number; loi: string[] } {
   const masked = maskSource(source, { strings: true, comments: true });
