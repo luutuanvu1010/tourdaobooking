@@ -16,7 +16,7 @@ const d = await dungDuLieuDieuPhoi(env, call);
 const dung = (r, ma, viec) => assert.equal(r.status, ma, `${viec}: ${r.status} ${r.text}`);
 const chinhSach = (autoConfirmTransfer) => call(CHU, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", {
   minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240,
-  departureWindowMinutes: 2880, acceptWaitMinutes: 10, autoConfirmTransfer,
+  departureWindowMinutes: 2880, refuseLeadMinutes: 720, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer,
 });
 
 // Nền (mọi lệnh API làm TRƯỚC khi mở trình duyệt): xe nhờ T4 (NGÀY MAI 10:00–11:30, An, 79A-111.11) + O4 (Citadines, 2 khách có tên) xếp bằng phá lệ, mốc về
