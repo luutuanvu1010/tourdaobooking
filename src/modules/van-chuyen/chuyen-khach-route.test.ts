@@ -345,6 +345,57 @@ test("TH08-4A/4B/4C chạm route THẬT (VỪA-1, kiểm độc lập 12/10): B�
   }
 });
 
+// NT-A5-20 thua cổng (VỪA-2, kiểm độc lập 12/10). `w.chenTruocLo` (khung thử) giả một người khác đổi dữ liệu giữa lúc route đọc và lúc ghi.
+const laLoDeNghi = (stmts: any[]) => stmts.some((x) => /UPDATE vc_transfer_request/.test(x.sql));
+const tangVersion = (w: any, tripId: string) => w.sqlite.prepare("UPDATE vc_trip SET version = version + 1 WHERE id = ?").run(tripId);
+
+test("NT-A5-20 thua cổng (1): lô xác nhận thua cổng version một lần → đọc lại và thử LẠI MỘT LẦN → 200 DA_CHUYEN, đúng một sự kiện", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const { a, b } = await xeNhanChay(w);
+    const id = await guiDiem(w, a, b);
+    w.chenTruocLo(laLoDeNghi, () => tangVersion(w, a.id));
+    const r = await nhan(w, id);
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual([r.json.ketQua, r.json.deNghi.trangThai], ["DA_CHUYEN", "CONFIRMED"], "thử lại một lần phải thắng");
+    assert.equal(mot(w, "SELECT count(*) AS n FROM vc_trip_event WHERE kind = 'TRANSFER_CONFIRMED' AND trip_id = ?", b.id).n, 1, "đúng một sự kiện");
+    kiemDinhKySach(w);
+  } finally {
+    tat();
+  }
+});
+
+test("NT-A5-20 thua cổng (2): lô xác nhận thua cổng HAI lần liền → lần thử lại cũng thua → 409 stale, đề nghị còn Chờ, không ghi", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const { a, b } = await xeNhanChay(w);
+    const id = await guiDiem(w, a, b);
+    w.chenTruocLo(laLoDeNghi, () => tangVersion(w, a.id), 2);
+    tat409(await nhan(w, id), "stale");
+    assert.equal(mot(w, "SELECT status FROM vc_transfer_request WHERE id = ?", id).status, "PENDING");
+    assert.equal(mot(w, "SELECT count(*) AS n FROM vc_trip_event WHERE kind = 'TRANSFER_CONFIRMED'").n, 0, "thua hai lần: không ghi");
+  } finally {
+    tat();
+  }
+});
+
+test("NT-A5-20 thua cổng (3): lô leo thang thua cổng vì tài xế xe nhờ vừa RÚT → đọc lại thấy đã đóng: 409 ck_de_nghi_da_dong (không phải stale), không leo thang", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const { a, b } = await haiXe(w);
+    const id = await guiDiem(w, a, b);
+    w.chenTruocLo(laLoDeNghi, async () => { assert.equal((await rut(w, id)).status, 200); });
+    tat409(await nhan(w, id), "ck_de_nghi_da_dong");
+    assert.equal(mot(w, "SELECT status FROM vc_transfer_request WHERE id = ?", id).status, "WITHDRAWN");
+    assert.equal(mot(w, "SELECT count(*) AS n FROM vc_trip_event WHERE kind = 'TRANSFER_ESCALATED'").n, 0, "không leo thang đề nghị đã rút");
+  } finally {
+    tat();
+  }
+});
+
 test("NT-A5-7, -11 nhận dưới mốc (xe nhận chưa chạy) → leo thang (suất không đổi, tin tới người có trip.override); danh sách văn phòng có dòng kiểm + hộp; Duyệt: chỉ trip.override, lý do nhóm PHA_LE, NGUOI; lệnh lặp Nhận sau duyệt vẫn 200", async () => {
   const tat = batDongHo();
   try {

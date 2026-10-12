@@ -45,6 +45,7 @@ const isRead = (sql) => /^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql);
  * D1 giả = SQLite thật. CHẾ ĐỘ NGHIÊM (ADR-0094, kế hoạch L4a — bật mặc định, không tắt được): `batch` TỪ CHỐI mọi câu không do CHÍNH D1 giả này tạo
  * (`prepare`/`bind`). D1 thật không nhận câu bọc của bộ bọc lớp vé (src/shared/lan-gui-boc.ts) — thiếu chế độ này, lỗi "quên gỡ bọc" chỉ lộ trên D1 thật.
  * `moc.truocTraVe` (CHỈ khung thử): gọi và chờ trước câu tra vé (`… FROM lg_lan_gui WHERE staff_id …`) — rào cho ca gửi đồng thời (L5 ca c, e).
+ * `moc.truocLo(stmts)` (CHỈ khung thử): gọi và chờ NGAY TRƯỚC khi một `batch` bắt đầu — giả một người khác vừa đổi dữ liệu giữa lúc route đọc và lúc ghi (NT-A5-20, "thua cổng").
  */
 export function fakeD1(sqlite, moc = {}) {
   const cuaToi = new WeakSet();
@@ -72,6 +73,7 @@ export function fakeD1(sqlite, moc = {}) {
     batch: async (stmts) => {
       const la = stmts.findIndex((s) => !cuaToi.has(s));
       if (la !== -1) throw new Error(`fakeD1 nghiêm: câu thứ ${la} của lô không do D1 này tạo (quên gỡ bọc?)`);
+      if (moc.truocLo) await moc.truocLo(stmts);
       sqlite.exec("BEGIN");
       try { const out = stmts.map(exec1); sqlite.exec("COMMIT"); return out; } catch (e) { sqlite.exec("ROLLBACK"); throw e; }
     },
@@ -167,6 +169,20 @@ export function world(tuyChon = {}) {
       return r.cho;
     },
   };
+  /**
+   * Chèn một thay đổi NGAY TRƯỚC `soLan` lô đầu tiên thoả `khop(stmts)` (rồi tự gỡ). Chỉ khung thử; không nới luật nào — lô vẫn chạy nguyên văn sau đó, nên cổng
+   * version / trạng thái của chính lô phải tự bắt được thay đổi (NT-A5-20: thua cổng → 409 `stale` hoặc đọc lại thử lại một lần).
+   */
+  let chenLo = null;
+  moc.truocLo = async (stmts) => {
+    if (!chenLo || !chenLo.khop(stmts)) return;
+    const c = chenLo;
+    if (--c.con <= 0) chenLo = null;
+    await c.chen(stmts);
+  };
+  function chenTruocLo(khop, chen, soLan = 1) {
+    chenLo = { khop, chen, con: soLan };
+  }
   function raoTraVe(n) {
     let mo;
     const cho = new Promise((res) => (mo = res));
@@ -224,5 +240,5 @@ export function world(tuyChon = {}) {
     let json = null; try { json = JSON.parse(text); } catch {}
     return { status: res.status, json, text, headers: res.headers };
   }
-  return { sqlite, env, call, token, choNen, raoTraVe, q:(sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
+  return { sqlite, env, call, token, choNen, raoTraVe, chenTruocLo, q:(sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
 }
