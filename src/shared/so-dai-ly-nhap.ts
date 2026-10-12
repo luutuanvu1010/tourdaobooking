@@ -16,8 +16,8 @@ export const MOI_KHACH_TOI_DA = 100_000_000;
 
 export function docTienMoiKhach(raw: string): { ok: true; dong: number } | { ok: false; message: string } {
   const s = raw.trim().replace(/\./g, "");
-  if (!/^\d{1,9}$/.test(s)) return { ok: false, message: "Số tiền mỗi khách là số nguyên đồng (vd 50.000)." };
-  const dong = Number(s);
+  if (!/^\d+$/.test(s)) return { ok: false, message: "Số tiền mỗi khách là số nguyên đồng (vd 50.000)." };
+  const dong = Number(s); // số dài tới đâu cũng chỉ là «lớn hơn trần» (dãy rất dài thành Infinity) — nhận đúng câu nói rõ trần, không câu «số nguyên đồng»
   if (dong > MOI_KHACH_TOI_DA) return { ok: false, message: `Số tiền mỗi khách không quá ${nhanDong(MOI_KHACH_TOI_DA)}đ.` };
   return { ok: true, dong };
 }

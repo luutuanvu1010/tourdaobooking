@@ -28,7 +28,15 @@ test("docTienMoiKhach: trần như máy chủ (100.000.000đ) — vừa trần t
     assert.equal(r.ok, false, qua);
     assert.equal(!r.ok && r.message, "Số tiền mỗi khách không quá 100.000.000đ.", qua);
   }
-  assert.equal(docTienMoiKhach("1.000.000.000").ok, false, "mười chữ số vẫn bị khuôn số nguyên chặn");
+  // Số từ mười chữ số trở lên cũng nhận ĐÚNG câu «không quá …» (Task 14, nợ (b)): trước đây khuôn `\d{1,9}` chạy trước phép so trần nên số quá lớn nhận câu «số nguyên đồng» không nói trần.
+  const CAU_TRAN = "Số tiền mỗi khách không quá 100.000.000đ.";
+  for (const lon of ["1.000.000.000", "1234567890", "99999999999999999999", "9".repeat(400)]) {
+    const r = docTienMoiKhach(lon);
+    assert.equal(r.ok, false, lon);
+    assert.equal(!r.ok && r.message, CAU_TRAN, `${lon.slice(0, 24)}…: số quá lớn nhận câu nói rõ trần`);
+  }
+  // khuôn «số nguyên đồng» vẫn giữ cho thứ không phải số nguyên
+  for (const sai of ["", "50,5", "-1", "abc", "1e9"]) assert.equal(!docTienMoiKhach(sai).ok && (docTienMoiKhach(sai) as { message: string }).message, "Số tiền mỗi khách là số nguyên đồng (vd 50.000).", sai);
 });
 
 // ---- Đọc cả form thành thân gửi ----
