@@ -104,9 +104,10 @@ Kế toán có nút [[+ Hồ sơ mới]] và được thêm, sửa hồ sơ khá
       noiDung: `Hoa hồng là tiền Công ty trả cho đại lý hoặc cộng tác viên đặt đơn. Khi đơn được xác nhận, app lấy mức đang áp trong bảng, tính hoa hồng một lần rồi giữ nguyên.
 
 1. Bấm [[Hoa hồng đối tác]] để xem các mức đang áp và sắp áp.
-2. Ở khối [[Thêm mức]], chọn áp cho một loại đối tác hoặc một đối tác, chọn phạm vi (một dịch vụ, một nhóm dịch vụ hoặc mọi dịch vụ), chọn **Phần trăm** hoặc **Số tiền mỗi khách**, nhập ngày bắt đầu rồi bấm [[Thêm mức]].
-3. Muốn biết mức nào sẽ áp cho một đối tác, một dịch vụ và một ngày, dùng khối [[Thử tra]] rồi bấm [[Tra mức]].
-4. Hết dùng một mức thì bấm [[Đóng mức]] ở dòng đó. Mức không sửa, không xoá được; muốn đổi thì đóng mức cũ và thêm mức mới.
+2. Ở khối [[Thêm mức]], chọn áp cho một loại đối tác, chọn phạm vi (một dịch vụ, một nhóm dịch vụ hoặc mọi dịch vụ), chọn **Phần trăm** hoặc **Số tiền mỗi khách**, nhập ngày bắt đầu rồi bấm [[Thêm mức]].
+3. Hết dùng một mức thì bấm [[Đóng mức]] ở dòng đó. Mức không sửa, không xoá được; muốn đổi thì đóng mức cũ và thêm mức mới.
+
+Tài khoản Kế toán chưa tìm được từng đối tác theo tên, nên chưa đặt được mức riêng cho một đối tác và chưa dùng được khối [[Thử tra]]. Cần việc đó thì nhờ Quản trị hoặc Toàn quyền.
 
 Người bán dịch vụ làm tương tự ở trang [[Người bán dịch vụ]]: khối [[Thêm điều khoản]] ghi dịch vụ nào do Tour Đảo bán, dịch vụ nào do nhà cung cấp bán (kèm tỷ lệ Tour Đảo mua lại). Dịch vụ nhóm Thuê xe không ghi nhà cung cấp mua lại.
 
@@ -177,6 +178,7 @@ Chuông ở thanh trên báo khi có đơn mới, có người nhận đơn, đ�
 - Sửa tiền, số khách sau khi xác nhận: không. Số khách: báo hướng dẫn viên đang phụ trách đơn. Tiền: chỉ tài khoản Toàn quyền.
 - Nhận phụ trách, giao đơn cho người khác: không. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Duyệt "Đặt gấp": không. Nhờ Quản trị.
+- Đặt mức riêng cho một đối tác, thử tra mức: chưa, vì tài khoản Kế toán không tìm được đối tác theo tên. Nhờ Quản trị hoặc Toàn quyền.
 - Xếp xe, tạo chuyến, bấm tiến độ chuyến: không, bạn chỉ xem. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Bấm **Đã giao – đã thu đủ**: không. Hướng dẫn viên đang phụ trách đơn hoặc Quản trị bấm.
 - Xuất hoá đơn trong app: không có. Xuất ở phần mềm kế toán rồi đánh dấu trên đơn.
