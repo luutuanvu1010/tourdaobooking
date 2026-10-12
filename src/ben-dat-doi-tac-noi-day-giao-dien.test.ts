@@ -49,3 +49,12 @@ test("bảng \"Ghi mức tay\": id cố định, gọi đúng route, tách ngư�
   assert.match(khoi, /docThanGhiTay\(/, "thân gửi do luật thuần dựng (đã có bài nối với route)");
   assert.match(khoi, /status\s*===\s*404/, "404 ⇒ ẩn khối lặng lẽ");
 });
+
+// Task 14, nợ (d) (T11 M3): câu cạnh hồ sơ TỔ CHỨC trong ô tra SĐT chỉ trỏ tới ô «Đặt qua đối tác» khi form / bảng CÓ ô đó. Luật chữ ở `matchNote` (bài ở src/shared/booker.test.ts); bài này canh dây: cờ tới được khối tra.
+test("ô tra hồ sơ khách nhận cờ «có ô Đặt qua đối tác» từ nơi gọi, không tự giả định", () => {
+  const khoi = doc("web/booker-picker.ts");
+  assert.match(khoi, /matchNote\(m,\s*coODat\)/, "khối tra truyền cờ cho matchNote");
+  assert.match(khoi, /datCoODatQuaDoiTac\(co\)\s*\{\s*coODat\s*=\s*co;/, "khối tra có hàm đặt cờ sau khi dựng");
+  assert.match(doc("web/booker-sheet.ts"), /createBookerPicker\(\{[^}]*coODatQuaDoiTac:\s*o\.coDatQuaDoiTac/, "bảng đổi khách: cờ lấy từ coDatQuaDoiTac của nơi gọi (coODatQuaDoiTac(staff))");
+  assert.match(doc("web/order-form.ts"), /bookerPicker\.datCoODatQuaDoiTac\(\s*khoiBenDat\.kieu\s*===\s*"tra-sdt-va-dat-qua"\s*\)/, "form lập đơn: có ô đúng khi luật thuần xếp khối «tra-sdt-va-dat-qua»");
+});

@@ -64,10 +64,15 @@ type MatchLike = Pick<PartyListItemDto, "kind" | "active">;
 /** Hồ sơ trong danh sách trùng số chọn làm người đặt được không: chỉ cá nhân đang hoạt động (đại lý/tổ chức để lát sau — đặc tả §8 mục 2). */
 export const canPickMatch = (m: MatchLike): boolean => m.kind === "PERSON" && m.active;
 
-/** Lý do một hồ sơ không chọn được (hiện cạnh tên); null = chọn được. */
-export function matchNote(m: MatchLike): string | null {
+/**
+ * Lý do một hồ sơ không chọn được (hiện cạnh tên); null = chọn được.
+ * `coODatQuaDoiTac`: người đọc CÓ ô «Đặt qua đối tác» không (`coODatQuaDoiTac(staff)` ở phan-doi-tac-hien-thi.ts — người lập đơn không giữ quyền Đối tác). Không có ô thì câu không được trỏ tới nó
+ * (Đối tác và tài khoản lai nhìn thấy câu này mà không có ô nào để chọn). Tham số BẮT BUỘC để không nơi gọi nào lặng lẽ rơi về câu cũ.
+ */
+export function matchNote(m: MatchLike, coODatQuaDoiTac: boolean): string | null {
   if (!m.active) return "đã ngưng";
-  if (m.kind !== "PERSON") return "tổ chức — đại lý thì chọn ở ô “Đặt qua đối tác”"; // sổ đại lý đợt 1 (Task 11): tổ chức được hưởng gắn vào đơn được, nhưng qua ô riêng (đặc tả §7), không qua ô tra SĐT
+  // sổ đại lý đợt 1 (Task 11): tổ chức được hưởng gắn vào đơn được, nhưng qua ô riêng (đặc tả §7), không qua ô tra SĐT
+  if (m.kind !== "PERSON") return coODatQuaDoiTac ? "tổ chức — đại lý thì chọn ở ô “Đặt qua đối tác”" : "tổ chức — do văn phòng gắn bên đặt";
   return null;
 }
 
