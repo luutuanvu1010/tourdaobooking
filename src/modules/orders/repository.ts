@@ -2,7 +2,7 @@ import { auditStatement, type AuditAction } from "../audit";
 import type { HanhDongDoiSoKhach } from "../../shared/audit-actions";
 import { LY_DO_DAT_GAP, chieuDiDau, isLyDoDatGap, xepChang, type ChangDaLuu, type ChangHopLe, type LyDoDongChang } from "../../shared/chang-dua-don";
 import type { LegDto, OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto, OrderSummaryTripDto } from "../../shared/contracts";
-import { escapeLike } from "../../shared/http";
+import { mauLikeChua } from "../../shared/http";
 import { dbNgoaiVe } from "../../shared/lan-gui-boc";
 import { moTaDanhSachNhap, type HanhKhachHopLe } from "../../shared/hanh-khach";
 import {
@@ -518,7 +518,7 @@ function dieuKienDanhSach(opts: ListOrdersOpts): { whereSql: string; binds: (str
   }
   if (dv.length) where.push(`EXISTS (SELECT 1 FROM order_service sv WHERE sv.order_id = o.id AND ${dv.join(" AND ")})`);
   if (opts.q) {
-    const like = `%${escapeLike(opts.q)}%`;
+    const like = mauLikeChua(opts.q); // D1 từ chối mẫu LIKE > 50 byte (500): chữ tìm dài được cắt theo byte ở đây, không ở route (route còn cần cả chữ để nhận ra mã đơn)
     where.push(`(o.order_code LIKE ? ESCAPE '\\' OR o.customer_name LIKE ? ESCAPE '\\' OR o.customer_phone LIKE ? ESCAPE '\\' OR s.label LIKE ? ESCAPE '\\')`);
     binds.push(like, like, like, like);
   }
