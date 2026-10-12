@@ -155,7 +155,7 @@ try {
     await p.ev(click('[data-action="xuat-ben-xac-nhan"]'));
     await p.waitFor(`!!document.querySelector('.dp-cc-head')`, "màn đang chạy");
     await p.waitFor(`document.querySelectorAll('.dp-run-chi-duong').length === 3`, "đang chạy: ba nhóm");
-    await p.ev(click(`.dp-run[data-diem="${h1.id}"] [data-action="da-toi"]`));
+    await p.ev(click(`#cc-day [data-action="da-toi"][data-diem="${h1.id}"]`));
     await p.waitFor(`document.querySelectorAll('.dp-run[data-diem="${h1.id}"] .dp-khach-btn[data-action="don"]').length === 1`, "nút khách H1");
     assert.equal(await p.ev(`!!document.querySelector('.dp-run[data-diem="${h1.id}"] .dp-run-chi-duong')`), true, "đã tới (ARRIVED): còn nhóm");
     await p.ev(click(`.dp-run[data-diem="${h1.id}"] .dp-khach-btn[data-action="don"]`));
@@ -194,7 +194,7 @@ try {
 
   await b.step("6", `mất mạng: "Đã tới" H2 (có mạng) → tắt mạng, "Đã đón" một khách H2 (lệnh không tới máy chủ, dòng "Chưa gửi được") → nhóm của điểm chưa xong vẫn còn; có mạng, bấm lại`, async () => {
     const { h2 } = diemCua();
-    await p.ev(click(`.dp-run[data-diem="${h2.id}"] [data-action="da-toi"]`));
+    await p.ev(click(`#cc-day [data-action="da-toi"][data-diem="${h2.id}"]`));
     await p.waitFor(`document.querySelectorAll('.dp-run[data-diem="${h2.id}"] .dp-khach-btn[data-action="don"]').length === 2`, "nút khách H2");
     await p.send("Network.emulateNetworkConditions", { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
     await p.ev(click(`.dp-run[data-diem="${h2.id}"] .dp-khach-btn[data-action="don"]`));
@@ -203,16 +203,17 @@ try {
     await shotFull(p, "chi-duong-mat-mang-dien-thoai.png");
     await p.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
     await p.ev(click('.dp-khach.is-cho [data-action="bam-lai"]'));
-    await p.waitFor(`!document.querySelector('.dp-khach.is-cho') && document.querySelectorAll('.dp-khach-kq.is-ok').length === 2`, "đã gửi lại");
+    await p.waitFor(`!document.querySelector('.dp-khach.is-cho') && document.querySelectorAll('.dp-khach-kq.is-ok').length === 1`, "đã gửi lại"); // điểm H1 đã xong → thu gọn, dòng khách của nó không còn (việc 9, 12/10)
     assert.equal(await p.ev("document.querySelectorAll('.dp-run-chi-duong').length"), 2);
   });
 
   await b.step("7", `"Đã đón" khách còn lại → "Đã trả" (hộp) → "Kết thúc chuyến" (hộp): chuyến đã kết thúc hôm nay (vẫn trong ngày chạy) → KHÔNG còn nhóm nào`, async () => {
     const { h2 } = diemCua();
+    await p.waitFor(`document.querySelectorAll('.dp-run[data-diem="${h2.id}"] .dp-khach-btn[data-action="don"]:not([disabled])').length === 1`, "nút khách mở khoá");
     await p.ev(click(`.dp-run[data-diem="${h2.id}"] .dp-khach-btn[data-action="don"]`));
-    await p.waitFor(`document.querySelectorAll('.dp-khach-kq.is-ok').length === 3`, "đón đủ ba khách");
+    await p.waitFor(`document.querySelectorAll('details.dp-cc-xong li').length === 2`, "đón đủ ba khách (hai điểm đón xong, thu gọn)");
     await p.waitFor(`document.querySelectorAll('.dp-run-chi-duong').length === 1`, "chỉ còn điểm trả có nhóm");
-    await p.ev(click('.dp-run [data-action="tra-het"]'));
+    await p.ev(click('#cc-day [data-action="tra-het"]'));
     await p.waitFor(`!!document.querySelector('[data-action="tra-het-xac-nhan"]')`, "hộp xác nhận đã trả");
     await p.ev(click('[data-action="tra-het-xac-nhan"]'));
     await p.waitFor(`!document.querySelector('[data-action="ket-thuc"]').disabled`, "kết thúc mở");
