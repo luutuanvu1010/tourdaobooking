@@ -41,7 +41,7 @@
 - [ ] **Nhật ký thay đổi** (bước A.0) có thêm: C2 (màn tài xế), C3 (bảng điều phối), ADR-0112, ADR-0113 (chặn Từ chối chuyến khi có khách chuyển vào).
 - [ ] **Bài RF1 (`src/modules/van-chuyen/tien-xe-route.test.ts:231`) đỏ chập chờn khi máy tải** (so chuỗi "900000"/"1200000" trong phản hồi); chạy riêng 6/6 xanh, chạy lại cả bộ xanh. Nợ: làm bài so trên trường tiền thay vì cả chuỗi phản hồi.
 
-- [ ] Ghép nhánh làm việc với `main` mới nhất (75 commit; gộp thử ra 10 tệp xung đột), chạy lại các bài khoá tập cứng, quét lại số migration.
+- [x] **Đã ghép với `main` @ `1c471990` (bản 1.87) ngày 2026-10-12** — 25 tệp xung đột gỡ, mục nhật ký thay đổi `1.88` đã viết; người kiểm độc lập ĐẠT CÓ ĐIỀU KIỆN, ba điều kiện (ảnh chụp mục giao diện làm rơi hai mục của main, khôi phục thu chuyển khoản trong bài, siết trần 96.000) đã sửa và tự quan sát lại bằng phép phá. Trên bản nhập cuối: typecheck 0, `npm test` 4428 bài / 0 đỏ (10 todo là sổ vàng lớp 2 vốn thế), e2e đủ bộ "E2E: 59/59 kịch bản xanh", ba nhóm "Mọi bất biến đạt". `main` là tổ tiên của nhánh nên `npm run day-len` gộp tiến thẳng được. Migration 0090 (main) + 0091–0093 (nhánh) không trùng. Còn lại của mục này: ba chỗ chữ hướng dẫn bị cắt cho vừa 30 phút đọc (THẤP), con trỏ "bẫy 64" cũ ở ADR-0109 (đóng băng) và `HANDOFF-N1.md`.
 - [ ] Kế toán xác nhận 7 ca vàng A2.
 - [ ] Chủ chạy hai lệnh đếm chỉ-đọc (nguyên văn ở sổ thi công, mục "Chặn PHÁT HÀNH").
 - [ ] Mục nhật ký thay đổi; ghi `docs/HANDOFF-N1.md` "Việc còn treo".
