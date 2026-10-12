@@ -1,0 +1,28 @@
+TAP version 13
+# (node:59437) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:59437) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# === S4f.ket_qua {"xep":{"status":200,"code":null,"message":null},"van_phong_diem":[{"thuTu":1,"tenNoi":"Khách sạn B","gioHen":"13:45","gioXeToi":null},{"thuTu":2,"tenNoi":"Khách sạn A","gioHen":"13:00","gioXeToi":null},{"thuTu":3,"tenNoi":"Bến tàu du lịch Nha Trang","gioXeToi":null}],"van_phong_khoa_canh_bao":[["canhBao",[]],["lyDo",[{"code":"BAN_XE_BAO_DUONG","nhom":"BAN_XE","nhan":"Bảo dưỡng"},{"code":"BAN_XE_DANG_KIEM","nhom":"BAN_XE","nhan":"Đăng kiểm"},{"code":"BAN_XE_SUA_CHUA","nhom":"BAN_XE","nhan":"Sửa chữa"},{"code":"BAN_XE_KHAC","nhom":"BAN_XE","nhan":"Khác"},{"code":"BAO_HUY_KHONG_DI","nhom":"BAO_HUY_DIEM","nhan":"Khách báo không đi"},{"code":"BAO_HUY_DOI_LICH","nhom":"BAO_HUY_DIEM","nhan":"Khách đổi lịch"},{"code":"BAO_HUY_KHONG_LIEN_LAC","nhom":"BAO_HUY_DIEM","nhan":"Khách không liên lạc được"},{"code":"BAO_HUY_KHAC","nhom":"BAO_HUY_DIEM","nhan":"Khác"},{"code":"BO_QUA_KHONG_CON_KHACH","nhom":"BO_QUA_DIEM","nhan":"Không còn khách ở điểm"},{"code":"BO_QUA_KHAC","nhom":"BO_QUA_DIEM","nhan":"Khác"},{"code":"CPX_PHU_THU_CHO","nhom":"CHI_PHI_XE","nhan":"Phụ thu chờ thêm giờ"},{"code":"CPX_CAU_DUONG","nhom":"CHI_PHI_XE","nhan":"Phí cầu đường, bến bãi"},{"code":"CPX_HUY_MUON","nhom":"CHI_PHI_XE","nhan":"Phí huỷ muộn"},{"code":"CPX_NHAP_SAI","nhom":"CHI_PHI_XE","nhan":"Nhập sai"},{"code":"CPX_GIA_THOA_THUAN","nhom":"CHI_PHI_XE","nhan":"Giá thoả thuận trước"},{"code":"CPX_XE_HONG","nhom":"CHI_PHI_XE","nhan":"Xe hỏng giữa đường"},{"code":"CPX_DOI_CHUYEN","nhom":"CHI_PHI_XE","nhan":"Đảo do đổi chuyến (xe, nhà xe, tuyến hoặc ngày chạy)"},{"code":"CPX_HUY_CHUYEN","nhom":"CHI_PHI_XE","nhan":"Đảo do huỷ chuyến"},{"code":"CPX_KHAC","nhom":"CHI_PHI_XE","nhan":"Khác"},{"code":"DOI_GIO_XE_TOI_SOM","nhom":"DOI_GIO_XE","nhan":"Xe tới sớm hơn giờ hẹn"},{"code":"DOI_GIO_XE_KHAC","nhom":"DOI_GIO_XE","nhan":"Khác"},{"code":"HUY_GOP_CHUYEN","nhom":"HUY_CHUYEN","nhan":"Gộp vào chuyến khác"},{"code":"HUY_KHONG_CON_KHACH","nhom":"HUY_CHUYEN","nhan":"Không còn khách"},{"code":"HUY_KHAC","nhom":"HUY_CHUYEN","nhan":"Khác"},{"code":"GIAN_DOAN_XE_HONG","nhom":"KET_THUC_GIAN_DOAN","nhan":"Xe hỏng"},{"code":"GIAN_DOAN_TAI_NAN","nhom":"KET_THUC_GIAN_DOAN","nhan":"Tai nạn"},{"code":"GIAN_DOAN_KHAC","nhom":"KET_THUC_GIAN_DOAN","nhan":"Khác"},{"code":"PHA_LE_SU_CO","nhom":"PHA_LE","nhan":"Sự cố vận hành"},{"code":"PHA_LE_DON_GAP","nhom":"PHA_LE","nhan":"Đơn đặt gấp"},{"code":"PHA_LE_KHAC","nhom":"PHA_LE","nhan":"Khác"}]],["canhBaoPhut",120]],"sua_thu_tu_ke_hoach":{"status":200,"code":null,"message":null},"ke_hoach_dua_tra_len_dau":{"status":200,"code":null,"message":null},"diem_sau":[{"thuTu":1,"loai":"DROPOFF","tenNoi":"Bến tàu du lịch Nha Trang"},{"thuTu":2,"loai":"PICKUP","tenNoi":"Khách sạn B"},{"thuTu":3,"loai":"PICKUP","tenNoi":"Khách sạn A"}],"dieu_kien_tai_xe":[],"lich_chung_co_TRA_TRUOC_DON":{"status":200,"co":true,"doan":"PICKUP\\",\\"tenNoi\\":\\"Khách sạn A\\",\\"trangThai\\":\\"PENDING\\",\\"daToi\\":null}]}],\\"soNhap\\":0,\\"nhapChoDatGap\\":[],\\"canhBao\\":[{\\"loai\\":\\"TRA_TRUOC_DON\\",\\"nhan\\":\\"Điểm trả đứng trước điểm đón của khách\\",\\"legId\\":\\"f0d06d12-e035-4a58-9037-4e585cf08c02\\",\\"tripId\\":\\"55aa22b6-2b52-4dc1-aff3-37786bcd8e1a\\",\\"maDon\\":\\"TD-202"},"xuat_ben_khi_tra_dung_truoc_don":{"status":200,"code":null,"message":null},"da_toi_diem_tra_khi_chua_don_ai":{"status":200,"code":null,"message":null}}
+# Subtest: S4f thứ tự điểm + ADR-0096
+ok 1 - S4f thứ tự điểm + ADR-0096
+  ---
+  duration_ms: 110.437625
+  type: 'test'
+  ...
+# === S4f.2.xuat_ben_som_30h {"status":200,"code":null,"message":null,"trangThai":"RUNNING"}
+# === S4f.2.cot_chinh_sach []
+# Subtest: S4f.2 cửa sổ xuất bến (LC-20): xuất bến 31 giờ trước giờ khởi hành
+ok 2 - S4f.2 cửa sổ xuất bến (LC-20): xuất bến 31 giờ trước giờ khởi hành
+  ---
+  duration_ms: 69.788709
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 291.467

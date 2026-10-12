@@ -1,16 +1,18 @@
 // Điều phối xe lượt 1 — VĂN PHÒNG (ADR-0049 D1–D3; ADR-0050 VK1-A, VK1-B; kế hoạch Task A13 + A15; TC-29, TC-47, TC-51) trên API THẬT (wrangler dev, D1 local tạm):
 //   (1) tạo chuyến → xếp 2 chặng → GET chi tiết GIỮ "thiếu tên" (văn phòng xử lý) → nhập tên ở đơn → hết giữ;
 //   (2) TC-51: sửa nơi đón của chặng sau khi xếp → giữ NOI_HEN_DOI → "cập nhật điểm theo đơn" → suất cũ đóng STOP_CHANGED, suất mới ở điểm mới, điểm cũ SKIPPED;
-//   (2b) R-P29 (chủ lần 16): bỏ một khách ĐÃ gắn tên của A + thêm người mới → màn và lệnh xuất bến CÙNG giữ KHACH_DA_DOI → "cập nhật khách theo đơn" → hết giữ;
+//   (2b) R-P29 (chủ lần 16): bỏ một khách ĐÃ gắn tên của A + thêm người mới → màn và lệnh xuất bến CÙNG giữ KHACH_DA_DOI → "cập nhật khách theo đơn" → hết giữ
+//        (ADR-0104 Đ2, kế hoạch N9: máy đồng bộ chuyến nay tự cập nhật khi sửa khách qua route — trạng thái GIỮ dựng bằng gieo SQL trên D1 tạm: thêm người mới
+//        qua route (máy không có gì lệch), rồi HUỶ dòng khách cũ bằng một câu UPDATE voided_at — đúng cột route huỷ ghi, trigger 0035 cho phép);
 //   (3) TC-29: Bán hàng BẤM THAY xuất bến → 200; có bản chụp ĐẠT + dòng con, bản chốt trỏ đúng dòng `ord_passenger`, suất đã gắn tên (I19b);
 //   (4) TC-47 trên D1: khai giờ "đã tới" lùi 5 phút → sự kiện VAN_PHONG_KHAI, giờ xảy ra = giờ khai (đúng khuôn toISOString), có chính sách; khai ngoài kẹp →
 //       409 gio_xay_ra_ngoai_khoang kèm giờ sớm nhất; Kế toán → 403;
 //   (5) lớp CSDL trên D1 thật: giờ xảy ra MÁY CHỦ khác giờ ghi nhận → CHECK chặn; sửa sự kiện → trigger chặn;
 //   (9) HT-01 (kiểm theo vai 2/10 — V1.2): hai đơn cùng xuống Bến tàu → điểm đón đứng TRƯỚC điểm trả chung (một lần xếp, và xếp thêm lần sau).
-// Dữ liệu độc nhất theo lần chạy (SĐT ngẫu nhiên, biển số theo Date.now()). Chuyến chạy NGÀY KIA (xếp không vướng mốc 6 giờ); xuất bến sớm là hợp lệ.
+// Dữ liệu độc nhất theo lần chạy (SĐT ngẫu nhiên, biển số theo Date.now()). Chuyến chạy NGÀY MAI (xếp không vướng mốc 6 giờ); xuất bến sớm là hợp lệ.
 // Tên khách, số giấy tờ là GIẢ.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, catalogService, ensureFakeCatalog, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, catalogService, ensureFakeCatalog, orderInput, randomPhone, session, sql, sqlRows, vnDate, moCuaSoXuatBen48Gio } from "./lib.mjs";
 
 await ensureFakeCatalog();
 const ADMIN = await session(ACCOUNTS.admin);
@@ -18,7 +20,8 @@ const TAO_TK = await session(ACCOUNTS.superAdmin); // ADR-0071: chỉ Hành chí
 const SALES = await session(ACCOUNTS.salesA);
 const ACC = await session(ACCOUNTS.accountant);
 const LOC = "a941dd7d-faab-4098-9ab9-1df7fa6dd551"; // Bến tàu du lịch Nha Trang (0010)
-const D = vnDate(2);
+const D = vnDate(1); // ADR-0096 Đ2 (LC-20): chuyến NGÀY MAI + cửa sổ 48 giờ — xuất bến ngay được, giờ đón vẫn ngoài mốc 6 giờ
+await moCuaSoXuatBen48Gio();
 const duoi = String(Date.now()).slice(-6);
 const uuid = () => crypto.randomUUID();
 const P = (n) => ({ fullName: `Khách Điều Phối E2E ${n}`, birthYear: 1933, paxCode: null });
@@ -88,8 +91,12 @@ console.log("✓ (2) TC-51: giữ NOI_HEN_DOI → cập nhật điểm theo đơ
 // --- (2b) R-P29: khách của A đổi SAU khi máy gắn tên lúc xếp (I19a) → giữ KHACH_DA_DOI ở cả màn lẫn lệnh → cập nhật khách theo đơn ---
 ds = (await call(SALES, "GET", `/api/orders/${a.id}/passengers`)).body;
 const boKhoa = ds.passengers.find((x) => x.fullName === P(1).fullName).personKey;
-r = await call(SALES, "POST", `/api/orders/${a.id}/passengers`, { expectedUpdatedAt: ds.orderUpdatedAt, them: [P(5)], sua: [], huy: [boKhoa] });
+r = await call(SALES, "POST", `/api/orders/${a.id}/passengers`, { expectedUpdatedAt: ds.orderUpdatedAt, them: [P(5)], sua: [], huy: [] });
 assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.deepEqual(r.body.dongBoChuyen, { nhac: null, capNhatTay: false }, "thêm người: máy không có gì lệch trên chuyến");
+assert.equal((await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE action = 'trip_order_synced' AND target_id = '${tripId}'`))[0].n, 0, "máy không ghi khúc nào");
+// N9: gieo trạng thái giữ — huỷ dòng khách P(1) KHÔNG qua route (máy không chạy), như khi máy vượt trần / thua cổng chuyến.
+await sql(`UPDATE ord_passenger SET voided_at = '${new Date().toISOString()}', updated_at = '${new Date().toISOString()}', updated_by = 'e2e-gieo' WHERE order_id = '${a.id}' AND person_key = '${boKhoa}' AND voided_at IS NULL`);
 r = await call(SALES, "GET", `/api/van-chuyen/chuyen/${tripId}`);
 assert.deepEqual(r.body.chuyen.lyDoGiu.map((l) => l.ma), ["KHACH_DA_DOI"], JSON.stringify(r.body.chuyen.lyDoGiu));
 const phienBanGiu = r.body.chuyen.version;
@@ -107,7 +114,7 @@ const moA = await sqlRows(`SELECT passenger_key AS k FROM vc_trip_allocation WHE
 assert.ok(moA.some((x) => x.k === khoaMoi) && !moA.some((x) => x.k === boKhoa), "suất mở lại mang khoá người mới; không còn suất mở mang khoá đã bỏ");
 assert.equal((await sqlRows(`SELECT count(*) AS n FROM vc_trip_allocation WHERE trip_id = '${tripId}' AND close_reason = 'PASSENGER_CHANGED'`))[0].n, 1);
 const [nkKhach] = await sqlRows(`SELECT detail FROM audit_log WHERE action = 'trip_passengers_synced' AND target_id = '${tripId}'`);
-assert.match(nkKhach.detail, /cập nhật khách theo đơn — .*: 1 khách/);
+assert.match(nkKhach.detail, /cập nhật khách theo đơn — .* \(đổi người\): trả 1 ghế, thêm 1 ghế$/); // ADR-0104 Đ2.11: câu chung với máy (sửa có tên)
 assert.doesNotMatch(nkKhach.detail, /Khách Điều Phối E2E|1933/, "nhật ký chỉ số");
 console.log("✓ (2b) R-P29: khách đổi sau khi gắn tên → màn + lệnh xuất bến cùng giữ KHACH_DA_DOI; Kế toán 403; cập nhật khách theo đơn 200 (1 suất PASSENGER_CHANGED, mở lại khoá mới), hết giữ; không lộ tên");
 

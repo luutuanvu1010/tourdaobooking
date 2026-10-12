@@ -1,0 +1,20 @@
+{"nhan":"gan_vai_DRIVER_EXTERNAL","vaiLoi":null}
+{"nhan":"lich_tai_xe_xe","taiXe":[{"ten":"Tài Xế Hai","loai":"CONG_TY","nhaXe":[]},{"ten":"Tài Xế Một","loai":"CONG_TY","nhaXe":[]},{"ten":"Tài xế nhà xe 3","loai":"NHA_XE","nhaXe":["Nhà xe Hùng Phát Dò Tìm"]},{"ten":"Tài Xế Đối Tác","loai":"NHA_XE","nhaXe":["Nhà xe Hùng Phát Dò Tìm"]}],"xe":[{"bienSo":"79N00004","soCho":16,"chuLaCongTy":false,"chuXe":"Nhà xe Hùng Phát Dò Tìm"}]}
+{"nhan":"cheo_xe_nha_xe_tai_xe_cong_ty","status":409,"code":"cheo_xe_tai_xe","message":"Tài xế không thuộc chủ của xe này.","lyDo":["CHEO_XE_TAI_XE: Tài xế không thuộc chủ của xe này"]}
+{"nhan":"cheo_xe_cong_ty_tai_xe_nha_xe","status":409,"code":"cheo_xe_tai_xe","message":"Tài xế không thuộc chủ của xe này.","lyDo":["CHEO_XE_TAI_XE: Tài xế không thuộc chủ của xe này"]}
+{"nhan":"tao_chuyen_xe_thue","status":201,"code":null,"message":null,"lyDo":[],"ma":"CX-1103-01"}
+{"nhan":"db_trip_thue","rows":[{"code":"CX-1103-01","rented":1,"dung_nha_xe":1,"so_dong_chi_phi":0}]}
+{"nhan":"chi_tiet_sau_xep","lyDoGiu":["THIEU_GIA: Chuyến xe thuê chưa có giá — Quản trị hoặc Kế toán nhập giá bảng hoặc giá thoả thuận: CX-1103-01 [QUAN_TRI]"],"taiXe":{"partyId":"pty-66666666-6666-4666-8666-666666666667","ten":"Tài Xế Đối Tác","loai":"NHA_XE"},"coTien":false}
+{"nhan":"dp_GET_cuoc_cua_toi","status":403,"code":"forbidden","message":"Tài khoản này không có cuốc xe.","lyDo":[]}
+{"nhan":"dp_GET_cuoc_chi_tiet","status":403,"code":"forbidden","message":"Tài khoản này không có cuốc xe.","lyDo":[]}
+{"nhan":"dp_POST_xuat_ben","status":403,"code":"forbidden","message":"Tài khoản này không có cuốc xe.","lyDo":[]}
+{"nhan":"dp_GET_lich_van_phong","status":403,"code":"forbidden","message":"Tài khoản này chỉ dùng cho việc được giao, không dùng màn hình này.","lyDo":[]}
+{"nhan":"vp_xuat_ben_thieu_gia","status":409,"code":"chua_du_dieu_kien_xuat_ben","message":"Chuyến chưa đủ điều kiện xuất bến.","lyDo":["THIEU_GIA: Chuyến xe thuê chưa có giá — Quản trị hoặc Kế toán nhập giá bảng hoặc giá thoả thuận: CX-1103-01"]}
+{"nhan":"adm_xuat_ben_thieu_gia_kem_pha_le","status":409,"code":"chua_du_dieu_kien_xuat_ben","message":"Chuyến chưa đủ điều kiện xuất bến.","lyDo":["THIEU_GIA: Chuyến xe thuê chưa có giá — Quản trị hoặc Kế toán nhập giá bảng hoặc giá thoả thuận: CX-1103-01"]}
+{"nhan":"acc_GET_chi_phi","status":200,"phienBan":0}
+{"nhan":"acc_gia_thoa_thuan","status":201,"code":null,"message":null,"lyDo":[]}
+{"nhan":"vp_xuat_ben_sau_co_gia","status":200,"code":null,"message":null,"lyDo":[]}
+{"nhan":"db_trip_sau","rows":[{"code":"CX-1103-01","status":"RUNNING","dong_chi_phi":"AGREED"}]}
+{"nhan":"nhat_ky_xuat_ben","rows":[{"action":"trip_departed","detail":"CX-1103-01: xuất bến · xe 79N00004 · 3 khách · văn phòng bấm thay"},{"action":"trip_cost_agreed","detail":"CX-1103-01 · Nhà xe Hùng Phát Dò Tìm · chi phí 0 → 1.350.000 · giá thoả thuận trước"}]}
+{"nhan":"dp_GET_cuoc_chi_tiet_sau_xuat_ben","status":403,"code":"forbidden","message":"Tài khoản này không có cuốc xe.","lyDo":[]}
+{"nhan":"quyen_DRIVER_PARTNER","note":"src/shared/permissions.ts trip.view/trip.progress cột 9 = none"}

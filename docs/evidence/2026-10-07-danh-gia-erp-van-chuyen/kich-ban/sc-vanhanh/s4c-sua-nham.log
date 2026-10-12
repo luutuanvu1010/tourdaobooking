@@ -1,0 +1,32 @@
+TAP version 13
+# (node:62355) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:62355) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# === S4c.ket_qua {"A_daToi":{"status":200,"code":null,"message":null},"B_daToi_khi_A_chua_xong":{"status":200,"code":null,"message":null},"B_don1":{"status":200,"code":null,"message":null},"B_don2":{"status":200,"code":null,"message":null},"A_vang1":{"status":200,"code":null,"message":null},"A_vang_roi_don_lai":{"status":200,"code":null,"message":null},"A_khachHuy_nham":{"status":200,"code":null,"message":null},"A_sua_khachHuy_thanh_don":{"status":409,"code":"suat_da_co_ket_qua","message":"Khách này đã có kết quả — không đổi được.","extra":{"lyDo":[]}},"A_sua_qua_van_phong_SALES":{"status":409,"code":"suat_da_co_ket_qua","message":"Khách này đã có kết quả — không đổi được.","extra":{"lyDo":[]}},"A_sua_qua_van_phong_ADM":{"status":409,"code":"suat_da_co_ket_qua","message":"Khách này đã có kết quả — không đổi được.","extra":{"lyDo":[]}},"route_hoan-tac":{"status":404,"code":"not_found","message":"Không tìm thấy.","extra":{}},"route_sua-ket-qua":{"status":404,"code":"not_found","message":"Không tìm thấy.","extra":{}},"route_bo-ket-qua":{"status":404,"code":"not_found","message":"Không tìm thấy.","extra":{}},"route_ADR0097_dieu_chinh_ADM":{"status":404,"code":"not_found","message":"Không tìm thấy.","extra":{}},"route_ADR0097_thu_hoi_xuat_ben_ADM":{"status":404,"code":"not_found","message":"Không tìm thấy.","extra":{}},"ben_daToi":{"status":200,"code":null,"message":null},"tra_B0":{"status":200,"code":null,"message":null},"tra_lai_B0":{"status":409,"code":"suat_da_co_ket_qua","message":"Khách này đã có kết quả — không đổi được.","extra":{"lyDo":[]}}}
+# === S4c.suat_cuoi [{"status":"CANCELLED_AT_STOP","place_text":"Khách sạn A"},{"status":"BOARDED","place_text":"Khách sạn A"},{"status":"BOARDED","place_text":"Khách sạn B"},{"status":"DROPPED","place_text":"Khách sạn B"}]
+# Subtest: S4c sửa nhầm và quay lại điểm
+ok 1 - S4c sửa nhầm và quay lại điểm
+  ---
+  duration_ms: 124.475167
+  type: 'test'
+  ...
+# === S4d.tao_chuyen {"status":201,"ma":"CX-1103-01"}
+# === S4d.xep_SALES_trong_moc {"status":200,"code":null,"message":null}
+# === S4d.ghep_them_3_vao_xe_7_cho_da_co_6 {"status":409,"code":"vuot_so_cho","message":"Vượt số chỗ của xe.","extra":{"lyDo":[{"ma":"VUOT_SO_CHO","loiNhan":"Vượt số chỗ của xe: 9/7","aiXuLy":"VAN_PHONG","aiXuLyNhan":"Văn phòng"}]}}
+# === S4d.dto_tai_xe {"status":200,"diem":[{"thuTu":1,"loai":"PICKUP","tenNoi":"Villa riêng, 3 Đường Biển","gioHen":{"ngay":"2027-03-11","gio":"13:00"},"soNguoi":6},{"thuTu":2,"loai":"DROPOFF","tenNoi":"Bến tàu du lịch Nha Trang","gioHen":null,"soNguoi":6}],"lienHe":[{"maDon":"TD-20270311-0001","tenLienHe":"LH Riêng","sdtLienHe":"0911000021"}],"soSuat":6}
+# === S4d.xuat_ben {"status":200,"code":null,"message":null}
+# Subtest: S4d chuyến riêng lẻ (xe riêng một đoàn 6 khách, 1 điểm đón)
+ok 2 - S4d chuyến riêng lẻ (xe riêng một đoàn 6 khách, 1 điểm đón)
+  ---
+  duration_ms: 77.769208
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 333.796709

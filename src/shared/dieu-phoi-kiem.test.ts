@@ -13,7 +13,7 @@ import { vnLocalToMs } from "./vn-date.ts";
 
 const PHUT = 60_000;
 const ms = (d: string, t: string) => vnLocalToMs(d, t)!;
-const CS: ChinhSachVao = { id: "cs-1", minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, requireContract: false, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 };
+const CS: ChinhSachVao = { id: "cs-1", minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, requireContract: false, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720 };
 const HB: HangBangVao[] = [
   { classCode: "B", maxPassengers: 8 }, { classCode: "D1", maxPassengers: 16 }, { classCode: "D2", maxPassengers: 29 }, { classCode: "D", maxPassengers: null },
   { classCode: "B2_OLD", maxPassengers: 8 }, { classCode: "C_OLD", maxPassengers: 8 }, { classCode: "D_OLD", maxPassengers: 29 }, { classCode: "E_OLD", maxPassengers: null },
@@ -113,7 +113,7 @@ test("mốc lúc xếp (Q2 = (a)): TẠO trong mốc không cần phá lệ; S�
   assert.equal(kiemTaoSuaChuyen(tao({}, [], { bayGioMs: trongMoc })).ok, true, "tạo chuyến trong 6 giờ");
   const cu = { batDauMs: BAT_DAU, batDauSomNhatMs: BAT_DAU, xeId: "xe-a", taiXePartyId: "tx-cu", trangThai: "PLANNED" as const };
   const doiTaiXe = kiemTaoSuaChuyen(tao({}, [], { lenh: "SUA", cu, bayGioMs: trongMoc }));
-  assert.deepEqual(ai(doiTaiXe.canPhaLe), ["MOC_TOI_THIEU:QUAN_TRI"]);
+  assert.deepEqual(ai(doiTaiXe.canPhaLe), ["MOC_TOI_THIEU:VAN_PHONG"]);
   const doiXe = kiemTaoSuaChuyen(tao({ taiXe: taiXe() }, [], { lenh: "SUA", cu: { ...cu, xeId: "xe-cu", taiXePartyId: "tx-an" }, bayGioMs: trongMoc }));
   assert.deepEqual(ma(doiXe.canPhaLe), ["MOC_TOI_THIEU"]);
   const khongDoi = kiemTaoSuaChuyen(tao({}, [], { lenh: "SUA", cu: { ...cu, taiXePartyId: "tx-an" }, bayGioMs: trongMoc }));
@@ -162,7 +162,7 @@ test("kiemXep L-D1 (số suất mở + mới ≤ số người của chặng), L
 
 test("kiemXep mốc (ĐP2(ii), Q2 = (a)): trong 6 giờ, chặng chưa đặt gấp → cần phá lệ; chặng đặt gấp → qua; chuyến đã chạy → chặn; chính sách rỗng → chặn", () => {
   const trongMoc = BAT_DAU - 200 * PHUT;
-  assert.deepEqual(ai(xep([{ chang: chang(), soSuatMoi: 1, personKeys: [], suatMoCuaChang: [] }], { bayGioMs: trongMoc }).canPhaLe), ["MOC_TOI_THIEU:QUAN_TRI"]);
+  assert.deepEqual(ai(xep([{ chang: chang(), soSuatMoi: 1, personKeys: [], suatMoCuaChang: [] }], { bayGioMs: trongMoc }).canPhaLe), ["MOC_TOI_THIEU:VAN_PHONG"]);
   assert.equal(xep([{ chang: chang({ datGap: true }), soSuatMoi: 1, personKeys: [], suatMoCuaChang: [] }], { bayGioMs: trongMoc }).ok, true);
   assert.deepEqual(ma(xep([{ chang: chang(), soSuatMoi: 1, personKeys: [], suatMoCuaChang: [] }], { chuyen: { ...CX, trangThai: "RUNNING" } }).chan), ["CHUYEN_KHONG_CON_LEN_KE_HOACH"]);
   assert.deepEqual(ai(xep([{ chang: chang(), soSuatMoi: 1, personKeys: [], suatMoCuaChang: [] }], { chinhSach: null }).chan), ["CHINH_SACH_RONG:TOAN_QUYEN"]);
@@ -181,7 +181,7 @@ test("R-P6 khoá DÍNH — tái hiện chuỗi lách 3 bước (Q-A4-1, người
   const sauDoi = { ...goc, batDauMs: doiRa, batDauSomNhatMs: somNhat };
   // Bước 2a: đổi tài xế khi giờ HIỆN TẠI đã ở xa → vẫn cần phá lệ.
   const b2 = kiemTaoSuaChuyen(tao({ batDauMs: doiRa, ketThucMs: KET_THUC + 8 * 3600e3, taiXe: taiXe("D1", null, { partyId: "tx-moi" }) }, [], { lenh: "SUA", cu: sauDoi, bayGioMs: trongMoc }));
-  assert.deepEqual(ai(b2.canPhaLe), ["MOC_TOI_THIEU:QUAN_TRI"], "đổi tài xế sau khi dời giờ ra xa vẫn bị khoá");
+  assert.deepEqual(ai(b2.canPhaLe), ["MOC_TOI_THIEU:VAN_PHONG"], "đổi tài xế sau khi dời giờ ra xa vẫn bị khoá");
   // Bước 2b: đổi xe — như trên.
   const b2x = kiemTaoSuaChuyen(tao({ batDauMs: doiRa, ketThucMs: KET_THUC + 8 * 3600e3, xe: xe({ id: "xe-khac" }) }, [], { lenh: "SUA", cu: sauDoi, bayGioMs: trongMoc }));
   assert.deepEqual(ma(b2x.canPhaLe), ["MOC_TOI_THIEU"]);
@@ -536,10 +536,15 @@ test("VK2-A A2 (i) lớp máy chủ: tạo / dời giờ / đổi xe vào khung 
   assert.ok(doiXe.chan.some((l) => l.ma === "TRUNG_GIO_XE" && /lịch xe bận/.test(l.loiNhan)));
 });
 
-test("D9 B9.3 (MỘT hàm cho xe và tài xế — chuẩn bị Đợt 6): khung DRIVER của tài xế được gán → chặn TRUNG_GIO_TAI_XE kèm 'lịch tài xế bận'", () => {
+// Kế hoạch A4 G-A4-9 (lời chủ 6.2 — SIẾT có tên): câu chặn khung TÀI XẾ không còn kèm lý do (trước: "lịch tài xế bận: <lý do> <giờ>"); kể cả khi đầu vào
+// lỡ mang nhãn lý do, câu không in nhãn đó.
+test("D9 B9.3 (MỘT hàm cho xe và tài xế): khung DRIVER của tài xế được gán → chặn TRUNG_GIO_TAI_XE, câu '<Tên> bận từ … đến …. Chọn tài xế khác hoặc đổi giờ chuyến.' KHÔNG lý do", () => {
   const kb: KhungBanVao = { id: "kb2", doiTuong: "DRIVER", xeId: null, taiXePartyId: "tx-an", batDauMs: ms("2026-09-30", "05:00"), ketThucMs: ms("2026-09-30", "12:00"), lyDoNhan: "Việc riêng" };
   const kq = kiemTaoSuaChuyen(tao({}, [], { khungBan: [kb] }));
-  assert.ok(kq.chan.some((l) => l.ma === "TRUNG_GIO_TAI_XE" && /lịch tài xế bận/.test(l.loiNhan)));
+  const l = kq.chan.find((x) => x.ma === "TRUNG_GIO_TAI_XE");
+  assert.ok(l, JSON.stringify(kq.chan));
+  assert.match(l.loiNhan, / bận từ 05:00 30\/09 đến 12:00 30\/09\. Chọn tài xế khác hoặc đổi giờ chuyến\.$/);
+  assert.doesNotMatch(l.loiNhan, /Việc riêng/);
 });
 
 test("VK2-B B3: kiemTaoSuaChuyen trả nhacGioLai cho CHÍNH chuyến đang tạo/gán (không đổi ok); chuyến mới 4 giờ 30 + chuyến khác 4 giờ → CHUYEN_DAI_CAN_NGHI + GIO_LAI_VUOT", () => {
@@ -573,7 +578,7 @@ test("Đợt 5 D5.1 kiemXep THEM_KHI_CHAY: chuyến RUNNING không bị chặn; 
   const dangChay = { ...CX, trangThai: "RUNNING" as const };
   const sauXuatBen = BAT_DAU + 30 * PHUT;
   const mot = (c = chang()) => [{ chang: c, soSuatMoi: 1, personKeys: [], suatMoCuaChang: [] }];
-  assert.deepEqual(ai(xep(mot(), { chuyen: dangChay, bayGioMs: sauXuatBen, lenh: "THEM_KHI_CHAY" }).canPhaLe), ["MOC_TOI_THIEU:QUAN_TRI"]);
+  assert.deepEqual(ai(xep(mot(), { chuyen: dangChay, bayGioMs: sauXuatBen, lenh: "THEM_KHI_CHAY" }).canPhaLe), ["MOC_TOI_THIEU:VAN_PHONG"]);
   assert.equal(xep(mot(chang({ datGap: true })), { chuyen: dangChay, bayGioMs: sauXuatBen, lenh: "THEM_KHI_CHAY" }).ok, true);
   // Xuất bến sớm: giờ dự kiến còn 10 tiếng nữa — vẫn tính là trong mốc (ADR-0052 D5.1).
   const somXa = BAT_DAU - 10 * 3600e3;
@@ -683,4 +688,48 @@ test("Đợt 7 MỘT luật hai nơi: cùng trạng thái sau lệnh, khoá cam 
   const can15 = changCK("leg-a", "a", { choToiThieu: 15 });
   const xep7 = xep([{ chang: can15, soSuatMoi: 1, personKeys: ["p-leg-a"], suatMoCuaChang: [] }], { chuyen: { ...CX, soCho: 7 }, xeId: "xe-7" });
   assert.equal(xep7.camKet.khoa, xbCK([can15], { xe: xe({ id: "xe-7", soCho: 7 }) }).camKet.khoa);
+});
+
+// ---- ADR-0096 Đ1 (LC-19), Đ2 (LC-20) — gói A1 (2026-10-08) ---------------------------------------------------------------------------------------------------
+test("ADR-0096 Đ1.2 kiemXuatBen LC-19: suất CHỜ LÊN có điểm trả đứng trước / BẰNG số điểm đón → giữ TRA_TRUOC_DON (văn phòng), câu có mã đơn + số thứ tự điểm, không tên", () => {
+  const dao = [diemVao("d-1", "PICKUP", "L:noi-don-1", { seq: 2 }), diemVao("d-9", "DROPOFF", "L:noi-tra-9", { seq: 1 })];
+  const r = kiemXuatBen(xb({ diem: dao }));
+  assert.equal(r.dat, false);
+  assert.deepEqual(ai(r.lyDo), ["TRA_TRUOC_DON:VAN_PHONG"], "một lý do mỗi đơn, không lặp theo suất");
+  assert.match(r.lyDo[0]!.loiNhan, /ĐH-1024/);
+  assert.match(r.lyDo[0]!.loiNhan, /điểm trả số 1/);
+  assert.match(r.lyDo[0]!.loiNhan, /điểm đón số 2/);
+  assert.doesNotMatch(r.lyDo[0]!.loiNhan, /L:noi|p1|Tài xế An/, "không lộ khoá nơi / khoá người / tên");
+  // Bằng số → vẫn giữ (nghiêm ngặt).
+  assert.deepEqual(ma(kiemXuatBen(xb({ diem: [diemVao("d-1", "PICKUP", "L:noi-don-1", { seq: 3 }), diemVao("d-9", "DROPOFF", "L:noi-tra-9", { seq: 3 })] })).lyDo), ["TRA_TRUOC_DON"]);
+  // Chỉ xét suất MỞ đang CHỜ LÊN: đã lên / vắng / huỷ tại điểm / đã đóng → không giữ vì thứ tự.
+  for (const doi of [{ trangThai: "BOARDED" as const }, { trangThai: "NO_SHOW" as const }, { trangThai: "CANCELLED_AT_STOP" as const }, { mo: false }]) {
+    const s = BON_SUAT.map((x) => ({ ...x, ...doi }));
+    assert.ok(!ma(kiemXuatBen(xb({ diem: dao, suat: s })).lyDo).includes("TRA_TRUOC_DON"), JSON.stringify(doi));
+  }
+  assert.equal(MA_LUAT_PHA_LE.includes("TRA_TRUOC_DON" as never), false, "không phá lệ");
+});
+
+test("ADR-0096 Đ2 kiemXuatBen LC-20: xuất bến 13 giờ trước giờ dự kiến → giữ NGOAI_CUA_SO_XUAT_BEN; 11 giờ / đúng 12 giờ → không; cửa sổ 24 giờ → 13 giờ không giữ", () => {
+  const truoc = (gio: number) => BAT_DAU - gio * 3600e3;
+  const r = kiemXuatBen(xb({ bayGioMs: truoc(13), xuatBenMs: truoc(13) }));
+  assert.deepEqual(ai(r.lyDo), ["NGOAI_CUA_SO_XUAT_BEN:VAN_PHONG"]);
+  assert.equal(r.lyDo[0]!.loiNhan, "Chưa tới giờ được xuất bến: chuyến khởi hành lúc 05:50 ngày 30/09, được xuất bến từ 17:50 ngày 29/09. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến.");
+  assert.equal(kiemXuatBen(xb({ bayGioMs: truoc(11), xuatBenMs: truoc(11) })).dat, true);
+  assert.equal(kiemXuatBen(xb({ bayGioMs: truoc(12), xuatBenMs: truoc(12) })).dat, true, "đúng mốc mở cửa sổ (≥) → được");
+  assert.equal(kiemXuatBen(xb({ bayGioMs: truoc(13), xuatBenMs: truoc(13), chinhSach: { ...CS, departureWindowMinutes: 1440 } })).dat, true);
+  assert.equal(MA_LUAT_PHA_LE.includes("NGOAI_CUA_SO_XUAT_BEN" as never), false, "không phá lệ");
+});
+
+test("ADR-0096 Đ2.5 kiemXuatBen LC-20: màn đọc (dự phóng giờ xuất bến) xét cửa sổ theo GIỜ THẬT `cuaSoXetMs`; năm khác năm hiện tại thì câu có năm; chính sách thiếu cửa sổ → giữ CHINH_SACH_RONG (không đoán)", () => {
+  const bayGio = BAT_DAU - 3 * 24 * 3600e3;
+  // Dự phóng: xuatBenMs = giờ bắt đầu (luôn trong cửa sổ) nhưng giờ thật 3 ngày trước → giữ.
+  assert.deepEqual(ma(kiemXuatBen(xb({ bayGioMs: bayGio, xuatBenMs: BAT_DAU, cuaSoXetMs: bayGio })).lyDo), ["NGOAI_CUA_SO_XUAT_BEN"]);
+  assert.equal(kiemXuatBen(xb({ bayGioMs: bayGio, xuatBenMs: BAT_DAU })).dat, true, "không truyền cuaSoXetMs → xét theo xuatBenMs");
+  const namSau = ms("2027-01-01", "06:00");
+  const r = kiemXuatBen(xb({ chuyen: chuyenVao({ batDauMs: namSau, ketThucMs: namSau + 2 * 3600e3, ngayChay: "2027-01-01" }), bayGioMs: ms("2026-12-30", "06:00"), xuatBenMs: ms("2026-12-30", "06:00") }));
+  assert.match(r.lyDo.find((x) => x.ma === "NGOAI_CUA_SO_XUAT_BEN")!.loiNhan, /06:00 ngày 01\/01\/2027, được xuất bến từ 18:00 ngày 31\/12\./);
+  const thieu = { ...CS } as Partial<ChinhSachVao>;
+  delete thieu.departureWindowMinutes;
+  assert.deepEqual(ai(kiemXuatBen(xb({ chinhSach: thieu as ChinhSachVao })).lyDo), ["CHINH_SACH_RONG:TOAN_QUYEN"]);
 });

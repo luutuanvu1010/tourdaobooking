@@ -1,0 +1,112 @@
+TAP version 13
+# (node:22379) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:22379) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS C03.1a.suatTruoc {"suat":[{"id":"662cabc2-166d-41ae-863e-c5f1f46a2374","k":"6f5456d6-3d48-4cbd-8a95-a324a12d5a42","status":"WAITING"},{"id":"14a7b901-f8b7-4028-b1a4-b715b03c95f3","k":"f3a1fa62-d18b-40da-a213-634d04dddbb3","status":"WAITING"}]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/handler-money-edit"}
+# OBS C03.1a.SUP_bot {"status":200,"code":null,"msg":null}
+# OBS C03.1a.giu1 {"lyDoGiu":["THUA_SUAT|Chặng đang xếp nhiều người hơn số khách: TD-20270310-0002 2/1"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/passengers"}
+# OBS C03.1a.SALES_boTen {"status":200,"code":null,"msg":null,"keys":2,"conLai":1}
+# OBS C03.1a.giu2 {"lyDoGiu":["KHACH_DA_DOI|Khách trong xe không còn trong đơn — bấm Cập nhật khách theo đơn: TD-20270310-0002","THUA_SUAT|Chặng đang xếp nhiều người hơn số khách: TD-20270310-0002 2/1"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/cap-nhat-khach"}
+# OBS C03.1a.SALES_capNhatKhach {"status":200,"code":null,"msg":null,"daCapNhat":1,"taiSql":3,"suat":[{"id":"14a7b901-f8b7-4028-b1a4-b715b03c95f3","k":"f3a1fa62-d18b-40da-a213-634d04dddbb3","status":"WAITING"}]}
+# OBS C03.1a.giu3 {"lyDoGiu":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# OBS C03.1a.xuatBen {"status":200,"code":null,"msg":null}
+# Subtest: C03(1a) Toàn quyền bớt 1 khách lúc 06:00 → Bán hàng bỏ tên người thừa + cập nhật khách theo đơn
+ok 1 - C03(1a) Toàn quyền bớt 1 khách lúc 06:00 → Bán hàng bỏ tên người thừa + cập nhật khách theo đơn
+  ---
+  duration_ms: 119.811709
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"PUT /api/orders/:id/handler"}
+# OBS C03.1b.giaoHDV {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/handler-money-edit"}
+# OBS C03.1b.FIELD_bot {"status":200,"code":null,"msg":null}
+# OBS C03.1b.giu1 {"lyDoGiu":["THUA_SUAT|Chặng đang xếp nhiều người hơn số khách: TD-20270310-0002 2/1"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/passengers"}
+# OBS C03.1b.FIELD_boTen {"status":403,"code":"forbidden","msg":"Tài khoản này không được nhập danh sách hành khách của đơn này."}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/passengers"}
+# OBS C03.1b.SALES_boTen {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/cap-nhat-khach"}
+# OBS C03.1b.SALES_capNhatKhach {"status":200,"code":null,"msg":null,"daCapNhat":1,"taiSql":3}
+# OBS C03.1b.giu3 {"lyDoGiu":[]}
+# Subtest: C03(1b) HDV đang phụ trách bớt 1 khách lúc 06:00 → cùng đường vòng
+ok 2 - C03(1b) HDV đang phụ trách bớt 1 khách lúc 06:00 → cùng đường vòng
+  ---
+  duration_ms: 78.853625
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# OBS C03.2.huy {"status":200,"code":null,"msg":null}
+# OBS C03.2.giu {"lyDoGiu":["DON_DA_HUY|Có đơn đã huỷ còn khách trên chuyến: TD-20270310-0001"],"suat":["WAITING","WAITING"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# OBS C03.2.khoiPhuc {"status":409,"code":"invalid_transition","msg":"Không thể chuyển đơn từ \\"cancelled\\" sang \\"confirmed\\"."}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# OBS C03.2.khoiPhuc.SUP {"status":409,"code":"invalid_transition","msg":"Không thể chuyển đơn từ \\"cancelled\\" sang \\"confirmed\\"."}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/passengers"}
+# OBS C03.2.boTenDonHuy {"status":409,"code":"not_editable","msg":"Đơn đã huỷ, không sửa được."}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/cap-nhat-khach"}
+# OBS C03.2.capNhatKhach {"status":200,"code":null,"msg":null,"daCapNhat":0,"taiSql":4}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/huy"}
+# OBS C03.2.SALES_huyChuyen {"status":409,"code":"can_pha_le","msg":"Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ.","lyDo":["MOC_TOI_THIEU"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/xuat-ben"}
+# OBS C03.2.vanPhongXuatBenKemPhaLe {"status":409,"code":"chua_du_dieu_kien_xuat_ben","msg":"Chuyến chưa đủ điều kiện xuất bến.","lyDo":["DON_DA_HUY"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/xuat-ben"}
+# OBS C03.2.QuanTriXuatBenKemPhaLe {"status":409,"code":"chua_du_dieu_kien_xuat_ben","msg":"Chuyến chưa đủ điều kiện xuất bến.","lyDo":["DON_DA_HUY"]}
+# Subtest: C03(2) huỷ đơn lúc 06:00 — mọi lối thoát không cần Quản trị
+ok 3 - C03(2) huỷ đơn lúc 06:00 — mọi lối thoát không cần Quản trị
+  ---
+  duration_ms: 100.543042
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# OBS C03.3.xuatBen {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo/:aid/bao-huy"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo/:aid/bao-huy"}
+# OBS C03.3.SALES_baoHuy [{"status":200,"code":null,"msg":null},{"status":200,"code":null,"msg":null}]
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/khach-huy"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/khach-huy"}
+# OBS C03.3.taiXe_khachHuy [{"status":409,"code":"diem_chua_toi","msg":"Xe chưa tới điểm của khách này — bấm \\"Đã tới\\" trước.","lyDo":[]},{"status":409,"code":"diem_chua_toi","msg":"Xe chưa tới điểm của khách này — bấm \\"Đã tới\\" trước.","lyDo":[]}]
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# OBS C03.3.SALES_huyDonSauXuatBen {"status":200,"code":null,"msg":null,"suat":["WAITING","WAITING"],"taiSql":4}
+# Subtest: C03(3) đường thủ tục: KHÔNG huỷ đơn trước giờ chạy — xuất bến, văn phòng báo huỷ khi xe chạy, rồi mới huỷ đơn
+ok 4 - C03(3) đường thủ tục: KHÔNG huỷ đơn trước giờ chạy — xuất bến, văn phòng báo huỷ khi xe chạy, rồi mới huỷ đơn
+  ---
+  duration_ms: 88.42625
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 546.900083

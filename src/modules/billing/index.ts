@@ -218,7 +218,8 @@ export const billingModule: AppModule = {
 
     // Ghi dấu (ADR-0060 điều 3): ô `accounting.entry.mark` KHÔNG ngữ cảnh (Kế toán, Toàn quyền — Quản trị KHÔNG). Đánh dấu chỉ khi đơn đã xác nhận (A-3);
     // bỏ dấu mọi trạng thái, bắt buộc lý do (A-4). Chạy được sau "Đã giao" / "Hoàn thành" (route billing — không thuộc NT-F7). Khoá lạc quan `truocDo`.
-    // Bảng tin: loại "tien" — chỉ làm mới màn hình, KHÔNG gõ cửa điện thoại (ADR-0045); gửi trùng trạng thái → 200, không ghi, không báo.
+    // Bảng tin: loại "tien" — chỉ làm mới màn hình; không gõ cửa điện thoại vì lệnh này không ghi dòng đổi (gốc lắp ráp chỉ gõ cửa "tien" khi CHÍNH request
+    // ghi dòng đổi — ADR-0062 Đ4; ADR-0045); gửi trùng trạng thái → 200, không ghi, không báo.
     route("POST", "/api/orders/:id/nhap-ke-toan", "office", async ({ env, request, params, staff, baoThayDoi }) => {
       if (!can(staff, "accounting.entry.mark")) return CANNOT_MARK_ENTRY();
       const id = params.id!;

@@ -1,0 +1,64 @@
+✓ manifest
+✓ icon
+✓ font tự lưu trữ
+✓ service worker + API no-store + content-type của khung
+✓ thẻ meta iOS, tên và màu nhất quán trên 38 trang
+✔ pwa (0.6s) · nhóm 3
+✓ đọc danh sách
+✓ tạo: quyền, trùng mã, đầu vào sai
+✓ sửa: khoá lạc quan, 404, 400
+✓ ngưng dùng thay cho xoá
+✓ nhật ký
+✔ locations (0.8s) · nhóm 3
+✓ route 19 / 20: chỉ chuyến mình lái; ngoài ngày chạy không tên, không liên hệ; tài xế khác / Bán hàng → 404
+✓ tài xế đối tác: 403 ở cả 11 route tài xế
+✓ LC-20 (ADR-0096 Đ2): chuyến ba ngày sau → xuất bến 409 NGOAI_CUA_SO_XUAT_BEN (Văn phòng xử lý), không ghi, chuyến vẫn kế hoạch
+✓ lệnh tài xế: xayRaLuc → 400; xuất bến MAY_CHU; xuất bến sớm (trước ngày chạy) vẫn KHÔNG tên, liên hệ (Q-L3-B); đã tới; 'đã đón' lặp cùng requestId → một sự kiện; tài xế khác 404; kết thúc gián đoạn
+✓ trong ngày chạy (ngày chạy = hôm nay, đặt gấp đúng đường, đã xuất bến): GET chi tiết có họ tên, năm sinh, liên hệ (Q-L3-B VỪA-1), chuỗi đích chỉ đường ở mọi điểm (địa chỉ danh mục / tên nơi) — phản hồi lệnh không có (ADR-0105)
+✔ tai-xe-cuoc (42.9s) · nhóm 2
+✓ tài khoản Tài xế công ty: 201, quyền đúng [DRIVER], đăng nhập được
+✓ cổng: tài xế 403 ở đơn, Trang chủ, Danh bạ, xe, tài khoản, việc HDV; giấy tờ của mình 200
+✓ vai hồ sơ cũ DRIVER đã ngưng: 409 role_type_inactive
+✓ giấy tờ của người: thêm 201 (số che), Bán hàng 403, tài xế thấy của mình (GPLX gần hạn trước)
+✓ xem đủ số: Quản trị 403; Toàn quyền đúng số; nhật ký chỉ tên loại
+✓ CCCD trùng 409 cccd_taken (không số); gia hạn chép số; sửa sai dòng cũ 409
+✓ xe: thêm 201, trùng biển 409 vehicle_plate_taken, dùng lại xe khi biển có chủ 409; giấy tờ xe; danh sách sắp hết hạn gộp xe + tài xế, có count
+✓ ngưỡng: Quản trị 403; Toàn quyền đổi 7 → danh sách đổi theo; khôi phục 30 (dòng mới)
+✓ nhật ký không chứa số giấy tờ
+✓ D1 local: xoá giấy tờ, sửa đè dòng đã gia hạn, CCCD của người khác, biển số trùng, xoá xe, sửa chính sách — đều bị CSDL chặn
+✓ ADR-0097 HT-03: xuất bến nhầm → Kế toán / tài xế 403, lý do ngoài nhóm 400; văn phòng thu hồi 201 (chuyến về chưa chạy, lặp → 200, một sự kiện có lý do); xuất bến chuyến đúng 200
+✓ ADR-0097 HT-04: Đã đón nhầm → văn phòng điều chỉnh thành Vắng 201 (tài xế 403; suất cũ đóng, suất thay thế trỏ về; không tên); đã có tiến độ → thu hồi 409
+✓ ADR-0097 HT-04: Khách huỷ nhầm → Quản trị điều chỉnh thành Đã đón 201 → tài xế trả khách → Kết thúc 200; nhật ký không tên / SĐT; dọn chuyến bấm nhầm: 200
+✔ van-chuyen (42.8s) · nhóm 3
+✓ chưa xuất bến → thêm điểm 409 chuyen_chua_chay; tài xế xuất bến sớm → xe đang chạy
+✓ thêm điểm: Bán hàng 409 lớp điều chỉnh khẩn cấp (canQuyen đúng); Kế toán 403; Bán hàng điều chỉnh khẩn cấp 200, cờ điểm mới, bản chốt; lặp requestId → một sự kiện
+✓ báo huỷ: Kế toán 403; lý do ngoài nhóm 400; 200 vẫn chiếm chỗ; lần hai 409; tài xế thấy giờ + lý do, không người bấm
+✓ cập nhật điểm khi xe chạy: không lệch → 200 / 0
+✓ cứu hộ: xe còn chạy → 409 chua_gian_doan
+✓ cứu hộ: Kế toán / tài xế 403; sau gián đoạn 200 — chặng cần chuyển, xe nhận cùng ngày (tài xế công ty), không tên / SĐT / mã đơn; dọn chuyến thứ hai: 200
+✓ dọn: kết thúc gián đoạn; nhật ký thêm điểm / báo huỷ không tên, không SĐT
+✔ xe-dang-chay (13.2s) · nhóm 3
+✓ (1) CX-1010-01: xếp 2 chặng, giữ "thiếu tên — văn phòng"; nhập tên ở đơn → hết giữ
+✓ (2) TC-51: giữ NOI_HEN_DOI → cập nhật điểm theo đơn 200 (2 suất đóng STOP_CHANGED + mở lại), hết giữ; không lộ khoá nơi
+✓ (2b) R-P29: khách đổi sau khi gắn tên → màn + lệnh xuất bến cùng giữ KHACH_DA_DOI; Kế toán 403; cập nhật khách theo đơn 200 (1 suất PASSENGER_CHANGED, mở lại khoá mới), hết giữ; không lộ tên
+✓ (3) TC-29: bấm thay xuất bến 200; bản chụp ĐẠT (dấu lệnh), bản chốt 4 dòng trỏ đúng người, suất đã gắn tên; nhật ký 'văn phòng bấm thay'
+✓ (4) TC-47: khai giờ 'đã tới' → VAN_PHONG_KHAI (đúng khuôn, có chính sách); khai lùi quá kẹp → 409 kèm giờ sớm nhất
+✓ (5) D1 thật: sự kiện MAY_CHU lệch giờ ghi nhận → CHECK chặn; sửa sự kiện → trigger chặn
+✓ (6) ADR-0051: xếp chụp mốc XEP; đổi giờ → mục; Bán hàng khác 403 (không nút); người lập bấm → hết; bỏ đánh dấu → lại; đổi tiếp → lại
+✓ (6b) hai người bấm song song → một 200, một 409 (khong_con_can_goi), đúng một dòng mới
+✓ (6c) D1 thật: chuỗi mốc với giờ NULL ('chưa chốt giờ') — IS NULL nối đúng; lệch → gb_chain
+✓ (7) cảnh báo sớm lúc xếp: thiếu nơi trả → xếp được + canhBaoXep CHUA_CO_NOI_TRA; gửi lại cùng requestId → 200 không cảnh báo
+✓ (8) người đi kèm: chỉ HDV đang hoạt động, không SĐT; người khác 409; HDV 200 có tên
+✓ (9) HT-01: hai đơn cùng Bến tàu → [Đón MT, Đón Novotel, Trả]; xếp thêm đoàn sau → điểm trả cũ đổi số, vẫn cuối; không cảnh báo trả trước đón
+✔ dieu-phoi (59.8s) · nhóm 1
+✔ tai-xe-cuoc
+✔ xe-dang-chay
+✔ dieu-phoi
+✔ van-chuyen
+✔ pwa
+✔ locations
+✔ không có day_loi (thiếu khoá VAPID thì không gửi)
+✔ H5: ghi nhiều lần chỉ ở route có tên trong danh sách nợ (src/shared/lan-gui-no.ts)
+✔ không có lỗi lạ chạm bảng vé (lan_gui_loi_la)
+Thời gian e2e: 132 giây (3 nhóm)
+E2E: 9/9 kịch bản xanh

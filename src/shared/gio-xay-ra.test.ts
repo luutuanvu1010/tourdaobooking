@@ -148,3 +148,9 @@ test("R-P14 somNhatKhai: không phút nào hợp lệ (chặn trên thấp hơn 
   assert.equal(somNhat({ suKien: [...NEN, sk("STOP_ARRIVED", "07:35", "07:35", { diemId: "d-1" }), sk("PASSENGER_DROPPED", "07:30", "07:36", { suatId: "s-1" })] }), null);
   assert.equal(somNhat({ loai: "STOPS_REORDERED" }), null);
 });
+
+test("ADR-0097 Đ3 (thu hồi rồi xuất bến lại): tiến độ so với lần xuất bến CUỐI — khai 'đã tới' giữa lần xuất bến bị thu hồi và lần xuất bến lại → DAO_THU_TU (CSDL vk1a_before_departure cũng chặn)", () => {
+  const laiLan2 = [sk("CREATED", "05:00"), sk("DEPARTED", "07:00"), sk("DEPARTURE_REVOKED", "07:05"), sk("DEPARTED", "07:20")];
+  assert.deepEqual(chan({ loai: "STOP_ARRIVED", xayRaMs: t("07:10"), ghiNhanMs: t("07:30"), suKien: laiLan2, suatId: null }), ["DAO_THU_TU"]);
+  assert.deepEqual(chan({ loai: "STOP_ARRIVED", xayRaMs: t("07:25"), ghiNhanMs: t("07:30"), suKien: laiLan2, suatId: null }), []);
+});

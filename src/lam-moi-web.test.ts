@@ -2,7 +2,7 @@
 // song, tối đa MỘT lần chạy thêm sau đó), lọc tin theo đơn, số dòng cần tải lại. DOM/trình duyệt kiểm bằng typecheck + build + kịch bản Chrome.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { coODaSua, nenHoanLamMoi, soDongCanTai, suKienVeDon, taoBoLamMoi } from "../web/lam-moi-logic.ts";
+import { coODaSua, daiMatMang, loiTaiNenAnTrang, nenHoanLamMoi, soDongCanTai, suKienVeDon, taoBoLamMoi } from "../web/lam-moi-logic.ts";
 import type { SuKienDon } from "./shared/bang-tin.ts";
 
 const suKien = (orderId: string): SuKienDon => ({ loai: "don", orderId, maDon: `TD-${orderId}`, thayDoi: "sua", luc: "2026-09-26T00:00:00.000Z" });
@@ -129,4 +129,34 @@ test("nenHoanLamMoi: hoãn khi đang gõ / ô đã sửa / hộp huỷ đang m�
   assert.equal(nenHoanLamMoi({ dangGo: true, coODaSua: false, hopHuyMo: false }), true);
   assert.equal(nenHoanLamMoi({ dangGo: false, coODaSua: true, hopHuyMo: false }), true);
   assert.equal(nenHoanLamMoi({ dangGo: false, coODaSua: false, hopHuyMo: true }), true);
+});
+
+// ---- C55 (đánh giá ERP 7/10): màn tài xế — lần tải nền lỗi chỉ ẨN trang khi máy chủ nói chuyến không còn mở được; mất mạng thì GIỮ dữ liệu ----
+test("loiTaiNenAnTrang: chỉ 403 / 404 ẩn trang; mất mạng (không phải lỗi máy chủ), 5xx, 409, 429 giữ trang", () => {
+  assert.equal(loiTaiNenAnTrang({ status: 403 }), true, "mất quyền");
+  assert.equal(loiTaiNenAnTrang({ status: 404 }), true, "bị đổi ra / không còn chuyến");
+  assert.equal(loiTaiNenAnTrang(null), false, "mất mạng / hết giờ: không có trạng thái HTTP");
+  for (const status of [500, 502, 503, 409, 429, 400]) assert.equal(loiTaiNenAnTrang({ status }), false, `HTTP ${status}`);
+});
+
+test("daiMatMang: dữ liệu cũ → dải 'Mất mạng — dữ liệu lúc HH:MM' (giờ Việt Nam) có nút Tải lại; lỗi máy chủ → 'Chưa tải lại được'", () => {
+  const luc = Date.parse("2027-03-11T01:05:00.000Z"); // 08:05 giờ Việt Nam
+  assert.deepEqual(daiMatMang({ duLieuLuc: luc, matMang: true, soChoGui: 0 }), {
+    tieuDe: "Mất mạng — dữ liệu lúc 08:05",
+    dong: ["Danh sách dưới đây là bản tải lúc 08:05. Bấm “Tải lại” khi có mạng."],
+    taiLai: true,
+  });
+  assert.equal(daiMatMang({ duLieuLuc: luc, matMang: false, soChoGui: 0 })?.tieuDe, "Chưa tải lại được — dữ liệu lúc 08:05");
+});
+
+test("daiMatMang: có thao tác chưa gửi → tiêu đề giữ số thao tác (kịch bản Chrome bước 5), thêm dòng 'Dữ liệu lúc' nếu dữ liệu cũ", () => {
+  const luc = Date.parse("2027-03-11T01:05:00.000Z");
+  const chiChoGui = daiMatMang({ duLieuLuc: null, matMang: true, soChoGui: 1 });
+  assert.equal(chiChoGui?.tieuDe, "Mất mạng — 1 thao tác chưa gửi được");
+  assert.deepEqual(chiChoGui?.dong, ["Bấm lại ở dòng đó, hoặc bấm lại nút vừa bấm, khi có mạng — máy không tự gửi lại."]);
+  assert.equal(chiChoGui?.taiLai, false);
+  const caHai = daiMatMang({ duLieuLuc: luc, matMang: true, soChoGui: 2 });
+  assert.equal(caHai?.tieuDe, "Mất mạng — 2 thao tác chưa gửi được");
+  assert.deepEqual(caHai?.dong, ["Dữ liệu lúc 08:05 — chưa tải lại được.", "Bấm lại ở dòng đó, hoặc bấm lại nút vừa bấm, khi có mạng — máy không tự gửi lại."]);
+  assert.equal(daiMatMang({ duLieuLuc: null, matMang: true, soChoGui: 0 }), null, "không mất mạng, không việc chờ → không dải");
 });

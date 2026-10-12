@@ -293,7 +293,10 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "order.leg.short_notice": "none", // ADR-0049 D3: đặt gấp chỉ Quản trị, Toàn quyền
     "order.leg.short_notice.view": "none", // chủ H4/N-14: Đối tác chỉ thấy cờ "đặt gấp — Quản trị đã duyệt"
     "order.service.manual": "none", // ADR-0061 điều 2: Đối tác không bao giờ nhập tay (máy chủ còn chặn mọi tài khoản có quyền Đối tác — holdsPartner)
-    "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "none", "trip.call_ack": "none", "trip.passenger.add": "none", // ADR-0049 D3: Đối tác không thấy lịch xe (C1); ADR-0052 D5b: không bổ sung tên
+    "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.urgent_adjust": "none", "trip.progress": "none", "trip.call_ack": "none", "trip.passenger.add": "none", // ADR-0049 D3: Đối tác không thấy lịch xe (C1); ADR-0052 D5b: không bổ sung tên
+    "trip.refuse": "none", // ADR-0053 D8 (kế hoạch A4 T3): Đối tác không lái chuyến, không Từ chối
+    "unavailability.self": "none", // ADR-0053 D9 (kế hoạch A4 T8): Đối tác không báo bận tài xế
+    "trip.transfer": "none", // ADR-0052 D4 / ADR-0111: Đối tác không điều xe
     "assistant.ask": "any", // ADR-0066 điều 1: hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: sổ phiên chỉ Toàn quyền
     "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: Đối tác không thấy bảng mức, người bán (ADR-0077 điều 11; tỷ lệ chỉ văn phòng)

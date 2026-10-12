@@ -109,7 +109,7 @@ test("parseMoneyEditInput: thân không phải object, services không phải m�
 const baseOrder = (): OrderDetailDto => ({
   id: "o1", orderCode: "TD-1", staffId: "s1", staffName: "A", bookerPartyId: null, bookerName: null, bookerLaDoiTac: false,
   status: "confirmed", customerName: "K", customerPhone: "090", customerEmail: null, customerNote: null,
-  subtotal: 600000, discount: 0, total: 600000,
+  subtotal: 600000, discount: 0, total: 600000, giamGiaHieuLuc: 0,
   paymentNote: null, createdAt: "t", updatedAt: "t", confirmedAt: "t", deliveredAt: null, completedAt: null,
   services: [
     {
@@ -172,9 +172,36 @@ test("editablePaxCodesOf: dịch vụ nhập tay (catalogCode null) → rỗng",
 });
 
 // --- effectiveMoney -------------------------------------------------------------------------------------------------
-test("effectiveMoney: total = subtotal - discount (sổ tiền lượt 1: bỏ tham số cọc — 'còn lại' là số của billing)", () => {
-  assert.deepEqual(effectiveMoney(900000, 0), { total: 900000 });
-  assert.deepEqual(effectiveMoney(900000, 50000), { total: 850000 });
+test("effectiveMoney: total = subtotal - discount khi giảm giá ≤ tạm tính; trả thêm giảm giá hiệu lực (ADR-0109 QĐ2) — đơn không âm không đổi đồng nào", () => {
+  assert.deepEqual(effectiveMoney(900000, 0), { total: 900000, giamGiaHieuLuc: 0 });
+  assert.deepEqual(effectiveMoney(900000, 50000), { total: 850000, giamGiaHieuLuc: 50000 });
+  assert.deepEqual(effectiveMoney(500000, 500000), { total: 0, giamGiaHieuLuc: 500000 });
+});
+
+test("effectiveMoney (ADR-0109 QĐ1): phải thu KẸP ≥ 0 — giảm giá 800.000 trên tạm tính 500.000 → phải thu 0, giảm giá hiệu lực 500.000 (giảm giá đã lưu không đổi)", () => {
+  assert.deepEqual(effectiveMoney(500000, 800000), { total: 0, giamGiaHieuLuc: 500000 });
+  assert.deepEqual(effectiveMoney(0, 100000), { total: 0, giamGiaHieuLuc: 0 }, "tạm tính về 0 (chỉ còn em bé giá 0)");
+});
+
+test("effectiveMoney NT-1: lưới s, d ∈ {0, 1, 499 999, 500 000, 500 001, 10¹¹} — total ≥ 0, total + giảm giá hiệu lực = tạm tính, giảm giá hiệu lực ≤ giảm giá; s ≥ d thì total = s − d", () => {
+  const luoi = [0, 1, 499999, 500000, 500001, 1e11];
+  for (const s of luoi)
+    for (const d of luoi) {
+      const m = effectiveMoney(s, d);
+      assert.ok(Number.isInteger(m.total) && m.total >= 0, `total ≥ 0 (s=${s}, d=${d})`);
+      assert.equal(m.total + m.giamGiaHieuLuc, s, `cân (s=${s}, d=${d})`);
+      assert.ok(m.giamGiaHieuLuc <= d && m.giamGiaHieuLuc >= 0, `0 ≤ giảm giá hiệu lực ≤ giảm giá (s=${s}, d=${d})`);
+      if (s >= d) assert.deepEqual(m, { total: s - d, giamGiaHieuLuc: d }, `không âm thì y như cũ (s=${s}, d=${d})`);
+    }
+});
+
+test("applyAdjustmentToOrder (ADR-0109): đơn giảm 800.000 bớt còn 1 khách 500.000 → total 0, giảm giá hiệu lực 500.000, discount đã lưu vẫn 800.000", () => {
+  const don: OrderDetailDto = { ...baseOrder(), discount: 800000, total: 200000, giamGiaHieuLuc: 800000 };
+  don.services = [{ ...don.services[0]!, items: [{ ...don.services[0]!.items[0]!, unitPrice: 500000, catalogPrice: 500000, lineTotal: 1000000 }] }];
+  don.subtotal = 1000000;
+  const out = applyAdjustmentToOrder(don, [{ serviceId: "svc-1", pax: { adult: 1, child: 0, senior: 0, infant: 0 } }]);
+  assert.deepEqual([out.subtotal, out.discount, out.total, out.giamGiaHieuLuc], [500000, 800000, 0, 500000]);
+  assert.equal(out.subtotal - out.giamGiaHieuLuc, out.total, "tạm tính − giảm giá hiệu lực = tổng cộng");
 });
 
 // --- effectiveService / effectiveSubtotal (Đợt E task 7 — NGUỒN DUY NHẤT cho tiền hiệu lực; tái phát lần 4 của "hai nơi tính cùng một số theo hai

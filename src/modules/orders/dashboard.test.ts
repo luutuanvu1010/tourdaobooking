@@ -435,6 +435,26 @@ test("revenueWeek.daily: đơn có ĐIỀU CHỈNH tiền → daily dùng số H
   );
 });
 
+test("ADR-0109 bài 7: đơn bớt khách tới giảm giá > tạm tính → thẻ 'hôm nay' Tổng cộng 0; doanh thu tuần và từng ngày cộng 0 (không trừ số âm vào đơn khác)", async () => {
+  const sqlite = seed();
+  const db = fakeD1(sqlite);
+  // oAm: 2 NL × 500.000 = 1.000.000, giảm 800.000 → 200.000; điều chỉnh còn 1 NL → max(0, 500.000 − 800.000) = 0. Lập thứ Ba.
+  insertDraftOrder(sqlite, { id: "oAm", staffId: "s-a", createdAt: "2026-09-22T05:00:00.000Z", m: { subtotal: 1_000_000, discount: 800_000, total: 200_000, depositAmount: 0, remainingAmount: 200_000 } });
+  insertCatalogService(sqlite, { id: "svAm", orderId: "oAm", departDate: TODAY, priceAdult: 500_000, paxAdult: 2 });
+  confirm(sqlite, "oAm", "2026-09-22T05:00:00.000Z");
+  insertAdjustment(sqlite, { id: "adjAm", orderId: "oAm", seq: 1, subtotalBefore: 1_000_000, subtotalAfter: 500_000, after: [{ serviceId: "svAm", pax: { adult: 1, child: 0, senior: 0, infant: 0 } }] });
+  // oThuong: cùng ngày thứ Ba, 300.000 không điều chỉnh — doanh thu tuần phải đúng 300.000 (số âm cũ sẽ kéo xuống 0).
+  insertDraftOrder(sqlite, { id: "oThuong", staffId: "s-a", createdAt: "2026-09-22T06:00:00.000Z", m: { subtotal: 300_000, total: 300_000, depositAmount: 0, remainingAmount: 300_000 } });
+  insertService(sqlite, { id: "svThuong", orderId: "oThuong", departDate: "2026-10-01" });
+  confirm(sqlite, "oThuong", "2026-09-22T06:00:00.000Z");
+
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
+  assert.equal(data.today.find((o) => o.id === "oAm")?.total, 0, `thẻ hôm nay — ${JSON.stringify(data.today)}`);
+  assert.equal(data.revenueWeek.total, 300_000, "doanh thu tuần cộng 0 cho đơn giảm giá vượt tạm tính");
+  assert.equal(data.revenueWeek.daily.find((d) => d.date === "2026-09-22")?.total, 300_000);
+  assert.ok(data.revenueWeek.daily.every((d) => d.total >= 0));
+});
+
 test("revenueWeek.daily: tuần KHÔNG có đơn nào → vẫn đúng 7 phần tử T2..CN, mỗi phần tử total = 0 (không bỏ trống)", async () => {
   const sqlite = seed();
   const db = fakeD1(sqlite);

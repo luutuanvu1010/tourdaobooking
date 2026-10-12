@@ -2,7 +2,8 @@
 // đuôi .ts. Test: xac-nhan-xuat-ben.test.ts.
 // - Màn tài xế: bấm "Xuất bến" mở bảng trượt nêu mã chuyến, NGÀY CHẠY, giờ dự kiến, biển số, số khách — một chạm nhầm không còn xuất bến được.
 // - Ngày chạy khác hôm nay (chuyến của ngày khác, hoặc vắt đêm của hôm qua): dòng cảnh báo ĐỎ ở màn tài xế (trên trang + trong hộp) và trong hộp bấm thay của
-//   văn phòng — CÙNG một câu (`canhBaoNgayChay`). Chỉ nhắc: chặn hẳn ngoài cửa sổ xuất bến chờ ADR-0096 (V3), không thêm mã giữ ở đây.
+//   văn phòng — CÙNG một câu (`canhBaoNgayChay`). Chỉ nhắc ở đây; ngoài cửa sổ xuất bến máy chủ chặn bằng mã giữ NGOAI_CUA_SO_XUAT_BEN (ADR-0096 Đ2).
+// - Xuất bến nhầm: tài xế không tự gỡ; văn phòng "Thu hồi xuất bến" khi chưa có tiến độ nào (ADR-0097 Đ3).
 import { ngayCoThu } from "./vn-date.ts";
 
 export interface VaoXuatBen {
@@ -44,6 +45,6 @@ export function hopXuatBen(v: VaoXuatBen, homNay: string): HopXuatBen {
     canhBao,
     // Chữ nút ngắn (vừa nửa chân hộp ở khổ 390 — "Vẫn xuất bến chuyến ngày dd/mm" bị cắt, ảnh 2a 3/10); ngày chạy đã nêu ở dải đỏ + dòng "Ngày chạy".
     nutXacNhan: canhBao ? "Vẫn xuất bến" : "Xuất bến",
-    ghiChu: "Bấm lúc xe lăn bánh — giờ ghi là lúc bấm. Đã xuất bến thì không tự gỡ được, phải báo văn phòng.",
+    ghiChu: "Bấm lúc xe lăn bánh — giờ ghi là lúc bấm. Bấm nhầm thì báo văn phòng ngay để thu hồi.",
   };
 }

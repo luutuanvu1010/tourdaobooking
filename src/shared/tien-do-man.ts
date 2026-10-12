@@ -7,6 +7,7 @@ import { dongDieuKienTaiXe } from "./dieu-phoi-hien-thi.ts";
 import { NHAN_GIO_XAY_RA, type MaGioXayRa } from "./gio-xay-ra.ts";
 import type { CuocCuaToiItemDto, DieuKienConThieuDto, GioVnDto, MocChanDto, MocTienDoDto } from "./contracts.ts";
 import { maskLongDigits } from "./text-guards.ts";
+import { daoMoiSauDoi, diemDonChuaToiCuaDiemTra } from "./thu-tu-diem.ts";
 import { addDays, msToVnLocal, ngayNgan, thuNgayNgan, vnLocalToMs } from "./vn-date.ts";
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -79,7 +80,7 @@ export interface DiemVao {
 export interface SuatVao {
   id: string;
   loai?: "PASSENGER" | "CREW";
-  maDon: string | null;
+  maDon?: string | null; // vắng mặt với người có vế hạn Từ chối ngoài khung xem khách (kế hoạch A4 G-A4-7)
   diemLen: string | null;
   diemXuong: string | null;
   trangThai: "WAITING" | "BOARDED" | "NO_SHOW" | "CANCELLED_AT_STOP" | "DROPPED";
@@ -104,6 +105,26 @@ export function thanDoiThuTu(diem: readonly Pick<DiemVao, "id" | "thuTu" | "tran
   return { diem: moi.map((d, k) => ({ id: d.id, thuTu: cho[k]!.thuTu })) };
 }
 
+/**
+ * Nút ↑ / ↓ (C30 — ADR-0096 Đ1.3c): thân lệnh đổi thứ tự (`thanDoiThuTu`) + `daoMoi` = lệnh làm khách CHỜ LÊN bị đảo MỚI (điểm trả lên trước / bằng điểm đón)
+ * — CÙNG luật `daoMoiSauDoi` máy chủ dùng để trả 409 `thu_tu_dao`. Giao diện khoá nút khi `daoMoi`; máy chủ vẫn là cổng. Dùng cho chuyến đang chạy (route
+ * 29 / 39) và chuyến kế hoạch (văn phòng gửi `PUT /chuyen/:id` thân `diem`).
+ */
+export function doiThuTuDuoc(
+  diem: readonly Pick<DiemVao, "id" | "thuTu" | "trangThai">[],
+  suat: readonly Pick<SuatVao, "diemLen" | "diemXuong" | "trangThai">[],
+  diemId: string,
+  huong: -1 | 1,
+): { than: { diem: { id: string; thuTu: number }[] } | null; daoMoi: boolean } {
+  const than = thanDoiThuTu(diem, diemId, huong);
+  if (!than) return { than: null, daoMoi: false };
+  const cho = suat.filter((x) => x.trangThai === "WAITING").map((x) => ({ diemLen: x.diemLen, diemXuong: x.diemXuong }));
+  const daoMoi = daoMoiSauDoi(diem.map((x) => ({ id: x.id, seq: x.thuTu })), than.diem.map((x) => ({ id: x.id, seq: x.thuTu })), cho).length > 0;
+  return { than, daoMoi };
+}
+/** Chữ khi nút ↑ / ↓ bị khoá vì `daoMoi` (cùng nghĩa câu 409 `thu_tu_dao` của máy chủ). */
+export const CAU_THU_TU_DAO = "Thứ tự này đưa điểm trả lên trước điểm đón của khách chờ lên.";
+
 export type LenhSuat = "don" | "vang" | "khach-huy";
 export const NHAN_LENH_SUAT: Readonly<Record<LenhSuat, string>> = { don: "Đã đón", vang: "Vắng", "khach-huy": "Khách đã huỷ" };
 const KET_QUA: Readonly<Record<SuatVao["trangThai"], string | null>> = { WAITING: null, BOARDED: "Đã đón", NO_SHOW: "Vắng", CANCELLED_AT_STOP: "Khách đã huỷ", DROPPED: "Đã trả" };
@@ -127,6 +148,10 @@ export interface BuocDiem {
   nut: { lenh: "da-toi" | "tra-het"; nhan: string; goiY: string } | null;
   /** Suất sẽ "đã trả" khi bấm "Đã trả" ở điểm này. */
   traCho: string[];
+  /**
+   * HT-16 (ADR-0096 Đ1.4): điểm trả CHƯA TỚI còn khách chờ lên ở điểm đón chưa tới → không có nút "Đã trả" (máy chủ 409), câu chỉ đường thay nút. null = không.
+   */
+  choDon: string | null;
 }
 /** "ĐÓN · HẸN 07:30 · XE TỚI 07:20" — giờ xe tới (văn phòng đặt) chỉ hiện khi khác giờ hẹn (góp ý T5: tài xế thấy giờ ngay cạnh điểm đón). */
 function nhanDon(d: DiemVao, ngayXem: string): string {
@@ -150,9 +175,15 @@ export function buocDiem(diem: readonly DiemVao[], suat: readonly SuatVao[], tra
       nut: chay && daToi ? (x.trangThai === "WAITING" ? ["don", "vang", "khach-huy"] : x.trangThai === "NO_SHOW" ? ["don"] : []) : [],
     }));
     const traCho = d.loai === "DROPOFF" ? khachThat.filter((x) => x.diemXuong === d.id && x.trangThai === "BOARDED").map((x) => x.id) : [];
+    // HT-16: CÙNG hàm với máy chủ (suất trong DTO đều đang mở).
+    const donChuaToi = chay && !bo && d.loai === "DROPOFF" && d.trangThai === "PENDING"
+      ? diemDonChuaToiCuaDiemTra(d.id, diem, khachThat.map((x) => ({ diemLen: x.diemLen, diemXuong: x.diemXuong, trangThai: x.trangThai, mo: true })))
+      : [];
+    const soDiem = new Map(diem.map((x) => [x.id, x.thuTu]));
+    const choDon = donChuaToi.length ? `Còn khách chưa đón ở điểm ${donChuaToi.map((id) => soDiem.get(id)).join(", ")} — bấm “Đã tới” ở điểm đón trước.` : null;
     let nut: BuocDiem["nut"] = null;
     if (chay && !bo && d.loai === "PICKUP" && d.trangThai === "PENDING") nut = { lenh: "da-toi", nhan: "Đã tới", goiY: "Bấm khi xe tới nơi, rồi đánh dấu từng khách." };
-    if (chay && !bo && d.loai === "DROPOFF" && (d.trangThai === "PENDING" || traCho.length > 0)) nut = { lenh: "tra-het", nhan: "Đã trả", goiY: "Trả hết khách đang trên xe ở điểm này." };
+    if (chay && !bo && d.loai === "DROPOFF" && !choDon && (d.trangThai === "PENDING" || traCho.length > 0)) nut = { lenh: "tra-het", nhan: "Đã trả", goiY: "Trả hết khách đang trên xe ở điểm này." };
     const conViec = khach.some((k) => k.nut.length > 0 && k.ketQua === null) || traCho.length > 0;
     return {
       diem: d,
@@ -162,6 +193,7 @@ export function buocDiem(diem: readonly DiemVao[], suat: readonly SuatVao[], tra
       khach,
       nut,
       traCho,
+      choDon,
     };
   });
 }
@@ -189,6 +221,8 @@ export function soHieuTaiDiemDon(suat: readonly { diemLen: string | null; soHieu
 /**
  * "Kết thúc chuyến" bấm được khi mọi suất MỞ đã có kết quả cuối (Đã trả / Vắng / Khách đã huỷ) — KHỚP `kiemKetThuc` của máy chủ (LC-16 + trigger
  * vc_trip_end_requires_settled): suất người đi kèm (CREW) tính như khách, phải "Đã lên xe" rồi "Đã xuống". Máy chủ vẫn quyết.
+ * C57: hàm này CHỈ nhìn khách — thiếu vế điểm dừng (cả đoàn vắng mà điểm trả còn PENDING thì máy chủ từ chối). Nút "Kết thúc chuyến" của màn tài xế đã đổi sang
+ * `xetKetThuc` (ket-thuc-chuyen.ts, một hàm với máy chủ); màn văn phòng (web/chuyen.ts) còn dùng hàm này — việc nối tiếp của điều phối.
  */
 export function ketThucDuoc(suat: readonly Pick<SuatVao, "trangThai">[]): boolean {
   return !suat.some((x) => x.trangThai === "WAITING" || x.trangThai === "BOARDED");

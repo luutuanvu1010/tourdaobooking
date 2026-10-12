@@ -1,0 +1,8 @@
+{"nhan":"A","ma":"CX-1103-01"}
+{"nhan":"cung_TX_xe_khac_chong_1000_1200","status":409,"code":"trung_gio_tai_xe","message":"Tài xế trùng giờ với chuyến khác.","lyDo":["TRUNG_GIO_TAI_XE: Tài xế trùng giờ với chuyến khác: CX-1103-01"]}
+{"nhan":"cung_xe_TX_khac_chong_1000_1200","status":409,"code":"trung_gio_xe","message":"Xe trùng giờ với chuyến khác.","lyDo":["TRUNG_GIO_XE: Xe trùng giờ với chuyến khác: CX-1103-01"]}
+{"nhan":"cung_TX_xe_khac_ADM_pha_le_nghi","status":409,"code":"trung_gio_tai_xe","message":"Tài xế trùng giờ với chuyến khác.","lyDo":["TRUNG_GIO_TAI_XE: Tài xế trùng giờ với chuyến khác: CX-1103-01"]}
+{"nhan":"chuyen_bao_trum_0800_1200_TX2_X2","status":201,"code":null,"message":null,"lyDo":[]}
+{"nhan":"sua_B_doi_TX_va_gio_vao_chong","status":409,"code":"trung_gio_xe","message":"Xe trùng giờ với chuyến khác.","lyDo":["TRUNG_GIO_XE: Xe trùng giờ với chuyến khác: CX-1103-02","TRUNG_GIO_TAI_XE: Tài xế trùng giờ với chuyến khác: CX-1103-01"]}
+{"nhan":"csdl_chen_thang_chuyen_trung_xe","loi":"lc03_overlap: xe đã có chuyến trùng giờ"}
+{"nhan":"db_trips","rows":[{"code":"CX-1103-01","x1":1,"status":"PLANNED","planned_start_ms":1804730400000,"bd":"09:00"},{"code":"CX-1103-02","x1":0,"status":"PLANNED","planned_start_ms":1804726800000,"bd":"08:00"},{"code":"CX-1103-03","x1":0,"status":"PLANNED","planned_start_ms":1804748400000,"bd":"14:00"}]}

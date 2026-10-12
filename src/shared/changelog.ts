@@ -12,12 +12,30 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Luật giá Thực tập (ADR-0100), không migration. Số 1.88 là số TẠM (= 1.87 + 1 lúc soạn 2026-10-12; nhánh claude/van-chuyen-goi-a-c cũng đang giữ 1.88): nhánh vào main SAU phải đổi sang số kế tiếp (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
-    version: "1.88",
-    date: "2026-10-12",
+    // Luật giá Thực tập (ADR-0100), không migration. Số 1.89 là số TẠM (= main 1.88 gói Vận chuyển A+C + 1, ghép main 94024872 vào nhánh 2026-10-13): nếu bản khác vào main trước thì đổi sang số kế tiếp (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "1.89",
+    date: "2026-10-13",
     items: [
       { kind: "doi", text: "Tài khoản Thực tập chỉ lập và xác nhận được đơn theo giá danh mục, không giảm giá. Cần giá khác thì nhờ nhân viên Bán hàng." },
       { kind: "doi", text: "Ở màn lập đơn, ô đơn giá và ô giảm giá của tài khoản Thực tập chỉ đọc, kèm một dòng giải thích." },
+    ],
+  },
+  {
+    // Gói Vận chuyển A + C (ADR-0104 Đ2, 0105, 0109, 0111, 0112, 0113; A4 tài xế nhà xe ngoài; C2 màn tài xế; C3 bảng điều phối), migration 0091–0093.
+    // Số 1.88 = main 1.87 + 1 (ghép main 1c471990 vào nhánh gói A+C, 2026-10-12): mục 1.85 cũ của nhánh (chuyển khách giữa hai xe, đã đánh lại số) nằm trong mục này, không nhân đôi.
+    version: "1.88",
+    date: "2026-10-12",
+    items: [
+      { kind: "moi", text: "Màn tài xế có hai nút Chỉ đường cho mỗi điểm đón, điểm trả: Google Maps trên mọi máy, Apple Maps trên iPhone, iPad và Mac." },
+      { kind: "moi", text: "Tài xế nhà xe ngoài dùng được Nền tảng: xem chuyến của mình, báo bận theo khung giờ và từ chối chuyến khi không nhận được." },
+      { kind: "moi", text: "Tài xế không kịp tới một điểm đón có thể nhờ một xe khác cùng ngày đón giúp. Tài xế xe kia bấm Nhận hoặc Không nhận; chưa ai nhận thì khách vẫn ở xe cũ." },
+      { kind: "moi", text: "Xe hỏng giữa đường: tài xế, hoặc văn phòng gửi thay, nhờ một xe đang chạy tới nơi gặp nhận cả khách trên xe lẫn khách đang chờ đón." },
+      { kind: "moi", text: "Việc chuyển khách vượt số chỗ, sai cam kết xe riêng hoặc khi tắt tự đồng ý sẽ chờ Quản trị duyệt hoặc bác ở màn Đề nghị chuyển khách." },
+      { kind: "moi", text: "Màn tài xế có khối Điểm kế tiếp, nút Kết thúc dính đáy màn hình, hỏi lại \"Đã đón N khách\" và đồng hồ chờ khi khách vắng." },
+      { kind: "moi", text: "Bảng điều phối chọn được nhiều chặng cùng lúc, lọc chặng, hiện tổng khách chưa xếp và ghế trống, tô màu chuyến theo mức đầy." },
+      { kind: "moi", text: "Văn phòng bấm \"Cập nhật khách / điểm theo đơn\" khi xe chưa chạy thì tài xế nhận tin báo ngay." },
+      { kind: "doi", text: "Chuyến đã có khách được chuyển sang từ xe khác thì tài xế không bấm Từ chối chuyến được nữa." },
+      { kind: "sua", text: "Bớt khách mà giảm giá lớn hơn tiền dịch vụ còn lại thì phải thu về 0 chứ không âm; khoản khách đã trả dư được ghi để hoàn." },
     ],
   },
   {

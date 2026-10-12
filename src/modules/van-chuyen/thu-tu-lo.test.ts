@@ -12,6 +12,9 @@
 // NGOẠI LỆ luật 3 thứ hai (Đợt 5 A-1b — chủ duyệt 5/10, đề xuất luật A-1b mục 2): nhãn `GHI_NGOAI` = câu ghi do module KHÁC cấp (orders — dòng hành khách tài xế
 // nhập), gác bằng ID NHẬT KÝ của lô `EXISTS (SELECT 1 FROM audit_log WHERE id = ?n)` với ?n = dấu lệnh. CHỈ hàm có tên ở CHO_GHI_NGOAI; hàm khác dùng → đỏ.
 // Danh sách hàm tự suy bằng quét MỌI `export function` của dieu-phoi.ts (không chỉ tên `lo…`).
+// NGOẠI LỆ luật 1 (ADR-0104 Đ2.3 — chủ duyệt cùng ADR 2026-10-08; nới có tên N1 ở docs/SO-HANG-RAO.md): lô ĐỒNG BỘ CHUYẾN THEO ĐƠN (`loDongBoChuyen`) mở đầu bằng
+// các câu của orders (nhãn `CAU_DON`, đã soạn, chưa chạy — cổng đơn đứng đầu như hôm nay), rồi TỪNG KHÚC chuyến tự đúng bốn luật với DẤU LỆNH riêng của khúc
+// (trường `cmd` của câu) và C38 tính riêng từng khúc (một câu sự kiện mang `requestId` riêng). CHỈ hàm có tên ở CHO_CAU_DON được dùng nhãn `CAU_DON`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -22,7 +25,7 @@ const TEP = fileURLToPath(new URL("./dieu-phoi.ts", import.meta.url));
 const built = await esbuild.build({ entryPoints: [TEP], bundle: true, format: "esm", platform: "neutral", target: "es2022", write: false, logLevel: "silent" });
 const MOD = (await import(`data:text/javascript;base64,${Buffer.from(built.outputFiles[0]!.text).toString("base64")}`)) as Record<string, unknown>;
 
-type Cau = { nhan: string; stmt: { sql: string; args: unknown[] } };
+type Cau = { nhan: string; stmt: { sql: string; args: unknown[] }; cmd?: string };
 const DB = { prepare: (sql: string) => ({ sql, bind: (...args: unknown[]) => ({ sql, args }) }) };
 const CMD = "c0000000-0000-4000-8000-00000000c0de";
 const T = "t-nguon";
@@ -39,7 +42,27 @@ const CHI_PHI = { dao: [DAO_AM, DAO_DUONG], chup: CHUP, phienBan: 2, daoDieuChin
 // ADR-0056 VK3-A (Đợt 7 Task 4): câu ghi / xoá cột phá lệ cam kết của chuyến — nhãn CAM_KET_PHA_LE.
 const CAM_KET_GHI = { lyDo: "PHA_LE_SU_CO", khoa: "xe:x-1|leg-1:XR:1:-|leg-2:XR:0:-" };
 const CAM_KET_XOA = { lyDo: null, khoa: null };
+// ADR-0111 (gói A5): dòng kiểm của lần bấm Nhận / Duyệt.
+const KIEM_MAU = [
+  { ma: "SUC_CHUA_DICH", tang: "LOI", ketQua: "DAT", giaTri: 4, gioiHan: 15 },
+  { ma: "MOC_TOI_THIEU", tang: "CAU_HINH", ketQua: "KHONG_DAT", giaTri: 50, gioiHan: 360 },
+];
 
+// ADR-0104 Đ2 — mẫu lô đồng bộ theo đơn: câu orders đã soạn (giả) + hai khúc chuyến.
+const AUDIT_DON = "a0000000-0000-4000-8000-0000000000d0";
+const CAU_DON_MAU = [
+  { sql: "UPDATE orders SET status = 'cancelled' WHERE id = ?1 AND updated_at = ?2", args: ["o-1", "t0"] },
+  { sql: "INSERT INTO audit_log (id) SELECT ?1 WHERE changes() > 0", args: [AUDIT_DON] },
+];
+const CMD_2 = "c0000000-0000-4000-8000-00000000c0d2";
+const KHUC_1 = {
+  ...L, tripId: T, version: 3, auditIdDon: AUDIT_DON, orderId: "o-1", dong: [{ suatId: "a-1", lyDo: "REMOVED" }, { suatId: "a-2", lyDo: "PASSENGER_CHANGED" }],
+  mo: [suat("a-9")], diemBoQua: ["d-1"], camKet: CAM_KET_XOA, soNguoi: 2, detail: "d",
+};
+const KHUC_2 = {
+  cmd: CMD_2, requestId: "r0000000-0000-4000-8000-000000000002", lucIso: L.lucIso, nguoiId: L.nguoiId, tripId: T2, version: 5, auditIdDon: AUDIT_DON, orderId: "o-1",
+  dong: [{ suatId: "b-1", lyDo: "REMOVED" }], mo: [], diemBoQua: [], camKet: CAM_KET_XOA, soNguoi: 1, detail: "d",
+};
 /** Mẫu đầu vào của TỪNG hàm dựng lô (đủ nhánh: có đổi tài xế, có điểm mới, có điểm bỏ qua…) + chuyến mà câu cổng gác. */
 const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
   loTaoChuyen: {
@@ -51,7 +74,7 @@ const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
   },
   loSuaChuyen: {
     vao: {
-      ...L, tripId: T, version: 3, moi: { xeId: "x-1", chuXePartyId: "p-1", ngayChay: "2027-03-11", batDauMs: 1, ketThucMs: 2, batDauSomNhatMs: 1, nghiPhaLeLyDo: null, thue: 1, tuyen: "T001" },
+      ...L, tripId: T, version: 3, moi: { xeId: "x-1", chuXePartyId: "p-1", ngayChay: "2027-03-11", batDauMs: 1, ketThucMs: 2, batDauSomNhatMs: 1, nghiPhaLeLyDo: null, thue: 1, tuyen: "T001", nghiChup: 45 },
       doiTaiXe: "p-tx2", diem: [{ id: "d-1", seq: 2, ngayXeToi: null, gioXeToi: null }], phaLe: null, policyId: null, chiPhi: CHI_PHI, phienBanChiPhi: 2, camKet: CAM_KET_GHI, detail: "d",
     },
     gac: T,
@@ -64,8 +87,14 @@ const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
   },
   loHuy: { vao: { ...L, tripId: T, version: 3, lyDo: "HUY_KHAC", phaLe: null, policyId: null, soSuatMo: 2, chiPhi: { ...CHI_PHI, chup: null }, phienBanChiPhi: 2, detail: "d" }, gac: T },
   loCapNhatDiem: { vao: { ...L, tripId: T, version: 3, diemMoi: [diem("d-9")], doiThuTu: [{ id: "d-2", seq: 4 }], cap: [{ dongId: "a-1", mo: suat("a-9") }], diemBoQua: ["d-1"], camKet: CAM_KET_XOA, detail: "d" }, gac: T },
-  // R-P29 (chủ lần 16): "cập nhật khách theo đơn" — một suất đóng + mở lại, một suất chỉ đóng (đơn giảm người).
-  loCapNhatKhach: { vao: { ...L, tripId: T, version: 3, cap: [{ dongId: "a-1", mo: suat("a-9") }, { dongId: "a-2", mo: null }], diemBoQua: ["d-1"], camKet: CAM_KET_XOA, detail: "d" }, gac: T },
+  // R-P29 (chủ lần 16): "cập nhật khách theo đơn" — ADR-0104 Đ2.11: nút tay dùng chung luật thuần ⇒ đóng theo mã của từng luật (khách đổi PASSENGER_CHANGED, đơn
+  // huỷ / thừa suất REMOVED), ĐÓNG hết rồi mới MỞ lại.
+  loCapNhatKhach: {
+    vao: { ...L, tripId: T, version: 3, dong: [{ suatId: "a-1", lyDo: "PASSENGER_CHANGED" }, { suatId: "a-2", lyDo: "REMOVED" }], mo: [suat("a-9")], diemBoQua: ["d-1"], camKet: CAM_KET_XOA, detail: "d" },
+    gac: T,
+  },
+  // ADR-0104 Đ2: lô ĐỒNG BỘ THEO ĐƠN — hai câu orders (cổng đơn + nhật ký đơn) rồi HAI khúc chuyến, mỗi khúc dấu lệnh + request_id riêng (gác theo từng khúc).
+  loDongBoChuyen: { vao: { cauDon: CAU_DON_MAU, khuc: [KHUC_1, KHUC_2] }, gac: "" },
   loXuatBen: {
     vao: {
       ...L, tripId: T, version: 3, xayRa: XR, policyId: "cs-1", ganTen: [{ suatId: "a-1", personKey: "pk-1" }],
@@ -94,6 +123,36 @@ const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
     vao: { ...L, tripId: T, version: 7, dangChay: true, suatId: "a-1", personKey: "pk-moi", hanhKhach: { sql: "INSERT INTO ord_passenger (id) SELECT ?1 WHERE EXISTS (SELECT 1 FROM audit_log WHERE id = ?8)", args: ["pk-moi", 0, 0, 0, 0, 0, 0, CMD] }, detail: "d" },
     gac: T,
   },
+  // ADR-0097 (gói A1, V3-B): văn phòng điều chỉnh kết quả một suất (suất có tên → bản chốt dòng thêm sau xuất bến; hai điểm tự xong; câu CHỐT cuối) và thu hồi
+  // xuất bến (trạng thái cuối RUNNING → PLANNED).
+  loDieuChinh: {
+    vao: { ...L, tripId: T, version: 7, suatId: "a-1", suatMoiId: "a-9", trangThaiMoi: "NO_SHOW", lyDo: "DIEU_CHINH_BAM_NHAM", passengerRowId: "row-1", diemXet: ["d-1", "d-2"], detail: "d" },
+    gac: T,
+  },
+  loThuHoiXuatBen: { vao: { ...L, tripId: T, version: 7, lyDo: "DIEU_CHINH_BAM_NHAM", detail: "d" }, gac: T },
+  // ADR-0053 D8.4 (A4 T7): tài xế Từ chối — cổng đủ điều kiện → nhật ký → sự kiện → đóng dòng lái REFUSED. Mẫu chỉ DỰNG lô trên DB giả (không chạy câu) nên
+  // `bayGioMs` là số bất kỳ — luật đồng hồ §2 áp cho bài CHẠY lô (tu-choi.test.ts).
+  loTuChoi: { vao: { ...L, tripId: T, version: 7, taiXePartyId: "p-tx", lyDo: "TCC_KHAC", bayGioMs: 1, detail: "d" }, gac: T },
+  // ADR-0111 (gói A5): đề nghị chuyển khách — sự kiện, nhật ký, mọi câu sau cổng gác chuyến ĐÍCH (T2); nguồn T ở related_trip_id.
+  loGuiDeNghi: {
+    vao: { ...L, dich: { tripId: T2, version: 5 }, nguonId: T, phamVi: "ONBOARD", diemId: null, noiGap: { diaDiemId: null, chu: "Cây xăng" }, soKhach: 3, nguoiGuiPartyId: "p-tx", detail: "d" },
+    gac: T2,
+  },
+  loRutDeNghi: { vao: { ...L, deNghi: { id: "rq-1", tuChuyen: T, denChuyen: T2 }, soKhach: 3, detail: "d" }, gac: T2 },
+  loKhongNhanDeNghi: { vao: { ...L, deNghi: { id: "rq-1", tuChuyen: T, denChuyen: T2 }, taiXePartyId: "p-tx2", lyDo: "TU_CHOI_DAY_CHO", soKhach: 3, detail: "d" }, gac: T2 },
+  loHetHanDeNghi: { vao: { ...L, deNghi: { id: "rq-1", tuChuyen: T, denChuyen: T2 }, soKhach: 3, detail: "d" }, gac: T2 },
+  loLeoThangDeNghi: { vao: { ...L, deNghi: { id: "rq-1", tuChuyen: T, denChuyen: T2 }, taiXePartyId: "p-tx2", kiem: KIEM_MAU, soKhach: 3, detail: "d" }, gac: T2 },
+  // Lô xác nhận: cổng xe nhờ (T) rồi CONG_DOI xe nhận (T2); mọi câu sau gác T2. Đủ nhánh: điểm mới, sắp lại, hai cặp đóng / mở, điểm nguồn MOVED, bản chốt, cam kết.
+  loXacNhanDeNghi: {
+    vao: {
+      ...L, deNghi: { id: "rq-1", tuChuyen: T, denChuyen: T2 }, nguonVersion: 7, dichVersion: 5, quyet: { kieu: "MAY", taiXePartyId: "p-tx2" }, kiem: KIEM_MAU,
+      diemMoi: [diem("d-9", T2)], doiThuTu: [{ id: "d-8", seq: 4 }], dichDangChay: true,
+      cap: [{ dongId: "a-1", moId: "a-8", len: "d-9", xuong: "d-8" }, { dongId: "a-2", moId: "a-9", len: "d-9", xuong: "d-8" }], diemNguon: "d-1",
+      chot: [{ allocationId: "a-8", passengerRowId: "pr-1", crewPartyId: null }], camKetDich: CAM_KET_GHI, detail: "d",
+    },
+    gac: T2,
+  },
+  loBacDeNghi: { vao: { ...L, deNghi: { id: "rq-1", tuChuyen: T, denChuyen: T2 }, lyDo: "TU_CHOI_KHAC", soKhach: 3, detail: "d" }, gac: T2 },
   lenhDaGoiBao: { vao: { ...L, legId: "leg-1", phienBan: 1, moi: { ngay: "2027-03-11", gio: "09:15" }, cu: { ngay: "2027-03-11", gio: "09:00" }, tripId: T, detail: "d" }, gac: T },
   lenhBoDanhDauGoiBao: {
     vao: { ...L, legId: "leg-1", phienBan: 2, moi: { ngay: "2027-03-11", gio: "09:00" }, cu: { ngay: "2027-03-11", gio: "09:15" }, tripId: T, detail: "d", banChup: "null" }, gac: T,
@@ -117,10 +176,11 @@ const LINH_GAC = /EXISTS \(SELECT 1 FROM vc_trip WHERE id = \?(\d+) AND last_cmd
 const SUA_CHUYEN = /^UPDATE vc_trip SET[\s\S]*WHERE id = \?(\d+) AND last_cmd_id = \?(\d+)$/;
 
 /** Kiểm bốn luật trên một lô; trả danh sách vi phạm (rỗng = đạt). */
-export function viPhamLo(ten: string, lo: readonly Cau[], gac: string): string[] {
+export function viPhamLo(ten: string, lo: readonly Cau[], gac: string, cmd: string = CMD): string[] {
   const loi: string[] = [];
   const nhan = lo.map((c) => c.nhan);
   if (nhan.includes("CONG_MOC")) loi.push(`${ten}: dùng nhãn CONG_MOC mà không có tên trong HO_LENH_MOC`);
+  if (nhan.includes("CAU_DON")) loi.push(`${ten}: dùng nhãn CAU_DON ngoài phần đầu lô chung (chỉ CHO_CAU_DON, chỉ trước khúc chuyến)`);
   // (1) cổng đầu
   let sauCong: number;
   if (nhan[0] === "CONG") sauCong = nhan[1] === "CONG_DOI" ? 2 : 1;
@@ -143,7 +203,7 @@ export function viPhamLo(ten: string, lo: readonly Cau[], gac: string): string[]
       if (!CHO_GHI_NGOAI.includes(ten)) loi.push(`${ten}: dùng nhãn GHI_NGOAI mà không có tên trong CHO_GHI_NGOAI`);
       const g = GAC_NHAT_KY.exec(sql);
       if (!g) loi.push(`${ten}: câu ${i} (GHI_NGOAI) thiếu gác id nhật ký`);
-      else if (args[Number(g[1]) - 1] !== CMD) loi.push(`${ten}: câu ${i} (GHI_NGOAI) gác bằng tham số không phải dấu lệnh của lô`);
+      else if (args[Number(g[1]) - 1] !== cmd) loi.push(`${ten}: câu ${i} (GHI_NGOAI) gác bằng tham số không phải dấu lệnh của lô`);
       continue;
     }
     const m = LINH_GAC.exec(sql) ?? SUA_CHUYEN.exec(sql.trim());
@@ -151,7 +211,7 @@ export function viPhamLo(ten: string, lo: readonly Cau[], gac: string): string[]
       loi.push(`${ten}: câu ${i} (${lo[i]!.nhan}) thiếu lính gác dấu lệnh`);
       continue;
     }
-    if (args[Number(m[2]) - 1] !== CMD) loi.push(`${ten}: câu ${i} gác bằng tham số không phải dấu lệnh của lô`);
+    if (args[Number(m[2]) - 1] !== cmd) loi.push(`${ten}: câu ${i} gác bằng tham số không phải dấu lệnh của lô`);
     if (args[Number(m[1]) - 1] !== gac) loi.push(`${ten}: câu ${i} gác chuyến ${String(args[Number(m[1]) - 1])} thay vì ${gac}`);
   }
   // (4) trạng thái cuối đứng cuối
@@ -159,6 +219,99 @@ export function viPhamLo(ten: string, lo: readonly Cau[], gac: string): string[]
   if (cuoi.length > 1 || (cuoi.length === 1 && cuoi[0] !== lo.length - 1)) loi.push(`${ten}: câu trạng thái cuối không đứng cuối lô`);
   return loi;
 }
+
+/** Hàm được dùng nhãn CAU_DON (câu orders đứng đầu lô chung) — LIỆT KÊ TÊN. Thêm tên = NỚI luật 1 — ADR-0104 Đ2.3 (nới N1). */
+const CHO_CAU_DON = ["loDongBoChuyen"];
+const CONG_THEO_DON = /EXISTS \(SELECT 1 FROM v_aud_order_cmd WHERE id = \?(\d+) AND order_id = \?(\d+)\)/;
+type CauSk = Cau & { suKien?: { tripId: string; relatedTripId: string | null; loai: string; stopId: string | null; allocationId: string | null } };
+/**
+ * ADR-0104 Đ2.3 — lô chung: phần đầu ≥ 1 câu `CAU_DON` liền nhau; sau đó TỪNG KHÚC bắt đầu bằng câu `CONG` (cổng theo đơn — hỏi v_aud_order_cmd), mọi câu
+ * của khúc mang CÙNG `cmd`, khúc tự đúng bốn luật với dấu lệnh của chính nó và chuyến của chính câu cổng; C38 theo khúc (đúng một câu chèn sự kiện, mang
+ * nhãn suKien và `requestId` riêng — không khúc nào dùng lại mã của khúc khác). `requestIds` = mã của từng khúc theo thứ tự (lấy từ đầu vào).
+ */
+export function viPhamLoNhieuKhuc(ten: string, lo: readonly CauSk[], requestIds: readonly string[]): string[] {
+  const loi: string[] = [];
+  if (!CHO_CAU_DON.includes(ten)) loi.push(`${ten}: dùng nhãn CAU_DON mà không có tên trong CHO_CAU_DON`);
+  const dauKhuc = lo.findIndex((c) => c.nhan !== "CAU_DON");
+  const soCauDon = dauKhuc === -1 ? lo.length : dauKhuc;
+  if (soCauDon === 0) loi.push(`${ten}: lô chung phải mở đầu bằng câu đơn (CAU_DON) — khúc chuyến đứng trước câu đơn thì cổng chuyến luôn thua`);
+  const khuc: CauSk[][] = [];
+  for (const c of lo.slice(soCauDon)) {
+    if (c.nhan === "CONG") khuc.push([c]);
+    else if (khuc.length === 0) {
+      loi.push(`${ten}: câu ${c.nhan} sau câu đơn nhưng trước câu cổng của khúc đầu`);
+      khuc.push([c]);
+    } else khuc[khuc.length - 1]!.push(c);
+  }
+  if (khuc.length !== requestIds.length) loi.push(`${ten}: ${khuc.length} khúc chuyến, đầu vào có ${requestIds.length}`);
+  const daDung = new Set<string>();
+  khuc.forEach((k, j) => {
+    const cmd = k[0]!.cmd;
+    if (!cmd) {
+      loi.push(`${ten}: khúc ${j} — câu đầu không mang dấu lệnh (cmd)`);
+      return;
+    }
+    if (daDung.has(cmd)) loi.push(`${ten}: khúc ${j} dùng lại dấu lệnh của khúc trước`);
+    daDung.add(cmd);
+    if (k.some((c) => c.cmd !== cmd)) loi.push(`${ten}: khúc ${j} có câu mang dấu lệnh khác`);
+    if (k[0]!.nhan !== "CONG" || !CONG_THEO_DON.test(k[0]!.stmt.sql)) loi.push(`${ten}: khúc ${j} — câu đầu phải là cổng theo đơn (hỏi v_aud_order_cmd)`);
+    const gac = String(k[0]!.stmt.args[0]);
+    loi.push(...viPhamLo(`${ten}[khúc ${j}]`, k, gac, cmd));
+    const chen = k.filter((c) => /^\s*INSERT INTO vc_trip_event\b/.test(c.stmt.sql));
+    const coNhan = k.filter((c) => c.suKien !== undefined);
+    if (chen.length !== 1 || coNhan.length !== 1 || coNhan[0] !== chen[0]) loi.push(`${ten}: khúc ${j} có ${chen.length} câu chèn vc_trip_event / ${coNhan.length} nhãn suKien (phải đúng 1, cùng câu)`);
+    else {
+      const a = chen[0]!.stmt.args;
+      if (a[1] !== gac) loi.push(`${ten}: khúc ${j} — sự kiện ghi cho chuyến khác`);
+      if (a[0] !== cmd) loi.push(`${ten}: khúc ${j} — id sự kiện không phải dấu lệnh của khúc`);
+      if (a[7] !== requestIds[j]) loi.push(`${ten}: khúc ${j} — sự kiện không mang requestId của khúc`);
+    }
+  });
+  if (new Set(requestIds).size !== requestIds.length) loi.push(`${ten}: hai khúc dùng chung một requestId (UNIQUE vc_trip_event.request_id làm hỏng cả lô)`);
+  return loi;
+}
+
+test("NT-7 (ADR-0104 Đ2.3) bộ bắt lô chung: khúc đứng trước câu đơn, khúc thiếu cổng ở đầu, gác bằng dấu lệnh khúc khác, hai sự kiện trong khúc, requestId của khúc khác / dùng lại, hàm lạ dùng CAU_DON → đỏ; lô đúng → xanh", () => {
+  const lo = (MOD.loDongBoChuyen as (db: unknown, l: unknown) => CauSk[])(DB, MAU.loDongBoChuyen!.vao);
+  const rq = [KHUC_1.requestId, KHUC_2.requestId];
+  assert.deepEqual(viPhamLoNhieuKhuc("loDongBoChuyen", lo, rq), []);
+  assert.deepEqual(lo.slice(0, 2).map((c) => c.nhan), ["CAU_DON", "CAU_DON"]);
+  const n1 = lo.findIndex((c, i) => i > 2 && c.nhan === "CONG");
+  const khuc1 = lo.slice(2, n1);
+  const khuc2 = lo.slice(n1);
+  assert.ok(viPhamLoNhieuKhuc("loDongBoChuyen", [...khuc1, ...lo.slice(0, 2), ...khuc2], rq).length > 0, "khúc đứng trước câu đơn");
+  assert.ok(viPhamLoNhieuKhuc("loDongBoChuyen", [...lo.slice(0, 2), ...khuc1.slice(1), ...khuc2], rq).length > 0, "khúc thiếu cổng ở đầu");
+  const lenhKhac = [...lo.slice(0, 2), ...khuc1, ...khuc2.map((c, i) => (i === khuc2.length - 1 ? { ...c, cmd: KHUC_1.cmd } : c))];
+  assert.ok(viPhamLoNhieuKhuc("loDongBoChuyen", lenhKhac, rq).length > 0, "câu mang dấu lệnh khúc khác");
+  const gacKhac = [...lo.slice(0, 2), ...khuc1, ...khuc2.map((c) => (c.nhan === "GHI" ? { ...c, stmt: { ...c.stmt, args: c.stmt.args.map((x) => (x === CMD_2 ? CMD : x)) } } : c))];
+  assert.ok(viPhamLoNhieuKhuc("loDongBoChuyen", gacKhac, rq).length > 0, "gác bằng dấu lệnh của khúc khác");
+  const haiSuKien = [...lo.slice(0, 2), ...khuc1, ...khuc2, khuc2.find((c) => c.suKien)!];
+  assert.ok(viPhamLoNhieuKhuc("loDongBoChuyen", haiSuKien, rq).length > 0, "hai câu sự kiện trong một khúc");
+  assert.ok(viPhamLoNhieuKhuc("loDongBoChuyen", lo, [KHUC_1.requestId, KHUC_1.requestId]).length > 0, "dùng lại requestId");
+  const loCungMa = (MOD.loDongBoChuyen as (db: unknown, l: unknown) => CauSk[])(DB, { cauDon: CAU_DON_MAU, khuc: [KHUC_1, { ...KHUC_2, requestId: KHUC_1.requestId }] });
+  assert.ok(viPhamLoNhieuKhuc("loDongBoChuyen", loCungMa, rq).length > 0, "khúc 2 mang requestId của khúc 1");
+  assert.ok(viPhamLoNhieuKhuc("loLa", lo, rq).some((l) => /CHO_CAU_DON/.test(l)), "hàm lạ dùng CAU_DON");
+  assert.ok(viPhamLo("loLa", lo, T).some((l) => /CAU_DON/.test(l)), "viPhamLo thường gặp CAU_DON → đỏ");
+  // Cổng của khúc hỏi ĐÚNG mã nhật ký đơn + đơn; câu đơn đứng đầu, nguyên vẹn (chỉ số kết quả mà route đọc để biết thắng không đổi).
+  for (const k of [khuc1, khuc2]) {
+    const g = CONG_THEO_DON.exec(k[0]!.stmt.sql)!;
+    assert.deepEqual([k[0]!.stmt.args[Number(g[1]) - 1], k[0]!.stmt.args[Number(g[2]) - 1]], [AUDIT_DON, "o-1"]);
+  }
+  assert.deepEqual(lo.slice(0, 2).map((c) => c.stmt), CAU_DON_MAU);
+});
+
+test("NT-7: loDongBoChuyen — trong khúc đóng TRƯỚC mở (LC-02 đếm theo dòng), mã đóng theo từng luật; nhật ký trip_order_synced, sự kiện ALLOCATION_ORDER_SYNCED", () => {
+  const lo = (MOD.loDongBoChuyen as (db: unknown, l: unknown) => CauSk[])(DB, MAU.loDongBoChuyen!.vao);
+  const khuc1 = lo.filter((c) => c.cmd === CMD);
+  const dong = khuc1.flatMap((c, i) => (/^\s*UPDATE vc_trip_allocation SET valid_to_at/.test(c.stmt.sql) ? [i] : []));
+  const mo = khuc1.flatMap((c, i) => (/^\s*INSERT INTO vc_trip_allocation\b/.test(c.stmt.sql) ? [i] : []));
+  assert.equal(dong.length, 2);
+  assert.equal(mo.length, 1);
+  assert.ok(Math.max(...dong) < Math.min(...mo), "đóng trước mở");
+  assert.deepEqual(dong.map((i) => khuc1[i]!.stmt.args[3]), ["REMOVED", "PASSENGER_CHANGED"]);
+  assert.ok(khuc1.some((c) => c.nhan === "NHAT_KY" && c.stmt.args.includes("trip_order_synced")));
+  assert.equal(khuc1.find((c) => c.suKien)!.suKien!.loai, "ALLOCATION_ORDER_SYNCED");
+});
 
 test("bộ bắt TC-32: đảo nhật ký với cổng, bỏ lính gác một câu GHI, đưa trạng thái cuối lên trước, gác bằng tham số lạ → đỏ; lô đúng → xanh", () => {
   const g = (sql: string, args: unknown[]) => ({ sql, args });
@@ -221,9 +374,53 @@ test("TC-32: MỌI hàm dựng lô của dieu-phoi.ts (tự suy từ tên xuất
     const f = MOD[t] as (db: unknown, l: unknown) => Cau[];
     const lo = f(DB, MAU[t]!.vao);
     assert.ok(lo.length >= 2, `${t}: lô rỗng`);
+    if (CHO_CAU_DON.includes(t)) {
+      const v = MAU[t]!.vao as { khuc: { requestId: string }[] };
+      loi.push(...viPhamLoNhieuKhuc(t, lo, v.khuc.map((k) => k.requestId)));
+      continue;
+    }
     loi.push(...(HO_LENH_MOC.includes(t) ? viPhamLoMoc(t, lo) : viPhamLo(t, lo, MAU[t]!.gac)));
   }
   assert.deepEqual(loi, []);
+});
+
+// C38 + phiếu kiểm V2(c): đường chạy đua của `chayLo` (cổng thua / vỡ UNIQUE request_id) so sự kiện đã có với câu SU_KIEN của CHÍNH lô (`suKien` trên CauCoNhan).
+// Lô thiếu nhãn, có hai câu sự kiện, hay nhãn lệch tham số của câu chèn ⇒ "lệnh lặp" so nhầm thao tác.
+test("C38: mỗi lô (trừ họ lệnh mốc) có ĐÚNG một câu chèn vc_trip_event và đúng câu đó mang `suKien`, khớp tham số đã gắn (chuyến, chuyến liên quan, loại, điểm, suất); lô sửa ghi `nghiChup` vào rest_minutes_snapshot", () => {
+  const loi: string[] = [];
+  for (const ten of Object.keys(MAU)) {
+    if (CHO_CAU_DON.includes(ten)) continue; // ADR-0104 Đ2.3: C38 theo KHÚC — viPhamLoNhieuKhuc (bài NT-7 + TC-32)
+    const lo = (MOD[ten] as (db: unknown, l: unknown) => CauSk[])(DB, MAU[ten]!.vao);
+    const chen = lo.filter((c) => /^\s*INSERT INTO vc_trip_event\b/.test(c.stmt.sql));
+    const coNhan = lo.filter((c) => c.suKien !== undefined);
+    if (HO_LENH_MOC.includes(ten)) {
+      if (chen.length + coNhan.length > 0) loi.push(`${ten}: họ lệnh mốc không có sự kiện chuyến`);
+      continue;
+    }
+    if (chen.length !== 1) loi.push(`${ten}: ${chen.length} câu chèn vc_trip_event (phải đúng 1)`);
+    if (coNhan.length !== 1 || coNhan[0] !== chen[0]) {
+      loi.push(`${ten}: nhãn suKien phải nằm ở đúng câu chèn sự kiện (thấy ${coNhan.length} câu có nhãn)`);
+      continue;
+    }
+    const { suKien: sk, stmt, nhan } = coNhan[0]!;
+    if (nhan !== "SU_KIEN") loi.push(`${ten}: câu sự kiện mang nhãn ${nhan}`);
+    const a = stmt.args;
+    const thuc = { tripId: a[1], relatedTripId: a[2], loai: a[3], stopId: a[4], allocationId: a[5] };
+    try {
+      assert.deepEqual({ ...sk }, thuc);
+    } catch {
+      loi.push(`${ten}: suKien ${JSON.stringify(sk)} lệch tham số câu chèn ${JSON.stringify(thuc)}`);
+    }
+    if (a[7] !== L.requestId) loi.push(`${ten}: câu sự kiện không mang requestId của lệnh`);
+  }
+  assert.deepEqual(loi, []);
+  // Lô dời: sự kiện ở chuyến ĐÍCH, chuyến nguồn ở related_trip_id (cặp mà traLenhLap / chayLo so — phiếu kiểm V1).
+  const doi = (MOD.loDoi as (db: unknown, l: unknown) => CauSk[])(DB, MAU.loDoi!.vao).find((c) => c.suKien)!;
+  assert.deepEqual([doi.suKien!.tripId, doi.suKien!.relatedTripId, doi.suKien!.loai], [T2, T, "ALLOCATION_MOVED"]);
+  // N3: câu sửa kế hoạch ghi ĐÚNG số chụp của lệnh (tsc không phủ tệp bài — thiếu khoá thì ràng buộc undefined lặng lẽ).
+  const sua = (MOD.loSuaChuyen as (db: unknown, l: unknown) => Cau[])(DB, MAU.loSuaChuyen!.vao).find((c) => /^\s*UPDATE vc_trip SET vehicle_id/.test(c.stmt.sql))!;
+  assert.match(sua.stmt.sql, /rest_minutes_snapshot = \?14/);
+  assert.equal(sua.stmt.args[13], 45);
 });
 
 test("D5.3a (Đợt 5): loCapNhatDiem trên xe ĐANG CHẠY — cổng có version + chuyến đang chạy, câu CHỐT `SET version = version` đứng CUỐI (nhãn TRANG_THAI_CUOI), đúng bốn luật", () => {
@@ -240,7 +437,7 @@ test("D5.3a (Đợt 5): loCapNhatDiem trên xe ĐANG CHẠY — cổng có versi
 
 test("Đợt 7 Task 4 (ADR-0056 VK3-A): câu ghi / xoá cột phá lệ cam kết mang nhãn CAM_KET_PHA_LE, đứng SAU nhật ký, TRƯỚC câu trạng thái cuối; mọi câu chạm commitment_override_* đều mang nhãn; lô dời: xoá nguồn + ghi đích, cùng gác chuyến ĐÍCH", () => {
   // Task 5: lệnh giảm khách + cổng xuất bến chỉ XOÁ (C7).
-  const CO_CAM_KET = ["loXep", "loSuaChuyen", "loDoi", "loThemDiemDangChay", "loRut", "loCapNhatDiem", "loCapNhatKhach", "loXuatBen"];
+  const CO_CAM_KET = ["loXep", "loSuaChuyen", "loDoi", "loThemDiemDangChay", "loRut", "loCapNhatDiem", "loCapNhatKhach", "loXuatBen", "loDongBoChuyen", "loXacNhanDeNghi"];
   for (const ten of Object.keys(MAU)) {
     const lo = (MOD[ten] as (db: unknown, l: unknown) => Cau[])(DB, MAU[ten]!.vao);
     const sai = lo.filter((c) => /commitment_override/.test(c.stmt.sql) !== (c.nhan === "CAM_KET_PHA_LE"));
@@ -250,16 +447,17 @@ test("Đợt 7 Task 4 (ADR-0056 VK3-A): câu ghi / xoá cột phá lệ cam kế
       assert.equal(vt.length, 0, `${ten}: không có câu cam kết`);
       continue;
     }
-    assert.equal(vt.length, ten === "loDoi" ? 2 : 1, `${ten}: số câu cam kết`);
-    const nk = lo.findIndex((c) => c.nhan === "NHAT_KY");
+    assert.equal(vt.length, ten === "loDoi" || ten === "loDongBoChuyen" ? 2 : 1, `${ten}: số câu cam kết`);
     const cuoi = lo.findIndex((c) => c.nhan === "TRANG_THAI_CUOI");
     for (const i of vt) {
-      assert.ok(i > nk, `${ten}: câu cam kết sau nhật ký`);
+      const nk = lo.findIndex((c) => c.nhan === "NHAT_KY" && (lo[i]!.cmd === undefined || c.cmd === lo[i]!.cmd)); // lô chung: nhật ký CỦA KHÚC
+      assert.ok(nk >= 0 && i > nk, `${ten}: câu cam kết sau nhật ký`);
       if (cuoi >= 0) assert.ok(i < cuoi, `${ten}: câu cam kết trước trạng thái cuối`);
       assert.match(lo[i]!.stmt.sql, /^UPDATE vc_trip SET commitment_override_reason_code = \?3, commitment_override_key = \?4/);
     }
     // Không có câu cam kết khi lệnh không mang (null).
-    const khong = { ...MAU[ten]!.vao, camKet: null, camKetNguon: null, camKetDich: null, xoaCamKet: false };
+    const v0 = MAU[ten]!.vao as Record<string, unknown> & { khuc?: Record<string, unknown>[] };
+    const khong = { ...v0, camKet: null, camKetNguon: null, camKetDich: null, xoaCamKet: false, ...(v0.khuc ? { khuc: v0.khuc.map((k) => ({ ...k, camKet: null })) } : {}) };
     assert.equal((MOD[ten] as (db: unknown, l: unknown) => Cau[])(DB, khong).filter((c) => c.nhan === "CAM_KET_PHA_LE").length, 0, `${ten}: null → không câu`);
   }
   const doi = (MOD.loDoi as (db: unknown, l: unknown) => Cau[])(DB, MAU.loDoi!.vao).filter((c) => c.nhan === "CAM_KET_PHA_LE");
@@ -285,4 +483,105 @@ test("Đợt 7 Task 5 (C7): lô rút / cập nhật khách / cập nhật điể
   const chay = (MOD.loCapNhatDiem as (db: unknown, l: unknown) => Cau[])(DB, { ...MAU.loCapNhatDiem!.vao, diemBoQua: [], dangChay: true });
   assert.deepEqual(viPhamLo("loCapNhatDiem(dangChay, camKet)", chay, T), []);
   assert.equal(chay[chay.length - 1]!.nhan, "TRANG_THAI_CUOI");
+});
+
+test("NT-A5-26, -28 (ADR-0111 Sửa chữ 1): lô xác nhận — đếm câu = 4 + K + 1 + D + R + 2N (+N bản chốt) + 1 (MOVED, STOP) + 1 (tự huỷ) + cam kết; dòng kiểm TRƯỚC câu đổi trạng thái đề nghị; thêm điểm → sắp lại → (đóng xe nhờ, mở xe nhận) theo cặp; MỖI suất đúng một INSERT", () => {
+  const f = MOD.loXacNhanDeNghi as (db: unknown, l: unknown) => Cau[];
+  for (const n of [1, 16, 45]) {
+    const cap = Array.from({ length: n }, (_x, i) => ({ dongId: `a-${i}`, moId: `m-${i}`, len: "d-9", xuong: "d-8" }));
+    const chot = cap.map((c) => ({ allocationId: c.moId, passengerRowId: `pr-${c.dongId}`, crewPartyId: null }));
+    const vao = { ...MAU.loXacNhanDeNghi!.vao, cap, chot } as Record<string, unknown> & { kiem: unknown[]; diemMoi: unknown[]; doiThuTu: unknown[] };
+    const lo = f(DB, vao);
+    assert.deepEqual(viPhamLo(`loXacNhanDeNghi(N=${n})`, lo, T2), []);
+    const K = vao.kiem.length;
+    const D = vao.diemMoi.length;
+    const R = vao.doiThuTu.length;
+    assert.equal(lo.length, 4 + K + 1 + D + R + 2 * n + n + 1 + 1 + 1, `N=${n}: số câu`);
+    const vt = (re: RegExp) => lo.flatMap((c, i) => (re.test(c.stmt.sql) ? [i] : []));
+    const kiem = vt(/^\s*INSERT INTO vc_transfer_check\b/);
+    const doiTrangThai = vt(/^\s*UPDATE vc_transfer_request SET status = \?2, decided_mode/);
+    const themDiem = vt(/^\s*INSERT INTO vc_trip_stop\b/);
+    const sapLai = vt(/^\s*UPDATE vc_trip_stop SET seq = \?4/);
+    const dong = vt(/^\s*UPDATE vc_trip_allocation SET valid_to_at = \?4, close_reason = 'TRANSFERRED'/);
+    const mo = vt(/^\s*INSERT INTO vc_trip_allocation\b/);
+    const suKien = vt(/^\s*INSERT INTO vc_trip_event\b/);
+    assert.equal(kiem.length, K);
+    assert.equal(doiTrangThai.length, 1);
+    assert.equal(suKien.length, 1);
+    assert.ok(suKien[0]! < kiem[0]! && Math.max(...kiem) < doiTrangThai[0]!, "sự kiện → dòng kiểm → đổi trạng thái đề nghị");
+    assert.ok(doiTrangThai[0]! < Math.min(...themDiem) && Math.max(...themDiem) < Math.min(...sapLai) && Math.max(...sapLai) < dong[0]!, "đề nghị CONFIRMED → thêm điểm → sắp lại → cặp suất");
+    assert.equal(mo.length, n, "mỗi suất đúng một câu INSERT mở suất");
+    assert.deepEqual(mo.map((i) => i - 1), dong, "mở suất đứng NGAY sau câu đóng suất của nó");
+    mo.forEach((i, j) => assert.equal(lo[i]!.stmt.args[2], lo[dong[j]!]!.stmt.args[0], "suất mở chép đúng suất vừa đóng"));
+  }
+});
+
+// VỪA-3 (kiểm độc lập 12/10): TRẦN SỐ CÂU của lô xác nhận. Công thức = 19 + D + R + 3N (11 dòng kiểm; D điểm đón mới ở xe nhận, R điểm sắp lại, N suất mỗi suất
+// 3 câu: đóng + mở + bản chốt). Xe tối đa 100 chỗ ⇒ N = 100 → 319 + D + R. Trần như `src/modules/orders/tran-lo-sua-chuyen.test.ts`: 1000 câu / lần gọi Worker
+// (CÁCH ÁP cho một `db.batch` chưa kiểm trên D1 thật — nợ), chừa 100 câu cho phần đọc của route ⇒ 900. Ca xấu nhất lấy D = 20 điểm đón mới, R = 60 điểm sắp lại.
+const TRAN_CAU_LO_XAC_NHAN = 1000 - 100;
+test(`NT-A5-26 trần lô xác nhận: N = 100 suất (xe tối đa 100 chỗ), D = 20, R = 60 → đúng công thức 19 + D + R + 3N và ≤ ${TRAN_CAU_LO_XAC_NHAN} câu`, () => {
+  const f = MOD.loXacNhanDeNghi as (db: unknown, l: unknown) => Cau[];
+  const N = 100;
+  const D = 20;
+  const R = 60;
+  const cap = Array.from({ length: N }, (_x, i) => ({ dongId: `a-${i}`, moId: `m-${i}`, len: "d-9", xuong: "d-8" }));
+  const chot = cap.map((c) => ({ allocationId: c.moId, passengerRowId: `pr-${c.dongId}`, crewPartyId: null }));
+  const goc = MAU.loXacNhanDeNghi!.vao as Record<string, unknown> & { kiem: unknown[]; diemMoi: unknown[] };
+  const vao = {
+    ...goc, cap, chot,
+    kiem: Array.from({ length: 11 }, (_x, i) => ({ ...(goc.kiem[i % goc.kiem.length] as object), ma: `DK_${i}` })), // đủ 11 điều kiện của danh mục
+    diemMoi: Array.from({ length: D }, (_x, i) => diem(`d-m${i}`, T2)),
+    doiThuTu: Array.from({ length: R }, (_x, i) => ({ id: `d-s${i}`, seq: 10 + i })),
+  };
+  const lo = f(DB, vao);
+  assert.deepEqual(viPhamLo("loXacNhanDeNghi(N=100)", lo, T2), []);
+  assert.equal(vao.kiem.length, 11, "11 dòng kiểm (danh mục điều kiện)");
+  assert.equal(lo.length, 19 + D + R + 3 * N, "công thức của người kiểm: 19 + D + R + 3N");
+  assert.ok(lo.length <= TRAN_CAU_LO_XAC_NHAN, `lô ${lo.length} câu vượt trần ${TRAN_CAU_LO_XAC_NHAN}`);
+});
+
+/**
+ * MQ-09 (ADR-0052 D4.2 :79; ADR-0111 Đ5; kế hoạch G-A5-13, T9, NT-A5-13): lệnh làm điểm nguồn / chuyến nguồn hoặc đích đổi → đề nghị chuyển khách đang chờ liên
+ * quan thành VOID TRONG CÙNG LÔ (không sự kiện, không tin; vết ở closed_cmd_id): đúng MỘT câu tự huỷ, sau câu sự kiện, gác chuyến của lô, trước câu trạng thái
+ * cuối. Không có lệnh "Bỏ qua điểm" khi xe đang chạy (điểm chỉ bị bỏ qua trong lô của lệnh khác đã có ở đây / lệnh chưa chạy).
+ */
+const TU_HUY: Record<string, { cau: RegExp; doi: unknown }> = {
+  loDaToi: { cau: /^\s*UPDATE vc_transfer_request SET status = 'VOID'[\s\S]*scope = 'STOP' AND from_stop_id = \?1\b/, doi: "d-1" },
+  loBaoHuy: { cau: /^\s*UPDATE vc_transfer_request SET status = 'VOID'[\s\S]*from_stop_id = \(SELECT a\.board_stop_id FROM vc_trip_allocation a WHERE a\.id = \?1\)/, doi: "a-1" },
+  loDieuChinh: { cau: /^\s*UPDATE vc_transfer_request SET status = 'VOID'[\s\S]*from_stop_id = \(SELECT a\.board_stop_id FROM vc_trip_allocation a WHERE a\.id = \?1\)/, doi: "a-1" },
+  loKetThuc: { cau: /^\s*UPDATE vc_transfer_request SET status = 'VOID'[\s\S]*\(from_trip_id = \?1 OR to_trip_id = \?1\)/, doi: T },
+  loKetThucGianDoan: { cau: /^\s*UPDATE vc_transfer_request SET status = 'VOID'[\s\S]*\(from_trip_id = \?1 OR to_trip_id = \?1\)/, doi: T },
+  loHuy: { cau: /^\s*UPDATE vc_transfer_request SET status = 'VOID'[\s\S]*\(from_trip_id = \?1 OR to_trip_id = \?1\)/, doi: T },
+  loThuHoiXuatBen: { cau: /^\s*UPDATE vc_transfer_request SET status = 'VOID'[\s\S]*\(from_trip_id = \?1 OR to_trip_id = \?1\)/, doi: T },
+};
+test("NT-A5-13 (MQ-09): lô Đã tới / Báo huỷ / Điều chỉnh (theo điểm của suất) / Kết thúc / Kết thúc gián đoạn / Huỷ chuyến / Thu hồi xuất bến có ĐÚNG một câu tự huỷ đề nghị chờ, sau sự kiện, trước trạng thái cuối; lô khác không có", () => {
+  for (const ten of Object.keys(MAU)) {
+    const lo = (MOD[ten] as (db: unknown, l: unknown) => Cau[])(DB, MAU[ten]!.vao);
+    const vt = lo.flatMap((c, i) => (/^\s*UPDATE vc_transfer_request SET status = 'VOID'/.test(c.stmt.sql) ? [i] : []));
+    const k = TU_HUY[ten];
+    if (!k) {
+      // Lô xác nhận có câu tự huỷ RIÊNG theo P4 (G-A5-6) — đếm ở bài lô xác nhận.
+      if (ten !== "loXacNhanDeNghi") assert.equal(vt.length, 0, `${ten}: không có câu tự huỷ đề nghị`);
+      continue;
+    }
+    assert.equal(vt.length, 1, `${ten}: thiếu câu TRANSFERS_VOID_* (đúng một)`);
+    const c = lo[vt[0]!]!;
+    assert.match(c.stmt.sql, k.cau, `${ten}: câu tự huỷ sai phạm vi`);
+    assert.equal(c.stmt.args[0], k.doi, `${ten}: tự huỷ theo đúng điểm / suất / chuyến của lệnh`);
+    assert.ok(vt[0]! > lo.findIndex((x) => x.nhan === "SU_KIEN"), `${ten}: câu tự huỷ sau câu sự kiện`);
+    const cuoi = lo.findIndex((x) => x.nhan === "TRANG_THAI_CUOI");
+    if (cuoi >= 0) assert.ok(vt[0]! < cuoi, `${ten}: câu tự huỷ trước trạng thái cuối`);
+  }
+  // Cập nhật điểm theo đơn khi xe ĐANG CHẠY là đường "bỏ qua điểm nguồn" / đổi tập khách của xe nhờ (G-A5-13): MỘT câu tự huỷ theo DẤU LỆNH (điểm lên của suất lô
+  // này đóng, điểm hết PENDING, ONBOARD khi tập khách đổi), SAU câu đóng suất / bỏ qua điểm, TRƯỚC câu chốt. Xe chưa chạy không là xe nhờ — không có (vòng trên).
+  const chay = (MOD.loCapNhatDiem as (db: unknown, l: unknown) => Cau[])(DB, { ...MAU.loCapNhatDiem!.vao, dangChay: true });
+  const vc = chay.flatMap((c, i) => (/^\s*UPDATE vc_transfer_request SET status = 'VOID'/.test(c.stmt.sql) ? [i] : []));
+  assert.equal(vc.length, 1, "loCapNhatDiem(dangChay): thiếu câu tự huỷ (đúng một)");
+  const cc = chay[vc[0]!]!;
+  assert.match(cc.stmt.sql, /a\.closed_cmd_id = \?2/, "loCapNhatDiem(dangChay): tự huỷ theo suất đóng bởi CHÍNH lệnh này");
+  assert.equal(cc.stmt.args[0], T);
+  const sauCung = Math.max(...chay.flatMap((c, i) => (/^\s*UPDATE vc_(trip_allocation SET valid_to_at|trip_stop SET status = 'SKIPPED')/.test(c.stmt.sql) ? [i] : [])));
+  assert.ok(vc[0]! > sauCung, "loCapNhatDiem(dangChay): tự huỷ sau câu đóng suất / bỏ qua điểm cuối cùng");
+  assert.ok(vc[0]! < chay.findIndex((x) => x.nhan === "TRANG_THAI_CUOI"), "loCapNhatDiem(dangChay): trước câu chốt");
 });

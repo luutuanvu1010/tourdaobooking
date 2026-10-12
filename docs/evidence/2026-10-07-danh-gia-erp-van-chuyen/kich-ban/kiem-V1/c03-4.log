@@ -1,0 +1,55 @@
+TAP version 13
+# (node:29340) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:29340) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# OBS C03.4.xuatBen {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo/:aid/bao-huy"}
+# OBS C03.4.baoHuy {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo/:aid/bao-huy"}
+# OBS C03.4.baoHuy {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# OBS C03.4.huyDonGiuaChuyen {"status":200,"code":null,"msg":null}
+# OBS C03.4.diem ["1.PICKUP Khách sạn Sheraton PENDING","2.PICKUP Khách sạn Havana PENDING","3.DROPOFF Bến tàu du lịch Nha Trang PENDING"]
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi"}
+# OBS C03.4.daToiSheraton {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/khach-huy"}
+# OBS C03.4.khachHuy {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/khach-huy"}
+# OBS C03.4.khachHuy {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi"}
+# OBS C03.4.daToiHavana {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/don"}
+# OBS C03.4.don {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/don"}
+# OBS C03.4.don {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi"}
+# OBS C03.4.daToiBen {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/tra"}
+# OBS C03.4.tra {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/tra"}
+# OBS C03.4.tra {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/ket-thuc"}
+# OBS C03.4.ketThuc {"status":200,"code":null,"msg":null}
+# OBS C03.4.cuoi {"diem":["1.Khách sạn Sheraton DONE","2.Khách sạn Havana DONE","3.Bến tàu du lịch Nha Trang DONE"],"trangThai":"ENDED"}
+# Subtest: C03(4) đường thủ tục ĐI HẾT: xuất bến → báo huỷ → huỷ đơn giữa chuyến → Đã tới + khách huỷ → đón, trả khách còn lại → kết thúc
+ok 1 - C03(4) đường thủ tục ĐI HẾT: xuất bến → báo huỷ → huỷ đơn giữa chuyến → Đã tới + khách huỷ → đón, trả khách còn lại → kết thúc
+  ---
+  duration_ms: 135.28825
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 270.412833

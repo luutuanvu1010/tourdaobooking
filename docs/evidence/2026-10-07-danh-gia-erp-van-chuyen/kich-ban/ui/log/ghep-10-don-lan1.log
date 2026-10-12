@@ -1,0 +1,85 @@
+   [gioDonDau] 15:40
+   [taoTaiXeDoiTac] {"status":201,"permissions":["DRIVER_PARTNER"]}
+   [taoDiaDiem_KS_SHERATON_NT] {"status":201,"text":"ok"}
+   [taoDiaDiem_KS_INTERCON_NT] {"status":201,"text":"ok"}
+   [donDaLap] ["TD-20261007-0001 15:40 2k","TD-20261007-0002 15:45 3k","TD-20261007-0003 15:50 4k","TD-20261007-0004 15:55 2k","TD-20261007-0005 16:00 1k","TD-20261007-0006 16:05 3k","TD-20261007-0007 16:10 2k","TD-20261007-0008 16:15 4k","TD-20261007-0009 16:20 3k","TD-20261007-0010 16:25 2k"]
+   [chuyen] {"T1":"CX-0710-01","T2":"CX-0710-02","khung":"15:20–17:25"}
+   [taoChuyenTaiXeDoiTac] {"status":409,"code":"cheo_xe_tai_xe","message":"Tài xế không thuộc chủ của xe này."}
+   [bang1040_theChang] ["15:40 Sát mốc Sheraton Nha Trang → Bến tàu du lịch Nha Trang TD-20261007-0001 · 2 khách","15:45 Sát mốc InterContinental Nha Trang → Bến tàu du lịch Nha Trang TD-20261007-0002 · 3 khách","15:50 Sát mốc Mường Thanh Luxury, 60 Trần Phú → Bến tàu du lịch Nha Trang TD-20261007-0003 · 4 khách","15:55 Sát mốc Novotel, 50 Trần Phú → Bến tàu du lịch Nha Trang TD-20261007-0004 · 2 khách","16:00 Sát mốc Nhà riêng 12 Trần Phú, Lộc Thọ → Bến tàu du lịch Nha Trang TD-20261007-0005 · 1 khách","16:05 Sát mốc Ana Mandara, 86 Trần Phú → Bến tàu du lịch Nha Trang TD-20261007-0006 · 3 khách","16:10 Sát mốc Liberty Central, 9 Biệt Thự → Bến tàu du lịch Nha Trang TD-20261007-0007 · 2 khách","16:15 Sát mốc Nhà riêng hẻm 15/7 Nguyễn Thiện Thuật, gọi •••• ••• ••• khi tới → Bến tàu du lịch Nha Trang TD-20261007-0008 · 4 khách","16:20 Sát mốc Citadines Bayfront, 62 Trần Phú → Bến tàu du lịch Nha Trang TD-20261007-0009 · 3 khách","16:25 Sát mốc Premier Havana, 38 Trần Phú → Bến tàu du lịch Nha Trang TD-20261007-0010 · 2 khách"]
+   [bang1040_khoiTai] ["CX-0710-01, 15:20–17:25, Đã lên kế hoạch, tải 0/15","CX-0710-02, 15:20–17:25, Đã lên kế hoạch, tải 0/15"]
+   [bang1040_oDieuKhien] ["dp-ngay:date"]
+   [bang1040_coCheckbox] 0
+   [bang1040_soLieu] CHẶNG 10 ĐÃ XẾP 0 CHƯA XẾP 10 10 sát mốc CHUYẾN 2 CẦN XỬ LÝ 0 ĐƠN NHÁP 0
+   [bang1040_cotChuaXepCao] {"scrollHeight":1691,"clientHeight":1691,"docH":1929,"viewH":820}
+✓ 1) Bảng điều phối 1040: cột Chưa xếp có 10 chặng; khối chuyến hiện tải 0/15; công cụ lọc chỉ có ô ngày
+   [hopXep_dsChuyen] ["CX-0710-01 · 15:20–17:25 · 79B-161.61 · tải 0/15","CX-0710-02 · 15:20–17:25 · 79B-162.62 · tải 0/15"]
+   [hopXep_ketQua] Đã xếp 2 khách vào CX-0710-01
+✓ 2) Hộp 'Xếp vào chuyến' (1040) cho đơn 1: danh sách chuyến có 'tải x/15'; xếp bằng giao diện O1 → T1
+   [bang390_tabs] ["Chưa xếp 9","Xe 2","Cần xử lý 0"]
+   [bang390_cao] {"docH":2026,"viewH":844,"tranNgang":false}
+   [bang390_keoTha_note] none
+✓ 3) Bảng điều phối 390: thẻ Chưa xếp (9 chặng), thẻ Xe; đo chiều dài cuộn
+   [phanBoLo_O2_O5] {"status":200,"code":null,"tai":12}
+   [phanBo_O6] {"status":200,"code":null}
+   [T1_soSuatSQL_sauO6] 15
+   [thu_C_cong_1] {"status":409,"code":"vuot_so_cho","message":"Vượt số chỗ của xe.","details":null}
+   [thu_C_cong_2] {"status":409,"code":"vuot_so_cho","message":"Vượt số chỗ của xe.","details":null}
+   [T1_soSuatSQL_sauThuC2] 15
+✓ 4) API: một lệnh phân bổ nhiều chặng (O2–O5) vào T1; O6 → đầy 15/15; thử C+1, C+2 (đơn 7)
+   [theChon_T1] CX-0710-01 Đã lên kế hoạch Đang chọn 79B-161.61 · 15 chỗ · Trần Văn Tài · 15:20–17:25 · tải 15/15 Sheraton Nha Trang → InterContinental Nha Trang → Mường Thanh Luxury, 60 Trần Phú → Novotel, 50 Trần Phú → Nhà riêng 12 Trần Phú, Lộc Thọ → Ana Mandara, 86 Trần Phú ► Bến tàu du lịch Nha Trang Mở chuyến
+   [hopXep_dsChuyen_khiDay] ["CX-0710-01 · 15:20–17:25 · 79B-161.61 · tải 15/15","CX-0710-02 · 15:20–17:25 · 79B-162.62 · tải 0/15"]
+   [hopXep_loiVuotCho] Vượt số chỗ của xe. Vượt số chỗ của xe: 17/15 · Ai xử lý: Văn phòng | 
+✓ 5) 1040: T1 đầy 15/15 — hộp xếp vẫn liệt kê T1? bấm xếp đơn 7 (2 khách) vào T1 → câu lỗi hiện gì
+   [phanBoLo_O7_O10] {"status":200,"code":null}
+✓ 6) API: T2 nhận O7–O10 (11 khách) một lệnh
+   [chiTiet_diem] ["1 Đón Sheraton Nha Trang 15:40 15:40 2 Chưa tới","2 Đón InterContinental Nha Trang 15:45 15:45 3 Chưa tới","3 Đón Mường Thanh Luxury, 60 Trần Phú 15:50 15:50 4 Chưa tới","4 Đón Novotel, 50 Trần Phú 15:55 15:55 2 Chưa tới","5 Đón Nhà riêng 12 Trần Phú, Lộc Thọ 16:00 16:00 1 Chưa tới","6 Đón Ana Mandara, 86 Trần Phú 16:05 16:05 3 Chưa tới","7 Trả Bến tàu du lịch Nha Trang — — 15 Chưa tới"]
+   [chiTiet_coDiaChiKS] false
+✓ 7) 1040: bảng sau xếp + Chi tiết chuyến T1 (6 điểm đón + 1 điểm trả)
+   [cuoc_the] ["15:20 CX-0710-01 Đã lên kế hoạch 79B-161.61 · 15 khách · 6 điểm đón · 1 điểm trả"]
+✓ 8) Tài xế 390: Cuốc của tôi (hôm nay có T1)
+   [truoc_diem] ["1 ĐÓN · HẸN 15:40 Sheraton Nha Trang 2 khách","2 ĐÓN · HẸN 15:45 InterContinental Nha Trang 3 khách","3 ĐÓN · HẸN 15:50 Mường Thanh Luxury, 60 Trần Phú 4 khách","4 ĐÓN · HẸN 15:55 Novotel, 50 Trần Phú 2 khách","5 ĐÓN · HẸN 16:00 Nhà riêng 12 Trần Phú, Lộc Thọ 1 khách","6 ĐÓN · HẸN 16:05 Ana Mandara, 86 Trần Phú 3 khách","7 TRẢ Bến tàu du lịch Nha Trang 15 khách"]
+   [truoc_nutXuatBen] {"h":52,"top":702,"bottom":754,"viewH":844,"barPosition":"sticky","disabled":false}
+   [truoc_docH] 1123
+✓ 9) Tài xế 390: trước xuất bến — danh sách điểm, nút Xuất bến dính đáy
+   [hopXuatBen] Xuất bến CX-0710-01? Mã chuyến CX-0710-01 Ngày chạy Thứ Tư 07/10/2026 (hôm nay) Giờ dự kiến 15:20 Biển số 79B-161.61 Số khách 15 khách Bấm lúc xe lăn bánh — giờ ghi là lúc bấm. Đã xuất bến thì không tự gỡ được, phải báo văn phòng. Chưa, quay lại Xuất bến
+   [sauXuatBen] Đang chạy
+79B-161.61 · xuất bến 09:09 · trên xe 0/15 | 
+✓ 10) Tài xế 390: bấm Xuất bến → hộp xác nhận → đang chạy
+   [chay_diem] ["ĐÓN · HẸN 15:40 | Sheraton Nha Trang | Liên hệ: Khách Ghép 1 0903 200 300","ĐÓN · HẸN 15:45 | InterContinental Nha Trang | Liên hệ: Khách Ghép 2 0903 200 301","ĐÓN · HẸN 15:50 | Mường Thanh Luxury, 60 Trần Phú | Liên hệ: Khách Ghép 3 0903 200 302","ĐÓN · HẸN 15:55 | Novotel, 50 Trần Phú | Liên hệ: Khách Ghép 4 0903 200 303","ĐÓN · HẸN 16:00 | Nhà riêng 12 Trần Phú, Lộc Thọ | Liên hệ: Khách Ghép 5 0903 200 304","ĐÓN · HẸN 16:05 | Ana Mandara, 86 Trần Phú | Liên hệ: Khách Ghép 6 0903 200 305","TRẢ | Bến tàu du lịch Nha Trang | "]
+   [chay_do] {"fsNoi":"17px","fsLoai":"12px","fsKhachTen":"16px","fsLienHe":"14px","fsNote":"12px","fsBody":"16px","nutDaToi":{"h":52,"w":324},"nutKetThuc":{"h":52,"w":358},"nutGianDoan":{"h":44,"w":174},"linkTel":{"h":44,"w":101},"nutThuTu":{"h":44,"w":44},"endPosition":"static","ketThucTopTrongTrang":2569,"viewH":844,"docH":2771,"soTel":6,"soBanDo":0,"soDiem":7,"mauNoi":"rgb(15, 23, 42)","nenThe":"rgb(255, 255, 255)","mauNote":"rgb(71, 85, 105)"}
+   [chay_coDiaChiKS] false
+✓ 11) Tài xế 390 đang chạy: đo cỡ chữ, cỡ nút, vị trí nút chính, tel:, bản đồ, chiều dài trang
+   [daToi_coHopXacNhan] false
+   [daDon_coHopXacNhan] false
+   [vuaGhi] Vừa ghi: Khách Ghép 1-1 — Đã đón. Sai? Báo văn phòng.
+✓ 12) Điểm 1: Đã tới → Đã đón 2 khách (một chạm, không hộp xác nhận?)
+   [vang_coHopXacNhan] false
+   [vang_vuaGhi] Vừa ghi: Khách Ghép 2-3 — Vắng. Sai? Báo văn phòng.
+   [huy_coHopXacNhan] false
+   [huy_vuaGhi] Vừa ghi: Khách Ghép 2-2 — Khách đã huỷ. Sai? Báo văn phòng.
+✗ 13) Điểm 2: Đã tới → khách 1 Vắng, khách 2 Khách đã huỷ, khách 3 Đã đón; ghi có hộp xác nhận không; chụp
+    Error: hết giờ chờ: ba khách có kết quả
+    [...document.querySelectorAll('.dp-run[data-diem="6e7e4386-bc65-471b-b71d-1ef9a1ad1f6e"] .dp-khach-kq')].length === 3
+        at Object.waitFor (file://../../../../../../docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:186:37)
+        at async file://../../ui/ghep-10-don.mjs:289:5
+        at async Object.step (file://../../../../../../docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file://../../ui/ghep-10-don.mjs:274:3
+   [matMang_dai] Mất mạng — 1 thao tác chưa gửi được Bấm lại ở dòng đó khi có mạng — máy không tự gửi lại.
+   [matMang_yeuCauSau] [{"m":"POST","path":"/api/van-chuyen/cuoc-cua-toi/b4eb2b84-4e9f-4471-8cf4-880165034b6b/phan-bo/1e8e8ea3-ccb6-4e5b-a258-f41d9f4e28e2/vang","body":"{\"requestId\":\"9bca399a-318a-43b8-88e5-150a2be9dbc5\"}"},{"m":"GET","path":"/api/thong-bao/tom-tat","body":null},{"m":"GET","path":"/api/van-chuyen/cuoc-cua-toi/b4eb2b84-4e9f-4471-8cf4-880165034b6b","body":null},{"m":"GET","path":"/api/van-chuyen/cuoc-cua-toi/b4eb2b84-4e9f-4471-8cf4-880165034b6b","body":null},{"m":"POST","path":"/api/van-chuyen/cuoc-cua-toi/b4eb2b84-4e9f-4471-8cf4-880165034b6b/phan-bo/1e8e8ea3-ccb6-4e5b-a258-f41d9f4e28e2/vang","body":"{\"requestId\":\"9bca399a-318a-43b8-88e5-150a2be9dbc5\"}"},{"m":"GET","path":"/api/van-chuyen/cuoc-cua-toi/b4eb2b84-4e9f-4471-8cf4-880165034b6b","body":null},{"m":"GET","path":"/api/thong-bao/tom-tat","body":null},{"m":"GET","path":"/api/van-chuyen/cuoc-cua-toi/b4eb2b84-4e9f-4471-8cf4-880165034b6b","body":null}]
+   [matMang_failed] [{"requestId":"55498.125","error":"net::ERR_INTERNET_DISCONNECTED","blockedReason":null}]
+   [matMang_domSau] {"isVang":1,"conCho":0,"dai":[]}
+   [matMang_SQL] [{"status":"NO_SHOW"}]
+   [matMang_console] []
+   [matMang_sauTaiLai_isVang] 1
+✓ 14) Điểm 3 mất mạng: Vắng khi offline → 'Chưa gửi được'; online → Bấm lại; chẩn đoán kết quả (DOM + SQL + mạng)
+   [gianDoan] Kết thúc gián đoạn CX-0710-01 dừng ở đây. 3 khách còn trên xe và 10 khách chưa đón sẽ báo về văn phòng. Xe hỏng? Bấm Kết thúc gián đoạn — văn phòng nhận tin ngay và xếp xe cứu hộ Lý do Xe hỏng Tai nạn Khác Đóng Kết thúc gián đoạn
+✓ 15) Hộp Kết thúc gián đoạn (390) — xem lý do; đóng
+   [doiTac_trangDau] {"path":"/tai-xe","text":"Chào Thuê Thứ Tư, 07/10/2026 Cuốc xe của bạn sẽ hiện ở đây Giấy tờ của tôi Xem tất cả Chưa có giấy tờ nào. Báo văn phòng để cập nhật."}
+   [doiTac_cuoc] {"path":"/cuoc","text":"Cuốc của tôi Tài khoản này không có cuốc xe.","loi":"Tài khoản này không có cuốc xe."}
+✓ 16) Tài xế đối tác 390: trang đầu có gì; mở /cuoc
+   [form_luaChonNoiDon] ["Chọn nơi đón…","InterContinental Nha Trang · khách sạn","Sheraton Nha Trang · khách sạn","Văn phòng Trần Phú · văn phòng","Văn phòng 2 tháng 4 · văn phòng","Quầy vé 01 · quầy vé","Quầy vé 02 · quầy vé","Quầy vé 03 · quầy vé","Quầy vé 04 · quầy vé","Bến tàu du lịch Nha Trang · bến tàu","Bến cảng Vinpearl · bến cảng","Gõ tự do…"]
+   [form_oKhach] {"sdtType":"tel","sdtInputmode":"tel","sdtFont":"16px","soKhachO":[],"fontSelect":"16px"}
+   [form_oTuDo] {"placeholder":"Số nhà, đường, phường…","font":"16px","goiY":"Địa chỉ đón Chỉ hiện trong trang đơn.","list":null}
+✓ 17) Biểu mẫu đơn 390: thêm TD101, + Thêm đưa đón; liệt kê lựa chọn Nơi đón; Gõ tự do; ô SĐT, số khách
+
+GHEP 10 DON: 16 ✓, 1 ✗: 13) Điểm 2: Đã tới → khách 1 Vắng, khách 2 Khách đã huỷ, khách 3 Đã đón; ghi có hộp xác nhận không; chụp

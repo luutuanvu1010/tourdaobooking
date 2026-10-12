@@ -215,7 +215,7 @@ export const dispatchModule: AppModule = {
     // = ngày khởi hành lớn nhất trong các dịch vụ, đã qua ⇔ < hôm nay giờ VN; ngay trong ngày đi vẫn huỷ được; từ hôm sau chỉ văn phòng huỷ qua
     // /status) → 400 (lý do) → ghi. Đổi ngày giữa lúc đọc và lúc ghi (PUT /trip) làm đổi `updated_at` (KHÔNG đổi `status`) → khoá lạc quan của
     // cancelOrderByHandler (khoá theo CẢ `status` VÀ `updated_at`, T1d) thua → 409.
-    route("POST", "/api/orders/:id/handler-cancel", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
+    route("POST", "/api/orders/:id/handler-cancel", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi, dongBoChuyen }) => {
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
       const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
@@ -230,13 +230,15 @@ export const dispatchModule: AppModule = {
       // nhãn cố định của CANCEL_REASON_LABEL.
       const label = input.reason === "other" ? input.note! : CANCEL_REASON_LABEL[input.reason];
       // ADR-0089 đ8 + lời chủ (a): lý do HDV ánh xạ nhóm ("không liên hệ được khách" = khách huỷ) — lưu cùng lô huỷ.
-      const ok = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, lyDoHuyCuaHdv(input.reason, input.note), label);
-      if (!ok) {
+      // ADR-0104 Đ2 (điểm gọi 2): máy đồng bộ chuyến nối khúc chuyến vào CHÍNH lô huỷ (HDV không có trip.view — phản hồi chỉ câu cố định + cờ, Đ2.13).
+      const r = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, lyDoHuyCuaHdv(input.reason, input.note), label, (x) => dongBoChuyen(x));
+      if (r.kq === "loi") return r.res;
+      if (r.kq === "thua") {
         const now = await findOrderOwner(env.DB, orderId);
         return now?.status === "confirmed" ? HANDLER_RACED() : NOT_CONFIRMED();
       }
       baoThayDoi({ orderId, thayDoi: "huy" });
-      return json({ ok: true } satisfies HandlerCancelResponse);
+      return json({ ok: true, dongBoChuyen: r.dongBoChuyen } satisfies HandlerCancelResponse);
     }),
 
     // Sửa số khách của đơn đang phụ trách CẤP HẸP (FIELD — ADR-0014 điều 6). Ghi thêm dòng điều chỉnh, KHÔNG sửa đè order_service/order_item/cột
@@ -244,28 +246,30 @@ export const dispatchModule: AppModule = {
     // giao → 409 `departed` (qua ngày đi — chủ dự án duyệt 2026-09-30 "Cho sửa đến hết ngày đi": cùng `tripDeparted` + `vnToday` với huỷ đơn,
     // DK-T4-02; ĐÚNG ngày đi vẫn sửa được; Toàn quyền KHÔNG bị chặn) → 409/400 do editMoneyAsHandler tự kiểm (không phải đơn đã xác nhận; thân yêu
     // cầu sai/thiếu/thừa dịch vụ; lý do có SĐT — `hasLongDigitRun`) → 409 stale nếu thua khoá lạc quan.
-    route("POST", "/api/orders/:id/handler-money-edit", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
+    route("POST", "/api/orders/:id/handler-money-edit", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi, dongBoChuyen }) => {
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
       const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
       if (!order) return NOT_FOUND();
       // CỐ Ý không dùng can(staff, "order.money.edit", { assigned }) trần: ô order.money.edit của ACCOUNTING/ADMIN trong MATRIX là "any" (dành cho
-      // một route KHÁC, chưa làm — N3, sửa tiền MỌI đơn không cần đang phụ trách) — can() hợp nhiều quyền nên sẽ cho ACCOUNTING/ADMIN qua route HẸP
+      // route văn phòng `POST /api/orders/:id/money-edit` — ADR-0063 D1, cổng office; sửa số khách MỌI đơn không cần đang phụ trách) — can() hợp nhiều quyền nên sẽ cho ACCOUNTING/ADMIN qua route HẸP
       // này dù không phải người phụ trách (lỗ đã bị kiểm độc lập bắt: đổi số khách/tiền của BẤT KỲ đơn đã xác nhận nào). Route hẹp này CHỈ dành cho
       // cấp hẹp thật (ô CHÍNH XÁC = "assigned", tức FIELD) VÀ đang được giao, cộng SUPER_ADMIN (ADR-0014 điều 2: any ở MỌI thao tác, không ngoại lệ).
       const narrowEligible = assigned && staff.permissions.some((p) => MATRIX["order.money.edit"][p] === "assigned");
       if (!narrowEligible && !hasPermission(staff, "SUPER_ADMIN")) return MONEY_EDIT_FORBIDDEN();
       if (await orderDelivered(env.DB, orderId)) return DA_GIAO();
       if (!hasPermission(staff, "SUPER_ADMIN") && tripDeparted(await findOrderDepartDates(env.DB, orderId), vnToday(new Date()))) return MONEY_EDIT_DEPARTED();
-      const result = await editMoneyAsHandler(env.DB, orderId, staff.id, await readJson(request));
+      // ADR-0104 Đ2 (điểm gọi 7): máy đồng bộ chuyến nối vào CHÍNH lô sửa số khách (HDV không có trip.view — phản hồi chỉ câu cố định + cờ, Đ2.13).
+      const result = await editMoneyAsHandler(env.DB, orderId, staff.id, await readJson(request), (x) => dongBoChuyen(x));
       if (!result.ok) {
+        if (result.code === "trip_rule") return result.res;
         if (result.code === "not_found") return NOT_FOUND();
         if (result.code === "not_confirmed") return MONEY_EDIT_NOT_CONFIRMED();
         if (result.code === "stale") return MONEY_EDIT_STALE();
         return error(400, "invalid_input", result.message ?? "Dữ liệu không hợp lệ.");
       }
       baoThayDoi({ orderId, thayDoi: "tien" });
-      return json({ ok: true } satisfies HandlerMoneyEditResponse);
+      return json({ ok: true, ...(result.dongBoChuyen ? { dongBoChuyen: result.dongBoChuyen } : {}) } satisfies HandlerMoneyEditResponse);
     }),
   ],
 };

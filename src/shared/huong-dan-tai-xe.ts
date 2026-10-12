@@ -6,10 +6,10 @@ export const HD_TAI_XE: NhomHuongDan = {
   tieuDe: "Tài xế",
   quyen: ["DRIVER", "DRIVER_PARTNER"],
   gioiThieu:
-    "Bạn là tài xế. Tài xế công ty xem cuốc mình lái hôm nay và ngày mai, bấm từng bước khi chạy. Mọi tài xế xem được hạn giấy tờ của mình. Bạn không thấy đơn hàng hay tiền.",
+    "Bạn là tài xế. Bạn xem cuốc mình lái, bấm từng bước khi chạy và xem hạn giấy tờ của mình. Bạn không thấy đơn hàng hay tiền.",
   batDauNhanh: `> Lưu ý: cuốc hiện ở đây khi văn phòng xếp bạn lái. Thấy "Không có cuốc nào." nghĩa là bạn chưa được xếp chuyến nào.
 
-> Lưu ý: tài xế của nhà xe đối tác chưa có phần cuốc xe — chỉ làm bước 3–5, rồi đọc mục cuối "Tài xế nhà xe đối tác".
+> Lưu ý: tài xế của nhà xe đối tác đọc thêm mục "Tài xế nhà xe đối tác" (từ chối chuyến, báo bận).
 
 1. Mở app. Bạn vào thẳng [[Cuốc của tôi]].
 2. Xem ba nhóm **Hôm nay**, **Ngày mai**, **Ngày kia**. Vào [[Tôi]] bật thông báo để được báo khi được xếp chuyến.
@@ -19,12 +19,13 @@ export const HD_TAI_XE: NhomHuongDan = {
   muc: [
     {
       tieuDe: "Menu của bạn",
-      noiDung: `Trên điện thoại, thanh dưới đáy của tài xế công ty có: [[Trang chủ]], [[Cuốc của tôi]], [[Tôi]]. Tài xế nhà xe đối tác chỉ có [[Trang chủ]] và [[Tôi]].
+      noiDung: `Trên điện thoại, thanh dưới đáy có: [[Trang chủ]], [[Cuốc của tôi]], [[Tôi]]. Tài xế nhà xe đối tác có thêm [[Báo bận của tôi]].
 - [[Trang chủ]]: lời chào và hai giấy tờ sắp hết hạn nhất.
 - [[Cuốc của tôi]]: các chuyến hôm nay, ngày mai và ngày kia.
+- [[Báo bận của tôi]]: ghi giờ bạn bận để văn phòng không xếp chuyến.
 - [[Tôi]]: đủ **Giấy tờ của tôi**, đổi PIN, bật thông báo.
 
-Trên máy tính, menu bên trái có: [[Trang chủ]], [[Cuốc của tôi]], [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]].`,
+Trên máy tính, menu bên trái có các mục trên, cùng [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]].`,
     },
     {
       tieuDe: "Xem cuốc và chuẩn bị",
@@ -55,10 +56,13 @@ Trên máy tính, menu bên trái có: [[Trang chủ]], [[Cuốc của tôi]], [
 - **Khách chưa có tên (chỉ tài xế công ty):** trong ngày chạy, khối **Suất của khách** báo thiếu tên. Hỏi khách, bấm [[Bổ sung tên]], nhập họ tên, năm sinh rồi bấm [[Lưu]].
 - **Văn phòng đã báo huỷ:** vẫn tới điểm. Gặp khách thì bấm [[Đã đón]]; không gặp thì bấm [[Khách đã huỷ]] để trả chỗ.
 - **Muốn ghé điểm khác trước:** khi xe đang chạy, điểm chưa tới có nút mũi tên lên và mũi tên xuống để đổi thứ tự.
+- **Cần đường tới điểm:** trong ngày chạy, mỗi điểm chưa xong có nhóm **Chỉ đường**. Bấm [[Google Maps]] để mở bản đồ với điểm đến điền sẵn; iPhone, iPad, máy Mac có thêm [[Apple Maps]]. Bản đồ chỉ nhận địa chỉ điểm đến, không nhận tên hay số điện thoại khách. Điểm đã xong hoặc chuyến đã kết thúc thì không còn nút. Điểm chưa có địa chỉ thì bản đồ tìm theo tên điểm, có thể sai — báo văn phòng.
 - **Xe hỏng, không đi tiếp được:**
-  1. Bấm [[Kết thúc gián đoạn]].
-  2. Chọn một lý do trong danh sách.
-  3. Bấm [[Kết thúc gián đoạn]] trong bảng. Văn phòng nhận tin ngay và xếp xe cứu hộ; cần gấp thì gọi văn phòng.
+  1. Bấm [[Chuyển khách sang xe khác]], chọn một xe đang chạy còn đủ chỗ, gõ nơi gặp, bấm [[Gửi đề nghị]].
+  2. Tài xế xe kia bấm Nhận thì khách trên xe và khách đang chờ đã sang xe đó. Hết giờ chờ hoặc bị từ chối thì gọi văn phòng.
+  3. Bấm [[Kết thúc gián đoạn]], chọn lý do, bấm [[Kết thúc gián đoạn]] trong bảng. Văn phòng nhận tin ngay và xếp xe cho khách còn lại.
+- **Không kịp tới một điểm đón:** ở điểm đó bấm [[Nhờ xe khác đón]], chọn xe cùng ngày, bấm [[Gửi đề nghị]]. Chưa ai nhận thì khách vẫn ở xe bạn; không cần nữa thì bấm [[Rút lại]].
+- **Xe khác nhờ bạn đón khách:** thẻ đề nghị hiện trên chuyến của bạn, có đếm ngược giờ chờ. Bấm [[Nhận]] để nhận khách, hoặc [[Không nhận]] rồi chọn lý do. Có lúc Nền tảng cần văn phòng duyệt; kết quả báo sau.
 - **Mất mạng:** dòng chưa gửi ghi **Chưa gửi được** kèm nút [[Bấm lại]]. Có mạng thì bấm lại đúng dòng đó. Máy không tự gửi lại. **Đừng tắt app** trước khi bấm lại. Lỡ tắt thì gọi văn phòng bấm thay.
 - **Chỉ thấy "Khách 1", "Khách 2":** tên, năm sinh và số liên hệ khách chỉ hiện **trong ngày chạy**. Xuất bến từ tối hôm trước cũng không hiện sớm.
 - **Mở lại chuyến đang chạy:** ở [[Cuốc của tôi]], bấm [[Mở chuyến đang chạy]].`,
@@ -74,15 +78,20 @@ Trên máy tính, menu bên trái có: [[Trang chủ]], [[Cuốc của tôi]], [
     {
       tieuDe: "Tài xế nhà xe đối tác",
       noiDung: `Nếu bạn là tài xế của nhà xe khác:
-- Bạn đăng nhập và xem **Giấy tờ của tôi** ở [[Trang chủ]] và [[Tôi]]. Số giấy tờ bị che một phần.
-- Trang chủ ghi "Cuốc xe của bạn sẽ hiện ở đây". Bạn chưa xem chuyến và chưa bấm được các bước chạy (chưa có ở bản này).
-- Bạn không thấy đơn, giá hay tin nội bộ của công ty.
+- Bạn xem cuốc và bấm các bước chạy như tài xế công ty, trừ bổ sung tên khách.
+- **Từ chối chuyến:** chuyến chưa chạy có dải "Từ chối được tới …". Không chạy được thì bấm [[Từ chối chuyến]], chọn lý do, bấm [[Xác nhận từ chối]]. Chuyến rời khỏi Cuốc của bạn, văn phòng xếp người khác. Quá giờ đó thì không từ chối được nữa: bấm [[Gọi văn phòng]].
+- **Tên khách và mã đơn:** chỉ hiện từ giờ ghi ở dòng "Bạn thấy tên khách và mã đơn từ …".
+- **Báo bận:** ở [[Báo bận của tôi]], chọn giờ bắt đầu, giờ kết thúc, lý do rồi bấm [[Lưu khung bận]]. Văn phòng chỉ thấy bạn bận, không thấy lý do. Giờ đó trùng chuyến bạn đang được xếp thì không lưu được: từ chối chuyến đó trước (nếu còn hạn) hoặc gọi văn phòng. Hết bận thì bấm [[Rút khung bận]].
+- Số giấy tờ bị che một phần. Bạn không thấy đơn, giá hay tin nội bộ của công ty.
 - Giấy tờ sai hoặc có giấy mới: báo văn phòng, hoặc bấm [[Góp ý / Báo lỗi]].`,
     },
     {
       tieuDe: "Câu hỏi thường gặp",
       noiDung: `### Sao hôm nay không có cuốc nào?
 Văn phòng chưa xếp bạn lái chuyến nào. Khi được xếp, đổi hay huỷ chuyến, bạn nhận thông báo (nếu đã bật).
+
+### Thông báo "Văn phòng vừa điều chỉnh chuyến" là gì? (tài xế công ty)
+Văn phòng vừa xếp thêm, rút hay chuyển khách trên chuyến bạn lái, và đã bỏ qua một luật (có ghi lý do). Thông báo ghi "điều chỉnh khẩn cấp" nghĩa là việc này làm sát giờ chạy. Bạn mở thông báo để xem lại điểm đón và số khách.
 
 ### Giờ ghi có phải giờ tôi bấm không?
 Đúng. Bạn không tự sửa giờ được.

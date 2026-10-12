@@ -1,0 +1,21 @@
+TAP version 13
+# (node:44789) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:44789) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# === S7.ket_qua {"xep_lan1":{"status":200,"code":null,"message":null},"xep_version_cu":{"status":409,"code":"stale","message":"Chuyến vừa được người khác sửa, tải lại.","extra":{}},"xep_Z_lan1":{"status":200,"code":null,"message":null},"xep_Z_lap_cung_rid_cung_version":{"status":200,"code":null,"message":null},"so_suat_Z":1,"xuatBen_lan1":{"status":200,"code":null,"message":null},"xuatBen_lan2_cung_rid":{"status":200,"code":null,"message":null,"trangThai":"RUNNING"},"xuatBen_dem":{"suKien":1,"audit":1},"xuatBen_khac_rid":{"status":409,"code":"da_xuat_ben","message":"Chuyến đã xuất bến.","extra":{"lyDo":[{"ma":"CHUYEN_KHONG_CON_LEN_KE_HOACH","loiNhan":"Chuyến đã chạy, đã kết thúc hoặc đã huỷ: CX-1103-01","aiXuLy":"VAN_PHONG","aiXuLyNhan":"Văn phòng"}]}},"daToi_dong_thoi_cung_rid":[{"status":200,"code":null,"message":null},{"status":200,"code":null,"message":null}],"daToi_dem":{"suKien":1,"audit":1},"daToi_lai_khac_rid":{"status":409,"code":"diem_da_toi","message":"Điểm đã tới hoặc đã bỏ qua.","extra":{"lyDo":[]}},"don_lan1":{"status":200,"code":null,"message":null},"don_lan2_khac_rid":{"status":409,"code":"suat_da_co_ket_qua","message":"Khách này đã có kết quả — không đổi được.","extra":{"lyDo":[]}},"don_dong_thoi_khac_rid":[{"status":200,"code":null,"message":null},{"status":409,"code":"suat_da_co_ket_qua","message":"Khách này đã có kết quả — không đổi được.","extra":{"lyDo":[]}}],"don_dem_su_kien_suat":1,"daToi_B_kem_version_cu":{"status":200,"code":null,"message":null},"vang_B0_dung_lai_rid_cua_lenh_khac":{"status":200,"code":null,"message":null,"trangThaiSuatTrongPhanHoi":"WAITING"},"vang_B0_trang_thai_that":"WAITING","van_phong_don_B0_dung_lai_rid":{"status":200,"code":null,"message":null,"trangThaiSuat":"WAITING"},"ve_lan1":{"status":200,"code":null,"message":null},"ve_lan2":{"status":200,"code":null,"message":null,"phatLai":["idempotent-replayed"]},"ve_than_khac":{"status":422,"code":"ma_lan_gui_khac_noi_dung","message":"Lần gửi trước đã ghi với nội dung khác. Tải lại để xem.","extra":{}},"lg_lan_gui":[{"duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/don","ma_tra":200,"so_lan_lap":1}]}
+# === S7.su_kien [{"kind":"ALLOCATED","n":2},{"kind":"CREATED","n":1},{"kind":"DEPARTED","n":1},{"kind":"PASSENGER_BOARDED","n":3},{"kind":"STOP_ARRIVED","n":2}]
+# Subtest: S7 bấm trùng
+ok 1 - S7 bấm trùng
+  ---
+  duration_ms: 123.688542
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 235.29675

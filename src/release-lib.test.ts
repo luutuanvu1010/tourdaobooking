@@ -5,7 +5,7 @@
 // Mẫu đầu ra wrangler ở src/release-lib.fixtures/ là đầu ra THẬT của `wrangler d1 migrations list … --local --persist-to <thư mục tạm>` (wrangler 4.135.0).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 
 type RunResult = { code: number; stdout: string; stderr: string };
 type RunOpts = { env?: Record<string, string>; stream?: boolean; tee?: boolean };
@@ -20,7 +20,11 @@ type Lib = {
   parseBookmark: (out: string) => string | null;
   parseVersionId: (out: string) => string | null;
   dayLen: (deps: Deps & { target?: string }) => Promise<number>;
-  trienKhai: (deps: Deps & { now?: () => Date; sleep?: (ms: number) => Promise<void>; version?: string }) => Promise<number>;
+  trienKhai: (deps: Deps & { now?: () => Date; sleep?: (ms: number) => Promise<void>; version?: string; docMocTinDoi?: () => Promise<string> }) => Promise<number>;
+  DUOI_MIGRATION_TIN_DOI: string;
+  coMigrationTinDoi: (pending: string[]) => boolean;
+  kiemMocTinDoi: (pending: string[], mocIso: unknown, nowMs: number) => { ok: true; kiem: boolean } | { ok: false; reason: string };
+  docMocTinDoiMacDinh: () => Promise<string>;
 };
 const lib = (await import(new URL("../scripts/release-lib.mjs", import.meta.url).href)) as Lib;
 
@@ -715,6 +719,78 @@ test("trien-khai (7403): bước GHI gặp 7403 (áp migration, deploy) → KHÔ
   const h2 = harness(tkScript({ [DEPLOY]: LOI_7403 }), ["c", "c"]);
   assert.notEqual(await lib.trienKhai({ ...h2.deps, now: NOW, sleep: async () => {} }), 0);
   assert.equal(h2.calls.filter((c) => c === DEPLOY).length, 1);
+});
+
+// ─────────────── cổng mốc tin đổi (ADR-0062; phiếu kiểm A3 C1, 2026-10-08) ───────────────
+// Lần phát hành ĐẦU TIÊN mang migration 0086 phải đặt MOC_TIN_DOI (src/shared/thong-bao.ts) = lúc phát hành; mốc cũ ⇒ dòng đổi của tối đa 30 ngày trước
+// hiện thành tin hàng loạt ngay ngày triển khai. Chỉ THÊM một điểm dừng sau cổng chỉ-đọc "migration nào chưa áp", trước mọi bước khác.
+
+const LIST_0086 = LIST_0023.replace("0023_auth_passkey.sql", "0086_aud_order_change.sql");
+const GIO = 3600e3;
+
+// Cổng nhận migration theo ĐUÔI tên (số migration đổi được lúc gộp — CHANGE-GUIDE công thức d; người kiểm 8/10 đổi 0086 → 0087 thì cổng viết cứng tên CHẾT
+// mà mọi bài vẫn xanh). Bài này khoá: trong migrations/ có ĐÚNG MỘT tệp mang đuôi cổng dùng, cổng nhận đúng tệp đó, và nhận cả khi tệp bị đổi số.
+test("cổng mốc tin đổi nhận migration theo đuôi: migrations/ có ĐÚNG MỘT tệp *_aud_order_change.sql, cổng nhận tệp đó và mọi số khác của nó", () => {
+  const tep = readdirSync(new URL("../migrations/", import.meta.url)).filter((f) => f.endsWith(lib.DUOI_MIGRATION_TIN_DOI));
+  assert.equal(lib.DUOI_MIGRATION_TIN_DOI, "_aud_order_change.sql");
+  assert.equal(tep.length, 1, `đúng một tệp mang đuôi cổng dùng: ${JSON.stringify(tep)}`);
+  const t = Date.parse("2026-10-10T03:00:00.000Z");
+  for (const ten of [tep[0]!, "0087_aud_order_change.sql", "0123_aud_order_change.sql"]) {
+    assert.equal(lib.coMigrationTinDoi(["0001_x.sql", ten]), true, ten);
+    assert.equal(lib.kiemMocTinDoi([ten], "2026-09-30T00:00:00.000Z", t).ok, false, `${ten}: mốc cũ phải dừng`);
+  }
+  assert.equal(lib.coMigrationTinDoi(["0086_aud_order_change_v2.sql", "0086_aud_order_event.sql"]), false, "đuôi khác không phải migration tin đổi");
+});
+
+test("kiemMocTinDoi: không có migration tin đổi trong danh sách chờ → không kiểm (kể cả mốc hỏng); có → mốc phải trong [lúc chạy − 24 giờ, lúc chạy + 24 giờ]", () => {
+  const t = Date.parse("2026-10-10T03:00:00.000Z");
+  const co = ["0086_aud_order_change.sql"];
+  assert.deepEqual(lib.kiemMocTinDoi([], "rác", t), { ok: true, kiem: false });
+  assert.deepEqual(lib.kiemMocTinDoi(["0087_x.sql"], "2026-09-30T00:00:00.000Z", t), { ok: true, kiem: false }, "các lần phát hành SAU (0086 đã áp) không vướng");
+  assert.deepEqual(lib.kiemMocTinDoi(co, new Date(t - 24 * GIO).toISOString(), t), { ok: true, kiem: true }, "đúng biên −24 giờ vẫn đạt");
+  assert.deepEqual(lib.kiemMocTinDoi(co, new Date(t + 24 * GIO).toISOString(), t), { ok: true, kiem: true }, "đúng biên +24 giờ vẫn đạt");
+  for (const [moc, vi] of [
+    [new Date(t - 24 * GIO - 1).toISOString(), "cũ hơn 24 giờ"],
+    ["2026-09-30T00:00:00.000Z", "giá trị tạm"],
+    [new Date(t + 24 * GIO + 1).toISOString(), "xa hơn 24 giờ về sau (gõ nhầm năm → tin bị câm tới lúc đó)"],
+    ["2026-10-10", "thiếu giờ"],
+    ["2026-13-45T00:00:00.000Z", "đúng khuôn nhưng ngày không có thật (không được ném lỗi)"],
+    ["2026-10-10T03:00:00Z", "không đủ mili-giây (khác dạng toISOString)"],
+    ["", "rỗng"],
+    [undefined, "không phải chuỗi"],
+  ] as const) {
+    const k = lib.kiemMocTinDoi(co, moc, t);
+    assert.equal(k.ok, false, `${vi}: phải dừng`);
+    if (!k.ok) assert.match(k.reason, /MOC_TIN_DOI/, vi);
+  }
+});
+
+test("docMocTinDoiMacDinh: đọc ĐÚNG hằng MOC_TIN_DOI của src/shared/thong-bao.ts (import thật, không chép giá trị)", async () => {
+  const { MOC_TIN_DOI } = await import("./shared/thong-bao.ts");
+  assert.equal(await lib.docMocTinDoiMacDinh(), MOC_TIN_DOI);
+});
+
+test("trien-khai (mốc tin đổi): 0086 còn chờ áp mà MOC_TIN_DOI cũ / hỏng / đọc lỗi → DỪNG ngay sau cổng migration, trước cổng phiên bản; chỉ đúng tệp cần sửa", async () => {
+  const cu = async () => "2026-09-30T00:00:00.000Z";
+  const loi = async () => { throw new Error("không nạp được"); };
+  for (const doc of [cu, async () => "rác", loi]) {
+    const h = harness(tkScript({ [LIST]: out(LIST_0086) }));
+    assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW, docMocTinDoi: doc }), 0);
+    assert.equal(h.calls.at(-1), LIST, "dừng NGAY sau cổng migration");
+    assert.ok(!h.calls.includes(GATE_PRE));
+    assertNothingDangerous(h.calls);
+    assert.deepEqual(h.questions, []);
+    assert.match(h.text(), /MOC_TIN_DOI/);
+    assert.match(h.text(), /src\/shared\/thong-bao\.ts/);
+  }
+});
+
+test("trien-khai (mốc tin đổi): 0086 chờ áp + mốc đúng lúc phát hành → đi tiếp y như cũ; không có 0086 → không đọc mốc", async () => {
+  const h = harness(tkScript({ [LIST]: out(LIST_0086) }), ["c", "c"]);
+  assert.equal(await lib.trienKhai({ ...h.deps, now: NOW, docMocTinDoi: async () => NOW().toISOString() }), 0);
+  assert.deepEqual(h.calls, [...TK_PREFIX, TT, ...CHECK, APPLY, ...CHECK, DEPLOY, AUDIT, GATE_POST]); // ghép main 1c471990: hai cổng "mã đổi giữa chừng" trước áp / trước deploy
+  const h2 = harness(tkScript(), ["c", "c"]);
+  assert.equal(await lib.trienKhai({ ...h2.deps, now: NOW, docMocTinDoi: async () => { throw new Error("không được đọc"); } }), 0);
 });
 
 // ─────────── mã trong thư mục đổi giữa chừng (sự cố 2026-10-08: `day-len` của phiên khác gộp vào CÙNG checkout lúc e2e đang chạy) ───────────

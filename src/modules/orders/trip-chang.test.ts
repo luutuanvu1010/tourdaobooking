@@ -5,6 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+import { phanDoiCuaTin } from "../../shared/tin-doi-don.ts";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const LOC = "a941dd7d-faab-4098-9ab9-1df7fa6dd551";
@@ -107,4 +108,66 @@ test("đơn đã xác nhận: chưa có chiều đi, gửi giờ + nơi → TẠ
   assert.equal(r.status, 200, r.text);
   const out = legs(w, o.id).find((l: any) => l.direction === "OUT");
   assert.deepEqual([out.pickup_date, out.pickup_time, out.pickup_place], [D, "05:45", "Nhà riêng"]);
+});
+
+// ---- G17 (sổ thi công 2026-10-08 mục G17; kế hoạch docs/superpowers/plans/2026-10-09-g17-bao-tai-xe-doi-ngay.md): `PUT /trip` đổi ngày / giờ đón của chặng ⇒
+// MỖI chặng đổi có MỘT dòng `order_leg_updated` (target = id chặng, cùng mốc với `trip_updated`, cùng lô) theo khuôn chặng `moTaChang` mà hàm đọc tin
+// `phanDoiCuaTin` nhận ra (`gioHen` cho MQ-07 — ADR-0052 D6.2). Không ghi giá trị nơi (luật cũ của PUT /trip: nhật ký không chứa địa điểm).
+const nhatKyChang = (w: any, id: string) =>
+  w.q("SELECT target_type, target_id, detail, created_at FROM audit_log WHERE order_id = ? AND action = 'order_leg_updated' ORDER BY rowid", id).map((r: any) => ({ ...r }));
+const mocTrip = (w: any, id: string) => w.q("SELECT created_at FROM audit_log WHERE order_id = ? AND action = 'trip_updated'", id).map((r: any) => r.created_at);
+
+test("G17: đơn đã xác nhận dời NGÀY ĐI → mỗi chặng dời có một dòng order_leg_updated (target = chặng, cùng mốc trip_updated), khuôn chặng, gioHen = true (chỉ đổi ngày)", async () => {
+  const w = setup();
+  const o = await order(w, true);
+  const r = await trip(w, o, { departDate: inDays(5) });
+  assert.equal(r.status, 200, r.text);
+  const out = o.services[0].legs.find((l: any) => l.direction === "OUT");
+  const ret = o.services[0].legs.find((l: any) => l.direction === "RETURN");
+  const rows = nhatKyChang(w, o.id);
+  const moc = mocTrip(w, o.id);
+  assert.equal(moc.length, 1);
+  const theoChang = (a: any, b: any) => (a[1] < b[1] ? -1 : 1);
+  assert.deepEqual(
+    rows.map((x: any) => [x.target_type, x.target_id, x.detail, x.created_at]).sort(theoChang),
+    [
+      ["order", out.id, `Chiều đi · Tour đảo: ngày đón ${inDays(2)} → ${inDays(4)}`, moc[0]],
+      ["order", ret.id, `Chiều về · Tour đảo: ngày đón ${inDays(4)} → ${inDays(6)}`, moc[0]],
+    ].sort(theoChang),
+  );
+  for (const x of rows) {
+    const p = phanDoiCuaTin("order_leg_updated", x.detail);
+    assert.equal(p?.gioHen, true, x.detail);
+    assert.equal(p?.loai, "cu-the", x.detail);
+  }
+});
+
+test("G17 (phiếu kiểm V1): lệnh THUA (expectedUpdatedAt cũ) dời ngày đi → 409 stale, KHÔNG dòng order_leg_updated nào, chặng không đổi", async () => {
+  const w = setup();
+  const o = await order(w, true);
+  const r1 = await trip(w, o, { note: "Người khác sửa trước" }); // đơn đổi mốc updated_at
+  assert.equal(r1.status, 200, r1.text);
+  const truoc = legs(w, o.id);
+  const r = await trip(w, o, { departDate: inDays(5) }); // mốc CŨ của `o`
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "stale");
+  assert.deepEqual(nhatKyChang(w, o.id), [], "lệnh thua để lại dòng chặng giả trong nhật ký (sẽ thành tin MQ-07 báo tài xế)");
+  assert.deepEqual(legs(w, o.id), truoc);
+});
+
+test("G17: thân cũ đổi giờ + nơi đón → dòng chặng chỉ có giờ đón (KHÔNG giá trị nơi); chỉ đổi nơi / ghi chú → không thêm dòng chặng", async () => {
+  const w = setup();
+  let o = await order(w, true);
+  let r = await trip(w, o, { pickupTime: "07:00", pickupPlace: "Nhà nghỉ Mới 0905123456" });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(nhatKyChang(w, o.id).map((x: any) => x.detail), ["Chiều đi · Tour đảo: giờ đón 06:30 → 07:00"]);
+  o = r.json.order;
+  r = await trip(w, o, { pickupTime: "07:00", pickupPlace: "Nhà nghỉ Khác" });
+  assert.equal(r.status, 200, r.text);
+  o = r.json.order;
+  r = await trip(w, o, { note: "Chỉ ghi chú" });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(nhatKyChang(w, o.id).length, 1, "chỉ đổi nơi / ghi chú → không thêm dòng chặng");
+  const tatCa = JSON.stringify(w.q("SELECT detail FROM audit_log WHERE order_id = ?", o.id));
+  for (const x of ["Nhà nghỉ", "0905123456"]) assert.ok(!tatCa.includes(x), `nhật ký chứa "${x}"`);
 });

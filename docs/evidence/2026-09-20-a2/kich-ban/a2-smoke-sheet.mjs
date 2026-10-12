@@ -53,7 +53,8 @@ try {
   // ---- 1) nút và cấu trúc bảng (khổ iPhone) ----
   let p = await env.as(ACCOUNTS.salesA, `/order?id=${orderId}`);
   await p.waitFor("document.querySelectorAll('#order .svc-view').length === 2", "đơn nạp");
-  assert.deepEqual(await p.ev("[...document.querySelectorAll('#actions .btn')].map((b) => b.textContent)"), ["Sửa thông tin chuyến", "Huỷ đơn"]);
+  // 2026-10-08 (gói A2, ADR-0063 D1): người lập đơn đã xác nhận có thêm nút "Sửa số khách dịch vụ" (kịch bản riêng docs/evidence/2026-10-08-a2-so-khach/).
+  assert.deepEqual(await p.ev("[...document.querySelectorAll('#actions .btn')].map((b) => b.textContent)"), ["Sửa thông tin chuyến", "Sửa số khách dịch vụ", "Huỷ đơn"]);
   await open(p);
   assert.equal(await p.ev(`${sheet}.getAttribute('role')`), "dialog");
   assert.equal(await p.ev(`${sheet}.getAttribute('aria-modal')`), "true");

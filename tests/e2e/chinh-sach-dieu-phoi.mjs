@@ -12,7 +12,7 @@ const TOAN_QUYEN = await session(ACCOUNTS.superAdmin);
 const duoi = String(Date.now()).slice(-6);
 const MA_LY_DO = `PHA_LE_E2E_${duoi}`;
 const cho = () => new Promise((res) => setTimeout(res, 5)); // valid_from_at duy nhất theo mili-giây
-const GOC = { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 };
+const GOC = { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720, refuseLeadMinutes: 720, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer: true }; // A4 (ADR-0053 D8, D9): hạn Từ chối + SĐT văn phòng là hai trường BẮT BUỘC của thân
 // ADR-0050 VK1-C: hai điều kiện GIEO SẴN (mọi xe) — phải còn nguyên sau kịch bản (không đóng dòng gieo để "cho qua": che TC-52).
 const DIEU_KIEN_GIEO = [[1, "VEHICLE", "INSPECTION"], [1, "VEHICLE", "TPL_INSURANCE"]];
 const dangAp = (rules) => rules.filter((x) => x.active).map((x) => [x.minCapacity, x.subject, x.documentTypeCode]);
@@ -33,6 +33,7 @@ try {
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(r.body.current.requireContract, false);
   assert.equal(typeof r.body.current.proxyBackdateMaxMinutes, "number", "ADR-0050 VK1-A: chính sách có kẹp lùi");
+  assert.equal(typeof r.body.current.departureWindowMinutes, "number", "ADR-0096 Đ2.2: chính sách có cửa sổ xuất bến");
   console.log(`✓ cổng + ô: Bán hàng, Quản trị 403; Toàn quyền đọc chính sách (mốc hiện ${r.body.current.minLeadMinutes} phút, kẹp lùi ${r.body.current.proxyBackdateMaxMinutes} phút)`);
   r = await call(TOAN_QUYEN, "GET", "/api/van-chuyen/dieu-kien");
   assert.equal(r.status, 200, JSON.stringify(r.body));
@@ -40,24 +41,29 @@ try {
   console.log("✓ TC-52 (VK1-C): D1 thật có đúng hai điều kiện gieo đang áp — Kiểm định, Bảo hiểm (mọi xe)");
 
   // --- 2. Chính sách: thêm bản mới 201 (hiệu lực ngay); thân có ngày hiệu lực / hợp đồng bật → 400 ---
-  r = await call(TOAN_QUYEN, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true, proxyBackdateMaxMinutes: 90, dutyDayMaxMinutes: 540, tripNoBreakMaxMinutes: 240 });
+  r = await call(TOAN_QUYEN, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true, proxyBackdateMaxMinutes: 90, dutyDayMaxMinutes: 540, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 1440, refuseLeadMinutes: 600, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer: true });
   assert.equal(r.status, 201, JSON.stringify(r.body));
   assert.equal(r.body.current.minLeadMinutes, 240);
   assert.equal(r.body.current.proxyBackdateMaxMinutes, 90);
   assert.equal(r.body.current.dutyDayMaxMinutes, 540, "ADR-0055 VK2-B: bản mới mang giờ lái tối đa đã gửi");
+  assert.equal(r.body.current.departureWindowMinutes, 1440, "ADR-0096 Đ2.2: bản mới mang cửa sổ xuất bến đã gửi");
+  assert.equal(r.body.current.refuseLeadMinutes, 600, "A4: bản mới mang hạn Từ chối đã gửi");
   assert.ok(r.body.history.length >= 2, "bản cũ còn trong lịch sử");
   assert.ok(typeof r.body.current.nguoiLuu === "string" && r.body.current.nguoiLuu.length > 0, "R-P23: bản vừa lưu có \"ai lưu\" (tên hiển thị)");
   assert.doesNotMatch(r.body.current.nguoiLuu, /\d{8,}/, "R-P23: \"ai lưu\" không phải SĐT");
   const { proxyBackdateMaxMinutes: _kep, ...thieuKep } = GOC;
   const { dutyDayMaxMinutes: _gl, ...thieuGioLai } = GOC; // ADR-0055 VK2-B (Review Focus 5): màn cũ gửi thiếu → 400, không tự điền mặc định
-  for (const body of [{ ...GOC, validFrom: "2026-01-01" }, { ...GOC, requireContract: true }, { ...GOC, minLeadMinutes: 0 }, thieuKep, { ...GOC, proxyBackdateMaxMinutes: 1441 }, thieuGioLai]) {
+  const { departureWindowMinutes: _cs, ...thieuCuaSo } = GOC; // ADR-0096 Đ2.2: màn cũ (service worker giữ bản trước) gửi thiếu → 400, không tự điền
+  const { refuseLeadMinutes: _tc, ...thieuHanTuChoi } = GOC; // A4: màn cũ gửi thiếu → 400, không tự điền
+  for (const body of [thieuHanTuChoi, { ...GOC, refuseLeadMinutes: 59 }, { ...GOC, refuseLeadMinutes: 2881 }, { ...GOC, validFrom: "2026-01-01" }, { ...GOC, requireContract: true }, { ...GOC, minLeadMinutes: 0 }, thieuKep, { ...GOC, proxyBackdateMaxMinutes: 1441 }, thieuGioLai, thieuCuaSo, { ...GOC, departureWindowMinutes: 59 }, { ...GOC, departureWindowMinutes: 2881 }]) {
     const x = await call(TOAN_QUYEN, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", body);
     assert.equal(x.status, 400, `${JSON.stringify(body)}: ${JSON.stringify(x.body)}`);
   }
   const nk = await nhatKy("dispatch_policy_changed");
   assert.match(nk.detail, /mốc tối thiểu \d+ → 240 phút/);
+  assert.match(nk.detail, /cửa sổ xuất bến \d+ → 1440 phút/);
   assert.equal(nk.order_id, null);
-  console.log("✓ chính sách: Toàn quyền thêm bản 240 phút, kẹp lùi 90 → 201, hiệu lực ngay; ngày hiệu lực / hợp đồng bật / mốc 0 (không tắt được) / thiếu kẹp lùi / kẹp 1441 → 400; nhật ký trước → sau");
+  console.log("✓ chính sách: Toàn quyền thêm bản 240 phút, kẹp lùi 90 → 201, hiệu lực ngay; ngày hiệu lực / hợp đồng bật / mốc 0 (không tắt được) / thiếu kẹp lùi / kẹp 1441 / thiếu cửa sổ xuất bến / cửa sổ 59, 2881 → 400; nhật ký trước → sau");
 
   // --- 3. Hạng bằng: D2 = 30 → dòng mới, dòng cũ còn; hạng lạ → 400 (khoá ngoại do D1 giữ) ---
   await cho();
@@ -125,11 +131,17 @@ try {
          VALUES ('e2e-kep0-${duoi}', 360, 120, 30, 1, 0, '2099-01-04T00:00:00.000Z', '2099-01-04T00:00:00.000Z', '2099-01-04T00:00:00.000Z')`),
     /NOT NULL constraint failed/,
   );
+  // ADR-0096 Đ2.2 (migration 0084): cửa sổ xuất bến 60…2880 phút ở CSDL.
+  await assert.rejects(
+    sql(`INSERT INTO vc_dispatch_policy (id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, proxy_backdate_max_minutes, departure_window_minutes, valid_from_at, created_at, updated_at)
+         VALUES ('e2e-cuaso-${duoi}', 360, 120, 30, 1, 0, 180, 2881, '2099-01-05T00:00:00.000Z', '2099-01-05T00:00:00.000Z', '2099-01-05T00:00:00.000Z')`),
+    /CHECK constraint failed/,
+  );
   await assert.rejects(sql("UPDATE vc_license_capacity SET max_passengers = 99"), /vc_policy_append_only/);
   await assert.rejects(sql(`UPDATE vc_departure_rule SET valid_to_at = '2099-01-01T00:00:00.000Z' WHERE id = '${dkXe}'`), /vc_departure_rule_close_once/);
   await assert.rejects(sql(`DELETE FROM vc_reason WHERE code = '${MA_LY_DO}'`), /vc_reason_no_delete/);
   await assert.rejects(sql(`UPDATE vc_reason SET reason_group = 'HUY_CHUYEN' WHERE code = '${MA_LY_DO}'`), /vc_reason_identity/);
-  console.log("✓ D1 local: sửa / xoá chính sách, bật hợp đồng, mốc 0, kẹp lùi 1441 / thiếu kẹp lùi, sửa hạng bằng, đóng điều kiện lần hai, xoá / đổi nhóm lý do — đều bị CSDL chặn");
+  console.log("✓ D1 local: sửa / xoá chính sách, bật hợp đồng, mốc 0, kẹp lùi 1441 / thiếu kẹp lùi, cửa sổ 2881, sửa hạng bằng, đóng điều kiện lần hai, xoá / đổi nhóm lý do — đều bị CSDL chặn");
 } finally {
   // Khôi phục cho kịch bản sau (bảng chỉ thêm → thêm dòng mang giá trị gieo; đóng điều kiện còn mở đã thêm).
   await cho();
@@ -146,11 +158,11 @@ try {
 r = await call(TOAN_QUYEN, "GET", "/api/van-chuyen/chinh-sach-dieu-phoi");
 assert.deepEqual(
   [r.body.current.minLeadMinutes, r.body.current.warnLeadMinutes, r.body.current.restMinutes, r.body.current.requireManifest, r.body.current.proxyBackdateMaxMinutes,
-    r.body.current.dutyDayMaxMinutes, r.body.current.tripNoBreakMaxMinutes],
-  [360, 120, 30, true, 180, 480, 240],
+    r.body.current.dutyDayMaxMinutes, r.body.current.tripNoBreakMaxMinutes, r.body.current.departureWindowMinutes],
+  [360, 120, 30, true, 180, 480, 240, 720],
 );
 r = await call(TOAN_QUYEN, "GET", "/api/van-chuyen/dieu-kien");
 assert.deepEqual(dangAp(r.body.rules), DIEU_KIEN_GIEO, "chỉ còn đúng hai điều kiện gieo đang áp (điều kiện đã thêm đều đóng, dòng gieo không bị đóng)");
-console.log("✓ khôi phục: chính sách 360/120/30/có/kẹp 180, D2 = 29, điều kiện đã thêm đều đóng, hai điều kiện gieo còn nguyên");
+console.log("✓ khôi phục: chính sách 360/120/30/có/kẹp 180/cửa sổ 720, D2 = 29, điều kiện đã thêm đều đóng, hai điều kiện gieo còn nguyên");
 
 console.log("E2E CHINH SACH DIEU PHOI OK");

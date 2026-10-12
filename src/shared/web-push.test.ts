@@ -273,3 +273,25 @@ test("nguoiNhanDay { chuyen }: đúng người tinChuyenCho chọn — tài xế
   const tk = [{ id: "tx", permissions: ["DRIVER" as const], partyId: "p-b" }, { id: "s", permissions: ["SALES" as const], partyId: null }, { id: "kt", permissions: ["ACCOUNTING" as const], partyId: null }];
   assert.deepEqual(nguoiNhanDay(tk, { chuyen: d }, "2027-03-11T05:00:00.000Z"), ["tx"]);
 });
+
+// ADR-0062 bài 6 (NT-B13, NT-B14) + MQ-07: gõ cửa dòng ĐỔI đi qua CHÍNH locHopThongBao — người lập + phụ trách (tin đơn đổi), Đối tác người lập, tài xế đang lái
+// (MQ-07); người sửa, Kế toán (chỉ "Tất cả") không; đơn nháp không ai.
+test("nguoiNhanDay { don: dòng đổi }: người lập + HDV phụ trách + Đối tác người lập; người sửa / Kế toán không; sauXacNhan false → rỗng; chặng đã xếp → thêm tài xế đang lái", () => {
+  const now = new Date().toISOString();
+  const hdv = { id: "hdv", permissions: ["FIELD" as const], partyId: null };
+  const dt = { id: "dt", permissions: ["PARTNER" as const], partyId: null };
+  const tk = [lap, actor, ketToan, hdv, dt, { id: "tx", permissions: ["DRIVER" as const], partyId: "p-tx" }, { id: "tx2", permissions: ["DRIVER" as const], partyId: "p-tx2" }];
+  const dong = (o: Partial<DongDon>): DongDon => ({
+    id: "day", orderId: "o1", maDon: "TD001", action: "trip_updated", actorId: actor.id, tenNguoiLam: null, luc: now, ownerId: lap.id,
+    phuTrach: { coNguoi: true, staffId: hdv.id }, lapChuaCoNguoi: false, cungLoLap: false, detail: "Tour đảo: giờ đón 07:00 → 06:30", sauXacNhan: true, ...o,
+  });
+  assert.deepEqual(nguoiNhanDay(tk, { don: dong({}) }, now).sort(), [hdv.id, lap.id].sort());
+  assert.deepEqual(nguoiNhanDay(tk, { don: dong({ sauXacNhan: false }) }, now), [], "NT-B14: đơn nháp → không ai");
+  assert.deepEqual(nguoiNhanDay(tk, { don: dong({ detail: "Tour đảo: đổi ghi chú" }) }, now), [], "không phần đổi nhận ra → không ai");
+  assert.deepEqual(nguoiNhanDay(tk, { don: dong({ ownerId: dt.id, phuTrach: { coNguoi: false, staffId: null } }) }, now), [dt.id], "Đối tác người lập");
+  const chang = dong({
+    action: "order_leg_updated", detail: "Chiều đi · Tour đảo: giờ đón 07:00 → 06:30", legId: "leg-1",
+    chuyenCuaChang: [{ tripId: "t1", ma: "CX-1", ngayChay: now.slice(0, 10), lai: [{ partyId: "p-tx", tu: "2020-01-01T00:00:00.000Z", den: null }] }],
+  });
+  assert.deepEqual(nguoiNhanDay(tk, { don: chang }, now).sort(), [hdv.id, lap.id, "tx"].sort(), "MQ-07: người lập (Bán hàng) + tài xế đang lái; HDV tin đơn đổi; tài xế khác không");
+});

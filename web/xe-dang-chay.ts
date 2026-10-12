@@ -2,10 +2,11 @@
 // - Ô trip.view (cùng mục "Điều phối xe" — `thayDieuPhoiXe`). Đọc GET /api/van-chuyen/lich của HÔM QUA, HÔM NAY, NGÀY MAI (chuyến chạy qua nửa đêm; xuất bến sớm chuyến ngày mai), lọc RUNNING.
 // - Mỗi thẻ "mã · Đang chạy · biển số · x/y chỗ" mở Chi tiết chuyến (web/chuyen.ts) — nơi có "Việc của văn phòng", "Khách đang chờ".
 // - Tin Bảng tin về chuyến / nối lại → tải lại danh sách.
+// - ADR-0104 Đ2.7: thẻ có dòng nhắc cố định khi máy chủ báo `coKhachDonHuy` (khách chờ đón của đơn huỷ — văn phòng bấm Báo huỷ ở Chi tiết chuyến).
 import type { ChuyenTomTatDto, LichChungResponse } from "../src/shared/contracts";
 import { thayDieuPhoiXe } from "../src/shared/dieu-phoi-man";
 import { addDays, vnToday } from "../src/shared/vn-date";
-import { chuyenDangChay, theXeDangChay } from "../src/shared/xe-dang-chay-man";
+import { chuyenDangChay, nhacXeDangChay, theXeDangChay } from "../src/shared/xe-dang-chay-man";
 import { api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { chip } from "./dieu-phoi-ui";
@@ -35,11 +36,13 @@ function ve(ds: readonly ChuyenTomTatDto[]): void {
     ds.length
       ? h("div", { class: "xdc-list" }, ...ds.map((c) => {
           const t = theXeDangChay(c, homNay);
+          const nhac = nhacXeDangChay(c); // ADR-0104 Đ2.7: khách chờ đón của đơn huỷ — máy không ghi lên xe đang chạy, văn phòng bấm Báo huỷ
           return h(
             "a",
             { class: "vc-card xdc-the", href: `/chuyen?id=${encodeURIComponent(c.id)}`, "data-chuyen": c.id },
             h("span", { class: "xdc-the-dau" }, h("strong", { class: "xdc-ma" }, t.tieuDe), chip("Đang chạy", "navy"), h("span", { class: "xdc-dong" }, t.dong)),
             h("span", { class: "dp-note" }, t.phu),
+            nhac ? h("span", { class: "xdc-nhac" }, nhac) : null,
             icon("next", 20),
           );
         }))

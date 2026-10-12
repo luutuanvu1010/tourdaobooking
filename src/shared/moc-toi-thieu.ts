@@ -9,11 +9,13 @@
 //   `kiemMocDat` (bài tương đương trong moc-toi-thieu.test.ts khoá điều đó).
 // - Lúc XẾP (tính tới giờ XUẤT BẾN dự kiến của chuyến — ĐP2(i)): trong mốc khoá "ai đi xe nào", đổi xe, đổi tài xế (ĐP2(iii)); đổi thứ tự điểm, giờ xe tới
 //   vẫn làm được. Xếp chính chặng đã đặt gấp thì qua (ĐP2(ii)). TẠO chuyến mới trong mốc không cần phá lệ (Q2 = (a), 29/9). Phá lệ: chỉ Quản trị, Toàn
-//   quyền (ĐP3) — hàm này chỉ nói "cần phá lệ", route quyết ai được.
+//   quyền (ĐP3) — hàm này chỉ nói "cần phá lệ", route quyết ai được. ADR-0104 Đ1 (Q-1 b, 2026-10-08) thay ĐP3: vượt mốc mọi lệnh bị khoá = "Điều chỉnh
+//   khẩn cấp" (lớp KHAN_CAP); khoảng nghỉ, cam kết: chuyến dưới mốc → KHAN_CAP, ngoài mốc → "Phá lệ" (lớp QUAN_TRI) — hàm lớp ở cuối tệp, route đổi lớp ra ô.
 // - KHOÁ DÍNH (R-P6; chủ trả lời lần 9 "Khoá dính"): chuyến đã vào vùng mốc thì GIỮ khoá dù giờ xuất bến bị dời ra xa. Mốc lúc xếp tính theo
 //   min(giờ xuất bến dự kiến SỚM NHẤT từng có, giờ hiện tại) — cột `vc_trip` của migration lõi chuyến (A12) giữ giờ sớm nhất, câu sửa giờ đặt
 //   `= MIN(cũ, mới)`. Bản thân lệnh dời giờ KHÔNG bị khoá.
 import { msToVnLocal, vnLocalToMs } from "./vn-date.ts";
+import type { MaLuatPhaLe } from "./dieu-phoi-kieu.ts";
 
 const PHUT = 60_000;
 
@@ -50,6 +52,18 @@ export function kiemMocDat(chang: ChangMoc, bayGioMs: number, phut: number): Ket
 }
 
 /**
+ * I14 (Q3 chủ: "Chỉ Quản trị, Toàn quyền"): sửa ngày / giờ / nơi của chặng đơn ĐÃ XÁC NHẬN khi min(giờ cũ, giờ mới) dưới mốc → cần ô `order.leg.short_notice`
+ * + lý do trong CHÍNH lệnh sửa. Dấu cũ KHÔNG miễn (nó duyệt nội dung cũ). Chặng chưa chốt giờ ở cả hai phía → không xét (I13). `cu` null = thêm chặng.
+ * MỘT luật cho máy chủ (route thêm / sửa / thay chặng, `PUT /trip` của orders) và bảng Sửa đưa đón (kiểm cả kế hoạch trước lệnh đầu — C14); chuyển từ
+ * src/modules/orders/dat-gap.ts sang đây ngày 2026-10-08, không đổi nghĩa.
+ */
+export function duoiMocKhiSua(cu: { pickupDate: string | null; pickupTime: string | null } | null, moi: { pickupDate: string | null; pickupTime: string | null } | null, bayGioMs: number, phut: number): boolean {
+  const xet = (l: { pickupDate: string | null; pickupTime: string | null } | null) =>
+    l !== null && kiemMocDat({ ngayDon: l.pickupDate, gioDon: l.pickupTime, datGap: false }, bayGioMs, phut).duoiMoc;
+  return xet(cu) || xet(moi);
+}
+
+/**
  * Loại lệnh lúc XẾP (một chuyến chưa chạy). `DOI_DI` = dời suất RA khỏi chuyến này; `DOI_DEN` = dời suất VÀO chuyến này (route dời gọi hai lần, mỗi chuyến
  * một lần). `HUY_CO_KHACH` / `HUY_KHONG_KHACH` = huỷ chuyến còn / không còn suất mở (kế hoạch mục 1.7 route 8).
  */
@@ -59,6 +73,9 @@ export const LENH_XEP = [
   "DOI_DIEM_THEO_CHANG",
   // R-P29 (chủ lần 16): "cập nhật khách theo đơn" — máy theo đúng đơn, không đổi xe của ai theo ý người → KHÔNG vào LENH_KHOA_THEO_MOC (không cần phá lệ).
   "DOI_KHACH_THEO_DON",
+  // ADR-0104 Đ2.5: máy đồng bộ chuyến theo đơn (lệnh đơn nối khúc chuyến vào cùng lô) — khuôn DOI_KHACH_THEO_DON: KHÔNG vào LENH_KHOA_THEO_MOC; không miễn luật
+  // lõi (LC-01, 02, 09, 10, 15 — trigger vẫn chạy).
+  "DONG_BO_THEO_DON",
 ] as const;
 export type LenhXep = (typeof LENH_XEP)[number];
 /** Lệnh bị KHOÁ trong mốc (đổi "ai đi xe nào", đổi xe, đổi tài xế — ADR-0049 D2; huỷ chuyến còn khách — kế hoạch route 8). Các lệnh khác không khoá. */
@@ -123,3 +140,47 @@ export interface MocToiThieu {
   /** Cảnh báo sát mốc (phút) của CÙNG dòng chính sách (`warn_lead_minutes`) — ruling R-P15: biểu mẫu đơn chưa lưu đọc qua route mốc của cổng orders. */
   canhBaoPhut: number;
 }
+
+// ---- Lớp vượt luật cấu hình (ADR-0104 Đ1, Q-1 b) ------------------------------------------------------------------------------------------------------------
+/**
+ * Lớp người được vượt một luật cấu hình: `KHAN_CAP` = "Điều chỉnh khẩn cấp" (ô `trip.urgent_adjust`: Bán hàng, Quản trị, Toàn quyền); `QUAN_TRI` = "Phá lệ"
+ * (ô `trip.override`: Quản trị, Toàn quyền). Hàm ở đây KHÔNG trả tên ô — route đổi lớp ra ô bằng chữ viết thẳng (bài src/permission-enforcement.test.ts
+ * đếm chuỗi ô; bài src/modules/van-chuyen/lop-vuot.test.ts giữ MỘT chỗ xếp lớp).
+ */
+export type LopVuot = "KHAN_CAP" | "QUAN_TRI";
+/** Lệnh có luật mốc khoá: bảy lệnh của `LENH_KHOA_THEO_MOC` + thêm khách khi xe đang chạy (xét mốc như "Xếp" — ADR-0052 D5.1). */
+export type LenhVuotMoc = (typeof LENH_KHOA_THEO_MOC)[number] | "THEM_KHI_CHAY";
+/** Bảng lớp vượt MỐC theo lệnh — một chỗ để tách lớp sau (ví dụ chủ muốn trả một lệnh về Quản trị) mà không sửa route. Q-1 b: cả tám lệnh KHAN_CAP. */
+const LOP_VUOT_MOC: Readonly<Record<LenhVuotMoc, LopVuot>> = {
+  XEP: "KHAN_CAP", RUT: "KHAN_CAP", DOI_DI: "KHAN_CAP", DOI_DEN: "KHAN_CAP", DOI_XE: "KHAN_CAP", DOI_TAI_XE: "KHAN_CAP", HUY_CO_KHACH: "KHAN_CAP",
+  THEM_KHI_CHAY: "KHAN_CAP",
+};
+/** Lớp vượt mốc của một lệnh (nhiều lệnh trong một request — sửa chuyến đổi cả xe lẫn tài xế, dời = DOI_DI + DOI_DEN: lớp CAO nhất; không lệnh nào: KHAN_CAP). */
+export const lopVuotMoc = (...lenh: LenhVuotMoc[]): LopVuot => (lenh.some((l) => LOP_VUOT_MOC[l] === "QUAN_TRI") ? "QUAN_TRI" : "KHAN_CAP");
+/** Lớp vượt khoảng nghỉ / cam kết xe riêng, số chỗ (mã CAM_KET): chuyến dưới mốc → KHAN_CAP; ngoài mốc → QUAN_TRI (lời chủ 2026-10-08 "Chỉ khi chuyến còn dưới 6 giờ"). */
+export const lopVuotNghiCamKet = (duoiMoc: boolean): LopVuot => (duoiMoc ? "KHAN_CAP" : "QUAN_TRI");
+/**
+ * Giờ xét mốc của lệnh SỬA chuyến (`PUT /chuyen/:id`) = min(giờ cũ, giờ mới, giờ sớm nhất từng có) — MỘT phép cho luật khoá đổi xe / đổi tài xế
+ * (`kiemTaoSuaChuyen`) và cho "dưới mốc" của lớp vượt (ADR-0104 Đ1 mục 0; chủ 2026-10-08 "Cho qua, tính là sát giờ"). Không lách mốc bằng cách dời giờ trong
+ * cùng lệnh, cũng không bằng chuỗi "dời ra → đổi → dời về" (khoá dính R-P6).
+ */
+export const gioXetSuaChuyen = (cuMs: number, moiMs: number, somNhatMs: number | null): number => Math.min(cuMs, moiMs, somNhatMs ?? cuMs);
+/**
+ * "Chuyến dưới mốc" của một lệnh (ADR-0104 Đ1 mục 0) — CÙNG phép so của `kiemMocXep` (dưới ⇔ giờ xét − bây giờ < mốc; còn đúng mốc là ngoài). `gioXetMs` do
+ * nơi gọi tính theo định nghĩa của lệnh: xếp / rút / huỷ → `gioXetMocXep`; dời → chuyến ĐÍCH; sửa → `gioXetSuaChuyen`; tạo → giờ bắt đầu mới. Xe đang chạy
+ * luôn dưới mốc (xét TRƯỚC chính sách). Không có chính sách (`phut` null) → ngoài mốc (giả định chặt hơn — kế hoạch §10). Dấu đặt gấp KHÔNG đổi kết quả.
+ */
+export function chuyenDuoiMoc(c: { dangChay: boolean; gioXetMs: number }, bayGioMs: number, phut: number | null): boolean {
+  if (c.dangChay) return true;
+  if (phut === null) return false;
+  return c.gioXetMs - bayGioMs < phut * PHUT;
+}
+/** Lớp cần cho MỘT luật đang thiếu: mốc → theo lệnh; khoảng nghỉ, cam kết → theo "dưới mốc". */
+export const lopCuaLuat = (luat: MaLuatPhaLe, duoiMoc: boolean, lenhMoc: readonly LenhVuotMoc[]): LopVuot =>
+  luat === "MOC_TOI_THIEU" ? lopVuotMoc(...lenhMoc) : lopVuotNghiCamKet(duoiMoc);
+/** Lớp của 409 (hộp xác nhận chọn chữ): có luật nào cần QUAN_TRI → QUAN_TRI; còn lại KHAN_CAP. */
+export const lopCanCho = (thieu: readonly MaLuatPhaLe[], duoiMoc: boolean, lenhMoc: readonly LenhVuotMoc[]): LopVuot =>
+  thieu.some((l) => lopCuaLuat(l, duoiMoc, lenhMoc) === "QUAN_TRI") ? "QUAN_TRI" : "KHAN_CAP";
+/** Người gọi đủ quyền cho MỌI luật đang thiếu, theo lớp của từng luật (`canQuyen` của 409). `quyenVuot` = hàm route đổi lớp ra ô. */
+export const duQuyen = (thieu: readonly MaLuatPhaLe[], duoiMoc: boolean, lenhMoc: readonly LenhVuotMoc[], quyenVuot: (lop: LopVuot) => boolean): boolean =>
+  thieu.every((l) => quyenVuot(lopCuaLuat(l, duoiMoc, lenhMoc)));

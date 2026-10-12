@@ -18,8 +18,58 @@ const DESK = { width: 1040, height: 800, mobile: false };
 const MOB = { width: 390, height: 844, mobile: true };
 const CHU = { name: "Chủ Chrome", phone: "0900000299", pin: "135791", permissions: ["SUPER_ADMIN"] };
 const NHOM = "Điều phối xe";
-// ADR-0050 VK1-B thêm hành động thứ bảy "Cập nhật điểm theo đơn" (trip_stops_synced — route ở A13).
-const SAU_HANH_DONG = ["Đổi chính sách điều phối", "Thêm điều kiện xuất bến", "Đóng điều kiện xuất bến", "Đổi số khách theo hạng bằng", "Thêm lý do điều phối", "Sửa lý do điều phối", "Cập nhật điểm theo đơn"];
+// ADR-0050 VK1-B thêm hành động thứ bảy "Cập nhật điểm theo đơn" (trip_stops_synced — route ở A13). Từ A13 nhóm `trip` có thêm mọi lệnh chuyến (`trip_*`) mà
+// danh sách cứng bảy nhãn không theo kịp — đỏ sẵn (39 nhãn ở 09f79a21). ADR-0104 Đ2 (2026-10-08): danh sách CỨNG đủ 47 nhãn (40 + bảy nhãn chuyển khách của gói A5, 9/10) đúng thứ tự khai ở
+// src/shared/audit-actions.ts (gồm "Máy cập nhật chuyến theo đơn" — trip_order_synced). Thêm / đổi / bỏ nhãn nhóm này ⇒ sửa danh sách cùng commit (bài cố ý cứng).
+const SAU_HANH_DONG = [
+  "Đổi chính sách điều phối",
+  "Thêm điều kiện xuất bến",
+  "Đóng điều kiện xuất bến",
+  "Đổi số khách theo hạng bằng",
+  "Thêm lý do điều phối",
+  "Sửa lý do điều phối",
+  "Đổi mẫu đưa đón của dịch vụ",
+  "Cập nhật khách theo đơn",
+  "Cập nhật điểm theo đơn",
+  "Máy cập nhật chuyến theo đơn",
+  "Tạo chuyến xe",
+  "Sửa chuyến xe",
+  "Huỷ chuyến xe",
+  "Xếp khách lên xe",
+  "Rút khách khỏi xe",
+  "Dời khách sang chuyến khác",
+  "Xuất bến",
+  "Xe đã tới điểm",
+  "Đã đón khách",
+  "Khách vắng",
+  "Khách đã huỷ tại điểm",
+  "Đã trả khách",
+  "Đổi thứ tự điểm khi đang chạy",
+  "Kết thúc chuyến",
+  "Kết thúc chuyến gián đoạn",
+  "Thêm điểm khi xe đang chạy",
+  "Văn phòng báo huỷ khách",
+  "Tài xế bổ sung tên khách",
+  "Văn phòng điều chỉnh kết quả khách",
+  "Văn phòng thu hồi xuất bến",
+  "Gửi đề nghị chuyển khách", // gói A5 (ADR-0111): bảy nhãn nhật ký chuyển khách, đúng thứ tự khai ở src/shared/audit-actions.ts
+  "Rút đề nghị chuyển khách",
+  "Xe nhận không nhận khách",
+  "Đề nghị chuyển khách hết giờ chờ",
+  "Đề nghị chuyển khách chờ văn phòng duyệt",
+  "Chuyển khách sang xe khác",
+  "Văn phòng không duyệt đề nghị chuyển khách",
+  "Đã gọi báo khách giờ hẹn mới",
+  "Bỏ đánh dấu đã gọi báo",
+  "Điều chỉnh chi phí xe thuê",
+  "Đảo dòng chi phí xe thuê",
+  "Lấy lại giá bảng cho chuyến xe thuê",
+  "Nhập giá thoả thuận chuyến xe thuê",
+  "Thêm giá thuê xe",
+  "Kết thúc giá thuê xe",
+  "Lưu tuyến (bảng giá xe)",
+  "Lưu cỡ xe (bảng giá xe)",
+];
 
 const env = await startEnv();
 try {
@@ -29,7 +79,7 @@ try {
   const r = await fetch(env.base + "/api/van-chuyen/chinh-sach-dieu-phoi", {
     method: "POST",
     headers: { "content-type": "application/json", origin: env.base, cookie: `${c.name}=${c.value}` },
-    body: JSON.stringify({ minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 }),
+    body: JSON.stringify({ minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 2880, refuseLeadMinutes: 720, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer: true }),
   });
   assert.equal(r.status, 201, await r.text());
 
@@ -48,7 +98,7 @@ try {
       const g = [...document.querySelectorAll('#action optgroup')].find((x) => x.label === ${JSON.stringify(NHOM)});
       return { options: [...g.querySelectorAll('option')].map((o) => o.textContent), values: [...g.querySelectorAll('option')].map((o) => o.value) };
     })()`);
-    assert.deepEqual(nhom.options, SAU_HANH_DONG, `${kho}: đúng bảy hành động, nhãn tiếng Việt`);
+    assert.deepEqual(nhom.options, SAU_HANH_DONG, `${kho}: đúng ${SAU_HANH_DONG.length} hành động nhóm "Điều phối xe", nhãn tiếng Việt`);
     assert.ok(nhom.values.every((v) => /^[a-z_]+$/.test(v)), `${kho}: giá trị là mã hành động`);
     // Chọn "Đổi chính sách điều phối" → danh sách chỉ còn dòng đó, chi tiết đúng câu máy chủ ghi.
     await p.ev(`(() => { const s = document.querySelector('#action'); s.value = 'dispatch_policy_changed'; s.dispatchEvent(new Event('change')); return true; })()`);

@@ -37,7 +37,7 @@ async function bundle(entry) {
 export const app = (await bundle(
   'export { default, taoAppChoKhungThu } from "./index"; export { createSessionToken } from "./modules/auth/session"; export { listAll } from "./modules/audit/repository"; export { xoaBoNhoVanNghia } from "./modules/tro-ly/van-nghia";' +
     ' export { isSingleDevice } from "./modules/auth/session-ledger"; export { accountRoleCodesOf, getActiveStaff } from "./modules/staff"; export { docTapNhieuMay } from "./modules/auth";' +
-    ' export { chuyenChoTinTheoId, suKienTheoYeuCau } from "./modules/van-chuyen";',
+    ' export { chuyenChoTinTheoId, dongBoChuyenChoDon, suKienTheoYeuCau } from "./modules/van-chuyen"; export { dongChuyenTheoId } from "./modules/thongbao";',
 ));
 
 const isRead = (sql) => /^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql);
@@ -45,6 +45,7 @@ const isRead = (sql) => /^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql);
  * D1 giả = SQLite thật. CHẾ ĐỘ NGHIÊM (ADR-0094, kế hoạch L4a — bật mặc định, không tắt được): `batch` TỪ CHỐI mọi câu không do CHÍNH D1 giả này tạo
  * (`prepare`/`bind`). D1 thật không nhận câu bọc của bộ bọc lớp vé (src/shared/lan-gui-boc.ts) — thiếu chế độ này, lỗi "quên gỡ bọc" chỉ lộ trên D1 thật.
  * `moc.truocTraVe` (CHỈ khung thử): gọi và chờ trước câu tra vé (`… FROM lg_lan_gui WHERE staff_id …`) — rào cho ca gửi đồng thời (L5 ca c, e).
+ * `moc.truocLo(stmts)` (CHỈ khung thử): gọi và chờ NGAY TRƯỚC khi một `batch` bắt đầu — giả một người khác vừa đổi dữ liệu giữa lúc route đọc và lúc ghi (NT-A5-20, "thua cổng").
  */
 export function fakeD1(sqlite, moc = {}) {
   const cuaToi = new WeakSet();
@@ -72,6 +73,7 @@ export function fakeD1(sqlite, moc = {}) {
     batch: async (stmts) => {
       const la = stmts.findIndex((s) => !cuaToi.has(s));
       if (la !== -1) throw new Error(`fakeD1 nghiêm: câu thứ ${la} của lô không do D1 này tạo (quên gỡ bọc?)`);
+      if (moc.truocLo) await moc.truocLo(stmts);
       sqlite.exec("BEGIN");
       try { const out = stmts.map(exec1); sqlite.exec("COMMIT"); return out; } catch (e) { sqlite.exec("ROLLBACK"); throw e; }
     },
@@ -108,6 +110,11 @@ export const MOC_GIA_POLICY_ID = "moc-gia-khung-thu";
  *   `mocToiThieu` — lách hàng rào N-9) → ném lỗi; dùng chung với tuỳ chọn khác → ném lỗi (không lặng lẽ bỏ). Không nới luật cho môi trường thử.
  * - `khongTiemNhan: true` — bỏ hàm tiêm nhãn người bấm (ruling R-P20: route để trống nhãn, không đoán). `demNhan: true` — nhãn GIẢ có ĐẾM số lần gọi
  *   (`w.soLanGoiNhan()`, mỗi lần một mảng id) — "một lần mỗi request cho cả danh sách".
+ * - `khongDongBoChuyen: true` — ADR-0104 Đ2 (kế hoạch N9 "đổi cách dựng, không nới luật"): bỏ hàm tiêm máy đồng bộ chuyến ⇒ router dùng `dongBoDiThang` (lô = câu
+ *   đơn, phản hồi `capNhatTay`). CHỈ cho bài cần TRẠNG THÁI GIỮ (suất của đơn huỷ / khách đã đổi còn trên chuyến) để kiểm lý do giữ hay nút tay — bài đó vẫn phải
+ *   thấy lý do giữ.
+ * - `chenGiuaDocVaGhi: async ({ x }) => …` — ADR-0104 Đ2 (NT-5 "thua cổng"): máy đồng bộ THẬT đọc + lập khúc, rồi hàm này chạy TRƯỚC khi route chạy lô (giả một
+ *   người khác vừa đổi chuyến / đơn giữa lúc đọc và lúc ghi). Không thay luật nào.
  */
 const GHI_DE_DUOC_PHEP = ["dongBangTin", "baoThayDoiChuyen"]; // baoThayDoiChuyen: CHỈ để bài NHÌN lời gọi hàm tiêm (ADR-0052 D6.3) — không nới luật nghiệp vụ
 export function world(tuyChon = {}) {
@@ -134,6 +141,17 @@ export function world(tuyChon = {}) {
     ungDung = app.taoAppChoKhungThu({ nhanNhanVien: undefined });
   } else if (tuyChon.ghiDe) {
     ungDung = app.taoAppChoKhungThu(tuyChon.ghiDe); // bài cần NHÌN lời gọi hàm tiêm (vd dongBangTin lúc đăng nhập — ADR-0075 điều 6)
+  } else if (tuyChon.khongDongBoChuyen) {
+    ungDung = app.taoAppChoKhungThu({ dongBoChuyen: undefined });
+  } else if (tuyChon.chenGiuaDocVaGhi) {
+    const chen = tuyChon.chenGiuaDocVaGhi;
+    ungDung = app.taoAppChoKhungThu({
+      dongBoChuyen: async (env, actor, x) => {
+        const d = await app.dongBoChuyenChoDon(env.DB, actor, x);
+        await chen({ x });
+        return d;
+      },
+    });
   } else if (tuyChon.demNhan) {
     ungDung = app.taoAppChoKhungThu({ nhanNhanVien: async (_env, ids) => (goiNhan.push([...ids]), new Map(ids.map((id) => [id, `Nhãn ${id.slice(0, 4)}`]))) });
   }
@@ -151,6 +169,20 @@ export function world(tuyChon = {}) {
       return r.cho;
     },
   };
+  /**
+   * Chèn một thay đổi NGAY TRƯỚC `soLan` lô đầu tiên thoả `khop(stmts)` (rồi tự gỡ). Chỉ khung thử; không nới luật nào — lô vẫn chạy nguyên văn sau đó, nên cổng
+   * version / trạng thái của chính lô phải tự bắt được thay đổi (NT-A5-20: thua cổng → 409 `stale` hoặc đọc lại thử lại một lần).
+   */
+  let chenLo = null;
+  moc.truocLo = async (stmts) => {
+    if (!chenLo || !chenLo.khop(stmts)) return;
+    const c = chenLo;
+    if (--c.con <= 0) chenLo = null;
+    await c.chen(stmts);
+  };
+  function chenTruocLo(khop, chen, soLan = 1) {
+    chenLo = { khop, chen, con: soLan };
+  }
   function raoTraVe(n) {
     let mo;
     const cho = new Promise((res) => (mo = res));
@@ -208,5 +240,5 @@ export function world(tuyChon = {}) {
     let json = null; try { json = JSON.parse(text); } catch {}
     return { status: res.status, json, text, headers: res.headers };
   }
-  return { sqlite, env, call, token, choNen, raoTraVe, q:(sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
+  return { sqlite, env, call, token, choNen, raoTraVe, chenTruocLo, q:(sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
 }

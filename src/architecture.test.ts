@@ -94,6 +94,8 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "van-chuyen", file: "modules/van-chuyen/chuyen-repo.ts" }, // ADR-0049 D1 (siết, Task A13 — R-P4 (ii) "bài nhận hai tệp"): SQL chuyến xe
   { module: "van-chuyen", file: "modules/van-chuyen/tien-xe-repo.ts" }, // ADR-0057 T1/T2 (kế hoạch Đợt 4 Task 4): SQL bảng giá thuê, chi phí chuyến — siết như chuyen-repo
   { module: "van-chuyen", file: "modules/van-chuyen/khung-ban-repo.ts" }, // ADR-0055 VK2-A (Đợt 3, K15): SQL khung bận — EXPLAIN từng câu
+  { module: "van-chuyen", file: "modules/van-chuyen/khung-ban-tai-xe-repo.ts" }, // ADR-0053 D9 (kế hoạch A4 T4, G-A4-8): SQL khung bận TÀI XẾ — lọc subject = 'DRIVER' tường minh
+  { module: "van-chuyen", file: "modules/van-chuyen/han-tu-choi-repo.ts" }, // ADR-0053 D7.2, D8 (kế hoạch A4 T3): SQL đọc hạn Từ chối, dấu Từ chối — EXPLAIN từng câu
   { module: "tro-ly", file: "modules/tro-ly/repository.ts" }, // ADR-0066: nghiêm từ ngày đầu
 ];
 
@@ -1053,6 +1055,16 @@ test("ADR-0049 D2 (siết, kế hoạch mục 1.6): chỉ gốc lắp ráp (src/
   assert.deepEqual(problems, [], "orders nhận mốc qua ctx.mocToiThieu — không gọi thẳng hàm công bố của van-chuyen");
 });
 
+test("ADR-0104 Đ2.1 (siết): chỉ gốc lắp ráp (src/index.ts) và module van-chuyen nhắc `dongBoChuyenChoDon` trong mã (bỏ chú thích) — orders / dispatch nối qua ctx.dongBoChuyen", () => {
+  const problems: string[] = [];
+  for (const file of walk(SRC)) {
+    const rel = relative(ROOT, file).split(sep).join("/");
+    if (rel === "src/index.ts" || rel.startsWith("src/modules/van-chuyen/")) continue;
+    if (/\bdongBoChuyenChoDon\b/.test(maskSource(readFileSync(file, "utf8"), { strings: false, comments: true }))) problems.push(rel);
+  }
+  assert.deepEqual(problems, [], "orders / dispatch nhận máy đồng bộ qua ctx.dongBoChuyen — không gọi thẳng hàm công bố của van-chuyen");
+});
+
 test("ADR-0052 D6.3 (siết): chỉ gốc lắp ráp (src/index.ts) và module van-chuyen nhắc `suKienTheoYeuCau` / `chuyenChoTinTheoId` (bỏ chú thích)", () => {
   const problems: string[] = [];
   for (const file of walk(SRC)) {
@@ -1062,6 +1074,22 @@ test("ADR-0052 D6.3 (siết): chỉ gốc lắp ráp (src/index.ts) và module v
     if (/\b(suKienTheoYeuCau|chuyenChoTinTheoId)\b/.test(maskSource(readFileSync(file, "utf8"), { strings: false, comments: true }))) problems.push(rel);
   }
   assert.deepEqual(problems, [], "thongbao nhận dữ kiện chuyến qua ctx.chuyenChoTin — không gọi thẳng hàm công bố của van-chuyen");
+});
+
+// ADR-0062 Đ1 (siết — hàng rào bù cho ngoại lệ "view có cột detail"): `v_aud_order_change` mang chữ nhật ký (`detail`) nên CHỈ module thongbao được đọc.
+// Quét mã src/ (trừ *.test.ts) và web/, bỏ chú thích, GIỮ chuỗi (tên view nằm trong chuỗi SQL); thêm: mọi câu đã đăng ký nhắc view phải mang tên module thongbao.
+test("ADR-0062 Đ1 (siết): chỉ module thongbao nhắc `v_aud_order_change` trong mã (view có cột detail — chữ nhật ký)", async () => {
+  const problems: string[] = [];
+  for (const file of [...walk(SRC), ...walk(WEB)]) {
+    const rel = relative(ROOT, file).split(sep).join("/");
+    if (rel.startsWith("src/modules/thongbao/")) continue;
+    if (/\bv_aud_order_change\b/i.test(maskSource(readFileSync(file, "utf8"), { strings: false, comments: true }))) problems.push(rel);
+  }
+  for (const s of [...STRICT, ...NUA_NGHIEM]) await import(pathToFileURL(join(SRC, s.file)).href);
+  await import(pathToFileURL(join(SRC, "modules/thongbao/repository.ts")).href);
+  const docView = registeredSql().filter((e) => /\bv_aud_order_change\b/i.test(e.sql));
+  for (const e of docView) if (e.module !== "thongbao") problems.push(`${e.module}.${e.name}`);
+  assert.deepEqual(problems, [], "chữ nhật ký đơn chỉ tới hàm đọc tin (phanDoiCuaTin) của thongbao — module khác không đọc view này");
 });
 
 test("ADR-0068 Đ6 (siết): chỉ gốc lắp ráp (src/index.ts) và module chủ nhắc sáu hàm công bố của gộp hồ sơ (bỏ chú thích)", () => {

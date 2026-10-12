@@ -25,6 +25,8 @@ const vnSau = (phut: number) => {
 };
 const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
 const uuid = () => crypto.randomUUID();
+/** ADR-0096 Đ2.5 (gói A1): màn chi tiết xét cửa sổ xuất bến theo GIỜ THẬT — chuyến 2 ngày tới luôn có NGOAI_CUA_SO_XUAT_BEN; bài nào xét lý do KHÁC thì bỏ mã này. */
+const khongCuaSo = (m: string) => m !== "NGOAI_CUA_SO_XUAT_BEN";
 let so = 0;
 
 function setup(tuyChon: Record<string, unknown> = {}) {
@@ -127,7 +129,9 @@ test("TC-30: hai người sửa cùng version → đúng MỘT 200, người sau
 });
 
 // ---- TC-42 / TC-31 mốc lúc xếp, phá lệ ------------------------------------------------------------------------------------------------------------------
-test("TC-42 (Q2 = (a)): Bán hàng TẠO chuyến trong 6 giờ → 201 không phá lệ; xếp chặng CHƯA đặt gấp → 409 can_pha_le (canQuyen false); Bán hàng gửi phaLe → 403; Quản trị phaLe → 200, sự kiện có luật + lý do + chính sách", async () => {
+// NỚI có tên (kế hoạch ADR-0104 §6 N2; ADR-0104 Đ1, Q-1 b, chủ 2026-10-08): trước đây "Bán hàng gửi phaLe → 403". Nay vượt mốc là "Điều chỉnh khẩn cấp" —
+// Bán hàng làm được (200). Rào còn nghĩa ở vế NGOÀI mốc: Bán hàng gửi cờ cam kết khi chuyến ngoài mốc → 403 (lớp QUAN_TRI, câu cũ giữ nguyên).
+test("TC-42 (Q2 = (a); ADR-0104 Đ1): Bán hàng TẠO chuyến trong 6 giờ → 201 không phá lệ; xếp chặng CHƯA đặt gấp → 409 can_pha_le lớp KHAN_CAP (canQuyen true); Bán hàng điều chỉnh khẩn cấp → 200, sự kiện có luật + lý do + chính sách; NGOÀI mốc Bán hàng gửi cờ cam kết → 403", async () => {
   const w = setup();
   const t = await taoChuyen(w, SALES, { xe: xe(w), taiXe: taiXe(w, "Tài Xế An"), batDau: vnSau(120) });
   assert.equal(t.status, 201, t.text);
@@ -136,15 +140,23 @@ test("TC-42 (Q2 = (a)): Bán hàng TẠO chuyến trong 6 giờ → 201 không p
   const r = await xep(w, SALES, t.json, [{ legId: d.legId, soSuat: 2 }]);
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "can_pha_le");
-  assert.equal(r.json.error.canQuyen, false);
+  assert.equal(r.json.error.canQuyen, true, "ADR-0104 Đ1: Bán hàng có ô điều chỉnh khẩn cấp");
+  assert.equal(r.json.error.lop, "KHAN_CAP");
+  assert.equal(r.json.error.message, "Trong mốc tối thiểu trước giờ xuất bến — cần điều chỉnh khẩn cấp kèm lý do.");
   assert.deepEqual(r.json.error.lyDo.map((l: any) => l.ma), ["MOC_TOI_THIEU"]);
-  assert.equal((await xep(w, SALES, t.json, [{ legId: d.legId, soSuat: 2 }], { phaLe: { lyDo: "PHA_LE_SU_CO" } })).status, 403);
   assert.equal((await xep(w, ADM, t.json, [{ legId: d.legId, soSuat: 2 }])).json.error.canQuyen, true);
-  const ok = await xep(w, ADM, t.json, [{ legId: d.legId, soSuat: 2 }], { phaLe: { lyDo: "PHA_LE_SU_CO" } });
+  const ok = await xep(w, SALES, t.json, [{ legId: d.legId, soSuat: 2 }], { phaLe: { lyDo: "PHA_LE_SU_CO" } });
   assert.equal(ok.status, 200, ok.text);
-  const ev = w.q("SELECT override_rule_code r, override_reason_code l, policy_id p FROM vc_trip_event WHERE kind = 'ALLOCATED'")[0];
-  assert.deepEqual({ ...ev }, { r: "MOC_TOI_THIEU", l: "PHA_LE_SU_CO", p: "d53b6dd9-60e2-4644-8e63-9ca7dcff35d0" });
+  const ev = w.q("SELECT override_rule_code r, override_reason_code l, policy_id p, created_by c FROM vc_trip_event WHERE kind = 'ALLOCATED'")[0];
+  assert.deepEqual({ ...ev }, { r: "MOC_TOI_THIEU", l: "PHA_LE_SU_CO", p: "d53b6dd9-60e2-4644-8e63-9ca7dcff35d0", c: SALES });
   assert.equal(ok.json.suat.length, 2);
+  // Vế NGOÀI mốc: chuyến 2 ngày tới — Bán hàng gửi cờ cam kết (chỉ Quản trị, Toàn quyền khi ngoài mốc) → 403 câu "Phá lệ", không ghi.
+  const xa = (await taoChuyen(w, SALES, { xe: xe(w), taiXe: taiXe(w, "Tài Xế Bình"), batDau: { ngay: inDays(2), gio: "07:00" } })).json;
+  const d2 = await don(w, { ngay: inDays(2), gio: "07:30" });
+  const cam = await xep(w, SALES, xa, [{ legId: d2.legId, soSuat: 2 }], { camKetPhaLe: { lyDo: "PHA_LE_SU_CO" } });
+  assert.equal(cam.status, 403, cam.text);
+  assert.equal(cam.json.error.message, "Chỉ Quản trị hoặc Toàn quyền phá lệ được.");
+  assert.equal(w.q("SELECT count(*) n FROM vc_trip_event WHERE kind = 'ALLOCATED' AND trip_id = ?", xa.chuyen.id)[0].n, 0, "403 thì không ghi");
 });
 
 test("TC-42 / TC-31: xếp chặng ĐÃ ĐẶT GẤP vào chuyến trong 6 giờ → 200 không phá lệ; trong mốc: đổi tài xế, đổi xe, rút, huỷ có khách → 409 can_pha_le; đổi thứ tự / giờ xe tới → 200", async () => {
@@ -167,7 +179,11 @@ test("TC-42 / TC-31: xếp chặng ĐÃ ĐẶT GẤP vào chuyến trong 6 giờ
   assert.equal(rut.json.error.code, "can_pha_le");
   const huy = await w.call("POST", `/api/van-chuyen/chuyen/${t.chuyen.id}/huy`, { as: SALES, body: { version: c.chuyen.version, requestId: uuid(), lyDo: "HUY_KHAC" } });
   assert.equal(huy.status, 409, huy.text);
-  const diem = c.diem.map((x: any, i: number) => ({ id: x.id, thuTu: c.diem.length - i, gioXeToi: null }));
+  // ADR-0096 Đ1.3c (gói A1): đảo ngược [ĐÓN, TRẢ] → TRẢ trước ĐÓN của khách chờ lên → 409 thu_tu_dao (không ghi); đổi số giữ thứ tự tương đối → 200 trong mốc.
+  const dao = await sua({ diem: c.diem.map((x: any, i: number) => ({ id: x.id, thuTu: c.diem.length - i, gioXeToi: null })) });
+  assert.equal(dao.status, 409, dao.text);
+  assert.equal(dao.json.error.code, "thu_tu_dao");
+  const diem = c.diem.map((x: any) => ({ id: x.id, thuTu: x.thuTu + 10, gioXeToi: null }));
   const thuTu = await sua({ diem });
   assert.equal(thuTu.status, 200, thuTu.text);
   c = thuTu.json;
@@ -257,12 +273,12 @@ async function doiNoiDon(w: any, d: any, noiDon: string) {
 test("TC-48 (máy chủ thật, khoá do lichChungChang tính): hai nơi tự do CHỈ khác ở dãy 8 chữ số (chữ đã che giống nhau) → vẫn giữ NOI_HEN_DOI; R-P16 cờ lechDon; TC-53 cảnh báo NOI_HEN_KHAC_DIEM", async () => {
   const w = setup();
   const { t, d, c } = await daXep(w, "Căn hộ 12345678 Trần Phú");
-  assert.deepEqual(c.chuyen.lyDoGiu.map((l: any) => l.ma), [], JSON.stringify(c.chuyen.lyDoGiu));
+  assert.deepEqual(c.chuyen.lyDoGiu.map((l: any) => l.ma).filter(khongCuaSo), [], JSON.stringify(c.chuyen.lyDoGiu));
   assert.equal(c.diem.find((x: any) => x.loai === "PICKUP").lechDon, false);
   await doiNoiDon(w, d, "Căn hộ 87654321 Trần Phú");
   const sau = await chiTiet(w, t.chuyen.id);
   assert.equal(sau.diem.find((x: any) => x.loai === "PICKUP").tenNoi, "Căn hộ •••••••• Trần Phú", "chữ hiển thị đã che");
-  assert.deepEqual(sau.chuyen.lyDoGiu.map((l: any) => l.ma), ["NOI_HEN_DOI"]);
+  assert.deepEqual(sau.chuyen.lyDoGiu.map((l: any) => l.ma).filter(khongCuaSo), ["NOI_HEN_DOI"]);
   assert.equal(sau.diem.find((x: any) => x.loai === "PICKUP").lechDon, true, "R-P16");
   assert.ok(sau.canhBao.some((x: any) => x.loai === "NOI_HEN_KHAC_DIEM"));
   const lich = (await w.call("GET", `/api/van-chuyen/lich?ngay=${inDays(2)}`, { as: SALES })).json;
@@ -292,7 +308,7 @@ test("TC-51 cập nhật điểm theo đơn: đổi nơi đón sau khi xếp →
   const cap = await w.call("POST", `/api/van-chuyen/chuyen/${t.chuyen.id}/cap-nhat-diem`, { as: SALES, body: { version: c.chuyen.version, requestId: uuid() } });
   assert.equal(cap.status, 200, cap.text);
   assert.equal(cap.json.daCapNhat, 2);
-  assert.deepEqual(cap.json.chuyen.lyDoGiu.map((l: any) => l.ma), []);
+  assert.deepEqual(cap.json.chuyen.lyDoGiu.map((l: any) => l.ma).filter(khongCuaSo), []);
   const dong = w.q("SELECT close_reason r, passenger_key k, leg_id l FROM vc_trip_allocation WHERE valid_to_at IS NOT NULL ORDER BY passenger_key");
   assert.deepEqual(dong.map((x: any) => x.r), ["STOP_CHANGED", "STOP_CHANGED"]);
   const mo = w.q("SELECT passenger_key k, leg_id l, board_stop_id b, status s FROM vc_trip_allocation WHERE valid_to_at IS NULL ORDER BY passenger_key");
@@ -327,19 +343,21 @@ test("TC-51: TRONG 6 giờ Bán hàng cập nhật điểm → 200 không cần 
 });
 
 // ---- I38 lý do cụ thể ---------------------------------------------------------------------------------------------------------------------------------------
+// ADR-0104 Đ2 (kế hoạch N9 — đổi cách DỰNG, không nới luật): máy đồng bộ chuyến nay tự đóng suất khi huỷ đơn / bỏ chặng ⇒ bài cần TRẠNG THÁI GIỮ dựng thế
+// giới không tiêm máy (`khongDongBoChuyen`) — vẫn phải thấy đúng lý do giữ. Máy tự dọn: src/modules/van-chuyen/dong-bo-chuyen-route.test.ts.
 test("I38 (R-P9): xếp rồi HUỶ ĐƠN → chi tiết chuyến giữ DON_DA_HUY (không NOI_HEN_DOI); xếp rồi BỎ CHẶNG → CHANG_DA_DONG; xếp chặng của đơn NHÁP → 409 lý do cụ thể", async () => {
-  const w = setup();
+  const w = setup({ khongDongBoChuyen: true });
   const { t, d } = await daXep(w, "Khách sạn A");
   assert.equal((await w.call("POST", `/api/orders/${d.id}/status`, { as: SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
   const ct = await chiTiet(w, t.chuyen.id);
-  assert.deepEqual(ct.chuyen.lyDoGiu.map((l: any) => l.ma), ["DON_DA_HUY"]);
-  assert.match(ct.chuyen.lyDoGiu[0].loiNhan, new RegExp(d.code));
-  const w2 = setup();
+  assert.deepEqual(ct.chuyen.lyDoGiu.map((l: any) => l.ma).filter(khongCuaSo), ["DON_DA_HUY"]);
+  assert.match(ct.chuyen.lyDoGiu.find((l: any) => l.ma === "DON_DA_HUY").loiNhan, new RegExp(d.code));
+  const w2 = setup({ khongDongBoChuyen: true });
   const b = await daXep(w2, "Khách sạn B");
   const o = (await w2.call("GET", `/api/orders/${b.d.id}`, { as: SALES })).json.order;
   const dongChang = await w2.call("POST", `/api/orders/${b.d.id}/legs/${b.d.legId}/close`, { as: SALES, body: { expectedUpdatedAt: o.services[0].legs[0].updatedAt, reasonCode: "NOT_NEEDED" } });
   assert.equal(dongChang.status, 200, dongChang.text);
-  assert.deepEqual((await chiTiet(w2, b.t.chuyen.id)).chuyen.lyDoGiu.map((l: any) => l.ma), ["CHANG_DA_DONG"]);
+  assert.deepEqual((await chiTiet(w2, b.t.chuyen.id)).chuyen.lyDoGiu.map((l: any) => l.ma).filter(khongCuaSo), ["CHANG_DA_DONG"]);
   const nhap = await don(w2, { ngay: inDays(2), gio: "06:30", xacNhan: false });
   const c2 = await chiTiet(w2, b.t.chuyen.id);
   const r = await xep(w2, SALES, c2, [{ legId: nhap.legId, soSuat: 1 }]);
@@ -387,7 +405,8 @@ test("R-P20: nhật ký chuyến có nhãn người bấm (tên hiển thị) qu
   assert.doesNotMatch(JSON.stringify(ct.nhatKy), /0900000001/, "không SĐT người bấm");
   // Ghim khoá DTO (điều kiện 3 của R-P20): mỗi dòng nhật ký đúng bộ khoá này; nguoiBam là CHUỖI (tên), không đối tượng; không khoá SĐT / email / id người.
   for (const d of ct.nhatKy) {
-    assert.deepEqual(Object.keys(d).sort(), ["gioGhiNhan", "gioXayRa", "id", "loai", "may", "nguoiBam", "nhan", "phaLe", "soNguoi", "vanPhongKhai"]);
+    // ADR-0111 Đ5 (gói A5): + `chuyenKhac` (sự kiện ghi ở chuyến khác mà chuyến này là chuyến liên quan — luật "đã có tiến độ sau xuất bến").
+    assert.deepEqual(Object.keys(d).sort(), ["chuyenKhac", "gioGhiNhan", "gioXayRa", "id", "loai", "may", "nguoiBam", "nhan", "phaLe", "soNguoi", "vanPhongKhai"]);
     assert.ok(d.nguoiBam === null || typeof d.nguoiBam === "string");
   }
   assert.doesNotMatch(JSON.stringify(ct), /"(sdt|soDienThoai|phone|email|staffId|createdBy|nguoiId)"\s*:/i, "chi tiết chuyến không có khoá SĐT / email / id người bấm");
@@ -441,6 +460,7 @@ test("Đợt 7 bài 2–3 (tiêu chí 1): xếp đơn B vào chuyến có chặn
   assert.equal(r.json.error.code, "can_pha_le_cam_ket");
   assert.equal(r.json.error.message, "Chuyến trái cam kết xe riêng / số chỗ của khách — cần Quản trị phá lệ kèm lý do.");
   assert.equal(r.json.error.canQuyen, false);
+  assert.equal(r.json.error.lop, "QUAN_TRI", "ADR-0104 Đ1: chuyến ngoài mốc — cam kết chỉ Quản trị, Toàn quyền");
   assert.ok(r.json.error.lyDo.length >= 2 && r.json.error.lyDo.every((l: any) => l.ma === "CAM_KET"), JSON.stringify(r.json.error.lyDo));
   assert.equal((await xep(w, ADM, r1.json, [{ legId: b.legId, soSuat: 2 }])).json.error.canQuyen, true);
   assert.equal(w.q("SELECT count(*) n FROM vc_trip_event WHERE kind = 'ALLOCATED'")[0].n, 1, "từ chối thì không ghi");
@@ -457,24 +477,45 @@ test("Đợt 7 bài 2–3 (tiêu chí 1): xếp đơn B vào chuyến có chặn
   assert.ok(!ok.text.includes(ck.k) && !ok.text.includes("commitment"), "C4: khoá không vào phản hồi");
 });
 
-test("Đợt 7 bài 4 (tiêu chí 4, Review Focus 2, hàng rào 2): Bán hàng gửi CHỈ camKetPhaLe ở sửa chuyến / xếp / dời / thêm điểm khi chạy → 403 (không ghi)", async () => {
+// NỚI có tên (kế hoạch ADR-0104 §6 N3; ADR-0104 Đ1 mục 0b, 2 — chủ 2026-10-08 "Chỉ khi chuyến còn dưới 6 giờ"): trước đây Bán hàng gửi camKetPhaLe ở bốn
+// route → 403 mọi lúc. Nay: chuyến NGOÀI mốc → vẫn 403 (lớp QUAN_TRI, câu cũ) ở sửa / xếp / dời; chuyến DƯỚI mốc → Bán hàng qua cổng (200). Route "thêm điểm
+// khi xe chạy" ra khỏi danh sách 403: xe đang chạy luôn dưới mốc (ADR-0052 D5.1) nên không còn ca ngoài mốc — ghim thay ở moc-toi-thieu.test.ts
+// ("xe đang chạy luôn dưới mốc") và xe-dang-chay-route.test.ts (Bán hàng 200). Dời dùng chuyến đích + suất THẬT (bản cũ dùng id ngẫu nhiên: nay 400 "Chuyến
+// đích không hợp lệ" đi trước 403 vì quyền kiểm sau khi đọc chuyến — ADR-0104 Đ1, kế hoạch §7).
+test("Đợt 7 bài 4 (tiêu chí 4, Review Focus 2, hàng rào 2; ADR-0104 Đ1): Bán hàng gửi CHỈ camKetPhaLe ở sửa chuyến / xếp / dời — chuyến NGOÀI mốc → 403 (không ghi); DƯỚI mốc → 200", async () => {
   const w = setup();
-  const t = (await taoChuyen(w, SALES, { xe: xe(w), taiXe: taiXe(w, "Tài Xế An"), batDau: ngoai6Gio() })).json;
+  const nguon = (await taoChuyen(w, SALES, { xe: xe(w), taiXe: taiXe(w, "Tài Xế An"), batDau: ngoai6Gio() })).json;
+  const dich = (await taoChuyen(w, SALES, { xe: xe(w), taiXe: taiXe(w, "Tài Xế Bình"), batDau: { ngay: inDays(2), gio: "07:10" } })).json;
   const a = await don(w, { ngay: inDays(2), gio: "07:30" });
-  const id = t.chuyen.id;
-  const v = t.chuyen.version;
+  const b = await don(w, { ngay: inDays(2), gio: "07:30" });
+  const daXep = await xep(w, SALES, nguon, [{ legId: a.legId, soSuat: 2 }]);
+  assert.equal(daXep.status, 200, daXep.text);
+  const id = nguon.chuyen.id;
+  const v = daXep.json.chuyen.version;
   const ca: [string, string, Record<string, unknown>][] = [
     ["PUT", `/api/van-chuyen/chuyen/${id}`, { version: v, requestId: uuid(), camKetPhaLe: PL }],
-    ["POST", `/api/van-chuyen/chuyen/${id}/phan-bo`, { version: v, requestId: uuid(), chang: [{ legId: a.legId, soSuat: 2 }], camKetPhaLe: PL }],
-    ["POST", `/api/van-chuyen/chuyen/${id}/doi`, { version: v, requestId: uuid(), suatIds: [uuid()], denChuyenId: uuid(), denVersion: 1, camKetPhaLe: PL }],
-    ["POST", `/api/van-chuyen/chuyen/${id}/them-diem`, { version: v, requestId: uuid(), chang: [{ legId: a.legId, soSuat: 2 }], camKetPhaLe: PL }],
+    ["POST", `/api/van-chuyen/chuyen/${id}/phan-bo`, { version: v, requestId: uuid(), chang: [{ legId: b.legId, soSuat: 2 }], camKetPhaLe: PL }],
+    ["POST", `/api/van-chuyen/chuyen/${id}/doi`, { version: v, requestId: uuid(), suatIds: daXep.json.suat.map((x: any) => x.id), denChuyenId: dich.chuyen.id, denVersion: dich.chuyen.version, camKetPhaLe: PL }],
   ];
+  const truoc = w.q("SELECT count(*) n FROM vc_trip_event")[0].n;
   for (const [m, url, body] of ca) {
     const r = await w.call(m, url, { as: SALES, body });
     assert.equal(r.status, 403, `${m} ${url}: ${r.text}`);
     assert.match(r.json.error.message, /Chỉ Quản trị hoặc Toàn quyền phá lệ/);
   }
-  assert.equal(w.q("SELECT count(*) n FROM vc_trip_event WHERE kind <> 'CREATED'")[0].n, 0);
+  assert.equal(w.q("SELECT count(*) n FROM vc_trip_event")[0].n, truoc, "403 thì không ghi");
+  // Vế DƯỚI mốc (cùng ba route, chuyến 2 giờ tới): Bán hàng gửi cờ cam kết (kèm điều chỉnh khẩn cấp mốc ở lệnh khoá) → qua cổng, 200.
+  const nguonGan = (await taoChuyen(w, SALES, { xe: xe(w), taiXe: taiXe(w, "Tài Xế Cường"), batDau: vnSau(120) })).json;
+  const dichGan = (await taoChuyen(w, SALES, { xe: xe(w), taiXe: taiXe(w, "Tài Xế Dũng"), batDau: vnSau(130) })).json;
+  const c = await don(w, { ngay: inDays(1), gio: "23:00" });
+  const sua = await w.call("PUT", `/api/van-chuyen/chuyen/${nguonGan.chuyen.id}`, { as: SALES, body: { version: nguonGan.chuyen.version, requestId: uuid(), camKetPhaLe: PL } });
+  assert.equal(sua.status, 200, sua.text);
+  const xepGan = await xep(w, SALES, nguonGan, [{ legId: c.legId, soSuat: 2 }], { phaLe: PL, camKetPhaLe: PL });
+  assert.equal(xepGan.status, 200, xepGan.text);
+  const doiGan = await w.call("POST", `/api/van-chuyen/chuyen/${nguonGan.chuyen.id}/doi`, {
+    as: SALES, body: { version: xepGan.json.chuyen.version, requestId: uuid(), suatIds: xepGan.json.suat.map((x: any) => x.id), denChuyenId: dichGan.chuyen.id, denVersion: dichGan.chuyen.version, phaLe: PL, camKetPhaLe: PL },
+  });
+  assert.equal(doiGan.status, 200, doiGan.text);
 });
 
 test("Đợt 7 bài 5 (tiêu chí 2): chặng cần ≥ 15 chỗ — đổi sang xe 7 chỗ → 409 can_pha_le_cam_ket; Quản trị kèm phá lệ → 200, khoá mang id xe MỚI; sửa giờ (không đổi xe) không bị chặn", async () => {
@@ -568,8 +609,9 @@ test("Đợt 7 bài 6 (C6): xếp cần CẢ mốc lẫn cam kết — thiếu c
   assert.deepEqual({ ...ev }, { r: "MOC_TOI_THIEU", l: "PHA_LE_SU_CO" });
   assert.equal(camKetCua(w, t.chuyen.id).r, "PHA_LE_KHAC");
   const nk = w.q("SELECT detail FROM audit_log WHERE action = 'trip_allocated' ORDER BY rowid DESC")[0].detail as string;
-  assert.match(nk, /phá lệ mốc tối thiểu: Sự cố vận hành/);
-  assert.match(nk, /phá lệ cam kết: Khác/);
+  // ADR-0104 Đ1 mục 4 (đổi có tên — chữ nhật ký): chuyến DƯỚI mốc (bắt đầu sau 2 giờ) ⇒ cả hai luật lớp KHAN_CAP: "điều chỉnh khẩn cấp …" + MỘT lần "còn N phút".
+  assert.match(nk, / · điều chỉnh khẩn cấp mốc tối thiểu: Sự cố vận hành · điều chỉnh khẩn cấp cam kết: Khác · còn 1[12]\d phút$/);
+  assert.doesNotMatch(nk, /phá lệ/);
 });
 
 test("Đợt 7 dời (Task 4): dời B sang chuyến có XE RIÊNG của A → 409 can_pha_le_cam_ket; Quản trị phá lệ → 200, cột chuyến ĐÍCH ghi; dời B tiếp sang chuyến trống → nguồn hết vi phạm, cột về trống trong cùng lô (C7), Bán hàng làm được", async () => {

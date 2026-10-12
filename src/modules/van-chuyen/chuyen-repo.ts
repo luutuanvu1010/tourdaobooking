@@ -1,11 +1,14 @@
 // SQL CHUYẾN XE của van-chuyen (ADR-0049 D1, D2; ADR-0050 VK1-A, VK1-B; kế hoạch mục 1.3–1.5, Task A13 / A15). Tệp thứ HAI của module nghiêm (STRICT —
 // src/architecture.test.ts nạp và EXPLAIN từng câu; R-P4 (ii) đã thử thật "bài nhận hai tệp"). Mọi câu TĨNH qua defineSql, tham số ?N; import đuôi .ts.
 // - Chỉ đọc bảng vc_ của mình và VIEW công bố: v_ord_leg_key / v_ord_order_flag (cờ chặng — lý do giữ cụ thể, I38), v_loc_location_label (tên điểm danh
-//   mục), v_pty_party_label / v_pty_owner_company (tên chủ xe). Không đọc audit_log (lính gác lô = DẤU LỆNH `last_cmd_id` trên vc_trip — ADR-0049 D1).
+//   mục), v_pty_party_label / v_pty_owner_company (tên chủ xe). Không đọc thẳng audit_log (lính gác lô = DẤU LỆNH `last_cmd_id` trên vc_trip — ADR-0049 D1);
+//   riêng câu cổng của máy đồng bộ chuyến theo đơn (`TRIP_GATE_THEO_DON`, ADR-0104 Đ2.2) hỏi "câu cổng đơn đã thắng" qua view công bố v_aud_order_cmd (0089),
+//   và câu đọc cam kết chặng qua v_ord_leg_commit (0089, phán quyết G10). Câu điểm dừng (`stops_by_trips`) đọc thêm v_loc_location_dia_chi (0091 — địa chỉ
+//   điểm danh mục, CHỈ cho chuỗi đích "Chỉ đường" của DTO tài xế, ADR-0105).
 // - Câu GHI sau câu cổng đều mang `EXISTS (SELECT 1 FROM vc_trip WHERE id = ?T AND last_cmd_id = ?cmd)` (bài thứ tự lô — Task A14). Mỗi suất MỘT câu INSERT
 //   (trigger sức chứa theo dòng — kế hoạch mục 4 điểm 3). Không câu DELETE nào (không xoá cứng).
 import { defineSql } from "../../shared/sql-registry.ts";
-import type { ChuyenChoTin } from "../../shared/tin-chuyen.ts";
+import type { ChuyenChoTin, HoiChuyenChoTin } from "../../shared/tin-chuyen.ts";
 
 // ---- Đọc -------------------------------------------------------------------------------------------------------------------------------------------------------
 export interface TripRow {
@@ -61,10 +64,29 @@ const TRIPS_TOUCHING = defineSql(
    WHERE t.status = 'RUNNING' OR (t.status <> 'CANCELLED' AND t.planned_start_ms < ?2 AND COALESCE(t.ended_ms, t.planned_end_ms) > ?1)
    ORDER BY t.planned_start_ms, t.code`,
 );
+/**
+ * Chuyến đã KẾT THÚC THẬT trong [?1, ?2] (ms, theo `ended_ms` — giờ xảy ra) — cho lệnh xuất bến và lý do giữ dự phóng: luật nghỉ (CH-02, ADR-0049 "từ giờ kết
+ * thúc thật") và chống xuất bến trước khi chuyến trước kết thúc (ADR-0050) so giờ THẬT, nên khung KẾ HOẠCH ±1 ngày của `trips_touching` không đủ khi cửa sổ
+ * xuất bến > 24 giờ (LC-20 cho tới 48 giờ). Nơi gọi lọc cùng xe / cùng tài xế.
+ */
+const TRIPS_ENDED_BETWEEN = defineSql(
+  "van-chuyen",
+  "trips_ended_between",
+  `SELECT ${COT_CHUYEN} FROM vc_trip t
+   WHERE t.status IN ('ENDED', 'ENDED_INTERRUPTED') AND t.ended_ms >= ?1 AND t.ended_ms <= ?2
+   ORDER BY t.planned_start_ms, t.code`,
+);
 /** Số chuyến đã có của một ngày chạy (đặt mã CX-DDMM-NN). */
 const TRIP_COUNT_BY_DATE = defineSql("van-chuyen", "trip_count_by_date", "SELECT count(*) AS n FROM vc_trip WHERE service_date = ?1");
-/** Sự kiện của lệnh lặp (LC-11): cùng request_id → 200 kết quả hiện tại. */
-const EVENT_BY_REQUEST = defineSql("van-chuyen", "event_by_request", "SELECT id, trip_id, related_trip_id, kind FROM vc_trip_event WHERE request_id = ?1");
+/**
+ * Sự kiện của lệnh lặp (LC-11): cùng request_id → 200 kết quả hiện tại — CHỈ khi sự kiện khớp chuyến + loại (+ suất / điểm) của lệnh đang gửi (C38;
+ * `traLenhLap` / `chayLo` ở dieu-phoi-route.ts so), lệch → 409 `request_id_reused`.
+ */
+const EVENT_BY_REQUEST = defineSql(
+  "van-chuyen",
+  "event_by_request",
+  "SELECT id, trip_id, related_trip_id, kind, stop_id, allocation_id FROM vc_trip_event WHERE request_id = ?1",
+);
 
 export async function tripById(db: D1Database, id: string): Promise<TripRow | null> {
   return db.prepare(TRIP_BY_ID).bind(id).first<TripRow>();
@@ -75,11 +97,23 @@ export async function tripsByDate(db: D1Database, ngay: string): Promise<TripRow
 export async function tripsTouching(db: D1Database, tuMs: number, denMs: number): Promise<TripRow[]> {
   return (await db.prepare(TRIPS_TOUCHING).bind(tuMs, denMs).all<TripRow>()).results;
 }
+export async function tripsEndedBetween(db: D1Database, tuMs: number, denMs: number): Promise<TripRow[]> {
+  return (await db.prepare(TRIPS_ENDED_BETWEEN).bind(tuMs, denMs).all<TripRow>()).results;
+}
 export async function tripCountByDate(db: D1Database, ngay: string): Promise<number> {
   return (await db.prepare(TRIP_COUNT_BY_DATE).bind(ngay).first<{ n: number }>())?.n ?? 0;
 }
-export async function eventByRequest(db: D1Database, requestId: string): Promise<{ id: string; trip_id: string; related_trip_id: string | null; kind: string } | null> {
-  return db.prepare(EVENT_BY_REQUEST).bind(requestId).first();
+/** Một dòng `vc_trip_event` tra theo request_id (đủ để so với lệnh đang gửi — C38). */
+export interface SuKienYeuCauRow {
+  id: string;
+  trip_id: string;
+  related_trip_id: string | null;
+  kind: string;
+  stop_id: string | null;
+  allocation_id: string | null;
+}
+export async function eventByRequest(db: D1Database, requestId: string): Promise<SuKienYeuCauRow | null> {
+  return db.prepare(EVENT_BY_REQUEST).bind(requestId).first<SuKienYeuCauRow>();
 }
 
 export interface StopRow {
@@ -93,6 +127,8 @@ export interface StopRow {
   place_key: string;
   /** Tên điểm danh mục (view công bố của locations) hoặc NULL (chữ tự do — dùng place_text đã che). */
   location_name: string | null;
+  /** ADR-0105: địa chỉ điểm danh mục (view v_loc_location_dia_chi) — CHỈ cho chuỗi đích chỉ đường của DTO tài xế; NULL với chữ tự do / chưa nhập. Không vào DTO văn phòng. */
+  location_address: string | null;
   planned_date: string | null;
   planned_time: string | null;
   status: "PENDING" | "ARRIVED" | "DONE" | "SKIPPED" | "MOVED";
@@ -105,9 +141,9 @@ export interface StopRow {
 const STOPS_BY_TRIPS = defineSql(
   "van-chuyen",
   "stops_by_trips",
-  `SELECT s.id, s.trip_id, s.seq, s.kind, s.location_id, s.place_text, s.place_key, l.name AS location_name, s.planned_date, s.planned_time, s.status, s.arrived_at,
-          s.done_at, s.skip_reason_code, s.added_while_running
-   FROM vc_trip_stop s LEFT JOIN v_loc_location_label l ON l.id = s.location_id
+  `SELECT s.id, s.trip_id, s.seq, s.kind, s.location_id, s.place_text, s.place_key, l.name AS location_name, d.address AS location_address, s.planned_date,
+          s.planned_time, s.status, s.arrived_at, s.done_at, s.skip_reason_code, s.added_while_running
+   FROM vc_trip_stop s LEFT JOIN v_loc_location_label l ON l.id = s.location_id LEFT JOIN v_loc_location_dia_chi d ON d.id = s.location_id
    WHERE s.trip_id IN (SELECT value FROM json_each(?1))
    ORDER BY s.trip_id, s.seq, s.created_at, s.id`,
 );
@@ -199,6 +235,43 @@ const LEG_FLAGS = defineSql(
 export async function legFlags(db: D1Database, legIds: readonly string[]): Promise<LegFlagRow[]> {
   if (legIds.length === 0) return [];
   return (await db.prepare(LEG_FLAGS).bind(JSON.stringify(legIds)).all<LegFlagRow>()).results;
+}
+
+// ---- Đọc của máy ĐỒNG BỘ CHUYẾN THEO ĐƠN (ADR-0104 Đ2; gốc lắp ráp gọi — người sửa đơn có thể KHÔNG có trip.view: không câu nào trả dữ liệu ra ngoài) ----
+/** Mọi chặng của MỘT đơn (kể cả chặng đã đóng) + mã đơn — qua view công bố của orders. */
+const CHANG_CUA_DON_DONG_BO = defineSql(
+  "van-chuyen",
+  "chang_cua_don_dong_bo",
+  `SELECT k.id, k.order_id, o.order_code, k.is_open FROM v_ord_leg_key k LEFT JOIN v_ord_order_label o ON o.id = k.order_id WHERE k.order_id = ?1 ORDER BY k.id`,
+);
+export async function changCuaDonDongBo(db: D1Database, orderId: string): Promise<{ id: string; order_id: string; order_code: string | null; is_open: number }[]> {
+  return (await db.prepare(CHANG_CUA_DON_DONG_BO).bind(orderId).all<{ id: string; order_id: string; order_code: string | null; is_open: number }>()).results;
+}
+/** Khoá người HIỆN HÀNH của đơn (view công bố — cùng nguồn trigger LC-10). Không tên. */
+const NGUOI_CUA_DON = defineSql(
+  "van-chuyen",
+  "nguoi_cua_don",
+  "SELECT person_key FROM v_ord_passenger_key WHERE order_id = ?1 AND has_current_row = 1 ORDER BY person_key",
+);
+export async function nguoiCuaDon(db: D1Database, orderId: string): Promise<string[]> {
+  return (await db.prepare(NGUOI_CUA_DON).bind(orderId).all<{ person_key: string }>()).results.map((r) => r.person_key);
+}
+/** Bốn cột cam kết của các chặng (0089 `v_ord_leg_commit` — phán quyết G10) + mã đơn (nhãn lý do cam kết). */
+const CAM_KET_CHANG = defineSql(
+  "van-chuyen",
+  "cam_ket_chang",
+  `SELECT c.id, c.order_id, o.order_code, c.exclusive_vehicle, c.min_vehicle_seats
+   FROM v_ord_leg_commit c LEFT JOIN v_ord_order_label o ON o.id = c.order_id WHERE c.id IN (SELECT value FROM json_each(?1))`,
+);
+export async function camKetChang(db: D1Database, legIds: readonly string[]): Promise<{ id: string; order_id: string; order_code: string | null; exclusive_vehicle: number; min_vehicle_seats: number | null }[]> {
+  if (legIds.length === 0) return [];
+  return (await db.prepare(CAM_KET_CHANG).bind(JSON.stringify(legIds)).all<{ id: string; order_id: string; order_code: string | null; exclusive_vehicle: number; min_vehicle_seats: number | null }>()).results;
+}
+/** Chuyến theo danh sách id. */
+const TRIPS_BY_IDS = defineSql("van-chuyen", "trips_by_ids", `SELECT ${COT_CHUYEN} FROM vc_trip t WHERE t.id IN (SELECT value FROM json_each(?1)) ORDER BY t.code, t.id`);
+export async function tripsByIds(db: D1Database, ids: readonly string[]): Promise<TripRow[]> {
+  if (ids.length === 0) return [];
+  return (await db.prepare(TRIPS_BY_IDS).bind(JSON.stringify(ids)).all<TripRow>()).results;
 }
 
 /** Xe chưa ngừng + chủ (tên, cờ công ty chủ hiện tại) — danh sách chọn xe của văn phòng và dữ liệu vào luật thuần. */
@@ -315,6 +388,17 @@ export const TRIP_GATE = defineSql(
   "UPDATE vc_trip SET version = version + 1, last_cmd_id = ?3, updated_at = ?4, updated_by = ?5 WHERE id = ?1 AND version = ?2 AND status = 'PLANNED'",
 );
 /**
+ * Câu cổng của MỘT khúc chuyến trong lô ĐỒNG BỘ THEO ĐƠN (ADR-0104 Đ2.2, Đ2.3): như TRIP_GATE + "câu cổng đơn đứng trước trong CÙNG lô đã thắng" — dòng
+ * nhật ký ?6 của ĐÚNG đơn ?7 có trong v_aud_order_cmd (đơn thua lặng lẽ thì không có dòng ⇒ cổng chuyến thua theo, không câu chuyến nào chạy). Điều kiện
+ * `order_id` chặn truyền nhầm mã nhật ký của đơn khác. ?1 chuyến, ?2 version đã đọc, ?3 dấu lệnh của khúc, ?4 lúc, ?5 người sửa đơn, ?6 id nhật ký đơn, ?7 đơn.
+ */
+export const TRIP_GATE_THEO_DON = defineSql(
+  "van-chuyen",
+  "trip_gate_theo_don",
+  `UPDATE vc_trip SET version = version + 1, last_cmd_id = ?3, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND version = ?2 AND status = 'PLANNED' AND EXISTS (SELECT 1 FROM v_aud_order_cmd WHERE id = ?6 AND order_id = ?7)`,
+);
+/**
  * Câu cổng lệnh KẾ HOẠCH có chạm CHI PHÍ chuyến xe thuê (ADR-0057 C4 — sửa, huỷ; kế hoạch Đợt 4 TC-8): như TRIP_GATE + "số dòng chi phí của chuyến vẫn bằng ?6 đã
  * đọc" (đếm MỌI dòng, lúc cổng — trước khi lô chèn gì). Có dòng chen giữa lúc đọc và lúc ghi ⇒ cổng 0 dòng ⇒ cả lô thua (409), không bao giờ "đảo một nửa".
  */
@@ -348,15 +432,15 @@ export const EVENT_INSERT = defineSql(
    WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?1)`,
 );
 /**
- * Sửa kế hoạch chuyến (xe, chủ xe chụp, giờ, khoá dính, phá lệ nghỉ, cờ xe thuê, tuyến). ?1 chuyến, ?2 dấu lệnh, ?3 xe, ?4 chủ xe, ?5 ngày chạy, ?6 bắt đầu,
- * ?7 kết thúc, ?8 giờ sớm nhất (do `batDauSomNhatSauDoiGio` tính — R-P7), ?9 phá lệ nghỉ, ?10 lúc, ?11 người, ?12 cờ xe thuê (ADR-0057 C2a — chỉ tính lại khi
- * đổi xe; trigger vc_trip_rented_* giữ), ?13 tuyến.
+ * Sửa kế hoạch chuyến (xe, chủ xe chụp, giờ, khoá dính, phá lệ nghỉ, cờ xe thuê, tuyến, khoảng nghỉ chụp). ?1 chuyến, ?2 dấu lệnh, ?3 xe, ?4 chủ xe, ?5 ngày chạy,
+ * ?6 bắt đầu, ?7 kết thúc, ?8 giờ sớm nhất (do `batDauSomNhatSauDoiGio` tính — R-P7), ?9 phá lệ nghỉ, ?10 lúc, ?11 người, ?12 cờ xe thuê (ADR-0057 C2a — chỉ tính
+ * lại khi đổi xe; trigger vc_trip_rented_* giữ), ?13 tuyến, ?14 khoảng nghỉ chụp (N3 — chụp lại khi lệnh đổi giờ / xe / tài xế, không thì số cũ).
  */
 export const TRIP_UPDATE_PLAN = defineSql(
   "van-chuyen",
   "trip_update_plan",
   `UPDATE vc_trip SET vehicle_id = ?3, carrier_party_id = ?4, service_date = ?5, planned_start_ms = ?6, planned_end_ms = ?7, earliest_start_ms = ?8,
-     rest_override_reason_code = ?9, updated_at = ?10, updated_by = ?11, rented = ?12, route_code = ?13
+     rest_override_reason_code = ?9, updated_at = ?10, updated_by = ?11, rented = ?12, route_code = ?13, rest_minutes_snapshot = ?14
    WHERE id = ?1 AND last_cmd_id = ?2`,
 );
 /**
@@ -375,6 +459,30 @@ export const TRIP_CANCEL = defineSql(
   "van-chuyen",
   "trip_cancel",
   "UPDATE vc_trip SET status = 'CANCELLED', cancel_reason_code = ?3, updated_at = ?4, updated_by = ?5 WHERE id = ?1 AND last_cmd_id = ?2",
+);
+/**
+ * Câu cổng lô TỪ CHỐI (ADR-0053 D8.4; kế hoạch A4 G-A4-24): ĐỦ điều kiện trong một câu — version đã đọc, chuyến PLANNED, người gọi có dòng lái MỞ, giờ máy chủ
+ * ≤ hạn của cặp, VÀ (ADR-0113 Đ1) chuyến không còn suất đang mở mang `transfer_id` — lô xác nhận chuyển chen giữa lúc đọc và lúc ghi không lọt (lớp máy chủ,
+ * KHÔNG có trigger). Trigger B8.3 (0092, giờ CSDL) là lớp thứ hai của vế hạn. ?1 chuyến, ?2 version, ?3 dấu lệnh, ?4 lúc, ?5 người, ?6 hồ sơ tài xế, ?7 giờ máy chủ (ms).
+ */
+export const TRIP_GATE_TU_CHOI = defineSql(
+  "van-chuyen",
+  "trip_gate_tu_choi",
+  `UPDATE vc_trip SET version = version + 1, last_cmd_id = ?3, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND version = ?2 AND status = 'PLANNED'
+     AND EXISTS (SELECT 1 FROM vc_trip_driver d WHERE d.trip_id = ?1 AND d.valid_to_at IS NULL AND d.driver_party_id = ?6)
+     AND EXISTS (SELECT 1 FROM vc_refuse_deadline r WHERE r.trip_id = ?1 AND r.driver_party_id = ?6 AND ?7 <= r.deadline_ms)
+     AND NOT EXISTS (SELECT 1 FROM vc_trip_allocation a WHERE a.trip_id = ?1 AND a.valid_to_at IS NULL AND a.transfer_id IS NOT NULL)`,
+);
+/**
+ * Đóng dòng lái vì TỪ CHỐI (ADR-0053 D8.1, D8.4; B8.2–B8.4): lý do (nhóm TU_CHOI_CHUYEN), người đóng = chính tài xế (hồ sơ + tài khoản). ?1 chuyến, ?2 dấu lệnh,
+ * ?3 lúc, ?4 mã lý do, ?5 tài khoản người bấm, ?6 hồ sơ tài xế.
+ */
+export const DRIVER_REFUSE = defineSql(
+  "van-chuyen",
+  "driver_refuse",
+  `UPDATE vc_trip_driver SET valid_to_at = ?3, close_reason = 'REFUSED', refuse_reason_code = ?4, closed_by = ?5, closed_by_party_id = ?6, updated_at = ?3, updated_by = ?5
+   WHERE trip_id = ?1 AND valid_to_at IS NULL AND driver_party_id = ?6 AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?1 AND last_cmd_id = ?2)`,
 );
 /** Mở dòng tài xế. ?1 id, ?2 chuyến, ?3 tài xế, ?4 dấu lệnh, ?5 lúc, ?6 người. */
 export const DRIVER_INSERT = defineSql(
@@ -507,6 +615,41 @@ export const MANIFEST_THEM_SAU = defineSql(
   `INSERT INTO vc_trip_manifest (id, trip_id, check_id, allocation_id, passenger_row_id, crew_party_id, added_after_departure, created_at, created_by, updated_at, updated_by)
    SELECT ?1, ?2, NULL, ?3, ?4, NULL, 1, ?5, ?6, ?5, ?6 WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?7)`,
 );
+// ---- SỰ KIỆN ĐIỀU CHỈNH CÓ LÝ DO (ADR-0097 — gói A1, V3-B; migration 0085) --------------------------------------------------------------------------------
+/**
+ * Sự kiện điều chỉnh (CORRECTION / DEPARTURE_REVOKED) — ĐÚNG khuôn tham số ?1…?18 của EVENT_INSERT (bài C38 của thu-tu-lo.test.ts đọc theo vị trí) + ?19
+ * mã lý do (`reason_code`, nhóm DIEU_CHINH — trigger vc_trip_event_dieu_chinh_scope). Lính gác: chuyến ?2 mang dấu lệnh ?1.
+ */
+export const EVENT_DIEU_CHINH_INSERT = defineSql(
+  "van-chuyen",
+  "event_dieu_chinh_insert",
+  `INSERT INTO vc_trip_event (id, trip_id, related_trip_id, kind, stop_id, allocation_id, count, request_id, client_at, decided_mode, override_rule_code, override_reason_code,
+     policy_id, occurred_at, occurred_ms, occurred_source, created_at, created_by, updated_at, updated_by, reason_code)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?17, ?18, ?19
+   WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?1)`,
+);
+/**
+ * Suất THAY THẾ của lô điều chỉnh (Đ2.3): cùng chặng / người / điểm lên / điểm xuống với suất cũ, trạng thái mới (bảng Đ2.4 — máy chủ `kiemDieuChinh` + trigger
+ * vc_trip_running_locked_alloc_ins), cờ thêm sau xuất bến, trỏ suất cũ. ?1 id, ?2 chuyến, ?3 suất cũ (corrects_allocation_id), ?4 trạng thái mới, ?5 dấu lệnh,
+ * ?6 lúc, ?7 người. Các cột chép từ CHÍNH suất cũ (không nhận từ trình duyệt). Lính gác: chuyến ?2 mang dấu lệnh ?5.
+ */
+export const ALLOC_DIEU_CHINH_INSERT = defineSql(
+  "van-chuyen",
+  "alloc_dieu_chinh_insert",
+  `INSERT INTO vc_trip_allocation (id, trip_id, kind, leg_id, passenger_key, crew_party_id, board_stop_id, alight_stop_id, status, valid_from_at, added_after_departure,
+     opened_cmd_id, corrects_allocation_id, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, c.trip_id, c.kind, c.leg_id, c.passenger_key, c.crew_party_id, c.board_stop_id, c.alight_stop_id, ?4, ?6, 1, ?5, c.id, ?6, ?7, ?6, ?7
+   FROM vc_trip_allocation c WHERE c.id = ?3 AND c.trip_id = ?2 AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?5)`,
+);
+/**
+ * Thu hồi xuất bến (Đ3.3) — TRẠNG THÁI CUỐI của lô: RUNNING → PLANNED, xoá giờ xuất bến (CHECK của vc_trip). Trigger vc_trip_status_forward chỉ cho cạnh này khi
+ * sự kiện của dấu lệnh là DEPARTURE_REVOKED; vc_trip_revoke_no_progress chặn khi đã có tiến độ. ?1 chuyến, ?2 dấu lệnh, ?3 lúc, ?4 người.
+ */
+export const TRIP_THU_HOI_XUAT_BEN = defineSql(
+  "van-chuyen",
+  "trip_thu_hoi_xuat_ben",
+  "UPDATE vc_trip SET status = 'PLANNED', departed_at = NULL, departed_ms = NULL, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND last_cmd_id = ?2",
+);
 /** Câu CHUYỂN "xe đã tới điểm" — đứng ĐẦU lô, tự gác: điểm PENDING của chuyến đang chạy. ?1 điểm, ?2 chuyến, ?3 giờ xảy ra (chuỗi), ?4 lúc, ?5 người. */
 export const STOP_DA_TOI = defineSql(
   "van-chuyen",
@@ -589,6 +732,188 @@ export const STOP_SET_SEQ = defineSql(
   "stop_set_seq",
   `UPDATE vc_trip_stop SET seq = ?4, updated_at = ?5, updated_by = ?6
    WHERE id = ?1 AND trip_id = ?2 AND status = 'PENDING' AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?3)`,
+);
+
+// ---- CHUYỂN KHÁCH GIỮA HAI XE (ADR-0111, thi hành ADR-0052 D4 / D5c; migration 0093) ----------------------------------------------------------------------
+// Sự kiện + nhật ký ở chuyến ĐÍCH (B), nguồn (A) ở related_trip_id (G-A5-11). Mọi câu sau câu cổng GÁC theo B (lô xác nhận: cổng A trước, cổng B chỉ thắng
+// khi A đã mang dấu lệnh này — khuôn loDoi). Đề nghị: id = dấu lệnh của lô GỬI (LC-14 đòi B mang dấu lệnh = id đề nghị).
+/** Cổng lô GỬI ở chuyến ĐÍCH: version đúng (máy chủ đọc) + chưa chạy / đang chạy. Tham số như TRIP_GATE. */
+export const TRIP_GATE_CHAY_HOAC_CHO = defineSql(
+  "van-chuyen",
+  "trip_gate_chay_hoac_cho",
+  "UPDATE vc_trip SET version = version + 1, last_cmd_id = ?3, updated_at = ?4, updated_by = ?5 WHERE id = ?1 AND version = ?2 AND status IN ('PLANNED', 'RUNNING')",
+);
+/**
+ * Cổng lô VÒNG ĐỜI đề nghị (rút, không nhận, hết hạn, leo thang, bác) ở chuyến ĐÍCH ?1: chưa chạy / đang chạy + đề nghị ?5 của đúng chuyến đích còn ở một
+ * trạng thái thuộc ?6 (mảng JSON) — bấm hai lần / hai người cùng bấm: chỉ một lô thắng. Không khoá version (lệnh không đổi kế hoạch chuyến). ?2 dấu lệnh, ?3 lúc,
+ * ?4 người.
+ */
+export const TRIP_GATE_DE_NGHI = defineSql(
+  "van-chuyen",
+  "trip_gate_de_nghi",
+  `UPDATE vc_trip SET version = version + 1, last_cmd_id = ?2, updated_at = ?3, updated_by = ?4
+   WHERE id = ?1 AND status IN ('PLANNED', 'RUNNING')
+     AND EXISTS (SELECT 1 FROM vc_transfer_request r WHERE r.id = ?5 AND r.to_trip_id = ?1 AND r.status IN (SELECT value FROM json_each(?6)))`,
+);
+/**
+ * Cổng THỨ HAI của lô XÁC NHẬN / DUYỆT (khuôn TRIP_GATE_DOI): chuyến đích ?1 version ?2 đúng, chưa chạy / đang chạy; chuyến nguồn ?6 đã mang CHÍNH dấu lệnh ?3
+ * (cổng nguồn TRIP_GATE_DANG_CHAY_VERSION đứng trước); đề nghị ?7 (nguồn ?6 → đích ?1) còn ở trạng thái thuộc ?8. ?4 lúc, ?5 người.
+ */
+export const TRIP_GATE_DOI_CHAY = defineSql(
+  "van-chuyen",
+  "trip_gate_doi_chay",
+  `UPDATE vc_trip SET version = version + 1, last_cmd_id = ?3, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND version = ?2 AND status IN ('PLANNED', 'RUNNING') AND EXISTS (SELECT 1 FROM vc_trip s WHERE s.id = ?6 AND s.last_cmd_id = ?3)
+     AND EXISTS (SELECT 1 FROM vc_transfer_request r WHERE r.id = ?7 AND r.to_trip_id = ?1 AND r.from_trip_id = ?6 AND r.status IN (SELECT value FROM json_each(?8)))`,
+);
+/**
+ * Đề nghị MỚI (Chờ). ?1 id (= dấu lệnh lô gửi), ?2 nguồn, ?3 đích, ?4 phạm vi, ?5 điểm nguồn (STOP), ?6 nơi gặp danh mục, ?7 chữ nơi gặp (đã che), ?8 số khách,
+ * ?9 hồ sơ tài xế nguồn, ?10 tài khoản bấm, ?11 lúc, ?12 request_id, ?13 người. Chính sách = dòng hiện hành lúc gửi (đọc trong câu — LC-14 so lại).
+ */
+export const TRANSFER_INSERT = defineSql(
+  "van-chuyen",
+  "transfer_insert",
+  `INSERT INTO vc_transfer_request (id, from_trip_id, to_trip_id, scope, from_stop_id, meet_location_id, meet_place_text, pax_count, proposed_by_party_id,
+     proposed_by_staff_id, proposed_at, policy_id, request_id, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11,
+     (SELECT p.id FROM vc_dispatch_policy p WHERE p.valid_from_at <= ?11 ORDER BY p.valid_from_at DESC LIMIT 1), ?12, ?11, ?13, ?11, ?13
+   WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?3 AND last_cmd_id = ?1)`,
+);
+/**
+ * Đóng đề nghị KHÔNG đụng cột quyết định (Rút / Hết hạn / Huỷ — Đ3 (b)). ?1 đề nghị, ?2 trạng thái mới, ?3 dấu lệnh, ?4 lúc, ?5 người, ?6 chuyến gác, ?7
+ * trạng thái cũ hợp lệ (mảng JSON).
+ */
+export const TRANSFER_DONG = defineSql(
+  "van-chuyen",
+  "transfer_dong",
+  `UPDATE vc_transfer_request SET status = ?2, closed_cmd_id = ?3, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND status IN (SELECT value FROM json_each(?7)) AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?6 AND last_cmd_id = ?3)`,
+);
+/**
+ * Tài xế đích quyết lần thứ nhất (Chờ → Xác nhận MAY / Leo thang / Không nhận — Đ3 (b)). ?1 đề nghị, ?2 trạng thái mới, ?3 dấu lệnh, ?4 lúc, ?5 tài khoản bấm,
+ * ?6 hồ sơ tài xế đích, ?7 chế độ (MAY khi xác nhận), ?8 dấu lệnh đóng (NULL khi leo thang), ?9 lý do Không nhận, ?10 chuyến gác (đích).
+ */
+export const TRANSFER_QUYET = defineSql(
+  "van-chuyen",
+  "transfer_quyet",
+  `UPDATE vc_transfer_request SET status = ?2, decided_mode = ?7, decided_by = ?5, decided_at = ?4, decided_cmd_id = ?3, decided_by_party_id = ?6, closed_cmd_id = ?8,
+     decline_reason_code = ?9, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND status = 'PENDING' AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?10 AND last_cmd_id = ?3)`,
+);
+/**
+ * Quản trị / Toàn quyền quyết đề nghị LEO THANG (→ Xác nhận NGUOI có lý do phá lệ / → Bác có lý do): giữ hồ sơ tài xế đã bấm Nhận, dấu lệnh quyết mới = dấu lệnh
+ * đóng. ?1 đề nghị, ?2 trạng thái mới, ?3 dấu lệnh, ?4 lúc, ?5 người, ?6 lý do phá lệ (xác nhận), ?7 lý do Bác, ?8 chuyến gác (đích).
+ */
+export const TRANSFER_DUYET = defineSql(
+  "van-chuyen",
+  "transfer_duyet",
+  `UPDATE vc_transfer_request SET status = ?2, decided_mode = CASE WHEN ?2 = 'CONFIRMED' THEN 'NGUOI' END, decided_by = ?5, decided_at = ?4, decided_cmd_id = ?3,
+     closed_cmd_id = ?3, override_reason_code = ?6, reject_reason_code = ?7, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND status = 'ESCALATED' AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?8 AND last_cmd_id = ?3)`,
+);
+/**
+ * Tự huỷ trong lô XÁC NHẬN (P4, G-A5-6): mọi đề nghị Chờ / Leo thang KHÁC của chuyến nguồn ?1 — STOP (?3 = điểm): cùng điểm + mọi ONBOARD; ONBOARD (?3 NULL):
+ * tất cả. Không sự kiện, không tin; vết ở closed_cmd_id. ?2 đề nghị vừa xác nhận, ?4 dấu lệnh, ?5 lúc, ?6 người, ?7 chuyến gác.
+ */
+export const TRANSFERS_VOID_KHAC = defineSql(
+  "van-chuyen",
+  "transfers_void_khac",
+  `UPDATE vc_transfer_request SET status = 'VOID', closed_cmd_id = ?4, updated_at = ?5, updated_by = ?6
+   WHERE from_trip_id = ?1 AND id <> ?2 AND status IN ('PENDING', 'ESCALATED') AND (?3 IS NULL OR scope = 'ONBOARD' OR from_stop_id = ?3)
+     AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?7 AND last_cmd_id = ?4)`,
+);
+/**
+ * MQ-09 (ADR-0052 :79; kế hoạch G-A5-13): tự huỷ đề nghị chờ (Chờ / Leo thang) trong lô của lệnh KHÁC làm điểm nguồn / chuyến đổi. Không sự kiện, không tin;
+ * vết ở closed_cmd_id (trigger ck_trong_lo: dấu lệnh của xe nhờ hoặc xe nhận). Ba phạm vi:
+ *   - THEO ĐIỂM (Đã tới): đề nghị STOP của điểm ?1;
+ *   - THEO SUẤT (Báo huỷ, Điều chỉnh): đề nghị STOP của điểm lên của suất ?1 VÀ đề nghị ONBOARD của chuyến có suất ?1 (tập khách của điểm / của xe đổi —
+ *     cùng lý do lô xác nhận STOP huỷ ONBOARD của xe nhờ, G-A5-6);
+ *   - THEO CHUYẾN (Kết thúc, Kết thúc gián đoạn, Huỷ, Thu hồi xuất bến): mọi đề nghị có chuyến ?1 là nguồn hoặc đích.
+ * ?2 dấu lệnh, ?3 lúc, ?4 người, ?5 chuyến gác (chuyến của lô).
+ */
+export const TRANSFERS_VOID_BY_STOP = defineSql(
+  "van-chuyen",
+  "transfers_void_by_stop",
+  `UPDATE vc_transfer_request SET status = 'VOID', closed_cmd_id = ?2, updated_at = ?3, updated_by = ?4
+   WHERE scope = 'STOP' AND from_stop_id = ?1 AND status IN ('PENDING', 'ESCALATED') AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?5 AND last_cmd_id = ?2)`,
+);
+export const TRANSFERS_VOID_BY_SUAT = defineSql(
+  "van-chuyen",
+  "transfers_void_by_suat",
+  `UPDATE vc_transfer_request SET status = 'VOID', closed_cmd_id = ?2, updated_at = ?3, updated_by = ?4
+   WHERE status IN ('PENDING', 'ESCALATED')
+     AND ((scope = 'STOP' AND from_stop_id = (SELECT a.board_stop_id FROM vc_trip_allocation a WHERE a.id = ?1))
+       OR (scope = 'ONBOARD' AND from_trip_id = (SELECT a.trip_id FROM vc_trip_allocation a WHERE a.id = ?1)))
+     AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?5 AND last_cmd_id = ?2)`,
+);
+export const TRANSFERS_VOID_BY_TRIP = defineSql(
+  "van-chuyen",
+  "transfers_void_by_trip",
+  `UPDATE vc_transfer_request SET status = 'VOID', closed_cmd_id = ?2, updated_at = ?3, updated_by = ?4
+   WHERE (from_trip_id = ?1 OR to_trip_id = ?1) AND status IN ('PENDING', 'ESCALATED') AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?5 AND last_cmd_id = ?2)`,
+);
+/**
+ * MQ-09 cho "Cập nhật điểm theo đơn" khi xe nhờ ĐANG CHẠY (đường bỏ qua điểm nguồn / đổi tập khách — G-A5-13): đề nghị chờ của chuyến ?1 mà (STOP) điểm nguồn là
+ * điểm lên của suất do CHÍNH lệnh ?2 đóng, hoặc điểm nguồn đã hết PENDING; (ONBOARD) lệnh ?2 có đóng suất của chuyến. Đứng SAU câu đóng suất / bỏ qua điểm.
+ */
+export const TRANSFERS_VOID_BY_DOI_DIEM = defineSql(
+  "van-chuyen",
+  "transfers_void_by_doi_diem",
+  `UPDATE vc_transfer_request SET status = 'VOID', closed_cmd_id = ?2, updated_at = ?3, updated_by = ?4
+   WHERE from_trip_id = ?1 AND status IN ('PENDING', 'ESCALATED')
+     AND ((scope = 'STOP' AND (from_stop_id IN (SELECT a.board_stop_id FROM vc_trip_allocation a WHERE a.trip_id = ?1 AND a.closed_cmd_id = ?2)
+                               OR from_stop_id IN (SELECT s.id FROM vc_trip_stop s WHERE s.trip_id = ?1 AND s.status <> 'PENDING')))
+       OR (scope = 'ONBOARD' AND EXISTS (SELECT 1 FROM vc_trip_allocation a WHERE a.trip_id = ?1 AND a.closed_cmd_id = ?2)))
+     AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?5 AND last_cmd_id = ?2)`,
+);
+/**
+ * Một dòng kiểm của lần bấm (trước câu đổi trạng thái đề nghị). Chính sách = dòng hiện hành lúc kiểm (đọc trong câu). ?1 id, ?2 đề nghị, ?3 dấu lệnh, ?4 mã
+ * điều kiện, ?5 tầng (máy chủ — trigger so với danh mục), ?6 kết quả, ?7 giá trị, ?8 giới hạn, ?9 lúc, ?10 người, ?11 chuyến gác (đích).
+ */
+export const TRANSFER_CHECK_INSERT = defineSql(
+  "van-chuyen",
+  "transfer_check_insert",
+  `INSERT INTO vc_transfer_check (id, transfer_id, cmd_id, rule_code, rule_tier, ket_qua, gia_tri, gioi_han, policy_row_id, checked_at, created_at, created_by, updated_at,
+     updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, (SELECT p.id FROM vc_dispatch_policy p WHERE p.valid_from_at <= ?9 ORDER BY p.valid_from_at DESC LIMIT 1), ?9, ?9, ?10, ?9, ?10
+   WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?11 AND last_cmd_id = ?3)`,
+);
+/** Đóng MỘT suất nguồn vì chuyển (TRANSFERRED + closed_transfer_id). ?1 suất, ?2 chuyến nguồn, ?3 dấu lệnh, ?4 lúc, ?5 người, ?6 đề nghị, ?7 chuyến gác (đích). */
+export const ALLOC_CLOSE_TRANSFER = defineSql(
+  "van-chuyen",
+  "alloc_close_transfer",
+  `UPDATE vc_trip_allocation SET valid_to_at = ?4, close_reason = 'TRANSFERRED', closed_by = ?5, closed_cmd_id = ?3, closed_transfer_id = ?6, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND trip_id = ?2 AND valid_to_at IS NULL AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?7 AND last_cmd_id = ?3)`,
+);
+/**
+ * Mở MỘT suất ở chuyến đích, chép từ ĐÚNG một suất nguồn vừa đóng bằng đề nghị ?6 (loại, chặng, người, người đi kèm, TRẠNG THÁI — G-A5-24), gắn điểm của
+ * đích (?4 lên, ?5 xuống; người đi kèm không điểm). Cờ "thêm sau xuất bến" = đích đang chạy. ?1 id, ?2 chuyến đích, ?3 suất nguồn, ?7 dấu lệnh, ?8 lúc, ?9 người.
+ */
+export const ALLOC_OPEN_TRANSFER = defineSql(
+  "van-chuyen",
+  "alloc_open_transfer",
+  `INSERT INTO vc_trip_allocation (id, trip_id, kind, leg_id, passenger_key, crew_party_id, board_stop_id, alight_stop_id, status, valid_from_at, added_after_departure,
+     opened_cmd_id, transfer_id, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, c.kind, c.leg_id, c.passenger_key, c.crew_party_id, ?4, ?5, c.status, ?8,
+     CASE WHEN (SELECT t.status FROM vc_trip t WHERE t.id = ?2) = 'RUNNING' THEN 1 ELSE 0 END, ?7, ?6, ?8, ?9, ?8, ?9
+   FROM vc_trip_allocation c WHERE c.id = ?3 AND c.closed_transfer_id = ?6 AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?7)`,
+);
+/** Điểm đón nguồn đã chuyển hết khách sang xe khác (STOP): PENDING → MOVED. ?1 điểm, ?2 chuyến nguồn, ?3 dấu lệnh, ?4 lúc, ?5 người, ?6 chuyến gác (đích). */
+export const STOP_SET_MOVED = defineSql(
+  "van-chuyen",
+  "stop_set_moved",
+  `UPDATE vc_trip_stop SET status = 'MOVED', updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND trip_id = ?2 AND status = 'PENDING' AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?6 AND last_cmd_id = ?3)`,
+);
+/**
+ * Bản chốt dòng THÊM SAU xuất bến cho suất CHUYỂN SANG xe đích đang chạy — khách có tên (dòng hành khách) HOẶC người đi kèm (CHECK của 0042: đúng một). ?1 id,
+ * ?2 chuyến đích, ?3 suất, ?4 dòng hành khách, ?5 người đi kèm, ?6 lúc, ?7 người, ?8 dấu lệnh.
+ */
+export const MANIFEST_CHUYEN_KHACH = defineSql(
+  "van-chuyen",
+  "manifest_chuyen_khach",
+  `INSERT INTO vc_trip_manifest (id, trip_id, check_id, allocation_id, passenger_row_id, crew_party_id, added_after_departure, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, NULL, ?3, ?4, ?5, 1, ?6, ?7, ?6, ?7 WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?8)`,
 );
 
 /** "Cuốc của tôi" (route 19): chuyến tài xế ?1 đang có dòng lái MỞ, ngày chạy trong [?2, ?3] hoặc đang chạy. */
@@ -750,31 +1075,127 @@ export async function viecXeCuaNguoi(db: D1Database, partyId: string): Promise<{
   return { laiChuyen: r?.lai ?? 0, toLaiChuyen: r?.to_lai ?? 0, chuXeChuyen: r?.chu_xe ?? 0, soXe: r?.so_xe ?? 0 };
 }
 
+// ---- ĐỌC đề nghị chuyển khách (ADR-0111) — chữ nơi gặp (đã che) chỉ đi vào DTO đề nghị; khoá nơi không bao giờ đọc ra. -------------------------------------
+export interface DeNghiRow {
+  id: string; from_trip_id: string; to_trip_id: string; scope: "STOP" | "ONBOARD"; from_stop_id: string | null; meet_location_id: string | null;
+  meet_place_text: string | null; pax_count: number; proposed_by_party_id: string; proposed_by_staff_id: string; proposed_at: string;
+  status: "PENDING" | "WITHDRAWN" | "DECLINED" | "EXPIRED" | "VOID" | "CONFIRMED" | "ESCALATED" | "REJECTED"; decided_mode: "MAY" | "NGUOI" | null;
+  decided_by: string | null; decided_at: string | null; decided_by_party_id: string | null; decided_cmd_id: string | null; closed_cmd_id: string | null;
+  policy_id: string; decline_reason_code: string | null;
+  override_reason_code: string | null; reject_reason_code: string | null; request_id: string; updated_at: string;
+  /** Hạn chờ (phút) của dòng chính sách LÚC GỬI (MQ-08). */ accept_wait_minutes: number;
+  from_code: string; to_code: string; service_date: string;
+}
+const COT_DE_NGHI = `r.id, r.from_trip_id, r.to_trip_id, r.scope, r.from_stop_id, r.meet_location_id, r.meet_place_text, r.pax_count, r.proposed_by_party_id,
+  r.proposed_by_staff_id, r.proposed_at, r.status, r.decided_mode, r.decided_by, r.decided_at, r.decided_by_party_id, r.decided_cmd_id, r.closed_cmd_id,
+  r.policy_id, r.decline_reason_code,
+  r.override_reason_code, r.reject_reason_code, r.request_id, r.updated_at, p.accept_wait_minutes, f.code AS from_code, t.code AS to_code, t.service_date`;
+const TU_DE_NGHI = `vc_transfer_request r JOIN vc_dispatch_policy p ON p.id = r.policy_id JOIN vc_trip f ON f.id = r.from_trip_id JOIN vc_trip t ON t.id = r.to_trip_id`;
+const DE_NGHI_BY_ID = defineSql("van-chuyen", "de_nghi_by_id", `SELECT ${COT_DE_NGHI} FROM ${TU_DE_NGHI} WHERE r.id = ?1`);
+const DE_NGHI_BY_REQUEST = defineSql("van-chuyen", "de_nghi_by_request", `SELECT ${COT_DE_NGHI} FROM ${TU_DE_NGHI} WHERE r.request_id = ?1`);
+const DE_NGHI_CUA_CHUYEN = defineSql(
+  "van-chuyen",
+  "de_nghi_cua_chuyen",
+  `SELECT ${COT_DE_NGHI} FROM ${TU_DE_NGHI}
+   WHERE r.from_trip_id IN (SELECT value FROM json_each(?1)) OR r.to_trip_id IN (SELECT value FROM json_each(?1)) ORDER BY r.proposed_at DESC, r.id`,
+);
+const DE_NGHI_THEO_NGAY = defineSql("van-chuyen", "de_nghi_theo_ngay", `SELECT ${COT_DE_NGHI} FROM ${TU_DE_NGHI} WHERE t.service_date = ?1 ORDER BY r.proposed_at DESC, r.id`);
+export interface KiemRow {
+  transfer_id: string; cmd_id: string; rule_code: string; rule_tier: "LOI" | "CAU_HINH"; ket_qua: "DAT" | "KHONG_DAT" | "CANH_BAO"; gia_tri: number | null;
+  gioi_han: number | null; checked_at: string; label: string; sort_order: number;
+}
+const KIEM_CUA_DE_NGHI = defineSql(
+  "van-chuyen",
+  "kiem_cua_de_nghi",
+  `SELECT c.transfer_id, c.cmd_id, c.rule_code, c.rule_tier, c.ket_qua, c.gia_tri, c.gioi_han, c.checked_at, d.label, d.sort_order
+   FROM vc_transfer_check c JOIN vc_transfer_rule d ON d.code = c.rule_code
+   WHERE c.transfer_id IN (SELECT value FROM json_each(?1)) ORDER BY c.checked_at, d.sort_order, c.rule_code`,
+);
+const DIEU_KIEN_CHUYEN_DANG_DUNG = defineSql("van-chuyen", "dieu_kien_chuyen_dang_dung", "SELECT code, label, tier FROM vc_transfer_rule WHERE active = 1 ORDER BY sort_order, code");
+export async function deNghiById(db: D1Database, id: string): Promise<DeNghiRow | null> {
+  return await db.prepare(DE_NGHI_BY_ID).bind(id).first<DeNghiRow>();
+}
+export async function deNghiByRequest(db: D1Database, requestId: string): Promise<DeNghiRow | null> {
+  return await db.prepare(DE_NGHI_BY_REQUEST).bind(requestId).first<DeNghiRow>();
+}
+export async function deNghiCuaChuyen(db: D1Database, tripIds: readonly string[]): Promise<DeNghiRow[]> {
+  if (tripIds.length === 0) return [];
+  return (await db.prepare(DE_NGHI_CUA_CHUYEN).bind(JSON.stringify([...new Set(tripIds)])).all<DeNghiRow>()).results;
+}
+export async function deNghiTheoNgay(db: D1Database, ngay: string): Promise<DeNghiRow[]> {
+  return (await db.prepare(DE_NGHI_THEO_NGAY).bind(ngay).all<DeNghiRow>()).results;
+}
+export async function kiemCuaDeNghi(db: D1Database, ids: readonly string[]): Promise<KiemRow[]> {
+  if (ids.length === 0) return [];
+  return (await db.prepare(KIEM_CUA_DE_NGHI).bind(JSON.stringify([...new Set(ids)])).all<KiemRow>()).results;
+}
+/** Danh mục điều kiện chuyển ĐANG DÙNG (vc_transfer_rule) — lô kiểm ghi đúng một dòng cho mỗi mã ở đây (trigger confirm_may / escalate đếm theo danh mục). */
+export async function dieuKienChuyenDangDung(db: D1Database): Promise<{ code: string; label: string; tier: "LOI" | "CAU_HINH" }[]> {
+  return (await db.prepare(DIEU_KIEN_CHUYEN_DANG_DUNG).all<{ code: string; label: string; tier: "LOI" | "CAU_HINH" }>()).results;
+}
+
 // ---- TIN CHUYẾN (ADR-0052 D6.3): dữ kiện cho thongbao / gốc lắp ráp qua hàm tiêm — chỉ khoá, mã chuyến, ngày, khoảng lái, đơn của suất vắng. ----
 const SU_KIEN_THEO_YEU_CAU = defineSql("van-chuyen", "su_kien_theo_yeu_cau", `SELECT id, trip_id, related_trip_id FROM vc_trip_event WHERE request_id = ?1`);
+// Phiếu kiểm D1 CAO-2 (ADR-0104 Đ1.6): chuyến được hỏi (?1) CỘNG chuyến NGUỒN của các sự kiện dời có bỏ qua luật trong số sự kiện được hỏi (?2) — sự kiện ghi
+// ở chuyến đích, nguồn = `related_trip_id`; tài xế nguồn cũng nhận tin. Một tập cho cả hai câu (chuyến + khoảng lái) — `CHUYEN_NGUON_KHAN_CAP`.
+// CAO-C (lời chủ 2026-10-08 "Báo mọi lệnh có bỏ qua luật"): cùng vị từ với cờ tin `khan_cap_cho_tin` — `override_rule_code IS NOT NULL`, mọi luật.
+const CHUYEN_NGUON_KHAN_CAP = `SELECT e.related_trip_id FROM vc_trip_event e
+  WHERE e.id IN (SELECT value FROM json_each(?2)) AND e.kind = 'ALLOCATION_MOVED' AND e.override_rule_code IS NOT NULL AND e.related_trip_id IS NOT NULL`;
+// ADR-0111 (gói A5, kế hoạch T10 — đường tin chuyển khách RIÊNG): chuyến XE NHỜ (`related_trip_id`) của sự kiện TRANSFER_* trong số được hỏi (?2) — tài xế xe
+// nhờ nhận kết quả đề nghị dù sự kiện không mang luật bị bỏ qua.
+const CHUYEN_NGUON_CHUYEN_KHACH = `SELECT e.related_trip_id FROM vc_trip_event e
+  WHERE e.id IN (SELECT value FROM json_each(?2)) AND e.kind LIKE 'TRANSFER\\_%' ESCAPE '\\' AND e.related_trip_id IS NOT NULL`;
 const CHUYEN_CHO_TIN = defineSql("van-chuyen", "chuyen_cho_tin",
-  `SELECT t.id AS trip_id, t.code AS ma, t.service_date AS ngay_chay, t.departed_at AS xuat_ben FROM vc_trip t WHERE t.id IN (SELECT value FROM json_each(?1))`);
+  `SELECT t.id AS trip_id, t.code AS ma, t.service_date AS ngay_chay, t.departed_at AS xuat_ben FROM vc_trip t
+   WHERE t.id IN (SELECT value FROM json_each(?1)) OR t.id IN (${CHUYEN_NGUON_KHAN_CAP}) OR t.id IN (${CHUYEN_NGUON_CHUYEN_KHACH})`);
 const LAI_CHO_TIN = defineSql("van-chuyen", "lai_cho_tin",
-  `SELECT d.trip_id, d.driver_party_id AS party_id, d.valid_from_at AS tu, d.valid_to_at AS den FROM vc_trip_driver d WHERE d.trip_id IN (SELECT value FROM json_each(?1))`);
+  `SELECT d.trip_id, d.driver_party_id AS party_id, d.valid_from_at AS tu, d.valid_to_at AS den FROM vc_trip_driver d
+   WHERE d.trip_id IN (SELECT value FROM json_each(?1)) OR d.trip_id IN (${CHUYEN_NGUON_KHAN_CAP}) OR d.trip_id IN (${CHUYEN_NGUON_CHUYEN_KHACH})`);
+/** ADR-0111 (T10): id sự kiện TRANSFER_* (trong số được hỏi) → chuyến xe nhờ. */
+const CHUYEN_KHACH_CHO_TIN = defineSql("van-chuyen", "chuyen_khach_cho_tin",
+  `SELECT e.id, e.related_trip_id AS nguon FROM vc_trip_event e
+   WHERE e.id IN (SELECT value FROM json_each(?1)) AND e.kind LIKE 'TRANSFER\\_%' ESCAPE '\\' AND e.related_trip_id IS NOT NULL`);
 const VANG_CHO_TIN = defineSql("van-chuyen", "vang_cho_tin", `
   SELECT e.id AS su_kien_id, k.order_id FROM vc_trip_event e
   JOIN vc_trip_allocation a ON a.id = e.allocation_id JOIN v_ord_leg_key k ON k.id = a.leg_id
   WHERE e.id IN (SELECT value FROM json_each(?1)) AND e.kind = 'PASSENGER_NO_SHOW'`);
+// ADR-0104 Đ1 mục 6 + CAO-C (lời chủ 2026-10-08 "Báo mọi lệnh có bỏ qua luật (Recommended)" — lệch có chủ ý với chữ ADR-0104 :95, SYSTEM-DESIGN §16): sự
+// kiện (trong số được hỏi) mang BẤT KỲ luật bị bỏ qua (`override_rule_code IS NOT NULL`) — cờ tin cho tài xế; id + chuyến nguồn khi là sự kiện dời (CAO-2)
+// + `moc` = luật bị bỏ qua là MOC_TOI_THIEU (câu "điều chỉnh khẩn cấp"; luật khác → câu trung tính).
+const KHAN_CAP_CHO_TIN = defineSql("van-chuyen", "khan_cap_cho_tin",
+  `SELECT e.id, CASE WHEN e.kind = 'ALLOCATION_MOVED' THEN e.related_trip_id END AS nguon, e.override_rule_code = 'MOC_TOI_THIEU' AS moc FROM vc_trip_event e
+   WHERE e.id IN (SELECT value FROM json_each(?1)) AND e.override_rule_code IS NOT NULL`);
+// MQ-07 (ADR-0052 D6.2): MỌI suất khách (mở lẫn đã đóng — kèm khoảng hiệu lực) của các chặng được hỏi; thongbao lọc "mở lúc sự kiện" bằng hàm thuần.
+const SUAT_CHANG_CHO_TIN = defineSql("van-chuyen", "suat_chang_cho_tin", `
+  SELECT a.leg_id, a.trip_id, a.valid_from_at AS tu, a.valid_to_at AS den FROM vc_trip_allocation a
+  WHERE a.kind = 'PASSENGER' AND a.leg_id IN (SELECT value FROM json_each(?1))`);
 
 export async function suKienTheoYeuCau(db: D1Database, requestId: string): Promise<{ id: string; tripId: string; relatedTripId: string | null } | null> {
   const r = await db.prepare(SU_KIEN_THEO_YEU_CAU).bind(requestId).first<{ id: string; trip_id: string; related_trip_id: string | null }>();
   return r ? { id: r.id, tripId: r.trip_id, relatedTripId: r.related_trip_id } : null;
 }
-export async function chuyenChoTinTheoId(db: D1Database, q: { tripIds: readonly string[]; suKienIds: readonly string[] }): Promise<ChuyenChoTin> {
-  const tj = JSON.stringify([...new Set(q.tripIds)]);
-  const [t, l, v] = await Promise.all([
-    db.prepare(CHUYEN_CHO_TIN).bind(tj).all<{ trip_id: string; ma: string; ngay_chay: string; xuat_ben: string | null }>(),
-    db.prepare(LAI_CHO_TIN).bind(tj).all<{ trip_id: string; party_id: string; tu: string; den: string | null }>(),
-    q.suKienIds.length ? db.prepare(VANG_CHO_TIN).bind(JSON.stringify([...new Set(q.suKienIds)])).all<{ su_kien_id: string; order_id: string }>() : Promise.resolve({ results: [] }),
+export async function chuyenChoTinTheoId(db: D1Database, q: HoiChuyenChoTin): Promise<ChuyenChoTin> {
+  // MQ-07: hỏi theo chặng → đọc suất trước, chuyến của các suất đó vào cùng ba câu dưới (một lần gọi hàm tiêm — không vòng hai).
+  const suat = q.legIds?.length
+    ? (await db.prepare(SUAT_CHANG_CHO_TIN).bind(JSON.stringify([...new Set(q.legIds)])).all<{ leg_id: string; trip_id: string; tu: string; den: string | null }>()).results
+    : null;
+  const tj = JSON.stringify([...new Set([...q.tripIds, ...(suat ?? []).map((x) => x.trip_id)])]);
+  const sk = JSON.stringify([...new Set(q.suKienIds)]);
+  const [t, l, v, k, ck] = await Promise.all([
+    db.prepare(CHUYEN_CHO_TIN).bind(tj, sk).all<{ trip_id: string; ma: string; ngay_chay: string; xuat_ben: string | null }>(),
+    db.prepare(LAI_CHO_TIN).bind(tj, sk).all<{ trip_id: string; party_id: string; tu: string; den: string | null }>(),
+    q.suKienIds.length ? db.prepare(VANG_CHO_TIN).bind(sk).all<{ su_kien_id: string; order_id: string }>() : Promise.resolve({ results: [] }),
+    q.suKienIds.length ? db.prepare(KHAN_CAP_CHO_TIN).bind(sk).all<{ id: string; nguon: string | null; moc: number }>() : Promise.resolve({ results: [] }),
+    q.suKienIds.length ? db.prepare(CHUYEN_KHACH_CHO_TIN).bind(sk).all<{ id: string; nguon: string }>() : Promise.resolve({ results: [] }),
   ]);
   return {
     chuyen: t.results.map((c) => ({ tripId: c.trip_id, ma: c.ma, ngayChay: c.ngay_chay, xuatBen: c.xuat_ben,
       lai: l.results.filter((x) => x.trip_id === c.trip_id).map((x) => ({ partyId: x.party_id, tu: x.tu, den: x.den })) })),
     vang: v.results.map((x) => ({ suKienId: x.su_kien_id, orderId: x.order_id })),
+    khanCap: k.results.map((x) => x.id),
+    vuotMoc: k.results.filter((x) => x.moc === 1).map((x) => x.id),
+    khanCapNguon: k.results.flatMap((x) => (x.nguon ? [{ suKienId: x.id, tripId: x.nguon }] : [])),
+    chuyenKhachNguon: ck.results.map((x) => ({ suKienId: x.id, tripId: x.nguon })),
+    ...(suat ? { suatChang: suat.map((x) => ({ legId: x.leg_id, tripId: x.trip_id, tu: x.tu, den: x.den })) } : {}),
   };
 }

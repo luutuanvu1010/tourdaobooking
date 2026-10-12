@@ -52,8 +52,8 @@ async function thayKhach(w: any, orderId: string) {
   assert.equal(r2.status, 200, r2.text);
 }
 /** Thế giới chung: chuyến 12:30–15:00 xe 15 chỗ, tài xế DRIVER; đơn A, B (2 khách, đón 13:00). `ckA` / `ckB` = cam kết bật TRƯỚC khi xếp. */
-async function the(ckA: Record<string, unknown> = {}, ckB: Record<string, unknown> = {}) {
-  const w = setup();
+async function the(ckA: Record<string, unknown> = {}, ckB: Record<string, unknown> = {}, tuyChon: Record<string, unknown> = {}) {
+  const w = setup(tuyChon);
   const t = await taoChuyen(w, { xe: xe(w, 15), taiXe: `pty-${DRIVER}` });
   const a = await don(w, { soNguoi: 2 });
   const b = await don(w, { soNguoi: 2 });
@@ -200,21 +200,25 @@ test("Hết vi phạm do SỬA ĐƠN (tắt xe riêng của A): xuất bến Đ�
   }
 });
 
-test("Hết vi phạm do sửa đơn, rồi 'cập nhật khách theo đơn' / 'cập nhật điểm theo đơn' có việc → lô xoá hai cột (có nhật ký)", async () => {
-  for (const loai of ["cap-nhat-khach", "cap-nhat-diem"] as const) {
+// ADR-0104 Đ2: sửa khách nay tự đồng bộ chuyến (máy) — nhánh "cập nhật khách" (nút tay) cần TRẠNG THÁI GIỮ nên dựng thế giới không tiêm máy (kế hoạch N9 — đổi
+// cách dựng, không nới luật); nhánh "máy đồng bộ" kiểm khúc của máy xoá hai cột khi hết vi phạm (cùng câu đuôi nhật ký với nút tay).
+test("Hết vi phạm do sửa đơn, rồi 'cập nhật khách theo đơn' / 'cập nhật điểm theo đơn' / máy đồng bộ theo đơn có việc → lô xoá hai cột (có nhật ký)", async () => {
+  for (const loai of ["cap-nhat-khach", "cap-nhat-diem", "may-dong-bo"] as const) {
     const tat = batDongHo();
     try {
-      const { w, id, a, b } = await the({ exclusiveVehicle: true });
+      const { w, id, a, b } = await the({ exclusiveVehicle: true }, {}, loai === "cap-nhat-khach" ? { khongDongBoChuyen: true } : {});
       assert.equal((await xep(w, id, a.legId)).status, 200);
       assert.equal((await xep(w, id, b.legId, ADM, { camKetPhaLe: PL })).status, 200);
       assert.notDeepEqual(camKetCua(w, id), TRONG);
       await suaChang(w, a.id, a.legId, { exclusiveVehicle: false });
-      if (loai === "cap-nhat-khach") await thayKhach(w, b.id);
-      else await suaChang(w, b.id, b.legId, { pickupPlace: "Khách sạn Đổi Dò Tìm" });
-      const r = await lenh(w, id, loai);
-      assert.equal(r.status, 200, `${loai}: ${r.text}`);
+      if (loai === "cap-nhat-diem") await suaChang(w, b.id, b.legId, { pickupPlace: "Khách sạn Đổi Dò Tìm" });
+      else await thayKhach(w, b.id);
+      if (loai !== "may-dong-bo") {
+        const r = await lenh(w, id, loai);
+        assert.equal(r.status, 200, `${loai}: ${r.text}`);
+      }
       assert.deepEqual(camKetCua(w, id), TRONG, loai);
-      const nk = nhatKyCuoi(w, loai === "cap-nhat-khach" ? "trip_passengers_synced" : "trip_stops_synced");
+      const nk = nhatKyCuoi(w, loai === "cap-nhat-khach" ? "trip_passengers_synced" : loai === "cap-nhat-diem" ? "trip_stops_synced" : "trip_order_synced");
       assert.match(nk, /hết vi phạm cam kết — bỏ phá lệ cam kết/, loai);
     } finally {
       tat();

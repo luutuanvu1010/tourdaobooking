@@ -1,0 +1,9 @@
+✓ 1) Bán hàng không phải người lập: không có nút Sửa số khách dịch vụ
+✓ 2) Kế toán: bảng mở — 2 khối, bộ đếm Người lớn / Trẻ em, dịch vụ nhập tay chỉ xem, 4 lý do, không ô chữ, Lưu khoá, ô 16px
+✓ 3) lưu: dải 'Đã lưu số khách mới…', Tạm tính 4.450.000 → 3.100.000, Còn lại 2.600.000, Lịch sử 'người lớn 2 → 1 · lý do: Khách bớt người', không lỗi console
+✓ 4) người lập (Bán hàng) thấy nút
+✓ 5) giảm giá vượt tạm tính (1040): dải vàng kèm câu cảnh báo, câu thường trực ở khối Thanh toán, Tổng cộng 0, khách trả dư 700.000 (ADR-0109); axe 0 critical/serious
+✓ 5b) biên nhận (1040): /receipt [1.350.000, 1.350.000, 0], đã trả 700.000, còn lại 0; ảnh xác nhận dựng được
+✓ 5c) Kế toán 390: câu cảnh báo + Ghi hoàn cùng trang; hoàn 700.000 → hết "Khách trả dư", Còn lại 0, câu cảnh báo vẫn đúng; axe 0 critical/serious
+✓ 6) đơn Đã giao: không có nút
+✓ 7) không lỗi console ở bước 3 và 5; không tràn ngang ở 390

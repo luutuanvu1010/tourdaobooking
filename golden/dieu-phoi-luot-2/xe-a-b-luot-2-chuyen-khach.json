@@ -1,0 +1,492 @@
+{
+  "mo_ta": "Bộ ca mẫu điều phối xe LƯỢT 2 — chuyển khách giữa hai xe (ADR-0052 D4, D5c; ADR-0111 accepted 2026-10-08, lượt duyệt 8d). Mười tình huống của hộp 'Tình huống' (docs/superpowers/specs/2026-10-08-luot-duyet-8d/00-trang-trinh.md), dùng ví dụ xe A / xe B của chủ dự án ở thiết kế §5.5 (docs/superpowers/specs/2026-09-29-bang-dieu-phoi-chung-design.md:766-790). Nền dữ liệu RIÊNG của tệp này, khác tệp lượt 1 (golden/dieu-phoi/xe-a-b-luot-1.json) ở ba chỗ, theo §5.5: điểm Mường Thanh có 3 khách (lượt 1: 5); xe B đang chở 22/29 trước khi nhận; xe A đang chở 14/15. Thêm xe C (công ty, 16 chỗ) làm xe thứ hai được nhờ và xe cứu hộ. Sửa theo phiếu kiểm độc lập 8/10 (docs/superpowers/specs/2026-10-08-luot-duyet-8d/phieu-kiem-tong-hop.md trên nhánh làm việc): TH07 có một người đi kèm (CREW) chuyển cùng khách (ADR-0052:129); TH05 thêm nhánh 5B tự huỷ chéo phạm vi; TH10 thêm bước bác rồi gửi lại; TH02 thêm bước TH02-4 phụ thuộc câu Đ6 (lượt 8d-2) — bước này KHÔNG thuộc phần chủ xác nhận ở hộp 'Tình huống'; đáp án theo Đ6 = (1), chủ chọn 'Vẫn chờ Quản trị (Recommended)' ở hộp 7 ngày 2026-10-08. Mỗi tình huống: các bước (ai bấm, lúc nào, đầu vào) và đáp án (trạng thái đề nghị, kết quả từng điều kiện, suất đóng / mở, điểm thêm / đổi, sự kiện, ai nhận tin, văn phòng duyệt được hay chỉ bác). Giờ dạng 'YYYY-MM-DD HH:MM' GIỜ VIỆT NAM ở mọi khoá tận cùng 'Ms'. '$nen.<đường>' trỏ dữ liệu nền. Tên người là tên giả; không số giấy tờ, không SĐT. CHỦ ĐÃ XÁC NHẬN 2026-10-08 (ADR-0052:233, :274): hộp 4 'Tình huống' lượt 8d-1, chọn 'Đúng hết (Recommended)' — trừ bước TH02-4-DAT-GAP (theo hộp 7) và bước TH07-5-NEU-C-CHUA-CHAY (không có trong chữ tình huống 7 chủ đọc; theo hộp 5). AI chỉ ghi lại lời chủ, không tự xác nhận (Hiến pháp N8).",
+  "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Chủ dự án — lượt duyệt 8d-1, hộp 4 'Tình huống', chọn \"Đúng hết (Recommended)\" (sổ thi công docs/superpowers/plans/2026-10-08-van-chuyen-goi-a-c-thi-cong-nhat-ky.md, mục 'Lượt duyệt 8d-1'); trừ bước TH02-4-DAT-GAP (theo hộp 7 lượt 8d-2) và TH07-5-NEU-C-CHUA-CHAY (theo hộp 5)", "ngay": "2026-10-08" },
+  "chay_bang_may": {
+    "trang_thai": "dang_chay",
+    "bo_chay": "src/chuyen-khach-ca-mau.test.ts (lớp luật thuần — mọi bước, đường nhánh ở bảng DUONG, đầu vào viết bằng lời ở bảng DOI_NEN; khoá đáp án lớp khác kiểm ở bảng LOP_KHAC); hai bước SQL_TAY: src/modules/van-chuyen/chuyen-khach-csdl.test.ts; route / lô / tin / e2e: xem LOP_KHAC. Người thi công A5 ghi 2026-10-09 — phần dưới ('ly_do', 'ham_du_kien', 'vi_tri_tep') là chữ của người soạn trước khi thi công, giữ nguyên làm vết.",
+    "ly_do": "Các hàm và lô dưới đây CHƯA CÓ trong mã (kế hoạch A5 docs/superpowers/plans/2026-10-08-giai-doan-3-a5-ke-hoach.md). Tên là tên DỰ KIẾN, người thi công chốt.",
+    "ham_du_kien": {
+      "kiemChuyen": "T3a (9 luật của ADR-0052:64) / T3b (đủ 11 luật, cờ đặt gấp theo Đ6) — src/shared/chuyen-khach.ts",
+      "quyetDinhSauKiem": "T3a — CONFIRMED (MAY) hay ESCALATED từ kết quả kiểm + công tắc hiện hành",
+      "duocDuyetThay": "T3a — có dòng KHONG_DAT tầng LOI thì chỉ Bác",
+      "hetHanDeNghi": "T3a — hết giờ chờ tính lúc đọc (MQ-08)",
+      "loGuiDeNghi / loNhanDeNghi / loDuyetDeNghi / loBacDeNghi / loDongDeNghi": "T6 — src/modules/van-chuyen/dieu-phoi-chuyen-khach.ts",
+      "route": "T7b (tài xế, cổng staff), T8 (văn phòng, cổng office); e2e T18 tests/e2e/chuyen-khach.mjs"
+    },
+    "vi_tri_tep": "Tệp đặt ở golden/dieu-phoi-luot-2/, KHÔNG ở golden/dieu-phoi/: bài src/dieu-phoi-ca-mau.test.ts đọc MỌI tệp .json ở golden/dieu-phoi/ và chạy từng bước qua hàm lượt 1 (tập HAM cố định), nên đặt tệp này ở đó làm npm test đỏ. Người thi công T3 chuyển tệp vào golden/dieu-phoi/ cùng commit thêm kiemChuyen (và bộ chạy lô) vào bài."
+  },
+  "quy_uoc": {
+    "lenh": "GUI = tài xế nguồn gửi đề nghị (POST …/cuoc-cua-toi/:id/de-nghi); VP_GUI_CUU_HO = văn phòng bấm thay gửi cứu hộ (POST …/chuyen/:id/cuu-ho, chỉ ONBOARD); NHAN / KHONG_NHAN = tài xế đích (POST …/de-nghi/:rid/nhan | /khong-nhan); DUYET / BAC = người có trip.override (POST …/de-nghi/:rid/duyet | /bac); DOC = đọc màn hình (GET); DA_TOI, KET_THUC_GIAN_DOAN = lệnh tiến độ có sẵn; SQL_TAY = câu SQL viết tay vào D1 (kiểm lớp CSDL).",
+    "http": "'2xx' = thành công (route chưa có; ADR-0052:248 ghi 201 cho văn phòng gửi thay, kế hoạch NT-A5-3 ghi 200 cho tài xế gửi — T7b/T8 chốt một mã). Mã lỗi ghi đúng số.",
+    "kiem": "Kết quả từng điều kiện của danh mục 11 dòng ($nen.danhMucLuat): DAT / KHONG_DAT / CANH_BAO. 'so_lieu' ghi gia_tri / gioi_han (giả định của người soạn: SUC_CHUA_* = số chỗ đã dùng sau chuyển / số chỗ xe; MOC_TOI_THIEU = số phút còn tới giờ xuất bến dự kiến / mốc) — T3 chốt.",
+    "hop_duyet": "DUYET_HOAC_BAC = mọi điều kiện không đạt thuộc tầng CAU_HINH; CHI_BAC = có điều kiện tầng LOI không đạt (ADR-0052:80 — xét MỌI dòng kiểm của đề nghị).",
+    "tin": "Danh sách tài khoản nhận tin của bước (ADR-0052 D6.2 :158-160 + ADR-0111 Đ3: thêm 'không nhận' → tài xế nguồn). Người bấm không tự nhận tin. VOID và WITHDRAWN không có tin. Tin, nhật ký, sự kiện không bao giờ chứa tên, năm sinh, SĐT khách, chữ nơi gặp.",
+    "tai_sau": "Số chỗ đang dùng (suất mở WAITING + BOARDED) của từng chuyến sau bước."
+  },
+  "nen": {
+    "ngay": "2026-09-30",
+    "chinhSach": { "id": "cs-goc", "minLeadMinutes": 360, "warnLeadMinutes": 120, "restMinutes": 30, "requireManifest": true, "departureWindowMinutes": 720, "acceptWaitMinutes": 10, "autoConfirmTransfer": true },
+    "danhMucLuat": [
+      { "code": "SUC_CHUA_DICH", "tier": "LOI", "active": true },
+      { "code": "SUC_CHUA_NGUON", "tier": "LOI", "active": true },
+      { "code": "TRUNG_GIO_DICH", "tier": "LOI", "active": true },
+      { "code": "KHOANG_NGHI_DICH", "tier": "CAU_HINH", "active": true },
+      { "code": "MOC_TOI_THIEU", "tier": "CAU_HINH", "active": true },
+      { "code": "HANG_BANG_DICH", "tier": "LOI", "active": true },
+      { "code": "GIAY_TO_DICH", "tier": "LOI", "active": true },
+      { "code": "KHONG_CHEO", "tier": "LOI", "active": true },
+      { "code": "DIEM_CHUA_TOI", "tier": "LOI", "active": true },
+      { "code": "CAM_KET_DICH", "tier": "CAU_HINH", "active": true },
+      { "code": "CHANG_KHACH_HIEU_LUC", "tier": "LOI", "active": true }
+    ],
+    "lyDo": {
+      "TU_CHOI_NHAN": ["Xe đã đầy chỗ", "Không kịp giờ", "Đang xử lý sự cố", "Lý do khác"],
+      "PHA_LE": [{ "code": "PHA_LE_SU_CO", "nhan": "Sự cố vận hành" }, { "code": "PHA_LE_KHAC", "nhan": "Khác" }],
+      "ghi_chu": "Mã của bốn lý do TU_CHOI_NHAN do migration T2 đặt; ca mẫu ghi theo nhãn."
+    },
+    "hangBang": [{ "classCode": "D1", "maxPassengers": 16 }, { "classCode": "D2", "maxPassengers": 29 }],
+    "xe": {
+      "A": { "id": "xe-a", "bienSo": "79B-123.45", "soCho": 15, "chuLaCongTy": true, "giayToConHan": true },
+      "B": { "id": "xe-b", "bienSo": "79B-678.90", "soCho": 29, "chuLaCongTy": true, "giayToConHan": true },
+      "C": { "id": "xe-c", "bienSo": "79B-246.13", "soCho": 16, "chuLaCongTy": true, "giayToConHan": true }
+    },
+    "taiXe": {
+      "A": { "partyId": "tx-a", "taiKhoan": "tk-tx-a", "displayName": "Tài xế xe A", "loai": "CONG_TY", "hangBang": "D1" },
+      "B": { "partyId": "tx-b", "taiKhoan": "tk-tx-b", "displayName": "Tài xế xe B", "loai": "CONG_TY", "hangBang": "D2" },
+      "C": { "partyId": "tx-c", "taiKhoan": "tk-tx-c", "displayName": "Tài xế xe C", "loai": "CONG_TY", "hangBang": "D1" }
+    },
+    "taiKhoanVanPhong": {
+      "tk-ban-hang": "SALES", "tk-ke-toan": "ACCOUNTING", "tk-quan-tri": "ADMIN", "tk-toan-quyen": "SUPER_ADMIN"
+    },
+    "chang": {
+      "SHERATON": { "legId": "leg-sheraton", "orderId": "don-1001", "orderCode": "ĐH-1001", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "05:55", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 4, "nguoiCuaDon": [], "datGap": false, "khoaNoiDon": "L:loc-sheraton", "khoaNoiTra": "L:loc-cang", "xeRieng": false, "choToiThieu": null },
+      "AMIANA": { "legId": "leg-amiana", "orderId": "don-1002", "orderCode": "ĐH-1002", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:05", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 3, "nguoiCuaDon": [], "datGap": false, "khoaNoiDon": "L:loc-amiana", "khoaNoiTra": "L:loc-ben", "xeRieng": false, "choToiThieu": null },
+      "NOVOTEL": { "legId": "leg-novotel", "orderId": "don-1007", "orderCode": "ĐH-1007", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:15", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 4, "nguoiCuaDon": [], "datGap": false, "khoaNoiDon": "L:loc-novotel", "khoaNoiTra": "L:loc-cang", "xeRieng": false, "choToiThieu": null },
+      "MUONG_THANH": { "legId": "leg-muong-thanh", "orderId": "don-1003", "orderCode": "ĐH-1003", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:30", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 3, "nguoiCuaDon": [], "datGap": false, "khoaNoiDon": "L:loc-muong-thanh", "khoaNoiTra": "L:loc-cang", "xeRieng": false, "choToiThieu": null },
+      "HON_CHONG": { "legId": "leg-hon-chong", "orderId": "don-2001", "orderCode": "ĐH-2001", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:05", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 20, "nguoiCuaDon": [], "datGap": false, "khoaNoiDon": "L:loc-hon-chong", "khoaNoiTra": "L:loc-ben", "xeRieng": false, "choToiThieu": null },
+      "ALIBU": { "legId": "leg-alibu", "orderId": "don-1006", "orderCode": "ĐH-1006", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:45", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 2, "nguoiCuaDon": [], "datGap": false, "khoaNoiDon": "L:loc-alibu", "khoaNoiTra": "L:loc-ben", "xeRieng": false, "choToiThieu": null },
+      "TRAN_PHU": { "legId": "leg-tran-phu", "orderId": "don-3001", "orderCode": "ĐH-3001", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:10", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 6, "nguoiCuaDon": [], "datGap": false, "khoaNoiDon": "L:loc-tran-phu", "khoaNoiTra": "L:loc-cang", "xeRieng": false, "choToiThieu": null }
+    },
+    "chuyen": {
+      "CX07": { "id": "cx-3009-07", "ma": "CX-3009-07", "xe": "$nen.xe.A", "taiXe": "$nen.taiXe.A", "trangThai": "RUNNING", "batDauMs": "2026-09-30 05:50", "ketThucMs": "2026-09-30 08:30", "xuatBenMs": "2026-09-30 05:50", "chuyenKeCuaTaiXe": null, "camKetPhaLeKhoa": null, "tai": 14,
+        "nhom": [
+          { "chang": "$nen.chang.SHERATON", "so": 4, "trangThai": "BOARDED", "len": "d7-sheraton", "xuong": "d7-cang" },
+          { "chang": "$nen.chang.AMIANA", "so": 3, "trangThai": "BOARDED", "len": "d7-amiana", "xuong": "d7-ben" },
+          { "chang": "$nen.chang.NOVOTEL", "so": 4, "trangThai": "BOARDED", "len": "d7-novotel", "xuong": "d7-cang" },
+          { "chang": "$nen.chang.MUONG_THANH", "so": 3, "trangThai": "WAITING", "len": "d7-muong-thanh", "xuong": "d7-cang", "suatIds": ["s7-mt-1", "s7-mt-2", "s7-mt-3"] }
+        ] },
+      "CX04": { "id": "cx-3009-04", "ma": "CX-3009-04", "xe": "$nen.xe.B", "taiXe": "$nen.taiXe.B", "trangThai": "RUNNING", "batDauMs": "2026-09-30 06:00", "ketThucMs": "2026-09-30 08:30", "xuatBenMs": "2026-09-30 06:00", "chuyenKeCuaTaiXe": null, "camKetPhaLeKhoa": null, "tai": 22,
+        "nhom": [
+          { "chang": "$nen.chang.HON_CHONG", "so": 20, "trangThai": "BOARDED", "len": "d4-hon-chong", "xuong": "d4-ben" },
+          { "chang": "$nen.chang.ALIBU", "so": 2, "trangThai": "WAITING", "len": "d4-alibu", "xuong": "d4-ben", "suatIds": ["s4-al-1", "s4-al-2"] }
+        ] },
+      "CX05": { "id": "cx-3009-05", "ma": "CX-3009-05", "xe": "$nen.xe.C", "taiXe": "$nen.taiXe.C", "trangThai": "RUNNING", "batDauMs": "2026-09-30 06:05", "ketThucMs": "2026-09-30 08:30", "xuatBenMs": "2026-09-30 06:05", "chuyenKeCuaTaiXe": null, "camKetPhaLeKhoa": null, "tai": 6,
+        "nhom": [
+          { "chang": "$nen.chang.TRAN_PHU", "so": 6, "trangThai": "BOARDED", "len": "d5-tran-phu", "xuong": "d5-cang" }
+        ] }
+    },
+    "diem": [
+      { "id": "d7-sheraton", "tripId": "cx-3009-07", "seq": 1, "loai": "PICKUP", "trangThai": "DONE", "placeKey": "L:loc-sheraton", "tenNoi": "Sheraton", "gioXeToiMs": null },
+      { "id": "d7-amiana", "tripId": "cx-3009-07", "seq": 2, "loai": "PICKUP", "trangThai": "DONE", "placeKey": "L:loc-amiana", "tenNoi": "Amiana", "gioXeToiMs": null },
+      { "id": "d7-novotel", "tripId": "cx-3009-07", "seq": 3, "loai": "PICKUP", "trangThai": "DONE", "placeKey": "L:loc-novotel", "tenNoi": "Novotel", "gioXeToiMs": null },
+      { "id": "d7-muong-thanh", "tripId": "cx-3009-07", "seq": 4, "loai": "PICKUP", "trangThai": "PENDING", "placeKey": "L:loc-muong-thanh", "tenNoi": "Mường Thanh", "gioXeToiMs": "2026-09-30 06:30" },
+      { "id": "d7-cang", "tripId": "cx-3009-07", "seq": 5, "loai": "DROPOFF", "trangThai": "PENDING", "placeKey": "L:loc-cang", "tenNoi": "Cảng Vinpearl", "gioXeToiMs": null },
+      { "id": "d7-ben", "tripId": "cx-3009-07", "seq": 6, "loai": "DROPOFF", "trangThai": "PENDING", "placeKey": "L:loc-ben", "tenNoi": "Bến tàu", "gioXeToiMs": null },
+      { "id": "d4-hon-chong", "tripId": "cx-3009-04", "seq": 1, "loai": "PICKUP", "trangThai": "DONE", "placeKey": "L:loc-hon-chong", "tenNoi": "Hòn Chồng", "gioXeToiMs": null },
+      { "id": "d4-alibu", "tripId": "cx-3009-04", "seq": 2, "loai": "PICKUP", "trangThai": "PENDING", "placeKey": "L:loc-alibu", "tenNoi": "Alibu", "gioXeToiMs": "2026-09-30 06:45" },
+      { "id": "d4-ben", "tripId": "cx-3009-04", "seq": 3, "loai": "DROPOFF", "trangThai": "PENDING", "placeKey": "L:loc-ben", "tenNoi": "Bến tàu", "gioXeToiMs": null },
+      { "id": "d5-tran-phu", "tripId": "cx-3009-05", "seq": 1, "loai": "PICKUP", "trangThai": "DONE", "placeKey": "L:loc-tran-phu", "tenNoi": "Trần Phú", "gioXeToiMs": null },
+      { "id": "d5-cang", "tripId": "cx-3009-05", "seq": 2, "loai": "DROPOFF", "trangThai": "PENDING", "placeKey": "L:loc-cang", "tenNoi": "Cảng Vinpearl", "gioXeToiMs": null }
+    ],
+    "kiemDatHet": { "SUC_CHUA_DICH": "DAT", "SUC_CHUA_NGUON": "DAT", "TRUNG_GIO_DICH": "DAT", "KHOANG_NGHI_DICH": "DAT", "MOC_TOI_THIEU": "DAT", "HANG_BANG_DICH": "DAT", "GIAY_TO_DICH": "DAT", "KHONG_CHEO": "DAT", "DIEM_CHUA_TOI": "DAT", "CAM_KET_DICH": "DAT", "CHANG_KHACH_HIEU_LUC": "DAT" }
+  },
+  "cac_tinh_huong": [
+    {
+      "ma": "TH01-NHO-XE-DANG-CHAY-TU-DONG-Y",
+      "mo_ta": "Kẹt xe, xe A (CX-3009-07) không kịp đón Mường Thanh (3 khách). Xe B (CX-3009-04) đang chạy gần đó, nhận thêm thì chở 25 trên 29 chỗ, không trùng giờ. Tài xế A nhờ, tài xế B bấm Nhận → Nền tảng tự đồng ý, 3 khách sang xe B, tài xế A được báo.",
+      "nen_rieng": null,
+      "cac_buoc": [
+        {
+          "ma": "TH01-1-GUI",
+          "lenh": "GUI", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:20",
+          "dau_vao": { "tuChuyen": "cx-3009-07", "denChuyen": "cx-3009-04", "phamVi": "STOP", "diem": "d7-muong-thanh", "requestId": "lenh-th01-gui" },
+          "dap_an": {
+            "http": "2xx",
+            "de_nghi": { "id": "r-th01", "trangThai": "PENDING", "paxCount": 3, "policyId": "cs-goc", "proposedByParty": "tx-a", "proposedByStaff": "tk-tx-a" },
+            "su_kien": { "loai": "TRANSFER_SENT", "tripId": "cx-3009-04", "relatedTripId": "cx-3009-07" },
+            "nhat_ky": "trip_transfer_sent",
+            "tin": ["tk-tx-b"],
+            "suat_doi": false,
+            "tai_xe_dich_thay": { "chuyenNguon": "CX-3009-07", "taiXeNguon": "Tài xế xe A", "diem": "Mường Thanh", "soKhach": 3, "noiTra": ["Cảng Vinpearl"], "sauKhiNhan": "25/29", "khong_co": ["tên khách", "năm sinh", "SĐT", "mã đơn", "biển số"] }
+          }
+        },
+        {
+          "ma": "TH01-2-NHAN",
+          "lenh": "NHAN", "ai": "tk-tx-b", "bayGioMs": "2026-09-30 06:22",
+          "dau_vao": { "deNghi": "r-th01", "requestId": "lenh-th01-nhan" },
+          "dap_an": {
+            "http": "2xx", "ketQua": "CONFIRMED",
+            "de_nghi": { "trangThai": "CONFIRMED", "decidedMode": "MAY", "decidedByParty": "tx-b", "policyRowId": "cs-goc" },
+            "kiem": "$nen.kiemDatHet",
+            "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 25, "gioi_han": 29 }, "SUC_CHUA_NGUON": { "gia_tri": 11, "gioi_han": 15 } },
+            "ghi_chu_kiem": "MOC_TOI_THIEU = DAT vì xe đích đang chạy (không kiểm mốc — ADR-0052:77).",
+            "suat_dong": [
+              { "id": "s7-mt-1", "tripId": "cx-3009-07", "closeReason": "TRANSFERRED", "closedTransferId": "r-th01" },
+              { "id": "s7-mt-2", "tripId": "cx-3009-07", "closeReason": "TRANSFERRED", "closedTransferId": "r-th01" },
+              { "id": "s7-mt-3", "tripId": "cx-3009-07", "closeReason": "TRANSFERRED", "closedTransferId": "r-th01" }
+            ],
+            "suat_mo": { "tripId": "cx-3009-04", "so": 3, "chang": "leg-muong-thanh", "trangThai": "WAITING", "len": "L:loc-muong-thanh", "xuong": "L:loc-cang", "transferId": "r-th01", "addedAfterDeparture": 1 },
+            "diem_them": [
+              { "tripId": "cx-3009-04", "loai": "PICKUP", "placeKey": "L:loc-muong-thanh", "trangThai": "PENDING", "addedWhileRunning": 1 },
+              { "tripId": "cx-3009-04", "loai": "DROPOFF", "placeKey": "L:loc-cang", "trangThai": "PENDING", "addedWhileRunning": 1 }
+            ],
+            "diem_doi": [{ "id": "d7-muong-thanh", "trangThai": "MOVED" }],
+            "thu_tu_diem": "Trên CX-3009-04: điểm đón Mường Thanh đứng trước điểm trả Cảng Vinpearl; không khách đang chờ nào có điểm trả đứng trước điểm đón (suatTraTruocDon rỗng).",
+            "manifest_them": { "tripId": "cx-3009-04", "so": 3 },
+            "su_kien": { "loai": "TRANSFER_CONFIRMED", "tripId": "cx-3009-04", "relatedTripId": "cx-3009-07" },
+            "nhat_ky": "trip_transfer_confirmed",
+            "tin": ["tk-tx-a"],
+            "tai_sau": { "cx-3009-07": 11, "cx-3009-04": 25 }
+          }
+        }
+      ]
+    },
+    {
+      "ma": "TH02-XE-CHUA-CHAY-DUOI-6-GIO",
+      "mo_ta": "Như TH01 nhưng xe B chưa xuất bến và chỉ còn dưới 6 giờ tới giờ chạy (khách Mường Thanh không đặt gấp): tài xế B bấm Nhận xong, việc chuyển chờ Quản trị duyệt kèm lý do. Duyệt thì khách sang xe B; bác thì khách ở lại xe A. Bước 3b và 3c là HAI NHÁNH khác nhau, không chạy nối tiếp.",
+      "nen_rieng": { "chuyen.CX04": { "trangThai": "PLANNED", "batDauMs": "2026-09-30 06:40", "xuatBenMs": null, "ghi_chu": "chưa xuất bến; đoàn Hòn Chồng 20 khách và Alibu 2 khách đều WAITING; điểm d4-hon-chong PENDING" } },
+      "cac_buoc": [
+        { "ma": "TH02-1-GUI", "lenh": "GUI", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:20",
+          "dau_vao": { "tuChuyen": "cx-3009-07", "denChuyen": "cx-3009-04", "phamVi": "STOP", "diem": "d7-muong-thanh", "requestId": "lenh-th02-gui" },
+          "dap_an": { "http": "2xx", "de_nghi": { "id": "r-th02", "trangThai": "PENDING", "paxCount": 3 }, "su_kien": { "loai": "TRANSFER_SENT", "tripId": "cx-3009-04", "relatedTripId": "cx-3009-07" }, "tin": ["tk-tx-b"] } },
+        { "ma": "TH02-2-NHAN-LEO-THANG", "lenh": "NHAN", "ai": "tk-tx-b", "bayGioMs": "2026-09-30 06:22",
+          "dau_vao": { "deNghi": "r-th02", "requestId": "lenh-th02-nhan" },
+          "dap_an": {
+            "http": "2xx", "ketQua": "ESCALATED",
+            "de_nghi": { "trangThai": "ESCALATED", "decidedMode": null, "decidedByParty": "tx-b" },
+            "kiem": { "SUC_CHUA_DICH": "DAT", "SUC_CHUA_NGUON": "DAT", "TRUNG_GIO_DICH": "DAT", "KHOANG_NGHI_DICH": "DAT", "MOC_TOI_THIEU": "KHONG_DAT", "HANG_BANG_DICH": "DAT", "GIAY_TO_DICH": "DAT", "KHONG_CHEO": "DAT", "DIEM_CHUA_TOI": "DAT", "CAM_KET_DICH": "DAT", "CHANG_KHACH_HIEU_LUC": "DAT" },
+            "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 25, "gioi_han": 29 }, "MOC_TOI_THIEU": { "gia_tri": 18, "gioi_han": 360 } },
+            "hop_duyet": "DUYET_HOAC_BAC",
+            "suat_doi": false,
+            "su_kien": { "loai": "TRANSFER_ESCALATED", "tripId": "cx-3009-04", "relatedTripId": "cx-3009-07" },
+            "nhat_ky": "trip_transfer_escalated",
+            "tin": ["tk-quan-tri", "tk-toan-quyen"]
+          } },
+        { "ma": "TH02-3A-BAN-HANG-DUYET", "lenh": "DUYET", "ai": "tk-ban-hang", "bayGioMs": "2026-09-30 06:25",
+          "dau_vao": { "deNghi": "r-th02", "lyDo": "PHA_LE_SU_CO", "requestId": "lenh-th02-bh" },
+          "dap_an": { "http": 403, "ghi_gi": "không ghi gì", "ly_do": "Bán hàng không có ô trip.override (duyệt / bác đề nghị leo thang vẫn trip.override — ADR-0104 :101, :244; điều chỉnh khẩn cấp không áp cho chuyển khách — ADR-0104 :230)" } },
+        { "ma": "TH02-3B-QUAN-TRI-DUYET", "lenh": "DUYET", "ai": "tk-quan-tri", "bayGioMs": "2026-09-30 06:26",
+          "dau_vao": { "deNghi": "r-th02", "lyDo": "PHA_LE_SU_CO", "requestId": "lenh-th02-duyet" },
+          "dap_an": {
+            "http": "2xx", "ketQua": "CONFIRMED",
+            "de_nghi": { "trangThai": "CONFIRMED", "decidedMode": "NGUOI", "overrideReasonCode": "PHA_LE_SU_CO" },
+            "kiem_lai": "chạy lại trên dữ liệu đọc mới: chỉ MOC_TOI_THIEU KHONG_DAT (tầng CAU_HINH) → duyệt được",
+            "suat_dong": { "tripId": "cx-3009-07", "so": 3, "closeReason": "TRANSFERRED", "closedTransferId": "r-th02" },
+            "suat_mo": { "tripId": "cx-3009-04", "so": 3, "trangThai": "WAITING", "len": "L:loc-muong-thanh", "xuong": "L:loc-cang", "transferId": "r-th02", "addedAfterDeparture": 0 },
+            "diem_them": [
+              { "tripId": "cx-3009-04", "loai": "PICKUP", "placeKey": "L:loc-muong-thanh", "addedWhileRunning": 0 },
+              { "tripId": "cx-3009-04", "loai": "DROPOFF", "placeKey": "L:loc-cang", "addedWhileRunning": 0 }
+            ],
+            "diem_doi": [{ "id": "d7-muong-thanh", "trangThai": "MOVED" }],
+            "manifest_them": null,
+            "ghi_chu": "Xe B chưa xuất bến: không dòng danh sách hành khách mới; không chụp lại mốc giờ hẹn (ADR-0051:149).",
+            "su_kien": { "loai": "TRANSFER_CONFIRMED", "tripId": "cx-3009-04", "relatedTripId": "cx-3009-07" },
+            "nhat_ky": "trip_transfer_confirmed",
+            "tin": ["tk-tx-a", "tk-tx-b"],
+            "tai_sau": { "cx-3009-07": 11, "cx-3009-04": 25 }
+          } },
+        { "ma": "TH02-3C-QUAN-TRI-BAC", "lenh": "BAC", "ai": "tk-quan-tri", "bayGioMs": "2026-09-30 06:26",
+          "dau_vao": { "deNghi": "r-th02", "lyDo": { "nhom": "TU_CHOI_NHAN", "nhan": "Lý do khác" }, "requestId": "lenh-th02-bac" },
+          "dap_an": { "http": "2xx", "ketQua": "REJECTED", "de_nghi": { "trangThai": "REJECTED" }, "suat_doi": false, "su_kien": { "loai": "TRANSFER_REJECTED", "tripId": "cx-3009-04", "relatedTripId": "cx-3009-07" }, "nhat_ky": "trip_transfer_rejected", "tin": ["tk-tx-a", "tk-tx-b"], "tai_sau": { "cx-3009-07": 14, "cx-3009-04": 22 }, "bac_khong_ly_do": 400 } },
+        { "ma": "TH02-4-DAT-GAP", "lenh": "NHAN", "ai": "tk-tx-b", "bayGioMs": "2026-09-30 06:22",
+          "dau_vao": { "deNghi": "r-th02-dg", "requestId": "lenh-th02-dg-nhan", "ghi_chu": "Nhánh riêng, chạy từ nền TH02 nhưng chặng Mường Thanh MANG dấu đặt gấp (Bán hàng đóng dấu lúc chặng đã dưới mốc — ADR-0107:54); tài xế A đã gửi đề nghị r-th02-dg như bước 1." },
+          "dap_an": {
+            "phu_thuoc": "Đ6 = (1): chủ chọn \"Vẫn chờ Quản trị (Recommended)\" ở hộp 7 'Đặt gấp' lượt 8d-2, 2026-10-08 (sổ thi công, mục 'Lượt duyệt 8d-2'). Bước này không thuộc phần xác nhận ở hộp 'Tình huống'.",
+            "http": "2xx", "ketQua": "ESCALATED", "kiem_khac_dat": { "MOC_TOI_THIEU": "KHONG_DAT" }, "so_lieu": { "MOC_TOI_THIEU": { "gia_tri": 18, "gioi_han": 360 } }, "hop_duyet": "DUYET_HOAC_BAC", "suat_doi": false, "tin": ["tk-quan-tri", "tk-toan-quyen"], "ghi_chu": "Như TH02-2. Đề nghị leo thang không tự hết hạn (ADR-0052:61): không ai duyệt thì khách ở lại xe A tới khi Quản trị / Toàn quyền mở máy, hoặc tới khi đề nghị tự huỷ (MQ-09).",
+            "khong_chon": "Phương án (2) 'Cho qua như xếp thường' không được chọn; đáp án nhánh đó (CONFIRMED, MAY) đã bỏ — còn ở bản trình duyệt @ 9434c9b2."
+          } }
+      ]
+    },
+    {
+      "ma": "TH03-VUOT-CHO-CHI-BAC",
+      "mo_ta": "Xe A chỉ còn 1 chỗ (14/15) mà điểm Alibu của xe B có 2 khách. Tài xế B nhờ, tài xế A bấm Nhận: Nền tảng không cho vì sẽ vượt chỗ (16/15), báo Quản trị; Quản trị chỉ được bác, không được duyệt cho qua.",
+      "nen_rieng": null,
+      "cac_buoc": [
+        { "ma": "TH03-1-GUI", "lenh": "GUI", "ai": "tk-tx-b", "bayGioMs": "2026-09-30 06:20",
+          "dau_vao": { "tuChuyen": "cx-3009-04", "denChuyen": "cx-3009-07", "phamVi": "STOP", "diem": "d4-alibu", "requestId": "lenh-th03-gui" },
+          "dap_an": { "http": "2xx", "de_nghi": { "id": "r-th03", "trangThai": "PENDING", "paxCount": 2 }, "su_kien": { "loai": "TRANSFER_SENT", "tripId": "cx-3009-07", "relatedTripId": "cx-3009-04" }, "tin": ["tk-tx-a"] } },
+        { "ma": "TH03-2-NHAN-VUOT-CHO", "lenh": "NHAN", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:22",
+          "dau_vao": { "deNghi": "r-th03", "requestId": "lenh-th03-nhan" },
+          "dap_an": {
+            "http": "2xx", "ketQua": "ESCALATED",
+            "kiem": { "SUC_CHUA_DICH": "KHONG_DAT", "SUC_CHUA_NGUON": "DAT", "TRUNG_GIO_DICH": "DAT", "KHOANG_NGHI_DICH": "DAT", "MOC_TOI_THIEU": "DAT", "HANG_BANG_DICH": "DAT", "GIAY_TO_DICH": "DAT", "KHONG_CHEO": "DAT", "DIEM_CHUA_TOI": "DAT", "CAM_KET_DICH": "DAT", "CHANG_KHACH_HIEU_LUC": "DAT" },
+            "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 16, "gioi_han": 15 } },
+            "hop_duyet": "CHI_BAC",
+            "suat_doi": false,
+            "man_hinh_tai_xe": "Không nhận được: xe CX-3009-07 sẽ vượt chỗ (16/15). Đã báo văn phòng.",
+            "su_kien": { "loai": "TRANSFER_ESCALATED", "tripId": "cx-3009-07", "relatedTripId": "cx-3009-04" },
+            "tin": ["tk-quan-tri", "tk-toan-quyen"]
+          } },
+        { "ma": "TH03-3A-QUAN-TRI-DUYET-BI-CHAN", "lenh": "DUYET", "ai": "tk-quan-tri", "bayGioMs": "2026-09-30 06:25",
+          "dau_vao": { "deNghi": "r-th03", "lyDo": "PHA_LE_SU_CO", "requestId": "lenh-th03-duyet" },
+          "dap_an": { "http": 409, "ma_loi": "luat_loi_khong_duyet", "ghi_gi": "không ghi gì", "nut_duyet_tren_man_hinh": "tắt" } },
+        { "ma": "TH03-3B-SQL-TAY", "lenh": "SQL_TAY", "ai": null, "bayGioMs": "2026-09-30 06:25",
+          "dau_vao": { "cau": "UPDATE vc_transfer_request SET status = 'CONFIRMED', decided_mode = 'NGUOI', override_reason_code = 'PHA_LE_SU_CO' WHERE id = 'r-th03'" },
+          "dap_an": { "csdl": "RAISE", "ly_do": "ESCALATED → CONFIRMED khi đề nghị có dòng kiểm KHONG_DAT tầng LOI (ADR-0052:80)" } },
+        { "ma": "TH03-3C-QUAN-TRI-BAC", "lenh": "BAC", "ai": "tk-quan-tri", "bayGioMs": "2026-09-30 06:26",
+          "dau_vao": { "deNghi": "r-th03", "lyDo": { "nhom": "TU_CHOI_NHAN", "nhan": "Xe đã đầy chỗ" }, "requestId": "lenh-th03-bac" },
+          "dap_an": { "http": "2xx", "ketQua": "REJECTED", "suat_doi": false, "su_kien": { "loai": "TRANSFER_REJECTED", "tripId": "cx-3009-07", "relatedTripId": "cx-3009-04" }, "tin": ["tk-tx-a", "tk-tx-b"], "tai_sau": { "cx-3009-07": 14, "cx-3009-04": 22 }, "goi_y": "Văn phòng thêm điểm Alibu vào xe khác bằng 'Thêm điểm đón' sau khi xe B đã tới / bỏ qua điểm (ADR-0052:81), hoặc tài xế B nhờ xe khác." } }
+      ]
+    },
+    {
+      "ma": "TH04-KHONG-NHAN-HOAC-QUA-GIO",
+      "mo_ta": "Tài xế B bấm 'Không nhận' và chọn lý do (ví dụ 'Không kịp giờ'): đề nghị đóng lại, tài xế A được báo ngay. Hoặc tài xế B để quá 10 phút không trả lời: không có tin nào được gửi lúc phút thứ 10; màn hình tài xế A hiện 'hết giờ chờ' để A nhờ xe khác hoặc gọi văn phòng; nếu sau đó tài xế B mới bấm Nhận thì Nền tảng báo đã hết hạn, lúc đó tài xế A mới nhận tin hết hạn. Nhánh 4A và nhánh 4B–4C độc lập.",
+      "nen_rieng": null,
+      "cac_buoc": [
+        { "ma": "TH04-4A-1-GUI", "lenh": "GUI", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:20",
+          "dau_vao": { "tuChuyen": "cx-3009-07", "denChuyen": "cx-3009-04", "phamVi": "STOP", "diem": "d7-muong-thanh", "requestId": "lenh-th04a-gui" },
+          "dap_an": { "http": "2xx", "de_nghi": { "id": "r-th04a", "trangThai": "PENDING" }, "tin": ["tk-tx-b"] } },
+        { "ma": "TH04-4A-2-KHONG-NHAN-THIEU-LY-DO", "lenh": "KHONG_NHAN", "ai": "tk-tx-b", "bayGioMs": "2026-09-30 06:23",
+          "dau_vao": { "deNghi": "r-th04a", "lyDo": null, "requestId": "lenh-th04a-kn0" },
+          "dap_an": { "http": 400, "ghi_gi": "không ghi gì" } },
+        { "ma": "TH04-4A-3-KHONG-NHAN", "lenh": "KHONG_NHAN", "ai": "tk-tx-b", "bayGioMs": "2026-09-30 06:23",
+          "dau_vao": { "deNghi": "r-th04a", "lyDo": { "nhom": "TU_CHOI_NHAN", "nhan": "Không kịp giờ" }, "requestId": "lenh-th04a-kn" },
+          "dap_an": { "http": "2xx", "ketQua": "DECLINED", "de_nghi": { "trangThai": "DECLINED", "decidedByParty": "tx-b" }, "kiem": null, "suat_doi": false, "su_kien": { "loai": "TRANSFER_DECLINED", "tripId": "cx-3009-04", "relatedTripId": "cx-3009-07" }, "nhat_ky": "trip_transfer_declined", "tin": ["tk-tx-a"], "ghi_chu": "Tin 'không nhận' là việc MỚI của ADR-0111 Đ3 (ADR-0052 chưa có)." } },
+        { "ma": "TH04-4B-1-GUI", "lenh": "GUI", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:20",
+          "dau_vao": { "tuChuyen": "cx-3009-07", "denChuyen": "cx-3009-04", "phamVi": "STOP", "diem": "d7-muong-thanh", "requestId": "lenh-th04b-gui" },
+          "dap_an": { "http": "2xx", "de_nghi": { "id": "r-th04b", "trangThai": "PENDING", "hetHanLucMs": "2026-09-30 06:30" }, "tin": ["tk-tx-b"] } },
+        { "ma": "TH04-4B-2-QUA-10-PHUT-DOC", "lenh": "DOC", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:31",
+          "dau_vao": { "manHinh": "cuoc-cua-toi/cx-3009-07" },
+          "dap_an": { "http": 200, "de_nghi_tren_man_hinh": "hết giờ chờ", "csdl": { "trangThai": "PENDING" }, "su_kien": null, "tin": [], "ghi_chu": "Hết giờ tính lúc đọc (MQ-08, ADR-0052:78); không Cron, không ghi gì khi chỉ đọc." } },
+        { "ma": "TH04-4C-NHAN-MUON", "lenh": "NHAN", "ai": "tk-tx-b", "bayGioMs": "2026-09-30 06:33",
+          "dau_vao": { "deNghi": "r-th04b", "requestId": "lenh-th04b-nhan" },
+          "dap_an": { "http": 200, "ketQua": "HET_HAN", "de_nghi": { "trangThai": "EXPIRED" }, "kiem": null, "suat_doi": false, "su_kien": { "loai": "TRANSFER_EXPIRED", "tripId": "cx-3009-04", "relatedTripId": "cx-3009-07" }, "nhat_ky": "trip_transfer_expired", "tin": ["tk-tx-a"] } }
+      ]
+    },
+    {
+      "ma": "TH05-NHO-HAI-XE-MOT-XE-NHAN",
+      "mo_ta": "Tài xế A nhờ cùng lúc xe B và xe C đón Mường Thanh (được phép — lời chủ P4, 1/10). Tài xế B bấm Nhận trước: đề nghị gửi xe C tự huỷ trong cùng lần ghi; tài xế C không nhận tin, thấy 'đã huỷ' khi mở màn hình; C bấm Nhận thì bị từ chối.",
+      "nen_rieng": null,
+      "cac_buoc": [
+        { "ma": "TH05-1-GUI-B", "lenh": "GUI", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:20",
+          "dau_vao": { "tuChuyen": "cx-3009-07", "denChuyen": "cx-3009-04", "phamVi": "STOP", "diem": "d7-muong-thanh", "requestId": "lenh-th05-gui-b" },
+          "dap_an": { "http": "2xx", "de_nghi": { "id": "r-th05-b", "trangThai": "PENDING" }, "tin": ["tk-tx-b"] } },
+        { "ma": "TH05-2-GUI-C-CUNG-DIEM", "lenh": "GUI", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:20",
+          "dau_vao": { "tuChuyen": "cx-3009-07", "denChuyen": "cx-3009-05", "phamVi": "STOP", "diem": "d7-muong-thanh", "requestId": "lenh-th05-gui-c" },
+          "dap_an": { "http": "2xx", "de_nghi": { "id": "r-th05-c", "trangThai": "PENDING" }, "tin": ["tk-tx-c"], "ghi_chu": "Không có chỉ mục duy nhất trên đề nghị đang chờ của một điểm (P4)." } },
+        { "ma": "TH05-3-B-NHAN", "lenh": "NHAN", "ai": "tk-tx-b", "bayGioMs": "2026-09-30 06:22",
+          "dau_vao": { "deNghi": "r-th05-b", "requestId": "lenh-th05-nhan-b" },
+          "dap_an": {
+            "http": "2xx", "ketQua": "CONFIRMED",
+            "de_nghi": { "trangThai": "CONFIRMED", "decidedMode": "MAY" },
+            "kiem": "$nen.kiemDatHet",
+            "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 25, "gioi_han": 29 } },
+            "suat_dong": { "tripId": "cx-3009-07", "so": 3, "closedTransferId": "r-th05-b" },
+            "suat_mo": { "tripId": "cx-3009-04", "so": 3, "transferId": "r-th05-b" },
+            "tu_huy": [{ "deNghi": "r-th05-c", "trangThai": "VOID", "closedCmdId": "lenh-th05-nhan-b" }],
+            "su_kien": { "loai": "TRANSFER_CONFIRMED", "tripId": "cx-3009-04", "relatedTripId": "cx-3009-07", "soSuKienCuaLenh": 1 },
+            "tin": ["tk-tx-a"],
+            "tai_sau": { "cx-3009-07": 11, "cx-3009-04": 25, "cx-3009-05": 6 }
+          } },
+        { "ma": "TH05-4-C-DOC", "lenh": "DOC", "ai": "tk-tx-c", "bayGioMs": "2026-09-30 06:23",
+          "dau_vao": { "manHinh": "de-nghi-gui-toi" },
+          "dap_an": { "http": 200, "de_nghi_tren_man_hinh": { "r-th05-c": "Đã huỷ" } } },
+        { "ma": "TH05-5-C-NHAN", "lenh": "NHAN", "ai": "tk-tx-c", "bayGioMs": "2026-09-30 06:23",
+          "dau_vao": { "deNghi": "r-th05-c", "requestId": "lenh-th05-nhan-c" },
+          "dap_an": { "http": 409, "ma_loi": "da_huy", "ghi_gi": "không ghi gì", "ghi_chu": "Chạy đua (NT-A5-20): B và C cùng bấm Nhận một lúc → một bên thắng, bên kia tự thử lại một lần rồi nhận 409 da_huy." } },
+        { "ma": "TH05-5B-1-GUI-STOP-CHO-B", "lenh": "GUI", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:20",
+          "dau_vao": { "tuChuyen": "cx-3009-07", "denChuyen": "cx-3009-04", "phamVi": "STOP", "diem": "d7-muong-thanh", "requestId": "lenh-th05b-stop", "ghi_chu": "Nhánh 5B — tự huỷ CHÉO phạm vi. Nền riêng: như TH07 (xe A chở 8 khách + 1 người đi kèm: Sheraton 4 và Amiana 1 đã lên, Mường Thanh 3 đang chờ)." },
+          "dap_an": { "http": "2xx", "de_nghi": { "id": "r-th05b-stop", "trangThai": "PENDING", "paxCount": 3 }, "tin": ["tk-tx-b"] } },
+        { "ma": "TH05-5B-2-XE-A-HONG-GUI-ONBOARD-CHO-C", "lenh": "GUI", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:25",
+          "dau_vao": { "tuChuyen": "cx-3009-07", "denChuyen": "cx-3009-05", "phamVi": "ONBOARD", "noiGap": { "diaDiem": null, "chu": "Cây xăng Phước Đồng, QL1A" }, "requestId": "lenh-th05b-onb" },
+          "dap_an": { "http": "2xx", "de_nghi": { "id": "r-th05b-onb", "trangThai": "PENDING", "paxCount": 9 }, "de_nghi_khac": { "r-th05b-stop": "vẫn PENDING (gửi đề nghị mới không làm đề nghị cũ tự huỷ)" }, "tin": ["tk-tx-c"] } },
+        { "ma": "TH05-5B-3-C-NHAN-CUU-HO", "lenh": "NHAN", "ai": "tk-tx-c", "bayGioMs": "2026-09-30 06:28",
+          "dau_vao": { "deNghi": "r-th05b-onb", "requestId": "lenh-th05b-nhan-c" },
+          "dap_an": { "http": "2xx", "ketQua": "CONFIRMED", "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 15, "gioi_han": 16 } }, "tu_huy": [{ "deNghi": "r-th05b-stop", "trangThai": "VOID", "closedCmdId": "lenh-th05b-nhan-c" }], "tin": ["tk-tx-a"], "ghi_chu": "Xác nhận ONBOARD làm mọi đề nghị đang chờ khác của chuyến nguồn (cả STOP) thành VOID trong cùng lô (MQ-09, P4). VOID không sinh tin: tài xế B không nhận tin, thấy 'Đã huỷ' khi mở màn hình. Kết quả còn lại như TH07-2.", "tai_sau": { "cx-3009-07": 0, "cx-3009-05": 15, "cx-3009-04": 22 } } },
+        { "ma": "TH05-5B-4-B-NHAN-MUON", "lenh": "NHAN", "ai": "tk-tx-b", "bayGioMs": "2026-09-30 06:29",
+          "dau_vao": { "deNghi": "r-th05b-stop", "requestId": "lenh-th05b-nhan-b" },
+          "dap_an": { "http": 409, "ma_loi": "da_huy", "ghi_gi": "không ghi gì" } }
+      ]
+    },
+    {
+      "ma": "TH06-NGUON-TOI-DIEM-TRUOC-TU-HUY",
+      "mo_ta": "Xe A tới Mường Thanh trước khi xe B trả lời: đề nghị tự huỷ trong cùng lần bấm 'Đã tới', không ai phải làm gì, không có tin. Cũng vậy khi tài xế A bấm 'Bỏ qua điểm' hoặc 'Kết thúc gián đoạn', văn phòng báo huỷ điểm đó, chuyến đích kết thúc / bị huỷ, hoặc một trong hai chuyến thu hồi xuất bến (G-A5-13).",
+      "nen_rieng": null,
+      "cac_buoc": [
+        { "ma": "TH06-1-GUI", "lenh": "GUI", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:20",
+          "dau_vao": { "tuChuyen": "cx-3009-07", "denChuyen": "cx-3009-04", "phamVi": "STOP", "diem": "d7-muong-thanh", "requestId": "lenh-th06-gui" },
+          "dap_an": { "http": "2xx", "de_nghi": { "id": "r-th06", "trangThai": "PENDING" }, "tin": ["tk-tx-b"] } },
+        { "ma": "TH06-2-A-DA-TOI", "lenh": "DA_TOI", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:27",
+          "dau_vao": { "chuyen": "cx-3009-07", "diem": "d7-muong-thanh", "requestId": "lenh-th06-toi" },
+          "dap_an": { "http": 200, "diem_doi": [{ "id": "d7-muong-thanh", "trangThai": "ARRIVED" }], "tu_huy": [{ "deNghi": "r-th06", "trangThai": "VOID", "closedCmdId": "lenh-th06-toi" }], "su_kien_chuyen_khach": null, "tin_chuyen_khach": [] } },
+        { "ma": "TH06-3-B-NHAN", "lenh": "NHAN", "ai": "tk-tx-b", "bayGioMs": "2026-09-30 06:28",
+          "dau_vao": { "deNghi": "r-th06", "requestId": "lenh-th06-nhan" },
+          "dap_an": { "http": 409, "ma_loi": "da_huy", "ghi_gi": "không ghi gì" } }
+      ]
+    },
+    {
+      "ma": "TH07-CUU-HO-CO-NOI-GAP",
+      "mo_ta": "Xe A hỏng giữa đường lúc 06:25: 5 khách đã lên xe (Sheraton 4, Amiana 1), 3 khách còn chờ ở Mường Thanh, và một người đi kèm (hướng dẫn viên của đoàn) đang trên xe. Tài xế A chọn xe cứu hộ C đang chạy và ghi nơi gặp; tài xế C bấm Nhận: 5 khách và người đi kèm lên xe C ở nơi gặp, 3 khách được xe C đón ở Mường Thanh; sau đó tài xế A bấm Kết thúc gián đoạn. Người đi kèm sang xe C cùng khách và được tính vào số chỗ (ADR-0052:129 'mọi suất mở'; ADR-0111 Đ4). Theo Đ4 (chủ duyệt hộp 5 lượt 8d-2), xe C phải đang chạy.",
+      "nen_rieng": {
+        "chuyen.CX07": { "tai": 9, "nhom": [
+          { "chang": "$nen.chang.SHERATON", "so": 4, "trangThai": "BOARDED", "len": "d7-sheraton", "xuong": "d7-cang" },
+          { "chang": "AMIANA với soNguoi = 1", "so": 1, "trangThai": "BOARDED", "len": "d7-amiana", "xuong": "d7-ben" },
+          { "chang": "$nen.chang.MUONG_THANH", "so": 3, "trangThai": "WAITING", "len": "d7-muong-thanh", "xuong": "d7-cang" },
+          { "loai": "CREW", "so": 1, "nguoiDiKem": "hdv-doan-a", "trangThai": "BOARDED", "len": null, "xuong": null, "suatIds": ["s7-crew-1"] }
+        ], "ghi_chu": "không có nhóm Novotel; điểm d7-novotel không có trong nền riêng này. Suất người đi kèm (CREW) không có chặng (migrations/0042_chuyen_xe.sql:141); hôm nay lệnh xếp tạo suất người đi kèm không có điểm lên / xuống (src/modules/van-chuyen/dieu-phoi-lenh.ts:249 @046fb6b5) — CSDL không cấm có." }
+      },
+      "cac_buoc": [
+        { "ma": "TH07-1-GUI-ONBOARD", "lenh": "GUI", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:25",
+          "dau_vao": { "tuChuyen": "cx-3009-07", "denChuyen": "cx-3009-05", "phamVi": "ONBOARD", "noiGap": { "diaDiem": null, "chu": "Cây xăng Phước Đồng, QL1A" }, "requestId": "lenh-th07-gui" },
+          "dap_an": { "http": "2xx", "de_nghi": { "id": "r-th07", "trangThai": "PENDING", "paxCount": 9, "fromStopId": null }, "su_kien": { "loai": "TRANSFER_SENT", "tripId": "cx-3009-05", "relatedTripId": "cx-3009-07" }, "tin": ["tk-tx-c"], "noi_gap": "Chữ nơi gặp chỉ có trong thông tin đề nghị cho tài xế C (đã che dãy ≥ 8 chữ số); không vào nhật ký, không vào tin." } },
+        { "ma": "TH07-2-C-NHAN", "lenh": "NHAN", "ai": "tk-tx-c", "bayGioMs": "2026-09-30 06:28",
+          "dau_vao": { "deNghi": "r-th07", "requestId": "lenh-th07-nhan" },
+          "dap_an": {
+            "http": "2xx", "ketQua": "CONFIRMED",
+            "de_nghi": { "trangThai": "CONFIRMED", "decidedMode": "MAY", "decidedByParty": "tx-c" },
+            "kiem": "$nen.kiemDatHet",
+            "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 15, "gioi_han": 16 } },
+            "ghi_chu_kiem": "MOC_TOI_THIEU = DAT (xe C đang chạy). DIEM_CHUA_TOI = DAT: phạm vi ONBOARD không có điểm nguồn, ghi DAT cho đủ bằng chứng — giả định của người soạn, T3 chốt. SUC_CHUA_DICH đếm cả người đi kèm (6 + 8 khách + 1 = 15, như LC-02 migrations/0042_chuyen_xe.sql:317-323). CHANG_KHACH_HIEU_LUC chỉ xét 8 suất khách; suất người đi kèm không có chặng nên không xét (ADR-0111 Đ2).",
+            "suat_dong": { "tripId": "cx-3009-07", "so": 9, "khach": 8, "nguoiDiKem": 1, "closeReason": "TRANSFERRED", "closedTransferId": "r-th07" },
+            "diem_doi_nguon": "không: điểm Mường Thanh của xe A vẫn PENDING (ONBOARD không đặt MOVED)",
+            "diem_them": [
+              { "tripId": "cx-3009-05", "loai": "PICKUP", "placeKey": "nơi gặp (chữ, khoá T:…)", "trangThai": "PENDING", "addedWhileRunning": 1 },
+              { "tripId": "cx-3009-05", "loai": "PICKUP", "placeKey": "L:loc-muong-thanh", "trangThai": "PENDING", "addedWhileRunning": 1 },
+              { "tripId": "cx-3009-05", "loai": "DROPOFF", "placeKey": "L:loc-ben", "trangThai": "PENDING", "addedWhileRunning": 1 }
+            ],
+            "diem_ghep": [{ "placeKey": "L:loc-cang", "diem": "d5-cang", "ghi_chu": "xe C đã có Cảng Vinpearl — ghép, không thêm" }],
+            "suat_mo": [
+              { "tripId": "cx-3009-05", "so": 4, "chang": "leg-sheraton", "trangThai": "BOARDED", "len": "nơi gặp", "xuong": "d5-cang", "transferId": "r-th07", "addedAfterDeparture": 1 },
+              { "tripId": "cx-3009-05", "so": 1, "chang": "leg-amiana", "trangThai": "BOARDED", "len": "nơi gặp", "xuong": "L:loc-ben (điểm mới)", "transferId": "r-th07", "addedAfterDeparture": 1 },
+              { "tripId": "cx-3009-05", "so": 3, "chang": "leg-muong-thanh", "trangThai": "WAITING", "len": "L:loc-muong-thanh (điểm mới)", "xuong": "d5-cang", "transferId": "r-th07", "addedAfterDeparture": 1 },
+              { "tripId": "cx-3009-05", "so": 1, "loai": "CREW", "nguoiDiKem": "hdv-doan-a", "chang": null, "trangThai": "BOARDED", "len": null, "xuong": null, "transferId": "r-th07", "addedAfterDeparture": 1, "ghi_chu": "nhánh LC-15 TRANSFER_CONFIRMED cho cả kind = 'CREW' (bản hôm nay chỉ PASSENGER — migrations/0085_dieu_chinh_chuyen.sql:76)" }
+            ],
+            "thu_tu_diem": "Trên CX-3009-05: không khách đang chờ nào có điểm trả đứng trước điểm đón (Mường Thanh đứng trước Cảng Vinpearl). Nơi gặp có thể nằm sau các điểm khác; tài xế C đổi thứ tự bằng nút ↑ ↓.",
+            "manifest_them": { "tripId": "cx-3009-05", "so": 9, "khach": 8, "nguoiDiKem": 1, "ghi_chu": "dòng người đi kèm mang crew_party_id (migrations/0042_chuyen_xe.sql:235, :241)" },
+            "su_kien": { "loai": "TRANSFER_CONFIRMED", "tripId": "cx-3009-05", "relatedTripId": "cx-3009-07" },
+            "nhat_ky": "trip_transfer_confirmed",
+            "tin": ["tk-tx-a"],
+            "tai_sau": { "cx-3009-07": 0, "cx-3009-05": 15 }
+          } },
+        { "ma": "TH07-3-A-KET-THUC-GIAN-DOAN", "lenh": "KET_THUC_GIAN_DOAN", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:30",
+          "dau_vao": { "chuyen": "cx-3009-07", "lyDo": "GIAN_DOAN_XE_HONG", "requestId": "lenh-th07-gd" },
+          "dap_an": { "http": 200, "chuyen": { "trangThai": "ENDED_INTERRUPTED" }, "diem_doi": [{ "id": "d7-muong-thanh", "trangThai": "SKIPPED" }, { "id": "d7-cang", "trangThai": "SKIPPED" }, { "id": "d7-ben", "trangThai": "SKIPPED" }], "ghi_chu": "LC-16 qua vì xe A không còn suất mở nào." } },
+        { "ma": "TH07-4-C-TOI-NOI-GAP", "lenh": "DA_TOI", "ai": "tk-tx-c", "bayGioMs": "2026-09-30 06:40",
+          "dau_vao": { "chuyen": "cx-3009-05", "diem": "nơi gặp", "requestId": "lenh-th07-c-toi" },
+          "dap_an": { "http": 200, "ghi_chu": "Tài xế C làm Đã tới / rời điểm nơi gặp như mọi điểm; suất BOARDED ở nơi gặp không đổi (NT-A5-14)." } },
+        { "ma": "TH07-5-NEU-C-CHUA-CHAY", "lenh": "GUI", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:25",
+          "dau_vao": { "tuChuyen": "cx-3009-07", "denChuyen": "chuyến của xe C đang PLANNED", "phamVi": "ONBOARD", "requestId": "lenh-th07-plan" },
+          "dap_an": { "phu_thuoc": "Đ4: chủ chọn \"Duyệt (Recommended)\" ở hộp 5 'Cứu hộ' lượt 8d-2, 2026-10-08 — cứu hộ ONBOARD chỉ sang xe đang chạy. Bước này không có trong chữ tình huống 7 chủ đọc ở hộp 4.", "http": 409, "ghi_gi": "không ghi gì", "danh_sach_xe_nhan": "không liệt kê chuyến PLANNED cho phạm vi ONBOARD", "khong_chon": "Nhánh 'Chưa duyệt' Đ4 không được chọn; đã bỏ." } }
+      ]
+    },
+    {
+      "ma": "TH08-VAN-PHONG-GUI-THAY-CUU-HO",
+      "mo_ta": "Như TH07 nhưng tài xế A gọi văn phòng, nhân viên văn phòng (Bán hàng) gửi thay đề nghị cứu hộ. Tài xế C vẫn phải tự bấm Nhận; văn phòng không bấm Nhận thay được.",
+      "nen_rieng": "như TH07",
+      "cac_buoc": [
+        { "ma": "TH08-1-VP-GUI-THAY", "lenh": "VP_GUI_CUU_HO", "ai": "tk-ban-hang", "bayGioMs": "2026-09-30 06:25",
+          "dau_vao": { "chuyen": "cx-3009-07", "denChuyen": "cx-3009-05", "phamVi": "ONBOARD", "noiGap": { "diaDiem": null, "chu": "Cây xăng Phước Đồng, QL1A" }, "requestId": "lenh-th08-gui" },
+          "dap_an": { "http": "2xx", "de_nghi": { "id": "r-th08", "trangThai": "PENDING", "paxCount": 9, "proposedByParty": "tx-a", "proposedByStaff": "tk-ban-hang" }, "tin": ["tk-tx-c"] } },
+        { "ma": "TH08-2-VP-GUI-STOP-BI-CHAN", "lenh": "VP_GUI_CUU_HO", "ai": "tk-ban-hang", "bayGioMs": "2026-09-30 06:25",
+          "dau_vao": { "chuyen": "cx-3009-07", "denChuyen": "cx-3009-05", "phamVi": "STOP", "diem": "d7-muong-thanh", "requestId": "lenh-th08-stop" },
+          "dap_an": { "http": 403, "ghi_gi": "không ghi gì", "ghi_chu": "ADR-0052:248 ghi 403; kế hoạch NT-A5-15 ghi 400 — T8 chốt theo ADR." } },
+        { "ma": "TH08-3-KE-TOAN-GUI-THAY", "lenh": "VP_GUI_CUU_HO", "ai": "tk-ke-toan", "bayGioMs": "2026-09-30 06:25",
+          "dau_vao": { "chuyen": "cx-3009-07", "denChuyen": "cx-3009-05", "phamVi": "ONBOARD", "requestId": "lenh-th08-kt" },
+          "dap_an": { "http": 403, "ly_do": "Kế toán không có ô trip.progress" } },
+        { "ma": "TH08-4A-BAN-HANG-NHAN-THAY", "lenh": "NHAN", "ai": "tk-ban-hang", "bayGioMs": "2026-09-30 06:26",
+          "dau_vao": { "deNghi": "r-th08", "requestId": "lenh-th08-bh-nhan" },
+          "dap_an": { "http": 403, "ly_do": "không có ô trip.transfer" } },
+        { "ma": "TH08-4B-QUAN-TRI-NHAN-THAY", "lenh": "NHAN", "ai": "tk-quan-tri", "bayGioMs": "2026-09-30 06:26",
+          "dau_vao": { "deNghi": "r-th08", "requestId": "lenh-th08-qt-nhan" },
+          "dap_an": { "http": 403, "ly_do": "không có ô trip.transfer" } },
+        { "ma": "TH08-4C-TOAN-QUYEN-NHAN-THAY", "lenh": "NHAN", "ai": "tk-toan-quyen", "bayGioMs": "2026-09-30 06:26",
+          "dau_vao": { "deNghi": "r-th08", "requestId": "lenh-th08-tq-nhan" },
+          "dap_an": { "http": 404, "ly_do": "có ô trip.transfer = any nhưng không lái chuyến đích (ADR-0052:84 'áp cả Toàn quyền', :220)" } },
+        { "ma": "TH08-4D-SQL-TAY-NHAN-THAY", "lenh": "SQL_TAY", "ai": null, "bayGioMs": "2026-09-30 06:26",
+          "dau_vao": { "cau": "UPDATE vc_transfer_request SET status = 'CONFIRMED', decided_mode = 'MAY', decided_by_party_id = '<hồ sơ không lái CX-3009-05>' WHERE id = 'r-th08'" },
+          "dap_an": { "csdl": "RAISE", "ly_do": "người quyết phải là tài xế đang lái chuyến đích (ADR-0111 Đ3 (b))" } },
+        { "ma": "TH08-5-C-NHAN", "lenh": "NHAN", "ai": "tk-tx-c", "bayGioMs": "2026-09-30 06:28",
+          "dau_vao": { "deNghi": "r-th08", "requestId": "lenh-th08-nhan" },
+          "dap_an": { "http": "2xx", "ketQua": "CONFIRMED", "nhu": "TH07-2-C-NHAN (đề nghị r-th08)", "tin": ["tk-tx-a"], "ghi_chu": "Người gửi thay (Bán hàng) không nằm trong danh sách nhận tin xác nhận (D6.2 :159: tài xế nguồn, tài xế đích)." } }
+      ]
+    },
+    {
+      "ma": "TH09-SAI-CAM-KET-CHO-QUAN-TRI",
+      "mo_ta": "Việc chuyển làm sai cam kết với khách đã đặt xe riêng hoặc đặt số chỗ tối thiểu: chờ Quản trị duyệt kèm lý do, không tự đồng ý. 9A: đưa thêm khách vào xe B mà đoàn trên xe B đã đặt xe riêng. 9B: chuyển đoàn đã đặt xe tối thiểu 29 chỗ sang xe A 15 chỗ. Duyệt thì cùng lần ghi lưu 'khoá cam kết' của xe nhận (ADR-0056 A3).",
+      "nen_rieng": {
+        "9A": { "chang.HON_CHONG.xeRieng": true, "chuyen.CX04": { "tai": 20, "ghi_chu": "chỉ có đoàn ĐH-2001 (xe riêng, 20 khách); không có nhóm Alibu" } },
+        "9B": { "chang.ALIBU.choToiThieu": 29, "chuyen.CX07": { "tai": 10, "ghi_chu": "A chở 10/15: bỏ nhóm Novotel" } }
+      },
+      "cac_buoc": [
+        { "ma": "TH09-9A-1-GUI", "lenh": "GUI", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:20",
+          "dau_vao": { "tuChuyen": "cx-3009-07", "denChuyen": "cx-3009-04", "phamVi": "STOP", "diem": "d7-muong-thanh", "requestId": "lenh-th09a-gui" },
+          "dap_an": { "http": "2xx", "de_nghi": { "id": "r-th09a", "trangThai": "PENDING" }, "tin": ["tk-tx-b"] } },
+        { "ma": "TH09-9A-2-NHAN", "lenh": "NHAN", "ai": "tk-tx-b", "bayGioMs": "2026-09-30 06:22",
+          "dau_vao": { "deNghi": "r-th09a", "requestId": "lenh-th09a-nhan" },
+          "dap_an": {
+            "http": "2xx", "ketQua": "ESCALATED",
+            "kiem": { "SUC_CHUA_DICH": "DAT", "SUC_CHUA_NGUON": "DAT", "TRUNG_GIO_DICH": "DAT", "KHOANG_NGHI_DICH": "DAT", "MOC_TOI_THIEU": "DAT", "HANG_BANG_DICH": "DAT", "GIAY_TO_DICH": "DAT", "KHONG_CHEO": "DAT", "DIEM_CHUA_TOI": "DAT", "CAM_KET_DICH": "KHONG_DAT", "CHANG_KHACH_HIEU_LUC": "DAT" },
+            "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 23, "gioi_han": 29 } },
+            "ly_do_cam_ket": "R-XR: CX-3009-04 có đoàn ĐH-2001 đặt xe riêng, thêm khách ĐH-1003 (ADR-0056:57)",
+            "hop_duyet": "DUYET_HOAC_BAC",
+            "suat_doi": false,
+            "tin": ["tk-quan-tri", "tk-toan-quyen"]
+          } },
+        { "ma": "TH09-9A-3-QUAN-TRI-DUYET", "lenh": "DUYET", "ai": "tk-quan-tri", "bayGioMs": "2026-09-30 06:25",
+          "dau_vao": { "deNghi": "r-th09a", "lyDo": "PHA_LE_SU_CO", "requestId": "lenh-th09a-duyet" },
+          "dap_an": { "http": "2xx", "ketQua": "CONFIRMED", "de_nghi": { "trangThai": "CONFIRMED", "decidedMode": "NGUOI", "overrideReasonCode": "PHA_LE_SU_CO" }, "suat_mo": { "tripId": "cx-3009-04", "so": 3, "transferId": "r-th09a" }, "khoa_cam_ket": { "tripId": "cx-3009-04", "commitmentOverrideReasonCode": "PHA_LE_SU_CO", "commitmentOverrideKey": "có giá trị (khoá theo ADR-0056 A3 :67)" }, "tin": ["tk-tx-a", "tk-tx-b"], "tai_sau": { "cx-3009-07": 11, "cx-3009-04": 23 } } },
+        { "ma": "TH09-9B-1-GUI", "lenh": "GUI", "ai": "tk-tx-b", "bayGioMs": "2026-09-30 06:20",
+          "dau_vao": { "tuChuyen": "cx-3009-04", "denChuyen": "cx-3009-07", "phamVi": "STOP", "diem": "d4-alibu", "requestId": "lenh-th09b-gui" },
+          "dap_an": { "http": "2xx", "de_nghi": { "id": "r-th09b", "trangThai": "PENDING" }, "tin": ["tk-tx-a"] } },
+        { "ma": "TH09-9B-2-NHAN", "lenh": "NHAN", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:22",
+          "dau_vao": { "deNghi": "r-th09b", "requestId": "lenh-th09b-nhan" },
+          "dap_an": {
+            "http": "2xx", "ketQua": "ESCALATED",
+            "kiem": { "SUC_CHUA_DICH": "DAT", "SUC_CHUA_NGUON": "DAT", "TRUNG_GIO_DICH": "DAT", "KHOANG_NGHI_DICH": "DAT", "MOC_TOI_THIEU": "DAT", "HANG_BANG_DICH": "DAT", "GIAY_TO_DICH": "DAT", "KHONG_CHEO": "DAT", "DIEM_CHUA_TOI": "DAT", "CAM_KET_DICH": "KHONG_DAT", "CHANG_KHACH_HIEU_LUC": "DAT" },
+            "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 12, "gioi_han": 15 } },
+            "ly_do_cam_ket": "R-CX: xe A 15 chỗ < số chỗ tối thiểu 29 của chặng Alibu (ADR-0056:58)",
+            "hop_duyet": "DUYET_HOAC_BAC",
+            "suat_doi": false,
+            "tin": ["tk-quan-tri", "tk-toan-quyen"]
+          } }
+      ]
+    },
+    {
+      "ma": "TH10-NHO-CHEO",
+      "mo_ta": "Ví dụ của chủ (thiết kế §5.5): xe A không kịp Mường Thanh còn xe B ở gần; đồng thời xe B không kịp Alibu còn xe A ở gần. Hai tài xế nhờ chéo nhau; mỗi lần nhờ được xét riêng theo số chỗ lúc tài xế bấm Nhận: như TH01, hoặc như TH03 nếu lúc đó thiếu chỗ. 10A và 10B là hai thứ tự bấm khác nhau trên cùng nền (A 14/15, B 22/29).",
+      "nen_rieng": null,
+      "cac_buoc": [
+        { "ma": "TH10-1-A-GUI-MUONG-THANH", "lenh": "GUI", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:20",
+          "dau_vao": { "tuChuyen": "cx-3009-07", "denChuyen": "cx-3009-04", "phamVi": "STOP", "diem": "d7-muong-thanh", "requestId": "lenh-th10-ab" },
+          "dap_an": { "http": "2xx", "de_nghi": { "id": "r-th10-ab", "trangThai": "PENDING", "paxCount": 3 }, "tin": ["tk-tx-b"] } },
+        { "ma": "TH10-2-B-GUI-ALIBU", "lenh": "GUI", "ai": "tk-tx-b", "bayGioMs": "2026-09-30 06:20",
+          "dau_vao": { "tuChuyen": "cx-3009-04", "denChuyen": "cx-3009-07", "phamVi": "STOP", "diem": "d4-alibu", "requestId": "lenh-th10-ba" },
+          "dap_an": { "http": "2xx", "de_nghi": { "id": "r-th10-ba", "trangThai": "PENDING", "paxCount": 2 }, "tin": ["tk-tx-a"] } },
+        { "ma": "TH10-10A-3-B-NHAN-TRUOC", "lenh": "NHAN", "ai": "tk-tx-b", "bayGioMs": "2026-09-30 06:22",
+          "dau_vao": { "deNghi": "r-th10-ab", "requestId": "lenh-th10a-nhan-b" },
+          "dap_an": { "http": "2xx", "ketQua": "CONFIRMED", "kiem": "$nen.kiemDatHet", "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 25, "gioi_han": 29 } }, "tu_huy": [], "de_nghi_khac": { "r-th10-ba": "PENDING (không tự huỷ: khác điểm nguồn)" }, "tin": ["tk-tx-a"], "tai_sau": { "cx-3009-07": 11, "cx-3009-04": 25 } } },
+        { "ma": "TH10-10A-4-A-NHAN-SAU", "lenh": "NHAN", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:23",
+          "dau_vao": { "deNghi": "r-th10-ba", "requestId": "lenh-th10a-nhan-a" },
+          "dap_an": { "http": "2xx", "ketQua": "CONFIRMED", "kiem": "$nen.kiemDatHet", "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 13, "gioi_han": 15 } }, "diem_them": [{ "tripId": "cx-3009-07", "loai": "PICKUP", "placeKey": "L:loc-alibu", "addedWhileRunning": 1 }], "diem_ghep": [{ "placeKey": "L:loc-ben", "diem": "d7-ben" }], "diem_doi": [{ "id": "d4-alibu", "trangThai": "MOVED" }], "tin": ["tk-tx-b"], "tai_sau": { "cx-3009-07": 13, "cx-3009-04": 23 } } },
+        { "ma": "TH10-10B-3-A-NHAN-TRUOC", "lenh": "NHAN", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:22",
+          "dau_vao": { "deNghi": "r-th10-ba", "requestId": "lenh-th10b-nhan-a", "ghi_chu": "nhánh 10B chạy từ sau bước 2, không sau 10A" },
+          "dap_an": { "http": "2xx", "ketQua": "ESCALATED", "kiem": { "SUC_CHUA_DICH": "KHONG_DAT", "SUC_CHUA_NGUON": "DAT", "TRUNG_GIO_DICH": "DAT", "KHOANG_NGHI_DICH": "DAT", "MOC_TOI_THIEU": "DAT", "HANG_BANG_DICH": "DAT", "GIAY_TO_DICH": "DAT", "KHONG_CHEO": "DAT", "DIEM_CHUA_TOI": "DAT", "CAM_KET_DICH": "DAT", "CHANG_KHACH_HIEU_LUC": "DAT" }, "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 16, "gioi_han": 15 } }, "hop_duyet": "CHI_BAC", "suat_doi": false, "tin": ["tk-quan-tri", "tk-toan-quyen"] } },
+        { "ma": "TH10-10B-4-B-NHAN-SAU", "lenh": "NHAN", "ai": "tk-tx-b", "bayGioMs": "2026-09-30 06:23",
+          "dau_vao": { "deNghi": "r-th10-ab", "requestId": "lenh-th10b-nhan-b" },
+          "dap_an": { "http": "2xx", "ketQua": "CONFIRMED", "kiem": "$nen.kiemDatHet", "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 25, "gioi_han": 29 } }, "de_nghi_khac": { "r-th10-ba": "vẫn ESCALATED, hộp duyệt vẫn CHI_BAC" }, "tin": ["tk-tx-a"], "tai_sau": { "cx-3009-07": 11, "cx-3009-04": 25 } } },
+        { "ma": "TH10-10B-5-QUAN-TRI-DUYET-SAU-KHI-A-BOT-KHACH", "lenh": "DUYET", "ai": "tk-quan-tri", "bayGioMs": "2026-09-30 06:25",
+          "dau_vao": { "deNghi": "r-th10-ba", "lyDo": "PHA_LE_SU_CO", "requestId": "lenh-th10b-duyet" },
+          "dap_an": { "http": 409, "ma_loi": "luat_loi_khong_duyet", "ghi_gi": "không ghi gì", "ghi_chu": "Theo chữ ADR-0052:80 (xét MỌI dòng kiểm của đề nghị — lần Nhận đã có SUC_CHUA_DICH tầng LOI không đạt), dù A nay còn 4 chỗ. ADR-0111 Đ3 (b): trigger ESCALATED → CONFIRMED đọc MỌI dòng vc_transfer_check của đề nghị (mọi cmd_id); SQL tay UPDATE status = 'CONFIRMED' cũng RAISE. Cách đúng: bước 6–8." } },
+        { "ma": "TH10-10B-6-QUAN-TRI-BAC", "lenh": "BAC", "ai": "tk-quan-tri", "bayGioMs": "2026-09-30 06:26",
+          "dau_vao": { "deNghi": "r-th10-ba", "lyDo": { "nhom": "TU_CHOI_NHAN", "nhan": "Xe đã đầy chỗ" }, "requestId": "lenh-th10b-bac" },
+          "dap_an": { "http": "2xx", "ketQua": "REJECTED", "de_nghi": { "trangThai": "REJECTED", "decidedByParty": "tx-a", "ghi_chu": "decided_by / decided_at / decided_cmd_id ghi lại = Quản trị, 06:26, lenh-th10b-bac; decided_by_party_id giữ tx-a; closed_cmd_id = lenh-th10b-bac (ADR-0111 Đ3 (b))" }, "suat_doi": false, "tin": ["tk-tx-a", "tk-tx-b"] } },
+        { "ma": "TH10-10B-7-B-GUI-LAI", "lenh": "GUI", "ai": "tk-tx-b", "bayGioMs": "2026-09-30 06:27",
+          "dau_vao": { "tuChuyen": "cx-3009-04", "denChuyen": "cx-3009-07", "phamVi": "STOP", "diem": "d4-alibu", "requestId": "lenh-th10b-gui-lai" },
+          "dap_an": { "http": "2xx", "de_nghi": { "id": "r-th10-ba-2", "trangThai": "PENDING", "paxCount": 2 }, "tin": ["tk-tx-a"] } },
+        { "ma": "TH10-10B-8-A-NHAN-LAI", "lenh": "NHAN", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:28",
+          "dau_vao": { "deNghi": "r-th10-ba-2", "requestId": "lenh-th10b-nhan-lai" },
+          "dap_an": { "http": "2xx", "ketQua": "CONFIRMED", "de_nghi": { "trangThai": "CONFIRMED", "decidedMode": "MAY" }, "kiem": "$nen.kiemDatHet", "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 13, "gioi_han": 15 } }, "diem_doi": [{ "id": "d4-alibu", "trangThai": "MOVED" }], "tin": ["tk-tx-b"], "tai_sau": { "cx-3009-07": 13, "cx-3009-04": 23 } } }
+      ]
+    }
+  ]
+}

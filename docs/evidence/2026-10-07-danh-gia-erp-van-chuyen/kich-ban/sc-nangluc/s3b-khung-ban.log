@@ -1,0 +1,53 @@
+TAP version 13
+# (node:30949) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:30949) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/xe/:id/ban"}
+# OBS {"nhan":"sales_dat_khung_ban","status":403,"code":"forbidden","message":"Tài khoản này không quản lý được xe.","lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/xe/:id/ban"}
+# OBS {"nhan":"adm_dat_khung_ban","status":201,"dangCo":[{"id":"a9c2c6df-9de0-4bb0-ac5a-ad869a186974","xeId":"a96fcfe8-d577-4e63-b97e-8afdee2711f1","batDau":"2027-03-11T02:00:00.000Z","ketThuc":"2027-03-11T05:00:00.000Z","batDauMs":1804730400000,"ketThucMs":1804741200000,"lyDoMa":"BAN_XE_SUA_CHUA","lyDo":"Sửa chữa","daRut":false,"daQua":false,"version":1}]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"chuyen_chong_1000_1100","status":409,"code":"trung_gio_xe","message":"Xe trùng giờ với chuyến khác.","lyDo":["TRUNG_GIO_XE: Xe trùng giờ với chuyến khác: lịch xe bận: Sửa chữa 09:00 11/03 → 12:00 11/03"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"chuyen_chong_mot_phan_0830_0930","status":409,"code":"trung_gio_xe","message":"Xe trùng giờ với chuyến khác.","lyDo":["TRUNG_GIO_XE: Xe trùng giờ với chuyến khác: lịch xe bận: Sửa chữa 09:00 11/03 → 12:00 11/03"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"adm_pha_le_nghi_vao_khung_ban","status":409,"code":"trung_gio_xe","message":"Xe trùng giờ với chuyến khác.","lyDo":["TRUNG_GIO_XE: Xe trùng giờ với chuyến khác: lịch xe bận: Sửa chữa 09:00 11/03 → 12:00 11/03"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"chuyen_sat_sau_khung_1200_1300","status":201,"code":null,"message":null,"lyDo":[],"ma":"CX-1103-01"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"chuyen_truoc_khung_0700_0800_TX2","status":201,"code":null,"message":null,"lyDo":[],"ma":"CX-1103-02"}
+# {"event":"thieu_ma_lan_gui","duong":"PUT /api/van-chuyen/chuyen/:id"}
+# OBS {"nhan":"sua_doi_vao_khung_0830_0930","status":409,"code":"trung_gio_xe","message":"Xe trùng giờ với chuyến khác.","lyDo":["TRUNG_GIO_XE: Xe trùng giờ với chuyến khác: lịch xe bận: Sửa chữa 09:00 11/03 → 12:00 11/03"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/xe/:id/ban"}
+# OBS {"nhan":"khung_ban_chong_chuyen_co_san_0730_0830","status":409,"code":"khung_ban_chong_chuyen","message":"Xe đang có chuyến CX-1103-02 lúc 07:00 11/03 → 08:00 11/03 — dời hoặc đổi xe chuyến đó trước.","lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/xe/:id/ban/:bid/rut"}
+# OBS {"nhan":"rut_khung","status":200,"code":null,"message":null,"lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"chuyen_1000_sau_khi_rut","status":201,"code":null,"message":null,"lyDo":[]}
+# OBS {"nhan":"db_khung_ban","rows":[{"subject":"VEHICLE","start_at":"2027-03-11T02:00:00.000Z","end_at":"2027-03-11T05:00:00.000Z","reason_code":"BAN_XE_SUA_CHUA","da_rut":1}]}
+# OBS {"nhan":"khung_ban_tai_xe_chen_thang_sql","loi":"unavailability_reason_group: lý do không thuộc nhóm lý do bận"}
+# OBS {"nhan":"nhom_ly_do_ban","rows":[{"reason_group":"BAN_XE","n":4}]}
+# OBS {"nhan":"trigger_driver_closed","rows":["vc_unavailability_no_delete","vc_unavailability_insert_open","vc_unavailability_withdraw_once","vc_unavailability_driver_closed","vc_unavailability_reason_group","vc_unavailability_overlaps_trip"]}
+# OBS {"nhan":"khung_ban_tai_xe_sql_co_ly_do","loi":"unavailability_driver_closed: chưa mở báo bận của tài xế"}
+# OBS {"nhan":"route_ban_tai_xe","ghiChu":"xem grep route trong báo cáo","r":[]}
+# Subtest: S3b khung bận xe 09:00–12:00 (Sửa chữa) — tạo chuyến chồng / sát / sửa chuyến dời vào
+ok 1 - S3b khung bận xe 09:00–12:00 (Sửa chữa) — tạo chuyến chồng / sát / sửa chuyến dời vào
+  ---
+  duration_ms: 91.676292
+  type: 'test'
+  ...
+# Subtest: S3b.2 khung bận của TÀI XẾ: nhóm lý do BAN_TAI_XE và trigger chặn
+ok 2 - S3b.2 khung bận của TÀI XẾ: nhóm lý do BAN_TAI_XE và trigger chặn
+  ---
+  duration_ms: 60.316125
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 267.739417

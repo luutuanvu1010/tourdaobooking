@@ -1,0 +1,20 @@
+✓ 1) 4a 390 tài xế mở "/" → /cuoc: "Hôm nay" (trống) + "Ngày mai" (2 chuyến theo giờ) + "Ngày kia" (trống — góp ý T3); chuyến thiếu giấy xe "Bị giữ" + "(văn phòng lo)"; KHÔNG tên / SĐT khách; ba tab, axe không vi phạm critical/serious
+✓ 2) 6b 390 chuyến bị giữ: CHỈ điều kiện còn thiếu "(văn phòng lo)", không hạn giấy tờ; "Xuất bến" khoá + "Chưa xuất bến được — văn phòng đang lo."
+✓ 3) 6c → 5a 390, Q-L3-B phía "không tên": chuyến NGÀY MAI (T4) đủ điều kiện ("Đủ điều kiện xuất bến"), trước xuất bến KHÔNG tên khách; bấm "Xuất bến" (không ô giờ, thân không có xayRaLuc) = xuất bến SỚM → đang chạy nhưng màn hiện "Khách N", KHÔNG tên, năm sinh, liên hệ
+✓ 3b) 5a 390, Q-L3-B phía "có tên": chuyến HÔM NAY (TH, tài xế Cường) — bấm "Xuất bến" → đang chạy: tên + năm sinh + liên hệ của đơn hiện, axe không vi phạm critical/serious
+✓ 4) 5a: "Đã tới" → khách có Đã đón / Vắng / Khách đã huỷ; "Đã đón" khách 1 → "Đã đón"; phản hồi lệnh không kèm liên hệ — màn GIỮ dòng liên hệ của lần tải
+✓ 5) mất mạng: bấm "Vắng" → dòng "Chưa gửi được" + "Bấm lại" + dải "Mất mạng — 1 thao tác chưa gửi được"; máy KHÔNG tự gửi lại; có mạng, bấm lại → "Vắng", CÙNG requestId
+✓ 5b) C55 (đánh giá ERP 7/10): mất mạng mà trang tự tải lại (tin chuyến / nối lại) → trang KHÔNG ẩn: còn tên khách, số liên hệ, nút; dải "Mất mạng — dữ liệu lúc HH:MM"; có mạng tải lại → dải mất
+✓ 6) 5a: điểm trả "Đã trả" (tới điểm rồi trả khách trên xe) → "Kết thúc chuyến" mở → kết thúc; hộp "Kết thúc gián đoạn" có lý do nhóm Kết thúc gián đoạn, KHÔNG ô ghi chú
+✓ 7) 6d 1040 Bán hàng: "Xuất bến thay tài xế" → hộp: "Đạt đủ … điều kiện", "Ghi thay tài xế …", ô "Xảy ra lúc" mặc định lúc bấm + "Sớm nhất" của máy chủ; giờ ngoài khoảng → câu dưới ô; khai đúng "Sớm nhất" → gửi xayRaLuc, mốc xuất bến HAI giờ + "giờ do văn phòng khai", axe không vi phạm critical/serious
+✓ 7a) ADR-0097 Đ3 (HT-03) 1040 Bán hàng: vừa xuất bến, chưa có tiến độ → "Thu hồi xuất bến" → hộp: dải "Chuyến về trạng thái chưa chạy", lý do nhóm Điều chỉnh (Bấm nhầm / Khách đổi ý tại điểm / Khác), nút khoá tới khi chọn → POST thân version + lyDo + requestId → dải "Đã thu hồi xuất bến …", hết mốc xuất bến, lại có "Xuất bến thay tài xế"; xuất bến lại → mốc theo lần xuất bến cuối, axe không vi phạm critical/serious
+✓ 7b) 5c 1040 Bán hàng: ↑ ↓ ở điểm chưa tới (đón · đón · trả — 6 nút): đầu / cuối khoá; nút đưa điểm trả lên trước điểm đón khoá kèm lời giải thích (C30); điểm trả chưa có "Đã trả" mà có câu "Còn khách chưa đón…" (HT-16); bấm ↓ điểm đón đầu → POST /thu-tu thân chỉ requestId + diem (không xayRaLuc), hai điểm đón đổi chỗ, dải báo; bấm ↑ trả lại; đã có tiến độ → hết nút "Thu hồi xuất bến", axe không vi phạm critical/serious
+✓ 7c) 5c 1040: điểm đón đầu vừa được ghi "Đã tới" bằng API, trang chưa tải lại → bấm ↓ ở điểm đó → "Chưa đổi được thứ tự điểm" + "Điểm đã tới hoặc đã bỏ qua…"; đọc lại: điểm đã tới hết nút, hai điểm còn chờ (đón · trả) có bốn nút đều khoá
+✓ 8b) Ruling 2/10 — văn phòng bấm thay người đi kèm (T7 đang chạy): dòng 'chưa lên xe' + nút 'Đã lên xe' → 'đang trên xe' + 'Đã xuống' → 'đã xuống', hết nút; dòng giải thích 'Kết thúc chuyến' nhắc người đi kèm
+✓ 8) 5c 1040 Bán hàng: chuyến đang chạy — "Đã tới" để nguyên giờ → thân KHÔNG có xayRaLuc (I34), mốc MỘT giờ; GA-55: sau lệnh tên khách vẫn hiện đúng
+✓ 8c) ADR-0097 Đ2 (HT-04) 1040 Bán hàng: "Đã đón" Khách Bấm Thay 1 (bấm thay) → dòng có link "Điều chỉnh…" (khách còn chờ thì không) → hộp "Điều chỉnh kết quả": đang ghi Đã đón; sửa thành Chưa xử lý / Vắng / Khách huỷ tại điểm; lý do nhóm Điều chỉnh; nút khoá tới khi chọn đủ → POST thân version + trangThai + lyDo + requestId → dải "Đã điều chỉnh …: Đã đón → Vắng", dòng hiện "Vắng", nhật ký có dòng điều chỉnh; 390 không tràn, axe không vi phạm critical/serious
+✓ 9b) K2b T2: tài khoản DRIVER + SALES — trang đầu KHÔNG đổi (ở Trang chủ); thanh bên có "Cuốc của tôi" → mở /cuoc; điện thoại: trang Tôi có dòng "Cuốc của tôi", thanh tab KHÔNG thêm tab, ở /cuoc tab "Tôi" sáng
+✓ 9) Kế toán mở chuyến đang chạy: thấy điểm, mốc; KHÔNG nút bấm thay nào (ô trip.progress)
+✓ 10) không lỗi console ở mọi trang đã mở
+
+CUOC SMOKE OK (18 bước)

@@ -69,6 +69,10 @@ const HANH_DONG_CO_SU_KIEN = [
   "trip_created", "trip_edited", "trip_cancelled", "trip_allocated", "trip_allocation_removed", "trip_allocation_moved", "trip_passengers_synced", "trip_stops_synced", "trip_departed",
   "trip_stop_arrived", "trip_passenger_boarded", "trip_passenger_no_show", "trip_passenger_cancelled_at_stop", "trip_passenger_dropped", "trip_stops_reordered",
   "trip_ended", "trip_ended_interrupted",
+  // ADR-0097 (gói A1, V3-B): sự kiện điều chỉnh có lý do của văn phòng.
+  "trip_allocation_corrected", "trip_departure_revoked",
+  // ADR-0104 Đ2.9 (NT-12): khúc của máy đồng bộ chuyến theo đơn — nhật ký + sự kiện ALLOCATION_ORDER_SYNCED cùng dấu lệnh của khúc.
+  "trip_order_synced",
 ];
 
 // ---- Sổ đại lý đợt 1 (đặc tả 2026-10-08 §9) — đoạn dùng chung của R-PRC-*, R-ORD-T*, R-KY-* ----
@@ -711,13 +715,17 @@ export const CHECKS = [
     level: "warn",
     note: "cảnh báo: giờ khai của văn phòng đi ngược thứ tự ghi nhận — xem nhật ký chuyến",
   },
+  // Nới N3 (ADR-0052 :72, D5c — gói A5, ADR-0111): suất chuyển theo đề nghị cứu hộ ONBOARD lên ở NƠI GẶP (điểm danh mục của đề nghị) không phải "nơi hẹn đã
+  // đổi" — bỏ qua vế điểm lên của suất đó; vế điểm xuống và mọi suất khác giữ nguyên.
   {
     code: "R-VC-16",
     what: "suất khách mở của chuyến chưa kết thúc có điểm DANH MỤC khác nơi đón / trả hiện hành của chặng (không phủ chữ tự do)",
     sql: `SELECT count(*) FROM vc_trip_allocation a JOIN vc_trip t ON t.id = a.trip_id JOIN ord_transfer_leg l ON l.id = a.leg_id
             LEFT JOIN vc_trip_stop b ON b.id = a.board_stop_id LEFT JOIN vc_trip_stop x ON x.id = a.alight_stop_id
           WHERE a.kind = 'PASSENGER' AND a.valid_to_at IS NULL AND t.status IN ('PLANNED', 'RUNNING')
-            AND ((b.place_key GLOB 'L:*' AND b.place_key IS NOT ('L:' || l.pickup_location_id)) OR (x.place_key GLOB 'L:*' AND x.place_key IS NOT ('L:' || l.dropoff_location_id)))`,
+            AND ((b.place_key GLOB 'L:*' AND b.place_key IS NOT ('L:' || l.pickup_location_id)
+                  AND NOT EXISTS (SELECT 1 FROM vc_transfer_request r WHERE r.id = a.transfer_id AND r.scope = 'ONBOARD' AND r.meet_location_id IS b.location_id))
+              OR (x.place_key GLOB 'L:*' AND x.place_key IS NOT ('L:' || l.dropoff_location_id)))`,
     level: "warn",
     note: "cảnh báo: nơi hẹn đã đổi sau khi xếp — văn phòng bấm \"Cập nhật điểm theo đơn\" (chuyến chưa chạy) hoặc báo tài xế (chuyến đang chạy)",
   },
@@ -921,6 +929,143 @@ export const CHECKS = [
                            AND l.min_vehicle_seats > (SELECT k.passenger_capacity FROM vc_trip_departure_check k WHERE k.trip_id = t.id AND k.ket_qua = 'DAT' ORDER BY k.checked_at DESC LIMIT 1)))`,
     level: "warn",
     note: "cảnh báo: chuyến đã xuất bến trái cam kết xe riêng / số chỗ của khách mà không có phá lệ — rà lại chuyến và lý do",
+  },
+  // ---- Tài xế đối tác: Từ chối chuyến, Báo bận, hạn theo cặp (ADR-0053 D8, D9 — kế hoạch A4 T11, migration 0092). Lưới thứ hai của trigger; chỉ đếm, không tên. ----
+  // R-VC-26 (B8.2 — trigger tc82_self): dòng lái đóng REFUSED phải do CHÍNH tài xế của dòng đóng (người đóng theo hồ sơ). Văn phòng / Toàn quyền không từ chối thay.
+  {
+    code: "R-VC-26",
+    what: "dòng lái đóng 'tài xế từ chối' mà người đóng không phải chính tài xế",
+    sql: `SELECT count(*) FROM vc_trip_driver d WHERE d.close_reason = 'REFUSED' AND d.closed_by_party_id IS NOT d.driver_party_id`,
+    level: "fail",
+  },
+  // R-VC-27 (B8.3 — trigger tc83_deadline): Từ chối chỉ khi chuyến còn chưa chạy. Dòng REFUSED ghi lúc / sau giờ xuất bến thật = lọt trigger. (Không so với
+  // hạn: hạn chỉ GIẢM khi dời chuyến sớm hơn, một lần từ chối hợp lệ có thể nằm sau hạn mới — báo nhầm.)
+  {
+    code: "R-VC-27",
+    what: "tài xế từ chối chuyến lúc hoặc sau giờ xuất bến thật",
+    sql: `SELECT count(*) FROM vc_trip_driver d JOIN vc_trip t ON t.id = d.trip_id
+          WHERE d.close_reason = 'REFUSED' AND t.departed_at IS NOT NULL AND d.valid_to_at >= t.departed_at`,
+    level: "fail",
+  },
+  // R-VC-28 (B9.2, B9.3 — trigger vc_unavailability_overlaps_driver_trip, vc_trip_driver_unavailable_*): khung bận DRIVER còn hiệu lực chồng (nửa mở, giờ dự
+  // kiến) chuyến chưa kết thúc mà người đó đang lái. Mức warn như R-VC-21: chuyến đang chạy quá giờ dự kiến có thể lấn vào khung ghi sau.
+  {
+    code: "R-VC-28",
+    what: "chuyến chưa kết thúc đang xếp cho tài xế chồng khung báo bận còn hiệu lực của chính người đó",
+    sql: `SELECT count(*) FROM vc_trip t JOIN vc_trip_driver d ON d.trip_id = t.id AND d.valid_to_at IS NULL
+          JOIN vc_unavailability u ON u.subject = 'DRIVER' AND u.driver_party_id = d.driver_party_id AND u.withdrawn_at IS NULL
+          WHERE t.status IN ('PLANNED', 'RUNNING') AND t.planned_start_ms < u.end_ms AND u.start_ms < t.planned_end_ms`,
+    level: "warn",
+    note: "cảnh báo: văn phòng đổi tài xế / dời chuyến, hoặc tài xế rút khung bận",
+  },
+  // R-VC-29 (D8.1 — trigger vc_trip_driver_refuse_deadline_ins + gieo của 0092): mọi dòng lái ĐANG MỞ có dòng hạn Từ chối của đúng cặp (tài xế, chuyến). Thiếu
+  // = tài xế đối tác không bao giờ thấy khách / mã đơn (khung đóng mặc định — G-A4-2) và không Từ chối được.
+  {
+    code: "R-VC-29",
+    what: "dòng lái đang mở thiếu hạn từ chối của cặp tài xế – chuyến",
+    sql: `SELECT count(*) FROM vc_trip_driver d WHERE d.valid_to_at IS NULL
+          AND NOT EXISTS (SELECT 1 FROM vc_refuse_deadline r WHERE r.trip_id = d.trip_id AND r.driver_party_id = d.driver_party_id)`,
+    level: "fail",
+  },
+  // R-VC-30 (D8, cảnh báo vận hành): chuyến chưa chạy xuất bến trong 48 giờ tới mà chưa có tài xế (vd. tài xế vừa Từ chối, văn phòng chưa xếp người khác).
+  // Giờ hiện tại của CSDL — chỉ để cảnh báo, không chặn.
+  {
+    code: "R-VC-30",
+    what: "chuyến chưa chạy xuất bến trong 48 giờ tới mà chưa có tài xế",
+    sql: `SELECT count(*) FROM vc_trip t
+          WHERE t.status = 'PLANNED'
+            AND t.planned_start_ms >= CAST(strftime('%s', 'now') AS INTEGER) * 1000
+            AND t.planned_start_ms < CAST(strftime('%s', 'now') AS INTEGER) * 1000 + 48 * 3600000
+            AND NOT EXISTS (SELECT 1 FROM vc_trip_driver d WHERE d.trip_id = t.id AND d.valid_to_at IS NULL)`,
+    level: "warn",
+    note: "cảnh báo: xếp tài xế cho chuyến sắp chạy (kể cả chuyến tài xế vừa từ chối)",
+  },
+  // R-VC-THU-TU (ADR-0096 Đ1.5, gói A1 — 0084): chuyến ĐANG CHẠY có suất mở CHỜ LÊN mà điểm xuống đứng trước / bằng số điểm lên. Lưới thứ hai của đường đổi thứ
+  // tự khi đang chạy — đường này KHÔNG có trigger theo dòng (Đ1.6: lô đổi nhiều điểm đi qua trạng thái trung gian), lớp máy chủ là `chanDaoMoi`. Chuyến kế hoạch
+  // vi phạm là "đang bị giữ" hợp lệ (cổng xuất bến LC-19 chặn) — không đếm. Chỉ đếm, không tên.
+  {
+    code: "R-VC-THU-TU",
+    what: "chuyến đang chạy có khách chờ lên mà điểm trả đứng trước điểm đón (ADR-0096 Đ1)",
+    sql: `SELECT count(*) FROM vc_trip_allocation a JOIN vc_trip t ON t.id = a.trip_id AND t.status = 'RUNNING'
+          JOIN vc_trip_stop b ON b.id = a.board_stop_id JOIN vc_trip_stop d ON d.id = a.alight_stop_id
+          WHERE a.valid_to_at IS NULL AND a.status = 'WAITING' AND d.seq <= b.seq`,
+    level: "fail",
+  },
+
+  // R-VC-SUA-1 (ADR-0097 "Hệ quả", gói A1 — 0085): lưới thứ hai sau trigger LC-15 / câu chốt vc_trip_correction_balance / vc_trip_revoke_no_progress. Đếm (a) suất
+  // đóng bởi lô CORRECTION (đóng REMOVED, dấu lệnh = sự kiện CORRECTION trỏ chính nó) mà không có ĐÚNG một suất thay thế trỏ về nó cùng chặng, người, điểm lên,
+  // điểm xuống, mở cùng dấu lệnh — hoặc suất có tên mà suất thay thế thiếu dòng bản chốt thêm sau xuất bến; (b) suất mang corrects_allocation_id mà không do
+  // lô CORRECTION mở; (c) DEPARTURE_REVOKED không đứng sau một DEPARTED, hoặc đứng sau một sự kiện tiến độ của lần chạy đó (thứ tự chèn — rowid). Chỉ đếm.
+  // Gói A5 (0093 (6), ADR-0111 Đ5): "tiến độ" theo ĐÚNG trigger vc_trip_revoke_no_progress mới — đề nghị chưa thành ở chuyến (TRANSFER_* trừ CONFIRMED) không
+  // tính; TRANSFER_CONFIRMED có related_trip_id = chuyến (xe đã giao khách) thì tính.
+  {
+    code: "R-VC-SUA-1",
+    what: "điều chỉnh kết quả khách thiếu / thừa suất thay thế hoặc bản chốt; thu hồi xuất bến sau khi đã có tiến độ (ADR-0097)",
+    sql: `SELECT (SELECT count(*) FROM vc_trip_allocation c JOIN vc_trip_event e ON e.id = c.closed_cmd_id AND e.kind = 'CORRECTION' AND e.allocation_id = c.id
+                  WHERE (SELECT count(*) FROM vc_trip_allocation n WHERE n.corrects_allocation_id = c.id AND n.trip_id = c.trip_id AND n.opened_cmd_id = e.id
+                           AND n.leg_id IS c.leg_id AND n.passenger_key IS c.passenger_key AND n.board_stop_id IS c.board_stop_id AND n.alight_stop_id IS c.alight_stop_id) <> 1
+                     OR (c.passenger_key IS NOT NULL AND NOT EXISTS (SELECT 1 FROM vc_trip_allocation n JOIN vc_trip_manifest m ON m.allocation_id = n.id AND m.added_after_departure = 1
+                                                                     WHERE n.corrects_allocation_id = c.id)))
+          + (SELECT count(*) FROM vc_trip_allocation n WHERE n.corrects_allocation_id IS NOT NULL AND NOT EXISTS (
+                  SELECT 1 FROM vc_trip_event e JOIN vc_trip_allocation c ON c.id = e.allocation_id
+                   WHERE e.id = n.opened_cmd_id AND e.kind = 'CORRECTION' AND e.allocation_id = n.corrects_allocation_id AND c.closed_cmd_id = e.id AND c.close_reason = 'REMOVED'))
+          + (SELECT count(*) FROM vc_trip_event r WHERE r.kind = 'DEPARTURE_REVOKED' AND (
+                  NOT EXISTS (SELECT 1 FROM vc_trip_event d WHERE d.trip_id = r.trip_id AND d.kind = 'DEPARTED' AND d.rowid < r.rowid)
+                  OR EXISTS (SELECT 1 FROM vc_trip_event x WHERE x.rowid < r.rowid
+                               AND ((x.trip_id = r.trip_id AND x.kind NOT IN ('DEPARTED', 'DEPARTURE_REVOKED', 'TRANSFER_SENT', 'TRANSFER_WITHDRAWN', 'TRANSFER_DECLINED',
+                                                                              'TRANSFER_EXPIRED', 'TRANSFER_ESCALATED', 'TRANSFER_REJECTED'))
+                                 OR (x.related_trip_id = r.trip_id AND x.kind = 'TRANSFER_CONFIRMED'))
+                               AND x.rowid > (SELECT max(d.rowid) FROM vc_trip_event d WHERE d.trip_id = r.trip_id AND d.kind = 'DEPARTED' AND d.rowid < r.rowid))))`,
+    level: "fail",
+  },
+
+  // ---- CHUYỂN KHÁCH GIỮA HAI XE (ADR-0111, ADR-0052 D4 / D5c — gói A5, migration 0093; mã R-VC-31…35: ĐỔI từ R-VC-26…30 khi nhập nền A4, vì A4 đã dùng R-VC-26…30). Lưới THỨ HAI sau trigger của 0093;
+  // cân đóng = mở (R-VC-31) KHÔNG có trigger theo dòng — đây là lưới duy nhất ("phát hiện, không chặn"). Chỉ đếm, không tên.
+  // R-VC-31 (Đ3 a): đề nghị CONFIRMED — số suất đóng TRANSFERRED trỏ về nó ≠ số suất mở mang transfer_id của nó (đếm mọi dòng: suất mở vì chuyển có thể đã đóng
+  // sau đó vì lý do khác; suất mở lại bởi lệnh khác không mang transfer_id).
+  {
+    code: "R-VC-31",
+    what: "đề nghị chuyển khách đã xác nhận mà số suất đóng ở xe nhờ khác số suất mở ở xe nhận",
+    sql: `SELECT count(*) FROM vc_transfer_request r WHERE r.status = 'CONFIRMED'
+            AND (SELECT count(*) FROM vc_trip_allocation a WHERE a.closed_transfer_id = r.id) <> (SELECT count(*) FROM vc_trip_allocation a WHERE a.transfer_id = r.id)`,
+    level: "fail",
+  },
+  // R-VC-32 (Đ3 a): suất đóng TRANSFERRED thiếu đề nghị, hoặc suất đóng / mở trỏ đề nghị chưa CONFIRMED (CHECK của bảng giữ "TRANSFERRED ⇔ closed_transfer_id";
+  // vế đầu là lưới khi bảng dựng lại mất CHECK).
+  {
+    code: "R-VC-32",
+    what: "suất chuyển khách (đóng TRANSFERRED / mở theo đề nghị) thiếu đề nghị hoặc trỏ đề nghị chưa xác nhận",
+    sql: `SELECT count(*) FROM vc_trip_allocation a
+          WHERE (a.close_reason = 'TRANSFERRED' AND a.closed_transfer_id IS NULL)
+             OR (a.closed_transfer_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM vc_transfer_request r WHERE r.id = a.closed_transfer_id AND r.status = 'CONFIRMED'))
+             OR (a.transfer_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM vc_transfer_request r WHERE r.id = a.transfer_id AND r.status = 'CONFIRMED'))`,
+    level: "fail",
+  },
+  // R-VC-33 (Đ1, D4): đề nghị CONFIRMED (máy hay người) mà dòng kiểm của LẦN QUYẾT (decided_cmd_id) có điều kiện tầng LOI không đạt — tầng LOI không phá lệ được.
+  {
+    code: "R-VC-33",
+    what: "đề nghị chuyển khách đã xác nhận dù điều kiện bắt buộc (tầng lỗi) không đạt ở lần quyết",
+    sql: `SELECT count(*) FROM vc_transfer_request r WHERE r.status = 'CONFIRMED' AND EXISTS (
+            SELECT 1 FROM vc_transfer_check c WHERE c.transfer_id = r.id AND c.cmd_id = r.decided_cmd_id AND c.rule_tier = 'LOI' AND c.ket_qua = 'KHONG_DAT')`,
+    level: "fail",
+  },
+  // R-VC-34 (Đ1): tầng ghi ở dòng kiểm khác tầng của danh mục (tầng danh mục không đổi được — trigger ck_rule_identity), hoặc mã ngoài danh mục.
+  {
+    code: "R-VC-34",
+    what: "dòng kiểm chuyển khách ghi tầng lệch danh mục điều kiện",
+    sql: `SELECT count(*) FROM vc_transfer_check c WHERE c.rule_tier IS NOT (SELECT d.tier FROM vc_transfer_rule d WHERE d.code = c.rule_code)`,
+    level: "fail",
+  },
+  // R-VC-35 (MQ-09, ADR-0052 :61 / :79): đề nghị Chờ / Leo thang mà nguồn hoặc đích đã đổi — lô của lệnh làm đổi phải tự huỷ (VOID) cùng lô. Điểm nguồn (STOP) hết
+  // PENDING; xe nhờ hết RUNNING; xe nhận hết PLANNED / RUNNING. (Tập khách đổi mà điểm vẫn PENDING không xét: máy chủ chặn 409 lúc quyết — ck_khach_doi.)
+  {
+    code: "R-VC-35",
+    what: "đề nghị chuyển khách còn chờ / leo thang dù điểm nguồn đã qua hoặc xe nhờ / xe nhận đã kết thúc, huỷ",
+    sql: `SELECT count(*) FROM vc_transfer_request r JOIN vc_trip f ON f.id = r.from_trip_id JOIN vc_trip t ON t.id = r.to_trip_id
+          WHERE r.status IN ('PENDING', 'ESCALATED')
+            AND (f.status <> 'RUNNING' OR t.status NOT IN ('PLANNED', 'RUNNING')
+              OR (r.scope = 'STOP' AND (SELECT s.status FROM vc_trip_stop s WHERE s.id = r.from_stop_id) IS NOT 'PENDING'))`,
+    level: "fail",
   },
 
   // ---- Người phụ trách đơn (ADR-0006 điều 3, ADR-0009). Migration 0014 trở lên: trên D1 chưa có 0014 các câu dưới lỗi "no such table" → script thoát mã 2. ----

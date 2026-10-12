@@ -1,0 +1,46 @@
+{"nhan":"chinh_sach","status":403,"hienHanh":["error"],"raw":"{\"error\":{\"code\":\"forbidden\",\"message\":\"Chỉ người phụ trách hệ thống xem và đổi được chính sách điều phối xe.\"}}"}
+{"nhan":"db_policy","rows":[{"id":"d53b6dd9-60e2-4644-8e63-9ca7dcff35d0","min_lead_minutes":360,"rest_minutes":30,"duty_day_max_minutes":480,"trip_no_break_max_minutes":240}]}
+{"nhan":"A","ma":"CX-1103-01","id":"fa550068-f8fc-4da1-8a42-63b623d59ed2"}
+{"nhan":"B_cung_xe_cung_tx_07:29","status":409,"code":"trung_gio_xe","message":"Xe trùng giờ với chuyến khác.","lyDo":["TRUNG_GIO_XE: Xe trùng giờ với chuyến khác: CX-1103-01","TRUNG_GIO_TAI_XE: Tài xế trùng giờ với chuyến khác: CX-1103-01"]}
+{"nhan":"B_cung_xe_cung_tx_07:30","status":409,"code":"chua_du_nghi","message":"Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ.","lyDo":["KHOANG_NGHI: Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ: CX-1103-01"],"canQuyen":false}
+{"nhan":"B_cung_xe_cung_tx_07:35","status":409,"code":"chua_du_nghi","message":"Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ.","lyDo":["KHOANG_NGHI: Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ: CX-1103-01"],"canQuyen":false}
+{"nhan":"B_cung_xe_cung_tx_07:45","status":409,"code":"chua_du_nghi","message":"Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ.","lyDo":["KHOANG_NGHI: Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ: CX-1103-01"],"canQuyen":false}
+{"nhan":"B_cung_xe_cung_tx_07:59","status":409,"code":"chua_du_nghi","message":"Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ.","lyDo":["KHOANG_NGHI: Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ: CX-1103-01"],"canQuyen":false}
+{"nhan":"B_cung_xe_TX2_0745","status":409,"code":"chua_du_nghi","message":"Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ.","lyDo":["KHOANG_NGHI: Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ: CX-1103-01"],"canQuyen":false}
+{"nhan":"B_xe_khac_cung_tx_0745","status":409,"code":"chua_du_nghi","message":"Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ.","lyDo":["KHOANG_NGHI: Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ: CX-1103-01"],"canQuyen":false}
+{"nhan":"B_sales_gui_pha_le_0745","status":403,"code":"forbidden","message":"Chỉ Quản trị hoặc Toàn quyền phá lệ được.","lyDo":[]}
+{"nhan":"B_cung_xe_cung_tx_0800","status":201,"code":null,"message":null,"lyDo":[],"ma":"CX-1103-02"}
+{"nhan":"doc_lai_trip","rows":[{"code":"CX-1103-01","status":"PLANNED","planned_start_ms":1804721400000,"planned_end_ms":1804725000000,"rest_minutes_snapshot":30,"rest_override_reason_code":null,"bd":"06:30","kt":"07:30"},{"code":"CX-1103-02","status":"PLANNED","planned_start_ms":1804726800000,"planned_end_ms":1804730400000,"rest_minutes_snapshot":30,"rest_override_reason_code":null,"bd":"08:00","kt":"09:00"}]}
+{"nhan":"B_adm_pha_le_0745","status":201,"code":null,"message":null,"lyDo":[],"ma":"CX-1103-02"}
+{"nhan":"doc_lai_trip_S3.2","rows":[{"code":"CX-1103-01","rest_minutes_snapshot":30,"rest_override_reason_code":null},{"code":"CX-1103-02","rest_minutes_snapshot":30,"rest_override_reason_code":"PHA_LE_SU_CO"}]}
+{"nhan":"nhat_ky_pha_le","rows":[{"action":"trip_created","detail":"CX-1103-01 · xe 79C00007 (16 chỗ) · 06:30 11/03 → 07:30 11/03"},{"action":"trip_created","detail":"CX-1103-02 · xe 79C00007 (16 chỗ) · 07:45 11/03 → 08:45 11/03 · phá lệ khoảng nghỉ: Sự cố vận hành"}]}
+{"nhan":"A_xuat_ben_0630","status":200,"code":null,"message":null,"lyDo":[]}
+{"nhan":"B_xuat_ben_khi_A_dang_chay_0645","status":409,"code":"chua_du_dieu_kien_xuat_ben","message":"Chuyến chưa đủ điều kiện xuất bến.","lyDo":["TRUNG_GIO_XE: Xe trùng giờ với chuyến khác: CX-1103-01","TRUNG_GIO_TAI_XE: Tài xế trùng giờ với chuyến khác: CX-1103-01"]}
+{"nhan":"A_da_toi_don","status":200,"code":null,"message":null,"lyDo":[]}
+{"nhan":"A_da_don","status":200,"code":null,"message":null,"lyDo":[]}
+{"nhan":"A_da_don","status":200,"code":null,"message":null,"lyDo":[]}
+{"nhan":"A_da_don","status":200,"code":null,"message":null,"lyDo":[]}
+{"nhan":"A_da_toi_tra","status":200,"code":null,"message":null,"lyDo":[]}
+{"nhan":"A_da_tra","status":200,"code":null,"message":null,"lyDo":[]}
+{"nhan":"A_da_tra","status":200,"code":null,"message":null,"lyDo":[]}
+{"nhan":"A_da_tra","status":200,"code":null,"message":null,"lyDo":[]}
+{"nhan":"A_ket_thuc_0710","status":200,"code":null,"message":null,"lyDo":[]}
+{"nhan":"A_doc_lai","rows":[{"code":"CX-1103-01","status":"ENDED","ended_ms":1804723800000,"ketThucVn":"07:10"}]}
+{"nhan":"cuoc_cua_toi_0710","status":200,"chuyen":[{"ma":"CX-1103-01","gio":{"ngay":"2027-03-11","gio":"06:30"},"trangThai":"ENDED","dieuKienConThieu":[]},{"ma":"CX-1103-02","gio":{"ngay":"2027-03-11","gio":"08:00"},"trangThai":"PLANNED","dieuKienConThieu":[]}]}
+{"nhan":"B_xuat_ben_0715_tai_xe","status":409,"code":"chua_du_dieu_kien_xuat_ben","message":"Chuyến chưa đủ điều kiện xuất bến.","lyDo":["NGHI_THIEU: Chưa đủ thời gian nghỉ sau chuyến trước: CX-1103-01"]}
+{"nhan":"B_PUT_dời_0720","status":409,"code":"chua_du_nghi","message":"Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ.","lyDo":["KHOANG_NGHI: Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ: CX-1103-01"],"canQuyen":false}
+{"nhan":"B_PUT_dời_0740","status":200,"code":null,"message":null,"lyDo":[],"lyDoGiu":[]}
+{"nhan":"B_xuat_ben_0740_tai_xe_sau_doi","status":200,"code":null,"message":null,"lyDo":[]}
+{"nhan":"B_doc_lai","rows":[{"code":"CX-1103-02","status":"RUNNING","bdVn":"07:40","xbVn":"07:40"}]}
+{"nhan":"S3.4_A_ket_thuc","status":200,"code":null,"message":null,"lyDo":[]}
+{"nhan":"S3.4_B_xuat_ben_0739","status":409,"code":"chua_du_dieu_kien_xuat_ben","message":"Chuyến chưa đủ điều kiện xuất bến.","lyDo":["NGHI_THIEU: Chưa đủ thời gian nghỉ sau chuyến trước: CX-1103-01"]}
+{"nhan":"S3.4_B_xuat_ben_0740","status":200,"code":null,"message":null,"lyDo":[]}
+{"nhan":"S3.4_B_doc_lai","rows":[{"code":"CX-1103-02","status":"RUNNING","xbVn":"07:40","bdVn":"08:00"}]}
+{"nhan":"S3.4_B_chi_tiet_sau_xuat_ben","trangThai":"RUNNING","keys":["id","ma","trangThai","trangThaiNhan","version","ngayChay","batDau","ketThuc","batDauMs","ketThucMs","xe","taiXe","tai","lyDoGiu","khoaMoc","xuatBen","ketThucThat","diem","nghiPhaLe","lyDoHuy","lyDoKetThuc","tuyen"],"canhBao":"[]"}
+{"nhan":"S3.5_lich_xe_item","keys":["id","bienSo","soCho","trangThai","chuXe","chuLaCongTy"],"xeItem":{"id":"c67486b5-3157-471c-bcd9-caf820021657","bienSo":"79C00016","soCho":16,"trangThai":"active","chuXe":"Công ty TNHH Tour Đảo","chuLaCongTy":true}}
+{"nhan":"S3.5_lich_chuyen_A","keys":["id","ma","trangThai","trangThaiNhan","version","ngayChay","batDau","ketThuc","batDauMs","ketThucMs","xe","taiXe","tai","lyDoGiu","khoaMoc","xuatBen","ketThucThat","diem"],"trangThai":"ENDED","ketThucThat":{"gioXayRa":{"ngay":"2027-03-11","gio":"07:10"},"gioGhiNhan":{"ngay":"2027-03-11","gio":"07:10"},"vanPhongKhai":false}}
+{"nhan":"S3.5_lich_chuyen_B","trangThai":"PLANNED","batDau":{"ngay":"2027-03-11","gio":"08:00"},"canhBao":[]}
+{"nhan":"S3.5_lich_top_keys","keys":["ngay","mocToiThieuPhut","canhBaoPhut","chang","chuyen","soNhap","nhapChoDatGap","canhBao","lyDo","xe","taiXe","khungBanXe"]}
+{"nhan":"S3.6_xep_C_luc_2200_hom_truoc","note":"chưa xếp — để 07:15 mới chèn"}
+{"nhan":"S3.6_sales_chen_C_0715","status":409,"code":"can_pha_le","message":"Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ.","lyDo":["MOC_TOI_THIEU: Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ: TD-20270310-0002"],"canQuyen":false}
+{"nhan":"S3.6_adm_chen_C_0715_pha_le","status":200,"code":null,"message":null,"lyDo":[]}

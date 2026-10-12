@@ -2,13 +2,15 @@
 // bến), văn phòng bấm thay ở Chi tiết chuyến (/chuyen — thành phần A "xảy ra lúc"). ADR-0049 D3, ADR-0050 VK1-A; bản vẽ docs/design/van-chuyen-dieu-phoi/
 // project/04, 05 (5a, 5b, 5c), 06 (6b, 6c, 6d); bản đối chiếu 2.5, H15; ruling R-P11, R-P14, R-P17; lệnh điều phối vòng 3 (mất mạng: "Chưa gửi được — bấm
 // lại", CÙNG requestId, không tự gửi lại).
+// Gói A1 (8/10): phần văn phòng bấm thay chạy trên T7 NGÀY MAI (cửa sổ xuất bến 48 giờ — ADR-0096 Đ2); thêm 7a "Thu hồi xuất bến" (ADR-0097 Đ3), 8c "Điều
+// chỉnh…" (ADR-0097 Đ2); 7b kiểm nút ↑ ↓ khoá khi đưa điểm trả lên trước điểm đón (C30) và điểm trả chưa có "Đã trả" khi còn khách chưa đón (HT-16).
 // Chạy từ GỐC repo, sau `npm run build:web` (không cần mạng ngoài):
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục ảnh> node docs/evidence/2026-09-29-adr-0049/kich-ban/cuoc-smoke.mjs
 // Kho cookie của Chrome dùng CHUNG: Tài xế → Bán hàng → Kế toán (trang mở sau cùng là của Kế toán).
 import { randomUUID } from "node:crypto";
 import {
   ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungDuLieuDieuPhoi, dungMoiTruong, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt,
-  typeInto, LOC_BEN_TAU, vnDate,
+  typeInto, LOC_BEN_TAU, vnDate, fetchTrang,
 } from "./dp-lib.mjs";
 
 // Task 8 Đợt 1 — người đi kèm: hướng dẫn viên (FIELD) giả; tên hiện ở màn tài xế, SĐT thì không.
@@ -28,10 +30,55 @@ assert.ok(hdvParty, `danh sách hướng dẫn viên có ${HDV.name}: ${dsHdv.te
 const v4 = await call(ACCOUNTS.admin, "GET", `/api/van-chuyen/chuyen/${d.T4.id}`);
 const xk = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${d.T4.id}/phan-bo`, { version: v4.json.chuyen.version, requestId: randomUUID(), nguoiDiKem: [hdvParty.partyId], phaLe: { lyDo: "PHA_LE_SU_CO" } });
 assert.equal(xk.status, 200, xk.text);
-// Cùng HDV đi kèm T1 (chuyến của An mà văn phòng xuất bến thay ở bước 7): bước 8b kiểm văn phòng bấm thay "Đã lên xe" → "Đã xuống".
-const v1 = await call(ACCOUNTS.admin, "GET", `/api/van-chuyen/chuyen/${d.T1.id}`);
-const xk1 = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${d.T1.id}/phan-bo`, { version: v1.json.chuyen.version, requestId: randomUUID(), nguoiDiKem: [hdvParty.partyId], phaLe: { lyDo: "PHA_LE_SU_CO" } });
-assert.equal(xk1.status, 200, xk1.text);
+// Gói A1 (ADR-0096 Đ2 — cửa sổ xuất bến 48 giờ của dp-lib): T1 (5 ngày sau) không còn xuất bến được, nên phần văn phòng bấm thay (bước 7–9) chạy trên T7
+// NGÀY MAI 16:00–17:30 — tài xế MỚI Đỗ Văn Dũng (chưa chạy chuyến nào: không vướng nghỉ / chuyến trước), xe mới 79A-555.55 đủ giấy; hai đơn đặt gấp (mốc đang
+// 48 giờ) 2 + 1 khách có tên, hai nơi đón, chung bến tàu → điểm: đón · đón · trả (bước 7b: ↑ ↓ ba điểm; HT-16: điểm trả chưa có "Đã trả"). Hướng dẫn viên
+// đi kèm T7 (bước 8b). Đi đường thật, không chèn SQL (trừ đọc party id). Tên, SĐT GIẢ.
+const TEN_T7 = ["Khách Bấm Thay 1", "Khách Bấm Thay 2", "Khách Bấm Thay 3"];
+/** Chữ khi nút ↑ / ↓ khoá vì đưa điểm trả lên trước điểm đón (CAU_THU_TU_DAO của src/shared/tien-do-man.ts). */
+const CAU_DAO = "Thứ tự này đưa điểm trả lên trước điểm đón của khách chờ lên.";
+const dungChuyenBamThay = async () => {
+  const mai = d.NGAY_KHOA;
+  const tk = await call(ACCOUNTS.chu, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Đỗ Văn Dũng", phone: "0900000471", roles: ["DRIVER_INTERNAL"] });
+  assert.equal(tk.status, 201, `tài xế Dũng: ${tk.text}`);
+  const [{ party_id: partyId }] = env.sql(`SELECT party_id FROM staff WHERE id = '${tk.json.staff.id}'`);
+  const gp = await call(ACCOUNTS.admin, "POST", `/api/parties/${partyId}/documents`, { typeCode: "GPLX", number: "791000000471", classCode: "D2", expiryDate: vnDate(300) });
+  assert.equal(gp.status, 201, `GPLX Dũng: ${gp.text}`);
+  const v = await call(ACCOUNTS.admin, "POST", "/api/van-chuyen/xe", { plateNumber: "79A-555.55", chassisNumber: "DP7955555", name: "Xe thử 79A-555.55", passengerCapacity: 15 });
+  assert.equal(v.status, 201, `xe 79A-555.55: ${v.text}`);
+  for (const typeCode of ["INSPECTION", "TPL_INSURANCE"]) {
+    const gt = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/xe/${v.json.vehicle.id}/giay-to`, { typeCode, number: `${typeCode}-79A-555.55`, expiryDate: vnDate(300) });
+    assert.equal(gt.status, 201, `giấy ${typeCode} 79A-555.55: ${gt.text}`);
+  }
+  const don = async (gio, noiDon, ten, sdt) => {
+    const o = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
+      customerName: `Khách Điều Phối ${noiDon}`, customerPhone: sdt, customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
+      services: [{
+        kind: "catalog", catalogCode: "TD101", pax: { adult: ten.length, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
+        departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "", departDate: mai,
+        legs: [{ direction: "OUT", pickupDate: mai, pickupTime: gio, pickupLocationId: null, pickupPlace: noiDon, dropoffLocationId: LOC_BEN_TAU, dropoffPlace: "" }],
+      }],
+      passengers: ten.map((fullName, i) => ({ fullName, birthYear: 1975 + i, paxCode: null })),
+    });
+    assert.equal(o.status, 201, `lập đơn ${noiDon}: ${o.text}`);
+    const legId = o.json.order.services[0].legs[0].id;
+    const g = await call(ACCOUNTS.admin, "POST", `/api/orders/${o.json.order.id}/legs/${legId}/short-notice`, { lyDo: "KHACH_DOAN_GOI_GAP" });
+    assert.equal(g.status, 200, `đặt gấp ${noiDon}: ${g.text}`);
+    const c = await call(ACCOUNTS.admin, "POST", `/api/orders/${o.json.order.id}/status`, { status: "confirmed" });
+    assert.equal(c.status, 200, `xác nhận ${noiDon}: ${c.text}`);
+    return legId;
+  };
+  const legA = await don("16:10", "Vinpearl Resort Nha Trang", TEN_T7.slice(0, 2), "0903 100 271");
+  const legB = await don("16:30", "Liberty Central Nha Trang", TEN_T7.slice(2), "0903 100 272");
+  const t = await call(ACCOUNTS.admin, "POST", "/api/van-chuyen/chuyen", { requestId: randomUUID(), xeId: v.json.vehicle.id, taiXePartyId: partyId, batDau: { ngay: mai, gio: "16:00" }, ketThuc: { ngay: mai, gio: "17:30" } });
+  assert.equal(t.status, 201, `tạo T7: ${t.text}`);
+  const x = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${t.json.chuyen.id}/phan-bo`, { version: t.json.chuyen.version, requestId: randomUUID(), chang: [{ legId: legA, soSuat: 2 }, { legId: legB, soSuat: 1 }] });
+  assert.equal(x.status, 200, `xếp hai đơn đặt gấp vào T7: ${x.text}`);
+  const k = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${t.json.chuyen.id}/phan-bo`, { version: x.json.chuyen.version, requestId: randomUUID(), nguoiDiKem: [hdvParty.partyId], phaLe: { lyDo: "PHA_LE_SU_CO" } });
+  assert.equal(k.status, 200, `người đi kèm T7: ${k.text}`);
+  return k.json.chuyen;
+};
+const T7 = await dungChuyenBamThay();
 const t6 = await call(ACCOUNTS.admin, "POST", "/api/van-chuyen/chuyen", { requestId: randomUUID(), xeId: d.XE_B.id, taiXePartyId: d.AN.partyId, batDau: { ngay: d.NGAY_KHOA, gio: "14:00" }, ketThuc: { ngay: d.NGAY_KHOA, gio: "15:00" } });
 assert.equal(t6.status, 201, t6.text);
 const T6 = t6.json.chuyen;
@@ -190,7 +237,7 @@ try {
     await p.send("Page.navigate", { url: `${env.base}/cuoc-chuyen?id=${TH.id}` });
     await p.waitFor(`!!document.querySelector('[data-action="xuat-ben"]') && location.search.includes('${TH.id}')`, "màn xuất bến TH");
     // bản 1.39: chuyến HÔM NAY trước xuất bến — máy chủ ĐÃ gửi tên khách (trong ngày chạy) nhưng danh sách điểm trước xuất bến KHÔNG vẽ tên / SĐT / liên hệ
-    const cth = (await call(d.CUONG.account, "GET", `/api/van-chuyen/cuoc-cua-toi/${TH.id}`)).json;
+    const cth = (await fetchTrang(p, "GET", `/api/van-chuyen/cuoc-cua-toi/${TH.id}`)).json; // phiên của chính trang: đăng nhập thêm bằng dòng lệnh sẽ đá phiên đang mở (ADR-0075, một phiên mỗi tài khoản)
     assert.ok(cth.suat.some((x) => x.hoTen), "ca này phân biệt được: máy chủ có gửi tên khách");
     assert.ok((await p.ev("document.querySelectorAll('.dp-cc-diem .dp-run').length")) >= 2, "có danh sách điểm trước xuất bến");
     const hTruoc = await html(p);
@@ -208,7 +255,7 @@ try {
     assert.deepEqual([...k].sort(), TEN_OH, "đang chạy (trong ngày chạy): có tên khách");
     assert.match(await p.ev(txt(".dp-run-lien-he")), new RegExp(`^Liên hệ: ${LIEN_HE_OH} ${SDT_OH}$`));
     assert.equal(await p.ev(`document.querySelector('.dp-run-lien-he a').getAttribute('href')`), "tel:0903100299");
-    assert.equal(await p.ev(txt('.dp-run [data-action="da-toi"]')), "Đã tới");
+    assert.equal(await p.ev(txt('#cc-day [data-action="da-toi"]')), "Đã tới");
     assert.equal(await p.ev(`document.querySelectorAll('.dp-khach-btn').length`), 0, "chưa tới điểm: chưa đánh dấu khách");
     assert.equal(await p.ev(`document.querySelector('[data-action="ket-thuc"]').disabled`), true);
     assert.equal(await p.ev(`document.querySelectorAll('.dp-thu-tu').length`), 4, "hai điểm chưa tới: nút lên / xuống (không kéo)");
@@ -227,7 +274,7 @@ try {
   });
 
   await b.step("4", `5a: "Đã tới" → khách có Đã đón / Vắng / Khách đã huỷ; "Đã đón" khách 1 → "Đã đón"; phản hồi lệnh không kèm liên hệ — màn GIỮ dòng liên hệ của lần tải`, async () => {
-    await p.ev(click('.dp-run [data-action="da-toi"]'));
+    await p.ev(click('#cc-day [data-action="da-toi"]'));
     await p.waitFor(`document.querySelectorAll('.dp-khach-btn[data-action="don"]').length === 2`, "nút khách").catch(async (e) => {
       throw new Error(`${e.message}\n    trang: ${await p.ev(txt("#cc-trang"))}\n    console: ${JSON.stringify(p.consoleErrors)}\n    POST: ${JSON.stringify(apiCalls(p).filter((r) => r.method === "POST").map((r) => r.path))}`);
     });
@@ -250,11 +297,28 @@ try {
     assert.equal(posts(p, "/vang").length, truoc + 1, "không tự gửi lại");
     await p.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
     await p.ev(click('.dp-khach.is-cho [data-action="bam-lai"]'));
-    await p.waitFor(`!!document.querySelector('.dp-khach-kq.is-vang')`, "khách vắng");
+    // Bố cục "Điểm kế tiếp" (việc 9, 12/10): khách cuối của điểm đã có kết quả → điểm xong, thu gọn vào "Đã xong" (dòng khách không còn) — kết quả Vắng nằm ở dòng tóm tắt.
+    await p.waitFor(`!!document.querySelector('.dp-khach-kq.is-vang') || /vắng/.test(document.querySelector('details.dp-cc-xong')?.textContent ?? '')`, "khách vắng");
     const ids = posts(p, "/vang").slice(truoc).map((r) => JSON.parse(r.body).requestId);
     assert.equal(ids.length, 2);
     assert.equal(ids[0], ids[1], "bấm lại dùng CÙNG requestId");
-    assert.equal(await p.ev(`!!document.querySelector('#cc-trang > .banner-warning')`), false);
+    await p.waitFor(`!document.querySelector('#cc-trang > .banner-warning')`, "dải mất mạng hết sau khi gửi lại"); // chờ lần vẽ cuối của lệnh (tin Bảng tin có thể vẽ trước khi lệnh xong)
+  });
+
+  await b.step("5b", `C55 (đánh giá ERP 7/10): mất mạng mà trang tự tải lại (tin chuyến / nối lại) → trang KHÔNG ẩn: còn tên khách, số liên hệ, nút; dải "Mất mạng — dữ liệu lúc HH:MM"; có mạng tải lại → dải mất`, async () => {
+    const tenTruoc = (await p.ev(`[...document.querySelectorAll('.dp-khach-ten')].map((x) => x.innerText)`)).sort();
+    await p.send("Network.emulateNetworkConditions", { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+    await p.ev(`window.dispatchEvent(new Event("can-tai-lai")), true`);
+    await p.waitFor(`/^Mất mạng — dữ liệu lúc \\d\\d:\\d\\d$/.test(document.querySelector('#cc-trang > .banner-warning .banner-title')?.textContent ?? '')`, "dải dữ liệu cũ");
+    assert.equal(await p.ev(`document.querySelector('#cc-trang').hidden`), false, "trang chuyến không bị ẩn khi mất mạng");
+    assert.equal(await p.ev(`document.querySelector('#error')?.hidden !== false`), true, "không câu lỗi che trang");
+    assert.deepEqual((await p.ev(`[...document.querySelectorAll('.dp-khach-ten')].map((x) => x.innerText)`)).sort(), tenTruoc, "tên khách còn");
+    // Việc 9 (12/10): điểm đón đã xong thì thu gọn, không còn dòng liên hệ — kiểm "còn nút" thay cho "còn số liên hệ" (số liên hệ của điểm chưa xong do c2-man-tai-xe-smoke giữ).
+    assert.ok(await p.ev(`document.querySelectorAll('#cc-day button, .dp-run button').length > 0`), "nút còn");
+    await shotFull(p, "b5-mat-mang-tai-nen-dien-thoai.png");
+    await p.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+    await p.ev(`window.dispatchEvent(new Event("can-tai-lai")), true`);
+    await p.waitFor(`!document.querySelector('#cc-trang > .banner-warning')`, "dải dữ liệu cũ mất khi có mạng");
   });
 
   await b.step("6", `5a: điểm trả "Đã trả" (tới điểm rồi trả khách trên xe) → "Kết thúc chuyến" mở → kết thúc; hộp "Kết thúc gián đoạn" có lý do nhóm Kết thúc gián đoạn, KHÔNG ô ghi chú`, async () => {
@@ -267,9 +331,14 @@ try {
     await shotView(p, "b5-ket-thuc-gian-doan-dien-thoai.png");
     await p.ev(click(".sheet .vc-btn-ghost-primary"));
     await sleep(500);
-    await p.ev(click('.dp-run [data-action="tra-het"]'));
+    await p.ev(click('#cc-day [data-action="tra-het"]'));
+    // Kiểu A (V1.4, 3/10): "Đã trả" cả điểm và "Kết thúc chuyến" mở hộp xác nhận — lệnh chỉ gửi khi bấm nút trong hộp.
+    await p.waitFor(`!!document.querySelector('[data-action="tra-het-xac-nhan"]')`, "hộp xác nhận đã trả");
+    await p.ev(click('[data-action="tra-het-xac-nhan"]'));
     await p.waitFor(`!document.querySelector('[data-action="ket-thuc"]').disabled`, "kết thúc mở");
     await p.ev(click('[data-action="ket-thuc"]'));
+    await p.waitFor(`!!document.querySelector('[data-action="ket-thuc-xac-nhan"]')`, "hộp xác nhận kết thúc");
+    await p.ev(click('[data-action="ket-thuc-xac-nhan"]'));
     await p.waitFor(`/^Hoàn tất|^Đã kết thúc|^Kết thúc/.test(${txt(".dp-cc-head .chip")} ?? '')`, "chuyến đã kết thúc");
     assert.ok(await p.ev(`!!document.querySelector('.dp-ct-moc')`), "có mốc kết thúc");
     assert.equal(await p.ev(`document.querySelectorAll('.dp-run-btn, .dp-khach-btn').length`), 0);
@@ -281,15 +350,15 @@ try {
   // Chờ hơn HAI phút kể từ lệnh cuối (T4 của An kết thúc ở bước 3; TH của Cường ở bước 6): giờ sớm nhất khai được làm tròn LÊN phút, chờ một phút có khi vẫn trùng
   // phút lúc bấm (lần chạy thứ hai đã trùng) — hơn hai phút thì chắc chắn có một phút khai lùi hợp lệ khác lúc bấm.
   await sleep(125_000);
-  const s = await env.as(ACCOUNTS.salesA, `/chuyen?id=${d.T1.id}`, DESK);
+  const s = await env.as(ACCOUNTS.salesA, `/chuyen?id=${T7.id}`, DESK);
   await b.step("7", `6d 1040 Bán hàng: "Xuất bến thay tài xế" → hộp: "Đạt đủ … điều kiện", "Ghi thay tài xế …", ô "Xảy ra lúc" mặc định lúc bấm + "Sớm nhất" của máy chủ; giờ ngoài khoảng → câu dưới ô; khai đúng "Sớm nhất" → gửi xayRaLuc, mốc xuất bến HAI giờ + "giờ do văn phòng khai"${axeNote()}`, async () => {
     await s.waitFor(`!!document.querySelector('.dp-ct-actions [data-action="xuat-ben-thay"]')`, "nút xuất bến thay");
     await s.ev(click('.dp-ct-actions [data-action="xuat-ben-thay"]'));
     await s.waitFor(`!!document.querySelector('[data-action="khai-gio-gui"]')`, "hộp khai giờ");
     await sleep(600);
-    assert.equal(await s.ev(txt(".sheet-title")), `Xuất bến ${d.T1.ma} — bấm thay tài xế`);
+    assert.equal(await s.ev(txt(".sheet-title")), `Xuất bến ${T7.ma} — bấm thay tài xế`);
     assert.match(await s.ev(txt(".dp-sheet-khai-gio .dp-banner-ok")), /^Đạt đủ \d+ điều kiện xuất bến$/);
-    assert.equal(await s.ev(txt(".dp-sheet-khai-gio .dp-sheet-text")), "Ghi thay tài xế Nguyễn Văn An. Tên bạn được ghi kèm mốc này.");
+    assert.equal(await s.ev(txt(".dp-sheet-khai-gio .dp-sheet-text")), "Ghi thay tài xế Đỗ Văn Dũng. Tên bạn được ghi kèm mốc này.");
     const mac = await s.ev(`document.querySelector('#tdo-gio').value`);
     assert.match(await s.ev(txt("#tdo-gio-hint")), new RegExp(`^Để nguyên là lúc bấm \\(${mac}\\)\\. Sớm nhất: \\d\\d:\\d\\d( \\d\\d/\\d\\d)?\\.$`));
     await axe(s, "hộp khai giờ 1040");
@@ -313,50 +382,87 @@ try {
     assert.equal(bodies.length, 2);
     assert.ok(bodies.every((x) => typeof x.xayRaLuc === "string" && x.xayRaLuc.endsWith("Z")), "đã đổi giờ → gửi xayRaLuc (ISO có múi giờ)");
     assert.match(await s.ev(txt(".dp-ct-moc")), new RegExp(`^Xuất bến ${som}( \\d\\d/\\d\\d)? · ghi lúc \\d\\d:\\d\\d( \\d\\d/\\d\\d)? — Sales Một giờ do văn phòng khai$`));
+    assert.equal(await s.ev(`!!document.querySelector('.dp-ct-actions [data-action="thu-hoi-xuat-ben"]')`), true, "ADR-0097 Đ3: vừa xuất bến, chưa có tiến độ → có nút Thu hồi xuất bến");
   });
 
-  // Bước 7b (Task 3 Đợt 1, Q-B-15): văn phòng đổi thứ tự điểm CHƯA TỚI khi xe đang chạy (route 39). T1 vừa xuất bến: 2 điểm chưa tới (đón, trả).
+  // Bước 7a (ADR-0097 Đ3, HT-03): T7 vừa xuất bến, chưa có tiến độ → văn phòng thu hồi xuất bến (chuyến về chưa chạy) rồi xuất bến lại.
+  await b.step("7a", `ADR-0097 Đ3 (HT-03) 1040 Bán hàng: vừa xuất bến, chưa có tiến độ → "Thu hồi xuất bến" → hộp: dải "Chuyến về trạng thái chưa chạy", lý do nhóm Điều chỉnh (Bấm nhầm / Khách đổi ý tại điểm / Khác), nút khoá tới khi chọn → POST thân version + lyDo + requestId → dải "Đã thu hồi xuất bến …", hết mốc xuất bến, lại có "Xuất bến thay tài xế"; xuất bến lại → mốc theo lần xuất bến cuối${axeNote()}`, async () => {
+    await s.ev(click('.dp-ct-actions [data-action="thu-hoi-xuat-ben"]'));
+    await s.waitFor(`!!document.querySelector('[data-action="thu-hoi-gui"]')`, "hộp thu hồi");
+    await sleep(400);
+    assert.equal(await s.ev(txt(".sheet-title")), `Thu hồi xuất bến ${T7.ma}`);
+    assert.equal(await s.ev(txt(".sheet .banner-warning .banner-title")), "Chuyến về trạng thái chưa chạy");
+    assert.deepEqual(await s.ev(`[...document.querySelectorAll('.sheet .vc-reason')].map((x) => x.innerText.trim())`), ["Bấm nhầm", "Khách đổi ý tại điểm", "Khác"]);
+    assert.equal(await s.ev(`document.querySelector('[data-action="thu-hoi-gui"]').disabled`), true, "chưa chọn lý do → khoá");
+    await s.ev(click('.sheet .vc-reason[data-code="DIEU_CHINH_BAM_NHAM"]'));
+    assert.equal(await s.ev(`document.querySelector('[data-action="thu-hoi-gui"]').disabled`), false);
+    await axe(s, "hộp thu hồi xuất bến 1040");
+    await shotView(s, "a1-thu-hoi-xuat-ben-may-tinh.png");
+    await s.ev(click('[data-action="thu-hoi-gui"]'));
+    await s.waitFor(`/^Đã thu hồi xuất bến/.test(${txt("#ct-trang > .banner .banner-title")} ?? '')`, "dải đã thu hồi");
+    const than = JSON.parse(posts(s, "/thu-hoi-xuat-ben").at(-1).body);
+    assert.deepEqual(Object.keys(than).sort(), ["lyDo", "requestId", "version"]);
+    assert.equal(than.lyDo, "DIEU_CHINH_BAM_NHAM");
+    assert.equal(await s.ev(`!!document.querySelector('.dp-ct-moc')`), false, "chuyến về chưa chạy: hết mốc xuất bến");
+    assert.equal(await s.ev(`!!document.querySelector('[data-action="thu-hoi-xuat-ben"]')`), false);
+    assert.equal(await s.ev(`document.querySelector('.dp-ct-actions [data-action="xuat-ben-thay"]')?.disabled`), false, "lại xuất bến được");
+    assert.ok((await s.ev(`document.querySelector('main').innerText`)).includes("Văn phòng thu hồi xuất bến"), "nhật ký chuyến có dòng thu hồi");
+    assert.equal(await s.ev(noCode), "");
+    await s.ev(click('.dp-ct-actions [data-action="xuat-ben-thay"]'));
+    await s.waitFor(`!!document.querySelector('[data-action="khai-gio-gui"]')`, "hộp khai giờ (xuất bến lại)");
+    await sleep(400);
+    await s.ev(click('[data-action="khai-gio-gui"]'));
+    await s.waitFor(`${txt(".dp-ct-head .chip")} === 'Đang chạy'`, "xuất bến lại");
+    assert.match(await s.ev(txt(".dp-ct-moc")), /^Xuất bến \d\d:\d\d( \d\d\/\d\d)?$/, "để nguyên giờ → mốc MỘT giờ của lần xuất bến cuối");
+  });
+
+
+  // Bước 7b (Task 3 Đợt 1, Q-B-15; gói A1 C30 + HT-16): văn phòng đổi thứ tự điểm CHƯA TỚI khi xe đang chạy (route 39). T7 vừa xuất bến lại: 3 điểm chưa tới
+  // (đón · đón · trả). Đo thật từ ADR-0096 Đ1.3c: lệnh đưa điểm trả lên trước điểm đón của khách chờ lên bị máy chủ từ chối (409 thu_tu_dao) — màn khoá trước nút đó.
   const tenDiem = `[...document.querySelectorAll('.dp-run .dp-run-noi')].map((x) => x.innerText.trim())`;
-  await b.step("7b", `5c 1040 Bán hàng: nút ↑/↓ ở điểm chưa tới (4 nút, ↑ điểm đầu + ↓ điểm cuối khoá); bấm ↓ điểm đầu → POST /thu-tu thân chỉ requestId + diem (không xayRaLuc), thứ tự đảo, dải báo; bấm ↑ trả lại${axeNote()}`, async () => {
-    await s.waitFor(`document.querySelectorAll('.dp-run .dp-thu-tu').length === 4`, "4 nút đổi thứ tự");
-    assert.equal(await s.ev(`document.querySelector('.dp-run .dp-thu-tu[data-action="len"]').disabled`), true, "↑ của điểm đầu khoá");
-    assert.equal(await s.ev(`[...document.querySelectorAll('.dp-run .dp-thu-tu[data-action="xuong"]')].at(-1).disabled`), true, "↓ của điểm cuối khoá");
+  await b.step("7b", `5c 1040 Bán hàng: ↑ ↓ ở điểm chưa tới (đón · đón · trả — 6 nút): đầu / cuối khoá; nút đưa điểm trả lên trước điểm đón khoá kèm lời giải thích (C30); điểm trả chưa có "Đã trả" mà có câu "Còn khách chưa đón…" (HT-16); bấm ↓ điểm đón đầu → POST /thu-tu thân chỉ requestId + diem (không xayRaLuc), hai điểm đón đổi chỗ, dải báo; bấm ↑ trả lại; đã có tiến độ → hết nút "Thu hồi xuất bến"${axeNote()}`, async () => {
+    await s.waitFor(`document.querySelectorAll('.dp-run .dp-thu-tu').length === 6`, "6 nút đổi thứ tự");
+    assert.deepEqual(await s.ev(`[...document.querySelectorAll('.dp-run .dp-thu-tu')].map((x) => [x.dataset.action, x.disabled, x.getAttribute('title')])`), [
+      ["len", true, null], ["xuong", false, null],
+      ["len", false, null], ["xuong", true, CAU_DAO],
+      ["len", true, CAU_DAO], ["xuong", true, null],
+    ]);
+    assert.match(await s.ev(txt(".dp-run [data-cho-don]")), /^Còn khách chưa đón ở điểm \d+, \d+ — bấm “Đã tới” ở điểm đón trước\.$/);
+    assert.equal(await s.ev(`!!document.querySelector('[data-action="tra-het"]')`), false, "HT-16: điểm trả chưa có nút Đã trả");
     const truoc = await s.ev(tenDiem);
-    assert.equal(truoc.length, 2);
+    assert.equal(truoc.length, 3);
     await s.ev(`document.querySelector('.dp-run .dp-thu-tu[data-action="xuong"]').click()`);
     await s.waitFor(`/^(Đã đổi thứ tự điểm|Chưa đổi được thứ tự điểm)$/.test(document.querySelector('.banner .banner-title')?.innerText ?? '')`, "dải báo sau khi đổi thứ tự");
-    const tieuDe = await s.ev(txt(".banner .banner-title"));
-    console.log(`   [7b] dải sau ↓ điểm đầu: "${tieuDe}" — ${await s.ev(txt(".banner"))}`);
+    assert.equal(await s.ev(txt(".banner .banner-title")), "Đã đổi thứ tự điểm", await s.ev(txt(".banner")));
     const thanTT = posts(s, "/thu-tu").map((r) => Object.keys(JSON.parse(r.body)).sort());
     assert.deepEqual(thanTT[0], ["diem", "requestId"], "thân route 39 không có xayRaLuc");
     assert.equal(await s.ev(noCode), "");
-    // Đo thật (Task 3 Đợt 1): máy chủ KHÔNG cấm "trả trước đón" khi đổi thứ tự (route 39 / trigger không có luật đó) → ↓ điểm đón được chấp nhận.
-    assert.equal(tieuDe, "Đã đổi thứ tự điểm");
-    assert.deepEqual(await s.ev(tenDiem), [truoc[1], truoc[0]], "thứ tự chữ đảo");
+    assert.deepEqual(await s.ev(tenDiem), [truoc[1], truoc[0], truoc[2]], "hai điểm đón đổi chỗ");
     await shotFull(s, "b2-doi-thu-tu-van-phong.png");
-    await s.ev(`[...document.querySelectorAll('.dp-run .dp-thu-tu[data-action="len"]')].at(-1).click()`);
+    await s.ev(`[...document.querySelectorAll('.dp-run .dp-thu-tu[data-action="len"]')][1].click()`);
     await s.waitFor(`${tenDiem}[0] === ${JSON.stringify(truoc[0])} && document.querySelector('.banner .banner-title')?.innerText === 'Đã đổi thứ tự điểm'`, "đã trả lại thứ tự cũ");
     assert.equal(posts(s, "/thu-tu").length, 2);
+    assert.equal(await s.ev(`!!document.querySelector('[data-action="thu-hoi-xuat-ben"]')`), false, "đã đổi thứ tự (tiến độ) → hết nút Thu hồi xuất bến");
   });
-  // Bước 7c (Review Focus 4): tài xế vừa "Đã tới" điểm đầu (ghi bằng API) mà trang văn phòng chưa tải lại → bấm ↓ điểm đó → 409 → dải "Chưa đổi được…" +
-  // câu của máy chủ; màn đọc lại → điểm đó hết nút. T1 chỉ có 2 điểm chưa tới nên API ghi "Đã tới" điểm CUỐI (điểm trả — máy chủ không bắt thứ tự tới) để bước 8
-  // vẫn bấm "Đã tới" ở điểm đón như cũ; trang chưa tải lại bấm ↓ ở điểm đón (đổi chỗ với điểm trả vừa tới) → 409.
-  await b.step("7c", `5c 1040: điểm trả vừa được ghi "Đã tới" bằng API, trang chưa tải lại → bấm ↓ ở điểm đón → "Chưa đổi được thứ tự điểm" + "Điểm đã tới hoặc đã bỏ qua…"; sau đó điểm đã tới không còn nút, điểm đón còn hai nút khoá`, async () => {
-    const r = await call(ACCOUNTS.admin, "GET", `/api/van-chuyen/chuyen/${d.T1.id}`);
+  // Bước 7c (Review Focus 4): tài xế vừa "Đã tới" điểm đón đầu (ghi bằng API) mà trang văn phòng chưa tải lại → bấm ↓ điểm đó → 409 → dải "Chưa đổi được…" +
+  // câu của máy chủ; màn đọc lại → điểm đó hết nút. (Từ HT-02, ADR-0096 Đ1.4: "Đã tới" điểm TRẢ khi còn khách chờ lên ở điểm đón chưa tới bị từ chối — nên ghi
+  // "Đã tới" ở điểm đón đầu, không còn ở điểm trả như trước.)
+  await b.step("7c", `5c 1040: điểm đón đầu vừa được ghi "Đã tới" bằng API, trang chưa tải lại → bấm ↓ ở điểm đó → "Chưa đổi được thứ tự điểm" + "Điểm đã tới hoặc đã bỏ qua…"; đọc lại: điểm đã tới hết nút, hai điểm còn chờ (đón · trả) có bốn nút đều khoá`, async () => {
+    const r = await call(ACCOUNTS.admin, "GET", `/api/van-chuyen/chuyen/${T7.id}`);
     assert.equal(r.status, 200, r.text);
-    const idDiemCuoi = [...r.json.diem].sort((x, y) => x.thuTu - y.thuTu).filter((x) => x.trangThai === "PENDING").at(-1).id;
-    const da = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${d.T1.id}/diem/${idDiemCuoi}/da-toi`, { requestId: randomUUID() });
+    const idDiemDau = [...r.json.diem].sort((x, y) => x.thuTu - y.thuTu).filter((x) => x.trangThai === "PENDING")[0].id;
+    const da = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${T7.id}/diem/${idDiemDau}/da-toi`, { requestId: randomUUID() });
     assert.equal(da.status, 200, da.text);
     const soTruoc = posts(s, "/thu-tu").length;
     await s.ev(`document.querySelector('.dp-run .dp-thu-tu[data-action="xuong"]').click()`);
     await s.waitFor(`document.querySelector('.banner .banner-title')?.innerText === 'Chưa đổi được thứ tự điểm'`, "dải 'Chưa đổi được…'");
     assert.equal(posts(s, "/thu-tu").length, soTruoc + 1, "có gửi lệnh");
     assert.match(await s.ev(txt(".banner li")), /^Điểm đã tới hoặc đã bỏ qua/);
-    assert.deepEqual(await s.ev(`[...document.querySelectorAll('.dp-run .dp-thu-tu')].map((x) => x.disabled)`), [true, true], "chỉ còn điểm đón (chờ một mình): hai nút khoá; điểm đã tới hết nút");
+    assert.deepEqual(await s.ev(`[...document.querySelectorAll('.dp-run .dp-thu-tu')].map((x) => x.disabled)`), [true, true, true, true], "còn đón · trả chờ: đầu / cuối + hai nút đưa trả lên trước đón đều khoá; điểm đã tới hết nút");
     assert.equal(await s.ev(noCode), "");
     await shotFull(s, "b2-doi-thu-tu-409-van-phong.png");
   });
-  await b.step("8b", "Ruling 2/10 — văn phòng bấm thay người đi kèm (T1 đang chạy): dòng 'chưa lên xe' + nút 'Đã lên xe' → 'đang trên xe' + 'Đã xuống' → 'đã xuống', hết nút; dòng giải thích 'Kết thúc chuyến' nhắc người đi kèm", async () => {
+  await b.step("8b", "Ruling 2/10 — văn phòng bấm thay người đi kèm (T7 đang chạy): dòng 'chưa lên xe' + nút 'Đã lên xe' → 'đang trên xe' + 'Đã xuống' → 'đã xuống', hết nút; dòng giải thích 'Kết thúc chuyến' nhắc người đi kèm", async () => {
     assert.equal(await s.ev(`!!document.querySelector('[data-action="di-kem-don"]')`), true);
     assert.match(await s.ev(txt(".dp-cc-di-kem-viec")), new RegExp(`Người đi kèm ${HDV.name} — chưa lên xe`));
     await s.ev(click('[data-action="di-kem-don"]'));
@@ -372,7 +478,7 @@ try {
     await s.ev(click('.dp-run [data-action="da-toi"]'));
     await s.waitFor(`!!document.querySelector('[data-action="khai-gio-gui"]')`, "hộp khai giờ");
     const tenTruoc = await s.ev(`[...document.querySelectorAll('.dp-khach-ten')].map((x) => x.innerText)`);
-    assert.deepEqual([...tenTruoc].sort(), ["Hành Khách Thử 1-1", "Hành Khách Thử 1-2", "Hành Khách Thử 1-3"], "thứ tự khách theo máy chủ");
+    assert.deepEqual([...tenTruoc].sort(), TEN_T7, "thứ tự khách theo máy chủ");
     await s.ev(click('[data-action="khai-gio-gui"]'));
     await s.waitFor(`!document.querySelector('.sheet-root') && !!document.querySelector('.dp-run .dp-moc')`, "mốc đã tới");
     assert.match(await s.ev(txt(".dp-run .dp-moc")), /^Đã tới \d\d:\d\d( \d\d\/\d\d)?$/, "để nguyên → một giờ, không dấu văn phòng khai");
@@ -383,10 +489,51 @@ try {
     assert.equal(await s.ev(noCode), "");
     await shotFull(s, "b2-dang-chay-bam-thay-may-tinh.png");
   });
+  // Bước 8c (ADR-0097 Đ2, HT-04): văn phòng bấm "Đã đón" một khách (nhầm) rồi sửa bằng "Điều chỉnh…" thành Vắng.
+  await b.step("8c", `ADR-0097 Đ2 (HT-04) 1040 Bán hàng: "Đã đón" ${TEN_T7[0]} (bấm thay) → dòng có link "Điều chỉnh…" (khách còn chờ thì không) → hộp "Điều chỉnh kết quả": đang ghi Đã đón; sửa thành Chưa xử lý / Vắng / Khách huỷ tại điểm; lý do nhóm Điều chỉnh; nút khoá tới khi chọn đủ → POST thân version + trangThai + lyDo + requestId → dải "Đã điều chỉnh …: Đã đón → Vắng", dòng hiện "Vắng", nhật ký có dòng điều chỉnh; 390 không tràn${axeNote()}`, async () => {
+    const dong = (ten) => `[...document.querySelectorAll('.dp-khach')].find((x) => x.querySelector('.dp-khach-ten')?.innerText === ${JSON.stringify(ten)})`;
+    await s.ev(`${dong(TEN_T7[0])}.querySelector('[data-action="don"]').click()`);
+    await s.waitFor(`!!document.querySelector('[data-action="khai-gio-gui"]')`, "hộp Đã đón");
+    await sleep(300);
+    await s.ev(click('[data-action="khai-gio-gui"]'));
+    await s.waitFor(`!document.querySelector('.sheet-root') && ${dong(TEN_T7[0])}?.querySelector('.dp-khach-kq')?.innerText === 'Đã đón'`, "đã đón");
+    assert.equal(await s.ev(`!!${dong(TEN_T7[0])}.querySelector('.dp-dieu-chinh-link')`), true, "dòng đã có kết quả → link Điều chỉnh…");
+    assert.equal(await s.ev(`!!${dong(TEN_T7[1])}.querySelector('.dp-dieu-chinh-link')`), false, "khách còn chờ → không link");
+    await s.ev(`${dong(TEN_T7[0])}.querySelector('.dp-dieu-chinh-link').click()`);
+    await s.waitFor(`!!document.querySelector('[data-action="dieu-chinh-gui"]')`, "hộp điều chỉnh");
+    await sleep(400);
+    assert.equal(await s.ev(txt(".sheet-title")), "Điều chỉnh kết quả");
+    assert.equal(await s.ev(txt(".sheet .dp-sheet-sum")), `${TEN_T7[0]} Đang ghi: Đã đón`);
+    assert.deepEqual(await s.ev(`[...document.querySelectorAll('[aria-labelledby="ct-dc-den"] .vc-reason')].map((x) => x.innerText.trim())`), ["Chưa xử lý", "Vắng", "Khách huỷ tại điểm"]);
+    assert.deepEqual(await s.ev(`[...document.querySelectorAll('[aria-labelledby="ct-dc-ly-do"] .vc-reason')].map((x) => x.innerText.trim())`), ["Bấm nhầm", "Khách đổi ý tại điểm", "Khác"]);
+    assert.equal(await s.ev(`document.querySelector('[data-action="dieu-chinh-gui"]').disabled`), true);
+    await s.ev(click('[aria-labelledby="ct-dc-den"] .vc-reason[data-code="NO_SHOW"]'));
+    assert.equal(await s.ev(`document.querySelector('[data-action="dieu-chinh-gui"]').disabled`), true, "chưa chọn lý do → khoá");
+    await s.ev(click('[aria-labelledby="ct-dc-ly-do"] .vc-reason[data-code="DIEU_CHINH_BAM_NHAM"]'));
+    assert.equal(await s.ev(`document.querySelector('[data-action="dieu-chinh-gui"]').disabled`), false);
+    await axe(s, "hộp điều chỉnh 1040");
+    await shotView(s, "a1-dieu-chinh-hop-may-tinh.png");
+    await s.ev(click('[data-action="dieu-chinh-gui"]'));
+    await s.waitFor(`/^Đã điều chỉnh/.test(${txt("#ct-trang > .banner .banner-title")} ?? '')`, "dải đã điều chỉnh");
+    assert.equal(await s.ev(txt("#ct-trang > .banner .banner-title")), `Đã điều chỉnh ${TEN_T7[0]}: Đã đón → Vắng`);
+    assert.equal(await s.ev(`${dong(TEN_T7[0])}.querySelector('.dp-khach-kq').innerText`), "Vắng");
+    const than = JSON.parse(posts(s, "/dieu-chinh").at(-1).body);
+    assert.deepEqual(Object.keys(than).sort(), ["lyDo", "requestId", "trangThai", "version"]);
+    assert.deepEqual([than.trangThai, than.lyDo], ["NO_SHOW", "DIEU_CHINH_BAM_NHAM"]);
+    assert.ok((await s.ev(`document.querySelector('main').innerText`)).includes("Văn phòng điều chỉnh kết quả khách"), "nhật ký chuyến có dòng điều chỉnh");
+    assert.equal(await s.ev(noCode), "");
+    await shotFull(s, "a1-dieu-chinh-sau-may-tinh.png");
+    await s.send("Emulation.setDeviceMetricsOverride", { width: MOB.width, height: MOB.height, deviceScaleFactor: 2, mobile: true });
+    await sleep(400);
+    assert.ok(await s.ev(noOverflowX), "390: không tràn ngang");
+    await shotFull(s, "a1-dieu-chinh-dien-thoai.png");
+    await s.send("Emulation.setDeviceMetricsOverride", { width: DESK.width, height: DESK.height, deviceScaleFactor: 1, mobile: false });
+  });
   await s.close();
 
   // ---- Tài khoản vừa tài xế công ty vừa Bán hàng (kiểm độc lập K2b T2 — giả định bề mặt GA-K2b-T2 do điều phối chốt) ------------------------------------
-  const tl = await call(ACCOUNTS.admin, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Lai Tài Xế Bán Hàng", phone: "0900000469", roles: ["DRIVER_INTERNAL", "SALES_STAFF"] });
+  const tl = await call(ACCOUNTS.chu, "POST", "/api/staff", { // ADR-0071: chỉ Nhân sự / Toàn quyền tạo tài khoản
+    taoHoSoMoi: true, fullName: "Lai Tài Xế Bán Hàng", phone: "0900000469", roles: ["DRIVER_INTERNAL", "SALES_STAFF"] });
   assert.equal(tl.status, 201, `tạo tài khoản lai: ${tl.text}`);
   const LAI = { name: "Lai Tài Xế Bán Hàng", phone: tl.json.staff.phone, pin: tl.json.pin, permissions: ["DRIVER", "SALES"] };
   const l = await env.as(LAI, "/", DESK);
@@ -414,10 +561,10 @@ try {
   await l.close();
 
   // ---- Kế toán (chỉ xem) ---------------------------------------------------------------------------------------------------------------------------------------
-  const k = await env.as(ACCOUNTS.accounting, `/chuyen?id=${d.T1.id}`, DESK);
+  const k = await env.as(ACCOUNTS.accounting, `/chuyen?id=${T7.id}`, DESK);
   await b.step("9", "Kế toán mở chuyến đang chạy: thấy điểm, mốc; KHÔNG nút bấm thay nào (ô trip.progress)", async () => {
     await k.waitFor(`!!document.querySelector('.dp-run')`, "điểm dừng đang chạy");
-    assert.equal(await k.ev(`document.querySelectorAll('.dp-run-btn, .dp-khach-btn, .dp-thu-tu, [data-action="ket-thuc"], [data-action="ket-thuc-gian-doan"], [data-action="xuat-ben-thay"]').length`), 0);
+    assert.equal(await k.ev(`document.querySelectorAll('.dp-run-btn, .dp-khach-btn, .dp-thu-tu, [data-action="ket-thuc"], [data-action="ket-thuc-gian-doan"], [data-action="xuat-ben-thay"], .dp-dieu-chinh-link, [data-action="thu-hoi-xuat-ben"]').length`), 0);
     assert.equal(apiCalls(k).filter((r) => r.method === "POST").length, 0);
   });
   await k.close();

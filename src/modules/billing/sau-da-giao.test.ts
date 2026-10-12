@@ -38,6 +38,7 @@ const CA: Record<string, unknown> = {
   "POST /api/orders/:id/legs": {},
   "PUT /api/orders/:id/legs/:legId": {},
   "POST /api/orders/:id/legs/:legId/close": {},
+  "POST /api/orders/:id/legs/:legId/replace": {},
   "POST /api/orders/:id/legs/:legId/short-notice": { lyDo: "KHAC" },
   "POST /api/orders/:id/passengers": {},
   "PUT /api/orders/:id/booker": {},
@@ -45,6 +46,7 @@ const CA: Record<string, unknown> = {
   "PUT /api/orders/:id/handler": { staffId: HDV },
   "POST /api/orders/:id/handler-cancel": { reason: "customer_requested" },
   "POST /api/orders/:id/handler-money-edit": {},
+  "POST /api/orders/:id/money-edit": {}, // ADR-0063 D1 (văn phòng sửa số khách) — 409 TRƯỚC khi đọc thân
   // Sổ đại lý đợt 1 (Task 5): ghi mức hoa hồng tay — thân HỢP LỆ (route kiểm thân trước đơn); đơn Đã giao ⇒ 409 order_delivered trước cả bước tìm bản chụp.
   "POST /api/orders/:id/thuong-mai/:serviceId": { lyDo: "thoả thuận miệng với CTV Lan", hoaHong: { kieu: "RATE", tyLeBp: 1500 } },
 };

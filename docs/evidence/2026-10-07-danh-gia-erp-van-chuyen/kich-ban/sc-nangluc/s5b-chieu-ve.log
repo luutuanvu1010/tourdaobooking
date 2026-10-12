@@ -1,0 +1,79 @@
+TAP version 13
+# (node:63329) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:63329) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# OBS {"nhan":"chang_db","rows":[{"direction":"OUT","pickup_time":"08:00","pax_override":null,"pickup_place":"Khách sạn Chiều Về, 12 Trần Phú","dropoff_place":null},{"direction":"RETURN","pickup_time":"15:00","pax_override":2,"pickup_place":null,"dropoff_place":"Khách sạn Chiều Về, 12 Trần Phú"}]}
+# OBS {"nhan":"lich_chang","rows":[{"chieu":"OUT","gio":"08:00","noiDon":"Khách sạn Chiều Về, 12 Trần Phú","noiTra":"Bến tàu du lịch Nha Trang","soNguoi":4,"soNguoiCoTen":4},{"chieu":"RETURN","gio":"15:00","noiDon":"Bến tàu du lịch Nha Trang","noiTra":"Khách sạn Chiều Về, 12 Trần Phú","soNguoi":2,"soNguoiCoTen":2}]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS {"nhan":"xep_di_4","status":200,"code":null,"message":null,"lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS {"nhan":"xep_ve_3_vuot","status":409,"code":"vuot_so_nguoi_chang","message":"Xếp quá số khách của chặng.","lyDo":["VUOT_SO_NGUOI_CHANG: Xếp quá số khách của chặng: TD-20270310-0001 3/2"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS {"nhan":"xep_ve_2","status":200,"code":null,"message":null,"lyDo":[],"diem":[{"loai":"PICKUP"},{"loai":"DROPOFF"}],"lyDoGiu":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS {"nhan":"xep_ve_vao_chuyen_sang_sai_gio","status":409,"code":"vuot_so_nguoi_chang","message":"Xếp quá số khách của chặng.","lyDo":["VUOT_SO_NGUOI_CHANG: Xếp quá số khách của chặng: TD-20270310-0001 4/2"]}
+# OBS {"nhan":"van_phong_chi_tiet_chuyen_ve","json":"{\\"chuyen\\":{\\"id\\":\\"ebbe57b9-b1bf-4031-82d9-ebafaefacca4\\",\\"ma\\":\\"CX-1103-02\\",\\"trangThai\\":\\"PLANNED\\",\\"trangThaiNhan\\":\\"Đã lên kế hoạch\\",\\"version\\":2,\\"ngayChay\\":\\"2027-03-11\\",\\"batDau\\":{\\"ngay\\":\\"2027-03-11\\",\\"gio\\":\\"14:50\\"},\\"ketThuc\\":{\\"ngay\\":\\"2027-03-11\\",\\"gio\\":\\"16:00\\"},\\"batDauMs\\":1804751400000,\\"ketThucMs\\":1804755600000,\\"xe\\":{\\"id\\":\\"31e8cd90-ae23-4d18-8f00-7c07cf18729e\\",\\"bienSo\\":\\"79C00003\\",\\"soCho\\":16,\\"chuXe\\":\\"Công ty TNHH Tour Đảo\\",\\"chuLaCongTy\\":true},\\"taiXe\\":{\\"partyId\\":\\"pty-66666666-6666-4666-8666-666666666666\\",\\"ten\\":\\"Tài Xế Một\\",\\"loai\\":\\"CONG_TY\\"},\\"tai\\":2,\\"lyDoGiu\\":[],\\"khoaMoc\\":{\\"dangKhoa\\":false,\\"tuLuc\\":{\\"ngay\\":\\"2027-03-11\\",\\"gio\\":\\"08:50\\"},\\"tuLucMs\\":1804729800000},\\"xuatBen\\":null,\\"ketThucThat\\":null,\\"diem\\":[{\\"id\\":\\"a4c20891-18b5-45f2-809c-01443f95d217\\",\\"thuTu\\":1,\\"loai\\":\\"PICKUP\\",\\"tenNoi\\":\\"Bến tàu du lịch Nha Trang\\",\\"trangThai\\":\\"PENDING\\",\\"daToi\\":null},{\\"id\\":\\"12859bf5-8342-4d35-9915-78e29bf62c69\\",\\"thuTu\\":2,\\"loai\\":\\"DROPOFF\\",\\"tenNoi\\":\\"Khách sạn Chiều Về, 12 Trần Phú\\",\\"trangThai\\":\\"PENDING\\",\\"daToi\\":null}],\\"nghiPhaLe\\":false,\\"lyDoHuy\\":null,\\"lyDoKetThuc\\":null,\\"tuyen\\":null},\\"diem\\":[{\\"id\\":\\"a4c20891-18b5-45f2-809c-01443f95d217\\",\\"thuTu\\":1,\\"loai\\":\\"PICKUP\\",\\"tenNoi\\":\\"Bến tàu du lịch Nha Trang\\",\\"diemDanhMucId\\":\\"a941dd7d-faab-4098-9ab9-1df7fa6dd551\\",\\"gioHen\\":{\\"ngay\\":\\"2027-03-11\\",\\"gio\\":\\"15:00\\"},\\"gioXeToi\\":null,\\"trangThai\\":\\"PENDING\\",\\"soNguoi\\":2,\\"lechDon\\":false,\\"daToi\\":null,\\"themKhiChay\\":false},{\\"id\\":\\"12859bf5-8342-4d35-9915-78e29bf62c69\\",\\"thuTu\\":2,\\"loai\\":\\"DROPOFF\\",\\"tenNoi\\":\\"Khách sạn Chiều Về, 12 Trần Phú\\",\\"diemDanhMucId\\":null,\\"gioHen\\":null,\\"gioXeToi\\":null,\\"trangThai\\":\\"PENDING\\",\\"soNguoi\\":2,\\"lechDon\\":false,\\"daToi\\":null,\\"themKhiChay\\":false}],\\"suat\\":[{\\"id\\":\\"2ec7bffe-62ad-4610-804c-cc05c836ffd8\\",\\"loai\\":\\"PASSENGER\\",\\"maDon\\":\\"TD-20270310-0001\\",\\"legId\\":\\"7858add9-9235-4f65-9d88-ac6162fb4cb5\\",\\"chieu\\":\\"RETURN\\",\\"diemLen\\":\\"a4c20891-18b5-45f2-809c-01443f95d217\\",\\"diemXuong\\":\\"12859bf5-8342-4d35-9915-78e29bf62c69\\",\\"trangThai\\":\\"WAITING\\",\\"soHieuChuyenBay\\":null,\\"coTen\\":true,\\"hoTen\\":\\"Khách Dò Tìm 2\\",\\"namSinh\\":1991,\\"daDon\\":null,\\"daTra\\":null,\\"vanPhongBaoHuy\\":null},{\\"id\\":\\"79f02b52-4f04-46fc-86a6-f2187bf7068b\\",\\"loai\\":\\"PASSENGER\\",\\"maDon\\":\\"TD-20270310-0001\\",\\"legId\\":\\"7858add9-9235-4f65-9d88-ac6162fb4cb5\\",\\"chieu\\":\\"RETURN\\",\\"diemLen\\":\\"a4c20891-18b5-45f2-809c-01443f95d217\\",\\"diemXuong\\":\\"12859bf5-8342-4d35-9915-78e29bf62c69\\",\\"trangThai\\":\\"WAITING\\",\\"soHieuChuyenBay\\":null,\\"coTen\\":true,\\"hoTen\\":\\"Khách Dò Tìm 3\\",\\"namSinh\\":1992,\\"daDon\\":null,\\"daTra\\":null,\\"vanPhongBaoHuy\\":null}],\\"canhBao\\":[],\\"nhatKy\\":[{\\"id\\":\\"65b247c3-d9c8-40d8-9c1a-5d9c2"}
+# OBS {"nhan":"tai_xe_chi_tiet_ve_hom_truoc","status":200,"coTen":false,"coSdt":false}
+# OBS {"nhan":"tai_xe_chi_tiet_ve_trong_ngay","status":200,"coTen":true,"coSdt":true,"json":"{\\"chuyen\\":{\\"id\\":\\"ebbe57b9-b1bf-4031-82d9-ebafaefacca4\\",\\"ma\\":\\"CX-1103-02\\",\\"bienSo\\":\\"79C00003\\",\\"soCho\\":16,\\"gioBatDau\\":{\\"ngay\\":\\"2027-03-11\\",\\"gio\\":\\"14:50\\"},\\"gioKetThuc\\":{\\"ngay\\":\\"2027-03-11\\",\\"gio\\":\\"16:00\\"},\\"trangThai\\":\\"PLANNED\\",\\"trangThaiNhan\\":\\"Đã lên kế hoạch\\",\\"xuatBen\\":null,\\"ketThucThat\\":null},\\"diem\\":[{\\"id\\":\\"a4c20891-18b5-45f2-809c-01443f95d217\\",\\"thuTu\\":1,\\"loai\\":\\"PICKUP\\",\\"tenNoi\\":\\"Bến tàu du lịch Nha Trang\\",\\"gioHen\\":{\\"ngay\\":\\"2027-03-11\\",\\"gio\\":\\"15:00\\"},\\"gioXeToi\\":null,\\"trangThai\\":\\"PENDING\\",\\"soNguoi\\":2,\\"daToi\\":null,\\"themKhiChay\\":false},{\\"id\\":\\"12859bf5-8342-4d35-9915-78e29bf62c69\\",\\"thuTu\\":2,\\"loai\\":\\"DROPOFF\\",\\"tenNoi\\":\\"Khách sạn Chiều Về, 12 Trần Phú\\",\\"gioHen\\":null,\\"gioXeToi\\":null,\\"trangThai\\":\\"PENDING\\",\\"soNguoi\\":2,\\"daToi\\":null,\\"themKhiChay\\":false}],\\"suat\\":[{\\"id\\":\\"2ec7bffe-62ad-4610-804c-cc05c836ffd8\\",\\"loai\\":\\"PASSENGER\\",\\"maDon\\":\\"TD-20270310-0001\\",\\"diemLen\\":\\"a4c20891-18b5-45f2-809c-01443f95d217\\",\\"diemXuong\\":\\"12859bf5-8342-4d35-9915-78e29bf62c69\\",\\"trangThai\\":\\"WAITING\\",\\"daDon\\":null,\\"daTra\\":null,\\"soHieuChuyenBay\\":null,\\"vanPhongBaoHuy\\":null,\\"hoTen\\":\\"Khách Dò Tìm 2\\",\\"namSinh\\":1991},{\\"id\\":\\"79f02b52-4f04-46fc-86a6-f2187bf7068b\\",\\"loai\\":\\"PASSENGER\\",\\"maDon\\":\\"TD-20270310-0001\\",\\"diemLen\\":\\"a4c20891-18b5-45f2-809c-01443f95d217\\",\\"diemXuong\\":\\"12859bf5-8342-4d35-9915-78e29bf62c69\\",\\"trangThai\\":\\"WAITING\\",\\"daDon\\":null,\\"daTra\\":null,\\"soHieuChuyenBay\\":null,\\"vanPhongBaoHuy\\":null,\\"hoTen\\":\\"Khách Dò Tìm 3\\",\\"namSinh\\":1992}],\\"lienHe\\":[{\\"maDon\\":\\"TD-20270310-0001\\",\\"tenLienHe\\":\\"Khách Liên Hệ Dò Tìm\\",\\"sdtLienHe\\":\\"0987000111\\"}],\\"dieuKienConThieu\\":[],\\"lyDo\\":[{\\"code\\":\\"GIAN_DOAN_XE_HONG\\",\\"nhan\\":\\"Xe hỏng\\"},{\\"code\\":\\"GIAN_DOAN_TAI_NAN\\",\\"nhan\\":\\"Tai nạn\\"},{\\"code\\":\\"GIAN_DOAN_KHAC\\",\\"nhan\\":\\"Khác\\"}],\\"trongNgayChay\\":true}"}
+# OBS {"nhan":"tai_xe_chi_tiet_di_trong_ngay","status":200,"json":"{\\"chuyen\\":{\\"id\\":\\"3438c5d9-e8c9-43f5-9fb6-18d0f408d6aa\\",\\"ma\\":\\"CX-1103-01\\",\\"bienSo\\":\\"79C00003\\",\\"soCho\\":16,\\"gioBatDau\\":{\\"ngay\\":\\"2027-03-11\\",\\"gio\\":\\"07:50\\"},\\"gioKetThuc\\":{\\"ngay\\":\\"2027-03-11\\",\\"gio\\":\\"09:00\\"},\\"trangThai\\":\\"PLANNED\\",\\"trangThaiNhan\\":\\"Đã lên kế hoạch\\",\\"xuatBen\\":null,\\"ketThucThat\\":null},\\"diem\\":[{\\"id\\":\\"cf1f5864-f752-4612-84f2-487b98549164\\",\\"thuTu\\":1,\\"loai\\":\\"PICKUP\\",\\"tenNoi\\":\\"Khách sạn Chiều Về, 12 Trần Phú\\",\\"gioHen\\":{\\"ngay\\":\\"2027-03-11\\",\\"gio\\":\\"08:00\\"},\\"gioXeToi\\":null,\\"trangThai\\":\\"PENDING\\",\\"soNguoi\\":4,\\"daToi\\":null,\\"themKhiChay\\":false},{\\"id\\":\\"90ac7689-4867-4aa5-a520-7ddefee61af1\\",\\"thuTu\\":2,\\"loai\\":\\"DROPOFF\\",\\"tenNoi\\":\\"Bến tàu du lịch Nha Trang\\",\\"gioHen\\":null,\\"gioXeToi\\":null,\\"trangThai\\":\\"PENDING\\",\\"soNguoi\\":4,\\"daToi\\":null,\\"themKhiChay\\":false}],\\"suat\\":[{\\"id\\":\\"054f5bc4-b408-44ee-9ec2-309d234d72dd\\",\\"loai\\":\\"PASSENGER\\",\\"maDon\\":\\"TD-20270310-0001\\",\\"diemLen\\":\\"cf1f5864-f752-4612-84f2-487b98549164\\",\\"diemXuong\\":\\"90ac7689-4867-4aa5-a520-7ddefee61af1\\",\\"trangThai\\":\\"WAITING\\",\\"daDon\\":null,\\"daTra\\":null,\\"soHieuChuyenBay\\":null,\\"vanPhongBaoHuy\\":null,\\"hoTen\\":\\"Khách Dò Tìm 3\\",\\"namSinh\\":1992},{\\"id\\":\\"38f297c0-047c-420a-99cc-d158717815a9\\",\\"loai\\":\\"PASSENGER\\",\\"maDon\\":\\"TD-20270310-0001\\",\\"diemLen\\":\\"cf1f5864-f752-4612-84f2-487b98549164\\",\\"diemXuong\\":\\"90ac7689-4867-4aa5-a520-7ddefee61af1\\",\\"trangThai\\":\\"WAITING\\",\\"daDon\\":null,\\"daTra\\":null,\\"soHieuChuyenBay\\":null,\\"vanPhongBaoHuy\\":null,\\"hoTen\\":\\"Khách Dò Tìm 4\\",\\"namSinh\\":1993},{\\"id\\":\\"9d39fa64-f681-4d43-bf77-1bb94cd85184\\",\\"loai\\":\\"PASSENGER\\",\\"maDon\\":\\"TD-20270310-0001\\",\\"diemLen\\":\\"cf1f5864-f752-4612-84f2-487b98549164\\",\\"diemXuong\\":\\"90ac7689-4867-4aa5-a520-7ddefee61af1\\",\\"trangThai\\":\\"WAITING\\",\\"daDon\\":null,\\"daTra\\":null,\\"soHieuChuyenBay\\":null,\\"vanPhongBaoHuy\\":null,\\"hoTen\\":\\"Khách Dò Tìm 2\\",\\"namSinh\\":1991},{\\"id\\":\\"b29f82e0-1884-45a7-95b7-8a3b10389593\\",\\"loai\\":\\"PASSENGER\\",\\"maDon\\":\\"TD-20270310-0001\\",\\"diemLen\\":\\"cf1f5864-f752-4612-84f2-487b98549164\\",\\"diemXuong\\":\\"90ac7689-4867-4aa5-a520-7ddefee61af1\\",\\"trangThai\\":\\"WAITING\\",\\"daDon\\":null,\\"daTra\\":null,\\"soHieuChuyenBay\\":null,\\"vanPhongBaoHuy\\":null,\\"hoTen\\":\\"Khách Dò Tìm 1\\",\\"namSinh\\":1990}],\\"lienHe\\":[{\\"maDon\\":\\"TD-20270310-0001\\",\\"tenLienHe\\":\\"Khách Liên Hệ Dò Tìm\\",\\"sdtLienHe\\":\\"0987000111\\"}],\\"dieuKienConThieu\\":[],\\"lyDo\\":[{\\"code\\":\\"GIAN_DOAN_XE_HONG\\",\\"nhan\\":\\"Xe hỏng\\"},{\\"code\\":\\"GIAN_DOAN_TAI_NAN\\",\\"nhan\\":\\"Tai nạn\\"},{\\"code\\":\\"GIAN_DOAN_KHAC\\",\\"nhan\\":\\"Khác\\"}],\\"trongNgayChay\\":true}"}
+# OBS {"nhan":"tai_xe_danh_sach","json":"{\\"tu\\":\\"2027-03-11\\",\\"den\\":\\"2027-03-17\\",\\"chuyen\\":[{\\"id\\":\\"3438c5d9-e8c9-43f5-9fb6-18d0f408d6aa\\",\\"ma\\":\\"CX-1103-01\\",\\"gioXuatBen\\":{\\"ngay\\":\\"2027-03-11\\",\\"gio\\":\\"07:50\\"},\\"trangThai\\":\\"PLANNED\\",\\"trangThaiNhan\\":\\"Đã lên kế hoạch\\",\\"bienSo\\":\\"79C00003\\",\\"soKhach\\":4,\\"soDiemDon\\":1,\\"soDiemTra\\":1,\\"dieuKienConThieu\\":[]},{\\"id\\":\\"ebbe57b9-b1bf-4031-82d9-ebafaefacca4\\",\\"ma\\":\\"CX-1103-02\\",\\"gioXuatBen\\":{\\"ngay\\":\\"2027-03-11\\",\\"gio\\":\\"14:50\\"},\\"trangThai\\":\\"PLANNED\\",\\"trangThaiNhan\\":\\"Đã lên kế hoạch\\",\\"bienSo\\":\\"79C00003\\",\\"soKhach\\":2,\\"soDiemDon\\":1,\\"soDiemTra\\":1,\\"dieuKienConThieu\\":[]}]}"}
+# Subtest: S5b đơn 4 khách: đi 4 người (08:00 KS → bến), về 2 người (15:00 bến → KS) — xếp, màn tài xế
+ok 1 - S5b đơn 4 khách: đi 4 người (08:00 KS → bến), về 2 người (15:00 bến → KS) — xếp, màn tài xế
+  ---
+  duration_ms: 111.320042
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS {"nhan":"S5b2_xep_ve_vao_chuyen_sang","status":200,"code":null,"message":null,"lyDo":[],"lyDoGiu":[]}
+# OBS {"nhan":"S5b2_lich_canh_bao","canhBao":["{\\"loai\\":\\"GIO_HEN_NGOAI_CHUYEN\\",\\"nhan\\":\\"Giờ hẹn nằm ngoài khung giờ chuyến\\",\\"legId\\":\\"9cc160f1-9d40-4d52-af2c-a2534ec36a75\\",\\"tripId\\":\\"6cc0fd85-0fcc-4940-b051-deb0c00046f1\\",\\"maDon\\":\\"TD-20270310-0001\\"}"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# OBS {"nhan":"S5b2_xuat_ben_0750_chuyen_sang_mang_khach_hen_1500","status":200,"code":null,"message":null,"lyDo":[]}
+# OBS {"nhan":"S5b2_db_trip","rows":[{"code":"CX-1103-01","status":"RUNNING"}]}
+# OBS {"nhan":"S5b2_passengers_api","status":200,"keys":["passengers","soNguoiCoTen","soKhachDoan","vuotSoKhach","orderUpdatedAt"],"sample":"{\\"passengers\\":[{\\"personKey\\":\\"e18284ca-fc90-4163-94cd-3522f8641570\\",\\"rowId\\":\\"e18284ca-fc90-4163-94cd-3522f8641570\\",\\"fullName\\":\\"Khách Dò Tìm 1\\",\\"birthYear\\":1990,\\"paxCode\\":\\"adult\\",\\"updatedAt\\":\\"2027-03-10T15:00:00.000Z\\"},{\\"personKey\\":\\"9ffa9c1a-86af-404f-a025-dd4be9bcd539\\",\\"rowId\\":\\"9ffa9c1a-86af-404f-a025-dd4be9bcd539\\",\\"fullName\\":\\"Khách Dò Tìm 2\\",\\"birthYear\\":1991,\\"paxCode\\":\\"adult\\",\\"updatedAt\\":\\"2027-03-10T15:00:00.000Z\\"},{\\"personKey\\":\\"e383367e-c6f9-4638-86a3-6aaaadbf832b\\",\\"rowId\\":\\"e383367e-c6f9-4638-86a3-6aaaadbf832b\\",\\"fullName\\":\\"Khách Dò Tìm 3\\",\\"birthYear\\":1992,\\"paxCode\\":\\"adult\\",\\"updatedAt\\":\\"2027-0"}
+# Subtest: S5b.2 xếp chặng VỀ (đón 15:00) vào chuyến sáng 07:50–09:00 → có chặn giờ hẹn ngoài chuyến không; chọn đúng người về bằng personKeys
+ok 2 - S5b.2 xếp chặng VỀ (đón 15:00) vào chuyến sáng 07:50–09:00 → có chặn giờ hẹn ngoài chuyến không; chọn đúng người về bằng personKeys
+  ---
+  duration_ms: 72.495375
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS {"nhan":"S5b3_xep_ve_chon_nguoi_1_2","status":200,"code":null,"message":null,"lyDo":[],"ten":[null,null]}
+# OBS {"nhan":"S5b3_tai_xe_thay_ten","status":200,"ten":["Khách Dò Tìm 2","Khách Dò Tìm 1"]}
+# Subtest: S5b.3 văn phòng CHỌN đúng 2 người về (Khách 1, 2) bằng personKeys qua route; trạng thái chặng ở lịch sau khi xếp nhầm chuyến sáng
+ok 3 - S5b.3 văn phòng CHỌN đúng 2 người về (Khách 1, 2) bằng personKeys qua route; trạng thái chặng ở lịch sau khi xếp nhầm chuyến sáng
+  ---
+  duration_ms: 70.322583
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"S5b4_lich_truoc_xep","trangThai":"CHUA_XEP","nhanLich":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS {"nhan":"S5b4_lich_sau_xep_nham","trangThai":"DA_XEP","trangThaiNhan":"Đã xếp","nhanLich":[],"soDaXep":2,"chuyen":[{"id":"7470eb79-10de-4a80-a23e-924f452f2838","ma":"CX-1103-01"}]}
+# Subtest: S5b.4 chặng về 15:00 xếp nhầm vào chuyến sáng → trạng thái chặng ở lịch chung
+ok 4 - S5b.4 chặng về 15:00 xếp nhầm vào chuyến sáng → trạng thái chặng ở lịch chung
+  ---
+  duration_ms: 67.253084
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 434.911709

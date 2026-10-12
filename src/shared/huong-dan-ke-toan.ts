@@ -6,7 +6,7 @@ export const HD_KE_TOAN: NhomHuongDan = {
   tieuDe: "Kế toán",
   quyen: ["ACCOUNTING"],
   gioiThieu:
-    "Bạn là kế toán của công ty. Bạn xem được mọi đơn: khách, dịch vụ, số khách, tiền, lịch sử sửa đơn, và mở được biên nhận để gửi khách. Trên trang đơn, bạn ghi và đối chiếu tiền, bấm Hoàn thành, đánh dấu đã nhập phần mềm kế toán. Bạn không lập, không sửa, không xác nhận, không huỷ đơn.",
+    "Bạn là kế toán của công ty. Bạn xem được mọi đơn: khách, dịch vụ, số khách, tiền, lịch sử sửa đơn, và mở được biên nhận để gửi khách. Trên trang đơn, bạn ghi và đối chiếu tiền, bấm Hoàn thành, đánh dấu đã nhập phần mềm kế toán. Bạn không lập, không sửa, không xác nhận, không huỷ đơn; riêng số khách của đơn đã xác nhận thì bạn sửa được.",
   batDauNhanh: `1. Mở app. App vào thẳng [[Trang chủ]].
 2. Nhìn thẻ số liệu: **Còn thiếu tiền**, **Chờ xác nhận**, **Chưa phụ trách**. Đây là số của cả công ty.
 3. Bấm [[Đơn hàng]] để xem danh sách đơn.
@@ -66,11 +66,24 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
    - **Đã thu**, rồi **Còn lại** (khách trả dư thì ghi **Khách trả dư**)
    - **Ghi chú thanh toán**
    - Từng lần thu: ngày, số tiền, hình thức, người thu
-4. Khối **Lịch sử** ở cuối trang ghi ai đã làm gì với đơn, lúc nào. Hướng dẫn viên sửa số khách thì lý do cũng hiện ở đây.
+4. Khối **Lịch sử** ở cuối trang ghi ai đã làm gì với đơn, lúc nào. Ai sửa số khách (hướng dẫn viên, người lập đơn, Kế toán, Quản trị) thì lý do cũng hiện ở đây.
 
-Đơn đã xác nhận có dòng khoá: "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá."
+Đơn đã xác nhận có dòng khoá bắt đầu bằng "Đơn đã xác nhận: dịch vụ và đơn giá đã khoá." Số khách vẫn sửa được (mục "Sửa số khách đơn đã xác nhận").
 
 > Ví dụ: Chị Lan thấy số Còn lại của một đơn khác với số khách báo. Chị xem Lịch sử thì thấy hướng dẫn viên đã bớt 1 khách, lý do "khách ốm không đi". Chị ghi lại để đối chiếu cuối ngày.`,
+    },
+    {
+      tieuDe: "Sửa số khách đơn đã xác nhận",
+      noiDung: `Bạn sửa được số khách của mọi đơn **Đã xác nhận** chưa **Đã giao**, kể cả sau ngày đi:
+
+1. Trên trang đơn, bấm [[Sửa số khách dịch vụ]].
+2. Bấm **+** và **−** để đổi số khách từng loại của từng dịch vụ. Dịch vụ nhập tay chỉ để xem, không sửa ở đây.
+3. Chọn lý do: [[Khách thêm người]], [[Khách bớt người]], [[Đổi dịch vụ]] hoặc [[Khác]].
+4. Bấm [[Lưu số khách]]. Nền tảng tự tính lại tiền theo đơn giá đã chốt của đơn; giảm giá giữ nguyên. Người lập và người phụ trách nhận tin đơn đổi.
+
+Bớt khách sau khi khách đã trả: khối **Thanh toán** hiện **Khách trả dư** — hoàn cho khách bằng [[Ghi hoàn cho khách]] như thường lệ.
+
+Nếu giảm giá lớn hơn tiền dịch vụ còn lại, Nền tảng vẫn lưu và tính **Tổng cộng** bằng 0; phần giảm giá vượt không dùng tới. Khối **Thanh toán** hiện câu cảnh báo, và toàn bộ tiền khách đã trả hiện ở **Khách trả dư**. Hoàn bằng [[Ghi hoàn cho khách]] như thường lệ; hoàn xong thì đơn không còn bị giữ **Đã giao** vì khách trả dư.`,
     },
     {
       tieuDe: "Mở biên nhận để gửi khách",
@@ -87,7 +100,7 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
       noiDung: `1. Máy tính: bấm [[Vận chuyển]] rồi [[Điều phối xe]]. Điện thoại: bấm tab [[Tôi]], tìm nhóm VẬN CHUYỂN, bấm [[Điều phối xe]].
 2. Chọn ngày ở ô ngày trên cùng. Bấm mũi tên trái hoặc phải để lùi hay tiến một ngày.
 3. Màn có ba phần: **Chưa xếp**, **Xe**, **Cần xử lý**. Trên điện thoại, ba phần này là ba thẻ để bấm qua lại.
-4. Bạn sẽ thấy dải chữ "Chỉ xem — Kế toán không xếp xe, không phá lệ." Bạn không có nút [[+ Chuyến mới]], không xếp khách, không sửa chuyến.
+4. Bạn sẽ thấy dải chữ "Chỉ xem — Kế toán không xếp xe, không điều chỉnh khẩn cấp hay phá lệ." Bạn không có nút [[+ Chuyến mới]], không xếp khách, không sửa chuyến.
 5. Bấm vào một chuyến để xem **Chi tiết chuyến**.
 6. [[Xe đang chạy]] liệt kê xe đang chạy; bạn chỉ xem, không thêm khách hay báo huỷ.`,
     },
@@ -137,7 +150,7 @@ Người bán dịch vụ làm tương tự ở trang [[Người bán dịch v�
       tieuDe: "Tình huống hay gặp",
       noiDung: `### Thấy một đơn sai tiền
 
-Bạn không sửa được. Ghi lại mã đơn rồi báo người lập đơn hoặc người phụ trách đơn. Tên người lập có ở dòng "Lập … bởi …" dưới dải trên cùng. Tên người phụ trách có ở khối **Người phụ trách**. Đơn đã xác nhận: số khách chỉ hướng dẫn viên đang phụ trách đơn sửa được (Quản trị không sửa được); tiền của đơn đã xác nhận không ai sửa được trong app, trừ tài khoản Toàn quyền.
+Bạn không sửa được. Ghi lại mã đơn rồi báo người lập đơn hoặc người phụ trách đơn. Tên người lập có ở dòng "Lập … bởi …" dưới dải trên cùng. Tên người phụ trách có ở khối **Người phụ trách**. Đơn đã xác nhận mà sai số khách: bạn tự sửa bằng [[Sửa số khách dịch vụ]] (mục "Sửa số khách đơn đã xác nhận"); tiền của đơn đã xác nhận không ai sửa được trong app, trừ tài khoản Toàn quyền.
 
 ### Khách đã trả thêm tiền, muốn ghi vào đơn
 
@@ -175,7 +188,7 @@ Chuông ở thanh trên báo khi có đơn mới, có người nhận đơn, đ�
       tieuDe: "Điều bạn không làm được — hỏi ai",
       noiDung: `- Lập đơn mới: không. Nhờ nhân viên bán hàng.
 - Sửa, xác nhận, huỷ đơn: không. Nhờ người lập đơn, người phụ trách đơn hoặc Quản trị.
-- Sửa tiền, số khách sau khi xác nhận: không. Số khách: báo hướng dẫn viên đang phụ trách đơn. Tiền: chỉ tài khoản Toàn quyền.
+- Thêm dịch vụ, đổi giá sau khi xác nhận: Nền tảng chưa có cách sửa, kể cả tài khoản Toàn quyền — báo Quản trị. Số khách thì bạn sửa được (mục "Sửa số khách đơn đã xác nhận").
 - Nhận phụ trách, giao đơn cho người khác: không. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Duyệt "Đặt gấp": không. Nhờ Quản trị.
 - Đặt mức riêng cho một đối tác, thử tra mức: chưa, vì tài khoản Kế toán không tìm được đối tác theo tên. Nhờ Quản trị hoặc Toàn quyền.

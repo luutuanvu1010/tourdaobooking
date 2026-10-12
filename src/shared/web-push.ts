@@ -49,7 +49,8 @@ export function imLang(quanTrong: boolean, now: Date): boolean {
 }
 
 /** `THAY_DOI` (`src/shared/bang-tin.ts`, ADR-0022) → hành động của hộp thông báo (`ntf_*`/`loaiTinDon`, ADR-0034) mà `dayGoCua` (Task 3)
- * dựng thành một `DongDon` để đưa qua `nguoiNhanDay`. `sua`/`chuyen`/`tien` không phải tin của hộp → không rung máy nào. */
+ * dựng thành một `DongDon` để đưa qua `nguoiNhanDay`. `sua`/`chuyen`/`tien` = null ở bảng này; riêng "chuyen" / "tien" gốc lắp ráp (`src/index.ts`) gõ cửa
+ * theo DÒNG ĐỔI do chính request ghi (ADR-0062, `dayGoCuaDoi` của `thongbao`) — request không ghi dòng đổi thì không rung máy nào. */
 const HANH_DONG_CUA_THAY_DOI: Record<ThayDoiDon, string | null> = {
   tao: "created",
   tao_cho_nhan: "created",
@@ -75,10 +76,11 @@ export function hanhDongCuaThayDoi(t: ThayDoiDon): string | null {
  */
 export function nguoiNhanDay(
   taiKhoan: (PermissionHolder & { readonly partyId?: string | null })[],
-  tin: { don: DongDon } | { thuCong: DongThuCong } | { chuyen: DongChuyen },
+  tin: { don: DongDon } | { loDoi: readonly DongDon[] } | { thuCong: DongThuCong } | { chuyen: DongChuyen },
   now: string,
 ): string[] {
-  const don = "don" in tin ? [tin.don] : [];
+  // `loDoi` (G17): một LÔ dòng đổi của cùng lệnh (cùng đơn + người làm + mốc) — locHopThongBao gom lô, mỗi tài khoản tối đa một tin.
+  const don = "don" in tin ? [tin.don] : "loDoi" in tin ? [...tin.loDoi] : [];
   const thuCong = "thuCong" in tin ? [tin.thuCong] : [];
   const chuyen = "chuyen" in tin ? [tin.chuyen] : []; // ADR-0052 D6.2: tin chuyến — cùng hàm người nhận (tinChuyenCho) qua locHopThongBao
   return taiKhoan

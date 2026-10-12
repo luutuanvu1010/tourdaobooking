@@ -1316,6 +1316,16 @@ test("R-VC-6: sự kiện ↔ nhật ký lệnh chuyến cùng id → 0; sự ki
   assert.equal(violations(db, c), 2, "nhật ký lệnh chuyến không sự kiện");
 });
 
+test("S10 / NT-12 (ADR-0104 Đ2.9): R-VC-6 phủ hành động mới trip_order_synced — khúc máy có sự kiện ALLOCATION_ORDER_SYNCED cùng id → 0; nhật ký không sự kiện → 1", () => {
+  const c = one("R-VC-6");
+  const db = tho();
+  const t = chuyenTho(db);
+  suKienTho(db, { trip: t, kind: "ALLOCATION_ORDER_SYNCED", nhatKy: "trip_order_synced" });
+  assert.equal(violations(db, c), 0, "khúc máy đúng khuôn");
+  db.prepare("INSERT INTO audit_log (id, action, target_type, target_id, detail, created_at) VALUES ('l-may-mo-coi', 'trip_order_synced', 'trip', ?, 'x', ?)").run(t, T2);
+  assert.equal(violations(db, c), 1, "nhật ký máy đồng bộ không có sự kiện cùng id");
+});
+
 test("R-VC-7: chặng đã vào mốc (6 giờ) mà chưa xếp đủ → 1 (warn); xếp đủ / chưa vào mốc / đã qua giờ đón → 0", () => {
   const c = one("R-VC-7");
   assert.equal(c.level, "warn");
@@ -2129,10 +2139,8 @@ test("R-VC-21 (ADR-0055 hệ quả 10): chuyến chưa huỷ, CHƯA kết thúc 
   const huy = chuyenTho(db, { tu: goc + 13 * H, den: goc + 14 * H });
   db.prepare("UPDATE vc_trip SET status = 'CANCELLED', cancel_reason_code = 'HUY_KHAC' WHERE id = ?").run(huy);
   assert.equal(violations(db, c), 1, "chuyến đã kết thúc / đã huỷ không đếm");
-  // Khung DRIVER (Đợt 6 — thả trigger "chưa mở" để dựng) không khớp theo xe.
-  db.exec("DROP TRIGGER vc_unavailability_driver_closed");
-  db.prepare("INSERT INTO vc_reason (code, reason_group, label, sort_order, created_at, updated_at) VALUES ('BAN_TAI_XE_THU', 'BAN_TAI_XE', 'Thử', 1, ?, ?)").run(T1, T1);
-  khung("kb-tx", goc + 8 * H, goc + 17 * H, { subject: "DRIVER", xe: null, taiXe: "p-cty", lyDo: "BAN_TAI_XE_THU" });
+  // Khung DRIVER (ADR-0053 D9 — 0092 đã mở, lý do gieo BTX_*) không khớp theo xe.
+  khung("kb-tx", goc + 8 * H, goc + 17 * H, { subject: "DRIVER", xe: null, taiXe: "p-cty", lyDo: "BTX_OM" });
   assert.equal(violations(db, c), 1, "khung DRIVER không đếm");
   db.prepare("UPDATE vc_unavailability SET withdrawn_at = ?, withdrawn_by = 's', version = 2, updated_at = ?, updated_by = 's' WHERE id = 'kb-1'").run(T2, T2);
   assert.equal(violations(db, c), 0, "khung đã rút");
@@ -2265,6 +2273,345 @@ test("R-VC-25 (Đợt 7 VK3-A): chuyến đã xuất bến trái cam kết xe ri
   suatTho(db, { trip: t3, leg: e.leg, key: e.khach[0]! });
   batCamKet(e.leg, 0, 100);
   assert.equal(violations(db, c), 1, "chuyến PLANNED không đếm");
+});
+
+// ADR-0096 Đ1.5 (gói A1 — 0084): R-VC-THU-TU — chuyến ĐANG CHẠY có suất mở CHỜ LÊN mà điểm trả đứng trước / bằng số điểm đón (fail; lưới thứ hai của đường đổi thứ
+// tự khi đang chạy — không trigger theo dòng, Đ1.6). Chuyến kế hoạch vi phạm = "đang bị giữ" hợp lệ, không đếm.
+test("R-VC-THU-TU (ADR-0096 Đ1.5): chuyến đang chạy, khách chờ lên, điểm trả ≤ điểm đón → đếm (fail); đúng thứ tự / đã lên xe / suất đóng / chuyến kế hoạch → không", () => {
+  const c = one("R-VC-THU-TU");
+  assert.equal(c.level, "fail");
+  const db = tho();
+  const diem = (trip: string, kind: string, seq: number) => {
+    const id = `st-${++soVc}`;
+    db.prepare("INSERT INTO vc_trip_stop (id, trip_id, seq, kind, location_id, place_key, created_at, updated_at) VALUES (?, ?, ?, ?, 'loc-x', 'L:loc-x', ?, ?)").run(id, trip, seq, kind, T1, T1);
+    return id;
+  };
+  const chay = chuyenTho(db, { status: "RUNNING", departed: NOW_MS });
+  const don = diem(chay, "PICKUP", 1);
+  const tra = diem(chay, "DROPOFF", 2);
+  suatTho(db, { trip: chay, board: don, alight: tra });
+  assert.equal(violations(db, c), 0, "đúng thứ tự");
+  const don2 = diem(chay, "PICKUP", 3);
+  suatTho(db, { trip: chay, board: don2, alight: tra, status: "BOARDED" });
+  suatTho(db, { trip: chay, board: don2, alight: tra, den: T2 });
+  assert.equal(violations(db, c), 0, "đã lên xe / suất đã đóng: không xét");
+  suatTho(db, { trip: chay, board: don2, alight: tra });
+  assert.equal(violations(db, c), 1, "khách chờ lên ở điểm 3 xuống ở điểm 2");
+  const bang = diem(chay, "DROPOFF", 3);
+  suatTho(db, { trip: chay, board: don2, alight: bang });
+  assert.equal(violations(db, c), 2, "bằng số cũng là vi phạm");
+  const keHoach = chuyenTho(db);
+  suatTho(db, { trip: keHoach, board: diem(keHoach, "PICKUP", 2), alight: diem(keHoach, "DROPOFF", 1) });
+  assert.equal(violations(db, c), 2, "chuyến kế hoạch: đang bị giữ, không đếm");
+});
+
+// ADR-0097 "Hệ quả" (gói A1 — 0085): R-VC-SUA-1 — lưới thứ hai của lô điều chỉnh (đóng REMOVED + suất thay thế trỏ về + bản chốt) và lô thu hồi xuất bến
+// (chỉ khi chưa có tiến độ sau DEPARTED cuối). Dữ liệu thô (trigger đã gỡ) để dựng được cả ca hỏng.
+test("R-VC-SUA-1 (ADR-0097): điều chỉnh đủ suất thay thế + bản chốt → 0; thiếu / thừa / khác điểm / thiếu bản chốt / suất trỏ lạ / thu hồi sau tiến độ → đếm (fail)", () => {
+  const c = one("R-VC-SUA-1");
+  assert.equal(c.level, "fail");
+  const db = tho();
+  const chay = chuyenTho(db, { status: "RUNNING", departed: NOW_MS });
+  const dieuChinh = (o: { key?: string | null; moSo?: number; khacDiem?: boolean; chot?: boolean } = {}) => {
+    const key = o.key === undefined ? `pk-${++soVc}` : o.key;
+    const cu = suatTho(db, { trip: chay, key, status: "BOARDED" });
+    const cmd = suKienTho(db, { trip: chay, kind: "CORRECTION", alloc: cu, nhatKy: "trip_allocation_corrected" });
+    db.prepare("UPDATE vc_trip_allocation SET valid_to_at = ?, close_reason = 'REMOVED', closed_cmd_id = ? WHERE id = ?").run(T2, cmd, cu);
+    for (let i = 0; i < (o.moSo ?? 1); i++) {
+      const moi = `al-${++soVc}`;
+      db.prepare(`INSERT INTO vc_trip_allocation (id, trip_id, kind, leg_id, passenger_key, board_stop_id, status, valid_from_at, added_after_departure, opened_cmd_id, corrects_allocation_id,
+          created_at, updated_at) SELECT ?, trip_id, kind, leg_id, passenger_key, CASE WHEN ? THEN 'st-khac' ELSE board_stop_id END, 'NO_SHOW', ?, 1, ?, id, ?, ? FROM vc_trip_allocation WHERE id = ?`)
+        .run(moi, o.khacDiem ? 1 : 0, T2, cmd, T2, T2, cu);
+      if (o.chot !== false && key !== null) {
+        db.prepare("INSERT INTO vc_trip_manifest (id, trip_id, check_id, allocation_id, passenger_row_id, added_after_departure, created_at, updated_at) VALUES (?, ?, NULL, ?, 'row-1', 1, ?, ?)")
+          .run(`mf-${++soVc}`, chay, moi, T2, T2);
+      }
+    }
+  };
+  dieuChinh();
+  dieuChinh({ key: null }); // suất chưa tên: không cần bản chốt
+  assert.equal(violations(db, c), 0, "lô điều chỉnh đúng hình");
+  dieuChinh({ moSo: 0 });
+  assert.equal(violations(db, c), 1, "đóng mà không mở suất thay thế");
+  dieuChinh({ key: null, moSo: 2 });
+  assert.equal(violations(db, c), 2, "hai suất thay thế");
+  dieuChinh({ khacDiem: true });
+  assert.equal(violations(db, c), 3, "suất thay thế khác điểm lên");
+  dieuChinh({ chot: false });
+  assert.equal(violations(db, c), 4, "suất có tên thiếu bản chốt thêm sau xuất bến");
+  const la = suatTho(db, { trip: chay, key: "pk-9" });
+  db.prepare("UPDATE vc_trip_allocation SET corrects_allocation_id = ? WHERE id = ?").run(la, suatTho(db, { trip: chay, key: "pk-8" }));
+  assert.equal(violations(db, c), 5, "suất trỏ corrects mà không do lô CORRECTION mở");
+  // Thu hồi xuất bến: ngay sau DEPARTED (kể cả lần thứ hai) → không đếm; có STOP_ARRIVED xen giữa → đếm; không có DEPARTED trước → đếm.
+  const t2 = chuyenTho(db, { status: "PLANNED" });
+  suKienTho(db, { trip: t2, kind: "ALLOCATED" });
+  suKienTho(db, { trip: t2, kind: "DEPARTED", nhatKy: "trip_departed" });
+  suKienTho(db, { trip: t2, kind: "DEPARTURE_REVOKED", nhatKy: "trip_departure_revoked" });
+  suKienTho(db, { trip: t2, kind: "DEPARTED", nhatKy: "trip_departed" });
+  suKienTho(db, { trip: t2, kind: "DEPARTURE_REVOKED", nhatKy: "trip_departure_revoked" });
+  assert.equal(violations(db, c), 5, "thu hồi hai lần, mỗi lần ngay sau xuất bến: hợp lệ");
+  suKienTho(db, { trip: t2, kind: "DEPARTED", nhatKy: "trip_departed" });
+  suKienTho(db, { trip: t2, kind: "STOP_ARRIVED", nhatKy: "trip_stop_arrived" });
+  suKienTho(db, { trip: t2, kind: "DEPARTURE_REVOKED", nhatKy: "trip_departure_revoked" });
+  assert.equal(violations(db, c), 6, "thu hồi sau khi đã có tiến độ");
+  suKienTho(db, { trip: chuyenTho(db), kind: "DEPARTURE_REVOKED", nhatKy: "trip_departure_revoked" });
+  assert.equal(violations(db, c), 7, "thu hồi không có xuất bến trước");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0053 D8, D9 (kế hoạch A4 T11): lưới thứ hai của trigger Từ chối (tc82_, tc83_), khung bận tài xế (B9.2, B9.3) và hạn theo cặp (D8.1) — R-VC-26…30.
+// ---------------------------------------------------------------------------------------------------------------------
+const dongLaiTho = (db: DatabaseSync, o: { trip: string; party: string; ly?: "REFUSED" | "REASSIGNED"; by?: string | null; luc?: string }) =>
+  db.prepare(`INSERT INTO vc_trip_driver (id, trip_id, driver_party_id, valid_from_at, valid_to_at, close_reason, refuse_reason_code, closed_by_party_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(`dr-${++soVc}`, o.trip, o.party, T1, o.luc ?? T2, o.ly ?? "REFUSED", (o.ly ?? "REFUSED") === "REFUSED" ? "TCC_BAN_LICH_KHAC" : null,
+    o.by === undefined ? o.party : o.by, T1, T2);
+const hanTho = (db: DatabaseSync, trip: string, party: string, han = NOW_MS) =>
+  db.prepare(`INSERT INTO vc_refuse_deadline (trip_id, driver_party_id, deadline_ms, lead_minutes, created_at, updated_at) VALUES (?, ?, ?, 720, ?, ?)`).run(trip, party, han, T1, T1);
+
+test("R-VC-26 (ADR-0053 B8.2): dòng lái REFUSED mà người đóng ≠ chính tài xế → vi phạm (fail); REFUSED đúng người / REASSIGNED → không đếm", () => {
+  const c = one("R-VC-26");
+  assert.equal(c.level, "fail");
+  const db = tho();
+  dongLaiTho(db, { trip: chuyenTho(db), party: "p-dong" });
+  dongLaiTho(db, { trip: chuyenTho(db), party: "p-dong", ly: "REASSIGNED", by: null });
+  assert.equal(violations(db, c), 0);
+  dongLaiTho(db, { trip: chuyenTho(db), party: "p-dong", by: "p-khac" });
+  assert.equal(violations(db, c), 1, "người khác đóng thay");
+  dongLaiTho(db, { trip: chuyenTho(db), party: "p-dong", by: null });
+  assert.equal(violations(db, c), 2, "REFUSED không có người đóng");
+});
+
+test("R-VC-27 (ADR-0053 B8.3): REFUSED ghi lúc/sau giờ xuất bến thật của chuyến → vi phạm (fail); trước xuất bến / chuyến chưa chạy → không đếm", () => {
+  const c = one("R-VC-27");
+  assert.equal(c.level, "fail");
+  const db = tho();
+  const xb = Date.parse(T3);
+  dongLaiTho(db, { trip: chuyenTho(db, { status: "RUNNING", departed: xb }), party: "p-dong", luc: T2 });
+  dongLaiTho(db, { trip: chuyenTho(db), party: "p-dong", luc: T4 });
+  assert.equal(violations(db, c), 0);
+  dongLaiTho(db, { trip: chuyenTho(db, { status: "RUNNING", departed: xb, xe: "xe-2" }), party: "p-dong", luc: T4 }); // một xe chỉ một chuyến đang chạy
+  assert.equal(violations(db, c), 1, "từ chối sau khi xe đã lăn bánh");
+  dongLaiTho(db, { trip: chuyenTho(db, { status: "ENDED", departed: xb, ended: xb + H }), party: "p-dong", luc: T3 });
+  assert.equal(violations(db, c), 2, "đúng giờ xuất bến cũng tính");
+});
+
+test("R-VC-28 (ADR-0053 B9.2, B9.3): khung bận DRIVER còn hiệu lực chồng chuyến chưa kết thúc đang xếp CHO NGƯỜI ĐÓ → đếm (warn); người khác / khung rút / chuyến xong → không", () => {
+  const c = one("R-VC-28");
+  assert.equal(c.level, "warn");
+  const db = tho();
+  const goc = Math.floor(NOW_MS / 60_000) * 60_000 + 24 * H;
+  db.prepare(`INSERT INTO vc_unavailability (id, subject, vehicle_id, driver_party_id, start_ms, end_ms, start_at, end_at, reason_code, created_at, updated_at)
+    VALUES ('kb-d', 'DRIVER', NULL, 'p-dong', ?, ?, ?, ?, 'BTX_OM', ?, ?)`).run(goc + 8 * H, goc + 12 * H, isoMs(goc + 8 * H), isoMs(goc + 12 * H), T1, T1);
+  laiTho(db, chuyenTho(db, { tu: goc + 9 * H, den: goc + 10 * H }), "p-khac");
+  laiTho(db, chuyenTho(db, { tu: goc + 12 * H, den: goc + 13 * H }), "p-dong"); // chạm mép — nửa mở
+  laiTho(db, chuyenTho(db, { tu: goc + 9 * H, den: goc + 10 * H, status: "ENDED", departed: goc + 9 * H, ended: goc + 10 * H }), "p-dong");
+  dongLaiTho(db, { trip: chuyenTho(db, { tu: goc + 10 * H, den: goc + 11 * H }), party: "p-dong" }); // đã từ chối — dòng đóng
+  assert.equal(violations(db, c), 0);
+  laiTho(db, chuyenTho(db, { tu: goc + 11 * H, den: goc + 13 * H }), "p-dong");
+  assert.equal(violations(db, c), 1, "chuyến đang xếp cho người bận");
+  db.prepare("UPDATE vc_unavailability SET withdrawn_at = ?, withdrawn_by = 's', version = 2, updated_at = ?, updated_by = 's' WHERE id = 'kb-d'").run(T2, T2);
+  assert.equal(violations(db, c), 0, "khung đã rút");
+});
+
+test("R-VC-29 (ADR-0053 D8.1): dòng lái ĐANG MỞ thiếu dòng hạn của cặp (tài xế, chuyến) → vi phạm (fail); dòng đóng không xét", () => {
+  const c = one("R-VC-29");
+  assert.equal(c.level, "fail");
+  const db = tho();
+  const t = chuyenTho(db);
+  laiTho(db, t, "p-dong");
+  hanTho(db, t, "p-dong");
+  dongLaiTho(db, { trip: chuyenTho(db), party: "p-dong", ly: "REASSIGNED", by: null });
+  assert.equal(violations(db, c), 0);
+  const t2 = chuyenTho(db);
+  laiTho(db, t2, "p-dong");
+  hanTho(db, t2, "p-khac"); // hạn của NGƯỜI KHÁC không tính
+  assert.equal(violations(db, c), 1);
+});
+
+test("R-VC-30 (ADR-0053 D8, cảnh báo): chuyến chưa chạy xuất bến trong 48 giờ tới mà chưa có tài xế → đếm (warn); có tài xế / ngoài 48 giờ / đã qua giờ / đã huỷ → không", () => {
+  const c = one("R-VC-30");
+  assert.equal(c.level, "warn");
+  const db = tho();
+  laiTho(db, chuyenTho(db, { tu: NOW_MS + 3 * H }), "p-dong");
+  chuyenTho(db, { tu: NOW_MS + 50 * H });
+  chuyenTho(db, { tu: NOW_MS - 2 * H });
+  const huy = chuyenTho(db, { tu: NOW_MS + 5 * H });
+  db.prepare("UPDATE vc_trip SET status = 'CANCELLED', cancel_reason_code = 'HUY_KHAC' WHERE id = ?").run(huy);
+  assert.equal(violations(db, c), 0);
+  dongLaiTho(db, { trip: chuyenTho(db, { tu: NOW_MS + 20 * H }), party: "p-dong" });
+  assert.equal(violations(db, c), 1, "tài xế đã từ chối, chưa xếp người khác");
+});
+
+// Chuyển khách giữa hai xe (ADR-0111, ADR-0052 D4 / D5c — gói A5 T11; mã do điều phối cấp — ĐỔI từ R-VC-26…30 thành R-VC-31…35 khi nhập nền A4, vì A4 đã dùng R-VC-26…30): lưới THỨ HAI sau trigger của 0093 (cân đóng = mở
+// không có trigger theo dòng — R-VC-31 là lưới duy nhất, "phát hiện, không chặn"). Dựng thô: gỡ thêm trigger của bảng vc_transfer_*. Mọi tên / số GIẢ.
+// ---------------------------------------------------------------------------------------------------------------------
+function thoCk(): DatabaseSync {
+  const db = tho();
+  for (const t of db.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name LIKE 'vc\\_transfer%' ESCAPE '\\'").all() as { name: string }[]) {
+    db.exec(`DROP TRIGGER ${t.name}`);
+  }
+  return db;
+}
+const uuidTho = (dau: string, n: number) => `${dau}0000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+/** Đề nghị thô đúng các CHECK của bảng: cột quyết định theo trạng thái; `cmd` = dấu lệnh quyết / đóng. */
+function deNghiTho(db: DatabaseSync, o: { from: string; to: string; scope?: "STOP" | "ONBOARD"; stop?: string; status?: string; mode?: "MAY" | "NGUOI"; cmd?: string }): { id: string; cmd: string } {
+  const n = ++soVc;
+  const id = uuidTho("f", n);
+  const cmd = o.cmd ?? uuidTho("c", n);
+  const status = o.status ?? "PENDING";
+  const scope = o.scope ?? "STOP";
+  const quyet = ["CONFIRMED", "ESCALATED", "DECLINED", "REJECTED"].includes(status);
+  const mode = status === "CONFIRMED" ? (o.mode ?? "MAY") : null;
+  db.prepare(`INSERT INTO vc_transfer_request (id, from_trip_id, to_trip_id, scope, from_stop_id, meet_place_text, pax_count, proposed_by_party_id, proposed_by_staff_id, proposed_at,
+      status, decided_mode, decided_by, decided_at, decided_cmd_id, decided_by_party_id, closed_cmd_id, policy_id, decline_reason_code, override_reason_code, reject_reason_code,
+      request_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 2, 'pty-xa', 's-an', ?, ?, ?, ?, ?, ?, ?, ?, 'pol', ?, ?, ?, ?, ?, ?)`)
+    .run(id, o.from, o.to, scope, scope === "STOP" ? (o.stop ?? "st-x") : null, scope === "ONBOARD" ? "Cây xăng" : null, T1, status, mode, quyet ? "s-admin" : null,
+      quyet ? T2 : null, quyet ? cmd : null, quyet ? "pty-xa" : null, ["PENDING", "ESCALATED"].includes(status) ? null : cmd,
+      status === "DECLINED" ? "TU_CHOI_DAY_CHO" : null, mode === "NGUOI" ? "PHA_LE_SU_CO" : null, status === "REJECTED" ? "TU_CHOI_KHAC" : null, `r${id.slice(1)}`, T1, T1);
+  return { id, cmd };
+}
+const kiemTho = (db: DatabaseSync, o: { transfer: string; cmd: string; rule: string; tier: string; ketQua: string }) =>
+  db.prepare(`INSERT INTO vc_transfer_check (id, transfer_id, cmd_id, rule_code, rule_tier, ket_qua, gia_tri, gioi_han, policy_row_id, checked_at, created_at, created_by, updated_at, updated_by)
+      VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, 'pol', ?, ?, 's-an', ?, 's-an')`).run(`kt-${++soVc}`, o.transfer, o.cmd, o.rule, o.tier, o.ketQua, T2, T2, T2);
+/** Suất nguồn đóng vì chuyển (TRANSFERRED + closed_transfer_id — CHECK của 0093 đòi hai cột đi cùng). */
+const dongChuyenTho = (db: DatabaseSync, trip: string, r: string) => {
+  const a = suatTho(db, { trip });
+  db.prepare("UPDATE vc_trip_allocation SET valid_to_at = ?, close_reason = 'TRANSFERRED', closed_transfer_id = ? WHERE id = ?").run(T2, r, a);
+  return a;
+};
+const moChuyenTho = (db: DatabaseSync, trip: string, r: string, o: { status?: string; board?: string } = {}) => {
+  const a = suatTho(db, { trip, status: o.status, board: o.board });
+  db.prepare("UPDATE vc_trip_allocation SET transfer_id = ? WHERE id = ?").run(r, a);
+  return a;
+};
+
+test("R-VC-31…35: đúng năm kiểm, mức fail", () => {
+  for (const code of ["R-VC-31", "R-VC-32", "R-VC-33", "R-VC-34", "R-VC-35"]) assert.equal(one(code).level, "fail", code);
+});
+
+test("R-VC-31 (Đ3 a): đề nghị CONFIRMED đóng bao nhiêu suất thì mở bấy nhiêu → 0; lệch (đóng thừa / mở thiếu) → đếm theo đề nghị; đề nghị chưa xác nhận không xét", () => {
+  const c = one("R-VC-31");
+  const db = thoCk();
+  const a = chuyenTho(db, { status: "RUNNING", departed: NOW_MS });
+  const b = chuyenTho(db, { status: "RUNNING", departed: NOW_MS, xe: "xe-2" });
+  const r = deNghiTho(db, { from: a, to: b, status: "CONFIRMED" }).id;
+  for (let i = 0; i < 2; i++) {
+    dongChuyenTho(db, a, r);
+    moChuyenTho(db, b, r);
+  }
+  deNghiTho(db, { from: a, to: b, status: "VOID" });
+  assert.equal(violations(db, c), 0, "đóng 2 mở 2");
+  dongChuyenTho(db, a, r);
+  assert.equal(violations(db, c), 1, "đóng 3 mở 2");
+  const r2 = deNghiTho(db, { from: a, to: b, status: "CONFIRMED" }).id;
+  moChuyenTho(db, b, r2);
+  assert.equal(violations(db, c), 2, "mở mà không đóng");
+});
+
+test("R-VC-32 (Đ3 a): suất TRANSFERRED / suất mở vì chuyển trỏ đề nghị CONFIRMED → 0; trỏ đề nghị chưa xác nhận → đếm", () => {
+  const c = one("R-VC-32");
+  const db = thoCk();
+  const a = chuyenTho(db, { status: "RUNNING", departed: NOW_MS });
+  const b = chuyenTho(db, { status: "RUNNING", departed: NOW_MS, xe: "xe-2" });
+  const r = deNghiTho(db, { from: a, to: b, status: "CONFIRMED" }).id;
+  dongChuyenTho(db, a, r);
+  moChuyenTho(db, b, r);
+  assert.equal(violations(db, c), 0);
+  dongChuyenTho(db, a, deNghiTho(db, { from: a, to: b, status: "ESCALATED" }).id);
+  assert.equal(violations(db, c), 1, "đóng TRANSFERRED theo đề nghị đang leo thang");
+  moChuyenTho(db, b, deNghiTho(db, { from: a, to: b }).id);
+  assert.equal(violations(db, c), 2, "mở suất theo đề nghị đang chờ");
+  // (TRANSFERRED mà thiếu closed_transfer_id: CHECK của bảng chặn ngay cả khi gỡ trigger — câu kiểm vẫn phủ, phòng lần dựng lại bảng làm mất CHECK.)
+});
+
+test("R-VC-33 (Đ1 + D4): đề nghị CONFIRMED mà dòng kiểm của LẦN QUYẾT có điều kiện tầng LOI không đạt → đếm (cả MAY lẫn NGUOI); CAU_HINH không đạt / dòng của lần bấm cũ không xét", () => {
+  const c = one("R-VC-33");
+  const db = thoCk();
+  const a = chuyenTho(db, { status: "RUNNING", departed: NOW_MS });
+  const b = chuyenTho(db);
+  const n1 = deNghiTho(db, { from: a, to: b, status: "CONFIRMED", mode: "NGUOI" });
+  kiemTho(db, { transfer: n1.id, cmd: n1.cmd, rule: "MOC_TOI_THIEU", tier: "CAU_HINH", ketQua: "KHONG_DAT" });
+  kiemTho(db, { transfer: n1.id, cmd: n1.cmd, rule: "SUC_CHUA_DICH", tier: "LOI", ketQua: "DAT" });
+  kiemTho(db, { transfer: n1.id, cmd: uuidTho("b", ++soVc), rule: "GIAY_TO_DICH", tier: "LOI", ketQua: "KHONG_DAT" }); // lần Nhận cũ (đã leo thang), sau đó giấy tờ được bổ sung
+  assert.equal(violations(db, c), 0, "phá lệ được điều kiện cấu hình; dòng kiểm cũ không tính");
+  kiemTho(db, { transfer: n1.id, cmd: n1.cmd, rule: "GIAY_TO_DICH", tier: "LOI", ketQua: "KHONG_DAT" });
+  assert.equal(violations(db, c), 1, "người duyệt vượt điều kiện tầng LOI");
+  const m = deNghiTho(db, { from: a, to: b, status: "CONFIRMED", mode: "MAY" });
+  kiemTho(db, { transfer: m.id, cmd: m.cmd, rule: "SUC_CHUA_DICH", tier: "LOI", ketQua: "KHONG_DAT" });
+  assert.equal(violations(db, c), 2, "máy tự xác nhận khi có điều kiện LOI không đạt");
+  const bac = deNghiTho(db, { from: a, to: b, status: "REJECTED" });
+  kiemTho(db, { transfer: bac.id, cmd: bac.cmd, rule: "SUC_CHUA_DICH", tier: "LOI", ketQua: "KHONG_DAT" });
+  assert.equal(violations(db, c), 2, "đề nghị bị bác không xét");
+});
+
+test("R-VC-34 (Đ1): tầng của dòng kiểm khớp danh mục → 0; lệch tầng / mã ngoài danh mục → đếm", () => {
+  const c = one("R-VC-34");
+  const db = thoCk();
+  const n = deNghiTho(db, { from: chuyenTho(db, { status: "RUNNING", departed: NOW_MS }), to: chuyenTho(db), status: "ESCALATED" });
+  kiemTho(db, { transfer: n.id, cmd: n.cmd, rule: "SUC_CHUA_DICH", tier: "LOI", ketQua: "DAT" });
+  kiemTho(db, { transfer: n.id, cmd: n.cmd, rule: "MOC_TOI_THIEU", tier: "CAU_HINH", ketQua: "KHONG_DAT" });
+  assert.equal(violations(db, c), 0);
+  kiemTho(db, { transfer: n.id, cmd: n.cmd, rule: "GIAY_TO_DICH", tier: "CAU_HINH", ketQua: "KHONG_DAT" });
+  assert.equal(violations(db, c), 1, "điều kiện LOI ghi thành CAU_HINH (người duyệt sẽ phá lệ được)");
+  kiemTho(db, { transfer: n.id, cmd: n.cmd, rule: "MA_LA", tier: "LOI", ketQua: "DAT" });
+  assert.equal(violations(db, c), 2, "mã ngoài danh mục");
+});
+
+test("R-VC-35 (MQ-09): đề nghị đang chờ / leo thang mà điểm nguồn hết PENDING, xe nhờ hết chạy, hoặc xe nhận hết PLANNED / RUNNING → đếm; đề nghị đã đóng không xét", () => {
+  const c = one("R-VC-35");
+  const db = thoCk();
+  const a = chuyenTho(db, { status: "RUNNING", departed: NOW_MS });
+  const b = chuyenTho(db);
+  const d1 = diemTho(db, { trip: a });
+  const d2 = diemTho(db, { trip: a, seq: 2 });
+  deNghiTho(db, { from: a, to: b, stop: d1 });
+  deNghiTho(db, { from: a, to: b, stop: d1, status: "ESCALATED" });
+  deNghiTho(db, { from: a, to: b, scope: "ONBOARD" });
+  deNghiTho(db, { from: a, to: b, stop: d2, status: "VOID" });
+  db.prepare("UPDATE vc_trip_stop SET status = 'ARRIVED', arrived_at = ? WHERE id = ?").run(T2, d2);
+  assert.equal(violations(db, c), 0, "đề nghị đóng ở điểm đã tới: không xét");
+  db.prepare("UPDATE vc_trip_stop SET status = 'ARRIVED', arrived_at = ? WHERE id = ?").run(T2, d1);
+  assert.equal(violations(db, c), 2, "hai đề nghị chờ / leo thang của điểm đã tới");
+  const a2 = chuyenTho(db, { status: "ENDED", departed: NOW_MS, ended: NOW_MS + H });
+  deNghiTho(db, { from: a2, to: b, scope: "ONBOARD" });
+  assert.equal(violations(db, c), 3, "xe nhờ đã kết thúc");
+  const b2 = chuyenTho(db);
+  db.prepare("UPDATE vc_trip SET status = 'CANCELLED', cancel_reason_code = 'HUY_KHAC' WHERE id = ?").run(b2);
+  deNghiTho(db, { from: a, to: b2, scope: "ONBOARD" });
+  assert.equal(violations(db, c), 4, "xe nhận đã huỷ");
+});
+
+test("R-VC-16 nới N3 (ADR-0052 :72, D5c): suất chuyển theo đề nghị ONBOARD lên ở NƠI GẶP (điểm danh mục khác nơi đón của chặng) → không báo; suất thường cùng hình → vẫn báo", () => {
+  const c = one("R-VC-16");
+  const db = thoCk();
+  const d = donTho(db, { loc: "loc-1" });
+  const a = chuyenTho(db, { status: "ENDED", departed: NOW_MS, ended: NOW_MS + H });
+  const b = chuyenTho(db, { status: "RUNNING", departed: NOW_MS });
+  const gap = diemTho(db, { trip: b, loc: "loc-gap" });
+  const r = deNghiTho(db, { from: a, to: b, scope: "ONBOARD", status: "CONFIRMED" }).id;
+  db.prepare("UPDATE vc_transfer_request SET meet_place_text = NULL, meet_location_id = 'loc-gap' WHERE id = ?").run(r);
+  const s = moChuyenTho(db, b, r, { status: "BOARDED", board: gap });
+  db.prepare("UPDATE vc_trip_allocation SET leg_id = ? WHERE id = ?").run(d.leg, s);
+  assert.equal(violations(db, c), 0, "nơi gặp của cứu hộ không phải nơi hẹn đã đổi");
+  suatTho(db, { trip: b, leg: d.leg, board: gap });
+  assert.equal(violations(db, c), 1, "suất không do chuyển mà lên ở điểm khác nơi đón: vẫn báo");
+});
+
+test("R-VC-SUA-1 (c) theo trigger thu hồi mới của 0093 (ADR-0111 Đ5): đề nghị chưa thành ở chuyến không là tiến độ → không đếm; xe đã nhận khách (TRANSFER_CONFIRMED ở chuyến) hoặc đã giao khách (TRANSFER_CONFIRMED trỏ chuyến) → đếm", () => {
+  const c = one("R-VC-SUA-1");
+  const db = thoCk();
+  const t = chuyenTho(db);
+  for (const kind of ["DEPARTED", "TRANSFER_SENT", "TRANSFER_ESCALATED", "TRANSFER_REJECTED", "DEPARTURE_REVOKED"]) suKienTho(db, { trip: t, kind, nhatKy: null });
+  assert.equal(violations(db, c), 0, "xe nhận thu hồi xuất bến khi chỉ có đề nghị chưa thành");
+  const nhan = chuyenTho(db, { xe: "xe-2" });
+  for (const kind of ["DEPARTED", "TRANSFER_CONFIRMED", "DEPARTURE_REVOKED"]) suKienTho(db, { trip: nhan, kind, nhatKy: null });
+  assert.equal(violations(db, c), 1, "xe nhận đã nhận khách rồi thu hồi");
+  const nho = chuyenTho(db, { xe: "xe-3" });
+  suKienTho(db, { trip: nho, kind: "DEPARTED", nhatKy: null });
+  const xn = suKienTho(db, { trip: chuyenTho(db, { xe: "xe-4" }), kind: "TRANSFER_CONFIRMED", nhatKy: null });
+  db.prepare("UPDATE vc_trip_event SET related_trip_id = ? WHERE id = ?").run(nho, xn);
+  suKienTho(db, { trip: nho, kind: "DEPARTURE_REVOKED", nhatKy: null });
+  assert.equal(violations(db, c), 2, "xe nhờ đã giao khách rồi thu hồi");
 });
 
 // ---------------------------------------------------------------------------------------------------------------------

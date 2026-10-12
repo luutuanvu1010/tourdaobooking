@@ -21,6 +21,7 @@ import { khoiNhapKeToan } from "./nhap-ke-toan-ui";
 import type { DiemChon } from "./khoi-dua-don";
 import { openSheetDuaDon } from "./sheet-dua-don";
 import { openSheetHanhKhach } from "./sheet-hanh-khach";
+import { openSheetSoKhach } from "./sheet-so-khach";
 import { CAU_CAN_NOI_TRA, canhBaoXacNhan, thieuNoiTra } from "../src/shared/canh-bao-xac-nhan";
 import { dongThongTinQr } from "../src/shared/qr-thong-tin";
 import { PAX_LABEL } from "../src/shared/order-lines";
@@ -38,8 +39,11 @@ import { NO_HANDLER_TEXT, handlerControls, handlerFailure, handlerSaved, hoiDuoc
 import { HANDLER_HIDDEN } from "../src/shared/order-confirmation";
 import { type PaxCounts } from "../src/shared/order-lines";
 import { banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
+import { cauDongBoChuyen } from "../src/shared/dong-bo-chuyen-cau";
 import { cauKhoaXacNhan, khongQuyenSuaText, orderActions, paxFullText, suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
 import { CHUA_XEP_XE, dongXeTrenDon, duocXemXeTrenDon } from "../src/shared/xe-tren-don";
+import { canhBaoGiamGiaVuot, duocSuaSoKhachVanPhong, nguonBangSuaSoKhach } from "../src/shared/so-khach-van-phong";
+import type { MoneyEditSource } from "../src/shared/viec-cua-toi";
 import type { SuKienDon } from "../src/shared/bang-tin";
 
 const id = new URLSearchParams(location.search).get("id");
@@ -61,6 +65,8 @@ let xeDon: Api.XeCuaDonResponse | null = null;
 let nhapKt: Api.NhapKeToanResponse | null = null;
 /** Danh sách hành khách (ADR-0047 A2, `GET /passengers`); null = chưa tải được — ẩn khối "Hành khách", bỏ cảnh báo thiếu tên (không đoán). */
 let khachDon: Api.PassengerListResponse | null = null;
+/** Loại khách văn phòng sửa được sau xác nhận (ADR-0063 D1) — máy chủ gửi kèm đơn; `null` = không có nút "Sửa số khách dịch vụ". */
+let suaSoKhach: Api.SuaSoKhachDichVuDto[] | null = null;
 
 // Form lập đơn ghi tiền trả trước ở BƯỚC HAI (sổ tiền lượt 1, NT-S6); bước đó hỏng thì chuyển tới đây kèm `thutruoc=loi` — báo một lần, bỏ tham số ngay.
 let baoThuTruocLoi = new URLSearchParams(location.search).get("thutruoc") === "loi";
@@ -101,6 +107,17 @@ function show(b: Banner | null): void {
     reloadPage: () => location.reload(),
     editHref: (serviceId) => `/order-form?id=${encodeURIComponent(id!)}&focus=${encodeURIComponent(serviceId)}`,
   });
+}
+
+/**
+ * Sau lệnh đơn nối máy đồng bộ chuyến (ADR-0104 Đ2, kế hoạch §8): có câu nhắc (xe đang chạy → "Báo huỷ"; cập nhật tay) thì dải VÀNG mang câu đó thay dải xanh
+ * "đã lưu"; không có thì dải xanh như cũ (`xong` null = không dải xanh). `them` = dòng vàng sẵn có của lệnh (vd tổng tiền âm). Tải lại lỗi thì giữ banner lỗi.
+ */
+function baoSauLenh(xong: string, xanh: string | null, dongBo: readonly (Api.DongBoChuyenDto | undefined)[], them: readonly string[] = []): void {
+  if (!bannerEl.hidden) return;
+  const cau = [...them, ...cauDongBoChuyen(dongBo)];
+  if (cau.length > 0) show(banner("warning", xong, { lines: cau.map((text) => ({ text })) }));
+  else if (xanh !== null) show(banner("info", xanh));
 }
 
 /** Lỗi của máy chủ → banner theo ma trận đặc tả 5.2 (incomplete_trip có danh sách thiếu); lỗi mạng → câu chung. */
@@ -269,10 +286,10 @@ function nutSuaDuaDon(order: Order): HTMLButtonElement {
     btn.disabled = false;
     openSheetDuaDon(
       {
-        order, diem, coDatGap: can(staff!, "order.leg.short_notice"),
-        onSaved: () =>
+        order, diem, coDatGap: can(staff!, "order.leg.short_notice"), mocPhut,
+        onSaved: (dongBo) =>
           void load().then(() => {
-            if (bannerEl.hidden) show(banner("info", "Đã lưu đưa đón."));
+            baoSauLenh("Đã lưu đưa đón.", "Đã lưu đưa đón.", dongBo);
             document.querySelector<HTMLElement>('[data-action="sua-dua-don"]')?.focus();
           }),
         onReload: () => void load(),
@@ -289,9 +306,9 @@ function nutSuaDanhSach(order: Order, ds: Api.PassengerListResponse): HTMLButton
     openSheetHanhKhach(
       {
         orderId: order.id, ds,
-        onSaved: () =>
+        onSaved: (dongBo) =>
           void load().then(() => {
-            if (bannerEl.hidden) show(banner("info", "Đã lưu danh sách hành khách."));
+            baoSauLenh("Đã lưu danh sách hành khách.", "Đã lưu danh sách hành khách.", [dongBo]);
             document.querySelector<HTMLElement>('[data-action="sua-danh-sach"]')?.focus();
           }),
         onReload: () => void load(),
@@ -463,6 +480,9 @@ function tienCard(order: Order): HTMLElement {
     rows.push(t.du > 0 ? kv("Khách trả dư", `${vnd(t.du)} — chờ Kế toán hoàn`, "strong") : kv("Còn lại", vnd(t.conLai), "strong"));
   } else rows.push(kv("Đã thu / còn lại", "Chưa tải được"));
   rows.push(kv("Ghi chú thanh toán", order.paymentNote));
+  // ADR-0063 D1 + ADR-0109 QĐ3: bớt khách tới mức giảm giá lớn hơn tạm tính KHÔNG bị chặn — câu cảnh báo hiện thường trực trên khối tiền (phải thu đã kẹp 0).
+  const tongAm = order.status === "confirmed" ? canhBaoGiamGiaVuot(order) : null;
+  if (tongAm) rows.push(h("p", { class: "dd-canh-xn", "data-canh-bao": "tong-am" }, icon("alert", 16), tongAm));
   const lanThu =
     t && t.lanThu.length
       ? h(
@@ -1124,6 +1144,9 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
   const suaChuyen = suaChuyenDuoc(staff!, order.staffId, canModify);
   const a = orderActions(order.status, canModify, suaChuyen);
   const suaKhach = suaKhachDuoc(staff!, order.staffId, canModify) && order.deliveredAt === null;
+  // ADR-0063 D1: người lập đơn (Bán hàng), Kế toán, Quản trị, Toàn quyền sửa số khách đơn đã xác nhận, chưa Đã giao — cùng luật ẩn/hiện với máy chủ
+  // (`duocSuaSoKhachVanPhong`, hỏi bảng quyền) VÀ máy chủ phải gửi loại khách sửa được (`suaSoKhach`); không dịch vụ nào sửa được thì không có nút.
+  const nguonSoKhach = duocSuaSoKhachVanPhong(staff!, order) ? nguonBangSuaSoKhach(order.services, suaSoKhach) : null;
   // Nút sửa của hai khối mới: đơn đã xác nhận → bảng trượt (M4, M5); đơn nháp → về biểu mẫu đơn (M1, M2).
   const formHref = `/order-form?id=${encodeURIComponent(order.id)}`;
   const nutDuaDon =
@@ -1156,7 +1179,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
     order.deliveredAt
       ? h("p", { class: "lock-note" }, icon("lock", 18), order.completedAt ? "Đơn đã Hoàn thành — đơn đã khoá." : "Đơn đã Đã giao – đã thu đủ — đơn đã khoá, không sửa, huỷ hay đổi người phụ trách được nữa.")
       : a.locked
-        ? h("p", { class: "lock-note" }, icon("lock", 18), cauKhoaXacNhan(a.editTrip, suaKhach)) // D5 (bản vẽ M3): câu khoá theo những gì người xem còn sửa được
+        ? h("p", { class: "lock-note" }, icon("lock", 18), cauKhoaXacNhan(a.editTrip, suaKhach, nguonSoKhach !== null)) // D5 (bản vẽ M3): câu khoá theo những gì người xem còn sửa được
         : null,
 
     h(
@@ -1233,16 +1256,17 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
   const btns: HTMLElement[] = [];
   // Quyền sửa/xác nhận/huỷ do MÁY CHỦ quyết (`canModify`, kể cả người phụ trách — ADR-0009); câu này chỉ giải thích cho người không có quyền.
   // Hướng dẫn viên LÀ người phụ trách mà không sửa được (order.modify FIELD = none) → câu riêng, không nói "người phụ trách đơn … mới được sửa" (`khongQuyenSuaText`).
-  if (a.noPermission && !order.deliveredAt) btns.push(h("p", { class: "muted" }, khongQuyenSuaText({ ownerName: order.staffName, status: order.status, viewer: staff! })));
+  if (a.noPermission && !order.deliveredAt) btns.push(h("p", { class: "muted" }, khongQuyenSuaText({ ownerName: order.staffName, status: order.status, viewer: staff!, suaSoKhach: nguonSoKhach !== null })));
   if (a.edit) btns.push(h("a", { class: "btn", href: `/order-form?id=${encodeURIComponent(order.id)}` }, "Sửa"));
   // Bản vẽ 7a / 7b: còn chặng phải đặt gấp → nút Xác nhận khoá + dòng nói vì sao (Bán hàng: "Cần Quản trị duyệt đặt gấp"; Quản trị: "Duyệt đặt gấp xong thì xác nhận được.").
   const chanXacNhan = a.confirm ? tomTatChanXacNhan(canDatGap, duocDatGap) : null;
   if (a.confirm) {
-    const nut = change("Xác nhận đơn", "confirmed", "Xác nhận đơn này? Sau khi xác nhận, dịch vụ, số khách và tiền sẽ bị khoá — chỉ còn sửa được thông tin chuyến.", "btn btn-accent", canhBaoXN);
+    const nut = change("Xác nhận đơn", "confirmed", "Xác nhận đơn này? Sau khi xác nhận, dịch vụ và đơn giá sẽ bị khoá; đổi số khách phải ghi lý do.", "btn btn-accent", canhBaoXN);
     nut.disabled = chanXacNhan !== null;
     btns.push(nut);
   }
   if (a.editTrip) btns.push(editTripButton(order));
+  if (nguonSoKhach) btns.push(nutSuaSoKhach(order, nguonSoKhach));
   if (a.cancel) btns.push(nutHuyDon());
   for (const cau of canhBaoXN) btns.push(h("p", { class: "dd-canh-xn", "data-canh-bao": "xac-nhan" }, icon("alert", 16), cau));
   if (chanXacNhan) btns.push(duocDatGap ? h("p", { class: "dg-lock dg-lock-note", "data-chan": "xac-nhan" }, chanXacNhan) : h("p", { class: "dg-lock", "data-chan": "xac-nhan" }, icon("lock", 16), chanXacNhan));
@@ -1269,6 +1293,34 @@ function bookerButton(order: Order): HTMLButtonElement {
             focusChangeBooker();
           }),
         onReload: () => void load().then(focusChangeBooker),
+      },
+      btn,
+    ),
+  );
+  return btn;
+}
+
+const focusSoKhach = (): void => document.querySelector<HTMLElement>('[data-action="sua-so-khach"]')?.focus();
+
+/** Đơn đã xác nhận, chưa Đã giao: mở bảng "Sửa số khách dịch vụ" (web/sheet-so-khach.ts). Lưu xong tải lại đơn; giảm giá vượt tạm tính thì dải vàng kèm câu cảnh báo. */
+function nutSuaSoKhach(order: Order, nguon: MoneyEditSource[]): HTMLButtonElement {
+  const btn = h("button", { type: "button", class: "btn", "data-action": "sua-so-khach" }, "Sửa số khách dịch vụ");
+  btn.addEventListener("click", () =>
+    openSheetSoKhach(
+      {
+        orderId: order.id,
+        tenDichVu: order.services.map((s) => s.name),
+        nguon,
+        onSaved: (r) =>
+          void load().then(() => {
+            // tải lại lỗi thì giữ banner lỗi, không đè (baoSauLenh)
+            const xanh = r.daGhi ? "Đã lưu số khách mới, Nền tảng đã tính lại tiền." : "Số khách không đổi nên không ghi gì.";
+            // Tiêu đề "Đã lưu…" chỉ khi đã ghi (phiếu phản biện ADR-0109 thiếu 9); câu cảnh báo giảm giá vượt (ADR-0109) đi kèm như dòng phụ.
+            const vang = r.daGhi ? "Đã lưu số khách mới — giảm giá đang lớn hơn tiền dịch vụ." : xanh;
+            baoSauLenh(r.canhBaoTongAm ? vang : xanh, xanh, [r.dongBoChuyen], r.canhBaoTongAm ? [r.canhBaoTongAm] : []);
+            focusSoKhach();
+          }),
+        onReload: () => void load().then(focusSoKhach),
       },
       btn,
     ),
@@ -1341,11 +1393,12 @@ function nutHuyDon(): HTMLElement {
       nut.disabled = true;
       show(null);
       try {
-        await api(`/api/orders/${encodeURIComponent(id!)}/status`, {
+        const r = await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(id!)}/status`, {
           method: "POST",
           body: chon === "OTHER" ? { status: "cancelled", lyDo: chon, ghiChu: ghiChu.value.trim() } : { status: "cancelled", lyDo: chon },
         });
         await load();
+        baoSauLenh("Đã huỷ đơn.", null, [r.dongBoChuyen]); // ADR-0104 Đ2: chỉ hiện khi có câu nhắc (huỷ đơn vốn không có dải xanh)
       } catch (err) {
         show(errorBanner(err));
         capNhat();
@@ -1382,9 +1435,10 @@ async function load(quiet = false): Promise<void> {
   const seq = ++loadSeq;
   try {
     // Người phụ trách tải song song với đơn; lời gọi của nó không bao giờ ném lỗi (xem loadHandler) nên đơn luôn hiển thị được.
-    const [{ order, history, canModify, mocToiThieuPhut }, handler, tienDon, xe, nhapKtDon, khach] = await Promise.all([layDon!(), layNguoiPhuTrach(id!), layTien(id!), layXe(id!), layNhapKt(id!), layKhach(id!)]);
+    const [{ order, history, canModify, mocToiThieuPhut, suaSoKhach: soKhach }, handler, tienDon, xe, nhapKtDon, khach] = await Promise.all([layDon!(), layNguoiPhuTrach(id!), layTien(id!), layXe(id!), layNhapKt(id!), layKhach(id!)]);
     if (seq !== loadSeq) return;
     mocPhut = mocToiThieuPhut;
+    suaSoKhach = soKhach;
     tien = tienDon;
     xeDon = xe;
     nhapKt = nhapKtDon;

@@ -31,11 +31,11 @@ import { partiesModule } from "./modules/parties";
 import { nguoiHuongCuaHoSo, pricingModule } from "./modules/pricing";
 import { cauDoiNguoiDat, donCuaNguoiDat, findOrderRef, ordersModule } from "./modules/orders";
 import { accountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo } from "./modules/staff";
-import { dayGoCua, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
+import { dayGoCua, dayGoCuaDoi, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
-import { chuyenChoTinTheoId, mocToiThieuHienHanh, nguongHetHanHienHanh, suKienTheoYeuCau, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
+import { chuyenChoTinTheoId, dongBoChuyenChoDon, mocToiThieuHienHanh, nguongHetHanHienHanh, suKienTheoYeuCau, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
 import { HANDLER_TRUOC_KHONG_BIET, nhanSuKien, nhanSuKienChuyen } from "./shared/bang-tin";
-import { dangChayLucSuKien, laHanhDongTinChuyen, taiXeNhanSuKien, thayDoiCuaHanhDongChuyen } from "./shared/tin-chuyen";
+import { dangChayLucSuKien, dongCoTheSinhTin, taiXeNhanSuKien, thayDoiCuaHanhDongChuyen } from "./shared/tin-chuyen";
 import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
 import { holdsPartner } from "./shared/permissions";
 import { createApp, type AppOptions } from "./shared/router";
@@ -71,7 +71,7 @@ const APP_OPTIONS: AppOptions = {
     partyAccount: (env, staff, partyId) => accountOfParty(env.DB, staff, partyId),
     // BẢNG TIN (ADR-0022). Router gọi bắn-và-quên (exec.waitUntil + bắt lỗi → một dòng `bang_tin_loi`): việc phát được BẮT ĐẦU ở một microtask ngay khi route gọi, chạy SONG SONG
     // với việc dựng phản hồi HTTP nên khung tin có thể tới trình duyệt TRƯỚC hoặc SAU phản hồi của chính thao tác đó; lỗi ở đây không làm hỏng/chậm thao tác ghi (DP-3). `_actor` (người vừa thao tác) giữ trong chữ ký cho Web Push giai đoạn sau — KHÔNG đưa vào sự kiện (điều 4: đúng 5 khoá).
-    baoThayDoi: async (env, actor, e) => {
+    baoThayDoi: async (env, actor, e, batDau) => {
       // Kiểm TRƯỚC hai lần đọc D1: không trạm VÀ không khoá gõ cửa (khung thử, e2e) → không đọc gì.
       if (!env.BANG_TIN && !khoaVapid(env)) return;
       const [ref, handlerSau] = await Promise.all([findOrderRef(env.DB, e.orderId), handlerOf(env.DB, e.orderId)]);
@@ -85,6 +85,11 @@ const APP_OPTIONS: AppOptions = {
       // mặc định ở đây: bài hàng rào "(2)" ở `src/shared/bang-tin.test.ts` đọc chính dòng này và đỏ nếu đối số khác `e.handlerTruoc ?? HANDLER_TRUOC_KHONG_BIET`.
       const luc = new Date().toISOString();
       const action = hanhDongCuaThayDoi(thayDoi);
+      // ADR-0062 Đ4 + ADR-0052 D6.2 MQ-07: lệnh báo "chuyen" (chuyến / chặng / đặt gấp) hay "tien" (số khách, sổ tiền) → gõ cửa theo DÒNG ĐỔI mà CHÍNH request
+      // này ghi (đọc lại từ v_aud_order_change qua thongbao, của người này trên đơn, ghi từ `batDau` — mốc router chụp trước handler). Lệnh không ghi dòng đổi
+      // (ghi lần thu, đặt gấp, số khách y nguyên) → không có dòng → không gõ cửa. Route KHÔNG truyền chữ nhật ký qua ctx, nên sự kiện Bảng tin vẫn đúng id +
+      // loại; cùng hàm locHopThongBao với hộp thư (mỗi người tối đa một tin: MQ-07 hoặc tin đơn đổi). Câu trên màn hình khoá do GET …/moi-nhat đọc lại từ hộp thư.
+      const tinDoi = action === null && (thayDoi === "chuyen" || thayDoi === "tien") && khoaVapid(env) !== null;
       // Hai việc ĐỘC LẬP: trạm lỗi thì vẫn gõ cửa, và ngược lại.
       await nemNeuLoi([
         ["tram", phatDon(
@@ -92,7 +97,7 @@ const APP_OPTIONS: AppOptions = {
           { loai: "don", orderId: e.orderId, maDon: ref.orderCode, thayDoi, luc },
           nhanSuKien({ ownerId: ref.staffId, handlerTruoc: e.handlerTruoc ?? HANDLER_TRUOC_KHONG_BIET, handlerSau }),
         )],
-        ["day", action === null ? null : dayGoCua(env, {
+        ["day", tinDoi ? dayGoCuaDoi(env, e.orderId, actor.id, batDau, (q) => chuyenChoTinTheoId(env.DB, q), (ds) => xepHangDay(env, ds)) : action === null ? null : dayGoCua(env, {
           don: {
             id: "day", orderId: e.orderId, maDon: ref.orderCode, action, actorId: actor.id, tenNguoiLam: null, luc, ownerId: ref.staffId,
             phuTrach: handlerSau, lapChuaCoNguoi: thayDoi === "tao_cho_nhan", cungLoLap: false,
@@ -117,7 +122,8 @@ const APP_OPTIONS: AppOptions = {
       const thayDoi = thayDoiCuaHanhDongChuyen(dong.action, dangChayLucSuKien(dong)); // Đợt 5: đổi khi xe đang chạy → "xe_chay"
       await nemNeuLoi([
         ["tram", Promise.all(f.chuyen.map((c) => phatChuyen(env, { loai: "chuyen", maChuyen: c.ma, thayDoi, luc: dong.luc }, nhanSuKienChuyen(taiXeNhanSuKien(dangHoatDong, c.lai, dong.luc)))))],
-        ["day", laHanhDongTinChuyen(dong.action) ? dayGoCua(env, { chuyen: dong, quanTrong: false }, (ds) => xepHangDay(env, ds)) : null],
+        // Phiếu kiểm D1 CAO-3: xếp / rút / dời KHÔNG khẩn cấp không sinh tin cho ai — không gõ cửa (không đọc máy nhận, tài khoản).
+        ["day", dongCoTheSinhTin(dong) ? dayGoCua(env, { chuyen: dong, quanTrong: false }, (ds) => xepHangDay(env, ds)) : null],
       ]);
     },
     // Đóng kết nối Bảng tin (mọi lần gọi) + tắt mọi máy nhận thông báo điện thoại của tài khoản đó CHỈ khi `tatThongBao` (ADR-0046: thao tác bảo
@@ -159,6 +165,9 @@ const APP_OPTIONS: AppOptions = {
     giaoLoDay: (env, ds) => xepHangDay(env, ds),
     // MỐC TỐI THIỂU (ADR-0049 D2, I25): `orders` không đọc bảng vc_ — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố của van-chuyen (TC-26, A12 quét nơi gọi).
     mocToiThieu: (env) => mocToiThieuHienHanh(env.DB),
+    // ĐỒNG BỘ CHUYẾN THEO ĐƠN (ADR-0104 Đ2.1): orders / dispatch không import van-chuyen — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố (bài siết architecture.test.ts).
+    // `env` ở đây là env BỌC của lệnh (router truyền envH): câu chuyến đi vào CHÍNH lô của lệnh đơn. Không gọi hàm hẹp của orders (src/CLAUDE.md, phán quyết G10).
+    dongBoChuyen: (env, actor, x) => dongBoChuyenChoDon(env.DB, actor, x),
     // TIN CHUYẾN (ADR-0052 D6.3): thongbao không đọc bảng vc_ — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố của van-chuyen (bài siết architecture.test.ts).
     chuyenChoTin: (env, q) => chuyenChoTinTheoId(env.DB, q),
     // MỐC SẮP HẾT HẠN (ADR-0040 D1, GB2/R23): parties không đọc bảng vc_ — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố của van-chuyen.

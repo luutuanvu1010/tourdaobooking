@@ -11,9 +11,9 @@ import type { DepartureRuleDto, DispatchPolicyDto, TripReasonDto } from "./contr
 
 const chinhSach = (o: Partial<DispatchPolicyDto> = {}): DispatchPolicyDto => ({
   id: "p1", minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, requireContract: false, proxyBackdateMaxMinutes: 180,
-  dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, validFrom: "2026-09-01T00:00:00.000Z", current: true, nguoiLuu: null, ...o,
+  dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720, refuseLeadMinutes: 720, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer: true, validFrom: "2026-09-01T00:00:00.000Z", current: true, nguoiLuu: null, ...o,
 });
-const form = (o: Partial<Parameters<typeof docFormChinhSach>[0]> = {}) => ({ mocGio: "6", satMocGio: "2", nghiPhut: "30", khaiLuiPhut: "180", gioLaiGio: "8", chuyenDaiGio: "4", duDanhSach: true, ...o });
+const form = (o: Partial<Parameters<typeof docFormChinhSach>[0]> = {}) => ({ mocGio: "6", satMocGio: "2", nghiPhut: "30", khaiLuiPhut: "180", gioLaiGio: "8", chuyenDaiGio: "4", cuaSoGio: "12", hanTuChoiGio: "12", sdtVanPhong: "", duDanhSach: true, choNhanPhut: "10", tuDongY: true, ...o });
 
 test("nhanThoiLuong: số phút → lời thường (giờ tròn, giờ + phút, phút)", () => {
   assert.equal(nhanThoiLuong(360), "6 giờ");
@@ -33,11 +33,12 @@ test("gioTuPhut: giá trị ô giờ — tròn thì số nguyên, lẻ thì th�
   }
 });
 
-test("docFormChinhSach: hợp lệ → thân POST đúng bảy khoá (không ngày hiệu lực, không hợp đồng; hai con số giờ lái ADR-0055 VK2-B — K2: ô theo GIỜ) và máy chủ nhận", () => {
+test("docFormChinhSach: hợp lệ → thân POST đúng tám khoá (không ngày hiệu lực, không hợp đồng; hai con số giờ lái ADR-0055 VK2-B, cửa sổ xuất bến ADR-0096 Đ2 — ô theo GIỜ) và máy chủ nhận", () => {
   const r = docFormChinhSach(form({ mocGio: "5", satMocGio: "1,5", nghiPhut: "45", khaiLuiPhut: "240", gioLaiGio: "9", chuyenDaiGio: "4,5", duDanhSach: false }));
   assert.ok(r.ok);
-  assert.deepEqual(r.value, { minLeadMinutes: 300, warnLeadMinutes: 90, restMinutes: 45, requireManifest: false, proxyBackdateMaxMinutes: 240, dutyDayMaxMinutes: 540, tripNoBreakMaxMinutes: 270 });
-  assert.deepEqual(Object.keys(r.value).sort(), ["dutyDayMaxMinutes", "minLeadMinutes", "proxyBackdateMaxMinutes", "requireManifest", "restMinutes", "tripNoBreakMaxMinutes", "warnLeadMinutes"]);
+  assert.deepEqual(r.value, { minLeadMinutes: 300, warnLeadMinutes: 90, restMinutes: 45, requireManifest: false, proxyBackdateMaxMinutes: 240, dutyDayMaxMinutes: 540, tripNoBreakMaxMinutes: 270, departureWindowMinutes: 720, refuseLeadMinutes: 720, officePhone: null,
+    acceptWaitMinutes: 10, autoConfirmTransfer: true });
+  assert.deepEqual(Object.keys(r.value).sort(), ["acceptWaitMinutes", "autoConfirmTransfer", "departureWindowMinutes", "dutyDayMaxMinutes", "minLeadMinutes", "officePhone", "proxyBackdateMaxMinutes", "refuseLeadMinutes", "requireManifest", "restMinutes", "tripNoBreakMaxMinutes", "warnLeadMinutes"]);
   assert.ok(kiemChinhSachMoi({ ...r.value }).ok, "luật máy chủ nhận đúng thân này");
 });
 
@@ -78,12 +79,12 @@ test("docFormChinhSach: mỗi ô sai một câu lời thường theo đơn vị 
 
 test("formTuChinhSach: điền sẵn từ bản đang dùng; chưa có bản → ô trống, bật đủ danh sách", () => {
   assert.deepEqual(formTuChinhSach(chinhSach()), form());
-  assert.deepEqual(formTuChinhSach(null), { mocGio: "", satMocGio: "", nghiPhut: "", khaiLuiPhut: "", gioLaiGio: "", chuyenDaiGio: "", duDanhSach: true });
+  assert.deepEqual(formTuChinhSach(null), { mocGio: "", satMocGio: "", nghiPhut: "", khaiLuiPhut: "", gioLaiGio: "", chuyenDaiGio: "", cuaSoGio: "", hanTuChoiGio: "", sdtVanPhong: "", duDanhSach: true, choNhanPhut: "", tuDongY: true });
 });
 
 test("tomTatChinhSach + thayDoiChinhSach: tóm tắt một bản; liệt kê đúng ô đã đổi so với bản đang dùng", () => {
-  assert.equal(tomTatChinhSach(chinhSach()), "Mốc 6 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 8 giờ/ngày · nhắc nghỉ chuyến trên 4 giờ · phải đủ danh sách khách");
-  assert.equal(tomTatChinhSach(chinhSach({ requireManifest: false, warnLeadMinutes: 90, dutyDayMaxMinutes: 540 })), "Mốc 6 giờ · sát mốc 1 giờ 30 phút · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 9 giờ/ngày · nhắc nghỉ chuyến trên 4 giờ");
+  assert.equal(tomTatChinhSach(chinhSach()), "Mốc 6 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 8 giờ/ngày · nhắc nghỉ chuyến trên 4 giờ · xuất bến sớm nhất 12 giờ trước giờ khởi hành · từ chối chuyến trước 12 giờ · phải đủ danh sách khách · chờ nhận chuyển khách 10 phút · tự đồng ý chuyển khách");
+  assert.equal(tomTatChinhSach(chinhSach({ requireManifest: false, warnLeadMinutes: 90, dutyDayMaxMinutes: 540 })), "Mốc 6 giờ · sát mốc 1 giờ 30 phút · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 9 giờ/ngày · nhắc nghỉ chuyến trên 4 giờ · xuất bến sớm nhất 12 giờ trước giờ khởi hành · từ chối chuyến trước 12 giờ · chờ nhận chuyển khách 10 phút · tự đồng ý chuyển khách");
   const cu = chinhSach();
   const giu = docFormChinhSach(form());
   assert.ok(giu.ok);
@@ -109,7 +110,7 @@ test("dongLichSuChinhSach: đánh số từ bản cũ nhất; bản đang dùng 
     ["b", "Bản 2", "Hết hiệu lực", "muted", "Hiệu lực 25/09 – 29/09/2026"],
     ["a", "Bản 1", "Hết hiệu lực", "muted", "Hiệu lực 01/09 – 25/09/2026"],
   ]);
-  assert.equal(dong[2]!.tomTat, "Mốc 4 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 8 giờ/ngày · nhắc nghỉ chuyến trên 4 giờ · phải đủ danh sách khách");
+  assert.equal(dong[2]!.tomTat, "Mốc 4 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 8 giờ/ngày · nhắc nghỉ chuyến trên 4 giờ · xuất bến sớm nhất 12 giờ trước giờ khởi hành · từ chối chuyến trước 12 giờ · phải đủ danh sách khách · chờ nhận chuyển khách 10 phút · tự đồng ý chuyển khách");
   // R-P23 (điều phối trả lời Q-B-1): "ai lưu" — "<tên> lưu dd/mm HH:MM" (giờ VN của lúc lưu = lúc hiệu lực); null (bản gieo) → không có dòng.
   assert.deepEqual(dong.map((d) => d.nguoiLuu), [null, null, null]);
   const coTen = dongLichSuChinhSach([chinhSach({ validFrom: "2026-09-24T09:20:00.000Z", nguoiLuu: "Lưu Tuấn Vũ" }), chinhSach({ id: "g", validFrom: "2026-09-01T00:00:00.000Z", current: false })]);
@@ -138,11 +139,11 @@ test("nhanDieuKien: tên loại + cỡ xe bằng lời, không lộ mã; giấy 
 });
 
 test("nhomLyDoHien: năm nhóm lượt 1 theo thứ tự bản vẽ + Báo huỷ điểm đón (Đợt 5) (kể cả nhóm rỗng), nhãn từ NHAN_NHOM_LY_DO, lý do trong nhóm giữ thứ tự máy chủ; nhóm ngoài danh sách có dữ liệu thì thêm cuối", () => {
-  assert.deepEqual(NHOM_LY_DO_HIEN, ["PHA_LE", "HUY_CHUYEN", "KET_THUC_GIAN_DOAN", "BO_QUA_DIEM", "DOI_GIO_XE", "BAO_HUY_DIEM"]);
+  assert.deepEqual(NHOM_LY_DO_HIEN, ["PHA_LE", "HUY_CHUYEN", "KET_THUC_GIAN_DOAN", "BO_QUA_DIEM", "DOI_GIO_XE", "BAO_HUY_DIEM", "TU_CHOI_NHAN"]);
   const ly = (code: string, group: TripReasonDto["group"], sortOrder: number, active = true): TripReasonDto => ({ code, group, groupLabel: "x", label: code, active, sortOrder, updatedAt: "t" });
   const nhom = nhomLyDoHien([ly("HUY_B", "HUY_CHUYEN", 2), ly("HUY_A", "HUY_CHUYEN", 1), ly("PHA_LE_KHAC", "PHA_LE", 99, false), ly("TC_A", "TU_CHOI_NHAN", 1)]);
   assert.deepEqual(nhom.map((n) => [n.nhom, n.tieuDe, n.lyDo.map((l) => l.code)]), [
-    ["PHA_LE", "Phá lệ", ["PHA_LE_KHAC"]],
+    ["PHA_LE", "Điều chỉnh khẩn cấp, phá lệ", ["PHA_LE_KHAC"]], // ADR-0104 Đ1 mục 9: nhãn nhóm đổi, mã nhóm giữ
     ["HUY_CHUYEN", "Huỷ chuyến", ["HUY_B", "HUY_A"]],
     ["KET_THUC_GIAN_DOAN", "Kết thúc gián đoạn", []],
     ["BO_QUA_DIEM", "Bỏ qua điểm", []],
@@ -214,4 +215,38 @@ test("nutBatTatLyDo (R-P22): lý do hệ thống đang dùng → KHÔNG có nút
   assert.deepEqual(nutBatTatLyDo({ active: false, heThong: false }), { nut: "Dùng lại", ghiChu: null });
   assert.deepEqual(nutBatTatLyDo({ active: true, heThong: true }), { nut: null, ghiChu: "Hệ thống tự dùng — không ngưng được" });
   assert.deepEqual(nutBatTatLyDo({ active: false, heThong: true }), { nut: "Dùng lại", ghiChu: null });
+});
+
+test("ADR-0096 Đ2.3: ô 'Cửa sổ xuất bến (giờ)' 1–48 giờ → phút; trống / ngoài khoảng → câu lời thường; điền sẵn từ bản đang dùng (không mặc định trong mã); thay đổi hiện trước → sau", () => {
+  assert.equal(formTuChinhSach(chinhSach({ departureWindowMinutes: 1440 })).cuaSoGio, "24");
+  assert.equal(formTuChinhSach(null).cuaSoGio, "", "chưa có bản nào → ô trống, không đoán con số");
+  const ok = docFormChinhSach(form({ cuaSoGio: "24" }));
+  assert.ok(ok.ok);
+  assert.equal(ok.value.departureWindowMinutes, 1440);
+  for (const [v, re] of [["", /Nhập cửa sổ xuất bến/], ["0,5", /từ 1 đến 48/], ["49", /từ 1 đến 48/], ["abc", /từ 1 đến 48/]] as const) {
+    const r = docFormChinhSach(form({ cuaSoGio: v }));
+    assert.equal(r.ok, false, v);
+    assert.match(r.ok ? "" : (r.loi.cuaSoGio ?? ""), re, v);
+  }
+  assert.ok(docFormChinhSach(form({ cuaSoGio: "1" })).ok);
+  assert.ok(docFormChinhSach(form({ cuaSoGio: "48" })).ok);
+  assert.deepEqual(thayDoiChinhSach(chinhSach(), ok.value), ["Cửa sổ xuất bến 12 giờ → 24 giờ"]);
+});
+
+test("ADR-0111 Đ3 (c): ô chờ nhận chuyển khách (phút 1–120) và công tắc tự đồng ý — đọc form, điền từ bản đang dùng, tóm tắt, ô đã đổi", () => {
+  const ok = docFormChinhSach(form({ choNhanPhut: "15", tuDongY: false }));
+  assert.ok(ok.ok);
+  assert.equal(ok.value.acceptWaitMinutes, 15);
+  assert.equal(ok.value.autoConfirmTransfer, false);
+  for (const v of ["", "0", "121", "5,5", "abc"]) {
+    const r = docFormChinhSach(form({ choNhanPhut: v }));
+    assert.equal(r.ok, false, v);
+    if (!r.ok) assert.match(r.loi.choNhanPhut ?? "", /tài xế xe nhận/, v);
+  }
+  const f = formTuChinhSach(chinhSach({ acceptWaitMinutes: 20, autoConfirmTransfer: false }));
+  assert.deepEqual([f.choNhanPhut, f.tuDongY], ["20", false]);
+  assert.match(tomTatChinhSach(chinhSach({ autoConfirmTransfer: false })), /chuyển khách luôn chờ Quản trị/);
+  const doi = docFormChinhSach(form({ choNhanPhut: "15", tuDongY: false }));
+  assert.ok(doi.ok);
+  assert.deepEqual(thayDoiChinhSach(chinhSach(), doi.value), ["Chờ tài xế xe nhận trả lời 10 → 15 phút", "Chuyển khách luôn chờ Quản trị duyệt"]);
 });

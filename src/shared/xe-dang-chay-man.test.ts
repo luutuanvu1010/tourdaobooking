@@ -1,8 +1,12 @@
 // Luật hiển thị THUẦN của "Xe đang chạy" (Vận chuyển Đợt 5, ADR-0052 D5; bản vẽ V11, V6 bổ sung) — src/shared/xe-dang-chay-man.ts.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cauCapNhatDiem, chipDiemChay, chonThemDiem, chuyenDangChay, diemMoiChuaXem, khachDangCho, suatCuaKhach, theCuuHo, theXeDangChay } from "./xe-dang-chay-man.ts";
-import type { ChangLichDto, ChuyenTomTatDto, CuuHoResponse } from "./contracts.ts";
+import {
+  cauCapNhatDiem, chipDiemChay, chonThemDiem, chuyenDangChay, demNguoc, diemMoiChuaXem, dongDeNghiVanPhong, dongXeNhan, hopDuyetDeNghi, khachDangCho, nhacXeDangChay, nhoDonDuoc, suatCuaKhach, theCuuHo,
+  theGuiDi, theGuiToi, theXeDangChay,
+} from "./xe-dang-chay-man.ts";
+import { CAU_NHAC_XE_DANG_CHAY } from "./dong-bo-chuyen.ts";
+import type { ChangLichDto, ChuyenTomTatDto, CuuHoResponse, DeNghiDto } from "./contracts.ts";
 import type { DiemVao, SuatVao } from "./tien-do-man.ts";
 
 const N = "2026-10-05";
@@ -130,4 +134,113 @@ test("suatCuaKhach (V6 6.3 — D5b): chỉ trong ngày chạy và khi còn suấ
   assert.doesNotMatch(JSON.stringify(r), /Khách Có Tên|1990/);
   assert.equal(suatCuaKhach({ trongNgayChay: false, diem: d, suat } as never), null, "ngoài ngày chạy: không có tên để so — ẩn");
   assert.equal(suatCuaKhach({ trongNgayChay: true, diem: d, suat: [suat[1]] } as never), null, "đủ tên — ẩn");
+});
+
+test("ADR-0104 Đ2.7 (T2.16): dòng nhắc trên thẻ xe đang chạy = ĐÚNG câu cố định của máy khi chuyến có khách chờ đón của đơn huỷ; không thì không dòng", () => {
+  const c = (o: Partial<ChuyenTomTatDto>) => ({ trangThai: "RUNNING", coKhachDonHuy: false, ...o }) as unknown as ChuyenTomTatDto;
+  assert.equal(nhacXeDangChay(c({ coKhachDonHuy: true })), CAU_NHAC_XE_DANG_CHAY);
+  assert.equal(nhacXeDangChay(c({})), null);
+  assert.equal(nhacXeDangChay(c({ coKhachDonHuy: true, trangThai: "ENDED" })), null, "chỉ xe đang chạy");
+  assert.equal(CAU_NHAC_XE_DANG_CHAY, "Đơn có khách trên xe đang chạy — văn phòng bấm Báo huỷ");
+});
+
+// ---- Chuyển khách giữa hai xe (ADR-0111, ADR-0052 D4; bản vẽ V8, V9, V10 — gói A5 T13 / T14) ----------------------------------------------------------------
+const deNghi = (o: Partial<DeNghiDto> = {}): DeNghiDto => ({
+  id: "dn-1", tuChuyenId: "A", tuMaChuyen: "CX-A", denChuyenId: "B", denMaChuyen: "CX-B", phamVi: "STOP", soKhach: 3, diemId: "d-1", tenDiem: "Khách sạn Dò Tìm",
+  noiGap: null, trangThai: "PENDING", nhanTrangThai: "Đang chờ trả lời", guiLuc: "2026-10-05T01:00:00.000Z", hanLuc: "2026-10-05T01:10:00.000Z", quyetLuc: null, lyDo: null, ...o,
+});
+const MS0 = Date.parse("2026-10-05T01:00:00.000Z");
+
+test("demNguoc: phút:giây còn lại tới hạn máy chủ gửi; hết hạn → null (không đếm âm)", () => {
+  assert.equal(demNguoc("2026-10-05T01:10:00.000Z", MS0), "10:00");
+  assert.equal(demNguoc("2026-10-05T01:10:00.000Z", MS0 + 9 * 60_000 + 58_500), "00:02", "làm tròn LÊN giây còn lại");
+  assert.equal(demNguoc("2026-10-05T01:10:00.000Z", MS0 + 10 * 60_000), null);
+  assert.equal(demNguoc("2026-10-05T01:10:00.000Z", MS0 + 11 * 60_000), null);
+});
+
+test("nhoDonDuoc (V8 1): chỉ xe ĐANG CHẠY, điểm ĐÓN CHƯA TỚI, có khách và mọi suất mở ở điểm là khách CHỜ (khớp luật gửi của máy chủ)", () => {
+  const d = diem("d-1", 1);
+  const ss = [suat("s1", "d-1"), suat("s2", "d-1")];
+  assert.equal(nhoDonDuoc("RUNNING", d, ss), true);
+  assert.equal(nhoDonDuoc("PLANNED", d, ss), false, "chưa xuất bến");
+  assert.equal(nhoDonDuoc("RUNNING", { ...d, trangThai: "ARRIVED" }, ss), false, "đã tới");
+  assert.equal(nhoDonDuoc("RUNNING", { ...d, loai: "DROPOFF" }, ss), false, "điểm trả");
+  assert.equal(nhoDonDuoc("RUNNING", d, []), false, "không khách");
+  assert.equal(nhoDonDuoc("RUNNING", d, [suat("s1", "d-1"), suat("s2", "d-1", { trangThai: "BOARDED" })]), false, "có khách đã lên ở điểm");
+  assert.equal(nhoDonDuoc("RUNNING", d, [suat("s1", "d-1"), suat("s9", "d-9")]), true, "suất điểm khác không xét");
+});
+
+test("theGuiDi (V8 4, 5): Chờ → đếm ngược + Rút lại; Hết giờ / Hết hạn / Không nhận / Văn phòng không duyệt → 'Nhờ xe khác đón' lại; Đã nhận; Chờ duyệt KHÔNG rút (máy chủ chặn); chữ không mã thô", () => {
+  const cho = theGuiDi(deNghi());
+  assert.deepEqual([cho.tieuDe, cho.tone, cho.demNguoc, cho.coRut, cho.coNhoLai], ["Đang chờ CX-B nhận", "info", true, true, false]);
+  assert.deepEqual(cho.dong, [["Điểm đón", "Khách sạn Dò Tìm"], ["Số khách", "3"]]);
+  assert.deepEqual(theGuiDi(deNghi({ phamVi: "ONBOARD", diemId: null, tenDiem: null, noiGap: "Cây xăng" })).dong, [["Nơi gặp", "Cây xăng"], ["Số khách", "3"]]);
+  for (const tt of ["HET_GIO", "EXPIRED"] as const) {
+    const x = theGuiDi(deNghi({ trangThai: tt }));
+    assert.deepEqual([x.tieuDe, x.coRut, x.coNhoLai, x.demNguoc], ["Đề nghị đã hết hạn", false, true, false], tt);
+  }
+  const khong = theGuiDi(deNghi({ trangThai: "DECLINED", lyDo: "Không kịp giờ" }));
+  assert.deepEqual([khong.tieuDe, khong.tone, khong.coNhoLai], ["CX-B không nhận", "bad", true]);
+  assert.match(khong.cau!, /Lý do: Không kịp giờ\. Điểm vẫn thuộc chuyến của bạn\./);
+  const nhan = theGuiDi(deNghi({ trangThai: "CONFIRMED" }));
+  assert.deepEqual([nhan.tieuDe, nhan.tone, nhan.coRut, nhan.coNhoLai], ["CX-B đã nhận", "ok", false, false]);
+  const leo = theGuiDi(deNghi({ trangThai: "ESCALATED" }));
+  assert.deepEqual([leo.tieuDe, leo.tone, leo.coRut], ["Chờ văn phòng duyệt", "warn", false]);
+  assert.equal(theGuiDi(deNghi({ trangThai: "REJECTED", lyDo: "Khác" })).coNhoLai, true);
+  assert.equal(theGuiDi(deNghi({ trangThai: "VOID" })).tieuDe, "Đề nghị đã tự huỷ");
+  assert.equal(theGuiDi(deNghi({ trangThai: "WITHDRAWN" })).tieuDe, "Đã rút đề nghị");
+  for (const tt of ["PENDING", "HET_GIO", "WITHDRAWN", "DECLINED", "EXPIRED", "VOID", "CONFIRMED", "ESCALATED", "REJECTED"] as const) {
+    const x = theGuiDi(deNghi({ trangThai: tt, lyDo: "Khác" }));
+    assert.doesNotMatch(JSON.stringify([x.tieuDe, x.cau ?? "", x.dong]), /PENDING|ESCALATED|CONFIRMED|VOID|STOP|ONBOARD|null|undefined/, tt);
+  }
+});
+
+test("theGuiToi (V9 1, 3): Chờ (chưa quá hạn) → Nhận / Không nhận + đếm ngược; mọi trạng thái khác KHÔNG có nút; chữ không mã thô", () => {
+  const cho = theGuiToi(deNghi());
+  assert.deepEqual([cho.tieuDe, cho.coNhan, cho.demNguoc], ["Đề nghị gửi tới bạn", true, true]);
+  assert.deepEqual(cho.dong, [["Chuyến nhờ", "CX-A"], ["Điểm đón", "Khách sạn Dò Tìm"], ["Số khách", "3"]]);
+  assert.equal(theGuiToi(deNghi({ trangThai: "HET_GIO" })).coNhan, false, "quá hạn: lần bấm sẽ ghi Hết hạn — không mời bấm");
+  const nhan = theGuiToi(deNghi({ trangThai: "CONFIRMED" }));
+  assert.deepEqual([nhan.tieuDe, nhan.tone], ["Đã nhận — khách đã vào chuyến của bạn", "ok"]);
+  assert.equal(theGuiToi(deNghi({ trangThai: "ESCALATED" })).tieuDe, "Chờ văn phòng duyệt");
+  for (const tt of ["PENDING", "HET_GIO", "WITHDRAWN", "DECLINED", "EXPIRED", "VOID", "CONFIRMED", "ESCALATED", "REJECTED"] as const) {
+    const x = theGuiToi(deNghi({ trangThai: tt, lyDo: "Khác" }));
+    if (tt !== "PENDING") assert.equal(x.coNhan, false, tt);
+    assert.doesNotMatch(JSON.stringify([x.tieuDe, x.cau ?? "", x.dong]), /PENDING|ESCALATED|CONFIRMED|VOID|STOP|ONBOARD|null|undefined/, tt);
+  }
+});
+
+test("dongXeNhan (V8 2): mã chuyến · tài xế, điểm sắp tới, chỗ trống; thiếu chỗ cho số khách → khoá chọn", () => {
+  const x = { tripId: "B", maChuyen: "CX-B", tenTaiXe: "Tài Xế Hai", choTrong: 6, diemSapToi: "Chợ Đầm" };
+  assert.deepEqual(dongXeNhan(x, 3), { nhan: "CX-B · Tài Xế Hai", phu: "Sắp tới: Chợ Đầm", cho: "Còn 6 chỗ", du: true });
+  assert.deepEqual(dongXeNhan({ ...x, choTrong: 2, diemSapToi: null }, 3), { nhan: "CX-B · Tài Xế Hai", phu: "Chưa có điểm sắp tới", cho: "Còn 2 chỗ", du: false });
+});
+
+test("hopDuyetDeNghi (V10): Leo thang + hộp DUYET_HOAC_BAC → Duyệt và Bác; CHI_BAC → chỉ Bác + câu vì sao; trạng thái khác → không nút; dòng kiểm không đạt / cảnh báo đứng đầu", () => {
+  const kiem = [
+    { ma: "SUC_CHUA_DICH", nhan: "Xe nhận còn đủ chỗ", tang: "LOI" as const, ketQua: "DAT" as const, giaTri: 12, gioiHan: 16 },
+    { ma: "MOC_TOI_THIEU", nhan: "Còn đủ mốc tối thiểu", tang: "CAU_HINH" as const, ketQua: "KHONG_DAT" as const, giaTri: null, gioiHan: null },
+  ];
+  const duoc = hopDuyetDeNghi(deNghi({ trangThai: "ESCALATED", hop: "DUYET_HOAC_BAC", kiem }));
+  assert.deepEqual([duoc.coDuyet, duoc.coBac, duoc.cauChiBac], [true, true, null]);
+  assert.deepEqual(duoc.kiem.map((k) => [k.nhan, k.tang, k.ketQua]), [["Còn đủ mốc tối thiểu", "Cấu hình", "Không đạt"], ["Xe nhận còn đủ chỗ", "Bắt buộc", "Đạt"]]);
+  const chiBac = hopDuyetDeNghi(deNghi({ trangThai: "ESCALATED", hop: "CHI_BAC", kiem }));
+  assert.deepEqual([chiBac.coDuyet, chiBac.coBac], [false, true]);
+  assert.match(chiBac.cauChiBac!, /điều kiện bắt buộc/);
+  const xong = hopDuyetDeNghi(deNghi({ trangThai: "CONFIRMED", kiem }));
+  assert.deepEqual([xong.coDuyet, xong.coBac], [false, false]);
+});
+
+test("dongDeNghiVanPhong (V10 danh sách, Chi tiết chuyến): 'CX-A → CX-B', chip theo trạng thái, phạm vi bằng lời, giờ gửi giờ VN, lý do khi có; không mã thô", () => {
+  const x = dongDeNghiVanPhong(deNghi({ trangThai: "ESCALATED", nhanTrangThai: "Chờ văn phòng duyệt" }), "2026-10-05");
+  assert.equal(x.tieuDe, "CX-A → CX-B");
+  assert.deepEqual(x.chip, { nhan: "Chờ văn phòng duyệt", tone: "warn" });
+  assert.deepEqual(x.dong, [["Loại", "Nhờ đón một điểm"], ["Điểm đón", "Khách sạn Dò Tìm"], ["Số khách", "3"], ["Gửi lúc", "08:00"]]);
+  assert.equal(x.canDuyet, true);
+  const cuu = dongDeNghiVanPhong(deNghi({ phamVi: "ONBOARD", diemId: null, tenDiem: null, noiGap: "Cây xăng", trangThai: "DECLINED", nhanTrangThai: "Không nhận", lyDo: "Không kịp giờ" }), "2026-10-04");
+  assert.deepEqual(cuu.dong, [["Loại", "Cứu hộ cả xe"], ["Nơi gặp", "Cây xăng"], ["Số khách", "3"], ["Gửi lúc", "08:00 05/10"], ["Lý do", "Không kịp giờ"]]);
+  assert.deepEqual([cuu.chip.tone, cuu.canDuyet], ["danger", false]);
+  for (const [tt, tone] of [["PENDING", "unit"], ["HET_GIO", "muted"], ["CONFIRMED", "ok"], ["VOID", "muted"], ["REJECTED", "danger"], ["WITHDRAWN", "muted"], ["EXPIRED", "muted"]] as const) {
+    assert.equal(dongDeNghiVanPhong(deNghi({ trangThai: tt }), "2026-10-05").chip.tone, tone, tt);
+  }
 });

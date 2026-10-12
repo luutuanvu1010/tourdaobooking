@@ -9,6 +9,7 @@ import {
 import { MAX_LINES_PER_ORDER, MAX_SERVICES, ONE_DATE_MESSAGE, confirmWindow, tripUpdateKeepsOneDate } from "../../shared/trip-rules.ts";
 import { cleanText, dateField, int, text, timeField } from "./fields.ts";
 import { tongKhach } from "../../shared/so-nguoi-chang.ts";
+import { NHAN_TRUONG_THOI_GIAN } from "../../shared/truong-thoi-gian.ts";
 
 export type { CatalogChangeDto as CatalogChange, CatalogStatus, MissingReason, TripGapDto as TripGap };
 
@@ -372,9 +373,8 @@ export function summarizeDeviations(
   return `lệch giá danh mục: ${[...shown, ...more].join("; ")}`;
 }
 
-const TRIP_VALUE_FIELDS = [
-  ["departDate", "ngày khởi hành"], ["departTime", "giờ khởi hành"], ["pickupTime", "giờ đón"], ["checkinDate", "ngày check-in"], ["checkinTime", "giờ check-in"],
-] as const;
+// ADR-0062 Đ1: nhãn LẤY TỪ bảng chung (src/shared/truong-thoi-gian.ts) — hàm đọc tin nhận đúng các nhãn này (bài NT-B1 cấm viết tay ở đây).
+const TRIP_VALUE_FIELDS = (["departDate", "departTime", "pickupTime", "checkinDate", "checkinTime"] as const).map((k) => [k, NHAN_TRUONG_THOI_GIAN[k]] as const);
 const TRIP_TEXT_FIELDS = [["pickupPlace", "điểm đón"], ["checkinPlace", "nơi check-in"], ["note", "ghi chú"]] as const;
 
 /** Thay đổi chuyến của một dịch vụ: ngày/giờ ghi "trước → sau", địa điểm/ghi chú chỉ ghi "đổi". null = không đổi gì. */

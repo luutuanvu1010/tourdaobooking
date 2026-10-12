@@ -1,0 +1,21 @@
+✓ form trống: trạng thái rỗng, không thanh tab, nút Lưu
+✓ Tạo đơn: thứ tự Chọn ngày → Dịch vụ → Thanh toán → Thông tin khách hàng; nhập tay ẩn; Chuyển khoản mặc định, tên khách trống; nút 'của tôi' điền tên + SĐT tài khoản
+✓ ô chọn danh mục: 3 kết quả, lọc, trạng thái rỗng
+✓ Enter trong ô tìm danh mục: bị chặn (defaultPrevented), không gửi form, không banner lỗi, vẫn ở /order-form
+✓ dịch vụ nhóm: 7 khách → 2 lượt × 1.500.000 = 3.000.000, dòng chữ 'làm tròn lên'
+✓ dịch vụ theo người: 3.650.000; đơn giá 1.300.000 → nhãn 'Khác giá danh mục' + giá danh mục 1.350.000; tổng 3.550.000
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: vòng focus của ô số bộ đếm phải hiện và lùi vào trong (không bị overflow:hidden cắt): {"focused":true,"style":"none","width":0,"offset":-2}
+    at file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/agent-a2599ff8ee5c5bb26/docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-form.mjs:89:12 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v22.22.3

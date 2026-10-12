@@ -1,7 +1,7 @@
 // ĐẶT GẤP + MỐC TỐI THIỂU LÚC ĐẶT phía `orders` (ADR-0049 D2, D3; kế hoạch Task A10, I14, I16, I27, Q1 = (a)) — luật THUẦN (không I/O, không SQL): đọc thân
-// `datGap`, khớp dấu đặt gấp khi lưu lại đơn nháp, xét "sửa chặng dưới mốc", dựng cảnh báo mốc. Mốc là MỘT luật với `kiemMocDat` (src/shared/moc-toi-thieu.ts)
-// — không tính ngưỡng ở đây.
-import { GHI_CHU_DAT_GAP_TOI_DA, isLyDoDatGap, type ChangHopLe, type LyDoDatGap } from "../../shared/chang-dua-don";
+// `datGap`, khớp dấu đặt gấp khi lưu lại đơn nháp, dựng cảnh báo mốc. Mốc là MỘT luật với `kiemMocDat` (src/shared/moc-toi-thieu.ts) — không tính ngưỡng ở
+// đây; "sửa chặng dưới mốc" (`duoiMocKhiSua`) nay cũng ở tệp đó, dùng chung với bảng Sửa đưa đón (C14, 2026-10-08).
+import { DAU_DAT_GAP, GHI_CHU_DAT_GAP_TOI_DA, ghiDatGapNhatKy, isLyDoDatGap, type ChangHopLe, type LyDoDatGap } from "../../shared/chang-dua-don";
 import { kiemMocDat } from "../../shared/moc-toi-thieu";
 import { maskLongDigits } from "../../shared/text-guards";
 import type { AuditEntryDto, OrderDetailDto } from "../../shared/contracts";
@@ -54,16 +54,6 @@ export function chepDatGapNhap(cu: readonly LegDatGapRow[], moi: readonly ValidS
   return out;
 }
 
-/**
- * I14 (Q3 chủ: "Chỉ Quản trị, Toàn quyền"): sửa ngày / giờ / nơi của chặng đơn ĐÃ XÁC NHẬN khi min(giờ cũ, giờ mới) dưới mốc → cần ô `order.leg.short_notice`
- * + lý do trong CHÍNH lệnh sửa. Dấu cũ KHÔNG miễn (nó duyệt nội dung cũ). Chặng chưa chốt giờ ở cả hai phía → không xét (I13).
- */
-export function duoiMocKhiSua(cu: { pickupDate: string | null; pickupTime: string | null } | null, moi: { pickupDate: string | null; pickupTime: string | null } | null, bayGioMs: number, phut: number): boolean {
-  const xet = (l: { pickupDate: string | null; pickupTime: string | null } | null) =>
-    l !== null && kiemMocDat({ ngayDon: l.pickupDate, gioDon: l.pickupTime, datGap: false }, bayGioMs, phut).duoiMoc;
-  return xet(cu) || xet(moi);
-}
-
 /** I27: cảnh báo mốc khi lưu nháp (KHÔNG chặn lưu) — chặng có giờ, chưa đặt gấp, dưới mốc. `legKey` = id chặng. */
 export function canhBaoMocCua(
   legs: readonly { id: string; pickupDate: string | null; pickupTime: string | null }[], daDatGap: ReadonlySet<string>, bayGioMs: number, phut: number,
@@ -90,8 +80,8 @@ export function datGapTheoVai(order: OrderDetailDto, xemDu: boolean): OrderDetai
  * Đoạn "đặt gấp" trong `detail` nhật ký của đơn — MỘT chỗ viết (route đặt gấp và nhánh `datGap` của lệnh sửa / thêm chặng) và MỘT chỗ đọc (`lichSuTheoVai`).
  * Nhật ký ghi ĐỦ (mã đơn · chiều · nhãn lý do); rút gọn theo vai lúc TRẢ lịch sử.
  */
-export const DAU_DAT_GAP = " · đặt gấp: ";
-export const ghiDatGapNhatKy = (nhanLyDo: string): string => `${DAU_DAT_GAP}${nhanLyDo}`;
+// ADR-0062 Đ2: hằng + hàm viết đoạn đuôi nằm ở src/shared/chang-dua-don.ts (hàm đọc tin bóc đúng đoạn này) — ở đây chỉ dùng lại.
+export { DAU_DAT_GAP, ghiDatGapNhatKy };
 export const DAT_GAP_RUT_GON = " · Đặt gấp — Quản trị đã duyệt";
 /**
  * Lịch sử đơn theo vai (ruling R-P21 — áp lời chủ H4 / N-14, "Trả lời lần 12"): người KHÔNG có ô `order.leg.short_notice.view` (Đối tác, HDV, Thực tập)

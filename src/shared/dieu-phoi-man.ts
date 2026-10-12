@@ -7,7 +7,8 @@
 import { nhanThoiLuong } from "./chinh-sach-hien-thi.ts";
 import type { CanhBaoLichDto, ChangLichDto, ChuyenTomTatDto, DiemChuyenDto, GioHenDto, GioVnDto, GoiBaoChangDto, LichChungResponse, LyDoGiuDto, MucNhacGoiDto, NhatKyChuyenDto } from "./contracts.ts";
 import { AI_XU_LY_GIO_HEN_DOI, NHAN_GIO_HEN_DOI, moTaDoiGio } from "./goi-bao.ts";
-import { NUT_CAP_NHAT_KHACH } from "./ly-do-giu.ts";
+import { NUT_CAP_NHAT_KHACH, giuCapNhatKhach } from "./ly-do-giu.ts";
+import type { LopVuot } from "./moc-toi-thieu.ts";
 import { can, type PermissionHolder } from "./permissions.ts";
 import { maskLongDigits } from "./text-guards.ts";
 import { msToVnLocal, ngayDayDu, ngayNgan, vnLocalToMs } from "./vn-date.ts";
@@ -89,8 +90,11 @@ export function soLieuDieuPhoi(l: LichChungResponse, canXuLy: number): SoLieu {
 export type KieuChuyen = "plan" | "run" | "done" | "held" | "nodrv" | "cancel";
 /** Màu / nhãn chuyến (bản vẽ dp-dong-thoi-gian: lên kế hoạch / đang chạy / xong / bị giữ / chưa có tài xế). */
 export function kieuChuyen(c: Pick<ChuyenTomTatDto, "trangThai" | "trangThaiNhan" | "lyDoGiu">): { kieu: KieuChuyen; nhan: string } {
-  if (c.trangThai === "PLANNED" && c.lyDoGiu.length > 0) {
-    return c.lyDoGiu.every((l) => l.ma === "CHUA_CO_TAI_XE") ? { kieu: "nodrv", nhan: "Chưa có tài xế" } : { kieu: "held", nhan: "Bị giữ" };
+  // ADR-0096 Đ2 (gói A1): "chưa tới giờ được xuất bến" là cổng THỜI GIAN, không phải lỗi phải sửa — chuyến ngày mai không đổi màu "Bị giữ" vì nó (lý do vẫn
+  // hiện ở bảng điều kiện xuất bến của chi tiết chuyến). Chọn của người thi công A1, ghi ở báo cáo.
+  const giu = c.lyDoGiu.filter((l) => l.ma !== "NGOAI_CUA_SO_XUAT_BEN");
+  if (c.trangThai === "PLANNED" && giu.length > 0) {
+    return giu.every((l) => l.ma === "CHUA_CO_TAI_XE") ? { kieu: "nodrv", nhan: "Chưa có tài xế" } : { kieu: "held", nhan: "Bị giữ" };
   }
   const kieu: KieuChuyen = c.trangThai === "RUNNING" ? "run" : c.trangThai === "PLANNED" ? "plan" : c.trangThai === "CANCELLED" ? "cancel" : "done";
   return { kieu, nhan: c.trangThaiNhan };
@@ -110,19 +114,46 @@ export function chuyenXepDuoc(l: Pick<LichChungResponse, "ngay" | "chuyen">): { 
     .map((c) => ({ chuyen: c, nhan: `${c.ma} · ${gioHien(c.batDau, l.ngay)}–${gioHien(c.ketThuc, l.ngay)} · ${c.xe.bienSo} · tải ${c.tai}/${c.xe.soCho}`, khoa: c.khoaMoc.dangKhoa }));
 }
 
-/** Câu khoá theo mốc (bản vẽ 01 LOCK) — chỉ hiện khi `khoaMoc.dangKhoa`. */
-export function cauKhoaMoc(mocPhut: number | null, co: { phaLe: boolean; dieuPhoi: boolean }): string {
+/**
+ * Câu khoá theo mốc (bản vẽ 01 LOCK) — chỉ hiện khi `khoaMoc.dangKhoa`. ADR-0104 Đ1 mục 9: vượt mốc LUÔN là điều chỉnh khẩn cấp — cờ `khanCap` = ô
+ * `trip.urgent_adjust` (Bán hàng, Quản trị, Toàn quyền).
+ */
+export function cauKhoaMoc(mocPhut: number | null, co: { khanCap: boolean; dieuPhoi: boolean }): string {
   const dau = `Trong ${mocPhut === null ? "mốc tối thiểu" : nhanThoiLuong(mocPhut)} trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế.`;
   if (!co.dieuPhoi) return dau;
   // Vòng 5e (R-P29): "Cập nhật khách theo đơn" cũng KHÔNG khoá theo mốc (máy chủ `DOI_KHACH_THEO_DON` ngoài LENH_KHOA_THEO_MOC).
-  return `${dau} ${co.phaLe ? "Bạn có thể phá lệ." : "Cần Quản trị phá lệ."} Cập nhật điểm theo đơn và ${NUT_CAP_NHAT_KHACH.toLowerCase()} không cần phá lệ.`;
+  return `${dau} ${co.khanCap ? "Bạn có thể điều chỉnh khẩn cấp kèm lý do." : HOP_VUOT.KHAN_CAP.canNguoi} Cập nhật điểm theo đơn và ${NUT_CAP_NHAT_KHACH.toLowerCase()} không cần điều chỉnh khẩn cấp.`;
 }
+
+/**
+ * ADR-0104 Đ1 mục 9: chữ hộp xác nhận và nút vượt luật theo `lop` của 409 (`lopHop`) — `KHAN_CAP` "Điều chỉnh khẩn cấp…", `QUAN_TRI` (hoặc 409 không kèm
+ * lớp) "Phá lệ…". Nút là NGUYÊN chuỗi (bài hướng dẫn A2 tìm [[tên nút]] nguyên văn trong mã). Mã lỗi, danh mục lý do (nhóm PHA_LE), thân gửi lại không đổi.
+ */
+export const NUT_VUOT = {
+  xep: { KHAN_CAP: "Điều chỉnh khẩn cấp và xếp", QUAN_TRI: "Phá lệ và xếp" },
+  them: { KHAN_CAP: "Điều chỉnh khẩn cấp và thêm", QUAN_TRI: "Phá lệ và thêm" },
+  rut: { KHAN_CAP: "Điều chỉnh khẩn cấp và rút", QUAN_TRI: "Phá lệ và rút" },
+  chuyen: { KHAN_CAP: "Điều chỉnh khẩn cấp và chuyển", QUAN_TRI: "Phá lệ và chuyển" },
+  luu: { KHAN_CAP: "Điều chỉnh khẩn cấp và lưu", QUAN_TRI: "Phá lệ và lưu" },
+  huy: { KHAN_CAP: "Điều chỉnh khẩn cấp và huỷ", QUAN_TRI: "Phá lệ và huỷ" },
+} as const satisfies Record<string, Record<LopVuot, string>>;
+export const HOP_VUOT: Readonly<Record<LopVuot, { tieuDe: string; nhanLyDo: string; ghiChu: string; canNguoi: string }>> = {
+  KHAN_CAP: {
+    tieuDe: "Điều chỉnh khẩn cấp", nhanLyDo: "Lý do điều chỉnh khẩn cấp", ghiChu: "Việc điều chỉnh khẩn cấp ghi vào nhật ký chuyến kèm tên bạn.",
+    canNguoi: "Cần người xếp xe điều chỉnh khẩn cấp.",
+  },
+  QUAN_TRI: { tieuDe: "Phá lệ", nhanLyDo: "Lý do phá lệ", ghiChu: "Việc phá lệ ghi vào nhật ký chuyến kèm tên bạn.", canNguoi: "Cần Quản trị phá lệ." },
+};
+/** ADR-0104 Đ1 mục 5, 9: nhãn chip trên thẻ chuyến (lịch) và đầu chi tiết chuyến khi `ChuyenTomTatDto.khanCap` (máy chủ tính; màn không tự đoán). */
+export const NHAN_KHAN_CAP = "Điều chỉnh khẩn cấp";
+/** Lớp hộp xác nhận từ `lop` của 409 — vắng / lạ (máy chủ cũ) → QUAN_TRI (chữ cũ "Phá lệ"). */
+export const lopHop = (lop: unknown): LopVuot => (lop === "KHAN_CAP" ? "KHAN_CAP" : "QUAN_TRI");
 
 // ---- "Cần xử lý" ---------------------------------------------------------------------------------------------------------------------------------------------
 export type HanhDong =
   | { nhan: string; kieu: "link"; href: string }
   | { nhan: string; kieu: "cap-nhat-diem"; tripId: string }
-  /** Vòng 5e (R-P29, chủ lần 16): "Cập nhật khách theo đơn" — lý do giữ KHACH_DA_DOI; khuôn "cap-nhat-diem". */
+  /** Vòng 5e (R-P29, chủ lần 16): "Cập nhật khách theo đơn" — lý do giữ nút gỡ được (`MA_GIU_CAP_NHAT_KHACH`, ADR-0104 Đ2.11); khuôn "cap-nhat-diem". */
   | { nhan: string; kieu: "cap-nhat-khach"; tripId: string }
   /** ADR-0051: "Đã gọi báo" — gửi lại `phienBan` + giờ "mới" màn đã hiện. */
   | { nhan: string; kieu: "goi-bao"; legId: string; phienBan: number; gioMoi: GioHenDto; maDon: string };
@@ -135,7 +166,7 @@ export interface ViecCanXuLy {
   href: string | null;
   noiDung: string;
   aiXuLy: string;
-  /** Dòng khoá "Cần Quản trị phá lệ" (Bán hàng — bản vẽ 1e); null = không. */
+  /** Dòng khoá "Cần người xếp xe điều chỉnh khẩn cấp" (người không có ô `trip.urgent_adjust` — bản vẽ 1e; ADR-0104 Đ1); null = không. */
   khoa: string | null;
   hanhDong: HanhDong[];
 }
@@ -152,7 +183,7 @@ const ICON_CANH_BAO: Readonly<Record<string, ViecCanXuLy["bieuTuong"]>> = {
  * nhãn NHAN_CANH_BAO_LICH, KHÔNG nút (không "Gọi tài xế" — H7; không "Đã gọi báo" — Q2 / ADR-0051 làm sau; Q-GB-1 = b); chặng quá mốc chưa đặt gấp: Bán hàng
  * thấy dòng khoá (đặt gấp thì không cần phá lệ — 2.1; không có nút "Phá lệ" riêng — 2.13); (3) đơn nháp chờ duyệt đặt gấp — không tên người lập (H8).
  */
-export function viecCanXuLy(l: LichChungResponse, co: { dieuPhoi: boolean; phaLe: boolean; quanLyXe: boolean }, nhacGoi: readonly MucNhacGoiDto[] = []): ViecCanXuLy[] {
+export function viecCanXuLy(l: LichChungResponse, co: { dieuPhoi: boolean; khanCap: boolean; quanLyXe: boolean }, nhacGoi: readonly MucNhacGoiDto[] = []): ViecCanXuLy[] {
   const out: ViecCanXuLy[] = [];
   const chuyenTheoId = new Map(l.chuyen.map((c) => [c.id, c]));
   const changTheoId = new Map(l.chang.map((c) => [c.legId, c]));
@@ -162,7 +193,7 @@ export function viecCanXuLy(l: LichChungResponse, co: { dieuPhoi: boolean; phaLe
     const ma = new Set(c.lyDoGiu.map((x) => x.ma));
     const hanhDong: HanhDong[] = [];
     if (ma.has("NOI_HEN_DOI") && co.dieuPhoi) hanhDong.push({ nhan: "Cập nhật điểm theo đơn", kieu: "cap-nhat-diem", tripId: c.id });
-    if (ma.has("KHACH_DA_DOI") && co.dieuPhoi) hanhDong.push({ nhan: NUT_CAP_NHAT_KHACH, kieu: "cap-nhat-khach", tripId: c.id });
+    if (giuCapNhatKhach(c.lyDoGiu).length > 0 && co.dieuPhoi) hanhDong.push({ nhan: NUT_CAP_NHAT_KHACH, kieu: "cap-nhat-khach", tripId: c.id }); // ADR-0104 Đ2.11
     if (ma.has("DIEU_KIEN_GIAY_TO_XE") && co.quanLyXe) hanhDong.push({ nhan: "Mở giấy tờ xe", kieu: "link", href: `/xe-chi-tiet?id=${encodeURIComponent(c.xe.id)}` });
     if (ma.has("CHUA_CO_TAI_XE") && co.dieuPhoi) hanhDong.push({ nhan: "Chọn tài xế", kieu: "link", href: `/chuyen-sua?id=${encodeURIComponent(c.id)}` });
     out.push({
@@ -201,7 +232,7 @@ export function viecCanXuLy(l: LichChungResponse, co: { dieuPhoi: boolean; phaLe
   }
   return out;
 }
-function viecTuCanhBao(w: CanhBaoLichDto, ngay: string, c: ChangLichDto | undefined, t: ChuyenTomTatDto | undefined, co: { dieuPhoi: boolean; phaLe: boolean }): ViecCanXuLy {
+function viecTuCanhBao(w: CanhBaoLichDto, ngay: string, c: ChangLichDto | undefined, t: ChuyenTomTatDto | undefined, co: { dieuPhoi: boolean; khanCap: boolean }): ViecCanXuLy {
   const tone = TONE_CANH_BAO[w.loai] ?? "warn";
   const bieuTuong = ICON_CANH_BAO[w.loai] ?? "alert";
   if (w.loai === "CHANG_QUA_MOC" && c) {
@@ -209,7 +240,8 @@ function viecTuCanhBao(w: CanhBaoLichDto, ngay: string, c: ChangLichDto | undefi
     return {
       loai: "Chặng quá mốc", tone, bieuTuong, tieuDe: `${c.gioDon ?? "Chưa chốt giờ"} · ${tuyen(c)}`, href: `/order?id=${encodeURIComponent(c.orderId)}`,
       noiDung: `Chưa xếp chuyến. ${c.maDon} · ${conLai} khách${c.datGap ? " · đã duyệt đặt gấp" : ""}`, aiXuLy: "Văn phòng",
-      khoa: !c.datGap && co.dieuPhoi && !co.phaLe ? "Cần Quản trị phá lệ" : null, hanhDong: [],
+      // ADR-0104 Đ1: xếp chặng quá mốc chưa đặt gấp = vượt mốc = điều chỉnh khẩn cấp (ô trip.urgent_adjust).
+      khoa: !c.datGap && co.dieuPhoi && !co.khanCap ? "Cần người xếp xe điều chỉnh khẩn cấp" : null, hanhDong: [],
     };
   }
   const tieuDe = t ? `${t.ma} · ${w.maDon ?? ""}`.replace(/ · $/, "") : c ? `${c.gioDon ?? "Chưa chốt giờ"} · ${c.maDon}` : (w.maDon ?? "");
@@ -294,6 +326,9 @@ const NHOM_DIEU_KIEN: readonly { nhan: string; ma: readonly string[] }[] = [
   { nhan: "Điểm khớp đơn", ma: ["NOI_HEN_DOI", "CHUA_CO_GIO", "CHUA_CO_NOI_TRA", "GIO_HEN_NGOAI_CHUYEN", "THIEU_SUAT", "THUA_SUAT"] },
   { nhan: "Đủ chỗ", ma: ["VUOT_SO_CHO", "VUOT_SO_NGUOI_CHANG"] },
   { nhan: "Đủ giờ nghỉ", ma: ["NGHI_THIEU", "KHOANG_NGHI", "TRUNG_GIO_XE", "TRUNG_GIO_TAI_XE"] },
+  // ADR-0096 Đ1 (LC-19), Đ2 (LC-20) — gói A1.
+  { nhan: "Đón trước trả", ma: ["TRA_TRUOC_DON"] },
+  { nhan: "Trong giờ được xuất bến", ma: ["NGOAI_CUA_SO_XUAT_BEN"] },
 ];
 const chiTietLoi = (ds: readonly LyDoGiuDto[]): string => `${ds.map((d) => d.loiNhan).join("; ")} · Ai xử lý: ${[...new Set(ds.map((d) => d.aiXuLyNhan))].join(", ")}`;
 /** "Điều kiện xuất bến" của chi tiết chuyến (bản vẽ 02): danh mục cố định; chưa đạt = có lý do giữ thuộc nhóm (câu + ai xử lý); đạt không kèm chi tiết. */
@@ -332,7 +367,9 @@ export function nhanDiem(d: DiemChuyenDto): { nhan: string; tone: Tone; ghiChu: 
 export function dongNhatKy(n: NhatKyChuyenDto, ngayXem: string): { gio: string; ai: string; laMay: boolean; noiDung: string; vanPhongKhai: boolean } {
   const gio = n.vanPhongKhai ? `${gioHien(n.gioXayRa, ngayXem)} · ghi lúc ${gioHien(n.gioGhiNhan, ngayXem)}` : gioHien(n.gioXayRa, ngayXem);
   const laMay = n.may || n.nguoiBam === null;
-  const noiDung = [n.nhan, n.soNguoi !== null ? `${n.soNguoi} khách` : null, n.phaLe ? `phá lệ: ${n.phaLe.lyDoNhan}` : null].filter((x) => x !== null).join(" · ");
+  // ADR-0104 Đ1 mục 5: vượt MỐC luôn là điều chỉnh khẩn cấp; vượt khoảng nghỉ / cam kết hiện "phá lệ" (sự kiện không lưu lớp — lệch đã biết Đ1.5).
+  const vuot = n.phaLe ? `${n.phaLe.luat === "MOC_TOI_THIEU" ? "điều chỉnh khẩn cấp" : "phá lệ"}: ${n.phaLe.lyDoNhan}` : null;
+  const noiDung = [n.nhan, n.soNguoi !== null ? `${n.soNguoi} khách` : null, vuot].filter((x) => x !== null).join(" · ");
   return { gio, ai: laMay ? "máy" : maskLongDigits(n.nguoiBam!), laMay, noiDung, vanPhongKhai: n.vanPhongKhai };
 }
 

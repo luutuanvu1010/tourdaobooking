@@ -54,12 +54,12 @@ interface O {
 }
 const oSo: O[] = [];
 
-function taoO(truong: TruongChinhSach, nhan: string, goiY: string, theoGio: boolean): HTMLElement {
+function taoO(truong: TruongChinhSach, nhan: string, goiY: string, theoGio: boolean | "tel"): HTMLElement {
   const id = `cs-${truong}`;
   const hint = h("div", { id: `${id}-hint`, class: "vc-hint" }, goiY);
   const err = h("div", { id: `${id}-error`, class: "vc-field-error", role: "alert", hidden: true });
   const input = h("input", {
-    id, class: "vc-input", type: "text", inputmode: theoGio ? "decimal" : "numeric", value: st[truong], autocomplete: "off", "aria-describedby": `${id}-hint ${id}-error`,
+    id, class: "vc-input", type: theoGio === "tel" ? "tel" : "text", inputmode: theoGio === "tel" ? "tel" : theoGio ? "decimal" : "numeric", value: st[truong], autocomplete: "off", "aria-describedby": `${id}-hint ${id}-error`,
   });
   input.addEventListener("input", () => {
     st = { ...st, [truong]: input.value };
@@ -79,7 +79,7 @@ function baoLoi(o: O, cau: string | null): void {
 function capNhatGoiYSatMoc(): void {
   const o = oSo.find((x) => x.truong === "satMocGio");
   if (!o) return;
-  const r = docFormChinhSach({ ...st, mocGio: "1", nghiPhut: "0", khaiLuiPhut: "1", gioLaiGio: "8", chuyenDaiGio: "4" }); // chỉ đọc ô sát mốc
+  const r = docFormChinhSach({ ...st, mocGio: "1", nghiPhut: "0", khaiLuiPhut: "1", gioLaiGio: "8", chuyenDaiGio: "4", cuaSoGio: "1", hanTuChoiGio: "12", sdtVanPhong: "", choNhanPhut: "10" }); // chỉ đọc ô sát mốc
   const khoang = r.ok ? nhanThoiLuong(r.value.warnLeadMinutes) : "khoảng này";
   o.hint.textContent = `Chặng chưa xếp trong ${khoang} trước mốc hiện nhãn “Sát mốc”.`;
 }
@@ -146,6 +146,13 @@ function dung(): void {
     // ADR-0055 VK2-B: hai con số giờ lái — chỉ nhắc, không chặn (khuôn ô có sẵn; không cần bản vẽ).
     taoO("gioLaiGio", "Giờ lái tối đa một ngày (giờ)", "Vượt thì chỉ cảnh báo, không chặn. Mặc định 8.", true),
     taoO("chuyenDaiGio", "Nhắc nghỉ khi chuyến dài hơn (giờ)", "Chỉ nhắc. Mặc định 4.", true),
+    // ADR-0096 Đ2.3: cửa sổ xuất bến — không ai phá lệ; xe thật sự chạy sớm thì văn phòng sửa giờ chuyến. Gợi ý KHÔNG ghi con số mặc định (con số ở bảng).
+    taoO("cuaSoGio", "Cửa sổ xuất bến (giờ)", "Chỉ xuất bến được từ giờ khởi hành trừ số giờ này, từ 1 đến 48. Không ai phá lệ.", true),
+    // ADR-0053 D8.1: hạn tài xế nhà xe được từ chối chuyến — chỉ áp cho chuyến xếp lần đầu sau khi lưu. Lời chủ 6.3: số cho nút "Gọi văn phòng" của tài xế.
+    taoO("hanTuChoiGio", "Hạn từ chối chuyến (giờ)", "Tài xế nhà xe chỉ từ chối được trước giờ chạy số giờ này, từ 1 đến 48. Chỉ áp cho chuyến xếp sau khi lưu.", true),
+    taoO("sdtVanPhong", "Số điện thoại văn phòng", "Tài xế bấm \"Gọi văn phòng\" sẽ gọi số này. Để trống thì không hiện nút.", "tel"),
+    // ADR-0111 Đ3 (c): chuyển khách giữa hai xe — hết giờ chờ thì tài xế nhờ thấy "hết giờ chờ", không ai nhận tin lúc hết giờ.
+    taoO("choNhanPhut", "Chờ tài xế xe nhận trả lời (phút)", "Quá số phút này mà tài xế xe nhận chưa bấm thì lần nhờ hết hạn. Từ 1 đến 120.", false),
   );
   capNhatGoiYSatMoc();
   const toggles = h(
@@ -155,6 +162,10 @@ function dung(): void {
       st = { ...st, duDanhSach: bat };
     }),
     congTac("cs-hop-dong", "Phải có hợp đồng", "Khoá tắt — chưa dùng ở lượt này.", false, true),
+    // ADR-0052 D4.1 + ADR-0111 Đ3 (c): công tắc an toàn — tắt thì mọi lần nhờ tài xế xe nhận đã bấm Nhận đều chờ Quản trị, kể cả lần gửi trước khi tắt.
+    congTac("cs-tu-dong-y", "Tự đồng ý chuyển khách", "Đạt mọi điều kiện thì khách sang xe nhận ngay. Tắt thì mọi lần nhờ chờ Quản trị duyệt.", st.tuDongY, false, (bat) => {
+      st = { ...st, tuDongY: bat };
+    }),
   );
   const dangAp = dieuKien.filter((r) => r.active);
   const rules = h(

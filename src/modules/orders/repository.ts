@@ -1,11 +1,12 @@
 import { auditStatement, type AuditAction } from "../audit";
+import type { HanhDongDoiSoKhach } from "../../shared/audit-actions";
 import { LY_DO_DAT_GAP, chieuDiDau, isLyDoDatGap, xepChang, type ChangDaLuu, type ChangHopLe, type LyDoDongChang } from "../../shared/chang-dua-don";
 import type { LegDto, OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto, OrderSummaryTripDto } from "../../shared/contracts";
 import { escapeLike } from "../../shared/http";
 import { dbNgoaiVe } from "../../shared/lan-gui-boc";
 import { moTaDanhSachNhap, type HanhKhachHopLe } from "../../shared/hanh-khach";
 import {
-  legCloseChecked, legCloseGuarded, legDeleteDraft, legFillDateOnConfirm, legInsert, legInsertGuarded, legPaxOverrideChecked, legUpdateChecked, legUpdateGuarded, openLegsByOrders,
+  legCloseChecked, legCloseGuarded, legCloseReplaceChecked, legDeleteDraft, legFillDateOnConfirm, legInsert, legInsertGuarded, legPaxOverrideChecked, legUpdateChecked, legUpdateGuarded, openLegsByOrders,
   openLegsStatement, orderConfirm, orderTouch, orderTouchGuarded, passengerDeleteDraft, passengerInsert, passengerInsertGuarded, passengerVoidGuarded,
   serviceMirrorUpdateGuarded, type DatGapWrite, type LegFields, type LegRow, type LegWrite, type OPhuGhi, type PassengerWrite, type ServicePaxRow,
 } from "./chang-hanh-khach-repo";
@@ -175,6 +176,9 @@ function toDto(r: OrderRow): OrderDto {
     subtotal: r.subtotal,
     discount: r.discount,
     total: r.total,
+    // ADR-0109 QĐ2: giảm giá hiệu lực của đơn CHƯA điều chỉnh (đơn đã điều chỉnh: `applyAdjustmentToOrder` ghi đè cùng hàm). Bằng `discount` vì lúc lập đã chặn
+    // giảm giá ≤ tạm tính (trigger 0007 giữ total = subtotal − discount ≥ 0).
+    giamGiaHieuLuc: effectiveMoney(r.subtotal, r.discount).giamGiaHieuLuc,
     paymentNote: r.payment_note,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
@@ -851,7 +855,8 @@ export type LegMeta = ReadonlyMap<string, { createdAt: string; createdBy: string
 
 /** Một thao tác trên chặng của `PUT /trip` tương thích (ADR-0047 R2c, R4e) — `service.ts:keHoachChangTrip` lập, `updateTrip` ghi. */
 export type LegOp =
-  | { kind: "update"; legId: string; fields: LegFields }
+  /** `nhatKy` (G17): chữ dòng `order_leg_updated` khi ngày / giờ đón đổi (khuôn chặng, `keHoachChangTrip`; route nối đuôi đặt gấp) — vắng = không dòng chặng. */
+  | { kind: "update"; legId: string; fields: LegFields; nhatKy?: string }
   | { kind: "insert"; serviceId: string; leg: ChangHopLe }
   | { kind: "close"; legId: string; reason: LyDoDongChang };
 
@@ -1047,16 +1052,32 @@ export async function confirmOrder(
 export async function cancelOrder(
   db: D1Database, id: string, staffId: string, from: OrderStatus, prevUpdatedAt: string, lyDo: LyDoHuy, opts?: { action?: AuditAction; detail?: string },
 ): Promise<boolean> {
+  return daHuy(await db.batch(soanHuyDon(db, id, staffId, from, prevUpdatedAt, lyDo, opts).cau));
+}
+
+/**
+ * SOẠN (chưa chạy) lô huỷ đơn của `cancelOrder` — cho điểm gọi nối máy đồng bộ chuyến (ADR-0104 Đ2, điểm gọi 1 và 2): `auditId` = id dòng nhật ký của câu cổng
+ * đơn (sinh trước — câu cổng chuyến hỏi "dòng này đã có"), `cau` = [dòng lý do] → [đổi trạng thái] → [nhật ký changes() > 0]. Chạy MỘT `db.batch` với câu
+ * đơn ĐỨNG ĐẦU rồi đọc thắng bằng `daHuy(kq)` (chỉ số câu đổi trạng thái không đổi khi nối khúc chuyến phía sau).
+ */
+export function soanHuyDon(
+  db: D1Database, id: string, staffId: string, from: OrderStatus, prevUpdatedAt: string, lyDo: LyDoHuy, opts?: { action?: AuditAction; detail?: string },
+): { auditId: string; cau: D1PreparedStatement[] } {
   const at = nextStamp(prevUpdatedAt);
+  const auditId = crypto.randomUUID();
   // ADR-0089 đ8 (H-C6): lô huỷ = [dòng lý do (cùng điều kiện khoá lạc quan)] → [đổi trạng thái] → [nhật ký changes() > 0] — câu SQL ở tệp nửa nghiêm.
   // Nhật ký ghi NHÃN lý do (không mã thô); "Khác" ghi chính ghi chú đã kiểm (khuôn HDV — ADR-0030 điều 2).
   const nhan = lyDo.ma === "OTHER" ? `${lyDo.ghiChu} (${nhanNhomHuy(lyDo.nhom)})` : `${nhanLyDoHuy(lyDo.ma)} (${nhanNhomHuy(lyDo.nhom)})`;
-  const results = await db.batch([
-    ...cauHuyCoLyDo(db, { orderId: id, staffId, from, prevUpdatedAt, at, homNay: vnToday(new Date()), lyDo }),
-    auditStatement(db, { orderId: id, staffId, action: opts?.action ?? "cancelled", at, detail: opts?.detail ?? nhan }, "changes() > 0"),
-  ]);
-  return (results[1]!.meta.changes ?? 0) > 0;
+  return {
+    auditId,
+    cau: [
+      ...cauHuyCoLyDo(db, { orderId: id, staffId, from, prevUpdatedAt, at, homNay: vnToday(new Date()), lyDo }),
+      auditStatement(db, { id: auditId, orderId: id, staffId, action: opts?.action ?? "cancelled", at, detail: opts?.detail ?? nhan }, "changes() > 0"),
+    ],
+  };
 }
+/** Lô huỷ (do `soanHuyDon` soạn, câu đơn đứng đầu) đã thắng ⇔ câu đổi trạng thái (thứ 2) đổi một dòng. */
+export const daHuy = (kq: readonly D1Result[]): boolean => (kq[1]?.meta.changes ?? 0) > 0;
 
 interface LatestAdjustment {
   id: string;
@@ -1206,7 +1227,7 @@ export async function computeEffectiveMoney(
       continue;
     }
     const subtotal = effectiveSubtotal(servicesByOrder.get(o.id) ?? [], adj.after);
-    out.set(o.id, effectiveMoney(subtotal, o.discount));
+    out.set(o.id, { total: effectiveMoney(subtotal, o.discount).total }); // ADR-0109: phải thu kẹp ≥ 0 trong effectiveMoney
   }
   return out;
 }
@@ -1220,14 +1241,15 @@ export async function cocCuNhap(db: D1Database, id: string): Promise<number> {
 }
 
 /**
- * Ghi một dòng điều chỉnh MỚI tại đúng `expectedSeq` (= `(dòng gần nhất.seq ?? 0) + 1`, route tính lúc đọc). KHÔNG dùng WHERE-guard so sánh
- * "dòng gần nhất còn đúng không" (không đáng tin cậy giữa hai lời gọi `db.batch()` RIÊNG BIỆT của hai request khác nhau — đã thử, quan sát được
- * hai request cùng thắng khi chạy thật). Thay vào đó dựa thẳng vào chỉ mục duy nhất `idx_order_money_adjustment_seq`: hai request cùng nhắm
- * `expectedSeq` giống nhau, chỉ MỘT lần INSERT thắng, lần kia bị CSDL tự chặn (`isAdjustmentSeqCollision`) → 409 stale, không cần đoán trước ai thắng.
- * `id` dùng CHUNG cho dòng điều chỉnh và dòng audit_log (ADR-0007 điều 2 — không lặp ai/khi nào/lý do). Batch thất bại thì cả hai câu đều không
- * được ghi (giao dịch), nên audit không cần `onlyIf` như `cancelOrder`/`updateDraftOrder`.
+ * SOẠN (chưa chạy) lô ghi một dòng điều chỉnh MỚI tại đúng `expectedSeq` (= `(dòng gần nhất.seq ?? 0) + 1`, nơi gọi tính lúc đọc) — MỘT cửa chèn
+ * `order_money_adjustment` (bài NT-B3 `src/doi-so-khach-mot-cua.test.ts`). KHÔNG dùng WHERE-guard so sánh "dòng gần nhất còn đúng không" (không đáng tin cậy
+ * giữa hai lời gọi `db.batch()` RIÊNG BIỆT của hai request khác nhau — đã thử, quan sát được hai request cùng thắng khi chạy thật). Thay vào đó dựa thẳng vào
+ * chỉ mục duy nhất `idx_order_money_adjustment_seq`: hai request cùng nhắm `expectedSeq` giống nhau, chỉ MỘT lần INSERT thắng, lần kia bị CSDL tự chặn
+ * (`isAdjustmentSeqCollision` ở `chayLoSuaSoKhach`) → 409 stale. `id` dùng CHUNG cho dòng điều chỉnh và dòng audit_log (ADR-0007 điều 2 — không lặp ai/khi
+ * nào/lý do), sinh TRƯỚC và trả ra là `auditId`: ADR-0104 Đ2 (đồng bộ chuyến theo đơn — thi công sau) cần mã nhật ký của câu đơn để câu cổng chuyến hỏi
+ * "lệnh đơn đã thắng". Lô thất bại thì mọi câu đều không được ghi (giao dịch), nên audit không cần `onlyIf` như `cancelOrder`/`updateDraftOrder`.
  */
-export async function insertMoneyAdjustment(
+export function insertMoneyAdjustment(
   db: D1Database,
   orderId: string,
   staffId: string,
@@ -1236,20 +1258,35 @@ export async function insertMoneyAdjustment(
   after: AdjustmentEntry[],
   subtotalBefore: number,
   subtotalAfter: number,
-  reason: string,
-): Promise<boolean> {
+  /** ADR-0062 Đ1-a: chỉ hành động mang cờ `doiSoKhach` (kiểu dẫn từ AUDIT_ACTIONS) — mọi đường ghi dòng này tự vào tập nguồn tin "đơn đổi sau xác nhận". */
+  action: HanhDongDoiSoKhach,
+  /** ADR-0062 Đ2: "số khách: <phần đổi> · lý do: <lý do>" — nơi gọi dựng bằng doanSoKhach + ghepLyDo (src/shared/tin-doi-don.ts). */
+  detail: string,
+): { auditId: string; cau: D1PreparedStatement[] } {
   const id = crypto.randomUUID();
   const at = new Date().toISOString();
-  try {
-    await db.batch([
+  return {
+    auditId: id,
+    cau: [
       db
         .prepare(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES (?, ?, ?, ?, ?, ?, ?)`)
         .bind(id, orderId, expectedSeq, JSON.stringify(before), JSON.stringify(after), subtotalBefore, subtotalAfter),
-      auditStatement(db, { id, orderId, staffId, action: "order_money_adjusted_by_field", at, detail: reason }),
-    ]);
-    return true;
+      auditStatement(db, { id, orderId, staffId, action, at, detail }),
+    ],
+  };
+}
+
+/**
+ * Chạy lô sửa số khách trong MỘT `db.batch` — lô = câu do `insertMoneyAdjustment` soạn, rồi phần chuyến do `ctx.dongBoChuyen` nối SAU câu đơn (ADR-0104 Đ2).
+ * Trả kết quả lô (để máy đồng bộ đọc khúc nào thắng — câu đơn đứng đầu, chỉ số không đổi). Đụng chỉ mục `seq` (người khác vừa ghi) → null (nơi gọi trả 409
+ * stale; cả lô huỷ nên không câu chuyến nào chạy); lỗi khác ném tiếp (nơi gọi thử `dichLoi` của máy đồng bộ trước; trigger 0044 "Đã giao" được router đổi
+ * thành 409 câu cố định).
+ */
+export async function chayLoSuaSoKhach(db: D1Database, lo: readonly D1PreparedStatement[]): Promise<D1Result[] | null> {
+  try {
+    return await db.batch([...lo]);
   } catch (e) {
-    if (isAdjustmentSeqCollision(e)) return false;
+    if (isAdjustmentSeqCollision(e)) return null;
     throw e;
   }
 }
@@ -1286,10 +1323,17 @@ export async function updateTrip(
         .bind(t.departDate, t.departTime, t.pickupTime, t.pickupPlace, t.checkinDate, t.checkinTime, t.checkinPlace, t.note, id, orderId, ...guard.binds),
     ),
     // ADR-0047 R2c/R4e: thao tác trên chặng (dời ngày, trộn giờ/nơi cũ, thêm/đóng chiều đi) — mọi câu có lính gác.
-    ...legOps.map((op) => {
-      if (op.kind === "update") return legUpdateGuarded(db, op.legId, orderId, op.fields, at, staffId, auditId, datGap);
-      if (op.kind === "close") return legCloseGuarded(db, op.legId, orderId, op.reason, at, staffId, auditId);
-      return legInsertGuarded(db, legWriteOf(op.leg, op.serviceId, orderId, staffId, at, new Map(), datGap), auditId);
+    // G17 (ADR-0052 D6.2 MQ-07): chặng đổi ngày / giờ đón → dòng `order_leg_updated` NGAY SAU câu chặng của nó (target = id chặng → cột `leg_id` của
+    // v_aud_order_change; cùng mốc `at` = cùng lô tin với `trip_updated`). `changes() > 0` = câu chặng (có lính gác) vừa sửa đúng một dòng ⇔ lệnh thắng và chặng
+    // còn mở — không câu mới đọc audit_log. Trần số câu của lô: bài `trip-chang.test.ts` (G17 điều kiện 4).
+    ...legOps.flatMap((op) => {
+      if (op.kind === "update") {
+        const sua = legUpdateGuarded(db, op.legId, orderId, op.fields, at, staffId, auditId, datGap);
+        if (op.nhatKy === undefined) return [sua];
+        return [sua, auditStatement(db, { orderId, staffId, action: "order_leg_updated", targetType: "order", targetId: op.legId, at, detail: op.nhatKy }, "changes() > 0")];
+      }
+      if (op.kind === "close") return [legCloseGuarded(db, op.legId, orderId, op.reason, at, staffId, auditId)];
+      return [legInsertGuarded(db, legWriteOf(op.leg, op.serviceId, orderId, staffId, at, new Map(), datGap), auditId)];
     }),
   ]);
   return (results[0]!.meta.changes ?? 0) > 0;
@@ -1317,17 +1361,29 @@ export async function writePassengerChange(
   staffId: string,
   plan: { expected: string; chen: readonly { id: string; personKey: string; previousId: string | null; fullName: string; birthYear: number; paxCode: PaxCode | null }[]; huy: readonly string[]; detail: string },
 ): Promise<boolean> {
+  return thangCauDau(await db.batch(soanDoiKhach(db, orderId, staffId, plan).cau));
+}
+
+/**
+ * SOẠN (chưa chạy) lô sửa danh sách khách của `writePassengerChange` — `auditId` = id dòng nhật ký `order_passenger_changed` (câu cổng đơn cho máy đồng bộ
+ * chuyến, ADR-0104 Đ2 điểm gọi 5). Chạy với câu đơn ĐỨNG ĐẦU, đọc thắng bằng `thangCauDau`.
+ */
+export function soanDoiKhach(
+  db: D1Database,
+  orderId: string,
+  staffId: string,
+  plan: Parameters<typeof writePassengerChange>[3],
+): { auditId: string; cau: D1PreparedStatement[] } {
   const at = nextStamp(plan.expected);
   const auditId = crypto.randomUUID();
-  const results = await db.batch([
+  return { auditId, cau: [
     orderTouch(db, orderId, at, plan.expected),
     auditStatement(db, { id: auditId, orderId, staffId, action: "order_passenger_changed", at, detail: plan.detail }, "changes() > 0"),
     ...plan.chen.map((p) =>
       passengerInsertGuarded(db, { id: p.id, orderId, ten: p.fullName, birthYear: p.birthYear, paxCode: p.paxCode, previousId: p.previousId, personKey: p.personKey, at, by: staffId }, auditId),
     ),
     ...plan.huy.map((rowId) => passengerVoidGuarded(db, rowId, orderId, at, staffId, auditId)),
-  ]);
-  return (results[0]!.meta.changes ?? 0) > 0;
+  ] };
 }
 
 // ---- Route chặng SAU XÁC NHẬN (ADR-0047 A1) ---------------------------------------------------------------------------------------------------
@@ -1355,6 +1411,49 @@ export async function addLeg(
 }
 
 /**
+ * THAY chặng (C14 — đánh giá ERP 2026-10-07): đóng chặng cũ (lý do REPLACED hoặc WRONG_ENTRY — `LY_DO_THAY_CHANG`) VÀ thêm chặng mới của CÙNG dịch vụ trong MỘT lô, MỘT khoá lạc quan theo
+ * `orders.updated_at`. Câu đầu `leg_close_replace_checked` vừa đóng vừa khoá (chặng còn mở + đơn đã xác nhận + đúng mốc đơn) — lô thua thì không ghi gì.
+ * Sau đó: nhật ký bỏ chặng (`changes() > 0`) → nhật ký thêm chặng (`changes() > 0` của dòng nhật ký trước — lô thua không để dòng mồ côi) → đẩy mốc đơn →
+ * chèn chặng mới (dấu đặt gấp nếu có) → GHI KÉP hai cột cũ; mọi câu sau nhật ký mang lính gác của dòng nhật ký ĐẦU. Trả true ⇔ câu đầu đã áp dụng.
+ */
+export async function replaceLeg(
+  db: D1Database,
+  orderId: string,
+  staffId: string,
+  plan: {
+    legId: string; serviceId: string; leg: ChangHopLe; expected: string; reason: LyDoDongChang; detailDong: string; detailThem: string;
+    mirror: { pickupTime: string | null; pickupPlace: string | null }; datGap: DatGapWrite | null;
+  },
+): Promise<boolean> {
+  return thangCauDau(await db.batch(soanThayChang(db, orderId, staffId, plan).cau));
+}
+
+/** Lô chặng (sửa / đóng / thay — câu đơn đứng đầu) đã thắng ⇔ câu ĐẦU (khoá lạc quan) đổi một dòng. Chỉ số không đổi khi nối khúc chuyến phía sau (ADR-0104 Đ2). */
+export const thangCauDau = (kq: readonly D1Result[]): boolean => (kq[0]?.meta.changes ?? 0) > 0;
+
+/**
+ * SOẠN (chưa chạy) lô THAY chặng của `replaceLeg` — `auditId` = id dòng nhật ký `order_leg_closed` (câu cổng đơn cho máy đồng bộ chuyến, ADR-0104 Đ2 điểm gọi 8).
+ */
+export function soanThayChang(
+  db: D1Database,
+  orderId: string,
+  staffId: string,
+  plan: Parameters<typeof replaceLeg>[3],
+): { auditId: string; cau: D1PreparedStatement[] } {
+  const at = nextStamp(plan.expected);
+  const auditId = crypto.randomUUID();
+  return { auditId, cau: [
+    legCloseReplaceChecked(db, plan.legId, orderId, plan.reason, at, staffId, plan.expected),
+    // target_id = id chặng CŨ — cùng khuôn với changeLeg (cột leg_id của v_aud_order_change, 0086).
+    auditStatement(db, { id: auditId, orderId, staffId, action: "order_leg_closed", targetType: "order", targetId: plan.legId, at, detail: plan.detailDong }, "changes() > 0"),
+    auditStatement(db, { orderId, staffId, action: "order_leg_added", at, detail: plan.detailThem }, "changes() > 0"),
+    orderTouchGuarded(db, orderId, at, plan.expected, auditId),
+    legInsertGuarded(db, legWriteOf({ ...plan.leg, id: null }, plan.serviceId, orderId, staffId, at, new Map(), plan.datGap), auditId),
+    serviceMirrorUpdateGuarded(db, plan.serviceId, orderId, plan.mirror, auditId),
+  ] };
+}
+
+/**
  * Sửa / đóng chặng — khoá lạc quan theo `updated_at` CỦA CHẶNG (câu đầu `leg_update_checked` / `leg_close_checked`); đẩy mốc đơn nếu mốc đơn còn đúng.
  * `paxNhap` (kế hoạch ô mới Task 3.5): nhánh NHÁP chỉ ghi số người chiều về — câu đầu `leg_pax_override_checked`, phần còn lại của lô y như sửa chặng.
  */
@@ -1376,6 +1475,20 @@ export async function changeLeg(
     | { kind: "paxNhap"; legId: string; serviceId: string; paxOverride: number | null; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null } }
     | { kind: "close"; legId: string; serviceId: string; reason: LyDoDongChang; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null } },
 ): Promise<boolean> {
+  return thangCauDau(await db.batch(soanSuaChang(db, orderId, staffId, orderUpdatedAt, plan).cau));
+}
+
+/**
+ * SOẠN (chưa chạy) lô sửa / đóng chặng của `changeLeg` — `auditId` = id dòng nhật ký `order_leg_updated` / `order_leg_closed` (câu cổng đơn cho máy đồng bộ
+ * chuyến, ADR-0104 Đ2 điểm gọi 3 và 4). Chạy với câu đơn ĐỨNG ĐẦU, đọc thắng bằng `thangCauDau`.
+ */
+export function soanSuaChang(
+  db: D1Database,
+  orderId: string,
+  staffId: string,
+  orderUpdatedAt: string,
+  plan: Parameters<typeof changeLeg>[4],
+): { auditId: string; cau: D1PreparedStatement[] } {
   const at = nextStamp(later(plan.expected, orderUpdatedAt));
   const auditId = crypto.randomUUID();
   const first =
@@ -1384,13 +1497,13 @@ export async function changeLeg(
       : plan.kind === "paxNhap"
         ? legPaxOverrideChecked(db, plan.legId, orderId, plan.paxOverride, at, staffId, plan.expected)
         : legCloseChecked(db, plan.legId, orderId, plan.reason, at, staffId, plan.expected);
-  const results = await db.batch([
+  return { auditId, cau: [
     first,
-    auditStatement(db, { id: auditId, orderId, staffId, action: plan.kind === "close" ? "order_leg_closed" : "order_leg_updated", at, detail: plan.detail }, "changes() > 0"),
+    // target_id = id CHẶNG (target_type vẫn "order" — mặc định của audit): khoá của tin MQ-07 (ADR-0052 D6.2) qua cột leg_id của v_aud_order_change (0086).
+    auditStatement(db, { id: auditId, orderId, staffId, action: plan.kind === "close" ? "order_leg_closed" : "order_leg_updated", targetType: "order", targetId: plan.legId, at, detail: plan.detail }, "changes() > 0"),
     orderTouchGuarded(db, orderId, at, orderUpdatedAt, auditId),
     serviceMirrorUpdateGuarded(db, plan.serviceId, orderId, plan.mirror, auditId),
-  ]);
-  return (results[0]!.meta.changes ?? 0) > 0;
+  ] };
 }
 
 /**

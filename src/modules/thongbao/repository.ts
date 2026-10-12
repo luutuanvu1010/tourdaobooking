@@ -1,9 +1,9 @@
 // SQL của module thongbao (bảng ntf_*; ADR-0034 + ADR-0036). Mọi câu qua defineSql, tham số ?N. Đọc xuyên module CHỈ qua view công bố:
-// v_aud_order_event + v_aud_trip_event + v_aud_account_event (audit), v_ord_order_label + v_ord_order_owner (orders), v_dsp_order_handler + v_dsp_first_handler (dispatch), v_stf_staff_label (staff).
+// v_aud_order_event + v_aud_order_change + v_aud_trip_event + v_aud_account_event (audit), v_ord_order_label + v_ord_order_owner (orders), v_dsp_order_handler + v_dsp_first_handler (dispatch), v_stf_staff_label (staff).
 // Không DELETE, không OR REPLACE (R-N1-9).
 import { defineSql } from "../../shared/sql-registry.ts";
 import type { DongDon, DongThuCong } from "../../shared/thong-bao.ts";
-import { HANH_DONG_TIN_CHUYEN, type DonCuaTin, type DongChuyenTho } from "../../shared/tin-chuyen.ts";
+import { HANH_DONG_TIN_KHACH, HANH_DONG_TIN_THUONG, type DonCuaTin, type DongChuyenTho } from "../../shared/tin-chuyen.ts";
 
 const LIST_DON = defineSql("thongbao", "list_don", `
   SELECT e.id, e.order_id, o.order_code AS ma_don, e.action, e.staff_id AS actor_id, s.label AS ten_nguoi_lam, e.created_at AS luc,
@@ -19,6 +19,28 @@ const LIST_DON = defineSql("thongbao", "list_don", `
   LEFT JOIN v_stf_staff_label s ON s.id = e.staff_id
   WHERE e.created_at >= ?1
   ORDER BY e.created_at DESC LIMIT 3000`);
+// ADR-0062 Đ1 + ADR-0052 D6.2 MQ-07: dòng ĐỔI (v_aud_order_change — CHỈ module này đọc, có `detail`) từ max(cửa sổ 30 ngày ?1, mốc bắt đầu ?2).
+// "Sau xác nhận" TÍNH từ nhật ký: có dòng `confirmed` của đơn TRƯỚC dòng đổi (v_aud_order_event, KHÔNG cửa sổ — đơn xác nhận 40 ngày trước vẫn đúng).
+const DOI_CHON = `
+  SELECT e.id, e.order_id, o.order_code AS ma_don, e.action, e.detail, e.leg_id, e.staff_id AS actor_id, s.label AS ten_nguoi_lam, e.created_at AS luc,
+         w.staff_id AS owner_id, (h.order_id IS NOT NULL) AS co_nguoi, h.staff_id AS handler_staff_id,
+         EXISTS (SELECT 1 FROM v_aud_order_event c WHERE c.order_id = e.order_id AND c.action = 'confirmed' AND c.created_at < e.created_at) AS sau_xac_nhan
+  FROM v_aud_order_change e
+  JOIN v_ord_order_label o ON o.id = e.order_id
+  JOIN v_ord_order_owner w ON w.id = e.order_id
+  LEFT JOIN v_dsp_order_handler h ON h.order_id = e.order_id
+  LEFT JOIN v_stf_staff_label s ON s.id = e.staff_id`;
+const LIST_DOI = defineSql("thongbao", "list_doi", `${DOI_CHON}
+  WHERE e.created_at >= ?1 AND e.created_at >= ?2
+  ORDER BY e.created_at DESC LIMIT 3000`);
+// Gõ cửa (ADR-0062 Đ4): LÔ dòng đổi MỚI NHẤT của người vừa làm trên đơn này, ghi từ ?3 — gốc lắp ráp gọi ngay sau lệnh đổi (route không truyền chữ nhật ký).
+// G17: trả MỌI dòng ở mốc mới nhất (một lô = cùng đơn + người làm + mốc, đúng định nghĩa lô của locHopThongBao) — `PUT /trip` ghi `trip_updated` + một
+// `order_leg_updated` mỗi chặng đổi ngày / giờ cùng mốc; đọc MỘT dòng thì tài xế của các chặng khác không được gõ cửa. Mốc mới nhất (không phải mọi dòng từ ?3):
+// hai lệnh chồng nhau của cùng người (hai tab) không gộp thành một lô. Trần 500 > lô lớn nhất (1 + 20 dịch vụ × 10 chặng). Thứ tự `e.id` để lần đọc nào cũng như nhau.
+const DOI_VUA_GHI = defineSql("thongbao", "doi_vua_ghi", `${DOI_CHON}
+  WHERE e.order_id = ?1 AND e.staff_id = ?2 AND e.created_at >= ?3
+    AND e.created_at = (SELECT MAX(x.created_at) FROM v_aud_order_change x WHERE x.order_id = ?1 AND x.staff_id = ?2 AND x.created_at >= ?3)
+  ORDER BY e.id LIMIT 500`);
 const LIST_THU_CONG = defineSql("thongbao", "list_thu_cong", `
   SELECT n.id, n.tieu_de, n.noi_dung, n.quan_trong, n.created_by, COALESCE(s.label, '') AS ten_nguoi_gui, n.created_at, (n.valid_to IS NOT NULL) AS thu_hoi,
          (SELECT group_concat(t.tag, ' ') FROM ntf_notice_target t WHERE t.notice_id = n.id) AS tags,
@@ -79,6 +101,22 @@ export async function listDon(db: D1Database, tu: string): Promise<DongDon[]> {
   const r = (await db.prepare(LIST_DON).bind(tu).all<DonRow>()).results;
   return r.map((x) => ({ id: x.id, orderId: x.order_id, maDon: x.ma_don, action: x.action, actorId: x.actor_id, tenNguoiLam: x.ten_nguoi_lam, luc: x.luc,
     ownerId: x.owner_id, phuTrach: { coNguoi: x.co_nguoi === 1, staffId: x.handler_staff_id }, lapChuaCoNguoi: x.lap_chua_co_nguoi === 1, cungLoLap: x.cung_lo_lap === 1 }));
+}
+interface DoiRow { id: string; order_id: string; ma_don: string; action: string; detail: string | null; leg_id: string | null; actor_id: string | null;
+  ten_nguoi_lam: string | null; luc: string; owner_id: string; co_nguoi: number; handler_staff_id: string | null; sau_xac_nhan: number }
+/** Dòng đổi (ADR-0062) dạng DongDon — `chuyenCuaChang` (MQ-07) do index.ts ghép từ hàm tiêm. */
+const dongDoi = (x: DoiRow): DongDon => ({ id: x.id, orderId: x.order_id, maDon: x.ma_don, action: x.action, actorId: x.actor_id, tenNguoiLam: x.ten_nguoi_lam, luc: x.luc,
+  ownerId: x.owner_id, phuTrach: { coNguoi: x.co_nguoi === 1, staffId: x.handler_staff_id }, lapChuaCoNguoi: false, cungLoLap: false,
+  detail: x.detail, sauXacNhan: x.sau_xac_nhan === 1, legId: x.leg_id });
+export async function listDoi(db: D1Database, tu: string, mocTinDoi: string): Promise<DongDon[]> {
+  return (await db.prepare(LIST_DOI).bind(tu, mocTinDoi).all<DoiRow>()).results.map(dongDoi);
+}
+/**
+ * LÔ dòng đổi mới nhất của `actorId` trên đơn, ghi từ `tuLuc` (= mốc bắt đầu request — chỉ dòng do chính request ghi) — rỗng = lệnh không ghi dòng đổi (vd số
+ * khách y nguyên, đặt gấp, ghi lần thu). G17: mọi dòng cùng mốc (sửa chuyến ghi một dòng mỗi chặng đổi).
+ */
+export async function doiVuaGhi(db: D1Database, orderId: string, actorId: string, tuLuc: string): Promise<DongDon[]> {
+  return (await db.prepare(DOI_VUA_GHI).bind(orderId, actorId, tuLuc).all<DoiRow>()).results.map(dongDoi);
 }
 export async function listThuCong(db: D1Database, tu: string, staffId: string): Promise<DongThuCong[]> {
   const r = (await db.prepare(LIST_THU_CONG).bind(tu, staffId).all<ThuCongRow>()).results;
@@ -190,9 +228,22 @@ export const hetHanStatement = (db: D1Database, endpoints: string[], at: string)
   db.prepare(HET_HAN).bind(JSON.stringify(endpoints), at);
 
 // ADR-0052 D6.1: tin chuyến đọc v_aud_trip_event (audit) — chỉ khoá; danh sách hành động truyền bằng tham số JSON từ HANH_DONG_TIN_CHUYEN (một nguồn).
+// Phiếu kiểm D1 CAO-3: HAI lần đọc, mỗi lần một trần — nhóm cũ (`HANH_DONG_TIN_THUONG`, trần 3000 như trước) và ba lệnh khách (`HANH_DONG_TIN_KHACH`, trần
+// riêng `GIOI_HAN_TIN_KHACH`) — dòng xếp / rút / dời (đa số không sinh tin) không đẩy tin huỷ chuyến, xếp lái, khách vắng… ra khỏi hộp. Không lọc được "chỉ dòng
+// mang cờ bỏ qua luật" ở câu này: cờ ở `vc_trip_event` (van-chuyen), thongbao chỉ đọc view audit — lọc cờ do dữ kiện tiêm (`khanCap` — CAO-C: mọi luật bị bỏ
+// qua, không chỉ mốc) làm như cũ.
 const LIST_TIN_CHUYEN = defineSql("thongbao", "list_tin_chuyen", `
   SELECT e.id, e.trip_id, e.staff_id AS actor_id, e.action, e.created_at AS luc FROM v_aud_trip_event e
   WHERE e.created_at >= ?1 AND e.action IN (SELECT value FROM json_each(?2)) ORDER BY e.created_at DESC LIMIT 3000`);
+/**
+ * Trần riêng của ba lệnh khách: 1000 dòng xếp / rút / dời gần nhất của cả công ty. Tin khẩn cấp (mốc) chỉ có nghĩa trong vài giờ trước giờ chạy; từ CAO-C
+ * (2026-10-08) tin trung tính của lệnh bỏ qua luật khác (có thể xa giờ chạy) dùng CHUNG trần này — dòng cũ hơn 1000 dòng gần nhất thì rơi khỏi hộp (lời gõ cửa
+ * lúc ra lệnh thì đã gửi rồi). Chưa đo lượng thật; xem lại nếu tài xế báo mất tin.
+ */
+export const GIOI_HAN_TIN_KHACH = 1000;
+const LIST_TIN_CHUYEN_KHACH = defineSql("thongbao", "list_tin_chuyen_khach", `
+  SELECT e.id, e.trip_id, e.staff_id AS actor_id, e.action, e.created_at AS luc FROM v_aud_trip_event e
+  WHERE e.created_at >= ?1 AND e.action IN (SELECT value FROM json_each(?2)) ORDER BY e.created_at DESC LIMIT ${GIOI_HAN_TIN_KHACH}`);
 const TIN_CHUYEN_THEO_ID = defineSql("thongbao", "tin_chuyen_theo_id",
   `SELECT e.id, e.trip_id, e.staff_id AS actor_id, e.action, e.created_at AS luc FROM v_aud_trip_event e WHERE e.id = ?1`);
 const DON_CHO_TIN = defineSql("thongbao", "don_cho_tin", `
@@ -203,7 +254,12 @@ const DON_CHO_TIN = defineSql("thongbao", "don_cho_tin", `
 interface TinChuyenRow { id: string; trip_id: string; actor_id: string | null; action: string; luc: string }
 const tho = (r: TinChuyenRow): DongChuyenTho => ({ id: r.id, tripId: r.trip_id, actorId: r.actor_id, action: r.action, luc: r.luc });
 export async function listTinChuyen(db: D1Database, tu: string): Promise<DongChuyenTho[]> {
-  return (await db.prepare(LIST_TIN_CHUYEN).bind(tu, JSON.stringify(HANH_DONG_TIN_CHUYEN)).all<TinChuyenRow>()).results.map(tho);
+  const [cu, khach] = await Promise.all([
+    db.prepare(LIST_TIN_CHUYEN).bind(tu, JSON.stringify(HANH_DONG_TIN_THUONG)).all<TinChuyenRow>(),
+    db.prepare(LIST_TIN_CHUYEN_KHACH).bind(tu, JSON.stringify(HANH_DONG_TIN_KHACH)).all<TinChuyenRow>(),
+  ]);
+  // Giữ thứ tự cũ (mới trước) cho người đọc sau — hai nhóm rời nhau theo hành động nên không trùng dòng.
+  return [...cu.results, ...khach.results].sort((a, b) => (a.luc < b.luc ? 1 : a.luc > b.luc ? -1 : 0)).map(tho);
 }
 export async function tinChuyenTheoId(db: D1Database, id: string): Promise<DongChuyenTho | null> {
   const r = await db.prepare(TIN_CHUYEN_THEO_ID).bind(id).first<TinChuyenRow>();

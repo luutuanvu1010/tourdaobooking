@@ -10,6 +10,11 @@
 // Giới hạn: mục MỚI (chuỗi chưa có trong ảnh chụp) được bỏ qua — bài rào lo mục mới; đổi chữ một mục cũ thì chuỗi cũ biến mất ⇒ ĐỎ. Đổi có chủ ý (chủ duyệt):
 // chụp lại bằng lệnh trên với `--rev <mã lần lưu đã duyệt>` và ghi lý do trong lần lưu. Huy hiệu, chấm "Có bản mới", trạng thái sáng không thuộc bài này
 // (scripts/chup-muc-giao-dien.mjs --so-sanh <mã> so DOM đầy đủ khi cần).
+//
+// Chụp lại 2026-10-12 (ghép main 1c471990 vào gói Vận chuyển A+C): gói A+C thêm mục "Đề nghị chuyển khách" (A5), "Báo bận của tôi" (A4), đổi biểu tượng "Cuốc của tôi", và tài xế
+// đối tác nay có "Cuốc của tôi" (A4) — đều làm ở MÃ CŨ (web/shell.ts, web/account.ts) trước khi main gom về bảng. Ảnh chụp mới = chạy mã cũ ĐÃ GỘP (shell.ts / account.ts ở 540ca66d
+// 3-way với cd44b76d, tay gỡ 5 chỗ tham số) trên cây gộp: `node scripts/chup-muc-giao-dien.mjs --ghi src/muc-giao-dien-hien-trang.json`, rồi trả web/shell.ts, web/account.ts về bản bảng.
+// Bài này đỏ nếu bảng mới lệch mã cũ đã gộp ở BẤT KỲ tập nào trong 1024 tập quyền (đã đạt lúc ghép).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";

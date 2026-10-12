@@ -8,7 +8,7 @@ import { vnLocalToMs } from "./vn-date.ts";
 
 const PHUT = 60_000;
 const ms = (d: string, t: string) => vnLocalToMs(d, t)!;
-const CS: ChinhSachVao = { id: "cs-1", minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, requireContract: false, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 };
+const CS: ChinhSachVao = { id: "cs-1", minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, requireContract: false, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720 };
 const HB: HangBangVao[] = [{ classCode: "D1", maxPassengers: 16 }, { classCode: "D2", maxPassengers: 29 }];
 const xe = (v: Partial<XeVao> = {}): XeVao => ({ id: "xe-a", bienSo: "79B-123.45", soCho: 15, trangThai: "active", chuXePartyId: "cty", chuLaCongTy: true, giayTo: [], ...v });
 const tx = (v: Partial<TaiXeVao> = {}): TaiXeVao => ({ partyId: "tx-an", displayName: "Tài xế An", loai: "CONG_TY", carrierPartyIds: [], giayTo: [{ rowId: "g-an", typeCode: "GPLX", classCode: "D1", expiryDate: null }], ...v });
@@ -201,7 +201,7 @@ test("nhãn hai loại mới có chữ, không lộ mã", () => {
   }
 });
 
-test("HT-01 (V1.2) TRA_TRUOC_DON: suất CHỜ ĐÓN có điểm xuống đứng trước điểm lên → CHỈ cảnh báo (một mục mỗi chặng; lyDoGiu KHÔNG đổi — chặn hẳn chờ ADR-0096); đúng thứ tự / đã lên xe / chuyến đã kết thúc → không", () => {
+test("HT-01 TRA_TRUOC_DON: suất CHỜ ĐÓN có điểm xuống đứng trước điểm lên → cảnh báo (một mục mỗi chặng) VÀ — từ ADR-0096 Đ1.2 (gói A1) — lý do GIỮ của chuyến chưa chạy; đúng thứ tự / đã lên xe / chuyến đã kết thúc → không", () => {
   // Tái hiện: 1 Đón Mường Thanh → 2 Trả Bến tàu → 3 Đón Novotel; đoàn Novotel xuống ở điểm 2.
   const diem = (tripId: string): DiemVao[] => [
     { id: "d1", tripId, seq: 1, loai: "PICKUP", trangThai: "PENDING", placeKey: "L:noi-d1", gioXeToiMs: null },
@@ -216,7 +216,10 @@ test("HT-01 (V1.2) TRA_TRUOC_DON: suất CHỜ ĐÓN có điểm xuống đứng
   }));
   const r = ca("PLANNED");
   assert.deepEqual(r.canhBao.filter((c) => c.loai === "TRA_TRUOC_DON"), [{ loai: "TRA_TRUOC_DON", legId: "b", tripId: "07", orderCode: "ĐH-b" }]);
-  assert.deepEqual(r.chuyen[0]!.lyDoGiu, [], "chỉ cảnh báo — chưa thành lý do giữ (không thêm mã vào MA_GIU)");
+  assert.deepEqual(r.chuyen[0]!.lyDoGiu.map((l) => [l.ma, l.aiXuLy, l.loiNhan]), [
+    ["TRA_TRUOC_DON", "VAN_PHONG", "Điểm trả đứng trước điểm đón — đổi thứ tự điểm rồi xuất bến: ĐH-b (điểm trả số 2 đứng trước điểm đón số 3)"],
+  ], "ADR-0096 Đ1.2: thành lý do giữ (cổng xuất bến, MỘT luật với lệnh xuất bến)");
+  assert.equal(r.canhBao.filter((c) => c.loai === "CHUYEN_GIU").length, 1);
   assert.equal(ca("RUNNING").canhBao.filter((c) => c.loai === "TRA_TRUOC_DON").length, 1, "đang chạy: vẫn báo để văn phòng gọi tài xế");
   assert.equal(ca("RUNNING", "BOARDED").canhBao.filter((c) => c.loai === "TRA_TRUOC_DON").length, 0, "khách đã lên xe: không còn 'trả trước đón'");
   assert.equal(ca("ENDED").canhBao.filter((c) => c.loai === "TRA_TRUOC_DON").length, 0);

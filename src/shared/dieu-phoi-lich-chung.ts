@@ -100,6 +100,13 @@ const khung = (c: ChuyenVao): KhungChuyen => ({
   xuatBenMs: c.xuatBenMs ?? null,
 });
 
+/**
+ * C32 (đánh giá ERP 7/10): giờ hẹn đón (ms) nằm NGOÀI khung giờ [bắt đầu, kết thúc] của chuyến — MỘT luật cho cảnh báo lịch chung `GIO_HEN_NGOAI_CHUYEN` (cũng là
+ * cảnh báo trong phản hồi lệnh xếp: `ChuyenChiTietResponse.canhBao`) và cho hộp "Xếp vào chuyến" (sắp / làm mờ chuyến lệch khung — `luaChonChuyenXep`). Chỉ cảnh
+ * báo, không chặn (ADR-0096 Đ3.5: luật chặn chỉ là giờ hẹn SỚM hơn giờ khởi hành, ở cổng xuất bến — không đổi ở đây).
+ */
+export const gioHenNgoaiKhung = (gioMs: number, batDauMs: number, ketThucMs: number): boolean => gioMs < batDauMs || gioMs > ketThucMs;
+
 export function dungLichChung(v: LichChungVao): LichChungRa {
   const canhBao: CanhBaoLich[] = [];
   const cb = (loai: LoaiCanhBaoLich, legId: string | null, tripId: string | null, orderCode: string | null) => canhBao.push({ loai, legId, tripId, orderCode });
@@ -122,7 +129,7 @@ export function dungLichChung(v: LichChungVao): LichChungRa {
         const tripIds = [...new Set(v.suat.filter((s) => s.mo && s.legId === c.legId).map((s) => s.tripId))];
         for (const id of tripIds) {
           const t = chuyenTheoId.get(id);
-          if (t && t.trangThai === "PLANNED" && (gio < t.batDauMs || gio > t.ketThucMs)) cb("GIO_HEN_NGOAI_CHUYEN", c.legId, id, c.orderCode);
+          if (t && t.trangThai === "PLANNED" && gioHenNgoaiKhung(gio, t.batDauMs, t.ketThucMs)) cb("GIO_HEN_NGOAI_CHUYEN", c.legId, id, c.orderCode);
         }
       }
     }

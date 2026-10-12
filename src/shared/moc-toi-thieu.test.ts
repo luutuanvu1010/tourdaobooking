@@ -3,7 +3,10 @@
 // nhận đơn — I15) và `kiemMocDat` (máy chủ + màn hình) là HAI cách nói của MỘT luật — bài tương đương dưới đây khoá điều đó (bẫy "hai luật", Đợt E).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { LENH_KHOA_THEO_MOC, LENH_XEP, batDauSomNhatSauDoiGio, kiemMocDat, kiemMocXep, mucMoc, nguongMocVn } from "./moc-toi-thieu.ts";
+import {
+  LENH_KHOA_THEO_MOC, LENH_XEP, batDauSomNhatSauDoiGio, chuyenDuoiMoc, duQuyen, duoiMocKhiSua, gioXetMocXep, gioXetSuaChuyen, kiemMocDat, kiemMocXep, lopCanCho, lopCuaLuat,
+  lopVuotMoc, lopVuotNghiCamKet, mucMoc, nguongMocVn, type LenhVuotMoc, type LopVuot,
+} from "./moc-toi-thieu.ts";
 import { vnLocalToMs } from "./vn-date.ts";
 
 const PHUT = 60_000;
@@ -164,6 +167,12 @@ test("R-P29 (chủ lần 16): lệnh 'cập nhật khách theo đơn' (DOI_KHACH
   const batDau = ms("2026-09-30", "06:00");
   assert.equal(kiemMocXep(cx(batDau), batDau - 60 * PHUT, 360, { loai: "DOI_KHACH_THEO_DON" }).canPhaLe, false, "một giờ trước xuất bến vẫn cập nhật khách được");
 });
+test("ADR-0104 Đ2.5: lệnh máy 'đồng bộ chuyến theo đơn' (DONG_BO_THEO_DON) là lệnh lúc xếp nhưng KHÔNG khoá theo mốc — không miễn luật lõi, không cần vượt mốc", () => {
+  assert.ok((LENH_XEP as readonly string[]).includes("DONG_BO_THEO_DON"));
+  assert.ok(!(LENH_KHOA_THEO_MOC as readonly string[]).includes("DONG_BO_THEO_DON"), "khuôn DOI_KHACH_THEO_DON — ngoài LENH_KHOA_THEO_MOC");
+  const batDau = ms("2026-09-30", "06:00");
+  assert.equal(kiemMocXep(cx(batDau), batDau - 10 * PHUT, 360, { loai: "DONG_BO_THEO_DON" }).canPhaLe, false);
+});
 
 test("mucMoc: quá mốc (dưới mốc) → đỏ; sát mốc (dưới mốc + cảnh báo) → vàng; còn lại bình thường; ranh giới đúng phút", () => {
   const leg = ms("2026-09-30", "12:00");
@@ -174,4 +183,83 @@ test("mucMoc: quá mốc (dưới mốc) → đỏ; sát mốc (dưới mốc + 
   assert.equal(mucMoc(leg, leg - 100 * PHUT, 1, 120), "SAT_MOC", "mốc 1 phút: còn 100 phút < 1 + 120 → sát mốc");
   assert.equal(mucMoc(leg, leg - 100 * PHUT, 1, 0), "BINH_THUONG");
   assert.equal(mucMoc(leg, leg + 10 * PHUT, 0, 0), "QUA_MOC", "không còn nhánh 'mốc 0 = tắt': giờ đã qua luôn quá mốc");
+});
+
+test("duoiMocKhiSua (chuyển từ orders/dat-gap.ts sang đây — một luật cho máy chủ và bảng Sửa đưa đón): dưới mốc nếu chặng CŨ hoặc chặng MỚI dưới mốc; chưa chốt giờ thì không xét", () => {
+  const bayGio = ms("2027-03-11", "08:00");
+  const g = (d: string | null, t: string | null) => ({ pickupDate: d, pickupTime: t });
+  assert.equal(duoiMocKhiSua(null, g("2027-03-11", "13:00"), bayGio, 360), true, "thêm dưới mốc");
+  assert.equal(duoiMocKhiSua(null, g("2027-03-11", "14:00"), bayGio, 360), false, "đúng mốc là đạt");
+  assert.equal(duoiMocKhiSua(g("2027-03-11", "13:00"), g("2027-03-11", "16:00"), bayGio, 360), true, "cũ dưới mốc, mới trên mốc → vẫn dưới");
+  assert.equal(duoiMocKhiSua(g("2027-03-11", "16:00"), g("2027-03-11", "13:00"), bayGio, 360), true, "mới dưới mốc");
+  assert.equal(duoiMocKhiSua(g("2027-03-11", "16:00"), g("2027-03-12", "09:00"), bayGio, 360), false);
+  assert.equal(duoiMocKhiSua(g("2027-03-11", null), g("2027-03-11", null), bayGio, 360), false, "chưa chốt giờ cả hai phía");
+  assert.equal(duoiMocKhiSua(null, null, bayGio, 360), false);
+});
+
+// ---- ADR-0104 Đ1 (Q-1 b): lớp vượt luật cấu hình ------------------------------------------------------------------------------------------------------------
+const TAM_LENH: LenhVuotMoc[] = [...LENH_KHOA_THEO_MOC, "THEM_KHI_CHAY"];
+
+test("ADR-0104 Đ1 mục 2: lopVuotMoc = KHAN_CAP cho cả bảy lệnh bị khoá + thêm khách khi xe chạy (Q-1 b: Bán hàng cũng được); nhiều lệnh một request cũng KHAN_CAP", () => {
+  assert.deepEqual(TAM_LENH.map((l) => lopVuotMoc(l)), TAM_LENH.map(() => "KHAN_CAP"));
+  assert.equal(lopVuotMoc("DOI_XE", "DOI_TAI_XE"), "KHAN_CAP");
+  assert.equal(lopVuotMoc("DOI_DI", "DOI_DEN"), "KHAN_CAP");
+  assert.equal(lopVuotMoc(), "KHAN_CAP", "không lệnh nào (cờ mốc gửi kèm lệnh sửa không đổi xe / tài xế)");
+});
+
+test("ADR-0104 Đ1 mục 2 (lời chủ 2026-10-08 'Chỉ khi chuyến còn dưới 6 giờ'): lopVuotNghiCamKet — dưới mốc KHAN_CAP, ngoài mốc QUAN_TRI", () => {
+  assert.equal(lopVuotNghiCamKet(true), "KHAN_CAP");
+  assert.equal(lopVuotNghiCamKet(false), "QUAN_TRI");
+});
+
+test("ADR-0104 Đ1 mục 0: chuyenDuoiMoc — CÙNG phép so của kiemMocXep (còn đúng mốc là ngoài, thiếu 1 ms là dưới); xe đang chạy luôn dưới (xét trước chính sách); không chính sách → ngoài", () => {
+  const bayGio = ms("2027-03-11", "06:00");
+  assert.equal(chuyenDuoiMoc({ dangChay: false, gioXetMs: bayGio + 360 * PHUT }, bayGio, 360), false, "còn ĐÚNG 360 phút → ngoài mốc");
+  assert.equal(chuyenDuoiMoc({ dangChay: false, gioXetMs: bayGio + 360 * PHUT - 1 }, bayGio, 360), true, "thiếu 1 ms → dưới mốc");
+  assert.equal(chuyenDuoiMoc({ dangChay: false, gioXetMs: bayGio - 60 * PHUT }, bayGio, 360), true, "quá giờ mà chưa chạy → dưới mốc");
+  assert.equal(chuyenDuoiMoc({ dangChay: true, gioXetMs: bayGio + 3000 * PHUT }, bayGio, 360), true, "xe đang chạy luôn dưới mốc");
+  assert.equal(chuyenDuoiMoc({ dangChay: true, gioXetMs: bayGio + 3000 * PHUT }, bayGio, null), true, "xe đang chạy dưới mốc kể cả khi không có chính sách");
+  assert.equal(chuyenDuoiMoc({ dangChay: false, gioXetMs: bayGio + 10 * PHUT }, bayGio, null), false, "không có chính sách → coi là ngoài mốc (giả định chặt hơn)");
+  // Cùng một phép với luật khoá: mọi khoảng quanh ranh giới cho cùng kết luận với kiemMocXep (lệnh khoá XEP, không đặt gấp).
+  for (const lech of [-1, 0, 1, 359 * PHUT, 360 * PHUT - 1, 360 * PHUT, 360 * PHUT + 1, 2000 * PHUT]) {
+    const c = cx(bayGio + lech);
+    assert.equal(chuyenDuoiMoc({ dangChay: false, gioXetMs: gioXetMocXep(c) }, bayGio, 360), kiemMocXep(c, bayGio, 360, { loai: "XEP" }).canPhaLe, `lệch ${lech} ms`);
+  }
+});
+
+test("ADR-0104 Đ1 mục 0: dấu đặt gấp KHÔNG làm chuyến thôi dưới mốc — chỉ miễn luật mốc của XEP / DOI_DEN; chuyenDuoiMoc không nhận dấu", () => {
+  const bayGio = ms("2027-03-11", "06:00");
+  const c = cx(bayGio + 60 * PHUT);
+  assert.equal(kiemMocXep(c, bayGio, 360, { loai: "XEP", datGap: true }).canPhaLe, false, "đặt gấp miễn mốc lúc xếp");
+  assert.equal(chuyenDuoiMoc({ dangChay: false, gioXetMs: gioXetMocXep(c) }, bayGio, 360), true, "nhưng chuyến vẫn dưới mốc → khoảng nghỉ / cam kết lớp KHAN_CAP");
+  assert.equal(lopVuotNghiCamKet(chuyenDuoiMoc({ dangChay: false, gioXetMs: gioXetMocXep(c) }, bayGio, 360)), "KHAN_CAP");
+});
+
+test("ADR-0104 Đ1 mục 0 (chủ 2026-10-08 'Cho qua, tính là sát giờ'): gioXetSuaChuyen = min(cũ, mới, sớm nhất từng có) — CÙNG phép luật khoá đổi xe / tài xế dùng", () => {
+  const g = (t: string) => ms("2027-03-11", t);
+  assert.equal(gioXetSuaChuyen(g("15:00"), g("10:00"), g("15:00")), g("10:00"), "dời giờ VÀO mốc trong cùng lệnh → xét theo giờ mới");
+  assert.equal(gioXetSuaChuyen(g("10:00"), g("15:00"), g("10:00")), g("10:00"), "dời giờ RA xa → vẫn xét giờ cũ");
+  assert.equal(gioXetSuaChuyen(g("15:00"), g("16:00"), g("09:00")), g("09:00"), "khoá dính: giờ sớm nhất từng có");
+  assert.equal(gioXetSuaChuyen(g("15:00"), g("16:00"), null), g("15:00"), "không có giờ sớm nhất → giờ cũ");
+});
+
+test("ADR-0104 Đ1 mục 2: lopCanCho / duQuyen — lớp 409 theo MỌI luật đang thiếu; canQuyen = đủ ô cho mọi luật theo lớp của nó", () => {
+  const banHang = (lop: LopVuot) => lop === "KHAN_CAP";
+  const quanTri = (_lop: LopVuot) => true;
+  const keToan = (_lop: LopVuot) => false;
+  // Dưới mốc: mọi luật KHAN_CAP.
+  assert.equal(lopCanCho(["MOC_TOI_THIEU", "KHOANG_NGHI", "CAM_KET"], true, ["XEP"]), "KHAN_CAP");
+  assert.equal(duQuyen(["MOC_TOI_THIEU", "KHOANG_NGHI", "CAM_KET"], true, ["XEP"], banHang), true);
+  // Ngoài mốc, chỉ thiếu khoảng nghỉ / cam kết: QUAN_TRI — Bán hàng không đủ, Quản trị đủ.
+  for (const thieu of [["KHOANG_NGHI"], ["CAM_KET"], ["KHOANG_NGHI", "CAM_KET"]] as const) {
+    assert.equal(lopCanCho(thieu, false, []), "QUAN_TRI", thieu.join(","));
+    assert.equal(duQuyen(thieu, false, [], banHang), false, thieu.join(","));
+    assert.equal(duQuyen(thieu, false, [], quanTri), true, thieu.join(","));
+  }
+  // Dời: nguồn dưới mốc (DOI_DI — mốc), đích ngoài mốc (cam kết của đích) → lớp QUAN_TRI; Bán hàng thiếu quyền cho phần cam kết.
+  assert.equal(lopCanCho(["MOC_TOI_THIEU", "CAM_KET"], false, ["DOI_DI", "DOI_DEN"]), "QUAN_TRI");
+  assert.equal(duQuyen(["MOC_TOI_THIEU", "CAM_KET"], false, ["DOI_DI", "DOI_DEN"], banHang), false);
+  assert.equal(lopCuaLuat("MOC_TOI_THIEU", false, ["DOI_DI"]), "KHAN_CAP", "mốc luôn theo lệnh, không theo 'dưới mốc' của đích");
+  assert.equal(duQuyen(["MOC_TOI_THIEU"], true, ["XEP"], keToan), false);
+  assert.equal(duQuyen([], false, [], keToan), true, "không thiếu gì → đủ");
 });

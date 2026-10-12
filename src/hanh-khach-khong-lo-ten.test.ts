@@ -107,6 +107,14 @@ test("họ tên, năm sinh hành khách chỉ rời máy chủ ở GET/POST /pas
       const l = (await doc()).services[0].legs.find((x: any) => x.direction === "RETURN");
       await goi("đóng chặng", "POST", `/api/orders/${id}/legs/${l.id}/close`, SALES, { expectedUpdatedAt: l.updatedAt, reasonCode: "NOT_NEEDED" }, 200);
     },
+    "POST /api/orders/:id/legs/:legId/replace": async () => {
+      // C14: thay chặng (đóng + thêm một lô) — nơi chữ của chặng MỚI chứa SĐT; hai dòng nhật ký (bỏ + thêm) phải che dãy số như route thêm / bỏ.
+      const o = await doc();
+      const l = o.services[0].legs.find((x: any) => x.direction === "OUT");
+      await goi("thay chặng", "POST", `/api/orders/${id}/legs/${l.id}/replace`, SALES, {
+        expectedUpdatedAt: o.updatedAt, leg: { direction: "OUT", pickupDate: D, pickupTime: "07:15", pickupLocationId: null, pickupPlace: `Sảnh khách sạn gọi ${SDT}`, dropoffLocationId: LOC, dropoffPlace: "" },
+      }, 200);
+    },
   };
 
   // (1) ĐỦ TUYẾN
@@ -161,7 +169,7 @@ test("họ tên, năm sinh hành khách chỉ rời máy chủ ở GET/POST /pas
 //       chốt không có cột khoá nơi. DTO tài xế không có khoá gọi báo (`gioHenDoi`, `daGoiBao`, `phienBan`).
 // SALES, SUP ở trên trùng giá trị với khung thử điều phối (tests/audit/dieu-phoi-khung.mjs).
 const TUYEN_VC_THAT = (await routesOf("./modules/van-chuyen/index.ts", "vanChuyenModule"))
-  .filter((k) => /^\/api\/van-chuyen\/(lich|chuyen|cuoc-cua-toi|chang|nhac-goi-khach|chinh-sach-dieu-phoi|xe-cua-don|mau-chang)(\/|$)/.test(k.split(" ")[1]!))
+  .filter((k) => /^\/api\/van-chuyen\/(lich|chuyen|cuoc-cua-toi|chang|nhac-goi-khach|chinh-sach-dieu-phoi|xe-cua-don|mau-chang|ban|ban-tai-xe|de-nghi|de-nghi-cua-toi)(\/|$)/.test(k.split(" ")[1]!))
   .sort();
 const TRA_TEN = ["GET /api/van-chuyen/chuyen/:id", "GET /api/van-chuyen/cuoc-cua-toi/:id"];
 const TEN_VC = ["Khách Dò Tìm 1", "Khách Dò Tìm 2", "Khách Dò Tìm 3"];
@@ -181,11 +189,21 @@ function moiKhoa(x: unknown, ra = new Set<string>()): Set<string> {
 test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/:id + GET /cuoc-cua-toi/:id (trong ngày chạy); nhật ký + cột vc_* sạch; không khoá nơi (TC-39, TC-50)", async () => {
   const tat = batDongHo();
   try {
-    const w = setup();
+    // ADR-0104 Đ2 (kế hoạch N9 — đổi cách DỰNG, không nới luật): máy đồng bộ chuyến THẬT chạy cho mọi lệnh đơn; RIÊNG lúc dựng "khách đã đổi" cho nút tay ở
+    // chuyến C, `giuChuyenC` giả một người khác vừa đổi chuyến C giữa lúc máy đọc và lúc ghi (khúc của máy thua cổng → chuyến giữ KHACH_DA_DOI như hôm nay).
+    let giuChuyenC = false;
+    const w = setup({
+      chenGiuaDocVaGhi: async () => {
+        if (giuChuyenC) w.sqlite.prepare("UPDATE vc_trip SET version = version + 1 WHERE id = ?").run(T.C.chuyen.id);
+      },
+    });
     seedStaff(w.sqlite, { id: DRIVER3, phone: "0900000036", name: "Tài Xế Ba", perms: ["DRIVER"] });
     seedStaff(w.sqlite, { id: DRIVER4, phone: "0900000046", name: "Tài Xế Bốn", perms: ["DRIVER"] });
     thanhTaiXe(w, `pty-${DRIVER3}`);
     thanhTaiXe(w, `pty-${DRIVER4}`);
+    // ADR-0105 (phép 5): địa chỉ đánh dấu của nơi trả (LOC — mọi đơn của khối trả ở đây) chỉ được rời máy chủ ở GET /cuoc-cua-toi/:id trong ngày chạy.
+    const DIA_CHI_VC = "Số 9 Đường Dò Chỉ Đường";
+    w.sqlite.prepare("UPDATE loc_location SET address = ? WHERE id = ?").run(DIA_CHI_VC, LOC);
     const than: { route: string; khoa: string; text: string; json: unknown; coCaiDeLo: boolean }[] = [];
     /** Thân có mảng `suat` và ÍT NHẤT một suất trong đó đã gắn tên trong CSDL (lúc gọi) — nếu route lỡ kèm tên thì tên PHẢI hiện (kiểm độc lập K2a V2). */
     const coCaiDeLo = (j: any): boolean =>
@@ -209,6 +227,8 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
     const dH = await don(w, { soNguoi: 2, gio: "16:30", namSinh: 1911 });
     // Đợt 5 A-1b (ADR-0052 D5b — chủ duyệt 5/10): đơn J thiếu một tên — tài xế bổ sung tên trên chuyến J (tạo ở ca hanh-khach).
     const dJ = await don(w, { soNguoi: 2, ten: 1, gio: "21:10", namSinh: 1911 });
+    // ADR-0111 (gói A5 lát 3): đơn K — khách có tên đi xe K rồi chuyển sang xe L (ca de-nghi/:rid/*). Xác nhận đơn lúc còn ngoài mốc.
+    const dK = await don(w, { soNguoi: 2, gio: "16:40", namSinh: 1911 });
     const T: Record<string, any> = {};
     const S: Record<string, { don: string; tra: string; suat: string[] }> = {};
     const R = "POST /api/van-chuyen/cuoc-cua-toi/:id"; // tiền tố route tài xế
@@ -230,7 +250,7 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
       },
       "POST /api/van-chuyen/chinh-sach-dieu-phoi": async () => {
         const r = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", {
-          as: SUP, body: { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 },
+          as: SUP, body: { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720, refuseLeadMinutes: 720, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer: true },
         });
         assert.ok(r.status < 300, r.text);
         than.push({ route: "POST /api/van-chuyen/chinh-sach-dieu-phoi", khoa: "lưu chính sách", text: r.text, json: r.json, coCaiDeLo: false });
@@ -300,6 +320,22 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         const c = await ct(T.A.chuyen.id);
         assert.deepEqual(c.suat.map((s: any) => s.hoTen).sort(), TEN_VC, "chống bài rỗng: chi tiết chuyến văn phòng CÓ tên ngay sau xếp (I19a)");
       },
+      // A4 T8 (ADR-0053 D9; ADR "Hệ quả"): bốn route Báo bận — thân là khung giờ + nhãn lý do (của chính người gọi) / dải văn phòng chỉ "bận"; không suất, không tên khách.
+      // Dùng Toàn quyền (ô unavailability.self = any) để không dựng thêm tài khoản tài xế đối tác ở khối này (bài tai-xe-doi-tac-cuoc / bao-ban-tai-xe lo phần tài xế đối tác).
+      "GET /api/van-chuyen/ban/cua-toi": async () => {
+        await goi("GET /api/van-chuyen/ban/cua-toi", "khung bận của tôi", "GET", "/api/van-chuyen/ban/cua-toi", SUP);
+      },
+      "POST /api/van-chuyen/ban": async () => {
+        await goi("POST /api/van-chuyen/ban", "báo bận", "POST", "/api/van-chuyen/ban", SUP, { batDau: { ngay: NGAY_SAU, gio: "22:00" }, ketThuc: { ngay: NGAY_SAU, gio: "23:00" }, lyDo: "BTX_OM" }, 201);
+      },
+      "POST /api/van-chuyen/ban/:id/rut": async () => {
+        const k = (await w.call("GET", "/api/van-chuyen/ban/cua-toi", { as: SUP })).json.khung[0];
+        assert.ok(k, "chống bài rỗng: có khung để rút");
+        await goi("POST /api/van-chuyen/ban/:id/rut", "rút khung bận", "POST", `/api/van-chuyen/ban/${k.id}/rut`, SUP, { version: k.version });
+      },
+      "GET /api/van-chuyen/ban-tai-xe": async () => {
+        await goi("GET /api/van-chuyen/ban-tai-xe", "dải tài xế bận (văn phòng)", "GET", `/api/van-chuyen/ban-tai-xe?tu=${NGAY_SAU}`, ADM);
+      },
       "GET /api/van-chuyen/cuoc-cua-toi": async () => {
         await goi("GET /api/van-chuyen/cuoc-cua-toi", "danh sách cuốc", "GET", "/api/van-chuyen/cuoc-cua-toi", DRIVER);
       },
@@ -309,6 +345,7 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         for (const t of TEN_VC) assert.ok(!txt.includes(t), `DTO ngoài ngày chạy lộ tên "${t}"`);
         const k = moiKhoa(f);
         assert.ok(!k.has("hoTen") && !k.has("namSinh") && !k.has("lienHe"), "DTO ngoài ngày chạy: không hoTen / namSinh / lienHe");
+        assert.ok(!k.has("diaChiChiDuong") && !txt.includes(DIA_CHI_VC), "DTO ngoài ngày chạy: không chuỗi đích chỉ đường (ADR-0105)");
         assert.equal(f.suat.length, 2, "chống bài rỗng: cuốc ngày mai có suất");
       },
       "POST /api/van-chuyen/chuyen/:id/cap-nhat-diem": async () => {
@@ -324,6 +361,8 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
       },
       "POST /api/van-chuyen/chuyen/:id/cap-nhat-khach": async () => {
         // R-P29 (chủ lần 16): người lập bỏ một khách của đơn C và thêm một khách (năm sinh đánh dấu) → chuyến C giữ KHACH_DA_DOI → "Cập nhật khách theo đơn".
+        // (ADR-0104 Đ2: giữ được vì khúc của máy thua cổng — `giuChuyenC`.)
+        giuChuyenC = true;
         let ds = (await w.call("GET", `/api/orders/${dC.id}/passengers`, { as: SALES })).json;
         const bo = [...ds.passengers].sort((x: any, y: any) => (x.fullName < y.fullName ? -1 : 1))[2].personKey;
         ds = (await w.call("POST", `/api/orders/${dC.id}/passengers`, { as: SALES, body: { expectedUpdatedAt: ds.orderUpdatedAt, them: [], sua: [], huy: [bo] } })).json;
@@ -332,8 +371,21 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         });
         assert.equal(them.status, 200, them.text);
         const c = await ct(T.C.chuyen.id);
+        giuChuyenC = false;
         const r = await goi("POST /api/van-chuyen/chuyen/:id/cap-nhat-khach", "cập nhật khách C", "POST", `/api/van-chuyen/chuyen/${T.C.chuyen.id}/cap-nhat-khach`, SALES, { version: c.chuyen.version, requestId: rid() });
         assert.equal(r.daCapNhat, 1, "chống bài rỗng: có suất khách đã đổi được cập nhật");
+        // NT-9 (ADR-0104 Đ2.9): MÁY đồng bộ theo đơn — đổi lại một khách của đơn C trong MỘT lệnh (huỷ khách vừa thêm, thêm khách năm sinh đánh dấu) → khúc
+        // `trip_order_synced` trên chuyến C (nhật ký + cột vc_* do phần (3) quét); phản hồi phần "chuyến" chỉ câu cố định + cờ.
+        ds = (await w.call("GET", `/api/orders/${dC.id}/passengers`, { as: SALES })).json;
+        const moi = ds.passengers.find((p: any) => p.fullName === TEN_VC[2]).personKey;
+        const doi = await w.call("POST", `/api/orders/${dC.id}/passengers`, {
+          as: SALES, body: { expectedUpdatedAt: ds.orderUpdatedAt, them: [{ fullName: TEN_VC[1], birthYear: 1912, paxCode: "adult" }], sua: [], huy: [moi] },
+        });
+        assert.equal(doi.status, 200, doi.text);
+        assert.deepEqual(doi.json.dongBoChuyen, { nhac: null, capNhatTay: false });
+        const dongBo = w.q("SELECT detail FROM audit_log WHERE action = 'trip_order_synced'");
+        assert.equal(dongBo.length, 1, "chống bài rỗng: máy đồng bộ có nhật ký để quét");
+        assert.match(dongBo[0].detail, /^[^:]+: máy cập nhật theo đơn — [A-Z0-9-]+ \(đổi người\): trả 1 ghế, thêm 1 ghế$/);
       },
       "GET /api/van-chuyen/nhac-goi-khach": async () => {
         const r = await goi("GET /api/van-chuyen/nhac-goi-khach", "nhắc gọi khách", "GET", "/api/van-chuyen/nhac-goi-khach", SALES);
@@ -367,11 +419,50 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         // Trong ngày chạy, sau xuất bến: DTO tài xế CÓ tên (chống bài rỗng cho route thứ hai được trả tên).
         const a = await goi("GET /api/van-chuyen/cuoc-cua-toi/:id", "cuốc A trong ngày", "GET", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}`, DRIVER);
         assert.deepEqual(a.suat.map((s: any) => s.hoTen).sort(), TEN_VC, "chống bài rỗng: cuốc trong ngày chạy CÓ tên");
+        assert.ok(JSON.stringify(a).includes(DIA_CHI_VC), "chống bài rỗng (ADR-0105): cuốc trong ngày chạy CÓ chuỗi đích là địa chỉ đánh dấu");
       },
       [`${V}/xuat-ben`]: async () => {
         await goi(`${V}/xuat-ben`, "văn phòng xuất bến B", "POST", `/api/van-chuyen/chuyen/${T.B.chuyen.id}/xuat-ben`, SALES, { requestId: rid() });
         const b = await ct(T.B.chuyen.id);
         assert.deepEqual(b.suat.map((s: any) => s.hoTen).sort(), TEN_VC, "chống bài rỗng: chi tiết chuyến văn phòng CÓ tên");
+      },
+      // ADR-0111 (gói A5, NT-A5-2): tài xế A xem xe nhận được đề nghị chuyển khách — B (DRIVER2, đang chạy, suất đã gắn tên) phải có trong danh sách, không tên.
+      "GET /api/van-chuyen/cuoc-cua-toi/:id/xe-nhan": async () => {
+        const r = await goi("GET /api/van-chuyen/cuoc-cua-toi/:id/xe-nhan", "xe nhận của A", "GET", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}/xe-nhan?phamVi=ONBOARD`, DRIVER);
+        assert.ok(r.xe.some((x: any) => x.tripId === T.B.chuyen.id), "chống bài rỗng: xe B đang chạy có trong danh sách");
+      },
+      // ADR-0111 (gói A5 T14): văn phòng xem xe nhận để gửi thay cứu hộ cho A — cùng năm khoá như danh sách của tài xế, không tên.
+      "GET /api/van-chuyen/chuyen/:id/xe-nhan": async () => {
+        const r = await goi("GET /api/van-chuyen/chuyen/:id/xe-nhan", "văn phòng xem xe nhận của A", "GET", `/api/van-chuyen/chuyen/${T.A.chuyen.id}/xe-nhan`, SALES);
+        assert.ok(r.xe.some((x: any) => x.tripId === T.B.chuyen.id), "chống bài rỗng: xe B đang chạy có trong danh sách");
+      },
+      // ADR-0111 (gói A5, NT-A5-16): đề nghị chuyển khách — tài xế A nhờ B đón điểm A (suất đã gắn tên), văn phòng gửi thay cứu hộ (nơi gặp chữ có dãy số), tài
+      // xế A rút một đề nghị, tài xế B xem đề nghị gửi tới. Phản hồi không tên / năm sinh / khoá nơi; chữ nơi gặp (đã che) chỉ ở DTO đề nghị.
+      [`${R}/de-nghi`]: async () => {
+        const r = await goi(`${R}/de-nghi`, "tài xế A nhờ B đón điểm A", "POST", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}/de-nghi`, DRIVER, {
+          requestId: rid(), denChuyenId: T.B.chuyen.id, phamVi: "STOP", diemId: S.A!.don,
+        });
+        S.DN = { don: r.deNghi.id, tra: "", suat: [] };
+      },
+      [`${V}/cuu-ho`]: async () => {
+        await goi(`${V}/cuu-ho`, "văn phòng gửi thay cứu hộ A → B", "POST", `/api/van-chuyen/chuyen/${T.A.chuyen.id}/cuu-ho`, SALES, {
+          requestId: rid(), denChuyenId: T.B.chuyen.id, phamVi: "ONBOARD", noiGap: { chu: "Cây xăng Phước Đồng 0912345678" },
+        });
+      },
+      "GET /api/van-chuyen/de-nghi-cua-toi": async () => {
+        const r = await goi("GET /api/van-chuyen/de-nghi-cua-toi", "đề nghị gửi tới B", "GET", "/api/van-chuyen/de-nghi-cua-toi", DRIVER2);
+        assert.equal(r.guiToi.length, 2, "chống bài rỗng: hai đề nghị tới B");
+      },
+      "POST /api/van-chuyen/de-nghi/:rid/rut": async () => {
+        await goi("POST /api/van-chuyen/de-nghi/:rid/rut", "tài xế A rút đề nghị", "POST", `/api/van-chuyen/de-nghi/${S.DN!.don}/rut`, DRIVER, { requestId: rid() });
+      },
+      // ADR-0097 Đ3 (gói A1, V3-B): văn phòng thu hồi xuất bến B (chưa có tiến độ) rồi xuất bến lại — phản hồi thu hồi không kèm tên (suất B đã gắn tên).
+      [`${V}/thu-hoi-xuat-ben`]: async () => {
+        const b = await ct(T.B.chuyen.id);
+        await goi(`${V}/thu-hoi-xuat-ben`, "văn phòng thu hồi xuất bến B", "POST", `/api/van-chuyen/chuyen/${T.B.chuyen.id}/thu-hoi-xuat-ben`, SALES, {
+          version: b.chuyen.version, requestId: rid(), lyDo: "DIEU_CHINH_BAM_NHAM",
+        }, 201);
+        await goi(`${V}/xuat-ben`, "văn phòng xuất bến lại B", "POST", `/api/van-chuyen/chuyen/${T.B.chuyen.id}/xuat-ben`, SALES, { requestId: rid() });
       },
       [`${R}/thu-tu`]: async () => {
         await goi(`${R}/thu-tu`, "tài xế đổi thứ tự A", "POST", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}/thu-tu`, DRIVER, { requestId: rid(), diem: [{ id: S.A!.tra, thuTu: 7 }] });
@@ -391,6 +482,17 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
       },
       [`${V}/phan-bo/:aid/don`]: async () => {
         await goi(`${V}/phan-bo/:aid/don`, "văn phòng đã đón", "POST", `/api/van-chuyen/chuyen/${T.B.chuyen.id}/phan-bo/${S.B!.suat[0]}/don`, SALES, { requestId: rid() });
+      },
+      // ADR-0097 Đ2: văn phòng sửa "Đã đón" nhầm của khách B[0] về "Chưa xử lý" (điểm đón đang ARRIVED) rồi đón lại suất THAY THẾ — phản hồi không kèm tên.
+      [`${V}/phan-bo/:aid/dieu-chinh`]: async () => {
+        const b = await ct(T.B.chuyen.id);
+        const r = await goi(`${V}/phan-bo/:aid/dieu-chinh`, "văn phòng điều chỉnh khách B", "POST", `/api/van-chuyen/chuyen/${T.B.chuyen.id}/phan-bo/${S.B!.suat[0]}/dieu-chinh`, SALES, {
+          version: b.chuyen.version, requestId: rid(), trangThai: "WAITING", lyDo: "DIEU_CHINH_BAM_NHAM",
+        }, 201);
+        const moi = r.suat.find((x: any) => x.loai === "PASSENGER" && !S.B!.suat.includes(x.id));
+        assert.ok(moi, "chống bài rỗng: có suất thay thế");
+        S.B!.suat[0] = moi.id;
+        await goi(`${V}/phan-bo/:aid/don`, "văn phòng đón lại khách B (suất thay thế)", "POST", `/api/van-chuyen/chuyen/${T.B.chuyen.id}/phan-bo/${moi.id}/don`, SALES, { requestId: rid() });
       },
       [`${R}/phan-bo/:aid/vang`]: async () => {
         await goi(`${R}/phan-bo/:aid/vang`, "tài xế khách vắng", "POST", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}/phan-bo/${S.A!.suat[1]}/vang`, DRIVER, { requestId: rid() });
@@ -464,6 +566,59 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         assert.deepEqual(Object.keys(r).sort(), ["ok", "soNguoi"], "phản hồi chỉ { ok, soNguoi }");
         assert.equal(w.q("SELECT count(*) n FROM ord_passenger WHERE order_id = ? AND source = 'DRIVER' AND full_name = ?", dJ.id, TEN_VC[1])[0].n, 1, "chống bài rỗng: tên đã ghi");
       },
+      // ADR-0111 (gói A5 lát 3, NT-A5-16): vòng đời đề nghị trên một cặp xe RIÊNG — K (DRIVER3, đơn K có tên, đang chạy) nhờ L (DRIVER4, chưa chạy — dưới mốc ⇒
+      // Nhận thành leo thang). Ba đề nghị cùng điểm đón K: một Không nhận, hai Leo thang; Quản trị bác một, duyệt một (khách có tên sang L). Phản hồi chỉ DTO
+      // đề nghị: không tên / năm sinh / khoá nơi.
+      "POST /api/van-chuyen/de-nghi/:rid/khong-nhan": async () => {
+        const tao = async (taiXe: string, bd: string, kt: string) => {
+          const r = await w.call("POST", "/api/van-chuyen/chuyen", { as: ADM, body: { requestId: rid(), xeId: xe(w), taiXePartyId: `pty-${taiXe}`, batDau: { ngay: NGAY, gio: bd }, ketThuc: { ngay: NGAY, gio: kt } } });
+          assert.equal(r.status, 201, r.text);
+          return r.json.chuyen;
+        };
+        const k = await tao(DRIVER3, "16:20", "17:30");
+        const l = await tao(DRIVER4, "16:30", "17:45");
+        const x = await w.call("POST", `/api/van-chuyen/chuyen/${k.id}/phan-bo`, {
+          as: ADM, body: { version: k.version, requestId: rid(), chang: [{ legId: dK.legId, soSuat: 2 }], phaLe: { lyDo: "PHA_LE_SU_CO" } },
+        });
+        assert.equal(x.status, 200, x.text);
+        const diemK = x.json.diem.find((d: any) => d.loai === "PICKUP").id;
+        assert.equal((await w.call("POST", `/api/van-chuyen/cuoc-cua-toi/${k.id}/xuat-ben`, { as: DRIVER3, body: { requestId: rid() } })).status, 200);
+        const gui = async () => {
+          const r = await w.call("POST", `/api/van-chuyen/cuoc-cua-toi/${k.id}/de-nghi`, { as: DRIVER3, body: { requestId: rid(), denChuyenId: l.id, phamVi: "STOP", diemId: diemK } });
+          assert.equal(r.status, 200, r.text);
+          return r.json.deNghi.id as string;
+        };
+        S.DN2 = { don: await gui(), tra: await gui(), suat: [await gui()] };
+        assert.ok(w.q("SELECT count(*) n FROM vc_trip_allocation WHERE trip_id = ? AND passenger_key IS NOT NULL AND valid_to_at IS NULL", k.id)[0].n === 2, "chống bài rỗng: suất K có tên");
+        await goi("POST /api/van-chuyen/de-nghi/:rid/khong-nhan", "tài xế L không nhận", "POST", `/api/van-chuyen/de-nghi/${S.DN2.suat[0]}/khong-nhan`, DRIVER4, {
+          requestId: rid(), lyDo: "TU_CHOI_DAY_CHO",
+        });
+      },
+      "POST /api/van-chuyen/de-nghi/:rid/nhan": async () => {
+        for (const id of [S.DN2!.don, S.DN2!.tra]) {
+          const r = await goi("POST /api/van-chuyen/de-nghi/:rid/nhan", "tài xế L bấm Nhận (leo thang)", "POST", `/api/van-chuyen/de-nghi/${id}/nhan`, DRIVER4, { requestId: rid() });
+          assert.equal(r.ketQua, "LEO_THANG");
+        }
+      },
+      "GET /api/van-chuyen/de-nghi": async () => {
+        const r = await goi("GET /api/van-chuyen/de-nghi", "văn phòng xem đề nghị trong ngày", "GET", `/api/van-chuyen/de-nghi?ngay=${NGAY}`, ADM);
+        assert.ok(r.deNghi.filter((x: any) => x.trangThai === "ESCALATED" && Array.isArray(x.kiem) && x.kiem.length === 11).length >= 2, "chống bài rỗng: hai đề nghị leo thang có dòng kiểm");
+      },
+      "POST /api/van-chuyen/de-nghi/:rid/bac": async () => {
+        await goi("POST /api/van-chuyen/de-nghi/:rid/bac", "Quản trị bác", "POST", `/api/van-chuyen/de-nghi/${S.DN2!.tra}/bac`, ADM, { requestId: rid(), lyDo: "TU_CHOI_KHAC" });
+      },
+      "POST /api/van-chuyen/de-nghi/:rid/duyet": async () => {
+        const r = await goi("POST /api/van-chuyen/de-nghi/:rid/duyet", "Quản trị duyệt — khách có tên sang L", "POST", `/api/van-chuyen/de-nghi/${S.DN2!.don}/duyet`, ADM, {
+          requestId: rid(), lyDo: "PHA_LE_SU_CO",
+        });
+        assert.equal(r.deNghi.trangThai, "CONFIRMED");
+        assert.equal(w.q("SELECT count(*) n FROM vc_trip_allocation WHERE transfer_id = ? AND passenger_key IS NOT NULL AND valid_to_at IS NULL", S.DN2!.don)[0].n, 2, "chống bài rỗng: khách có tên đã sang L");
+      },
+      // A4 T7 (ADR-0053 D8): Từ chối chuyến trả ĐÚNG { daTuChoi: true } khi thành công (khoá ở tu-choi.test.ts — bài đó theo luật đồng hồ giờ thật). Ở đây
+      // (đồng hồ NOW_GIA — không đi đường thành công, tránh bom hẹn giờ B8.3) gọi bằng tài xế công ty → 403: thân lỗi cũng được quét "không lộ tên".
+      [`${R}/tu-choi`]: async () => {
+        await goi(`${R}/tu-choi`, "tài xế công ty bấm Từ chối (403)", "POST", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}/tu-choi`, DRIVER, { requestId: rid(), lyDo: "TCC_KHAC" }, 403);
+      },
     };
 
     // (1) ĐỦ TUYẾN
@@ -486,9 +641,12 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
     const KHONG_THE_LO = new Set(["POST /api/van-chuyen/chuyen", "POST /api/van-chuyen/chuyen/:id/huy", `${R}/ket-thuc-gian-doan`, `${V}/ket-thuc-gian-doan`,
       // ADR-0057 T2: bốn lệnh ghi CHI PHÍ — phản hồi là DTO chi phí (không có mảng `suat` bao giờ), phép "không lộ tên" ở (2) vẫn quét thân.
       "POST /api/van-chuyen/chuyen/:id/chi-phi/dieu-chinh", "POST /api/van-chuyen/chuyen/:id/chi-phi/dao", "POST /api/van-chuyen/chuyen/:id/chi-phi/chup-lai",
-      "POST /api/van-chuyen/chuyen/:id/chi-phi/gia-thoa-thuan", `${R}/hanh-khach`]);
+      "POST /api/van-chuyen/chuyen/:id/chi-phi/gia-thoa-thuan", `${R}/hanh-khach`,
+      // ADR-0111 (gói A5): lệnh đề nghị chuyển khách trả DTO đề nghị (không bao giờ có mảng `suat`) — phép (2) vẫn quét thân.
+      // A4 T7: Từ chối trả { daTuChoi: true } hoặc thân lỗi — không mảng suất.
+      `${R}/de-nghi`, `${V}/cuu-ho`, `${R}/tu-choi`]);
     const phaiCoCaiDeLo = TUYEN_VC_THAT.filter((k) => /^(POST|PUT) \/api\/van-chuyen\/(chuyen\/:id|cuoc-cua-toi\/:id)(\/|$)/.test(k) && !KHONG_THE_LO.has(k));
-    assert.equal(phaiCoCaiDeLo.length, 24, "6 lệnh kế hoạch (sửa, xếp, rút, dời, cập nhật điểm, cập nhật khách — R-P29) + 8 lệnh tài xế + 8 lệnh văn phòng bấm thay + 2 lệnh xe đang chạy (thêm điểm, báo huỷ — Đợt 5)");
+    assert.equal(phaiCoCaiDeLo.length, 26, "6 lệnh kế hoạch (sửa, xếp, rút, dời, cập nhật điểm, cập nhật khách — R-P29) + 8 lệnh tài xế + 8 lệnh văn phòng bấm thay + 2 lệnh xe đang chạy (thêm điểm, báo huỷ — Đợt 5) + 2 lệnh điều chỉnh (điều chỉnh khách, thu hồi xuất bến — ADR-0097)");
     for (const r of phaiCoCaiDeLo) assert.ok(than.some((t) => t.route === r && t.coCaiDeLo), `${r}: không lần gọi nào có suất đã gắn tên — phép "không lộ tên" vô nghĩa ở route này`);
 
     // (3) NHẬT KÝ + cột chữ vc_* — mọi cột, bỏ mã UUID.
@@ -513,6 +671,16 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
       if (t.route.includes("/cuoc-cua-toi")) assert.deepEqual(k.filter((x) => KHOA_GOI_BAO_KEY.test(x)), [], `DTO tài xế "${t.khoa}" có khoá gọi báo`);
     }
     assert.doesNotMatch(JSON.stringify(w.q("SELECT * FROM audit_log")), KHOA_NOI_RE, "nhật ký có chuỗi khoá nơi (L:<id> / T:<hex>)");
+
+    // (5) ADR-0105 — chuỗi đích chỉ đường (địa chỉ đánh dấu của nơi trả) CHỈ ở GET /cuoc-cua-toi/:id; không ở mọi route khác (kể cả phản hồi lệnh tài xế),
+    // không ở nhật ký, không ở cột chữ vc_*.
+    for (const t of than) {
+      if (t.route === "GET /api/van-chuyen/cuoc-cua-toi/:id") continue;
+      assert.ok(!t.text.includes(DIA_CHI_VC), `thân "${t.khoa}" (${t.route}) có địa chỉ chỉ đường`);
+      assert.ok(!moiKhoa(t.json).has("diaChiChiDuong"), `thân "${t.khoa}" (${t.route}) có khoá diaChiChiDuong`);
+    }
+    assert.ok(!JSON.stringify(w.q("SELECT * FROM audit_log")).includes(DIA_CHI_VC), "nhật ký có địa chỉ chỉ đường");
+    for (const b of bangVc) assert.ok(!JSON.stringify(w.q(`SELECT * FROM ${b}`)).includes(DIA_CHI_VC), `bảng ${b} chứa địa chỉ chỉ đường`);
     assert.ok(w.q("SELECT count(*) n FROM vc_trip_stop WHERE place_key GLOB 'T:*'")[0].n >= 1 && w.q("SELECT count(*) n FROM vc_trip_stop WHERE place_key GLOB 'L:*'")[0].n >= 1, "chống bài rỗng: có khoá T: và L: để dò");
     for (const b of ["vc_trip_departure_check", "vc_trip_departure_check_item", "vc_trip_manifest"]) {
       const cot = w.q(`PRAGMA table_info(${b})`).map((r: any) => r.name as string);
@@ -529,7 +697,8 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
 // lỡ truyền `kemTen = true` cũng không lộ gì hôm nay — nhưng là lỗ chờ sẵn. Bài này đọc mã `src/modules/van-chuyen/*.ts` (bỏ chú thích):
 //   - `chiTietChuyen(` và `cuocChiTiet(` CHỈ được gọi trong `index.ts` (nơi khai route);
 //   - đối thứ 5 của `chiTietChuyen` (kemTen) là chữ `true` ĐÚNG ở GET /api/van-chuyen/chuyen/:id, chữ `false` ở MỌI nơi khác (không biến, không biểu thức);
-//   - đối thứ 4 (`hk`) và thứ 5 (`lienHe`) của `cuocChiTiet` là `[]` và `null` ở MỌI nơi khác GET /api/van-chuyen/cuoc-cua-toi/:id.
+//   - đối thứ 4 (`hk`) và thứ 5 (`lienHe`) của `cuocChiTiet` là `[]` và `null` ở MỌI nơi khác GET /api/van-chuyen/cuoc-cua-toi/:id;
+//   - đối thứ 9 (`kemChiDuong`, ADR-0105 — siết G18-B) của `cuocChiTiet` là chữ `true` ĐÚNG ở GET /api/van-chuyen/cuoc-cua-toi/:id, chữ `false` ở mọi nơi khác.
 /** Tách đối số của lời gọi bắt đầu ngay sau dấu "(" ở vị trí `mo` (đếm ngoặc; chuỗi đã được giữ nguyên nên không có ngoặc lạ trong mã này). */
 function doiSo(code: string, mo: number): string[] {
   const ra: string[] = [];
@@ -575,11 +744,13 @@ test("khối van-chuyen (bài 3, quét mã — K2a V2): chỉ GET /chuyen/:id tr
       } else {
         dem.cuoc++;
         if (khoa !== "GET /api/van-chuyen/cuoc-cua-toi/:id" && (a[3] !== "[]" || a[4] !== "null")) loi.push(`${khoa}: cuocChiTiet(…, hk = ${a[3]}, lienHe = ${a[4]}, …) — phải là [] và null`);
+        const mongCd = khoa === "GET /api/van-chuyen/cuoc-cua-toi/:id" ? "true" : "false";
+        if (a[8] !== mongCd) loi.push(`${khoa}: cuocChiTiet(…, kemChiDuong = ${a[8]}) — phải là chữ ${mongCd}`);
       }
     }
   }
   assert.deepEqual(loi, []);
-  assert.deepEqual(dem, { chiTiet: 20, cuoc: 10 }, "chống bài rỗng: 20 nơi gọi chiTietChuyen (1 GET + 19 lệnh — thêm cập nhật khách R-P29, thêm điểm + báo huỷ Đợt 5), 10 nơi gọi cuocChiTiet (1 GET + 9 lệnh tài xế)");
+  assert.deepEqual(dem, { chiTiet: 22, cuoc: 10 }, "chống bài rỗng: 22 nơi gọi chiTietChuyen (1 GET + 21 lệnh — thêm cập nhật khách R-P29, thêm điểm + báo huỷ Đợt 5, điều chỉnh khách + thu hồi xuất bến ADR-0097), 10 nơi gọi cuocChiTiet (1 GET + 9 lệnh tài xế)");
 });
 
 // ADR-0052 tiêu chí 12 (D6 — Đợt 2 Vận chuyển): tin chuyến ở hộp thông báo không mang tên, năm sinh, SĐT, chữ nơi tự do có dãy số, khoá nơi.
@@ -609,6 +780,121 @@ test("ADR-0052 tiêu chí 12 (D6): sau đổi tài xế, khách vắng, gián đ
       assert.doesNotMatch(txt, /Khách Dò Tìm|199\d|0905123456|\d{8,}|"[LT]:|\b[LT]:[0-9a-f-]{8,}/, `tài khoản ${as}`);
     }
     assert.ok(thayTin >= 3, `chống bài rỗng: phải có tin chuyến để quét (thấy ${thayTin})`);
+  } finally {
+    tat();
+  }
+});
+
+// ==== KHỐI TÀI XẾ CÓ VẾ HẠN, NGOÀI KHUNG XEM KHÁCH (ADR-0053 "Hệ quả"; phiếu kiểm độc lập A4 12/10, CAO-1 + CAO-1b) ========================================
+// Người có vế hạn Từ chối (can(trip.refuse, {assigned}) — Toàn quyền tự lái là cách dựng gọn; DRIVER_PARTNER cùng đường `khungCuaNguoiGoi`) NGOÀI khung
+// (qua hạn, đã xuất bến sớm tối hôm trước, CHƯA tới ngày chạy): MỌI route lệnh của tài xế — thân 200 lẫn thân 409 — không có mã đơn, họ tên, năm sinh,
+// liên hệ. Bài này bắt CAO-1 (409 Xuất bến mang "<mã đơn> thiếu N tên") và CAO-1b (409 thu_tu_dao mang mã đơn): quan sát đỏ khi hoàn nguyên bản vá.
+test("khối tài xế có vế hạn NGOÀI khung: mọi route lệnh cuoc-cua-toi (200 lẫn 409) không mã đơn / tên / năm sinh / liên hệ; có tập route khớp mã thật; văn phòng cùng ca vẫn có mã đơn", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const cs = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", {
+      as: SUP,
+      body: { minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true, proxyBackdateMaxMinutes: 90, dutyDayMaxMinutes: 600, tripNoBreakMaxMinutes: 300, departureWindowMinutes: 1440, refuseLeadMinutes: 720, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer: true },
+    });
+    assert.equal(cs.status, 201, cs.text);
+    thanhTaiXe(w, `pty-${SUP}`);
+    // X: đủ tên, 06:00 ngày D (chạy trọn vòng); Y: đủ tên, 12:00 ngày D (kết thúc gián đoạn); Z: thiếu một tên, 15:00 ngày D (409 Xuất bến).
+    const X = await chuyenSan(w, { taiXe: SUP, ngay: NGAY_SAU, bd: "06:00", kt: "08:00", gio: "06:30", soNguoi: 3, namSinh: 1911 });
+    const Y = await chuyenSan(w, { taiXe: SUP, ngay: NGAY_SAU, bd: "10:00", kt: "12:00", gio: "10:30", soNguoi: 1, namSinh: 1911 });
+    const Z = await chuyenSan(w, { taiXe: SUP, ngay: NGAY_SAU, bd: "15:00", kt: "17:00", gio: "15:30", soNguoi: 2, ten: 1, namSinh: 1911 });
+    const maDon = [X.don.code, Y.don.code, Z.don.code];
+    const cam = (t: string) => [...maDon, ...TEN_VC, "Khách Liên Hệ", "0912345678"].filter((c) => t.includes(c));
+    denGio("18:30", NGAY);
+    const bodies: { khoa: string; status: number; text: string }[] = [];
+    const lenh = async (route: string, khoa: string, path: string, body: Record<string, unknown>, as = SUP) => {
+      const r = await w.call("POST", `/api/van-chuyen/cuoc-cua-toi/${path}`, { as, body: { requestId: uuid(), ...body } });
+      assert.ok(r.status < 500, `${khoa}: ${r.status} ${r.text}`);
+      bodies.push({ khoa: `${route} — ${khoa}`, status: r.status, text: r.text });
+      return r;
+    };
+    const R = "POST /api/van-chuyen/cuoc-cua-toi/:id";
+    // Z thiếu tên: văn phòng thấy mã đơn (chống bài rỗng); tài xế có vế hạn ngoài khung thì không.
+    const zVp = await w.call("POST", `/api/van-chuyen/chuyen/${Z.id}/xuat-ben`, { as: ADM, body: { requestId: uuid() } });
+    assert.equal(zVp.status, 409, zVp.text);
+    assert.ok(zVp.text.includes(Z.don.code), `chống bài rỗng: văn phòng thấy mã đơn: ${zVp.text}`);
+    const z = await lenh(`${R}/xuat-ben`, "Xuất bến Z thiếu tên (409)", `${Z.id}/xuat-ben`, {});
+    assert.equal(z.status, 409, z.text);
+    // X: văn phòng xuất bến sớm; tài xế chạy trọn vòng.
+    const xb = await tienDo(w, "van-phong", X.id, "xuat-ben", {}, ADM);
+    assert.equal(xb.status, 200, xb.text);
+    const gx = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${X.id}`, { as: SUP });
+    assert.equal(gx.json.trongNgayChay, false, "chống bài rỗng: đang chạy mà ngoài khung");
+    assert.deepEqual(cam(gx.text), [], "GET chi tiết ngoài khung");
+    const sd = new Map(w.q("SELECT id, seq FROM vc_trip_stop WHERE trip_id = ?", X.id).map((a: any) => [a.id, a.seq]));
+    await lenh(`${R}/thu-tu`, "đảo trả trước đón (409)", `${X.id}/thu-tu`, { diem: [{ id: X.diemTra, thuTu: sd.get(X.diemDon) }, { id: X.diemDon, thuTu: sd.get(X.diemTra) }] });
+    await lenh(`${R}/thu-tu`, "đổi số giữ thứ tự (200)", `${X.id}/thu-tu`, { diem: [{ id: X.diemTra, thuTu: 7 }] });
+    await lenh(`${R}/diem/:sid/da-toi`, "tới điểm đón", `${X.id}/diem/${X.diemDon}/da-toi`, {});
+    await lenh(`${R}/phan-bo/:aid/don`, "đã đón", `${X.id}/phan-bo/${X.suat[0]}/don`, {});
+    await lenh(`${R}/phan-bo/:aid/vang`, "khách vắng", `${X.id}/phan-bo/${X.suat[1]}/vang`, {});
+    await lenh(`${R}/phan-bo/:aid/khach-huy`, "khách huỷ", `${X.id}/phan-bo/${X.suat[2]}/khach-huy`, {});
+    await lenh(`${R}/diem/:sid/da-toi`, "tới điểm trả", `${X.id}/diem/${X.diemTra}/da-toi`, {});
+    await lenh(`${R}/phan-bo/:aid/tra`, "đã trả", `${X.id}/phan-bo/${X.suat[0]}/tra`, {});
+    await lenh(`${R}/ket-thuc`, "kết thúc", `${X.id}/ket-thuc`, {});
+    // Y: xuất bến sớm rồi kết thúc gián đoạn.
+    denGio("19:30", NGAY); // đủ khoảng nghỉ sau chuyến X (45 phút)
+    const yb = await tienDo(w, "van-phong", Y.id, "xuat-ben", {}, ADM);
+    assert.equal(yb.status, 200, yb.text);
+    await lenh(`${R}/ket-thuc-gian-doan`, "kết thúc gián đoạn", `${Y.id}/ket-thuc-gian-doan`, { lyDo: "GIAN_DOAN_XE_HONG" });
+    // Hai route còn lại: bổ sung tên, và Từ chối (sau phép kiểm "trong khung" bên dưới).
+    await lenh(`${R}/hanh-khach`, "bổ sung tên", `${Z.id}/hanh-khach`, { chang: [] });
+    // ADR-0111 (gói A5): gửi đề nghị chuyển khách — thiếu thân hợp lệ nên 400; thân lỗi cũng phải sạch tên / mã đơn / liên hệ.
+    await lenh(`${R}/de-nghi`, "gửi đề nghị chuyển khách (thân lỗi)", `${Z.id}/de-nghi`, {});
+    // (3) Qua 03:00 ngày D (hạn Từ chối của Z = 15:00 − 12 giờ; đã qua hạn, trong ngày chạy → TRONG khung): GET chi tiết CÓ mã đơn — chống bài rỗng cho phép (1)
+    denGio("03:05", NGAY_SAU);
+    const trong = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${Z.id}`, { as: SUP });
+    assert.equal(trong.json.trongNgayChay, true, trong.text);
+    assert.ok(trong.text.includes(Z.don.code), "trong khung: có mã đơn");
+    // Từ chối quá hạn (đồng hồ giả) → 409 refuse_deadline_passed: thân lỗi cũng được quét; đường thành công: tu-choi.test.ts (giờ thật).
+    await lenh(`${R}/tu-choi`, "Từ chối", `${Z.id}/tu-choi`, { lyDo: "TCC_KHAC" });
+    // (1) mọi thân đều sạch
+    for (const b of bodies) assert.deepEqual(cam(b.text), [], `${b.khoa} (${b.status}) lộ: ${b.text}`);
+    assert.ok(bodies.some((b) => b.status === 409) && bodies.some((b) => b.status === 200), "chống bài rỗng: có cả thân 409 lẫn 200");
+    // (2) tập route đã quét = tập route lệnh POST của tài xế trong mã thật
+    const thatLenh = (await routesOf("./modules/van-chuyen/index.ts", "vanChuyenModule")).filter((k) => /^POST \/api\/van-chuyen\/cuoc-cua-toi\/:id\//.test(k)).sort();
+    assert.deepEqual([...new Set(bodies.map((b) => b.khoa.split(" — ")[0]!))].sort(), thatLenh, "mỗi route lệnh của tài xế phải có ca ở khối này (và ngược lại)");
+  } finally {
+    tat();
+  }
+});
+
+// ---- ADR-0113 Đ2–Đ3 (accepted 2026-10-12), cùng KHỐI vế hạn NGOÀI khung: thân 409 `refuse_blocked_transferred_in` và DTO có `chanTuChoi` KHÔNG kèm tên khách, năm sinh,
+// mã đơn của chuyến nhận, mã đơn / mã chuyến của chuyến NGUỒN, liên hệ — dù tài xế (Toàn quyền tự lái) đang ngoài khung xem khách và trước hạn Từ chối. -------------
+test("khối vế hạn NGOÀI khung (ADR-0113): chuyến nhận khách chuyển vào, Từ chối trước hạn → 409 refuse_blocked_transferred_in không tên / năm sinh / mã đơn / mã chuyến nguồn / liên hệ; chi tiết cuốc có chanTuChoi và cũng sạch", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const cs = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", {
+      as: SUP,
+      body: { minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true, proxyBackdateMaxMinutes: 90, dutyDayMaxMinutes: 600, tripNoBreakMaxMinutes: 300, departureWindowMinutes: 1440, refuseLeadMinutes: 720, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer: true },
+    });
+    assert.equal(cs.status, 201, cs.text);
+    thanhTaiXe(w, `pty-${SUP}`);
+    // S (tài xế công ty, đủ tên, 06:00 ngày D) → B (Toàn quyền tự lái, 15:00 ngày D; hạn Từ chối 03:00 ngày D).
+    const S = await chuyenSan(w, { taiXe: DRIVER, ngay: NGAY_SAU, bd: "06:00", kt: "08:00", gio: "06:30", soNguoi: 2, namSinh: 1911, noiDon: "Khách sạn Nguồn" });
+    const B = await chuyenSan(w, { taiXe: SUP, ngay: NGAY_SAU, bd: "15:00", kt: "17:00", gio: "15:30", soNguoi: 1, namSinh: 1922, noiDon: "Khách sạn Đích" });
+    denGio("18:30", NGAY);
+    assert.equal((await tienDo(w, "van-phong", S.id, "xuat-ben", {}, ADM)).status, 200);
+    const g = await w.call("POST", `/api/van-chuyen/cuoc-cua-toi/${S.id}/de-nghi`, { as: DRIVER, body: { requestId: uuid(), denChuyenId: B.id, phamVi: "STOP", diemId: S.diemDon } });
+    assert.equal(g.status, 200, g.text);
+    const n = await w.call("POST", `/api/van-chuyen/de-nghi/${g.json.deNghi.id}/nhan`, { as: SUP, body: { requestId: uuid() } });
+    assert.equal(n.status, 200, n.text);
+    assert.equal(n.json.ketQua, "DA_CHUYEN", n.text);
+    const cam = (t: string) => [S.don.code, B.don.code, S.ma, ...TEN_VC, "Khách Liên Hệ", "0912345678", "1911", "1922"] /* tên điểm đón (nơi) là dữ liệu chuyến, luôn hiện cho tài xế — không tính */.filter((c) => t.includes(c));
+    const ct = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${B.id}`, { as: SUP });
+    assert.equal(ct.status, 200, ct.text);
+    assert.equal(ct.json.trongNgayChay, false, "chống bài rỗng: ngoài khung xem khách");
+    assert.equal(ct.json.chanTuChoi, "KHACH_CHUYEN_VAO", "chống bài rỗng: khách đã chuyển vào");
+    assert.deepEqual(cam(ct.text), [], `GET chi tiết lộ: ${ct.text}`);
+    const r = await w.call("POST", `/api/van-chuyen/cuoc-cua-toi/${B.id}/tu-choi`, { as: SUP, body: { requestId: uuid(), lyDo: "TCC_KHAC" } });
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.code, "refuse_blocked_transferred_in", r.text);
+    assert.deepEqual(cam(r.text), [], `thân 409 lộ: ${r.text}`);
   } finally {
     tat();
   }

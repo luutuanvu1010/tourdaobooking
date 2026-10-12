@@ -10,9 +10,10 @@ import { NHAN_SU_KIEN_CHUYEN, NHAN_TRANG_THAI_CHUYEN, isNhomLyDo, type ChangVao,
 import { noiLechCuaSuat } from "../../shared/dieu-phoi-kiem";
 import { NHAN_CANH_BAO_LICH, type CanhBaoLich } from "../../shared/dieu-phoi-lich-chung";
 import { NHAN_TRANG_THAI_CHANG, type TrangThaiChangRa } from "../../shared/dieu-phoi-trang-thai";
-import { NHAN_AI_XU_LY, type LyDoGiu } from "../../shared/ly-do-giu";
-import { gioXetMocXep } from "../../shared/moc-toi-thieu";
+import { NHAN_AI_XU_LY, lyDoTheoMoc, type LyDoGiu } from "../../shared/ly-do-giu";
+import { chuyenDuoiMoc, gioXetMocXep } from "../../shared/moc-toi-thieu";
 import { maskLongDigits } from "../../shared/text-guards";
+import { chuoiDichChiDuong } from "../../shared/chi-duong";
 import { msToVnLocal, vnLocalToMs } from "../../shared/vn-date";
 import type { AllocRow, BanChupRow, EventRow, StopRow, TripRow, XeCuaDonRow, XeDieuPhoiRow } from "./chuyen-repo";
 import { diemVao, suatVao, type DuLieuChung } from "./dieu-phoi-doc";
@@ -24,10 +25,20 @@ export const gioVn = (ms: number): GioVnDto => {
   const { date, time } = msToVnLocal(ms);
   return { ngay: date, gio: time };
 };
+/**
+ * ADR-0104 Đ1 mục 9 ★: lý do giữ của MỘT chuyến theo lớp — "dưới mốc" lúc đọc (giờ xét mốc xếp, cùng phép `khoaMoc`; xe đang chạy luôn dưới mốc; không có
+ * chính sách → ngoài mốc) chọn ai xử lý khoảng nghỉ / nghỉ thiếu / cam kết (`lyDoTheoMoc`). Một chỗ cho lịch, chi tiết, cuốc tài xế, 409 xuất bến.
+ */
+export function lyDoGiuCuaChuyen(t: TripRow, lyDo: readonly LyDoGiu[], bayGioMs: number, phut: number | null): LyDoGiu[] {
+  const duoiMoc = chuyenDuoiMoc({ dangChay: t.status === "RUNNING", gioXetMs: gioXetMocXep({ batDauMs: t.planned_start_ms, batDauSomNhatMs: t.earliest_start_ms }) }, bayGioMs, phut);
+  return lyDo.map((l) => lyDoTheoMoc(l, duoiMoc));
+}
 export const lyDoGiuDto = (l: LyDoGiu): LyDoGiuDto => ({ ma: l.ma, loiNhan: l.loiNhan, aiXuLy: l.aiXuLy, aiXuLyNhan: NHAN_AI_XU_LY[l.aiXuLy] });
 export const canhBaoDto = (c: CanhBaoLich): CanhBaoLichDto => ({ loai: c.loai, nhan: NHAN_CANH_BAO_LICH[c.loai], legId: c.legId, tripId: c.tripId, maDon: c.orderCode });
 /** Tên nơi của điểm: tên danh mục, hoặc chữ tự do ĐÃ CHE dãy số (lưu đã che — che lần nữa cho chắc). */
 export const tenNoi = (s: StopRow): string => s.location_name ?? maskLongDigits(s.place_text ?? "");
+/** ADR-0105 mục 3: chuỗi đích chỉ đường — điểm danh mục: địa chỉ (đã trim) nếu có, không thì tên; chữ tự do: ĐÚNG `tenNoi` (đã che). Không bao giờ place_key. */
+export const chuoiDichCuaDiem = (s: StopRow): string => chuoiDichChiDuong({ laDanhMuc: s.location_id !== null, diaChi: s.location_address, tenNoi: tenNoi(s) });
 
 /**
  * Một mốc tiến độ (ADR-0050 VK1-A): giờ xảy ra + giờ ghi nhận; `nguoiBam` CHỈ khi văn phòng khai giờ (R-P11) — chuỗi tên hiển thị từ hàm tiêm `nhanNhanVien`
@@ -63,7 +74,9 @@ export const lyDoDangDung = (chung: DuLieuChung): LyDoDangDungDto[] =>
 /** Tóm tắt một chuyến (lịch chung + đầu chi tiết). */
 export function chuyenTomTat(
   t: TripRow, v: { xe: XeDieuPhoiRow | undefined; chung: DuLieuChung; stops: readonly StopRow[]; allocs: readonly AllocRow[]; events: readonly EventRow[]; lyDoGiu: readonly LyDoGiu[];
-    nhan: ReadonlyMap<string, string> | null; bayGioMs: number },
+    nhan: ReadonlyMap<string, string> | null; bayGioMs: number;
+    /** ADR-0104 Đ2.7: chặng (có suất trên các chuyến đang dựng) thuộc đơn ĐÃ HUỶ — cờ `is_cancelled` của view công bố (cùng nguồn lý do giữ DON_DA_HUY). */
+    legDonHuy: ReadonlySet<string> },
 ): ChuyenTomTatDto {
   const tx = t.driver_party_id ? v.chung.taiXe.find((x) => x.partyId === t.driver_party_id) : undefined;
   const tai = v.allocs.filter((a) => a.trip_id === t.id && a.valid_to_at === null && (a.status === "WAITING" || a.status === "BOARDED")).length;
@@ -81,13 +94,18 @@ export function chuyenTomTat(
     xe: { id: t.vehicle_id, bienSo: v.xe?.plate_number ?? "", soCho: v.xe?.passenger_capacity ?? 0, chuXe: v.xe?.owner_name ?? "", chuLaCongTy: v.xe?.owner_is_company === 1 },
     taiXe: t.driver_party_id ? { partyId: t.driver_party_id, ten: tx?.displayName ?? "(không còn là tài xế)", loai: tx?.loai ?? "NHA_XE" } : null,
     tai,
-    lyDoGiu: v.lyDoGiu.map(lyDoGiuDto),
+    lyDoGiu: lyDoGiuCuaChuyen(t, v.lyDoGiu, v.bayGioMs, v.chung.chinhSach?.min_lead_minutes ?? null).map(lyDoGiuDto),
     khoaMoc: khoaMoc(t, v.bayGioMs, v.chung.chinhSach?.min_lead_minutes ?? null),
-    xuatBen: mocTienDo(suKienCuoi(v.events, t.id, ["DEPARTED"]), v.nhan),
+    xuatBen: t.departed_at === null ? null : mocTienDo(suKienCuoi(v.events, t.id, ["DEPARTED"]), v.nhan), // ADR-0097 Đ3: thu hồi xuất bến → chưa xuất bến
     ketThucThat: mocTienDo(suKienCuoi(v.events, t.id, ["ENDED", "ENDED_INTERRUPTED"]), v.nhan),
     diem: v.stops.filter((s) => s.trip_id === t.id).map((s) => ({
       id: s.id, thuTu: s.seq, loai: s.kind, tenNoi: tenNoi(s), trangThai: s.status, daToi: mocTienDo(suKienCuoi(v.events, t.id, ["STOP_ARRIVED"], (e) => e.stop_id === s.id), v.nhan),
     })),
+    // ADR-0104 Đ1 mục 5: từ sự kiện ĐÃ ĐỌC (`eventsByTrips` — sự kiện của chuyến kể cả dời vào / ra, GA-35); không câu đọc mới.
+    khanCap: v.events.some((e) => (e.trip_id === t.id || e.related_trip_id === t.id) && e.override_rule_code === "MOC_TOI_THIEU"),
+    // ADR-0104 Đ2.7 (T2.16): xe đang chạy còn khách CHỜ ĐÓN của đơn huỷ mà văn phòng chưa Báo huỷ (khuôn `daBaoHuy` của máy — nhắc tới khi báo huỷ hết).
+    coKhachDonHuy: t.status === "RUNNING" && v.allocs.some((a) =>
+      a.trip_id === t.id && a.valid_to_at === null && a.kind === "PASSENGER" && a.status === "WAITING" && a.office_cancel_at === null && a.leg_id !== null && v.legDonHuy.has(a.leg_id)),
   };
 }
 
@@ -141,6 +159,7 @@ export function suatChuyenDto(
   return {
     id: a.id, loai: a.kind, maDon, legId: a.leg_id, chieu: ch?.direction ?? null, diemLen: a.board_stop_id, diemXuong: a.alight_stop_id, trangThai: a.status,
     soHieuChuyenBay: ch?.soHieuChuyenBay ?? null,
+    gioHen: ch && ch.pickupDate !== null && ch.pickupTime !== null ? { ngay: ch.pickupDate, gio: ch.pickupTime } : null, // C33: giờ hẹn từng đoàn ở điểm gộp
     coTen: a.passenger_key !== null,
     ...(nguoi ? { hoTen: nguoi.fullName, namSinh: nguoi.birthYear } : {}),
     ...(a.kind === "CREW" && a.crew_party_id !== null && v.tenDiKem?.has(a.crew_party_id) ? { tenNguoiDiKem: v.tenDiKem.get(a.crew_party_id)! } : {}),
@@ -154,7 +173,7 @@ export function suatChuyenDto(
 }
 
 /** Nhật ký chuyến: loại (nhãn), giờ xảy ra / ghi nhận, người bấm (nhãn — R-P20), máy hay người, số người, phá lệ (mã luật + nhãn lý do). */
-export function nhatKyChuyenDto(events: readonly EventRow[], nhan: ReadonlyMap<string, string> | null, lyDo: ReadonlyMap<string, string>): NhatKyChuyenDto[] {
+export function nhatKyChuyenDto(events: readonly EventRow[], nhan: ReadonlyMap<string, string> | null, lyDo: ReadonlyMap<string, string>, tripId: string): NhatKyChuyenDto[] {
   return events.map((e) => ({
     id: e.id,
     loai: e.kind,
@@ -166,6 +185,7 @@ export function nhatKyChuyenDto(events: readonly EventRow[], nhan: ReadonlyMap<s
     may: e.decided_mode === "MAY",
     soNguoi: e.count,
     phaLe: e.override_rule_code && e.override_reason_code ? { luat: e.override_rule_code, lyDoNhan: lyDo.get(e.override_reason_code) ?? "Phá lệ" } : null,
+    chuyenKhac: e.trip_id !== tripId,
   }));
 }
 

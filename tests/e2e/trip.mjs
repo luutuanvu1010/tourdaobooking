@@ -230,8 +230,10 @@ try {
   assert.deepEqual([r.body.order.status, r.body.order.services[0].pickupTime, r.body.order.services[0].pickupPlace], ["confirmed", "06:30", "Sân bay Cam Ranh"]);
   c = r.body.order;
   const history = (await get(A, c)).history;
-  const last = history.at(-1);
-  assert.equal(last.action, "trip_updated");
+  // G17: cùng lô có thêm dòng "Sửa chặng đưa đón" của chặng đổi giờ (đứng SAU dòng trip_updated) — chỉ ngày / giờ, không nơi.
+  assert.deepEqual(history.slice(-2).map((h) => h.action), ["trip_updated", "order_leg_updated"]);
+  assert.match(history.at(-1).detail, /^Chiều đi · .+: giờ đón \(trống\) → 06:30$/);
+  const last = history.at(-2);
   assert.match(last.detail, /giờ đón \(trống\) → 06:30/);
   assert.match(last.detail, /đổi điểm đón/);
   // Không dòng nhật ký nào (created/confirmed/trip_updated) được chứa giá trị địa điểm hay nội dung ghi chú (dữ liệu cá nhân)
@@ -268,7 +270,7 @@ try {
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.deepEqual([r.body.order.status, r.body.order.services[0].pickupTime, r.body.order.services[0].pickupPlace], ["confirmed", "05:45", "Cảng Cầu Đá (người phụ trách)"]);
   c = r.body.order;
-  const byHandler = (await get(Bc, c)).history.at(-1); // người phụ trách xem được nhật ký
+  const byHandler = (await get(Bc, c)).history.findLast((h) => h.action === "trip_updated"); // người phụ trách xem được nhật ký (G17: dòng chặng đứng sau)
   assert.deepEqual([byHandler.action, byHandler.staffName], ["trip_updated", "NV Bán B (test)"], "nhật ký ghi đúng người phụ trách");
   assert.ok(!(byHandler.detail ?? "").includes("Cầu Đá"), "nhật ký không chứa nội dung điểm đón");
   r = await trip(c, { note: "người lập sửa sau khi đã giao lại" }, A);

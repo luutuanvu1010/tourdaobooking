@@ -8,7 +8,7 @@
 // Kho cookie của Chrome dùng CHUNG: Bán hàng → Quản trị → Kế toán (trang mở sau cùng là của Kế toán).
 import { randomUUID } from "node:crypto";
 import {
-  ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungDuLieuDieuPhoi, dungMoiTruong, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt,
+  ACCOUNTS, CHU, DESK, LOC_BEN_TAU, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungDuLieuDieuPhoi, dungMoiTruong, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt,
 } from "./dp-lib.mjs";
 
 // Hướng dẫn viên (Task 8 Đợt 1 — người đi kèm): tài khoản FIELD đang hoạt động; tên + SĐT giả để kiểm "tên có, SĐT không".
@@ -19,6 +19,32 @@ const d = await dungDuLieuDieuPhoi(env, call);
 // H17: chuyến đang khoá có khách — Quản trị xếp O4 (quá mốc) vào T4 bằng phá lệ (đường thật).
 const x4 = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${d.T4.id}/phan-bo`, { version: d.T4.version, requestId: randomUUID(), chang: [{ legId: d.O4.legId, soSuat: 2 }], phaLe: { lyDo: "PHA_LE_SU_CO" } });
 assert.equal(x4.status, 200, `xếp O4 vào T4: ${x4.text}`);
+// Gói A1 (ADR-0096 Đ1.3c, C30): chuyến KẾ HOẠCH T5 có hai điểm đón + một điểm trả (hai đơn mới NGAY_XA, XE_A · An, 11:30–13:30 — giữa T1 và T3) cho nút ↑ / ↓
+// ở bước 2b. Đi đường thật; tên, SĐT GIẢ.
+const donT5 = async (gio, noiDon, ten, sdt) => {
+  const r = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
+    customerName: `Khách Thứ Tự ${noiDon}`, customerPhone: sdt, customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
+    services: [{
+      kind: "catalog", catalogCode: "TD101", pax: { adult: ten.length, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
+      departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "", departDate: d.NGAY_XA,
+      legs: [{ direction: "OUT", pickupDate: d.NGAY_XA, pickupTime: gio, pickupLocationId: null, pickupPlace: noiDon, dropoffLocationId: LOC_BEN_TAU, dropoffPlace: "" }],
+    }],
+    passengers: ten.map((fullName, i) => ({ fullName, birthYear: 1985 + i, paxCode: null })),
+  });
+  assert.equal(r.status, 201, `lập đơn ${noiDon}: ${r.text}`);
+  const c = await call(ACCOUNTS.admin, "POST", `/api/orders/${r.json.order.id}/status`, { status: "confirmed" });
+  assert.equal(c.status, 200, `xác nhận đơn ${noiDon}: ${c.text}`);
+  return c.json.order.services[0].legs[0].id;
+};
+const legT5a = await donT5("11:45", "Yasaka Saigon Nha Trang", ["Khách Thứ Tự 1", "Khách Thứ Tự 2"], "0903 100 261");
+const legT5b = await donT5("12:05", "Havana Nha Trang", ["Khách Thứ Tự 3"], "0903 100 262");
+const t5 = await call(ACCOUNTS.admin, "POST", "/api/van-chuyen/chuyen", { requestId: randomUUID(), xeId: d.XE_A.id, taiXePartyId: d.AN.partyId, batDau: { ngay: d.NGAY_XA, gio: "11:30" }, ketThuc: { ngay: d.NGAY_XA, gio: "13:30" } });
+assert.equal(t5.status, 201, `tạo T5: ${t5.text}`);
+const x5 = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${t5.json.chuyen.id}/phan-bo`, { version: t5.json.chuyen.version, requestId: randomUUID(), chang: [{ legId: legT5a, soSuat: 2 }, { legId: legT5b, soSuat: 1 }] });
+assert.equal(x5.status, 200, `xếp hai đơn vào T5: ${x5.text}`);
+const T5 = x5.json.chuyen;
+/** Chữ khi nút ↑ / ↓ khoá vì đưa điểm trả lên trước điểm đón (CAU_THU_TU_DAO của src/shared/tien-do-man.ts). */
+const CAU_DAO = "Thứ tự này đưa điểm trả lên trước điểm đón của khách chờ lên.";
 
 const cho = (p) => p.waitFor(`!!document.querySelector('.dp-ct-title')`, "trang chi tiết dựng xong");
 const ghi = (p) => apiCalls(p).filter((r) => r.method !== "GET" && r.path.startsWith("/api/van-chuyen/chuyen"));
@@ -48,22 +74,27 @@ try {
     assert.match(await p.ev(txt(".dp-ct-when")), new RegExp(`^(Thứ (Hai|Ba|Tư|Năm|Sáu|Bảy)|Chủ nhật) ${d.NGAY_XA.slice(8, 10)}/${d.NGAY_XA.slice(5, 7)} · 14:30–16:30$`));
     assert.equal(await p.ev(`document.querySelector('#ct-back').getAttribute('href')`), `/dieu-phoi?ngay=${d.NGAY_XA}`);
     assert.equal(await p.ev(`document.querySelector('.dp-ct-actions [data-action="sua-chuyen"]').getAttribute('href')`), `/chuyen-sua?id=${d.T3.id}`);
-    assert.deepEqual(await p.ev(nut), ["Sửa chuyến", "Xuất bến thay tài xế", "Huỷ chuyến", "Cập nhật điểm theo đơn", "Thêm người đi kèm", "Rút khỏi xe", "Chuyển sang xe khác"], "vòng 5b: thẻ Khách trong chuyến có hai nút (rut-doi-smoke kiểm hành vi)");
+    assert.deepEqual(await p.ev(nut), ["Sửa chuyến", "Xuất bến thay tài xế", "Huỷ chuyến", "Cập nhật điểm theo đơn", "↑", "↓", "↑", "↓", "Thêm người đi kèm", "Rút khỏi xe", "Chuyển sang xe khác"], "vòng 5b: thẻ Khách trong chuyến có hai nút (rut-doi-smoke kiểm hành vi); gói A1: ↑ ↓ ở hai điểm của chuyến kế hoạch");
+    // C30 (ADR-0096 Đ1.3c): đón · trả — ↑ điểm đầu / ↓ điểm cuối khoá (đầu, cuối); ↓ điểm đón và ↑ điểm trả khoá vì đưa điểm trả lên trước điểm đón (có lời giải thích).
+    assert.deepEqual(await p.ev(`[...document.querySelectorAll('.dp-stop-thu-tu .dp-thu-tu')].map((x) => [x.disabled, x.getAttribute('title')])`), [[true, null], [true, CAU_DAO], [true, CAU_DAO], [true, null]]);
     assert.equal(await p.ev(`document.querySelector('.dp-ct-actions [data-action="xuat-ben-thay"]').disabled`), true, "bị giữ → khoá xuất bến thay (2.7)");
     for (const a of KHONG_CO) assert.equal(await p.ev(`document.querySelector('main').innerText.includes(${JSON.stringify(a)})`), false, `chuyến chưa chạy: không có ${a}`);
     assert.equal(await p.ev(`!!document.querySelector('.dp-ct-lock')`), false, "chưa vào vùng khoá → không dòng khoá");
     assert.equal(await p.ev(txt("#ct-trang > .banner-danger .banner-title")), "Chuyến bị giữ: Nơi đón / trả đã đổi — cập nhật điểm");
     assert.deepEqual(await p.ev(`[...document.querySelectorAll('#ct-trang > .banner-danger li')].map((x) => x.innerText)`), [
-      `Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: ${d.O3.ma}`, "Ai xử lý: Văn phòng. Không cần phá lệ, kể cả trong vùng khoá trước giờ xuất bến.",
+      `Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: ${d.O3.ma}`, "Ai xử lý: Văn phòng. Không cần điều chỉnh khẩn cấp hay phá lệ, kể cả trong vùng khoá trước giờ xuất bến.",
     ]);
     assert.deepEqual(await p.ev(kv), ["XE 79A-111.11 15 chỗ · xe công ty", "TÀI XẾ Nguyễn Văn An Tài xế công ty", "GIỜ 14:30–16:30 Xuất bến dự kiến 14:30", "TẢI 4/15 Còn 11 chỗ"]);
     const ds = await p.ev(diem);
     assert.deepEqual(ds[0], { so: "1", noi: "Novotel Nha Trang", tt: "Lệch đơn", lech: true, note: "Nơi của đơn đã đổi — cần cập nhật điểm theo đơn" });
     assert.equal(ds.at(-1).noi, "Bến tàu du lịch Nha Trang");
     const dk = await p.ev(dieuKien);
-    assert.deepEqual(dk.map((x) => x.nhan), ["Giấy tờ xe", "Giấy phép lái xe", "Đủ tên khách", "Không có đơn đã huỷ", "Điểm khớp đơn", "Đủ chỗ", "Đủ giờ nghỉ"]);
-    assert.deepEqual(dk.filter((x) => !x.dat), [{ dat: false, nhan: "Điểm khớp đơn", sub: `Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: ${d.O3.ma} · Ai xử lý: Văn phòng` }]);
-    assert.equal(await p.ev(txt(".dp-side-card .dp-card-head .chip")), "1 chưa đạt");
+    // + "Đón trước trả", "Trong giờ được xuất bến" (ADR-0096 Đ1, Đ2 — gói A1). Chuyến NGAY_XA (5 ngày sau) ngoài cửa sổ 48 giờ của dp-lib ⇒ dòng cửa sổ chưa
+    // đạt (đúng luật: chip "Đạt hết" không hiện trước giờ mở cửa sổ); dải "Chuyến bị giữ" không kể lý do này (chưa tới giờ, không phải bị giữ).
+    assert.deepEqual(dk.map((x) => x.nhan), ["Giấy tờ xe", "Giấy phép lái xe", "Đủ tên khách", "Không có đơn đã huỷ", "Điểm khớp đơn", "Đủ chỗ", "Đủ giờ nghỉ", "Đón trước trả", "Trong giờ được xuất bến"]);
+    assert.deepEqual(dk.filter((x) => !x.dat && x.nhan !== "Trong giờ được xuất bến"), [{ dat: false, nhan: "Điểm khớp đơn", sub: `Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: ${d.O3.ma} · Ai xử lý: Văn phòng` }]);
+    assert.match(dk.find((x) => x.nhan === "Trong giờ được xuất bến").sub, /^Chưa tới giờ được xuất bến: chuyến khởi hành lúc 14:30 ngày \d\d\/\d\d, được xuất bến từ 14:30 ngày \d\d\/\d\d\. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến\. · Ai xử lý: Văn phòng$/);
+    assert.equal(await p.ev(txt(".dp-side-card .dp-card-head .chip")), "2 chưa đạt");
     const nk = await p.ev(nhatKy);
     assert.ok(nk.length >= 2, JSON.stringify(nk));
     assert.deepEqual(nk[0], { ai: "Quản Trị", may: false, text: "Tạo chuyến" });
@@ -114,6 +145,43 @@ try {
     await shotFull(p, "b2-chi-tiet-sau-cap-nhat-may-tinh.png");
   });
 
+  await b.step("2b", `C30 (ADR-0096 Đ1.3c) 1040 Bán hàng ${T5.ma} (kế hoạch: đón · đón · trả): ↑ ↓ ở ô nơi — đầu / cuối khoá; đưa điểm trả lên trước điểm đón khoá kèm lời giải thích; bấm ↓ điểm đón đầu → PUT thân version + diem (giữ giờ xe tới) + requestId, thứ tự đổi, dải "Đã đổi thứ tự điểm"; bấm ↑ trả lại; 390: nút trong ô nơi, không tràn ngang`, async () => {
+    await p.ev(`document.body.dataset.cu = '1'`);
+    await p.send("Page.navigate", { url: `${env.base}/chuyen?id=${T5.id}` });
+    await p.waitFor(`!document.body.dataset.cu && ${txt(".dp-ct-title")} === ${JSON.stringify(T5.ma)}`, "mở T5");
+    const ten = () => p.ev(diem).then((ds) => ds.map((x) => x.noi));
+    const truoc = await ten();
+    assert.deepEqual(truoc, ["Yasaka Saigon Nha Trang", "Havana Nha Trang", "Bến tàu du lịch Nha Trang"]);
+    const khoa = `[...document.querySelectorAll('.dp-stop-thu-tu .dp-thu-tu')].map((x) => [x.dataset.action, x.disabled, x.getAttribute('title')])`;
+    assert.deepEqual(await p.ev(khoa), [
+      ["ke-hoach-len", true, null], ["ke-hoach-xuong", false, null],
+      ["ke-hoach-len", false, null], ["ke-hoach-xuong", true, CAU_DAO],
+      ["ke-hoach-len", true, CAU_DAO], ["ke-hoach-xuong", true, null],
+    ]);
+    const soPut = ghi(p).filter((r) => r.method === "PUT").length;
+    await p.ev(`document.querySelector('.dp-stop-thu-tu [data-action="ke-hoach-xuong"]').click()`);
+    await p.waitFor(`/^(Đã đổi thứ tự điểm|Chưa đổi được thứ tự điểm)$/.test(document.querySelector('#ct-trang > .banner .banner-title')?.innerText ?? '')`, "dải sau ↓");
+    assert.equal(await p.ev(txt("#ct-trang > .banner .banner-title")), "Đã đổi thứ tự điểm", await p.ev(txt("#ct-trang > .banner")));
+    assert.deepEqual(await ten(), [truoc[1], truoc[0], truoc[2]], "hai điểm đón đổi chỗ");
+    const put = ghi(p).filter((r) => r.method === "PUT");
+    assert.equal(put.length, soPut + 1);
+    const than = JSON.parse(put.at(-1).body);
+    assert.deepEqual(Object.keys(than).sort(), ["diem", "requestId", "version"], "PUT chỉ thứ tự điểm — không đổi xe, tài xế, giờ");
+    assert.ok(than.diem.length === 3 && than.diem.every((x) => typeof x.thuTu === "number" && "gioXeToi" in x), JSON.stringify(than.diem));
+    assert.equal(await p.ev(noCode), "");
+    await shotFull(p, "a1-thu-tu-ke-hoach-may-tinh.png");
+    // ↑ của điểm đón vừa xuống (nay thứ hai) → về như cũ.
+    await p.ev(`[...document.querySelectorAll('.dp-stop-thu-tu [data-action="ke-hoach-len"]')][1].click()`);
+    await p.waitFor(`document.querySelector('.dp-stop[data-diem] .dp-stop-noi strong')?.innerText.includes(${JSON.stringify(truoc[0])})`, "trả lại thứ tự cũ");
+    assert.deepEqual(await ten(), truoc);
+    await p.send("Emulation.setDeviceMetricsOverride", { width: MOB.width, height: MOB.height, deviceScaleFactor: 2, mobile: true });
+    await sleep(400);
+    assert.ok(await p.ev(noOverflowX), "390: không tràn ngang");
+    assert.equal(await p.ev(`document.querySelectorAll('.dp-stop-noi .dp-thu-tu').length`), 6, "390: nút ở ô nơi");
+    await shotFull(p, "a1-thu-tu-ke-hoach-dien-thoai.png");
+    await p.send("Emulation.setDeviceMetricsOverride", { width: DESK.width, height: DESK.height, deviceScaleFactor: 1, mobile: false });
+  });
+
   await b.step("3", `2f + 2.12: huỷ ${d.T1.ma} (3 khách, ngoài vùng khoá) — hộp "Huỷ chuyến" nói khách trở về cột "Chưa xếp", lý do nhóm Huỷ chuyến, nút khoá tới khi chọn → huỷ được${axeNote()}`, async () => {
     await p.ev(`document.body.dataset.cu = '1'`);
     await p.send("Page.navigate", { url: `${env.base}/chuyen?id=${d.T1.id}` });
@@ -140,18 +208,26 @@ try {
     assert.equal(lich.chang.find((c) => c.legId === d.O1.legId).trangThai, "CHUA_XEP", "khách trở về cột Chưa xếp");
   });
 
-  await b.step("4", `H17 (Bán hàng): huỷ ${d.T4.ma} (đang khoá, 2 khách) → máy chủ đòi phá lệ; Bán hàng không có ô → câu trong hộp 'cần Quản trị phá lệ', hộp giữ nguyên, không hộp phá lệ`, async () => {
+  // ADR-0104 Đ1 (NỚI có tên, 2026-10-08): huỷ chuyến còn khách trong vùng khoá chỉ vượt mốc ⇒ luôn lớp điều chỉnh khẩn cấp — Bán hàng có ô trip.urgent_adjust:
+  // hộp "Điều chỉnh khẩn cấp" mở (Bán hàng chỉ mở rồi đóng; Quản trị gửi thật ở bước 6).
+  await b.step("4", `H17 (Bán hàng): huỷ ${d.T4.ma} (đang khoá, 2 khách) → máy chủ đòi điều chỉnh khẩn cấp; Bán hàng có ô → hộp huỷ đóng, hộp 'Điều chỉnh khẩn cấp' mở ('Điều chỉnh khẩn cấp và huỷ'); đóng, không gửi`, async () => {
     await p.ev(`document.body.dataset.cu = '1'`);
     await p.send("Page.navigate", { url: `${env.base}/chuyen?id=${d.T4.id}` });
     await p.waitFor(`!document.body.dataset.cu && !!document.querySelector('.dp-ct-title')`, "mở T4");
-    assert.equal(await p.ev(txt(".dp-ct-lock")), "Trong 48 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Cần Quản trị phá lệ. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần phá lệ.") /* vòng 5e: câu khoá nói cả lệnh mới */;
+    assert.equal(await p.ev(txt(".dp-ct-lock")), "Trong 48 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Bạn có thể điều chỉnh khẩn cấp kèm lý do. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần điều chỉnh khẩn cấp.") /* vòng 5e: câu khoá nói cả lệnh mới; ADR-0104 Đ1 */;
     await p.ev(click('.dp-ct-actions [data-action="huy-chuyen"]'));
     await p.waitFor(`!!document.querySelector('[data-action="huy-gui"]')`, "hộp huỷ mở");
     await p.ev(click('.sheet .vc-reason[data-code="HUY_KHONG_CON_KHACH"]'));
     await p.ev(click('[data-action="huy-gui"]'));
-    await p.waitFor(`!!document.querySelector('.sheet .vc-field-error:not([hidden])')`, "câu lỗi trong hộp");
-    assert.match(await p.ev(txt(".sheet .vc-field-error")), /cần Quản trị phá lệ/);
-    assert.equal(await p.ev(`!!document.querySelector('[data-action="pha-le-gui"]')`), false);
+    await p.waitFor(`!!document.querySelector('[data-action="pha-le-gui"]') && !document.querySelector('[data-action="huy-gui"]')`, "hộp điều chỉnh khẩn cấp thay hộp huỷ");
+    await sleep(600);
+    assert.equal(await p.ev(txt(".dp-sheet-pha-le .sheet-title")), "Điều chỉnh khẩn cấp");
+    assert.equal(await p.ev(txt('[data-action="pha-le-gui"]')), "Điều chỉnh khẩn cấp và huỷ");
+    assert.doesNotMatch(await p.ev(txt(".dp-sheet-pha-le")), /Phá lệ|Quản trị/);
+    await shotView(p, "b2-huy-khan-cap-ban-hang-may-tinh.png");
+    await p.ev(`[...document.querySelectorAll('.dp-sheet-pha-le button')].find((x) => x.innerText.trim() === 'Đóng').click()`);
+    await p.waitFor(`!document.querySelector('[data-action="pha-le-gui"]')`, "đóng hộp, không gửi");
+    assert.equal(ghi(p).filter((r) => r.path.endsWith("/huy") && JSON.parse(r.body).phaLe).length, 0, "Bán hàng đóng hộp: không lệnh huỷ kèm lý do");
     assert.equal(await p.ev(noCode), "");
     // Task 8 Đợt 1 (T-7): chuyến trong vùng khoá trước giờ xuất bến — không nút "Thêm người đi kèm" (Bán hàng không phá lệ được).
     assert.equal(await p.ev(`document.querySelector('main').innerText.includes('Thêm người đi kèm')`), false, "vùng khoá: không nút thêm người đi kèm");
@@ -167,7 +243,7 @@ try {
     assert.equal(await pm.ev(shown(".dp-stop-th")), false);
     assert.match(await pm.ev(txt(".dp-stop[data-diem] .dp-stop-tom")), /^Hẹn \d\d:\d\d · xe tới \d\d:\d\d · 2 khách$/);
     assert.equal(await pm.ev(txt(".dp-stop[data-diem] .dp-stop-noi strong")), "Đón · Amiana Resort");
-    const dk = (await pm.ev(dieuKien)).filter((x) => !x.dat);
+    const dk = (await pm.ev(dieuKien)).filter((x) => !x.dat && x.nhan !== "Trong giờ được xuất bến"); // NGAY_XA ngoài cửa sổ xuất bến (ADR-0096 Đ2) — bước 1 kiểm câu
     assert.deepEqual(dk, [
       { dat: false, nhan: "Giấy tờ xe", sub: "Xe thiếu hoặc hết hạn giấy tờ bắt buộc: 79A-222.22 · Ai xử lý: Quản trị" },
       { dat: false, nhan: "Đủ tên khách", sub: `Chưa đủ tên khách: ${d.O2.ma} thiếu 1 tên · Ai xử lý: Văn phòng` },
@@ -213,15 +289,16 @@ try {
   // ---- Quản trị, máy tính (H17: huỷ chuyến có khách trong vùng khoá → phá lệ) --------------------------------------------------------------------------------
   const q = await env.as(ACCOUNTS.admin, `/chuyen?id=${d.T4.id}`, DESK);
   await cho(q);
-  await b.step("6", `H17 1040 Quản trị: dòng khoá "Bạn có thể phá lệ"; huỷ ${d.T4.ma} → hộp huỷ đóng, hộp "Phá lệ" mở → "Phá lệ và huỷ" gửi lại huỷ kèm phá lệ → đã huỷ`, async () => {
-    assert.equal(await q.ev(txt(".dp-ct-lock")), "Trong 48 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Bạn có thể phá lệ. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần phá lệ.") /* vòng 5e: câu khoá nói cả lệnh mới */;
+  await b.step("6", `H17 1040 Quản trị: dòng khoá "Bạn có thể điều chỉnh khẩn cấp"; huỷ ${d.T4.ma} → hộp huỷ đóng, hộp "Điều chỉnh khẩn cấp" mở → "Điều chỉnh khẩn cấp và huỷ" gửi lại huỷ kèm lý do → đã huỷ, chip "Điều chỉnh khẩn cấp" (ADR-0104 Đ1)`, async () => {
+    assert.equal(await q.ev(txt(".dp-ct-lock")), "Trong 48 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Bạn có thể điều chỉnh khẩn cấp kèm lý do. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần điều chỉnh khẩn cấp.") /* vòng 5e: câu khoá nói cả lệnh mới; ADR-0104 Đ1 */;
     await q.ev(click('.dp-ct-actions [data-action="huy-chuyen"]'));
     await q.waitFor(`!!document.querySelector('[data-action="huy-gui"]')`, "hộp huỷ mở");
     await q.ev(click('.sheet .vc-reason[data-code="HUY_KHONG_CON_KHACH"]'));
     await q.ev(click('[data-action="huy-gui"]'));
     await q.waitFor(`!!document.querySelector('[data-action="pha-le-gui"]') && !document.querySelector('[data-action="huy-gui"]')`, "hộp phá lệ thay hộp huỷ");
     await sleep(600);
-    assert.equal(await q.ev(txt(".dp-sheet-pha-le .sheet-title")), "Phá lệ");
+    assert.equal(await q.ev(txt(".dp-sheet-pha-le .sheet-title")), "Điều chỉnh khẩn cấp");
+    assert.equal(await q.ev(txt('[data-action="pha-le-gui"]')), "Điều chỉnh khẩn cấp và huỷ");
     assert.match(await q.ev(txt(".dp-sheet-pha-le .dp-sheet-sum")), new RegExp(`^Huỷ ${d.T4.ma} · 2 khách `));
     await shotView(q, "b2-huy-pha-le-may-tinh.png");
     await q.ev(click('.dp-sheet-pha-le .vc-reason[data-code="PHA_LE_SU_CO"]'));
@@ -233,7 +310,8 @@ try {
     assert.deepEqual(huy[1].phaLe, { lyDo: "PHA_LE_SU_CO" });
     assert.equal(huy[1].lyDo, "HUY_KHONG_CON_KHACH");
     const nk = await q.ev(nhatKy);
-    assert.ok(nk.some((x) => x.text.includes("phá lệ: Sự cố vận hành")), JSON.stringify(nk));
+    assert.ok(nk.some((x) => x.text.includes("điều chỉnh khẩn cấp: Sự cố vận hành")), JSON.stringify(nk)); // ADR-0104 Đ1 mục 5: luật mốc → "điều chỉnh khẩn cấp"
+    assert.deepEqual(await q.ev(`[...document.querySelectorAll('.dp-ct-head .chip')].map((x) => x.innerText.trim())`), ["Đã huỷ", "Điều chỉnh khẩn cấp"], "chip nhãn khẩn cấp ở đầu chi tiết");
   });
   await q.close();
 
@@ -242,7 +320,7 @@ try {
   await cho(k);
   await b.step("7", `Kế toán ${d.T2.ma}: xem đủ (dải bốn ô, điểm, điều kiện, nhật ký) nhưng KHÔNG nút nào; không lệnh ghi`, async () => {
     assert.deepEqual(await k.ev(nut), []);
-    assert.equal(await k.ev(`document.querySelectorAll('.dp-cond[data-dat="false"]').length`), 2);
+    assert.equal(await k.ev(`document.querySelectorAll('.dp-cond[data-dat="false"]').length`), 3, "giấy tờ xe, thiếu tên + chưa tới giờ được xuất bến (NGAY_XA — ADR-0096 Đ2)");
     assert.ok((await k.ev(nhatKy)).length >= 2);
     assert.equal(ghi(k).length, 0);
     // Task 8 Đợt 1: thấy nhóm Người đi kèm (bước 5b) nhưng không nút thêm.

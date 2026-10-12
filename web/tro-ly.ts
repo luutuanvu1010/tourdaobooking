@@ -357,6 +357,8 @@ export async function ganTroLy(_staff: Staff): Promise<void> {
   // Bấm nút khi khung đang mở = đóng khung.
   fab.addEventListener("click", () => (dongKhungDangMo ? dongKhungDangMo() : moKhung(fab, khung)));
   document.body.append(fab);
+  // C61 (lỗi cũ BH-23 / VP-13): nút nổi từng che dòng / liên kết cuối trang ở khổ 390 — CSS chừa đệm đáy bằng chiều cao nút khi nút có mặt (`body.co-nut-ho-tro`).
+  document.body.classList.add("co-nut-ho-tro");
   let hen = 0;
   const doLai = (): void => {
     cancelAnimationFrame(hen);

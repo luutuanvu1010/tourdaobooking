@@ -9,6 +9,7 @@ import { NHAN_NHOM_LY_DO, isNhomLyDo, type NhomLyDo } from "../../shared/dieu-ph
 import { MA_LOAI_GIAY_TO_RE, kiemTenDanhMuc, kiemThuTu } from "../../shared/giay-to.ts";
 import { CHE_DO_DUA_DON, isCheDoDuaDon, type CheDoDuaDon } from "../../shared/chang-mac-dinh.ts";
 import { UUID_RE } from "../../shared/http.ts";
+import { normalizePhone } from "../../shared/phone.ts";
 import { isHHMM } from "../../shared/vn-date.ts";
 
 export type Result<T> = { ok: true; value: T } | { ok: false; message: string };
@@ -20,6 +21,12 @@ const coNgayHieuLuc = (body: Record<string, unknown>): boolean => Object.keys(bo
 const CAU_HIEU_LUC = "Không gửi ngày hiệu lực — dòng mới có hiệu lực ngay lúc lưu.";
 
 // ---- Chính sách điều phối ----------------------------------------------------------------------------------------------------------------------------------
+/** Trần khoảng nghỉ giữa hai chuyến (phút) — cùng CHECK của `vc_dispatch_policy.rest_minutes` / `vc_trip.rest_minutes_snapshot` (0041, 0042). */
+export const NGHI_TOI_DA_PHUT = 480;
+/** Trần cửa sổ xuất bến (phút, ADR-0096 Đ2.3 LC-20) — cùng CHECK của `vc_dispatch_policy.departure_window_minutes` (0084). */
+export const CUA_SO_XUAT_BEN_TOI_DA_PHUT = 2880;
+/** Trần hạn Từ chối (phút, ADR-0053 D8.1; G-A4-13) — cùng CHECK của `vc_dispatch_policy.refuse_lead_minutes` (0092). */
+export const HAN_TU_CHOI_TOI_DA_PHUT = 2880;
 export interface ChinhSachMoi {
   minLeadMinutes: number;
   warnLeadMinutes: number;
@@ -31,14 +38,25 @@ export interface ChinhSachMoi {
   dutyDayMaxMinutes: number;
   /** ADR-0055 VK2-B B1: chuyến dài hơn (phút) → nhắc nghỉ; 30…720; BẮT BUỘC. */
   tripNoBreakMaxMinutes: number;
+  /** ADR-0096 Đ2.3: cửa sổ xuất bến (phút) 60…2880 (màn nhập 1–48 giờ); BẮT BUỘC (I43 — PWA cũ gửi thiếu thì 400, không chép ngầm từ dòng cũ). */
+  departureWindowMinutes: number;
+  /** ADR-0053 D8.1 (0092): số phút hạn Từ chối trước giờ chạy, 60…2880; BẮT BUỘC (I43). Chỉ áp cho cặp (tài xế, chuyến) xếp LẦN ĐẦU sau khi đổi (G-A4-13). */
+  refuseLeadMinutes: number;
+  /** Lời chủ 6.3 (0092): SĐT văn phòng cho nút "Gọi văn phòng" của tài xế — chuẩn hoá 0xxxxxxxxx; null = chưa có. Khoá BẮT BUỘC có mặt (I43; null được). */
+  officePhone: string | null;
+  /** ADR-0052 D4.1 + ADR-0111 Đ3 (c): số phút tài xế xe nhận được trả lời đề nghị chuyển khách (1…120; gieo 10); BẮT BUỘC (I43). */
+  acceptWaitMinutes: number;
+  /** ADR-0052 D4.1 + ADR-0111 Đ3 (c): công tắc an toàn — tắt thì mọi đề nghị tài xế bấm Nhận đều chờ Quản trị; BẮT BUỘC (I43). */
+  autoConfirmTransfer: boolean;
 }
 export function kiemChinhSachMoi(body: Record<string, unknown> | null): Result<ChinhSachMoi> {
   if (!body) return fail("Dữ liệu không hợp lệ.");
   if (coNgayHieuLuc(body)) return fail(CAU_HIEU_LUC);
-  const { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, requireContract, proxyBackdateMaxMinutes, dutyDayMaxMinutes, tripNoBreakMaxMinutes } = body;
+  const { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, requireContract, proxyBackdateMaxMinutes, dutyDayMaxMinutes, tripNoBreakMaxMinutes,
+    departureWindowMinutes, refuseLeadMinutes, officePhone, acceptWaitMinutes, autoConfirmTransfer } = body;
   if (!soNguyen(minLeadMinutes, 1, 2880)) return fail("Mốc tối thiểu là số phút nguyên từ 1 đến 2880 — không tắt được; muốn nới thì giảm con số.");
   if (!soNguyen(warnLeadMinutes, 0, 1440)) return fail("Cảnh báo sát mốc là số phút nguyên từ 0 đến 1440.");
-  if (!soNguyen(restMinutes, 0, 480)) return fail("Khoảng nghỉ giữa hai chuyến là số phút nguyên từ 0 đến 480.");
+  if (!soNguyen(restMinutes, 0, NGHI_TOI_DA_PHUT)) return fail(`Khoảng nghỉ giữa hai chuyến là số phút nguyên từ 0 đến ${NGHI_TOI_DA_PHUT}.`);
   if (typeof requireManifest !== "boolean") return fail("Chọn có hay không bắt đủ danh sách hành khách.");
   if (requireContract !== undefined && requireContract !== false) return fail("Chưa bật được yêu cầu hợp đồng vận chuyển — cần một quyết định riêng.");
   if (!soNguyen(proxyBackdateMaxMinutes, 1, 1440)) return fail("Giờ văn phòng khai lùi tối đa là số phút nguyên từ 1 đến 1440.");
@@ -46,7 +64,29 @@ export function kiemChinhSachMoi(body: Record<string, unknown> | null): Result<C
   if (dutyDayMaxMinutes === undefined || tripNoBreakMaxMinutes === undefined) return fail("Thiếu giờ lái tối đa / nhắc nghỉ — tải lại trang rồi lưu lại.");
   if (!soNguyen(dutyDayMaxMinutes, 60, 1440)) return fail("Giờ lái tối đa một ngày là số phút nguyên từ 60 đến 1440.");
   if (!soNguyen(tripNoBreakMaxMinutes, 30, 720)) return fail("Chuyến dài cần nhắc nghỉ là số phút nguyên từ 30 đến 720.");
-  return { ok: true, value: { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, proxyBackdateMaxMinutes, dutyDayMaxMinutes, tripNoBreakMaxMinutes } };
+  // ADR-0096 Đ2.3 (khuôn I43): thiếu cửa sổ xuất bến → nói rõ, không tự điền.
+  if (departureWindowMinutes === undefined) return fail("Thiếu cửa sổ xuất bến — tải lại trang rồi lưu lại.");
+  if (!soNguyen(departureWindowMinutes, 60, CUA_SO_XUAT_BEN_TOI_DA_PHUT)) return fail(`Cửa sổ xuất bến là số phút nguyên từ 60 đến ${CUA_SO_XUAT_BEN_TOI_DA_PHUT} (1 đến ${CUA_SO_XUAT_BEN_TOI_DA_PHUT / 60} giờ).`);
+  // ADR-0053 D8.1 + lời chủ 6.3 (khuôn I43): màn cũ gửi thiếu → nói rõ, không tự điền.
+  if (refuseLeadMinutes === undefined || officePhone === undefined) return fail("Thiếu hạn từ chối / số điện thoại văn phòng — tải lại trang rồi lưu lại.");
+  if (!soNguyen(refuseLeadMinutes, 60, HAN_TU_CHOI_TOI_DA_PHUT)) return fail(`Hạn từ chối chuyến là số phút nguyên từ 60 đến ${HAN_TU_CHOI_TOI_DA_PHUT} (1 đến ${HAN_TU_CHOI_TOI_DA_PHUT / 60} giờ).`);
+  let sdt: string | null = null;
+  if (officePhone !== null) {
+    if (typeof officePhone !== "string") return fail("Số điện thoại văn phòng không hợp lệ.");
+    if (officePhone.trim() !== "") {
+      sdt = normalizePhone(officePhone);
+      if (sdt === null) return fail("Số điện thoại văn phòng phải là số di động / cố định Việt Nam 10 chữ số (bắt đầu bằng 0), hoặc để trống.");
+    }
+  }
+  // ADR-0111 Đ3 (c) (khuôn I43): màn cũ gửi thiếu hai giá trị chuyển khách → nói rõ, không tự điền.
+  if (acceptWaitMinutes === undefined || autoConfirmTransfer === undefined) return fail("Thiếu cài đặt chuyển khách — tải lại trang rồi lưu lại.");
+  if (!soNguyen(acceptWaitMinutes, 1, 120)) return fail("Thời gian chờ tài xế xe nhận trả lời là số phút nguyên từ 1 đến 120.");
+  if (typeof autoConfirmTransfer !== "boolean") return fail("Chọn có hay không tự đồng ý chuyển khách khi đạt mọi điều kiện.");
+  return {
+    ok: true,
+    value: { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, proxyBackdateMaxMinutes, dutyDayMaxMinutes, tripNoBreakMaxMinutes, departureWindowMinutes, refuseLeadMinutes, officePhone: sdt,
+      acceptWaitMinutes, autoConfirmTransfer },
+  };
 }
 export function chiTietChinhSach(cu: ChinhSachMoi | null, moi: ChinhSachMoi): string {
   const co = (b: boolean) => (b ? "có" : "không");
@@ -59,7 +99,18 @@ export function chiTietChinhSach(cu: ChinhSachMoi | null, moi: ChinhSachMoi): st
     phan("kẹp lùi giờ khai", cu ? `${cu.proxyBackdateMaxMinutes}` : null, `${moi.proxyBackdateMaxMinutes} phút`),
     phan("giờ lái tối đa", cu ? `${cu.dutyDayMaxMinutes}` : null, `${moi.dutyDayMaxMinutes} phút`),
     phan("nhắc nghỉ chuyến trên", cu ? `${cu.tripNoBreakMaxMinutes}` : null, `${moi.tripNoBreakMaxMinutes} phút`),
+    phan("cửa sổ xuất bến", cu ? `${cu.departureWindowMinutes}` : null, `${moi.departureWindowMinutes} phút`),
+    phan("hạn từ chối", cu ? `${cu.refuseLeadMinutes}` : null, `${moi.refuseLeadMinutes} phút`),
+    // G-A4-12: nhật ký KHÔNG ghi chữ số SĐT (CLAUDE.md §7) — chỉ nói có / đổi / bỏ.
+    cauSdtVanPhong(cu ? cu.officePhone : undefined, moi.officePhone),
+    phan("chờ nhận chuyển khách", cu ? `${cu.acceptWaitMinutes}` : null, `${moi.acceptWaitMinutes} phút`),
+    phan("tự đồng ý chuyển khách", cu ? co(cu.autoConfirmTransfer) : null, co(moi.autoConfirmTransfer)),
   ].join("; ")}`;
+}
+function cauSdtVanPhong(cu: string | null | undefined, moi: string | null): string {
+  if (cu === undefined) return moi === null ? "chưa có số điện thoại văn phòng" : "có số điện thoại văn phòng";
+  if (cu === moi) return moi === null ? "chưa có số điện thoại văn phòng" : "giữ số điện thoại văn phòng";
+  return moi === null ? "bỏ số điện thoại văn phòng" : cu === null ? "thêm số điện thoại văn phòng" : "đổi số điện thoại văn phòng";
 }
 
 // ---- Điều kiện xuất bến ------------------------------------------------------------------------------------------------------------------------------------

@@ -6,16 +6,24 @@
 // - Bảng điểm dừng (cờ `lechDon` → "Lệch đơn"), điều kiện xuất bến (danh mục cố định từ lý do giữ), nhật ký chuyến (ai bấm hoặc "máy"; hai giờ khi văn phòng khai).
 // - CHỜ A15 (chưa có route trên nhánh): "Xuất bến thay tài xế", nút tiến độ bấm thay, "Kết thúc gián đoạn", "Mở màn Xuất bến ›" — chưa dựng (không để nút chết).
 // - Đợt 5 (ADR-0052 D5; bản vẽ V11 "Điều phối xe đang chạy"): chuyến ĐANG CHẠY có "Khách đang chờ" (link "Báo huỷ", ô trip.dispatch) và "Việc của văn
-//   phòng" (ô trip.dispatch): "Thêm điểm đón / thêm khách" (route them-diem; chặng không đặt gấp: Bán hàng thấy dòng khoá, Quản trị qua hộp Phá lệ) và
+//   phòng" (ô trip.dispatch): "Thêm điểm đón / thêm khách" (route them-diem; chặng không đặt gấp: xe đang chạy luôn dưới mốc ⇒ người có ô trip.urgent_adjust
+//   — Bán hàng, Quản trị, Toàn quyền — qua hộp "Điều chỉnh khẩn cấp", ADR-0104 Đ1) và
 //   "Cập nhật điểm theo đơn" (route 40 khi xe chạy — câu "Đã cập nhật N · bỏ qua M …"). Kế toán chỉ xem.
 // - Đợt 5 A-1b (D5c cứu hộ đơn giản, lời chủ 5.2b): nút "Cứu hộ" ở "Việc của văn phòng" (ô trip.progress VÀ trip.dispatch) mở hộp "Kết thúc gián đoạn" bấm
 //   thay có sẵn; chuyến đã Kết thúc gián đoạn có khối "Cứu hộ" (ô trip.dispatch; GET …/cuu-ho): chặng cần chuyển, xe cùng ngày của tài xế công ty (bấm để mở
 //   chuyến đó rồi "Thêm điểm" / "Xếp"), "Tạo chuyến cứu hộ" (xe nhà xe). Form giá cứu hộ chưa dựng (phụ thuộc Đợt 4 — nợ).
-import { cauKhoaMoc, thanPhaLe, chuyenXepDuoc, dieuKienXuatBen, dongBanChup, dongGoiBao, dongNhatKy, gioHien, kieuChuyen, nhanDiem, nhomKhach, type NhomKhach } from "../src/shared/dieu-phoi-man";
+// - Gói A1 (ADR-0096 Đ1, ADR-0097): chuyến KẾ HOẠCH có nút ↑ / ↓ ở điểm (ô trip.dispatch — PUT /chuyen/:id thân `diem`); ↑ / ↓ (kế hoạch và đang chạy) khoá
+//   khi làm khách chờ lên bị đảo mới (`doiThuTuDuoc` — cùng luật 409 `thu_tu_dao`). Chuyến ĐANG CHẠY (ô trip.progress): link "Điều chỉnh…" ở dòng khách đã có
+//   kết quả (bảng `dichDieuChinh`, lý do nhóm Điều chỉnh) và nút "Thu hồi xuất bến" khi chưa có tiến độ nào sau xuất bến. Máy chủ vẫn là cổng.
+// - Gói A5 (ADR-0111; bản vẽ V10, CH): khối "Đề nghị chuyển khách" (ô trip.view — chỉ đọc) liệt kê đề nghị có chuyến này là xe nhờ hoặc xe nhận; đề nghị
+//   đang chờ duyệt có link sang màn "Đề nghị chuyển khách" cho người có ô trip.override. Xe đang chạy: nút "Gửi đề nghị cứu hộ" ở "Việc của văn phòng" (ô
+//   trip.progress — văn phòng gửi THAY tài xế, chỉ cứu hộ cả xe, có nơi gặp; route GET …/xe-nhan rồi POST …/cuu-ho).
+import { NHAN_KHAN_CAP, NUT_VUOT, cauKhoaMoc, thanPhaLe, chuyenXepDuoc, dieuKienXuatBen, dongBanChup, dongGoiBao, dongNhatKy, gioHien, kieuChuyen, nhanDiem, nhomKhach, type NhomKhach } from "../src/shared/dieu-phoi-man";
 import { NHAN_TU_CHOI_GOI_BAO, type MaTuChoiGoiBao } from "../src/shared/goi-bao";
 import { ApiError } from "./api";
-import type { CapNhatDiemResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuuHoResponse, HuongDanVienListResponse, LichChungResponse } from "../src/shared/contracts";
-import { NUT_CAP_NHAT_KHACH } from "../src/shared/ly-do-giu";
+import type { CapNhatDiemResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuuHoResponse, DeNghiLenhResponse, DeNghiNgayResponse, DiemChuyenDto, HuongDanVienListResponse, LichChungResponse, XeNhanResponse } from "../src/shared/contracts";
+import { NUT_CAP_NHAT_KHACH, giuCapNhatKhach } from "../src/shared/ly-do-giu";
+import { canHienDoan, cauDoan, doanTaiDiem } from "../src/shared/dieu-phoi-loc";
 import { can } from "../src/shared/permissions";
 import { api } from "./api";
 import { byId, h, replaceChildren, type Child } from "./dom";
@@ -28,11 +36,13 @@ import { initShell, setBarTitle, showError } from "./shell";
 import { taoBoLamMoi } from "./lam-moi-logic";
 import type { SuKienChuyen } from "../src/shared/bang-tin";
 import { cauLoiTienDo, dongMoc, moKhaiGio, veDiemChay, type LenhDiem } from "./tien-do-ui";
-import { giuTenKhach, ketThucDuoc, thanDoiThuTu, viecNguoiDiKem, type BuocDiem } from "../src/shared/tien-do-man";
+import { xetKetThuc } from "../src/shared/ket-thuc-chuyen";
+import { CAU_THU_TU_DAO, doiThuTuDuoc, giuTenKhach, viecNguoiDiKem, type BuocDiem, type KhachDiem } from "../src/shared/tien-do-man";
+import { coTienDoSauXuatBen, dichDieuChinh, nhanDichDieuChinh, nhanTrangThaiDieuChinh } from "../src/shared/dieu-chinh-suat";
 import type { GioVnDto, GoiBaoChangDto } from "../src/shared/contracts";
 import { ngayNgan, vnToday } from "../src/shared/vn-date";
 import { canhBaoNgayChay } from "../src/shared/xac-nhan-xuat-ben";
-import { cauCapNhatDiem, chonThemDiem, khachDangCho, theCuuHo, type KhachChoDong, type LuaChonThemDiem } from "../src/shared/xe-dang-chay-man";
+import { cauCapNhatDiem, chonThemDiem, dongDeNghiVanPhong, dongXeNhan, khachDangCho, theCuuHo, type KhachChoDong, type LuaChonThemDiem } from "../src/shared/xe-dang-chay-man";
 import { counter } from "./counter";
 
 const errorEl = byId("error");
@@ -42,9 +52,13 @@ const id = new URLSearchParams(location.search).get("id") ?? "";
 
 const staff = await initShell();
 const coDieuPhoi = can(staff, "trip.dispatch");
-const coPhaLe = can(staff, "trip.override");
+/** ADR-0104 Đ1 mục 9: vượt MỐC (khoá xếp / rút / chuyển / đổi xe / huỷ còn khách; thêm khách khi xe chạy) luôn là điều chỉnh khẩn cấp — ô trip.urgent_adjust.
+ *  Phá lệ khoảng nghỉ / cam kết ngoài mốc (trip.override) không có nút riêng: hộp mở theo `canQuyen` + `lop` của 409. */
+const coKhanCap = can(staff, "trip.urgent_adjust");
 /** Bấm thay tài xế (A15, route 31–39): ô trip.progress — Bán hàng, Quản trị, Toàn quyền; Kế toán không. */
 const coTienDo = can(staff, "trip.progress");
+/** Gói A5: duyệt / bác đề nghị chuyển khách leo thang (ô trip.override — Quản trị, Toàn quyền) — link sang màn "Đề nghị chuyển khách". */
+const coDuyetDeNghi = can(staff, "trip.override");
 
 let duLieu: ChuyenChiTietResponse | null = null;
 /** Khối "Chi phí chuyến" (Đợt 4 G2): CHỈ có khi ô transport.cost.view; sau lệnh ghi chi phí đọc lại chuyến (lý do giữ "thiếu giá" có thể vừa hết). */
@@ -64,7 +78,18 @@ let cuuHo: CuuHoResponse | "loi" | null = null;
 
 async function nap(): Promise<void> {
   duLieu = await api<ChuyenChiTietResponse>(`/api/van-chuyen/chuyen/${encodeURIComponent(id)}`);
-  await napCuuHo();
+  await Promise.all([napCuuHo(), napDeNghi()]);
+}
+/** Gói A5: đề nghị chuyển khách trong ngày chạy (route văn phòng, ô trip.view) — chỉ giữ đề nghị có chuyến này; đọc hỏng thì giữ lần trước (không chặn trang). */
+let deNghiChuyen: DeNghiNgayResponse["deNghi"] = [];
+async function napDeNghi(): Promise<void> {
+  if (!duLieu || !can(staff, "trip.view")) return;
+  try {
+    const r = await api<DeNghiNgayResponse>(`/api/van-chuyen/de-nghi?ngay=${duLieu.chuyen.ngayChay}`);
+    deNghiChuyen = r.deNghi.filter((d) => d.tuChuyenId === duLieu!.chuyen.id || d.denChuyenId === duLieu!.chuyen.id);
+  } catch {
+    /* giữ lần trước */
+  }
 }
 async function napCuuHo(): Promise<void> {
   cuuHo = null;
@@ -99,6 +124,14 @@ function ve(): void {
     b.addEventListener("click", () => xuatBenThay(b));
     return b;
   };
+  // ADR-0097 Đ3: thu hồi xuất bến — chuyến đang chạy, chưa có sự kiện nào sau lần xuất bến cuối (`coTienDoSauXuatBen` trên nhật ký chuyến — cùng hàm máy chủ);
+  // quá giờ kẹp lùi thì máy chủ trả 409 qua_gio_thu_hoi (câu hiện trong hộp).
+  const nutThuHoi = (lop: string) => {
+    if (!(c.trangThai === "RUNNING" && coTienDo && chuaCoTienDo(r))) return null;
+    const b = h("button", { type: "button", class: `vc-btn ${lop}`, "data-action": "thu-hoi-xuat-ben" }, "Thu hồi xuất bến") as HTMLButtonElement;
+    b.addEventListener("click", () => moThuHoi(b));
+    return b;
+  };
   const nutHuy = (lop: string) => {
     if (!(keHoach && coDieuPhoi)) return null;
     const b = h("button", { type: "button", class: `vc-btn ${lop}`, "data-action": "huy-chuyen" }, "Huỷ chuyến");
@@ -110,15 +143,16 @@ function ve(): void {
     { class: "dp-ct-head" },
     h("h1", { class: "dp-ct-title" }, c.ma),
     chip(k.nhan, k.kieu === "held" ? "danger" : k.kieu === "nodrv" ? "warn" : k.kieu === "run" ? "navy" : k.kieu === "done" ? "ok" : k.kieu === "cancel" ? "muted" : "unit"),
+    c.khanCap ? chip(NHAN_KHAN_CAP, "warn") : null, // ADR-0104 Đ1 mục 5
     h("span", { class: "dp-ct-when" }, `${thuNgay(ngay)} · ${gioHien(c.batDau, ngay)}–${gioHien(c.ketThuc, ngay)}`),
-    h("div", { class: "dp-ct-actions" }, nutSua, nutXuatBen("vc-btn-ghost-primary"), nutHuy("vc-btn-danger")),
+    h("div", { class: "dp-ct-actions" }, nutSua, nutXuatBen("vc-btn-ghost-primary"), nutThuHoi("vc-btn-ghost-primary"), nutHuy("vc-btn-danger")),
   );
   // Mốc tiến độ đã có (thành phần B): xuất bến / kết thúc — một giờ, hoặc hai giờ khi văn phòng khai.
   const moc = c.xuatBen || c.ketThucThat
     ? h("div", { class: "dp-ct-moc" }, dongMoc("Xuất bến", c.xuatBen, ngay), c.ketThucThat ? dongMoc(c.trangThai === "ENDED_INTERRUPTED" ? "Kết thúc gián đoạn" : "Kết thúc", c.ketThucThat, ngay) : null)
     : null;
   const khoa = c.khoaMoc.dangKhoa && keHoach
-    ? h("div", { class: "dg-lock dp-ct-lock" }, icon("lock", 16), cauKhoaMoc(r.mocToiThieuPhut, { phaLe: coPhaLe, dieuPhoi: coDieuPhoi }))
+    ? h("div", { class: "dg-lock dp-ct-lock" }, icon("lock", 16), cauKhoaMoc(r.mocToiThieuPhut, { khanCap: coKhanCap, dieuPhoi: coDieuPhoi }))
     : null;
 
   // Dải: lý do giữ "Nơi đón / trả đã đổi" (C) + nút; chuyến đang chạy có nơi hẹn khác điểm (D — chỉ báo).
@@ -129,24 +163,27 @@ function ve(): void {
     nut?.addEventListener("click", () => capNhatDiem(nut));
     dais.push(dai("danger", "Chuyến bị giữ: Nơi đón / trả đã đổi — cập nhật điểm", [
       ...noiDoi.map((l) => l.loiNhan),
-      `Ai xử lý: ${noiDoi[0]!.aiXuLyNhan}. Không cần phá lệ, kể cả trong vùng khoá trước giờ xuất bến.`,
+      `Ai xử lý: ${noiDoi[0]!.aiXuLyNhan}. Không cần điều chỉnh khẩn cấp hay phá lệ, kể cả trong vùng khoá trước giờ xuất bến.`,
     ], undefined, nut ? [h("div", { class: "banner-actions" }, nut)] : []));
   }
   // Vòng 5e (R-P29): lý do giữ "Khách trong xe không còn trong đơn" + nút "Cập nhật khách theo đơn" — khuôn dải trên (không phá lệ, kể cả trong vùng khoá).
-  const khachDoi = c.lyDoGiu.filter((l) => l.ma === "KHACH_DA_DOI");
+  // ADR-0104 Đ2.11: nút cũng gỡ đơn huỷ / chặng đã bỏ / đơn không xác nhận / thừa suất (`giuCapNhatKhach`) — tiêu đề trung tính khi không có khách đổi.
+  const khachDoi = giuCapNhatKhach(c.lyDoGiu);
   if (keHoach && khachDoi.length) {
     const nut = coDieuPhoi ? h("button", { type: "button", class: "vc-btn btn btn-primary", "data-action": "cap-nhat-khach" }, NUT_CAP_NHAT_KHACH) : null;
     nut?.addEventListener("click", () => capNhatKhach(nut));
-    dais.push(dai("danger", "Chuyến bị giữ: Khách trong đơn đã đổi — cập nhật khách", [
+    const tieuDe = khachDoi.some((l) => l.ma === "KHACH_DA_DOI") ? "Chuyến bị giữ: Khách trong đơn đã đổi — cập nhật khách" : "Chuyến bị giữ: Đơn đã đổi sau khi xếp — cập nhật khách";
+    dais.push(dai("danger", tieuDe, [
       ...khachDoi.map((l) => l.loiNhan),
-      `Ai xử lý: ${khachDoi[0]!.aiXuLyNhan}. Không cần phá lệ, kể cả trong vùng khoá trước giờ xuất bến.`,
+      `Ai xử lý: ${khachDoi[0]!.aiXuLyNhan}. Không cần điều chỉnh khẩn cấp hay phá lệ, kể cả trong vùng khoá trước giờ xuất bến.`,
     ], undefined, nut ? [h("div", { class: "banner-actions" }, nut)] : []));
   }
   // ADR-0055 VK2-B B3: nhắc giờ lái (chỉ nhắc — không chặn xuất bến). Sau tạo / sửa chuyến, màn chuyển về đây nên nhắc hiện ngay (khuôn canhBaoXep).
   for (const w of r.canhBao.filter((x) => x.loai === "GIO_LAI_VUOT" || x.loai === "CHUYEN_DAI_CAN_NGHI")) {
     dais.push(dai("warning", w.nhan, ["Chỉ nhắc — không chặn xuất bến. Toàn quyền đổi con số ở Chính sách điều phối."]));
   }
-  // HT-01 (kiểm theo vai 2/10 — V1.2): điểm trả đứng trước điểm đón của khách — chỉ nhắc (chặn ở cổng xuất bến chờ ADR-0096). Một dải cho mọi đơn.
+  // HT-01 (kiểm theo vai 2/10 — V1.2): điểm trả đứng trước điểm đón của khách. Từ ADR-0096 Đ1 (LC-19) chuyến kế hoạch bị GIỮ (mã TRA_TRUOC_DON ở "Điều kiện
+  // xuất bến"); dải này chỉ đường sửa. Một dải cho mọi đơn.
   const traTruoc = r.canhBao.filter((x) => x.loai === "TRA_TRUOC_DON");
   if (traTruoc.length > 0 && (c.trangThai === "PLANNED" || c.trangThai === "RUNNING")) {
     const don = [...new Set(traTruoc.map((w) => w.maDon).filter((x): x is string => !!x))].join(", ");
@@ -154,7 +191,9 @@ function ve(): void {
       `${don ? `Đơn ${don}: ` : ""}khách sẽ được trả ở một điểm đứng trước điểm đón của chính họ.`,
       c.trangThai === "RUNNING"
         ? `Xe đang chạy — đổi thứ tự bằng nút ↑ ↓ ở danh sách điểm hoặc gọi tài xế${c.taiXe ? ` ${c.taiXe.ten}` : ""}.`
-        : "Rút rồi xếp lại khách của đơn này: khi xếp, máy tự đưa điểm đón lên trước điểm trả. Chỉ nhắc — chưa chặn xuất bến.",
+        : coDieuPhoi
+          ? "Đưa điểm đón lên trước điểm trả bằng nút ↑ ↓ ở danh sách điểm. Chuyến không xuất bến được tới khi sửa xong."
+          : "Báo người điều phối đổi thứ tự điểm. Chuyến không xuất bến được tới khi sửa xong.",
     ]));
   }
   if (c.trangThai === "RUNNING") {
@@ -195,7 +234,7 @@ function ve(): void {
             { class: `dp-stop${d.lechDon && d.trangThai !== "SKIPPED" ? " is-lech" : ""}${d.trangThai === "SKIPPED" ? " is-bo" : ""}`, "data-diem": d.id },
             h("span", { class: "dp-stop-so" }, n.so),
             h("span", { class: "dp-stop-loai" }, n.loai),
-            h("span", { class: "dp-stop-noi" }, h("strong", null, h("span", { class: "dp-stop-loai-m" }, `${n.loai} · `), d.tenNoi), n.ghiChu ? h("span", { class: "dp-stop-note" }, n.ghiChu) : null, ...goiBaoCua(d.id)),
+            h("span", { class: "dp-stop-noi" }, h("strong", null, h("span", { class: "dp-stop-loai-m" }, `${n.loai} · `), d.tenNoi), n.ghiChu ? h("span", { class: "dp-stop-note" }, n.ghiChu) : null, ...doanCua(d.id), ...goiBaoCua(d.id), nutThuTuKeHoach(d)),
             h("span", { class: "dp-stop-hen" }, hen),
             h("span", { class: "dp-stop-toi" }, toi, n.muon ? h("span", { class: "dp-stop-muon" }, n.muon) : null),
             h("span", { class: "dp-stop-khach" }, String(d.soNguoi)),
@@ -235,6 +274,17 @@ function ve(): void {
     dieuKien = h("section", { class: "vc-card dp-side-card" }, h("div", { class: "dp-card-head" }, h("h2", { class: "dp-card-title" }, "Điều kiện xuất bến")), h("div", { class: "dp-cond dp-hist-sub" }, "Chuyến không còn lên kế hoạch."));
   }
 
+  // A4 T9 (G-A4-14, NT-7): "Tài xế <tên> đã từ chối lúc …" — lý do chỉ khi máy chủ gửi (người có trip.dispatch); Kế toán thấy câu không lý do.
+  const tuChoi = r.tuChoi.length
+    ? h(
+        "section",
+        { class: "vc-card dp-side-card", "aria-labelledby": "ct-tc-title", "data-khoi": "tu-choi" },
+        h("div", { class: "dp-card-head" }, icon("alert", 16), h("h2", { id: "ct-tc-title", class: "dp-card-title" }, "Tài xế đã từ chối")),
+        ...r.tuChoi.map((t) =>
+          h("div", { class: "dp-cond" }, h("span", { class: "dp-cond-text" }, h("span", { class: "dp-cond-nhan" }, `${t.tenTaiXe} đã từ chối lúc ${gioHien(t.luc, ngay)}`), t.lyDo ? h("span", { class: "dp-cond-sub" }, `Lý do: ${t.lyDo}`) : null))),
+      )
+    : null;
+
   const nhatKy = h(
     "section",
     { class: "vc-card dp-side-card", "aria-labelledby": "ct-nk-title" },
@@ -257,13 +307,14 @@ function ve(): void {
     khoa,
     baoCao,
     ...dais,
-    h("div", { class: "dp-ct-layout" }, h("div", { class: "dp-ct-main" }, dongDt, soLieu, chay ? h("div", { class: "dp-xc" }, theViecVanPhong(), theKhachCho()) : null, theCuuHoKhoi(), diem, keHoach ? theKhach() : null, chiPhi.el), h("div", { class: "dp-ct-side" }, dieuKien, nhatKy)),
+    h("div", { class: "dp-ct-layout" }, h("div", { class: "dp-ct-main" }, dongDt, soLieu, chay ? h("div", { class: "dp-xc" }, theViecVanPhong(), theKhachCho()) : null, theCuuHoKhoi(), theDeNghiChuyen(), diem, keHoach ? theKhach() : null, chiPhi.el), h("div", { class: "dp-ct-side" }, dieuKien, tuChoi, nhatKy)),
   );
   // Điện thoại: nút ở cuối trang, lưới hai cột (bản vẽ 2b); máy tính: nút ở đầu trang.
   const huyDay = nutHuy("vc-btn-danger");
   const xbDay = nutXuatBen("vc-btn-ghost-primary");
-  replaceChildren(bottomEl, nutSua ? h("a", { class: "vc-btn vc-btn-ghost-primary", href: nutSua.getAttribute("href")!, "data-action": "sua-chuyen" }, "Sửa chuyến") : null, xbDay, huyDay);
-  bottomEl.hidden = !(nutSua || huyDay || xbDay);
+  const thDay = nutThuHoi("vc-btn-ghost-primary");
+  replaceChildren(bottomEl, nutSua ? h("a", { class: "vc-btn vc-btn-ghost-primary", href: nutSua.getAttribute("href")!, "data-action": "sua-chuyen" }, "Sửa chuyến") : null, xbDay, thDay, huyDay);
+  bottomEl.hidden = !(nutSua || huyDay || xbDay || thDay);
   const khoaCp = `${c.id}:${c.version}:${c.trangThai}`;
   if (chiPhi.el && khoaCp !== khoaChiPhi) {
     khoaChiPhi = khoaCp;
@@ -312,7 +363,7 @@ function xuatBenThay(nut: HTMLButtonElement): void {
   const lechNgay = canhBaoNgayChay(r.chuyen.ngayChay, vnToday(new Date()));
   moKhaiGio({
     tieuDe: `Xuất bến ${r.chuyen.ma} — bấm thay tài xế`,
-    // HT-03 (V1.3): ngày chạy khác hôm nay → dòng đỏ CÙNG câu với màn tài xế (`canhBaoNgayChay`) — chỉ nhắc, máy chủ chưa chặn (cửa sổ xuất bến: ADR-0096).
+    // HT-03 (V1.3): ngày chạy khác hôm nay → dòng đỏ CÙNG câu với màn tài xế (`canhBaoNgayChay`). Ngoài cửa sổ xuất bến (ADR-0096 Đ2) máy chủ chặn bằng lý do giữ.
     dauHop: [...(lechNgay ? [dai("danger", "Không phải chuyến của hôm nay", [lechNgay])] : []), dai("ok", `Đạt đủ ${dk.length} điều kiện xuất bến`)],
     moTa: moTaBamThay(),
     nutChinh: "Xuất bến",
@@ -332,10 +383,10 @@ function nutThuTuVanPhong(b: BuocDiem): HTMLElement | null {
   const r = duLieu!;
   if (!coTienDo || r.chuyen.trangThai !== "RUNNING" || b.diem.trangThai !== "PENDING") return null;
   const nut = (huong: -1 | 1, kyHieu: string, nhan: string, action: string) => {
-    const than = thanDoiThuTu(r.diem, b.diem.id, huong);
-    const x = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary dp-thu-tu", disabled: !than, "aria-label": nhan, "data-action": action }, kyHieu);
+    const { than, daoMoi } = doiThuTuDuoc(r.diem, r.suat, b.diem.id, huong);
+    const x = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary dp-thu-tu", disabled: !than || daoMoi, "aria-label": daoMoi ? `${nhan} — ${CAU_THU_TU_DAO}` : nhan, title: daoMoi ? CAU_THU_TU_DAO : null, "data-action": action }, kyHieu);
     x.addEventListener("click", async () => {
-      if (!than) return;
+      if (!than || daoMoi) return;
       x.disabled = true;
       try {
         await guiTienDo("thu-tu", than);
@@ -355,10 +406,159 @@ function nutThuTuVanPhong(b: BuocDiem): HTMLElement | null {
   return h("span", { class: "dp-thu-tu-nhom" }, nut(-1, "↑", `Đưa ${b.diem.tenNoi} lên trước`, "len"), nut(1, "↓", `Đưa ${b.diem.tenNoi} xuống sau`, "xuong"));
 }
 
+/**
+ * C30 (ADR-0096 Đ1.3c): nút ↑ / ↓ ở điểm CHƯA TỚI của chuyến KẾ HOẠCH — gửi `PUT /chuyen/:id` thân `diem` (đủ các điểm chưa tới, GIỮ giờ xe tới đang có — vắng
+ * giờ thì máy chủ hiểu là xoá giờ). Ô trip.dispatch (như "Sửa chuyến"). Khoá khi lệnh làm khách chờ lên bị đảo mới (cùng luật 409 `thu_tu_dao` của máy chủ).
+ */
+function nutThuTuKeHoach(d: DiemChuyenDto): HTMLElement | null {
+  const r = duLieu!;
+  if (!coDieuPhoi || r.chuyen.trangThai !== "PLANNED" || d.trangThai !== "PENDING") return null;
+  const nut = (huong: -1 | 1, kyHieu: string, nhan: string, action: string) => {
+    const { than, daoMoi } = doiThuTuDuoc(r.diem, r.suat, d.id, huong);
+    const x = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary dp-thu-tu", disabled: !than || daoMoi, "aria-label": daoMoi ? `${nhan} — ${CAU_THU_TU_DAO}` : nhan, title: daoMoi ? CAU_THU_TU_DAO : null, "data-action": `ke-hoach-${action}`, "data-diem": d.id }, kyHieu);
+    x.addEventListener("click", async () => {
+      if (!than || daoMoi) return;
+      x.disabled = true;
+      const gioToi = new Map(r.diem.map((p) => [p.id, p.gioXeToi]));
+      const url = goc();
+      try {
+        const moi = await lenhCho(`PUT ${url}`).gui<ChuyenChiTietResponse>(url, "PUT", { version: r.chuyen.version, diem: than.diem.map((p) => ({ id: p.id, thuTu: p.thuTu, gioXeToi: gioToi.get(p.id) ?? null })) });
+        duLieu = await docLai(moi);
+        xong(dai("ok", "Đã đổi thứ tự điểm"));
+      } catch (e) {
+        const l = docLoiLenh(e);
+        try {
+          await nap(); // 409 (chuyến vừa bị sửa / đảo mới): đọc lại để nút theo dữ liệu mới
+        } catch {
+          /* mất mạng: giữ dữ liệu cũ, dải báo vẫn hiện */
+        }
+        xong(dai("danger", "Chưa đổi được thứ tự điểm", l.cu ? ["Chuyến vừa được người khác sửa — đã tải lại, bấm lại nếu vẫn cần."] : [l.tieuDe, ...l.dong]));
+      }
+    });
+    return x;
+  };
+  return h("span", { class: "dp-thu-tu-nhom dp-stop-thu-tu" }, nut(-1, "↑", `Đưa ${d.tenNoi} lên trước`, "len"), nut(1, "↓", `Đưa ${d.tenNoi} xuống sau`, "xuong"));
+}
+
+/** "Chưa có tiến độ nào sau xuất bến" (ADR-0097 Đ3.2) — CÙNG hàm với máy chủ, trên nhật ký chuyến của lần đọc (thứ tự ghi); máy chủ vẫn là cổng. */
+const chuaCoTienDo = (r: ChuyenChiTietResponse): boolean => !coTienDoSauXuatBen(r.nhatKy.map((n) => ({ loai: n.loai, chuyenKhac: n.chuyenKhac })));
+
+const lenhThuHoi = new Map<string, ReturnType<typeof taoLenh>>();
+/** ADR-0097 Đ3: hộp "Thu hồi xuất bến" — lý do nhóm Điều chỉnh (không ô chữ), chuyến về chưa chạy; tài xế nhận tin và bấm Xuất bến lại khi xe thật sự chạy. */
+function moThuHoi(opener: HTMLButtonElement): void {
+  const r = duLieu!;
+  const c = r.chuyen;
+  let code: string | null = null;
+  const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
+  const gui = h("button", { type: "button", class: "vc-btn vc-btn-danger", disabled: true, "data-action": "thu-hoi-gui" }, "Thu hồi xuất bến") as HTMLButtonElement;
+  const quay = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Quay lại");
+  const bang = moBangTruot({
+    title: `Thu hồi xuất bến ${c.ma}`,
+    body: [
+      dai("warning", "Chuyến về trạng thái chưa chạy", [
+        "Dùng khi tài xế bấm Xuất bến nhầm chuyến. Bản chụp lúc xuất bến vẫn giữ trong nhật ký.",
+        `Tài xế${c.taiXe ? ` ${c.taiXe.ten}` : ""} nhận tin và bấm Xuất bến lại khi xe thật sự chạy.`,
+      ]),
+      nhomChon("ct-thu-hoi", "Lý do", r.lyDo.filter((l) => l.nhom === "DIEU_CHINH").map((l) => ({ code: l.code, nhan: l.nhan })), (x) => { code = x; gui.disabled = false; }),
+      loi,
+    ],
+    foot: [quay, gui],
+    footClass: "vc-foot-2",
+    opener,
+  });
+  if (!bang) return;
+  quay.addEventListener("click", () => bang.close());
+  gui.addEventListener("click", async () => {
+    if (!code) return;
+    bang.setBusy(true);
+    gui.disabled = true;
+    loi.hidden = true;
+    try {
+      let l = lenhThuHoi.get(c.id);
+      if (!l) lenhThuHoi.set(c.id, (l = taoLenh()));
+      const url = `${goc()}/thu-hoi-xuat-ben`;
+      duLieu = await docLai(await l.gui<ChuyenChiTietResponse>(url, "POST", { version: duLieu!.chuyen.version, lyDo: code }));
+      bang.close(false);
+      xong(dai("ok", `Đã thu hồi xuất bến ${c.ma}`, ["Chuyến về chưa chạy — tài xế bấm Xuất bến lại khi xe thật sự chạy."]));
+    } catch (e) {
+      replaceChildren(loi, icon("alert", 16, 2), loiTrongHop(e));
+      loi.hidden = false;
+      gui.disabled = false;
+    } finally {
+      bang.setBusy(false);
+    }
+  });
+}
+
+type TrangThaiSuatDto = ChuyenChiTietResponse["suat"][number]["trangThai"];
+/** ADR-0097 Đ2: link "Điều chỉnh…" ở dòng khách đã có kết quả (chuyến đang chạy, ô trip.progress) — chỉ khi bảng điều chỉnh còn lựa chọn làm được. */
+function linkDieuChinh(k: KhachDiem): HTMLElement | null {
+  const r = duLieu!;
+  if (!coTienDo || r.chuyen.trangThai !== "RUNNING") return null;
+  const s = r.suat.find((x) => x.id === k.suatId);
+  if (!s || s.loai === "CREW") return null;
+  const trangThaiDiem = (id: string | null) => (id === null ? null : r.diem.find((d) => d.id === id)?.trangThai ?? null);
+  const dich = dichDieuChinh(s.trangThai, { diemLen: trangThaiDiem(s.diemLen) ?? "DONE", diemXuong: trangThaiDiem(s.diemXuong) });
+  if (!dich.length) return null;
+  const nut = h("button", { type: "button", class: "btn btn-link dp-dieu-chinh-link", "data-action": "dieu-chinh", "data-suat": s.id }, "Điều chỉnh…") as HTMLButtonElement;
+  nut.addEventListener("click", () => moDieuChinh(k, s.trangThai, dich, nut));
+  return nut;
+}
+
+const lenhDieuChinh = new Map<string, ReturnType<typeof taoLenh>>();
+/** ADR-0097 Đ2: hộp "Điều chỉnh kết quả" — sửa thành (bảng Đ2.4) + lý do nhóm Điều chỉnh; không xoá kết quả cũ (Nền tảng ghi thêm một lần điều chỉnh có lý do). */
+function moDieuChinh(k: KhachDiem, tu: TrangThaiSuatDto, dich: readonly TrangThaiSuatDto[], opener: HTMLButtonElement): void {
+  const r = duLieu!;
+  let den: TrangThaiSuatDto | null = null;
+  let code: string | null = null;
+  const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
+  const gui = h("button", { type: "button", class: "vc-btn btn btn-primary", disabled: true, "data-action": "dieu-chinh-gui" }, "Điều chỉnh") as HTMLButtonElement;
+  const quay = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Quay lại");
+  const moKhoa = () => {
+    gui.disabled = !(den && code);
+  };
+  const bang = moBangTruot({
+    title: "Điều chỉnh kết quả",
+    body: [
+      h("div", { class: "dp-sheet-sum" }, h("div", { class: "dp-sheet-sum-title" }, k.ten), h("div", { class: "dp-note" }, `Đang ghi: ${nhanTrangThaiDieuChinh(tu)}`)),
+      nhomChon("ct-dc-den", "Sửa thành", dich.map((x) => ({ code: x, nhan: nhanDichDieuChinh(tu, x) })), (x) => { den = dich.find((y) => y === x) ?? null; moKhoa(); }),
+      nhomChon("ct-dc-ly-do", "Lý do", r.lyDo.filter((l) => l.nhom === "DIEU_CHINH").map((l) => ({ code: l.code, nhan: l.nhan })), (x) => { code = x; moKhoa(); }),
+      h("p", { class: "dp-note" }, "Kết quả cũ không bị xoá — Nền tảng ghi thêm một lần điều chỉnh có lý do. Tài xế nhận tin."),
+      loi,
+    ],
+    foot: [quay, gui],
+    footClass: "vc-foot-2",
+    opener,
+  });
+  if (!bang) return;
+  quay.addEventListener("click", () => bang.close());
+  gui.addEventListener("click", async () => {
+    if (!den || !code) return;
+    const denChon = den;
+    bang.setBusy(true);
+    gui.disabled = true;
+    loi.hidden = true;
+    try {
+      let l = lenhDieuChinh.get(k.suatId);
+      if (!l) lenhDieuChinh.set(k.suatId, (l = taoLenh()));
+      const url = `${goc()}/phan-bo/${encodeURIComponent(k.suatId)}/dieu-chinh`;
+      duLieu = await docLai(await l.gui<ChuyenChiTietResponse>(url, "POST", { version: duLieu!.chuyen.version, trangThai: denChon, lyDo: code }));
+      bang.close(false);
+      xong(dai("ok", `Đã điều chỉnh ${k.ten}: ${nhanTrangThaiDieuChinh(tu)} → ${nhanDichDieuChinh(tu, denChon)}`));
+    } catch (e) {
+      replaceChildren(loi, icon("alert", 16, 2), loiTrongHop(e));
+      loi.hidden = false;
+      gui.disabled = false;
+    } finally {
+      bang.setBusy(false);
+    }
+  });
+}
+
 function diemChay(): HTMLElement {
   const r = duLieu!;
   const c = r.chuyen;
-  const ketThuc = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: !ketThucDuoc(r.suat), "data-action": "ket-thuc" }, "Kết thúc chuyến");
+  const ketThuc = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: !xetKetThuc({ suat: r.suat, diem: r.diem }).duoc, "data-action": "ket-thuc" }, "Kết thúc chuyến");
   const gianDoan = h("button", { type: "button", class: "vc-btn vc-btn-danger", "data-action": "ket-thuc-gian-doan" }, "Kết thúc gián đoạn");
   ketThuc.addEventListener("click", () => moKhaiGio({
     tieuDe: `Kết thúc ${c.ma} — bấm thay tài xế`, moTa: moTaBamThay(), nutChinh: "Kết thúc chuyến", nutLop: "btn btn-accent",
@@ -373,7 +573,7 @@ function diemChay(): HTMLElement {
     "section",
     { class: "dp-run-list", "aria-labelledby": "ct-diem-title" },
     h("div", { class: "dp-card-head dp-run-list-head" }, h("h2", { id: "ct-diem-title", class: "dp-card-title" }, "Điểm dừng"), h("span", { class: "dp-card-note" }, "Tải hiện tại ", h("strong", null, `${c.tai}/${c.xe.soCho}`))),
-    ...veDiemChay({ diem: r.diem, suat: r.suat, trangThai: c.trangThai, ngayXem: c.ngayChay, coNut: coTienDo, onLenh: lenhDiemChay, phuDiem: (b) => ({ ben: nutThuTuVanPhong(b) ?? undefined, duoi: goiBaoCua(b.diem.id).map((x) => h("div", { class: "dp-gb-dong" }, x)) }) }),
+    ...veDiemChay({ diem: r.diem, suat: r.suat, trangThai: c.trangThai, ngayXem: c.ngayChay, coNut: coTienDo, onLenh: lenhDiemChay, phuDiem: (b) => ({ ben: nutThuTuVanPhong(b) ?? undefined, duoi: [...doanCua(b.diem.id).map((x) => h("div", { class: "dp-gb-dong" }, x)), ...goiBaoCua(b.diem.id).map((x) => h("div", { class: "dp-gb-dong" }, x))] }), phuKhach: linkDieuChinh }),
     ...khoiDiKemVanPhong(),
     coTienDo ? h("div", { class: "dp-run-end thanh-hanh-dong-cuoi" }, ketThuc, ketThuc.disabled ? h("span", { class: "dp-note" }, "Bấm được khi đã trả hết khách và người đi kèm đã xuống.") : null, gianDoan) : null,
   );
@@ -466,6 +666,17 @@ function lenhDiemChay(l: LenhDiem, nut: HTMLButtonElement): void {
   });
 }
 
+// ---- C33 (gói A+C): giờ hẹn TỪNG ĐOÀN ở điểm đón gộp --------------------------------------------------------------------------------------------------
+/**
+ * Điểm đón gộp nhiều đoàn (cùng nơi, khác đơn) chỉ có MỘT giờ hẹn (sớm nhất) ở cột "Giờ hẹn"; văn phòng cần thấy giờ của từng đoàn để biết ai hẹn mấy giờ.
+ * Mỗi đoàn một dòng nhỏ dưới tên điểm: mã đơn · hẹn <giờ> · <số> khách (không tên khách — GA-55). Chỉ khi điểm có TỪ HAI đoàn; không đổi dữ liệu, chỉ đọc suất.
+ */
+function doanCua(diemId: string): HTMLElement[] {
+  const r = duLieu!;
+  const ds = doanTaiDiem(diemId, r.suat);
+  return canHienDoan(ds) ? ds.map((d) => h("span", { class: "dp-doan", "data-doan": d.legId }, cauDoan(d, r.chuyen.ngayChay))) : [];
+}
+
 // ---- ADR-0051: "Đã gọi báo" / "Bỏ đánh dấu" ở dòng điểm dừng (V2) ----------------------------------------------------------------------------------------
 /** Dòng gọi báo của các chặng có khách LÊN ở điểm này (chặng ↔ điểm qua suất). Nút theo `baoDuoc` / `boDuoc` của máy chủ. */
 function goiBaoCua(diemId: string): HTMLElement[] {
@@ -523,7 +734,7 @@ async function capNhatKhach(nut: HTMLButtonElement): Promise<void> {
     duLieu = await docLai(r);
     baoCao = r.daCapNhat > 0
       ? dai("ok", "Đã cập nhật khách theo đơn", [`Cập nhật ${r.daCapNhat} chỗ theo khách hiện có của đơn.`])
-      : dai("info", "Không có khách nào cần cập nhật", ["Khách trong xe đã khớp các đơn trong chuyến."]);
+      : dai("info", "Không có khách nào cần cập nhật", ["Không còn chỗ nào cập nhật được theo đơn. Thừa chỗ mà chỗ nào cũng đã có tên khách thì người xếp xe tự rút bớt."]);
   } catch (e) {
     const l = docLoiLenh(e);
     baoCao = l.cu ? dai("warning", "Chuyến vừa được người khác sửa — tải lại", ["Tải lại để xem bản mới rồi bấm lại."], () => location.reload()) : dai("danger", l.tieuDe, l.dong);
@@ -542,13 +753,106 @@ function theViecVanPhong(): HTMLElement | null {
   capNhat.addEventListener("click", () => void capNhatDiem(capNhat));
   const cuuHoNut = coTienDo ? (h("button", { type: "button", class: "vc-btn vc-btn-danger", "data-action": "cuu-ho" }, "Cứu hộ") as HTMLButtonElement) : null;
   cuuHoNut?.addEventListener("click", () => moGianDoan(cuuHoNut, true));
+  // Gói A5 (ADR-0111 Đ4): văn phòng gửi THAY tài xế đề nghị cứu hộ — xe đang chạy khác tới nơi gặp nhận cả khách trên xe và khách chờ (ô trip.progress).
+  const deNghiNut = coTienDo ? (h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "gui-de-nghi-cuu-ho" }, "Gửi đề nghị cứu hộ") as HTMLButtonElement) : null;
+  deNghiNut?.addEventListener("click", () => void moGuiCuuHo(deNghiNut));
   return h(
     "section",
     { class: "vc-card dp-viec-vp", "aria-labelledby": "ct-viec-title" },
     h("div", { class: "dp-card-head" }, h("h2", { id: "ct-viec-title", class: "dp-card-title" }, "Việc của văn phòng")),
-    h("div", { class: "dp-viec-vp-nut" }, them, capNhat, cuuHoNut),
+    h("div", { class: "dp-viec-vp-nut" }, them, capNhat, deNghiNut, cuuHoNut),
     h("p", { class: "dp-note dp-viec-vp-note" }, "Tài xế nhận tin ngay khi văn phòng thêm khách, báo huỷ hay đổi điểm đón."),
   );
+}
+
+/** Gói A5 (V10 — chỉ đọc): đề nghị chuyển khách có chuyến này là xe nhờ hoặc xe nhận; leo thang + ô trip.override → link sang màn duyệt. */
+function theDeNghiChuyen(): HTMLElement | null {
+  if (!deNghiChuyen.length || !duLieu) return null;
+  const ngay = duLieu.chuyen.ngayChay;
+  return h(
+    "section",
+    { class: "vc-card dp-de-nghi-chuyen", "aria-labelledby": "ct-dn-title" },
+    h("div", { class: "dp-card-head" }, h("h2", { id: "ct-dn-title", class: "dp-card-title" }, "Đề nghị chuyển khách"), h("span", { class: "dp-card-note" }, `${deNghiChuyen.length} đề nghị`)),
+    ...[...deNghiChuyen].sort((a, b) => b.guiLuc.localeCompare(a.guiLuc)).map((d) => {
+      const x = dongDeNghiVanPhong(d, ngay);
+      return h(
+        "div",
+        { class: "dp-kc", "data-de-nghi": d.id },
+        h("span", { class: "dp-kc-text" }, h("strong", null, x.tieuDe), h("span", { class: "dp-note" }, x.dong.map(([k, v]) => `${k}: ${v}`).join(" · "))),
+        chip(x.chip.nhan, x.chip.tone),
+        x.canDuyet && coDuyetDeNghi ? h("a", { class: "btn btn-link", href: `/de-nghi?ngay=${ngay}#dn-${d.id}`, "data-action": "mo-duyet-de-nghi" }, "Mở hộp duyệt") : null,
+      );
+    }),
+  );
+}
+
+/** Gói A5 (ADR-0111 Đ4; bản vẽ CH): "Gửi đề nghị cứu hộ" — chọn xe đang chạy khác (đủ chỗ cho khách còn trên xe + chờ đón), gõ nơi gặp, gửi (máy chủ kiểm lại). */
+async function moGuiCuuHo(opener: HTMLButtonElement): Promise<void> {
+  const r = duLieu!;
+  const soKhach = r.suat.filter((s) => (s.loai ?? "PASSENGER") === "PASSENGER" && (s.trangThai === "WAITING" || s.trangThai === "BOARDED")).length;
+  opener.disabled = true;
+  let ds: XeNhanResponse;
+  try {
+    ds = await api<XeNhanResponse>(`/api/van-chuyen/chuyen/${encodeURIComponent(r.chuyen.id)}/xe-nhan`);
+  } catch (e) {
+    opener.disabled = false;
+    baoCao = dai("danger", loiCua(e));
+    return ve();
+  }
+  opener.disabled = false;
+  let chon: string | null = null;
+  const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
+  const noiGap = h("input", { id: "ct-noi-gap", class: "vc-input", type: "text", autocomplete: "off", maxlength: "200", "aria-required": "true" }) as HTMLInputElement;
+  const guiNut = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: true, "data-action": "cuu-ho-gui" }, "Gửi đề nghị") as HTMLButtonElement;
+  const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Đóng");
+  const xe = ds.xe.map((x) => ({ x, d: dongXeNhan(x, soKhach) }));
+  const duoc = xe.filter((v) => v.d.du);
+  const bang = moBangTruot({
+    title: "Gửi đề nghị cứu hộ",
+    body: [
+      h("p", { class: "dp-sheet-text" }, `${r.chuyen.ma}: ${soKhach} khách trên xe và đang chờ đón. Tài xế xe nhận bấm Nhận / Không nhận; văn phòng gửi thay tài xế xe này.`),
+      duoc.length
+        ? nhomChon("ct-xe-nhan", "Xe đang chạy cùng ngày", duoc.map((v) => ({ code: v.x.tripId, nhan: v.d.nhan, phu: `${v.d.phu} · ${v.d.cho}` })), (c) => {
+            chon = c;
+            guiNut.disabled = false;
+          })
+        : h("p", { class: "dp-note" }, `Hôm nay không có xe đang chạy nào khác còn đủ chỗ cho ${soKhach} khách — dùng "Cứu hộ" để kết thúc gián đoạn rồi xếp xe.`),
+      ...xe.filter((v) => !v.d.du).map((v) => h("p", { class: "dp-note" }, `${v.d.nhan} — ${v.d.cho}, không đủ chỗ`)),
+      h("div", { class: "vc-field" }, h("label", { class: "vc-label", for: "ct-noi-gap" }, "Nơi gặp *"), noiGap),
+      loi,
+    ],
+    foot: [dong, guiNut],
+    footClass: "vc-foot-2",
+    opener,
+  });
+  if (!bang) return;
+  dong.addEventListener("click", () => bang.close());
+  const lenh = taoLenh();
+  guiNut.addEventListener("click", async () => {
+    const chu = noiGap.value.trim();
+    if (!chon) return;
+    if (!chu) {
+      replaceChildren(loi, icon("alert", 16, 2), "Nhập nơi gặp để xe nhận tới đón.");
+      loi.hidden = false;
+      return;
+    }
+    bang.setBusy(true);
+    guiNut.disabled = true;
+    loi.hidden = true;
+    try {
+      const k = await lenh.gui<DeNghiLenhResponse>(`/api/van-chuyen/chuyen/${encodeURIComponent(r.chuyen.id)}/cuu-ho`, "POST", { denChuyenId: chon, phamVi: "ONBOARD", noiGap: { chu } });
+      bang.close(false);
+      baoCao = dai("ok", "Đã gửi đề nghị cứu hộ", [`Chờ tài xế ${k.deNghi.denMaChuyen} trả lời — kết quả hiện ở khối “Đề nghị chuyển khách”.`]);
+      await napDeNghi();
+      ve();
+    } catch (e) {
+      replaceChildren(loi, icon("alert", 16, 2), loiCua(e));
+      loi.hidden = false;
+      guiNut.disabled = false;
+    } finally {
+      bang.setBusy(false);
+    }
+  });
 }
 
 /**
@@ -653,11 +957,12 @@ function moBaoHuy(k: KhachChoDong, opener: HTMLButtonElement): void {
 }
 
 const lenhThemDiem = new Map<string, ReturnType<typeof taoLenh>>();
-/** Câu dòng khoá cho người không có ô phá lệ (V11 bảng 11.4 — theo ADR D5.1: không nút "Xin Quản trị phá lệ"). */
-const KHOA_THEM_DIEM = "Khách không đặt gấp — cần Quản trị phá lệ.";
+/** Câu dòng khoá cho người không có ô điều chỉnh khẩn cấp (V11 bảng 11.4 — ADR D5.1: không nút "Xin…"; ADR-0104 Đ1: Bán hàng không còn bị khoá). */
+const KHOA_THEM_DIEM = "Khách không đặt gấp — cần người xếp xe điều chỉnh khẩn cấp.";
 /**
  * V11 bảng 11.4: chọn chặng chờ xếp của ngày chạy (GET /lich), điểm đón chỉ đọc, số khách ≤ người còn lại. Xe đang chạy luôn trong mốc giờ tối thiểu: chặng
- * đặt gấp thêm ngay; chặng khác — Bán hàng thấy dòng khoá, Quản trị bấm thì máy chủ trả 409 cần phá lệ → hộp Phá lệ, gửi lại CÙNG lệnh kèm lý do.
+ * đặt gấp thêm ngay; chặng khác — người có ô trip.urgent_adjust bấm thì máy chủ trả 409 cần vượt mốc (lớp KHAN_CAP) → hộp "Điều chỉnh khẩn cấp", gửi lại
+ * CÙNG lệnh kèm lý do (ADR-0104 Đ1).
  */
 async function moThemDiem(opener: HTMLButtonElement): Promise<void> {
   const c = duLieu!.chuyen;
@@ -682,7 +987,7 @@ async function moThemDiem(opener: HTMLButtonElement): Promise<void> {
   function capNhat(): void {
     const quaSo = !!chon && (so < 1 || so > chon.conLai);
     dem.setInvalid(quaSo);
-    const biKhoa = !!chon && !chon.datGap && !coPhaLe;
+    const biKhoa = !!chon && !chon.datGap && !coKhanCap;
     khoa.hidden = !biKhoa;
     gui.disabled = !chon || quaSo || biKhoa;
   }
@@ -736,7 +1041,7 @@ async function moThemDiem(opener: HTMLButtonElement): Promise<void> {
       if (l.canPhaLe && l.duocPhaLe) {
         bang.close(false);
         setTimeout(() => moPhaLe({
-          lyDo: duLieu!.lyDo, opener, nutChinh: "Phá lệ và thêm",
+          lyDo: duLieu!.lyDo, opener, nutChinh: NUT_VUOT.them[l.lop], lop: l.lop,
           tomTat: [h("div", { class: "dp-sheet-sum-title" }, `Thêm ${soSuat} khách · ${x.nhan}`), h("div", { class: "dp-note" }, l.tieuDe)],
           onXacNhan: async (code) => xong(dai("ok", await guiLenh(x, soSuat, thanPhaLe(l.lyDo.map((m) => m.ma), code, false)))),
         }), 0);
@@ -753,14 +1058,15 @@ async function moThemDiem(opener: HTMLButtonElement): Promise<void> {
 
 // ---- Vòng 5b: "Rút khỏi xe" / "Chuyển sang xe khác" trên từng nhóm khách (route 6 `rut`, route 7 `doi` của A13) ----------------------------------------------
 // Chủ trả lời lần 15: "Làm ngay, thợ tự đặt nút" — bản vẽ không có chỗ bấm; đặt thẻ "Khách trong chuyến" dưới bảng điểm dừng (lệch bản vẽ D-B2-4). Nút theo ô
-// trip.dispatch + chuyến lên kế hoạch; trong vùng khoá (`khoaMoc` của máy chủ) Bán hàng chỉ thấy câu "cần Quản trị phá lệ" (không nút), Quản trị bấm được và
-// đi qua hộp Phá lệ khi máy chủ đòi (409 `canQuyen`, khuôn huỷ chuyến H17). Sau mỗi lệnh đọc lại GET chi tiết (GA-55).
+// trip.dispatch + chuyến lên kế hoạch; trong vùng khoá (`khoaMoc` của máy chủ) người có ô trip.urgent_adjust (Bán hàng, Quản trị, Toàn quyền — ADR-0104 Đ1)
+// bấm được và đi qua hộp "Điều chỉnh khẩn cấp" khi máy chủ đòi (409 `canQuyen` + `lop`, khuôn huỷ chuyến H17); người thiếu ô chỉ thấy câu khoá (không nút).
+// Sau mỗi lệnh đọc lại GET chi tiết (GA-55).
 function theKhach(): HTMLElement | null {
   const r = duLieu!;
   const c = r.chuyen;
   const ds = nhomKhach(r.suat, r.diem);
   const khoa = c.khoaMoc.dangKhoa;
-  const coNut = coDieuPhoi && (!khoa || coPhaLe);
+  const coNut = coDieuPhoi && (!khoa || coKhanCap);
   // T-7: trong vùng khoá trước giờ xuất bến không có nút (khuôn câu khoá của "Rút khỏi xe").
   const nutDiKem = coDieuPhoi && !khoa ? (h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "them-di-kem" }, "Thêm người đi kèm") as HTMLButtonElement) : null;
   nutDiKem?.addEventListener("click", () => void moThemDiKem(nutDiKem));
@@ -769,7 +1075,7 @@ function theKhach(): HTMLElement | null {
     "section",
     { class: "vc-card dp-khach-nhom-the", "aria-labelledby": "ct-khach-title" },
     h("div", { class: "dp-card-head" }, h("h2", { id: "ct-khach-title", class: "dp-card-title" }, "Khách trong chuyến"), h("span", { class: "dp-card-note" }, `${c.tai} chỗ`), nutDiKem),
-    khoa && coDieuPhoi && !coPhaLe ? h("div", { class: "dg-lock dp-khach-khoa" }, icon("lock", 14), "Trong vùng khoá trước giờ xuất bến — rút hay chuyển khách cần Quản trị phá lệ.") : null,
+    khoa && coDieuPhoi && !coKhanCap ? h("div", { class: "dg-lock dp-khach-khoa" }, icon("lock", 14), "Trong vùng khoá trước giờ xuất bến — rút hay chuyển khách cần người xếp xe điều chỉnh khẩn cấp.") : null,
     ...ds.map((g) => {
       const nut: HTMLElement[] = [];
       if (coNut) {
@@ -846,8 +1152,11 @@ const loiTrongHop = (e: unknown): string => {
   return l.cu ? "Chuyến vừa được người khác sửa — đóng hộp, tải lại rồi làm lại." : [l.tieuDe, ...l.dong].join(" ");
 };
 
-/** Hộp xác nhận chung (rút / chuyển): tóm tắt nhóm, phần riêng, nút chính; `gui(phaLe?)` ném lỗi → câu trong hộp; 409 cần phá lệ + có ô → hộp Phá lệ. */
-function hopLenh(o: { tieuDe: string; g: NhomKhach; them: Child[]; nutChinh: string; nutLop: string; khoaNut?: boolean; nutPhaLe: string; opener: HTMLElement; gui: (phaLe?: Record<string, { lyDo: string }>) => Promise<string> }): { nut: HTMLButtonElement } | null {
+/**
+ * Hộp xác nhận chung (rút / chuyển): tóm tắt nhóm, phần riêng, nút chính; `gui(phaLe?)` ném lỗi → câu trong hộp; 409 cần vượt + đủ ô → hộp vượt luật (chữ
+ * theo `lop` — ADR-0104 Đ1; `nutVuot` = khoá của bảng NUT_VUOT).
+ */
+function hopLenh(o: { tieuDe: string; g: NhomKhach; them: Child[]; nutChinh: string; nutLop: string; khoaNut?: boolean; nutVuot: keyof typeof NUT_VUOT; opener: HTMLElement; gui: (phaLe?: Record<string, { lyDo: string }>) => Promise<string> }): { nut: HTMLButtonElement } | null {
   const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
   const chinh = h("button", { type: "button", class: `vc-btn ${o.nutLop}`, disabled: !!o.khoaNut, "data-action": "khach-gui" }, o.nutChinh);
   const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Đóng");
@@ -874,7 +1183,7 @@ function hopLenh(o: { tieuDe: string; g: NhomKhach; them: Child[]; nutChinh: str
       if (l.canPhaLe && l.duocPhaLe) {
         bang.close(false);
         setTimeout(() => moPhaLe({
-          lyDo: duLieu!.lyDo, opener: o.opener, nutChinh: o.nutPhaLe,
+          lyDo: duLieu!.lyDo, opener: o.opener, nutChinh: NUT_VUOT[o.nutVuot][l.lop], lop: l.lop,
           tomTat: [h("div", { class: "dp-sheet-sum-title" }, `${o.tieuDe} · ${o.g.tieuDe}`), h("div", { class: "dp-note" }, l.lyDo.map((x) => x.loiNhan).join("; "))],
           onXacNhan: async (code) => xong(dai("ok", await o.gui(thanPhaLe(l.lyDo.map((m) => m.ma), code, false)))),
         }), 0);
@@ -893,7 +1202,7 @@ function hopLenh(o: { tieuDe: string; g: NhomKhach; them: Child[]; nutChinh: str
 function moRut(g: NhomKhach, opener: HTMLElement): void {
   const c = duLieu!.chuyen;
   hopLenh({
-    tieuDe: "Rút khỏi xe", g, opener, nutChinh: "Rút khỏi xe", nutLop: "vc-btn-danger", nutPhaLe: "Phá lệ và rút",
+    tieuDe: "Rút khỏi xe", g, opener, nutChinh: "Rút khỏi xe", nutLop: "vc-btn-danger", nutVuot: "rut",
     them: [h("p", { class: "dp-sheet-text" }, `${g.suatIds.length} khách trở về cột “Chưa xếp” của Điều phối xe. Điểm dừng không còn khách sẽ bỏ qua.`)],
     gui: async (phaLe) => {
       const url = `/api/van-chuyen/chuyen/${encodeURIComponent(c.id)}/rut`;
@@ -925,7 +1234,7 @@ async function moDoi(g: NhomKhach, opener: HTMLButtonElement): Promise<void> {
       })
     : h("p", { class: "dp-sheet-text" }, "Ngày này không còn chuyến nào lên kế hoạch để chuyển sang.");
   const hop = hopLenh({
-    tieuDe: "Chuyển sang xe khác", g, opener, nutChinh: "Chuyển khách", nutLop: "btn btn-primary", khoaNut: true, nutPhaLe: "Phá lệ và chuyển",
+    tieuDe: "Chuyển sang xe khác", g, opener, nutChinh: "Chuyển khách", nutLop: "btn btn-primary", khoaNut: true, nutVuot: "chuyen",
     them: [chon],
     gui: async (phaLe) => {
       const dich = ds.find((x) => x.chuyen.id === den)!.chuyen;
@@ -961,9 +1270,9 @@ function huy(nut: HTMLButtonElement): void {
           return;
         }
         if (!(l.canPhaLe && l.duocPhaLe)) throw e;
-        // H17: huỷ chuyến trong vùng khoá khi còn khách → phá lệ (khuôn 1f). Đóng hộp huỷ, mở hộp phá lệ, gửi lại cùng lệnh kèm phá lệ.
+        // H17: huỷ chuyến trong vùng khoá khi còn khách → vượt mốc (khuôn 1f) — ADR-0104 Đ1: luôn lớp điều chỉnh khẩn cấp (chữ theo `lop` của 409).
         setTimeout(() => moPhaLe({
-          lyDo: r.lyDo, opener: nut, nutChinh: "Phá lệ và huỷ",
+          lyDo: r.lyDo, opener: nut, nutChinh: NUT_VUOT.huy[l.lop], lop: l.lop,
           tomTat: [h("div", { class: "dp-sheet-sum-title" }, `Huỷ ${c.ma} · ${c.tai} khách`), h("div", { class: "dp-note" }, l.lyDo.map((x) => x.loiNhan).join("; "))],
           onXacNhan: (p) => gui(code, p),
         }), 0);
@@ -1001,6 +1310,8 @@ const lamMoi = taoBoLamMoi(async () => {
   ve();
 });
 window.addEventListener("chuyen-thay-doi", (ev) => {
-  if ((ev as CustomEvent<SuKienChuyen[]>).detail.some((e) => e.maChuyen === duLieu?.chuyen.ma)) void lamMoi.yeuCau();
+  // Gói A5: tin của xe kia trong một đề nghị (xe nhận đã nhận / không nhận…) cũng đọc lại — mã chuyến nằm trong khối "Đề nghị chuyển khách".
+  const lienQuan = new Set([duLieu?.chuyen.ma, ...deNghiChuyen.flatMap((d) => [d.tuMaChuyen, d.denMaChuyen])]);
+  if ((ev as CustomEvent<SuKienChuyen[]>).detail.some((e) => lienQuan.has(e.maChuyen))) void lamMoi.yeuCau();
 });
 window.addEventListener("can-tai-lai", () => void lamMoi.yeuCau());

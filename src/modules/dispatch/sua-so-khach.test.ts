@@ -97,3 +97,21 @@ test("Toàn quyền sửa số khách SAU ngày đi vẫn được (200)", async
   assert.equal(r.status, 200, r.text);
   assert.equal(adjCount(w, orderId), 1);
 });
+
+// ADR-0109 bài 9 (NT-11): đường HDV `handler-money-edit` dùng CÙNG hàm phải thu — bớt khách tới giảm giá > tạm tính thì "Việc của tôi" và khối Thanh toán đều
+// thấy phải thu 0 (không âm), dư = đúng số khách đã trả (kiểm toán 24/9 DK-T2-02 từng chứng minh tổng âm trên chính đường này).
+test("ADR-0109: HDV bớt khách tới giảm giá > tạm tính → GET /api/dispatch/mine total 0; khối Thanh toán phải thu 0, dư = đã thu", async () => {
+  const w = setup();
+  const created = await w.call("POST", "/api/orders", { as: SALES, body: { ...orderBody(), discount: 800000 } });
+  assert.equal(created.status, 201, created.text);
+  const orderId = created.json.order.id;
+  assert.equal((await w.call("POST", `/api/orders/${orderId}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
+  assert.equal((await w.call("PUT", `/api/orders/${orderId}/handler`, { as: SALES, body: { staffId: FIELD } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${orderId}/payments`, { as: FIELD, body: { soTien: 200000, hinhThuc: "CASH", nguoiThu: "toi" } })).status, 201);
+  const r = await edit(w, FIELD, orderId, "Khách bớt người", 1);
+  assert.equal(r.status, 200, r.text);
+  const mine = (await w.call("GET", "/api/dispatch/mine", { as: FIELD })).json.assignments as { orderId: string; total: number }[];
+  assert.equal(mine.find((a) => a.orderId === orderId)?.total, 0, "max(0, 500.000 − 800.000)");
+  const p = (await w.call("GET", `/api/orders/${orderId}/payments`, { as: FIELD })).json;
+  assert.deepEqual([p.phaiThu, p.daThu, p.conLai, p.du], [0, 200000, 0, 200000]);
+});

@@ -2,7 +2,7 @@
 // sau `can(trip.dispatch)`). Không lệnh ghi mới, không cột mới: "chặng cần chuyển" suy từ suất đóng `TRIP_INTERRUPTED` trên chuyến hỏng giao với chặng còn
 // người chưa xếp; "xe nhận" = chuyến cùng ngày PLANNED / RUNNING có tài xế công ty (lời chủ 5.2b — xe nhà xe đi đường "Tạo chuyến mới"). Test: cuu-ho.test.ts.
 // DTO KHÔNG tên khách, SĐT, mã đơn (văn phòng xem tên ở Chi tiết chuyến).
-import type { CuuHoResponse, LichChungResponse } from "../../shared/contracts";
+import type { CuuHoResponse, LichChungResponse, XeNhanDto } from "../../shared/contracts";
 import { changChuaXep } from "../../shared/dieu-phoi-man.ts";
 import type { NenChuyen } from "./dieu-phoi-doc";
 
@@ -23,7 +23,7 @@ export function cuuHoTu(nen: Pick<NenChuyen, "trip" | "allocs">, l: Pick<LichChu
       trangThai: c.trangThai as "PLANNED" | "RUNNING",
       tenTaiXe: c.taiXe!.ten,
       choTrong: Math.max(0, c.xe.soCho - c.tai),
-      diemSapToi: [...c.diem].filter((d) => d.trangThai === "PENDING").sort((a, b) => a.thuTu - b.thuTu)[0]?.tenNoi ?? null,
+      diemSapToi: diemSapToi(c),
       version: c.version,
     }));
   return {
@@ -31,4 +31,20 @@ export function cuuHoTu(nen: Pick<NenChuyen, "trip" | "allocs">, l: Pick<LichChu
     changChoXep,
     xeNhan,
   };
+}
+
+/** Điểm sắp tới của chuyến (điểm Chờ có số thứ tự nhỏ nhất) — tên nơi, không khoá nơi. */
+function diemSapToi(c: LichChungResponse["chuyen"][number]): string | null {
+  return [...c.diem].filter((d) => d.trangThai === "PENDING").sort((a, b) => a.thuTu - b.thuTu)[0]?.tenNoi ?? null;
+}
+
+/**
+ * Xe nhận được đề nghị chuyển khách (ADR-0052 D4; ADR-0111 Đ4; NT-A5-2): chuyến cùng ngày chạy với chuyến nguồn, khác chuyến nguồn, có tài xế MỞ khác người
+ * gửi; `STOP` nhận PLANNED / RUNNING, `ONBOARD` (cứu hộ) chỉ RUNNING. Trước khi A4 gộp chỉ tài xế công ty (G-A5-20). Đúng năm khoá của `XeNhanDto`.
+ */
+export function xeNhanChoDeNghi(nguon: { id: string; ngayChay: string }, chuyen: LichChungResponse["chuyen"], phamVi: "STOP" | "ONBOARD", nguoiGuiPartyId: string): XeNhanDto[] {
+  return chuyen
+    .filter((c) => c.id !== nguon.id && c.ngayChay === nguon.ngayChay && (phamVi === "ONBOARD" ? c.trangThai === "RUNNING" : c.trangThai === "PLANNED" || c.trangThai === "RUNNING"))
+    .filter((c) => c.taiXe !== null && c.taiXe.loai === "CONG_TY" && c.taiXe.partyId !== nguoiGuiPartyId)
+    .map((c) => ({ tripId: c.id, maChuyen: c.ma, tenTaiXe: c.taiXe!.ten, choTrong: Math.max(0, c.xe.soCho - c.tai), diemSapToi: diemSapToi(c) }));
 }

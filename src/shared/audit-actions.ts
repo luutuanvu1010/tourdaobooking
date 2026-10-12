@@ -33,11 +33,15 @@ export const AUDIT_ACTIONS = {
   cancelled: { label: "Huỷ đơn", group: "order" },
   order_cancelled_by_field: { label: "Huỷ đơn (hướng dẫn viên đang phụ trách)", group: "order" },
   order_cancel_reason_classified: { label: "Phân loại lý do huỷ", group: "order" },
+  // ADR-0062 Đ1-a: `doiSoKhach: true` = hành động ghi dòng `order_money_adjustment` (một cửa insertMoneyAdjustment) — tự vào tập nguồn tin "đơn đổi sau xác
+  // nhận". `detail` dòng mới: "số khách: <phần đổi> · lý do: <lý do>" (khuôn có hàm đọc canh — src/shared/tin-doi-don.ts).
+  order_money_adjusted_by_field: { label: "Sửa số khách (hướng dẫn viên đang phụ trách)", group: "order", doiSoKhach: true },
+  // ADR-0062 Đ1 cách (a): KHAI TRƯỚC cho đường văn phòng sửa số khách (ADR-0063 D1 — chưa duyệt, chưa route nào ghi). Bị bác thì nằm chết, vô hại.
+  order_money_adjusted: { label: "Sửa số khách (văn phòng)", group: "order", doiSoKhach: true },
   // Sổ đại lý đợt 1 (ADR-0077 điều 8): chụp mức hoa hồng + người bán của từng dòng lúc Xác nhận — `detail` chỉ đếm dòng (không tỷ lệ, không tiền, không tên đối tác).
   order_terms_captured: { label: "Chụp mức hoa hồng lúc xác nhận", group: "order" },
   order_terms_recaptured: { label: "Chụp lại mức khi đổi bên đặt", group: "order" },
   order_terms_manual: { label: "Ghi mức hoa hồng tay", group: "order" }, // Task 5: Kế toán / Quản trị / Toàn quyền ghi mức hoặc người bán cho một dịch vụ; detail "<dịch vụ>: mức trước → sau" (không tiền khách, không a%, không lý do); lịch sử đơn lọc bỏ khi người xem giữ quyền Đối tác
-  order_money_adjusted_by_field: { label: "Sửa số khách (hướng dẫn viên đang phụ trách)", group: "order" },
   // Sổ tiền lượt 1 (ADR-0025, ADR-0026) — `detail` không SĐT, không số tiền chi tiết (kế hoạch §3.4).
   order_delivered: { label: "Đã giao – đã thu đủ", group: "order" },
   order_completed: { label: "Hoàn thành", group: "order" },
@@ -119,6 +123,9 @@ export const AUDIT_ACTIONS = {
   // ADR-0055 VK2-A A6 (Đợt 3): khung bận của xe — `detail` = biển số + khung giờ VN + nhãn lý do; không dữ liệu cá nhân.
   vehicle_unavailability_added: { label: "Ghi lịch xe bận", group: "vehicle" },
   vehicle_unavailability_withdrawn: { label: "Rút lịch xe bận", group: "vehicle" },
+  // ADR-0053 D9 (kế hoạch A4 T8, G-A4-20): tài xế báo bận / rút khung của CHÍNH mình — detail chỉ khoảng giờ (không lý do, không tên).
+  driver_unavailability_added: { label: "Tài xế báo bận", group: "trip" },
+  driver_unavailability_withdrawn: { label: "Tài xế rút khung bận", group: "trip" },
   // ADR-0049 D2 (lát 1.1): chính sách điều phối, điều kiện xuất bến, hạng bằng (Toàn quyền), danh mục lý do (Quản trị). `detail` chỉ mã, con số, nhãn
   // danh mục; không order_id, không target (khuôn expiry_policy_changed).
   dispatch_policy_changed: { label: "Đổi chính sách điều phối", group: "trip" },
@@ -130,8 +137,11 @@ export const AUDIT_ACTIONS = {
   // ADR-0054 D10.1 (+ ADR nháp nơi trả mặc định, đã duyệt 1/10): mẫu đưa đón theo dịch vụ — `detail` = mã dịch vụ, chế độ cũ → mới, giờ gợi ý, nơi trả mặc định
   // (TÊN điểm danh mục). Không order_id, không dữ liệu cá nhân.
   transfer_template_set: { label: "Đổi mẫu đưa đón của dịch vụ", group: "trip" },
-  trip_passengers_synced: { label: "Cập nhật khách theo đơn", group: "trip" }, // R-P29 (chủ lần 16) — route `cap-nhat-khach`; detail chỉ mã chuyến, mã đơn, SỐ khách
+  trip_passengers_synced: { label: "Cập nhật khách theo đơn", group: "trip" }, // R-P29 (chủ lần 16) — route `cap-nhat-khach`; detail chỉ mã chuyến, mã đơn, nhãn nguyên nhân, SỐ ghế (ADR-0104 Đ2.11)
   trip_stops_synced: { label: "Cập nhật điểm theo đơn", group: "trip" }, // ADR-0050 VK1-B — route `cap-nhat-diem` (A13); detail chỉ mã đơn + tên nơi danh mục / "nơi tự do"
+  // ADR-0104 Đ2.9: máy cập nhật chuyến theo đơn — một dòng mỗi KHÚC chuyến của lô đồng bộ (cùng lô với lệnh đơn); staff_id = người vừa sửa đơn; detail chỉ mã
+  // chuyến, mã đơn, nhãn nguyên nhân cố định, số ghế trả / thêm (LC-18). KHÔNG phải một trong ba hành động tin có điều kiện (HANH_DONG_TIN_KHACH).
+  trip_order_synced: { label: "Máy cập nhật chuyến theo đơn", group: "trip" },
   // ADR-0049 D1 (Task A13): lệnh KẾ HOẠCH của chuyến xe. orderId NULL, targetType "trip" (I17). "Sửa chuyến xe" mang tên `trip_edited` — `trip_updated`
   // đã là hành động của orders ("Sửa thông tin chuyến" của ĐƠN, nhóm order) nên không dùng lại (GA-37).
   trip_created: { label: "Tạo chuyến xe", group: "trip" },
@@ -155,6 +165,21 @@ export const AUDIT_ACTIONS = {
   trip_allocation_office_cancelled: { label: "Văn phòng báo huỷ khách", group: "trip" },
   // ADR-0052 D5b (Đợt 5 A-1b — chủ duyệt 5/10): tài xế bổ sung tên khách chưa có tên — detail mã chuyến, mã đơn, số người (không tên, năm sinh).
   trip_passenger_named: { label: "Tài xế bổ sung tên khách", group: "trip" },
+  // ADR-0097 Đ2, Đ3 (gói A1, V3-B): văn phòng sửa sai bằng sự kiện điều chỉnh có lý do — detail: mã chuyến, mã đơn, "một suất A → B · nhãn lý do" / nhãn lý do
+  // thu hồi (không tên khách, không SĐT — Đ2.6).
+  trip_allocation_corrected: { label: "Văn phòng điều chỉnh kết quả khách", group: "trip" },
+  trip_departure_revoked: { label: "Văn phòng thu hồi xuất bến", group: "trip" },
+  // ADR-0111 (gói A5): đề nghị chuyển khách giữa hai xe — target = chuyến ĐÍCH; detail chỉ mã hai chuyến, phạm vi, SỐ khách, nhãn lý do, mã điều kiện không
+  // đạt (không tên khách, năm sinh, SĐT, chữ nơi gặp, khoá nơi — LC-18).
+  trip_transfer_sent: { label: "Gửi đề nghị chuyển khách", group: "trip" },
+  trip_transfer_withdrawn: { label: "Rút đề nghị chuyển khách", group: "trip" },
+  trip_transfer_declined: { label: "Xe nhận không nhận khách", group: "trip" },
+  trip_transfer_expired: { label: "Đề nghị chuyển khách hết giờ chờ", group: "trip" },
+  trip_transfer_escalated: { label: "Đề nghị chuyển khách chờ văn phòng duyệt", group: "trip" },
+  trip_transfer_confirmed: { label: "Chuyển khách sang xe khác", group: "trip" },
+  trip_transfer_rejected: { label: "Văn phòng không duyệt đề nghị chuyển khách", group: "trip" },
+  // ADR-0053 D8.4 (kế hoạch A4 T7, G-A4-20): tài xế từ chối chuyến mình đang lái trước hạn — detail: mã chuyến + mã lý do (không tên, không chữ tự do).
+  trip_driver_refused: { label: "Tài xế từ chối chuyến", group: "trip" },
   // ADR-0051 GB1: mốc giờ hẹn của chặng — orderId NULL (I17); detail danh sách trắng (mã đơn, chiều, "giờ hẹn đón A → B", mã chuyến).
   trip_appt_called: { label: "Đã gọi báo khách giờ hẹn mới", group: "trip" },
   trip_appt_call_undone: { label: "Bỏ đánh dấu đã gọi báo", group: "trip" },
@@ -199,9 +224,17 @@ export const AUDIT_ACTIONS = {
   notice_acknowledged: { label: "Xác nhận đã hiểu thông báo", group: "notice" },
   session_policy_changed: { label: "Đổi chính sách đăng nhập", group: "staff" }, // ADR-0085 điều 9: quyền đổi + giá trị mới + số máy/số người — KHÔNG tên, SĐT, IP
   session_revoked: { label: "Gỡ phiên đăng nhập", group: "staff" }, // ADR-0075 điều 8: ai gỡ, tài khoản bị gỡ (target), mã phiên (detail) — KHÔNG IP/User-Agent
-} as const satisfies Record<string, { label: string; group: AuditGroup }>;
+} as const satisfies Record<string, { label: string; group: AuditGroup; doiSoKhach?: true }>;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;
+
+/** ADR-0062 Đ1-a: hành động mang cờ `doiSoKhach` — kiểu DẪN từ AUDIT_ACTIONS (tham số hành động của insertMoneyAdjustment chỉ nhận kiểu này). */
+export type HanhDongDoiSoKhach = { [K in AuditAction]: (typeof AUDIT_ACTIONS)[K] extends { doiSoKhach: true } ? K : never }[AuditAction];
+// `@__PURE__`: hằng tính lúc nạp tệp — không chú thích thì esbuild phải giữ cả bảng AUDIT_ACTIONS trong gói của MỌI trang có nhập tệp này (vd qua web/format.ts),
+// làm gói trang Đơn hàng vượt trần (bài src/goi-trang-nhe.test.ts). Có chú thích: trang không dùng hằng thì bỏ được cả lời gọi lẫn bảng.
+export const HANH_DONG_DOI_SO_KHACH: readonly HanhDongDoiSoKhach[] = /* @__PURE__ */ (() => (Object.keys(AUDIT_ACTIONS) as AuditAction[]).filter(
+  (a): a is HanhDongDoiSoKhach => (AUDIT_ACTIONS[a] as { doiSoKhach?: true }).doiSoKhach === true,
+))();
 
 /** Loại đối tượng của một dòng nhật ký — trùng với nhóm hành động. */
 export type AuditTargetType = AuditGroup;

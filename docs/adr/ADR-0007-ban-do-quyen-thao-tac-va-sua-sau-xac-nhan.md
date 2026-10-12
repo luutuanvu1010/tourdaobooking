@@ -1,6 +1,6 @@
 # ADR-0007 — Bản đồ quyền → thao tác và sửa sau xác nhận
 
-- **Trạng thái:** **accepted** (chủ dự án duyệt 2026-09-20). Các dòng ◆ được chủ dự án duyệt cùng ADR. Sau khi accepted chỉ sửa trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này. **Bổ sung bởi ADR-0052** (duyệt 2026-09-30): điều 4(b) — hai hàm tiêm `ctx.baoThayDoiChuyen`, `ctx.chuyenLienQuan` — nguyên văn → mới ở bảng "Câu ADR bị thay" của ADR-0052.
+- **Trạng thái:** **accepted** (chủ dự án duyệt 2026-09-20). Các dòng ◆ được chủ dự án duyệt cùng ADR. Sau khi accepted chỉ sửa trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này. **Bổ sung bởi ADR-0052** (duyệt 2026-09-30): điều 4(b) — hai hàm tiêm `ctx.baoThayDoiChuyen`, `ctx.chuyenLienQuan` — nguyên văn → mới ở bảng "Câu ADR bị thay" của ADR-0052. **Bổ sung/sửa bởi [ADR-0104](ADR-0104-dieu-chinh-khan-cap-va-dong-bo-chuyen.md)** (accepted 2026-10-08): điều 4(b) (`:37`, khuôn hàm tiêm) thêm `ctx.dongBoChuyen` — nhận câu đơn đã soạn, trả lô đầy đủ chưa chạy (Đồng bộ chuyến theo đơn); nguyên văn → mới ở bảng "Câu ADR bị thay" của ADR-0104.
 - **Ngày:** 2026-09-20   **Người phê chuẩn:** chủ dự án (đã duyệt 2026-09-20)
 - **Loại quyết định:** **cửa một chiều** cho các dòng liên quan tiền: đổi quyền về sau không hoàn tác được những khoản đã sửa/ghi theo quyền cũ
 - **Liên quan:** ADR-0004, ADR-0005 (cấu trúc quyền), ADR-0006 (phân công); **thay thế một phần** quyết định Q9 của `docs/superpowers/specs/2026-09-19-thong-tin-chuyen-di-design.md` (khoá số khách/dịch vụ/tiền sau xác nhận)

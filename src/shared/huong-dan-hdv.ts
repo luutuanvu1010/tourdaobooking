@@ -61,7 +61,7 @@ Bấm [[Xem đơn]] để mở trang đầy đủ. Ở đó không sửa hay hu�
     },
     {
       tieuDe: "Sửa số khách",
-      noiDung: `Chỉ làm được với đơn **Đã xác nhận**, tới **hết ngày đi**. Từ hôm sau không còn nút [[Sửa số khách]]; cần sửa thì nhờ tài khoản Toàn quyền.
+      noiDung: `Chỉ làm được với đơn **Đã xác nhận**, tới **hết ngày đi**. Từ hôm sau không còn nút [[Sửa số khách]]; cần sửa thì nhờ văn phòng (người lập đơn, Kế toán hoặc Quản trị).
 
 1. Ở thẻ đơn, bấm [[Sửa số khách]].
 2. Ở từng dịch vụ, bấm nút tăng hoặc giảm cho từng loại khách.
@@ -120,7 +120,7 @@ Tin quan trọng có nút [[Đã hiểu]]. Đọc xong thì bấm.
       tieuDe: "Tình huống hay gặp",
       noiDung: `- **Nhận đơn Chờ xác nhận:** vẫn nhận được, nhưng chưa sửa hay huỷ được. Thẻ ghi "Đơn đang chờ xác nhận — chưa thể huỷ hay sửa số khách." Đợi văn phòng xác nhận.
 - **Nhận nhầm, bận không đi được:** chưa có nút trả đơn (chưa có ở bản này). Gọi văn phòng giao cho người khác.
-- **Đơn đã qua ngày đi:** không còn nút [[Huỷ đơn]] và [[Sửa số khách]]. Cần huỷ thì nhờ văn phòng; cần sửa số khách thì nhờ tài khoản Toàn quyền.
+- **Đơn đã qua ngày đi:** không còn nút [[Huỷ đơn]] và [[Sửa số khách]]. Cần huỷ hay sửa số khách thì nhờ văn phòng (người lập đơn, Kế toán hoặc Quản trị).
 - **Đang sửa thì văn phòng cũng sửa đơn đó:** app đóng bảng, hiện dòng báo màu vàng rồi tải lại. Bạn xem lại rồi làm lại.
 - **Mất mạng:** app báo chưa tải được đơn. Có mạng thì tải lại trang.
 - **Không thấy khối Đơn chờ nhận:** tài khoản có thêm quyền Đối tác. Hỏi Quản trị.
@@ -133,7 +133,7 @@ Tin quan trọng có nút [[Đã hiểu]]. Đọc xong thì bấm.
 - **Sửa dịch vụ, giờ đón, thông tin chuyến, xác nhận đơn:** nhờ người lập đơn hoặc văn phòng.
 - **Trả lại đơn đã nhận:** chưa có (chưa có ở bản này). Văn phòng giao cho người khác.
 - **Huỷ đơn chờ xác nhận, huỷ sau ngày đi:** nhờ văn phòng.
-- **Sửa số khách sau ngày đi:** nhờ tài khoản Toàn quyền.
+- **Sửa số khách sau ngày đi:** nhờ văn phòng (người lập đơn, Kế toán hoặc Quản trị).
 - **Hoàn tiền cho khách, xác nhận tiền đã vào công ty, bấm Hoàn thành:** Kế toán làm.
 - **Xem bảng giá, Danh bạ:** hỏi văn phòng.`,
     },
@@ -149,7 +149,7 @@ Ai bấm trước được. Người sau thấy dòng báo, danh sách tự tả
 Không. Gọi văn phòng ngay để lập đơn mới.
 
 ### Sửa số khách sau ngày đi được không?
-Không. Bạn sửa được tới hết ngày đi. Từ hôm sau, nhờ tài khoản Toàn quyền sửa.
+Không. Bạn sửa được tới hết ngày đi. Từ hôm sau, nhờ văn phòng (người lập đơn, Kế toán hoặc Quản trị) sửa.
 
 ### Tôi có thấy tiền của đơn không?
 Có, chỉ ở đơn bạn đang lo: **Tổng tiền**, **Đã thu**, **Còn lại**.`,

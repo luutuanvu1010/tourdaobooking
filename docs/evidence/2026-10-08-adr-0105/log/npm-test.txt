@@ -1,0 +1,24 @@
+07:04 # tests 3751
+07:04 # pass 3748
+07:04 # fail 0
+07:04   error: 'quá chậm: lần nhanh nhất 1974 ms CPU (3 lần: 1974, 1993, 2000 ms)'
+07:04 # tests 1
+07:04 # pass 0
+07:04 # fail 1
+07:04 ── npm test: bước 1 thoát 0, bước 2 thoát 1
+07:07   error: 'mất 210 ms'
+07:07 # tests 3751
+07:07 # pass 3747
+07:07 # fail 1
+07:07   error: 'quá chậm: lần nhanh nhất 2034 ms CPU (3 lần: 2074, 2034, 2089 ms)'
+07:07 # tests 1
+07:07 # pass 0
+07:07 # fail 1
+07:07 ── npm test: bước 1 thoát 1, bước 2 thoát 1
+07:38 # tests 3751
+07:38 # pass 3748
+07:38 # fail 0
+07:38 # tests 1
+07:38 # pass 1
+07:38 # fail 0
+07:38 ── npm test: bước 1 thoát 0, bước 2 thoát 0

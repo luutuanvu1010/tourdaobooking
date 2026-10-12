@@ -1,8 +1,9 @@
 // Bài của luật thứ tự điểm dừng (HT-01, kiểm theo vai 2/10 — lộ trình 3/10 V1.2): sắp lại điểm CHƯA TỚI để mọi điểm đón của một suất đứng trước điểm trả
-// của suất đó, giữ thứ tự tương đối còn lại; phát hiện suất còn "trả trước đón" (chỉ cảnh báo — chặn hẳn chờ ADR-0096).
+// của suất đó, giữ thứ tự tương đối còn lại; phát hiện suất còn "trả trước đón" (ADR-0096 Đ1: cổng xuất bến giữ — LC-19), suất bị đảo mới do lệnh đổi thứ tự,
+// điểm đón chưa tới của điểm trả (Đ1.4).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { sapDonTruocTra, suatTraTruocDon, type DiemThuTu } from "./thu-tu-diem.ts";
+import { daoMoiSauDoi, diemDonChuaToiCuaDiemTra, sapDonTruocTra, suatTraTruocDon, type DiemThuTu } from "./thu-tu-diem.ts";
 
 const d = (id: string, seq: number, dangCho = true): DiemThuTu => ({ id, seq, dangCho });
 const s = (lenId: string | null, xuongId: string | null) => ({ diemLen: lenId, diemXuong: xuongId });
@@ -50,4 +51,33 @@ test("suatTraTruocDon: đếm suất có điểm xuống đứng TRƯỚC điể
   const diem = [d("donA", 1), d("tra", 2), d("donB", 3)];
   assert.deepEqual(suatTraTruocDon(diem, [s("donA", "tra"), s("donB", "tra"), s("donB", null)]), [1]);
   assert.deepEqual(suatTraTruocDon(diem, [s("donA", "tra")]), []);
+});
+
+// ---- ADR-0096 Đ1 (LC-19) — gói A1 (2026-10-08) -----------------------------------------------------------------------------------------------------------------
+test("ADR-0096 Đ1.1: số thứ tự BẰNG nhau cũng là vi phạm (nghiêm ngặt seq(lên) < seq(xuống))", () => {
+  assert.deepEqual(suatTraTruocDon([d("don", 2), d("tra", 2)], [s("don", "tra")]), [0]);
+});
+
+test("ADR-0096 Đ1.3c: daoMoiSauDoi — chỉ trả suất BỊ ĐẢO MỚI do lệnh đổi thứ tự (suất đảo từ trước không tính, để sửa dần từng bước ↑ ↓)", () => {
+  const diem = [d("donA", 1), d("tra", 2), d("donB", 3)];
+  const suat = [s("donA", "tra"), s("donB", "tra")];
+  // Đưa TRẢ lên đầu: suất A (đang đúng) bị đảo mới → [0].
+  assert.deepEqual(daoMoiSauDoi(diem, [{ id: "tra", seq: 1 }, { id: "donA", seq: 2 }], suat), [0]);
+  // Đổi chỗ ĐÓN B với TRẢ: sửa được suất B, không đảo mới.
+  assert.deepEqual(daoMoiSauDoi(diem, [{ id: "donB", seq: 2 }, { id: "tra", seq: 3 }], suat), []);
+  // Đang đảo sẵn [TRẢ, ĐÓN A, ĐÓN B]: đưa ĐÓN B lên trước ĐÓN A (bước trung gian còn đảo) → không đảo MỚI → cho đi tiếp.
+  const dao = [d("tra", 1), d("donA", 2), d("donB", 3)];
+  assert.deepEqual(daoMoiSauDoi(dao, [{ id: "donB", seq: 2 }, { id: "donA", seq: 3 }], suat), []);
+  // Lệnh rỗng → không đảo mới.
+  assert.deepEqual(daoMoiSauDoi(diem, [], suat), []);
+});
+
+test("ADR-0096 Đ1.4 (HT-02): diemDonChuaToiCuaDiemTra — điểm đón CHƯA TỚI của suất CHỜ LÊN có điểm xuống ở điểm trả này; suất vắng / huỷ / đã lên / đã đóng không tính", () => {
+  const diem = [{ id: "don", trangThai: "PENDING" }, { id: "don2", trangThai: "ARRIVED" }, { id: "tra", trangThai: "PENDING" }];
+  const x = (len: string, trangThai: string, mo = true) => ({ diemLen: len, diemXuong: "tra", trangThai, mo });
+  assert.deepEqual(diemDonChuaToiCuaDiemTra("tra", diem, [x("don", "WAITING")]), ["don"]);
+  assert.deepEqual(diemDonChuaToiCuaDiemTra("tra", diem, [x("don2", "WAITING")]), [], "điểm đón đã tới (khách còn chờ đánh dấu) — không chặn");
+  for (const tt of ["NO_SHOW", "CANCELLED_AT_STOP", "BOARDED", "DROPPED"]) assert.deepEqual(diemDonChuaToiCuaDiemTra("tra", diem, [x("don", tt)]), [], tt);
+  assert.deepEqual(diemDonChuaToiCuaDiemTra("tra", diem, [x("don", "WAITING", false)]), [], "suất đã đóng");
+  assert.deepEqual(diemDonChuaToiCuaDiemTra("tra", diem, [x("don", "WAITING"), x("don", "WAITING")]), ["don"], "không trùng");
 });

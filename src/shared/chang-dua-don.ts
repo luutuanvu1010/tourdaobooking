@@ -9,6 +9,7 @@ import type { LegDirection } from "./contracts.ts";
 import { UUID_RE } from "./http.ts";
 import { cleanText, maskLongDigits } from "./text-guards.ts";
 import { addDays, isHHMM, isISODate } from "./vn-date.ts";
+import { NHAN_TRUONG_THOI_GIAN } from "./truong-thoi-gian.ts";
 
 export type { LegDirection };
 
@@ -37,6 +38,12 @@ export const LY_DO_DAT_GAP = {
 } as const;
 export type LyDoDatGap = keyof typeof LY_DO_DAT_GAP;
 export const isLyDoDatGap = (v: unknown): v is LyDoDatGap => typeof v === "string" && Object.hasOwn(LY_DO_DAT_GAP, v);
+/**
+ * Đoạn ĐUÔI "đặt gấp" trong `detail` nhật ký của đơn (route đặt gấp, nhánh `datGap` của lệnh sửa / thêm chặng — `kemDatGap` của orders). MỘT chỗ viết; hai
+ * chỗ đọc: `lichSuTheoVai` (rút gọn theo vai) và hàm đọc tin `phanDoiCuaTin` (ADR-0062 Đ2 — bóc đuôi, không vào câu tin).
+ */
+export const DAU_DAT_GAP = " · đặt gấp: ";
+export const ghiDatGapNhatKy = (nhanLyDo: string): string => `${DAU_DAT_GAP}${nhanLyDo}`;
 /** Ghi chú đặt gấp tối đa (khớp `CHECK` của 0040) — đếm SAU khi che dãy số. */
 export const GHI_CHU_DAT_GAP_TOI_DA = 120;
 
@@ -363,6 +370,10 @@ export interface MoTaChangVao {
   choToiThieu?: number | null;
 }
 
+// ADR-0062 Đ1: nhãn ngày / giờ đón của chặng LẤY TỪ bảng chung — hàm đọc tin (tin-doi-don.ts) nhận đúng các nhãn này (bài NT-B1).
+const NGAY_DON = NHAN_TRUONG_THOI_GIAN.legPickupDate;
+const GIO_DON = NHAN_TRUONG_THOI_GIAN.legPickupTime;
+
 /**
  * Câu nhật ký của một thay đổi chặng (ADR-0047 A1: "trước→sau, nơi chữ tự do che dãy số"): "Chiều đi · <tên dịch vụ>: giờ đón 06:30 → 07:00; nơi đón A →
  * B". Thêm: "…: thêm — ngày đón …, giờ đón …, nơi đón …, nơi trả …". Bỏ: "…: bỏ — <lý do>". CHE dãy từ 8 chữ số ở TÊN DỊCH VỤ và NƠI (chữ tự do — tên
@@ -386,13 +397,13 @@ export function moTaChang(tenDichVu: string, truoc: MoTaChangVao | null, sau: Mo
       ...(xeRieng(sau) ? ["xe riêng"] : []),
       ...(choTT(sau) !== null ? [`xe tối thiểu ${choTT(sau)} chỗ`] : []),
     ];
-    return `${head}: thêm — ngày đón ${v(sau.pickupDate, "(chưa có)")}, giờ đón ${v(sau.pickupTime, "(chưa chốt)")}, nơi đón ${n(sau.noiDon, "(trống)")}, nơi trả ${n(sau.noiTra, "(chưa chốt)")}${phu.map((x) => `, ${x}`).join("")}`;
+    return `${head}: thêm — ${NGAY_DON} ${v(sau.pickupDate, "(chưa có)")}, ${GIO_DON} ${v(sau.pickupTime, "(chưa chốt)")}, nơi đón ${n(sau.noiDon, "(trống)")}, nơi trả ${n(sau.noiTra, "(chưa chốt)")}${phu.map((x) => `, ${x}`).join("")}`;
   }
   if (truoc !== null && sau === null) return `${head}: bỏ — ${lyDo ? LY_DO_DONG_CHANG[lyDo] : "không rõ lý do"}`;
   if (truoc === null || sau === null) return null;
   const parts: string[] = [];
-  if (truoc.pickupDate !== sau.pickupDate) parts.push(`ngày đón ${v(truoc.pickupDate, "(trống)")} → ${v(sau.pickupDate, "(trống)")}`);
-  if (truoc.pickupTime !== sau.pickupTime) parts.push(`giờ đón ${v(truoc.pickupTime, "(trống)")} → ${v(sau.pickupTime, "(trống)")}`);
+  if (truoc.pickupDate !== sau.pickupDate) parts.push(`${NGAY_DON} ${v(truoc.pickupDate, "(trống)")} → ${v(sau.pickupDate, "(trống)")}`);
+  if (truoc.pickupTime !== sau.pickupTime) parts.push(`${GIO_DON} ${v(truoc.pickupTime, "(trống)")} → ${v(sau.pickupTime, "(trống)")}`);
   if (truoc.noiDon !== sau.noiDon) parts.push(`nơi đón ${n(truoc.noiDon, "(trống)")} → ${n(sau.noiDon, "(trống)")}`);
   if (truoc.noiTra !== sau.noiTra) parts.push(`nơi trả ${n(truoc.noiTra, "(trống)")} → ${n(sau.noiTra, "(trống)")}`);
   if (soHieu(truoc) !== soHieu(sau)) parts.push(`số hiệu chuyến bay ${v(soHieu(truoc), "(trống)")} → ${v(soHieu(sau), "(trống)")}`);

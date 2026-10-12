@@ -1,0 +1,9 @@
+✓ 1) V8 390 tài xế xe nhờ: điểm Citadines có "Nhờ xe khác đón" → bảng chọn xe (CX-1310-02 · Phạm Văn Cường) → "Gửi đề nghị" → dải "Đã gửi đề nghị"; thẻ gửi đi có đếm ngược + "Rút lại"; không tràn ngang, axe không vi phạm critical/serious
+✓ 2) V9 390 tài xế xe nhận: thẻ đề nghị từ CX-1310-01 (điểm, số khách, đếm ngược) có "Nhận" / "Không nhận"; bấm Nhận (tự đồng ý đang tắt) → "Chờ văn phòng duyệt"; khách chưa vào chuyến, axe không vi phạm critical/serious
+✓ 3) CH 1040 Bán hàng: khối "Đề nghị chuyển khách" (CX-1310-01 → CX-1310-02, Chờ văn phòng duyệt) KHÔNG có "Mở hộp duyệt"; "Việc của văn phòng" có "Gửi đề nghị cứu hộ"; menu Vận chuyển KHÔNG có "Đề nghị chuyển khách", axe không vi phạm critical/serious
+✓ 4) V10 1040 Kế toán: /de-nghi có thẻ leo thang (bảng 11 điều kiện, tầng Bắt buộc / Cấu hình) KHÔNG nút Duyệt / Bác; menu không có mục, axe không vi phạm critical/serious
+✓ 5) V10 1040 Quản trị: menu có "Đề nghị chuyển khách" ngay sau "Xe đang chạy"; Chi tiết chuyến → "Mở hộp duyệt" → /de-nghi#dn-<id>; Duyệt → lý do phá lệ → "Duyệt chuyển khách" → "Đã duyệt — khách đã sang xe nhận", axe không vi phạm critical/serious
+✓ 6) 390 Quản trị: màn /de-nghi không tràn ngang sau khi duyệt, axe không vi phạm critical/serious
+✓ 7) không lỗi console ở mọi trang đã mở
+
+DE NGHI SMOKE OK (7 bước)

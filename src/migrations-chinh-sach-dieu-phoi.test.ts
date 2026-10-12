@@ -112,6 +112,10 @@ test("(c) dữ liệu gieo: đúng một dòng chính sách 360/120/30/1/0 + k�
   );
   const lyDoGieo = rows(db, "SELECT code, reason_group, active, created_by FROM vc_reason ORDER BY reason_group, sort_order, code");
   assert.deepEqual(lyDoGieo.map((r) => `${r.reason_group}:${r.code}`), [
+    // 0092 (ADR-0053 D9.1): nhóm lý do tài xế báo bận
+    "BAN_TAI_XE:BTX_VIEC_RIENG",
+    "BAN_TAI_XE:BTX_OM",
+    "BAN_TAI_XE:BTX_KHAC",
     // 0071 (ADR-0055 VK2-A): nhóm lý do xe bận
     "BAN_XE:BAN_XE_BAO_DUONG",
     "BAN_XE:BAN_XE_DANG_KIEM",
@@ -134,6 +138,10 @@ test("(c) dữ liệu gieo: đúng một dòng chính sách 360/120/30/1/0 + k�
     "CHI_PHI_XE:CPX_DOI_CHUYEN",
     "CHI_PHI_XE:CPX_HUY_CHUYEN",
     "CHI_PHI_XE:CPX_KHAC",
+    // 0085 (ADR-0097 Đ2.5, gói A1): lý do điều chỉnh kết quả khách / thu hồi xuất bến — danh sách đóng
+    "DIEU_CHINH:DIEU_CHINH_BAM_NHAM",
+    "DIEU_CHINH:DIEU_CHINH_KHACH_DOI_Y",
+    "DIEU_CHINH:DIEU_CHINH_KHAC",
     "DOI_GIO_XE:DOI_GIO_XE_TOI_SOM",
     "DOI_GIO_XE:DOI_GIO_XE_KHAC",
     "HUY_CHUYEN:HUY_GOP_CHUYEN",
@@ -145,6 +153,16 @@ test("(c) dữ liệu gieo: đúng một dòng chính sách 360/120/30/1/0 + k�
     "PHA_LE:PHA_LE_SU_CO",
     "PHA_LE:PHA_LE_DON_GAP",
     "PHA_LE:PHA_LE_KHAC",
+    // 0092 (ADR-0053 D8.1): nhóm lý do tài xế nhà xe từ chối chuyến
+    "TU_CHOI_CHUYEN:TCC_BAN_LICH_KHAC",
+    "TU_CHOI_CHUYEN:TCC_OM_VIEC_RIENG",
+    "TU_CHOI_CHUYEN:TCC_XE_KHONG_CHAY",
+    "TU_CHOI_CHUYEN:TCC_KHAC",
+    // 0093 (ADR-0111, A5): lý do tài xế xe nhận Không nhận / Quản trị Bác đề nghị chuyển khách
+    "TU_CHOI_NHAN:TU_CHOI_DAY_CHO",
+    "TU_CHOI_NHAN:TU_CHOI_KHONG_KIP",
+    "TU_CHOI_NHAN:TU_CHOI_SU_CO",
+    "TU_CHOI_NHAN:TU_CHOI_KHAC",
   ]);
   for (const r of lyDoGieo) assert.equal(r.active, 1);
   for (const g of new Set(lyDoGieo.map((r) => r.reason_group))) {

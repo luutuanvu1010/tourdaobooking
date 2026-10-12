@@ -1,0 +1,26 @@
+✓ Bán hàng 390: Khách hàng đã trả trước 500.000 / Còn lại 850.000 từ billing; có Ghi lần thu; không có Đã giao
+✓ Quản trị 390: Đã giao tắt + lý do; ghi lần thu qua giao diện (mặc định Chuyển khoản); Đã giao → câu khoá, hết nút ghi / Đã giao, không Hoàn thành
+✓ Máy tính 1040: khung Thanh toán + hai lần thu, không tràn
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: sau xác nhận: Bán hàng còn giữ 1.200.000
++ actual - expected
+
+  [
++   1500000
+-   1200000
+  ]
+
+    at file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/agent-a2599ff8ee5c5bb26/docs/evidence/2026-09-29-so-tien-luot-1/kich-ban/so-tien-smoke.mjs:107:10
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: [ 1500000 ],
+  expected: [ 1200000 ],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.22.3

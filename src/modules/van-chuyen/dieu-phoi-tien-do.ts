@@ -6,7 +6,7 @@
 import type { ChangChoChuyen, ChangLichChung } from "../orders";
 import { kiemKetThuc, kiemXuatBen } from "../../shared/dieu-phoi-kiem";
 import { error } from "../../shared/http";
-import { lyDoGiu } from "../../shared/ly-do-giu";
+import { lyDoGiu, MA_GIU, type LyDoGiu } from "../../shared/ly-do-giu";
 import { msToVnLocal } from "../../shared/vn-date";
 import { legFlags, lyDoDangDung, tenDiem, tripsTouching, type AllocRow, type TripRow } from "./chuyen-repo";
 import {
@@ -14,8 +14,9 @@ import {
 } from "./dieu-phoi";
 import { chinhSachVao, diemVao, docChung, docNguCanh, suatVao, type NenChuyen } from "./dieu-phoi-doc";
 import { kiemGioLenh, ketThucTruoc, vaoGio, type NenGio } from "./dieu-phoi-gio";
-import { CHUYEN_CU, chayLo, loi409 } from "./dieu-phoi-route";
-import { chinhSachHienHanh } from "./repository";
+import { lyDoGiuCuaChuyen } from "./dieu-phoi-dto";
+import { CHUYEN_CU, chanDaoMoi, chanToiDiemTra, chayLo, loi409 } from "./dieu-phoi-route";
+import { chinhSachHienHanh, currentDispatchPolicy } from "./repository";
 import type { DoiThuTuThan, KetThucGianDoanThan, TienDoThan } from "./dieu-phoi-than";
 
 const NGAY_MS = 86_400_000;
@@ -58,11 +59,12 @@ const CHUA_CO_KEP = () => loi409("chinh_sach_rong", [lyDoGiu("CHINH_SACH_RONG")]
  */
 export async function lenhXuatBen(
   db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], hk: readonly ChangChoChuyen[], b: TienDoThan, nguoi: NguoiBam, bayGioMs: number,
+  chiCauGoc = false,
 ): Promise<Response | null> {
   const t = nen.trip;
   if (t.status !== "PLANNED") return loi409(t.status === "RUNNING" ? "da_xuat_ben" : "chuyen_da_ket_thuc", [lyDoGiu("CHUYEN_KHONG_CON_LEN_KE_HOACH", t.code)]);
   const chung = await docChung(db, new Date(bayGioMs).toISOString(), msToVnLocal(bayGioMs).date);
-  const nc = await docNguCanh(db, nen, lich, chung);
+  const nc = await docNguCanh(db, nen, lich, chung, [], bayGioMs);
   const cs = chung.chinhSach;
   const n: NenGio = { events: nen.events, kepLuiPhut: cs?.proxy_backdate_max_minutes ?? null, truoc: ketThucTruoc(nc.chuyenKhacRow, t), bayGioMs };
   if (b.xayRaMs !== null && n.kepLuiPhut === null) return CHUA_CO_KEP();
@@ -70,12 +72,22 @@ export async function lenhXuatBen(
   const x = xayRaCua(l, b.xayRaMs);
   const gio = kiemGioLenh(n, vaoGio(n, "DEPARTED"), x.ms, b.xayRaMs !== null);
   if (gio) return gio;
+  // ADR-0096 Đ2.2 (LC-20): cửa sổ xuất bến theo dòng chính sách hiệu lực TẠI GIỜ XUẤT BẾN — văn phòng khai lùi có thể rơi vào dòng trước; CÙNG dòng trigger
+  // vc_trip_departure_window đọc (valid_from_at ≤ departed_at). Không có dòng nào tại giờ đó → chặn (không đoán).
+  const csCuaSo = b.xayRaMs === null ? cs : await currentDispatchPolicy(db, x.iso);
+  if (cs && !csCuaSo) return loi409("chua_du_dieu_kien_xuat_ben", [lyDoGiu("CHINH_SACH_RONG")]);
+  const csVao = chinhSachVao(cs);
   const vao = {
     chuyen: nc.chuyen, suat: nc.suat, chang: [...nc.chang.values()], changNgoai: nc.changNgoai, suatMoCuaChang: nc.suatMoCuaChang, diem: nc.diem, chuyenKhac: nc.chuyenKhac,
-    chinhSach: chinhSachVao(cs), hangBang: chung.hangBang, dieuKien: chung.dieuKien, bayGioMs, xuatBenMs: x.ms,
+    chinhSach: csVao && csCuaSo ? { ...csVao, departureWindowMinutes: csCuaSo.departure_window_minutes } : csVao, hangBang: chung.hangBang, dieuKien: chung.dieuKien, bayGioMs,
+    xuatBenMs: x.ms,
   };
   const kq = kiemXuatBen(vao);
-  if (!kq.dat || !cs || kq.chup.taiXePartyId === null) return loi409("chua_du_dieu_kien_xuat_ben", kq.lyDo);
+  // ADR-0104 Đ1 mục 9 ★: ai xử lý khoảng nghỉ / nghỉ thiếu / cam kết theo mốc của chuyến lúc lệnh chạy (`lyDoGiuCuaChuyen` — cùng hàm với màn).
+  // A4 CAO-1 (phiếu kiểm độc lập 12/10): `chiCauGoc` = người bấm là tài xế có vế hạn Từ chối NGOÀI khung xem khách (route tài xế tính `khungCuaNguoiGoi` TRƯỚC lệnh)
+  // → thân 409 chỉ mang CÂU GỐC của mã (chi tiết `THIEU_TEN` "<mã đơn> thiếu N tên" lộ mã đơn). Cùng luật `dieuKienConThieuDto`; văn phòng / tài xế công ty không đổi.
+  const lyDoLuc = (ds: readonly LyDoGiu[]) => lyDoGiuCuaChuyen(t, ds, bayGioMs, cs?.min_lead_minutes ?? null).map((l) => (chiCauGoc ? { ...l, loiNhan: MA_GIU[l.ma].loiNhan } : l));
+  if (!kq.dat || !cs || kq.chup.taiXePartyId === null) return loi409("chua_du_dieu_kien_xuat_ben", lyDoLuc(kq.lyDo));
   // Bản chốt: khách trỏ DÒNG hành khách hiện hành (của đúng chặng, đúng khoá người — sau khi gắn tên còn thiếu); người đi kèm trỏ hồ sơ.
   const dong = new Map<string, string>();
   for (const ch of hk) for (const p of ch.nguoi) dong.set(`${ch.legId}|${p.personKey}`, p.rowId);
@@ -97,7 +109,7 @@ export async function lenhXuatBen(
     if (!row) {
       const moi = new Map(hk.map((ch) => [ch.legId, ch.nguoi.map((p) => p.personKey)]));
       const lai = kiemXuatBen({ ...vao, chang: vao.chang.map((ch) => (moi.has(ch.legId) ? { ...ch, nguoiCuaDon: moi.get(ch.legId)! } : ch)) });
-      return lai.dat ? CHUYEN_CU() : loi409("chua_du_dieu_kien_xuat_ben", lai.lyDo);
+      return lai.dat ? CHUYEN_CU() : loi409("chua_du_dieu_kien_xuat_ben", lyDoLuc(lai.lyDo));
     }
     chot.push({ allocationId: a.id, passengerRowId: row, crewPartyId: null });
   }
@@ -123,6 +135,11 @@ export async function lenhDaToi(db: D1Database, nen: NenChuyen, stopId: string, 
   const s = nen.stops.find((x) => x.id === stopId);
   if (!s) return KHONG_CO_DIEM();
   if (s.status !== "PENDING") return loi409("diem_da_toi");
+  // ADR-0096 Đ1.4 (HT-02): điểm TRẢ còn khách chờ lên mà điểm đón chưa tới → tới điểm đón trước. Mọi suất đã vắng / huỷ → bấm được như cũ.
+  if (s.kind === "DROPOFF") {
+    const chanTra = chanToiDiemTra(nen.stops, nen.allocs, s.id);
+    if (chanTra) return chanTra;
+  }
   const n = await nenGio(db, nen, bayGioMs, false);
   if (b.xayRaMs !== null && n.kepLuiPhut === null) return CHUA_CO_KEP();
   const l = lenh(b.requestId, nguoi, bayGioMs);
@@ -144,6 +161,8 @@ async function lenhSuat(lenhSuatLoai: LoaiLenhSuat, db: D1Database, nen: NenChuy
   const a: AllocRow | undefined = nen.allocs.find((x) => x.id === suatId && x.valid_to_at === null);
   if (!a) return KHONG_CO_SUAT();
   const k = LENH_SUAT[lenhSuatLoai];
+  // HT-16 (ADR-0096 Đ1.4): "Đã trả" khách còn CHỜ LÊN → nói đúng việc phải làm (bấm Đã đón), không "đã có kết quả".
+  if (lenhSuatLoai === "DA_TRA" && a.status === "WAITING") return loi409("khach_chua_len");
   if (!(k.tu as readonly string[]).includes(a.status)) return loi409("suat_da_co_ket_qua");
   const diemId = k.phia === "XUONG" ? a.alight_stop_id : a.board_stop_id;
   // "Đã đón / vắng / khách huỷ" đòi xe đã tới điểm LÊN; "đã trả" đòi đã tới điểm XUỐNG (người đi kèm không có điểm) — cùng điều kiện câu chuyển ALLOC_TIEN_DO.
@@ -209,7 +228,7 @@ export async function lenhKetThucGianDoan(db: D1Database, nen: NenChuyen, b: Ket
 }
 
 // ---- Đổi thứ tự điểm chưa tới khi đang chạy (route 29 ↔ 39) — luôn giờ máy chủ ----------------------------------------------------------------------------
-export async function lenhDoiThuTu(db: D1Database, nen: NenChuyen, b: DoiThuTuThan, nguoi: NguoiBam, bayGioMs: number): Promise<Response | null> {
+export async function lenhDoiThuTu(db: D1Database, nen: NenChuyen, b: DoiThuTuThan, nguoi: NguoiBam, bayGioMs: number, chiCauGoc = false): Promise<Response | null> {
   const t = nen.trip;
   const chan = dangChay(t);
   if (chan) return chan;
@@ -223,6 +242,9 @@ export async function lenhDoiThuTu(db: D1Database, nen: NenChuyen, b: DoiThuTuTh
   if (new Set(sauCung).size !== sauCung.length) return error(400, "invalid_input", "Thứ tự mới trùng với thứ tự của điểm khác.");
   const doi = b.diem.filter((d) => nen.stops.find((s) => s.id === d.id)!.seq !== d.thuTu);
   if (doi.length === 0) return null; // không đổi gì — không ghi
+  // ADR-0096 Đ1.3c (LC-19 lớp máy chủ; đường này không có trigger theo dòng — Đ1.6): thứ tự mới làm khách chờ lên bị đảo mới → 409.
+  const dao = await chanDaoMoi(db, nen.stops, nen.allocs, doi.map((d) => ({ id: d.id, seq: d.thuTu })), chiCauGoc); // A4 CAO-1b: chiCauGoc = câu gốc, không mã đơn
+  if (dao) return dao;
   const cs = await chinhSachHienHanh(db);
   const l = lenh(b.requestId, nguoi, bayGioMs);
   const lo = loDoiThuTu(db, {

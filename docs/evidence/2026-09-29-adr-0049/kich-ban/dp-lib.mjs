@@ -112,6 +112,8 @@ export async function dungMoiTruong(extra = []) {
 // Đi ĐƯỜNG THẬT (route API) trừ việc lấy party id của tài xế (đọc SQL). Mọi biển số, SĐT, tên, số giấy tờ ở đây là GIẢ.
 //   NGAY_XA = hôm nay + 5 (ngoài mốc) · NGAY_KHOA = hôm nay + 1 (trong mốc 48 giờ đặt ở cuối — giờ đón 10:00 luôn cách bây giờ 10–34 giờ).
 //   Đơn xác nhận khi mốc còn là bản gieo (6 giờ) nên KHÔNG cần đặt gấp; sau đó Toàn quyền đổi mốc 48 giờ → chặng NGAY_KHOA "Quá mốc", chuyến NGAY_KHOA đang khoá.
+//   Cùng dòng chính sách đó mở cửa sổ xuất bến 2880 phút (ADR-0096 Đ2, gói A1): chuyến hôm nay / NGAY_KHOA xuất bến được ngay; chuyến NGAY_XA (5 ngày sau) thì
+//   màn chi tiết hiện thêm lý do "Chưa tới giờ được xuất bến" (đúng luật — chip "Đạt hết" không hiện trước giờ mở cửa sổ).
 //   Xe: XE_A 15 chỗ đủ Kiểm định + Bảo hiểm; XE_B 29 chỗ THIẾU Bảo hiểm (lý do giữ E); XE_C 15 chỗ đang bảo dưỡng (không chọn được).
 //   Tài xế công ty: An, Cường (GPLX D2), Bình (GPLX B — chỉ 8 khách, không lái được xe 15 chỗ).
 //   Chuyến: T1 NGAY_XA 07:30–09:30 XE_A · An · O1 (3 khách đủ tên) → sạch; T2 NGAY_XA 07:30–09:30 XE_B · Cường · O2 (2 khách, 1 tên) → bị giữ (giấy tờ xe, thiếu
@@ -192,6 +194,6 @@ export async function dungDuLieuDieuPhoi(env, call) {
     leg: { pickupDate: NGAY_XA, pickupTime: "15:00", pickupLocationId: null, pickupPlace: "Novotel Nha Trang cổng phụ", dropoffLocationId: LOC_BEN_TAU, dropoffPlace: "" },
   }), 200, "đổi nơi đón O3");
   const T4 = await chuyen(XE_A.id, AN, NGAY_KHOA, "10:00", "11:30");
-  dung(await call(CHU, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 2880, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 }), 201, "mốc 48 giờ");
+  dung(await call(CHU, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 2880, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 2880, refuseLeadMinutes: 720, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer: true }), 201, "mốc 48 giờ");
   return { NGAY_XA, NGAY_KHOA, XE_A, XE_B, XE_C, AN, CUONG, BINH, O1, O2, O3, O4, O5, T1, T2, T3, T4 };
 }

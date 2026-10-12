@@ -17,7 +17,7 @@ const d = await dungDuLieuDieuPhoi(env, call);
 const dung = (r, ma, viec) => assert.equal(r.status, ma, `${viec}: ${r.status} ${r.text}`);
 const HOM_NAY = vnDate(0);
 // Mốc về 60 phút (dữ liệu dựng để mốc 48 giờ) — đơn đón sau 3 giờ xác nhận được, xếp được không phá lệ.
-dung(await call(CHU, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 60, warnLeadMinutes: 30, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 }), 201, "mốc 60 phút");
+dung(await call(CHU, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 60, warnLeadMinutes: 30, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 2880, refuseLeadMinutes: 720, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer: true }), 201, "mốc 60 phút");
 const o = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
   customerName: "Khách Bổ Sung", customerPhone: "0903 100 297", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
   services: [{

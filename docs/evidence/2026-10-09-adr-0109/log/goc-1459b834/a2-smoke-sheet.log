@@ -1,0 +1,17 @@
+✓ bảng mở: dialog + aria-modal, nền inert, khoá cuộn, focus trong bảng, ô điền sẵn ĐẦY ĐỦ, sát đáy ở 390px
+✓ đóng bằng ✕, chạm nền, Esc: bảng biến mất, hết inert/khoá cuộn, focus về nút 'Sửa thông tin chuyến'
+✓ scrim: chưa nhận chạm ở khung hình đầu khi mở (pointer-events none, chưa .open); sau .open thì nhận (auto)
+✓ Lưu bị chặn: ngày trống và ngày ngoài khoảng → lỗi chữ + biểu tượng, đơn ở máy chủ không đổi
+✓ mất mạng: banner nguy hiểm, dữ liệu đã gõ còn nguyên, nút Lưu bật lại
+✓ hết giờ (máy chủ im lặng): banner 'Không kết nối được máy chủ.', nút Lưu bật lại, dữ liệu còn nguyên, ✕ và Esc đóng được bảng
+✓ đang lưu: ✕, chạm nền, Esc bị bỏ qua; lỗi 500 của máy chủ hiện trong bảng, không bị nuốt
+file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/agent-a2599ff8ee5c5bb26/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:186
+        if (Date.now() > end) throw new Error(`hết giờ chờ: ${what}\n${expression}`);
+                                    ^
+
+Error: hết giờ chờ: đóng bảng + banner đã lưu
+document.querySelector('.sheet-root') === null && !document.getElementById('error').hidden && /Đã lưu thông tin chuyến\./.test(document.getElementById('error').textContent)
+    at Object.waitFor (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/agent-a2599ff8ee5c5bb26/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:186:37)
+    at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/agent-a2599ff8ee5c5bb26/docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-sheet.mjs:152:3
+
+Node.js v22.22.3

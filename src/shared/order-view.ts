@@ -82,7 +82,7 @@ export interface OrderActions {
   cancel: boolean;
   /** Dòng "Chỉ <người lập> (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này." (ADR-0009; chữ do web/order.ts dựng, quyền do máy chủ quyết qua `canModify`) */
   noPermission: boolean;
-  /** Đơn đã xác nhận: dòng nhắc "dịch vụ, số khách và tiền đã khoá" và biểu tượng khoá. */
+  /** Đơn đã xác nhận: dòng nhắc "dịch vụ và đơn giá đã khoá" (`cauKhoaXacNhan`) và biểu tượng khoá. */
   locked: boolean;
 }
 
@@ -93,14 +93,16 @@ export interface OrderActions {
  * phát hiện I-2). Câu cho họ chỉ nói điều TRANG NÀY không làm và nhờ ai; đơn đã xác nhận thì chỉ tới mục "Việc của tôi" (nơi có nút của HDV, `myJobActions`)
  * mà không hứa nút cụ thể (đã qua ngày đi thì không còn nút huỷ). Người khác giữ câu cũ.
  */
-export function khongQuyenSuaText(input: { ownerName: string; status: OrderStatus; viewer: Pick<PermissionHolder, "permissions"> }): string {
+export function khongQuyenSuaText(input: { ownerName: string; status: OrderStatus; viewer: Pick<PermissionHolder, "permissions">; suaSoKhach?: boolean }): string {
   const { ownerName, status, viewer } = input;
   if (seesOnlyAssignedOrders(viewer)) {
     return status === "confirmed"
       ? `Hướng dẫn viên không sửa, xác nhận hoặc huỷ đơn ở trang này. Việc hướng dẫn viên làm được với đơn đã xác nhận nằm ở mục “Việc của tôi” (trang Tôi); việc khác, nhờ ${ownerName} (người lập đơn) hoặc văn phòng.`
       : `Hướng dẫn viên không sửa, xác nhận hoặc huỷ đơn ở trang này — cần đổi gì, nhờ ${ownerName} (người lập đơn) hoặc văn phòng.`;
   }
-  return `Chỉ ${ownerName} (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này.`;
+  const goc = `Chỉ ${ownerName} (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này.`;
+  // ADR-0063 D1 (phiếu kiểm A2 V-1): Kế toán / Quản trị thấy nút "Sửa số khách dịch vụ" ngay dưới câu này — nói rõ để câu "chỉ … mới được sửa" không mâu thuẫn.
+  return input.suaSoKhach ? `${goc} Số khách thì bạn sửa được bằng nút “Sửa số khách dịch vụ”.` : goc;
 }
 
 /**
@@ -136,10 +138,15 @@ export function suaKhachDuoc(viewer: PermissionHolder, ownerId: string, canModif
   return can(viewer, "order.passenger.write", { ownerId, assigned: ownerId !== viewer.id });
 }
 
-/** Câu khoá của đơn đã xác nhận theo những gì người xem còn sửa được (D5 — bản vẽ M3: câu cũ hứa "chỉ sửa được thông tin chuyến"). */
-export function cauKhoaXacNhan(suaChuyen: boolean, suaKhach: boolean): string {
-  const goc = "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá.";
-  if (suaChuyen) return `${goc} Chỉ sửa được thông tin chuyến, đưa đón và danh sách hành khách.`;
-  if (suaKhach) return `${goc} Chỉ sửa được danh sách hành khách.`;
-  return goc;
+/**
+ * Câu khoá của đơn đã xác nhận theo những gì người xem còn sửa được (D5 — bản vẽ M3: câu cũ hứa "chỉ sửa được thông tin chuyến"). Sau ADR-0063 D1 số khách
+ * KHÔNG còn khoá với người lập đơn / Kế toán / Quản trị / Toàn quyền (nút "Sửa số khách dịch vụ", `suaSoKhach`) và HDV phụ trách (Việc của tôi), nên câu gốc
+ * chỉ nói dịch vụ và đơn giá (phiếu kiểm A2 V-1).
+ */
+export function cauKhoaXacNhan(suaChuyen: boolean, suaKhach: boolean, suaSoKhach = false): string {
+  const goc = "Đơn đã xác nhận: dịch vụ và đơn giá đã khoá.";
+  const con = [...(suaSoKhach ? ["số khách (nút “Sửa số khách dịch vụ”)"] : []), ...(suaChuyen ? ["thông tin chuyến", "đưa đón"] : []), ...(suaChuyen || suaKhach ? ["danh sách hành khách"] : [])];
+  if (con.length === 0) return goc;
+  const ds = con.length === 1 ? con[0]! : `${con.slice(0, -1).join(", ")} và ${con[con.length - 1]}`;
+  return `${goc} Còn sửa được ${ds}.`;
 }

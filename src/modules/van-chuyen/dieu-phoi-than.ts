@@ -1,5 +1,6 @@
 // ĐỌC THÂN YÊU CẦU của các lệnh chuyến xe (kế hoạch mục 1.7; contracts: TaoChuyenRequest …). Danh sách TRẮNG từng khoá — khoá lạ bị bỏ qua, không bao giờ
 // nhận chữ tự do cho lý do (I18: chỉ MÃ lý do), không nhận giờ ghi nhận / dấu lệnh / khoá nơi từ trình duyệt. Logic thuần (không I/O), trả lời báo tiếng Việt.
+import { TOI_DA_CHANG_MOT_LAN } from "../../shared/dieu-phoi-loc";
 import { UUID_RE } from "../../shared/http";
 import { vnLocalToMs } from "../../shared/vn-date";
 
@@ -116,7 +117,7 @@ export function docXep(body: Record<string, unknown> | null): KetQua<XepThan> {
   if (!rid.ok) return rid;
   const chang: XepThan["chang"] = [];
   if (body.chang !== undefined) {
-    if (!Array.isArray(body.chang) || body.chang.length > 50) return fail("Danh sách chặng không hợp lệ.");
+    if (!Array.isArray(body.chang) || body.chang.length > TOI_DA_CHANG_MOT_LAN) return fail("Danh sách chặng không hợp lệ."); // C34: một con số với màn (src/shared/dieu-phoi-loc.ts)
     for (const c of body.chang) {
       if (!c || typeof c !== "object") return fail("Danh sách chặng không hợp lệ.");
       const x = c as Record<string, unknown>;
@@ -208,6 +209,32 @@ export function docCapNhatDiem(body: Record<string, unknown> | null): KetQua<{ v
   return { ok: true, value: { version: v.value, requestId: rid.value } };
 }
 
+// ---- Sự kiện điều chỉnh có lý do (ADR-0097 — gói A1, V3-B) --------------------------------------------------------------------------------------------
+// Không nhận giờ xảy ra (giờ ghi = lúc bấm), không nhận chữ tự do (Đ2.5 — chỉ MÃ lý do nhóm DIEU_CHINH; route kiểm nhóm + đang dùng — sai 400).
+const TRANG_THAI_DICH = ["WAITING", "BOARDED", "NO_SHOW", "CANCELLED_AT_STOP"] as const;
+export interface DieuChinhSuatThan { version: number; requestId: string; trangThai: (typeof TRANG_THAI_DICH)[number]; lyDo: string }
+export function docDieuChinhSuat(body: Record<string, unknown> | null): KetQua<DieuChinhSuatThan> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  const v = docVersion(body);
+  if (!v.ok) return v;
+  const rid = docRequestId(body);
+  if (!rid.ok) return rid;
+  const tt = body.trangThai;
+  if (typeof tt !== "string" || !(TRANG_THAI_DICH as readonly string[]).includes(tt)) return fail("Chọn kết quả đúng của khách.");
+  if (typeof body.lyDo !== "string" || !MA_RE.test(body.lyDo)) return fail("Chọn lý do điều chỉnh.");
+  return { ok: true, value: { version: v.value, requestId: rid.value, trangThai: tt as DieuChinhSuatThan["trangThai"], lyDo: body.lyDo } };
+}
+export interface ThuHoiXuatBenThan { version: number; requestId: string; lyDo: string }
+export function docThuHoiXuatBen(body: Record<string, unknown> | null): KetQua<ThuHoiXuatBenThan> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  const v = docVersion(body);
+  if (!v.ok) return v;
+  const rid = docRequestId(body);
+  if (!rid.ok) return rid;
+  if (typeof body.lyDo !== "string" || !MA_RE.test(body.lyDo)) return fail("Chọn lý do thu hồi xuất bến.");
+  return { ok: true, value: { version: v.value, requestId: rid.value, lyDo: body.lyDo } };
+}
+
 // ---- Lệnh TIẾN ĐỘ (Task A15; ADR-0050 VK1-A, I34) ----------------------------------------------------------------------------------------------------------
 // `xayRaLuc` — giờ XẢY RA văn phòng khai: CHỈ route văn phòng 31–38 nhận (`nhanXayRa: true`). Route tài xế 21–29 và route 39 (đổi thứ tự) gửi khoá này →
 // 400 `xay_ra_khong_nhan` (không lặng lẽ bỏ qua — TC-38). Chuỗi ISO BẮT BUỘC có múi giờ; máy chủ chỉ giữ mili-giây rồi tự định dạng lại (I33).
@@ -243,6 +270,21 @@ export function docKetThucGianDoan(body: Record<string, unknown> | null, v: { nh
   if (typeof lyDo !== "string" || !MA_RE.test(lyDo)) return sai("Chọn lý do kết thúc gián đoạn.");
   return { ok: true, value: { ...t.value, lyDo } };
 }
+/** Từ chối chuyến (ADR-0053 D8.6; kế hoạch A4 T7): `{ lyDo, requestId }` — luôn giờ máy chủ (`xayRaLuc` → 400 `xay_ra_khong_nhan`), version do máy chủ đọc. */
+export interface TuChoiThan { requestId: string; lyDo: string }
+export function docTuChoi(body: Record<string, unknown> | null): KetQuaTienDo<TuChoiThan> {
+  const t = docTienDo(body, { nhanXayRa: false });
+  if (!t.ok) return t;
+  const lyDo = body!.lyDo;
+  if (typeof lyDo !== "string" || !MA_RE.test(lyDo)) return sai("Chọn lý do từ chối chuyến.");
+  return { ok: true, value: { requestId: t.value.requestId, lyDo } };
+}
+/** G-A4-15 bước (2): đọc LỎNG mã yêu cầu (hợp khuôn thì lấy, không thì null) — để nhận ra lệnh lặp của chính mình TRƯỚC khi xét đang lái; không trả 400. */
+export const requestIdLong = (body: Record<string, unknown> | null): string | null => {
+  if (!body) return null;
+  const r = docRequestId(body);
+  return r.ok ? r.value : null;
+};
 export interface DoiThuTuThan { requestId: string; diem: { id: string; thuTu: number }[] }
 /** Đổi thứ tự khi đang chạy — luôn giờ máy chủ: `xayRaLuc` → 400 `xay_ra_khong_nhan` ở CẢ route 29 lẫn 39. */
 export function docDoiThuTu(body: Record<string, unknown> | null): KetQuaTienDo<DoiThuTuThan> {

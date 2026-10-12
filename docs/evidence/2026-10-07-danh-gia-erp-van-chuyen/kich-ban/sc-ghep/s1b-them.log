@@ -1,0 +1,37 @@
+TAP version 13
+# (node:39656) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:39656) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S1b+.cungKS.xep {"status":200,"code":null,"msg":null,"diem":["1.Đón Khách sạn Havana 07:00 (7) PENDING","2.Đón KS Havana 07:40 (2) PENDING","3.Trả Bến tàu du lịch Nha Trang - (9) PENDING"]}
+# {"event":"thieu_ma_lan_gui","duong":"PUT /api/van-chuyen/chuyen/:id"}
+# OBS S1b+.traTruocDon.PUT {"status":200,"code":null,"msg":null,"diem":["1.Trả Bến tàu du lịch Nha Trang - (9) PENDING","2.Đón Khách sạn Havana 07:00 (7) PENDING","3.Đón KS Havana 07:40 (2) PENDING"],"lyDoGiu":[]}
+# OBS S1b+.traTruocDon.lichCanhBao {"canhBao":["TRA_TRUOC_DON","TRA_TRUOC_DON","TRA_TRUOC_DON","TRA_TRUOC_DON"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/xuat-ben"}
+# OBS S1b+.traTruocDon.xuatBen {"status":200,"code":null,"msg":null,"trangThai":"RUNNING","diem":["1.Trả Bến tàu du lịch Nha Trang - (9) PENDING","2.Đón Khách sạn Havana 07:00 (7) PENDING","3.Đón KS Havana 07:40 (2) PENDING"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi"}
+# OBS S1b+.traTruocDon.daToiDiemTra.taiXe {"status":200,"code":null,"msg":null}
+# Subtest: S1b+: cùng khách sạn → một điểm; trả trước đón → xuất bến?
+ok 1 - S1b+: cùng khách sạn → một điểm; trả trước đón → xuất bến?
+  ---
+  duration_ms: 109.566833
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 219.662875

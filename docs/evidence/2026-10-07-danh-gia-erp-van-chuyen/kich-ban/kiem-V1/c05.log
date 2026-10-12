@@ -1,0 +1,29 @@
+TAP version 13
+# (node:21039) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:21039) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# OBS C05.lap {"status":201,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# OBS C05.xacNhanKhongGio {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"PUT /api/orders/:id/legs/:legId"}
+# OBS C05.dienGio0700 {"status":409,"code":"short_notice_required","msg":"Chặng dưới mốc tối thiểu trước giờ đón — chỉ Quản trị hoặc Toàn quyền sửa được, kèm lý do đặt gấp."}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS C05.taoChuyen {"status":201,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS C05.xepKhongGio {"status":409,"code":"chang_khong_hop_le","msg":"Chặng chưa xếp được.","lyDo":["CHUA_CO_GIO"]}
+# Subtest: C05 06:00 nhận đơn đón 07:00 — để trống giờ đón
+ok 1 - C05 06:00 nhận đơn đón 07:00 — để trống giờ đón
+  ---
+  duration_ms: 109.696459
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 293.418125

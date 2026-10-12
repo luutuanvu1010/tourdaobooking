@@ -1,0 +1,41 @@
+TAP version 13
+# (node:19272) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:19272) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/rut"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS C28.lan1 {"xep":200,"tenLan1":["Khách Dò Tìm 2","Khách Dò Tìm 4"],"rut":200,"xepLai":200,"tenSauXepLai":["Khách Dò Tìm 2","Khách Dò Tìm 4"]}
+# OBS C28.doi_ten_suat_sql {"loi":"lc04_name_once: suất đã gắn tên — không đổi người"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/rut"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS C28.lan2 {"xep":200,"tenLan1":["Khách Dò Tìm 3","Khách Dò Tìm 4"],"rut":200,"xepLai":200,"tenSauXepLai":["Khách Dò Tìm 3","Khách Dò Tìm 4"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/rut"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS C28.lan3 {"xep":200,"tenLan1":["Khách Dò Tìm 1","Khách Dò Tìm 4"],"rut":200,"xepLai":200,"tenSauXepLai":["Khách Dò Tìm 1","Khách Dò Tìm 4"]}
+# Subtest: C28: chặng về 2/4 người — tên máy tự gắn, rút rồi xếp lại
+ok 1 - C28: chặng về 2/4 người — tên máy tự gắn, rút rồi xếp lại
+  ---
+  duration_ms: 246.239083
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 363.331416

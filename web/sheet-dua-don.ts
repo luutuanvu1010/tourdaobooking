@@ -1,8 +1,13 @@
 // Bảng trượt "Sửa đưa đón" của đơn ĐÃ XÁC NHẬN (bản vẽ M4 — docs/design/2026-10-01-dua-don-hanh-khach/M4 Sua dua don.dc.html). Khuôn bảng trượt có sẵn
-// (`web/bang-truot.ts`). Mỗi dịch vụ một khối "Đưa đón" (`che: "bang"` — bỏ chặng đã lưu phải chọn lý do). Không có lệnh gộp: Lưu gửi lần lượt từng lệnh của
-// route chặng (ADR-0047 A1) — bỏ chặng (`POST …/legs/:id/close`, mốc CHẶNG), sửa (`PUT …/legs/:id`, mốc CHẶNG), thêm (`POST …/legs`, mốc ĐƠN mới nhất).
-// Lệnh hỏng thì DỪNG, báo lỗi; lệnh trước đó đã lưu (nút "Tải lại đơn" để xem bản mới). 409 `short_notice_required` → Quản trị / Toàn quyền duyệt đặt gấp
-// ngay trong bảng rồi gửi lại ĐÚNG lệnh đó (khuôn bảng "Sửa thông tin chuyến" — 07).
+// (`web/bang-truot.ts`). Mỗi dịch vụ một khối "Đưa đón" (`che: "bang"` — bỏ chặng đã lưu phải chọn lý do). Lưu gửi lần lượt từng lệnh của route chặng
+// (ADR-0047 A1): THAY trước (`POST …/legs/:id/replace`, mốc ĐƠN mới nhất — C14), rồi bỏ chặng (`POST …/legs/:id/close`, mốc CHẶNG), sửa (`PUT …/legs/:id`,
+// mốc CHẶNG), thêm (`POST …/legs`, mốc ĐƠN mới nhất). "Thay": trong một dịch vụ, theo từng chiều, ĐÚNG một chặng đã lưu bỏ với lý do "Đổi sang chặng khác"
+// hoặc "Nhập nhầm" + ĐÚNG một chặng mới cùng chiều (luật ghép `ghepThayChang`, src/shared/thay-chang.ts) → MỘT lệnh mang đúng lý do đó, máy chủ đóng + thêm
+// cùng lô — dưới mốc 6 giờ thì cả lệnh bị chặn, chặng cũ còn nguyên (trước C14: bỏ được, thêm bị chặn ⇒ đơn mất chặng). Ca khác (bỏ hai thêm một, "Không cần
+// nữa", khác chiều) vẫn gửi lệnh rời. Người KHÔNG có ô đặt gấp: trước lệnh đầu, bảng kiểm mốc CẢ kế hoạch (`lenhChanMoc` — cùng luật `duoiMocKhiSua` của máy
+// chủ, mốc lấy từ chi tiết đơn); có lệnh chắc chắn bị chặn thì không gửi lệnh nào và báo ngay "… — cần Quản trị duyệt đặt gấp; chưa lưu gì." (máy chủ vẫn là
+// cổng thật). Lệnh hỏng thì DỪNG, báo lỗi; lệnh trước đó đã lưu (nút "Tải lại đơn" để xem bản mới). 409 `short_notice_required` → Quản trị / Toàn quyền
+// duyệt đặt gấp ngay trong bảng rồi gửi lại ĐÚNG lệnh đó (khuôn bảng "Sửa thông tin chuyến" — 07).
 import { ApiError, api, type Api, type Order } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { renderBanner } from "./banner";
@@ -14,17 +19,23 @@ import { taoKhoiDuaDon, type DiemChon, type KhoiDuaDon } from "./khoi-dua-don";
 import { CHIEU_LABEL, type LyDoDatGap } from "../src/shared/chang-dua-don";
 import { changDaDoi, changTuDto, legInput, loiDanhSachChang, type ChangNhap } from "../src/shared/chang-form";
 import { tongKhach } from "../src/shared/so-nguoi-chang";
+import { cauChanMoc, ghepThayChang, lenhChanMoc, xetMocLenh, type XetMoc } from "../src/shared/thay-chang";
 import { NETWORK_BANNER, classifyOrderError, type Banner } from "../src/shared/order-errors";
+import { cauDongBoChuyen } from "../src/shared/dong-bo-chuyen-cau";
 
 export interface SheetDuaDonOptions {
   order: Order;
   diem: readonly DiemChon[];
   coDatGap: boolean;
-  onSaved: () => void;
+  /** Mốc tối thiểu (phút) từ chi tiết đơn (`mocToiThieuPhut`); null = chưa có — không kiểm trước, máy chủ quyết. */
+  mocPhut: number | null;
+  /** `dongBo` = phần chuyến của MỌI lệnh đã chạy (ADR-0104 Đ2) — trang đơn hiện câu nhắc / cập nhật tay (`cauDongBoChuyen` gộp, không lặp). */
+  onSaved: (dongBo: readonly (Api.DongBoChuyenDto | undefined)[]) => void;
   onReload: () => void;
 }
 
-type Lenh = { ten: string; goi: (order: Order, datGap?: { lyDo: LyDoDatGap; ghiChu: string | null }) => Promise<Order> };
+/** `nhan` + `xet`: tên chặng và cặp (cũ, mới) máy chủ sẽ xét mốc (null = không xét) — cho bước kiểm cả kế hoạch trước lệnh đầu. */
+type Lenh = { ten: string; nhan: string; xet: XetMoc; goi: (order: Order, datGap?: { lyDo: LyDoDatGap; ghiChu: string | null }) => Promise<Api.OrderResponse> };
 
 export function openSheetDuaDon(o: SheetDuaDonOptions, opener: HTMLElement): void {
   let seq = 0;
@@ -77,43 +88,62 @@ export function openSheetDuaDon(o: SheetDuaDonOptions, opener: HTMLElement): voi
     luu.textContent = busy ? "Đang lưu…" : "Lưu";
   };
 
-  /** Lập danh sách lệnh từ bản nháp (bỏ trước, sửa sau, thêm cuối). */
+  /**
+   * Lập danh sách lệnh từ bản nháp: THAY trước (mọi dịch vụ — bị chặn dưới mốc thì chưa có gì được lưu, nút Lưu không khoá), rồi theo từng dịch vụ bỏ, sửa,
+   * thêm (chặng đã ghép vào lệnh thay không gửi lại lệnh rời).
+   */
   function lapLenh(): Lenh[] {
+    const thayDs: Lenh[] = [];
     const ds: Lenh[] = [];
     for (const k of khoi) {
-      for (const b of k.ui.daBo()) {
+      const ngayDiSvc = k.svc.departDate ?? (ngayDi || null);
+      const nhan = (chieu: Api.LegDto["direction"]) => `${CHIEU_LABEL[chieu]} · ${k.svc.name}`;
+      const ghep = ghepThayChang(k.ui.daBo(), k.legs.filter((l) => !l.goc));
+      for (const { bo, moi } of ghep.thay) {
+        const g = bo.leg.goc!;
+        const leg = legInput(moi, true);
+        thayDs.push({ ten: "thay", nhan: nhan(g.direction), xet: xetMocLenh({ loai: "thay", cu: g, moi: leg }, ngayDiSvc), goi: async (order, datGap) => (await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(g.id)}/replace`, { method: "POST", body: { expectedUpdatedAt: order.updatedAt, reasonCode: bo.lyDo, leg, ...(datGap ? { datGap } : {}) } })) });
+      }
+      const daGhep = new Set(ghep.thay.map((c) => c.moi));
+      for (const b of ghep.boLe) {
         const g = b.leg.goc!;
-        ds.push({ ten: "bo", goi: async (order) => (await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(g.id)}/close`, { method: "POST", body: { expectedUpdatedAt: g.updatedAt, reasonCode: b.lyDo } })).order });
+        ds.push({ ten: "bo", nhan: nhan(g.direction), xet: null, goi: async (order) => (await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(g.id)}/close`, { method: "POST", body: { expectedUpdatedAt: g.updatedAt, reasonCode: b.lyDo } })) });
       }
       for (const l of k.legs) {
-        if (!changDaDoi(l, true)) continue;
+        if (daGhep.has(l) || !changDaDoi(l, true)) continue;
         const { id: _id, direction: _d, ...leg } = legInput(l, true);
         if (l.goc) {
           const g = l.goc;
-          ds.push({ ten: "sua", goi: async (order, datGap) => (await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(g.id)}`, { method: "PUT", body: { expectedUpdatedAt: g.updatedAt, leg, ...(datGap ? { datGap } : {}) } })).order });
+          ds.push({ ten: "sua", nhan: nhan(g.direction), xet: xetMocLenh({ loai: "sua", cu: g, moi: legInput(l, true) }, ngayDiSvc), goi: async (order, datGap) => (await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(g.id)}`, { method: "PUT", body: { expectedUpdatedAt: g.updatedAt, leg, ...(datGap ? { datGap } : {}) } })) });
         } else {
           const full = legInput(l, true);
-          ds.push({ ten: "them", goi: async (order, datGap) => (await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(order.id)}/legs`, { method: "POST", body: { expectedUpdatedAt: order.updatedAt, serviceId: k.svc.id, leg: full, ...(datGap ? { datGap } : {}) } })).order });
+          ds.push({ ten: "them", nhan: nhan(l.direction), xet: xetMocLenh({ loai: "them", moi: full }, ngayDiSvc), goi: async (order, datGap) => (await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(order.id)}/legs`, { method: "POST", body: { expectedUpdatedAt: order.updatedAt, serviceId: k.svc.id, leg: full, ...(datGap ? { datGap } : {}) } })) });
         }
       }
     }
-    return ds;
+    return [...thayDs, ...ds];
   }
 
   let daLuuSo = 0;
+  // Phần chuyến (ADR-0104 Đ2) của các lệnh ĐÃ chạy — giữ qua lần gửi lại sau đặt gấp; lệnh sau lỗi thì câu nhắc của lệnh trước vẫn hiện trong dải lỗi.
+  const dongBo: (Api.DongBoChuyenDto | undefined)[] = [];
   async function chay(order: Order, ds: Lenh[], datGap?: { lyDo: LyDoDatGap; ghiChu: string | null }): Promise<void> {
     ban(true);
     renderBanner(bannerEl, null);
     let cur = order;
     for (let i = 0; i < ds.length; i++) {
       try {
-        cur = await ds[i]!.goi(cur, i === 0 ? datGap : undefined);
+        const r = await ds[i]!.goi(cur, i === 0 ? datGap : undefined);
+        cur = r.order;
+        dongBo.push(r.dongBoChuyen);
         daLuuSo++;
       } catch (err) {
         ban(false);
         // Đã lưu một phần mà không phải chờ duyệt đặt gấp: không cho Lưu lại từ bản nháp cũ (lệnh đã chạy sẽ hỏng) — phải "Tải lại đơn".
         if (daLuuSo > 0 && !(err instanceof ApiError && err.code === "short_notice_required" && khungDatGap)) luu.disabled = true;
-        renderBanner(bannerEl, loiBanner(err, daLuuSo), { reloadOrder: () => { bt!.close(false); o.onReload(); }, reloadPage: () => location.reload() });
+        const b = loiBanner(err, daLuuSo);
+        const nhac = cauDongBoChuyen(dongBo).map((text) => ({ text }));
+        renderBanner(bannerEl, nhac.length ? { ...b, lines: [...b.lines, ...nhac] } : b, { reloadOrder: () => { bt!.close(false); o.onReload(); }, reloadPage: () => location.reload() });
         bannerEl.scrollIntoView({ block: "nearest" });
         // Lệnh đầu của lần gửi lại đã mang dấu đặt gấp; lệnh SAU mà cũng dưới mốc (chặng khác) → mở lại khung cho đúng lệnh đó.
         if (khungDatGap && err instanceof ApiError && err.code === "short_notice_required" && (i > 0 || !datGap)) {
@@ -127,7 +157,7 @@ export function openSheetDuaDon(o: SheetDuaDonOptions, opener: HTMLElement): voi
     }
     ban(false);
     bt!.close(false);
-    o.onSaved();
+    o.onSaved(dongBo);
   }
 
   luu.addEventListener("click", () => {
@@ -136,6 +166,13 @@ export function openSheetDuaDon(o: SheetDuaDonOptions, opener: HTMLElement): voi
     const ds = lapLenh();
     if (ds.length === 0) {
       bt.close();
+      return;
+    }
+    // Người không có ô đặt gấp: lệnh nào chắc chắn bị chặn vì dưới mốc → không gửi gì (khỏi lưu dở), báo ngay. Có ô đặt gấp → máy chủ trả 409, mở khung duyệt.
+    const chan = !o.coDatGap && o.mocPhut !== null ? lenhChanMoc(ds, o.mocPhut, Date.now()) : [];
+    if (chan.length > 0) {
+      renderBanner(bannerEl, { tone: "danger", title: cauChanMoc(chan.map((l) => l.nhan), o.mocPhut!), lines: [], action: "none", focusService: null, refreshCatalog: false });
+      bannerEl.scrollIntoView({ block: "nearest" });
       return;
     }
     void chay(o.order, ds);

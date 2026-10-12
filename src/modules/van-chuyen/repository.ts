@@ -240,12 +240,21 @@ export interface DispatchPolicyRow {
   /** ADR-0055 VK2-B (0071): giờ lái tối đa một ngày, nhắc nghỉ khi chuyến dài hơn (phút) — chỉ cảnh báo. */
   duty_day_max_minutes: number;
   trip_no_break_max_minutes: number;
+  /** ADR-0096 Đ2 (0084): cửa sổ xuất bến (phút) — chỉ xuất bến từ giờ khởi hành dự kiến − cửa sổ; mặc định nằm trong BẢNG (DEFAULT của migration). */
+  departure_window_minutes: number;
+  /** ADR-0053 D8.1 (0092): số phút hạn Từ chối — chụp vào vc_refuse_deadline lúc cặp được xếp lần đầu (trigger). */
+  refuse_lead_minutes: number;
+  /** Lời chủ 6.3 (0092): SĐT văn phòng (0xxxxxxxxx) hoặc null. KHÔNG vào nhật ký. */
+  office_phone: string | null;
+  /** ADR-0052 D4.1 + ADR-0111 Đ3 (c) (0093): phút chờ tài xế xe nhận trả lời đề nghị chuyển khách; công tắc tự đồng ý (0/1 — đọc theo dòng hiện hành LÚC QUYẾT). */
+  accept_wait_minutes: number;
+  auto_confirm_transfer: number;
   valid_from_at: string;
   created_at: string;
   /** R-P23: tài khoản đã lưu bản này (null = bản gieo của migration). CHỈ để tra nhãn qua hàm tiêm `ctx.nhanNhanVien` — không ra DTO. */
   created_by: string | null;
 }
-const COT_CHINH_SACH = "id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, proxy_backdate_max_minutes, duty_day_max_minutes, trip_no_break_max_minutes, valid_from_at, created_at, created_by";
+const COT_CHINH_SACH = "id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, proxy_backdate_max_minutes, duty_day_max_minutes, trip_no_break_max_minutes, departure_window_minutes, refuse_lead_minutes, office_phone, accept_wait_minutes, auto_confirm_transfer, valid_from_at, created_at, created_by";
 // Dòng hiệu lực = valid_from_at mới nhất ≤ ?1 (mốc UTC ISO của lúc gọi).
 const CURRENT_DISPATCH_POLICY = defineSql(
   "van-chuyen",
@@ -257,8 +266,8 @@ const INSERT_DISPATCH_POLICY = defineSql(
   "van-chuyen",
   "insert_dispatch_policy",
   `INSERT INTO vc_dispatch_policy (id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, proxy_backdate_max_minutes, duty_day_max_minutes,
-     trip_no_break_max_minutes, valid_from_at, created_at, created_by, updated_at, updated_by)
-   VALUES (?1, ?2, ?3, ?4, ?5, 0, ?8, ?9, ?10, ?6, ?6, ?7, ?6, ?7)`,
+     trip_no_break_max_minutes, departure_window_minutes, refuse_lead_minutes, office_phone, accept_wait_minutes, auto_confirm_transfer, valid_from_at, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?5, 0, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?6, ?6, ?7, ?6, ?7)`,
 );
 export const currentDispatchPolicy = (db: D1Database, nowIso: string): Promise<DispatchPolicyRow | null> =>
   db.prepare(CURRENT_DISPATCH_POLICY).bind(nowIso).first<DispatchPolicyRow>();
@@ -273,12 +282,13 @@ export async function listDispatchPolicies(db: D1Database): Promise<DispatchPoli
 export const insertDispatchPolicyStatement = (
   db: D1Database,
   id: string,
-  v: { minLeadMinutes: number; warnLeadMinutes: number; restMinutes: number; requireManifest: boolean; proxyBackdateMaxMinutes: number; dutyDayMaxMinutes: number; tripNoBreakMaxMinutes: number },
+  v: { minLeadMinutes: number; warnLeadMinutes: number; restMinutes: number; requireManifest: boolean; proxyBackdateMaxMinutes: number; dutyDayMaxMinutes: number; tripNoBreakMaxMinutes: number;
+    departureWindowMinutes: number; refuseLeadMinutes: number; officePhone: string | null; acceptWaitMinutes: number; autoConfirmTransfer: boolean },
   at: string,
   actorId: string,
 ): D1PreparedStatement =>
   db.prepare(INSERT_DISPATCH_POLICY).bind(id, v.minLeadMinutes, v.warnLeadMinutes, v.restMinutes, v.requireManifest ? 1 : 0, at, actorId, v.proxyBackdateMaxMinutes, v.dutyDayMaxMinutes,
-    v.tripNoBreakMaxMinutes);
+    v.tripNoBreakMaxMinutes, v.departureWindowMinutes, v.refuseLeadMinutes, v.officePhone, v.acceptWaitMinutes, v.autoConfirmTransfer ? 1 : 0);
 
 export interface DepartureRuleRow {
   id: string;

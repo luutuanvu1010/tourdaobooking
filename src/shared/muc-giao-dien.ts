@@ -78,6 +78,8 @@ export const TRANG = {
   // Bảng điều phối (ADR-0049, Q-B-4): ô trip.view không ngữ cảnh — văn phòng.
   dieuPhoi: { duong: "/dieu-phoi", cungSang: ["/chuyen", "/chuyen-sua"], goi: "GET /api/van-chuyen/lich", hien: thayDieuPhoiXe },
   xeDangChay: { duong: "/xe-dang-chay", goi: "GET /api/van-chuyen/lich", hien: thayDieuPhoiXe },
+  // Gói A5 (ADR-0111; bản vẽ V10): duyệt / bác đề nghị chuyển khách leo thang — CHỈ ô trip.override (Quản trị, Toàn quyền). Đường gọi chính hỏi trip.view (rộng hơn).
+  deNghi: { duong: "/de-nghi", goi: "GET /api/van-chuyen/de-nghi", hien: (s) => thayDieuPhoiXe(s) && can(s, "trip.override") },
   bangGiaXe: { duong: "/bang-gia-xe", goi: "GET /api/van-chuyen/bang-gia", hien: (s) => can(s, "transport.rate.view") }, // ADR-0057 T1
   bangKeXe: { duong: "/bang-ke-xe", goi: "GET /api/van-chuyen/chi-phi?tu=2026-10-01&den=2026-10-01", hien: (s) => can(s, "transport.cost.view") }, // ADR-0057 T2
   xe: { duong: "/xe", cungSang: ["/xe-sua", "/xe-chi-tiet"], goi: "GET /api/van-chuyen/xe", hien: quanLyXe }, // ADR-0040 D1
@@ -106,6 +108,8 @@ export const TRANG = {
   trangTaiXe: { duong: TRANG_DAU_TAI_XE, goi: "GET /api/parties/documents/mine", hien: chiTaiXe, moTrang: chiTaiXe },
   // Q5: tài xế công ty. Đường gọi chính cho cả văn phòng (ô trip.view mọi chuyến) — web/cuoc.ts báo "Tài khoản này không có cuốc xe." với người không lái.
   cuoc: { duong: TRANG_CUOC, cungSang: ["/cuoc-chuyen"], goi: "GET /api/van-chuyen/cuoc-cua-toi", hien: coCuocCuaToi, moTrang: coCuocCuaToi },
+  // A4 T9 (ADR-0053 D9, G-A4-16): "Báo bận của tôi" — chỉ tài khoản "chỉ tài xế" có ô unavailability.self (own, hỏi kèm ngữ cảnh chính mình).
+  ban: { duong: "/ban", goi: "GET /api/van-chuyen/ban/cua-toi", hien: (s) => chiTaiXe(s) && can(s, "unavailability.self", { ownerId: s.id }) },
   toi: { duong: "/account", goi: "GET /api/auth/me", hien: luonCo, tam: luonCo },
   gopY: { duong: "/feedback", goi: "GET /api/feedback/mine", hien: luonCo, tam: luonCo },
   troGiup: { duong: "/help", goi: "GET /api/auth/me", hien: luonCo, tam: luonCo },
@@ -157,9 +161,10 @@ export const THANH_BEN = [
   { nhom: "QUẢN TRỊ", trang: "phien", nhan: "Phiên đăng nhập", bieuTuong: "lock" },
   { nhom: "QUẢN TRỊ", trang: "diaDiem", nhan: "Địa điểm", bieuTuong: "pin" },
   { nhom: "QUẢN TRỊ", trang: "loaiGiayToNguoi", nhan: "Loại giấy tờ cá nhân", bieuTuong: "doc-check" },
-  // Vận chuyển — thứ tự bản vẽ: Điều phối xe, Xe đang chạy, Bảng giá thuê xe, Bảng kê chi phí xe, Xe, Lịch xe bận, Sắp hết hạn, Loại giấy tờ xe, Chính sách, Lý do.
+  // Vận chuyển — thứ tự bản vẽ: Điều phối xe, Xe đang chạy, Đề nghị chuyển khách, Bảng giá thuê xe, Bảng kê chi phí xe, Xe, Lịch xe bận, Sắp hết hạn, Loại giấy tờ xe, Chính sách, Lý do.
   { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "dieuPhoi", nhan: "Điều phối xe" },
   { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "xeDangChay", nhan: "Xe đang chạy" },
+  { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "deNghi", nhan: "Đề nghị chuyển khách" },
   { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "bangGiaXe", nhan: "Bảng giá thuê xe" },
   { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "bangKeXe", nhan: "Bảng kê chi phí xe" },
   { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "xe", nhan: "Xe" },
@@ -177,7 +182,8 @@ export const THANH_BEN = [
   { nhom: "QUẢN TRỊ", trang: "giaoDien", nhan: "Giao diện", bieuTuong: "palette" },
   // Tài xế: "Trang chủ" của họ là /tai-xe — đứng đầu nhóm TÔI; "Cuốc của tôi" cho mọi tài khoản tài xế công ty (kể cả kiêm văn phòng — K2b T2).
   { nhom: "TÔI", trang: "trangTaiXe", nhan: "Trang chủ", bieuTuong: "home" },
-  { nhom: "TÔI", trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "clock" },
+  { nhom: "TÔI", trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "assign" },
+  { nhom: "TÔI", trang: "ban", nhan: "Báo bận của tôi", bieuTuong: "clock" },
   { nhom: "TÔI", trang: "toi", nhan: "Của tôi", bieuTuong: "me" },
   { nhom: "TÔI", trang: "gopY", nhan: "Góp ý / Báo lỗi", bieuTuong: "chat", moTu: (p: string) => `/feedback?new=1&from=${encodeURIComponent(p)}` },
   { nhom: "TÔI", trang: "troGiup", nhan: "Trợ giúp", bieuTuong: "help" },
@@ -196,7 +202,9 @@ export const THANH_TAB = [
   { trang: "taoDon", nhan: "Tạo đơn", bieuTuong: "plus" },
   { trang: "trangTaiXe", nhan: "Trang chủ", bieuTuong: "home" },
   // Tab "Cuốc của tôi" CHỈ cho tài khoản "chỉ tài xế" (Q5); tài khoản vừa tài xế vừa văn phòng mở /cuoc từ trang Tôi (GA-K2b-T2: không thêm tab).
-  { trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "clock", chiKhi: { that: chiTaiXe } },
+  { trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "assign", chiKhi: { that: chiTaiXe } },
+  // A4 T9: tab "Báo bận của tôi" ngay sau Cuốc, cùng đối tượng "chỉ tài xế"; không có ở khung tạm (bản nhớ khung chỉ 4 cờ đã duyệt, ADR-0035) — thiếu một nhịp như tiền lệ tài xế.
+  { trang: "ban", nhan: "Báo bận của tôi", bieuTuong: "clock" },
   { trang: "dichVu", nhan: "Dịch vụ", bieuTuong: "services" },
   { trang: "taiKhoan", nhan: "Tài khoản", bieuTuong: "staff" },
   { trang: "toi", nhan: "Tôi", bieuTuong: "me" },
@@ -232,6 +240,7 @@ export const TRANG_TOI = [
   { phan: "dau", trang: "loaiGiayToNguoi", nhan: "Loại giấy tờ cá nhân" },
   { phan: "van-chuyen", trang: "dieuPhoi", nhan: "Điều phối xe" },
   { phan: "van-chuyen", trang: "xeDangChay", nhan: "Xe đang chạy" },
+  { phan: "van-chuyen", trang: "deNghi", nhan: "Đề nghị chuyển khách" },
   { phan: "van-chuyen", trang: "bangGiaXe", nhan: "Bảng giá thuê xe" },
   { phan: "van-chuyen", trang: "bangKeXe", nhan: "Bảng kê chi phí xe" },
   // Tài khoản vừa tài xế công ty vừa văn phòng (GA-K2b-T2): lối tới "Cuốc của tôi" ở điện thoại; tài khoản chỉ tài xế có tab riêng.

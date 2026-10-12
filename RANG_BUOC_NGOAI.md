@@ -27,7 +27,7 @@
 | C5 | `wrangler d1 execute --remote --file` **từ chối đăng nhập OAuth** (lỗi 10000); lệnh cho chủ phải dùng `--command` từng câu | [B] | quan sát 2026-09-24 (ghi nhớ dự án `reference-wrangler-d1-remote-file-oauth`) | — | 2026-09-24 | 2026-12-24 | Runbook đưa chủ lệnh `--file` → chạy lỗi giữa lúc triển khai |
 | C6 | Turnstile: máy chủ xác minh token qua `https://challenges.cloudflare.com/turnstile/v0/siteverify`; widget cần CSP cho `challenges.cloudflare.com` | [B] | `docs/SYSTEM-DESIGN.md` (dòng CSP, siteverify); `docs/CHANGE-GUIDE.md` công thức l | — | 2026-09-21 | 2026-12-21 | Đăng nhập hỏng cho mọi người |
 
-## 3. Apple iOS / Safari (PWA "Tour Đảo Booking")
+## 3. Apple (iOS / Safari — PWA "Tour Đảo Booking"; Apple Maps)
 
 | # | Phát biểu | Hạng | Nguồn gốc | Hiệu lực | Kiểm ngày | Hạn kiểm lại | Cái gì sập nếu sai |
 |---|---|---|---|---|---|---|---|
@@ -35,6 +35,7 @@
 | I2 | App xuống nền / khoá màn hình thì trang bị đóng băng, **WebSocket chết** (có lúc vẫn báo "OPEN") | [C] | nguồn không chính thức (thảo luận cộng đồng; diễn đàn Apple cho app gốc) | — | 2026-09-25 | 2026-12-25 | Bảng tin không tự nối lại → màn hình cũ; thiết kế đã xử lý bằng nối lại khi hiện lại trang |
 | I3 | Canvas Safari iOS giới hạn **diện tích ≤ 2²⁴ điểm ảnh**, vượt thì trả canvas trống | [C] | `docs/SYSTEM-DESIGN.md` (đoạn "Ảnh xác nhận đơn"); **chưa có đường dẫn nguồn gốc** | — | chưa kiểm | 2026-12-26 | Ảnh biên nhận đơn dài bị trống trên iPhone |
 | I4 | CSP `connect-src 'self'` có thể **không** khớp `wss:` cùng tên miền trên Safari cũ; nên liệt kê rõ `wss://booking.tourdao.vn` | [B] | https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/connect-src ; WebKit changeset 292266 (số phiên bản Safari đã sửa **chưa xác minh**) | — | 2026-09-25 (subagent tra) | 2026-12-25 | Bảng tin không kết nối được trên một số iPhone |
+| I5 | Liên kết `https://maps.apple.com/directions?destination=…&mode=driving` (unified Maps URLs) mở chỉ đường tới điểm đến; vắng `source` thì Maps chỉ đường từ vị trí hiện tại của người dùng; dạng `/directions` ghi cho **iOS 18.4+** (macOS 15.4+, watchOS 11.4+); tài liệu **không nêu** khoá hay phí. iOS cũ hơn và giới hạn độ dài: **chưa kiểm**; "Maps on the web" trên trình duyệt khác (trang hỗ trợ 120585, đăng 2026-04-16) **không** làm căn cứ cho Android | [A] | https://developer.apple.com/documentation/mapkit/unified-map-urls ; https://support.apple.com/en-us/120585 — **chép theo bảng "Dạng liên kết" của ADR-0105** (người soạn ADR đọc bản gốc 2026-10-08); người thi công ADR-0105 **không đọc lại** | — | 2026-10-08 | 2027-01-08 | iPhone đời cũ bấm Apple Maps không ra đường; nút Google luôn có nên tài xế vẫn đi được (nút "Chỉ đường", `src/shared/chi-duong.ts`) |
 
 ## 4. Chuẩn web (WebAuthn / Face ID)
 
@@ -42,11 +43,12 @@
 |---|---|---|---|---|---|---|---|
 | W1 | Passkey: `rpId` phải khớp tên miền đang mở (`booking.tourdao.vn`, không kèm `https://`); local phải ghi đè | [B] | chuẩn WebAuthn; `CLAUDE.md` §10, `docs/CHANGE-GUIDE.md` công thức r (ADR-0016) | — | 2026-09-23 | 2026-12-23 | Nút Face ID hiện nhưng luôn lỗi |
 
-## 5. Google (Sheet danh mục dịch vụ)
+## 5. Google (Sheet danh mục dịch vụ, Google Maps)
 
 | # | Phát biểu | Hạng | Nguồn gốc | Hiệu lực | Kiểm ngày | Hạn kiểm lại | Cái gì sập nếu sai |
 |---|---|---|---|---|---|---|---|
 | G1 | Danh mục/giá đọc từ Google Sheet **công khai dạng CSV**; Sheet **dùng chung với website tourdao.vn** và do người sửa tay — app **chỉ đọc**, không ghi | [B] | `docs/SYSTEM-DESIGN.md` (nguồn danh mục); ghi nhớ dự án `reference-services-sheet` | — | 2026-09-19 | 2026-12-19 | Sheet đổi quyền/cột → đồng bộ danh mục hỏng; cài đặt tiền **không** được đặt trong Sheet (Hiến chương 5.2) |
+| G2 | Liên kết `https://www.google.com/maps/dir/?api=1&destination=…&travelmode=driving` mở chỉ đường tới điểm đến (ứng dụng nếu có, không thì trình duyệt); **không cần khoá API**, không tốn tiền; liên kết tối đa **2 048 ký tự**; vắng `origin` thì bản đồ tự lấy điểm đầu ("such as device location, if available") | [A] | https://developers.google.com/maps/documentation/urls/get-started — **chép theo bảng "Dạng liên kết" của ADR-0105** (người soạn ADR đọc bản gốc 2026-10-08); người thi công ADR-0105 **không đọc lại** | — | 2026-10-08 | 2027-01-08 | Nút Google mở sai hoặc mất điểm đến; Google đòi khoá thì nút hỏng; giới hạn độ dài khác thì nút ẩn sai (`GIOI_HAN_GOOGLE` ở `src/shared/chi-duong.ts`) |
 
 ## 6. Anthropic / Claude Code (công cụ thi công)
 
@@ -57,7 +59,7 @@
 | A3 | Mỗi `CLAUDE.md` nên dưới ~200 dòng; dài hơn làm giảm mức tuân thủ | [B] | https://code.claude.com/docs/en/best-practices.md (qua subagent) | — | 2026-09-25 | 2026-12-25 | `CLAUDE.md` phình → AI bỏ sót luật |
 
 ## 7. Chưa khảo sát (phải có phiên khảo sát riêng — FRAMEWORK §4.2)
-- Bảo vệ dữ liệu cá nhân (tên, SĐT khách; nhật ký không ghi SĐT/email/MST là chính sách nội bộ, **chưa đối chiếu luật**).
+- Bảo vệ dữ liệu cá nhân (tên, SĐT khách; nhật ký không ghi SĐT/email/MST là chính sách nội bộ, **chưa đối chiếu luật**). Nay gồm chuỗi đích chỉ đường (có khi là địa chỉ nhà khách) gửi sang Google / Apple khi tài xế bấm nút "Chỉ đường" — ADR-0105; chủ chấp nhận rủi ro 2026-10-08, **chưa đối chiếu luật**.
 - Phạm vi "sổ kế toán" theo luật đối với sổ công nợ quản trị nội bộ (L1).
 - Điều khoản dịch vụ và giới hạn gói Cloudflare đang dùng (**chưa kiểm** tài khoản ở gói Free hay Paid).
 - Điều khoản dùng Google Sheet công khai làm nguồn dữ liệu.
@@ -66,3 +68,4 @@
 | Ngày | Ai | Làm gì | Kết quả |
 |---|---|---|---|
 | 2026-09-26 | AI (phiên nền, vai lập kế hoạch) | Lập hồ sơ từ tài liệu dự án và các lần tra tài liệu 2026-09-25 | 17 dòng; 4 nhóm chưa khảo sát; chưa có phiên khảo sát riêng |
+| 2026-10-09 | AI (thi công ADR-0105) | Thêm G2 (Google Maps URLs), I5 (Apple unified Maps URLs) chép từ bảng "Dạng liên kết" của ADR-0105 (không đọc lại nguồn); thêm câu chuỗi đích chỉ đường vào mục 7 | 2 dòng; hạn kiểm lại 2027-01-08 |

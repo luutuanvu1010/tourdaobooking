@@ -9,7 +9,8 @@ import { bocDb } from "./lan-gui-boc.ts";
 import { HEADER_PHAT_LAI, HEADER_VE, ketQuaDeLuu, kiemKhoa, phanLoai, thanPhatLai, type DongVe } from "./lan-gui-luat.ts";
 import { laMienLanGui } from "./lan-gui-mien.ts";
 import type { MocToiThieu } from "./moc-toi-thieu.ts";
-import type { ChuyenChoTin } from "./tin-chuyen.ts";
+import { dongBoDiThang, type DongBoTheoDon, type VaoDongBoTheoDon } from "./dong-bo-chuyen.ts";
+import type { ChuyenChoTin, HoiChuyenChoTin } from "./tin-chuyen.ts";
 import { canAccessOrders, isOffice, passesAccountsGate, passesAdminGate } from "./permissions.ts";
 
 /**
@@ -144,6 +145,13 @@ export interface Ctx<A extends Access = Access> {
    */
   mocToiThieu: () => Promise<MocToiThieu | null>;
   /**
+   * ĐỒNG BỘ CHUYẾN THEO ĐƠN (ADR-0104 Đ2.1) — do gốc lắp ráp tiêm (`van-chuyen.dongBoChuyenChoDon`; orders / dispatch KHÔNG import van-chuyen). Nhận câu đơn ĐÃ
+   * SOẠN chưa chạy, trả danh sách đầy đủ `[câu đơn…, khúc chuyến…]` để điểm gọi chạy MỘT `db.batch`. `sauKhiGhi(kq)` (gọi khi lệnh đơn thắng) trả phần "chuyến"
+   * của phản hồi và — bản router bọc — tự báo Bảng tin / tin chuyến (`baoThayDoiChuyen`) cho từng khúc thắng. Câu đi vào CHÍNH lô của handler ⇒ dùng `envH`.
+   * Môi trường không tiêm (khung thử cố ý tắt) → `dongBoDiThang`: lô = câu đơn, phản hồi `capNhatTay` (không lặng lẽ "đã đồng bộ").
+   */
+  dongBoChuyen: (x: VaoDongBoTheoDon) => Promise<DongBoTheoDon>;
+  /**
    * MỐC "SẮP HẾT HẠN" đang hiệu lực (ADR-0040 D1 — MỘT mốc cho giấy tờ xe lẫn giấy tờ người; GB2/R23) — do gốc lắp ráp tiêm (`van-chuyen.nguongHetHanHienHanh`;
    * `parties` không đọc bảng `vc_`, không import `van-chuyen` — khuôn `mocToiThieu`). Một truy vấn mỗi lần gọi; route gọi đúng một lần mỗi request. Môi
    * trường không tiêm (khung thử cố ý) → `NGUONG_MAC_DINH` (30 — bằng dòng gieo 0033; chỉ dùng để hiển thị nhãn hạn).
@@ -179,9 +187,9 @@ export interface Ctx<A extends Access = Access> {
   /**
    * TIN CHUYẾN (ADR-0052 D6.3) — dữ kiện chuyến theo id (mã, ngày, khoảng lái, đơn của suất vắng) do gốc lắp ráp tiêm (`van-chuyen.chuyenChoTinTheoId`;
    * thongbao không import van-chuyen). Một lần gọi = ba truy vấn mảng JSON (mảng chuyến rỗng: không truy vấn). `null` = môi trường không tiêm (khung thử cố ý)
-   * ⇒ không có tin chuyến.
+   * ⇒ không có tin chuyến. `legIds` (MQ-07, ADR-0052 D6.2): thêm suất khách của các chặng đó + dữ kiện chuyến của chúng.
    */
-  chuyenChoTin: (q: { tripIds: readonly string[]; suKienIds: readonly string[] }) => Promise<ChuyenChoTin | null>;
+  chuyenChoTin: (q: HoiChuyenChoTin) => Promise<ChuyenChoTin | null>;
 }
 
 export interface Route {
@@ -276,7 +284,11 @@ export interface AppOptions {
     /** ADR-0013 điều 4. BẮT BUỘC: thiếu là route Hồ sơ không biết hồ sơ nào gắn tài khoản. */
     partyAccount: (env: Env, actor: StaffProfile, partyId: string) => Promise<PartyAccountVerdict>;
     /** BẢNG TIN (ADR-0022). BẮT BUỘC: router gọi cho MỌI route có đăng nhập gọi `ctx.baoThayDoi`. Bản thật ở `src/index.ts` (trạm `BangTin` đã có); chỉ là no-op khi môi trường không có binding `BANG_TIN` (khung thử). */
-    baoThayDoi: (env: Env, actor: StaffProfile, e: { orderId: string; thayDoi: ThayDoiDon; handlerTruoc?: TrangThaiPhuTrach }) => Promise<void>;
+    /**
+     * `batDau` (ADR-0062 Đ4): mốc ISO router chụp TRƯỚC khi chạy handler của request này — gốc lắp ráp chỉ gõ cửa theo dòng đổi ghi từ mốc đó (dòng do CHÍNH
+     * request này ghi), nên lệnh báo "chuyen" / "tien" mà không ghi dòng đổi (ghi lần thu, đặt gấp…) không gõ cửa lại dòng đổi cũ. Không vào sự kiện Bảng tin.
+     */
+    baoThayDoi: (env: Env, actor: StaffProfile, e: { orderId: string; thayDoi: ThayDoiDon; handlerTruoc?: TrangThaiPhuTrach }, batDau: string) => Promise<void>;
     /** TIN CHUYẾN (ADR-0052 D6.3, D6.4). BẮT BUỘC trong mã chạy thật (`src/index.ts`): phát Bảng tin chuyến + gõ cửa tin chuyến; thiếu (khung thử cũ) → no-op. */
     baoThayDoiChuyen: (env: Env, actor: StaffProfile, e: { tripId: string; requestId: string }) => Promise<void>;
     /** BẢNG TIN (ADR-0022). BẮT BUỘC. Bản thật ở `src/index.ts` (`dongCua` của module `bangtin`); chỉ là no-op khi môi trường không có binding `BANG_TIN`. */
@@ -288,6 +300,8 @@ export interface AppOptions {
      * router trả `null` ⇒ `orders` chặn lệnh cần mốc (khuôn `isAssigned`: không bao giờ lặng lẽ "không có mốc").
      */
     mocToiThieu: (env: Env) => Promise<MocToiThieu | null>;
+    /** ĐỒNG BỘ CHUYẾN THEO ĐƠN (ADR-0104 Đ2.1). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `dongBoChuyenChoDon` của van-chuyen); thiếu (khung thử cố ý) → `dongBoDiThang`. */
+    dongBoChuyen: (env: Env, actor: StaffProfile, x: VaoDongBoTheoDon) => Promise<DongBoTheoDon>;
     /** Mốc sắp hết hạn (ADR-0040 D1). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nguongHetHanHienHanh(env.DB)`). */
     nguongHetHan: (env: Env) => Promise<number>;
     /** Người đi kèm gắn được. BẮT BUỘC trong mã chạy thật (src/index.ts). */
@@ -301,7 +315,7 @@ export interface AppOptions {
     /** ADR-0060 điều 5. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nhapKeToanCuaDon` của billing); thiếu (khung thử cố ý) → router trả `null`. */
     nhapKeToanCuaDon: (env: Env, orderIds: readonly string[]) => Promise<Set<string>>;
     /** TIN CHUYẾN (ADR-0052 D6.3). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `chuyenChoTinTheoId` của van-chuyen); thiếu (khung thử cố ý) → router trả `null`. */
-    chuyenChoTin: (env: Env, q: { tripIds: readonly string[]; suKienIds: readonly string[] }) => Promise<ChuyenChoTin>;
+    chuyenChoTin: (env: Env, q: HoiChuyenChoTin) => Promise<ChuyenChoTin>;
     /**
      * LỚP CHỐNG GHI TRÙNG (ADR-0094 đ2) — phần của module `lan-gui` (gốc lắp ráp tiêm; router không import module). BẮT BUỘC: thiếu ⇒ MỌI route ghi có
      * đăng nhập trả 500 `server_misconfigured` (T18) — không bao giờ lặng lẽ tắt lớp.
@@ -380,6 +394,8 @@ export function createApp(opts: AppOptions) {
       if (hit.r.access === "orders" && !canAccessOrders(staff)) return error(403, "forbidden", "Tài khoản này không dùng được màn hình đơn.");
     }
     const who = staff;
+    // Mốc bắt đầu request (trước handler): dòng nhật ký do handler ghi luôn có created_at ≥ mốc này (đồng hồ một request không lùi) — xem `batDau` ở trên.
+    const batDau = new Date().toISOString();
     // `envH` = env đưa cho handler và cho các hàm tiêm có câu đi vào CHÍNH lô của handler (ADR-0094 đặc tả §3.5 bẫy 6) — bản BỌC khi lệnh mang vé. Việc
     // bắn-và-quên (Bảng tin, đóng kết nối, gõ cửa) ghi trong waitUntil, KHÔNG thuộc lô của lệnh ⇒ luôn dùng `env` gốc (không ăn vé, không bị từ chối).
     const chayHandler = (envH: Env): Promise<Response> => hit.r.handler({
@@ -391,7 +407,7 @@ export function createApp(opts: AppOptions) {
       partyAccount: (partyId) => (who ? opts.injected.partyAccount(envH, who, partyId) : Promise.resolve({ linked: true, manageable: false } as const)),
       baoThayDoi: (e) => {
         if (!who) return; // route công khai: không ai "báo" thay mặt.
-        exec.waitUntil(Promise.resolve().then(() => opts.injected.baoThayDoi(env, who, e)).catch((err) => ghiLoiBangTin("bao", err)));
+        exec.waitUntil(Promise.resolve().then(() => opts.injected.baoThayDoi(env, who, e, batDau)).catch((err) => ghiLoiBangTin("bao", err)));
       },
       baoThayDoiChuyen: (e) => {
         if (!who || typeof opts.injected.baoThayDoiChuyen !== "function") return;
@@ -403,6 +419,21 @@ export function createApp(opts: AppOptions) {
       giaoLoDay: (ds) => opts.injected.giaoLoDay(env, ds),
       // Thiếu hàm tiêm (khung thử cố ý) → null: route chặn, không đoán (I25). Kiểm lúc GỌI, không lúc dựng app (typeof — JS không kiểm kiểu).
       mocToiThieu: () => (typeof opts.injected.mocToiThieu === "function" ? opts.injected.mocToiThieu(envH) : Promise.resolve(null)),
+      // ADR-0104 Đ2.1: `sauKhiGhi` bọc thêm việc báo Bảng tin / tin chuyến cho từng khúc thắng (khuôn baoThayDoiChuyen bên trên — bắn-và-quên, env gốc).
+      dongBoChuyen: async (x) => {
+        if (!who || typeof opts.injected.dongBoChuyen !== "function") return dongBoDiThang(x);
+        const d = await opts.injected.dongBoChuyen(envH, who, x);
+        return {
+          ...d,
+          sauKhiGhi: (kq) => {
+            const r = d.sauKhiGhi(kq);
+            if (typeof opts.injected.baoThayDoiChuyen === "function") {
+              for (const b of r.bao) exec.waitUntil(Promise.resolve().then(() => opts.injected.baoThayDoiChuyen(env, who, b)).catch((err) => ghiLoiBangTin("bao_chuyen", err)));
+            }
+            return r;
+          },
+        };
+      },
       nguongHetHan: () => (typeof opts.injected.nguongHetHan === "function" ? opts.injected.nguongHetHan(envH) : Promise.resolve(NGUONG_MAC_DINH)),
       huongDanVien: () => (typeof opts.injected.huongDanVien === "function" ? opts.injected.huongDanVien(envH) : Promise.resolve([])),
       nhanNhanVien: (ids) =>
@@ -419,7 +450,9 @@ export function createApp(opts: AppOptions) {
       nhapKeToanCuaDon: (ids) =>
         typeof opts.injected.nhapKeToanCuaDon !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Set<string>()) : opts.injected.nhapKeToanCuaDon(envH, ids),
       chuyenChoTin: (q) =>
-        typeof opts.injected.chuyenChoTin !== "function" ? Promise.resolve(null) : q.tripIds.length === 0 ? Promise.resolve({ chuyen: [], vang: [] }) : opts.injected.chuyenChoTin(envH, q),
+        // Không hỏi chuyến NÀO và không hỏi chặng nào → không truy vấn. Hỏi CHỈ chặng (MQ-07) vẫn phải gọi hàm thật — chuyến suy từ suất của chặng.
+        typeof opts.injected.chuyenChoTin !== "function" ? Promise.resolve(null)
+          : q.tripIds.length === 0 && !q.legIds?.length ? Promise.resolve({ chuyen: [], vang: [] }) : opts.injected.chuyenChoTin(envH, q),
     } as Ctx);
 
     // ---- LỚP CHỐNG GHI TRÙNG (ADR-0094 đ3; đặc tả §3.3 bước 1–8), giai đoạn 1. SAU mọi cổng (đăng nhập, bảo trì, access), TRƯỚC handler; chỉ route GHI có

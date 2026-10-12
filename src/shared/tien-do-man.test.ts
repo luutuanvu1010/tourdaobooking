@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  buocDiem, cauConKhach, cauTuChoiKhaiGio, giuTenKhach, goiYKhaiGio, ketThucDuoc, nhomCuoc, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, chiSuatKhach, viecNguoiDiKem, thanDoiThuTu, xayRaLucTu, type DiemVao, type SuatVao,
+  buocDiem, cauConKhach, cauTuChoiKhaiGio, giuTenKhach, goiYKhaiGio, ketThucDuoc, nhomCuoc, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, chiSuatKhach, viecNguoiDiKem, thanDoiThuTu, doiThuTuDuoc, xayRaLucTu, type DiemVao, type SuatVao,
 } from "./tien-do-man.ts";
 import { vnLocalToMs } from "./vn-date.ts";
 
@@ -75,10 +75,12 @@ test("buocDiem: nhãn điểm đón có giờ hẹn; giờ xe tới hiện thêm
 });
 
 test("buocDiem: điểm đón chưa tới → nút 'Đã tới', chưa có nút khách; đã tới → khách chờ có Đã đón / Vắng / Khách đã huỷ, khách vắng còn 'Đã đón'; điểm trả → 'Đã trả' khi còn khách trên xe", () => {
-  const diem = [d(1, "PICKUP", "ARRIVED"), d(2, "PICKUP"), d(3, "DROPOFF")];
-  const suat = [s("a", "d1", "d3", "BOARDED", "Nguyễn Thị Lan"), s("b", "d1", "d3", "WAITING", "Lê Hoàng Yến"), s("c", "d1", "d3", "NO_SHOW"), s("e", "d2", "d3", "WAITING")];
+  // Khách e lên ở điểm 2 (chưa tới) xuống ở điểm 4 — điểm trả 3 không có khách chờ lên ở điểm chưa tới (ca đó: bài HT-16 bên dưới).
+  const diem = [d(1, "PICKUP", "ARRIVED"), d(2, "PICKUP"), d(3, "DROPOFF"), d(4, "DROPOFF")];
+  const suat = [s("a", "d1", "d3", "BOARDED", "Nguyễn Thị Lan"), s("b", "d1", "d3", "WAITING", "Lê Hoàng Yến"), s("c", "d1", "d3", "NO_SHOW"), s("e", "d2", "d4", "WAITING")];
   const b = buocDiem(diem, suat, "RUNNING", "2026-09-30");
-  assert.deepEqual(b.map((x) => [x.so, x.nhanLoai, x.nut?.nhan ?? null, x.khach.length]), [["1", "ĐÓN · HẸN 07:30", null, 3], ["2", "ĐÓN · HẸN 07:30", "Đã tới", 1], ["3", "TRẢ", "Đã trả", 0]]);
+  assert.deepEqual(b.map((x) => [x.so, x.nhanLoai, x.nut?.nhan ?? null, x.khach.length]), [["1", "ĐÓN · HẸN 07:30", null, 3], ["2", "ĐÓN · HẸN 07:30", "Đã tới", 1], ["3", "TRẢ", "Đã trả", 0], ["4", "TRẢ", null, 0]]);
+  assert.equal(b[2]!.choDon, null, "khách b chờ ở điểm ĐÃ TỚI — không chặn (đánh dấu Vắng / Đã đón ở đó trước)");
   assert.deepEqual(b[0]!.khach.map((k) => [k.ten, k.ketQua, k.nut]), [["Nguyễn Thị Lan", "Đã đón", []], ["Lê Hoàng Yến", null, ["don", "vang", "khach-huy"]], ["Khách 3", "Vắng", ["don"]]]);
   assert.deepEqual(b[1]!.khach.map((k) => k.nut), [[]], "điểm chưa tới: chưa đánh dấu khách");
   assert.equal(b[1]!.nut!.goiY, "Bấm khi xe tới nơi, rồi đánh dấu từng khách.");
@@ -183,6 +185,33 @@ test("thanDoiThuTu (route 29 / 39): đổi chỗ với điểm CHƯA TỚI liề
   assert.equal(thanDoiThuTu(d, "b", -1), null, "đầu danh sách chờ");
   assert.equal(thanDoiThuTu(d, "f", 1), null, "cuối danh sách chờ");
   assert.equal(thanDoiThuTu(d, "a", 1), null, "điểm đã tới — Review Focus 4: tài xế vừa bấm Đã tới");
+});
+
+test("buocDiem HT-16 (ADR-0096 Đ1.4 — CÙNG luật diemDonChuaToiCuaDiemTra của máy chủ): điểm trả CHƯA TỚI còn khách chờ lên ở điểm đón chưa tới → không nút 'Đã trả', câu chỉ đường; điểm đón đã tới → hiện nút", () => {
+  const suat = [s("a", "d1", "d3", "BOARDED"), s("e", "d2", "d3", "WAITING")];
+  const truoc = buocDiem([d(1, "PICKUP", "DONE"), d(2, "PICKUP"), d(3, "DROPOFF")], suat, "RUNNING", "2026-09-30");
+  assert.equal(truoc[2]!.nut, null, "máy chủ sẽ 409 'Đã tới' điểm trả này — ẩn nút");
+  assert.equal(truoc[2]!.choDon, "Còn khách chưa đón ở điểm 2 — bấm “Đã tới” ở điểm đón trước.");
+  assert.deepEqual(truoc[2]!.traCho, ["a"], "vẫn biết khách sẽ trả ở đây");
+  const sau = buocDiem([d(1, "PICKUP", "DONE"), d(2, "PICKUP", "ARRIVED"), d(3, "DROPOFF")], suat, "RUNNING", "2026-09-30");
+  assert.equal(sau[2]!.nut?.lenh, "tra-het");
+  assert.equal(sau[2]!.choDon, null);
+  assert.equal(buocDiem([d(1, "PICKUP", "DONE"), d(2, "PICKUP"), d(3, "DROPOFF")], suat, "PLANNED", "2026-09-30")[2]!.choDon, null, "chuyến chưa chạy: không câu");
+});
+
+test("doiThuTuDuoc (C30 — ADR-0096 Đ1.3c, CÙNG luật daoMoiSauDoi của máy chủ): ↑ / ↓ làm khách CHỜ LÊN bị đảo MỚI → daoMoi (giao diện khoá nút); đảo cũ không khoá; khách đã đón không tính", () => {
+  const diem = [
+    { id: "p1", thuTu: 1, trangThai: "PENDING" as const },
+    { id: "p2", thuTu: 2, trangThai: "PENDING" as const },
+    { id: "t3", thuTu: 3, trangThai: "PENDING" as const },
+  ];
+  const cho = [{ diemLen: "p2", diemXuong: "t3", trangThai: "WAITING" as const }];
+  assert.deepEqual(doiThuTuDuoc(diem, cho, "t3", -1), { than: { diem: [{ id: "p1", thuTu: 1 }, { id: "t3", thuTu: 2 }, { id: "p2", thuTu: 3 }] }, daoMoi: true }, "đưa điểm trả lên trước điểm đón");
+  assert.deepEqual(doiThuTuDuoc(diem, cho, "p1", 1).daoMoi, false, "đổi hai điểm đón");
+  assert.deepEqual(doiThuTuDuoc(diem, [{ ...cho[0]!, trangThai: "BOARDED" as const }], "t3", -1).daoMoi, false, "khách đã lên xe không bị đảo");
+  assert.deepEqual(doiThuTuDuoc(diem, cho, "t3", 1), { than: null, daoMoi: false }, "cuối danh sách");
+  const daoCu = [{ id: "t1", thuTu: 1, trangThai: "PENDING" as const }, { id: "p2", thuTu: 2, trangThai: "PENDING" as const }, { id: "p3", thuTu: 3, trangThai: "PENDING" as const }];
+  assert.equal(doiThuTuDuoc(daoCu, [{ diemLen: "p2", diemXuong: "t1", trangThai: "WAITING" as const }], "t1", 1).daoMoi, false, "sửa dần đảo cũ — không khoá");
 });
 
 test("tenNguoiDiKemCuaChuyen: chỉ tên các suất người đi kèm, bỏ trống, không trùng; chuyến không có thì rỗng", () => {

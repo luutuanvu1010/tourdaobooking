@@ -100,6 +100,8 @@ const ROUTE_GET: string[] = [...new Set(readdirSync(MODULES).flatMap((m) => {
  */
 const MIEN_200: Record<string, string> = {
   "/api/bang-tin": "bắt tay WebSocket: khung thử không có trạm Bảng tin (426/503); sự kiện phát đi chỉ 5 khoá (ADR-0022 điều 4), không chở tiền",
+  "/api/van-chuyen/chuyen/:id/xe-nhan": "gói A5 (ADR-0111): chỉ 200 khi chuyến ĐANG CHẠY có tài xế (409 nếu không) — khung thử không dựng chuyến chạy cho bài này; phản hồi chỉ chở năm khoá XeNhanDto (mã chuyến, tên tài xế, chỗ trống, điểm sắp tới; không biển số, không khách, không tiền, không hoa hồng); thân 4xx vẫn được quét",
+  "/api/van-chuyen/cuoc-cua-toi/:id/xe-nhan": "gói A5 (ADR-0111): như dòng trên, và chỉ tài xế đang lái chuyến mới gọi được (404 với người khác)",
 };
 
 /**
@@ -146,6 +148,9 @@ function bangDien(g: Gieo): Record<string, string[]> {
     "/api/van-chuyen/chuyen/:id/chi-phi": [`/api/van-chuyen/chuyen/${g.chuyen}/chi-phi`],
     "/api/van-chuyen/chuyen/:id/cuu-ho": [`/api/van-chuyen/chuyen/${g.chuyenHong}/cuu-ho`],
     "/api/van-chuyen/cuoc-cua-toi/:id": [`/api/van-chuyen/cuoc-cua-toi/${g.chuyen}`],
+    // Gói A5 (ADR-0111; ghép main 1c471990 vào gói A+C): danh sách xe nhận khách chuyển — chuyến phải đang chạy (409 nếu chưa) nên dùng chuyến cứu hộ.
+    "/api/van-chuyen/chuyen/:id/xe-nhan": [`/api/van-chuyen/chuyen/${g.chuyenHong}/xe-nhan`],
+    "/api/van-chuyen/cuoc-cua-toi/:id/xe-nhan": [`/api/van-chuyen/cuoc-cua-toi/${g.chuyenHong}/xe-nhan`, `/api/van-chuyen/cuoc-cua-toi/${g.chuyen}/xe-nhan`],
     "/api/van-chuyen/xe-cua-don/:orderId": [g.cuaB, g.donChuyen].map((id) => `/api/van-chuyen/xe-cua-don/${id}`),
     "/api/thong-bao/:id/nguoi-da-hieu": [`/api/thong-bao/${g.tin}/nguoi-da-hieu`],
     // chuỗi truy vấn. Nhật ký toàn hệ thống: trang đầu (100 dòng) + lọc đúng các hành động chở mức — thế giới lớn dần thì dòng cũ không rơi khỏi phép quét.

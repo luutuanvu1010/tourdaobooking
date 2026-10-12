@@ -194,10 +194,13 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/orders/:id/legs", access: "orders" },
   { method: "PUT", path: "/api/orders/:id/legs/:legId", access: "orders" },
   { method: "POST", path: "/api/orders/:id/legs/:legId/close", access: "orders" },
+  // C14 (đánh giá ERP 2026-10-07): thay chặng = đóng + thêm một lô — cùng ô can(order.trip.edit, { ownerId, assigned }) hỏi trước khi đọc thân
+  { method: "POST", path: "/api/orders/:id/legs/:legId/replace", access: "orders" },
   { method: "POST", path: "/api/orders/:id/legs/:legId/short-notice", access: "orders" },
   // ADR-0047 A2 (2026-09-29): danh sách hành khách — GET hỏi can(order.view) rồi can(contact.view); POST hỏi can(order.passenger.write) trước khi đọc thân
   { method: "GET", path: "/api/orders/:id/passengers", access: "orders" },
   { method: "POST", path: "/api/orders/:id/passengers", access: "orders" },
+  { method: "POST", path: "/api/orders/:id/money-edit", access: "office" }, // ADR-0063 D1 — văn phòng sửa số khách sau xác nhận; thân route hỏi can(order.money.edit, { ownerId }) KHÔNG assigned
   { method: "GET", path: "/api/orders/dashboard", access: "orders" }, // Trang chủ — ADR-0019 điều 1: màn đơn; Đối tác/Thực tập vẫn 403 nhờ can(order.view/money.view/contact.view) không ngữ cảnh trong thân
   { method: "GET", path: "/api/orders/dem-nhap", access: "orders" }, // huy hiệu thanh bên: CHỈ số đơn nháp; cùng ba ô quyền với dashboard (dem-nhap.test.ts)
   { method: "GET", path: "/api/orders/pool", access: "orders" }, // hàng chờ nhận (phần hẹp) — ADR-0030 S23-1/S23-2: thân hỏi can(order.pool.view) + !holdsPartner trước mọi đọc
@@ -337,9 +340,27 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/van-chuyen/chuyen/:id/cuu-ho", access: "office" }, // Đợt 5 ADR-0052 D5c — cứu hộ đơn giản, chỉ đọc (trip.dispatch)
   { method: "POST", path: "/api/van-chuyen/chuyen/:id/them-diem", access: "office" }, // Đợt 5 ADR-0052 D5.1 — thêm điểm khi xe đang chạy (trip.dispatch)
   { method: "POST", path: "/api/van-chuyen/chuyen/:id/phan-bo/:aid/bao-huy", access: "office" }, // Đợt 5 ADR-0052 D5.2 — văn phòng báo khách huỷ (trip.dispatch)
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/phan-bo/:aid/dieu-chinh", access: "office" }, // ADR-0097 Đ2 (gói A1) — văn phòng điều chỉnh kết quả một khách (trip.progress)
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/thu-hoi-xuat-ben", access: "office" }, // ADR-0097 Đ3 (gói A1) — văn phòng thu hồi xuất bến nhầm (trip.progress)
   { method: "GET", path: "/api/van-chuyen/cuoc-cua-toi", access: "staff" }, // ADR-0049 Task A15 route 19 — tài xế (ô trip.view assigned)
   { method: "GET", path: "/api/van-chuyen/cuoc-cua-toi/:id", access: "staff" }, // route 20
   { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/hanh-khach", access: "staff" }, // Đợt 5 A-1b ADR-0052 D5b — tài xế bổ sung tên (trip.passenger.add) — chủ duyệt 5/10
+  { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/tu-choi", access: "staff" }, // A4 T7 ADR-0053 D8 — tài xế đối tác Từ chối chuyến (trip.refuse assigned)
+  { method: "GET", path: "/api/van-chuyen/ban/cua-toi", access: "staff" }, // A4 T8 ADR-0053 D9 — báo bận của tôi (unavailability.self own)
+  { method: "POST", path: "/api/van-chuyen/ban", access: "staff" }, // A4 T8 — ghi khung bận của chính mình (201 + Location /ban)
+  { method: "POST", path: "/api/van-chuyen/ban/:id/rut", access: "staff" }, // A4 T8 — rút khung của chính mình (khung người khác → 404)
+  { method: "GET", path: "/api/van-chuyen/ban-tai-xe", access: "office" }, // A4 T8 G-A4-19 — dải "Tài xế bận" của văn phòng; thân hỏi trip.dispatch; không lý do
+  { method: "GET", path: "/api/van-chuyen/cuoc-cua-toi/:id/xe-nhan", access: "staff" }, // A5 ADR-0052 D4 + ADR-0111 — xe nhận đề nghị chuyển khách (trip.transfer assigned)
+  { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/de-nghi", access: "staff" }, // A5 ADR-0111 — tài xế gửi đề nghị chuyển khách (trip.transfer assigned)
+  { method: "POST", path: "/api/van-chuyen/de-nghi/:rid/rut", access: "staff" }, // A5 ADR-0111 — tài xế xe nhờ rút đề nghị (trip.transfer assigned)
+  { method: "GET", path: "/api/van-chuyen/de-nghi-cua-toi", access: "staff" }, // A5 ADR-0111 — đề nghị của chuyến mình đang lái (trip.transfer assigned)
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/cuu-ho", access: "office" }, // A5 ADR-0111 Đ4 — văn phòng gửi thay đề nghị cứu hộ (trip.progress)
+  { method: "GET", path: "/api/van-chuyen/chuyen/:id/xe-nhan", access: "office" }, // A5 ADR-0111 Đ4 (T14) — xe nhận cho văn phòng gửi thay cứu hộ (trip.progress; chỉ đọc)
+  { method: "POST", path: "/api/van-chuyen/de-nghi/:rid/nhan", access: "staff" }, // A5 ADR-0111 Đ3 — tài xế xe nhận bấm Nhận (trip.transfer assigned)
+  { method: "POST", path: "/api/van-chuyen/de-nghi/:rid/khong-nhan", access: "staff" }, // A5 ADR-0111 Đ3 — tài xế xe nhận bấm Không nhận (trip.transfer assigned)
+  { method: "GET", path: "/api/van-chuyen/de-nghi", access: "office" }, // A5 ADR-0111 — danh sách đề nghị theo ngày (trip.view; chỉ đọc)
+  { method: "POST", path: "/api/van-chuyen/de-nghi/:rid/duyet", access: "office" }, // A5 ADR-0111 Đ1 — duyệt đề nghị leo thang (trip.override — nới N2)
+  { method: "POST", path: "/api/van-chuyen/de-nghi/:rid/bac", access: "office" }, // A5 ADR-0111 Đ3 — bác đề nghị leo thang (trip.override — nới N2)
   { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/xuat-ben", access: "staff" }, // route 21 — tài xế (trip.progress assigned)
   { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi", access: "staff" }, // route 22 — tài xế (trip.progress assigned)
   { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/don", access: "staff" }, // route 23 — tài xế (trip.progress assigned)
@@ -458,11 +479,22 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-05 (ADR-0102, nghiên cứu tốc độ đợt 1): + GET /giao-dien.css (public, cùng thân với /api/giao-dien.css) = 240.
   // 2026-10-05 (nghiên cứu tốc độ, đợt 1 việc 3): + GET /api/orders/dem-nhap (orders), GET /api/catalog/dem-xung-dot (admin) = 242.
   // 2026-10-06 (dựng lại nhánh năm lỗi tiền lên main đã có tốc độ đợt 1): + POST /api/orders/:id/cancel-reason (orders; ADR-0089, phân loại lý do huỷ) = 243; Phần B: + 6 lệnh cọc /api/orders/:id/coc/* + 3 route đọc /api/ledger/coc* (office) = 252; TNV-G3 (ADR-0088 đ2): + POST /api/ledger/receipt-replacements (office) = 253.
+  // 2026-10-08 (C14, đánh giá ERP 7/10): + POST /api/orders/:id/legs/:legId/replace (orders; thay chặng một lô) = 254.
+  // 2026-10-08 (gói A1 vận chuyển, ADR-0097 Đ2, Đ3): + POST /api/van-chuyen/chuyen/:id/phan-bo/:aid/dieu-chinh, POST …/thu-hoi-xuat-ben (office, trip.progress) = 256 (cộng C14 = 254 + 2).
+  // 2026-10-08 (gói A2, ADR-0063 D1): + POST /api/orders/:id/money-edit (office; văn phòng sửa số khách sau xác nhận) = 257 (cộng C14 + A1 = 256 + 1).
+  // 2026-10-09 (A4 T7, ADR-0053 D8): + POST /api/van-chuyen/cuoc-cua-toi/:id/tu-choi (staff, trip.refuse) = 258.
+  // 2026-10-09 (A4 T8, ADR-0053 D9): + GET /ban/cua-toi, POST /ban, POST /ban/:id/rut (staff, unavailability.self) + GET /ban-tai-xe (office, trip.dispatch) = 262.
+  // 2026-10-09 (gói A5, ADR-0111): + GET /api/van-chuyen/cuoc-cua-toi/:id/xe-nhan (staff, trip.transfer).
+  // 2026-10-09 (gói A5, ADR-0111): + POST …/cuoc-cua-toi/:id/de-nghi, POST …/de-nghi/:rid/rut, GET …/de-nghi-cua-toi (staff), POST …/chuyen/:id/cuu-ho (office).
+  // 2026-10-09 (gói A5 lát 3): + POST …/de-nghi/:rid/nhan, …/khong-nhan (staff), GET …/de-nghi, POST …/de-nghi/:rid/duyet, …/bac (office).
+  // 2026-10-09 (gói A5 T14): + GET …/chuyen/:id/xe-nhan (office, trip.progress — văn phòng chọn xe nhận khi gửi thay cứu hộ).
+  // 2026-10-12 (nhập nền A4 vào A5): 257 + 5 (A4) + 11 (A5) = 273.
+  // 2026-10-12 (ghép main 1c471990 vào gói A+C): 273 (nền A+C) + 15 route của main (QR +3; sổ đại lý đợt 1 +12: pricing +8, khoá sổ +2, phần thương mại của đơn +2) = 288.
   // 2026-10-08 (ADR-0108 đ2): + GET/PUT /api/parties/:id/tai-khoan-nhan-tien (office) = 255.
   // 2026-10-08 (ADR-0108 đ3): + GET /api/orders/:id/qr-thanh-toan (orders) = 256.
   // 2026-10-08 (sổ đại lý đợt 1, module pricing — ADR-0077/0078): + 8 route /api/pricing/* (hoa-hong ×3, thu-tra, cung-ung ×3, nguoi-huong) = 264.
   // 2026-10-08 (sổ đại lý đợt 1, Task 7 — khoá sổ tháng, module billing; ADR-0080 D1): + GET /api/ledger/ky, POST /api/ledger/ky/:period/khoa (office) = HIỆU +2 trên nền 264 (= 266 nếu đứng riêng; điều phối chỉnh số tuyệt đối lúc gộp).
   // 2026-10-08 (sổ đại lý đợt 1, Task 5 — phần thương mại của đơn, module orders; ADR-0077 điều 10–11): + GET /api/orders/:id/thuong-mai (orders), POST /api/orders/:id/thuong-mai/:serviceId (office) = HIỆU +2 (tuyệt đối 268 khi cả Task 3, 5, 7 đã gộp).
-  assert.equal(actual.length, 268, "số route thực tế lệch 268 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 268, "SNAPSHOT phải có đúng 268 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 288, "số route thực tế lệch 288 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 288, "SNAPSHOT phải có đúng 288 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

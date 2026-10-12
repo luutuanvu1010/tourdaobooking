@@ -1,0 +1,169 @@
+TAP version 13
+# (node:49997) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:49997) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# OBS {"nhan":"chinh_sach","status":403,"hienHanh":["error"],"raw":"{\\"error\\":{\\"code\\":\\"forbidden\\",\\"message\\":\\"Chỉ người phụ trách hệ thống xem và đổi được chính sách điều phối xe.\\"}}"}
+# OBS {"nhan":"db_policy","rows":[{"id":"d53b6dd9-60e2-4644-8e63-9ca7dcff35d0","min_lead_minutes":360,"rest_minutes":30,"duty_day_max_minutes":480,"trip_no_break_max_minutes":240}]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"A","ma":"CX-1103-01","id":"7e22b0ca-a4b6-4363-b00f-913f11cccf8f"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"B_cung_xe_cung_tx_07:29","status":409,"code":"trung_gio_xe","message":"Xe trùng giờ với chuyến khác.","lyDo":["TRUNG_GIO_XE: Xe trùng giờ với chuyến khác: CX-1103-01","TRUNG_GIO_TAI_XE: Tài xế trùng giờ với chuyến khác: CX-1103-01"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"B_cung_xe_cung_tx_07:30","status":409,"code":"chua_du_nghi","message":"Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ.","lyDo":["KHOANG_NGHI: Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ: CX-1103-01"],"canQuyen":false}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"B_cung_xe_cung_tx_07:35","status":409,"code":"chua_du_nghi","message":"Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ.","lyDo":["KHOANG_NGHI: Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ: CX-1103-01"],"canQuyen":false}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"B_cung_xe_cung_tx_07:45","status":409,"code":"chua_du_nghi","message":"Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ.","lyDo":["KHOANG_NGHI: Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ: CX-1103-01"],"canQuyen":false}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"B_cung_xe_cung_tx_07:59","status":409,"code":"chua_du_nghi","message":"Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ.","lyDo":["KHOANG_NGHI: Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ: CX-1103-01"],"canQuyen":false}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"B_cung_xe_TX2_0745","status":409,"code":"chua_du_nghi","message":"Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ.","lyDo":["KHOANG_NGHI: Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ: CX-1103-01"],"canQuyen":false}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"B_xe_khac_cung_tx_0745","status":409,"code":"chua_du_nghi","message":"Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ.","lyDo":["KHOANG_NGHI: Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ: CX-1103-01"],"canQuyen":false}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"B_sales_gui_pha_le_0745","status":403,"code":"forbidden","message":"Chỉ Quản trị hoặc Toàn quyền phá lệ được.","lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"B_cung_xe_cung_tx_0800","status":201,"code":null,"message":null,"lyDo":[],"ma":"CX-1103-02"}
+# OBS {"nhan":"doc_lai_trip","rows":[{"code":"CX-1103-01","status":"PLANNED","planned_start_ms":1804721400000,"planned_end_ms":1804725000000,"rest_minutes_snapshot":30,"rest_override_reason_code":null,"bd":"06:30","kt":"07:30"},{"code":"CX-1103-02","status":"PLANNED","planned_start_ms":1804726800000,"planned_end_ms":1804730400000,"rest_minutes_snapshot":30,"rest_override_reason_code":null,"bd":"08:00","kt":"09:00"}]}
+# Subtest: S3.1 luật khoảng nghỉ lúc TẠO chuyến B sau A 06:30–07:30 (cùng xe + cùng tài xế)
+ok 1 - S3.1 luật khoảng nghỉ lúc TẠO chuyến B sau A 06:30–07:30 (cùng xe + cùng tài xế)
+  ---
+  duration_ms: 86.869291
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"B_adm_pha_le_0745","status":201,"code":null,"message":null,"lyDo":[],"ma":"CX-1103-02"}
+# OBS {"nhan":"doc_lai_trip_S3.2","rows":[{"code":"CX-1103-01","rest_minutes_snapshot":30,"rest_override_reason_code":null},{"code":"CX-1103-02","rest_minutes_snapshot":30,"rest_override_reason_code":"PHA_LE_SU_CO"}]}
+# OBS {"nhan":"nhat_ky_pha_le","rows":[{"action":"trip_created","detail":"CX-1103-01 · xe 79C00007 (16 chỗ) · 06:30 11/03 → 07:30 11/03"},{"action":"trip_created","detail":"CX-1103-02 · xe 79C00007 (16 chỗ) · 07:45 11/03 → 08:45 11/03 · phá lệ khoảng nghỉ: Sự cố vận hành"}]}
+# Subtest: S3.2 Quản trị phá lệ khoảng nghỉ: B 07:45 cùng xe cùng tài xế
+ok 2 - S3.2 Quản trị phá lệ khoảng nghỉ: B 07:45 cùng xe cùng tài xế
+  ---
+  duration_ms: 63.784084
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# OBS {"nhan":"A_xuat_ben_0630","status":200,"code":null,"message":null,"lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# OBS {"nhan":"B_xuat_ben_khi_A_dang_chay_0645","status":409,"code":"chua_du_dieu_kien_xuat_ben","message":"Chuyến chưa đủ điều kiện xuất bến.","lyDo":["TRUNG_GIO_XE: Xe trùng giờ với chuyến khác: CX-1103-01","TRUNG_GIO_TAI_XE: Tài xế trùng giờ với chuyến khác: CX-1103-01"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi"}
+# OBS {"nhan":"A_da_toi_don","status":200,"code":null,"message":null,"lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/don"}
+# OBS {"nhan":"A_da_don","status":200,"code":null,"message":null,"lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/don"}
+# OBS {"nhan":"A_da_don","status":200,"code":null,"message":null,"lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/don"}
+# OBS {"nhan":"A_da_don","status":200,"code":null,"message":null,"lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi"}
+# OBS {"nhan":"A_da_toi_tra","status":200,"code":null,"message":null,"lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/tra"}
+# OBS {"nhan":"A_da_tra","status":200,"code":null,"message":null,"lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/tra"}
+# OBS {"nhan":"A_da_tra","status":200,"code":null,"message":null,"lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/tra"}
+# OBS {"nhan":"A_da_tra","status":200,"code":null,"message":null,"lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/ket-thuc"}
+# OBS {"nhan":"A_ket_thuc_0710","status":200,"code":null,"message":null,"lyDo":[]}
+# OBS {"nhan":"A_doc_lai","rows":[{"code":"CX-1103-01","status":"ENDED","ended_ms":1804723800000,"ketThucVn":"07:10"}]}
+# OBS {"nhan":"cuoc_cua_toi_0710","status":200,"chuyen":[{"ma":"CX-1103-01","gio":{"ngay":"2027-03-11","gio":"06:30"},"trangThai":"ENDED","dieuKienConThieu":[]},{"ma":"CX-1103-02","gio":{"ngay":"2027-03-11","gio":"08:00"},"trangThai":"PLANNED","dieuKienConThieu":[]}]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# OBS {"nhan":"B_xuat_ben_0715_tai_xe","status":409,"code":"chua_du_dieu_kien_xuat_ben","message":"Chuyến chưa đủ điều kiện xuất bến.","lyDo":["NGHI_THIEU: Chưa đủ thời gian nghỉ sau chuyến trước: CX-1103-01"]}
+# {"event":"thieu_ma_lan_gui","duong":"PUT /api/van-chuyen/chuyen/:id"}
+# OBS {"nhan":"B_PUT_dời_0720","status":409,"code":"chua_du_nghi","message":"Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ.","lyDo":["KHOANG_NGHI: Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ: CX-1103-01"],"canQuyen":false}
+# {"event":"thieu_ma_lan_gui","duong":"PUT /api/van-chuyen/chuyen/:id"}
+# OBS {"nhan":"B_PUT_dời_0740","status":200,"code":null,"message":null,"lyDo":[],"lyDoGiu":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# OBS {"nhan":"B_xuat_ben_0740_tai_xe_sau_doi","status":200,"code":null,"message":null,"lyDo":[]}
+# OBS {"nhan":"B_doc_lai","rows":[{"code":"CX-1103-02","status":"RUNNING","bdVn":"07:40","xbVn":"07:40"}]}
+# Subtest: S3.3 A kết thúc THỰC TẾ sớm (07:10) — B (08:00) có xuất bến / dời sớm được không
+ok 3 - S3.3 A kết thúc THỰC TẾ sớm (07:10) — B (08:00) có xuất bến / dời sớm được không
+  ---
+  duration_ms: 108.422917
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/don"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/don"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/tra"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/tra"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/ket-thuc"}
+# OBS {"nhan":"S3.4_A_ket_thuc","status":200,"code":null,"message":null,"lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# OBS {"nhan":"S3.4_B_xuat_ben_0739","status":409,"code":"chua_du_dieu_kien_xuat_ben","message":"Chuyến chưa đủ điều kiện xuất bến.","lyDo":["NGHI_THIEU: Chưa đủ thời gian nghỉ sau chuyến trước: CX-1103-01"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# OBS {"nhan":"S3.4_B_xuat_ben_0740","status":200,"code":null,"message":null,"lyDo":[]}
+# OBS {"nhan":"S3.4_B_doc_lai","rows":[{"code":"CX-1103-02","status":"RUNNING","xbVn":"07:40","bdVn":"08:00"}]}
+# OBS {"nhan":"S3.4_B_chi_tiet_sau_xuat_ben","trangThai":"RUNNING","keys":["id","ma","trangThai","trangThaiNhan","version","ngayChay","batDau","ketThuc","batDauMs","ketThucMs","xe","taiXe","tai","lyDoGiu","khoaMoc","xuatBen","ketThucThat","diem","nghiPhaLe","lyDoHuy","lyDoKetThuc","tuyen"],"canhBao":"[]"}
+# Subtest: S3.4 A kết thúc 07:10 — tài xế bấm xuất bến B (kế hoạch 08:00) lúc 07:40 KHÔNG cần văn phòng dời giờ
+ok 4 - S3.4 A kết thúc 07:10 — tài xế bấm xuất bến B (kế hoạch 08:00) lúc 07:40 KHÔNG cần văn phòng dời giờ
+  ---
+  duration_ms: 88.625667
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/don"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/don"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/tra"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/tra"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/ket-thuc"}
+# OBS {"nhan":"S3.5_lich_xe_item","keys":["id","bienSo","soCho","trangThai","chuXe","chuLaCongTy"],"xeItem":{"id":"d9d12a48-b359-4c88-9227-f361c8d0e0af","bienSo":"79C00016","soCho":16,"trangThai":"active","chuXe":"Công ty TNHH Tour Đảo","chuLaCongTy":true}}
+# OBS {"nhan":"S3.5_lich_chuyen_A","keys":["id","ma","trangThai","trangThaiNhan","version","ngayChay","batDau","ketThuc","batDauMs","ketThucMs","xe","taiXe","tai","lyDoGiu","khoaMoc","xuatBen","ketThucThat","diem"],"trangThai":"ENDED","ketThucThat":{"gioXayRa":{"ngay":"2027-03-11","gio":"07:10"},"gioGhiNhan":{"ngay":"2027-03-11","gio":"07:10"},"vanPhongKhai":false}}
+# OBS {"nhan":"S3.5_lich_chuyen_B","trangThai":"PLANNED","batDau":{"ngay":"2027-03-11","gio":"08:00"},"canhBao":[]}
+# OBS {"nhan":"S3.5_lich_top_keys","keys":["ngay","mocToiThieuPhut","canhBaoPhut","chang","chuyen","soNhap","nhapChoDatGap","canhBao","lyDo","xe","taiXe","khungBanXe"]}
+# Subtest: S3.5 lịch chung của điều phối sau khi A kết thúc sớm: có thông tin 'xe rảnh từ' / gợi ý mở chuyến kế không
+ok 5 - S3.5 lịch chung của điều phối sau khi A kết thúc sớm: có thông tin 'xe rảnh từ' / gợi ý mở chuyến kế không
+  ---
+  duration_ms: 80.699209
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS {"nhan":"S3.6_xep_C_luc_2200_hom_truoc","note":"chưa xếp — để 07:15 mới chèn"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS {"nhan":"S3.6_sales_chen_C_0715","status":409,"code":"can_pha_le","message":"Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ.","lyDo":["MOC_TOI_THIEU: Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ: TD-20270310-0002"],"canQuyen":false}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS {"nhan":"S3.6_adm_chen_C_0715_pha_le","status":200,"code":null,"message":null,"lyDo":[]}
+# Subtest: S3.6 quay đầu trong ngày: 07:15 điều phối chèn thêm một đoàn ĐÃ XÁC NHẬN từ tối qua vào chuyến B (08:00) — mốc 6 giờ có chặn không
+ok 6 - S3.6 quay đầu trong ngày: 07:15 điều phối chèn thêm một đoàn ĐÃ XÁC NHẬN từ tối qua vào chuyến B (08:00) — mốc 6 giờ có chặn không
+  ---
+  duration_ms: 72.626292
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 614.389125

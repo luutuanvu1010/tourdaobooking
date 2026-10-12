@@ -2,11 +2,12 @@
 // V6 bổ sung màn tài xế). Không I/O, không DOM; import kèm đuôi .ts. Test: xe-dang-chay-man.test.ts.
 // - Báo huỷ của văn phòng là THEO SUẤT và chỉ là cờ: suất vẫn chiếm chỗ tới khi tài xế bấm "Khách đã huỷ" (hoặc "Đã đón" khi báo nhầm).
 // - Tài xế thấy giờ đón + TỔNG khách, không tách người lớn / trẻ em (lời chủ 5.3).
-import type { CapNhatDiemResponse, ChangLichDto, ChuyenTomTatDto, CuuHoResponse, GioVnDto, LichChungResponse } from "./contracts.ts";
+import type { CapNhatDiemResponse, ChangLichDto, ChuyenTomTatDto, CuuHoResponse, DeNghiDto, GioVnDto, LichChungResponse, XeNhanDto } from "./contracts.ts";
 import { changChuaXep } from "./dieu-phoi-man.ts";
+import { CAU_NHAC_XE_DANG_CHAY } from "./dong-bo-chuyen-cau.ts";
 import type { DiemVao, SuatVao } from "./tien-do-man.ts";
 import { maskLongDigits } from "./text-guards.ts";
-import { ngayNgan } from "./vn-date.ts";
+import { msToVnLocal, ngayNgan } from "./vn-date.ts";
 
 const hien = (g: GioVnDto, ngayXem: string): string => (g.ngay === ngayXem ? g.gio : `${g.gio} ${ngayNgan(g.ngay, ngayXem)}`);
 const laKhach = (x: SuatVao): boolean => (x.loai ?? "PASSENGER") === "PASSENGER";
@@ -46,7 +47,7 @@ export function khachDangCho(suat: readonly SuatVao[], diem: readonly DiemVao[],
       return {
         suatId: x.id,
         ten: x.hoTen ? maskLongDigits(x.hoTen) : `Khách ${i + 1}`,
-        maDon: x.maDon,
+        maDon: x.maDon ?? null, // khoá vắng (vế hạn ngoài khung — G-A4-7) → null, như "không có mã"
         noiDon: d ? [`Điểm ${d.thuTu}`, d.tenNoi, d.gioHen ? hien(d.gioHen, ngayXem) : null].filter(Boolean).join(" · ") : "—",
         baoHuy: bh ? { nhan: "Văn phòng đã báo huỷ", phu: `Vẫn chiếm chỗ cho đến khi tài xế xác nhận · ${hien(bh.luc, ngayXem)} · ${bh.lyDoNhan}` } : null,
       };
@@ -75,6 +76,13 @@ export function theXeDangChay(c: ChuyenTomTatDto, ngayXem: string): { tieuDe: st
     phu: [c.taiXe?.ten ?? "Chưa có tài xế", c.xuatBen ? `xuất bến ${hien(c.xuatBen.gioXayRa, ngayXem)}` : null, tiep ? `tiếp theo: ${tiep.tenNoi}` : "đã tới mọi điểm"].filter(Boolean).join(" · "),
   };
 }
+
+/**
+ * ADR-0104 Đ2.7 (T2.16): dòng nhắc trên thẻ xe đang chạy — ĐÚNG câu cố định của máy (`CAU_NHAC_XE_DANG_CHAY`, cùng câu phản hồi lệnh đơn) khi máy chủ báo
+ * chuyến còn khách chờ đón của đơn huỷ (`coKhachDonHuy`, tính lúc đọc). Không mã đơn, không tên.
+ */
+export const nhacXeDangChay = (c: Pick<ChuyenTomTatDto, "trangThai" | "coKhachDonHuy">): string | null =>
+  c.trangThai === "RUNNING" && c.coKhachDonHuy ? CAU_NHAC_XE_DANG_CHAY : null;
 
 export interface LuaChonThemDiem { legId: string; nhan: string; phu: string; noiDon: string; conLai: number; datGap: boolean }
 /** Form "Thêm điểm đón / thêm khách" (V11 bảng 11.4): chặng chờ xếp; điểm đón chỉ đọc (suy từ chặng); số khách ≤ người còn lại của chặng. */
@@ -153,4 +161,131 @@ export function suatCuaKhach(r: {
   });
   const thieu = dong.filter((x) => !x.coTen).length;
   return thieu > 0 ? { thieu, dong } : null;
+}
+
+// ---- Chuyển khách giữa hai xe (ADR-0111, ADR-0052 D4; bản vẽ "Điều phối xe đang chạy" V8, V9, V10 — gói A5 T13 / T14) -------------------------------------
+// Đề nghị KHÔNG tên khách (LC-18): thẻ chỉ mã chuyến, tên điểm / nơi gặp (chữ đã che), số khách. Hạn chờ do MÁY CHỦ tính theo chính sách lúc gửi (`hanLuc`).
+/** Đếm ngược "MM:SS" tới `hanLuc` (làm tròn LÊN giây còn lại); hết hạn → null. Màn gọi lại mỗi giây — đọc lại danh sách mới đổi trạng thái. */
+export function demNguoc(hanLuc: string, bayGioMs: number): string | null {
+  const con = Math.ceil((Date.parse(hanLuc) - bayGioMs) / 1000);
+  if (!(con > 0)) return null;
+  return `${String(Math.floor(con / 60)).padStart(2, "0")}:${String(con % 60).padStart(2, "0")}`;
+}
+/** V8 1: điểm có nút "Nhờ xe khác đón" — xe đang chạy, điểm đón chưa tới, có khách và mọi suất mở ở điểm là khách CHỜ (cùng luật gửi của máy chủ, LC-14). */
+export function nhoDonDuoc(trangThaiChuyen: string, d: Pick<DiemVao, "id" | "loai" | "trangThai">, suat: readonly SuatVao[]): boolean {
+  if (trangThaiChuyen !== "RUNNING" || d.loai !== "PICKUP" || d.trangThai !== "PENDING") return false;
+  const o = suat.filter((x) => x.diemLen === d.id);
+  return o.length > 0 && o.every((x) => laKhach(x) && x.trangThai === "WAITING");
+}
+export interface TheDeNghi {
+  tieuDe: string;
+  tone: "info" | "ok" | "bad" | "end" | "warn";
+  dong: [string, string][];
+  cau: string | null;
+  /** Hiện đếm ngược tới `hanLuc`. */
+  demNguoc: boolean;
+  /** Xe nhờ: nút "Rút lại" (chỉ khi còn Chờ — Leo thang máy chủ không cho rút). */
+  coRut: boolean;
+  /** Xe nhờ: nút "Nhờ xe khác đón" lại (đề nghị đã đóng mà khách vẫn ở xe mình). */
+  coNhoLai: boolean;
+  /** Xe nhận: nút Nhận / Không nhận (chỉ khi còn Chờ, chưa quá hạn). */
+  coNhan: boolean;
+}
+const noiCua = (d: DeNghiDto): [string, string] => (d.phamVi === "STOP" ? ["Điểm đón", d.tenDiem ?? "—"] : ["Nơi gặp", d.noiGap ?? "—"]);
+const conCua = (d: DeNghiDto): string => (d.phamVi === "STOP" ? "Điểm vẫn thuộc chuyến của bạn." : "Khách vẫn thuộc chuyến của bạn.");
+const lyDoCau = (d: DeNghiDto): string => (d.lyDo ? `Lý do: ${d.lyDo}. ` : "");
+const the = (o: Partial<TheDeNghi> & Pick<TheDeNghi, "tieuDe" | "tone">): TheDeNghi => ({ dong: [], cau: null, demNguoc: false, coRut: false, coNhoLai: false, coNhan: false, ...o });
+/** Thẻ đề nghị GỬI ĐI — màn xe nhờ (V8 4, 5). */
+export function theGuiDi(d: DeNghiDto): TheDeNghi {
+  const dong: [string, string][] = [noiCua(d), ["Số khách", String(d.soKhach)]];
+  switch (d.trangThai) {
+    case "PENDING":
+      return the({ tieuDe: `Đang chờ ${d.denMaChuyen} nhận`, tone: "info", dong, demNguoc: true, coRut: true });
+    case "HET_GIO":
+    case "EXPIRED":
+      return the({ tieuDe: "Đề nghị đã hết hạn", tone: "end", dong, cau: `Không ai trả lời kịp. ${conCua(d)}`, coNhoLai: true });
+    case "DECLINED":
+      return the({ tieuDe: `${d.denMaChuyen} không nhận`, tone: "bad", dong, cau: `${lyDoCau(d)}${conCua(d)}`, coNhoLai: true });
+    case "CONFIRMED":
+      return the({
+        tieuDe: `${d.denMaChuyen} đã nhận`, tone: "ok", dong,
+        cau: d.phamVi === "STOP" ? `Khách đã chuyển sang chuyến ${d.denMaChuyen}. Điểm không còn trong chuyến của bạn.` : `Khách đã chuyển sang chuyến ${d.denMaChuyen}. Xe nhận sẽ tới nơi gặp.`,
+      });
+    case "ESCALATED":
+      return the({ tieuDe: "Chờ văn phòng duyệt", tone: "warn", dong, cau: "Đề nghị cần văn phòng duyệt. Bạn vẫn giữ khách đến khi có kết quả." });
+    case "REJECTED":
+      return the({ tieuDe: "Văn phòng không duyệt", tone: "bad", dong, cau: `${lyDoCau(d)}${conCua(d)}`, coNhoLai: true });
+    case "WITHDRAWN":
+      return the({ tieuDe: "Đã rút đề nghị", tone: "end", dong });
+    case "VOID":
+      return the({ tieuDe: "Đề nghị đã tự huỷ", tone: "end", dong, cau: "Điểm hoặc chuyến đã đổi nên đề nghị không còn dùng." });
+  }
+}
+/** Thẻ đề nghị GỬI TỚI — màn xe nhận (V9 1, 3). */
+export function theGuiToi(d: DeNghiDto): TheDeNghi {
+  const dong: [string, string][] = [["Chuyến nhờ", d.tuMaChuyen], noiCua(d), ["Số khách", String(d.soKhach)]];
+  switch (d.trangThai) {
+    case "PENDING":
+      return the({ tieuDe: "Đề nghị gửi tới bạn", tone: "info", dong, demNguoc: true, coNhan: true });
+    case "HET_GIO":
+    case "EXPIRED":
+      return the({ tieuDe: "Đề nghị đã hết giờ chờ", tone: "end", dong });
+    case "DECLINED":
+      return the({ tieuDe: "Bạn đã không nhận", tone: "end", dong, cau: d.lyDo ? `Lý do: ${d.lyDo}.` : null });
+    case "CONFIRMED":
+      return the({ tieuDe: "Đã nhận — khách đã vào chuyến của bạn", tone: "ok", dong, cau: `${d.soKhach} khách từ chuyến ${d.tuMaChuyen} đã thêm vào chuyến của bạn.` });
+    case "ESCALATED":
+      return the({ tieuDe: "Chờ văn phòng duyệt", tone: "warn", dong, cau: "Khách chưa vào chuyến của bạn cho đến khi văn phòng duyệt." });
+    case "REJECTED":
+      return the({ tieuDe: "Văn phòng không duyệt", tone: "end", dong, cau: d.lyDo ? `Lý do: ${d.lyDo}.` : null });
+    case "WITHDRAWN":
+      return the({ tieuDe: "Xe nhờ đã rút đề nghị", tone: "end", dong });
+    case "VOID":
+      return the({ tieuDe: "Đề nghị đã tự huỷ", tone: "end", dong, cau: "Xe nhờ đã đổi (tới điểm, kết thúc…) nên đề nghị không còn dùng." });
+  }
+}
+/** Một dòng xe nhận trong bảng chọn (V8 2); `du` = còn đủ chỗ cho `soKhach` (không đủ → khoá chọn; máy chủ vẫn kiểm lại). */
+export function dongXeNhan(x: XeNhanDto, soKhach: number): { nhan: string; phu: string; cho: string; du: boolean } {
+  return { nhan: `${x.maChuyen} · ${x.tenTaiXe}`, phu: x.diemSapToi ? `Sắp tới: ${x.diemSapToi}` : "Chưa có điểm sắp tới", cho: `Còn ${x.choTrong} chỗ`, du: x.choTrong >= soKhach };
+}
+const NHAN_TANG: Record<"LOI" | "CAU_HINH", string> = { LOI: "Bắt buộc", CAU_HINH: "Cấu hình" };
+const NHAN_KET_QUA: Record<"DAT" | "KHONG_DAT" | "CANH_BAO", string> = { DAT: "Đạt", KHONG_DAT: "Không đạt", CANH_BAO: "Cảnh báo" };
+const THU_KET_QUA: Record<"DAT" | "KHONG_DAT" | "CANH_BAO", number> = { KHONG_DAT: 0, CANH_BAO: 1, DAT: 2 };
+/** Hộp duyệt của văn phòng (V10): dòng kiểm lần bấm gần nhất (không đạt / cảnh báo lên đầu) + nút. Bản vẽ viết "Luật lõi" — màn dùng "Bắt buộc" (chữ chờ chủ duyệt). */
+export function hopDuyetDeNghi(d: DeNghiDto): {
+  kiem: { nhan: string; tang: string; ketQua: string; dat: "DAT" | "KHONG_DAT" | "CANH_BAO" }[];
+  coDuyet: boolean;
+  coBac: boolean;
+  cauChiBac: string | null;
+} {
+  const kiem = [...(d.kiem ?? [])]
+    .sort((a, b) => THU_KET_QUA[a.ketQua] - THU_KET_QUA[b.ketQua])
+    .map((k) => ({ nhan: k.nhan, tang: NHAN_TANG[k.tang], ketQua: NHAN_KET_QUA[k.ketQua], dat: k.ketQua }));
+  const leo = d.trangThai === "ESCALATED";
+  const chiBac = leo && d.hop === "CHI_BAC";
+  return {
+    kiem, coDuyet: leo && !chiBac, coBac: leo,
+    cauChiBac: chiBac ? "Có điều kiện bắt buộc không đạt — văn phòng không phá lệ được. Chỉ có thể bác; tài xế xe nhờ sẽ nhận thông báo." : null,
+  };
+}
+const TONE_VP: Record<DeNghiDto["trangThai"], "unit" | "ok" | "danger" | "muted" | "warn"> = {
+  PENDING: "unit", HET_GIO: "muted", EXPIRED: "muted", WITHDRAWN: "muted", VOID: "muted", CONFIRMED: "ok", ESCALATED: "warn", DECLINED: "danger", REJECTED: "danger",
+};
+/** Một dòng đề nghị cho văn phòng (danh sách trong ngày — V10; khối đề nghị ở Chi tiết chuyến): chỉ đọc. `canDuyet` = đang Leo thang (nút ở màn duyệt). */
+export function dongDeNghiVanPhong(d: DeNghiDto, ngayXem: string): {
+  tieuDe: string;
+  chip: { nhan: string; tone: "unit" | "ok" | "danger" | "muted" | "warn" };
+  dong: [string, string][];
+  canDuyet: boolean;
+} {
+  const g = msToVnLocal(Date.parse(d.guiLuc));
+  return {
+    tieuDe: `${d.tuMaChuyen} → ${d.denMaChuyen}`,
+    chip: { nhan: d.nhanTrangThai, tone: TONE_VP[d.trangThai] },
+    dong: [
+      ["Loại", d.phamVi === "STOP" ? "Nhờ đón một điểm" : "Cứu hộ cả xe"], noiCua(d), ["Số khách", String(d.soKhach)], ["Gửi lúc", hien({ ngay: g.date, gio: g.time }, ngayXem)],
+      ...(d.lyDo ? [["Lý do", d.lyDo] as [string, string]] : []),
+    ],
+    canDuyet: d.trangThai === "ESCALATED",
+  };
 }

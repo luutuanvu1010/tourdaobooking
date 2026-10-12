@@ -1,5 +1,5 @@
 // Kiểm cổng bảo trì của router (createApp): dùng module giả, không cần D1. Cổng do gốc lắp ráp tiêm (`injected.maintenanceBlock`) — router không biết module `maintenance`.
-import { test } from "node:test";
+import { mock, test } from "node:test";
 import assert from "node:assert/strict";
 import type { StaffProfile } from "./contracts.ts";
 import { json } from "./http.ts";
@@ -332,6 +332,58 @@ test("ctx.baoThayDoi trên route công khai (chưa đăng nhập, staff null) l�
   assert.equal(res.status, 200);
   assert.equal(waited.length, 0);
   assert.equal(goiInjected, false);
+});
+
+// ADR-0062 Đ4 (phiếu kiểm A3 V2): router chụp `batDau` TRƯỚC khi chạy handler — gốc lắp ráp chỉ gõ cửa dòng đổi có created_at ≥ batDau, nên mốc phải ≤ mọi
+// mốc `at` mà handler ghi. Đồng hồ giả TIẾN giữa các bước của handler (khung thử tin-doi-hop dùng đồng hồ đứng yên nên không phân biệt được "chụp trước handler"
+// với "chụp lúc gọi báo"); chụp muộn (lúc ctx.baoThayDoi được gọi) ⇒ batDau > at ⇒ bài đỏ.
+test("ctx.baoThayDoi: batDau truyền cho hàm tiêm là mốc chụp TRƯỚC handler — ≤ mọi mốc handler ghi, kể cả khi đồng hồ tiến giữa lúc ghi và lúc báo", async () => {
+  mock.timers.enable({ apis: ["Date"], now: Date.parse("2026-10-08T03:00:00.000Z") });
+  try {
+    const seen: { at: string; batDau: string | undefined }[] = [];
+    let at = "";
+    const mod: AppModule = {
+      name: "bat-dau-giả",
+      routes: [
+        route("GET", "/api/ghi-roi-bao", "staff", async (ctx) => {
+          mock.timers.tick(7); // việc đọc trước khi ghi
+          at = new Date().toISOString(); // mốc dòng nhật ký handler ghi
+          mock.timers.tick(7); // việc sau khi ghi, trước khi báo
+          ctx.baoThayDoi({ orderId: "o1", thayDoi: "chuyen" as never });
+          return new Response("ok");
+        }),
+      ],
+    };
+    const app = createApp({
+      modules: [mod],
+      currentStaff: async () => phien(staffOf(["SALES"])),
+      injected: {
+        isAssigned: async () => false,
+        newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
+        ordersWithHandler: async () => new Set<string>(),
+        handledOrderIdsOf: async () => [],
+        maintenanceBlock: async () => null,
+        partyAccount: async () => ({ linked: false }),
+        baoThayDoi: async (_env, _actor, _e, batDau) => { seen.push({ at, batDau }); },
+        dongBangTin: async () => {},
+        giaoLoDay: async () => [],
+        mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia-router", canhBaoPhut: 120 }),
+      },
+    });
+    const waited: Promise<unknown>[] = [];
+    const exec = { waitUntil: (p: Promise<unknown>) => { waited.push(p); } } as unknown as ExecutionContext;
+    mock.timers.tick(5); // request tới
+    const truocHandler = new Date().toISOString();
+    assert.equal((await app.fetch(new Request("http://x/api/ghi-roi-bao"), {} as Env, exec)).status, 200);
+    await Promise.allSettled(waited);
+    assert.equal(seen.length, 1);
+    const { batDau } = seen[0]!;
+    assert.equal(typeof batDau, "string");
+    assert.ok(batDau! <= at, `batDau (${batDau}) phải ≤ mốc handler ghi (${at})`);
+    assert.equal(batDau, truocHandler, "đúng mốc lúc request vào, trước mọi bước của handler");
+  } finally {
+    mock.timers.reset();
+  }
 });
 
 test("hàm tiêm baoThayDoi NÉM LỖI ĐỒNG BỘ → phản hồi vẫn 200; console.error một dòng bang_tin_loi, không lộ dữ liệu cá nhân", async () => {

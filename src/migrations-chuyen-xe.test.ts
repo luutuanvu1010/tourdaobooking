@@ -134,7 +134,7 @@ function chuyenChuan(db: Db, o: { cho?: number; tu?: number; den?: number } = {}
   const x = xe(db, chu, o.cho ?? 15);
   const id = chuyen(db, { xe: x, tu: o.tu, den: o.den });
   laiXe(db, id, hoSo(db, "PERSON", "Tài xế công ty"));
-  return { id, xe: x, chu, di: diem(db, id, "PICKUP", { text: "Khách sạn A" }), tra: diem(db, id, "DROPOFF") };
+  return { id, xe: x, chu, di: diem(db, id, "PICKUP", { text: "Khách sạn A" }), tra: diem(db, id, "DROPOFF", { seq: 2 }) }; // ADR-0096 Đ1 (0084, LC-19): điểm trả đứng SAU điểm đón — cũ để cả hai seq 1
 }
 function suat(db: Db, c: { id: string; di: string; tra?: string | null }, leg: string, o: { key?: string | null; status?: string; id?: string } = {}): string {
   const id = o.id ?? nid("al");
@@ -385,7 +385,7 @@ test("TC-8 [SOI] K-03 (a): ĐỔI GIỜ chuyến T2 (không đổi tài xế) l�
 test("TC-9 LC-05: PLANNED → RUNNING không có dòng kiểm ĐẠT mang dấu lệnh HIỆN HÀNH → RAISE; dòng kiểm của lô TRƯỚC (dấu cũ) → vẫn RAISE; KHONG_DAT → RAISE", () => {
   const db = openDb();
   const c = chuyenChuan(db);
-  const lenh = (cmd: string) => run(db, "UPDATE vc_trip SET status = 'RUNNING', departed_at = ?, departed_ms = ? WHERE id = ? AND last_cmd_id = ?", AT, Date.parse(AT), c.id, cmd);
+  const lenh = (cmd: string) => run(db, "UPDATE vc_trip SET status = 'RUNNING', departed_at = ?, departed_ms = ? WHERE id = ? AND last_cmd_id = ?", iso(ms("06:55")), ms("06:55"), c.id, cmd); // ADR-0096 Đ2: trong cửa sổ
   const cmd1 = cong(db, c.id);
   loi(() => lenh(cmd1), /lc05_departure_check/, "không dòng kiểm");
   dongKiem(db, c.id, cmd1, "KHONG_DAT");

@@ -17,12 +17,25 @@ const d = await dungDuLieuDieuPhoi(env, call);
 const x4 = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${d.T4.id}/phan-bo`, { version: d.T4.version, requestId: randomUUID(), chang: [{ legId: d.O4.legId, soSuat: 2 }], phaLe: { lyDo: "PHA_LE_SU_CO" } });
 assert.equal(x4.status, 200, x4.text);
 
-/** Đổi danh sách khách của đơn qua API đơn (đường thật của văn phòng): bỏ khách theo tên, thêm khách mới. */
+/**
+ * Đổi danh sách khách của đơn: thêm khách mới qua API đơn (đường thật của văn phòng), bỏ khách theo tên.
+ * ADR-0104 Đ2 (kế hoạch N9 — đổi cách DỰNG, không nới luật): sửa khách qua route nay tự đồng bộ chuyến (máy) nên trạng thái GIỮ KHACH_DA_DOI dựng bằng gieo
+ * SQL trên D1 tạm (tiền lệ moc-chua-co-smoke): thêm người qua route TRƯỚC (máy không có gì lệch), rồi HUỶ dòng khách cũ bằng một câu UPDATE `voided_at` —
+ * đúng cột route huỷ ghi, trigger 0035 cho phép — như khi máy vượt trần / thua cổng chuyến.
+ * Gọi API bằng Quản trị (không bao giờ mở trang trong Chrome của kịch bản này): Bán hàng đăng nhập trên Chrome ở bước 1 thì luật một máy (ADR-0075) đá cookie API
+ * của Bán hàng — bước 3 từng đỏ "unauthenticated" từ trước Đ2 vì vậy.
+ */
 const doiKhach = async (don, boTen, them = []) => {
-  const ds = (await call(ACCOUNTS.salesA, "GET", `/api/orders/${don.id}/passengers`)).json;
+  const g = await call(ACCOUNTS.admin, "GET", `/api/orders/${don.id}/passengers`);
+  assert.equal(g.status, 200, `đọc danh sách khách ${don.ma}: ${g.text}`);
+  const ds = g.json;
   const huy = boTen.map((t) => ds.passengers.find((x) => x.fullName === t).personKey);
-  const r = await call(ACCOUNTS.salesA, "POST", `/api/orders/${don.id}/passengers`, { expectedUpdatedAt: ds.orderUpdatedAt, them, sua: [], huy });
-  assert.equal(r.status, 200, `đổi khách ${don.ma}: ${r.text}`);
+  if (them.length) {
+    const r = await call(ACCOUNTS.admin, "POST", `/api/orders/${don.id}/passengers`, { expectedUpdatedAt: ds.orderUpdatedAt, them, sua: [], huy: [] });
+    assert.equal(r.status, 200, `thêm khách ${don.ma}: ${r.text}`);
+  }
+  const luc = new Date().toISOString();
+  for (const k of huy) env.sql(`UPDATE ord_passenger SET voided_at = '${luc}', updated_at = '${luc}' WHERE order_id = '${don.id}' AND person_key = '${k}' AND voided_at IS NULL`);
 };
 const moi = (fullName, birthYear) => ({ fullName, birthYear, paxCode: null });
 // T1 (ngoài khoá): bỏ "1-2", thêm "Khách Mới Thay" (đơn vẫn 3 người) → KHACH_DA_DOI. T4 (trong khoá): bỏ "5-1", thêm "Khách Mới Khoá". T3 (cho Kế toán xem).
@@ -35,7 +48,9 @@ const TIEU_DE_GIU = "Chuyến bị giữ: Khách trong đơn đã đổi — c�
 const nhom = `[...document.querySelectorAll('.dp-khach-nhom')].map((x) => ({ khoa: x.dataset.nhom, ten: x.querySelector('.dp-khach-nhom-ten').innerText.trim() }))`;
 const tenCua = async (p, legId) => (await p.ev(nhom)).find((x) => x.khoa === legId)?.ten.split(" · ").sort();
 const daiGiu = `[...document.querySelectorAll('#ct-trang > .banner-danger .banner-title')].map((x) => x.innerText.trim())`;
-const dieuKien = `[...document.querySelectorAll('.dp-cond[data-dat]')].filter((r) => r.dataset.dat !== 'true').map((r) => ({ nhan: r.querySelector('.dp-cond-nhan').innerText, sub: r.querySelector('.dp-cond-sub')?.innerText ?? '' }))`;
+// Gói A1 (ADR-0096 Đ2, LC-20): chuyến 13/10 nằm ngoài cửa sổ xuất bến 48 giờ của bản gieo nên màn CHI TIẾT hiện thêm dòng "Trong giờ được xuất bến" ✕
+// (không tô "Bị giữ" — `kieuChuyen`). Kịch bản này chỉ kiểm khách đổi / thiếu tên nên bỏ dòng đó ra; dòng cửa sổ có kiểm riêng ở chuyen-smoke và cuoc-smoke.
+const dieuKien = `[...document.querySelectorAll('.dp-cond[data-dat]')].filter((r) => r.dataset.dat !== 'true' && r.querySelector('.dp-cond-nhan').innerText !== 'Trong giờ được xuất bến').map((r) => ({ nhan: r.querySelector('.dp-cond-nhan').innerText, sub: r.querySelector('.dp-cond-sub')?.innerText ?? '' }))`;
 const viec = `[...document.querySelectorAll('#dp-cot-can-xu-ly .dp-cxl')].map((x) => ({ tieuDe: x.querySelector('.dp-cxl-tieu-de').innerText.trim(), text: x.querySelector('.dp-cxl-text')?.innerText.trim() ?? '', ai: x.querySelector('.dp-cxl-ai').innerText.trim(), nut: [...x.querySelectorAll('.dp-cxl-actions .vc-btn')].map((n) => n.innerText.trim()) }))`;
 const ghi = (p) => apiCalls(p).filter((r) => r.method === "POST" && r.path.endsWith("/cap-nhat-khach")).map((r) => JSON.parse(r.body));
 const cho = (p) => p.waitFor(`!!document.querySelector('.dp-ct-title')`, "trang chi tiết dựng xong");
@@ -67,7 +82,7 @@ try {
   await cho(p);
   await b.step("2", `1040 Bán hàng ${d.T1.ma}: dải "${TIEU_DE_GIU}" + nút; "Đủ tên khách" ✕ kèm câu; bấm (không hộp xác nhận) → CÙNG trang: tên mới hiện (đọc lại GET), hết giữ${axeNote()}`, async () => {
     assert.deepEqual(await p.ev(daiGiu), [TIEU_DE_GIU]);
-    assert.equal(await p.ev(txt("#ct-trang > .banner-danger .banner-lines")), `${CAU(d.O1.ma)} Ai xử lý: Văn phòng. Không cần phá lệ, kể cả trong vùng khoá trước giờ xuất bến.`);
+    assert.equal(await p.ev(txt("#ct-trang > .banner-danger .banner-lines")), `${CAU(d.O1.ma)} Ai xử lý: Văn phòng. Không cần điều chỉnh khẩn cấp hay phá lệ, kể cả trong vùng khoá trước giờ xuất bến.`);
     assert.deepEqual(await p.ev(dieuKien), [{ nhan: "Đủ tên khách", sub: `${CAU(d.O1.ma)} · Ai xử lý: Văn phòng` }]);
     assert.equal(await p.ev(txt(".dp-ct-head .chip")), "Bị giữ");
     assert.equal(await p.ev(`document.querySelector('main').innerText.includes('Khách Mới Thay')`), false, "trước khi bấm: xe chưa có khách mới");
@@ -144,13 +159,15 @@ try {
   // ---- Bán hàng, điện thoại: T4 TRONG vùng khoá — vẫn bấm được, không phá lệ ------------------------------------------------------------------------------------
   const pm = await env.as(ACCOUNTS.salesA, `/chuyen?id=${d.T4.id}`, MOB);
   await cho(pm);
-  await b.step("4", `390 Bán hàng ${d.T4.ma} (trong vùng khoá): câu khoá nói "cập nhật khách theo đơn không cần phá lệ"; dải + nút; bấm → không hộp phá lệ, tên mới hiện, hết giữ${axeNote()}`, async () => {
-    assert.equal(await pm.ev(txt(".dp-ct-lock")), "Trong 48 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Cần Quản trị phá lệ. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần phá lệ.");
+  // ADR-0104 Đ1 (2026-10-08): câu khoá theo ô điều chỉnh khẩn cấp (Bán hàng có ô) — "cập nhật khách theo đơn không cần điều chỉnh khẩn cấp"; thẻ khách
+  // không còn dòng khoá cho Bán hàng (rút / chuyển trong vùng khoá là điều chỉnh khẩn cấp), nên chỉ còn MỘT ổ khoá (đầu trang) để đo.
+  await b.step("4", `390 Bán hàng ${d.T4.ma} (trong vùng khoá): câu khoá nói "cập nhật khách theo đơn không cần điều chỉnh khẩn cấp"; dải + nút; bấm → không hộp xác nhận, tên mới hiện, hết giữ${axeNote()}`, async () => {
+    assert.equal(await pm.ev(txt(".dp-ct-lock")), "Trong 48 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Bạn có thể điều chỉnh khẩn cấp kèm lý do. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần điều chỉnh khẩn cấp.");
     assert.deepEqual(await pm.ev(daiGiu), [TIEU_DE_GIU]);
     // Vòng 5f (nhật ký 13.11): ổ khoá của dòng khoá không bị flex ép nhỏ khi câu dài xuống nhiều dòng — cỡ vẽ = cỡ khai của biểu tượng (16 ở đầu trang,
     // 14 ở thẻ khách — khớp chữ 14 của dòng).
     const oKhoa = await pm.ev(`[...document.querySelectorAll('.dp-ct-lock svg, .dp-khach-khoa svg')].map((x) => [Math.round(x.getBoundingClientRect().width), Number(x.getAttribute('width'))])`);
-    assert.equal(oKhoa.length, 2, "dòng khoá đầu trang + dòng khoá thẻ khách");
+    assert.equal(oKhoa.length, 1, "dòng khoá đầu trang (ADR-0104 Đ1: Bán hàng không còn dòng khoá ở thẻ khách)");
     for (const [ve, khai] of oKhoa) assert.equal(ve, khai, `ổ khoá bị ép nhỏ: ${JSON.stringify(oKhoa)}`);
     assert.ok(await pm.ev(noOverflowX));
     await axe(pm, "dải khách đổi 390");

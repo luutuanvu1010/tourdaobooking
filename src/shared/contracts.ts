@@ -246,8 +246,16 @@ export interface OrderDto {
   customerNote: string | null;
   subtotal: number;
   discount: number;
-  /** Tổng khách phải trả HIỆN HÀNH (sau điều chỉnh). Ba cột cọc cũ KHÔNG còn trong DTO (ADR-0026 đ9): "đã thu / còn lại" lấy qua route của billing. */
+  /**
+   * Tổng khách phải trả HIỆN HÀNH (sau điều chỉnh) = max(0, tạm tính − giảm giá) — không bao giờ âm (ADR-0109). Ba cột cọc cũ KHÔNG còn trong DTO (ADR-0026 đ9):
+   * "đã thu / còn lại" lấy qua route của billing.
+   */
   total: number;
+  /**
+   * Giảm giá hiệu lực = min(giảm giá, tạm tính hiện hành) — ADR-0109 QĐ2; máy chủ tính bằng `effectiveMoney` (không bề mặt nào tự tính). Bằng `discount` trừ khi bớt
+   * khách làm tạm tính nhỏ hơn giảm giá. Trang đơn nội bộ vẫn hiện `discount` (giảm giá đã lưu) kèm cảnh báo; biên nhận gửi khách in số này.
+   */
+  giamGiaHieuLuc: number;
   paymentNote: string | null;
   createdAt: string;
   updatedAt: string;
@@ -450,7 +458,15 @@ export interface PassengerListResponse {
   soKhachDoan: number;
   vuotSoKhach: boolean;
   orderUpdatedAt: string;
+  /** Chỉ phản hồi của lệnh GHI (`POST`) — ADR-0104 Đ2. */
+  dongBoChuyen?: DongBoChuyenDto;
 }
+/**
+ * ADR-0104 Đ2 — phần "chuyến" của phản hồi lệnh đơn có nối máy đồng bộ chuyến (huỷ đơn, bỏ / thay chặng, sửa chặng, sửa khách, sửa số khách — cả đường HDV).
+ * KHÔNG mang dữ liệu chuyến nào (Đ2.13 — không mã chuyến, biển số, tài xế). `nhac` = câu cố định khi đơn có khách chờ đón trên xe ĐANG CHẠY (văn phòng bấm
+ * Báo huỷ); `capNhatTay` = máy không nối được phần chuyến (vượt trần câu, hoặc chuyến vừa đổi giữa lúc đọc và lúc ghi) — người xếp xe bấm "Cập nhật khách theo đơn".
+ */
+export interface DongBoChuyenDto { nhac: string | null; capNhatTay: boolean }
 /** `POST /api/orders/:id/passengers` (đơn đã xác nhận): thêm dòng mới, sửa = dòng mới trỏ dòng hiện hành, huỷ = mọi dòng của người đó. */
 export interface PassengerChangeInput {
   expectedUpdatedAt: string;
@@ -491,11 +507,24 @@ export interface NguoiLapResponse { nguoiLap: NguoiLapDto[] }
 export interface CanhBaoMocDto { legKey: string; phutConLai: number }
 /**
  * `canhBaoMoc`, `mocToiThieuPhut` (ADR-0049 I27, I31) có ở phản hồi LẬP / SỬA NHÁP (`POST/PUT /api/orders`) — màn hình hiện cảnh báo sau lần lưu; vắng ở các
- * route khác. `mocToiThieuPhut` null = nháp không chặng (không hỏi mốc).
+ * route khác. `mocToiThieuPhut` null = nháp không chặng (không hỏi mốc). `dongBoChuyen` (ADR-0104 Đ2) chỉ có ở phản hồi lệnh đơn nối máy đồng bộ chuyến (huỷ đơn,
+ * bỏ / thay / sửa chặng).
  */
-export interface OrderResponse { order: OrderDetailDto; canhBaoMoc?: CanhBaoMocDto[]; mocToiThieuPhut?: number | null }
+export interface OrderResponse { order: OrderDetailDto; canhBaoMoc?: CanhBaoMocDto[]; mocToiThieuPhut?: number | null; dongBoChuyen?: DongBoChuyenDto }
 /** `mocToiThieuPhut` (ADR-0049 I31): mốc tối thiểu đang hiệu lực (phút) để biểu mẫu cảnh báo trước khi xác nhận; null = chưa có chính sách. */
-export interface OrderDetailResponse { order: OrderDetailDto; history: AuditEntryDto[]; canModify: boolean; mocToiThieuPhut: number | null }
+/**
+ * ADR-0063 D1 — một dịch vụ TỪ DANH MỤC của bảng "Sửa số khách dịch vụ" (văn phòng): loại khách sửa được tính từ BẢN CHỤP GỐC (`editablePaxCodesOf` — loại đã về 0
+ * vẫn còn). Dịch vụ nhập tay không có dòng (đường này không sửa dịch vụ nhập tay).
+ */
+export interface SuaSoKhachDichVuDto { serviceId: string; loaiKhach: PaxCode[] }
+/** `suaSoKhach`: có khi người xem sửa được số khách đơn này NGAY LÚC NÀY (`duocSuaSoKhachVanPhong`), còn lại null. */
+export interface OrderDetailResponse { order: OrderDetailDto; history: AuditEntryDto[]; canModify: boolean; mocToiThieuPhut: number | null; suaSoKhach: SuaSoKhachDichVuDto[] | null }
+/**
+ * `POST /api/orders/:id/money-edit` (ADR-0063 D1): đơn HIỆN HÀNH sau lần sửa; `daGhi` false = số khách y nguyên, không ghi gì; `canhBaoTongAm` (tên khoá GIỮ, nghĩa
+ * đổi theo ADR-0109) = câu cảnh báo khi giảm giá > tạm tính hiện hành (không chặn — `canhBaoGiamGiaVuot` của src/shared/so-khach-van-phong.ts), null khi không.
+ * `dongBoChuyen` chỉ có khi đã ghi (`daGhi`) — ADR-0104 Đ2.
+ */
+export interface MoneyEditResponse { order: OrderDetailDto; daGhi: boolean; canhBaoTongAm: string | null; dongBoChuyen?: DongBoChuyenDto }
 /** 409 xác nhận đơn khi còn chặng dưới mốc chưa đặt gấp (ADR-0049 D2). */
 /** `GET /api/orders/moc-toi-thieu` (ruling R-P15): mốc tối thiểu + cảnh báo sát mốc (phút) của chính sách HIỆN HÀNH — chỉ để biểu mẫu đơn chưa lưu hiển thị. */
 export interface MocToiThieuResponse { mocToiThieuPhut: number; canhBaoPhut: number }
@@ -675,8 +704,9 @@ export interface AssigneesResponse { assignees: AssigneeDto[] }
 /** `PUT /api/orders/:id/handler` — đặt/đổi người phụ trách (hoặc tự nhận khi đơn chưa có người: `staffId` = chính mình). */
 export interface SetHandlerInput { staffId: string }
 export interface SetHandlerResponse { handler: HandlerDto }
-export interface HandlerCancelResponse { ok: true }
-export interface HandlerMoneyEditResponse { ok: true }
+/** Đường HDV huỷ đơn / sửa số khách: `dongBoChuyen` = phần "chuyến" (ADR-0104 Đ2) — chỉ câu cố định + cờ, không dữ liệu chuyến (HDV không có trip.view). */
+export interface HandlerCancelResponse { ok: true; dongBoChuyen?: DongBoChuyenDto }
+export interface HandlerMoneyEditResponse { ok: true; dongBoChuyen?: DongBoChuyenDto }
 
 /**
  * Màn "việc của tôi" (`GET /api/dispatch/mine`, module dispatch — ADR-0014 điều 6/11, ADR-0030 S23-8). Viết ĐỘC LẬP, KHÔNG `Pick`/`Omit` từ
@@ -1058,8 +1088,9 @@ export interface FeedbackBadgeResponse {
 }
 
 // ---- Thông báo hệ thống (ADR-0034) --------------------------------------------
-// "chuyen": tin chuyến xe (ADR-0052 D6); "tai_khoan": ngưng tài khoản giữ tiền — chỉ Toàn quyền nhận (ADR-0090 đ3)
-export type LoaiTin = "thu_cong" | "lap" | "cho_nhan" | "nhan" | "giao" | "xac_nhan" | "huy" | "chuyen" | "tai_khoan";
+// "chuyen": tin chuyến xe (ADR-0052 D6, kể cả MQ-07 "giờ hẹn chặng đổi khi đã xếp"); "tai_khoan": ngưng tài khoản giữ tiền — chỉ Toàn quyền nhận (ADR-0090 đ3);
+// "doi_sau_xac_nhan": đơn đã xác nhận đổi giờ / nơi đón / số khách / chặng (ADR-0062)
+export type LoaiTin = "thu_cong" | "lap" | "cho_nhan" | "nhan" | "giao" | "xac_nhan" | "huy" | "chuyen" | "tai_khoan" | "doi_sau_xac_nhan";
 export interface TinDto {
   id: string;
   loai: LoaiTin;
@@ -1112,6 +1143,16 @@ export interface DispatchPolicyDto {
   dutyDayMaxMinutes: number;
   /** ADR-0055 VK2-B (0071): chuyến dài hơn (phút, 30…720; gieo 240) → nhắc nghỉ — chỉ cảnh báo. */
   tripNoBreakMaxMinutes: number;
+  /** ADR-0096 Đ2 (0084): cửa sổ xuất bến (phút, 60…2880; mặc định nằm trong bảng chính sách) — chỉ xuất bến từ giờ khởi hành dự kiến − cửa sổ. */
+  departureWindowMinutes: number;
+  /** ADR-0053 D8.1 (0092): hạn Từ chối (phút trước giờ chạy, 60…2880; gieo 720). */
+  refuseLeadMinutes: number;
+  /** Lời chủ 6.3 (0092): SĐT văn phòng (0xxxxxxxxx) cho nút "Gọi văn phòng" của tài xế; null = chưa nhập. Chỉ Toàn quyền đọc DTO này. */
+  officePhone: string | null;
+  /** ADR-0052 D4.1 + ADR-0111 Đ3 (c) (0093): phút chờ tài xế xe nhận trả lời đề nghị chuyển khách (1…120; gieo 10). */
+  acceptWaitMinutes: number;
+  /** ADR-0052 D4.1 + ADR-0111 Đ3 (c) (0093): tự đồng ý chuyển khách khi đạt mọi điều kiện (gieo bật); tắt thì mọi đề nghị chờ Quản trị. */
+  autoConfirmTransfer: boolean;
   validFrom: string;
   current: boolean;
   /** R-P23: "ai lưu" — TÊN hiển thị người lưu bản này (hàm tiêm nhãn R-P20; không SĐT, không id); null = bản gieo / khung thử không tiêm nhãn. */
@@ -1130,6 +1171,16 @@ export interface DispatchPolicyCreateRequest {
   dutyDayMaxMinutes: number;
   /** BẮT BUỘC (I43, ADR-0055 VK2-B). */
   tripNoBreakMaxMinutes: number;
+  /** BẮT BUỘC (I43, ADR-0096 Đ2.3): phút, 60…2880 — màn nhập giờ (1–48). */
+  departureWindowMinutes: number;
+  /** BẮT BUỘC (I43, ADR-0053 D8.1): phút, 60…2880 — màn nhập giờ (1–48). */
+  refuseLeadMinutes: number;
+  /** BẮT BUỘC có khoá (I43; lời chủ 6.3): chuỗi SĐT hoặc null / "" = không có. */
+  officePhone: string | null;
+  /** BẮT BUỘC (I43, ADR-0111 Đ3 (c)): phút, 1…120. */
+  acceptWaitMinutes: number;
+  /** BẮT BUỘC (I43, ADR-0111 Đ3 (c)). */
+  autoConfirmTransfer: boolean;
   requireContract?: false;
 }
 export interface DepartureRuleDto {
@@ -1200,6 +1251,17 @@ export interface KhungBanXeDto {
 export interface KhungBanXeListResponse { dangCo: KhungBanXeDto[]; lichSu: KhungBanXeDto[]; lyDo: { code: string; label: string }[] }
 /** 409 lớp route khi ghi khung chồng chuyến chưa huỷ, chưa kết thúc (Q-L2-1 = a) — chỉ mã chuyến + giờ, không tên khách. */
 export interface KhungBanChongChuyenLoi { error: { code: "khung_ban_chong_chuyen"; message: string; chuyen: { ma: string; gio: string }[] } }
+// ---- Báo bận của tài xế (ADR-0053 D9; kế hoạch A4 T8; G-A4-19, G-A4-28) -------------------------------------------------------------------------------
+/** Một khung bận của CHÍNH tài xế (`GET|POST /api/van-chuyen/ban*`). `lyDo` = nhãn lý do (người xem là chủ khung). */
+export interface KhungBanCuaToiDto { id: string; batDau: string; ketThuc: string; batDauMs: number; ketThucMs: number; lyDoMa: string; lyDo: string; version: number }
+/** `khung` = khung chưa rút, chưa qua của chính mình (giờ bắt đầu tăng); `lyDo` = danh mục BAN_TAI_XE đang dùng. Thân ghi / rút KHÔNG có `requestId` (G-A4-28). */
+export interface KhungBanCuaToiResponse { khung: KhungBanCuaToiDto[]; lyDo: { code: string; label: string }[] }
+/** 409 lớp route khi khung chồng chuyến người gọi đang được xếp — CHỈ chuyến của chính người gọi: id, mã chuyến, giờ (không tên khách, không mã đơn). */
+export interface KhungBanChongChuyenTaiXeLoi { error: { code: "khung_ban_chong_chuyen_tai_xe"; message: string; chuyen: { id: string; ma: string; gio: string }[] } }
+/** Dải "Tài xế bận" của văn phòng (`GET /api/van-chuyen/ban-tai-xe` — trip.dispatch): KHÔNG lý do (lời chủ 6.2). `taiXeId` = hồ sơ tài xế. */
+export interface KhungBanTaiXeDto { id: string; taiXeId: string; tenTaiXe: string; nhaXe: string[]; batDauMs: number; ketThucMs: number; nhan: string }
+/** `tu`..`den` (hai đầu bao gồm, ngày VN): mặc định hôm nay → +6 ngày. */
+export interface BanTaiXeResponse { tu: string; den: string; khung: KhungBanTaiXeDto[] }
 /** Chuyến đã xếp trên lưới tuần Lịch xe bận — DANH SÁCH TRẮNG: không mã đơn, không tên khách, không tài xế (câu 3.1, chủ 2/10). Trạng thái thô chỉ để màn chọn nhãn. */
 export interface ChuyenXeBanDto { id: string; ma: string; xeId: string; batDauMs: number; ketThucMs: number; trangThai: "PLANNED" | "RUNNING" | "ENDED" | "ENDED_INTERRUPTED" }
 /** Dải bận trên lịch chung ngày D (`LichChungResponse.khungBanXe`; trip.view — ADR-0055 A4): DANH SÁCH TRẮNG — không người ghi, không tài xế. Giờ ISO UTC. */
@@ -1230,6 +1292,18 @@ export interface ChuyenTomTatDto {
   xuatBen: MocTienDoDto | null;
   ketThucThat: MocTienDoDto | null;
   diem: { id: string; thuTu: number; loai: "PICKUP" | "DROPOFF"; tenNoi: string; trangThai: string; daToi: MocTienDoDto | null }[];
+  /**
+   * ADR-0104 Đ1 mục 5: nhãn "Điều chỉnh khẩn cấp" — chuyến có sự kiện (mọi loại, kể cả dời khách vào / ra — GA-35) mang luật vượt `MOC_TOI_THIEU`; tính lúc
+   * đọc. Vượt khoảng nghỉ / cam kết mà không vượt mốc → false (nhãn "Phá lệ" ở nhật ký) — kể cả bốn ca Bán hàng làm dưới mốc (lệch đã biết Đ1.5). CHỈ DTO
+   * văn phòng (lịch chung, chi tiết chuyến); không vào DTO tài xế.
+   */
+  khanCap: boolean;
+  /**
+   * ADR-0104 Đ2.7 (kế hoạch T2.16): chuyến ĐANG CHẠY còn suất khách CHỜ ĐÓN (mở, chưa "văn phòng báo huỷ") thuộc đơn ĐÃ HUỶ — máy đồng bộ không ghi lên xe
+   * đang chạy nên màn "Xe đang chạy" nhắc văn phòng bấm Báo huỷ. Tính lúc đọc, cùng nguồn trạng thái đơn với lý do giữ DON_DA_HUY (`v_ord_order_flag` qua
+   * `legFlags`). Chuyến không chạy → false. Chỉ cờ — không mã đơn, không tên.
+   */
+  coKhachDonHuy: boolean;
 }
 export interface ChangLichDto {
   legId: string;
@@ -1309,6 +1383,12 @@ export interface SuatChuyenDto {
   trangThai: "WAITING" | "BOARDED" | "NO_SHOW" | "CANCELLED_AT_STOP" | "DROPPED";
   /** Số hiệu chuyến bay của CHẶNG của suất (ADR-0055 VK2-C C3; gắn vào suất, không vào điểm dừng — ruling T1); null = chưa có / suất người đi kèm. */
   soHieuChuyenBay: string | null;
+  /**
+   * C33 (đánh giá ERP 7/10): giờ hẹn ĐÓN hiện hành của CHẶNG của suất (ngày + giờ VN; null = chặng chưa chốt giờ / suất người đi kèm). Nhiều đoàn cùng nơi khác giờ
+   * gộp thành MỘT điểm (ADR-0049 dòng 76) — `DiemChuyenDto.gioHen` chỉ giữ giờ sớm nhất, màn hiện giờ từng đoàn dưới điểm bằng khoá này. Chỉ DTO văn phòng
+   * (chi tiết chuyến); DTO tài xế là danh sách trắng riêng, chưa mang khoá này.
+   */
+  gioHen: GioVnDto | null;
   /** Có tên khách chưa (khoá người đã gắn). */
   coTen: boolean;
   /** Họ tên + năm sinh — CHỈ ở chi tiết chuyến của văn phòng (R-P1; `trip.view = any` ⇒ `contact.view = any`) và DTO tài xế trong ngày chạy (A15). */
@@ -1335,6 +1415,8 @@ export interface NhatKyChuyenDto {
   may: boolean;
   soNguoi: number | null;
   phaLe: { luat: string; lyDoNhan: string } | null;
+  /** Sự kiện ghi ở CHUYẾN KHÁC mà chuyến này là chuyến liên quan (dời / chuyển khách đi — ADR-0111 Đ5; luật "đã có tiến độ sau xuất bến"). */
+  chuyenKhac: boolean;
 }
 export interface BanChupDto {
   ketQua: "DAT" | "KHONG_DAT";
@@ -1365,6 +1447,11 @@ export interface ChuyenChiTietResponse {
   /** ADR-0051 (A-GB): mỗi chặng có suất trên chuyến mà còn mục "Giờ hẹn đổi — gọi báo khách" hoặc đang mang dấu "đã gọi báo". */
   goiBao: GoiBaoChangDto[];
   /**
+   * ADR-0053 D8 (kế hoạch A4 T7, G-A4-14): các lần tài xế Từ chối chuyến này (mới trước). `lyDo` CHỈ khi người gọi có `trip.dispatch` (Kế toán thấy tên + giờ,
+   * không lý do). Không SĐT, không id hồ sơ.
+   */
+  tuChoi: TuChoiChuyenDto[];
+  /**
    * CHỈ ở phản hồi lệnh xếp (`POST …/chuyen/:id/phan-bo`) khi có: cảnh báo sớm CHUA_CO_NOI_TRA / THIEU_TEN của chặng vừa xếp (cùng luật cổng xuất bến —
    * `lyDoNoiTra` / `lyDoThieuTen` ở src/shared/dieu-phoi-kiem.ts). Chỉ nhắc — lệnh đã chạy. Mã đơn + số tên thiếu, không tên khách.
    */
@@ -1391,7 +1478,10 @@ export interface NhacGoiKhachResponse { tu: string; den: string; muc: MucNhacGoi
 export interface DaGoiBaoRequest { requestId: string; phienBan: number; gioMoi: GioHenDto }
 /** `POST /api/van-chuyen/chang/:legId/bo-danh-dau-goi-bao`. */
 export interface BoDanhDauGoiBaoRequest { requestId: string; phienBan: number }
-/** Phá lệ đi kèm lệnh (I2) — chỉ ô `trip.override` (Quản trị, Toàn quyền); `lyDo` = mã lý do nhóm PHA_LE đang dùng. */
+/**
+ * Cờ vượt luật đi kèm lệnh (I2): `phaLe` (mốc), `nghiPhaLe` (khoảng nghỉ), `camKetPhaLe` (cam kết). ADR-0104 Đ1: mốc → ô `trip.urgent_adjust` (Điều chỉnh khẩn
+ * cấp); khoảng nghỉ, cam kết → `trip.urgent_adjust` khi chuyến dưới mốc, `trip.override` (Phá lệ) khi ngoài mốc. `lyDo` = mã lý do nhóm PHA_LE đang dùng.
+ */
 export interface PhaLeRequest { lyDo: string }
 /** POST /api/van-chuyen/chuyen — tạo chuyến. */
 export interface TaoChuyenRequest {
@@ -1453,12 +1543,77 @@ export interface CuuHoResponse {
   xeNhan: { tripId: string; maChuyen: string; trangThai: "PLANNED" | "RUNNING"; tenTaiXe: string; choTrong: number; diemSapToi: string | null; version: number }[];
 }
 /**
- * `POST /api/van-chuyen/chuyen/:id/cap-nhat-khach` (R-P29, chủ lần 16 — khuôn route 40): thân như `CapNhatDiemRequest`. `daCapNhat` = số suất khách ĐÃ ĐỔI
- * được xử lý (đóng PASSENGER_CHANGED; mở lại tới số người của chặng). 0 = không có gì lệch (không ghi). Phản hồi KHÔNG tên (GA-55).
+ * Xe nhận được đề nghị chuyển khách (ADR-0052 D4; ADR-0111 Đ4; kế hoạch A5 NT-A5-2) — `GET /api/van-chuyen/cuoc-cua-toi/:id/xe-nhan?phamVi=STOP|ONBOARD`
+ * (tài xế đang lái chuyến nguồn). Đúng năm khoá: không khách, không biển số, không SĐT, không mã đơn. Chuyến cùng ngày chạy, có tài xế mở khác người gửi;
+ * `STOP`: PLANNED / RUNNING; `ONBOARD` (cứu hộ): chỉ RUNNING (Đ4). Trước khi A4 gộp: chỉ tài xế công ty (G-A5-20).
+ */
+export interface XeNhanDto { tripId: string; maChuyen: string; tenTaiXe: string; choTrong: number; diemSapToi: string | null }
+export interface XeNhanResponse { phamVi: "STOP" | "ONBOARD"; xe: XeNhanDto[] }
+/**
+ * Đề nghị chuyển khách (ADR-0111; LC-18 — không tên, năm sinh, SĐT khách; chữ nơi gặp đã che CHỈ ở DTO này, không vào nhật ký / tin; khoá nơi không bao giờ).
+ * `trangThai` tính LÚC ĐỌC (MQ-08 — `HET_GIO` = còn Chờ trong CSDL nhưng đã quá hạn; lần bấm tiếp theo mới ghi Hết hạn). `kiem` = dòng kiểm của lần bấm gần
+ * nhất (chỉ DTO văn phòng); `hop` = hộp duyệt khi Leo thang (`CHI_BAC` khi có điều kiện lõi không đạt ở BẤT KỲ lần kiểm nào).
+ */
+export interface DeNghiDto {
+  id: string;
+  tuChuyenId: string;
+  tuMaChuyen: string;
+  denChuyenId: string;
+  denMaChuyen: string;
+  phamVi: "STOP" | "ONBOARD";
+  soKhach: number;
+  /** STOP: điểm đón của xe nhờ (id + tên nơi); ONBOARD: null. */
+  diemId: string | null;
+  tenDiem: string | null;
+  /** ONBOARD: nơi gặp (tên địa điểm danh mục hoặc chữ đã che); STOP: null. */
+  noiGap: string | null;
+  trangThai: "PENDING" | "WITHDRAWN" | "DECLINED" | "EXPIRED" | "VOID" | "CONFIRMED" | "ESCALATED" | "REJECTED" | "HET_GIO";
+  nhanTrangThai: string;
+  guiLuc: string;
+  hanLuc: string;
+  quyetLuc: string | null;
+  /** Nhãn lý do Không nhận / Bác / Duyệt (danh mục); null = không có. */
+  lyDo: string | null;
+  kiem?: { ma: string; nhan: string; tang: "LOI" | "CAU_HINH"; ketQua: "DAT" | "KHONG_DAT" | "CANH_BAO"; giaTri: number | null; gioiHan: number | null }[];
+  hop?: "CHI_BAC" | "DUYET_HOAC_BAC";
+}
+/** Kết quả một lệnh đề nghị (HTTP 200): đã gửi / đã rút / không nhận / đã chuyển / leo thang / hết hạn (nhận hoặc không nhận muộn) / đã bác. */
+export type KetQuaDeNghi = "DA_GUI" | "DA_RUT" | "KHONG_NHAN" | "DA_CHUYEN" | "LEO_THANG" | "HET_HAN" | "DA_BAC";
+export interface DeNghiLenhResponse { ketQua: KetQuaDeNghi; deNghi: DeNghiDto }
+/** `GET /api/van-chuyen/de-nghi-cua-toi`: đề nghị của chuyến tài xế đang lái (hôm nay / đang chạy) — gửi đi (xe nhờ) và gửi tới (xe nhận). */
+export interface DeNghiCuaToiResponse {
+  guiDi: DeNghiDto[];
+  guiToi: DeNghiDto[];
+  /** Lý do Không nhận đang dùng (nhóm TU_CHOI_NHAN) — màn tài xế chọn từ đây (gói A5 T13). */
+  lyDo: LyDoDangDungDto[];
+}
+/** `GET /api/van-chuyen/de-nghi?ngay=` (văn phòng, trip.view): đề nghị của các chuyến chạy ngày `ngay` — kèm dòng kiểm lần bấm gần nhất + hộp duyệt (Leo thang). */
+export interface DeNghiNgayResponse {
+  ngay: string;
+  deNghi: DeNghiDto[];
+  /** Lý do đang dùng cho hộp Duyệt (nhóm PHA_LE) và Bác (nhóm TU_CHOI_NHAN) — gói A5 T14 (route danh mục lý do chỉ cho Quản trị). */
+  lyDo: LyDoDangDungDto[];
+}
+/** Thân Không nhận / Duyệt / Bác: mã lệnh + MÃ lý do (Không nhận, Bác: nhóm TU_CHOI_NHAN; Duyệt: nhóm PHA_LE). Nhận: chỉ mã lệnh. */
+export interface LyDoDeNghiRequest { requestId: string; lyDo: string }
+/** `POST …/cuoc-cua-toi/:id/de-nghi`, `POST …/chuyen/:id/cuu-ho` (văn phòng gửi thay — chỉ ONBOARD). */
+export interface GuiDeNghiRequest {
+  requestId: string;
+  denChuyenId: string;
+  phamVi: "STOP" | "ONBOARD";
+  diemId?: string;
+  noiGap?: { diaDiemId?: string | null; chu?: string | null };
+}
+/**
+ * `POST /api/van-chuyen/chuyen/:id/cap-nhat-khach` (R-P29, chủ lần 16 — khuôn route 40; ADR-0104 Đ2.11): thân như `CapNhatDiemRequest`. `daCapNhat` = số suất
+ * khách ĐÃ ĐÓNG theo đơn (khách đổi: PASSENGER_CHANGED rồi mở lại tới số người của chặng; đơn huỷ / chặng bỏ / đơn không xác nhận / thừa suất chưa tên:
+ * REMOVED) — bằng cột `count` của sự kiện (lệnh lặp đọc lại số này). 0 = không có gì cần đổi (không ghi). Phản hồi KHÔNG tên (GA-55).
  */
 export interface CapNhatKhachResponse extends ChuyenChiTietResponse { daCapNhat: number }
 /**
- * 409 của lệnh chuyến: `lyDo` = mọi lý do (luật thuần); `canQuyen` (can_pha_le) = người gọi có ô trip.override (đưa hộp phá lệ).
+ * 409 của lệnh chuyến: `lyDo` = mọi lý do (luật thuần). `can_pha_le` / `chua_du_nghi` / `can_pha_le_cam_ket` kèm `canQuyen` = người gọi đủ ô cho MỌI luật đang
+ * thiếu theo lớp (đưa hộp xác nhận) và `lop` (ADR-0104 Đ1 — chỉ THÊM, không đổi khoá cũ): `KHAN_CAP` = "Điều chỉnh khẩn cấp" (chuyến dưới mốc — Bán hàng, Quản
+ * trị, Toàn quyền), `QUAN_TRI` = "Phá lệ" (khoảng nghỉ / cam kết khi chuyến ngoài mốc — Quản trị, Toàn quyền).
  * A15: `gio_xay_ra_ngoai_khoang` kèm `maGio` (mã kiemGioXayRa), `somNhat` (giờ sớm nhất khai được — R-P14; null = không phút nào) và `mocChan` (mốc gây chặn:
  * mã chuyến trước + giờ, hoặc nhãn sự kiện + giờ — không tên người); `con_khach_chua_xong` kèm `goiY` "KET_THUC_GIAN_DOAN" + số suất / điểm còn dở.
  */
@@ -1468,6 +1623,7 @@ export interface LenhChuyenLoiBody {
     message: string;
     lyDo?: LyDoGiuDto[];
     canQuyen?: boolean;
+    lop?: "KHAN_CAP" | "QUAN_TRI";
     maGio?: string[];
     somNhat?: GioVnDto | null;
     mocChan?: MocChanDto | null;
@@ -1562,12 +1718,15 @@ export interface CuocChiTietResponse {
     daToi: MocTienDoDto | null;
     /** Đợt 5 D5.1: điểm văn phòng thêm khi xe đang chạy. */
     themKhiChay: boolean;
+    /** ADR-0105: chuỗi đích "Chỉ đường" — CHỈ GET /cuoc-cua-toi/:id TRONG ngày chạy (khuôn `hoTen`); ngoài khung và ở phản hồi lệnh: VẮNG MẶT. */
+    diaChiChiDuong?: string;
   }[];
   suat: {
     id: string;
     /** `CREW` = người đi kèm (hướng dẫn viên) — không phải khách, không gắn điểm dừng; vẫn phải "Đã lên xe" → "Đã xuống" mới kết thúc thường được. */
     loai: "PASSENGER" | "CREW";
-    maDon: string | null;
+    /** Kế hoạch A4 G-A4-7 (ADR-0053 D7.2): người có vế hạn Từ chối NGOÀI khung xem khách → khoá VẮNG MẶT; tài xế công ty có mọi lúc. */
+    maDon?: string | null;
     diemLen: string | null;
     diemXuong: string | null;
     trangThai: "WAITING" | "BOARDED" | "NO_SHOW" | "CANCELLED_AT_STOP" | "DROPPED";
@@ -1586,8 +1745,25 @@ export interface CuocChiTietResponse {
   dieuKienConThieu: DieuKienConThieuDto[];
   /** Lý do kết thúc gián đoạn đang dùng (I5). */
   lyDo: { code: string; nhan: string }[];
+  /** Tên giữ vì PWA cũ (G-A4-6) — nghĩa: TRONG KHUNG XEM KHÁCH của người gọi (ADR-0053 D7.2). */
   trongNgayChay: boolean;
+  /** ADR-0053 D8.6: nút "Từ chối chuyến" hiện chỉ theo cờ này (máy chủ tính: đang lái, có vế hạn, chuyến chưa chạy, chưa quá hạn). Tài xế công ty: luôn false. */
+  tuChoiDuoc: boolean;
+  /** ADR-0113 Đ3: chỉ có khi chuyến còn hạn Từ chối nhưng đang có khách được chuyển từ xe khác sang (lúc đó `tuChoiDuoc` = false); không tên, không số khách. */
+  chanTuChoi?: "KHACH_CHUYEN_VAO";
+  /** ADR-0053 D8.6: hạn Từ chối của chính người gọi — chỉ người có vế hạn. */
+  hanTuChoi?: GioVnDto;
+  /** Đợt 6 mục 1, 9: "Thấy danh sách khách từ …" — chỉ khi đang ngoài khung và mốc ở tương lai. */
+  thayKhachTu?: GioVnDto;
+  /** Đợt 6 mục 2: lý do Từ chối đang dùng — chỉ khi `tuChoiDuoc`. */
+  lyDoTuChoi?: { code: string; nhan: string }[];
+  /** Lời chủ 6.3: SĐT văn phòng (nút "Gọi văn phòng") — chỉ khi chính sách đã có số. */
+  sdtVanPhong?: string;
 }
+/** `POST /api/van-chuyen/cuoc-cua-toi/:id/tu-choi` (ADR-0053 D8.6): chỉ cờ — không dữ liệu chuyến (dòng lái đã đóng, tài xế không còn xem chuyến). */
+export interface TuChoiResponse { daTuChoi: true }
+/** Một lần tài xế Từ chối chuyến — chi tiết chuyến văn phòng (G-A4-14). */
+export interface TuChoiChuyenDto { tenTaiXe: string; luc: GioVnDto; lyDo?: string }
 
 // ---- Mẫu đưa đón theo dịch vụ (ADR-0054 D10.1–D10.2; ADR nháp nơi trả mặc định docs/superpowers/specs/2026-10-01-de-xuat-adr-noi-tra-mac-dinh.md) ------------
 /** Một BẢN mẫu (màn Danh mục, cổng admin): chế độ, giờ gợi ý chiều về, nơi trả mặc định (tên + còn dùng), lúc hiệu lực (ISO UTC). */
@@ -1859,6 +2035,7 @@ export interface ReceiptDto {
   customerNote: string | null;
   services: ReceiptServiceDto[];
   subtotal: number;
+  /** Giảm giá IN TRÊN BIÊN NHẬN = giảm giá hiệu lực (`OrderDto.giamGiaHieuLuc`, ADR-0109 QĐ4); bằng giảm giá đã lưu trừ khi tạm tính hiện hành nhỏ hơn. subtotal − discount = total. */
   discount: number;
   total: number;
   /** Đã trả trước (billing `conLai` — một hàm). */

@@ -9,14 +9,15 @@ import type {
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { can, PERMISSION_LABEL } from "../../shared/permissions";
 import {
-  chuanHoaMocGio, NGAY_GIU_TIN, kiemTinThuCong, locHopThongBao, nhanNguoiNhan, nhanThayTinThuCong, type DongDon, type DongTaiKhoan, type DongThuCong,
+  chuanHoaMocGio, MOC_TIN_DOI, NGAY_GIU_TIN, kiemTinThuCong, locHopThongBao, nhanNguoiNhan, nhanThayTinThuCong, phanDoiCuaDong, type DongDon, type DongTaiKhoan,
+  type DongThuCong,
 } from "../../shared/thong-bao";
 import { guiLo, imLang, khoaVapid, kiemDiaChi, nguoiNhanDay } from "../../shared/web-push";
 import { route, type AppModule, type Ctx } from "../../shared/router";
-import { dungDongChuyen, type ChuyenChoTin, type DongChuyen, type DongChuyenTho } from "../../shared/tin-chuyen";
+import { canHoiTheoSuKien, chuyenCuaChangLuc, dungDongChuyen, type ChuyenChoTin, type DongChuyen, type DongChuyenTho, type HoiChuyenChoTin } from "../../shared/tin-chuyen";
 import {
   batMayStatements, demMay, findByRequest, getMark, getNotice, getThuCong, hetHanStatement, insertAckStatement, insertNoticeStatement,
-  insertTargetStatement, listAcks, listDon, listMayDangBat, listSent, listThuCong, listTinChuyen, listTinTaiKhoan, donChoTin, mayDangBat, tinChuyenTheoId, revokeStatement, tatMayStatement,
+  insertTargetStatement, listAcks, listDoi, listDon, listMayDangBat, doiVuaGhi, listSent, listThuCong, listTinChuyen, listTinTaiKhoan, donChoTin, mayDangBat, tinChuyenTheoId, revokeStatement, tatMayStatement,
   upsertMarkStatement,
 } from "./repository";
 
@@ -39,12 +40,12 @@ async function nguoiNhanCuaMotTin(db: D1Database, tags: string[]) {
 }
 
 /** Hàm dữ kiện chuyến do gốc lắp ráp tiêm (`ctx.chuyenChoTin`) — thongbao không import van-chuyen (ADR-0052 D6.3). */
-type NoiChuyen = (q: { tripIds: readonly string[]; suKienIds: readonly string[] }) => Promise<ChuyenChoTin | null>;
+type NoiChuyen = (q: HoiChuyenChoTin) => Promise<ChuyenChoTin | null>;
 
 /** Ghép dòng nhật ký chuyến với dữ kiện van-chuyen (hàm tiêm) + đơn của suất vắng. Không tiêm → []. */
 export async function ghepTinChuyen(db: D1Database, tho: readonly DongChuyenTho[], noi: NoiChuyen): Promise<DongChuyen[]> {
   if (tho.length === 0) return [];
-  const f = await noi({ tripIds: tho.map((t) => t.tripId), suKienIds: tho.filter((t) => t.action === "trip_passenger_no_show").map((t) => t.id) });
+  const f = await noi({ tripIds: tho.map((t) => t.tripId), suKienIds: tho.filter((t) => canHoiTheoSuKien(t.action)).map((t) => t.id) });
   if (!f) return [];
   return dungDongChuyen(tho, f, await donChoTin(db, f.vang.map((v) => v.orderId)));
 }
@@ -58,10 +59,36 @@ export async function dongChuyenTheoId(
 ): Promise<{ dong: DongChuyen; f: ChuyenChoTin } | null> {
   const t = await tinChuyenTheoId(db, id);
   if (!t) return null;
-  const f = await noi({ tripIds: [t.tripId, ...themChuyen], suKienIds: t.action === "trip_passenger_no_show" ? [t.id] : [] });
+  const f = await noi({ tripIds: [t.tripId, ...themChuyen], suKienIds: canHoiTheoSuKien(t.action) ? [t.id] : [] });
   if (!f) return null;
   const dong = dungDongChuyen([t], f, await donChoTin(db, f.vang.map((v) => v.orderId)))[0];
   return dong ? { dong, f } : null;
+}
+
+/**
+ * MQ-07 (ADR-0052 D6.2): ghép `chuyenCuaChang` (chuyến giữ suất MỞ của chặng lúc sự kiện) vào các dòng SỬA CHẶNG có thể sinh MQ-07 — dòng đã xác nhận, có
+ * `legId`, hàm đọc báo đổi giờ hẹn. MỘT lần gọi hàm tiêm cho mọi chặng. Không tiêm / không chặng nào → giữ nguyên (tin đơn đổi thường).
+ */
+export async function ganChuyenCuaChang(dong: DongDon[], noi: NoiChuyen): Promise<DongDon[]> {
+  const ung = new Set(dong.filter((d) => d.action === "order_leg_updated" && d.legId && d.sauXacNhan === true && phanDoiCuaDong(d)?.gioHen === true));
+  if (ung.size === 0) return dong;
+  const f = await noi({ tripIds: [], suKienIds: [], legIds: [...ung].map((d) => d.legId!) });
+  if (!f) return dong;
+  return dong.map((d) => (ung.has(d) ? { ...d, chuyenCuaChang: chuyenCuaChangLuc(f, d.legId!, d.luc) } : d));
+}
+
+/**
+ * Gõ cửa tin đổi (ADR-0062 Đ4 + MQ-07) — gốc lắp ráp gọi sau lệnh đổi chuyến / chặng / số khách (`baoThayDoi` loại "chuyen" / "tien"): đọc LẠI LÔ dòng đổi người
+ * đó vừa ghi (route không truyền chữ nhật ký qua ctx; G17: mọi dòng cùng mốc), ghép chuyến của chặng, rồi gõ cửa qua CHÍNH locHopThongBao (nguoiNhanDay). Không dòng đổi → thôi.
+ * "Sau xác nhận" tính bằng cùng câu với hộp thư (dòng `confirmed` trước dòng đổi).
+ */
+export async function dayGoCuaDoi(
+  env: Env, orderId: string, actorId: string, tuLuc: string, noi: NoiChuyen, giaoLo: (ds: string[]) => Promise<string[]>,
+): Promise<void> {
+  const lo = await doiVuaGhi(env.DB, orderId, actorId, tuLuc);
+  if (lo.length === 0) return;
+  // G17: CẢ lô (một lần gọi hàm tiêm cho mọi chặng) — locHopThongBao gom lô nên mỗi người vẫn tối đa một tin; tài xế của MỌI chặng đổi được gõ cửa.
+  await dayGoCua(env, { loDoi: await ganChuyenCuaChang(lo, noi), quanTrong: false }, giaoLo);
 }
 
 async function hop(db: D1Database, staff: StaffProfile, ngan: "cua-toi" | "tat-ca", chuyenChoTin: Ctx["chuyenChoTin"]): Promise<HopThongBaoResponse> {
@@ -69,15 +96,17 @@ async function hop(db: D1Database, staff: StaffProfile, ngan: "cua-toi" | "tat-c
   const tu = new Date(Date.now() - NGAY_GIU_TIN * 86400000).toISOString();
   // ADR-0052 D6.2: chỉ người CÓ THỂ nhận tin chuyến mới đọc nhật ký chuyến (văn phòng có trip.view; tài xế có hồ sơ) — người khác không tốn truy vấn.
   const coTheNhan = can(staff, "trip.view") || (staff.partyId !== null && can(staff, "trip.view", { assigned: true }));
-  const [don, thuCong, mark, choTho] = await Promise.all([
-    listDon(db, tu), listThuCong(db, tu, staff.id), getMark(db, staff.id), coTheNhan ? listTinChuyen(db, tu) : Promise.resolve([]),
+  const [don, doiTho, thuCong, mark, choTho] = await Promise.all([
+    listDon(db, tu), listDoi(db, tu, MOC_TIN_DOI), listThuCong(db, tu, staff.id), getMark(db, staff.id), coTheNhan ? listTinChuyen(db, tu) : Promise.resolve([]),
   ]);
   const chuyen = await ghepTinChuyen(db, choTho, chuyenChoTin);
+  // MQ-07 chỉ tới người có trip.view (văn phòng any / tài xế assigned) — người khác nhận tin đơn đổi thường, không tốn lời gọi dữ kiện chuyến.
+  const doi = coTheNhan ? await ganChuyenCuaChang(doiTho, chuyenChoTin) : doiTho;
   const taiKhoan = can(staff, "admin.manage.superadmin") ? await tinTaiKhoan(db, tu) : []; // ADR-0090 đ3: chỉ Toàn quyền nhận — người khác không tốn truy vấn
   // Chưa từng mở hộp: mốc = ngày tạo tài khoản (không đổ dồn tin cũ lên người mới — đặc tả §4.4). createdAt không đảm bảo luôn ở dạng
   // ISO có mili-giây — locHopThongBao so mốc giờ BẰNG CHUỖI nên phải chuẩn hoá trước (chuanHoaMocGio, src/shared/thong-bao.ts).
   const docDenLuc = chuanHoaMocGio(mark ?? (await getStaffAccount(db, staff.id))?.createdAt ?? now);
-  return locHopThongBao(staff, { don, thuCong, chuyen, taiKhoan, docDenLuc, now, ngan });
+  return locHopThongBao(staff, { don: [...don, ...doi], thuCong, chuyen, taiKhoan, docDenLuc, now, ngan });
 }
 
 /** ADR-0090 đ3: dòng "ngưng tài khoản" (view audit) ghép quyền HIỆN TẠI của tài khoản bị ngưng (staff) — luật nhận ở locHopThongBao. */
@@ -101,7 +130,7 @@ const GUI_THANG_TOI_DA = 40;
  */
 export async function dayGoCua(
   env: Env,
-  tin: ({ don: DongDon } | { thuCong: DongThuCong } | { chuyen: DongChuyen }) & { quanTrong: boolean },
+  tin: ({ don: DongDon } | { loDoi: readonly DongDon[] } | { thuCong: DongThuCong } | { chuyen: DongChuyen }) & { quanTrong: boolean },
   giaoLo: (ds: string[]) => Promise<string[]>,
 ): Promise<void> {
   const khoa = khoaVapid(env);

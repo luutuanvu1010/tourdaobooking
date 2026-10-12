@@ -145,14 +145,13 @@ Mở [[Sắp hết hạn]] (điện thoại: [[Giấy tờ sắp hết hạn]] �
 > Ví dụ: Xe 16 chỗ biển 79B-000.01: ô số người được chở ghi 15. Bảo hiểm còn 12 ngày thì có giấy mới là bấm Gia hạn.`,
     },
     {
-      tieuDe: "Phá lệ khi điều xe",
-      noiDung: `Trong 6 giờ trước giờ xuất bến, chuyến bị khoá: không xếp thêm khách, không đổi xe, đổi tài xế, rút khách. Chỉ Quản trị phá lệ được.
+      tieuDe: "Điều chỉnh khẩn cấp và phá lệ",
+      noiDung: `Trong 6 giờ trước giờ xuất bến (và khi xe chạy), xếp, rút, chuyển khách, đổi xe, đổi tài xế, huỷ chuyến còn khách là **điều chỉnh khẩn cấp**: Bán hàng cũng làm được. Chuyến còn hơn 6 giờ mà thiếu nghỉ, hoặc ghép khách, xe nhỏ trái cam kết [[Xe riêng]] hay [[Xe tối thiểu]] của đơn, là **phá lệ**: chỉ Quản trị.
 
 1. Thao tác như thường trên [[Điều phối xe]] hoặc màn chuyến.
-2. Hộp hỏi hiện nút như [[Phá lệ và rút]], [[Phá lệ và chuyển]], [[Phá lệ và lưu]], [[Phá lệ và huỷ]], [[Phá lệ và thêm]].
-3. Chọn lý do phá lệ, bấm nút đó. Việc phá lệ ghi kèm tên bạn.
-
-Hộp này cũng hiện khi ghép khách hoặc xe nhỏ trái cam kết [[Xe riêng]] hay [[Xe tối thiểu]] của đơn; chọn lý do như trên.
+2. Hộp hỏi hiện nút như [[Điều chỉnh khẩn cấp và rút]], [[Điều chỉnh khẩn cấp và lưu]], [[Phá lệ và xếp]], [[Phá lệ và lưu]].
+3. Chọn lý do, bấm nút đó.
+4. Chờ duyệt chuyển khách: mở [[Đề nghị chuyển khách]], [[Duyệt]] hoặc [[Bác]].
 
 ### Lịch xe bận
 [[Lịch xe bận]]: ghi giờ xe vào xưởng; giờ đó không xếp chuyến cho xe được. Bấm ✕ để rút.`,
@@ -169,9 +168,9 @@ Mở [[Loại giấy tờ cá nhân]] (có cả [[Hạng giấy phép lái xe]])
 
 ### Trợ lý Hỗ trợ (chỉ Toàn quyền)
 Mở [[Trợ lý Hỗ trợ]] ở nhóm QUẢN TRỊ (điện thoại: trang **Tôi**). Sáu phần, mỗi phần có nút lưu riêng, hiệu lực ngay:
-1. **Tình trạng**: bật / tắt cả công ty, trần chi phí tháng, chi phí, số câu, lượt thử. Key chỉ hiện đã đặt hay chưa và bốn ký tự cuối; [[Thử key]] cho biết key còn dùng được, sai hay hết tiền. Đổi key làm ngoài app.
+1. **Tình trạng**: bật / tắt cả công ty, trần chi phí tháng, chi phí, số câu, lượt thử. [[Thử key]] cho biết key còn dùng được, sai hay hết tiền. Đổi key làm ngoài app.
 2. **Ai được dùng**: bật / tắt theo từng vai và số câu mỗi người mỗi ngày, [[Lưu]]. Tài khoản nhiều vai: dùng được khi có một vai đang bật.
-3. **Bộ não**: chọn mẫu AI (có giá ước tính), mức suy nghĩ, độ dài; sửa lời nhắc, [[Lưu bộ não]]. [[Khôi phục mặc định]] chỉ đưa lời nhắc gốc vào ô soạn, phải bấm [[Lưu bộ não]] thì mới có hiệu lực; mở Lịch sử bản, [[Quay lại bản này]]. Thử trước: chọn vai, gõ câu hỏi, [[Thử với cấu hình đang soạn]]; lượt thử tính vào trần chi phí tháng nhưng không tính vào số câu mỗi người mỗi ngày.
+3. **Bộ não**: chọn mẫu AI (có giá ước tính), mức suy nghĩ, độ dài; sửa lời nhắc, [[Lưu bộ não]]. [[Khôi phục mặc định]] chỉ đưa lời nhắc gốc vào ô soạn, phải bấm [[Lưu bộ não]] thì mới có hiệu lực; mở Lịch sử bản, [[Quay lại bản này]]. Thử trước: chọn vai, gõ câu hỏi, [[Thử với cấu hình đang soạn]].
 4. **Lời dặn**: câu chào, câu hỏi mẫu, [[Lưu thành bản mới]].
 5. **Ngữ cảnh bổ sung**: gõ tiêu đề và nội dung, [[Thêm đoạn]]; bỏ tick **Đang dùng** để tắt một đoạn.
 6. **Lịch sử hỏi đáp**: lọc theo ngày, người, vai hoặc tìm chữ, [[Lọc]]. Không xoá được.
@@ -182,7 +181,7 @@ Chữ tuỳ chỉnh không được có số điện thoại, email, số tiền
 Trang **Tôi**, khối **Dịch vụ nhập tay**: [[Bật dịch vụ nhập tay]] hoặc [[Tắt dịch vụ nhập tay]]. Mặc định tắt. Khi bật: Bán hàng, Quản trị, Toàn quyền thêm được dịch vụ gõ tên và giá tay ở form lập đơn ([[+ Dịch vụ nhập tay]]). Tài khoản có quyền Đối tác luôn không dùng được. Khi tắt: dịch vụ nhập tay đã có trên đơn vẫn giữ, chỉ xem. Văn phòng thêm dịch vụ nhập tay vào đơn nháp của Đối tác thì Đối tác không tự xác nhận được — văn phòng xác nhận thay.
 
 ### Lý do điều phối
-Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]], [[Huỷ chuyến]], [[Phá lệ]]. Thêm: [[+ Thêm lý do]] ở nhóm cần, gõ lý do, [[Thêm]]. Sửa tên: [[Sửa]]. Không dùng nữa: [[Ngưng]]; dùng lại: [[Dùng lại]]. Lý do hệ thống tự dùng không ngưng được.`,
+Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]], [[Huỷ chuyến]], [[Điều chỉnh khẩn cấp, phá lệ]]. Thêm: [[+ Thêm lý do]] ở nhóm cần, gõ lý do, [[Thêm]]. Sửa tên: [[Sửa]]. Không dùng nữa: [[Ngưng]]; dùng lại: [[Dùng lại]]. Lý do hệ thống tự dùng không ngưng được.`,
     },
     {
       tieuDe: "Tình huống hay gặp",

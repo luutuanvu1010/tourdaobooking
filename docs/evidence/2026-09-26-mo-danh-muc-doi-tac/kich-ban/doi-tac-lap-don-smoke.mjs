@@ -307,7 +307,7 @@ try {
       side: [...document.querySelectorAll('#sidebar .sidebar-item')].map((a) => [a.querySelector('.sidebar-item-label')?.textContent.trim(), a.querySelector('.sidebar-item-badge')?.textContent ?? null]),
     }))()`);
   // D5 (bản vẽ M3, ADR-0047 Phần B 2026-10-01): Đối tác, Thực tập (đơn mình lập) còn sửa được danh sách hành khách — câu khoá nói đúng điều đó, vẫn không hứa sửa chuyến.
-  const LOCK_KHONG_SUA_CHUYEN = "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được danh sách hành khách.";
+  const LOCK_KHONG_SUA_CHUYEN = "Đơn đã xác nhận: dịch vụ và đơn giá đã khoá. Còn sửa được danh sách hành khách."; // phiếu kiểm A2 V-1
   const TABS = [["Đơn hàng", "/orders", "page"], ["Tạo đơn", "/order-form", null], ["Tôi", "/account", null]];
   const goiHandlers = (p) => p.requests.filter((r) => r.url.includes("/api/dispatch/handlers")).map((r) => r.url);
   const goiDashboard = (p) => p.requests.filter((r) => r.url.includes("/api/orders/dashboard") || r.url.includes("/api/orders/dem-nhap")).map((r) => r.url); // ADR-0102: huy hiệu nay qua /api/orders/dem-nhap

@@ -13,9 +13,10 @@ import { getEffectiveServices } from "../catalog";
 import { composePersonName, newPersonStatements, validatePersonFullName, type ContactInput, type RoleInput } from "../parties";
 import { laNguoiHuong } from "../pricing";
 import {
-  MAX_CHANG_MOI_DICH_VU, chiDoiOPhu, chieuDiDau, docSoNguoiVe, doiNgayChang, isLyDoDongChang, kiemChang, moTaChang, tronChangCu, type ChangHopLe, type LyDoDongChang,
+  LY_DO_DONG_CHANG, MAX_CHANG_MOI_DICH_VU, chiDoiOPhu, chieuDiDau, docSoNguoiVe, doiNgayChang, isLyDoDongChang, kiemChang, moTaChang, tronChangCu, type ChangHopLe, type LyDoDongChang,
 } from "../../shared/chang-dua-don";
-import { tongKhach } from "../../shared/so-nguoi-chang";
+import { soNguoiChang, tongKhach } from "../../shared/so-nguoi-chang";
+import { laLyDoThayChang, type LyDoThayChang } from "../../shared/thay-chang";
 import {
   activeLocations, legById, passengerRowsByOrders, servicePaxByIds, servicePaxByOrder, type LegFields, type OPhuGhi, type PassengerRow,
 } from "./chang-hanh-khach-repo";
@@ -59,6 +60,19 @@ const fieldsOf = (l: LegFields): LegFields => ({
 });
 
 /**
+ * G17 (ADR-0052 D6.2 dòng MQ-07; kế hoạch docs/superpowers/plans/2026-10-09-g17-bao-tai-xe-doi-ngay.md): chặng của `PUT /trip` đổi NGÀY hoặc GIỜ đón → chữ
+ * nhật ký `order_leg_updated` theo khuôn chặng (`moTaChang` — cùng hàm viết của route sửa chặng, hàm đọc tin `phanDoiCuaTin` nhận ra, `gioHen`). Nơi đón / trả
+ * truyền GIỐNG NHAU hai bên ⇒ không bao giờ có giá trị nơi (luật cũ của PUT /trip: nhật ký không chứa địa điểm; đổi nơi vẫn chỉ là "đổi điểm đón" ở
+ * `trip_updated`). Không đổi ngày / giờ → `{}` (không dòng chặng).
+ */
+function nhatKyGioChang(tenDichVu: string, cu: LegFields & { direction: "OUT" | "RETURN" }, moi: LegFields): { nhatKy?: string } {
+  if (cu.pickupDate === moi.pickupDate && cu.pickupTime === moi.pickupTime) return {};
+  const vao = (l: LegFields) => ({ direction: cu.direction, pickupDate: l.pickupDate, pickupTime: l.pickupTime, noiDon: "", noiTra: null });
+  const nhatKy = moTaChang(tenDichVu, vao(cu), vao(moi));
+  return nhatKy === null ? {} : { nhatKy };
+}
+
+/**
  * `PUT /api/orders/:id/trip` (bảng "Sửa thông tin chuyến" CŨ — ADR-0047 R2c, R4e; THUẦN): với mỗi dịch vụ, dời chặng đang lưu theo ngày đi mới
  * (`doiNgayChang`), trộn hai khoá cũ CÓ MẶT vào chặng chiều đi đầu (`tronChangCu` — vắng thì không đụng), rồi so với chặng đang lưu ra danh sách thao tác:
  * sửa (trường vận hành đổi), thêm (chiều đi mới), ĐÓNG (giờ + nơi đều rỗng → lý do NOT_NEEDED — cả đơn nháp: không xoá ở đường này). Trả `trip` mới với
@@ -74,7 +88,10 @@ export function keHoachChangTrip(
     const merged = tronChangCu(doiNgayChang(st.legs, st.trip.departDate, u.trip.departDate), u.cu, u.trip.departDate);
     for (const l of merged.legs) {
       if (l.id === null) ops.push({ kind: "insert", serviceId: u.id, leg: l });
-      else if (!sameFields(st.legs.find((x) => x.id === l.id)!, l)) ops.push({ kind: "update", legId: l.id, fields: fieldsOf(l) });
+      else {
+        const cu = st.legs.find((x) => x.id === l.id)!;
+        if (!sameFields(cu, l)) ops.push({ kind: "update", legId: l.id, fields: fieldsOf(l), ...nhatKyGioChang(st.name, cu, l) });
+      }
     }
     if (merged.boChieuDi) ops.push({ kind: "close", legId: merged.boChieuDi, reason: "NOT_NEEDED" });
     const labelled = merged.legs.map((l) => {
@@ -174,6 +191,11 @@ export interface EditLegPlan {
   oPhu: OPhuGhi;
   /** Ngày, giờ, nơi đón, nơi trả y nguyên (`chiDoiOPhu`) — route không xét mốc, giữ dấu đặt gấp nếu thân không có `datGap` (chủ Q-B 1/10). */
   chiOPhu: boolean;
+  /**
+   * Số người HIỆU LỰC của chặng trước / sau lệnh (`soNguoiChang`) — CHỈ khi thân có `paxOverride` (ADR-0104 Đ2 điểm gọi 4: máy đồng bộ chuyến theo số người;
+   * giờ / nơi không đồng bộ — VK1-B). Vắng = lệnh không đụng số người.
+   */
+  soNguoi?: { truoc: number; sau: number };
 }
 /** `PUT /api/orders/:id/legs/:legId` — thân `{ expectedUpdatedAt (của CHẶNG), leg }`; không đổi chiều; điểm mới phải đang dùng; ngày đón đổi không được đã qua. */
 export async function planEditLeg(db: D1Database, orderId: string, legId: string, body: Record<string, unknown> | null, today: string): Promise<{ ok: true; value: EditLegPlan } | Failed> {
@@ -201,17 +223,22 @@ export async function planEditLeg(db: D1Database, orderId: string, legId: string
     ...(k.value.minVehicleSeats !== undefined ? { minVehicleSeats: k.value.minVehicleSeats } : {}),
   };
   // L-R1 CHỈ cho giá trị MỚI / ĐỔI (TC-P10): so số khách HIỆU LỰC (có điều chỉnh) của dịch vụ.
+  const soKhach = oPhu.paxOverride !== undefined ? await soKhachDichVu(db, svc.id) : null;
   if (oPhu.paxOverride != null && oPhu.paxOverride !== old.paxOverride) {
-    const vuot = vuotLR1(oPhu.paxOverride, await soKhachDichVu(db, svc.id));
+    const vuot = vuotLR1(oPhu.paxOverride, soKhach!);
     if (vuot) return { ok: false, code: "invalid_input", message: vuot };
   }
+  const soNguoi = soKhach === null ? undefined : {
+    truoc: soNguoiChang({ direction: old.direction, paxOverride: old.paxOverride }, soKhach),
+    sau: soNguoiChang({ direction: old.direction, paxOverride: oPhu.paxOverride ?? null }, soKhach),
+  };
   const sau = { ...fields, direction: old.direction, flightCode: oPhu.flightCode !== undefined ? oPhu.flightCode : old.flightCode, paxOverride: oPhu.paxOverride !== undefined ? oPhu.paxOverride : old.paxOverride,
     exclusiveVehicle: oPhu.exclusiveVehicle !== undefined ? oPhu.exclusiveVehicle : old.exclusiveVehicle, minVehicleSeats: oPhu.minVehicleSeats !== undefined ? oPhu.minVehicleSeats : old.minVehicleSeats };
   const detail = moTaChang(svc.name, moTaVao(old, named.names), moTaVao(sau, named.names));
   const mirror = dauSau(svc.legs.map((l) => (l.id === legId ? { ...l, ...fields } : l)), named.names);
   return {
     ok: true,
-    value: { legId, serviceId: svc.id, fields, expected, detail, mirror, cu: { pickupDate: old.pickupDate, pickupTime: old.pickupTime }, oPhu, chiOPhu: chiDoiOPhu(old, fields) },
+    value: { legId, serviceId: svc.id, fields, expected, detail, mirror, cu: { pickupDate: old.pickupDate, pickupTime: old.pickupTime }, oPhu, chiOPhu: chiDoiOPhu(old, fields), ...(soNguoi ? { soNguoi } : {}) },
   };
 }
 
@@ -265,6 +292,59 @@ export async function planCloseLeg(db: D1Database, orderId: string, legId: strin
   return { ok: true, value: { legId, serviceId: svc.id, reason: body!.reasonCode, expected, detail, mirror } };
 }
 
+export interface ReplaceLegPlan {
+  legId: string;
+  serviceId: string;
+  leg: ChangHopLe;
+  /** Mốc cập nhật CỦA ĐƠN (một khoá lạc quan cho cả lệnh đóng + thêm). */
+  expected: string;
+  /** Lý do đóng chặng cũ — `reasonCode` của thân thuộc `LY_DO_THAY_CHANG`; vắng / null = REPLACED. */
+  reason: LyDoThayChang;
+  detailDong: string;
+  detailThem: string;
+  mirror: Pickup;
+  /** Ngày / giờ đón ĐANG LƯU của chặng cũ — route xét mốc theo min(giờ cũ, giờ mới), như lệnh sửa chặng (ADR-0049 D2, I14). */
+  cu: { pickupDate: string | null; pickupTime: string | null };
+}
+/**
+ * `POST /api/orders/:id/legs/:legId/replace` (C14 — đánh giá ERP 2026-10-07): thân `{ expectedUpdatedAt (của ĐƠN), leg }`. Chặng cũ phải còn mở; chặng mới
+ * thuộc CÙNG dịch vụ với chặng cũ (khoá `serviceId` của thân, nếu có, bị bỏ qua) và CÙNG chiều (khác chiều → 400 — giả định: "thay" là đổi đúng chỗ đó;
+ * đổi chiều thì bỏ + thêm rời như cũ). Kiểm chặng mới như route thêm (ngày đón đã qua → 400, điểm đang dùng, L-R1). Trần chặng và GHI KÉP tính trên tập
+ * chặng SAU khi bỏ chặng cũ (dịch vụ đủ trần vẫn thay được; chặng cũ là chiều đi đầu thì hai cột cũ lấy nơi của chặng mới). Lý do đóng: `reasonCode`
+ * thuộc `LY_DO_THAY_CHANG` (Đổi sang chặng khác / Nhập nhầm), vắng = REPLACED, mã khác → 400 (người điều phối quyết 2026-10-08). Trả kèm ngày / giờ của chặng cũ: thay chặng thực chất là sửa chặng đó, nên mốc xét CẢ chặng cũ lẫn chặng mới (người điều phối quyết 2026-10-08).
+ */
+export async function planReplaceLeg(db: D1Database, orderId: string, legId: string, body: Record<string, unknown> | null, today: string): Promise<{ ok: true; value: ReplaceLegPlan } | Failed> {
+  const row = await legById(db, legId, orderId);
+  if (!row) return { ok: false, code: "leg_not_found", message: "Không tìm thấy chặng đưa đón của đơn này." };
+  if (row.closed_at !== null) return { ok: false, code: "leg_closed", message: "Chặng đưa đón này đã bỏ rồi." };
+  const expected = expectedOf(body);
+  if (!expected) return { ok: false, code: "invalid_input", message: "Thiếu expectedUpdatedAt (mốc cập nhật của đơn mà trang đã đọc)." };
+  const lyDoRaw = body!.reasonCode ?? "REPLACED";
+  if (!laLyDoThayChang(lyDoRaw)) {
+    return { ok: false, code: "invalid_input", message: `Lý do bỏ chặng khi thay chỉ là “${LY_DO_DONG_CHANG.REPLACED}” hoặc “${LY_DO_DONG_CHANG.WRONG_ENTRY}”.` };
+  }
+  const svc = (await getStoredServices(db, orderId)).find((s) => s.id === row.order_service_id)!;
+  // `svc.legs` chỉ có chặng MỞ: chặng vừa bị bỏ ở lệnh khác giữa hai lần đọc → báo "đã bỏ" (409), không đổ lỗi hệ thống.
+  const old = svc.legs.find((l) => l.id === legId);
+  if (!old) return { ok: false, code: "leg_closed", message: "Chặng đưa đón này đã bỏ rồi." };
+  const conLai = svc.legs.filter((l) => l.id !== legId);
+  if (conLai.length >= MAX_CHANG_MOI_DICH_VU) return { ok: false, code: "invalid_input", message: `Mỗi dịch vụ tối đa ${MAX_CHANG_MOI_DICH_VU} chặng đưa đón.` };
+  const raw = body!.leg && typeof body!.leg === "object" && !Array.isArray(body!.leg) ? { ...(body!.leg as Record<string, unknown>), id: undefined } : body!.leg;
+  const k = kiemChang(raw, { at: "Chặng đưa đón", departDate: svc.trip.departDate, today });
+  if (!k.ok) return { ok: false, code: "invalid_input", message: k.message };
+  if (k.value.direction !== old.direction) return { ok: false, code: "invalid_input", message: "Chặng thay phải cùng chiều với chặng cũ — đổi chiều thì bỏ chặng cũ rồi thêm chặng mới." };
+  const named = await tenDiem(db, svc.legs, [k.value.pickupLocationId, k.value.dropoffLocationId], new Set());
+  if (!named.ok) return named;
+  if (k.value.paxOverride != null) {
+    const vuot = vuotLR1(k.value.paxOverride, await soKhachDichVu(db, svc.id));
+    if (vuot) return { ok: false, code: "invalid_input", message: vuot };
+  }
+  const detailDong = moTaChang(svc.name, moTaVao(old, named.names), null, lyDoRaw)!;
+  const detailThem = moTaChang(svc.name, null, moTaVao(k.value, named.names))!;
+  const mirror = dauSau([...conLai, { ...k.value, id: "~moi" }], named.names);
+  return { ok: true, value: { legId, serviceId: svc.id, leg: k.value, expected, reason: lyDoRaw, detailDong, detailThem, mirror, cu: { pickupDate: old.pickupDate, pickupTime: old.pickupTime } } };
+}
+
 // ---- Danh sách hành khách (ADR-0047 A2) ---------------------------------------------------------------------------------------------------------
 
 const toDong = (r: PassengerRow): DongHanhKhach => ({
@@ -282,7 +362,11 @@ export async function passengerList(db: D1Database, orderId: string): Promise<Pa
   return { passengers, soNguoiCoTen: passengers.length, soKhachDoan: soKhach, vuotSoKhach: vuotSoKhach(passengers.length, soKhach), orderUpdatedAt: meta?.updatedAt ?? "" };
 }
 
-export interface PassengerChangePlan { expected: string; chen: KeHoach["chen"]; huy: KeHoach["huy"]; detail: string; none: boolean }
+export interface PassengerChangePlan {
+  expected: string; chen: KeHoach["chen"]; huy: KeHoach["huy"]; detail: string; none: boolean;
+  /** Khoá người HIỆN HÀNH của đơn SAU lệnh (`dongHienHanh` trên dòng đã đọc + dòng chèn − dòng huỷ) — đầu vào `sau.nguoi` của máy đồng bộ chuyến (ADR-0104 Đ2 điểm gọi 5). */
+  nguoiSau: string[];
+}
 /**
  * `POST /api/orders/:id/passengers` (đơn ĐÃ XÁC NHẬN — R1): thân `{ expectedUpdatedAt (của đơn), them: [...], sua: [{ personKey, ... }], huy: [personKey] }`.
  * Kiểm từng người (`kiemHanhKhach`), lập kế hoạch chỉ-thêm (`keHoachHanhKhach` — R8). `none` = không có gì để ghi (sửa y nguyên).
@@ -308,7 +392,12 @@ export async function planPassengerChange(db: D1Database, orderId: string, body:
   const plan = keHoachHanhKhach(rows, { them: them.value.map((t) => ({ ...t, id: null })), sua, huy: huy as string[] }, () => crypto.randomUUID());
   if (!plan.ok) return plan;
   const none = plan.value.chen.length === 0 && plan.value.huy.length === 0;
-  return { ok: true, value: { expected, chen: plan.value.chen, huy: plan.value.huy, detail: moTaThayDoiKhach(plan.value.dem), none } };
+  const huySet = new Set(plan.value.huy);
+  const nguoiSau = dongHienHanh([
+    ...rows.map((r) => (huySet.has(r.id) ? { ...r, voided: true } : r)),
+    ...plan.value.chen.map((c) => ({ ...c, voided: false, updatedAt: "" })),
+  ]).map((p) => p.personKey);
+  return { ok: true, value: { expected, chen: plan.value.chen, huy: plan.value.huy, detail: moTaThayDoiKhach(plan.value.dem), none, nguoiSau } };
 }
 
 /**

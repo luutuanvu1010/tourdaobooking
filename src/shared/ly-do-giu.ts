@@ -13,7 +13,9 @@ export const NHAN_AI_XU_LY: Readonly<Record<AiXuLy, string>> = { VAN_PHONG: "Vă
 /**
  * Bộ mã ĐÓNG (thêm mã = sửa tệp này, có test). "Ai xử lý" = ai gỡ được: giấy tờ (GPLX, giấy tờ theo điều kiện xuất bến) → Quản trị (người giữ hồ sơ,
  * ô `vehicle.manage` / giấy tờ); chính sách, bảng hạng bằng, hợp đồng → Toàn quyền (ô `settings.ops`); xếp, tên khách, chặng, xe, tài xế → văn phòng
- * (người xếp xe, người phụ trách đơn); phá lệ mốc / khoảng nghỉ / cam kết xe → Quản trị (ô `trip.override` — chỉ Quản trị, Toàn quyền: ĐP3).
+ * (người xếp xe, người phụ trách đơn). ADR-0104 Đ1 mục 9: vượt mốc LUÔN là điều chỉnh khẩn cấp → văn phòng (người xếp xe, ô `trip.urgent_adjust`);
+ * khoảng nghỉ / nghỉ thiếu / cam kết xe: câu gốc dưới đây là lớp Quản trị phá lệ (chuyến ngoài mốc, ô `trip.override`) — chuyến DƯỚI mốc thì nơi dựng DTO đổi
+ * qua `lyDoTheoMoc` (văn phòng điều chỉnh khẩn cấp).
  */
 export const MA_GIU = {
   // Tên, suất, chặng, đơn (văn phòng)
@@ -35,6 +37,12 @@ export const MA_GIU = {
   KHACH_DA_DOI: { loiNhan: `Khách trong xe không còn trong đơn — bấm ${NUT_CAP_NHAT_KHACH}`, aiXuLy: "VAN_PHONG" },
   // I38 (R-P9): chặng có suất trên chuyến mà ngày đón đã dời ra ngoài khoảng đọc quanh ngày chạy (không còn thuộc chuyến này).
   GIO_HEN_NGOAI_CHUYEN: { loiNhan: "Ngày đón của chặng đã đổi ra ngoài ngày chạy của chuyến", aiXuLy: "VAN_PHONG" },
+  // ADR-0096 Đ1 (LC-19): khách CHỜ LÊN có điểm trả đứng trước (hoặc bằng số) điểm đón — văn phòng đổi thứ tự điểm (nút ↑/↓). Chi tiết: mã đơn + số thứ tự
+  // điểm (không tên nơi — chọn của người thi công A1, câu ADR có {nơi trả}). Không ai phá lệ (không thuộc MA_LUAT_PHA_LE).
+  TRA_TRUOC_DON: { loiNhan: "Điểm trả đứng trước điểm đón — đổi thứ tự điểm rồi xuất bến", aiXuLy: "VAN_PHONG" },
+  // ADR-0096 Đ2 (LC-20): giờ xuất bến sớm hơn giờ khởi hành dự kiến − cửa sổ của chính sách hiệu lực. Chi tiết dựng ở `lyDoNgoaiCuaSo` (dieu-phoi-kiem.ts):
+  // giờ + ngày khởi hành, giờ + ngày được xuất bến, đường khắc phục (văn phòng sửa giờ chuyến). Không ai phá lệ.
+  NGOAI_CUA_SO_XUAT_BEN: { loiNhan: "Chưa tới giờ được xuất bến", aiXuLy: "VAN_PHONG" },
   // Chuyến, xe, tài xế (văn phòng)
   CHUYEN_KHONG_CON_LEN_KE_HOACH: { loiNhan: "Chuyến đã chạy, đã kết thúc hoặc đã huỷ", aiXuLy: "VAN_PHONG" },
   GIO_CHUYEN_KHONG_HOP_LE: { loiNhan: "Giờ kết thúc phải sau giờ bắt đầu và chuyến không quá 24 giờ", aiXuLy: "VAN_PHONG" },
@@ -54,8 +62,9 @@ export const MA_GIU = {
   // ADR-0057 C5 (chủ lần 18 "chưa có giá thì không được chạy"): chuyến xe thuê chưa có giá bảng đã chụp / giá thoả thuận — KHÔNG ai phá lệ (không thuộc
   // MA_LUAT_PHA_LE). aiXuLy giữ tập đóng AI_XU_LY (G-T5): Quản trị; lời nhắn nói rõ Kế toán cũng làm được. Không kèm số tiền (G-T4).
   THIEU_GIA: { loiNhan: "Chuyến xe thuê chưa có giá — Quản trị hoặc Kế toán nhập giá bảng hoặc giá thoả thuận", aiXuLy: "QUAN_TRI" },
-  // Luật cấu hình — cần phá lệ (Quản trị, Toàn quyền) hoặc giữ vì nghỉ chưa đủ lúc xuất bến
-  MOC_TOI_THIEU: { loiNhan: "Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ", aiXuLy: "QUAN_TRI" },
+  // Luật cấu hình — vượt được kèm lý do (ADR-0104 Đ1: mốc = điều chỉnh khẩn cấp của người xếp xe; khoảng nghỉ / cam kết theo mốc — `lyDoTheoMoc`) hoặc giữ vì
+  // nghỉ chưa đủ lúc xuất bến
+  MOC_TOI_THIEU: { loiNhan: "Trong mốc tối thiểu trước giờ xuất bến — người xếp xe điều chỉnh khẩn cấp kèm lý do", aiXuLy: "VAN_PHONG" },
   KHOANG_NGHI: { loiNhan: "Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ", aiXuLy: "QUAN_TRI" },
   NGHI_THIEU: { loiNhan: "Chưa đủ thời gian nghỉ sau chuyến trước", aiXuLy: "QUAN_TRI" },
   // ADR-0056 VK3-A (Đợt 7, C9): chuyến trái cam kết "xe riêng" / "xe tối thiểu N chỗ" của khách — Quản trị / Toàn quyền phá lệ (ô `trip.override`). Chi
@@ -68,12 +77,36 @@ export const MA_GIU = {
 } as const satisfies Record<string, { loiNhan: string; aiXuLy: AiXuLy }>;
 
 export type MaGiu = keyof typeof MA_GIU;
+/**
+ * ADR-0104 Đ2.11: lý do giữ mà nút "Cập nhật khách theo đơn" gỡ được (luật thuần chung với máy đồng bộ — `dongBoChuyenTheoDon`): khách đổi, đơn huỷ, chặng đã
+ * bỏ, đơn không còn xác nhận, thừa suất (khi còn suất chưa tên; mọi suất có tên người vẫn trong đơn thì nút không đoán — người xếp xe rút). MỘT tập cho ba
+ * chỗ hiện nút (Cần xử lý, thẻ chuyến đang chọn, dải ở Chi tiết chuyến). Ô quyền không đổi (`trip.dispatch`).
+ */
+export const MA_GIU_CAP_NHAT_KHACH: readonly MaGiu[] = ["KHACH_DA_DOI", "DON_DA_HUY", "CHANG_DA_DONG", "CHANG_KHONG_HOP_LE", "THUA_SUAT"];
+export const giuCapNhatKhach = <T extends { ma: string }>(lyDo: readonly T[]): T[] => lyDo.filter((x) => (MA_GIU_CAP_NHAT_KHACH as readonly string[]).includes(x.ma));
 export const isMaGiu = (v: unknown): v is MaGiu => typeof v === "string" && Object.hasOwn(MA_GIU, v);
 
 export interface LyDoGiu {
   ma: MaGiu;
   loiNhan: string;
   aiXuLy: AiXuLy;
+}
+
+/**
+ * ADR-0104 Đ1 mục 9 ★: lý do của luật vượt được theo lớp — chuyến DƯỚI mốc (`chuyenDuoiMoc` của nơi gọi) thì khoảng nghỉ / nghỉ thiếu / cam kết do người xếp
+ * xe điều chỉnh khẩn cấp (văn phòng); ngoài mốc giữ nguyên câu gốc (Quản trị phá lệ). Mã khác và chuyến ngoài mốc: trả nguyên. Giữ phần chi tiết sau câu gốc;
+ * gọi hai lần không đổi thêm (câu đã đổi không còn khớp câu gốc).
+ */
+const CAU_KHAN_CAP: Partial<Record<MaGiu, string>> = {
+  KHOANG_NGHI: "Chưa đủ khoảng nghỉ giữa hai chuyến — người xếp xe điều chỉnh khẩn cấp kèm lý do",
+  NGHI_THIEU: MA_GIU.NGHI_THIEU.loiNhan,
+  CAM_KET: MA_GIU.CAM_KET.loiNhan,
+};
+export function lyDoTheoMoc(l: LyDoGiu, duoiMoc: boolean): LyDoGiu {
+  const moi = duoiMoc ? CAU_KHAN_CAP[l.ma] : undefined;
+  if (moi === undefined) return l;
+  const goc: string = MA_GIU[l.ma].loiNhan;
+  return { ma: l.ma, loiNhan: l.loiNhan.startsWith(goc) ? moi + l.loiNhan.slice(goc.length) : l.loiNhan, aiXuLy: "VAN_PHONG" };
 }
 
 /** Dựng một lý do giữ/chặn. `chiTiet` (tuỳ chọn) chỉ gồm mã đơn, mã chuyến, biển số, con số — không bao giờ tên, năm sinh, SĐT, số giấy tờ. */

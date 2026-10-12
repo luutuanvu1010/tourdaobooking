@@ -138,7 +138,7 @@ try {
   await p.ev("window.confirm = () => true; true");
   await p.ev(clickText("#actions", "Xác nhận đơn"));
   await p.waitFor("document.querySelector('#order .badge')?.textContent === 'Đã xác nhận'", "đã xác nhận");
-  assert.match(await p.ev("document.querySelector('.lock-note').textContent"), /Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá\. Chỉ sửa được thông tin chuyến, đưa đón và danh sách hành khách\./); // D5 (bản vẽ M3, 2026-10-01)
+  assert.equal(await p.ev("document.querySelector('.lock-note').textContent"), "Đơn đã xác nhận: dịch vụ và đơn giá đã khoá. Còn sửa được số khách (nút “Sửa số khách dịch vụ”), thông tin chuyến, đưa đón và danh sách hành khách."); // phiếu kiểm A2 V-1
   assert.equal(await p.ev("document.querySelectorAll('#order .svc-view .lock').length"), 4, "mỗi dịch vụ: khoá ở Số khách và ở Tổng dịch vụ");
   const confirmedBtns = await p.ev("[...document.querySelectorAll('#actions .btn')].map((b) => b.textContent)");
   assert.ok(confirmedBtns.includes("Huỷ đơn") && !confirmedBtns.includes("Sửa") && !confirmedBtns.includes("Xác nhận đơn"), `đơn đã xác nhận: có 'Huỷ đơn', không còn 'Sửa'/'Xác nhận đơn' (từ Task 9 có thêm 'Sửa thông tin chuyến'): ${confirmedBtns}`);
@@ -233,9 +233,10 @@ try {
   p = await env.as(ACCOUNTS.accounting, `/order?id=${order.id}`);
   await p.waitFor("document.querySelectorAll('#order .svc-view').length === 2", "kế toán xem đơn");
   assert.ok((await p.ev("document.querySelectorAll('.history li').length")) >= 1, "kế toán thấy nhật ký mọi đơn");
-  assert.equal(await p.ev("document.querySelectorAll('#actions .btn').length"), 0);
+  // 2026-10-08 (gói A2, ADR-0063 D1): đơn 1 đã xác nhận, chưa Đã giao, có dịch vụ danh mục → Kế toán có ĐÚNG một nút "Sửa số khách dịch vụ"; không Sửa/Xác nhận/Huỷ.
+  assert.deepEqual(await p.ev("[...document.querySelectorAll('#actions .btn')].map((b) => b.textContent)"), ["Sửa số khách dịch vụ"]);
   p.close();
-  ok("quyền: SALES khác không nút và không lịch sử (không lỗi); kế toán thấy lịch sử, không nút");
+  ok("quyền: SALES khác không nút và không lịch sử (không lỗi); kế toán thấy lịch sử, chỉ nút 'Sửa số khách dịch vụ'");
 
   // ---- 7) lỗi tải: mã lạ và thiếu mã ----
   p = await env.as(ACCOUNTS.salesA, "/order?id=khong-co");

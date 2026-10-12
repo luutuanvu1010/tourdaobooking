@@ -170,7 +170,20 @@ test("suaKhachDuoc khớp máy chủ (order.passenger.write) ở mọi tổ hợ
 });
 
 test("cauKhoaXacNhan (D5, bản vẽ M3): câu khoá đơn đã xác nhận theo những gì người xem còn sửa được", () => {
-  assert.equal(cauKhoaXacNhan(true, true), "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được thông tin chuyến, đưa đón và danh sách hành khách.");
-  assert.equal(cauKhoaXacNhan(false, true), "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được danh sách hành khách.");
-  assert.equal(cauKhoaXacNhan(false, false), "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá.");
+  assert.equal(cauKhoaXacNhan(true, true), "Đơn đã xác nhận: dịch vụ và đơn giá đã khoá. Còn sửa được thông tin chuyến, đưa đón và danh sách hành khách.");
+  assert.equal(cauKhoaXacNhan(false, true), "Đơn đã xác nhận: dịch vụ và đơn giá đã khoá. Còn sửa được danh sách hành khách.");
+  assert.equal(cauKhoaXacNhan(false, false), "Đơn đã xác nhận: dịch vụ và đơn giá đã khoá.");
+});
+
+test("cauKhoaXacNhan (ADR-0063 D1, phiếu kiểm A2 V-1): không còn nói 'số khách đã khoá'; người có nút sửa số khách được kể nút đó", () => {
+  assert.equal(cauKhoaXacNhan(true, true, true), "Đơn đã xác nhận: dịch vụ và đơn giá đã khoá. Còn sửa được số khách (nút “Sửa số khách dịch vụ”), thông tin chuyến, đưa đón và danh sách hành khách.");
+  assert.equal(cauKhoaXacNhan(false, false, true), "Đơn đã xác nhận: dịch vụ và đơn giá đã khoá. Còn sửa được số khách (nút “Sửa số khách dịch vụ”).");
+  for (const a of [true, false]) for (const b of [true, false]) for (const c of [true, false]) assert.doesNotMatch(cauKhoaXacNhan(a, b, c), /số khách và tiền|số khách.*đã khoá/);
+});
+
+test("khongQuyenSuaText + nút sửa số khách (ADR-0063 D1, phiếu kiểm A2 V-1): Kế toán thấy nút thì câu nói rõ số khách sửa được", () => {
+  assert.equal(
+    khongQuyenSuaText({ ownerName: "Sales Một", status: "confirmed", viewer: { permissions: ["ACCOUNTING"] }, suaSoKhach: true }),
+    "Chỉ Sales Một (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này. Số khách thì bạn sửa được bằng nút “Sửa số khách dịch vụ”.",
+  );
 });

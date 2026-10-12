@@ -29,14 +29,21 @@ const ROOT = join(HERE, "..", "..");
 // "chinh-sach-dieu-phoi" (ADR-0049 lát 1.1) đứng SAU "tai-xe-doi-tac", TRƯỚC "passkey": đổi chính sách điều phối / hạng bằng / điều kiện xuất bến (bảng CHỈ THÊM)
 // rồi ở `finally` THÊM dòng khôi phục giá trị gieo và đóng điều kiện đã thêm; không đụng salesB/field của passkey.
 // "dieu-phoi", "tai-xe-cuoc" (ADR-0049 Task A13 / A15) đứng SAU "chinh-sach-dieu-phoi" (chính sách, điều kiện gieo đã khôi phục), TRƯỚC "passkey": tạo tài khoản
-// tài xế / xe / đơn / chuyến dùng một lần (SĐT ngẫu nhiên, biển số theo Date.now()), chuyến chạy NGÀY KIA; không đụng salesB/field của passkey.
+// tài xế / xe / đơn / chuyến dùng một lần (SĐT ngẫu nhiên, biển số theo Date.now()), chuyến chạy NGÀY MAI (cửa sổ xuất bến 48 giờ — ADR-0096); không đụng salesB/field của passkey.
+// "tu-choi-bao-ban" (ADR-0053 D7–D9, A4) đứng SAU "tin-chuyen", TRƯỚC "xe-tren-don": tài khoản / nhà xe / xe / chuyến dùng một lần (SĐT ngẫu nhiên, biển số theo Date.now(), chuyến D+2…D+4 và một chuyến +1 giờ cho ca quá hạn); không đổi chính sách, không đụng salesB/field.
 // "khung-ban-xe" (ADR-0055 VK2-A, Vận chuyển Đợt 3) ngay sau "dieu-phoi", cùng khuôn: tài xế / xe / chuyến dùng một lần (D+3…D+5); rút mọi khung bận của xe thử
 // ở `finally`; chuyến của tài xế thử nằm trên xe thử nên không chạm kịch bản khác.
-// "cam-ket-xe" (ADR-0056 VK3-A, Vận chuyển Đợt 7) ngay sau "khung-ban-xe", cùng khuôn: Đối tác / tài xế / xe / đơn / chuyến dùng một lần, chuyến NGÀY KIA; không đụng salesB/field.
-// "dua-don-dau-cuoi" (kế hoạch giao diện Đưa đón 2026-10-01, tiêu chí 5) ngay sau "dieu-phoi", cùng khuôn: tài xế / xe / đơn / chuyến dùng một lần, chuyến NGÀY KIA.
-// "xe-tren-don" (ADR-0059) ngay sau "tai-xe-cuoc", cùng khuôn: tài xế / xe / đơn / chuyến / tài khoản lai dùng một lần, chuyến NGÀY KIA; không đụng salesB/field.
-// "xe-dang-chay" (ADR-0052 D5 — Vận chuyển Đợt 5) ngay sau "xe-tren-don", cùng khuôn: tài xế / xe / đơn / chuyến dùng một lần, chuyến NGÀY KIA (xuất bến sớm);
+// "cam-ket-xe" (ADR-0056 VK3-A, Vận chuyển Đợt 7) ngay sau "khung-ban-xe", cùng khuôn: Đối tác / tài xế / xe / đơn / chuyến dùng một lần, chuyến NGÀY MAI; không đụng salesB/field.
+// "dieu-chinh-khan-cap" (ADR-0104 Đ1) ngay sau "cam-ket-xe", cùng khuôn: tài xế / hai xe / chuyến dùng một lần (không đơn) — một chuyến sau 2 giờ (dưới mốc), hai chuyến
+// sau 2 ngày; không đụng chính sách, salesB/field.
+// "dong-bo-chuyen" (ADR-0104 Đ2) ngay sau "dieu-chinh-khan-cap", cùng khuôn: tài xế / xe / hai đơn / chuyến dùng một lần, chuyến NGÀY MAI; dùng field làm HDV phụ
+// trách (chỉ sửa số khách đơn của chính kịch bản — không đổi PIN / quyền).
+// "dua-don-dau-cuoi" (kế hoạch giao diện Đưa đón 2026-10-01, tiêu chí 5) ngay sau "dieu-phoi", cùng khuôn: tài xế / xe / đơn / chuyến dùng một lần, chuyến NGÀY MAI.
+// "xe-tren-don" (ADR-0059) ngay sau "tai-xe-cuoc", cùng khuôn: tài xế / xe / đơn / chuyến / tài khoản lai dùng một lần, chuyến NGÀY MAI; không đụng salesB/field.
+// "xe-dang-chay" (ADR-0052 D5 — Vận chuyển Đợt 5) ngay sau "xe-tren-don", cùng khuôn: tài xế / xe / đơn / chuyến dùng một lần, chuyến NGÀY MAI (xuất bến sớm);
 // dọn bằng kết thúc gián đoạn; không đụng salesB/field.
+// "chuyen-khach" (gói A5 — ADR-0111) ngay sau "xe-dang-chay", cùng khuôn: tài xế / xe / đơn / chuyến dùng một lần, chuyến NGÀY MAI (xuất bến sớm). Đổi chính sách
+// điều phối (chờ 1 phút, tắt tự đồng ý) rồi KHÔI PHỤC (10 phút, bật) ở `finally`; có một lần chờ thật ~1 phút (hết hạn đề nghị); không đụng salesB/field.
 // "dieu-phoi-chay-dua" (TC-33, Task A14) sau đó: 10 yêu cầu xếp song song vào chuyến 3 chỗ trên dữ liệu dùng một lần (chạy riêng: npm run test:e2e -- dieu-phoi-chay-dua).
 // "coc-don-huy" (ADR-0089, năm lỗi tiền Đợt 1) đứng ngay sau "so-tien", TRƯỚC "passkey": dùng salesA/admin/kế toán/superAdmin/field, tự cài/gỡ trigger thử.
 // "qr-thanh-toan" (ADR-0108 + ADR-0092 Đ6) đứng ngay sau "coc-don-huy", TRƯỚC "chong-ghi-trung" và "passkey": dùng superAdmin/salesA/salesB/admin/kế toán/field/fieldB (không đổi tài khoản dùng chung);
@@ -54,7 +61,7 @@ const ROOT = join(HERE, "..", "..");
 // "khoa-thang" (ADR-0080 D1; đặc tả sổ đại lý đợt 1 §12 mục 11c) đứng CUỐI, ngay trước "passkey": khoá tháng 2025-01 và 2025-02 — KHÔNG mở lại được, nên không kịch bản nào được
 // ghi tiền vào năm 2025, và mọi kịch bản ghi tiền của nhóm phải chạy TRƯỚC nó.
 // "passkey" đứng CUỐI CÙNG: đổi PIN của salesB, tạm ngưng rồi kích hoạt lại field — mọi kịch bản CÙNG NHÓM dùng chung một D1 tạm (passkey luôn cuối nhóm của nó).
-const ALL = ["platform", "pwa", "orders", "trip", "chang-hanh-khach", "nhap-tay-va-gia-doi-tac", "admin", "turnstile", "catalog", "mau-chang", "dispatch", "admin-race", "locations", "parties", "gop-ho-so", "booker", "permissions", "feedback", "company", "bangtin", "thongbao", "tro-ly", "giao-dien", "maintenance", "roles", "quyen-tien", "van-chuyen", "tai-xe-doi-tac", "chinh-sach-dieu-phoi", "dieu-phoi", "khung-ban-xe", "cam-ket-xe", "tien-xe-thue", "dua-don-dau-cuoi", "tai-xe-cuoc", "tin-chuyen", "xe-tren-don", "xe-dang-chay", "dieu-phoi-chay-dua", "so-tien", "coc-don-huy", "qr-thanh-toan", "so-dai-ly", "chong-ghi-trung", "nhap-ke-toan", "chinh-sach-phien", "phien", "khoa-thang", "passkey"];
+const ALL = ["platform", "pwa", "orders", "trip", "chang-hanh-khach", "nhap-tay-va-gia-doi-tac", "admin", "turnstile", "catalog", "mau-chang", "dispatch", "admin-race", "locations", "parties", "gop-ho-so", "booker", "permissions", "feedback", "company", "bangtin", "thongbao", "tro-ly", "giao-dien", "maintenance", "roles", "quyen-tien", "van-chuyen", "tai-xe-doi-tac", "chinh-sach-dieu-phoi", "dieu-phoi", "khung-ban-xe", "cam-ket-xe", "dieu-chinh-khan-cap", "dong-bo-chuyen", "tien-xe-thue", "dua-don-dau-cuoi", "tai-xe-cuoc", "tin-chuyen", "tu-choi-bao-ban", "xe-tren-don", "xe-dang-chay", "chuyen-khach", "dieu-phoi-chay-dua", "so-tien", "coc-don-huy", "qr-thanh-toan", "so-dai-ly", "chong-ghi-trung", "nhap-ke-toan", "chinh-sach-phien", "phien", "sua-so-khach", "khoa-thang", "passkey"];
 const picked = process.argv.slice(2);
 const scripts = picked.length ? picked : ALL;
 for (const s of scripts) if (!ALL.includes(s)) throw new Error(`Không có kịch bản "${s}" (có: ${ALL.join(", ")})`);
@@ -77,7 +84,7 @@ const THOI_GIAN = {
   platform: 1.4, pwa: 0.3, orders: 13.1, trip: 27.7, "chang-hanh-khach": 22.4, "nhap-tay-va-gia-doi-tac": 15.2, admin: 10.4, turnstile: 5.8,
   catalog: 28.6, "mau-chang": 6.4, dispatch: 165.8, "admin-race": 0.5, locations: 0.5, parties: 1, "gop-ho-so": 8, booker: 20.2, permissions: 5.2, feedback: 1.3, company: 28.8,
   bangtin: 59.1, thongbao: 67.1, "tro-ly": 8.9, "giao-dien": 4, maintenance: 32.8, roles: 5.8, "quyen-tien": 3, "van-chuyen": 14.4, "tai-xe-doi-tac": 27.9, "chinh-sach-dieu-phoi": 19.3,
-  "dieu-phoi": 53.1, "khung-ban-xe": 15, "cam-ket-xe": 15, "tien-xe-thue": 20, "dua-don-dau-cuoi": 20, "tai-xe-cuoc": 32, "tin-chuyen": 15, "xe-dang-chay": 15, "dieu-phoi-chay-dua": 8.2, "so-tien": 24.7, "coc-don-huy": 20, "qr-thanh-toan": 15, "so-dai-ly": 15, "chong-ghi-trung": 20, "chinh-sach-phien": 30, phien: 19.4, "khoa-thang": 5, passkey: 24.2,
+  "dieu-phoi": 53.1, "khung-ban-xe": 15, "cam-ket-xe": 15, "dieu-chinh-khan-cap": 8, "dong-bo-chuyen": 15, "tien-xe-thue": 20, "dua-don-dau-cuoi": 20, "tai-xe-cuoc": 32, "tin-chuyen": 15, "tu-choi-bao-ban": 20, "xe-dang-chay": 15, "chuyen-khach": 90, "dieu-phoi-chay-dua": 8.2, "so-tien": 24.7, "coc-don-huy": 20, "qr-thanh-toan": 15, "so-dai-ly": 15, "chong-ghi-trung": 20, "chinh-sach-phien": 30, phien: 19.4, "sua-so-khach": 15, "khoa-thang": 5, passkey: 24.2,
 };
 const nang = (name) => THOI_GIAN[name] ?? 15;
 

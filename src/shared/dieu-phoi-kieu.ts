@@ -11,18 +11,21 @@ import type { LyDoGiu } from "./ly-do-giu.ts";
 
 // ---- Danh sách mở (kiểm ở mã) -------------------------------------------------------------------------------------------------------------------------------
 /** Nhóm lý do ([TK] §1.9). Máy chỉ rẽ nhánh theo NHÓM; từng lý do là dữ liệu `vc_reason` (Quản trị sửa). Lượt 1 dùng năm nhóm; BAO_HUY_DIEM, TU_CHOI_NHAN từ lượt 2. */
-export const NHOM_LY_DO = ["DOI_GIO_XE", "BAO_HUY_DIEM", "PHA_LE", "TU_CHOI_NHAN", "KET_THUC_GIAN_DOAN", "HUY_CHUYEN", "BO_QUA_DIEM", "BAN_XE", "CHI_PHI_XE"] as const;
+export const NHOM_LY_DO = ["DOI_GIO_XE", "BAO_HUY_DIEM", "PHA_LE", "TU_CHOI_NHAN", "KET_THUC_GIAN_DOAN", "HUY_CHUYEN", "BO_QUA_DIEM", "BAN_XE", "CHI_PHI_XE", "DIEU_CHINH", "TU_CHOI_CHUYEN", "BAN_TAI_XE"] as const;
 export type NhomLyDo = (typeof NHOM_LY_DO)[number];
 export const NHAN_NHOM_LY_DO: Readonly<Record<NhomLyDo, string>> = {
   DOI_GIO_XE: "Đổi giờ xe tới",
   BAO_HUY_DIEM: "Báo huỷ điểm đón",
-  PHA_LE: "Phá lệ",
+  PHA_LE: "Điều chỉnh khẩn cấp, phá lệ", // ADR-0104 Đ1 mục 9: CÙNG danh mục lý do cho hai lớp (mã nhóm giữ PHA_LE)
   TU_CHOI_NHAN: "Không nhận chuyển điểm",
   KET_THUC_GIAN_DOAN: "Kết thúc gián đoạn",
   HUY_CHUYEN: "Huỷ chuyến",
   BO_QUA_DIEM: "Bỏ qua điểm",
   BAN_XE: "Lý do xe bận", // ADR-0055 VK2-A (0071)
   CHI_PHI_XE: "Chi phí xe thuê", // ADR-0057 C3 (0073): lý do điều chỉnh / đảo / giá thoả thuận của chi phí chuyến xe thuê
+  DIEU_CHINH: "Điều chỉnh chuyến đang chạy", // ADR-0097 Đ2.5 (0085): lý do sửa kết quả một khách / thu hồi xuất bến — danh sách đóng, không ô chữ tự do
+  TU_CHOI_CHUYEN: "Tài xế từ chối chuyến", // ADR-0053 D8.1 (0092): lý do tài xế nhà xe đối tác từ chối chuyến trước hạn
+  BAN_TAI_XE: "Tài xế báo bận", // ADR-0053 D9.1 (0092): lý do khung bận của tài xế nhà xe đối tác — văn phòng KHÔNG thấy lý do (lời chủ 6.2)
 };
 export const isNhomLyDo = (v: unknown): v is NhomLyDo => typeof v === "string" && (NHOM_LY_DO as readonly string[]).includes(v);
 /**
@@ -42,6 +45,15 @@ export const LOAI_SU_KIEN_CHUYEN = [
   "STOP_ADDED_RUNNING", "ALLOCATION_OFFICE_CANCELLED",
   // ADR-0052 D5b (Đợt 5 A-1b — chủ duyệt 5/10): tài xế bổ sung tên MỘT khách chưa có tên (gắn tên suất + dòng hành khách source DRIVER).
   "PASSENGER_NAMED",
+  // ADR-0097 (gói A1, V3-B): văn phòng sửa kết quả MỘT suất bằng sự kiện điều chỉnh có lý do (Đ2 — đóng suất cũ REMOVED, mở suất thay thế); thu hồi xuất bến
+  // nhầm (Đ3 — RUNNING → PLANNED khi chưa có tiến độ). Lý do ở cột `reason_code` (nhóm DIEU_CHINH — trigger 0085).
+  "CORRECTION", "DEPARTURE_REVOKED",
+  // ADR-0104 Đ2.9: máy cập nhật chuyến theo đơn — lô của lệnh đơn (huỷ đơn, bỏ chặng, sửa khách / số khách) đóng / mở suất trên chuyến chưa chạy.
+  "ALLOCATION_ORDER_SYNCED",
+  // ADR-0111 (gói A5 — thi hành ADR-0052 D4): đề nghị chuyển khách giữa hai xe — ghi ở chuyến ĐÍCH, chuyến nguồn ở related_trip_id (G-A5-25).
+  "TRANSFER_SENT", "TRANSFER_WITHDRAWN", "TRANSFER_DECLINED", "TRANSFER_EXPIRED", "TRANSFER_ESCALATED", "TRANSFER_CONFIRMED", "TRANSFER_REJECTED",
+  // ADR-0053 D8.4 (kế hoạch A4 T7): tài xế (đối tác) từ chối chuyến mình đang lái trước hạn — đóng dòng lái REFUSED.
+  "DRIVER_REFUSED",
 ] as const;
 export type LoaiSuKienChuyen = (typeof LOAI_SU_KIEN_CHUYEN)[number];
 export const NHAN_SU_KIEN_CHUYEN: Readonly<Record<LoaiSuKienChuyen, string>> = {
@@ -65,6 +77,17 @@ export const NHAN_SU_KIEN_CHUYEN: Readonly<Record<LoaiSuKienChuyen, string>> = {
   STOP_ADDED_RUNNING: "Văn phòng thêm điểm khi xe đang chạy",
   ALLOCATION_OFFICE_CANCELLED: "Văn phòng báo huỷ khách",
   PASSENGER_NAMED: "Tài xế bổ sung tên khách",
+  CORRECTION: "Văn phòng điều chỉnh kết quả khách",
+  DEPARTURE_REVOKED: "Văn phòng thu hồi xuất bến",
+  ALLOCATION_ORDER_SYNCED: "Máy cập nhật chuyến theo đơn",
+  TRANSFER_SENT: "Gửi đề nghị chuyển khách",
+  TRANSFER_WITHDRAWN: "Rút đề nghị chuyển khách",
+  TRANSFER_DECLINED: "Xe nhận không nhận khách",
+  TRANSFER_EXPIRED: "Đề nghị chuyển khách hết giờ chờ",
+  TRANSFER_ESCALATED: "Đề nghị chuyển khách chờ văn phòng duyệt",
+  TRANSFER_CONFIRMED: "Chuyển khách sang xe khác",
+  TRANSFER_REJECTED: "Văn phòng không duyệt đề nghị chuyển khách",
+  DRIVER_REFUSED: "Tài xế từ chối chuyến",
 };
 
 /**
@@ -126,6 +149,9 @@ export const LENH_DONG_SUAT = {
   DOI_DIEM_THEO_CHANG: "STOP_CHANGED",
   // R-P29 (chủ lần 16): "cập nhật khách theo đơn" — suất mang khoá người không còn trong đơn đóng bằng mã RIÊNG (không dùng lại STOP_CHANGED / REMOVED).
   DOI_KHACH_THEO_DON: "PASSENGER_CHANGED",
+  // ADR-0104 Đ2 (phán quyết G7): máy đồng bộ chuyến theo đơn đóng ghế của đơn huỷ / chặng bỏ / đơn không còn xác nhận (luật (i)) và ghế thừa chưa tên (luật
+  // (iii)) bằng REMOVED — cùng họ "rút khách"; khoá người đổi (luật (ii)) vẫn DOI_KHACH_THEO_DON. Mã mới thì phải dựng lại bảng suất (CHECK đóng 0042:133).
+  DONG_BO_THEO_DON: "REMOVED",
 } as const satisfies Record<string, LyDoDongSuat>;
 
 // ---- Kiểu VÀO của luật thuần ------------------------------------------------------------------------------------------------------------------------------
@@ -141,6 +167,11 @@ export interface ChinhSachVao {
   dutyDayMaxMinutes: number;
   /** ADR-0055 VK2-B (0071): chuyến dài hơn (phút) → nhắc nghỉ — chỉ cảnh báo. */
   tripNoBreakMaxMinutes: number;
+  /**
+   * ADR-0096 Đ2 (0084): cửa sổ xuất bến (phút) — chỉ được xuất bến từ giờ khởi hành dự kiến − cửa sổ. Đọc từ dòng chính sách hiệu lực, KHÔNG có hằng trong
+   * mã. Thiếu / không phải số → `kiemXuatBen` giữ CHINH_SACH_RONG (không đoán).
+   */
+  departureWindowMinutes: number;
 }
 /** Dòng hạng bằng đang hiệu lực của MỘT hạng (`vc_license_capacity`). `maxPassengers` null = không giới hạn. Hạng không có dòng → CHẶN (không đoán). */
 export interface HangBangVao {
@@ -269,7 +300,8 @@ export interface KhungBanVao {
   taiXePartyId: string | null;
   batDauMs: number;
   ketThucMs: number;
-  lyDoNhan: string;
+  /** Nhãn lý do — chỉ khung XE; khung TÀI XẾ là `null` (lời chủ 6.2: văn phòng không thấy lý do bận của tài xế — kế hoạch A4 G-A4-9). */
+  lyDoNhan: string | null;
 }
 /** Một chuyến đủ dữ liệu cho cổng xuất bến. */
 export interface ChuyenVao {

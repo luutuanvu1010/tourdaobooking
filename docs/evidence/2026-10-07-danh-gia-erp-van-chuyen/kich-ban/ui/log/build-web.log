@@ -1,0 +1,33 @@
+
+> build:web
+> node scripts/sinh-so-do-trang.mjs && BUILD_ID=$(date +%Y%m%d%H%M%S) && esbuild web/login.ts web/orders.ts web/order-form.ts web/order.ts web/audit.ts web/staff.ts web/account.ts web/catalog.ts web/parties.ts web/locations.ts web/feedback.ts web/home.ts web/help.ts web/gui-thong-bao.ts web/tai-xe.ts web/xe.ts web/xe-sua.ts web/xe-chi-tiet.ts web/giay-to-sap-het-han.ts web/loai-giay-to-xe.ts web/loai-giay-to-nguoi.ts web/chinh-sach-dieu-phoi.ts web/ly-do-dieu-phoi.ts web/dieu-kien-xuat-ben.ts web/chuyen-sua.ts web/chuyen.ts web/dieu-phoi.ts web/cuoc.ts web/cuoc-chuyen.ts web/tro-ly-cai-dat.ts web/sessions.ts web/giao-dien.ts web/bang-gia-xe.ts web/bang-ke-xe.ts web/lich-xe-ban.ts web/xe-dang-chay.ts --bundle --format=esm --target=es2022 --minify --define:__BUILD_ID__=\"$BUILD_ID\" --define:__APP_VERSION__=\"$(node scripts/in-phien-ban.mjs version)\" --define:__APP_RELEASE_DATE__=\"$(node scripts/in-phien-ban.mjs date)\" --outdir=public/js && esbuild web/sw/sw.ts --bundle --format=iife --target=es2022 --minify --define:__BUILD_ID__=\"$BUILD_ID\" --outfile=public/sw.js
+
+Kho trợ lý: khớp mã, không đổi.
+
+  public/js/help.js                  266.7kb
+  public/js/order.js                 199.9kb
+  public/js/order-form.js            144.2kb
+  public/js/chuyen.js                137.5kb
+  public/js/account.js               106.2kb
+  public/js/dieu-phoi.js             100.5kb
+  public/js/parties.js               100.1kb
+  public/js/cuoc-chuyen.js            94.9kb
+  public/js/catalog.js                90.9kb
+  public/js/home.js                   87.0kb
+  public/js/orders.js                 84.7kb
+  public/js/tro-ly-cai-dat.js         83.9kb
+  public/js/staff.js                  83.6kb
+  public/js/bang-gia-xe.js            82.2kb
+  public/js/giao-dien.js              80.1kb
+  public/js/chuyen-sua.js             79.8kb
+  public/js/xe-chi-tiet.js            79.6kb
+  public/js/chinh-sach-dieu-phoi.js   78.2kb
+  public/js/audit.js                  78.0kb
+  public/js/lich-xe-ban.js            76.4kb
+  ...and 16 more output files...
+
+⚡ Done in 49ms
+
+  public/sw.js  4.4kb
+
+⚡ Done in 2ms

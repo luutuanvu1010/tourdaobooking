@@ -2,6 +2,7 @@
 // chính sách (repository.ts) và hàm công bố `taiXeChoDieuPhoi` của parties. KHÔNG gọi hàm hẹp của orders: dữ liệu chặng (`lichChungChang`) và tên khách
 // (`hanhKhachChoChuyen`) do THÂN ROUTE đọc SAU `can()` rồi truyền vào đây (bài src/orders-cong-bo.test.ts). Hàm `…Vao` là đổi dạng THUẦN (không I/O).
 import type { KhungBanRow } from "./khung-ban-repo";
+import type { KhungTaiXeRow } from "./khung-ban-tai-xe-repo";
 import type { ChangLichChung } from "../orders";
 import { taiXeChoDieuPhoi, type TaiXeDieuPhoi } from "../parties";
 import type {
@@ -10,9 +11,10 @@ import type {
 import { addDays, vnLocalToMs } from "../../shared/vn-date";
 import {
   allocsByTrips, allocsOpenByLegs, dieuKienHienHanh, eventsByTrips, giayToXeHienHanh, hangBangHienHanh, legFlags, lyDoDangDung, stopsByTrips, tripById,
-  tripsTouching, xeDieuPhoi, xeTheoId, type AllocRow, type EventRow, type LegFlagRow, type StopRow, type TripRow, type XeDieuPhoiRow,
+  tripsEndedBetween, tripsTouching, xeDieuPhoi, xeTheoId, type AllocRow, type EventRow, type LegFlagRow, type StopRow, type TripRow, type XeDieuPhoiRow,
 } from "./chuyen-repo";
 import { chinhSachHienHanh, type DispatchPolicyRow } from "./repository";
+import { CUA_SO_XUAT_BEN_TOI_DA_PHUT, NGHI_TOI_DA_PHUT } from "./chinh-sach";
 
 const NGAY_MS = 86_400_000;
 
@@ -59,7 +61,7 @@ export async function boSungXe(db: D1Database, chung: DuLieuChung, ids: readonly
 // ---- Đổi dạng thuần ---------------------------------------------------------------------------------------------------------------------------------------
 export const chinhSachVao = (r: DispatchPolicyRow | null): ChinhSachVao | null =>
   r ? { id: r.id, minLeadMinutes: r.min_lead_minutes, warnLeadMinutes: r.warn_lead_minutes, restMinutes: r.rest_minutes, requireManifest: r.require_manifest === 1, requireContract: r.require_contract === 1,
-    dutyDayMaxMinutes: r.duty_day_max_minutes, tripNoBreakMaxMinutes: r.trip_no_break_max_minutes } : null;
+    dutyDayMaxMinutes: r.duty_day_max_minutes, tripNoBreakMaxMinutes: r.trip_no_break_max_minutes, departureWindowMinutes: r.departure_window_minutes } : null;
 export const xeVao = (r: XeDieuPhoiRow, giayTo: Map<string, GiayToXeVao[]>): XeVao => ({
   id: r.id, bienSo: r.plate_number, soCho: r.passenger_capacity, trangThai: r.status, chuXePartyId: r.owner_party_id, chuLaCongTy: r.owner_is_company === 1, giayTo: giayTo.get(r.id) ?? [],
 });
@@ -76,6 +78,10 @@ export function taiXeVao(partyId: string, ds: readonly TaiXeDieuPhoi[]): TaiXeVa
 /** Khung bận của xe (dòng `khung_ban_*` — đã lọc VEHICLE) → dạng luật thuần (ADR-0055 VK2-A A2 (i)). */
 export const khungBanVao = (r: KhungBanRow): KhungBanVao => ({
   id: r.id, doiTuong: "VEHICLE", xeId: r.vehicle_id, taiXePartyId: null, batDauMs: r.start_ms, ketThucMs: r.end_ms, lyDoNhan: r.reason_label,
+});
+/** Khung bận của TÀI XẾ (dòng `khung_tai_xe_*` — đã lọc DRIVER, không lý do) → dạng luật thuần (ADR-0053 D9 B9.3; kế hoạch A4 T4, G-A4-9). */
+export const khungTaiXeVao = (r: KhungTaiXeRow): KhungBanVao => ({
+  id: r.id, doiTuong: "DRIVER", xeId: null, taiXePartyId: r.driver_party_id, batDauMs: r.start_ms, ketThucMs: r.end_ms, lyDoNhan: null,
 });
 export const khungChuyen = (t: TripRow): KhungChuyen => ({
   id: t.id, ma: t.code, xeId: t.vehicle_id, taiXePartyId: t.driver_party_id, batDauMs: t.planned_start_ms, ketThucMs: t.planned_end_ms, ketThucThatMs: t.ended_ms, trangThai: t.status,
@@ -139,34 +145,51 @@ export interface NguCanhChuyen {
   /** Chặng (của `lichChungChang`) theo id — kể cả chặng của lệnh đang xét. */
   chang: Map<string, ChangVao>;
   changLich: Map<string, ChangLichChung>;
-  changNgoai: { legId: string; orderCode: string; lyDo: "DON_DA_HUY" | "CHANG_DA_DONG" | "GIO_HEN_NGOAI_CHUYEN" | "CHANG_KHONG_HOP_LE" }[];
+  changNgoai: { legId: string; orderId: string; orderCode: string; lyDo: "DON_DA_HUY" | "CHANG_DA_DONG" | "GIO_HEN_NGOAI_CHUYEN" | "CHANG_KHONG_HOP_LE" }[];
   suatMoCuaChang: SuatVao[];
   chuyenKhac: KhungChuyen[];
   chuyenKhacRow: TripRow[];
 }
 /**
- * Ngữ cảnh luật của một chuyến: chặng của suất trên chuyến + chặng `themLegIds` (lệnh xếp / dời) — lấy từ `lich` (route đã đọc qua `lichChungChang`), chặng
- * rơi ra đọc cờ qua view (I38); suất mở của các chặng đó trên MỌI chuyến; chuyến khác chạm khung ±1 ngày (trùng giờ, nghỉ, đang chạy).
+ * Khung lùi (ms) của chuyến đã kết thúc thật cần đọc cho lệnh xuất bến: giờ xuất bến ≥ khởi hành dự kiến − cửa sổ (LC-20, trần 48 giờ — xuất bến sớm hơn bị
+ * `kiemXuatBen` chặn riêng), luật nghỉ nhìn lùi thêm tối đa trần khoảng nghỉ. Dùng TRẦN chứ không dùng số của chính sách hiện hành: dòng chính sách tại giờ
+ * khai lùi và bản chụp nghỉ của chuyến có thể khác dòng hiện hành.
  */
-export async function docNguCanh(db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], chung: DuLieuChung, themLegIds: readonly string[] = []): Promise<NguCanhChuyen> {
+const LUI_KET_THUC_THAT_MS = (CUA_SO_XUAT_BEN_TOI_DA_PHUT + NGHI_TOI_DA_PHUT) * 60_000;
+/**
+ * Ngữ cảnh luật của một chuyến: chặng của suất trên chuyến + chặng `themLegIds` (lệnh xếp / dời) — lấy từ `lich` (route đã đọc qua `lichChungChang`), chặng
+ * rơi ra đọc cờ qua view (I38); suất mở của các chặng đó trên MỌI chuyến; chuyến khác chạm khung KẾ HOẠCH ±1 ngày (trùng giờ, nghỉ, đang chạy).
+ * `xuatBenDenMs` (lệnh xuất bến và lý do giữ dự phóng — giờ của request): chuyến CHƯA CHẠY đọc thêm mọi chuyến đã KẾT THÚC THẬT trong
+ * [khởi hành dự kiến − `LUI_KET_THUC_THAT_MS`, `xuatBenDenMs`] — phủ `[giờ xuất bến − nghỉ, giờ xuất bến]` (CH-02) và mốc chống xuất bến trước khi chuyến
+ * trước kết thúc (ADR-0050) với mọi cửa sổ tới 48 giờ; khung kế hoạch ±1 ngày không đủ khi cửa sổ > 24 giờ.
+ */
+export async function docNguCanh(
+  db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], chung: DuLieuChung, themLegIds: readonly string[] = [], xuatBenDenMs: number | null = null,
+): Promise<NguCanhChuyen> {
   const legIds = [...new Set([...nen.legIds, ...themLegIds])];
   const changLich = new Map(lich.filter((c) => legIds.includes(c.legId)).map((c) => [c.legId, c]));
   const thieu = legIds.filter((id) => !changLich.has(id));
-  const [flags, moCuaChang, khac] = await Promise.all([
+  const docKetThuc = xuatBenDenMs !== null && nen.trip.status === "PLANNED";
+  const [flags, moCuaChang, khac, daKetThuc] = await Promise.all([
     legFlags(db, thieu),
     allocsOpenByLegs(db, legIds),
     tripsTouching(db, nen.trip.planned_start_ms - NGAY_MS, nen.trip.planned_end_ms + NGAY_MS),
+    docKetThuc ? tripsEndedBetween(db, nen.trip.planned_start_ms - LUI_KET_THUC_THAT_MS, xuatBenDenMs) : Promise.resolve([]),
   ]);
   await boSungXe(db, chung, [nen.trip.vehicle_id]);
   const xeRow = chung.xe.find((x) => x.id === nen.trip.vehicle_id)!;
-  const chuyenKhacRow = khac.filter((t) => t.id !== nen.trip.id);
+  const daCo = new Set(khac.map((t) => t.id));
+  const gop = daKetThuc.some((t) => !daCo.has(t.id))
+    ? [...khac, ...daKetThuc.filter((t) => !daCo.has(t.id))].sort((a, b) => a.planned_start_ms - b.planned_start_ms || (a.code < b.code ? -1 : a.code > b.code ? 1 : 0))
+    : khac;
+  const chuyenKhacRow = gop.filter((t) => t.id !== nen.trip.id);
   return {
     chuyen: chuyenVao(nen.trip, xeVao(xeRow, chung.giayToXe), nen.trip.driver_party_id ? taiXeVao(nen.trip.driver_party_id, chung.taiXe) : null),
     suat: nen.allocs.map(suatVao),
     diem: nen.stops.map(diemVao),
     chang: new Map([...changLich].map(([k, v]) => [k, changVao(v)])),
     changLich,
-    changNgoai: flags.map((f) => ({ legId: f.id, orderCode: f.order_code ?? "", lyDo: lyDoChangNgoai(f) })),
+    changNgoai: flags.map((f) => ({ legId: f.id, orderId: f.order_id, orderCode: f.order_code ?? "", lyDo: lyDoChangNgoai(f) })),
     suatMoCuaChang: moCuaChang.map(suatVao),
     chuyenKhac: chuyenKhacRow.map(khungChuyen),
     chuyenKhacRow,

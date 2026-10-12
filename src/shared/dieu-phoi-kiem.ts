@@ -13,14 +13,15 @@ import type {
   BanChup, ChangVao, ChinhSachVao, ChuyenVao, DieuKienVao, DiemVao, GanTen, HangBangVao, KetQuaKiem, KetQuaXuatBen, KhungBanVao, KhungChuyen, MucChup, SuatVao, TaiXeVao,
   TrangThaiChuyen, XeVao,
 } from "./dieu-phoi-kieu.ts";
-import { KET_QUA_CUOI_SUAT } from "./dieu-phoi-kieu.ts";
+import { xetKetThuc } from "./ket-thuc-chuyen.ts";
 import { kiemCamKet, type KetQuaCamKet } from "./cam-ket-xe.ts";
 import { LOAI_CO_DINH } from "./giay-to.ts";
 import { canhBaoGioLai, type CanhBaoGioLai, type ChuyenGioLai } from "./gio-lai.ts";
-import { chongNuaMo, nhanKhoangGio } from "./khung-ban.ts";
+import { chongNuaMo, nhanKhoangGio, nhanTuDen } from "./khung-ban.ts";
 import { lyDoGiu, type LyDoGiu } from "./ly-do-giu.ts";
-import { kiemMocXep, type LenhXep } from "./moc-toi-thieu.ts";
-import { msToVnLocal, vnToday } from "./vn-date.ts";
+import { gioXetSuaChuyen, kiemMocXep, type LenhXep } from "./moc-toi-thieu.ts";
+import { suatTraTruocDon } from "./thu-tu-diem.ts";
+import { msToVnLocal, ngayNgan, vnToday } from "./vn-date.ts";
 
 const PHUT = 60_000;
 const NGAY_MS = 24 * 3600e3;
@@ -29,7 +30,6 @@ const ngayVn = (ms: number): string => msToVnLocal(ms).date;
 export const conHanToiHet = (expiryDate: string | null, ketThucMs: number): boolean => expiryDate === null || expiryDate >= ngayVn(ketThucMs);
 /** Suất đang chiếm chỗ trên xe (LC-02). */
 const chiemCho = (s: SuatVao): boolean => s.mo && (s.trangThai === "WAITING" || s.trangThai === "BOARDED");
-const laKetQuaCuoi = (s: SuatVao): boolean => (KET_QUA_CUOI_SUAT as readonly string[]).includes(s.trangThai);
 const ketQua = (chan: LyDoGiu[], canPhaLe: LyDoGiu[]): KetQuaKiem => ({ ok: chan.length === 0 && canPhaLe.length === 0, chan, canPhaLe });
 /** Bỏ lý do trùng (cùng mã, cùng câu) — giữ thứ tự xuất hiện. */
 function khongTrung(xs: LyDoGiu[]): LyDoGiu[] {
@@ -131,11 +131,13 @@ export function kiemTaoSuaChuyen(v: KiemTaoSuaChuyenVao): KetQuaTaoSua {
   }
   // ADR-0055 VK2-A A2 (i) + ADR-0053 D9 B9.3: khung bận còn hiệu lực là KHOẢNG CHẶN như chuyến khác — MỘT hàm cho xe và tài xế (không luật thứ hai).
   // Mã: dùng lại TRUNG_GIO_XE / TRUNG_GIO_TAI_XE (ADR-0055 "không thêm mã vào MA_GIU"; chủ không trả lời Lượt III câu 7) — chi tiết nói rõ là lịch bận.
+  // Kế hoạch A4 G-A4-9 (lời chủ 6.2): nhánh TÀI XẾ không có lý do — "<Tên> bận từ … đến …. Chọn tài xế khác hoặc đổi giờ chuyến."; nhánh XE giữ lý do.
   for (const k of v.khungBan ?? []) {
     if (!chongNuaMo(c.batDauMs, c.ketThucMs, k.batDauMs, k.ketThucMs)) continue;
-    const gio = `${k.lyDoNhan} ${nhanKhoangGio(k.batDauMs, k.ketThucMs)}`;
-    if (k.doiTuong === "VEHICLE" && k.xeId === c.xe.id) chan.push(lyDoGiu("TRUNG_GIO_XE", `lịch xe bận: ${gio}`));
-    if (k.doiTuong === "DRIVER" && c.taiXe !== null && k.taiXePartyId === c.taiXe.partyId) chan.push(lyDoGiu("TRUNG_GIO_TAI_XE", `lịch tài xế bận: ${gio}`));
+    if (k.doiTuong === "VEHICLE" && k.xeId === c.xe.id) chan.push(lyDoGiu("TRUNG_GIO_XE", `lịch xe bận: ${k.lyDoNhan ?? ""} ${nhanKhoangGio(k.batDauMs, k.ketThucMs)}`));
+    if (k.doiTuong === "DRIVER" && c.taiXe !== null && k.taiXePartyId === c.taiXe.partyId) {
+      chan.push(lyDoGiu("TRUNG_GIO_TAI_XE", `${c.taiXe.displayName || "Tài xế"} bận ${nhanTuDen(k.batDauMs, k.ketThucMs)}. Chọn tài xế khác hoặc đổi giờ chuyến.`));
+    }
   }
   if (c.taiXe) {
     const lai = kiemLai(c.taiXe, c.xe.soCho, c.ketThucMs, v.hangBang);
@@ -145,7 +147,7 @@ export function kiemTaoSuaChuyen(v: KiemTaoSuaChuyenVao): KetQuaTaoSua {
   // Mốc lúc xếp: chỉ khi SỬA mà đổi xe / đổi tài xế (Q2 = (a): tạo chuyến trong mốc không khoá). Giờ xét = sớm nhất của cũ / mới / giờ sớm nhất từng có —
   // không lách mốc bằng cách dời giờ trong CÙNG lệnh, cũng không bằng chuỗi lệnh "dời ra → đổi → dời về" (khoá dính R-P6). Dời giờ một mình không khoá.
   if (v.lenh === "SUA" && v.cu && v.chinhSach) {
-    const batDau = Math.min(v.cu.batDauMs, c.batDauMs, v.cu.batDauSomNhatMs ?? v.cu.batDauMs);
+    const batDau = gioXetSuaChuyen(v.cu.batDauMs, c.batDauMs, v.cu.batDauSomNhatMs); // một phép với "dưới mốc" của lớp vượt (ADR-0104 Đ1 mục 0)
     const lenh: LenhXep[] = [];
     if (v.cu.xeId !== c.xe.id) lenh.push("DOI_XE");
     if (v.cu.taiXePartyId !== (c.taiXe?.partyId ?? null)) lenh.push("DOI_TAI_XE");
@@ -168,13 +170,15 @@ export function kiemTaoSuaChuyen(v: KiemTaoSuaChuyenVao): KetQuaTaoSua {
 // ---- Xếp (mở suất) ----------------------------------------------------------------------------------------------------------------------------------------
 /**
  * Chặng được xét "theo đơn" (nơi hẹn đổi — VK1-B; khách đã đổi — R-P29): đơn đã xác nhận, chưa huỷ, chặng còn mở. Đơn huỷ / chặng bỏ / đơn chưa xác nhận có
- * lý do giữ RIÊNG (DON_DA_HUY, CHANG_DA_DONG, …) — không bắt văn phòng "cập nhật theo đơn" cho khách không còn đi (I38). MỘT điều kiện cho cổng xuất bến và
- * hai lệnh "cập nhật … theo đơn".
+ * lý do giữ RIÊNG (DON_DA_HUY, CHANG_DA_DONG, …) — không bắt văn phòng "cập nhật điểm theo đơn" cho khách không còn đi (I38). Điều kiện của lý do giữ
+ * NOI_HEN_DOI / KHACH_DA_DOI ở cổng xuất bến. ADR-0104 Đ2.11: lệnh "Cập nhật khách theo đơn" KHÔNG còn bỏ qua chặng ngoài điều kiện này — nó dùng luật thuần
+ * `dongBoChuyenTheoDon` (dong-bo-chuyen.ts), đóng suất của đơn huỷ / chặng bỏ / đơn không xác nhận.
  */
 export const changXetTheoDon = (ch: ChangVao): boolean => ch.donDaXacNhan && !ch.donDaHuy && ch.changMo;
 /**
  * R-P29 (chủ lần 16): suất KHÁCH MỞ của chặng `legId` trong `suat` (suất của CHUYẾN này) mang khoá người KHÔNG còn là hành khách hiện hành của đơn
- * (`nguoiCuaDon`) — khách bị bỏ / thay sau khi gắn tên. MỘT định nghĩa cho lý do giữ KHACH_DA_DOI (`kiemXuatBen`) và lệnh "Cập nhật khách theo đơn".
+ * (`nguoiCuaDon`) — khách bị bỏ / thay sau khi gắn tên. MỘT định nghĩa cho lý do giữ KHACH_DA_DOI (`kiemXuatBen`) và luật (ii) của `dongBoChuyenTheoDon`
+ * (máy đồng bộ + nút "Cập nhật khách theo đơn" — ADR-0104 Đ2.6, Đ2.11).
  */
 export function suatKhachDaDoi(v: { legId: string; nguoiCuaDon: readonly string[]; suat: readonly SuatVao[] }): SuatVao[] {
   const hienHanh = new Set(v.nguoiCuaDon);
@@ -345,6 +349,49 @@ export interface KiemXuatBenVao {
    * đo từ lúc bấm là lệch khi văn phòng khai lùi (kế hoạch mục 4 điểm 23).
    */
   xuatBenMs: number;
+  /**
+   * ADR-0096 Đ2 (LC-20): mốc so với cửa sổ xuất bến. Thiếu → `xuatBenMs` (lệnh xuất bến thật). Màn đọc dự phóng `xuatBenMs = max(bây giờ, giờ bắt đầu)` —
+   * luôn trong cửa sổ — nên màn chi tiết chuyến / cuốc tài xế truyền GIỜ THẬT ở đây để lý do hiện ngay khi đọc (Đ2.5).
+   */
+  cuaSoXetMs?: number;
+}
+
+/**
+ * ADR-0096 Đ2 (LC-20) — lý do giữ khi `xetMs` sớm hơn giờ khởi hành − cửa sổ; null khi trong cửa sổ. Câu: giờ + ngày khởi hành, giờ + ngày được xuất bến
+ * (ngày "dd/mm", có năm khi khác năm của `xetMs`), đường khắc phục. Cửa sổ thiếu / không phải số → giữ CHINH_SACH_RONG (không đoán con số).
+ */
+export function lyDoNgoaiCuaSo(batDauMs: number, cuaSoPhut: number | undefined, xetMs: number): LyDoGiu | null {
+  if (typeof cuaSoPhut !== "number" || !Number.isFinite(cuaSoPhut)) return lyDoGiu("CHINH_SACH_RONG");
+  const moMs = batDauMs - cuaSoPhut * PHUT;
+  if (xetMs >= moMs) return null;
+  const homNay = ngayVn(xetMs);
+  const kh = msToVnLocal(batDauMs);
+  const mo = msToVnLocal(moMs);
+  return lyDoGiu(
+    "NGOAI_CUA_SO_XUAT_BEN",
+    `chuyến khởi hành lúc ${kh.time} ngày ${ngayNgan(kh.date, homNay)}, được xuất bến từ ${mo.time} ngày ${ngayNgan(mo.date, homNay)}. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến.`,
+  );
+}
+
+/**
+ * ADR-0096 Đ1.2 (LC-19) — lý do giữ TRA_TRUOC_DON, MỘT lý do mỗi đơn (theo thứ tự gặp suất), cho suất MỞ đang CHỜ LÊN có số điểm xuống ≤ số điểm lên.
+ * Chi tiết: mã đơn (khi biết) + SỐ THỨ TỰ điểm (cột "#" của màn chuyến và số trên màn tài xế = `seq`) — không tên nơi, không khoá nơi.
+ */
+export function lyDoTraTruocDon(suat: readonly SuatVao[], diem: readonly DiemVao[], chang: readonly Pick<ChangVao, "legId" | "orderCode">[]): LyDoGiu[] {
+  const cho = suat.filter((s) => s.mo && s.trangThai === "WAITING");
+  const viTri = new Map(diem.map((d) => [d.id, d.seq]));
+  const daoChiSo = suatTraTruocDon(diem, cho.map((s) => ({ diemLen: s.boardStopId, diemXuong: s.alightStopId })));
+  const out: LyDoGiu[] = [];
+  const daCo = new Set<string>();
+  for (const i of daoChiSo) {
+    const s = cho[i]!;
+    const ma = chang.find((x) => x.legId === s.legId)?.orderCode ?? "";
+    if (daCo.has(ma)) continue;
+    daCo.add(ma);
+    const viTriDiem = `điểm trả số ${viTri.get(s.alightStopId!)} đứng trước điểm đón số ${viTri.get(s.boardStopId!)}`;
+    out.push(lyDoGiu("TRA_TRUOC_DON", ma ? `${ma} (${viTriDiem})` : viTriDiem));
+  }
+  return out;
 }
 
 /**
@@ -361,6 +408,11 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen & { camKet: KetQua
   const mucRong = { vehicleDocumentId: null, personDocumentId: null, documentTypeCode: null, licenseClassCode: null, expiryDate: null, ruleId: null };
   if (!cs) lyDo.push(lyDoGiu("CHINH_SACH_RONG"));
   else if (cs.requireContract) lyDo.push(lyDoGiu("HOP_DONG"));
+  // ADR-0096 Đ2 (LC-20): cửa sổ xuất bến của chính sách đang dùng — không phá lệ. Lớp CSDL: trigger vc_trip_departure_window (0084).
+  if (cs) {
+    const cuaSo = lyDoNgoaiCuaSo(c.batDauMs, cs.departureWindowMinutes, v.cuaSoXetMs ?? v.xuatBenMs);
+    if (cuaSo) lyDo.push(cuaSo);
+  }
   if (c.xe.trangThai !== "active") lyDo.push(lyDoGiu("XE_KHONG_DUNG", c.xe.bienSo));
   if (!c.taiXe) lyDo.push(lyDoGiu("CHUA_CO_TAI_XE", c.ma));
   else {
@@ -433,6 +485,8 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen & { camKet: KetQua
     const thieuTen = lyDoThieuTen(ch, cs?.requireManifest ?? false, { chuaTen: chuaTen.length, ranh: ranh.length });
     if (thieuTen) lyDo.push(thieuTen);
   }
+  // ADR-0096 Đ1.2 (LC-19): điểm đón của suất chờ lên đứng trước điểm trả — không phá lệ. Lớp CSDL: trigger vc_trip_departure_stop_order (0084).
+  lyDo.push(...lyDoTraTruocDon(v.suat, v.diem, [...v.chang, ...(v.changNgoai ?? [])]));
   // ADR-0056 VK3-A: cam kết xe riêng / số chỗ — MỘT luật với lúc xếp; chặng = chặng có suất khách MỞ trên chuyến (`legIds`) có trong `v.chang` (chặng rơi
   // khỏi lịch đã có lý do giữ riêng ở trên). Còn vi phạm mà khoá khác khoá đã phá lệ → giữ (bắt cả cam kết bật SAU khi xếp — không cần lệnh chuyến nào chạy).
   const camKet = kiemCamKet({ xe: c.xe, chang: v.chang.filter((x) => legIds.includes(x.legId)), khoaDaPhaLe: c.camKetPhaLeKhoa });
@@ -467,9 +521,8 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen & { camKet: KetQua
 // ---- Kết thúc (LC-16), "trong ngày chạy" -----------------------------------------------------------------------------------------------------------------
 /** LC-16: kết thúc thường chỉ khi mọi suất mở đã có kết quả cuối và mọi điểm đã DONE / SKIPPED / MOVED; không thì gợi ý "Kết thúc gián đoạn". */
 export function kiemKetThuc(v: { suat: SuatVao[]; diem: DiemVao[] }): { duoc: true } | { duoc: false; goiY: "KET_THUC_GIAN_DOAN"; conSuat: number; conDiem: number } {
-  const conSuat = v.suat.filter((s) => s.mo && !laKetQuaCuoi(s)).length;
-  const conDiem = v.diem.filter((d) => d.trangThai === "PENDING" || d.trangThai === "ARRIVED").length;
-  return conSuat === 0 && conDiem === 0 ? { duoc: true } : { duoc: false, goiY: "KET_THUC_GIAN_DOAN", conSuat, conDiem };
+  // C57: lõi ở ket-thuc-chuyen.ts — màn tài xế gọi CÙNG hàm (bài ket-thuc-chuyen.test.ts ép hai bên cho cùng kết quả).
+  return xetKetThuc(v);
 }
 
 /**
@@ -480,3 +533,28 @@ export function kiemKetThuc(v: { suat: SuatVao[]; diem: DiemVao[] }): { duoc: tr
 export const trongNgayChay = (chuyen: { ngayChay: string; trangThai: TrangThaiChuyen; xuatBenMs: number | null }, homNay: string): boolean =>
   chuyen.ngayChay === homNay ||
   (chuyen.trangThai === "RUNNING" && chuyen.xuatBenMs !== null && vnToday(new Date(chuyen.xuatBenMs)) >= chuyen.ngayChay);
+
+/**
+ * KHUNG XEM KHÁCH (ADR-0053 D7.2 — MỘT hàm cho mọi tài xế; kế hoạch A4 T1). Trong khung thì DTO tài xế có họ tên, năm sinh, liên hệ, chuỗi đích chỉ đường
+ * (ADR-0105) — và, với người có vế hạn, mã đơn (ADR-0053 :30, :70, :171; G-A4-7). `hanTuChoiMs`:
+ *   - `undefined` = người gọi KHÔNG có vế hạn (tài xế công ty — ADR-0053 :64): chỉ vế "trong ngày chạy";
+ *   - `null` = người có vế hạn mà THIẾU dòng hạn của cặp → NGOÀI khung (đóng mặc định — G-A4-2);
+ *   - số = hạn Từ chối của cặp (tài xế, chuyến): trong khung khi `bayGioMs > hạn` (biên NGHIÊM — G-A4-1: khoảng Từ chối được `≤ hạn` và khoảng thấy khách rời
+ *     nhau) VÀ trong ngày chạy.
+ * Ngoài `src/shared/` chỉ gọi qua `khungCuaNguoiGoi` (van-chuyen) — bài src/modules/van-chuyen/mot-ham-khung.test.ts.
+ */
+export function trongKhungXemKhach(
+  chuyen: { ngayChay: string; trangThai: TrangThaiChuyen; xuatBenMs: number | null }, hanTuChoiMs: number | null | undefined, bayGioMs: number,
+): boolean {
+  if (hanTuChoiMs === null) return false;
+  if (hanTuChoiMs !== undefined && !(bayGioMs > hanTuChoiMs)) return false;
+  return trongNgayChay(chuyen, vnToday(new Date(bayGioMs)));
+}
+/**
+ * Lúc khung xem khách BẮT ĐẦU mở khi chuyến chưa xuất bến sớm (dòng "Thấy danh sách khách từ …" — kế hoạch A4 G-A4-17 `thayKhachTu`): 00:00 ngày chạy (giờ VN),
+ * hoặc ngay sau hạn Từ chối nếu muộn hơn. `null` hạn → như không vế hạn (màn chỉ hiện khi máy chủ đã đọc được hạn).
+ */
+export function mocMoKhung(chuyen: { ngayChay: string }, hanTuChoiMs: number | null | undefined): number {
+  const dauNgay = Date.parse(`${chuyen.ngayChay}T00:00:00+07:00`);
+  return typeof hanTuChoiMs === "number" ? Math.max(dauNgay, hanTuChoiMs + 1) : dauNgay;
+}

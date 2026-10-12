@@ -203,10 +203,12 @@ test("K2d VỪA — đua LC-01 hai chuyến: hai lệnh xếp cùng chặng, cù
 // màn hình"): màn văn phòng (lý do giữ của GET chi tiết — `kiemXuatBen`) và lệnh xuất bến CÙNG một kết luận. Kịch bản: đơn 2 khách A, B → xếp (máy gắn A, B —
 // I19a) → huỷ A khỏi đơn → thêm C → trước đây màn "đạt" mà lệnh 409 THIEU_TEN "tải lại"; nay CẢ HAI giữ KHACH_DA_DOI (gỡ bằng "Cập nhật khách theo đơn" —
 // src/modules/van-chuyen/cap-nhat-khach.test.ts). Bài từng là `todo` (§10.33) — đã bỏ.
+// ADR-0104 Đ2 (kế hoạch N9 — đổi cách DỰNG, không nới luật): sửa khách nay tự đồng bộ chuyến; bài cần TRẠNG THÁI GIỮ (lưới khi máy không nối được khúc chuyến)
+// nên dựng thế giới không tiêm máy (`khongDongBoChuyen`).
 test("K2d CAO: khách được gắn tên lúc xếp rồi bị huỷ khỏi đơn (thêm khách mới) → màn văn phòng và lệnh xuất bến CÙNG kết luận (không 'màn đạt, nút không')", async () => {
   const tat = batDongHo();
   try {
-    const w = setup();
+    const w = setup({ khongDongBoChuyen: true });
     const d = await don(w, { soNguoi: 2 });
     const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
     assert.equal((await xep(w, t.chuyen.id, d.legId, 2)).status, 200);

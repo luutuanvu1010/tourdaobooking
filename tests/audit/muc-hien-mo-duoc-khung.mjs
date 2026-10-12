@@ -40,7 +40,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { world, seedStaff } from "./harness.mjs";
 import { PERMISSION_CODES, can, canAccessOrders, hasPermission, seesAllOrders } from "../../src/shared/permissions.ts";
-import { chiTaiXe, homeRedirect } from "../../src/shared/start-page.ts";
+import { chiTaiXe, coCuocCuaToi, homeRedirect } from "../../src/shared/start-page.ts";
 import { PAGES } from "../../src/shared/sw-policy.ts";
 import { KHOA_TRANG, THANH_BEN, THANH_TAB, THANH_TREN, TRANG, TRANG_TOI, coKhungNho, moTrang, sangTai, thanhBen, thanhTab, thanhTren, trangToi } from "../../src/shared/muc-giao-dien.ts";
 import { O_TOI, O_TRANG_CHU, nhomMayTinh } from "../../src/shared/trang-chu-o.ts";
@@ -87,7 +87,8 @@ const TU_CHOI_BANG_404 = new Set();
  * ít nhất một tập. Vòng sửa 1: ba dòng cũ (Địa điểm, Trang chủ tài xế, Cuốc với văn phòng) KHÔNG còn ở đây — chính trang tự chặn ở trình duyệt (`moTrang`),
  * nên không phải lựa chọn của chủ (cho hiện sẽ thành "thấy nút mà bấm bị trang chặn" — bài (1b) đỏ).
  */
-const coDriver = (s) => hasPermission(s, "DRIVER");
+// Giữ "Cuốc của tôi" = ô trip.view ĐÚNG BẰNG assigned: tài xế công ty (DRIVER) và, từ A4 (ADR-0053 D7.1), tài xế đối tác (DRIVER_PARTNER) — ghép main 1c471990, 12/10.
+const coDriver = (s) => coCuocCuaToi(s);
 const DUOC_MA_AN = [
   {
     noi: ["thanh-ben", "thanh-tab", "trang-chu"],
@@ -122,6 +123,22 @@ const DUOC_MA_AN = [
     lyDo:
       "Tài xế công ty kiêm HDV / Đối tác / Thực tập (không có ô trip.view mọi chuyến): dòng 'Cuốc của tôi' một mình không mở nhóm VẬN CHUYỂN của trang Tôi, " +
       "không có tab riêng (GA-K2b-T2) ⇒ ở ĐIỆN THOẠI không có lối vào /cuoc (máy tính có mục ở thanh bên). Chờ chủ — lỗ thật, nên quyết.",
+  },
+  {
+    noi: ["thanh-ben", "trang-toi"],
+    trang: "deNghi",
+    khi: (s) => can(s, "trip.view") && !can(s, "trip.override"),
+    lyDo:
+      "Gói A5 (ADR-0111, bản vẽ V10): GET /api/van-chuyen/de-nghi chỉ hỏi trip.view (rộng — Bán hàng, Kế toán, văn phòng xem được danh sách), nhưng mục 'Đề nghị chuyển khách' " +
+      "chỉ hiện cho ô trip.override (Quản trị, Toàn quyền — người duyệt / bác). Giữ như mã gói A5 (ghép main 1c471990, 12/10). Chờ chủ (giữ là hợp lý).",
+  },
+  {
+    noi: ["thanh-ben", "thanh-tab"],
+    trang: "ban",
+    khi: (s) => can(s, "unavailability.self", { ownerId: s.id }) && !chiTaiXe(s),
+    lyDo:
+      "A4 T9 (ADR-0053 D9, G-A4-16): 'Báo bận của tôi' chỉ hiện cho tài khoản 'chỉ tài xế' (có tab riêng); Toàn quyền, tài khoản tài xế đối tác kiêm văn phòng gọi được " +
+      "GET /api/van-chuyen/ban/cua-toi nhưng không có mục (văn phòng xem dải 'Tài xế bận' ở Điều phối xe, không ghi thay). Giữ như mã A4 (ghép main 1c471990, 12/10). Chờ chủ (giữ là hợp lý).",
   },
 ];
 

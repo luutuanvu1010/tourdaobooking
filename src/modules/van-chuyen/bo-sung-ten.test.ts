@@ -52,6 +52,7 @@ test("D5b chuyến LÊN KẾ HOẠCH trong ngày chạy: tài xế bổ sung tê
     // Lặp cùng requestId → kết quả cũ, không ghi thêm.
     assert.equal((await boSung(w, a.id, { suatId: s, requestId: rid })).status, 200);
     assert.equal(w.q("SELECT count(*) n FROM ord_passenger WHERE source = 'DRIVER'")[0].n, 1);
+    assert.equal(w.q("SELECT count(*) n FROM vc_trip_event WHERE request_id = ?", rid)[0].n, 1, "lặp: đúng một sự kiện PASSENGER_NAMED");
     // Suất đã có tên → 409.
     const lai = await boSung(w, a.id, { suatId: s });
     assert.equal(lai.status, 409, lai.text);

@@ -971,11 +971,19 @@ try {
       const range = document.createRange();
       range.selectNodeContents(div.firstChild);
       const tops = [...range.getClientRects()].map((rc) => Math.round(rc.top));
-      return { soDong: new Set(tops).size, caoDiv: Math.round(div.getBoundingClientRect().height), whiteSpace: getComputedStyle(div).whiteSpace, text: div.textContent };
+      // ADR-0062 Đ2 (2026-10-08): dòng nay mở đầu bằng đoạn "số khách: …" nên dòng đầu có thể tự gãy theo bề ngang — đo thêm: hai dòng sau ký tự xuống dòng
+      // BẮT ĐẦU ở mép trái (cùng x với ký tự đầu). white-space mặc định (collapse) thì "- Thêm…" nối tiếp sau "đổi:" — không ở mép trái.
+      const node = div.firstChild, t = node.textContent;
+      const trai = (i) => { const r = document.createRange(); r.setStart(node, i); r.setEnd(node, i + 1); return Math.round(r.getClientRects()[0].left); };
+      const dauDong = ["- Thêm", "- Đổi giờ"].map((x) => trai(t.indexOf(x)) === trai(0));
+      return { soDong: new Set(tops).size, dauDong, caoDiv: Math.round(div.getBoundingClientRect().height), whiteSpace: getComputedStyle(div).whiteSpace, text: div.textContent };
     })()`);
     assert.equal(m.whiteSpace, "pre-line", `CSS .history-detail phải là white-space: pre-line: ${JSON.stringify(m)}`);
-    assert.equal(m.text, reason, "textContent (DOM) giữ NGUYÊN lý do kể cả ký tự xuống dòng — dữ liệu không đổi, chỉ đổi cách hiển thị");
-    assert.equal(m.soDong, 3, `phải hiện ĐÚNG 3 dòng thị giác (đúng số dòng của reason, đo bằng Range.getClientRects) — trước bản sửa CSS, white-space mặc định collapse còn 1 dòng: ${JSON.stringify(m)}`);
+    // ADR-0062 Đ2: detail = "số khách: <tên danh mục>: người lớn 2 → 3 · lý do: <lý do nguyên văn>" — lý do LUÔN ở cuối, giữ nguyên ký tự xuống dòng.
+    assert.equal(m.text, `số khách: Tour thử lý do nhiều dòng: người lớn 2 → 3 · lý do: ${reason}`, "textContent (DOM) giữ NGUYÊN lý do kể cả ký tự xuống dòng — dữ liệu không đổi, chỉ đổi cách hiển thị");
+    assert.ok(m.text.endsWith(reason), "lý do nguyên văn ở cuối");
+    assert.ok(m.soDong >= 3, `phải hiện ÍT NHẤT 3 dòng thị giác (3 dòng của reason; dòng đầu có thể gãy thêm) — trước bản sửa CSS, white-space mặc định collapse: ${JSON.stringify(m)}`);
+    assert.deepEqual(m.dauDong, [true, true], `hai dòng sau ký tự xuống dòng phải bắt đầu ở mép trái (pre-line giữ xuống dòng): ${JSON.stringify(m)}`);
     assert.ok(m.caoDiv > 0, `chiều cao thật của khối lý do (đối chứng, không phải khẳng định chính): ${JSON.stringify(m)}`);
     results.do["history-detail-nhieu-dong"] = m;
     await shoot(p, "nguoi-phu-trach-lich-su-nhieu-dong.png");

@@ -197,7 +197,9 @@ test("ban-xe (câu 3.1 — khoá DTO): mỗi phần tử `chuyen` có ĐÚNG kho
     assert.equal(r.status, 200, r.text);
     assert.deepEqual(r.json.chuyen.map((t: { id: string }) => t.id), [c.id], "chuyến đã huỷ không có");
     for (const t of r.json.chuyen) assert.deepEqual(Object.keys(t).sort(), ["batDauMs", "id", "ketThucMs", "ma", "trangThai", "xeId"]);
-    assert.doesNotMatch(r.text, /Khách|Dò Tìm|09\d{8}|TD-\d/);
+    // Bỏ mã UUID ngẫu nhiên trước khi quét: "…-909661116149" từng khớp /09\d{8}/ (đỏ ngẫu nhiên 8/10; khuôn thong-bao-doi.test.ts:24).
+    // SĐT không thể nằm trong một mã dạng UUID nên phép bỏ không nới rào.
+    assert.doesNotMatch(r.text.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "<id>"), /Khách|Dò Tìm|09\d{8}|TD-\d/);
     assert.ok(r.json.xe.some((v: { id: string }) => v.id === x));
   } finally { tat(); }
 });
