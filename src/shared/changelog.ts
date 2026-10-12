@@ -17,6 +17,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     date: "2026-10-13",
     items: [
       { kind: "sua", text: "Ô tìm ở danh sách đơn không còn báo lỗi hệ thống khi gõ chữ dài, ví dụ cả họ tên khách có dấu. Chữ quá dài thì Nền tảng tìm theo phần đầu." },
+      { kind: "sua", text: "Ô tìm ở Danh bạ, Nhật ký, chọn người hưởng khi lập đơn và Lịch sử trợ lý cũng không còn báo lỗi hệ thống khi gõ chữ dài; chữ quá dài thì tìm theo phần đầu." },
     ],
   },
   {

@@ -11,7 +11,7 @@ import { auditStatement } from "../audit";
 import type {
   TroLyBoNaoLichSuResponse, TroLyBoNaoResponse, TroLyCaiDatResponse, TroLyHoiResponse, TroLyKhungResponse, TroLyLichSuResponse, TroLyLoiDanResponse, TroLyNguCanhResponse, TroLyThuKhoaResponse, TroLyThuResponse,
 } from "../../shared/contracts";
-import { error, escapeLike, intParam, json, readJson, UUID_RE } from "../../shared/http";
+import { error, intParam, mauLikeChua, json, readJson, UUID_RE } from "../../shared/http";
 import { can, PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import {
@@ -451,7 +451,7 @@ export const troLyModule: AppModule = {
       const trang = intParam(sp.get("trang"), 1, 1, 10_000);
       const db = env.DB;
       const [dong, ds] = await Promise.all([
-        lichSu(db, { tu, den, nguoi, vai, mauTim: q ? `%${escapeLike(q)}%` : null, gioiHan: TRANG_LICH_SU + 1, boQua: (trang - 1) * TRANG_LICH_SU }),
+        lichSu(db, { tu, den, nguoi, vai, mauTim: q ? mauLikeChua(q) : null, gioiHan: TRANG_LICH_SU + 1, boQua: (trang - 1) * TRANG_LICH_SU }),
         nguoiDaHoi(db),
       ]);
       const nhan = (v: string): string => ((PERMISSION_CODES as readonly string[]).includes(v) ? PERMISSION_LABEL[v as PermissionCode] : "Vai cũ");

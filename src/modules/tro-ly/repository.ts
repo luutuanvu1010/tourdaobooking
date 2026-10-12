@@ -260,7 +260,7 @@ export const hoiDapStatement = (db: D1Database, h: HoiDap): D1PreparedStatement 
     .prepare(GHI_HOI_DAP)
     .bind(crypto.randomUUID(), h.luotId, h.staffId, JSON.stringify(h.vai), h.ngayVn, h.cauHoiDaChe, h.traLoi, JSON.stringify(h.nguon), h.chiPhi, h.ketQua, h.at, h.cuocTroChuyen);
 
-/** `mauTim`: mẫu LIKE đã thoát ký tự đặc biệt (`escapeLike` ở src/shared/http.ts) và bọc `%…%`, hoặc null. */
+/** `mauTim`: mẫu LIKE đã thoát ký tự đặc biệt, cắt ≤ 50 byte (`mauLikeChua` ở src/shared/http.ts) và bọc `%…%`, hoặc null. */
 export interface LocLichSu { tu: string | null; den: string | null; nguoi: string | null; vai: string | null; mauTim: string | null; gioiHan: number; boQua: number }
 export interface DongLichSu {
   id: string; staffId: string; nguoi: string | null; vai: string[]; cauHoi: string; traLoi: string; nguon: string[]; chiPhi: number; ketQua: string; luc: string;
