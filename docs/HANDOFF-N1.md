@@ -2,7 +2,22 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.88 ĐÃ LÊN PRODUCTION (gói A+C Vận chuyển: hai nút Chỉ đường — ADR-0105; phải thu không âm — ADR-0109; tài xế nhà xe ngoài dùng Nền tảng, báo bận, từ chối chuyến — ADR-0053; chuyển khách giữa hai xe — ADR-0111; màn tài xế mới; bảng điều phối; báo tài xế khi văn phòng cập nhật khách / điểm theo đơn — ADR-0112; chặn từ chối chuyến khi có khách chuyển vào — ADR-0113) — migration `0084`, `0085`, `0086`, `0089`, `0091`, `0092`, `0093` đã áp (2026-10-13 06:50 giờ VN)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.92 ĐÃ LÊN PRODUCTION (vá D-1: Đối tác không còn thấy lý do nội bộ và người duyệt trong lịch sử đơn; ADR-0115 đợt công nợ: điều chỉnh sổ cần người thứ hai duyệt, màn «Điều chỉnh công nợ», ô quyền `ledger.adjust.approve`; vá khe «Đã giao» không hoa hồng; kèm đợt 1 giao diện Tạo đơn — bản 1.91) — migration `0094_bil_dieu_chinh_duyet` đã áp (2026-10-13 21:30 giờ VN)
+
+Một lần phát hành đưa lên cả 1.91 (giao diện Tạo đơn, phiên khác) lẫn 1.92. Khối do `npm run trien-khai` in ra (chủ chạy), kèm phần người kiểm độc lập tự kiểm lại bằng lệnh chỉ đọc (2026-10-13):
+
+- **Commit:** `277f5983` (= `main` = `origin/main`). Điểm khôi phục Time Travel trước khi áp: `00000fd9-00000000-00005103-0d18d24c5115cd063215da045a7868c7`.
+- **Worker** (`wrangler deployments list`): mới nhất **f50ee369-2a34-4f0a-9a38-eb290ce5845c** (2026-10-13T14:30Z, 100%); trước đó 89eed59f (bản 1.90).
+- **Phiên bản:** cổng trước và sau deploy ĐẠT; `GET /api/auth/config` → `"version":"1.92"`.
+- **Migration:** `wrangler d1 migrations list --remote` → "No migrations to apply!".
+- **Dữ liệu:** `audit-invariants --db remote` (chủ chạy trong `trien-khai`) → "Mọi bất biến đạt, 4 cảnh báo" (R-CTL-1: 5 dịch vụ chưa gán nhóm; R-ORD-T1w: 42 đơn chờ chụp bù đợt 2; còn lại: xem khối in ra).
+- **Kiểm trước phát hành:** typecheck 0; `npm test` 4552 bài / 0 đỏ; e2e đủ bộ xanh sau khi sửa token CSS của kịch bản `pwa` (đợt Tạo đơn viết cứng `12rem`); người kiểm độc lập: bản vá D-1, ADR-0115 đợt 1 (hai lượt), vá «Đã giao», nhánh gộp — đều không còn lỗi chặn.
+- **Bảo trì:** BẬT tới 2026-10-14T11:49Z (18:49 giờ VN) — giữ cho tới khi mọi người đã đăng nhập bằng bản mới; chủ tự quyết khi tắt.
+- **Hoàn tác:** quay Worker về bản cũ thì lệnh điều chỉnh công nợ của bản cũ bị trigger chặn (`adjustment_needs_approval`); các loại phiếu khác chạy bình thường (`docs/CHANGE-GUIDE.md` bẫy 71 mục 6).
+- **Chưa kiểm:** màn «Điều chỉnh công nợ» và lịch sử đơn của Đối tác bằng tài khoản thật; kịch bản Chrome (`trang-chu-smoke.mjs` với `AXE_JS`; số mục thanh bên 25/32 mới suy ra) và iPhone; hai câu đếm chỉ đọc ở `docs/BACKLOG.md` mục 29; đợt 1 giao diện Tạo đơn (1.91) chưa có người kiểm độc lập.
+- **Còn mở:** `HC-4.2` mới giảm một nửa (đợt 2 điều chỉnh chi phí chuyến xe chưa làm; luật tách theo tài khoản, không theo người), `TNV-G3` (ADR-0116 chưa thi công), cùng hạn 2026-10-31; diễn tập khôi phục `HC-5.19`; Kế toán xác nhận ca vàng (5 ca `SV-DC-01…05` mới); Trợ giúp theo vai chưa nói màn mới; lỗ M-2 (lịch sử đơn lộ lý do yêu cầu điều chỉnh chưa duyệt cho Bán hàng chủ đơn và HDV phụ trách) để đợt 2.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.88 ĐÃ LÊN PRODUCTION (gói A+C Vận chuyển: hai nút Chỉ đường — ADR-0105; phải thu không âm — ADR-0109; tài xế nhà xe ngoài dùng Nền tảng, báo bận, từ chối chuyến — ADR-0053; chuyển khách giữa hai xe — ADR-0111; màn tài xế mới; bảng điều phối; báo tài xế khi văn phòng cập nhật khách / điểm theo đơn — ADR-0112; chặn từ chối chuyến khi có khách chuyển vào — ADR-0113) — migration `0084`, `0085`, `0086`, `0089`, `0091`, `0092`, `0093` đã áp (2026-10-13 06:50 giờ VN)
 
 Khối do `npm run trien-khai` in ra (chủ chạy), kèm phần AI tự kiểm lại bằng lệnh chỉ đọc sau khi chủ báo đã triển khai (2026-10-13):
 
