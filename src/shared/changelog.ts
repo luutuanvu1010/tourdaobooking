@@ -18,8 +18,8 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     date: "2026-10-13",
     items: [
       { kind: "doi", text: "Màn Tạo đơn gọn hơn trên điện thoại: tên ô nằm ngay trong ô thay vì một dòng riêng phía trên, bớt vài tiêu đề thừa." },
-      { kind: "doi", text: "Hàng Nhóm dịch vụ nằm trên ô chọn dịch vụ. Chạm vào ô là hiện cả danh sách, có nút Đóng; dấu ☆ Hay dùng nằm ở đầu mỗi dòng." },
-      { kind: "doi", text: "Bỏ hàng lọc \"Theo người\" và \"Giá theo nhóm\"; \"★ Hay dùng\" nay là một lựa chọn trong hàng Nhóm dịch vụ." },
+      { kind: "doi", text: "Ô chọn dịch vụ chỉ còn một nút \"Nhóm dịch vụ\" bấm xổ xuống, đánh dấu một hay nhiều nhóm; bỏ các nút lọc khác. Chạm vào ô là hiện cả danh sách." },
+      { kind: "doi", text: "Dịch vụ bạn gắn ☆ ở đầu dòng nay được xếp lên trên cùng danh sách, để lần sau chọn cho nhanh." },
       { kind: "doi", text: "Ô \"Ngày đón\" của chặng đưa đón ẩn khi cùng ngày khởi hành. Cần đón khác ngày thì bấm \"Đón khác ngày\"." },
       { kind: "doi", text: "\"Khách tự đặt\" và \"Đặt qua đối tác\" nay là một hàng hai lựa chọn trong khối khách hàng." },
     ],
