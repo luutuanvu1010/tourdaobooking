@@ -33,13 +33,15 @@ const HIEN_HANH_GIAY_TO_XE = "(d.voided_at IS NULL AND NOT EXISTS (SELECT 1 FROM
 /**
  * Số khách HIỆU LỰC của dịch vụ alias `s` (ADR-0047 L-A1): phần tử của CHÍNH dịch vụ trong `after_json` của dòng điều chỉnh gần nhất (có chắn JSON hỏng),
  * không thì số đã lưu. MỘT đoạn cho R-ORD-9 và R-VC-3, R-VC-7 (ADR-0049 kế hoạch mục 4 điểm 11 — không chép lần hai). Alias nội bộ: a, b, je.
+ * `loai` = các loại khách được cộng; MẶC ĐỊNH cả bốn loại (câu chữ của các kiểm cũ giữ nguyên từng byte); R-ORD-16w (ADR-0114 D3) chỉ cộng `adult` + `senior` (người đi kèm trẻ em).
  */
-const soKhachHieuLuc = (s) => `COALESCE(
-            (SELECT json_extract(je.value, '$.pax.adult') + json_extract(je.value, '$.pax.child') + json_extract(je.value, '$.pax.senior') + json_extract(je.value, '$.pax.infant')
+const TAT_CA_LOAI_KHACH = ["adult", "child", "senior", "infant"];
+const soKhachHieuLuc = (s, loai = TAT_CA_LOAI_KHACH) => `COALESCE(
+            (SELECT ${loai.map((f) => `json_extract(je.value, '$.pax.${f}')`).join(" + ")}
                FROM order_money_adjustment a, json_each(CASE WHEN json_valid(a.after_json) AND json_type(a.after_json) = 'array' THEN a.after_json ELSE '[]' END) je
                WHERE a.order_id = ${s}.order_id AND a.seq = (SELECT MAX(seq) FROM order_money_adjustment b WHERE b.order_id = ${s}.order_id) AND json_extract(je.value, '$.serviceId') = ${s}.id
                LIMIT 1),
-            ${s}.pax_adult + ${s}.pax_child + ${s}.pax_senior + ${s}.pax_infant)`;
+            ${loai.map((f) => `${s}.pax_${f}`).join(" + ")})`;
 /**
  * Số người HIỆU LỰC của CHẶNG alias `l` thuộc dịch vụ alias `s` — CÙNG NGHĨA `soNguoiChang` (src/shared/so-nguoi-chang.ts; ADR-0054 D10.3): chặng VỀ có `pax_override`
  * → min(số riêng, số khách hiệu lực của dịch vụ); còn lại = số khách hiệu lực. MỘT đoạn cho R-VC-3 (L-D1) và R-VC-7 — không viết bộ đọc `after_json` thứ hai.
@@ -1312,6 +1314,20 @@ export const CHECKS = [
           WHERE l.closed_at IS NULL AND o.status <> 'cancelled' AND l.pax_override IS NOT NULL AND l.pax_override > ${soKhachHieuLuc("s")}`,
     level: "warn",
     note: "cảnh báo (không chặn phát hành): số khách của dịch vụ đã giảm dưới số người chiều về — văn phòng sửa lại số người chiều về (xe đang dùng số khách dịch vụ)",
+  },
+  // R-ORD-16w (ADR-0114 D3, điều khoản 3; bài canh `src/audit-invariants.test.ts`): đơn ĐÃ XÁC NHẬN (kể cả đã giao / hoàn thành — trạng thái vẫn `confirmed`) mà tổng người đi kèm
+  // (người lớn + người cao tuổi, cộng MỌI dịch vụ kể cả nhập tay) bằng 0 — chỉ còn trẻ em / em bé. Máy chủ nay chặn ở lập đơn, lưu nháp, xác nhận và sửa số khách, nhưng đơn lập TRƯỚC luật vẫn
+  // có thể như vậy, và đơn cũ không bị chặn thêm (chỉ chặn khi sửa từ ≥ 1 xuống 0). Số người là số HIỆU LỰC (sau dòng điều chỉnh gần nhất, `soKhachHieuLuc` — đếm số đã lưu thì sót đúng ca
+  // sửa xuống 0 người lớn từ trước ADR). Mức "warn" (thoát 0; ADR-0114: thoát 1 sẽ dừng `trien-khai`): dữ liệu cũ KHÔNG sửa được hàng loạt, chỉ để văn phòng thấy và rà soát tay. Chỉ có
+  // vế cảnh báo, không có vế lỗi đi kèm (khác `R-BIL-8w` / `R-ORD-15w`, hậu tố `w` ở đó là nửa trước-mốc của một kiểm lỗi). Chỉ đếm SỐ ĐƠN, không in tên khách.
+  {
+    code: "R-ORD-16w",
+    what: "đơn đã xác nhận có tổng người đi kèm (người lớn + người cao tuổi, mọi dịch vụ, số khách hiệu lực) bằng 0 — chỉ còn trẻ em / em bé (ADR-0114 D3)",
+    sql: `SELECT count(*) FROM orders o
+      WHERE o.status = 'confirmed'
+        AND (SELECT COALESCE(SUM(${soKhachHieuLuc("s", ["adult", "senior"])}), 0) FROM order_service s WHERE s.order_id = o.id) = 0`,
+    level: "warn",
+    note: "cảnh báo (KHÔNG chặn phát hành — ADR-0114 D3 điều khoản 3): đơn cũ lập trước luật người lớn; rà soát tay theo mã đơn, máy chủ chỉ chặn việc sửa số khách đưa người đi kèm từ 1 trở lên xuống 0",
   },
   // R-AUT-1 (ADR-0016 điều 6/8): một tài khoản bị ngưng (`active = 0`) không được còn Face ID nào CÒN HIỆU LỰC (`valid_to_at IS NULL`) — đăng nhập
   // Face ID còn bị `getActiveStaff` chặn ở tầng ứng dụng, kiểm này là LƯỚI DỮ LIỆU cho bất biến đó, không phải đường chặn đăng nhập.

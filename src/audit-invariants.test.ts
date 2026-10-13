@@ -1886,6 +1886,73 @@ test("R-ORD-14 (L-R1): chặng về có số người ≤ số khách hiệu l�
   assert.equal(violations(db, c), 0, "đơn huỷ không đếm");
 });
 
+// R-ORD-16w (ADR-0114 D3, điều khoản 3): đơn ĐÃ XÁC NHẬN không còn người đi kèm (người lớn + người cao tuổi, mọi dịch vụ, số khách HIỆU LỰC) — chỉ cảnh báo, thoát 0.
+// Khung thử: đơn nháp + dịch vụ rồi mới chuyển trạng thái (trigger `orders_confirm_requires_trip` chỉ đòi tổng khách ≥ 1 nên đơn chỉ-trẻ-em xác nhận được như đơn cũ trên production).
+type KhachDv = { adult?: number; child?: number; senior?: number; infant?: number; nhapTay?: boolean };
+function donKhach(db: DatabaseSync, dichVu: KhachDv[], status: "draft" | "confirmed" | "cancelled" = "confirmed"): { order: string; dv: string[] } {
+  const n = ++soVc;
+  const order = `o16-${n}`;
+  db.prepare("INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, created_at, updated_at) VALUES (?, ?, 's-an', 'draft', 'K', '0900000009', ?, ?)").run(order, `TD16-${n}`, T1, T1);
+  const dv = dichVu.map((d, i) => {
+    const id = `sv16-${n}-${i}`;
+    db.prepare("INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, pax_child, pax_senior, pax_infant, depart_date) VALUES (?, ?, ?, ?, 'Tour', ?, ?, ?, ?, ?, '2026-10-05')")
+      .run(id, order, i, d.nhapTay ? null : "ZH1", d.nhapTay ? "manual" : "perPax", d.adult ?? 0, d.child ?? 0, d.senior ?? 0, d.infant ?? 0);
+    return id;
+  });
+  if (status !== "draft") db.prepare("UPDATE orders SET status = 'confirmed' WHERE id = ?").run(order);
+  if (status === "cancelled") {
+    gieoLyDoHuy(db, order);
+    db.prepare("UPDATE orders SET status = 'cancelled' WHERE id = ?").run(order);
+  }
+  return { order, dv };
+}
+const dieuChinhKhach = (db: DatabaseSync, order: string, seq: number, pax: { serviceId: string; pax: { adult: number; child: number; senior: number; infant: number } }[]) =>
+  db.prepare("INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES (?, ?, ?, '[]', ?, 0, 0)").run(`adj16-${order}-${seq}`, order, seq, JSON.stringify(pax));
+
+test("R-ORD-16w (ADR-0114 D3): đơn xác nhận chỉ còn trẻ em / em bé → 1 (warn, thoát 0); có người lớn, chỉ người cao tuổi, hay nhập tay mang ô số khách → 0; đơn nháp / huỷ không đếm; đếm theo số khách HIỆU LỰC (sau dòng điều chỉnh)", () => {
+  const c = one("R-ORD-16w");
+  assert.equal(c.level, "warn", "mức cảnh báo vĩnh viễn: thoát 1 sẽ dừng trien-khai (ADR-0114 D3 điều khoản 3), và e2e chạy --strict");
+  assert.ok(c.sql.includes("pax_adult + s.pax_senior") && !c.sql.includes("pax_child"), "chỉ cộng người lớn + người cao tuổi, dùng CHUNG đoạn số khách hiệu lực");
+  const db = tho();
+  assert.equal(violations(db, c), 0, "chưa đơn nào");
+  donKhach(db, [{ adult: 2, child: 1 }]);
+  donKhach(db, [{ senior: 2 }]); // đơn toàn người cao tuổi: có người đi kèm (điều khoản 1)
+  donKhach(db, [{ child: 2 }, { adult: 1 }]); // tổng tính trên cả đơn: dịch vụ khác có người lớn
+  donKhach(db, [{ child: 1 }, { nhapTay: true, adult: 2 }]); // nhập tay: ô số khách nằm ở `adult` (điều khoản 2)
+  assert.equal(violations(db, c), 0, "các đơn có người đi kèm → 0");
+  donKhach(db, [{ child: 2, infant: 1 }], "draft");
+  const huy = donKhach(db, [{ child: 1 }], "cancelled");
+  assert.equal(db.prepare("SELECT status FROM orders WHERE id = ?").get(huy.order)?.status, "cancelled");
+  assert.equal(violations(db, c), 0, "đơn nháp và đơn huỷ chỉ-trẻ-em không đếm");
+  const a = donKhach(db, [{ child: 2, infant: 1 }]);
+  assert.equal(violations(db, c), 1, "đơn xác nhận chỉ trẻ em + em bé → 1");
+  donKhach(db, [{ infant: 1 }]);
+  assert.equal(violations(db, c), 2, "đơn xác nhận chỉ em bé → thêm 1");
+  // Số HIỆU LỰC: dòng điều chỉnh gần nhất thắng số đã lưu — sửa xuống 0 người lớn từ trước ADR (đếm số đã lưu thì sót), rồi sửa lại có người lớn (đơn hết bị đếm).
+  const b = donKhach(db, [{ adult: 1, child: 1 }]);
+  assert.equal(violations(db, c), 2);
+  dieuChinhKhach(db, b.order, 1, [{ serviceId: b.dv[0]!, pax: { adult: 0, child: 1, senior: 0, infant: 0 } }]);
+  assert.equal(violations(db, c), 3, "đã lưu 1 người lớn nhưng dòng điều chỉnh gần nhất còn 0 → đếm");
+  dieuChinhKhach(db, b.order, 2, [{ serviceId: b.dv[0]!, pax: { adult: 1, child: 1, senior: 0, infant: 0 } }]);
+  assert.equal(violations(db, c), 2, "lần sửa sau cùng trả lại người lớn → hết đếm (dòng seq lớn nhất thắng)");
+  dieuChinhKhach(db, a.order, 1, [{ serviceId: a.dv[0]!, pax: { adult: 1, child: 2, senior: 0, infant: 1 } }]);
+  assert.equal(violations(db, c), 1, "đơn chỉ-trẻ-em được sửa thêm người lớn → hết đếm");
+  // Đơn xác nhận không dịch vụ nào (chèn thẳng bằng SQL) cũng không có người đi kèm → đếm (nghĩa "tổng = 0").
+  const rong = ++soVc;
+  db.prepare("INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, created_at, updated_at) VALUES (?, ?, 's-an', 'draft', 'K', '0900000009', ?, ?)").run(`o16-${rong}`, `TD16-${rong}`, T1, T1);
+  db.exec("DROP TRIGGER IF EXISTS orders_confirm_requires_trip");
+  db.prepare("UPDATE orders SET status = 'confirmed' WHERE id = ?").run(`o16-${rong}`);
+  assert.equal(violations(db, c), 2, "đơn xác nhận không dịch vụ → đếm");
+});
+
+test("R-ORD-16w: sửa chung đoạn số khách hiệu lực KHÔNG đổi chữ của các kiểm cũ (mặc định bốn loại khách, từng byte): R-ORD-9, R-ORD-14, R-VC-3, R-VC-7 vẫn có đoạn bốn loại", () => {
+  for (const code of ["R-ORD-9", "R-ORD-14", "R-VC-3", "R-VC-7"]) {
+    const sql = one(code).sql;
+    assert.ok(sql.includes("json_extract(je.value, '$.pax.adult') + json_extract(je.value, '$.pax.child') + json_extract(je.value, '$.pax.senior') + json_extract(je.value, '$.pax.infant')"), `${code}: đoạn JSON bốn loại`);
+    assert.ok(sql.includes("pax_adult + s.pax_child + s.pax_senior + s.pax_infant"), `${code}: đoạn cột bốn loại`);
+  }
+});
+
 test("R-VC-3 / R-VC-7 dùng số người CỦA CHẶNG: chặng về 1 người của dịch vụ 2 khách — 1 suất là đủ (R-VC-7 = 0), 2 suất là thừa (R-VC-3 = 1)", () => {
   const c3 = one("R-VC-3");
   const c7 = one("R-VC-7");
