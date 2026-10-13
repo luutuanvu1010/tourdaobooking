@@ -12,6 +12,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa nút Gửi của màn Điều chỉnh công nợ + Trợ giúp theo vai cho màn đó (ADR-0115). Không migration. Số 1.94 = main 1.93 (sửa số khách, ADR-0114) + 1: số TẠM, phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
+    version: "1.94",
+    date: "2026-10-13",
+    items: [
+      { kind: "sua", text: "Màn Điều chỉnh công nợ: nút Gửi yêu cầu không còn bị khoá xám sau khi gửi xong hoặc bị từ chối; gửi tiếp được ngay, không cần tải lại trang." },
+      { kind: "moi", text: "Trợ giúp của Kế toán và Quản trị có thêm hướng dẫn Điều chỉnh công nợ: gửi, rút, duyệt, từ chối, và số dư chỉ đổi sau khi người thứ hai duyệt." },
+    ],
+  },
+  {
     // Sửa số khách (ADR-0114): nhắc khuyến mại khi bớt khách, lịch sử số khách đủ dòng, mỗi đơn có ít nhất một người lớn. Không migration. Số 1.93 là số TẠM (= main 1.92 bản gộp D-1/ADR-0115 + 1, gộp main 277f5983 vào nhánh 2026-10-13): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
     version: "1.93",
     date: "2026-10-13",
