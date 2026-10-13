@@ -210,11 +210,10 @@ test("Đợt 1 #9: canHienNgayDon — form Tạo đơn ẩn 'Ngày đón' khi ch
 const NGAY_DI = "2026-09-30";
 const chang = (o: Partial<LegDto> = {}, key = "g1") => changTuDto(dto(o), key);
 
-test("bốn bước: chiTietChangCoGiaTri — số hiệu chuyến bay, xe riêng Bật, số chỗ tối thiểu: có giá trị thì khối chi tiết phải tự mở", () => {
+test("bốn bước: chiTietChangCoGiaTri — xe riêng Bật, số chỗ tối thiểu: có giá trị thì khối chi tiết phải tự mở; số hiệu chuyến bay KHÔNG còn nằm trong khối gập (sau kiểm độc lập 14/10: hiện sẵn khi chặng tới / từ sân bay)", () => {
   const l = chang();
   assert.equal(chiTietChangCoGiaTri(l), false);
-  assert.equal(chiTietChangCoGiaTri({ ...l, flightCode: "VN1553" }), true);
-  assert.equal(chiTietChangCoGiaTri({ ...l, flightCode: "  " }), false);
+  assert.equal(chiTietChangCoGiaTri({ ...l, flightCode: "VN1553" }), false, "số hiệu hiện sẵn ngoài khối gập nên không làm khối gập tự mở");
   assert.equal(chiTietChangCoGiaTri({ ...l, xeRieng: true }), true);
   assert.equal(chiTietChangCoGiaTri({ ...l, choToiThieu: "7" }), true);
 });
@@ -227,6 +226,8 @@ test("bốn bước: changNenGon — chỉ gọn khi đủ nơi đón và KHÔNG
   assert.equal(changNenGon({ ...chang(), xeRieng: true }, 1, 2, NGAY_DI), false, "xe riêng Bật: mở (không giấu)");
   assert.equal(changNenGon({ ...chang(), choToiThieu: "7" }, 1, 2, NGAY_DI), false);
   assert.equal(changNenGon({ ...chang(), flightCode: "VN1553" }, 1, 2, NGAY_DI), false);
+  assert.equal(changNenGon(chang(), 1, 2, NGAY_DI, true), false, "chặng có ô số hiệu chuyến bay (điểm sân bay): mở sẵn để ô hiện, không gập một dòng");
+  assert.equal(changNenGon(chang(), 1, 2, NGAY_DI, false), true);
   assert.equal(changNenGon({ ...chang(), pickupDate: "2026-09-29" }, 1, 2, NGAY_DI), false, "đón khác ngày đi: mở (ô ngày đang có giá trị)");
   assert.equal(changNenGon({ ...chang(), pickupDate: NGAY_DI }, 1, 2, NGAY_DI), true, "cùng ngày đi: không có gì khác");
   assert.equal(changNenGon({ ...chang({ direction: "RETURN", paxOverride: 1 }), soVe: "1" }, 1, 2, NGAY_DI), false, "chiều về có số người về: mở");

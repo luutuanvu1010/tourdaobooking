@@ -234,14 +234,14 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       capNhatNgay(ngayEl, nutKhacNgay, l);
       ngay.focus();
     });
-    // Ô phụ của chặng. Form (`nn`): "số người chiều về" ở lại hàng chính; ba ô ÍT DÙNG (số hiệu chuyến bay, xe riêng, xe tối thiểu) vào `phuGap` — gập sau "Thêm chi tiết". Bảng "Sửa đưa đón": mọi ô một lưới như cũ.
+    // Ô phụ của chặng. Form (`nn`): "số người chiều về" ở lại hàng chính; hai ô ÍT DÙNG (xe riêng, xe tối thiểu) vào `phuGap` — gập sau "Thêm chi tiết"; số hiệu chuyến bay HIỆN SẴN (sau kiểm độc lập 14/10: tài xế dựa vào nó). Bảng "Sửa đưa đón": mọi ô một lưới như cũ.
     const phu: HTMLElement[] = [];
     const phuGap: HTMLElement[] = [];
     const themPhu = (el: HTMLElement, gap: boolean) => (nn && gap ? phuGap : phu).push(el);
     if (coOSoHieu(l, laSanBay)) {
       const bay = h("input", { id: id("bay"), type: "text", maxLength: 8, autocomplete: "off", autocapitalize: "characters", placeholder: "VD: VN1553", value: l.flightCode, "data-o": `${l.key}:bay` });
       bay.addEventListener("input", () => sua(i, { flightCode: bay.value }, false));
-      themPhu(nn ? h("label", { for: bay.id, class: "o-noi" }, khungNhanNoi("Số hiệu chuyến bay", bay), hint("Tài xế tự tra giờ bay")) : h("label", { for: bay.id }, "Số hiệu chuyến bay", bay, hint("Tài xế tự tra giờ bay")), true);
+      themPhu(nn ? h("label", { for: bay.id, class: "o-noi" }, khungNhanNoi("Số hiệu chuyến bay", bay), hint("Tài xế tự tra giờ bay")) : h("label", { for: bay.id }, "Số hiệu chuyến bay", bay, hint("Tài xế tự tra giờ bay")), false);
     }
     let soVe: HTMLInputElement | null = null;
     let loiSoVe: HTMLElement | null = null;
@@ -299,7 +299,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     let gapChiTiet: KhoiGap | null = null;
     if (nn) {
       const luoiGap = h("div", { class: "dd-luoi-phu" }, ...phuGap);
-      gapChiTiet = taoKhoiGap({ ma: `chi-tiet-${l.key}`, nhan: coOSoHieu(l, laSanBay) ? "Thêm chi tiết (chuyến bay, xe riêng, số chỗ)" : "Thêm chi tiết (xe riêng, số chỗ)", than: luoiGap, mo: moChiTiet.has(l.key), khiDoi: (mo) => (mo ? moChiTiet.add(l.key) : moChiTiet.delete(l.key)) });
+      gapChiTiet = taoKhoiGap({ ma: `chi-tiet-${l.key}`, nhan: "Thêm chi tiết (xe riêng, số chỗ)", than: luoiGap, mo: moChiTiet.has(l.key), khiDoi: (mo) => (mo ? moChiTiet.add(l.key) : moChiTiet.delete(l.key)) });
     }
     refs[i] = { gapChang: null, gapChiTiet, tomTatEl: null, ngayEl: nn ? ngayEl : null, nutKhacNgay, gioMo, hintNgay, hintGio, loiDon, loiDonTuDo, loiSoVe, loiChoToiThieu, hintChoToiThieu, hauTo, don, donTuDo, soVe, choToiThieu };
 
@@ -356,7 +356,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       legs.forEach((l, i) => {
         if (daThay.has(l.key)) return;
         daThay.add(l.key);
-        if (!changNenGon(l, i + 1, o.soKhach(), o.ngayDi())) moChang.add(l.key);
+        if (!changNenGon(l, i + 1, o.soKhach(), o.ngayDi(), coOSoHieu(l, laSanBay))) moChang.add(l.key);
         if (chiTietChangCoGiaTri(l)) moChiTiet.add(l.key);
       });
     }

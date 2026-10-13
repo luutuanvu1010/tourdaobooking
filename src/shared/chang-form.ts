@@ -183,18 +183,20 @@ export function loiDanhSachChang(legs: readonly ChangNhap[], soKhach: number): s
 }
 
 /**
- * Bản "bốn bước" (14/10/2026): ba ô ÍT DÙNG của chặng — Số hiệu chuyến bay, Xe riêng, Xe tối thiểu — gập sau "+ Thêm chi tiết" TRONG chặng (form Tạo/sửa đơn). Có giá trị khác mặc định
- * (số hiệu khác trống, xe riêng Bật, số chỗ khác trống) thì khối PHẢI tự mở khi dựng — không giấu một giá trị đang có.
+ * Bản "bốn bước" (14/10/2026): hai ô ÍT DÙNG của chặng — Xe riêng, Xe tối thiểu — gập sau "+ Thêm chi tiết" TRONG chặng (form Tạo/sửa đơn). Có giá trị khác mặc định
+ * (xe riêng Bật, số chỗ khác trống) thì khối PHẢI tự mở khi dựng — không giấu một giá trị đang có. Số hiệu chuyến bay KHÔNG gập (sau kiểm độc lập 14/10: tài xế dựa vào nó để tự tra giờ bay):
+ * ô hiện sẵn khi nơi đón / trả là sân bay hoặc đã có số hiệu (`coOSoHieu`).
  */
-export const chiTietChangCoGiaTri = (l: Pick<ChangNhap, "flightCode" | "xeRieng" | "choToiThieu">): boolean => l.flightCode.trim() !== "" || l.xeRieng || l.choToiThieu !== "";
+export const chiTietChangCoGiaTri = (l: Pick<ChangNhap, "xeRieng" | "choToiThieu">): boolean => l.xeRieng || l.choToiThieu !== "";
 
 /**
  * Chặng có được hiện GỌN MỘT DÒNG lúc dựng khối (form Tạo/sửa đơn) không: chỉ khi chặng đã đủ nơi đón (đã chọn điểm, hoặc "Gõ tự do" có địa chỉ) và KHÔNG có gì bị giấu sau dòng tóm tắt —
  * không ô ít dùng nào có giá trị, ngày đón không khác ngày đi, chiều về không có "số người chiều về", không lỗi nào của chặng. Chặng còn thiếu nơi đón (vừa tạo) hiện đủ ô vì người lập phải nhập.
  * Chỉ dùng LÚC DỰNG (lần đầu thấy chặng); chặng đã mở thì giữ mở, không tự gập giữa lúc người lập đang gõ.
  */
-export function changNenGon(l: ChangNhap, so: number, soKhach: number, ngayDi: string): boolean {
+export function changNenGon(l: ChangNhap, so: number, soKhach: number, ngayDi: string, coOSoHieuChang = false): boolean {
   if (l.don === "" || (l.don === TU_DO && l.donTuDo.trim() === "")) return false;
+  if (coOSoHieuChang || l.flightCode.trim() !== "") return false; // ô số hiệu chuyến bay hiện sẵn: không giấu sau dòng tóm tắt
   if (chiTietChangCoGiaTri(l) || canHienNgayDon(l, ngayDi) || l.soVe !== "") return false;
   const e = loiChang(l, so, soKhach, true);
   return e.don === null && e.donTuDo === null && e.soVe === null && e.choToiThieu === null;
