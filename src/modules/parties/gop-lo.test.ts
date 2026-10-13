@@ -15,7 +15,7 @@ const AT2 = "2026-10-01T03:00:00.000Z";
 const HOM_NAY = "2026-10-01";
 const RANH: NgoaiGop = { phuTrachDon: 0, laiChuyen: 0, toLaiChuyen: 0, chuXeChuyen: 0, soXe: 0, donLechTien: [] };
 const hs = (id: string, x: Partial<HoSoGop> = {}): HoSoGop => ({
-  id, kind: "PERSON", displayName: id, active: true, mergedIntoId: null, laCongTyChu: false, coTaiKhoan: false, coHoSoTroVao: false, lienHe: [], congViec: [], quanHe: [], giayTo: [], ...x,
+  id, kind: "PERSON", displayName: id, active: true, mergedIntoId: null, laCongTyChu: false, coTaiKhoan: false, coHoSoTroVao: false, nhanDoiTac: false, noiBo: false, lienHe: [], congViec: [], quanHe: [], giayTo: [], ...x,
 });
 function nguoi(db: DatabaseSync, id: string) {
   db.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'PERSON', ?, 1, ?, ?)").run(id, id, AT, AT);

@@ -859,7 +859,8 @@ export interface PartyLookupResponse { matches: PartyListItemDto[] }
 export interface PartyResponse { party: PartyDto }
 export interface PartyMetaResponse {
   /** MỌI loại vai (cả vai đã ngưng — để hiện đúng tên); `group` OTHER là vai gán được ở trang Danh bạ (/parties), INTERNAL/EXTERNAL chỉ gán ở màn Quản lý tài khoản (/staff) (ADR-0018). */
-  roleTypes: { code: string; name: string; group: "INTERNAL" | "EXTERNAL" | "OTHER"; active: boolean }[];
+  /** `partnerLabel` (ADR-0117): loại đối tác được hưởng hoa hồng (nhóm OTHER) — hồ sơ nội bộ không gắn được (máy chủ chặn 409 role_partner_label_conflict). */
+  roleTypes: { code: string; name: string; group: "INTERNAL" | "EXTERNAL" | "OTHER"; active: boolean; partnerLabel: boolean }[];
   relationshipTypes: { code: string; name: string }[];
 }
 

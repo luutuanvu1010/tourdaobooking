@@ -21,7 +21,11 @@ export type Access = "public" | "staff" | "office" | "orders" | "admin" | "accou
 
 /** ADR-0013 điều 4: hồ sơ có gắn tài khoản không, và người đang đăng nhập có quản được tài khoản đó không (luật cấp bậc ADR-0014 điều 8, module `staff` tính). */
 /** `vaiAn` (ADR-0044): tài khoản gắn hồ sơ đang giữ Toàn quyền — vai ẩn; người xem không giữ Toàn quyền chỉ thấy vai đang mở của hồ sơ đó. */
-export type PartyAccountVerdict = { linked: false } | { linked: true; manageable: boolean; vaiAn?: boolean };
+/**
+ * `coQuyenNoiBo` (ADR-0117 điều 4, vế 3 của luật «nội bộ»): tài khoản gắn hồ sơ mang ít nhất một quyền không thuộc nhóm bên ngoài. Quy ước đọc:
+ * `acc.linked && acc.coQuyenNoiBo !== false` = «có quyền nội bộ» (thiếu cờ ⇒ coi là nội bộ — siết). KHÔNG dùng `acc.linked` một mình (đếm cả tài khoản Đối tác).
+ */
+export type PartyAccountVerdict = { linked: false } | { linked: true; manageable: boolean; vaiAn?: boolean; coQuyenNoiBo?: boolean };
 
 /**
  * Kết luận của `dispatch` về người mà người lập CHỌN làm người phụ trách ngay lúc lập đơn (ADR-0030 S20-4, ADR-0020 điều 1, Q-C). Đạt → `statements`

@@ -5,7 +5,7 @@ import { keHoachGop, type CongViecGop, type GiayToGop, type HoSoGop, type KeHoac
 
 const HOM_NAY = "2026-10-01";
 const hs = (id: string, x: Partial<HoSoGop> = {}): HoSoGop => ({
-  id, kind: "PERSON", displayName: `Người ${id}`, active: true, mergedIntoId: null, laCongTyChu: false, coTaiKhoan: false, coHoSoTroVao: false,
+  id, kind: "PERSON", displayName: `Người ${id}`, active: true, mergedIntoId: null, laCongTyChu: false, coTaiKhoan: false, coHoSoTroVao: false, nhanDoiTac: false, noiBo: false,
   lienHe: [], congViec: [], quanHe: [], giayTo: [], ...x,
 });
 const RANH: NgoaiGop = { phuTrachDon: 0, laiChuyen: 0, toLaiChuyen: 0, chuXeChuyen: 0, soXe: 0, donLechTien: [] };

@@ -299,3 +299,18 @@ export function validateRelationship(body: Record<string, unknown> | null, party
   const period = validatePeriod(body.validFrom, body.validTo, today);
   return period.ok ? { ok: true, value: { fromPartyId, toPartyId, typeCode: relationshipTypeCode, from: period.value.from, to: period.value.to } } : period;
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0117 lần 1, điều 4: nhân viên nội bộ không mang loại đối tác được hưởng hoa hồng (luật «nội bộ» phương án (a), chủ chọn 2026-10-13)
+// ---------------------------------------------------------------------------------------------------------------------
+/**
+ * Vai cũ mơ hồ ĐÃ NGƯNG (0024) mà vẫn coi là nội bộ — danh sách TẠM (ADR-0117 điều 4), trigger của migration *_loai_doi_tac_la_du_lieu chép đúng hai mã này
+ * (bài ghim ở rules.test.ts). GUIDE/AGENT cũ KHÔNG tính (mặc định an toàn).
+ */
+export const VAI_CU_NOI_BO: readonly string[] = ["STAFF", "SALES"];
+/**
+ * Hồ sơ «nội bộ»: đang mở vai nhóm INTERNAL, hoặc vai cũ trong VAI_CU_NOI_BO (vế 1 + 2 — parties thấy), hoặc tài khoản gắn hồ sơ mang ít nhất một quyền
+ * không thuộc nhóm bên ngoài (vế 3 — staff báo qua cờ `coQuyenNoiBo` của PartyAccountVerdict). Đối tác thuần (vai EXTERNAL, tài khoản Đối tác) không nội bộ.
+ */
+export const hoSoNoiBo = (v: { vaiMo: readonly { code: string; group: string }[]; coQuyenNoiBo: boolean }): boolean =>
+  v.coQuyenNoiBo || v.vaiMo.some((r) => r.group === "INTERNAL" || VAI_CU_NOI_BO.includes(r.code));

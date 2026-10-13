@@ -10,7 +10,7 @@ import {
   revokePasskeyStatement, toPasskeyDto, unlockPhone, verifyPinThrottled, verifyRegistration,
 } from "../auth";
 import {
-  accountRoleCodes, canManageAccount, checkAccountChange, chuPhienTheoId, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
+  KHONG_NHAN_VAI_NOI_BO, accountRoleCodes, canManageAccount, checkAccountChange, chuPhienTheoId, hoSoCoNhanDoiTac, moNoiBoChoHoSoCoNhanProblem, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
   generatePin, getAccountRoleState, getStaffAccount, isValidPin, listStaffAccounts, normalizePhone, renameAccountStatements, roleChangeStatements,
   setPermissionStatements, setPinStatement, touchCredentialsStatement, updateStaffStatement, validateFreshPin, validateNewPin, type StaffAccount,
 } from "../staff";
@@ -81,6 +81,9 @@ function ruleViolation(e: unknown): Response | null {
   if (/lc1_external_account_permission/.test(m)) return error(409, "account_rule", "Tài khoản bên ngoài chỉ giữ quyền bên ngoài (Đối tác hoặc Tài xế đối tác).");
   // LC-1b (ADR-0048 B2.2): lớp CSDL — chỉ tới đây khi lời kiểm máy chủ (taiKhoanLaiProblem / roleAssignmentProblem, 400 invalid_input) bị vượt.
   if (/lc1b_driver_partner_alone/.test(m)) return error(409, "account_rule", "Tài khoản Tài xế đối tác không giữ thêm quyền nào khác.");
+  // ADR-0117 điều 4: hồ sơ mang loại đối tác được hưởng không nhận vai / quyền nội bộ (trigger *_partner_label_conflict ở vai hồ sơ và ở quyền). Câu KHÔNG nêu
+  // tên loại: người gọi có thể là Nhân sự (không xem Danh bạ). Lưới cuối cho PUT …/permissions kiểu cũ và lô hai của PUT …/roles.
+  if (/partner_label_conflict/.test(m)) return error(409, "account_rule", KHONG_NHAN_VAI_NOI_BO);
   if (/UNIQUE constraint failed: staff\.party_id/.test(m)) return error(409, "account_rule", "Hồ sơ này đã có tài khoản.");
   // R20 (điều phối viên 2026-09-24): tranh chấp ghi ĐỒNG THỜI trên cùng tài khoản (hai lần chỉnh tay trùng quyền, vai chồng lấn thời gian,
   // hoặc hai lần cùng mở một vai) — một bên thua cuộc đua, không phải lỗi hệ thống; báo tải lại rồi thử lại thay vì 500.
@@ -609,6 +612,10 @@ export const accountsModule: AppModule = {
       const problem = roleAssignmentProblem({ actorIsSuper, currentRoles: state.roles, currentPermissions: t.permissions, currentAdjustments: { adds: state.adds, removes: state.removes }, next: parsed.value });
       if (problem) return problemResponse(problem);
       const change = roleChangeStatements(db, { account: t, partyId: t.partyId, state, next: parsed.value, actorId: admin.id, at, today });
+      // ADR-0117 điều 4, chiều 2 — kiểm bằng hàm thuần TRƯỚC lô thứ nhất: nhánh gỡ ADMIN chạy HAI lô (quyền rồi vai), nếu để trigger ở lô hai chặn thì quyền đã
+      // đổi mà vai không. Câu không nêu tên loại (Nhân sự gọi được route này).
+      const noiBo = moNoiBoChoHoSoCoNhanProblem({ nhanDoiTac: await hoSoCoNhanDoiTac(db, t.partyId), vaiTiep: parsed.value.roles, quyenTiep: change.next });
+      if (noiBo) return error(409, "account_rule", noiBo);
       const accountProblem = checkAccountChange(admin.id, t, { permissions: change.next }, await countActiveAdmins(db));
       if (accountProblem) return error(409, "account_rule", accountProblem);
       if (!change.changed) return json({ staff: await one(db, t.id) } satisfies StaffResponse);

@@ -153,11 +153,11 @@ test("tenLoaiVai (sổ đại lý đợt 1): mã vai → tên tiếng Việt đ�
   assert.equal(ten.get("SUPPLIER"), "Nhà cung cấp");
 });
 
-test("TC-3 parties/index.ts xuất đúng bốn hàm mới (taiXeChoDieuPhoi; hoSoCaNhanKhop — ADR-0068 Đ9; taiKhoanNhanTienHienHanh — ADR-0108 đ2; tenLoaiVai — sổ đại lý đợt 1) so với trước ADR-0049 — mọi tên khác giữ nguyên (thêm tên = đổi hợp đồng công bố, sửa bài có chủ đích)", () => {
+test("TC-3 parties/index.ts xuất đúng năm hàm mới (taiXeChoDieuPhoi; hoSoCaNhanKhop — ADR-0068 Đ9; taiKhoanNhanTienHienHanh — ADR-0108 đ2; tenLoaiVai — sổ đại lý đợt 1; hoSoMangNhanDoiTac — ADR-0117 điều 4) so với trước ADR-0049 — mọi tên khác giữ nguyên (thêm tên = đổi hợp đồng công bố, sửa bài có chủ đích)", () => {
   const TRUOC_ADR_0049 = [
     "accountRolesOf", "closeAccountRoleStatement", "composePersonName", "expiringDriverDocuments", "findPartiesByPhone", "newOrganizationStatements", "newPersonStatements",
     "nhaXeDangHopTac", "openAccountRoleStatement", "openRoleCodesByParty", "ownerCompany", "partiesModule", "partySummary", "renamePersonStatements",
     "reopenAccountRoleStatement", "splitPersonName", "validatePersonFullName",
   ];
-  assert.deepEqual(Object.keys(parties).sort(), [...TRUOC_ADR_0049, "taiXeChoDieuPhoi", "hoSoCaNhanKhop", "taiKhoanNhanTienHienHanh", "tenLoaiVai"].sort());
+  assert.deepEqual(Object.keys(parties).sort(), [...TRUOC_ADR_0049, "taiXeChoDieuPhoi", "hoSoCaNhanKhop", "taiKhoanNhanTienHienHanh", "tenLoaiVai", "hoSoMangNhanDoiTac"].sort());
 });
