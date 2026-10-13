@@ -732,7 +732,7 @@ h3 { font-size: var(--fs-step-5); margin: var(--s4) 0 var(--s2); color: var(--c-
 .catalog-list button:hover, .catalog-list button:focus { background: var(--c-alt); outline: none; }
 .catalog-list button[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
 .catalog-list .price { white-space: nowrap; color: var(--c-muted); }
-/* Mỗi dòng danh sách = nút ghim "Hay dùng" (ĐẦU dòng, đợt 1 #8) + nút chọn. */
+/* Mỗi dòng danh sách = nút sao ☆/★ (ĐẦU dòng, đợt 1 #8) + nút chọn. */
 /* ADR-0058 Đ8, đợt 1 (13/10, ý chủ "chỉ để lại việc lọc theo nhóm bằng nút xổ xuống + tick chọn"): MỘT nút xổ xuống "Nhóm dịch vụ" TRÊN ô gõ; bảng nhóm nằm trong dòng chảy
    trang (không nổi lên che ô gõ), mỗi dòng một ô tick (vùng bấm ≥ --tap-min), tick nhiều nhóm. Hàng chip và chip "★ Hay dùng" đã bỏ. */
 .catalog-nhom { min-width: 0; margin-bottom: var(--s2); }

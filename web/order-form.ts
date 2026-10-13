@@ -504,7 +504,7 @@ window.addEventListener("pageshow", (e) => {
 function setCatalog(res: Api.CatalogPublicResponse): void {
   live = new Map(res.items.filter((c) => c.supported).map((c) => [c.code, c]));
   picker.setItems(res.items);
-  picker.setGroups(res.groups); // ADR-0058 Đ8: hàng chip "Nhóm dịch vụ"
+  picker.setGroups(res.groups); // ADR-0058 Đ8: nút xổ xuống "Nhóm dịch vụ" (ô tick chọn nhiều nhóm)
 }
 
 async function loadCatalog(): Promise<void> {
@@ -619,7 +619,7 @@ const layDon = editId ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/$
 const staff = await initShell();
 // Cờ "không nhận tiền trả trước" bật NGAY khi biết tài khoản (người có quyền ghi sổ): từ đây tới khối ẩn ba ô ở dưới không còn khe nào mà số gõ sớm bị đọc ở `recompute` / `validate` / lúc lưu.
 traTruocAn ||= can(staff, "ledger.write");
-picker.setTaiKhoan(staff.id); // ADR-0058 Đ8: chip nhóm nhớ THEO TÀI KHOẢN trên máy — bộ chọn dựng trước khi biết tài khoản, trước dòng này không đọc / ghi bộ nhớ
+picker.setTaiKhoan(staff.id); // ADR-0058 Đ8: các nhóm đã đánh dấu nhớ THEO TÀI KHOẢN trên máy — bộ chọn dựng trước khi biết tài khoản, trước dòng này không đọc / ghi bộ nhớ
 retailOnly = chiGiaDanhMuc(staff); // trước loadCatalog/loadOrder: thẻ dịch vụ dựng sau dòng này
 duocDatGap = can(staff, "order.leg.short_notice");
 // ---- bên đặt (sổ đại lý đợt 1, Task 11; đặc tả §7) ----
