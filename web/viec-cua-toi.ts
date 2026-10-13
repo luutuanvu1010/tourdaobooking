@@ -13,7 +13,7 @@
 import { APP_NAME } from "./phien-ban";
 import { handlerFailure, myJobActions } from "../src/shared/handler-view";
 import { PAX_LABEL, type PaxCode } from "../src/shared/order-lines";
-import { banner, type Banner } from "../src/shared/order-errors";
+import { LOI_409_KHONG_CU, banner, type Banner } from "../src/shared/order-errors";
 import { cauDongBoChuyen } from "../src/shared/dong-bo-chuyen-cau";
 import { can, holdsPartner } from "../src/shared/permissions";
 import { tripDeparted } from "../src/shared/trip-rules";
@@ -130,8 +130,12 @@ function thanhCong(said: string, dongBo: Api.DongBoChuyenDto | undefined): Sheet
   return cau.length > 0 ? { said, banner: banner("warning", said, { lines: cau.map((text) => ({ text })) }) } : { said };
 }
 
-/** Lỗi của máy chủ nghĩa là "màn hình đã cũ" (đơn vừa đổi, không còn phụ trách, không còn đơn) → đóng bảng, tải lại, báo bằng banner. */
-const isOutdated = (err: unknown): err is ApiError => err instanceof ApiError && (err.status === 409 || err.status === 403 || err.status === 404);
+/**
+ * Lỗi của máy chủ nghĩa là "màn hình đã cũ" (đơn vừa đổi, không còn phụ trách, không còn đơn) → đóng bảng, tải lại, báo bằng banner. Trừ 409 `thieu_nguoi_lon`
+ * (ADR-0114 D3, `LOI_409_KHONG_CU`): màn hình không cũ, người dùng sửa tại chỗ — giữ bảng và số đang gõ, hiện đúng câu máy chủ gửi (cùng cách bảng của văn phòng).
+ */
+const isOutdated = (err: unknown): err is ApiError =>
+  err instanceof ApiError && (err.status === 403 || err.status === 404 || (err.status === 409 && !LOI_409_KHONG_CU.has(err.code)));
 
 // ---- Bảng "Sửa số khách" --------------------------------------------------------------------------------------------------------------------------
 function openEditSheet(a: Api.MyAssignmentDto, opener: HTMLElement, done: (r: SheetOutcome) => void, onClosed: () => void): void {
