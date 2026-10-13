@@ -2917,6 +2917,7 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .hk-xem li { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s1) var(--s3); padding: var(--s2) 0; border-bottom: 1px solid var(--c-border); }
 .hk-xem-ten { flex: 1 1 var(--w-dd-noi); min-width: 0; font-weight: var(--fw-bold); color: var(--c-text); overflow-wrap: anywhere; }
 .dd-canh-xn { display: flex; align-items: center; gap: var(--s1); flex-basis: 100%; margin: 0; font-size: var(--fs-label); font-weight: var(--fw-bold); color: var(--c-sand-text); }
+.dd-canh-xn.is-do { color: var(--c-danger-text); } /* ADR-0114 D1: câu nhắc khuyến mại khi bớt khách trên đơn có giảm giá — MÀU ĐỎ (token nguy hiểm sẵn có; chữ trên nền thẻ ≈ 8:1), câu vàng cũ giữ nguyên */
 /* Hai bảng trượt (M4, M5): chân "Huỷ | Lưu" hai cột bằng nhau */
 .sheet-foot.dd-sheet-foot { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
 .sheet-foot.dd-sheet-foot .btn { min-height: var(--tap-min); }
