@@ -38,7 +38,7 @@ import { initPhanDoiTac } from "./phan-doi-tac";
 import { NO_HANDLER_TEXT, handlerControls, handlerFailure, handlerSaved, hoiDuocNguoiPhuTrach, nguoiPhuTrachTuPhien } from "../src/shared/handler-view";
 import { HANDLER_HIDDEN } from "../src/shared/order-confirmation";
 import { type PaxCounts } from "../src/shared/order-lines";
-import { banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
+import { LOI_409_KHONG_CU, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { cauDongBoChuyen } from "../src/shared/dong-bo-chuyen-cau";
 import { cauKhoaXacNhan, khongQuyenSuaText, orderActions, paxFullText, suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
 import { CHUA_XEP_XE, dongXeTrenDon, duocXemXeTrenDon } from "../src/shared/xe-tren-don";
@@ -136,7 +136,8 @@ function errorBanner(err: unknown): Banner {
   // 409 ở trang đơn (vd invalid_transition: đơn vừa đổi trạng thái ở nơi khác) phải có nút "Tải lại đơn" — PWA standalone không có tải lại của trình duyệt.
   // Trừ incomplete_trip: banner đó đã có liên kết "Sửa" tới đúng dịch vụ và ma trận đặc tả 5.2 ghi cột Hành động là "—" (stale đã có reload_order sẵn).
   // Trừ lỗi mã giao dịch (`bank_txn_*`, ADR-0092 Đ6): tải lại đơn xoá form đang nhập và số thực chuyển điền sẵn từ lần 409 — Kế toán cần sửa ngay tại form đó.
-  return b.action === "none" && err.status === 409 && err.code !== "incomplete_trip" && !err.code.startsWith("bank_txn_") ? { ...b, action: "reload_order" } : b;
+  // Trừ lỗi nghiệp vụ người dùng sửa tại chỗ (`LOI_409_KHONG_CU`, vd thieu_nguoi_lon — ADR-0114 D3): màn hình không cũ, câu máy chủ gửi đã nói việc cần làm.
+  return b.action === "none" && err.status === 409 && err.code !== "incomplete_trip" && !err.code.startsWith("bank_txn_") && !LOI_409_KHONG_CU.has(err.code) ? { ...b, action: "reload_order" } : b;
 }
 
 /** Hiện banner lỗi của một thao tác ngay trong thẻ (form xác nhận / ghi lần thu) và đưa nó vào tầm nhìn: banner nằm đầu trang, ngoài màn hình điện thoại khi người dùng đang ở thẻ Thanh toán. */

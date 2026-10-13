@@ -47,6 +47,12 @@ export const banner = (tone: BannerTone, title: string, extra: Partial<Omit<Bann
   tone, title, lines: [], action: "none", focusService: null, refreshCatalog: false, ...extra,
 });
 
+/**
+ * 409 mà MÀN HÌNH KHÔNG CŨ: lỗi nghiệp vụ người dùng sửa ngay tại chỗ (ADR-0114 D3: "thieu_nguoi_lon" — thêm người lớn rồi lưu lại). Nơi gọi thường đổi mọi 409 thành
+ * nút "Tải lại đơn" (đơn vừa đổi ở nơi khác); với mã trong tập này thì KHÔNG: tải lại sẽ xoá số khách vừa nhập, và câu máy chủ gửi đã nói đủ việc cần làm.
+ */
+export const LOI_409_KHONG_CU: ReadonlySet<string> = new Set(["thieu_nguoi_lon"]);
+
 export const NETWORK_BANNER: Banner = banner("danger", "Không kết nối được máy chủ.", { lines: [{ text: "Dữ liệu bạn đã nhập vẫn còn — kiểm tra kết nối rồi bấm Lưu lại." }] });
 
 /** "Dịch vụ 2: …" → 1 (chỉ số 0-based); không mở đầu bằng "Dịch vụ n" → null. */

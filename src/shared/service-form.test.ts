@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { OrderServiceDto } from "./contracts.ts";
 import type { CatalogService } from "./order-lines.ts";
+import { CAU_THIEU_NGUOI_LON } from "./nguoi-di-kem.ts";
 import {
   addManualLine, canAddService, draftFromDto, draftIssues, draftSubtotal, emptyLine, groupInfo, isFrozenManual, isLocked, newCatalogDraft, newManualDraft, orderIssues, orderSummary,
   cardCodes, guestDetail, paxSummary, previewLines, refreshFromCatalog, removeManualLine, setGuests, setManualLine, setPax, setUnitPrice, snapshotItem, toServiceInput, totalLines, unitLabel,
@@ -133,6 +134,38 @@ test("orderIssues / canAddService / totalLines: trần 20 dịch vụ và 50 dò
   assert.deepEqual(orderIssues([...twenty, tourDraft(1)]), ["Đơn tối đa 20 dịch vụ."]);
   const fifty = [{ ...newManualDraft("m"), name: "X", lines: Array.from({ length: 50 }, () => ({ description: "x", detail: "", quantity: 1, unitPrice: 1 })) }, tourDraft(1)];
   assert.deepEqual(orderIssues(fifty), ["Đơn tối đa 50 dòng tiền."]);
+});
+
+// ---- ADR-0114 D3: báo sớm "đơn cần ít nhất một người lớn" — luật CẤP ĐƠN (cộng mọi dịch vụ), máy chủ vẫn là nơi quyết ----
+test("orderIssues (ADR-0114 D3): tổng người đi kèm của cả đơn bằng 0 ⇒ báo đúng câu của luật dùng chung, một lần", () => {
+  assert.deepEqual(orderIssues([tourDraft(0, 2)]), [CAU_THIEU_NGUOI_LON], "chỉ trẻ em");
+  const chiEmBe = setPax(tourDraft(0), "infant", 3);
+  assert.deepEqual(orderIssues([chiEmBe]), [CAU_THIEU_NGUOI_LON], "chỉ em bé");
+  assert.deepEqual(orderIssues([tourDraft(0, 2), { ...tourDraft(0, 1), key: "k2" }]), [CAU_THIEU_NGUOI_LON], "hai dịch vụ cùng không có người lớn: vẫn MỘT câu");
+});
+
+test("orderIssues (ADR-0114 D3): tính trên CẢ ĐƠN — dịch vụ toàn trẻ em qua nếu dịch vụ khác có người lớn; người cao tuổi tính là người đi kèm", () => {
+  assert.deepEqual(orderIssues([tourDraft(0, 2), { ...tourDraft(1), key: "k2" }]), []);
+  assert.deepEqual(orderIssues([setPax(tourDraft(0), "senior", 2)]), [], "đơn toàn người cao tuổi lập được (điều khoản 1)");
+});
+
+test("orderIssues (ADR-0114 D3): dịch vụ nhập tay tính số khách là người lớn (điều khoản 2); nhập tay 0 khách mà là dịch vụ duy nhất ⇒ báo", () => {
+  const tay = (guests: number): ManualDraft => ({ ...newManualDraft("m"), name: "X", guests });
+  assert.deepEqual(orderIssues([tay(2)]), []);
+  assert.deepEqual(orderIssues([tay(0)]), [CAU_THIEU_NGUOI_LON]);
+  assert.deepEqual(orderIssues([tay(0), { ...tourDraft(0, 1), key: "k2" }]), [CAU_THIEU_NGUOI_LON]);
+  assert.deepEqual(orderIssues([tay(0), { ...tourDraft(1), key: "k2" }]), []);
+});
+
+test("orderIssues (ADR-0114 D3): đơn chưa có dịch vụ nào KHÔNG báo thêm (đã có dòng \"Thêm ít nhất một dịch vụ.\" của biểu mẫu); câu D3 đứng sau lỗi trần cấp đơn", () => {
+  assert.deepEqual(orderIssues([]), []);
+  const twenty = Array.from({ length: 20 }, (_, i) => ({ ...tourDraft(0, 1), key: `k${i}` }));
+  assert.deepEqual(orderIssues([...twenty, tourDraft(0, 1)]), ["Đơn tối đa 20 dịch vụ.", CAU_THIEU_NGUOI_LON]);
+});
+
+test("draftIssues KHÔNG đổi (ADR-0114: \"không đổi câu Cần ít nhất 1 khách không phải em bé của từng dịch vụ\"): dịch vụ chỉ em bé vẫn báo câu cũ, câu D3 chỉ ở cấp đơn", () => {
+  assert.deepEqual(draftIssues(setPax(tourDraft(0), "infant", 2)).map((i) => i.message), ["Cần ít nhất 1 khách không phải em bé."]);
+  assert.deepEqual(draftIssues(tourDraft(0, 2)).map((i) => i.message), [], "toàn trẻ em: từng dịch vụ vẫn qua, thiếu người lớn là luật cấp đơn");
 });
 
 // ---- thân gửi lên ----
@@ -444,7 +477,7 @@ test("biên: nhập tay đúng 50 khách / 50 dòng hợp lệ; đơn đúng 20 
   assert.deepEqual(draftIssues(setGuests(base, 50)), []);
   assert.deepEqual(draftIssues({ ...base, lines: lines(50) }), []);
   assert.deepEqual(orderIssues(Array.from({ length: 20 }, (_, i) => ({ ...tourDraft(1), key: `k${i}` }))), []);
-  assert.deepEqual(orderIssues([{ ...base, lines: lines(50) }]), []);
+  assert.deepEqual(orderIssues([setGuests({ ...base, lines: lines(50) }, 1)]), []); // ADR-0114 D3: dịch vụ nhập tay phải có ít nhất 1 khách (người lớn) để đơn không bị báo thiếu người lớn
 });
 
 test("draftIssues (nhập tay): tên và mô tả toàn khoảng trắng bị coi là trống; thành tiền vượt trần", () => {
