@@ -342,6 +342,26 @@ try {
       p.close();
       ok(`bảng Sửa thông tin chuyến ${kho}`);
     }
+    // Quy tắc an toàn (a) cho ô ngày: đơn ĐÃ có ngày khách có mặt khác ngày khởi hành → bảng phải HIỆN ô ngày (kèm giá trị) và ẩn lối nhỏ — không giấu giá trị đang có.
+    if (GIAI_DOAN === "sau") {
+      const tao2 = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
+        customerName: "Khách Ngày Có Mặt", customerPhone: "0904 333 444", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
+        services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, unitPrices: { adult: 1350000 }, catalogPriceSeen: { adult: 1350000 }, ...NO_TRIP, departDate: vnDate(10), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá", checkinDate: vnDate(9), checkinTime: "21:00", checkinPlace: "Cảng Vinpearl" }],
+      });
+      assert.equal(tao2.status, 201, JSON.stringify(tao2.json));
+      assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${tao2.json.order.id}/status`, { status: "confirmed" })).status, 200);
+      const p = await env.as(ACCOUNTS.salesA, `/order?id=${tao2.json.order.id}`, MOB);
+      await p.waitFor("document.querySelectorAll('#order .svc-view').length === 1", "trang đơn nạp (ngày có mặt khác ngày)");
+      await sleep(400);
+      await p.ev("(() => { const b = [...document.querySelectorAll('#actions button')].find((x) => x.textContent.trim() === 'Sửa thông tin chuyến'); b.click(); return true; })()");
+      await p.waitFor("document.querySelector('.sheet-root.open') !== null", "bảng Sửa thông tin chuyến mở (ngày có mặt khác ngày)");
+      await sleep(600);
+      assert.equal(await p.ev(hien('.sheet [data-trip="checkinDate"]')), true, "đơn đã có ngày khách có mặt: ô ngày HIỆN (không giấu giá trị)");
+      assert.equal(await p.ev("document.querySelector('.sheet [data-trip=\"checkinDate\"]').value"), vnDate(9));
+      assert.equal(await p.ev(hien('.sheet [data-action="co-mat-khac-ngay"]')), false, "ô đã hiện thì lối nhỏ ẩn");
+      p.close();
+      ok("bảng Sửa thông tin chuyến: ô ngày khách có mặt hiện khi đã có giá trị");
+    }
   }
   writeFileSync(join(OUT, `so-do-${GIAI_DOAN}.json`), JSON.stringify(soDo, null, 1));
   writeFileSync(join(OUT, `than-gui-${GIAI_DOAN}.json`), JSON.stringify(thanGui, null, 1));
