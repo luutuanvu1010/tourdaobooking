@@ -33,6 +33,16 @@ export function locDanhMuc<T extends { code: string; name: string; unit: string 
 
 export const doiGhim = (ghim: readonly string[], code: string): string[] => (ghim.includes(code) ? ghim.filter((c) => c !== code) : [...ghim, code]);
 
+/**
+ * Đợt 1 (bảng việc 13/10, #3): hàng "Lọc sẵn có" bỏ khỏi form lập đơn; chỉ "★ Hay dùng" còn lối vào (một chip trong hàng "Nhóm dịch vụ"). Bộ lọc "Theo người" /
+ * "Giá theo nhóm" từng được nhớ trên máy (`td.dmLoc.v1`) sẽ không còn nút nào để tắt → khi đọc bản nhớ phải bỏ đi, kẻo danh sách bị lọc ngầm mà người dùng không biết.
+ * Các khoá `theo-nguoi` / `theo-nhom` của `locDanhMuc` giữ nguyên (đã có bài kiểm; chưa có nơi nào dùng).
+ */
+export const LOC_CON_LOI_VAO: readonly LocDanhMucKhoa[] = ["hay-dung"];
+export function boLocAn(nho: NhoDanhMuc): NhoDanhMuc {
+  return nho.loc !== null && !LOC_CON_LOI_VAO.includes(nho.loc) ? { ...nho, loc: null } : nho;
+}
+
 /** Đọc bản nhớ trên máy (chuỗi JSON từ bộ nhớ trình duyệt); hỏng / sai dạng → trống. */
 export function docNhoDanhMuc(raw: string | null): NhoDanhMuc {
   try {

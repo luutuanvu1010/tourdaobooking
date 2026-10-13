@@ -141,29 +141,28 @@ try {
   // 6) Lọc sản phẩm khi lập đơn (góp ý YC-0003 — chủ duyệt 30/9, câu 4(i)): "★ Hay dùng" ghim trên máy + "Theo người" / "Giá theo nhóm" (chữ cũ "Theo nhóm", đổi ở Task A6 ADR-0058); nhớ sau tải lại.
   const f = await env.as(ACCOUNTS.salesA, "/order-form", { width: 390, height: 844, mobile: true });
   const hang = `[...document.querySelectorAll('#catalog-list .catalog-pick')].map((b) => b.querySelector('strong').textContent)`;
-  await f.waitFor("document.querySelectorAll('.catalog-loc .catalog-loc-nut').length === 3", "hàng lọc danh mục", 10000);
-  assert.deepEqual(await f.ev("[...document.querySelectorAll('.catalog-loc .catalog-loc-nut')].map((b) => b.textContent)"), ["★ Hay dùng", "Theo người", "Giá theo nhóm"]); // ADR-0058 Task A6: chủ chọn đổi chữ "Theo nhóm" → "Giá theo nhóm" (30/9), khoá "theo-nhom" giữ
+  // Đợt 1 (13/10, #3): hàng "Lọc sẵn có" đã bỏ — "★ Hay dùng" là chip trong hàng Nhóm dịch vụ; "Theo người" / "Giá theo nhóm" không còn nút.
+  await f.waitFor("document.querySelectorAll('.catalog-nhom [data-loc=\"hay-dung\"]').length === 1", "chip ★ Hay dùng", 10000);
+  assert.equal(await f.ev("document.querySelectorAll('.catalog-loc, [data-loc=\"theo-nguoi\"], [data-loc=\"theo-nhom\"]').length"), 0, "không còn nút Theo người / Giá theo nhóm"); // ADR-0058 Task A6: chủ chọn đổi chữ "Theo nhóm" → "Giá theo nhóm" (30/9), khoá "theo-nhom" giữ
   await f.ev("document.getElementById('catalog-q').focus(); true");
   await f.waitFor(`${hang}.length === 3`, "3 dịch vụ khi chưa lọc");
-  await f.ev("document.querySelector('.catalog-loc [data-loc=\"hay-dung\"]').click()");
+  await f.ev("document.querySelector('.catalog-nhom [data-loc=\"hay-dung\"]').click()");
   await f.waitFor("/Chưa ghim dịch vụ nào/.test(document.getElementById('catalog-list').textContent)", "Hay dùng rỗng có câu hướng dẫn");
-  await f.ev("document.querySelector('.catalog-loc [data-loc=\"hay-dung\"]').click()"); // bỏ lọc
+  await f.ev("document.querySelector('.catalog-nhom [data-loc=\"hay-dung\"]').click()"); // bỏ lọc
   await f.waitFor(`${hang}.length === 3`, "bỏ lọc");
   await f.ev("document.querySelector('#catalog-list [data-ghim=\"TTB06\"]').click()");
   assert.equal(await f.ev("document.querySelector('#catalog-list [data-ghim=\"TTB06\"]').textContent"), "★");
-  await f.ev("document.querySelector('.catalog-loc [data-loc=\"hay-dung\"]').click()");
+  await f.ev("document.querySelector('.catalog-nhom [data-loc=\"hay-dung\"]').click()");
   await f.waitFor(`JSON.stringify(${hang}) === '["TTB06"]'`, "Hay dùng chỉ còn TTB06");
   await f.send("Page.reload", {});
   await sleep(300);
-  await f.waitFor("document.querySelector('.catalog-loc [data-loc=\"hay-dung\"]')?.getAttribute('aria-pressed') === 'true'", "tải lại vẫn nhớ bộ lọc", 10000);
+  await f.waitFor("document.querySelector('.catalog-nhom [data-loc=\"hay-dung\"]')?.getAttribute('aria-pressed') === 'true'", "tải lại vẫn nhớ bộ lọc", 10000);
   await f.ev("document.getElementById('catalog-q').focus(); true");
   await f.waitFor(`JSON.stringify(${hang}) === '["TTB06"]'`, "tải lại: Hay dùng vẫn TTB06");
-  await f.ev("document.querySelector('.catalog-loc [data-loc=\"theo-nhom\"]').click()");
-  await f.waitFor(`JSON.stringify(${hang}) === '["TTB03"]'`, "Giá theo nhóm: TTB03 (per5Pax)");
   assert.ok((await f.ev("document.documentElement.scrollWidth - innerWidth")) <= 0, "form 390: không tràn ngang");
   assert.deepEqual(f.consoleErrors.filter((e) => !/favicon/.test(e)), [], "form: không lỗi console");
   f.close();
-  ok("Lập đơn 390: hàng lọc ★ Hay dùng / Theo người / Giá theo nhóm; ghim ☆→★; Hay dùng rỗng có câu hướng dẫn; nhớ bộ lọc + ghim sau tải lại; Giá theo nhóm lọc theo đơn vị");
+  ok("Lập đơn 390: chip ★ Hay dùng trong hàng Nhóm dịch vụ (không còn Theo người / Giá theo nhóm); ghim ☆→★; Hay dùng rỗng có câu hướng dẫn; nhớ bộ lọc + ghim sau tải lại");
   console.log("LOC DON SMOKE OK");
 } finally {
   await env.stop();

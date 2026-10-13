@@ -727,19 +727,18 @@ h3 { font-size: var(--fs-step-5); margin: var(--s4) 0 var(--s2); color: var(--c-
 
 /* chọn nhanh dịch vụ từ danh mục */
 .catalog { margin-bottom: var(--s3); }
-.catalog-list { max-height: 260px; overflow: auto; margin-top: var(--s2); background: #fff; border: 1px solid var(--c-line); border-radius: var(--radius-sm); }
+.catalog-list { max-height: min(26rem, 60vh); overflow: auto; margin-top: var(--s2); background: #fff; border: 1px solid var(--c-line); border-radius: var(--radius-sm); }
 .catalog-list button { display: flex; justify-content: space-between; gap: var(--s3); width: 100%; padding: 10px 12px; font: inherit; text-align: left; color: var(--c-text); background: none; border: 0; border-bottom: 1px solid var(--c-line); cursor: pointer; }
 .catalog-list button:hover, .catalog-list button:focus { background: var(--c-alt); outline: none; }
 .catalog-list button[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
 .catalog-list .price { white-space: nowrap; color: var(--c-muted); }
-/* Lọc sản phẩm khi lập đơn (góp ý YC-0003 — chủ duyệt 30/9): hàng lọc (dùng lại .loc-nut) + mỗi dòng = nút chọn + nút ghim "Hay dùng". */
-.catalog-loc { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s2); }
-/* ADR-0058 Đ8 (chủ chọn cách 1, 30/9 — ảnh phác docs/design/nhom-dich-vu-2026-09-30/): nhãn hàng "Lọc sẵn có" / "Nhóm dịch vụ"; hàng chip nhóm RIÊNG, trượt ngang
-   (không xuống dòng, không làm trang tràn ngang ở 390px); dòng "Đang lọc: … — N dịch vụ · Bỏ lọc". Chip dùng lại .loc-nut (vùng bấm ≥ --tap-min). */
-.catalog-hang-nhan { display: block; margin: var(--s2) 0 var(--s1); font-size: var(--fs-badge); font-weight: var(--fw-heavy); text-transform: uppercase; color: var(--c-text-muted); }
-.catalog-hang-nhan + .catalog-loc { margin-top: 0; }
-.catalog-nhom { min-width: 0; }
-.catalog-nhom-chips { display: flex; gap: var(--s2); overflow-x: auto; padding: var(--s1) 0; }
+/* Mỗi dòng danh sách = nút ghim "Hay dùng" (ĐẦU dòng, đợt 1 #8) + nút chọn. */
+/* ADR-0058 Đ8 (chủ chọn cách 1, 30/9 — ảnh phác docs/design/nhom-dich-vu-2026-09-30/): nhãn hàng "Nhóm dịch vụ"; hàng chip RIÊNG, trượt ngang
+   (không xuống dòng, không làm trang tràn ngang ở 390px); dòng "Đang lọc: … — N dịch vụ · Bỏ lọc". Chip dùng lại .loc-nut (vùng bấm ≥ --tap-min).
+   Đợt 1 (13/10): hàng chip nằm TRÊN ô gõ, kèm chip "★ Hay dùng"; hàng "Lọc sẵn có" đã bỏ. */
+.catalog-hang-nhan { display: block; margin: 0 0 var(--s1); font-size: var(--fs-badge); font-weight: var(--fw-heavy); text-transform: uppercase; color: var(--c-text-muted); }
+.catalog-nhom { min-width: 0; margin-bottom: var(--s2); }
+.catalog-nhom-chips { display: flex; gap: var(--s2); overflow-x: auto; padding: var(--s1) 0; scrollbar-width: none; }
 .catalog-nhom-chips .loc-nut { flex: none; white-space: nowrap; }
 .catalog-nhom-trang-thai { margin: var(--s1) 0 0; font-size: var(--fs-label); color: var(--c-text-muted); }
 .catalog-nhom-trang-thai .catalog-nhom-bo { padding: 0 var(--s1); color: var(--c-primary); }
@@ -1151,8 +1150,13 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 /* ô chọn từ danh mục */
 .catalog-list button { min-height: var(--tap-min); }
 .catalog-list button:focus-visible { outline: var(--focus-ring) solid var(--c-primary); outline-offset: calc(-1 * var(--focus-ring)); } /* thắng quy tắc cũ `.catalog-list button:focus { outline: none }` (cùng độ đặc thù, đứng sau) */
-.catalog-name { min-width: 0; text-align: left; }
-.catalog-name .chip { margin-left: var(--s1); }
+.catalog-name { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; text-align: left; }
+.catalog-ten { font-weight: var(--fw-semibold); line-height: 1.3; overflow-wrap: anywhere; } /* tên dịch vụ đứng đầu, xuống dòng tự nhiên (đợt 1 #8) */
+.catalog-phu { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); font-size: var(--fs-label); color: var(--c-text-muted); } /* dòng phụ: mã · đơn vị · "đã chọn" */
+.catalog-list .catalog-pick .price { align-self: flex-start; font-weight: var(--fw-semibold); color: var(--c-text); }
+.catalog-list .catalog-pick .price-ghi { max-width: 12rem; font-weight: var(--fw-regular); font-size: var(--fs-label); color: var(--c-text-muted); white-space: normal; text-align: right; } /* "chưa có giá" / "chưa hỗ trợ — dùng nhập tay": chữ ghi chú, được xuống dòng */
+.catalog-dau { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: var(--s3); padding: 0 var(--s1) 0 var(--s3); font-size: var(--fs-label); background: var(--c-surface-alt); border-bottom: 1px solid var(--c-line); }
+.catalog-list .catalog-dau .catalog-dong { flex: none; width: auto; min-height: var(--tap-min); padding: 0 var(--s3); font-weight: var(--fw-bold); color: var(--c-primary); border-bottom: 0; }
 .catalog-empty { padding: var(--s3); color: var(--c-text-muted); }
 
 /* ---------- A2: trang lập/sửa đơn — chỉ token ---------- */

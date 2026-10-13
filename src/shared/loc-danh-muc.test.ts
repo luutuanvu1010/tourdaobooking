@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { docNhoDanhMuc, locDanhMuc, NHO_DANH_MUC_TRONG, doiGhim, LOC_DANH_MUC, locTheoNhom, demTheoNhom, khoaNhoNhom, docNhoNhom, CHUA_PHAN_LOAI } from "./loc-danh-muc.ts";
+import { boLocAn, LOC_CON_LOI_VAO, docNhoDanhMuc, locDanhMuc, NHO_DANH_MUC_TRONG, doiGhim, LOC_DANH_MUC, locTheoNhom, demTheoNhom, khoaNhoNhom, docNhoNhom, CHUA_PHAN_LOAI } from "./loc-danh-muc.ts";
 
 const it = (code: string, name: string, unit: string) => ({ code, name, unit });
 const DS = [it("TD101", "Tour 4 đảo", "perPax"), it("TTB03", "Phao chuối", "per5Pax"), it("TTB06", "Motor nước", "perPax"), it("DD01", "Đưa đón", "manual")];
@@ -84,4 +84,14 @@ test("docNhoNhom: nhóm đã nhớ còn trong groups → giữ; không còn / r�
 test("Đổi chữ chip 1.42 'Theo nhóm' → 'Giá theo nhóm' (chủ chọn 30/9); khoá lọc 'theo-nhom' GIỮ NGUYÊN", () => {
   assert.deepEqual(LOC_DANH_MUC.map((x) => x.nhan), ["★ Hay dùng", "Theo người", "Giá theo nhóm"]);
   assert.deepEqual(LOC_DANH_MUC.map((x) => x.khoa), ["hay-dung", "theo-nguoi", "theo-nhom"]);
+});
+
+// ---- Đợt 1 (bảng việc 13/10, #3): bỏ hàng "Lọc sẵn có"; chỉ "★ Hay dùng" còn lối vào (chip trong hàng Nhóm dịch vụ) ----
+test("boLocAn: bộ lọc 'Theo người' / 'Giá theo nhóm' đã nhớ trên máy không còn nút để tắt → bỏ khi đọc; 'Hay dùng' và mã ghim giữ nguyên", () => {
+  assert.deepEqual(boLocAn({ loc: "theo-nguoi", ghim: ["TD101"] }), { loc: null, ghim: ["TD101"] });
+  assert.deepEqual(boLocAn({ loc: "theo-nhom", ghim: [] }), { loc: null, ghim: [] });
+  assert.deepEqual(boLocAn({ loc: "hay-dung", ghim: ["TD101"] }), { loc: "hay-dung", ghim: ["TD101"] });
+  assert.deepEqual(boLocAn({ loc: null, ghim: ["A"] }), { loc: null, ghim: ["A"] });
+  assert.deepEqual(boLocAn(docNhoDanhMuc(JSON.stringify({ loc: "theo-nguoi", ghim: ["B"] }))), { loc: null, ghim: ["B"] }, "đường đọc bản nhớ cũ");
+  assert.deepEqual(LOC_CON_LOI_VAO, ["hay-dung"], "chỉ 'Hay dùng' còn chip");
 });

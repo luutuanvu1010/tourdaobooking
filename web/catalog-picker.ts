@@ -1,10 +1,13 @@
-// Ô "Chọn từ danh mục": ô tìm + danh sách kết quả (tên, mã, đơn vị, giá người lớn). Chạm một kết quả = thêm thẻ (onPick).
+// Ô "Chọn từ danh mục": hàng chip "Nhóm dịch vụ" (kèm chip "★ Hay dùng") NẰM TRÊN ô gõ + danh sách kết quả (tên, mã, đơn vị, giá người lớn). Chạm một kết quả = thêm thẻ (onPick).
+// Đợt 1 (bảng việc 13/10, #3, #7, #8): bỏ hàng "Lọc sẵn có" ("Theo người" / "Giá theo nhóm" không còn lối vào; "★ Hay dùng" thành một chip của hàng Nhóm dịch vụ, chọn MỘT trong "Tất cả" /
+// "★ Hay dùng" / một nhóm); chạm hoặc focus vào ô gõ là hiện cả danh sách (kể cả khi ô vẫn đang giữ focus sau lần chọn trước — iPhone không chuyển focus khi chạm nút); dấu ☆ lên đầu dòng;
+// thanh nhỏ đầu danh sách có số dịch vụ và nút "Đóng" (Esc cũng đóng). Đây chỉ là cách HIỂN THỊ: dữ liệu tải và luật lọc theo vai (ADR-0033) không đổi.
 // Dịch vụ chưa hỗ trợ đơn vị hoặc chưa có giá hiện mờ, không chạm được (ghi "chưa hỗ trợ" / "chưa có giá"; ADR-0061: người ĐƯỢC nhập tay — `setNhapTay(true)` —
 // thấy "chưa hỗ trợ — dùng nhập tay", gợi ý nút "+ Dịch vụ nhập tay"; người không được nhập tay chỉ thấy "chưa hỗ trợ" như bản 1.40): `aria-disabled` chứ không `disabled`, để vẫn nằm trong cây truy cập (người dùng đọc màn hình biết có mục này). Dịch vụ đã ẩn không có trong /api/catalog/for-order (nguồn của form lập đơn, ADR-0033) nên không hiện.
-// Danh sách là các nút thường (không role listbox/option: listbox đòi tên + mô hình phím mũi tên mà ở đây không có). Mỗi dòng: nút chọn (`.catalog-pick`) + nút ghim ☆/★ "Hay dùng" (`.catalog-ghim`) — anh em, không lồng.
+// Danh sách là các nút thường (không role listbox/option: listbox đòi tên + mô hình phím mũi tên mà ở đây không có). Mỗi dòng: nút ghim ☆/★ "Hay dùng" (`.catalog-ghim`) + nút chọn (`.catalog-pick`) — anh em, không lồng.
 import type { CatalogGroupDto, CatalogServiceDto } from "../src/shared/contracts";
 import { unitLabel } from "../src/shared/service-form";
-import { CHUA_PHAN_LOAI, LOC_DANH_MUC, demTheoNhom, docNhoDanhMuc, docNhoNhom, doiGhim, khoaNhoNhom, locDanhMuc, locTheoNhom, type ChonNhom, type NhoDanhMuc } from "../src/shared/loc-danh-muc";
+import { CHUA_PHAN_LOAI, boLocAn, docNhoDanhMuc, docNhoNhom, doiGhim, khoaNhoNhom, locDanhMuc, locTheoNhom, type ChonNhom, type NhoDanhMuc } from "../src/shared/loc-danh-muc";
 import { h, replaceChildren } from "./dom";
 import { vnd } from "./format";
 
@@ -20,13 +23,14 @@ export interface CatalogPicker {
   /** ADR-0061: người dùng được nhập tay (`duocDung` của máy chủ) — dịch vụ chưa hỗ trợ ghi "chưa hỗ trợ — dùng nhập tay". */
   setNhapTay(duocNhapTay: boolean): void;
   focus(): void;
-  /** ADR-0058 Đ8: nhóm dịch vụ (thứ tự của máy chủ) cho hàng chip "Nhóm dịch vụ"; rỗng = ẩn hàng. */
+  /** ADR-0058 Đ8: nhóm dịch vụ (thứ tự của máy chủ) cho hàng chip "Nhóm dịch vụ"; rỗng = chỉ còn "Tất cả" và "★ Hay dùng". */
   setGroups(groups: readonly CatalogGroupDto[]): void;
   /** Id tài khoản đang đăng nhập (gọi ngay sau `initShell()`): đọc chip nhóm đã nhớ của RIÊNG tài khoản này trên máy. Trước khi gọi: "Tất cả", không đọc / ghi bộ nhớ. */
   setTaiKhoan(staffId: string): void;
 }
 
-const MAX_RESULTS = 40;
+/** Trần số dòng vẽ trong danh sách (danh mục thật ~109 dịch vụ: vẽ hết để cuộn được; gõ chữ để thu hẹp). */
+const MAX_KET_QUA = 150;
 
 const KHOA_NHO = "td.dmLoc.v1";
 function docBoNho(): string | null {
@@ -62,32 +66,23 @@ function ghiNhoNhom(staffId: string, nhom: ChonNhom): void {
 
 export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => void }): CatalogPicker {
   const notice = h("div", { class: "alert warn", role: "status", hidden: true });
-  const q = h("input", { id: "catalog-q", type: "search", placeholder: "Gõ tên hoặc mã dịch vụ…", autocomplete: "off", "aria-controls": "catalog-list" });
+  // Nhãn "Chọn từ danh mục" ẩn (bảng việc #4): chữ mờ trong ô nói việc cần làm; tên cho trình đọc màn hình ở `aria-label`.
+  const q = h("input", { id: "catalog-q", type: "search", placeholder: "Chọn từ danh mục — gõ tên hoặc mã…", "aria-label": "Chọn từ danh mục", autocomplete: "off", "aria-controls": "catalog-list" });
   const reason = h("p", { class: "muted", hidden: true });
   const list = h("div", { id: "catalog-list", class: "catalog-list", hidden: true });
-  // Hàng lọc (góp ý YC-0003 — chủ duyệt 30/9): "★ Hay dùng" (ghim trên máy) + đơn vị tính; chọn một, bấm lại để bỏ. Bộ lọc và mã đã ghim nhớ TRÊN MÁY
-  // này (bộ nhớ trình duyệt; bị chặn → chỉ không nhớ). Chip nhóm dịch vụ (ADR-0058) ở hàng RIÊNG ngay dưới (chủ chọn cách 1, 30/9) — `data-cho="nhom"`.
-  let nho: NhoDanhMuc = docNhoDanhMuc(docBoNho());
-  const locNut = LOC_DANH_MUC.map((l) => {
-    const b = h("button", { type: "button", class: "loc-nut catalog-loc-nut", "aria-pressed": String(nho.loc === l.khoa), "data-loc": l.khoa }, l.nhan);
-    b.addEventListener("click", () => {
-      nho = { ...nho, loc: nho.loc === l.khoa ? null : l.khoa };
-      for (const x of locNut) x.setAttribute("aria-pressed", String(x.dataset.loc === nho.loc));
-      ghiBoNho(nho);
-      render();
-    });
-    return b;
-  });
-  const locHang = h("div", { class: "catalog-loc", role: "group", "aria-labelledby": "catalog-loc-nhan" }, ...locNut);
-  // Hàng "Nhóm dịch vụ" (ADR-0058 Đ8): "Tất cả" + các nhóm (thứ tự `groups`) + "Chưa phân loại" (chỉ khi có dịch vụ không nhóm); chọn một chip một lúc;
-  // kết hợp VÀ với hàng trên và ô tìm. Nhóm hàng trượt ngang (không xuống dòng). Dòng "Đang lọc: <nhóm> — N dịch vụ" nằm NGOÀI danh sách (danh sách chỉ mở khi bấm ô tìm).
+  // Bộ lọc "★ Hay dùng" (ghim trên máy; góp ý YC-0003 — chủ duyệt 30/9) và mã đã ghim nhớ TRÊN MÁY này (bộ nhớ trình duyệt; bị chặn → chỉ không nhớ). Từ đợt 1 "Hay dùng" là một chip
+  // của hàng Nhóm dịch vụ; bộ lọc "Theo người" / "Giá theo nhóm" đã nhớ từ trước bị bỏ khi đọc (`boLocAn`: không còn nút nào để tắt).
+  let nho: NhoDanhMuc = boLocAn(docNhoDanhMuc(docBoNho()));
+  const hayDung = (): boolean => nho.loc === "hay-dung";
+  // Hàng "Nhóm dịch vụ" (ADR-0058 Đ8): "Tất cả" + "★ Hay dùng" + các nhóm (thứ tự `groups`) + "Chưa phân loại" (chỉ khi có dịch vụ không nhóm); chọn MỘT chip một lúc;
+  // kết hợp VÀ với ô tìm. Hàng trượt ngang (không xuống dòng). Dòng "Đang lọc: <nhóm> — N dịch vụ" nằm NGOÀI danh sách.
   const nhomChips = h("div", { class: "catalog-nhom-chips", role: "group", "aria-labelledby": "catalog-nhom-nhan" });
   // Chữ và nút "Bỏ lọc" dựng MỘT lần (chỉ đổi chữ): nút bị gỡ khỏi trang lúc đang bấm thì bộ nghe "bấm ra ngoài" đóng danh sách.
   const nhomTrangThaiChu = h("span", null);
   const nhomBo = h("button", { type: "button", class: "btn btn-link catalog-nhom-bo" }, "Bỏ lọc");
   const nhomTrangThai = h("p", { class: "catalog-nhom-trang-thai", role: "status", hidden: true }, nhomTrangThaiChu, nhomBo);
   const nhomHang = h("div", { class: "catalog-nhom", "data-cho": "nhom", hidden: true }, h("span", { class: "catalog-hang-nhan", id: "catalog-nhom-nhan" }, "Nhóm dịch vụ"), nhomChips, nhomTrangThai);
-  const root = h("div", { class: "catalog" }, notice, h("label", null, "Chọn từ danh mục", q), h("span", { class: "catalog-hang-nhan", id: "catalog-loc-nhan" }, "Lọc sẵn có"), locHang, nhomHang, reason, list);
+  const root = h("div", { class: "catalog" }, notice, nhomHang, q, reason, list);
   let items: readonly CatalogServiceDto[] = [];
   let selected = new Set<string>();
   let groups: readonly CatalogGroupDto[] = [];
@@ -103,29 +98,55 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
   /** Nhóm đang chọn còn dùng được? (còn trong `groups`; "Chưa phân loại" chỉ khi còn dịch vụ không nhóm) — không thì "Tất cả". Không phụ thuộc thứ tự setGroups / setItems / setTaiKhoan. */
   const coChuaPhanLoai = (): boolean => items.some((c) => c.groupCode === null);
   function nhomHieuLuc(): ChonNhom {
+    if (hayDung()) return null; // "Hay dùng" và nhóm loại trừ nhau: chọn Hay dùng thì không lọc theo nhóm
     if (nhom === CHUA_PHAN_LOAI) return coChuaPhanLoai() ? nhom : null;
     return nhom !== null && groups.some((x) => x.code === nhom) ? nhom : null;
+  }
+  /** Đồng bộ `aria-pressed` của mọi chip theo trạng thái lọc hiện tại (không dựng lại chip: xem `chonNhom`). */
+  function capNhatChip(): void {
+    const dang = nhomHieuLuc();
+    for (const b of nhomChips.querySelectorAll<HTMLButtonElement>(".catalog-nhom-nut")) {
+      const bat = b.dataset.loc === "hay-dung" ? hayDung() : !hayDung() && (b.dataset.nhom || null) === dang;
+      b.setAttribute("aria-pressed", String(bat));
+    }
   }
   function chonNhom(next: ChonNhom): void {
     nhom = next;
     if (staffId !== null) ghiNhoNhom(staffId, next);
+    if (hayDung()) {
+      nho = { ...nho, loc: null };
+      ghiBoNho(nho);
+    }
     // Chỉ đổi aria-pressed, KHÔNG dựng lại chip: nút vừa bấm mà bị gỡ khỏi trang thì bộ nghe "bấm ra ngoài" (document) tưởng bấm ngoài ô → đóng danh sách.
-    const dang = nhomHieuLuc();
-    for (const b of nhomChips.querySelectorAll<HTMLButtonElement>(".catalog-nhom-nut")) b.setAttribute("aria-pressed", String((b.dataset.nhom || null) === dang));
+    capNhatChip();
     capNhatTrangThai();
     hienChipDangChon();
-    if (!list.hidden) render();
+    render(); // chọn chip = muốn xem dịch vụ của chip đó: danh sách luôn mở
   }
-  nhomBo.addEventListener("click", () => chonNhom(null));
+  function chonHayDung(): void {
+    nho = { ...nho, loc: hayDung() ? null : "hay-dung" };
+    ghiBoNho(nho);
+    capNhatChip();
+    capNhatTrangThai();
+    hienChipDangChon();
+    render();
+  }
+  nhomBo.addEventListener("click", () => {
+    nho = { ...nho, loc: null };
+    ghiBoNho(nho);
+    chonNhom(null);
+  });
   function renderNhom(): void {
-    nhomHang.hidden = groups.length === 0;
+    nhomHang.hidden = items.length === 0 && groups.length === 0;
     const dang = nhomHieuLuc();
     const chip = (gt: ChonNhom, nhan: string) => {
-      const b = h("button", { type: "button", class: "loc-nut catalog-nhom-nut", "aria-pressed": String(dang === gt), "data-nhom": gt ?? "" }, nhan);
+      const b = h("button", { type: "button", class: "loc-nut catalog-nhom-nut", "aria-pressed": String(!hayDung() && dang === gt), "data-nhom": gt ?? "" }, nhan);
       b.addEventListener("click", () => chonNhom(gt));
       return b;
     };
-    replaceChildren(nhomChips, chip(null, "Tất cả"), ...groups.map((x) => chip(x.code, x.name)), coChuaPhanLoai() ? chip(CHUA_PHAN_LOAI, "Chưa phân loại") : null);
+    const hay = h("button", { type: "button", class: "loc-nut catalog-nhom-nut", "aria-pressed": String(hayDung()), "data-loc": "hay-dung" }, "★ Hay dùng");
+    hay.addEventListener("click", chonHayDung);
+    replaceChildren(nhomChips, chip(null, "Tất cả"), hay, ...groups.map((x) => chip(x.code, x.name)), coChuaPhanLoai() ? chip(CHUA_PHAN_LOAI, "Chưa phân loại") : null);
     capNhatTrangThai();
     hienChipDangChon();
   }
@@ -137,33 +158,47 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
     const chip = b.getBoundingClientRect();
     if (chip.left < hang.left || chip.right > hang.right) nhomChips.scrollLeft += chip.left - hang.left - (hang.width - chip.width) / 2;
   }
-  /** "Đang lọc: <nhóm> — N dịch vụ · Bỏ lọc"; N = số dịch vụ đang hiện (sau ô tìm + hàng lọc trên + nhóm), trước trần 40 kết quả. "Bỏ lọc" chỉ bỏ chip nhóm. */
+  /** "Đang lọc: <nhóm hoặc ★ Hay dùng> — N dịch vụ · Bỏ lọc"; N = số dịch vụ đang hiện (sau ô tìm + chip), trước trần số dòng vẽ. "Bỏ lọc" bỏ chip đang chọn (về "Tất cả"). */
   function capNhatTrangThai(): void {
     const dang = nhomHieuLuc();
-    if (dang === null) {
+    if (dang === null && !hayDung()) {
       nhomTrangThaiChu.textContent = "";
       nhomTrangThai.hidden = true;
       return;
     }
-    const ten = dang === CHUA_PHAN_LOAI ? "Chưa phân loại" : (groups.find((x) => x.code === dang)?.name ?? "");
+    const ten = hayDung() ? "★ Hay dùng" : dang === CHUA_PHAN_LOAI ? "Chưa phân loại" : (groups.find((x) => x.code === dang)?.name ?? "");
     const n = locTheoNhom(locDanhMuc(items, { kim: q.value, loc: nho.loc, ghim: nho.ghim }), dang).length;
     nhomTrangThaiChu.textContent = `Đang lọc: ${ten} — ${n} dịch vụ · `;
     nhomTrangThai.hidden = false;
   }
   let nhapTay = false;
 
+  function dong(): void {
+    list.hidden = true;
+  }
   function render(): void {
     capNhatTrangThai();
-    const found = locTheoNhom(locDanhMuc(items, { kim: q.value, loc: nho.loc, ghim: nho.ghim }), nhomHieuLuc()).slice(0, MAX_RESULTS);
+    const khop = locTheoNhom(locDanhMuc(items, { kim: q.value, loc: nho.loc, ghim: nho.ghim }), nhomHieuLuc());
+    const found = khop.slice(0, MAX_KET_QUA);
+    const dongBtn = h("button", { type: "button", class: "btn btn-link catalog-dong" }, "Đóng");
+    dongBtn.addEventListener("click", dong);
+    const dau = h("div", { class: "catalog-dau" }, h("span", { class: "muted" }, khop.length > found.length ? `Hiện ${found.length} / ${khop.length} dịch vụ — gõ để thu hẹp` : `${khop.length} dịch vụ`), dongBtn);
     replaceChildren(
       list,
+      dau,
       ...found.map((c) => {
         const usable = c.supported && c.prices.adult !== null;
+        // Dòng chọn: tên đứng đầu (xuống dòng tự nhiên), dòng phụ nhỏ "mã · đơn vị · đã chọn"; giá nằm bên phải, không bẻ chữ.
         const b = h(
           "button",
           { type: "button", class: "catalog-pick", "aria-disabled": usable ? false : "true" },
-          h("span", { class: "catalog-name" }, h("strong", null, c.code), " ", c.name, c.supported ? h("span", { class: "chip chip-unit" }, unitLabel(c.unit)) : null, selected.has(c.code) ? h("span", { class: "chip chip-picked" }, "đã chọn") : null),
-          h("span", { class: "price" }, c.supported ? (c.prices.adult === null ? "chưa có giá" : vnd(c.prices.adult)) : nhapTay ? "chưa hỗ trợ — dùng nhập tay" : "chưa hỗ trợ"),
+          h(
+            "span",
+            { class: "catalog-name" },
+            h("span", { class: "catalog-ten" }, c.name),
+            h("span", { class: "catalog-phu" }, h("strong", null, c.code), c.supported ? h("span", { class: "chip chip-unit" }, unitLabel(c.unit)) : null, selected.has(c.code) ? h("span", { class: "chip chip-picked" }, "đã chọn") : null),
+          ),
+          h("span", { class: usable ? "price" : "price price-ghi" }, c.supported ? (c.prices.adult === null ? "chưa có giá" : vnd(c.prices.adult)) : nhapTay ? "chưa hỗ trợ — dùng nhập tay" : "chưa hỗ trợ"),
         );
         b.addEventListener("click", () => {
           if (!usable) return; // mục không chọn được: bỏ qua (danh sách vẫn mở)
@@ -180,15 +215,22 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
           render();
           list.querySelector<HTMLButtonElement>(`[data-ghim="${CSS.escape(c.code)}"]`)?.focus();
         });
-        return h("div", { class: "catalog-row" }, b, ghim);
+        return h("div", { class: "catalog-row" }, ghim, b); // dấu sao ở ĐẦU dòng (bảng việc #8)
       }),
       found.length === 0 &&
-        h("div", { class: "catalog-empty", role: "status" }, nho.loc === "hay-dung" && !nho.ghim.length ? "Chưa ghim dịch vụ nào — bấm ☆ cạnh một dịch vụ để thêm vào Hay dùng." : "Không tìm thấy dịch vụ."),
+        h("div", { class: "catalog-empty", role: "status" }, hayDung() && !nho.ghim.length ? "Chưa ghim dịch vụ nào — bấm ☆ cạnh một dịch vụ để thêm vào Hay dùng." : "Không tìm thấy dịch vụ."),
     );
     list.hidden = false;
   }
   q.addEventListener("focus", render);
+  q.addEventListener("click", render); // ô đang giữ focus (vd sau khi chọn một dịch vụ, nhất là trên iPhone) thì chạm lại không bắn `focus` — vẫn phải mở danh sách
   q.addEventListener("input", render);
+  q.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !list.hidden) {
+      e.preventDefault();
+      dong();
+    }
+  });
   document.addEventListener("click", (e) => {
     if (e.target instanceof Node && !root.contains(e.target)) list.hidden = true;
   });
