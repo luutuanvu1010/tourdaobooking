@@ -44,8 +44,8 @@ export interface ServiceCard {
   update(d: ServiceDraft): void;
   /** Trần dòng tiền tính trên CẢ ĐƠN: khi số dòng của bất kỳ thẻ nào đổi, trang gọi hàm này cho MỌI thẻ để nút "+ Thêm dòng" bật/khoá đúng ngay. */
   refreshLimits(): void;
-  /** Hiện mọi lỗi chặn Lưu trên thẻ (sau lần bấm Lưu đầu). Lỗi "Tối đa 50 khách." luôn hiện. */
-  showIssues(show: boolean): void;
+  /** Hiện mọi lỗi chặn Lưu trên thẻ (sau lần bấm Lưu đầu). Lỗi "Tối đa 50 khách." luôn hiện. Trả ô lỗi chặng đầu tiên (mở khối gập chứa nó) — xem `KhoiDuaDon.showIssues`. */
+  showIssues(show: boolean): { o: HTMLElement; daAn: boolean } | null;
   /** Mở khối chuyến và cuộn tới thẻ. */
   reveal(): void;
   hasIssues(): boolean;
@@ -361,8 +361,9 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     refreshLimits,
     showIssues(show) {
       issuesVisible = show;
-      duaDon.showIssues(show);
+      const dau = duaDon.showIssues(show);
       refresh();
+      return dau;
     },
     reveal() {
       tripDetails.open = true;

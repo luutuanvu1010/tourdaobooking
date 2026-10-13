@@ -124,6 +124,7 @@
   --c-on-dark: #ffffff;     /* chữ/biểu tượng trên nền primary hoặc accent */
   --tap-min: 44px;          /* vùng chạm tối thiểu */
   --bar-h: 60px;            /* thanh đầu trang, chưa tính vùng an toàn — chủ dự án duyệt tăng từ 52px theo bản thiết kế mới (đặc tả §16 mục 3) */
+  --h-buoc-thanh: 72px;     /* Tạo đơn bốn bước (14/10/2026): chiều cao thanh tiến độ dính (chấm 28px + chữ + đệm) — chừa cho scroll-margin-top của mỗi bước và cho cột Tóm tắt dính ở máy tính */
   --w-gd-o: 160px;         /* ADR-0087: bề rộng ô chọn phông / độ đậm / cỡ chữ ở màn Giao diện */
   --w-gd-xem: 360px;        /* ADR-0087: bề rộng cột xem trước ở màn Giao diện (máy tính) */
   --w-qr: 18rem;            /* QR thanh toán (ADR-0108): bề rộng tối đa ảnh mã trong bảng QR ở trang đơn */
@@ -3316,3 +3317,33 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .dd-khac-ngay { align-self: start; justify-self: start; min-height: var(--h-field); padding: 0 var(--s2); } /* "Đón khác ngày" (đợt 1 #9): nằm cạnh ô giờ, ngang hàng với khung ô */
 .o-noi-khung.dd-gio .dd-gio-mo { top: calc(var(--s4) + var(--s2)); } /* chữ mờ "Chưa chốt giờ" chỉ phủ phần giá trị của ô giờ, không đè nhãn nổi */
 .o-noi-khung .dd-hau-to { top: calc(var(--s4) + var(--s2)); }
+
+/* ---------- Tạo đơn bốn bước (14/10/2026; đặc tả docs/superpowers/specs/2026-10-14-tao-don-bon-buoc/README.md) — chỉ token ----------
+   Thanh tiến độ dính (web/thanh-buoc.ts): bốn chấm tròn đánh số + chữ ngắn; ✓ khi bước đủ thông tin; bước đang xem nổi bật. Điện thoại: dính ngay dưới thanh trên (cũng dính), tràn hết bề ngang;
+   máy tính (thanh trên không dính): dính mép trên cửa sổ. Khối gập: nút "+ Thêm chi tiết …" mở / đóng khối chứa ô ít dùng (web/khoi-gap.ts); dòng tóm tắt chặng đưa đón gọn (web/khoi-dua-don.ts). */
+.buoc { scroll-margin-top: calc(var(--h-buoc-thanh) + var(--s3)); }
+.buoc:focus { outline: none; }
+.buoc-thanh { position: sticky; top: 0; z-index: 6; display: flex; align-items: center; min-height: var(--h-buoc-thanh); margin: 0 0 var(--s3); background: var(--c-alt); }
+.buoc-ds { display: flex; flex: 1; margin: 0; padding: 0; list-style: none; }
+.buoc-muc { position: relative; flex: 1; min-width: 0; }
+.buoc-muc:not(:first-child)::before { content: ""; position: absolute; top: calc(var(--s1) + var(--fb-dot) / 2 - var(--fb-line) / 2); right: 50%; left: -50%; height: var(--fb-line); background: var(--c-border); }
+.buoc-nut { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: var(--s1); width: 100%; min-height: var(--tap-min); padding: var(--s1) 0; font: inherit; font-size: var(--fs-badge); font-weight: var(--fw-semibold); color: var(--c-text-muted); background: none; border: 0; cursor: pointer; }
+.buoc-cham { display: flex; align-items: center; justify-content: center; width: var(--fb-dot); height: var(--fb-dot); font-size: var(--fs-label); font-weight: var(--fw-bold); color: var(--c-text-muted); background: var(--c-surface); border: var(--fb-line) solid var(--c-border); border-radius: var(--radius-pill); }
+.buoc-nut.is-xong .buoc-cham { color: var(--c-primary); background: var(--c-primary-soft); border-color: var(--c-primary); }
+.buoc-nut[aria-current="step"] { color: var(--c-primary); font-weight: var(--fw-bold); }
+.buoc-nut[aria-current="step"] .buoc-cham { color: var(--c-on-dark); background: var(--c-primary); border-color: var(--c-primary); box-shadow: 0 0 0 var(--s1) var(--c-primary-soft); }
+.buoc-nut:focus-visible { outline: var(--fb-line) solid var(--c-primary); outline-offset: var(--fb-line); border-radius: var(--radius-sm); }
+@media (max-width: 640px) {
+  .buoc-thanh { top: calc(var(--bar-h) + env(safe-area-inset-top)); margin: 0 calc(-1 * var(--s4)) var(--s3); padding: 0 var(--s4); border-bottom: 1px solid var(--c-border); }
+  .buoc { scroll-margin-top: calc(var(--bar-h) + env(safe-area-inset-top) + var(--h-buoc-thanh) + var(--s3)); }
+}
+@media (min-width: 960px) {
+  .form-side { top: calc(var(--h-buoc-thanh) + var(--s4)); } /* cột Tóm tắt dính nằm DƯỚI thanh tiến độ dính, không bị thanh che đầu */
+}
+.gap-nut { justify-content: flex-start; text-align: left; min-height: var(--tap-min); padding: 0 var(--s2); text-decoration: none; color: var(--c-primary); }
+.gap-nut::before { content: "+"; margin-right: var(--s2); font-weight: var(--fw-heavy); }
+.gap-nut[aria-expanded="true"]::before { content: "−"; }
+.dd-chang-khung { display: flex; flex-direction: column; gap: var(--s2); }
+.dd-tom-tat { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); width: 100%; min-height: var(--tap-min); padding: var(--s2) var(--s3); font: inherit; font-size: var(--fs-label); font-weight: var(--fw-semibold); text-align: left; color: var(--c-text); background: var(--c-surface-alt); border: 1px solid var(--c-border); border-radius: var(--radius-sm); cursor: pointer; }
+.dd-tom-tat-chu { min-width: 0; overflow-wrap: anywhere; }
+.dd-tom-tat svg { flex: none; color: var(--c-text-muted); }
