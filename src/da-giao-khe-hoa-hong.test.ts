@@ -167,3 +167,49 @@ test("7 — lớp SQL của câu «Đã giao»: đơn có bản chụp người 
   await xacNhan(w, le);
   assert.equal(await chayCauDaGiao(w, le), 1);
 });
+
+// ---- Hai vế còn lại của `CO_NGUOI_HUONG` (bổ sung sau lượt kiểm độc lập 2026-10-13: bài 0–7 KHÔNG bắt được đột biến bỏ từng vế này) ----
+function themKhachLe(w: W): string {
+  const K = "dda00000-0000-4000-8000-000000000004";
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'PERSON', 'Khách lẻ', 1, ?, ?)").run(K, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES (?, 'Khách lẻ', ?, ?)").run(K, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('ptr-dda00000-0000-4000-8000-0000000000aa', ?, 'CUSTOMER', '2026-01-01', ?, ?)").run(K, AT, AT);
+  return K;
+}
+
+test("8 — vế «bản chụp HIỆN HÀNH» (NOT EXISTS … supersedes_id): đổi bên đặt sang khách lẻ (PUT /booker) làm máy chụp lại bản NONE ⇒ «Đã giao» 200 (ADR-0077 điều 9, thiết kế); đơn khác khôi phục vai ngoài ⇒ vẫn 409", async () => {
+  const w = setup();
+  const K = themKhachLe(w);
+  const id = await donDoiTacDaXacNhan(w);
+  assert.equal(chup(w, id).length, 1);
+  const up = w.q("SELECT updated_at FROM orders WHERE id = ?", id)[0].updated_at as string;
+  const r = await w.call("PUT", `/api/orders/${id}/booker`, { as: SALES, body: { bookerPartyId: K, customerName: "Khách Giả", customerPhone: "0900000099", expectedUpdatedAt: up } });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(chup(w, id).length, 2, "bản chụp cũ giữ nguyên, bản mới thay thế");
+  assert.equal(w.q("SELECT count(*) AS n FROM ord_service_terms o WHERE o.order_id = ? AND NOT EXISTS (SELECT 1 FROM ord_service_terms n WHERE n.supersedes_id = o.id) AND o.commission_status = 'NONE'", id)[0].n, 1);
+  await thuDu(w, id);
+  const g = await daGiao(w, id);
+  assert.equal(g.status, 200, `bản chụp hiện hành là NONE; bản cũ (SET) đã bị thay phải KHÔNG được tính: ${g.text}`);
+  // đối chiếu: đơn khác, vai ngoài đổi rồi KHÔI PHỤC — bản chụp vẫn là SET hiện hành ⇒ vẫn 409
+  const id2 = nhap(w, `pty-${PT}`); // bảng mức đã đặt ở trên (một lần)
+  await xacNhan(w, id2);
+  assert.equal(chup(w, id2)[0]!.commission_status, "SET");
+  assert.equal((await doiVai(w, ADMIN, ["SALES_STAFF"])).status, 200);
+  assert.equal((await doiVai(w, ADMIN, ["TRAVEL_AGENCY"])).status, 200);
+  await thuDu(w, id2);
+  assert.equal((await daGiao(w, id2)).status, 409);
+});
+
+test("9 — vế dự phòng «bên đặt đang mang vai nhóm bên ngoài» (đơn xác nhận TRƯỚC 0090, không có bản chụp): vai còn mở ⇒ 409; GHI NHẬN giới hạn: vai đã đóng ⇒ 200", async () => {
+  const w = setup();
+  const id = nhap(w, `pty-${PT}`);
+  w.sqlite.prepare("UPDATE orders SET status = 'confirmed', updated_at = ? WHERE id = ?").run(AT, id); // giả đơn cũ: xác nhận thẳng, KHÔNG qua route nên không có bản chụp
+  assert.equal(chup(w, id).length, 0);
+  await thuDu(w, id);
+  const g = await daGiao(w, id);
+  assert.equal(g.status, 409, g.text);
+  assert.match(g.text, /not_deliverable/);
+  // GIỚI HẠN ĐÃ BIẾT (không phải mong muốn): đơn trước 0090 chưa có bản chụp thì chỉ còn vai hiện tại để canh; vai đã đóng ⇒ lọt. Khi có việc «chụp bù» (SYSTEM-DESIGN §6) thì đổi dòng này.
+  assert.equal((await doiVai(w, ADMIN, ["SALES_STAFF"])).status, 200);
+  assert.equal((await daGiao(w, id)).status, 200);
+});

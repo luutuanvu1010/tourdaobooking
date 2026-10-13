@@ -5,10 +5,6 @@
 import { defineSql } from "../../shared/sql-registry.ts";
 
 /**
- * Trạng thái đơn cho hai bước chốt: mốc, người lập, khoá lạc quan (`updated_at` + số thứ tự điều chỉnh mới nhất — sửa số khách KHÔNG đổi `updated_at`,
- * kế hoạch §2 / R3), và đơn có người hưởng hoa hồng (`CO_NGUOI_HUONG`: bản chụp hiện hành của đơn, hoặc bên đặt đang mang vai nhóm BÊN NGOÀI qua view công bố của parties).
- */
-/**
  * «Đơn có người hưởng hoa hồng» — MỘT luật cho cả hai chỗ (cờ `co_nguoi_huong` để trả câu 409 và điều kiện của câu «Đã giao»), BL-HH-DA-GIAO-KHE:
  * (1) bản chụp thương mại HIỆN HÀNH của đơn (bản không bị bản khác thay) mang người hưởng (`commission_status <> 'NONE'` ⇔ có `beneficiary_party_id`, CHECK ở 0090) —
  * ghim vào chính đơn nên đổi vai bên đặt SAU khi chụp không gỡ được chỗ chặn; (2) dự phòng cũ: bên đặt đang mang vai nhóm bên ngoài (đơn chưa có bản chụp, ví dụ xác nhận trước 0090).
@@ -19,6 +15,10 @@ const CO_NGUOI_HUONG = (o: string): string =>
         AND NOT EXISTS (SELECT 1 FROM ord_service_terms n WHERE n.supersedes_id = t.id))
      OR EXISTS (SELECT 1 FROM v_pty_open_role_group g WHERE g.party_id = ${o}.booker_party_id AND g.role_group = 'EXTERNAL'))`;
 
+/**
+ * Trạng thái đơn cho hai bước chốt: mốc, người lập, khoá lạc quan (`updated_at` + số thứ tự điều chỉnh mới nhất — sửa số khách KHÔNG đổi `updated_at`,
+ * kế hoạch §2 / R3), và đơn có người hưởng hoa hồng (`CO_NGUOI_HUONG`: bản chụp hiện hành của đơn, hoặc bên đặt đang mang vai nhóm BÊN NGOÀI qua view công bố của parties).
+ */
 const GIAO_STATE = defineSql(
   "orders",
   "giao_state",
