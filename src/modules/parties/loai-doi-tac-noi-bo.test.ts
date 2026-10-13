@@ -185,3 +185,39 @@ test("Ruling 7: gắn loại đối tác KÈM ngày kết thúc → 400, không 
   const kh = await w.call("POST", `/api/parties/${hoSo(w, "Khách Có Hạn")}/roles`, { as: ADM, body: { roleTypeCode: "CUSTOMER", validTo: "2027-06-30" } });
   assert.equal(kh.status, 201, kh.text);
 });
+
+// Kiểm độc lập lượt 2 (Ruling 8): cùng gốc với Ruling 7 — nút “Kết thúc” (POST …/roles/:rid/end) nhận ngày TƯƠNG LAI; dòng loại có hạn không còn
+// valid_to_date IS NULL nên view / trigger / hoSoMangNhanDoiTac không thấy ⇒ chiều 2 lọt. Loại đối tác chỉ kết thúc hôm nay hoặc ngày đã qua.
+const ketThuc = (w: any, partyId: string, rid: string, validTo?: string) =>
+  w.call("POST", `/api/parties/${partyId}/roles/${rid}/end`, { as: ADM, body: validTo === undefined ? {} : { validTo } });
+const dongNhan = (w: any, partyId: string): string => w.q("SELECT id FROM pty_party_role WHERE party_id = ? AND role_type_code = ?", partyId, NHAN)[0].id;
+const homNay = (): string => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+
+test("Ruling 8: kết thúc loại đối tác vào ngày TƯƠNG LAI → 400, dòng vẫn mở; đổi tài khoản Lễ tân sang Nhân viên kinh doanh vẫn bị chặn", async () => {
+  const w = nen();
+  const le = await taiKhoan(w, ["HOTEL_RECEPTION"], "0900000106", "Lễ Tân Hẹn Thôi");
+  assert.equal((await ganNhan(w, le.partyId)).status, 201);
+  const rid = dongNhan(w, le.partyId);
+  const r = await ketThuc(w, le.partyId, rid, "2027-06-30");
+  assert.equal(r.status, 400, `kết thúc tương lai: ${r.status} ${r.text}`);
+  assert.equal(r.json.error.code, "invalid_input");
+  assert.equal(r.json.error.message, "Loại đối tác kết thúc ngay hôm nay hoặc ngày đã qua — không đặt ngày trong tương lai.");
+  assert.equal(w.q("SELECT valid_to_date v FROM pty_party_role WHERE id = ?", rid)[0].v, null, "dòng loại vẫn mở");
+  const doi = await w.call("PUT", `/api/staff/${le.staffId}/roles`, { as: SUP, body: { roles: ["SALES_STAFF"] } });
+  assert.equal(doi.status, 409, `chiều 2: ${doi.status} ${doi.text}`);
+});
+
+test("Ruling 8 đối chứng: kết thúc loại đối tác HÔM NAY → 200, rồi đổi sang Nhân viên kinh doanh được (hết nhãn); loại CUSTOMER kết thúc ngày tương lai vẫn 200", async () => {
+  const w = nen();
+  const le = await taiKhoan(w, ["HOTEL_RECEPTION"], "0900000107", "Lễ Tân Thôi Hôm Nay");
+  assert.equal((await ganNhan(w, le.partyId)).status, 201);
+  const r = await ketThuc(w, le.partyId, dongNhan(w, le.partyId), homNay());
+  assert.equal(r.status, 200, r.text);
+  const doi = await w.call("PUT", `/api/staff/${le.staffId}/roles`, { as: SUP, body: { roles: ["SALES_STAFF"] } });
+  assert.equal(doi.status, 200, doi.text);
+  const p = hoSo(w, "Khách Hẹn Thôi");
+  const them = await w.call("POST", `/api/parties/${p}/roles`, { as: ADM, body: { roleTypeCode: "CUSTOMER" } });
+  assert.equal(them.status, 201, them.text);
+  const kh = await ketThuc(w, p, them.json.party.roles.find((x: any) => x.roleTypeCode === "CUSTOMER").id, "2027-06-30");
+  assert.equal(kh.status, 200, kh.text);
+});

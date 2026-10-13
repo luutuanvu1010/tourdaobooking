@@ -1156,8 +1156,14 @@ export const partiesModule: AppModule = {
       // Chủ 2026-09-28: vai "Công ty chủ" không kết thúc được, kể cả người giữ ô — đổi bằng cách gán cho hồ sơ khác (lớp route; lớp CSDL ở dưới).
       if (row?.code === OWNER_COMPANY_ROLE) return OWNER_COMPANY_LOCKED();
       const now = new Date();
-      const to = validateEndDate(await readJson(request), vnToday(now));
+      const homNay = vnToday(now);
+      const to = validateEndDate(await readJson(request), homNay);
       if (!to.ok) return error(400, "invalid_input", to.message);
+      // Ruling 8 (kiểm độc lập Task 2, cùng gốc Ruling 7): loại đối tác chỉ kết thúc HÔM NAY hoặc ngày đã qua — dòng có ngày kết thúc tương lai không còn
+      // valid_to_date IS NULL nên view v_pty_party_partner_label / trigger / hoSoMangNhanDoiTac coi như hết nhãn trong khi nhãn vẫn còn hiệu lực ⇒ chiều 2 lọt.
+      if (row && to.value > homNay && (await roleTypeOf(env.DB, row.code))?.partnerLabel) {
+        return error(400, "invalid_input", "Loại đối tác kết thúc ngay hôm nay hoặc ngày đã qua — không đặt ngày trong tương lai.");
+      }
       const at = now.toISOString();
       let results: D1Result[];
       try {
