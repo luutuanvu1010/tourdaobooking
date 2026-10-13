@@ -38,3 +38,7 @@
 - Luật D3 không có trigger CSDL (theo ADR): SQL tay vào đơn nháp chỉ bị bắt lúc xác nhận.
 - Chưa biết số đơn đã xác nhận có 0 người đi kèm trên production (chạy `R-ORD-16w` trên remote do chủ).
 - Số phiên bản 1.91 trong nhật ký thay đổi là số TẠM; kiểm lại lúc phát hành.
+
+## Gộp main vào nhánh (13/10, tối, trước khi đưa lên)
+
+Lệnh đưa lên (`day-len`) đòi nhánh dựng trên `main` mới nhất. `main` cục bộ đã có thêm 14 commit từ phiên làm lại màn Tạo đơn (chưa lên GitHub). Đã gộp `main` vào nhánh; chỗ trùng: (1) nhật ký thay đổi — `main` đã giữ số 1.91, nên mục của đợt này đổi thành **1.92** (số TẠM, đặt trên mục 1.91 của Tạo đơn) và dòng ghim ở `src/shared/app-info.test.ts` cùng kịch bản Chrome mới đổi theo; (2) Trợ giúp Bán hàng — lấy chữ mới của màn Tạo đơn từ `main`, giữ câu "Cả đơn cần ít nhất một người lớn" và bước 6 gọn của đợt này; nhóm Bán hàng vượt trần 30 phút 5 chữ nên cắt ba chữ phụ ở ba câu "Lưu ý" (nay đúng 3150 chữ, không còn chỗ trống).

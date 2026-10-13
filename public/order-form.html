@@ -9,8 +9,8 @@
     <div class="form-cols">
     <div class="form-main">
       <section class="card">
-        <h2>Chọn ngày</h2>
-        <label>Ngày khởi hành<input id="orderDate" type="date"></label>
+        <h2 class="visually-hidden">Chọn ngày</h2>
+        <label class="o-noi"><span class="o-noi-khung o-noi-co-dinh"><span class="o-noi-chu">Ngày khởi hành</span><input id="orderDate" type="date"></span></label>
         <p class="muted" id="orderDate-hint">Ngày này áp cho mọi dịch vụ trong đơn.</p>
         <p class="dd-ghi-tao" id="orderDate-moved" role="status" hidden></p>
       </section>
@@ -25,22 +25,22 @@
       <section class="card" id="pay-card">
         <h2>Thanh toán</h2>
         <div class="grid three">
-          <label>Giảm giá (₫)<input id="discount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></label>
-          <label id="prepaid-amount-field">Thanh toán trước (₫)<input id="prepaidAmount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></label>
-          <label id="prepaid-method-field">Hình thức<select id="prepaidMethod"><option value="BANK_TRANSFER" selected>Chuyển khoản</option><option value="CASH">Tiền mặt</option><option value="OTHER">Khác</option></select></label>
+          <label class="o-noi"><span class="o-noi-khung"><input id="discount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="o-noi-chu">Giảm giá (₫)</span></span></label>
+          <label id="prepaid-amount-field" class="o-noi"><span class="o-noi-khung"><input id="prepaidAmount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="o-noi-chu">Thanh toán trước (₫)</span></span></label>
+          <label id="prepaid-method-field" class="o-noi"><span class="o-noi-khung o-noi-co-dinh"><span class="o-noi-chu">Hình thức</span><select id="prepaidMethod"><option value="BANK_TRANSFER" selected>Chuyển khoản</option><option value="CASH">Tiền mặt</option><option value="OTHER">Khác</option></select></span></label>
         </div>
-        <label id="prepaid-collector-field">Người nhận tiền<select id="prepaidCollector"><option value="cong_ty" selected>Công ty (vào tài khoản công ty)</option><option value="toi">Tôi thu</option></select></label>
+        <label id="prepaid-collector-field" class="o-noi"><span class="o-noi-khung o-noi-co-dinh"><span class="o-noi-chu">Người nhận tiền</span><select id="prepaidCollector"><option value="cong_ty" selected>Công ty (vào tài khoản công ty)</option><option value="toi">Tôi thu</option></select></span></label>
         <p class="muted" id="prepaid-hint">Tiền trả trước được ghi vào sổ ngay sau khi lưu đơn.</p>
-        <label class="pay-note">Ghi chú thanh toán<textarea id="paymentNote" maxlength="1000" placeholder="vd: nội dung chuyển khoản"></textarea></label>
+        <label class="pay-note o-noi"><span class="o-noi-khung"><textarea id="paymentNote" maxlength="1000" placeholder="vd: nội dung chuyển khoản"></textarea><span class="o-noi-chu">Ghi chú thanh toán</span></span></label>
       </section>
       <section class="card">
         <h2>Thông tin khách hàng</h2>
         <button id="use-mine" class="btn" type="button">Sử dụng thông tin của tôi</button>
         <div class="grid two">
-          <label>Tên khách *<input id="customerName" type="text" maxlength="200" autocomplete="off" required></label>
-          <label>Số điện thoại *<input id="customerPhone" type="tel" inputmode="tel" maxlength="30" autocomplete="off" required></label>
-          <label>Email<input id="customerEmail" type="email" maxlength="200" autocomplete="off"></label>
-          <label>Ghi chú / yêu cầu đặc biệt<textarea id="customerNote" maxlength="2000"></textarea></label>
+          <label class="o-noi"><span class="o-noi-khung"><input id="customerName" type="text" maxlength="200" autocomplete="off" placeholder=" " required><span class="o-noi-chu">Tên khách *</span></span></label>
+          <label class="o-noi"><span class="o-noi-khung"><input id="customerPhone" type="tel" inputmode="tel" maxlength="30" autocomplete="off" placeholder=" " required><span class="o-noi-chu">Số điện thoại *</span></span></label>
+          <label class="o-noi"><span class="o-noi-khung"><input id="customerEmail" type="email" maxlength="200" autocomplete="off" placeholder=" "><span class="o-noi-chu">Email</span></span></label>
+          <label class="o-noi"><span class="o-noi-khung"><textarea id="customerNote" maxlength="2000" placeholder=" "></textarea><span class="o-noi-chu">Ghi chú / yêu cầu đặc biệt</span></span></label>
         </div>
         <div id="booker-slot"></div>
       </section>

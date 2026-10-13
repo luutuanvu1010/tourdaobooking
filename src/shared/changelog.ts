@@ -12,13 +12,26 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Sửa số khách (ADR-0114): nhắc khuyến mại khi bớt khách, lịch sử số khách đủ dòng, mỗi đơn có ít nhất một người lớn. Không migration. Số 1.91 là số TẠM (= main 1.90 + 1 lúc dựng 2026-10-13): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
-    version: "1.91",
+    // Sửa số khách (ADR-0114): nhắc khuyến mại khi bớt khách, lịch sử số khách đủ dòng, mỗi đơn có ít nhất một người lớn. Không migration. Số 1.92 là số TẠM (= main 1.91 màn Tạo đơn + 1, gộp main vào nhánh 2026-10-13): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "1.92",
     date: "2026-10-13",
     items: [
       { kind: "moi", text: "Đơn có giảm giá mà bớt khách: mục Thanh toán hiện thêm một câu màu đỏ nhắc Kế toán xem lại khuyến mại. Số tiền vẫn giữ nguyên, chỉ nhắc." },
       { kind: "moi", text: "Trang đơn có thêm phần Số khách qua các lần sửa, ghi số khách và tạm tính từ lúc xác nhận đến hiện tại. Chỉ hiện khi đơn đã sửa số khách." },
       { kind: "doi", text: "Mỗi đơn cần ít nhất một người lớn đi cùng, kể cả khi lưu nháp, xác nhận hay sửa số khách. Đơn nháp cũ chưa có người lớn thì thêm vào rồi mới lưu được." },
+    ],
+  },
+  {
+    // Đợt 1 giao diện Tạo đơn trên điện thoại (bảng việc 13/10: #3, #4, #7, #8, #9 phần ô; gom "Đặt qua đối tác"); chỉ đổi cách vẽ, không migration. Số 1.91 là số TẠM (= nhánh 1.90 + 1, 2026-10-13):
+    // chủ / phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số.
+    version: "1.91",
+    date: "2026-10-13",
+    items: [
+      { kind: "doi", text: "Màn Tạo đơn gọn hơn trên điện thoại: tên ô nằm ngay trong ô thay vì một dòng riêng phía trên, bớt vài tiêu đề thừa." },
+      { kind: "doi", text: "Ô chọn dịch vụ chỉ còn một nút \"Nhóm dịch vụ\" bấm xổ xuống, đánh dấu một hay nhiều nhóm; bỏ các nút lọc khác. Chạm vào ô là hiện cả danh sách." },
+      { kind: "doi", text: "Dịch vụ bạn gắn ☆ ở đầu dòng nay được xếp lên trên cùng danh sách, để lần sau chọn cho nhanh." },
+      { kind: "doi", text: "Ô \"Ngày đón\" của chặng đưa đón ẩn khi cùng ngày khởi hành. Cần đón khác ngày thì bấm \"Đón khác ngày\"." },
+      { kind: "doi", text: "\"Khách tự đặt\" và \"Đặt qua đối tác\" nay là một hàng hai lựa chọn trong khối khách hàng." },
     ],
   },
   {

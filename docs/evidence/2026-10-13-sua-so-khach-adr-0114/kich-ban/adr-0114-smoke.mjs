@@ -431,7 +431,7 @@ try {
   });
 
   // ===== 9) Trợ giúp và nhật ký thay đổi =====
-  await step("9", "Trợ giúp: Kế toán thấy ba đoạn mới ở mục sửa số khách; Bán hàng thấy câu ở bước nhập số khách; Cập nhật có mục 1.91", async () => {
+  await step("9", "Trợ giúp: Kế toán thấy ba đoạn mới ở mục sửa số khách; Bán hàng thấy câu ở bước nhập số khách; Cập nhật có mục 1.92", async () => {
     const moHet = (p) => p.ev("document.querySelectorAll('#huong-dan details').forEach((d) => (d.open = true)), true");
     let p = await env.as(ACCOUNTS.accounting, "/help", DESK);
     try {
@@ -445,10 +445,10 @@ try {
         "Không bớt hết người lớn được: đơn luôn cần ít nhất một người lớn đi cùng.",
       ]) assert.ok(muc.replace(/\s+/g, " ").includes(doan), `thiếu đoạn: ${doan}`);
       const dau = await p.ev("(() => { const n = document.querySelector('.release-note'); return { tieuDe: n.querySelector('h3').textContent, soMuc: n.querySelectorAll('li').length, chu: n.innerText }; })()");
-      assert.match(dau.tieuDe, /^Phiên bản 1\.91 — /);
+      assert.match(dau.tieuDe, /^Phiên bản 1\.92 — /);
       assert.equal(dau.soMuc, CHANGELOG[0].items.length, "đủ ba mục");
       for (const it of CHANGELOG[0].items) assert.ok(dau.chu.replace(/\s+/g, " ").includes(it.text), `nhật ký thiếu: ${it.text}`);
-      assert.equal(CHANGELOG[0].version, "1.91");
+      assert.equal(CHANGELOG[0].version, "1.92");
       assert.ok((await tranNgang(p)) <= 0);
       assert.deepEqual(p.consoleErrors, []);
       await shotKhoi(p, "[...document.querySelectorAll('#huong-dan details.hd-muc')].find((x) => x.querySelector(':scope > summary')?.textContent === 'Sửa số khách đơn đã xác nhận')", "16-tro-giup-ke-toan-sua-so-khach-1040.png");

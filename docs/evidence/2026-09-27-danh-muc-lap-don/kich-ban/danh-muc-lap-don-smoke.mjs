@@ -53,7 +53,8 @@ try {
   };
   const randomPhone = () => "09" + String(Math.floor(Math.random() * 1e8)).padStart(8, "0");
   async function makeStaff(name, roles) {
-    const r = await call(ACCOUNTS.admin, "POST", "/api/staff", { taoHoSoMoi: true, fullName: name, phone: randomPhone(), roles });
+    // Từ ADR-0071 Quản trị không còn thêm được tài khoản — dùng tài khoản Toàn quyền (sửa 13/10, đợt 1; kịch bản đỏ sẵn từ trước).
+    const r = await call(ACCOUNTS.chu, "POST", "/api/staff", { taoHoSoMoi: true, fullName: name, phone: randomPhone(), roles });
     assert.equal(r.status, 201, `tạo tài khoản "${name}" (${roles.join(",")}): ${r.status} ${JSON.stringify(r.json)}`);
     console.log(`  (dữ liệu: ${name} tạo qua POST /api/staff roles=${JSON.stringify(roles)} → quyền ${JSON.stringify(r.json.staff.permissions)})`);
     return { name, phone: r.json.staff.phone, pin: r.json.pin };
