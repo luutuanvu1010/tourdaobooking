@@ -518,13 +518,26 @@ export interface OrderResponse { order: OrderDetailDto; canhBaoMoc?: CanhBaoMocD
  */
 export interface SuaSoKhachDichVuDto { serviceId: string; loaiKhach: PaxCode[] }
 /**
+ * Một dòng của khối "Lịch sử số khách" (ADR-0114 D2; dựng bằng `dungLichSuSoKhach` của src/shared/lich-su-so-khach.ts). HÌNH DÁNG ĐÃ CHỌN — ba dòng cho SV-SK-07: `khoi_tao`
+ * (số khách + tạm tính LÚC XÁC NHẬN) → `dieu_chinh` (mỗi lần sửa TRỪ lần cuối; `lanSua` = số thứ tự lần sửa) → `hien_hanh` (kết quả lần sửa CUỐI, mang `lanSua` của lần đó; đơn chưa
+ * sửa lần nào thì `hien_hanh` trùng số `khoi_tao` và `lanSua` null). Mỗi dòng là TRẠNG THÁI sau bước đó. `tenDichVu` là tên danh mục, dịch vụ nhập tay luôn là nhãn "dịch vụ nhập tay"
+ * (không chữ gõ tay). `tamTinh` tính lại bằng một nguồn (`effectiveSubtotal`), không đọc cột `subtotal_after` đã lưu.
+ */
+export interface DongLichSuSoKhachDto {
+  buoc: "khoi_tao" | "dieu_chinh" | "hien_hanh";
+  lanSua: number | null;
+  soKhach: { tenDichVu: string; pax: PaxCounts }[];
+  tamTinh: number;
+}
+/**
  * `suaSoKhach`: có khi người xem sửa được số khách đơn này NGAY LÚC NÀY (`duocSuaSoKhachVanPhong`), còn lại null.
  * `canhBaoKhuyenMai` (ADR-0114 D1): câu nhắc màu đỏ khi đơn có giảm giá mà số khách trả tiền hiện hành < số lúc xác nhận (`canhBaoKhuyenMai` của
  * src/shared/so-khach-van-phong.ts; tính từ trạng thái hiện hành, không lưu cờ), null khi không. Luôn có mặt (null hoặc câu), không bao giờ vắng.
+ * `lichSuSoKhach` (ADR-0114 D2): lịch sử số khách đủ dòng — CHỈ khi người xem qua `order.history.view` với đơn này (cùng điều kiện khối `history`), còn lại null. Luôn có mặt.
  */
 export interface OrderDetailResponse {
   order: OrderDetailDto; history: AuditEntryDto[]; canModify: boolean; mocToiThieuPhut: number | null; suaSoKhach: SuaSoKhachDichVuDto[] | null;
-  canhBaoKhuyenMai: string | null;
+  canhBaoKhuyenMai: string | null; lichSuSoKhach: DongLichSuSoKhachDto[] | null;
 }
 /**
  * `POST /api/orders/:id/money-edit` (ADR-0063 D1): đơn HIỆN HÀNH sau lần sửa; `daGhi` false = số khách y nguyên, không ghi gì; `canhBaoTongAm` (tên khoá GIỮ, nghĩa

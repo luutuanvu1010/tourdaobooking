@@ -362,6 +362,21 @@ export async function getStoredPax(db: D1Database, orderId: string): Promise<Map
   return new Map(res.results.map((r) => [r.id, { adult: r.pax_adult, child: r.pax_child, senior: r.pax_senior, infant: r.pax_infant }] as const));
 }
 
+/** Một lần sửa số khách đã ghi: `seq` (1, 2, …) và số khách SAU lần đó của các dịch vụ danh mục (qua MỘT hàm phân tích `parseAdjustmentAfter` — dữ liệu hỏng thì rơi về rỗng). */
+export interface LanSuaDaGhi {
+  seq: number;
+  after: { serviceId: string; pax: PaxCounts }[];
+}
+
+/**
+ * MỌI dòng điều chỉnh số khách của đơn theo `seq` tăng dần (ADR-0114 D2 — lịch sử số khách). CHỈ đọc `after_json` qua `parseAdjustmentAfter`; KHÔNG trả `subtotal_before` /
+ * `subtotal_after` đã lưu (nơi ghi cũ từng lưu thiếu cho đơn có dịch vụ nhập tay — Đợt E: tạm tính tính lại bằng `effectiveSubtotal`, một nguồn) và KHÔNG đọc chữ nhật ký.
+ */
+export async function listAdjustments(db: D1Database, orderId: string): Promise<LanSuaDaGhi[]> {
+  const res = await db.prepare("SELECT seq, after_json FROM order_money_adjustment WHERE order_id = ? ORDER BY seq").bind(orderId).all<{ seq: number; after_json: string }>();
+  return res.results.map((r) => ({ seq: r.seq, after: parseAdjustmentAfter(r.after_json) }));
+}
+
 /** Ngày khởi hành của từng dịch vụ trong đơn (null = chưa có ngày), theo thứ tự dịch vụ. Đơn không có/không tồn tại → mảng rỗng. */
 export async function getDepartDates(db: D1Database, orderId: string): Promise<(string | null)[]> {
   const res = await db.prepare("SELECT depart_date FROM order_service WHERE order_id = ? ORDER BY sort_order").bind(orderId).all<{ depart_date: string | null }>();

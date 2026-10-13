@@ -5,7 +5,7 @@ import { auditStatement, getAuditTrail } from "../audit";
 import { chupDon, docBangChoChup, laNguoiHuong, soKhachTinhHoaHong, type BanChup } from "../pricing";
 import { ownerCompany } from "../parties";
 import type {
-  CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, DongBoChuyenDto, DraftCountResponse, IncompleteTripBody, MoneyEditResponse, MyAssignmentDto, NhapTayResponse, OrderDetailDto,
+  CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, DongBoChuyenDto, DongLichSuSoKhachDto, DraftCountResponse, IncompleteTripBody, MoneyEditResponse, MyAssignmentDto, NhapTayResponse, OrderDetailDto,
   OrderDetailResponse, OrderListResponse, MocToiThieuResponse, NguoiLapResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
   SuaSoKhachDichVuDto, StaffProfile, ThuongMaiResponse,
 } from "../../shared/contracts";
@@ -17,10 +17,11 @@ import { benDatChoTaiKhoan, benDatDoiTacBiCam, type BookerInput } from "../../sh
 import { docLocDon } from "../../shared/loc-don";
 import { LOC_NHAP_TOI_DA_NGAY, LOC_NHAP_TOI_DA_UNG_VIEN, laDongNhapKeToan, soNgayKhoang } from "../../shared/nhap-ke-toan";
 import { maDonTuNoiDung } from "../../shared/noi-dung-chuyen-khoan";
-import { editablePaxCodesOf, planMoneyEdit, type AdjustmentEntry } from "./money-adjustment";
+import { dungLichSuSoKhach } from "../../shared/lich-su-so-khach";
+import { editablePaxCodesOf, effectiveSubtotal, planMoneyEdit, type AdjustmentEntry } from "./money-adjustment";
 import {
   addLeg, cancelOrder, changeBooker, daHuy, soanDoiKhach, soanHuyDon, soanSuaChang, soanThayChang, thangCauDau, changeLeg, cocCuNhap, confirmOrder, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
-  chayLoSuaSoKhach, demThanCu, getServicesForSubtotal, getStoredPax, getStoredServices, insertMoneyAdjustment, listOrderIds, listOrders, listPoolSources, updateDraftOrder, updateTrip,
+  chayLoSuaSoKhach, demThanCu, getServicesForSubtotal, getStoredPax, getStoredServices, insertMoneyAdjustment, listAdjustments, listOrderIds, listOrders, listPoolSources, updateDraftOrder, updateTrip,
 } from "./repository";
 import {
   legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, manualPolicy, manualPolicyInsert, openLegsByOrders, orderContactRows, passengerRowsByOrders,
@@ -596,6 +597,21 @@ async function nhacKhuyenMaiCuaDon(db: D1Database, order: OrderDetailDto): Promi
 }
 
 /**
+ * ADR-0114 D2 — khối "Lịch sử số khách" của chi tiết đơn: dòng LÚC XÁC NHẬN (số khách đã lưu + tạm tính gốc), mỗi lần sửa, kết quả hiện hành. Chỉ GỌI sau khi route đã hỏi
+ * `order.history.view` với đơn này (cùng điều kiện khối `history`). Nguồn: `order_service` (đóng băng) + `order_money_adjustment` theo `seq`; tạm tính mỗi dòng tính lại bằng
+ * MỘT nguồn `effectiveSubtotal` trên MỌI dịch vụ (kể cả nhập tay) — không tin cột `subtotal_after` đã lưu; KHÔNG đọc chữ nhật ký. Dựng dòng ở src/shared/lich-su-so-khach.ts.
+ */
+async function lichSuSoKhachCuaDon(db: D1Database, order: OrderDetailDto): Promise<DongLichSuSoKhachDto[]> {
+  const [daLuu, lanSua, dichVuTien] = await Promise.all([getStoredPax(db, order.id), listAdjustments(db, order.id), getServicesForSubtotal(db, [order.id])]);
+  const tien = dichVuTien.get(order.id) ?? [];
+  return dungLichSuSoKhach({
+    dichVu: order.services.map((s) => ({ id: s.id, catalogCode: s.catalogCode, name: s.name, pax: daLuu.get(s.id) ?? s.pax })),
+    tamTinhKhoiTao: effectiveSubtotal(tien, []),
+    lanSua: lanSua.map((l) => ({ seq: l.seq, sau: l.after, tamTinhSau: effectiveSubtotal(tien, l.after) })),
+  });
+}
+
+/**
  * Sửa số khách qua đường hẹp của người phụ trách CẤP HẸP (FIELD, ADR-0014 điều 6) — CHỈ ghi thêm một dòng điều chỉnh, không đụng
  * order_service/order_item/cột tiền của orders. `body` là thân JSON THÔ (đã đọc từ request, route chưa kiểm; lý do chữ tự gõ — hành vi cũ, chưa đổi sang mã).
  * Soạn qua `soanSuaSoKhach` (một đường với văn phòng), chạy MỘT lô. Lưới e2e ở `tests/e2e/dispatch.mjs` khối D3 đọc thẳng cột đã lưu.
@@ -967,6 +983,8 @@ export const ordersModule: AppModule = {
       return json({
         order, history, canModify: can(staff, "order.modify", scope) && order.deliveredAt === null, mocToiThieuPhut: moc?.phut ?? null, suaSoKhach,
         canhBaoKhuyenMai: await nhacKhuyenMaiCuaDon(env.DB, order), // ADR-0114 D1: người xem đã qua `money.view` ở trên (giảm giá là dữ liệu tiền) — không lộ thêm gì
+        // ADR-0114 D2: lịch sử số khách CHỈ cho người qua `order.history.view` với đơn này (cùng điều kiện khối `history` ở trên), còn lại null — không đổi ai được xem gì.
+        lichSuSoKhach: can(staff, "order.history.view", scope) ? await lichSuSoKhachCuaDon(env.DB, order) : null,
       } satisfies OrderDetailResponse);
     }),
 
