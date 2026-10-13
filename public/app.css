@@ -748,7 +748,7 @@ h3 { font-size: var(--fs-step-5); margin: var(--s4) 0 var(--s2); color: var(--c-
 .catalog-nhom-dau .btn-link:disabled { color: var(--c-text-muted); text-decoration: none; cursor: default; }
 .catalog-nhom-cac-dong { max-height: min(18rem, 45vh); overflow: auto; }
 .catalog-nhom-hang { display: flex; align-items: center; gap: var(--s3); min-height: var(--tap-min); padding: 0 var(--s3); font-size: var(--fs-ui); color: var(--c-text); border-bottom: 1px solid var(--c-line); cursor: pointer; }
-.catalog-nhom-hang input { flex: none; display: inline-block; width: auto; margin: 0; }
+.catalog-nhom-hang input { flex: none; display: inline-block; width: auto; margin: 0; accent-color: var(--c-primary); }
 .catalog-nhom-hang .catalog-nhom-ten { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 .catalog-nhom-hang .catalog-nhom-so { flex: none; font-size: var(--fs-label); }
 .catalog-row { display: flex; border-bottom: 1px solid var(--c-line); }

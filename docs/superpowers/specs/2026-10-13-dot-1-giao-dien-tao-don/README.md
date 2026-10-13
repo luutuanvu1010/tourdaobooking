@@ -13,7 +13,7 @@ Hồ sơ có ngày (đóng băng sau khi chủ duyệt). Chỉ đổi cách VẼ
 
 ## 2. Đã làm (hướng nhẹ, mỗi mục một commit)
 
-1. Nhóm dịch vụ lên trên ô gõ; bỏ hàng "Lọc sẵn có", chỉ giữ chip "Hay dùng" trong hàng nhóm; chạm ô là mở danh sách; dấu sao lên đầu dòng; mỗi dòng có tên to, mã và đơn vị ở dòng phụ.
+1. Ô chọn dịch vụ: nhóm dịch vụ lên trên ô gõ; chạm ô là mở danh sách; dấu sao lên đầu dòng; mỗi dòng có tên to, mã và đơn vị ở dòng phụ. **Bổ sung theo ý chủ cùng ngày** ("bỏ hết sự rườm rà, chỉ để lại việc lọc theo nhóm sản phẩm bằng nút xổ xuống + tick chọn"): hàng chip, chip "Hay dùng", "Theo người", "Giá theo nhóm" đều bỏ; thay bằng MỘT nút xổ xuống "Nhóm dịch vụ · N" với ô tick chọn nhiều nhóm (không tick = tất cả), dịch vụ gắn sao xếp lên đầu danh sách.
 2. Nhãn nổi trong ô thay nhãn phía trên (ngày, giờ, khách, thanh toán, thông tin chuyến, đưa đón).
 3. Ô "Ngày đón" ẩn khi cùng ngày khởi hành, có nút "Đón khác ngày" (máy chủ vẫn tự điền ngày đón khi trống: ruling R4b không đổi).
 4. "Khách tự đặt | Đặt qua đối tác" thành một hàng hai lựa chọn (chỉ bố cục; vị từ `coODatQuaDoiTac` giữ nguyên).
@@ -35,8 +35,8 @@ Phần này đổi cấu trúc nên cần chủ duyệt riêng, kèm đặc tả
 
 ## 4. Giả định và điều chưa chắc
 
-- Chip "Theo người" và "Giá theo nhóm" của hàng "Lọc sẵn có" bị bỏ cùng hàng đó; bản nhớ lọc cũ trên máy người dùng được vô hiệu để không ai bị kẹt trong bộ lọc ẩn.
-- Chip "Hay dùng" loại trừ chip nhóm (chọn một trong hai), trần danh sách đổi từ 40 lên 150 dòng vì không còn hàng lọc để thu hẹp.
+- Mọi bộ lọc phụ ("Hay dùng", "Theo người", "Giá theo nhóm") bị bỏ; bản nhớ lọc cũ trên máy người dùng (kể cả nhóm kiểu một chuỗi) được đọc an toàn: bỏ qua phần lọc, giữ mã gắn sao, không ai bị kẹt trong bộ lọc ẩn.
+- Giả định của người thi công (chủ chưa nói): dấu sao có tác dụng bằng cách xếp dịch vụ gắn sao lên trước, giữ thứ tự cũ trong từng phần; nhiều nhóm tick là HOẶC giữa các nhóm, VÀ với ô gõ; trần danh sách đổi từ 40 lên 150 dòng vì không còn hàng lọc để thu hẹp.
 - Số phiên bản 1.91 là số tạm; phiên phát hành quyết ở bước A.0.
 - Chưa kiểm trên iPhone thật; thử bằng `node scripts/dev-iphone.mjs`.
 - Ba kịch bản Chrome đỏ sẵn trên bản trước khi sửa (đã dựng lại bản gốc để so): `a2-smoke-sheet` (nhật ký `order_leg_updated` khác `trip_updated`), `v1-xac-nhan-png` (2 bước), `dat-gap-smoke` bước 4.

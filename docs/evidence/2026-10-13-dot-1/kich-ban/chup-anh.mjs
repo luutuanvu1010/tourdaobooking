@@ -1,6 +1,6 @@
 // Chụp ảnh THẬT màn "Tạo đơn" cho đợt 1 (giao diện Tạo đơn trên điện thoại, bảng việc 13/10): trước và sau khi sửa, cùng một bộ ảnh.
 // Bốn vai thấy màn này (Bán hàng, Thực tập, Đối tác, Toàn quyền) × hai khổ (390 điện thoại, 1040 máy tính) × các trạng thái:
-//   vao = vừa mở form (đã điền ngày khởi hành); ds = ô "Gõ tên hoặc mã dịch vụ" được bấm vào (danh sách mở);
+//   vao = vừa mở form (đã điền ngày khởi hành); ds = ô "Gõ tên hoặc mã dịch vụ" được bấm vào (danh sách mở); nhom-mo = nút xổ xuống "Nhóm dịch vụ" đang mở, đã tick hai nhóm (vai nào có nút);
 //   don = đã chọn TD101 + 2 khách + thêm đưa đón + mở "Thông tin chuyến"; don-khac-ngay = chặng đón khác ngày khởi hành + mở "Đặt qua đối tác" (vai có ô đó);
 //   sua = (Bán hàng) đơn đã lưu mở lại ở /order-form?id=… (ô đã có giá trị: chữ mờ không còn hiện).
 // Dữ liệu: D1 tạm + danh mục giả (21 dịch vụ TTB giả + mỗi nhóm một dịch vụ + 30 dịch vụ bổ sung → trên 40, gán nhóm bằng API Quản trị, như chip-nhom-smoke.mjs).
@@ -92,10 +92,21 @@ try {
       await sleep(200);
       await p.ev("window.scrollTo(0, 0); true");
       await chup(p, `${vai}-${kho}-vao`);
+      // Nút xổ xuống "Nhóm dịch vụ" (ý chủ 13/10): mở bảng nhóm, tick hai nhóm (nếu vai có nút) rồi chụp; sau đó "Bỏ chọn hết" và đóng để ảnh danh sách đủ dịch vụ.
+      const coNut = await p.ev("(() => { const n = document.getElementById('catalog-nhom-nut'); return !!n && !n.closest('.catalog-nhom').hidden; })()");
+      if (coNut) {
+        await p.ev("document.getElementById('catalog-nhom-nut').click(); [...document.querySelectorAll('#catalog-nhom-bang input[type=checkbox]')].slice(0, 2).forEach((c) => c.click()); true");
+        await sleep(300);
+        await p.ev("document.querySelector('.catalog').scrollIntoView({ block: 'start' }); scrollBy(0, -80); true");
+        await sleep(200);
+        const m = await p.send("Page.captureScreenshot", { format: "png" });
+        writeFileSync(join(OUT, `${vai}-${kho}-nhom-mo.png`), Buffer.from(m.result.data, "base64"));
+        await p.ev("document.querySelector('.catalog-nhom-bo').click(); true");
+      }
       // Bấm vào ô tìm để mở danh sách (như người dùng chạm vào ô).
-      await p.ev("document.getElementById('catalog-q').focus(); true");
+      await p.ev("document.getElementById('catalog-q').click(); true");
       await sleep(300);
-      await p.ev("document.querySelector('.catalog').scrollIntoView({ block: 'start' }); true");
+      await p.ev("document.querySelector('.catalog').scrollIntoView({ block: 'start' }); scrollBy(0, -80); true");
       await sleep(200);
       const r = await p.send("Page.captureScreenshot", { format: "png" });
       writeFileSync(join(OUT, `${vai}-${kho}-ds.png`), Buffer.from(r.result.data, "base64"));
