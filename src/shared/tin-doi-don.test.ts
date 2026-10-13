@@ -65,15 +65,27 @@ test("trip_updated: 'cập nhật chặng đưa đón' (có / không đuôi đ�
   assert.deepEqual(phanDoiCuaTin("trip_updated", `${CAP_NHAT_CHANG}${ghiDatGapNhatKy(LY_DO_DAT_GAP.KHAC)}`), chung("chang"));
 });
 
-test("trip_updated chỉ đổi ghi chú / nơi check-in → KHÔNG tin; đổi giờ khởi hành / check-in (câu 3 = A) → có tin; điểm đón → 'đổi nơi đón' (không chữ nơi)", () => {
+test("trip_updated chỉ đổi ghi chú / nơi khách có mặt → KHÔNG tin; đổi giờ khởi hành / giờ khách có mặt (câu 3 = A) → có tin; điểm đón → 'đổi nơi đón' (không chữ nơi)", () => {
   assert.equal(phanDoiCuaTin("trip_updated", dv("Tour 3 đảo", "đổi ghi chú")), null);
-  assert.equal(phanDoiCuaTin("trip_updated", dv("Tour 3 đảo", "đổi nơi check-in", "đổi ghi chú")), null);
+  assert.equal(phanDoiCuaTin("trip_updated", dv("Tour 3 đảo", "đổi nơi khách có mặt", "đổi ghi chú")), null);
   assert.deepEqual(phanDoiCuaTin("trip_updated", dv("Tour 3 đảo", "giờ khởi hành 07:30 → 08:00")), cuThe("giờ khởi hành 07:30 → 08:00"));
-  assert.deepEqual(phanDoiCuaTin("trip_updated", dv("Tour 3 đảo", "giờ check-in (trống) → 14:00")), cuThe("giờ check-in (trống) → 14:00"));
+  assert.deepEqual(phanDoiCuaTin("trip_updated", dv("Tour 3 đảo", "giờ khách có mặt (trống) → 14:00")), cuThe("giờ khách có mặt (trống) → 14:00"));
+  assert.deepEqual(phanDoiCuaTin("trip_updated", dv("Tour 3 đảo", "ngày khách có mặt (trống) → 2027-03-12")), cuThe("ngày khách có mặt (trống) → 12/03/2027"));
   assert.deepEqual(phanDoiCuaTin("trip_updated", dv("Tour 3 đảo", "ngày khởi hành 2027-03-11 → 2027-03-12")), cuThe("ngày khởi hành 11/03/2027 → 12/03/2027"));
   assert.deepEqual(
     phanDoiCuaTin("trip_updated", dv("Tour 3 đảo", "giờ đón 07:00 → 06:30", "đổi điểm đón", "đổi ghi chú")),
     cuThe("giờ đón 07:00 → 06:30, đổi nơi đón"),
+  );
+});
+
+test("14/10/2026 đổi chữ 'check-in' → 'khách có mặt': dòng nhật ký CŨ (chữ cũ, đã nằm trong nhật ký chỉ-thêm) vẫn đọc ra tin / vẫn bị lọc như cũ, câu tin dùng chữ mới", () => {
+  assert.equal(phanDoiCuaTin("trip_updated", dv("Tour 3 đảo", "đổi nơi check-in", "đổi ghi chú")), null, "chữ cũ 'đổi nơi check-in' vẫn là phần bỏ");
+  assert.deepEqual(phanDoiCuaTin("trip_updated", dv("Tour 3 đảo", "giờ check-in (trống) → 14:00")), cuThe("giờ khách có mặt (trống) → 14:00"));
+  assert.deepEqual(phanDoiCuaTin("trip_updated", dv("Tour 3 đảo", "ngày check-in 2027-03-11 → 2027-03-12, đổi ghi chú")), cuThe("ngày khách có mặt 11/03/2027 → 12/03/2027"));
+  assert.deepEqual(
+    phanDoiCuaTin("trip_updated", dv("Tour 3 đảo", "giờ check-in 07:00 → 08:00, đổi nơi check-in")),
+    cuThe("giờ khách có mặt 07:00 → 08:00"),
+    "đổi giờ + đổi nơi (chữ cũ): giữ phần giờ",
   );
 });
 
