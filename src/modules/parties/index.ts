@@ -1103,6 +1103,9 @@ export const partiesModule: AppModule = {
       if (!doiCongTyChu && loai !== null && !loai.active) return ROLE_TYPE_INACTIVE();
       // ADR-0117 điều 4, chiều 1 (lớp route; lớp CSDL: trigger *_partner_label_conflict, nhưng vế 3 — tài khoản có quyền nội bộ mà hồ sơ không có vai nội bộ —
       // CHỈ lớp này canh): hồ sơ nội bộ không nhận loại đối tác được hưởng hoa hồng.
+      // Ruling 7 (kiểm độc lập Task 2): loại đối tác không đặt trước ngày kết thúc — view v_pty_party_partner_label, trigger *_partner_label_conflict và
+      // hoSoMangNhanDoiTac chỉ đếm dòng valid_to_date IS NULL, nên dòng có hạn sẽ làm chiều 2 lọt. Thôi thì bấm "Kết thúc" (khuôn ownerCompanyAssignProblem).
+      if (loai?.partnerLabel && parsed.value.to !== null) return error(400, "invalid_input", "Loại đối tác không đặt trước ngày kết thúc — khi thôi thì bấm “Kết thúc”.");
       if (loai?.partnerLabel && hoSoNoiBo({ vaiMo: await vaiDangMo(env.DB, id), coQuyenNoiBo: coQuyenNoiBoCua(acc) })) return ROLE_PARTNER_LABEL_CONFLICT();
       const stmts: D1PreparedStatement[] = [addRoleStatement(env.DB, id, parsed.value, staff.id, at)];
       if (doiCongTyChu) {

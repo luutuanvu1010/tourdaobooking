@@ -166,3 +166,22 @@ test("N-7 (g) đối chứng: gộp hồ sơ phụ mang loại vào hồ sơ ch�
   assert.equal(k.gop.status, 200, k.gop.text);
   assert.equal(nhanMo(w, `pty-${PARTNER}`), 1);
 });
+
+// Kiểm độc lập (Ruling 7): loại đối tác gắn kèm NGÀY KẾT THÚC thì view / trigger / hoSoMangNhanDoiTac (chỉ đếm valid_to_date IS NULL) không thấy ⇒ chiều 2 lọt
+// (tài khoản Lễ tân mang loại tới 2027 đổi được sang Nhân viên kinh doanh). Chặn ở cửa vào: loại đối tác không đặt trước ngày kết thúc — thôi thì bấm “Kết thúc”.
+test("Ruling 7: gắn loại đối tác KÈM ngày kết thúc → 400, không chèn; rồi đổi tài khoản Lễ tân sang Nhân viên kinh doanh vẫn chặn được; đối chứng: không ngày → 201, CUSTOMER kèm ngày → 201", async () => {
+  const w = nen();
+  const le = await taiKhoan(w, ["HOTEL_RECEPTION"], "0900000105", "Lễ Tân Có Hạn");
+  const r = await w.call("POST", `/api/parties/${le.partyId}/roles`, { as: ADM, body: { roleTypeCode: NHAN, validTo: "2027-06-30" } });
+  assert.equal(r.status, 400, `loại kèm ngày kết thúc: ${r.status} ${r.text}`);
+  assert.equal(r.json.error.code, "invalid_input");
+  assert.equal(r.json.error.message, "Loại đối tác không đặt trước ngày kết thúc — khi thôi thì bấm “Kết thúc”.");
+  assert.equal(w.q("SELECT count(*) n FROM pty_party_role WHERE party_id = ? AND role_type_code = ?", le.partyId, NHAN)[0].n, 0, "không chèn dòng loại");
+  // Đối chứng: không ngày kết thúc → 201; sau đó chiều 2 (PUT roles sang SALES_STAFF) bị chặn như thường.
+  assert.equal((await ganNhan(w, le.partyId)).status, 201);
+  const doi = await w.call("PUT", `/api/staff/${le.staffId}/roles`, { as: SUP, body: { roles: ["SALES_STAFF"] } });
+  assert.equal(doi.status, 409, doi.text);
+  // Loại KHÔNG phải nhãn vẫn nhận ngày kết thúc như cũ.
+  const kh = await w.call("POST", `/api/parties/${hoSo(w, "Khách Có Hạn")}/roles`, { as: ADM, body: { roleTypeCode: "CUSTOMER", validTo: "2027-06-30" } });
+  assert.equal(kh.status, 201, kh.text);
+});

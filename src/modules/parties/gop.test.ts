@@ -124,6 +124,14 @@ test("R6 LC-3 (chỉ tới được ở mức hàm thuần): B giữ vai nội b
   assert.deepEqual(ma(k).sort(), ["merge_role_group_conflict", "merge_source_account_role"]);
 });
 
+test("ADR-0117 điều 4: merge_partner_label_internal — phụ mang loại → chính nội bộ, và phụ nội bộ → chính mang loại (cả hai hướng); không cờ nào chéo thì không chặn", () => {
+  assert.deepEqual(ma(ke(hs("a", { nhanDoiTac: true }), hs("b", { noiBo: true }))), ["merge_partner_label_internal"]);
+  assert.deepEqual(ma(ke(hs("a", { noiBo: true }), hs("b", { nhanDoiTac: true }))), ["merge_partner_label_internal"]);
+  assert.deepEqual(ma(ke(hs("a", { nhanDoiTac: true }), hs("b", { nhanDoiTac: true }))), [], "hai bên cùng mang loại");
+  assert.deepEqual(ma(ke(hs("a", { noiBo: true }), hs("b", { noiBo: true }))), [], "hai bên cùng nội bộ");
+  assert.deepEqual(ma(ke(hs("a", { nhanDoiTac: true, noiBo: false }), hs("b"))), []);
+});
+
 test("có chặn vẫn trả đủ phần chuyển / giữ / bỏ (xem trước hiện cả hai)", () => {
   const k = ke(hs("a", { lienHe: [sdt("c1", "0901")] }), hs("b"), { phuTrachDon: 1 });
   assert.deepEqual(ma(k), ["merge_source_busy"]);
