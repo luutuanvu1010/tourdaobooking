@@ -35,7 +35,17 @@ const DK_THEM = defineSql("pricing", "term_insert",
 const DK_DONG = defineSql("pricing", "term_close",
   `UPDATE prc_supply_term SET valid_to_date = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND valid_to_date IS NULL`);
 const VAI_HUONG = defineSql("pricing", "beneficiary_roles", "SELECT role_type_code FROM prc_beneficiary_role WHERE active = 1 ORDER BY role_type_code");
-const VAI_MO = defineSql("pricing", "open_roles_of", "SELECT role_type_code, role_group FROM v_pty_open_role WHERE party_id = ?1");
+// ADR-0117: kèm cờ loại đối tác (view công bố v_pty_role_type) — Q1 (A): hồ sơ mang loại đối tác đã tắt ⇒ KHONG_HUONG chứ không NONE.
+const VAI_MO = defineSql("pricing", "open_roles_of",
+  `SELECT r.role_type_code, r.role_group, t.is_partner_label FROM v_pty_open_role r JOIN v_pty_role_type t ON t.code = r.role_type_code WHERE r.party_id = ?1`);
+// ADR-0117 điều 1: danh sách vai được hưởng ĐỦ hai trạng thái (màn "Loại đối tác" cần thấy cả loại đang tắt); `VAI_HUONG` ở trên chỉ lấy dòng đang bật.
+const VAI_HUONG_TAT_CA = defineSql("pricing", "beneficiary_roles_all", "SELECT role_type_code, active FROM prc_beneficiary_role ORDER BY role_type_code");
+const VAI_HUONG_THEM = defineSql("pricing", "beneficiary_role_insert",
+  `INSERT INTO prc_beneficiary_role (role_type_code, active, created_at, created_by, updated_at, updated_by) VALUES (?1, 1, ?2, ?3, ?2, ?3)`);
+// Không có `AND active <> ?2`: dòng lệch cờ (đặt tay) vẫn được kéo về đúng trạng thái. `changes() > 0` = câu đứng ngay trước (cập nhật loại ở parties) đã đổi dòng —
+// bên thua một lượt tranh chấp không ghi gì (khuôn của nhật ký "changes() > 0").
+const VAI_HUONG_DAT = defineSql("pricing", "beneficiary_role_set_active",
+  `UPDATE prc_beneficiary_role SET active = ?2, updated_at = ?3, updated_by = ?4 WHERE role_type_code = ?1 AND changes() > 0`);
 const LA_HUONG = defineSql("pricing", "is_beneficiary",
   `SELECT 1 AS ok FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = ?1 LIMIT 1`);
 // Task 11 (Ruling 21): CÙNG điều kiện `is_beneficiary` (không xét `active` của hồ sơ — đúng điều máy chủ dùng để ÉP bên đặt cho tài khoản Đối tác) + tên hồ sơ qua view công bố. Chỉ id + tên.
@@ -67,7 +77,10 @@ export const insertTermStatement = (db: D1Database, id: string, v: { scope: stri
   db.prepare(DK_THEM).bind(id, v.scope, v.catalogCode, v.groupCode, v.sellerPartyId, v.supplierPartyId, v.costRateBp, v.validFrom, v.validTo, v.note, at, by);
 export const closeTermStatement = (db: D1Database, id: string, den: string, at: string, by: string) => db.prepare(DK_DONG).bind(id, den, at, by);
 export const beneficiaryRoles = async (db: D1Database): Promise<string[]> => (await db.prepare(VAI_HUONG).all<{ role_type_code: string }>()).results.map((r) => r.role_type_code);
-export const openRolesOf = async (db: D1Database, partyId: string) => (await db.prepare(VAI_MO).bind(partyId).all<{ role_type_code: string; role_group: string }>()).results;
+export const openRolesOf = async (db: D1Database, partyId: string) => (await db.prepare(VAI_MO).bind(partyId).all<{ role_type_code: string; role_group: string; is_partner_label: number }>()).results;
+export const beneficiaryRolesAll = async (db: D1Database): Promise<{ role_type_code: string; active: number }[]> => (await db.prepare(VAI_HUONG_TAT_CA).all<{ role_type_code: string; active: number }>()).results;
+export const insertBeneficiaryStatement = (db: D1Database, code: string, at: string, by: string) => db.prepare(VAI_HUONG_THEM).bind(code, at, by);
+export const setBeneficiaryActiveStatement = (db: D1Database, code: string, active: boolean, at: string, by: string) => db.prepare(VAI_HUONG_DAT).bind(code, active ? 1 : 0, at, by);
 export const isBeneficiary = async (db: D1Database, partyId: string): Promise<boolean> => (await db.prepare(LA_HUONG).bind(partyId).first()) !== null;
 export const huongCuaHoSo = async (db: D1Database, partyId: string): Promise<{ partyId: string; ten: string } | null> => {
   const r = await db.prepare(HUONG_CUA_HO_SO).bind(partyId).first<{ id: string; display_name: string }>();

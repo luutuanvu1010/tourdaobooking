@@ -83,6 +83,10 @@ export const AUDIT_ACTIONS = {
   prc_commission_rule_closed: { label: "Đóng mức hoa hồng", group: "ledger" },
   prc_supply_term_added: { label: "Thêm điều khoản người bán", group: "ledger" },
   prc_supply_term_closed: { label: "Đóng điều khoản người bán", group: "ledger" },
+  // ADR-0117 lần 1: Kế toán / Quản trị / Toàn quyền thêm, tắt, bật LOẠI ĐỐI TÁC — `detail` = tên loại (đã cấm số điện thoại / email trong tên), không mã thô.
+  prc_partner_type_added: { label: "Thêm loại đối tác", group: "ledger" },
+  prc_partner_type_off: { label: "Tắt loại đối tác", group: "ledger" },
+  prc_partner_type_on: { label: "Bật lại loại đối tác", group: "ledger" },
   // Khoá sổ tháng (ADR-0080 D1; module ky-so — route ở billing): `order_id` NULL; `detail` = "Khoá sổ tháng MM/YYYY" (không tiền, không SĐT).
   ledger_period_closed: { label: "Khoá sổ tháng", group: "ledger" },
   order_handler_changed: { label: "Đổi người phụ trách", group: "order" },

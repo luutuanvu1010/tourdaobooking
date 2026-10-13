@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   composePersonName, splitPersonName, validateContact, validateContactList, validateEndDate, validatePartyCreate, validatePartyUpdate,
-  ownerCompanyAssignProblem, validatePeriod, validatePersonFullName, validateRelationship, validateRole, PARTY_ID_RE, ROW_ID_RE, hoSoNoiBo, VAI_CU_NOI_BO,
+  ownerCompanyAssignProblem, validatePeriod, validatePersonFullName, validateRelationship, validateRole, PARTY_ID_RE, ROW_ID_RE, hoSoNoiBo, VAI_CU_NOI_BO, kiemTenLoaiDoiTac, maLoaiDoiTac,
 } from "./rules.ts";
 import { readdirSync, readFileSync } from "node:fs";
 
@@ -227,4 +227,33 @@ test("ADR-0117: VAI_CU_NOI_BO trùng ĐÚNG danh sách mã vai cũ trong trigger
   const lists = [...sql.matchAll(/role_type_code IN \(([^)]*)\)|\.code IN \(([^)]*)\)/g)].map((m) => (m[1] ?? m[2])!.split(",").map((x) => x.trim().replace(/'/g, "")).sort());
   assert.ok(lists.length >= 4, `trigger phải có danh sách mã vai cũ (thấy ${lists.length})`);
   for (const l of lists) assert.deepEqual(l, [...VAI_CU_NOI_BO].sort());
+});
+
+// ADR-0117 lần 1, Task 3 — tên loại đối tác do Kế toán thêm và mã do máy chủ sinh.
+test("ADR-0117: kiemTenLoaiDoiTac — gọn khoảng trắng, trùng không phân biệt dấu / hoa thường, rỗng / quá dài / có số hay @ thì từ chối", () => {
+  assert.deepEqual(kiemTenLoaiDoiTac("  Nhân viên  spa ", ["Khách hàng"]), { ok: true, value: "Nhân viên spa" });
+  const trung = kiemTenLoaiDoiTac("nhan vien SPA", ["Nhân viên spa"]);
+  assert.equal(trung.ok, false);
+  assert.equal(!trung.ok && trung.code, "loai_trung");
+  assert.equal(!kiemTenLoaiDoiTac("ĐẠI LÝ", ["đại lý"]).ok, true, "đ/Đ được gấp về d");
+  for (const x of ["", "   ", "a", undefined, null, 5, "x".repeat(61)]) {
+    const r = kiemTenLoaiDoiTac(x, []);
+    assert.equal(r.ok, false, String(x));
+    assert.equal(!r.ok && r.code, "invalid_input", String(x));
+  }
+  assert.equal(kiemTenLoaiDoiTac("x".repeat(60), []).ok, true);
+  // Nhật ký ghi tên loại: không cho lọt số điện thoại / email (CLAUDE.md §7).
+  for (const x of ["Gọi 0901 234 567", "Lễ tân a@b.vn"]) {
+    const r = kiemTenLoaiDoiTac(x, []);
+    assert.equal(!r.ok && r.code, "invalid_input", x);
+  }
+  assert.equal(kiemTenLoaiDoiTac("Tour 2 ngày", []).ok, true, "chữ số ngắn vẫn được");
+});
+
+test("ADR-0117: maLoaiDoiTac — LD_ + 8 chữ hoa (CODE_RE của Danh bạ không nhận chữ số)", () => {
+  const ma = maLoaiDoiTac(new Uint8Array([0, 1, 25, 26, 255, 100, 7, 99, 42]));
+  assert.match(ma, /^LD_[A-Z]{8}$/);
+  assert.equal(ma, "LD_ABZAVWHV");
+  const re = /^[A-Z][A-Z_]{1,29}$/;
+  assert.ok(re.test(ma));
 });

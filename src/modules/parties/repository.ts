@@ -117,6 +117,13 @@ const RELATIONSHIPS_OF = defineSql(
    WHERE r.from_party_id = ?1 OR r.to_party_id = ?1 ORDER BY (r.valid_to_date IS NOT NULL), r.valid_from_date DESC, r.id`,
 );
 // Mọi loại vai (cả vai đã ngưng) kèm nhóm: giao diện cần tên đúng của vai cũ để hiện; ô "thêm vai" tự lọc nhóm OTHER đang dùng.
+// ADR-0117 điều 1: thêm / tắt / bật LOẠI ĐỐI TÁC (nhóm OTHER, cờ is_partner_label = 1). `sort_order` = 100 + số loại nhãn đã có, chỉ để xếp cuối. Cập nhật CHỈ chạm loại nhãn
+// (`AND is_partner_label = 1`): năm vai bên ngoài cũ là vai đăng nhập, không tắt / bật ở đây. `active <> ?2`: đã đúng trạng thái ⇒ 0 dòng đổi (route trả 409 stale).
+const LOAI_DOI_TAC_THEM = defineSql("parties", "partner_label_insert",
+  `INSERT INTO pty_role_type (code, name, sort_order, active, role_group, is_partner_label)
+   VALUES (?1, ?2, 100 + (SELECT count(*) FROM pty_role_type WHERE is_partner_label = 1), 1, 'OTHER', 1)`);
+const LOAI_DOI_TAC_DAT = defineSql("parties", "partner_label_set_active",
+  `UPDATE pty_role_type SET active = ?2 WHERE code = ?1 AND is_partner_label = 1 AND active <> ?2`);
 const ROLE_TYPES = defineSql("parties", "role_types", "SELECT code, name, role_group, active, is_partner_label FROM pty_role_type ORDER BY sort_order");
 const RELATIONSHIP_TYPES = defineSql("parties", "relationship_types", "SELECT code, name FROM pty_relationship_type WHERE active = 1 ORDER BY sort_order");
 // ADR-0024 điều 6 / 6.2: hồ sơ "công ty chủ" = hồ sơ đang mở vai ?1. LIMIT 2 để nơi gọi phân biệt "đúng một" với "không có / hơn một" (bốn trigger của
@@ -191,6 +198,8 @@ export interface RoleTypeRow { code: string; name: string; role_group: string; a
 export async function listRoleTypes(db: D1Database): Promise<RoleTypeRow[]> {
   return (await db.prepare(ROLE_TYPES).all<Omit<RoleTypeRow, "partnerLabel">>()).results.map((r) => ({ ...r, partnerLabel: r.is_partner_label === 1 }));
 }
+export const themLoaiDoiTacStatement = (db: D1Database, v: { code: string; ten: string }): D1PreparedStatement => db.prepare(LOAI_DOI_TAC_THEM).bind(v.code, v.ten);
+export const datHoatDongLoaiDoiTacStatement = (db: D1Database, code: string, bat: boolean): D1PreparedStatement => db.prepare(LOAI_DOI_TAC_DAT).bind(code, bat ? 1 : 0);
 // ADR-0024 6.4: hồ sơ ?1 có đang mở vai ?2 (mã vai công ty chủ) không — câu tra dữ liệu dùng NỘI BỘ module (route ghi, respondParty). KHÔNG xuất qua index.ts.
 const IS_OWNER_COMPANY = defineSql("parties", "is_owner_company", "SELECT 1 AS x FROM pty_party_role WHERE party_id = ?1 AND role_type_code = ?2 AND valid_to_date IS NULL LIMIT 1");
 export async function isOwnerCompanyParty(db: D1Database, partyId: string, roleCode: string): Promise<boolean> {

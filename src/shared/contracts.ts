@@ -2349,6 +2349,13 @@ export interface ThuTraResponse {
   nguoiHuong: { loai: "NONE" | "HUONG" | "KHONG_HUONG"; vai: string[] };
   ketQua: { trangThai: "NONE" } | { trangThai: "SET"; bac: 1 | 2 | 3 | 4 | 5 | 6; muc: CommissionRuleDto } | { trangThai: "MISSING"; lyDo: string };
 }
+/**
+ * Loại đối tác được hưởng hoa hồng (ADR-0117 lần 1). `coSan` = vai bên ngoài có từ đầu (không tắt / bật ở màn này); `dangBat` = CẢ HAI cờ (loại vai đang dùng VÀ dòng danh sách được hưởng
+ * đang bật) cùng bật — lệch một cờ ⇒ false. Chỉ mã và tên: không số liệu hồ sơ.
+ */
+export interface LoaiDoiTacDto { code: string; ten: string; coSan: boolean; dangBat: boolean }
+export interface LoaiDoiTacListResponse { loai: LoaiDoiTacDto[] }
+export interface LoaiDoiTacResponse { loai: LoaiDoiTacDto }
 export interface NguoiHuongTimResponse { ketQua: { partyId: string; ten: string; loai: "PERSON" | "ORGANIZATION" }[] }
 
 // ===== Phần thương mại của đơn (sổ đại lý đợt 1 — ADR-0077 điều 10–11; đặc tả §6). HAI DTO danh sách trắng: văn phòng thấy mức, hoa hồng, giá đại lý, cờ thiếu mức;

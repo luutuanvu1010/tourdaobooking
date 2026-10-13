@@ -25,7 +25,7 @@ import {
   insertLicenseClassStatement, insertPersonDocTypeStatement, updateLicenseClassStatement, updatePersonDocTypeStatement, insertPersonDocStatement, isCarrierParty, isOwnerCompanyParty, listLicenseClasses, listParties,
   listCarriers, listPartiesByIds, openPersonPhones, personsForMatch, listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, mergedFromOf, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
   voidPersonDocStatement,
-  hoSoMangNhan, openRoleCodesFor, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements, vaiDangMo,
+  datHoatDongLoaiDoiTacStatement, hoSoMangNhan, openRoleCodesFor, themLoaiDoiTacStatement, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements, vaiDangMo,
   type BankAccountRow, type BankRow, type GopDocRow, type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
 } from "./repository";
 import { chanCo, keHoachGop, type CongViecGop, type GiayToGop, type HoSoGop, type KeHoachGop, type NhomVai } from "./gop";
@@ -37,6 +37,7 @@ import {
   validatePersonFullName, validateRelationship, validateRole,
 } from "./rules";
 
+export { kiemTenLoaiDoiTac, maLoaiDoiTac } from "./rules";
 export { composePersonName, newOrganizationStatements, newPersonStatements, findPartiesByPhone, renamePersonStatements, splitPersonName, validatePersonFullName };
 export type { ContactInput, OrgFields, PersonName, RoleInput } from "./rules";
 
@@ -63,6 +64,17 @@ export const closeAccountRoleStatement = (db: D1Database, partyId: string, roleI
  * (cùng định nghĩa với trigger chặn quyền nội bộ). Chỉ trả id, không tên loại.
  */
 export const hoSoMangNhanDoiTac = (db: D1Database, partyIds: readonly string[]): Promise<Set<string>> => hoSoMangNhan(db, partyIds);
+/**
+ * HÀM CÔNG BỐ (ADR-0117 điều 1) cho module pricing: MỌI loại vai kèm nhóm, cờ loại đối tác và cờ "đang dùng" của chính `pty_role_type` (pricing tự ghép cờ của danh sách
+ * được hưởng). Đọc lại `listRoleTypes`, không thêm câu SQL.
+ */
+export async function loaiVaiChiTiet(db: D1Database): Promise<{ code: string; ten: string; nhom: string; partnerLabel: boolean; dangBat: boolean }[]> {
+  return (await listRoleTypes(db)).map((t) => ({ code: t.code, ten: t.name, nhom: t.role_group, partnerLabel: t.partnerLabel, dangBat: t.active === 1 }));
+}
+/** CÂU CHƯA CHẠY: thêm một loại đối tác (nhóm OTHER, nhãn, đang dùng) — pricing gộp vào cùng `db.batch()` với dòng danh sách được hưởng và nhật ký. Chỉ module parties ghi `pty_role_type`. */
+export { themLoaiDoiTacStatement };
+/** CÂU CHƯA CHẠY: tắt / bật một loại đối tác (chỉ loại có nhãn; loại khác hoặc đã đúng trạng thái ⇒ 0 dòng đổi). */
+export { datHoatDongLoaiDoiTacStatement };
 /** Câu mở lại một vai đã đóng trong hôm nay (tránh chèn dòng chồng lấn khi gỡ rồi gán lại cùng ngày). */
 export const reopenAccountRoleStatement = reopenRoleStatement;
 /** Tóm tắt hồ sơ cho module staff (tạo tài khoản trên hồ sơ có sẵn). */
