@@ -29,6 +29,7 @@ Bạn là người kiểm độc lập, chỉ đọc. Nền tảng Tour Đảo B
 - Giảm giá, cọc, thu, hoàn: có đường nào làm phải thu âm (ADR-0109), thu vượt, hoàn vượt thu, hoặc sửa số khách mà không đổi tiền (bối cảnh ADR-0114 chưa duyệt)?
 - Sửa đơn đã xác nhận: điều gì vẫn sửa được, và bản chụp hoa hồng / giá vốn có bị lệch theo không (K-B-3 đã biết — kiểm xem còn lỗ tương tự ở đổi dịch vụ, đổi ngày, đổi số khách)?
 - Lớp chống ghi trùng (ADR-0094, `lan-gui`): route ghi nào **không** đi qua lớp này?
+- Ba mốc giờ của một dịch vụ trong cùng buổi (giờ đón ở chặng `ord_transfer_leg`, giờ check-in và giờ khởi hành ở `order_service`): máy chủ có chặn mâu thuẫn không (đón sau khởi hành, check-in sau khởi hành, ngày check-in ngoài khoảng)? "Nơi check-in" và "nơi trả của chặng đi" có bị ghi hai nơi lệch nhau không?
 
 **C. Tiền, hoa hồng, sổ** (`pricing`, `billing`, sổ đại lý đợt 1, khoá tháng)
 - Có công thức tiền thứ hai ngoài hàm chính (Hiến chương 5.4)? Rào `buildlines-guard` phủ những tệp nào, bỏ sót tệp nào?
