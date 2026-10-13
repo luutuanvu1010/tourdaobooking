@@ -3,6 +3,9 @@
 import { BUOC_TAO_DON, buocDangXem, type MaBuoc } from "../src/shared/buoc-tao-don";
 import { h } from "./dom";
 
+/** Khoảng hở (px) giữa mép dưới thanh dính và ô được cuộn lên khi ô bị thanh che. */
+const DEM_DUOI_THANH = 8;
+
 export interface ThanhBuoc {
   root: HTMLElement;
   /** Cập nhật dấu ✓ theo `buocXong`. */
@@ -95,8 +98,23 @@ export function taoThanhBuoc(o: { phanTu: (ma: MaBuoc) => HTMLElement | null }):
     theoCuon();
   };
   window.addEventListener("wheel", thoiGiu, { passive: true });
+  /**
+   * Ô vừa nhận focus nằm DƯỚI thanh dính (cùng cột): cuộn lên đúng đủ để ô hiện ngay dưới thanh. Chrome không tính `scroll-margin` khi Tab / Shift+Tab cuộn tới ô, còn `scroll-padding` toàn trang
+   * ở máy tính làm lệch `scrollIntoView({ block: "center" })` của nút Lưu (nút Lưu tràn khung 1040×768) — nên ở máy tính sửa bằng đoạn này; điện thoại dùng `scroll-padding-top` (app.css) và đoạn này chỉ là lưới thứ hai.
+   */
+  const chuaChe = (t: HTMLElement): void => {
+    const n = root.getBoundingClientRect();
+    const r = t.getBoundingClientRect();
+    if (n.height === 0 || (r.width === 0 && r.height === 0)) return;
+    const chungCot = Math.min(r.right, n.right) - Math.max(r.left, n.left) > 0;
+    if (!chungCot || r.top >= n.bottom || r.bottom <= n.top) return;
+    window.scrollBy({ top: r.top - n.bottom - DEM_DUOI_THANH, behavior: "auto" });
+  };
   document.addEventListener("focusin", (e) => {
-    if (!root.contains(e.target as Node)) thoiGiu(); // người dùng chuyển focus (Tab) sang ô khác: vị trí do cuộn theo focus quyết lại
+    const t = e.target as HTMLElement;
+    if (root.contains(t)) return;
+    thoiGiu(); // người dùng chuyển focus (Tab) sang ô khác: vị trí do cuộn theo focus quyết lại
+    requestAnimationFrame(() => chuaChe(t)); // sau cú cuộn theo focus của trình duyệt
   });
   window.addEventListener("touchstart", thoiGiu, { passive: true });
   window.addEventListener("keydown", (e) => {

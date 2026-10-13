@@ -56,7 +56,7 @@ try {
     const trongKhung = r.top >= 0 && r.bottom <= innerHeight + 1;
     const trenCung = !!hit && (hit === el || el.contains(hit) || hit.contains(el));
     const nguoiChe = !trenCung && hit ? (hit.closest('.buoc-thanh') ? 'thanh-tien-do' : hit.closest('#topbar') ? 'thanh-tren' : hit.closest('.form-actions') ? 'thanh-luu' : hit.tagName) : null;
-    const cheTren = r.top < 0 || (!trenCung && (nguoiChe === 'thanh-tien-do' || nguoiChe === 'thanh-tren'));
+    const cheTren = r.top < -1 || (!trenCung && (nguoiChe === 'thanh-tien-do' || nguoiChe === 'thanh-tren'));
     return { rong: false, ten, top: Math.round(r.top), bottom: Math.round(r.bottom), che: cheTren, cheKhac: !cheTren && (!trongKhung || !trenCung), nguoiChe, trongKhung };
   })()`;
   const duyet = async (p, nguoc) => {

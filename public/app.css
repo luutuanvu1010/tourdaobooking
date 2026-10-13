@@ -3322,7 +3322,6 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
    Thanh tiến độ dính (web/thanh-buoc.ts): bốn chấm tròn đánh số + chữ ngắn; ✓ khi bước đủ thông tin; bước đang xem nổi bật. Điện thoại: dính ngay dưới thanh trên (cũng dính), tràn hết bề ngang;
    máy tính (thanh trên không dính): dính mép trên cửa sổ. Khối gập: nút "+ Thêm chi tiết …" mở / đóng khối chứa ô ít dùng (web/khoi-gap.ts); dòng tóm tắt chặng đưa đón gọn (web/khoi-dua-don.ts). */
 :root { --dinh-form: calc(var(--h-buoc-thanh) + var(--s2)); } /* phần đầu khung nhìn bị thanh dính che trên trang Tạo đơn: thanh tiến độ (máy tính) — điện thoại cộng thêm thanh trên cùng, khai lại ở khối ≤ 640px dưới */
-:root:has(.buoc-thanh) { scroll-padding-top: var(--dinh-form); } /* focus / cuộn tới ô: trình duyệt chừa phần đầu này, ô KHÔNG nằm dưới thanh (WCAG 2.2 mục 2.4.11) */
 #order-form :is(input, select, textarea, button, summary, a[href], [tabindex]) { scroll-margin-top: var(--dinh-form); }
 .buoc { scroll-margin-top: var(--dinh-form); }
 .buoc:focus { outline: none; }
@@ -3339,6 +3338,7 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 @media (max-width: 640px) {
   .buoc-thanh { top: calc(var(--bar-h) + env(safe-area-inset-top)); margin: 0 calc(-1 * var(--s4)) var(--s3); padding: 0 var(--s4); border-bottom: 1px solid var(--c-border); }
   :root { --dinh-form: calc(var(--bar-h) + env(safe-area-inset-top) + var(--h-buoc-thanh) + var(--s2)); }
+  :root:has(.buoc-thanh) { scroll-padding-top: var(--dinh-form); } /* chỉ điện thoại: ở máy tính scroll-padding làm scrollIntoView({block:"center"}) khi Lưu lỗi lệch xuống và nút Lưu tràn khung 1040×768 (chon-hdv-lap-don-smoke bước 10); ở đó scroll-margin của từng ô là đủ */
 }
 .form-main { display: contents; } /* dưới 960px: như không có lớp bọc — thanh tiến độ (con của .form-main) dính trong cả biểu mẫu, kể cả các khối của cột phải */
 @media (min-width: 960px) {
