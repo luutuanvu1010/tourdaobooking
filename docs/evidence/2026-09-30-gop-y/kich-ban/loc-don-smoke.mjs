@@ -138,31 +138,30 @@ try {
   d.close();
   ok("1040: bộ lọc vẫn nhớ, bảng lọc mở dạng hộp, không tràn ngang; không lỗi console");
 
-  // 6) Lọc sản phẩm khi lập đơn (góp ý YC-0003 — chủ duyệt 30/9, câu 4(i)): "★ Hay dùng" ghim trên máy + "Theo người" / "Giá theo nhóm" (chữ cũ "Theo nhóm", đổi ở Task A6 ADR-0058); nhớ sau tải lại.
+  // 6) Ô chọn dịch vụ khi lập đơn (góp ý YC-0003 — chủ duyệt 30/9; ĐỢT 1 13/10, ý chủ "bỏ hết sự rườm rà, chỉ để lại việc lọc theo nhóm bằng nút xổ xuống + tick chọn"): mọi bộ lọc phụ
+  // ("★ Hay dùng", "Theo người", "Giá theo nhóm") đã bỏ; dấu sao ☆/★ giữ lại và có tác dụng — dịch vụ có sao xếp lên trước; mã gắn sao nhớ sau tải lại.
   const f = await env.as(ACCOUNTS.salesA, "/order-form", { width: 390, height: 844, mobile: true });
   const hang = `[...document.querySelectorAll('#catalog-list .catalog-pick')].map((b) => b.querySelector('strong').textContent)`;
-  // Đợt 1 (13/10, #3): hàng "Lọc sẵn có" đã bỏ — "★ Hay dùng" là chip trong hàng Nhóm dịch vụ; "Theo người" / "Giá theo nhóm" không còn nút.
-  await f.waitFor("document.querySelectorAll('.catalog-nhom [data-loc=\"hay-dung\"]').length === 1", "chip ★ Hay dùng", 10000);
-  assert.equal(await f.ev("document.querySelectorAll('.catalog-loc, [data-loc=\"theo-nguoi\"], [data-loc=\"theo-nhom\"]').length"), 0, "không còn nút Theo người / Giá theo nhóm"); // ADR-0058 Task A6: chủ chọn đổi chữ "Theo nhóm" → "Giá theo nhóm" (30/9), khoá "theo-nhom" giữ
+  await f.waitFor("document.querySelectorAll('#catalog-nhom-nut').length === 1 && !document.querySelector('.catalog-nhom').hidden", "nút Nhóm dịch vụ", 10000);
+  assert.equal(await f.ev("document.querySelectorAll('.catalog .loc-nut, [data-loc], .catalog-loc, .catalog-nhom-chips').length"), 0, "không còn chip Hay dùng / Theo người / Giá theo nhóm");
+  assert.equal(await f.ev("/Hay dùng|Theo người|Giá theo nhóm|Lọc sẵn có/.test(document.querySelector('.catalog').textContent)"), false, "không còn chữ của bộ lọc cũ");
   await f.ev("document.getElementById('catalog-q').focus(); true");
-  await f.waitFor(`${hang}.length === 3`, "3 dịch vụ khi chưa lọc");
-  await f.ev("document.querySelector('.catalog-nhom [data-loc=\"hay-dung\"]').click()");
-  await f.waitFor("/Chưa ghim dịch vụ nào/.test(document.getElementById('catalog-list').textContent)", "Hay dùng rỗng có câu hướng dẫn");
-  await f.ev("document.querySelector('.catalog-nhom [data-loc=\"hay-dung\"]').click()"); // bỏ lọc
-  await f.waitFor(`${hang}.length === 3`, "bỏ lọc");
+  await f.waitFor(`JSON.stringify(${hang}) === '["TD101","TTB03","TTB06"]'`, "3 dịch vụ theo thứ tự danh mục khi chưa gắn sao");
   await f.ev("document.querySelector('#catalog-list [data-ghim=\"TTB06\"]').click()");
+  assert.equal(await f.ev("document.getElementById('catalog-list').hidden"), false, "bấm sao: danh sách không đóng");
+  assert.deepEqual(await f.ev(hang), ["TTB06", "TD101", "TTB03"], "dịch vụ gắn sao xếp lên trước, phần còn lại giữ thứ tự");
   assert.equal(await f.ev("document.querySelector('#catalog-list [data-ghim=\"TTB06\"]').textContent"), "★");
-  await f.ev("document.querySelector('.catalog-nhom [data-loc=\"hay-dung\"]').click()");
-  await f.waitFor(`JSON.stringify(${hang}) === '["TTB06"]'`, "Hay dùng chỉ còn TTB06");
   await f.send("Page.reload", {});
   await sleep(300);
-  await f.waitFor("document.querySelector('.catalog-nhom [data-loc=\"hay-dung\"]')?.getAttribute('aria-pressed') === 'true'", "tải lại vẫn nhớ bộ lọc", 10000);
+  await f.waitFor("document.querySelectorAll('#catalog-nhom-nut').length === 1", "tải lại: nút nhóm", 10000);
   await f.ev("document.getElementById('catalog-q').focus(); true");
-  await f.waitFor(`JSON.stringify(${hang}) === '["TTB06"]'`, "tải lại: Hay dùng vẫn TTB06");
+  await f.waitFor(`JSON.stringify(${hang}) === '["TTB06","TD101","TTB03"]'`, "tải lại: sao vẫn nhớ, TTB06 vẫn lên đầu");
+  await f.ev("document.querySelector('#catalog-list [data-ghim=\"TTB06\"]').click()");
+  assert.deepEqual(await f.ev(hang), ["TD101", "TTB03", "TTB06"], "bỏ sao → về thứ tự danh mục");
   assert.ok((await f.ev("document.documentElement.scrollWidth - innerWidth")) <= 0, "form 390: không tràn ngang");
   assert.deepEqual(f.consoleErrors.filter((e) => !/favicon/.test(e)), [], "form: không lỗi console");
   f.close();
-  ok("Lập đơn 390: chip ★ Hay dùng trong hàng Nhóm dịch vụ (không còn Theo người / Giá theo nhóm); ghim ☆→★; Hay dùng rỗng có câu hướng dẫn; nhớ bộ lọc + ghim sau tải lại");
+  ok("Lập đơn 390: không còn chip / bộ lọc phụ; ghim ☆→★ đưa dịch vụ lên đầu danh sách, nhớ sau tải lại, bỏ sao thì về thứ tự cũ");
   console.log("LOC DON SMOKE OK");
 } finally {
   await env.stop();
