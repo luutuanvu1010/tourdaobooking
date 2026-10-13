@@ -5,6 +5,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
+// tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
+import { chenPhieuDieuChinh } from "../tests/audit/dieu-chinh-lib.mjs";
 
 const DIR = new URL("../migrations/", import.meta.url);
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
@@ -259,7 +261,7 @@ test("điều chỉnh / đảo phải có lý do; phiếu gắn đơn thì phả
   const db = fresh();
   assert.throws(() => posting(db, { kind: "ADJUSTMENT", reason: null }), /bil_reason_required:/);
   assert.throws(() => posting(db, { kind: "REVERSAL", reason: "   " }), /bil_reason_required:/);
-  posting(db, { kind: "ADJUSTMENT", reason: "sai số khách của đơn" }); // 0082 Đ5c: lý do điều chỉnh ≥ 10 ký tự
+  chenPhieuDieuChinh(db, { id: "p-dc-hop-le", orderId: "o1", reason: "sai số khách của đơn", occurredDate: "2026-09-30", at: AT, debtor: "pty-h1", creditor: OWNER }); // 0082 Đ5c: lý do ≥ 10 ký tự; 0094: kèm yêu cầu đã duyệt
   assert.throws(() => posting(db, { kind: "RECEIPT", order: null }), /bil_order_required:/);
   posting(db, { kind: "SETTLEMENT", order: null }); // phiếu nộp nhiều đơn
 });

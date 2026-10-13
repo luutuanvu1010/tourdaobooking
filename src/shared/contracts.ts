@@ -1089,8 +1089,9 @@ export interface FeedbackBadgeResponse {
 
 // ---- Thông báo hệ thống (ADR-0034) --------------------------------------------
 // "chuyen": tin chuyến xe (ADR-0052 D6, kể cả MQ-07 "giờ hẹn chặng đổi khi đã xếp"); "tai_khoan": ngưng tài khoản giữ tiền — chỉ Toàn quyền nhận (ADR-0090 đ3);
-// "doi_sau_xac_nhan": đơn đã xác nhận đổi giờ / nơi đón / số khách / chặng (ADR-0062)
-export type LoaiTin = "thu_cong" | "lap" | "cho_nhan" | "nhan" | "giao" | "xac_nhan" | "huy" | "chuyen" | "tai_khoan" | "doi_sau_xac_nhan";
+// "doi_sau_xac_nhan": đơn đã xác nhận đổi giờ / nơi đón / số khách / chặng (ADR-0062);
+// "dieu_chinh": yêu cầu điều chỉnh công nợ — có yêu cầu mới / đã duyệt / bị từ chối / được rút / số dư của bạn đổi (ADR-0115)
+export type LoaiTin = "thu_cong" | "lap" | "cho_nhan" | "nhan" | "giao" | "xac_nhan" | "huy" | "chuyen" | "tai_khoan" | "doi_sau_xac_nhan" | "dieu_chinh";
 export interface TinDto {
   id: string;
   loai: LoaiTin;
@@ -1815,8 +1816,9 @@ export interface LanThuDto {
   ngayPhatSinh: string;
   daDao: boolean;
   laDongDao: boolean;
-  nguoiGhi: string | null;
-  ghiChu: string | null;
+  /** Người ghi + ghi chú của lần thu: với người giữ quyền Đối tác (D-1) KHOÁ VẮNG ở lần thu do người khác ghi (chỉ giữ ở lần thu chính họ ghi). */
+  nguoiGhi?: string | null;
+  ghiChu?: string | null;
   ghiLuc: string;
   /** ADR-0092 Đ6: mã giao dịch ngân hàng đã chuẩn hoá + số tiền thực chuyển — CHỈ có khoá này khi người xem giữ `ledger.write` (Kế toán, Toàn quyền). */
   maGiaoDich?: string;
@@ -1863,9 +1865,10 @@ export interface KhoanDuyetDto {
   /** Phần còn chi / chuyển được (số duyệt − huỷ duyệt − đã chi). */
   conLai: number;
   daHuy: number;
-  lyDo: string;
+  /** Lý do duyệt (chữ tự do nội bộ) và người duyệt: KHOÁ VẮNG với người giữ quyền Đối tác (D-1). */
+  lyDo?: string;
   ngayDuyet: string;
-  nguoiDuyet: string | null;
+  nguoiDuyet?: string | null;
   /** Mã đơn nhận (chuyển). */
   donNhan: string | null;
 }
@@ -1873,9 +1876,10 @@ export interface KhoanDuyetDto {
 export interface HoanNgoaiDto {
   id: string;
   soTien: number;
-  lyDo: string | null;
+  /** Lý do + người ghi: KHOÁ VẮNG với người giữ quyền Đối tác (D-1). */
+  lyDo?: string | null;
   trangThai: "cho_xac_nhan" | "da_xac_nhan" | "tu_choi";
-  nguoiGhi: string | null;
+  nguoiGhi?: string | null;
   ngay: string;
 }
 /**
@@ -1978,6 +1982,52 @@ export interface SoCongNoResponse {
   soDu: { partyId: string; ten: string; dangGiu: number }[];
   choXacNhan: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string; nguoiKhai: string }[];
   chuaRo: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string }[];
+}
+
+/**
+ * Điều chỉnh công nợ CẦN NGƯỜI THỨ HAI DUYỆT (ADR-0115 đợt 1; migration 0094). `POST /api/ledger/adjustments` lệnh `dieu_chinh` không đổi số dư ngay: trả 201
+ * `TaoYeuCauDieuChinhResponse` (yêu cầu CHỜ DUYỆT). Trạng thái tính LÚC ĐỌC: `het_han` = quá 7 ngày kể từ lúc tạo mà chưa có quyết định (không bao giờ tự duyệt).
+ * `huong` = hướng đánh giá lúc tạo (tăng nợ tính vào trần cộng dồn; giảm nợ không đổi dấu). Không SĐT / email / MST; tên hai bên là tên hồ sơ.
+ */
+export type TrangThaiYeuCauDieuChinh = "cho_duyet" | "da_duyet" | "tu_choi" | "da_rut" | "het_han";
+export interface YeuCauDieuChinhDto {
+  id: string;
+  orderId: string;
+  maDon: string | null;
+  benNo: string;
+  benDuocNo: string;
+  soTien: number;
+  loaiDong: "HELD" | "SETTLEMENT" | "REFUND";
+  loaiDongNhan: string;
+  ngayPhatSinh: string;
+  lyDo: string;
+  huong: "tang" | "giam";
+  taoLuc: string;
+  /** Mốc hết hạn (ISO) = lúc tạo + 7 ngày. */
+  hetHanLuc: string;
+  nguoiTao: string;
+  trangThai: TrangThaiYeuCauDieuChinh;
+  quyetLuc: string | null;
+  nguoiQuyet: string | null;
+  /** Lý do người duyệt từ chối (bắt buộc khi từ chối); null với các trạng thái khác. */
+  lyDoQuyet: string | null;
+  laCuaToi: boolean;
+  coTheDuyet: boolean;
+  coTheTuChoi: boolean;
+  coTheRut: boolean;
+}
+/** `GET /api/ledger/adjustment-requests`: `xemDayDu` = người xem thấy cả yêu cầu đã quyết (Kế toán, Toàn quyền — ô `ledger.view`); Quản trị chỉ thấy yêu cầu CHỜ DUYỆT. */
+export interface YeuCauDieuChinhListResponse {
+  yeuCau: YeuCauDieuChinhDto[];
+  /** Số yêu cầu chờ duyệt mà CHÍNH người xem duyệt được (còn hạn, không phải của mình) — nguồn thật của huy hiệu đếm. */
+  choDuyetChoToi: number;
+  xemDayDu: boolean;
+  coTheTao: boolean;
+}
+export interface TaoYeuCauDieuChinhResponse {
+  ok: true;
+  choDuyet: true;
+  yeuCauId: string;
 }
 
 /**

@@ -78,6 +78,8 @@ function batLog(): { dung: () => string[] } {
 }
 const MO = 400; // tiền mẫu nano của máy giả: 4.000 × 0,05 + 500 × 0,40
 const N = chiaKho().length;
+/** Số lô embeddings mà kho cần: kho vượt trần đầu vào của một lô (`LO_NHUNG_DAU_VAO`) thì tính bù trong nhiều lô — bài không giả định kho luôn vừa MỘT lô. */
+const SO_LO = chiaLoNhung(chiaKho().map(dinhDangDoan)).length;
 /** ADR-0084: người hỏi của bài này chưa ghi giới tính (seedStaff) ⇒ máy chủ nối dòng Mai với "bạn" / "mình" — mức trần tính CẢ dòng đó. */
 const BAN = xungHo(null, null);
 type BoNaoThu = { mau: string; mucSuyNghi: string; doDai: string; tokenRaToiDa: number; loiNhac: string };
@@ -100,18 +102,19 @@ test("V2 + V5 + P1: câu 1 tính bù MỌI đoạn (một lô) + câu hỏi; câ
   const g = openAiGia();
   const doc = demDocVanNghia(w);
   assert.equal((await hoi(w, "đổi mã PIN thế nào")).status, 200);
-  assert.equal(g.nhung.length, 2);
+  assert.equal(g.nhung.length, 1 + SO_LO);
   assert.deepEqual(g.nhung[0]!.body.input, ["đổi mã PIN thế nào"]);
-  assert.deepEqual(new Set(g.nhung[1]!.body.input as string[]), new Set(chiaKho().map(dinhDangDoan)));
-  assert.equal((g.nhung[1]!.body.input as string[]).length, N);
+  const dauKho = g.nhung.slice(1).flatMap((x) => x.body.input as string[]);
+  assert.deepEqual(new Set(dauKho), new Set(chiaKho().map(dinhDangDoan)));
+  assert.equal(dauKho.length, N);
   const d = w.q("SELECT count(*) AS n, sum(typeof(vec) = 'blob') AS b, min(length(vec)) AS mn, max(length(vec)) AS mx FROM tl_van_nghia")[0]!;
   assert.deepEqual({ ...d }, { n: N, b: N, mn: SO_CHIEU_NHUNG * 4, mx: SO_CHIEU_NHUNG * 4 });
   assert.equal(doc(), 1, "câu 1: một lần hỏi D1 (chưa có dòng)");
   assert.equal((await hoi(w, "đổi mã PIN thế nào")).status, 200);
-  assert.equal(g.nhung.length, 3, "câu 2: chỉ véc-tơ câu hỏi");
+  assert.equal(g.nhung.length, 2 + SO_LO, "câu 2: chỉ véc-tơ câu hỏi");
   assert.equal(doc(), 2, "câu 2: đọc D1 một lần (véc-tơ vừa tính bù không nạp bộ nhớ — R1)");
   assert.equal((await hoi(w, "đổi mã PIN thế nào")).status, 200);
-  assert.equal(g.nhung.length, 4);
+  assert.equal(g.nhung.length, 3 + SO_LO);
   assert.equal(doc(), 2, "câu 3: bộ nhớ isolate, không đọc D1");
   const tienQ = chiPhiNhungMicroUsd(100);
   assert.deepEqual(luot(w), [
@@ -161,7 +164,7 @@ test("L2: lô tính bù lỗi (câu hỏi đã tính được) ⇒ 0 dòng ghi; 
   assert.deepEqual(luot(w)[0], [MO + chiPhiNhungMicroUsd(100), 4000, 500, 0]);
   const g = openAiGia();
   assert.equal((await hoi(w, "đổi mã PIN thế nào")).status, 200);
-  assert.equal(g.nhung.length, 2);
+  assert.equal(g.nhung.length, 1 + SO_LO);
   assert.equal(soDong(w), N);
 });
 
@@ -260,7 +263,7 @@ test("P2 ô thử HÀNG RÀO: trần = mức trần trên − 1 (cao hơn mức 
   assert.equal((await datTran(w2, tren + TIEN_BU_KHO)).status, 200);
   const r2 = await thu(w2);
   assert.equal(r2.status, 200, r2.text);
-  assert.deepEqual([g2.nhung.length, g2.traLoi.length], [2, 1], "conLai = tiền tính bù ⇒ không lùi: câu hỏi + một lô kho");
+  assert.deepEqual([g2.nhung.length, g2.traLoi.length], [1 + SO_LO, 1], "conLai = tiền tính bù ⇒ không lùi: câu hỏi + các lô kho");
   assert.equal(soDong(w2), N);
 });
 
@@ -268,9 +271,9 @@ test("Review Focus 2 (route): phản hồi embeddings KHÔNG có usage ⇒ tiề
   const w = setup();
   openAiGia({ usageNhung: null });
   assert.equal((await hoi(w, "đổi mã PIN thế nào")).status, 200);
-  // Kho nằm trong MỘT lô (tiền đề) ⇒ tiền ước lô = tienBuUoc(kho); câu hỏi không có gì để che ⇒ ước bằng uocToken(câu).
-  assert.equal(chiaLoNhung(chiaKho().map(dinhDangDoan)).length, 1, "tiền đề: kho một lô");
-  assert.equal(luot(w)[0]![0], MO + chiPhiNhungMicroUsd(uocToken("đổi mã PIN thế nào")) + TIEN_BU_KHO);
+  // Tiền ước MỖI lô = tienBuUoc(lô) (kho vượt trần đầu vào một lô thì có nhiều lô); câu hỏi không có gì để che ⇒ ước bằng uocToken(câu).
+  const tienUocCacLo = chiaLoNhung(chiaKho().map(dinhDangDoan)).reduce((t, lo) => t + tienBuUoc(lo), 0);
+  assert.equal(luot(w)[0]![0], MO + chiPhiNhungMicroUsd(uocToken("đổi mã PIN thế nào")) + tienUocCacLo);
 });
 
 test("T-1 (kiểm độc lập 1/10) HÀNG RÀO ADR-0084: mức trần trên tính CẢ dòng Mai của CHÍNH người hỏi — trần = mức của người thật − 1 ⇒ 429 (hỏi VÀ ô thử); kiểm bằng 'bạn' sẽ lọt", async () => {

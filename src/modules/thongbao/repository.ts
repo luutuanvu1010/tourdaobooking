@@ -1,8 +1,8 @@
 // SQL của module thongbao (bảng ntf_*; ADR-0034 + ADR-0036). Mọi câu qua defineSql, tham số ?N. Đọc xuyên module CHỈ qua view công bố:
-// v_aud_order_event + v_aud_order_change + v_aud_trip_event + v_aud_account_event (audit), v_ord_order_label + v_ord_order_owner (orders), v_dsp_order_handler + v_dsp_first_handler (dispatch), v_stf_staff_label (staff).
+// v_aud_order_event + v_aud_order_change + v_aud_trip_event + v_aud_account_event + v_aud_ledger_event (audit), v_ord_order_label + v_ord_order_owner (orders), v_dsp_order_handler + v_dsp_first_handler (dispatch), v_stf_staff_label (staff).
 // Không DELETE, không OR REPLACE (R-N1-9).
 import { defineSql } from "../../shared/sql-registry.ts";
-import type { DongDon, DongThuCong } from "../../shared/thong-bao.ts";
+import type { DongDieuChinh, DongDon, DongThuCong } from "../../shared/thong-bao.ts";
 import { HANH_DONG_TIN_KHACH, HANH_DONG_TIN_THUONG, type DonCuaTin, type DongChuyenTho } from "../../shared/tin-chuyen.ts";
 
 const LIST_DON = defineSql("thongbao", "list_don", `
@@ -275,6 +275,19 @@ export interface TinTaiKhoanTho { id: string; accountId: string; actorId: string
 export async function listTinTaiKhoan(db: D1Database, tu: string): Promise<TinTaiKhoanTho[]> {
   const r = (await db.prepare(LIST_TIN_TAI_KHOAN).bind(tu).all<{ id: string; account_id: string; actor_id: string | null; luc: string; ten_nguoi_lam: string | null; ten_tai_khoan: string }>()).results;
   return r.map((x) => ({ id: x.id, accountId: x.account_id, actorId: x.actor_id, luc: x.luc, tenNguoiLam: x.ten_nguoi_lam, tenTaiKhoan: x.ten_tai_khoan }));
+}
+// ADR-0115: tin về yêu cầu điều chỉnh công nợ — v_aud_ledger_event (audit, migration 0094; chỉ khoá). Người nhận lọc NGAY Ở SQL: dòng riêng của ?2 (khoá 'staff')
+// hoặc, khi ?3 = 1 (người có ô duyệt), dòng của ô duyệt (khoá 'ledger') — người thường không kéo dòng của người khác. Mã đơn qua v_ord_order_label.
+const LIST_TIN_DIEU_CHINH = defineSql("thongbao", "list_tin_dieu_chinh", `
+  SELECT e.id, o.order_code AS ma_don, e.action, e.target_type AS muc_loai, e.target_id AS muc_id, e.staff_id AS actor_id, s.label AS ten_nguoi_lam, e.created_at AS luc
+  FROM v_aud_ledger_event e JOIN v_ord_order_label o ON o.id = e.order_id LEFT JOIN v_stf_staff_label s ON s.id = e.staff_id
+  WHERE e.created_at >= ?1 AND ((e.target_type = 'staff' AND e.target_id = ?2) OR (?3 = 1 AND e.target_type = 'ledger'))
+  ORDER BY e.created_at DESC LIMIT 200`);
+export async function listTinDieuChinh(db: D1Database, tu: string, staffId: string, coODuyet: boolean): Promise<DongDieuChinh[]> {
+  const r = (await db.prepare(LIST_TIN_DIEU_CHINH).bind(tu, staffId, coODuyet ? 1 : 0).all<{
+    id: string; ma_don: string; action: string; muc_loai: string; muc_id: string; actor_id: string | null; ten_nguoi_lam: string | null; luc: string;
+  }>()).results;
+  return r.map((x) => ({ id: x.id, maDon: x.ma_don, action: x.action, mucLoai: x.muc_loai, mucId: x.muc_id, actorId: x.actor_id, tenNguoiLam: x.ten_nguoi_lam, luc: x.luc }));
 }
 export async function donChoTin(db: D1Database, orderIds: readonly string[]): Promise<DonCuaTin[]> {
   if (orderIds.length === 0) return [];

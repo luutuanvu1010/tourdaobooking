@@ -8,6 +8,7 @@ import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 const SALES = "11111111-1111-4111-8111-111111111111";
 const HDV = "22222222-2222-4222-8222-222222222222";
 const KT = "44444444-4444-4444-8444-444444444444";
+const KT2 = "77777777-7777-4777-8777-777777777777"; // ADR-0115: người duyệt điều chỉnh công nợ — khác người tạo
 const AT = "2026-09-01T00:00:00.000Z";
 const vnNgay = (d: number) => new Date(Date.now() + 7 * 3600_000 + d * 86400_000).toISOString().slice(0, 10);
 let seq = 0;
@@ -17,7 +18,7 @@ type W = ReturnType<typeof world>;
 function setup(): W {
   const w = world();
   for (const [id, phone, name, perms] of [
-    [SALES, "0900000001", "An Bán", ["SALES"]], [HDV, "0900000002", "Nam HDV", ["FIELD"]], [KT, "0900000005", "Lan Kế Toán", ["ACCOUNTING"]],
+    [SALES, "0900000001", "An Bán", ["SALES"]], [HDV, "0900000002", "Nam HDV", ["FIELD"]], [KT, "0900000005", "Lan Kế Toán", ["ACCOUNTING"]], [KT2, "0900000008", "Mai Kế Toán", ["ACCOUNTING"]],
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
   return w;
 }
@@ -37,6 +38,8 @@ const congTy = (w: W) => String(w.q("SELECT party_id FROM v_pty_owner_company")[
 const thu = (w: W, as: string, orderId: string, soTien: number, nguoiThu: unknown) => w.call("POST", `/api/orders/${orderId}/payments`, { as, body: { soTien, hinhThuc: "CASH", nguoiThu } });
 const hoan = (w: W, orderId: string, soTien: number, nguoiTra: unknown) => w.call("POST", "/api/ledger/refunds", { as: KT, body: { orderId, soTien, hinhThuc: "CASH", nguoiTra } });
 const dieuChinh = (w: W, body: Record<string, unknown>) => w.call("POST", "/api/ledger/adjustments", { as: KT, body });
+/** ADR-0115: lệnh `dieu_chinh` chỉ TẠO yêu cầu (201 "chờ duyệt", số dư chưa đổi); người KHÁC (KT2) duyệt thì số dư mới đổi. */
+const duyet = (w: W, requestId: string) => w.call("POST", `/api/ledger/adjustment-requests/${requestId}/approve`, { as: KT2 });
 const lanThu = (w: W, orderId: string, kind: string) => String(w.q("SELECT id FROM bil_payment_receipt WHERE order_id = ? AND kind_code = ? AND reverses_id IS NULL ORDER BY created_at", orderId, kind)[0].id);
 const daThuRong = (w: W, orderId: string) => Number(w.q(`SELECT COALESCE(SUM(CASE WHEN r.kind_code = 'CUSTOMER_REFUND' THEN -r.amount ELSE r.amount END), 0) AS n FROM bil_payment_receipt r
   WHERE r.order_id = ? AND r.reverses_id IS NULL AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)`, orderId)[0].n);
@@ -88,7 +91,7 @@ test("Đ4: không đảo riêng dòng giữ hộ khi lần thu sinh ra nó còn 
   assert.equal(Number(w.q("SELECT count(*) AS n FROM bil_debt_line WHERE reverses_line_id = ?", held)[0].n), 1);
 });
 
-test("Đ5 (KT05): điều chỉnh — lý do < 10 ký tự ⇒ 400; giảm nợ vượt số đang nợ (đổi dấu) ⇒ 409; tăng nợ vượt max(phải thu, đã thu ròng) ⇒ 409; trong trần ⇒ 201, nhật ký ghi số dư trước / sau", async () => {
+test("Đ5 (KT05) + ADR-0115: điều chỉnh — lý do < 10 ký tự ⇒ 400; giảm nợ vượt số đang nợ (đổi dấu) ⇒ 409; tăng nợ vượt max(phải thu, đã thu ròng) ⇒ 409 (đều lúc TẠO); trong trần ⇒ 201 chờ duyệt, người khác duyệt thì số dư mới đổi, nhật ký ghi số dư trước / sau", async () => {
   const w = setup();
   const id = don(w);
   const ct = congTy(w);
@@ -100,13 +103,20 @@ test("Đ5 (KT05): điều chỉnh — lý do < 10 ký tự ⇒ 400; giảm nợ 
   assert.equal(vuot.status, 409, vuot.text);
   assert.equal(vuot.json.error.code, "adjustment_flips_sign");
   assert.equal(soDu(w, id, hdv, ct), 200_000, "không ghi gì");
-  assert.equal((await dieuChinh(w, { ...giam, soTien: 200_000 })).status, 201);
+  const g = await dieuChinh(w, { ...giam, soTien: 200_000 });
+  assert.equal(g.status, 201, g.text);
+  assert.equal(g.json.choDuyet, true);
+  assert.equal(soDu(w, id, hdv, ct), 200_000, "chưa duyệt: số dư KHÔNG đổi");
+  assert.equal((await duyet(w, g.json.yeuCauId)).status, 201);
   assert.equal(soDu(w, id, hdv, ct), 0);
   const tang = { loai: "dieu_chinh", orderId: id, benNo: hdv, benDuocNo: ct, loaiDong: "HELD", lyDo: "HDV nhận thêm tiền khách gửi" };
   const thua = await dieuChinh(w, { ...tang, soTien: 10_000_000 });
   assert.equal(thua.status, 409, thua.text);
   assert.equal(thua.json.error.code, "adjustment_exceeds_cap");
-  assert.equal((await dieuChinh(w, { ...tang, soTien: 1_000_000 })).status, 201, "bằng phải thu: được");
+  const t = await dieuChinh(w, { ...tang, soTien: 1_000_000 });
+  assert.equal(t.status, 201, "bằng phải thu: được tạo");
+  assert.equal((await duyet(w, t.json.yeuCauId)).status, 201);
+  assert.equal(soDu(w, id, hdv, ct), 1_000_000);
   const nk = w.q("SELECT detail FROM audit_log WHERE order_id = ? AND action = 'ledger_adjustment' ORDER BY created_at", id).map((r: { detail: string }) => r.detail);
   assert.match(nk[0], /trước 200\.000 ₫ → sau 0 ₫/);
   assert.match(nk[1], /trước 0 ₫ → sau 1\.000\.000 ₫/);

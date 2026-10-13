@@ -96,6 +96,8 @@ export const TRANG = {
   lyDoDieuPhoi: { duong: "/ly-do-dieu-phoi", goi: "GET /api/van-chuyen/ly-do", hien: (s) => quanLyXe(s) && can(s, "admin.manage") },
   // Khoá sổ tháng (sổ đại lý đợt 1 Task 12): ô ledger.view không ngữ cảnh — Kế toán, Toàn quyền.
   khoaThang: { duong: "/khoa-thang", goi: "GET /api/ledger/ky", hien: (s) => can(s, "ledger.view") },
+  // Điều chỉnh công nợ cần người thứ hai duyệt (ADR-0115 đợt 1): xem danh sách = ô gửi (`ledger.write`) HOẶC ô duyệt (`ledger.adjust.approve`; Quản trị chỉ thấy yêu cầu chờ duyệt).
+  dieuChinhCongNo: { duong: "/dieu-chinh-cong-no", goi: "GET /api/ledger/adjustment-requests", hien: (s) => can(s, "ledger.write") || can(s, "ledger.adjust.approve") },
   // Bảng mức hoa hồng và điều khoản người bán (sổ đại lý đợt 1 Task 10): ô partner.commission.view / supply.terms.view không ngữ cảnh. Bảy route `pricing` chặn THÊM tài khoản giữ quyền
   // Đối tác (kể cả tài khoản lai, Ruling 12) — mục hiện phải chặn CÙNG điều kiện, nếu không tài khoản lai thấy mục mà bấm vào bị 403.
   hoaHong: { duong: "/hoa-hong", goi: "GET /api/pricing/hoa-hong", hien: (s) => can(s, "partner.commission.view") && !holdsPartner(s) },
@@ -174,6 +176,7 @@ export const THANH_BEN = [
   { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "chinhSachDieuPhoi", nhan: "Chính sách điều phối" },
   { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "lyDoDieuPhoi", nhan: "Lý do điều phối" },
   { nhom: "QUẢN TRỊ", trang: "khoaThang", nhan: "Khoá sổ tháng", bieuTuong: "lock" },
+  { nhom: "QUẢN TRỊ", trang: "dieuChinhCongNo", nhan: "Điều chỉnh công nợ", bieuTuong: "money" },
   { nhom: "QUẢN TRỊ", trang: "hoaHong", nhan: "Hoa hồng đối tác", bieuTuong: "money" },
   { nhom: "QUẢN TRỊ", trang: "nguoiBan", nhan: "Người bán dịch vụ", bieuTuong: "assign" },
   { nhom: "QUẢN TRỊ", trang: "nhatKy", nhan: "Nhật ký", bieuTuong: "history" },
@@ -252,6 +255,7 @@ export const TRANG_TOI = [
   { phan: "van-chuyen", trang: "chinhSachDieuPhoi", nhan: "Chính sách điều phối" },
   { phan: "van-chuyen", trang: "lyDoDieuPhoi", nhan: "Lý do điều phối" },
   { phan: "sau", trang: "khoaThang", nhan: "Khoá sổ tháng" },
+  { phan: "sau", trang: "dieuChinhCongNo", nhan: "Điều chỉnh công nợ" },
   { phan: "sau", trang: "hoaHong", nhan: "Hoa hồng đối tác" },
   { phan: "sau", trang: "nguoiBan", nhan: "Người bán dịch vụ" },
   { phan: "sau", trang: "nhatKy", nhan: "Nhật ký" },

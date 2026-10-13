@@ -123,6 +123,10 @@ export const MATRIX = {
   "ledger.view": row("own", "any", "own", "own", "none", "any", "own", "none", "none", "none"),
   // Ghi sổ (ADR-0026 đ5, đ8): xác nhận công ty đã nhận, nộp/trả, điều chỉnh, đảo; cũng là "Kế toán" khi ghi lần thu (ghi người thu khác, chọn ngày phát sinh).
   "ledger.write": row("none", "any", "none", "none", "none", "any", "none", "none", "none", "none"),
+  // ADR-0115 đợt 1 (điều 2, Q1 = A): DUYỆT hoặc TỪ CHỐI yêu cầu điều chỉnh công nợ — Kế toán, Quản trị, Toàn quyền; phải KHÁC người tạo (kiểm theo tài khoản ở máy chủ + trigger 0094, không ở
+  // ô này). Quản trị chỉ thấy danh sách yêu cầu CHỜ DUYỆT, KHÔNG thấy cả sổ (`ledger.view` không đổi). KHÔNG thêm vào `O_GHI_TIEN` (duyệt không phải ghi tiền; Quản trị vẫn không ghi sổ).
+  // `ledger.write` đổi nghĩa ở lệnh điều chỉnh công nợ: chỉ TẠO yêu cầu. Cột HR, DRIVER, DRIVER_PARTNER = none. Route: /api/ledger/adjustment-requests* (module billing).
+  "ledger.adjust.approve": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   // Khoá sổ tháng (ADR-0080 phần D1; đặc tả sổ đại lý đợt 1 §6): khoá MỘT tháng đã qua, lần lượt, không mở lại — CHỈ Kế toán, Toàn quyền (Quản trị KHÔNG; cột HR, DRIVER, DRIVER_PARTNER = none).
   // KHÔNG đổi `O_GHI_TIEN` (đặc tả §6, N6). Route: POST /api/ledger/ky/:period/khoa (module billing); xem kỳ dùng ô `ledger.view` any.
   "ledger.period.close": row("none", "any", "none", "none", "none", "any", "none", "none", "none", "none"),
