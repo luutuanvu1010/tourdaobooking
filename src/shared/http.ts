@@ -49,6 +49,31 @@ export function intParam(v: string | null, fallback: number, min: number, max: n
 /** Thoát ký tự đặc biệt của LIKE (dùng kèm `ESCAPE '\'`). */
 export const escapeLike = (s: string): string => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 
+/** D1 từ chối mẫu LIKE/GLOB dài hơn 50 BYTE UTF-8 ("LIKE or GLOB pattern too complex" ⇒ route 500). Mỗi chữ tiếng Việt có dấu 2–3 byte nên rất dễ chạm. */
+export const LIKE_TOI_DA_BYTE = 50;
+
+const byteUtf8 = (c: string): number => {
+  const cp = c.codePointAt(0) ?? 0;
+  return cp < 0x80 ? 1 : cp < 0x800 ? 2 : cp < 0x10000 ? 3 : 4; // nửa cặp thay thế (U+D800–DFFF) cũng 3 byte: TextEncoder đổi nó thành U+FFFD
+};
+
+/**
+ * Mẫu `%…%` dựng từ chữ người dùng gõ, KHÔNG BAO GIỜ quá `LIKE_TOI_DA_BYTE` byte (tính cả hai dấu `%` và các dấu `\` thoát). Chữ dài hơn thì cắt ở CUỐI: mẫu
+ * chỉ còn là một đoạn ĐẦU của chữ tìm, nên khớp mọi dòng mà mẫu đầy đủ khớp — kết quả chỉ rộng hơn một chút, không bao giờ mất dòng cần tìm. Đi từng ký tự
+ * (điểm mã) và cộng cả dấu thoát của nó, nên không xé đôi ký tự UTF-8, cặp thay thế UTF-16 hay cặp thoát `\%`. Dùng cho mọi mẫu LIKE dựng từ chữ người gõ.
+ */
+export function mauLikeChua(s: string): string {
+  let chu = "";
+  let byte = 2; // hai dấu %
+  for (const c of s) {
+    const t = escapeLike(c);
+    byte += t === c ? byteUtf8(c) : 2;
+    if (byte > LIKE_TOI_DA_BYTE) break;
+    chu += t;
+  }
+  return `%${chu}%`;
+}
+
 export function getCookie(request: Request, name: string): string | null {
   const header = request.headers.get("cookie");
   if (!header) return null;

@@ -12,6 +12,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa lỗi ô tìm của danh sách đơn (chữ tìm dài → báo lỗi hệ thống; D1 từ chối mẫu LIKE quá 50 byte). Số 1.90 là số TẠM (= main 1.89 + 1 lúc dựng lại 2026-10-13): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
+    version: "1.90",
+    date: "2026-10-13",
+    items: [
+      { kind: "sua", text: "Ô tìm ở danh sách đơn không còn báo lỗi hệ thống khi gõ chữ dài, ví dụ cả họ tên khách có dấu. Chữ quá dài thì Nền tảng tìm theo phần đầu." },
+      { kind: "sua", text: "Ô tìm ở Danh bạ, Nhật ký, chọn người hưởng khi lập đơn và Lịch sử trợ lý cũng không còn báo lỗi hệ thống khi gõ chữ dài; chữ quá dài thì tìm theo phần đầu." },
+    ],
+  },
+  {
     // Luật giá Thực tập (ADR-0100), không migration. Số 1.89 là số TẠM (= main 1.88 gói Vận chuyển A+C + 1, ghép main 94024872 vào nhánh 2026-10-13): nếu bản khác vào main trước thì đổi sang số kế tiếp (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
     version: "1.89",
     date: "2026-10-13",

@@ -245,4 +245,23 @@ assert.equal(spr.editable, false);
 assert.equal((await call(ADMIN, "PUT", P(superParty), { familyName: spr.familyName, middleName: spr.middleName, givenName: "Mạo Danh", active: true, expectedUpdatedAt: spr.updatedAt })).status, 403);
 console.log("✓ ADR-0013: SUPER_ADMIN sửa ADMIN được; ADMIN sửa SUPER_ADMIN bị chặn (403)");
 
+
+// Chữ tìm dài ở bốn ô tìm (2026-10-13): D1 từ chối mẫu LIKE > 50 byte ("LIKE or GLOB pattern too complex") — trước đây các GET này trả 500. Nay máy chủ cắt chữ
+// theo byte (mauLikeChua) nên vẫn 200. Bằng chứng trên D1 thật (local) mà khung thử SQLite không cho được; cùng khuôn với ca cuối của orders.mjs.
+{
+  const chuDai = ["Nguyễn Thị Phượng Hoàng Yến Nhi Thanh Tâm", "ệ".repeat(100), "x".repeat(100), "%".repeat(100), "0123456789".repeat(10)];
+  for (const [ten, who, duong] of [
+    ["hồ sơ", ADMIN, "/api/parties?q="],
+    ["nhật ký", TOAN_QUYEN, "/api/audit?q="],
+    ["tìm người hưởng", SALES, "/api/pricing/nguoi-huong?q="],
+    ["lịch sử trợ lý", TOAN_QUYEN, "/api/tro-ly/lich-su?q="],
+  ]) {
+    for (const q of chuDai) {
+      const kq = await call(who, "GET", duong + encodeURIComponent(q));
+      assert.equal(kq.status, 200, `${ten}: q ${q.length} ký tự phải 200, không 500: ${JSON.stringify(kq.body)}`);
+    }
+  }
+  console.log("✓ bốn ô tìm (hồ sơ, nhật ký, người hưởng, lịch sử trợ lý): chữ tìm dài → 200, không 500");
+}
+
 console.log("E2E PARTIES OK");
