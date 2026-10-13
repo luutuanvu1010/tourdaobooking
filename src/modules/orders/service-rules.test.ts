@@ -184,8 +184,8 @@ test("chuyến: chuẩn hoá rỗng → null, bỏ ký tự điều khiển, ghi
 
 test("chuyến: ngày phải đúng lịch, giờ HH:MM 00:00–23:59, độ dài giới hạn", () => {
   for (const [field, value, re] of [
-    ["departDate", "2026-02-30", /ngày khởi hành/], ["departDate", "20/09/2026", /ngày khởi hành/], ["checkinDate", "2026-13-01", /ngày check-in/],
-    ["departTime", "24:00", /giờ khởi hành/], ["pickupTime", "7:30", /giờ đón/], ["checkinTime", "07:60", /giờ check-in/], ["departDate", 20260925, /ngày khởi hành/],
+    ["departDate", "2026-02-30", /ngày khởi hành/], ["departDate", "20/09/2026", /ngày khởi hành/], ["checkinDate", "2026-13-01", /ngày khách có mặt/],
+    ["departTime", "24:00", /giờ khởi hành/], ["pickupTime", "7:30", /giờ đón/], ["checkinTime", "07:60", /giờ khách có mặt/], ["departDate", 20260925, /ngày khởi hành/],
     ["pickupPlace", "x".repeat(201), /tối đa 200/], ["checkinPlace", "x".repeat(201), /tối đa 200/], ["note", "x".repeat(1001), /tối đa 1000/],
   ] as const) {
     const r = validateTrip({ [field]: value }, "Dịch vụ 1");

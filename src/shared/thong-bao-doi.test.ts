@@ -66,15 +66,16 @@ test("NT-B7.3 cùng thao tác khi đơn CÒN NHÁP (sauXacNhan false) → không
   assert.deepEqual(hop(LAN, [doi({ sauXacNhan: undefined })], "tat-ca").tin, [], "vắng cờ = không biết đã xác nhận → không tin");
 });
 
-test("NT-B7.4 chỉ đổi ghi chú / nơi check-in / nơi trả → không ai", () => {
+test("NT-B7.4 chỉ đổi ghi chú / nơi khách có mặt (kể cả chữ cũ \"check-in\" của nhật ký đã ghi) / nơi trả → không ai", () => {
   for (const d of [
-    doi({ detail: "Tour đảo: đổi ghi chú" }), doi({ detail: "Tour đảo: đổi nơi check-in" }), doi({ detail: "Tour đảo: đổi ghi chú, đổi nơi check-in" }),
+    doi({ detail: "Tour đảo: đổi ghi chú" }), doi({ detail: "Tour đảo: đổi nơi khách có mặt" }), doi({ detail: "Tour đảo: đổi nơi check-in" }), doi({ detail: "Tour đảo: đổi ghi chú, đổi nơi check-in" }),
     doi({ action: "order_leg_updated", detail: "Chiều đi · Tour đảo: nơi trả Bến A → Bến B" }),
   ]) for (const s of [LAN, TAM, MAI]) assert.deepEqual(hop(s, [d], "tat-ca").tin, [], `${s.id}: ${d.detail}`);
 });
 
-test("NT-B7.5 câu 3 = A: chỉ đổi giờ check-in hoặc giờ khởi hành → có tin", () => {
-  assert.deepEqual(cau(TAM, [doi({ detail: "Tour đảo: giờ check-in 14:00 → 15:00" })]), ["Quản Trị đổi đơn TD-1: giờ check-in 14:00 → 15:00"]);
+test("NT-B7.5 câu 3 = A: chỉ đổi giờ khách có mặt (nhật ký mới) hoặc giờ check-in (nhật ký cũ) hoặc giờ khởi hành → có tin, câu dùng chữ mới", () => {
+  assert.deepEqual(cau(TAM, [doi({ detail: "Tour đảo: giờ khách có mặt 14:00 → 15:00" })]), ["Quản Trị đổi đơn TD-1: giờ khách có mặt 14:00 → 15:00"]);
+  assert.deepEqual(cau(TAM, [doi({ detail: "Tour đảo: giờ check-in 14:00 → 15:00" })]), ["Quản Trị đổi đơn TD-1: giờ khách có mặt 14:00 → 15:00"], "nhật ký cũ trên production");
   assert.deepEqual(cau(TAM, [doi({ detail: "Tour đảo: giờ khởi hành 07:00 → 08:00" })]), ["Quản Trị đổi đơn TD-1: giờ khởi hành 07:00 → 08:00"]);
   assert.deepEqual(cau(TAM, [doi({ detail: "Tour đảo: ngày khởi hành 2026-10-10 → 2026-10-11" })]), ["Quản Trị đổi đơn TD-1: ngày khởi hành 10/10/2026 → 11/10/2026"]);
 });

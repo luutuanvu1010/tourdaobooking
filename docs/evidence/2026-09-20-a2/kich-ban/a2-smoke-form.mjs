@@ -23,7 +23,7 @@ try {
   // nằm NGAY SAU thẻ "Dịch vụ" (máy tính: trải ngang sau lưới 2 cột, ngoài .form-main) — danh sách dưới ghim cả vị trí đó ở 390px.
   // Khối đó do mã trang dựng SAU khi khởi động (bước 1 chỉ chờ phần HTML tĩnh) → chờ nó hiện rồi mới đếm (8/10: một lần chạy đếm sớm còn 4 mục).
   await p.waitFor("!document.getElementById('hk-card').hidden", "khối Hành khách dựng xong");
-  assert.deepEqual(await p.ev("[...document.querySelectorAll('.form-main > .card > h2')].map((x) => x.textContent)"), ["Chọn ngày", "Dịch vụ", "Hành khách", "Thanh toán", "Thông tin khách hàng"]);
+  assert.deepEqual(await p.ev("[...document.querySelectorAll('.form-main > .card > h2')].map((x) => x.textContent)"), ["Thông tin khách hàng", "Dịch vụ", "Hành khách", "Thanh toán"]); // 14/10: bốn bước — khách lên đầu, ngày khởi hành nằm trong khối khách (không còn thẻ "Chọn ngày")
   assert.equal(await p.ev("document.getElementById('add-manual').hidden"), true, "nút '+ Dịch vụ nhập tay' ẩn khi danh mục tải được");
   assert.equal(await p.ev("document.getElementById('prepaidMethod').value"), "BANK_TRANSFER", "hình thức trả trước mặc định Chuyển khoản (YC-0002, chủ duyệt 30/9)");
   assert.match(await p.ev("document.querySelector('label:has(#prepaidAmount)').textContent"), /^Thanh toán trước/);
@@ -33,7 +33,7 @@ try {
   assert.deepEqual(await p.ev("[document.getElementById('customerName').value, document.getElementById('customerPhone').value, document.getElementById('customerEmail').value]"), [ACCOUNTS.salesA.name, ACCOUNTS.salesA.phone, ""]);
   await p.ev(setInput("document.getElementById('customerName')", ""));
   await p.ev(setInput("document.getElementById('customerPhone')", ""));
-  ok("Tạo đơn: thứ tự Chọn ngày → Dịch vụ → Hành khách → Thanh toán → Thông tin khách hàng; nhập tay ẩn; Chuyển khoản mặc định, tên khách trống; nút 'của tôi' điền tên + SĐT tài khoản");
+  ok("Tạo đơn: thứ tự Thông tin khách hàng → Dịch vụ → Hành khách → Thanh toán (bốn bước, 14/10); nhập tay ẩn; Chuyển khoản mặc định, tên khách trống; nút 'của tôi' điền tên + SĐT tài khoản");
 
   // ---- 2) ô chọn danh mục: tìm, kết quả, trạng thái rỗng ----
   await p.ev("document.getElementById('catalog-q').focus(); true");
@@ -114,7 +114,7 @@ try {
   assert.equal(await p.ev(`${card(1)}.querySelector('.trip-summary').classList.contains('warn')`), false);
   await p.ev(`${card(1)}.querySelector('details.trip > summary').click(); true`);
   await p.waitFor(`${card(1)}.querySelector('details.trip').open`, "mở khối chuyến");
-  assert.equal(await p.ev(`(() => { const t = ${card(1)}.querySelector('details.trip').getBoundingClientRect(); return [...${card(1)}.querySelectorAll('.trip-body input, .trip-body textarea')].every((el) => { const r = el.getBoundingClientRect(); return r.left >= t.left && r.right <= t.right; }); })()`), true, "ô của khối chuyến nằm gọn trong khung (không thò ra ngoài)");
+  assert.equal(await p.ev(`(() => { const t = ${card(1)}.querySelector('details.trip').getBoundingClientRect(); return [...${card(1)}.querySelectorAll('.trip-body input, .trip-body textarea')].filter((el) => el.getClientRects().length > 0).every((el) => { /* 14/10: ô ngày khách có mặt ẩn sau liên kết nên không có hình để đo */ const r = el.getBoundingClientRect(); return r.left >= t.left && r.right <= t.right; }); })()`), true, "ô của khối chuyến nằm gọn trong khung (không thò ra ngoài)");
   const dateIn = (k) => `${card(1)}.querySelector('[data-trip="${k}"]')`;
   await p.ev(setInput("document.getElementById('orderDate')", vnDate(-2))); // ADR-0021: ngày chọn một lần cho cả đơn
   await p.waitFor(`/Ngày khởi hành đã qua — vẫn lưu được, nhưng chưa thể xác nhận\\./.test(${card(1)}.querySelector('.svc-warnings').textContent)`, "cảnh báo ngày đã qua");

@@ -326,7 +326,7 @@ function cardTop(departDate: string | null, orderCode: string, today: string, ch
 
 /**
  * Thông tin chuyến THÊM dưới dòng "Đón:" (bản 1.39, chỉ "Đơn của tôi" — DTO `MyAssignmentServiceDto` đã có sẵn; hàng chờ KHÔNG có các trường này, phần hẹp
- * ADR-0030 S23-1): giờ khởi hành, check-in (ngày nếu khác ngày đi, giờ, nơi), ghi chú dịch vụ. Trường trống bị bỏ.
+ * ADR-0030 S23-1): giờ khởi hành, khách có mặt (ngày nếu khác ngày đi, giờ, nơi), ghi chú dịch vụ. Trường trống bị bỏ.
  */
 interface ChuyenThem {
   departTime?: string | null;
@@ -340,7 +340,7 @@ function dongChuyenThem(s: ChuyenThem): HTMLElement[] {
   const out: HTMLElement[] = [];
   if (s.departTime) out.push(h("div", { class: "hdv-svc-place" }, `Khởi hành: ${s.departTime}`));
   const checkin = [s.checkinDate ? ngayNgan(s.checkinDate, vnToday(new Date())) : null, s.checkinTime, s.checkinPlace].filter(Boolean).join(" · ");
-  if (checkin) out.push(h("div", { class: "hdv-svc-place" }, `Check-in: ${checkin}`));
+  if (checkin) out.push(h("div", { class: "hdv-svc-place" }, `Khách có mặt: ${checkin}`));
   if (s.note) out.push(h("div", { class: "hdv-svc-place hdv-svc-note" }, `Ghi chú: ${s.note}`));
   return out;
 }

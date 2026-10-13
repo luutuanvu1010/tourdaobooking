@@ -5,7 +5,7 @@
 // Bài canh: tin-doi-don.test.ts (khứ hồi moTaChang, kemDatGap, đoạn số khách + bộ đối kháng) và src/modules/orders/tin-doi-khu-hoi.test.ts (describeTripChange).
 import { CHIEU_LABEL, DAU_DAT_GAP, KHUON_SO_HIEU_CHUYEN_BAY, LY_DO_DAT_GAP } from "./chang-dua-don.ts";
 import { PAX_LABEL, PAX_ORDER, type PaxCode, type PaxCounts } from "./order-lines.ts";
-import { NHAN_GIO, NHAN_TRUONG_THOI_GIAN } from "./truong-thoi-gian.ts";
+import { NHAN_CU_TRUONG_THOI_GIAN, NHAN_GIO, NHAN_TRUONG_THOI_GIAN } from "./truong-thoi-gian.ts";
 import { ngayDayDu } from "./vn-date.ts";
 
 /** Đầu đoạn số khách (dấu hai chấm NGAY sau "khách" — khác tiền tố "số khách đi xe " của ADR-0065) và dấu tách lý do. */
@@ -48,7 +48,7 @@ export const ghepLyDo = (doan: string, lyDo: string): string => `${doan}${DAU_LY
 // HÀM ĐỌC
 
 /**
- * Kết quả đọc một dòng nguồn. `null` = dòng không có tin (không qua bộ lọc nguồn, hoặc chỉ đổi trường không thuộc tin: ghi chú, nơi check-in, nơi trả…).
+ * Kết quả đọc một dòng nguồn. `null` = dòng không có tin (không qua bộ lọc nguồn, hoặc chỉ đổi trường không thuộc tin: ghi chú, nơi khách có mặt, nơi trả…).
  * `gioHen` = lần đổi CÓ (hoặc có thể có — câu chung) đổi ngày / giờ đón của chặng: dùng cho tin MQ-07 (ADR-0052 D6.2); chỉ `order_leg_updated` đặt true.
  */
 export type PhanDoiTin =
@@ -90,7 +90,7 @@ const hienNgay = (v: string) => ngayDayDu(v); // "dd/mm/yyyy" qua MỘT hàm ng�
  * Phần "<nhãn> A → B" với A, B đã kiểm dạng, đứng tại vị trí `i` của `s`. Trả [vị trí sau phần, chữ câu tin] hoặc null. Chữ câu tin ghép từ NHÃN CỐ ĐỊNH +
  * giá trị đã kiểm dạng (ngày hiện dd/mm/yyyy) — không mẩu thô.
  */
-function phanGiaTri(s: string, i: number, nhan: string, kieu: "ngay" | "gio"): [number, string] | null {
+function phanGiaTri(s: string, i: number, nhan: string, kieu: "ngay" | "gio", hien: string = nhan): [number, string] | null {
   if (!s.startsWith(`${nhan} `, i)) return null;
   let j = i + nhan.length + 1;
   const a = khopGiaTri(s.slice(j), kieu);
@@ -102,24 +102,26 @@ function phanGiaTri(s: string, i: number, nhan: string, kieu: "ngay" | "gio"): [
   const b = khopGiaTri(s.slice(j), kieu);
   if (b < 0) return null;
   const vb = s.slice(j, j + b);
-  return [j + b, `${nhan} ${hienNgay(va)}${MUI}${hienNgay(vb)}`];
+  return [j + b, `${hien} ${hienNgay(va)}${MUI}${hienNgay(vb)}`];
 }
 
 // ---- trip_updated (describeTripUpdates của orders): khúc "<tên>: <phần>, <phần>…" nối " | " -----------------------------------------------------------
-// Phần giá trị: năm trường của dịch vụ (nhãn từ NHAN_TRUONG_THOI_GIAN). Phần chữ: "đổi điểm đón" (→ "đổi nơi đón"), "đổi nơi check-in", "đổi ghi chú" (bỏ).
-const TRUONG_DV: readonly { nhan: string; kieu: "ngay" | "gio" }[] = (["departDate", "departTime", "pickupTime", "checkinDate", "checkinTime"] as const).map((k) => ({
-  nhan: NHAN_TRUONG_THOI_GIAN[k], kieu: k.endsWith("Date") ? "ngay" as const : "gio" as const,
-}));
+// Phần giá trị: năm trường của dịch vụ (nhãn từ NHAN_TRUONG_THOI_GIAN, kèm nhãn CŨ của nhật ký đã ghi trước 14/10/2026 — đọc ra cùng MỘT chữ câu tin: nhãn mới). Phần chữ: "đổi điểm đón" (→ "đổi nơi đón"),
+// "đổi nơi khách có mặt" / "đổi nơi check-in" (cũ), "đổi ghi chú" (bỏ).
+const TRUONG_DV: readonly { nhan: string; hien: string; kieu: "ngay" | "gio" }[] = (["departDate", "departTime", "pickupTime", "checkinDate", "checkinTime"] as const).flatMap((k) =>
+  [NHAN_TRUONG_THOI_GIAN[k], ...(NHAN_CU_TRUONG_THOI_GIAN[k] ? [NHAN_CU_TRUONG_THOI_GIAN[k]!] : [])].map((nhan) => ({
+    nhan, hien: NHAN_TRUONG_THOI_GIAN[k], kieu: k.endsWith("Date") ? "ngay" as const : "gio" as const,
+  })));
 const DOI_DIEM_DON = "đổi điểm đón";
 const DOI_NOI_DON = "đổi nơi đón";
-const CHU_DV_BO = ["đổi nơi check-in", "đổi ghi chú"] as const;
+const CHU_DV_BO = ["đổi nơi khách có mặt", "đổi nơi check-in", "đổi ghi chú"] as const;
 
 /** Một phần của khúc dịch vụ tại `i` → danh sách [vị trí sau phần, chữ giữ lại | null (bỏ)]. */
 function phanDichVu(s: string, i: number): [number, string | null][] {
   const ra: [number, string | null][] = [];
   for (const t of TRUONG_DV) {
-    const p = phanGiaTri(s, i, t.nhan, t.kieu);
-    if (p) ra.push([p[0], NHAN_GIO.has(t.nhan) ? p[1] : null]);
+    const p = phanGiaTri(s, i, t.nhan, t.kieu, t.hien);
+    if (p) ra.push([p[0], NHAN_GIO.has(t.hien) ? p[1] : null]);
   }
   if (s.startsWith(DOI_DIEM_DON, i)) ra.push([i + DOI_DIEM_DON.length, DOI_NOI_DON]);
   for (const c of CHU_DV_BO) if (s.startsWith(c, i)) ra.push([i + c.length, null]);

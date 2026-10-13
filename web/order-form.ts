@@ -18,6 +18,8 @@ import {
   type ServiceDraft,
 } from "../src/shared/service-form";
 import { MAX_LINES_PER_ORDER, MAX_SERVICES } from "../src/shared/trip-rules";
+import { coGiaTriChuyen } from "../src/shared/trip-form";
+import { buocXong } from "../src/shared/buoc-tao-don";
 import { vnToday } from "../src/shared/vn-date";
 import { ApiError, api, vuaLamBoiTabNay, type Api, type OrderInput } from "./api";
 import { openAssigneePicker } from "./assignee-picker";
@@ -34,6 +36,8 @@ import { hienBaoNgan } from "./toast";
 import { khoiCanhBaoMoc, khoiNhanDatGap } from "./dat-gap-ui";
 import type { DiemChon } from "./khoi-dua-don";
 import { taoKhoiHanhKhach, type KhoiHanhKhach } from "./khoi-hanh-khach";
+import { moKhoiChua, moMoiKhoiGap, taoKhoiGap } from "./khoi-gap";
+import { taoThanhBuoc } from "./thanh-buoc";
 import { goiSom } from "./goi-som";
 import { icon } from "./icons";
 import { layKhungNho } from "./khung-nho";
@@ -62,6 +66,14 @@ const num = (id: string) => parseMoney(field(id).value);
 // Hồ sơ khách (N2 lát 1): tra theo SĐT, dùng hồ sơ có sẵn hoặc tạo mới khi lưu; không chọn = lưu không gắn (ADR-0011).
 const bookerPicker = createBookerPicker({ name: field("customerName") as HTMLInputElement, phone: field("customerPhone") as HTMLInputElement });
 byId("booker-slot").append(bookerPicker.root);
+// Bản "bốn bước" (14/10/2026; đặc tả docs/superpowers/specs/2026-10-14-tao-don-bon-buoc/README.md): Email + Ghi chú của khách gập sau "Thêm chi tiết" (tự mở khi có giá trị hoặc khi lỗi);
+// thanh tiến độ dính trên đầu (bốn bước; vai không chọn được người phụ trách và lúc sửa đơn: ba bước).
+const khachThem = byId("khach-them");
+const gapKhach = taoKhoiGap({ ma: "khach", nhan: "Thêm chi tiết (email, ghi chú)", than: khachThem });
+khachThem.before(gapKhach.nut);
+const thanhBuoc = taoThanhBuoc({ phanTu: (ma) => document.querySelector<HTMLElement>(`[data-buoc-khoi="${ma}"]`) });
+thanhBuoc.an("phu-trach", true); // bật lại khi biết người lập chọn được người phụ trách (`canPickHandler`)
+byId("buoc-slot").replaceWith(thanhBuoc.root); // KHÔNG bọc thêm thẻ: thanh dính chỉ dính trong khung cha của nó (.form-main: dưới 960px là `display: contents` nên khung dính là cả biểu mẫu)
 
 interface Entry {
   draft: ServiceDraft;
@@ -145,7 +157,7 @@ function mount(d: ServiceDraft, open?: boolean): Entry {
   entry.card = createServiceCard({
     draft: d,
     today,
-    openTrip: open ?? false, // bản 1.39 (chủ yêu cầu 30/9, thay giả định Q2 ngày 19/9): mọi khổ thu gọn mặc định; `?focus=` của cảnh báo thiếu chuyến vẫn mở đúng thẻ
+    openTrip: open ?? coGiaTriChuyen(d.trip), // bản 1.39: thu gọn mặc định; bốn bước (14/10): TỰ MỞ khi đã có giá trị (nháp đã lưu, bản sửa) — không giấu giá trị đang có; `?focus=` của cảnh báo thiếu chuyến vẫn mở đúng thẻ
     canAddLine: () => totalLines(drafts()) < MAX_LINES_PER_ORDER,
     retailOnly,
     duocNhapTay,
@@ -224,6 +236,7 @@ let assigneeErrorShown = false;
 
 function setHandlerPick(picked: AssigneeDto | null): void {
   handlerPick = picked;
+  capNhatBuoc();
   if (assigneeErrorShown) {
     assigneeErrorShown = false;
     renderBanner(saveErrorEl, null);
@@ -258,6 +271,24 @@ function renderOwner(focus = false): void {
   if (focus) opener.focus();
 }
 
+// ---- thanh tiến độ: bước nào đã đủ thông tin (luật ở src/shared/buoc-tao-don.ts) ----
+function capNhatBuoc(): void {
+  const ds = drafts();
+  thanhBuoc.datXong(
+    buocXong({
+      coNgayDi: orderDate !== "", ten: field("customerName").value, sdt: field("customerPhone").value,
+      soDichVu: ds.length, coLoiDichVu: ds.some((d) => draftIssues(d).length > 0),
+      coLoiTien: loiTienForm().cau.length > 0, daChonNguoi: handlerPick !== null,
+    }),
+  );
+}
+for (const id of ["customerName", "customerPhone"]) {
+  field(id).addEventListener("input", () => {
+    datLoiO(id, null); // đang sửa ô thì gỡ câu lỗi dưới ô
+    capNhatBuoc();
+  });
+}
+
 // ---- tóm tắt tiền và trạng thái nút ----
 function recompute(): void {
   const ds = drafts();
@@ -289,6 +320,7 @@ function recompute(): void {
   for (const e of entries) e.card.refreshLimits(); // trần 50 dòng tính trên CẢ ĐƠN: nút "+ Thêm dòng" của mọi thẻ nhập tay bật/khoá đúng ngay
   for (const e of entries) capNhatMoc(e);
   hk?.refresh(); // mẫu số "N/M khách đã có tên" theo số khách dịch vụ
+  capNhatBuoc();
   const tooMany = ds.some((d) => draftIssues(d).some((i) => i.code === "too_many_guests")); // vượt 50 khách khoá nút Lưu (đặc tả 5.1)
   saveBtn.disabled = formLocked || saving || tooMany;
   saveBtn.textContent = saving ? "Đang lưu…" : editId ? "Lưu thay đổi" : "Lưu, chờ xác nhận";
@@ -303,16 +335,43 @@ for (const id of ["discount", "prepaidAmount"]) {
 }
 
 // ---- kiểm phía trình duyệt (máy chủ vẫn là nơi quyết định) ----
-function validate(): { banner: Banner; focus: HTMLElement } | null {
+/** Câu lỗi ngay dưới ô tên / SĐT khách (kèm `aria-invalid`); `null` = gỡ. */
+function datLoiO(id: string, cau: string | null): void {
+  const el = document.getElementById(`${id}-loi`);
+  if (!el) return;
+  replaceChildren(el, ...(cau ? [icon("alert", 16), cau] : []));
+  el.hidden = !cau;
+  field(id).setAttribute("aria-invalid", cau ? "true" : "false");
+}
+
+/** Câu lỗi tiền của biểu mẫu (giảm giá quá tạm tính / trả trước quá tổng): MỘT nơi, dùng cho cả khung "Chưa lưu được" (`validate`) lẫn dấu ✓ của bước Thanh toán (`capNhatBuoc`) — không so sánh tiền ở chỗ thứ hai. Máy chủ vẫn chặn lại ở rules.ts. */
+function loiTienForm(): { cau: string[]; oTraTruoc: boolean } {
+  const lines: string[] = [];
+  let oTraTruoc = false;
+  const s = orderSummary(drafts(), num("discount"), traTruocAn ? 0 : num("prepaidAmount"));
+  if (s.discount > s.subtotal) lines.push("Giảm giá không được vượt quá tạm tính.");
+  else if (s.traTruoc > s.total) {
+    lines.push("Thanh toán trước không được vượt quá tổng cộng.");
+    oTraTruoc = true;
+  }
+  return { cau: lines, oTraTruoc };
+}
+
+/** `cacO` = mọi ô / khối có lỗi: nơi gọi mở khối gập chứa chúng (`moKhoiChua`) — lỗi không bao giờ nằm trong khối đóng. */
+function validate(): { banner: Banner; focus: HTMLElement; cacO: HTMLElement[] } | null {
   const lines: string[] = [];
   const focusables: HTMLElement[] = [];
   const need = (id: string, message: string) => {
-    if (!field(id).value.trim()) {
+    const thieu = !field(id).value.trim();
+    datLoiO(id, thieu ? message : null);
+    if (thieu) {
       lines.push(message);
       focusables.push(field(id));
     }
   };
-  // Cùng thứ tự với form: dịch vụ, thanh toán, khách hàng (chủ duyệt 30/9 — YC-0001/0002).
+  // Cùng thứ tự với form: khách hàng, dịch vụ, thanh toán (chủ duyệt 30/9 — YC-0001/0002; bản bốn bước 14/10 đưa khách lên đầu form nên câu lỗi khách cũng lên đầu).
+  need("customerName", "Nhập tên khách.");
+  need("customerPhone", "Nhập số điện thoại khách.");
   if (entries.length === 0) lines.push("Thêm ít nhất một dịch vụ.");
   entries.forEach((e, i) => {
     for (const issue of draftIssues(e.draft)) {
@@ -330,16 +389,11 @@ function validate(): { banner: Banner; focus: HTMLElement } | null {
     lines.push("Các dịch vụ đang khác ngày — chọn một ngày cho cả đơn.");
     focusables.push(orderDateEl);
   }
-  const s = orderSummary(drafts(), num("discount"), traTruocAn ? 0 : num("prepaidAmount"));
-  if (s.discount > s.subtotal) lines.push("Giảm giá không được vượt quá tạm tính.");
-  else if (s.traTruoc > s.total) {
-    lines.push("Thanh toán trước không được vượt quá tổng cộng.");
-    focusables.push(field("prepaidAmount"));
-  }
-  need("customerName", "Nhập tên khách.");
-  need("customerPhone", "Nhập số điện thoại khách.");
+  const tien = loiTienForm();
+  lines.push(...tien.cau);
+  if (tien.oTraTruoc) focusables.push(field("prepaidAmount"));
   if (lines.length === 0) return null;
-  return { banner: banner("danger", "Chưa lưu được — kiểm tra lại:", { lines: lines.map((text) => ({ text })) }), focus: focusables[0] ?? saveErrorEl };
+  return { banner: banner("danger", "Chưa lưu được — kiểm tra lại:", { lines: lines.map((text) => ({ text })) }), focus: focusables[0] ?? saveErrorEl, cacO: focusables };
 }
 
 function collect(): OrderInput {
@@ -407,6 +461,15 @@ async function onSaveError(err: unknown): Promise<void> {
   // 400 `invalid_assignee`: người được chọn vừa nghỉ/mất quyền giữa lúc điền form — máy chủ KHÔNG tạo đơn; form giữ nguyên (kể cả lựa chọn, để người dùng
   // thấy mình đã chọn ai) và banner nói cách sửa. Đổi/bỏ lựa chọn thì banner này tự gỡ (`setHandlerPick`).
   assigneeErrorShown = err instanceof ApiError && err.code === "invalid_assignee";
+  // Máy chủ từ chối (400) mà không chỉ ra ô nào: mở mọi khối gập của dịch vụ bị nêu (hoặc của cả form + khách) — khối còn đóng thì bên trong chỉ toàn giá trị mặc định, nên mở thêm không giấu gì,
+  // và một ô lỗi không bao giờ nằm trong khối đóng. Cuộn vẫn tới banner (nêu rõ dịch vụ / lý do) như trước.
+  if (err instanceof ApiError && err.status === 400) {
+    const the = failure.focusService === null ? undefined : entries[failure.focusService]?.card.root;
+    if (the) moMoiKhoiGap(the);
+    else {
+      moMoiKhoiGap(formEl);
+    }
+  }
   const target = failure.focusService === null ? undefined : entries[failure.focusService]?.card.root;
   (wide() ? (target ?? saveErrorEl) : saveErrorEl).scrollIntoView({ block: "center" }); // < 960px: banner (nêu rõ dịch vụ/giá) nằm cuối form nên cuộn tới ĐÓ; ≥ 960px: cuộn tới thẻ (banner ở cột dính, luôn thấy)
 }
@@ -415,6 +478,9 @@ async function onSaveError(err: unknown): Promise<void> {
 formEl.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && e.target instanceof HTMLInputElement && e.target.type === "search") e.preventDefault();
 });
+
+// Dấu ✓ của thanh tiến độ theo kịp mọi cách đổi ô (chọn hồ sơ khách, đổi nhóm…): tính lại sau mỗi lần đổi / bấm — chỉ cộng vài phép so sánh.
+for (const ten of ["change", "click"]) formEl.addEventListener(ten, () => queueMicrotask(capNhatBuoc));
 
 formEl.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -429,14 +495,20 @@ async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDa
   if (formLocked || saving) return;
   renderBanner(saveErrorEl, null);
   assigneeErrorShown = false;
-  for (const en of entries) en.card.showIssues(true);
+  const loiChangCuaThe = entries.map((en) => en.card.showIssues(true)); // mở chặng gọn / khối chi tiết chứa ô lỗi; nhớ ô lỗi đầu tiên của từng thẻ + ô đó có đang nằm trong khối đóng không
   hk?.showIssues(true);
   const invalid = validate();
   if (invalid) {
     renderBanner(saveErrorEl, invalid.banner);
-    if (wide()) {
-      invalid.focus.scrollIntoView({ block: "center" }); // ≥ 960px: banner ở cột dính (luôn thấy) → cuộn tới ô/thẻ lỗi đầu tiên và đặt focus vào đó
-      invalid.focus.focus({ preventScroll: true });
+    // Ô lỗi đầu tiên: ô khách thì chính nó; lỗi chặng của một thẻ dịch vụ thì ô lỗi trong chặng (đã đo "đang nằm trong khối đóng" TRƯỚC khi mở); lỗi khác của thẻ thì cả thẻ.
+    const loiChang = loiChangCuaThe[entries.findIndex((en) => en.card.root === invalid.focus)] ?? null;
+    const dich = loiChang?.o ?? invalid.focus;
+    const dangAn = loiChang?.daAn ?? (dich !== saveErrorEl && dich.getClientRects().length === 0);
+    for (const o of invalid.cacO) moKhoiChua(o);
+    moKhoiChua(dich);
+    if (wide() || dangAn) {
+      dich.scrollIntoView({ block: "center" }); // ≥ 960px: banner ở cột dính (luôn thấy) → cuộn tới ô/thẻ lỗi đầu tiên và đặt focus vào đó; điện thoại: CHỈ khi ô nằm trong khối gập vừa được mở (người lập phải thấy ô đỏ vừa hiện ra)
+      dich.focus({ preventScroll: true });
     } else {
       saveErrorEl.scrollIntoView({ block: "center" }); // < 960px: banner (liệt kê đủ lỗi) nằm cuối form nên phải cuộn tới ĐÓ
     }
@@ -543,10 +615,15 @@ function fill(o: Api.OrderDetailDto): void {
   napBenDat(o);
   field("customerEmail").value = o.customerEmail ?? "";
   field("customerNote").value = o.customerNote ?? "";
+  if (field("customerEmail").value !== "" || field("customerNote").value.trim() !== "") gapKhach.mo(); // nháp đã có email / ghi chú: khối gập tự mở — không giấu giá trị đang có
   (field("discount") as HTMLInputElement).value = o.discount ? grouped(o.discount) : "";
   field("paymentNote").value = o.paymentNote ?? "";
   for (const en of [...entries]) unmount(en);
   orderUpdatedAt = o.updatedAt;
+  // Ngày của cả đơn đặt TRƯỚC khi dựng thẻ: khối Đưa đón quyết chặng gọn / mở lúc dựng bằng cách so ngày đón với ngày đi (`changNenGon`) — ngày đi còn trống thì chặng nào cũng "đón khác ngày".
+  const ngayDv = new Set(o.services.map((s) => s.departDate ?? ""));
+  orderDate = ngayDv.size === 1 ? [...ngayDv][0]! : "";
+  orderDateEl.value = orderDate;
   for (const s of o.services) {
     const entry = mount(draftFromDto(s, live, newKey()), s.id === focusId ? true : undefined);
     if (s.id === focusId) entry.card.reveal(); // liên kết "Sửa" của banner incomplete_trip: mở khối chuyến và cuộn tới thẻ
@@ -647,6 +724,7 @@ const layMoc = can(staff, "order.create")
   : Promise.resolve(null);
 // Khối "Người phụ trách": chỉ lập đơn mới, chỉ ai máy chủ cho chọn (Thực tập, Đối tác thuần: khối KHÔNG hiện — không phải hiện rồi báo lỗi).
 canPickHandler = !editId && mayPickHandlerOnCreate(staff);
+thanhBuoc.an("phu-trach", !canPickHandler); // bước "Phụ trách" chỉ có khi khối người phụ trách có (lập đơn mới, người lập chọn được)
 if (canPickHandler) {
   ownerEl.hidden = false;
   renderOwner();

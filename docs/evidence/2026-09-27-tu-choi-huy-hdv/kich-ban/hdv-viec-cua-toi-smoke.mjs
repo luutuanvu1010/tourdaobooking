@@ -201,7 +201,7 @@ try {
     }
     assert.ok(m2.svcs[0].includes(PICKUP_WITH_PHONE), `đơn ĐÃ giao: nơi đón KHÔNG bị che — ${m2.svcs[0]}`);
     // bản 1.39: dưới "Đón:" có giờ khởi hành, check-in, ghi chú dịch vụ (chỉ "Đơn của tôi"); tiêu đề nhóm "Đã đi tour" trước đơn đã đi
-    assert.match(m1.svcs[0], /Đón: Khách sạn Novotel Khởi hành: 07:45 Check-in: 08:15 · Cảng Cầu Đá Ghi chú: Khách ăn chay$/, m1.svcs[0]);
+    assert.match(m1.svcs[0], /Đón: Khách sạn Novotel Khởi hành: 07:45 Khách có mặt: 08:15 · Cảng Cầu Đá Ghi chú: Khách ăn chay$/, m1.svcs[0]);
     assert.deepEqual(s.mineOrder, [M1.id, M2.id, M4.id, "# Đã đi tour", M3.id]);
     const w = await desk.ev("(() => { const a = document.querySelector('.account-layout').getBoundingClientRect(); const m = document.querySelector('#myjobs').getBoundingClientRect(); return { layout: Math.round(a.width), myjobs: Math.round(m.width) }; })()");
     assert.equal(w.myjobs, w.layout, `#myjobs trải hết bề ngang lưới 2 cột — ${JSON.stringify(w)}`);
