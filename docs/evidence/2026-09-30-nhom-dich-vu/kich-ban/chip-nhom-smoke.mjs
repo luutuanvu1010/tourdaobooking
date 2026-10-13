@@ -1,6 +1,7 @@
-// Kịch bản Chrome (bằng chứng giao diện) cho ADR-0058 Đ8 — Task A6 lượt 1: chip "Nhóm dịch vụ" ở ô "Chọn từ danh mục" của form lập đơn.
-// Chủ chọn CÁCH 1 (câu Q1, 30/9 — ảnh phác docs/design/nhom-dich-vu-2026-09-30/): hàng RIÊNG có nhãn "Nhóm dịch vụ" dưới hàng lọc 1.42, kết hợp VÀ với hàng đó
-// và ô tìm; chip 1.42 "Theo nhóm" đổi chữ thành "Giá theo nhóm"; dòng "Đang lọc: <nhóm> — N dịch vụ · Bỏ lọc"; nhớ THEO TÀI KHOẢN trên máy (khoá loc-nhom-dv:<id>).
+// Kịch bản Chrome (bằng chứng giao diện) cho ADR-0058 Đ8 — nhóm dịch vụ ở ô "Chọn từ danh mục" của form lập đơn.
+// Ban đầu (30/9, Task A6) là HÀNG CHIP một nhóm; ĐỢT 1 (13/10, ý chủ "chỉ để lại việc lọc theo nhóm sản phẩm bằng nút xổ xuống + tick chọn") đổi thành MỘT nút xổ xuống
+// "Nhóm dịch vụ" (kèm số nhóm đang tick, "Nhóm dịch vụ · 2") trên ô gõ: bảng nhóm mỗi dòng một ô tick (≥ 44px), tick NHIỀU nhóm, không tick = tất cả, "Bỏ chọn hết", đóng bằng nút
+// Đóng / Esc / bấm ra ngoài; dấu sao ☆/★ ở đầu dòng và dịch vụ có sao xếp lên trước. Nhớ THEO TÀI KHOẢN trên máy (khoá loc-nhom-dv:<id>, nay là MẢNG mã; bản nhớ cũ một chuỗi vẫn đọc được).
 // Dùng lại cơ chế CDP của A2 (startEnv()/ACCOUNTS từ ../../2026-09-20-a2/kich-ban/a2-cdp.mjs). startEnv() chèn 3 dịch vụ giả (TD101/TTB03/TTB06) SAU migration gieo nhóm,
 // nên cả ba ở "Chưa phân loại": kịch bản chèn thêm 21 dịch vụ TTB giả + 1 dịch vụ ZZ01 rồi dùng tài khoản Quản trị gán nhóm qua PUT /api/catalog/group-assignments
 // (TTB = 23 dịch vụ như hôm nay, TD101 → Tour đảo, ZZ01 để "Chưa phân loại").
@@ -19,17 +20,20 @@ const MOB = { width: 390, height: 844, mobile: true };
 const DESK = { width: 1040, height: 800, mobile: false };
 // Chỉ khung nhìn (vùng dính "Tổng cộng/Lưu" cuối trang bị ghép chồng nếu chụp quá khung). Cuộn ô danh mục lên đầu khung trước khi chụp.
 const shot = async (p, name) => {
-  await p.ev("document.querySelector('.catalog').scrollIntoView({ block: 'start' }); true");
+  await p.ev("document.querySelector('.catalog').scrollIntoView({ block: 'start' }); scrollBy(0, -80); true"); // trừ chiều cao thanh trên cùng dính
   await sleep(150);
   writeFileSync(join(OUT, name), Buffer.from((await p.send("Page.captureScreenshot", { format: "png" })).result.data, "base64"));
 };
 
-const CHIP = "[...document.querySelectorAll('.catalog-nhom .catalog-nhom-nut')]";
-const nhanChip = `${CHIP}.map((b) => b.textContent)`;
-const dangBam = `${CHIP}.filter((b) => b.getAttribute('aria-pressed') === 'true').map((b) => b.textContent)`;
-const trangThai = "(() => { const s = document.querySelector('.catalog-nhom-trang-thai'); return s.hidden ? '' : s.textContent; })()";
+const NUT = "document.getElementById('catalog-nhom-nut')";
+const nhanNut = `${NUT}.firstElementChild.textContent`;
+const bangMo = "(!document.getElementById('catalog-nhom-bang').hidden && " + NUT + ".getAttribute('aria-expanded') === 'true')";
+const O = "[...document.querySelectorAll('#catalog-nhom-bang input[type=checkbox]')]";
+const daTick = `${O}.filter((c) => c.checked).map((c) => c.value)`;
 const hang = "[...document.querySelectorAll('#catalog-list .catalog-pick')].map((b) => b.querySelector('strong').textContent)";
-const bamNhom = (code) => `(() => { const b = document.querySelector('.catalog-nhom [data-nhom="${code}"]'); b.click(); return true; })()`;
+const soNhom = "document.querySelector('.catalog-nhom-so-ket-qua').textContent";
+const tick = (code) => `(() => { document.querySelector('#catalog-nhom-bang [data-nhom="${code}"]').click(); return true; })()`;
+const moBang = `(() => { if (${NUT}.getAttribute('aria-expanded') !== 'true') ${NUT}.click(); return true; })()`;
 const khongTranNgang = "document.documentElement.scrollWidth - innerWidth <= 0";
 
 const env = await startEnv();
@@ -65,62 +69,96 @@ try {
   assert.equal(TEN_NHOM.length, 14, "14 nhóm gieo sẵn");
   ok(`Dữ liệu: Quản trị gán 23 dịch vụ vào "Thể thao biển", TD101 vào "Tour đảo", một dịch vụ cho mỗi nhóm khác; for-order trả 14 nhóm, ZZ01 chưa phân loại`);
 
-  // ---- 1) Bán hàng A, 390: hàng chip, bấm TTB → 23, danh sách chỉ TTB ----
+  // ---- 1) Bán hàng A, 390: MỘT nút xổ xuống, không còn hàng chip; mở bảng, tick nhiều nhóm ----
   const p = await env.as(ACCOUNTS.salesA, "/order-form", MOB);
   const idA = await p.ev("fetch('/api/auth/me').then((r) => r.json()).then((j) => j.staff.id)");
   // Khoá nhớ ĐỌC TỪ TRÌNH DUYỆT (không tự dựng) ở bước 1; bước 6 mới khẳng định khoá có id — để bài P16 (bỏ id khỏi khoá) đỏ đúng ở bước "tài khoản khác".
   let KHOA_A = "";
-  await p.waitFor(`${CHIP}.length === 17`, "17 chip (Tất cả + ★ Hay dùng + 14 nhóm + Chưa phân loại)", 10000);
-  assert.deepEqual(await p.ev(nhanChip), ["Tất cả", "★ Hay dùng", ...TEN_NHOM, "Chưa phân loại"], "thứ tự chip: Tất cả, ★ Hay dùng, nhóm theo groups, Chưa phân loại");
-  assert.deepEqual(await p.ev(dangBam), ["Tất cả"], "mặc định Tất cả");
-  // Đợt 1 (13/10, #3): hàng "Lọc sẵn có" đã bỏ; "Nhóm dịch vụ" nằm TRÊN ô gõ; "Theo người" / "Giá theo nhóm" không còn nút.
-  assert.deepEqual(await p.ev("[...document.querySelectorAll('.catalog-hang-nhan')].map((x) => x.textContent)"), ["Nhóm dịch vụ"]);
-  assert.equal(await p.ev("document.querySelectorAll('.catalog-loc, .catalog-loc-nut').length"), 0, "không còn hàng Lọc sẵn có");
-  assert.equal(await p.ev("/Theo người|Giá theo nhóm|Lọc sẵn có/.test(document.querySelector('.catalog').textContent)"), false, "không còn chữ của hàng cũ");
+  await p.waitFor(`!!${NUT} && !${NUT}.closest('.catalog-nhom').hidden && ${O}.length === 15`, "nút Nhóm dịch vụ + 15 dòng (14 nhóm + Chưa phân loại)", 10000);
+  assert.equal(await p.ev("document.querySelectorAll('.catalog-nhom-nut').length"), 1, "đúng MỘT nút");
+  assert.equal(await p.ev(nhanNut), "Nhóm dịch vụ", "chưa tick: không số");
+  assert.equal(await p.ev(`${NUT}.getAttribute('aria-expanded')`), "false");
+  assert.equal(await p.ev(`document.getElementById(${NUT}.getAttribute('aria-controls')) === document.getElementById('catalog-nhom-bang')`), true, "aria-controls trỏ đúng bảng nhóm");
+  assert.equal(await p.ev("document.getElementById('catalog-nhom-bang').hidden"), true, "mặc định bảng đóng");
+  // Mọi hàng lọc phụ đã bỏ: không chip, không "Hay dùng", "Theo người", "Giá theo nhóm", "Lọc sẵn có"; hàng chip nhóm cũng không còn.
+  assert.equal(await p.ev("document.querySelectorAll('.catalog .loc-nut, .catalog-nhom-chips, .catalog-loc, .catalog-loc-nut, .catalog-hang-nhan, .catalog-nhom-trang-thai').length"), 0, "không còn chip / hàng lọc cũ");
+  assert.equal(await p.ev("/Hay dùng|Theo người|Giá theo nhóm|Lọc sẵn có|Đang lọc/.test(document.querySelector('.catalog').textContent)"), false, "không còn chữ của bộ lọc cũ");
   assert.equal(await p.ev("!!document.querySelector('.catalog-nhom[data-cho=\"nhom\"]')"), true, "điểm gắn data-cho=nhom");
-  assert.equal(await p.ev("!!(document.querySelector('.catalog-nhom').compareDocumentPosition(document.getElementById('catalog-q')) & Node.DOCUMENT_POSITION_FOLLOWING)"), true, "hàng nhóm nằm TRÊN ô gõ");
-  assert.equal(await p.ev("document.querySelector('.catalog label')"), null, "nhãn 'Chọn từ danh mục' đã ẩn (chữ mờ trong ô)");
+  assert.equal(await p.ev(`!!(${NUT}.compareDocumentPosition(document.getElementById('catalog-q')) & Node.DOCUMENT_POSITION_FOLLOWING)`), true, "nút nhóm nằm TRÊN ô gõ");
+  assert.equal(await p.ev("document.querySelector('.catalog label.catalog-ten, .catalog > label')"), null, "nhãn 'Chọn từ danh mục' đã ẩn (chữ mờ trong ô)");
   assert.deepEqual(await p.ev("(() => { const q = document.getElementById('catalog-q'); return [q.getAttribute('aria-label'), q.placeholder]; })()"), ["Chọn từ danh mục", "Chọn từ danh mục — gõ tên hoặc mã…"], "tên cho trình đọc màn hình + chữ mờ");
-  assert.ok((await p.ev(`Math.min(...${CHIP}.map((b) => b.getBoundingClientRect().height))`)) >= 44, "chip nhóm cao ≥ 44px");
-  assert.ok(await p.ev(khongTranNgang), "390: trang không tràn ngang dù 17 chip");
-  assert.equal(await p.ev("(() => { const r = document.querySelector('.catalog-nhom-chips'); return r.scrollWidth > r.clientWidth && getComputedStyle(r).overflowX === 'auto'; })()"), true, "hàng chip trượt ngang");
-  assert.equal(await p.ev(trangThai), "", "Tất cả: không dòng Đang lọc");
-  await p.ev(bamNhom("TTB"));
-  await p.waitFor(`${trangThai} === 'Đang lọc: Thể thao biển — 23 dịch vụ · Bỏ lọc'`, "nhãn Đang lọc 23");
-  assert.equal(await p.ev("document.querySelector('.catalog-nhom-trang-thai').getAttribute('role')"), "status");
-  assert.deepEqual(await p.ev(dangBam), ["Thể thao biển"]);
-  await p.ev("document.getElementById('catalog-q').focus(); true");
-  await p.waitFor(`${hang}.length === 23 && ${hang}.every((c) => c.startsWith('TTB'))`, "danh sách chỉ 23 dịch vụ TTB");
+  assert.ok((await p.ev(`${NUT}.getBoundingClientRect().height`)) >= 44, "nút cao ≥ 44px");
+  await p.ev(moBang);
+  assert.equal(await p.ev(bangMo), true, "bấm nút: bảng mở, aria-expanded=true");
+  assert.deepEqual(await p.ev(`${O}.map((c) => c.closest('label').querySelector('.catalog-nhom-ten').textContent)`), [...TEN_NHOM, "Chưa phân loại"], "thứ tự dòng: nhóm theo groups, Chưa phân loại cuối");
+  assert.ok((await p.ev(`Math.min(...${O}.map((c) => c.closest('label').getBoundingClientRect().height))`)) >= 44, "mỗi dòng ô tick cao ≥ 44px");
+  assert.equal(await p.ev("document.querySelector('.catalog-nhom-bo').disabled"), true, "chưa tick gì: 'Bỏ chọn hết' tắt");
+  assert.equal(await p.ev(soNhom), "37 dịch vụ", "không tick = tất cả: 37 dịch vụ (3 gốc + 21 TTB + 12 nhóm khác + ZZ01)");
+  assert.ok(await p.ev(khongTranNgang), "390: trang không tràn ngang khi bảng nhóm mở");
+  await shot(p, "nhom-xo-xuong-390-mo.png");
+  await p.ev(tick("TTB"));
+  assert.equal(await p.ev(nhanNut), "Nhóm dịch vụ · 1");
+  assert.equal(await p.ev(soNhom), "23 dịch vụ");
+  await p.ev(tick("TDA"));
+  assert.equal(await p.ev(nhanNut), "Nhóm dịch vụ · 2", "tick thêm nhóm thứ hai → nhớ nhiều nhóm");
+  assert.equal(await p.ev(soNhom), "24 dịch vụ", "nhiều nhóm = HOẶC (23 + 1)");
+  assert.deepEqual((await p.ev(daTick)).sort(), ["TDA", "TTB"], "hai ô được tick");
+  assert.equal(await p.ev("document.querySelector('.catalog-nhom-bo').disabled"), false, "đã tick: 'Bỏ chọn hết' bật");
   KHOA_A = await p.ev("Object.keys(localStorage).find((k) => k.startsWith('loc-nhom-dv:')) ?? ''");
-  assert.equal(await p.ev(`localStorage.getItem(${JSON.stringify(KHOA_A)})`), '"TTB"', "bấm chip → nhớ trên máy");
-  await shot(p, "chip-nhom-390-the-thao-bien.png");
-  ok("390: hàng 'Nhóm dịch vụ' trên ô gõ, không còn 'Lọc sẵn có' (17 chip gồm ★ Hay dùng, ≥44px, trượt ngang, trang không tràn); bấm Thể thao biển → 'Đang lọc: Thể thao biển — 23 dịch vụ', danh sách chỉ TTB; nhớ ở loc-nhom-dv:<id>");
+  assert.deepEqual(JSON.parse(await p.ev(`localStorage.getItem(${JSON.stringify(KHOA_A)})`)).sort(), ["TDA", "TTB"], "nhớ trên máy: mảng mã nhóm");
+  // Đóng bằng nút Đóng: danh sách hiện đúng 24 dịch vụ của hai nhóm, focus về nút.
+  await p.ev("document.querySelector('.catalog-nhom-dong').click(); true");
+  assert.equal(await p.ev(bangMo), false, "Đóng: bảng đóng");
+  assert.equal(await p.ev(`${NUT}.getAttribute('aria-expanded')`), "false");
+  assert.equal(await p.ev("document.activeElement && document.activeElement.id"), "catalog-nhom-nut", "đóng bảng: focus về nút");
+  await p.waitFor(`${hang}.length === 24 && ${hang}.every((c) => c.startsWith('TTB') || c === 'TD101')`, "danh sách chỉ 24 dịch vụ của TDA + TTB");
+  assert.match(await p.ev("document.querySelector('#catalog-list .catalog-dau').textContent"), /^24 dịch vụĐóng$/);
+  await shot(p, "nhom-xo-xuong-390-hai-nhom.png");
+  ok("390: một nút 'Nhóm dịch vụ' trên ô gõ (không còn chip / Hay dùng / Lọc sẵn có); bảng 15 dòng ô tick ≥ 44px; tick TTB + TDA → 'Nhóm dịch vụ · 2', 24 dịch vụ (HOẶC); nhớ mảng mã ở loc-nhom-dv:<id>; Đóng → danh sách 24 dòng, focus về nút");
 
-  // ---- 2) Tìm trong nhóm; VÀ với "★ Hay dùng" ----
+  // ---- 2) Bỏ chọn hết; tìm trong nhóm (VÀ); Esc và bấm ra ngoài đóng bảng ----
+  await p.ev(moBang);
+  await p.ev("document.querySelector('.catalog-nhom-bo').click(); true");
+  assert.equal(await p.ev(nhanNut), "Nhóm dịch vụ", "Bỏ chọn hết → không số");
+  assert.deepEqual(await p.ev(daTick), []);
+  assert.equal(await p.ev(soNhom), "37 dịch vụ");
+  assert.equal(await p.ev(`localStorage.getItem(${JSON.stringify(KHOA_A)})`), null, "Bỏ chọn hết: xoá bản nhớ");
+  await p.ev(tick("TTB"));
+  await p.ev("document.getElementById('catalog-nhom-nut').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
+  assert.equal(await p.ev(bangMo), false, "Esc đóng bảng nhóm");
+  assert.equal(await p.ev("document.activeElement && document.activeElement.id"), "catalog-nhom-nut", "Esc: focus về nút");
+  await p.ev("document.getElementById('catalog-q').focus(); true");
   await p.ev(setInput("document.getElementById('catalog-q')", "motor"));
   await p.waitFor(`JSON.stringify(${hang}) === '["TTB06"]'`, "tìm 'motor' trong TTB");
-  assert.equal(await p.ev(trangThai), "Đang lọc: Thể thao biển — 1 dịch vụ · Bỏ lọc");
   await p.ev(setInput("document.getElementById('catalog-q')", "TD101"));
   await p.waitFor(`${hang}.length === 0 && /Không tìm thấy dịch vụ/.test(document.getElementById('catalog-list').textContent)`, "TD101 không thuộc TTB → không thấy");
   await p.ev(setInput("document.getElementById('catalog-q')", ""));
   await p.waitFor(`${hang}.length === 23`, "xoá tìm → 23");
-  await p.ev("document.querySelector('#catalog-list [data-ghim=\"TTB06\"]').click(); true");
-  await p.ev("document.querySelector('#catalog-list [data-ghim=\"TTB09\"]').click(); true");
-  // Đợt 1 (13/10): "★ Hay dùng" là MỘT chip của hàng nhóm, loại trừ với nhóm (chọn Hay dùng → bỏ nhóm; chọn nhóm → bỏ Hay dùng).
-  await p.ev("document.querySelector('.catalog-nhom [data-loc=\"hay-dung\"]').click(); true");
-  await p.waitFor(`JSON.stringify(${hang}) === '["TTB06","TTB09"]' && ${trangThai} === 'Đang lọc: ★ Hay dùng — 2 dịch vụ · Bỏ lọc'`, "★ Hay dùng: hai dịch vụ đã ghim");
-  assert.deepEqual(await p.ev(dangBam), ["★ Hay dùng"], "chỉ MỘT chip đang bật: Hay dùng (nhóm Thể thao biển tắt)");
-  await shot(p, "chip-nhom-390-hay-dung.png");
-  await p.ev(bamNhom("TDA"));
-  await p.waitFor(`JSON.stringify(${hang}) === '["TD101"]' && ${trangThai} === 'Đang lọc: Tour đảo — 1 dịch vụ · Bỏ lọc'`, "chọn nhóm Tour đảo → Hay dùng tắt");
-  assert.deepEqual(await p.ev(dangBam), ["Tour đảo"]);
-  assert.equal(await p.ev("JSON.parse(localStorage.getItem('td.dmLoc.v1')).loc"), null, "chọn nhóm → bản nhớ Hay dùng tắt");
-  await p.ev(bamNhom("TTB"));
-  ok("Tìm 'motor' TRONG nhóm → TTB06 (1 dịch vụ); TD101 ngoài nhóm → không thấy; ★ Hay dùng (chip riêng, loại trừ nhóm) → 2 dịch vụ đã ghim; chọn nhóm khác → Hay dùng tắt");
+  await p.ev(moBang);
+  assert.equal(await p.ev("document.getElementById('catalog-list').hidden"), true, "mở bảng nhóm: danh sách nhường chỗ");
+  await p.ev("document.body.click(); true");
+  assert.equal(await p.ev(bangMo), false, "bấm ra ngoài đóng bảng nhóm");
+  await p.ev(moBang);
+  await p.ev("document.getElementById('catalog-q').click(); true"); // chạm vào ô gõ khi bảng nhóm đang mở
+  await p.waitFor("document.getElementById('catalog-nhom-bang').hidden === true && document.getElementById('catalog-list').hidden === false", "chạm ô gõ: bảng nhóm gập, danh sách mở");
+  ok("Bỏ chọn hết → tất cả, bản nhớ xoá; tìm 'motor' TRONG nhóm TTB → TTB06; TD101 ngoài nhóm → không thấy; Esc và bấm ra ngoài đóng bảng nhóm; vào ô gõ thì bảng gập");
 
-  // ---- 2b) Đợt 1: mở danh sách bằng chạm, đóng bằng Esc / nút Đóng, dấu sao ở đầu dòng, bộ lọc ẩn đã nhớ bị bỏ ----
+  // ---- 2b) Dấu sao CÓ TÁC DỤNG: dịch vụ gắn sao xếp lên trước; danh sách vẫn mở; chạm lại ô mở; Đóng / Esc; bản nhớ lọc cũ bị bỏ qua ----
+  const truoc = await p.ev(hang);
   assert.equal(await p.ev("(() => { const r = document.querySelector('#catalog-list .catalog-row'); return r.firstElementChild.classList.contains('catalog-ghim') && r.lastElementChild.classList.contains('catalog-pick'); })()"), true, "dấu sao ĐỨNG ĐẦU dòng, nút chọn sau nó");
-  assert.equal(await p.ev("(() => { const b = document.querySelector('#catalog-list .catalog-pick'); return [b.querySelector('.catalog-ten')?.textContent.length > 0, b.querySelector('.catalog-phu strong')?.textContent.length > 0]; })().every(Boolean)"), true, "dòng: tên + dòng phụ có mã");
+  await p.ev("document.querySelector('#catalog-list [data-ghim=\"TTB09\"]').click(); true");
+  assert.equal(await p.ev("document.getElementById('catalog-list').hidden"), false, "bấm sao: danh sách KHÔNG đóng");
+  await p.ev("document.querySelector('#catalog-list [data-ghim=\"TTB06\"]').click(); true");
+  assert.equal(await p.ev("document.getElementById('catalog-list').hidden"), false, "bấm sao lần hai: danh sách vẫn mở");
+  const sau = await p.ev(hang);
+  assert.deepEqual(sau.slice(0, 2), ["TTB06", "TTB09"], "hai dịch vụ gắn sao lên đầu (theo thứ tự danh mục)");
+  assert.deepEqual(sau.slice(2), truoc.filter((c) => c !== "TTB06" && c !== "TTB09"), "phần còn lại giữ thứ tự cũ");
+  assert.equal(await p.ev("document.activeElement && document.activeElement.getAttribute('data-ghim')"), "TTB06", "focus ở nút sao của dịch vụ vừa bấm (dòng đã đổi chỗ)");
+  assert.equal(await p.ev("document.querySelector('#catalog-list [data-ghim=\"TTB06\"]').getAttribute('aria-pressed')"), "true");
+  await shot(p, "nhom-xo-xuong-390-sao-len-dau.png");
+  await p.ev("document.querySelector('#catalog-list [data-ghim=\"TTB06\"]').click(); document.querySelector('#catalog-list [data-ghim=\"TTB09\"]').click(); true");
+  assert.deepEqual(await p.ev(hang), truoc, "bỏ sao hết → về thứ tự cũ");
+  await p.ev("document.querySelector('#catalog-list [data-ghim=\"TTB09\"]').click(); true"); // để lại một sao cho bước tải lại
   assert.match(await p.ev("document.querySelector('#catalog-list .catalog-dau').textContent"), /^23 dịch vụĐóng$/, "đầu danh sách: số dịch vụ + nút Đóng");
   await p.ev("document.querySelector('#catalog-list .catalog-dong').click(); true");
   assert.equal(await p.ev("document.getElementById('catalog-list').hidden"), true, "nút Đóng đóng danh sách");
@@ -128,79 +166,113 @@ try {
   await p.waitFor("document.getElementById('catalog-list').hidden === false", "chạm lại vào ô (đang giữ focus) → danh sách mở");
   await p.ev("document.getElementById('catalog-q').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
   assert.equal(await p.ev("document.getElementById('catalog-list').hidden"), true, "Esc đóng danh sách");
-  await p.ev("document.getElementById('catalog-q').dispatchEvent(new MouseEvent('click', { bubbles: true })); true");
-  await p.ev(`localStorage.setItem('td.dmLoc.v1', JSON.stringify({ loc: 'theo-nguoi', ghim: ['TTB06'] })); true`);
-  const bo2b = await env.as(ACCOUNTS.salesA, "/order-form", MOB);
-  await bo2b.waitFor(`${CHIP}.length === 17`, "17 chip (bản nhớ cũ 'Theo người')", 10000);
-  await bo2b.ev("document.getElementById('catalog-q').focus(); true");
-  await bo2b.waitFor(`${hang}.length >= 20`, "danh sách không bị lọc ngầm bởi 'Theo người' đã nhớ");
-  assert.equal(await bo2b.ev(trangThai).then((s) => s.includes("Theo người")), false);
-  dong(bo2b);
-  ok("Chạm lại ô đang giữ focus → danh sách mở; nút Đóng và Esc đóng; dấu sao đứng đầu dòng; bản nhớ cũ 'Theo người' bị bỏ (không lọc ngầm)");
+  // Bản nhớ CŨ: bộ lọc 'theo-nguoi' / 'hay-dung' (đã bỏ) kèm mã ghim; nhóm kiểu cũ (một chuỗi) → đọc thành một nhóm.
+  await p.ev(`localStorage.setItem('td.dmLoc.v1', JSON.stringify({ loc: 'theo-nguoi', ghim: ['TTB06'] })); localStorage.removeItem(${JSON.stringify(KHOA_A)}); true`);
+  const cu = await env.as(ACCOUNTS.salesA, "/order-form", MOB);
+  await cu.waitFor(`${O}.length === 15`, "bản nhớ cũ: bảng nhóm dựng xong", 10000);
+  await cu.ev("document.getElementById('catalog-q').focus(); true");
+  await cu.waitFor(`${hang}.length === 37`, "danh sách KHÔNG bị lọc ngầm bởi 'Theo người' đã nhớ");
+  assert.equal((await cu.ev(hang))[0], "TTB06", "mã ghim của bản nhớ cũ vẫn giữ: TTB06 có sao → lên đầu");
+  await cu.ev(`localStorage.setItem('td.dmLoc.v1', JSON.stringify({ loc: 'hay-dung', ghim: [] })); localStorage.setItem(${JSON.stringify(KHOA_A)}, '"TTB"'); true`);
+  await cu.send("Page.reload", {});
+  await sleep(300);
+  await cu.waitFor(`${O}.length === 15 && JSON.stringify(${daTick}) === '["TTB"]'`, "nhóm kiểu cũ (một chuỗi) → tick đúng một nhóm TTB", 10000);
+  assert.equal(await cu.ev(nhanNut), "Nhóm dịch vụ · 1");
+  await cu.ev("document.getElementById('catalog-q').focus(); true");
+  await cu.waitFor(`${hang}.length === 23`, "bộ lọc 'hay-dung' cũ bị bỏ, chỉ còn nhóm TTB");
+  await cu.ev(`localStorage.setItem(${JSON.stringify(KHOA_A)}, '"hay-dung"'); true`);
+  await cu.send("Page.reload", {});
+  await sleep(300);
+  await cu.waitFor(`${O}.length === 15`, "nhóm 'hay-dung' kiểu cũ", 10000);
+  assert.deepEqual(await cu.ev(daTick), [], "mã lạ ('hay-dung') bị bỏ qua → không tick nhóm nào, không kẹt");
+  assert.equal(await cu.ev(nhanNut), "Nhóm dịch vụ");
+  dong(cu);
+  ok("Dấu sao có tác dụng (TTB06, TTB09 lên đầu, phần còn lại giữ thứ tự; bấm sao không đóng danh sách; focus ở sao); chạm lại ô, nút Đóng, Esc; bản nhớ cũ ('theo-nguoi', 'hay-dung', nhóm một chuỗi) đọc an toàn, không ai kẹt trong bộ lọc ẩn");
 
-  // ---- 3) Chưa phân loại; Bỏ lọc ----
-  await p.ev(bamNhom("chua-phan-loai"));
-  await p.waitFor(`JSON.stringify(${hang}) === '["ZZ01"]' && ${trangThai} === 'Đang lọc: Chưa phân loại — 1 dịch vụ · Bỏ lọc'`, "Chưa phân loại → ZZ01");
-  assert.equal(await p.ev("document.getElementById('catalog-list').hidden"), false, "bấm chip nhóm: danh sách KHÔNG đóng");
+  // ---- 3) Chưa phân loại + nhóm thật (HOẶC); Bỏ chọn hết ----
+  await p.ev(`localStorage.removeItem(${JSON.stringify(KHOA_A)}); true`);
+  await p.send("Page.reload", {});
+  await sleep(300);
+  await p.waitFor(`${O}.length === 15`, "sau tải lại", 10000);
+  await p.ev(moBang);
+  await p.ev(tick("chua-phan-loai"));
+  assert.equal(await p.ev(nhanNut), "Nhóm dịch vụ · 1");
+  assert.equal(await p.ev(soNhom), "1 dịch vụ");
+  await p.ev(tick("TDA"));
+  assert.equal(await p.ev(soNhom), "2 dịch vụ", "Chưa phân loại + Tour đảo → ZZ01 + TD101");
+  await p.ev("document.querySelector('.catalog-nhom-dong').click(); true");
+  await p.waitFor(`JSON.stringify([...${hang}].sort()) === '["TD101","ZZ01"]'`, "danh sách: TD101 + ZZ01");
+  await p.ev(moBang);
   await p.ev("document.querySelector('.catalog-nhom-bo').click(); true");
-  await p.waitFor(`JSON.stringify(${dangBam}) === '["Tất cả"]' && ${trangThai} === ''`, "Bỏ lọc → Tất cả");
-  assert.equal(await p.ev("document.getElementById('catalog-list').hidden"), false, "bấm Bỏ lọc: danh sách KHÔNG đóng");
-  assert.equal(await p.ev(`${hang}.length`), 37, "Tất cả: đủ 37 dịch vụ danh mục (3 gốc + 21 TTB + 12 nhóm khác + ZZ01)");
-  assert.equal(await p.ev(`localStorage.getItem(${JSON.stringify(KHOA_A)})`), null, "Tất cả: xoá bản nhớ");
-  await p.ev(bamNhom("TTB"));
-  ok("'Chưa phân loại' → chỉ ZZ01; 'Bỏ lọc' → Tất cả, dòng Đang lọc ẩn, bản nhớ xoá");
+  assert.equal(await p.ev(soNhom), "37 dịch vụ");
+  await p.ev("document.querySelector('.catalog-nhom-dong').click(); true");
+  await p.waitFor(`${hang}.length === 37`, "Bỏ chọn hết → 37");
+  await p.ev(moBang);
+  await p.ev(tick("TTB"));
+  ok("'Chưa phân loại' + 'Tour đảo' → ZZ01 và TD101 (HOẶC giữa các nhóm); 'Bỏ chọn hết' → đủ 37 dịch vụ");
 
-  // ---- 4) Tải lại → nhớ; nhóm đã nhớ không còn → Tất cả ----
+  // ---- 4) Tải lại → nhớ; nhóm đã nhớ không còn → bỏ riêng nhóm đó ----
+  await p.ev("document.querySelector('.catalog-nhom-dong').click(); true");
   await p.send("Page.reload", {});
   await sleep(300);
-  await p.waitFor(`JSON.stringify(${dangBam}) === '["Thể thao biển"]' && ${trangThai} === 'Đang lọc: Thể thao biển — 23 dịch vụ · Bỏ lọc'`, "tải lại vẫn nhớ TTB", 10000);
-  await p.ev(`localStorage.setItem(${JSON.stringify(KHOA_A)}, '"KHONGCO"'); true`);
+  await p.waitFor(`${O}.length === 15 && JSON.stringify(${daTick}) === '["TTB"]' && ${nhanNut} === 'Nhóm dịch vụ · 1'`, "tải lại vẫn nhớ TTB", 10000);
+  await p.ev(`localStorage.setItem(${JSON.stringify(KHOA_A)}, '["TTB","KHONGCO"]'); true`);
   await p.send("Page.reload", {});
   await sleep(300);
-  await p.waitFor(`${CHIP}.length === 17`, "chip sau tải lại", 10000);
-  assert.deepEqual(await p.ev(dangBam), ["Tất cả"], "nhóm đã nhớ không còn trong groups → Tất cả");
-  await p.ev(bamNhom("TTB"));
+  await p.waitFor(`${O}.length === 15`, "nút nhóm sau tải lại", 10000);
+  assert.deepEqual(await p.ev(daTick), ["TTB"], "nhóm đã nhớ không còn trong groups → bỏ riêng nhóm đó, giữ TTB");
+  await p.ev(`localStorage.setItem(${JSON.stringify(KHOA_A)}, '["KHONGCO"]'); true`);
+  await p.send("Page.reload", {});
+  await sleep(300);
+  await p.waitFor(`${O}.length === 15`, "nút nhóm sau tải lại (2)", 10000);
+  assert.deepEqual(await p.ev(daTick), [], "toàn nhóm không còn → tất cả");
+  await p.ev(moBang);
+  await p.ev(tick("TTB"));
   assert.ok(await p.ev(khongTranNgang), "390: không tràn ngang");
   dong(p);
-  ok("Tải lại → vẫn 'Thể thao biển' (23); bản nhớ là nhóm không còn → 'Tất cả'");
+  ok("Tải lại → vẫn 'Nhóm dịch vụ · 1' (TTB); bản nhớ có nhóm không còn → bỏ riêng nhóm đó; toàn nhóm không còn → tất cả");
 
   // ---- 5) 1040: vẫn nhớ, không tràn ----
   const d = await env.as(ACCOUNTS.salesA, "/order-form", DESK);
-  await d.waitFor(`JSON.stringify(${dangBam}) === '["Thể thao biển"]'`, "1040: nhớ TTB", 10000);
-  assert.equal(await d.ev("(() => { const r = document.querySelector('.catalog-nhom-chips').getBoundingClientRect(); const c = document.querySelector('.catalog-nhom-nut[aria-pressed=\"true\"]').getBoundingClientRect(); return c.left >= r.left - 1 && c.right <= r.right + 1; })()"), true, "chip nhớ từ lần trước trượt vào tầm nhìn");
+  await d.waitFor(`${O}.length === 15 && JSON.stringify(${daTick}) === '["TTB"]'`, "1040: nhớ TTB", 10000);
+  assert.equal(await d.ev(nhanNut), "Nhóm dịch vụ · 1");
+  await d.ev(moBang);
+  assert.equal(await d.ev(bangMo), true);
   assert.ok(await d.ev(khongTranNgang), "1040: không tràn ngang");
-  await d.ev("document.getElementById('catalog-q').focus(); true");
+  await shot(d, "nhom-xo-xuong-1040-mo.png");
+  await d.ev("document.querySelector('.catalog-nhom-dong').click(); true");
   await d.waitFor(`${hang}.length === 23`, "1040: 23 TTB");
-  await shot(d, "chip-nhom-1040-the-thao-bien.png");
+  await shot(d, "nhom-xo-xuong-1040-the-thao-bien.png");
   dong(d);
-  ok("1040: nhớ 'Thể thao biển', danh sách 23, không tràn ngang");
+  ok("1040: nhớ 'Thể thao biển', bảng nhóm + danh sách 23, không tràn ngang");
 
-  // ---- 6) Tài khoản khác (Bán hàng B) cùng hồ sơ trình duyệt → Tất cả (không nhớ lẫn). Trang của B mở SAU CÙNG. ----
+  // ---- 6) Tài khoản khác (Bán hàng B) cùng hồ sơ trình duyệt → tất cả (không nhớ lẫn). Trang của B mở SAU CÙNG. ----
   const b = await env.as(ACCOUNTS.salesB, "/order-form", MOB);
-  await b.waitFor(`${CHIP}.length === 17`, "B: chip nhóm", 10000);
-  assert.equal(await b.ev(`localStorage.getItem(${JSON.stringify(KHOA_A)})`), '"TTB"', "tiền đề: bản nhớ của A vẫn nằm trên máy");
-  assert.deepEqual(await b.ev(dangBam), ["Tất cả"], "tài khoản khác không nhớ lẫn nhóm của A");
-  assert.equal(await b.ev(trangThai), "");
+  await b.waitFor(`${O}.length === 15`, "B: nút nhóm", 10000);
+  assert.equal(await b.ev(`localStorage.getItem(${JSON.stringify(KHOA_A)})`), '["TTB"]', "tiền đề: bản nhớ của A vẫn nằm trên máy");
+  assert.deepEqual(await b.ev(daTick), [], "tài khoản khác không nhớ lẫn nhóm của A");
+  assert.equal(await b.ev(nhanNut), "Nhóm dịch vụ");
   assert.equal(KHOA_A, `loc-nhom-dv:${idA}`, "khoá nhớ = loc-nhom-dv:<id tài khoản>");
-  await shot(b, "chip-nhom-390-tai-khoan-khac.png");
+  await shot(b, "nhom-xo-xuong-390-tai-khoan-khac.png");
   dong(b);
-  ok("Bán hàng B cùng máy (A đã nhớ 'Thể thao biển'): B thấy 'Tất cả' — nhớ theo tài khoản");
+  ok("Bán hàng B cùng máy (A đã nhớ 'Thể thao biển'): B thấy 'Nhóm dịch vụ' không số — nhớ theo tài khoản");
 
-  // ---- 7) localStorage bị chặn (getItem/setItem/removeItem ném lỗi) → Tất cả, bấm chip vẫn lọc, không lỗi console ----
+  // ---- 7) localStorage bị chặn (getItem/setItem/removeItem ném lỗi) → tất cả, tick vẫn lọc, không lỗi console ----
   const c = await env.openPage(MOB);
   await c.send("Page.addScriptToEvaluateOnNewDocument", { source: "for (const k of ['getItem', 'setItem', 'removeItem']) Storage.prototype[k] = function () { throw new DOMException('bị chặn', 'SecurityError'); };" });
   const ck = await env.login(ACCOUNTS.salesA);
   await c.send("Network.setCookie", { name: ck.name, value: ck.value, url: env.base, httpOnly: true });
   await c.send("Page.navigate", { url: `${env.base}/order-form` });
-  await c.waitFor(`${CHIP}.length === 17`, "bị chặn: chip nhóm vẫn hiện", 10000);
+  await c.waitFor(`${O}.length === 15`, "bị chặn: nút nhóm vẫn hiện", 10000);
   assert.equal(await c.ev("(() => { try { localStorage.getItem('x'); return false; } catch { return true; } })()"), true, "tiền đề: bộ nhớ thật sự bị chặn");
-  assert.deepEqual(await c.ev(dangBam), ["Tất cả"], "bị chặn → Tất cả (A đã nhớ TTB nhưng không đọc được)");
-  await c.ev(bamNhom("TTB"));
-  await c.waitFor(`${trangThai} === 'Đang lọc: Thể thao biển — 23 dịch vụ · Bỏ lọc'`, "bị chặn: bấm chip vẫn lọc");
+  assert.deepEqual(await c.ev(daTick), [], "bị chặn → không tick nhóm nào (A đã nhớ TTB nhưng không đọc được)");
+  await c.ev(moBang);
+  await c.ev(tick("TTB"));
+  await c.waitFor(`${nhanNut} === 'Nhóm dịch vụ · 1' && ${soNhom} === '23 dịch vụ'`, "bị chặn: tick vẫn lọc");
   dong(c);
   assert.deepEqual(loiConsole, [], "không lỗi console ở mọi trang");
-  ok("Bộ nhớ trình duyệt bị chặn: 'Tất cả', bấm chip vẫn lọc (23); không lỗi console ở mọi trang của kịch bản");
-  console.log("CHIP NHOM SMOKE OK");
+  ok("Bộ nhớ trình duyệt bị chặn: không nhóm nào, tick vẫn lọc (23); không lỗi console ở mọi trang của kịch bản");
+  console.log("NHOM XO XUONG SMOKE OK");
 } finally {
   await env.stop();
 }

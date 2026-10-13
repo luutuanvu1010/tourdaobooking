@@ -733,15 +733,24 @@ h3 { font-size: var(--fs-step-5); margin: var(--s4) 0 var(--s2); color: var(--c-
 .catalog-list button[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
 .catalog-list .price { white-space: nowrap; color: var(--c-muted); }
 /* Mỗi dòng danh sách = nút ghim "Hay dùng" (ĐẦU dòng, đợt 1 #8) + nút chọn. */
-/* ADR-0058 Đ8 (chủ chọn cách 1, 30/9 — ảnh phác docs/design/nhom-dich-vu-2026-09-30/): nhãn hàng "Nhóm dịch vụ"; hàng chip RIÊNG, trượt ngang
-   (không xuống dòng, không làm trang tràn ngang ở 390px); dòng "Đang lọc: … — N dịch vụ · Bỏ lọc". Chip dùng lại .loc-nut (vùng bấm ≥ --tap-min).
-   Đợt 1 (13/10): hàng chip nằm TRÊN ô gõ, kèm chip "★ Hay dùng"; hàng "Lọc sẵn có" đã bỏ. */
-.catalog-hang-nhan { display: block; margin: 0 0 var(--s1); font-size: var(--fs-badge); font-weight: var(--fw-heavy); text-transform: uppercase; color: var(--c-text-muted); }
+/* ADR-0058 Đ8, đợt 1 (13/10, ý chủ "chỉ để lại việc lọc theo nhóm bằng nút xổ xuống + tick chọn"): MỘT nút xổ xuống "Nhóm dịch vụ" TRÊN ô gõ; bảng nhóm nằm trong dòng chảy
+   trang (không nổi lên che ô gõ), mỗi dòng một ô tick (vùng bấm ≥ --tap-min), tick nhiều nhóm. Hàng chip và chip "★ Hay dùng" đã bỏ. */
 .catalog-nhom { min-width: 0; margin-bottom: var(--s2); }
-.catalog-nhom-chips { display: flex; gap: var(--s2); overflow-x: auto; padding: var(--s1) 0; scrollbar-width: none; }
-.catalog-nhom-chips .loc-nut { flex: none; white-space: nowrap; }
-.catalog-nhom-trang-thai { margin: var(--s1) 0 0; font-size: var(--fs-label); color: var(--c-text-muted); }
-.catalog-nhom-trang-thai .catalog-nhom-bo { padding: 0 var(--s1); color: var(--c-primary); }
+.catalog-nhom-nut { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); width: 100%; min-height: var(--tap-min); padding: 0 var(--s3); font: inherit; font-size: var(--fs-ui); font-weight: var(--fw-bold); text-align: left; color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-input-border); border-radius: var(--radius-sm); cursor: pointer; }
+.catalog-nhom-nut[aria-expanded="true"] { color: var(--c-primary); border-color: var(--c-primary); }
+.catalog-nhom-nut:focus-visible, .catalog-nhom-bang .btn-link:focus-visible { outline: var(--focus-ring) solid var(--c-primary); outline-offset: calc(-1 * var(--focus-ring)); }
+.catalog-nhom-mui { flex: none; font-size: var(--fs-label); }
+.catalog-nhom-nut[aria-expanded="true"] .catalog-nhom-mui { transform: rotate(180deg); }
+.catalog-nhom-bang { margin-top: var(--s1); overflow: hidden; background: var(--c-surface); border: 1px solid var(--c-line); border-radius: var(--radius-sm); }
+.catalog-nhom-dau { display: flex; align-items: center; gap: var(--s2); padding: 0 var(--s1) 0 var(--s3); background: var(--c-surface-alt); border-bottom: 1px solid var(--c-line); }
+.catalog-nhom-dau .catalog-nhom-so-ket-qua { flex: 1 1 auto; font-size: var(--fs-label); }
+.catalog-nhom-dau .btn-link { flex: none; padding: 0 var(--s2); font-size: var(--fs-label); color: var(--c-primary); }
+.catalog-nhom-dau .btn-link:disabled { color: var(--c-text-muted); text-decoration: none; cursor: default; }
+.catalog-nhom-cac-dong { max-height: min(18rem, 45vh); overflow: auto; }
+.catalog-nhom-hang { display: flex; align-items: center; gap: var(--s3); min-height: var(--tap-min); padding: 0 var(--s3); font-size: var(--fs-ui); color: var(--c-text); border-bottom: 1px solid var(--c-line); cursor: pointer; }
+.catalog-nhom-hang input { flex: none; display: inline-block; width: auto; margin: 0; }
+.catalog-nhom-hang .catalog-nhom-ten { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.catalog-nhom-hang .catalog-nhom-so { flex: none; font-size: var(--fs-label); }
 .catalog-row { display: flex; border-bottom: 1px solid var(--c-line); }
 .catalog-list .catalog-row .catalog-pick { flex: 1 1 auto; min-width: 0; border-bottom: 0; }
 .catalog-list .catalog-row .catalog-ghim { flex: none; justify-content: center; width: var(--tap-min); padding: 0; font-size: var(--fs-title); color: var(--c-sand-text); border-bottom: 0; }
