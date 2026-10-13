@@ -258,7 +258,8 @@ function chayTrenMa(c: Ca): DapAn | string {
   if (plan.ok && plan.write) lanSua.push({ seq: lanSua.length + 1, sau: plan.after, tamTinhSau: effectiveSubtotal(services, plan.after) });
   const khoaMoi: KhoaMoi = {
     canh_bao_khuyen_mai:
-      canhBaoKhuyenMai({ discount: v.giam_gia }, soKhachTraTien(v.dich_vu.map((d) => ({ pax: storedPax.get(d.id)! }))), soKhachTraTien(v.dich_vu.map((d) => ({ pax: paxHienHanh(d.id) })))) !== null,
+      // giảm giá HIỆU LỰC của đơn hiện hành sau lần bấm này (`effectiveMoney` trên tạm tính tính lại) — đúng thứ máy chủ đọc ở `OrderDto.giamGiaHieuLuc`
+      canhBaoKhuyenMai({ giamGiaHieuLuc: effectiveMoney(effectiveSubtotal(services, sauLanNay ?? []), v.giam_gia).giamGiaHieuLuc }, soKhachTraTien(v.dich_vu.map((d) => ({ pax: storedPax.get(d.id)! }))), soKhachTraTien(v.dich_vu.map((d) => ({ pax: paxHienHanh(d.id) })))) !== null,
     lich_su_so_khach: dungLichSuSoKhach({
       dichVu: v.dich_vu.map((d) => ({ id: d.id, catalogCode: d.nguon === "danh_muc" ? "ZA1" : null, name: d.ten, pax: storedPax.get(d.id)! })),
       tamTinhKhoiTao: effectiveSubtotal(services, []),

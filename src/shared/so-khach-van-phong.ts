@@ -67,8 +67,10 @@ export const canhBaoGiamGiaVuot = (don: { subtotal: number; discount: number }):
  * Khoá JSON `canhBaoKhuyenMai` ở phản hồi `POST /api/orders/:id/money-edit` và `GET /api/orders/:id`; phản hồi của đường hướng dẫn viên là kiểu khác (`{ ok }`) nên không có khoá này.
  */
 export const CAU_KHUYEN_MAI_KHI_BOT_KHACH = "Đơn có giảm giá nhưng số khách đã giảm so với lúc xác nhận, giảm giá vẫn giữ nguyên. Kế toán xem lại khuyến mại.";
-export const canhBaoKhuyenMai = (don: { discount: number }, khachLucXacNhan: number, khachHienHanh: number): string | null =>
-  don.discount > 0 && khachHienHanh < khachLucXacNhan ? CAU_KHUYEN_MAI_KHI_BOT_KHACH : null;
+// "Đơn có giảm giá" = GIẢM GIÁ HIỆU LỰC > 0 (`OrderDto.giamGiaHieuLuc`, số do `effectiveMoney` trả — ADR-0109): hàm này không tự so/trừ `discount` (hàng rào H1). Tạm tính hiện
+// hành về 0 thì giảm giá hiệu lực về 0 ⇒ không nhắc (giảm giá đã không còn trừ được đồng nào; lúc đó đã có `canhBaoGiamGiaVuot`).
+export const canhBaoKhuyenMai = (don: { giamGiaHieuLuc: number }, khachLucXacNhan: number, khachHienHanh: number): string | null =>
+  don.giamGiaHieuLuc > 0 && khachHienHanh < khachLucXacNhan ? CAU_KHUYEN_MAI_KHI_BOT_KHACH : null;
 
 /** Số khách trả tiền của cả đơn: `payingGuests` (người lớn + trẻ em + người cao tuổi) cộng mọi dịch vụ — kể cả nhập tay (số khách ở `adult`). Một nguồn cho máy chủ. */
 export const soKhachTraTien = (dichVu: readonly { pax: Partial<Record<PaxCode, number>> }[]): number => dichVu.reduce((n, s) => n + payingGuests(s.pax), 0);

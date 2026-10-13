@@ -92,13 +92,21 @@ test("giảm giá vượt tạm tính (ADR-0109 QĐ3): chỉ cảnh báo, điề
 // ---- ADR-0114 D1: nhắc khuyến mại khi bớt khách (chỉ cảnh báo; tính từ trạng thái hiện hành, không lưu cờ) ----------------------------------------------
 
 test("D1: ví dụ của chủ — 10 khách giảm giá còn 2 khách mà giảm giá vẫn giữ ⇒ nhắc; giảm giá 0, khách y nguyên hoặc tăng ⇒ không nhắc; 10 → 2 → 3 vẫn nhắc", () => {
-  const co = { discount: 50000 };
+  const co = { giamGiaHieuLuc: 50000 };
   assert.equal(canhBaoKhuyenMai(co, 10, 2), CAU_KHUYEN_MAI_KHI_BOT_KHACH);
   assert.equal(canhBaoKhuyenMai(co, 10, 3), CAU_KHUYEN_MAI_KHI_BOT_KHACH, "10 → 2 → 3: so với lúc xác nhận, không so với lần sửa trước");
   assert.equal(canhBaoKhuyenMai(co, 10, 9), CAU_KHUYEN_MAI_KHI_BOT_KHACH, "chỉ bớt một người cũng nhắc");
-  assert.equal(canhBaoKhuyenMai({ discount: 0 }, 10, 2), null, "không có giảm giá thì không có khuyến mại để nhắc");
+  assert.equal(canhBaoKhuyenMai({ giamGiaHieuLuc: 0 }, 10, 2), null, "không có giảm giá thì không có khuyến mại để nhắc");
   assert.equal(canhBaoKhuyenMai(co, 10, 10), null, "đủ lại số lúc xác nhận");
   assert.equal(canhBaoKhuyenMai(co, 10, 12), null, "tăng khách");
+});
+
+// "Đơn có giảm giá" hỏi bằng GIẢM GIÁ HIỆU LỰC (số do `effectiveMoney` trả, ADR-0109) — hàm này không tự so/trừ `discount`, nên hàng rào H1 (`phai-thu-mot-ham.test.ts`) không
+// phải mở thêm mục cho phép. Hệ quả ở biên: tạm tính hiện hành về 0 ⇒ giảm giá hiệu lực 0 ⇒ KHÔNG nhắc khuyến mại (giảm giá đã không còn trừ được đồng nào; khi đó đã có
+// câu `canhBaoGiamGiaVuot`, bài ngay trên). Ghi lệch nhỏ so với chữ "đơn có giảm giá" của ADR-0114 D1 trong báo cáo cuối việc để chủ biết.
+test("D1: biên — tạm tính hiện hành về 0 thì giảm giá hiệu lực về 0, không nhắc khuyến mại (đã có cảnh báo giảm giá vượt)", () => {
+  assert.equal(canhBaoKhuyenMai({ giamGiaHieuLuc: 0 }, 10, 1), null);
+  assert.equal(canhBaoKhuyenMai({ giamGiaHieuLuc: 1 }, 10, 1), CAU_KHUYEN_MAI_KHI_BOT_KHACH, "giảm giá hiệu lực còn một đồng vẫn là có giảm giá");
 });
 
 test("D1: câu nhắc đúng nguyên văn ADR-0114, KHÔNG có chữ số; khác hẳn câu cảnh báo giảm giá vượt (hai câu độc lập)", () => {

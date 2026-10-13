@@ -587,11 +587,11 @@ async function soanSuaSoKhach(
 
 /**
  * ADR-0114 D1 — lời nhắc khuyến mại khi bớt khách, cho phản hồi `money-edit` VÀ chi tiết đơn (MỘT hàm, hai nơi gọi). `khachLucXacNhan` = số khách trả tiền ĐÃ LƯU của mọi dịch
- * vụ (đóng băng sau xác nhận); `khachHienHanh` = số khách của đơn HIỆN HÀNH (`order` đã áp dòng điều chỉnh gần nhất). Giảm giá 0 thì không có gì để nhắc nên khỏi đọc thêm.
+ * vụ (đóng băng sau xác nhận); `khachHienHanh` = số khách của đơn HIỆN HÀNH (`order` đã áp dòng điều chỉnh gần nhất). Giảm giá hiệu lực 0 thì không có gì để nhắc nên khỏi đọc thêm.
  * Không lưu cờ, không đổi số tiền (luật thuần: `canhBaoKhuyenMai` của src/shared/so-khach-van-phong.ts).
  */
 async function nhacKhuyenMaiCuaDon(db: D1Database, order: OrderDetailDto): Promise<string | null> {
-  if (order.discount <= 0) return null;
+  if (order.giamGiaHieuLuc <= 0) return null; // lối thoát sớm cho đỡ đọc CSDL; luật vẫn ở `canhBaoKhuyenMai` (cùng một khoá giảm giá hiệu lực)
   const daLuu = await getStoredPax(db, order.id);
   return canhBaoKhuyenMai(order, soKhachTraTien(Array.from(daLuu.values(), (pax) => ({ pax }))), soKhachTraTien(order.services));
 }
