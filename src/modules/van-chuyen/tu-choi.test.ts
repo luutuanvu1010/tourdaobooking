@@ -34,7 +34,8 @@ async function theGioi(v: { tre?: number } = {}) {
   laiChoNhaXe(w, DRIVER_PARTNER, nx);
   laiChoNhaXe(w, DRIVER_PARTNER2, nx);
   const xe1 = xeNhaXe(w, nx);
-  const ngay = ngayThat(1);
+  // Hai ngày sau (không phải ngày mai): "ngày mai 12:30" lọt vào mốc tối thiểu trước giờ xuất bến sau khoảng 23 giờ đêm, làm lệnh Rút của văn phòng bị chặn (can_pha_le) — bài đỏ theo giờ trong ngày.
+  const ngay = ngayThat(2);
   const a = await chuyenSan(w, { taiXe: DRIVER_PARTNER, xe: xe1, ngay, bd: "12:30", kt: "15:00", gio: "13:00" });
   return { tat, w, nx, xe1, ngay, a };
 }
