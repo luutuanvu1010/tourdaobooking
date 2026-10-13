@@ -42,16 +42,16 @@
 | 3 | ADR nhóm dịch vụ theo vai (#5): bảng "nhóm × quyền" do Toàn quyền đặt, máy chủ chặn đặt chứ không chỉ ẩn | Là quyền; cần trang ghép (CLAUDE.md §9) | Bài kiểm "mỗi ô được máy chủ hỏi" phủ bảng mới |
 | 4 | Đăng ký tài khoản + giới thiệu + điểm thưởng / voucher + trang Affiliate (#2) | Lớn nhất: mở bề mặt công khai, thu dữ liệu cá nhân theo luật, thêm một loại "tiền" mới (điểm, voucher); nên tách 2–3 ADR và làm **sau** khi Nền tảng đã chạy ổn với nhân viên thật | Chủ duyệt từng ADR; có người kiểm độc lập |
 
-## 5. Quyết định chờ chủ (một lượt)
+## 5. Quyết định của chủ (2026-10-13)
 
-1. Thứ tự bốn đợt như trên; đợt 0 và đợt 1 chạy song song.
-2. Giá đưa đón (#1): phụ thu tính **theo người, theo chặng, theo vùng** (nội thành / ngoài) do Quản trị đặt trong danh mục, giảm giá là chính sách riêng — hay một mức cố định theo đơn?
-3. Đăng ký (#2): mở công khai trên trang đăng nhập, hay chỉ qua **đường link giới thiệu** và Quản trị / Nhân sự duyệt trước khi tài khoản có hiệu lực?
+1. **Thứ tự bốn đợt** như §4; đợt 0 (kiểm toán) và đợt 1 (giao diện tạo đơn) chạy song song. — Chủ đồng ý.
+2. **Giá đưa đón (#1):** phụ thu tính **theo người, theo chặng, theo vùng** do Quản trị đặt trong danh mục; giảm giá là chính sách riêng. — Chủ chọn.
+3. **Đăng ký (#2):** mở **cả hai cửa**: qua đường link giới thiệu **và** cổng đăng ký công khai. — Chủ chọn (AI đã khuyến nghị chỉ link + duyệt; chủ quyết rộng hơn). Hệ quả phải ghi vào ADR: cần chống thư rác (Turnstile đã có ở đăng nhập), tài khoản mới ở trạng thái **chờ duyệt** không có quyền nào cho tới khi Quản trị / Nhân sự duyệt, và người giới thiệu chỉ được điểm khi tài khoản được duyệt.
 
 ## 6. Trạng thái
 
 | Việc | Trạng thái |
 |---|---|
 | Prompt kiểm toán | Đã soạn, đã bổ sung câu #10 ở vùng B |
-| Bảng việc này | Chờ chủ duyệt §5 |
+| Bảng việc này | Chủ đã chốt §5 ngày 13/10 |
 | Đợt 1–4 | Chưa bắt đầu |
