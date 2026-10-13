@@ -2,11 +2,11 @@
 
 Hồ sơ có ngày (không sửa lại cho khớp hiện trạng). Nền: `main` ở bản 1.92 (`972c9e1b`). Luật: ADR-0115 đợt 1. Màn: `/dieu-chinh-cong-no` (`web/dieu-chinh-cong-no.ts`, `public/dieu-chinh-cong-no.html`).
 
-**Kết quả lần chạy đủ (13/10):** `kich-ban/dieu-chinh-smoke.mjs` — 36 bước, **32 xanh, 4 đỏ**. Bốn bước đỏ là cùng MỘT lỗi giao diện thật (xem dưới); mọi bước còn lại xanh, kể cả axe-core 4.12.1 (0 vi phạm critical/serious, không có vi phạm nhẹ), thanh bên Quản trị đúng **25** mục và Toàn quyền đúng **32** mục (con số trong `trang-chu-smoke.mjs`, nay đã đo thật).
+**Kết quả:** `kich-ban/dieu-chinh-smoke.mjs` — 36 bước. Lần chạy đủ đầu tiên: **32 xanh, 4 đỏ** (một lỗi giao diện thật, nêu dưới). Sau khi sửa lỗi đó (`web/dieu-chinh-cong-no.ts`, hàm `chay`, cùng ngày 13/10): **chạy lại đủ, 36/36 xanh** (`DIEU CHINH SMOKE OK`). axe-core 4.12.1: 0 vi phạm (không có cả vi phạm nhẹ); thanh bên Quản trị đúng **25** mục, Toàn quyền đúng **32** mục (con số trong `trang-chu-smoke.mjs`, nay đã đo thật).
 
-## Lỗi thật phát hiện (chưa sửa, chờ chủ quyết)
+## Lỗi thật đã phát hiện và đã sửa
 
-Nút «Gửi yêu cầu chờ duyệt» bị khoá và **không mở lại** (phải tải lại trang) trong hai trường hợp: (1) gửi xong thành công; (2) máy chủ trả 409 (ví dụ «vượt trần», «quyết toán khi chưa có nợ»). Nguyên nhân: `web/dieu-chinh-cong-no.ts` hàm `chay` (dòng 51–64): `tat(true)` ở đầu, nhưng nhánh thành công không gọi `tat(false)`, và nhánh 409 chỉ tải lại danh sách (`await load(true)`) mà không mở nút; với thẻ yêu cầu thì thẻ được vẽ lại nên không thấy, với biểu mẫu thì nút (`nutGui`, dòng 174) kẹt. Tái hiện: Kế toán gửi một yêu cầu, rồi thử gửi yêu cầu thứ hai — nút xám. Hậu quả: Kế toán sửa số tiền sau câu «vượt trần» không gửi lại được nếu chưa tải lại trang. Các bước đỏ: `5b` và `2b` ở cả hai khổ.
+Nút «Gửi yêu cầu chờ duyệt» bị khoá và không mở lại (phải tải lại trang) sau khi gửi xong thành công và sau khi máy chủ trả 409 (ví dụ «vượt trần»). Nguyên nhân: hàm `chay` gọi `tat(true)` ở đầu nhưng nhánh thành công không gọi `tat(false)` và nhánh 409 chỉ tải lại danh sách; thẻ yêu cầu được vẽ lại nên không thấy, còn nút của biểu mẫu thì kẹt. Bài đỏ trước khi sửa: `5b` và `2b` ở cả hai khổ. Sửa tối thiểu: `tat(false)` trong khối `finally`. Ảnh `02-*` trong thư mục `anh/` chụp sau khi sửa (nút Gửi đã mở).
 
 ## Cách chạy
 
@@ -26,7 +26,7 @@ Thiếu `AXE_JS` thì dừng ngay. Mỗi bước chạy riêng; cuối cùng in 
 |---|---|---|
 | 1 Kế toán mở màn, hai khối rỗng | `01-ke-toan-rong-390` | ✓ |
 | 5 ca bị chặn (quyết toán khi chưa có nợ, vượt trần) | `05-ca-bi-chan-1040` | ✓ câu tiếng Việt, không mã thô |
-| 2 gửi bằng biểu mẫu thật, «Chờ duyệt», số dư chưa đổi | `02-ke-toan-cho-duyet-390`, `-1040` | ✓ (nút Gửi còn xám: lỗi 2b) |
+| 2 gửi bằng biểu mẫu thật, «Chờ duyệt», số dư chưa đổi | `02-ke-toan-cho-duyet-390`, `-1040` | ✓ |
 | 4a Quản trị từ chối: thiếu lý do, rồi có lý do | `04a-quan-tri-tu-choi-390` | ✓ «Cần ghi lý do.» |
 | 6 Quản trị chỉ thấy khối «Chờ duyệt» | `06-quan-tri-cho-duyet-1040` | ✓ |
 | 4d Kế toán thấy Đã duyệt / Bị từ chối kèm lý do / Đã rút | `04d-ke-toan-ket-qua-390` | ✓ |

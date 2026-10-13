@@ -60,7 +60,10 @@ if (!duocTao && !duocDuyet) {
       showError(errorEl, reasonOf(err));
       errorEl.scrollIntoView({ block: "nearest" });
       if (err instanceof ApiError && err.status === 409) await load(true);
-      else tat(false);
+    } finally {
+      // Mở lại nút ở MỌI nhánh: thẻ yêu cầu được vẽ lại sau `load` (nút cũ không còn trên trang, gọi ở đây vô hại), còn nút «Gửi yêu cầu chờ duyệt» của biểu mẫu
+      // KHÔNG được vẽ lại — nếu không mở thì người dùng sửa số tiền sau câu «vượt trần» (409) hoặc gửi yêu cầu thứ hai mà phải tải lại trang.
+      tat(false);
     }
   }
 
