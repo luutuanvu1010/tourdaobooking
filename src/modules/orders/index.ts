@@ -37,6 +37,7 @@ import { soNguoiChang, tongKhach } from "../../shared/so-nguoi-chang";
 import { maskLongDigits } from "../../shared/text-guards";
 import { doanSoKhach, ghepLyDo } from "../../shared/tin-doi-don";
 import type { HanhDongDoiSoKhach } from "../../shared/audit-actions";
+import { CAU_THIEU_NGUOI_LON, donThieuNguoiLon } from "../../shared/nguoi-di-kem";
 import { canhBaoGiamGiaVuot, docThanSuaSoKhach, duocSuaSoKhachVanPhong } from "../../shared/so-khach-van-phong";
 import { docLyDoHuy, docPhanLoai, nhanNhomHuy, type LyDoHuy } from "../../shared/ly-do-huy";
 import { lyDoHienHanh, phanLoaiStatement } from "./huy-don-repo";
@@ -536,6 +537,8 @@ export const donChoBienNhan = (db: D1Database, id: string): Promise<OrderDetailD
 export type MoneyEditResult =
   | { ok: true; detail?: string; dongBoChuyen?: DongBoChuyenDto }
   | { ok: false; code: "not_found" | "not_confirmed" | "invalid_input" | "stale"; message?: string }
+  /** ADR-0114 D3: lần sửa đưa tổng người đi kèm của đơn từ ≥ 1 xuống 0 — route hướng dẫn viên (`dispatch`) trả 409 `thieu_nguoi_lon` với `message` này. */
+  | { ok: false; code: "thieu_nguoi_lon"; message: string }
   /** ADR-0104 Đ2: lỗi của PHẦN CHUYẾN trong lô (đã dịch — 409 `trip_rule`). */
   | { ok: false; code: "trip_rule"; res: Response };
 
@@ -546,7 +549,7 @@ export type MoneyEditResult =
 export type SoanSuaSoKhach =
   | { ok: true; ghi: false }
   | { ok: true; ghi: true; auditId: string; cau: D1PreparedStatement[]; detail: string; truoc: AdjustmentEntry[]; sau: AdjustmentEntry[] }
-  | { ok: false; code: "invalid_input"; message: string };
+  | { ok: false; code: "invalid_input" | "thieu_nguoi_lon"; message: string };
 
 /**
  * MỘT đường soạn lần sửa số khách cho CẢ HAI route (HDV `handler-money-edit` qua `editMoneyAsHandler`, văn phòng `money-edit` — ADR-0063 D1): đọc D1 → luật
@@ -1255,7 +1258,7 @@ export const ordersModule: AppModule = {
       if (!than.ok) return error(400, "invalid_input", than.message);
       // Lý do đi vào luật chung dưới dạng NHÃN cố định do máy chủ chọn (planMoneyEdit nhận `reason` chữ — cùng bộ đọc với đường HDV).
       const soan = await soanSuaSoKhach(env.DB, id, staff.id, { reason: than.nhan, services: than.services }, "order_money_adjusted");
-      if (!soan.ok) return error(400, "invalid_input", soan.message);
+      if (!soan.ok) return soan.code === "thieu_nguoi_lon" ? error(409, "thieu_nguoi_lon", soan.message) : error(400, "invalid_input", soan.message); // ADR-0114 D3: 409, cùng mã với đường hướng dẫn viên
       if (!soan.ghi) {
         const order = (await loadOrderView(env.DB, id, xemDuDatGap(staff)))!;
         return json({ order, daGhi: false, canhBaoTongAm: canhBaoGiamGiaVuot(order) } satisfies MoneyEditResponse);
@@ -1373,6 +1376,8 @@ export const ordersModule: AppModule = {
         // mà MỌI dòng đúng giá danh mục (bắt cả đơn nháp CŨ lập trước bản vá, và dòng nhập tay cũ — không có giá danh mục) VÀ giảm giá ĐÃ LƯU không vượt trần (hôm nay 0).
         const giaLoi = order ? giaDanhMucViolation(staff, order.services.flatMap((s) => s.items), order.discount) : null;
         if (giaLoi) return GIA_DANH_MUC(giaLoi);
+        // ADR-0114 D3: cửa xác nhận đọc số khách ĐÃ LƯU (nháp cũ lập trước ADR có thể không có người lớn); lập đơn / lưu nháp đã chặn ở `validateOrder`.
+        if (order && donThieuNguoiLon(order.services.map((s) => s.pax))) return error(409, "thieu_nguoi_lon", CAU_THIEU_NGUOI_LON);
         const detail = order ? summarizeDeviations(order.services.flatMap((s) => s.items)) : undefined;
         // ADR-0049 D2 (I15, I25): điều kiện mốc nằm TRONG câu xác nhận — ngưỡng chuỗi giờ VN tính bằng `nguongMocVn` (MỘT luật với `kiemMocDat`). Mốc chưa
         // có → 503, không đoán. MỘT mốc giờ (`nowMs`) cho câu ghi và cho việc đọc lại lý do.
