@@ -216,7 +216,7 @@ export const lineOf = (d: LineDraft, postingId: string, orderId: string, receipt
 function lanThuDto(
   rows: readonly ReceiptDbRow[], xemNguoiThu: boolean, ma: Map<string, { ma: string; soThucChuyen: number }> | null,
   /** D-1: người xem giữ quyền Đối tác ⇒ `nguoiGhi` / `ghiChu` chỉ ở lần thu CHÍNH họ ghi (`created_by` = id người xem); lần thu của người khác: khoá VẮNG. */
-  doiTac: { staffId: string } | null = null,
+  doiTac: { staffId: string } | null,
 ): LanThuDto[] {
   const biDao = new Set(rows.flatMap((r) => (r.reverses_id ? [r.reverses_id] : [])));
   return rows.map((r) => ({
@@ -242,7 +242,7 @@ function lanThuDto(
 
 export interface QuyenXemTien {
   /** Người xem giữ quyền Đối tác (`holdsPartner`, kể cả tài khoản lai) — D-1: bỏ người ghi / ghi chú nội bộ của lần thu do người khác ghi. */
-  laDoiTac?: boolean;
+  laDoiTac: boolean; // BẮT BUỘC (không mặc định): nơi gọi mới phải tự quyết, kẻo Đối tác nhận đủ người ghi / ghi chú nội bộ
   coTheGhiThu: boolean;
   coTheBamGiao: boolean;
   coTheBamHoanThanh: boolean;
