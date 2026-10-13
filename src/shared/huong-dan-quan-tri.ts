@@ -16,12 +16,12 @@ export const HD_QUAN_TRI: NhomHuongDan = {
       tieuDe: "Menu của bạn",
       noiDung: `### Trên máy tính
 - Nhóm **BÁN HÀNG**: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Danh bạ]].
-- Nhóm **QUẢN TRỊ**: [[Dịch vụ & giá]], [[Quản lý tài khoản]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], rồi **Vận chuyển** gồm [[Điều phối xe]], [[Xe đang chạy]], [[Xe]], [[Lịch xe bận]], [[Sắp hết hạn]], [[Loại giấy tờ xe]], [[Lý do điều phối]]. Thêm [[Hoa hồng đối tác]] và [[Người bán dịch vụ]], nơi đặt mức hoa hồng và ghi người bán.
+- Nhóm **QUẢN TRỊ**: [[Dịch vụ & giá]], [[Quản lý tài khoản]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], rồi **Vận chuyển** gồm [[Điều phối xe]], [[Xe đang chạy]], [[Xe]], [[Lịch xe bận]], [[Sắp hết hạn]], [[Loại giấy tờ xe]], [[Lý do điều phối]]. Thêm [[Điều chỉnh công nợ]], [[Hoa hồng đối tác]] và [[Người bán dịch vụ]], nơi đặt mức hoa hồng và ghi người bán.
 - Số nhỏ cạnh Dịch vụ & giá là số dịch vụ có giá trên Sheet vừa đổi. Số cạnh Sắp hết hạn là số giấy tờ đã hoặc sắp hết hạn.
 
 ### Trên điện thoại
 - Tab ở đáy: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Dịch vụ]], [[Tài khoản]], **Tôi**.
-- Các trang khác mở từ trang Tôi: [[Danh bạ]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], nhóm VẬN CHUYỂN ([[Điều phối xe]], [[Xe]], [[Giấy tờ sắp hết hạn]], [[Loại giấy tờ xe]], [[Lý do điều phối]]).
+- Các trang khác mở từ trang Tôi: [[Danh bạ]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], [[Điều chỉnh công nợ]], nhóm VẬN CHUYỂN ([[Điều phối xe]], [[Xe]], [[Giấy tờ sắp hết hạn]], [[Loại giấy tờ xe]], [[Lý do điều phối]]).
 - Bảng ở trang quản trị có thể phải kéo ngang. Việc nhiều nên làm trên máy tính.`,
     },
     {
@@ -63,9 +63,7 @@ Bạn không đặt lại PIN của chính mình ở đây; tự đổi ở tran
 4. Nếu số đã có hồ sơ, app báo và có nút [[Mở hồ sơ này]]. Đúng người thì dùng hồ sơ có sẵn.
 5. Bấm [[Tạo hồ sơ]].
 
-Tìm: gõ tên hoặc số điện thoại, lọc theo loại, công việc, nơi làm, bấm [[Tìm]]. Tick [[Gồm cả hồ sơ đã ngưng]] để xem cả hồ sơ cũ.
-
-> Ví dụ: Đại lý Công ty Du lịch Sóng Biển gửi khách thường xuyên. Tạo hồ sơ Tổ chức, điền tên pháp lý, mã số thuế, email nhận hoá đơn, bấm Tạo hồ sơ.`,
+Tìm: gõ tên hoặc số điện thoại, lọc theo loại, công việc, nơi làm, bấm [[Tìm]]. Tick [[Gồm cả hồ sơ đã ngưng]] để xem cả hồ sơ cũ.`,
     },
     {
       tieuDe: "Danh bạ: sửa chi tiết, liên hệ, công việc, tài xế",
@@ -74,9 +72,7 @@ Tìm: gõ tên hoặc số điện thoại, lọc theo loại, công việc, nơ
 - **Thông tin**: sửa rồi bấm [[Lưu thông tin]]. Bỏ tick [[Đang dùng]] để ngưng hồ sơ. Người có tài khoản thì ngưng ở màn Quản lý tài khoản.
 - **Liên hệ**: chọn loại, gõ giá trị, ghi chú (vd Zalo, hotline), tick [[Liên hệ chính]] nếu cần, bấm [[Thêm liên hệ]]. Liên hệ cũ bấm [[Đóng]], lịch sử vẫn giữ.
 - **Công việc tại đâu**: chọn công việc, nơi làm, ngày bắt đầu, bấm [[Thêm công việc]]. Hết làm thì bấm [[Kết thúc]].
-- **Người liên hệ, tài xế**: chọn loại quan hệ, gõ tên hồ sơ cần nối, chọn, rồi bấm [[Thêm người liên hệ]], [[Thêm quan hệ tài xế]] hoặc [[Thêm tài xế]].
-
-> Ví dụ nhà xe: hồ sơ Tổ chức "Nhà xe Hòn Chồng", thêm công việc Nhà xe đối tác. Mở hồ sơ tài xế anh Lâm, chọn "Hồ sơ này LÀ tài xế của nhà xe…", tìm Hòn Chồng, bấm Thêm quan hệ tài xế.`,
+- **Người liên hệ, tài xế**: chọn loại quan hệ, gõ tên hồ sơ cần nối, chọn, rồi bấm [[Thêm người liên hệ]], [[Thêm quan hệ tài xế]] hoặc [[Thêm tài xế]].`,
     },
     {
       tieuDe: "Giấy tờ của người",
@@ -116,9 +112,7 @@ Lọc: [[Đang ghi đè giá]], [[Sheet đã đổi giá (cần xem)]], [[Đã �
       tieuDe: "Người phụ trách đơn",
       noiDung: `1. Mở đơn từ [[Đơn hàng]], tìm khối [[Người phụ trách]].
 2. Đơn chưa có ai hiện [[Chờ nhận]]. Bấm [[Chọn người phụ trách]] (hoặc [[Đổi người phụ trách]]).
-3. Chọn người, bấm [[Lưu người phụ trách]].
-
-> Ví dụ: Đơn khách Trần Minh đón ở khách sạn Biển Xanh lúc 7:30 chưa ai nhận. Chọn hướng dẫn viên Hoà, bấm Lưu người phụ trách.`,
+3. Chọn người, bấm [[Lưu người phụ trách]].`,
     },
     {
       tieuDe: "Đặt gấp (giờ đón dưới 6 giờ)",
@@ -140,9 +134,7 @@ Lọc: [[Đang ghi đè giá]], [[Sheet đã đổi giá (cần xem)]], [[Đã �
 5. Không dùng xe nữa: [[Sửa thông tin xe]], [[Ngừng dùng xe]], rồi [[Ngừng dùng]]. Xe không bị xoá; dùng lại bằng [[Dùng lại xe]].
 
 ### Giấy tờ sắp hết hạn
-Mở [[Sắp hết hạn]] (điện thoại: [[Giấy tờ sắp hết hạn]] ở trang Tôi). Danh sách gồm giấy của xe và tài xế, cả giấy đã hết hạn. Bấm một dòng để mở xe hoặc hồ sơ rồi gia hạn.
-
-> Ví dụ: Xe 16 chỗ biển 79B-000.01: ô số người được chở ghi 15. Bảo hiểm còn 12 ngày thì có giấy mới là bấm Gia hạn.`,
+Mở [[Sắp hết hạn]] (điện thoại: [[Giấy tờ sắp hết hạn]] ở trang Tôi). Danh sách gồm giấy của xe và tài xế, cả giấy đã hết hạn. Bấm một dòng để mở xe hoặc hồ sơ rồi gia hạn.`,
     },
     {
       tieuDe: "Điều chỉnh khẩn cấp và phá lệ",
@@ -155,6 +147,19 @@ Mở [[Sắp hết hạn]] (điện thoại: [[Giấy tờ sắp hết hạn]] �
 
 ### Lịch xe bận
 [[Lịch xe bận]]: ghi giờ xe vào xưởng; giờ đó không xếp chuyến cho xe được. Bấm ✕ để rút.`,
+    },
+    {
+      tieuDe: "Duyệt điều chỉnh công nợ",
+      noiDung: `Kế toán gửi yêu cầu điều chỉnh công nợ; số dư **chưa đổi** tới khi người **khác người gửi** duyệt.
+
+1. Bấm [[Điều chỉnh công nợ]]. Khối **Chờ duyệt** là yêu cầu chưa ai quyết.
+2. Đồng ý thì bấm [[Duyệt]]: số dư đổi ngay.
+3. Không đồng ý thì bấm [[Từ chối]], gõ lý do (bắt buộc), bấm [[Xác nhận từ chối]].
+
+- Quản trị chỉ duyệt, không gửi yêu cầu, không thấy sổ công nợ hay yêu cầu đã quyết.
+- Quá 7 ngày không ai quyết thì yêu cầu hết hạn, số dư giữ nguyên.
+- Lúc bạn bấm [[Duyệt]], máy kiểm lại trần và số dư; không đạt thì không đổi gì.
+- Toàn quyền có thêm khối gửi yêu cầu nhưng không tự duyệt yêu cầu của mình.`,
     },
     {
       tieuDe: "Các danh mục cài đặt",

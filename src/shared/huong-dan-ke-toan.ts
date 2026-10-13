@@ -20,14 +20,14 @@ export const HD_KE_TOAN: NhomHuongDan = {
 
 Thanh menu dọc bên trái có:
 - Nhóm BÁN HÀNG: [[Trang chủ]], [[Đơn hàng]], [[Danh bạ]]. Cạnh [[Đơn hàng]] có số nhỏ, là số đơn chưa xác nhận.
-- Nhóm QUẢN TRỊ: [[Vận chuyển]], bên dưới là [[Điều phối xe]] và [[Xe đang chạy]]; rồi [[Khoá sổ tháng]], [[Hoa hồng đối tác]] và [[Người bán dịch vụ]].
+- Nhóm QUẢN TRỊ: [[Vận chuyển]], bên dưới là [[Điều phối xe]] và [[Xe đang chạy]]; rồi [[Khoá sổ tháng]], [[Điều chỉnh công nợ]], [[Hoa hồng đối tác]] và [[Người bán dịch vụ]].
 - Nhóm TÔI: [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]].
 
 Trên đầu trang có ô tìm kiếm. Gõ mã đơn, tên khách hoặc số điện thoại rồi bấm phím Enter là ra danh sách đơn khớp.
 
 ### Trên điện thoại
 
-Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các mục khác như [[Danh bạ]], [[Điều phối xe]], [[Góp ý / Báo lỗi]], [[Trợ giúp]] nằm trong trang [[Tôi]].
+Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các mục khác như [[Danh bạ]], [[Điều phối xe]], [[Điều chỉnh công nợ]], [[Góp ý / Báo lỗi]], [[Trợ giúp]] nằm trong trang [[Tôi]].
 
 > Lưu ý: Bạn không thấy nút [[Tạo đơn]]. Đó là đúng, vì Kế toán không lập đơn.`,
     },
@@ -153,6 +153,24 @@ Người bán dịch vụ làm tương tự ở trang [[Người bán dịch v�
 > Lưu ý: Khoá từng tháng theo thứ tự, không khoá tháng chưa qua. Tháng đã khoá **không mở lại được** trong app; sửa sau khi khoá chỉ còn cách khôi phục cả cơ sở dữ liệu, nên hãy chắc chắn trước khi bấm.`,
     },
     {
+      tieuDe: "Điều chỉnh công nợ (cần người khác duyệt)",
+      noiDung: `Điều chỉnh công nợ **không đổi số dư ngay**. Bạn gửi một yêu cầu, một người khác duyệt thì số dư mới đổi.
+
+1. Bấm [[Điều chỉnh công nợ]] (điện thoại: trang [[Tôi]]).
+2. Ở khối **Gửi yêu cầu mới**: gõ mã đơn rồi chọn đơn trong gợi ý; làm tương tự với **Bên nợ** và **Bên được nợ**. Chọn **Loại dòng sổ**, nhập số tiền và lý do (ít nhất 10 ký tự, không ghi số điện thoại).
+3. Bấm [[Gửi yêu cầu chờ duyệt]]. Yêu cầu hiện ở khối **Yêu cầu của tôi** với nhãn **Chờ duyệt**; số dư vẫn giữ nguyên.
+4. Chưa ai quyết thì bấm [[Rút yêu cầu]] để bỏ.
+
+Cần biết:
+- Người duyệt là Toàn quyền, Quản trị hoặc Kế toán **khác tài khoản của bạn**. Bạn không duyệt được yêu cầu của chính mình. Công ty chỉ có một Kế toán thì nhờ Quản trị hoặc Toàn quyền duyệt.
+- Người duyệt từ chối thì phải ghi lý do; lý do hiện ở yêu cầu của bạn, nhãn **Bị từ chối**. Yêu cầu quá 7 ngày không ai quyết thì chuyển **Hết hạn**: số dư vẫn giữ nguyên, bạn gửi lại nếu còn cần.
+- Tăng nợ có trần: tổng các lần tăng nợ trên một đơn (đã duyệt cộng đang chờ) không vượt số lớn hơn giữa tiền phải thu và tiền đã thu của đơn. Rút yêu cầu thì phần đó được trả lại. Giảm nợ không được vượt số đang nợ.
+- Máy kiểm lại các giới hạn này lúc duyệt. Số dư đã đổi từ lúc gửi hoặc tháng đã khoá sổ thì không duyệt được: từ chối rồi gửi lại.
+- Chuông báo: người có quyền duyệt nhận tin khi có yêu cầu mới; bạn nhận tin khi yêu cầu được duyệt hoặc bị từ chối.
+
+> Lưu ý: Chỉ lệnh điều chỉnh cần người khác duyệt. Các việc khác ở trang đơn như [[Đảo]] một lần thu vẫn làm như trước.`,
+    },
+    {
       tieuDe: "Tình huống hay gặp",
       noiDung: `### Thấy một đơn sai tiền
 
@@ -197,6 +215,7 @@ Chuông ở thanh trên báo khi có đơn mới, có người nhận đơn, đ�
 - Thêm dịch vụ, đổi giá sau khi xác nhận: Nền tảng chưa có cách sửa, kể cả tài khoản Toàn quyền — báo Quản trị. Số khách thì bạn sửa được (mục "Sửa số khách đơn đã xác nhận").
 - Nhận phụ trách, giao đơn cho người khác: không. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Duyệt "Đặt gấp": không. Nhờ Quản trị.
+- Tự duyệt yêu cầu điều chỉnh công nợ của chính mình: không. Nhờ Quản trị, Toàn quyền hoặc một Kế toán khác.
 - Đặt mức riêng cho một đối tác, thử tra mức: chưa, vì tài khoản Kế toán không tìm được đối tác theo tên. Nhờ Quản trị hoặc Toàn quyền.
 - Xếp xe, tạo chuyến, bấm tiến độ chuyến: không, bạn chỉ xem. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Bấm **Đã giao – đã thu đủ**: không. Hướng dẫn viên đang phụ trách đơn hoặc Quản trị bấm.
