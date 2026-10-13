@@ -131,7 +131,7 @@ try {
   await p.ev(setInput("document.getElementById('catalog-q')", "motor"));
   await p.waitFor(`JSON.stringify(${hang}) === '["TTB06"]'`, "tìm 'motor' trong TTB");
   await p.ev(setInput("document.getElementById('catalog-q')", "TD101"));
-  await p.waitFor(`${hang}.length === 0 && /Không tìm thấy dịch vụ/.test(document.getElementById('catalog-list').textContent)`, "TD101 không thuộc TTB → không thấy");
+  await p.waitFor(`${hang}.length === 0 && /Không tìm thấy dịch vụ nào khớp trong các nhóm đã đánh dấu/.test(document.getElementById('catalog-list').textContent)`, "TD101 không thuộc TTB → câu nói rõ đang lọc theo nhóm");
   await p.ev(setInput("document.getElementById('catalog-q')", ""));
   await p.waitFor(`${hang}.length === 23`, "xoá tìm → 23");
   await p.ev(moBang);
@@ -143,22 +143,47 @@ try {
   await p.waitFor("document.getElementById('catalog-nhom-bang').hidden === true && document.getElementById('catalog-list').hidden === false", "chạm ô gõ: bảng nhóm gập, danh sách mở");
   ok("Bỏ chọn hết → tất cả, bản nhớ xoá; tìm 'motor' TRONG nhóm TTB → TTB06; TD101 ngoài nhóm → không thấy; Esc và bấm ra ngoài đóng bảng nhóm; vào ô gõ thì bảng gập");
 
-  // ---- 2b) Dấu sao CÓ TÁC DỤNG: dịch vụ gắn sao xếp lên trước; danh sách vẫn mở; chạm lại ô mở; Đóng / Esc; bản nhớ lọc cũ bị bỏ qua ----
+  // ---- 2b) Dấu sao: bấm chỉ đổi biểu tượng TẠI CHỖ (không dựng lại, không nhảy dòng, không đổi vị trí cuộn); xếp sao lên trước ở lần mở sau; danh sách vẫn mở; chạm lại ô mở; Đóng / Esc; bản nhớ lọc cũ bị bỏ qua ----
   const truoc = await p.ev(hang);
   assert.equal(await p.ev("(() => { const r = document.querySelector('#catalog-list .catalog-row'); return r.firstElementChild.classList.contains('catalog-ghim') && r.lastElementChild.classList.contains('catalog-pick'); })()"), true, "dấu sao ĐỨNG ĐẦU dòng, nút chọn sau nó");
-  await p.ev("document.querySelector('#catalog-list [data-ghim=\"TTB09\"]').click(); true");
+  // Người kiểm 13/10 (60 dịch vụ, 390): dựng lại làm cuộn nhảy 1200 → 0 khi gắn sao và → 2122 khi bỏ sao. Đo cả cuộn trang và cuộn trong khung danh sách, TRƯỚC và SAU mỗi lần bấm.
+  const cuon = "(() => ({ y: Math.round(scrollY), t: Math.round(document.getElementById('catalog-list').scrollTop) }))()";
+  const sao = (code) => `document.querySelector('#catalog-list [data-ghim="${code}"]')`;
+  const giua = truoc[10]; // dòng nằm giữa danh sách, phải cuộn trong khung mới tới
+  await p.ev(`document.getElementById('catalog-list').scrollTop = 900; window.__sao = ${sao(giua)}; window.__sao.focus(); true`);
+  await sleep(150);
+  const o0 = await p.ev(cuon);
+  assert.ok(o0.t > 0, `tiền đề: khung danh sách đã cuộn xuống (scrollTop ${o0.t})`);
+  await p.ev("window.__sao.click(); true");
   assert.equal(await p.ev("document.getElementById('catalog-list').hidden"), false, "bấm sao: danh sách KHÔNG đóng");
-  await p.ev("document.querySelector('#catalog-list [data-ghim=\"TTB06\"]').click(); true");
-  assert.equal(await p.ev("document.getElementById('catalog-list').hidden"), false, "bấm sao lần hai: danh sách vẫn mở");
+  assert.deepEqual(await p.ev(cuon), o0, "gắn sao: vị trí cuộn KHÔNG đổi");
+  assert.deepEqual(await p.ev(hang), truoc, "gắn sao: thứ tự dòng KHÔNG đổi (chưa sắp lại)");
+  assert.equal(await p.ev(`${sao(giua)} === window.__sao`), true, "nút sao vẫn là CHÍNH nút cũ (không dựng lại)");
+  assert.equal(await p.ev("window.__sao.textContent"), "★");
+  assert.equal(await p.ev("window.__sao.getAttribute('aria-pressed')"), "true");
+  assert.equal(await p.ev("document.activeElement === window.__sao"), true, "focus vẫn ở nút sao");
+  await p.ev("window.__sao.click(); true");
+  assert.deepEqual(await p.ev(cuon), o0, "bỏ sao: vị trí cuộn KHÔNG đổi");
+  assert.deepEqual(await p.ev(hang), truoc, "bỏ sao: thứ tự dòng không đổi");
+  assert.equal(await p.ev("window.__sao.textContent + window.__sao.getAttribute('aria-pressed')"), "☆false");
+  assert.equal(await p.ev("document.activeElement === window.__sao"), true, "focus vẫn ở nút sao");
+  // Gắn hai sao rồi mở lại danh sách: dịch vụ có sao lên đầu (theo thứ tự danh mục), phần còn lại giữ thứ tự cũ.
+  await p.ev(`${sao("TTB09")}.click(); ${sao("TTB06")}.click(); true`);
+  assert.deepEqual(await p.ev(hang), truoc, "gắn thêm sao: vẫn chưa sắp lại");
+  await shot(p, "nhom-xo-xuong-390-sao-tai-cho.png");
+  await p.ev("document.getElementById('catalog-q').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
+  assert.equal(await p.ev("document.getElementById('catalog-list').hidden"), true);
+  await p.ev("document.getElementById('catalog-q').dispatchEvent(new MouseEvent('click', { bubbles: true })); true");
+  await p.waitFor("document.getElementById('catalog-list').hidden === false", "mở lại danh sách");
   const sau = await p.ev(hang);
-  assert.deepEqual(sau.slice(0, 2), ["TTB06", "TTB09"], "hai dịch vụ gắn sao lên đầu (theo thứ tự danh mục)");
+  assert.deepEqual(sau.slice(0, 2), ["TTB06", "TTB09"], "lần mở sau: hai dịch vụ gắn sao lên đầu (theo thứ tự danh mục)");
   assert.deepEqual(sau.slice(2), truoc.filter((c) => c !== "TTB06" && c !== "TTB09"), "phần còn lại giữ thứ tự cũ");
-  assert.equal(await p.ev("document.activeElement && document.activeElement.getAttribute('data-ghim')"), "TTB06", "focus ở nút sao của dịch vụ vừa bấm (dòng đã đổi chỗ)");
-  assert.equal(await p.ev("document.querySelector('#catalog-list [data-ghim=\"TTB06\"]').getAttribute('aria-pressed')"), "true");
   await shot(p, "nhom-xo-xuong-390-sao-len-dau.png");
-  await p.ev("document.querySelector('#catalog-list [data-ghim=\"TTB06\"]').click(); document.querySelector('#catalog-list [data-ghim=\"TTB09\"]').click(); true");
-  assert.deepEqual(await p.ev(hang), truoc, "bỏ sao hết → về thứ tự cũ");
-  await p.ev("document.querySelector('#catalog-list [data-ghim=\"TTB09\"]').click(); true"); // để lại một sao cho bước tải lại
+  await p.ev(`${sao("TTB06")}.click(); ${sao("TTB09")}.click(); true`);
+  await p.ev("document.getElementById('catalog-q').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
+  await p.ev("document.getElementById('catalog-q').dispatchEvent(new MouseEvent('click', { bubbles: true })); true");
+  await p.waitFor(`JSON.stringify(${hang}) === ${JSON.stringify(JSON.stringify(truoc))}`, "bỏ hết sao rồi mở lại → về thứ tự cũ");
+  await p.ev(`${sao("TTB09")}.click(); true`); // để lại một sao cho bước tải lại
   assert.match(await p.ev("document.querySelector('#catalog-list .catalog-dau').textContent"), /^23 dịch vụĐóng$/, "đầu danh sách: số dịch vụ + nút Đóng");
   await p.ev("document.querySelector('#catalog-list .catalog-dong').click(); true");
   assert.equal(await p.ev("document.getElementById('catalog-list').hidden"), true, "nút Đóng đóng danh sách");
@@ -187,7 +212,7 @@ try {
   assert.deepEqual(await cu.ev(daTick), [], "mã lạ ('hay-dung') bị bỏ qua → không tick nhóm nào, không kẹt");
   assert.equal(await cu.ev(nhanNut), "Nhóm dịch vụ");
   dong(cu);
-  ok("Dấu sao có tác dụng (TTB06, TTB09 lên đầu, phần còn lại giữ thứ tự; bấm sao không đóng danh sách; focus ở sao); chạm lại ô, nút Đóng, Esc; bản nhớ cũ ('theo-nguoi', 'hay-dung', nhóm một chuỗi) đọc an toàn, không ai kẹt trong bộ lọc ẩn");
+  ok("Dấu sao: bấm chỉ đổi biểu tượng tại chỗ (cuộn, thứ tự dòng, focus không đổi), lần mở sau TTB06 + TTB09 lên đầu, phần còn lại giữ thứ tự; chạm lại ô, nút Đóng, Esc; bản nhớ cũ ('theo-nguoi', 'hay-dung', nhóm một chuỗi) đọc an toàn, không ai kẹt trong bộ lọc ẩn");
 
   // ---- 3) Chưa phân loại + nhóm thật (HOẶC); Bỏ chọn hết ----
   await p.ev(`localStorage.removeItem(${JSON.stringify(KHOA_A)}); true`);

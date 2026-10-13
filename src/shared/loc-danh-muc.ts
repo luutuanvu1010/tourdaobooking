@@ -18,7 +18,8 @@ export function locDanhMuc<T extends { code: string; name: string }>(ds: readonl
   return ds.filter((c) => !kim || c.name.toLowerCase().includes(kim) || c.code.toLowerCase().includes(kim));
 }
 
-export const doiGhim = (ghim: readonly string[], code: string): string[] => (ghim.includes(code) ? ghim.filter((c) => c !== code) : [...ghim, code]);
+/** Bật / tắt sao một dịch vụ. Thêm vượt TOI_DA_GHIM thì bỏ mã cũ nhất (mã mới giữ), để lúc đọc lại không cắt mất mã vừa gắn. */
+export const doiGhim = (ghim: readonly string[], code: string): string[] => (ghim.includes(code) ? ghim.filter((c) => c !== code) : [...ghim, code].slice(-TOI_DA_GHIM));
 
 /** Dịch vụ đã gắn sao xếp lên trước; giữ nguyên thứ tự cũ trong từng phần (ổn định). Không sửa mảng đầu vào. */
 export function xepGhimTruoc<T extends { code: string }>(ds: readonly T[], ghim: readonly string[]): T[] {

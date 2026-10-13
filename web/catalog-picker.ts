@@ -2,7 +2,7 @@
 // Đợt 1 (13/10, ý chủ: "bỏ hết sự rườm rà, chỉ để lại việc lọc theo nhóm sản phẩm bằng nút xổ xuống + tick chọn"): hàng chip nhóm, chip "★ Hay dùng", hàng "Lọc sẵn có" đều đã bỏ.
 // Bấm nút → mở bảng nhóm, mỗi dòng một ô tick (vùng bấm ≥ 44px), tick được NHIỀU nhóm, không tick nhóm nào = tất cả; "Bỏ chọn hết"; đóng bằng nút Đóng, Esc hoặc bấm ra ngoài.
 // Chạm hoặc focus vào ô gõ là hiện cả danh sách (kể cả khi ô vẫn đang giữ focus sau lần chọn trước — iPhone không chuyển focus khi chạm nút); dấu ☆/★ ở ĐẦU dòng gắn sao dịch vụ hay dùng
-// và dịch vụ có sao xếp lên trước (giả định của người thi công); thanh nhỏ đầu danh sách có số dịch vụ và nút "Đóng" (Esc cũng đóng). Đây chỉ là cách HIỂN THỊ: dữ liệu tải và luật lọc theo vai (ADR-0033) không đổi.
+// và dịch vụ có sao xếp lên trước ở lần dựng danh sách kế tiếp (bấm sao chỉ đổi biểu tượng tại chỗ, không làm dòng nhảy hay cuộn nhảy; giả định của người thi công); thanh nhỏ đầu danh sách có số dịch vụ và nút "Đóng" (Esc cũng đóng). Đây chỉ là cách HIỂN THỊ: dữ liệu tải và luật lọc theo vai (ADR-0033) không đổi.
 // Dịch vụ chưa hỗ trợ đơn vị hoặc chưa có giá hiện mờ, không chạm được (ghi "chưa hỗ trợ" / "chưa có giá"; ADR-0061: người ĐƯỢC nhập tay — `setNhapTay(true)` —
 // thấy "chưa hỗ trợ — dùng nhập tay", gợi ý nút "+ Dịch vụ nhập tay"; người không được nhập tay chỉ thấy "chưa hỗ trợ" như bản 1.40): `aria-disabled` chứ không `disabled`, để vẫn nằm trong cây truy cập (người dùng đọc màn hình biết có mục này). Dịch vụ đã ẩn không có trong /api/catalog/for-order (nguồn của form lập đơn, ADR-0033) nên không hiện.
 // Danh sách là các nút thường (không role listbox/option: listbox đòi tên + mô hình phím mũi tên mà ở đây không có). Mỗi dòng: nút sao ☆/★ (`.catalog-ghim`) + nút chọn (`.catalog-pick`) — anh em, không lồng.
@@ -191,17 +191,24 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
           list.hidden = true;
           capNhatNhom(); // ô gõ vừa xoá: số "N dịch vụ" của bảng nhóm tính lại
         });
-        const daGhim = nho.ghim.includes(c.code);
-        const ghim = h("button", { type: "button", class: "catalog-ghim", "aria-pressed": String(daGhim), "aria-label": `${daGhim ? "Bỏ sao" : "Gắn sao"} ${c.code}${daGhim ? "" : " — dịch vụ hay dùng, xếp lên đầu danh sách"}`, "data-ghim": c.code }, daGhim ? "★" : "☆");
+        const ghim = h("button", { type: "button", class: "catalog-ghim", "data-ghim": c.code });
+        // Bấm sao CHỈ đổi biểu tượng + nhớ ngay tại dòng đó — KHÔNG dựng lại danh sách, nên dòng không nhảy và vị trí cuộn giữ nguyên (người kiểm 13/10: dựng lại làm cuộn nhảy 1200 → 0 / 2122 trên điện thoại).
+        // Dịch vụ có sao xếp lên trước chỉ ở lần dựng danh sách kế tiếp (mở lại ô, gõ chữ, đổi nhóm). Focus vẫn ở chính nút này.
+        const veSao = (): void => {
+          const da = nho.ghim.includes(c.code);
+          ghim.textContent = da ? "★" : "☆";
+          ghim.setAttribute("aria-pressed", String(da));
+          ghim.setAttribute("aria-label", `${da ? "Bỏ sao" : "Gắn sao"} ${c.code}${da ? "" : " — dịch vụ hay dùng, xếp lên đầu danh sách ở lần mở sau"}`);
+        };
+        veSao();
         ghim.addEventListener("click", () => {
           nho = { ...nho, ghim: doiGhim(nho.ghim, c.code) };
           ghiBoNho(nho);
-          render(); // dịch vụ có sao xếp lên trước ⇒ dòng đổi chỗ; giữ focus ở nút sao của chính dịch vụ đó
-          list.querySelector<HTMLButtonElement>(`[data-ghim="${CSS.escape(c.code)}"]`)?.focus();
+          veSao();
         });
         return h("div", { class: "catalog-row" }, ghim, b); // dấu sao ở ĐẦU dòng (bảng việc #8)
       }),
-      found.length === 0 && h("div", { class: "catalog-empty", role: "status" }, "Không tìm thấy dịch vụ."),
+      found.length === 0 && h("div", { class: "catalog-empty", role: "status" }, nhomHieuLuc().length === 0 ? "Không tìm thấy dịch vụ." : q.value.trim() === "" ? "Không có dịch vụ nào trong các nhóm đã đánh dấu." : "Không tìm thấy dịch vụ nào khớp trong các nhóm đã đánh dấu."),
     );
     list.hidden = false;
   }
@@ -220,7 +227,7 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
       dong();
     }
   });
-  // Bấm ra ngoài thì đóng. Dùng `composedPath()` (chụp LÚC bấm) chứ không `root.contains(e.target)`: bấm nút sao dựng lại danh sách, nút bị gỡ khỏi trang trước khi sự kiện nổi tới đây.
+  // Bấm ra ngoài thì đóng. Dùng `composedPath()` (chụp LÚC bấm) chứ không `root.contains(e.target)`: danh sách có thể được dựng lại giữa lúc bấm, nút bị gỡ khỏi trang trước khi sự kiện nổi tới đây.
   document.addEventListener("click", (e) => {
     if (e.composedPath().includes(root)) return;
     list.hidden = true;

@@ -26,6 +26,12 @@ test("xepGhimTruoc (đợt 1, ý chủ 13/10: sao CÓ TÁC DỤNG): dịch vụ 
 test("doiGhim: bật / tắt ghim, không trùng", () => {
   assert.deepEqual(doiGhim(["A"], "B"), ["A", "B"]);
   assert.deepEqual(doiGhim(["A", "B"], "A"), ["B"]);
+  const day = Array.from({ length: 200 }, (_, i) => `M${i}`);
+  const them = doiGhim(day, "MOI");
+  assert.equal(them.length, 200, "ghi cũng cắt ở 200 mã (không chỉ lúc đọc)");
+  assert.equal(them.at(-1), "MOI", "mã mới giữ");
+  assert.equal(them.includes("M0"), false, "bỏ mã cũ nhất");
+  assert.equal(doiGhim(day, "M5").length, 199, "bỏ sao không bị cắt thêm");
 });
 
 test("docNhoDanhMuc: chỉ đọc mã ghim; trường `loc` của bản nhớ cũ (hay-dung / theo-nguoi / theo-nhom / lạ) bị BỎ QUA, không ai kẹt trong bộ lọc ẩn; rác → trống, không ném lỗi", () => {

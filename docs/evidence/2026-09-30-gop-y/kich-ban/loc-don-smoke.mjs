@@ -139,7 +139,7 @@ try {
   ok("1040: bộ lọc vẫn nhớ, bảng lọc mở dạng hộp, không tràn ngang; không lỗi console");
 
   // 6) Ô chọn dịch vụ khi lập đơn (góp ý YC-0003 — chủ duyệt 30/9; ĐỢT 1 13/10, ý chủ "bỏ hết sự rườm rà, chỉ để lại việc lọc theo nhóm bằng nút xổ xuống + tick chọn"): mọi bộ lọc phụ
-  // ("★ Hay dùng", "Theo người", "Giá theo nhóm") đã bỏ; dấu sao ☆/★ giữ lại và có tác dụng — dịch vụ có sao xếp lên trước; mã gắn sao nhớ sau tải lại.
+  // ("★ Hay dùng", "Theo người", "Giá theo nhóm") đã bỏ; dấu sao ☆/★ giữ lại và có tác dụng — dịch vụ có sao xếp lên trước ở lần mở danh sách kế tiếp (bấm sao chỉ đổi biểu tượng tại chỗ); mã gắn sao nhớ sau tải lại.
   const f = await env.as(ACCOUNTS.salesA, "/order-form", { width: 390, height: 844, mobile: true });
   const hang = `[...document.querySelectorAll('#catalog-list .catalog-pick')].map((b) => b.querySelector('strong').textContent)`;
   await f.waitFor("document.querySelectorAll('#catalog-nhom-nut').length === 1 && !document.querySelector('.catalog-nhom').hidden", "nút Nhóm dịch vụ", 10000);
@@ -149,19 +149,25 @@ try {
   await f.waitFor(`JSON.stringify(${hang}) === '["TD101","TTB03","TTB06"]'`, "3 dịch vụ theo thứ tự danh mục khi chưa gắn sao");
   await f.ev("document.querySelector('#catalog-list [data-ghim=\"TTB06\"]').click()");
   assert.equal(await f.ev("document.getElementById('catalog-list').hidden"), false, "bấm sao: danh sách không đóng");
-  assert.deepEqual(await f.ev(hang), ["TTB06", "TD101", "TTB03"], "dịch vụ gắn sao xếp lên trước, phần còn lại giữ thứ tự");
+  assert.deepEqual(await f.ev(hang), ["TD101", "TTB03", "TTB06"], "bấm sao chỉ đổi biểu tượng tại chỗ: dòng chưa nhảy");
   assert.equal(await f.ev("document.querySelector('#catalog-list [data-ghim=\"TTB06\"]').textContent"), "★");
+  await f.ev("document.getElementById('catalog-q').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
+  await f.ev("document.getElementById('catalog-q').dispatchEvent(new MouseEvent('click', { bubbles: true })); true");
+  await f.waitFor(`JSON.stringify(${hang}) === '["TTB06","TD101","TTB03"]'`, "mở lại danh sách: dịch vụ gắn sao xếp lên trước, phần còn lại giữ thứ tự");
   await f.send("Page.reload", {});
   await sleep(300);
   await f.waitFor("document.querySelectorAll('#catalog-nhom-nut').length === 1", "tải lại: nút nhóm", 10000);
   await f.ev("document.getElementById('catalog-q').focus(); true");
   await f.waitFor(`JSON.stringify(${hang}) === '["TTB06","TD101","TTB03"]'`, "tải lại: sao vẫn nhớ, TTB06 vẫn lên đầu");
   await f.ev("document.querySelector('#catalog-list [data-ghim=\"TTB06\"]').click()");
-  assert.deepEqual(await f.ev(hang), ["TD101", "TTB03", "TTB06"], "bỏ sao → về thứ tự danh mục");
+  assert.deepEqual(await f.ev(hang), ["TTB06", "TD101", "TTB03"], "bỏ sao: dòng chưa nhảy");
+  await f.ev("document.getElementById('catalog-q').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
+  await f.ev("document.getElementById('catalog-q').dispatchEvent(new MouseEvent('click', { bubbles: true })); true");
+  await f.waitFor(`JSON.stringify(${hang}) === '["TD101","TTB03","TTB06"]'`, "mở lại sau khi bỏ sao → về thứ tự danh mục");
   assert.ok((await f.ev("document.documentElement.scrollWidth - innerWidth")) <= 0, "form 390: không tràn ngang");
   assert.deepEqual(f.consoleErrors.filter((e) => !/favicon/.test(e)), [], "form: không lỗi console");
   f.close();
-  ok("Lập đơn 390: không còn chip / bộ lọc phụ; ghim ☆→★ đưa dịch vụ lên đầu danh sách, nhớ sau tải lại, bỏ sao thì về thứ tự cũ");
+  ok("Lập đơn 390: không còn chip / bộ lọc phụ; ghim ☆→★ tại chỗ, lần mở sau đưa dịch vụ lên đầu, nhớ sau tải lại, bỏ sao thì lần mở sau về thứ tự cũ");
   console.log("LOC DON SMOKE OK");
 } finally {
   await env.stop();
