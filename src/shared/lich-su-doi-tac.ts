@@ -102,7 +102,8 @@ function giuChiTiet(cach: CachGiuChiTiet, detail: string | null): string | null 
     case "chi-nhom-huy": return nhomHuyCuaChiTiet(detail);
     case "cat-ly-do": {
       const i = detail.indexOf(DAU_LY_DO);
-      return i < 0 ? detail : detail.slice(0, i);
+      // KIỂU ĐÓNG: không thấy dấu tách lý do (dòng ghi trước 8/10/2026, commit 62f97d74: toàn câu là lý do tự gõ của hướng dẫn viên) ⇒ bỏ cả chi tiết, không trả nguyên văn.
+      return i < 0 ? null : detail.slice(0, i);
     }
   }
 }

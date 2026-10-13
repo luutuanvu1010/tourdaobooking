@@ -224,3 +224,17 @@ test("D-1 (e) mọi hành động của audit-actions.ts đã được PHÂN LO�
   assert.deepEqual(Object.keys(m.LICH_SU_DOI_TAC_CHO_PHEP).sort(), Object.keys(CHO_PHEP).sort(), "danh sách cho phép trong mã khác danh sách chủ duyệt trong bài");
   for (const a of Object.keys(m.LICH_SU_DOI_TAC_CHO_PHEP)) assert.ok(!(m.LICH_SU_DOI_TAC_AN as readonly string[]).includes(a), `${a} vừa cho phép vừa ẩn`);
 });
+
+test("D-1 (f) dòng sửa số khách KIỂU CŨ (chữ lý do tự gõ, không có dấu ' · lý do: ') không lộ cho Đối tác thuần và tài khoản lai — cắt kiểu đóng (fail-closed)", async () => {
+  const w = dungWorld();
+  const CHU_TU_DO = "MATLEGACYHDV";
+  for (const [as, chu] of [[PARTNER, PARTNER], [HYB, HYB]] as const) {
+    const don = nhapDon(w, chu);
+    const ghi = w.sqlite.prepare("INSERT INTO audit_log (id, order_id, staff_id, action, target_type, target_id, detail, created_at) VALUES (?, ?, ?, ?, 'order', ?, ?, ?)");
+    ghi.run(uuid(), don, ACC, "order_money_adjusted_by_field", don, CHU_TU_DO, "2026-10-02T00:00:00.000Z");
+    ghi.run(uuid(), don, ACC, "order_money_adjusted", don, `${CHU_TU_DO} văn phòng`, "2026-10-02T00:00:01.000Z");
+    const h = await lichSu(w, as, don);
+    assert.equal(h.filter((e) => e.action.startsWith("order_money_adjusted")).length, 2, "dòng vẫn hiện (chỉ chữ chi tiết bị bỏ)");
+    assert.ok(!JSON.stringify(h).includes(CHU_TU_DO), `${as}: chữ lý do tự gõ kiểu cũ lộ cho Đối tác`);
+  }
+});
