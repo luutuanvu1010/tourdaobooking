@@ -37,6 +37,8 @@ const donApi = async (goi, ten, adult, legs, passengers) => {
 };
 const card = "#services .svc";
 const chang = (chieu) => `${card} .dd-chang[data-chieu="${chieu}"]`;
+// 14/10 (Tạo đơn bốn bước): chặng đã đủ thông tin gập thành MỘT dòng tóm tắt và ô ít dùng (chuyến bay, xe riêng, số chỗ) nằm trong khối "Thêm chi tiết" — mở hết trước khi thao tác / đọc chữ trong đó.
+const moHetKhoiGap = `document.querySelectorAll('${card} button[data-gap][aria-expanded="false"]').forEach((n) => n.click()); true`;
 
 try {
   // ---- dữ liệu: mẫu chặng TD101 = Hai chiều, giờ về 16:30, nơi trả gợi ý Ga cáp treo (route của Quản trị) -------------------------------------------------
@@ -73,6 +75,7 @@ try {
     assert.match(await f.ev(txt(`${chang("OUT")}`)), /Bằng ngày đi/);
     assert.equal(await f.ev(`document.activeElement === document.querySelector('${chang("OUT")} [data-o$=":ngay"]')`), true, "tiêu điểm vào ô Ngày đón vừa mở");
     // chặng chiều về còn ẩn (chưa bấm); đặt ngày đón KHÁC ngày đi → ô tự hiện, không cần bấm
+    await f.ev(moHetKhoiGap); // chiều về đã đủ giờ + nơi đón (đảo từ chiều đi) nên đang gập một dòng; người dùng phải mở ra mới sửa được
     assert.equal(await f.ev(`document.querySelector('${chang("RETURN")} [data-o$=":ngay"]').closest('label').hidden`), true, "chiều về: Ngày đón vẫn ẩn");
     await f.ev(typeInto(`${chang("RETURN")} [data-o$=":ngay"]`, vnDate(6)));
     assert.equal(await f.ev(shown(`${chang("RETURN")} [data-o$=":ngay"]`)), true, "ngày đón khác ngày đi → ô hiện");
@@ -115,6 +118,7 @@ try {
     await f.ev(typeInto(`${chang("OUT")} [data-o$=":don"]`, KS));
     await f.ev(typeInto(`${chang("OUT")} [data-o$=":tra"]`, SB));
     await f.waitFor(`!!document.querySelector('${chang("OUT")} [data-o$=":bay"]')`, "ô số hiệu chuyến bay khi nơi trả là sân bay");
+    await f.ev(moHetKhoiGap); // ô chuyến bay nằm trong "Thêm chi tiết"
     assert.match(await f.ev(txt(`${chang("OUT")}`)), /Số hiệu chuyến bay.*Tài xế tự tra giờ bay/);
     await f.ev(typeInto(`${chang("OUT")} [data-o$=":bay"]`, "vn1553"));
     await f.ev(click(`${card} [data-action="them-chang"]`));
@@ -400,6 +404,8 @@ try {
   await b.step("12", `Tiêu chí 7 (390, Đối tác): form có chiều về → 'Số người chiều về' chỉ xem ('Cả đoàn' + 'Văn phòng điều chỉnh số người về'); khối Hành khách nhập được; API gửi paxOverride khác → 403; đơn đã xác nhận: có 'Sửa danh sách', KHÔNG 'Sửa đưa đón', câu khoá D5${axeNote()}`, async () => {
     const od = await donApi(goiApi(DOI_TAC), "Khách Đối Tác", 2, [leg({ dropoffLocationId: GA }), leg({ direction: "RETURN", pickupTime: "16:30", pickupLocationId: GA, dropoffLocationId: KS })]);
     const p = await env.as(DOI_TAC, `/order-form?id=${od.id}`, MOB);
+    await p.waitFor(`document.querySelectorAll('${card} .dd-chang').length === 2`, "hai chặng của đơn mở lại");
+    await p.ev(moHetKhoiGap); // đơn đủ thông tin: chặng gập một dòng (14/10) — mở ra để thấy ô chỉ xem
     await p.waitFor(shown(`${chang("RETURN")} .dd-xem`), "ô chỉ xem");
     assert.equal(await p.ev(txt(`${chang("RETURN")} .dd-xem`)), "Số người chiều về Cả đoàn Văn phòng điều chỉnh số người về");
     assert.equal(await p.ev(`!!document.querySelector('${chang("RETURN")} [data-o$=":so-ve"]')`), false);
