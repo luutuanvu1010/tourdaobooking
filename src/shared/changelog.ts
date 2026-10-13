@@ -12,6 +12,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đợt 1 giao diện Tạo đơn trên điện thoại (bảng việc 13/10: #3, #4, #7, #8, #9 phần ô; gom "Đặt qua đối tác"); chỉ đổi cách vẽ, không migration. Số 1.91 là số TẠM (= nhánh 1.90 + 1, 2026-10-13):
+    // chủ / phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số.
+    version: "1.91",
+    date: "2026-10-13",
+    items: [
+      { kind: "doi", text: "Màn Tạo đơn gọn hơn trên điện thoại: tên ô nằm ngay trong ô thay vì một dòng riêng phía trên, bớt vài tiêu đề thừa." },
+      { kind: "doi", text: "Hàng Nhóm dịch vụ nằm trên ô chọn dịch vụ. Chạm vào ô là hiện cả danh sách, có nút Đóng; dấu ☆ Hay dùng nằm ở đầu mỗi dòng." },
+      { kind: "doi", text: "Bỏ hàng lọc \"Theo người\" và \"Giá theo nhóm\"; \"★ Hay dùng\" nay là một lựa chọn trong hàng Nhóm dịch vụ." },
+      { kind: "doi", text: "Ô \"Ngày đón\" của chặng đưa đón ẩn khi cùng ngày khởi hành. Cần đón khác ngày thì bấm \"Đón khác ngày\"." },
+      { kind: "doi", text: "\"Khách tự đặt\" và \"Đặt qua đối tác\" nay là một hàng hai lựa chọn trong khối khách hàng." },
+    ],
+  },
+  {
     // Sửa lỗi ô tìm của danh sách đơn (chữ tìm dài → báo lỗi hệ thống; D1 từ chối mẫu LIKE quá 50 byte). Số 1.90 là số TẠM (= main 1.89 + 1 lúc dựng lại 2026-10-13): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
     version: "1.90",
     date: "2026-10-13",

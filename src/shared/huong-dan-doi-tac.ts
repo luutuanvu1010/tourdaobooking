@@ -49,7 +49,7 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
     {
       tieuDe: "Lập đơn cho khách",
       noiDung: `1. Bấm [[Tạo đơn]].
-2. Phần **Chọn ngày**: chọn **Ngày khởi hành**. Ngày này dùng cho mọi dịch vụ trong đơn.
+2. Đầu trang: chọn **Ngày khởi hành**. Ngày này dùng cho mọi dịch vụ trong đơn.
 3. Phần **Dịch vụ**: bấm vào ô [[Chọn từ danh mục]], gõ tên hoặc mã dịch vụ, rồi bấm vào dịch vụ cần chọn.
    - Dịch vụ có nhãn "chưa có giá" hoặc "chưa hỗ trợ" thì không chọn được.
    - Dịch vụ đã có trong đơn có nhãn "đã chọn".
