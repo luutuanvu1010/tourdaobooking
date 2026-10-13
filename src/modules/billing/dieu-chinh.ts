@@ -8,7 +8,7 @@ import { phaiThuNhieuDon } from "../orders";
 import type { TrangThaiYeuCauDieuChinh, YeuCauDieuChinhDto, YeuCauDieuChinhListResponse } from "../../shared/contracts";
 import { UUID_RE } from "../../shared/http";
 import {
-  duyetChenStatement, phieuChenStatement, quyetDinhChenStatement, taiKhoanCuaHoSo, tangDaCo, tangDangCho, yeuCauChenStatement, yeuCauGanDay, yeuCauTheoId, type YeuCauDbRow,
+  duyetChenStatement, phieuChenStatement, quyetDinhChenStatement, taiKhoanCuaHoSo, tangDaCo, tangDangCho, yeuCauChenStatement, yeuCauChoDuyet, yeuCauGanDay, yeuCauTheoId, type YeuCauDbRow,
 } from "./dieu-chinh-repo";
 import { lineIfPostingStatement, linesOfOrder, orderOwners, ownerCompanyId, partyLabels, receiptsOfOrder } from "./repository";
 import { HAN_YEU_CAU_NGAY, LY_DO_DIEU_CHINH_TOI_THIEU, conLai, dong, hetHanYeuCau, kiemDieuChinh, soDuCap } from "./rules";
@@ -45,17 +45,18 @@ const khongQuyetDuoc = (t: TrangThaiYeuCauDieuChinh): { ok: false; res: Response
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 async function kiemTheoSoLieuHienTai(
   db: D1Database,
-  y: { orderId: string; benNo: string; benDuocNo: string; soTien: number; boId: string },
+  y: { orderId: string; benNo: string; benDuocNo: string; soTien: number; boId: string; loaiDong: string },
   bayGio: string,
 ): Promise<{ ok: true; kiem: Extract<ReturnType<typeof kiemDieuChinh>, { ok: true }>; dongSo: ReturnType<typeof toLineRow>[] } | { ok: false; res: Response }> {
-  const [dongDon, cacLanThu, base, daCo, dangCho] = await Promise.all([
-    linesOfOrder(db, y.orderId), receiptsOfOrder(db, y.orderId), phaiThuNhieuDon(db, [y.orderId]), tangDaCo(db, y.orderId), tangDangCho(db, y.orderId, y.boId, mocConHan(bayGio)),
+  const [dongDon, cacLanThu, base, daCo, dangCho, congTyId] = await Promise.all([
+    linesOfOrder(db, y.orderId), receiptsOfOrder(db, y.orderId), phaiThuNhieuDon(db, [y.orderId]), tangDaCo(db, y.orderId), tangDangCho(db, y.orderId, y.boId, mocConHan(bayGio)), ownerCompanyId(db),
   ]);
   const dongSo = dongDon.map(toLineRow);
   const bo = base.get(y.orderId);
   const phaiThu = bo?.phaiThu ?? 0;
   const kiem = kiemDieuChinh({
     nguoc: soDuCap(dongSo, y.benDuocNo, y.benNo), soTien: y.soTien, phaiThu, daThu: conLai(cacLanThu.map(toReceiptRow), phaiThu, bo?.status ?? "confirmed").daThu, tangDaCo: daCo, tangDangCho: dangCho,
+    quyetToanVoiCongTy: y.loaiDong === "SETTLEMENT" && (y.benNo === congTyId || y.benDuocNo === congTyId),
   });
   return kiem.ok ? { ok: true, kiem, dongSo } : loi(409, kiem.ma, kiem.cau);
 }
@@ -84,7 +85,7 @@ export async function taoYeuCau(db: D1Database, input: { raw: unknown; ai: Nguoi
   if ((lyDo.value ?? "").trim().length < LY_DO_DIEU_CHINH_TOI_THIEU) return loi(400, "invalid_input", `Lý do điều chỉnh tối thiểu ${LY_DO_DIEU_CHINH_TOI_THIEU} ký tự.`);
   const at = new Date().toISOString();
   const yeuCauId = crypto.randomUUID();
-  const k = await kiemTheoSoLieuHienTai(db, { orderId: b.orderId, benNo: b.benNo, benDuocNo: b.benDuocNo, soTien: so.value, boId: yeuCauId }, at);
+  const k = await kiemTheoSoLieuHienTai(db, { orderId: b.orderId, benNo: b.benNo, benDuocNo: b.benDuocNo, soTien: so.value, boId: yeuCauId, loaiDong: b.loaiDong }, at);
   if (!k.ok) return k;
   const huong = k.kiem.huong;
   try {
@@ -120,7 +121,7 @@ export async function duyetYeuCau(db: D1Database, input: { yeuCauId: string; ai:
   // Ngày phát sinh phải thuộc tháng còn mở LÚC DUYỆT (điều 5); lớp CSDL: trigger khoá tháng trên phiếu (0090).
   const ngay = docNgay(y.occurred_date, await layKyDaKhoa(db));
   if (!ngay.ok) return ngay;
-  const k = await kiemTheoSoLieuHienTai(db, { orderId: y.order_id, benNo: y.debtor_party_id, benDuocNo: y.creditor_party_id, soTien: y.amount, boId: y.id }, at);
+  const k = await kiemTheoSoLieuHienTai(db, { orderId: y.order_id, benNo: y.debtor_party_id, benDuocNo: y.creditor_party_id, soTien: y.amount, boId: y.id, loaiDong: y.line_kind_code }, at);
   if (!k.ok) return k;
   // Hướng đã chốt lúc tạo không được đổi lúc duyệt: số dư về 0 giữa chừng làm một yêu cầu GIẢM nợ bị đọc thành TĂNG nợ (và trượt qua trần) hoặc ngược lại.
   if (k.kiem.huong !== y.direction) {
@@ -162,6 +163,7 @@ export async function duyetYeuCau(db: D1Database, input: { yeuCauId: string; ai:
   } catch (e) {
     const kh = await loiKhoaKy(db, e, [y.occurred_date]);
     if (kh) return kh;
+    if (loiTrigger(e, "settlement_sign_flip")) return loi(409, "adjustment_flips_sign", "Số dư của đơn vừa thay đổi nên quyết toán này sẽ làm số dư đổi dấu — tải lại, từ chối yêu cầu này và gửi lại nếu cần.");
     if (loiTrigger(e, "adjreq_expired")) return loi(409, "adjreq_expired", CAU_HET_HAN);
     if (loiTrigger(e, "adjreq_same_person")) return loi(409, "adjreq_same_person", "Bạn là người tạo yêu cầu này — cần một người khác duyệt (tách nhiệm vụ).");
     if (/UNIQUE constraint failed: bil_adjustment_request\.target_id/.test(e instanceof Error ? e.message : String(e))) return loi(409, "adjreq_decided", "Yêu cầu này vừa được người khác xử lý — tải lại.");
@@ -169,7 +171,7 @@ export async function duyetYeuCau(db: D1Database, input: { yeuCauId: string; ai:
   }
   if ((kq[0]!.meta.changes ?? 0) === 0) {
     // Lính gác CSDL chặn: sổ đổi giữa lúc kiểm và lúc ghi (một lệnh duyệt khác vừa ghi). Đọc lại để trả đúng câu; không còn lệch thì coi như "vừa thay đổi".
-    const lai = await kiemTheoSoLieuHienTai(db, { orderId: y.order_id, benNo: y.debtor_party_id, benDuocNo: y.creditor_party_id, soTien: y.amount, boId: y.id }, new Date().toISOString());
+    const lai = await kiemTheoSoLieuHienTai(db, { orderId: y.order_id, benNo: y.debtor_party_id, benDuocNo: y.creditor_party_id, soTien: y.amount, boId: y.id, loaiDong: y.line_kind_code }, new Date().toISOString());
     return lai.ok ? loi(409, "stale", "Số dư của đơn vừa thay đổi — tải lại rồi duyệt lại.") : lai;
   }
   return { ok: true, value: { orderId: y.order_id } };
@@ -244,7 +246,9 @@ export async function danhSachYeuCau(
   v: { staffId: string; xemDayDu: boolean; coTheDuyetO: boolean; coTheTaoO: boolean },
 ): Promise<YeuCauDieuChinhListResponse> {
   const bayGio = new Date().toISOString();
-  const rows = await yeuCauGanDay(db, TOI_DA_DANH_SACH);
+  // Yêu cầu chờ duyệt lọc Ở SQL (không lọc sau khi cắt 200 yêu cầu mới nhất); người xem cả sổ còn có các yêu cầu đã quyết gần đây. Gộp theo mã, mới nhất trước.
+  const [cho, gan] = await Promise.all([yeuCauChoDuyet(db, mocConHan(bayGio), TOI_DA_DANH_SACH), v.xemDayDu ? yeuCauGanDay(db, TOI_DA_DANH_SACH) : Promise.resolve([] as YeuCauDbRow[])]);
+  const rows = [...new Map([...cho, ...gan].map((r) => [r.id, r])).values()].sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0));
   const dto = rows.map((r) => yeuCauDto(r, { staffId: v.staffId, coTheDuyetO: v.coTheDuyetO, coTheTaoO: v.coTheTaoO, bayGio }));
   const hien = v.xemDayDu ? dto : dto.filter((x) => x.trangThai === "cho_duyet");
   return { yeuCau: hien, choDuyetChoToi: hien.filter((x) => x.coTheDuyet).length, xemDayDu: v.xemDayDu, coTheTao: v.coTheTaoO };

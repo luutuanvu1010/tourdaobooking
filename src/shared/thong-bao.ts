@@ -245,7 +245,9 @@ export function locHopThongBao(
   for (const d of vao.dieuChinh ?? []) {
     if (d.luc < moc || d.actorId === staff.id) continue;
     const cho = d.mucLoai === "ledger" && (d.action === "ledger_adjustment_requested" || d.action === "ledger_adjustment_withdrawn");
-    const rieng = d.mucLoai === "staff" && d.mucId === staff.id && d.action !== "ledger_adjustment_requested" && d.action !== "ledger_adjustment_withdrawn";
+    // «Số dư của bạn đổi» (ADR-0092 Đ5d) chỉ cho NHÂN VIÊN có tài khoản nội bộ: tài khoản giữ quyền Đối tác bên ngoài (kể cả lai) không nhận, vì tin kèm mã đơn.
+    const biNgoai = d.action === "ledger_adjustment_affected" && staff.permissions.some(isExternalPermission);
+    const rieng = !biNgoai && d.mucLoai === "staff" && d.mucId === staff.id && d.action !== "ledger_adjustment_requested" && d.action !== "ledger_adjustment_withdrawn";
     const cau = CAU_DIEU_CHINH[d.action];
     if (!cau || !(cho ? duyetDuoc : rieng)) continue;
     tat.push({

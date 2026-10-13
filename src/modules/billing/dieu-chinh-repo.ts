@@ -48,6 +48,15 @@ export const yeuCauTheoId = (db: D1Database, id: string) => db.prepare(YEU_CAU_T
 const YEU_CAU_GAN_DAY = defineSql("billing", "adjreq_recent", `SELECT ${COT_YEU_CAU} ${TU_YEU_CAU} WHERE q.kind_code = 'REQUEST' ORDER BY q.rowid DESC LIMIT ?1`);
 export const yeuCauGanDay = async (db: D1Database, gioiHan: number): Promise<YeuCauDbRow[]> => (await db.prepare(YEU_CAU_GAN_DAY).bind(gioiHan).all<YeuCauDbRow>()).results;
 
+/** Yêu cầu CHỜ DUYỆT còn hạn (chưa có quyết định, tạo từ mốc ?1 trở đi), mới nhất trước, trần ?2 — lọc ở SQL để yêu cầu chờ cũ không rơi khỏi danh sách khi sau nó có nhiều yêu cầu đã quyết. */
+const YEU_CAU_CHO_DUYET = defineSql(
+  "billing",
+  "adjreq_pending",
+  `SELECT ${COT_YEU_CAU} ${TU_YEU_CAU} WHERE q.kind_code = 'REQUEST' AND q.created_at >= ?1
+     AND NOT EXISTS (SELECT 1 FROM bil_adjustment_request d WHERE d.target_id = q.id) ORDER BY q.rowid DESC LIMIT ?2`,
+);
+export const yeuCauChoDuyet = async (db: D1Database, taoTu: string, gioiHan: number): Promise<YeuCauDbRow[]> => (await db.prepare(YEU_CAU_CHO_DUYET).bind(taoTu, gioiHan).all<YeuCauDbRow>()).results;
+
 /**
  * Σ điều chỉnh TĂNG nợ còn hiệu lực của MỘT đơn (ADR-0115 điều 4): yêu cầu đã duyệt theo hướng INCREASE lúc duyệt, đã sinh phiếu + dòng nợ, và dòng nợ ấy chưa bị đảo.
  * Số tiền lấy từ dòng nợ thật (không từ yêu cầu) — nguồn là sổ.

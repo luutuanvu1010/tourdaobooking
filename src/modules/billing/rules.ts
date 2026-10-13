@@ -179,7 +179,13 @@ export type KetQuaKiemDieuChinh =
  */
 export function kiemDieuChinh(input: {
   nguoc: number; soTien: number; phaiThu: number; daThu: number; tangDaCo?: number; tangDangCho?: number;
+  /** Dòng loại QUYẾT TOÁN (nộp / trả) mà một bên là công ty chủ: trigger 0080 `settlement_sign_flip` chỉ nhận khi số đang nợ NGƯỢC chiều ≥ số tiền (không đổi dấu). */
+  quyetToanVoiCongTy?: boolean;
 }): KetQuaKiemDieuChinh {
+  // Chỉ nhánh «không có nợ ngược chiều»: nếu có nợ mà số tiền vượt, nhánh giảm nợ ngay dưới đã trả cùng mã `adjustment_flips_sign`.
+  if (input.quyetToanVoiCongTy && input.nguoc <= 0) {
+    return { ok: false, ma: "adjustment_flips_sign", cau: `Quyết toán (nộp / trả) vượt số đang nợ trên đơn (${dong(Math.max(input.nguoc, 0))}) — số dư không được đổi dấu. Kiểm lại số tiền hoặc chọn loại dòng khác.` };
+  }
   const tran = Math.max(input.phaiThu, input.daThu);
   if (input.nguoc > 0) {
     if (input.soTien > input.nguoc) {

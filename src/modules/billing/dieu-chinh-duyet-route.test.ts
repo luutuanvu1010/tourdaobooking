@@ -329,3 +329,97 @@ test("lính gác CSDL của lô duyệt: trần tăng nợ cộng dồn và «kh
   const g = duyetChenStatement(kho as never, { id: uuid(), orderId: id, direction: "DECREASE", requestId: y, capSnapshot: null, at: AT, by: KT2, tangDaCoToiDa: 0, soTien: 400_001, benDuocNo: hdv, benNo: ct }) as unknown as { sql: string; args: unknown[] };
   assert.equal(Number(w.sqlite.prepare(g.sql).run(...(g.args as never[])).changes), 0, "HDV nợ 400.000 < 400.001");
 });
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+// M-1 (người kiểm độc lập 13/10): yêu cầu loại «Quyết toán» làm số dư đổi dấu — trigger 0080 `settlement_sign_flip` chặn dòng nợ. Phải bị từ chối bằng chữ tiếng Việt ngay LÚC TẠO
+// (không để lọt 201 rồi nổ 500 lúc duyệt), và nếu vẫn lọt tới lô duyệt (sổ đổi giữa chừng) thì trả 409, không 500.
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+test("L-3: yêu cầu chờ duyệt CŨ vẫn hiện dù sau nó đã có hơn 200 yêu cầu khác được rút (lọc chờ duyệt ở SQL, không lọc sau khi cắt 200)", async () => {
+  const w = setup();
+  const id = don(w);
+  const ct = congTy(w);
+  const cu = (await tao(w, { orderId: id, benNo: hdv, benDuocNo: ct, soTien: 1_000, lyDo: "yêu cầu chờ duyệt cũ nhất" })).json.yeuCauId;
+  const ins = w.sqlite.prepare(`INSERT INTO bil_adjustment_request (id, kind_code, order_id, debtor_party_id, creditor_party_id, amount, line_kind_code, occurred_date, direction, reason, target_id,
+    cap_snapshot, created_at, created_by, updated_at, updated_by) VALUES (?, 'REQUEST', ?, ?, ?, 1000, 'HELD', ?, 'INCREASE', 'đã rút ngay lập tức', NULL, NULL, ?, ?, ?, ?)`);
+  const rut = w.sqlite.prepare(`INSERT INTO bil_adjustment_request (id, kind_code, order_id, direction, reason, target_id, cap_snapshot, created_at, created_by, updated_at, updated_by)
+    VALUES (?, 'WITHDRAW', ?, NULL, NULL, ?, NULL, ?, ?, ?, ?)`);
+  const nay = new Date().toISOString();
+  for (let i = 0; i < 205; i++) {
+    ins.run(`yc-ru-${i}`, id, hdv, ct, vnNgay(0), nay, KT, nay, KT);
+    rut.run(`rut-${i}`, id, `yc-ru-${i}`, nay, KT, nay, KT);
+  }
+  const q = await ds(w, QT); // Quản trị chỉ thấy yêu cầu chờ duyệt
+  assert.equal(q.status, 200, q.text);
+  assert.deepEqual(q.json.yeuCau.map((x: { id: string }) => x.id), [cu]);
+  assert.equal(q.json.choDuyetChoToi, 1);
+  const kt = await ds(w, KT2); // Kế toán thấy cả sổ nhưng yêu cầu chờ duyệt cũ không được rơi khỏi danh sách
+  assert.ok(kt.json.yeuCau.some((x: { id: string; trangThai: string }) => x.id === cu && x.trangThai === "cho_duyet"));
+  assert.equal(kt.json.choDuyetChoToi, 1);
+});
+
+test("M-1: SETTLEMENT với công ty làm số dư đổi dấu ⇒ 409 NGAY lúc tạo (chữ tiếng Việt), không còn yêu cầu mồ côi", async () => {
+  const w = setup();
+  const id = don(w);
+  const ct = congTy(w);
+  // Không có nợ ngược chiều: công ty «nộp» cho HDV 100.000 sẽ làm công ty thành bên nợ ⇒ đổi dấu.
+  const r = await tao(w, { orderId: id, benNo: ct, benDuocNo: hdv, loaiDong: "SETTLEMENT", soTien: 100_000, lyDo: "bù trừ phần HDV đã chi hộ khách" });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "adjustment_flips_sign");
+  assert.match(r.json.error.message, /đổi dấu/);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM bil_adjustment_request WHERE order_id = ?", id), 0);
+  // HDV giữ hộ 60.000: giảm 60.001 vượt ⇒ 409; giảm 60.000 ⇒ 201.
+  assert.equal((await thu(w, HDV, id, 60_000, "toi")).status, 201);
+  assert.equal((await tao(w, { orderId: id, benNo: ct, benDuocNo: hdv, loaiDong: "SETTLEMENT", soTien: 60_001 })).status, 409);
+  assert.equal((await tao(w, { orderId: id, benNo: ct, benDuocNo: hdv, loaiDong: "SETTLEMENT", soTien: 60_000 })).status, 201);
+});
+
+test("M-1: lô duyệt gặp trigger settlement_sign_flip (sổ đổi sát lúc ghi) ⇒ 409 tiếng Việt, không 500", async () => {
+  const w = setup();
+  const id = don(w);
+  const ct = congTy(w);
+  assert.equal((await thu(w, HDV, id, 100_000, "toi")).status, 201);
+  const y = (await tao(w, { orderId: id, benNo: ct, benDuocNo: hdv, loaiDong: "SETTLEMENT", soTien: 100_000, lyDo: "bù trừ phần HDV đã chi hộ khách" })).json.yeuCauId;
+  const db = w.env.DB as { batch: (s: unknown[]) => Promise<unknown> };
+  const goc = db.batch.bind(db);
+  db.batch = async () => { throw new Error("D1_ERROR: settlement_sign_flip: nộp / trả vượt số đang nợ — số dư không được đổi dấu"); };
+  try {
+    const r = await duyet(w, y);
+    assert.equal(r.status, 409, r.text);
+    assert.notEqual(r.json.error.code, "internal");
+    assert.match(r.json.error.message, /[À-ỹ]/);
+  } finally {
+    db.batch = goc;
+  }
+  assert.equal((await duyet(w, y)).status, 201, "gỡ lỗi giả ⇒ duyệt bình thường");
+});
+
+test("M-1 quét 36 tổ hợp (2 tình huống số dư × 3 loại dòng × 6 cặp bên): không bao giờ 5xx ở lúc tạo hay lúc duyệt; sổ chỉ đổi khi cả hai bước 201", async () => {
+  const bens = ["ct", "hdv", "ban"] as const;
+  const cap: [string, string][] = bens.flatMap((a) => bens.filter((b) => b !== a).map((b): [string, string] => [a, b]));
+  assert.equal(cap.length, 6);
+  let tong = 0;
+  for (const giuHo of [0, 200_000]) {
+    for (const loaiDong of ["HELD", "SETTLEMENT", "REFUND"] as const) {
+      for (const [a, b] of cap) {
+        const w = setup();
+        const id = don(w);
+        const ct = congTy(w);
+        const ben = { ct, hdv, ban: `pty-${SALES}` };
+        if (giuHo > 0) assert.equal((await thu(w, HDV, id, giuHo, "toi")).status, 201);
+        const dongTruoc = dem(w, "SELECT count(*) AS n FROM bil_debt_line WHERE order_id = ?", id);
+        const nhan = `giữ hộ ${giuHo} · ${loaiDong} · ${a}→${b}`;
+        const r = await tao(w, { orderId: id, benNo: ben[a as keyof typeof ben], benDuocNo: ben[b as keyof typeof ben], loaiDong, soTien: 100_000, lyDo: "quét tổ hợp điều chỉnh công nợ" });
+        assert.ok(r.status === 201 || (r.status >= 400 && r.status < 500), `${nhan}: tạo ra ${r.status} ${r.text}`);
+        if (r.status === 201) {
+          const d = await duyet(w, r.json.yeuCauId);
+          assert.ok(d.status === 201 || (d.status >= 400 && d.status < 500), `${nhan}: duyệt ra ${d.status} ${d.text}`);
+          assert.equal(dem(w, "SELECT count(*) AS n FROM bil_debt_line WHERE order_id = ?", id), dongTruoc + (d.status === 201 ? 1 : 0), nhan);
+        } else {
+          assert.equal(dem(w, "SELECT count(*) AS n FROM bil_debt_line WHERE order_id = ?", id), dongTruoc, nhan);
+        }
+        tong++;
+      }
+    }
+  }
+  assert.equal(tong, 36);
+});

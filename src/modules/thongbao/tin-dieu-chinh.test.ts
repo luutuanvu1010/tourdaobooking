@@ -107,3 +107,18 @@ test("từ chối → người gửi nhận «đã từ chối» (không lộ l�
   const nk = w.q("SELECT detail FROM audit_log WHERE action LIKE 'ledger_adjustment%'") as { detail: string | null }[];
   for (const x of nk) assert.doesNotMatch(x.detail ?? "", /\d{9,}|@/, "nhật ký không chứa dãy số dài / email");
 });
+
+test("L-1: tin «số dư của bạn đổi» chỉ tới tài khoản NỘI BỘ — tài khoản Đối tác (kể cả lai) không nhận dù hồ sơ của họ là một bên của dòng điều chỉnh", async () => {
+  const w = setup();
+  const DT = "0d000000-0000-4000-8000-000000000007"; // Đối tác thuần
+  const LAI = "0d000000-0000-4000-8000-000000000008"; // lai Bán hàng + Đối tác
+  seedStaff(w.sqlite, { id: DT, phone: "0903000007", name: "Đối Tác", perms: ["PARTNER"] });
+  seedStaff(w.sqlite, { id: LAI, phone: "0903000008", name: "Lai Đôi", perms: ["SALES", "PARTNER"] });
+  const ct = String(w.q("SELECT party_id FROM v_pty_owner_company")[0].party_id);
+  for (const ai of [DT, LAI]) {
+    const id = don(w);
+    const y = (await w.call("POST", "/api/ledger/adjustments", { as: KT, body: { loai: "dieu_chinh", orderId: id, benNo: `pty-${ai}`, benDuocNo: ct, loaiDong: "HELD", soTien: 100_000, lyDo: "khách gửi thêm tiền qua người này" } })).json.yeuCauId;
+    assert.equal((await w.call("POST", `/api/ledger/adjustment-requests/${y}/approve`, { as: KT2 })).status, 201);
+    assert.deepEqual(await dieuChinh(w, ai), [], `tài khoản Đối tác ${ai} không nhận tin`);
+  }
+});
