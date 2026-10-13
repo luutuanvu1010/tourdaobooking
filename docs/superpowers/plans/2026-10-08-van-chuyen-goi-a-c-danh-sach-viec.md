@@ -53,7 +53,7 @@
 - [ ] **Giá xe thuê trước khi nhà xe dùng:** mọi chuyến của tài xế nhà xe là xe thuê, bấm "Xuất bến" vẫn vướng điều kiện thiếu giá (THIEU_GIA) tới khi văn phòng nhập giá.
 - [ ] **Thử tay A4 trên iPhone thật** bằng một tài khoản tài xế nhà xe thật trước khi báo nhà xe dùng.
 - [ ] **Ba dòng lệch mới ở `docs/SYSTEM-DESIGN.md` §16** (A4) cần chủ ra ADR hoặc dòng lịch sử.
-- [ ] **Kế toán / chủ xác nhận 11 ca sổ vàng sửa số khách** SV-SK-01…11 (đang `cho_xac_nhan`).
+- [x] **Kế toán xác nhận 5 trong 11 ca sổ vàng sửa số khách** (SV-SK-01, 02, 03, 05, 06 → `da_xac_nhan`, người "Kế toán công ty", ngày 2026-10-13, theo lời chủ; lớp 2 chạy trên mã thật, 5 ca khớp từng đồng). **6 ca còn chờ** (SV-SK-04, 07, 08, 09, 10, 11) vì đề xuất ADR-0114 (ý chủ 13/10: nhắc đỏ mỗi lần bớt khách trên đơn có giảm giá; SV-SK-07 hiện đủ dòng trước–trong–sau; SV-SK-10 đơn phải có ít nhất 1 người lớn) sẽ đổi đáp án — Kế toán xác nhận lại sau khi chủ duyệt ADR-0114 và phiên sổ tiền sửa xong. Ca 05: phần hoa hồng theo đầu khách vẫn chỉ trên giấy, chưa chạy trên mã.
 - [ ] **Thử tay nút Chỉ đường trên iPhone và Android thật** (ADR-0105 bài 8): mở đúng ứng dụng bản đồ, kể cả khi Nền tảng cài lên màn hình chính.
 - [ ] Phát hành **sau** phần Sổ tiền (chủ chọn "Cho phép, phát hành sau Sổ tiền").
 
