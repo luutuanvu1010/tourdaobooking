@@ -3265,3 +3265,18 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .pdt-tong { padding-top: var(--s3); border-top: 1px solid var(--c-border); }
 .pdt-ncc-o { display: flex; flex-direction: column; gap: var(--s2); margin: var(--s2) 0; }
 @media (min-width: 900px) { .pdt-luoi { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* Điều chỉnh công nợ cần người thứ hai duyệt (web/dieu-chinh-cong-no.ts; ADR-0115 đợt 1): thẻ yêu cầu, nút, ô tìm và danh sách gợi ý. Chỉ token. */
+.dc-ds { display: flex; flex-direction: column; gap: var(--s3); margin: 0; padding: 0; list-style: none; }
+.dc-the { padding: var(--s3); border: 1px solid var(--c-line); border-radius: var(--radius-sm); }
+.dc-the p { margin: var(--s1) 0 0; overflow-wrap: anywhere; }
+.dc-dau { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.dc-tien { font-weight: var(--fw-bold); }
+.dc-nut { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
+.dc-nut .btn { min-height: var(--tap-min); }
+.dc-tu-choi { display: grid; gap: var(--s2); margin-top: var(--s3); }
+.dc-tu-choi[hidden] { display: none; }
+.dc-form { display: grid; gap: var(--s3); }
+.dc-kq { display: flex; flex-direction: column; gap: var(--s1); margin: 0; padding: 0; list-style: none; }
+.dc-kq[hidden] { display: none; }
+.dc-kq-nut { width: 100%; min-height: var(--tap-min); text-align: left; }
