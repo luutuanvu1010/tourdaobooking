@@ -106,6 +106,8 @@ export interface CoCoc {
   coTheGhiHoanNgoai: boolean;
   coTheXacNhanHoanNgoai: boolean;
   xemNguoiGiu: boolean;
+  /** Người xem giữ quyền Đối tác (`holdsPartner`, kể cả tài khoản lai) — D-1: bỏ lý do tự do + tên người duyệt / người ghi khỏi khối cọc (khoá VẮNG, không phải null). */
+  laDoiTac: boolean;
 }
 /** Khối `coc` của `GET /api/orders/:id/payments` cho đơn huỷ (null = đơn chưa huỷ). Cờ đã tính ở route bằng `can()`. */
 export async function cocCuaDon(db: D1Database, orderId: string, co: CoCoc): Promise<CocDonDto | null> {
@@ -117,12 +119,13 @@ export async function cocCuaDon(db: D1Database, orderId: string, co: CoCoc): Pro
   const goc = d.duyetRows.filter((a) => a.voids_id === null);
   const khoanDuyet: KhoanDuyetDto[] = goc.map((a) => ({
     id: a.id, loai: a.kind_code === "TRANSFER" ? "chuyen" : "hoan", soTien: a.amount, conLai: conLaiCuaKhoan(a.id, d.duyet, d.receipts),
-    daHuy: d.duyetRows.filter((v) => v.voids_id === a.id).reduce((s, v) => s + v.amount, 0), lyDo: a.reason, ngayDuyet: a.approved_date, nguoiDuyet: a.created_by_label,
+    daHuy: d.duyetRows.filter((v) => v.voids_id === a.id).reduce((s, v) => s + v.amount, 0), ngayDuyet: a.approved_date,
+    ...(co.laDoiTac ? {} : { lyDo: a.reason, nguoiDuyet: a.created_by_label }),
     donNhan: a.target_order_code,
   }));
   const quyetDinh = new Map(d.hoanNgoaiRows.filter((g) => g.kind_code !== "RECORD").map((g) => [g.target_id, g.kind_code]));
   const hoanNgoaiDong: HoanNgoaiDto[] = d.hoanNgoaiRows.filter((g) => g.kind_code === "RECORD").map((g) => ({
-    id: g.id, soTien: g.amount ?? 0, lyDo: g.reason, nguoiGhi: g.created_by_label, ngay: g.occurred_date,
+    id: g.id, soTien: g.amount ?? 0, ...(co.laDoiTac ? {} : { lyDo: g.reason, nguoiGhi: g.created_by_label }), ngay: g.occurred_date,
     trangThai: quyetDinh.get(g.id) === "CONFIRM" ? "da_xac_nhan" : quyetDinh.get(g.id) === "REJECT" ? "tu_choi" : "cho_xac_nhan",
   }));
   let nguoiGiu: CocDonDto["nguoiGiu"] = null;

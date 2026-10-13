@@ -1815,8 +1815,9 @@ export interface LanThuDto {
   ngayPhatSinh: string;
   daDao: boolean;
   laDongDao: boolean;
-  nguoiGhi: string | null;
-  ghiChu: string | null;
+  /** Người ghi + ghi chú của lần thu: với người giữ quyền Đối tác (D-1) KHOÁ VẮNG ở lần thu do người khác ghi (chỉ giữ ở lần thu chính họ ghi). */
+  nguoiGhi?: string | null;
+  ghiChu?: string | null;
   ghiLuc: string;
   /** ADR-0092 Đ6: mã giao dịch ngân hàng đã chuẩn hoá + số tiền thực chuyển — CHỈ có khoá này khi người xem giữ `ledger.write` (Kế toán, Toàn quyền). */
   maGiaoDich?: string;
@@ -1863,9 +1864,10 @@ export interface KhoanDuyetDto {
   /** Phần còn chi / chuyển được (số duyệt − huỷ duyệt − đã chi). */
   conLai: number;
   daHuy: number;
-  lyDo: string;
+  /** Lý do duyệt (chữ tự do nội bộ) và người duyệt: KHOÁ VẮNG với người giữ quyền Đối tác (D-1). */
+  lyDo?: string;
   ngayDuyet: string;
-  nguoiDuyet: string | null;
+  nguoiDuyet?: string | null;
   /** Mã đơn nhận (chuyển). */
   donNhan: string | null;
 }
@@ -1873,9 +1875,10 @@ export interface KhoanDuyetDto {
 export interface HoanNgoaiDto {
   id: string;
   soTien: number;
-  lyDo: string | null;
+  /** Lý do + người ghi: KHOÁ VẮNG với người giữ quyền Đối tác (D-1). */
+  lyDo?: string | null;
   trangThai: "cho_xac_nhan" | "da_xac_nhan" | "tu_choi";
-  nguoiGhi: string | null;
+  nguoiGhi?: string | null;
   ngay: string;
 }
 /**
