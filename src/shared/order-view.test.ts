@@ -41,12 +41,12 @@ test("serviceView (theo nhóm): '7 khách', chip nhóm; số lượt nằm ở d
   assert.deepEqual([v.unit, v.pax, v.subtotal, v.lines[0]!.quantity], ["theo nhóm 5 khách/lượt", "7 khách", 3000000, 2]);
 });
 
-test("serviceView: thông tin chuyến — chưa có ngày → dòng cảnh báo; check-in không ngày = 'Cùng ngày khởi hành'", () => {
+test("serviceView: thông tin chuyến — chưa có ngày → dòng cảnh báo; khách có mặt không ngày = 'Cùng ngày khởi hành'", () => {
   assert.deepEqual(serviceView(svc()).trip, [{ label: "Khởi hành", value: "Chưa có ngày khởi hành", warn: true }]);
   const v = serviceView(svc({ departDate: "2026-09-20", departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá", checkinTime: "09:00", note: "Đón trước cổng" }));
   assert.deepEqual(v.trip, [
     { label: "Khởi hành", value: "20/09/2026 · 07:30", warn: false },
-    { label: "Check-in", value: "Cùng ngày khởi hành · 09:00", warn: false },
+    { label: "Khách có mặt", value: "Cùng ngày khởi hành · 09:00", warn: false },
     { label: "Ghi chú", value: "Đón trước cổng", warn: false },
   ]);
 });

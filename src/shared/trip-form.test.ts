@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { TripInfoDto } from "./contracts.ts";
-import { emptyTrip, formatDmy, tripFromDto, tripPayload, tripRows, tripSheetDateIssues, tripSheetRowDate, tripSummaryLine, tripWarnings } from "./trip-form.ts";
+import { canHienNgayCoMat, coGiaTriChuyen, emptyTrip, formatDmy, tripFromDto, tripPayload, tripRows, tripSheetDateIssues, tripSheetRowDate, tripSummaryLine, tripWarnings } from "./trip-form.ts";
 import { vnToday } from "./vn-date.ts";
 
 const TODAY = "2026-09-19";
@@ -54,37 +54,37 @@ test("tripWarnings: giờ đón sau giờ khởi hành → cảnh báo; bằng n
   assert.deepEqual(codes(trip({ pickupTime: "08:00" })), []);
 });
 
-test("tripSummaryLine (ADR-0047 Phần B, bản vẽ M1): giờ / nơi đón đã sang khối Đưa đón — dòng tóm tắt chỉ còn giờ khởi hành, check-in; không cảnh báo", () => {
+test("tripSummaryLine (ADR-0047 Phần B, bản vẽ M1): giờ / nơi đón đã sang khối Đưa đón — dòng tóm tắt chỉ còn giờ khởi hành, giờ khách có mặt; không cảnh báo", () => {
   assert.deepEqual(tripSummaryLine(trip({ departDate: "2026-09-20", departTime: "07:45", pickupTime: "07:30", pickupPlace: "KS Mường Thanh Luxury" })), { text: "Khởi hành 07:45", warn: false });
-  assert.deepEqual(tripSummaryLine(trip({ departTime: "07:45", checkinTime: "08:15", checkinPlace: "Cảng Cầu Đá" })), { text: "Khởi hành 07:45 · Check-in 08:15", warn: false });
-  assert.deepEqual(tripSummaryLine(trip({ checkinTime: "08:15" })), { text: "Check-in 08:15", warn: false });
+  assert.deepEqual(tripSummaryLine(trip({ departTime: "07:45", checkinTime: "08:15", checkinPlace: "Cảng Cầu Đá" })), { text: "Khởi hành 07:45 · Có mặt 08:15", warn: false });
+  assert.deepEqual(tripSummaryLine(trip({ checkinTime: "08:15" })), { text: "Có mặt 08:15", warn: false });
   assert.deepEqual(tripSummaryLine(trip({ pickupTime: "07:30" })), { text: "", warn: false });
 });
 
-test("tripRows: các dòng hiển thị ở trang đơn; check-in trống ngày = \"Cùng ngày khởi hành\"; trường rỗng bị bỏ", () => {
+test("tripRows: các dòng hiển thị ở trang đơn; khách có mặt trống ngày = \"Cùng ngày khởi hành\"; trường rỗng bị bỏ", () => {
   assert.deepEqual(tripRows(dto), [
     { label: "Khởi hành", value: "20/09/2026 · 07:30", warn: false },
-    { label: "Check-in", value: "Cùng ngày khởi hành · 07:15 · Cảng Cầu Đá", warn: false },
+    { label: "Khách có mặt", value: "Cùng ngày khởi hành · 07:15 · Cảng Cầu Đá", warn: false },
     { label: "Ghi chú", value: "Bé dị ứng hải sản", warn: false },
   ]);
   assert.deepEqual(tripRows(NONE), [{ label: "Khởi hành", value: "Chưa có ngày khởi hành", warn: true }]);
   assert.deepEqual(tripRows({ ...NONE, departDate: "2026-09-20", checkinDate: "2026-09-21", checkinTime: "06:00" }), [
     { label: "Khởi hành", value: "20/09/2026", warn: false },
-    { label: "Check-in", value: "21/09/2026 · 06:00", warn: false },
+    { label: "Khách có mặt", value: "21/09/2026 · 06:00", warn: false },
   ]);
   // D4 (bản vẽ M3): dòng "Đón" bỏ khỏi thẻ dịch vụ — giờ / nơi đón nay ở khối "Đưa đón" của trang đơn.
   assert.deepEqual(tripRows({ ...NONE, departDate: "2026-09-20", pickupPlace: "Bến Cầu Đá" }), [{ label: "Khởi hành", value: "20/09/2026", warn: false }]);
-  // chỉ có ngày check-in (không giờ, không nơi) vẫn hiện dòng Check-in
+  // chỉ có ngày khách có mặt (không giờ, không nơi) vẫn hiện dòng Khách có mặt
   assert.deepEqual(tripRows({ ...NONE, departDate: "2026-09-20", checkinDate: "2026-09-21" }), [
     { label: "Khởi hành", value: "20/09/2026", warn: false },
-    { label: "Check-in", value: "21/09/2026", warn: false },
+    { label: "Khách có mặt", value: "21/09/2026", warn: false },
   ]);
 });
 
 test("tripRows(t, ngày của đơn) (bản 1.39): ngày khởi hành TRÙNG ngày của đơn → bỏ dòng \"Khởi hành\", còn giờ thì giữ dòng \"Giờ khởi hành\"; khác ngày (đơn cũ lệch ngày) hoặc chưa có ngày → như cũ", () => {
   assert.deepEqual(tripRows(dto, "2026-09-20"), [
     { label: "Giờ khởi hành", value: "07:30", warn: false },
-    { label: "Check-in", value: "Cùng ngày khởi hành · 07:15 · Cảng Cầu Đá", warn: false },
+    { label: "Khách có mặt", value: "Cùng ngày khởi hành · 07:15 · Cảng Cầu Đá", warn: false },
     { label: "Ghi chú", value: "Bé dị ứng hải sản", warn: false },
   ]);
   assert.deepEqual(tripRows({ ...NONE, departDate: "2026-09-20", pickupPlace: "Bến Cầu Đá" }, "2026-09-20"), [], "trùng ngày, không giờ: bỏ hẳn");
@@ -123,4 +123,17 @@ test("tripPayload: PUT /trip thay TOÀN BỘ (KHÔNG gửi pickupTime/pickupPlac
       { id: "svc-b", departDate: "", departTime: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" },
     ],
   });
+});
+
+test("bốn bước: canHienNgayCoMat — ô 'Ngày khách có mặt' chỉ hiện khi đã có giá trị (kể cả trùng ngày khởi hành); trống thì chỉ có lối 'Có mặt khác ngày'", () => {
+  assert.equal(canHienNgayCoMat(""), false);
+  assert.equal(canHienNgayCoMat("2026-09-21"), true);
+  assert.equal(canHienNgayCoMat("2026-09-20"), true, "không giấu giá trị đang có, kể cả khi trùng ngày đi");
+});
+
+test("bốn bước: coGiaTriChuyen — khối 'Thông tin chuyến' phải tự mở khi có giá trị khác mặc định (giờ khởi hành, ngày/giờ/nơi có mặt, ghi chú dịch vụ); ngày khởi hành không tính", () => {
+  assert.equal(coGiaTriChuyen(emptyTrip()), false, "trống hết: gập");
+  assert.equal(coGiaTriChuyen(trip({ departDate: "2026-09-20" })), false, "ngày khởi hành chọn ở đầu form, không phải ô của khối");
+  for (const k of ["departTime", "checkinDate", "checkinTime", "checkinPlace", "note"] as const) assert.equal(coGiaTriChuyen(trip({ [k]: k.endsWith("Date") ? "2026-09-21" : "x" })), true, k);
+  assert.equal(coGiaTriChuyen(trip({ note: "   " })), false, "chỉ có khoảng trắng: coi là trống (máy chủ chuẩn hoá thành null)");
 });

@@ -56,7 +56,7 @@ export interface ServiceBlock {
   /** Số thứ tự dịch vụ trong đơn, từ 1. */
   index: number;
   name: string;
-  /** Số khách, Khởi hành, Đón khách, Check-in — chỉ dòng có nội dung. */
+  /** Số khách, Khởi hành, Xe đón khách, Khách có mặt — chỉ dòng có nội dung. */
   details: LabelValue[];
   columns: ServiceColumns;
   lines: ServiceLine[];
@@ -149,7 +149,7 @@ function departureText(s: ReceiptServiceDto): string {
   return joinDot([s.departDate === null ? null : formatDmy(s.departDate), s.departTime]);
 }
 
-/** Check-in: chỉ khi có ít nhất một trong ngày/giờ/nơi; không ngày = "Cùng ngày khởi hành" (giống trang đơn). */
+/** Khách có mặt (cột `checkin_*`): chỉ khi có ít nhất một trong ngày/giờ/nơi; không ngày = "Cùng ngày khởi hành" (giống trang đơn). */
 function checkinText(s: ReceiptServiceDto): string {
   if (clean(s.checkinDate) === "" && clean(s.checkinTime) === "" && clean(s.checkinPlace) === "") return "";
   return joinDot([clean(s.checkinDate) === "" ? "Cùng ngày khởi hành" : formatDmy(clean(s.checkinDate)), s.checkinTime, s.checkinPlace]);
@@ -196,7 +196,7 @@ function serviceBlock(s: ReceiptServiceDto, index: number): ServiceBlock {
     index,
     name: clean(s.name),
     // `ReceiptServiceDto` KHÔNG có ghi chú vận hành, mã/giá danh mục, id (danh sách trắng của máy chủ — ADR-0026 đ11).
-    details: rowsOf([["Số khách", guestText(s.pax, s.unit)], ["Khởi hành", departureText(s)], ["Đón khách", joinDot([s.pickupTime, s.pickupPlace])], ["Check-in", checkinText(s)]]),
+    details: rowsOf([["Số khách", guestText(s.pax, s.unit)], ["Khởi hành", departureText(s)], ["Xe đón khách", joinDot([s.pickupTime, s.pickupPlace])], ["Khách có mặt", checkinText(s)]]),
     columns: { ...COLUMNS },
     lines: s.items.map((it) => ({
       description: clean(it.description),
