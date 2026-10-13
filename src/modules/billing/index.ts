@@ -5,7 +5,7 @@
 // /api/orders/* báo `baoThayDoi` ĐÚNG MỘT lần, chỉ ở nhánh thành công, sau khi lô ghi xong (hàng rào src/bang-tin-guard.test.ts phủ tệp này).
 import type {
   CocDemResponse, CocDoiChieuResponse, CocListResponse, KySoResponse, LedgerBalancesResponse, NhapKeToanResponse, OrderPaymentsResponse, ReceiptDto, SoCongNoResponse, SoCuaToiResponse,
-  UnpaidSummaryResponse,
+  TaoYeuCauDieuChinhResponse, UnpaidSummaryResponse, YeuCauDieuChinhListResponse,
 } from "../../shared/contracts";
 import { UUID_RE, error, json, kemLocation, readJson, trangDon } from "../../shared/http";
 import { docLenhNhapKeToan } from "../../shared/nhap-ke-toan";
@@ -14,6 +14,7 @@ import { route, type AppModule } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import { docGhiChuKy, khoaKyStatements, kiemKhoaKy, thangDaKhoa } from "../ky-so";
 import { donDangThuTien, thongTinGiaoDon } from "../orders";
+import { danhSachYeuCau, duyetYeuCau, ruYeuCau, taoYeuCau, tuChoiYeuCau } from "./dieu-chinh";
 import { donChoNhapKeToan, docNhapKeToan, ghiNhapKeToan } from "./nhap-ke-toan";
 import { accountingEnteredAmong, earliestLedgerMonth, orderOwners, soDongNoCuaNguoiRow } from "./repository";
 import { cocChoBienNhan, cocCuaDon, danhSachCoc, demCoc, doiChieuCoc, ghiChiHoan, ghiChuyen, ghiDuyet, ghiHoanNgoai, ghiHuyDuyet, xacNhanHoanNgoai } from "./coc";
@@ -33,6 +34,8 @@ const CANNOT_MARK_ENTRY = () => error(403, "forbidden", "Chỉ Kế toán hoặc
 const CANNOT_APPROVE = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền mới duyệt được hoàn cọc / xác nhận dòng đã hoàn ngoài hệ thống.");
 const CANNOT_OUTSIDE = () => error(403, "forbidden", "Chỉ Toàn quyền mới ghi được dòng đã hoàn ngoài hệ thống.");
 const CANNOT_REFUND = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới ghi được hoàn tiền cho khách.");
+const CANNOT_VIEW_REQUESTS = () => error(403, "forbidden", "Chỉ Kế toán, Quản trị hoặc Toàn quyền mới xem được yêu cầu điều chỉnh công nợ.");
+const CANNOT_APPROVE_ADJUSTMENT = () => error(403, "forbidden", "Chỉ Kế toán, Quản trị hoặc Toàn quyền mới duyệt được điều chỉnh công nợ.");
 const CANNOT_CLOSE_PERIOD = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới khoá được sổ tháng.");
 
 /** Người gọi cho service: `laKeToan` = có ô `ledger.write` (Kế toán, Toàn quyền — ghi người thu là người khác, chọn ngày phát sinh). */
@@ -332,12 +335,51 @@ export const billingModule: AppModule = {
     }),
 
     // Điều chỉnh / đảo, lý do bắt buộc (ADR-0026 đ8). Ô `ledger.write`.
+    // ADR-0115: lệnh `dieu_chinh` KHÔNG đổi số dư ngay — tạo một YÊU CẦU CHỜ DUYỆT (201 `TaoYeuCauDieuChinhResponse`, không `baoThayDoi` vì tiền chưa đổi); người thứ hai có ô
+    // `ledger.adjust.approve` duyệt ở route bên dưới. `dao_lan_thu` / `dao_dong` vẫn ghi ngay (đảo một dòng gốc — dựa vào kỷ luật, ADR-0115 điều 3).
     route("POST", "/api/ledger/adjustments", "office", async ({ env, request, staff, baoThayDoi }) => {
       if (!can(staff, "ledger.write")) return CANNOT_LEDGER();
-      const kq = await ghiDieuChinh(env.DB, { raw: await readJson(request), ai: nguoiGoi(staff) });
+      const raw = await readJson(request);
+      if (raw && typeof raw === "object" && (raw as Record<string, unknown>).loai === "dieu_chinh") {
+        const yc = await taoYeuCau(env.DB, { raw, ai: nguoiGoi(staff) });
+        if (!yc.ok) return yc.res;
+        return json({ ok: true, choDuyet: true, yeuCauId: yc.value.yeuCauId } satisfies TaoYeuCauDieuChinhResponse, 201, { location: "/dieu-chinh-cong-no" });
+      }
+      const kq = await ghiDieuChinh(env.DB, { raw, ai: nguoiGoi(staff) });
       if (!kq.ok) return kq.res;
       if (kq.value.orderId) baoThayDoi({ orderId: kq.value.orderId, thayDoi: "tien" });
       return json({ ok: true }, 201, { location: kq.value.orderId ? trangDon(kq.value.orderId) : "/home" });
+    }),
+
+    // ---- YÊU CẦU ĐIỀU CHỈNH CÔNG NỢ (ADR-0115 đợt 1) — tiền tố tĩnh `/api/ledger/adjustment-requests`, không nuốt route nào khác.
+    // Xem danh sách: `ledger.write` (người tạo) HOẶC `ledger.adjust.approve` (người duyệt). Quản trị (chỉ có ô duyệt, `ledger.view` không any) chỉ thấy yêu cầu CHỜ DUYỆT, không thấy cả sổ.
+    route("GET", "/api/ledger/adjustment-requests", "office", async ({ env, staff }) => {
+      const coTheTaoO = can(staff, "ledger.write");
+      const coTheDuyetO = can(staff, "ledger.adjust.approve");
+      if (!coTheTaoO && !coTheDuyetO) return CANNOT_VIEW_REQUESTS();
+      return json((await danhSachYeuCau(env.DB, { staffId: staff.id, xemDayDu: can(staff, "ledger.view"), coTheDuyetO, coTheTaoO })) satisfies YeuCauDieuChinhListResponse);
+    }),
+    // Duyệt: ô `ledger.adjust.approve`; người duyệt ≠ người tạo (so theo tài khoản — máy chủ + trigger 0094). MỘT lô: dòng quyết định → nhật ký → phiếu ADJUSTMENT → dòng nợ.
+    route("POST", "/api/ledger/adjustment-requests/:requestId/approve", "office", async ({ env, params, staff, baoThayDoi }) => {
+      if (!can(staff, "ledger.adjust.approve")) return CANNOT_APPROVE_ADJUSTMENT();
+      const kq = await duyetYeuCau(env.DB, { yeuCauId: params.requestId!, ai: nguoiGoi(staff) });
+      if (!kq.ok) return kq.res;
+      baoThayDoi({ orderId: kq.value.orderId, thayDoi: "tien" });
+      return json({ ok: true }, 201, { location: trangDon(kq.value.orderId) });
+    }),
+    // Từ chối: ô `ledger.adjust.approve`; thân { lyDo } BẮT BUỘC. Số dư không đổi, không tin bảng tin (không `baoThayDoi`).
+    route("POST", "/api/ledger/adjustment-requests/:requestId/reject", "office", async ({ env, request, params, staff }) => {
+      if (!can(staff, "ledger.adjust.approve")) return CANNOT_APPROVE_ADJUSTMENT();
+      const kq = await tuChoiYeuCau(env.DB, { yeuCauId: params.requestId!, raw: await readJson(request), ai: nguoiGoi(staff) });
+      if (!kq.ok) return kq.res;
+      return json({ ok: true }, 201, { location: "/dieu-chinh-cong-no" });
+    }),
+    // Rút: chỉ NGƯỜI TẠO (ô `ledger.write` + đúng tài khoản tạo — kiểm ở service), khi chưa ai quyết.
+    route("POST", "/api/ledger/adjustment-requests/:requestId/withdraw", "office", async ({ env, params, staff }) => {
+      if (!can(staff, "ledger.write")) return CANNOT_LEDGER();
+      const kq = await ruYeuCau(env.DB, { yeuCauId: params.requestId!, ai: nguoiGoi(staff) });
+      if (!kq.ok) return kq.res;
+      return json({ ok: true }, 201, { location: "/dieu-chinh-cong-no" });
     }),
 
     // "Thay lần thu" (ADR-0088 đ2): N lần thu cũ → M lần thu mới, MỘT lô; ô `ledger.write` (Kế toán, Toàn quyền — không thêm mã quyền). Đường sửa sai DUY NHẤT

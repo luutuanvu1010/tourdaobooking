@@ -634,7 +634,7 @@ export async function ghiHoanKhach(db: D1Database, input: { raw: unknown; ai: Ng
  * Điều chỉnh / đảo (ADR-0026 điều 8, Q6 — lý do BẮT BUỘC):
  *  - `{ loai: "dao_lan_thu", receiptId }` — đảo một lần thu (vd cọc cũ "chưa rõ") + đảo các dòng nợ còn hiệu lực của nó, một phiếu REVERSAL;
  *  - `{ loai: "dao_dong", lineId }` — đảo một dòng nợ;
- *  - `{ loai: "dieu_chinh", orderId, benNo, benDuocNo, soTien, loaiDong }` — một dòng mới (phiếu ADJUSTMENT) Kế toán chọn hai bên + loại dòng.
+ *  - `{ loai: "dieu_chinh", … }` — ADR-0115: KHÔNG ghi ở đây nữa; thành yêu cầu CHỜ DUYỆT (`taoYeuCau` trong dieu-chinh.ts), chỉ lúc người thứ hai duyệt mới có phiếu ADJUSTMENT.
  */
 export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: NguoiGoi }): Promise<KetQua<{ orderId: string | null }>> {
   const b = (input.raw ?? {}) as Record<string, unknown>;
@@ -713,46 +713,7 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
     }
     return { ok: true, value: { orderId: l.order_id } };
   }
-  if (b.loai === "dieu_chinh") {
-    if (typeof b.orderId !== "string" || !UUID_RE.test(b.orderId)) return loi(400, "invalid_input", "Mã đơn không hợp lệ.");
-    if (typeof b.benNo !== "string" || typeof b.benDuocNo !== "string" || !PARTY_ID_RE.test(b.benNo) || !PARTY_ID_RE.test(b.benDuocNo) || b.benNo === b.benDuocNo) {
-      return loi(400, "invalid_input", "Chọn bên nợ và bên được nợ (khác nhau).");
-    }
-    if (b.loaiDong !== "HELD" && b.loaiDong !== "SETTLEMENT" && b.loaiDong !== "REFUND") return loi(400, "invalid_input", "Chọn loại dòng sổ.");
-    const so = docSoTien(b.soTien);
-    if (!so.ok) return so;
-    const [ben, owners] = await Promise.all([partyLabels(db, [b.benNo, b.benDuocNo]), orderOwners(db, [b.orderId])]);
-    if (!ben.get(b.benNo) || !ben.get(b.benDuocNo)) return loi(400, "invalid_input", "Không tìm thấy bên nợ / bên được nợ.");
-    if (!owners.has(b.orderId)) return loi(404, "not_found", "Không tìm thấy đơn.");
-    // ADR-0092 Đ5c: lý do ≥ 10 ký tự (lớp CSDL: trigger bil_adjustment_reason_length, 0082).
-    if ((lyDo.value ?? "").trim().length < LY_DO_DIEU_CHINH_TOI_THIEU) return loi(400, "invalid_input", `Lý do điều chỉnh tối thiểu ${LY_DO_DIEU_CHINH_TOI_THIEU} ký tự.`);
-    // ADR-0092 Đ5a, Đ5b: giảm nợ không đổi dấu; tăng nợ ≤ max(phải thu, đã thu ròng). Hai lớp chưa có ở CSDL (ADR không đòi) — máy chủ.
-    const [dongDon, cacLanThu, base, congTyId] = await Promise.all([linesOfOrder(db, b.orderId), receiptsOfOrder(db, b.orderId), phaiThuNhieuDon(db, [b.orderId]), ownerCompanyId(db)]);
-    const dongSo = dongDon.map(toLineRow);
-    const bo = base.get(b.orderId);
-    const phaiThu = bo?.phaiThu ?? 0;
-    const kiem = kiemDieuChinh({ nguoc: soDuCap(dongSo, b.benDuocNo, b.benNo), soTien: so.value, phaiThu, daThu: conLai(cacLanThu.map(toReceiptRow), phaiThu, bo?.status ?? "confirmed").daThu });
-    if (!kiem.ok) return loi(409, kiem.ma, kiem.cau);
-    // Đ5d (phần nhật ký): số dư trước / sau của bên KHÔNG phải công ty chủ với bên kia. Tin báo người bị đổi số dư DỪNG chờ chủ (báo cáo năm lỗi tiền).
-    const benDoi = b.benNo === congTyId ? b.benDuocNo : b.benNo;
-    const benKia = benDoi === b.benNo ? b.benDuocNo : b.benNo;
-    const truoc = soDuCap(dongSo, benDoi, benKia);
-    const sau = truoc + (benDoi === b.benNo ? so.value : -so.value);
-    const chiTiet = `${lyDo.value ?? ""} · số dư trước ${dong(truoc)} → sau ${dong(sau)}`;
-    const stmts = [
-      postingPlainStatement(db, { id: postingId, kind: "ADJUSTMENT", orderId: b.orderId, reason: lyDo.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by }),
-      lineIfPostingStatement(db, lineOf({ debtorPartyId: b.benNo, creditorPartyId: b.benDuocNo, amount: so.value, kind: b.loaiDong, reversesLineId: null }, postingId, b.orderId, null, at, by)),
-      auditStatement(db, { orderId: b.orderId, staffId: by, action: "ledger_adjustment", at, detail: chiTiet }),
-    ];
-    try {
-      await db.batch(stmts);
-    } catch (e) {
-      const k = await loiKhoaKy(db, e, [ngay.value]);
-      if (k) return k;
-      throw e;
-    }
-    return { ok: true, value: { orderId: b.orderId } };
-  }
+  // `dieu_chinh` (ADR-0115): không còn ghi ngay — route chuyển sang `taoYeuCau` (dieu-chinh.ts), nên không bao giờ tới đây.
   return loi(400, "invalid_input", "Chọn loại: đảo lần thu, đảo dòng sổ hoặc điều chỉnh.");
 }
 

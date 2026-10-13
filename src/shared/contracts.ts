@@ -1984,6 +1984,52 @@ export interface SoCongNoResponse {
 }
 
 /**
+ * Điều chỉnh công nợ CẦN NGƯỜI THỨ HAI DUYỆT (ADR-0115 đợt 1; migration 0094). `POST /api/ledger/adjustments` lệnh `dieu_chinh` không đổi số dư ngay: trả 201
+ * `TaoYeuCauDieuChinhResponse` (yêu cầu CHỜ DUYỆT). Trạng thái tính LÚC ĐỌC: `het_han` = quá 7 ngày kể từ lúc tạo mà chưa có quyết định (không bao giờ tự duyệt).
+ * `huong` = hướng đánh giá lúc tạo (tăng nợ tính vào trần cộng dồn; giảm nợ không đổi dấu). Không SĐT / email / MST; tên hai bên là tên hồ sơ.
+ */
+export type TrangThaiYeuCauDieuChinh = "cho_duyet" | "da_duyet" | "tu_choi" | "da_rut" | "het_han";
+export interface YeuCauDieuChinhDto {
+  id: string;
+  orderId: string;
+  maDon: string | null;
+  benNo: string;
+  benDuocNo: string;
+  soTien: number;
+  loaiDong: "HELD" | "SETTLEMENT" | "REFUND";
+  loaiDongNhan: string;
+  ngayPhatSinh: string;
+  lyDo: string;
+  huong: "tang" | "giam";
+  taoLuc: string;
+  /** Mốc hết hạn (ISO) = lúc tạo + 7 ngày. */
+  hetHanLuc: string;
+  nguoiTao: string;
+  trangThai: TrangThaiYeuCauDieuChinh;
+  quyetLuc: string | null;
+  nguoiQuyet: string | null;
+  /** Lý do người duyệt từ chối (bắt buộc khi từ chối); null với các trạng thái khác. */
+  lyDoQuyet: string | null;
+  laCuaToi: boolean;
+  coTheDuyet: boolean;
+  coTheTuChoi: boolean;
+  coTheRut: boolean;
+}
+/** `GET /api/ledger/adjustment-requests`: `xemDayDu` = người xem thấy cả yêu cầu đã quyết (Kế toán, Toàn quyền — ô `ledger.view`); Quản trị chỉ thấy yêu cầu CHỜ DUYỆT. */
+export interface YeuCauDieuChinhListResponse {
+  yeuCau: YeuCauDieuChinhDto[];
+  /** Số yêu cầu chờ duyệt mà CHÍNH người xem duyệt được (còn hạn, không phải của mình) — nguồn thật của huy hiệu đếm. */
+  choDuyetChoToi: number;
+  xemDayDu: boolean;
+  coTheTao: boolean;
+}
+export interface TaoYeuCauDieuChinhResponse {
+  ok: true;
+  choDuyet: true;
+  yeuCauId: string;
+}
+
+/**
  * `GET /api/ledger/ky` và thân `201` của `POST /api/ledger/ky/:period/khoa` (khoá sổ tháng — ADR-0080 D1; Kế toán, Toàn quyền). `keTiep` = tháng khoá được kế tiếp (null = hết
  * tháng đã qua để khoá); `bangKiem` = bảng kiểm của tháng đó trước khi bấm khoá (null khi `keTiep` null): khoản "Công ty thu" còn chờ xác nhận, lần thu chưa rõ người thu
  * (chỉ mã đơn, số tiền, ngày — không SĐT, không mã giao dịch) và số dư mỗi bên với công ty tính đến cuối tháng. `coTheKhoa` = người xem có ô khoá VÀ còn tháng để khoá.
