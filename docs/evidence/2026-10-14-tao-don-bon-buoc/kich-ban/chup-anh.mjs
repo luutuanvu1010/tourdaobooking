@@ -103,6 +103,14 @@ const kiemSauChuyen = async (p) => {
 const kiemSauBuoc = async (p, vai) => {
   const soBuoc = await p.ev("[...document.querySelectorAll('.buoc-muc')].filter((l) => !l.hidden).length");
   assert.equal(soBuoc, ["ban-hang", "toan-quyen"].includes(vai) ? 4 : 3, `${vai}: số bước`);
+  if (["ban-hang", "toan-quyen"].includes(vai)) {
+    // ✓ của bước Thanh toán theo lỗi tiền (MỘT nơi so sánh: loiTienForm ở web/order-form.ts): giảm giá vượt tạm tính → mất ✓; xoá giảm giá → có lại.
+    assert.match(await p.ev(buocTxt("thanh-toan")), /^✓/, `${vai}: có dịch vụ, tiền hợp lệ → Thanh toán có ✓`);
+    await p.ev(setInput("document.getElementById('discount')", "999999999"));
+    assert.match(await p.ev(buocTxt("thanh-toan")), /^3Thanh toán/, `${vai}: giảm giá vượt tạm tính → Thanh toán mất ✓`);
+    await p.ev(setInput("document.getElementById('discount')", ""));
+    assert.match(await p.ev(buocTxt("thanh-toan")), /^✓/, `${vai}: xoá giảm giá → Thanh toán có ✓ lại`);
+  }
   await p.ev(setInput("document.getElementById('customerPhone')", "0912345678"));
   assert.equal(await p.ev(buocTxt("khach")), "✓Khách, bước 1, đã đủ thông tin");
   assert.match(await p.ev(buocTxt("dich-vu")), /^✓/);
