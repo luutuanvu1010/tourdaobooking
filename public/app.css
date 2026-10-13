@@ -3322,8 +3322,10 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
    Thanh tiến độ dính (web/thanh-buoc.ts): bốn chấm tròn đánh số + chữ ngắn; ✓ khi bước đủ thông tin; bước đang xem nổi bật. Điện thoại: dính ngay dưới thanh trên (cũng dính), tràn hết bề ngang;
    máy tính (thanh trên không dính): dính mép trên cửa sổ. Khối gập: nút "+ Thêm chi tiết …" mở / đóng khối chứa ô ít dùng (web/khoi-gap.ts); dòng tóm tắt chặng đưa đón gọn (web/khoi-dua-don.ts). */
 :root { --dinh-form: calc(var(--h-buoc-thanh) + var(--s2)); } /* phần đầu khung nhìn bị thanh dính che trên trang Tạo đơn: thanh tiến độ (máy tính) — điện thoại cộng thêm thanh trên cùng, khai lại ở khối ≤ 640px dưới */
-#order-form :is(input, select, textarea, button, summary, a[href], [tabindex]) { scroll-margin-top: var(--dinh-form); }
-.buoc { scroll-margin-top: var(--dinh-form); }
+@media (min-width: 641px) { /* máy tính: scroll-margin cho cuộn có chủ đích tới ô / bước (scrollIntoView, bấm chấm bước); điện thoại dùng scroll-padding-top bên dưới — cộng cả hai sẽ cuộn lố gấp đôi */
+  #order-form :is(input, select, textarea, button, summary, a[href], [tabindex]) { scroll-margin-top: var(--dinh-form); }
+  .buoc { scroll-margin-top: var(--dinh-form); }
+}
 .buoc:focus { outline: none; }
 .buoc-thanh { position: sticky; top: 0; z-index: 6; display: flex; align-items: center; min-height: var(--h-buoc-thanh); margin: 0 0 var(--s3); background: var(--c-alt); }
 .buoc-ds { display: flex; flex: 1; margin: 0; padding: 0; list-style: none; }

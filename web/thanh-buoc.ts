@@ -114,7 +114,7 @@ export function taoThanhBuoc(o: { phanTu: (ma: MaBuoc) => HTMLElement | null }):
     const t = e.target as HTMLElement;
     if (root.contains(t)) return;
     thoiGiu(); // người dùng chuyển focus (Tab) sang ô khác: vị trí do cuộn theo focus quyết lại
-    requestAnimationFrame(() => chuaChe(t)); // sau cú cuộn theo focus của trình duyệt
+    requestAnimationFrame(() => { if (vuaBam === null) chuaChe(t); }); // vuaBam khác rỗng = cú focus này do bấm chấm bước (đang cuộn mượt tới bước): không chen vào. Sau cú cuộn theo focus của trình duyệt
   });
   window.addEventListener("touchstart", thoiGiu, { passive: true });
   window.addEventListener("keydown", (e) => {
