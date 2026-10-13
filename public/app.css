@@ -3337,8 +3337,9 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
   .buoc-thanh { top: calc(var(--bar-h) + env(safe-area-inset-top)); margin: 0 calc(-1 * var(--s4)) var(--s3); padding: 0 var(--s4); border-bottom: 1px solid var(--c-border); }
   .buoc { scroll-margin-top: calc(var(--bar-h) + env(safe-area-inset-top) + var(--h-buoc-thanh) + var(--s3)); }
 }
+.form-main { display: contents; } /* dưới 960px: như không có lớp bọc — thanh tiến độ (con của .form-main) dính trong cả biểu mẫu, kể cả các khối của cột phải */
 @media (min-width: 960px) {
-  .form-side { top: calc(var(--h-buoc-thanh) + var(--s4)); } /* cột Tóm tắt dính nằm DƯỚI thanh tiến độ dính, không bị thanh che đầu */
+  .form-main { display: block; } /* thanh tiến độ nằm TRONG cột form: cột Tóm tắt bên phải không bị đẩy xuống, banner lỗi + nút Lưu vẫn trong khung 1040×768 */
 }
 .gap-nut { justify-content: flex-start; text-align: left; min-height: var(--tap-min); padding: 0 var(--s2); text-decoration: none; color: var(--c-primary); }
 .gap-nut::before { content: "+"; margin-right: var(--s2); font-weight: var(--fw-heavy); }
