@@ -1,66 +1,62 @@
-// Lọc sản phẩm trong ô "Chọn từ danh mục" khi lập đơn (góp ý YC-0003 — chủ duyệt 30/9, câu 4(i) README ảnh phác góp ý): lọc bằng thứ ĐÃ CÓ — "Hay dùng"
-// (dịch vụ từng máy tự ghim) và đơn vị tính (theo người / giá theo nhóm khách). KHÔNG lọc theo đầu mã (109 dịch vụ, mã không theo tiền tố nhóm).
-// ADR-0058 Đ8 (Task A6; chủ chọn cách 1 ngày 30/9): thêm lọc theo NHÓM DỊCH VỤ (quản lý trong app) — hàng chip riêng, kết hợp VÀ với hàng lọc trên và ô tìm;
-// chip 1.42 "Theo nhóm" (nghĩa: giá tính theo nhóm khách) đổi CHỮ thành "Giá theo nhóm" cho khỏi nhầm (khoá "theo-nhom" giữ nguyên). Thuần, không I/O.
-import { parseUnit } from "./order-lines.ts";
+// Lọc dịch vụ trong ô "Chọn từ danh mục" khi lập đơn. Thuần, không I/O.
+// Đợt 1 (13/10/2026, ý chủ dự án: "bỏ hết sự rườm rà, chỉ để lại việc lọc theo nhóm sản phẩm bằng nút xổ xuống + tick chọn"): chỉ còn HAI cách thu hẹp danh sách —
+// ô gõ (tên hoặc mã) và nút xổ xuống "Nhóm dịch vụ" (tick MỘT hay NHIỀU nhóm; không tick = tất cả; VÀ với ô gõ). Các bộ lọc cũ (★ Hay dùng, Theo người, Giá theo nhóm; góp ý YC-0003,
+// ADR-0058 Đ8 dạng hàng chip một nhóm) đã bỏ. Dấu sao ☆/★ ở đầu dòng GIỮ LẠI và có tác dụng: dịch vụ đã gắn sao xếp lên trước (giả định của người thi công, chủ chưa nói).
+// Hạn chế nhóm theo vai (ADR-0033, ADR-0058) vẫn do máy chủ quyết qua danh mục /api/catalog/for-order; ở đây không lọc thêm theo vai.
 
-export type LocDanhMucKhoa = "hay-dung" | "theo-nguoi" | "theo-nhom";
-export const LOC_DANH_MUC: readonly { khoa: LocDanhMucKhoa; nhan: string }[] = [
-  { khoa: "hay-dung", nhan: "★ Hay dùng" },
-  { khoa: "theo-nguoi", nhan: "Theo người" },
-  { khoa: "theo-nhom", nhan: "Giá theo nhóm" },
-];
 const TOI_DA_GHIM = 200;
 
-/** Nhớ trên máy: bộ lọc đang chọn + các mã đã ghim "Hay dùng". */
+/** Nhớ trên máy: các mã đã gắn sao. (Bản nhớ cũ còn trường `loc` — bộ lọc "Hay dùng" / "Theo người" / "Giá theo nhóm" — bị bỏ qua khi đọc.) */
 export interface NhoDanhMuc {
-  loc: LocDanhMucKhoa | null;
   ghim: string[];
 }
-export const NHO_DANH_MUC_TRONG: NhoDanhMuc = { loc: null, ghim: [] };
+export const NHO_DANH_MUC_TRONG: NhoDanhMuc = { ghim: [] };
 
-/** Danh mục sau ô tìm (tên hoặc mã) VÀ bộ lọc đang chọn; giữ thứ tự danh mục. */
-export function locDanhMuc<T extends { code: string; name: string; unit: string }>(ds: readonly T[], o: { kim: string; loc: LocDanhMucKhoa | null; ghim: readonly string[] }): T[] {
+/** Danh mục sau ô tìm (tên hoặc mã); giữ thứ tự danh mục. */
+export function locDanhMuc<T extends { code: string; name: string }>(ds: readonly T[], o: { kim: string }): T[] {
   const kim = o.kim.trim().toLowerCase();
-  return ds.filter((c) => {
-    if (kim && !c.name.toLowerCase().includes(kim) && !c.code.toLowerCase().includes(kim)) return false;
-    if (o.loc === "hay-dung") return o.ghim.includes(c.code);
-    if (o.loc === "theo-nguoi") return parseUnit(c.unit).kind === "perPax";
-    if (o.loc === "theo-nhom") return parseUnit(c.unit).kind === "group";
-    return true;
-  });
+  return ds.filter((c) => !kim || c.name.toLowerCase().includes(kim) || c.code.toLowerCase().includes(kim));
 }
 
-export const doiGhim = (ghim: readonly string[], code: string): string[] => (ghim.includes(code) ? ghim.filter((c) => c !== code) : [...ghim, code]);
+/** Bật / tắt sao một dịch vụ. Thêm vượt TOI_DA_GHIM thì bỏ mã cũ nhất (mã mới giữ), để lúc đọc lại không cắt mất mã vừa gắn. */
+export const doiGhim = (ghim: readonly string[], code: string): string[] => (ghim.includes(code) ? ghim.filter((c) => c !== code) : [...ghim, code].slice(-TOI_DA_GHIM));
 
-/** Đọc bản nhớ trên máy (chuỗi JSON từ bộ nhớ trình duyệt); hỏng / sai dạng → trống. */
+/** Dịch vụ đã gắn sao xếp lên trước; giữ nguyên thứ tự cũ trong từng phần (ổn định). Không sửa mảng đầu vào. */
+export function xepGhimTruoc<T extends { code: string }>(ds: readonly T[], ghim: readonly string[]): T[] {
+  const set = new Set(ghim);
+  return [...ds.filter((c) => set.has(c.code)), ...ds.filter((c) => !set.has(c.code))];
+}
+
+/** Đọc bản nhớ mã đã gắn sao (chuỗi JSON từ bộ nhớ trình duyệt); hỏng / sai dạng → trống. Trường `loc` của bản cũ được bỏ qua (không còn bộ lọc nào để mắc kẹt). */
 export function docNhoDanhMuc(raw: string | null): NhoDanhMuc {
   try {
     const v: unknown = raw ? JSON.parse(raw) : null;
     if (!v || typeof v !== "object" || Array.isArray(v)) return NHO_DANH_MUC_TRONG;
-    const o = v as Record<string, unknown>;
-    const loc = o.loc === null || o.loc === undefined ? null : LOC_DANH_MUC.some((x) => x.khoa === o.loc) ? (o.loc as LocDanhMucKhoa) : undefined;
-    if (loc === undefined || !Array.isArray(o.ghim) || !o.ghim.every((x) => typeof x === "string")) return NHO_DANH_MUC_TRONG;
-    return { loc, ghim: [...new Set(o.ghim as string[])].slice(0, TOI_DA_GHIM) };
+    const ghim = (v as Record<string, unknown>).ghim;
+    if (!Array.isArray(ghim) || !ghim.every((x) => typeof x === "string")) return NHO_DANH_MUC_TRONG;
+    return { ghim: [...new Set(ghim as string[])].slice(0, TOI_DA_GHIM) };
   } catch {
     return NHO_DANH_MUC_TRONG;
   }
 }
 
 // ---- Nhóm dịch vụ (ADR-0058 Đ8) ----
-/** Giá trị chip "Chưa phân loại" (dịch vụ `groupCode === null`). Mã nhóm thật là chữ in hoa (ctl_group.code) nên không trùng. */
+/** Giá trị dòng "Chưa phân loại" (dịch vụ `groupCode === null`). Mã nhóm thật là chữ in hoa (ctl_group.code) nên không trùng. */
 export const CHUA_PHAN_LOAI = "chua-phan-loai";
-/** Chip nhóm đang chọn: null = "Tất cả"; mã nhóm; hoặc CHUA_PHAN_LOAI. */
-export type ChonNhom = string | null;
+/** Các nhóm đang tick (mã nhóm hoặc CHUA_PHAN_LOAI). Rỗng = không lọc = tất cả. */
+export type ChonNhom = readonly string[];
 
-/** Chỉ giữ dịch vụ của nhóm đang chọn; null = không lọc. Áp SAU `locDanhMuc` (VÀ với ô tìm + hàng lọc 1.42); giữ thứ tự danh mục. */
+/** Chỉ giữ dịch vụ thuộc MỘT TRONG các nhóm đã tick; rỗng = không lọc. Áp cùng ô tìm (VÀ); giữ thứ tự danh mục. Nhóm không tồn tại: không khớp dịch vụ nào, không lỗi. */
 export function locTheoNhom<T extends { groupCode: string | null }>(ds: readonly T[], nhom: ChonNhom): T[] {
-  if (nhom === null) return [...ds];
-  if (nhom === CHUA_PHAN_LOAI) return ds.filter((c) => c.groupCode === null);
-  return ds.filter((c) => c.groupCode === nhom);
+  if (nhom.length === 0) return [...ds];
+  const set = new Set(nhom);
+  return ds.filter((c) => set.has(c.groupCode ?? CHUA_PHAN_LOAI));
 }
 
-/** Số dịch vụ theo từng nhóm; dịch vụ không nhóm đếm vào CHUA_PHAN_LOAI (dùng để biết có hiện chip "Chưa phân loại" không). */
+/** Tick / bỏ tick một nhóm (không trùng). Không sửa mảng đầu vào. */
+export const doiNhom = (nhom: ChonNhom, ma: string): string[] => (nhom.includes(ma) ? nhom.filter((x) => x !== ma) : [...nhom, ma]);
+
+/** Số dịch vụ theo từng nhóm; dịch vụ không nhóm đếm vào CHUA_PHAN_LOAI (dùng để biết có hiện dòng "Chưa phân loại" không). */
 export function demTheoNhom(ds: readonly { groupCode: string | null }[]): Map<string, number> {
   const m = new Map<string, number>();
   for (const c of ds) {
@@ -70,17 +66,21 @@ export function demTheoNhom(ds: readonly { groupCode: string | null }[]): Map<st
   return m;
 }
 
-/** Khoá bộ nhớ trình duyệt của chip nhóm — THEO TÀI KHOẢN (hai người dùng chung máy không nhớ lẫn). */
+/** Khoá bộ nhớ trình duyệt của các nhóm đã tick — THEO TÀI KHOẢN (hai người dùng chung máy không nhớ lẫn). */
 export const khoaNhoNhom = (staffId: string): string => `loc-nhom-dv:${staffId}`;
 
-/** Đọc bản nhớ (chuỗi JSON). Nhóm không còn trong `groups` (bị tắt / đổi) hoặc rác → null ("Tất cả"). CHUA_PHAN_LOAI đọc được — bên dựng chip tự bỏ nếu không còn dịch vụ chưa phân loại. */
-export function docNhoNhom(raw: string | null, groups: readonly { code: string }[]): ChonNhom {
+/**
+ * Đọc bản nhớ các nhóm đã tick (chuỗi JSON). Dạng mới: mảng mã. Dạng CŨ (hàng chip một nhóm): một chuỗi → đổi sang mảng một phần tử.
+ * Mã không còn trong `groups` (nhóm bị tắt / đổi), mã lạ (vd "hay-dung" của bộ lọc đã bỏ) hoặc rác → bỏ; không còn gì → [] ("tất cả"). CHUA_PHAN_LOAI đọc được —
+ * bên dựng danh sách tự bỏ nếu không còn dịch vụ chưa phân loại.
+ */
+export function docNhoNhom(raw: string | null, groups: readonly { code: string }[]): string[] {
   try {
     const v: unknown = raw ? JSON.parse(raw) : null;
-    if (typeof v !== "string" || !v) return null;
-    if (v === CHUA_PHAN_LOAI) return v;
-    return groups.some((x) => x.code === v) ? v : null;
+    const ds = typeof v === "string" ? [v] : Array.isArray(v) ? v : [];
+    const hopLe = (x: unknown): x is string => typeof x === "string" && (x === CHUA_PHAN_LOAI || groups.some((gr) => gr.code === x));
+    return [...new Set(ds.filter(hopLe))];
   } catch {
-    return null;
+    return [];
   }
 }

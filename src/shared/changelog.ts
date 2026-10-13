@@ -12,8 +12,8 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Bản gộp 2026-10-13: vá D-1 (lịch sử đơn của Đối tác theo danh sách cho phép), ADR-0115 đợt 1 (điều chỉnh công nợ cần người thứ hai duyệt, migration 0094) và vá khe «Đã giao» không hoa hồng (BL-HH-DA-GIAO-KHE). Số 1.91 = main 1.90 + 1 (số TẠM): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
-    version: "1.91",
+    // Bản gộp 2026-10-13: vá D-1 (lịch sử đơn của Đối tác theo danh sách cho phép), ADR-0115 đợt 1 (điều chỉnh công nợ cần người thứ hai duyệt, migration 0094) và vá khe «Đã giao» không hoa hồng (BL-HH-DA-GIAO-KHE). Số 1.92 = main 1.91 + 1 (số TẠM; ghép main 298f0c05 vào nhánh 2026-10-13): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "1.92",
     date: "2026-10-13",
     items: [
       { kind: "moi", text: "Điều chỉnh công nợ nay cần người thứ hai duyệt (Toàn quyền, Quản trị hoặc Kế toán, khác người tạo). Có màn Điều chỉnh công nợ và tin báo cho người duyệt." },
@@ -21,6 +21,19 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "sua", text: "Đối tác không còn thấy lý do nội bộ và tên người duyệt trong lịch sử đơn của mình." },
       { kind: "doi", text: "Tài khoản vừa là nhân viên vừa là Đối tác thấy lịch sử đơn rút gọn trên mọi đơn, kể cả đơn không phải của mình." },
       { kind: "sua", text: "Đơn có người hưởng hoa hồng không còn bấm được Đã giao sau khi bên đặt bị đổi vai; Nền tảng tính theo mức hoa hồng đã chụp lúc xác nhận đơn." },
+    ],
+  },
+  {
+    // Đợt 1 giao diện Tạo đơn trên điện thoại (bảng việc 13/10: #3, #4, #7, #8, #9 phần ô; gom "Đặt qua đối tác"); chỉ đổi cách vẽ, không migration. Số 1.91 là số TẠM (= nhánh 1.90 + 1, 2026-10-13):
+    // chủ / phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số.
+    version: "1.91",
+    date: "2026-10-13",
+    items: [
+      { kind: "doi", text: "Màn Tạo đơn gọn hơn trên điện thoại: tên ô nằm ngay trong ô thay vì một dòng riêng phía trên, bớt vài tiêu đề thừa." },
+      { kind: "doi", text: "Ô chọn dịch vụ chỉ còn một nút \"Nhóm dịch vụ\" bấm xổ xuống, đánh dấu một hay nhiều nhóm; bỏ các nút lọc khác. Chạm vào ô là hiện cả danh sách." },
+      { kind: "doi", text: "Dịch vụ bạn gắn ☆ ở đầu dòng nay được xếp lên trên cùng danh sách, để lần sau chọn cho nhanh." },
+      { kind: "doi", text: "Ô \"Ngày đón\" của chặng đưa đón ẩn khi cùng ngày khởi hành. Cần đón khác ngày thì bấm \"Đón khác ngày\"." },
+      { kind: "doi", text: "\"Khách tự đặt\" và \"Đặt qua đối tác\" nay là một hàng hai lựa chọn trong khối khách hàng." },
     ],
   },
   {

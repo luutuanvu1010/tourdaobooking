@@ -15,7 +15,12 @@ let dem = 0;
 const NHAN_LOAI: Record<"PERSON" | "ORGANIZATION", string> = { PERSON: "cá nhân", ORGANIZATION: "tổ chức" };
 const CHO_GO_MS = 300;
 
-export function oDatQuaDoiTac(v: { daChon: BenDatChon | null; onDoi: (chon: BenDatChon | null) => void }): DatQuaDoiTac {
+/**
+ * `gon` (đợt 1, bảng việc 13/10 — màn Tạo đơn trên điện thoại): thay nút rời "Đặt qua đối tác" + hai dòng chú thích bằng MỘT hàng hai lựa chọn "Khách tự đặt | Đặt qua đối tác" (chữ nút giữ nguyên,
+ * `data-action` giữ nguyên: "Đặt qua đối tác" = `dat-qua-mo`, "Khách tự đặt" khi đang tìm = `dat-qua-huy`). Ai thấy ô, điều kiện hiện / ẩn, các id: KHÔNG đổi. Mặc định tắt: bảng "Đổi khách" ở trang đơn giữ bố cục cũ.
+ */
+export function oDatQuaDoiTac(v: { daChon: BenDatChon | null; onDoi: (chon: BenDatChon | null) => void; gon?: boolean }): DatQuaDoiTac {
+  const gon = v.gon === true;
   const id = `dqdt-${++dem}`;
   let chon: BenDatChon | null = v.daChon;
   let dangTim = false;
@@ -24,10 +29,19 @@ export function oDatQuaDoiTac(v: { daChon: BenDatChon | null; onDoi: (chon: BenD
 
   // Gán `datChon` ở cuối hàm (sau khi `ve` đã định nghĩa); trong lúc dựng chưa có nên ép kiểu qua `unknown`.
   const root = h("div", { class: "dqdt", id: "dat-qua-doi-tac" }) as unknown as DatQuaDoiTac;
-  const nutMo = h("button", { type: "button", class: "btn", "data-action": "dat-qua-mo" }, "Đặt qua đối tác");
+  const nutMo = h("button", { type: "button", class: gon ? "loc-nut" : "btn", "data-action": "dat-qua-mo" }, "Đặt qua đối tác");
+  const nutTuDat = h("button", { type: "button", class: "loc-nut" }, "Khách tự đặt"); // chỉ dùng ở bố cục gọn
   const o = h("input", { type: "search", id: `${id}-q`, autocomplete: "off", maxLength: 60, placeholder: "Gõ tên đại lý / cộng tác viên", "aria-controls": `${id}-ds` });
   const ds = h("div", { class: "dqdt-ket-qua", id: `${id}-ds`, "aria-live": "polite" });
   const huy = h("button", { type: "button", class: "btn btn-link", "data-action": "dat-qua-huy" }, "Không chọn nữa");
+  /** Bố cục gọn: hàng hai lựa chọn; `dangTim` = "Đặt qua đối tác" đang bật (nút "Khách tự đặt" khi đó là lối huỷ — mang `data-action="dat-qua-huy"`). */
+  const hangChon = (dangTim: boolean): HTMLElement => {
+    nutMo.setAttribute("aria-pressed", String(dangTim));
+    nutTuDat.setAttribute("aria-pressed", String(!dangTim));
+    if (dangTim) nutTuDat.setAttribute("data-action", "dat-qua-huy");
+    else nutTuDat.removeAttribute("data-action");
+    return h("div", { class: "dqdt-chon-ai", role: "group", "aria-label": "Ai đặt đơn" }, nutTuDat, nutMo);
+  };
 
   const doi = (next: BenDatChon | null): void => {
     chon = next;
@@ -76,9 +90,9 @@ export function oDatQuaDoiTac(v: { daChon: BenDatChon | null; onDoi: (chon: BenD
         h("p", { class: "muted dqdt-ghi" }, "Tên và số điện thoại khách ở trên vẫn là của người đi tour."),
       );
     } else if (dangTim) {
-      replaceChildren(root, h("label", { for: `${id}-q` }, "Tìm đối tác theo tên", o), ds, huy);
+      replaceChildren(root, ...(gon ? [hangChon(true)] : []), h("label", { for: `${id}-q` }, "Tìm đối tác theo tên", o), ds, gon ? null : huy);
     } else {
-      replaceChildren(root, nutMo, h("p", { class: "muted dqdt-ghi" }, "Đơn của đại lý hoặc cộng tác viên: chọn ở đây, không nhập vào ô khách."));
+      replaceChildren(root, ...(gon ? [hangChon(false), h("p", { class: "muted dqdt-ghi" }, "Đơn của đại lý hoặc cộng tác viên: chọn “Đặt qua đối tác”, đừng nhập vào ô khách.")] : [nutMo, h("p", { class: "muted dqdt-ghi" }, "Đơn của đại lý hoặc cộng tác viên: chọn ở đây, không nhập vào ô khách.")]));
     }
   }
 
@@ -90,12 +104,16 @@ export function oDatQuaDoiTac(v: { daChon: BenDatChon | null; onDoi: (chon: BenD
     void tim();
     o.focus();
   });
-  huy.addEventListener("click", () => {
+  const huyTim = (): void => {
     dangTim = false;
     window.clearTimeout(timer);
     seq++; // kết quả đang bay về bị bỏ
     ve();
-    nutMo.focus();
+    (gon ? nutTuDat : nutMo).focus();
+  };
+  huy.addEventListener("click", huyTim);
+  nutTuDat.addEventListener("click", () => {
+    if (dangTim) huyTim(); // đang ở "Khách tự đặt" thì bấm lại không làm gì
   });
   o.addEventListener("input", () => {
     window.clearTimeout(timer);

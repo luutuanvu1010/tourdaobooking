@@ -61,7 +61,24 @@ try {
     assert.match(await f.ev(txt(`${chang("OUT")} .dd-luoi-noi`)), /gợi ý theo dịch vụ/);
     assert.equal(await f.ev(`document.querySelector('${chang("RETURN")} [data-o$=":gio"]').value`), "16:30");
     assert.match(await f.ev(txt(`${chang("RETURN")}`)), /theo nơi trả chiều đi/);
+    // Đợt 1 (13/10, #9): form Tạo đơn ẩn ô "Ngày đón" khi chặng cùng ngày đi; chữ gợi ý "Bằng ngày đi" vẫn nằm trong ô ẩn; lối "Đón khác ngày" mở ô.
+    const ngayOut = `document.querySelector('${chang("OUT")} [data-o$=":ngay"]').closest('label')`;
+    assert.equal(await f.ev(`${ngayOut}.hidden`), true, "Ngày đón ẩn khi cùng ngày đi");
+    assert.match(await f.ev(`${ngayOut}.textContent`), /Bằng ngày đi/);
+    assert.equal(await f.ev(shown(`${chang("OUT")} [data-action="don-khac-ngay"]`)), true, "có lối 'Đón khác ngày'");
+    assert.equal(await f.ev(txt(`${chang("OUT")} [data-action="don-khac-ngay"]`)), "Đón khác ngày");
+    await f.ev(click(`${chang("OUT")} [data-action="don-khac-ngay"]`));
+    assert.equal(await f.ev(shown(`${chang("OUT")} [data-o$=":ngay"]`)), true, "bấm 'Đón khác ngày' → ô Ngày đón hiện");
+    assert.equal(await f.ev(shown(`${chang("OUT")} [data-action="don-khac-ngay"]`)), false, "lối nhỏ ẩn đi khi ô đã mở");
     assert.match(await f.ev(txt(`${chang("OUT")}`)), /Bằng ngày đi/);
+    assert.equal(await f.ev(`document.activeElement === document.querySelector('${chang("OUT")} [data-o$=":ngay"]')`), true, "tiêu điểm vào ô Ngày đón vừa mở");
+    // chặng chiều về còn ẩn (chưa bấm); đặt ngày đón KHÁC ngày đi → ô tự hiện, không cần bấm
+    assert.equal(await f.ev(`document.querySelector('${chang("RETURN")} [data-o$=":ngay"]').closest('label').hidden`), true, "chiều về: Ngày đón vẫn ẩn");
+    await f.ev(typeInto(`${chang("RETURN")} [data-o$=":ngay"]`, vnDate(6)));
+    assert.equal(await f.ev(shown(`${chang("RETURN")} [data-o$=":ngay"]`)), true, "ngày đón khác ngày đi → ô hiện");
+    assert.match(await f.ev(txt(`${chang("RETURN")}`)), /Khác ngày đi/);
+    await f.ev(typeInto(`${chang("RETURN")} [data-o$=":ngay"]`, NGAY));
+    assert.equal(await f.ev(shown(`${chang("RETURN")} [data-o$=":ngay"]`)), true, "gõ lại đúng ngày đi: ô không tự ẩn giữa chừng");
     await f.ev(typeInto(`${chang("OUT")} [data-o$=":don"]`, KS));
     await f.waitFor(`document.querySelector('${chang("RETURN")} [data-o$=":tra"]').value === '${KS}'`, "chiều về trả tại nơi đón chiều đi");
     const opts = await f.ev(`[...document.querySelector('${chang("OUT")} [data-o$=":don"]').options].map((o) => o.textContent)`);
@@ -85,7 +102,7 @@ try {
   await b.step("2", "M1 (1040): đổi ngày đi → 'Đã dời ngày đón của 2 chặng theo ngày đi mới'; Gõ tự do → ô Địa chỉ đón; Sân bay → ô Số hiệu chuyến bay; thêm chặng thiếu nơi đón → Lưu báo 'Chặng 3: chưa có nơi đón.' và KHÔNG gửi; bỏ chặng", async () => {
     await f.ev(typeInto("#orderDate", vnDate(6)));
     await f.waitFor(`document.getElementById('orderDate-moved').textContent === 'Đã dời ngày đón của 2 chặng theo ngày đi mới'`, "câu dời ngày");
-    assert.match(await f.ev(txt(`${chang("OUT")}`)), /Bằng ngày đi/);
+    assert.match(await f.ev(`document.querySelector('${chang("OUT")} [data-o$=":ngay"]').closest('label').textContent`), /Bằng ngày đi/, "chặng dời theo ngày đi mới: vẫn 'Bằng ngày đi' (ô ngày có thể đang ẩn)");
     await f.ev(typeInto("#orderDate", NGAY));
     await f.ev(typeInto(`${chang("OUT")} [data-o$=":tra"]`, "tudo"));
     await f.waitFor(`!!document.querySelector('${chang("OUT")} [data-o$=":tra-chu"]')`, "ô Địa chỉ trả");

@@ -131,6 +131,11 @@ export function doiNgayDi(legs: readonly ChangNhap[], ngayCu: string, ngayMoi: s
   const soDoi = doi.filter((l, j) => legs[j]!.pickupDate !== "" && l.pickupDate !== legs[j]!.pickupDate).length;
   return { legs: doi, soDoi };
 }
+/**
+ * Đợt 1 (bảng việc 13/10, #9): form TẠO đơn ẩn ô "Ngày đón" của chặng (mặc định = ngày đi của đơn; chặng chưa có ngày thì máy chủ tự điền ngày đi — Ruling R4b) và chỉ có lối nhỏ "Đón khác ngày" để mở.
+ * Ô LUÔN hiện khi chặng đang có ngày đón khác ngày đi — không giấu một giá trị đang có. Chỉ dùng ở form (`che: "form"`); bảng "Sửa đưa đón" của đơn đã lưu luôn hiện ô. Luật khoảng ngày `khoangNgayDon` không đổi.
+ */
+export const canHienNgayDon = (l: Pick<ChangNhap, "pickupDate">, ngayDi: string): boolean => l.pickupDate !== "" && l.pickupDate !== ngayDi;
 export const cauDoiNgay = (n: number): string => `Đã dời ngày đón của ${n} chặng theo ngày đi mới`;
 
 /** Chữ nhỏ dưới các ô của chặng (bản vẽ). */

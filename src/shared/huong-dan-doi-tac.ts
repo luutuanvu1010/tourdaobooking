@@ -10,7 +10,7 @@ export const HD_DOI_TAC: NhomHuongDan = {
   batDauNhanh: `1. Mở app, gõ **Số điện thoại** và **Mã PIN 6 số** công ty đã cấp, bấm [[Đăng nhập]].
 2. Vào [[Tôi]], bấm [[Đổi mã PIN]] để đổi sang mã PIN của riêng bạn.
 3. Bấm [[Tạo đơn]], chọn **Ngày khởi hành**, rồi chọn dịch vụ ở ô [[Chọn từ danh mục]].
-   Muốn lọc nhanh, bấm một chip ở hàng [[Nhóm dịch vụ]].
+   Muốn lọc nhanh, bấm nút [[Nhóm dịch vụ]] rồi đánh dấu nhóm cần xem.
 4. Nhập số khách, tên và số điện thoại của khách.
 5. Bấm [[Lưu, chờ xác nhận]]. App mở trang của đơn vừa lập.
 6. Kiểm lại rồi bấm [[Xác nhận đơn]]. Sau đó bấm [[Xem biên nhận]] để gửi ảnh cho khách.`,
@@ -49,7 +49,7 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
     {
       tieuDe: "Lập đơn cho khách",
       noiDung: `1. Bấm [[Tạo đơn]].
-2. Phần **Chọn ngày**: chọn **Ngày khởi hành**. Ngày này dùng cho mọi dịch vụ trong đơn.
+2. Đầu trang: chọn **Ngày khởi hành**. Ngày này dùng cho mọi dịch vụ trong đơn.
 3. Phần **Dịch vụ**: bấm vào ô [[Chọn từ danh mục]], gõ tên hoặc mã dịch vụ, rồi bấm vào dịch vụ cần chọn.
    - Dịch vụ có nhãn "chưa có giá" hoặc "chưa hỗ trợ" thì không chọn được.
    - Dịch vụ đã có trong đơn có nhãn "đã chọn".
