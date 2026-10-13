@@ -28,8 +28,10 @@ const doi = (o: Partial<DongDon> = {}): DongDon => ({
   phuTrach: { coNguoi: true, staffId: "tam" }, lapChuaCoNguoi: false, cungLoLap: false,
   detail: "Tour đảo: giờ đón 07:00 → 06:30", sauXacNhan: true, legId: null, ...o,
 });
+/** Mốc RIÊNG của bài (không đọc MOC_TIN_DOI thật, vì hằng thật đặt = lúc phát hành và dịch theo từng đợt). */
+const MOC_BAI_KIEM = "2026-09-30T00:00:00.000Z";
 const hop = (staff: { id: string; permissions: PermissionCode[]; partyId: string | null }, d: DongDon[], ngan: "cua-toi" | "tat-ca" = "cua-toi", mocTinDoi?: string) =>
-  locHopThongBao(staff, { don: d, thuCong: [], docDenLuc: "2026-10-01T00:00:00.000Z", now: NOW, ngan, ...(mocTinDoi ? { mocTinDoi } : {}) });
+  locHopThongBao(staff, { don: d, thuCong: [], docDenLuc: "2026-10-01T00:00:00.000Z", now: NOW, ngan, mocTinDoi: mocTinDoi ?? MOC_BAI_KIEM });
 const cau = (staff: Parameters<typeof hop>[0], d: DongDon[], ngan: "cua-toi" | "tat-ca" = "cua-toi") => hop(staff, d, ngan).tin.map((t) => t.cau);
 const loai = (staff: Parameters<typeof hop>[0], d: DongDon[], ngan: "cua-toi" | "tat-ca" = "cua-toi") => hop(staff, d, ngan).tin.map((t) => t.loai);
 

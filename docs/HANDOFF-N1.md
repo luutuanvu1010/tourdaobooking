@@ -2,7 +2,22 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.87 ĐÃ LÊN PRODUCTION (sổ đại lý đợt 1: mức hoa hồng theo đối tác × dịch vụ/nhóm, bản chụp mức lúc xác nhận, màn «Hoa hồng đối tác» / «Người bán dịch vụ» / «Khoá sổ tháng», «Đặt qua đối tác», «Phần đối tác»; ADR-0077, ADR-0078 B1, ADR-0080 D1) — migration `0090_so_dai_ly_dot_1` đã áp (2026-10-12 13:42 giờ VN)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.88 ĐÃ LÊN PRODUCTION (gói A+C Vận chuyển: hai nút Chỉ đường — ADR-0105; phải thu không âm — ADR-0109; tài xế nhà xe ngoài dùng Nền tảng, báo bận, từ chối chuyến — ADR-0053; chuyển khách giữa hai xe — ADR-0111; màn tài xế mới; bảng điều phối; báo tài xế khi văn phòng cập nhật khách / điểm theo đơn — ADR-0112; chặn từ chối chuyến khi có khách chuyển vào — ADR-0113) — migration `0084`, `0085`, `0086`, `0089`, `0091`, `0092`, `0093` đã áp (2026-10-13 06:50 giờ VN)
+
+Khối do `npm run trien-khai` in ra (chủ chạy), kèm phần AI tự kiểm lại bằng lệnh chỉ đọc sau khi chủ báo đã triển khai (2026-10-13):
+
+- **Commit:** `17515b0b` (= `origin/main` lúc triển khai). Điểm khôi phục Time Travel trước khi áp: `00000f43-00000002-00005102-a4ffab37d580636d6fdb22fd9e9100c2`.
+- **Worker** (`wrangler deployments list`): mới nhất **724ac8e0-9ed9-4b32-a8c7-87a272070c1e** (2026-10-12T23:50Z, 100%); trước đó 7710d9bf-37a0-4e14-89cd-6b13eee1422d (2026-10-12T06:42Z = bản 1.87).
+- **Phiên bản:** cổng trước và sau deploy ĐẠT; `GET /api/auth/config` → `"version":"1.88"`.
+- **Migration:** `wrangler d1 migrations list --remote` → "No migrations to apply!".
+- **Dữ liệu:** `audit-invariants --db remote` (chủ chạy trong `trien-khai` và AI chạy lại) → "Mọi bất biến đạt, 4 cảnh báo": R-VC-14 (7 xe thiếu giấy tờ điều kiện xuất bến), R-CTL-1 (3 dịch vụ chưa gán nhóm), R-ORD-T1w (42 đơn xác nhận trước bảng mức, chờ chụp bù đợt 2), và một thông tin cũ về lần thu «người thu chưa rõ» — không cảnh báo nào do gói này sinh ra.
+- **Route mới không đăng nhập:** `GET /api/van-chuyen/cuoc-cua-toi` và `POST …/cuoc-cua-toi/:id/tu-choi` → 401.
+- **Kiểm trước phát hành:** typecheck 0; `npm test` 4428 bài / 0 đỏ; e2e đủ bộ 59/59 trên bản ghép (trước lần đặt mốc); người kiểm độc lập ĐẠT CÓ ĐIỀU KIỆN cho A4, A5, C2, C3, ADR-0112, ADR-0113 và bản ghép với `main` (mọi điều kiện đã sửa). Lần đặt mốc cuối (`MOC_TIN_DOI`, `MOC_TIN_CAP_NHAT` = 2026-10-12T23:00:00.000Z) chỉ chạy `npm test` + typecheck; e2e đủ bộ chạy lại trong `trien-khai` (kết quả «e2e: xanh»).
+- **Bảo trì:** `GET /api/auth/config` báo chế độ bảo trì BẬT tới 2026-10-13T13:10Z (20:10 giờ VN) — không do AI bật; chủ tự quyết khi tắt.
+- **Chưa kiểm:** iPhone / Android thật (nút Chỉ đường, màn tài xế đối tác, nhờ xe khác đón); lượng tin thật của hai nút «Cập nhật khách / điểm theo đơn»; các màn mới bằng tài khoản thật. Việc của chủ còn lại: Kế toán xác nhận 11 ca vàng sổ đại lý; nhờ người hiểu luật xem phần tài xế nhà xe ngoài thấy tên khách (A4); hai lệnh đếm chỉ đọc ở `docs/superpowers/specs/2026-10-09-a4-tai-xe-doi-tac-cho-chu.md`.
+- **Nợ để sau:** danh sách ở `docs/superpowers/plans/2026-10-08-van-chuyen-goi-a-c-danh-sach-viec.md`, mục «Nợ để sau» (C28, Đ5 ADR-0113, siết bốn ngoại lệ khung thử, ba bài so cả chuỗi phản hồi hay chập chờn).
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.87 ĐÃ LÊN PRODUCTION (sổ đại lý đợt 1: mức hoa hồng theo đối tác × dịch vụ/nhóm, bản chụp mức lúc xác nhận, màn «Hoa hồng đối tác» / «Người bán dịch vụ» / «Khoá sổ tháng», «Đặt qua đối tác», «Phần đối tác»; ADR-0077, ADR-0078 B1, ADR-0080 D1) — migration `0090_so_dai_ly_dot_1` đã áp (2026-10-12 13:42 giờ VN)
 
 Khối do `npm run trien-khai` in ra (chủ chạy), kèm phần AI tự kiểm lại bằng lệnh chỉ đọc sau khi chủ báo đã triển khai (2026-10-12):
 
