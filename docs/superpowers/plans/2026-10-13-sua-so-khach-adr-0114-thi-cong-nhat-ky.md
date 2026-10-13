@@ -24,7 +24,10 @@
 - Việc A, C, B: `npm test` mỗi việc một lần; sau việc B 4543 bài, 0 đỏ, 10 todo có sẵn. `npm run typecheck` 0 lỗi, `npm run build:web` thành công.
 - Việc C: kịch bản e2e `sua-so-khach` 8/8 xanh; 19 phép phá cố ý có ghi ở `docs/SO-HANG-RAO.md` (ngày 2026-10-13).
 - Người kiểm độc lập (13/10): "ĐẠT CÓ ĐIỀU KIỆN", không phát hiện mức Cao; tự phá thử 10 lần trên bản sao sạch, 8 phép nhắm hàng rào đều đỏ đúng chỗ, 2 phép nhắm phần nối ở máy chủ xanh đúng như dự đoán (giới hạn của sổ vàng, đã ghi ở sổ hàng rào).
-- Kịch bản Chrome: xem báo cáo việc D (ghi vào dòng cuối nhật ký khi có).
+- Kịch bản Chrome (13/10, có axe-core): kịch bản mới `docs/evidence/2026-10-13-sua-so-khach-adr-0114/kich-ban/adr-0114-smoke.mjs` xanh 9/9 (7 lần quét axe sạch); `sua-so-khach-smoke.mjs` đã cập nhật bước 5 theo dải đỏ và xanh; `hdv-viec-cua-toi-smoke.mjs`, `a2-smoke-order.mjs`, `v1-nguoi-phu-trach.mjs`, `a2-smoke-form.mjs`, `help-smoke.mjs` xanh. Đỏ không do đợt này: `a2-smoke-sheet.mjs` (kỳ vọng nhật ký `trip_updated`, thực tế `order_leg_updated`; nhánh này không đụng tên hành động nhật ký).
+- Ảnh Chrome thật làm lộ lỗi giao diện (biểu tượng cảnh báo co còn vài điểm ảnh, hai câu sát nhau, đỏ sẫm khó phân biệt với nâu vàng): đã sửa bằng CSS token (commit sau kiểm độc lập); ảnh sau sửa ở `anh-sau-sua-css/`.
+- e2e đủ bộ (13/10): 56/59 xanh. Ba đỏ: `trip` là hệ quả đúng của D3 (nháp 0 khách nay 409 `thieu_nguoi_lon` thay vì `incomplete_trip`/`no_guests`), đã sửa kỳ vọng và chạy lại xanh; `chuyen-khach` và kiểm H5 (Vận chuyển, nhánh không đụng) đỏ lúc tải máy 50+ vì bước chờ theo giờ, chạy riêng xanh 4/4 kể cả H5. Bộ kiểm chính (`npm test` bước 1) thoát 0; bài đo giờ của hook (bước 2) đỏ khi máy bận, nhánh không đụng `.claude/`.
+- Chưa chạy: các kịch bản Chrome phụ có thể bị D3 làm đỏ (`nhap-tay`, `dua-don`, `qr`, `so-dai-ly`, `c4-bieu-mau`, `chip-nhom`, `v1-xac-nhan-png`, `moc-chua-co`); chưa kiểm đơn đã xác nhận cũ có 0 người lớn trên giao diện; Chrome headless, không phải iPhone thật.
 
 ## Nợ và việc chưa làm
 
