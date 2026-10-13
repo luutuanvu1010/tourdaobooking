@@ -15,7 +15,12 @@ import { DRIVER, NGAY, SUP, batDongHo, chuyenSan, denGio, don, setup, taoChuyen,
 import { msToVnLocal } from "./shared/vn-date.ts";
 
 const PHUT = 60_000;
-const GIO_THAT = { ms: Date.now(), theoGioThat: true };
+/** Giờ thật để truyền cho `batDongHo` / `ghiNhanDongHo`: nhích 1 mili-giây nếu rơi đúng tròn phút (hàng rào coi đồng hồ tròn phút là cố định — xem bài «TRÒN PHÚT»). */
+const gioThat = () => {
+  const t = Date.now();
+  return t % PHUT === 0 ? t + 1 : t;
+};
+const GIO_THAT = { ms: gioThat(), theoGioThat: true };
 const CO_DINH = { ms: vnMs(NGAY, "06:00"), theoGioThat: false };
 /** Ngày VN thật + n (khuôn `ngayThat` của tu-choi.test.ts — gọi SAU `batDongHo`). */
 const ngayThat = (n: number) => msToVnLocal(Date.now() + n * 86_400_000).date;
@@ -72,15 +77,32 @@ test("hàng rào giờ xấu nhất — thông báo lỗi nói rõ ngày, giờ,
 test("hàng rào giờ xấu nhất — nhận ra đồng hồ theo giờ thật: lệch ≤ 5 phút (bài `tre` 2 phút) là thật, lệch xa là cố định", () => {
   try {
     assert.equal(DUNG_SAI_GIO_THAT_PHUT, 5);
-    ghiNhanDongHo(Date.now() - 2 * PHUT);
+    ghiNhanDongHo(gioThat() - 2 * PHUT);
     assert.equal(dongHoHienTai().theoGioThat, true, "chậm 2 phút vẫn theo giờ thật");
-    ghiNhanDongHo(Date.now() + 90 * PHUT);
+    ghiNhanDongHo(gioThat() + 90 * PHUT);
     assert.equal(dongHoHienTai().theoGioThat, false, "xa 90 phút: không phải giờ thật");
     ghiNhanDongHo(vnMs(NGAY, "06:00"));
     assert.equal(dongHoHienTai().theoGioThat, false, "NOW_GIA 2027-03-11");
     xoaDongHo();
     assert.equal(dongHoHienTai().theoGioThat, true, "chưa ai bật đồng hồ giả = đồng hồ thật");
     assert.ok(Math.abs(dongHoHienTai().ms - Date.now()) < PHUT);
+  } finally {
+    xoaDongHo();
+  }
+});
+
+test("hàng rào giờ xấu nhất — đồng hồ cố định TRÒN PHÚT đặt đúng quanh giờ thật vẫn là cố định (NOW_GIA vào đúng sáng 11/3/2027 không được làm hàng loạt bài đỏ oan)", () => {
+  try {
+    const tronPhut = Math.floor(Date.now() / PHUT) * PHUT; // mọi đồng hồ cố định trong kho là hằng tròn phút (vnMs(…, "HH:MM"), Date.parse("…T06:00:00+07:00"))
+    for (const lech of [0, 2 * PHUT, -2 * PHUT, 4 * PHUT]) {
+      ghiNhanDongHo(tronPhut + lech);
+      assert.equal(dongHoHienTai().theoGioThat, false, `tròn phút, lệch ${lech / PHUT} phút so với giờ thật: vẫn là đồng hồ cố định`);
+    }
+    ghiNhanDongHo(tronPhut);
+    const homNay = msToVnLocal(Date.now()).date;
+    assert.doesNotThrow(() => kiemGioTheoDongHo({ nhan: "bài thử", ngay: homNay, gio: "13:00", mocPhut: MOC_MAC_DINH_PHUT }), "gieo cho hôm nay 13:00 trên đồng hồ cố định: hàng rào im");
+    ghiNhanDongHo(gioThat());
+    assert.equal(dongHoHienTai().theoGioThat, true, "đồng hồ chạy theo giờ thật (không tròn phút) vẫn bị canh");
   } finally {
     xoaDongHo();
   }
@@ -96,7 +118,7 @@ test("hàm tắt của batDongHo() trả hàng rào về đồng hồ thật —
 
 // ---- Nối dây vào khung: hàng rào PHẢI nằm trên đường `don()` / `taoChuyen()` / `chuyenSan()`, TRƯỚC khi gọi máy chủ ------------------------------------------
 test("nối dây: don() — đồng hồ giả = giờ thật, ngày mai, đón 05:30 → ném lỗi giờ xấu nhất, đơn chưa được tạo", async () => {
-  const tat = batDongHo(Date.now());
+  const tat = batDongHo(gioThat());
   try {
     const w = setup();
     await assert.rejects(() => don(w, { ngay: ngayThat(1), gio: "05:30" }), /giờ xấu nhất/);
@@ -107,7 +129,7 @@ test("nối dây: don() — đồng hồ giả = giờ thật, ngày mai, đón 
 });
 
 test("nối dây: taoChuyen() — đồng hồ giả = giờ thật, ngày mai, bắt đầu 05:00 → ném lỗi, chuyến chưa được tạo", async () => {
-  const tat = batDongHo(Date.now());
+  const tat = batDongHo(gioThat());
   try {
     const w = setup();
     await assert.rejects(() => taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, ngay: ngayThat(1), bd: "05:00", kt: "07:00" }), /giờ xấu nhất/);
@@ -118,7 +140,7 @@ test("nối dây: taoChuyen() — đồng hồ giả = giờ thật, ngày mai, 
 });
 
 test("nối dây: chuyenSan() — đúng mẫu bản cũ của tu-choi.test.ts (chuyến 05:00, khách đón 05:30, ngày mai) → ném lỗi", async () => {
-  const tat = batDongHo(Date.now());
+  const tat = batDongHo(gioThat());
   try {
     const w = setup();
     await assert.rejects(() => chuyenSan(w, { ngay: ngayThat(1), bd: "05:00", kt: "07:00", gio: "05:30" }), /giờ xấu nhất/);
@@ -128,7 +150,7 @@ test("nối dây: chuyenSan() — đúng mẫu bản cũ của tu-choi.test.ts (
 });
 
 test("nối dây: mốc đọc từ chính sách của thế giới thử — chính sách 240 phút thì don() ngày mai 04:30 qua hàng rào (máy chủ vẫn xét mốc thật)", async () => {
-  const tat = batDongHo(Date.now());
+  const tat = batDongHo(gioThat());
   try {
     const w = setup();
     const p = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", {
@@ -145,7 +167,7 @@ test("nối dây: mốc đọc từ chính sách của thế giới thử — ch
 });
 
 test("nối dây: đồng hồ giả theo giờ thật nhưng ngày kia và đón 05:30 (cách sửa của tu-choi.test.ts) → qua hàng rào, chuyến dựng được", async () => {
-  const tat = batDongHo(Date.now());
+  const tat = batDongHo(gioThat());
   try {
     const w = setup();
     const c = await chuyenSan(w, { ngay: ngayThat(2), bd: "05:00", kt: "07:00", gio: "05:30" });
@@ -167,7 +189,7 @@ test("nối dây: đồng hồ cố định ở giờ lẻ + đón 04:00 hôm sa
 });
 
 test("nối dây: hàng rào nhớ NGÀY GỐC của đồng hồ — sau denGio() tiến xa khỏi giờ thật vẫn còn bật (gieo chuyến 05:00 ngày mai vẫn bị chặn)", async () => {
-  const tat = batDongHo(Date.now());
+  const tat = batDongHo(gioThat());
   try {
     const w = setup();
     const ngay = ngayThat(1);
@@ -179,7 +201,7 @@ test("nối dây: hàng rào nhớ NGÀY GỐC của đồng hồ — sau denGio
 });
 
 test("nối dây: bài đưa đồng hồ giả tiến bằng denGio() rồi gieo thêm trong ngày chạy — k tính từ NGÀY GỐC của đồng hồ, không phải từ giờ vừa tiến tới (không đỏ oan)", async () => {
-  const tat = batDongHo(Date.now());
+  const tat = batDongHo(gioThat());
   try {
     const w = setup();
     const ngay = ngayThat(2);

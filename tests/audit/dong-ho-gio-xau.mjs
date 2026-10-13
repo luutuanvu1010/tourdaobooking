@@ -4,7 +4,7 @@
 // Công thức: giờ hẹn nằm ở ngày cách ngày gốc của đồng hồ k ngày, lúc T. Đồng hồ có thể ở BẤT KỲ giờ nào trong ngày gốc, giờ muộn nhất là sát nửa đêm, nên khoảng cách
 // nhỏ nhất tới giờ hẹn = giờ hẹn − nửa đêm kết thúc ngày gốc = (k − 1) × 24 giờ + T. Hàng rào ném lỗi khi giá trị ấy < mốc + lề: k = 0 luôn bị chặn; k = 1 chỉ qua khi
 // T ≥ mốc + lề (06:30 với mốc 360 phút); k ≥ 2 luôn qua.
-// CHỈ áp cho đồng hồ chạy theo GIỜ THẬT (không gọi `batDongHo`, hoặc gọi với giờ thật ± 5 phút như bài `tre` của tu-choi.test.ts). Đồng hồ CỐ ĐỊNH (NOW_GIA
+// CHỈ áp cho đồng hồ chạy theo GIỜ THẬT (không gọi `batDongHo`, hoặc gọi với giờ thật ± 5 phút KHÔNG tròn phút, như bài `tre` của tu-choi.test.ts). Đồng hồ CỐ ĐỊNH (NOW_GIA
 // 2027-03-11 06:00, `vnMs("2027-03-10", "22:00")`…) là hằng, kết quả không đổi theo giờ chạy nên được bỏ qua — các bài mốc / khoảng nghỉ cố tình dùng giờ sớm với đồng hồ
 // cố định. Không phải công tắc: hàng rào luôn bật; ca hợp lệ nào cũng qua bằng cách chọn ngày / giờ / đồng hồ, không bằng cách tắt.
 // File này thuần (không import mã ứng dụng, không I/O) để bài canh gọi thẳng.
@@ -27,7 +27,11 @@ export const gioThatMs = () => GOC_DATE + (performance.now() - GOC_PERF);
 const vnMs = (ngay, gio) => Date.parse(`${ngay}T${gio}:00+07:00`);
 const ngayVn = (ms) => new Date(ms + 7 * 3600_000).toISOString().slice(0, 10);
 const hhmm = (phut) => `${String(Math.floor(phut / 60)).padStart(2, "0")}:${String(phut % 60).padStart(2, "0")}`;
-const theoGioThat = (ms) => Math.abs(ms - gioThatMs()) <= DUNG_SAI_GIO_THAT_PHUT * PHUT;
+// «Theo giờ thật» = gần giờ thật VÀ KHÔNG tròn phút. Đồng hồ cố định là hằng tròn phút (`vnMs(…, "HH:MM")`, `Date.parse("…T06:00:00+07:00")`, NOW_GIA), còn `Date.now()` hầu như
+// không bao giờ tròn phút (1/60000). Thiếu vế sau thì vào đúng sáng 11/3/2027 (NOW_GIA = 06:00) mọi bài dùng khung bị coi nhầm là «giờ thật» và đỏ hàng loạt, chặn cả `npm test`
+// lẫn `trien-khai` trong vài phút (kiểm bằng bộ lệch đồng hồ ở 2027-03-11 06:02: `cuoc-cua-toi` đỏ 8/8, `nghi-cua-so-rong` đỏ 5/5). Phần dư: đồng hồ thật rơi đúng tròn phút thì lượt đó
+// bị bỏ qua (lỏng, không đỏ oan).
+const theoGioThat = (ms) => ms % PHUT !== 0 && Math.abs(ms - gioThatMs()) <= DUNG_SAI_GIO_THAT_PHUT * PHUT;
 
 let ghiNho = null;
 /** `batDongHo(ms)` gọi hàm này: nhớ giờ GỐC của đồng hồ giả và nó có theo giờ thật không. Giờ gốc (không phải giờ hiện tại sau `denGio`) mới là mốc tính k. */
