@@ -9,7 +9,7 @@ import type {
 } from "../../shared/contracts";
 import { UUID_RE, error, json, kemLocation, readJson, trangDon } from "../../shared/http";
 import { docLenhNhapKeToan } from "../../shared/nhap-ke-toan";
-import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
+import { can, holdsPartner, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import { docGhiChuKy, khoaKyStatements, kiemKhoaKy, thangDaKhoa } from "../ky-so";
@@ -68,9 +68,11 @@ export const billingModule: AppModule = {
           coTheGhiHoanNgoai: can(staff, "deposit.outside.record"),
           coTheXacNhanHoanNgoai: can(staff, "deposit.refund.approve"),
           xemNguoiGiu: can(staff, "ledger.view"),
+          laDoiTac: holdsPartner(staff), // D-1: Đối tác không thấy lý do tự do / tên người duyệt, người ghi
         })
         : null;
       const body = await tienCuaDon(env.DB, info, nguoiGoi(staff), {
+        laDoiTac: holdsPartner(staff),
         // Cờ theo ĐÚNG luật của route ghi (đ13): đơn huỷ thì thêm ô `ledger.write`.
         coTheGhiThu: can(staff, "payment.receive", scope) && (info.status !== "cancelled" || can(staff, "ledger.write")),
         coTheBamGiao: can(staff, "order.handover", { assigned }),

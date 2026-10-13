@@ -213,7 +213,11 @@ export const lineOf = (d: LineDraft, postingId: string, orderId: string, receipt
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 // Tiền của một đơn (màn đơn — NT-F11)
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
-function lanThuDto(rows: readonly ReceiptDbRow[], xemNguoiThu: boolean, ma: Map<string, { ma: string; soThucChuyen: number }> | null): LanThuDto[] {
+function lanThuDto(
+  rows: readonly ReceiptDbRow[], xemNguoiThu: boolean, ma: Map<string, { ma: string; soThucChuyen: number }> | null,
+  /** D-1: người xem giữ quyền Đối tác ⇒ `nguoiGhi` / `ghiChu` chỉ ở lần thu CHÍNH họ ghi (`created_by` = id người xem); lần thu của người khác: khoá VẮNG. */
+  doiTac: { staffId: string } | null,
+): LanThuDto[] {
   const biDao = new Set(rows.flatMap((r) => (r.reverses_id ? [r.reverses_id] : [])));
   return rows.map((r) => ({
     id: r.id,
@@ -227,8 +231,9 @@ function lanThuDto(rows: readonly ReceiptDbRow[], xemNguoiThu: boolean, ma: Map<
     ngayPhatSinh: r.occurred_date,
     daDao: biDao.has(r.id),
     laDongDao: r.reverses_id !== null,
-    nguoiGhi: r.created_by === "he-thong" ? "Hệ thống (chuyển cọc cũ)" : r.created_by_label,
-    ghiChu: r.note,
+    ...(doiTac && r.created_by !== doiTac.staffId
+      ? {}
+      : { nguoiGhi: r.created_by === "he-thong" ? "Hệ thống (chuyển cọc cũ)" : r.created_by_label, ghiChu: r.note }),
     ghiLuc: r.created_at,
     // ADR-0092 Đ6: chỉ người có ledger.write thấy mã + số thực chuyển — người khác KHÔNG có khoá này (không chỉ là null).
     ...(ma?.has(r.id) ? { maGiaoDich: ma.get(r.id)!.ma, soThucChuyen: ma.get(r.id)!.soThucChuyen } : {}),
@@ -236,6 +241,8 @@ function lanThuDto(rows: readonly ReceiptDbRow[], xemNguoiThu: boolean, ma: Map<
 }
 
 export interface QuyenXemTien {
+  /** Người xem giữ quyền Đối tác (`holdsPartner`, kể cả tài khoản lai) — D-1: bỏ người ghi / ghi chú nội bộ của lần thu do người khác ghi. */
+  laDoiTac: boolean; // BẮT BUỘC (không mặc định): nơi gọi mới phải tự quyết, kẻo Đối tác nhận đủ người ghi / ghi chú nội bộ
   coTheGhiThu: boolean;
   coTheBamGiao: boolean;
   coTheBamHoanThanh: boolean;
@@ -269,7 +276,7 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, ai: Nguo
     conLai: so.conLai,
     du: so.du,
     chuaRo: so.chuaRo,
-    lanThu: lanThuDto(receipts, ai.laKeToan, maDon),
+    lanThu: lanThuDto(receipts, ai.laKeToan, maDon, quyen.laDoiTac ? { staffId: ai.staffId } : null),
     deliveredAt: info.deliveredAt,
     completedAt: info.completedAt,
     lyDoChuaGiao: info.deliveredAt ? null : (lyGiao as LyDoGiuDonDto | null),
