@@ -517,14 +517,22 @@ export interface OrderResponse { order: OrderDetailDto; canhBaoMoc?: CanhBaoMocD
  * vẫn còn). Dịch vụ nhập tay không có dòng (đường này không sửa dịch vụ nhập tay).
  */
 export interface SuaSoKhachDichVuDto { serviceId: string; loaiKhach: PaxCode[] }
-/** `suaSoKhach`: có khi người xem sửa được số khách đơn này NGAY LÚC NÀY (`duocSuaSoKhachVanPhong`), còn lại null. */
-export interface OrderDetailResponse { order: OrderDetailDto; history: AuditEntryDto[]; canModify: boolean; mocToiThieuPhut: number | null; suaSoKhach: SuaSoKhachDichVuDto[] | null }
+/**
+ * `suaSoKhach`: có khi người xem sửa được số khách đơn này NGAY LÚC NÀY (`duocSuaSoKhachVanPhong`), còn lại null.
+ * `canhBaoKhuyenMai` (ADR-0114 D1): câu nhắc màu đỏ khi đơn có giảm giá mà số khách trả tiền hiện hành < số lúc xác nhận (`canhBaoKhuyenMai` của
+ * src/shared/so-khach-van-phong.ts; tính từ trạng thái hiện hành, không lưu cờ), null khi không. Luôn có mặt (null hoặc câu), không bao giờ vắng.
+ */
+export interface OrderDetailResponse {
+  order: OrderDetailDto; history: AuditEntryDto[]; canModify: boolean; mocToiThieuPhut: number | null; suaSoKhach: SuaSoKhachDichVuDto[] | null;
+  canhBaoKhuyenMai: string | null;
+}
 /**
  * `POST /api/orders/:id/money-edit` (ADR-0063 D1): đơn HIỆN HÀNH sau lần sửa; `daGhi` false = số khách y nguyên, không ghi gì; `canhBaoTongAm` (tên khoá GIỮ, nghĩa
  * đổi theo ADR-0109) = câu cảnh báo khi giảm giá > tạm tính hiện hành (không chặn — `canhBaoGiamGiaVuot` của src/shared/so-khach-van-phong.ts), null khi không.
- * `dongBoChuyen` chỉ có khi đã ghi (`daGhi`) — ADR-0104 Đ2.
+ * `canhBaoKhuyenMai` (ADR-0114 D1) = câu nhắc khi đơn có giảm giá mà số khách đã giảm so với lúc xác nhận (không chặn, không đổi số tiền; độc lập với `canhBaoTongAm` — hai câu có
+ * thể cùng có), null khi không. Đường hướng dẫn viên (`HandlerMoneyEditResponse`) không trả khoá này. `dongBoChuyen` chỉ có khi đã ghi (`daGhi`) — ADR-0104 Đ2.
  */
-export interface MoneyEditResponse { order: OrderDetailDto; daGhi: boolean; canhBaoTongAm: string | null; dongBoChuyen?: DongBoChuyenDto }
+export interface MoneyEditResponse { order: OrderDetailDto; daGhi: boolean; canhBaoTongAm: string | null; canhBaoKhuyenMai: string | null; dongBoChuyen?: DongBoChuyenDto }
 /** 409 xác nhận đơn khi còn chặng dưới mốc chưa đặt gấp (ADR-0049 D2). */
 /** `GET /api/orders/moc-toi-thieu` (ruling R-P15): mốc tối thiểu + cảnh báo sát mốc (phút) của chính sách HIỆN HÀNH — chỉ để biểu mẫu đơn chưa lưu hiển thị. */
 export interface MocToiThieuResponse { mocToiThieuPhut: number; canhBaoPhut: number }

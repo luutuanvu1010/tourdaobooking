@@ -3,7 +3,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  CAU_GIAM_GIA_VUOT, LY_DO_SUA_SO_KHACH, MA_LY_DO_SUA_SO_KHACH, canhBaoGiamGiaVuot, docThanSuaSoKhach, duocSuaSoKhachVanPhong, nguonBangSuaSoKhach, thanSuaSoKhach,
+  CAU_GIAM_GIA_VUOT, CAU_KHUYEN_MAI_KHI_BOT_KHACH, LY_DO_SUA_SO_KHACH, MA_LY_DO_SUA_SO_KHACH, canhBaoGiamGiaVuot, canhBaoKhuyenMai, docThanSuaSoKhach, duocSuaSoKhachVanPhong,
+  nguonBangSuaSoKhach, soKhachTraTien, thanSuaSoKhach,
 } from "./so-khach-van-phong.ts";
 import { EDIT_REASON_QUICK } from "./viec-cua-toi.ts";
 import { PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
@@ -86,6 +87,31 @@ test("giảm giá vượt tạm tính (ADR-0109 QĐ3): chỉ cảnh báo, điề
   // Phiếu phản biện ADR-0109 (tiền đề sai 3): câu còn hiện sau khi đã hoàn / Đã giao / Hoàn thành ⇒ không được khẳng định "toàn bộ tiền đã trả thành tiền trả dư".
   assert.doesNotMatch(CAU_GIAM_GIA_VUOT, /Toàn bộ tiền khách đã trả/);
   assert.match(CAU_GIAM_GIA_VUOT, /nếu chưa hoàn/);
+});
+
+// ---- ADR-0114 D1: nhắc khuyến mại khi bớt khách (chỉ cảnh báo; tính từ trạng thái hiện hành, không lưu cờ) ----------------------------------------------
+
+test("D1: ví dụ của chủ — 10 khách giảm giá còn 2 khách mà giảm giá vẫn giữ ⇒ nhắc; giảm giá 0, khách y nguyên hoặc tăng ⇒ không nhắc; 10 → 2 → 3 vẫn nhắc", () => {
+  const co = { discount: 50000 };
+  assert.equal(canhBaoKhuyenMai(co, 10, 2), CAU_KHUYEN_MAI_KHI_BOT_KHACH);
+  assert.equal(canhBaoKhuyenMai(co, 10, 3), CAU_KHUYEN_MAI_KHI_BOT_KHACH, "10 → 2 → 3: so với lúc xác nhận, không so với lần sửa trước");
+  assert.equal(canhBaoKhuyenMai(co, 10, 9), CAU_KHUYEN_MAI_KHI_BOT_KHACH, "chỉ bớt một người cũng nhắc");
+  assert.equal(canhBaoKhuyenMai({ discount: 0 }, 10, 2), null, "không có giảm giá thì không có khuyến mại để nhắc");
+  assert.equal(canhBaoKhuyenMai(co, 10, 10), null, "đủ lại số lúc xác nhận");
+  assert.equal(canhBaoKhuyenMai(co, 10, 12), null, "tăng khách");
+});
+
+test("D1: câu nhắc đúng nguyên văn ADR-0114, KHÔNG có chữ số; khác hẳn câu cảnh báo giảm giá vượt (hai câu độc lập)", () => {
+  assert.equal(CAU_KHUYEN_MAI_KHI_BOT_KHACH, "Đơn có giảm giá nhưng số khách đã giảm so với lúc xác nhận, giảm giá vẫn giữ nguyên. Kế toán xem lại khuyến mại.");
+  assert.doesNotMatch(CAU_KHUYEN_MAI_KHI_BOT_KHACH, /\d/);
+  assert.notEqual(CAU_KHUYEN_MAI_KHI_BOT_KHACH, CAU_GIAM_GIA_VUOT);
+});
+
+test("D1: số khách trả tiền = người lớn + trẻ em + người cao tuổi, cộng MỌI dịch vụ; em bé không tính", () => {
+  const pax = (adult: number, child: number, senior: number, infant: number) => ({ pax: { adult, child, senior, infant } });
+  assert.equal(soKhachTraTien([pax(5, 3, 1, 4), pax(2, 0, 0, 1)]), 11);
+  assert.equal(soKhachTraTien([pax(0, 0, 0, 3)]), 0, "chỉ em bé");
+  assert.equal(soKhachTraTien([]), 0);
 });
 
 // ---- Bảng "Sửa số khách dịch vụ" trên trang đơn (web/sheet-so-khach.ts): nguồn dòng + thân gửi đi — luật thuần để bài khoá được không cần trình duyệt.

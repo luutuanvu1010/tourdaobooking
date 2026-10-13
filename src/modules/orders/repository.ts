@@ -350,6 +350,18 @@ export async function getStoredServices(db: D1Database, orderId: string): Promis
   }));
 }
 
+/**
+ * Số khách ĐÃ LƯU của từng dịch vụ (cột `pax_*` của `order_service`; bị trigger 0008 đóng băng sau xác nhận nên đó chính là số LÚC XÁC NHẬN) — chỉ pax, một câu nhẹ,
+ * không đọc dòng tiền / chặng. Dùng cho ADR-0114: D1 (`khachLucXacNhan` của lời nhắc khuyến mại) và D2 (dòng khởi tạo của lịch sử số khách). Khoá = id dịch vụ.
+ */
+export async function getStoredPax(db: D1Database, orderId: string): Promise<Map<string, PaxCounts>> {
+  const res = await db
+    .prepare("SELECT id, pax_adult, pax_child, pax_senior, pax_infant FROM order_service WHERE order_id = ? ORDER BY sort_order")
+    .bind(orderId)
+    .all<{ id: string; pax_adult: number; pax_child: number; pax_senior: number; pax_infant: number }>();
+  return new Map(res.results.map((r) => [r.id, { adult: r.pax_adult, child: r.pax_child, senior: r.pax_senior, infant: r.pax_infant }] as const));
+}
+
 /** Ngày khởi hành của từng dịch vụ trong đơn (null = chưa có ngày), theo thứ tự dịch vụ. Đơn không có/không tồn tại → mảng rỗng. */
 export async function getDepartDates(db: D1Database, orderId: string): Promise<(string | null)[]> {
   const res = await db.prepare("SELECT depart_date FROM order_service WHERE order_id = ? ORDER BY sort_order").bind(orderId).all<{ depart_date: string | null }>();
