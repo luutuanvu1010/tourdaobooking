@@ -12,7 +12,7 @@ import { soKhachDoan } from "../src/shared/hanh-khach";
 import { suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
 import { gopBenDat, khoiBenDatForm, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
-import { can, holdsPartner } from "../src/shared/permissions";
+import { can, chiGiaDanhMuc, holdsPartner } from "../src/shared/permissions";
 import {
   canAddService, draftFromDto, draftIssues, soKhachNhap, newCatalogDraft, newManualDraft, orderIssues, orderSummary, refreshFromCatalog, toServiceInput, totalLines,
   type ServiceDraft,
@@ -134,7 +134,7 @@ const picker = createCatalogPicker({
 });
 byId("catalog-slot").append(picker.root);
 
-// Tài khoản có quyền Đối tác (ADR-0027): đơn giá = giá danh mục, tạm chưa được giảm giá. Máy chủ là nơi chặn; form chỉ khoá ô cho khỏi gõ rồi bị từ chối.
+// Tài khoản có quyền Đối tác (ADR-0027) hoặc Thực tập (ADR-0100) — `chiGiaDanhMuc`, MỘT định nghĩa với máy chủ: đơn giá = giá danh mục; giảm giá: Đối tác tạm chưa được (chủ dự án 26/9), Thực tập không được theo ADR-0100. Máy chủ là nơi chặn; form chỉ khoá ô cho khỏi gõ rồi bị từ chối.
 let retailOnly = false;
 // ADR-0061: người dùng được nhập tay (công tắc BẬT, có ô order.service.manual, không mang quyền Đối tác) — MÁY CHỦ quyết (`duocDung` của
 // GET /api/cai-dat/nhap-tay), giao diện không tự tính luật. Đọc TRƯỚC khi dựng thẻ đã lưu (loadOrder); lỗi / 403 → false (ẩn nút, thẻ chỉ xem).
@@ -620,7 +620,7 @@ const staff = await initShell();
 // Cờ "không nhận tiền trả trước" bật NGAY khi biết tài khoản (người có quyền ghi sổ): từ đây tới khối ẩn ba ô ở dưới không còn khe nào mà số gõ sớm bị đọc ở `recompute` / `validate` / lúc lưu.
 traTruocAn ||= can(staff, "ledger.write");
 picker.setTaiKhoan(staff.id); // ADR-0058 Đ8: chip nhóm nhớ THEO TÀI KHOẢN trên máy — bộ chọn dựng trước khi biết tài khoản, trước dòng này không đọc / ghi bộ nhớ
-retailOnly = holdsPartner(staff); // trước loadCatalog/loadOrder: thẻ dịch vụ dựng sau dòng này
+retailOnly = chiGiaDanhMuc(staff); // trước loadCatalog/loadOrder: thẻ dịch vụ dựng sau dòng này
 duocDatGap = can(staff, "order.leg.short_notice");
 // ---- bên đặt (sổ đại lý đợt 1, Task 11; đặc tả §7) ----
 // Quyết định hiện gì do `khoiBenDatForm` (src/shared/phan-doi-tac-hien-thi.ts): Đối tác mà máy chủ ÉP bên đặt (trường `benDatCuaToi` của /api/auth/me — giao diện không suy) → dòng chỉ đọc "Bên đặt: <tên>"
@@ -714,7 +714,8 @@ if (retailOnly) {
   const discountEl = field("discount") as HTMLInputElement;
   discountEl.readOnly = num("discount") === 0;
   // Dòng báo nằm DƯỚI cả hàng ba ô Thanh toán (không trong cột hẹp của ô giảm giá — ở máy tính từng xuống 3 hàng), ô trỏ tới nó cho trình đọc màn hình.
-  const hint = h("p", { class: "muted", id: "discount-hint" }, "Tài khoản đối tác tạm chưa được giảm giá.");
+  // Câu theo quyền như máy chủ: có quyền Đối tác (kể cả kèm Thực tập) → câu của Đối tác; chỉ Thực tập → "không được giảm giá" (trần của Thực tập là 0, không phải "tạm").
+  const hint = h("p", { class: "muted", id: "discount-hint" }, holdsPartner(staff) ? "Tài khoản đối tác tạm chưa được giảm giá." : "Tài khoản Thực tập không được giảm giá.");
   discountEl.setAttribute("aria-describedby", hint.id);
   (discountEl.closest(".grid") ?? discountEl).after(hint);
 }

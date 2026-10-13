@@ -41,6 +41,29 @@ export const app = (await bundle(
 ));
 
 const isRead = (sql) => /^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql);
+
+/**
+ * GIỚI HẠN MẪU LIKE CỦA D1 THẬT: mẫu LIKE/GLOB dài hơn 50 BYTE (UTF-8, tính cả hai dấu `%` và các dấu `\` thoát) bị D1 từ chối với
+ * "LIKE or GLOB pattern too complex" ⇒ route trả 500. `node:sqlite` không có giới hạn này nên khung thử từng không thấy lỗi (chữ tìm có dấu tiếng Việt
+ * 17 chữ là đủ vượt: mỗi chữ 3 byte). Hàm này tìm các tham số đứng ngay sau `LIKE`/`GLOB` (kể cả dạng `LIKE '%' || ?N || '%'`) rồi ném đúng lỗi của D1.
+ * Chỉ nhận ra tham số đứng trần hoặc kẹp `'%' || ?N || '%'`; mẫu dựng bằng biểu thức khác thì không bắt được (chưa gặp trong mã).
+ */
+export const GIOI_HAN_MAU_LIKE_BYTE = 50;
+const doByte = new TextEncoder();
+export function kiemMauLike(sql, args) {
+  const thuan = sql.replace(/'%'/g, "§").replace(/'(?:[^']|'')*'/g, "''");
+  let lonNhat = 0;
+  for (const m of thuan.matchAll(/\b(?:LIKE|GLOB)\s+(§\s*\|\|\s*)?\?(\d*)(\s*\|\|\s*§)?|\?(\d*)/gi)) {
+    const dauSo = m[1] !== undefined || m[2] !== undefined ? m[2] : m[4];
+    const so = dauSo ? Number(dauSo) : ++lonNhat;
+    lonNhat = Math.max(lonNhat, so);
+    if (m[0][0] === "?") continue; // tham số thường, không đứng sau LIKE/GLOB
+    const v = args[so - 1];
+    if (typeof v !== "string") continue;
+    const byte = doByte.encode(v).length + (m[1] !== undefined ? 2 : 0);
+    if (byte > GIOI_HAN_MAU_LIKE_BYTE) throw new Error(`D1_ERROR: LIKE or GLOB pattern too complex: SQLITE_ERROR (mẫu ${byte} byte, tối đa ${GIOI_HAN_MAU_LIKE_BYTE})`);
+  }
+}
 /**
  * D1 giả = SQLite thật. CHẾ ĐỘ NGHIÊM (ADR-0094, kế hoạch L4a — bật mặc định, không tắt được): `batch` TỪ CHỐI mọi câu không do CHÍNH D1 giả này tạo
  * (`prepare`/`bind`). D1 thật không nhận câu bọc của bộ bọc lớp vé (src/shared/lan-gui-boc.ts) — thiếu chế độ này, lỗi "quên gỡ bọc" chỉ lộ trên D1 thật.
@@ -50,23 +73,25 @@ const isRead = (sql) => /^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql);
 export function fakeD1(sqlite, moc = {}) {
   const cuaToi = new WeakSet();
   const laTraVe = (sql) => /FROM lg_lan_gui WHERE staff_id/.test(sql);
+  // Mọi câu đi qua đây trước khi chạy: mẫu LIKE quá 50 byte thì ném lỗi như D1 thật (xem kiemMauLike).
+  const chuanBi = (sql, args) => (kiemMauLike(sql, args), sqlite.prepare(sql));
   const stmt = (sql, args = []) => {
     const s = {
     sql, args,
     bind: (...a) => stmt(sql, a),
-    first: async (col) => { if (moc.truocTraVe && laTraVe(sql)) await moc.truocTraVe(); const r = sqlite.prepare(sql).get(...args); return r ? (col ? r[col] : { ...r }) : null; },
-    all: async () => ({ results: sqlite.prepare(sql).all(...args).map((r) => ({ ...r })), meta: {} }),
-    raw: async () => sqlite.prepare(sql).all(...args).map((r) => Object.values(r)),
-    run: async () => ({ results: [], meta: { changes: Number(sqlite.prepare(sql).run(...args).changes) } }),
+    first: async (col) => { if (moc.truocTraVe && laTraVe(sql)) await moc.truocTraVe(); const r = chuanBi(sql, args).get(...args); return r ? (col ? r[col] : { ...r }) : null; },
+    all: async () => ({ results: chuanBi(sql, args).all(...args).map((r) => ({ ...r })), meta: {} }),
+    raw: async () => chuanBi(sql, args).all(...args).map((r) => Object.values(r)),
+    run: async () => ({ results: [], meta: { changes: Number(chuanBi(sql, args).run(...args).changes) } }),
     };
     cuaToi.add(s);
     return s;
   };
   // Câu ghi có RETURNING trả dòng trong `results` như D1 thật (lô đăng nhập đọc mã phiên vừa bị thay — ADR-0075 điều 6).
   const exec1 = (s) => {
-    if (isRead(s.sql)) return { results: sqlite.prepare(s.sql).all(...s.args).map((r) => ({ ...r })), meta: { changes: 0 } };
-    if (/\bRETURNING\b/i.test(s.sql)) { const rows = sqlite.prepare(s.sql).all(...s.args).map((r) => ({ ...r })); return { results: rows, meta: { changes: rows.length } }; }
-    return { results: [], meta: { changes: Number(sqlite.prepare(s.sql).run(...s.args).changes) } };
+    if (isRead(s.sql)) return { results: chuanBi(s.sql, s.args).all(...s.args).map((r) => ({ ...r })), meta: { changes: 0 } };
+    if (/\bRETURNING\b/i.test(s.sql)) { const rows = chuanBi(s.sql, s.args).all(...s.args).map((r) => ({ ...r })); return { results: rows, meta: { changes: rows.length } }; }
+    return { results: [], meta: { changes: Number(chuanBi(s.sql, s.args).run(...s.args).changes) } };
   };
   return {
     prepare: (sql) => stmt(sql),

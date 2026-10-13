@@ -148,7 +148,7 @@ const COMPANY_IDENTITY_OF = defineSql(
 export interface ListFilter {
   today: string;
   kind: PartyKind | null;
-  q: string | null; // đã escape LIKE và bọc %…%
+  q: string | null; // dựng bằng mauLikeChua (escape LIKE, bọc %…%, ≤ 50 byte)
   phoneLike: string | null; // chỉ chữ số, bọc %…%
   roleCode: string | null;
   locationId: string | null;

@@ -115,7 +115,7 @@ section{padding-block:26px 6px;display:grid;gap:14px;scroll-margin-top:56px}
 .rg{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;display:grid;gap:8px;align-content:start}
 .rg ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px}
 .rg li small{color:var(--muted)}
-.gates{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.gates{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
 .gate{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:3px}
 .gate b{font-size:13.5px}
 .gate code{font-size:11px}
@@ -165,14 +165,15 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--line);font-si
 <header class="top">
   <span class="eyebrow">Công ty TNHH Tour Đảo · kiến trúc phần mềm</span>
   <h1>Bản đồ Tour Đảo Booking</h1>
-  <p class="lede">Phần mềm nội bộ để lập đơn tour, phân công hướng dẫn viên, điều xe đưa đón và quản lý danh bạ. Chạy trên Cloudflare tại booking.tourdao.vn, cài lên iPhone như một ứng dụng. Trang này vẽ toàn bộ hệ thống theo mã thật.</p>
+  <p class="lede">Phần mềm nội bộ để lập đơn tour, phân công hướng dẫn viên, điều xe đưa đón và quản lý danh bạ. Chạy trên Cloudflare tại booking.tourdao.vn, cài lên iPhone như một ứng dụng. Trang này vẽ toàn bộ hệ thống theo mã thật của bản 1.38.</p>
   <div class="meta">
-    <span class="pill ok"><span class="dot"></span>Đang chạy bản 1.38</span>
-    <span class="pill">15 phần máy chủ</span>
-    <span class="pill">31 trang</span>
-    <span class="pill">~61 bảng dữ liệu</span>
-    <span class="pill">9 vai người dùng</span>
+    <span class="pill coral"><span class="dot"></span>Ảnh chụp bản 1.38 (30/9/2026) · production nay chạy 1.87</span>
+    <span class="pill">15 phần máy chủ (bản 1.38)</span>
+    <span class="pill">31 trang (bản 1.38)</span>
+    <span class="pill">~61 bảng dữ liệu (bản 1.38)</span>
+    <span class="pill">10 mã quyền</span>
   </div>
+  <p class="foot">Trang này là ảnh chụp, chưa vẽ lại. Chỉ các chỗ sai về cách chạy đã sửa ngay trong trang: bảo trì (theo quyền Toàn quyền, không theo số điện thoại), nạp nhân viên từ Sheet đã bỏ, cổng theo nhóm (thêm cổng quản lý tài khoản), quyền Nhân sự, khoá chống ghi trùng và bước kiểm vé chống ghi trùng. Con số (phần, trang, bảng), mối nối và hình khác còn theo bản 1.38; chưa vẽ các phần sổ tiền, trợ lý Hỗ trợ (OpenAI), giao diện công ty, khoá sổ tháng. Con số và bản đồ hiện hành: <a href="README.md">README.md</a> cùng thư mục, mục 2, 5 và 7.</p>
 </header>
 
 <nav class="toc" aria-label="Mục lục">
@@ -262,7 +263,7 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--line);font-si
       <!-- Dịch vụ ngoài -->
       <rect x="20" y="412" width="176" height="72" rx="10" class="b-ext"/>
       <text x="108" y="438" text-anchor="middle" class="t1">Google Sheet</text>
-      <text x="108" y="458" text-anchor="middle" class="t2">danh mục dịch vụ, nhân viên</text>
+      <text x="108" y="458" text-anchor="middle" class="t2">danh mục dịch vụ</text>
       <text x="108" y="474" text-anchor="middle" class="t2">chỉ đọc, không ghi ngược</text>
 
       <rect x="214" y="412" width="176" height="72" rx="10" class="b-ext"/>
@@ -296,7 +297,7 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--line);font-si
       <text x="250" y="389" text-anchor="middle" class="tes">máy chủ gọi ra dịch vụ ngoài</text>
     </svg>
   </div>
-  <p class="foot">Bảng tin là một Durable Object: không lưu tin, tin đi rồi thôi. Lịch 15 phút kéo danh mục dịch vụ từ Google Sheet. Chỉ một tên miền, <code>booking.tourdao.vn</code>. Đường dẫn <code>/api/*</code> luôn vào máy chủ trước; mọi thứ khác là trang tĩnh. Bí mật (khoá phiên, khoá Turnstile, khoá thông báo) chỉ nằm trong kho bí mật của Cloudflare, không nằm trong mã.</p>
+  <p class="foot">Bảng tin là một Durable Object: không lưu tin, tin đi rồi thôi. Lịch 15 phút kéo danh mục dịch vụ từ Google Sheet. Chỉ một tên miền, <code>booking.tourdao.vn</code>. Đường dẫn <code>/api/*</code> luôn vào máy chủ trước; mọi thứ khác là trang tĩnh. Bí mật (khoá phiên, khoá chống ghi trùng, khoá Turnstile, khoá thông báo) chỉ nằm trong kho bí mật của Cloudflare, không nằm trong mã.</p>
 </section>
 
 <!-- 2. Một yêu cầu -->
@@ -309,12 +310,12 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--line);font-si
   <div class="panel">
     <div class="route">
       <div class="stop"><div class="no">1</div><h3>Khớp đường dẫn</h3><p>Không có đường thì trả "không tìm thấy"</p><span class="st">404 · 405</span></div>
-      <div class="stop"><div class="no">2</div><h3>Kiểm cấu hình</h3><p>Thiếu khoá phiên thì từ chối hết</p><span class="st">500</span></div>
+      <div class="stop"><div class="no">2</div><h3>Kiểm cấu hình</h3><p>Thiếu khoá phiên hoặc khoá chống ghi trùng thì từ chối hết</p><span class="st">500</span></div>
       <div class="stop"><div class="no">3</div><h3>Chống giả mạo</h3><p>Lệnh ghi phải đến từ chính trang của app</p><span class="st">403 · 415</span></div>
       <div class="stop"><div class="no">4</div><h3>Phiên đăng nhập</h3><p>PIN hoặc Face ID, cookie có chữ ký</p><span class="st">401</span></div>
-      <div class="stop"><div class="no">5</div><h3>Cổng bảo trì</h3><p>Đang bảo trì thì chỉ các số điện thoại được phép mới qua</p><span class="st">503</span></div>
-      <div class="stop"><div class="no">6</div><h3>Cổng theo nhóm</h3><p>Năm cổng: công khai, nhân viên, văn phòng, đơn hàng, quản trị</p><span class="st">403</span></div>
-      <div class="stop key"><div class="no">7</div><h3>Quyền từng việc</h3><p>Phần xử lý hỏi bảng quyền cho đúng thao tác, đúng đơn</p><span class="st">403 · 409</span></div>
+      <div class="stop"><div class="no">5</div><h3>Cổng bảo trì</h3><p>Đang bảo trì thì chỉ tài khoản giữ Toàn quyền mới qua</p><span class="st">503</span></div>
+      <div class="stop"><div class="no">6</div><h3>Cổng theo nhóm</h3><p>Sáu cổng: công khai, nhân viên, văn phòng, đơn hàng, quản trị, quản lý tài khoản</p><span class="st">403</span></div>
+      <div class="stop key"><div class="no">7</div><h3>Quyền từng việc</h3><p>Lệnh ghi qua lớp chống ghi trùng (vé); rồi phần xử lý hỏi bảng quyền cho đúng thao tác, đúng đơn</p><span class="st">400 · 403 · 409 · 422</span></div>
       <div class="stop"><div class="no">8</div><h3>Ghi và trả kết quả</h3><p>Ghi dữ liệu và nhật ký cùng một lô; trả kết quả không lưu đệm</p><span class="st">200</span></div>
     </div>
   </div>
@@ -337,7 +338,7 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--line);font-si
       <div class="mods">
         <div class="mod core"><div class="mod-h"><b>Vận chuyển</b><span class="tag strict">nghiêm</span></div><p>Xe, giấy tờ xe, chuyến, điều phối, tài xế</p><span class="dep">đọc: <code>orders parties locations audit</code></span></div>
         <div class="mod"><div class="mod-h"><b>Phân công</b><span class="tag strict">nghiêm</span></div><p>Người phụ trách đơn, hướng dẫn viên nhận việc</p><span class="dep">đọc: <code>orders parties locations staff audit</code></span></div>
-        <div class="mod"><div class="mod-h"><b>Quản lý tài khoản</b><span class="tag legacy">cũ</span></div><p>Tạo tài khoản, cấp quyền, nạp nhân viên từ Sheet</p><span class="dep">đọc: <code>staff auth maintenance audit</code></span></div>
+        <div class="mod"><div class="mod-h"><b>Quản lý tài khoản</b><span class="tag legacy">cũ</span></div><p>Tạo tài khoản, cấp quyền, đổi PIN, sổ phiên đăng nhập</p><span class="dep">đọc: <code>staff auth audit</code></span></div>
       </div></div>
     <div class="layer"><div class="layer-n">Tầng 4</div>
       <div class="mods">
@@ -373,7 +374,7 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--line);font-si
 <section id="vai">
   <div class="sec-head">
     <span class="eyebrow">Người dùng</span>
-    <h2>Chín vai, năm cổng</h2>
+    <h2>Mười mã quyền, sáu cổng</h2>
     <p>Một tài khoản có thể giữ nhiều vai. Quyền của từng việc nằm ở một bảng duy nhất trên máy chủ; màn hình chỉ ẩn hay hiện nút, máy chủ luôn kiểm lại.</p>
   </div>
   <div class="roles">
@@ -383,6 +384,7 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--line);font-si
       <li>Quản trị <small>· danh mục, danh bạ, xe, phá lệ</small></li>
       <li>Toàn quyền <small>· thêm nhật ký, bảo trì, pháp lý công ty</small></li>
       <li>Thực tập <small>· quyền hẹp</small></li>
+      <li>Nhân sự <small>· chỉ tạo, xem, sửa tài khoản</small></li>
     </ul></div>
     <div class="rg"><h3>Hiện trường</h3><ul>
       <li>Hướng dẫn viên <small>· việc của mình, nhận hoặc từ chối</small></li>
@@ -397,8 +399,9 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--line);font-si
     <div class="gate"><b>Công khai</b><code>public</code><p>Đăng nhập, tên công ty</p></div>
     <div class="gate"><b>Nhân viên</b><code>staff</code><p>Mọi tài khoản đã đăng nhập</p></div>
     <div class="gate"><b>Văn phòng</b><code>office</code><p>Vai văn phòng</p></div>
-    <div class="gate"><b>Đơn hàng</b><code>orders</code><p>Văn phòng hoặc Đối tác</p></div>
+    <div class="gate"><b>Đơn hàng</b><code>orders</code><p>Mọi quyền có xem đơn: văn phòng, Hướng dẫn viên, Đối tác, Thực tập</p></div>
     <div class="gate"><b>Quản trị</b><code>admin</code><p>Quản trị, Toàn quyền</p></div>
+    <div class="gate"><b>Quản lý tài khoản</b><code>accounts</code><p>Quản trị, Toàn quyền, Nhân sự</p></div>
   </div>
 </section>
 

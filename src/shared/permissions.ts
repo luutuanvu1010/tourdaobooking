@@ -355,3 +355,15 @@ export const seesOnlyAssignedOrders = (who: Pick<PermissionHolder, "permissions"
  * Dùng ở máy chủ (`orders/price-guards.ts`: R2 đơn giá = giá danh mục, R3 trần giảm giá) và ở form lập đơn (khoá ô đơn giá, ô giảm giá).
  */
 export const holdsPartner = (who: Pick<PermissionHolder, "permissions">): boolean => who.permissions.includes("PARTNER");
+
+/** Tài khoản CÓ quyền Thực tập (`INTERN`), kể cả khi kèm quyền khác. Chỉ xét MÃ QUYỀN. */
+export const holdsIntern = (who: Pick<PermissionHolder, "permissions">): boolean => who.permissions.includes("INTERN");
+
+/**
+ * Tài khoản phải dùng GIÁ DANH MỤC, không giảm giá — luật giá R2 (đơn giá mọi dòng = giá danh mục) và R3 (giảm giá cấp đơn ≤ trần) của ADR-0027 Đ2,
+ * áp ở ba cổng (lập đơn, sửa nháp, xác nhận). Gồm tài khoản có quyền Đối tác (`holdsPartner`) VÀ tài khoản có quyền Thực tập (`holdsIntern`, ADR-0100:
+ * chủ dự án 2026-10-03 "Thực tập như Đối tác, chỉ giá danh mục, không giảm"). "Có quyền … là áp" — kể cả khi kèm quyền nội bộ khác, để không có đường
+ * lách bằng gán thêm quyền. Chỉ mở rộng luật GIÁ: `holdsPartner` giữ nguyên nghĩa cho R1 (nhập tay), DTO thương mại hẹp, Nhật ký… Chỉ xét MÃ QUYỀN.
+ * Dùng ở máy chủ (`orders/price-guards.ts` → `priceGuard` và nhánh xác nhận) và ở form lập đơn (khoá ô đơn giá, ô giảm giá) — MỘT định nghĩa.
+ */
+export const chiGiaDanhMuc = (who: Pick<PermissionHolder, "permissions">): boolean => holdsPartner(who) || holdsIntern(who);

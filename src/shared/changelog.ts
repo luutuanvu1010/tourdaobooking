@@ -12,6 +12,24 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa lỗi ô tìm của danh sách đơn (chữ tìm dài → báo lỗi hệ thống; D1 từ chối mẫu LIKE quá 50 byte). Số 1.90 là số TẠM (= main 1.89 + 1 lúc dựng lại 2026-10-13): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
+    version: "1.90",
+    date: "2026-10-13",
+    items: [
+      { kind: "sua", text: "Ô tìm ở danh sách đơn không còn báo lỗi hệ thống khi gõ chữ dài, ví dụ cả họ tên khách có dấu. Chữ quá dài thì Nền tảng tìm theo phần đầu." },
+      { kind: "sua", text: "Ô tìm ở Danh bạ, Nhật ký, chọn người hưởng khi lập đơn và Lịch sử trợ lý cũng không còn báo lỗi hệ thống khi gõ chữ dài; chữ quá dài thì tìm theo phần đầu." },
+    ],
+  },
+  {
+    // Luật giá Thực tập (ADR-0100), không migration. Số 1.89 là số TẠM (= main 1.88 gói Vận chuyển A+C + 1, ghép main 94024872 vào nhánh 2026-10-13): nếu bản khác vào main trước thì đổi sang số kế tiếp (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "1.89",
+    date: "2026-10-13",
+    items: [
+      { kind: "doi", text: "Tài khoản Thực tập chỉ lập và xác nhận được đơn theo giá danh mục, không giảm giá. Cần giá khác thì nhờ nhân viên Bán hàng." },
+      { kind: "doi", text: "Ở màn lập đơn, ô đơn giá và ô giảm giá của tài khoản Thực tập chỉ đọc, kèm một dòng giải thích." },
+    ],
+  },
+  {
     // Gói Vận chuyển A + C (ADR-0104 Đ2, 0105, 0109, 0111, 0112, 0113; A4 tài xế nhà xe ngoài; C2 màn tài xế; C3 bảng điều phối), migration 0091–0093.
     // Số 1.88 = main 1.87 + 1 (ghép main 1c471990 vào nhánh gói A+C, 2026-10-12): mục 1.85 cũ của nhánh (chuyển khách giữa hai xe, đã đánh lại số) nằm trong mục này, không nhân đôi.
     version: "1.88",
