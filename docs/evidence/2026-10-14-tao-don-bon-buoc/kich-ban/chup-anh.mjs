@@ -22,10 +22,104 @@ const MOB = { width: 390, height: 844, mobile: true };
 const DESK = { width: 1040, height: 800, mobile: false };
 const KHO = [["390", MOB], ["1040", DESK]];
 
-// Kiểm của giai đoạn "sau" (điền ở bước thi công): khối gập tự mở, nhãn "Khách có mặt", thân gửi.
-const kiemSauSua = async (_p) => {};
-const kiemSauSach = async (_p) => {};
-const kiemSauChuyen = async (_p) => {};
+// Kiểm của giai đoạn "sau" (chỉ chạy khi GIAI_DOAN=sau): khối gập tự mở khi có dữ liệu / khi lỗi, nhãn "Khách có mặt", thanh tiến độ. Mỗi ca nói rõ TRẠNG THÁI ĐẦU (đóng) trước khi tác động,
+// để bài không xanh giả (nếu khối đã mở sẵn thì bài chứng minh được gì?).
+const hien = (sel) => `(() => { const e = document.querySelector(${JSON.stringify(sel)}); return !!e && e.getClientRects().length > 0; })()`;
+const gapMo = (ma) => `document.querySelector('button[data-gap=${JSON.stringify(ma)}]')?.getAttribute('aria-expanded') === 'true'`;
+const gapMoDau = (dau) => `(() => { const b = document.querySelector('button[data-gap^=${JSON.stringify(dau)}]'); return b?.getAttribute('aria-expanded') === 'true'; })()`;
+const buocTxt = (ma) => `document.querySelector('.buoc-nut[data-buoc="${ma}"]')?.textContent ?? null`;
+const kiemSauSua = async (p) => {
+  // nháp có dữ liệu ở mọi ô ít dùng: mọi khối gập TỰ MỞ, không mở tay gì
+  assert.equal(await p.ev(gapMo("khach")), true, "khối email + ghi chú của khách tự mở");
+  assert.equal(await p.ev(hien("#customerEmail")), true);
+  assert.equal(await p.ev("document.querySelector('#services details.trip').open"), true, "Thông tin chuyến tự mở (có giờ / nơi có mặt)");
+  assert.equal(await p.ev(hien('[data-trip="checkinPlace"]')), true);
+  assert.equal(await p.ev(gapMoDau("chi-tiet-")), true, "chi tiết của chặng (xe riêng, số chỗ) tự mở");
+  assert.equal(await p.ev(hien(".dd-tom-tat")), false, "chặng có giá trị ít dùng KHÔNG gọn một dòng (không giấu gì)");
+  assert.equal(await p.ev("document.querySelector('[data-o$=\":xe-rieng\"]').getAttribute('aria-checked')"), "true");
+  const chu = await p.ev("document.querySelector('#services .trip-body').textContent");
+  assert.ok(chu.includes("Khách có mặt") && chu.includes("Có mặt lúc") && chu.includes("Có mặt tại"), chu);
+  assert.ok(!/check-in/i.test(await p.ev("document.body.innerText")), "không còn chữ check-in ở màn");
+};
+const kiemSauSach = async (p) => {
+  // nháp "sạch": mọi thứ GẬP; chặng gọn một dòng
+  assert.equal(await p.ev(gapMo("khach")), false);
+  assert.equal(await p.ev("document.querySelector('#services details.trip').open"), false);
+  assert.equal(await p.ev(hien(".dd-tom-tat")), true, "chặng đủ nơi đón, không ô ít dùng: hiện gọn một dòng");
+  assert.match(await p.ev("document.querySelector('.dd-tom-tat').textContent"), /^Chiều đi · Đón 07:30 · 12 Trần Phú, Nha Trang/);
+  assert.equal(await p.ev(hien('select[data-o$=":don"]')), false);
+  assert.equal(await p.ev(gapMoDau("chi-tiet-")), false);
+  // (a) bấm dòng tóm tắt → chặng mở, ô nơi đón nhận focus, nút có aria-expanded đổi
+  assert.equal(await p.ev("document.querySelector('.dd-tom-tat').getAttribute('aria-expanded')"), "false");
+  await p.ev("document.querySelector('.dd-tom-tat').click(); true");
+  assert.equal(await p.ev(hien('select[data-o$=":don"]')), true);
+  assert.equal(await p.ev("document.activeElement?.matches('select[data-o$=\":don\"]')"), true, "focus vào ô nơi đón");
+  // (b) LỖI MÁY KHÁCH trong khối đóng: tải lại → chặng gọn; xoá địa chỉ đón (ô ẩn) rồi Lưu → chặng TỰ MỞ, ô lỗi hiện + nhận focus
+  const taiLai = async () => {
+    await p.send("Page.reload");
+    await p.waitFor("document.querySelectorAll('#services .svc').length === 1 && !!document.querySelector('.dd-tom-tat')", "form nháp dựng lại", 15000);
+    await sleep(500);
+  };
+  await taiLai();
+  assert.equal(await p.ev("document.querySelector('.dd-tom-tat').getAttribute('aria-expanded')"), "false", "ĐẦU: chặng đang gọn");
+  await p.ev(setInput("document.querySelector('[data-o$=\":don-chu\"]')", ""));
+  await p.ev("document.getElementById('save').click(); true");
+  await p.waitFor("!document.getElementById('save-error').hidden", "banner lỗi");
+  assert.equal(await p.ev(hien('[data-o$=":don-chu"]')), true, "ô địa chỉ đón hiện ra (chặng tự mở)");
+  assert.equal(await p.ev("document.querySelector('[data-o$=\":don-chu\"]').getAttribute('aria-invalid')"), "true");
+  assert.equal(await p.ev("document.activeElement?.matches('[data-o$=\":don-chu\"]')"), true, "focus tới ô lỗi");
+  assert.equal(await p.ev("(() => { const r = document.querySelector('[data-o$=\":don-chu\"]').getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; })()"), true, "ô lỗi nằm trong khung nhìn");
+  // (b) lỗi ô nằm trong "Thêm chi tiết" của chặng: số chỗ sai ("0") gõ vào ô ẩn → Lưu → khối chi tiết TỰ MỞ, ô lỗi nhận focus
+  await taiLai();
+  assert.equal(await p.ev(gapMoDau("chi-tiet-")), false, "ĐẦU: chi tiết đang gập");
+  await p.ev(setInput("document.querySelector('[data-o$=\":cho\"]')", "0"));
+  await p.ev("document.getElementById('save').click(); true");
+  await p.waitFor("!document.getElementById('save-error').hidden", "banner lỗi số chỗ");
+  assert.equal(await p.ev(gapMoDau("chi-tiet-")), true, "khối chi tiết tự mở");
+  assert.equal(await p.ev("document.activeElement?.matches('[data-o$=\":cho\"]')"), true, "focus tới ô số chỗ");
+  assert.equal(await p.ev("document.querySelector('[data-o$=\":cho\"]').getAttribute('aria-invalid')"), "true");
+  // (b) LỖI MÁY CHỦ (400 giả bằng cách chặn fetch): form hợp lệ, mọi khối đang gập → Lưu → mọi khối gập TỰ MỞ
+  await taiLai();
+  assert.deepEqual(await p.ev("[...document.querySelectorAll('button[data-gap][aria-expanded]')].map((b) => b.getAttribute('aria-expanded'))"), ["false", "false", "false"], "ĐẦU: ba nút gập (khách, chặng, chi tiết) đều đóng");
+  await p.ev("(() => { const f = window.fetch; window.fetch = (u, o) => (String(u).endsWith('/api/orders/' + new URLSearchParams(location.search).get('id')) && o?.method === 'PUT' ? Promise.resolve(new Response(JSON.stringify({ error: { code: 'invalid', message: 'Dịch vụ 1: số chỗ tối thiểu không hợp lệ.' } }), { status: 400, headers: { 'content-type': 'application/json' } })) : f(u, o)); return true; })()");
+  await p.ev("document.getElementById('save').click(); true");
+  await p.waitFor("!document.getElementById('save-error').hidden && /số chỗ tối thiểu/.test(document.getElementById('save-error').textContent)", "banner lỗi máy chủ");
+  assert.deepEqual(await p.ev("[...document.querySelectorAll('#services .svc button[data-gap]')].map((b) => b.getAttribute('aria-expanded'))"), ["true", "true"], "máy chủ 400 nêu 'Dịch vụ 1': chặng + chi tiết của thẻ đó TỰ MỞ");
+  assert.equal(await p.ev("document.querySelector('#services details.trip').open"), true, "Thông tin chuyến của thẻ đó tự mở");
+  assert.equal(await p.ev(gapMo("khach")), false, "câu lỗi nêu dịch vụ nên khối khách giữ nguyên");
+};
+const kiemSauChuyen = async (p) => {
+  const bang = await p.ev("document.querySelector('.sheet').textContent");
+  assert.ok(bang.includes("Khách có mặt") && bang.includes("Có mặt lúc") && bang.includes("Có mặt tại"), bang);
+  assert.ok(!/check-in/i.test(bang), "không còn chữ check-in trong bảng");
+  assert.equal(await p.ev("document.querySelector('.sheet [data-trip=\"checkinPlace\"]').getAttribute('placeholder')"), "Ví dụ: Cảng Vinpearl");
+  assert.equal(await p.ev(hien('.sheet [data-trip="checkinDate"]')), false, "ngày có mặt đang ẩn (đơn không có ngày riêng)");
+  assert.equal(await p.ev(hien('.sheet [data-action="co-mat-khac-ngay"]')), true, "lối nhỏ 'Có mặt khác ngày'");
+  await p.ev("document.querySelector('.sheet [data-action=\"co-mat-khac-ngay\"]').click(); true");
+  assert.equal(await p.ev(hien('.sheet [data-trip="checkinDate"]')), true);
+  assert.equal(await p.ev("document.activeElement?.matches('[data-trip=\"checkinDate\"]')"), true);
+};
+// Thanh tiến độ (mọi vai, mọi khổ): số bước, ✓ theo dữ liệu, bấm tên bước thì cuộn tới bước, bước đang xem theo cuộn.
+const kiemSauBuoc = async (p, vai) => {
+  const soBuoc = await p.ev("[...document.querySelectorAll('.buoc-muc')].filter((l) => !l.hidden).length");
+  assert.equal(soBuoc, ["ban-hang", "toan-quyen"].includes(vai) ? 4 : 3, `${vai}: số bước`);
+  await p.ev(setInput("document.getElementById('customerPhone')", "0912345678"));
+  assert.equal(await p.ev(buocTxt("khach")), "✓Khách, bước 1, đã đủ thông tin");
+  assert.match(await p.ev(buocTxt("dich-vu")), /^✓/);
+  await p.ev(setInput("document.getElementById('customerPhone')", ""));
+  assert.match(await p.ev(buocTxt("khach")), /^1Khách/, "xoá SĐT → Khách mất dấu ✓");
+  await p.ev("window.scrollTo(0, 0); true");
+  await p.ev("document.querySelector('.buoc-nut[data-buoc=\"dich-vu\"]').click(); true");
+  await p.waitFor("(() => { const t = document.querySelector('[data-buoc-khoi=\"dich-vu\"]').getBoundingClientRect().top; return scrollY > 100 && t >= 0 && t < 200; })()", "cuộn tới bước Dịch vụ");
+  await sleep(300);
+  assert.equal(await p.ev("document.querySelector('.buoc-nut[aria-current=\"step\"]').dataset.buoc"), "dich-vu", "bước đang xem đổi theo cuộn");
+  await p.ev("document.querySelector('.buoc-nut[data-buoc=\"khach\"]').click(); true");
+  await p.waitFor("(() => { const t = document.querySelector('[data-buoc-khoi=khach]').getBoundingClientRect().top; return t >= 0 && t < 200; })()", "cuộn về bước Khách");
+  await sleep(300);
+  assert.equal(await p.ev("document.querySelector('.buoc-nut[aria-current=\"step\"]').dataset.buoc"), "khach");
+  const dinh = await p.ev("(() => { const r = document.querySelector('.buoc-thanh').getBoundingClientRect(); return r.top; })()");
+  assert.ok(dinh >= 0 && dinh < 120, `thanh dính ở đầu khung nhìn (top ${dinh})`);
+};
 const env = await startEnv();
 const axeKq = {};
 const soDo = {};
@@ -149,6 +243,7 @@ try {
       soDo[`${vai}-${kho}-loi`] = await p.ev("document.documentElement.scrollHeight");
       const le = await p.send("Page.captureScreenshot", { format: "png" });
       writeFileSync(join(OUT, `${vai}-${kho}-loi.png`), Buffer.from(le.result.data, "base64"));
+      if (GIAI_DOAN === "sau") await kiemSauBuoc(p, vai);
       assert.deepEqual(p.consoleErrors.filter((e) => !/favicon/.test(e)), [], `lỗi console ${vai} ${kho}`);
       p.close();
       ok(`${vai} ${kho}`);
