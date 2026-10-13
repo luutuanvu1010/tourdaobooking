@@ -184,7 +184,7 @@ export function kiemDieuChinh(input: {
 }): KetQuaKiemDieuChinh {
   // Chỉ nhánh «không có nợ ngược chiều»: nếu có nợ mà số tiền vượt, nhánh giảm nợ ngay dưới đã trả cùng mã `adjustment_flips_sign`.
   if (input.quyetToanVoiCongTy && input.nguoc <= 0) {
-    return { ok: false, ma: "adjustment_flips_sign", cau: `Quyết toán (nộp / trả) vượt số đang nợ trên đơn (${dong(Math.max(input.nguoc, 0))}) — số dư không được đổi dấu. Kiểm lại số tiền hoặc chọn loại dòng khác.` };
+    return { ok: false, ma: "adjustment_flips_sign", cau: "Trên đơn này chưa có khoản nợ nào để quyết toán (nộp / trả) — ghi quyết toán sẽ làm số dư đổi dấu. Chọn loại dòng khác hoặc kiểm lại hai bên." };
   }
   const tran = Math.max(input.phaiThu, input.daThu);
   if (input.nguoc > 0) {

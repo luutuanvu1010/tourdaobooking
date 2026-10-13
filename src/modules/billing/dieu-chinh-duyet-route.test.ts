@@ -190,6 +190,29 @@ test("TC5: hai yêu cầu giảm 300.000 cùng trên khoản nợ 300.000 — du
   assert.equal(dem(w, "SELECT count(*) AS n FROM bil_adjustment_request WHERE target_id = ?", b.json.yeuCauId), 0, "yêu cầu hai chưa có quyết định");
 });
 
+// Bài ghim dòng so hướng lúc duyệt với hướng lúc tạo (`k.kiem.huong !== y.direction` ở dieu-chinh.ts): loại SETTLEMENT với công ty đã bị nhánh «quyết toán» chặn trước, nên chỉ HELD / REFUND
+// mới chạm đúng dòng đó. Bỏ dòng ấy ⇒ yêu cầu giảm thứ hai bị đọc thành TĂNG nợ, trượt qua trần và số dư thành −300.000.
+for (const loaiDong of ["HELD", "REFUND"] as const) {
+  test(`TC5 (${loaiDong}): hai yêu cầu giảm 300.000 cùng trên khoản nợ 300.000 — duyệt cái hai sau khi số dư về 0 ⇒ 409 «không đổi dấu», số dư vẫn 0`, async () => {
+    const w = setup();
+    const id = don(w, 1_000_000);
+    const ct = congTy(w);
+    assert.equal((await thu(w, HDV, id, 300_000, "toi")).status, 201);
+    const giam = () => tao(w, { orderId: id, benNo: ct, benDuocNo: hdv, loaiDong, soTien: 300_000, lyDo: "bù trừ phần HDV đã chi hộ khách" });
+    const a = await giam();
+    const b = await giam();
+    assert.equal(a.status, 201, a.text);
+    assert.equal(b.status, 201, b.text);
+    assert.equal((await duyet(w, a.json.yeuCauId)).status, 201);
+    assert.equal(soDu(w, id, hdv, ct), 0);
+    const r = await duyet(w, b.json.yeuCauId, SA);
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.code, "adjustment_flips_sign");
+    assert.equal(soDu(w, id, hdv, ct), 0, "số dư không được âm");
+    assert.equal(soPhieuDieuChinh(w, id), 1);
+  });
+}
+
 test("TC6: duyệt sau 7 ngày ⇒ 409 hết hạn, số dư không đổi, danh sách ghi «hết hạn»; tháng của ngày phát sinh đã khoá lúc duyệt ⇒ 409 (tạo lại)", async () => {
   const w = setup();
   const id = don(w);
@@ -366,6 +389,12 @@ test("M-1: SETTLEMENT với công ty làm số dư đổi dấu ⇒ 409 NGAY lú
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "adjustment_flips_sign");
   assert.match(r.json.error.message, /đổi dấu/);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM bil_adjustment_request WHERE order_id = ?", id), 0);
+  assert.doesNotMatch(r.json.error.message, /0 ₫/, "chưa có nợ thì không nói «vượt số đang nợ (0 ₫)»");
+  // Cặp ngược (HDV nợ công ty thêm) khi chưa có nợ: cũng bị chặn ngay lúc tạo.
+  const nguoc = await tao(w, { orderId: id, benNo: hdv, benDuocNo: ct, loaiDong: "SETTLEMENT", soTien: 100_000, lyDo: "bù trừ phần HDV đã chi hộ khách" });
+  assert.equal(nguoc.status, 409, nguoc.text);
+  assert.equal(nguoc.json.error.code, "adjustment_flips_sign");
   assert.equal(dem(w, "SELECT count(*) AS n FROM bil_adjustment_request WHERE order_id = ?", id), 0);
   // HDV giữ hộ 60.000: giảm 60.001 vượt ⇒ 409; giảm 60.000 ⇒ 201.
   assert.equal((await thu(w, HDV, id, 60_000, "toi")).status, 201);
