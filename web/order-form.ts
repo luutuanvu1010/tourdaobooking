@@ -274,12 +274,11 @@ function renderOwner(focus = false): void {
 // ---- thanh tiến độ: bước nào đã đủ thông tin (luật ở src/shared/buoc-tao-don.ts) ----
 function capNhatBuoc(): void {
   const ds = drafts();
-  const s = orderSummary(ds, num("discount"), traTruocAn ? 0 : num("prepaidAmount"));
   thanhBuoc.datXong(
     buocXong({
       coNgayDi: orderDate !== "", ten: field("customerName").value, sdt: field("customerPhone").value,
       soDichVu: ds.length, coLoiDichVu: ds.some((d) => draftIssues(d).length > 0),
-      coLoiTien: s.discount > s.subtotal || s.traTruoc > s.total, daChonNguoi: handlerPick !== null,
+      coLoiTien: loiTienForm().cau.length > 0, daChonNguoi: handlerPick !== null,
     }),
   );
 }
@@ -345,6 +344,19 @@ function datLoiO(id: string, cau: string | null): void {
   field(id).setAttribute("aria-invalid", cau ? "true" : "false");
 }
 
+/** Câu lỗi tiền của biểu mẫu (giảm giá quá tạm tính / trả trước quá tổng): MỘT nơi, dùng cho cả khung "Chưa lưu được" (`validate`) lẫn dấu ✓ của bước Thanh toán (`capNhatBuoc`) — không so sánh tiền ở chỗ thứ hai. Máy chủ vẫn chặn lại ở rules.ts. */
+function loiTienForm(): { cau: string[]; oTraTruoc: boolean } {
+  const lines: string[] = [];
+  let oTraTruoc = false;
+  const s = orderSummary(drafts(), num("discount"), traTruocAn ? 0 : num("prepaidAmount"));
+  if (s.discount > s.subtotal) lines.push("Giảm giá không được vượt quá tạm tính.");
+  else if (s.traTruoc > s.total) {
+    lines.push("Thanh toán trước không được vượt quá tổng cộng.");
+    oTraTruoc = true;
+  }
+  return { cau: lines, oTraTruoc };
+}
+
 /** `cacO` = mọi ô / khối có lỗi: nơi gọi mở khối gập chứa chúng (`moKhoiChua`) — lỗi không bao giờ nằm trong khối đóng. */
 function validate(): { banner: Banner; focus: HTMLElement; cacO: HTMLElement[] } | null {
   const lines: string[] = [];
@@ -377,12 +389,9 @@ function validate(): { banner: Banner; focus: HTMLElement; cacO: HTMLElement[] }
     lines.push("Các dịch vụ đang khác ngày — chọn một ngày cho cả đơn.");
     focusables.push(orderDateEl);
   }
-  const s = orderSummary(drafts(), num("discount"), traTruocAn ? 0 : num("prepaidAmount"));
-  if (s.discount > s.subtotal) lines.push("Giảm giá không được vượt quá tạm tính.");
-  else if (s.traTruoc > s.total) {
-    lines.push("Thanh toán trước không được vượt quá tổng cộng.");
-    focusables.push(field("prepaidAmount"));
-  }
+  const tien = loiTienForm();
+  lines.push(...tien.cau);
+  if (tien.oTraTruoc) focusables.push(field("prepaidAmount"));
   if (lines.length === 0) return null;
   return { banner: banner("danger", "Chưa lưu được — kiểm tra lại:", { lines: lines.map((text) => ({ text })) }), focus: focusables[0] ?? saveErrorEl, cacO: focusables };
 }
