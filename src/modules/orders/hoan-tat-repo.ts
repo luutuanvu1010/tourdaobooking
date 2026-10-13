@@ -6,14 +6,25 @@ import { defineSql } from "../../shared/sql-registry.ts";
 
 /**
  * Trạng thái đơn cho hai bước chốt: mốc, người lập, khoá lạc quan (`updated_at` + số thứ tự điều chỉnh mới nhất — sửa số khách KHÔNG đổi `updated_at`,
- * kế hoạch §2 / R3), và bên đặt có đang mang vai nhóm BÊN NGOÀI (người hưởng — M1 = A) qua view công bố của parties.
+ * kế hoạch §2 / R3), và đơn có người hưởng hoa hồng (`CO_NGUOI_HUONG`: bản chụp hiện hành của đơn, hoặc bên đặt đang mang vai nhóm BÊN NGOÀI qua view công bố của parties).
  */
+/**
+ * «Đơn có người hưởng hoa hồng» — MỘT luật cho cả hai chỗ (cờ `co_nguoi_huong` để trả câu 409 và điều kiện của câu «Đã giao»), BL-HH-DA-GIAO-KHE:
+ * (1) bản chụp thương mại HIỆN HÀNH của đơn (bản không bị bản khác thay) mang người hưởng (`commission_status <> 'NONE'` ⇔ có `beneficiary_party_id`, CHECK ở 0090) —
+ * ghim vào chính đơn nên đổi vai bên đặt SAU khi chụp không gỡ được chỗ chặn; (2) dự phòng cũ: bên đặt đang mang vai nhóm bên ngoài (đơn chưa có bản chụp, ví dụ xác nhận trước 0090).
+ * `o` = bí danh bảng orders trong câu gọi. Đọc `ord_service_terms` là bảng CỦA orders (không phải bil_ — ADR-0024 điều 4).
+ */
+const CO_NGUOI_HUONG = (o: string): string =>
+  `(EXISTS (SELECT 1 FROM ord_service_terms t WHERE t.order_id = ${o}.id AND t.commission_status <> 'NONE'
+        AND NOT EXISTS (SELECT 1 FROM ord_service_terms n WHERE n.supersedes_id = t.id))
+     OR EXISTS (SELECT 1 FROM v_pty_open_role_group g WHERE g.party_id = ${o}.booker_party_id AND g.role_group = 'EXTERNAL'))`;
+
 const GIAO_STATE = defineSql(
   "orders",
   "giao_state",
   `SELECT o.id, o.status, o.staff_id, o.updated_at, o.delivered_at, o.delivered_by, o.completed_at, o.completed_by, o.booker_party_id, o.discount, o.total,
      COALESCE((SELECT MAX(a.seq) FROM order_money_adjustment a WHERE a.order_id = o.id), 0) AS adj_seq,
-     EXISTS (SELECT 1 FROM v_pty_open_role_group g WHERE g.party_id = o.booker_party_id AND g.role_group = 'EXTERNAL') AS co_nguoi_huong
+     ${CO_NGUOI_HUONG("o")} AS co_nguoi_huong
    FROM orders o WHERE o.id = ?1`,
 );
 export interface GiaoStateRow {
@@ -68,12 +79,12 @@ export async function confirmedOpenIds(db: D1Database): Promise<string[]> {
 }
 
 // Điều kiện của câu "Đã giao" (ADR-0025 điều 3 a, b, f; khoá lạc quan R3): đơn đã xác nhận, chưa có mốc; `updated_at` và số thứ tự điều chỉnh mới nhất
-// còn ĐÚNG như lúc máy chủ đọc; hôm nay (giờ VN, ?6) ≥ ngày đi muộn nhất; không dịch vụ nào thiếu ngày đi; bên đặt không mang vai nhóm bên ngoài.
+// còn ĐÚNG như lúc máy chủ đọc; hôm nay (giờ VN, ?6) ≥ ngày đi muộn nhất; không dịch vụ nào thiếu ngày đi; đơn không có người hưởng hoa hồng (`CO_NGUOI_HUONG`).
 const DAT_GIAO_DIEU_KIEN = `id = ?3 AND status = 'confirmed' AND delivered_at IS NULL AND updated_at = ?4
      AND COALESCE((SELECT MAX(a.seq) FROM order_money_adjustment a WHERE a.order_id = orders.id), 0) = ?5
      AND ?6 >= (SELECT MAX(s.depart_date) FROM order_service s WHERE s.order_id = orders.id)
      AND NOT EXISTS (SELECT 1 FROM order_service s WHERE s.order_id = orders.id AND s.depart_date IS NULL)
-     AND NOT EXISTS (SELECT 1 FROM v_pty_open_role_group g WHERE g.party_id = orders.booker_party_id AND g.role_group = 'EXTERNAL')`;
+     AND NOT ${CO_NGUOI_HUONG("orders")}`;
 /** Câu "Đã giao" khi KHÔNG có câu bảo vệ đứng trước (Quản trị, Toàn quyền bấm). */
 const DAT_GIAO = defineSql("orders", "dat_giao", `UPDATE orders SET delivered_at = ?1, delivered_by = ?2, updated_at = ?1 WHERE ${DAT_GIAO_DIEU_KIEN}`);
 /** Câu "Đã giao" ĐỨNG SAU câu bảo vệ người phụ trách của dispatch (mức Hướng dẫn viên): chỉ áp khi câu ngay trước đã áp (`changes() > 0`). */
