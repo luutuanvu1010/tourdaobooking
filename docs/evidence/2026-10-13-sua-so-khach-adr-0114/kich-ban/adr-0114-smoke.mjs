@@ -444,15 +444,19 @@ try {
         "Khối Lịch sử có thêm phần Số khách qua các lần sửa: số khách và tạm tính lúc xác nhận, sau từng lần sửa và hiện tại. Phần này chỉ hiện khi đơn đã sửa số khách ít nhất một lần.",
         "Không bớt hết người lớn được: đơn luôn cần ít nhất một người lớn đi cùng.",
       ]) assert.ok(muc.replace(/\s+/g, " ").includes(doan), `thiếu đoạn: ${doan}`);
-      const dau = await p.ev("(() => { const n = document.querySelector('.release-note'); return { tieuDe: n.querySelector('h3').textContent, soMuc: n.querySelectorAll('li').length, chu: n.innerText }; })()");
+      // Tìm mục theo SỐ 1.93 chứ không theo vị trí đầu: phiên khác có thể thêm bản mới hơn lên trên (1.94 đã thêm sau khi gộp).
+      const muc193 = "[...document.querySelectorAll('.release-note')].find((n) => /^Phiên bản 1\\.93 — /.test(n.querySelector('h3').textContent))";
+      const dau = await p.ev(`(() => { const n = ${muc193}; return n ? { tieuDe: n.querySelector('h3').textContent, soMuc: n.querySelectorAll('li').length, chu: n.innerText } : null; })()`);
+      assert.ok(dau, "có mục Phiên bản 1.93 trong Cập nhật");
       assert.match(dau.tieuDe, /^Phiên bản 1\.93 — /);
-      assert.equal(dau.soMuc, CHANGELOG[0].items.length, "đủ ba mục");
-      for (const it of CHANGELOG[0].items) assert.ok(dau.chu.replace(/\s+/g, " ").includes(it.text), `nhật ký thiếu: ${it.text}`);
-      assert.equal(CHANGELOG[0].version, "1.93");
+      const ban193 = CHANGELOG.find((b) => b.version === "1.93");
+      assert.ok(ban193, "nhật ký có bản 1.93");
+      assert.equal(dau.soMuc, ban193.items.length, "đủ ba mục");
+      for (const it of ban193.items) assert.ok(dau.chu.replace(/\s+/g, " ").includes(it.text), `nhật ký thiếu: ${it.text}`);
       assert.ok((await tranNgang(p)) <= 0);
       assert.deepEqual(p.consoleErrors, []);
       await shotKhoi(p, "[...document.querySelectorAll('#huong-dan details.hd-muc')].find((x) => x.querySelector(':scope > summary')?.textContent === 'Sửa số khách đơn đã xác nhận')", "16-tro-giup-ke-toan-sua-so-khach-1040.png");
-      await shotKhoi(p, "document.querySelector('.release-note')", "17-cap-nhat-1-91-1040.png");
+      await shotKhoi(p, muc193, "17-cap-nhat-1-91-1040.png");
     } finally {
       p.close();
     }
