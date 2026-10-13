@@ -166,7 +166,6 @@ Cần biết:
 - Người duyệt từ chối thì phải ghi lý do; lý do hiện ở yêu cầu của bạn, nhãn **Bị từ chối**. Yêu cầu quá 7 ngày không ai quyết thì chuyển **Hết hạn**: số dư vẫn giữ nguyên, bạn gửi lại nếu còn cần.
 - Tăng nợ có trần: tổng các lần tăng nợ trên một đơn (đã duyệt cộng đang chờ) không vượt số lớn hơn giữa tiền phải thu và tiền đã thu của đơn. Rút yêu cầu thì phần đó được trả lại. Giảm nợ không được vượt số đang nợ.
 - Máy kiểm lại các giới hạn này lúc duyệt. Số dư đã đổi từ lúc gửi hoặc tháng đã khoá sổ thì không duyệt được: từ chối rồi gửi lại.
-- Chuông báo: người có quyền duyệt nhận tin khi có yêu cầu mới; bạn nhận tin khi yêu cầu được duyệt hoặc bị từ chối.
 
 > Lưu ý: Chỉ lệnh điều chỉnh cần người khác duyệt. Các việc khác ở trang đơn như [[Đảo]] một lần thu vẫn làm như trước.`,
     },
