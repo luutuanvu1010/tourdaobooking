@@ -3,7 +3,8 @@
 //   npm run build:web && CHROME_BIN=<đường dẫn tuyệt đối tới docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh> node docs/evidence/2026-10-08-a2-so-khach/kich-ban/sua-so-khach-smoke.mjs
 // Bảy bước: (1) Bán hàng KHÔNG phải người lập không thấy nút; (2) Kế toán thấy nút, mở bảng: bộ đếm cho loại khách sửa được, dịch vụ nhập tay chỉ xem, bốn
 // lý do không ô chữ, nút Lưu khoá tới khi chọn lý do, ô số 16px; (3) bớt 1 người lớn + "Khách bớt người" → lưu, dải "Đã lưu…", tiền tính lại, Lịch sử có dòng
-// đúng khuôn; (4) người lập thấy nút; (5) giảm giá lớn hơn tạm tính ở 1040 (ADR-0109): dải vàng kèm câu cảnh báo + câu thường trực ở khối Thanh toán,
+// đúng khuôn; (4) người lập thấy nút; (5) giảm giá lớn hơn tạm tính ở 1040 (ADR-0109): dải kèm câu cảnh báo + câu thường trực ở khối Thanh toán — từ ADR-0114 D1 dải này ĐỎ
+// (đơn có giảm giá mà bớt khách ⇒ thêm câu nhắc khuyến mại, `banner-danger`, `[data-canh-bao="khuyen-mai"]` đứng cạnh `tong-am` ở khối Thanh toán),
 // Tổng cộng 0, khách trả dư = đúng số đã trả; (5b) biên nhận in giảm giá hiệu lực, ảnh xác nhận dựng được; (5c) Kế toán 390: câu cảnh báo và "Ghi hoàn cho
 // khách" cùng trang, hoàn xong hết "Khách trả dư", câu vẫn đúng; (6) đơn Đã giao: không có nút; (7) không lỗi console, không tràn ngang.
 // Có AXE_JS=<…/axe.min.js> thì bước 5 và 5c kiểm axe 0 vi phạm critical/serious.
@@ -25,6 +26,9 @@ async function axeKhong(p, nhan) {
   return "axe 0 critical/serious";
 }
 const NUT = "Sửa số khách dịch vụ";
+// ADR-0114 D1: nguyên văn hai câu của dải đỏ (đã chốt ở src/shared/so-khach-van-phong.ts); kịch bản so chữ, không import mã nguồn.
+const CAU_KHUYEN_MAI = "Đơn có giảm giá nhưng số khách đã giảm so với lúc xác nhận, giảm giá vẫn giữ nguyên. Kế toán xem lại khuyến mại.";
+const CAU_GIAM_GIA_VUOT = "Giảm giá lớn hơn tiền dịch vụ sau khi bớt khách, nên khách không còn phải trả gì và phần giảm giá vượt không dùng tới. Khách đã trả bao nhiêu thì số đó là tiền trả dư; nếu chưa hoàn thì Kế toán hoàn lại cho khách.";
 const nutCo = "[...document.querySelectorAll('#actions .btn')].some((b) => b.textContent === 'Sửa số khách dịch vụ')";
 const pairs = "[...document.querySelectorAll('.totals .kv')].map((k) => [k.children[0].textContent, k.children[1].textContent])";
 
@@ -130,16 +134,26 @@ try {
   await p.ev("document.querySelector('.sheet-root [aria-label=\"Giảm Người lớn — Tour 4 đảo Nha Trang\"]').click()");
   await p.ev("document.querySelector('.sheet-root input[name=\"so-khach-ly-do\"][value=\"BOT_NGUOI\"]').click()");
   await p.ev("document.querySelector('[data-action=\"luu-so-khach\"]').click()");
-  await p.waitFor("document.querySelector('.sheet-root') === null && document.getElementById('error').classList.contains('banner-warning')", "dải vàng tổng âm");
-  assert.match(await p.ev("document.getElementById('error').textContent"), /Đã lưu số khách mới — giảm giá đang lớn hơn tiền dịch vụ\..*Giảm giá lớn hơn tiền dịch vụ sau khi bớt khách/);
-  assert.match(await p.ev("document.querySelector('[data-canh-bao=\"tong-am\"]')?.textContent ?? ''"), /nếu chưa hoàn thì Kế toán hoàn lại cho khách/);
+  // ADR-0114 D1 (13/10): đơn này CÓ giảm giá và số khách trả tiền giảm 2 → 1 ⇒ ngoài câu giảm giá vượt (ADR-0109) còn câu nhắc khuyến mại; có câu khuyến mại thì CẢ dải đỏ
+  // (`banner-danger`, trước ADR-0114 là `banner-warning`), khuyến mại đi trước, giảm giá vượt đi sau. Hai câu cùng nằm trong khối Thanh toán: đỏ rồi vàng.
+  await p.waitFor("document.querySelector('.sheet-root') === null && document.getElementById('error').classList.contains('banner-danger')", "dải đỏ khuyến mại + tổng âm");
+  assert.equal(await p.ev("document.getElementById('error').classList.contains('banner-warning')"), false, "không còn dải vàng khi có câu khuyến mại");
+  assert.deepEqual(await p.ev("[...document.querySelectorAll('#error .banner-title, #error .banner-lines li')].map((x) => x.textContent)"), [
+    "Đã lưu số khách mới — đơn có giảm giá, cần xem lại khuyến mại.",
+    CAU_KHUYEN_MAI,
+    CAU_GIAM_GIA_VUOT,
+  ], "dải đỏ: tiêu đề + câu khuyến mại + câu giảm giá vượt, đúng thứ tự");
+  const canhBao = await p.ev("[...document.querySelectorAll('[data-canh-bao]')].map((x) => ({ khoa: x.dataset.canhBao, chu: x.textContent, do: x.classList.contains('is-do'), mau: getComputedStyle(x).color }))");
+  assert.deepEqual(canhBao.map((c) => [c.khoa, c.chu, c.do]), [["khuyen-mai", CAU_KHUYEN_MAI, true], ["tong-am", CAU_GIAM_GIA_VUOT, false]], "khối Thanh toán: câu khuyến mại ĐỎ đứng trên câu giảm giá vượt");
+  assert.equal(canhBao[0].mau, "rgb(142, 14, 43)", "câu khuyến mại dùng token nguy hiểm (--c-danger-text)");
+  assert.notEqual(canhBao[1].mau, canhBao[0].mau, "câu giảm giá vượt vẫn giữ màu vàng cũ, không bị đỏ lây");
   assert.deepEqual((await p.ev(pairs)).slice(0, 5), [
     ["Tạm tính", "1.350.000 ₫"], ["Giảm giá", "2.000.000 ₫"], ["Tổng cộng", "0 ₫"], ["Khách hàng đã trả trước", "700.000 ₫"], ["Khách trả dư", "700.000 ₫ — chờ Kế toán hoàn"],
   ], "ADR-0109: phải thu 0, dư = đúng số khách đã trả (không phồng 1.350.000)");
   assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
   const axe5 = await axeKhong(p, "5-trang-don-1040");
   await p.shot(`${OUT}/03-tong-am-1040.png`);
-  ok(`5) giảm giá vượt tạm tính (1040): dải vàng kèm câu cảnh báo, câu thường trực ở khối Thanh toán, Tổng cộng 0, khách trả dư 700.000 (ADR-0109); ${axe5}`);
+  ok(`5) giảm giá vượt tạm tính (1040): dải ĐỎ (ADR-0114 D1) có câu khuyến mại + câu giảm giá vượt, hai câu ở khối Thanh toán (đỏ trên vàng), Tổng cộng 0, khách trả dư 700.000 (ADR-0109); ${axe5}`);
 
   // ---- 5b) biên nhận gửi khách (ADR-0109 QĐ4): in giảm giá HIỆU LỰC — Tạm tính 1.350.000 − Giảm giá 1.350.000 = Tổng cộng 0 ----
   const bn = await p.ev(`fetch('/api/orders/${don2}/receipt').then((r) => r.json()).then((j) => [j.receipt.subtotal, j.receipt.discount, j.receipt.total, j.receipt.daTra, j.receipt.conLai])`);
