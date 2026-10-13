@@ -12,6 +12,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Bản gộp 2026-10-13: vá D-1 (lịch sử đơn của Đối tác theo danh sách cho phép), ADR-0115 đợt 1 (điều chỉnh công nợ cần người thứ hai duyệt, migration 0094) và vá khe «Đã giao» không hoa hồng (BL-HH-DA-GIAO-KHE). Số 1.91 = main 1.90 + 1 (số TẠM): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "1.91",
+    date: "2026-10-13",
+    items: [
+      { kind: "moi", text: "Điều chỉnh công nợ nay cần người thứ hai duyệt (Toàn quyền, Quản trị hoặc Kế toán, khác người tạo). Có màn Điều chỉnh công nợ và tin báo cho người duyệt." },
+      { kind: "doi", text: "Yêu cầu điều chỉnh công nợ không ai quyết sau 7 ngày thì hết hạn; mức tăng nợ tối đa được tính cộng dồn qua các lần điều chỉnh, không tính riêng từng lần." },
+      { kind: "sua", text: "Đối tác không còn thấy lý do nội bộ và tên người duyệt trong lịch sử đơn của mình." },
+      { kind: "doi", text: "Tài khoản vừa là nhân viên vừa là Đối tác thấy lịch sử đơn rút gọn trên mọi đơn, kể cả đơn không phải của mình." },
+      { kind: "sua", text: "Đơn có người hưởng hoa hồng không còn bấm được Đã giao sau khi bên đặt bị đổi vai; Nền tảng tính theo mức hoa hồng đã chụp lúc xác nhận đơn." },
+    ],
+  },
+  {
     // Sửa lỗi ô tìm của danh sách đơn (chữ tìm dài → báo lỗi hệ thống; D1 từ chối mẫu LIKE quá 50 byte). Số 1.90 là số TẠM (= main 1.89 + 1 lúc dựng lại 2026-10-13): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
     version: "1.90",
     date: "2026-10-13",
