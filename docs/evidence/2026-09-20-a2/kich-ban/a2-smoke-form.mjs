@@ -354,6 +354,9 @@ try {
   await p.ev(setInput(`${card(0)}.querySelector('input[placeholder="Vd: Xe đưa đón riêng"]')`, "Xe đưa đón riêng"));
   await p.ev(setInput(`${card(0)}.querySelector('input[placeholder="Vd: Xe 7 chỗ 2 chiều"]')`, "Xe 7 chỗ 2 chiều"));
   await p.ev(setInput(`${card(0)}.querySelector('.price-field')`, "500000"));
+  // ADR-0114 D3 (13/10): mỗi đơn cần ít nhất một người lớn — dịch vụ nhập tay đếm số khách là người lớn, nên ô "Số khách" bỏ trống (0) làm form dừng ở bước kiểm
+  // phía trình duyệt, không bao giờ tới trạng thái "Đang lưu…". Điền 1 khách để bài này vẫn kiểm đúng điều nó cần (bfcache sau khi lưu), không đổi gì khác.
+  await p.ev(setInput(`${card(0)}.querySelector('.counter-field[aria-label="Số khách (chỉ để vận hành)"]')`, "1"));
   const stuck = "document.getElementById('save').textContent === 'Đang lưu…' && document.getElementById('save').disabled && document.getElementById('order-form').hasAttribute('inert')";
   await p.ev("window.fetch = () => new Promise(() => {}); document.getElementById('save').click(); true"); // máy chủ không bao giờ trả lời = trạng thái ngay sau khi lưu thành công, trước khi trang bị thay
   await p.waitFor(stuck, "đang lưu: nút 'Đang lưu…' và form inert");
