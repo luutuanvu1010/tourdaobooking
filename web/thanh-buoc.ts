@@ -20,6 +20,8 @@ export function taoThanhBuoc(o: { phanTu: (ma: MaBuoc) => HTMLElement | null }):
   const an = new Set<MaBuoc>();
   const xong = new Set<MaBuoc>();
   let dang: MaBuoc = "khach";
+  /** Chấm vừa bấm: giữ nó làm chấm đang xem tới khi người dùng TỰ cuộn / bấm phím — trang đã ở đáy (máy tính) không cuộn thêm nên vị trí cuộn không còn nói đúng bước người dùng muốn tới. */
+  let vuaBam: MaBuoc | null = null;
 
   const items = BUOC_TAO_DON.map((b) => {
     const c = h("span", { class: "buoc-cham", "aria-hidden": "true" });
@@ -31,6 +33,11 @@ export function taoThanhBuoc(o: { phanTu: (ma: MaBuoc) => HTMLElement | null }):
       const giam = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       el.scrollIntoView({ behavior: giam ? "auto" : "smooth", block: "start" }); // dừng cách mép trên đúng bằng `scroll-margin-top` của `.buoc` (chừa thanh trên và thanh này)
       el.focus({ preventScroll: true });
+      vuaBam = b.ma; // SAU focus(): sự kiện focusin của chính cú focus này không được thả chấm
+      if (dang !== b.ma) {
+        dang = b.ma;
+        ve();
+      }
     });
     nut.set(b.ma, n);
     cham.set(b.ma, c);
@@ -63,6 +70,7 @@ export function taoThanhBuoc(o: { phanTu: (ma: MaBuoc) => HTMLElement | null }):
   let cho = false;
   const theoCuon = (): void => {
     cho = false;
+    if (vuaBam !== null) return; // đang giữ chấm vừa bấm
     const hien = BUOC_TAO_DON.filter((b) => !an.has(b.ma) && o.phanTu(b.ma));
     if (hien.length === 0) return;
     const nguong = root.getBoundingClientRect().bottom + 24;
@@ -80,6 +88,20 @@ export function taoThanhBuoc(o: { phanTu: (ma: MaBuoc) => HTMLElement | null }):
     requestAnimationFrame(theoCuon);
   }, { passive: true });
   window.addEventListener("resize", theoCuon);
+  // Người dùng tự cuộn (con lăn, chạm kéo, phím cuộn) thì thôi giữ chấm vừa bấm; cuộn do bấm chấm (smooth) không phát các sự kiện này.
+  const thoiGiu = (): void => {
+    if (vuaBam === null) return;
+    vuaBam = null;
+    theoCuon();
+  };
+  window.addEventListener("wheel", thoiGiu, { passive: true });
+  document.addEventListener("focusin", (e) => {
+    if (!root.contains(e.target as Node)) thoiGiu(); // người dùng chuyển focus (Tab) sang ô khác: vị trí do cuộn theo focus quyết lại
+  });
+  window.addEventListener("touchstart", thoiGiu, { passive: true });
+  window.addEventListener("keydown", (e) => {
+    if (["PageDown", "PageUp", "ArrowDown", "ArrowUp", "Home", "End", " "].includes(e.key)) thoiGiu();
+  });
 
   ve();
   return {

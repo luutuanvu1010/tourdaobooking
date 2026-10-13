@@ -3321,7 +3321,10 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 /* ---------- Tạo đơn bốn bước (14/10/2026; đặc tả docs/superpowers/specs/2026-10-14-tao-don-bon-buoc/README.md) — chỉ token ----------
    Thanh tiến độ dính (web/thanh-buoc.ts): bốn chấm tròn đánh số + chữ ngắn; ✓ khi bước đủ thông tin; bước đang xem nổi bật. Điện thoại: dính ngay dưới thanh trên (cũng dính), tràn hết bề ngang;
    máy tính (thanh trên không dính): dính mép trên cửa sổ. Khối gập: nút "+ Thêm chi tiết …" mở / đóng khối chứa ô ít dùng (web/khoi-gap.ts); dòng tóm tắt chặng đưa đón gọn (web/khoi-dua-don.ts). */
-.buoc { scroll-margin-top: calc(var(--h-buoc-thanh) + var(--s3)); }
+:root { --dinh-form: calc(var(--h-buoc-thanh) + var(--s2)); } /* phần đầu khung nhìn bị thanh dính che trên trang Tạo đơn: thanh tiến độ (máy tính) — điện thoại cộng thêm thanh trên cùng, khai lại ở khối ≤ 640px dưới */
+:root:has(.buoc-thanh) { scroll-padding-top: var(--dinh-form); } /* focus / cuộn tới ô: trình duyệt chừa phần đầu này, ô KHÔNG nằm dưới thanh (WCAG 2.2 mục 2.4.11) */
+#order-form :is(input, select, textarea, button, summary, a[href], [tabindex]) { scroll-margin-top: var(--dinh-form); }
+.buoc { scroll-margin-top: var(--dinh-form); }
 .buoc:focus { outline: none; }
 .buoc-thanh { position: sticky; top: 0; z-index: 6; display: flex; align-items: center; min-height: var(--h-buoc-thanh); margin: 0 0 var(--s3); background: var(--c-alt); }
 .buoc-ds { display: flex; flex: 1; margin: 0; padding: 0; list-style: none; }
@@ -3335,7 +3338,7 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .buoc-nut:focus-visible { outline: var(--fb-line) solid var(--c-primary); outline-offset: var(--fb-line); border-radius: var(--radius-sm); }
 @media (max-width: 640px) {
   .buoc-thanh { top: calc(var(--bar-h) + env(safe-area-inset-top)); margin: 0 calc(-1 * var(--s4)) var(--s3); padding: 0 var(--s4); border-bottom: 1px solid var(--c-border); }
-  .buoc { scroll-margin-top: calc(var(--bar-h) + env(safe-area-inset-top) + var(--h-buoc-thanh) + var(--s3)); }
+  :root { --dinh-form: calc(var(--bar-h) + env(safe-area-inset-top) + var(--h-buoc-thanh) + var(--s2)); }
 }
 .form-main { display: contents; } /* dưới 960px: như không có lớp bọc — thanh tiến độ (con của .form-main) dính trong cả biểu mẫu, kể cả các khối của cột phải */
 @media (min-width: 960px) {
