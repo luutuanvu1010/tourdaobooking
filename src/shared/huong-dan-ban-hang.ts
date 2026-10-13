@@ -33,16 +33,16 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
 
 1. Bấm [[Tạo đơn]].
 2. Ở khối [[Chọn ngày]], chọn [[Ngày khởi hành]]. Ngày này áp cho **mọi dịch vụ** trong đơn.
-3. Ở khối [[Dịch vụ]], gõ vào ô [[Chọn từ danh mục]] (tên hoặc mã, ví dụ "4 đảo"), rồi chạm dịch vụ đúng. App báo ngắn đã thêm và hiện một thẻ dịch vụ.
+3. Ở khối [[Dịch vụ]], gõ vào ô [[Chọn từ danh mục]] (tên hoặc mã, ví dụ "4 đảo"), rồi chạm dịch vụ đúng. App hiện một thẻ dịch vụ.
    - Danh mục dài: bấm một chip ở hàng [[Nhóm dịch vụ]] để chỉ thấy dịch vụ của nhóm đó; app nhớ lựa chọn trên máy này.
    - Dịch vụ hiện mờ, ghi "chưa có giá" hoặc "chưa hỗ trợ", thì không chọn được — báo Quản trị.
    - Dịch vụ đã có trong đơn mang nhãn "đã chọn".
 4. Trên thẻ, bấm **+** và **−** để nhập số khách theo từng loại ([[Người lớn]], [[Trẻ em]], [[Người cao tuổi]], [[Em bé]] — tuỳ dịch vụ). Dòng tiền hiện ngay bên dưới.
    - Dịch vụ tính theo nhóm chỉ có một ô [[Số khách]]; app tự tính số lượt.
-   - Mỗi dịch vụ tối đa 50 khách, phải có ít nhất 1 khách không phải em bé.
+   - Mỗi dịch vụ tối đa 50 khách, phải có ít nhất 1 khách không phải em bé. Cả đơn cần ít nhất một người lớn.
    - Sửa được đơn giá; dòng khác giá danh mục hiện nhãn [[Khác giá danh mục]].
-5. Phần [[Đưa đón]] trên thẻ: mỗi chặng có [[Ngày đón]], [[Giờ đón]], [[Nơi đón]], [[Nơi trả]] (chọn điểm có sẵn hoặc [[Gõ tự do…]]). Dịch vụ có mẫu đưa đón thì app tạo sẵn chiều đi (và chiều về) — sửa hoặc bỏ nếu khác; không có thì bấm [[+ Thêm đưa đón]]. Mỗi chặng có thêm [[Xe riêng]] (không ghép khách khác) và [[Xe tối thiểu]] (số chỗ, không kể tài xế). Bấm dòng [[Thông tin chuyến]] để điền [[Giờ khởi hành]] và nếu có thì [[Ngày check-in]], [[Giờ check-in]], [[Nơi check-in]], [[Ghi chú dịch vụ]].
-6. Cần thêm dịch vụ khác thì lặp lại bước 3 đến 5 (tối đa 20 dịch vụ). Bấm [[Xoá]] trên thẻ để bỏ một dịch vụ.
+5. Phần [[Đưa đón]] trên thẻ: mỗi chặng có [[Ngày đón]], [[Giờ đón]], [[Nơi đón]], [[Nơi trả]] (chọn điểm có sẵn hoặc [[Gõ tự do…]]). Dịch vụ có mẫu đưa đón thì app tạo sẵn chiều đi và chiều về — sửa hoặc bỏ nếu khác; không có thì bấm [[+ Thêm đưa đón]]. Mỗi chặng có thêm [[Xe riêng]] (không ghép khách khác) và [[Xe tối thiểu]] (số chỗ, không kể tài xế). Bấm dòng [[Thông tin chuyến]] để điền [[Giờ khởi hành]] và nếu có thì [[Ngày check-in]], [[Giờ check-in]], [[Nơi check-in]], [[Ghi chú dịch vụ]].
+6. Cần thêm dịch vụ thì lặp lại bước 3 đến 5 (tối đa 20 dịch vụ). Bấm [[Xoá]] trên thẻ để bỏ dịch vụ.
 7. Khối [[Thanh toán]]: [[Giảm giá (₫)]], [[Thanh toán trước (₫)]], [[Hình thức]] ([[Chuyển khoản]] — mặc định, [[Tiền mặt]], [[Khác]]), [[Người nhận tiền]], [[Ghi chú thanh toán]]. Tiền trả trước được ghi vào sổ ngay sau khi lưu đơn.
 8. Khối [[Thông tin khách hàng]]: điền **Tên khách**, [[Số điện thoại]] (bắt buộc), [[Email]], [[Ghi chú / yêu cầu đặc biệt]].
    - Gõ xong số điện thoại, app tìm hồ sơ trùng số. Đúng người thì bấm [[Dùng hồ sơ này]]; khách mới thì bấm [[Tạo hồ sơ mới]]. Không chọn gì vẫn lưu được.

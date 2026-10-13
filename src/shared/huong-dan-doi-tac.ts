@@ -53,7 +53,7 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
 3. Phần **Dịch vụ**: bấm vào ô [[Chọn từ danh mục]], gõ tên hoặc mã dịch vụ, rồi bấm vào dịch vụ cần chọn.
    - Dịch vụ có nhãn "chưa có giá" hoặc "chưa hỗ trợ" thì không chọn được.
    - Dịch vụ đã có trong đơn có nhãn "đã chọn".
-4. Trong thẻ dịch vụ vừa thêm, nhập **Số khách**: **Người lớn**, **Trẻ em**… tuỳ dịch vụ. Dòng tiền tự hiện.
+4. Trong thẻ dịch vụ vừa thêm, nhập **Số khách**: **Người lớn**, **Trẻ em**… tuỳ dịch vụ. Dòng tiền tự hiện. Cả đơn cần ít nhất một người lớn đi cùng; trẻ em và em bé không đi một mình.
 5. Bấm [[Thông tin chuyến]] để mở phần này, ghi **Giờ đón**, **Điểm đón**, giờ và nơi check-in, **Ghi chú dịch vụ**.
 6. Phần **Thông tin khách hàng**: gõ **Tên khách**, **Số điện thoại**. Có thể thêm Email và **Ghi chú / yêu cầu đặc biệt**.
    - Khách liên hệ qua bạn: bấm [[Sử dụng thông tin của tôi]] để tự điền tên và số của bạn.

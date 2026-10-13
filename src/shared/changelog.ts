@@ -12,6 +12,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa số khách (ADR-0114): nhắc khuyến mại khi bớt khách, lịch sử số khách đủ dòng, mỗi đơn có ít nhất một người lớn. Không migration. Số 1.91 là số TẠM (= main 1.90 + 1 lúc dựng 2026-10-13): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "1.91",
+    date: "2026-10-13",
+    items: [
+      { kind: "moi", text: "Đơn có giảm giá mà bớt khách: mục Thanh toán hiện thêm một câu màu đỏ nhắc Kế toán xem lại khuyến mại. Số tiền vẫn giữ nguyên, chỉ nhắc." },
+      { kind: "moi", text: "Trang đơn có thêm phần Số khách qua các lần sửa, ghi số khách và tạm tính từ lúc xác nhận đến hiện tại. Chỉ hiện khi đơn đã sửa số khách." },
+      { kind: "doi", text: "Mỗi đơn cần ít nhất một người lớn đi cùng, kể cả khi lưu nháp, xác nhận hay sửa số khách. Đơn nháp cũ chưa có người lớn thì thêm vào rồi mới lưu được." },
+    ],
+  },
+  {
     // Sửa lỗi ô tìm của danh sách đơn (chữ tìm dài → báo lỗi hệ thống; D1 từ chối mẫu LIKE quá 50 byte). Số 1.90 là số TẠM (= main 1.89 + 1 lúc dựng lại 2026-10-13): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
     version: "1.90",
     date: "2026-10-13",
