@@ -119,13 +119,14 @@ test("M-3: bước Xác nhận đơn không nói sai 'chỉ còn sửa được 
 test("Đ2 kho (e): Tạo đơn — nhóm menu BÁN HÀNG, mục theo thứ tự, nút 'Lưu, chờ xác nhận' ở thanh nút cuối trang (sau Tóm tắt)", () => {
   const t = SO_DO_TRANG.find((x) => x.duongDan === "/order-form")!;
   assert.deepEqual(t.nhomMenu, ["BÁN HÀNG"]);
-  assert.deepEqual(t.boCuc.map((m) => m.muc), ["Chọn ngày", "Dịch vụ", "Thanh toán", "Thông tin khách hàng", "Tóm tắt", "Thanh nút cuối trang"]);
+  // 14/10/2026 (Tạo đơn bốn bước): khách lên đầu và ô Ngày khởi hành nằm TRONG khối khách — không còn thẻ "Chọn ngày" riêng ⇒ năm mục, không sáu (số mục trong kho sinh ra đổi theo; luật sinh không đổi).
+  assert.deepEqual(t.boCuc.map((m) => m.muc), ["Thông tin khách hàng", "Dịch vụ", "Thanh toán", "Tóm tắt", "Thanh nút cuối trang"]);
   assert.deepEqual(t.boCuc.at(-1)!.nut, ["Lưu, chờ xác nhận", "Quay lại"]);
   assert.deepEqual(SO_DO_TRANG.find((x) => x.duongDan === "/dieu-phoi")!.nhomMenu, ["QUẢN TRỊ › Vận chuyển"]);
   assert.deepEqual(SO_DO_TRANG.find((x) => x.duongDan === "/help")!.nhomMenu, ["TÔI"]);
   const doan = chiaKho().find((d) => d.ten === "Sơ đồ trang › Tạo đơn")!;
   assert.match(doan.chu, /nhóm BÁN HÀNG/);
-  assert.match(doan.chu, /Tóm tắt\. 6\. Thanh nút cuối trang — nút: Lưu, chờ xác nhận, Quay lại\./);
+  assert.match(doan.chu, /Tóm tắt\. 5\. Thanh nút cuối trang — nút: Lưu, chờ xác nhận, Quay lại\./);
   // Phần dựng bằng web/*.ts: không gán nút vào mục (thứ tự trong mã ≠ vị trí trên màn hình — bản đầu nói sai "Lịch sử — nút: … Sửa thông tin chuyến").
   const ct = chiaKho().find((d) => d.ten === "Sơ đồ trang › Chi tiết đơn")!.chu;
   assert.match(ct, /Nút hiện khi trang chạy \(tuỳ quyền và trạng thái\): [^\n]*Sửa thông tin chuyến/);
