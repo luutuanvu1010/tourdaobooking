@@ -1,0 +1,37 @@
+# Sửa số khách (ADR-0114) — Nhật ký thi công và điều phối
+
+> Sổ điều phối của kế hoạch `2026-10-13-sua-so-khach-adr-0114-ke-hoach.md`. Ghi quyết định của người điều phối ("ruling"), điều lệch và nợ. Tài liệu có ngày: thêm dòng mới ở cuối, không sửa lại dòng cũ cho khớp hiện trạng.
+
+## Mốc
+
+- 13/10/2026: chủ duyệt ADR-0114 ("duyệt ADR-0114, kèm điều kiện Kế toán xem lại hai khoá mới") rồi nói "tiếp tục đi". Nhánh `claude/adr-0114-duyet`, tách từ `main` ngày 13/10.
+- Thi công chia bốn việc, mỗi việc một trợ lý, người điều phối không viết mã nghiệp vụ: A máy chủ + hàm thuần (D1–D3); C sổ vàng, bất biến, hàng rào, tài liệu mô tả, e2e; B giao diện, Trợ giúp, nhật ký thay đổi; D kịch bản Chrome. Một người kiểm độc lập (chỉ đọc) kiểm cả nhánh ở khoảng commit cố định.
+
+## Quyết định của người điều phối (ruling)
+
+| # | Quyết định | Vì sao | Nếu sai thì mất gì / cách hoàn tác |
+|---|---|---|---|
+| R1 | Lịch sử số khách có ba dòng cho ca SV-SK-07 (`khoi_tao`, các `dieu_chinh` trừ lần cuối, `hien_hanh`), không bốn dòng. | Dòng "hiện hành" mang luôn lần sửa cuối, tránh hai dòng trùng số. | Đổi hàm dựng lịch sử và sổ vàng; không đụng dữ liệu. |
+| R2 | Giao diện chỉ hiện khối "Số khách qua các lần sửa" khi đơn có ít nhất một lần sửa. Máy chủ vẫn trả khoá cho cả đơn nháp và đơn chưa sửa. | Đơn nháp / chưa sửa chỉ có hai dòng trùng số, nhãn "lúc xác nhận" sai nghĩa với nháp. | Sửa một điều kiện ở `src/shared/so-khach-hien-thi.ts`. |
+| R3 | "Đơn có giảm giá" ở câu nhắc khuyến mại hỏi bằng **giảm giá hiệu lực**, không so `discount`. Commit `87d2ddfa`. | Bài một-hàm-phải-thu (ADR-0109) đỏ ở hai dòng so `discount`; quy định người thi công không tự thêm mục cho phép. Trợ lý A từng viết `discount !== 0` để qua bài — bị coi là lách và đã trả về, để bài đỏ chờ người rà. | Lệch chữ ADR đúng một ca (tạm tính về 0). Đã ghi `docs/SYSTEM-DESIGN.md` §16. Hoàn tác: chủ thêm hai mục cho phép của H1 rồi trả phép so về `discount > 0`. |
+| R4 | Phản hồi đường hướng dẫn viên (`handler-money-edit`) giữ dạng hẹp `{ ok }`, không thêm `canhBaoKhuyenMai`. | ADR-0014 điều 6 "không lộ giá" cho đường này; câu nhắc dành cho văn phòng, hướng dẫn viên vẫn thấy nó ở chi tiết đơn (không lộ thêm gì). Người kiểm độc lập (TB-1) chỉ ra lý do trước đó trong tài liệu ("họ không xem giảm giá") là sai; đã sửa lý do. | Lệch chữ ADR; ghi §16, chờ chủ gật đầu. Hoàn tác: thêm khoá vào `HandlerMoneyEditResponse` (orders trả câu, dispatch chuyển tiếp). |
+| R5 | Luật "từ ≥ 1 xuống 0 người đi kèm" chỉ còn MỘT nguồn: `suaDuaVeKhongNguoiLon` ở `src/shared/nguoi-di-kem.ts`; máy chủ và báo sớm ở giao diện cùng gọi. Commit `4f4a90df`. | Việc B phát hiện hai bản có thể lệch nhau. | Không đổi hành vi; phép phá cố ý hàm chung làm 7 bài đỏ. |
+| R6 | Không thêm cổng quyền mới cho câu nhắc đỏ: hiện đúng chỗ trang đã hiện giảm giá. | Route chi tiết đơn đã đòi `money.view` + `contact.view`, phản hồi vốn mang `discount`; khoá mới không lộ thêm. | Người kiểm độc lập xác nhận. Đối tác cũng thấy câu này trên đơn của mình (T-6): trình chủ. |
+| R7 | Bất biến `R-ORD-16w` chỉ ở mức cảnh báo vĩnh viễn (thoát 0). | Mức lỗi làm `npm run trien-khai` dừng vì dữ liệu cũ không sửa hàng loạt được. | Nâng mức khi dữ liệu cũ đã sạch. |
+
+## Điều đã chạy và kết quả đã thấy
+
+- Việc A, C, B: `npm test` mỗi việc một lần; sau việc B 4543 bài, 0 đỏ, 10 todo có sẵn. `npm run typecheck` 0 lỗi, `npm run build:web` thành công.
+- Việc C: kịch bản e2e `sua-so-khach` 8/8 xanh; 19 phép phá cố ý có ghi ở `docs/SO-HANG-RAO.md` (ngày 2026-10-13).
+- Người kiểm độc lập (13/10): "ĐẠT CÓ ĐIỀU KIỆN", không phát hiện mức Cao; tự phá thử 10 lần trên bản sao sạch, 8 phép nhắm hàng rào đều đỏ đúng chỗ, 2 phép nhắm phần nối ở máy chủ xanh đúng như dự đoán (giới hạn của sổ vàng, đã ghi ở sổ hàng rào).
+- Kịch bản Chrome: xem báo cáo việc D (ghi vào dòng cuối nhật ký khi có).
+
+## Nợ và việc chưa làm
+
+- Trợ giúp Bán hàng đúng trần thời gian đọc (3150 chữ): thêm chữ phải cắt chỗ khác (bài `src/shared/huong-dan.test.ts`).
+- Bảng "Sửa số khách" của hướng dẫn viên (`web/viec-cua-toi.ts`) coi 409 `thieu_nguoi_lon` là "màn hình cũ": bảng đóng, câu máy chủ vẫn hiện; chưa có báo sớm D3 ở đó.
+- Dải báo sau lệnh sửa đỏ cả dải khi có câu khuyến mại (§16).
+- Hai khoá đáp án mới của sổ vàng chưa có Kế toán xem lại (0/12): danh sách ở `docs/superpowers/specs/2026-10-13-sua-so-khach-adr-0114/02-danh-sach-ke-toan-xem-lai.md`.
+- Luật D3 không có trigger CSDL (theo ADR): SQL tay vào đơn nháp chỉ bị bắt lúc xác nhận.
+- Chưa biết số đơn đã xác nhận có 0 người đi kèm trên production (chạy `R-ORD-16w` trên remote do chủ).
+- Số phiên bản 1.91 trong nhật ký thay đổi là số TẠM; kiểm lại lúc phát hành.
