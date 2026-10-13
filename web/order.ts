@@ -689,7 +689,7 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
       { "data-khoi": "khoan-duyet" },
       `${ngayNganHomNay(k.ngayDuyet)} · ${k.loai === "chuyen" ? `Duyệt chuyển sang ${k.donNhan ?? "đơn mới"}` : "Duyệt hoàn"} ${vnd(k.soTien)}`,
       k.daHuy > 0 ? ` (đã huỷ duyệt ${vnd(k.daHuy)})` : "",
-      ` — còn ${vnd(k.conLai)} · ${k.lyDo}${k.nguoiDuyet ? ` · ${k.nguoiDuyet}` : ""}`,
+      ` — còn ${vnd(k.conLai)}${k.lyDo ? ` · ${k.lyDo}` : ""}${k.nguoiDuyet ? ` · ${k.nguoiDuyet}` : ""}`, // Đối tác: máy chủ bỏ lý do + người duyệt (D-1)
       nut.length ? h("span", { class: "kt-actions" }, ...nut) : null,
     );
   });

@@ -159,23 +159,47 @@ export function kiemHoanNguoiGiu(input: { dangGiu: number; soTien: number }): Ke
 /** ADR-0092 Đ5c: lý do điều chỉnh tối thiểu (ký tự, đã bỏ khoảng trắng hai đầu). Trigger 0082 ép cùng số. */
 export const LY_DO_DIEU_CHINH_TOI_THIEU = 10;
 
+/** ADR-0115 điều 1: yêu cầu điều chỉnh tự hết hạn sau số ngày này nếu không ai duyệt (tính lúc đọc, không Cron). Trigger 0094 `bil_adjustment_request_expired` ép cùng số. */
+export const HAN_YEU_CAU_NGAY = 7;
+/** Yêu cầu tạo lúc `taoLuc` đã quá hạn lúc `bayGio` chưa (ISO có mili-giây; đúng 7 ngày còn duyệt được). */
+export const hetHanYeuCau = (taoLuc: string, bayGio: string): boolean => Date.parse(bayGio) - Date.parse(taoLuc) > HAN_YEU_CAU_NGAY * 86_400_000;
+
+/** Hướng của một điều chỉnh: INCREASE = tăng nợ của `benNo` (tính vào trần cộng dồn), DECREASE = giảm nợ (Đ5a). */
+export type HuongDieuChinh = "INCREASE" | "DECREASE";
+export type KetQuaKiemDieuChinh =
+  | { ok: true; huong: HuongDieuChinh; tran: number; tangDaCoToiDa: number }
+  | { ok: false; ma: string; cau: string };
+
 /**
- * ADR-0092 Đ5a, Đ5b (Q-A1): dòng điều chỉnh "`benNo` nợ `benDuocNo` thêm `soTien`". `nguoc` = số `benDuocNo` đang nợ `benNo` trên đơn
- * (`soDuCap(dòng của đơn, benDuocNo, benNo)`). Còn nợ (> 0) ⇒ đây là GIẢM NỢ của `benDuocNo`: ≤ số đang nợ, không đổi dấu (Đ5a). Không còn nợ ⇒ TĂNG NỢ
- * của `benNo`: ≤ max(phải thu, đã thu ròng) của đơn — chặn gõ thừa số 0 (Đ5b).
+ * MỘT HÀM kiểm điều chỉnh (Hiến chương dự án 5.4) — ADR-0092 Đ5a, Đ5b sửa bởi ADR-0115 điều 4: dòng điều chỉnh "`benNo` nợ `benDuocNo` thêm `soTien`", kiểm lúc TẠO yêu cầu
+ * và kiểm lại lúc DUYỆT (theo số dư lúc đó). `nguoc` = số `benDuocNo` đang nợ `benNo` trên đơn (`soDuCap(dòng của đơn, benDuocNo, benNo)`). Còn nợ (> 0) ⇒ đây là GIẢM NỢ
+ * của `benDuocNo`: ≤ số đang nợ, không đổi dấu (Đ5a). Không còn nợ ⇒ TĂNG NỢ của `benNo`: trần = max(phải thu, đã thu ròng) của đơn — CỘNG DỒN: `tangDaCo` (Σ điều chỉnh tăng nợ
+ * còn hiệu lực của đơn) + `tangDangCho` (Σ yêu cầu tăng nợ đang chờ, chưa hết hạn, KHÔNG gồm yêu cầu đang xét) + `soTien` ≤ trần (C-2: hai lệnh 500.000 trên đơn phải thu
+ * 500.000 không được cùng qua). Trả thêm `tangDaCoToiDa` = số lớn nhất mà tổng `tangDaCo` được phép đạt — lô duyệt dùng làm lính gác CSDL (cùng một công thức, không tính lần hai).
  */
-export function kiemDieuChinh(input: { nguoc: number; soTien: number; phaiThu: number; daThu: number }): KetQuaKiem {
+export function kiemDieuChinh(input: {
+  nguoc: number; soTien: number; phaiThu: number; daThu: number; tangDaCo?: number; tangDangCho?: number;
+  /** Dòng loại QUYẾT TOÁN (nộp / trả) mà một bên là công ty chủ: trigger 0080 `settlement_sign_flip` chỉ nhận khi số đang nợ NGƯỢC chiều ≥ số tiền (không đổi dấu). */
+  quyetToanVoiCongTy?: boolean;
+}): KetQuaKiemDieuChinh {
+  // Chỉ nhánh «không có nợ ngược chiều»: nếu có nợ mà số tiền vượt, nhánh giảm nợ ngay dưới đã trả cùng mã `adjustment_flips_sign`.
+  if (input.quyetToanVoiCongTy && input.nguoc <= 0) {
+    return { ok: false, ma: "adjustment_flips_sign", cau: "Trên đơn này chưa có khoản nợ nào để quyết toán (nộp / trả) — ghi quyết toán sẽ làm số dư đổi dấu. Chọn loại dòng khác hoặc kiểm lại hai bên." };
+  }
+  const tran = Math.max(input.phaiThu, input.daThu);
   if (input.nguoc > 0) {
     if (input.soTien > input.nguoc) {
       return { ok: false, ma: "adjustment_flips_sign", cau: `Điều chỉnh giảm nợ vượt số đang nợ trên đơn (${dong(input.nguoc)}) — số dư không được đổi dấu.` };
     }
-    return { ok: true };
+    return { ok: true, huong: "DECREASE", tran, tangDaCoToiDa: 0 };
   }
-  const tran = Math.max(input.phaiThu, input.daThu);
-  if (input.soTien > tran) {
-    return { ok: false, ma: "adjustment_exceeds_cap", cau: `Điều chỉnh tăng nợ vượt trần của đơn (${dong(tran)} — số lớn hơn giữa phải thu và đã thu). Kiểm lại số tiền.` };
+  const daCo = input.tangDaCo ?? 0;
+  const dangCho = input.tangDangCho ?? 0;
+  if (daCo + dangCho + input.soTien > tran) {
+    const them = daCo + dangCho > 0 ? ` Đơn đã có ${dong(daCo)} điều chỉnh tăng nợ còn hiệu lực và ${dong(dangCho)} đang chờ duyệt.` : "";
+    return { ok: false, ma: "adjustment_exceeds_cap", cau: `Điều chỉnh tăng nợ vượt trần của đơn (${dong(tran)} — số lớn hơn giữa phải thu và đã thu).${them} Kiểm lại số tiền.` };
   }
-  return { ok: true };
+  return { ok: true, huong: "INCREASE", tran, tangDaCoToiDa: tran - input.soTien - dangCho };
 }
 
 /** Câu chỉ đường khi "Công ty đã nhận" bị từ chối vì khoản đã được ghi nộp (ADR-0092 Đ2b — nguyên văn ví dụ của ADR). */

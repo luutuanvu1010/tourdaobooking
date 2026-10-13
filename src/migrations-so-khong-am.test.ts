@@ -4,6 +4,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
+// tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
+import { chenPhieuDieuChinh } from "../tests/audit/dieu-chinh-lib.mjs";
 
 const DIR = new URL("../migrations/", import.meta.url);
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
@@ -76,7 +78,7 @@ test("Đ4: đảo riêng dòng giữ hộ khi lần thu còn hiệu lực → ch
   const r = thu(db, ct, { amount: 400_000, collector: "hdv" });
   const g = dong(db, { posting: phieu(db, "RECEIPT"), debtor: "hdv", creditor: ct, amount: 400_000, kind: "HELD", receipt: r });
   assert.throws(() => dong(db, { posting: phieu(db, "REVERSAL", "đảo thử giữ hộ"), debtor: ct, creditor: "hdv", amount: 400_000, kind: "HELD", receipt: r, reverses: g }), /held_single_reversal:/);
-  assert.throws(() => dong(db, { posting: phieu(db, "ADJUSTMENT", "điều chỉnh thử giữ hộ"), debtor: ct, creditor: "hdv", amount: 400_000, kind: "HELD", receipt: r, reverses: g }), /held_single_reversal:/);
+  assert.throws(() => dong(db, { posting: phieu(db, "SETTLEMENT", "thử đảo giữ hộ bằng phiếu nộp"), debtor: ct, creditor: "hdv", amount: 400_000, kind: "HELD", receipt: r, reverses: g }), /held_single_reversal:/);
   dong(db, { posting: phieu(db, "COMPANY_RECEIVED"), debtor: ct, creditor: "hdv", amount: 400_000, kind: "HELD", receipt: r, reverses: g });
   // Lần thu thứ hai: đảo lần thu TRƯỚC (như lô dao_lan_thu) rồi dòng giữ hộ đảo theo.
   const r2 = thu(db, ct, { amount: 100_000, collector: "hdv" });
@@ -89,7 +91,7 @@ test("Đ5c: phiếu điều chỉnh có lý do < 10 ký tự → chặn; rỗng 
   const { db } = moi();
   assert.throws(() => phieu(db, "ADJUSTMENT", "sai số"), /bil_adjustment_reason_short:/);
   assert.throws(() => phieu(db, "ADJUSTMENT", "   "), /bil_reason_required:/);
-  phieu(db, "ADJUSTMENT", "1234567890");
+  chenPhieuDieuChinh(db, { id: "p-dc-hop-le", orderId: "o", reason: "1234567890", occurredDate: "2026-10-05", at: AT }); // 0094: phiếu ADJUSTMENT hợp lệ phải có yêu cầu đã duyệt
   phieu(db, "REVERSAL", "ghi nhầm");
 });
 

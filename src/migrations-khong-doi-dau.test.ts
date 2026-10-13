@@ -1,6 +1,7 @@
 // Kiểm migration *_bil_khong_doi_dau.sql (ADR-0092 Đ2, Đ2b; TNV-VP01, KT04 của TNV-G4; lộ trình V2.4). Chèn THẲNG bằng SQL — chứng minh khoá ở CSDL:
 // (a) dòng quyết toán gốc không làm số dư cặp (bên, công ty chủ) trên đơn đổi dấu; (b) dòng đảo giữ hộ chỉ khi người giữ hộ còn nợ ≥ số dòng gốc.
 // Khoá ngoại TẮT (không dựng hồ sơ người); công ty chủ lấy từ view công bố. Tên ở đây là GIẢ.
+// Phiếu "chỗ chứa" nhiều dòng nợ tuỳ ý là SETTLEMENT (trước migration 0094 là ADJUSTMENT — từ 0094 phiếu ADJUSTMENT cần yêu cầu đã duyệt, ADR-0115; loại phiếu không là điều kiện của luật nào ở đây).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
@@ -26,7 +27,7 @@ function moi(list = files): { db: DatabaseSync; ct: string } {
   }
   run(db, `INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
     VALUES ('o', 'TD-o', 's1', 'confirmed', 'Khách Giả', '0900000009', 1000000, 1000000, 1000000, ?, ?)`, AT, AT);
-  run(db, "INSERT INTO bil_posting (id, kind_code, order_id, reason, occurred_date, created_at, updated_at) VALUES ('p', 'ADJUSTMENT', 'o', 'khung thử sổ tiền', '2026-10-05', ?, ?)", AT, AT);
+  run(db, "INSERT INTO bil_posting (id, kind_code, order_id, reason, occurred_date, created_at, updated_at) VALUES ('p', 'SETTLEMENT', 'o', 'khung thử sổ tiền', '2026-10-05', ?, ?)", AT, AT);
   return { db, ct };
 }
 let n = 0;

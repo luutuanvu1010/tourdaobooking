@@ -45,7 +45,8 @@ import { lyDoHienHanh, phanLoaiStatement } from "./huy-don-repo";
 import { toPoolOrders } from "./pool";
 import { soNguoiSauSuaKhach, type ChangSoNguoi } from "./dong-bo-chuyen-don";
 import type { DongBoTheoDon, NoiChuyen } from "../../shared/dong-bo-chuyen";
-import { CAU_X3_THUE_XE, NHOM_THUE_XE, laDongThuongMai } from "../../shared/so-dai-ly-nhan";
+import { CAU_X3_THUE_XE, NHOM_THUE_XE } from "../../shared/so-dai-ly-nhan";
+import { lichSuChoDoiTac } from "../../shared/lich-su-doi-tac";
 import { apGhiTay, banChupTuDb, cheDoThuongMai, chuaCoBanChup, dongGhiTuChup, dungThuongMai, kiemGhiTayVoiBanChup, kiemThanGhiTay, moTaChup, moTaGhiTay, type PhanThuongMai } from "./thuong-mai";
 import { banChupHienHanh, cauChupChuoi, cauGhiTay, demBanChup, laNhaCungCap, nhomCuaMa, tenHoSo } from "./thuong-mai-repo";
 import { laThanDonCu, laThanTripCu } from "./than-cu";
@@ -968,11 +969,13 @@ export const ordersModule: AppModule = {
       // R-P21 (áp lời chủ H4): dòng đặt gấp của lịch sử rút gọn theo vai (Đối tác, HDV, Thực tập không thấy lý do, tên người duyệt).
       // ADR-0060 điều 3 (ii): dòng order_accounting_entry_* chỉ cho người qua ô accounting.entry.view với ĐƠN NÀY (luật theo ô, không theo danh tính "Đối tác").
       const xemNhapKeToan = can(staff, "accounting.entry.view", scope);
+      // D-1 (kiểm toán 13/10/2026): người giữ quyền Đối tác — tài khoản lai cũng bị áp ("có quyền Đối tác là áp") — chỉ thấy các hành động trong DANH SÁCH CHO PHÉP
+      // (`LICH_SU_DOI_TAC_CHO_PHEP`: chữ chi tiết rút gọn theo từng hành động; riêng dòng nhập kế toán vẫn theo ô `accounting.entry.view` — ADR-0060), KHÔNG còn kiểu "lọc bỏ vài loại" (loại dòng thêm sau sẽ tự lộ). Dấu đặt gấp
+      // luôn rút gọn cho Đối tác (R-P21), kể cả tài khoản lai có ô xem đủ. Người nội bộ không đổi (vẫn lọc dòng nhập kế toán theo ô quyền như cũ).
       const history = can(staff, "order.history.view", scope)
-        ? lichSuTheoVai(await getAuditTrail(env.DB, order.id), xemDuDatGap(staff))
-          .filter((e) => xemNhapKeToan || !laDongNhapKeToan(e.action))
-          // Sổ đại lý đợt 1 (C9 = A): mức hoa hồng đã chụp / ghi tay KHÔNG lộ cho Đối tác qua lịch sử — tài khoản lai cũng bị lọc ("có quyền Đối tác là áp").
-          .filter((e) => !holdsPartner(staff) || !laDongThuongMai(e.action))
+        ? holdsPartner(staff)
+          ? lichSuChoDoiTac(lichSuTheoVai(await getAuditTrail(env.DB, order.id), false), xemNhapKeToan)
+          : lichSuTheoVai(await getAuditTrail(env.DB, order.id), xemDuDatGap(staff)).filter((e) => xemNhapKeToan || !laDongNhapKeToan(e.action))
         : [];
       // ADR-0063 D1: dữ liệu bảng "Sửa số khách dịch vụ" — chỉ khi người xem sửa được (cùng hàm ẩn/hiện của giao diện); loại khách sửa được tính từ BẢN CHỤP GỐC
       // (`findOrder`, trước điều chỉnh — loại đã về 0 vẫn còn ô, cùng cách "Việc của tôi").

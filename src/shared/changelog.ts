@@ -12,13 +12,25 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Sửa số khách (ADR-0114): nhắc khuyến mại khi bớt khách, lịch sử số khách đủ dòng, mỗi đơn có ít nhất một người lớn. Không migration. Số 1.92 là số TẠM (= main 1.91 màn Tạo đơn + 1, gộp main vào nhánh 2026-10-13): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
-    version: "1.92",
+    // Sửa số khách (ADR-0114): nhắc khuyến mại khi bớt khách, lịch sử số khách đủ dòng, mỗi đơn có ít nhất một người lớn. Không migration. Số 1.93 là số TẠM (= main 1.92 bản gộp D-1/ADR-0115 + 1, gộp main 277f5983 vào nhánh 2026-10-13): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "1.93",
     date: "2026-10-13",
     items: [
       { kind: "moi", text: "Đơn có giảm giá mà bớt khách: mục Thanh toán hiện thêm một câu màu đỏ nhắc Kế toán xem lại khuyến mại. Số tiền vẫn giữ nguyên, chỉ nhắc." },
       { kind: "moi", text: "Trang đơn có thêm phần Số khách qua các lần sửa, ghi số khách và tạm tính từ lúc xác nhận đến hiện tại. Chỉ hiện khi đơn đã sửa số khách." },
       { kind: "doi", text: "Mỗi đơn cần ít nhất một người lớn đi cùng, kể cả khi lưu nháp, xác nhận hay sửa số khách. Đơn nháp cũ chưa có người lớn thì thêm vào rồi mới lưu được." },
+    ],
+  },
+  {
+    // Bản gộp 2026-10-13: vá D-1 (lịch sử đơn của Đối tác theo danh sách cho phép), ADR-0115 đợt 1 (điều chỉnh công nợ cần người thứ hai duyệt, migration 0094) và vá khe «Đã giao» không hoa hồng (BL-HH-DA-GIAO-KHE). Số 1.92 = main 1.91 + 1 (số TẠM; ghép main 298f0c05 vào nhánh 2026-10-13): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "1.92",
+    date: "2026-10-13",
+    items: [
+      { kind: "moi", text: "Điều chỉnh công nợ nay cần người thứ hai duyệt (Toàn quyền, Quản trị hoặc Kế toán, khác người tạo). Có màn Điều chỉnh công nợ và tin báo cho người duyệt." },
+      { kind: "doi", text: "Yêu cầu điều chỉnh công nợ không ai quyết sau 7 ngày thì hết hạn; mức tăng nợ tối đa được tính cộng dồn qua các lần điều chỉnh, không tính riêng từng lần." },
+      { kind: "sua", text: "Đối tác không còn thấy lý do nội bộ và tên người duyệt trong lịch sử đơn của mình." },
+      { kind: "doi", text: "Tài khoản vừa là nhân viên vừa là Đối tác thấy lịch sử đơn rút gọn trên mọi đơn, kể cả đơn không phải của mình." },
+      { kind: "sua", text: "Đơn có người hưởng hoa hồng không còn bấm được Đã giao sau khi bên đặt bị đổi vai; Nền tảng tính theo mức hoa hồng đã chụp lúc xác nhận đơn." },
     ],
   },
   {

@@ -1,0 +1,75 @@
+{
+  "_mo_ta": "Sổ vàng — điều chỉnh công nợ CẦN NGƯỜI THỨ HAI DUYỆT (ADR-0115 đợt 1, chủ duyệt 2026-10-13, phương án A cho Q1/Q2/Q3; route POST /api/ledger/adjustments (lệnh dieu_chinh) + POST /api/ledger/adjustment-requests/:id/{approve|reject|withdraw}; trần cộng dồn ở rules.ts kiemDieuChinh). Mỗi ca là CHUỖI BƯỚC trên MỘT đơn: thu tiền, gửi yêu cầu, duyệt; đáp án đúng tới từng đồng: số dư của nhân viên giữ hộ với công ty sau MỖI bước, mã kết quả của máy chủ và (khi có) dòng nhật ký số dư. Số tiền là VÍ DỤ do AI đề xuất 2026-10-13 (người thi công đợt 1 ADR-0115); MỌI ca CHỜ Kế toán / chủ dự án xác nhận con số — AI không tự xác nhận (Hiến pháp N8). SV-DC-05 (chi phí chuyến thuê xe) thuộc ĐỢT 2, chưa thi công: chỉ có lớp 1 (tự cân), lớp 2 bỏ qua.",
+  "luat": "dieu-chinh-cong-no-can-duyet",
+  "quy_uoc": {
+    "so_du": "Số HDV (nhân viên giữ hộ) còn nợ công ty trên đơn, đồng: dương = HDV còn nợ công ty (đang giữ hộ tiền). Điều chỉnh TĂNG nợ = bên nợ HDV, bên được nợ công ty (dòng HELD); GIẢM nợ = bên nợ công ty, bên được nợ HDV (dòng SETTLEMENT).",
+    "tran_tang_no": "max(phải thu, đã thu ròng) của đơn; tổng tăng nợ còn hiệu lực + tăng nợ đang chờ (chưa hết hạn) + yêu cầu mới ≤ trần — kiểm lúc TẠO và lúc DUYỆT",
+    "giam_no": "yêu cầu giảm nợ ≤ số đang nợ lúc tạo và lúc duyệt; vượt ⇒ 409 adjustment_flips_sign",
+    "han": "7 ngày kể từ lúc tạo; quá hạn ⇒ 409 adjreq_expired khi duyệt; không bao giờ tự duyệt",
+    "nguoi": "ke_toan_1 = người gửi; ke_toan_2 và toan_quyen = người duyệt có ô ledger.adjust.approve; người duyệt ≠ người gửi (so theo tài khoản)",
+    "buoc": "lam = thu (HDV giữ hộ so_tien) | yeu_cau (ai gửi; huong tang|giam; nhan A, B…; tuoi_ngay = yêu cầu đã tạo cách đây từng ấy ngày) | duyet (ai; yeu_cau = nhan); mong_doi = { ma: 201 | 409, loi?: mã lỗi }; so_du_sau = số dư HDV nợ công ty sau bước"
+  },
+  "cac_ca": [
+    {
+      "ma": "SV-DC-01",
+      "ten": "Chia nhỏ để vượt trần (lỗ C-2): đơn phải thu 500.000, đã thu 300.000",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": { "phai_thu": 500000, "da_thu_cong_ty": 300000, "so_du_dau": 0 },
+      "buoc": [
+        { "lam": "yeu_cau", "ai": "ke_toan_1", "huong": "tang", "so_tien": 500000, "nhan": "A", "mong_doi": { "ma": 201 }, "so_du_sau": 0 },
+        { "lam": "duyet", "ai": "ke_toan_2", "yeu_cau": "A", "mong_doi": { "ma": 201 }, "so_du_sau": 500000 },
+        { "lam": "yeu_cau", "ai": "ke_toan_1", "huong": "tang", "so_tien": 500000, "nhan": "B", "mong_doi": { "ma": 409, "loi": "adjustment_exceeds_cap" }, "so_du_sau": 500000 }
+      ],
+      "dap_an": { "so_du_cuoi": 500000, "so_phieu_dieu_chinh": 1 }
+    },
+    {
+      "ma": "SV-DC-02",
+      "ten": "HDV giữ hộ 300.000: Kế toán gửi giảm nợ 300.000 — tự duyệt bị chặn, Toàn quyền duyệt thì về 0",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": { "phai_thu": 1000000, "da_thu_cong_ty": 0, "so_du_dau": 0 },
+      "buoc": [
+        { "lam": "thu", "so_tien": 300000, "mong_doi": { "ma": 201 }, "so_du_sau": 300000 },
+        { "lam": "yeu_cau", "ai": "ke_toan_1", "huong": "giam", "so_tien": 300000, "nhan": "A", "mong_doi": { "ma": 201 }, "so_du_sau": 300000 },
+        { "lam": "duyet", "ai": "ke_toan_1", "yeu_cau": "A", "mong_doi": { "ma": 409, "loi": "adjreq_same_person" }, "so_du_sau": 300000 },
+        { "lam": "duyet", "ai": "toan_quyen", "yeu_cau": "A", "mong_doi": { "ma": 201 }, "so_du_sau": 0, "nhat_ky": "số dư trước 300.000 ₫ → sau 0 ₫" }
+      ],
+      "dap_an": { "so_du_cuoi": 0, "so_phieu_dieu_chinh": 1 }
+    },
+    {
+      "ma": "SV-DC-03",
+      "ten": "Hai yêu cầu giảm 300.000 trên khoản nợ 300.000: duyệt cái đầu về 0, cái sau bị chặn (không đổi dấu)",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": { "phai_thu": 1000000, "da_thu_cong_ty": 0, "so_du_dau": 0 },
+      "buoc": [
+        { "lam": "thu", "so_tien": 300000, "mong_doi": { "ma": 201 }, "so_du_sau": 300000 },
+        { "lam": "yeu_cau", "ai": "ke_toan_1", "huong": "giam", "so_tien": 300000, "nhan": "A", "mong_doi": { "ma": 201 }, "so_du_sau": 300000 },
+        { "lam": "yeu_cau", "ai": "ke_toan_1", "huong": "giam", "so_tien": 300000, "nhan": "B", "mong_doi": { "ma": 201 }, "so_du_sau": 300000 },
+        { "lam": "duyet", "ai": "ke_toan_2", "yeu_cau": "A", "mong_doi": { "ma": 201 }, "so_du_sau": 0 },
+        { "lam": "duyet", "ai": "toan_quyen", "yeu_cau": "B", "mong_doi": { "ma": 409, "loi": "adjustment_flips_sign" }, "so_du_sau": 0 }
+      ],
+      "dap_an": { "so_du_cuoi": 0, "so_phieu_dieu_chinh": 1 }
+    },
+    {
+      "ma": "SV-DC-04",
+      "ten": "Hết hạn ngày thứ 8: yêu cầu cách đây 8 ngày không duyệt được; yêu cầu cách đây 6 ngày còn duyệt được",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": { "phai_thu": 1000000, "da_thu_cong_ty": 0, "so_du_dau": 0 },
+      "buoc": [
+        { "lam": "thu", "so_tien": 300000, "mong_doi": { "ma": 201 }, "so_du_sau": 300000 },
+        { "lam": "yeu_cau", "ai": "ke_toan_1", "huong": "giam", "so_tien": 100000, "nhan": "A", "tuoi_ngay": 8, "mong_doi": { "ma": 201 }, "so_du_sau": 300000 },
+        { "lam": "duyet", "ai": "ke_toan_2", "yeu_cau": "A", "mong_doi": { "ma": 409, "loi": "adjreq_expired" }, "so_du_sau": 300000 },
+        { "lam": "yeu_cau", "ai": "ke_toan_1", "huong": "giam", "so_tien": 100000, "nhan": "B", "tuoi_ngay": 6, "mong_doi": { "ma": 201 }, "so_du_sau": 300000 },
+        { "lam": "duyet", "ai": "ke_toan_2", "yeu_cau": "B", "mong_doi": { "ma": 201 }, "so_du_sau": 200000 }
+      ],
+      "dap_an": { "so_du_cuoi": 200000, "so_phieu_dieu_chinh": 1 }
+    },
+    {
+      "ma": "SV-DC-05",
+      "ten": "(ĐỢT 2, chưa thi công) Chi phí chuyến thuê xe: giá thoả thuận 3.000.000, điều chỉnh −200.000",
+      "ap_dung": "dot_2",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": { "chi_phi_chuyen": 3000000, "dieu_chinh": -200000 },
+      "dap_an": { "tong_khi_cho_duyet": 3000000, "tong_sau_duyet": 2800000 }
+    }
+  ]
+}

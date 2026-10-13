@@ -472,6 +472,38 @@ export const CHECKS = [
     level: "warn",
   },
   {
+    // ADR-0115 điều 1, 2 (migration 0094; đóng HC-4.2 phần công nợ): MỌI phiếu ADJUSTMENT ghi TỪ mốc R-BIL-14 đều có yêu cầu ĐÃ DUYỆT — dòng APPROVE trỏ đúng dòng
+    // REQUEST của phiếu, cùng đơn, do người KHÁC người tạo yêu cầu duyệt, và chính người duyệt ghi phiếu. Lưới thứ hai sau các trigger 0094 (bắt trường hợp trigger bị gỡ
+    // nhầm hay SQL gõ tay đi vòng). Phiếu cũ hơn mốc (không có yêu cầu) đi vào R-BIL-14w (cảnh báo), không tính lỗi.
+    code: "R-BIL-14",
+    what: "phiếu điều chỉnh công nợ ghi từ mốc 0094 đều có yêu cầu đã được người khác duyệt",
+    sql: `SELECT count(*) FROM bil_posting p
+     WHERE p.kind_code = 'ADJUSTMENT' AND p.created_at >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-14')
+       AND NOT EXISTS (SELECT 1 FROM bil_adjustment_request a JOIN bil_adjustment_request r ON r.id = a.target_id AND r.kind_code = 'REQUEST'
+         WHERE a.kind_code = 'APPROVE' AND r.id = p.request_id AND r.order_id = p.order_id AND a.created_by <> r.created_by AND a.created_by = p.created_by)`,
+    level: "fail",
+  },
+  {
+    code: "R-BIL-14w",
+    what: "phiếu điều chỉnh công nợ TRƯỚC mốc 0094 (không qua duyệt) — chỉ ghi nhận, không sửa",
+    sql: `SELECT p.id, p.order_id, p.created_at FROM bil_posting p
+     WHERE p.kind_code = 'ADJUSTMENT' AND p.request_id IS NULL AND p.created_at < (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-14')`,
+    mode: "rows",
+    level: "warn",
+  },
+  {
+    // ADR-0115 điều 4 (trần cộng dồn): tổng điều chỉnh TĂNG nợ còn hiệu lực của một đơn không vượt trần chụp lúc duyệt (cap_snapshot lớn nhất của các lần duyệt tăng nợ
+    // của đơn — Hiến chương 5.6: bản chụp để đối chiếu, không phải nguồn tính thứ hai). Số tiền lấy từ DÒNG NỢ thật; dòng đã bị đảo không tính.
+    code: "R-BIL-15",
+    what: "tổng điều chỉnh tăng nợ còn hiệu lực của đơn không vượt trần chụp lúc duyệt",
+    sql: `SELECT count(*) FROM (SELECT p.order_id, SUM(l.amount) AS tong, MAX(a.cap_snapshot) AS tran
+       FROM bil_adjustment_request a JOIN bil_posting p ON p.request_id = a.target_id JOIN bil_debt_line l ON l.posting_id = p.id
+       WHERE a.kind_code = 'APPROVE' AND a.direction = 'INCREASE' AND l.reverses_line_id IS NULL
+         AND NOT EXISTS (SELECT 1 FROM bil_debt_line r WHERE r.reverses_line_id = l.id)
+       GROUP BY p.order_id HAVING SUM(l.amount) > MAX(a.cap_snapshot))`,
+    level: "fail",
+  },
+  {
     // ADR-0092 Đ6 + ADR-0108 đ4 (T2; migration 0088): mỗi mã giao dịch — các dòng nối CÒN HIỆU LỰC (vị từ hieuLuc) cùng MỘT số thực chuyển, không hai lần thu
     // cùng đơn, tổng lần thu ≤ số thực chuyển. Lưới thứ hai sau trigger 0088 (b)(c)(d).
     code: "R-BIL-D6a",
