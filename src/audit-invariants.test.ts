@@ -2894,6 +2894,48 @@ test("R-PRC-5: dòng mức còn hiệu lực hôm nay theo hồ sơ mà hồ sơ
   assert.equal(violations(db, c), 1, "ngày kết thúc = hôm nay vẫn còn hiệu lực; dòng bắt đầu ngày mai chưa tính");
 });
 
+test("R-PRC-6 (ADR-0117 lần 1): hồ sơ mang loại đối tác còn vai/quyền nội bộ, hoặc danh sách được hưởng chứa vai nội bộ / OTHER không nhãn → vi phạm; dữ liệu đi đường thật → 0", () => {
+  const c = one("R-PRC-6");
+  assert.equal(c.level, "fail");
+  const db = build();
+  assert.equal(violations(db, c), 0, "CSDL khoẻ");
+  db.prepare("INSERT INTO pty_role_type (code, name, sort_order, role_group, is_partner_label) VALUES ('NHAN_A', 'Loại nhãn A', 40, 'OTHER', 1)").run();
+  db.prepare("INSERT INTO prc_beneficiary_role (role_type_code, active, created_at, updated_at) VALUES ('NHAN_A', 1, ?, ?)").run(T1, T1);
+  toChucSdl(db, "dt-1", "NHAN_A");
+  assert.equal(violations(db, c), 0, "hồ sơ chỉ mang loại nhãn; loại nhãn nằm trong danh sách được hưởng");
+  // Nhánh (i-a): vai nội bộ lọt vào hồ sơ mang nhãn (gỡ trigger để dựng ca lậu như SQL gõ tay).
+  db.exec("DROP TRIGGER pty_party_role_partner_label_conflict_ins");
+  vaiSdl(db, "dt-1", "SALES_STAFF");
+  assert.equal(violations(db, c), 1, "vai nhóm INTERNAL đang mở cùng loại nhãn");
+  dongVaiSdl(db, "dt-1", "SALES_STAFF");
+  assert.equal(violations(db, c), 0, "đóng vai nội bộ → hết");
+  vaiSdl(db, "dt-1", "STAFF");
+  assert.equal(violations(db, c), 1, "vai cũ STAFF (nhóm OTHER nhưng tính là nội bộ, như trigger) cùng loại nhãn");
+  dongVaiSdl(db, "dt-1", "STAFF");
+  // Nhánh (i-b): tài khoản của hồ sơ mang nhãn giữ quyền nội bộ.
+  db.exec("DROP TRIGGER adr0117_permission_partner_label_internal");
+  db.prepare("INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at, party_id) VALUES ('s-dt', '', '0901000099', 'x', 'sales', 1, ?, 'dt-1')").run(T1);
+  const quyen = (id: string, ma: string) => db.prepare("INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES (?, 's-dt', ?, ?, ?, ?)").run(id, ma, T1, T1, T1);
+  quyen("stp-dt-p", "PARTNER");
+  assert.equal(violations(db, c), 0, "tài khoản chỉ giữ quyền Đối tác");
+  quyen("stp-dt-s", "SALES");
+  assert.equal(violations(db, c), 1, "tài khoản của hồ sơ mang nhãn giữ quyền Bán hàng (một hồ sơ chỉ đếm MỘT lần dù nhiều dấu hiệu)");
+  vaiSdl(db, "dt-1", "DIRECTOR");
+  assert.equal(violations(db, c), 1, "cả vai lẫn quyền nội bộ vẫn là một hồ sơ");
+  db.prepare("UPDATE stf_permission SET valid_to_at = ? WHERE id = 'stp-dt-s'").run(T2);
+  dongVaiSdl(db, "dt-1", "DIRECTOR");
+  assert.equal(violations(db, c), 0, "đóng quyền và vai nội bộ → hết");
+  // Nhánh (ii): danh sách được hưởng chứa vai nội bộ / vai OTHER không phải loại nhãn.
+  db.exec("DROP TRIGGER prc_beneficiary_role_kind");
+  db.prepare("INSERT INTO prc_beneficiary_role (role_type_code, active, created_at, updated_at) VALUES ('SALES_STAFF', 0, ?, ?)").run(T1, T1);
+  assert.equal(violations(db, c), 1, "vai nội bộ trong danh sách (kể cả dòng đang tắt — bật lại bằng UPDATE là xong)");
+  db.prepare("INSERT INTO prc_beneficiary_role (role_type_code, active, created_at, updated_at) VALUES ('CUSTOMER', 1, ?, ?)").run(T1, T1);
+  assert.equal(violations(db, c), 2, "vai nhóm OTHER không phải loại nhãn");
+  db.exec("DROP TRIGGER prc_beneficiary_role_no_delete"); // dọn dòng lậu bằng SQL tay (đường thường chỉ tắt được active, và kiểm này đếm cả dòng tắt)
+  db.prepare("DELETE FROM prc_beneficiary_role WHERE role_type_code IN ('SALES_STAFF', 'CUSTOMER')").run();
+  assert.equal(violations(db, c), 0, "gỡ hai dòng sai → hết; năm vai EXTERNAL gieo sẵn và loại nhãn không bị tính");
+});
+
 // ---------------------------------------------------------------------------------------------------------------------
 // R-ORD-T1 / R-ORD-T1w / R-ORD-T2 — bản chụp thương mại của đơn (đặc tả §5, §9). Mốc của R-ORD-T1 = ord_audit_cutoff 'R-ORD-T1' = LÚC ÁP MIGRATION, tức lúc
 // bài chạy: bài đọc mốc từ CSDL rồi dựng giờ xác nhận tương đối (trước mốc, trong ân hạn, sát ngưỡng, sau ân hạn) — không viết cứng ngày.

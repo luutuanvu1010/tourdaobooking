@@ -235,7 +235,8 @@
     {
       "name": "pty_role_type",
       "module": "parties",
-      "kind": "lookup"
+      "kind": "lookup",
+      "note": "cột is_partner_label (migration 0095, ADR-0117): loại đối tác (nhóm OTHER, được hưởng hoa hồng) là dữ liệu — hồ sơ nội bộ không mang loại này; bất biến khi đã có hồ sơ dùng"
     },
     {
       "name": "pty_person_document_type",
@@ -992,6 +993,23 @@
         "party_id",
         "role_type_code",
         "role_group"
+      ]
+    },
+    {
+      "name": "v_pty_role_type",
+      "module": "parties",
+      "columns": [
+        "code",
+        "role_group",
+        "is_partner_label",
+        "active"
+      ]
+    },
+    {
+      "name": "v_pty_party_partner_label",
+      "module": "parties",
+      "columns": [
+        "party_id"
       ]
     },
     {

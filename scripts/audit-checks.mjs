@@ -1476,6 +1476,21 @@ export const CHECKS = [
     note: "cảnh báo, không chặn phát hành (đặc tả sổ đại lý đợt 1 §9): hồ sơ này thôi vai được hưởng mà mức còn hiệu lực — Kế toán xem lại và đóng dòng mức nếu không còn hưởng",
   },
   {
+    // R-PRC-6 (ADR-0117 lần 1, migration 0095): lưới THỨ HAI cho các trigger `pty_party_role_partner_label_conflict_*`, `adr0117_permission_partner_label_internal`, `prc_beneficiary_role_kind`.
+    // Hai nhánh, đếm cộng: (i) hồ sơ ĐANG mang loại đối tác mà còn vai nội bộ đang mở (nhóm INTERNAL, hoặc vai cũ STAFF/SALES — tạm, như trigger) hoặc có tài khoản giữ quyền ngoài {PARTNER, DRIVER_PARTNER};
+    // (ii) dòng danh sách được hưởng thuộc vai nhóm INTERNAL, hoặc nhóm OTHER mà không phải loại đối tác. Không lọc `active`: dòng tắt có thể bật lại bằng UPDATE mà trigger chỉ canh INSERT.
+    code: "R-PRC-6",
+    what: "hồ sơ mang loại đối tác (được hưởng hoa hồng) mà còn vai nội bộ đang mở hoặc có tài khoản giữ quyền nội bộ; hoặc danh sách vai được hưởng hoa hồng chứa vai nội bộ / vai nhóm OTHER không phải loại đối tác",
+    sql: `SELECT (SELECT count(*) FROM v_pty_party_partner_label l
+         WHERE EXISTS (SELECT 1 FROM v_pty_open_role o WHERE o.party_id = l.party_id AND (o.role_group = 'INTERNAL' OR o.role_type_code IN ('STAFF', 'SALES')))
+            OR EXISTS (SELECT 1 FROM staff s JOIN stf_permission p ON p.staff_id = s.id AND p.valid_to_at IS NULL AND p.permission_type_code NOT IN ('PARTNER', 'DRIVER_PARTNER')
+                       WHERE s.party_id = l.party_id))
+      + (SELECT count(*) FROM prc_beneficiary_role b JOIN v_pty_role_type t ON t.code = b.role_type_code
+         WHERE t.role_group = 'INTERNAL' OR (t.role_group = 'OTHER' AND t.is_partner_label = 0))`,
+    level: "fail",
+    note: "ADR-0117 lần 1: gỡ vai nội bộ / quyền nội bộ khỏi hồ sơ mang loại đối tác, và xử lý dòng sai trong danh sách vai được hưởng hoa hồng (dòng lậu chỉ do SQL gõ tay; chủ duyệt cách dọn)",
+  },
+  {
     // R-ORD-T1 (đặc tả §9 sau kiểm độc lập N4): MỖI dòng dịch vụ của đơn đã xác nhận, xác nhận TỪ (mốc + 60 phút) trở đi, phải có ĐÚNG MỘT bản chụp hiện hành. Mốc = lúc áp migration
     // (bảng `ord_audit_cutoff`), KHÔNG suy từ bản chụp đầu — cách cũ tự tắt khi mã chụp không bao giờ chạy. 60 phút che quãng migration → deploy của runbook và lúc bản mới chưa lan tới
     // mọi nơi. Thiếu dòng mốc thì chính kiểm này báo 1 lỗi (không im lặng xanh; viết bằng `NOT EXISTS`, KHÔNG dùng `CASE … END)` — bộ tách câu của wrangler không đóng khối ở `END)` và nuốt mọi dấu `;` phía sau, xem bài «tách câu của wrangler»). Đếm theo DÒNG DỊCH VỤ. Hoàn tác Worker về bản cũ ⇒ đơn xác nhận lúc đó làm kiểm này đỏ tới đợt 2 (đúng tín hiệu).

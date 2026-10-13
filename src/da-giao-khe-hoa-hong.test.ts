@@ -112,7 +112,7 @@ test("3 — đối tác CHƯA có mức hoa hồng (bản chụp «thiếu mức
 
 test("4 — loại đối tác nhóm OTHER (tương lai) có người hưởng: bản chụp SET ⇒ «Đã giao» 409 dù không thuộc nhóm bên ngoài", async () => {
   const w = setup();
-  w.sqlite.exec(`INSERT INTO pty_role_type (code, name, sort_order, role_group) VALUES ('NHAN_VIEN_SPA','Nhân viên spa',99,'OTHER')`);
+  w.sqlite.exec(`INSERT INTO pty_role_type (code, name, sort_order, role_group, is_partner_label) VALUES ('NHAN_VIEN_SPA','Nhân viên spa',99,'OTHER',1)`);
   w.sqlite.exec(`INSERT INTO prc_beneficiary_role (role_type_code, active, created_at, updated_at) VALUES ('NHAN_VIEN_SPA',1,'${AT}','${AT}')`);
   w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('ptr-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', ?, 'NHAN_VIEN_SPA', '2026-01-01', ?, ?)").run(`pty-${SALES}`, AT, AT);
   await datMuc(w, { loai: "VAI", code: "NHAN_VIEN_SPA" });

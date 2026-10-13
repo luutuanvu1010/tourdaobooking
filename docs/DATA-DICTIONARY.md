@@ -140,7 +140,7 @@
 | `pty_party_role` | bảng |  |
 | `pty_person` | bảng |  |
 | `pty_relationship_type` | bảng tra cứu |  |
-| `pty_role_type` | bảng tra cứu |  |
+| `pty_role_type` | bảng tra cứu | cột is_partner_label (migration 0095, ADR-0117): loại đối tác (nhóm OTHER, được hưởng hoa hồng) là dữ liệu — hồ sơ nội bộ không mang loại này; bất biến khi đã có hồ sơ dùng |
 | `pty_person_document_type` | bảng |  |
 | `pty_license_class` | bảng |  |
 | `pty_person_document` | bảng |  |
@@ -153,6 +153,8 @@
 | `v_pty_carrier_driver` | view công bố | cột: carrier_party_id, driver_party_id |
 | `v_pty_person_xung_ho` | view công bố | cột: party_id, given_name, gender |
 | `v_pty_open_role` | view công bố | cột: party_id, role_type_code, role_group |
+| `v_pty_role_type` | view công bố | cột: code, role_group, is_partner_label, active |
+| `v_pty_party_partner_label` | view công bố | cột: party_id |
 
 ## staff
 
