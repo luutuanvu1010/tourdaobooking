@@ -638,7 +638,7 @@ if (khoiBenDat.kieu === "chi-doc") {
   bookerPicker.tat();
   bookerPicker.root.replaceWith(dongBenDatChiDoc(khoiBenDat.benDat));
 } else if (khoiBenDat.kieu === "tra-sdt-va-dat-qua") {
-  datQua = oDatQuaDoiTac({ daChon: null, onDoi: datBenDat });
+  datQua = oDatQuaDoiTac({ daChon: null, onDoi: datBenDat, gon: true }); // đợt 1: hàng hai lựa chọn "Khách tự đặt | Đặt qua đối tác" thay nút rời + chú thích
   bookerPicker.root.before(datQua);
 }
 // R-P15: mốc cho biểu mẫu chưa lưu — chỉ người được lập đơn (máy chủ hỏi order.create). Lỗi / chưa có chính sách (503) → không cảnh báo; máy chủ vẫn chặn lúc xác nhận.

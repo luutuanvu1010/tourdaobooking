@@ -3243,6 +3243,8 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 
 /* Đặt qua đối tác + Phần đối tác (web/dat-qua-doi-tac.ts, web/phan-doi-tac.ts; sổ đại lý đợt 1 Task 11): ô chọn bên đặt ở form lập đơn / bảng "Đổi khách", dòng "Bên đặt" chỉ đọc của tài khoản Đối tác, khối hoa hồng ở trang đơn. Chỉ token. */
 .dqdt { display: flex; flex-direction: column; gap: var(--s2); margin: var(--s3) 0; }
+.dqdt-chon-ai { display: flex; gap: var(--s2); } /* hàng "Khách tự đặt | Đặt qua đối tác" của form Tạo đơn (đợt 1): hai nút chia đều, dùng lại .loc-nut (≥ 44px, bật = aria-pressed) */
+.dqdt-chon-ai .loc-nut { flex: 1 1 0; min-width: 0; }
 .dqdt-chon { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin: 0; }
 .dqdt-chon-ten { overflow-wrap: anywhere; }
 .dqdt-ghi { margin: 0; font-size: var(--fs-label); }
