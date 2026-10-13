@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  TU_DO, cauDoiNgay, giuDatGapNhap, changDaDoi, changTaoSan, changTuDto, coOSoHieu, doiNgayDi, goiYChang, legInput, loiChang, loiDanhSachChang, suaChang, themChangDi, themChieuVe,
+  TU_DO, canHienNgayDon, cauDoiNgay, giuDatGapNhap, changDaDoi, changTaoSan, changTuDto, coOSoHieu, doiNgayDi, goiYChang, legInput, loiChang, loiDanhSachChang, suaChang, themChangDi, themChieuVe,
 } from "./chang-form.ts";
 import { CHO_TOI_THIEU_MAX, CHO_TOI_THIEU_MIN, NOI_DON_CHUA_GHI } from "./chang-dua-don.ts";
 import type { MauChang } from "./chang-mac-dinh.ts";
@@ -188,4 +188,19 @@ test("Đợt 7 / 8b: loiChang số chỗ — '0' và '120' báo 'Số chỗ từ
   assert.equal(loi("120"), "Số chỗ từ 1 đến 100");
   for (const ok of ["", "1", "15", "100"]) assert.equal(loi(ok), null, `"${ok}"`);
   assert.deepEqual(loiDanhSachChang([{ ...l, don: GA, choToiThieu: "120" }], 4), ["Chặng 1: số chỗ từ 1 đến 100."]);
+});
+
+test("Đợt 1 #9: canHienNgayDon — form Tạo đơn ẩn 'Ngày đón' khi chặng cùng ngày đi hoặc chưa có ngày (máy chủ tự điền); LUÔN hiện khi chặng có ngày đón khác ngày đi", () => {
+  const NGAY = "2026-10-16";
+  assert.equal(canHienNgayDon({ pickupDate: NGAY }, NGAY), false, "cùng ngày đi");
+  assert.equal(canHienNgayDon({ pickupDate: "" }, NGAY), false, "chưa có ngày đón → máy chủ điền ngày đi (Ruling R4b)");
+  assert.equal(canHienNgayDon({ pickupDate: "" }, ""), false, "đơn chưa chọn ngày: không có gì để lệch");
+  assert.equal(canHienNgayDon({ pickupDate: "2026-10-15" }, NGAY), true, "đón hôm trước");
+  assert.equal(canHienNgayDon({ pickupDate: "2026-10-17" }, NGAY), true, "đón hôm sau");
+  assert.equal(canHienNgayDon({ pickupDate: "2026-10-17" }, ""), true, "có ngày đón mà đơn chưa có ngày đi: vẫn hiện, không giấu một giá trị đang có");
+  // dời ngày đi cả đơn: chặng đang cùng ngày đi dời theo (vẫn ẩn); chặng đã lệch giữ lệch (vẫn hiện)
+  const l1 = { ...themChangDi(null, NGAY, k()), pickupDate: NGAY };
+  const l2 = { ...themChangDi(null, NGAY, k()), pickupDate: "2026-10-17" };
+  const r = doiNgayDi([l1, l2], NGAY, "2026-10-20");
+  assert.deepEqual(r.legs.map((l) => canHienNgayDon(l, "2026-10-20")), [false, true]);
 });

@@ -3283,5 +3283,6 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 #pay-card .grid.three, #order-form .card > .grid.two { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
 .o-noi-khung > :is(input, textarea)::placeholder { color: transparent; }
 .o-noi-khung > :is(input, textarea):focus::placeholder { color: var(--c-placeholder); }
+.dd-khac-ngay { align-self: start; justify-self: start; min-height: var(--h-field); padding: 0 var(--s2); } /* "Đón khác ngày" (đợt 1 #9): nằm cạnh ô giờ, ngang hàng với khung ô */
 .o-noi-khung.dd-gio .dd-gio-mo { top: calc(var(--s4) + var(--s2)); } /* chữ mờ "Chưa chốt giờ" chỉ phủ phần giá trị của ô giờ, không đè nhãn nổi */
 .o-noi-khung .dd-hau-to { top: calc(var(--s4) + var(--s2)); }

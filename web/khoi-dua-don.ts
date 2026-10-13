@@ -3,7 +3,7 @@
 // KHÔNG dựng lại ô người dùng đang gõ: gõ chữ / ngày / giờ chỉ cập nhật chữ gợi ý và lỗi tại chỗ; đổi ô chọn, thêm / bỏ chặng mới dựng lại (rồi trả focus).
 import { CHIEU_LABEL, LY_DO_DONG_CHANG, khoangNgayDon, type LyDoDongChang } from "../src/shared/chang-dua-don";
 import {
-  TU_DO, coOSoHieu, goiYChang, loiChang, suaChang, themChangDi, themChieuVe, type ChangNhap, type SuaChang,
+  TU_DO, canHienNgayDon, coOSoHieu, goiYChang, loiChang, suaChang, themChangDi, themChieuVe, type ChangNhap, type SuaChang,
 } from "../src/shared/chang-form";
 import type { MauChang } from "../src/shared/chang-mac-dinh";
 import { locDiem } from "../src/shared/loc-diem";
@@ -55,9 +55,11 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
   /** Chặng đang mở hộp "Bỏ chặng" (bảng): key → lý do đang chọn ("" = chưa chọn) + đã bấm Bỏ mà chưa chọn. */
   const boMo = new Map<string, { lyDo: LyDoDongChang | ""; loi: boolean }>();
   const boXong: { leg: ChangNhap; lyDo: LyDoDongChang }[] = [];
+  /** Form Tạo đơn (đợt 1 #9): chặng người dùng bấm "Đón khác ngày" để mở ô "Ngày đón" (giữ qua các lần dựng lại khối). */
+  const moNgay = new Set<string>();
   const root = h("div", { class: "dd", "data-dua-don": o.ma });
   /** Phần tử cập nhật tại chỗ theo từng chặng. */
-  let refs: { gioMo: HTMLElement; hintNgay: HTMLElement; hintGio: HTMLElement; loiDon: HTMLElement; loiDonTuDo: HTMLElement | null; loiSoVe: HTMLElement | null; loiChoToiThieu: HTMLElement; hintChoToiThieu: HTMLElement; hauTo: HTMLElement; don: HTMLSelectElement; donTuDo: HTMLInputElement | null; soVe: HTMLInputElement | null; choToiThieu: HTMLInputElement }[] = [];
+  let refs: { ngayEl: HTMLElement | null; nutKhacNgay: HTMLElement | null; gioMo: HTMLElement; hintNgay: HTMLElement; hintGio: HTMLElement; loiDon: HTMLElement; loiDonTuDo: HTMLElement | null; loiSoVe: HTMLElement | null; loiChoToiThieu: HTMLElement; hintChoToiThieu: HTMLElement; hauTo: HTMLElement; don: HTMLSelectElement; donTuDo: HTMLInputElement | null; soVe: HTMLInputElement | null; choToiThieu: HTMLInputElement }[] = [];
 
   const laSanBay = (id: string) => o.diem().some((d) => d.id === id && d.sanBay);
   const commit = (next: ChangNhap[], rebuild: boolean) => {
@@ -174,7 +176,10 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     const ngayDi = o.ngayDi();
     const khoang = ngayDi ? khoangNgayDon(ngayDi) : null;
     const ngay = h("input", { id: id("ngay"), type: "date", value: l.pickupDate, min: khoang?.from ?? null, max: khoang?.to ?? null, "data-o": `${l.key}:ngay` });
-    ngay.addEventListener("input", () => sua(i, { pickupDate: ngay.value }, false));
+    ngay.addEventListener("input", () => {
+      moNgay.add(l.key); // đang sửa ô này thì ô không được tự ẩn giữa chừng (vd gõ lại đúng ngày đi)
+      sua(i, { pickupDate: ngay.value }, false);
+    });
     const gio = h("input", { id: id("gio"), type: "time", value: l.pickupTime, "data-o": `${l.key}:gio` });
     gio.addEventListener("input", () => sua(i, { pickupTime: gio.value }, false));
     const hintNgay = hint(g.ngay);
@@ -200,6 +205,15 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       traTuDo.addEventListener("input", () => sua(i, { traTuDo: traTuDo!.value }, false));
     }
 
+    const ngayEl = nn ? h("label", { for: ngay.id, class: "o-noi" }, khungNhanNoi("Ngày đón", ngay), hintNgay) : h("label", { for: ngay.id }, "Ngày đón", ngay, hintNgay);
+    const gioEl = nn ? h("label", { for: gio.id, class: "o-noi" }, khungNhanNoi("Giờ đón", gio, { khungClass: "dd-gio", giua: [gioMo] }), hintGio) : h("label", { for: gio.id }, "Giờ đón", h("span", { class: "dd-gio" }, gio, gioMo), hintGio);
+    // Form Tạo đơn: "Ngày đón" ẩn khi chặng cùng ngày đi (máy chủ tự điền khi trống); lối nhỏ "Đón khác ngày" nằm cạnh ô giờ để mở ô.
+    const nutKhacNgay = nn ? h("button", { type: "button", class: "btn btn-link dd-khac-ngay", "data-action": "don-khac-ngay" }, "Đón khác ngày") : null;
+    nutKhacNgay?.addEventListener("click", () => {
+      moNgay.add(l.key);
+      capNhatNgay(ngayEl, nutKhacNgay, l);
+      ngay.focus();
+    });
     const phu: HTMLElement[] = [];
     if (coOSoHieu(l, laSanBay)) {
       const bay = h("input", { id: id("bay"), type: "text", maxLength: 8, autocomplete: "off", autocapitalize: "characters", placeholder: "VD: VN1553", value: l.flightCode, "data-o": `${l.key}:bay` });
@@ -255,18 +269,13 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
         ? h("label", { for: choToiThieu.id, class: "o-noi" }, khungNhanNoi("Xe tối thiểu", choToiThieu, { khungClass: "dd-hau-to-khung", giua: [hauTo] }), loiChoToiThieu, hintChoToiThieu)
         : h("label", { for: choToiThieu.id }, "Xe tối thiểu", h("span", { class: "dd-hau-to-khung" }, choToiThieu, hauTo), loiChoToiThieu, hintChoToiThieu),
     );
-    refs[i] = { gioMo, hintNgay, hintGio, loiDon, loiDonTuDo, loiSoVe, loiChoToiThieu, hintChoToiThieu, hauTo, don, donTuDo, soVe, choToiThieu };
+    refs[i] = { ngayEl: nn ? ngayEl : null, nutKhacNgay, gioMo, hintNgay, hintGio, loiDon, loiDonTuDo, loiSoVe, loiChoToiThieu, hintChoToiThieu, hauTo, don, donTuDo, soVe, choToiThieu };
 
     return h(
       "div",
       { class: "dd-chang", "data-leg-key": l.key, "data-chieu": l.direction },
       h("div", { class: "dd-chang-dau" }, h("span", { class: "chip chip-unit" }, CHIEU_LABEL[l.direction]), h("span", { class: "dd-chang-so" }, `Chặng ${so}`), boBtn),
-      h(
-        "div",
-        { class: "dd-luoi2" },
-        nn ? h("label", { for: ngay.id, class: "o-noi" }, khungNhanNoi("Ngày đón", ngay), hintNgay) : h("label", { for: ngay.id }, "Ngày đón", ngay, hintNgay),
-        nn ? h("label", { for: gio.id, class: "o-noi" }, khungNhanNoi("Giờ đón", gio, { khungClass: "dd-gio", giua: [gioMo] }), hintGio) : h("label", { for: gio.id }, "Giờ đón", h("span", { class: "dd-gio" }, gio, gioMo), hintGio),
-      ),
+      h("div", { class: "dd-luoi2" }, ngayEl, gioEl, nutKhacNgay),
       h(
         "div",
         { class: "dd-luoi-noi" },
@@ -286,6 +295,14 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       phu.length ? h("div", { class: "dd-luoi-phu" }, ...phu) : null,
       boMo.has(l.key) ? lyDoBo(l, i) : null,
     );
+  }
+
+  /** Form Tạo đơn: hiện ô "Ngày đón" khi chặng có ngày đón khác ngày đi hoặc người dùng đã bấm "Đón khác ngày"; còn lại ẩn ô (`hidden`, vẫn nằm trong cây DOM) và hiện lối "Đón khác ngày". */
+  function capNhatNgay(ngayEl: HTMLElement | null, nut: HTMLElement | null, l: ChangNhap): void {
+    if (!ngayEl || !nut) return;
+    const hien = canHienNgayDon(l, o.ngayDi()) || moNgay.has(l.key);
+    ngayEl.hidden = !hien;
+    nut.hidden = hien;
   }
 
   function build(): void {
@@ -318,6 +335,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       if (!r) return;
       const g = goiYChang(l, ngayDi);
       r.hintNgay.textContent = g.ngay;
+      capNhatNgay(r.ngayEl, r.nutKhacNgay, l);
       r.hintGio.textContent = g.gio;
       r.gioMo.hidden = l.pickupTime !== "";
       const e = loiChang(l, i + 1, o.soKhach(), daLuu);
