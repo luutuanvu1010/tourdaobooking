@@ -9,6 +9,7 @@ import type { MauChang } from "../src/shared/chang-mac-dinh";
 import { locDiem } from "../src/shared/loc-diem";
 import { h, replaceChildren } from "./dom";
 import { icon } from "./icons";
+import { khungNhanNoi } from "./o-nhan-noi";
 
 /** Một điểm danh mục cho ô chọn: nhãn "<tên> · <loại>", cờ sân bay (hiện ô số hiệu chuyến bay). */
 export interface DiemChon {
@@ -45,6 +46,7 @@ export interface KhoiDuaDon {
 }
 
 const LY_DO = Object.entries(LY_DO_DONG_CHANG) as [LyDoDongChang, string][];
+const CHI_DIA_CHI = "Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách";
 
 export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
   let legs = o.legs;
@@ -157,6 +159,8 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
 
   function changEl(l: ChangNhap, i: number): HTMLElement {
     const so = i + 1;
+    // Form Tạo/sửa đơn (`che: "form"`) dùng nhãn nổi trong ô (đợt 1, bảng việc 13/10 #4); bảng "Sửa đưa đón" của trang đơn giữ nhãn phía trên ô như cũ.
+    const nn = o.che === "form";
     const id = (f: string) => `${o.ma}-${l.key}-${f}`;
     const g = goiYChang(l, o.ngayDi());
     const boBtn = h("button", { type: "button", class: "btn-link dd-bo-nut", "data-action": "bo-chang" }, "Bỏ chặng");
@@ -200,7 +204,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     if (coOSoHieu(l, laSanBay)) {
       const bay = h("input", { id: id("bay"), type: "text", maxLength: 8, autocomplete: "off", autocapitalize: "characters", placeholder: "VD: VN1553", value: l.flightCode, "data-o": `${l.key}:bay` });
       bay.addEventListener("input", () => sua(i, { flightCode: bay.value }, false));
-      phu.push(h("label", { for: bay.id }, "Số hiệu chuyến bay", bay, hint("Tài xế tự tra giờ bay")));
+      phu.push(nn ? h("label", { for: bay.id, class: "o-noi" }, khungNhanNoi("Số hiệu chuyến bay", bay), hint("Tài xế tự tra giờ bay")) : h("label", { for: bay.id }, "Số hiệu chuyến bay", bay, hint("Tài xế tự tra giờ bay")));
     }
     let soVe: HTMLInputElement | null = null;
     let loiSoVe: HTMLElement | null = null;
@@ -212,7 +216,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
           if (soVe!.value !== legs[i]!.soVe) soVe!.value = legs[i]!.soVe;
         });
         loiSoVe = loiEl();
-        phu.push(h("label", { for: soVe.id }, "Số người chiều về", soVe, loiSoVe, hint("Để trống nếu cả đoàn cùng về")));
+        phu.push(nn ? h("label", { for: soVe.id, class: "o-noi" }, khungNhanNoi("Số người chiều về", soVe), loiSoVe, hint("Để trống nếu cả đoàn cùng về")) : h("label", { for: soVe.id }, "Số người chiều về", soVe, loiSoVe, hint("Để trống nếu cả đoàn cùng về")));
       } else {
         phu.push(
           h(
@@ -246,19 +250,38 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     });
     const loiChoToiThieu = loiEl();
     const hintChoToiThieu = hint("Không kể tài xế (xe 16 chỗ nhập 15)");
-    phu.push(h("label", { for: choToiThieu.id }, "Xe tối thiểu", h("span", { class: "dd-hau-to-khung" }, choToiThieu, hauTo), loiChoToiThieu, hintChoToiThieu));
+    phu.push(
+      nn
+        ? h("label", { for: choToiThieu.id, class: "o-noi" }, khungNhanNoi("Xe tối thiểu", choToiThieu, { khungClass: "dd-hau-to-khung", giua: [hauTo] }), loiChoToiThieu, hintChoToiThieu)
+        : h("label", { for: choToiThieu.id }, "Xe tối thiểu", h("span", { class: "dd-hau-to-khung" }, choToiThieu, hauTo), loiChoToiThieu, hintChoToiThieu),
+    );
     refs[i] = { gioMo, hintNgay, hintGio, loiDon, loiDonTuDo, loiSoVe, loiChoToiThieu, hintChoToiThieu, hauTo, don, donTuDo, soVe, choToiThieu };
 
     return h(
       "div",
       { class: "dd-chang", "data-leg-key": l.key, "data-chieu": l.direction },
       h("div", { class: "dd-chang-dau" }, h("span", { class: "chip chip-unit" }, CHIEU_LABEL[l.direction]), h("span", { class: "dd-chang-so" }, `Chặng ${so}`), boBtn),
-      h("div", { class: "dd-luoi2" }, h("label", { for: ngay.id }, "Ngày đón", ngay, hintNgay), h("label", { for: gio.id }, "Giờ đón", h("span", { class: "dd-gio" }, gio, gioMo), hintGio)),
+      h(
+        "div",
+        { class: "dd-luoi2" },
+        nn ? h("label", { for: ngay.id, class: "o-noi" }, khungNhanNoi("Ngày đón", ngay), hintNgay) : h("label", { for: ngay.id }, "Ngày đón", ngay, hintNgay),
+        nn ? h("label", { for: gio.id, class: "o-noi" }, khungNhanNoi("Giờ đón", gio, { khungClass: "dd-gio", giua: [gioMo] }), hintGio) : h("label", { for: gio.id }, "Giờ đón", h("span", { class: "dd-gio" }, gio, gioMo), hintGio),
+      ),
       h(
         "div",
         { class: "dd-luoi-noi" },
-        h("div", { class: "dd-cot" }, h("label", { for: don.id }, "Nơi đón", timDon, don, timDonKq, loiDon, g.don ? hint(g.don) : null), donTuDo && h("label", { for: donTuDo.id }, "Địa chỉ đón", donTuDo, loiDonTuDo, hint("Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách"))),
-        h("div", { class: "dd-cot" }, h("label", { for: tra.id }, "Nơi trả", timTra, tra, timTraKq, g.tra ? hint(g.tra) : null), traTuDo && h("label", { for: traTuDo.id }, "Địa chỉ trả", traTuDo, hint("Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách"))),
+        h(
+          "div",
+          { class: "dd-cot" },
+          nn ? h("label", { for: don.id, class: "o-noi" }, timDon, khungNhanNoi("Nơi đón", don), timDonKq, loiDon, g.don ? hint(g.don) : null) : h("label", { for: don.id }, "Nơi đón", timDon, don, timDonKq, loiDon, g.don ? hint(g.don) : null),
+          donTuDo && (nn ? h("label", { for: donTuDo.id, class: "o-noi" }, khungNhanNoi("Địa chỉ đón", donTuDo), loiDonTuDo, hint(CHI_DIA_CHI)) : h("label", { for: donTuDo.id }, "Địa chỉ đón", donTuDo, loiDonTuDo, hint(CHI_DIA_CHI))),
+        ),
+        h(
+          "div",
+          { class: "dd-cot" },
+          nn ? h("label", { for: tra.id, class: "o-noi" }, timTra, khungNhanNoi("Nơi trả", tra), timTraKq, g.tra ? hint(g.tra) : null) : h("label", { for: tra.id }, "Nơi trả", timTra, tra, timTraKq, g.tra ? hint(g.tra) : null),
+          traTuDo && (nn ? h("label", { for: traTuDo.id, class: "o-noi" }, khungNhanNoi("Địa chỉ trả", traTuDo), hint(CHI_DIA_CHI)) : h("label", { for: traTuDo.id }, "Địa chỉ trả", traTuDo, hint(CHI_DIA_CHI))),
+        ),
       ),
       phu.length ? h("div", { class: "dd-luoi-phu" }, ...phu) : null,
       boMo.has(l.key) ? lyDoBo(l, i) : null,

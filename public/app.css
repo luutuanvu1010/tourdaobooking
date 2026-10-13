@@ -3269,3 +3269,19 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .pdt-tong { padding-top: var(--s3); border-top: 1px solid var(--c-border); }
 .pdt-ncc-o { display: flex; flex-direction: column; gap: var(--s2); margin: var(--s2) 0; }
 @media (min-width: 900px) { .pdt-luoi { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* ---------- Ô có NHÃN NỔI (web/o-nhan-noi.ts; bảng việc 13/10, #4) — form Tạo/sửa đơn. Nhãn nằm trong khung ô: ô trống và chưa focus thì ở giữa ô (như chữ mờ), ô có giá trị / đang gõ thì thu
+   nhỏ lên trên. Ô ngày / giờ / chọn một (class o-noi-co-dinh) luôn thu nhỏ vì máy tự vẽ chữ trong ô. Chữ mờ riêng của ô (placeholder) chỉ hiện khi đang gõ. Chỉ token. ---------- */
+.o-noi-khung { position: relative; display: block; }
+.o-noi-khung > :is(input, select, textarea) { min-height: var(--h-field); margin-top: 0; padding-top: calc(var(--s4) + var(--s2)); padding-bottom: var(--s1); }
+.o-noi-chu { position: absolute; top: var(--s2); left: calc(var(--s3) + 1px); right: var(--s3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-step-2); font-weight: var(--fw-semibold); line-height: 1.2; color: var(--c-text-muted); pointer-events: none; }
+.o-noi-khung > :is(input, textarea):placeholder-shown:not(:focus) ~ .o-noi-chu { top: calc(var(--h-field) / 2); transform: translateY(-50%); font-size: var(--fs-ui); font-weight: var(--fw-regular); }
+.o-noi-khung > textarea:placeholder-shown:not(:focus) ~ .o-noi-chu { top: var(--s4); transform: none; }
+.o-noi-khung > select { padding-left: var(--s2); } /* chữ chọn trong ô chọn một thụt vào ~4px so với ô gõ: kéo lại cho thẳng hàng với nhãn */
+.card > .grid + label.o-noi { margin-top: var(--s3); }
+/* Cột chính của form ở máy tính chỉ ~400px: ba / hai ô cạnh nhau làm nhãn nổi bị cắt ("Thanh toá…") → tự xuống hàng khi mỗi ô hẹp hơn 12rem. */
+#pay-card .grid.three, #order-form .card > .grid.two { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
+.o-noi-khung > :is(input, textarea)::placeholder { color: transparent; }
+.o-noi-khung > :is(input, textarea):focus::placeholder { color: var(--c-placeholder); }
+.o-noi-khung.dd-gio .dd-gio-mo { top: calc(var(--s4) + var(--s2)); } /* chữ mờ "Chưa chốt giờ" chỉ phủ phần giá trị của ô giờ, không đè nhãn nổi */
+.o-noi-khung .dd-hau-to { top: calc(var(--s4) + var(--s2)); }

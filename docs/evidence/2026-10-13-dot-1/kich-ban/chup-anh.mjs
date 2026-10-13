@@ -83,7 +83,8 @@ try {
     await p.ev("(() => { document.querySelector('[data-action=\"them-dua-don\"]')?.click(); return true; })()");
     await sleep(300);
   };
-  for (const [vai, account] of VAI) {
+  const CHI = process.env.CHI_VAI ? process.env.CHI_VAI.split(",") : null; // thử nhanh: CHI_VAI=ban-hang (bộ ảnh đầy đủ thì để trống)
+  for (const [vai, account] of VAI.filter(([v]) => !CHI || CHI.includes(v))) {
     for (const [kho, vp] of KHO) {
       const p = await env.as(account, "/order-form", vp);
       await san(p);

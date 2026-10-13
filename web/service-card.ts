@@ -96,7 +96,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   });
 
   const summaryEl = h("span", { class: "trip-summary" });
-  const fields = tripFields({ trip: draft.trip, onChange: (trip) => commit({ ...draft, trip }), noDepartDate: true }); // ngày khởi hành chọn một lần cho cả đơn (ADR-0021)
+  const fields = tripFields({ trip: draft.trip, onChange: (trip) => commit({ ...draft, trip }), noDepartDate: true, nhanNoi: true }); // ngày khởi hành chọn một lần cho cả đơn (ADR-0021); nhãn nổi trong ô (đợt 1 #4)
   const tripDetails = h("details", { class: "trip" }, h("summary", null, h("span", { class: "trip-title" }, "Thông tin chuyến"), summaryEl), fields.root);
   tripDetails.open = o.openTrip;
 
