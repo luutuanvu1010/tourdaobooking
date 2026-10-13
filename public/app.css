@@ -127,6 +127,7 @@
   --w-gd-o: 160px;         /* ADR-0087: bề rộng ô chọn phông / độ đậm / cỡ chữ ở màn Giao diện */
   --w-gd-xem: 360px;        /* ADR-0087: bề rộng cột xem trước ở màn Giao diện (máy tính) */
   --w-qr: 18rem;            /* QR thanh toán (ADR-0108): bề rộng tối đa ảnh mã trong bảng QR ở trang đơn */
+  --w-o-hep: 12rem;         /* Tạo đơn: bề rộng tối thiểu một ô nhãn nổi ở cột hẹp của form (ba / hai ô cạnh nhau tự xuống hàng) và bề rộng tối đa dòng ghi chú giá trong danh sách dịch vụ */
   --w-hh-loc: 14rem;        /* Hoa hồng đối tác / Người bán dịch vụ (sổ đại lý đợt 1 Task 10): bề rộng tối thiểu một ô lọc trên hàng lọc — hẹp hơn thì xuống dòng */
   --tabbar-h: 56px;         /* thanh tab dưới đáy, chưa tính vùng an toàn */
   --h-trang-toi-thieu: calc(100vh + env(safe-area-inset-bottom)); /* trang có thanh tab luôn cao ≥ cả màn hình kể cả vùng vạch vuốt: iPhone (app cài ra màn hình chính) đặt thanh tab cao hơn đúng một vùng an toàn khi trang NGẮN hơn màn hình → thanh nhảy khi dữ liệu về (video của chủ dự án 2026-09-27) */
@@ -1163,7 +1164,7 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .catalog-ten { font-weight: var(--fw-semibold); line-height: 1.3; overflow-wrap: anywhere; } /* tên dịch vụ đứng đầu, xuống dòng tự nhiên (đợt 1 #8) */
 .catalog-phu { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); font-size: var(--fs-label); color: var(--c-text-muted); } /* dòng phụ: mã · đơn vị · "đã chọn" */
 .catalog-list .catalog-pick .price { align-self: flex-start; font-weight: var(--fw-semibold); color: var(--c-text); }
-.catalog-list .catalog-pick .price-ghi { max-width: 12rem; font-weight: var(--fw-regular); font-size: var(--fs-label); color: var(--c-text-muted); white-space: normal; text-align: right; } /* "chưa có giá" / "chưa hỗ trợ — dùng nhập tay": chữ ghi chú, được xuống dòng */
+.catalog-list .catalog-pick .price-ghi { max-width: var(--w-o-hep); font-weight: var(--fw-regular); font-size: var(--fs-label); color: var(--c-text-muted); white-space: normal; text-align: right; } /* "chưa có giá" / "chưa hỗ trợ — dùng nhập tay": chữ ghi chú, được xuống dòng */
 .catalog-dau { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: var(--s3); padding: 0 var(--s1) 0 var(--s3); font-size: var(--fs-label); background: var(--c-surface-alt); border-bottom: 1px solid var(--c-line); }
 .catalog-list .catalog-dau .catalog-dong { flex: none; width: auto; min-height: var(--tap-min); padding: 0 var(--s3); font-weight: var(--fw-bold); color: var(--c-primary); border-bottom: 0; }
 .catalog-empty { padding: var(--s3); color: var(--c-text-muted); }
@@ -3306,7 +3307,7 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .o-noi-khung > select { padding-left: var(--s2); } /* chữ chọn trong ô chọn một thụt vào ~4px so với ô gõ: kéo lại cho thẳng hàng với nhãn */
 .card > .grid + label.o-noi { margin-top: var(--s3); }
 /* Cột chính của form ở máy tính chỉ ~400px: ba / hai ô cạnh nhau làm nhãn nổi bị cắt ("Thanh toá…") → tự xuống hàng khi mỗi ô hẹp hơn 12rem. */
-#pay-card .grid.three, #order-form .card > .grid.two { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
+#pay-card .grid.three, #order-form .card > .grid.two { grid-template-columns: repeat(auto-fit, minmax(var(--w-o-hep), 1fr)); }
 .o-noi-khung > :is(input, textarea)::placeholder { color: transparent; }
 .o-noi-khung > :is(input, textarea):focus::placeholder { color: var(--c-placeholder); }
 .dd-khac-ngay { align-self: start; justify-self: start; min-height: var(--h-field); padding: 0 var(--s2); } /* "Đón khác ngày" (đợt 1 #9): nằm cạnh ô giờ, ngang hàng với khung ô */
