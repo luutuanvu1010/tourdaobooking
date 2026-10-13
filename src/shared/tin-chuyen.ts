@@ -48,7 +48,7 @@ export const HANH_DONG_TIN_THUONG: readonly string[] = HANH_DONG_TIN_CHUYEN.filt
  * migration nên không có cổng phát hành tự canh: ĐẶT LẠI = lúc phát hành ở bước phát hành (khuôn dòng nhật ký thay đổi). Tin cập nhật điểm khi xe đang chạy KHÔNG
  * phụ thuộc mốc này.
  */
-export const MOC_TIN_CAP_NHAT = "2026-10-12T00:00:00.000Z";
+export const MOC_TIN_CAP_NHAT = "2026-10-12T23:00:00.000Z";
 export const laHanhDongTinChuyen = (a: string): boolean => (HANH_DONG_TIN_CHUYEN as readonly string[]).includes(a);
 export type LoaiTinChuyen =
   | "xep_lai" | "go_lai" | "doi_chuyen" | "huy_chuyen" | "gian_doan" | "khach_vang" | "xe_chay_doi" | "thu_hoi_xuat_ben" | "dieu_chinh" | "khan_cap" | "khach_doi" | "tu_choi"

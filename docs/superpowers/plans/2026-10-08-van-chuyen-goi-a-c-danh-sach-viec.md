@@ -1,4 +1,4 @@
-# Danh sách việc còn lại — Vận chuyển & Bán hàng, Gói A và Gói C (tài liệu sống, lập 2026-10-08)
+# Danh sách việc còn lại — Vận chuyển & Bán hàng, Gói A và Gói C (tài liệu sống, lập 2026-10-08; ĐÃ LÊN PRODUCTION bản 1.88 ngày 2026-10-13, xem HANDOFF-N1.md)
 
 > **Đây là nơi DUY NHẤT trả lời "còn bao nhiêu việc".** Chủ dự án yêu cầu 2026-10-08: "ghi lại tệp đó, và chúng ta làm 1 lần cho xong".
 > - **Luật 1:** thêm một việc vào bảng này phải hỏi chủ trước. Phát hiện không chặn phát hành ghi vào mục "Nợ để sau", không chen vào bảng.
