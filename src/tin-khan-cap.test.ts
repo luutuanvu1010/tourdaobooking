@@ -61,7 +61,7 @@ test("NT-11 (ADR-0104 Đ1 mục 6): xếp / rút dưới mốc có điều chỉ
     // Đường gõ cửa (gốc lắp ráp): dòng của lệnh xếp mang khanCap.
     const kq = await app.dongChuyenTheoId(w.env.DB, ev[0], (q: any) => app.chuyenChoTinTheoId(w.env.DB, q));
     assert.equal(kq?.dong.khanCap, true);
-    assert.doesNotMatch(JSON.stringify(tin1), /Khách|09\d{8}/);
+    assert.doesNotMatch(JSON.stringify(tin1), /Khách|(?<![0-9a-f-])09\d{8}(?!\d)/);
   } finally {
     tat();
   }

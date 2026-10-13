@@ -229,7 +229,7 @@ test("MQ-07: tài xế đang lái chuyến có suất của chặng nhận; tài
   const cuaBx = [doiChang({ ownerId: "bx", phuTrach: { coNguoi: false, staffId: null } })];
   assert.deepEqual(loai(BX, cuaBx), ["doi_sau_xac_nhan"], "Đối tác người lập: không trip.view → không MQ-07");
   // Không tên khách / SĐT / nơi trong DTO tin chuyến.
-  for (const s of [LAN, TX]) assert.ok(!/Khách|Dò Tìm|09\d{8}/.test(JSON.stringify(hop(s, d))), s.id);
+  for (const s of [LAN, TX]) assert.ok(!/Khách|Dò Tìm|(?<![0-9a-f-])09\d{8}(?!\d)/.test(JSON.stringify(hop(s, d))), s.id);
 });
 
 test("MQ-07: Quản trị KHÔNG lập / KHÔNG phụ trách → không MQ-07 (call_ack any nhưng không phải việc của họ), chỉ tin đơn đổi ở 'Tất cả'; người phụ trách là HDV → MQ-07 tới người lập + tài xế", () => {

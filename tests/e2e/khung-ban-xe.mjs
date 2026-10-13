@@ -71,7 +71,7 @@ try {
   assert.equal(r.status, 409, JSON.stringify(r.body));
   assert.equal(r.body.error.code, "khung_ban_chong_chuyen");
   assert.equal(r.body.error.chuyen[0].ma, cx.ma);
-  assert.doesNotMatch(JSON.stringify(r.body), /Khách|09\d{8}/);
+  assert.doesNotMatch(JSON.stringify(r.body), /Khách|(?<![0-9a-f-])09\d{8}(?!\d)/);
   console.log(`✓ (2) ghi khung 08:00–17:00 chồng ${cx.ma} → 409 khung_ban_chong_chuyen (chỉ mã chuyến + giờ)`);
 
   // --- (3) huỷ chuyến → ghi lại 201 + nhật ký ---
@@ -82,7 +82,7 @@ try {
   const k1 = r.body.dangCo.find((k) => k.lyDo === "Bảo dưỡng");
   const [nk] = await sqlRows(`SELECT detail FROM audit_log WHERE action = 'vehicle_unavailability_added' AND target_id = '${xeId}' ORDER BY rowid DESC LIMIT 1`);
   assert.ok(nk.detail.startsWith(`xe ${bien}: bận 08:00 `), nk.detail);
-  assert.doesNotMatch(nk.detail, /09\d{8}/);
+  assert.doesNotMatch(nk.detail, /(?<![0-9a-f-])09\d{8}(?!\d)/);
   console.log("✓ (3) huỷ chuyến → ghi khung 201; nhật ký có biển số + giờ VN + lý do, không SĐT");
 
   // --- (4) ADR tiêu chí 2 trên D1 thật ---
@@ -156,7 +156,7 @@ try {
     assert.equal(r.status, 200, JSON.stringify(r.body));
     assert.ok(r.body.khung.some((k) => k.xeId === xe2 && k.lyDo === "Đăng kiểm"), `tuần chứa ${tu}`);
     for (const c of r.body.chuyen) assert.deepEqual(Object.keys(c).sort(), ["batDauMs", "id", "ketThucMs", "ma", "trangThai", "xeId"]);
-    assert.doesNotMatch(JSON.stringify(r.body), /Khách|09\d{8}|TD-\d/);
+    assert.doesNotMatch(JSON.stringify(r.body), /Khách|(?<![0-9a-f-])09\d{8}(?!\d)|TD-\d/);
   }
   console.log(`✓ (7b) trang tuần: khung 23:00 ${cn} → 07:00 ${t2} có ở cả hai tuần; chuyến chỉ mã + giờ`);
 

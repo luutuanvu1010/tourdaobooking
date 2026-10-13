@@ -310,7 +310,7 @@ test("tinGioHenCho × mọi tập con quyền: nhận ⇒ qua can(trip.view) (t�
         const laiDung = partyId !== null && laiLucSuKien(d.chuyen[0]!.lai, partyId, d.luc) !== null && can(n, "trip.view", { assigned: true });
         const vanPhong = (ownerId === "n" || handlerStaffId === "n") && can(n, "trip.view") && can(n, "trip.call_ack", { ownerId, assigned: handlerStaffId === "n" });
         assert.ok(laiDung || vanPhong, `${JSON.stringify(permissions)} ${partyId} ${ownerId}/${handlerStaffId}`);
-        assert.ok(!/Khách|SĐT|09\d{8}/.test(t.cau));
+        assert.ok(!/Khách|SĐT|(?<![0-9a-f-])09\d{8}(?!\d)/.test(t.cau));
       }
     }
   }

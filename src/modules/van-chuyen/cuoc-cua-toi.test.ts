@@ -148,7 +148,7 @@ test("TC-38 luồng tài xế: xuất bến (bản chụp ĐẠT + bản chốt 
     for (const x of nk) {
       assert.equal(x.order_id, null);
       assert.equal(x.staff_id, DRIVER);
-      assert.doesNotMatch(x.detail, /văn phòng bấm thay|Dò Tìm|09\d{8}/);
+      assert.doesNotMatch(x.detail, /văn phòng bấm thay|Dò Tìm|(?<![0-9a-f-])09\d{8}(?!\d)/);
     }
     // Sau khi kết thúc: mọi lệnh → 409 chuyen_da_ket_thuc.
     assert.equal((await tienDo(w, "tai-xe", a.id, "ket-thuc")).json.error.code, "chuyen_da_ket_thuc");

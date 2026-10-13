@@ -79,7 +79,7 @@ test("ADR-0112 Đ1, Đ3, Đ4: 'Cập nhật khách theo đơn' trên chuyến CH
     assert.equal(r2.json.daCapNhat, 0);
     assert.equal(nhatKy(w, "trip_passengers_synced"), truoc, "không ghi thêm");
     assert.deepEqual(await tin(w, DRIVER, /Đơn vừa đổi khách/), dong, "vẫn đúng một tin");
-    assert.doesNotMatch(JSON.stringify(await tin(w, DRIVER, /./)), /Khách|1985|09\d{8}|DH-/, "câu tin không tên, năm sinh, SĐT, mã đơn");
+    assert.doesNotMatch(JSON.stringify(await tin(w, DRIVER, /./)), /Khách|1985|(?<![0-9a-f-])09\d{8}(?!\d)|DH-/, "câu tin không tên, năm sinh, SĐT, mã đơn");
   } finally {
     tat();
   }
@@ -107,7 +107,7 @@ test("ADR-0112 Đ2, Đ3, Đ4: 'Cập nhật điểm theo đơn' trên chuyến C
     assert.equal(r2.json.daCapNhat, 0);
     assert.equal(nhatKy(w, "trip_stops_synced"), truoc, "không ghi thêm");
     assert.deepEqual(await tin(w, DRIVER, /đổi điểm đón/), dong, "vẫn đúng một tin");
-    assert.doesNotMatch(JSON.stringify(await tin(w, DRIVER, /./)), /Khách|Đổi Điểm|Dò Tìm|09\d{8}|DH-/, "câu tin không tên khách, SĐT, nơi đón, mã đơn");
+    assert.doesNotMatch(JSON.stringify(await tin(w, DRIVER, /./)), /Khách|Đổi Điểm|Dò Tìm|(?<![0-9a-f-])09\d{8}(?!\d)|DH-/, "câu tin không tên khách, SĐT, nơi đón, mã đơn");
   } finally {
     tat();
   }

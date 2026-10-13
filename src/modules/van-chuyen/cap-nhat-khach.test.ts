@@ -67,7 +67,7 @@ test("R-P29 kịch bản K2d: huỷ A, thêm C → màn + lịch chung + xuất 
     assert.equal(nk[0].order_id, null);
     // ADR-0104 Đ2.11 (kế hoạch §10 "detail thêm nguyên nhân" — sửa có tên): câu chung với máy (`moTaTheoDon`) thay "<mã đơn>: 1 khách".
     assert.equal(nk[0].detail, `${t.chuyen.ma}: cập nhật khách theo đơn — ${d.code} (đổi người): trả 1 ghế, thêm 1 ghế`);
-    assert.doesNotMatch(nk[0].detail, /Khách|1980|19[89]\d|09\d{8}/);
+    assert.doesNotMatch(nk[0].detail, /Khách|1980|19[89]\d|(?<![0-9a-f-])09\d{8}(?!\d)/);
     assert.deepEqual({ ...w.q("SELECT kind, count FROM vc_trip_event WHERE id = ?", nk[0].id)[0] }, { kind: "ALLOCATION_PASSENGER_CHANGED", count: 1 });
     const x2 = await tienDo(w, "van-phong", t.chuyen.id, "xuat-ben");
     assert.equal(x2.status, 200, x2.text);

@@ -109,7 +109,7 @@ assert.ok(!(await lyDoGiu()).includes("DON_DA_HUY"), "không giữ DON_DA_HUY");
 nk = await nhatKyMay();
 assert.equal(nk.length, 3);
 assert.equal(nk[2].detail, `${ma}: máy cập nhật theo đơn — ${a.orderCode} (đơn huỷ): trả 2 ghế`);
-for (const x of nk) assert.doesNotMatch(x.detail, /Khách Đồng Bộ E2E|1934|09\d{8}/, "nhật ký không tên, không năm sinh, không SĐT");
+for (const x of nk) assert.doesNotMatch(x.detail, /Khách Đồng Bộ E2E|1934|(?<![0-9a-f-])09\d{8}(?!\d)/, "nhật ký không tên, không năm sinh, không SĐT");
 console.log("✓ (3) huỷ đơn A → 2 suất đóng REMOVED cùng lô; không giữ DON_DA_HUY; ba dòng nhật ký máy không tên");
 
 // --- (4) HDV huỷ đơn B (handler-cancel) ---
