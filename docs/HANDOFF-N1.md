@@ -2,7 +2,17 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.92 ĐÃ LÊN PRODUCTION (vá D-1: Đối tác không còn thấy lý do nội bộ và người duyệt trong lịch sử đơn; ADR-0115 đợt công nợ: điều chỉnh sổ cần người thứ hai duyệt, màn «Điều chỉnh công nợ», ô quyền `ledger.adjust.approve`; vá khe «Đã giao» không hoa hồng; kèm đợt 1 giao diện Tạo đơn — bản 1.91) — migration `0094_bil_dieu_chinh_duyet` đã áp (2026-10-13 21:30 giờ VN)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.94 ĐÃ LÊN PRODUCTION (sửa nút «Gửi yêu cầu» của màn «Điều chỉnh công nợ»; Trợ giúp Kế toán và Quản trị cho màn đó; kèm bản 1.93 — sửa số khách, ADR-0114: nhắc khuyến mại khi bớt khách, lịch sử số khách, mỗi đơn có ít nhất một người lớn) — không migration (2026-10-13 khoảng 23:13 giờ VN)
+
+Chủ chạy `day-len` rồi `trien-khai`; AI kiểm lại bằng lệnh chỉ đọc (2026-10-13):
+
+- **Commit:** `2dd60820` (= `main` = `origin/main`). Không migration nên không có điểm khôi phục Time Travel mới (điểm gần nhất vẫn là của bản 1.92 ở mục ngay dưới).
+- **Worker** (`wrangler deployments list`): mới nhất **a2357740-65a6-4d30-b9a3-7bbe55b4c110** (2026-10-13T16:13Z, 100%); trước đó f50ee369 (bản 1.92).
+- **Phiên bản:** `GET /api/auth/config` → `"version":"1.94"`; `kiem-phien-ban.mjs --sau-deploy` → ĐẠT. Migration: `d1 migrations list --remote` → "No migrations to apply!".
+- **Bảo trì:** BẬT tới 2026-10-14T11:49Z (18:49 giờ VN) — giữ cho tới khi chủ quyết.
+- **Chưa kiểm:** kết quả `trien-khai` lần này (e2e, `audit-invariants --db remote`) AI chưa đọc được từ máy chủ; đợt sửa số khách (1.93) đã có một lượt kiểm độc lập trong nhật ký thi công của nó, còn bản sửa nút + Trợ giúp (1.94) chỉ có test, kịch bản Chrome 36/36 và bạn duyệt, chưa có người kiểm độc lập; các việc còn mở của bản 1.92 (mục dưới) vẫn nguyên.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.92 ĐÃ LÊN PRODUCTION (vá D-1: Đối tác không còn thấy lý do nội bộ và người duyệt trong lịch sử đơn; ADR-0115 đợt công nợ: điều chỉnh sổ cần người thứ hai duyệt, màn «Điều chỉnh công nợ», ô quyền `ledger.adjust.approve`; vá khe «Đã giao» không hoa hồng; kèm đợt 1 giao diện Tạo đơn — bản 1.91) — migration `0094_bil_dieu_chinh_duyet` đã áp (2026-10-13 21:30 giờ VN)
 
 Một lần phát hành đưa lên cả 1.91 (giao diện Tạo đơn, phiên khác) lẫn 1.92. Khối do `npm run trien-khai` in ra (chủ chạy), kèm phần người kiểm độc lập tự kiểm lại bằng lệnh chỉ đọc (2026-10-13):
 
