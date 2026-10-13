@@ -64,13 +64,11 @@ export const canhBaoGiamGiaVuot = (don: { subtotal: number; discount: number }):
  * giảm giá vẫn giữ nguyên — Kế toán cần xem lại khuyến mại. CHỈ CẢNH BÁO (không đổi số tiền, không chặn), chạy ĐỘC LẬP với `canhBaoGiamGiaVuot` (hai câu có thể cùng hiện).
  * Tính từ trạng thái HIỆN HÀNH, không lưu cờ: 10 → 2 → 3 vẫn nhắc cho tới khi đủ lại số lúc xác nhận. "Số khách" = `soKhachTraTien` (người lớn + trẻ em + người cao tuổi,
  * cộng mọi dịch vụ; em bé không tính). Máy chủ tính `khachLucXacNhan` từ số khách ĐÃ LƯU (bị đóng băng sau xác nhận) và `khachHienHanh` từ đơn sau điều chỉnh; câu không có chữ số.
- * Khoá JSON `canhBaoKhuyenMai` ở phản hồi `POST /api/orders/:id/money-edit` và `GET /api/orders/:id`; đường hướng dẫn viên không trả (họ không xem giảm giá).
+ * Khoá JSON `canhBaoKhuyenMai` ở phản hồi `POST /api/orders/:id/money-edit` và `GET /api/orders/:id`; phản hồi của đường hướng dẫn viên là kiểu khác (`{ ok }`) nên không có khoá này.
  */
 export const CAU_KHUYEN_MAI_KHI_BOT_KHACH = "Đơn có giảm giá nhưng số khách đã giảm so với lúc xác nhận, giảm giá vẫn giữ nguyên. Kế toán xem lại khuyến mại.";
-// "Có giảm giá" viết `!== 0` (giảm giá là số nguyên KHÔNG ÂM — `int(…, 0, MAX)` ở rules.ts, trigger 0007 — nên đúng bằng "> 0"): đây chỉ là phép thử CÓ / KHÔNG, không phải phép so
-// với tạm tính hay phép tính phải thu, nên không vào danh sách cho phép của bài tĩnh src/phai-thu-mot-ham.test.ts (người thi công không tự thêm vào danh sách đó).
 export const canhBaoKhuyenMai = (don: { discount: number }, khachLucXacNhan: number, khachHienHanh: number): string | null =>
-  don.discount !== 0 && khachHienHanh < khachLucXacNhan ? CAU_KHUYEN_MAI_KHI_BOT_KHACH : null;
+  don.discount > 0 && khachHienHanh < khachLucXacNhan ? CAU_KHUYEN_MAI_KHI_BOT_KHACH : null;
 
 /** Số khách trả tiền của cả đơn: `payingGuests` (người lớn + trẻ em + người cao tuổi) cộng mọi dịch vụ — kể cả nhập tay (số khách ở `adult`). Một nguồn cho máy chủ. */
 export const soKhachTraTien = (dichVu: readonly { pax: Partial<Record<PaxCode, number>> }[]): number => dichVu.reduce((n, s) => n + payingGuests(s.pax), 0);

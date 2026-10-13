@@ -591,7 +591,7 @@ async function soanSuaSoKhach(
  * Không lưu cờ, không đổi số tiền (luật thuần: `canhBaoKhuyenMai` của src/shared/so-khach-van-phong.ts).
  */
 async function nhacKhuyenMaiCuaDon(db: D1Database, order: OrderDetailDto): Promise<string | null> {
-  if (order.discount === 0) return null; // giảm giá là số nguyên không âm (xem canhBaoKhuyenMai)
+  if (order.discount <= 0) return null;
   const daLuu = await getStoredPax(db, order.id);
   return canhBaoKhuyenMai(order, soKhachTraTien(Array.from(daLuu.values(), (pax) => ({ pax }))), soKhachTraTien(order.services));
 }

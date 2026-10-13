@@ -109,7 +109,7 @@ test("D1 chạy ĐỘC LẬP với cảnh báo giảm giá vượt: hai câu có
   assert.deepEqual([r.json.order.subtotal, r.json.order.total, r.json.order.giamGiaHieuLuc], [500000, 0, 500000], "phải thu kẹp 0, đúng ADR-0109");
 });
 
-test("D1 đường hướng dẫn viên: phản hồi vẫn chỉ { ok } — không có khoá khuyến mại (hướng dẫn viên không xem giảm giá)", async () => {
+test("D1 đường hướng dẫn viên: phản hồi là kiểu khác, vẫn chỉ { ok } — không có khoá khuyến mại (khoá chỉ có ở phản hồi văn phòng và chi tiết đơn)", async () => {
   const w = await setup();
   const d = await taoDon(w, { pax: P(10), discount: 50000 });
   assert.equal((await w.call("PUT", `/api/orders/${d.id}/handler`, { as: ID.SALES, body: { staffId: ID.FIELD } })).status, 200);
