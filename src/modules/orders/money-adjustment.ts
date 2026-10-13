@@ -1,7 +1,7 @@
 // Luật thuần cho "dòng điều chỉnh" số khách sau xác nhận (ADR-0014 điều 6, Phase B). Không I/O. Tái dùng nguyên `snapshotService`/`buildLines`
 // đã có (cơ chế "giá lúc lập đơn" của Q11) — KHÔNG viết logic tính giá mới. Dùng chung cho route ghi (dispatch) và overlay đọc (service.ts).
 import type { OrderDetailDto, OrderItemDto, OrderServiceDto } from "../../shared/contracts.ts";
-import { CAU_THIEU_NGUOI_LON, soNguoiDiKem } from "../../shared/nguoi-di-kem.ts";
+import { CAU_THIEU_NGUOI_LON, suaDuaVeKhongNguoiLon } from "../../shared/nguoi-di-kem.ts";
 import { PAX_ORDER, availableCodes, thanhTienDong, type GeneratedLine, type PaxCode, type PaxCounts } from "../../shared/order-lines.ts";
 import { snapshotService, storedServiceLines, storedUnitPrices, type StoredService } from "./service-rules.ts";
 import { hasLongDigitRun, PHONE_IN_TEXT_MESSAGE } from "../../shared/text-guards.ts";
@@ -302,8 +302,9 @@ export function planMoneyEdit(c: MoneyEditContext): MoneyEditPlan {
   // thì không bao giờ rơi vào nhánh này. Đứng TRƯỚC vòng tính tiền để "về 0 hết" ra mã này chứ không phải lỗi dạng chung "nhập số khách".
   const paxTruoc = (s: SubtotalServiceInput) => (s.catalogCode !== null ? latest.get(s.id) : undefined) ?? c.storedPax.get(s.id);
   const paxSau = (s: SubtotalServiceInput) => (s.catalogCode !== null ? input.services.find((x) => x.id === s.id)?.pax : undefined) ?? paxTruoc(s);
-  const tongDiKem = (pick: (s: SubtotalServiceInput) => PaxCounts | undefined) => c.services.reduce((n, s) => n + soNguoiDiKem(pick(s) ?? {}), 0);
-  if (tongDiKem(paxTruoc) >= 1 && tongDiKem(paxSau) < 1) return { ok: false, code: "thieu_nguoi_lon", message: CAU_THIEU_NGUOI_LON };
+  const theoDichVu = (pick: (s: SubtotalServiceInput) => PaxCounts | undefined) => c.services.map((s) => pick(s) ?? {});
+  // MỘT luật với báo sớm ở giao diện (bảng "Sửa số khách"): `suaDuaVeKhongNguoiLon` ở src/shared/nguoi-di-kem.ts.
+  if (suaDuaVeKhongNguoiLon(theoDichVu(paxTruoc), theoDichVu(paxSau))) return { ok: false, code: "thieu_nguoi_lon", message: CAU_THIEU_NGUOI_LON };
 
   const before: AdjustmentEntry[] = [];
   const after: AdjustmentEntry[] = [];
