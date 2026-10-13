@@ -12,6 +12,22 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Tạo đơn bốn bước + đổi chữ "Check-in" thành "Khách có mặt" (chủ duyệt 14/10: «chốt tên "Khách có mặt", làm bản bốn bước»); chỉ đổi cách bày và chữ hiện, không migration, dữ liệu gửi máy chủ giữ nguyên.
+    // Số 1.95 là số TẠM (= main 1.94 + 1, 2026-10-14): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
+    version: "1.95",
+    date: "2026-10-14",
+    items: [
+      { kind: "doi", text: "Màn Tạo đơn chia bốn bước trên một trang: Khách, Dịch vụ, Thanh toán, Phụ trách. Thanh tiến độ ở đầu trang luôn dính; chạm tên bước để nhảy tới." },
+      { kind: "doi", text: "Bước nào đủ thông tin thì hiện dấu ✓ trên thanh tiến độ; bước bạn đang xem được tô đậm." },
+      { kind: "doi", text: "Thông tin khách hàng lên đầu trang, ngay dưới ngày khởi hành." },
+      { kind: "doi", text: "Email, ghi chú khách, xe riêng, số chỗ tối thiểu, số hiệu chuyến bay gom vào nút \"Thêm chi tiết\"; đã có chữ hoặc lưu báo lỗi ở đó thì khối tự mở." },
+      { kind: "doi", text: "Chặng đưa đón đã đủ giờ và nơi đón gập thành một dòng tóm tắt; chạm dòng đó để sửa." },
+      { kind: "doi", text: "Chữ \"Check-in\" đổi thành \"Khách có mặt\" ở ô nhập, trang đơn, Việc của tôi, tin báo đổi đơn và bản xác nhận gửi khách." },
+      { kind: "doi", text: "Bản xác nhận gửi khách: dòng \"Đón khách\" thành \"Xe đón khách\", dòng \"Check-in\" thành \"Khách có mặt\"." },
+      { kind: "doi", text: "Ô ngày khách có mặt chỉ hiện khi khác ngày khởi hành hoặc khi bấm \"Có mặt khác ngày\"." },
+    ],
+  },
+  {
     // Sửa nút Gửi của màn Điều chỉnh công nợ + Trợ giúp theo vai cho màn đó (ADR-0115). Không migration. Số 1.94 = main 1.93 (sửa số khách, ADR-0114) + 1: số TẠM, phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
     version: "1.94",
     date: "2026-10-13",
