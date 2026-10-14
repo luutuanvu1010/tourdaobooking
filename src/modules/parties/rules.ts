@@ -327,7 +327,8 @@ const khoaTen = (s: string): string => s.normalize("NFD").replace(/[̀-ͯ]/g, ""
 export function kiemTenLoaiDoiTac(raw: unknown, daCo: readonly string[]): { ok: true; value: string } | { ok: false; code: "invalid_input" | "loai_trung"; message: string } {
   const ten = typeof raw === "string" ? raw.trim().replace(/\s+/g, " ") : "";
   if (ten.length < 2 || ten.length > 60) return { ok: false, code: "invalid_input", message: "Tên loại đối tác dài từ 2 đến 60 ký tự." };
-  if (/\d{8,}/.test(ten.replace(/[\s.-]/g, "")) || ten.includes("@")) return { ok: false, code: "invalid_input", message: "Tên loại đối tác không được chứa số điện thoại, số tài khoản hay địa chỉ email." };
+  // Dãy ≥ 8 chữ số sau khi bỏ khoảng trắng và chấm; dấu «-» chỉ được bỏ khi dãy ≥ 9 chữ số (số điện thoại gạch nối) để khoảng năm «2024-2025» (8 chữ số) lọt.
+  if (/\d{8,}/.test(ten.replace(/[\s.]/g, "")) || /\d{9,}/.test(ten.replace(/[\s.-]/g, "")) || ten.includes("@")) return { ok: false, code: "invalid_input", message: "Tên loại đối tác không được chứa số điện thoại, số tài khoản hay địa chỉ email." };
   if (daCo.some((t) => khoaTen(t) === khoaTen(ten))) return { ok: false, code: "loai_trung", message: "Đã có loại với tên này." };
   return { ok: true, value: ten };
 }

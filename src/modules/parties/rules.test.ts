@@ -250,6 +250,15 @@ test("ADR-0117: kiemTenLoaiDoiTac — gọn khoảng trắng, trùng không phâ
   assert.equal(kiemTenLoaiDoiTac("Tour 2 ngày", []).ok, true, "chữ số ngắn vẫn được");
 });
 
+test("ADR-0117: kiemTenLoaiDoiTac — khoảng năm «2024-2025» lọt, số điện thoại viết liền / cách / chấm vẫn bị chặn", () => {
+  // Bộ lọc từng bỏ dấu «-» rồi đếm ≥ 8 chữ số nên «Đối tác 2024-2025» (8 chữ số) bị từ chối nhầm; nay dấu «-» chỉ được bỏ khi dãy có ≥ 9 chữ số (SĐT gạch nối vẫn bị chặn).
+  for (const x of ["Đối tác 2024-2025", "Mùa 2024-2025", "Hội chợ 2025-26", "Tour 12-12-2025"]) assert.equal(kiemTenLoaiDoiTac(x, []).ok, true, x);
+  for (const x of ["Gọi 0901234567", "Gọi 0901 234 567", "Gọi 0901.234.567", "Gọi 090-123-4567", "Gọi 0901-234-567", "09012345 xx", "Số 123456789012"]) {
+    const r = kiemTenLoaiDoiTac(x, []);
+    assert.equal(!r.ok && r.code, "invalid_input", x);
+  }
+});
+
 test("ADR-0117: maLoaiDoiTac — LD_ + 8 chữ hoa (CODE_RE của Danh bạ không nhận chữ số)", () => {
   const ma = maLoaiDoiTac(new Uint8Array([0, 1, 25, 26, 255, 100, 7, 99, 42]));
   assert.match(ma, /^LD_[A-Z]{8}$/);

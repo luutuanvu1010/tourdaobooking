@@ -17,6 +17,7 @@ const ADM = "55555555-5555-4555-8555-555555555555";
 const DT = "66666666-6666-4666-8666-666666666666"; // Đối tác (tài khoản); hồ sơ pty-<id>
 const HR = "77777777-7777-4777-8777-777777777777";
 const DRV = "88888888-8888-4888-8888-888888888888"; // Tài xế công ty
+const DP = "99999999-9999-4999-8999-999999999991"; // Tài xế đối tác (DRIVER_PARTNER, ADR-0048): cột ma trận «none», không phải quyền Đối tác (`holdsPartner` chỉ xét PARTNER)
 const KP = "99999999-9999-4999-8999-999999999990"; // tài khoản lai: Kế toán + Đối tác ("có quyền Đối tác là áp")
 const AT = "2026-10-01T00:00:00.000Z";
 const TEN = "Nhân viên spa";
@@ -34,6 +35,7 @@ function setup(): W {
   for (const [id, phone, name, perms] of [
     [SALES, "0900000001", "An Bán", ["SALES"]], [HDV, "0900000002", "Nam HDV", ["FIELD"]], [SA, "0900000003", "Chủ", ["SUPER_ADMIN"]], [KT, "0900000005", "Lan Kế Toán", ["ACCOUNTING"]],
     [ADM, "0900000006", "Quản Trị", ["ADMIN"]], [DT, "0900000008", "Đối Tác Một", ["PARTNER"]], [HR, "0900000009", "Hà Nhân Sự", ["HR"]], [DRV, "0900000010", "Tài Xế", ["DRIVER"]], [KP, "0900000011", "Khoa Lai Kế", ["ACCOUNTING", "PARTNER"]],
+    [DP, "0900000012", "Tài Xế Đối Tác", ["DRIVER_PARTNER"]],
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
   w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 500000, 1, '2026-01-01', '2026-01-01')");
   for (const [id, ten] of [[ORG, "Spa Hoa Sen"], [ORG2, "Spa Lá Trà"]] as const) {
@@ -130,17 +132,17 @@ for (const [ten, as] of [["Kế toán", KT], ["Quản trị", ADM], ["Toàn quy�
   });
 }
 
-test("N-1: Bán hàng GET 200 nhưng POST 403; Hướng dẫn viên, Nhân sự, Đối tác, Tài xế và tài khoản lai Kế toán + Đối tác 403 cả hai; không ai bị 403 làm đổi dữ liệu", async () => {
+test("N-1: Bán hàng GET 200 nhưng POST 403; Hướng dẫn viên, Nhân sự, Đối tác, Tài xế, Tài xế đối tác và tài khoản lai Kế toán + Đối tác 403 cả hai; không ai bị 403 làm đổi dữ liệu", async () => {
   const w = setup();
   assert.equal((await w.call("GET", "/api/pricing/loai-doi-tac", { as: SALES })).status, 200);
   const truoc = [dem(w, "SELECT count(*) AS n FROM pty_role_type"), dem(w, "SELECT count(*) AS n FROM prc_beneficiary_role"), dem(w, "SELECT count(*) AS n FROM audit_log")];
   assert.equal((await them(w, SALES)).status, 403);
-  for (const as of [HDV, HR, DT, DRV, KP]) {
+  for (const as of [HDV, HR, DT, DRV, DP, KP]) {
     assert.equal((await w.call("GET", "/api/pricing/loai-doi-tac", { as })).status, 403, `GET ${as}`);
     assert.equal((await them(w, as)).status, 403, `POST ${as}`);
   }
   const ma = await themLoai(w, "Loại thử quyền");
-  for (const as of [SALES, HDV, HR, DT, DRV, KP]) {
+  for (const as of [SALES, HDV, HR, DT, DRV, DP, KP]) {
     assert.equal((await tat(w, ma, as)).status, 403, `tắt ${as}`);
     assert.equal((await bat(w, ma, as)).status, 403, `bật ${as}`);
   }
