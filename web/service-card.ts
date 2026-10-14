@@ -14,6 +14,7 @@ import { parseMoney, vnd } from "./format";
 import { icon } from "./icons";
 import { moneyInput, setMoneyValue } from "./money-input";
 import { tripFields } from "./trip-fields";
+import type { DiemNhanh } from "../src/shared/chon-nhanh";
 import { taoKhoiDuaDon, type DiemChon } from "./khoi-dua-don";
 import type { MauChang } from "../src/shared/chang-mac-dinh";
 
@@ -35,7 +36,11 @@ export interface CardOptions {
   /** ADR-0061: người dùng ĐƯỢC nhập tay (`duocDung` của máy chủ) — thẻ nhập tay đã lưu sửa được tên/giá; vắng/false = chỉ xem (máy chủ vẫn kiểm lại). */
   duocNhapTay?: boolean;
   /** Khối "Đưa đón" (ADR-0047 Phần B, bản vẽ M1/M6): ngày đi của cả đơn, mẫu chặng của dịch vụ, điểm danh mục, ô số người chiều về (văn phòng). */
-  duaDon: { ngayDi: () => string; mau: () => MauChang | null; diem: () => readonly DiemChon[]; suaSoVe: boolean; newKey: () => string };
+  duaDon: {
+    ngayDi: () => string; mau: () => MauChang | null; diem: () => readonly DiemChon[]; diemNhanh: () => readonly DiemNhanh[]; suaSoVe: boolean; newKey: () => string;
+    /** ADR-0118 Đ5: false (dịch vụ thuộc nhóm TẮT đưa đón) → khối Đưa đón không hiện. Chỉ ẩn / hiện — cổng thật là máy chủ (409). Vắng = hiện. */
+    coDuaDon?: () => boolean;
+  };
 }
 
 export interface ServiceCard {
@@ -94,6 +99,8 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     legs: draft.legs, taoSan: draft.taoSan, che: "form", ma: draft.key, ...o.duaDon, soKhach: () => soKhachNhap(draft),
     onChange: (legs, taoSan) => commit({ ...draft, legs, taoSan }),
   });
+
+  duaDon.root.hidden = o.duaDon.coDuaDon?.() === false;
 
   const summaryEl = h("span", { class: "trip-summary" });
   const fields = tripFields({ trip: draft.trip, onChange: (trip) => commit({ ...draft, trip }), noDepartDate: true, nhanNoi: true }); // ngày khởi hành chọn một lần cho cả đơn (ADR-0021); nhãn nổi trong ô (đợt 1 #4)
@@ -355,6 +362,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       draft = d;
       if (structKey(d, o.duocNhapTay === true) !== before) rebuildBody();
       if (legsDoi) duaDon.update(d.legs, d.taoSan);
+      duaDon.root.hidden = o.duaDon.coDuaDon?.() === false; // cờ nhóm có thể vừa đổi (form tải lại danh mục sau 409 `transfer_disabled`)
       refresh();
       refreshLimits(); // thân có thể vừa được dựng lại: nút "+ Thêm dòng" mới mặc định bật
     },

@@ -5,6 +5,7 @@ import type { SuKienDon } from "../src/shared/bang-tin";
 import type { AssigneeDto, CatalogServiceDto } from "../src/shared/contracts";
 import { canhBaoChangForm } from "../src/shared/dat-gap-hien-thi";
 import { CHIEU_LABEL, type LyDoDatGap } from "../src/shared/chang-dua-don";
+import { boChangKhiTatDuaDon, cauBoChangNhomTat, diemChonNhanh, type DiemNhanh } from "../src/shared/chon-nhanh";
 import { cauDoiNgay, changTaoSan, doiNgayDi, giuDatGapNhap, type ChangNhap } from "../src/shared/chang-form";
 import type { MauChang } from "../src/shared/chang-mac-dinh";
 import { dongTuDto, loiDanhSachKhach, passengersNhap, type DongKhach } from "../src/shared/hanh-khach-form";
@@ -100,6 +101,14 @@ let duocDatGap = false;
 // ---- khối Đưa đón + Hành khách (ADR-0047 Phần B; bản vẽ docs/design/2026-10-01-dua-don-hanh-khach M1, M2, M6) ----
 /** Điểm danh mục đang dùng (GET /api/locations, cổng staff) cho ô Nơi đón / Nơi trả. Lỗi → rỗng (vẫn gõ tự do được). */
 let diem: DiemChon[] = [];
+/** ADR-0118 Đ4: điểm «Chọn nhanh» (đang dùng, đã xếp theo số) — cùng lời gọi `/api/locations` với `diem`. Lỗi → rỗng (không hiện hàng nút). */
+let diemNhanh: DiemNhanh[] = [];
+/**
+ * ADR-0118 Đ5 / Ruling R-H: mã dịch vụ → «nhóm của nó có cho đưa đón không» (từ `GET /api/catalog/for-order`, mọi dịch vụ kể cả ẩn). Chỉ để ẨN khối Đưa đón và bỏ chặng; cổng thật là máy chủ (409 `transfer_disabled`).
+ * Mã vắng (dịch vụ nhập tay, đã rời danh mục) → coi là cho đưa đón.
+ */
+const choDuaDon = new Map<string, boolean>();
+const coDuaDon = (d: ServiceDraft): boolean => (d.kind === "catalog" ? choDuaDon.get(d.code) !== false : true);
 /** Mẫu chặng hiện hành theo mã dịch vụ (GET /api/van-chuyen/mau-chang — chỉ người lập đơn). Lỗi → không tạo sẵn chặng. */
 let mauChang = new Map<string, MauChang>();
 /** Văn phòng (ô `order.trip.edit`) sửa / gửi "Số người chiều về"; Đối tác, Thực tập chỉ xem (gửi khoá này sẽ bị 403). Đặt trước khi dựng thẻ. */
@@ -138,7 +147,8 @@ orderDateEl.addEventListener("input", () => {
 // ---- ô chọn danh mục và danh sách thẻ ----
 const picker = createCatalogPicker({
   onPick: (item) => {
-    const tao = changTaoSan(mauChang.get(item.code) ?? null, orderDate, newKey); // M6: dịch vụ có mẫu Một / Hai chiều → tạo sẵn chặng (sửa / bỏ được)
+    // M6: dịch vụ có mẫu Một / Hai chiều → tạo sẵn chặng (sửa / bỏ được). Nhóm TẮT đưa đón (ADR-0118 Đ5) → không tạo chặng, dù có mẫu.
+    const tao = choDuaDon.get(item.code) === false ? { legs: [] as ChangNhap[], taoSan: null } : changTaoSan(mauChang.get(item.code) ?? null, orderDate, newKey);
     const entry = mount({ ...withOrderDate(newCatalogDraft(item, newKey())), legs: tao.legs, taoSan: tao.taoSan });
     entry.card.root.scrollIntoView({ block: "nearest" });
     hienBaoNgan(`Đã thêm ${item.name} — đơn có ${entries.length} dịch vụ`); // bản 1.39: sau khi chọn, ô tìm đóng và thẻ mới ở cuối — báo ngắn để biết đã thêm
@@ -161,7 +171,7 @@ function mount(d: ServiceDraft, open?: boolean): Entry {
     canAddLine: () => totalLines(drafts()) < MAX_LINES_PER_ORDER,
     retailOnly,
     duocNhapTay,
-    duaDon: { ngayDi: () => orderDate, mau: () => mauCua(entry.draft), diem: () => diem, suaSoVe, newKey },
+    duaDon: { ngayDi: () => orderDate, mau: () => mauCua(entry.draft), diem: () => diem, diemNhanh: () => diemNhanh, suaSoVe, newKey, coDuaDon: () => coDuaDon(entry.draft) },
     onChange: (next) => {
       entry.draft = next;
       recompute();
@@ -450,14 +460,33 @@ async function refreshCatalogAfterConflict(): Promise<void> {
   }
 }
 
+/**
+ * Máy chủ vừa từ chối vì nhóm của dịch vụ đã TẮT đưa đón (409 `transfer_disabled`; Quản trị tắt giữa lúc đang soạn): tải lại cờ nhóm, ẩn khối Đưa đón và bỏ chặng của các dịch vụ đó (ADR-0118 Đ5).
+ * Trả câu báo; rỗng nếu không dịch vụ nào đổi (vd tải danh mục hỏng — banner của máy chủ vẫn nói cách sửa).
+ */
+async function boChangNhomVuaTat(): Promise<string> {
+  await refreshCatalogAfterConflict();
+  const bao: string[] = [];
+  for (const en of entries) {
+    const bo = boChangKhiTatDuaDon(en.draft.legs, coDuaDon(en.draft));
+    if (bo.soBo === 0) continue;
+    en.draft = { ...en.draft, legs: bo.legs, taoSan: null };
+    en.card.update(en.draft);
+    bao.push(cauBoChangNhomTat(en.draft.name.trim() || "Dịch vụ", bo.soBo));
+  }
+  recompute();
+  return bao.join(" ");
+}
+
 async function onSaveError(err: unknown): Promise<void> {
   const failure =
     err instanceof ApiError
       ? classifyOrderError({ status: err.status, code: err.code, message: err.message, details: err.details }, { serviceNames: entries.map((e, i) => nameOf(e.draft, i)), formatMoney: vnd })
       : NETWORK_BANNER;
   if (failure.refreshCatalog) await refreshCatalogAfterConflict();
+  const daBoChang = err instanceof ApiError && err.code === "transfer_disabled" ? await boChangNhomVuaTat() : "";
   if (failure.action === "lock_form") lockForm(failure);
-  renderBanner(saveErrorEl, failure, { reloadOrder: () => void loadOrder(), reloadPage: () => location.reload() });
+  renderBanner(saveErrorEl, daBoChang ? banner("warning", `${daBoChang} Bấm Lưu lại.`) : failure, { reloadOrder: () => void loadOrder(), reloadPage: () => location.reload() });
   // 400 `invalid_assignee`: người được chọn vừa nghỉ/mất quyền giữa lúc điền form — máy chủ KHÔNG tạo đơn; form giữ nguyên (kể cả lựa chọn, để người dùng
   // thấy mình đã chọn ai) và banner nói cách sửa. Đổi/bỏ lựa chọn thì banner này tự gỡ (`setHandlerPick`).
   assigneeErrorShown = err instanceof ApiError && err.code === "invalid_assignee";
@@ -574,6 +603,8 @@ window.addEventListener("pageshow", (e) => {
 
 // ---- danh mục và đơn ----
 function setCatalog(res: Api.CatalogPublicResponse): void {
+  choDuaDon.clear();
+  for (const c of res.items) choDuaDon.set(c.code, c.transferEnabled);
   live = new Map(res.items.filter((c) => c.supported).map((c) => [c.code, c]));
   picker.setItems(res.items);
   picker.setGroups(res.groups); // ADR-0058 Đ8: nút xổ xuống "Nhóm dịch vụ" (ô tick chọn nhiều nhóm)
@@ -609,7 +640,9 @@ function napBenDat(o: Api.OrderDetailDto): void {
   bookerPicker.set(o.bookerPartyId, o.bookerName);
 }
 
-function fill(o: Api.OrderDetailDto): void {
+/** Trả các câu báo (dịch vụ thuộc nhóm tắt đưa đón mà nháp còn chặng → form bỏ chặng đó; ADR-0118 Đ5). */
+function fill(o: Api.OrderDetailDto): string[] {
+  const bao: string[] = [];
   field("customerName").value = o.customerName;
   field("customerPhone").value = o.customerPhone;
   napBenDat(o);
@@ -625,13 +658,20 @@ function fill(o: Api.OrderDetailDto): void {
   orderDate = ngayDv.size === 1 ? [...ngayDv][0]! : "";
   orderDateEl.value = orderDate;
   for (const s of o.services) {
-    const entry = mount(draftFromDto(s, live, newKey()), s.id === focusId ? true : undefined);
+    let nhap = draftFromDto(s, live, newKey());
+    const bo = boChangKhiTatDuaDon(nhap.legs, coDuaDon(nhap));
+    if (bo.soBo > 0) {
+      nhap = { ...nhap, legs: bo.legs, taoSan: null };
+      bao.push(cauBoChangNhomTat(nhap.name, bo.soBo));
+    }
+    const entry = mount(nhap, s.id === focusId ? true : undefined);
     if (s.id === focusId) entry.card.reveal(); // liên kết "Sửa" của banner incomplete_trip: mở khối chuyến và cuộn tới thẻ
   }
   // Đơn cũ (trước ADR-0021) có thể mỗi dịch vụ một ngày: khi đó ô để trống và Lưu báo "chọn một ngày cho cả đơn" (không đoán hộ).
   const dates = new Set(entries.map((e) => e.draft.trip.departDate));
   orderDate = dates.size === 1 ? [...dates][0]! : "";
   orderDateEl.value = orderDate;
+  return bao;
 }
 
 async function loadOrder(): Promise<void> {
@@ -646,7 +686,8 @@ async function loadOrder(): Promise<void> {
     byId("form-title").textContent = `Sửa đơn ${order.orderCode}`;
     setBarTitle(`Sửa đơn ${order.orderCode}`);
     suaSoVe = suaChuyenDuoc(staff, order.staffId, canModify); // trước fill: thẻ dựng ô "Số người chiều về" theo cờ này
-    fill(order);
+    const baoBoChang = fill(order);
+    if (baoBoChang.length > 0) renderBanner(saveErrorEl, banner("warning", `${baoBoChang.join(" ")} Bấm Lưu nháp để ghi lại.`));
     // Hành khách của nháp: chỉ người có ô order.passenger.write; tải hỏng → KHÔNG dựng khối và KHÔNG gửi khoá `passengers` (máy chủ giữ danh sách đang lưu —
     // không bao giờ gửi [] khi chưa biết danh sách thật).
     // Tải lại đơn (sau 409 stale): bỏ khối cũ TRƯỚC — tải danh sách hỏng thì không được gửi lại danh sách cũ đè lên bản người khác vừa sửa (R6).
@@ -740,8 +781,11 @@ byId("use-mine").addEventListener("click", () => {
 });
 // ADR-0047 Phần B: điểm danh mục cho ô Nơi đón / Nơi trả (cổng staff — mọi tài khoản) và mẫu chặng theo dịch vụ (chỉ người lập đơn). Lỗi → rỗng.
 const layDiem = api<Api.LocationListResponse>("/api/locations").then(
-  (r) => r.locations.filter((l) => l.active).map((l): DiemChon => ({ id: l.id, nhan: `${l.name} · ${l.locationTypeName.toLowerCase()}`, sanBay: l.locationTypeCode === "AIRPORT" })),
-  () => [] as DiemChon[],
+  (r) => ({
+    diem: r.locations.filter((l) => l.active).map((l): DiemChon => ({ id: l.id, nhan: `${l.name} · ${l.locationTypeName.toLowerCase()}`, sanBay: l.locationTypeCode === "AIRPORT" })),
+    nhanh: diemChonNhanh(r.locations),
+  }),
+  () => ({ diem: [] as DiemChon[], nhanh: [] as DiemNhanh[] }),
 );
 const layMau = can(staff, "order.create")
   ? api<Api.MauChangFormResponse>("/api/van-chuyen/mau-chang").then((r) => new Map(Object.entries(r.mauChang)), () => new Map<string, MauChang>())
@@ -755,7 +799,10 @@ const layNhapTay = can(staff, "order.create")
 // (gọi thì hiện thêm "Không tải được danh mục dịch vụ — tải lại trang…", lời khuyên sai vì tải lại không giúp gì). Hôm nay mọi mã có `order.modify`
 // đều có `order.create`; ai sửa đơn mà không được lập đơn thì thẻ đã lưu hiện ở dạng khoá như khi mất danh mục (xem `loadCatalog`).
 // Điểm + mẫu chặng TRƯỚC khi danh mục hiện ra ô chọn: chọn dịch vụ sớm mà mẫu chưa về thì mất chặng tạo sẵn (M6) — kịch bản 9b bắt được.
-[diem, mauChang] = await Promise.all([layDiem, layMau]);
+const [viTri, mauVe] = await Promise.all([layDiem, layMau]);
+diem = viTri.diem;
+diemNhanh = viTri.nhanh;
+mauChang = mauVe;
 if (can(staff, "order.create")) await loadCatalog(); // trước loadOrder: thẻ đã lưu cần danh mục hiện tại để biết còn đổi số khách được không
 duocNhapTay = await layNhapTay;
 addManualBtn.hidden = !duocNhapTay;

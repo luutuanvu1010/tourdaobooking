@@ -6,6 +6,7 @@ import {
   TU_DO, canHienNgayDon, changNenGon, chiTietChangCoGiaTri, coOSoHieu, goiYChang, loiChang, suaChang, themChangDi, themChieuVe, tomTatChang, type ChangNhap, type SuaChang,
 } from "../src/shared/chang-form";
 import type { MauChang } from "../src/shared/chang-mac-dinh";
+import { apChonNhanh, oChonNhanhCuaChang, type DiemNhanh } from "../src/shared/chon-nhanh";
 import { locDiem } from "../src/shared/loc-diem";
 import { h, replaceChildren } from "./dom";
 import { icon } from "./icons";
@@ -28,6 +29,10 @@ export interface KhoiDuaDonOptions {
   soKhach: () => number;
   mau: () => MauChang | null;
   diem: () => readonly DiemChon[];
+  /**
+   * ADR-0118 Đ5: điểm «Chọn nhanh» (đã lọc đang dùng + xếp theo số) — hàng nút dưới «Nơi trả» của chiều đi và «Nơi đón» của chiều về. Vắng / rỗng → không hiện hàng nút (bảng «Sửa đưa đón» của trang đơn không truyền).
+   */
+  diemNhanh?: () => readonly DiemNhanh[];
   /** Văn phòng (ô `order.trip.edit`): sửa được "Số người chiều về"; người khác chỉ xem. */
   suaSoVe: boolean;
   newKey: () => string;
@@ -169,6 +174,19 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       h("span", { class: "hint" }, "Chặng đã bỏ không mất — xem trong lịch sử đơn."),
       h("div", { class: "dd-nut" }, bo, thoi),
     );
+  }
+
+  /** Hàng nút «Chọn nhanh» dưới ô `loai` của chặng `l` (chỉ chiều đi → «Nơi trả», chiều về → «Nơi đón»); bấm = điền điểm danh mục đó vào ô. Không có điểm → null. */
+  function hangChonNhanh(l: ChangNhap, i: number, loai: "don" | "tra"): HTMLElement | null {
+    if (oChonNhanhCuaChang(l) !== loai) return null;
+    const ds = o.diemNhanh?.() ?? [];
+    if (ds.length === 0) return null;
+    const nut = ds.map((d) => {
+      const b = h("button", { type: "button", class: "pill-btn dd-nhanh-nut", "data-action": "chon-nhanh", "data-diem": d.id, "data-o": `${l.key}:nhanh-${d.id}`, "aria-pressed": String(l[loai] === d.id) }, d.ten);
+      b.addEventListener("click", () => commit(apChonNhanh(legs, i, d.id), true));
+      return b;
+    });
+    return h("div", { class: "dd-nhanh", role: "group", "aria-label": loai === "tra" ? "Chọn nhanh nơi trả" : "Chọn nhanh nơi đón" }, h("span", { class: "dd-nhanh-nhan" }, "Chọn nhanh"), ...nut);
   }
 
   /** Nhãn ngắn của điểm danh mục ("<tên> · <loại>" → "<tên>") cho dòng tóm tắt chặng gọn. */
@@ -315,12 +333,14 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
           "div",
           { class: "dd-cot" },
           nn ? h("label", { for: don.id, class: "o-noi" }, timDon, khungNhanNoi("Nơi đón", don), timDonKq, loiDon, g.don ? hint(g.don) : null) : h("label", { for: don.id }, "Nơi đón", timDon, don, timDonKq, loiDon, g.don ? hint(g.don) : null),
+          hangChonNhanh(l, i, "don"),
           donTuDo && (nn ? h("label", { for: donTuDo.id, class: "o-noi" }, khungNhanNoi("Địa chỉ đón", donTuDo), loiDonTuDo, hint(CHI_DIA_CHI)) : h("label", { for: donTuDo.id }, "Địa chỉ đón", donTuDo, loiDonTuDo, hint(CHI_DIA_CHI))),
         ),
         h(
           "div",
           { class: "dd-cot" },
           nn ? h("label", { for: tra.id, class: "o-noi" }, timTra, khungNhanNoi("Nơi trả", tra), timTraKq, g.tra ? hint(g.tra) : null) : h("label", { for: tra.id }, "Nơi trả", timTra, tra, timTraKq, g.tra ? hint(g.tra) : null),
+          hangChonNhanh(l, i, "tra"),
           traTuDo && (nn ? h("label", { for: traTuDo.id, class: "o-noi" }, khungNhanNoi("Địa chỉ trả", traTuDo), hint(CHI_DIA_CHI)) : h("label", { for: traTuDo.id }, "Địa chỉ trả", traTuDo, hint(CHI_DIA_CHI))),
         ),
       ),

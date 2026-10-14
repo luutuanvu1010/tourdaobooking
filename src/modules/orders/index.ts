@@ -59,6 +59,9 @@ import {
 } from "./service";
 import { confirmGaps, describeTripUpdates, giaiOPhuNhap, summarizeDeviations, validateTripUpdate } from "./service-rules";
 
+/** `soNguoi` (ADR-0104 Đ2 điểm gọi 4): số người hiệu lực của chặng trước / sau — chỉ khi lệnh đụng số người chiều về. */
+type LenhChang = { res: Response } | { sua: Parameters<typeof changeLeg>[4] | null; soNguoi?: { truoc: number; sau: number } };
+
 const FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được thay đổi đơn này.");
 const CANNOT_CREATE = () => error(403, "forbidden", "Tài khoản này không được lập đơn.");
 /** Chọn người phụ trách lúc lập đơn cần `dispatch.assign` trên đơn của chính mình (ADR-0030 S20-4, G4) — Thực tập, Đối tác không có. */
@@ -186,9 +189,6 @@ function legFailure(f: { code: "invalid_input" | "leg_not_found" | "leg_closed" 
 const TRANSFER_DISABLED = (message: string): Response => error(409, "transfer_disabled", message);
 /** Kết quả `resolveLegPlaces` lỗi → phản hồi: chốt chặn đưa đón 409; điểm danh mục không còn dùng 400. */
 const loiViTriChang = (p: { message: string; code?: "transfer_disabled" }): Response => (p.code === "transfer_disabled" ? TRANSFER_DISABLED(p.message) : error(400, "invalid_input", p.message));
-
-/** `soNguoi` (ADR-0104 Đ2 điểm gọi 4): số người hiệu lực của chặng trước / sau — chỉ khi lệnh đụng số người chiều về. */
-type LenhChang = { res: Response } | { sua: Parameters<typeof changeLeg>[4] | null; soNguoi?: { truoc: number; sau: number } };
 
 /** Đầu vào `sau` + `tangTheoChang` của máy đồng bộ chuyến cho lệnh SỬA chặng (ADR-0104 Đ2 điểm gọi 4): chỉ số người; giờ / nơi theo VK1-B (giữ + nút). */
 function sauSuaChang(trangThai: string, legId: string, sn: { truoc: number; sau: number } | undefined) {
