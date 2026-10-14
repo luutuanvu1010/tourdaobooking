@@ -55,11 +55,14 @@ function moi(): DatabaseSync {
 function gieo(db: DatabaseSync): void {
   const party = (id: string, kind: string, ten: string, vai: string) => {
     run(db, "INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)", id, kind, ten, AT, AT);
+    if (kind === "PERSON") run(db, "INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES (?, ?, ?, ?)", id, ten, AT, AT);
+    else run(db, "INSERT INTO pty_organization (party_id, created_at, updated_at) VALUES (?, ?, ?)", id, AT, AT);
     run(db, "INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, ?, '2026-01-01', ?, ?)", `r-${id}`, id, vai, AT, AT);
   };
   run(db, "INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-s1', 'PERSON', 'Nhân Viên', 1, ?, ?)", AT, AT);
   run(db, "INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES ('pty-s1', 'Nhân Viên', ?, ?)", AT, AT);
   run(db, "INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at, party_id) VALUES ('s1', '', '0900000001', 'x', 'sales', 1, ?, 'pty-s1')", AT);
+  run(db, "INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES ('stp-s1', 's1', 'ADMIN', ?, ?, ?)", AT, AT, AT); // R-N1-5: còn một quản trị
   party("pty-dl", "ORGANIZATION", "Đại lý A", "TRAVEL_AGENCY");
   party("pty-hdv", "PERSON", "HDV B", "GUIDE_FREELANCE");
   party("pty-kh", "PERSON", "Khách C", "CUSTOMER");
@@ -97,6 +100,14 @@ const bang = (m: Map<string, Obj>): string[] => [...m].filter(([n, o]) => o.type
 const demMoiBang = (db: DatabaseSync, ten: readonly string[]): Record<string, number> =>
   Object.fromEntries(ten.map((t) => [t, one<{ n: number }>(db, `SELECT count(*) AS n FROM "${t}"`).n]));
 const fkCheck = (db: DatabaseSync) => all(db, "PRAGMA foreign_key_check");
+interface Check { code: string; sql: string; level: string; mode?: "rows" }
+const { CHECKS } = (await import(new URL("../scripts/audit-checks.mjs", import.meta.url).href)) as { CHECKS: Check[] };
+/** Kiểm định kỳ mức «fail» khác 0 — đúng cách scripts/audit-invariants.mjs đọc kết quả. */
+const auditDo = (db: DatabaseSync, boQua: RegExp | null = null): string[] => CHECKS.filter((c) => c.level === "fail" && !(boQua && boQua.test(c.sql))).flatMap((c) => {
+  const rows = all<Record<string, unknown>>(db, c.sql.replace(/\s+/g, " ").trim());
+  const n = c.mode === "rows" ? rows.length : Number(Object.values(rows[0] ?? { n: 0 })[0]);
+  return n > 0 ? [`${c.code}=${n}`] : [];
+});
 function loi(f: () => unknown, ma: string | RegExp): void {
   assert.throws(f, (e: Error) => (typeof ma === "string" ? e.message.startsWith(ma) : ma.test(e.message)), `phải báo lỗi ${ma}`);
 }
@@ -159,7 +170,10 @@ test("N-15: dữ liệu còn nguyên từng dòng, số dòng MỌI bảng trư�
   assert.equal(muc0.length, 4);
   assert.equal(chup0.length, 1);
   assert.deepEqual(fkCheck(db), [], "dữ liệu gieo phải sạch khoá ngoại TRƯỚC khi dựng");
+  // TRƯỚC 0097 bỏ qua hai kiểm cần cột mới (R-PRC-1/2 nhắc target_tier_code — chưa có cột thì câu lỗi); mọi kiểm mức fail còn lại phải sạch.
+  assert.deepEqual(auditDo(db, /target_tier_code/), [], "audit-invariants (mức fail) sạch trên dữ liệu gieo TRƯỚC khi dựng");
   apDungLai(db);
+  assert.deepEqual(auditDo(db), [], "audit-invariants (mức fail) sạch sau khi dựng — gồm R-PRC-1, R-PRC-2 mới");
   assert.equal(db.isTransaction, false);
   assert.deepEqual(demMoiBang(db, ten), dem0, "số dòng mọi bảng trước = sau");
   assert.deepEqual(all(db, `SELECT ${COT_CU} FROM prc_commission_rule ORDER BY id`), muc0, "từng dòng mức giữ nguyên mọi cột cũ");
