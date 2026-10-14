@@ -1,6 +1,6 @@
 # Lời nhắc gửi Claude Design
 
-> Chép từ dòng "BẮT ĐẦU" đến dòng "HẾT" vào Claude Design. Gửi kèm (đính kèm) ảnh chụp Trang chủ máy tính hiện tại và tệp `public/app.css` (đầu tệp có token) nếu Claude Design nhận tệp. Chỉ gửi SAU KHI chủ duyệt `DAC-TA.md`.
+> Đã được chủ duyệt đặc tả ngày 2026-10-14, có thể gửi. Chép từ dòng "BẮT ĐẦU" đến dòng "HẾT" vào Claude Design. Gửi kèm (đính kèm) ảnh chụp Trang chủ máy tính hiện tại và tệp `public/app.css` (đầu tệp có token) nếu Claude Design nhận tệp.
 
 ---- BẮT ĐẦU ----
 
@@ -41,7 +41,7 @@ Quy tắc số: **chỉ hiện thẻ khi số > 0**. Không có việc nào → 
 - **Quản trị**: Cần xem lại (giấy tờ xe sắp hết hạn, dịch vụ lệch giá) · Đề nghị chuyển khách (Duyệt) · Đơn nháp · Chưa phụ trách. Menu: nhóm 1 + Vận chuyển đầy đủ + TIỀN + Thiết lập (không có Phiên đăng nhập, Nhật ký, Chính sách, Gửi thông báo, Trợ lý, Giao diện).
 - **Toàn quyền**: như Quản trị + thẻ Góp ý chưa xử lý; Thiết lập đầy đủ.
 - **Tài xế**: trang riêng, KHÔNG có menu nhóm 1–4; chỉ Trang chủ tài xế · Cuốc của tôi · (Báo bận nếu là tài xế đối tác) + chân menu. Thẻ: Cuốc hôm nay (Mở cuốc) · Giấy tờ sắp hết hạn.
-- **Hướng dẫn viên**: chỉ chân menu (Của tôi, Góp ý, Trợ giúp); việc nằm ở trang Của tôi: Đơn chờ nhận (Nhận đơn) · Đơn của tôi còn thu tiền (Ghi thu).
+- **Hướng dẫn viên**: menu có **Đơn hàng** (hiện đơn tự do — đơn chưa có hướng dẫn viên nào phụ trách, có nút Nhận — và đơn của chính mình) + chân menu (Của tôi, Góp ý, Trợ giúp). Thẻ: Đơn tự do chờ nhận (Nhận đơn) · Đơn của tôi còn thu tiền (Ghi thu).
 - **Đối tác / Thực tập**: Đơn hàng · Tạo đơn + chân menu; không thẻ số.
 - **Nhân sự**: Quản lý tài khoản + chân menu.
 

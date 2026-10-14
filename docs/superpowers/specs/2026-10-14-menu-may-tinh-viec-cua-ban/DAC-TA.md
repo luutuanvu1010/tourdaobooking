@@ -1,6 +1,6 @@
 # Thiết kế lại menu máy tính và khối "Việc của bạn" ở Trang chủ
 
-> Trạng thái: **bản nháp chờ chủ duyệt** (2026-10-14). Phạm vi lần này: đặc tả + bản mô phỏng trên Claude Design. **Chưa sửa mã.** Điện thoại không đổi.
+> Trạng thái: **chủ đã duyệt 3 điểm ngày 2026-10-14** (xem §7); chờ dựng mô phỏng. Phạm vi lần này: đặc tả + bản mô phỏng trên Claude Design. **Chưa sửa mã.** Điện thoại không đổi.
 > Số liệu bên dưới đọc từ mã thật ngày 14/10 (hàm `thanhBen()`, `web/home.ts`, các route); không có số giả.
 
 ## 1. Vấn đề (đo được)
@@ -11,7 +11,7 @@
 | Toàn quyền | 31 | |
 | Kế toán | 14 | trộn lẫn mục hằng ngày với mục tháng/quý |
 | Bán hàng | 10 | gọn nhất trong nhóm văn phòng |
-| Tài xế / Hướng dẫn viên / Đối tác / Thực tập / Nhân sự | 3–6 | đã gọn |
+| Tài xế / Hướng dẫn viên / Đối tác / Thực tập / Nhân sự | 3–6 | đã gọn; riêng hướng dẫn viên đang thiếu mục Đơn hàng (lệch ADR-0017) |
 
 Hai nguyên nhân: (1) menu xếp theo **tên trang**, không theo **việc người ta làm**; (2) mục hằng ngày và mục cài đặt ít dùng nằm chung một danh sách. Trang chủ có số liệu nhưng chưa trả lời "việc dang dở của tôi là gì, bấm đâu để làm tiếp".
 
@@ -63,7 +63,7 @@ Thẻ theo vai, **chỉ dùng nguồn đã có**:
 | Quản trị | Cần xem lại (giấy tờ sắp hết hạn · dịch vụ lệch giá) *(Xử lý)* · Đề nghị chuyển khách *(Duyệt)* · Đơn nháp · Chưa phụ trách | `dashboard-review`, `demSapHetHan`, `dem-xung-dot`, `draftCount`, `unassignedCount` |
 | Toàn quyền | như Quản trị + Góp ý chưa xử lý | + `feedback/badge` |
 | Tài xế (công ty/đối tác) | Cuốc hôm nay *(Mở cuốc)* · Giấy tờ sắp hết hạn *(Xem)* | `cuoc-cua-toi`, `documents/mine` |
-| Hướng dẫn viên | Đơn chờ nhận *(Nhận đơn)* · Đơn của tôi còn thu tiền *(Ghi thu)* | `orders/pool`, `dispatch/mine` + `ledger/balances` |
+| Hướng dẫn viên | Đơn tự do chờ nhận *(Nhận đơn)* · Đơn của tôi còn thu tiền *(Ghi thu)*; menu có mục **Đơn hàng** (đơn tự do + đơn mình phụ trách) | `orders/pool`, `dispatch/mine` + `ledger/balances` |
 | Đối tác / Thực tập | Chưa có số đếm riêng → trang hiện chỉ hai lối: "Tạo đơn" và "Đơn của tôi" | — |
 | Nhân sự | Chưa có số đếm riêng → lối vào "Quản lý tài khoản" | — |
 
@@ -83,11 +83,11 @@ Phần dưới "Việc của bạn" giữ nguyên các khối đã duyệt (Chuy
 8. **Toàn quyền:** như Quản trị + Góp ý chưa xử lý; Nhật ký/Phiên/Chính sách trong Thiết lập.
 9. **Trạng thái rỗng, lỗi mạng, bảo trì:** thẻ lỗi nguồn hiện "—" và nút "Thử lại" (như ô tiền hôm nay), không làm sập cả khối.
 
-## 7. Điều cần chủ quyết (tối đa 3)
+## 7. Quyết định của chủ (14/10, đã chốt)
 
-1. **Duyệt cấu trúc §4–§5** (hoặc nêu chỗ muốn đổi) — cho phép đưa sang Claude Design dựng mô phỏng.
-2. **Kế toán 12 mục:** chuyển "Hoa hồng đối tác" và "Người bán dịch vụ" vào Thiết lập? (khuyến nghị: có, vì là việc theo kỳ, không phải hằng ngày).
-3. **Hướng dẫn viên** đáp xuống `/orders` mà menu **không có** "Đơn hàng" (đã ghim bởi bài smoke 3 mục). Khuyến nghị: để nguyên lần này, ghi nợ; sửa là đổi hành vi quyền → ADR riêng.
+1. **Duyệt cấu trúc §4–§5:** đồng ý. Cho phép dựng mô phỏng trên Claude Design.
+2. **Kế toán:** chuyển "Hoa hồng đối tác" và "Người bán dịch vụ" vào Thiết lập: đồng ý.
+3. **Hướng dẫn viên luôn thấy mục Đơn hàng**, gồm **đơn tự do** (chưa có hướng dẫn viên nào phụ trách) và **đơn của chính mình**. Đây là đúng ADR-0017 (đã duyệt: "Mục Đơn hàng xuất hiện trong thanh điều hướng của FIELD"); mã đang lệch vì `coMucDonHang` (`src/shared/start-page.ts`) chỉ xét "xem mọi đơn hoặc lập được đơn". Theo luật dự án, mã lệch tài liệu đã duyệt là lỗi → **sửa mã**, không cần ADR mới. Hệ quả: menu hướng dẫn viên từ 3 thành **4 mục** (Đơn hàng + chân menu), và bài smoke đang ghim "đúng 3 mục" phải sửa theo. Điều cần kiểm khi làm mã: trang `/orders` của hướng dẫn viên có hiện cả đơn tự do lẫn đơn của mình (hiện route `GET /api/orders/pool` và `GET /api/dispatch/mine` đã có; chưa kiểm trang `/orders` gộp cả hai).
 
 ## 8. Điểm chạm khi làm mã (giai đoạn sau, sau khi chủ duyệt mô phỏng)
 
