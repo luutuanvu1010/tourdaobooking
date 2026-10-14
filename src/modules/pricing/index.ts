@@ -177,7 +177,7 @@ export const pricingModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "prc_partner_type_added", at, detail: kq.value }),
       ]);
       if (res instanceof Response) return res;
-      return kemLocation(json({ loai: { code, ten: kq.value, coSan: false, dangBat: true } } satisfies LoaiDoiTacResponse, 201), "/loai-doi-tac");
+      return kemLocation(json({ loai: { code, ten: kq.value, coSan: false, dangBat: true } } satisfies LoaiDoiTacResponse, 201), "/hoa-hong");
     }),
     route("POST", "/api/pricing/loai-doi-tac/:code/tat", "office", async ({ env, params, staff }) => {
       if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();

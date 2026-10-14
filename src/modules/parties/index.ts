@@ -1118,6 +1118,9 @@ export const partiesModule: AppModule = {
       // Ruling 7 (kiểm độc lập Task 2): loại đối tác không đặt trước ngày kết thúc — view v_pty_party_partner_label, trigger *_partner_label_conflict và
       // hoSoMangNhanDoiTac chỉ đếm dòng valid_to_date IS NULL, nên dòng có hạn sẽ làm chiều 2 lọt. Thôi thì bấm "Kết thúc" (khuôn ownerCompanyAssignProblem).
       if (loai?.partnerLabel && parsed.value.to !== null) return error(400, "invalid_input", "Loại đối tác không đặt trước ngày kết thúc — khi thôi thì bấm “Kết thúc”.");
+      // Ruling 9 (kiểm toàn nhánh): cùng gốc với Ruling 7 — phía tiền đọc vai «đang mở» chỉ theo valid_to_date IS NULL (v_pty_open_role, LA_HUONG, VAI_MO), bỏ qua
+      // valid_from_date, nên loại có ngày bắt đầu tương lai thành người hưởng NGAY. Loại đối tác có hiệu lực từ hôm nay (ngày quá khứ vẫn nhận). Không migration.
+      if (loai?.partnerLabel && parsed.value.from > today) return error(400, "invalid_input", "Loại đối tác có hiệu lực từ hôm nay — không đặt ngày bắt đầu trong tương lai.");
       if (loai?.partnerLabel && hoSoNoiBo({ vaiMo: await vaiDangMo(env.DB, id), coQuyenNoiBo: coQuyenNoiBoCua(acc) })) return ROLE_PARTNER_LABEL_CONFLICT();
       const stmts: D1PreparedStatement[] = [addRoleStatement(env.DB, id, parsed.value, staff.id, at)];
       if (doiCongTyChu) {

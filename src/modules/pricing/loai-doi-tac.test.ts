@@ -116,7 +116,7 @@ for (const [ten, as] of [["Kế toán", KT], ["Quản trị", ADM], ["Toàn quy�
     assert.equal(r.status, 201, r.text);
     assert.match(r.json.loai.code, /^LD_[A-Z]{8}$/);
     assert.deepEqual(r.json.loai, { code: r.json.loai.code, ten: TEN, coSan: false, dangBat: true });
-    assert.match(r.headers.get("location") ?? "", /^\/[a-z0-9-]+$/);
+    assert.equal(r.headers.get("location"), "/hoa-hong", "Location trỏ trang có thật (không phải /loai-doi-tac)");
     assert.equal(dem(w, "SELECT count(*) AS n FROM pty_role_type"), truoc + 1);
     const loai = w.q("SELECT code, name, role_group, is_partner_label, active FROM pty_role_type WHERE is_partner_label = 1");
     assert.equal(loai.length, 1);
@@ -324,6 +324,38 @@ test("N-5b (c): PUT roles đổi tài khoản đối tác sang SALES_STAFF — k
   const doi = await w.call("PUT", `/api/staff/${DT}/roles`, { as: ADM, body: { roles: ["SALES_STAFF"] } });
   assert.equal(doi.status, 200, doi.text);
   await conBiGiu(w, id);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+// Ruling 9 (kiểm toàn nhánh): loại đối tác không đặt trước ngày BẮT ĐẦU. Phía tiền đọc vai «đang mở» chỉ theo valid_to_date IS NULL (v_pty_open_role, LA_HUONG,
+// VAI_MO) và bỏ qua valid_from_date, nên một dòng loại bắt đầu 30 ngày nữa thành người hưởng NGAY (bản chụp SET 15%). Chặn ở cửa vào, cạnh Ruling 7 (ngày kết thúc).
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+test("Ruling 9: gắn loại đối tác với ngày bắt đầu TƯƠNG LAI → 400, không chèn dòng, đơn xác nhận hôm nay KHÔNG ra người hưởng (không bản chụp SET)", async () => {
+  const w = setup();
+  const ma = await themLoai(w);
+  assert.equal((await mucVai(w, ma)).status, 201);
+  const r = await w.call("POST", `/api/parties/${ORG}/roles`, { as: ADM, body: { roleTypeCode: ma, validFrom: inDays(30) } });
+  // Bằng chứng hậu quả (đỏ trên mã trước sửa: dòng được chèn, bản chụp SET 1500 trỏ ORG).
+  const id = nhap(w, ORG);
+  await xacNhan(w, id);
+  const c = chup(w, id);
+  assert.equal(c.length, 1);
+  assert.equal(c[0].commission_status, "NONE", `bản chụp không được là SET cho dòng loại chưa hiệu lực: ${c[0].commission_status} / ${c[0].commission_rate_bp} / ${c[0].beneficiary_party_id}`);
+  assert.equal(r.status, 400, `ngày bắt đầu tương lai: ${r.status} ${r.text}`);
+  assert.equal(r.json.error.code, "invalid_input");
+  assert.equal(r.json.error.message, "Loại đối tác có hiệu lực từ hôm nay — không đặt ngày bắt đầu trong tương lai.");
+  assert.equal(dem(w, "SELECT count(*) AS n FROM pty_party_role WHERE party_id = ? AND role_type_code = ?", ORG, ma), 0, "không chèn dòng loại");
+});
+
+test("Ruling 9 đối chứng: ngày bắt đầu hôm nay / quá khứ / để trống → 201; loại KHÔNG phải nhãn (CUSTOMER) vẫn nhận ngày bắt đầu tương lai", async () => {
+  const w = setup();
+  const ma = await themLoai(w);
+  for (const [party, validFrom] of [[ORG, vnHomNay()], [ORG2, inDays(-30)], [NGUOI, undefined]] as const) {
+    const r = await w.call("POST", `/api/parties/${party}/roles`, { as: ADM, body: validFrom === undefined ? { roleTypeCode: ma } : { roleTypeCode: ma, validFrom } });
+    assert.equal(r.status, 201, `${party} ${validFrom}: ${r.text}`);
+  }
+  const kh = await w.call("POST", `/api/parties/${NGUOI}/roles`, { as: ADM, body: { roleTypeCode: "CUSTOMER", validFrom: inDays(30) } });
+  assert.equal(kh.status, 201, kh.text);
 });
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------

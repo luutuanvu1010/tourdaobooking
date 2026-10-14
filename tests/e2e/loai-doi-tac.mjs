@@ -38,7 +38,7 @@ assert.ok(truoc.every((x) => x.coSan && x.dangBat), "trước khi thêm: chỉ c
 for (const code of COSAN) assert.ok(truoc.some((x) => x.code === code), `có loại có sẵn ${code}`);
 r = await call(ACC, "POST", "/api/pricing/loai-doi-tac", { ten: TEN });
 assert.equal(r.status, 201, JSON.stringify(r.body));
-assert.equal(r.headers.get("location"), "/loai-doi-tac");
+assert.equal(r.headers.get("location"), "/hoa-hong");
 const MA = r.body.loai.code;
 assert.match(MA, /^LD_[A-Z]{8}$/);
 assert.deepEqual(r.body.loai, { code: MA, ten: TEN, coSan: false, dangBat: true });
@@ -63,7 +63,7 @@ assert.equal((await call(A, "GET", "/api/pricing/loai-doi-tac")).status, 200, "B
 assert.equal((await call(A, "POST", "/api/pricing/loai-doi-tac", { ten: `Loại Bán hàng ${CHU}` })).status, 403, "Bán hàng không thêm được");
 assert.equal((await call(F, "GET", "/api/pricing/loai-doi-tac")).status, 403, "Hướng dẫn viên không xem được");
 assert.equal((await sqlRows(`SELECT count(*) AS n FROM pty_role_type WHERE is_partner_label = 1`))[0].n, 1, "D1 chỉ có MỘT loại do người dùng thêm");
-console.log("✓ 1) Kế toán thêm loại ⇒ 201 + Location /loai-doi-tac (mã LD_ + 8 chữ do máy chủ sinh); danh sách = 5 có sẵn + 1 mới; D1: nhóm OTHER, nhãn, 1 dòng được hưởng, 1 dòng nhật ký; trùng 409 loai_trung; tên có SĐT 400; Bán hàng đọc 200 / ghi 403; HDV 403");
+console.log("✓ 1) Kế toán thêm loại ⇒ 201 + Location /hoa-hong (mã LD_ + 8 chữ do máy chủ sinh); danh sách = 5 có sẵn + 1 mới; D1: nhóm OTHER, nhãn, 1 dòng được hưởng, 1 dòng nhật ký; trùng 409 loai_trung; tên có SĐT 400; Bán hàng đọc 200 / ghi 403; HDV 403");
 
 // ---- 2) Gắn loại cho hồ sơ
 const taoToChuc = async (ten) => {
