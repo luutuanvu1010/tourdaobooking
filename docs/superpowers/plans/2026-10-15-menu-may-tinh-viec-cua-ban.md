@@ -80,10 +80,12 @@ và thêm `canAccessOrders` vào dòng import từ `./permissions.ts` của tệ
 
 - [ ] **Bước 4: Chạy xanh** — `node --test src/shared/start-page.test.ts` PASS.
 - [ ] **Bước 5: Kiểm route thật** — mở `src/modules/orders/index.ts` quanh `GET /api/orders` và `GET /api/orders/pool`: xác nhận FIELD nhận danh sách = đơn mình phụ trách và (qua `web/orders.ts`) trang Đơn hàng có cách thấy đơn tự do. Nếu trang `/orders` của FIELD **không** hiện đơn tự do: **dừng, báo chủ** (đó là thay đổi nghiệp vụ, không tự thêm). Ghi kết quả vào nhật ký thi công `docs/superpowers/plans/2026-10-15-menu-may-tinh-thi-cong-nhat-ky.md`.
-- [ ] **Bước 6: Chạy bài rào mục** — `node --test src/muc-hien-mo-duoc-1.test.ts src/muc-hien-mo-duoc-2.test.ts src/muc-hien-mo-duoc-3.test.ts`. Bài `src/muc-giao-dien-hien-trang.test.ts` sẽ ĐỎ vì ảnh chụp cũ; **chưa chụp lại ở đây** (chụp một lần ở Task 2).
-- [ ] **Bước 7: Commit** — `git add src/shared/muc-giao-dien.ts src/shared/start-page.test.ts` rồi `git commit -m "Hướng dẫn viên thấy mục Đơn hàng ở thanh bên, đúng ADR-0017" -m "Mã đang lệch ADR đã duyệt: hàm hiện mục chỉ xét xem-mọi-đơn hoặc lập-đơn."` (kèm dòng đồng tác giả).
+- [ ] **Bước 6: Chụp lại ảnh chụp và chạy bài rào mục** — `node scripts/chup-muc-giao-dien.mjs --ghi src/muc-giao-dien-hien-trang.json`, đọc phần thay đổi của tệp đó: chỉ được thêm mục "Đơn hàng" cho các tập quyền có FIELD mà trước đó chưa thấy mục này; rồi `node --test src/muc-hien-mo-duoc-1.test.ts src/muc-hien-mo-duoc-2.test.ts src/muc-hien-mo-duoc-3.test.ts src/muc-giao-dien-hien-trang.test.ts` phải xanh (cây làm việc phải xanh sau MỖI task vì cổng xanh giữ phiên khi bộ kiểm đỏ).
+- [ ] **Bước 7: Commit** — `git add src/shared/muc-giao-dien.ts src/shared/start-page.test.ts src/muc-giao-dien-hien-trang.json` rồi `git commit -m "Hướng dẫn viên thấy mục Đơn hàng ở thanh bên, đúng ADR-0017" -m "Mã đang lệch ADR đã duyệt: hàm hiện mục chỉ xét xem-mọi-đơn hoặc lập-đơn."` (kèm dòng đồng tác giả).
 
 ---
+
+> **Ruling 15/10 (người điều phối):** Task 2 và Task 3 giao cho MỘT trợ lý, một chuỗi commit, vì Task 2 làm `npm run typecheck` đỏ ở `web/shell.ts` tới hết Task 3 và cổng xanh không cho cây đỏ.
 
 ### Task 2: Bảng mục mới (nhóm, mục gộp, Thiết lập) + bài giữ lối vào
 
@@ -282,6 +284,8 @@ toggle.addEventListener("click", () => { const mo = toggle.getAttribute("aria-ex
 ### Task 5: Luật chọn thẻ "Việc của bạn" (hàm thuần)
 
 **Files:** Create `src/shared/viec-cua-ban.ts`, `src/shared/viec-cua-ban.test.ts`.
+
+> **Ruling 15/10:** bài của Task 5 phải khớp bản đồ quyền THẬT. Trước khi viết bài, chạy `grep -n "ledger.adjust.approve\|ledger.view\|feedback.triage\|ledger.write" src/shared/permissions.ts` và đối chiếu ô nào có cho SALES/ACCOUNTING/ADMIN/SUPER_ADMIN; nếu Kế toán KHÔNG giữ `ledger.adjust.approve`, bài "Kế toán" đổi kỳ vọng cho đúng (bỏ `dieuChinh`, thêm thẻ kế tiếp theo luật) và ghi lý do vào báo cáo; tuyệt đối không đổi bản đồ quyền.
 
 **Interfaces — Produces:**
 ```ts
