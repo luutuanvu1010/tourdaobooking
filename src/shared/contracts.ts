@@ -780,6 +780,11 @@ export interface LocationDto {
   address: string | null;
   sortOrder: number;
   active: boolean;
+  /**
+   * ADR-0118 Đ4: thứ tự «Chọn nhanh» 1–99 (`null` = không chọn nhanh). Điểm ĐANG DÙNG có số này hiện thành nút dưới ô Nơi trả (chiều đi) / Nơi đón (chiều về) ở form Tạo đơn;
+   * điểm ngưng dùng vẫn mang số nhưng giao diện lọc theo `active`. Gửi lên `PUT /api/locations/:id`: số 1–99 hoặc `null` (bỏ); KHOÁ VẮNG = giữ giá trị đang lưu.
+   */
+  quickPickOrder: number | null;
   /** Mốc cập nhật cuối — gửi lại làm `expectedUpdatedAt` khi sửa (khoá lạc quan). */
   updatedAt: string;
 }
