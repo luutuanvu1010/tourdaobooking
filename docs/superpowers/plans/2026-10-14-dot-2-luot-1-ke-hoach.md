@@ -28,7 +28,7 @@ Báo chủ dạng "xong x / 8". Mỗi task kết thúc bằng một commit tiế
 ## Ràng buộc chung
 - Tiếng Việt có dấu mọi chữ hiện ra; gọi "Nền tảng"; nhật ký không ghi SĐT/email/MST/tên khách.
 - Không `innerHTML`, dùng `h()`; giá trị CSS vào token; ô gõ 16px; nút bấm ≥ 44px.
-- Không sửa migration đã có; số migration kế tiếp từ `0096` (kiểm lại ở Task 0 bằng `ls migrations` và `git ls-tree` của mọi nhánh chưa gộp). Trigger không bắt đầu bằng `stf_`/`staff_`.
+- Không sửa migration đã có; số migration kế tiếp là số lớn nhất ở `main` + 1 **nhưng bỏ qua 0096 và 0097**: hai số này đã được giữ cho ADR-0117 lần 2 (nhánh `claude/phan-loai-dai-ly-hoa-hong-66d076` đã có `0096_muc_ta_bang_moi.sql`; kế hoạch `2026-10-14-adr-0117-lan-2-ke-hoach.md`), nên dự kiến **0098** (kiểm lại ở Task 0 bằng `ls migrations` và `git ls-tree` của mọi nhánh chưa gộp). Trigger không bắt đầu bằng `stf_`/`staff_`.
 - Câu SQL mới của module nghiêm đi qua `defineSql`; `orders` chỉ import module khác qua `index.ts` và chỉ đọc view `v_<tiền tố>_*`.
 - Sửa hành vi → bài **đỏ trước, xanh sau**. Hàng rào mới phải quan sát **chặn thật một lần** rồi ghi `docs/SO-HANG-RAO.md`.
 - Việc lớn (dữ liệu): người thi công không tự khai "đạt"; Task 7 do phiên khác làm.
@@ -40,12 +40,12 @@ Báo chủ dạng "xong x / 8". Mỗi task kết thúc bằng một commit tiế
 ## Task 0 — Điều kiện (không viết mã)
 - [ ] Chủ đã duyệt văn bản ADR-0118 trong chat; ADR được chuyển vào `docs/adr/ADR-0118-….md` (công cụ sửa tệp, N9) và `docs/adr/README.md` thêm dòng mục lục. Chưa duyệt → **dừng**, không thi công.
 - [ ] Nhánh mới dựng trên `main` mới nhất; `npm test` và `npm run typecheck` xanh trước khi sửa.
-- [ ] Số migration = số lớn nhất trong `migrations/` + 1, đã rà mọi nhánh chưa gộp (dự kiến `0096`).
+- [ ] Số migration = số lớn nhất trong `migrations/` + 1, đã rà mọi nhánh chưa gộp (dự kiến `0098`, sau hai số của ADR-0117 lần 2; nếu lần 2 lên main trước thì lấy số kế tiếp thật).
 - [ ] Ghi sổ điều phối `docs/superpowers/plans/2026-10-14-dot-2-luot-1-thi-cong-nhat-ky.md` (ruling, nợ).
 - [ ] **Chủ chạy một câu đếm chỉ-đọc** (người thi công soạn lệnh, kèm thư mục): hai mã `CANG_VINPEARL`, `BEN_TAU_NHA_TRANG` còn tồn tại và `active = 1` trên D1 thật không; ghi kết quả vào nhật ký thi công. Nếu thiếu: bỏ phần gieo ở Task 1, báo chủ thêm điểm bằng màn Địa điểm.
 
 ## Task 1 — Migration và từ điển dữ liệu
-**Tệp:** `migrations/0096_dua_don_theo_nhom_va_diem_nhanh.sql` (tên chốt ở Task 0), `docs/data-dictionary.json`, `docs/DATA-DICTIONARY.md` (sinh bằng `npm run dict`), bài mới `src/migrations-dua-don-nhom.test.ts` (khuôn `src/migrations-mau-chang.test.ts`).
+**Tệp:** `migrations/0098_dua_don_theo_nhom_va_diem_nhanh.sql` (tên chốt ở Task 0), `docs/data-dictionary.json`, `docs/DATA-DICTIONARY.md` (sinh bằng `npm run dict`), bài mới `src/migrations-dua-don-nhom.test.ts` (khuôn `src/migrations-mau-chang.test.ts`).
 - [ ] **Bài đỏ trước:** N-1 `ctl_group` có cột `transfer_enabled` mặc định 1 cho cả 14 nhóm gieo; chèn giá trị 2 bị CHECK chặn. N-2 view `v_ctl_service_transfer`: dịch vụ thuộc nhóm tắt → 0; chưa phân loại → 1; mã không có dòng gán → 1; nhóm hiện hành đổi (dòng `seq` lớn nhất) thì view đổi theo. N-3 `loc_location.quick_pick_order` NULL mặc định, 0 và 100 bị CHECK chặn; hai điểm gieo có 1 và 2 (nếu tồn tại), điểm khác NULL; chạy migration trên D1 thiếu hai mã không lỗi.
 - [ ] Viết migration (`ALTER TABLE … ADD COLUMN`, `CREATE VIEW`, `UPDATE … WHERE code IN`). View: `catalog_item` LEFT JOIN `v_ctl_service_group` LEFT JOIN `ctl_group`, `COALESCE(g.transfer_enabled, 1)`.
 - [ ] Cập nhật `docs/data-dictionary.json` (2 cột, 1 view) + `npm run dict`; chạy `node --test src/migrations-dua-don-nhom.test.ts src/architecture.test.ts`.
