@@ -87,4 +87,5 @@ Tôi đã tự giả định hai điểm, đảo ngược được, chủ sửa 
 - Chưa đọc lại chi tiết cách chọn bậc và chụp của hoa hồng (ADR-0077); mục "tái dùng khuôn" ở §3.1 là giả định cần người soạn ADR xác nhận.
 - Số migration và số ADR kế tiếp phải kiểm lại lúc thi công (`main` đã có migration 0095; các nhánh chưa gộp có thể giữ số).
 - Chưa hỏi Kế toán về hoa hồng trên phụ thu; chưa xem dữ liệu thật để biết bao nhiêu nơi đón đang là chữ tự gõ (cần một câu đếm chỉ-đọc trước khi chủ chọn ở quyết định 1).
+- **Phối hợp với ADR-0117 lần 2 (phiên khác, chưa duyệt):** lần 2 dựng lại bảng `prc_commission_rule` trong cùng module `pricing` và giữ migration 0096–0097. **Lượt 2 của Đợt 2 (lớp giá) chỉ bắt đầu soạn ADR sau khi lần 2 đã lên main hoặc chủ đã quyết bỏ nó**, để hai bên không cùng dựng lại bảng tiền hay đặt tên bảng chồng nhau; lượt 1 không đụng `pricing` nên không bị ảnh hưởng.
 - Mức 20.000 / 30.000 là ví dụ chủ nêu, **không phải** hằng số trong mã.
