@@ -634,6 +634,18 @@
       "note": "danh sách vai hồ sơ được hưởng hoa hồng (ADR-0077 điều 3, C3 = A; migration 0090): gieo năm vai (Công ty lữ hành, HDV độc lập, Lễ tân khách sạn, Tài xế taxi, Cộng tác viên). Không xoá, không đổi khoá hay cột tạo (trigger prc_beneficiary_role_update_scope); tắt một vai bằng active = 0 (dòng mức cũ vẫn giữ, R-PRC-2 báo)"
     },
     {
+      "name": "prc_rate_tier",
+      "module": "pricing",
+      "kind": "table",
+      "note": "mức TA dùng chung (ADR-0117 lần 2; migration 0096): tên do Kế toán đặt (TA1, TA2…), name_key duy nhất (khoá so tên, máy chủ ghi). Không xoá; chỉ đổi tên/active (trigger prc_rate_tier_update_scope); tắt mức = chặn gắn mới và thêm dòng mới, dòng đang áp vẫn áp"
+    },
+    {
+      "name": "prc_role_tier",
+      "module": "pricing",
+      "kind": "table",
+      "note": "gắn loại hồ sơ với mức TA theo ngày (ADR-0117 lần 2; migration 0096): chỉ thêm hoặc đóng một lần, mỗi loại tối đa một mức tại một ngày (prc_tier_overlap); loại phải nằm trong danh sách được hưởng còn bật (prc_tier_target), mức phải còn bật (prc_tier_inactive). Đổi mức = đóng gắn cũ, mở gắn mới"
+    },
+    {
       "name": "prc_commission_rule",
       "module": "pricing",
       "kind": "table",
