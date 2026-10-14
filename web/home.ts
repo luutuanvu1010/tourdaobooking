@@ -10,6 +10,7 @@ import { layKhungNho } from "./khung-nho";
 import { feedbackBadge, initShell } from "./shell";
 import { demSapHetHan } from "./vc-dem";
 import { canSeeReviewAlerts, reviewAlerts, type ReviewAlerts } from "../src/shared/dashboard-review";
+import { tieuDeDemDoiChieu } from "../src/shared/doi-chieu-hien-thi";
 import { PERMISSION_LABEL, can } from "../src/shared/permissions";
 import { homeRedirect } from "../src/shared/start-page";
 import { conLai, dongThoiGian, loiChao, phutVN, type DongThoiGian, type LoaiChuyen } from "../src/shared/trang-chu-may-tinh";
@@ -260,19 +261,23 @@ function renderToday(data: Pick<Api.DashboardResponse, "today" | "tomorrow" | "d
  * "không có cảnh báo nào" (mảng rỗng) thay vì ẩn HẲN khối chỉ vì một nửa dữ liệu chưa tải được.
  */
 async function loadReview(staff: Staff): Promise<ReviewAlerts | null> {
-  if (!canSeeReviewAlerts(staff)) return null;
+  const laQuanTri = canSeeReviewAlerts(staff);
+  const laKeToan = can(staff, "ledger.view"); // ADR-0118: dòng "khoản đang đối chiếu quá 3 ngày" của Kế toán (cùng ô route /api/ledger/coc/dem hỏi)
+  if (!laQuanTri && !laKeToan) return null;
   // Giấy tờ sắp hết hạn (bản vẽ 1.73): CHUNG lời gọi với huy hiệu ô / thanh bên (web/vc-dem.ts giữ lời hỏi đang chạy); lỗi mạng → 0 → không dòng.
-  const [catalogRes, feedbackRes, sapHetRes] = await Promise.allSettled([
-    layCatalogAdmin(),
-    can(staff, "feedback.triage") ? layFeedback() : Promise.resolve<Api.FeedbackQueueResponse | null>(null),
-    can(staff, "vehicle.manage") ? demSapHetHan() : Promise.resolve(null),
+  const [catalogRes, feedbackRes, sapHetRes, doiChieuRes] = await Promise.allSettled([
+    laQuanTri ? layCatalogAdmin() : Promise.resolve<Api.CatalogAdminResponse | null>(null),
+    laQuanTri && can(staff, "feedback.triage") ? layFeedback() : Promise.resolve<Api.FeedbackQueueResponse | null>(null),
+    laQuanTri && can(staff, "vehicle.manage") ? demSapHetHan() : Promise.resolve(null),
+    laKeToan ? api<Api.CocDemResponse>("/api/ledger/coc/dem") : Promise.resolve<Api.CocDemResponse | null>(null),
   ]);
   // Huy hiệu cát của ô "Dịch vụ & giá" (Trang chủ điện thoại) — CÙNG phép đếm với huy hiệu thanh bên (web/shell.ts catalogConflictBadge), dùng lại lời gọi vừa có.
-  if (catalogRes.status === "fulfilled") datHuyHieu("dich-vu", catalogRes.value.items.filter((i) => i.conflicts.length > 0).length);
+  if (catalogRes.status === "fulfilled" && catalogRes.value) datHuyHieu("dich-vu", catalogRes.value.items.filter((i) => i.conflicts.length > 0).length);
   return reviewAlerts(staff, {
-    catalogItems: catalogRes.status === "fulfilled" ? catalogRes.value.items : [],
+    catalogItems: catalogRes.status === "fulfilled" ? (catalogRes.value?.items ?? []) : [],
     tickets: feedbackRes.status === "fulfilled" ? (feedbackRes.value?.tickets ?? []) : [],
     expiringCount: sapHetRes.status === "fulfilled" ? sapHetRes.value : null,
+    doiChieuQuaHan: doiChieuRes.status === "fulfilled" ? (doiChieuRes.value?.doiChieuQua3Ngay ?? null) : null,
   });
 }
 
@@ -311,6 +316,9 @@ function renderReview(alerts: ReviewAlerts | null): void {
   }
   if (alerts.expiringDocs) {
     rows.push(reviewRow("dash-review-icon-sand", "truck", "/giay-to-sap-het-han", `${alerts.expiringDocs.count} giấy tờ sắp hết hạn`, "Vận chuyển · Giấy tờ sắp hết hạn"));
+  }
+  if (alerts.doiChieu) {
+    rows.push(reviewRow("dash-review-icon-sand", "money", "/orders", tieuDeDemDoiChieu(alerts.doiChieu.count), "Mở đơn, đối chiếu rồi bấm “Công ty đã nhận” hoặc đảo lần thu"));
   }
   if (alerts.feedbackQueue) {
     const f = alerts.feedbackQueue;

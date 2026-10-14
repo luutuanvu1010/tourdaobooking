@@ -39,6 +39,8 @@ export interface ReviewAlerts {
   feedbackQueue: ReviewFeedbackAlert | null;
   /** Giấy tờ sắp hết hạn (xe + tài xế — `count` của GET /api/van-chuyen/sap-het-han, bản vẽ "Trang chu Quan tri.dc.html" 1.73). Chỉ ô vehicle.manage. */
   expiringDocs: { count: number } | null;
+  /** Khoản "Công ty thu" đang đối chiếu quá 3 ngày (ADR-0118 Điều 1 mục 3; `doiChieuQua3Ngay` của GET /api/ledger/coc/dem). Chỉ ô `ledger.view` (Kế toán, Toàn quyền). */
+  doiChieu: { count: number } | null;
 }
 
 /** Hỏi bảng quyền — ô `admin.manage`, CÙNG ô route `GET /api/catalog/admin` hỏi (ADR-0072 mục 4a: giao diện không hỏi thẳng mã quyền). Quản trị và
@@ -73,16 +75,21 @@ function summarizeFeedbackQueue(tickets: readonly FeedbackTicketDto[], max = 2):
  */
 export function reviewAlerts(
   staff: PermissionHolder,
-  data: { catalogItems: readonly CatalogAdminItemDto[]; tickets: readonly FeedbackTicketDto[]; expiringCount?: number | null } | null,
+  data: { catalogItems: readonly CatalogAdminItemDto[]; tickets: readonly FeedbackTicketDto[]; expiringCount?: number | null; doiChieuQuaHan?: number | null } | null,
 ): ReviewAlerts | null {
-  if (!canSeeReviewAlerts(staff)) return null;
+  // Dòng "đang đối chiếu" hỏi ô RIÊNG `ledger.view` (Kế toán + Toàn quyền) — Kế toán không phải Quản trị vẫn thấy khối với đúng dòng này, không thấy dòng nào khác.
+  const laQuanTri = canSeeReviewAlerts(staff);
+  const n2 = can(staff, "ledger.view") ? (data?.doiChieuQuaHan ?? 0) : 0;
+  const doiChieu = n2 > 0 ? { count: n2 } : null;
+  if (!laQuanTri && !doiChieu) return null;
   if (!data) return null;
+  if (!laQuanTri) return { catalogConflict: null, feedbackQueue: null, expiringDocs: null, doiChieu };
   const catalogConflict = summarizeCatalogConflicts(data.catalogItems);
   // ADR-0038: hàng đợi Góp ý chỉ dành cho người có `feedback.triage` (hôm nay: Toàn quyền) — Quản trị không nhận dòng góp ý dù `data` có.
   const feedbackQueue = can(staff, "feedback.triage") ? summarizeFeedbackQueue(data.tickets) : null;
   // Cùng ô với ô "Giấy tờ sắp hết hạn" và route danh sách (vehicle.manage); `null` = chưa tải được / lỗi → không dòng (không vẽ số giả).
   const n = can(staff, "vehicle.manage") ? (data.expiringCount ?? 0) : 0;
   const expiringDocs = n > 0 ? { count: n } : null;
-  if (!catalogConflict && !feedbackQueue && !expiringDocs) return null;
-  return { catalogConflict, feedbackQueue, expiringDocs };
+  if (!catalogConflict && !feedbackQueue && !expiringDocs && !doiChieu) return null;
+  return { catalogConflict, feedbackQueue, expiringDocs, doiChieu };
 }

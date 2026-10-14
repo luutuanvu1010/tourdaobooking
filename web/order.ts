@@ -31,6 +31,7 @@ import { can } from "../src/shared/permissions";
 import { GHI_CHU_HUY_TOI_DA, NHOM_HUY_NHAN, luaChonLyDo, nhanNhomHuy } from "../src/shared/ly-do-huy";
 import { nhanTienDaTra as nhanTienLuat } from "../src/shared/nhan-tien";
 import { ngayDayDu } from "../src/shared/vn-date";
+import { cauNhacKhoan, quaHanDoiChieu, soNgayCho } from "../src/shared/doi-chieu-hien-thi";
 import { cauMoc, changDuoiMoc, tomTatChanXacNhan, type ChangCanDatGap } from "../src/shared/dat-gap-hien-thi";
 import { NO_BOOKER_TEXT } from "../src/shared/booker";
 import { coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, duocGhiTay, nhanBenDat } from "../src/shared/phan-doi-tac-hien-thi";
@@ -505,6 +506,7 @@ function tienCard(order: Order): HTMLElement {
               ` — ${l.traLai ? "Trả lại khách " : ""}${vnd(l.soTien)} · ${l.hinhThuc} · người thu: ${l.nguoiThu}`,
               l.laDongDao ? h("span", { class: "muted" }, " (dòng đảo)") : l.daDao ? h("span", { class: "muted" }, " (đã đảo)") : null,
               l.maGiaoDich ? h("span", { class: "muted" }, ` · mã GD ${l.maGiaoDich} (thực chuyển ${vnd(l.soThucChuyen ?? 0)})`) : null,
+              t.keToan && !t.completedAt ? nhacDoiChieuLanThu(t, l) : null,
               t.keToan && !t.completedAt ? nutKeToanLanThu(order, t, l) : null,
             ),
           ),
@@ -772,6 +774,13 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
     ngoai.length ? h("ul", { class: "pay-list" }, ...ngoai) : null,
     nut.length ? h("div", { class: "handler-actions" }, ...nut) : null,
   );
+}
+
+/** ADR-0118 Điều 1 mục 3: dòng nhắc Kế toán dưới khoản "Công ty thu" đang đối chiếu — người khai, số tiền, số ngày chờ (quá 3 ngày thì nổi màu cảnh báo). Không số điện thoại / tài khoản / mã giao dịch. */
+function nhacDoiChieuLanThu(t: Api.OrderPaymentsResponse, l: Api.LanThuDto): HTMLElement | null {
+  if (!t.keToan!.choXacNhan.includes(l.id) || l.daDao || l.laDongDao) return null;
+  const soNgay = soNgayCho(l.ghiLuc, new Date());
+  return h("p", { class: quaHanDoiChieu(soNgay) ? "dd-canh-xn is-do" : "muted", "data-khoi": "nhac-doi-chieu" }, cauNhacKhoan({ nguoiKhai: l.nguoiGhi ?? null, soTienDaDinhDang: vnd(l.soTien), soNgay }));
 }
 
 /** Nút trên từng lần thu: "Xác nhận đã nhận" (Công ty thu – CK do người khác khai — H3), "Đảo" (ghi dòng đảo, bắt buộc lý do; gồm lần thu "chưa rõ" từ cọc cũ). */
