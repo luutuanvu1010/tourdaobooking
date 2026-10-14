@@ -1,7 +1,7 @@
 // Chữ và luật hiển thị thuần của hai màn «Hoa hồng đối tác» (/hoa-hong) và «Người bán dịch vụ» (/nguoi-ban) — web/hoa-hong.ts, web/nguoi-ban.ts (sổ đại lý đợt 1, Task 10).
 // Nhãn mức đi qua MỘT nguồn `nhanMuc` / `nhanTyLeBp` (so-dai-ly-nhan.ts); không mã thô (RATE, PER_PAX, MISSING, NONE…) ra người dùng. Giao diện không tính tiền, không chọn mức:
 // «mức nào thắng» do máy chủ trả (`bac`), ở đây chỉ dịch bậc ra lời.
-import type { CommissionRuleDto, DoiTuongMucDto, SupplyTermDto, ThuTraResponse } from "./contracts.ts";
+import type { CommissionRuleDto, DoiTuongMucDto, LoaiDoiTacDto, SupplyTermDto, ThuTraResponse } from "./contracts.ts";
 import { can, holdsPartner, type PermissionHolder } from "./permissions.ts";
 import { nhanMuc, nhanTyLeBp } from "./so-dai-ly-nhan.ts";
 
@@ -111,3 +111,23 @@ export const nhanNguoiBan = (n: { ten: string; laCongTy: boolean }): string => (
 export const nhanTyLeMua = (bp: number | null): string => (bp === null ? "—" : nhanTyLeBp(bp));
 /** Đóng dòng này cần hộp xác nhận riêng: dòng «Mọi dịch vụ» của công ty chủ (dòng mặc định). */
 export const canXacNhanDongDieuKhoan = (d: SupplyTermDto): boolean => d.phamVi === "ALL" && d.nguoiBan.laCongTy;
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------
+// Loại đối tác (ADR-0117 lần 1): mục «Loại đối tác» ở /hoa-hong
+
+export const CAU_KHONG_CO_LOAI = "Chưa có loại đối tác nào.";
+export const NHAN_LOAI_CO_SAN = "Có sẵn";
+export const NHAN_LOAI_DO_KE_TOAN = "Do Kế toán thêm";
+export const NHAN_LOAI_DANG_DUNG = "Đang dùng";
+export const NHAN_LOAI_DA_TAT = "Đã tắt";
+/**
+ * Chữ và nút của một dòng loại đối tác. Nút «Tắt» / «Bật» CHỈ có ở loại do Kế toán thêm (`coSan` = false, cờ do máy chủ trả — năm vai bên ngoài có sẵn là vai đăng nhập, máy chủ
+ * từ chối đổi chúng); giao diện không tự suy loại nào "do Kế toán thêm". Quyền ghi (`partner.commission.write`) do trang kiểm riêng bằng `can`.
+ */
+export function nhanLoaiDoiTac(l: Pick<LoaiDoiTacDto, "ten" | "coSan" | "dangBat">): { nguon: string; trangThai: string; nut: { hanhDong: "tat" | "bat"; nhan: string; ariaLabel: string } | null } {
+  return {
+    nguon: l.coSan ? NHAN_LOAI_CO_SAN : NHAN_LOAI_DO_KE_TOAN,
+    trangThai: l.dangBat ? NHAN_LOAI_DANG_DUNG : NHAN_LOAI_DA_TAT,
+    nut: l.coSan ? null : l.dangBat ? { hanhDong: "tat", nhan: "Tắt", ariaLabel: `Tắt loại: ${l.ten}` } : { hanhDong: "bat", nhan: "Bật", ariaLabel: `Bật loại: ${l.ten}` },
+  };
+}

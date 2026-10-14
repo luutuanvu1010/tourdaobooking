@@ -3253,6 +3253,13 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .hh-tim-ket-qua .btn { min-height: var(--tap-min); text-align: left; }
 .hh-da-chon { margin: var(--s1) 0 0; }
 .hh-ket-qua { margin: var(--s3) 0 var(--s1); font-weight: var(--fw-bold); }
+/* Mục «Loại đối tác» ở /hoa-hong (ADR-0117 lần 1): danh sách dòng (không bảng, khỏi tràn ngang ở 390px) + form thêm loại. */
+.hh-loai { margin: 0 0 var(--s3); padding: 0; list-style: none; }
+.hh-loai > li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s1) var(--s3); padding: var(--s2) 0; border-bottom: 1px solid var(--c-line); }
+.hh-loai > li:last-child { border-bottom: 0; }
+.hh-loai-ten { min-width: 0; overflow-wrap: anywhere; }
+.hh-loai-nhan { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); }
+#loai-add-form { display: grid; gap: var(--s3); }
 #muc-dong-khu, #dk-dong-khu { margin-top: var(--s4); }
 
 /* Đặt qua đối tác + Phần đối tác (web/dat-qua-doi-tac.ts, web/phan-doi-tac.ts; sổ đại lý đợt 1 Task 11): ô chọn bên đặt ở form lập đơn / bảng "Đổi khách", dòng "Bên đặt" chỉ đọc của tài khoản Đối tác, khối hoa hồng ở trang đơn. Chỉ token. */

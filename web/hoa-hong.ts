@@ -3,10 +3,11 @@
 //   POST /api/pricing/hoa-hong            → thêm một mức (201);   POST /api/pricing/hoa-hong/:id/dong → { denNgay };
 //   GET  /api/pricing/thu-tra             → ThuTraResponse (mức nào thắng cho một đối tác + một dịch vụ + một ngày — máy chủ chọn, trang chỉ dịch ra lời);
 //   GET  /api/pricing/nguoi-huong?q=      → tìm đối tác theo tên (chỉ khi `coTheTimDoiTac`: route đó hỏi order.create).
+//   GET  /api/pricing/loai-doi-tac → LoaiDoiTacListResponse (mục «Loại đối tác», ADR-0117 lần 1); POST cùng đường (thêm loại, 201); POST …/:code/tat | /bat (đổi trạng thái loại do Kế toán thêm).
 // Ẩn/hiện hỏi bảng quyền (`can`): xem = partner.commission.view, thêm / đóng = partner.commission.write; máy chủ kiểm lại, kể cả chặn tài khoản giữ quyền Đối tác (403 ⇒ câu
 // «Bạn không có quyền xem trang này.»). Mức không sửa, không xoá — chỉ thêm và đóng (bảng chỉ-thêm). Trang không tính tiền, không chọn mức: số và lời đều từ máy chủ / luật thuần.
 // Chữ ở src/shared/hoa-hong-hien-thi.ts, đọc ô ở src/shared/so-dai-ly-nhap.ts (có bài kiểm); khối chung ở web/so-dai-ly-ui.ts.
-import { CAU_KHONG_CO_MUC, CAU_KHONG_CO_QUYEN_XEM, CAU_KHONG_KHOP_LOC, NHAN_TRANG_THAI, cauThuTra, coTheTimDoiTac, dongDongDuoc, locMuc, nhanDoiTuong, nhanMucDto, nhanPhamVi, trangThaiDong } from "../src/shared/hoa-hong-hien-thi";
+import { CAU_KHONG_CO_LOAI, CAU_KHONG_CO_MUC, CAU_KHONG_CO_QUYEN_XEM, CAU_KHONG_KHOP_LOC, NHAN_TRANG_THAI, cauThuTra, coTheTimDoiTac, dongDongDuoc, locMuc, nhanDoiTuong, nhanLoaiDoiTac, nhanMucDto, nhanPhamVi, trangThaiDong } from "../src/shared/hoa-hong-hien-thi";
 import { can } from "../src/shared/permissions";
 import { docThanMuc, type FormMuc } from "../src/shared/so-dai-ly-nhap";
 import { ngayDayDu } from "../src/shared/vn-date";
@@ -22,6 +23,10 @@ const bangEl = byId("muc-list");
 const theEl = byId("muc-list-cards");
 const rongEl = byId("muc-rong");
 const dongKhuEl = byId("muc-dong-khu");
+const loaiListEl = byId("loai-list");
+const loaiRongEl = byId("loai-rong");
+const loaiFormEl = byId<HTMLFormElement>("loai-add-form");
+const loaiLoiEl = byId("loai-loi");
 const locTrangThaiEl = byId<HTMLSelectElement>("muc-loc-trang-thai");
 const locTimEl = byId<HTMLInputElement>("muc-loc-tim");
 
@@ -41,8 +46,11 @@ function baoLoi(err: unknown): void {
 async function main(): Promise<void> {
   let ds: Api.CommissionRuleListResponse;
   let dm: DanhMuc;
+  let loai: Api.LoaiDoiTacDto[];
   try {
-    [ds, dm] = await Promise.all([api<Api.CommissionRuleListResponse>("/api/pricing/hoa-hong"), taiDanhMuc()]);
+    let dsLoai: Api.LoaiDoiTacListResponse;
+    [ds, dm, dsLoai] = await Promise.all([api<Api.CommissionRuleListResponse>("/api/pricing/hoa-hong"), taiDanhMuc(), api<Api.LoaiDoiTacListResponse>("/api/pricing/loai-doi-tac")]);
+    loai = dsLoai.loai;
   } catch (err) {
     showError(errorEl, err instanceof ApiError && err.status === 403 ? CAU_KHONG_CO_QUYEN_XEM : lyDoLoi(err));
     return;
@@ -50,6 +58,85 @@ async function main(): Promise<void> {
   const duocGhi = can(staff, "partner.commission.write");
   const choPhepTim = coTheTimDoiTac(staff);
   noiDungEl.hidden = false;
+
+  // ---- Loại đối tác (ADR-0117 lần 1) ------------------------------------------------------------------------------------------------------------------
+  // Danh sách do máy chủ trả theo thứ tự cố định (loại có sẵn trước). Nút «Tắt» / «Bật» chỉ ở loại do Kế toán thêm (`coSan` = false) và chỉ khi người xem có ô ghi; máy chủ kiểm lại.
+  // Thêm / tắt / bật xong phải tải lại CẢ bảng mức: ô «Loại đối tác» của biểu mẫu «Thêm mức» dựng từ `ds.vai`, nếu không thì loại mới chưa chọn được để đặt mức.
+  let lamMoiOChonVai: () => void = () => {};
+  const loiLoai = (text: string | null): void => {
+    loaiLoiEl.textContent = text ?? "";
+    loaiLoiEl.hidden = !text;
+  };
+  /** Tải lại danh sách loại + bảng mức. `giuLoi`: sau một lỗi 409 vừa hiện, lỗi tải lại không được đè câu của máy chủ. */
+  async function taiLoai(giuLoi = false): Promise<void> {
+    try {
+      const [moiLoai, moiMuc] = await Promise.all([api<Api.LoaiDoiTacListResponse>("/api/pricing/loai-doi-tac"), api<Api.CommissionRuleListResponse>("/api/pricing/hoa-hong")]);
+      loai = moiLoai.loai;
+      ds = moiMuc;
+    } catch (err) {
+      if (!giuLoi) loiLoai(lyDoLoi(err));
+    }
+    veLoai();
+    veDanhSach();
+    lamMoiOChonVai();
+  }
+  async function doiTrangThaiLoai(l: Api.LoaiDoiTacDto, hanhDong: "tat" | "bat"): Promise<void> {
+    loiLoai(null);
+    hienOk(null);
+    try {
+      await api(`/api/pricing/loai-doi-tac/${encodeURIComponent(l.code)}/${hanhDong}`, { method: "POST", body: {} });
+    } catch (err) {
+      loiLoai(lyDoLoi(err));
+      // 409: loại vừa được người khác đổi — số liệu trên màn đã cũ; tải lại, giữ câu của máy chủ.
+      if (err instanceof ApiError && err.status === 409) await taiLoai(true);
+      return;
+    }
+    await taiLoai();
+    hienOk(hanhDong === "tat" ? `Đã tắt loại «${l.ten}». Hồ sơ đã mang loại này vẫn giữ; gắn mới thì không được.` : `Đã bật loại «${l.ten}».`);
+  }
+  function veLoai(): void {
+    replaceChildren(
+      loaiListEl,
+      ...loai.map((l) => {
+        const k = nhanLoaiDoiTac(l);
+        const nut = duocGhi && k.nut ? h("button", { type: "button", class: "btn", "data-loai-act": k.nut.hanhDong, "aria-label": k.nut.ariaLabel }, k.nut.nhan) : false;
+        if (nut) nut.addEventListener("click", () => { nut.disabled = true; void doiTrangThaiLoai(l, k.nut!.hanhDong).finally(() => { nut.disabled = false; }); });
+        return h(
+          "li",
+          { class: l.dangBat ? "" : "row-off", "data-loai": l.code },
+          h("div", { class: "hh-loai-ten" }, h("strong", null, l.ten), h("div", { class: "hh-loai-nhan" }, h("span", { class: "muted" }, k.nguon), h("span", { class: l.dangBat ? "badge badge-confirmed" : "badge badge-cancelled" }, k.trangThai))),
+          nut,
+        );
+      }),
+    );
+    loaiRongEl.hidden = loai.length > 0;
+    loaiRongEl.textContent = CAU_KHONG_CO_LOAI;
+  }
+  if (duocGhi) {
+    const ten = h("input", { id: "loai-ten", type: "text", maxLength: 60, autocomplete: "off", "aria-label": "Tên loại mới", placeholder: "Ví dụ: Nhân viên spa" });
+    const them = h("button", { type: "submit", class: "btn btn-primary" }, "Thêm loại");
+    replaceChildren(loaiFormEl, h("label", null, "Tên loại mới", ten), h("div", { class: "actions" }, them));
+    loaiFormEl.hidden = false;
+    loaiFormEl.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (them.disabled) return;
+      loiLoai(null);
+      hienOk(null);
+      them.disabled = true;
+      try {
+        const r = await api<Api.LoaiDoiTacResponse>("/api/pricing/loai-doi-tac", { method: "POST", body: { ten: ten.value } });
+        ten.value = "";
+        await taiLoai();
+        hienOk(`Đã thêm loại «${r.loai.ten}». Đặt mức cho loại này ở phần «Thêm mức» bên dưới.`);
+      } catch (err) {
+        loiLoai(lyDoLoi(err));
+      } finally {
+        them.disabled = false;
+      }
+    });
+  }
+
+  veLoai();
 
   // ---- Danh sách ---------------------------------------------------------------------------------------------------------------------------------------
   /** Tải lại bảng mức. `giuLoi`: sau một lỗi 409 vừa hiện, lỗi tải lại không được đè câu của máy chủ. */
@@ -157,9 +244,18 @@ async function main(): Promise<void> {
     const loi = taoBangLoi();
     const loaiVai = h("input", { type: "radio", class: "o-tick", name: "muc-doi-tuong", value: "VAI", checked: true });
     const loaiDoiTac = h("input", { type: "radio", class: "o-tick", name: "muc-doi-tuong", value: "DOI_TAC" });
-    const vai = h("select", { id: "muc-vai", "aria-label": "Loại đối tác" }, h("option", { value: "" }, "— Chọn loại đối tác —"), ...ds.vai.map((v) => h("option", { value: v.code }, v.ten)));
+    const vai = h("select", { id: "muc-vai", "aria-label": "Loại đối tác" });
+    const ghiChuVai = h("span", { class: "hint" }, "Chưa có loại đối tác nào được hưởng hoa hồng.");
+    // Dựng lại các lựa chọn từ `ds.vai` (sau khi thêm / tắt / bật một loại ở mục «Loại đối tác»); giữ loại đang chọn nếu còn.
+    lamMoiOChonVai = (): void => {
+      const dangChon = vai.value;
+      replaceChildren(vai, h("option", { value: "" }, "— Chọn loại đối tác —"), ...ds.vai.map((v) => h("option", { value: v.code }, v.ten)));
+      vai.value = ds.vai.some((v) => v.code === dangChon) ? dangChon : "";
+      ghiChuVai.hidden = ds.vai.length > 0;
+    };
+    lamMoiOChonVai();
     const timDoiTac = taoTimDoiTac({ choPhep: choPhepTim, id: "muc-doi-tac" });
-    const khuVai = h("div", null, vai, ds.vai.length === 0 && h("span", { class: "hint" }, "Chưa có loại đối tác nào được hưởng hoa hồng."));
+    const khuVai = h("div", null, vai, ghiChuVai);
     const khuDoiTac = h("div", null, timDoiTac.root);
     const veDoiTuong = (): void => {
       khuVai.hidden = !loaiVai.checked;
