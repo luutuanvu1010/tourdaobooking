@@ -16,7 +16,7 @@ export const HD_QUAN_TRI: NhomHuongDan = {
       tieuDe: "Menu của bạn",
       noiDung: `### Trên máy tính
 - Nhóm **BÁN HÀNG**: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Danh bạ]].
-- Nhóm **QUẢN TRỊ**: [[Dịch vụ & giá]], [[Quản lý tài khoản]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], rồi **Vận chuyển** gồm [[Điều phối xe]], [[Xe đang chạy]], [[Xe]], [[Lịch xe bận]], [[Sắp hết hạn]], [[Loại giấy tờ xe]], [[Lý do điều phối]]. Thêm [[Điều chỉnh công nợ]], [[Hoa hồng đối tác]] và [[Người bán dịch vụ]], nơi đặt mức hoa hồng và ghi người bán.
+- Nhóm **QUẢN TRỊ**: [[Dịch vụ & giá]], [[Quản lý tài khoản]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], rồi **Vận chuyển** gồm [[Điều phối xe]], [[Xe đang chạy]], [[Xe]], [[Lịch xe bận]], [[Sắp hết hạn]], [[Loại giấy tờ xe]], [[Lý do điều phối]]. Thêm [[Điều chỉnh công nợ]], [[Hoa hồng đối tác]] và [[Người bán dịch vụ]], nơi đặt mức hoa hồng và ghi người bán. Khối **Mức TA** ở đó tạo mức dùng chung, gắn loại vào mức.
 - Số nhỏ cạnh Dịch vụ & giá là số dịch vụ có giá trên Sheet vừa đổi. Số cạnh Sắp hết hạn là số giấy tờ đã hoặc sắp hết hạn.
 
 ### Trên điện thoại

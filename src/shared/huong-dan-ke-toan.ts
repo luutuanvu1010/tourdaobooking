@@ -23,7 +23,7 @@ Thanh menu dọc bên trái có:
 - Nhóm QUẢN TRỊ: [[Vận chuyển]], bên dưới là [[Điều phối xe]] và [[Xe đang chạy]]; rồi [[Khoá sổ tháng]], [[Điều chỉnh công nợ]], [[Hoa hồng đối tác]] và [[Người bán dịch vụ]].
 - Nhóm TÔI: [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]].
 
-Trên đầu trang có ô tìm kiếm. Gõ mã đơn, tên khách hoặc số điện thoại rồi bấm phím Enter là ra danh sách đơn khớp.
+Ô tìm kiếm trên đầu trang: gõ mã đơn, tên khách hoặc số điện thoại rồi bấm Enter.
 
 ### Trên điện thoại
 
@@ -41,7 +41,7 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
 3. Bấm vào một ô để mở danh sách đơn.
 4. Xem thẻ **Chuyến đón**: các đơn đã xác nhận có giờ đón hôm nay (bấm Ngày mai, Ngày kia để xem tiếp).
 
-> Lưu ý: Ô **Doanh thu của tôi** chỉ tính đơn do chính bạn lập. Kế toán không lập đơn nên ô này luôn bằng không (máy tính ghi thêm "Chưa có đơn nào tuần này"). Không phải lỗi.`,
+> Lưu ý: Ô **Doanh thu của tôi** luôn bằng không vì Kế toán không lập đơn.`,
     },
     {
       tieuDe: "Tìm và lọc đơn",
@@ -49,9 +49,7 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
 2. Gõ vào ô tìm kiếm của danh sách: mã đơn, tên hoặc số điện thoại. Danh sách tự lọc sau khi bạn ngừng gõ.
 3. Muốn lọc thì bấm nút **Lọc**: chọn cùng lúc ngày đi (có nút nhanh [[Hôm nay]], [[Ngày mai]], [[3 ngày tới]], [[Tuần này]]), dịch vụ, trạng thái (**Chờ xác nhận**, **Đã xác nhận**, **Đã huỷ**) và người lập (gõ tên để chọn từng người đã lập đơn), rồi bấm [[Áp dụng]]. Ô **Nhập phần mềm kế toán** lọc đơn chưa nhập / đã nhập, cần chọn cả Từ ngày và Đến ngày. Bấm × trên nhãn để bỏ từng điều kiện, [[Xoá lọc]] để bỏ hết; máy nhớ bộ lọc cho lần sau.
 4. Cuối danh sách có nút [[Tải thêm]] nếu còn đơn.
-5. Mỗi thẻ đơn ghi **Còn thu**; nút xổ xuống cho xem thêm **Đã trả**, **Tổng**, người phụ trách. Đơn đã nhập phần mềm kế toán có nhãn riêng.
-
-> Lưu ý: Chưa lọc được theo người phụ trách (sẽ có sau).`,
+5. Mỗi thẻ đơn ghi **Còn thu**; nút xổ xuống cho xem thêm **Đã trả**, **Tổng**, người phụ trách. Đơn đã nhập phần mềm kế toán có nhãn riêng.`,
     },
     {
       tieuDe: "Xem tiền của một đơn",
@@ -128,11 +126,21 @@ Người bán dịch vụ làm tương tự ở trang [[Người bán dịch v�
       tieuDe: "Thêm loại đối tác",
       noiDung: `Loại đối tác là nhóm được hưởng hoa hồng, như Công ty lữ hành hay Lễ tân khách sạn. Cần loại mới thì bạn tự thêm.
 
-1. Bấm [[Hoa hồng đối tác]], ở khối **Loại đối tác** gõ tên vào ô **Tên loại mới** rồi bấm [[Thêm loại]]. Tên không được có số điện thoại hay email.
+1. Bấm [[Hoa hồng đối tác]], ở khối **Loại đối tác** gõ tên vào ô **Tên loại mới** rồi bấm [[Thêm loại]].
 2. Đặt mức cho loại mới ở khối [[Thêm mức]], như các loại khác.
 3. Không dùng nữa thì bấm [[Tắt]] ở dòng loại đó; cần lại thì bấm [[Bật]]. Các loại có sẵn thì không tắt được.
 
 Gắn loại cho hồ sơ ở Danh bạ là việc của Quản trị hoặc Toàn quyền. Loại đã tắt thì không gắn thêm, nhưng đơn đã xác nhận vẫn giữ nguyên hoa hồng.`,
+    },
+    {
+      tieuDe: "Mức TA",
+      noiDung: `Mức TA là bộ hoa hồng có tên, dùng chung cho nhiều loại đối tác.
+
+1. Ở khối **Mức TA** của [[Hoa hồng đối tác]], gõ tên, bấm [[Thêm mức TA]].
+2. [[Thêm dòng]]: chọn mức, phạm vi, mức hoa hồng.
+3. [[Gắn mức]]: chọn loại, mức, ngày bắt đầu.
+
+Mức riêng luôn được ưu tiên; khi gắn, Nền tảng báo bằng khung vàng. Đổi mức từ hôm nay: [[Kết thúc gắn]] ngày hôm qua rồi gắn mức mới.`,
     },
     {
       tieuDe: "Ghi mức tay cho một đơn",
