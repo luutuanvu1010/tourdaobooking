@@ -17,12 +17,11 @@ export const HD_QUAN_TRI: NhomHuongDan = {
       noiDung: `### Trên máy tính
 - Nhóm **BÁN HÀNG**: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Danh bạ]].
 - Nhóm **QUẢN TRỊ**: [[Dịch vụ & giá]], [[Quản lý tài khoản]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], rồi **Vận chuyển** gồm [[Điều phối xe]], [[Xe đang chạy]], [[Xe]], [[Lịch xe bận]], [[Sắp hết hạn]], [[Loại giấy tờ xe]], [[Lý do điều phối]]. Thêm [[Điều chỉnh công nợ]], [[Hoa hồng đối tác]] và [[Người bán dịch vụ]], nơi đặt mức hoa hồng và ghi người bán.
-- Số nhỏ cạnh Dịch vụ & giá là số dịch vụ có giá trên Sheet vừa đổi. Số cạnh Sắp hết hạn là số giấy tờ đã hoặc sắp hết hạn.
+- Số nhỏ cạnh Dịch vụ & giá: dịch vụ vừa đổi giá trên Sheet; cạnh Sắp hết hạn: giấy tờ đã hoặc sắp hết hạn.
 
 ### Trên điện thoại
 - Tab ở đáy: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Dịch vụ]], [[Tài khoản]], **Tôi**.
-- Các trang khác mở từ trang Tôi: [[Danh bạ]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], [[Điều chỉnh công nợ]], nhóm VẬN CHUYỂN ([[Điều phối xe]], [[Xe]], [[Giấy tờ sắp hết hạn]], [[Loại giấy tờ xe]], [[Lý do điều phối]]).
-- Bảng ở trang quản trị có thể phải kéo ngang. Việc nhiều nên làm trên máy tính.`,
+- Các trang khác mở từ trang Tôi: [[Danh bạ]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], [[Điều chỉnh công nợ]], nhóm VẬN CHUYỂN ([[Điều phối xe]], [[Xe]], [[Giấy tờ sắp hết hạn]], [[Loại giấy tờ xe]], [[Lý do điều phối]]).`,
     },
     {
       tieuDe: "Tài khoản cho nhân viên mới",
@@ -100,7 +99,7 @@ Tìm: gõ tên hoặc số điện thoại, lọc theo loại, công việc, nơ
 4. Tạm ngưng bán: [[Ẩn]]. Bán lại: [[Hiện lại]].
 
 ### Nhóm dịch vụ (trong app, không lấy từ Sheet)
-Khối [[Nhóm dịch vụ]]: [[Thêm nhóm]], [[Lên]], [[Xuống]], [[Tắt]] (nhóm phải trống; dùng lại: [[Bật]]). Chuyển nhóm: tick ô chọn (tối đa 50), chọn nhóm đích; một dịch vụ: [[Sửa giá]] → [[Đổi nhóm]], có lịch sử.
+Khối [[Nhóm dịch vụ]]: [[Thêm nhóm]], [[Lên]], [[Xuống]], [[Tắt]] (nhóm phải trống; dùng lại: [[Bật]]). Chuyển nhóm: tick ô chọn (tối đa 50), chọn nhóm đích; một dịch vụ: [[Sửa giá]] → [[Đổi nhóm]], có lịch sử. Công tắc [[Có đưa đón]] của nhóm: tắt thì dịch vụ nhóm đó không còn phần Đưa đón ở form Tạo đơn.
 
 Lọc: [[Đang ghi đè giá]], [[Sheet đã đổi giá (cần xem)]], [[Đã ẩn]], [[Không còn trong Sheet]]. Đơn đã lập luôn giữ giá lúc lập.`,
     },
@@ -163,6 +162,7 @@ Mở [[Sắp hết hạn]] (điện thoại: [[Giấy tờ sắp hết hạn]] �
 1. [[Địa điểm]], khung [[Thêm địa điểm]]: gõ mã (chữ HOA, số, gạch dưới), tên, loại, địa chỉ, thứ tự, [[Thêm]].
 2. Sửa: [[Sửa]], [[Lưu]]. Mã không đổi được.
 3. Không dùng nữa: bỏ tick [[Đang dùng]], Lưu (không xoá được).
+4. [[Chọn nhanh (1–99)]]: điền số thì điểm thành nút ở form Tạo đơn.
 
 ### Loại giấy tờ, hạng bằng lái
 Mở [[Loại giấy tờ cá nhân]] (có cả [[Hạng giấy phép lái xe]]) hoặc [[Loại giấy tờ xe]]. Thêm: gõ mã, tên, tick [[Có ngày hết hạn]] nếu cần, thứ tự, [[Thêm]]. Sửa: [[Sửa]], [[Lưu]]. Không xoá, chỉ ngưng dùng.

@@ -12,6 +12,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đưa đón theo nhóm dịch vụ + điểm «Chọn nhanh» (ADR-0118; chủ duyệt 14/10: «duyệt ADR-0118», phương án A).
+    // Có thay đổi cơ sở dữ liệu (migration 0098) — cần trien-khai sau day-len.
+    // Số 1.97 là số TẠM (= main 1.96 + 1, 2026-10-14) và số migration 0098 cũng TẠM (0096–0097 giữ cho ADR-0117 lần 2): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
+    version: "1.97",
+    date: "2026-10-14",
+    items: [
+      { kind: "moi", text: "Quản trị bật hoặc tắt phần Đưa đón cho từng nhóm dịch vụ ở trang Dịch vụ. Nhóm tắt thì dịch vụ của nhóm không còn phần Đưa đón khi lập đơn." },
+      { kind: "moi", text: "Ở form Tạo đơn, dưới ô Nơi trả (chiều đi) và Nơi đón (chiều về) có nút bấm nhanh cho những điểm hay dùng như Bến cảng Vinpearl." },
+      { kind: "moi", text: "Quản trị chọn điểm nào hiện thành nút bấm nhanh và xếp thứ tự ở trang Địa điểm, cột Chọn nhanh." },
+      { kind: "doi", text: "Đơn đã có chặng đưa đón của nhóm vừa tắt vẫn xem và đóng chặng được, nhưng không thêm hay sửa chặng. Xác nhận đơn còn chặng đó thì phải đóng chặng trước." },
+    ],
+  },
+  {
     // Loại đối tác là dữ liệu (ADR-0117 lần 1; chủ duyệt 14/10: «duyệt gắn vai làm ADR-0117»): Kế toán/Quản trị/Toàn quyền thêm, tắt, bật loại đối tác trên màn Hoa hồng đối tác; nhân viên nội bộ không mang loại được hưởng hoa hồng.
     // Có thay đổi cơ sở dữ liệu (migration 0095) — cần trien-khai sau day-len.
     // Số 1.96 là số TẠM (= main 1.95 + 1, 2026-10-14): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.

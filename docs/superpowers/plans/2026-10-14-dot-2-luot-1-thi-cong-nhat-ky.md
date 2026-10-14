@@ -23,13 +23,25 @@
 | R-F | Chốt chặn XÁC NHẬN đọc cờ **trước** lô xác nhận, không nằm trong câu `UPDATE` | Đặt vào câu cần JOIN view của module khác trong `repository.ts` cũ (LEGACY, SQL thô) — nới ranh giới kiến trúc. Khe đua rất hẹp: Quản trị tắt nhóm đúng giữa lúc đọc và lúc ghi, đơn vẫn xác nhận với chặng cũ — hậu quả bằng đơn đã xác nhận có chặng cũ (vốn được phép, ADR Đ3(c)) | Siết sau bằng cờ trong câu `confirmOrder` nếu chủ muốn |
 | R-G | `PUT /api/locations/:id`: khoá `quickPickOrder` **vắng = giữ giá trị đang lưu; `null` = bỏ** | `web/locations.js` cũ trong bộ nhớ đệm PWA chưa biết khoá này; nếu vắng = bỏ thì lần lưu bất kỳ sẽ lặng lẽ xoá hai điểm chọn nhanh đã gieo | Không có (hành vi chặt hơn ADR không nói) |
 | R-H | Giao diện: `transferEnabled` **KHÔNG** thêm vào `CatalogService` / `ServiceDraft`; form giữ bảng `mã dịch vụ → cờ` từ `GET /api/catalog/for-order` | Tránh đụng ~mọi chỗ dựng thẻ dịch vụ / bản chụp đơn nháp; dịch vụ không còn trong danh mục (ẩn) không có cờ → mặc định cho đưa đón, máy chủ vẫn là cổng thật | Thêm cờ vào DTO bản chụp nếu sau này cần |
+| R-I | **Trợ giúp Quản trị**: thêm hai câu (công tắc «Có đưa đón»; ô «Chọn nhanh (1–99)») và BỎ hai câu cũ («Bảng ở trang quản trị có thể phải kéo ngang. Việc nhiều nên làm trên máy tính.»; rút gọn câu «Số nhỏ cạnh Dịch vụ & giá…») để tổng chữ vẫn ≤ trần 21 phút (Phần chung 9 + Quản trị 21 = 30; `huong-dan.test.ts` A4) — KHÔNG nâng trần. Câu «Điều phối… khi lập đơn» được viết lại thành «ở form Tạo đơn» vì chữ «lập đơn» đẩy số đo C4 của trợ lý (`tro-ly-van-nghia.test.ts`) từ 46 lên 47 | Giữ nguyên hai bài đo (không sửa số kỳ vọng, không nới trần) | Khôi phục hai câu bỏ nếu chủ muốn, đổi lại bằng cắt chỗ khác |
+| R-J | Dời `type LenhChang` lên đầu `orders/index.ts` | Bài quét `bang-su-kien-van-chuyen` (d) suy "hàm ghi đơn" theo từng khai báo cấp cao nhất; `type` đứng sau hàm trợ giúp mới bị gộp vào chunk của hàm ấy và kéo `changeLeg` vào làm `loiViTriChang` bị tính nhầm là hàm ghi đơn. Không đổi hành vi | Không có |
+| R-K | Số phiên bản **1.97** và migration **0098** là số TẠM; bài `app-info.test.ts` đã ghim 1.97 | Công thức t: thêm mục đầu thì sửa chuỗi kỳ vọng cùng commit | Phiên phát hành đổi số thì sửa hai chỗ (`changelog.ts`, `app-info.test.ts`) + tên tệp migration và bài migration |
 
 ## Tiến độ (cập nhật theo từng commit)
 | # | Việc | Trạng thái |
 |---|---|---|
 | 0 | Điều kiện, nền xanh, số migration, sổ điều phối | xong (commit đầu) |
-| 1 | Migration + từ điển dữ liệu + bài migration | đang làm |
-| 2–6 | (cập nhật dần) | |
+| 1 | Migration + từ điển dữ liệu + bài migration | xong (commit b96948d5) |
+| 2 | catalog: cờ «Có đưa đón» của nhóm, DTO, nhật ký | xong (commit f1a87e57) |
+| 3 | orders: chốt chặn ở mọi cửa ghi chặng + xác nhận, hai hàng rào | xong (commit 67c7af02) |
+| 4 | locations: `quickPickOrder` | xong (commit b8651034) |
+| 5 | Giao diện: ẩn khối theo nhóm, nút chọn nhanh, công tắc nhóm, cột Chọn nhanh | xong (commit ebc17a9c); Chrome CHƯA chạy |
+| 6 | Tài liệu, sổ hàng rào, nhật ký thay đổi 1.97, Trợ giúp Quản trị, e2e | xong phần viết; e2e CHƯA chạy (máy không có `.dev.vars`) |
+| 7 | Người kiểm độc lập | KHÔNG phải việc của người thi công |
 
-## Chạy lại cuối
-(điền khi kết thúc)
+## Chạy lại cuối (14/10/2026, trên nhánh `worktree-agent-a5efc1907cfeb6e57`, sau Task 6)
+- `npm run typecheck`: 0 lỗi.
+- `npm test` bước 1 (520 tệp): **4772 đạt, 0 đỏ**, 10 bài «TODO» có sẵn từ trước (sổ vàng lớp 2 chờ Kế toán); bước 2 (bài đo giờ của hook, chạy một mình): **đạt** (lần đầu ở nền xanh đỏ giả do máy bận, lần này máy rảnh).
+- `npm run build:web`: chạy được. **e2e CHƯA chạy** (máy không có `.dev.vars`, cần mạng). **Chrome CHƯA chạy** (không dựng được kịch bản ở môi trường này) ⇒ chưa có ảnh thật hai khổ.
+- Hàng rào đã quan sát chặn thật (đột biến → đỏ → hoàn nguyên) ghi ở `docs/SO-HANG-RAO.md`: (A) orders không đọc bảng catalog; (B) chốt chặn ở cửa ghi chặng + xác nhận; nối dây giao diện. Riêng CHECK từng cột của migration chưa làm đột biến.
+- Việc của chủ trước phát hành: chạy câu đếm chỉ-đọc trên D1 thật cho hai mã `CANG_VINPEARL`, `BEN_TAU_NHA_TRANG`; phiên phát hành xác nhận lại số migration 0098 và số phiên bản 1.97.
