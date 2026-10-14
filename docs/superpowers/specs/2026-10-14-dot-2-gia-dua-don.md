@@ -2,6 +2,10 @@
 
 > Hồ sơ có ngày. **Đề xuất, chờ chủ duyệt; chưa sửa mã, chưa có ADR, chưa có kế hoạch thi công.** Bản 2 thay bản 1 cùng ngày sau khi chủ trả lời tám câu hỏi (§2). Căn cứ: bảng việc `2026-10-13-bang-viec-truoc-su-dung.md` §5 và các yêu cầu 1, 6, 9. Chỗ đọc mã dưới đây là đọc ở `main` ngày 14/10.
 
+## 0. Chủ đã chốt hướng (14/10, "ok theo khuyến nghị")
+
+Ba quyết định ở §1 đều chọn **phương án A**: điểm tự gõ tính theo mức "ngoài vùng" và thiếu mức thì không cho xác nhận; phụ thu không tính hoa hồng đại lý (Kế toán nên đọc trước khi ra ADR lượt 2); lượt 1 là bật/tắt đưa đón theo nhóm cùng điểm chọn nhanh, lượt 2 là lớp giá. Văn bản ADR-0118 và kế hoạch lượt 1 đã soạn ở `2026-10-14-dot-2-luot-1-dua-don-theo-nhom-va-diem-nhanh/` và `docs/superpowers/plans/2026-10-14-dot-2-luot-1-ke-hoach.md`, **chờ chủ duyệt văn bản ADR** trước khi thi công.
+
 ## 1. Tóm tắt cho chủ (lời thường)
 
 **Ý định của chủ:** thiết kế giá đưa đón cho phân hệ vận chuyển sao cho sau này sửa giá (mức tiền, thêm vùng, giá theo giờ hoặc mùa, giá theo đối tượng, cách tính khác) **không phải làm lại phần lõi**.
