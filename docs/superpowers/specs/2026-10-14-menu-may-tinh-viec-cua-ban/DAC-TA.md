@@ -95,3 +95,12 @@ Phần dưới "Việc của bạn" giữ nguyên các khối đã duyệt (Chuy
 - Sẽ đỏ và phải chụp lại / sửa: `src/muc-giao-dien-hien-trang.test.ts` (+ `.json`), `src/muc-hien-mo-duoc-{1,2,3}.test.ts`, `src/shared/trang-chu-o.test.ts`, `trang-chu-smoke.mjs` (`ADMIN_NAV` 25 mục), `dieu-chinh-smoke.mjs`, khoảng 18 kịch bản smoke có `sidebar-item`.
 - Thẻ "Việc của bạn" cần `can()` cho ẩn/hiện (không dùng `hasPermission`), luật `web/CLAUDE.md`.
 - Đây là việc lớn theo CLAUDE.md §3 chỉ ở phần quyền ẩn/hiện: sau thi công cần người kiểm độc lập.
+
+## 9. Quyết định bổ sung 15/10 sau khi xem bản dựng Claude Design
+
+Bản dựng: `docs/design/menu-may-tinh-2026-10-15/` (dữ liệu trong đó là mẫu).
+
+1. **Đợt 1** = menu mới cho mọi vai + khối "Việc của bạn" chỉ cho 4 vai văn phòng (Bán hàng, Kế toán, Quản trị, Toàn quyền), chỉ dùng số đã có nguồn; cộng sửa lỗi mục Đơn hàng của hướng dẫn viên (§7.3). Tài xế, hướng dẫn viên, đối tác, nhân sự chỉ đổi menu.
+2. **Đợt 2** (chủ chọn 15/10: dựng Trang chủ mới cho hướng dẫn viên, đối tác, nhân sự): hôm nay họ được đưa thẳng sang trang khác, Trang chủ trả 403 (`homeRedirect`, `GET /api/orders/dashboard`). Làm Trang chủ cho họ là thêm đường lấy số liệu và đổi `homeRedirect` → chạm API và quyền → **cần ADR riêng, chủ duyệt, kèm trang ghép** (CLAUDE.md §9). Bản dựng vẽ mục "Trang chủ" cho ba vai này; đợt 1 **không** thêm mục đó để không dẫn tới trang 403.
+3. **Thẻ "Đề nghị chuyển khách"** của Quản trị/Toàn quyền: bỏ khỏi đợt 1 (chỉ đếm được theo ngày), ghi nợ chờ route đếm tổng. Bốn thẻ Quản trị đợt 1: Cần xem lại · Đơn nháp · Chưa phụ trách · Chuyến đón hôm nay.
+4. Câu mô tả dưới mỗi thẻ trong bản dựng ("giữ chỗ tàu", "Bán hàng xin sửa công nợ"…) là chữ mẫu; chữ thật do thi công viết theo đúng nguồn số.
