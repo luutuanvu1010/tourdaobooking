@@ -337,3 +337,10 @@
 - **Hai câu đếm chỉ đọc cho chủ — CHỦ TỰ CHẠY, CHƯA CHẠY** (dùng `wrangler d1 execute tourdao-sales-db --remote --command "…"`; AI không chạy `--remote`):
   - Đơn MỚI bị giữ ở «Đã giao» sau bản vá (đơn đã xác nhận, chưa giao, bản chụp hiện hành có người hưởng nhưng bên đặt KHÔNG còn vai bên ngoài): `SELECT o.order_code FROM orders o WHERE o.status='confirmed' AND o.delivered_at IS NULL AND EXISTS (SELECT 1 FROM ord_service_terms t WHERE t.order_id=o.id AND t.commission_status<>'NONE' AND NOT EXISTS (SELECT 1 FROM ord_service_terms n WHERE n.supersedes_id=t.id)) AND NOT EXISTS (SELECT 1 FROM v_pty_open_role_group g WHERE g.party_id=o.booker_party_id AND g.role_group='EXTERNAL');`
   - Đơn ĐÃ lọt «Đã giao» trước khi vá (khe đã bị dùng): `SELECT o.order_code FROM orders o WHERE o.delivered_at IS NOT NULL AND EXISTS (SELECT 1 FROM ord_service_terms t WHERE t.order_id=o.id AND t.commission_status<>'NONE' AND NOT EXISTS (SELECT 1 FROM ord_service_terms n WHERE n.supersedes_id=t.id)) AND NOT EXISTS (SELECT 1 FROM v_pty_open_role_group g WHERE g.party_id=o.booker_party_id AND g.role_group='EXTERNAL');` — kết quả khác 0 là đơn đối tác giao mà sổ không có dòng hoa hồng, cần Kế toán xem. (Chú ý: đơn đã giao có bản chụp sau khi đối tác đổi sang khách lẻ cũng là bản NONE nên không lọt vào đây — đúng thiết kế.)
+
+## 30. Chat thời gian thực trong Vé hỗ trợ (mã `BL-VE-CHAT-THOI-GIAN-THUC`)
+
+- **Ngày:** 2026-10-14 · **Nêu bởi:** chủ dự án, trong phiên đặc tả Vé hỗ trợ · **Trạng thái:** `để sau`
+- **Ý:** tin đến tức thì và hiện «đang soạn» trong phiếu hỗ trợ. Chủ chốt: **không nhúng chat của bên thứ ba** (lý do: hai nơi lưu hội thoại, nội dung nhạy cảm rời D1, không biết quy tắc nhóm); nếu làm thì dùng Durable Objects của Cloudflare chạy trong chính Worker.
+- **Vì sao để sau:** đợt 2 của Vé hỗ trợ dùng tải lại ngầm mỗi 5 giây là đủ cho ~30 người; Durable Objects thêm một loại hạ tầng vào cấu hình triển khai nên cần ADR riêng và chủ duyệt.
+- **Đặc tả gốc:** `docs/superpowers/specs/2026-10-14-ve-ho-tro-design.md`.
