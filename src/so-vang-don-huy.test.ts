@@ -11,8 +11,8 @@ import { isISODate } from "./shared/vn-date.ts";
 import { docLyDoHuy } from "./shared/ly-do-huy.ts";
 import { nhanTienDaTra } from "./shared/nhan-tien.ts";
 import {
-  conLai, conLaiCuaKhoan, hanHoanCoc, hieuLuc, kiemBatBien, kiemChi, kiemDuyet, kiemGhiHoanNgoai, kiemHuyDuyet, kiemXacNhanHoanNgoai, hoanNgoaiTrangThai,
-  sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongXacNhanCongTy, soDuTheoBen, soTienCoc, type DuyetRow, type HoanNgoaiRow, type KiemCoc, type LineRow,
+  canDoiChieu, conLai, conLaiCuaKhoan, hanHoanCoc, hieuLuc, kiemBatBien, kiemChi, kiemDuyet, kiemGhiHoanNgoai, kiemHuyDuyet, kiemXacNhanHoanNgoai, hoanNgoaiTrangThai,
+  sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongXacNhanCongTy, soDuTheoBen, soTienCoc, type DoiChieuRow, type DuyetRow, type HoanNgoaiRow, type KiemCoc, type LineRow,
   type NhomHuy, type ReceiptRow,
 } from "./modules/billing/rules.ts";
 
@@ -75,6 +75,8 @@ function chayTrenMa(c: Ca): { dap: DapAn; lech: string[] } {
   const lines: LineRow[] = [];
   const duyet: DuyetRow[] = [];
   const hoanNgoai: HoanNgoaiRow[] = [];
+  // ADR-0118 Điều 1: khoản "Công ty thu" do người không phải Kế toán khai ⇒ dấu DECLARED (không dòng giữ hộ); xác nhận ⇒ CONFIRMED.
+  const doiChieu: DoiChieuRow[] = [];
   const thu: { receipt: ReceiptRow; dong: LineRow[] }[] = [];
   const nhan: { receipts: ReceiptRow[]; lines: LineRow[] } = { receipts: [], lines: [] };
   const lech: string[] = [];
@@ -87,7 +89,7 @@ function chayTrenMa(c: Ca): { dap: DapAn; lech: string[] } {
     vao.push(...moi);
     return moi;
   };
-  const coc = () => soTienCoc({ receipts, lines, duyet, hoanNgoai });
+  const coc = () => soTienCoc({ receipts, lines, duyet, hoanNgoai, doiChieu });
   const han = () => hanHoanCoc({ ngayDi: c.dau_vao.ngay_di, ngayHuy });
   const duyetGoc = () => duyet.filter((d) => d.voidsId === null);
   const soSanh = (e: SuKien, kq: KiemCoc): boolean => {
@@ -100,9 +102,12 @@ function chayTrenMa(c: Ca): { dap: DapAn; lech: string[] } {
       const role = e.vai_nguoi_thu === "cong_ty" ? "COMPANY" : "STAFF";
       const r: ReceiptRow = { id: `r${++k}`, kind: "CUSTOMER_PAYMENT", amount: e.so as number, collectorRole: role, collectorPartyId: role === "COMPANY" ? CONG_TY : (e.nguoi_thu as string), reversesId: null };
       receipts.push(r);
+      if (canDoiChieu({ kind: r.kind, collectorRole: role, nguoiGhiPartyId: e.nguoi_ghi as string, nguoiGhiLaKeToan: e.nguoi_ghi_la_ke_toan as boolean, congTyId: CONG_TY })) doiChieu.push({ receiptId: r.id, kind: "DECLARED" });
       thu.push({ receipt: r, dong: ghiDong(sinhDongLanThu({ kind: r.kind, amount: r.amount, collectorRole: role, collectorPartyId: r.collectorPartyId, nguoiGhiPartyId: e.nguoi_ghi as string, nguoiGhiLaKeToan: e.nguoi_ghi_la_ke_toan as boolean, congTyId: CONG_TY }), r.id) });
     } else if (e.loai === "xac_nhan_cong_ty") {
-      for (const d of thu[(e.thu_so as number) - 1]!.dong) ghiDong([sinhDongXacNhanCongTy(d)], d.receiptId);
+      const t = thu[(e.thu_so as number) - 1]!;
+      if (t.dong.length === 0) doiChieu.push({ receiptId: t.receipt.id, kind: "CONFIRMED" }); // khoản mới: không dòng nợ nào
+      for (const d of t.dong) ghiDong([sinhDongXacNhanCongTy(d)], d.receiptId); // khoản cũ: đảo dòng giữ hộ
     } else if (e.loai === "hoan_tu_do") {
       const tra = e.nguoi_tra as string;
       const r: ReceiptRow = { id: `r${++k}`, kind: "CUSTOMER_REFUND", amount: e.so as number, collectorRole: tra === CONG_TY ? "COMPANY" : "STAFF", collectorPartyId: tra, reversesId: null, approvalId: null };
@@ -154,7 +159,7 @@ function chayTrenMa(c: Ca): { dap: DapAn; lech: string[] } {
     } else if (e.loai === "dao_thu") {
       const goc = thu[(e.thu_so as number) - 1]!;
       const dao: ReceiptRow = { ...goc.receipt, id: `r${++k}`, reversesId: goc.receipt.id };
-      const sau = soTienCoc({ receipts: [...receipts, dao], lines, duyet, hoanNgoai });
+      const sau = soTienCoc({ receipts: [...receipts, dao], lines, duyet, hoanNgoai, doiChieu });
       if (soSanh(e, kiemBatBien(sau))) {
         receipts.push(dao);
         const conHieuLuc = goc.dong.filter((d) => !lines.some((x) => x.reversesLineId === d.id));

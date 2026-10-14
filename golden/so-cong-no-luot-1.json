@@ -24,8 +24,8 @@
     },
     {
       "ma": "SV-SC-02",
-      "mo_ta": "Khách lẻ, 1.000.000. Khách chuyển khoản 500.000 vào tài khoản công ty, HDV Nam KHAI 'Công ty thu – CK'; HDV thu 500.000 tiền mặt. Trước khi Kế toán xác nhận: HDV vẫn tính nợ cả 1.000.000 (H3 — thận trọng). Kế toán bấm 'Công ty đã nhận' → HDV còn giữ 500.000.",
-      "nguon": "ADR-0026 điều 4 gạch 2 (H3), Hệ quả 2",
+      "mo_ta": "Khách lẻ, 1.000.000. Khách chuyển khoản 500.000 vào tài khoản công ty, HDV Nam KHAI 'Công ty thu – CK'; HDV thu 500.000 tiền mặt. Theo ADR-0118 Điều 1: khoản khai chuyển khoản KHÔNG tạo nợ cho HDV, nó ở trạng thái ĐANG ĐỐI CHIẾU — HDV chỉ nợ phần tiền mặt 500.000 họ thật sự cầm, và đơn CHƯA bấm Đã giao được cho tới khi Kế toán bấm 'Công ty đã nhận'. Kế toán bấm xong: khoản thành đã thu, không phát sinh dòng nợ nào, HDV vẫn nợ 500.000, đơn Đã giao được. (Đáp án dưới đây là trạng thái SAU khi xác nhận; trạng thái đang đối chiếu được kiểm bằng bài src/modules/billing/doi-chieu-ck.test.ts vì khuôn ca này chưa có bước chụp trạng thái giữa chừng.)",
+      "nguon": "ADR-0118 Điều 1 (thay H3 của ADR-0026 điều 4 gạch 2), ADR-0026 Hệ quả 2",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "dau_vao": {
         "phai_thu": 1000000,
@@ -89,17 +89,17 @@
     },
     {
       "ma": "SV-SC-06",
-      "mo_ta": "VP-01 (ADR-0092 Đ2b — một dòng giữ hộ tất toán MỘT lần). Khách lẻ, 1.000.000. HDV Nam KHAI 'Công ty thu – CK' 1.000.000 nhưng tiền không về; HDV nộp bù 1.000.000 tiền mặt (Kế toán ghi 'Đã nộp') → HDV hết nợ. Sau đó Kế toán bấm 'Xác nhận đã nhận' cho khoản đó → máy chủ TỪ CHỐI (409 'Khoản này đã được ghi nộp…'), sổ không đổi: HDV vẫn 0, KHÔNG âm 1.000.000.",
-      "nguon": "ADR-0092 Đ2, Đ2b; TNV-VP01 (kiểm theo vai 2/10, VP-01); lộ trình V2.7",
+      "mo_ta": "ADR-0118 Điều 1 (thay ca nộp bù của VP-01). Khách lẻ, 1.000.000. HDV Nam KHAI 'Công ty thu – CK' 1.000.000 nhưng tiền không về tài khoản. Khoản khai không tạo nợ nào cho HDV (đang đối chiếu), nên không còn chuyện 'HDV nộp bù rồi Kế toán xác nhận bị từ chối' (chuyện đó chỉ còn với khoản khai TRƯỚC ngày áp luật, có dòng giữ hộ — kiểm bằng bài src/modules/billing/doi-chieu-ck.test.ts và lo-ghi.test.ts). Kế toán thấy tiền không về thì ĐẢO LẦN THU (đường có sẵn): đơn lại còn phải thu 1.000.000, HDV nợ 0, chưa bấm Đã giao được.",
+      "nguon": "ADR-0118 Điều 1 mục 4, 6 (viết lại từ ca VP-01 — ADR-0092 Đ2b, TNV-VP01)",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "dau_vao": {
         "phai_thu": 1000000,
         "su_kien": [
           { "loai": "thu", "vai_nguoi_thu": "cong_ty", "nguoi_thu": "Tour Đảo", "nguoi_ghi": "HDV Nam", "nguoi_ghi_la_ke_toan": false, "so": 1000000 },
-          { "loai": "nop", "ben": "HDV Nam", "so": 1000000 }
+          { "loai": "dao_thu", "thu_so": 1 }
         ]
       },
-      "dap_an": { "da_thu": 1000000, "con_lai": 0, "du": 0, "chua_ro": 0, "no_tour_dao": { "HDV Nam": 0 }, "giao_duoc": true }
+      "dap_an": { "da_thu": 0, "con_lai": 1000000, "du": 0, "chua_ro": 0, "no_tour_dao": { "HDV Nam": 0 }, "giao_duoc": false }
     }
   ]
 }

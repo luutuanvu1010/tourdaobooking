@@ -90,6 +90,19 @@ test("R-BIL-D6b ghim hai điều kiện then chốt: nửa thu chuyển cọc (t
   assert.equal(dem(db, "R-BIL-D6b"), 1, "đã 'Công ty đã nhận' mà không mã ⇒ vi phạm");
 });
 
+test("R-BIL-D6b + ADR-0118: khoản MỚI đang đối chiếu (DECLARED chưa CONFIRMED, không dòng giữ hộ) KHÔNG tính; đã CONFIRMED mà không mã THÌ TÍNH", () => {
+  const { db, ct } = moi();
+  db.exec("DROP TRIGGER bil_receipt_recon_confirmed_txn"); // giả lập "trigger bị gỡ nhầm" để dựng khoản đã xác nhận thiếu mã
+  const r = lanThu(db, ct, "o6", 250);
+  const dau = (kind: string) => db.prepare("INSERT INTO bil_receipt_recon (id, receipt_id, kind_code, occurred_date, created_at, updated_at) VALUES (?, ?, ?, '2026-10-15', ?, ?)").run(`d${++n}`, r, kind, SAU, SAU);
+  dau("DECLARED");
+  assert.equal(dem(db, "R-BIL-D6b"), 0, "đang đối chiếu, chưa ai xác nhận ⇒ chưa đòi mã");
+  dau("CONFIRMED");
+  assert.equal(dem(db, "R-BIL-D6b"), 1, "đã xác nhận mà không mã ⇒ vi phạm");
+  gan(db, r, "DOIC1", 250);
+  assert.equal(dem(db, "R-BIL-D6b"), 0, "có mã ⇒ sạch");
+});
+
 // BỔ SUNG của người thi công (ngoài ba bài gốc của kế hoạch): xoá thử từng MỆNH ĐỀ loại trừ của hai luật cho thấy ba bài gốc không khoá chúng. Cả hai luật mức LỖI
 // (`audit-invariants --db remote` thoát 1 và báo KHÔNG ĐẠT ở bước kiểm dữ liệu SAU deploy — không chặn deploy), nên một mệnh đề loại trừ bị mất là báo NHẦM dữ liệu đúng: lệnh Thay dùng lại mã, lần thu đã bị đảo, dòng đảo, lần thu cũ hơn mốc, tiền mặt,
 // nhân viên thu, lần trả lại khách. Mỗi lần chèn kèm MỘT khẳng định, để mỗi mệnh đề bị xoá làm đỏ đúng một khẳng định.

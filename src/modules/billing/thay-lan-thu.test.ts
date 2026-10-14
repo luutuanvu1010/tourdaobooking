@@ -120,7 +120,7 @@ test("đ4 (iv): hoàn cho khách SAU Đã giao ⇒ 409 câu nguyên văn ADR (ch
   assert.match(c.json.error.message, /Thay lần thu/);
 });
 
-test("kiểm độc lập vòng 3 (CAO): khoản 'Công ty thu – CK' do HDV khai còn CHỜ XÁC NHẬN ⇒ Thay bị từ chối 409 (ADR-0088 đ4 (i): không đảo — dòng giữ hộ còn nguyên); lần thu tiền mặt HDV giữ: Thay giữ đúng người thu thì HDV vẫn giữ", async () => {
+test("kiểm độc lập vòng 3 (CAO): khoản 'Công ty thu – CK' do HDV khai còn CHỜ XÁC NHẬN ⇒ Thay bị từ chối 409 (ADR-0088 đ4 (i); ADR-0118: khoản đang đối chiếu, không dòng giữ hộ); lần thu tiền mặt HDV giữ: Thay giữ đúng người thu thì HDV vẫn giữ", async () => {
   const w = setup();
   const id = don(w);
   assert.equal((await thu(w, HDV, id, 600_000, "cong_ty", "BANK_TRANSFER")).status, 201, "HDV khai Công ty thu – CK");
@@ -129,10 +129,10 @@ test("kiểm độc lập vòng 3 (CAO): khoản 'Công ty thu – CK' do HDV kh
   const r = await thay(w, KT, { orderId: id, cu: [ck], moi: [{ soTien: 500_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", maGiaoDich: "FTTH0004", soThucChuyen: 500_000 }], lyDo: "HDV khai nhầm số chuyển khoản" });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "ck_cho_xac_nhan");
-  assert.deepEqual((await tien(w, id)).keToan.dangGiu.map((d: { soTien: number }) => d.soTien), [1_000_000], "HDV vẫn giữ (600.000 chờ xác nhận + 400.000)");
+  assert.deepEqual((await tien(w, id)).keToan.dangGiu.map((d: { soTien: number }) => d.soTien), [400_000], "ADR-0118: HDV chỉ giữ 400.000 tiền mặt; 600.000 đang đối chiếu không tạo nợ");
   const giu = await thay(w, KT, { orderId: id, cu: [lanThu(w, id, 400_000)], moi: [{ soTien: 350_000, hinhThuc: "CASH", nguoiThu: { partyId: `pty-${HDV}` } }], lyDo: "HDV ghi nhầm số tiền mặt" });
   assert.equal(giu.status, 201, giu.text);
-  assert.deepEqual((await tien(w, id)).keToan.dangGiu.map((d: { soTien: number }) => d.soTien), [950_000]);
+  assert.deepEqual((await tien(w, id)).keToan.dangGiu.map((d: { soTien: number }) => d.soTien), [350_000]);
   const nk = String(w.q("SELECT detail FROM audit_log WHERE order_id = ? AND action = 'ledger_receipt_replaced'", id)[0].detail);
   assert.doesNotMatch(nk, /đổi người thu/);
 });

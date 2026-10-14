@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isISODate } from "./shared/vn-date.ts";
 import {
-  conLai, lyDoChuaGiaoDuoc, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan, sinhDongXacNhanCongTy, soDuTheoBen, type CollectorRole, type LineRow,
+  canDoiChieu, conLai, khoanMoiDoiChieu, lyDoChuaGiaoDuoc, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan, sinhDongXacNhanCongTy, soDuTheoBen, type CollectorRole, type DoiChieuRow, type LineRow,
   type ReceiptRow,
 } from "./modules/billing/rules.ts";
 
@@ -105,6 +105,8 @@ function chayTrenMa(phaiThu: number, suKien: readonly SuKien[]) {
   const receipts: ReceiptRow[] = [];
   const lines: LineRow[] = [];
   const thu: { receipt: ReceiptRow; dong: LineRow[] }[] = [];
+  // ADR-0118 Điều 1: khoản "Công ty thu" do người không phải Kế toán khai ⇒ dấu DECLARED (không dòng giữ hộ); "Công ty đã nhận" ⇒ CONFIRMED.
+  const doiChieu: DoiChieuRow[] = [];
   let k = 0;
   const ghiDong = (ds: { debtorPartyId: string; creditorPartyId: string; amount: number; kind: LineRow["kind"]; reversesLineId: string | null }[], receiptId: string | null = null) => {
     const moi = ds.map((d) => ({ ...d, id: `l${++k}`, orderId: "o", receiptId }));
@@ -118,9 +120,12 @@ function chayTrenMa(phaiThu: number, suKien: readonly SuKien[]) {
       const r: ReceiptRow = { id: `r${++k}`, kind: "CUSTOMER_PAYMENT", amount: e.so, collectorRole: role, collectorPartyId: role === "UNKNOWN" ? null : role === "COMPANY" ? CONG_TY : e.nguoi_thu, reversesId: null };
       receipts.push(r);
       const dongMoi = ghiDong(sinhDongLanThu({ kind: r.kind, amount: r.amount, collectorRole: role, collectorPartyId: r.collectorPartyId, nguoiGhiPartyId: e.nguoi_ghi, nguoiGhiLaKeToan: e.nguoi_ghi_la_ke_toan, congTyId: CONG_TY }), r.id);
+      if (canDoiChieu({ kind: r.kind, collectorRole: role, nguoiGhiPartyId: e.nguoi_ghi, nguoiGhiLaKeToan: e.nguoi_ghi_la_ke_toan, congTyId: CONG_TY })) doiChieu.push({ receiptId: r.id, kind: "DECLARED" });
       thu.push({ receipt: r, dong: dongMoi });
     } else if (e.loai === "xac_nhan_cong_ty") {
-      for (const d of thu[e.thu_so - 1]!.dong) ghiDong([sinhDongXacNhanCongTy(d)]);
+      const t = thu[e.thu_so - 1]!;
+      if (t.dong.length === 0) doiChieu.push({ receiptId: t.receipt.id, kind: "CONFIRMED" }); // khoản mới: không dòng nợ nào
+      for (const d of t.dong) ghiDong([sinhDongXacNhanCongTy(d)]); // khoản cũ: đảo dòng giữ hộ
     } else if (e.loai === "nop") {
       ghiDong(sinhDongQuyetToan({ nguoiNopPartyId: e.ben, congTyId: CONG_TY, phanBo: [{ orderId: "o", amount: e.so }] }));
     } else if (e.loai === "hoan") {
@@ -133,7 +138,7 @@ function chayTrenMa(phaiThu: number, suKien: readonly SuKien[]) {
     }
   }
   const so = conLai(receipts, phaiThu, "confirmed");
-  const ly = lyDoChuaGiaoDuoc({ status: "confirmed", deliveredAt: null, homNay: "2026-10-10", ngayDi: ["2026-10-10"], dichVuThieuNgay: [], coNguoiHuong: false, so });
+  const ly = lyDoChuaGiaoDuoc({ status: "confirmed", deliveredAt: null, homNay: "2026-10-10", ngayDi: ["2026-10-10"], dichVuThieuNgay: [], coNguoiHuong: false, soKhoanDoiChieu: khoanMoiDoiChieu(receipts, doiChieu).size, so });
   return { so, soDu: soDuTheoBen(lines, CONG_TY), giaoDuoc: ly === null };
 }
 

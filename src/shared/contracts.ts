@@ -1950,6 +1950,8 @@ export interface CocListResponse {
   donHuyGiuCoc: { orderId: string; maDon: string; nhom: string; nhomNhan: string; conGiu: number; han: string; sapHetHan: boolean; legacy: boolean }[];
   /** Đơn huỷ còn người giữ tiền mặt của công ty (đ11). */
   conNguoiGiu: { orderId: string; maDon: string; nguoi: string; soTien: number }[];
+  /** Khoản "Công ty thu" chờ Kế toán đối chiếu (ADR-0118 Điều 1.3): `qua3Ngay` = khai quá 3 ngày ⇒ nhắc. `ngayKhai` ngày dân sự giờ VN. */
+  doiChieu: { receiptId: string; orderId: string; maDon: string; soTien: number; ngayKhai: string; qua3Ngay: boolean }[];
 }
 /** `GET /api/ledger/coc/doi-chieu` — đơn huỷ CŨ còn giữ tiền để đối chiếu "đã hoàn ngoài hệ thống" (đ16). */
 export interface CocDoiChieuResponse {
@@ -1961,6 +1963,8 @@ export interface CocDemResponse {
   duyetQua7Ngay: number;
   sapHetHan: number;
   conNguoiGiu: number;
+  /** Số khoản "Công ty thu" đang đối chiếu quá 3 ngày (ADR-0118). */
+  doiChieuQua3Ngay: number;
 }
 
 /** Thân ghi một lần thu (`POST /api/orders/:id/payments`, và `lanThu` tuỳ chọn của `POST /api/orders/:id/delivered`). */

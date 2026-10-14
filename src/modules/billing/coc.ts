@@ -11,12 +11,12 @@ import {
   approvalInsertStatement, approvalsOfOrder, approvalsOpen, approvalVoidStatement, cancelledHolders, cancelStateOf, cocCancelledOrders, orderByCode, outsideDecideStatement,
   outsideOfOrder, outsideRecordStatement, receiptPayoutStatement, receiptTransferInStatement, type ApprovalDbRow, type CancelStateRow, type OutsideDbRow,
 } from "./coc-repo";
-import { linesOfOrder, orderState, ownerCompanyId, partyLabels, postingIfReceiptStatement, receiptsOfOrder, lineIfPostingStatement } from "./repository";
+import { linesOfOrder, orderState, ownerCompanyId, partyLabels, pendingCompany, postingIfReceiptStatement, receiptsOfOrder, reconOfOrder, lineIfPostingStatement } from "./repository";
 import {
-  conLaiCuaKhoan, hoanNgoaiTrangThai, kiemChi, kiemDuyet, kiemGhiHoanNgoai, kiemHuyDuyet, kiemXacNhanHoanNgoai, METHOD_CODES, nhacCoc, sinhDongHoanKhach, sinhDongLanThu,
+  conLaiCuaKhoan, hoanNgoaiTrangThai, kiemChi, kiemDuyet, kiemGhiHoanNgoai, kiemHuyDuyet, kiemXacNhanHoanNgoai, METHOD_CODES, nhacCoc, nhacDoiChieu, sinhDongHoanKhach, sinhDongLanThu,
   soDuTheoBen, soTienCoc, type DuyetRow, type HoanNgoaiRow, type KiemCoc, type SoTienCoc,
 } from "./rules";
-import { CHUA_CO_CONG_TY, PARTY_ID_RE, docLyDo, docNgay, docSoTien, layKyDaKhoa, lineOf, loi, loiKhoaKy, toLineRow, toReceiptRow, type KetQua, type NguoiGoi } from "./service";
+import { CHUA_CO_CONG_TY, PARTY_ID_RE, docLyDo, docNgay, docSoTien, layKyDaKhoa, lineOf, loi, loiKhoaKy, toDoiChieuRow, toLineRow, toReceiptRow, type KetQua, type NguoiGoi } from "./service";
 
 /** Kiểm độc lập vòng 2 CAO-1: đơn nhận đổi trạng thái giữa lúc duyệt chuyển và lúc chuyển. */
 const CAU_DON_NHAN_HONG = "Đơn nhận đã huỷ hoặc đã giao — huỷ khoản duyệt chuyển rồi duyệt lại sang đơn khác.";
@@ -85,15 +85,15 @@ interface DuLieuCoc {
 async function docCoc(db: D1Database, orderId: string): Promise<DuLieuCoc | null> {
   const huy = await cancelStateOf(db, orderId);
   if (!huy) return null;
-  const [receiptsDb, linesDb, duyetRows, hoanNgoaiRows, congTyId] = await Promise.all([
-    receiptsOfOrder(db, orderId), linesOfOrder(db, orderId), approvalsOfOrder(db, orderId), outsideOfOrder(db, orderId), ownerCompanyId(db),
+  const [receiptsDb, linesDb, duyetRows, hoanNgoaiRows, congTyId, reconDb] = await Promise.all([
+    receiptsOfOrder(db, orderId), linesOfOrder(db, orderId), approvalsOfOrder(db, orderId), outsideOfOrder(db, orderId), ownerCompanyId(db), reconOfOrder(db, orderId),
   ]);
   const receipts = receiptsDb.map(toReceiptRow);
   const lines = linesDb.map(toLineRow);
   const duyet = duyetRows.map(toDuyetRow);
   const hoanNgoai = hoanNgoaiRows.map(toHoanNgoaiRow);
   return {
-    huy, coc: soTienCoc({ receipts, lines, duyet, hoanNgoai }), duyet, duyetRows, hoanNgoai, hoanNgoaiRows, receipts,
+    huy, coc: soTienCoc({ receipts, lines, duyet, hoanNgoai, doiChieu: reconDb.map(toDoiChieuRow) }), duyet, duyetRows, hoanNgoai, hoanNgoaiRows, receipts,
     soDu: congTyId ? soDuTheoBen(lines, congTyId) : new Map(), congTyId,
   };
 }
@@ -393,7 +393,7 @@ export async function xacNhanHoanNgoai(db: D1Database, input: { orderId: string;
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 async function tongHop(db: D1Database): Promise<CocListResponse> {
   const homNay = vnToday(new Date());
-  const [dons, mo, giu] = await Promise.all([cocCancelledOrders(db), approvalsOpen(db), cancelledHolders(db)]);
+  const [dons, mo, giu, doiChieu] = await Promise.all([cocCancelledOrders(db), approvalsOpen(db), cancelledHolders(db), pendingCompany(db)]);
   const ten = await partyLabels(db, [...new Set(giu.map((g) => g.party_id))]);
   const maDon = new Map(dons.map((x) => [x.order_id, x.order_code ?? "—"]));
   const moc7 = new Date(Date.parse(`${homNay}T00:00:00Z`) - 7 * 86_400_000).toISOString().slice(0, 10);
@@ -410,6 +410,7 @@ async function tongHop(db: D1Database): Promise<CocListResponse> {
       };
     }),
     conNguoiGiu: giu.map((g) => ({ orderId: g.order_id, maDon: maDon.get(g.order_id) ?? "—", nguoi: ten.get(g.party_id)?.label ?? "Một người", soTien: g.balance })),
+    doiChieu: doiChieu.map((x) => ({ receiptId: x.receipt_id, orderId: x.order_id, maDon: x.order_code ?? "—", soTien: x.amount, ngayKhai: x.ngay_khai, qua3Ngay: nhacDoiChieu({ homNay, ngayKhai: x.ngay_khai }) })),
   };
 }
 export const danhSachCoc = (db: D1Database): Promise<CocListResponse> => tongHop(db);
@@ -421,6 +422,7 @@ export async function demCoc(db: D1Database): Promise<CocDemResponse> {
     duyetQua7Ngay: t.canChi.filter((k) => k.qua7Ngay).length,
     sapHetHan: t.donHuyGiuCoc.filter((x) => x.sapHetHan).length,
     conNguoiGiu: new Set(t.conNguoiGiu.map((x) => x.orderId)).size,
+    doiChieuQua3Ngay: t.doiChieu.filter((x) => x.qua3Ngay).length,
   };
 }
 

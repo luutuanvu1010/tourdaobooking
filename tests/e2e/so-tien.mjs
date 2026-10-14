@@ -66,6 +66,15 @@ const fldB = await me(await session(ACCOUNTS.fieldB));
   assert.deepEqual([p.phaiThu, p.daThu, p.conLai, p.deliveredAt], [tong, 100000, tong - 100000, null]);
   assert.ok(p.lyDoChuaGiao && /[À-ỹ]/.test(p.lyDoChuaGiao.cau), "lý do chưa giao được bằng tiếng Việt");
 
+  // ADR-0118 Điều 1: khoản CK Bán hàng khai ĐANG ĐỐI CHIẾU (không dòng giữ hộ); chưa Đã giao được tới khi Kế toán bấm "Công ty đã nhận" (ghi dấu, không sinh nợ).
+  assert.equal(p.lyDoChuaGiao.ma, "reconciling", "còn khoản đang đối chiếu");
+  const so = (await call(ACC, "GET", "/api/ledger")).body;
+  const cho = so.choXacNhan.find((x) => x.orderId === o.id);
+  assert.ok(cho, "khoản Công ty thu – CK nằm trong danh sách chờ xác nhận");
+  assert.equal((await sqlRows(`SELECT count(*) AS n FROM bil_debt_line WHERE order_id = '${o.id}'`))[0].n, 0, "khai CK không tạo dòng nợ");
+  assert.equal((await call(ACC, "POST", `/api/ledger/company-receipts/${cho.receiptId}/confirm`, { maGiaoDich: "E2EST0001", soThucChuyen: 100000 })).status, 200); // ADR-0092 Đ6: xác nhận khoản CK đòi mã giao dịch + số thực chuyển
+  assert.equal((await sqlRows(`SELECT count(*) AS n FROM bil_debt_line WHERE order_id = '${o.id}'`))[0].n, 0, "xác nhận khoản mới không sinh dòng nợ");
+
   // HDV đang phụ trách bấm Đã giao kèm lần thu phần còn lại (tiền mặt, tự giữ) → một lô.
   d = await call(F, "POST", `/api/orders/${o.id}/delivered`, { lanThu: { soTien: tong - 100000, hinhThuc: "CASH", nguoiThu: "toi" } });
   assert.equal(d.status, 200, JSON.stringify(d.body));
@@ -92,13 +101,9 @@ const fldB = await me(await session(ACCOUNTS.fieldB));
   assert.equal(h.status, 409, JSON.stringify(h.body));
   const soHdv = await call(F, "GET", "/api/ledger/mine");
   assert.equal(soHdv.status, 200, "HDV xem sổ của mình");
-  assert.ok(soHdv.body.dangGiu >= tong - 100000, "HDV đang giữ ít nhất số vừa thu");
+  assert.equal(soHdv.body.dangGiu, tong - 100000, "HDV chỉ giữ phần tiền mặt (khoản CK không tạo nợ — ADR-0118)");
 
-  // Kế toán: xác nhận "Công ty đã nhận" khoản CK, rồi ghi HDV nộp tiền mặt về công ty.
-  const so = (await call(ACC, "GET", "/api/ledger")).body;
-  const cho = so.choXacNhan.find((x) => x.orderId === o.id);
-  assert.ok(cho, "khoản Công ty thu – CK nằm trong danh sách chờ xác nhận");
-  assert.equal((await call(ACC, "POST", `/api/ledger/company-receipts/${cho.receiptId}/confirm`, { maGiaoDich: "E2EST0001", soThucChuyen: 100000 })).status, 200); // ADR-0092 Đ6: xác nhận khoản CK đòi mã giao dịch + số thực chuyển
+  // Kế toán ghi HDV nộp tiền mặt về công ty (khoản CK đã xác nhận ở trên).
   const hdvParty = (await sqlRows(`SELECT collector_party_id AS p FROM bil_payment_receipt WHERE order_id = '${o.id}' AND collector_role_code = 'STAFF'`))[0].p;
   const nop = await call(ACC, "POST", "/api/ledger/settlements", { chieu: "nop", partyId: hdvParty, phanBo: [{ orderId: o.id, soTien: tong - 100000 }] });
   assert.ok([200, 201].includes(nop.status), JSON.stringify(nop.body));
@@ -119,39 +124,31 @@ const fldB = await me(await session(ACCOUNTS.fieldB));
   console.log(`✓ luồng chính (D1 local): Công ty thu – CK 100.000 + HDV thu ${(tong - 100000).toLocaleString("vi-VN")} lúc Đã giao → đơn khoá → biên nhận đủ → Hoàn thành sau khi xác nhận + nộp`);
 }
 
-// ---- TNV-VP01 / ADR-0092 Đ2, Đ2b (năm lỗi tiền V2.7) trên D1 local thật: một dòng giữ hộ tất toán MỘT lần — hai thứ tự đều bị chặn, sổ người khai không âm;
-// SQL gõ tay đi vòng máy chủ cũng bị trigger 0080 chặn.
+// ---- TNV-VP01 / ADR-0092 Đ2, Đ2b + ADR-0118 Điều 1 trên D1 local thật: khoản CK do HDV khai KHÔNG tạo nợ — "Nộp" bị chặn (HDV không giữ gì), "Công ty đã nhận" ghi dấu,
+// sổ người khai không âm; phần tiền mặt HDV cầm vẫn tất toán MỘT lần (nộp quá số giữ bị 409), SQL gõ tay đi vòng máy chủ bị trigger 0080 chặn.
 {
   const ACC = await session(ACCOUNTS.accountant);
   const F = await session(ACCOUNTS.field);
   const hdvParty = (await sqlRows(`SELECT party_id AS p FROM staff WHERE id = '${fld.id}'`))[0].p;
-  for (const thuTu of ["nop-truoc", "xac-nhan-truoc"]) {
-    const r = await call(A, "POST", "/api/orders", { ...orderInput({ services: [catalogService({ pax: { adult: 1 }, departDate: vnDate(5) })] }), handlerStaffId: fld.id });
-    assert.equal(r.status, 201, JSON.stringify(r.body));
-    const o = r.body.order;
-    assert.equal((await call(F, "POST", `/api/orders/${o.id}/payments`, { soTien: 100000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201, "HDV khai Công ty thu – CK");
-    const ck = (await sqlRows(`SELECT id FROM bil_payment_receipt WHERE order_id = '${o.id}' AND collector_role_code = 'COMPANY'`))[0].id;
-    const nop = () => call(ACC, "POST", "/api/ledger/settlements", { chieu: "nop", partyId: hdvParty, phanBo: [{ orderId: o.id, soTien: 100000 }] });
-    const xacNhan = () => call(ACC, "POST", `/api/ledger/company-receipts/${ck}/confirm`, { maGiaoDich: `E2E-VP01-${thuTu}`, soThucChuyen: 100000 }); // ADR-0092 Đ6
-    if (thuTu === "nop-truoc") {
-      assert.equal((await nop()).status, 201);
-      const x = await xacNhan();
-      assert.equal(x.status, 409, JSON.stringify(x.body));
-      assert.equal(x.body.error.code, "held_already_settled");
-    } else {
-      assert.equal((await xacNhan()).status, 200);
-      const x = await nop();
-      assert.equal(x.status, 409, JSON.stringify(x.body));
-      assert.equal(x.body.error.code, "settlement_exceeds_held");
-    }
-    const bal = await sqlRows(`SELECT balance FROM v_bil_party_balance WHERE party_id = '${hdvParty}' AND order_id = '${o.id}' AND counterparty_id IN (SELECT party_id FROM v_pty_owner_company)`);
-    assert.equal(bal[0]?.balance ?? 0, 0, `${thuTu}: sổ HDV trên đơn = 0, không âm`);
-    // SQL tay đi vòng máy chủ: thêm một dòng nộp nữa → trigger 0080 chặn.
-    await assert.rejects(() => sql(`INSERT INTO bil_debt_line (id, posting_id, debtor_party_id, creditor_party_id, amount, kind_code, order_id, created_at, updated_at)
-      SELECT 'e2e-vp01-${thuTu}', p.id, (SELECT party_id FROM v_pty_owner_company LIMIT 1), '${hdvParty}', 1, 'SETTLEMENT', '${o.id}', '2026-10-05T00:00:00.000Z', '2026-10-05T00:00:00.000Z'
-      FROM bil_posting p WHERE p.order_id = '${o.id}' LIMIT 1`), /settlement_sign_flip/);
-  }
-  console.log("✓ VP-01 (D1 local): nộp → xác nhận 409; xác nhận → nộp 409; sổ HDV = 0; SQL tay thêm dòng nộp bị trigger chặn");
+  const r = await call(A, "POST", "/api/orders", { ...orderInput({ services: [catalogService({ pax: { adult: 1 }, departDate: vnDate(5) })] }), handlerStaffId: fld.id });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const o = r.body.order;
+  assert.equal((await call(F, "POST", `/api/orders/${o.id}/payments`, { soTien: 100000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201, "HDV khai Công ty thu – CK");
+  assert.equal((await call(F, "POST", `/api/orders/${o.id}/payments`, { soTien: 50000, hinhThuc: "CASH", nguoiThu: "toi" })).status, 201, "HDV thu tiền mặt");
+  const ck = (await sqlRows(`SELECT id FROM bil_payment_receipt WHERE order_id = '${o.id}' AND collector_role_code = 'COMPANY'`))[0].id;
+  const nop = (so) => call(ACC, "POST", "/api/ledger/settlements", { chieu: "nop", partyId: hdvParty, phanBo: [{ orderId: o.id, soTien: so }] });
+  const vuot = await nop(150000);
+  assert.equal(vuot.status, 409, JSON.stringify(vuot.body));
+  assert.equal(vuot.body.error.code, "settlement_exceeds_held", "HDV chỉ giữ 50.000 tiền mặt, không giữ khoản CK");
+  assert.equal((await call(ACC, "POST", `/api/ledger/company-receipts/${ck}/confirm`, { maGiaoDich: "E2E-VP01-CK", soThucChuyen: 100000 })).status, 200);
+  assert.equal((await nop(50000)).status, 201);
+  const bal = await sqlRows(`SELECT balance FROM v_bil_party_balance WHERE party_id = '${hdvParty}' AND order_id = '${o.id}' AND counterparty_id IN (SELECT party_id FROM v_pty_owner_company)`);
+  assert.equal(bal[0]?.balance ?? 0, 0, "sổ HDV trên đơn = 0, không âm");
+  // SQL tay đi vòng máy chủ: thêm một dòng nộp nữa → trigger 0080 chặn.
+  await assert.rejects(() => sql(`INSERT INTO bil_debt_line (id, posting_id, debtor_party_id, creditor_party_id, amount, kind_code, order_id, created_at, updated_at)
+    SELECT 'e2e-vp01', p.id, (SELECT party_id FROM v_pty_owner_company LIMIT 1), '${hdvParty}', 1, 'SETTLEMENT', '${o.id}', '2026-10-05T00:00:00.000Z', '2026-10-05T00:00:00.000Z'
+    FROM bil_posting p WHERE p.order_id = '${o.id}' LIMIT 1`), /settlement_sign_flip/);
+  console.log("✓ VP-01 + ADR-0118 (D1 local): khai CK không tạo nợ; nộp quá số giữ 409; xác nhận ghi dấu; sổ HDV = 0; SQL tay thêm dòng nộp bị trigger chặn");
 }
 
 // ---- TNV-G3 / ADR-0088 đ2, đ3, đ4 (iv), đ5 (năm lỗi tiền) trên D1 local thật: sau Đã giao "Đảo" đơn lẻ 409, "Thay lần thu" giữ I1 201, hoàn sau Đã giao 409;
