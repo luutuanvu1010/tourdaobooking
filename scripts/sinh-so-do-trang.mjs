@@ -60,7 +60,8 @@ function docMenu() {
     menu.set(duong, o);
   };
   for (const c of THANH_TAB) them(c.trang, c.nhan, null);
-  for (const c of THANH_BEN) them(c.trang, c.nhan, "cha" in c ? `${c.nhom} › ${c.cha}` : c.nhom);
+  // Mục gộp ("Xe & giấy tờ", "Giá & chi phí") cũng là lối vào của các trang nó gom — trợ lý phải chỉ đúng nhãn mục cho từng trang đó.
+  for (const c of THANH_BEN) for (const k of [c.trang, ...(c.gom ?? [])]) them(k, c.nhan, c.nhom);
   return menu;
 }
 

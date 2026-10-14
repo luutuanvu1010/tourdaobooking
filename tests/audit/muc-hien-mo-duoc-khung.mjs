@@ -147,7 +147,6 @@ const CHO_CHU_TRANG_DAU = new Map([
 const LIEN_KET_VIET_TAY = [
   { tep: "web/shell.ts", href: "/", lan: 2, lyDo: "logo ở đầu thanh bên và thanh trên — về trang đầu; bài (5) kiểm trang đầu của mọi tập" },
   { tep: "web/shell.ts", href: "/account", lan: 1, lyDo: "dải 'Đang ở chế độ bảo trì' — trang Tôi, ai cũng mở được (TRANG.toi; bài kiểm ở phần gọi /api/auth/me)" },
-  { tep: "web/shell.ts", href: "", lan: 1, lyDo: "mục cha 'Vận chuyển' — vẽ thành <div>, không phải liên kết" },
 ];
 
 /**
@@ -368,7 +367,7 @@ function kiemTinh() {
   test(`[tĩnh] (4) khung tạm (bản nhớ khung ADR-0035) chỉ vẽ mục mà khung thật của cùng tài khoản cũng vẽ (${SO_TAP} tập)`, () => {
     const loi = [];
     const cap = [
-      ["thanh-ben", (n) => thanhBen(n, "/").flatMap((g) => g.muc.map((x) => (x.kieu === "muc" ? x.trang : `cha:${x.nhan}`)))],
+      ["thanh-ben", (n) => thanhBen(n, "/").flatMap((g) => g.muc.map((x) => x.trang))],
       ["thanh-tab", (n) => thanhTab(n).map((x) => x.trang)],
       ["thanh-tren", (n) => thanhTren(n).map((x) => `${x.kieu}:${x.trang}`)],
     ];

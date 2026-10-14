@@ -202,5 +202,5 @@ test("body: độ đậm chữ gốc đọc token --fw-regular (sau viết tắt
 test("thanh bên: nền rê chuột mục khác hẳn nền thanh bên (≥ 1,08:1) — L1 vòng vá 1 Đợt 4", () => {
   const r = tuongPhan("--c-sidebar-hover", "--c-sidebar-bg");
   assert.ok(r >= 1.08, `nền rê chuột gần trùng nền thanh bên: ${r.toFixed(3)}:1`);
-  assert.match(css, /\.sidebar-item:not\(\[aria-current="page"\]\):not\(\.sidebar-parent\):hover \{[^}]*background: var\(--c-sidebar-hover\)/);
+  assert.match(css, /\.sidebar-item:not\(\[aria-current="page"\]\):hover \{[^}]*background: var\(--c-sidebar-hover\)/);
 });

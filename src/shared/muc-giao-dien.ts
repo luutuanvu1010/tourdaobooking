@@ -65,6 +65,7 @@ export const TRANG = {
     goi: "GET /api/orders",
     // ADR-0017: hướng dẫn viên (FIELD) cũng có mục này — `canAccessOrders` = cổng "orders" (văn phòng, Đối tác, Thực tập, FIELD). Khung tạm (`tam`) chỉ có bốn cờ (ADR-0035): FIELD thiếu mục một nhịp.
     // Trang /orders của FIELD = đơn mình phụ trách; đơn tự do ở Của tôi › Đơn chờ nhận.
+    // `canAccessOrders` là tập cha của `coMucDonHang` nên KHÔNG cần `|| coMucDonHang(...)` (thêm lại sẽ làm gói web/orders.ts chạm trần 96000 byte của bài goi-trang-nhe).
     hien: canAccessOrders,
     tam: (k) => coMucDonHang(k),
   },
@@ -137,61 +138,61 @@ export interface ChoDat {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
-// Thanh bên máy tính (ADR-0015): ba nhóm; nhóm rỗng ẩn cả tiêu đề (web/shell.ts lọc).
 
-export const NHOM_THANH_BEN = ["BÁN HÀNG", "QUẢN TRỊ", "TÔI"] as const;
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------
+// Thanh bên máy tính (ADR-0015, menu theo việc 15/10): năm nhóm; nhóm rỗng ẩn cả tiêu đề (web/shell.ts lọc). HẰNG NGÀY và CHÂN MENU không hiện tiêu đề.
+// Lối vào KHÔNG đổi quyền: mục gộp (`gom`) chỉ gom lối vào của các trang cùng điều kiện hiện; bài src/muc-giao-dien-menu-moi.test.ts ép trên mọi tập quyền
+// (trang thấy trước đây vẫn tới được, không thấy thêm trang nào).
+
+export const NHOM_THANH_BEN = ["HẰNG NGÀY", "VẬN CHUYỂN", "TIỀN", "THIẾT LẬP", "CHÂN MENU"] as const;
 export type NhomThanhBen = (typeof NHOM_THANH_BEN)[number];
-
-/** Mục cha (không phải liên kết, luôn mở — bản vẽ Vận chuyển quyết định 1): hiện khi có ít nhất một mục con hiện; sáng khi đang ở trang của mục con bất kỳ. */
-export const CHA_THANH_BEN = { "Vận chuyển": { bieuTuong: "truck" } } as const;
-export type ChaThanhBen = keyof typeof CHA_THANH_BEN;
 
 export interface ChoThanhBen extends ChoDat {
   readonly nhom: NhomThanhBen;
-  /** Tên biểu tượng ở web/icons.ts (web/shell.ts kiểm kiểu lúc biên dịch). Mục con không có biểu tượng (bản vẽ Vận chuyển). */
+  /** Tên biểu tượng ở web/icons.ts (web/shell.ts kiểm kiểu lúc biên dịch). */
   readonly bieuTuong?: string;
-  readonly cha?: ChaThanhBen;
+  /** Nút nổi bật đứng đầu thanh (san hô, "Tạo đơn") — vẽ riêng, không tính vào trần 10 mục hiện sẵn. */
+  readonly noiBat?: true;
+  /** Mục gộp: sáng ở trang của BẤT KỲ khoá nào trong `gom` (và trang của chính nó). Các trang gom phải CÙNG điều kiện hiện với mục (bài tập quyền ép). */
+  readonly gom?: readonly KhoaTrang[];
   /** Địa chỉ mở riêng theo trang đang đứng (Góp ý: mở form mới, kèm nơi quay về). */
   readonly moTu?: (duongHienTai: string) => string;
 }
 
 export const THANH_BEN = [
-  { nhom: "BÁN HÀNG", trang: "trangChu", nhan: "Trang chủ", bieuTuong: "home" },
-  { nhom: "BÁN HÀNG", trang: "donHang", nhan: "Đơn hàng", bieuTuong: "orders" },
-  { nhom: "BÁN HÀNG", trang: "taoDon", nhan: "Tạo đơn", bieuTuong: "plus" },
-  { nhom: "BÁN HÀNG", trang: "danhBa", nhan: "Danh bạ", bieuTuong: "contact-card" },
-  { nhom: "QUẢN TRỊ", trang: "dichVu", nhan: "Dịch vụ & giá", bieuTuong: "services" },
-  { nhom: "QUẢN TRỊ", trang: "taiKhoan", nhan: "Quản lý tài khoản", bieuTuong: "staff" },
-  { nhom: "QUẢN TRỊ", trang: "phien", nhan: "Phiên đăng nhập", bieuTuong: "lock" },
-  { nhom: "QUẢN TRỊ", trang: "diaDiem", nhan: "Địa điểm", bieuTuong: "pin" },
-  { nhom: "QUẢN TRỊ", trang: "loaiGiayToNguoi", nhan: "Loại giấy tờ cá nhân", bieuTuong: "doc-check" },
-  // Vận chuyển — thứ tự bản vẽ: Điều phối xe, Xe đang chạy, Đề nghị chuyển khách, Bảng giá thuê xe, Bảng kê chi phí xe, Xe, Lịch xe bận, Sắp hết hạn, Loại giấy tờ xe, Chính sách, Lý do.
-  { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "dieuPhoi", nhan: "Điều phối xe" },
-  { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "xeDangChay", nhan: "Xe đang chạy" },
-  { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "deNghi", nhan: "Đề nghị chuyển khách" },
-  { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "bangGiaXe", nhan: "Bảng giá thuê xe" },
-  { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "bangKeXe", nhan: "Bảng kê chi phí xe" },
-  { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "xe", nhan: "Xe" },
-  { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "lichXeBan", nhan: "Lịch xe bận" },
-  { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "sapHetHan", nhan: "Sắp hết hạn" },
-  { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "loaiGiayToXe", nhan: "Loại giấy tờ xe" },
-  { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "chinhSachDieuPhoi", nhan: "Chính sách điều phối" },
-  { nhom: "QUẢN TRỊ", cha: "Vận chuyển", trang: "lyDoDieuPhoi", nhan: "Lý do điều phối" },
-  { nhom: "QUẢN TRỊ", trang: "khoaThang", nhan: "Khoá sổ tháng", bieuTuong: "lock" },
-  { nhom: "QUẢN TRỊ", trang: "dieuChinhCongNo", nhan: "Điều chỉnh công nợ", bieuTuong: "money" },
-  { nhom: "QUẢN TRỊ", trang: "hoaHong", nhan: "Hoa hồng đối tác", bieuTuong: "money" },
-  { nhom: "QUẢN TRỊ", trang: "nguoiBan", nhan: "Người bán dịch vụ", bieuTuong: "assign" },
-  { nhom: "QUẢN TRỊ", trang: "nhatKy", nhan: "Nhật ký", bieuTuong: "history" },
-  { nhom: "QUẢN TRỊ", trang: "guiThongBao", nhan: "Gửi thông báo", bieuTuong: "megaphone" },
-  { nhom: "QUẢN TRỊ", trang: "troLy", nhan: "Trợ lý Hỗ trợ", bieuTuong: "chat" },
-  { nhom: "QUẢN TRỊ", trang: "giaoDien", nhan: "Giao diện", bieuTuong: "palette" },
-  // Tài xế: "Trang chủ" của họ là /tai-xe — đứng đầu nhóm TÔI; "Cuốc của tôi" cho mọi tài khoản tài xế công ty (kể cả kiêm văn phòng — K2b T2).
-  { nhom: "TÔI", trang: "trangTaiXe", nhan: "Trang chủ", bieuTuong: "home" },
-  { nhom: "TÔI", trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "assign" },
-  { nhom: "TÔI", trang: "ban", nhan: "Báo bận của tôi", bieuTuong: "clock" },
-  { nhom: "TÔI", trang: "toi", nhan: "Của tôi", bieuTuong: "me" },
-  { nhom: "TÔI", trang: "gopY", nhan: "Góp ý / Báo lỗi", bieuTuong: "chat", moTu: (p: string) => `/feedback?new=1&from=${encodeURIComponent(p)}` },
-  { nhom: "TÔI", trang: "troGiup", nhan: "Trợ giúp", bieuTuong: "help" },
+  { nhom: "HẰNG NGÀY", trang: "taoDon", nhan: "Tạo đơn", bieuTuong: "plus", noiBat: true },
+  { nhom: "HẰNG NGÀY", trang: "trangChu", nhan: "Trang chủ", bieuTuong: "home" },
+  // Tài xế: "Trang chủ" của họ là /tai-xe; "Cuốc của tôi" cho mọi tài khoản tài xế công ty (kể cả kiêm văn phòng — K2b T2).
+  { nhom: "HẰNG NGÀY", trang: "trangTaiXe", nhan: "Trang chủ", bieuTuong: "home" },
+  { nhom: "HẰNG NGÀY", trang: "donHang", nhan: "Đơn hàng", bieuTuong: "orders" },
+  { nhom: "HẰNG NGÀY", trang: "danhBa", nhan: "Danh bạ", bieuTuong: "contact-card" },
+  { nhom: "HẰNG NGÀY", trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "assign" },
+  { nhom: "HẰNG NGÀY", trang: "ban", nhan: "Báo bận của tôi", bieuTuong: "clock" },
+  { nhom: "VẬN CHUYỂN", trang: "dieuPhoi", nhan: "Điều phối xe", bieuTuong: "truck" },
+  { nhom: "VẬN CHUYỂN", trang: "xeDangChay", nhan: "Xe đang chạy", bieuTuong: "pin" },
+  { nhom: "VẬN CHUYỂN", trang: "deNghi", nhan: "Đề nghị chuyển khách", bieuTuong: "swap" },
+  { nhom: "VẬN CHUYỂN", trang: "xe", nhan: "Xe & giấy tờ", bieuTuong: "doc-check", gom: ["xe", "lichXeBan", "sapHetHan"] },
+  // Kiểm số 15/10: hai trang có cùng điều kiện hiện trên mọi tập quyền (tập lệch: 0) nên gộp được.
+  { nhom: "VẬN CHUYỂN", trang: "bangGiaXe", nhan: "Giá & chi phí", bieuTuong: "money", gom: ["bangGiaXe", "bangKeXe"] },
+  { nhom: "TIỀN", trang: "dieuChinhCongNo", nhan: "Điều chỉnh công nợ", bieuTuong: "money" },
+  { nhom: "TIỀN", trang: "khoaThang", nhan: "Khoá sổ tháng", bieuTuong: "lock" },
+  { nhom: "THIẾT LẬP", trang: "hoaHong", nhan: "Hoa hồng đối tác" },
+  { nhom: "THIẾT LẬP", trang: "nguoiBan", nhan: "Người bán dịch vụ" },
+  { nhom: "THIẾT LẬP", trang: "dichVu", nhan: "Dịch vụ & giá" },
+  { nhom: "THIẾT LẬP", trang: "diaDiem", nhan: "Địa điểm" },
+  { nhom: "THIẾT LẬP", trang: "loaiGiayToNguoi", nhan: "Loại giấy tờ cá nhân" },
+  { nhom: "THIẾT LẬP", trang: "loaiGiayToXe", nhan: "Loại giấy tờ xe" },
+  { nhom: "THIẾT LẬP", trang: "lyDoDieuPhoi", nhan: "Lý do điều phối" },
+  { nhom: "THIẾT LẬP", trang: "chinhSachDieuPhoi", nhan: "Chính sách điều phối" },
+  { nhom: "THIẾT LẬP", trang: "taiKhoan", nhan: "Quản lý tài khoản" },
+  { nhom: "THIẾT LẬP", trang: "phien", nhan: "Phiên đăng nhập" },
+  { nhom: "THIẾT LẬP", trang: "nhatKy", nhan: "Nhật ký" },
+  { nhom: "THIẾT LẬP", trang: "guiThongBao", nhan: "Gửi thông báo" },
+  { nhom: "THIẾT LẬP", trang: "troLy", nhan: "Trợ lý Hỗ trợ" },
+  { nhom: "THIẾT LẬP", trang: "giaoDien", nhan: "Giao diện" },
+  { nhom: "CHÂN MENU", trang: "toi", nhan: "Của tôi", bieuTuong: "me" },
+  { nhom: "CHÂN MENU", trang: "gopY", nhan: "Góp ý / Báo lỗi", bieuTuong: "chat", moTu: (p: string) => `/feedback?new=1&from=${encodeURIComponent(p)}` },
+  { nhom: "CHÂN MENU", trang: "troGiup", nhan: "Trợ giúp", bieuTuong: "help" },
 ] as const satisfies readonly ChoThanhBen[];
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -290,31 +291,43 @@ export function sangTai(k: KhoaTrang, duong: string): boolean {
   return duong === t.duong || (t.cungSang ?? []).includes(duong);
 }
 
-export type MucThanhBen =
-  | { readonly kieu: "cha"; readonly nhan: ChaThanhBen; readonly bieuTuong: string; readonly con: readonly KhoaTrang[] }
-  | { readonly kieu: "muc"; readonly trang: KhoaTrang; readonly nhan: string; readonly href: string; readonly bieuTuong?: string; readonly con: boolean };
+export interface MucThanhBen {
+  readonly kieu: "muc";
+  readonly trang: KhoaTrang;
+  readonly nhan: string;
+  readonly href: string;
+  readonly bieuTuong?: string;
+  readonly noiBat: boolean;
+  readonly gom: readonly KhoaTrang[];
+}
 
-/** Ba nhóm của thanh bên, mỗi nhóm các mục đang hiện theo thứ tự; mục cha chèn ngay trước mục con hiện đầu tiên. `duongHienTai` chỉ dùng cho địa chỉ mở riêng. */
+/** Mục thanh bên sáng ở đường này: trang của chính nó hoặc của BẤT KỲ khoá nào trong `gom` (mục gộp "Xe & giấy tờ", "Giá & chi phí"). */
+export function sangTaiMuc(c: { readonly trang: KhoaTrang; readonly gom?: readonly KhoaTrang[] }, duong: string): boolean {
+  return sangTai(c.trang, duong) || (c.gom ?? []).some((k) => sangTai(k, duong));
+}
+
+/** Năm nhóm của thanh bên, mỗi nhóm các mục đang hiện theo thứ tự. `duongHienTai` chỉ dùng cho địa chỉ mở riêng. */
 export function thanhBen(n: NguoiXem, duongHienTai: string): { nhom: NhomThanhBen; muc: MucThanhBen[] }[] {
-  return NHOM_THANH_BEN.map((nhom) => {
-    const muc: MucThanhBen[] = [];
-    const daCoCha = new Set<ChaThanhBen>();
-    for (const c of THANH_BEN as readonly ChoThanhBen[]) {
-      if (c.nhom !== nhom || !coHien(c, n)) continue;
-      if (c.cha && !daCoCha.has(c.cha)) {
-        daCoCha.add(c.cha);
-        const cha = c.cha;
-        muc.push({ kieu: "cha", nhan: cha, bieuTuong: CHA_THANH_BEN[cha].bieuTuong, con: (THANH_BEN as readonly ChoThanhBen[]).filter((x) => x.cha === cha).map((x) => x.trang) });
-      }
-      muc.push({ kieu: "muc", trang: c.trang, nhan: c.nhan, href: c.moTu ? c.moTu(duongHienTai) : TRANG[c.trang].duong, bieuTuong: c.bieuTuong, con: c.cha !== undefined });
-    }
-    return { nhom, muc };
-  });
+  return NHOM_THANH_BEN.map((nhom) => ({
+    nhom,
+    muc: (THANH_BEN as readonly ChoThanhBen[])
+      .filter((c) => c.nhom === nhom && coHien(c, n))
+      .map((c): MucThanhBen => ({ kieu: "muc", trang: c.trang, nhan: c.nhan, href: c.moTu ? c.moTu(duongHienTai) : TRANG[c.trang].duong, bieuTuong: c.bieuTuong, noiBat: !!c.noiBat, gom: c.gom ?? [] })),
+  }));
+}
+
+/**
+ * Nhóm THIẾT LẬP mở sẵn khi: đang đứng trong một trang của nhóm, HOẶC không còn nhóm nào khác ngoài chân menu (vd Nhân sự chỉ có Quản lý tài khoản).
+ * Chỉ mục HIỆN cho người này mới tính (`nhomHien` là kết quả `thanhBen()`).
+ */
+export function thietLapMoSan(nhomHien: readonly { nhom: NhomThanhBen; muc: readonly MucThanhBen[] }[], duong: string): boolean {
+  const tl = nhomHien.find((g) => g.nhom === "THIẾT LẬP");
+  return !!tl?.muc.length && (!nhomHien.some((g) => g !== tl && g.nhom !== "CHÂN MENU" && g.muc.length) || tl.muc.some((m) => sangTaiMuc(m, duong)));
 }
 
 /** Nhãn của trang theo đường (chữ trên thanh công việc khi trang không khai data-title): mục thanh bên ĐẦU TIÊN sáng ở đường này — mọi mục, không xét quyền. */
 export function nhanTheoDuong(duong: string): string | null {
-  return (THANH_BEN as readonly ChoThanhBen[]).find((c) => sangTai(c.trang, duong))?.nhan ?? null;
+  return (THANH_BEN as readonly ChoThanhBen[]).find((c) => sangTaiMuc(c, duong))?.nhan ?? null;
 }
 
 export interface MucHien {
