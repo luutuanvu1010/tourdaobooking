@@ -1,7 +1,7 @@
 // Chữ và luật hiển thị thuần của hai màn «Hoa hồng đối tác» (/hoa-hong) và «Người bán dịch vụ» (/nguoi-ban) — web/hoa-hong.ts, web/nguoi-ban.ts (sổ đại lý đợt 1, Task 10).
 // Nhãn mức đi qua MỘT nguồn `nhanMuc` / `nhanTyLeBp` (so-dai-ly-nhan.ts); không mã thô (RATE, PER_PAX, MISSING, NONE…) ra người dùng. Giao diện không tính tiền, không chọn mức:
 // «mức nào thắng» do máy chủ trả (`bac`), ở đây chỉ dịch bậc ra lời.
-import type { CommissionRuleDto, DoiTuongMucDto, LoaiDoiTacDto, SupplyTermDto, ThuTraResponse } from "./contracts.ts";
+import type { CommissionRuleDto, DoiTuongMucDto, LoaiDoiTacDto, MucTaDto, SupplyTermDto, ThuTraResponse } from "./contracts.ts";
 import { can, holdsPartner, type PermissionHolder } from "./permissions.ts";
 import { nhanMuc, nhanTyLeBp } from "./so-dai-ly-nhan.ts";
 
@@ -102,7 +102,9 @@ export function cauThuTra(r: ThuTraResponse): string {
   const k = r.ketQua;
   if (k.trangThai === "NONE") return CAU_KHONG_CO_NGUOI_HUONG;
   if (k.trangThai === "MISSING") return k.lyDo;
-  return `Áp mức ${nhanMucDto(k.muc)} — ${LOI_BAC[k.bac]}`;
+  // Bậc 7–9: kèm TÊN mức TA (N-12) — tên Kế toán đặt, không bao giờ mã máy.
+  const tenMuc = k.bac >= 7 && k.muc.doiTuong.loai === "MUC" ? `: «${k.muc.doiTuong.ten}»` : "";
+  return `Áp mức ${nhanMucDto(k.muc)} — ${LOI_BAC[k.bac]}${tenMuc}`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -134,3 +136,25 @@ export function nhanLoaiDoiTac(l: Pick<LoaiDoiTacDto, "ten" | "coSan" | "dangBat
     nut: l.coSan ? null : l.dangBat ? { hanhDong: "tat", nhan: "Tắt", ariaLabel: `Tắt loại: ${l.ten}` } : { hanhDong: "bat", nhan: "Bật", ariaLabel: `Bật loại: ${l.ten}` },
   };
 }
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------
+// Mức TA dùng chung (ADR-0117 lần 2): mục «Mức TA» ở /hoa-hong
+
+export const CAU_KHONG_CO_MUC_TA = "Chưa có mức TA nào.";
+/** Luật «không đổi mức trong cùng ngày» nói thẳng trên màn (máy chủ chặn hai gắn chồng ngày của một loại, và ngày kết thúc không được trước ngày bắt đầu). */
+export const CAU_DOI_MUC_TRONG_NGAY =
+  "Mỗi loại chỉ gắn một mức TA trong một ngày. Muốn đổi sang mức khác từ hôm nay: kết thúc gắn cũ tới hôm qua, rồi gắn mức mới từ hôm nay. Gắn bắt đầu từ hôm nay thì không đổi được trong cùng ngày.";
+/**
+ * Cảnh báo vàng (KHÔNG chặn) sau khi gắn loại vào mức mà máy chủ trả `dongRieng` khác rỗng (N-17): các dòng riêng theo loại đó — hoặc theo loại khác mà cùng hồ sơ đang mang — thắng mức TA.
+ * Danh sách dòng do MÁY CHỦ tính (giao diện không tự suy «loại khác cùng hồ sơ mang»), nên cảnh báo chỉ có ngay sau lần gắn; tải lại trang thì mất.
+ */
+export const cauCanhBaoDongRieng = (tenLoai: string, tenMuc: string, soDong: number): string =>
+  `Đã gắn, nhưng loại «${tenLoai}» (hoặc loại khác mà cùng đối tác đang mang) còn ${soDong} dòng mức riêng đang áp. Dòng riêng được ưu tiên hơn mức TA «${tenMuc}». Đóng các dòng này nếu muốn dùng mức TA.`;
+/** Trạng thái và nút Tắt / Bật của một mức — theo cờ `dangBat` của máy chủ. Quyền ghi do trang kiểm riêng bằng `can`. */
+export function nhanMucTa(m: Pick<MucTaDto, "ten" | "dangBat">): { trangThai: string; nut: { hanhDong: "tat" | "bat"; nhan: string; ariaLabel: string } } {
+  return m.dangBat
+    ? { trangThai: NHAN_LOAI_DANG_DUNG, nut: { hanhDong: "tat", nhan: "Tắt", ariaLabel: `Tắt mức TA: ${m.ten}` } }
+    : { trangThai: NHAN_LOAI_DA_TAT, nut: { hanhDong: "bat", nhan: "Bật", ariaLabel: `Bật mức TA: ${m.ten}` } };
+}
+/** Bảng «Các mức hiện có» bỏ dòng của mức TA: các dòng đó hiện (và đóng) ở mục «Mức TA», dưới tên mức của chúng. Giữ thứ tự máy chủ trả. */
+export const boDongMucTa = (dong: readonly CommissionRuleDto[]): CommissionRuleDto[] => dong.filter((d) => d.doiTuong.loai !== "MUC");

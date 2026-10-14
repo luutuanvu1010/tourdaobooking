@@ -26,7 +26,7 @@ export function docTienMoiKhach(raw: string): { ok: true; dong: number } | { ok:
 // Đọc cả form thành thân gửi máy chủ. Lỗi gom theo ô (người dùng thấy hết một lượt, không phải sửa từng lỗi một); thân chỉ có khi KHÔNG có lỗi nào.
 
 export type PhamViForm = "SERVICE" | "GROUP" | "ALL";
-export type TruongLoi = "doiTuong" | "phamVi" | "muc" | "tuNgay" | "denNgay" | "ghiChu" | "nguoiBan" | "tyLeMua";
+export type TruongLoi = "doiTuong" | "phamVi" | "muc" | "tuNgay" | "denNgay" | "ghiChu" | "nguoiBan" | "tyLeMua" | "loai" | "mucTa";
 export interface LoiO {
   readonly truong: TruongLoi;
   readonly message: string;
@@ -70,6 +70,21 @@ function docPhamViNgay(f: FormPhamViNgay, loi: LoiO[]): PhamViNgayBody {
   return body;
 }
 
+type MucGui = { kieu: "RATE"; tyLeBp: number } | { kieu: "PER_PAX"; moiKhach: number };
+/** Ô «Kiểu mức» + «Phần trăm» / «Số tiền mỗi khách» — dùng chung cho dòng theo loại / đối tác và dòng của mức TA. */
+function docMucForm(f: { kieu: "RATE" | "PER_PAX"; tyLe: string; moiKhach: string }, loi: LoiO[]): MucGui | null {
+  if (f.kieu === "RATE") {
+    const r = docTyLePhanTram(f.tyLe);
+    if (r.ok) return { kieu: "RATE", tyLeBp: r.bp };
+    loi.push({ truong: "muc", message: r.message });
+    return null;
+  }
+  const r = docTienMoiKhach(f.moiKhach);
+  if (r.ok) return { kieu: "PER_PAX", moiKhach: r.dong };
+  loi.push({ truong: "muc", message: r.message });
+  return null;
+}
+
 export interface FormMuc extends FormPhamViNgay {
   /** Áp cho một loại đối tác (mã vai) hoặc một đối tác cụ thể (mã hồ sơ); `null` = chưa chọn. */
   doiTuong: { loai: "VAI"; code: string } | { loai: "DOI_TAC"; partyId: string } | null;
@@ -81,7 +96,7 @@ export interface FormMuc extends FormPhamViNgay {
 }
 export type ThanMucGui = PhamViNgayBody & {
   doiTuong: { loai: "VAI"; code: string } | { loai: "DOI_TAC"; partyId: string };
-} & ({ kieu: "RATE"; tyLeBp: number } | { kieu: "PER_PAX"; moiKhach: number });
+} & MucGui;
 
 /** Thân `POST /api/pricing/hoa-hong` từ các ô của form «Thêm mức». */
 export function docThanMuc(f: FormMuc): KetDocForm<ThanMucGui> {
@@ -89,18 +104,52 @@ export function docThanMuc(f: FormMuc): KetDocForm<ThanMucGui> {
   const dt = f.doiTuong;
   if (dt === null || (dt.loai === "VAI" ? dt.code === "" : dt.partyId === "")) loi.push({ truong: "doiTuong", message: "Chọn một loại đối tác hoặc một đối tác." });
   const pv = docPhamViNgay(f, loi);
-  let muc: { kieu: "RATE"; tyLeBp: number } | { kieu: "PER_PAX"; moiKhach: number } | null = null;
-  if (f.kieu === "RATE") {
-    const r = docTyLePhanTram(f.tyLe);
-    if (r.ok) muc = { kieu: "RATE", tyLeBp: r.bp };
-    else loi.push({ truong: "muc", message: r.message });
-  } else {
-    const r = docTienMoiKhach(f.moiKhach);
-    if (r.ok) muc = { kieu: "PER_PAX", moiKhach: r.dong };
-    else loi.push({ truong: "muc", message: r.message });
-  }
+  const muc = docMucForm(f, loi);
   if (loi.length > 0 || dt === null || muc === null) return { ok: false, loi };
   return { ok: true, body: { doiTuong: dt, ...pv, ...muc } };
+}
+
+// ---- Mức TA (ADR-0117 lần 2) ----
+/** Ô của form «Thêm dòng» cho một mức TA: như «Thêm mức» nhưng không có «Áp cho» — đích là chính mức (mã mức đi trên đường dẫn). */
+export interface FormDongMucTa extends FormPhamViNgay {
+  kieu: "RATE" | "PER_PAX";
+  tyLe: string;
+  moiKhach: string;
+}
+export type ThanDongMucTaGui = PhamViNgayBody & MucGui;
+/** Thân `POST /api/pricing/muc-ta/:code/dong` (máy chủ: `kiemThanDongMucTa`). */
+export function docThanDongMucTa(f: FormDongMucTa): KetDocForm<ThanDongMucTaGui> {
+  const loi: LoiO[] = [];
+  const pv = docPhamViNgay(f, loi);
+  const muc = docMucForm(f, loi);
+  if (loi.length > 0 || muc === null) return { ok: false, loi };
+  return { ok: true, body: { ...pv, ...muc } };
+}
+
+/** Ô của form «Gắn loại vào mức TA»: mã loại, mã mức (rỗng = chưa chọn), ngày bắt đầu, ngày kết thúc (không bắt buộc). */
+export interface FormGan {
+  loai: string;
+  muc: string;
+  tuNgay: string;
+  denNgay: string;
+}
+export type ThanGanGui = { loai: string; muc: string; tuNgay: string; denNgay?: string };
+/** Thân `POST /api/pricing/muc-ta/gan` (máy chủ: `kiemThanGan`). */
+export function docThanGan(f: FormGan): KetDocForm<ThanGanGui> {
+  const loi: LoiO[] = [];
+  const loai = f.loai.trim();
+  const muc = f.muc.trim();
+  const tu = f.tuNgay.trim();
+  const den = f.denNgay.trim();
+  if (loai === "") loi.push({ truong: "loai", message: "Chọn một loại đối tác." });
+  if (muc === "") loi.push({ truong: "mucTa", message: "Chọn một mức TA." });
+  if (!isISODate(tu)) loi.push({ truong: "tuNgay", message: "Chọn ngày bắt đầu." });
+  if (den !== "") {
+    if (!isISODate(den)) loi.push({ truong: "denNgay", message: "Ngày kết thúc không hợp lệ." });
+    else if (isISODate(tu) && den < tu) loi.push({ truong: "denNgay", message: "Ngày kết thúc không được trước ngày bắt đầu." });
+  }
+  if (loi.length > 0) return { ok: false, loi };
+  return { ok: true, body: den === "" ? { loai, muc, tuNgay: tu } : { loai, muc, tuNgay: tu, denNgay: den } };
 }
 
 export interface FormDieuKhoan extends FormPhamViNgay {
