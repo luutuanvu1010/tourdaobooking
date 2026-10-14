@@ -3,7 +3,7 @@
 // audit vào một db.batch() — đổi tài khoản và ghi dấu vết thành công/thất bại cùng nhau. Tên người thuộc hồ sơ (module parties):
 // tạo/đổi tên tài khoản gọi hàm của parties (cạnh staff → parties, ADR-0002); staff.full_name/role là cột chết (ADR-0005).
 import {
-  accountRolesOf, closeAccountRoleStatement, hoSoCaNhanKhop, newPersonStatements, openAccountRoleStatement, openRoleCodesByParty, partySummary, renamePersonStatements,
+  accountRolesOf, closeAccountRoleStatement, hoSoCaNhanKhop, hoSoMangNhanDoiTac, newPersonStatements, openAccountRoleStatement, openRoleCodesByParty, partySummary, renamePersonStatements,
   reopenAccountRoleStatement, splitPersonName, validatePersonFullName, type AccountRole,
 } from "../parties";
 import { hashPin, verifyDummy, verifyPin } from "./password";
@@ -13,7 +13,9 @@ import {
   insertStaffStatement, labelsByIds, listAll, openAdjustments, parsePermissions, partiesWithAccount, phonesByParty, recordLoginRow, sessionOwnersByIds, setPinStatement as setPinRow, touchCredentialsStatement, updateStaffStatement,
   type AdjustmentRow, type StaffRow,
 } from "./repository";
-import { canManageAccount, checkAccountChange, generatePin, isWeakPin, partyAccountVerdict, validateFreshPin } from "./rules";
+import {
+  KHONG_NHAN_VAI_NOI_BO, canManageAccount, checkAccountChange, coQuyenNoiBo, generatePin, isWeakPin, moNoiBoChoHoSoCoNhanProblem, partyAccountVerdict, validateFreshPin,
+} from "./rules";
 import type { PartyMatchResponse, StaffAccount, StaffProfile } from "../../shared/contracts";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions";
 import { ROLES, ROLE_CODES, effectivePermissions, groupOf, isRoleCode, type RoleAssignment, type RoleCode } from "../../shared/roles";
@@ -21,9 +23,17 @@ import { addDays, vnToday } from "../../shared/vn-date";
 
 export type { StaffAccount, StaffProfile };
 export {
-  canManageAccount, checkAccountChange, countActiveAdmins, generatePin, hashPin, isValidPin, isWeakPin, normalizePhone,
+  KHONG_NHAN_VAI_NOI_BO, canManageAccount, checkAccountChange, countActiveAdmins, generatePin, hashPin, isValidPin, isWeakPin, moNoiBoChoHoSoCoNhanProblem, normalizePhone,
   touchCredentialsStatement, updateStaffStatement, validateFreshPin,
 };
+
+/**
+ * ADR-0117 điều 4, chiều 2 — hồ sơ `partyId` có đang mang loại đối tác được hưởng không (hàm công bố của parties). `accounts` hỏi qua đây (không có cạnh
+ * accounts → parties) rồi gọi hàm thuần moNoiBoChoHoSoCoNhanProblem TRƯỚC mọi lô ghi.
+ */
+export async function hoSoCoNhanDoiTac(db: D1Database, partyId: string): Promise<boolean> {
+  return (await hoSoMangNhanDoiTac(db, [partyId])).has(partyId);
+}
 
 /**
  * HÀM CÔNG BỐ (ruling R-P20 của điều phối — ADR-0049 kế hoạch mục 1.8 / R-P11): TÊN HIỂN THỊ của các tài khoản theo id — nhãn "người bấm" trên nhật ký chuyến
@@ -108,13 +118,14 @@ export async function accountOfParty(
   db: D1Database,
   actor: { id: string; permissions: readonly PermissionCode[] },
   partyId: string,
-): Promise<{ linked: false } | { linked: true; manageable: boolean; vaiAn: boolean }> {
+): Promise<{ linked: false } | { linked: true; manageable: boolean; vaiAn: boolean; coQuyenNoiBo: boolean }> {
   const id = await accountIdOfParty(db, partyId);
   const target = id ? await getStaffAccount(db, id) : null;
   const shown = id && !target ? { id, permissions: ["SUPER_ADMIN"] as PermissionCode[] } : target;
   const v = partyAccountVerdict(actor, shown);
   // ADR-0044: hồ sơ gắn tài khoản Toàn quyền là "vai ẩn" — parties lọc lịch sử vai khi người xem không giữ Toàn quyền.
-  return v.linked ? { ...v, vaiAn: shown!.permissions.includes("SUPER_ADMIN") } : v;
+  // ADR-0117 điều 4 (vế 3): tài khoản có quyền nội bộ — bản giả «Toàn quyền ẩn» ở trên cho true (siết).
+  return v.linked ? { ...v, vaiAn: shown!.permissions.includes("SUPER_ADMIN"), coQuyenNoiBo: coQuyenNoiBo(shown!.permissions) } : v;
 }
 
 export async function listStaffAccounts(db: D1Database): Promise<StaffAccount[]> {
@@ -349,6 +360,10 @@ export async function createAccountWithRolesStatements(
     if (await accountIdOfParty(db, input.existingPartyId)) return { ok: false, message: "Hồ sơ này đã có tài khoản." };
     const open = (await accountRolesOf(db, input.existingPartyId, today)).filter((r) => r.validTo === null).map((r) => r.roleTypeCode).filter(isRoleCode);
     if (groupOf([...open, ...assignment.roles]) === "MIXED") return { ok: false, message: "Hồ sơ này đang giữ vai khác nhóm (nội bộ/bên ngoài) — đóng vai đó trước." };
+    // ADR-0117 điều 4, chiều 2: hồ sơ đang mang loại đối tác được hưởng không nhận vai / quyền nội bộ. Câu không nêu tên loại (người gọi có thể là Nhân sự).
+    const nhan = await hoSoMangNhanDoiTac(db, [input.existingPartyId]);
+    const noiBo = moNoiBoChoHoSoCoNhanProblem({ nhanDoiTac: nhan.has(input.existingPartyId), vaiTiep: assignment.roles, quyenTiep: permissions });
+    if (noiBo) return { ok: false, message: noiBo };
     // Ruling R26: quyền chỉ tính từ vai được chọn — hồ sơ còn giữ vai tài khoản nào KHÔNG được chọn thì quyền sẽ lệch vai. Chặn (an toàn), bắt chọn cả vai đó.
     const kept = ROLE_CODES.filter((c) => open.includes(c) && !assignment.roles.includes(c));
     if (kept.length) return { ok: false, message: `Hồ sơ này đang giữ vai ${kept.map((c) => ROLES[c].name).join(", ")}: chọn cả vai này (hoặc đổi vai sau khi tạo).` };

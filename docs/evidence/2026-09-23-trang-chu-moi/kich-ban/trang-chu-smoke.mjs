@@ -658,7 +658,7 @@ try {
   const ADMIN_NAV = [
     "Trang chủ", "Đơn hàng", "Tạo đơn", "Danh bạ",
     "Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ cá nhân", "Vận chuyển", "Điều phối xe", "Xe đang chạy", "Đề nghị chuyển khách", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Lịch xe bận", "Sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối",
-    "Hoa hồng đối tác", "Người bán dịch vụ",
+    "Điều chỉnh công nợ", "Hoa hồng đối tác", "Người bán dịch vụ",
     "Của tôi", "Góp ý / Báo lỗi", "Trợ giúp",
   ];
   const navMeasure = await p.ev(`(() => {
@@ -671,10 +671,10 @@ try {
       sidebarOverflow: document.querySelector('#sidebar').scrollWidth - document.querySelector('#sidebar').clientWidth,
     };
   })()`);
-  assert.deepEqual(navMeasure.labels, ADMIN_NAV, `Thanh điều hướng dọc (ADMIN): đúng 24 mục theo thứ tự — ${JSON.stringify(navMeasure.labels)}`);
+  assert.deepEqual(navMeasure.labels, ADMIN_NAV, `Thanh điều hướng dọc (ADMIN): đúng 25 mục theo thứ tự — ${JSON.stringify(navMeasure.labels)}`);
   // 2/10 (ADR-0055 VK2-A, Vận chuyển Đợt 3): + "Lịch xe bận" (ô vehicle.manage, sau "Xe") ⇒ 18 trên main; gộp main ffed6f1c vào Đợt 4 (5/10): 18 + 2 mục tiền xe thuê ⇒ 20; gộp Đợt 4 vào Đợt 5 (5/10): + "Xe đang chạy" (ô trip.view, sau "Điều phối xe") ⇒ 21.
-  // Sổ đại lý đợt 1 (12/10): + "Hoa hồng đối tác", "Người bán dịch vụ" ⇒ 23; gói A5 (ADR-0111): + "Đề nghị chuyển khách" (ô trip.override, sau "Xe đang chạy") ⇒ 24 (ghép main 1c471990 vào gói A+C, 12/10).
-  assert.equal(navMeasure.linkCount, 24, `Thanh điều hướng dọc (ADMIN) phải có 24 mục (ADR-0111 gói A5: + "Đề nghị chuyển khách" cho ô trip.override; ADR-0038: không "Nhật ký"; ADR-0049 B8: có "Lý do điều phối"; B1: có "Điều phối xe"; Đợt 3: có "Lịch xe bận"; Đợt 4: có "Bảng giá thuê xe", "Bảng kê chi phí xe"; Đợt 5: có "Xe đang chạy"; sổ đại lý đợt 1: có "Hoa hồng đối tác", "Người bán dịch vụ") — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
+  // Sổ đại lý đợt 1 (12/10): + "Hoa hồng đối tác", "Người bán dịch vụ" ⇒ 23; gói A5 (ADR-0111): + "Đề nghị chuyển khách" (ô trip.override, sau "Xe đang chạy") ⇒ 24 (ghép main 1c471990 vào gói A+C, 12/10); ADR-0115 (13/10): + "Điều chỉnh công nợ" ⇒ 25 (số đã đo bằng Chrome 13/10 ở dieu-chinh-smoke.mjs).
+  assert.equal(navMeasure.linkCount, 25, `Thanh điều hướng dọc (ADMIN) phải có 25 mục (ADR-0115 13/10: + "Điều chỉnh công nợ" cho ô ledger.adjust.approve — số ĐÃ ĐO bằng Chrome ngày 13/10 ở docs/evidence/2026-10-13-dieu-chinh-cong-no/kich-ban/dieu-chinh-smoke.mjs (Quản trị 25, Toàn quyền 32; cùng bộ quyền); ADR-0111 gói A5: + "Đề nghị chuyển khách" cho ô trip.override; ADR-0038: không "Nhật ký"; ADR-0049 B8: có "Lý do điều phối"; B1: có "Điều phối xe"; Đợt 3: có "Lịch xe bận"; Đợt 4: có "Bảng giá thuê xe", "Bảng kê chi phí xe"; Đợt 5: có "Xe đang chạy"; sổ đại lý đợt 1: có "Hoa hồng đối tác", "Người bán dịch vụ") — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
   assert.ok(navMeasure.scrollOverflow <= 1, `Thanh điều hướng máy tính: trang không được tràn ngang — lệch ${navMeasure.scrollOverflow}px`);
   assert.ok(navMeasure.topbarOverflow <= 1, `Thanh điều hướng máy tính: #topbar tự nó không được tràn ngang (flex-wrap phải nhận đủ) — lệch ${navMeasure.topbarOverflow}px`);
   assert.ok(navMeasure.sidebarOverflow <= 1, `Thanh điều hướng dọc: #sidebar tự nó không được tràn ngang — lệch ${navMeasure.sidebarOverflow}px`);
@@ -1017,7 +1017,7 @@ try {
   }
   {
     const FRAME_PAGES = [
-      { path: "/staff", label: "/staff", widths: [640, 641, 645, 650, 700, 768, 899, 900, 910, 929, 930, 1040, 1440, 1920], ready: null, mainCap: () => CSS_W_MAIN, account: ACCOUNTS.admin, sidebar: 24 }, // sổ đại lý đợt 1: 22 + "Hoa hồng đối tác", "Người bán dịch vụ"
+      { path: "/staff", label: "/staff", widths: [640, 641, 645, 650, 700, 768, 899, 900, 910, 929, 930, 1040, 1440, 1920], ready: null, mainCap: () => CSS_W_MAIN, account: ACCOUNTS.admin, sidebar: 25 }, // ADR-0115 (13/10): 24 + "Điều chỉnh công nợ" (số ĐÃ ĐO bằng Chrome ngày 13/10 ở docs/evidence/2026-10-13-dieu-chinh-cong-no/kich-ban/dieu-chinh-smoke.mjs (Quản trị 25, Toàn quyền 32; cùng bộ quyền)). Trước đó — sổ đại lý đợt 1: 22 + "Hoa hồng đối tác", "Người bán dịch vụ"
       {
         // PHẢI là đơn NHÁP (R2). Đơn đã xác nhận (R1/R3) bị web/order-form.ts khoá form ("Chỉ sửa được đơn ở trạng
         // thái nháp") và KHÔNG gọi setBarTitle(`Sửa đơn <mã>`) — breadcrumb kẹt ở chữ "Sửa đơn" ngắn, lưới xanh giả.
@@ -1033,7 +1033,7 @@ try {
         // (đã tự đo: bản đầu của khẳng định này báo đỏ SAI ở 641px vì giả định --w-form áp dụng mọi khổ ≥641px).
         mainCap: (width) => (width >= 960 ? CSS_W_FORM : CSS_W_MAIN),
         account: ACCOUNTS.admin,
-        sidebar: 24, // Đợt 4: + 2 mục tiền xe thuê; Đợt 5: + "Xe đang chạy"; gói A5: + "Đề nghị chuyển khách" (ô trip.override); sổ đại lý đợt 1: + "Hoa hồng đối tác", "Người bán dịch vụ"
+        sidebar: 25, // ADR-0115 (13/10): + "Điều chỉnh công nợ" (ô ledger.adjust.approve; số ĐÃ ĐO bằng Chrome ngày 13/10 ở docs/evidence/2026-10-13-dieu-chinh-cong-no/kich-ban/dieu-chinh-smoke.mjs (Quản trị 25, Toàn quyền 32; cùng bộ quyền)) ⇒ 24 + 1. Trước đó — Đợt 4: + 2 mục tiền xe thuê; Đợt 5: + "Xe đang chạy"; gói A5: + "Đề nghị chuyển khách" (ô trip.override); sổ đại lý đợt 1: + "Hoa hồng đối tác", "Người bán dịch vụ"
       },
       {
         path: "/audit",
@@ -1043,7 +1043,7 @@ try {
         ready: `document.querySelector('.toolbar select option[value]:not([value=""])') !== null`,
         mainCap: () => CSS_W_MAIN,
         account: TOAN_QUYEN,
-        sidebar: 31, // 12/10 ghép main vào gói A+C: 28 (gói A5, 9/10) + 3 mục của sổ đại lý đợt 1 = 31. 12/10 sổ đại lý đợt 1 (đọc từ lần chạy thật của Task 13): + "Khoá sổ tháng", "Hoa hồng đối tác", "Người bán dịch vụ" (sau "Lý do điều phối") = 30 (Quản trị 24). 5/10 gộp Đợt 4 vào Đợt 5: + "Xe đang chạy" (ô trip.view) = 27 (Quản trị 21). 5/10 gộp main ffed6f1c vào Đợt 4: 24 + "Bảng giá thuê xe", "Bảng kê chi phí xe" (Đợt 4 G0) = 26. 2/10 (ADR-0055 VK2-A, Vận chuyển Đợt 3): + "Lịch xe bận" (ô vehicle.manage) = 24. 2/10 (ADR-0087, Task 5): + "Giao diện" (ô settings.ops, chỉ Toàn quyền) = 23; Quản trị không có ô này. Trước đó 22 (1/10, ADR-0075: + "Phiên đăng nhập")
+        sidebar: 32, // ADR-0115 (13/10): + "Điều chỉnh công nợ" ⇒ 31 + 1 (số ĐÃ ĐO bằng Chrome ngày 13/10 ở docs/evidence/2026-10-13-dieu-chinh-cong-no/kich-ban/dieu-chinh-smoke.mjs (Quản trị 25, Toàn quyền 32; cùng bộ quyền)). Trước đó — 12/10 ghép main vào gói A+C: 28 (gói A5, 9/10) + 3 mục của sổ đại lý đợt 1 = 31. 12/10 sổ đại lý đợt 1 (đọc từ lần chạy thật của Task 13): + "Khoá sổ tháng", "Hoa hồng đối tác", "Người bán dịch vụ" (sau "Lý do điều phối") = 30 (Quản trị 24). 5/10 gộp Đợt 4 vào Đợt 5: + "Xe đang chạy" (ô trip.view) = 27 (Quản trị 21). 5/10 gộp main ffed6f1c vào Đợt 4: 24 + "Bảng giá thuê xe", "Bảng kê chi phí xe" (Đợt 4 G0) = 26. 2/10 (ADR-0055 VK2-A, Vận chuyển Đợt 3): + "Lịch xe bận" (ô vehicle.manage) = 24. 2/10 (ADR-0087, Task 5): + "Giao diện" (ô settings.ops, chỉ Toàn quyền) = 23; Quản trị không có ô này. Trước đó 22 (1/10, ADR-0075: + "Phiên đăng nhập")
       },
     ];
 
@@ -1155,7 +1155,7 @@ try {
         assert.equal(f.newBtnShown, false, `${at}: nút "Tạo đơn" trên thanh công việc chỉ từ 641px (điện thoại đã có tab "Tạo đơn") — ${JSON.stringify(f)}`);
       } else {
         assert.equal(f.sidebarShown, true, `${at}: thanh bên PHẢI hiện từ 641px (quyết định 9 của chủ dự án) — ${JSON.stringify(f)}`);
-        assert.equal(f.sidebarLinks, spec.sidebar, `${at}: thanh bên phải đủ ${spec.sidebar} mục của tài khoản mở trang (Quản trị 24 — ADR-0111 gói A5 thêm "Đề nghị chuyển khách" (ô trip.override), ADR-0038 không "Nhật ký", ADR-0049 B8 có "Lý do điều phối", B1 có "Điều phối xe", Đợt 3 có "Lịch xe bận", Đợt 4 có "Bảng giá thuê xe", "Bảng kê chi phí xe", Đợt 5 có "Xe đang chạy", sổ đại lý đợt 1 có "Hoa hồng đối tác", "Người bán dịch vụ"; Toàn quyền 31 — ADR-0069 thêm "Trợ lý Hỗ trợ", ADR-0075 thêm "Phiên đăng nhập", ADR-0087 thêm "Giao diện", sổ đại lý đợt 1 thêm "Khoá sổ tháng" và hai mục trên) — ${JSON.stringify(f)}`);
+        assert.equal(f.sidebarLinks, spec.sidebar, `${at}: thanh bên phải đủ ${spec.sidebar} mục của tài khoản mở trang (Quản trị 25 — ADR-0115 thêm "Điều chỉnh công nợ"; trước đó 24 — ADR-0111 gói A5 thêm "Đề nghị chuyển khách" (ô trip.override), ADR-0038 không "Nhật ký", ADR-0049 B8 có "Lý do điều phối", B1 có "Điều phối xe", Đợt 3 có "Lịch xe bận", Đợt 4 có "Bảng giá thuê xe", "Bảng kê chi phí xe", Đợt 5 có "Xe đang chạy", sổ đại lý đợt 1 có "Hoa hồng đối tác", "Người bán dịch vụ"; Toàn quyền 31 — ADR-0069 thêm "Trợ lý Hỗ trợ", ADR-0075 thêm "Phiên đăng nhập", ADR-0087 thêm "Giao diện", sổ đại lý đợt 1 thêm "Khoá sổ tháng" và hai mục trên) — ${JSON.stringify(f)}`);
         assert.equal(f.tabbarLinks, 0, `${at}: thanh tab dưới đáy KHÔNG được hiện cùng thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.logoutShown, true, `${at}: "Đăng xuất" phải hiển thị thật trong thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.sidebarWidth, f.sidebarToken, `${at}: thanh bên phải rộng đúng token --w-sidebar (${f.sidebarToken}px) — ${JSON.stringify(f)}`);

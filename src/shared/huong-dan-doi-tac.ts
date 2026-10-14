@@ -10,7 +10,7 @@ export const HD_DOI_TAC: NhomHuongDan = {
   batDauNhanh: `1. Mở app, gõ **Số điện thoại** và **Mã PIN 6 số** công ty đã cấp, bấm [[Đăng nhập]].
 2. Vào [[Tôi]], bấm [[Đổi mã PIN]] để đổi sang mã PIN của riêng bạn.
 3. Bấm [[Tạo đơn]], chọn **Ngày khởi hành**, rồi chọn dịch vụ ở ô [[Chọn từ danh mục]].
-   Muốn lọc nhanh, bấm một chip ở hàng [[Nhóm dịch vụ]].
+   Muốn lọc nhanh, bấm nút [[Nhóm dịch vụ]] rồi đánh dấu nhóm cần xem.
 4. Nhập số khách, tên và số điện thoại của khách.
 5. Bấm [[Lưu, chờ xác nhận]]. App mở trang của đơn vừa lập.
 6. Kiểm lại rồi bấm [[Xác nhận đơn]]. Sau đó bấm [[Xem biên nhận]] để gửi ảnh cho khách.`,
@@ -49,17 +49,16 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
     {
       tieuDe: "Lập đơn cho khách",
       noiDung: `1. Bấm [[Tạo đơn]].
-2. Phần **Chọn ngày**: chọn **Ngày khởi hành**. Ngày này dùng cho mọi dịch vụ trong đơn.
+2. Đầu trang: chọn **Ngày khởi hành** (dùng cho mọi dịch vụ trong đơn), rồi ở phần **Thông tin khách hàng** gõ **Tên khách**, **Số điện thoại**. Muốn ghi Email hoặc **Ghi chú / yêu cầu đặc biệt** thì bấm [[Thêm chi tiết (email, ghi chú)]].
+   - Khách liên hệ qua bạn: bấm [[Sử dụng thông tin của tôi]] để tự điền tên và số của bạn.
 3. Phần **Dịch vụ**: bấm vào ô [[Chọn từ danh mục]], gõ tên hoặc mã dịch vụ, rồi bấm vào dịch vụ cần chọn.
    - Dịch vụ có nhãn "chưa có giá" hoặc "chưa hỗ trợ" thì không chọn được.
    - Dịch vụ đã có trong đơn có nhãn "đã chọn".
-4. Trong thẻ dịch vụ vừa thêm, nhập **Số khách**: **Người lớn**, **Trẻ em**… tuỳ dịch vụ. Dòng tiền tự hiện.
-5. Bấm [[Thông tin chuyến]] để mở phần này, ghi **Giờ đón**, **Điểm đón**, giờ và nơi check-in, **Ghi chú dịch vụ**.
-6. Phần **Thông tin khách hàng**: gõ **Tên khách**, **Số điện thoại**. Có thể thêm Email và **Ghi chú / yêu cầu đặc biệt**.
-   - Khách liên hệ qua bạn: bấm [[Sử dụng thông tin của tôi]] để tự điền tên và số của bạn.
-7. Phần **Thanh toán**: khách đã trả trước thì gõ **Thanh toán trước** và chọn **Phương thức thanh toán**.
-8. Xem lại khối **Tóm tắt** (máy tính) hoặc dòng tổng dưới đáy (điện thoại).
-9. Bấm [[Lưu, chờ xác nhận]]. App mở trang của đơn vừa lập.
+4. Trong thẻ dịch vụ vừa thêm, nhập **Số khách**: **Người lớn**, **Trẻ em**… tuỳ dịch vụ. Dòng tiền tự hiện. Cả đơn cần ít nhất một người lớn đi cùng; trẻ em và em bé không đi một mình.
+5. Bấm [[Thông tin chuyến]] để mở phần này, ghi **Giờ đón**, **Điểm đón**, giờ và nơi khách có mặt, **Ghi chú dịch vụ**.
+6. Phần **Thanh toán**: khách đã trả trước thì gõ **Thanh toán trước** và chọn **Phương thức thanh toán**.
+7. Xem lại khối **Tóm tắt** (máy tính) hoặc dòng tổng dưới đáy (điện thoại).
+8. Bấm [[Lưu, chờ xác nhận]]. App mở trang của đơn vừa lập.
 
 > Ví dụ: Khách sạn "Biển Xanh" (tên đặt ra) có một gia đình 2 người lớn, 1 trẻ em muốn đi tour 4 đảo ngày 05/10. Chị Hoa (lễ tân) bấm Tạo đơn, chọn ngày 05/10, gõ "4 đảo" vào ô Chọn từ danh mục và chọn dịch vụ. Chị nhập 2 người lớn, 1 trẻ em, ghi giờ đón 7:30 ở sảnh khách sạn, gõ tên và số điện thoại của khách, rồi bấm Lưu, chờ xác nhận.
 

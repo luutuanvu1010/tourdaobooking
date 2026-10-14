@@ -36,7 +36,7 @@ export interface DongDieuKhoan {
   validFrom: string;
   validTo: string | null;
 }
-/** Người hưởng của đơn: HUONG = bên đặt mang vai được hưởng; KHONG_HUONG = bên đặt mang vai bên ngoài KHÔNG thuộc danh sách; NONE = khách lẻ / nội bộ / công ty / trống. */
+/** Người hưởng của đơn: HUONG = bên đặt mang vai được hưởng; KHONG_HUONG = bên đặt mang vai bên ngoài (hoặc loại đối tác ADR-0117) KHÔNG thuộc danh sách; NONE = khách lẻ / nội bộ / công ty / trống. */
 export type NguoiHuong = { loai: "NONE" } | { loai: "HUONG"; partyId: string; vai: readonly string[] } | { loai: "KHONG_HUONG"; partyId: string };
 export type KetQuaMuc = { trangThai: "NONE" } | { trangThai: "SET"; dong: DongMuc; bac: 1 | 2 | 3 | 4 | 5 | 6 } | { trangThai: "MISSING"; lyDo: LyDoThieu };
 export type KetQuaDieuKhoan = { trangThai: "SET"; dong: DongDieuKhoan } | { trangThai: "MISSING" };
@@ -45,14 +45,16 @@ export const hieuLuc = (d: { validFrom: string; validTo: string | null }, ngay: 
 
 export function nguoiHuongCua(v: {
   bookerPartyId: string | null;
-  vaiMo: readonly { roleTypeCode: string; roleGroup: string }[];
+  /** `nhanDoiTac` (ADR-0117): vai thuộc loại đối tác do người dùng thêm (nhóm OTHER, có nhãn) — thiếu = không nhãn. */
+  vaiMo: readonly { roleTypeCode: string; roleGroup: string; nhanDoiTac?: boolean }[];
   vaiDuocHuong: ReadonlySet<string>;
   congTyChuId: string | null;
 }): NguoiHuong {
   if (v.bookerPartyId === null || v.bookerPartyId === v.congTyChuId) return { loai: "NONE" };
   const vai = [...new Set(v.vaiMo.filter((r) => v.vaiDuocHuong.has(r.roleTypeCode)).map((r) => r.roleTypeCode))].sort();
   if (vai.length > 0) return { loai: "HUONG", partyId: v.bookerPartyId, vai };
-  if (v.vaiMo.some((r) => r.roleGroup === "EXTERNAL")) return { loai: "KHONG_HUONG", partyId: v.bookerPartyId };
+  // Q1 = A (ADR-0117, chủ chọn 2026-10-14): vai bên ngoài HOẶC loại đối tác mà KHÔNG còn được hưởng (đã tắt) ⇒ KHONG_HUONG, đơn bị giữ — không bao giờ tự lấy 0.
+  if (v.vaiMo.some((r) => r.roleGroup === "EXTERNAL" || r.nhanDoiTac === true)) return { loai: "KHONG_HUONG", partyId: v.bookerPartyId };
   return { loai: "NONE" };
 }
 

@@ -33,13 +33,15 @@ const HIEN_HANH_GIAY_TO_XE = "(d.voided_at IS NULL AND NOT EXISTS (SELECT 1 FROM
 /**
  * Số khách HIỆU LỰC của dịch vụ alias `s` (ADR-0047 L-A1): phần tử của CHÍNH dịch vụ trong `after_json` của dòng điều chỉnh gần nhất (có chắn JSON hỏng),
  * không thì số đã lưu. MỘT đoạn cho R-ORD-9 và R-VC-3, R-VC-7 (ADR-0049 kế hoạch mục 4 điểm 11 — không chép lần hai). Alias nội bộ: a, b, je.
+ * `loai` = các loại khách được cộng; MẶC ĐỊNH cả bốn loại (câu chữ của các kiểm cũ giữ nguyên từng byte); R-ORD-16w (ADR-0114 D3) chỉ cộng `adult` + `senior` (người đi kèm trẻ em).
  */
-const soKhachHieuLuc = (s) => `COALESCE(
-            (SELECT json_extract(je.value, '$.pax.adult') + json_extract(je.value, '$.pax.child') + json_extract(je.value, '$.pax.senior') + json_extract(je.value, '$.pax.infant')
+const TAT_CA_LOAI_KHACH = ["adult", "child", "senior", "infant"];
+const soKhachHieuLuc = (s, loai = TAT_CA_LOAI_KHACH) => `COALESCE(
+            (SELECT ${loai.map((f) => `json_extract(je.value, '$.pax.${f}')`).join(" + ")}
                FROM order_money_adjustment a, json_each(CASE WHEN json_valid(a.after_json) AND json_type(a.after_json) = 'array' THEN a.after_json ELSE '[]' END) je
                WHERE a.order_id = ${s}.order_id AND a.seq = (SELECT MAX(seq) FROM order_money_adjustment b WHERE b.order_id = ${s}.order_id) AND json_extract(je.value, '$.serviceId') = ${s}.id
                LIMIT 1),
-            ${s}.pax_adult + ${s}.pax_child + ${s}.pax_senior + ${s}.pax_infant)`;
+            ${loai.map((f) => `${s}.pax_${f}`).join(" + ")})`;
 /**
  * Số người HIỆU LỰC của CHẶNG alias `l` thuộc dịch vụ alias `s` — CÙNG NGHĨA `soNguoiChang` (src/shared/so-nguoi-chang.ts; ADR-0054 D10.3): chặng VỀ có `pax_override`
  * → min(số riêng, số khách hiệu lực của dịch vụ); còn lại = số khách hiệu lực. MỘT đoạn cho R-VC-3 (L-D1) và R-VC-7 — không viết bộ đọc `after_json` thứ hai.
@@ -468,6 +470,38 @@ export const CHECKS = [
      GROUP BY x.ben, x.order_id HAVING SUM(x.so) < 0 AND MAX(x.luc) < (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-13')`,
     mode: "rows",
     level: "warn",
+  },
+  {
+    // ADR-0115 điều 1, 2 (migration 0094; đóng HC-4.2 phần công nợ): MỌI phiếu ADJUSTMENT ghi TỪ mốc R-BIL-14 đều có yêu cầu ĐÃ DUYỆT — dòng APPROVE trỏ đúng dòng
+    // REQUEST của phiếu, cùng đơn, do người KHÁC người tạo yêu cầu duyệt, và chính người duyệt ghi phiếu. Lưới thứ hai sau các trigger 0094 (bắt trường hợp trigger bị gỡ
+    // nhầm hay SQL gõ tay đi vòng). Phiếu cũ hơn mốc (không có yêu cầu) đi vào R-BIL-14w (cảnh báo), không tính lỗi.
+    code: "R-BIL-14",
+    what: "phiếu điều chỉnh công nợ ghi từ mốc 0094 đều có yêu cầu đã được người khác duyệt",
+    sql: `SELECT count(*) FROM bil_posting p
+     WHERE p.kind_code = 'ADJUSTMENT' AND p.created_at >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-14')
+       AND NOT EXISTS (SELECT 1 FROM bil_adjustment_request a JOIN bil_adjustment_request r ON r.id = a.target_id AND r.kind_code = 'REQUEST'
+         WHERE a.kind_code = 'APPROVE' AND r.id = p.request_id AND r.order_id = p.order_id AND a.created_by <> r.created_by AND a.created_by = p.created_by)`,
+    level: "fail",
+  },
+  {
+    code: "R-BIL-14w",
+    what: "phiếu điều chỉnh công nợ TRƯỚC mốc 0094 (không qua duyệt) — chỉ ghi nhận, không sửa",
+    sql: `SELECT p.id, p.order_id, p.created_at FROM bil_posting p
+     WHERE p.kind_code = 'ADJUSTMENT' AND p.request_id IS NULL AND p.created_at < (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-14')`,
+    mode: "rows",
+    level: "warn",
+  },
+  {
+    // ADR-0115 điều 4 (trần cộng dồn): tổng điều chỉnh TĂNG nợ còn hiệu lực của một đơn không vượt trần chụp lúc duyệt (cap_snapshot lớn nhất của các lần duyệt tăng nợ
+    // của đơn — Hiến chương 5.6: bản chụp để đối chiếu, không phải nguồn tính thứ hai). Số tiền lấy từ DÒNG NỢ thật; dòng đã bị đảo không tính.
+    code: "R-BIL-15",
+    what: "tổng điều chỉnh tăng nợ còn hiệu lực của đơn không vượt trần chụp lúc duyệt",
+    sql: `SELECT count(*) FROM (SELECT p.order_id, SUM(l.amount) AS tong, MAX(a.cap_snapshot) AS tran
+       FROM bil_adjustment_request a JOIN bil_posting p ON p.request_id = a.target_id JOIN bil_debt_line l ON l.posting_id = p.id
+       WHERE a.kind_code = 'APPROVE' AND a.direction = 'INCREASE' AND l.reverses_line_id IS NULL
+         AND NOT EXISTS (SELECT 1 FROM bil_debt_line r WHERE r.reverses_line_id = l.id)
+       GROUP BY p.order_id HAVING SUM(l.amount) > MAX(a.cap_snapshot))`,
+    level: "fail",
   },
   {
     // ADR-0092 Đ6 + ADR-0108 đ4 (T2; migration 0088): mỗi mã giao dịch — các dòng nối CÒN HIỆU LỰC (vị từ hieuLuc) cùng MỘT số thực chuyển, không hai lần thu
@@ -1313,6 +1347,20 @@ export const CHECKS = [
     level: "warn",
     note: "cảnh báo (không chặn phát hành): số khách của dịch vụ đã giảm dưới số người chiều về — văn phòng sửa lại số người chiều về (xe đang dùng số khách dịch vụ)",
   },
+  // R-ORD-16w (ADR-0114 D3, điều khoản 3; bài canh `src/audit-invariants.test.ts`): đơn ĐÃ XÁC NHẬN (kể cả đã giao / hoàn thành — trạng thái vẫn `confirmed`) mà tổng người đi kèm
+  // (người lớn + người cao tuổi, cộng MỌI dịch vụ kể cả nhập tay) bằng 0 — chỉ còn trẻ em / em bé. Máy chủ nay chặn ở lập đơn, lưu nháp, xác nhận và sửa số khách, nhưng đơn lập TRƯỚC luật vẫn
+  // có thể như vậy, và đơn cũ không bị chặn thêm (chỉ chặn khi sửa từ ≥ 1 xuống 0). Số người là số HIỆU LỰC (sau dòng điều chỉnh gần nhất, `soKhachHieuLuc` — đếm số đã lưu thì sót đúng ca
+  // sửa xuống 0 người lớn từ trước ADR). Mức "warn" (thoát 0; ADR-0114: thoát 1 sẽ dừng `trien-khai`): dữ liệu cũ KHÔNG sửa được hàng loạt, chỉ để văn phòng thấy và rà soát tay. Chỉ có
+  // vế cảnh báo, không có vế lỗi đi kèm (khác `R-BIL-8w` / `R-ORD-15w`, hậu tố `w` ở đó là nửa trước-mốc của một kiểm lỗi). Chỉ đếm SỐ ĐƠN, không in tên khách.
+  {
+    code: "R-ORD-16w",
+    what: "đơn đã xác nhận có tổng người đi kèm (người lớn + người cao tuổi, mọi dịch vụ, số khách hiệu lực) bằng 0 — chỉ còn trẻ em / em bé (ADR-0114 D3)",
+    sql: `SELECT count(*) FROM orders o
+      WHERE o.status = 'confirmed'
+        AND (SELECT COALESCE(SUM(${soKhachHieuLuc("s", ["adult", "senior"])}), 0) FROM order_service s WHERE s.order_id = o.id) = 0`,
+    level: "warn",
+    note: "cảnh báo (KHÔNG chặn phát hành — ADR-0114 D3 điều khoản 3): đơn cũ lập trước luật người lớn; rà soát tay theo mã đơn, máy chủ chỉ chặn việc sửa số khách đưa người đi kèm từ 1 trở lên xuống 0",
+  },
   // R-AUT-1 (ADR-0016 điều 6/8): một tài khoản bị ngưng (`active = 0`) không được còn Face ID nào CÒN HIỆU LỰC (`valid_to_at IS NULL`) — đăng nhập
   // Face ID còn bị `getActiveStaff` chặn ở tầng ứng dụng, kiểm này là LƯỚI DỮ LIỆU cho bất biến đó, không phải đường chặn đăng nhập.
   // `PATCH /api/staff/:id` với `active: false` (ngưng tài khoản) gỡ mọi passkey trong CÙNG lô ghi với câu ngưng ("8b", chủ chọn A-4 phương án 1),
@@ -1426,6 +1474,21 @@ export const CHECKS = [
        AND NOT EXISTS (SELECT 1 FROM v_pty_open_role o JOIN v_prc_beneficiary_role b ON b.role_type_code = o.role_type_code WHERE o.party_id = r.target_party_id)`,
     level: "warn",
     note: "cảnh báo, không chặn phát hành (đặc tả sổ đại lý đợt 1 §9): hồ sơ này thôi vai được hưởng mà mức còn hiệu lực — Kế toán xem lại và đóng dòng mức nếu không còn hưởng",
+  },
+  {
+    // R-PRC-6 (ADR-0117 lần 1, migration 0095): lưới THỨ HAI cho các trigger `pty_party_role_partner_label_conflict_*`, `adr0117_permission_partner_label_internal`, `prc_beneficiary_role_kind`.
+    // Hai nhánh, đếm cộng: (i) hồ sơ ĐANG mang loại đối tác mà còn vai nội bộ đang mở (nhóm INTERNAL, hoặc vai cũ STAFF/SALES — tạm, như trigger) hoặc có tài khoản giữ quyền ngoài {PARTNER, DRIVER_PARTNER};
+    // (ii) dòng danh sách được hưởng thuộc vai nhóm INTERNAL, hoặc nhóm OTHER mà không phải loại đối tác. Không lọc `active`: dòng tắt có thể bật lại bằng UPDATE mà trigger chỉ canh INSERT.
+    code: "R-PRC-6",
+    what: "hồ sơ mang loại đối tác (được hưởng hoa hồng) mà còn vai nội bộ đang mở hoặc có tài khoản giữ quyền nội bộ; hoặc danh sách vai được hưởng hoa hồng chứa vai nội bộ / vai nhóm OTHER không phải loại đối tác",
+    sql: `SELECT (SELECT count(*) FROM v_pty_party_partner_label l
+         WHERE EXISTS (SELECT 1 FROM v_pty_open_role o WHERE o.party_id = l.party_id AND (o.role_group = 'INTERNAL' OR o.role_type_code IN ('STAFF', 'SALES')))
+            OR EXISTS (SELECT 1 FROM staff s JOIN stf_permission p ON p.staff_id = s.id AND p.valid_to_at IS NULL AND p.permission_type_code NOT IN ('PARTNER', 'DRIVER_PARTNER')
+                       WHERE s.party_id = l.party_id))
+      + (SELECT count(*) FROM prc_beneficiary_role b JOIN v_pty_role_type t ON t.code = b.role_type_code
+         WHERE t.role_group = 'INTERNAL' OR (t.role_group = 'OTHER' AND t.is_partner_label = 0))`,
+    level: "fail",
+    note: "ADR-0117 lần 1: gỡ vai nội bộ / quyền nội bộ khỏi hồ sơ mang loại đối tác, và xử lý dòng sai trong danh sách vai được hưởng hoa hồng (dòng lậu chỉ do SQL gõ tay; chủ duyệt cách dọn)",
   },
   {
     // R-ORD-T1 (đặc tả §9 sau kiểm độc lập N4): MỖI dòng dịch vụ của đơn đã xác nhận, xác nhận TỪ (mốc + 60 phút) trở đi, phải có ĐÚNG MỘT bản chụp hiện hành. Mốc = lúc áp migration

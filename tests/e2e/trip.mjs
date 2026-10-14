@@ -137,7 +137,13 @@ try {
   };
   assert.deepEqual(await gap(await dated(vnDate(-1))), ["past_date"]);
   assert.deepEqual(await gap(await dated(vnDate(366))), ["too_far"]);
-  assert.deepEqual(await gap(await dated(vnDate(7), true)), ["no_guests"]);
+  // ADR-0114 D3: nháp "0 khách" (không có người lớn) nay bị cửa người lớn chặn TRƯỚC điều kiện thông tin chuyến — 409 `thieu_nguoi_lon`, không còn `incomplete_trip` / `no_guests`
+  // (lý do `no_guests` vẫn nằm ở luật thuần `service-rules.ts` + bài của nó; ở API xác nhận, 0 khách luôn là 0 người lớn nên D3 đứng trước).
+  {
+    const x = await confirm(A, await dated(vnDate(7), true));
+    assert.equal(x.status, 409, JSON.stringify(x.body));
+    assert.equal(x.body.error.code, "thieu_nguoi_lon");
+  }
   for (const day of [vnDate(0), vnDate(365)]) {
     const x = await confirm(A, await dated(day));
     assert.equal(x.status, 200, `${day}: ${JSON.stringify(x.body)}`);

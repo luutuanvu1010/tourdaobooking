@@ -54,6 +54,6 @@ test("assignees: thêm nhãn KHÔNG đổi ai có mặt — vẫn đúng tập c
   const ids = r.json.assignees.map((a: any) => a.staffId).sort();
   assert.deepEqual(ids, [SALES, ADM, FIELD, SUP, GHEP, SA].sort());
   for (const a of r.json.assignees) assert.deepEqual(Object.keys(a).sort(), ["name", "partyId", "roleLabel", "staffId"], JSON.stringify(a));
-  assert.doesNotMatch(r.text, /09\d{8}/, "không lộ SĐT");
+  assert.doesNotMatch(r.text, /(?<![0-9a-f-])09\d{8}(?!\d)/, "không lộ SĐT");
   for (const id of [ACC, PARTNER, INTERN, LAI]) assert.ok(!ids.includes(id), id);
 });

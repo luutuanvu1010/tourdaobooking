@@ -10,6 +10,7 @@
 | `v_aud_order_event` | view công bố | cột: id, order_id, staff_id, action, created_at |
 | `v_aud_trip_event` | view công bố | cột: id, trip_id, staff_id, action, created_at |
 | `v_aud_account_event` | view công bố | cột: id, account_id, staff_id, action, created_at |
+| `v_aud_ledger_event` | view công bố | cột: id, order_id, target_type, target_id, staff_id, action, created_at |
 | `v_aud_order_change` | view công bố | cột: id, order_id, staff_id, action, detail, created_at, leg_id |
 | `v_aud_order_cmd` | view công bố | cột: id, order_id, action |
 
@@ -36,7 +37,8 @@
 | `bil_audit_cutoff` | bảng | mốc của kiểm định kỳ sổ tiền (ADR-0092 đ8, khuôn ADR-0088 đ7 / ADR-0079 đ7a; migration 0080), CHỈ-THÊM: code (vd 'R-BIL-13') → cutoff_at = lúc áp migration. Vi phạm có dòng ghi TỪ mốc = LỖI (audit-invariants); cũ hơn mốc = cảnh báo kèm danh sách. Dòng 'R-BIL-13' cũng là mốc của R-ORD-15 (0081 cùng lần phát hành; orders không ghi bảng này). Không tiền, không dữ liệu cá nhân. Dòng 'R-BIL-D6' (0088) là mốc cắt C1 của mã giao dịch ngân hàng. |
 | `bil_deposit_approval` | bảng | khoản duyệt hoàn cọc đơn huỷ (ADR-0089 đ4a, đ6, X-1; migration 0079), CHỈ-THÊM: kind_code REFUND (hoàn) | TRANSFER (chuyển sang target_order_id); dòng HUỶ DUYỆT trỏ khoản gốc bằng voids_id (UNIQUE — một lần), amount = phần huỷ ≤ phần chưa chi. approved_date = ngày VN. Trigger: chỉ đơn huỷ; nhóm chưa kết luận chặn (X-2); khách huỷ quá refund_deadline chặn (đ5); tổng duyệt ≤ tiền còn giữ lúc huỷ (đ15, lời chủ (c)); đơn nhận còn hiệu lực, chưa Đã giao. Người duyệt = created_by (tách với người chi) |
 | `bil_outside_refund` | bảng | "đã hoàn ngoài hệ thống" của đơn huỷ CŨ (ADR-0089 đ16, X-3, X-4, lời chủ (b); migration 0079), CHỈ-THÊM: RECORD (Toàn quyền ghi, amount + lý do) → CONFIRM (Quản trị xác nhận) hoặc REJECT (từ chối, có lý do — ghi lại được); target_id UNIQUE (mỗi dòng ghi một quyết định). Trigger: chỉ đơn có dòng lý do legacy = 1; một RECORD đang hiệu lực mỗi đơn; amount ≤ còn giữ; người xác nhận/từ chối ≠ người ghi. Đã xác nhận tính CẢ là duyệt lẫn chi; không đụng số dư người giữ tiền |
-| `bil_posting` | bảng | phiếu sổ (ADR-0026 đ3), CHỈ-THÊM; due_snapshot = phải thu chụp lúc Đã giao (Q4); trigger kiểm tiền trong lô Đã giao / Hoàn thành |
+| `bil_posting` | bảng | phiếu sổ (ADR-0026 đ3), CHỈ-THÊM; due_snapshot = phải thu chụp lúc Đã giao (Q4); trigger kiểm tiền trong lô Đã giao / Hoàn thành; request_id (0094, ADR-0115) = yêu cầu điều chỉnh đã duyệt của phiếu ADJUSTMENT — trigger cấm chèn ADJUSTMENT thiếu yêu cầu đã duyệt do người KHÁC tạo (phiếu cũ trước 0094 được miễn), mỗi yêu cầu một phiếu |
+| `bil_adjustment_request` | bảng | yêu cầu điều chỉnh công nợ chờ người thứ hai duyệt (ADR-0115 đợt 1; migration 0094), CHỈ-THÊM, khuôn bil_outside_refund: dòng REQUEST (người tạo khai hai bên, loại dòng, số tiền, lý do ≥ 10 ký tự, ngày phát sinh, direction INCREASE/DECREASE lúc tạo) và dòng quyết định APPROVE (direction + cap_snapshot = trần chụp lúc duyệt) / REJECT (lý do bắt buộc) / WITHDRAW (chỉ người tạo) trỏ về REQUEST bằng target_id UNIQUE — mỗi yêu cầu đúng một quyết định. Hết hạn không có dòng: tính lúc đọc (created_at + 7 ngày; trigger chặn APPROVE quá hạn). Trigger: quyết định cùng đơn; người duyệt / từ chối ≠ người tạo. Số dư KHÔNG đổi cho tới khi duyệt; phiếu ADJUSTMENT và dòng nợ chỉ sinh trong lô duyệt |
 | `bil_accounting_entry` | bảng | dấu "đã nhập phần mềm kế toán" + "Số hoá đơn đã nhập" của một đơn (ADR-0060), CHỈ-THÊM (trigger cấm sửa/xoá); trạng thái hiện tại = dòng rowid lớn nhất của đơn; bỏ dấu bắt buộc lý do (CHECK); không tiền, không trạng thái hoá đơn ADR-0004 |
 | `bil_debt_line` | bảng | dòng nợ hai chân (ADR-0026 đ3), CHỈ-THÊM; nguồn = đơn HOẶC chuyến (ADR-0057 T3 — trip_id cột dự trữ, không khoá ngoại, lượt 1 luôn trống). 0080 (ADR-0092 Đ2, Đ2b): trigger bil_debt_line_settlement_no_flip — dòng quyết toán gốc gắn đơn không làm số dư cặp (bên, công ty chủ) đổi dấu; bil_debt_line_held_once — dòng đảo giữ hộ chỉ khi người giữ hộ còn nợ ≥ số dòng gốc (một dòng giữ hộ tất toán MỘT lần: "Công ty đã nhận" HOẶC "Nộp") |
 | `bil_receipt_bank_txn` | bảng | nối lần thu ↔ mã giao dịch ngân hàng + số tiền thực chuyển theo sao kê (ADR-0092 Đ6, ADR-0108 đ4 T2; migration 0088), CHỈ-THÊM, receipt_id duy nhất. Chỉ lần thu chuyển khoản – Công ty thu. Ba luật ở trigger (trùng cùng đơn, số thực chuyển lệch, tổng vượt) theo vị từ hieuLuc. Chỉ người có ledger.write thấy mã; nhật ký không chép mã |
@@ -138,7 +140,7 @@
 | `pty_party_role` | bảng |  |
 | `pty_person` | bảng |  |
 | `pty_relationship_type` | bảng tra cứu |  |
-| `pty_role_type` | bảng tra cứu |  |
+| `pty_role_type` | bảng tra cứu | cột is_partner_label (migration 0095, ADR-0117): loại đối tác (nhóm OTHER, được hưởng hoa hồng) là dữ liệu — hồ sơ nội bộ không mang loại này; bất biến khi đã có hồ sơ dùng |
 | `pty_person_document_type` | bảng |  |
 | `pty_license_class` | bảng |  |
 | `pty_person_document` | bảng |  |
@@ -151,6 +153,8 @@
 | `v_pty_carrier_driver` | view công bố | cột: carrier_party_id, driver_party_id |
 | `v_pty_person_xung_ho` | view công bố | cột: party_id, given_name, gender |
 | `v_pty_open_role` | view công bố | cột: party_id, role_type_code, role_group |
+| `v_pty_role_type` | view công bố | cột: code, role_group, is_partner_label, active |
+| `v_pty_party_partner_label` | view công bố | cột: party_id |
 
 ## staff
 

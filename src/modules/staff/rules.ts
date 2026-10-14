@@ -1,8 +1,8 @@
 // Luật thuần của quản lý tài khoản nhân viên, không I/O.
-import type { PermissionCode } from "../../shared/permissions.ts";
+import { isExternalPermission, type PermissionCode } from "../../shared/permissions.ts";
 import { isValidPin } from "./phone.ts";
 
-import { canManageAccount } from "../../shared/roles.ts";
+import { ROLES, canManageAccount, type RoleCode } from "../../shared/roles.ts";
 
 /**
  * Cấp bậc quản lý tài khoản (ADR-0014 điều 8 + ADR-0071 điều 1c) — luật ở `src/shared/roles.ts` (MỘT nguồn cho máy chủ và giao diện). Dùng cho:
@@ -74,4 +74,22 @@ export function partyAccountVerdict(
 ): { linked: false } | { linked: true; manageable: boolean } {
   if (!target) return { linked: false };
   return { linked: true, manageable: actor.id === target.id || canManageAccount(actor.permissions, target.permissions) };
+}
+
+/**
+ * ADR-0117 lần 1, điều 4 — vế 3 của luật «hồ sơ nội bộ»: tài khoản mang ít nhất một quyền KHÔNG thuộc nhóm bên ngoài (đọc hằng EXTERNAL_PERMISSIONS qua
+ * isExternalPermission — không tập thứ hai). Tài khoản Đối tác / Tài xế đối tác thuần → false (đối tác thuần vẫn mang được loại đối tác).
+ */
+export const coQuyenNoiBo = (perms: readonly PermissionCode[]): boolean => perms.some((p) => !isExternalPermission(p));
+
+/** Câu chặn chiều 2 — KHÔNG nêu tên loại hay nhãn (Nhân sự không giữ party.view nhận đúng câu này — ADR-0117 điều 4). */
+export const KHONG_NHAN_VAI_NOI_BO = "Hồ sơ này không nhận thêm vai nội bộ vào lúc này.";
+
+/**
+ * ADR-0117 điều 4, chiều 2: hồ sơ đang mang loại đối tác được hưởng (`nhanDoiTac`) không nhận vai nhóm INTERNAL hay quyền nội bộ. Máy chủ gọi TRƯỚC mọi
+ * lô ghi (PUT /api/staff/:id/roles chạy hai lô ở nhánh gỡ ADMIN — trigger chỉ là lưới cuối). null = được.
+ */
+export function moNoiBoChoHoSoCoNhanProblem(v: { nhanDoiTac: boolean; vaiTiep: readonly RoleCode[]; quyenTiep: readonly PermissionCode[] }): string | null {
+  if (!v.nhanDoiTac) return null;
+  return v.vaiTiep.some((c) => ROLES[c].group === "INTERNAL") || coQuyenNoiBo(v.quyenTiep) ? KHONG_NHAN_VAI_NOI_BO : null;
 }

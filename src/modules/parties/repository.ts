@@ -117,7 +117,14 @@ const RELATIONSHIPS_OF = defineSql(
    WHERE r.from_party_id = ?1 OR r.to_party_id = ?1 ORDER BY (r.valid_to_date IS NOT NULL), r.valid_from_date DESC, r.id`,
 );
 // Mọi loại vai (cả vai đã ngưng) kèm nhóm: giao diện cần tên đúng của vai cũ để hiện; ô "thêm vai" tự lọc nhóm OTHER đang dùng.
-const ROLE_TYPES = defineSql("parties", "role_types", "SELECT code, name, role_group, active FROM pty_role_type ORDER BY sort_order");
+// ADR-0117 điều 1: thêm / tắt / bật LOẠI ĐỐI TÁC (nhóm OTHER, cờ is_partner_label = 1). `sort_order` = 100 + số loại nhãn đã có, chỉ để xếp cuối. Cập nhật CHỈ chạm loại nhãn
+// (`AND is_partner_label = 1`): năm vai bên ngoài cũ là vai đăng nhập, không tắt / bật ở đây. `active <> ?2`: đã đúng trạng thái ⇒ 0 dòng đổi (route trả 409 stale).
+const LOAI_DOI_TAC_THEM = defineSql("parties", "partner_label_insert",
+  `INSERT INTO pty_role_type (code, name, sort_order, active, role_group, is_partner_label)
+   VALUES (?1, ?2, 100 + (SELECT count(*) FROM pty_role_type WHERE is_partner_label = 1), 1, 'OTHER', 1)`);
+const LOAI_DOI_TAC_DAT = defineSql("parties", "partner_label_set_active",
+  `UPDATE pty_role_type SET active = ?2 WHERE code = ?1 AND is_partner_label = 1 AND active <> ?2`);
+const ROLE_TYPES = defineSql("parties", "role_types", "SELECT code, name, role_group, active, is_partner_label FROM pty_role_type ORDER BY sort_order");
 const RELATIONSHIP_TYPES = defineSql("parties", "relationship_types", "SELECT code, name FROM pty_relationship_type WHERE active = 1 ORDER BY sort_order");
 // ADR-0024 điều 6 / 6.2: hồ sơ "công ty chủ" = hồ sơ đang mở vai ?1. LIMIT 2 để nơi gọi phân biệt "đúng một" với "không có / hơn một" (bốn trigger của
 // migration *_ho_so_cong_ty_chu giữ đúng một). Hotline = liên hệ PHONE đang mở có nhãn "Hotline" (6.1; không phân biệt hoa thường), ưu tiên liên hệ chính
@@ -187,10 +194,12 @@ export async function getPartyDetail(db: D1Database, id: string): Promise<{ part
   return { party: row, contacts: contacts!.results as ContactRow[], roles: roles!.results as RoleRow[], relationships: relationships!.results as RelationshipRow[] };
 }
 
-export interface RoleTypeRow { code: string; name: string; role_group: string; active: number }
+export interface RoleTypeRow { code: string; name: string; role_group: string; active: number; is_partner_label: number; /** ADR-0117: = is_partner_label = 1. */ partnerLabel: boolean }
 export async function listRoleTypes(db: D1Database): Promise<RoleTypeRow[]> {
-  return (await db.prepare(ROLE_TYPES).all<RoleTypeRow>()).results;
+  return (await db.prepare(ROLE_TYPES).all<Omit<RoleTypeRow, "partnerLabel">>()).results.map((r) => ({ ...r, partnerLabel: r.is_partner_label === 1 }));
 }
+export const themLoaiDoiTacStatement = (db: D1Database, v: { code: string; ten: string }): D1PreparedStatement => db.prepare(LOAI_DOI_TAC_THEM).bind(v.code, v.ten);
+export const datHoatDongLoaiDoiTacStatement = (db: D1Database, code: string, bat: boolean): D1PreparedStatement => db.prepare(LOAI_DOI_TAC_DAT).bind(code, bat ? 1 : 0);
 // ADR-0024 6.4: hồ sơ ?1 có đang mở vai ?2 (mã vai công ty chủ) không — câu tra dữ liệu dùng NỘI BỘ module (route ghi, respondParty). KHÔNG xuất qua index.ts.
 const IS_OWNER_COMPANY = defineSql("parties", "is_owner_company", "SELECT 1 AS x FROM pty_party_role WHERE party_id = ?1 AND role_type_code = ?2 AND valid_to_date IS NULL LIMIT 1");
 export async function isOwnerCompanyParty(db: D1Database, partyId: string, roleCode: string): Promise<boolean> {
@@ -422,7 +431,17 @@ const OPEN_ROLE_CODES_FOR = defineSql(
    WHERE party_id IN (SELECT value FROM json_each(?1)) AND location_id IS NULL AND valid_to_date IS NULL GROUP BY party_id`,
 );
 // Nhóm + trạng thái "đang dùng" của MỘT loại vai (route thêm vai: vai tài khoản → màn Quản lý tài khoản; loại đã ngưng → không gán mới — Ruling R6, ADR-0040 D3).
-const ROLE_TYPE_OF = defineSql("parties", "role_type_of", "SELECT role_group, active FROM pty_role_type WHERE code = ?1");
+const ROLE_TYPE_OF = defineSql("parties", "role_type_of", "SELECT role_group, active, is_partner_label FROM pty_role_type WHERE code = ?1");
+// ADR-0117 điều 4: hồ sơ nào trong ?1 (mảng JSON id) đang mang loại đối tác được hưởng — đọc view công bố của CHÍNH module (một định nghĩa với trigger stf_permission).
+const HO_SO_MANG_NHAN = defineSql("parties", "ho_so_mang_nhan", "SELECT party_id FROM v_pty_party_partner_label WHERE party_id IN (SELECT value FROM json_each(?1))");
+// ADR-0117 điều 4 (chiều 1, lớp route): vai ĐANG MỞ của hồ sơ ?1 kèm nhóm — "đang mở" = valid_to_date IS NULL, KHÔNG lọc nơi: đúng định nghĩa của trigger
+// *_partner_label_conflict (và R-P8: cùng cách với nguồn sinh quyền), để lớp route không lỏng hơn lớp CSDL. Dùng hỏi luật «nội bộ» (rules.ts hoSoNoiBo).
+const VAI_DANG_MO = defineSql(
+  "parties",
+  "vai_dang_mo",
+  `SELECT r.role_type_code AS code, t.role_group AS grp FROM pty_party_role r JOIN pty_role_type t ON t.code = r.role_type_code
+   WHERE r.party_id = ?1 AND r.valid_to_date IS NULL`,
+);
 // Nhóm + mã vai của MỘT dòng vai thuộc hồ sơ ?2 (route kết thúc vai: vai tài khoản → màn Quản lý tài khoản; vai "Công ty chủ" → ô company.legal.write, ADR-0024 6.5).
 const ROLE_ROW_OF = defineSql(
   "parties",
@@ -450,9 +469,20 @@ export async function openRoleCodesFor(db: D1Database, partyIds: readonly string
   return new Map(results.map((r) => [r.party_id, r.codes.split(",")]));
 }
 /** Loại vai `code`: nhóm và còn dùng không; null nếu mã không có trong danh mục. */
-export async function roleTypeOf(db: D1Database, code: string): Promise<{ group: string; active: boolean } | null> {
-  const r = await db.prepare(ROLE_TYPE_OF).bind(code).first<{ role_group: string; active: number }>();
-  return r ? { group: r.role_group, active: r.active === 1 } : null;
+export async function roleTypeOf(db: D1Database, code: string): Promise<{ group: string; active: boolean; partnerLabel: boolean } | null> {
+  const r = await db.prepare(ROLE_TYPE_OF).bind(code).first<{ role_group: string; active: number; is_partner_label: number }>();
+  return r ? { group: r.role_group, active: r.active === 1, partnerLabel: r.is_partner_label === 1 } : null;
+}
+/** ADR-0117: tập id (trong `partyIds`) đang mang loại đối tác được hưởng. */
+export async function hoSoMangNhan(db: D1Database, partyIds: readonly string[]): Promise<Set<string>> {
+  if (partyIds.length === 0) return new Set();
+  const { results } = await db.prepare(HO_SO_MANG_NHAN).bind(JSON.stringify(partyIds)).all<{ party_id: string }>();
+  return new Set(results.map((r) => r.party_id));
+}
+/** ADR-0117: vai đang mở (valid_to_date IS NULL, mọi nơi) của hồ sơ kèm nhóm. */
+export async function vaiDangMo(db: D1Database, partyId: string): Promise<{ code: string; group: string }[]> {
+  const { results } = await db.prepare(VAI_DANG_MO).bind(partyId).all<{ code: string; grp: string }>();
+  return results.map((r) => ({ code: r.code, group: r.grp }));
 }
 export async function roleRowOf(db: D1Database, partyId: string, roleId: string): Promise<{ group: string; code: string } | null> {
   const r = await db.prepare(ROLE_ROW_OF).bind(roleId, partyId).first<{ role_group: string; role_type_code: string }>();

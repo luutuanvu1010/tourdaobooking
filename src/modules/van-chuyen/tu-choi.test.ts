@@ -1,6 +1,9 @@
 // TỪ CHỐI CHUYẾN của tài xế đối tác (ADR-0053 D8.3–D8.6; kế hoạch A4 T7 — NT-4, NT-7; G-A4-14, G-A4-15, G-A4-24, G-A4-25). Khung thử (cả ứng dụng + SQLite thật).
 // LUẬT ĐỒNG HỒ (§2, G-A4-26): đường Từ chối THÀNH CÔNG đi qua trigger B8.3 so GIỜ CSDL (giờ thật) — mọi bài ở đây bật `batDongHo(<giờ thật>)` và gieo chuyến
-// NGÀY VN THẬT + 1, chỉ tiến đồng hồ giả. Ngoại lệ có tên: bài "đua sát hạn" (đồng hồ giả CHẬM hơn giờ thật, hạn nằm giữa hai đồng hồ). Tên khách, SĐT, số giấy tờ GIẢ.
+// NGÀY VN THẬT + 2, chỉ tiến đồng hồ giả. Ngoại lệ có tên: bài "đua sát hạn" (đồng hồ giả CHẬM hơn giờ thật, hạn nằm giữa hai đồng hồ). Tên khách, SĐT, số giấy tờ GIẢ.
+// VÌ SAO + 2 MÀ KHÔNG PHẢI + 1 (bài từng đỏ theo giờ trong ngày, 13/10/2026 từ 23 giờ đêm): mốc 6 giờ của ADR-0049 tính theo đồng hồ giả = giờ thật đứng yên. Chuyến nguồn ở `chuyenNguon`
+// bắt đầu 05:00, khách đón 05:30: dựng cho «ngày mai» thì từ 23:00 bước xếp khách lên chuyến (phân bổ) bị 409 `can_pha_le`, từ 23:30 bước xác nhận đơn bị 409 `short_notice_required` (năm bài ADR-0113). Ngày kia luôn cách ≥ 29 giờ.
+// (Bài `trip_not_planned` dùng + 1 vì chuyến 14:00–16:00 và chính sách riêng mốc 240 phút: ngày mai cách ≥ 14 giờ, không bao giờ lọt mốc.)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
@@ -25,7 +28,7 @@ function laiChoNhaXe(w: any, staffId: string, carrierId: string) {
 }
 /** Ngày VN thật + `n` (luật đồng hồ — gọi SAU `batDongHo`). */
 const ngayThat = (n: number) => msToVnLocal(Date.now() + n * 86_400_000).date;
-/** Khung thử: tài xế đối tác 1 (nhà xe Một), tài xế đối tác 2 (nhà xe Một — xếp lại được cùng xe), chuyến ngày mai 12:30–15:00 trên xe nhà xe Một. */
+/** Khung thử: tài xế đối tác 1 (nhà xe Một), tài xế đối tác 2 (nhà xe Một — xếp lại được cùng xe), chuyến ngày kia 12:30–15:00 trên xe nhà xe Một. */
 async function theGioi(v: { tre?: number } = {}) {
   const tat = batDongHo(Date.now() - (v.tre ?? 0));
   const w = setup();
@@ -34,7 +37,8 @@ async function theGioi(v: { tre?: number } = {}) {
   laiChoNhaXe(w, DRIVER_PARTNER, nx);
   laiChoNhaXe(w, DRIVER_PARTNER2, nx);
   const xe1 = xeNhaXe(w, nx);
-  const ngay = ngayThat(1);
+  // Hai ngày sau (không phải ngày mai) — lý do ở đầu tệp: chuyến nguồn 05:00 / đón 05:30 của «ngày mai» lọt mốc 6 giờ sau ~23 giờ đêm (xếp khách 409 `can_pha_le`, rồi xác nhận đơn 409 `short_notice_required`).
+  const ngay = ngayThat(2);
   const a = await chuyenSan(w, { taiXe: DRIVER_PARTNER, xe: xe1, ngay, bd: "12:30", kt: "15:00", gio: "13:00" });
   return { tat, w, nx, xe1, ngay, a };
 }
@@ -310,7 +314,7 @@ test("A4 T7 bài canh LUẬT ĐỒNG HỒ (§2, G-A4-26): tệp thử van-chuyen
 });
 
 // ==== ADR-0113 (accepted 2026-10-12): CHẶN Từ chối chuyến khi chuyến có khách đã được chuyển sang từ xe khác (Đ1–Đ4) ==================================
-// Khung thử như phần trên (luật đồng hồ §2: `theGioi` bật `batDongHo(<giờ thật>)`, chuyến ngày VN thật + 1). Chuyến nguồn `s` (tài xế công ty) xuất bến sớm do
+// Khung thử như phần trên (luật đồng hồ §2: `theGioi` bật `batDongHo(<giờ thật>)`, chuyến ngày VN thật + 2). Chuyến nguồn `s` (tài xế công ty) xuất bến sớm do
 // văn phòng bấm thay; xe nhận = chuyến `a` của tài xế đối tác (còn trước hạn Từ chối 00:30 ngày chạy, cách giờ chạy > 6 giờ nên Nhận → máy tự xác nhận).
 const CAU_CHAN = "Chuyến này đang có khách được chuyển từ xe khác sang nên chưa từ chối được — hãy gọi văn phòng để đổi người.";
 const VC = "/api/van-chuyen";

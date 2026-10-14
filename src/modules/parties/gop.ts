@@ -22,6 +22,10 @@ export interface HoSoGop {
   coTaiKhoan: boolean;
   /** Đã có hồ sơ khác gộp VÀO hồ sơ này (ADR-0068 Đ3 — không chuỗi). */
   coHoSoTroVao: boolean;
+  /** ADR-0117 điều 4: đang mở vai thuộc loại đối tác được hưởng hoa hồng. */
+  nhanDoiTac: boolean;
+  /** ADR-0117 điều 4: hồ sơ «nội bộ» (rules.ts hoSoNoiBo — vai INTERNAL, vai cũ STAFF/SALES, hoặc tài khoản có quyền nội bộ). */
+  noiBo: boolean;
   lienHe: LienHeGop[];
   congViec: CongViecGop[];
   quanHe: QuanHeGop[];
@@ -31,7 +35,8 @@ export interface HoSoGop {
 export interface NgoaiGop { phuTrachDon: number; laiChuyen: number; toLaiChuyen: number; chuXeChuyen: number; soXe: number; donLechTien: string[] }
 export type MaChanGop =
   | "merge_same" | "merge_not_person" | "merge_inactive" | "merge_owner_company" | "merge_both_accounts" | "merge_source_has_account" | "merge_source_account_role"
-  | "merge_role_group_conflict" | "merge_source_busy" | "merge_source_is_target" | "merge_source_future_row" | "merge_order_invalid" | "merge_source_owns_vehicle";
+  | "merge_role_group_conflict" | "merge_source_busy" | "merge_source_is_target" | "merge_source_future_row" | "merge_order_invalid" | "merge_source_owns_vehicle"
+  | "merge_partner_label_internal";
 export interface LyDoChan { code: MaChanGop; message: string }
 export interface KeHoachGop {
   chan: LyDoChan[];
@@ -53,6 +58,7 @@ const CAU: Record<Exclude<MaChanGop, "merge_source_busy" | "merge_order_invalid"
   merge_source_has_account: "Hồ sơ phụ có tài khoản: hãy chọn hồ sơ có tài khoản làm hồ sơ chính.",
   merge_source_account_role: "Hồ sơ phụ đang giữ vai quyết định quyền đăng nhập (nội bộ hoặc bên ngoài) — kết thúc vai đó ở màn Quản lý tài khoản trước.",
   merge_role_group_conflict: "Sau khi gộp, hồ sơ chính sẽ vừa giữ vai nội bộ vừa giữ vai bên ngoài — không được.",
+  merge_partner_label_internal: "Gộp xong, hồ sơ chính vừa là nhân viên nội bộ vừa mang loại đối tác — không được.",
   merge_source_is_target: "Đã có hồ sơ khác gộp vào hồ sơ phụ này — hãy chọn nó làm hồ sơ chính (không gộp nối tiếp).",
   merge_source_future_row: "Hồ sơ phụ có liên hệ, công việc hoặc quan hệ bắt đầu sau hôm nay — kết thúc hoặc sửa dòng đó trước khi gộp.",
   merge_source_owns_vehicle: "Hồ sơ phụ đang đứng tên xe — đổi chủ xe ở mục Xe trước khi gộp.",
@@ -97,6 +103,8 @@ export function keHoachGop(a: HoSoGop, b: HoSoGop, ngoai: NgoaiGop, homNay: stri
   if (vaiMoA.some((r) => r.group !== "OTHER")) chan.push(chanCo("merge_source_account_role"));
   const nhomSau = new Set([...b.congViec.filter((r) => conMo(r.validTo, homNay)).map((r) => r.group), ...vaiMoA.map((r) => r.group)]);
   if (nhomSau.has("INTERNAL") && nhomSau.has("EXTERNAL")) chan.push(chanCo("merge_role_group_conflict"));
+  // ADR-0117 điều 4: nhân viên nội bộ không mang loại đối tác được hưởng — chặn ở kế hoạch (lý do riêng), không để trigger huỷ lô thành merge_stale.
+  if ((a.nhanDoiTac && b.noiBo) || (a.noiBo && b.nhanDoiTac)) chan.push(chanCo("merge_partner_label_internal"));
   const ban = [
     ngoai.phuTrachDon > 0 ? `phụ trách ${ngoai.phuTrachDon} đơn chưa xong` : null,
     ngoai.laiChuyen > 0 ? `lái ${ngoai.laiChuyen} chuyến chưa chốt` : null,

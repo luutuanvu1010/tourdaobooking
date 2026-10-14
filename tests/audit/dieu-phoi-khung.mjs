@@ -2,10 +2,12 @@
 // trên dữ liệu có thể xuất bến thật (kế hoạch mục 4 điểm 19): tài khoản DRIVER có hồ sơ (party `pty-<id>`) mở vai Tài xế công ty + GPLX còn hạn; mọi xe có
 // Kiểm định + Bảo hiểm hiện hành; đơn ĐÃ XÁC NHẬN, khách có tên; suất khách mở QUA ROUTE XẾP (không chèn thẳng bảng suất — một cửa, giữ rẻ cho ADR-0051).
 // Giờ: bài bật `mock.timers` (Date) TRƯỚC khi dựng thế giới — NOW_GIA = 2027-03-11 06:00 giờ VN; `denGio(w, "HH:MM")` đổi đồng hồ giả sang giờ VN khác cùng ngày.
+// LUẬT GIỜ XẤU NHẤT: bật theo GIỜ THẬT (`batDongHo(Date.now())`) thì `don()` / `taoChuyen()` tự ném lỗi khi giờ hẹn có thể lọt mốc 6 giờ ở một giờ nào đó trong ngày — gieo cho ngày thật + 2 (tests/audit/dong-ho-gio-xau.mjs).
 // Tên khách, SĐT, số giấy tờ là GIẢ.
 import { mock } from "node:test";
 import assert from "node:assert/strict";
 import { world, seedStaff } from "./harness.mjs";
+import { MOC_MAC_DINH_PHUT, ghiNhanDongHo, kiemGioTheoDongHo, xoaDongHo } from "./dong-ho-gio-xau.mjs";
 
 export const SALES = "11111111-1111-4111-8111-111111111111";
 export const ADM = "33333333-3333-4333-8333-333333333333";
@@ -27,11 +29,21 @@ const AT = "2026-09-01T00:00:00.000Z";
 export const uuid = () => crypto.randomUUID();
 let so = 0;
 
-/** Bật đồng hồ giả (Date) ở NOW_GIA. Gọi TRƯỚC `setup()` (catalog_sync ghi "vừa đồng bộ" theo giờ lúc dựng). Trả hàm tắt. */
+/**
+ * Bật đồng hồ giả (Date) ở NOW_GIA. Gọi TRƯỚC `setup()` (catalog_sync ghi "vừa đồng bộ" theo giờ lúc dựng). Trả hàm tắt.
+ * LUẬT GIỜ XẤU NHẤT (tests/audit/dong-ho-gio-xau.mjs): bật theo GIỜ THẬT (`batDongHo(Date.now())`) thì `don()` / `taoChuyen()` từ chối gieo giờ hẹn mà ở một giờ nào đó
+ * trong ngày sẽ lọt mốc tối thiểu (ngày mai trước 06:30, hôm nay…) — dùng ngày thật + 2. Đồng hồ cố định (không tham số) không bị ảnh hưởng.
+ */
 export function batDongHo(ms = NOW_GIA) {
   mock.timers.enable({ apis: ["Date"], now: ms });
-  return () => mock.timers.reset();
+  ghiNhanDongHo(ms);
+  return () => {
+    mock.timers.reset();
+    xoaDongHo();
+  };
 }
+/** Mốc tối thiểu (phút) đang hiệu lực của thế giới thử `w` — cùng câu chọn với `chinhSachHienHanh`; không đọc được thì mốc gieo 360. */
+const mocPhutCua = (w) => w.q("SELECT min_lead_minutes m FROM vc_dispatch_policy WHERE valid_from_at <= ? ORDER BY valid_from_at DESC LIMIT 1", new Date().toISOString())[0]?.m ?? MOC_MAC_DINH_PHUT;
 /** Đưa đồng hồ giả tới giờ VN `gio` của ngày `ngay` (chỉ tiến). */
 export function denGio(gio, ngay = NGAY) {
   const dich = vnMs(ngay, gio);
@@ -116,6 +128,7 @@ export function setup(tuyChon = {}) {
 /** Đơn ĐÃ XÁC NHẬN (Bán hàng) — `soNguoi` người lớn, một chặng chiều đi đón `gio` ngày `ngay` tại chữ tự do, trả ở bến (điểm danh mục); `ten` khách có tên
  * "Khách Dò Tìm <i>", năm sinh `namSinh` + i (mặc định 1990). */
 export async function don(w, v) {
+  kiemGioTheoDongHo({ nhan: "don() (giờ đón)", ngay: v.ngay ?? NGAY, gio: v.gio ?? "13:00", mocPhut: mocPhutCua(w) });
   const soNguoi = v.soNguoi ?? 2;
   const r = await w.call("POST", "/api/orders", {
     as: SALES,
@@ -138,6 +151,7 @@ export async function don(w, v) {
 
 /** Tạo chuyến (Bán hàng) cho xe + tài xế `taiXePartyId`, bắt đầu `bd`, kết thúc `kt` (giờ VN) ngày `ngay`. */
 export async function taoChuyen(w, v) {
+  kiemGioTheoDongHo({ nhan: "taoChuyen() (giờ bắt đầu)", ngay: v.ngay ?? NGAY, gio: v.bd ?? "12:30", mocPhut: mocPhutCua(w) });
   const r = await w.call("POST", "/api/van-chuyen/chuyen", {
     as: v.as ?? SALES,
     body: { requestId: uuid(), xeId: v.xe, taiXePartyId: v.taiXe, batDau: { ngay: v.ngay ?? NGAY, gio: v.bd ?? "12:30" }, ketThuc: { ngay: v.ngayKt ?? v.ngay ?? NGAY, gio: v.kt ?? "15:00" } },

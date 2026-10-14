@@ -3,12 +3,14 @@
 // KHÔNG dựng lại ô người dùng đang gõ: gõ chữ / ngày / giờ chỉ cập nhật chữ gợi ý và lỗi tại chỗ; đổi ô chọn, thêm / bỏ chặng mới dựng lại (rồi trả focus).
 import { CHIEU_LABEL, LY_DO_DONG_CHANG, khoangNgayDon, type LyDoDongChang } from "../src/shared/chang-dua-don";
 import {
-  TU_DO, coOSoHieu, goiYChang, loiChang, suaChang, themChangDi, themChieuVe, type ChangNhap, type SuaChang,
+  TU_DO, canHienNgayDon, changNenGon, chiTietChangCoGiaTri, coOSoHieu, goiYChang, loiChang, suaChang, themChangDi, themChieuVe, tomTatChang, type ChangNhap, type SuaChang,
 } from "../src/shared/chang-form";
 import type { MauChang } from "../src/shared/chang-mac-dinh";
 import { locDiem } from "../src/shared/loc-diem";
 import { h, replaceChildren } from "./dom";
 import { icon } from "./icons";
+import { taoKhoiGap, type KhoiGap } from "./khoi-gap";
+import { khungNhanNoi } from "./o-nhan-noi";
 
 /** Một điểm danh mục cho ô chọn: nhãn "<tên> · <loại>", cờ sân bay (hiện ô số hiệu chuyến bay). */
 export interface DiemChon {
@@ -38,13 +40,17 @@ export interface KhoiDuaDon {
   root: HTMLElement;
   /** Bản nháp đổi từ BÊN NGOÀI (vd dời ngày đi): vẽ lại; không bắn onChange. */
   update(legs: ChangNhap[], taoSan: string | null): void;
-  /** Hiện lỗi "chưa có nơi đón" (sau lần bấm Lưu đầu). */
-  showIssues(show: boolean): void;
+  /**
+   * Hiện lỗi "chưa có nơi đón" (sau lần bấm Lưu đầu). Form (bản bốn bước): lỗi nằm trong chặng gọn / khối "Thêm chi tiết" gập thì MỞ ra; trả ô lỗi đầu tiên và `daAn` = ô đó đang nằm trong khối đóng
+   * TRƯỚC khi mở (nơi gọi cuộn tới ô khi `daAn`, vì khi đó người lập chưa thể thấy nó); không lỗi / `show = false` → null.
+   */
+  showIssues(show: boolean): { o: HTMLElement; daAn: boolean } | null;
   /** Chặng đã lưu người dùng bỏ (bảng sửa sau xác nhận) kèm lý do. */
   daBo(): { leg: ChangNhap; lyDo: LyDoDongChang }[];
 }
 
 const LY_DO = Object.entries(LY_DO_DONG_CHANG) as [LyDoDongChang, string][];
+const CHI_DIA_CHI = "Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách";
 
 export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
   let legs = o.legs;
@@ -53,9 +59,19 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
   /** Chặng đang mở hộp "Bỏ chặng" (bảng): key → lý do đang chọn ("" = chưa chọn) + đã bấm Bỏ mà chưa chọn. */
   const boMo = new Map<string, { lyDo: LyDoDongChang | ""; loi: boolean }>();
   const boXong: { leg: ChangNhap; lyDo: LyDoDongChang }[] = [];
+  /** Form Tạo đơn (đợt 1 #9): chặng người dùng bấm "Đón khác ngày" để mở ô "Ngày đón" (giữ qua các lần dựng lại khối). */
+  const moNgay = new Set<string>();
+  /**
+   * Bản "bốn bước" (14/10/2026), CHỈ form Tạo/sửa đơn: chặng đã đủ nơi đón và không có gì bị giấu thì hiện gọn MỘT dòng (bấm để mở); ba ô ít dùng (số hiệu chuyến bay, xe riêng, xe tối thiểu) gập sau
+   * "Thêm chi tiết". Quyết định gọn / mở chỉ lúc LẦN ĐẦU thấy chặng (`daThay`, luật thuần `changNenGon`); chặng đã mở thì giữ mở (`moChang`) — không tự gập giữa lúc người lập đang gõ. Nội dung gập chỉ
+   * ẩn bằng `hidden` (vẫn trong cây DOM): không ô nào mất, thân gửi lên không đổi.
+   */
+  const daThay = new Set<string>();
+  const moChang = new Set<string>();
+  const moChiTiet = new Set<string>();
   const root = h("div", { class: "dd", "data-dua-don": o.ma });
   /** Phần tử cập nhật tại chỗ theo từng chặng. */
-  let refs: { gioMo: HTMLElement; hintNgay: HTMLElement; hintGio: HTMLElement; loiDon: HTMLElement; loiDonTuDo: HTMLElement | null; loiSoVe: HTMLElement | null; loiChoToiThieu: HTMLElement; hintChoToiThieu: HTMLElement; hauTo: HTMLElement; don: HTMLSelectElement; donTuDo: HTMLInputElement | null; soVe: HTMLInputElement | null; choToiThieu: HTMLInputElement }[] = [];
+  let refs: { gapChang: KhoiGap | null; gapChiTiet: KhoiGap | null; tomTatEl: HTMLElement | null; ngayEl: HTMLElement | null; nutKhacNgay: HTMLElement | null; gioMo: HTMLElement; hintNgay: HTMLElement; hintGio: HTMLElement; loiDon: HTMLElement; loiDonTuDo: HTMLElement | null; loiSoVe: HTMLElement | null; loiChoToiThieu: HTMLElement; hintChoToiThieu: HTMLElement; hauTo: HTMLElement; don: HTMLSelectElement; donTuDo: HTMLInputElement | null; soVe: HTMLInputElement | null; choToiThieu: HTMLInputElement }[] = [];
 
   const laSanBay = (id: string) => o.diem().some((d) => d.id === id && d.sanBay);
   const commit = (next: ChangNhap[], rebuild: boolean) => {
@@ -155,8 +171,18 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     );
   }
 
+  /** Nhãn ngắn của điểm danh mục ("<tên> · <loại>" → "<tên>") cho dòng tóm tắt chặng gọn. */
+  const nhanNgan = (id: string): string | null => {
+    const nhan = o.diem().find((d) => d.id === id)?.nhan;
+    if (nhan === undefined) return null;
+    const cat = nhan.lastIndexOf(" · ");
+    return cat > 0 ? nhan.slice(0, cat) : nhan;
+  };
+
   function changEl(l: ChangNhap, i: number): HTMLElement {
     const so = i + 1;
+    // Form Tạo/sửa đơn (`che: "form"`) dùng nhãn nổi trong ô (đợt 1, bảng việc 13/10 #4); bảng "Sửa đưa đón" của trang đơn giữ nhãn phía trên ô như cũ.
+    const nn = o.che === "form";
     const id = (f: string) => `${o.ma}-${l.key}-${f}`;
     const g = goiYChang(l, o.ngayDi());
     const boBtn = h("button", { type: "button", class: "btn-link dd-bo-nut", "data-action": "bo-chang" }, "Bỏ chặng");
@@ -170,7 +196,10 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     const ngayDi = o.ngayDi();
     const khoang = ngayDi ? khoangNgayDon(ngayDi) : null;
     const ngay = h("input", { id: id("ngay"), type: "date", value: l.pickupDate, min: khoang?.from ?? null, max: khoang?.to ?? null, "data-o": `${l.key}:ngay` });
-    ngay.addEventListener("input", () => sua(i, { pickupDate: ngay.value }, false));
+    ngay.addEventListener("input", () => {
+      moNgay.add(l.key); // đang sửa ô này thì ô không được tự ẩn giữa chừng (vd gõ lại đúng ngày đi)
+      sua(i, { pickupDate: ngay.value }, false);
+    });
     const gio = h("input", { id: id("gio"), type: "time", value: l.pickupTime, "data-o": `${l.key}:gio` });
     gio.addEventListener("input", () => sua(i, { pickupTime: gio.value }, false));
     const hintNgay = hint(g.ngay);
@@ -196,11 +225,23 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       traTuDo.addEventListener("input", () => sua(i, { traTuDo: traTuDo!.value }, false));
     }
 
+    const ngayEl = nn ? h("label", { for: ngay.id, class: "o-noi" }, khungNhanNoi("Ngày đón", ngay), hintNgay) : h("label", { for: ngay.id }, "Ngày đón", ngay, hintNgay);
+    const gioEl = nn ? h("label", { for: gio.id, class: "o-noi" }, khungNhanNoi("Giờ đón", gio, { khungClass: "dd-gio", giua: [gioMo] }), hintGio) : h("label", { for: gio.id }, "Giờ đón", h("span", { class: "dd-gio" }, gio, gioMo), hintGio);
+    // Form Tạo đơn: "Ngày đón" ẩn khi chặng cùng ngày đi (máy chủ tự điền khi trống); lối nhỏ "Đón khác ngày" nằm cạnh ô giờ để mở ô.
+    const nutKhacNgay = nn ? h("button", { type: "button", class: "btn btn-link dd-khac-ngay", "data-action": "don-khac-ngay" }, "Đón khác ngày") : null;
+    nutKhacNgay?.addEventListener("click", () => {
+      moNgay.add(l.key);
+      capNhatNgay(ngayEl, nutKhacNgay, l);
+      ngay.focus();
+    });
+    // Ô phụ của chặng. Form (`nn`): "số người chiều về" ở lại hàng chính; hai ô ÍT DÙNG (xe riêng, xe tối thiểu) vào `phuGap` — gập sau "Thêm chi tiết"; số hiệu chuyến bay HIỆN SẴN (sau kiểm độc lập 14/10: tài xế dựa vào nó). Bảng "Sửa đưa đón": mọi ô một lưới như cũ.
     const phu: HTMLElement[] = [];
+    const phuGap: HTMLElement[] = [];
+    const themPhu = (el: HTMLElement, gap: boolean) => (nn && gap ? phuGap : phu).push(el);
     if (coOSoHieu(l, laSanBay)) {
       const bay = h("input", { id: id("bay"), type: "text", maxLength: 8, autocomplete: "off", autocapitalize: "characters", placeholder: "VD: VN1553", value: l.flightCode, "data-o": `${l.key}:bay` });
       bay.addEventListener("input", () => sua(i, { flightCode: bay.value }, false));
-      phu.push(h("label", { for: bay.id }, "Số hiệu chuyến bay", bay, hint("Tài xế tự tra giờ bay")));
+      themPhu(nn ? h("label", { for: bay.id, class: "o-noi" }, khungNhanNoi("Số hiệu chuyến bay", bay), hint("Tài xế tự tra giờ bay")) : h("label", { for: bay.id }, "Số hiệu chuyến bay", bay, hint("Tài xế tự tra giờ bay")), false);
     }
     let soVe: HTMLInputElement | null = null;
     let loiSoVe: HTMLElement | null = null;
@@ -212,9 +253,9 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
           if (soVe!.value !== legs[i]!.soVe) soVe!.value = legs[i]!.soVe;
         });
         loiSoVe = loiEl();
-        phu.push(h("label", { for: soVe.id }, "Số người chiều về", soVe, loiSoVe, hint("Để trống nếu cả đoàn cùng về")));
+        themPhu(nn ? h("label", { for: soVe.id, class: "o-noi" }, khungNhanNoi("Số người chiều về", soVe), loiSoVe, hint("Để trống nếu cả đoàn cùng về")) : h("label", { for: soVe.id }, "Số người chiều về", soVe, loiSoVe, hint("Để trống nếu cả đoàn cùng về")), false);
       } else {
-        phu.push(
+        themPhu(
           h(
             "div",
             { class: "dd-xem" },
@@ -222,6 +263,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
             h("span", { class: "dd-xem-gt" }, l.soVe ? `${l.soVe} người` : "Cả đoàn"),
             h("span", { class: "dd-xem-khoa" }, icon("lock", 16), "Văn phòng điều chỉnh số người về"),
           ),
+          false,
         );
       }
     }
@@ -236,7 +278,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       chuCongTac.textContent = bat ? "Bật" : "Tắt";
       sua(i, { xeRieng: bat }, false);
     });
-    phu.push(h("div", { class: "dd-xem dd-switch-o" }, h("label", { class: "dd-nhan", for: congTac.id }, "Xe riêng"), h("span", { class: "dd-switch-khung" }, congTac, chuCongTac), hint("Không ghép khách đơn khác")));
+    themPhu(h("div", { class: "dd-xem dd-switch-o" }, h("label", { class: "dd-nhan", for: congTac.id }, "Xe riêng"), h("span", { class: "dd-switch-khung" }, congTac, chuCongTac), hint("Không ghép khách đơn khác")), true);
     const choToiThieu = h("input", { id: id("cho"), type: "text", inputMode: "numeric", maxLength: 3, autocomplete: "off", placeholder: "Để trống = không yêu cầu", value: l.choToiThieu, "data-o": `${l.key}:cho` });
     const hauTo = h("span", { class: "dd-hau-to", "aria-hidden": "true" }, "chỗ");
     hauTo.hidden = l.choToiThieu === "";
@@ -246,28 +288,78 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     });
     const loiChoToiThieu = loiEl();
     const hintChoToiThieu = hint("Không kể tài xế (xe 16 chỗ nhập 15)");
-    phu.push(h("label", { for: choToiThieu.id }, "Xe tối thiểu", h("span", { class: "dd-hau-to-khung" }, choToiThieu, hauTo), loiChoToiThieu, hintChoToiThieu));
-    refs[i] = { gioMo, hintNgay, hintGio, loiDon, loiDonTuDo, loiSoVe, loiChoToiThieu, hintChoToiThieu, hauTo, don, donTuDo, soVe, choToiThieu };
+    themPhu(
+      nn
+        ? h("label", { for: choToiThieu.id, class: "o-noi" }, khungNhanNoi("Xe tối thiểu", choToiThieu, { khungClass: "dd-hau-to-khung", giua: [hauTo] }), loiChoToiThieu, hintChoToiThieu)
+        : h("label", { for: choToiThieu.id }, "Xe tối thiểu", h("span", { class: "dd-hau-to-khung" }, choToiThieu, hauTo), loiChoToiThieu, hintChoToiThieu),
+      true,
+    );
 
-    return h(
+    // Khối gập "Thêm chi tiết" của chặng (form) — tự mở khi bên trong có giá trị (đã tính ở `build`: `moChiTiet`).
+    let gapChiTiet: KhoiGap | null = null;
+    if (nn) {
+      const luoiGap = h("div", { class: "dd-luoi-phu" }, ...phuGap);
+      gapChiTiet = taoKhoiGap({ ma: `chi-tiet-${l.key}`, nhan: "Thêm chi tiết (xe riêng, số chỗ)", than: luoiGap, mo: moChiTiet.has(l.key), khiDoi: (mo) => (mo ? moChiTiet.add(l.key) : moChiTiet.delete(l.key)) });
+    }
+    refs[i] = { gapChang: null, gapChiTiet, tomTatEl: null, ngayEl: nn ? ngayEl : null, nutKhacNgay, gioMo, hintNgay, hintGio, loiDon, loiDonTuDo, loiSoVe, loiChoToiThieu, hintChoToiThieu, hauTo, don, donTuDo, soVe, choToiThieu };
+
+    const chang = h(
       "div",
       { class: "dd-chang", "data-leg-key": l.key, "data-chieu": l.direction },
       h("div", { class: "dd-chang-dau" }, h("span", { class: "chip chip-unit" }, CHIEU_LABEL[l.direction]), h("span", { class: "dd-chang-so" }, `Chặng ${so}`), boBtn),
-      h("div", { class: "dd-luoi2" }, h("label", { for: ngay.id }, "Ngày đón", ngay, hintNgay), h("label", { for: gio.id }, "Giờ đón", h("span", { class: "dd-gio" }, gio, gioMo), hintGio)),
+      h("div", { class: "dd-luoi2" }, ngayEl, gioEl, nutKhacNgay),
       h(
         "div",
         { class: "dd-luoi-noi" },
-        h("div", { class: "dd-cot" }, h("label", { for: don.id }, "Nơi đón", timDon, don, timDonKq, loiDon, g.don ? hint(g.don) : null), donTuDo && h("label", { for: donTuDo.id }, "Địa chỉ đón", donTuDo, loiDonTuDo, hint("Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách"))),
-        h("div", { class: "dd-cot" }, h("label", { for: tra.id }, "Nơi trả", timTra, tra, timTraKq, g.tra ? hint(g.tra) : null), traTuDo && h("label", { for: traTuDo.id }, "Địa chỉ trả", traTuDo, hint("Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách"))),
+        h(
+          "div",
+          { class: "dd-cot" },
+          nn ? h("label", { for: don.id, class: "o-noi" }, timDon, khungNhanNoi("Nơi đón", don), timDonKq, loiDon, g.don ? hint(g.don) : null) : h("label", { for: don.id }, "Nơi đón", timDon, don, timDonKq, loiDon, g.don ? hint(g.don) : null),
+          donTuDo && (nn ? h("label", { for: donTuDo.id, class: "o-noi" }, khungNhanNoi("Địa chỉ đón", donTuDo), loiDonTuDo, hint(CHI_DIA_CHI)) : h("label", { for: donTuDo.id }, "Địa chỉ đón", donTuDo, loiDonTuDo, hint(CHI_DIA_CHI))),
+        ),
+        h(
+          "div",
+          { class: "dd-cot" },
+          nn ? h("label", { for: tra.id, class: "o-noi" }, timTra, khungNhanNoi("Nơi trả", tra), timTraKq, g.tra ? hint(g.tra) : null) : h("label", { for: tra.id }, "Nơi trả", timTra, tra, timTraKq, g.tra ? hint(g.tra) : null),
+          traTuDo && (nn ? h("label", { for: traTuDo.id, class: "o-noi" }, khungNhanNoi("Địa chỉ trả", traTuDo), hint(CHI_DIA_CHI)) : h("label", { for: traTuDo.id }, "Địa chỉ trả", traTuDo, hint(CHI_DIA_CHI))),
+        ),
       ),
       phu.length ? h("div", { class: "dd-luoi-phu" }, ...phu) : null,
+      gapChiTiet ? gapChiTiet.nut : null,
+      gapChiTiet ? gapChiTiet.than : null,
       boMo.has(l.key) ? lyDoBo(l, i) : null,
     );
+    if (!nn) return chang;
+
+    // Form: chặng gọn một dòng (bấm để mở) hoặc mở sẵn — quyết ở `build` (`moChang`). Cả hai phần đều nằm trong cây DOM; chỉ ẩn bằng `hidden`.
+    const tomTat = h("span", { class: "dd-tom-tat-chu" }, tomTatChang(l, nhanNgan));
+    const nutTomTat = h("button", { type: "button", class: "dd-tom-tat", "aria-expanded": "false" }, tomTat, icon("chevron-down", 16));
+    const gapChang = taoKhoiGap({ ma: `chang-${l.key}`, nhan: "", than: chang, nut: nutTomTat, mo: moChang.has(l.key), khiDoi: (mo) => { if (mo) moChang.add(l.key); nutTomTat.hidden = mo; } });
+    nutTomTat.addEventListener("click", () => refs[i]?.don.focus()); // sau khi `taoKhoiGap` đã mở chặng (nghe click trước)
+    refs[i]!.gapChang = gapChang;
+    refs[i]!.tomTatEl = tomTat;
+    return h("div", { class: "dd-chang-khung" }, nutTomTat, chang);
+  }
+
+  /** Form Tạo đơn: hiện ô "Ngày đón" khi chặng có ngày đón khác ngày đi hoặc người dùng đã bấm "Đón khác ngày"; còn lại ẩn ô (`hidden`, vẫn nằm trong cây DOM) và hiện lối "Đón khác ngày". */
+  function capNhatNgay(ngayEl: HTMLElement | null, nut: HTMLElement | null, l: ChangNhap): void {
+    if (!ngayEl || !nut) return;
+    const hien = canHienNgayDon(l, o.ngayDi()) || moNgay.has(l.key);
+    ngayEl.hidden = !hien;
+    nut.hidden = hien;
   }
 
   function build(): void {
     const focused = document.activeElement instanceof HTMLElement && root.contains(document.activeElement) ? document.activeElement.getAttribute("data-o") : null;
     refs = [];
+    if (o.che === "form") {
+      legs.forEach((l, i) => {
+        if (daThay.has(l.key)) return;
+        daThay.add(l.key);
+        if (!changNenGon(l, i + 1, o.soKhach(), o.ngayDi(), coOSoHieu(l, laSanBay))) moChang.add(l.key);
+        if (chiTietChangCoGiaTri(l)) moChiTiet.add(l.key);
+      });
+    }
     const items: HTMLElement[] = [h("div", { class: "dd-nhan" }, "Đưa đón")];
     if (taoSan && legs.length > 0) items.push(h("p", { class: "dd-ghi-tao" }, taoSan));
     if (legs.length === 0) {
@@ -295,6 +387,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       if (!r) return;
       const g = goiYChang(l, ngayDi);
       r.hintNgay.textContent = g.ngay;
+      capNhatNgay(r.ngayEl, r.nutKhacNgay, l);
       r.hintGio.textContent = g.gio;
       r.gioMo.hidden = l.pickupTime !== "";
       const e = loiChang(l, i + 1, o.soKhach(), daLuu);
@@ -304,6 +397,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       datLoi(r.loiChoToiThieu, r.choToiThieu, e.choToiThieu);
       r.hintChoToiThieu.hidden = e.choToiThieu !== null;
       r.hauTo.hidden = l.choToiThieu === "";
+      if (r.tomTatEl) r.tomTatEl.textContent = tomTatChang(l, nhanNgan);
     });
   }
 
@@ -318,6 +412,19 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     showIssues(show) {
       daLuu = show;
       refresh();
+      if (!show) return null;
+      let dau: { o: HTMLElement; daAn: boolean } | null = null;
+      legs.forEach((l, i) => {
+        const e = loiChang(l, i + 1, o.soKhach(), true);
+        const r = refs[i];
+        const oLoi = !r ? null : e.don !== null ? r.don : e.donTuDo !== null ? r.donTuDo : e.soVe !== null ? r.soVe : e.choToiThieu !== null ? r.choToiThieu : null;
+        if (!oLoi) return;
+        dau ??= { o: oLoi, daAn: oLoi.getClientRects().length === 0 }; // đo TRƯỚC khi mở
+        // Lỗi nằm trong chặng gọn / khối chi tiết gập: mở ra để người lập THẤY ô lỗi (không bao giờ để lỗi trong khối đóng).
+        r?.gapChang?.mo();
+        if (e.choToiThieu !== null) r?.gapChiTiet?.mo();
+      });
+      return dau;
     },
     daBo: () => [...boXong],
   };

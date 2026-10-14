@@ -154,17 +154,10 @@ try {
   const d4b = await don("10:15", "Khách sạn Hết Hạn", 1);
   const w4 = await theGioi([d4a, d4b], []);
   const diem4 = await diemDon(w4.id[0]);
-  await datChinhSach({ acceptWaitMinutes: 1 });
-  let ridHetHan;
-  const guiHetHanLuc = Date.now();
-  try {
-    r = await gui(w4.tx[0], w4.id[0], { denChuyenId: w4.id[1], phamVi: "STOP", diemId: diem4[d4b.legId] });
-    ok(r, "DA_GUI", "PENDING");
-    ridHetHan = r.body.deNghi.id;
-  } finally {
-    await datChinhSach({ acceptWaitMinutes: 10 });
-  }
-  console.log("✓ TH04-4B: gửi một đề nghị lúc chính sách chờ 1 phút (Nhận muộn ở cuối)");
+  // Đề nghị 1 phút của 4B được GỬI Ở BƯỚC TH04-4B bên dưới, ngay sau 4A — KHÔNG gửi ở đây: mọi lệnh gửi đề nghị mới từ cùng xe nhờ (w4.id[0]) đều
+  // đóng Hết hạn các đề nghị Chờ đã quá hạn của xe đó (MQ-08, NT-A5-5), nên nếu 4B gửi sớm mà máy chạy chậm (> 62 giây tới lúc 4A gửi) thì 4B bị
+  // đóng trước, cuối kịch bản "Nhận muộn" nhận 409 ck_de_nghi_da_dong thay vì 200 HET_HAN và H5 đỏ (lệnh gửi ghi hai lô). Đã tái hiện bằng cách chèn
+  // chờ 70 giây (2026-10-13).
 
   // ==== TH01 nhờ xe đang chạy, máy tự đồng ý ====
   const d1 = await don("10:00", "Khách sạn Mường Thanh", 3);
@@ -266,6 +259,20 @@ try {
   ok(await khongNhan(w4.tx[1], rid4, TU_CHOI), "KHONG_NHAN", "DECLINED");
   assert.ok((await tinCua(w4.tx[0], /không nhận khách/)).length >= 1, "Đ3 (d): tin tới xe nhờ");
   console.log("✓ TH04-4A: Không nhận (lý do ngoài nhóm → 400) → DECLINED, tin tới xe nhờ");
+
+  // ==== TH04-4B mở đầu: đề nghị gửi lúc chính sách chờ 1 phút (để Nhận muộn ở cuối kịch bản). Hạn chờ theo dòng chính sách LÚC GỬI (MQ-08). ====
+  // Đây là lệnh gửi CUỐI CÙNG từ xe w4.id[0] (xem ghi chú ở đầu kịch bản): không còn lệnh gửi nào sau nó có thể đóng Hết hạn đề nghị này trước giờ.
+  await datChinhSach({ acceptWaitMinutes: 1 });
+  let ridHetHan;
+  const guiHetHanLuc = Date.now();
+  try {
+    r = await gui(w4.tx[0], w4.id[0], { denChuyenId: w4.id[1], phamVi: "STOP", diemId: diem4[d4b.legId] });
+    ok(r, "DA_GUI", "PENDING");
+    ridHetHan = r.body.deNghi.id;
+  } finally {
+    await datChinhSach({ acceptWaitMinutes: 10 });
+  }
+  console.log("✓ TH04-4B: gửi một đề nghị lúc chính sách chờ 1 phút (Nhận muộn ở cuối)");
 
   // ==== TH05 nhờ hai xe cùng điểm; NT-A5-20 hai xe cùng Nhận một điểm ====
   const d5 = await don("10:00", "Khách sạn Hai Xe", 2);

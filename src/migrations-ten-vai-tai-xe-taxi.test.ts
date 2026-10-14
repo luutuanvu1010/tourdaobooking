@@ -40,12 +40,15 @@ test("(b) sau migration: TAXI_DRIVER tên 'Tài xế taxi (giới thiệu khách
   // Vai do migration VỀ SAU thêm (vd SUPPLIER ở 0090 sổ đại lý) không phải dòng có sẵn trước tệp này: chỉ so các vai đã có trước tệp này — mọi dòng cũ vẫn phải
   // giữ nguyên qua MỌI migration về sau (không thu hẹp bài về "ngay sau tệp này").
   const coTruoc = new Set(truoc.map((r) => r.code));
+  // Cột do migration VỀ SAU thêm (vd is_partner_label ở 0095, ADR-0117) cũng không phải cột có sẵn trước tệp này: chỉ so các cột đã có trước tệp này.
+  const cotCu = new Set(Object.keys(truoc[0]!));
+  const chiCotCu = (r: Record<string, unknown>) => Object.fromEntries(Object.entries(r).filter(([k]) => cotCu.has(k)));
   assert.equal(ROLES.TAXI_DRIVER.name, "Tài xế taxi (giới thiệu khách)");
   const taxi = sau.find((r) => r.code === "TAXI_DRIVER")!;
   assert.equal(taxi.name, ROLES.TAXI_DRIVER.name);
   assert.equal(truoc.find((r) => r.code === "TAXI_DRIVER")!.name, "Tài xế taxi", "trước migration là tên cũ");
   assert.deepEqual(
-    sau.filter((r) => coTruoc.has(r.code)).map((r) => (r.code === "TAXI_DRIVER" ? { ...r, name: "Tài xế taxi" } : r)),
+    sau.filter((r) => coTruoc.has(r.code)).map((r) => chiCotCu(r.code === "TAXI_DRIVER" ? { ...r, name: "Tài xế taxi" } : r)),
     truoc,
     "chỉ đổi đúng cột name của đúng một dòng",
   );

@@ -44,8 +44,8 @@ export interface ServiceCard {
   update(d: ServiceDraft): void;
   /** Trần dòng tiền tính trên CẢ ĐƠN: khi số dòng của bất kỳ thẻ nào đổi, trang gọi hàm này cho MỌI thẻ để nút "+ Thêm dòng" bật/khoá đúng ngay. */
   refreshLimits(): void;
-  /** Hiện mọi lỗi chặn Lưu trên thẻ (sau lần bấm Lưu đầu). Lỗi "Tối đa 50 khách." luôn hiện. */
-  showIssues(show: boolean): void;
+  /** Hiện mọi lỗi chặn Lưu trên thẻ (sau lần bấm Lưu đầu). Lỗi "Tối đa 50 khách." luôn hiện. Trả ô lỗi chặng đầu tiên (mở khối gập chứa nó) — xem `KhoiDuaDon.showIssues`. */
+  showIssues(show: boolean): { o: HTMLElement; daAn: boolean } | null;
   /** Mở khối chuyến và cuộn tới thẻ. */
   reveal(): void;
   hasIssues(): boolean;
@@ -96,7 +96,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   });
 
   const summaryEl = h("span", { class: "trip-summary" });
-  const fields = tripFields({ trip: draft.trip, onChange: (trip) => commit({ ...draft, trip }), noDepartDate: true }); // ngày khởi hành chọn một lần cho cả đơn (ADR-0021)
+  const fields = tripFields({ trip: draft.trip, onChange: (trip) => commit({ ...draft, trip }), noDepartDate: true, nhanNoi: true }); // ngày khởi hành chọn một lần cho cả đơn (ADR-0021); nhãn nổi trong ô (đợt 1 #4)
   const tripDetails = h("details", { class: "trip" }, h("summary", null, h("span", { class: "trip-title" }, "Thông tin chuyến"), summaryEl), fields.root);
   tripDetails.open = o.openTrip;
 
@@ -361,8 +361,9 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     refreshLimits,
     showIssues(show) {
       issuesVisible = show;
-      duaDon.showIssues(show);
+      const dau = duaDon.showIssues(show);
       refresh();
+      return dau;
     },
     reveal() {
       tripDetails.open = true;

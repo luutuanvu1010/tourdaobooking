@@ -30,6 +30,22 @@ test("người hưởng: bên đặt mang vai được hưởng ⇒ HUONG; vai b
     { loai: "HUONG", partyId: "p", vai: ["TRAVEL_AGENCY"] });
 });
 
+// ADR-0117 lần 1, Q1 = A (chủ chọn 2026-10-14): loại đối tác do người dùng thêm (nhóm OTHER, có nhãn) đã TẮT khỏi danh sách được hưởng ⇒ đơn mới của hồ sơ mang nhãn bị giữ như vai bên ngoài
+// (KHONG_HUONG ⇒ MISSING BOOKER_NOT_BENEFICIARY), không bao giờ tự lấy 0 hay NONE.
+test("Q1 (A): hồ sơ mang loại đối tác (nhóm OTHER, nhãn) — loại ĐANG BẬT ⇒ HUONG; loại ĐÃ TẮT ⇒ KHONG_HUONG; vai OTHER không nhãn ⇒ NONE", () => {
+  const g = (vai: { roleTypeCode: string; roleGroup: string; nhanDoiTac?: boolean }[], duocHuong: ReadonlySet<string>) =>
+    nguoiHuongCua({ bookerPartyId: "p", vaiMo: vai, vaiDuocHuong: duocHuong, congTyChuId: "ct" });
+  const nhan = { roleTypeCode: "LD_ABCDEFGH", roleGroup: "OTHER", nhanDoiTac: true };
+  assert.deepEqual(g([nhan], new Set([...VAI, "LD_ABCDEFGH"])), { loai: "HUONG", partyId: "p", vai: ["LD_ABCDEFGH"] }, "loại bật");
+  assert.deepEqual(g([nhan], VAI), { loai: "KHONG_HUONG", partyId: "p" }, "loại tắt (không còn trong danh sách được hưởng) ⇒ giữ đơn, không NONE");
+  assert.deepEqual(g([{ roleTypeCode: "CUSTOMER", roleGroup: "OTHER", nhanDoiTac: false }], VAI), { loai: "NONE" }, "OTHER không nhãn");
+  assert.deepEqual(g([{ roleTypeCode: "CUSTOMER", roleGroup: "OTHER" }], VAI), { loai: "NONE" }, "thiếu cờ nhãn coi như không nhãn");
+  // Mang cả loại tắt lẫn vai được hưởng khác: vẫn HUONG (vai được hưởng thắng), `vai` chỉ giữ vai đang được hưởng.
+  assert.deepEqual(g([nhan, { roleTypeCode: "TRAVEL_AGENCY", roleGroup: "EXTERNAL" }], VAI), { loai: "HUONG", partyId: "p", vai: ["TRAVEL_AGENCY"] });
+  // Công ty chủ mang nhãn đã tắt vẫn NONE (không bao giờ là người hưởng của chính mình).
+  assert.deepEqual(nguoiHuongCua({ bookerPartyId: "ct", vaiMo: [nhan], vaiDuocHuong: VAI, congTyChuId: "ct" }), { loai: "NONE" });
+});
+
 test("chonMuc: đủ sáu bậc, bậc cụ thể nhất thắng", () => {
   const ds = [
     muc({ targetPartyId: "dl-a", targetRoleCode: null, scope: "SERVICE", catalogCode: "HONTAM", rateBp: 1200 }),

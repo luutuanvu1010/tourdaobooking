@@ -299,3 +299,38 @@ export function validateRelationship(body: Record<string, unknown> | null, party
   const period = validatePeriod(body.validFrom, body.validTo, today);
   return period.ok ? { ok: true, value: { fromPartyId, toPartyId, typeCode: relationshipTypeCode, from: period.value.from, to: period.value.to } } : period;
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0117 lần 1, điều 4: nhân viên nội bộ không mang loại đối tác được hưởng hoa hồng (luật «nội bộ» phương án (a), chủ chọn 2026-10-13)
+// ---------------------------------------------------------------------------------------------------------------------
+/**
+ * Vai cũ mơ hồ ĐÃ NGƯNG (0024) mà vẫn coi là nội bộ — danh sách TẠM (ADR-0117 điều 4), trigger của migration *_loai_doi_tac_la_du_lieu chép đúng hai mã này
+ * (bài ghim ở rules.test.ts). GUIDE/AGENT cũ KHÔNG tính (mặc định an toàn).
+ */
+export const VAI_CU_NOI_BO: readonly string[] = ["STAFF", "SALES"];
+/**
+ * Hồ sơ «nội bộ»: đang mở vai nhóm INTERNAL, hoặc vai cũ trong VAI_CU_NOI_BO (vế 1 + 2 — parties thấy), hoặc tài khoản gắn hồ sơ mang ít nhất một quyền
+ * không thuộc nhóm bên ngoài (vế 3 — staff báo qua cờ `coQuyenNoiBo` của PartyAccountVerdict). Đối tác thuần (vai EXTERNAL, tài khoản Đối tác) không nội bộ.
+ */
+export const hoSoNoiBo = (v: { vaiMo: readonly { code: string; group: string }[]; coQuyenNoiBo: boolean }): boolean =>
+  v.coQuyenNoiBo || v.vaiMo.some((r) => r.group === "INTERNAL" || VAI_CU_NOI_BO.includes(r.code));
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0117 lần 1, điều 1: loại đối tác là DỮ LIỆU — Kế toán / Quản trị / Toàn quyền thêm trên màn hình, mã do máy chủ sinh
+// ---------------------------------------------------------------------------------------------------------------------
+/** Khoá so tên loại: bỏ dấu, gấp đ/Đ về d, thường hoá, gọn khoảng trắng — "nhan vien SPA" trùng "Nhân viên spa". Hàm cục bộ (không import tro-ly). */
+const khoaTen = (s: string): string => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "d").toLowerCase().replace(/\s+/g, " ").trim();
+/**
+ * Tên loại đối tác do người dùng nhập: 2–60 ký tự sau khi gọn khoảng trắng; không trùng (không phân biệt dấu / hoa thường) loại nào đã có (`daCo` = tên MỌI loại vai).
+ * Tên đi vào nhật ký nên không cho dãy ≥ 8 chữ số (SĐT / số tài khoản) hay `@` (email) — cùng khuôn ghi chú của bảng mức.
+ */
+export function kiemTenLoaiDoiTac(raw: unknown, daCo: readonly string[]): { ok: true; value: string } | { ok: false; code: "invalid_input" | "loai_trung"; message: string } {
+  const ten = typeof raw === "string" ? raw.trim().replace(/\s+/g, " ") : "";
+  if (ten.length < 2 || ten.length > 60) return { ok: false, code: "invalid_input", message: "Tên loại đối tác dài từ 2 đến 60 ký tự." };
+  // Dãy ≥ 8 chữ số sau khi bỏ khoảng trắng và chấm; dấu «-» chỉ được bỏ khi dãy ≥ 9 chữ số (số điện thoại gạch nối) để khoảng năm «2024-2025» (8 chữ số) lọt.
+  if (/\d{8,}/.test(ten.replace(/[\s.]/g, "")) || /\d{9,}/.test(ten.replace(/[\s.-]/g, "")) || ten.includes("@")) return { ok: false, code: "invalid_input", message: "Tên loại đối tác không được chứa số điện thoại, số tài khoản hay địa chỉ email." };
+  if (daCo.some((t) => khoaTen(t) === khoaTen(ten))) return { ok: false, code: "loai_trung", message: "Đã có loại với tên này." };
+  return { ok: true, value: ten };
+}
+/** Mã loại đối tác máy chủ sinh: `LD_` + 8 chữ hoa (CODE_RE của Danh bạ chỉ nhận chữ và gạch dưới, không số). `bytes` lấy từ `crypto.getRandomValues` ở nơi gọi. */
+export const maLoaiDoiTac = (bytes: Uint8Array): string => "LD_" + Array.from(bytes.slice(0, 8), (b) => String.fromCharCode(65 + (b % 26))).join("");

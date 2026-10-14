@@ -214,9 +214,10 @@ const congTy = (db: DatabaseSync): string => {
   }
   return ct;
 };
+// Phiếu "chỗ chứa" là SETTLEMENT, không ADJUSTMENT (0094, ADR-0115: ADJUSTMENT cần yêu cầu đã duyệt; luật kiểm ở đây chỉ đọc dòng nợ).
 function no(db: DatabaseSync, o: { order: string; debtor: string; creditor: string; amount: number; kind: string; reverses?: string | null; at: string }): string {
   const id = `l${++n}`;
-  run(db, "INSERT OR IGNORE INTO bil_posting (id, kind_code, order_id, reason, occurred_date, created_at, updated_at) VALUES (?, 'ADJUSTMENT', ?, 'khung thử sổ tiền', '2026-10-05', ?, ?)", `p-${o.order}`, o.order, AT, AT);
+  run(db, "INSERT OR IGNORE INTO bil_posting (id, kind_code, order_id, reason, occurred_date, created_at, updated_at) VALUES (?, 'SETTLEMENT', ?, 'khung thử sổ tiền', '2026-10-05', ?, ?)", `p-${o.order}`, o.order, AT, AT);
   run(db, `INSERT INTO bil_debt_line (id, posting_id, debtor_party_id, creditor_party_id, amount, kind_code, order_id, receipt_id, reverses_line_id, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)`, id, `p-${o.order}`, o.debtor, o.creditor, o.amount, o.kind, o.order, o.reverses ?? null, o.at, o.at);
   return id;

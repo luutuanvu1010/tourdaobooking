@@ -2,8 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   composePersonName, splitPersonName, validateContact, validateContactList, validateEndDate, validatePartyCreate, validatePartyUpdate,
-  ownerCompanyAssignProblem, validatePeriod, validatePersonFullName, validateRelationship, validateRole, PARTY_ID_RE, ROW_ID_RE,
+  ownerCompanyAssignProblem, validatePeriod, validatePersonFullName, validateRelationship, validateRole, PARTY_ID_RE, ROW_ID_RE, hoSoNoiBo, VAI_CU_NOI_BO, kiemTenLoaiDoiTac, maLoaiDoiTac,
 } from "./rules.ts";
+import { readdirSync, readFileSync } from "node:fs";
 
 const TODAY = "2026-09-20";
 const U1 = "11111111-1111-1111-1111-111111111111";
@@ -204,4 +205,64 @@ test("gán Công ty chủ (= đổi công ty chủ, chủ trả lời 2026-09-28
   assert.match(ownerCompanyAssignProblem("ORGANIZATION", vai({ to: "2026-12-31" }), TODAY)!, /ngày kết thúc/);
   assert.match(ownerCompanyAssignProblem("ORGANIZATION", vai({ from: "2026-09-21" }), TODAY)!, /hôm nay/);
   assert.match(ownerCompanyAssignProblem("ORGANIZATION", vai({ from: "2026-09-19" }), TODAY)!, /hôm nay/);
+});
+
+// ADR-0117 lần 1, điều 4 — luật «hồ sơ nội bộ» phương án (a). Vế 1 + 2 (vai) ở parties; vế 3 (tài khoản có quyền nội bộ) do staff báo qua cờ coQuyenNoiBo.
+test("ADR-0117: hoSoNoiBo — vai INTERNAL, vai cũ STAFF/SALES, hoặc tài khoản quyền nội bộ; GUIDE cũ và đối tác thuần KHÔNG nội bộ", () => {
+  assert.equal(hoSoNoiBo({ vaiMo: [{ code: "SALES_STAFF", group: "INTERNAL" }], coQuyenNoiBo: false }), true);
+  assert.equal(hoSoNoiBo({ vaiMo: [{ code: "STAFF", group: "OTHER" }], coQuyenNoiBo: false }), true); // vai cũ
+  assert.equal(hoSoNoiBo({ vaiMo: [{ code: "SALES", group: "OTHER" }], coQuyenNoiBo: false }), true); // SALES cũng tính
+  assert.equal(hoSoNoiBo({ vaiMo: [{ code: "GUIDE", group: "OTHER" }], coQuyenNoiBo: false }), false); // GUIDE/AGENT không tính
+  assert.equal(hoSoNoiBo({ vaiMo: [{ code: "AGENT", group: "OTHER" }], coQuyenNoiBo: false }), false);
+  assert.equal(hoSoNoiBo({ vaiMo: [{ code: "HOTEL_RECEPTION", group: "EXTERNAL" }], coQuyenNoiBo: false }), false); // đối tác thuần
+  assert.equal(hoSoNoiBo({ vaiMo: [], coQuyenNoiBo: true }), true); // tài khoản quyền nội bộ
+  assert.equal(hoSoNoiBo({ vaiMo: [], coQuyenNoiBo: false }), false);
+});
+
+test("ADR-0117: VAI_CU_NOI_BO trùng ĐÚNG danh sách mã vai cũ trong trigger của migration *_loai_doi_tac_la_du_lieu (một luật, hai lớp)", () => {
+  const dir = new URL("../../../migrations/", import.meta.url);
+  const f = readdirSync(dir).find((x) => x.endsWith("_loai_doi_tac_la_du_lieu.sql"));
+  assert.ok(f, "thiếu migration loại đối tác");
+  const sql = readFileSync(new URL(f, dir), "utf8").replace(/^--.*$/gm, "");
+  const lists = [...sql.matchAll(/role_type_code IN \(([^)]*)\)|\.code IN \(([^)]*)\)/g)].map((m) => (m[1] ?? m[2])!.split(",").map((x) => x.trim().replace(/'/g, "")).sort());
+  assert.ok(lists.length >= 4, `trigger phải có danh sách mã vai cũ (thấy ${lists.length})`);
+  for (const l of lists) assert.deepEqual(l, [...VAI_CU_NOI_BO].sort());
+});
+
+// ADR-0117 lần 1, Task 3 — tên loại đối tác do Kế toán thêm và mã do máy chủ sinh.
+test("ADR-0117: kiemTenLoaiDoiTac — gọn khoảng trắng, trùng không phân biệt dấu / hoa thường, rỗng / quá dài / có số hay @ thì từ chối", () => {
+  assert.deepEqual(kiemTenLoaiDoiTac("  Nhân viên  spa ", ["Khách hàng"]), { ok: true, value: "Nhân viên spa" });
+  const trung = kiemTenLoaiDoiTac("nhan vien SPA", ["Nhân viên spa"]);
+  assert.equal(trung.ok, false);
+  assert.equal(!trung.ok && trung.code, "loai_trung");
+  assert.equal(!kiemTenLoaiDoiTac("ĐẠI LÝ", ["đại lý"]).ok, true, "đ/Đ được gấp về d");
+  for (const x of ["", "   ", "a", undefined, null, 5, "x".repeat(61)]) {
+    const r = kiemTenLoaiDoiTac(x, []);
+    assert.equal(r.ok, false, String(x));
+    assert.equal(!r.ok && r.code, "invalid_input", String(x));
+  }
+  assert.equal(kiemTenLoaiDoiTac("x".repeat(60), []).ok, true);
+  // Nhật ký ghi tên loại: không cho lọt số điện thoại / email (CLAUDE.md §7).
+  for (const x of ["Gọi 0901 234 567", "Lễ tân a@b.vn"]) {
+    const r = kiemTenLoaiDoiTac(x, []);
+    assert.equal(!r.ok && r.code, "invalid_input", x);
+  }
+  assert.equal(kiemTenLoaiDoiTac("Tour 2 ngày", []).ok, true, "chữ số ngắn vẫn được");
+});
+
+test("ADR-0117: kiemTenLoaiDoiTac — khoảng năm «2024-2025» lọt, số điện thoại viết liền / cách / chấm vẫn bị chặn", () => {
+  // Bộ lọc từng bỏ dấu «-» rồi đếm ≥ 8 chữ số nên «Đối tác 2024-2025» (8 chữ số) bị từ chối nhầm; nay dấu «-» chỉ được bỏ khi dãy có ≥ 9 chữ số (SĐT gạch nối vẫn bị chặn).
+  for (const x of ["Đối tác 2024-2025", "Mùa 2024-2025", "Hội chợ 2025-26", "Tour 12-12-2025"]) assert.equal(kiemTenLoaiDoiTac(x, []).ok, true, x);
+  for (const x of ["Gọi 0901234567", "Gọi 0901 234 567", "Gọi 0901.234.567", "Gọi 090-123-4567", "Gọi 0901-234-567", "09012345 xx", "Số 123456789012"]) {
+    const r = kiemTenLoaiDoiTac(x, []);
+    assert.equal(!r.ok && r.code, "invalid_input", x);
+  }
+});
+
+test("ADR-0117: maLoaiDoiTac — LD_ + 8 chữ hoa (CODE_RE của Danh bạ không nhận chữ số)", () => {
+  const ma = maLoaiDoiTac(new Uint8Array([0, 1, 25, 26, 255, 100, 7, 99, 42]));
+  assert.match(ma, /^LD_[A-Z]{8}$/);
+  assert.equal(ma, "LD_ABZAVWHV");
+  const re = /^[A-Z][A-Z_]{1,29}$/;
+  assert.ok(re.test(ma));
 });

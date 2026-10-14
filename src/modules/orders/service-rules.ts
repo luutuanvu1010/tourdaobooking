@@ -89,9 +89,9 @@ export function validateTrip(s: Record<string, unknown>, at: string): TripResult
   const departTime = timeField(s.departTime, `${at}: giờ khởi hành`);
   const pickupTime = timeField(s.pickupTime, `${at}: giờ đón`);
   const pickupPlace = cleanText(s.pickupPlace, `${at}: điểm đón`, 200, false);
-  const checkinDate = dateField(s.checkinDate, `${at}: ngày check-in`);
-  const checkinTime = timeField(s.checkinTime, `${at}: giờ check-in`);
-  const checkinPlace = cleanText(s.checkinPlace, `${at}: nơi check-in`, 200, false);
+  const checkinDate = dateField(s.checkinDate, `${at}: ngày khách có mặt`);
+  const checkinTime = timeField(s.checkinTime, `${at}: giờ khách có mặt`);
+  const checkinPlace = cleanText(s.checkinPlace, `${at}: nơi khách có mặt`, 200, false);
   const note = cleanText(s.note, `${at}: ghi chú`, 1000, true);
   const bad = [departDate, departTime, pickupTime, pickupPlace, checkinDate, checkinTime, checkinPlace, note].find((f) => f.error);
   if (bad) return fail(bad.error!);
@@ -357,7 +357,7 @@ export function validateTripUpdate(
 }
 
 // ---- Mô tả cho nhật ký -------------------------------------------------------------------------------------------
-// Nhật ký KHÔNG ghi giá trị chuỗi tự do (điểm đón, nơi check-in, ghi chú là dữ liệu cá nhân của khách) — chỉ ghi "đổi".
+// Nhật ký KHÔNG ghi giá trị chuỗi tự do (điểm đón, nơi khách có mặt, ghi chú là dữ liệu cá nhân của khách) — chỉ ghi "đổi".
 
 const vnd = (n: number): string => `${n.toLocaleString("vi-VN")} ₫`;
 
@@ -375,7 +375,7 @@ export function summarizeDeviations(
 
 // ADR-0062 Đ1: nhãn LẤY TỪ bảng chung (src/shared/truong-thoi-gian.ts) — hàm đọc tin nhận đúng các nhãn này (bài NT-B1 cấm viết tay ở đây).
 const TRIP_VALUE_FIELDS = (["departDate", "departTime", "pickupTime", "checkinDate", "checkinTime"] as const).map((k) => [k, NHAN_TRUONG_THOI_GIAN[k]] as const);
-const TRIP_TEXT_FIELDS = [["pickupPlace", "điểm đón"], ["checkinPlace", "nơi check-in"], ["note", "ghi chú"]] as const;
+const TRIP_TEXT_FIELDS = [["pickupPlace", "điểm đón"], ["checkinPlace", "nơi khách có mặt"], ["note", "ghi chú"]] as const;
 
 /** Thay đổi chuyến của một dịch vụ: ngày/giờ ghi "trước → sau", địa điểm/ghi chú chỉ ghi "đổi". null = không đổi gì. */
 export function describeTripChange(name: string, before: ValidTrip, after: ValidTrip): string | null {

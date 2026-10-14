@@ -13,7 +13,7 @@
 import { APP_NAME } from "./phien-ban";
 import { handlerFailure, myJobActions } from "../src/shared/handler-view";
 import { PAX_LABEL, type PaxCode } from "../src/shared/order-lines";
-import { banner, type Banner } from "../src/shared/order-errors";
+import { LOI_409_KHONG_CU, banner, type Banner } from "../src/shared/order-errors";
 import { cauDongBoChuyen } from "../src/shared/dong-bo-chuyen-cau";
 import { can, holdsPartner } from "../src/shared/permissions";
 import { tripDeparted } from "../src/shared/trip-rules";
@@ -130,8 +130,12 @@ function thanhCong(said: string, dongBo: Api.DongBoChuyenDto | undefined): Sheet
   return cau.length > 0 ? { said, banner: banner("warning", said, { lines: cau.map((text) => ({ text })) }) } : { said };
 }
 
-/** Lỗi của máy chủ nghĩa là "màn hình đã cũ" (đơn vừa đổi, không còn phụ trách, không còn đơn) → đóng bảng, tải lại, báo bằng banner. */
-const isOutdated = (err: unknown): err is ApiError => err instanceof ApiError && (err.status === 409 || err.status === 403 || err.status === 404);
+/**
+ * Lỗi của máy chủ nghĩa là "màn hình đã cũ" (đơn vừa đổi, không còn phụ trách, không còn đơn) → đóng bảng, tải lại, báo bằng banner. Trừ 409 `thieu_nguoi_lon`
+ * (ADR-0114 D3, `LOI_409_KHONG_CU`): màn hình không cũ, người dùng sửa tại chỗ — giữ bảng và số đang gõ, hiện đúng câu máy chủ gửi (cùng cách bảng của văn phòng).
+ */
+const isOutdated = (err: unknown): err is ApiError =>
+  err instanceof ApiError && (err.status === 403 || err.status === 404 || (err.status === 409 && !LOI_409_KHONG_CU.has(err.code)));
 
 // ---- Bảng "Sửa số khách" --------------------------------------------------------------------------------------------------------------------------
 function openEditSheet(a: Api.MyAssignmentDto, opener: HTMLElement, done: (r: SheetOutcome) => void, onClosed: () => void): void {
@@ -322,7 +326,7 @@ function cardTop(departDate: string | null, orderCode: string, today: string, ch
 
 /**
  * Thông tin chuyến THÊM dưới dòng "Đón:" (bản 1.39, chỉ "Đơn của tôi" — DTO `MyAssignmentServiceDto` đã có sẵn; hàng chờ KHÔNG có các trường này, phần hẹp
- * ADR-0030 S23-1): giờ khởi hành, check-in (ngày nếu khác ngày đi, giờ, nơi), ghi chú dịch vụ. Trường trống bị bỏ.
+ * ADR-0030 S23-1): giờ khởi hành, khách có mặt (ngày nếu khác ngày đi, giờ, nơi), ghi chú dịch vụ. Trường trống bị bỏ.
  */
 interface ChuyenThem {
   departTime?: string | null;
@@ -336,7 +340,7 @@ function dongChuyenThem(s: ChuyenThem): HTMLElement[] {
   const out: HTMLElement[] = [];
   if (s.departTime) out.push(h("div", { class: "hdv-svc-place" }, `Khởi hành: ${s.departTime}`));
   const checkin = [s.checkinDate ? ngayNgan(s.checkinDate, vnToday(new Date())) : null, s.checkinTime, s.checkinPlace].filter(Boolean).join(" · ");
-  if (checkin) out.push(h("div", { class: "hdv-svc-place" }, `Check-in: ${checkin}`));
+  if (checkin) out.push(h("div", { class: "hdv-svc-place" }, `Khách có mặt: ${checkin}`));
   if (s.note) out.push(h("div", { class: "hdv-svc-place hdv-svc-note" }, `Ghi chú: ${s.note}`));
   return out;
 }

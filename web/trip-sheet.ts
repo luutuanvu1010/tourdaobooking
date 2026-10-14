@@ -1,5 +1,5 @@
 // Bảng trượt "Sửa thông tin chuyến" (A2, đặc tả 5.3) — CHỈ cho đơn đã xác nhận (đơn nháp sửa mọi thứ trong form). MỘT ô ngày khởi hành cho cả đơn ở đầu bảng
-// (ADR-0021, đặc tả 2026-09-25-mot-ngay-ca-don.md); mỗi dịch vụ một nhóm ô còn lại (giờ, đón, check-in, ghi chú) điền sẵn ĐẦY ĐỦ giá trị hiện có,
+// (ADR-0021, đặc tả 2026-09-25-mot-ngay-ca-don.md); mỗi dịch vụ một nhóm ô còn lại (giờ, đón, khách có mặt, ghi chú) điền sẵn ĐẦY ĐỦ giá trị hiện có,
 // vì PUT /api/orders/:id/trip thay TOÀN BỘ (trường vắng = xoá) và phải gửi MỌI dịch vụ. ≤ 640px trượt từ đáy; > 640px hộp giữa màn hình.
 // Hộp thoại kiểu modal: role=dialog + aria-modal, phần nền `inert`, Esc / ✕ / chạm nền để đóng, trả focus về nút mở.
 import { ApiError, api, type Order } from "./api";

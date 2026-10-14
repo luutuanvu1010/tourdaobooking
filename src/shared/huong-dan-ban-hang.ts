@@ -8,9 +8,9 @@ export const HD_BAN_HANG: NhomHuongDan = {
   gioiThieu:
     "Bạn nhận khách, lập đơn dịch vụ từ danh mục, ghi giờ và nơi đón, rồi xác nhận đơn và gửi ảnh biên nhận cho khách. Bạn xem được mọi đơn của công ty, nhưng chỉ sửa, xác nhận, huỷ được đơn bạn lập hoặc đơn bạn đang phụ trách (Thực tập: chỉ đơn mình lập — xem mục cuối).",
   batDauNhanh: `1. Bấm [[Tạo đơn]].
-2. Ở khối [[Chọn ngày]], chọn [[Ngày khởi hành]].
+2. Ở đầu trang, chọn [[Ngày khởi hành]], rồi điền **Tên khách** và [[Số điện thoại]].
 3. Gõ tên dịch vụ vào ô [[Chọn từ danh mục]], chạm dịch vụ đúng, rồi bấm **+** để nhập số khách.
-4. Điền **Tên khách** và [[Số điện thoại]], rồi bấm [[Lưu, chờ xác nhận]].
+4. Bấm [[Lưu, chờ xác nhận]].
 5. Trên trang đơn, bấm [[Xác nhận đơn]] và đồng ý.
 6. Bấm [[Xem biên nhận]], rồi [[Chia sẻ]] (gửi qua Zalo) hoặc [[Tải ảnh PNG]].`,
   muc: [
@@ -29,29 +29,28 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
     },
     {
       tieuDe: "Lập đơn mới",
-      noiDung: `> Ví dụ: chị Lan gọi đặt tour 4 đảo cho 2 người lớn và 1 trẻ em, ngày mai, đón 7 giờ 30 tại khách sạn Biển Xanh trên đường Trần Phú, đã chuyển khoản trước một phần.
+      noiDung: `> Ví dụ: chị Lan gọi đặt tour 4 đảo cho 2 người lớn và 1 trẻ em, ngày mai, đón 7 giờ 30 tại khách sạn Biển Xanh, đã chuyển khoản trước một phần.
 
-1. Bấm [[Tạo đơn]].
-2. Ở khối [[Chọn ngày]], chọn [[Ngày khởi hành]]. Ngày này áp cho **mọi dịch vụ** trong đơn.
-3. Ở khối [[Dịch vụ]], gõ vào ô [[Chọn từ danh mục]] (tên hoặc mã, ví dụ "4 đảo"), rồi chạm dịch vụ đúng. App báo ngắn đã thêm và hiện một thẻ dịch vụ.
-   - Danh mục dài: bấm một chip ở hàng [[Nhóm dịch vụ]] để chỉ thấy dịch vụ của nhóm đó; app nhớ lựa chọn trên máy này.
-   - Dịch vụ hiện mờ, ghi "chưa có giá" hoặc "chưa hỗ trợ", thì không chọn được — báo Quản trị.
-   - Dịch vụ đã có trong đơn mang nhãn "đã chọn".
-4. Trên thẻ, bấm **+** và **−** để nhập số khách theo từng loại ([[Người lớn]], [[Trẻ em]], [[Người cao tuổi]], [[Em bé]] — tuỳ dịch vụ). Dòng tiền hiện ngay bên dưới.
-   - Dịch vụ tính theo nhóm chỉ có một ô [[Số khách]]; app tự tính số lượt.
-   - Mỗi dịch vụ tối đa 50 khách, phải có ít nhất 1 khách không phải em bé.
-   - Sửa được đơn giá; dòng khác giá danh mục hiện nhãn [[Khác giá danh mục]].
-5. Phần [[Đưa đón]] trên thẻ: mỗi chặng có [[Ngày đón]], [[Giờ đón]], [[Nơi đón]], [[Nơi trả]] (chọn điểm có sẵn hoặc [[Gõ tự do…]]). Dịch vụ có mẫu đưa đón thì app tạo sẵn chiều đi (và chiều về) — sửa hoặc bỏ nếu khác; không có thì bấm [[+ Thêm đưa đón]]. Mỗi chặng có thêm [[Xe riêng]] (không ghép khách khác) và [[Xe tối thiểu]] (số chỗ, không kể tài xế). Bấm dòng [[Thông tin chuyến]] để điền [[Giờ khởi hành]] và nếu có thì [[Ngày check-in]], [[Giờ check-in]], [[Nơi check-in]], [[Ghi chú dịch vụ]].
-6. Cần thêm dịch vụ khác thì lặp lại bước 3 đến 5 (tối đa 20 dịch vụ). Bấm [[Xoá]] trên thẻ để bỏ một dịch vụ.
-7. Khối [[Thanh toán]]: [[Giảm giá (₫)]], [[Thanh toán trước (₫)]], [[Hình thức]] ([[Chuyển khoản]] — mặc định, [[Tiền mặt]], [[Khác]]), [[Người nhận tiền]], [[Ghi chú thanh toán]]. Tiền trả trước được ghi vào sổ ngay sau khi lưu đơn.
-8. Khối [[Thông tin khách hàng]]: điền **Tên khách**, [[Số điện thoại]] (bắt buộc), [[Email]], [[Ghi chú / yêu cầu đặc biệt]].
-   - Gõ xong số điện thoại, app tìm hồ sơ trùng số. Đúng người thì bấm [[Dùng hồ sơ này]]; khách mới thì bấm [[Tạo hồ sơ mới]]. Không chọn gì vẫn lưu được.
+1. Bấm [[Tạo đơn]]. Trang chia bốn bước; chạm tên bước trên thanh đầu trang để nhảy tới.
+2. Chọn [[Ngày khởi hành]]; ngày này áp cho **mọi dịch vụ** trong đơn.
+3. Khối [[Thông tin khách hàng]]: điền **Tên khách**, [[Số điện thoại]] (bắt buộc). Ghi [[Email]] hoặc [[Ghi chú / yêu cầu đặc biệt]] thì bấm [[Thêm chi tiết (email, ghi chú)]].
+   - Gõ xong số điện thoại, app tìm hồ sơ trùng số: đúng người thì bấm [[Dùng hồ sơ này]], khách mới thì [[Tạo hồ sơ mới]]; không chọn vẫn lưu được.
    - Nút [[Sử dụng thông tin của tôi]] điền tên và số của chính bạn.
-   - Khách đặt qua đại lý hoặc cộng tác viên: bấm [[Đặt qua đối tác]], chọn người đó để tính hoa hồng.
+   - Khách đặt qua đại lý hoặc cộng tác viên: bấm [[Đặt qua đối tác]] (cạnh [[Khách tự đặt]]), rồi chọn người đó để tính hoa hồng.
+4. Ở khối [[Dịch vụ]], chạm vào ô [[Chọn từ danh mục]] (gõ tên hoặc mã, ví dụ "4 đảo", để thu hẹp), rồi chạm dịch vụ đúng để hiện thẻ dịch vụ.
+   - Danh mục dài: bấm [[Nhóm dịch vụ]], đánh dấu nhóm cần xem (app nhớ); dịch vụ gắn ☆ nằm trên đầu.
+   - Dịch vụ mờ, ghi "chưa có giá" hoặc "chưa hỗ trợ", không chọn được — báo Quản trị.
+5. Trên thẻ, bấm **+** và **−** để nhập số khách theo từng loại ([[Người lớn]], [[Trẻ em]], [[Người cao tuổi]], [[Em bé]] — tuỳ dịch vụ).
+   - Dịch vụ tính theo nhóm chỉ có một ô [[Số khách]]; app tự tính số lượt.
+   - Mỗi dịch vụ tối đa 50 khách, phải có ít nhất 1 khách không phải em bé. Cả đơn cần ít nhất một người lớn.
+   - Sửa được đơn giá; dòng khác giá danh mục hiện nhãn [[Khác giá danh mục]].
+6. Phần [[Đưa đón]] trên thẻ: mỗi chặng có [[Giờ đón]], [[Nơi đón]], [[Nơi trả]] (chọn điểm có sẵn hoặc [[Gõ tự do…]]); [[Ngày đón]] tự lấy ngày khởi hành (khác ngày: [[Đón khác ngày]]). Dịch vụ có mẫu đưa đón thì app tạo sẵn chiều đi (và chiều về) — sửa hoặc bỏ nếu khác; không có thì bấm [[+ Thêm đưa đón]]. Chặng đủ thông tin gập thành một dòng; chạm để sửa. [[Xe riêng]] và [[Xe tối thiểu]] (số chỗ, không kể tài xế) nằm trong [[Thêm chi tiết (xe riêng, số chỗ)]]. Bấm dòng [[Thông tin chuyến]] để điền [[Giờ khởi hành]] và nếu có thì [[Có mặt lúc]], [[Có mặt tại]] (khác ngày: [[Có mặt khác ngày]]), [[Ghi chú dịch vụ]].
+7. Cần thêm dịch vụ thì lặp lại bước 4 đến 6 (tối đa 20 dịch vụ). Bấm [[Xoá]] trên thẻ để bỏ dịch vụ.
+8. Khối [[Thanh toán]]: [[Giảm giá (₫)]], [[Thanh toán trước (₫)]], [[Hình thức]] ([[Chuyển khoản]] — mặc định, [[Tiền mặt]], [[Khác]]), [[Người nhận tiền]], [[Ghi chú thanh toán]]. Tiền trả trước vào sổ ngay khi lưu đơn.
 9. Khối [[Người phụ trách]]: để trống thì đơn ở trạng thái [[Chờ nhận]] — hướng dẫn viên nào cũng nhận được. Muốn giao luôn thì bấm [[Chọn người phụ trách]], tìm tên, chạm người đó. Đổi ý thì bấm [[Đổi]] hoặc [[Bỏ chọn — để Chờ nhận]].
-10. Xem khối [[Tóm tắt]] rồi bấm [[Lưu, chờ xác nhận]]. Đơn lưu ở trạng thái [[Chờ xác nhận]]; app chuyển sang trang đơn và tự mở hộp ảnh biên nhận.
+10. Xem khối [[Tóm tắt]] rồi bấm [[Lưu, chờ xác nhận]]. Đơn lưu ở [[Chờ xác nhận]]; app chuyển sang trang đơn và mở hộp ảnh biên nhận.
 
-> Lưu ý: số ở khối Tóm tắt chỉ để xem trước; máy chủ tính lại khi lưu. Thiếu gì thì app hiện khung đỏ [[Chưa lưu được — kiểm tra lại:]] kèm danh sách lỗi.`,
+> Lưu ý: số ở khối Tóm tắt chỉ để xem trước; máy chủ tính lại khi lưu. Thiếu gì thì app hiện khung đỏ [[Chưa lưu được — kiểm tra lại:]] kèm lỗi.`,
     },
     {
       tieuDe: "Sửa đơn đang chờ xác nhận",
@@ -61,7 +60,7 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
 
 > Ví dụ: chị Lan báo thêm 1 người lớn → mở đơn → [[Sửa]] → Người lớn từ 2 lên 3 → [[Lưu thay đổi]].
 
-> Lưu ý: nếu người khác vừa sửa cùng đơn, app báo đơn vừa được người khác cập nhật — mở lại đơn rồi sửa tiếp.`,
+> Lưu ý: nếu người khác vừa sửa cùng đơn, app báo đơn vừa được cập nhật — mở lại đơn rồi sửa tiếp.`,
     },
     {
       tieuDe: "Xác nhận đơn",
@@ -71,7 +70,7 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
 
 App chỉ cho xác nhận khi mỗi dịch vụ có ngày khởi hành, ngày đó chưa qua và không quá 365 ngày tới, mỗi dịch vụ có khách, và không còn chặng đón sát giờ chưa được duyệt (xem "Đơn sát giờ — Đặt gấp"). Thiếu thì app báo [[Chưa đủ thông tin chuyến để xác nhận đơn.]] kèm từng dịch vụ và liên kết [[Sửa]].
 
-> Lưu ý: giờ đón và nơi đón không bắt buộc để xác nhận, nhưng nên điền đủ trước khi gửi khách.`,
+> Lưu ý: giờ đón và nơi đón không bắt buộc để xác nhận, nhưng nên điền trước khi gửi khách.`,
     },
     {
       tieuDe: "Gửi ảnh biên nhận cho khách",
@@ -100,8 +99,6 @@ App chỉ cho xác nhận khi mỗi dịch vụ có ngày khởi hành, ngày đ
 1. Bấm [[Đơn hàng]].
 2. Gõ vào ô tìm (mã đơn, tên, số điện thoại), hoặc bấm nút **Lọc** để lọc cùng lúc theo ngày đi, dịch vụ, trạng thái ([[Chờ xác nhận]], [[Đã xác nhận]], [[Đã huỷ]]) và người lập ([[Đơn tôi lập]], hoặc gõ tên để chọn từng người đã lập đơn), rồi bấm [[Áp dụng]]. Điều kiện đang lọc hiện thành nhãn trên danh sách; bấm × để bỏ từng cái, [[Xoá lọc]] để bỏ hết. Máy nhớ bộ lọc cho lần sau.
 3. Mỗi thẻ hiện mã, trạng thái, ngày, khách, tiền; mở phần xổ xuống để thấy người phụ trách ("HDV: tên" hoặc [[Chờ nhận]]). Bấm [[Tải thêm]] để xem đơn cũ hơn.
-
-Ô tìm trên thanh trên cùng cũng đưa bạn tới đây, kèm từ bạn gõ.
 
 ### Trang chủ
 

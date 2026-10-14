@@ -64,13 +64,13 @@ test("openRoleCodesFor: vai đang mở, gộp theo hồ sơ, một truy vấn", 
   assert.equal((await openRoleCodesFor(db, [])).size, 0);
 });
 
-test("roleTypeOf / roleRowOf: đọc nhóm + trạng thái 'đang dùng' của loại vai (Ruling R6); nhóm + mã của một dòng vai", async () => {
+test("roleTypeOf / roleRowOf: đọc nhóm + trạng thái 'đang dùng' + cờ loại đối tác (Ruling R6, ADR-0117) của loại vai; nhóm + mã của một dòng vai", async () => {
   const { db } = seed();
-  assert.deepEqual(await roleTypeOf(db, "SALES_STAFF"), { group: "INTERNAL", active: true });
-  assert.deepEqual(await roleTypeOf(db, "COLLABORATOR"), { group: "EXTERNAL", active: true });
-  assert.deepEqual(await roleTypeOf(db, "CUSTOMER"), { group: "OTHER", active: true });
-  assert.deepEqual(await roleTypeOf(db, "GUIDE"), { group: "OTHER", active: false }, "mã cũ mơ hồ đã ngưng từ 0024");
-  assert.deepEqual(await roleTypeOf(db, "DRIVER"), { group: "OTHER", active: false }, "mã hồ sơ cũ DRIVER ngưng từ migration *_vai_quyen_tai_xe (ADR-0040 D3)");
+  assert.deepEqual(await roleTypeOf(db, "SALES_STAFF"), { group: "INTERNAL", active: true, partnerLabel: false });
+  assert.deepEqual(await roleTypeOf(db, "COLLABORATOR"), { group: "EXTERNAL", active: true, partnerLabel: false });
+  assert.deepEqual(await roleTypeOf(db, "CUSTOMER"), { group: "OTHER", active: true, partnerLabel: false });
+  assert.deepEqual(await roleTypeOf(db, "GUIDE"), { group: "OTHER", active: false, partnerLabel: false }, "mã cũ mơ hồ đã ngưng từ 0024");
+  assert.deepEqual(await roleTypeOf(db, "DRIVER"), { group: "OTHER", active: false, partnerLabel: false }, "mã hồ sơ cũ DRIVER ngưng từ migration *_vai_quyen_tai_xe (ADR-0040 D3)");
   assert.equal(await roleTypeOf(db, "KHONG_CO"), null);
   assert.deepEqual(await roleRowOf(db, "p-a", "r-acc"), { group: "INTERNAL", code: "ACCOUNTANT" });
   assert.equal(await roleRowOf(db, "p-b", "r-acc"), null, "dòng của hồ sơ khác");

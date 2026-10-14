@@ -1,7 +1,7 @@
 // Khối "Đưa đón" của thẻ dịch vụ (bản vẽ docs/design/2026-10-01-dua-don-hanh-khach/the-dua-don.dc.html — M1, M4, M6). Mô hình THUẦN của bản nháp chặng:
 // giá trị ô nhập, chữ gợi ý nhỏ, lỗi dòng, liên kết chiều về ↔ chiều đi, dời ngày, thân `LegInput`. Không DOM. Luật chặng thật ở chang-dua-don.ts (máy chủ
 // vẫn là nơi quyết định); mẫu gợi ý ở chang-mac-dinh.ts.
-import { CHO_TOI_THIEU_MAX, CHO_TOI_THIEU_MIN, doiNgayChang, NOI_DON_CHUA_GHI } from "./chang-dua-don.ts";
+import { CHIEU_LABEL, CHO_TOI_THIEU_MAX, CHO_TOI_THIEU_MIN, doiNgayChang, NOI_DON_CHUA_GHI } from "./chang-dua-don.ts";
 import { changMacDinh, type MauChang } from "./chang-mac-dinh.ts";
 import type { LegDirection, LegDto, LegInput } from "./contracts.ts";
 import { ngayNgan } from "./vn-date.ts";
@@ -131,6 +131,11 @@ export function doiNgayDi(legs: readonly ChangNhap[], ngayCu: string, ngayMoi: s
   const soDoi = doi.filter((l, j) => legs[j]!.pickupDate !== "" && l.pickupDate !== legs[j]!.pickupDate).length;
   return { legs: doi, soDoi };
 }
+/**
+ * Đợt 1 (bảng việc 13/10, #9): form TẠO đơn ẩn ô "Ngày đón" của chặng (mặc định = ngày đi của đơn; chặng chưa có ngày thì máy chủ tự điền ngày đi — Ruling R4b) và chỉ có lối nhỏ "Đón khác ngày" để mở.
+ * Ô LUÔN hiện khi chặng đang có ngày đón khác ngày đi — không giấu một giá trị đang có. Chỉ dùng ở form (`che: "form"`); bảng "Sửa đưa đón" của đơn đã lưu luôn hiện ô. Luật khoảng ngày `khoangNgayDon` không đổi.
+ */
+export const canHienNgayDon = (l: Pick<ChangNhap, "pickupDate">, ngayDi: string): boolean => l.pickupDate !== "" && l.pickupDate !== ngayDi;
 export const cauDoiNgay = (n: number): string => `Đã dời ngày đón của ${n} chặng theo ngày đi mới`;
 
 /** Chữ nhỏ dưới các ô của chặng (bản vẽ). */
@@ -175,6 +180,38 @@ export function loiDanhSachChang(legs: readonly ChangNhap[], soKhach: number): s
     const e = loiChang(l, i + 1, soKhach, true);
     return [e.don, e.donTuDo, e.soVe, e.choToiThieu === null ? null : `Chặng ${i + 1}: ${CAU_LOI_CHO_TOI_THIEU.charAt(0).toLowerCase()}${CAU_LOI_CHO_TOI_THIEU.slice(1)}.`].filter((x): x is string => x !== null);
   });
+}
+
+/**
+ * Bản "bốn bước" (14/10/2026): hai ô ÍT DÙNG của chặng — Xe riêng, Xe tối thiểu — gập sau "+ Thêm chi tiết" TRONG chặng (form Tạo/sửa đơn). Có giá trị khác mặc định
+ * (xe riêng Bật, số chỗ khác trống) thì khối PHẢI tự mở khi dựng — không giấu một giá trị đang có. Số hiệu chuyến bay KHÔNG gập (sau kiểm độc lập 14/10: tài xế dựa vào nó để tự tra giờ bay):
+ * ô hiện sẵn khi nơi đón / trả là sân bay hoặc đã có số hiệu (`coOSoHieu`).
+ */
+export const chiTietChangCoGiaTri = (l: Pick<ChangNhap, "xeRieng" | "choToiThieu">): boolean => l.xeRieng || l.choToiThieu !== "";
+
+/**
+ * Chặng có được hiện GỌN MỘT DÒNG lúc dựng khối (form Tạo/sửa đơn) không: chỉ khi chặng đã đủ nơi đón (đã chọn điểm, hoặc "Gõ tự do" có địa chỉ) và KHÔNG có gì bị giấu sau dòng tóm tắt —
+ * không ô ít dùng nào có giá trị, ngày đón không khác ngày đi, chiều về không có "số người chiều về", không lỗi nào của chặng. Chặng còn thiếu nơi đón (vừa tạo) hiện đủ ô vì người lập phải nhập.
+ * Chỉ dùng LÚC DỰNG (lần đầu thấy chặng); chặng đã mở thì giữ mở, không tự gập giữa lúc người lập đang gõ.
+ */
+export function changNenGon(l: ChangNhap, so: number, soKhach: number, ngayDi: string, coOSoHieuChang = false): boolean {
+  if (l.don === "" || (l.don === TU_DO && l.donTuDo.trim() === "")) return false;
+  if (coOSoHieuChang || l.flightCode.trim() !== "") return false; // ô số hiệu chuyến bay hiện sẵn: không giấu sau dòng tóm tắt
+  if (chiTietChangCoGiaTri(l) || canHienNgayDon(l, ngayDi) || l.soVe !== "") return false;
+  const e = loiChang(l, so, soKhach, true);
+  return e.don === null && e.donTuDo === null && e.soVe === null && e.choToiThieu === null;
+}
+
+/**
+ * Dòng tóm tắt của chặng gọn: "Chiều đi · Đón 07:30 · Khách sạn ABC → Cảng Vinpearl" (chưa chốt giờ: "Chưa chốt giờ"; chưa chọn nơi trả: bỏ phần "→ …"). `nhanTheoId` tra nhãn ngắn của điểm danh mục
+ * theo id (null = không biết → dùng nhãn đã lưu của chặng, rồi chữ "Điểm đã ngưng"); nơi "Gõ tự do" lấy địa chỉ đã gõ.
+ */
+export function tomTatChang(l: ChangNhap, nhanTheoId: (id: string) => string | null): string {
+  const noi = (chon: string, chu: string, nhanLuu: string | null | undefined): string => (chon === "" ? "" : chon === TU_DO ? chu.trim() : (nhanTheoId(chon) ?? nhanLuu ?? "Điểm đã ngưng"));
+  const don = noi(l.don, l.donTuDo, l.goc?.pickupLabel);
+  const tra = noi(l.tra, l.traTuDo, l.goc?.dropoffLabel);
+  const gio = l.pickupTime !== "" ? `Đón ${l.pickupTime}` : "Chưa chốt giờ";
+  return [CHIEU_LABEL[l.direction], gio, `${don}${tra !== "" ? ` → ${tra}` : ""}`].join(" · ");
 }
 
 /** Ô "Số hiệu chuyến bay" hiện khi nơi đón / nơi trả là sân bay, hoặc chặng đã có số hiệu (không giấu dữ liệu đã lưu). */

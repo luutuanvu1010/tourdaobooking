@@ -20,6 +20,19 @@ export const tripFromDto = (t: TripInfoDto): TripInput => ({
   note: t.note ?? "",
 });
 
+/**
+ * Ô "Ngày khách có mặt" (cột `checkin_date`; trống = cùng ngày khởi hành) chỉ hiện khi ĐÃ CÓ giá trị — không giấu một giá trị đang có; còn trống thì chỉ có lối nhỏ "Có mặt khác ngày".
+ * Dùng chung form Tạo/sửa đơn và bảng "Sửa thông tin chuyến". (Khác `canHienNgayDon` của chặng: ô này không tự điền ngày đi, nên giá trị trùng ngày đi vẫn hiện.)
+ */
+export const canHienNgayCoMat = (checkinDate: string): boolean => checkinDate !== "";
+
+/**
+ * Khối "Thông tin chuyến" của thẻ dịch vụ có giá trị khác mặc định (mặc định = trống hết) không → phải TỰ MỞ khi dựng (nháp đã lưu, bản sửa): không giấu giá trị đang có. Ngày khởi hành bỏ qua:
+ * cả đơn một ngày (ADR-0021), chọn ở đầu form. Hai ô cũ `pickupTime`/`pickupPlace` không còn ô ở khối này (sang chặng đưa đón).
+ */
+export const coGiaTriChuyen = (t: Pick<TripInput, "departTime" | "checkinDate" | "checkinTime" | "checkinPlace" | "note">): boolean =>
+  t.departTime !== "" || t.checkinDate !== "" || t.checkinTime !== "" || t.checkinPlace.trim() !== "" || t.note.trim() !== "";
+
 /** "2026-09-20" → "20/09/2026"; giá trị lạ trả nguyên. */
 export const formatDmy = (iso: string): string => (isISODate(iso) ? ngayDayDu(iso) : iso);
 // Kiểu D (V1.5b): `formatDm` ("dd/mm" không năm) đã bỏ — ngày ngắn dùng `ngayNgan(iso, thamChieu)` của vn-date.ts (tự thêm năm khi khác năm).
@@ -49,10 +62,10 @@ export function tripWarnings(trip: TripInput, today: string): TripWarning[] {
 
 /**
  * Dòng tóm tắt của khối "Thông tin chuyến" khi thu gọn. ADR-0047 Phần B (bản vẽ M1, D4): giờ / nơi đón đã sang khối "Đưa đón" của thẻ — dòng này chỉ còn
- * "Khởi hành <giờ> · Check-in <giờ>" (không ghi ngày — cả đơn một ngày, ADR-0021); không có gì → "". Không còn cảnh báo (`warn` luôn false).
+ * "Khởi hành <giờ> · Khách có mặt <giờ>" (không ghi ngày — cả đơn một ngày, ADR-0021); không có gì → "". Không còn cảnh báo (`warn` luôn false).
  */
 export function tripSummaryLine(trip: TripInput): { text: string; warn: boolean } {
-  const text = [trip.departTime !== "" ? `Khởi hành ${trip.departTime}` : "", trip.checkinTime !== "" ? `Check-in ${trip.checkinTime}` : ""].filter(Boolean).join(" · ");
+  const text = [trip.departTime !== "" ? `Khởi hành ${trip.departTime}` : "", trip.checkinTime !== "" ? `Có mặt ${trip.checkinTime}` : ""].filter(Boolean).join(" · ");
   return { text, warn: false };
 }
 
@@ -63,7 +76,7 @@ export interface TripRow {
 }
 
 /**
- * Các dòng thông tin chuyến ở trang đơn (chỉ dòng có nội dung). Check-in trống ngày = "Cùng ngày khởi hành".
+ * Các dòng thông tin chuyến ở trang đơn (chỉ dòng có nội dung). Khách có mặt trống ngày = "Cùng ngày khởi hành".
  * `orderDate` (bản 1.39) = ngày của đơn đã hiện ở dải đầu trang: dịch vụ có ngày khởi hành TRÙNG ngày đó thì không lặp dòng "Khởi hành" — chỉ còn dòng
  * "Giờ khởi hành" nếu có giờ. Khác ngày (đơn cũ lệch ngày), chưa có ngày, hay không truyền `orderDate` → luôn có dòng "Khởi hành" như cũ.
  */
@@ -79,7 +92,7 @@ export function tripRows(t: TripInfoDto, orderDate: string | null = null): TripR
   // D4 (bản vẽ M3): KHÔNG còn dòng "Đón" — giờ / nơi đón hiện ở khối "Đưa đón" của trang đơn.
   if (t.checkinDate !== null || t.checkinTime !== null || t.checkinPlace !== null) {
     const day = t.checkinDate === null ? "Cùng ngày khởi hành" : formatDmy(t.checkinDate);
-    rows.push({ label: "Check-in", value: [day, t.checkinTime, t.checkinPlace].filter(Boolean).join(" · "), warn: false });
+    rows.push({ label: "Khách có mặt", value: [day, t.checkinTime, t.checkinPlace].filter(Boolean).join(" · "), warn: false });
   }
   if (t.note) rows.push({ label: "Ghi chú", value: t.note, warn: false });
   return rows;

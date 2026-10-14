@@ -48,7 +48,21 @@ export interface DongThuCong {
 export interface DongTaiKhoan {
   id: string; accountId: string; tenTaiKhoan: string; quyenTaiKhoan: readonly PermissionCode[]; actorId: string | null; tenNguoiLam: string | null; luc: string;
 }
-type LoaiTinDon = Exclude<LoaiTin, "thu_cong" | "chuyen" | "tai_khoan">;
+/**
+ * ADR-0115: một dòng nhật ký về yêu cầu điều chỉnh công nợ (hình chiếu v_aud_ledger_event — migration 0094; CHỈ khoá, không chữ nhật ký). Khoá người nhận
+ * nằm ở `loaiMuc`/`mucId`: ('ledger', mã yêu cầu) = người có ô duyệt; ('staff', mã tài khoản) = đúng tài khoản đó.
+ */
+export interface DongDieuChinh {
+  id: string; maDon: string; action: string; mucLoai: string; mucId: string; actorId: string | null; tenNguoiLam: string | null; luc: string;
+}
+const CAU_DIEU_CHINH: Record<string, (ten: string, ma: string) => string> = {
+  ledger_adjustment_requested: (t, m) => `${t} gửi yêu cầu điều chỉnh công nợ đơn ${m} — chờ bạn duyệt`,
+  ledger_adjustment_withdrawn: (t, m) => `${t} đã rút yêu cầu điều chỉnh công nợ đơn ${m}`,
+  ledger_adjustment_approved: (t, m) => `${t} đã duyệt yêu cầu điều chỉnh công nợ đơn ${m} của bạn`,
+  ledger_adjustment_rejected: (t, m) => `${t} đã từ chối yêu cầu điều chỉnh công nợ đơn ${m} của bạn`,
+  ledger_adjustment_affected: (_t, m) => `Số dư của bạn trên đơn ${m} vừa được điều chỉnh`,
+};
+type LoaiTinDon = Exclude<LoaiTin, "thu_cong" | "chuyen" | "tai_khoan" | "dieu_chinh">;
 /** Phần đổi của một dòng đổi (ADR-0062 Đ2) — null = dòng không thành tin (không qua bộ lọc nguồn / không có đoạn nhận ra). */
 export const phanDoiCuaDong = (d: DongDon): PhanDoiTin | null => phanDoiCuaTin(d.action, d.detail ?? null, laDoiSoKhach(d.action));
 const phanCua = phanDoiCuaDong;
@@ -125,7 +139,7 @@ export const chuanHoaMocGio = (x: string): string => new Date(x).toISOString();
 export function locHopThongBao(
   staff: PermissionHolder & { readonly partyId?: string | null },
   vao: {
-    don: DongDon[]; thuCong: DongThuCong[]; chuyen?: DongChuyen[]; taiKhoan?: DongTaiKhoan[]; docDenLuc: string; now: string; ngan: "cua-toi" | "tat-ca";
+    don: DongDon[]; thuCong: DongThuCong[]; chuyen?: DongChuyen[]; taiKhoan?: DongTaiKhoan[]; dieuChinh?: DongDieuChinh[]; docDenLuc: string; now: string; ngan: "cua-toi" | "tat-ca";
     /** ADR-0062 Đ1 mốc bắt đầu của dòng đổi — vắng = MOC_TIN_DOI (bài kiểm truyền mốc riêng). */
     mocTinDoi?: string;
   },
@@ -224,6 +238,22 @@ export function locHopThongBao(
         nhomNhan: null, quanTrong: false, daHieuLuc: null, lienKet: "/staff", luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
       });
     }
+  }
+  // ADR-0115: tin về yêu cầu điều chỉnh công nợ — MỘT nơi chọn người nhận. Yêu cầu mới / rút: mọi người có ô `ledger.adjust.approve` TRỪ người làm; đã duyệt /
+  // từ chối / số dư của bạn đổi: đúng tài khoản trỏ ở khoá. Luôn vào "Của tôi"; câu không chứa số tiền, lý do hay tên bên nợ (chỉ tên người làm + mã đơn).
+  const duyetDuoc = can(staff, "ledger.adjust.approve");
+  for (const d of vao.dieuChinh ?? []) {
+    if (d.luc < moc || d.actorId === staff.id) continue;
+    const cho = d.mucLoai === "ledger" && (d.action === "ledger_adjustment_requested" || d.action === "ledger_adjustment_withdrawn");
+    // «Số dư của bạn đổi» (ADR-0092 Đ5d) chỉ cho NHÂN VIÊN có tài khoản nội bộ: tài khoản giữ quyền Đối tác bên ngoài (kể cả lai) không nhận, vì tin kèm mã đơn.
+    const biNgoai = d.action === "ledger_adjustment_affected" && staff.permissions.some(isExternalPermission);
+    const rieng = !biNgoai && d.mucLoai === "staff" && d.mucId === staff.id && d.action !== "ledger_adjustment_requested" && d.action !== "ledger_adjustment_withdrawn";
+    const cau = CAU_DIEU_CHINH[d.action];
+    if (!cau || !(cho ? duyetDuoc : rieng)) continue;
+    tat.push({
+      id: d.id, loai: "dieu_chinh", cau: cau(d.tenNguoiLam ?? "Có người", d.maDon), maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
+      lienKet: cho || can(staff, "ledger.write") ? "/dieu-chinh-cong-no" : isOffice(staff) ? "/order" : "/account", luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
+    });
   }
   for (const t of vao.thuCong) {
     if (t.thuHoi || t.nguoiGuiId === staff.id || !nhanThayTinThuCong(staff, t.nhan)) continue;

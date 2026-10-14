@@ -38,11 +38,12 @@ import { initPhanDoiTac } from "./phan-doi-tac";
 import { NO_HANDLER_TEXT, handlerControls, handlerFailure, handlerSaved, hoiDuocNguoiPhuTrach, nguoiPhuTrachTuPhien } from "../src/shared/handler-view";
 import { HANDLER_HIDDEN } from "../src/shared/order-confirmation";
 import { type PaxCounts } from "../src/shared/order-lines";
-import { banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
+import { LOI_409_KHONG_CU, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { cauDongBoChuyen } from "../src/shared/dong-bo-chuyen-cau";
 import { cauKhoaXacNhan, khongQuyenSuaText, orderActions, paxFullText, suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
 import { CHUA_XEP_XE, dongXeTrenDon, duocXemXeTrenDon } from "../src/shared/xe-tren-don";
 import { canhBaoGiamGiaVuot, duocSuaSoKhachVanPhong, nguonBangSuaSoKhach } from "../src/shared/so-khach-van-phong";
+import { cauNhacSoKhach, daiSauSuaSoKhach, dongLichSuHienThi, type DongLichSuHienThi } from "../src/shared/so-khach-hien-thi";
 import type { MoneyEditSource } from "../src/shared/viec-cua-toi";
 import type { SuKienDon } from "../src/shared/bang-tin";
 
@@ -67,6 +68,10 @@ let nhapKt: Api.NhapKeToanResponse | null = null;
 let khachDon: Api.PassengerListResponse | null = null;
 /** Loại khách văn phòng sửa được sau xác nhận (ADR-0063 D1) — máy chủ gửi kèm đơn; `null` = không có nút "Sửa số khách dịch vụ". */
 let suaSoKhach: Api.SuaSoKhachDichVuDto[] | null = null;
+/** Câu nhắc khuyến mại màu đỏ (ADR-0114 D1) — máy chủ gửi kèm đơn, luôn có mặt (câu hoặc `null`); giao diện KHÔNG tự tính gì về giảm giá, chỉ hiện đúng chữ này. */
+let canhBaoKhuyenMai: string | null = null;
+/** Lịch sử số khách đủ dòng (ADR-0114 D2); `null` = người xem không có `order.history.view`. Khối chỉ hiện khi đơn đã có ít nhất một lần sửa (`dongLichSuHienThi`). */
+let lichSuSoKhach: Api.DongLichSuSoKhachDto[] | null = null;
 
 // Form lập đơn ghi tiền trả trước ở BƯỚC HAI (sổ tiền lượt 1, NT-S6); bước đó hỏng thì chuyển tới đây kèm `thutruoc=loi` — báo một lần, bỏ tham số ngay.
 let baoThuTruocLoi = new URLSearchParams(location.search).get("thutruoc") === "loi";
@@ -112,11 +117,12 @@ function show(b: Banner | null): void {
 /**
  * Sau lệnh đơn nối máy đồng bộ chuyến (ADR-0104 Đ2, kế hoạch §8): có câu nhắc (xe đang chạy → "Báo huỷ"; cập nhật tay) thì dải VÀNG mang câu đó thay dải xanh
  * "đã lưu"; không có thì dải xanh như cũ (`xong` null = không dải xanh). `them` = dòng vàng sẵn có của lệnh (vd tổng tiền âm). Tải lại lỗi thì giữ banner lỗi.
+ * `tone` (mặc định vàng): ADR-0114 D1 — lệnh sửa số khách đổi sang ĐỎ khi có câu nhắc khuyến mại; các nơi gọi khác không truyền nên không đổi.
  */
-function baoSauLenh(xong: string, xanh: string | null, dongBo: readonly (Api.DongBoChuyenDto | undefined)[], them: readonly string[] = []): void {
+function baoSauLenh(xong: string, xanh: string | null, dongBo: readonly (Api.DongBoChuyenDto | undefined)[], them: readonly string[] = [], tone: "warning" | "danger" = "warning"): void {
   if (!bannerEl.hidden) return;
   const cau = [...them, ...cauDongBoChuyen(dongBo)];
-  if (cau.length > 0) show(banner("warning", xong, { lines: cau.map((text) => ({ text })) }));
+  if (cau.length > 0) show(banner(tone, xong, { lines: cau.map((text) => ({ text })) }));
   else if (xanh !== null) show(banner("info", xanh));
 }
 
@@ -130,7 +136,8 @@ function errorBanner(err: unknown): Banner {
   // 409 ở trang đơn (vd invalid_transition: đơn vừa đổi trạng thái ở nơi khác) phải có nút "Tải lại đơn" — PWA standalone không có tải lại của trình duyệt.
   // Trừ incomplete_trip: banner đó đã có liên kết "Sửa" tới đúng dịch vụ và ma trận đặc tả 5.2 ghi cột Hành động là "—" (stale đã có reload_order sẵn).
   // Trừ lỗi mã giao dịch (`bank_txn_*`, ADR-0092 Đ6): tải lại đơn xoá form đang nhập và số thực chuyển điền sẵn từ lần 409 — Kế toán cần sửa ngay tại form đó.
-  return b.action === "none" && err.status === 409 && err.code !== "incomplete_trip" && !err.code.startsWith("bank_txn_") ? { ...b, action: "reload_order" } : b;
+  // Trừ lỗi nghiệp vụ người dùng sửa tại chỗ (`LOI_409_KHONG_CU`, vd thieu_nguoi_lon — ADR-0114 D3): màn hình không cũ, câu máy chủ gửi đã nói việc cần làm.
+  return b.action === "none" && err.status === 409 && err.code !== "incomplete_trip" && !err.code.startsWith("bank_txn_") && !LOI_409_KHONG_CU.has(err.code) ? { ...b, action: "reload_order" } : b;
 }
 
 /** Hiện banner lỗi của một thao tác ngay trong thẻ (form xác nhận / ghi lần thu) và đưa nó vào tầm nhìn: banner nằm đầu trang, ngoài màn hình điện thoại khi người dùng đang ở thẻ Thanh toán. */
@@ -481,8 +488,10 @@ function tienCard(order: Order): HTMLElement {
   } else rows.push(kv("Đã thu / còn lại", "Chưa tải được"));
   rows.push(kv("Ghi chú thanh toán", order.paymentNote));
   // ADR-0063 D1 + ADR-0109 QĐ3: bớt khách tới mức giảm giá lớn hơn tạm tính KHÔNG bị chặn — câu cảnh báo hiện thường trực trên khối tiền (phải thu đã kẹp 0).
-  const tongAm = order.status === "confirmed" ? canhBaoGiamGiaVuot(order) : null;
-  if (tongAm) rows.push(h("p", { class: "dd-canh-xn", "data-canh-bao": "tong-am" }, icon("alert", 16), tongAm));
+  // ADR-0114 D1: thêm câu nhắc khuyến mại MÀU ĐỎ (máy chủ gửi `canhBaoKhuyenMai`) cạnh câu vàng cũ — hai câu có thể cùng hiện. Hiện đúng chỗ trang đã hiện giảm giá (khối này), không thêm cổng quyền.
+  const daXacNhan = order.status === "confirmed";
+  const nhac = cauNhacSoKhach({ tongAm: daXacNhan ? canhBaoGiamGiaVuot(order) : null, khuyenMai: daXacNhan ? canhBaoKhuyenMai : null });
+  for (const c of nhac) rows.push(h("p", { class: c.muc === "do" ? "dd-canh-xn is-do" : "dd-canh-xn", "data-canh-bao": c.khoa }, icon("alert", 16), c.cau));
   const lanThu =
     t && t.lanThu.length
       ? h(
@@ -680,7 +689,7 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
       { "data-khoi": "khoan-duyet" },
       `${ngayNganHomNay(k.ngayDuyet)} · ${k.loai === "chuyen" ? `Duyệt chuyển sang ${k.donNhan ?? "đơn mới"}` : "Duyệt hoàn"} ${vnd(k.soTien)}`,
       k.daHuy > 0 ? ` (đã huỷ duyệt ${vnd(k.daHuy)})` : "",
-      ` — còn ${vnd(k.conLai)} · ${k.lyDo}${k.nguoiDuyet ? ` · ${k.nguoiDuyet}` : ""}`,
+      ` — còn ${vnd(k.conLai)}${k.lyDo ? ` · ${k.lyDo}` : ""}${k.nguoiDuyet ? ` · ${k.nguoiDuyet}` : ""}`, // Đối tác: máy chủ bỏ lý do + người duyệt (D-1)
       nut.length ? h("span", { class: "kt-actions" }, ...nut) : null,
     );
   });
@@ -1138,6 +1147,29 @@ function moBangQr(order: Order, t: Api.OrderPaymentsResponse, opener: HTMLElemen
   void nap();
 }
 
+/** Khối "Số khách qua các lần sửa" (ADR-0114 D2): mỗi dòng = một TRẠNG THÁI (số khách theo dịch vụ + tạm tính), dựng bằng `h()`. `null` = không có gì để hiện. */
+function khoiLichSuSoKhach(dong: DongLichSuHienThi[] | null): HTMLElement | null {
+  if (!dong) return null;
+  return h(
+    "div",
+    { "data-khoi": "lich-su-so-khach" },
+    h("h3", null, "Số khách qua các lần sửa"),
+    h(
+      "ul",
+      { class: "history" },
+      ...dong.map((d) =>
+        h(
+          "li",
+          { "data-buoc": d.buoc },
+          h("strong", null, d.nhan),
+          ` — tạm tính ${d.tamTinh}`,
+          ...d.dichVu.map((s) => h("div", { class: "history-detail muted" }, `${s.ten}: ${s.khach}`)),
+        ),
+      ),
+    ),
+  );
+}
+
 function render(order: Order, history: AuditEntry[], canModify: boolean, handler: Handler): void {
   current = order;
   // L1 (lỗi báo 30/9): nút "Sửa thông tin chuyến" / "Đổi khách" theo ô order.trip.edit (Đối tác, Thực tập: không) — không chỉ theo canModify.
@@ -1246,6 +1278,8 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
               ),
             ),
           ),
+          // ADR-0114 D2: số khách từ lúc xác nhận qua từng lần sửa. Cùng điều kiện khối Lịch sử (máy chủ chỉ gửi khi có order.history.view); ẩn khi đơn chưa sửa lần nào.
+          khoiLichSuSoKhach(dongLichSuHienThi(lichSuSoKhach, vnd)),
         )
       : null,
   );
@@ -1314,10 +1348,10 @@ function nutSuaSoKhach(order: Order, nguon: MoneyEditSource[]): HTMLButtonElemen
         onSaved: (r) =>
           void load().then(() => {
             // tải lại lỗi thì giữ banner lỗi, không đè (baoSauLenh)
-            const xanh = r.daGhi ? "Đã lưu số khách mới, Nền tảng đã tính lại tiền." : "Số khách không đổi nên không ghi gì.";
-            // Tiêu đề "Đã lưu…" chỉ khi đã ghi (phiếu phản biện ADR-0109 thiếu 9); câu cảnh báo giảm giá vượt (ADR-0109) đi kèm như dòng phụ.
-            const vang = r.daGhi ? "Đã lưu số khách mới — giảm giá đang lớn hơn tiền dịch vụ." : xanh;
-            baoSauLenh(r.canhBaoTongAm ? vang : xanh, xanh, [r.dongBoChuyen], r.canhBaoTongAm ? [r.canhBaoTongAm] : []);
+            // Chữ và mức dải do `daiSauSuaSoKhach` ghép (src/shared/so-khach-hien-thi.ts, có bài): câu giảm giá vượt (ADR-0109) vàng, câu khuyến mại (ADR-0114 D1) ĐỎ đi đầu, cùng một nơi
+            // ghép chữ với khối Thanh toán.
+            const dai = daiSauSuaSoKhach(r);
+            baoSauLenh(dai.xong, dai.xanh, [r.dongBoChuyen], dai.them, dai.tone);
             focusSoKhach();
           }),
         onReload: () => void load().then(focusSoKhach),
@@ -1435,10 +1469,12 @@ async function load(quiet = false): Promise<void> {
   const seq = ++loadSeq;
   try {
     // Người phụ trách tải song song với đơn; lời gọi của nó không bao giờ ném lỗi (xem loadHandler) nên đơn luôn hiển thị được.
-    const [{ order, history, canModify, mocToiThieuPhut, suaSoKhach: soKhach }, handler, tienDon, xe, nhapKtDon, khach] = await Promise.all([layDon!(), layNguoiPhuTrach(id!), layTien(id!), layXe(id!), layNhapKt(id!), layKhach(id!)]);
+    const [{ order, history, canModify, mocToiThieuPhut, suaSoKhach: soKhach, canhBaoKhuyenMai: nhacKhuyenMai, lichSuSoKhach: lichSu }, handler, tienDon, xe, nhapKtDon, khach] = await Promise.all([layDon!(), layNguoiPhuTrach(id!), layTien(id!), layXe(id!), layNhapKt(id!), layKhach(id!)]);
     if (seq !== loadSeq) return;
     mocPhut = mocToiThieuPhut;
     suaSoKhach = soKhach;
+    canhBaoKhuyenMai = nhacKhuyenMai ?? null; // `??`: bản máy chủ cũ (trang mới, máy chủ chưa lên) không gửi khoá ⇒ không nhắc, không hỏng trang
+    lichSuSoKhach = lichSu ?? null;
     tien = tienDon;
     xeDon = xe;
     nhapKt = nhapKtDon;

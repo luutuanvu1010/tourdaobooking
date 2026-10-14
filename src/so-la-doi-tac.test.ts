@@ -189,6 +189,38 @@ test("số lạ: tài khoản lai Bán hàng + Đối tác quét đơn của B v
   assert.ok(trangThai.includes(`404 /api/orders/${cuaB}/thuong-mai`) && trangThai.includes(`404 /api/orders/${nhapB}/thuong-mai`) && trangThai.includes(`404 /api/orders/${cuaA}/thuong-mai`), trangThai.join(" | "));
 });
 
+test("số lạ + loại đối tác MỚI (ADR-0117, N-8): Đối tác mang một loại do Kế toán thêm trên màn hình, loại ấy có mức 48,17% ⇒ Đối tác chỉ thấy số tiền của mình, không thấy tên loại, tỷ lệ, hay mức", async () => {
+  const w = setup();
+  const TEN_LOAI = "Cửa hàng quà tặng Lạ";
+  const them = await w.call("POST", "/api/pricing/loai-doi-tac", { as: KT, body: { ten: TEN_LOAI } });
+  assert.equal(them.status, 201, them.text);
+  const ma: string = them.json.loai.code;
+  const gan = await w.call("POST", `/api/parties/pty-${DT_A}/roles`, { as: SUP, body: { roleTypeCode: ma } });
+  assert.equal(gan.status, 201, gan.text);
+  const muc = await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { tuNgay: "2026-01-01", doiTuong: { loai: "VAI", code: ma }, phamVi: "ALL", kieu: "RATE", tyLeBp: 4817 } });
+  assert.equal(muc.status, 201, muc.text);
+  const don = await daXacNhan(w, `pty-${DT_A}`, [["HONTAM", GIA_DON]], DT_A);
+
+  // Có răng: Kế toán THẤY tên loại và 48,17% (nên bài bắt được nếu chúng rò sang Đối tác).
+  const vp = await w.call("GET", `/api/orders/${don}/thuong-mai`, { as: KT });
+  assert.equal(vp.status, 200, vp.text);
+  assert.equal(vp.json.vanPhong.dong[0].hoaHong, 963_400, "loại mới có hiệu lực: 48,17% × 2.000.000");
+  assert.match((await w.call("GET", "/api/pricing/hoa-hong", { as: KT })).text, new RegExp(TEN_LOAI), "Kế toán thấy tên loại mới");
+
+  const bemat = ["/api/orders", `/api/orders/${don}`, `/api/orders/${don}/thuong-mai`, `/api/orders/${don}/receipt`, `/api/orders/${don}/qr-thanh-toan`,
+    "/api/ledger/mine", "/api/thong-bao", "/api/thong-bao/tom-tat", "/api/pricing/hoa-hong", "/api/pricing/loai-doi-tac", "/api/pricing/cung-ung", "/api/pricing/nguoi-huong?q=Đại"];
+  for (const duong of bemat) {
+    const r = await w.call("GET", duong, { as: DT_A });
+    assert.ok(r.status < 500, `${duong}: ${r.status} ${r.text}`);
+    assert.deepEqual(soLaTrong(r.text), [], `${duong} (${r.status}) lộ số lạ: ${r.text}`);
+    assert.ok(!r.text.includes(TEN_LOAI) && !r.text.includes(ma), `${duong} (${r.status}) lộ tên / mã loại đối tác mới: ${r.text}`);
+  }
+  const doc = await w.call("GET", `/api/orders/${don}/thuong-mai`, { as: DT_A });
+  assert.equal(doc.status, 200, doc.text);
+  assert.equal(doc.json.doiTac.dong[0].hoaHong, 963_400, "Đối tác thấy đúng SỐ TIỀN của mình");
+  assert.deepEqual(khoaCua(doc.json).filter((k) => /rate|perPax|cost|ruleId|termId|source|supplier|loai|vai|role/i.test(k)), [], "DTO Đối tác không có khoá tỷ lệ / mã mức / loại / vai");
+});
+
 test("số lạ: nhật ký ghi mức KHÔNG sinh thông báo / tin Bảng tin — không hành động order_terms_* nào nằm trong các danh sách sinh tin", () => {
   assert.deepEqual((HANH_DONG_TIN_DON as readonly string[]).filter((a) => a.startsWith("order_terms_")), [], "hộp thông báo của đơn");
   assert.deepEqual((HANH_DONG_TIN_CHUYEN as readonly string[]).filter((a) => a.startsWith("order_terms_")), [], "tin chuyến");

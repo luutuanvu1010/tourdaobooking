@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  TU_DO, cauDoiNgay, giuDatGapNhap, changDaDoi, changTaoSan, changTuDto, coOSoHieu, doiNgayDi, goiYChang, legInput, loiChang, loiDanhSachChang, suaChang, themChangDi, themChieuVe,
+  TU_DO, canHienNgayDon, cauDoiNgay, chiTietChangCoGiaTri, giuDatGapNhap, changDaDoi, changNenGon, changTaoSan, changTuDto, coOSoHieu, doiNgayDi, goiYChang, legInput, loiChang, loiDanhSachChang, suaChang, themChangDi, themChieuVe, tomTatChang,
 } from "./chang-form.ts";
 import { CHO_TOI_THIEU_MAX, CHO_TOI_THIEU_MIN, NOI_DON_CHUA_GHI } from "./chang-dua-don.ts";
 import type { MauChang } from "./chang-mac-dinh.ts";
@@ -188,4 +188,57 @@ test("Đợt 7 / 8b: loiChang số chỗ — '0' và '120' báo 'Số chỗ từ
   assert.equal(loi("120"), "Số chỗ từ 1 đến 100");
   for (const ok of ["", "1", "15", "100"]) assert.equal(loi(ok), null, `"${ok}"`);
   assert.deepEqual(loiDanhSachChang([{ ...l, don: GA, choToiThieu: "120" }], 4), ["Chặng 1: số chỗ từ 1 đến 100."]);
+});
+
+test("Đợt 1 #9: canHienNgayDon — form Tạo đơn ẩn 'Ngày đón' khi chặng cùng ngày đi hoặc chưa có ngày (máy chủ tự điền); LUÔN hiện khi chặng có ngày đón khác ngày đi", () => {
+  const NGAY = "2026-10-16";
+  assert.equal(canHienNgayDon({ pickupDate: NGAY }, NGAY), false, "cùng ngày đi");
+  assert.equal(canHienNgayDon({ pickupDate: "" }, NGAY), false, "chưa có ngày đón → máy chủ điền ngày đi (Ruling R4b)");
+  assert.equal(canHienNgayDon({ pickupDate: "" }, ""), false, "đơn chưa chọn ngày: không có gì để lệch");
+  assert.equal(canHienNgayDon({ pickupDate: "2026-10-15" }, NGAY), true, "đón hôm trước");
+  assert.equal(canHienNgayDon({ pickupDate: "2026-10-17" }, NGAY), true, "đón hôm sau");
+  assert.equal(canHienNgayDon({ pickupDate: "2026-10-17" }, ""), true, "có ngày đón mà đơn chưa có ngày đi: vẫn hiện, không giấu một giá trị đang có");
+  // dời ngày đi cả đơn: chặng đang cùng ngày đi dời theo (vẫn ẩn); chặng đã lệch giữ lệch (vẫn hiện)
+  const l1 = { ...themChangDi(null, NGAY, k()), pickupDate: NGAY };
+  const l2 = { ...themChangDi(null, NGAY, k()), pickupDate: "2026-10-17" };
+  const r = doiNgayDi([l1, l2], NGAY, "2026-10-20");
+  assert.deepEqual(r.legs.map((l) => canHienNgayDon(l, "2026-10-20")), [false, true]);
+});
+
+// ---- bản "bốn bước" (14/10/2026): chặng gọn một dòng + chi tiết ít dùng gập -------------------------------------------------------------------------------------------------------
+
+const NGAY_DI = "2026-09-30";
+const chang = (o: Partial<LegDto> = {}, key = "g1") => changTuDto(dto(o), key);
+
+test("bốn bước: chiTietChangCoGiaTri — xe riêng Bật, số chỗ tối thiểu: có giá trị thì khối chi tiết phải tự mở; số hiệu chuyến bay KHÔNG còn nằm trong khối gập (sau kiểm độc lập 14/10: hiện sẵn khi chặng tới / từ sân bay)", () => {
+  const l = chang();
+  assert.equal(chiTietChangCoGiaTri(l), false);
+  assert.equal(chiTietChangCoGiaTri({ ...l, flightCode: "VN1553" }), false, "số hiệu hiện sẵn ngoài khối gập nên không làm khối gập tự mở");
+  assert.equal(chiTietChangCoGiaTri({ ...l, xeRieng: true }), true);
+  assert.equal(chiTietChangCoGiaTri({ ...l, choToiThieu: "7" }), true);
+});
+
+test("bốn bước: changNenGon — chỉ gọn khi đủ nơi đón và KHÔNG có gì bị giấu sau dòng tóm tắt", () => {
+  assert.equal(changNenGon(chang(), 1, 2, NGAY_DI), true, "chặng đã lưu đủ nơi đón, không ô ít dùng nào: gọn");
+  assert.equal(changNenGon(changTuDto(dto({ pickupLocationId: null, pickupPlace: "12 Trần Phú" }), "g2"), 1, 2, NGAY_DI), true, "nơi gõ tự do có địa chỉ: gọn");
+  assert.equal(changNenGon({ ...chang(), don: "" }, 1, 2, NGAY_DI), false, "chưa có nơi đón (chặng vừa tạo): mở sẵn để nhập");
+  assert.equal(changNenGon({ ...chang(), don: TU_DO, donTuDo: "  " }, 1, 2, NGAY_DI), false, "Gõ tự do nhưng chưa ghi địa chỉ: mở");
+  assert.equal(changNenGon({ ...chang(), xeRieng: true }, 1, 2, NGAY_DI), false, "xe riêng Bật: mở (không giấu)");
+  assert.equal(changNenGon({ ...chang(), choToiThieu: "7" }, 1, 2, NGAY_DI), false);
+  assert.equal(changNenGon({ ...chang(), flightCode: "VN1553" }, 1, 2, NGAY_DI), false);
+  assert.equal(changNenGon(chang(), 1, 2, NGAY_DI, true), false, "chặng có ô số hiệu chuyến bay (điểm sân bay): mở sẵn để ô hiện, không gập một dòng");
+  assert.equal(changNenGon(chang(), 1, 2, NGAY_DI, false), true);
+  assert.equal(changNenGon({ ...chang(), pickupDate: "2026-09-29" }, 1, 2, NGAY_DI), false, "đón khác ngày đi: mở (ô ngày đang có giá trị)");
+  assert.equal(changNenGon({ ...chang(), pickupDate: NGAY_DI }, 1, 2, NGAY_DI), true, "cùng ngày đi: không có gì khác");
+  assert.equal(changNenGon({ ...chang({ direction: "RETURN", paxOverride: 1 }), soVe: "1" }, 1, 2, NGAY_DI), false, "chiều về có số người về: mở");
+  assert.equal(changNenGon({ ...chang({ direction: "RETURN" }), soVe: "5" }, 1, 2, NGAY_DI), false, "số người về quá số khách (lỗi): mở");
+  assert.equal(changNenGon({ ...chang(), choToiThieu: "0" }, 1, 2, NGAY_DI), false, "số chỗ sai (lỗi): mở");
+});
+
+test("bốn bước: tomTatChang — 'Chiều đi · Đón 07:30 · Khách sạn ABC → Cảng Vinpearl'; thiếu giờ / nơi trả; điểm đã ngưng dùng nhãn đã lưu", () => {
+  const tra = (id: string) => ({ [KS]: "Khách sạn ABC", [GA]: "Cảng Vinpearl" })[id] ?? null;
+  assert.equal(tomTatChang(chang(), tra), "Chiều đi · Đón 07:30 · Khách sạn ABC → Cảng Vinpearl");
+  assert.equal(tomTatChang({ ...chang(), pickupTime: "", tra: "" }, tra), "Chiều đi · Chưa chốt giờ · Khách sạn ABC");
+  assert.equal(tomTatChang({ ...chang({ direction: "RETURN" }), don: TU_DO, donTuDo: " 12 Trần Phú ", tra: TU_DO, traTuDo: "Sân bay Cam Ranh" }, tra), "Chiều về · Đón 07:30 · 12 Trần Phú → Sân bay Cam Ranh");
+  assert.equal(tomTatChang(chang({ pickupLabel: "KS cũ" }), () => null), "Chiều đi · Đón 07:30 · KS cũ → Ga", "điểm không còn trong danh mục: nhãn đã lưu của chặng");
 });

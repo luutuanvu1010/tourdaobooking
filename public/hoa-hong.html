@@ -4,13 +4,22 @@
 <header id="topbar"></header>
 <main>
   <!-- Hoa hồng đối tác (sổ đại lý đợt 1, Task 10; ADR-0077). Xem: ô partner.commission.view; thêm / đóng mức: partner.commission.write. Tài khoản giữ quyền Đối tác không vào được (máy chủ 403).
-       web/hoa-hong.ts dựng nội dung; id cố định cho kịch bản Chrome: #muc-list, #muc-add-form, #thu-tra-form, #thu-tra-ket-qua. -->
+       web/hoa-hong.ts dựng nội dung; id cố định cho kịch bản Chrome: #loai-list, #loai-add-form, #loai-ten, #loai-loi, #muc-list, #muc-add-form, #thu-tra-form, #thu-tra-ket-qua. Mục «Loại đối tác» (ADR-0117 lần 1):
+       xem = partner.commission.view; thêm / tắt / bật = partner.commission.write. -->
   <h1>Hoa hồng đối tác</h1>
   <p class="muted">Mức hoa hồng cho đối tác theo dịch vụ. Mức không sửa, không xoá được — chỉ thêm mức mới và đóng mức cũ.</p>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="ok" class="alert ok" role="status" hidden></div>
   <!-- Ẩn cho tới khi máy chủ trả bảng mức (khỏi hiện khung trống cho tài khoản không có quyền xem). -->
   <div id="hh-noi-dung" hidden>
+    <section class="card" aria-labelledby="loai-tieu-de">
+      <h2 id="loai-tieu-de">Loại đối tác</h2>
+      <p class="muted">Loại đối tác được hưởng hoa hồng. Loại do Kế toán thêm thì Quản trị gắn cho hồ sơ ở Danh bạ; nhân viên nội bộ không gắn được. Đặt mức cho loại mới ở phần «Thêm mức» bên dưới.</p>
+      <ul id="loai-list" class="hh-loai"></ul>
+      <p id="loai-rong" class="muted" hidden></p>
+      <form id="loai-add-form" autocomplete="off" novalidate hidden></form>
+      <p id="loai-loi" class="field-error" role="alert" hidden></p>
+    </section>
     <section class="card" aria-labelledby="muc-tieu-de">
       <h2 id="muc-tieu-de">Các mức hiện có</h2>
       <div class="hh-loc">

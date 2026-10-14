@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canManageAccount, checkAccountChange, generatePin, isWeakPin, partyAccountVerdict, validateFreshPin } from "./rules.ts";
+import {
+  KHONG_NHAN_VAI_NOI_BO, canManageAccount, checkAccountChange, coQuyenNoiBo, generatePin, isWeakPin, moNoiBoChoHoSoCoNhanProblem, partyAccountVerdict, validateFreshPin,
+} from "./rules.ts";
 
 const admin = { id: "a1", permissions: ["ADMIN"] as const, active: true };
 const sales = { id: "s1", permissions: ["SALES"] as const, active: true };
@@ -74,4 +76,25 @@ test("ADR-0013 điều 2/4: partyAccountVerdict — hồ sơ không gắn tài k
   assert.deepEqual(partyAccountVerdict(superAdmin, { id: "a2", permissions: ["ADMIN"] }), { linked: true, manageable: true });
   assert.deepEqual(partyAccountVerdict(sales, { id: "x2", permissions: ["SALES"] }), { linked: true, manageable: false }, "SALES không quản tài khoản nào");
   assert.deepEqual(partyAccountVerdict(sales, { id: "x1", permissions: ["SALES"] }), { linked: true, manageable: true }, "tự mình: manageable, nhưng ô party.staff.write của SALES = none vẫn chặn ở route");
+});
+
+// ADR-0117 lần 1, điều 4 — vế 3 của luật «nội bộ»: tài khoản mang ít nhất một quyền KHÔNG thuộc nhóm bên ngoài (EXTERNAL_PERMISSIONS).
+test("ADR-0117: coQuyenNoiBo — chỉ quyền bên ngoài (Đối tác, Tài xế đối tác) thì không; có một quyền nội bộ là có", () => {
+  assert.equal(coQuyenNoiBo(["PARTNER"]), false);
+  assert.equal(coQuyenNoiBo(["PARTNER", "DRIVER_PARTNER"]), false);
+  assert.equal(coQuyenNoiBo(["DRIVER_PARTNER"]), false);
+  assert.equal(coQuyenNoiBo([]), false);
+  assert.equal(coQuyenNoiBo(["SALES"]), true);
+  assert.equal(coQuyenNoiBo(["PARTNER", "HR"]), true);
+  assert.equal(coQuyenNoiBo(["SUPER_ADMIN"]), true);
+});
+
+test("ADR-0117: moNoiBoChoHoSoCoNhanProblem — hồ sơ mang nhãn không nhận vai nội bộ / quyền nội bộ; câu KHÔNG nêu tên loại", () => {
+  assert.equal(moNoiBoChoHoSoCoNhanProblem({ nhanDoiTac: true, vaiTiep: ["SALES_STAFF"], quyenTiep: ["SALES"] }), KHONG_NHAN_VAI_NOI_BO);
+  assert.equal(moNoiBoChoHoSoCoNhanProblem({ nhanDoiTac: true, vaiTiep: ["SALES_STAFF"], quyenTiep: [] }), KHONG_NHAN_VAI_NOI_BO, "vai INTERNAL tự nó đủ");
+  assert.equal(moNoiBoChoHoSoCoNhanProblem({ nhanDoiTac: true, vaiTiep: [], quyenTiep: ["FIELD"] }), KHONG_NHAN_VAI_NOI_BO, "quyền nội bộ tự nó đủ");
+  assert.equal(moNoiBoChoHoSoCoNhanProblem({ nhanDoiTac: true, vaiTiep: ["HOTEL_RECEPTION"], quyenTiep: ["PARTNER"] }), null, "đối tác thuần được");
+  assert.equal(moNoiBoChoHoSoCoNhanProblem({ nhanDoiTac: true, vaiTiep: ["DRIVER_EXTERNAL"], quyenTiep: ["DRIVER_PARTNER"] }), null);
+  assert.equal(moNoiBoChoHoSoCoNhanProblem({ nhanDoiTac: false, vaiTiep: ["SALES_STAFF"], quyenTiep: ["SALES"] }), null, "không nhãn thì không chặn");
+  assert.equal(KHONG_NHAN_VAI_NOI_BO, "Hồ sơ này không nhận thêm vai nội bộ vào lúc này.");
 });

@@ -69,7 +69,7 @@ test("ADR tiêu chí 1 lớp route: khung chồng chuyến PLANNED → 409 khung
     assert.equal(r.status, 409, r.text);
     assert.equal(r.json.error.code, "khung_ban_chong_chuyen");
     assert.deepEqual(r.json.error.chuyen, [{ ma: c.ma, gio: "12:30 11/03 → 15:00 11/03" }]);
-    assert.doesNotMatch(r.text, /Khách|Dò Tìm|09\d{8}|TD-\d/);
+    assert.doesNotMatch(r.text, /Khách|Dò Tìm|(?<![0-9a-f-])09\d{8}(?!\d)|TD-\d/);
     assert.equal(dem(w, "vc_unavailability"), 0);
     assert.equal(soNhatKy(w, "vehicle_unavailability_added"), 0);
     // Xe khác cùng giờ → được.
@@ -199,7 +199,7 @@ test("ban-xe (câu 3.1 — khoá DTO): mỗi phần tử `chuyen` có ĐÚNG kho
     for (const t of r.json.chuyen) assert.deepEqual(Object.keys(t).sort(), ["batDauMs", "id", "ketThucMs", "ma", "trangThai", "xeId"]);
     // Bỏ mã UUID ngẫu nhiên trước khi quét: "…-909661116149" từng khớp /09\d{8}/ (đỏ ngẫu nhiên 8/10; khuôn thong-bao-doi.test.ts:24).
     // SĐT không thể nằm trong một mã dạng UUID nên phép bỏ không nới rào.
-    assert.doesNotMatch(r.text.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "<id>"), /Khách|Dò Tìm|09\d{8}|TD-\d/);
+    assert.doesNotMatch(r.text.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "<id>"), /Khách|Dò Tìm|(?<![0-9a-f-])09\d{8}(?!\d)|TD-\d/);
     assert.ok(r.json.xe.some((v: { id: string }) => v.id === x));
   } finally { tat(); }
 });

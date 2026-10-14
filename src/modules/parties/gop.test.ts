@@ -5,7 +5,7 @@ import { keHoachGop, type CongViecGop, type GiayToGop, type HoSoGop, type KeHoac
 
 const HOM_NAY = "2026-10-01";
 const hs = (id: string, x: Partial<HoSoGop> = {}): HoSoGop => ({
-  id, kind: "PERSON", displayName: `Người ${id}`, active: true, mergedIntoId: null, laCongTyChu: false, coTaiKhoan: false, coHoSoTroVao: false,
+  id, kind: "PERSON", displayName: `Người ${id}`, active: true, mergedIntoId: null, laCongTyChu: false, coTaiKhoan: false, coHoSoTroVao: false, nhanDoiTac: false, noiBo: false,
   lienHe: [], congViec: [], quanHe: [], giayTo: [], ...x,
 });
 const RANH: NgoaiGop = { phuTrachDon: 0, laiChuyen: 0, toLaiChuyen: 0, chuXeChuyen: 0, soXe: 0, donLechTien: [] };
@@ -122,6 +122,14 @@ test("G11: mỗi điều kiện chặn một mã riêng (409 ở route)", () => 
 test("R6 LC-3 (chỉ tới được ở mức hàm thuần): B giữ vai nội bộ, A giữ vai bên ngoài → có merge_role_group_conflict (kèm merge_source_account_role)", () => {
   const k = ke(hs("a", { congViec: [cv("r", "TRAVEL_AGENCY", { group: "EXTERNAL" })] }), hs("b", { congViec: [cv("s", "SALES_STAFF", { group: "INTERNAL" })] }));
   assert.deepEqual(ma(k).sort(), ["merge_role_group_conflict", "merge_source_account_role"]);
+});
+
+test("ADR-0117 điều 4: merge_partner_label_internal — phụ mang loại → chính nội bộ, và phụ nội bộ → chính mang loại (cả hai hướng); không cờ nào chéo thì không chặn", () => {
+  assert.deepEqual(ma(ke(hs("a", { nhanDoiTac: true }), hs("b", { noiBo: true }))), ["merge_partner_label_internal"]);
+  assert.deepEqual(ma(ke(hs("a", { noiBo: true }), hs("b", { nhanDoiTac: true }))), ["merge_partner_label_internal"]);
+  assert.deepEqual(ma(ke(hs("a", { nhanDoiTac: true }), hs("b", { nhanDoiTac: true }))), [], "hai bên cùng mang loại");
+  assert.deepEqual(ma(ke(hs("a", { noiBo: true }), hs("b", { noiBo: true }))), [], "hai bên cùng nội bộ");
+  assert.deepEqual(ma(ke(hs("a", { nhanDoiTac: true, noiBo: false }), hs("b"))), []);
 });
 
 test("có chặn vẫn trả đủ phần chuyển / giữ / bỏ (xem trước hiện cả hai)", () => {

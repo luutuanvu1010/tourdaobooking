@@ -12,6 +12,80 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Loại đối tác là dữ liệu (ADR-0117 lần 1; chủ duyệt 14/10: «duyệt gắn vai làm ADR-0117»): Kế toán/Quản trị/Toàn quyền thêm, tắt, bật loại đối tác trên màn Hoa hồng đối tác; nhân viên nội bộ không mang loại được hưởng hoa hồng.
+    // Có thay đổi cơ sở dữ liệu (migration 0095) — cần trien-khai sau day-len.
+    // Số 1.96 là số TẠM (= main 1.95 + 1, 2026-10-14): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
+    version: "1.96",
+    date: "2026-10-14",
+    items: [
+      { kind: "moi", text: "Kế toán thêm loại đối tác mới ngay ở trang Hoa hồng đối tác (ví dụ Nhân viên spa), tắt hoặc bật lại khi cần, rồi đặt mức hoa hồng cho loại đó." },
+      { kind: "moi", text: "Quản trị gắn loại đối tác mới cho hồ sơ ở Danh bạ; trong ô chọn công việc, loại mới có thêm chữ \"(đối tác)\"." },
+      { kind: "doi", text: "Nhân viên nội bộ không gắn được loại đối tác được hưởng hoa hồng; Nền tảng báo bằng một câu tiếng Việt." },
+      { kind: "doi", text: "Loại đã tắt thì không gắn thêm cho hồ sơ nào; đơn đã xác nhận vẫn giữ nguyên hoa hồng đã chụp." },
+    ],
+  },
+  {
+    // Tạo đơn bốn bước + đổi chữ "Check-in" thành "Khách có mặt" (chủ duyệt 14/10: «chốt tên "Khách có mặt", làm bản bốn bước»); chỉ đổi cách bày và chữ hiện, không migration, dữ liệu gửi máy chủ giữ nguyên.
+    // Số 1.95 là số TẠM (= main 1.94 + 1, 2026-10-14): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
+    version: "1.95",
+    date: "2026-10-14",
+    items: [
+      { kind: "doi", text: "Màn Tạo đơn chia bốn bước trên một trang: Khách, Dịch vụ, Thanh toán, Phụ trách. Thanh tiến độ ở đầu trang luôn dính; chạm tên bước để nhảy tới." },
+      { kind: "doi", text: "Bước nào đủ thông tin thì hiện dấu ✓ trên thanh tiến độ; bước bạn đang xem được tô đậm." },
+      { kind: "doi", text: "Thông tin khách hàng lên đầu trang, ngay dưới ngày khởi hành." },
+      { kind: "doi", text: "Email, ghi chú khách, xe riêng, số chỗ tối thiểu gom vào nút \"Thêm chi tiết\"; đã có chữ hoặc lưu báo lỗi ở đó thì khối tự mở. Số hiệu chuyến bay vẫn hiện sẵn." },
+      { kind: "doi", text: "Chặng đưa đón đã đủ giờ và nơi đón gập thành một dòng tóm tắt; chạm dòng đó để sửa." },
+      { kind: "sua", text: "Bấm Tab hay Shift+Tab trên màn Tạo đơn: thanh tiến độ không còn che ô đang chọn. Chấm bước vừa bấm giữ được tô khi trang không cuộn thêm." },
+      { kind: "doi", text: "Chữ \"Check-in\" đổi thành \"Khách có mặt\" ở ô nhập, trang đơn, Việc của tôi, tin báo đổi đơn và bản xác nhận gửi khách." },
+      { kind: "doi", text: "Bản xác nhận gửi khách: dòng \"Đón khách\" thành \"Xe đón khách\", dòng \"Check-in\" thành \"Khách có mặt\"." },
+      { kind: "doi", text: "Ô ngày khách có mặt chỉ hiện khi khác ngày khởi hành hoặc khi bấm \"Có mặt khác ngày\"." },
+    ],
+  },
+  {
+    // Sửa nút Gửi của màn Điều chỉnh công nợ + Trợ giúp theo vai cho màn đó (ADR-0115). Không migration. Số 1.94 = main 1.93 (sửa số khách, ADR-0114) + 1: số TẠM, phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
+    version: "1.94",
+    date: "2026-10-13",
+    items: [
+      { kind: "sua", text: "Màn Điều chỉnh công nợ: nút Gửi yêu cầu không còn bị khoá xám sau khi gửi xong hoặc bị từ chối; gửi tiếp được ngay, không cần tải lại trang." },
+      { kind: "moi", text: "Trợ giúp của Kế toán và Quản trị có thêm hướng dẫn Điều chỉnh công nợ: gửi, rút, duyệt, từ chối, và số dư chỉ đổi sau khi người thứ hai duyệt." },
+    ],
+  },
+  {
+    // Sửa số khách (ADR-0114): nhắc khuyến mại khi bớt khách, lịch sử số khách đủ dòng, mỗi đơn có ít nhất một người lớn. Không migration. Số 1.93 là số TẠM (= main 1.92 bản gộp D-1/ADR-0115 + 1, gộp main 277f5983 vào nhánh 2026-10-13): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "1.93",
+    date: "2026-10-13",
+    items: [
+      { kind: "moi", text: "Đơn có giảm giá mà bớt khách: mục Thanh toán hiện thêm một câu màu đỏ nhắc Kế toán xem lại khuyến mại. Số tiền vẫn giữ nguyên, chỉ nhắc." },
+      { kind: "moi", text: "Trang đơn có thêm phần Số khách qua các lần sửa, ghi số khách và tạm tính từ lúc xác nhận đến hiện tại. Chỉ hiện khi đơn đã sửa số khách." },
+      { kind: "doi", text: "Mỗi đơn cần ít nhất một người lớn đi cùng, kể cả khi lưu nháp, xác nhận hay sửa số khách. Đơn nháp cũ chưa có người lớn thì thêm vào rồi mới lưu được." },
+    ],
+  },
+  {
+    // Bản gộp 2026-10-13: vá D-1 (lịch sử đơn của Đối tác theo danh sách cho phép), ADR-0115 đợt 1 (điều chỉnh công nợ cần người thứ hai duyệt, migration 0094) và vá khe «Đã giao» không hoa hồng (BL-HH-DA-GIAO-KHE). Số 1.92 = main 1.91 + 1 (số TẠM; ghép main 298f0c05 vào nhánh 2026-10-13): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "1.92",
+    date: "2026-10-13",
+    items: [
+      { kind: "moi", text: "Điều chỉnh công nợ nay cần người thứ hai duyệt (Toàn quyền, Quản trị hoặc Kế toán, khác người tạo). Có màn Điều chỉnh công nợ và tin báo cho người duyệt." },
+      { kind: "doi", text: "Yêu cầu điều chỉnh công nợ không ai quyết sau 7 ngày thì hết hạn; mức tăng nợ tối đa được tính cộng dồn qua các lần điều chỉnh, không tính riêng từng lần." },
+      { kind: "sua", text: "Đối tác không còn thấy lý do nội bộ và tên người duyệt trong lịch sử đơn của mình." },
+      { kind: "doi", text: "Tài khoản vừa là nhân viên vừa là Đối tác thấy lịch sử đơn rút gọn trên mọi đơn, kể cả đơn không phải của mình." },
+      { kind: "sua", text: "Đơn có người hưởng hoa hồng không còn bấm được Đã giao sau khi bên đặt bị đổi vai; Nền tảng tính theo mức hoa hồng đã chụp lúc xác nhận đơn." },
+    ],
+  },
+  {
+    // Đợt 1 giao diện Tạo đơn trên điện thoại (bảng việc 13/10: #3, #4, #7, #8, #9 phần ô; gom "Đặt qua đối tác"); chỉ đổi cách vẽ, không migration. Số 1.91 là số TẠM (= nhánh 1.90 + 1, 2026-10-13):
+    // chủ / phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số.
+    version: "1.91",
+    date: "2026-10-13",
+    items: [
+      { kind: "doi", text: "Màn Tạo đơn gọn hơn trên điện thoại: tên ô nằm ngay trong ô thay vì một dòng riêng phía trên, bớt vài tiêu đề thừa." },
+      { kind: "doi", text: "Ô chọn dịch vụ chỉ còn một nút \"Nhóm dịch vụ\" bấm xổ xuống, đánh dấu một hay nhiều nhóm; bỏ các nút lọc khác. Chạm vào ô là hiện cả danh sách." },
+      { kind: "doi", text: "Dịch vụ bạn gắn ☆ ở đầu dòng nay được xếp lên trên cùng danh sách, để lần sau chọn cho nhanh." },
+      { kind: "doi", text: "Ô \"Ngày đón\" của chặng đưa đón ẩn khi cùng ngày khởi hành. Cần đón khác ngày thì bấm \"Đón khác ngày\"." },
+      { kind: "doi", text: "\"Khách tự đặt\" và \"Đặt qua đối tác\" nay là một hàng hai lựa chọn trong khối khách hàng." },
+    ],
+  },
+  {
     // Sửa lỗi ô tìm của danh sách đơn (chữ tìm dài → báo lỗi hệ thống; D1 từ chối mẫu LIKE quá 50 byte). Số 1.90 là số TẠM (= main 1.89 + 1 lúc dựng lại 2026-10-13): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
     version: "1.90",
     date: "2026-10-13",

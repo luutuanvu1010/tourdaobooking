@@ -5,6 +5,7 @@ import { parseBooker, type BookerInput } from "../../shared/booker.ts";
 import { MAX_CHANG_MOI_DICH_VU, doiNgayChang, kiemChang, tronChangCu, type ChangHopLe } from "../../shared/chang-dua-don.ts";
 import type { OrderStatus } from "../../shared/contracts.ts";
 import { kiemDanhSachHanhKhach, type HanhKhachHopLe } from "../../shared/hanh-khach.ts";
+import { CAU_THIEU_NGUOI_LON, donThieuNguoiLon } from "../../shared/nguoi-di-kem.ts";
 import { MAX_AMOUNT_VND as MAX_AMOUNT } from "../../shared/order-lines.ts";
 import { UUID_RE } from "../../shared/http.ts";
 import { ONE_DATE_MESSAGE, sameDepartDate } from "../../shared/trip-rules.ts";
@@ -150,6 +151,9 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
     services.push(r.value);
   }
   if (!sameDepartDate(services.map((s) => s.trip.departDate))) return fail(ONE_DATE_MESSAGE); // ADR-0021
+  // ADR-0114 D3: mỗi đơn có ít nhất một người lớn đi cùng, tính trên CẢ ĐƠN (người cao tuổi là người đi kèm; dịch vụ nhập tay / theo nhóm: ô số khách ở `adult`).
+  // Lập đơn VÀ lưu nháp cùng đi qua đây; cửa chuyển sang xác nhận (index.ts) và sửa số khách (money-adjustment.ts `planMoneyEdit`) là hai cửa còn lại.
+  if (donThieuNguoiLon(services.map((s) => s.pax))) return fail(CAU_THIEU_NGUOI_LON);
   const withLegsResult = withLegs(b.services, services, ctx);
   if (!withLegsResult.ok) return withLegsResult;
   services.splice(0, services.length, ...withLegsResult.services);

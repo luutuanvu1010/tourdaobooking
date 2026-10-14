@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { AUDIT_ACTIONS, AUDIT_GROUPS, isAuditAction } from "./audit-actions.ts";
+import { AUDIT_ACTIONS, AUDIT_GROUPS, isAuditAction, laHanhDongThuongMai } from "./audit-actions.ts";
 
 test("mọi hành động có nhãn tiếng Việt và thuộc một nhóm đã khai", () => {
   for (const [code, a] of Object.entries(AUDIT_ACTIONS)) {
@@ -29,4 +29,11 @@ test("ADR-0050 VK1-B: hành động 'cập nhật điểm theo đơn' (trip_stop
 test("ADR-0052 D5 (Đợt 5): văn phòng thêm điểm / báo huỷ khi xe đang chạy — hai hành động nhóm 'Điều phối xe', có nhãn", () => {
   assert.deepEqual({ ...AUDIT_ACTIONS.trip_stop_added_running }, { label: "Thêm điểm khi xe đang chạy", group: "trip" });
   assert.deepEqual({ ...AUDIT_ACTIONS.trip_allocation_office_cancelled }, { label: "Văn phòng báo huỷ khách", group: "trip" });
+});
+
+test("ADR-0117 lần 1: ba hành động loại đối tác (thêm, tắt, bật lại) nhóm 'ledger', có nhãn tiếng Việt, và là hành động thương mại (Đối tác không thấy)", () => {
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_partner_type_added }, { label: "Thêm loại đối tác", group: "ledger" });
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_partner_type_off }, { label: "Tắt loại đối tác", group: "ledger" });
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_partner_type_on }, { label: "Bật lại loại đối tác", group: "ledger" });
+  for (const a of ["prc_partner_type_added", "prc_partner_type_off", "prc_partner_type_on"]) assert.equal(laHanhDongThuongMai(a), true, a);
 });

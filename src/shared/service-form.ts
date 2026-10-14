@@ -9,6 +9,7 @@ import { MAX_LINES_PER_ORDER, MAX_SERVICES } from "./trip-rules.ts";
 import { emptyTrip, tripFromDto } from "./trip-form.ts";
 import { changTuDto, legInput, loiDanhSachChang, type ChangNhap } from "./chang-form.ts";
 import { tongKhach } from "./so-nguoi-chang.ts";
+import { CAU_THIEU_NGUOI_LON, donThieuNguoiLon } from "./nguoi-di-kem.ts";
 
 export interface ManualLine {
   description: string;
@@ -357,11 +358,16 @@ export function totalLines(drafts: readonly ServiceDraft[]): number {
 
 export const canAddService = (drafts: readonly ServiceDraft[]): boolean => drafts.length < MAX_SERVICES;
 
-/** Lỗi cấp đơn: trần 20 dịch vụ và 50 dòng tiền. */
+/**
+ * Lỗi cấp đơn: trần 20 dịch vụ và 50 dòng tiền; ADR-0114 D3 — tổng người đi kèm (người lớn + người cao tuổi) của CẢ ĐƠN bằng 0 thì báo `CAU_THIEU_NGUOI_LON`. Đây là luật cấp đơn
+ * nên KHÔNG nằm ở `draftIssues` (từng dịch vụ vẫn chỉ đòi "ít nhất 1 khách không phải em bé" — `no_paying_guests`); dịch vụ nhập tay đếm số khách là người lớn, đúng như thân gửi
+ * lên (`toServiceInput`). Đơn chưa có dịch vụ nào thì không báo thêm (biểu mẫu đã có dòng "Thêm ít nhất một dịch vụ."). Báo sớm thôi — máy chủ chặn thật ở lập đơn / lưu nháp / xác nhận.
+ */
 export function orderIssues(drafts: readonly ServiceDraft[]): string[] {
   const out: string[] = [];
   if (drafts.length > MAX_SERVICES) out.push(`Đơn tối đa ${MAX_SERVICES} dịch vụ.`);
   if (totalLines(drafts) > MAX_LINES_PER_ORDER) out.push(`Đơn tối đa ${MAX_LINES_PER_ORDER} dòng tiền.`);
+  if (drafts.length > 0 && donThieuNguoiLon(drafts.map((d) => (d.kind === "catalog" ? d.pax : { adult: d.guests })))) out.push(CAU_THIEU_NGUOI_LON);
   return out;
 }
 

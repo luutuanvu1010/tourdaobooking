@@ -235,7 +235,8 @@
     {
       "name": "pty_role_type",
       "module": "parties",
-      "kind": "lookup"
+      "kind": "lookup",
+      "note": "cột is_partner_label (migration 0095, ADR-0117): loại đối tác (nhóm OTHER, được hưởng hoa hồng) là dữ liệu — hồ sơ nội bộ không mang loại này; bất biến khi đã có hồ sơ dùng"
     },
     {
       "name": "pty_person_document_type",
@@ -552,7 +553,13 @@
       "name": "bil_posting",
       "module": "billing",
       "kind": "table",
-      "note": "phiếu sổ (ADR-0026 đ3), CHỈ-THÊM; due_snapshot = phải thu chụp lúc Đã giao (Q4); trigger kiểm tiền trong lô Đã giao / Hoàn thành"
+      "note": "phiếu sổ (ADR-0026 đ3), CHỈ-THÊM; due_snapshot = phải thu chụp lúc Đã giao (Q4); trigger kiểm tiền trong lô Đã giao / Hoàn thành; request_id (0094, ADR-0115) = yêu cầu điều chỉnh đã duyệt của phiếu ADJUSTMENT — trigger cấm chèn ADJUSTMENT thiếu yêu cầu đã duyệt do người KHÁC tạo (phiếu cũ trước 0094 được miễn), mỗi yêu cầu một phiếu"
+    },
+    {
+      "name": "bil_adjustment_request",
+      "module": "billing",
+      "kind": "table",
+      "note": "yêu cầu điều chỉnh công nợ chờ người thứ hai duyệt (ADR-0115 đợt 1; migration 0094), CHỈ-THÊM, khuôn bil_outside_refund: dòng REQUEST (người tạo khai hai bên, loại dòng, số tiền, lý do ≥ 10 ký tự, ngày phát sinh, direction INCREASE/DECREASE lúc tạo) và dòng quyết định APPROVE (direction + cap_snapshot = trần chụp lúc duyệt) / REJECT (lý do bắt buộc) / WITHDRAW (chỉ người tạo) trỏ về REQUEST bằng target_id UNIQUE — mỗi yêu cầu đúng một quyết định. Hết hạn không có dòng: tính lúc đọc (created_at + 7 ngày; trigger chặn APPROVE quá hạn). Trigger: quyết định cùng đơn; người duyệt / từ chối ≠ người tạo. Số dư KHÔNG đổi cho tới khi duyệt; phiếu ADJUSTMENT và dòng nợ chỉ sinh trong lô duyệt"
     },
     {
       "name": "bil_accounting_entry",
@@ -822,6 +829,19 @@
       ]
     },
     {
+      "name": "v_aud_ledger_event",
+      "module": "audit",
+      "columns": [
+        "id",
+        "order_id",
+        "target_type",
+        "target_id",
+        "staff_id",
+        "action",
+        "created_at"
+      ]
+    },
+    {
       "name": "v_aud_order_change",
       "module": "audit",
       "columns": [
@@ -973,6 +993,23 @@
         "party_id",
         "role_type_code",
         "role_group"
+      ]
+    },
+    {
+      "name": "v_pty_role_type",
+      "module": "parties",
+      "columns": [
+        "code",
+        "role_group",
+        "is_partner_label",
+        "active"
+      ]
+    },
+    {
+      "name": "v_pty_party_partner_label",
+      "module": "parties",
+      "columns": [
+        "party_id"
       ]
     },
     {

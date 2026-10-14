@@ -1,6 +1,7 @@
 // Luật thuần cho "dòng điều chỉnh" số khách sau xác nhận (ADR-0014 điều 6, Phase B). Không I/O. Tái dùng nguyên `snapshotService`/`buildLines`
 // đã có (cơ chế "giá lúc lập đơn" của Q11) — KHÔNG viết logic tính giá mới. Dùng chung cho route ghi (dispatch) và overlay đọc (service.ts).
 import type { OrderDetailDto, OrderItemDto, OrderServiceDto } from "../../shared/contracts.ts";
+import { CAU_THIEU_NGUOI_LON, suaDuaVeKhongNguoiLon } from "../../shared/nguoi-di-kem.ts";
 import { PAX_ORDER, availableCodes, thanhTienDong, type GeneratedLine, type PaxCode, type PaxCounts } from "../../shared/order-lines.ts";
 import { snapshotService, storedServiceLines, storedUnitPrices, type StoredService } from "./service-rules.ts";
 import { hasLongDigitRun, PHONE_IN_TEXT_MESSAGE } from "../../shared/text-guards.ts";
@@ -274,7 +275,9 @@ export interface MoneyEditContext {
 export type MoneyEditPlan =
   | { ok: true; write: false }
   | { ok: true; write: true; reason: string; before: AdjustmentEntry[]; after: AdjustmentEntry[]; subtotalBefore: number; subtotalAfter: number }
-  | { ok: false; code: "invalid_input"; message: string };
+  | { ok: false; code: "invalid_input"; message: string }
+  /** ADR-0114 D3: lần sửa này đưa tổng người đi kèm của cả đơn từ ≥ 1 xuống 0 — máy chủ trả 409 `thieu_nguoi_lon` ở CẢ hai đường sửa số khách. */
+  | { ok: false; code: "thieu_nguoi_lon"; message: string };
 
 const samePax = (a: PaxCounts, b: PaxCounts): boolean => PAX_ORDER.every((c) => a[c] === b[c]);
 
@@ -292,6 +295,16 @@ export function planMoneyEdit(c: MoneyEditContext): MoneyEditPlan {
   const input = parseMoneyEditInput(c.body, catalog.map((s) => s.id));
   if (!input.ok) return { ok: false, code: "invalid_input", message: input.message };
   const latest = new Map((c.latestAfter ?? []).map((a) => [a.serviceId, a.pax]));
+
+  // ADR-0114 D3 — một cửa cho CẢ HAI đường (văn phòng `money-edit`, hướng dẫn viên `handler-money-edit`): từ chối CHỈ KHI tổng người đi kèm trước lần sửa ≥ 1 và
+  // sau lần sửa = 0, tính trên MỌI dịch vụ của đơn. Dịch vụ danh mục: trước = số hiện hành (dòng điều chỉnh gần nhất, không thì số đã lưu), sau = số trong thân;
+  // dịch vụ nhập tay (không có trong thân, ô "số khách" ở `adult`) giữ số đã lưu ở cả hai vế. Đơn CŨ không có người lớn (trước ADR) không bị chặn thêm: trước = 0
+  // thì không bao giờ rơi vào nhánh này. Đứng TRƯỚC vòng tính tiền để "về 0 hết" ra mã này chứ không phải lỗi dạng chung "nhập số khách".
+  const paxTruoc = (s: SubtotalServiceInput) => (s.catalogCode !== null ? latest.get(s.id) : undefined) ?? c.storedPax.get(s.id);
+  const paxSau = (s: SubtotalServiceInput) => (s.catalogCode !== null ? input.services.find((x) => x.id === s.id)?.pax : undefined) ?? paxTruoc(s);
+  const theoDichVu = (pick: (s: SubtotalServiceInput) => PaxCounts | undefined) => c.services.map((s) => pick(s) ?? {});
+  // MỘT luật với báo sớm ở giao diện (bảng "Sửa số khách"): `suaDuaVeKhongNguoiLon` ở src/shared/nguoi-di-kem.ts.
+  if (suaDuaVeKhongNguoiLon(theoDichVu(paxTruoc), theoDichVu(paxSau))) return { ok: false, code: "thieu_nguoi_lon", message: CAU_THIEU_NGUOI_LON };
 
   const before: AdjustmentEntry[] = [];
   const after: AdjustmentEntry[] = [];

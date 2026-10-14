@@ -266,6 +266,7 @@ export const dispatchModule: AppModule = {
         if (result.code === "not_found") return NOT_FOUND();
         if (result.code === "not_confirmed") return MONEY_EDIT_NOT_CONFIRMED();
         if (result.code === "stale") return MONEY_EDIT_STALE();
+        if (result.code === "thieu_nguoi_lon") return error(409, "thieu_nguoi_lon", result.message); // ADR-0114 D3: cùng mã và câu với đường văn phòng
         return error(400, "invalid_input", result.message ?? "Dữ liệu không hợp lệ.");
       }
       baoThayDoi({ orderId, thayDoi: "tien" });

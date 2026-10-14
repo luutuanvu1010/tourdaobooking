@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Điều chỉnh công nợ — Island Booking System</title></head>
+<body data-title="Điều chỉnh công nợ" data-back="/account">
+<header id="topbar"></header>
+<main>
+  <!-- Điều chỉnh công nợ cần người thứ hai duyệt (ADR-0115 đợt 1). Kế toán, Toàn quyền gửi yêu cầu (ô ledger.write); Kế toán, Toàn quyền, Quản trị duyệt (ô ledger.adjust.approve).
+       web/dieu-chinh-cong-no.ts dựng nội dung. -->
+  <h1>Điều chỉnh công nợ</h1>
+  <p class="muted" id="dc-giai-thich"></p>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="ok" class="alert ok" role="status" hidden></div>
+  <!-- Ẩn cho tới khi trang biết người xem có ô gửi hoặc ô duyệt (khỏi hiện khung trống cho tài khoản không có quyền). -->
+  <div id="dc-noi-dung" hidden>
+    <section class="card" id="dc-khoi-duyet" aria-labelledby="dc-duyet-tieu-de" hidden>
+      <h2 id="dc-duyet-tieu-de">Chờ duyệt</h2>
+      <ul id="dc-duyet-ds" class="dc-ds"></ul>
+      <p id="dc-duyet-rong" class="muted" hidden></p>
+    </section>
+    <section class="card" id="dc-khoi-gui" aria-labelledby="dc-gui-tieu-de" hidden>
+      <h2 id="dc-gui-tieu-de">Gửi yêu cầu mới</h2>
+      <form id="dc-form" class="dc-form" novalidate>
+        <label>Đơn (gõ mã đơn rồi chọn)<input id="dc-don-q" type="search" autocomplete="off" placeholder="Ví dụ TD-2610-0001"></label>
+        <ul id="dc-don-kq" class="dc-kq" hidden></ul>
+        <label>Bên nợ (gõ tên rồi chọn)<input id="dc-no-q" type="search" autocomplete="off"></label>
+        <ul id="dc-no-kq" class="dc-kq" hidden></ul>
+        <label>Bên được nợ (gõ tên rồi chọn)<input id="dc-duoc-q" type="search" autocomplete="off"></label>
+        <ul id="dc-duoc-kq" class="dc-kq" hidden></ul>
+        <p id="dc-da-chon" class="muted" aria-live="polite"></p>
+        <label>Loại dòng sổ<select id="dc-loai"></select></label>
+        <label>Số tiền (₫)<input id="dc-so-tien" type="text" inputmode="numeric" autocomplete="off"></label>
+        <label>Lý do (tối thiểu 10 ký tự, không ghi số điện thoại)<textarea id="dc-ly-do" rows="2" maxlength="300" autocomplete="off"></textarea></label>
+        <div class="actions"><button type="submit" id="dc-gui-btn" class="btn btn-primary btn-chinh">Gửi yêu cầu chờ duyệt</button></div>
+      </form>
+    </section>
+    <section class="card" id="dc-khoi-cua-toi" aria-labelledby="dc-cua-toi-tieu-de" hidden>
+      <h2 id="dc-cua-toi-tieu-de">Yêu cầu của tôi</h2>
+      <ul id="dc-cua-toi-ds" class="dc-ds"></ul>
+      <p id="dc-cua-toi-rong" class="muted" hidden></p>
+    </section>
+  </div>
+</main>
+<script type="module" src="/js/dieu-chinh-cong-no.js"></script>
+</body></html>

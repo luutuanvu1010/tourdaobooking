@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { CAU_THIEU_NGUOI_LON } from "../../shared/nguoi-di-kem.ts";
 import type { EffectiveService } from "../../shared/order-lines.ts";
 import { canTransition, hasHandlerPick, orderCodePrefix, parseHandlerPick, validateBookerChange, validateOrder, type ServiceContext } from "./rules.ts";
 
@@ -196,6 +197,25 @@ test("handlerStaffId: vắng hoặc null = không chọn; thân không phải đ
 
 test("handlerStaffId: có mặt với BẤT KỲ giá trị nào khác null (kể cả chuỗi rỗng, số, đối tượng) → 'có chọn' (route hỏi quyền chọn trước khi kiểm dạng)", () => {
   for (const v of ["", "x", 0, false, 7, {}, [], "11111111-1111-4111-8111-111111111111"]) assert.equal(hasHandlerPick({ handlerStaffId: v }), true, JSON.stringify(v));
+});
+
+// ADR-0114 D3 (lập đơn + lưu nháp dùng CHUNG validateOrder): mỗi đơn có ít nhất một người lớn đi cùng, tính trên CẢ ĐƠN; người cao tuổi tính là người đi kèm;
+// dịch vụ nhập tay / theo nhóm có ô số khách ở `adult` nên tính là người lớn. Thất bại là `fail(...)` thường (không mã) → tầng route trả 400 `invalid_input`.
+test("ADR-0114 D3: đơn chỉ có trẻ em (danh mục) bị từ chối bằng câu cố định; thêm một người lớn ở dịch vụ khác thì qua (tính trên cả đơn)", () => {
+  const treEm = { kind: "catalog", catalogCode: "TD101", pax: { child: 2 }, catalogPriceSeen: { child: 595000 }, departDate: "2026-09-25" };
+  const r = fails({ ...base, discount: 0, services: [treEm] });
+  assert.equal(r.message, CAU_THIEU_NGUOI_LON);
+  assert.equal(r.code, undefined, "không mã riêng ở lập đơn / lưu nháp — khuôn thông báo lỗi nhập liệu hiện có");
+  const nguoiLon = manual([{ description: "Áo phao", quantity: 1, unitPrice: 50000 }], { departDate: "2026-09-25", pax: { adult: 1 } });
+  assert.equal(ok({ ...base, discount: 0, services: [treEm, nguoiLon] }).services.length, 2);
+});
+
+test("ADR-0114 D3: đơn toàn người cao tuổi lập được; dịch vụ nhập tay có ô số khách ở người lớn không bị từ chối oan; nhập tay không có ai thì bị từ chối", () => {
+  const caoTuoi = { kind: "catalog", catalogCode: "TD101", pax: { senior: 2 }, catalogPriceSeen: { senior: 850000 } };
+  assert.equal(ok({ ...base, discount: 0, services: [caoTuoi] }).services.length, 1);
+  assert.equal(ok({ ...base, discount: 0, services: [manual([{ description: "Xe", quantity: 1, unitPrice: 200000 }], { pax: { adult: 3 } })] }).services.length, 1);
+  assert.equal(message({ ...base, discount: 0, services: [manual([{ description: "Xe", quantity: 1, unitPrice: 200000 }], { pax: { adult: 0, child: 2 } })] }), CAU_THIEU_NGUOI_LON);
+  assert.equal(message({ ...base, discount: 0, services: [manual([{ description: "Xe", quantity: 1, unitPrice: 200000 }], { pax: {} })] }), CAU_THIEU_NGUOI_LON);
 });
 
 test("handlerStaffId: có mặt thì phải là mã tài khoản (UUID) — sai dạng → lỗi, không đoán", () => {

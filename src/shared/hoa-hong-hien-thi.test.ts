@@ -8,6 +8,7 @@ import {
   LOI_BAC,
   NHAN_TRANG_THAI,
   canXacNhanDongDieuKhoan,
+  nhanLoaiDoiTac,
   cauThuTra,
   coTheTimDoiTac,
   dongDongDuoc,
@@ -133,4 +134,11 @@ test("coTheTimDoiTac giữ ĐÚNG cổng của route nguoi-huong (order.create, 
   assert.equal(coTheTimDoiTac(ai("SALES", "PARTNER")), false, "tài khoản lai có quyền Đối tác bị route chặn");
   assert.equal(coTheTimDoiTac(ai("ACCOUNTING", "SALES")), true);
   assert.equal(CAU_CHUA_TIM_DUOC_DOI_TAC, "Tài khoản của bạn chưa tìm được đối tác theo tên. Cần đặt mức riêng cho một đối tác thì nhờ Quản trị hoặc Toàn quyền.", "nói rõ phải làm gì (Ruling 26: chưa nới cổng, ghi nợ)");
+});
+
+test("ADR-0117: nhanLoaiDoiTac — nút Tắt / Bật chỉ ở loại do Kế toán thêm, theo cờ đang bật; loại có sẵn không có nút", () => {
+  assert.deepEqual(nhanLoaiDoiTac({ ten: "Công ty lữ hành", coSan: true, dangBat: true }), { nguon: "Có sẵn", trangThai: "Đang dùng", nut: null });
+  assert.equal(nhanLoaiDoiTac({ ten: "Khách sạn", coSan: true, dangBat: false }).nut, null, "loại có sẵn dù lệch cờ cũng không có nút");
+  assert.deepEqual(nhanLoaiDoiTac({ ten: "Nhân viên spa", coSan: false, dangBat: true }), { nguon: "Do Kế toán thêm", trangThai: "Đang dùng", nut: { hanhDong: "tat", nhan: "Tắt", ariaLabel: "Tắt loại: Nhân viên spa" } });
+  assert.deepEqual(nhanLoaiDoiTac({ ten: "Nhân viên spa", coSan: false, dangBat: false }), { nguon: "Do Kế toán thêm", trangThai: "Đã tắt", nut: { hanhDong: "bat", nhan: "Bật", ariaLabel: "Bật loại: Nhân viên spa" } });
 });

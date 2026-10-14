@@ -75,7 +75,7 @@ test("đủ trường: khối theo thứ tự đầu trang → tiêu đề → k
       kind: "service", index: 1, name: "Tour 4 đảo Nha Trang",
       details: [
         { label: "Số khách", value: "2 người lớn, 1 trẻ em" }, { label: "Khởi hành", value: "25/09/2026 · 07:30" },
-        { label: "Đón khách", value: "07:00 · Khách sạn Sunrise" }, { label: "Check-in", value: "25/09/2026 · 06:45 · Bến Cầu Đá" },
+        { label: "Xe đón khách", value: "07:00 · Khách sạn Sunrise" }, { label: "Khách có mặt", value: "25/09/2026 · 06:45 · Bến Cầu Đá" },
       ],
       columns: { description: "Mô tả", quantity: "SL", unitPrice: "Đơn giá", lineTotal: "Thành tiền" },
       lines: [
@@ -114,19 +114,19 @@ test("chân trang/đầu trang: công ty không email → không dòng Email; kh
 });
 
 test("thông tin chuyến: từng mảnh vắng thì dòng rút gọn; chỉ ẩn dòng khi mọi mảnh của nó đều vắng", () => {
-  assert.equal(value(details(svc({ ...NO_TRIP, pickupTime: "07:00" })), "Đón khách"), "07:00");
-  assert.equal(value(details(svc({ ...NO_TRIP, pickupPlace: "Bến Cầu Đá" })), "Đón khách"), "Bến Cầu Đá");
+  assert.equal(value(details(svc({ ...NO_TRIP, pickupTime: "07:00" })), "Xe đón khách"), "07:00");
+  assert.equal(value(details(svc({ ...NO_TRIP, pickupPlace: "Bến Cầu Đá" })), "Xe đón khách"), "Bến Cầu Đá");
   assert.equal(value(details(svc({ ...NO_TRIP, departDate: "2026-09-25" })), "Khởi hành"), "25/09/2026");
   assert.equal(value(details(svc({ ...NO_TRIP, departTime: "07:30" })), "Khởi hành"), "07:30");
   assert.equal(value(details(svc({ ...NO_TRIP })), "Khởi hành"), undefined);
-  assert.equal(value(details(svc({ ...NO_TRIP })), "Đón khách"), undefined);
+  assert.equal(value(details(svc({ ...NO_TRIP })), "Xe đón khách"), undefined);
 });
 
-test("check-in: chỉ ẩn khi cả ngày, giờ và nơi đều vắng; vắng ngày = 'Cùng ngày khởi hành' (như trang đơn)", () => {
-  assert.equal(value(details(svc({ ...NO_TRIP })), "Check-in"), undefined);
-  assert.equal(value(details(svc({ ...NO_TRIP, checkinTime: "09:00" })), "Check-in"), "Cùng ngày khởi hành · 09:00");
-  assert.equal(value(details(svc({ ...NO_TRIP, checkinPlace: "Bến Cầu Đá" })), "Check-in"), "Cùng ngày khởi hành · Bến Cầu Đá");
-  assert.equal(value(details(svc({ ...NO_TRIP, checkinDate: "2026-09-26", checkinTime: "09:00" })), "Check-in"), "26/09/2026 · 09:00");
+test("khách có mặt (cột checkin): chỉ ẩn khi cả ngày, giờ và nơi đều vắng; vắng ngày = 'Cùng ngày khởi hành' (như trang đơn)", () => {
+  assert.equal(value(details(svc({ ...NO_TRIP })), "Khách có mặt"), undefined);
+  assert.equal(value(details(svc({ ...NO_TRIP, checkinTime: "09:00" })), "Khách có mặt"), "Cùng ngày khởi hành · 09:00");
+  assert.equal(value(details(svc({ ...NO_TRIP, checkinPlace: "Bến Cầu Đá" })), "Khách có mặt"), "Cùng ngày khởi hành · Bến Cầu Đá");
+  assert.equal(value(details(svc({ ...NO_TRIP, checkinDate: "2026-09-26", checkinTime: "09:00" })), "Khách có mặt"), "26/09/2026 · 09:00");
 });
 
 test("nhiều dịch vụ: mỗi dịch vụ một khối đánh số từ 1; tổng dịch vụ chỉ hiện khi dịch vụ có từ hai dòng tiền trở lên", () => {
@@ -307,7 +307,7 @@ test("làm sạch: ký tự điều khiển, NUL và bidi bị bỏ ở MỌI ô
   assert.equal(value(one(m, "customer").rows, "Ghi chú / yêu cầu"), "Ăn chay\nĐón sớm");
   const s = one(m, "service");
   assert.equal(s.name, "Xe đưa đón");
-  assert.equal(value(s.details, "Đón khách"), "07:00 · Bến Cầu Đá");
+  assert.equal(value(s.details, "Xe đón khách"), "07:00 · Bến Cầu Đá");
   assert.deepEqual(s.lines.map((l) => [l.description, l.detail]), [["Xe 7 chỗ 2 chiều", "Cả đoàn"]]);
   assert.equal(one(m, "header").companyName, "CÔNG TY TNHH TOUR ĐẢO");
   assert.equal(value(one(m, "title").rows, "Nhân viên phụ trách"), "Lê Minh Tuấn");

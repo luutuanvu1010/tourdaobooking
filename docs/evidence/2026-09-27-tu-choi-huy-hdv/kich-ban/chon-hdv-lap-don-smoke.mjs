@@ -440,7 +440,8 @@ try {
     await short.waitFor("!document.getElementById('save-error').hidden", "banner kiểm phía trình duyệt (1040×768)");
     await sleep(300);
     const tall = await short.ev(`(() => { const r = (id) => document.getElementById(id).getBoundingClientRect(); const e = r('save-error'); const s = r('save'); const o = r('owner-card');
-      return { lines: document.querySelectorAll('#save-error .banner-lines li').length, errIn: e.top >= 0 && e.bottom <= innerHeight, saveIn: s.top >= 0 && s.bottom <= innerHeight, ownerTop: Math.round(o.top), errBottom: Math.round(e.bottom), saveBottom: Math.round(s.bottom), vh: innerHeight }; })()`);
+      return { lines: document.querySelectorAll('#save-error .banner-lines li').length, errIn: e.top >= 0 && e.bottom <= innerHeight, saveIn: s.top >= 0 && s.bottom <= innerHeight, scrollY: Math.round(scrollY), ownerTop: Math.round(o.top), errBottom: Math.round(e.bottom), saveBottom: Math.round(s.bottom), vh: innerHeight }; })()`);
+    console.log("    1040×768 sau Lưu lỗi:", JSON.stringify(tall));
     assert.ok(tall.lines >= 3, `banner nhiều dòng — ${JSON.stringify(tall)}`);
     assert.deepEqual([tall.errIn, tall.saveIn], [true, true], `1040×768, đã chọn + banner lỗi: banner và nút Lưu đều trong khung nhìn — ${JSON.stringify(tall)}`);
     await shotView(short, "chon-hdv-da-chon-loi-1040x768.png");

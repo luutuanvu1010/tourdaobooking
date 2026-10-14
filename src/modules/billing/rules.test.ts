@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import {
-  conLai, dong, hieuLuc, lyDoChuaGiaoDuoc, lyDoChuaHoanThanh, ngayPhatSinh, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan,
+  HAN_YEU_CAU_NGAY, conLai, dong, hetHanYeuCau, hieuLuc, kiemDieuChinh, lyDoChuaGiaoDuoc, lyDoChuaHoanThanh, ngayPhatSinh, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan,
   sinhDongXacNhanCongTy, sinhPhieuDaGiao, soDuTheoBen, type LineDraft, type LineRow, type ReceiptRow,
 } from "./rules.ts";
 
@@ -156,4 +156,56 @@ test("đối chiếu conLai ↔ v_bil_order_paid ↔ trigger bil_posting_deliver
   assert.throws(() => phieu(ma.daThu + 1), /delivered_not_paid:/);
   assert.equal(ma.daThu, 1_000_000);
   phieu(ma.daThu); // khớp đúng số hàm tính → trigger cho qua
+});
+
+// ---- ADR-0115 đợt 1: điều chỉnh công nợ cần duyệt — trần cộng dồn (MỘT hàm), hết hạn 7 ngày ----
+test("kiemDieuChinh: giảm nợ ≤ số đang nợ (Đ5a, không đổi dấu); vượt → adjustment_flips_sign; hướng = DECREASE", () => {
+  const ok = kiemDieuChinh({ nguoc: 300_000, soTien: 300_000, phaiThu: 500_000, daThu: 0 });
+  assert.deepEqual(ok.ok && ok.huong, "DECREASE");
+  const bad = kiemDieuChinh({ nguoc: 300_000, soTien: 300_001, phaiThu: 500_000, daThu: 0 });
+  assert.equal(bad.ok, false);
+  assert.equal(!bad.ok && bad.ma, "adjustment_flips_sign");
+});
+
+test("kiemDieuChinh: tăng nợ ≤ trần = max(phải thu, đã thu ròng) một lệnh — như ADR-0092 Đ5b — và hướng = INCREASE", () => {
+  const ok = kiemDieuChinh({ nguoc: 0, soTien: 500_000, phaiThu: 500_000, daThu: 300_000 });
+  assert.equal(ok.ok && ok.huong, "INCREASE");
+  assert.equal(ok.ok && ok.tran, 500_000);
+  assert.equal(kiemDieuChinh({ nguoc: 0, soTien: 500_001, phaiThu: 500_000, daThu: 300_000 }).ok, false);
+  assert.equal(kiemDieuChinh({ nguoc: -50_000, soTien: 700_000, phaiThu: 500_000, daThu: 800_000 }).ok, true, "đã thu lớn hơn phải thu: trần theo đã thu");
+});
+
+test("ADR-0115 điều 4 (C-2): trần tính CỘNG DỒN — điều chỉnh tăng nợ đã có + yêu cầu tăng nợ đang chờ + lệnh mới ≤ trần", () => {
+  const dau = { nguoc: 0, phaiThu: 500_000, daThu: 300_000 };
+  // Lệnh đầu 500.000 (trần 500.000) qua; lệnh hai 500.000 khi lệnh đầu đang CHỜ → chặn lúc tạo.
+  assert.equal(kiemDieuChinh({ ...dau, soTien: 500_000, tangDaCo: 0, tangDangCho: 0 }).ok, true);
+  const hai = kiemDieuChinh({ ...dau, soTien: 500_000, tangDaCo: 0, tangDangCho: 500_000 });
+  assert.equal(hai.ok, false);
+  assert.equal(!hai.ok && hai.ma, "adjustment_exceeds_cap");
+  // Lệnh đầu đã duyệt (còn hiệu lực) thì lệnh hai bị chặn như nhau.
+  assert.equal(kiemDieuChinh({ ...dau, soTien: 1, tangDaCo: 500_000, tangDangCho: 0 }).ok, false);
+  // Vừa khít trần cộng dồn thì qua; thêm 1 đồng thì chặn.
+  assert.equal(kiemDieuChinh({ ...dau, soTien: 200_000, tangDaCo: 200_000, tangDangCho: 100_000 }).ok, true);
+  assert.equal(kiemDieuChinh({ ...dau, soTien: 200_001, tangDaCo: 200_000, tangDangCho: 100_000 }).ok, false);
+  // Giảm nợ không đếm vào trần cộng dồn (kiểm theo số dư lúc duyệt).
+  assert.equal(kiemDieuChinh({ nguoc: 300_000, soTien: 300_000, phaiThu: 500_000, daThu: 0, tangDaCo: 500_000, tangDangCho: 500_000 }).ok, true);
+});
+
+test("kiemDieuChinh trả sẵn số cho lính gác của lô duyệt (tangDaCoToiDa = trần − lệnh − yêu cầu đang chờ), cùng MỘT công thức", () => {
+  const k = kiemDieuChinh({ nguoc: 0, soTien: 200_000, phaiThu: 500_000, daThu: 0, tangDaCo: 100_000, tangDangCho: 50_000 });
+  assert.equal(k.ok && k.tangDaCoToiDa, 500_000 - 200_000 - 50_000);
+});
+
+test("hết hạn: quá 7 ngày kể từ lúc tạo thì hết (đúng 7 ngày còn duyệt được); tính lúc đọc, không Cron", () => {
+  assert.equal(HAN_YEU_CAU_NGAY, 7);
+  const tao = "2026-10-01T03:00:00.000Z";
+  assert.equal(hetHanYeuCau(tao, "2026-10-08T03:00:00.000Z"), false);
+  assert.equal(hetHanYeuCau(tao, "2026-10-08T03:00:00.001Z"), true);
+  assert.equal(hetHanYeuCau(tao, "2026-10-02T00:00:00.000Z"), false);
+});
+
+test("hằng 7 ngày của rules.ts và trigger bil_adjustment_request_expired (migration 0094) cùng một số", () => {
+  const dir = new URL("../../../migrations/", import.meta.url);
+  const f = readdirSync(dir).find((x) => x.endsWith("_bil_dieu_chinh_duyet.sql"))!;
+  assert.match(readFileSync(new URL(f, dir), "utf8"), new RegExp(`julianday\\(\\(SELECT g\\.created_at[^\\n]*\\) > ${HAN_YEU_CAU_NGAY}\\b`));
 });

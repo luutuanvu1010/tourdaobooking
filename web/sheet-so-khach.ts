@@ -7,10 +7,12 @@ import { renderBanner } from "./banner";
 import { counter } from "./counter";
 import { h } from "./dom";
 import { vnd } from "./format";
+import { icon } from "./icons";
 import { paxSummary, type MoneyEditSource } from "../src/shared/viec-cua-toi";
 import { PAX_LABEL, type PaxCode } from "../src/shared/order-lines";
 import { LY_DO_SUA_SO_KHACH, MA_LY_DO_SUA_SO_KHACH, thanSuaSoKhach, type MaLyDoSuaSoKhach } from "../src/shared/so-khach-van-phong";
-import { NETWORK_BANNER, classifyOrderError } from "../src/shared/order-errors";
+import { CAU_THIEU_NGUOI_LON, bangSuaSoKhachVeKhong } from "../src/shared/nguoi-di-kem";
+import { LOI_409_KHONG_CU, NETWORK_BANNER, classifyOrderError } from "../src/shared/order-errors";
 
 export interface SheetSoKhachOptions {
   orderId: string;
@@ -34,7 +36,14 @@ export function openSheetSoKhach(o: SheetSoKhachOptions, opener: HTMLElement): v
     const d: Partial<Record<PaxCode, number>> = {};
     nhap.set(s.id, d);
     const hang = s.editablePaxCodes.map((code) => {
-      const c = counter({ label: `${PAX_LABEL[code]} — ${o.tenDichVu[i] ?? ""}`, value: s.pax[code], onChange: (n) => (d[code] = n) });
+      const c = counter({
+        label: `${PAX_LABEL[code]} — ${o.tenDichVu[i] ?? ""}`,
+        value: s.pax[code],
+        onChange: (n) => {
+          d[code] = n;
+          capNhat();
+        },
+      });
       counters.push(c);
       return h("div", { class: "hdv-pax-row" }, h("span", { class: "hdv-pax-label" }, PAX_LABEL[code]), c.root);
     });
@@ -42,14 +51,23 @@ export function openSheetSoKhach(o: SheetSoKhachOptions, opener: HTMLElement): v
   });
 
   let chon: MaLyDoSuaSoKhach | null = null;
+  let dangBan = false;
   const luu = h("button", { type: "button", class: "btn btn-primary", "data-action": "luu-so-khach", disabled: true }, "Lưu số khách");
   const huy = h("button", { type: "button", class: "btn" }, "Huỷ");
   const bannerEl = h("div", { class: "banner", role: "alert", hidden: true });
+  // ADR-0114 D3 — BÁO SỚM: số ô đang gõ đưa đơn từ ≥ 1 người đi kèm xuống 0 thì hiện đúng câu của luật dùng chung và khoá nút Lưu. Máy chủ mới là nơi quyết (409 thieu_nguoi_lon, hiện ở dải bên dưới).
+  const thieuNguoiLon = h("p", { class: "field-error", role: "alert", "data-canh-bao": "thieu-nguoi-lon", hidden: true }, icon("alert", 16), CAU_THIEU_NGUOI_LON);
+  // Một nơi duy nhất quyết nút Lưu: đang lưu, chưa chọn lý do, hay số khách sẽ về 0 người đi kèm.
+  function capNhat(): void {
+    const thieu = bangSuaSoKhachVeKhong(o.nguon, nhap);
+    thieuNguoiLon.hidden = !thieu;
+    luu.disabled = dangBan || chon === null || thieu;
+  }
   const radios = MA_LY_DO_SUA_SO_KHACH.map((ma) => {
     const input = h("input", { type: "radio", name: "so-khach-ly-do", value: ma });
     input.addEventListener("change", () => {
       chon = ma;
-      luu.disabled = false;
+      capNhat();
       renderBanner(bannerEl, null);
     });
     return h("label", { class: "pick" }, input, h("span", { class: "pick-mark", "aria-hidden": "true" }), h("span", { class: "pick-name" }, LY_DO_SUA_SO_KHACH[ma]));
@@ -57,15 +75,16 @@ export function openSheetSoKhach(o: SheetSoKhachOptions, opener: HTMLElement): v
   const lyDo = h("fieldset", { class: "pick-list", "data-khoi": "ly-do-so-khach" }, h("legend", { class: "pick-legend" }, "Lý do sửa (bắt buộc)"), ...radios);
   const ghiChu = h("p", { class: "muted" }, "Nền tảng tự tính lại tiền theo đơn giá đã chốt của đơn; giảm giá giữ nguyên.");
 
-  const bt = moBangTruot({ title: "Sửa số khách dịch vụ", opener, footClass: "dd-sheet-foot", body: [bannerEl, ...khoi, lyDo, ghiChu], foot: [huy, luu] });
+  const bt = moBangTruot({ title: "Sửa số khách dịch vụ", opener, footClass: "dd-sheet-foot", body: [bannerEl, ...khoi, thieuNguoiLon, lyDo, ghiChu], foot: [huy, luu] });
   if (!bt) return;
   const setBusy = (busy: boolean): void => {
+    dangBan = busy;
     bt.setBusy(busy);
     huy.disabled = busy;
-    luu.disabled = busy || chon === null;
     lyDo.disabled = busy;
     for (const c of counters) c.setDisabled(busy);
     luu.textContent = busy ? "Đang lưu…" : "Lưu số khách";
+    capNhat();
   };
   huy.addEventListener("click", () => bt.close());
   luu.addEventListener("click", async () => {
@@ -80,7 +99,8 @@ export function openSheetSoKhach(o: SheetSoKhachOptions, opener: HTMLElement): v
       setBusy(false);
       const b = err instanceof ApiError ? classifyOrderError({ status: err.status, code: err.code, message: err.message, details: err.details }, { serviceNames: [], formatMoney: vnd }) : NETWORK_BANNER;
       // Đơn vừa đổi / đã Đã giao / không còn quyền: màn hình đã cũ → nút "Tải lại đơn" (đóng bảng, tải lại trang đơn).
-      const cu = err instanceof ApiError && (err.status === 409 || err.status === 403 || err.status === 404);
+      // Trừ 409 thieu_nguoi_lon (ADR-0114 D3, `LOI_409_KHONG_CU`): màn hình không cũ — hiện đúng câu máy chủ gửi, giữ bảng và số đang gõ để người dùng sửa tại chỗ.
+      const cu = err instanceof ApiError && (err.status === 403 || err.status === 404 || (err.status === 409 && !LOI_409_KHONG_CU.has(err.code)));
       renderBanner(bannerEl, cu || b.action === "lock_form" ? { ...b, action: "reload_order" } : b, {
         reloadOrder: () => {
           bt.close(false);

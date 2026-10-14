@@ -34,6 +34,9 @@ const moForm = async (account, kho) => {
   await f.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "TD101 trong danh mục");
   await f.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
   await f.waitFor(`document.querySelectorAll('${card} .dd-chang').length === 2`, "hai chặng tạo sẵn");
+  // 14/10 (bốn bước): hai ô cam kết nằm trong khối gập "Thêm chi tiết" của chặng, mặc định gập khi còn mặc định → mở trước khi kiểm.
+  await f.ev(`document.querySelectorAll('${card} button[data-gap^="chi-tiet-"][aria-expanded="false"]').forEach((n) => n.click()); true`);
+  await f.waitFor(`document.querySelectorAll('${card} [data-gap-than^="chi-tiet-"]:not([hidden])').length === 2`, "hai khối chi tiết mở");
   return f;
 };
 const dienKhach = async (f) => {

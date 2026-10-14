@@ -2,15 +2,15 @@
 // Hàm công bố cho orders: docBangChoChup (đọc mọi thứ để chụp lúc Xác nhận / đổi bên đặt), laNguoiHuong (bên đặt tổ chức có được gắn vào đơn không).
 import { auditStatement } from "../audit";
 import { getEffectiveServices } from "../catalog";
-import { ownerCompany, tenLoaiVai } from "../parties";
-import type { CommissionRuleDto, CommissionRuleListResponse, NguoiHuongTimResponse, SupplyTermDto, SupplyTermListResponse, ThuTraResponse } from "../../shared/contracts";
+import { datHoatDongLoaiDoiTacStatement, kiemTenLoaiDoiTac, loaiVaiChiTiet, maLoaiDoiTac, ownerCompany, tenLoaiVai, themLoaiDoiTacStatement } from "../parties";
+import type { CommissionRuleDto, CommissionRuleListResponse, LoaiDoiTacDto, LoaiDoiTacListResponse, LoaiDoiTacResponse, NguoiHuongTimResponse, SupplyTermDto, SupplyTermListResponse, ThuTraResponse } from "../../shared/contracts";
 import { error, json, mauLikeChua, kemLocation, readJson } from "../../shared/http";
 import { can, holdsPartner } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { CAU_X3_THUE_XE, NHAN_LY_DO_THIEU } from "../../shared/so-dai-ly-nhan";
 import { vnToday } from "../../shared/vn-date";
-import { allRules, allTerms, beneficiaryRoles, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, huongCuaHoSo, insertRuleStatement, insertTermStatement, isBeneficiary,
-  openRolesOf, ruleById, rulesOn, suppliers, termById, termsOn, type RuleRow, type TermRow } from "./repository";
+import { allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, huongCuaHoSo, insertBeneficiaryStatement, insertRuleStatement, insertTermStatement, isBeneficiary,
+  openRolesOf, ruleById, rulesOn, setBeneficiaryActiveStatement, suppliers, termById, termsOn, type RuleRow, type TermRow } from "./repository";
 import { MA_RE, PARTY_RE, chonMuc, hieuLuc, kiemNgayDong, kiemThanDieuKhoan, kiemThanMuc, laNgay, moTaMuc, nguoiHuongCua, type DongDieuKhoan, type DongMuc,
   type NguoiHuong } from "./rules";
 
@@ -27,7 +27,7 @@ export async function docBangChoChup(db: D1Database, v: { bookerPartyId: string 
   const [vai, duocHuong, cty, muc, dk, nhom] = await Promise.all([
     v.bookerPartyId ? openRolesOf(db, v.bookerPartyId) : Promise.resolve([]), beneficiaryRoles(db), ownerCompany(db), rulesOn(db, v.ngay), termsOn(db, v.ngay), groupsOf(db, v.catalogCodes),
   ]);
-  const nguoiHuong = nguoiHuongCua({ bookerPartyId: v.bookerPartyId, vaiMo: vai.map((r) => ({ roleTypeCode: r.role_type_code, roleGroup: r.role_group })), vaiDuocHuong: new Set(duocHuong), congTyChuId: cty?.partyId ?? null });
+  const nguoiHuong = nguoiHuongCua({ bookerPartyId: v.bookerPartyId, vaiMo: vai.map((r) => ({ roleTypeCode: r.role_type_code, roleGroup: r.role_group, nhanDoiTac: r.is_partner_label === 1 })), vaiDuocHuong: new Set(duocHuong), congTyChuId: cty?.partyId ?? null });
   return { nguoiHuong, muc: muc.map(dongMuc), dieuKhoan: dk.map(dongDk), nhom };
 }
 export const laNguoiHuong = (db: D1Database, partyId: string): Promise<boolean> => isBeneficiary(db, partyId);
@@ -45,6 +45,7 @@ function loiBang(e: unknown): Response | null {
   if (/\bprc_overlap:/.test(m)) return error(409, "prc_overlap", "Đã có mức / điều khoản cùng đối tượng, cùng phạm vi trong khoảng ngày này — đóng dòng cũ trước.");
   if (/\bprc_target_not_beneficiary:/.test(m)) return error(400, "invalid_input", "Hồ sơ này không mang vai được hưởng hoa hồng.");
   if (/\bprc_role_not_beneficiary:/.test(m)) return error(400, "invalid_input", "Loại đối tác này không nằm trong danh sách được hưởng hoa hồng.");
+  if (/\bprc_beneficiary_kind:/.test(m)) return error(400, "invalid_input", "Loại này không được hưởng hoa hồng.");
   if (/\bprc_seller_not_supplier:/.test(m)) return error(400, "invalid_input", "Người bán phải là Tour Đảo hoặc hồ sơ mang vai Nhà cung cấp.");
   if (/\bprc_supplier_mismatch:/.test(m)) return error(400, "invalid_input", CAU_TY_LE_MUA_LAI);
   if (/\bprc_all_owner_only:/.test(m)) return error(400, "invalid_input", "Dòng \"mọi dịch vụ\" chỉ dành cho Tour Đảo.");
@@ -75,6 +76,39 @@ const dtoDk = (r: TermRow, congTyId: string | null, homNay: string): SupplyTermD
 /** Tên đối tượng của một dòng mức cho nhật ký: tên vai bằng tiếng Việt, hoặc "đối tác <mã hồ sơ>" (không tên riêng, không liên hệ). */
 const tenDoiTuongNhatKy = (r: { target_role_code: string | null; target_party_id: string | null }, tenVai: ReadonlyMap<string, string>): string =>
   r.target_role_code !== null ? tenVai.get(r.target_role_code) ?? r.target_role_code : `đối tác ${r.target_party_id}`;
+
+/**
+ * Loại đối tác được hưởng (ADR-0117): mỗi dòng của danh sách được hưởng, tên + cờ loại đối tác lấy từ parties (hàm công bố `loaiVaiChiTiet`). `dangBat` = CẢ HAI cờ cùng bật
+ * (`pty_role_type.active` của parties VÀ `prc_beneficiary_role.active` của pricing) — lệch một cờ (đặt tay) thì false (Ruling 2). Chỉ mã và tên.
+ */
+async function docLoaiDoiTac(db: D1Database): Promise<LoaiDoiTacDto[]> {
+  const [huong, loai] = await Promise.all([beneficiaryRolesAll(db), loaiVaiChiTiet(db)]);
+  const theoMa = new Map(loai.map((t) => [t.code, t]));
+  return huong.flatMap((h) => {
+    const t = theoMa.get(h.role_type_code);
+    return t ? [{ code: t.code, ten: t.ten, coSan: !t.partnerLabel, dangBat: h.active === 1 && t.dangBat }] : [];
+  }).sort((a, b) => Number(b.coSan) - Number(a.coSan) || a.ten.localeCompare(b.ten, "vi") || a.code.localeCompare(b.code));
+}
+const LOAI_KHONG_CO = () => error(404, "not_found", "Không tìm thấy loại đối tác này.");
+
+/**
+ * Tắt / bật một loại đối tác (thân chung của hai route `/tat`, `/bat`; người gọi đã qua `can` + `holdsPartner`). Chỉ loại do người dùng thêm (cờ loại đối tác) mới đổi được: năm vai bên
+ * ngoài có sẵn là vai đăng nhập, mã lạ hay vai nội bộ ⇒ 404 (Ruling 3). Câu một chỉ đổi dòng khi loại CHƯA ở trạng thái đích; câu hai (cờ danh sách được hưởng) và nhật ký đi theo
+ * `changes() > 0` của câu đứng ngay trước ⇒ bên thua một lượt tranh chấp không ghi gì và nhận 409.
+ */
+async function doiTrangThaiLoai(db: D1Database, code: string, bat: boolean, staffId: string): Promise<Response> {
+  const loai = MA_RE.test(code) ? (await loaiVaiChiTiet(db)).find((t) => t.code === code) : undefined;
+  if (!loai || !loai.partnerLabel) return LOAI_KHONG_CO();
+  const at = new Date().toISOString();
+  const res = await chayLo(db, [
+    datHoatDongLoaiDoiTacStatement(db, code, bat),
+    setBeneficiaryActiveStatement(db, code, bat, at, staffId),
+    auditStatement(db, { staffId, action: bat ? "prc_partner_type_on" : "prc_partner_type_off", at, detail: loai.ten }, "changes() > 0"),
+  ]);
+  if (res instanceof Response) return res;
+  if (dongDaDong(res)) return error(409, "stale", bat ? "Loại này đang bật rồi — tải lại." : "Loại này đã tắt rồi — tải lại.");
+  return json({ loai: (await docLoaiDoiTac(db)).find((x) => x.code === code)! } satisfies LoaiDoiTacResponse);
+}
 
 export const pricingModule: AppModule = {
   name: "pricing",
@@ -121,6 +155,37 @@ export const pricingModule: AppModule = {
       if (res instanceof Response) return res;
       if (dongDaDong(res)) return error(409, "stale", "Dòng mức vừa được đóng — tải lại.");
       return json({ dong: dtoMuc((await ruleById(env.DB, id))!, tenVai, vnToday(new Date())) });
+    }),
+    // ADR-0117 lần 1: loại đối tác là DỮ LIỆU. Thêm / tắt / bật do Kế toán, Quản trị, Toàn quyền (ô partner.commission.write); xem do ô partner.commission.view. Tên đi vào nhật ký (đã cấm
+    // số điện thoại / email trong tên). Mã `LD_` + 8 chữ hoa do máy chủ sinh. Đường cố định trước đường có :code.
+    route("GET", "/api/pricing/loai-doi-tac", "office", async ({ env, staff }) => {
+      if (!can(staff, "partner.commission.view") || holdsPartner(staff)) return FORBIDDEN();
+      return json({ loai: await docLoaiDoiTac(env.DB) } satisfies LoaiDoiTacListResponse);
+    }),
+    route("POST", "/api/pricing/loai-doi-tac", "office", async ({ env, request, staff }) => {
+      if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();
+      const daCo = await loaiVaiChiTiet(env.DB);
+      const kq = kiemTenLoaiDoiTac((await readJson(request))?.ten, daCo.map((x) => x.ten));
+      if (!kq.ok) return error(kq.code === "loai_trung" ? 409 : 400, kq.code, kq.message);
+      let code = maLoaiDoiTac(crypto.getRandomValues(new Uint8Array(8)));
+      while (daCo.some((x) => x.code === code)) code = maLoaiDoiTac(crypto.getRandomValues(new Uint8Array(8)));
+      const at = new Date().toISOString();
+      // Thứ tự: loại vai TRƯỚC (prc_beneficiary_role.role_type_code có khoá ngoại tới pty_role_type), rồi danh sách được hưởng, rồi nhật ký.
+      const res = await chayLo(env.DB, [
+        themLoaiDoiTacStatement(env.DB, { code, ten: kq.value }),
+        insertBeneficiaryStatement(env.DB, code, at, staff.id),
+        auditStatement(env.DB, { staffId: staff.id, action: "prc_partner_type_added", at, detail: kq.value }),
+      ]);
+      if (res instanceof Response) return res;
+      return kemLocation(json({ loai: { code, ten: kq.value, coSan: false, dangBat: true } } satisfies LoaiDoiTacResponse, 201), "/hoa-hong");
+    }),
+    route("POST", "/api/pricing/loai-doi-tac/:code/tat", "office", async ({ env, params, staff }) => {
+      if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();
+      return doiTrangThaiLoai(env.DB, params.code!, false, staff.id);
+    }),
+    route("POST", "/api/pricing/loai-doi-tac/:code/bat", "office", async ({ env, params, staff }) => {
+      if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();
+      return doiTrangThaiLoai(env.DB, params.code!, true, staff.id);
     }),
     // "Thử tra" cho văn phòng: một đối tác + một dịch vụ + một ngày ⇒ mức nào thắng (cùng hàm `chonMuc` với lúc Xác nhận đơn). Chỉ đọc.
     route("GET", "/api/pricing/thu-tra", "office", async ({ env, url, staff }) => {

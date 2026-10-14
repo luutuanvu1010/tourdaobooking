@@ -17,7 +17,7 @@ import { route, type AppModule, type Ctx } from "../../shared/router";
 import { canHoiTheoSuKien, chuyenCuaChangLuc, dungDongChuyen, type ChuyenChoTin, type DongChuyen, type DongChuyenTho, type HoiChuyenChoTin } from "../../shared/tin-chuyen";
 import {
   batMayStatements, demMay, findByRequest, getMark, getNotice, getThuCong, hetHanStatement, insertAckStatement, insertNoticeStatement,
-  insertTargetStatement, listAcks, listDoi, listDon, listMayDangBat, doiVuaGhi, listSent, listThuCong, listTinChuyen, listTinTaiKhoan, donChoTin, mayDangBat, tinChuyenTheoId, revokeStatement, tatMayStatement,
+  insertTargetStatement, listAcks, listDoi, listDon, listMayDangBat, doiVuaGhi, listSent, listThuCong, listTinChuyen, listTinTaiKhoan, listTinDieuChinh, donChoTin, mayDangBat, tinChuyenTheoId, revokeStatement, tatMayStatement,
   upsertMarkStatement,
 } from "./repository";
 
@@ -103,10 +103,11 @@ async function hop(db: D1Database, staff: StaffProfile, ngan: "cua-toi" | "tat-c
   // MQ-07 chỉ tới người có trip.view (văn phòng any / tài xế assigned) — người khác nhận tin đơn đổi thường, không tốn lời gọi dữ kiện chuyến.
   const doi = coTheNhan ? await ganChuyenCuaChang(doiTho, chuyenChoTin) : doiTho;
   const taiKhoan = can(staff, "admin.manage.superadmin") ? await tinTaiKhoan(db, tu) : []; // ADR-0090 đ3: chỉ Toàn quyền nhận — người khác không tốn truy vấn
+  const dieuChinh = await listTinDieuChinh(db, tu, staff.id, can(staff, "ledger.adjust.approve")); // ADR-0115: lọc người nhận ngay ở SQL
   // Chưa từng mở hộp: mốc = ngày tạo tài khoản (không đổ dồn tin cũ lên người mới — đặc tả §4.4). createdAt không đảm bảo luôn ở dạng
   // ISO có mili-giây — locHopThongBao so mốc giờ BẰNG CHUỖI nên phải chuẩn hoá trước (chuanHoaMocGio, src/shared/thong-bao.ts).
   const docDenLuc = chuanHoaMocGio(mark ?? (await getStaffAccount(db, staff.id))?.createdAt ?? now);
-  return locHopThongBao(staff, { don: [...don, ...doi], thuCong, chuyen, taiKhoan, docDenLuc, now, ngan });
+  return locHopThongBao(staff, { don: [...don, ...doi], thuCong, chuyen, taiKhoan, dieuChinh, docDenLuc, now, ngan });
 }
 
 /** ADR-0090 đ3: dòng "ngưng tài khoản" (view audit) ghép quyền HIỆN TẠI của tài khoản bị ngưng (staff) — luật nhận ở locHopThongBao. */

@@ -113,7 +113,7 @@ r = await call(A, "GET", `/api/dispatch/handlers?orderIds=${o1.id},${oAdmin.id},
 assert.equal(r.status, 200);
 assert.deepEqual(r.body, { handlers: { [o1.id]: asDto(a), [oAdmin.id]: asDto(adm), "00000000-0000-4000-8000-000000000000": null } }, "đơn không có người phụ trách (hoặc không có đơn) → null");
 assert.deepEqual(Object.keys(r.body.handlers[o1.id]).sort(), ["name", "partyId", "staffId"], "chỉ tên + id, không SĐT");
-assert.doesNotMatch(JSON.stringify(r.body), /09\d{8}/, "không lộ SĐT");
+assert.doesNotMatch(JSON.stringify(r.body), /(?<![0-9a-f-])09\d{8}(?!\d)/, "không lộ SĐT");
 assert.deepEqual((await call(A, "GET", "/api/dispatch/handlers")).body, { handlers: {} }, "thiếu orderIds = danh sách rỗng");
 assert.deepEqual((await call(A, "GET", "/api/dispatch/handlers?orderIds=")).body, { handlers: {} });
 const fake = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -142,7 +142,7 @@ assert.deepEqual(r.body.assignees.find((x) => x.staffId === b.id), { ...asDto(b)
 assert.equal(r.body.assignees.find((x) => x.staffId === fld.id).roleLabel, "Hướng dẫn viên");
 assert.equal(r.body.assignees.find((x) => x.staffId === adm.id).roleLabel, "Quản trị");
 assert.ok(r.body.assignees.every((x) => Object.keys(x).sort().join() === "name,partyId,roleLabel,staffId"));
-assert.doesNotMatch(JSON.stringify(r.body), /09\d{8}/, "không lộ SĐT");
+assert.doesNotMatch(JSON.stringify(r.body), /(?<![0-9a-f-])09\d{8}(?!\d)/, "không lộ SĐT");
 assert.equal((await call(FIELD, "GET", "/api/dispatch/assignees")).status, 403);
 assert.equal((await call(null, "GET", "/api/dispatch/assignees")).status, 401);
 console.log("✓ GET /api/dispatch/assignees: đúng người đủ điều kiện (kể cả FIELD), chỉ tên + nhãn nhóm");
@@ -163,7 +163,7 @@ let ch = await changes(A, o1);
 assert.equal(ch.length, 1, "Nhận ghi order_claimed riêng (ADR-0034 §4.3) — order_handler_changed chỉ còn đúng lần đổi người sau đó");
 assert.equal(ch[0].detail, `từ ${a.fullName} sang ${b.fullName}`);
 assert.equal(ch[0].staffName, a.fullName);
-assert.doesNotMatch(ch[0].detail, /09\d{8}/, "nhật ký chỉ ghi tên");
+assert.doesNotMatch(ch[0].detail, /(?<![0-9a-f-])09\d{8}(?!\d)/, "nhật ký chỉ ghi tên");
 r = await call(SUPER, "GET", `/api/audit?action=order_handler_changed&q=${o1.orderCode}`);
 assert.equal(r.status, 200);
 assert.deepEqual(r.body.entries.map((e) => [e.action, e.targetLabel, e.orderId]), [["order_handler_changed", o1.orderCode, o1.id]], "Nhận không còn ở đây (order_claimed riêng, ADR-0034 §4.3) — chỉ lần đổi A → B");

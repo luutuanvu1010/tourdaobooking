@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NETWORK_BANNER, classifyOrderError } from "./order-errors.ts";
+import { LOI_409_KHONG_CU, NETWORK_BANNER, classifyOrderError } from "./order-errors.ts";
+import { CAU_THIEU_NGUOI_LON } from "./nguoi-di-kem.ts";
 
 const ctx = { serviceNames: ["Tour 4 đảo Nha Trang", "Phao chuối"], formatMoney: (n: number) => `${n} ₫` };
 const e = (status: number, code: string, message = "msg", details?: unknown) => classifyOrderError({ status, code, message, details }, ctx);
@@ -101,4 +102,16 @@ test("503 moc_toi_thieu_chua_co: nguy hiểm, lời máy chủ (không đoán m�
   const b = e(503, "moc_toi_thieu_chua_co", "Chưa có chính sách điều phối đang hiệu lực (mốc tối thiểu) — báo người phụ trách hệ thống.");
   assert.deepEqual([b.tone, b.title, b.action], ["danger", "Chưa có chính sách điều phối đang hiệu lực (mốc tối thiểu) — báo người phụ trách hệ thống.", "none"]);
   assert.deepEqual(b.lines.map((l) => l.text), ["Chưa lưu, xác nhận hay sửa chuyến có giờ đón được cho tới khi Toàn quyền đặt chính sách điều phối."]);
+});
+
+test("409 thieu_nguoi_lon (ADR-0114 D3): nguy hiểm, tiêu đề là ĐÚNG câu máy chủ gửi, không nút tải lại; mã nằm trong LOI_409_KHONG_CU nên nơi gọi không đổi thành \"Tải lại đơn\"", () => {
+  const b = e(409, "thieu_nguoi_lon", CAU_THIEU_NGUOI_LON);
+  assert.deepEqual([b.tone, b.title, b.action, b.lines], ["danger", CAU_THIEU_NGUOI_LON, "none", []]);
+  assert.equal(LOI_409_KHONG_CU.has("thieu_nguoi_lon"), true);
+  for (const cu of ["stale", "not_editable", "invalid_transition", "short_notice_required", "catalog_changed"]) assert.equal(LOI_409_KHONG_CU.has(cu), false, `${cu} vẫn là màn hình đã cũ`);
+});
+
+test("400 invalid_input với câu thiếu người lớn (lập đơn / lưu nháp): hiện đúng câu máy chủ gửi", () => {
+  const b = e(400, "invalid_input", CAU_THIEU_NGUOI_LON);
+  assert.deepEqual([b.tone, b.title], ["danger", CAU_THIEU_NGUOI_LON]);
 });

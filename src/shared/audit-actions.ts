@@ -54,6 +54,14 @@ export const AUDIT_ACTIONS = {
   ledger_settlement: { label: "Ghi nộp / trả tiền", group: "ledger" },
   ledger_refund: { label: "Ghi hoàn khách", group: "ledger" },
   ledger_adjustment: { label: "Ghi điều chỉnh sổ", group: "ledger" },
+  // ADR-0115 đợt 1 (migration 0094): điều chỉnh công nợ cần người thứ hai duyệt. `ledger_adjustment` (trên) vẫn là dòng ghi SỐ DƯ TRƯỚC / SAU lúc DUYỆT. Các dòng dưới là
+  // nguồn tin báo (ADR-0034; view v_aud_ledger_event — chỉ khoá, KHÔNG detail): `target` là khoá NGƯỜI NHẬN (yêu cầu mới / rút = ('ledger', mã yêu cầu), người nhận tính lúc
+  // đọc theo ô `ledger.adjust.approve`; duyệt / từ chối = ('staff', người tạo); "đổi số dư của bạn" = ('staff', nhân viên bị đổi)). `detail` chỉ lý do đã che dãy số dài.
+  ledger_adjustment_requested: { label: "Gửi yêu cầu điều chỉnh sổ", group: "ledger" },
+  ledger_adjustment_approved: { label: "Duyệt yêu cầu điều chỉnh sổ", group: "ledger" },
+  ledger_adjustment_rejected: { label: "Từ chối yêu cầu điều chỉnh sổ", group: "ledger" },
+  ledger_adjustment_withdrawn: { label: "Rút yêu cầu điều chỉnh sổ", group: "ledger" },
+  ledger_adjustment_affected: { label: "Điều chỉnh đổi số dư của một nhân viên", group: "ledger" },
   ledger_receipt_replaced: { label: "Thay lần thu", group: "ledger" },
   ledger_reversal: { label: "Ghi dòng đảo sổ", group: "ledger" },
   // ADR-0092 Đ6 (migration 0088): gắn mã giao dịch ngân hàng vào lần thu — target = lần thu (`ledger`, id lần thu); `detail` = "gắn mã giao dịch ngân hàng"
@@ -75,6 +83,10 @@ export const AUDIT_ACTIONS = {
   prc_commission_rule_closed: { label: "Đóng mức hoa hồng", group: "ledger" },
   prc_supply_term_added: { label: "Thêm điều khoản người bán", group: "ledger" },
   prc_supply_term_closed: { label: "Đóng điều khoản người bán", group: "ledger" },
+  // ADR-0117 lần 1: Kế toán / Quản trị / Toàn quyền thêm, tắt, bật LOẠI ĐỐI TÁC — `detail` = tên loại (đã cấm số điện thoại / email trong tên), không mã thô.
+  prc_partner_type_added: { label: "Thêm loại đối tác", group: "ledger" },
+  prc_partner_type_off: { label: "Tắt loại đối tác", group: "ledger" },
+  prc_partner_type_on: { label: "Bật lại loại đối tác", group: "ledger" },
   // Khoá sổ tháng (ADR-0080 D1; module ky-so — route ở billing): `order_id` NULL; `detail` = "Khoá sổ tháng MM/YYYY" (không tiền, không SĐT).
   ledger_period_closed: { label: "Khoá sổ tháng", group: "ledger" },
   order_handler_changed: { label: "Đổi người phụ trách", group: "order" },

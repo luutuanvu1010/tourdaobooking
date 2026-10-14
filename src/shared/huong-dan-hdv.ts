@@ -49,7 +49,7 @@ Không nhận được đơn **đã huỷ** hay **đã qua ngày đi**.`,
 - Ngày đi, mã đơn, nhãn ngày như "Hôm nay", "Ngày mai".
 - Trạng thái: **Chờ xác nhận**, **Đã xác nhận** hoặc **Đã đi tour**.
 - Tên khách, số điện thoại và nút [[Gọi]]. Bấm là điện thoại quay số.
-- Từng dịch vụ: giờ đón, số khách, nơi đón, giờ khởi hành, check-in, ghi chú.
+- Từng dịch vụ: giờ đón, số khách, nơi đón, giờ khởi hành, khách có mặt, ghi chú.
 - Ba ô tiền: **Tổng tiền**, **Đã thu**, **Còn lại**.
 - Các nút [[Sửa số khách]], [[Huỷ đơn]], [[Xem đơn]] (tuỳ trạng thái đơn).
 

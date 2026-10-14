@@ -51,7 +51,7 @@ try {
   assert.deepEqual(await p.ev(`[...${svc(0)}.querySelectorAll('.chip')].map((c) => c.textContent)`), ["theo người", "TD101"]);
   assert.deepEqual(await p.ev(pairs(svc(0), ".svc-facts .kv")), [
     // bản 1.39: cùng ngày với đơn (dải đầu trang) → không lặp dòng "Khởi hành", chỉ còn "Giờ khởi hành"
-    ["Số khách", "2 người lớn · 1 trẻ em"], ["Giờ khởi hành", "07:30"], ["Check-in", "Cùng ngày khởi hành · 09:00"],
+    ["Số khách", "2 người lớn · 1 trẻ em"], ["Giờ khởi hành", "07:30"], ["Khách có mặt", "Cùng ngày khởi hành · 09:00"],
   ]);
   const lines0 = await p.ev(`[...${svc(0)}.querySelectorAll('.line-view')].map((l) => [l.querySelector('.line-name').textContent, l.querySelector('.line-calc').textContent, l.querySelector('.line-total').textContent, !!l.querySelector('.tag-price'), l.querySelector('.price-old')?.textContent ?? null])`);
   assert.match(lines0[0][0], /^Tour 4 đảo Nha Trang/);
@@ -90,7 +90,8 @@ try {
   await p.send("Page.navigate", { url: env.base + editHref });
   await p.waitFor("location.pathname === '/order-form' && document.querySelectorAll('#services .svc').length === 2", "form mở lại đơn");
   assert.equal(await p.ev("document.querySelectorAll('#services .svc')[1].querySelector('details.trip').open"), true, "thẻ được nhắm mở sẵn khối chuyến");
-  assert.equal(await p.ev("document.querySelectorAll('#services .svc')[0].querySelector('details.trip').open"), false);
+  // 14/10 (bốn bước, quy tắc an toàn a): thẻ 1 ĐÃ có giá trị chuyến (giờ khởi hành, nơi khách có mặt…) nên khối Thông tin chuyến TỰ MỞ — trước đây thu gọn và giấu giá trị đang có.
+  assert.equal(await p.ev("document.querySelectorAll('#services .svc')[0].querySelector('details.trip').open"), true, "thẻ đã có giá trị chuyến: tự mở (không giấu giá trị)");
   // 2026-09-26 (DK-T3-01): dịch vụ nhập tay ĐÃ LƯU hiện CHỈ XEM — không ô tên/mô tả/đơn giá, không "+ Thêm dòng"/"Xoá dòng"; vẫn có bộ đếm số khách,
   // khối chuyến và nút "Xoá" dịch vụ; có dòng chú thích. Thẻ danh mục cạnh nó không đổi (vẫn có ô đơn giá).
   const frozen = await p.ev(`(() => { const c = document.querySelectorAll('#services .svc')[1];

@@ -5,7 +5,7 @@ import { auditStatement, getAuditTrail } from "../audit";
 import { chupDon, docBangChoChup, laNguoiHuong, soKhachTinhHoaHong, type BanChup } from "../pricing";
 import { ownerCompany } from "../parties";
 import type {
-  CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, DongBoChuyenDto, DraftCountResponse, IncompleteTripBody, MoneyEditResponse, MyAssignmentDto, NhapTayResponse, OrderDetailDto,
+  CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, DongBoChuyenDto, DongLichSuSoKhachDto, DraftCountResponse, IncompleteTripBody, MoneyEditResponse, MyAssignmentDto, NhapTayResponse, OrderDetailDto,
   OrderDetailResponse, OrderListResponse, MocToiThieuResponse, NguoiLapResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
   SuaSoKhachDichVuDto, StaffProfile, ThuongMaiResponse,
 } from "../../shared/contracts";
@@ -17,10 +17,11 @@ import { benDatChoTaiKhoan, benDatDoiTacBiCam, type BookerInput } from "../../sh
 import { docLocDon } from "../../shared/loc-don";
 import { LOC_NHAP_TOI_DA_NGAY, LOC_NHAP_TOI_DA_UNG_VIEN, laDongNhapKeToan, soNgayKhoang } from "../../shared/nhap-ke-toan";
 import { maDonTuNoiDung } from "../../shared/noi-dung-chuyen-khoan";
-import { editablePaxCodesOf, planMoneyEdit, type AdjustmentEntry } from "./money-adjustment";
+import { dungLichSuSoKhach } from "../../shared/lich-su-so-khach";
+import { editablePaxCodesOf, effectiveSubtotal, planMoneyEdit, type AdjustmentEntry } from "./money-adjustment";
 import {
   addLeg, cancelOrder, changeBooker, daHuy, soanDoiKhach, soanHuyDon, soanSuaChang, soanThayChang, thangCauDau, changeLeg, cocCuNhap, confirmOrder, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
-  chayLoSuaSoKhach, demThanCu, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrderIds, listOrders, listPoolSources, updateDraftOrder, updateTrip,
+  chayLoSuaSoKhach, demThanCu, getServicesForSubtotal, getStoredPax, getStoredServices, insertMoneyAdjustment, listAdjustments, listOrderIds, listOrders, listPoolSources, updateDraftOrder, updateTrip,
 } from "./repository";
 import {
   legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, manualPolicy, manualPolicyInsert, openLegsByOrders, orderContactRows, passengerRowsByOrders,
@@ -37,13 +38,15 @@ import { soNguoiChang, tongKhach } from "../../shared/so-nguoi-chang";
 import { maskLongDigits } from "../../shared/text-guards";
 import { doanSoKhach, ghepLyDo } from "../../shared/tin-doi-don";
 import type { HanhDongDoiSoKhach } from "../../shared/audit-actions";
-import { canhBaoGiamGiaVuot, docThanSuaSoKhach, duocSuaSoKhachVanPhong } from "../../shared/so-khach-van-phong";
+import { CAU_THIEU_NGUOI_LON, donThieuNguoiLon } from "../../shared/nguoi-di-kem";
+import { canhBaoGiamGiaVuot, canhBaoKhuyenMai, docThanSuaSoKhach, duocSuaSoKhachVanPhong, soKhachTraTien } from "../../shared/so-khach-van-phong";
 import { docLyDoHuy, docPhanLoai, nhanNhomHuy, type LyDoHuy } from "../../shared/ly-do-huy";
 import { lyDoHienHanh, phanLoaiStatement } from "./huy-don-repo";
 import { toPoolOrders } from "./pool";
 import { soNguoiSauSuaKhach, type ChangSoNguoi } from "./dong-bo-chuyen-don";
 import type { DongBoTheoDon, NoiChuyen } from "../../shared/dong-bo-chuyen";
-import { CAU_X3_THUE_XE, NHOM_THUE_XE, laDongThuongMai } from "../../shared/so-dai-ly-nhan";
+import { CAU_X3_THUE_XE, NHOM_THUE_XE } from "../../shared/so-dai-ly-nhan";
+import { lichSuChoDoiTac } from "../../shared/lich-su-doi-tac";
 import { apGhiTay, banChupTuDb, cheDoThuongMai, chuaCoBanChup, dongGhiTuChup, dungThuongMai, kiemGhiTayVoiBanChup, kiemThanGhiTay, moTaChup, moTaGhiTay, type PhanThuongMai } from "./thuong-mai";
 import { banChupHienHanh, cauChupChuoi, cauGhiTay, demBanChup, laNhaCungCap, nhomCuaMa, tenHoSo } from "./thuong-mai-repo";
 import { laThanDonCu, laThanTripCu } from "./than-cu";
@@ -536,6 +539,8 @@ export const donChoBienNhan = (db: D1Database, id: string): Promise<OrderDetailD
 export type MoneyEditResult =
   | { ok: true; detail?: string; dongBoChuyen?: DongBoChuyenDto }
   | { ok: false; code: "not_found" | "not_confirmed" | "invalid_input" | "stale"; message?: string }
+  /** ADR-0114 D3: lần sửa đưa tổng người đi kèm của đơn từ ≥ 1 xuống 0 — route hướng dẫn viên (`dispatch`) trả 409 `thieu_nguoi_lon` với `message` này. */
+  | { ok: false; code: "thieu_nguoi_lon"; message: string }
   /** ADR-0104 Đ2: lỗi của PHẦN CHUYẾN trong lô (đã dịch — 409 `trip_rule`). */
   | { ok: false; code: "trip_rule"; res: Response };
 
@@ -546,7 +551,7 @@ export type MoneyEditResult =
 export type SoanSuaSoKhach =
   | { ok: true; ghi: false }
   | { ok: true; ghi: true; auditId: string; cau: D1PreparedStatement[]; detail: string; truoc: AdjustmentEntry[]; sau: AdjustmentEntry[] }
-  | { ok: false; code: "invalid_input"; message: string };
+  | { ok: false; code: "invalid_input" | "thieu_nguoi_lon"; message: string };
 
 /**
  * MỘT đường soạn lần sửa số khách cho CẢ HAI route (HDV `handler-money-edit` qua `editMoneyAsHandler`, văn phòng `money-edit` — ADR-0063 D1): đọc D1 → luật
@@ -579,6 +584,32 @@ async function soanSuaSoKhach(
   const detail = ghepLyDo(doanSoKhach(plan.before, plan.after, services), plan.reason);
   const { auditId, cau } = insertMoneyAdjustment(db, orderId, staffId, (latest?.seq ?? 0) + 1, plan.before, plan.after, plan.subtotalBefore, plan.subtotalAfter, action, detail);
   return { ok: true, ghi: true, auditId, cau, detail, truoc: plan.before, sau: plan.after };
+}
+
+/**
+ * ADR-0114 D1 — lời nhắc khuyến mại khi bớt khách, cho phản hồi `money-edit` VÀ chi tiết đơn (MỘT hàm, hai nơi gọi). `khachLucXacNhan` = số khách trả tiền ĐÃ LƯU của mọi dịch
+ * vụ (đóng băng sau xác nhận); `khachHienHanh` = số khách của đơn HIỆN HÀNH (`order` đã áp dòng điều chỉnh gần nhất). Giảm giá hiệu lực 0 thì không có gì để nhắc nên khỏi đọc thêm.
+ * Không lưu cờ, không đổi số tiền (luật thuần: `canhBaoKhuyenMai` của src/shared/so-khach-van-phong.ts).
+ */
+async function nhacKhuyenMaiCuaDon(db: D1Database, order: OrderDetailDto): Promise<string | null> {
+  if (order.giamGiaHieuLuc <= 0) return null; // lối thoát sớm cho đỡ đọc CSDL; luật vẫn ở `canhBaoKhuyenMai` (cùng một khoá giảm giá hiệu lực)
+  const daLuu = await getStoredPax(db, order.id);
+  return canhBaoKhuyenMai(order, soKhachTraTien(Array.from(daLuu.values(), (pax) => ({ pax }))), soKhachTraTien(order.services));
+}
+
+/**
+ * ADR-0114 D2 — khối "Lịch sử số khách" của chi tiết đơn: dòng LÚC XÁC NHẬN (số khách đã lưu + tạm tính gốc), mỗi lần sửa, kết quả hiện hành. Chỉ GỌI sau khi route đã hỏi
+ * `order.history.view` với đơn này (cùng điều kiện khối `history`). Nguồn: `order_service` (đóng băng) + `order_money_adjustment` theo `seq`; tạm tính mỗi dòng tính lại bằng
+ * MỘT nguồn `effectiveSubtotal` trên MỌI dịch vụ (kể cả nhập tay) — không tin cột `subtotal_after` đã lưu; KHÔNG đọc chữ nhật ký. Dựng dòng ở src/shared/lich-su-so-khach.ts.
+ */
+async function lichSuSoKhachCuaDon(db: D1Database, order: OrderDetailDto): Promise<DongLichSuSoKhachDto[]> {
+  const [daLuu, lanSua, dichVuTien] = await Promise.all([getStoredPax(db, order.id), listAdjustments(db, order.id), getServicesForSubtotal(db, [order.id])]);
+  const tien = dichVuTien.get(order.id) ?? [];
+  return dungLichSuSoKhach({
+    dichVu: order.services.map((s) => ({ id: s.id, catalogCode: s.catalogCode, name: s.name, pax: daLuu.get(s.id) ?? s.pax })),
+    tamTinhKhoiTao: effectiveSubtotal(tien, []),
+    lanSua: lanSua.map((l) => ({ seq: l.seq, sau: l.after, tamTinhSau: effectiveSubtotal(tien, l.after) })),
+  });
 }
 
 /**
@@ -938,11 +969,13 @@ export const ordersModule: AppModule = {
       // R-P21 (áp lời chủ H4): dòng đặt gấp của lịch sử rút gọn theo vai (Đối tác, HDV, Thực tập không thấy lý do, tên người duyệt).
       // ADR-0060 điều 3 (ii): dòng order_accounting_entry_* chỉ cho người qua ô accounting.entry.view với ĐƠN NÀY (luật theo ô, không theo danh tính "Đối tác").
       const xemNhapKeToan = can(staff, "accounting.entry.view", scope);
+      // D-1 (kiểm toán 13/10/2026): người giữ quyền Đối tác — tài khoản lai cũng bị áp ("có quyền Đối tác là áp") — chỉ thấy các hành động trong DANH SÁCH CHO PHÉP
+      // (`LICH_SU_DOI_TAC_CHO_PHEP`: chữ chi tiết rút gọn theo từng hành động; riêng dòng nhập kế toán vẫn theo ô `accounting.entry.view` — ADR-0060), KHÔNG còn kiểu "lọc bỏ vài loại" (loại dòng thêm sau sẽ tự lộ). Dấu đặt gấp
+      // luôn rút gọn cho Đối tác (R-P21), kể cả tài khoản lai có ô xem đủ. Người nội bộ không đổi (vẫn lọc dòng nhập kế toán theo ô quyền như cũ).
       const history = can(staff, "order.history.view", scope)
-        ? lichSuTheoVai(await getAuditTrail(env.DB, order.id), xemDuDatGap(staff))
-          .filter((e) => xemNhapKeToan || !laDongNhapKeToan(e.action))
-          // Sổ đại lý đợt 1 (C9 = A): mức hoa hồng đã chụp / ghi tay KHÔNG lộ cho Đối tác qua lịch sử — tài khoản lai cũng bị lọc ("có quyền Đối tác là áp").
-          .filter((e) => !holdsPartner(staff) || !laDongThuongMai(e.action))
+        ? holdsPartner(staff)
+          ? lichSuChoDoiTac(lichSuTheoVai(await getAuditTrail(env.DB, order.id), false), xemNhapKeToan)
+          : lichSuTheoVai(await getAuditTrail(env.DB, order.id), xemDuDatGap(staff)).filter((e) => xemNhapKeToan || !laDongNhapKeToan(e.action))
         : [];
       // ADR-0063 D1: dữ liệu bảng "Sửa số khách dịch vụ" — chỉ khi người xem sửa được (cùng hàm ẩn/hiện của giao diện); loại khách sửa được tính từ BẢN CHỤP GỐC
       // (`findOrder`, trước điều chỉnh — loại đã về 0 vẫn còn ô, cùng cách "Việc của tôi").
@@ -952,6 +985,9 @@ export const ordersModule: AppModule = {
       // Đơn đã "Đã giao" bị khoá (ADR-0025 đ5) ⇒ không còn nút sửa (giao diện chỉ ẩn/hiện; máy chủ từ chối ở mọi route ghi).
       return json({
         order, history, canModify: can(staff, "order.modify", scope) && order.deliveredAt === null, mocToiThieuPhut: moc?.phut ?? null, suaSoKhach,
+        canhBaoKhuyenMai: await nhacKhuyenMaiCuaDon(env.DB, order), // ADR-0114 D1: người xem đã qua `money.view` ở trên (giảm giá là dữ liệu tiền) — không lộ thêm gì
+        // ADR-0114 D2: lịch sử số khách CHỈ cho người qua `order.history.view` với đơn này (cùng điều kiện khối `history` ở trên), còn lại null — không đổi ai được xem gì.
+        lichSuSoKhach: can(staff, "order.history.view", scope) ? await lichSuSoKhachCuaDon(env.DB, order) : null,
       } satisfies OrderDetailResponse);
     }),
 
@@ -1255,10 +1291,10 @@ export const ordersModule: AppModule = {
       if (!than.ok) return error(400, "invalid_input", than.message);
       // Lý do đi vào luật chung dưới dạng NHÃN cố định do máy chủ chọn (planMoneyEdit nhận `reason` chữ — cùng bộ đọc với đường HDV).
       const soan = await soanSuaSoKhach(env.DB, id, staff.id, { reason: than.nhan, services: than.services }, "order_money_adjusted");
-      if (!soan.ok) return error(400, "invalid_input", soan.message);
+      if (!soan.ok) return soan.code === "thieu_nguoi_lon" ? error(409, "thieu_nguoi_lon", soan.message) : error(400, "invalid_input", soan.message); // ADR-0114 D3: 409, cùng mã với đường hướng dẫn viên
       if (!soan.ghi) {
         const order = (await loadOrderView(env.DB, id, xemDuDatGap(staff)))!;
-        return json({ order, daGhi: false, canhBaoTongAm: canhBaoGiamGiaVuot(order) } satisfies MoneyEditResponse);
+        return json({ order, daGhi: false, canhBaoTongAm: canhBaoGiamGiaVuot(order), canhBaoKhuyenMai: await nhacKhuyenMaiCuaDon(env.DB, order) } satisfies MoneyEditResponse);
       }
       // ADR-0104 Đ2 (điểm gọi 6): máy đồng bộ chuyến nối khúc chuyến SAU câu đơn — MỘT lô; số người từng chặng sau lệnh + phần vừa tăng (Q-2 = a).
       const dong = await dongBoChuyen({
@@ -1277,7 +1313,7 @@ export const ordersModule: AppModule = {
       const { dto } = dong.sauKhiGhi(kq);
       baoThayDoi({ orderId: id, thayDoi: "tien" });
       const order = (await loadOrderView(env.DB, id, xemDuDatGap(staff)))!;
-      return json({ order, daGhi: true, canhBaoTongAm: canhBaoGiamGiaVuot(order), dongBoChuyen: dto } satisfies MoneyEditResponse);
+      return json({ order, daGhi: true, canhBaoTongAm: canhBaoGiamGiaVuot(order), canhBaoKhuyenMai: await nhacKhuyenMaiCuaDon(env.DB, order), dongBoChuyen: dto } satisfies MoneyEditResponse);
     }),
 
     // Đổi khách (hồ sơ người đặt + tên/SĐT trên đơn) — đơn nháp HOẶC đã xác nhận: coi như thông tin vận hành, cùng quyền với sửa chuyến (ADR-0011 điều 2).
@@ -1373,6 +1409,8 @@ export const ordersModule: AppModule = {
         // mà MỌI dòng đúng giá danh mục (bắt cả đơn nháp CŨ lập trước bản vá, và dòng nhập tay cũ — không có giá danh mục) VÀ giảm giá ĐÃ LƯU không vượt trần (hôm nay 0).
         const giaLoi = order ? giaDanhMucViolation(staff, order.services.flatMap((s) => s.items), order.discount) : null;
         if (giaLoi) return GIA_DANH_MUC(giaLoi);
+        // ADR-0114 D3: cửa xác nhận đọc số khách ĐÃ LƯU (nháp cũ lập trước ADR có thể không có người lớn); lập đơn / lưu nháp đã chặn ở `validateOrder`.
+        if (order && donThieuNguoiLon(order.services.map((s) => s.pax))) return error(409, "thieu_nguoi_lon", CAU_THIEU_NGUOI_LON);
         const detail = order ? summarizeDeviations(order.services.flatMap((s) => s.items)) : undefined;
         // ADR-0049 D2 (I15, I25): điều kiện mốc nằm TRONG câu xác nhận — ngưỡng chuỗi giờ VN tính bằng `nguongMocVn` (MỘT luật với `kiemMocDat`). Mốc chưa
         // có → 503, không đoán. MỘT mốc giờ (`nowMs`) cho câu ghi và cho việc đọc lại lý do.
