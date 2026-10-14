@@ -258,8 +258,9 @@ test("số lạ + MỨC TA (ADR-0117 lần 2): loại của Đối tác gắn m�
       const r = await w.call("GET", duong, { as });
       assert.ok(r.status < 500, `${duong}: ${r.status} ${r.text}`);
       assert.deepEqual(soLaTrong(r.text), [], `${duong} (${as}, ${r.status}) lộ số lạ: ${r.text}`);
-      // Ngoại lệ có tên (lần 1, ngoài phạm vi mức TA): Danh bạ cho người có party.view (tài khoản lai Bán hàng + Đối tác) thấy TÊN LOẠI hồ sơ đang mang — ADR-0117 điều 4
-      // chỉ hứa «người không có party.view không thấy tên loại». Tên / mã MỨC thì không bao giờ.
+      // CHỜ ĐIỀU PHỐI / CHỦ QUYẾT (phát hiện ở Task 4 lần 2, chưa phải ngoại lệ đã duyệt): Danh bạ hôm nay cho tài khoản lai Bán hàng + Đối tác (có party.view) thấy TÊN LOẠI
+      // hồ sơ đang mang (hành vi lần 1, module parties). Bài chỉ khoanh lại để không chặn Task 4; quyết giữ hay ẩn tên loại với mọi người giữ PARTNER thì sửa dòng này.
+      // Tên / mã MỨC thì không bao giờ lộ, kể cả ở Danh bạ.
       const cam = as === LAI_BAN && duong.startsWith("/api/parties/") ? [TEN_MUC, maMuc] : [TEN_MUC, maMuc, TEN_LOAI, ma];
       for (const x of cam) assert.ok(!r.text.includes(x), `${duong} (${as}, ${r.status}) lộ «${x}»: ${r.text}`);
     }
