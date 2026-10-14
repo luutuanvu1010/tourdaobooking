@@ -30,7 +30,7 @@ Bằng chứng chính (tự chạy lại bởi người kiểm toàn nhánh, 202
 ## Bước 0 — hiện trạng bốn bậc
 - (a) SQLite trong bộ nhớ: đạt (và chạy lại bằng bài thật ở Task 2).
 - (b) D1 local trên tệp thật: đạt, hai lần (người thi công, người kiểm toàn nhánh).
-- (c) bản xuất production nạp D1 local: **chưa chạy — việc của chủ**.
+- (c) bản xuất production nạp D1 local: **ĐẠT, chủ chạy 2026-10-15** (xuất `--remote` chỉ đọc, tách `cau-truc`/`trigger`, nạp local; wrangler 4.147.0). Lần xuất cấu trúc đầu báo «Authentication error 10000» (vé OAuth), chạy lại sau `wrangler login` thì qua. Trước khi áp: mức 4, bản chụp 1, đơn 99. Áp `0096` rồi `0097` (12 + 21 lệnh) báo thành công. Sau khi áp: mức 4, bản chụp 1, đơn 99 (không đổi). `PRAGMA foreign_key_check` không trả dòng nào. `audit-invariants --strict`: «Mọi bất biến đạt, 4 cảnh báo» — R-PRC-1, R-PRC-2, R-PRC-6 mới đều xanh trên dữ liệu thật; bốn cảnh báo (lần thu chưa rõ người thu 22, giấy tờ xe thiếu 7, dịch vụ chưa phân nhóm 5, đơn chưa chụp bù 42) là dữ liệu cũ, có sẵn, không do lần 2. Chưa chứng minh: D1 thật (không phải local) có chạy cả tệp trong một lần như wrangler local — chỉ bậc (d) trả lời.
 - (d) D1 thật bỏ đi: **chưa chạy — việc của chủ**. Phải xong trước khi 0097 tới gần production.
 
 ## Ruling của điều phối
