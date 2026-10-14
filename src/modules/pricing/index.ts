@@ -278,9 +278,8 @@ export const pricingModule: AppModule = {
       if (res instanceof Response) return res;
       const homNay = vnToday(new Date());
       const [gan, dongRieng] = await Promise.all([roleTierById(env.DB, id), roleRulesForTierLink(env.DB, v.roleTypeCode, v.validFrom, v.validTo)]);
-      return kemLocation(json({
-        gan: dtoGan(gan!, tenVai, new Map([[muc.code, muc.name]]), homNay), dongRieng: dongRieng.map((r) => dtoMuc(r, tenVai, homNay)),
-      } satisfies GanLoaiMucResponse, 201), "/hoa-hong");
+      const than: GanLoaiMucResponse = { gan: dtoGan(gan!, tenVai, new Map([[muc.code, muc.name]]), homNay), dongRieng: dongRieng.map((r) => dtoMuc(r, tenVai, homNay)) };
+      return kemLocation(json(than, 201), "/hoa-hong");
     }),
     route("POST", "/api/pricing/muc-ta/gan/:id/ket-thuc", "office", async ({ env, request, params, staff }) => {
       if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();
