@@ -620,12 +620,17 @@ export interface CatalogServiceDto extends CatalogService {
   supported: boolean;
   /** ADR-0058 Đ5: nhóm hiện hành; `null` = chưa phân loại HOẶC nhóm đang tắt. */
   groupCode: string | null;
+  /**
+   * ADR-0118 Đ1: nhóm hiện hành của dịch vụ có đưa đón không — `false` thì form KHÔNG dựng khối đưa đón và máy chủ từ chối ghi / xác nhận chặng (`transfer_disabled`). Chưa phân loại, nhóm
+   * đang tắt dùng → `true`. Cùng giá trị cho mọi vai (cờ là dữ liệu, không theo vai).
+   */
+  transferEnabled: boolean;
 }
 
 /** ADR-0058 Đ5: nhóm cho form đơn — chỉ nhóm đang dùng có ≥ 1 dịch vụ đang hiện, xếp theo thứ tự. */
 export interface CatalogGroupDto { code: string; name: string }
 /** ADR-0058 Đ4: nhóm như Quản trị thấy (kể cả nhóm tắt); `soDichVu` = số dịch vụ hiện hành; `updatedAt` dùng làm `expectedUpdatedAt` khi sửa. */
-export interface CatalogAdminGroupDto extends CatalogGroupDto { sortOrder: number; active: boolean; soDichVu: number; updatedAt: string }
+export interface CatalogAdminGroupDto extends CatalogGroupDto { sortOrder: number; active: boolean; /** ADR-0118 Đ1: cờ «Có đưa đón» của nhóm (mặc định bật). */ transferEnabled: boolean; soDichVu: number; updatedAt: string }
 
 export interface CatalogConflictDto { code: PaxCode; base: number | null; current: number | null; override: number }
 
