@@ -66,7 +66,7 @@ export async function ghiThayLanThu(db: D1Database, input: { raw: unknown; ai: N
   // ADR-0088 đ4 (i) + kiểm độc lập vòng 3 (CAO): khoản "Công ty thu – CK" do người khác khai còn CHỜ XÁC NHẬN thì KHÔNG đảo — dòng giữ hộ trên người khai còn
   // nguyên tới khi Kế toán xác nhận đã nhận hoặc người khai nộp (một lần thu mới do Kế toán ghi "Công ty thu" sẽ xoá khoản người khai đang giữ).
   const choXacNhan = khoanChoXacNhan(receipts.map(toReceiptRow), dongDon.map(toLineRow));
-  if (st.status === "cancelled") return loi(409, "invalid_state", "Đơn đã huỷ — tiền của đơn huỷ đi qua “Duyệt hoàn cọc” / “Chuyển tiền sang đơn mới”.");
+  if (st.status === "cancelled") return loi(409, "invalid_state", "Đơn đã huỷ — tiền của đơn huỷ đi qua “Duyệt hoàn thu trước” / “Chuyển tiền sang đơn mới”.");
   const cuRows = [];
   for (const id of cu as string[]) {
     const r = receipts.find((x) => x.id === id);

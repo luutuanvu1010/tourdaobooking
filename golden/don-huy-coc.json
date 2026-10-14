@@ -24,7 +24,7 @@
       },
       "dap_an": {
         "da_tra": 500000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 0, "da_chi": 0, "da_chuyen": 0, "hoan_ngoai": 0,
-        "con_giu": 500000, "cho_chi": 0, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
+        "con_giu": 500000, "cho_chi": 0, "han": "2027-01-09", "nhan": "Thu trước giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
       }
     },
     {
@@ -44,7 +44,7 @@
       },
       "dap_an": {
         "da_tra": 500000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 200000, "da_chi": 200000, "da_chuyen": 0, "hoan_ngoai": 0,
-        "con_giu": 300000, "cho_chi": 0, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
+        "con_giu": 300000, "cho_chi": 0, "han": "2027-01-09", "nhan": "Thu trước giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
       }
     },
     {
@@ -64,7 +64,7 @@
       },
       "dap_an": {
         "da_tra": 500000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 100000, "da_chi": 100000, "da_chuyen": 0, "hoan_ngoai": 0,
-        "con_giu": 400000, "cho_chi": 0, "han": "2027-01-09", "nhan": "Cọc giữ lại", "nhan_phu": null, "so_du": {}
+        "con_giu": 400000, "cho_chi": 0, "han": "2027-01-09", "nhan": "Thu trước giữ lại", "nhan_phu": null, "so_du": {}
       }
     },
     {
@@ -167,7 +167,7 @@
       },
       "dap_an": {
         "da_tra": 0, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 0, "da_chi": 0, "da_chuyen": 0, "hoan_ngoai": 0,
-        "con_giu": 0, "cho_chi": 0, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
+        "con_giu": 0, "cho_chi": 0, "han": "2027-01-09", "nhan": "Thu trước giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
       }
     },
     {
@@ -187,7 +187,7 @@
       },
       "dap_an": {
         "da_tra": 500000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 100000, "da_chi": 100000, "da_chuyen": 0, "hoan_ngoai": 0,
-        "con_giu": 400000, "cho_chi": 0, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
+        "con_giu": 400000, "cho_chi": 0, "han": "2027-01-09", "nhan": "Thu trước giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
       }
     },
     {
@@ -208,7 +208,7 @@
       },
       "dap_an": {
         "da_tra": 300000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 300000, "da_chi": 0, "da_chuyen": 0, "hoan_ngoai": 0,
-        "con_giu": 300000, "cho_chi": 300000, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": { "HDV Nam": 0 }
+        "con_giu": 300000, "cho_chi": 300000, "han": "2027-01-09", "nhan": "Thu trước giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": { "HDV Nam": 0 }
       }
     },
     {
@@ -228,7 +228,7 @@
       },
       "dap_an": {
         "da_tra": 400000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 100000, "da_chi": 0, "da_chuyen": 0, "hoan_ngoai": 0,
-        "con_giu": 400000, "cho_chi": 100000, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
+        "con_giu": 400000, "cho_chi": 100000, "han": "2027-01-09", "nhan": "Thu trước giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
       }
     },
     {
@@ -245,7 +245,7 @@
       },
       "dap_an": {
         "da_tra": 200000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 0, "da_chi": 0, "da_chuyen": 0, "hoan_ngoai": 0,
-        "con_giu": 200000, "cho_chi": 0, "han": "2026-12-04", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 04/12/2026", "so_du": {}
+        "con_giu": 200000, "cho_chi": 0, "han": "2026-12-04", "nhan": "Thu trước giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 04/12/2026", "so_du": {}
       }
     },
     {
@@ -265,7 +265,7 @@
       },
       "dap_an": {
         "da_tra": 1200000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 200000, "da_duyet": 1000000, "da_chi": 0, "da_chuyen": 0, "hoan_ngoai": 0,
-        "con_giu": 1000000, "cho_chi": 1000000, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
+        "con_giu": 1000000, "cho_chi": 1000000, "han": "2027-01-09", "nhan": "Thu trước giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
       }
     }
   ]

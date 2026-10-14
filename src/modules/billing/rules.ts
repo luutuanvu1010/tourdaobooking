@@ -308,8 +308,8 @@ const sai = (ma: string, cau: string): KiemCoc => ({ ok: false, ma, cau });
 
 /** Duyệt hoàn / duyệt chuyển (đ4a, đ5, X-2): nhóm chưa kết luận → chặn; khách huỷ quá hạn → chặn; tổng duyệt vượt tiền còn giữ lúc huỷ → chặn. */
 export function kiemDuyet(input: { coc: SoTienCoc; nhom: NhomHuy; han: string; homNay: string; soTien: number }): KiemCoc {
-  if (input.nhom === "CHUA_KET_LUAN") return sai("coc_unclassified", "Lý do huỷ chưa được phân loại — Quản trị phân loại lý do trước khi duyệt hoàn cọc.");
-  if (input.nhom === "KHACH_HUY" && input.homNay > input.han) return sai("coc_deadline", `Đã quá hạn hoàn cọc (hạn: ${ngayVn(input.han)}).`);
+  if (input.nhom === "CHUA_KET_LUAN") return sai("coc_unclassified", "Lý do huỷ chưa được phân loại — Quản trị phân loại lý do trước khi duyệt hoàn thu trước.");
+  if (input.nhom === "KHACH_HUY" && input.homNay > input.han) return sai("coc_deadline", `Đã quá hạn hoàn thu trước (hạn: ${ngayVn(input.han)}).`);
   const conDuyetDuoc = input.coc.conGiuLucHuy - input.coc.daDuyet;
   if (input.soTien > conDuyetDuoc) return sai("coc_exceeds_paid", `Vượt số tiền còn giữ của đơn — còn duyệt được tối đa ${dong(Math.max(0, conDuyetDuoc))}.`);
   return { ok: true };
@@ -348,7 +348,7 @@ export function kiemChi(input: { conLaiKhoan: number; soTien: number; nguoiChi: 
 
 /** Ghi "đã hoàn ngoài hệ thống" (đ16, X-3): chỉ đơn huỷ cũ; một dòng đang hiệu lực; số ≤ còn giữ. Không bị hạn chặn. */
 export function kiemGhiHoanNgoai(input: { legacy: boolean; coDongHieuLuc: boolean; coc: SoTienCoc; soTien: number }): KiemCoc {
-  if (!input.legacy) return sai("coc_outside_not_legacy", "Chỉ ghi được cho đơn huỷ trước khi có lệnh hoàn cọc trong Nền tảng — đơn này hoàn qua Duyệt hoàn cọc.");
+  if (!input.legacy) return sai("coc_outside_not_legacy", "Chỉ ghi được cho đơn huỷ trước khi có lệnh hoàn thu trước trong Nền tảng — đơn này hoàn qua Duyệt hoàn thu trước.");
   if (input.coDongHieuLuc) return sai("coc_outside_once", "Đơn này đã có một dòng đã hoàn ngoài hệ thống đang hiệu lực.");
   if (input.soTien > input.coc.conGiu) return sai("coc_outside_exceeds", `Vượt số tiền còn giữ của đơn (${dong(Math.max(0, input.coc.conGiu))}).`);
   return { ok: true };

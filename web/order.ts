@@ -721,7 +721,7 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
     const lyDo = oLyDo("Vì sao xếp nhóm này (bắt buộc)");
     nut.push(hangXacNhan({
       nhan: "Phân loại lý do", action: "phan-loai-huy", nutGhi: "Phân loại",
-      cau: "Lý do huỷ đang “chưa kết luận”. Chọn nhóm (quyết định giữ cọc và hạn hoàn):",
+      cau: "Lý do huỷ đang “chưa kết luận”. Chọn nhóm (quyết định giữ thu trước và hạn hoàn):",
       o: [h("label", null, "Nhóm", nhom), h("label", null, "Lý do", lyDo)],
       kiem: () => (lyDo.value.trim() ? null : "Nhập lý do phân loại."),
       ghi: () => api(`/api/orders/${encodeURIComponent(order.id)}/cancel-reason`, { method: "POST", body: { nhom: nhom.value, lyDo: lyDo.value.trim() } }),
@@ -734,7 +734,7 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
     const donNhan = h("input", { type: "text", autocomplete: "off", placeholder: "Mã đơn nhận (khi chuyển)" }) as HTMLInputElement;
     const lyDo = oLyDo("Vì sao hoàn / chuyển (bắt buộc)");
     nut.push(hangXacNhan({
-      nhan: "Duyệt hoàn cọc", action: "coc-duyet", nutGhi: "Duyệt",
+      nhan: "Duyệt hoàn thu trước", action: "coc-duyet", nutGhi: "Duyệt",
       cau: `Công ty còn giữ ${vnd(c.conGiu)}.${c.nhom === "KHACH_HUY" ? ` Hạn hoàn: ${ngayDayDu(c.han)}.` : ""} Người duyệt không tự chi.`,
       o: [h("label", null, "Loại", loai), h("label", null, "Số tiền (₫)", so), h("label", null, "Đơn nhận", donNhan), h("label", null, "Lý do", lyDo)],
       kiem: () => (parseMoney(so.value) <= 0 ? "Nhập số tiền." : !lyDo.value.trim() ? "Nhập lý do." : loai.value === "chuyen" && !donNhan.value.trim() ? "Nhập mã đơn nhận." : null),
@@ -752,7 +752,7 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
     const lyDo = oLyDo("Đã trả tay khách thế nào (bắt buộc, không số tài khoản)");
     nut.push(hangXacNhan({
       nhan: "Ghi đã hoàn ngoài hệ thống", action: "coc-ghi-ngoai", nutGhi: "Ghi",
-      cau: "Đơn huỷ trước khi có lệnh hoàn cọc: ghi khoản công ty đã trả tay cho khách (cần Quản trị xác nhận mới tính).",
+      cau: "Đơn huỷ trước khi có lệnh hoàn thu trước: ghi khoản công ty đã trả tay cho khách (cần Quản trị xác nhận mới tính).",
       o: [h("label", null, "Số tiền (₫)", so), h("label", null, "Lý do", lyDo)],
       kiem: () => (parseMoney(so.value) <= 0 ? "Nhập số tiền." : lyDo.value.trim() ? null : "Nhập lý do."),
       ghi: () => api(`/api/orders/${encodeURIComponent(order.id)}/coc/hoan-ngoai`, { method: "POST", body: { soTien: parseMoney(so.value), lyDo: lyDo.value.trim() } }),

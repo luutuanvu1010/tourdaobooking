@@ -212,13 +212,13 @@ test("NT-H5 (H-C7): trả dư tự do (POST /api/ledger/refunds) trên đơn HU�
   assert.equal((await w.call("POST", "/api/ledger/refunds", { as: KT, body: { orderId: x, soTien: 50_000, hinhThuc: "CASH", nguoiTra: "cong_ty" } })).status, 201);
 });
 
-test("NT-D2/D3 (đ5, H-C3): khách huỷ — duyệt sau hạn → 409 'Đã quá hạn hoàn cọc'; công ty huỷ sau hạn → 201; nhóm chưa kết luận → 409 tới khi Quản trị phân loại (SV-DH-11)", async () => {
+test("NT-D2/D3 (đ5, H-C3): khách huỷ — duyệt sau hạn → 409 'Đã quá hạn hoàn thu trước'; công ty huỷ sau hạn → 201; nhóm chưa kết luận → 409 tới khi Quản trị phân loại (SV-DH-11)", async () => {
   const w = setup();
   const qua = await donHuyCoTien(w, { depart: vnNgay(-70) });
   const r = await duyet(w, ADMIN, qua, { loai: "hoan", soTien: 100_000, lyDo: "trễ" });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "coc_deadline");
-  assert.match(r.json.error.message, /^Đã quá hạn hoàn cọc \(hạn: \d{2}\/\d{2}\/\d{4}\)\.$/);
+  assert.match(r.json.error.message, /^Đã quá hạn hoàn thu trước \(hạn: \d{2}\/\d{2}\/\d{4}\)\.$/);
   assert.equal((await tien(w, ADMIN, qua)).coc.coTheDuyet, false);
   const ct = await donHuyCoTien(w, { depart: vnNgay(-70), lyDo: "THOI_TIET", nguoiHuy: ADMIN });
   assert.equal((await duyet(w, ADMIN, ct, { loai: "hoan", soTien: 500_000, lyDo: "Công ty huỷ — hoàn toàn bộ" })).status, 201, "SV-DH-04");

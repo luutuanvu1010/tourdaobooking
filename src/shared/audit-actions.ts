@@ -68,10 +68,10 @@ export const AUDIT_ACTIONS = {
   // (chữ cố định); KHÔNG chép mã giao dịch, không số tài khoản.
   ledger_bank_txn_linked: { label: "Gắn mã giao dịch ngân hàng", group: "ledger" },
   // ADR-0089 (cọc đơn huỷ — migration 0079): duyệt / huỷ duyệt / chi / chuyển / đã hoàn ngoài hệ thống. Không số tiền trong detail (chỉ lý do).
-  deposit_refund_approved: { label: "Duyệt hoàn cọc", group: "ledger" },
+  deposit_refund_approved: { label: "Duyệt hoàn thu trước", group: "ledger" },
   deposit_transfer_approved: { label: "Duyệt chuyển tiền sang đơn mới", group: "ledger" },
-  deposit_approval_voided: { label: "Huỷ duyệt hoàn cọc", group: "ledger" },
-  deposit_refund_paid: { label: "Ghi chi hoàn cọc", group: "ledger" },
+  deposit_approval_voided: { label: "Huỷ duyệt hoàn thu trước", group: "ledger" },
+  deposit_refund_paid: { label: "Ghi chi hoàn thu trước", group: "ledger" },
   deposit_transferred_out: { label: "Chuyển tiền sang đơn mới", group: "ledger" },
   deposit_transferred_in: { label: "Nhận tiền chuyển từ đơn huỷ", group: "ledger" },
   deposit_outside_recorded: { label: "Ghi đã hoàn ngoài hệ thống", group: "ledger" },

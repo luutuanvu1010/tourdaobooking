@@ -28,21 +28,21 @@ const toHoanNgoaiRow = (g: OutsideDbRow): HoanNgoaiRow => ({ id: g.id, kind: g.k
 
 /** Câu tiếng Việt cho lỗi trigger 0079 / 0045 (mã có tiền tố trong thông báo RAISE) — không lộ mã thô. */
 const CAU_TRIGGER: [string, string][] = [
-  ["coc_not_cancelled", "Đơn chưa huỷ — không duyệt hoàn cọc được."],
-  ["coc_unclassified", "Lý do huỷ chưa được phân loại — Quản trị phân loại lý do trước khi duyệt hoàn cọc."],
-  ["coc_deadline", "Đã quá hạn hoàn cọc."],
+  ["coc_not_cancelled", "Đơn chưa huỷ — không duyệt hoàn thu trước được."],
+  ["coc_unclassified", "Lý do huỷ chưa được phân loại — Quản trị phân loại lý do trước khi duyệt hoàn thu trước."],
+  ["coc_deadline", "Đã quá hạn hoàn thu trước."],
   ["coc_exceeds_paid", "Vượt số tiền còn giữ của đơn — số tiền vừa thay đổi, tải lại rồi thử lại."],
   ["coc_bad_target", "Đơn nhận phải còn hiệu lực và chưa Đã giao."],
   ["coc_void_exceeds_unspent", "Chỉ huỷ được phần chưa chi của khoản duyệt — tải lại rồi thử lại."],
   ["coc_void_mismatch", "Khoản duyệt không thuộc đơn này."],
-  ["coc_needs_approval", "Đơn huỷ: hoàn qua “Duyệt hoàn cọc” rồi “Ghi chi hoàn”."],
+  ["coc_needs_approval", "Đơn huỷ: hoàn qua “Duyệt hoàn thu trước” rồi “Ghi chi hoàn”."],
   ["coc_bad_approval", "Khoản duyệt không thuộc đơn này."],
   ["coc_exceeds_approved", "Vượt phần đã duyệt còn lại — tải lại rồi thử lại."],
   ["coc_same_person", "Người duyệt không tự chi / chuyển / xác nhận khoản này — cần một người khác (tách nhiệm vụ)."],
   ["coc_transfer_mismatch", "Lệnh chuyển không khớp đơn nhận, số tiền hoặc người giữ tiền."],
   ["coc_transfer_target_invalid", CAU_DON_NHAN_HONG],
-  ["coc_paid_below_approved", "Đơn đã duyệt hoàn cọc — huỷ duyệt phần chưa chi trước khi đảo lần thu."],
-  ["coc_outside_not_legacy", "Chỉ ghi được cho đơn huỷ trước khi có lệnh hoàn cọc trong Nền tảng."],
+  ["coc_paid_below_approved", "Đơn đã duyệt hoàn thu trước — huỷ duyệt phần chưa chi trước khi đảo lần thu."],
+  ["coc_outside_not_legacy", "Chỉ ghi được cho đơn huỷ trước khi có lệnh hoàn thu trước trong Nền tảng."],
   ["coc_outside_once", "Đơn này đã có một dòng đã hoàn ngoài hệ thống đang hiệu lực."],
   ["coc_outside_exceeds", "Vượt số tiền còn giữ của đơn — tải lại rồi thử lại."],
   ["coc_outside_mismatch", "Dòng đã hoàn ngoài hệ thống không thuộc đơn này."],
@@ -160,7 +160,7 @@ export async function cocChoBienNhan(db: D1Database, orderId: string): Promise<R
   };
 }
 
-const DON_CHUA_HUY = () => loi(409, "coc_not_cancelled", "Đơn chưa huỷ — không có tiền cọc để xử lý.");
+const DON_CHUA_HUY = () => loi(409, "coc_not_cancelled", "Đơn chưa huỷ — không có tiền thu trước để xử lý.");
 const KHOAN_KHONG_CO = () => loi(404, "not_found", "Không tìm thấy khoản duyệt của đơn này.");
 
 /** Đọc "người trả / người giữ": "cong_ty" hoặc { partyId } của một hồ sơ có thật. */

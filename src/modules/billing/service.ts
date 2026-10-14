@@ -233,7 +233,7 @@ function lanThuDto(
     laDongDao: r.reverses_id !== null,
     ...(doiTac && r.created_by !== doiTac.staffId
       ? {}
-      : { nguoiGhi: r.created_by === "he-thong" ? "Hệ thống (chuyển cọc cũ)" : r.created_by_label, ghiChu: r.note }),
+      : { nguoiGhi: r.created_by === "he-thong" ? "Hệ thống (chuyển thu trước cũ)" : r.created_by_label, ghiChu: r.note }),
     ghiLuc: r.created_at,
     // ADR-0092 Đ6: chỉ người có ledger.write thấy mã + số thực chuyển — người khác KHÔNG có khoá này (không chỉ là null).
     ...(ma?.has(r.id) ? { maGiaoDich: ma.get(r.id)!.ma, soThucChuyen: ma.get(r.id)!.soThucChuyen } : {}),
@@ -586,7 +586,7 @@ export async function ghiHoanKhach(db: D1Database, input: { raw: unknown; ai: Ng
   const [state, receipts] = await Promise.all([orderState(db, b.orderId), receiptsOfOrder(db, b.orderId)]);
   if (!state) return loi(404, "not_found", "Không tìm thấy đơn.");
   // ADR-0089 (H-C7): đơn HUỶ không trả dư tự do — hoàn qua khoản duyệt (lớp CSDL: trigger coc_needs_approval).
-  if (state.status === "cancelled") return loi(409, "coc_needs_approval", "Đơn huỷ: hoàn qua “Duyệt hoàn cọc” rồi “Ghi chi hoàn”.");
+  if (state.status === "cancelled") return loi(409, "coc_needs_approval", "Đơn huỷ: hoàn qua “Duyệt hoàn thu trước” rồi “Ghi chi hoàn”.");
   // ADR-0088 đ4 (iv): hoàn sau Đã giao chỉ đi qua đ9 (phân định trách nhiệm) — chưa có mã ⇒ chặn (lớp CSDL: trigger bil_receipt_after_delivered, 0083).
   if (state.delivered_at) return HOAN_SAU_GIAO();
   const daThu = conLai(receipts.map(toReceiptRow), 0, state.status).daThu;
@@ -622,7 +622,7 @@ export async function ghiHoanKhach(db: D1Database, input: { raw: unknown; ai: Ng
     if (k) return k;
     // Kiểm độc lập T-3: người khác vừa ghi hoàn / đảo lần thu giữa lúc đọc và lúc ghi → trigger bil_payment_receipt_refund_within_paid huỷ cả lô.
     if (loiTrigger(e, "refund_exceeds_paid")) return loi(409, "stale", "Không hoàn quá số khách đã trả — số đã thu vừa thay đổi, tải lại rồi thử lại.");
-    if (loiTrigger(e, "coc_needs_approval")) return loi(409, "coc_needs_approval", "Đơn huỷ: hoàn qua “Duyệt hoàn cọc” rồi “Ghi chi hoàn”.");
+    if (loiTrigger(e, "coc_needs_approval")) return loi(409, "coc_needs_approval", "Đơn huỷ: hoàn qua “Duyệt hoàn thu trước” rồi “Ghi chi hoàn”.");
     if (loiTrigger(e, "refund_exceeds_held")) return loi(409, "refund_exceeds_held", "Số hoàn vượt số người này đang giữ cho đơn — số vừa thay đổi, tải lại rồi thử lại.");
     if (loiTrigger(e, "receipt_after_delivered")) return HOAN_SAU_GIAO();
     throw e;
@@ -678,7 +678,7 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
       if (k) return k;
       if (/UNIQUE constraint failed: bil_(payment_receipt\.reverses_id|debt_line\.reverses_line_id)/.test(e instanceof Error ? e.message : String(e))) return loi(409, "stale", "Lần thu này đã được đảo.");
       // ADR-0089 đ15 (mọi lúc — NT-B2): đảo làm đã trả dưới tổng duyệt hoàn cọc của đơn huỷ.
-      if (loiTrigger(e, "coc_paid_below_approved")) return loi(409, "coc_paid_below_approved", "Đơn đã duyệt hoàn cọc — huỷ duyệt phần chưa chi trước khi đảo lần thu.");
+      if (loiTrigger(e, "coc_paid_below_approved")) return loi(409, "coc_paid_below_approved", "Đơn đã duyệt hoàn thu trước — huỷ duyệt phần chưa chi trước khi đảo lần thu.");
       // ADR-0092 Đ2b: khoản giữ hộ của lần thu đã được ghi nộp — đảo lần nộp trước (cùng thứ tự "ghi mới trước, đảo sau").
       if (loiTrigger(e, "held_already_settled")) return loi(409, "held_already_settled", "Khoản giữ hộ của lần thu này đã được ghi nộp — đảo lần nộp trước rồi đảo lần thu.");
       if (loiTrigger(e, "net_paid_negative")) return loi(409, "net_paid_negative", "Đảo lần thu này làm số đã thu của đơn âm — số vừa thay đổi, tải lại rồi thử lại.");

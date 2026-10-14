@@ -31,7 +31,7 @@ const CANNOT_HANDOVER = () => error(403, "forbidden", "Chỉ hướng dẫn viê
 const CANNOT_COMPLETE = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới bấm được Hoàn thành.");
 const CANNOT_LEDGER = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới ghi được sổ công nợ.");
 const CANNOT_MARK_ENTRY = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới đánh dấu được đã nhập phần mềm kế toán.");
-const CANNOT_APPROVE = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền mới duyệt được hoàn cọc / xác nhận dòng đã hoàn ngoài hệ thống.");
+const CANNOT_APPROVE = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền mới duyệt được hoàn thu trước / xác nhận dòng đã hoàn ngoài hệ thống.");
 const CANNOT_OUTSIDE = () => error(403, "forbidden", "Chỉ Toàn quyền mới ghi được dòng đã hoàn ngoài hệ thống.");
 const CANNOT_REFUND = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới ghi được hoàn tiền cho khách.");
 const CANNOT_VIEW_REQUESTS = () => error(403, "forbidden", "Chỉ Kế toán, Quản trị hoặc Toàn quyền mới xem được yêu cầu điều chỉnh công nợ.");
