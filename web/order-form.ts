@@ -469,7 +469,10 @@ async function boChangNhomVuaTat(): Promise<string> {
   const bao: string[] = [];
   for (const en of entries) {
     const bo = boChangKhiTatDuaDon(en.draft.legs, coDuaDon(en.draft));
-    if (bo.soBo === 0) continue;
+    if (bo.soBo === 0) {
+      en.card.update(en.draft); // thẻ không còn chặng trong nhóm vừa tắt cũng phải ẩn khối Đưa đón (cờ nhóm đã đổi)
+      continue;
+    }
     en.draft = { ...en.draft, legs: bo.legs, taoSan: null };
     en.card.update(en.draft);
     bao.push(cauBoChangNhomTat(en.draft.name.trim() || "Dịch vụ", bo.soBo));

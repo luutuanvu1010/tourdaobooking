@@ -31,6 +31,9 @@ const biTuChoi = (r) => {
   assert.match(r.body.error.message, /Hòn Tằm/);
 };
 
+// Mọi khẳng định nằm trong try; khối finally dọn LUÔN (kể cả khi một khẳng định ném lỗi giữa chừng) — kẻo ZE1 kẹt trong nhóm đã tắt đưa đón làm các kịch bản sau
+// (dua-don-dau-cuoi, dieu-phoi, chuyen-khach…) lập đơn có chặng bị 409 `transfer_disabled` và cả lượt chạy khó đọc.
+try {
 // ---- (1) địa điểm: chọn nhanh
 let r = await call(SALES, "GET", "/api/locations");
 assert.equal(r.status, 200);
@@ -104,9 +107,17 @@ r = await call(SALES, "POST", "/api/orders", orderInput({ services: [svc({ legs:
 assert.equal(r.status, 201, JSON.stringify(r.body));
 console.log("✓ (4) bật lại nhóm: lập đơn có chặng 201");
 
-// dọn: trả ZE1 về Chưa phân loại (nhóm HTA đã bật lại ở trên)
-r = await call(ADMIN, "PUT", "/api/catalog/group-assignments", { codes: ["ZE1"], groupCode: null });
-assert.equal(r.status, 200, JSON.stringify(r.body));
 const [{ n }] = await sqlRows("SELECT count(*) AS n FROM audit_log WHERE action = 'catalog_group_updated' AND detail LIKE '%đưa đón%'");
 assert.ok(n >= 4, `nhật ký nhóm ghi đoạn «đưa đón: …» (thấy ${n})`);
 console.log("✓ nhật ký catalog_group_updated ghi «đưa đón: bật → tắt»");
+} finally {
+  // nhóm HTA bật lại (lấy mốc sửa MỚI), ZE1 về Chưa phân loại, điểm chọn nhanh thử về trống
+  const g = await nhomHTA();
+  if (g && g.transferEnabled !== true) await call(ADMIN, "PATCH", "/api/catalog/groups/HTA", { expectedUpdatedAt: g.updatedAt, transferEnabled: true });
+  await call(ADMIN, "PUT", "/api/catalog/group-assignments", { codes: ["ZE1"], groupCode: null });
+  const ls = (await call(ADMIN, "GET", "/api/locations")).body?.locations ?? [];
+  const q2 = ls.find((l) => l.code === "QUAY_VE_02");
+  if (q2 && q2.quickPickOrder !== null) {
+    await call(ADMIN, "PUT", `/api/locations/${q2.id}`, { name: q2.name, locationTypeCode: q2.locationTypeCode, address: q2.address, sortOrder: q2.sortOrder, active: q2.active, quickPickOrder: null, expectedUpdatedAt: q2.updatedAt });
+  }
+}
