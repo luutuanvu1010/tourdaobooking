@@ -36,9 +36,7 @@ Bạn không thấy các vai quản lý (Giám đốc, Điều hành chung, IT, 
 2. Sửa [[Họ tên]], [[Số điện thoại đăng nhập]] nếu cần. Đổi số là đổi tên đăng nhập của họ.
 3. Tick hoặc bỏ tick vai. Xem kỹ dòng **Sẽ thêm** và **Sẽ mất**. Đổi vai có thể đăng xuất máy thừa.
 4. Cần cộng hoặc bớt riêng một quyền: mở [[Chỉnh riêng cho người này (cộng hoặc bớt quyền)]], tick ở [[Cộng thêm]] hoặc [[Bớt đi]], gõ lý do (bắt buộc).
-5. Bấm [[Lưu]]; không lưu thì bấm [[Đóng]].
-
-> Ví dụ: Ngọc chuyển sang kế toán: bỏ Nhân viên kinh doanh, tick Kế toán, bấm Lưu.`,
+5. Bấm [[Lưu]]; không lưu thì bấm [[Đóng]].`,
     },
     {
       tieuDe: "Quên PIN, bị khoá, mất máy, nghỉ việc",
@@ -49,9 +47,7 @@ Bạn không thấy các vai quản lý (Giám đốc, Điều hành chung, IT, 
 - **Mất điện thoại**: bấm nút **Gỡ Face ID** (số trong ngoặc là số máy đã bật), rồi [[Đặt lại PIN]].
 - **Nghỉ việc**: bấm [[Ngưng]], xác nhận. Họ bị đăng xuất ngay. Quay lại làm thì bấm [[Kích hoạt lại]]. Tài khoản không bao giờ bị xoá.
 
-Bạn không đặt lại PIN của chính mình ở đây; tự đổi ở trang Tôi. Bạn chỉ quản lý được tài khoản **không có quyền Quản trị hoặc Nhân sự**; trên dòng của Quản trị khác và của Hành chính nhân sự các nút bị ẩn.
-
-> Ví dụ: Anh Tuấn không vào được app, dòng có nhãn Bị khoá đăng nhập: bấm Mở khoá.`,
+Bạn không đặt lại PIN của chính mình ở đây; tự đổi ở trang Tôi. Bạn chỉ quản lý được tài khoản **không có quyền Quản trị hoặc Nhân sự**; trên dòng của Quản trị khác và của Hành chính nhân sự các nút bị ẩn.`,
     },
     {
       tieuDe: "Danh bạ: thêm và tìm hồ sơ",
@@ -71,7 +67,7 @@ Tìm: gõ tên hoặc số điện thoại, lọc theo loại, công việc, nơ
 
 - **Thông tin**: sửa rồi bấm [[Lưu thông tin]]. Bỏ tick [[Đang dùng]] để ngưng hồ sơ. Người có tài khoản thì ngưng ở màn Quản lý tài khoản.
 - **Liên hệ**: chọn loại, gõ giá trị, ghi chú (vd Zalo, hotline), tick [[Liên hệ chính]] nếu cần, bấm [[Thêm liên hệ]]. Liên hệ cũ bấm [[Đóng]], lịch sử vẫn giữ.
-- **Công việc tại đâu**: chọn công việc, nơi làm, ngày bắt đầu, bấm [[Thêm công việc]]. Hết làm thì bấm [[Kết thúc]].
+- **Công việc tại đâu**: chọn công việc, nơi làm, ngày bắt đầu, bấm [[Thêm công việc]]. Hết làm thì bấm [[Kết thúc]]. Loại đối tác do Kế toán thêm (ghi « (đối tác)») cũng gắn ở đây; nhân viên nội bộ không gắn được.
 - **Người liên hệ, tài xế**: chọn loại quan hệ, gõ tên hồ sơ cần nối, chọn, rồi bấm [[Thêm người liên hệ]], [[Thêm quan hệ tài xế]] hoặc [[Thêm tài xế]].`,
     },
     {

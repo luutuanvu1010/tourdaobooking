@@ -12,6 +12,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Loại đối tác là dữ liệu (ADR-0117 lần 1; chủ duyệt 14/10: «duyệt gắn vai làm ADR-0117»): Kế toán/Quản trị/Toàn quyền thêm, tắt, bật loại đối tác trên màn Hoa hồng đối tác; nhân viên nội bộ không mang loại được hưởng hoa hồng.
+    // Có thay đổi cơ sở dữ liệu (migration 0095) — cần trien-khai sau day-len.
+    // Số 1.96 là số TẠM (= main 1.95 + 1, 2026-10-14): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
+    version: "1.96",
+    date: "2026-10-14",
+    items: [
+      { kind: "moi", text: "Kế toán thêm loại đối tác mới ngay ở trang Hoa hồng đối tác (ví dụ Nhân viên spa), tắt hoặc bật lại khi cần, rồi đặt mức hoa hồng cho loại đó." },
+      { kind: "moi", text: "Quản trị gắn loại đối tác mới cho hồ sơ ở Danh bạ; trong ô chọn công việc, loại mới có thêm chữ \"(đối tác)\"." },
+      { kind: "doi", text: "Nhân viên nội bộ không gắn được loại đối tác được hưởng hoa hồng; Nền tảng báo bằng một câu tiếng Việt." },
+      { kind: "doi", text: "Loại đã tắt thì không gắn thêm cho hồ sơ nào; đơn đã xác nhận vẫn giữ nguyên hoa hồng đã chụp." },
+    ],
+  },
+  {
     // Tạo đơn bốn bước + đổi chữ "Check-in" thành "Khách có mặt" (chủ duyệt 14/10: «chốt tên "Khách có mặt", làm bản bốn bước»); chỉ đổi cách bày và chữ hiện, không migration, dữ liệu gửi máy chủ giữ nguyên.
     // Số 1.95 là số TẠM (= main 1.94 + 1, 2026-10-14): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
     version: "1.95",
