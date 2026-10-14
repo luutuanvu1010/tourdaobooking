@@ -162,7 +162,7 @@ Mở [[Sắp hết hạn]] (điện thoại: [[Giấy tờ sắp hết hạn]] �
 1. [[Địa điểm]], khung [[Thêm địa điểm]]: gõ mã (chữ HOA, số, gạch dưới), tên, loại, địa chỉ, thứ tự, [[Thêm]].
 2. Sửa: [[Sửa]], [[Lưu]]. Mã không đổi được.
 3. Không dùng nữa: bỏ tick [[Đang dùng]], Lưu (không xoá được).
-4. [[Chọn nhanh (1–99)]]: điền số thì điểm thành nút ở form Tạo đơn.
+4. Ô "Chọn nhanh (1–99)": điền số thì điểm thành nút ở form Tạo đơn.
 
 ### Loại giấy tờ, hạng bằng lái
 Mở [[Loại giấy tờ cá nhân]] (có cả [[Hạng giấy phép lái xe]]) hoặc [[Loại giấy tờ xe]]. Thêm: gõ mã, tên, tick [[Có ngày hết hạn]] nếu cần, thứ tự, [[Thêm]]. Sửa: [[Sửa]], [[Lưu]]. Không xoá, chỉ ngưng dùng.

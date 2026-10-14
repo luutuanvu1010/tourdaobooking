@@ -45,3 +45,7 @@
 - `npm run build:web`: chạy được. **e2e CHƯA chạy** (máy không có `.dev.vars`, cần mạng). **Chrome CHƯA chạy** (không dựng được kịch bản ở môi trường này) ⇒ chưa có ảnh thật hai khổ.
 - Hàng rào đã quan sát chặn thật (đột biến → đỏ → hoàn nguyên) ghi ở `docs/SO-HANG-RAO.md`: (A) orders không đọc bảng catalog; (B) chốt chặn ở cửa ghi chặng + xác nhận; nối dây giao diện. Riêng CHECK từng cột của migration chưa làm đột biến.
 - Việc của chủ trước phát hành: chạy câu đếm chỉ-đọc trên D1 thật cho hai mã `CANG_VINPEARL`, `BEN_TAU_NHA_TRANG`; phiên phát hành xác nhận lại số migration 0098 và số phiên bản 1.97.
+
+## Sau kiểm độc lập (14/10/2026; kết luận «ĐỦ có điều kiện», không có mục Chặn)
+- **Bài hành vi cho nhánh NHÁP của `PUT /api/orders/:id/legs/:legId`** (sửa «số người chiều về», Ruling R-E): thêm bài `N-10b` ở `src/modules/orders/dua-don-nhom-tat.test.ts` (đơn nháp, nhóm tắt → 409 `transfer_disabled`, không ghi, không nhật ký; nhóm bật lại → 200). Đã quan sát: bỏ chốt ở `planPaxOverrideNhap` ⇒ `not ok 11 - N-10b …` (trước đó 14/14 bài hành vi vẫn xanh); hoàn nguyên ⇒ 15/15. Đã sửa câu đầu tệp bài và dòng sổ hàng rào (không còn ghi sai là lớp hành vi phủ nhánh nháp từ đầu).
+- **Chữ hiển thị:** nhật ký thay đổi 1.97 nói đúng hai trường hợp (đơn đã xác nhận chỉ đóng được chặng; đơn nháp bỏ chặng trong form rồi mới xác nhận) — Ruling R-L, câu cũ «phải đóng chặng trước» sai cho đơn nháp. Trợ giúp Quản trị: «Chọn nhanh (1–99)» là ô nhập nên bỏ `[[ ]]` (không nâng trần chữ).

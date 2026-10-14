@@ -4,7 +4,7 @@
 //
 // Sáu cửa ghi chặng (ADR Đ3(a) liệt kê bốn nhóm; người thi công thêm cửa thứ sáu `PUT /api/orders/:id/trip` — xem Ruling R-T trong nhật ký thi công):
 //   1 POST /api/orders (lập)          2 PUT /api/orders/:id (lưu nháp, xoá–chèn lại)   3 POST /api/orders/:id/legs (thêm)
-//   4 PUT /api/orders/:id/legs/:legId (sửa; cả nhánh nháp số người chiều về)             5 POST …/legs/:legId/replace (thay)   6 PUT /api/orders/:id/trip (thân sửa chuyến → thao tác chặng)
+//   4 PUT /api/orders/:id/legs/:legId (sửa — bài N-10; nhánh NHÁP «số người chiều về» có bài riêng N-10b, thêm sau kiểm độc lập 14/10)           5 POST …/legs/:legId/replace (thay)   6 PUT /api/orders/:id/trip (thân sửa chuyến → thao tác chặng)
 // và cửa XÁC NHẬN: POST /api/orders/:id/status {status: "confirmed"}.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -220,6 +220,22 @@ test("N-10 (cửa thứ sáu, Ruling R-T): PUT /trip — thao tác THÊM / SỬA
   const moi = await lay(w, o.id);
   const sau = await w.call("PUT", `/api/orders/${o.id}/trip`, { as: SALES, body: { expectedUpdatedAt: moi.updatedAt, services: [{ id: moi.services[0].id, departDate: D2, departTime: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "Khách xin ghế trước" }] } });
   assert.equal(sau.status, 200, sau.text);
+});
+
+test("N-10b (Ruling R-E): đơn NHÁP — PUT /legs/:legId nhánh NHÁP (CHỈ sửa «số người chiều về») của dịch vụ nhóm tắt → 409 transfer_disabled, không ghi, không nhật ký; nhóm bật lại → 200", async () => {
+  const w = setup();
+  const o = await tao(w, [svc({ legs: [OUT, RET] })]); // nháp tạo lúc nhóm còn bật
+  assert.equal(o.status, "draft");
+  const ve = o.services[0].legs.find((x: any) => x.direction === "RETURN");
+  tat(w);
+  const truoc = chup(w, o.id);
+  const r = await w.call("PUT", `/api/orders/${o.id}/legs/${ve.id}`, { as: SALES, body: { expectedUpdatedAt: ve.updatedAt, paxOverride: 1 } });
+  biTuChoi(r);
+  khongGhi(w, o.id, truoc);
+  bat(w);
+  const ok = await w.call("PUT", `/api/orders/${o.id}/legs/${ve.id}`, { as: SALES, body: { expectedUpdatedAt: ve.updatedAt, paxOverride: 1 } });
+  assert.equal(ok.status, 200, ok.text);
+  assert.equal(ok.json.order.services[0].legs.find((x: any) => x.direction === "RETURN").paxOverride, 1);
 });
 
 // ---------------------------------------------------------------------------------------------------------- N-11 / N-12 xác nhận
