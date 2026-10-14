@@ -22,7 +22,7 @@
       "ma": "SV-SK-01",
       "mo_ta": "Giảm khách sau khi đã thu đủ: tour 4 người lớn × 500.000 = 2.000.000, khách đã trả đủ 2.000.000. Kế toán sửa còn 3 người lớn (lý do Khách bớt người) → phải thu 1.500.000, còn lại 0, khách trả dư chờ hoàn 500.000.",
       "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán công ty", "ngay": "2026-10-13" },
-      "xac_nhan_khoa_moi": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan_khoa_moi": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "dich_vu": [
           { "id": "dv-tour", "ten": "Tour đảo", "nguon": "danh_muc", "don_gia": { "adult": 500000 }, "khach_truoc": { "adult": 4, "child": 0, "senior": 0, "infant": 0 } }
@@ -49,7 +49,7 @@
       "ma": "SV-SK-02",
       "mo_ta": "Tăng khách, đơn có giảm giá: tour 2 người lớn × 500.000 + 1 trẻ em × 300.000 = 1.300.000, giảm 100.000 → phải thu 1.200.000; khách đã trả 500.000. Bán hàng (người lập) sửa thành 3 người lớn + 2 trẻ em (Khách thêm người) → tạm tính 2.100.000, phải thu 2.000.000, còn lại 1.500.000.",
       "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán công ty", "ngay": "2026-10-13" },
-      "xac_nhan_khoa_moi": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan_khoa_moi": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "dich_vu": [
           { "id": "dv-tour", "ten": "Tour đảo", "nguon": "danh_muc", "don_gia": { "adult": 500000, "child": 300000 }, "khach_truoc": { "adult": 2, "child": 1, "senior": 0, "infant": 0 } }
@@ -132,7 +132,7 @@
       "ma": "SV-SK-05",
       "mo_ta": "Hoa hồng PER_PAX theo số khách mới, mức đã chụp (ADR-0077 điều 9–10): tour người lớn 500.000, trẻ em 300.000, người cao tuổi 400.000, em bé 50.000; đơn 3 người lớn + 1 trẻ em + 1 người cao tuổi + 1 em bé = 2.250.000; mức hoa hồng chụp lúc Xác nhận 50.000 mỗi khách (đếm người lớn + trẻ em + người cao tuổi = 5 → 250.000). Kế toán sửa thành 2 người lớn + 1 trẻ em + 1 người cao tuổi + 2 em bé (Đổi dịch vụ) → tạm tính 1.800.000; hoa hồng = 50.000 × 4 = 200.000 (em bé tăng không làm tăng hoa hồng; mức không chụp lại). Phần hoa hồng CHỈ TRÊN GIẤY: mã hoa hồng (hoaHongDong) chưa thi công.",
       "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán công ty", "ngay": "2026-10-13" },
-      "xac_nhan_khoa_moi": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan_khoa_moi": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "dich_vu": [
           { "id": "dv-tour", "ten": "Tour đảo", "nguon": "danh_muc", "don_gia": { "adult": 500000, "child": 300000, "senior": 400000, "infant": 50000 }, "khach_truoc": { "adult": 3, "child": 1, "senior": 1, "infant": 1 } }
@@ -216,7 +216,7 @@
       "ma": "SV-SK-08",
       "mo_ta": "Như SV-SK-04 (4 người lớn × 500.000, khuyến mại \"mua 2 tặng 2\" giảm 1.000.000, khách đã trả 1.000.000, sửa còn 1 người lớn → phải thu 0, dư 1.000.000), rồi Kế toán hoàn 1.000.000 cho khách → đã thu 0, còn lại 0, dư 0; hướng dẫn viên bấm Đã giao được, phiếu Đã giao chụp phải thu 0 (ADR-0109 bài 3).",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
-      "xac_nhan_khoa_moi": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan_khoa_moi": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "dich_vu": [
           { "id": "dv-tour", "ten": "Tour đảo", "nguon": "danh_muc", "don_gia": { "adult": 500000 }, "khach_truoc": { "adult": 4, "child": 0, "senior": 0, "infant": 0 } }
@@ -245,7 +245,7 @@
       "ma": "SV-SK-09",
       "mo_ta": "Khách CHƯA trả đồng nào: 4 người lớn × 500.000 = 2.000.000, khuyến mại \"mua 2 tặng 2\" giảm 1.000.000 → phải thu 1.000.000, còn lại 1.000.000. Kế toán sửa còn 1 người lớn → tạm tính 500.000, phải thu 0, còn lại 0, dư 0, có cảnh báo; bấm Đã giao được ngay, phiếu chụp phải thu 0 (trước ADR-0109 đơn này bị giữ \"khách trả dư\" dù khách chưa trả gì).",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
-      "xac_nhan_khoa_moi": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan_khoa_moi": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "dich_vu": [
           { "id": "dv-tour", "ten": "Tour đảo", "nguon": "danh_muc", "don_gia": { "adult": 500000 }, "khach_truoc": { "adult": 4, "child": 0, "senior": 0, "infant": 0 } }
@@ -299,7 +299,7 @@
       "mo_ta": "Như SV-SK-04 (4 → 1 người lớn, khuyến mại giảm 1.000.000 → phải thu 0, dư 1.000.000), rồi đơn bị HUỶ → Tổng cộng 0 (trước ADR-0109 hiện âm), còn lại 0, dư 0.",
       "ghi_chu_cho_nguoi_xac_nhan": "Số tiền thu trước khách đã trả (1.000.000) không đổi và vẫn phải hiện rõ trên đơn huỷ (lời chủ 14/10/2026); đơn huỷ giữ khoản thu trước mặc định, hoàn chỉ qua khoản duyệt (ADR-0089). Phần thu trước khoá ở bài biên nhận huỷ và bài route TC8d, không ở sổ vàng này.",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
-      "xac_nhan_khoa_moi": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan_khoa_moi": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "dich_vu": [
           { "id": "dv-tour", "ten": "Tour đảo", "nguon": "danh_muc", "don_gia": { "adult": 500000 }, "khach_truoc": { "adult": 4, "child": 0, "senior": 0, "infant": 0 } }
@@ -329,7 +329,7 @@
       "mo_ta": "Ví dụ của chủ dự án về nhắc khuyến mại (ADR-0114 D1, lời chủ 13/10: '10 người giá 50, nhưng giảm chỉ còn 2 người mà cũng giá 50 là phải báo đỏ'): tour 10 người lớn × 500.000 = 5.000.000, giảm giá 50.000 → phải thu 4.950.000; khách đã trả 450.000. Kế toán sửa còn 2 người lớn (Khách bớt người) → tạm tính 1.000.000, phải thu 950.000 (giảm giá 50.000 giữ nguyên, không co theo số khách), còn lại 500.000, dư 0. Giảm giá không lớn hơn tạm tính nên KHÔNG có cảnh báo 'giảm giá lớn hơn tiền dịch vụ'; nhưng số khách trả tiền giảm từ 10 xuống 2 so với lúc xác nhận nên có lời nhắc khuyến mại (canh_bao_khuyen_mai true). Đơn vị đồng: lời chủ không kèm đơn vị, người soạn chọn 500.000 đồng mỗi người lớn và giảm giá 50.000 đồng cho tròn.",
       "ghi_chu_cho_nguoi_xac_nhan": "Số khách đã trả 450.000 đồng do người soạn chọn để còn lại không âm ở cả hai vế (4.500.000 trước, 500.000 sau); không phải số của chủ và không ảnh hưởng lời nhắc. Mã lý do Khách bớt người.",
       "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
-      "xac_nhan_khoa_moi": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan_khoa_moi": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "dich_vu": [
           { "id": "dv-tour", "ten": "Tour đảo", "nguon": "danh_muc", "don_gia": { "adult": 500000 }, "khach_truoc": { "adult": 10, "child": 0, "senior": 0, "infant": 0 } }
