@@ -51,7 +51,7 @@
       "ma": "SV-DH-03",
       "mo_ta": "Quá hạn (chỉ khách huỷ). Như SV-DH-01. Duyệt 100.000 ngày 09/01/2027 (đúng hạn) → được; duyệt 100.000 ngày 10/01/2027 → bị từ chối “Đã quá hạn hoàn cọc (hạn: 09/01/2027)”; khoản duyệt ngày 09/01 được chi ngày 15/01.",
       "nguon": "ADR-0089 đ5 (khoản đã duyệt trước hạn vẫn chi được sau hạn)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "phai_thu": 2000000, "ngay_di": ["2026-11-10"], "hom_nay": "2027-01-15",
         "su_kien": [
@@ -111,7 +111,7 @@
       "ma": "SV-DH-06",
       "mo_ta": "Huỷ để lập lại, chuyển tiền: Kế toán ghi Công ty thu 300.000. Bán hàng huỷ “Sai thông tin — lập lại đơn”. Sau hạn (01/02/2027) Quản trị duyệt chuyển 300.000 sang đơn C → được (nhóm này không bị hạn chặn); Kế toán ghi chuyển.",
       "nguon": "ADR-0089 đ7 (Đ-3: lập lại / trùng không bị hạn chặn, chỉ nhắc)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "phai_thu": 1000000, "ngay_di": ["2026-11-10"], "hom_nay": "2027-02-01",
         "su_kien": [
@@ -174,7 +174,7 @@
       "ma": "SV-DH-09",
       "mo_ta": "Tách người: Kế toán ghi Công ty thu 500.000; khách huỷ. Tài khoản kiêm Quản trị + Kế toán duyệt hoàn 100.000 → được; chính tài khoản đó chi → bị từ chối; Kế toán khác chi → được.",
       "nguon": "ADR-0089 đ4c",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "phai_thu": 2000000, "ngay_di": ["2026-11-10"], "hom_nay": "2026-10-26",
         "su_kien": [
@@ -194,7 +194,7 @@
       "ma": "SV-DH-10",
       "mo_ta": "Khoản chưa xác nhận: HDV Nam khai “Công ty thu – chuyển khoản” 300.000; khách huỷ. Trước khi Kế toán xác nhận: đã trả 0, đang đối chiếu 300.000, duyệt 1 đồng → bị từ chối. Kế toán bấm “Công ty đã nhận” → duyệt 300.000 được.",
       "nguon": "ADR-0089 đ2 (chỉ khoản đã xác nhận tính vào đã trả), đ9a (ảnh gửi khách ghi “đang đối chiếu”)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "phai_thu": 2000000, "ngay_di": ["2026-11-10"], "hom_nay": "2026-10-26",
         "su_kien": [
@@ -215,7 +215,7 @@
       "ma": "SV-DH-11",
       "mo_ta": "Chưa kết luận: Kế toán ghi Công ty thu 400.000; Bán hàng huỷ lý do “Khác” (ghi chú). Duyệt hoàn 100.000 → bị từ chối (chưa phân loại). Quản trị phân loại “Khách huỷ” → duyệt 100.000 được.",
       "nguon": "ADR-0089 đ8, X-2",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "phai_thu": 2000000, "ngay_di": ["2026-11-10"], "hom_nay": "2026-10-26",
         "su_kien": [
@@ -235,7 +235,7 @@
       "ma": "SV-DH-12",
       "mo_ta": "Đơn nháp chưa có ngày đi: Kế toán ghi Công ty thu 200.000; huỷ ngày 05/10/2026 (khách huỷ) → hạn hoàn cọc = ngày huỷ + 60 = 04/12/2026.",
       "nguon": "ADR-0089 đ5",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "phai_thu": 600000, "ngay_di": [null], "hom_nay": "2026-10-05",
         "su_kien": [

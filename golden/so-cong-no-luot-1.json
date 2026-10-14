@@ -12,7 +12,7 @@
       "ma": "SV-SC-01",
       "mo_ta": "Khách lẻ, vé 1.000.000. HDV Nam thu đủ 1.000.000 tiền mặt tại bến → đang giữ 1.000.000 của công ty; sau đó nộp đủ về công ty (Kế toán ghi) → về 0.",
       "nguon": "ADR-0026 Hệ quả 2 (NT-S1, phần tiền mặt)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "phai_thu": 1000000,
         "su_kien": [
@@ -41,7 +41,7 @@
       "ma": "SV-SC-03",
       "mo_ta": "Khách lẻ đặt 2 người × 500.000, HDV Nam thu trước 1.000.000 tiền mặt; sau đó bớt 1 người → phải thu còn 500.000. Khách đã trả dư 500.000 — chưa bấm Đã giao được; HDV trả lại khách 500.000 từ tiền đang giữ (Kế toán ghi hoàn, người trả = HDV Nam) → hết dư, bấm Đã giao được; HDV còn giữ 500.000.",
       "nguon": "M2 (chủ 29/9 'Không chặn, chờ hoàn'), ADR-0025 điều 3d",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "phai_thu": 500000,
         "su_kien": [
@@ -55,7 +55,7 @@
       "ma": "SV-SC-04",
       "mo_ta": "Đơn cũ 1.000.000 có cọc 300.000 ghi trên đơn (trước sổ tiền) → chuyển thành lần thu người thu CHƯA RÕ: chưa bấm Đã giao được. Kế toán đảo lần thu đó rồi ghi lại đúng: HDV Nam đã thu cọc 300.000 tiền mặt; HDV thu nốt 700.000 tại bến → HDV giữ 1.000.000; bấm Đã giao được.",
       "nguon": "ADR-0026 điều 9, ADR-0025 điều 3e, Q3",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "phai_thu": 1000000,
         "su_kien": [
@@ -71,7 +71,7 @@
       "ma": "SV-SC-05",
       "mo_ta": "ADR-0061 điều 7 — đơn có DÒNG NHẬP TAY đi qua sổ tiền như dịch vụ danh mục. Khách lẻ: vé danh mục 2 người lớn × 850.000 + dịch vụ nhập tay \"Xe đưa đón riêng\" 2 × 400.000, giảm giá 100.000 → phải thu 2.400.000. HDV Nam thu tiền mặt 1.000.000 tại bến; khách chuyển khoản 1.400.000 vào tài khoản công ty (Kế toán ghi); HDV Nam nộp đủ 1.000.000 về công ty → HDV không nợ, Đã giao được.",
       "nguon": "ADR-0061 điều 7 + tiêu chí 6 (Kế toán nhận biên nhận / sổ tiền của đơn có dòng nhập tay đúng từng đồng)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "dong_don": [
           { "loai": "danh_muc", "ma": "TD101", "mo_ta": "Người lớn", "so_luong": 2, "don_gia": 850000 },
