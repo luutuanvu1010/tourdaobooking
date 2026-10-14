@@ -2820,7 +2820,7 @@ test("R-PRC-1 (ADR-0117 lần 2): khoá chồng ngày có ĐÍCH MỨC — hai m
   assert.equal(violations(db, c), 2, "một loại mang hai mức cùng ngày");
 });
 
-test("R-PRC-2 (ADR-0117 lần 2): dòng đích mức còn hiệu lực mà mức đã tắt hoặc không tồn tại → vi phạm; mức bật / dòng đã hết hạn → 0", () => {
+test("R-PRC-2 (ADR-0117 lần 2): dòng đích mức trỏ mức KHÔNG TỒN TẠI → vi phạm; mức đã TẮT mà dòng còn hiệu lực → 0 (tắt mức chỉ chặn thêm mới, dòng đang áp vẫn áp); dòng đã hết hạn → 0", () => {
   const c = one("R-PRC-2");
   const db = build();
   mucTaSdl(db, "TA1");
@@ -2829,15 +2829,15 @@ test("R-PRC-2 (ADR-0117 lần 2): dòng đích mức còn hiệu lực mà mức
   dongMucTaSdl(db, { id: "u-2", tier: "TA2" });
   assert.equal(violations(db, c), 0, "mọi mức đang bật");
   db.prepare("UPDATE prc_rate_tier SET active = 0, updated_at = ? WHERE code = 'TA1'").run(T2); // đường THẬT: tắt mức
-  assert.equal(violations(db, c), 1, "mức đã tắt mà dòng mức còn hiệu lực");
-  dongDongSdl(db, "prc_commission_rule", "u-1", vnNgay(-1));
-  assert.equal(violations(db, c), 0, "Kế toán đóng dòng (hết hạn từ hôm qua) → hết báo");
+  assert.equal(violations(db, c), 0, "mức đã tắt, dòng đang áp vẫn áp — không báo (N-23)");
   // Mức không tồn tại: chỉ lọt được khi gỡ trigger + tắt khoá ngoại (SQL gõ tay).
   db.exec("DROP TRIGGER prc_commission_rule_target_tier");
   db.exec("PRAGMA foreign_keys = OFF");
   dongMucTaSdl(db, { id: "u-ma", tier: "KHONG_CO", scope: "SERVICE" });
   db.exec("PRAGMA foreign_keys = ON");
   assert.equal(violations(db, c), 1, "mức không tồn tại");
+  dongDongSdl(db, "prc_commission_rule", "u-ma", vnNgay(-1));
+  assert.equal(violations(db, c), 0, "Kế toán đóng dòng (hết hạn từ hôm qua) → hết báo");
 });
 
 test("R-PRC-3: điều khoản cung ứng — có tỷ lệ mà người bán là công ty chủ; người bán khác mà không mang vai Nhà cung cấp; người bán khác mà không có tỷ lệ → vi phạm (đủ ba nhánh, mỗi dòng đếm MỘT lần); chỉ xét dòng còn hiệu lực", () => {

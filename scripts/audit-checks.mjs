@@ -1437,15 +1437,16 @@ export const CHECKS = [
   },
   {
     // R-PRC-2: "tắt một vai = active 0, dòng mức cũ vẫn giữ; R-PRC-2 báo" (0090) — việc của Kế toán là đóng dòng mức theo vai đó (hết hạn ⇒ hết báo).
-    // ADR-0117 lần 2 (0097): cùng nghĩa cho dòng đích MỨC TA — mức đã tắt (active 0) hoặc không tồn tại (trigger `prc_commission_rule_target_tier` bị gỡ / SQL tay).
+    // ADR-0117 lần 2 (0097): dòng đích MỨC TA chỉ báo khi mức KHÔNG TỒN TẠI (trigger `prc_commission_rule_target_tier` bị gỡ / SQL tay). Mức đã TẮT (active 0) không báo:
+    // tắt mức chỉ chặn gắn mới và thêm dòng mới, dòng đang áp vẫn áp (kế hoạch «Thiết kế chốt», N-23; ruling điều phối Task 2 vòng sửa 1) — muốn ngừng áp thì đóng dòng / gắn.
     code: "R-PRC-2",
-    what: "dòng mức hoa hồng còn hiệu lực theo vai mà vai đó không còn trong danh sách vai được hưởng đang bật, hoặc theo mức TA đã tắt / không tồn tại",
+    what: "dòng mức hoa hồng còn hiệu lực theo vai mà vai đó không còn trong danh sách vai được hưởng đang bật, hoặc theo mức TA không tồn tại",
     sql: `SELECT (SELECT count(*) FROM prc_commission_rule r WHERE r.target_role_code IS NOT NULL AND ${CHUA_HET_HAN("r")}
        AND r.target_role_code NOT IN (SELECT role_type_code FROM v_prc_beneficiary_role))
      + (SELECT count(*) FROM prc_commission_rule r WHERE r.target_tier_code IS NOT NULL AND ${CHUA_HET_HAN("r")}
-       AND r.target_tier_code NOT IN (SELECT code FROM prc_rate_tier WHERE active = 1))`,
+       AND r.target_tier_code NOT IN (SELECT code FROM prc_rate_tier))`,
     level: "fail",
-    note: "đặc tả sổ đại lý đợt 1 §9: vai (hoặc mức TA, ADR-0117 lần 2) bị tắt mà dòng mức còn hiệu lực — Kế toán đóng dòng mức đó (hoặc bật lại vai / mức)",
+    note: "đặc tả sổ đại lý đợt 1 §9: vai bị tắt mà dòng mức còn hiệu lực — Kế toán đóng dòng mức đó (hoặc bật lại vai); dòng trỏ mức TA không tồn tại (ADR-0117 lần 2) — đóng dòng đó. Mức TA đã tắt không báo (dòng đang áp vẫn áp)",
   },
   {
     // R-PRC-3: ba nhánh, mỗi dòng đếm MỘT lần. (1) có a% mà người bán là công ty chủ; (2) người bán ≠ công ty chủ mà không mang vai Nhà cung cấp (đang mở);

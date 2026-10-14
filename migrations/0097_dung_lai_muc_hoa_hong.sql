@@ -73,7 +73,7 @@ BEGIN SELECT RAISE(ABORT, 'prc_target_not_beneficiary: hồ sơ này không mang
 CREATE TRIGGER prc_commission_rule_target_role BEFORE INSERT ON prc_commission_rule
 WHEN NEW.target_role_code IS NOT NULL AND NOT EXISTS (SELECT 1 FROM prc_beneficiary_role b WHERE b.role_type_code = NEW.target_role_code AND b.active = 1)
 BEGIN SELECT RAISE(ABORT, 'prc_role_not_beneficiary: vai này không nằm trong danh sách được hưởng'); END;
--- Dòng mới cho mức không tồn tại hoặc đã tắt bị chặn (cùng câu báo với prc_role_tier_tier_ok); dòng đang có của mức vừa tắt vẫn giữ (R-PRC-2 báo).
+-- Dòng mới cho mức không tồn tại hoặc đã tắt bị chặn (cùng câu báo với prc_role_tier_tier_ok); dòng đang có của mức vừa tắt vẫn giữ và vẫn áp (N-23; R-PRC-2 chỉ báo mức không tồn tại).
 CREATE TRIGGER prc_commission_rule_target_tier BEFORE INSERT ON prc_commission_rule
 WHEN NEW.target_tier_code IS NOT NULL AND NOT EXISTS (SELECT 1 FROM prc_rate_tier t WHERE t.code = NEW.target_tier_code AND t.active = 1)
 BEGIN SELECT RAISE(ABORT, 'prc_tier_inactive: mức TA không tồn tại hoặc đã tắt'); END;
