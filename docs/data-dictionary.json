@@ -649,7 +649,7 @@
       "name": "prc_commission_rule",
       "module": "pricing",
       "kind": "table",
-      "note": "bảng mức hoa hồng đối tác (ADR-0077 điều 4; migration 0090), chính sách có hiệu lực: áp cho một hồ sơ HOẶC cho một vai; phạm vi dịch vụ / nhóm / mọi dịch vụ; kiểu tỷ lệ (phần vạn) hoặc đ/khách. Không xoá, chỉ đóng hiệu lực một lần, không hai dòng cùng đối tượng + phạm vi chồng khoảng ngày; đối tượng phải mang vai đang bật trong prc_beneficiary_role. Tỷ lệ và đ/khách KHÔNG vào DTO của Đối tác (C9 = A)"
+      "note": "bảng mức hoa hồng đối tác (ADR-0077 điều 4; migration 0090, dựng lại ở 0097 — ADR-0117 lần 2), chính sách có hiệu lực: áp cho đúng MỘT trong ba đích — một hồ sơ, một vai, hoặc một mức TA (target_tier_code → prc_rate_tier); phạm vi dịch vụ / nhóm / mọi dịch vụ; kiểu tỷ lệ (phần vạn) hoặc đ/khách. Không xoá, chỉ đóng hiệu lực một lần (không đổi số hay đích, kể cả mức), không hai dòng cùng đích + phạm vi chồng khoảng ngày (khoá gồm cả mức: hai mức khác nhau cùng có dòng mọi dịch vụ được); hồ sơ / vai phải đang được hưởng, mức phải còn bật (prc_tier_inactive). Tỷ lệ và đ/khách KHÔNG vào DTO của Đối tác (C9 = A)"
     },
     {
       "name": "prc_supply_term",
@@ -1053,7 +1053,8 @@
         "rate_bp",
         "per_pax_amount",
         "valid_from_date",
-        "valid_to_date"
+        "valid_to_date",
+        "target_tier_code"
       ]
     },
     {

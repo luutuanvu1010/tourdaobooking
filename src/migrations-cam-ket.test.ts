@@ -20,7 +20,9 @@ const T0 = Date.parse("2026-10-10T07:00:00.000+07:00");
 function db() {
   const d = new DatabaseSync(":memory:");
   d.exec("PRAGMA foreign_keys = ON");
-  for (const f of files.filter((x) => !MATCHES.includes(x))) d.exec(sqlOf(f));
+  // Chỉ các migration ĐỨNG TRƯỚC tệp cam kết; các tệp sau áp SAU tệp cam kết (đúng thứ tự thật). Áp tệp sau trước tệp cam kết để lại view nhắc cột chưa có
+  // (v_ord_leg_commit của 0089) — lệnh ALTER TABLE … RENAME của 0097 kiểm lại cả lược đồ nên báo lỗi «no such column».
+  for (const f of files.filter((x) => x < MATCHES[0]!)) d.exec(sqlOf(f));
   d.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-s1', 'PERSON', 'Nhân Viên', 1, '${AT}', '${AT}')`);
   d.exec(`INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES ('pty-s1', 'Nhân Viên', '${AT}', '${AT}')`);
   d.exec(`INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at, party_id) VALUES ('s1', '', '0900000001', 'x', 'sales', 1, '${AT}', 'pty-s1')`);
@@ -34,6 +36,7 @@ function db() {
   d.exec(`INSERT INTO vc_trip (id, code, vehicle_id, carrier_party_id, service_date, planned_start_ms, planned_end_ms, earliest_start_ms, rest_minutes_snapshot, rented, last_cmd_id, created_at, updated_at)
           VALUES ('tr-cu', 'CX-1010-01', 'xe-1', '${chu}', '2026-10-10', ${T0}, ${T0 + 2 * H}, ${T0}, 30, 0, '${randomUUID()}', '${AT}', '${AT}')`);
   for (const f of MATCHES) d.exec(sqlOf(f));
+  for (const f of files.filter((x) => x > MATCHES[MATCHES.length - 1]!)) d.exec(sqlOf(f));
   return d;
 }
 let n = 0;
