@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { CAU_THIEU_NGUOI_LON } from "../../shared/nguoi-di-kem.ts";
 import type { EffectiveService } from "../../shared/order-lines.ts";
-import { canTransition, hasHandlerPick, orderCodePrefix, parseHandlerPick, validateBookerChange, validateOrder, type ServiceContext } from "./rules.ts";
+import { canTransition, cauNhomTatDuaDon, dichVuCanHoiDuaDon, hasHandlerPick, orderCodePrefix, parseHandlerPick, validateBookerChange, validateOrder, type ServiceContext } from "./rules.ts";
 
 const tour: EffectiveService = {
   code: "TD101", name: "Tour 3 đảo", unit: "perPax", visible: true,
@@ -225,4 +225,26 @@ test("handlerStaffId: có mặt thì phải là mã tài khoản (UUID) — sai 
     const r = parseHandlerPick({ handlerStaffId: v });
     assert.ok(!r.ok && /Người phụ trách được chọn không hợp lệ/.test(r.message), JSON.stringify(v));
   }
+});
+
+test("ADR-0118 Đ3: cauNhomTatDuaDon nêu tên dịch vụ + tên nhóm + cách sửa theo cửa; không tên nhóm thì bỏ phần «(nhóm …)»; nhiều dịch vụ nối bằng dấu phẩy", () => {
+  const luu = cauNhomTatDuaDon([{ ten: "Tour đảo", nhom: "Hòn Tằm" }], "luu");
+  assert.match(luu, /“Tour đảo” \(nhóm “Hòn Tằm”\)/);
+  assert.match(luu, /Bỏ chặng đưa đón của dịch vụ đó khỏi đơn rồi lưu lại/);
+  const sua = cauNhomTatDuaDon([{ ten: "A", nhom: "X" }, { ten: "B", nhom: null }], "sua");
+  assert.match(sua, /“A” \(nhóm “X”\), “B”\./);
+  assert.match(sua, /chỉ còn bỏ được/);
+  assert.match(cauNhomTatDuaDon([{ ten: "A", nhom: "X" }], "xac-nhan"), /xác nhận lại/);
+  for (const c of ["luu", "sua", "xac-nhan"] as const) assert.doesNotMatch(cauNhomTatDuaDon([{ ten: "A", nhom: "X" }], c), /transfer_disabled|[a-z]+_[a-z]+/, "không lộ mã thô ra người dùng");
+});
+
+test("ADR-0118 Đ3: dichVuCanHoiDuaDon — chỉ dịch vụ CÓ mã danh mục và CÓ chặng; nhập tay (mã rỗng) luôn qua", () => {
+  const ds = [
+    { catalogCode: "A", legs: [{}] },
+    { catalogCode: "B", legs: [] },
+    { catalogCode: null, legs: [{}] },
+    { catalogCode: "C", legs: [{}, {}] },
+  ];
+  assert.deepEqual(dichVuCanHoiDuaDon(ds).map((s) => s.catalogCode), ["A", "C"]);
+  assert.deepEqual(dichVuCanHoiDuaDon([]), []);
 });

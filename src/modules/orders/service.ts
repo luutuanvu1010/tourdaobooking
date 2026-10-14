@@ -9,7 +9,7 @@ import { describeBookerChange, type BookerInput } from "../../shared/booker";
 import { vnToday } from "../../shared/vn-date";
 import { auditStatement } from "../audit";
 import { datGapTheoVai } from "./dat-gap";
-import { getEffectiveServices } from "../catalog";
+import { getEffectiveServices, tenNhomHienHanh } from "../catalog";
 import { composePersonName, newPersonStatements, validatePersonFullName, type ContactInput, type RoleInput } from "../parties";
 import { laNguoiHuong } from "../pricing";
 import {
@@ -18,13 +18,13 @@ import {
 import { soNguoiChang, tongKhach } from "../../shared/so-nguoi-chang";
 import { laLyDoThayChang, type LyDoThayChang } from "../../shared/thay-chang";
 import {
-  activeLocations, legById, passengerRowsByOrders, servicePaxByIds, servicePaxByOrder, type LegFields, type OPhuGhi, type PassengerRow,
+  activeLocations, dichVuTatDuaDon, legById, passengerRowsByOrders, servicePaxByIds, servicePaxByOrder, type LegFields, type OPhuGhi, type PassengerRow,
 } from "./chang-hanh-khach-repo";
 import { applyAdjustmentToOrder } from "./money-adjustment";
 import {
   effectivePax, findOrder, getLatestAdjustment, getMeta, getStoredServices, type BookerWrite, type LegOp, type StoredLeg, type StoredServiceRow,
 } from "./repository";
-import type { ValidOrder } from "./rules";
+import { cauNhomTatDuaDon, dichVuCanHoiDuaDon, type CuaDuaDon, type ValidOrder } from "./rules";
 import { catalogStatusOf, type ServiceContext, type ValidTrip } from "./service-rules";
 
 /** `ServiceContext` kèm dịch vụ đã lưu ĐẦY ĐỦ (có `lines`) — route dùng lại cho kiểm "dịch vụ nhập tay đóng băng" (DK-T3-01) sau `validateOrder`. */
@@ -106,7 +106,7 @@ export function keHoachChangTrip(
 // ---- Route chặng SAU XÁC NHẬN (ADR-0047 A1; Ruling R1) — lập kế hoạch ghi (có I/O đọc), repository ghi --------------------------------------------
 
 type Pickup = { pickupTime: string | null; pickupPlace: string | null };
-type Failed = { ok: false; code: "invalid_input" | "leg_not_found" | "leg_closed"; message: string };
+type Failed = { ok: false; code: "invalid_input" | "leg_not_found" | "leg_closed" | "transfer_disabled"; message: string };
 
 /** Nhãn nơi đón/trả của một chặng (tên điểm danh mục theo `names`, hoặc chữ). */
 function noiCua(l: LegFields, names: ReadonlyMap<string, string>): { noiDon: string; noiTra: string | null } {
@@ -162,6 +162,8 @@ export async function planAddLeg(db: D1Database, orderId: string, body: Record<s
   const stored = await getStoredServices(db, orderId);
   const svc = typeof body!.serviceId === "string" ? stored.find((s) => s.id === body!.serviceId) : undefined;
   if (!svc) return { ok: false, code: "invalid_input", message: "Dịch vụ không thuộc đơn này — hãy tải lại trang." };
+  const camThem = await kiemNhomChoPhepDuaDon(db, [svc], "sua"); // ADR-0118 Đ3
+  if (!camThem.ok) return camThem;
   if (svc.legs.length >= MAX_CHANG_MOI_DICH_VU) return { ok: false, code: "invalid_input", message: `Mỗi dịch vụ tối đa ${MAX_CHANG_MOI_DICH_VU} chặng đưa đón.` };
   const raw = body!.leg && typeof body!.leg === "object" && !Array.isArray(body!.leg) ? { ...(body!.leg as Record<string, unknown>), id: undefined } : body!.leg;
   const k = kiemChang(raw, { at: "Chặng đưa đón", departDate: svc.trip.departDate, today });
@@ -205,6 +207,8 @@ export async function planEditLeg(db: D1Database, orderId: string, legId: string
   const expected = expectedOf(body);
   if (!expected) return { ok: false, code: "invalid_input", message: "Thiếu expectedUpdatedAt (mốc cập nhật của chặng mà trang đã đọc)." };
   const svc = (await getStoredServices(db, orderId)).find((s) => s.id === row.order_service_id)!;
+  const camSua = await kiemNhomChoPhepDuaDon(db, [svc], "sua"); // ADR-0118 Đ3
+  if (!camSua.ok) return camSua;
   const old = svc.legs.find((l) => l.id === legId)!;
   const raw = body!.leg && typeof body!.leg === "object" && !Array.isArray(body!.leg) ? { ...(body!.leg as Record<string, unknown>), id: undefined } : body!.leg;
   const k = kiemChang(raw, { at: "Chặng đưa đón", departDate: svc.trip.departDate, direction: old.direction, today, ngayCu: old.pickupDate });
@@ -257,6 +261,8 @@ export async function planPaxOverrideNhap(db: D1Database, orderId: string, legId
   const p = docSoNguoiVe(body.paxOverride, "RETURN", "Chặng đưa đón");
   if (!p.ok) return { ok: false, code: "invalid_input", message: p.message };
   const svc = (await getStoredServices(db, orderId)).find((s) => s.id === row.order_service_id)!;
+  const camNhap = await kiemNhomChoPhepDuaDon(db, [svc], "sua"); // ADR-0118 Đ3 (Ruling R-E): nhánh nháp của PUT …/legs/:legId cũng là sửa chặng
+  if (!camNhap.ok) return camNhap;
   const old = svc.legs.find((l) => l.id === legId)!;
   if (p.value !== null && p.value !== old.paxOverride) {
     const vuot = vuotLR1(p.value, await soKhachDichVu(db, svc.id));
@@ -324,6 +330,8 @@ export async function planReplaceLeg(db: D1Database, orderId: string, legId: str
     return { ok: false, code: "invalid_input", message: `Lý do bỏ chặng khi thay chỉ là “${LY_DO_DONG_CHANG.REPLACED}” hoặc “${LY_DO_DONG_CHANG.WRONG_ENTRY}”.` };
   }
   const svc = (await getStoredServices(db, orderId)).find((s) => s.id === row.order_service_id)!;
+  const camThay = await kiemNhomChoPhepDuaDon(db, [svc], "sua"); // ADR-0118 Đ3: kiểm TRƯỚC khi lập kế hoạch ghi — chặng cũ không bị đóng khi bị từ chối
+  if (!camThay.ok) return camThay;
   // `svc.legs` chỉ có chặng MỞ: chặng vừa bị bỏ ở lệnh khác giữa hai lần đọc → báo "đã bỏ" (409), không đổ lỗi hệ thống.
   const old = svc.legs.find((l) => l.id === legId);
   if (!old) return { ok: false, code: "leg_closed", message: "Chặng đưa đón này đã bỏ rồi." };
@@ -401,11 +409,38 @@ export async function planPassengerChange(db: D1Database, orderId: string, body:
 }
 
 /**
+ * ADR-0118 Đ3 — CHỐT CHẶN MỘT HÀM cho mọi cửa GHI chặng và cửa xác nhận (`luu`: resolveLegPlaces ← lập / lưu nháp; `sua`: planAddLeg / planEditLeg / planReplaceLeg /
+ * planPaxOverrideNhap / PUT …/trip; `xac-nhan`: route trạng thái): dịch vụ có mã danh mục mà nhóm HIỆN HÀNH tắt đưa đón (view `v_ctl_service_transfer`) → từ chối, mã
+ * `transfer_disabled`, câu nêu tên dịch vụ + nhóm + cách sửa. Dịch vụ nhập tay (không mã) và Chưa phân loại luôn qua. Nơi gọi chỉ đưa dịch vụ ĐANG CÓ chặng mở / sắp ghi chặng.
+ * Lệnh ĐÓNG chặng và các lệnh không đụng chặng (số khách, ghi chú, huỷ) KHÔNG gọi hàm này. Tên nhóm lấy qua hàm công bố của `catalog` (Ruling R-C); cổng đọc từ view.
+ */
+export async function kiemNhomChoPhepDuaDon(
+  db: D1Database,
+  dichVu: readonly { catalogCode: string | null; name: string }[],
+  cua: CuaDuaDon,
+): Promise<{ ok: true } | { ok: false; code: "transfer_disabled"; message: string }> {
+  const coMa = dichVu.filter((d): d is { catalogCode: string; name: string } => d.catalogCode !== null);
+  if (coMa.length === 0) return { ok: true };
+  const tat = await dichVuTatDuaDon(db, coMa.map((d) => d.catalogCode));
+  if (tat.size === 0) return { ok: true };
+  const phamLoi = coMa.filter((d) => tat.has(d.catalogCode));
+  const tenNhom = await tenNhomHienHanh(db, phamLoi.map((d) => d.catalogCode));
+  const duyet = new Set<string>();
+  const ds = phamLoi.filter((d) => !duyet.has(d.name) && !!duyet.add(d.name)).map((d) => ({ ten: d.name, nhom: tenNhom.get(d.catalogCode) ?? null }));
+  return { ok: false, code: "transfer_disabled", message: cauNhomTatDuaDon(ds, cua) };
+}
+
+/**
  * ADR-0047 A1, Ruling R7 (có I/O): điểm danh mục ở nơi đón/nơi trả của chặng phải ĐANG DÙNG (`v_loc_location_label`, mọi loại điểm) — TRỪ chặng đang lưu
  * giữ nguyên điểm cũ (điểm đã ngừng sau khi lưu không chặn lần lưu sau). Xong thì đặt `trip.pickupTime/pickupPlace` = DẪN XUẤT (`chieuDiDau`, nơi = tên điểm
  * hoặc chữ) — nguồn của GHI KÉP hai cột cũ (Ruling R3) và của nhật ký. Trả đơn mới (không sửa đầu vào).
  */
-export async function resolveLegPlaces(db: D1Database, order: ValidOrder, ctx: OrderValidationContext): Promise<{ ok: true; value: ValidOrder } | { ok: false; message: string }> {
+export async function resolveLegPlaces(
+  db: D1Database, order: ValidOrder, ctx: OrderValidationContext,
+): Promise<{ ok: true; value: ValidOrder } | { ok: false; message: string; code?: "transfer_disabled" }> {
+  // ADR-0118 Đ3: chốt chặn «nhóm tắt đưa đón» ở CỬA CHUNG của lập đơn và lưu nháp — chạy trên chặng SAU KHI đã trộn thân cũ (`tronChangCu`), TRƯỚC mọi ghi.
+  const cam = await kiemNhomChoPhepDuaDon(db, dichVuCanHoiDuaDon(order.services), "luu");
+  if (!cam.ok) return cam;
   const known = new Map<string, string>();
   const kept = new Set<string>();
   for (const s of ctx.stored) {
