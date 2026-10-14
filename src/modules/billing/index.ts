@@ -31,6 +31,7 @@ const CANNOT_HANDOVER = () => error(403, "forbidden", "Chỉ hướng dẫn viê
 const CANNOT_COMPLETE = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới bấm được Hoàn thành.");
 const CANNOT_LEDGER = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới ghi được sổ công nợ.");
 const CANNOT_MARK_ENTRY = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới đánh dấu được đã nhập phần mềm kế toán.");
+const CANNOT_APPROVE_TRANSFER = () => error(403, "forbidden", "Chỉ Kế toán, Quản trị hoặc Toàn quyền mới duyệt được chuyển thu trước sang đơn mới.");
 const CANNOT_APPROVE = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền mới duyệt được hoàn thu trước / xác nhận dòng đã hoàn ngoài hệ thống.");
 const CANNOT_OUTSIDE = () => error(403, "forbidden", "Chỉ Toàn quyền mới ghi được dòng đã hoàn ngoài hệ thống.");
 const CANNOT_REFUND = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới ghi được hoàn tiền cho khách.");
@@ -66,6 +67,7 @@ export const billingModule: AppModule = {
         ? await cocCuaDon(env.DB, id, {
           coThePhanLoai: can(staff, "order.cancel.classify"),
           coTheDuyet: can(staff, "deposit.refund.approve"),
+          coTheDuyetChuyen: can(staff, "deposit.transfer.approve"),
           coTheChi: can(staff, "payment.refund"),
           coTheChuyen: can(staff, "ledger.write"),
           coTheGhiHoanNgoai: can(staff, "deposit.outside.record"),
@@ -102,25 +104,30 @@ export const billingModule: AppModule = {
 
     // ---- CỌC ĐƠN HUỶ (ADR-0089; migration 0079). Mỗi lệnh MỘT lô (ADR-0094 V1), 201 + Location trang đơn (V2). Luật tiền kiểm ở máy chủ (rules.ts) rồi
     // trigger 0079 kiểm lại. Các route /coc/... không trùng tiền tố route nào khác của orders/billing.
-    // Duyệt hoàn / duyệt chuyển (đ4a, đ6, X-1): ô `deposit.refund.approve` (Quản trị, Toàn quyền). Thân { loai: "hoan" | "chuyen", soTien, lyDo, donNhan? (mã đơn) }.
+    // Duyệt hoàn / duyệt chuyển (đ4a, đ6; ADR-0118 Điều 2): duyệt HOÀN hỏi `deposit.refund.approve` (Quản trị, Toàn quyền); duyệt CHUYỂN hỏi
+    // `deposit.transfer.approve` (Kế toán, Quản trị, Toàn quyền). Thân { loai: "hoan" | "chuyen", soTien, lyDo, donNhan? (mã đơn) }; loại khác "chuyen" tính như hoàn.
     route("POST", "/api/orders/:id/coc/duyet", "office", async ({ env, request, params, staff, baoThayDoi }) => {
-      if (!can(staff, "deposit.refund.approve")) return CANNOT_APPROVE();
+      const raw = await readJson(request);
+      const laChuyen = (raw as { loai?: unknown } | null)?.loai === "chuyen";
+      if (laChuyen ? !can(staff, "deposit.transfer.approve") : !can(staff, "deposit.refund.approve")) return laChuyen ? CANNOT_APPROVE_TRANSFER() : CANNOT_APPROVE();
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       if (!(await thongTinGiaoDon(env.DB, id))) return NOT_FOUND();
-      const kq = await ghiDuyet(env.DB, { orderId: id, raw: await readJson(request), ai: nguoiGoi(staff) });
+      const kq = await ghiDuyet(env.DB, { orderId: id, raw, ai: nguoiGoi(staff) });
       if (!kq.ok) return kq.res;
       baoThayDoi({ orderId: id, thayDoi: "tien" });
       return json({ ok: true, duyetId: kq.value.duyetId }, 201, { location: trangDon(id) });
     }),
 
-    // Huỷ duyệt phần chưa chi (đ4c): ô `deposit.refund.approve`. Thân { soTien, lyDo }.
+    // Huỷ duyệt phần chưa chi (đ4c): khoản HOÀN hỏi `deposit.refund.approve`, khoản CHUYỂN hỏi `deposit.transfer.approve` (ADR-0118). Thân { soTien, lyDo }.
     route("POST", "/api/orders/:id/coc/duyet/:duyetId/huy", "office", async ({ env, request, params, staff, baoThayDoi }) => {
-      if (!can(staff, "deposit.refund.approve")) return CANNOT_APPROVE();
+      const duocHoan = can(staff, "deposit.refund.approve");
+      const duocChuyen = can(staff, "deposit.transfer.approve");
+      if (!duocHoan && !duocChuyen) return CANNOT_APPROVE();
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       if (!(await thongTinGiaoDon(env.DB, id))) return NOT_FOUND();
-      const kq = await ghiHuyDuyet(env.DB, { orderId: id, duyetId: params.duyetId!, raw: await readJson(request), ai: nguoiGoi(staff) });
+      const kq = await ghiHuyDuyet(env.DB, { orderId: id, duyetId: params.duyetId!, raw: await readJson(request), ai: nguoiGoi(staff), duocHoan, duocChuyen });
       if (!kq.ok) return kq.res;
       baoThayDoi({ orderId: id, thayDoi: "tien" });
       return json({ ok: true }, 201, { location: trangDon(id) });

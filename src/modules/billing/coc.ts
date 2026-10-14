@@ -101,6 +101,7 @@ async function docCoc(db: D1Database, orderId: string): Promise<DuLieuCoc | null
 export interface CoCoc {
   coThePhanLoai: boolean;
   coTheDuyet: boolean;
+  coTheDuyetChuyen: boolean;
   coTheChi: boolean;
   coTheChuyen: boolean;
   coTheGhiHoanNgoai: boolean;
@@ -143,6 +144,7 @@ export async function cocCuaDon(db: D1Database, orderId: string, co: CoCoc): Pro
     conGiu: d.coc.conGiu, choChi: d.coc.choChi, khoanDuyet, hoanNgoaiDong, nguoiGiu,
     coThePhanLoai: co.coThePhanLoai && nhom === "CHUA_KET_LUAN",
     coTheDuyet: co.coTheDuyet && nhom !== "CHUA_KET_LUAN" && d.coc.conGiuLucHuy - d.coc.daDuyet > 0 && !(nhom === "KHACH_HUY" && homNay > d.huy.refund_deadline),
+    coTheDuyetChuyen: co.coTheDuyetChuyen && nhom !== "CHUA_KET_LUAN" && d.coc.conGiuLucHuy - d.coc.daDuyet > 0 && !(nhom === "KHACH_HUY" && homNay > d.huy.refund_deadline),
     coTheChi: co.coTheChi && khoanDuyet.some((k) => k.loai === "hoan" && k.conLai > 0),
     coTheChuyen: co.coTheChuyen && khoanDuyet.some((k) => k.loai === "chuyen" && k.conLai > 0),
     coTheGhiHoanNgoai: co.coTheGhiHoanNgoai && d.huy.legacy === 1 && coHieuLuc.length === 0 && d.coc.conGiu > 0,
@@ -208,7 +210,7 @@ export async function ghiDuyet(db: D1Database, input: { orderId: string; raw: un
 }
 
 /** Huỷ duyệt phần chưa chi (đ4c) — lý do bắt buộc, mỗi khoản một lần. */
-export async function ghiHuyDuyet(db: D1Database, input: { orderId: string; duyetId: string; raw: unknown; ai: NguoiGoi }): Promise<KetQua<null>> {
+export async function ghiHuyDuyet(db: D1Database, input: { orderId: string; duyetId: string; raw: unknown; ai: NguoiGoi; duocHoan: boolean; duocChuyen: boolean }): Promise<KetQua<null>> {
   if (!UUID_RE.test(input.duyetId)) return KHOAN_KHONG_CO();
   const b = (input.raw ?? {}) as Record<string, unknown>;
   const so = docSoTien(b.soTien);
@@ -219,6 +221,8 @@ export async function ghiHuyDuyet(db: D1Database, input: { orderId: string; duye
   if (!d) return DON_CHUA_HUY();
   const goc = d.duyet.find((x) => x.id === input.duyetId && x.voidsId === null);
   if (!goc) return KHOAN_KHONG_CO();
+  // ADR-0118: huỷ duyệt theo ĐÚNG ô của loại khoản (hoàn ↔ deposit.refund.approve, chuyển ↔ deposit.transfer.approve).
+  if (goc.kind === "TRANSFER" ? !input.duocChuyen : !input.duocHoan) return loi(403, "forbidden", goc.kind === "TRANSFER" ? "Bạn không có quyền huỷ duyệt khoản chuyển này." : "Chỉ Quản trị hoặc Toàn quyền mới huỷ duyệt được khoản hoàn.");
   if (d.duyet.some((x) => x.voidsId === goc.id)) return loi(409, "stale", "Khoản duyệt này đã được huỷ duyệt một lần.");
   const tc = tuChoi(kiemHuyDuyet({ conLaiKhoan: conLaiCuaKhoan(goc.id, d.duyet, d.receipts), soTien: so.value }));
   if (tc) return tc;

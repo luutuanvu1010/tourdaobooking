@@ -672,7 +672,7 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
         bao: "Đã chuyển tiền sang đơn mới.",
       }));
     }
-    if (c.coTheDuyet && k.conLai > 0 && k.daHuy === 0) {
+    if ((k.loai === "chuyen" ? c.coTheDuyetChuyen : c.coTheDuyet) && k.conLai > 0 && k.daHuy === 0) {
       const so = oSoTien(k.conLai);
       const lyDo = oLyDo("Vì sao huỷ duyệt (bắt buộc)");
       nut.push(hangXacNhan({
@@ -728,13 +728,17 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
       bao: "Đã phân loại lý do huỷ.",
     }));
   }
-  if (c.coTheDuyet) {
-    const loai = h("select", null, h("option", { value: "hoan" }, "Hoàn cho khách"), h("option", { value: "chuyen" }, "Chuyển sang đơn mới")) as HTMLSelectElement;
+  if (c.coTheDuyet || c.coTheDuyetChuyen) {
+    // ADR-0118 Điều 2: mỗi lựa chọn hiện theo ĐÚNG ô của nó (Kế toán chỉ thấy "Chuyển sang đơn mới"); máy chủ kiểm lại.
+    const loai = h("select", null,
+      ...(c.coTheDuyet ? [h("option", { value: "hoan" }, "Hoàn cho khách")] : []),
+      ...(c.coTheDuyetChuyen ? [h("option", { value: "chuyen" }, "Chuyển sang đơn mới")] : []),
+    ) as HTMLSelectElement;
     const so = oSoTien(null);
     const donNhan = h("input", { type: "text", autocomplete: "off", placeholder: "Mã đơn nhận (khi chuyển)" }) as HTMLInputElement;
     const lyDo = oLyDo("Vì sao hoàn / chuyển (bắt buộc)");
     nut.push(hangXacNhan({
-      nhan: "Duyệt hoàn thu trước", action: "coc-duyet", nutGhi: "Duyệt",
+      nhan: c.coTheDuyet ? "Duyệt hoàn thu trước" : "Duyệt chuyển sang đơn mới", action: "coc-duyet", nutGhi: "Duyệt",
       cau: `Công ty còn giữ ${vnd(c.conGiu)}.${c.nhom === "KHACH_HUY" ? ` Hạn hoàn: ${ngayDayDu(c.han)}.` : ""} Người duyệt không tự chi.`,
       o: [h("label", null, "Loại", loai), h("label", null, "Số tiền (₫)", so), h("label", null, "Đơn nhận", donNhan), h("label", null, "Lý do", lyDo)],
       kiem: () => (parseMoney(so.value) <= 0 ? "Nhập số tiền." : !lyDo.value.trim() ? "Nhập lý do." : loai.value === "chuyen" && !donNhan.value.trim() ? "Nhập mã đơn nhận." : null),

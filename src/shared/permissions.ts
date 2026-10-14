@@ -108,10 +108,13 @@ export const MATRIX = {
   "payment.receive": row("own", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"),
   // Ghi HOÀN KHÁCH (route POST /api/ledger/refunds, module billing) — ADR-0026 điều 10: ADMIN any → none (H4 "Kế toán ghi", thận trọng).
   "payment.refund": row("none", "any", "none", "none", "none", "any", "none", "none", "none", "none"),
-  // ADR-0089 đ4a, đ6, X-1, X-4 (cọc đơn huỷ — migration 0079): DUYỆT hoàn cọc / duyệt chuyển sang đơn mới / huỷ duyệt / XÁC NHẬN hoặc từ chối dòng "đã hoàn
+  // ADR-0089 đ4a, đ6, X-1, X-4 (cọc đơn huỷ — migration 0079): DUYỆT hoàn cọc / huỷ duyệt khoản hoàn / XÁC NHẬN hoặc từ chối dòng "đã hoàn
   // ngoài hệ thống" — Quản trị (lời chủ 3 câu 3), Toàn quyền. Người duyệt không tự chi (đ4c — kiểm theo người ở máy chủ + trigger, không ở ô này).
   // Route: POST /api/orders/:id/coc/duyet, …/coc/duyet/:duyetId/huy, …/coc/hoan-ngoai/:ghiId/xac-nhan.
   "deposit.refund.approve": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
+  // ADR-0118 Điều 2 (thay X-1 của ADR-0089): DUYỆT CHUYỂN tiền của đơn huỷ sang đơn mới (và huỷ duyệt khoản chuyển) — Kế toán, Quản trị, Toàn quyền, vì chuyển
+  // không làm tiền ra khỏi công ty. Ô `deposit.refund.approve` ở trên chỉ còn duyệt HOÀN cho khách. Route POST /api/orders/:id/coc/duyet với loai "chuyen".
+  "deposit.transfer.approve": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0089 đ16, X-4: GHI "đã hoàn ngoài hệ thống" cho đơn huỷ cũ — chỉ Toàn quyền (Quản trị xác nhận). Route POST /api/orders/:id/coc/hoan-ngoai.
   "deposit.outside.record": row("none", "none", "none", "none", "none", "any", "none", "none", "none", "none"),
   // Sổ tiền lượt 1 — BỐN Ô MỚI (bảng 9 cột bản làm mới §2, accepted 2026-09-29), mỗi ô có route hỏi nó ở module billing:

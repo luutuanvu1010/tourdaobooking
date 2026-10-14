@@ -1932,7 +1932,10 @@ export interface CocDonDto {
   hoanNgoaiDong: HoanNgoaiDto[];
   nguoiGiu: { ten: string; soTien: number }[] | null;
   coThePhanLoai: boolean;
+  /** Nút duyệt HOÀN cho khách / huỷ duyệt khoản hoàn (ô `deposit.refund.approve`). */
   coTheDuyet: boolean;
+  /** Nút duyệt CHUYỂN sang đơn mới / huỷ duyệt khoản chuyển (ô `deposit.transfer.approve`, ADR-0118 Điều 2). */
+  coTheDuyetChuyen: boolean;
   coTheChi: boolean;
   coTheChuyen: boolean;
   coTheGhiHoanNgoai: boolean;
