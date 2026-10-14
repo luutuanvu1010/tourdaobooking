@@ -125,7 +125,7 @@
         {
           "nhan": "Du thuyền 3.000.000 — bậc 8 (TA1 · nhóm Du thuyền 15%)",
           "dau_vao": {"thanh_tien": 3000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1500, "moi_khach": null, "ty_le_mua_bp": null},
-          "dap_an": {"hoa_hong": 450000, "gia_dai_ly": 2550000, "gia_von": null, "bac": 8}
+          "dap_an": {"hoa_hong": 450000, "gia_dai_ly": 2550000, "gia_von": null}
         }
       ]
     },
@@ -138,7 +138,7 @@
         {
           "nhan": "Tour đảo 1.000.000 — bậc 9 (TA3 · mọi dịch vụ 10%)",
           "dau_vao": {"thanh_tien": 1000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1000, "moi_khach": null, "ty_le_mua_bp": null},
-          "dap_an": {"hoa_hong": 100000, "gia_dai_ly": 900000, "gia_von": null, "bac": 9}
+          "dap_an": {"hoa_hong": 100000, "gia_dai_ly": 900000, "gia_von": null}
         }
       ]
     },
@@ -151,12 +151,12 @@
         {
           "nhan": "Đơn A xác nhận 10/10 (loại gắn TA1) — giữ mức sau khi loại đổi sang TA3",
           "dau_vao": {"thanh_tien": null, "khach_tinh": null, "kieu": null, "ty_le_bp": null, "moi_khach": null, "ty_le_mua_bp": null},
-          "dap_an": {"hoa_hong": null, "gia_dai_ly": null, "gia_von": null, "ty_le_bp_ap_dung": 1000, "bac": 9}
+          "dap_an": {"hoa_hong": null, "gia_dai_ly": null, "gia_von": null, "ty_le_bp_ap_dung": 1000}
         },
         {
           "nhan": "Đơn B xác nhận 16/10 (loại gắn TA3) — 2.000.000",
           "dau_vao": {"thanh_tien": 2000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1200, "moi_khach": null, "ty_le_mua_bp": null},
-          "dap_an": {"hoa_hong": 240000, "gia_dai_ly": 1760000, "gia_von": null, "bac": 9}
+          "dap_an": {"hoa_hong": 240000, "gia_dai_ly": 1760000, "gia_von": null}
         }
       ]
     },
@@ -169,7 +169,7 @@
         {
           "nhan": "Du thuyền 3.000.000 — bậc 5 (dòng riêng của loại 8%) thắng TA1 15%",
           "dau_vao": {"thanh_tien": 3000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 800, "moi_khach": null, "ty_le_mua_bp": null},
-          "dap_an": {"hoa_hong": 240000, "gia_dai_ly": 2760000, "gia_von": null, "bac": 5}
+          "dap_an": {"hoa_hong": 240000, "gia_dai_ly": 2760000, "gia_von": null}
         }
       ]
     },
@@ -182,12 +182,12 @@
         {
           "nhan": "Du thuyền 3.000.000 — còn dòng cũ: bậc 6 (10%) thắng TA1",
           "dau_vao": {"thanh_tien": 3000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1000, "moi_khach": null, "ty_le_mua_bp": null},
-          "dap_an": {"hoa_hong": 300000, "gia_dai_ly": 2700000, "gia_von": null, "bac": 6}
+          "dap_an": {"hoa_hong": 300000, "gia_dai_ly": 2700000, "gia_von": null}
         },
         {
           "nhan": "Du thuyền 3.000.000 — sau khi đóng dòng cũ: bậc 8 (TA1 · nhóm Du thuyền 15%)",
           "dau_vao": {"thanh_tien": 3000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1500, "moi_khach": null, "ty_le_mua_bp": null},
-          "dap_an": {"hoa_hong": 450000, "gia_dai_ly": 2550000, "gia_von": null, "bac": 8}
+          "dap_an": {"hoa_hong": 450000, "gia_dai_ly": 2550000, "gia_von": null}
         }
       ]
     },
@@ -200,7 +200,7 @@
         {
           "nhan": "Dịch vụ 2.000.000 — bậc 1 (mức riêng của đối tác 12%) thắng TA1 15%",
           "dau_vao": {"thanh_tien": 2000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1200, "moi_khach": null, "ty_le_mua_bp": null},
-          "dap_an": {"hoa_hong": 240000, "gia_dai_ly": 1760000, "gia_von": null, "bac": 1}
+          "dap_an": {"hoa_hong": 240000, "gia_dai_ly": 1760000, "gia_von": null}
         }
       ]
     },
