@@ -49,3 +49,9 @@ Kế hoạch: `2026-10-14-adr-0117-lan-1-ke-hoach.md`. Nhánh: `claude/adr-0117-
 - Trợ giúp: bài A4 (30 phút) đỏ khi thêm mục mới (Kế toán 3304 chữ, Quản trị 3170 chữ; trần ≈ 3150): cắt bốn ví dụ cũ (hai ở Kế toán cùng hai ở Quản trị), không nới trần.
 - Nhật ký thay đổi: mục 1.96 TẠM (main 1.95 + 1; phiên phát hành kiểm lại). Có migration 0095 ⇒ cần `npm run trien-khai` sau `day-len`; KHÔNG ghi `docs/HANDOFF-N1.md` (việc của phiên phát hành).
 - Tài liệu: `SYSTEM-DESIGN.md`, `CHANGE-GUIDE.md`, `BACKLOG.md` (đóng `BL-SDL-TO-CHUC` cho loại mới; hai nợ mới), `SO-HANG-RAO.md` (năm dòng).
+
+### Bằng chứng kiểm độc lập (nguoi-kiem-doc-lap, 2026-10-14)
+- Task 1 — người kiểm gỡ lần lượt từng trong 6 trigger trên bản sao tạm của migration 0095 và bài tương ứng đỏ: `pty_role_type_partner_label_other` → (f); `pty_role_type_partner_label_immutable` → (f); `pty_party_role_partner_label_conflict_ins` → hai ca (c); `pty_party_role_partner_label_conflict_upd` → ca mở lại vai; `prc_beneficiary_role_kind` → (d); `adr0117_permission_partner_label_internal` → ca `stf_permission`.
+- Task 2 — bảy phép phá: M1 gỡ kiểm ở `PUT roles` → ca (i) đỏ; M2 thay quy ước bằng `acc.linked` một mình → 5 ca chống chặn nhầm đỏ; M3 bỏ lý do chặn gộp → 3 ca gộp đỏ; M4 chặn gộp một hướng → ca gộp ngược đỏ; M5 xoá ánh xạ `constraintProblem` → 0 ca đỏ (chưa bài cố định khoá); M5b gỡ kiểm ở route Danh bạ, giữ ánh xạ → chỉ ca vế 3 đỏ; M6 gỡ kiểm thuần ở `createAccountWithRolesStatements` → 0 ca đỏ; M7 xoá ánh xạ `ruleViolation` → ca `PUT permissions` đỏ (500). Vòng sửa 1–2 (Ruling 7, 8): mỗi cái gỡ vế chặn → ca đỏ.
+- Task 3 — bảy phép phá đều đỏ đúng chỗ: bỏ `holdsPartner` ở GET; `dangBat` chỉ xét một cờ; bỏ chặn số / `@` trong tên; bỏ `changes() > 0` của nhật ký `/tat` `/bat`; bỏ `holdsPartner` ở `/bat`; bỏ kiểm `!partnerLabel`; bỏ `nhanDoiTac` khi chụp mức.
+- Task 4 — `nhanLoaiDoiTac` luôn có nút → 1 fail; trả bộ lọc tên về regex cũ → 1 fail.

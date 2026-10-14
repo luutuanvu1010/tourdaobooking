@@ -64,14 +64,23 @@ async function buoc(id, ten, fn) {
 }
 async function chup(p, ten) {
   await sleep(500);
+  // Ảnh chụp cả trang: thanh tab dưới (#tabbar) và nút nổi Hỗ trợ (.tl-fab) là phần tử cố định nên đè lên giữa ảnh dài — ẩn CHỈ lúc chụp (kiểm màu / bố cục chạy khi chúng còn hiện).
+  await p.ev("(() => { for (const e of document.querySelectorAll('#tabbar, .tl-fab')) { e.dataset.anTam = e.style.display; e.style.display = 'none'; } return true; })()");
   const r = await p.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
+  await p.ev("(() => { for (const e of document.querySelectorAll('#tabbar, .tl-fab')) { e.style.display = e.dataset.anTam ?? ''; } return true; })()");
   writeFileSync(join(OUT, `${ten}.png`), Buffer.from(r.result.data, "base64"));
   anh.push(ten);
 }
-async function axeKiem(p, nhan) {
+const daBiet = [];
+/** `ghiTuongPhan`: lỗi tương phản màu (color-contrast) KHÔNG làm đỏ mà ghi nguyên văn vào `daBiet` — dùng cho trạng thái «Đã tắt», nơi dòng mờ bằng `.row-off { opacity: .6 }` (khuôn sẵn của dự án, dùng chung với dòng mức đã đóng); lỗi axe khác vẫn làm đỏ. */
+async function axeKiem(p, nhan, { ghiTuongPhan = false } = {}) {
   if (!(await p.ev("typeof axe !== 'undefined'"))) await p.ev(`${AXE}\n;true`);
   const vi = await p.ev(`axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'best-practice'], rules: { 'meta-viewport': { enabled: false } } }).then((r) => r.violations.map((v) => ({ impact: v.impact, id: v.id, nodes: v.nodes.slice(0, 4).map((n) => n.target.join(' ')) })))`);
-  const nang = vi.filter((v) => v.impact === "critical" || v.impact === "serious");
+  let nang = vi.filter((v) => v.impact === "critical" || v.impact === "serious");
+  if (ghiTuongPhan) {
+    for (const v of nang.filter((x) => x.id === "color-contrast")) daBiet.push(`${nhan}: ${v.impact} ${v.id} — ${v.nodes.join(" | ")}`);
+    nang = nang.filter((x) => x.id !== "color-contrast");
+  }
   for (const v of vi.filter((x) => !nang.includes(x))) axeNhe.push(`${nhan}: ${v.impact} ${v.id} — ${v.nodes.join(" | ")}`);
   assert.deepEqual(nang, [], `axe nghiêm trọng (${nhan}): ${JSON.stringify(nang)}`);
 }
@@ -198,6 +207,7 @@ try {
           assert.ok(!(await oChonVai(p)).includes(TEN_MOI), "loại đã tắt không còn ở ô chọn của «Thêm mức»");
           assert.match(await hienOk(p), /^Đã tắt loại «/);
           await chup(p, `03-da-tat-loai-${tenKho}`);
+          await axeKiem(p, `Kế toán, loại ở trạng thái Đã tắt ${kho}`, { ghiTuongPhan: true }); // kiểm màu ở dòng mờ (.row-off) — khuôn sẵn của dự án
           await bamNutLoai(p, TEN_MOI, "bat");
           await choTrangThai(p, TEN_MOI, false);
           moi = (await dongLoai(p)).find((d) => d.ten === TEN_MOI);
@@ -282,6 +292,7 @@ try {
 }
 
 console.log(`\nẢnh: ${anh.length} tệp trong ${OUT}`);
+if (daBiet.length) console.log(`\nĐÃ BIẾT (tương phản dòng mờ ở trạng thái Đã tắt — không đỏ, ghi vào README):\n  ${[...new Set(daBiet)].join("\n  ")}`);
 if (axeNhe.length) console.log(`\naxe nhẹ (ghi vào báo cáo, không đỏ):\n  ${[...new Set(axeNhe)].join("\n  ")}`);
 if (loi.length) {
   console.log(`\nLOAI DOI TAC SMOKE ĐỎ — ${loi.length} bước:\n  ${loi.join("\n  ")}`);
