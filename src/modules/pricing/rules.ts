@@ -16,6 +16,8 @@ export interface DongMuc {
   id: string;
   targetPartyId: string | null;
   targetRoleCode: string | null;
+  /** Đích thứ ba (ADR-0117 lần 2): mã mức TA. Đúng một trong ba đích có giá trị. Thiếu = null (nơi gọi cũ chưa đọc cột này). */
+  targetTierCode?: string | null;
   scope: PhamVi;
   catalogCode: string | null;
   groupCode: string | null;
@@ -38,7 +40,11 @@ export interface DongDieuKhoan {
 }
 /** Người hưởng của đơn: HUONG = bên đặt mang vai được hưởng; KHONG_HUONG = bên đặt mang vai bên ngoài (hoặc loại đối tác ADR-0117) KHÔNG thuộc danh sách; NONE = khách lẻ / nội bộ / công ty / trống. */
 export type NguoiHuong = { loai: "NONE" } | { loai: "HUONG"; partyId: string; vai: readonly string[] } | { loai: "KHONG_HUONG"; partyId: string };
-export type KetQuaMuc = { trangThai: "NONE" } | { trangThai: "SET"; dong: DongMuc; bac: 1 | 2 | 3 | 4 | 5 | 6 } | { trangThai: "MISSING"; lyDo: LyDoThieu };
+/** Gắn loại↔mức TA theo ngày (ADR-0117 lần 2): loại `roleTypeCode` mang mức `tierCode` trong khoảng [validFrom, validTo]. */
+export interface GanLoaiMuc { roleTypeCode: string; tierCode: string; validFrom: string; validTo: string | null }
+/** Bậc thắng: 1–3 riêng đối tác, 4–6 riêng loại, 7–9 mức TA (mỗi nhóm ba: dịch vụ, nhóm, mọi dịch vụ). */
+export type BacMuc = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+export type KetQuaMuc = { trangThai: "NONE" } | { trangThai: "SET"; dong: DongMuc; bac: BacMuc } | { trangThai: "MISSING"; lyDo: LyDoThieu };
 export type KetQuaDieuKhoan = { trangThai: "SET"; dong: DongDieuKhoan } | { trangThai: "MISSING" };
 
 export const hieuLuc = (d: { validFrom: string; validTo: string | null }, ngay: string): boolean => d.validFrom <= ngay && (d.validTo === null || d.validTo >= ngay);
@@ -69,8 +75,12 @@ function khop(d: { scope: PhamVi; catalogCode: string | null; groupCode: string 
 const cungMuc = (a: DongMuc, b: DongMuc): boolean => a.kind === b.kind && a.rateBp === b.rateBp && a.perPaxAmount === b.perPaxAmount;
 const theoThuTu = (a: DongMuc, b: DongMuc): number => (a.targetRoleCode ?? "").localeCompare(b.targetRoleCode ?? "") || a.id.localeCompare(b.id);
 
-/** Chọn mức (ADR-0077 điều 5): sáu bậc, bậc cụ thể nhất thắng; chỉ dòng hiệu lực ở `ngay`. Không bao giờ tự lấy 0 khi không khớp. */
-export function chonMuc(v: { nguoiHuong: NguoiHuong; catalogCode: string | null; groupCode: string | null; ngay: string; dong: readonly DongMuc[] }): KetQuaMuc {
+/**
+ * Chọn mức (ADR-0077 điều 5, ADR-0117 lần 2): chín bậc, bậc cụ thể nhất thắng; chỉ dòng hiệu lực ở `ngay`. Không bao giờ tự lấy 0 khi không khớp.
+ * Bậc 1–3: riêng đối tác. Bậc 4–6: riêng loại. Bậc 7–9: dòng của các mức TA mà loại hồ sơ đang mang được gắn (`gan`) ở `ngay`; dòng riêng của loại (4–6) luôn thắng dòng TA.
+ * Hai mức khác số ở cùng bậc (qua hai loại) ⇒ RULE_CONFLICT; cùng số thì không xung đột, dòng `id` nhỏ nhất đứng ra (xác định).
+ */
+export function chonMuc(v: { nguoiHuong: NguoiHuong; catalogCode: string | null; groupCode: string | null; ngay: string; dong: readonly DongMuc[]; gan?: readonly GanLoaiMuc[] }): KetQuaMuc {
   if (v.nguoiHuong.loai === "NONE") return { trangThai: "NONE" };
   if (v.nguoiHuong.loai === "KHONG_HUONG") return { trangThai: "MISSING", lyDo: "BOOKER_NOT_BENEFICIARY" };
   if (v.catalogCode === null) return { trangThai: "MISSING", lyDo: "MANUAL_LINE" };
@@ -86,6 +96,15 @@ export function chonMuc(v: { nguoiHuong: NguoiHuong; catalogCode: string | null;
     if (ds.length === 0) continue;
     if (ds.some((x) => !cungMuc(x, ds[0]!))) return { trangThai: "MISSING", lyDo: "RULE_CONFLICT" };
     return { trangThai: "SET", dong: ds[0]!, bac: (i + 4) as 4 | 5 | 6 };
+  }
+  const muc = new Set((v.gan ?? []).filter((g) => nh.vai.includes(g.roleTypeCode) && hieuLuc(g, v.ngay)).map((g) => g.tierCode));
+  if (muc.size > 0) {
+    for (const [i, pv] of THU_TU.entries()) {
+      const ds = con.filter((x) => x.targetTierCode != null && muc.has(x.targetTierCode) && khop(x, pv, code, v.groupCode));
+      if (ds.length === 0) continue;
+      if (ds.some((x) => !cungMuc(x, ds[0]!))) return { trangThai: "MISSING", lyDo: "RULE_CONFLICT" };
+      return { trangThai: "SET", dong: ds[0]!, bac: (i + 7) as 7 | 8 | 9 };
+    }
   }
   return { trangThai: "MISSING", lyDo: "NO_RULE" };
 }

@@ -2347,7 +2347,7 @@ export interface SupplyTermListResponse { homNay: string; dong: SupplyTermDto[];
 export interface ThuTraResponse {
   ngay: string;
   nguoiHuong: { loai: "NONE" | "HUONG" | "KHONG_HUONG"; vai: string[] };
-  ketQua: { trangThai: "NONE" } | { trangThai: "SET"; bac: 1 | 2 | 3 | 4 | 5 | 6; muc: CommissionRuleDto } | { trangThai: "MISSING"; lyDo: string };
+  ketQua: { trangThai: "NONE" } | { trangThai: "SET"; bac: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9; muc: CommissionRuleDto } | { trangThai: "MISSING"; lyDo: string };
 }
 /**
  * Loại đối tác được hưởng hoa hồng (ADR-0117 lần 1). `coSan` = vai bên ngoài có từ đầu (không tắt / bật ở màn này); `dangBat` = CẢ HAI cờ (loại vai đang dùng VÀ dòng danh sách được hưởng

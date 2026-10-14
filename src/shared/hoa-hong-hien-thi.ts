@@ -84,14 +84,17 @@ export function locDieuKhoan(dong: readonly SupplyTermDto[], chiConHieuLuc: bool
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
 // Thử tra
 
-/** Lời của bậc thắng (máy chủ đánh số 1…6: riêng đối tác trước, loại đối tác sau; trong mỗi bên: dịch vụ, nhóm, mọi dịch vụ). */
-export const LOI_BAC: Record<1 | 2 | 3 | 4 | 5 | 6, string> = {
+/** Lời của bậc thắng (máy chủ đánh số 1…9: riêng đối tác trước, riêng loại đối tác sau, mức TA của loại cuối cùng; trong mỗi bên: dịch vụ, nhóm, mọi dịch vụ). */
+export const LOI_BAC: Record<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9, string> = {
   1: "mức riêng của đối tác cho dịch vụ này",
   2: "mức riêng của đối tác cho nhóm",
   3: "mức riêng của đối tác cho mọi dịch vụ",
   4: "mức của loại đối tác cho dịch vụ này",
   5: "mức của loại đối tác cho nhóm",
   6: "mức của loại đối tác cho mọi dịch vụ",
+  7: "mức TA của loại đối tác cho dịch vụ này",
+  8: "mức TA của loại đối tác cho nhóm",
+  9: "mức TA của loại đối tác cho mọi dịch vụ",
 };
 
 /** Dòng kết quả của Thử tra: «Áp mức 12,5% — mức riêng của đối tác cho nhóm»; thiếu mức → câu lý do của máy chủ (đã là tiếng Việt); không người hưởng → câu riêng. */

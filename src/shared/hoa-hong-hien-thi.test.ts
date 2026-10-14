@@ -99,14 +99,17 @@ test("locMuc: ô tìm khớp THÊM nhãn phạm vi (tên dịch vụ / nhóm đa
   assert.deepEqual(tim("HONTAM"), [], "mã thô của dịch vụ ĐÃ có tên không phải nhãn hiện ra nên không khớp");
 });
 
-test("cauThuTra: sáu bậc có lời riêng, thiếu mức dùng câu của máy chủ, không người hưởng có câu riêng", () => {
+test("cauThuTra: chín bậc có lời riêng, thiếu mức dùng câu của máy chủ, không người hưởng có câu riêng", () => {
   const base = { ngay: HOM_NAY, nguoiHuong: { loai: "HUONG" as const, vai: ["Đại lý du lịch"] } };
-  const co = (bac: 1 | 2 | 3 | 4 | 5 | 6): ThuTraResponse => ({ ...base, ketQua: { trangThai: "SET", bac, muc: muc({}) } });
+  const co = (bac: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9): ThuTraResponse => ({ ...base, ketQua: { trangThai: "SET", bac, muc: muc({}) } });
   assert.equal(cauThuTra(co(3)), "Áp mức 12,5% — mức riêng của đối tác cho mọi dịch vụ");
   assert.equal(cauThuTra(co(6)), "Áp mức 12,5% — mức của loại đối tác cho mọi dịch vụ");
+  assert.equal(cauThuTra(co(7)), "Áp mức 12,5% — mức TA của loại đối tác cho dịch vụ này");
+  assert.equal(cauThuTra(co(8)), "Áp mức 12,5% — mức TA của loại đối tác cho nhóm");
+  assert.equal(cauThuTra(co(9)), "Áp mức 12,5% — mức TA của loại đối tác cho mọi dịch vụ");
   const loi = new Set<string>();
-  for (const b of [1, 2, 3, 4, 5, 6] as const) loi.add(LOI_BAC[b]);
-  assert.equal(loi.size, 6, "mỗi bậc một lời khác nhau");
+  for (const b of [1, 2, 3, 4, 5, 6, 7, 8, 9] as const) loi.add(LOI_BAC[b]);
+  assert.equal(loi.size, 9, "mỗi bậc một lời khác nhau");
   assert.equal(cauThuTra({ ...base, ketQua: { trangThai: "MISSING", lyDo: "Chưa có mức cho dịch vụ này" } }), "Chưa có mức cho dịch vụ này");
   assert.equal(cauThuTra({ ...base, ketQua: { trangThai: "NONE" } }), CAU_KHONG_CO_NGUOI_HUONG);
   assert.equal(CAU_KHONG_CO_NGUOI_HUONG, "Không có người hưởng hoa hồng");
