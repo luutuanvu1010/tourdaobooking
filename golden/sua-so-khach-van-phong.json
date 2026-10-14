@@ -102,28 +102,28 @@
     },
     {
       "ma": "SV-SK-04",
-      "mo_ta": "Giảm giá lớn hơn tiền dịch vụ sau khi bớt khách, có cảnh báo (ca hộp hỏi của chủ, ADR-0109): tour 2 người lớn × 500.000 = 1.000.000, giảm 800.000 → phải thu 200.000; khách đã trả đủ 200.000. Kế toán sửa còn 1 người lớn → tạm tính 500.000; giảm giá 800.000 lớn hơn nên phải thu tính bằng 0 (KHÔNG chặn), còn lại 0, khách trả dư chờ hoàn đúng 200.000; trả về câu cảnh báo. ADR-0114: số khách trả tiền giảm từ 2 xuống 1 trên đơn có giảm giá nên có thêm lời nhắc khuyến mại (hai câu cùng hiện).",
-      "ghi_chu_cho_nguoi_xac_nhan": "Theo luật chủ chọn 8/10 (ADR-0109 'Phải thu không âm'): giảm giá vẫn lưu 800.000 nhưng chỉ dùng tới 500.000 (bằng tiền dịch vụ còn lại); phần giảm giá vượt 300.000 coi như bỏ; khách được hoàn đúng 200.000 đã trả, hoàn xong đơn lên Đã giao được (ca SV-SK-08). Biên nhận gửi khách ghi giảm giá 500.000. Đáp án cũ (phải thu −300.000, chờ hoàn 500.000) đã bỏ theo quyết định này.",
+      "mo_ta": "Khuyến mại tặng vé rồi khách bớt người (ca hộp hỏi của chủ, ADR-0109; viết lại 14/10/2026 theo lời chủ: giảm giá thật đi theo bậc số lượng, không theo tỷ lệ). Đơn 4 người lớn × 500.000 = 2.000.000 theo khuyến mại \"mua 2 tặng 2\" (giảm giá cố định 1.000.000) → phải thu 1.000.000; khách đã trả đủ 1.000.000. Kế toán sửa còn 1 người lớn (Khách bớt người) → tạm tính 500.000; khuyến mại vẫn lưu 1.000.000 (máy không tự co giảm giá) nên lớn hơn tiền dịch vụ: phải thu tính bằng 0 (KHÔNG chặn), còn lại 0, khách trả dư chờ hoàn đúng 1.000.000; trả về câu cảnh báo. ADR-0114: số khách trả tiền giảm từ 4 xuống 1 trên đơn có giảm giá nên có thêm lời nhắc khuyến mại (hai câu cùng hiện) để Kế toán xem lại vì khuyến mại không còn đúng điều kiện.",
+      "ghi_chu_cho_nguoi_xac_nhan": "Theo luật chủ chọn 8/10 (ADR-0109 \"Phải thu không âm\"): giảm giá vẫn lưu 1.000.000 nhưng chỉ dùng tới 500.000 (bằng tiền dịch vụ còn lại); phần giảm giá vượt 500.000 coi như bỏ; khách được hoàn đúng 1.000.000 đã trả, hoàn xong đơn lên Đã giao được (ca SV-SK-08). Biên nhận gửi khách ghi giảm giá 500.000. Viết lại 14/10/2026: số trước đây (giảm 800.000 trên tour 1.000.000) bị chủ cho là không thực tế vì khuyến mại thật đi theo bậc số lượng.",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "xac_nhan_khoa_moi": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "dau_vao": {
         "dich_vu": [
-          { "id": "dv-tour", "ten": "Tour đảo", "nguon": "danh_muc", "don_gia": { "adult": 500000 }, "khach_truoc": { "adult": 2, "child": 0, "senior": 0, "infant": 0 } }
+          { "id": "dv-tour", "ten": "Tour đảo", "nguon": "danh_muc", "don_gia": { "adult": 500000 }, "khach_truoc": { "adult": 4, "child": 0, "senior": 0, "infant": 0 } }
         ],
         "lan_sua_truoc": null,
-        "giam_gia": 800000,
-        "da_thu": 200000,
+        "giam_gia": 1000000,
+        "da_thu": 1000000,
         "sua": { "ly_do": "BOT_NGUOI", "khach_sau": { "dv-tour": { "adult": 1, "child": 0, "senior": 0, "infant": 0 } } }
       },
       "dap_an": {
         "ghi_dong_dieu_chinh": true,
-        "truoc": { "tam_tinh": 1000000, "phai_thu": 200000, "con_lai": 0, "du": 0 },
-        "sau": { "tam_tinh": 500000, "phai_thu": 0, "con_lai": 0, "du": 200000 },
+        "truoc": { "tam_tinh": 2000000, "phai_thu": 1000000, "con_lai": 0, "du": 0 },
+        "sau": { "tam_tinh": 500000, "phai_thu": 0, "con_lai": 0, "du": 1000000 },
         "canh_bao_tong_am": true,
-        "nhat_ky": "số khách: Tour đảo: người lớn 2 → 1 · lý do: Khách bớt người",
+        "nhat_ky": "số khách: Tour đảo: người lớn 4 → 1 · lý do: Khách bớt người",
         "canh_bao_khuyen_mai": true,
         "lich_su_so_khach": [
-          { "buoc": "khoi_tao", "lanSua": null, "soKhach": [{ "tenDichVu": "Tour đảo", "pax": { "adult": 2, "child": 0, "senior": 0, "infant": 0 } }], "tamTinh": 1000000 },
+          { "buoc": "khoi_tao", "lanSua": null, "soKhach": [{ "tenDichVu": "Tour đảo", "pax": { "adult": 4, "child": 0, "senior": 0, "infant": 0 } }], "tamTinh": 2000000 },
           { "buoc": "hien_hanh", "lanSua": 1, "soKhach": [{ "tenDichVu": "Tour đảo", "pax": { "adult": 1, "child": 0, "senior": 0, "infant": 0 } }], "tamTinh": 500000 }
         ]
       }
@@ -214,58 +214,58 @@
     },
     {
       "ma": "SV-SK-08",
-      "mo_ta": "Như SV-SK-04 (2 người lớn × 500.000, giảm 800.000, khách đã trả 200.000, sửa còn 1 người lớn → phải thu 0, dư 200.000), rồi Kế toán hoàn 200.000 cho khách → đã thu 0, còn lại 0, dư 0; hướng dẫn viên bấm Đã giao được, phiếu Đã giao chụp phải thu 0 (ADR-0109 bài 3).",
+      "mo_ta": "Như SV-SK-04 (4 người lớn × 500.000, khuyến mại \"mua 2 tặng 2\" giảm 1.000.000, khách đã trả 1.000.000, sửa còn 1 người lớn → phải thu 0, dư 1.000.000), rồi Kế toán hoàn 1.000.000 cho khách → đã thu 0, còn lại 0, dư 0; hướng dẫn viên bấm Đã giao được, phiếu Đã giao chụp phải thu 0 (ADR-0109 bài 3).",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "xac_nhan_khoa_moi": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "dau_vao": {
         "dich_vu": [
-          { "id": "dv-tour", "ten": "Tour đảo", "nguon": "danh_muc", "don_gia": { "adult": 500000 }, "khach_truoc": { "adult": 2, "child": 0, "senior": 0, "infant": 0 } }
+          { "id": "dv-tour", "ten": "Tour đảo", "nguon": "danh_muc", "don_gia": { "adult": 500000 }, "khach_truoc": { "adult": 4, "child": 0, "senior": 0, "infant": 0 } }
         ],
         "lan_sua_truoc": null,
-        "giam_gia": 800000,
-        "da_thu": 200000,
+        "giam_gia": 1000000,
+        "da_thu": 1000000,
         "sua": { "ly_do": "BOT_NGUOI", "khach_sau": { "dv-tour": { "adult": 1, "child": 0, "senior": 0, "infant": 0 } } },
-        "buoc_sau": { "loai": "hoan_roi_giao", "hoan": 200000 }
+        "buoc_sau": { "loai": "hoan_roi_giao", "hoan": 1000000 }
       },
       "dap_an": {
         "ghi_dong_dieu_chinh": true,
-        "truoc": { "tam_tinh": 1000000, "phai_thu": 200000, "con_lai": 0, "du": 0 },
-        "sau": { "tam_tinh": 500000, "phai_thu": 0, "con_lai": 0, "du": 200000 },
+        "truoc": { "tam_tinh": 2000000, "phai_thu": 1000000, "con_lai": 0, "du": 0 },
+        "sau": { "tam_tinh": 500000, "phai_thu": 0, "con_lai": 0, "du": 1000000 },
         "canh_bao_tong_am": true,
-        "nhat_ky": "số khách: Tour đảo: người lớn 2 → 1 · lý do: Khách bớt người",
+        "nhat_ky": "số khách: Tour đảo: người lớn 4 → 1 · lý do: Khách bớt người",
         "buoc_sau": { "da_thu": 0, "con_lai": 0, "du": 0, "giao_duoc": true, "due_snapshot": 0 },
         "canh_bao_khuyen_mai": true,
         "lich_su_so_khach": [
-          { "buoc": "khoi_tao", "lanSua": null, "soKhach": [{ "tenDichVu": "Tour đảo", "pax": { "adult": 2, "child": 0, "senior": 0, "infant": 0 } }], "tamTinh": 1000000 },
+          { "buoc": "khoi_tao", "lanSua": null, "soKhach": [{ "tenDichVu": "Tour đảo", "pax": { "adult": 4, "child": 0, "senior": 0, "infant": 0 } }], "tamTinh": 2000000 },
           { "buoc": "hien_hanh", "lanSua": 1, "soKhach": [{ "tenDichVu": "Tour đảo", "pax": { "adult": 1, "child": 0, "senior": 0, "infant": 0 } }], "tamTinh": 500000 }
         ]
       }
     },
     {
       "ma": "SV-SK-09",
-      "mo_ta": "Khách CHƯA trả đồng nào: tour 2 người lớn × 500.000, giảm 800.000 → phải thu 200.000, còn lại 200.000. Kế toán sửa còn 1 người lớn → tạm tính 500.000, phải thu 0, còn lại 0, dư 0, có cảnh báo; bấm Đã giao được ngay, phiếu chụp phải thu 0 (trước ADR-0109 đơn này bị giữ 'khách trả dư 300.000' dù khách chưa trả gì).",
+      "mo_ta": "Khách CHƯA trả đồng nào: 4 người lớn × 500.000 = 2.000.000, khuyến mại \"mua 2 tặng 2\" giảm 1.000.000 → phải thu 1.000.000, còn lại 1.000.000. Kế toán sửa còn 1 người lớn → tạm tính 500.000, phải thu 0, còn lại 0, dư 0, có cảnh báo; bấm Đã giao được ngay, phiếu chụp phải thu 0 (trước ADR-0109 đơn này bị giữ \"khách trả dư\" dù khách chưa trả gì).",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "xac_nhan_khoa_moi": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "dau_vao": {
         "dich_vu": [
-          { "id": "dv-tour", "ten": "Tour đảo", "nguon": "danh_muc", "don_gia": { "adult": 500000 }, "khach_truoc": { "adult": 2, "child": 0, "senior": 0, "infant": 0 } }
+          { "id": "dv-tour", "ten": "Tour đảo", "nguon": "danh_muc", "don_gia": { "adult": 500000 }, "khach_truoc": { "adult": 4, "child": 0, "senior": 0, "infant": 0 } }
         ],
         "lan_sua_truoc": null,
-        "giam_gia": 800000,
+        "giam_gia": 1000000,
         "da_thu": 0,
         "sua": { "ly_do": "BOT_NGUOI", "khach_sau": { "dv-tour": { "adult": 1, "child": 0, "senior": 0, "infant": 0 } } },
         "buoc_sau": { "loai": "giao" }
       },
       "dap_an": {
         "ghi_dong_dieu_chinh": true,
-        "truoc": { "tam_tinh": 1000000, "phai_thu": 200000, "con_lai": 200000, "du": 0 },
+        "truoc": { "tam_tinh": 2000000, "phai_thu": 1000000, "con_lai": 1000000, "du": 0 },
         "sau": { "tam_tinh": 500000, "phai_thu": 0, "con_lai": 0, "du": 0 },
         "canh_bao_tong_am": true,
-        "nhat_ky": "số khách: Tour đảo: người lớn 2 → 1 · lý do: Khách bớt người",
+        "nhat_ky": "số khách: Tour đảo: người lớn 4 → 1 · lý do: Khách bớt người",
         "buoc_sau": { "da_thu": 0, "con_lai": 0, "du": 0, "giao_duoc": true, "due_snapshot": 0 },
         "canh_bao_khuyen_mai": true,
         "lich_su_so_khach": [
-          { "buoc": "khoi_tao", "lanSua": null, "soKhach": [{ "tenDichVu": "Tour đảo", "pax": { "adult": 2, "child": 0, "senior": 0, "infant": 0 } }], "tamTinh": 1000000 },
+          { "buoc": "khoi_tao", "lanSua": null, "soKhach": [{ "tenDichVu": "Tour đảo", "pax": { "adult": 4, "child": 0, "senior": 0, "infant": 0 } }], "tamTinh": 2000000 },
           { "buoc": "hien_hanh", "lanSua": 1, "soKhach": [{ "tenDichVu": "Tour đảo", "pax": { "adult": 1, "child": 0, "senior": 0, "infant": 0 } }], "tamTinh": 500000 }
         ]
       }
@@ -296,30 +296,30 @@
     },
     {
       "ma": "SV-SK-11",
-      "mo_ta": "Như SV-SK-04 (sửa còn 1 người lớn → phải thu 0, dư 200.000), rồi đơn bị HUỶ → Tổng cộng 0 (trước ADR-0109 hiện −300.000), còn lại 0, dư 0.",
-      "ghi_chu_cho_nguoi_xac_nhan": "Số cọc khách đã trả (200.000) không đổi; đơn huỷ giữ cọc mặc định, hoàn chỉ qua khoản duyệt (ADR-0089). Phần cọc khoá ở bài biên nhận huỷ và bài route TC8d, không ở sổ vàng này.",
+      "mo_ta": "Như SV-SK-04 (4 → 1 người lớn, khuyến mại giảm 1.000.000 → phải thu 0, dư 1.000.000), rồi đơn bị HUỶ → Tổng cộng 0 (trước ADR-0109 hiện âm), còn lại 0, dư 0.",
+      "ghi_chu_cho_nguoi_xac_nhan": "Số tiền thu trước khách đã trả (1.000.000) không đổi và vẫn phải hiện rõ trên đơn huỷ (lời chủ 14/10/2026); đơn huỷ giữ khoản thu trước mặc định, hoàn chỉ qua khoản duyệt (ADR-0089). Phần thu trước khoá ở bài biên nhận huỷ và bài route TC8d, không ở sổ vàng này.",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "xac_nhan_khoa_moi": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "dau_vao": {
         "dich_vu": [
-          { "id": "dv-tour", "ten": "Tour đảo", "nguon": "danh_muc", "don_gia": { "adult": 500000 }, "khach_truoc": { "adult": 2, "child": 0, "senior": 0, "infant": 0 } }
+          { "id": "dv-tour", "ten": "Tour đảo", "nguon": "danh_muc", "don_gia": { "adult": 500000 }, "khach_truoc": { "adult": 4, "child": 0, "senior": 0, "infant": 0 } }
         ],
         "lan_sua_truoc": null,
-        "giam_gia": 800000,
-        "da_thu": 200000,
+        "giam_gia": 1000000,
+        "da_thu": 1000000,
         "sua": { "ly_do": "BOT_NGUOI", "khach_sau": { "dv-tour": { "adult": 1, "child": 0, "senior": 0, "infant": 0 } } },
         "buoc_sau": { "loai": "huy" }
       },
       "dap_an": {
         "ghi_dong_dieu_chinh": true,
-        "truoc": { "tam_tinh": 1000000, "phai_thu": 200000, "con_lai": 0, "du": 0 },
-        "sau": { "tam_tinh": 500000, "phai_thu": 0, "con_lai": 0, "du": 200000 },
+        "truoc": { "tam_tinh": 2000000, "phai_thu": 1000000, "con_lai": 0, "du": 0 },
+        "sau": { "tam_tinh": 500000, "phai_thu": 0, "con_lai": 0, "du": 1000000 },
         "canh_bao_tong_am": true,
-        "nhat_ky": "số khách: Tour đảo: người lớn 2 → 1 · lý do: Khách bớt người",
+        "nhat_ky": "số khách: Tour đảo: người lớn 4 → 1 · lý do: Khách bớt người",
         "buoc_sau": { "tong_cong": 0, "con_lai": 0, "du": 0 },
         "canh_bao_khuyen_mai": true,
         "lich_su_so_khach": [
-          { "buoc": "khoi_tao", "lanSua": null, "soKhach": [{ "tenDichVu": "Tour đảo", "pax": { "adult": 2, "child": 0, "senior": 0, "infant": 0 } }], "tamTinh": 1000000 },
+          { "buoc": "khoi_tao", "lanSua": null, "soKhach": [{ "tenDichVu": "Tour đảo", "pax": { "adult": 4, "child": 0, "senior": 0, "infant": 0 } }], "tamTinh": 2000000 },
           { "buoc": "hien_hanh", "lanSua": 1, "soKhach": [{ "tenDichVu": "Tour đảo", "pax": { "adult": 1, "child": 0, "senior": 0, "infant": 0 } }], "tamTinh": 500000 }
         ]
       }
