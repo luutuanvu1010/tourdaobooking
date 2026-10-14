@@ -337,3 +337,16 @@
 - **Hai câu đếm chỉ đọc cho chủ — CHỦ TỰ CHẠY, CHƯA CHẠY** (dùng `wrangler d1 execute tourdao-sales-db --remote --command "…"`; AI không chạy `--remote`):
   - Đơn MỚI bị giữ ở «Đã giao» sau bản vá (đơn đã xác nhận, chưa giao, bản chụp hiện hành có người hưởng nhưng bên đặt KHÔNG còn vai bên ngoài): `SELECT o.order_code FROM orders o WHERE o.status='confirmed' AND o.delivered_at IS NULL AND EXISTS (SELECT 1 FROM ord_service_terms t WHERE t.order_id=o.id AND t.commission_status<>'NONE' AND NOT EXISTS (SELECT 1 FROM ord_service_terms n WHERE n.supersedes_id=t.id)) AND NOT EXISTS (SELECT 1 FROM v_pty_open_role_group g WHERE g.party_id=o.booker_party_id AND g.role_group='EXTERNAL');`
   - Đơn ĐÃ lọt «Đã giao» trước khi vá (khe đã bị dùng): `SELECT o.order_code FROM orders o WHERE o.delivered_at IS NOT NULL AND EXISTS (SELECT 1 FROM ord_service_terms t WHERE t.order_id=o.id AND t.commission_status<>'NONE' AND NOT EXISTS (SELECT 1 FROM ord_service_terms n WHERE n.supersedes_id=t.id)) AND NOT EXISTS (SELECT 1 FROM v_pty_open_role_group g WHERE g.party_id=o.booker_party_id AND g.role_group='EXTERNAL');` — kết quả khác 0 là đơn đối tác giao mà sổ không có dòng hoa hồng, cần Kế toán xem. (Chú ý: đơn đã giao có bản chụp sau khi đối tác đổi sang khách lẻ cũng là bản NONE nên không lọt vào đây — đúng thiết kế.)
+
+## 30. Hai ý của chủ khi xác nhận sổ vàng 14/10/2026 — để sau (mã `BL-SV-…`)
+
+Nêu bởi chủ dự án trong lúc trả lời từng ca sổ vàng; hồ sơ trả lời: ca SV-SC-06 và SV-DH-07. Cả hai chạm tiền và chứng từ nên cần đặc tả ngắn và chủ duyệt trước khi làm (P8); chưa làm, chưa có ADR.
+
+- **BL-SV-NOP-BU** · **Trạng thái:** `chưa làm` · **Ca liên quan:** SV-SC-06 (còn chờ xác nhận).
+  - **Vấn đề:** Hướng dẫn viên khai «Công ty thu – CK» nhưng tiền chưa về, nên nộp bù tiền mặt (Kế toán ghi «Đã nộp»). Sau đó Kế toán bấm «Xác nhận đã nhận» cho khoản chuyển khoản thì máy chủ từ chối (ADR-0092 Đ2b) để hướng dẫn viên không bị âm. Chủ nêu: tiền khách có thể về trễ vì chuyển khoản bị gián đoạn, khi đó công ty đang giữ cả hai khoản.
+  - **Việc khi làm:** thêm đường trả lại cho hướng dẫn viên phần đã nộp bù khi tiền chuyển khoản thật sự về (có người duyệt khác người ghi, có nhật ký, không âm số dư). Quyết định luật tiền nên qua ADR; ca sổ vàng SV-SC-06 viết thêm bước này rồi mới xác nhận.
+- **BL-SV-CHUNG-TU-HOAN-NGOAI** · **Trạng thái:** `chưa làm` · **Ca liên quan:** SV-DH-07 (còn chờ xác nhận).
+  - **Vấn đề:** Khoản «đã hoàn ngoài hệ thống» (công ty trả tay cho khách) hiện chỉ ghi số tiền. Chủ yêu cầu thu chi phải có chứng từ nội bộ: ghi rõ chi vì mục đích gì, số tiền, chi cho ai, hình thức nào (ví dụ tiền mặt), số chứng từ và ngày.
+  - **Việc khi làm:** thêm các trường chứng từ vào khoản hoàn ngoài (bắt buộc, không đưa số tài khoản/giấy tờ cá nhân vào nhật ký — CLAUDE.md §7), cập nhật migration + `docs/data-dictionary.json`, viết lại ca SV-DH-07 cho khớp, chủ xác nhận lại.
+
+Các việc khác từ cùng buổi xác nhận (đang chờ chủ quyết, chưa phải backlog): SV-SC-02 (tính nợ trước khi Kế toán xác nhận), SV-DH-05 (cho Kế toán ghi chuyển sang đơn khác), SV-DH-08 (điều chỉnh có dấu vết thay vì «đảo»), SV-SK-07 và SV-SK-11 (nhật ký hiện đủ chuỗi, hiện khoản đã thu), SV-DH-04 (dòng «Đã hoàn trả»). Chi tiết ở `golden/README.md`.
