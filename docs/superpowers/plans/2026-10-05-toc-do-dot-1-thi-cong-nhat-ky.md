@@ -75,6 +75,13 @@ Lưu ý cho chủ: `web/CLAUDE.md` bị sửa MỘT chữ (tên đường dẫn 
 - `cf-placement` trên `/api/auth/config` và hai đường CSS → `local-SIN`; chưa thấy `remote-…`. Không kết luận gì về Smart Placement từ một lần thử (lưu lượng chủ yếu từ Việt Nam, phân tích có thể mất ~15 phút hoặc không đổi).
 - **Chưa kiểm:** iPhone thật, hiệu quả Smart Placement, số giây tải trang.
 
+## Đo lại hiệu quả (2026-10-06, chỉ đọc; không đăng nhập)
+
+- **Dung lượng giao diện** — dựng `a43480b` (trước Đợt 1) và `main` rồi so từng tệp `public/js/*.js`: tổng thô 5478 → 3220 KB (−41%); nén gzip 1509 → 1019 KB; nén brotli 1312 → 906 KB (−31%). Mỗi gói trang lớn giảm khoảng 11 KB brotli (vd Đơn hàng 36,9 → 25,1; Trang chủ 36,8 → 25,1; Đơn mới 52,4 → 40,9). Riêng Trợ giúp không giảm (53 KB — vẫn giữ nhật ký thay đổi, đúng thiết kế).
+- **Production đang phát đúng bản nhẹ:** `/js/orders.js` tải về 86.702 byte sau giải nén (khớp "86 KB" của ADR-0102, trước là 153 KB).
+- **Độ trễ từ máy chủ ngoài (15 lần mỗi đường, máy ở Việt Nam, xen kẽ):** `/giao-dien.css` 74 ms so với `/api/giao-dien.css` (đường cũ) 78 ms; `/api/auth/config` 79 ms; `/login` 72 ms. Chênh nhau trong sai số — thời gian bị chi phối bởi đường truyền (~70 ms), nên **phép đo này không chứng minh được lợi ích máy chủ**. `cf-placement` vẫn `local-SIN`.
+- **Chưa đo được:** thời gian mở trang thật sau đăng nhập (cần phiên đăng nhập và iPhone/Chrome), tác dụng của bản đệm service worker (lần mở lặp lại không cần chờ tệp màu — suy luận từ thiết kế, chưa quan sát), hiệu quả Smart Placement, thời gian xử lý trong Worker/D1 (cần biểu đồ Request duration trên Cloudflare).
+
 ## Việc còn lại / chủ cần làm (dựa vào kỷ luật — chưa có hàng rào máy)
 
 1. **Gộp và triển khai** theo `docs/HANDOFF-N1.md` (bước A.0 thêm mục nhật ký thay đổi 1.82 bằng lời thường). Lưu ý trong lần mở đầu sau triển khai máy nhân viên vẫn chạy khung cũ một lượt (service worker "dùng ngay, làm mới ở nền").
