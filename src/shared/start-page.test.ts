@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { TRANG_CUOC, TRANG_DAU_TAI_XE, TRANG_TAI_KHOAN, chiTaiXe, coCuocCuaToi, coMucDonHang, coPhanTaiXe, homeRedirect } from "./start-page.ts";
 import { MATRIX, PERMISSION_CODES, can, canAccessOrders, seesAllOrders, type PermissionCode } from "./permissions.ts";
 import { PAGES } from "./sw-policy.ts";
+import { coHien } from "./muc-giao-dien.ts";
 
 // `id` thật (không rỗng): seesAllOrders() của PARTNER sai là vì ô "own" không có `ownerId` để so — test ghim đúng điều đó,
 // không dựa vào id rỗng tình cờ khớp.
@@ -123,4 +124,13 @@ test("coMucDonHang an toàn: mọi mã quyền lập được đơn đều mở 
     const w = { id: "toi", permissions: [c] };
     for (const op of ["order.view", "money.view", "contact.view"] as const) assert.equal(can(w, op, { ownerId: "toi" }), true, `${c} ${op}`);
   }
+});
+
+test("mục Đơn hàng hiện cho hướng dẫn viên (ADR-0017: FIELD thấy mục Đơn hàng)", () => {
+  assert.equal(coHien({ trang: "donHang", nhan: "Đơn hàng" }, { staff: who("FIELD") }), true);
+});
+
+test("mục Đơn hàng vẫn không hiện cho tài xế (không qua cổng orders)", () => {
+  assert.equal(coHien({ trang: "donHang", nhan: "Đơn hàng" }, { staff: who("DRIVER") }), false);
+  assert.equal(coHien({ trang: "donHang", nhan: "Đơn hàng" }, { staff: who("DRIVER_PARTNER") }), false);
 });

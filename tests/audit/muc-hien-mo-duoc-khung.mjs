@@ -90,14 +90,7 @@ const TU_CHOI_BANG_404 = new Set();
 // Giữ "Cuốc của tôi" = ô trip.view ĐÚNG BẰNG assigned: tài xế công ty (DRIVER) và, từ A4 (ADR-0053 D7.1), tài xế đối tác (DRIVER_PARTNER) — ghép main 1c471990, 12/10.
 const coDriver = (s) => coCuocCuaToi(s);
 const DUOC_MA_AN = [
-  {
-    noi: ["thanh-ben", "thanh-tab", "trang-chu"],
-    trang: "donHang",
-    khi: (s) => canAccessOrders(s) && !seesAllOrders(s) && !can(s, "order.create"),
-    lyDo:
-      "HDV chỉ-FIELD (và FIELD kèm tài xế / Nhân sự): GET /api/orders cho xem đơn mình phụ trách và trang đầu của họ là /orders (homeRedirect), nhưng mục " +
-      "'Đơn hàng' ẩn theo coMucDonHang (lỗi báo 30/9 L3 chỉ mở cho Đối tác, Thực tập; HDV dùng 'Việc của tôi'). Chờ chủ: hiện mục cho HDV hay giữ.",
-  },
+  // Dòng "HDV chỉ-FIELD không thấy mục Đơn hàng" đã BỎ 15/10: chủ quyết hiện mục cho HDV (ADR-0017); trang /orders của HDV = đơn mình phụ trách.
   {
     noi: ["thanh-tren"],
     trang: "donHang",

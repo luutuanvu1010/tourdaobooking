@@ -12,7 +12,7 @@
 // "thêm trang".
 // Không có điều kiện nào ở web/shell.ts, web/account.ts: hai tệp đó chỉ vẽ danh sách hàm dưới đây trả về.
 import { thayDieuPhoiXe } from "./dieu-phoi-man.ts";
-import { can, holdsPartner, isOffice, seesAllOrders, type PermissionHolder } from "./permissions.ts";
+import { can, canAccessOrders, holdsPartner, isOffice, seesAllOrders, type PermissionHolder } from "./permissions.ts";
 import { TRANG_CUOC, TRANG_DAU_TAI_XE, chiTaiXe, coCuocCuaToi, coMucDonHang } from "./start-page.ts";
 
 /** Đường gọi chính của một trang: lời gọi mà trang cần để làm việc của nó (đọc, không ghi). Máy chủ không từ chối nó ⇔ trang mở được. */
@@ -63,7 +63,9 @@ export const TRANG = {
     duong: "/orders",
     cungSang: ["/order"],
     goi: "GET /api/orders",
-    hien: (s) => coMucDonHang({ seesAll: seesAllOrders(s), canCreate: can(s, "order.create") }),
+    // ADR-0017: hướng dẫn viên (FIELD) cũng có mục này — `canAccessOrders` = cổng "orders" (văn phòng, Đối tác, Thực tập, FIELD). Khung tạm (`tam`) chỉ có bốn cờ (ADR-0035): FIELD thiếu mục một nhịp.
+    // Trang /orders của FIELD = đơn mình phụ trách; đơn tự do ở Của tôi › Đơn chờ nhận.
+    hien: canAccessOrders,
     tam: (k) => coMucDonHang(k),
   },
   taoDon: { duong: "/order-form", goi: "GET /api/catalog/for-order", hien: (s) => can(s, "order.create"), tam: (k) => k.canCreate },
