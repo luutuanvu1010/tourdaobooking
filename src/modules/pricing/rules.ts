@@ -4,8 +4,8 @@
 import { parseUnit, payingGuests, type PaxCounts } from "../../shared/order-lines.ts";
 import { giaVonDong, hoaHongDong, lamTronNuaLen, tinhDongDoiTac, type BanChup, type DongPhanDoiTac, type KieuMuc, type LyDoThieu } from "../../shared/hoa-hong-dong.ts";
 import { nhanMuc } from "../../shared/so-dai-ly-nhan.ts";
-import { MOI_KHACH_TOI_DA } from "../../shared/so-dai-ly-nhap.ts";
-import { khoaTen } from "../../shared/khoa-ten.ts"; // trần «Số tiền mỗi khách»: MỘT hằng cho giao diện và máy chủ (Task 14, nợ (a))
+import { MOI_KHACH_TOI_DA } from "../../shared/so-dai-ly-nhap.ts"; // trần «Số tiền mỗi khách»: MỘT hằng cho giao diện và máy chủ (Task 14, nợ (a))
+import { khoaTen } from "../../shared/khoa-ten.ts";
 
 // Phép tính tiền MỘT dòng (làm tròn nửa lên, hoa hồng, giá vốn, `tinhDongDoiTac`) và kiểu bản chụp nằm ở src/shared/hoa-hong-dong.ts để `orders/thuong-mai.ts` (DTO) chạy được bằng node trực tiếp
 // mà không nhập index.ts của module khác; ở đây chỉ tái xuất — vẫn MỘT định nghĩa (Task 5, Ruling ở sổ thi công).
@@ -130,7 +130,8 @@ export function soKhachTinhHoaHong(v: { unit: string; pax: PaxCounts; items: rea
 export interface DongDon { serviceId: string; catalogCode: string | null; groupCode: string | null }
 /**
  * Tính bản chụp cho mọi dòng của đơn ở `ngay` (Xác nhận / đổi bên đặt / tính thử đơn nháp). `gan` = gắn loại↔mức TA hiệu lực (ADR-0117 lần 2) — BẮT BUỘC (không tuỳ chọn như ở
- * `chonMuc`) để mọi nơi gọi phải truyền: quên ở một nơi thì bản tính thử, bản chụp lúc xác nhận và bản chụp lại khi đổi bên đặt lệch nhau về tiền mà không lỗi nào báo.
+ * `chonMuc`): typecheck chỉ bắt nơi gọi QUÊN hẳn tham số; truyền nhầm `gan: []` vẫn biên dịch. Thứ canh thật là các bài ở src/modules/pricing/muc-ta.test.ts — mỗi đường gọi
+ * (xác nhận, đổi bên đặt, bản tính thử đơn nháp) có một ca đỏ khi mất `gan`.
  */
 export function chupDon(v: { nguoiHuong: NguoiHuong; ngay: string; dong: readonly DongDon[]; muc: readonly DongMuc[]; gan: readonly GanLoaiMuc[]; dieuKhoan: readonly DongDieuKhoan[] }): BanChup[] {
   const beneficiaryPartyId = v.nguoiHuong.loai === "NONE" ? null : v.nguoiHuong.partyId;

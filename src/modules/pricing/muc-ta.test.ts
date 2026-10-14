@@ -458,3 +458,43 @@ test("N-19: route mức TA — Bán hàng GET 200, mọi lệnh ghi 403; HDV, Nh
   }
   assert.ok(trangThai.every((x) => /^20[01] /.test(x)), trangThai.join(" | "));
 });
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+// Vòng sửa 1 (người kiểm độc lập, Important 1): HAI đường chụp mức còn lại ở orders — chụp lại khi đổi bên đặt (PUT /api/orders/:id/booker) và bản tính thử đơn nháp
+// (GET /api/orders/:id/thuong-mai) — mỗi đường một ca đỏ khi mất `gan` (typecheck không bắt `gan: []`).
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+test("Đổi bên đặt đơn ĐÃ XÁC NHẬN sang hồ sơ có loại gắn mức TA ⇒ bản chụp mới SET đúng dòng đích mức (trỏ bản cũ), bản cũ còn nguyên", async () => {
+  const w = setup();
+  const loai = await themLoai(w, "Lễ tân");
+  const loaiKhac = await themLoai(w, "Nhân viên spa");
+  await ganHoSo(w, ORG, loai);
+  await ganHoSo(w, ORG2, loaiKhac); // ORG2 mang loại không gắn mức nào ⇒ bản chụp đầu MISSING / NO_RULE
+  const ta1 = await taoMuc(w, "TA1");
+  const dong = await dongTyLe(w, ta1, 1000);
+  await ganOk(w, loai, ta1);
+  const id = await xacNhan(w, ORG2);
+  const cu = chup(w, id);
+  assert.deepEqual([cu.length, cu[0].commission_status, cu[0].missing_reason], [1, "MISSING", "NO_RULE"]);
+  const moc = String(w.q("SELECT updated_at FROM orders WHERE id = ?", id)[0].updated_at);
+  await ok(w.call("PUT", `/api/orders/${id}/booker`, { as: SALES, body: { customerName: "Khách Giả", customerPhone: "0900000099", bookerPartyId: ORG, expectedUpdatedAt: moc } }), 200, "đổi bên đặt");
+  const moi = w.q("SELECT * FROM ord_service_terms WHERE order_id = ? AND supersedes_id IS NOT NULL", id);
+  assert.equal(moi.length, 1, "chụp lại đúng một bản mới");
+  assert.deepEqual([moi[0].supersedes_id, moi[0].commission_status, moi[0].commission_rate_bp, moi[0].commission_rule_id, moi[0].beneficiary_party_id], [cu[0].id, "SET", 1000, dong, ORG]);
+  assert.deepEqual(w.q("SELECT * FROM ord_service_terms WHERE id = ?", cu[0].id), cu, "bản cũ còn nguyên");
+  assert.equal(await hoaHongVanPhong(w, id), 200_000);
+});
+
+test("Bản tính thử đơn NHÁP (phần thương mại) với bên đặt có loại gắn mức TA ⇒ ra đúng số theo mức TA, không «thiếu mức», không ghi bản chụp", async () => {
+  const w = setup();
+  const loai = await themLoai(w, "Lễ tân");
+  await ganHoSo(w, ORG, loai);
+  const ta1 = await taoMuc(w, "TA1");
+  await dongTyLe(w, ta1, 1200);
+  await ganOk(w, loai, ta1);
+  const id = nhap(w, ORG);
+  const r = await ok(w.call("GET", `/api/orders/${id}/thuong-mai`, { as: KT }), 200, "thương mại đơn nháp");
+  assert.equal(r.json.vanPhong.duKien, true, "đơn nháp ⇒ bản tính thử");
+  const d = r.json.vanPhong.dong[0];
+  assert.deepEqual([d.muc, d.hoaHong, d.thieu], ["12%", 240_000, null]);
+  assert.equal(chup(w, id).length, 0, "tính thử không ghi bản chụp");
+});
