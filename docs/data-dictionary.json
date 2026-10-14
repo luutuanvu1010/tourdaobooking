@@ -65,7 +65,7 @@
       "name": "ctl_group",
       "module": "catalog",
       "kind": "lookup",
-      "note": "nhóm dịch vụ của danh mục (ADR-0058, 0055): gieo 14 nhóm từ ảnh chụp Sheet 30/9, sau đó Quản trị quản lý trong app. Không xoá (trigger ctl_group_no_delete — tắt bằng active = 0); tên chỉ cấm trùng giữa các nhóm đang dùng (chỉ mục duy nhất một phần ctl_group_name_active)"
+      "note": "nhóm dịch vụ của danh mục (ADR-0058, 0055): gieo 14 nhóm từ ảnh chụp Sheet 30/9, sau đó Quản trị quản lý trong app. Không xoá (trigger ctl_group_no_delete — tắt bằng active = 0); tên chỉ cấm trùng giữa các nhóm đang dùng (chỉ mục duy nhất một phần ctl_group_name_active). Cột transfer_enabled (0098, ADR-0118): cờ «Có đưa đón» của nhóm, mặc định 1; 0 = máy chủ từ chối ghi / xác nhận chặng đưa đón cho dịch vụ thuộc nhóm — module khác đọc qua view v_ctl_service_transfer, không đọc bảng này"
     },
     {
       "name": "ctl_service_group",
@@ -111,7 +111,8 @@
     {
       "name": "loc_location",
       "module": "locations",
-      "kind": "table"
+      "kind": "table",
+      "note": "địa điểm phát sinh nghiệp vụ. Cột quick_pick_order (0098, ADR-0118): thứ tự «Chọn nhanh» 1–99, NULL = không chọn nhanh; địa điểm đang dùng có số này hiện thành nút dưới ô Nơi trả (chiều đi) / Nơi đón (chiều về) ở form Tạo đơn — gieo Bến cảng Vinpearl = 1, Bến tàu du lịch Nha Trang = 2"
     },
     {
       "name": "loc_location_type",
@@ -1018,6 +1019,14 @@
       "columns": [
         "catalog_code",
         "group_code"
+      ]
+    },
+    {
+      "name": "v_ctl_service_transfer",
+      "module": "catalog",
+      "columns": [
+        "catalog_code",
+        "transfer_enabled"
       ]
     },
     {
