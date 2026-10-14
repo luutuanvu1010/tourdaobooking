@@ -2,6 +2,7 @@
 // Import bằng đuôi .ts (node --test chạy trực tiếp). Giới hạn độ dài khớp CHECK của migration 0011.
 import { normalizePhone } from "../../shared/phone.ts";
 import { isISODate } from "../../shared/vn-date.ts";
+import { khoaTen } from "../../shared/khoa-ten.ts";
 import { PARTY_ID_RE } from "../../shared/party-id.ts";
 import { kiemGioiTinh, type GioiTinh } from "../../shared/xung-ho.ts";
 
@@ -318,8 +319,7 @@ export const hoSoNoiBo = (v: { vaiMo: readonly { code: string; group: string }[]
 // ---------------------------------------------------------------------------------------------------------------------
 // ADR-0117 lần 1, điều 1: loại đối tác là DỮ LIỆU — Kế toán / Quản trị / Toàn quyền thêm trên màn hình, mã do máy chủ sinh
 // ---------------------------------------------------------------------------------------------------------------------
-/** Khoá so tên loại: bỏ dấu, gấp đ/Đ về d, thường hoá, gọn khoảng trắng — "nhan vien SPA" trùng "Nhân viên spa". Hàm cục bộ (không import tro-ly). */
-const khoaTen = (s: string): string => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "d").toLowerCase().replace(/\s+/g, " ").trim();
+// Khoá so tên loại: `khoaTen` ở src/shared/khoa-ten.ts (một định nghĩa, dùng chung với tên mức TA của pricing — ADR-0117 lần 2).
 /**
  * Tên loại đối tác do người dùng nhập: 2–60 ký tự sau khi gọn khoảng trắng; không trùng (không phân biệt dấu / hoa thường) loại nào đã có (`daCo` = tên MỌI loại vai).
  * Tên đi vào nhật ký nên không cho dãy ≥ 8 chữ số (SĐT / số tài khoản) hay `@` (email) — cùng khuôn ghi chú của bảng mức.

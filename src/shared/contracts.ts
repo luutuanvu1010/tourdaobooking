@@ -2332,7 +2332,8 @@ export interface BangKeResponse {
 
 // ===== Sổ đại lý đợt 1 (ADR-0077, ADR-0078 B1; module pricing) =====
 /** Đối tượng của một dòng mức: một LOẠI đối tác (vai) hoặc MỘT đối tác cụ thể. `ten` là tên lời thường (tên vai / tên hồ sơ) — không SĐT. */
-export type DoiTuongMucDto = { loai: "VAI"; code: string; ten: string } | { loai: "DOI_TAC"; partyId: string; ten: string };
+/** Đối tượng của một dòng mức: một loại đối tác, một đối tác, hoặc một MỨC TA (ADR-0117 lần 2 — `code` mã máy sinh, `ten` tên Kế toán đặt). */
+export type DoiTuongMucDto = { loai: "VAI"; code: string; ten: string } | { loai: "DOI_TAC"; partyId: string; ten: string } | { loai: "MUC"; code: string; ten: string };
 export interface CommissionRuleDto {
   id: string; doiTuong: DoiTuongMucDto; phamVi: "SERVICE" | "GROUP" | "ALL"; catalogCode: string | null; groupCode: string | null;
   kieu: "RATE" | "PER_PAX"; tyLeBp: number | null; moiKhach: number | null; tuNgay: string; denNgay: string | null; ghiChu: string | null; conHieuLuc: boolean;
@@ -2356,6 +2357,16 @@ export interface ThuTraResponse {
 export interface LoaiDoiTacDto { code: string; ten: string; coSan: boolean; dangBat: boolean }
 export interface LoaiDoiTacListResponse { loai: LoaiDoiTacDto[] }
 export interface LoaiDoiTacResponse { loai: LoaiDoiTacDto }
+/**
+ * Mức TA dùng chung (ADR-0117 lần 2): bộ hoa hồng có tên; loại đối tác gắn vào mức theo ngày (mỗi loại tối đa một mức tại một ngày). `dangBat` = false ⇒ không gắn mới,
+ * không thêm dòng mới; dòng và gắn đang có VẪN áp (giả định kế hoạch, N-23). Chỉ văn phòng có `partner.commission.view` và KHÔNG giữ quyền Đối tác đọc được.
+ */
+export interface GanLoaiMucDto { id: string; loai: { code: string; ten: string }; muc: { code: string; ten: string }; tuNgay: string; denNgay: string | null; conHieuLuc: boolean }
+export interface MucTaDto { code: string; ten: string; dangBat: boolean; dong: CommissionRuleDto[]; gan: GanLoaiMucDto[] }
+export interface MucTaListResponse { homNay: string; muc: MucTaDto[]; loai: { code: string; ten: string }[] }
+export interface MucTaResponse { muc: MucTaDto }
+/** Gắn loại↔mức: 201 kèm `dongRieng` = dòng riêng theo loại (bậc 4–6) còn hiệu lực trong khoảng gắn, của loại này VÀ của mọi loại mà hồ sơ mang loại này đang mang — các dòng đó thắng TA (cảnh báo, không chặn — N-17). */
+export interface GanLoaiMucResponse { gan: GanLoaiMucDto; dongRieng: CommissionRuleDto[] }
 export interface NguoiHuongTimResponse { ketQua: { partyId: string; ten: string; loai: "PERSON" | "ORGANIZATION" }[] }
 
 // ===== Phần thương mại của đơn (sổ đại lý đợt 1 — ADR-0077 điều 10–11; đặc tả §6). HAI DTO danh sách trắng: văn phòng thấy mức, hoa hồng, giá đại lý, cờ thiếu mức;

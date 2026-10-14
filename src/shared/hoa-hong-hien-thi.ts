@@ -43,9 +43,9 @@ export function nhanPhamVi(d: { phamVi: "SERVICE" | "GROUP" | "ALL"; catalogCode
 /** Mức của một dòng, từ DTO (`kieu/tyLeBp/moiKhach`) sang khuôn của `nhanMuc` (`kind/rateBp/perPax`): «12,5%» / «50.000đ/khách». */
 export const nhanMucDto = (m: { kieu: "RATE" | "PER_PAX"; tyLeBp: number | null; moiKhach: number | null }): string => nhanMuc({ kind: m.kieu, rateBp: m.tyLeBp, perPax: m.moiKhach });
 
-/** Cột «Áp cho»: tên (vai hoặc đối tác) và một chữ nhỏ nói đó là loại đối tác hay một đối tác — hai thứ có thể trùng tên. */
+/** Cột «Áp cho»: tên (vai, đối tác hoặc mức TA) và một chữ nhỏ nói đó là loại đối tác, một đối tác hay một mức TA — các thứ có thể trùng tên. */
 export function nhanDoiTuong(d: DoiTuongMucDto): { ten: string; loai: string } {
-  return d.loai === "VAI" ? { ten: d.ten, loai: "Loại đối tác" } : { ten: d.ten, loai: "Một đối tác" };
+  return d.loai === "VAI" ? { ten: d.ten, loai: "Loại đối tác" } : d.loai === "MUC" ? { ten: d.ten, loai: "Mức TA" } : { ten: d.ten, loai: "Một đối tác" };
 }
 
 export type TrangThaiDong = "DANG_AP" | "SAP_AP" | "DA_DONG";

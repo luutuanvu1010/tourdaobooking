@@ -183,6 +183,14 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/pricing/loai-doi-tac", access: "office" },
   { method: "POST", path: "/api/pricing/loai-doi-tac/:code/tat", access: "office" },
   { method: "POST", path: "/api/pricing/loai-doi-tac/:code/bat", access: "office" },
+  // ADR-0117 lần 2: mức TA dùng chung — xem (partner.commission.view), tạo / gắn / kết thúc gắn / tắt / bật / thêm dòng (partner.commission.write); chặn tài khoản giữ quyền Đối tác (holdsPartner).
+  { method: "GET", path: "/api/pricing/muc-ta", access: "office" },
+  { method: "POST", path: "/api/pricing/muc-ta", access: "office" },
+  { method: "POST", path: "/api/pricing/muc-ta/gan", access: "office" },
+  { method: "POST", path: "/api/pricing/muc-ta/gan/:id/ket-thuc", access: "office" },
+  { method: "POST", path: "/api/pricing/muc-ta/:code/tat", access: "office" },
+  { method: "POST", path: "/api/pricing/muc-ta/:code/bat", access: "office" },
+  { method: "POST", path: "/api/pricing/muc-ta/:code/dong", access: "office" }, // thêm MỘT DÒNG cho mức (đóng dòng: POST /api/pricing/hoa-hong/:id/dong)
   { method: "GET", path: "/api/pricing/nguoi-huong", access: "orders" }, // order.create và không phải Đối tác — tìm người hưởng theo tên cho form lập đơn
   // Sổ đại lý đợt 1 (module orders — ADR-0077 điều 10–11; đặc tả §6, Task 5): phần thương mại của đơn. Đọc: order.view + order.terms.view phạm vi đơn (Đối tác nhận DTO hẹp); ghi: order.terms.override, không bao giờ cho tài khoản có quyền Đối tác.
   { method: "GET", path: "/api/orders/:id/thuong-mai", access: "orders" },
@@ -507,6 +515,7 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-08 (sổ đại lý đợt 1, Task 5 — phần thương mại của đơn, module orders; ADR-0077 điều 10–11): + GET /api/orders/:id/thuong-mai (orders), POST /api/orders/:id/thuong-mai/:serviceId (office) = HIỆU +2 (tuyệt đối 268 khi cả Task 3, 5, 7 đã gộp).
   // 2026-10-13 (ADR-0115 đợt 1, điều chỉnh công nợ cần duyệt): + GET /api/ledger/adjustment-requests, + POST …/:requestId/{approve, reject, withdraw} (office) = 292.
   // 2026-10-14 (ADR-0117 lần 1): + GET/POST /api/pricing/loai-doi-tac, POST …/loai-doi-tac/:code/{tat, bat} (office) = 296.
-  assert.equal(actual.length, 296, "số route thực tế lệch 296 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 296, "SNAPSHOT phải có đúng 296 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-14 (ADR-0117 lần 2, mức TA): + GET/POST /api/pricing/muc-ta, POST …/muc-ta/gan, …/muc-ta/gan/:id/ket-thuc, …/muc-ta/:code/{tat, bat, dong} (office) = 303.
+  assert.equal(actual.length, 303, "số route thực tế lệch 303 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 303, "SNAPSHOT phải có đúng 303 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

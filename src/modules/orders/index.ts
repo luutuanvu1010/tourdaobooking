@@ -715,7 +715,7 @@ export async function phanThuongMaiCuaDon(db: D1Database, orderId: string): Prom
     const ngay = vnToday(new Date());
     const bang = await docBangChoChup(db, { bookerPartyId: don.bookerPartyId, catalogCodes: don.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : [])), ngay });
     chup = chupDon({
-      nguoiHuong: bang.nguoiHuong, ngay, muc: bang.muc, dieuKhoan: bang.dieuKhoan,
+      nguoiHuong: bang.nguoiHuong, ngay, muc: bang.muc, gan: bang.gan, dieuKhoan: bang.dieuKhoan,
       dong: don.services.map((s) => ({ serviceId: s.id, catalogCode: s.catalogCode, groupCode: s.catalogCode ? (bang.nhom.get(s.catalogCode) ?? null) : null })),
     });
   } else {
@@ -1348,7 +1348,7 @@ export const ordersModule: AppModule = {
         const homNay = vnToday(new Date());
         const bang = await docBangChoChup(env.DB, { bookerPartyId: benMoi, catalogCodes: order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : [])), ngay: homNay });
         const chup = chupDon({
-          nguoiHuong: bang.nguoiHuong, ngay: homNay, muc: bang.muc, dieuKhoan: bang.dieuKhoan,
+          nguoiHuong: bang.nguoiHuong, ngay: homNay, muc: bang.muc, gan: bang.gan, dieuKhoan: bang.dieuKhoan,
           dong: order.services.map((s) => ({ serviceId: s.id, catalogCode: s.catalogCode, groupCode: s.catalogCode ? (bang.nhom.get(s.catalogCode) ?? null) : null })),
         });
         kemChup = (at) => [
@@ -1421,7 +1421,7 @@ export const ordersModule: AppModule = {
         // dịch vụ đọc từ `order` là số hiện hành (chưa có dòng điều chỉnh). Câu chụp lỗi ⇒ cả lô rơi (đơn vẫn nháp).
         const bang = order ? await docBangChoChup(env.DB, { bookerPartyId: order.bookerPartyId, catalogCodes: order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : [])), ngay: today }) : null;
         const chup = order && bang ? chupDon({
-          nguoiHuong: bang.nguoiHuong, ngay: today, muc: bang.muc, dieuKhoan: bang.dieuKhoan,
+          nguoiHuong: bang.nguoiHuong, ngay: today, muc: bang.muc, gan: bang.gan, dieuKhoan: bang.dieuKhoan,
           dong: order.services.map((s) => ({ serviceId: s.id, catalogCode: s.catalogCode, groupCode: s.catalogCode ? (bang.nhom.get(s.catalogCode) ?? null) : null })),
         }) : [];
         const kemChup = (at: string): D1PreparedStatement[] => [
