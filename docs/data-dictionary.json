@@ -104,7 +104,27 @@
       "kind": "lookup"
     },
     {
+      "name": "fbk_team",
+      "module": "feedback",
+      "kind": "table"
+    },
+    {
+      "name": "fbk_team_member",
+      "module": "feedback",
+      "kind": "table"
+    },
+    {
       "name": "fbk_ticket",
+      "module": "feedback",
+      "kind": "table"
+    },
+    {
+      "name": "fbk_ticket_event",
+      "module": "feedback",
+      "kind": "table"
+    },
+    {
+      "name": "fbk_ticket_read",
       "module": "feedback",
       "kind": "table"
     },
