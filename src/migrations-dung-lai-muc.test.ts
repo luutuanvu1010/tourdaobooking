@@ -67,21 +67,33 @@ function gieo(db: DatabaseSync): void {
   party("pty-hdv", "PERSON", "HDV B", "GUIDE_FREELANCE");
   party("pty-kh", "PERSON", "Khách C", "CUSTOMER");
   run(db, "INSERT INTO catalog_item (code, name, unit, price_adult, first_seen_at, updated_at) VALUES ('HONTAM', 'Vé Hòn Tằm', 'perPax', 1000000, ?, ?)", AT, AT);
-  // Bốn dòng mức đủ kiểu: hồ sơ/vai, tỷ lệ/đ khách, ALL/GROUP/SERVICE, một dòng đã đóng, một dòng có ghi chú và người tạo.
-  const muc = (id: string, party: string | null, role: string | null, scope: string, cat: string | null, grp: string | null, kind: string, bp: number | null, pp: number | null, from: string, to: string | null, note: string | null) =>
-    run(db, `INSERT INTO prc_commission_rule (${COT_CU}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'kt', ?, 'kt')`, id, party, role, scope, cat, grp, kind, bp, pp, from, to, note, AT, AT);
-  muc("m-hs", "pty-dl", null, "ALL", null, null, "RATE", 1000, null, "2026-01-01", null, null);
-  muc("m-vai", null, "TRAVEL_AGENCY", "ALL", null, null, "RATE", 500, null, "2026-01-01", null, "mức chung đại lý");
-  muc("m-dv", null, "GUIDE_FREELANCE", "SERVICE", "HONTAM", null, "PER_PAX", null, 20000, "2025-01-01", "2025-12-31", null);
-  muc("m-nhom", "pty-dl", null, "GROUP", null, "TDA", "RATE", 1200, null, "2026-02-01", null, null);
+  // Bốn dòng mức đủ kiểu: hồ sơ/vai, tỷ lệ/đ khách, ALL/GROUP/SERVICE, một dòng đã đóng. Mỗi cột cùng kiểu mang giá trị KHÁC NHAU (giờ tạo ≠ giờ sửa,
+  // người tạo ≠ người sửa, ghi chú riêng từng dòng) để câu nạp lại của 0097 đảo cột nào cũng lộ ra ở phép so từng cột (người kiểm độc lập I-1).
+  const muc = (id: string, party: string | null, role: string | null, scope: string, cat: string | null, grp: string | null, kind: string, bp: number | null, pp: number | null, from: string, to: string | null, so: number) =>
+    run(db, `INSERT INTO prc_commission_rule (${COT_CU}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, id, party, role, scope, cat, grp, kind, bp, pp, from, to,
+      `ghi chú ${id}`, `2026-09-0${so}T01:00:00.000Z`, `nguoi-tao-${id}`, `2026-10-0${so}T02:00:00.000Z`, `nguoi-sua-${id}`);
+  muc("m-hs", "pty-dl", null, "ALL", null, null, "RATE", 1000, null, "2026-01-01", null, 1);
+  muc("m-vai", null, "TRAVEL_AGENCY", "ALL", null, null, "RATE", 500, null, "2026-01-01", null, 2);
+  muc("m-dv", null, "GUIDE_FREELANCE", "SERVICE", "HONTAM", null, "PER_PAX", null, 20000, "2025-01-01", "2025-12-31", 3);
+  muc("m-nhom", "pty-dl", null, "GROUP", null, "TDA", "RATE", 1200, null, "2026-02-01", null, 4);
   // Đơn đã xác nhận + bản chụp AUTO trỏ dòng mức m-hs (rule_valid phải cho qua).
   run(db, `INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, discount, total, remaining_amount, created_at, updated_at)
-    VALUES ('o1', 'TD-1', 's1', 'draft', 'Khách Giả', '0900000009', 1000000, 0, 1000000, 1000000, ?, ?)`, AT, AT);
-  run(db, "INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('sv1', 'o1', 0, 'HONTAM', 'Vé Hòn Tằm', 'perPax', 1, '2026-10-10')");
-  run(db, "INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total) VALUES ('i1', 'o1', 'sv1', 'Người lớn', 1, 1000000, 1000000)");
-  run(db, "INSERT INTO ord_transfer_leg (id, order_id, order_service_id, direction, pickup_date, pickup_place, created_at, updated_at) VALUES ('l1', 'o1', 'sv1', 'OUT', '2026-10-10', 'Khách sạn A', ?, ?)", AT, AT);
+    VALUES ('o1', 'TD-1', 's1', 'draft', 'Khách Giả', '0900000009', 3000000, 0, 3000000, 3000000, ?, ?)`, AT, AT);
+  for (const [i, sv] of ["sv1", "sv2", "sv3"].entries()) {
+    run(db, "INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, 'o1', ?, 'HONTAM', 'Vé Hòn Tằm', 'perPax', 1, '2026-10-10')", sv, i);
+    run(db, "INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total) VALUES (?, 'o1', ?, 'Người lớn', 1, 1000000, 1000000)", `i-${sv}`, sv);
+    run(db, "INSERT INTO ord_transfer_leg (id, order_id, order_service_id, direction, pickup_date, pickup_place, created_at, updated_at) VALUES (?, 'o1', ?, 'OUT', '2026-10-10', 'Khách sạn A', ?, ?)", `l-${sv}`, sv, AT, AT);
+  }
   run(db, "UPDATE orders SET status = 'confirmed', confirmed_at = ?, updated_at = ? WHERE id = 'o1'", AT, AT);
-  chup(db, { id: "t1", rule: "m-hs", bp: 1000 });
+  chup(db, { id: "t1", rule: "m-hs", bp: 1000 }); // dòng mở theo hồ sơ
+  // M-1 (người kiểm độc lập): bản chụp trỏ dòng theo VAI và bản chụp trỏ dòng ĐÃ ĐÓNG (chụp lúc dòng còn hiệu lực).
+  const term = one<{ id: string; seller_party_id: string }>(db, "SELECT id, seller_party_id FROM prc_supply_term WHERE scope = 'ALL' AND valid_to_date IS NULL");
+  const chupKhac = (id: string, sv: string, huong: string, rule: string, kind: string, bp: number | null, pp: number | null, ngay: string) =>
+    run(db, `INSERT INTO ord_service_terms (id, order_id, order_service_id, beneficiary_party_id, commission_status, commission_kind, commission_rate_bp, commission_per_pax, commission_rule_id,
+        supply_status, seller_party_id, supply_term_id, source, captured_date, created_at, created_by, updated_at, updated_by)
+      VALUES (?, 'o1', ?, ?, 'SET', ?, ?, ?, ?, 'SET', ?, ?, 'AUTO', ?, ?, 'sa', ?, 'sa')`, id, sv, huong, kind, bp, pp, rule, term.seller_party_id, term.id, ngay, AT, AT);
+  chupKhac("t-vai", "sv2", "pty-dl", "m-vai", "RATE", 500, null, "2026-10-10");
+  chupKhac("t-dong", "sv3", "pty-hdv", "m-dv", "PER_PAX", null, 20000, "2025-06-01");
   run(db, "UPDATE prc_beneficiary_role SET active = 0, updated_at = ? WHERE role_type_code = 'COLLABORATOR'", AT);
 }
 /** Bản chụp AUTO cho dòng sv1 của đơn o1; `sup` = bản hiện hành bị thay. */
@@ -168,7 +180,12 @@ test("N-15: dữ liệu còn nguyên từng dòng, số dòng MỌI bảng trư�
   const muc0 = all(db, `SELECT ${COT_CU} FROM prc_commission_rule ORDER BY id`);
   const chup0 = all(db, "SELECT * FROM ord_service_terms ORDER BY id");
   assert.equal(muc0.length, 4);
-  assert.equal(chup0.length, 1);
+  assert.equal(chup0.length, 3);
+  // Bộ gieo phải phân biệt được: mọi cặp cột cùng kiểu khác giá trị trên từng dòng (đảo cột ở câu nạp lại ⇒ lệch, không trùng hợp).
+  for (const r of all<Record<string, string | null>>(db, `SELECT ${COT_CU} FROM prc_commission_rule`)) {
+    assert.notEqual(r.created_at, r.updated_at); assert.notEqual(r.created_by, r.updated_by);
+    assert.notEqual(r.note, r.created_by); assert.notEqual(r.valid_from_date, r.created_at);
+  }
   assert.deepEqual(fkCheck(db), [], "dữ liệu gieo phải sạch khoá ngoại TRƯỚC khi dựng");
   // TRƯỚC 0097 bỏ qua hai kiểm cần cột mới (R-PRC-1/2 nhắc target_tier_code — chưa có cột thì câu lỗi); mọi kiểm mức fail còn lại phải sạch.
   assert.deepEqual(auditDo(db, /target_tier_code/), [], "audit-invariants (mức fail) sạch trên dữ liệu gieo TRƯỚC khi dựng");
@@ -181,6 +198,13 @@ test("N-15: dữ liệu còn nguyên từng dòng, số dòng MỌI bảng trư�
   assert.deepEqual(all(db, "SELECT * FROM ord_service_terms ORDER BY id"), chup0, "bản chụp nguyên vẹn");
   assert.equal(one<{ n: number }>(db, "SELECT count(*) AS n FROM ord_service_terms t WHERE NOT EXISTS (SELECT 1 FROM prc_commission_rule r WHERE r.id = t.commission_rule_id)").n, 0,
     "mọi commission_rule_id còn trỏ dòng tồn tại");
+  // Từng bản chụp nối đúng dòng: hồ sơ (mở), vai (mở), dòng đã đóng — số chụp khớp số của dòng, ngày chụp nằm trong hiệu lực dòng.
+  assert.deepEqual(all<{ id: string; rule: string; dich: string; khop: number }>(db,
+    `SELECT t.id, r.id AS rule, COALESCE(r.target_party_id, r.target_role_code) AS dich,
+       (r.kind = t.commission_kind AND r.rate_bp IS t.commission_rate_bp AND r.per_pax_amount IS t.commission_per_pax
+        AND r.valid_from_date <= t.captured_date AND (r.valid_to_date IS NULL OR r.valid_to_date >= t.captured_date)) AS khop
+     FROM ord_service_terms t JOIN prc_commission_rule r ON r.id = t.commission_rule_id ORDER BY t.id`).map((x) => [x.id, x.rule, x.dich, x.khop]),
+    [["t-dong", "m-dv", "GUIDE_FREELANCE", 1], ["t-vai", "m-vai", "TRAVEL_AGENCY", 1], ["t1", "m-hs", "pty-dl", 1]]);
   assert.deepEqual(fkCheck(db), [], "foreign_key_check sau khi dựng");
   assert.equal(one<{ integrity_check: string }>(db, "PRAGMA integrity_check").integrity_check, "ok");
   assert.equal(one<{ foreign_keys: number }>(db, "PRAGMA foreign_keys").foreign_keys, 1);
