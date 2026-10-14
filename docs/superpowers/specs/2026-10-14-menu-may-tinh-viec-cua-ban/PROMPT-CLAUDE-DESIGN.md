@@ -26,8 +26,8 @@ Nhìn vào Trang chủ trong 5 giây, người dùng biết: (1) có việc gì 
 Nhóm có tiêu đề chữ nhỏ viết hoa; nhóm không có mục nào thì ẩn cả tiêu đề.
 1. (không tiêu đề) Trang chủ · Đơn hàng (huy hiệu số: đơn nháp) · **Tạo đơn** (nút nổi bật màu san hô) · Danh bạ
 2. VẬN CHUYỂN: Điều phối xe · Xe đang chạy · Đề nghị chuyển khách · Xe & giấy tờ (huy hiệu cát: giấy sắp hết hạn) · Giá & chi phí
-3. TIỀN: Điều chỉnh công nợ · Khoá sổ tháng · Hoa hồng đối tác · Người bán dịch vụ
-4. THIẾT LẬP (**thu gọn, mặc định đóng**, có mũi tên mở/đóng): Dịch vụ & giá · Địa điểm · Loại giấy tờ cá nhân · Loại giấy tờ xe · Lý do điều phối · Chính sách điều phối · Quản lý tài khoản · Phiên đăng nhập · Nhật ký · Gửi thông báo · Trợ lý Hỗ trợ · Giao diện
+3. TIỀN: Điều chỉnh công nợ · Khoá sổ tháng
+4. THIẾT LẬP (**thu gọn, mặc định đóng**, có mũi tên mở/đóng): Hoa hồng đối tác · Người bán dịch vụ · Dịch vụ & giá · Địa điểm · Loại giấy tờ cá nhân · Loại giấy tờ xe · Lý do điều phối · Chính sách điều phối · Quản lý tài khoản · Phiên đăng nhập · Nhật ký · Gửi thông báo · Trợ lý Hỗ trợ · Giao diện
 5. Chân menu cố định: Của tôi · Góp ý / Báo lỗi · Trợ giúp, rồi avatar + tên + vai + Đăng xuất.
 Mục đang mở: nền sáng + vạch màu bên trái. Mỗi vai chỉ thấy phần mình được phép (xem bảng bên dưới).
 
@@ -36,9 +36,9 @@ Từ trên xuống: lời chào theo giờ + một câu tóm tắt ngày → **k
 Quy tắc số: **chỉ hiện thẻ khi số > 0**. Không có việc nào → một dòng dịu "Hôm nay không có việc chờ bạn" + nút Tạo đơn. Nguồn số lỗi → hiện "—" và nút "Thử lại" ngay trong thẻ đó, không làm hỏng cả khối. Số chưa có nguồn thật thì KHÔNG bịa.
 
 ## Vai và thẻ "Việc của bạn" (dữ liệu thật, dùng đúng các nhãn này)
-- **Bán hàng**: Đơn nháp chờ xác nhận (3) · Đơn chưa có người phụ trách (2) · Còn thiếu tiền (5 đơn, 18.400.000 ₫) · Chuyến đón hôm nay (4). Menu: nhóm 1 + Vận chuyển (Điều phối xe, Xe đang chạy) + Hoa hồng đối tác.
-- **Kế toán**: Còn thiếu tiền (nút Ghi thu) · Đề nghị điều chỉnh chờ duyệt (nút Duyệt) · Cọc cần chi hoàn · Đơn nháp. Menu: Trang chủ, Đơn hàng, Danh bạ (KHÔNG có Tạo đơn) + Vận chuyển (xem) + TIỀN đầy đủ.
-- **Quản trị**: Cần xem lại (giấy tờ xe sắp hết hạn, dịch vụ lệch giá) · Đề nghị chuyển khách (Duyệt) · Đơn nháp · Chưa phụ trách. Menu: nhóm 1 + Vận chuyển đầy đủ + TIỀN + Thiết lập (không có Phiên đăng nhập, Nhật ký, Chính sách, Gửi thông báo, Trợ lý, Giao diện).
+- **Bán hàng**: Đơn nháp chờ xác nhận (3) · Đơn chưa có người phụ trách (2) · Còn thiếu tiền (5 đơn, 18.400.000 ₫) · Chuyến đón hôm nay (4). Menu: nhóm 1 + Vận chuyển (Điều phối xe, Xe đang chạy) + Thiết lập chỉ có Hoa hồng đối tác.
+- **Kế toán**: Còn thiếu tiền (nút Ghi thu) · Đề nghị điều chỉnh chờ duyệt (nút Duyệt) · Cọc cần chi hoàn · Đơn nháp. Menu: Trang chủ, Đơn hàng, Danh bạ (KHÔNG có Tạo đơn) + Vận chuyển (xem) + TIỀN (2 mục) + Thiết lập chỉ có Hoa hồng đối tác, Người bán dịch vụ.
+- **Quản trị**: Cần xem lại (giấy tờ xe sắp hết hạn, dịch vụ lệch giá) · Đề nghị chuyển khách (Duyệt) · Đơn nháp · Chưa phụ trách. Menu: nhóm 1 + Vận chuyển đầy đủ + TIỀN + Thiết lập (gồm Hoa hồng đối tác, Người bán dịch vụ; không có Phiên đăng nhập, Nhật ký, Chính sách, Gửi thông báo, Trợ lý, Giao diện).
 - **Toàn quyền**: như Quản trị + thẻ Góp ý chưa xử lý; Thiết lập đầy đủ.
 - **Tài xế**: trang riêng, KHÔNG có menu nhóm 1–4; chỉ Trang chủ tài xế · Cuốc của tôi · (Báo bận nếu là tài xế đối tác) + chân menu. Thẻ: Cuốc hôm nay (Mở cuốc) · Giấy tờ sắp hết hạn.
 - **Hướng dẫn viên**: menu có **Đơn hàng** (hiện đơn tự do — đơn chưa có hướng dẫn viên nào phụ trách, có nút Nhận — và đơn của chính mình) + chân menu (Của tôi, Góp ý, Trợ giúp). Thẻ: Đơn tự do chờ nhận (Nhận đơn) · Đơn của tôi còn thu tiền (Ghi thu).
