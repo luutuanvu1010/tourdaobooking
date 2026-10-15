@@ -19,8 +19,10 @@ CI=1 npx wrangler d1 migrations apply tourdao-sales-db --local --persist-to "$TM
 ```
 Phải thấy: áp xong không lỗi; `PRAGMA foreign_key_check` ra 0 dòng; số dòng `prc_commission_rule`, `ord_service_terms` trước = sau; `node scripts/audit-invariants.mjs --db local` sạch. Xong thì **xoá tệp xuất** (có SĐT, hồ sơ khách thật).
 
-## 4. Bước 0 bậc (d): D1 thật bỏ đi
-Cần quy trình nạp `--remote` (cấu trúc → dữ liệu → trigger) **chưa có sẵn, chưa kiểm** (tệp diễn tập chỉ viết cho D1 local). Khi (c) đạt và chủ muốn làm (d), nhắn AI soạn nguyên lệnh theo kế hoạch 0.4a; mọi lệnh `--remote` do chủ chạy, xong thì xoá D1 bỏ đi và tệp xuất.
+## 4. Bước 0 bậc (d): D1 thật bỏ đi — **BỎ QUA (chủ quyết 2026-10-15, chat)**
+Bậc (c) đã đạt (xem nhật ký thi công). Chủ chọn bỏ bậc (d) và chấp nhận rủi ro còn lại: chưa chứng minh được D1 thật chạy trọn tệp `0097` trong một lần và hoàn tác sạch khi lỗi. Lưới an toàn còn lại là điểm khôi phục Time Travel do `npm run trien-khai` tự lấy trước khi áp (không lấy được thì không áp). Lý do này cần ghi cùng chỗ gia hạn HC-5.19 ở mục 2.
+
+Cũng quyết ngày 2026-10-15: (1) tắt một Mức TA chỉ chặn gắn mới và thêm dòng mới, các đại lý đang gắn vẫn được tính tới khi đóng gắn (giữ như mã hiện tại); (2) Danh bạ tạm giữ nguyên, tài khoản lai Bán hàng + Đối tác vẫn thấy TÊN LOẠI (`BL-ADR0117-DANH-BA-TEN-LOAI`, xử lý sau).
 
 ## 5. Phát hành (Task 7)
 Chỉ sau (1), (2), (3), (4). AI soạn nguyên lệnh `npm run day-len` rồi `npm run trien-khai` kèm thư mục khi chủ ra lệnh.
