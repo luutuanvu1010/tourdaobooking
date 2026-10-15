@@ -1,9 +1,11 @@
 // src/modules/feedback/index.ts
 // Module feedback — Góp ý / Báo lỗi (ticket): người dùng gửi, admin tiếp nhận/trả lời/đổi trạng thái. Route: /api/feedback*.
-// Phụ thuộc: staff (tên qua view công bố — chỉ trong repository) và audit (dấu vết). Module khác CHỈ import từ file này.
+// Phụ thuộc: staff (tên qua view công bố — chỉ trong repository; quyền của người được gán vào nhóm qua hàm công bố `getStaffAccount` — R6) và audit (dấu vết).
+// Module khác CHỈ import từ file này.
 import { auditStatement } from "../audit";
+import { getStaffAccount } from "../staff";
 import type {
-  FeedbackBadgeResponse, FeedbackDetailResponse, FeedbackMessageDto, FeedbackQueueResponse, FeedbackTeamsResponse, FeedbackTicketDto,
+  FeedbackAdminTeamDto, FeedbackAdminTeamsResponse, FeedbackBadgeResponse, FeedbackDetailResponse, FeedbackMessageDto, FeedbackQueueResponse, FeedbackTeamsResponse, FeedbackTicketDto,
 } from "../../shared/contracts";
 import { FEEDBACK_KIND_NAME, FEEDBACK_STATUS_NAME, canTransition, feedbackCode, isFeedbackKind, isFeedbackStatus, type FeedbackKind, type FeedbackStatus } from "../../shared/feedback-catalog";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
@@ -13,16 +15,30 @@ import { NHOM_KY_THUAT_ID } from "../../shared/ve-ho-tro";
 import { mailConfig, notifyAdmins, type NotifyEvent } from "./notify";
 import { choPhepNhomGui } from "./quyen";
 import {
-  badgeCounts, findByRequest, getTeam, getTicket, insertFirstMessageStatement, insertReplyStatement, insertTicketStatement, listMessages, listMine, listQueue, listTeamsActive, markSeen,
-  membershipsOf, messageExists, patchTicketStatement, setNotified, touchAfterReplyStatement, weeklyStats, type MessageRow, type TicketRow,
+  badgeCounts, endMemberStatement, findByRequest, getTeam, getTicket, insertFirstMessageStatement, insertMemberStatement, insertReplyStatement, insertTeamStatement,
+  insertTicketStatement, listMembersAll, listMessages, listMine, listQueue, listTeamsActive, listTeamsAll, markSeen, membershipsOf, messageExists, patchTeamStatement,
+  patchTicketStatement, setNotified, touchAfterReplyStatement, weeklyStats, type MessageRow, type TeamMemberRow, type TeamRow, type TicketRow,
 } from "./repository";
 import {
-  MESSAGE_LIMIT_PER_HOUR, TICKET_LIMIT_PER_HOUR, parseContext, validateMessageInput, validatePatchInput, validateTicketInput, windowStart,
+  MESSAGE_LIMIT_PER_HOUR, TEAM_ID_RE, TICKET_LIMIT_PER_HOUR, parseContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch,
+  validateTicketInput, windowStart,
 } from "./rules";
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy yêu cầu.");
 const RATE_LIMITED = () => error(429, "rate_limited", "Bạn gửi quá nhiều trong một giờ, hãy thử lại sau.");
 const BAD_JSON = () => error(400, "invalid_input", "Nội dung gửi lên không hợp lệ.");
+const TEAM_FORBIDDEN = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống được quản lý nhóm hỗ trợ.");
+const TEAM_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy nhóm hỗ trợ.");
+
+const toAdminTeam = (t: TeamRow, members: readonly TeamMemberRow[]): FeedbackAdminTeamDto => ({
+  id: t.id,
+  code: t.code,
+  name: t.name,
+  description: t.description,
+  sensitive: t.sensitive === 1,
+  active: t.active === 1,
+  members: members.filter((m) => m.team_id === t.id).map((m) => ({ staffId: m.staff_id, name: m.name, role: m.role })),
+});
 
 const toTicket = (r: TicketRow, showMail: boolean): FeedbackTicketDto => ({
   id: r.id,
@@ -126,6 +142,96 @@ export const feedbackModule: AppModule = {
         isSuper: can(staff, "feedback.triage"),
       } satisfies FeedbackTeamsResponse);
     }),
+    // ---- Quản lý nhóm hỗ trợ (ADR-0119 điều 2, 3): CHỈ Toàn quyền (ô feedback.team.manage). Tuyến tĩnh, khai trước /api/feedback/:id. ------------------
+    // Nhật ký: targetId = id nhóm; detail CHỈ mã nhóm (+ vai với thành viên) — không tên/mô tả nhóm, không tên người, không SĐT.
+    route("GET", "/api/feedback/admin/teams", "staff", async ({ env, staff }) => {
+      if (!can(staff, "feedback.team.manage")) return TEAM_FORBIDDEN();
+      const [teams, members] = await Promise.all([listTeamsAll(env.DB), listMembersAll(env.DB)]);
+      return json({ teams: teams.map((t) => toAdminTeam(t, members)) } satisfies FeedbackAdminTeamsResponse);
+    }),
+    route("POST", "/api/feedback/admin/teams", "staff", async ({ request, env, staff }) => {
+      if (!can(staff, "feedback.team.manage")) return TEAM_FORBIDDEN();
+      const raw = await readJson(request);
+      if (!raw) return BAD_JSON();
+      const v = validateTeamInput(raw);
+      if (!v.ok) return error(400, "invalid_input", v.message);
+      const id = crypto.randomUUID();
+      const at = new Date().toISOString();
+      await env.DB.batch([
+        insertTeamStatement(env.DB, { id, code: v.value.code, name: v.value.name, description: v.value.description, sensitive: v.value.sensitive, now: at, by: staff.id }),
+        auditStatement(env.DB, { staffId: staff.id, action: "feedback_team_created", at, targetType: "feedback", targetId: id, detail: v.value.code }, `EXISTS (SELECT 1 FROM fbk_team WHERE id = '${id}')`),
+      ]);
+      const t = await getTeam(env.DB, id);
+      if (!t) return error(409, "duplicate", "Mã nhóm đã có.");
+      return json({ team: toAdminTeam(t, []) }, 201, { location: "/feedback" }); // trang quản lý nhóm làm ở việc giao diện; tạm trỏ trang Góp ý
+    }),
+    route("PATCH", "/api/feedback/admin/teams/:id", "staff", async ({ request, env, staff, params }) => {
+      if (!can(staff, "feedback.team.manage")) return TEAM_FORBIDDEN();
+      const id = params.id!;
+      if (!TEAM_ID_RE.test(id)) return TEAM_NOT_FOUND();
+      const raw = await readJson(request);
+      if (!raw) return BAD_JSON();
+      const v = validateTeamPatch(raw);
+      if (!v.ok) return error(400, "invalid_input", v.message);
+      const truoc = await getTeam(env.DB, id);
+      if (!truoc) return TEAM_NOT_FOUND();
+      const at = new Date().toISOString();
+      await env.DB.batch([
+        patchTeamStatement(env.DB, { id, ...v.value, now: at, by: staff.id }),
+        auditStatement(env.DB, { staffId: staff.id, action: "feedback_team_updated", at, targetType: "feedback", targetId: id, detail: truoc.code }, "changes() > 0"),
+      ]);
+      const [t, members] = await Promise.all([getTeam(env.DB, id), listMembersAll(env.DB)]);
+      return t ? json({ team: toAdminTeam(t, members) }) : TEAM_NOT_FOUND();
+    }),
+    // Gán / đổi vai: kết thúc dòng đang hiệu lực (nếu có) rồi mở dòng mới — cùng lô. Mọi điều kiện kiểm TRƯỚC lô (câu kết thúc chạy được dù câu chèn không chèn).
+    route("PUT", "/api/feedback/admin/teams/:id/members/:staffId", "staff", async ({ request, env, staff, params }) => {
+      if (!can(staff, "feedback.team.manage")) return TEAM_FORBIDDEN();
+      const teamId = params.id!;
+      const staffId = params.staffId!;
+      if (!TEAM_ID_RE.test(teamId)) return TEAM_NOT_FOUND();
+      const raw = await readJson(request);
+      if (!raw) return BAD_JSON();
+      const role = validateMemberRole(raw);
+      if (!role.ok) return error(400, "invalid_input", role.message);
+      const team = await getTeam(env.DB, teamId);
+      if (!team) return TEAM_NOT_FOUND();
+      const nguoi = UUID_RE.test(staffId) ? await getStaffAccount(env.DB, staffId) : null;
+      if (!nguoi || !nguoi.active) return error(400, "invalid_input", "Tài khoản không tồn tại hoặc đã khoá.");
+      // R6: tài khoản có mã quyền bên ngoài (kể cả tài khoản lai) không làm thành viên nhóm (quyenPhieu cũng bỏ qua — lưới thứ hai).
+      if (nguoi.permissions.some(isExternalPermission)) return error(400, "invalid_input", "Tài khoản bên ngoài không thể làm thành viên nhóm hỗ trợ.");
+      const at = new Date().toISOString();
+      const memberId = crypto.randomUUID();
+      await env.DB.batch([
+        endMemberStatement(env.DB, { teamId, staffId, now: at, by: staff.id }),
+        insertMemberStatement(env.DB, { id: memberId, teamId, staffId, role: role.value, now: at, by: staff.id }),
+        auditStatement(
+          env.DB,
+          { staffId: staff.id, action: "feedback_team_member_changed", at, targetType: "feedback", targetId: teamId, detail: `${team.code}: ${role.value}` },
+          `EXISTS (SELECT 1 FROM fbk_team_member WHERE id = '${memberId}')`,
+        ),
+      ]);
+      const [t, members] = await Promise.all([getTeam(env.DB, teamId), listMembersAll(env.DB)]);
+      if (!t || !members.some((m) => m.team_id === teamId && m.staff_id === staffId)) return error(400, "invalid_input", "Tài khoản không tồn tại hoặc đã khoá.");
+      return json({ team: toAdminTeam(t, members) });
+    }),
+    // Gỡ: kết thúc hiệu lực (không xoá dòng). Không phải thành viên ⇒ 404. Mất quyền ngay vì quyenPhieu đọc tư cách ĐANG hiệu lực mỗi request.
+    route("DELETE", "/api/feedback/admin/teams/:id/members/:staffId", "staff", async ({ env, staff, params }) => {
+      if (!can(staff, "feedback.team.manage")) return TEAM_FORBIDDEN();
+      const teamId = params.id!;
+      const staffId = params.staffId!;
+      if (!TEAM_ID_RE.test(teamId)) return TEAM_NOT_FOUND();
+      const team = await getTeam(env.DB, teamId);
+      if (!team) return TEAM_NOT_FOUND();
+      const at = new Date().toISOString();
+      const res = await env.DB.batch([
+        endMemberStatement(env.DB, { teamId, staffId, now: at, by: staff.id }),
+        auditStatement(env.DB, { staffId: staff.id, action: "feedback_team_member_changed", at, targetType: "feedback", targetId: teamId, detail: `${team.code}: gỡ` }, "changes() > 0"),
+      ]);
+      if ((res[0]?.meta.changes ?? 0) === 0) return error(404, "not_found", "Người này không phải thành viên nhóm.");
+      const members = await listMembersAll(env.DB);
+      return json({ team: toAdminTeam(team, members) });
+    }),
+
     route("GET", "/api/feedback/mine", "staff", async ({ env, staff, url }) => {
       const rows = await listMine(env.DB, staff.id, intParam(url.searchParams.get("limit"), 50, 1, 100), intParam(url.searchParams.get("offset"), 0, 0, 100000));
       return json({ tickets: rows.map((r) => toTicket(r, false)) });

@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 
 const U = (n: number) => `${String(n).repeat(8)}-${String(n).repeat(4)}-4${String(n).repeat(3)}-8${String(n).repeat(3)}-${String(n).repeat(12)}`;
-const SALES = U(1), SUPER = U(2), KT_TV = U(3), KT_TN = U(4), NS_TV = U(5), QT = U(6), PARTNER = U(7), KT_GUI = U(8);
+const SALES = U(1), SUPER = U(2), KT_TV = U(3), KT_TN = U(4), NS_TV = U(5), QT = U(6), PARTNER = U(7), KT_GUI = U(8), LAI = U(9), TXDT = U(0);
 const KY_THUAT = "fbk-team-ky-thuat", KE_TOAN = "fbk-team-ke-toan", NHAN_SU = "fbk-team-nhan-su";
 const NOW = "2026-10-15T00:00:00.000Z";
 
@@ -14,6 +14,7 @@ function setup() {
   const ai: [string, string, string[]][] = [
     [SALES, "0900000001", ["SALES"]], [SUPER, "0900000002", ["SUPER_ADMIN"]], [KT_TV, "0900000003", ["ACCOUNTING"]], [KT_TN, "0900000004", ["ACCOUNTING"]],
     [NS_TV, "0900000005", ["HR"]], [QT, "0900000006", ["ADMIN"]], [PARTNER, "0900000007", ["PARTNER"]], [KT_GUI, "0900000008", ["ACCOUNTING"]],
+    [LAI, "0900000009", ["SALES", "PARTNER"]], [TXDT, "0900000010", ["DRIVER_PARTNER"]], // tài khoản lai (nội bộ + bên ngoài) và tài xế đối tác
   ];
   for (const [id, phone, perms] of ai) seedStaff(w.sqlite, { id, phone, name: `NV ${phone.slice(-1)}`, perms });
   const them = (team: string, staff: string, role: "LEAD" | "MEMBER") =>
@@ -70,4 +71,115 @@ test("người gửi chỉ thấy phiếu của mình ở /mine; người khác 
   const a = await tao(w, SALES, KE_TOAN);
   assert.equal((await w.call("GET", `/api/feedback/${a.json.ticket.id}`, { as: QT })).status, 404);
   assert.equal((await w.call("GET", `/api/feedback/${a.json.ticket.id}`, { as: SALES })).status, 200);
+});
+
+test("bên ngoài kể cả tài khoản lai (SALES+PARTNER) và tài xế đối tác: gửi nhóm khác Kỹ thuật ⇒ 403; danh sách nhóm chỉ có Kỹ thuật", async () => {
+  const w = setup();
+  for (const as of [LAI, TXDT]) {
+    const r = await tao(w, as, KE_TOAN);
+    assert.equal(r.status, 403, `${as} ${r.text}`);
+    assert.equal((await tao(w, as, KY_THUAT)).status, 201, as);
+    const g = await w.call("GET", "/api/feedback/teams", { as });
+    assert.equal(g.status, 200, g.text);
+    assert.deepEqual(g.json.teams.map((t: any) => t.id), [KY_THUAT], as);
+  }
+  assert.equal(w.q(`SELECT count(*) AS n FROM fbk_ticket WHERE team_id <> '${KY_THUAT}'`)[0].n, 0);
+});
+
+test("tin đầu và tin trả lời mang team_id của phiếu (không phải mặc định Kỹ thuật)", async () => {
+  const w = setup();
+  const a = await tao(w, SALES, KE_TOAN);
+  assert.equal(a.status, 201, a.text);
+  const id = a.json.ticket.id;
+  const r = await w.call("POST", `/api/feedback/${id}/messages`, { as: SALES, body: { body: "Bổ sung thông tin.", internal: false } });
+  assert.equal(r.status, 201, r.text);
+  const tin = w.q(`SELECT team_id FROM fbk_message WHERE ticket_id = '${id}' ORDER BY created_at, rowid`);
+  assert.equal(tin.length, 2);
+  assert.deepEqual(tin.map((m: any) => m.team_id), [KE_TOAN, KE_TOAN]);
+});
+
+test("gửi lại cùng clientRequestId (dù đổi nhóm) ⇒ 200, cùng phiếu, nhóm không đổi", async () => {
+  const w = setup();
+  const crid = crypto.randomUUID();
+  const a = await tao(w, SALES, KE_TOAN, { clientRequestId: crid });
+  assert.equal(a.status, 201, a.text);
+  const b = await tao(w, SALES, NHAN_SU, { clientRequestId: crid });
+  assert.equal(b.status, 200, b.text);
+  assert.equal(b.json.ticket.id, a.json.ticket.id);
+  assert.equal(b.json.ticket.teamId, KE_TOAN);
+  assert.equal(w.q(`SELECT team_id FROM fbk_ticket WHERE id = '${a.json.ticket.id}'`)[0].team_id, KE_TOAN);
+  assert.equal(w.q("SELECT count(*) AS n FROM fbk_ticket")[0].n, 1);
+});
+
+// ---- Quản lý nhóm (Việc 4): chỉ Toàn quyền ------------------------------------------------------------------------
+const admin = (w: any, method: string, path: string, as: string, body?: unknown) => w.call(method, `/api/feedback/admin/teams${path}`, { as, ...(body ? { body } : {}) });
+
+test("quản lý nhóm: chỉ Toàn quyền; Quản trị, Nhân sự, thành viên và Trưởng nhóm đều 403", async () => {
+  const w = setup();
+  for (const as of [QT, NS_TV, KT_TN, SALES, PARTNER]) {
+    assert.equal((await admin(w, "GET", "", as)).status, 403, as);
+    assert.equal((await admin(w, "POST", "", as, { code: "MOI", name: "Nhóm mới", description: "", sensitive: false })).status, 403, as);
+    assert.equal((await admin(w, "PATCH", `/${KY_THUAT}`, as, { sensitive: true })).status, 403, as);
+    assert.equal((await admin(w, "PUT", `/${KY_THUAT}/members/${SALES}`, as, { role: "MEMBER" })).status, 403, as);
+    assert.equal((await admin(w, "DELETE", `/${KE_TOAN}/members/${KT_TV}`, as)).status, 403, as);
+  }
+  assert.equal(w.q("SELECT count(*) AS n FROM fbk_team")[0].n, 4, "không tạo thêm nhóm");
+  assert.equal(w.q("SELECT count(*) AS n FROM fbk_team_member WHERE valid_to_at IS NOT NULL")[0].n, 0, "không gỡ ai");
+  const g = await admin(w, "GET", "", SUPER);
+  assert.equal(g.status, 200, g.text);
+  const kt = g.json.teams.find((t: any) => t.id === KE_TOAN);
+  assert.equal(kt.active, true);
+  assert.deepEqual(kt.members.map((m: any) => [m.staffId, m.role]).sort(), [[KT_GUI, "MEMBER"], [KT_TN, "LEAD"], [KT_TV, "MEMBER"]].sort());
+  assert.ok(kt.members.every((m: any) => typeof m.name === "string" && m.name.length > 0), "tên người đọc qua view nhãn");
+});
+
+test("Toàn quyền tạo nhóm, sửa cờ nhạy cảm, ngưng nhóm; mã trùng ⇒ 409; nhật ký không ghi mô tả", async () => {
+  const w = setup();
+  const t = await admin(w, "POST", "", SUPER, { code: "BAN_HANG", name: "Bán hàng", description: "Hỏi đáp bán hàng", sensitive: false });
+  assert.equal(t.status, 201, t.text);
+  assert.equal((await admin(w, "POST", "", SUPER, { code: "BAN_HANG", name: "Trùng", description: "", sensitive: false })).status, 409);
+  assert.equal((await admin(w, "POST", "", SUPER, { code: "ban hang", name: "Sai mã", description: "", sensitive: false })).status, 400);
+  const id = t.json.team.id;
+  assert.equal((await admin(w, "PATCH", `/${id}`, SUPER, { sensitive: true })).json.team.sensitive, true);
+  assert.equal((await admin(w, "PATCH", `/${id}`, SUPER, { active: false })).json.team.active, false);
+  assert.equal((await admin(w, "PATCH", `/${id}`, SUPER, {})).status, 400, "không có trường nào để sửa");
+  assert.equal((await admin(w, "PATCH", `/${crypto.randomUUID()}`, SUPER, { active: false })).status, 404);
+  const nhatKy = w.q("SELECT action, detail FROM audit_log WHERE action LIKE 'feedback_team_%' ORDER BY rowid");
+  assert.deepEqual(nhatKy.map((r: any) => r.action), ["feedback_team_created", "feedback_team_updated", "feedback_team_updated"]);
+  assert.ok(nhatKy.every((r: any) => !String(r.detail ?? "").includes("Hỏi đáp bán hàng") && !String(r.detail ?? "").includes("Bán hàng")), "tên, mô tả nhóm không vào nhật ký");
+  // Nhóm đã ngưng không nhận phiếu mới.
+  assert.equal((await tao(w, SALES, id)).status, 400);
+});
+
+test("thành viên: thêm, đổi vai, gỡ (kết thúc hiệu lực); người không tồn tại hoặc đã khoá ⇒ 400; gỡ rồi mất quyền ngay", async () => {
+  const w = setup();
+  assert.equal((await admin(w, "PUT", `/${KY_THUAT}/members/${SALES}`, SUPER, { role: "MEMBER" })).status, 200);
+  assert.deepEqual((await w.call("GET", "/api/feedback/teams", { as: SALES })).json.mine, [{ teamId: KY_THUAT, role: "MEMBER" }]);
+  assert.equal((await admin(w, "PUT", `/${KY_THUAT}/members/${SALES}`, SUPER, { role: "LEAD" })).status, 200);
+  assert.equal(w.q(`SELECT role FROM fbk_team_member WHERE team_id='${KY_THUAT}' AND staff_id='${SALES}' AND valid_to_at IS NULL`)[0].role, "LEAD");
+  assert.equal((await admin(w, "PUT", `/${KY_THUAT}/members/${SALES}`, SUPER, { role: "BOSS" })).status, 400);
+  assert.equal((await admin(w, "PUT", `/${KY_THUAT}/members/khong-co`, SUPER, { role: "MEMBER" })).status, 400);
+  assert.equal((await admin(w, "PUT", `/khong-co/members/${SALES}`, SUPER, { role: "MEMBER" })).status, 404);
+  w.sqlite.exec(`UPDATE staff SET active = 0 WHERE id = '${QT}'`);
+  const khoa = await admin(w, "PUT", `/${KY_THUAT}/members/${QT}`, SUPER, { role: "MEMBER" });
+  assert.equal(khoa.status, 400, khoa.text);
+  assert.equal(khoa.json.error.message, "Tài khoản không tồn tại hoặc đã khoá.");
+  assert.equal((await admin(w, "DELETE", `/${KY_THUAT}/members/${SALES}`, SUPER)).status, 200);
+  assert.equal(w.q(`SELECT count(*) AS n FROM fbk_team_member WHERE team_id='${KY_THUAT}' AND staff_id='${SALES}' AND valid_to_at IS NULL`)[0].n, 0);
+  assert.equal(w.q(`SELECT count(*) AS n FROM fbk_team_member WHERE team_id='${KY_THUAT}' AND staff_id='${SALES}'`)[0].n, 2, "dòng cũ giữ lại làm lịch sử");
+  assert.deepEqual((await w.call("GET", "/api/feedback/teams", { as: SALES })).json.mine, [], "gỡ rồi mất tư cách ngay");
+  assert.equal((await admin(w, "DELETE", `/${KY_THUAT}/members/${SALES}`, SUPER)).status, 404, "gỡ người không còn là thành viên ⇒ 404");
+  const nhatKy = w.q("SELECT action, detail FROM audit_log WHERE action = 'feedback_team_member_changed' ORDER BY rowid");
+  assert.equal(nhatKy.length, 3, "thêm, đổi vai, gỡ — mỗi lần một dòng; lần lỗi không ghi");
+  assert.ok(nhatKy.every((r: any) => !String(r.detail ?? "").includes("NV ")), "không ghi tên người");
+});
+
+test("R6: tài khoản bên ngoài (PARTNER, tài xế đối tác, tài khoản lai) không thể làm thành viên nhóm ⇒ 400", async () => {
+  const w = setup();
+  for (const as of [PARTNER, TXDT, LAI]) {
+    const r = await admin(w, "PUT", `/${KY_THUAT}/members/${as}`, SUPER, { role: "MEMBER" });
+    assert.equal(r.status, 400, `${as} ${r.text}`);
+    assert.equal(r.json.error.message, "Tài khoản bên ngoài không thể làm thành viên nhóm hỗ trợ.");
+  }
+  assert.equal(w.q(`SELECT count(*) AS n FROM fbk_team_member WHERE staff_id IN ('${PARTNER}', '${TXDT}', '${LAI}')`)[0].n, 0);
 });

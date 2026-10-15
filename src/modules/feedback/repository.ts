@@ -107,6 +107,15 @@ const MEMBERSHIPS_OF = defineSql(
    WHERE m.staff_id = ?1 AND m.valid_to_at IS NULL AND EXISTS (SELECT 1 FROM v_stf_staff_label s WHERE s.id = ?1 AND s.active = 1)`,
 );
 
+// Quản lý nhóm (ADR-0119, chỉ route có `feedback.team.manage` gọi): mọi nhóm kể cả đã ngưng; thành viên ĐANG hiệu lực kèm tên (view nhãn của staff).
+const LIST_TEAMS_ALL = defineSql("feedback", "list_teams_all", `SELECT id, code, name, description, sensitive, active, sort_order FROM fbk_team ORDER BY sort_order, name`);
+const LIST_MEMBERS_ALL = defineSql(
+  "feedback",
+  "list_members_all",
+  `SELECT m.team_id, m.staff_id, s.label AS name, m.role FROM fbk_team_member m LEFT JOIN v_stf_staff_label s ON s.id = m.staff_id
+   WHERE m.valid_to_at IS NULL ORDER BY m.team_id, m.role, s.label`,
+);
+
 export const getTicket = (db: D1Database, id: string) => db.prepare(GET).bind(id).first<TicketRow>();
 export const findByRequest = (db: D1Database, submitterId: string, clientRequestId: string) =>
   db.prepare(FIND_BY_REQUEST).bind(submitterId, clientRequestId).first<{ id: string }>();
@@ -125,6 +134,9 @@ export const listTeamsActive = async (db: D1Database): Promise<TeamRow[]> => (aw
 export const getTeam = (db: D1Database, id: string) => db.prepare(GET_TEAM).bind(id).first<TeamRow>();
 export const membershipsOf = async (db: D1Database, staffId: string): Promise<Membership[]> =>
   (await db.prepare(MEMBERSHIPS_OF).bind(staffId).all<{ team_id: string; role: "LEAD" | "MEMBER" }>()).results.map((r) => ({ teamId: r.team_id, role: r.role }));
+export interface TeamMemberRow { team_id: string; staff_id: string; name: string | null; role: "LEAD" | "MEMBER" }
+export const listTeamsAll = async (db: D1Database): Promise<TeamRow[]> => (await db.prepare(LIST_TEAMS_ALL).all<TeamRow>()).results;
+export const listMembersAll = async (db: D1Database): Promise<TeamMemberRow[]> => (await db.prepare(LIST_MEMBERS_ALL).all<TeamMemberRow>()).results;
 export const weeklyStats = async (db: D1Database, sinceIso: string) =>
   (await db.prepare(STATS).bind(sinceIso).all<{ week: string; kind_code: string; status_code: string; n: number }>()).results;
 
@@ -224,3 +236,59 @@ export const markSeen = async (db: D1Database, id: string, asSubmitter: boolean,
 export const setNotified = async (db: D1Database, id: string, at: string | null): Promise<void> => {
   await db.prepare(SET_NOTIFIED).bind(id, at).run();
 };
+
+// ---- Ghi: quản lý nhóm hỗ trợ (ADR-0119; chỉ route có `feedback.team.manage`) -----------------------------------------------
+// Tạo nhóm: chỉ chèn khi mã chưa có (route đọc lại theo id: không thấy ⇒ 409 mã trùng). sort_order = max+1 cùng câu.
+// ?1 id, ?2 mã, ?3 tên, ?4 mô tả, ?5 nhạy cảm 0/1, ?6 bây giờ, ?7 người làm.
+const INSERT_TEAM = defineSql(
+  "feedback",
+  "insert_team",
+  `INSERT INTO fbk_team (id, code, name, description, sensitive, sort_order, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, COALESCE((SELECT max(sort_order) FROM fbk_team), 0) + 1, ?6, ?7, ?6, ?7
+   WHERE NOT EXISTS (SELECT 1 FROM fbk_team WHERE code = ?2)`,
+);
+// Sửa nhóm: NULL = giữ nguyên. Mã nhóm KHÔNG sửa được. ?1 id, ?2 tên|NULL, ?3 mô tả|NULL, ?4 nhạy cảm 0/1|NULL, ?5 đang dùng 0/1|NULL, ?6 bây giờ, ?7 người làm.
+const PATCH_TEAM = defineSql(
+  "feedback",
+  "patch_team",
+  `UPDATE fbk_team SET name = COALESCE(?2, name), description = COALESCE(?3, description), sensitive = COALESCE(?4, sensitive), active = COALESCE(?5, active),
+     updated_at = ?6, updated_by = ?7
+   WHERE id = ?1`,
+);
+// Kết thúc tư cách đang hiệu lực (gỡ, hoặc vế đầu của đổi vai). Không xoá dòng: dòng cũ là lịch sử. ?1 nhóm, ?2 người, ?3 bây giờ, ?4 người làm.
+const END_MEMBER = defineSql(
+  "feedback",
+  "end_member",
+  `UPDATE fbk_team_member SET valid_to_at = ?3, updated_at = ?3, updated_by = ?4 WHERE team_id = ?1 AND staff_id = ?2 AND valid_to_at IS NULL`,
+);
+// Mở tư cách mới: chỉ chèn khi người ĐANG HOẠT ĐỘNG và nhóm có thật (lưới thứ hai — route đã kiểm trước lô). Tài khoản bên ngoài do route chặn (R6, đọc quyền
+// qua hàm công bố của staff) và quyenPhieu bỏ qua (lưới thứ hai). ?1 id, ?2 nhóm, ?3 người, ?4 vai, ?5 bây giờ, ?6 người làm.
+const INSERT_MEMBER = defineSql(
+  "feedback",
+  "insert_member",
+  `INSERT INTO fbk_team_member (id, team_id, staff_id, role, valid_from_at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?5, ?6, ?5, ?6
+   WHERE EXISTS (SELECT 1 FROM v_stf_staff_label WHERE id = ?3 AND active = 1) AND EXISTS (SELECT 1 FROM fbk_team WHERE id = ?2)`,
+);
+
+export const insertTeamStatement = (db: D1Database, a: { id: string; code: string; name: string; description: string; sensitive: boolean; now: string; by: string }) =>
+  db.prepare(INSERT_TEAM).bind(a.id, a.code, a.name, a.description, a.sensitive ? 1 : 0, a.now, a.by);
+export const patchTeamStatement = (
+  db: D1Database,
+  a: { id: string; name?: string; description?: string; sensitive?: boolean; active?: boolean; now: string; by: string },
+) =>
+  db
+    .prepare(PATCH_TEAM)
+    .bind(
+      a.id,
+      a.name ?? null,
+      a.description ?? null,
+      a.sensitive === undefined ? null : a.sensitive ? 1 : 0,
+      a.active === undefined ? null : a.active ? 1 : 0,
+      a.now,
+      a.by,
+    );
+export const endMemberStatement = (db: D1Database, a: { teamId: string; staffId: string; now: string; by: string }) =>
+  db.prepare(END_MEMBER).bind(a.teamId, a.staffId, a.now, a.by);
+export const insertMemberStatement = (db: D1Database, a: { id: string; teamId: string; staffId: string; role: "LEAD" | "MEMBER"; now: string; by: string }) =>
+  db.prepare(INSERT_MEMBER).bind(a.id, a.teamId, a.staffId, a.role, a.now, a.by);

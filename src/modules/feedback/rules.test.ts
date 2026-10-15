@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { FEEDBACK_KINDS, FEEDBACK_KIND_NAME, FEEDBACK_STATUSES, FEEDBACK_STATUS_NAME } from "../../shared/feedback-catalog.ts";
-import { BODY_MAX, TITLE_MAX, parseContext, sanitizeContext, validateMessageInput, validatePatchInput, validateTicketInput, windowStart } from "./rules.ts";
+import {
+  BODY_MAX, TITLE_MAX, parseContext, sanitizeContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch, validateTicketInput, windowStart,
+} from "./rules.ts";
 
 const REQ = "0b8f6f2e-3c1a-4f6e-9a55-2b6f4d1c7e10";
 const ok = { kind: "BUG", title: "  Nút lưu   không bấm được ", body: "Mô tả\r\nchi tiết", clientRequestId: REQ };
@@ -73,4 +75,31 @@ test("bảng tra cứu trong migration phản chiếu danh mục ở code", () =
   const sql = readFileSync(join(dir, file), "utf8");
   for (const k of FEEDBACK_KINDS) assert.ok(sql.includes(`('${k}', '${FEEDBACK_KIND_NAME[k]}'`), `thiếu loại ${k} trong migration`);
   for (const s of FEEDBACK_STATUSES) assert.ok(sql.includes(`('${s}', '${FEEDBACK_STATUS_NAME[s]}'`), `thiếu trạng thái ${s} trong migration`);
+});
+
+test("validateTeamInput: mã HOA/số/gạch dưới ≤ 40, tên 1–60 sau trim, mô tả ≤ 300, nhạy cảm boolean", () => {
+  const ok = validateTeamInput({ code: "BAN_HANG", name: "  Bán hàng  ", description: "Hỏi đáp", sensitive: true });
+  assert.deepEqual(ok, { ok: true, value: { code: "BAN_HANG", name: "Bán hàng", description: "Hỏi đáp", sensitive: true } });
+  assert.deepEqual(validateTeamInput({ code: "MOI", name: "Mới" }), { ok: true, value: { code: "MOI", name: "Mới", description: "", sensitive: false } });
+  for (const code of ["ban_hang", "BAN HANG", "", "A".repeat(41), 5]) assert.equal(validateTeamInput({ code, name: "X", sensitive: false }).ok, false, String(code));
+  assert.equal(validateTeamInput({ code: "A", name: "   ", sensitive: false }).ok, false);
+  assert.equal(validateTeamInput({ code: "A", name: "x".repeat(61), sensitive: false }).ok, false);
+  assert.equal(validateTeamInput({ code: "A", name: "X", description: "x".repeat(301), sensitive: false }).ok, false);
+  assert.equal(validateTeamInput({ code: "A", name: "X", sensitive: "có" }).ok, false);
+});
+
+test("validateTeamPatch: ít nhất một trường; từng trường đúng kiểu", () => {
+  assert.equal(validateTeamPatch({}).ok, false);
+  assert.equal(validateTeamPatch({ code: "MOI" }).ok, false, "mã nhóm không sửa được");
+  assert.deepEqual(validateTeamPatch({ active: false }), { ok: true, value: { active: false } });
+  assert.deepEqual(validateTeamPatch({ name: " Kế toán ", sensitive: true }), { ok: true, value: { name: "Kế toán", sensitive: true } });
+  assert.equal(validateTeamPatch({ active: 0 }).ok, false);
+  assert.equal(validateTeamPatch({ name: "" }).ok, false);
+  assert.equal(validateTeamPatch({ description: 1 }).ok, false);
+});
+
+test("validateMemberRole: chỉ LEAD hoặc MEMBER", () => {
+  assert.deepEqual(validateMemberRole({ role: "LEAD" }), { ok: true, value: "LEAD" });
+  assert.deepEqual(validateMemberRole({ role: "MEMBER" }), { ok: true, value: "MEMBER" });
+  for (const role of ["BOSS", "lead", undefined, 1]) assert.equal(validateMemberRole({ role }).ok, false, String(role));
 });

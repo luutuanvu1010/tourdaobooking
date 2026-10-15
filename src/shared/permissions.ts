@@ -50,7 +50,8 @@ const row = (
 
 /**
  * Bản đồ ADR-0007 điều 1 (ADMIN làm được mọi thao tác) đã đổi theo ADR-0009, ADR-0014 (thêm PARTNER/SUPER_ADMIN, bốn thao tác mới), cộng 3 thao tác
- * Góp ý (`feedback.*` — mở rộng của module Góp ý, không thuộc bảng ADR-0007 gốc).
+ * Góp ý (`feedback.*` — mở rộng của module Góp ý, không thuộc bảng ADR-0007 gốc); ô `feedback.team.manage` (ADR-0119: tạo/ngưng nhóm hỗ trợ,
+ * gán/gỡ thành viên) chỉ Toàn quyền — tư cách thành viên nhóm là DỮ LIỆU của module feedback, không phải ô của bản đồ này.
  * "Của mình" = người lập đơn (với `feedback.view` là người GỬI yêu cầu); "được giao" = người phụ trách đang mở của đơn
  * (do `dispatch` cung cấp hàm `isOrderHandler`, gốc lắp ráp `src/index.ts` tiêm vào `ctx.isAssigned` — ADR-0007 điều 4(b); route nào cần thì gọi và truyền kết quả vào
  * `can(who, op, { ownerId, assigned })`). Route KHÔNG truyền `assigned` thì ô `ownOrAssigned` chạy như `own`.
@@ -167,6 +168,7 @@ export const MATRIX = {
   "feedback.submit": row("any", "any", "any", "any", "any", "any", "any", "any", "any", "any"), // gửi báo lỗi/đề xuất (mọi tài khoản đăng nhập)
   "feedback.view": row("own", "own", "own", "own", "own", "any", "own", "own", "own", "own"), // xem yêu cầu: chỉ của mình (ownerId = người gửi); đọc mọi yêu cầu chỉ Toàn quyền (ADR-0038)
   "feedback.triage": row("none", "none", "none", "none", "none", "any", "none", "none", "none", "none"), // tiếp nhận: đổi trạng thái/người xử lý, ghi chú nội bộ, hàng đợi — chỉ Toàn quyền (ADR-0038)
+  "feedback.team.manage": row("none", "none", "none", "none", "none", "any", "none", "none", "none", "none"), // tạo/ngưng nhóm hỗ trợ, gán/gỡ thành viên — chỉ Toàn quyền (ADR-0119)
   "settings.ops": row("none", "none", "none", "none", "none", "any", "none", "none", "none", "none"), // cài đặt vận hành: chế độ bảo trì (ADR-0019); thời hạn nhận, giờ làm việc (giai đoạn 5 mô hình vai — đặc tả §5, §9)
   // hàng chờ nhận — PHẦN HẸP của đơn chưa có người phụ trách (ADR-0030 S23-1, S23-2; route GET /api/orders/pool, module orders, còn chặn tài khoản có quyền
   // Đối tác). ADMIN "none": Quản trị đã thấy đủ mọi đơn qua order.view. Nơi đón/giờ đón ở phần hẹp là NGOẠI LỆ CÓ TÊN của chú thích ô contact.view (không

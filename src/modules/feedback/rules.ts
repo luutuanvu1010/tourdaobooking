@@ -123,3 +123,75 @@ export function validatePatchInput(raw: Record<string, unknown>): Checked<PatchI
   if (out.status === undefined && out.assignee === undefined) return bad("Không có thay đổi nào để lưu.");
   return { ok: true, value: out };
 }
+
+// ---- Quản lý nhóm hỗ trợ (ADR-0119; chỉ Toàn quyền) — giới hạn khớp CHECK của migration 0100 để trả 400 thay vì để lô ghi vỡ thành 500 --------
+export const TEAM_CODE_RE = /^[A-Z0-9_]{1,40}$/;
+export const TEAM_NAME_MAX = 60;
+export const TEAM_DESCRIPTION_MAX = 300;
+
+export interface TeamInput {
+  code: string;
+  name: string;
+  description: string;
+  sensitive: boolean;
+}
+export interface TeamPatch {
+  name?: string;
+  description?: string;
+  sensitive?: boolean;
+  active?: boolean;
+}
+
+const checkTeamName = (v: unknown): Checked<string> => {
+  const name = cleanTitle(v);
+  return name.length < 1 || name.length > TEAM_NAME_MAX ? bad(`Tên nhóm phải từ 1 đến ${TEAM_NAME_MAX} ký tự.`) : { ok: true, value: name };
+};
+const checkTeamDescription = (v: unknown): Checked<string> => {
+  if (typeof v !== "string") return bad("Mô tả nhóm không hợp lệ.");
+  const d = cleanTitle(v);
+  return d.length > TEAM_DESCRIPTION_MAX ? bad(`Mô tả nhóm tối đa ${TEAM_DESCRIPTION_MAX} ký tự.`) : { ok: true, value: d };
+};
+
+export function validateTeamInput(raw: Record<string, unknown>): Checked<TeamInput> {
+  if (typeof raw.code !== "string" || !TEAM_CODE_RE.test(raw.code)) return bad("Mã nhóm chỉ gồm chữ HOA không dấu, số, gạch dưới (tối đa 40 ký tự).");
+  const name = checkTeamName(raw.name);
+  if (!name.ok) return name;
+  let description = "";
+  if (raw.description !== undefined) {
+    const d = checkTeamDescription(raw.description);
+    if (!d.ok) return d;
+    description = d.value;
+  }
+  if (raw.sensitive !== undefined && typeof raw.sensitive !== "boolean") return bad("Cờ nhạy cảm không hợp lệ.");
+  return { ok: true, value: { code: raw.code, name: name.value, description, sensitive: raw.sensitive === true } };
+}
+
+/** Sửa nhóm: ít nhất một trong tên / mô tả / nhạy cảm / đang dùng. Mã nhóm không sửa được (gửi `code` ⇒ 400, không lặng lẽ bỏ qua). */
+export function validateTeamPatch(raw: Record<string, unknown>): Checked<TeamPatch> {
+  if (raw.code !== undefined) return bad("Không sửa được mã nhóm.");
+  const out: TeamPatch = {};
+  if (raw.name !== undefined) {
+    const n = checkTeamName(raw.name);
+    if (!n.ok) return n;
+    out.name = n.value;
+  }
+  if (raw.description !== undefined) {
+    const d = checkTeamDescription(raw.description);
+    if (!d.ok) return d;
+    out.description = d.value;
+  }
+  if (raw.sensitive !== undefined) {
+    if (typeof raw.sensitive !== "boolean") return bad("Cờ nhạy cảm không hợp lệ.");
+    out.sensitive = raw.sensitive;
+  }
+  if (raw.active !== undefined) {
+    if (typeof raw.active !== "boolean") return bad("Cờ đang dùng không hợp lệ.");
+    out.active = raw.active;
+  }
+  if (Object.keys(out).length === 0) return bad("Không có thay đổi nào để lưu.");
+  return { ok: true, value: out };
+}
+
+export function validateMemberRole(raw: Record<string, unknown>): Checked<"LEAD" | "MEMBER"> {
+  return raw.role === "LEAD" || raw.role === "MEMBER" ? { ok: true, value: raw.role } : bad("Vai trong nhóm phải là Trưởng nhóm hoặc Thành viên.");
+}

@@ -231,6 +231,10 @@ export const AUDIT_ACTIONS = {
   feedback_replied: { label: "Trả lời yêu cầu góp ý", group: "feedback" },
   feedback_status_changed: { label: "Đổi trạng thái yêu cầu góp ý", group: "feedback" },
   feedback_assigned: { label: "Đổi người xử lý yêu cầu góp ý", group: "feedback" },
+  // ADR-0119 (Vé hỗ trợ đợt 1): targetId = id nhóm; detail CHỈ mã nhóm (+ vai với thành viên) — KHÔNG tên/mô tả nhóm, KHÔNG tên người, SĐT.
+  feedback_team_created: { label: "Tạo nhóm hỗ trợ", group: "feedback" },
+  feedback_team_updated: { label: "Sửa nhóm hỗ trợ", group: "feedback" },
+  feedback_team_member_changed: { label: "Đổi thành viên nhóm hỗ trợ", group: "feedback" },
   notice_sent: { label: "Gửi thông báo", group: "notice" },
   notice_revoked: { label: "Thu hồi thông báo", group: "notice" },
   notice_acknowledged: { label: "Xác nhận đã hiểu thông báo", group: "notice" },

@@ -129,6 +129,11 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/feedback/badge", access: "staff" },
   { method: "GET", path: "/api/feedback/mine", access: "staff" },
   { method: "GET", path: "/api/feedback/teams", access: "staff" },
+  { method: "GET", path: "/api/feedback/admin/teams", access: "staff" },
+  { method: "POST", path: "/api/feedback/admin/teams", access: "staff" },
+  { method: "PATCH", path: "/api/feedback/admin/teams/:id", access: "staff" },
+  { method: "PUT", path: "/api/feedback/admin/teams/:id/members/:staffId", access: "staff" },
+  { method: "DELETE", path: "/api/feedback/admin/teams/:id/members/:staffId", access: "staff" },
   { method: "GET", path: "/api/giao-dien", access: "admin" }, // ADR-0087: chỉ Toàn quyền (ô settings.ops viết thẳng trong thân route)
   { method: "PUT", path: "/api/giao-dien", access: "admin" },
   { method: "GET", path: "/giao-dien.css", access: "public" }, // ADR-0102: đường MỚI (ngoài /api, service worker đệm được); cùng thân với đường cũ ngay dưới
@@ -509,6 +514,7 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-13 (ADR-0115 đợt 1, điều chỉnh công nợ cần duyệt): + GET /api/ledger/adjustment-requests, + POST …/:requestId/{approve, reject, withdraw} (office) = 292.
   // 2026-10-14 (ADR-0117 lần 1): + GET/POST /api/pricing/loai-doi-tac, POST …/loai-doi-tac/:code/{tat, bat} (office) = 296.
   // 2026-10-15 (ADR-0119 Vé hỗ trợ đợt 1, Việc 3): + GET /api/feedback/teams (staff) = 297.
-  assert.equal(actual.length, 297, "số route thực tế lệch 297 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 297, "SNAPSHOT phải có đúng 297 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-15 (ADR-0119 Việc 4): + năm route quản lý nhóm /api/feedback/admin/teams* (staff, rồi can feedback.team.manage) = 302.
+  assert.equal(actual.length, 302, "số route thực tế lệch 302 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 302, "SNAPSHOT phải có đúng 302 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

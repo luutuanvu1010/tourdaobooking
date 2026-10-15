@@ -1120,6 +1120,10 @@ export interface FeedbackTeamDto { id: string; code: string; name: string; descr
 export interface FeedbackMyTeamDto { teamId: string; role: "LEAD" | "MEMBER" }
 /** GET /api/feedback/teams: nhóm người gọi được gửi tới (bên ngoài chỉ thấy Kỹ thuật), tư cách thành viên của chính người gọi, có phải Toàn quyền. */
 export interface FeedbackTeamsResponse { teams: FeedbackTeamDto[]; mine: FeedbackMyTeamDto[]; isSuper: boolean }
+/** Quản lý nhóm (chỉ Toàn quyền — ô `feedback.team.manage`): mọi nhóm kể cả đã ngưng, kèm thành viên ĐANG hiệu lực (tên qua view nhãn; null khi không đọc được). */
+export interface FeedbackAdminTeamDto extends FeedbackTeamDto { active: boolean; members: { staffId: string; name: string | null; role: "LEAD" | "MEMBER" }[] }
+/** GET /api/feedback/admin/teams. POST/PATCH trả `{ team: FeedbackAdminTeamDto }`. */
+export interface FeedbackAdminTeamsResponse { teams: FeedbackAdminTeamDto[] }
 
 // ---- Thông báo hệ thống (ADR-0034) --------------------------------------------
 // "chuyen": tin chuyến xe (ADR-0052 D6, kể cả MQ-07 "giờ hẹn chặng đổi khi đã xếp"); "tai_khoan": ngưng tài khoản giữ tiền — chỉ Toàn quyền nhận (ADR-0090 đ3);

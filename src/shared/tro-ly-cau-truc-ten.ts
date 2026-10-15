@@ -117,6 +117,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "feedback.submit": { ten: "gửi góp ý, báo lỗi", moTa: "Gửi góp ý hoặc báo lỗi từ mục Góp ý / Báo lỗi." },
   "feedback.view": { ten: "xem góp ý", moTa: "Xem yêu cầu góp ý mình đã gửi (Toàn quyền xem mọi yêu cầu)." },
   "feedback.triage": { ten: "tiếp nhận góp ý", moTa: "Đổi trạng thái, người xử lý, ghi chú nội bộ cho góp ý." },
+  "feedback.team.manage": { ten: "quản lý nhóm hỗ trợ", moTa: "Tạo, sửa, ngưng nhóm hỗ trợ và gán, gỡ thành viên nhóm." },
   "settings.ops": { ten: "cài đặt vận hành", moTa: "Bảo trì, chính sách điều phối, trợ lý Hỗ trợ và các cài đặt chung." },
   "order.pool.view": { ten: "xem hàng chờ nhận", moTa: "Xem các đơn chưa có người phụ trách để bấm nhận." },
   "notice.send": { ten: "gửi thông báo thủ công", moTa: "Gửi, thu hồi thông báo và xem ai đã bấm Đã hiểu." },
