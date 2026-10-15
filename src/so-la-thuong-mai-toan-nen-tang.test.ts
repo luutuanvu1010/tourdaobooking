@@ -137,6 +137,8 @@ function bangDien(g: Gieo): Record<string, string[]> {
     "/api/orders/:id/qr-thanh-toan": donB.map((id) => `/api/orders/${id}/qr-thanh-toan`),
     "/api/staff/:id/roles": [`/api/staff/${DT_B}/roles`],
     "/api/feedback/:id": [`/api/feedback/${g.gopY}`],
+    // ADR-0119 Việc 5b: hàng đợi MỘT nhóm (cần ?team) — nhóm Kỹ thuật giữ góp ý thử của B; Toàn quyền nhận 200.
+    "/api/feedback/queue": ["/api/feedback/queue?team=fbk-team-ky-thuat"],
     "/api/catalog/:code/group-history": ["/api/catalog/SLX/group-history"],
     "/api/parties/:id": [`/api/parties/${PTY_B}`, "/api/parties/pty-ncc"],
     "/api/parties/:id/documents": [`/api/parties/${PTY_B}/documents`],

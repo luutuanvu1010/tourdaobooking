@@ -57,7 +57,7 @@ function summarizeCatalogConflicts(items: readonly CatalogAdminItemDto[]): Revie
 
 /**
  * "Chưa trả lời" = trạng thái NEW (nhãn "Mới" — đúng chữ mockup "góp ý MỚI chưa trả lời"). CỐ Ý không dùng cờ
- * `unread` (UNREAD_ADMIN ở feedback/repository.ts): cờ đó tắt ngay khi MỘT admin nào đó MỞ yêu cầu (markSeen), kể
+ * `unread` (UNREAD_USER ở feedback/repository.ts, riêng từng người xem): cờ đó tắt ngay khi người xem MỞ yêu cầu (markSeen), kể
  * cả khi chưa ai trả lời — dùng nó sẽ làm rớt những yêu cầu admin đã lỡ mở xem nhưng quên trả lời, khiến số đếm ít
  * hơn số "mới chưa trả lời" thật.
  */

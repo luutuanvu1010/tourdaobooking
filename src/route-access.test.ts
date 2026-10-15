@@ -126,8 +126,18 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/feedback/:id", access: "staff" },
   { method: "PATCH", path: "/api/feedback/:id", access: "admin" },
   { method: "POST", path: "/api/feedback/:id/messages", access: "staff" },
+  { method: "POST", path: "/api/feedback/:id/claim", access: "staff" }, // ADR-0119 Việc 5c — nhận việc cho mình (quyenPhieu xuLy; 409 taken khi đã có người giữ)
+  { method: "PATCH", path: "/api/feedback/:id/xu-ly", access: "staff" }, // ADR-0119 Việc 5c — đổi trạng thái / giao việc theo nhóm (quyenPhieu; giao việc cần giaoViecChoNguoiKhac)
+  { method: "POST", path: "/api/feedback/:id/transfer", access: "staff" }, // ADR-0119 Việc 5d — chuyển nhóm (quyenPhieu chuyenNhom: Trưởng nhóm đang giữ phiếu, Toàn quyền)
   { method: "GET", path: "/api/feedback/badge", access: "staff" },
   { method: "GET", path: "/api/feedback/mine", access: "staff" },
+  { method: "GET", path: "/api/feedback/teams", access: "staff" },
+  { method: "GET", path: "/api/feedback/queue", access: "staff" },
+  { method: "GET", path: "/api/feedback/admin/teams", access: "staff" },
+  { method: "POST", path: "/api/feedback/admin/teams", access: "staff" },
+  { method: "PATCH", path: "/api/feedback/admin/teams/:id", access: "staff" },
+  { method: "PUT", path: "/api/feedback/admin/teams/:id/members/:staffId", access: "staff" },
+  { method: "DELETE", path: "/api/feedback/admin/teams/:id/members/:staffId", access: "staff" },
   { method: "GET", path: "/api/giao-dien", access: "admin" }, // ADR-0087: chỉ Toàn quyền (ô settings.ops viết thẳng trong thân route)
   { method: "PUT", path: "/api/giao-dien", access: "admin" },
   { method: "GET", path: "/giao-dien.css", access: "public" }, // ADR-0102: đường MỚI (ngoài /api, service worker đệm được); cùng thân với đường cũ ngay dưới
@@ -507,6 +517,11 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-08 (sổ đại lý đợt 1, Task 5 — phần thương mại của đơn, module orders; ADR-0077 điều 10–11): + GET /api/orders/:id/thuong-mai (orders), POST /api/orders/:id/thuong-mai/:serviceId (office) = HIỆU +2 (tuyệt đối 268 khi cả Task 3, 5, 7 đã gộp).
   // 2026-10-13 (ADR-0115 đợt 1, điều chỉnh công nợ cần duyệt): + GET /api/ledger/adjustment-requests, + POST …/:requestId/{approve, reject, withdraw} (office) = 292.
   // 2026-10-14 (ADR-0117 lần 1): + GET/POST /api/pricing/loai-doi-tac, POST …/loai-doi-tac/:code/{tat, bat} (office) = 296.
-  assert.equal(actual.length, 296, "số route thực tế lệch 296 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 296, "SNAPSHOT phải có đúng 296 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-15 (ADR-0119 Vé hỗ trợ đợt 1, Việc 3): + GET /api/feedback/teams (staff) = 297.
+  // 2026-10-15 (ADR-0119 Việc 4): + năm route quản lý nhóm /api/feedback/admin/teams* (staff, rồi can feedback.team.manage) = 302.
+  // 2026-10-15 (ADR-0119 Việc 5b): + GET /api/feedback/queue (staff, rồi quyenPhieu theo nhóm) = 303.
+  // 2026-10-15 (ADR-0119 Việc 5c): + POST /api/feedback/:id/claim, PATCH /api/feedback/:id/xu-ly (staff, rồi quyenPhieu) = 305.
+  // 2026-10-15 (ADR-0119 Việc 5d): + POST /api/feedback/:id/transfer (staff, rồi quyenPhieu chuyenNhom) = 306.
+  assert.equal(actual.length, 306, "số route thực tế lệch 306 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 306, "SNAPSHOT phải có đúng 306 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

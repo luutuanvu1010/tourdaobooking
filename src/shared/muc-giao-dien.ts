@@ -191,7 +191,7 @@ export const THANH_BEN = [
   { nhom: "THIẾT LẬP", trang: "troLy", nhan: "Trợ lý Hỗ trợ" },
   { nhom: "THIẾT LẬP", trang: "giaoDien", nhan: "Giao diện" },
   { nhom: "CHÂN MENU", trang: "toi", nhan: "Của tôi", bieuTuong: "me" },
-  { nhom: "CHÂN MENU", trang: "gopY", nhan: "Góp ý / Báo lỗi", bieuTuong: "chat", moTu: (p: string) => `/feedback?new=1&from=${encodeURIComponent(p)}` },
+  { nhom: "CHÂN MENU", trang: "gopY", nhan: "Hỗ trợ", bieuTuong: "chat", moTu: (p: string) => `/feedback?new=1&from=${encodeURIComponent(p)}` },
   { nhom: "CHÂN MENU", trang: "troGiup", nhan: "Trợ giúp", bieuTuong: "help" },
 ] as const satisfies readonly ChoThanhBen[];
 
@@ -266,7 +266,7 @@ export const TRANG_TOI = [
   { phan: "sau", trang: "guiThongBao", nhan: "Gửi thông báo" },
   { phan: "sau", trang: "troLy", nhan: "Trợ lý Hỗ trợ" },
   { phan: "sau", trang: "giaoDien", nhan: "Giao diện" },
-  { phan: "sau", trang: "gopY", nhan: "Góp ý / Báo lỗi", khongSangTabToi: true },
+  { phan: "sau", trang: "gopY", nhan: "Hỗ trợ", khongSangTabToi: true },
   { phan: "sau", trang: "troGiup", nhan: "Trợ giúp" },
 ] as const satisfies readonly ChoTrangToi[];
 

@@ -81,7 +81,11 @@
 | `fbk_kind` | bảng tra cứu |  |
 | `fbk_message` | bảng |  |
 | `fbk_status` | bảng tra cứu |  |
+| `fbk_team` | bảng |  |
+| `fbk_team_member` | bảng |  |
 | `fbk_ticket` | bảng |  |
+| `fbk_ticket_event` | bảng |  |
+| `fbk_ticket_read` | bảng |  |
 
 ## giao-dien
 

@@ -1047,6 +1047,8 @@ export interface FeedbackCreateInput {
   /** UUID sinh một lần khi mở form; gửi lại cùng mã thì trả yêu cầu cũ (chống trùng khi mạng yếu). */
   clientRequestId: string;
   context?: FeedbackContextDto;
+  /** Nhóm nhận (ADR-0119); vắng = nhóm Kỹ thuật (bản web cũ vẫn gửi được). Tài khoản bên ngoài chỉ gửi được Kỹ thuật. */
+  teamId?: string;
 }
 
 export interface FeedbackTicketDto {
@@ -1063,14 +1065,21 @@ export interface FeedbackTicketDto {
   submitterName: string | null;
   assigneeId: string | null;
   assigneeName: string | null;
+  /** Người xử lý còn hoạt động (ADR-0119 điều 8). false ⇒ giao diện coi như «chưa ai nhận» (chưa giao, hoặc người giữ đã bị khoá). */
+  assigneeActive: boolean;
   resolvedIn: string | null;
   lastActivityAt: string;
   lastPublicReplyAt: string | null;
   createdAt: string;
   /** Có gì mới người xem chưa đọc (chấm đỏ). */
   unread: boolean;
-  /** Chỉ admin thấy: true = email báo admin chưa gửi được. */
+  /** true = email báo nhóm nhận chưa gửi được. Chỉ người xử lý được phiếu (thành viên nhóm giữ phiếu, Toàn quyền) thấy dòng này ở hàng đợi. */
   mailPending: boolean;
+  /** Nhóm hỗ trợ đang giữ phiếu (ADR-0119). */
+  teamId: string;
+  teamName: string;
+  /** Nhóm nhạy cảm: tiêu đề/nội dung không ra nhật ký và email chung. */
+  teamSensitive: boolean;
 }
 
 export interface FeedbackMessageDto {
@@ -1100,7 +1109,10 @@ export interface FeedbackQueueResponse extends FeedbackListResponse {
 export interface FeedbackDetailResponse {
   ticket: FeedbackTicketDto;
   messages: FeedbackMessageDto[];
+  /** Giữ cho giao diện cũ: luôn bằng `perms.xuLy`. */
   canTriage: boolean;
+  /** Quyền của NGƯỜI XEM trên phiếu này (ADR-0119, tính bằng `quyenPhieu` ở máy chủ). Giao diện chỉ ẩn/hiện; máy chủ luôn kiểm lại. */
+  perms: { xuLy: boolean; giaoViec: boolean; chuyenNhom: boolean };
 }
 export interface FeedbackBadgeResponse {
   /** Số yêu cầu CỦA TÔI có phản hồi mới. */
@@ -1108,6 +1120,15 @@ export interface FeedbackBadgeResponse {
   /** Số yêu cầu chờ admin (0 với người không phải admin). */
   queue: number;
 }
+// Nhóm hỗ trợ (ADR-0119).
+export interface FeedbackTeamDto { id: string; code: string; name: string; description: string; sensitive: boolean }
+export interface FeedbackMyTeamDto { teamId: string; role: "LEAD" | "MEMBER" }
+/** GET /api/feedback/teams: nhóm người gọi được gửi tới (bên ngoài chỉ thấy Kỹ thuật), tư cách thành viên của chính người gọi, có phải Toàn quyền. */
+export interface FeedbackTeamsResponse { teams: FeedbackTeamDto[]; mine: FeedbackMyTeamDto[]; isSuper: boolean }
+/** Quản lý nhóm (chỉ Toàn quyền — ô `feedback.team.manage`): mọi nhóm kể cả đã ngưng, kèm thành viên ĐANG hiệu lực (tên qua view nhãn; null khi không đọc được). */
+export interface FeedbackAdminTeamDto extends FeedbackTeamDto { active: boolean; members: { staffId: string; name: string | null; role: "LEAD" | "MEMBER" }[] }
+/** GET /api/feedback/admin/teams. POST/PATCH trả `{ team: FeedbackAdminTeamDto }`. */
+export interface FeedbackAdminTeamsResponse { teams: FeedbackAdminTeamDto[] }
 
 // ---- Thông báo hệ thống (ADR-0034) --------------------------------------------
 // "chuyen": tin chuyến xe (ADR-0052 D6, kể cả MQ-07 "giờ hẹn chặng đổi khi đã xếp"); "tai_khoan": ngưng tài khoản giữ tiền — chỉ Toàn quyền nhận (ADR-0090 đ3);

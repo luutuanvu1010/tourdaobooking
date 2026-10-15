@@ -359,7 +359,35 @@
 
 - **Ngày:** 2026-10-15 · **Trạng thái:** `chờ`. Khi viết lại Trợ giúp cho khớp menu theo việc, bài A4 (`src/shared/huong-dan.test.ts`: Phần chung + một nhóm vai ≤ 30 phút) buộc phải rút chữ, nên mất vài ý phụ: dòng thời gian trong thẻ «Chuyến đón» của Bán hàng (chuyến kế tiếp có nhãn «Sắp tới»); ở Kế toán: ô «Doanh thu của tôi» ghi «Chưa có đơn nào tuần này» và dòng «số đơn và ngày đón sớm nhất» của «Còn thiếu tiền»; Trợ giúp Quản trị không nói chân menu (Của tôi, Góp ý, Trợ giúp). Việc: nới trần A4 (chủ quyết) hoặc tách Trợ giúp theo mục để bổ sung ý phụ mà không vượt.
 
-## 33. Hai ý của chủ khi xác nhận sổ vàng 14/10/2026 — để sau (mã `BL-SV-…`)
+## 33. Chat thời gian thực trong Vé hỗ trợ (mã `BL-VE-CHAT-THOI-GIAN-THUC`)
+
+> Đánh lại số khi gộp main ngày 2026-10-15: trên nhánh Vé hỗ trợ mục này là **mục 30** (ADR-0119 và kế hoạch đợt 1 còn ghi «mục 30» — hồ sơ đóng băng, không sửa); main đã dùng 30–32.
+
+- **Ngày:** 2026-10-14 · **Nêu bởi:** chủ dự án, trong phiên đặc tả Vé hỗ trợ · **Trạng thái:** `để sau`
+- **Ý:** tin đến tức thì và hiện «đang soạn» trong phiếu hỗ trợ. Chủ chốt: **không nhúng chat của bên thứ ba** (lý do: hai nơi lưu hội thoại, nội dung nhạy cảm rời D1, không biết quy tắc nhóm); nếu làm thì dùng Durable Objects của Cloudflare chạy trong chính Worker.
+- **Vì sao để sau:** đợt 2 của Vé hỗ trợ dùng tải lại ngầm mỗi 5 giây là đủ cho ~30 người; Durable Objects thêm một loại hạ tầng vào cấu hình triển khai nên cần ADR riêng và chủ duyệt.
+- **Đặc tả gốc:** `docs/superpowers/specs/2026-10-14-ve-ho-tro-design.md`.
+
+## 34. Vé hỗ trợ — nợ đợt 1 (mã `BL-VE-…`)
+
+> Đánh lại số khi gộp main ngày 2026-10-15: trên nhánh Vé hỗ trợ mục này là mục 31.
+
+- **Ngày:** 2026-10-15 · **Nêu bởi:** điều phối và người thi công Vé hỗ trợ đợt 1 (ADR-0119, nhánh `claude/support-ticket-module-eb6445`, chưa gộp) · **Trạng thái:** `để sau` (đợt 2 hoặc lần phát hành sau). Cột «Nơi» ghi tên tệp / chức năng, không ghi số dòng.
+
+| Mã | Việc | Nơi | Vì sao để sau |
+|---|---|---|---|
+| BL-VE-GIAO-VIEC | Trưởng nhóm chưa có ô chọn «Giao cho người khác» (máy chủ đã cho qua `PATCH …/xu-ly` `assigneeId`); cần tuyến liệt kê thành viên nhóm cho Trưởng nhóm (hôm nay danh sách thành viên chỉ ở tuyến quản lý của Toàn quyền). Toàn quyền cũng chưa có ô chọn | `src/modules/feedback/index.ts` (route mới), `web/feedback.ts` | Ruling R14: chờ tuyến liệt kê; Trưởng nhóm vẫn nhận việc cho mình được |
+| BL-VE-HOP-THU | Thẻ «Hộp thư» ở Trang chủ chỉ cho Toàn quyền (đọc tuyến cũ `GET /api/feedback`); đặc tả muốn hiện cho thành viên nhóm. Thành viên hôm nay thấy huy hiệu số ở menu | `web/home.ts`, `GET /api/feedback/queue` | Lệch có chủ ý ghi ở kế hoạch và `docs/SYSTEM-DESIGN.md` §16; bề mặt, đảo được |
+| BL-VE-GO-TUYEN-CU | Gỡ tuyến cũ `GET /api/feedback`, `PATCH /api/feedback/:id`, hàm `canRead` (mã chết còn trong `GUARDS` của `route-write-guard.test.ts`) và cột chết `fbk_ticket.admin_seen_at` (migration mới) — expand–contract lần phát hành sau, khi bản web cũ đã hết trong bộ nhớ đệm | `src/modules/feedback/{index,repository}.ts`, `src/route-write-guard.test.ts`, `src/route-access.test.ts`, migration mới | Bản web cũ còn gọi tuyến cũ tới khi nhân viên mở bản mới |
+| BL-VE-THU-THANH-VIEN | Email / thông báo đẩy tới TỪNG thành viên nhóm (hôm nay một địa chỉ chung `FEEDBACK_NOTIFY_EMAIL`). Bảng nhân viên không có email; đẩy qua `thongbao` cần khai cạnh `feedback → thongbao` ở `ALLOWED_EDGES` | `src/modules/feedback/notify.ts`, `src/modules/thongbao` | ADR-0119 điều 9: đợt 2, cần quyết định riêng |
+| BL-VE-QUYEN-HOAN | Lúc gộp: kiểm lại `docs/quyen-hoan.json` (năm mục hạn 2026-10-31) — nhánh này không thêm / bớt mục nào, nhưng hạn có thể đã tới khi gộp và làm `npm test` đỏ | `docs/quyen-hoan.json` | Hạn do chủ đặt; AI không tự gia hạn |
+| BL-VE-DO-GIO | Bài đo giờ hook `src/claude-guard-thoi-gian.test.ts` đỏ khi máy bận (tải > ~25) trong lúc thi công; chạy lại riêng khi máy rảnh thì xanh. Chưa đo lại trên máy khác | `src/claude-guard-thoi-gian.test.ts` | Không phải lỗi của nhánh; không sửa hook |
+| BL-VE-NHOM-CU | Ghi chú nội bộ CŨ (trước 0100) mang nhóm Kỹ thuật ⇒ thành viên nhóm Kỹ thuật (không phải Toàn quyền) đọc được mọi ghi chú nội bộ cũ của phiếu cũ | dữ liệu `fbk_message.team_id` | Hệ quả của «phiếu cũ vào nhóm Kỹ thuật» (ADR-0119 điều 1, 5); chủ xác nhận khi gán thành viên Kỹ thuật |
+| BL-VE-BEN-NGOAI-CHUYEN | Trưởng nhóm Kỹ thuật chuyển được phiếu của tài khoản bên ngoài sang nhóm khác (Ruling R12); người bên ngoài khi đó thấy tên nhóm đó trên phiếu của mình (vẫn chỉ tin công khai) | `POST /api/feedback/:id/transfer` | Chờ chủ quyết: chặn hay để nguyên |
+| BL-VE-TRUNG-TEN | Menu «Hỗ trợ» trùng tên với nút nổi «Hỗ trợ» của Trợ lý AI (ADR-0066) — người dùng dễ nhầm hai lối (Ruling R15) | `src/shared/muc-giao-dien.ts`, `web/tro-ly.ts` | Chờ chủ chọn tên |
+| BL-VE-THONG-KE | Thống kê tuần của hàng đợi nhóm đếm cả phiếu chính người xem gửi trong khi danh sách loại ra; `/queue` trả 404 «không có nhóm» trước 403 (lộ mã nhóm có tồn tại — không đáng kể); mốc đã xem trùng mili giây tính là đã đọc | `src/modules/feedback/{index,repository}.ts` | Bề mặt; người kiểm từng việc xếp «nhỏ, để sau» |
+
+## 35. Hai ý của chủ khi xác nhận sổ vàng 14/10/2026 — để sau (mã `BL-SV-…`)
 
 Nêu bởi chủ dự án trong lúc trả lời từng ca sổ vàng; hồ sơ trả lời: ca SV-SC-06 và SV-DH-07. Cả hai chạm tiền và chứng từ nên cần đặc tả ngắn và chủ duyệt trước khi làm (P8); chưa làm, chưa có ADR.
 

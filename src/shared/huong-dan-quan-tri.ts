@@ -190,7 +190,7 @@ Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]
       tieuDe: "Tình huống hay gặp",
       noiDung: `- **Nhân viên không vào được app**: xem dòng của họ. Bị khoá thì [[Mở khoá]]; có nhãn [[Ngưng]] thì hỏi lý do trước khi kích hoạt lại; quên PIN thì [[Đặt lại PIN]].
 - **Trang chủ báo Sheet đã đổi giá**: bấm vào, xem giá mới; đồng ý thì [[Bỏ ghi đè]], không thì [[Giữ ghi đè]].
-- **Đồng bộ báo lỗi**: app vẫn dùng bản đã lưu. Kiểm tra Sheet, thử lại sau; vẫn lỗi thì gửi Góp ý.
+- **Đồng bộ báo lỗi**: app vẫn dùng bản đã lưu. Kiểm tra Sheet, thử lại sau; vẫn lỗi thì báo ở Hỗ trợ.
 - **Nhân viên không xác nhận được đơn vì giờ đón sát**: duyệt [[Đặt gấp]].
 - **Hai hồ sơ trùng đã có sẵn trong Danh bạ**: gộp hồ sơ (chưa có ở bản này); hỏi người phụ trách hệ thống.`,
     },
@@ -240,9 +240,9 @@ Mở [[Phiên đăng nhập]] (điện thoại: trang **Tôi**) xem ai đang đ�
 - Nghi lộ PIN, mất máy: [[Gỡ phiên + đặt lại PIN]]; PIN mới hiện một lần, gửi riêng cho người đó.
 - **Chính sách đăng nhập**: mỗi quyền chọn Một máy hoặc Nhiều máy (một quyền Nhiều máy là đủ); [[Lưu chính sách]], xem số máy sẽ đăng xuất, [[Xác nhận lưu]].
 
-### Nhật ký, Góp ý, hồ sơ công ty
+### Nhật ký, Hỗ trợ, hồ sơ công ty
 - [[Nhật ký]]: tìm theo mã đơn, mã dịch vụ hoặc tên nhân viên.
-- Góp ý: có thêm ngăn [[Hàng đợi]] để đọc mọi yêu cầu, đổi trạng thái, trả lời; tick ghi chú nội bộ thì người gửi không thấy.
+- Hỗ trợ: thành viên nhóm có ngăn [[Hàng đợi nhóm]] để nhận việc, đổi trạng thái, trả lời; tick ghi chú nội bộ thì người gửi không thấy.
 - Hồ sơ công ty trong Danh bạ: sửa tên, mã số thuế, địa chỉ, hotline (trang đăng nhập và biên nhận dùng các thông tin này). Thêm hotline mới trước khi đóng cái cũ.`,
     },
   ],

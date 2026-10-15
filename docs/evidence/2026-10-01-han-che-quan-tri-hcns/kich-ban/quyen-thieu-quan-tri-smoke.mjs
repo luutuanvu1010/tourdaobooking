@@ -3,7 +3,7 @@
 //   A. "Chủ thử" (Quản trị + Toàn quyền, ACCOUNTS.chu của a2-cdp) — mốc so: thanh bên (1040) + thanh tab (390).
 //   B. Tài khoản CHỈ Toàn quyền: thanh bên / thanh tab GIỐNG HỆT mốc (Toàn quyền = any ở mọi ô), có Dịch vụ & giá, Quản lý tài khoản, Địa điểm, Nhật ký,
 //      Gửi thông báo; vào /staff, /catalog, /locations, /audit, /gui-thong-bao, /account (mục bảo trì hiện) — không dòng báo lỗi nào, không lỗi JS.
-//   C. Tài khoản CHỈ Nhân sự (HR): thanh bên ĐÚNG [Quản lý tài khoản] + [Của tôi, Góp ý / Báo lỗi, Trợ giúp]; thanh tab [Tài khoản, Tôi]; "/" → /staff;
+//   C. Tài khoản CHỈ Nhân sự (HR): thanh bên ĐÚNG [Quản lý tài khoản] + [Của tôi, Hỗ trợ, Trợ giúp]; thanh tab [Tài khoản, Tôi]; "/" → /staff;
 //      /staff không lỗi; /catalog, /locations, /audit, /gui-thong-bao hiện câu từ chối tiếng Việt (đọc "không lỗi đỏ" = trang được phép không có dòng báo lỗi;
 //      trang không được phép hiện câu từ chối, không lỗi JS); trang Tôi không có mục bảo trì, không dòng Địa điểm / Gửi thông báo / Nhật ký; C2: gõ SĐT của một
 //      khách → chỉ câu "đã có trong Danh bạ", không tên (ADR-0071 điều 3b), tick "Vẫn tạo hồ sơ mới" rồi tạo được.
@@ -79,14 +79,14 @@ try {
 
   // ---- C. chỉ Nhân sự (mở SAU CÙNG)
   p = await mo(CHI_NHAN_SU, "/account", DESK);
-  assert.deepEqual(await thanhBen(p), [["THIẾT LẬP", ["Quản lý tài khoản"]], ["CHÂN MENU", ["Của tôi", "Góp ý / Báo lỗi", "Trợ giúp"]]], "C. thanh bên Nhân sự (menu theo việc 15/10)");
+  assert.deepEqual(await thanhBen(p), [["THIẾT LẬP", ["Quản lý tài khoản"]], ["CHÂN MENU", ["Của tôi", "Hỗ trợ", "Trợ giúp"]]], "C. thanh bên Nhân sự (menu theo việc 15/10)");
   assert.equal(await p.ev("document.getElementById('maintenance').hidden"), true, "C. trang Tôi KHÔNG có mục bảo trì");
   const linkNS = await p.ev(`[...document.querySelectorAll('main .row-link')].map((a) => a.textContent.trim())`);
   for (const m of ["Địa điểm", "Gửi thông báo", "Nhật ký", "Danh bạ", "Loại giấy tờ cá nhân"]) assert.ok(!linkNS.some((t) => t.startsWith(m)), `C. trang Tôi không được có dòng "${m}": ${JSON.stringify(linkNS)}`);
   assert.deepEqual(await baoLoi(p), [], "C. trang Tôi không có dòng báo lỗi");
   assert.deepEqual(p.consoleErrors, [], "C. trang Tôi không lỗi JS");
   p.close();
-  ok(`C. chỉ Nhân sự: thanh bên đúng [Quản lý tài khoản] + [Của tôi, Góp ý / Báo lỗi, Trợ giúp]; trang Tôi: ${JSON.stringify(linkNS)}`);
+  ok(`C. chỉ Nhân sự: thanh bên đúng [Quản lý tài khoản] + [Của tôi, Hỗ trợ, Trợ giúp]; trang Tôi: ${JSON.stringify(linkNS)}`);
   p = await mo(CHI_NHAN_SU, "/account", MOB);
   assert.deepEqual(await thanhTab(p), ["Tài khoản", "Tôi"], "C. thanh tab Nhân sự");
   p.close();
