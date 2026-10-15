@@ -13,7 +13,8 @@ import { renderMaintenanceMessage } from "./maintenance-screen";
 import { ganCaiDatNhapTay } from "./nhap-tay-cai-dat";
 import { enableFlow, getAssertion, passkeyErrorMessage, platformAuthenticatorAvailable } from "./passkey";
 import { b64uSangBytes, thietBiTu } from "./push-ui";
-import { feedbackBadge, initShell, logout, setMaintenanceStrip, showError } from "./shell";
+import { feedbackBadge, initShell, logout, setMaintenanceStrip, showError, xoaDaiNhacHaiLop } from "./shell";
+import { datKieuO, khoiBatTotp, khoiMaDuPhong, loiHaiLop, oMaSau } from "./hai-lop-ui";
 import { chipEl } from "./giay-to-ui";
 import { demSapHetHan } from "./vc-dem";
 import { initViecCuaToi } from "./viec-cua-toi";
@@ -415,6 +416,193 @@ async function renderMySessions(): Promise<void> {
   mySessionsEl.hidden = false;
 }
 void renderMySessions();
+
+// ---- Bảo mật đăng nhập (bảo mật hai lớp — ADR-0074 điều 5; đặc tả §4.3, §7; kế hoạch Phần B Task 7) --------------------------------------------------
+// Mọi tài khoản có phiên (tự phục vụ, id lấy từ phiên ở máy chủ). Bắt buộc hay không, hạn bật: máy chủ trả (`required`, `graceUntil`) — trang không suy từ mã
+// quyền. Đợt này chỉ có ứng dụng xác thực (TOTP); email (Phần C) chưa có route nên không hiện dù `allowed` có "EMAIL". Gỡ yếu tố cuối của tài khoản nội bộ:
+// máy chủ chặn 409 (câu lời thường hiện tại chỗ) — trang không tự đoán "nội bộ". HTML cũ trong bộ nhớ đệm chưa có #mfa → tự dựng khối trước #passkeys.
+const mfaEl =
+  document.getElementById("mfa") ??
+  (() => {
+    const el = h("section", { id: "mfa", class: "card", "aria-labelledby": "mfa-heading", hidden: true });
+    passkeysEl.before(el);
+    return el;
+  })();
+
+/** Hàng nút/ô gọn cho một thao tác cần mã hiện tại (tạo lại mã dự phòng, gỡ): ô mã + nút làm + Huỷ; lỗi hiện tại chỗ. */
+function thaoTacCanMa(o: {
+  nhanO: string; duPhong: boolean; nhanNut: string; nutCls: string; ghiChu: string;
+  lam: (code: string) => Promise<void>; huy: () => void;
+}): HTMLElement {
+  const ma = oMaSau();
+  if (o.duPhong) datKieuO(ma, true);
+  const loi = h("div", { class: "alert", role: "alert", hidden: true });
+  const lam = h("button", { type: "button", class: o.nutCls }, o.nhanNut);
+  lam.addEventListener("click", async () => {
+    const code = ma.value.trim();
+    if (!o.duPhong && code.length !== 6) return showError(loi, "Nhập đủ 6 số đang hiện trên ứng dụng xác thực.");
+    if (!code) return showError(loi, "Nhập mã 6 số hoặc một mã dự phòng.");
+    showError(loi, null);
+    lam.disabled = true;
+    try {
+      await o.lam(code);
+    } catch (err) {
+      lam.disabled = false;
+      ma.value = "";
+      showError(loi, loiHaiLop(err));
+    }
+  });
+  const huy = h("button", { type: "button", class: "btn" }, "Huỷ");
+  huy.addEventListener("click", o.huy);
+  return h("div", { class: "mfa-action" }, h("p", { class: "muted" }, o.ghiChu), h("label", null, o.nhanO, ma), loi, h("div", { class: "actions" }, lam, huy));
+}
+
+async function renderMfa(): Promise<void> {
+  let m: Api.AccountMfaResponse;
+  try {
+    m = await api<Api.AccountMfaResponse>("/api/account/mfa");
+  } catch {
+    return; // lỗi mạng: mục giữ ẩn (khuôn renderMySessions)
+  }
+  const totp = m.factors.find((f) => f.kind === "TOTP") ?? null;
+  const vung = h("div", { id: "mfa-body" }); // vùng đổi nội dung theo thao tác (bật, mã dự phòng, gỡ…)
+  const veLai = () => void renderMfa();
+  /** Sau khi bật: gỡ dải nhắc ở khung trang, hiện mã dự phòng (nếu máy chủ vừa tạo), xong thì vẽ lại khối. */
+  const sauKhiBat = (codes: string[] | undefined) => {
+    xoaDaiNhacHaiLop();
+    if (codes && codes.length) {
+      // Trạng thái đổi ngay (khối chỉ vẽ lại khi bấm "Tôi đã cất mã" — mã dự phòng không lấy lại được nên không vẽ lại cả khối lúc này).
+      trangThai.replaceWith(h("p", { class: "maint-state" }, h("span", { class: "badge badge-confirmed" }, "Đã bật"), h("span", null, "Ứng dụng xác thực")));
+      batBuoc?.remove();
+      replaceChildren(vung, khoiMaDuPhong(codes, veLai));
+      vung.scrollIntoView({ block: "start" });
+    } else veLai();
+  };
+  const batTotp = (doiMay: boolean) =>
+    khoiBatTotp({
+      batDau: () => api<Api.MfaTotpStartResponse>("/api/account/mfa/totp/start", { method: "POST", body: {} }),
+      xacNhan: async (setupToken, code, maHienTai) =>
+        (await api<Api.MfaTotpConfirmResponse>("/api/account/mfa/totp/confirm", { method: "POST", body: { setupToken, code, ...(maHienTai ? { currentCode: maHienTai } : {}) } })).recoveryCodes,
+      hoiMaHienTai: doiMay,
+      onXong: sauKhiBat,
+      onHuy: veLai,
+    });
+
+  const trangThai = totp
+    ? h("p", { class: "maint-state" }, h("span", { class: "badge badge-confirmed" }, "Đã bật"), h("span", null, `Ứng dụng xác thực · bật lúc ${vnDateTimeText(totp.createdAt)}`))
+    : h("p", { class: "maint-state" }, h("span", { class: "badge badge-draft" }, "Chưa bật"));
+  const batBuoc =
+    !totp && m.required
+      ? h(
+          "p",
+          { class: "alert warn", id: "mfa-required" },
+          m.graceUntil
+            ? `Tài khoản của bạn phải bật bảo mật hai lớp. Hạn bật: ${vnDateTimeText(m.graceUntil)}. Quá hạn mà chưa bật thì không đăng nhập bằng PIN được nữa.`
+            : "Tài khoản của bạn phải bật bảo mật hai lớp và đã quá hạn: lần đăng nhập bằng PIN sau sẽ bị chặn. Bật ngay bây giờ.",
+        )
+      : null;
+
+  const nutVung = (label: string, cls: string, ve: () => HTMLElement): HTMLButtonElement => {
+    const b = h("button", { type: "button", class: cls }, label);
+    b.addEventListener("click", () => {
+      replaceChildren(vung, ve());
+      vung.querySelector<HTMLInputElement>("input")?.focus();
+    });
+    return b;
+  };
+
+  // Máy được tin: trên các máy này, đăng nhập PIN không hỏi mã (tối đa 30 ngày). "Máy này" = phiên đang dùng được cấp qua máy đó (máy chủ tính).
+  const loiMay = h("div", { class: "alert", role: "alert", hidden: true });
+  const quen = async (path: string) => {
+    showError(loiMay, null);
+    try {
+      await api(path, { method: "POST", body: {} });
+      veLai();
+    } catch (err) {
+      showError(loiMay, loiHaiLop(err));
+    }
+  };
+  const dongMay = (d: Api.TrustedDeviceDto): HTMLElement => {
+    const b = h("button", { type: "button", class: "btn btn-link danger" }, "Quên máy này");
+    b.addEventListener("click", () => void quen(`/api/account/mfa/trusted/${encodeURIComponent(d.id)}/forget`));
+    return h(
+      "div",
+      { class: "passkey-row", "data-may-tin": d.id },
+      h("strong", null, d.label, d.thisDevice && h("span", { class: "badge badge-draft" }, "Máy này")),
+      h("div", { class: "muted" }, `Tin từ ${vnDateTimeText(d.createdAt)} · Dùng gần nhất ${vnDateTimeText(d.lastUsedAt)}`),
+      b,
+    );
+  };
+  const quenHet = h("button", { type: "button", class: "btn btn-link danger", id: "mfa-forget-all" }, "Quên mọi máy");
+  quenHet.addEventListener("click", () => {
+    if (confirm("Quên mọi máy được tin? Lần đăng nhập bằng PIN sau trên các máy đó sẽ hỏi mã 6 số. Máy đang đăng nhập không bị đăng xuất.")) void quen("/api/account/mfa/trusted/forget-all");
+  });
+  const mayTin =
+    totp || m.trustedDevices.length > 0
+      ? h(
+          "div",
+          { id: "mfa-devices" },
+          h("h3", null, "Máy được tin"),
+          h("p", { class: "muted" }, "Trên các máy này, đăng nhập bằng PIN không hỏi mã 6 số (tối đa 30 ngày). Đổi PIN thì mọi máy hết được tin."),
+          loiMay,
+          m.trustedDevices.length === 0 ? h("p", { class: "muted" }, "Chưa có máy nào.") : h("div", { class: "passkey-list" }, ...m.trustedDevices.map(dongMay)),
+          m.trustedDevices.length > 0 && quenHet,
+        )
+      : null;
+
+  if (totp) {
+    replaceChildren(
+      vung,
+      h("p", { id: "mfa-recovery-left" }, `Mã dự phòng: còn ${m.recoveryLeft} mã chưa dùng.`),
+      m.recoveryLeft <= 3 && h("p", { class: "alert warn" }, "Sắp hết mã dự phòng — bấm “Tạo bộ mới”."),
+      h(
+        "div",
+        { class: "actions" },
+        nutVung("Tạo bộ mới", "btn", () =>
+          thaoTacCanMa({
+            nhanO: "Mã 6 số đang hiện trên ứng dụng xác thực", duPhong: false, nhanNut: "Tạo bộ mã mới", nutCls: "btn btn-primary btn-chinh",
+            ghiChu: "Bộ mã dự phòng cũ hết hiệu lực ngay khi tạo bộ mới.",
+            lam: async (code) => {
+              const r = await api<Api.MfaRecoveryCodesResponse>("/api/account/mfa/recovery/regenerate", { method: "POST", body: { code } });
+              replaceChildren(vung, khoiMaDuPhong(r.recoveryCodes, veLai));
+            },
+            huy: veLai,
+          }),
+        ),
+        nutVung("Đổi sang điện thoại mới", "btn", () => batTotp(true)),
+      ),
+      h(
+        "details",
+        { class: "mfa-remove" },
+        h("summary", null, "Gỡ bảo mật hai lớp"),
+        thaoTacCanMa({
+          nhanO: "Mã 6 số hoặc một mã dự phòng", duPhong: true, nhanNut: "Gỡ ứng dụng xác thực", nutCls: "btn btn-danger",
+          ghiChu: "Tài khoản nhân viên nội bộ không gỡ được (bắt buộc giữ) — đổi điện thoại thì dùng “Đổi sang điện thoại mới”.",
+          lam: async (code) => {
+            await api("/api/account/mfa/remove", { method: "POST", body: { kind: "TOTP", code } });
+            veLai();
+          },
+          huy: veLai,
+        }),
+      ),
+    );
+  } else {
+    replaceChildren(vung, h("div", { class: "actions" }, nutVung("Bật ứng dụng xác thực", "btn btn-primary btn-chinh", () => batTotp(false))));
+  }
+
+  replaceChildren(
+    mfaEl,
+    h("h2", { id: "mfa-heading" }, "Bảo mật đăng nhập"),
+    h("p", { class: "muted" }, "Bảo mật hai lớp: đăng nhập bằng PIN trên máy lạ, Nền tảng hỏi thêm mã 6 số từ ứng dụng xác thực trên điện thoại của bạn. Kẻ biết PIN mà không cầm điện thoại thì không vào được."),
+    trangThai,
+    batBuoc,
+    vung,
+    mayTin,
+  );
+  mfaEl.hidden = false;
+  if (location.hash === "#mfa") mfaEl.scrollIntoView({ block: "start" });
+}
+void renderMfa();
 
 // ---- Chế độ bảo trì (chỉ chủ dự án: GET /api/maintenance trả canToggle = true) ----
 // Bật = mọi tài khoản khác bị chặn NGAY (kể cả phiên đang mở) — nên bật phải qua bước xác nhận thứ hai ngay trong trang (không dùng confirm() của trình duyệt). Máy chủ mới là nơi kiểm quyền và giờ hợp lệ.

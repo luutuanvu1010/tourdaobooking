@@ -128,6 +128,7 @@
   --w-gd-o: 160px;         /* ADR-0087: bề rộng ô chọn phông / độ đậm / cỡ chữ ở màn Giao diện */
   --w-gd-xem: 360px;        /* ADR-0087: bề rộng cột xem trước ở màn Giao diện (máy tính) */
   --w-qr: 18rem;            /* QR thanh toán (ADR-0108): bề rộng tối đa ảnh mã trong bảng QR ở trang đơn */
+  --w-mfa-qr: 12rem;        /* Bảo mật hai lớp (ADR-0074): bề rộng mã QR ở khối bật ứng dụng xác thực (trang Tôi, bước bật lại khi đăng nhập) */
   --w-o-hep: 12rem;         /* Tạo đơn: bề rộng tối thiểu một ô nhãn nổi ở cột hẹp của form (ba / hai ô cạnh nhau tự xuống hàng) và bề rộng tối đa dòng ghi chú giá trong danh sách dịch vụ */
   --w-hh-loc: 14rem;        /* Hoa hồng đối tác / Người bán dịch vụ (sổ đại lý đợt 1 Task 10): bề rộng tối thiểu một ô lọc trên hàng lọc — hẹp hơn thì xuống dòng */
   --tabbar-h: 56px;         /* thanh tab dưới đáy, chưa tính vùng an toàn */
@@ -3411,3 +3412,26 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .dai-anh-em-muc:focus-visible { outline: var(--focus-ring) solid var(--c-primary); outline-offset: calc(-1 * var(--focus-ring)); } /* vòng focus lùi vào trong: `.dai-anh-em { overflow-x: auto }` cắt vòng ngoài */
 .xb-main > .dai-anh-em { margin-bottom: 0; } /* Lịch xe bận đã có gap của .xb-main: tránh khoảng cách đôi */
 .dai-anh-em-muc[aria-current="page"] { color: var(--c-primary); background: var(--c-primary-soft); border-color: var(--c-primary); font-weight: var(--fw-bold); }
+
+/* ---------- Bảo mật hai lớp (ADR-0074; kế hoạch Phần B Task 7): dải nhắc ở khung trang, khối bật ứng dụng xác thực, mã dự phòng, bước nhập mã ở đăng nhập ---------- */
+.mfa-strip { display: flex; align-items: center; justify-content: center; min-height: var(--tap-min); padding: 0 var(--s4); font-size: var(--fs-label); font-weight: var(--fw-bold); text-align: center; text-decoration: none; color: var(--c-danger-text); background: var(--c-danger-soft); border-bottom: 1px solid var(--c-danger-border); }
+.mfa-enroll h3, .mfa-recovery h3 { margin: var(--s4) 0 var(--s2); }
+.mfa-open { display: flex; width: 100%; min-height: var(--tap-min); margin: var(--s2) 0 var(--s3); text-decoration: none; }
+.mfa-qr-wrap { display: flex; justify-content: center; margin: var(--s2) 0; }
+.mfa-qr { width: var(--w-mfa-qr); max-width: 100%; height: auto; image-rendering: pixelated; border: 1px solid var(--c-border); }
+.mfa-key { margin: 0 0 var(--s2); }
+.mfa-key code, .mfa-codes code { font-family: var(--font-mono); font-size: var(--fs-step-5); font-weight: var(--fw-bold); color: var(--c-text); overflow-wrap: anywhere; }
+.mfa-code { font-family: var(--font-mono); }
+.mfa-warn { margin: 0 0 var(--s2); font-weight: var(--fw-bold); color: var(--c-danger-text); }
+.mfa-codes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2) var(--s4); margin: var(--s2) 0 var(--s3); padding-left: var(--s5); }
+.mfa-action { margin-top: var(--s3); }
+.mfa-remove { margin-top: var(--s4); }
+.mfa-remove summary { display: flex; align-items: center; min-height: var(--tap-min); cursor: pointer; color: var(--c-danger); font-weight: var(--fw-semibold); }
+.mfa-badge { display: inline-block; margin-top: var(--s1); white-space: nowrap; }
+/* Quản lý tài khoản (máy tính): thêm nút "Tắt bảo mật hai lớp" làm hàng nút dài hơn bảng — cho xuống dòng giữa các nút (mỗi nút vẫn một dòng), như .phien-bang. */
+#list .row-actions { white-space: normal; }
+#list .row-actions .btn-link { white-space: nowrap; }
+.login-mfa-card { width: 100%; margin: var(--s5) 0 0; }
+.login-mfa h2 { margin: 0 0 var(--s2); }
+.login-mfa label.check { margin: var(--s2) 0 var(--s3); }
+.login-mfa-links { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s2); margin-top: var(--s2); }

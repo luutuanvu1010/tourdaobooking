@@ -6,6 +6,7 @@ import { byId, h, replaceChildren } from "./dom";
 import { dateTime } from "./format";
 import { rolePicker, type RolePicker, type RolePickerValue } from "./role-picker";
 import { initShell, showError } from "./shell";
+import { nhanHaiLop } from "../src/shared/hai-lop-hien-thi";
 
 const errorEl = byId("error");
 const listEl = byId("list");
@@ -70,6 +71,57 @@ async function act<T>(fn: () => Promise<T>): Promise<T | undefined> {
 // — ẩn nút trên tài khoản giữ Quản trị / Toàn quyền / Nhân sự (máy chủ trả tài khoản Toàn quyền như Quản trị thường cho người không giữ Toàn quyền).
 const quanDuoc = (s: StaffAccount): boolean => s.id === me.id || canManageAccount(me.permissions, s.permissions);
 
+/** Nhãn "Hai lớp: …" (ADR-0074; đặc tả §13 — ô account.view): trạng thái và hạn do máy chủ trả theo dòng. */
+const nhanHaiLopEl = (s: Api.StaffListRowDto): HTMLElement =>
+  h("span", { class: s.mfa.enabled ? "badge badge-confirmed mfa-badge" : "badge badge-draft mfa-badge" }, nhanHaiLop(s.mfa, Date.now()));
+
+/**
+ * Hộp xác nhận TRONG TRANG cho "Tắt bảo mật hai lớp" (ADR-0074 điều 5; đặc tả §4.5) — mở ở khung sửa (#edit). Nút chỉ hiện khi máy chủ trả cờ `canResetMfa`
+ * cho dòng đó (cùng hàm cổng với route — trang không tự suy từ vai). Tài khoản chưa bật: tắt = mở 24 giờ cho người đó tự bật ở lần đăng nhập PIN kế tiếp
+ * (dùng khi đã quá hạn và bị chặn — đặc tả §4.4).
+ */
+function openTatHaiLop(s: Api.StaffListRowDto): void {
+  const loi = h("div", { class: "alert", role: "alert", hidden: true });
+  const xacNhan = h("button", { type: "button", class: "btn btn-danger", id: "mfa-reset-confirm" }, "Xác nhận tắt");
+  const dong = h("button", { type: "button", class: "btn" }, "Huỷ");
+  dong.addEventListener("click", () => (editEl.hidden = true));
+  xacNhan.addEventListener("click", async () => {
+    showError(loi, null);
+    xacNhan.disabled = true;
+    try {
+      await api(`/api/staff/${s.id}/mfa-reset`, { method: "POST" });
+    } catch (err) {
+      xacNhan.disabled = false;
+      return showError(loi, reasonOf(err));
+    }
+    const xong = h("button", { type: "button", class: "btn" }, "Đóng");
+    xong.addEventListener("click", () => (editEl.hidden = true));
+    replaceChildren(
+      editEl,
+      h("h2", null, `Đã tắt bảo mật hai lớp: ${s.fullName}`),
+      h("p", { class: "alert ok", id: "mfa-reset-done" }, "Mọi máy của người này đã bị đăng xuất. Nhắc họ đăng nhập bằng PIN trong 24 giờ tới để bật lại bảo mật hai lớp trên điện thoại của họ."),
+      h("div", { class: "actions" }, xong),
+    );
+    await load();
+  });
+  replaceChildren(
+    editEl,
+    h("h2", null, `Tắt bảo mật hai lớp: ${s.fullName}`),
+    h(
+      "div",
+      { class: "maint-confirm", role: "group", "aria-label": "Xác nhận tắt bảo mật hai lớp" },
+      s.mfa.enabled
+        ? h("p", null, h("strong", null, "Ứng dụng xác thực, mã dự phòng và mọi máy được tin của người này hết hiệu lực; mọi máy đang đăng nhập bị đăng xuất ngay."))
+        : h("p", null, h("strong", null, "Người này chưa bật bảo mật hai lớp. Xác nhận để mở 24 giờ cho họ tự bật (dùng khi họ đã quá hạn và bị chặn đăng nhập); mọi máy đang đăng nhập bị đăng xuất.")),
+      h("p", null, "Nhân viên nội bộ có 24 giờ để tự bật lại ở lần đăng nhập bằng PIN kế tiếp; quá 24 giờ phải nhờ lại. Chỉ làm khi đã chắc đúng người (ví dụ họ gọi báo mất hoặc đổi điện thoại)."),
+      loi,
+      h("div", { class: "actions" }, xacNhan, dong),
+    ),
+  );
+  editEl.hidden = false;
+  editEl.scrollIntoView({ block: "nearest" });
+}
+
 function row(s: Api.StaffListRowDto): HTMLElement {
   const btn = (label: string, onclick: () => void, cls = "btn btn-link") => {
     const b = h("button", { type: "button", class: cls }, label);
@@ -80,7 +132,7 @@ function row(s: Api.StaffListRowDto): HTMLElement {
   return h(
     "tr",
     { class: s.active ? "" : "row-off" },
-    h("td", null, s.fullName, isMe && h("span", { class: "muted" }, " (bạn)"), !s.active && h("span", { class: "badge badge-cancelled" }, "Ngưng"), s.locked && h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập")),
+    h("td", null, s.fullName, isMe && h("span", { class: "muted" }, " (bạn)"), !s.active && h("span", { class: "badge badge-cancelled" }, "Ngưng"), s.locked && h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập"), h("div", null, nhanHaiLopEl(s))),
     h("td", null, s.phone),
     h("td", null, accessLabel(s)),
     h("td", { class: "muted" }, dateTime(s.createdAt)),
@@ -103,6 +155,8 @@ function row(s: Api.StaffListRowDto): HTMLElement {
       canAccessManage && quanDuoc(s) && s.locked && btn("Mở khoá", async () => {
         if (await act(() => api(`/api/staff/${s.id}/unlock`, { method: "POST" }))) await load();
       }),
+      // Cờ máy chủ theo dòng (ADR-0074 điều 5, ADR-0090 đ1 iv) — cùng hàm cổng với route POST /api/staff/:id/mfa-reset; Nhân sự không có.
+      s.canResetMfa && btn("Tắt bảo mật hai lớp", () => openTatHaiLop(s), "btn btn-link danger"),
       // Không hiện trên hàng của chính admin đang đăng nhập: route quản trị đăng xuất người bị gỡ NGAY mà không cấp cookie mới cho người gọi — tự gỡ của mình làm ở trang "Tôi".
       canAccessManage && quanDuoc(s) &&
         !isMe &&
@@ -138,6 +192,7 @@ function card(s: Api.StaffListRowDto): HTMLElement {
     h("div", null, h("strong", null, s.fullName), isMe && h("span", { class: "muted" }, " (bạn)")),
     !s.active && h("div", null, h("span", { class: "badge badge-cancelled" }, "Ngưng")),
     s.locked && h("div", null, h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập")),
+    h("div", null, nhanHaiLopEl(s)),
     h("div", { class: "muted" }, s.phone, " · ", accessLabel(s)),
     h("div", { class: "muted" }, s.lastLoginAt ? `Đăng nhập gần nhất ${dateTime(s.lastLoginAt)}` : "Chưa ghi nhận đăng nhập"),
     h(
@@ -158,6 +213,7 @@ function card(s: Api.StaffListRowDto): HTMLElement {
       canAccessManage && quanDuoc(s) && s.locked && btn("Mở khoá", async () => {
         if (await act(() => api(`/api/staff/${s.id}/unlock`, { method: "POST" }))) await load();
       }),
+      s.canResetMfa && btn("Tắt bảo mật hai lớp", () => openTatHaiLop(s), true),
       // Không hiện trên thẻ của chính admin đang đăng nhập: route quản trị đăng xuất người bị gỡ NGAY mà không cấp cookie mới cho người gọi — tự gỡ của mình làm ở trang "Tôi".
       canAccessManage && quanDuoc(s) &&
         !isMe &&
