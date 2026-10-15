@@ -9,6 +9,7 @@ import { api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { alertEl, chipTrangThaiXe, datCrumb, loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
+import { ganDaiTrangAnhEm } from "./dai-trang-anh-em";
 import { initShell, showError } from "./shell";
 
 const errorEl = byId("error");
@@ -83,6 +84,7 @@ function ve(): void {
 }
 
 const staff = await initShell();
+ganDaiTrangAnhEm("/xe", staff);
 datCrumb("Vận chuyển", "Xe");
 if (can(staff, "vehicle.manage")) {
   byId("xe-add-top").hidden = false;

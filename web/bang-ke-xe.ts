@@ -12,6 +12,7 @@ import { api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { ngayNganHomNay, vnd } from "./format";
 import { datCrumb } from "./giay-to-ui";
+import { ganDaiTrangAnhEm } from "./dai-trang-anh-em";
 import { initShell, showError } from "./shell";
 import { cauLoi, chipTx, dangTai, o, trong } from "./tien-xe-ui";
 
@@ -19,6 +20,7 @@ const errorEl = byId("error");
 const trangEl = byId("bk-trang");
 
 const staff = await initShell();
+ganDaiTrangAnhEm("/bang-ke-xe", staff);
 datCrumb("Vận chuyển", "Bảng kê chi phí xe");
 
 const homNay = vnToday(new Date());
