@@ -2,6 +2,16 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
+## CHỜ PHÁT HÀNH (chưa lên production, ghi 2026-10-15) — ADR-0118 và đợt xác nhận sổ vàng
+
+Nằm trên nhánh `claude/stoic-heisenberg-72c05d`, **chưa `day-len`, chưa `trien-khai`**; mục hiện trạng ngay dưới vẫn là bản 1.94.
+
+- **Có gì:** ADR-0118 Điều 1 (khoản chuyển khoản do người không phải Kế toán khai là «đang đối chiếu», không tạo nợ giữ hộ; chặn Đã giao; nhắc Kế toán sau 3 ngày; tiền mặt «Công ty thu» giữ luật cũ) và Điều 2 (ô quyền `deposit.transfer.approve`: Kế toán duyệt chuyển tiền sang đơn khác); đổi chữ «cọc» → «Thu trước» ở chữ nhân viên thấy (câu gửi khách giữ nguyên); sổ vàng: 26 ca + 7 khoá mới đã xác nhận 2026-10-14.
+- **Cần biết khi phát hành:** có **migration `0099_bil_doi_chieu_khoan_cong_ty_thu`** (bảng chỉ-thêm `bil_receipt_recon`, tạo lại view `v_bil_coc_don` và trigger đảo lần thu) nên phải qua điểm khôi phục Time Travel và `audit-invariants --db remote`; trần gói trang Đơn hàng nới lên 96.500 byte (chủ chấp nhận); phải thêm mục nhật ký thay đổi mới (bước A.0) trước khi triển khai.
+- **Đã kiểm:** `typecheck` 0 lỗi, `npm test` xanh cả hai bước; hai lượt kiểm độc lập (đạt có điều kiện), điều kiện còn lại là dòng nhắc chỉ cho chuyển khoản — đã sửa, chưa có lượt kiểm thứ ba.
+- **Chưa kiểm:** kịch bản Chrome (`a2-smoke-*.mjs` cho `web/order.ts`, `trang-chu-smoke.mjs` cho `web/home.ts`, cần `AXE_JS`), e2e `so-tien` và `audit-invariants` chưa chạy sau lượt sửa cuối, chưa xem bằng mắt trên iPhone.
+- **Chờ chủ:** xác nhận lại ca sổ vàng SV-SC-02, SV-SC-06, SV-DH-05 (đã đổi nội dung theo ADR-0118); các ca còn chờ khác ở `golden/README.md`.
+
 ## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.94 ĐÃ LÊN PRODUCTION (sửa nút «Gửi yêu cầu» của màn «Điều chỉnh công nợ»; Trợ giúp Kế toán và Quản trị cho màn đó; kèm bản 1.93 — sửa số khách, ADR-0114: nhắc khuyến mại khi bớt khách, lịch sử số khách, mỗi đơn có ít nhất một người lớn) — không migration (2026-10-13 khoảng 23:13 giờ VN)
 
 Chủ chạy `day-len` rồi `trien-khai`; AI kiểm lại bằng lệnh chỉ đọc (2026-10-13):
