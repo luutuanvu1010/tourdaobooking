@@ -49,6 +49,16 @@ test("I-1: nguồn lỗi của 'Cần xem lại' → xemLai null, không nuốt 
   assert.match(home, /soXemLaiGanNhat = soXemLai\(review\.alerts, review\.loi\)/);
 });
 
+test("I-1 vòng 2: 'Thử lại' tải giấy tờ MỚI (bỏ lời hứa lỗi đã nhớ của vc-dem), không sửa vc-dem", () => {
+  const lr = home.slice(home.indexOf("async function loadReview"), home.indexOf("function reviewRow"));
+  assert.match(lr, /staff: Staff, taiMoi: boolean/);
+  assert.match(lr, /taiMoi \? api<Api\.ExpiringListResponse>\("\/api\/van-chuyen\/sap-het-han"\)\.then\(\(r\) => r\.count\) : layDanhSachSapHet\(\)\.then\(\(r\) => r\.count\)/);
+  assert.match(home, /lamMoi \? undefined : loadReview\(staff, taiMoi \|\| soXemLaiGanNhat === null\)/);
+  assert.match(home, /async function taiDashboard\(staff: Staff, lamMoi = false, taiMoi = false\)/);
+  assert.match(home, /void taiDashboard\(staff, false, true\)\.finally/, "Thử lại của thẻ");
+  assert.match(home, /void taiDashboard\(nguoiXem, false, true\)/, "Thử lại của dải lỗi chung");
+});
+
 test("I-2: hai nguồn ngoài chỉ tải khi khối thật sự hiện, tải lại khi cửa sổ rộng ra, làm mới lặng lẽ dùng lại số cũ", () => {
   assert.match(home, /byId\("dash-dai"\)\.offsetParent !== null/);
   assert.match(home, /addEventListener\("resize"/);

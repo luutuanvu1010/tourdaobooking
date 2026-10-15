@@ -254,13 +254,16 @@ function renderToday(data: Pick<Api.DashboardResponse, "today" | "tomorrow" | "d
  * "không có cảnh báo nào" (mảng rỗng) thay vì ẩn HẲN khối chỉ vì một nửa dữ liệu chưa tải được.
  */
 /** `loi`: một nguồn của bảng (danh mục hoặc giấy tờ) không tải được — thẻ "Cần xem lại" phải hiện "—" + Thử lại, KHÔNG biến mất như thể không có việc. */
-async function loadReview(staff: Staff): Promise<{ alerts: ReviewAlerts | null; loi: boolean }> {
+async function loadReview(staff: Staff, taiMoi: boolean): Promise<{ alerts: ReviewAlerts | null; loi: boolean }> {
   if (!canSeeReviewAlerts(staff)) return { alerts: null, loi: false };
   // Giấy tờ sắp hết hạn (bản vẽ 1.73): CHUNG lời gọi với huy hiệu ô / thanh bên (web/vc-dem.ts giữ lời hỏi đang chạy); lỗi mạng → 0 → không dòng.
   const [catalogRes, feedbackRes, sapHetRes] = await Promise.allSettled([
     layCatalogAdmin(),
     can(staff, "feedback.triage") ? layFeedback() : Promise.resolve<Api.FeedbackQueueResponse | null>(null),
-    can(staff, "vehicle.manage") ? layDanhSachSapHet().then((r) => r.count) : Promise.resolve(null), // lời gọi biết lỗi (demSapHetHan nuốt lỗi thành 0 — dùng cho huy hiệu, nằm trong gói orders)
+    can(staff, "vehicle.manage")
+      // Lời gọi biết lỗi (demSapHetHan nuốt lỗi thành 0 — dùng cho huy hiệu, nằm trong gói orders). `layDanhSachSapHet` nhớ cả lời hứa BỊ TỪ CHỐI nên "Thử lại" (`taiMoi`) gọi thẳng, bỏ bản nhớ.
+      ? (taiMoi ? api<Api.ExpiringListResponse>("/api/van-chuyen/sap-het-han").then((r) => r.count) : layDanhSachSapHet().then((r) => r.count))
+      : Promise.resolve(null),
   ]);
   // Huy hiệu cát của ô "Dịch vụ & giá" (Trang chủ điện thoại) — CÙNG phép đếm với huy hiệu thanh bên (web/shell.ts catalogConflictBadge), dùng lại lời gọi vừa có.
   if (catalogRes.status === "fulfilled") datHuyHieu("dich-vu", catalogRes.value.items.filter((i) => i.conflicts.length > 0).length);
@@ -349,7 +352,7 @@ function theViec(staff: Staff, t: TheViec, thuTu: number): HTMLElement {
       const b = nut as HTMLButtonElement;
       b.disabled = true;
       b.textContent = "Đang thử…";
-      void taiDashboard(staff).finally(() => { b.disabled = false; b.textContent = "Thử lại"; });
+      void taiDashboard(staff, false, true).finally(() => { b.disabled = false; b.textContent = "Thử lại"; });
     });
   } else if (t.href.startsWith("#")) {
     nut = h("button", { type: "button", class: lop, "aria-describedby": idNhan, onclick: () => cuonToi(t.href.slice(1)) }, t.nut);
@@ -564,7 +567,7 @@ function datTomTatDai(soChuyen: number, cauViec: string | null): void {
 
 /**
  * Đồng hồ phút (máy tính): "Bây giờ", chuyến đã qua / sắp tới và "còn N phút" đi theo giờ thật mà không gọi lại máy chủ. MỘT bộ hẹn giờ cho cả trang; chỉ vẽ lại khi
- * đang xem Hôm nay, trang đang hiện, và tiêu điểm KHÔNG nằm trong khối Chuyến đón (vẽ lại thay các dòng — không giật tiêu điểm của người đang dùng bàn phím).
+ * đang xem Hôm nay, trang đang hiện, và tiêu điểm KHÔNG nằm trong nút chọn ngày hay danh sách chuyến (chỉ hai chỗ đó bị vẽ lại thay; tiêu điểm ở tiêu đề khối sau khi bấm thẻ "Chuyến hôm nay" không chặn — vẽ lại thay các dòng — không giật tiêu điểm của người đang dùng bàn phím).
  */
 let dongHoPhut: number | undefined;
 function batDongHoPhut(): void {
@@ -666,7 +669,7 @@ function baoLoi(cau: Child): void {
     if (!nguoiXem) return;
     baoLoi(null);
     byId("loading").hidden = false;
-    void taiDashboard(nguoiXem);
+    void taiDashboard(nguoiXem, false, true);
   });
   replaceChildren(el, h("span", { class: "dash-loi-ico", "aria-hidden": "true" }, icon("alert", 20)), h("span", { class: "dash-loi-chu" }, cau), nut);
   el.hidden = false;
@@ -729,7 +732,7 @@ async function main(): Promise<void> {
  * `lamMoi` (theo tin của Bảng tin): không hiện lại khung "đang tải", không chạy lại "Cần xem lại" (không phụ thuộc đơn, gọi thêm hai API của Admin),
  * và lỗi mạng thì giữ nguyên số cũ đang hiện (không xoá khối, không dựng banner lỗi).
  */
-async function taiDashboard(staff: Staff, lamMoi = false): Promise<void> {
+async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promise<void> {
   const loadingEl = byId("loading");
   try {
     // loadReview() không bao giờ ném lỗi (allSettled + canSeeReviewAlerts() chặn trước) — gọi song song với
@@ -739,7 +742,7 @@ async function taiDashboard(staff: Staff, lamMoi = false): Promise<void> {
     const lay = !ngoaiDaTai && khoiHien();
     const [data, review, unpaid, ngoai] = await Promise.all([
       layDashboard(),
-      lamMoi ? undefined : loadReview(staff),
+      lamMoi ? undefined : loadReview(staff, taiMoi || soXemLaiGanNhat === null),
       api<Api.UnpaidSummaryResponse>("/api/ledger/unpaid-summary").catch(() => null), // sổ tiền lượt 1: ô "Còn thiếu tiền" rời dashboard của orders
       lay
         ? Promise.allSettled([
