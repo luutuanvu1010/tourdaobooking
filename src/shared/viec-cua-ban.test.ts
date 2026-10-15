@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { nguonCanTai, viecCuaBan } from "./viec-cua-ban.ts";
+import { cauTomTatViec, nguonCanTai, soXemLai, viecCuaBan } from "./viec-cua-ban.ts";
 import { PERMISSION_CODES, seesAllOrders } from "./permissions.ts";
 import type { PermissionCode } from "./permissions.ts";
 
@@ -88,4 +88,20 @@ test("nút theo quyền thật: Xác nhận đơn chỉ khi sửa được đơn
   for (const w of [who("SALES"), who("ACCOUNTING"), who("ADMIN"), who("ADMIN", "SUPER_ADMIN")]) {
     assert.ok(viecCuaBan(w, day).the.filter((t) => t.chot).length <= 1);
   }
+});
+
+test("soXemLai: số dịch vụ lệch giá + số giấy tờ sắp hết hạn; KHÔNG cộng góp ý; không có bảng thì 0", () => {
+  assert.equal(soXemLai(null), 0);
+  assert.equal(soXemLai({ catalogConflict: { moreCount: 2 }, expiringDocs: { count: 4 } }), 7);
+  assert.equal(soXemLai({ catalogConflict: null, expiringDocs: { count: 4 } }), 4);
+  assert.equal(soXemLai({ catalogConflict: { moreCount: 0 }, expiringDocs: null }), 1);
+});
+test("cauTomTatViec: 'Có N việc chờ bạn — gấp nhất: <nhãn thường> (<số>).'; N gồm cả thẻ dồn; không thẻ thì null", () => {
+  const r = viecCuaBan(who("ADMIN"), day);
+  assert.equal(cauTomTatViec(r.the, r.conLai), "Có 6 việc chờ bạn — gấp nhất: cần xem lại (3).");
+  assert.equal(cauTomTatViec([], 0), null);
+});
+test("cauTomTatViec: số chưa tải (null) thì không viết số", () => {
+  const r = viecCuaBan(who("SALES"), { ...day, nhap: null });
+  assert.equal(cauTomTatViec(r.the, r.conLai), "Có 4 việc chờ bạn — gấp nhất: đơn nháp.");
 });

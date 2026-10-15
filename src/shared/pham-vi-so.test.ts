@@ -14,6 +14,7 @@ test("bốn ô số Trang chủ: ba ô 'Toàn công ty', Doanh thu 'Của tôi';
 test("web/home.ts: MỌI ô số (oSo / oSoMayTinh) truyền phạm vi từ bảng chung — không ô nào thiếu nhãn", () => {
   const src = readFileSync(fileURLToPath(new URL("../../web/home.ts", import.meta.url)), "utf8");
   const goi = [...src.matchAll(/\boSo(?:MayTinh)?\(\s*"/g)].map((m) => src.slice(m.index!, src.indexOf("\n", m.index!)));
-  assert.ok(goi.length >= 8, `đếm được ${goi.length} lời gọi ô số`);
+  // Máy tính chỉ còn ô Doanh thu (ba ô kia là thẻ "Việc của bạn" từ 15/10): 1 lời gọi máy tính + 5 lời gọi điện thoại (ô "Còn thiếu" có hai nhánh).
+  assert.ok(goi.length >= 6, `đếm được ${goi.length} lời gọi ô số`);
   for (const g of goi) assert.match(g, /PHAM_VI_O_TRANG_CHU\.\w+/, g);
 });

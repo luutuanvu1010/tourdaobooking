@@ -50,10 +50,13 @@
     </div>
   </div>
   <div id="dash-so" class="dash-so" hidden></div>
+  <!-- "Việc của bạn" (chỉ máy tính ≥641px, bốn vai văn phòng; điện thoại ẩn bằng CSS và vẫn dùng #dash-so): thẻ việc có số, mỗi thẻ một nút làm tiếp. web/home.ts dựng nội dung
+       từ src/shared/viec-cua-ban.ts; ẩn tới khi nguồn số đã về (cùng lúc với #dash-grid, không nhấp nháy). -->
+  <section id="dash-viec" class="dash-viec" aria-labelledby="dash-viec-h" hidden></section>
   <div id="dash-grid" class="dash-grid" hidden>
     <!-- Thứ tự DOM = thứ tự đọc ở điện thoại và máy tính một cột (bản vẽ 1.73): số liệu → Cần xem lại → Chuyến đón → Lối tắt. Hai cột (≥1200px) đặt chỗ bằng
          grid-template-areas, không dùng CSS order (bài học Đợt C).
-         Số liệu máy tính: một thẻ bốn ô — Còn thiếu tiền, Chờ xác nhận, Chưa phụ trách, Doanh thu của tôi (biểu đồ tuần). Điện thoại dùng #dash-so. -->
+         Số liệu máy tính: một ô — Doanh thu của tôi (biểu đồ tuần); Còn thiếu tiền / Chờ xác nhận / Chưa phụ trách nay là thẻ trong #dash-viec. Điện thoại dùng #dash-so (đủ bốn ô). -->
     <section id="dash-so-mt" class="dash-so-mt" aria-label="Số liệu"></section>
     <section id="dash-review" class="card dash-review" hidden>
       <div class="dash-review-head"><span class="dash-review-heading icon-label">Cần xem lại</span></div>

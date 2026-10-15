@@ -98,3 +98,16 @@ export function viecCuaBan(who: PermissionHolder, nguon: NguonSo): { the: TheVie
 export function nguonCanTai(who: PermissionHolder): readonly KhoaThe[] {
   return theoUuTien(who).filter((m) => m.hien(who)).map((m) => m.khoa);
 }
+
+/** Số cho thẻ `xemLai` từ bảng "Cần xem lại": dịch vụ lệch giá Sheet + giấy tờ sắp hết hạn. KHÔNG cộng góp ý (thẻ `gopY` đã có — tránh đếm trùng). Không có bảng = 0 (không việc). */
+export function soXemLai(alerts: { catalogConflict: { moreCount: number } | null; expiringDocs: { count: number } | null } | null): number {
+  if (!alerts) return 0;
+  return (alerts.catalogConflict ? 1 + alerts.catalogConflict.moreCount : 0) + (alerts.expiringDocs ? alerts.expiringDocs.count : 0);
+}
+
+/** Dòng tóm tắt dưới lời chào khi có thẻ: "Có N việc chờ bạn — gấp nhất: <nhãn thường> (<số>)." (N gồm cả việc dồn ở "Còn N việc nữa"); số chưa tải thì bỏ phần "(số)". Không thẻ → `null` (giữ câu cũ). */
+export function cauTomTatViec(the: readonly TheViec[], conLai: number): string | null {
+  const dau = the[0];
+  if (!dau) return null;
+  return `Có ${the.length + conLai} việc chờ bạn — gấp nhất: ${dau.nhan.toLocaleLowerCase("vi-VN")}${dau.so === null ? "" : ` (${dau.so})`}.`;
+}
