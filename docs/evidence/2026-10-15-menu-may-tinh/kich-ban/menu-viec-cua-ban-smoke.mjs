@@ -49,6 +49,14 @@ try {
       try {
         await p.waitFor("!!document.querySelector('nav.dai-anh-em')", `dải anh em ở ${t.path} (${ten})`, 12000);
         await sleep(400);
+        if (ten === "390") {
+          // Điện thoại không đổi: dải ẩn dưới 641px (thanh bên cũng chỉ hiện từ 641px) — không chiếm chỗ, không tràn.
+          const dt = await p.ev(`(() => ({ hien: getComputedStyle(document.querySelector('nav.dai-anh-em')).display, cao: Math.round(document.querySelector('nav.dai-anh-em').getBoundingClientRect().height), tran: Math.round(document.documentElement.scrollWidth - document.documentElement.clientWidth) }))()`);
+          assert.deepEqual([dt.hien, dt.cao], ["none", 0], `${t.path} (390): dải anh em ẩn ở điện thoại — ${JSON.stringify(dt)}`);
+          assert.ok(dt.tran <= 1, `${t.path} (390): trang không tràn ngang — ${JSON.stringify(dt)}`);
+          if (t.path === "/xe") await shot(p, "dai-anh-em-an-o-dien-thoai-xe-390.png");
+          continue;
+        }
         const m = await p.ev(`(() => {
           const n = document.querySelector('nav.dai-anh-em'); const main = document.querySelector('main'); const r = n.getBoundingClientRect(); const mr = main.getBoundingClientRect();
           const kế = n.nextElementSibling?.getBoundingClientRect();
@@ -80,7 +88,7 @@ try {
       }
     }
   }
-  ok("1) Dải anh em: 5 trang × (1440, 390) — đầu <main>, nhãn/đường dẫn đúng nhóm, trang đang đứng sáng, không tràn, không đè, vòng tiêu điểm lùi vào trong");
+  ok("1) Dải anh em: 5 trang × 1440 (đầu <main>, nhãn/đường dẫn đúng nhóm, trang đang đứng sáng, không tràn, không đè, vòng tiêu điểm lùi vào trong) và ẩn ở 390");
   {
     // Người chỉ thấy ≤ 1 trang trong nhóm thì không có dải (Bán hàng mở /xe: trang từ chối quyền, nhóm xe rỗng với Bán hàng).
     const p = await env.as(ACCOUNTS.salesA, "/xe", DESK);
