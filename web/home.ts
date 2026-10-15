@@ -759,7 +759,6 @@ async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promi
       : {};
     loadingEl.hidden = true;
     // Lần trước lỗi mà lần này được → gỡ dải. Chỉ thiếu số "Còn thiếu" → dải "Thử lại" (bản vẽ điện thoại 1f, máy tính v2), ô đó hiện "—".
-    baoLoi(unpaid ? null : LOI_SO_LIEU);
     if (review !== undefined) {
       renderReview(review.alerts);
       soXemLaiGanNhat = soXemLai(review.alerts, review.loi);
@@ -773,6 +772,8 @@ async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promi
       nhap: data.draftCount, chuaPhuTrach: data.unassignedCount, chuyenHomNay: data.today.length, conThieu: unpaid, xemLai: soXemLaiGanNhat,
       dieuChinh: soNgoaiGanNhat.dieuChinh, gopY: soNgoaiGanNhat.gopY,
     };
+    // Dải lỗi chung (thiếu số "Còn thiếu"): máy tính mà thẻ "Đơn còn thiếu tiền" đang hiện "—" + Thử lại thì thẻ là chỗ thử lại DUY NHẤT (không cộng nút ở dải); điện thoại (thẻ ẩn) vẫn dùng dải.
+    baoLoi(unpaid || (khoiHien() && viecCuaBan(staff, nguon).the.some((t) => t.khoa === "conThieu")) ? null : LOI_SO_LIEU);
     datTomTatDai(data.today.length, canTai.length > 0 ? renderViec(staff, nguon) : null);
     datHuyHieu("don-hang", data.draftCount); // huy hiệu ô "Đơn hàng" = số đơn chưa xác nhận (quyết định 8 của chủ dự án — cùng số huy hiệu thanh bên)
     renderSoMayTinh(data);

@@ -213,7 +213,8 @@ try {
       assert.ok(t, `thẻ Đơn còn thiếu tiền vẫn hiện khi nguồn lỗi — ${JSON.stringify(m.the)}`);
       assert.equal(t.so, "—");
       assert.deepEqual(t.nut.map((n) => n.chu), ["Thử lại"]);
-      assert.equal(m.daiLoi, true, "dải lỗi chung của Trang chủ cũng hiện khi thiếu số 'Còn thiếu tiền'");
+      assert.equal(m.daiLoi, false, "sửa vòng 2: máy tính chỉ còn thẻ làm chỗ thử lại, KHÔNG dải lỗi chung");
+      assert.equal(m.soThuLai, 1, `đúng MỘT nút Thử lại — ${JSON.stringify(m)}`);
       console.log(`   · (ghi nhận) số nút "Thử lại" đang hiện cùng lúc khi unpaid lỗi: ${m.soThuLai}`);
       await shot(p, "viec-loi-unpaid-1440.png");
       await p.send("Network.setBlockedURLs", { urls: [] });
