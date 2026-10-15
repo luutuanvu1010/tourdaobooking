@@ -71,7 +71,7 @@ const SO_LA: readonly { loai: Loai; ten: string; dang: readonly string[] }[] = [
   { loai: "HH", ten: "tổng giá đại lý đơn B đã xác nhận", dang: tien(1_571_687) },
   { loai: "HH", ten: "tổng hoa hồng đơn mang mức 37,29% (nháp của B, đơn của tài khoản lai)", dang: tien(1_116_713) },
   { loai: "HH", ten: "tổng giá đại lý đơn mang mức 37,29%", dang: tien(1_883_287) },
-  { loai: "HH", ten: "dòng mức TA 41,93% (ADR-0117 lần 2) gắn cho loại Đại lý lữ hành — bị dòng riêng của loại che, chỉ hiện ở bảng mức / màn Mức TA", dang: tyLe(4193) },
+  { loai: "HH", ten: "dòng mức TA 42,61% (ADR-0117 lần 2) gắn cho loại Đại lý lữ hành — bị dòng riêng của loại che, chỉ hiện ở bảng mức / màn Mức TA", dang: tyLe(4261) },
   { loai: "CU", ten: "tỷ lệ mua lại 61,73% của nhà cung cấp", dang: tyLe(6173) },
   { loai: "CU", ten: "giá vốn dòng SLX (61,73% × 1.000.000)", dang: tien(617_300) },
 ];
@@ -223,10 +223,10 @@ async function gieo(w: W): Promise<Gieo> {
   await muc({ doiTuong: { loai: "DOI_TAC", partyId: PTY_B }, phamVi: "SERVICE", catalogCode: "SLX", kieu: "PER_PAX", moiKhach: 370_913 });
   await muc({ doiTuong: { loai: "DOI_TAC", partyId: PTY_B }, phamVi: "ALL", kieu: "RATE", tyLeBp: 3729 });
   await KQ(w.call("POST", "/api/pricing/cung-ung", { as: ACC, body: { tuNgay: "2026-01-01", phamVi: "SERVICE", catalogCode: "SLX", nguoiBanPartyId: "pty-ncc", tyLeMuaBp: 6173 } }), 201, "điều khoản nhà cung cấp");
-  // ADR-0117 lần 2: một mức TA có dòng 41,93% (số lạ), gắn cho loại Đại lý lữ hành. Dòng riêng 10% của loại (bậc 6) thắng dòng TA (bậc 9) nên không số tiền nào đổi —
+  // ADR-0117 lần 2: một mức TA có dòng 42,61% (số lạ), gắn cho loại Đại lý lữ hành. Dòng riêng 10% của loại (bậc 6) thắng dòng TA (bậc 9) nên không số tiền nào đổi —
   // số lạ chỉ có thể hiện ở bề mặt đọc bảng mức (/api/pricing/hoa-hong, /api/pricing/muc-ta) và nhật ký: văn phòng được phép thấy, tài khoản giữ PARTNER không bao giờ.
   const mucTa = (await KQ(w.call("POST", "/api/pricing/muc-ta", { as: ACC, body: { ten: "Mức TA Lạ" } }), 201, "tạo mức TA")).json.muc.code as string;
-  await KQ(w.call("POST", `/api/pricing/muc-ta/${mucTa}/dong`, { as: ACC, body: { tuNgay: "2026-01-01", phamVi: "ALL", kieu: "RATE", tyLeBp: 4193 } }), 201, "dòng của mức TA");
+  await KQ(w.call("POST", `/api/pricing/muc-ta/${mucTa}/dong`, { as: ACC, body: { tuNgay: "2026-01-01", phamVi: "ALL", kieu: "RATE", tyLeBp: 4261 } }), 201, "dòng của mức TA");
   await KQ(w.call("POST", "/api/pricing/muc-ta/gan", { as: ACC, body: { loai: "TRAVEL_AGENCY", muc: mucTa, tuNgay: "2026-01-01" } }), 201, "gắn loại vào mức TA");
 
   const xacNhan = (id: string, as: string) => KQ(w.call("POST", `/api/orders/${id}/status`, { as, body: { status: "confirmed" } }), 200, `xác nhận ${id}`);
