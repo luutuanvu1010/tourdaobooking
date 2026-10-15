@@ -778,7 +778,8 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
 
 /** ADR-0118 Điều 1 mục 3: dòng nhắc Kế toán dưới khoản "Công ty thu" đang đối chiếu — người khai, số tiền, số ngày chờ (quá 3 ngày thì nổi màu cảnh báo). Không số điện thoại / tài khoản / mã giao dịch. */
 function nhacDoiChieuLanThu(t: Api.OrderPaymentsResponse, l: Api.LanThuDto): HTMLElement | null {
-  if (!t.keToan!.choXacNhan.includes(l.id) || l.daDao || l.laDongDao) return null;
+  // Chỉ khoản CHUYỂN KHOẢN mới là "đang đối chiếu" (ADR-0118 Điều 1): tiền mặt "Công ty thu" vẫn là nợ giữ hộ (H3 cũ), không nhắc kiểu này.
+  if (!t.keToan!.choXacNhan.includes(l.id) || l.daDao || l.laDongDao || l.hinhThuc !== METHOD_LABEL.BANK_TRANSFER) return null;
   const soNgay = soNgayCho(l.ghiLuc, new Date());
   return h("p", { class: quaHanDoiChieu(soNgay) ? "dd-canh-xn is-do" : "muted", "data-khoi": "nhac-doi-chieu" }, cauNhacKhoan({ nguoiKhai: l.nguoiGhi ?? null, soTienDaDinhDang: vnd(l.soTien), soNgay }));
 }
