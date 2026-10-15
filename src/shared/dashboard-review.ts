@@ -39,7 +39,7 @@ export interface ReviewAlerts {
   feedbackQueue: ReviewFeedbackAlert | null;
   /** Giấy tờ sắp hết hạn (xe + tài xế — `count` của GET /api/van-chuyen/sap-het-han, bản vẽ "Trang chu Quan tri.dc.html" 1.73). Chỉ ô vehicle.manage. */
   expiringDocs: { count: number } | null;
-  /** Khoản "Công ty thu" đang đối chiếu quá 3 ngày (ADR-0118 Điều 1 mục 3; `doiChieuQua3Ngay` của GET /api/ledger/coc/dem). Chỉ ô `ledger.view` (Kế toán, Toàn quyền). */
+  /** Khoản "Công ty thu" đang đối chiếu quá 3 ngày (ADR-0119 Điều 1 mục 3; `doiChieuQua3Ngay` của GET /api/ledger/coc/dem). Chỉ ô `ledger.view` (Kế toán, Toàn quyền). */
   doiChieu: { count: number } | null;
 }
 

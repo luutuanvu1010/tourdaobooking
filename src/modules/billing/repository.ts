@@ -134,7 +134,7 @@ const THANG_SO_SOM_NHAT = defineSql(
 export const earliestLedgerMonth = async (db: D1Database): Promise<string | null> => (await db.prepare(THANG_SO_SOM_NHAT).first<{ thang: string | null }>())?.thang ?? null;
 
 /**
- * Khoản "Công ty thu" do người không phải Kế toán khai, CHƯA được Kế toán xác nhận. Hai đường (ADR-0118): khoản CŨ — dòng giữ hộ trên người khai chưa bị đảo (H3);
+ * Khoản "Công ty thu" do người không phải Kế toán khai, CHƯA được Kế toán xác nhận. Hai đường (ADR-0119): khoản CŨ — dòng giữ hộ trên người khai chưa bị đảo (H3);
  * khoản MỚI — dấu DECLARED (`bil_receipt_recon`, 0099) chưa có CONFIRMED, lần thu còn hiệu lực. `ngay_khai` = ngày dân sự khai (gốc tính "quá 3 ngày").
  */
 const PENDING_COMPANY = defineSql(
@@ -159,7 +159,7 @@ const PENDING_COMPANY = defineSql(
 export const pendingCompany = async (db: D1Database) =>
   (await db.prepare(PENDING_COMPANY).all<{ receipt_id: string; order_id: string; order_code: string | null; amount: number; occurred_date: string; nguoi_khai: string | null; ngay_khai: string }>()).results;
 
-// ---- Dấu đối chiếu của khoản "Công ty thu" MỚI (ADR-0118 Điều 1; bảng `bil_receipt_recon`, 0099) — chỉ-thêm ----
+// ---- Dấu đối chiếu của khoản "Công ty thu" MỚI (ADR-0119 Điều 1; bảng `bil_receipt_recon`, 0099) — chỉ-thêm ----
 const RECON_OF_ORDER = defineSql(
   "billing",
   "recon_of_order",

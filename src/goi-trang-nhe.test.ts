@@ -18,7 +18,7 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 /** Trần dung lượng gói Đơn hàng đã rút gọn (byte, chưa nén): hôm nay ~84 KB sau khi bỏ nhật ký; trước đó 147 KB. Đổi trần = có lý do ghi ở commit. */
 // Nới 95.000 → 96.000 (ghép main 1c471990 vào gói Vận chuyển A+C, 2026-10-12): main một mình 92.686 byte, gói A+C một mình 89.378, hợp cả hai 95.486 — cả hai nhánh
 // cùng thêm mã vào đường của trang Đơn hàng (phần thương mại của sổ đại lý; chi tiết đơn phải thu không âm, thông tin chuyến), không có gói nào thừa nhật ký thay đổi.
-// Nới 96.000 → 96.500 (ADR-0118 Điều 2, 2026-10-14): thêm một dòng bản đồ quyền `deposit.transfer.approve` vào `permissions.ts`, mà gói Đơn hàng nhúng cả bản đồ
+// Nới 96.000 → 96.500 (ADR-0119 Điều 2, 2026-10-14): thêm một dòng bản đồ quyền `deposit.transfer.approve` vào `permissions.ts`, mà gói Đơn hàng nhúng cả bản đồ
 // (+~100 byte, làm gói vượt trần 91 byte). Chỉ nới vừa đủ chỗ cho dòng quyền mới, không thêm mã giao diện nào vào gói này.
 const TRAN_ORDERS = 96_500;
 

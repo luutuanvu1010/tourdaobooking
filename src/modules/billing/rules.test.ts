@@ -28,7 +28,7 @@ test("conLai: đủ, thiếu, dư; hoàn khách trừ đã thu; cặp gốc/đ�
   assert.deepEqual(hieuLuc([a, u, ud]).map((r) => r.id), [a.id]);
 });
 
-test("NT-S1 (luật thuần, ADR-0118): HDV thu 1.000.000 tiền mặt → giữ 1.000.000; khai 'Công ty thu – CK' 500.000 → KHÔNG giữ thêm (đang đối chiếu); Kế toán ghi đã nộp → về 0", () => {
+test("NT-S1 (luật thuần, ADR-0119): HDV thu 1.000.000 tiền mặt → giữ 1.000.000; khai 'Công ty thu – CK' 500.000 → KHÔNG giữ thêm (đang đối chiếu); Kế toán ghi đã nộp → về 0", () => {
   let lines = ghi(sinhDongLanThu({ kind: "CUSTOMER_PAYMENT", amount: 1_000_000, collectorRole: "STAFF", collectorPartyId: HDV, nguoiGhiPartyId: HDV, nguoiGhiLaKeToan: false, congTyId: CT }));
   assert.equal(soDuTheoBen(lines, CT).get(HDV), 1_000_000);
   const ck = { kind: "CUSTOMER_PAYMENT", amount: 500_000, collectorRole: "COMPANY", collectorPartyId: CT, method: "BANK_TRANSFER", nguoiGhiPartyId: HDV, nguoiGhiLaKeToan: false, congTyId: CT } as const;
@@ -49,7 +49,7 @@ test("NT-S1 (luật thuần, ADR-0118): HDV thu 1.000.000 tiền mặt → giữ
   assert.equal(soDuTheoBen(lines, CT).get(HDV), 0);
 });
 
-test("khoanChoXacNhan (ADR-0118): khoản MỚI = DECLARED chưa CONFIRMED, lần thu chưa bị đảo; khoản CŨ vẫn theo dòng giữ hộ", () => {
+test("khoanChoXacNhan (ADR-0119): khoản MỚI = DECLARED chưa CONFIRMED, lần thu chưa bị đảo; khoản CŨ vẫn theo dòng giữ hộ", () => {
   const rc = [{ id: "m", collectorRole: "COMPANY" as const }, { id: "c", collectorRole: "COMPANY" as const }, { id: "x", collectorRole: "STAFF" as const }];
   const held = [{ id: "l1", kind: "HELD" as const, receiptId: "c", reversesLineId: null, debtorPartyId: HDV, creditorPartyId: CT, amount: 100 }];
   assert.deepEqual([...khoanChoXacNhan(rc, held, [{ receiptId: "m", kind: "DECLARED" }])].sort(), ["c", "m"]);
@@ -103,7 +103,7 @@ test("lyDoChuaGiaoDuoc (NT-F1, NT-F6c, M1 = A): thứ tự lý do cố định, 
   const doiTac = lyDoChuaGiaoDuoc({ ...base, coNguoiHuong: true, so: du(1, 1) })!;
   assert.deepEqual([doiTac.ma, doiTac.cau, doiTac.aiXuLy], ["booker_partner", "Đơn của đối tác (có người hưởng hoa hồng) — chưa bấm Đã giao được cho tới bản cập nhật sổ đại lý.", "Văn phòng"], "sổ đại lý đợt 1 đổi chữ (N5); luật chặn giữ nguyên");
   const doiChieu = lyDoChuaGiaoDuoc({ ...base, soKhoanDoiChieu: 1, so: du(1_000_000, 1_000_000) })!;
-  assert.deepEqual([doiChieu.ma, doiChieu.aiXuLy], ["reconciling", "Kế toán"], "ADR-0118: còn khoản Công ty thu đang đối chiếu ⇒ chưa Đã giao");
+  assert.deepEqual([doiChieu.ma, doiChieu.aiXuLy], ["reconciling", "Kế toán"], "ADR-0119: còn khoản Công ty thu đang đối chiếu ⇒ chưa Đã giao");
   const chuaRo = lyDoChuaGiaoDuoc({ ...base, so: du(1_000_000, 1_000_000, 1) })!;
   assert.deepEqual([chuaRo.ma, chuaRo.aiXuLy], ["unknown_collector", "Kế toán"]);
   const thieu = lyDoChuaGiaoDuoc({ ...base, so: du(600_000, 1_000_000) })!;

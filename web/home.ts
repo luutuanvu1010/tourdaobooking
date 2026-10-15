@@ -262,7 +262,7 @@ function renderToday(data: Pick<Api.DashboardResponse, "today" | "tomorrow" | "d
  */
 async function loadReview(staff: Staff): Promise<ReviewAlerts | null> {
   const laQuanTri = canSeeReviewAlerts(staff);
-  const laKeToan = can(staff, "ledger.view"); // ADR-0118: dòng "khoản đang đối chiếu quá 3 ngày" của Kế toán (cùng ô route /api/ledger/coc/dem hỏi)
+  const laKeToan = can(staff, "ledger.view"); // ADR-0119: dòng "khoản đang đối chiếu quá 3 ngày" của Kế toán (cùng ô route /api/ledger/coc/dem hỏi)
   if (!laQuanTri && !laKeToan) return null;
   // Giấy tờ sắp hết hạn (bản vẽ 1.73): CHUNG lời gọi với huy hiệu ô / thanh bên (web/vc-dem.ts giữ lời hỏi đang chạy); lỗi mạng → 0 → không dòng.
   const [catalogRes, feedbackRes, sapHetRes, doiChieuRes] = await Promise.allSettled([

@@ -519,7 +519,7 @@ export const CHECKS = [
     // đã là "công ty nhận" (không có dòng giữ hộ và không còn đang đối chiếu, hoặc dòng giữ hộ đã được "Công ty đã nhận") mà KHÔNG có mã. Bỏ nửa thu của lệnh chuyển cọc (transfer_of_id).
     // Đã lần mọi câu chèn bil_payment_receipt (lập kế hoạch 2026-10-08): lần thu CUSTOMER_PAYMENT gốc chỉ sinh ở ghiLanThu, daGiao, Thay lần thu (đều đòi mã)
     // và nửa thu chuyển cọc (có transfer_of_id); chi hoàn cọc / hoàn khách là CUSTOMER_REFUND. Thêm đường ghi lần thu mới ⇒ xét lại luật này.
-    // ADR-0118 (migration 0099): khoản MỚI đang đối chiếu (dấu DECLARED chưa có CONFIRMED, không dòng giữ hộ) chưa là "công ty nhận" ⇒ chưa đòi mã; xác nhận xong (CONFIRMED) thì đòi.
+    // ADR-0119 (migration 0099): khoản MỚI đang đối chiếu (dấu DECLARED chưa có CONFIRMED, không dòng giữ hộ) chưa là "công ty nhận" ⇒ chưa đòi mã; xác nhận xong (CONFIRMED) thì đòi.
     code: "R-BIL-D6b",
     what: "lần thu chuyển khoản – Công ty thu ghi từ mốc 0088 đã được công ty nhận đều có mã giao dịch ngân hàng",
     sql: `SELECT count(*) FROM bil_payment_receipt r

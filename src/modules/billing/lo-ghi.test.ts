@@ -241,13 +241,13 @@ test("NT-F6: câu thứ 3 của lô bị RAISE (trigger tạm cài trên CSDL th
   assert.equal(nhatKy(w, id, "order_delivered"), 0);
 });
 
-test("NT-Q3 / NT-F8 / NT-S1 (ADR-0118): Hoàn thành — Quản trị → 403; còn HDV giữ tiền mặt → 409; khoản 'Công ty thu – CK' do HDV khai KHÔNG tính vào nợ HDV, chặn Đã giao tới khi Kế toán xác nhận; Kế toán xác nhận + ghi nộp tiền mặt → Hoàn thành được, một nhật ký", async () => {
+test("NT-Q3 / NT-F8 / NT-S1 (ADR-0119): Hoàn thành — Quản trị → 403; còn HDV giữ tiền mặt → 409; khoản 'Công ty thu – CK' do HDV khai KHÔNG tính vào nợ HDV, chặn Đã giao tới khi Kế toán xác nhận; Kế toán xác nhận + ghi nộp tiền mặt → Hoàn thành được, một nhật ký", async () => {
   const w = setup();
   const id = donDaXacNhan(w, { total: 1_500_000 });
   await thu(w, HDV, id, tienMat(1_000_000));
   await thu(w, HDV, id, { soTien: 500_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" });
   const mine = async () => (await w.call("GET", "/api/ledger/mine", { as: HDV })).json.dangGiu;
-  assert.equal(await mine(), 1_000_000, "khoản công ty thu do HDV khai KHÔNG tính vào nợ HDV (ADR-0118) — chỉ phần tiền mặt HDV cầm");
+  assert.equal(await mine(), 1_000_000, "khoản công ty thu do HDV khai KHÔNG tính vào nợ HDV (ADR-0119) — chỉ phần tiền mặt HDV cầm");
   assert.equal((await giao(w, HDV, id)).status, 409, "còn khoản chuyển khoản đang đối chiếu ⇒ chưa Đã giao");
   const soCty = await w.call("GET", "/api/ledger", { as: KT });
   assert.equal(soCty.status, 200);
@@ -378,7 +378,7 @@ test("Thao tác Kế toán trên trang đơn (điều phối 30/9): GET payments
   assert.ok(kt.keToan, "Kế toán thấy khối keToan");
   assert.deepEqual(kt.keToan.choXacNhan, [ck]);
   const giu = Object.fromEntries(kt.keToan.dangGiu.map((d: { partyId: string; soTien: number }) => [d.partyId, d.soTien]));
-  assert.deepEqual(giu, { [`pty-${HDV}`]: 400_000 }, "ADR-0118: khoản CK do Bán hàng khai không tạo nợ cho Bán hàng");
+  assert.deepEqual(giu, { [`pty-${HDV}`]: 400_000 }, "ADR-0119: khoản CK do Bán hàng khai không tạo nợ cho Bán hàng");
   assert.ok(kt.keToan.dangGiu.every((d: { ten: string }) => typeof d.ten === "string" && d.ten.length > 0));
   // Kế toán xác nhận CK + ghi HDV nộp — khối cập nhật theo sổ.
   assert.equal((await w.call("POST", `/api/ledger/company-receipts/${ck}/confirm`, { as: KT, body: { maGiaoDich: "FTLG0002", soThucChuyen: 250_000 } })).status, 200);
@@ -420,13 +420,13 @@ const nopVe = (w: W, orderId: string, soTien: number, partyId = `pty-${HDV}`) =>
 const xacNhanCk = (w: W, receiptId: string, soTien = 1_000_000, ma = "FTLG0003") =>
   w.call("POST", `/api/ledger/company-receipts/${receiptId}/confirm`, { as: KT, body: { maGiaoDich: ma, soThucChuyen: soTien } });
 
-test("VP-01 (Đ2b) + ADR-0118: HDV khai 'Công ty thu – CK' 1.000.000 (khoản MỚI, không dòng giữ hộ) → 'Đã nộp' 1.000.000 bị 409 (HDV không giữ gì) → 'Xác nhận đã nhận' vẫn được; sổ của HDV = 0", async () => {
+test("VP-01 (Đ2b) + ADR-0119: HDV khai 'Công ty thu – CK' 1.000.000 (khoản MỚI, không dòng giữ hộ) → 'Đã nộp' 1.000.000 bị 409 (HDV không giữ gì) → 'Xác nhận đã nhận' vẫn được; sổ của HDV = 0", async () => {
   const w = setup();
   const id = donDaXacNhan(w, { total: 1_000_000 });
   assert.equal((await thu(w, HDV, id, { soTien: 1_000_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201);
   const ck = one(w, "SELECT id FROM bil_payment_receipt WHERE order_id = ? AND collector_role_code = 'COMPANY'", id)!.id as string;
   const kt0 = (await w.call("GET", `/api/orders/${id}/payments`, { as: KT })).json.keToan;
-  assert.deepEqual(kt0.dangGiu, [], "ADR-0118: khoản đang đối chiếu không tạo số đang giữ");
+  assert.deepEqual(kt0.dangGiu, [], "ADR-0119: khoản đang đối chiếu không tạo số đang giữ");
   assert.deepEqual(kt0.choXacNhan, [ck]);
   const nop = await nopVe(w, id, 1_000_000);
   assert.equal(nop.status, 409, nop.text);

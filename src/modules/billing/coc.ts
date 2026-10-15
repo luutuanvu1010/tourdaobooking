@@ -221,7 +221,7 @@ export async function ghiHuyDuyet(db: D1Database, input: { orderId: string; duye
   if (!d) return DON_CHUA_HUY();
   const goc = d.duyet.find((x) => x.id === input.duyetId && x.voidsId === null);
   if (!goc) return KHOAN_KHONG_CO();
-  // ADR-0118: huỷ duyệt theo ĐÚNG ô của loại khoản (hoàn ↔ deposit.refund.approve, chuyển ↔ deposit.transfer.approve).
+  // ADR-0119: huỷ duyệt theo ĐÚNG ô của loại khoản (hoàn ↔ deposit.refund.approve, chuyển ↔ deposit.transfer.approve).
   if (goc.kind === "TRANSFER" ? !input.duocChuyen : !input.duocHoan) return loi(403, "forbidden", goc.kind === "TRANSFER" ? "Bạn không có quyền huỷ duyệt khoản chuyển này." : "Chỉ Quản trị hoặc Toàn quyền mới huỷ duyệt được khoản hoàn.");
   if (d.duyet.some((x) => x.voidsId === goc.id)) return loi(409, "stale", "Khoản duyệt này đã được huỷ duyệt một lần.");
   const tc = tuChoi(kiemHuyDuyet({ conLaiKhoan: conLaiCuaKhoan(goc.id, d.duyet, d.receipts), soTien: so.value }));

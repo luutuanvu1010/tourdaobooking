@@ -417,7 +417,7 @@ test("NT-H2 ca đua: hai Quản trị cùng duyệt phần cuối (đọc trư�
   assert.equal((await tien(w, KT, id)).coc.daDuyet, 400_000);
 });
 
-test("ADR-0118 Điều 2: duyệt CHUYỂN sang đơn mới — Kế toán 201; duyệt HOÀN — Kế toán 403; Bán hàng, HDV, Đối tác không duyệt được cả hai; huỷ duyệt khoản chuyển theo ô chuyển, khoản hoàn theo ô hoàn", async () => {
+test("ADR-0119 Điều 2: duyệt CHUYỂN sang đơn mới — Kế toán 201; duyệt HOÀN — Kế toán 403; Bán hàng, HDV, Đối tác không duyệt được cả hai; huỷ duyệt khoản chuyển theo ô chuyển, khoản hoàn theo ô hoàn", async () => {
   const w = setup();
   const a = donDaXacNhan(w);
   assert.equal((await thu(w, HDV, a, 500_000)).status, 201);

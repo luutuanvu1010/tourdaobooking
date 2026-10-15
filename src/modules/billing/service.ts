@@ -195,7 +195,7 @@ export function cauLanThu(
   ];
   // ADR-0092 Đ6: dòng nối mã (lính gác "lần thu đã chèn") ngay sau nhật ký lần thu; lần thu luôn là câu ĐẦU (ghiLanThu đọc kq[0]).
   if (input.giaoDich) out.push(...cauGanMa(db, { receiptId, orderId: input.orderId, gd: input.giaoDich, at: input.at, by: input.ai.staffId }));
-  // ADR-0118 Điều 1: "Công ty thu" do người không phải Kế toán khai ⇒ KHÔNG dòng giữ hộ, chỉ dấu ĐANG ĐỐI CHIẾU (lính gác "lần thu đã chèn").
+  // ADR-0119 Điều 1: "Công ty thu" do người không phải Kế toán khai ⇒ KHÔNG dòng giữ hộ, chỉ dấu ĐANG ĐỐI CHIẾU (lính gác "lần thu đã chèn").
   if (canDoiChieu({ kind: r.kind, collectorRole: r.collectorRole, method: input.lt.hinhThuc, nguoiGhiPartyId: input.ai.partyId ?? congTyNeuKeToan(input.ai, input.congTyId), nguoiGhiLaKeToan: input.ai.laKeToan, congTyId: input.congTyId })) {
     out.push(reconInsertStatement(db, { id: crypto.randomUUID(), receiptId, kind: "DECLARED", occurredDate: vnToday(new Date()), at: input.at, by: input.ai.staffId }));
   }
@@ -381,7 +381,7 @@ export async function daGiao(
   }
   // Kiểm TRƯỚC lô (để trả câu dễ hiểu) — tính cả lần thu nhập ở bước này. Máy chủ vẫn kiểm lại TRONG lô (câu orders + trigger billing).
   const receipts = (await receiptsOfOrder(db, input.orderId)).map(toReceiptRow);
-  // ADR-0118 Điều 1.2: khoản "Công ty thu" đang đối chiếu (đã có + khoản đang nhập kèm nếu người bấm không phải Kế toán) chặn "Đã giao".
+  // ADR-0119 Điều 1.2: khoản "Công ty thu" đang đối chiếu (đã có + khoản đang nhập kèm nếu người bấm không phải Kế toán) chặn "Đã giao".
   const soKhoanDoiChieu = khoanMoiDoiChieu(receipts, (await reconOfOrder(db, input.orderId)).map(toDoiChieuRow)).size
     + (lt && canDoiChieu({ kind: "CUSTOMER_PAYMENT", collectorRole: lt.collectorRole, method: lt.hinhThuc, nguoiGhiPartyId: ai.partyId ?? congTyNeuKeToan(ai, congTyId), nguoiGhiLaKeToan: ai.laKeToan, congTyId }) ? 1 : 0);
   if (lt) receipts.push({ id: "moi", kind: "CUSTOMER_PAYMENT", amount: lt.soTien, collectorRole: lt.collectorRole, collectorPartyId: lt.collectorPartyId, reversesId: null });
@@ -477,7 +477,7 @@ export const docNgay = (raw: unknown, kyDaKhoa: (ngay: string) => boolean): KetQ
 };
 
 /**
- * "Công ty đã nhận": Kế toán xác nhận khoản "Công ty thu" do người khác khai. Hai đường (ADR-0118 Điều 1):
+ * "Công ty đã nhận": Kế toán xác nhận khoản "Công ty thu" do người khác khai. Hai đường (ADR-0119 Điều 1):
  *  - khoản MỚI (có dấu DECLARED, chưa CONFIRMED): ghi dấu CONFIRMED + mã giao dịch (nếu chuyển khoản) + nhật ký — KHÔNG sinh dòng nợ nào;
  *  - khoản CŨ (đã có dòng giữ hộ trước ngày áp luật): phiếu COMPANY_RECEIVED = dòng đảo của dòng giữ hộ trên người khai (H3, ADR-0092 Đ2b) — dữ liệu cũ không đổi.
  * Phân biệt bằng DỮ LIỆU: còn dòng giữ hộ chưa bị đảo ⇒ khoản cũ; còn DECLARED chưa CONFIRMED (lần thu chưa bị đảo) ⇒ khoản mới.

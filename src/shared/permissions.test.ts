@@ -43,7 +43,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "order.cancel": ["none", "none", "none", "assigned", "none", "any", "none", "none", "none", "none"], // ADR-0014 điều 11: thao tác MỚI
   "order.cancel.classify": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0089 đ8 (Đ-2): chọn "Công ty huỷ" + phân loại — Quản trị, Toàn quyền
   "deposit.refund.approve": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0089 đ4a, đ6, X-1, X-4: duyệt hoàn / chuyển, huỷ duyệt, xác nhận hoàn ngoài — Quản trị, Toàn quyền
-  "deposit.transfer.approve": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0118 Điều 2: duyệt chuyển tiền sang đơn mới — Kế toán, Quản trị, Toàn quyền (hoàn vẫn chỉ Quản trị, Toàn quyền)
+  "deposit.transfer.approve": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0119 Điều 2: duyệt chuyển tiền sang đơn mới — Kế toán, Quản trị, Toàn quyền (hoàn vẫn chỉ Quản trị, Toàn quyền)
   "deposit.outside.record": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0089 đ16, X-4: ghi đã hoàn ngoài hệ thống — chỉ Toàn quyền
   "dispatch.assign": ["ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"],
   "dispatch.claim": ["any", "none", "any", "any", "none", "any", "none", "none", "none", "none"], // ADR-0009 điều 2: nhận phụ trách đơn chưa có người (điều kiện do dịch vụ của dispatch kiểm, không phải ô ma trận); ADR-0030 S20-6/S20-12: FIELD any

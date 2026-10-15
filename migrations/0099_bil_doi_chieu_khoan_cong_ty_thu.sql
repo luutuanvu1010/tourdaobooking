@@ -1,4 +1,4 @@
--- Migration 0099 — KHOẢN "CÔNG TY THU – CHUYỂN KHOẢN" DO NGƯỜI KHÔNG PHẢI KẾ TOÁN KHAI: ĐANG ĐỐI CHIẾU, KHÔNG TẠO NỢ (ADR-0118 Điều 1; thay điều H3 của ADR-0026). Module `billing`. Chỉ THÊM.
+-- Migration 0099 — KHOẢN "CÔNG TY THU – CHUYỂN KHOẢN" DO NGƯỜI KHÔNG PHẢI KẾ TOÁN KHAI: ĐANG ĐỐI CHIẾU, KHÔNG TẠO NỢ (ADR-0119 Điều 1; thay điều H3 của ADR-0026). Module `billing`. Chỉ THÊM.
 -- Vì sao cần bảng: luật mới không còn sinh dòng giữ hộ (HELD) cho khoản này, nên không còn dấu nào phân biệt "đang chờ Kế toán đối chiếu" với "Kế toán tự ghi" (cùng là
 -- lần thu vai COMPANY, không dòng nợ). Hai view/trigger của 0079 và hàng rào R-BIL-D6b cũng cần dấu đó. Chủ dự án duyệt thêm migration này (chat 2026-10-15).
 -- Phạm vi (chủ chốt 2026-10-15): CHỈ chuyển khoản. Tiền mặt ghi "Công ty thu" giữ luật H3 cũ (dòng giữ hộ trên người khai) và KHÔNG có dấu ở bảng này.
@@ -47,7 +47,7 @@ WHEN NEW.kind_code = 'CONFIRMED'
   AND NOT EXISTS (SELECT 1 FROM bil_receipt_bank_txn t WHERE t.receipt_id = NEW.receipt_id)
 BEGIN SELECT RAISE(ABORT, 'bank_txn_required: xác nhận khoản chuyển khoản cần mã giao dịch ngân hàng'); END;
 
--- ADR-0118 Điều 1.2: đơn còn khoản đang đối chiếu thì CHƯA có phiếu "Đã giao" (lớp 2 — máy chủ kiểm trước bằng `lyDoChuaGiaoDuoc`, mã "reconciling").
+-- ADR-0119 Điều 1.2: đơn còn khoản đang đối chiếu thì CHƯA có phiếu "Đã giao" (lớp 2 — máy chủ kiểm trước bằng `lyDoChuaGiaoDuoc`, mã "reconciling").
 CREATE TRIGGER bil_posting_delivered_reconciling BEFORE INSERT ON bil_posting
 WHEN NEW.kind_code = 'DELIVERED' AND EXISTS (
   SELECT 1 FROM bil_payment_receipt r JOIN bil_receipt_recon d ON d.receipt_id = r.id AND d.kind_code = 'DECLARED'

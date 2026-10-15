@@ -1,4 +1,4 @@
-// Chữ nhắc cho Kế toán về khoản "Công ty thu" đang đối chiếu (ADR-0118 Điều 1 mục 3) — hàm THUẦN dùng ở Trang chủ và trang đơn của `web/`.
+// Chữ nhắc cho Kế toán về khoản "Công ty thu" đang đối chiếu (ADR-0119 Điều 1 mục 3) — hàm THUẦN dùng ở Trang chủ và trang đơn của `web/`.
 // Số ngày nhắc: MỘT nguồn ở máy chủ (`SO_NGAY_NHAC_DOI_CHIEU`, billing/rules.ts); bản ở đây chỉ để giao diện tự tính "chờ mấy ngày" từ giờ ghi lần thu, và
 // bài `doi-chieu-hien-thi.test.ts` khoá hai nơi bằng nhau. Câu nhắc KHÔNG chứa số điện thoại, số tài khoản hay mã giao dịch: chỉ tên người khai, số tiền, số ngày.
 import { vnToday } from "./vn-date.ts";

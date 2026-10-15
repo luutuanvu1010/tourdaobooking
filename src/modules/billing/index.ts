@@ -104,7 +104,7 @@ export const billingModule: AppModule = {
 
     // ---- CỌC ĐƠN HUỶ (ADR-0089; migration 0079). Mỗi lệnh MỘT lô (ADR-0094 V1), 201 + Location trang đơn (V2). Luật tiền kiểm ở máy chủ (rules.ts) rồi
     // trigger 0079 kiểm lại. Các route /coc/... không trùng tiền tố route nào khác của orders/billing.
-    // Duyệt hoàn / duyệt chuyển (đ4a, đ6; ADR-0118 Điều 2): duyệt HOÀN hỏi `deposit.refund.approve` (Quản trị, Toàn quyền); duyệt CHUYỂN hỏi
+    // Duyệt hoàn / duyệt chuyển (đ4a, đ6; ADR-0119 Điều 2): duyệt HOÀN hỏi `deposit.refund.approve` (Quản trị, Toàn quyền); duyệt CHUYỂN hỏi
     // `deposit.transfer.approve` (Kế toán, Quản trị, Toàn quyền). Thân { loai: "hoan" | "chuyen", soTien, lyDo, donNhan? (mã đơn) }; loại khác "chuyen" tính như hoàn.
     route("POST", "/api/orders/:id/coc/duyet", "office", async ({ env, request, params, staff, baoThayDoi }) => {
       const raw = await readJson(request);
@@ -119,7 +119,7 @@ export const billingModule: AppModule = {
       return json({ ok: true, duyetId: kq.value.duyetId }, 201, { location: trangDon(id) });
     }),
 
-    // Huỷ duyệt phần chưa chi (đ4c): khoản HOÀN hỏi `deposit.refund.approve`, khoản CHUYỂN hỏi `deposit.transfer.approve` (ADR-0118). Thân { soTien, lyDo }.
+    // Huỷ duyệt phần chưa chi (đ4c): khoản HOÀN hỏi `deposit.refund.approve`, khoản CHUYỂN hỏi `deposit.transfer.approve` (ADR-0119). Thân { soTien, lyDo }.
     route("POST", "/api/orders/:id/coc/duyet/:duyetId/huy", "office", async ({ env, request, params, staff, baoThayDoi }) => {
       const duocHoan = can(staff, "deposit.refund.approve");
       const duocChuyen = can(staff, "deposit.transfer.approve");

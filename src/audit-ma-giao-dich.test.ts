@@ -90,7 +90,7 @@ test("R-BIL-D6b ghim hai điều kiện then chốt: nửa thu chuyển cọc (t
   assert.equal(dem(db, "R-BIL-D6b"), 1, "đã 'Công ty đã nhận' mà không mã ⇒ vi phạm");
 });
 
-test("R-BIL-D6b + ADR-0118: khoản MỚI đang đối chiếu (DECLARED chưa CONFIRMED, không dòng giữ hộ) KHÔNG tính; đã CONFIRMED mà không mã THÌ TÍNH", () => {
+test("R-BIL-D6b + ADR-0119: khoản MỚI đang đối chiếu (DECLARED chưa CONFIRMED, không dòng giữ hộ) KHÔNG tính; đã CONFIRMED mà không mã THÌ TÍNH", () => {
   const { db, ct } = moi();
   db.exec("DROP TRIGGER bil_receipt_recon_confirmed_txn"); // giả lập "trigger bị gỡ nhầm" để dựng khoản đã xác nhận thiếu mã
   const r = lanThu(db, ct, "o6", 250);

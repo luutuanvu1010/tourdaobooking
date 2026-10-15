@@ -112,7 +112,7 @@ export const MATRIX = {
   // ngoài hệ thống" — Quản trị (lời chủ 3 câu 3), Toàn quyền. Người duyệt không tự chi (đ4c — kiểm theo người ở máy chủ + trigger, không ở ô này).
   // Route: POST /api/orders/:id/coc/duyet, …/coc/duyet/:duyetId/huy, …/coc/hoan-ngoai/:ghiId/xac-nhan.
   "deposit.refund.approve": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
-  // ADR-0118 Điều 2 (thay X-1 của ADR-0089): DUYỆT CHUYỂN tiền của đơn huỷ sang đơn mới (và huỷ duyệt khoản chuyển) — Kế toán, Quản trị, Toàn quyền, vì chuyển
+  // ADR-0119 Điều 2 (thay X-1 của ADR-0089): DUYỆT CHUYỂN tiền của đơn huỷ sang đơn mới (và huỷ duyệt khoản chuyển) — Kế toán, Quản trị, Toàn quyền, vì chuyển
   // không làm tiền ra khỏi công ty. Ô `deposit.refund.approve` ở trên chỉ còn duyệt HOÀN cho khách. Route POST /api/orders/:id/coc/duyet với loai "chuyen".
   "deposit.transfer.approve": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0089 đ16, X-4: GHI "đã hoàn ngoài hệ thống" cho đơn huỷ cũ — chỉ Toàn quyền (Quản trị xác nhận). Route POST /api/orders/:id/coc/hoan-ngoai.
