@@ -79,3 +79,34 @@ export function pendingCookie(token: string, secure: boolean): string {
 export function clearedPendingCookie(secure: boolean): string {
   return `${PENDING_COOKIE}=; Path=/api/auth/mfa; Max-Age=0; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`;
 }
+
+// ---- Phiếu bật TOTP (ADR-0074 điều 5; kế hoạch Task 5): `POST /api/account/mfa/totp/start` chưa ghi CSDL — khoá mới (ĐÃ mã hoá AES-GCM) đi trong phiếu
+// ký HMAC (khoá dẫn xuất riêng, khác cookie chờ và phiên), gắn mã người, sống 10 phút. Bước xác nhận đọc lại khoá từ phiếu; chỉ khi mã đúng mới lưu.
+export const SETUP_TTL_SECONDS = 600;
+const setupKey = (secret: string): Promise<Uint8Array> => hmacBytes(enc.encode(secret), "td-totp-setup-v1");
+const ENC_PART = /^[A-Za-z0-9_-]+$/;
+
+/** `secretEnc` là chuỗi `v1.<iv>.<ct>` của encryptSecret; phiếu = `ts1.<staffId>.<iat>.v1.<iv>.<ct>.<chữ ký>`. */
+export async function createSetupToken(secret: string, staffId: string, secretEnc: string, nowMs: number): Promise<string> {
+  const payload = `ts1.${staffId}.${nowMs}.${secretEnc}`;
+  return `${payload}.${toBase64Url(await hmacBytes(await setupKey(secret), payload))}`;
+}
+
+export async function verifySetupToken(secret: string, token: string, nowMs: number): Promise<{ staffId: string; secretEnc: string; issuedAt: number } | null> {
+  if (token.length > 512) return null;
+  const parts = token.split(".");
+  if (parts.length !== 7 || parts[0] !== "ts1" || parts[3] !== "v1") return null;
+  const [, staffId, iat, , iv, ct, sig] = parts as [string, string, string, string, string, string, string];
+  if (!ENC_PART.test(iv) || !ENC_PART.test(ct)) return null;
+  let given: Uint8Array;
+  try {
+    given = fromBase64Url(sig);
+  } catch {
+    return null;
+  }
+  const secretEnc = `v1.${iv}.${ct}`;
+  if (!timingSafeEqual(await hmacBytes(await setupKey(secret), `ts1.${staffId}.${iat}.${secretEnc}`), given)) return null;
+  const issuedAt = Number(iat);
+  if (!Number.isFinite(issuedAt) || issuedAt > nowMs + 60_000) return null;
+  return nowMs < issuedAt + SETUP_TTL_SECONDS * 1000 ? { staffId, secretEnc, issuedAt } : null;
+}

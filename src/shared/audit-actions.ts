@@ -244,6 +244,10 @@ export const AUDIT_ACTIONS = {
   notice_acknowledged: { label: "Xác nhận đã hiểu thông báo", group: "notice" },
   session_policy_changed: { label: "Đổi chính sách đăng nhập", group: "staff" }, // ADR-0085 điều 9: quyền đổi + giá trị mới + số máy/số người — KHÔNG tên, SĐT, IP
   session_revoked: { label: "Gỡ phiên đăng nhập", group: "staff" }, // ADR-0075 điều 8: ai gỡ, tài khoản bị gỡ (target), mã phiên (detail) — KHÔNG IP/User-Agent
+  // ADR-0074 điều 5 (tự phục vụ): detail CHỈ loại yếu tố ("TOTP") — KHÔNG khoá, mã, mã dự phòng, email.
+  mfa_enabled: { label: "Bật bảo mật hai lớp", group: "staff" },
+  mfa_removed: { label: "Gỡ bảo mật hai lớp", group: "staff" },
+  mfa_recovery_regenerated: { label: "Tạo bộ mã dự phòng mới", group: "staff" },
 } as const satisfies Record<string, { label: string; group: AuditGroup; doiSoKhach?: true }>;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;

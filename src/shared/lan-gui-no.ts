@@ -21,6 +21,11 @@ export const NGOAI_VE: readonly MucNgoaiVe[] = [
       "Sổ đếm lần thử PIN (bảng login_attempt — đặt chỗ, xoá khi đúng) dùng chung cho đăng nhập, Đổi PIN, Bật Face ID; ghi TRƯỚC lô chính và phải ghi cả khi lệnh bị từ chối. Mang vé thì lô Đổi PIN hỏng vẫn để lại vé ⇒ gửi lại bị báo nhầm 'đã ghi' mà PIN chưa đổi (bài lan-gui-hanh-vi ca k).",
   },
   {
+    noi: "src/modules/auth/index.ts#kiemMaHienCo",
+    lyDo:
+      "Kiểm mã của yếu tố hiện có khi tự đổi khoá / gỡ yếu tố / tạo lại mã dự phòng (ADR-0074 điều 5): đặt chỗ lượt thử (login_attempt, khoá mfa:<id>), tiêu bước TOTP hoặc một mã dự phòng, xoá bộ đếm — ghi TRƯỚC lô chính và phải ghi cả khi lệnh bị từ chối hay lô chính hỏng (đếm lần sai, chống dùng lại mã). Cùng lý do với verifyPinThrottled.",
+  },
+  {
     noi: "src/modules/auth/passkey.ts#limitChallenge",
     lyDo:
       "Sổ đếm thách thức Face ID theo IP (login_attempt, khoá webauthn:<ip>) ghi TRƯỚC lô chính của Bật Face ID / Đặt PIN bằng Face ID và phải ghi cả khi bị từ chối — cùng lý do với verifyPinThrottled. Không mang vé thì bước 'xin thách thức' (chỉ ghi sổ đếm) cũng không bị phát lại thành 'đã ghi'.",

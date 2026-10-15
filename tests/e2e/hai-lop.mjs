@@ -7,7 +7,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { insertStaffSql } from "../../scripts/staff-lib.mjs";
 import { createFakeAuthenticator } from "./fake-authenticator.mjs";
 import { base32Encode, maHoaKhoa, totp } from "./fake-totp.mjs";
-import { ACCOUNTS, BASE, TURNSTILE_TEST, call, freshIp, randomPhone, session, sql, sqlRows } from "./lib.mjs";
+import { ACCOUNTS, BASE, TURNSTILE_TEST, call, freshIp, gieoTaiKhoanLai, randomPhone, session, sql, sqlRows } from "./lib.mjs";
 
 const KHOA = process.env.E2E_MFA_KEY;
 if (!KHOA) throw new Error("Thiếu E2E_MFA_KEY (run.mjs truyền cùng giá trị --var MFA_ENCRYPTION_KEY cho wrangler dev)");
@@ -158,5 +158,129 @@ console.log("✓ 4. 5 mã sai với 5 cookie chờ khác nhau → lần 6: 429")
 const nhatKy = JSON.stringify(await sqlRows("SELECT * FROM audit_log"));
 for (const d of [B32, MA_DA_DUNG, ...MA_DU_PHONG, TIN.slice("td_trusted=".length)]) assert.ok(!nhatKy.includes(d), `nhật ký chứa "${d}"`);
 console.log("✓ nhật ký không chứa khoá, mã, mã dự phòng, token máy tin");
+
+// ===================== Task 5 (ADR-0074 điều 5): TỰ bật / đổi / gỡ ứng dụng xác thực, mã dự phòng, quên máy được tin — route /api/account/mfa*.
+// Tài khoản DÙNG MỘT LẦN (khoá mfa:<AID> của A đã bị 429 ở trên). Mỗi bước TOTP tiêu một bước 30 giây: chờ khỏi mốc chuyển bước rồi dùng s−1, s, s+1 theo thứ tự.
+const ngu = (ms) => new Promise((res) => setTimeout(res, ms));
+async function buocAnToan() {
+  const du = Date.now() % 30_000;
+  if (du > 25_000) await ngu(30_000 - du + 100);
+  return Math.floor(Date.now() / 30_000);
+}
+const maBuoc = (b32, buoc) => totp(b32, buoc * 30_000);
+const MA_DP_RE = /^[23456789abcdefghjkmnpqrstuvwxyz]{4}-[23456789abcdefghjkmnpqrstuvwxyz]{4}$/;
+
+const B = await gieoTaiKhoanLai("Hai Lớp Tự Bật", ["SALES"]);
+r = await call(B.cookie, "GET", "/api/account/mfa");
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.required, true);
+assert.ok(Date.parse(r.body.graceUntil) > Date.now() + 13 * 86_400_000, "nội bộ mới tạo: ân hạn 14 ngày");
+assert.deepEqual([r.body.factors, r.body.allowed, r.body.recoveryLeft, r.body.trustedDevices], [[], ["TOTP", "EMAIL"], 0, []]);
+r = await call(B.cookie, "POST", "/api/account/mfa/totp/start", {});
+assert.equal(r.status, 200, JSON.stringify(r.body));
+const KHOA_B = r.body.secret;
+const PHIEU_B = r.body.setupToken;
+assert.match(KHOA_B, /^[A-Z2-7]{32}$/);
+assert.ok(r.body.otpauth.startsWith("otpauth://totp/") && r.body.otpauth.includes(`secret=${KHOA_B}`) && !r.body.otpauth.includes(B.phone), "otpauth có khoá, không SĐT");
+assert.equal((await sqlRows(`SELECT count(*) AS n FROM aut_mfa_factor WHERE staff_id = '${B.id}'`))[0].n, 0, "bắt đầu bật chưa ghi CSDL");
+r = await call(B.cookie, "POST", "/api/account/mfa/totp/confirm", { setupToken: PHIEU_B, code: "000000" });
+assert.equal(r.status, 401, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "invalid_code");
+let sB = await buocAnToan();
+r = await call(B.cookie, "POST", "/api/account/mfa/totp/confirm", { setupToken: PHIEU_B, code: maBuoc(KHOA_B, sB - 1) });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+const MA_B = r.body.recoveryCodes;
+assert.equal(MA_B.length, 10);
+for (const m of MA_B) assert.match(m, MA_DP_RE);
+console.log("✓ T5. bật ứng dụng xác thực: mã sai → 401; mã đúng → 10 mã dự phòng (một lần)");
+
+r = await call(B.cookie, "GET", "/api/account/mfa");
+assert.equal(r.status, 200);
+assert.equal(r.body.required, false);
+assert.deepEqual(r.body.factors.map((f) => f.kind), ["TOTP"]);
+assert.equal(r.body.recoveryLeft, 10);
+const thanGet = JSON.stringify(r.body);
+assert.doesNotMatch(thanGet, /secret|code_hash|token_hash/i, "GET không có khoá / băm");
+for (const d of [KHOA_B, ...MA_B]) assert.ok(!thanGet.includes(d), `GET chứa "${d}"`);
+assert.deepEqual(await sqlRows(`SELECT action, detail FROM audit_log WHERE staff_id = '${B.id}' AND action LIKE 'mfa_%'`), [{ action: "mfa_enabled", detail: "TOTP" }]);
+console.log("✓ T5. GET /api/account/mfa: đã bật, 10 mã còn lại, không lộ khoá / mã; nhật ký mfa_enabled chỉ ghi loại");
+
+r = await call(B.cookie, "POST", "/api/account/mfa/remove", { kind: "TOTP", code: MA_B[9] });
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.deepEqual(r.body.error, { code: "mfa_last_factor", message: "Tài khoản nội bộ phải giữ ít nhất một cách xác thực." });
+console.log("✓ T5. tài khoản nội bộ gỡ yếu tố cuối → 409");
+
+// Mã dự phòng ở đăng nhập (route bước hai của Task 4): dùng một lần, recoveryLeft giảm; tin máy này.
+r = await verify(await pendingOf(B), { method: "RECOVERY", code: MA_B[0], trustDevice: true });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.recoveryLeft, 9);
+let SB = cookieOf(r, "td_session");
+const TIN_B = cookieOf(r, "td_trusted");
+assert.ok(SB && TIN_B);
+assert.equal((await verify(await pendingOf(B), { method: "RECOVERY", code: MA_B[0], trustDevice: false })).status, 401, "mã dự phòng chỉ dùng một lần");
+r = await call(SB, "GET", "/api/account/mfa");
+assert.equal(r.body.recoveryLeft, 9);
+assert.equal(r.body.trustedDevices.length, 1);
+assert.equal(r.body.trustedDevices[0].thisDevice, true);
+console.log("✓ T5. mã dự phòng dùng được một lần ở đăng nhập, recoveryLeft giảm; máy tin hiện trong danh sách (máy này)");
+
+// Đổi khoá: cần mã hiện tại (dùng mã dự phòng — tránh tiêu thêm bước TOTP), không sinh bộ mã mới.
+r = await call(SB, "POST", "/api/account/mfa/totp/start", {});
+const KHOA_B2 = r.body.secret;
+sB = await buocAnToan();
+const r2 = await call(SB, "POST", "/api/account/mfa/totp/confirm", { setupToken: r.body.setupToken, code: maBuoc(KHOA_B2, sB) });
+assert.equal(r2.status, 400, JSON.stringify(r2.body));
+assert.equal(r2.body.error.code, "current_code_required");
+r = await call(SB, "POST", "/api/account/mfa/totp/confirm", { setupToken: r.body.setupToken, code: maBuoc(KHOA_B2, sB), currentCode: MA_B[1] });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.deepEqual(r.body, {});
+// Tạo bộ mã mới bằng mã TOTP của khoá MỚI (bước sau bước vừa dùng lúc đổi).
+r = await call(SB, "POST", "/api/account/mfa/recovery/regenerate", { code: maBuoc(KHOA_B2, sB + 1) });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.recoveryCodes.length, 10);
+assert.equal((await verify(await pendingOf(B), { method: "RECOVERY", code: MA_B[2], trustDevice: false })).status, 401, "bộ mã cũ hết hiệu lực");
+console.log("✓ T5. đổi khoá cần mã hiện tại; tạo bộ mã dự phòng mới — bộ cũ hết hiệu lực");
+
+// Quên mọi máy → lần đăng nhập PIN sau trên máy đó bị hỏi mã.
+r = await pinLogin(B, TIN_B);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.staff?.phone, B.phone, "trước khi quên: máy tin vào thẳng");
+SB = cookieOf(r, "td_session");
+r = await call(SB, "POST", "/api/account/mfa/trusted/forget-all", {});
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.revoked, 1);
+r = await pinLogin(B, TIN_B);
+assert.equal(r.body.next, "mfa", JSON.stringify(r.body));
+console.log("✓ T5. quên mọi máy → lần sau bị hỏi mã");
+
+r = await call(await session(ACCOUNTS.admin), "GET", "/api/account/mfa");
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.deepEqual(r.body.allowed, ["TOTP"]);
+console.log("✓ T5. Quản trị: chỉ được bật ứng dụng xác thực (allowed = TOTP)");
+
+// Đối tác (bên ngoài): không bắt buộc, tự bật được; gỡ được yếu tố cuối → đăng nhập lại như cũ.
+const P = await gieoTaiKhoanLai("Đối Tác Hai Lớp", ["PARTNER"]);
+r = await call(P.cookie, "GET", "/api/account/mfa");
+assert.equal(r.body.required, false);
+assert.equal(r.body.graceUntil, null);
+r = await call(P.cookie, "POST", "/api/account/mfa/totp/start", {});
+const KHOA_P = r.body.secret;
+r = await call(P.cookie, "POST", "/api/account/mfa/totp/confirm", { setupToken: r.body.setupToken, code: maBuoc(KHOA_P, await buocAnToan()) });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+const MA_P = r.body.recoveryCodes;
+assert.equal(MA_P.length, 10);
+r = await pinLogin(P);
+assert.equal(r.body.next, "mfa", JSON.stringify(r.body));
+r = await call(P.cookie, "POST", "/api/account/mfa/remove", { kind: "TOTP", code: MA_P[0] });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+r = await pinLogin(P);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.staff?.phone, P.phone, "gỡ hết → Đối tác đăng nhập PIN như cũ");
+console.log("✓ T5. Đối tác tự bật được (bị hỏi mã), gỡ được yếu tố cuối");
+
+// Không lộ ở nhật ký: khoá, mã dự phòng của phần Task 5.
+const nhatKy5 = JSON.stringify(await sqlRows(`SELECT * FROM audit_log WHERE staff_id IN ('${B.id}', '${P.id}')`));
+for (const d of [KHOA_B, KHOA_B2, KHOA_P, ...MA_B, ...MA_P]) assert.ok(!nhatKy5.includes(d), `nhật ký chứa "${d}"`);
+console.log("✓ T5. nhật ký không chứa khoá / mã dự phòng");
 
 console.log("E2E HAI LỚP OK");

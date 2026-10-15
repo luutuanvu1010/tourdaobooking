@@ -64,6 +64,27 @@ export type LoginMfaStepResponse =
   | { next: "mfa_enroll" };
 /** `POST /api/auth/mfa/verify` đúng mã → `td_session` (+ `td_trusted` nếu chọn tin máy 30 ngày). `recoveryLeft`: chỉ khi vừa dùng mã dự phòng — số mã còn lại. */
 export interface MfaVerifyResponse { staff: StaffProfile; recoveryLeft?: number }
+/** Máy được tin của chính mình (không bao giờ kèm token / băm). `thisDevice` = phiên đang dùng được cấp qua máy này (sổ phiên `trusted_device_id`). */
+export interface TrustedDeviceDto { id: string; label: string; createdAt: string; lastUsedAt: string; thisDevice: boolean }
+/**
+ * `GET /api/account/mfa` — khối "Bảo mật đăng nhập" của chính mình (ADR-0074 điều 5). `required`/`graceUntil` = CÙNG luật dải nhắc (`mfaBanner`): nội bộ chưa
+ * bật thì bắt buộc, `graceUntil` chỉ có khi còn ân hạn. `allowed` = yếu tố được phép bật (máy chủ tính — Quản trị/Toàn quyền/Kế toán chỉ TOTP). KHÔNG chứa
+ * khoá, mã, mã dự phòng, email đầy đủ.
+ */
+export interface AccountMfaResponse {
+  required: boolean;
+  graceUntil: string | null;
+  factors: { kind: "TOTP" | "EMAIL"; createdAt: string }[];
+  allowed: ("TOTP" | "EMAIL")[];
+  recoveryLeft: number;
+  trustedDevices: TrustedDeviceDto[];
+}
+/** `POST /api/account/mfa/totp/start` — khoá base32 + `otpauth://` trả MỘT lần (chưa lưu); `setupToken` mang khoá đã mã hoá, ký HMAC, sống 10 phút. */
+export interface MfaTotpStartResponse { setupToken: string; secret: string; otpauth: string }
+/** `POST /api/account/mfa/totp/confirm` — `recoveryCodes` (10 mã `xxxx-xxxx`) chỉ có khi đây là yếu tố ĐẦU TIÊN; hiện một lần duy nhất. */
+export interface MfaTotpConfirmResponse { recoveryCodes?: string[] }
+/** `POST /api/account/mfa/recovery/regenerate` — bộ 10 mã mới (bộ cũ hết hiệu lực); hiện một lần duy nhất. */
+export interface MfaRecoveryCodesResponse { recoveryCodes: string[] }
 /**
  * `GET /api/auth/config` (công khai): khoá site để trang đăng nhập dựng widget Turnstile; null = máy chủ không bật Turnstile (đừng dựng widget, đăng nhập không cần token).
  * `maintenance`: trang đăng nhập hiện banner + đếm ngược khi đang bảo trì. KHÔNG lộ ai được phép.

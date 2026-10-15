@@ -2,7 +2,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions.ts";
-import { allowedFactors, clearedPendingCookie, createPendingToken, isInternal, loginStep, mfaBanner, PENDING_COOKIE, PENDING_TTL_SECONDS, pendingCookie, verifyPendingToken } from "./mfa-rules.ts";
+import {
+  SETUP_TTL_SECONDS, allowedFactors, clearedPendingCookie, createPendingToken, createSetupToken, isInternal, loginStep, mfaBanner, PENDING_COOKIE, PENDING_TTL_SECONDS, pendingCookie,
+  verifyPendingToken, verifySetupToken,
+} from "./mfa-rules.ts";
 import { createSessionToken, verifySessionToken } from "./session.ts";
 
 const NOW = "2026-10-02T01:00:00.000Z";
@@ -102,4 +105,27 @@ test("cookie chờ: tên, thuộc tính, Secure khi https", () => {
   assert.equal(pendingCookie("abc", false), "td_mfa_pending=abc; Path=/api/auth/mfa; Max-Age=300; HttpOnly; SameSite=Lax");
   assert.equal(pendingCookie("abc", true), "td_mfa_pending=abc; Path=/api/auth/mfa; Max-Age=300; HttpOnly; SameSite=Lax; Secure");
   assert.equal(clearedPendingCookie(true), "td_mfa_pending=; Path=/api/auth/mfa; Max-Age=0; HttpOnly; SameSite=Lax; Secure");
+});
+
+// ---- Phiếu bật TOTP (Task 5): khoá đã mã hoá + mã người + giờ phát, ký HMAC khoá riêng, 10 phút. Khoá CHƯA lưu CSDL trước khi xác nhận.
+test("phiếu bật TOTP: khứ hồi đúng; sai bí mật, hết 600 giây, sửa mã người / khoá, token chờ hay token phiên → null", async () => {
+  const t0 = Date.parse(NOW);
+  const ENC = "v1.AAAAAAAAAAAAAAAA.BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+  const tok = await createSetupToken(SECRET, "u1", ENC, t0);
+  assert.deepEqual(await verifySetupToken(SECRET, tok, t0 + 1000), { staffId: "u1", secretEnc: ENC, issuedAt: t0 });
+  assert.equal(SETUP_TTL_SECONDS, 600);
+  assert.equal(await verifySetupToken(SECRET, tok, t0 + 600_000), null, "hết 10 phút");
+  assert.notEqual(await verifySetupToken(SECRET, tok, t0 + 599_000), null);
+  assert.equal(await verifySetupToken("bi-mat-khac", tok, t0 + 1000), null);
+  assert.equal(await verifySetupToken(SECRET, tok.replace(".u1.", ".u2."), t0 + 1000), null, "đổi mã người");
+  assert.equal(await verifySetupToken(SECRET, tok.replace("BBBB", "CCCC"), t0 + 1000), null, "đổi khoá");
+  assert.equal(await verifySetupToken(SECRET, await createPendingToken(SECRET, "u1", "verify", t0), t0 + 1000), null, "token chờ không làm phiếu bật được");
+  assert.equal(await verifySetupToken(SECRET, await createSessionToken(SECRET, "u1", "s1", t0), t0 + 1000), null, "token phiên không làm phiếu bật được");
+  assert.equal(await verifySetupToken(SECRET, "rac", t0), null);
+  assert.equal(await verifySetupToken(SECRET, tok, t0 - 120_000), null, "giờ phát ở tương lai xa");
+  // Ký bằng nhãn của cookie chờ (khoá dẫn xuất khác) → null: hai loại token không dùng lẫn được dù cùng SESSION_SECRET.
+  const payload = `ts1.u1.${t0}.${ENC}`;
+  const k = await crypto.subtle.importKey("raw", new Uint8Array(await crypto.subtle.sign("HMAC", await crypto.subtle.importKey("raw", new TextEncoder().encode(SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]), new TextEncoder().encode("td-mfa-pending-v1"))), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = Buffer.from(await crypto.subtle.sign("HMAC", k, new TextEncoder().encode(payload))).toString("base64url");
+  assert.equal(await verifySetupToken(SECRET, `${payload}.${sig}`, t0 + 1000), null);
 });

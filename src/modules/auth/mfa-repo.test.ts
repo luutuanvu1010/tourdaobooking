@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { DatabaseSync, type SupportedValueType } from "node:sqlite";
 import { readFileSync, readdirSync } from "node:fs";
 import {
-  factorEndAllStatement, factorEndStatement, factorInsertStatement, factorListLive, recoveryCountLeft, recoveryInsertStatement, recoveryRevokeAllStatement,
+  factorEndAllStatement, factorEndKeepOneStatement, factorEndStatement, factorInsertStatement, factorListLive, recoveryCountLeft, recoveryInsertStatement, recoveryRevokeAllStatement,
   recoveryUseStatement, totpConsumeStatement, trustedFind, trustedInsertStatement, trustedList, trustedRevokeAllStatement, trustedRevokeStatement, trustedTouchStatement,
 } from "./mfa-repo.ts";
 
@@ -45,6 +45,18 @@ test("yếu tố: thêm, liệt kê còn sống, đóng một yếu tố đúng 
   await factorInsertStatement(db, { id: "f3", staffId: "s1", kind: "EMAIL", secretEnc: null, email: "a@b.vn", at: T1, by: "s1" }).run();
   assert.equal((await factorEndAllStatement(db, "s1", T2, "s1").run()).meta.changes, 2);
   assert.equal((await factorListLive(db, "s1")).length, 0);
+});
+
+test("gỡ giữ một (tài khoản nội bộ — Task 5): chỉ kết thúc khi còn yếu tố sống KHÁC của đúng người; yếu tố cuối → changes = 0", async () => {
+  const { db } = setup();
+  await factorInsertStatement(db, totp()).run();
+  await factorInsertStatement(db, totp("g1", "s2")).run();
+  assert.equal((await factorEndKeepOneStatement(db, "f1", "s1", T2, "s1").run()).meta.changes, 0, "yếu tố cuối (yếu tố của người khác không tính)");
+  await factorInsertStatement(db, { id: "f3", staffId: "s1", kind: "EMAIL", secretEnc: null, email: "a@b.vn", at: T1, by: "s1" }).run();
+  assert.equal((await factorEndKeepOneStatement(db, "f1", "s2", T2, "s2").run()).meta.changes, 0, "sai chủ");
+  assert.equal((await factorEndKeepOneStatement(db, "f1", "s1", T2, "s1").run()).meta.changes, 1);
+  assert.equal((await factorEndKeepOneStatement(db, "f3", "s1", T2, "s1").run()).meta.changes, 0, "còn một thì không gỡ nữa");
+  assert.deepEqual((await factorListLive(db, "s1")).map((f) => f.id), ["f3"]);
 });
 
 test("chống dùng lại TOTP: chỉ đổi khi bước mới LỚN HƠN bước đã dùng; bước cũ/bằng → changes = 0; yếu tố đã đóng → 0", async () => {

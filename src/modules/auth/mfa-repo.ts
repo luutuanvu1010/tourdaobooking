@@ -31,6 +31,14 @@ const FACTOR_INSERT = defineSql(
     "VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6, NULL, ?6, ?7, ?6, ?7)",
 );
 const FACTOR_END = defineSql("auth", "mfa_factor_end", "UPDATE aut_mfa_factor SET valid_to_at = ?3, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND staff_id = ?2 AND valid_to_at IS NULL");
+// Tài khoản nội bộ tự gỡ một yếu tố (ADR-0074, đặc tả §4.3): chỉ kết thúc khi CÒN yếu tố sống khác — lưới khi hai lần gỡ chạy đua (kiểm trước ở route chỉ
+// cho câu báo rõ). Đổi 0 dòng ⇒ người gọi trả 409.
+const FACTOR_END_KEEP_ONE = defineSql(
+  "auth",
+  "mfa_factor_end_keep_one",
+  "UPDATE aut_mfa_factor SET valid_to_at = ?3, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND staff_id = ?2 AND valid_to_at IS NULL " +
+    "AND EXISTS (SELECT 1 FROM aut_mfa_factor o WHERE o.staff_id = ?2 AND o.valid_to_at IS NULL AND o.id <> ?1)",
+);
 const FACTOR_END_ALL = defineSql("auth", "mfa_factor_end_all", "UPDATE aut_mfa_factor SET valid_to_at = ?2, updated_at = ?2, updated_by = ?3 WHERE staff_id = ?1 AND valid_to_at IS NULL");
 // Chống dùng lại mã TOTP: chỉ đổi khi bước mới LỚN HƠN bước đã dùng. Người gọi đòi changes = 1.
 const TOTP_CONSUME = defineSql("auth", "mfa_totp_consume", "UPDATE aut_mfa_factor SET last_totp_step = ?2, updated_at = ?3 WHERE id = ?1 AND valid_to_at IS NULL AND last_totp_step < ?2");
@@ -62,7 +70,9 @@ export const factorInsertStatement = (
 ): D1PreparedStatement => db.prepare(FACTOR_INSERT).bind(r.id, r.staffId, r.kind, r.secretEnc, r.email, r.at, r.by);
 export const factorEndStatement = (db: D1Database, id: string, staffId: string, at: string, by: string | null): D1PreparedStatement =>
   db.prepare(FACTOR_END).bind(id, staffId, at, by);
-export const factorEndAllStatement = (db: D1Database, staffId: string, at: string, by: string | null): D1PreparedStatement =>
+export const factorEndKeepOneStatement = (db: D1Database, id: string, staffId: string, at: string, by: string | null): D1PreparedStatement =>
+  db.prepare(FACTOR_END_KEEP_ONE).bind(id, staffId, at, by);
+export const factorEndAllStatement =(db: D1Database, staffId: string, at: string, by: string | null): D1PreparedStatement =>
   db.prepare(FACTOR_END_ALL).bind(staffId, at, by);
 export const totpConsumeStatement = (db: D1Database, id: string, step: number, at: string): D1PreparedStatement => db.prepare(TOTP_CONSUME).bind(id, step, at);
 

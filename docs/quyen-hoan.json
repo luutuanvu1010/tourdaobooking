@@ -43,7 +43,13 @@
     { "method": "POST", "path": "/api/account/thong-bao/da-doc", "loai": "ngoại lệ", "ly_do": "Tự phục vụ: đặt mốc đã đọc hộp thông báo của chính mình (ADR-0034 điều 6); id lấy từ phiên." },
     { "method": "POST", "path": "/api/account/thong-bao/:id/da-hieu", "loai": "ngoại lệ", "ly_do": "Tự phục vụ: xác nhận chính mình đã hiểu tin quan trọng gửi tới mình (ADR-0034 điều 8); thân kiểm người gọi thuộc nhóm nhận." },
     { "method": "POST", "path": "/api/account/thong-bao/may", "loai": "ngoại lệ", "ly_do": "Tự phục vụ: đăng ký địa chỉ nhận thông báo màn hình khoá của chính máy đang dùng (ADR-0036 điều 1–2); id lấy từ phiên, không ghi thay tài khoản khác." },
-    { "method": "POST", "path": "/api/account/thong-bao/may/huy", "loai": "ngoại lệ", "ly_do": "Tự phục vụ: tắt địa chỉ nhận của chính mình, một máy hoặc mọi máy (ADR-0036 điều 1–2, 6); chỉ đổi dòng của staffId trong phiên." }
+    { "method": "POST", "path": "/api/account/thong-bao/may/huy", "loai": "ngoại lệ", "ly_do": "Tự phục vụ: tắt địa chỉ nhận của chính mình, một máy hoặc mọi máy (ADR-0036 điều 1–2, 6); chỉ đổi dòng của staffId trong phiên." },
+    { "method": "POST", "path": "/api/account/mfa/totp/start", "loai": "ngoại lệ", "ly_do": "Tự phục vụ bảo mật đăng nhập của chính mình (ADR-0074); id lấy từ phiên." },
+    { "method": "POST", "path": "/api/account/mfa/totp/confirm", "loai": "ngoại lệ", "ly_do": "Tự phục vụ bảo mật đăng nhập của chính mình (ADR-0074); id lấy từ phiên." },
+    { "method": "POST", "path": "/api/account/mfa/recovery/regenerate", "loai": "ngoại lệ", "ly_do": "Tự phục vụ bảo mật đăng nhập của chính mình (ADR-0074); id lấy từ phiên." },
+    { "method": "POST", "path": "/api/account/mfa/remove", "loai": "ngoại lệ", "ly_do": "Tự phục vụ bảo mật đăng nhập của chính mình (ADR-0074); id lấy từ phiên." },
+    { "method": "POST", "path": "/api/account/mfa/trusted/:id/forget", "loai": "ngoại lệ", "ly_do": "Tự phục vụ bảo mật đăng nhập của chính mình (ADR-0074); id lấy từ phiên." },
+    { "method": "POST", "path": "/api/account/mfa/trusted/forget-all", "loai": "ngoại lệ", "ly_do": "Tự phục vụ bảo mật đăng nhập của chính mình (ADR-0074); id lấy từ phiên." }
   ],
   "_phat_hien_mo_ta": "Phát hiện an ninh/tiền mức HIGH trở lên từ kiểm toán/red team còn MỞ (luật 'dừng dây chuyền', CLAUDE.md §3, chủ duyệt 2026-09-24). Mỗi mục có người chịu trách nhiệm và hạn; quá hạn → npm test đỏ (src/phat-hien-han.test.ts) cho tới khi vá (xoá mục trong cùng commit vá) hoặc chủ dự án gia hạn bằng diff có lý do trong thông điệp commit.",
   "phat_hien": [

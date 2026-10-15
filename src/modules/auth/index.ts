@@ -34,6 +34,14 @@ export {
   type PasskeyRow,
 } from "./repository";
 export { logPasskeyRejected, toPasskeyDto } from "./passkey";
+// Xuất cho module `accounts` — tự bật / đổi / gỡ bảo mật hai lớp, mã dự phòng, quên máy được tin (ADR-0074 điều 5; route /api/account/mfa*). Không hàm nào trả
+// khoá đã mã hoá hay băm; câu lệnh chưa chạy để route gộp với dòng nhật ký trong một lô.
+export {
+  batTotpStatements, boMaDuPhongMoi, goYeuToStatements, khopKhoaMoi, mayTinSong, moiKhoaTotp, quenMayStatement, quenMoiMayStatement, yeuToSong,
+  type MayTin, type YeuToSong,
+} from "./mfa-tu-phuc-vu";
+export { allowedFactors, isInternal, mfaBanner } from "./mfa-rules";
+export { recoveryCountLeft };
 export { PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, issuePasskeyChallenge, limitChallenge, passkeyRp, readPasskeyChallenge };
 export { verifyRegistration } from "./webauthn";
 export { deviceLabel } from "./device-label";
@@ -223,7 +231,37 @@ async function ghiDangNhap(env: Env, staffId: string): Promise<void> {
 }
 
 const MFA_EXPIRED = (): Response => error(401, "mfa_expired", "Đã quá 5 phút, đăng nhập lại.");
-const MFA_UNAVAILABLE = (): Response => error(503, "mfa_unavailable", "Máy chủ chưa cấu hình khoá bảo mật hai lớp. Báo IT.");
+export const MFA_UNAVAILABLE = (): Response => error(503, "mfa_unavailable", "Máy chủ chưa cấu hình khoá bảo mật hai lớp. Báo IT.");
+
+/**
+ * Kiểm mã của yếu tố HIỆN CÓ khi tự đổi khoá / gỡ yếu tố / tạo lại mã dự phòng (ADR-0074 điều 5; đặc tả §4.3: "đổi hoặc gỡ … phải nhập mã của một yếu tố
+ * hiện có"). `null` = đúng (mã đã bị tiêu); ngược lại là Response trả thẳng: 400 thiếu mã, 401 `invalid_code`, 429 như PIN, 503 thiếu khoá máy chủ.
+ * - CÙNG hạn mức theo tài khoản với bước hai của đăng nhập (`mfa:<staffId>`, 5 lần / 15 phút): phiên bị chiếm không thành chỗ dò mã TOTP không giới hạn.
+ * - Mã 6 số = TOTP (tiêu bước — mã đã dùng ở đăng nhập không dùng lại được); `cach = "TOTP_HOAC_DU_PHONG"` nhận thêm mã dự phòng (tiêu một mã).
+ * - NGOÀI VÉ (ADR-0094, T17 — mục có tên trong src/shared/lan-gui-no.ts): đặt chỗ lượt thử, tiêu bước TOTP / mã dự phòng và xoá bộ đếm ghi TRƯỚC lô chính
+ *   của lệnh, và phải ghi cả khi lệnh bị từ chối hay lô chính hỏng (chống dùng lại mã, đếm lần sai) — như verifyPinThrottled.
+ */
+export async function kiemMaHienCo(env: Env, staffId: string, rawCode: unknown, nowMs: number, cach: "TOTP" | "TOTP_HOAC_DU_PHONG"): Promise<Response | null> {
+  const code = typeof rawCode === "string" ? rawCode.trim().slice(0, 32) : "";
+  if (!code) return error(400, "invalid_input", cach === "TOTP" ? "Cần nhập mã 6 số đang hiện trên ứng dụng xác thực." : "Cần nhập mã từ ứng dụng xác thực hoặc một mã dự phòng.");
+  const laTotp = /^\d{6}$/.test(code);
+  // Lỗi cấu hình máy chủ không được tiêu lượt thử của người dùng: kiểm khoá TRƯỚC khi đặt chỗ (như bước hai của đăng nhập).
+  if (laTotp && !mfaKeyReady(env)) return MFA_UNAVAILABLE();
+  const db = dbNgoaiVe(env.DB);
+  const reservation = await reserveAttempts(db, [{ key: mfaKey(staffId), max: MFA_LIMIT }]);
+  if (!reservation.allowed) return tooMany(reservation.retryAfterSeconds);
+  const kq = laTotp
+    ? await useTotp({ ...env, DB: db }, staffId, code, nowMs)
+    : ((cach === "TOTP_HOAC_DU_PHONG" && (await useRecoveryCode(db, staffId, code, new Date(nowMs).toISOString()))) ? "ok" : "invalid");
+  if (kq === "unavailable") return MFA_UNAVAILABLE();
+  if (kq !== "ok") {
+    return error(401, "invalid_code", cach === "TOTP"
+      ? "Mã không đúng hoặc đã dùng. Nhập mã mới nhất trên ứng dụng xác thực (kiểm giờ tự động trên điện thoại nếu sai nhiều lần)."
+      : "Mã hiện tại không đúng hoặc đã dùng. Nhập mã mới nhất trên ứng dụng xác thực, hoặc một mã dự phòng chưa dùng.");
+  }
+  await clearAttempts(db, mfaKey(staffId), reservation.ids);
+  return null;
+}
 
 export type PinAttemptResult =
   | { ok: true; profile: StaffProfile }

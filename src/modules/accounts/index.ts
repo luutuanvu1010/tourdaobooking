@@ -8,14 +8,16 @@ import {
   demSietTheoTap, docChinhSachPhien, docTapNhieuMay, endOneSessionStatement, laLoiChinhSachCu, luuChinhSachStatements, sietTheoTapStatements, endOtherSessionsStatement, exemptionChangeStatements, getSession, listMySessions, listSessions, toSessionDto, firstUserHandle, insertPasskeyStatement, issuePasskeyChallenge, limitChallenge, listActivePasskeys, lockedPhones, logPasskeyRejected,
   markSessionReissuedStatement, passkeyRp, readPasskeyChallenge, revokeAllPasskeysIfSuspendedStatement, reissueSessionCookie, revokeAllPasskeysStatement,
   revokePasskeyStatement, toPasskeyDto, unlockPhone, verifyPinThrottled, verifyRegistration,
+  MFA_UNAVAILABLE, allowedFactors, batTotpStatements, boMaDuPhongMoi, goYeuToStatements, isInternal, khopKhoaMoi, kiemMaHienCo, mayTinSong, mfaBanner, moiKhoaTotp,
+  quenMayStatement, quenMoiMayStatement, recoveryCountLeft, yeuToSong,
 } from "../auth";
 import {
   KHONG_NHAN_VAI_NOI_BO, accountRoleCodes, canManageAccount, checkAccountChange, chuPhienTheoId, hoSoCoNhanDoiTac, moNoiBoChoHoSoCoNhanProblem, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
-  generatePin, getAccountRoleState, getStaffAccount, isValidPin, listStaffAccounts, normalizePhone, renameAccountStatements, roleChangeStatements,
+  generatePin, getAccountRoleState, getStaffAccount, isValidPin, listStaffAccounts, mfaDeadlinesOf, normalizePhone, renameAccountStatements, roleChangeStatements,
   setPermissionStatements, setPinStatement, touchCredentialsStatement, updateStaffStatement, validateFreshPin, validateNewPin, type StaffAccount,
 } from "../staff";
 import type {
-  PartyMatchResponse, PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, SessionListResponse, SessionPolicyPreviewResponse,
+  AccountMfaResponse, MfaRecoveryCodesResponse, MfaTotpConfirmResponse, MfaTotpStartResponse, PartyMatchResponse, PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, SessionListResponse, SessionPolicyPreviewResponse,
   SessionPolicyResponse, SessionPolicyRowDto, SessionPolicySaveResponse, StaffAccountDto, StaffListResponse, StaffResponse, StaffRolesResponse, StaffSessionListResponse, StaffWithPinResponse,
 } from "../../shared/contracts";
 import { toBase64Url } from "../../shared/encoding";
@@ -35,6 +37,10 @@ import { vnToday } from "../../shared/vn-date";
 const isUniqueViolation = (e: unknown) => e instanceof Error && /UNIQUE constraint failed: staff\.phone/.test(e.message);
 // A-1: trùng khoá passkey là một ràng buộc UNIQUE KHÁC (aut_passkey.credential_id) — isUniqueViolation ở trên KHÔNG khớp, nên phải kiểm riêng.
 const isPasskeyTaken = (e: unknown) => e instanceof Error && /UNIQUE constraint failed: aut_passkey\.credential_id/.test(e.message);
+// ADR-0074: hai lần bật cùng lúc đụng chỉ mục "một yếu tố sống mỗi loại" (hoặc băm mã dự phòng trùng) — bên thua nhận 409, không 500.
+const isMfaRace = (e: unknown) => e instanceof Error && /UNIQUE constraint failed: aut_mfa_(factor|recovery_code)\./.test(e.message);
+const MFA_CHANGED = () => error(409, "mfa_changed", "Bảo mật hai lớp vừa được đổi ở nơi khác — tải lại trang rồi thử lại.");
+const MFA_LAST_FACTOR = () => error(409, "mfa_last_factor", "Tài khoản nội bộ phải giữ ít nhất một cách xác thực.");
 const PHONE_TAKEN = () => error(409, "phone_taken", "Số điện thoại này đã có tài khoản.");
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy nhân viên.");
 const LAST_ADMIN = () => error(409, "account_rule", "Hệ thống phải còn ít nhất một quản trị viên đang hoạt động.");
@@ -728,6 +734,117 @@ export const accountsModule: AppModule = {
       const [rows, owners] = await Promise.all([listMySessions(env.DB, staff.id), chuPhienTheoId(env.DB, [staff.id])]);
       const cred = owners.get(staff.id)?.credentialsChangedAt ?? null;
       return json({ sessions: rows.map((r) => toSessionDto(r, cred, nowIso, sessionId)) } satisfies SessionListResponse);
+    }),
+
+    // ---- Bảo mật hai lớp của CHÍNH MÌNH (ADR-0074 điều 5; đặc tả §4.3). Ở module accounts vì lô ghi kèm nhật ký (auth không import audit). Tự phục vụ: id lấy
+    // từ phiên, không nhận tham số người. Khoá TOTP thô chỉ trả MỘT lần ở bước bắt đầu; mã dự phòng thô chỉ trả một lần lúc tạo; nhật ký chỉ ghi loại yếu tố.
+    route("GET", "/api/account/mfa", "staff", async ({ env, staff, sessionId }) => {
+      const nowIso = new Date().toISOString();
+      const [factors, recoveryLeft, devices, han, phien] = await Promise.all([
+        yeuToSong(env.DB, staff.id), recoveryCountLeft(env.DB, staff.id), mayTinSong(env.DB, staff.id, nowIso), mfaDeadlinesOf(env.DB, staff.id),
+        sessionId ? getSession(env.DB, sessionId) : Promise.resolve(null),
+      ]);
+      const banner = mfaBanner({ perms: staff.permissions, hasFactor: factors.length > 0, trusted: false, graceUntil: han.graceUntil, enrollUntil: han.enrollUntil, nowIso });
+      const mayNay = phien?.staff_id === staff.id ? phien.trusted_device_id : null;
+      return json({
+        required: banner.required, graceUntil: banner.graceUntil,
+        factors: factors.map((f) => ({ kind: f.kind, createdAt: f.createdAt })),
+        allowed: allowedFactors(staff.permissions), recoveryLeft,
+        trustedDevices: devices.map((d) => ({ id: d.id, label: d.label, createdAt: d.createdAt, lastUsedAt: d.lastUsedAt, thisDevice: mayNay !== null && d.id === mayNay })),
+      } satisfies AccountMfaResponse);
+    }),
+
+    // Bước 1 bật ứng dụng xác thực: KHÔNG ghi CSDL — khoá mới đi trong phiếu bật (đã mã hoá, ký, 10 phút). Thiếu khoá máy chủ → 503 + log mfa_key_missing.
+    route("POST", "/api/account/mfa/totp/start", "staff", async ({ env, staff }) => {
+      const r = await moiKhoaTotp(env, staff.id, staff.fullName.trim() || "Tài khoản", Date.now()); // nhãn là TÊN, không SĐT
+      return r ? json(r satisfies MfaTotpStartResponse) : MFA_UNAVAILABLE();
+    }),
+
+    // Bước 2: mã của khoá mới đúng → [đã có yếu tố: mã của yếu tố hiện có (TOTP hoặc mã dự phòng), có hạn mức] → MỘT lô: kết thúc TOTP cũ (nếu thay) → chèn
+    // TOTP mới (tiêu bước vừa khớp) → (yếu tố đầu tiên) thu hồi mã cũ + 10 mã mới → nhật ký mfa_enabled.
+    route("POST", "/api/account/mfa/totp/confirm", "staff", async ({ request, env, staff }) => {
+      const body = await readJson(request);
+      const code = typeof body?.code === "string" ? body.code.trim().slice(0, 32) : "";
+      const now = Date.now();
+      const at = new Date(now).toISOString();
+      const moi = await khopKhoaMoi(env, staff.id, body?.setupToken, code, now);
+      if (moi.kq === "unavailable") return MFA_UNAVAILABLE();
+      if (moi.kq === "expired") return error(400, "setup_expired", "Phiên bật đã hết hạn (10 phút). Bấm “Bật ứng dụng xác thực” lại để lấy khoá mới.");
+      if (moi.kq !== "ok") return error(401, "invalid_code", "Mã không đúng. Nhập mã 6 số mới nhất trên ứng dụng xác thực (kiểm giờ tự động trên điện thoại nếu sai nhiều lần).");
+      const song = await yeuToSong(env.DB, staff.id);
+      if (song.length > 0) {
+        if (typeof body?.currentCode !== "string" || !body.currentCode.trim()) {
+          return error(400, "current_code_required", "Bảo mật hai lớp đang bật: nhập mã hiện tại từ ứng dụng xác thực (hoặc một mã dự phòng) để đổi sang khoá mới.");
+        }
+        const chan = await kiemMaHienCo(env, staff.id, body.currentCode, now, "TOTP_HOAC_DU_PHONG");
+        if (chan) return chan;
+      }
+      const ma = song.length === 0 ? await boMaDuPhongMoi(env.DB, staff.id, at) : null;
+      try {
+        await env.DB.batch([
+          ...batTotpStatements(env.DB, { staffId: staff.id, thayId: song.find((f) => f.kind === "TOTP")?.id ?? null, id: crypto.randomUUID(), secretEnc: moi.secretEnc, step: moi.step, at }),
+          ...(ma ? ma.statements : []),
+          auditStatement(env.DB, { staffId: staff.id, action: "mfa_enabled", at, targetType: "staff", targetId: staff.id, detail: "TOTP" }),
+        ]);
+      } catch (e) {
+        if (isMfaRace(e)) return MFA_CHANGED();
+        throw e;
+      }
+      return json((ma ? { recoveryCodes: ma.codes } : {}) satisfies MfaTotpConfirmResponse);
+    }),
+
+    // Tạo bộ mã dự phòng mới: cần mã TOTP hiện tại (có hạn mức). Lô: thu hồi bộ cũ → 10 mã mới → nhật ký.
+    route("POST", "/api/account/mfa/recovery/regenerate", "staff", async ({ request, env, staff }) => {
+      if (!(await yeuToSong(env.DB, staff.id)).some((f) => f.kind === "TOTP")) return error(409, "mfa_off", "Chưa bật ứng dụng xác thực nên chưa có mã dự phòng để tạo lại.");
+      const now = Date.now();
+      const at = new Date(now).toISOString();
+      const chan = await kiemMaHienCo(env, staff.id, (await readJson(request))?.code, now, "TOTP");
+      if (chan) return chan;
+      const ma = await boMaDuPhongMoi(env.DB, staff.id, at);
+      await env.DB.batch([
+        ...ma.statements,
+        auditStatement(env.DB, { staffId: staff.id, action: "mfa_recovery_regenerated", at, targetType: "staff", targetId: staff.id, detail: "TOTP" }),
+      ]);
+      return json({ recoveryCodes: ma.codes } satisfies MfaRecoveryCodesResponse);
+    }),
+
+    // Gỡ một yếu tố: tài khoản nội bộ không gỡ được yếu tố cuối (kiểm TRƯỚC khi kiểm mã — không tiêu lượt thử; câu SQL giữ một làm lưới khi chạy đua). Cần mã
+    // của yếu tố hiện có. Gỡ yếu tố cuối (chỉ tài khoản bên ngoài) thì thu hồi luôn mã dự phòng và máy được tin.
+    route("POST", "/api/account/mfa/remove", "staff", async ({ request, env, staff }) => {
+      const body = await readJson(request);
+      const kind = body?.kind;
+      if (kind !== "TOTP" && kind !== "EMAIL") return error(400, "invalid_input", "Cần chọn cách xác thực cần gỡ.");
+      const song = await yeuToSong(env.DB, staff.id);
+      const f = song.find((x) => x.kind === kind);
+      if (!f) return error(404, "not_found", "Chưa bật cách xác thực này.");
+      const noiBo = isInternal(staff.permissions);
+      if (noiBo && song.length <= 1) return MFA_LAST_FACTOR();
+      const now = Date.now();
+      const at = new Date(now).toISOString();
+      const chan = await kiemMaHienCo(env, staff.id, body?.code, now, "TOTP_HOAC_DU_PHONG");
+      if (chan) return chan;
+      const go = goYeuToStatements(env.DB, { staffId: staff.id, id: f.id, giuMot: noiBo, cuoi: !noiBo && song.length === 1, at });
+      const [r] = await env.DB.batch([
+        go.goStatement,
+        auditStatement(env.DB, { staffId: staff.id, action: "mfa_removed", at, targetType: "staff", targetId: staff.id, detail: kind }, "changes() > 0"),
+        ...go.sauKhiGoCuoi,
+      ]);
+      if ((r!.meta.changes ?? 0) === 0) return noiBo ? MFA_LAST_FACTOR() : MFA_CHANGED();
+      return json({ ok: true });
+    }),
+
+    // Quên máy được tin của CHÍNH MÌNH (một máy / mọi máy): lần đăng nhập PIN sau trên máy đó bị hỏi mã. Máy không phải của mình / đã quên → 404.
+    route("POST", "/api/account/mfa/trusted/:id/forget", "staff", async ({ env, staff, params }) => {
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return error(404, "not_found", "Không tìm thấy máy này.");
+      const r = await quenMayStatement(env.DB, id, staff.id, new Date().toISOString()).run();
+      if ((r.meta.changes ?? 0) === 0) return error(404, "not_found", "Không tìm thấy máy này.");
+      return json({ ok: true });
+    }),
+
+    route("POST", "/api/account/mfa/trusted/forget-all", "staff", async ({ env, staff }) => {
+      const r = await quenMoiMayStatement(env.DB, staff.id, new Date().toISOString()).run();
+      return json({ revoked: r.meta.changes ?? 0 });
     }),
 
     // IT/Toàn quyền: sổ phiên của mọi tài khoản (tối đa 200 dòng mới nhất), lọc `staffId` và `live=1` (đang hiệu lực — kể cả lưới credentials_changed_at).

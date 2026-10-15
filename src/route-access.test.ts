@@ -268,6 +268,14 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/staff/:id/reset-pin", access: "admin" },
   { method: "POST", path: "/api/staff/:id/unlock", access: "admin" },
   { method: "GET", path: "/api/account/sessions", access: "staff" }, // ADR-0075 điều 7: lịch sử phiên của CHÍNH MÌNH (tự phục vụ)
+  // ADR-0074 điều 5 (Phần B Task 5): bảo mật hai lớp của CHÍNH MÌNH — tự phục vụ, id lấy từ phiên; đổi khoá / gỡ / tạo lại mã dự phòng cần mã yếu tố hiện có.
+  { method: "GET", path: "/api/account/mfa", access: "staff" },
+  { method: "POST", path: "/api/account/mfa/totp/start", access: "staff" },
+  { method: "POST", path: "/api/account/mfa/totp/confirm", access: "staff" },
+  { method: "POST", path: "/api/account/mfa/recovery/regenerate", access: "staff" },
+  { method: "POST", path: "/api/account/mfa/remove", access: "staff" },
+  { method: "POST", path: "/api/account/mfa/trusted/:id/forget", access: "staff" },
+  { method: "POST", path: "/api/account/mfa/trusted/forget-all", access: "staff" },
   { method: "GET", path: "/api/sessions", access: "admin" }, // ADR-0075 điều 7: sổ phiên của mọi tài khoản — thân hỏi auth.session.viewAll (chỉ Toàn quyền)
   { method: "POST", path: "/api/sessions/:id/revoke", access: "admin" }, // ADR-0075 điều 7–8: gỡ một phiên — thân hỏi auth.session.revoke (chỉ Toàn quyền), nhật ký im lặng session_revoked
   { method: "GET", path: "/api/sessions/policy", access: "admin" }, // ADR-0085: chính sách đăng nhập — thân hỏi auth.session.policy (chỉ Toàn quyền)
@@ -524,6 +532,7 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-15 (ADR-0119 Việc 5c): + POST /api/feedback/:id/claim, PATCH /api/feedback/:id/xu-ly (staff, rồi quyenPhieu) = 305.
   // 2026-10-15 (ADR-0119 Việc 5d): + POST /api/feedback/:id/transfer (staff, rồi quyenPhieu chuyenNhom) = 306.
   // 2026-10-16 (ADR-0074 Phần B Task 4): + POST /api/auth/mfa/verify (public; cổng = cookie chờ, tự gọi maintenanceBlock) = 307.
-  assert.equal(actual.length, 307, "số route thực tế lệch 307 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 307, "SNAPSHOT phải có đúng 307 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-16 (ADR-0074 Phần B Task 5): + GET /api/account/mfa và sáu route ghi /api/account/mfa/* (staff, tự phục vụ) = 314.
+  assert.equal(actual.length, 314, "số route thực tế lệch 314 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 314, "SNAPSHOT phải có đúng 314 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });
