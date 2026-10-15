@@ -50,3 +50,6 @@ Bằng chứng chính (tự chạy lại bởi người kiểm toàn nhánh, 202
 
 ## Nợ nhỏ
 Khung cảnh báo vàng chỉ hiện ngay sau khi gắn; trạng thái «Đã tắt» lỗi tương phản màu axe (khuôn `.row-off` từ lần 1); `help-smoke` bước c (khôi phục bộ nhớ đệm trang `/account`) chập chờn có sẵn — người kiểm đo nhánh đỏ 5/10, bản nền 3/9, cùng lý do Chrome tự xả bộ đệm, không phải hồi quy; dòng Worker 1.96 ở sổ hàng rào có thể ghi thêm ngày quan sát 2026-10-15; `BL-ADR0117-VAI-CU` làm riêng, không chờ lần 2.
+
+## Ý kiến của chủ về bảy ca số mẫu `SV-TA` (chat 2026-10-15)
+Chủ xem bảy ví dụ bằng lời thường. Kết luận từng ca: 01 đúng ý nghĩa; 02 đúng; 03 đúng (giá theo phạm vi hiệu lực của mức TA); 04a đúng về logic nhưng «hơi thiệt cho đại lý» (dòng riêng của loại thắng mức TA — giữ theo ADR-0117 điều 6, có cảnh báo khi gắn); 04b đúng luật; 05 đúng luật; 06 đúng ý nhưng **phải báo ĐỎ** và nói rõ «cần có cấp (mức) thì mới tính được» (hôm nay màn hình dùng màu cát — đã giao việc sửa sang đỏ bằng token `--c-danger*`). Chữ trình bày «hoa hồng / đại lý trả» chưa quen với Việt Nam, thường viết «Tạm tính, chiết khấu, thành tiền» — chờ chủ chọn tên nhãn (đưa phương án trước khi đổi). Trạng thái ở `golden/so-cong-no-luot-2.json` **vẫn `cho_xac_nhan`**: chưa đổi sang `da_xac_nhan` vì (i) đây sẽ là lần đầu bài lớp 2 chạy thật nên cần chủ quyết rõ ca nào, (ii) ca 03 và 06 thiếu số tiền đầy đủ.
