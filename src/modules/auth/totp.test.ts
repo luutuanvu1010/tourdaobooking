@@ -29,10 +29,26 @@ test("chấp nhận bước −1/0/+1, từ chối ±2; mã không phải 6 số
   assert.equal(await matchTotp(SEED, "abcdef", now), null);
 });
 
-test("otpauth:// không chứa SĐT, có issuer Tour Đảo", () => {
+test("otpauth:// không chứa SĐT, có issuer Tour Đảo, khai rõ 6 số và bước 30 giây (Task 8: bài thiếu của Task 1)", () => {
   const u = otpauthUri("JBSWY3DPEHPK3PXP", "Nguyễn Văn A");
   assert.match(u, /^otpauth:\/\/totp\//);
   assert.match(u, /secret=JBSWY3DPEHPK3PXP/);
   assert.match(u, /issuer=Tour%20%C4%90%E1%BA%A3o/);
   assert.doesNotMatch(u, /09\d{8}/);
+  const q = new URLSearchParams(u.slice(u.indexOf("?") + 1));
+  assert.equal(q.get("digits"), "6", "ứng dụng xác thực phải sinh mã 6 số");
+  assert.equal(q.get("period"), "30", "bước 30 giây, khớp TOTP_PERIOD");
+  assert.equal(q.get("algorithm"), null, "không khai algorithm = SHA1 mặc định (khớp totpCode)");
+});
+
+test("base32: vectơ RFC 4648 §10 — phần dư 1..4 byte (mã hoá không đệm '='; giải mã nhận cả có đệm)", () => {
+  const vecto: [string, string][] = [
+    ["", ""], ["f", "MY======"], ["fo", "MZXQ===="], ["foo", "MZXW6==="], ["foob", "MZXW6YQ="], ["fooba", "MZXW6YTB"], ["foobar", "MZXW6YTBOI======"],
+  ];
+  const te = new TextEncoder();
+  for (const [tho, ma] of vecto) {
+    assert.equal(base32Encode(te.encode(tho)), ma.replace(/=+$/, ""), `mã hoá «${tho}»`);
+    assert.deepEqual(base32Decode(ma), te.encode(tho), `giải mã «${ma}»`);
+    assert.deepEqual(base32Decode(ma.replace(/=+$/, "")), te.encode(tho), `giải mã «${ma}» bỏ đệm`);
+  }
 });

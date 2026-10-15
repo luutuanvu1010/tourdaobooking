@@ -163,9 +163,17 @@ test("tin máy này: td_trusted 30 ngày (Path=/api/auth); lần PIN sau mang td
   assert.ok(cookieTen(lai, "td_session"));
   assert.deepEqual(phienSong(w, SALES).map((x: any) => [x.method, x.trusted_device_id]), [["PIN_TRUSTED", may.id]]);
 
-  // Token máy tin của tài khoản KHÁC không có tác dụng (khớp theo staff_id).
-  const doiTac = await pinLogin(w, "0900000005", tin);
-  assert.deepEqual(phienSong(w, DOI_TAC).map((x: any) => x.method), ["PIN"], doiTac.text);
+  // Token máy tin của tài khoản KHÁC không có tác dụng (khớp theo staff_id). Tài khoản thứ hai PHẢI có yếu tố (Task 8, M1 của người kiểm): tài khoản không
+  // yếu tố luôn được phiên PIN dù máy tin có khớp hay không — bài sẽ không bắt được gì. Gieo TOTP cho Toàn quyền chỉ trong bài này.
+  const at = new Date().toISOString();
+  w.sqlite.prepare(
+    "INSERT INTO aut_mfa_factor (id, staff_id, kind, secret_enc, email, last_totp_step, valid_from_at, valid_to_at, created_at, created_by, updated_at, updated_by) VALUES ('f-sup', ?, 'TOTP', ?, NULL, 0, ?, NULL, ?, ?, ?, ?)",
+  ).run(SUP, await encryptSecret(KHOA, BI_MAT), at, at, SUP, at, SUP);
+  const khac = await pinLogin(w, "0900000007", tin);
+  assert.equal(khac.status, 200, khac.text);
+  assert.equal(khac.json.next, "mfa", "máy tin của An không miễn bước hai cho tài khoản khác");
+  assert.equal(cookieTen(khac, "td_session"), null);
+  assert.equal(phienSong(w, SUP).length, 0);
 
   // Lưới credentials_changed_at: máy tin tạo TRƯỚC lần đổi thông tin đăng nhập thì hết tác dụng.
   w.sqlite.prepare("UPDATE staff SET credentials_changed_at = ? WHERE id = ?").run(Date.now() + 1000, SALES);
