@@ -12,7 +12,7 @@ Gói 1 **đã được thiết kế và duyệt** ngày 1/10: ADR-0074, đặc t
 | Mã email | 6 số, 10 phút, tối đa 5 lần nhập/mã, 3 email/15 phút/tài khoản (Phần C) | Không đổi (khớp chủ chốt 16/10) |
 | Bảng | `aut_mfa_factor`, `aut_mfa_recovery_code`, `aut_mfa_email_code`, `aut_trusted_device`, cột `staff.mfa_grace_until` (đặc tả §5) | Không đổi; đánh lại số migration (đặc tả còn ghi `0058`, nhật ký thi công ghi `0062` — đều đã cũ) |
 | Thứ tự phát hành | Ứng dụng xác thực + mã dự phòng trước, email sau (đặc tả §9 R1) | Giữ, vì ADR-0074 đ7 bắt ba vai lớn dùng ứng dụng xác thực (A3). Nếu Task 0 kết luận "gửi được" sớm, B và C có thể ra **cùng một bản** |
-| Phạm vi | Nội bộ bắt buộc (14 ngày ân hạn), bên ngoài tự chọn | **Chờ chủ (README Q1)**: giữ tự chọn, hay bắt buộc đối tác qua email theo lộ trình (cần ADR mới sửa ADR-0074 đ1) |
+| Phạm vi | Nội bộ bắt buộc (14 ngày ân hạn), bên ngoài tự chọn | **Chủ chốt 16/10: đối tác cũng bắt buộc** → ADR-G1, bật theo đợt (mục "Bắt buộc đối tác" dưới) |
 | Chống dò | Đếm theo tài khoản `mfa:<staffId>` (5 sai/15 phút), không theo cookie chờ | Thêm ghi chú: kiểm toán 13/10 mục D-3 (người lạ gõ sai PIN 5 lần khoá đăng nhập của người khác 15 phút) — lớp hai **không** làm lỗi này nặng thêm vì bước 2 chỉ mở sau PIN đúng; vá D-3 là việc riêng |
 | Email nhận mã | Thuộc `auth`, xác nhận bằng mã lúc bật | Màn bật có thể **gợi ý** email đã xác minh ở hồ sơ (sau Gói 2), vẫn bắt nhập mã gửi tới địa chỉ đó; lưu riêng (A5, X5) |
 | Khôi phục | 10 mã dự phòng; Quản trị tắt cho cấp dưới, Toàn quyền tắt cho Quản trị/Toàn quyền (ADR-0074 đ5) | Không đổi |
@@ -38,6 +38,23 @@ Face ID: không qua bước 2 (đã là hai yếu tố, ADR-0074 đ3), vẫn qua
 | 0a | AI | Đọc tài liệu chính thức Cloudflare Email Service hiện hành: gửi tới **địa chỉ bất kỳ** được không, điều kiện (xác minh tên miền, DNS), giới hạn số thư/ngày, giá. Ghi thành **dòng mới đề xuất** cho `RANG_BUOC_NGOAI.md` mục 2 (AI không tự sửa tệp đó ở việc này) |
 | 0b | Chủ (có hỏi trước) | Thử gửi một mã tới hộp thư của chính chủ trên bản thử (không phải production) |
 | 0c | AI | Kết luận "gửi được / không". "Không" → dừng phần email, trình chủ: (a) nhà cung cấp email khác qua API (ADR mới + bí mật mới); (b) chỉ ứng dụng xác thực + mã dự phòng (Zalo ZNS ở đợt 2). Không tự chọn |
+
+### Bắt buộc đối tác (~1000 tài khoản) — chủ chốt 16/10, ADR-G1
+
+| Vấn đề | Thiết kế | Luật / lý do |
+|---|---|---|
+| Yếu tố của đối tác | Email (mã 6 số, 10 phút) hoặc ứng dụng xác thực; đối tác không giữ ba vai lớn nên được dùng email (ADR-0074 đ7 không chặn) | ADR-0074 đ4, đ7 |
+| Đối tác chưa có email | `staff` không có cột email; email hồ sơ (`pty_contact_point`) **không** tự thành yếu tố (X5). Trong ân hạn, đối tác đang có phiên thấy dải nhắc → gõ email → nhận mã → nhập đúng mới lưu yếu tố. Có thể **gợi ý** email hồ sơ (che), vẫn bắt nhập mã | ADR-0074 đ4; đặc tả 10-01 §4.3 |
+| Ân hạn | **Giả định 14 ngày** như nội bộ, tính từ lúc tài khoản được đưa vào đợt bắt buộc (`staff.mfa_grace_until` đặt trong cùng lô) | ADR-0074 đ1 (bổ sung "14 ngày từ lúc tạo/cấp") |
+| Mốc bắt đầu, tránh khoá cả ngàn người | **Cờ toàn cục** "bắt buộc lớp hai cho tài khoản bên ngoài" (dữ liệu có hiệu lực, chỉ Toàn quyền đổi, Hiến chương 5.2) + **đưa vào theo đợt**: Toàn quyền chọn một nhóm (vd 5 cộng tác viên thí điểm như ADR-0014, rồi ~100/đợt) → máy chủ đặt hạn ân hạn cho đúng nhóm đó. Cờ tắt → không đối tác nào bị chặn. Chỉ bật đợt đầu khi Phần C đã chạy ổn trên production | ADR-0014 (tiền lệ thí điểm 5 CTV) |
+| Hết ân hạn chưa bật | Đăng nhập PIN bị chặn, lời nhắn "Liên hệ Quản trị để mở lại việc bật bảo mật đăng nhập". Quản trị (sau khi gọi điện xác nhận đúng người) bấm "mở lại 24 giờ" → lần đăng nhập PIN kế tiếp trong 24 giờ chỉ vào được trang bật lớp hai | đặc tả 10-01 §4.5 (cơ chế 24 giờ sau khi bị tắt) |
+| Mất máy / mất hộp thư | Mã dự phòng; không có thì Quản trị tắt lớp hai (ADR-0074 đ5) rồi người đó bật lại trong 24 giờ. Nhân sự **không** làm hỗ trợ đăng nhập (ADR-0071 đ1e) | ADR-0074 đ5; ADR-0042 |
+| Face ID | **Giả định: vẫn miễn** (passkey đã là hai yếu tố, ADR-0074 đ3); chủ chưa nói về Face ID | ADR-0074 đ3 |
+| Bảo trì, Turnstile, sổ phiên | Không đổi: bước 2 qua `maintenanceBlock`; Turnstile ở bước 1; đối tác "nhiều máy" (ADR-0085) vẫn qua lớp hai ở mỗi máy chưa tin | đặc tả §6 |
+| Tải hỗ trợ | Ước tính (chưa đo): mỗi đợt ~100 người, nếu 10–20% không tự bật kịp thì 10–20 cuộc gọi Quản trị/đợt; thư gửi: mỗi máy mới một thư, máy được tin 30 ngày → cỡ vài nghìn thư/tháng cho ~1000 tài khoản (giá, giới hạn chưa tra). **Chưa kiểm** bao nhiêu đối tác đã có email trong hồ sơ (cần truy vấn chỉ đọc trên production — chủ chạy) | — |
+| Hoàn tác | Toàn quyền tắt cờ toàn cục → mọi đối tác trở lại như ADR-0074 đ1 ngay ở lần đăng nhập kế tiếp; yếu tố đã bật vẫn giữ (đã bật thì bị hỏi, như ADR-0074 đ1). Không mất dữ liệu | — |
+
+**Phép thử (bắt buộc trước khi bật đợt đầu):** cờ tắt → đối tác chưa bật đăng nhập PIN bình thường; cờ bật, tài khoản ngoài đợt → bình thường; tài khoản trong đợt, còn ân hạn → vào được, thấy dải nhắc; hết ân hạn → 403 lời thường; tắt cờ → lại vào được. Phá thử: cho máy chủ bỏ qua cờ (luôn coi là bật) → ca "cờ tắt" đỏ.
 
 Email là việc bên ngoài chạy **sau** lô ghi (Hiến chương 5.16): ghi dòng mã (băm) trước, gửi sau; lỗi gửi → "Chưa gửi được email, thử lại hoặc dùng cách khác", không lộ lỗi nhà cung cấp.
 
@@ -71,13 +88,14 @@ Người dùng (Tài khoản của tôi → "Hồ sơ của tôi")
   ├─ đọc chính sách riêng tư phiên bản hiện hành → bấm đồng ý (pty_consent)
   ├─ khai trường + tải ảnh giấy tờ → pty_self_submission (CHO) + pty_attachment (+link)
   │     giá trị hiện hành KHÔNG đổi; tên trên đơn/biên nhận KHÔNG đổi (X4, bài học F-01)
-Người xác minh (ô party.verify — README Q2)
+Người xác minh (ô party.verify — Quản trị, Nhân sự, Toàn quyền; chủ chốt 16/10, ADR-H5)
   ├─ hàng chờ: phiếu CHO, kèm cờ kiểm trùng (dưới)
   ├─ mở ảnh (stream qua Worker, nhật ký trước) → so với trường khai
   ├─ Chấp nhận: MỘT lô = ghi vào pty_person / pty_contact_point / pty_*_document
   │     (câu lệnh do parties sinh) + pty_verification DA_XAC_MINH + phiếu CHAP_NHAN + nhật ký (chỉ mã)
   └─ Từ chối: phiếu TU_CHOI + lý do (danh sách đóng) ; người khai thấy lý do, khai lại
 Người xác minh ≠ người khai (máy chủ chặn, như ADR-0089 đ4c "người duyệt không tự chi")
+Cấp bậc: Quản trị, Nhân sự không xác minh phiếu của tài khoản họ không quản được (canManageAccount: ADMIN/SUPER_ADMIN, và HR với HR khác — ADR-0071 đ1c)
 Sửa giá trị đã xác minh (kể cả Quản trị sửa ở Danh bạ) → pty_verification CAN_XAC_MINH_LAI cùng lô
 ```
 
@@ -133,6 +151,18 @@ Quá hạn chưa xử lý: chỉ cảnh báo đỏ ở hàng chờ (không Cron 
 
 **Phần giữ lại (ghi rõ trong phiếu trả lời; danh sách đầy đủ theo bảng/cột ở §2.8):** dòng đơn kèm bản chụp khách trên đơn (`orders.customer_name/phone/email/note` — trigger `orders_delivered_lock` khoá sau Đã giao), danh sách hành khách (`ord_passenger`: họ tên, năm sinh — lưu ít nhất 3 năm theo luật vận tải, ghi ở đầu `migrations/0035_hanh_khach.sql`), lần thu, sổ công nợ, bản chụp yêu cầu hoá đơn đã chép (ADR-0010 đ2); họ tên trong nhật ký thao tác (X3); SĐT trong nhật ký cũ trước 21/9; dòng phiên đăng nhập (đã bỏ IP, User-Agent — X12); tài khoản đăng nhập và SĐT đăng nhập (`staff.phone`) nếu người đó vẫn đang làm việc/hợp tác (khi đó phiếu là `XONG_MOT_PHAN`); **chữ tự do** (ghi chú đơn, góp ý, câu hỏi trợ lý, nội dung thông báo) **không được rà** — phiếu nói thẳng điều này. Căn cứ luật của từng phần giữ: **chưa luật sư/kế toán xác nhận** (`RANG_BUOC_NGOAI.md` L1 còn [C]).
 
+**Thời hạn giữ ảnh giấy tờ (chủ chốt 16/10: "giữ khi giấy tờ còn hiệu lực"; điều đề xuất 5.25):**
+
+| Tình huống | Ảnh |
+|---|---|
+| Giấy tờ còn hạn (`expiry_date` rỗng hoặc ≥ hôm nay VN), là dòng hiện hành (chưa gia hạn thay, chưa huỷ) **và** người đó còn quan hệ | giữ |
+| Giấy tờ hết hạn, hoặc đã có dòng gia hạn thay, hoặc dòng bị huỷ | vào **danh sách xoá** ngay (không chờ 12 tháng) |
+| Giấy tờ không có ngày hết hạn (vd giấy phép kinh doanh thường không ghi hạn) | giữ khi còn quan hệ và hồ sơ còn hoạt động |
+| **Giả định:** chấm dứt quan hệ = tài khoản ngưng **và/hoặc** mọi vai với công ty đã đóng; hồ sơ bị gộp vào hồ sơ khác thì ảnh đi theo dòng giấy tờ sang hồ sơ chính (X8) | vào danh sách xoá khi hết quan hệ |
+| Phiếu tự khai bị **từ chối** hoặc **rút** | vào danh sách xoá (không còn lý do giữ) — giả định |
+
+Danh sách xoá là **hình chiếu đọc** (tính lúc mở, không Cron ghi — X10, HC-5.11); Quản trị hoặc Toàn quyền bấm "Xoá ảnh" theo lô, máy chủ chạy lệnh có tên như phiếu xoá (chỉ phần tệp), nhật ký chỉ mã. CCCD gắn chip có ngày hết hạn (kiến thức chung, chưa tra) nên đi theo dòng đầu.
+
 **Hồ sơ đã gộp (ADR-0068):** phiếu trên hồ sơ chính áp cả mọi hồ sơ phụ có `merged_into_id` = hồ sơ chính (một bước, không chuỗi — ADR-0068 Đ3).
 
 **Sao lưu — nói thẳng giới hạn:** điểm khôi phục D1 Time Travel còn giữ dữ liệu đã ẩn danh trong số ngày Cloudflare giữ (**chưa kiểm**, `RANG_BUOC_NGOAI.md` C4); R2 xoá là mất ngay nếu không bật giữ phiên bản (kiến thức chung, chưa tra). Nếu phải khôi phục D1 về trước một lần xoá, sổ phiếu cũng quay lui theo → cần **danh sách mã phiếu đã thực hiện** giữ ngoài D1 (chỉ mã, không dữ liệu cá nhân) và bước "chạy lại phiếu xoá" trong runbook khôi phục. Phần này **xây trên lỗ đang hở: HC-5.19** (chưa từng diễn tập khôi phục).
@@ -147,7 +177,7 @@ Quá hạn chưa xử lý: chỉ cảnh báo đỏ ở hàng chờ (không Cron 
 
 ### 2.7 Ai thấy gì (tóm tắt, chi tiết ở `TRANG-GHEP.md`)
 
-Chính chủ: thấy và khai hồ sơ của mình (số của mình hiện **che**, ảnh của mình xem được), trạng thái xác minh, phiếu xoá của mình. Người xác minh: theo README Q2 (giữ ADR-0083 = chỉ Toàn quyền; đảo = Quản trị qua ảnh hoặc qua số trong phiếu đang xử lý). Quản trị: như hiện nay (số che), xử lý phiếu xoá. Bán hàng, Kế toán: như hôm nay thấy tên/SĐT/email hồ sơ (`party.view` = any), **không** thấy ngày sinh, địa chỉ cá nhân (ô mới, `TRANG-GHEP.md` §2). Toàn quyền: mọi thứ. Đối tác: chỉ hồ sơ gắn tài khoản của mình (một tài khoản công ty lữ hành = hồ sơ tổ chức, ADR-0018 đ9).
+Chính chủ: thấy và khai hồ sơ của mình (số của mình hiện **che**, ảnh của mình xem được), trạng thái xác minh, phiếu xoá của mình. Người xác minh (Quản trị, Nhân sự, Toàn quyền — chủ chốt 16/10): thấy ảnh và số **chỉ của phiếu đang trong hàng chờ**, mỗi lần mở có nhật ký trước; Nhân sự không thấy Danh bạ (`party.view` vẫn `none`). Quản trị: như hiện nay (số che), xử lý phiếu xoá. Bán hàng, Kế toán: như hôm nay thấy tên/SĐT/email hồ sơ (`party.view` = any), **không** thấy ngày sinh, địa chỉ cá nhân (ô mới, `TRANG-GHEP.md` §2). Toàn quyền: mọi thứ. Đối tác: chỉ hồ sơ gắn tài khoản của mình (một tài khoản công ty lữ hành = hồ sơ tổ chức, ADR-0018 đ9).
 
 ### 2.8 Kiểm kê dữ liệu cá nhân: hạng (5.20) và số phận khi có phiếu xoá
 
