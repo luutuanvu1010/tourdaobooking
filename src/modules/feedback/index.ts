@@ -27,6 +27,7 @@ import {
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy yêu cầu.");
 const RATE_LIMITED = () => error(429, "rate_limited", "Bạn gửi quá nhiều trong một giờ, hãy thử lại sau.");
 const BAD_ASSIGNEE = () => error(400, "invalid_input", "Người xử lý phải là thành viên đang hoạt động của nhóm giữ phiếu (không phải người gửi).");
+const STALE_TEAM = () => error(409, "stale", "Phiếu vừa đổi nhóm, hãy tải lại.");
 const BAD_JSON = () => error(400, "invalid_input", "Nội dung gửi lên không hợp lệ.");
 const TEAM_FORBIDDEN = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống được quản lý nhóm hỗ trợ.");
 const TEAM_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy nhóm hỗ trợ.");
@@ -326,7 +327,7 @@ export const feedbackModule: AppModule = {
       const eventId = crypto.randomUUID();
       // Lô: cổng (CLAIM) → sự kiện (changes() của CLAIM) → nhật ký (có sự kiện) → mốc đã xem của người nhận (phiếu vừa đổi bởi người này).
       const res = await env.DB.batch([
-        claimStatement(env.DB, { id, staffId: staff.id, now: at }),
+        claimStatement(env.DB, { id, staffId: staff.id, now: at, teamId: t.team_id }),
         insertEventStatement(env.DB, { id: eventId, ticketId: id, type: "CLAIMED", from: t.assignee_id, to: staff.id, actor: staff.id, now: at }),
         auditStatement(
           env.DB,
@@ -415,12 +416,17 @@ export const feedbackModule: AppModule = {
       const at = now.toISOString();
       const messageId = crypto.randomUUID();
       await env.DB.batch([
-        insertReplyStatement(env.DB, { id: messageId, ticketId: id, authorId: staff.id, body: v.value.body, internal: v.value.internal, now: at, windowStart: windowStart(now), limit: MESSAGE_LIMIT_PER_HOUR }),
+        insertReplyStatement(env.DB, { id: messageId, ticketId: id, authorId: staff.id, body: v.value.body, internal: v.value.internal, now: at, windowStart: windowStart(now), limit: MESSAGE_LIMIT_PER_HOUR, teamId: t.team_id }),
         touchAfterReplyStatement(env.DB, { ticketId: id, messageId, now: at, internal: v.value.internal, authorId: staff.id }),
         auditStatement(env.DB, { staffId: staff.id, action: "feedback_replied", at, targetType: "feedback", targetId: id, detail: feedbackCode(t.seq) }, `EXISTS (SELECT 1 FROM fbk_message WHERE id = '${messageId}')`),
         markSeenAfterWriteStatement(env.DB, { ticketId: id, staffId: staff.id, now: at }),
       ]);
-      if (!(await messageExists(env.DB, messageId))) return RATE_LIMITED();
+      if (!(await messageExists(env.DB, messageId))) {
+        // Không chèn: hoặc phiếu vừa đổi nhóm sau lúc kiểm quyền (R11 — điều kiện nhóm của INSERT_REPLY), hoặc chạm trần tin nhắn. Đọc lại phiếu để phân biệt.
+        const lai = await getTicket(env.DB, id);
+        if (!lai || lai.team_id !== t.team_id) return STALE_TEAM();
+        return RATE_LIMITED();
+      }
       if (staff.id === t.submitter_id) {
         scheduleMail(env, exec, request, id, {
           type: "user_replied", code: feedbackCode(t.seq), kindName: FEEDBACK_KIND_NAME[t.kind_code as FeedbackKind], title: t.title, submitterName: staff.fullName, excerpt: v.value.body,

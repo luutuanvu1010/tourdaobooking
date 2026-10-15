@@ -518,3 +518,44 @@ test("R10: Toàn quyền nhận việc/đổi trạng thái dù không là thàn
   assert.equal(w.q(`SELECT assignee_id FROM fbk_ticket WHERE id = '${id}'`)[0].assignee_id, SUPER);
   assert.equal((await xuLy(w, id, SUPER, { status: "IN_PROGRESS" })).status, 200);
 });
+
+// ---- R11 (ruling điều phối): đóng kẽ hở thời điểm với chuyển nhóm — phiếu đổi nhóm giữa lúc route kiểm quyền và lúc chạy lô --------------------------
+/** Chạy `truoc()` đúng một lần ngay trước lô đầu tiên có câu khớp `re` (mô phỏng người khác vừa ghi giữa lúc route đọc và lúc ghi — mẫu orders/thuong-mai-route.test.ts). */
+function chenTruocLo(w: any, re: RegExp, truoc: () => void): void {
+  const goc = w.env.DB.batch;
+  w.env.DB.batch = async (stmts: { sql: string }[]) => {
+    if (stmts.some((s) => re.test(s.sql))) { w.env.DB.batch = goc; truoc(); }
+    return goc(stmts);
+  };
+}
+const doiNhomThang = (w: any, id: string, team: string) => () => w.sqlite.exec(`UPDATE fbk_ticket SET team_id = '${team}' WHERE id = '${id}'`);
+
+test("R11a: nhận việc đúng lúc phiếu vừa chuyển sang nhóm khác ⇒ 409, không gán người, không sự kiện, không nhật ký", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  chenTruocLo(w, /UPDATE fbk_ticket SET\s+assignee_id = \?2/, doiNhomThang(w, id, NHAN_SU));
+  const r = await nhan(w, id, KT_TV);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(w.q(`SELECT assignee_id FROM fbk_ticket WHERE id = '${id}'`)[0].assignee_id, null);
+  assert.equal(w.q(`SELECT count(*) AS n FROM fbk_ticket_event WHERE ticket_id = '${id}'`)[0].n, 0);
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'feedback_claimed'")[0].n, 0);
+});
+
+test("R11b: ghi chú nội bộ đúng lúc phiếu vừa chuyển nhóm ⇒ 409 stale, không chèn tin mang nhãn nhóm mới; chạm trần tin nhắn vẫn 429", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  chenTruocLo(w, /INSERT INTO fbk_message/, doiNhomThang(w, id, NHAN_SU));
+  const r = await traLoi(w, id, KT_TV, "Bí mật của Kế toán", true);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "stale");
+  assert.equal(r.json.error.message, "Phiếu vừa đổi nhóm, hãy tải lại.");
+  assert.equal(w.q(`SELECT count(*) AS n FROM fbk_message WHERE ticket_id = '${id}' AND internal = 1`)[0].n, 0, "không có ghi chú nào mang nhãn Nhân sự");
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'feedback_replied'")[0].n, 0);
+  // Trần tin nhắn (không đổi nhóm) vẫn là 429 — phân biệt bằng đọc lại phiếu.
+  const id2 = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  const at = new Date().toISOString();
+  for (let i = 0; i < 30; i++) {
+    w.sqlite.exec(`INSERT INTO fbk_message (id, ticket_id, author_id, body, internal, created_at, updated_at, team_id) VALUES ('tran-${i}', '${id2}', '${KT_TV}', 'x', 1, '${at}', '${at}', '${KE_TOAN}')`);
+  }
+  assert.equal((await traLoi(w, id2, KT_TV, "quá trần", true)).status, 429);
+});

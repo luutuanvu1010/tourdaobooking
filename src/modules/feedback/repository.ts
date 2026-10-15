@@ -201,13 +201,15 @@ const INSERT_FIRST_MESSAGE = defineSql(
   `INSERT INTO fbk_message (id, ticket_id, author_id, body, internal, created_at, created_by, updated_at, updated_by, team_id)
    SELECT ?1, ?2, ?3, ?4, 0, ?5, ?3, ?5, ?3, (SELECT team_id FROM fbk_ticket WHERE id = ?2) WHERE EXISTS (SELECT 1 FROM fbk_ticket WHERE id = ?2)`,
 );
-// Trả lời: chèn khi yêu cầu có mặt VÀ dưới trần tin nhắn. ?1 id tin, ?2 id yêu cầu, ?3 tác giả, ?4 nội dung, ?5 internal 0/1, ?6 bây giờ, ?7 đầu cửa sổ, ?8 trần.
+// Trả lời: chèn khi yêu cầu có mặt, VẪN ở nhóm route đã kiểm quyền (?9 — R11: phiếu vừa chuyển nhóm ⇒ không chèn, kẻo ghi chú nội bộ mang nhãn nhóm mới hay
+// người của nhóm cũ ghi sau khi đã mất quyền), VÀ dưới trần tin nhắn. team_id của tin = ?9 (bằng nhóm đang giữ phiếu vì điều kiện trên).
+// ?1 id tin, ?2 id yêu cầu, ?3 tác giả, ?4 nội dung, ?5 internal 0/1, ?6 bây giờ, ?7 đầu cửa sổ, ?8 trần, ?9 nhóm đã kiểm quyền.
 const INSERT_REPLY = defineSql(
   "feedback",
   "insert_reply",
   `INSERT INTO fbk_message (id, ticket_id, author_id, body, internal, created_at, created_by, updated_at, updated_by, team_id)
-   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?3, ?6, ?3, (SELECT team_id FROM fbk_ticket WHERE id = ?2)
-   WHERE EXISTS (SELECT 1 FROM fbk_ticket WHERE id = ?2)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?3, ?6, ?3, ?9
+   WHERE EXISTS (SELECT 1 FROM fbk_ticket WHERE id = ?2 AND team_id = ?9)
      AND (SELECT count(*) FROM fbk_message WHERE author_id = ?3 AND created_at > ?7) < ?8`,
 );
 // Sau khi tin ?2 đã chèn: cập nhật mốc hoạt động. ?1 id yêu cầu, ?2 id tin, ?3 bây giờ, ?4 internal 0/1, ?5 tác giả.
@@ -245,7 +247,8 @@ const PATCH_TICKET = defineSql(
 );
 // Nhận việc (ADR-0119 điều 8): chỉ khi chưa ai giữ (hoặc người giữ không hợp lệ — nguoiGiuHopLe) và phiếu chưa đóng — hai người bấm cùng lúc: D1 tuần tự hoá ghi,
 // câu sau thấy assignee_id đã có (còn hoạt động) ⇒ 0 dòng ⇒ route trả 409. Phiếu Mới ⇒ Đã tiếp nhận (báo người gửi như đổi trạng thái).
-// ?1 phiếu, ?2 người nhận, ?3 bây giờ. updated_at/updated_by = mốc của lệnh (cổng cho markSeenAfterWriteStatement cùng lô).
+// ?1 phiếu, ?2 người nhận, ?3 bây giờ, ?4 nhóm route đã kiểm quyền (R11: phiếu vừa chuyển sang nhóm khác giữa lúc kiểm và lúc ghi ⇒ 0 dòng ⇒ 409).
+// updated_at/updated_by = mốc của lệnh (cổng cho markSeenAfterWriteStatement cùng lô).
 const CLAIM = defineSql(
   "feedback",
   "claim",
@@ -254,7 +257,7 @@ const CLAIM = defineSql(
      last_public_reply_at = CASE WHEN status_code = 'NEW' THEN ?3 ELSE last_public_reply_at END,
      status_code = CASE WHEN status_code = 'NEW' THEN 'ACK' ELSE status_code END,
      last_activity_at = ?3, updated_at = ?3, updated_by = ?2
-   WHERE id = ?1 AND status_code NOT IN ('DONE', 'DECLINED')
+   WHERE id = ?1 AND team_id = ?4 AND status_code NOT IN ('DONE', 'DECLINED')
      AND (assignee_id IS NULL OR NOT ${nguoiGiuHopLe("fbk_ticket")})`,
 );
 // Sự kiện phiếu (chỉ thêm). Cổng `changes() > 0`: PHẢI đứng NGAY SAU câu cập nhật phiếu (CLAIM / PATCH_TICKET) và TRƯỚC auditStatement — changes() đổi sau mỗi câu.
@@ -293,8 +296,8 @@ export const insertFirstMessageStatement = (db: D1Database, a: { id: string; tic
   db.prepare(INSERT_FIRST_MESSAGE).bind(a.id, a.ticketId, a.authorId, a.body, a.now);
 export const insertReplyStatement = (
   db: D1Database,
-  a: { id: string; ticketId: string; authorId: string; body: string; internal: boolean; now: string; windowStart: string; limit: number },
-) => db.prepare(INSERT_REPLY).bind(a.id, a.ticketId, a.authorId, a.body, a.internal ? 1 : 0, a.now, a.windowStart, a.limit);
+  a: { id: string; ticketId: string; authorId: string; body: string; internal: boolean; now: string; windowStart: string; limit: number; teamId: string },
+) => db.prepare(INSERT_REPLY).bind(a.id, a.ticketId, a.authorId, a.body, a.internal ? 1 : 0, a.now, a.windowStart, a.limit, a.teamId);
 export const touchAfterReplyStatement = (db: D1Database, a: { ticketId: string; messageId: string; now: string; internal: boolean; authorId: string }) =>
   db.prepare(TOUCH_AFTER_REPLY).bind(a.ticketId, a.messageId, a.now, a.internal ? 1 : 0, a.authorId);
 export const patchTicketStatement = (
@@ -304,7 +307,7 @@ export const patchTicketStatement = (
   db
     .prepare(PATCH_TICKET)
     .bind(a.id, a.status, a.assignee ? 1 : 0, a.assignee?.value ?? null, a.resolvedIn ? 1 : 0, a.resolvedIn?.value ?? null, a.now, a.adminId, a.fromStatus);
-export const claimStatement = (db: D1Database, a: { id: string; staffId: string; now: string }) => db.prepare(CLAIM).bind(a.id, a.staffId, a.now);
+export const claimStatement = (db: D1Database, a: { id: string; staffId: string; now: string; teamId: string }) => db.prepare(CLAIM).bind(a.id, a.staffId, a.now, a.teamId);
 export type TicketEventType = "TEAM_CHANGED" | "ASSIGNED" | "CLAIMED";
 export const insertEventStatement = (
   db: D1Database,
