@@ -723,3 +723,35 @@ test("nhật ký tạo phiếu nhóm nhạy cảm KHÔNG ghi tiêu đề (phiế
   await tao(w, SALES, KY_THUAT, { title: "Lỗi nút lưu" });
   assert.ok(w.q("SELECT detail FROM audit_log WHERE action = 'feedback_created' ORDER BY rowid DESC")[0].detail.includes("Lỗi nút lưu"), "nhóm thường giữ hành vi cũ");
 });
+
+// Mức route: cờ `sensitive` phải được truyền ở CẢ HAI điểm gọi scheduleMail (created, user_replied). Mailer giả bắt thư thật sự gửi đi.
+function thuGia() {
+  const w = setup();
+  w.sqlite.exec(`UPDATE pty_party SET display_name = 'Hoàng Quý Danh' WHERE id = 'pty-${SALES}'; UPDATE pty_person SET given_name = 'Hoàng Quý Danh' WHERE party_id = 'pty-${SALES}'`);
+  const thu: { subject: string; html: string }[] = [];
+  w.env.EMAIL = { send: async (m: { subject: string; html: string }) => void thu.push(m) };
+  w.env.FEEDBACK_NOTIFY_EMAIL = "admin@example.com";
+  w.env.FEEDBACK_MAIL_FROM = "hotro@example.com";
+  return { w, thu };
+}
+const DAU_VET = ["Xin giấy xác nhận lương", "Nội dung riêng tư lương", "Hoàng Quý Danh", "Trả lời riêng tư lương"];
+
+for (const [ten, nhom, nhay] of [["nhạy cảm (Nhân sự)", NHAN_SU, true], ["thường (Kỹ thuật)", KY_THUAT, false]] as const) {
+  test(`thư email thật sự gửi đi, phiếu nhóm ${ten}: ${nhay ? "không lộ tiêu đề/người gửi/nội dung" : "giữ tiêu đề như cũ"}`, async () => {
+    const { w, thu } = thuGia();
+    const r = await tao(w, SALES, nhom, { title: DAU_VET[0], body: DAU_VET[1] });
+    await w.choNen();
+    assert.equal(thu.length, 1);
+    const id = r.json.ticket.id;
+    const traLoiRes = await traLoi(w, id, SALES, DAU_VET[3]);
+    assert.equal(traLoiRes.status, 201);
+    await w.choNen();
+    assert.equal(thu.length, 2, "cả created và user_replied đều gửi thư");
+    for (const m of thu) {
+      const tatCa = `${m.subject}\n${m.html}`;
+      assert.ok(m.subject.includes(nhay ? "Nhân sự" : "Kỹ thuật") && /YC-\d+/.test(m.subject));
+      if (nhay) for (const d of DAU_VET) assert.ok(!tatCa.includes(d), `thư không được lộ «${d}»`);
+      else assert.ok(m.subject.includes(DAU_VET[0]), "nhóm thường: tiêu đề còn trong thư");
+    }
+  });
+}

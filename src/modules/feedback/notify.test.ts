@@ -64,4 +64,13 @@ test("buildMail: có tên nhóm trong tiêu đề; nhóm nhạy cảm KHÔNG kè
   assert.ok(nhay.html.includes(ev.url));
   const traLoi = buildMail({ ...ev, type: "user_replied", teamName: "Nhân sự", sensitive: true });
   assert.ok(traLoi.html.includes("Nhân sự") && !traLoi.html.includes("Lỗi") && !traLoi.html.includes("Bình"));
+  assert.ok(traLoi.subject.includes("Nhân sự") && !traLoi.subject.includes("Lỗi") && !traLoi.subject.includes("Bình") && !traLoi.subject.includes("Bcc"));
+});
+
+test("buildMail: tên nhóm chứa xuống dòng/HTML ⇒ tiêu đề một dòng, HTML đã thoát (cả nhóm thường lẫn nhạy cảm)", () => {
+  for (const sensitive of [false, true]) {
+    const m = buildMail({ ...ev, teamName: "Nhóm\r\nBcc: x@y.z <b>đậm</b>", sensitive });
+    assert.ok(!/[\r\n]/.test(m.subject));
+    assert.ok(!m.html.includes("<b>đậm</b>") && m.html.includes("&lt;b&gt;"));
+  }
 });
