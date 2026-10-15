@@ -2870,6 +2870,60 @@ test("R-PRC-2: dòng mức theo vai mà vai KHÔNG còn trong danh sách đang b
   assert.equal(violations(db, c), 0, "bật lại vai");
 });
 
+// ---- ADR-0117 lần 2 (migration 0096 + 0097): đích thứ ba của dòng mức là MỨC TA; bảng gắn loại ↔ mức theo ngày. ----
+const mucTaSdl = (db: DatabaseSync, code: string, active: 0 | 1 = 1) =>
+  db.prepare("INSERT INTO prc_rate_tier (code, name, name_key, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").run(code, code, code.toLowerCase(), active, T1, T1);
+function dongMucTaSdl(db: DatabaseSync, o: { id: string; tier: string; scope?: "SERVICE" | "ALL"; tu?: string; den?: string | null }): void {
+  const scope = o.scope ?? "ALL";
+  db.prepare(
+    `INSERT INTO prc_commission_rule (id, target_tier_code, scope, catalog_code, kind, rate_bp, valid_from_date, valid_to_date, created_at, updated_at) VALUES (?, ?, ?, ?, 'RATE', 300, ?, ?, ?, ?)`,
+  ).run(o.id, o.tier, scope, scope === "SERVICE" ? "S1" : null, o.tu ?? "2026-01-01", o.den ?? null, T1, T1);
+}
+const ganMucSdl = (db: DatabaseSync, o: { id: string; role: string; tier: string; tu?: string; den?: string | null }) =>
+  db.prepare("INSERT INTO prc_role_tier (id, role_type_code, tier_code, valid_from_date, valid_to_date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+    .run(o.id, o.role, o.tier, o.tu ?? "2026-01-01", o.den ?? null, T1, T1);
+
+test("R-PRC-1 (ADR-0117 lần 2): khoá chồng ngày có ĐÍCH MỨC — hai mức khác nhau cùng có dòng «mọi dịch vụ» → 0; cùng mức cùng phạm vi chồng → vi phạm; bảng gắn loại ↔ mức chồng ngày cùng loại → vi phạm", () => {
+  const c = one("R-PRC-1");
+  const db = build();
+  mucTaSdl(db, "TA1");
+  mucTaSdl(db, "TA2");
+  dongMucTaSdl(db, { id: "u-1", tier: "TA1" });
+  dongMucTaSdl(db, { id: "u-2", tier: "TA2" }); // khác mức, cùng ALL, cùng ngày: hợp lệ
+  dongMucTaSdl(db, { id: "u-3", tier: "TA1", scope: "SERVICE" }); // cùng mức, khác phạm vi
+  mucSdl(db, { id: "m-vai", role: "TRAVEL_AGENCY", scope: "ALL" }); // vai cùng ALL: khác loại đích
+  ganMucSdl(db, { id: "g-1", role: "TRAVEL_AGENCY", tier: "TA1", tu: "2026-01-01", den: "2026-06-30" });
+  ganMucSdl(db, { id: "g-2", role: "TRAVEL_AGENCY", tier: "TA2", tu: "2026-07-01" }); // đổi mức = nối tiếp
+  ganMucSdl(db, { id: "g-3", role: "TAXI_DRIVER", tier: "TA1" }); // loại khác
+  assert.equal(violations(db, c), 0, "ca xanh: mọi dòng đích mức / gắn khác khoá hoặc không chồng");
+  db.exec("DROP TRIGGER prc_commission_rule_overlap");
+  dongMucTaSdl(db, { id: "u-x", tier: "TA1", tu: "2026-05-01" }); // chồng u-1
+  assert.equal(violations(db, c), 1, "cùng mức, cùng ALL, chồng");
+  db.exec("DROP TRIGGER prc_role_tier_overlap");
+  ganMucSdl(db, { id: "g-x", role: "TRAVEL_AGENCY", tier: "TA1", tu: "2026-08-01" }); // chồng g-2 (mở) — cùng loại, khác cả mức
+  assert.equal(violations(db, c), 2, "một loại mang hai mức cùng ngày");
+});
+
+test("R-PRC-2 (ADR-0117 lần 2): dòng đích mức trỏ mức KHÔNG TỒN TẠI → vi phạm; mức đã TẮT mà dòng còn hiệu lực → 0 (tắt mức chỉ chặn thêm mới, dòng đang áp vẫn áp); dòng đã hết hạn → 0", () => {
+  const c = one("R-PRC-2");
+  const db = build();
+  mucTaSdl(db, "TA1");
+  mucTaSdl(db, "TA2");
+  dongMucTaSdl(db, { id: "u-1", tier: "TA1" });
+  dongMucTaSdl(db, { id: "u-2", tier: "TA2" });
+  assert.equal(violations(db, c), 0, "mọi mức đang bật");
+  db.prepare("UPDATE prc_rate_tier SET active = 0, updated_at = ? WHERE code = 'TA1'").run(T2); // đường THẬT: tắt mức
+  assert.equal(violations(db, c), 0, "mức đã tắt, dòng đang áp vẫn áp — không báo (N-23)");
+  // Mức không tồn tại: chỉ lọt được khi gỡ trigger + tắt khoá ngoại (SQL gõ tay).
+  db.exec("DROP TRIGGER prc_commission_rule_target_tier");
+  db.exec("PRAGMA foreign_keys = OFF");
+  dongMucTaSdl(db, { id: "u-ma", tier: "KHONG_CO", scope: "SERVICE" });
+  db.exec("PRAGMA foreign_keys = ON");
+  assert.equal(violations(db, c), 1, "mức không tồn tại");
+  dongDongSdl(db, "prc_commission_rule", "u-ma", vnNgay(-1));
+  assert.equal(violations(db, c), 0, "Kế toán đóng dòng (hết hạn từ hôm qua) → hết báo");
+});
+
 test("R-PRC-3: điều khoản cung ứng — có tỷ lệ mà người bán là công ty chủ; người bán khác mà không mang vai Nhà cung cấp; người bán khác mà không có tỷ lệ → vi phạm (đủ ba nhánh, mỗi dòng đếm MỘT lần); chỉ xét dòng còn hiệu lực", () => {
   const c = one("R-PRC-3");
   const db = build();

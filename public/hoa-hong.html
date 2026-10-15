@@ -20,8 +20,25 @@
       <form id="loai-add-form" autocomplete="off" novalidate hidden></form>
       <p id="loai-loi" class="field-error" role="alert" hidden></p>
     </section>
+    <!-- Mức TA dùng chung (ADR-0117 lần 2): xem = partner.commission.view; thêm mức / tắt / bật / thêm dòng / gắn / kết thúc gắn = partner.commission.write. id cố định cho kịch bản
+         Chrome docs/evidence/2026-10-15-muc-ta/kich-ban/muc-ta-smoke.mjs: #mucta-list, #mucta-canh-bao, #mucta-loi, #mucta-add-form, #mucta-dong-form, #mucta-gan-form, #mucta-dong-khu. -->
+    <section class="card" aria-labelledby="mucta-tieu-de">
+      <h2 id="mucta-tieu-de">Mức TA</h2>
+      <p class="muted">Mức TA là bộ hoa hồng có tên, dùng chung cho nhiều loại đối tác (ví dụ «Đại lý cấp 1»). Gắn một loại vào một mức thì đối tác mang loại đó hưởng theo mức này, trừ chỗ đối tác hoặc loại còn mức riêng — mức riêng luôn được ưu tiên.</p>
+      <p id="mucta-luat" class="muted"></p>
+      <div id="mucta-canh-bao" class="alert warn" role="status" hidden></div>
+      <div id="mucta-list"></div>
+      <p id="mucta-rong" class="muted" hidden></p>
+      <!-- Hộp «Đóng dòng» / «Kết thúc gắn» (ngày kết thúc) hiện ở đây khi bấm nút của một dòng. -->
+      <div id="mucta-dong-khu"></div>
+      <p id="mucta-loi" class="field-error" role="alert" hidden></p>
+      <form id="mucta-add-form" autocomplete="off" novalidate hidden></form>
+      <form id="mucta-dong-form" autocomplete="off" novalidate hidden></form>
+      <form id="mucta-gan-form" autocomplete="off" novalidate hidden></form>
+    </section>
     <section class="card" aria-labelledby="muc-tieu-de">
       <h2 id="muc-tieu-de">Các mức hiện có</h2>
+      <p class="muted">Mức riêng theo loại đối tác hoặc theo một đối tác. Dòng của mức TA nằm ở mục «Mức TA» bên trên.</p>
       <div class="hh-loc">
         <label>Hiện<select id="muc-loc-trang-thai"><option value="dang-ap">Đang áp và sắp áp</option><option value="tat-ca">Tất cả</option></select></label>
         <label>Tìm theo đối tượng hoặc dịch vụ<input id="muc-loc-tim" type="search" autocomplete="off" placeholder="Tên đối tác, loại đối tác hoặc dịch vụ"></label>

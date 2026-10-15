@@ -100,3 +100,40 @@ test("có răng: cùng 12 lời gọi do Kế toán (riêng tìm người hưở
   // các lời gọi ghi hợp lệ thật sự ghi (không chỉ bị từ chối vì lý do khác)
   assert.ok(trangThai.includes("201 pricing: thêm mức") && trangThai.includes("200 pricing: đóng mức") && trangThai.includes("200 orders: ghi mức tay"), trangThai.join(" | "));
 });
+
+// ADR-0117 lần 2 (mức TA dùng chung, N-19): bảy route mới /api/pricing/muc-ta* — cùng khuôn: Tài xế công ty, Tài xế đối tác, Nhân sự ⇒ 403 của cổng văn phòng, không ghi gì
+// (kể cả prc_rate_tier, prc_role_tier); có răng: Kế toán gọi thì tới logic (không 403, không 404, không 5xx). Mã mức / mã gắn là mã THẬT (Kế toán tạo trước).
+test("mức TA (ADR-0117 lần 2): 7 route mới — Tài xế công ty, Tài xế đối tác, Nhân sự ⇒ 403 cổng, không ghi dòng nào; Kế toán tới logic", async () => {
+  const { w } = await dungThe();
+  const tao = await w.call("POST", "/api/pricing/muc-ta", { as: KT, body: { ten: "TA thử quyền" } });
+  assert.equal(tao.status, 201, tao.text);
+  const ma: string = tao.json.muc.code;
+  const gan = await w.call("POST", "/api/pricing/muc-ta/gan", { as: KT, body: { loai: "COLLABORATOR", muc: ma, tuNgay: "2026-01-01" } });
+  assert.equal(gan.status, 201, gan.text);
+  const ds: [string, string, string, unknown][] = [
+    ["xem mức TA", "GET", "/api/pricing/muc-ta", undefined],
+    ["tạo mức TA", "POST", "/api/pricing/muc-ta", { ten: "TA của người không quyền" }],
+    ["gắn loại vào mức", "POST", "/api/pricing/muc-ta/gan", { loai: "HOTEL_RECEPTION", muc: ma, tuNgay: "2026-01-01" }],
+    ["thêm dòng cho mức", "POST", `/api/pricing/muc-ta/${ma}/dong`, { phamVi: "ALL", kieu: "RATE", tyLeBp: 700, tuNgay: "2026-01-01" }],
+    ["kết thúc gắn", "POST", `/api/pricing/muc-ta/gan/${gan.json.gan.id}/ket-thuc`, { denNgay: "2026-12-31" }],
+    ["tắt mức", "POST", `/api/pricing/muc-ta/${ma}/tat`, {}],
+    ["bật mức", "POST", `/api/pricing/muc-ta/${ma}/bat`, {}],
+  ];
+  const bang = () => [...Object.values(dem(w)), Number(w.q("SELECT count(*) AS n FROM prc_rate_tier")[0].n), Number(w.q("SELECT count(*) AS n FROM prc_role_tier")[0].n)];
+  const truoc = bang();
+  for (const [nhan, as] of [["Tài xế công ty (DRIVER)", TXC], ["Tài xế đối tác (DRIVER_PARTNER)", TXDT], ["Nhân sự (HR)", NS]] as const) {
+    for (const [ten, phuongThuc, duong, than] of ds) {
+      const r = await w.call(phuongThuc, duong, { as, body: than });
+      assert.equal(r.status, 403, `${nhan} gọi ${ten}: ${r.status} ${r.text}`);
+      assert.equal(r.json.error.message, GATE_VAN_PHONG, `${nhan} · ${ten}: đúng câu của cổng văn phòng`);
+    }
+  }
+  assert.deepEqual(bang(), truoc, "không lời gọi nào để lại dòng");
+  const trangThai: string[] = [];
+  for (const [ten, phuongThuc, duong, than] of ds) {
+    const r = await w.call(phuongThuc, duong, { as: KT, body: than });
+    trangThai.push(`${r.status} ${ten}`);
+    assert.ok(r.status !== 403 && r.status !== 404 && r.status < 500, `${ten}: ${r.status} ${r.text}`);
+  }
+  assert.deepEqual(trangThai, ["200 xem mức TA", "201 tạo mức TA", "201 gắn loại vào mức", "201 thêm dòng cho mức", "200 kết thúc gắn", "200 tắt mức", "200 bật mức"]);
+});

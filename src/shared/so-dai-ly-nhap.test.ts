@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MOI_KHACH_TOI_DA, docNgayDong, docThanDieuKhoan, docThanMuc, docTienMoiKhach, docTyLePhanTram, ngayDongMacDinh, type FormDieuKhoan, type FormMuc } from "./so-dai-ly-nhap.ts";
+import { MOI_KHACH_TOI_DA, docNgayDong, docThanDieuKhoan, docThanDongMucTa, docThanGan, docThanMuc, docTienMoiKhach, docTyLePhanTram, ngayDongMacDinh, type FormDieuKhoan, type FormDongMucTa, type FormMuc } from "./so-dai-ly-nhap.ts";
 
 test("docTyLePhanTram: dấu phẩy hoặc chấm, tối đa hai chữ số thập phân, 0…100", () => {
   assert.deepEqual(docTyLePhanTram("12,5"), { ok: true, bp: 1250 });
@@ -88,4 +88,30 @@ test("ngày đóng: mặc định hôm nay, dòng chưa bắt đầu thì chính
   assert.equal(docNgayDong("2026-09-30", "2026-10-01").ok, false);
   assert.equal(docNgayDong("", "2026-10-01").ok, false);
   assert.equal(docNgayDong("2026-02-30", "2026-01-01").ok, false);
+});
+
+// ---- Mức TA (ADR-0117 lần 2): thân «Thêm dòng» của một mức (không có đối tượng — đích là chính mức) và thân «Gắn mức» (loại ↔ mức theo ngày)
+const dongMucTaDu: FormDongMucTa = { phamVi: "SERVICE", catalogCode: "ZE1", groupCode: "", kieu: "RATE", tyLe: "15", moiKhach: "", tuNgay: "2026-10-15", denNgay: "", ghiChu: "" };
+test("docThanDongMucTa: thân đúng khuôn route …/muc-ta/:code/dong — KHÔNG có doiTuong; phần trăm và mỗi khách như bảng mức", () => {
+  assert.deepEqual(docThanDongMucTa(dongMucTaDu), { ok: true, body: { phamVi: "SERVICE", catalogCode: "ZE1", tuNgay: "2026-10-15", kieu: "RATE", tyLeBp: 1500 } });
+  assert.deepEqual(docThanDongMucTa({ ...dongMucTaDu, phamVi: "ALL", kieu: "PER_PAX", moiKhach: "50.000", denNgay: "2026-12-31", ghiChu: " mùa cao điểm " }), {
+    ok: true,
+    body: { phamVi: "ALL", tuNgay: "2026-10-15", denNgay: "2026-12-31", ghiChu: "mùa cao điểm", kieu: "PER_PAX", moiKhach: 50_000 },
+  });
+  const r = docThanDongMucTa({ ...dongMucTaDu, catalogCode: "", tyLe: "abc", tuNgay: "" });
+  assert.deepEqual(!r.ok && r.loi.map((l) => l.truong), ["phamVi", "tuNgay", "muc"], "lỗi gom theo ô, một lượt");
+  const quaTran = docThanDongMucTa({ ...dongMucTaDu, kieu: "PER_PAX", moiKhach: "150.000.000" });
+  assert.deepEqual(!quaTran.ok && quaTran.loi, [{ truong: "muc", message: "Số tiền mỗi khách không quá 100.000.000đ." }]);
+});
+test("docThanGan: { loai, muc, tuNgay, denNgay? } — thiếu loại / mức / ngày báo dưới đúng ô; ngày kết thúc không trước ngày bắt đầu", () => {
+  assert.deepEqual(docThanGan({ loai: "LD_ABCDEFGH", muc: "MT_ABCDEFGH", tuNgay: "2026-10-15", denNgay: "" }), { ok: true, body: { loai: "LD_ABCDEFGH", muc: "MT_ABCDEFGH", tuNgay: "2026-10-15" } });
+  assert.deepEqual(docThanGan({ loai: "LD_ABCDEFGH", muc: "MT_ABCDEFGH", tuNgay: "2026-10-15", denNgay: "2026-12-31" }), { ok: true, body: { loai: "LD_ABCDEFGH", muc: "MT_ABCDEFGH", tuNgay: "2026-10-15", denNgay: "2026-12-31" } });
+  const r = docThanGan({ loai: "", muc: " ", tuNgay: "", denNgay: "" });
+  assert.deepEqual(!r.ok && r.loi, [
+    { truong: "loai", message: "Chọn một loại đối tác." },
+    { truong: "mucTa", message: "Chọn một mức TA." },
+    { truong: "tuNgay", message: "Chọn ngày bắt đầu." },
+  ]);
+  const nguoc = docThanGan({ loai: "LD_ABCDEFGH", muc: "MT_ABCDEFGH", tuNgay: "2026-10-15", denNgay: "2026-10-14" });
+  assert.deepEqual(!nguoc.ok && nguoc.loi, [{ truong: "denNgay", message: "Ngày kết thúc không được trước ngày bắt đầu." }]);
 });

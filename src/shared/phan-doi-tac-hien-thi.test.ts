@@ -86,7 +86,9 @@ test("chữ hiển thị của khối: người hưởng, trạng thái, cảnh 
   assert.equal(ghiChuTrangThai({ duKien: true, chuaChup: false }), "Dự kiến — tính theo bảng mức hôm nay, chưa lưu");
   assert.equal(ghiChuTrangThai({ duKien: false, chuaChup: true }), "Đơn xác nhận trước khi có bảng mức");
   assert.equal(ghiChuTrangThai({ duKien: false, chuaChup: false }), null);
-  assert.equal(canhBaoThieuMuc("Chưa có mức cho dịch vụ này"), "Chưa có mức cho dịch vụ này · Thiếu mức — Kế toán xử lý");
+  assert.equal(canhBaoThieuMuc("Chưa có mức cho dịch vụ này"), "Chưa có mức cho đối tác này — cần cài mức (cấp) thì mới tính được hoa hồng; đơn bị giữ ở bước Đã giao.");
+  assert.equal(canhBaoThieuMuc("Hai mức khác nhau cùng áp — Kế toán chọn một"), "Hai mức khác nhau cùng áp — Kế toán chọn một — cần cài mức (cấp) thì mới tính được hoa hồng; đơn bị giữ ở bước Đã giao.");
+  assert.doesNotMatch(canhBaoThieuMuc("Chưa có mức cho dịch vụ này") ?? "", /MISSING|RULE_CONFLICT|NO_RULE/);
   assert.equal(canhBaoThieuMuc(null), null);
   assert.equal(chuTongHoaHong(null, f), "Chưa đủ mức");
   assert.equal(chuTongHoaHong(0, f), "0đ", "0 là số thật (đơn không người hưởng), không phải thiếu");

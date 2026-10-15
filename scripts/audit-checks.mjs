@@ -1457,21 +1457,28 @@ export const CHECKS = [
   // chuyện đổi SAU khi ghi (tắt vai, đổi nhóm dịch vụ, đổi công ty chủ) — thứ trigger lúc chèn không nhìn thấy. Bảng mức / điều khoản / bản chụp chỉ-thêm: dòng sai không sửa
   // được, chỉ ĐÓNG (mức, điều khoản) — nên R-PRC-2/3/4 chỉ xét dòng CHƯA HẾT HẠN (đóng rồi là hết báo; đặc tả §13: đổi công ty chủ thì đóng dòng ALL cũ, mở dòng mới). ----
   {
-    // R-PRC-1: trigger `prc_commission_rule_overlap` chặn lúc chèn; kiểm này bắt dòng lọt qua (trigger bị gỡ / SQL tay). Cùng khoá với trigger: (hồ sơ, vai, phạm vi, mã dịch vụ, nhóm).
+    // R-PRC-1: trigger `prc_commission_rule_overlap` chặn lúc chèn; kiểm này bắt dòng lọt qua (trigger bị gỡ / SQL tay). Cùng khoá với trigger: (hồ sơ, vai, mức TA, phạm vi, mã dịch vụ,
+    // nhóm) — ADR-0117 lần 2 (0097) thêm đích mức vào khoá: hai mức khác nhau cùng có dòng «mọi dịch vụ» là hợp lệ. Cộng thêm bảng gắn loại ↔ mức (0096, trigger
+    // `prc_role_tier_overlap`): một loại tối đa MỘT mức tại một ngày.
     code: "R-PRC-1",
-    what: "không có hai dòng mức hoa hồng cùng đối tượng (hồ sơ hoặc vai), cùng phạm vi và mã mà khoảng hiệu lực chồng nhau",
-    sql: overlap("prc_commission_rule", ["target_party_id", "target_role_code", "scope", "catalog_code", "group_code"], "valid_from_date"),
+    what: "không có hai dòng mức hoa hồng cùng đối tượng (hồ sơ, vai hoặc mức TA), cùng phạm vi và mã mà khoảng hiệu lực chồng nhau; không loại nào mang hai mức TA cùng một ngày",
+    sql: `SELECT (${overlap("prc_commission_rule", ["target_party_id", "target_role_code", "target_tier_code", "scope", "catalog_code", "group_code"], "valid_from_date")})
+       + (${overlap("prc_role_tier", ["role_type_code"], "valid_from_date")})`,
     level: "fail",
-    note: "đặc tả sổ đại lý đợt 1 §9: một đối tượng, một phạm vi, một mã chỉ có MỘT mức tại mỗi ngày — Kế toán đóng một trong hai dòng",
+    note: "đặc tả sổ đại lý đợt 1 §9: một đối tượng (hồ sơ, vai hoặc mức TA), một phạm vi, một mã chỉ có MỘT mức tại mỗi ngày; một loại chỉ mang MỘT mức TA tại mỗi ngày (ADR-0117 lần 2) — Kế toán đóng một trong hai dòng",
   },
   {
     // R-PRC-2: "tắt một vai = active 0, dòng mức cũ vẫn giữ; R-PRC-2 báo" (0090) — việc của Kế toán là đóng dòng mức theo vai đó (hết hạn ⇒ hết báo).
+    // ADR-0117 lần 2 (0097): dòng đích MỨC TA chỉ báo khi mức KHÔNG TỒN TẠI (trigger `prc_commission_rule_target_tier` bị gỡ / SQL tay). Mức đã TẮT (active 0) không báo:
+    // tắt mức chỉ chặn gắn mới và thêm dòng mới, dòng đang áp vẫn áp (kế hoạch «Thiết kế chốt», N-23; ruling điều phối Task 2 vòng sửa 1) — muốn ngừng áp thì đóng dòng / gắn.
     code: "R-PRC-2",
-    what: "dòng mức hoa hồng còn hiệu lực theo vai mà vai đó không còn trong danh sách vai được hưởng đang bật",
-    sql: `SELECT count(*) FROM prc_commission_rule r WHERE r.target_role_code IS NOT NULL AND ${CHUA_HET_HAN("r")}
-       AND r.target_role_code NOT IN (SELECT role_type_code FROM v_prc_beneficiary_role)`,
+    what: "dòng mức hoa hồng còn hiệu lực theo vai mà vai đó không còn trong danh sách vai được hưởng đang bật, hoặc theo mức TA không tồn tại",
+    sql: `SELECT (SELECT count(*) FROM prc_commission_rule r WHERE r.target_role_code IS NOT NULL AND ${CHUA_HET_HAN("r")}
+       AND r.target_role_code NOT IN (SELECT role_type_code FROM v_prc_beneficiary_role))
+     + (SELECT count(*) FROM prc_commission_rule r WHERE r.target_tier_code IS NOT NULL AND ${CHUA_HET_HAN("r")}
+       AND r.target_tier_code NOT IN (SELECT code FROM prc_rate_tier))`,
     level: "fail",
-    note: "đặc tả sổ đại lý đợt 1 §9: vai bị tắt khỏi danh sách được hưởng mà dòng mức còn hiệu lực — Kế toán đóng dòng mức đó (hoặc bật lại vai)",
+    note: "đặc tả sổ đại lý đợt 1 §9: vai bị tắt mà dòng mức còn hiệu lực — Kế toán đóng dòng mức đó (hoặc bật lại vai); dòng trỏ mức TA không tồn tại (ADR-0117 lần 2) — đóng dòng đó. Mức TA đã tắt không báo (dòng đang áp vẫn áp)",
   },
   {
     // R-PRC-3: ba nhánh, mỗi dòng đếm MỘT lần. (1) có a% mà người bán là công ty chủ; (2) người bán ≠ công ty chủ mà không mang vai Nhà cung cấp (đang mở);
