@@ -55,6 +55,7 @@ const SELF_SERVICE = { access: "staff", prefix: "/api/account/" };
 const GUARDS: { name: string; file: string; hoiBang: boolean }[] = [
   { name: "can", file: "src/shared/permissions.ts", hoiBang: true },
   { name: "canRead", file: "src/modules/feedback/index.ts", hoiBang: true },
+  { name: "quyenPhieu", file: "src/modules/feedback/quyen.ts", hoiBang: true }, // ADR-0119: quyền đọc/xử lý phiếu theo tư cách thành viên nhóm; bên trong hỏi can() của MATRIX
   { name: "handlerChangeVerdict", file: "src/modules/dispatch/rules.ts", hoiBang: true },
   { name: "mayManage", file: "src/modules/accounts/index.ts", hoiBang: false },
   { name: "canManageAccount", file: "src/shared/roles.ts", hoiBang: false }, // ADR-0071: chuyển về src/shared (một nguồn cho máy chủ và giao diện)
