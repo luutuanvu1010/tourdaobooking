@@ -2,10 +2,11 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## CHỜ PHÁT HÀNH (chưa lên production, ghi 2026-10-15) — ADR-0119 và đợt xác nhận sổ vàng
+## CHỜ PHÁT HÀNH (chưa lên production, ghi 2026-10-15) — ADR-0119 (đổi từ 0118) và đợt xác nhận sổ vàng
 
 Nằm trên nhánh `claude/stoic-heisenberg-72c05d`, **chưa `day-len`, chưa `trien-khai`**; mục hiện trạng ngay dưới vẫn là bản 1.94.
 
+- **Số hiệu:** ADR đổi từ 0118 sang 0119 và nhật ký thay đổi dùng số tạm **1.98** vì nhánh đưa đón theo nhóm (ADR-0118, 1.97, migration 0098) vào `main` trước; kiểm lại số ở bước A.0 khi phát hành.
 - **Có gì:** ADR-0119 Điều 1 (khoản chuyển khoản do người không phải Kế toán khai là «đang đối chiếu», không tạo nợ giữ hộ; chặn Đã giao; nhắc Kế toán sau 3 ngày; tiền mặt «Công ty thu» giữ luật cũ) và Điều 2 (ô quyền `deposit.transfer.approve`: Kế toán duyệt chuyển tiền sang đơn khác); đổi chữ «cọc» → «Thu trước» ở chữ nhân viên thấy (câu gửi khách giữ nguyên); sổ vàng: 26 ca + 7 khoá mới đã xác nhận 2026-10-14.
 - **Cần biết khi phát hành:** có **migration `0099_bil_doi_chieu_khoan_cong_ty_thu`** (bảng chỉ-thêm `bil_receipt_recon`, tạo lại view `v_bil_coc_don` và trigger đảo lần thu) nên phải qua điểm khôi phục Time Travel và `audit-invariants --db remote`; trần gói trang Đơn hàng nới lên 96.500 byte (chủ chấp nhận); phải thêm mục nhật ký thay đổi mới (bước A.0) trước khi triển khai.
 - **Đã kiểm:** `typecheck` 0 lỗi, `npm test` xanh cả hai bước; hai lượt kiểm độc lập (đạt có điều kiện), điều kiện còn lại là dòng nhắc chỉ cho chuyển khoản — đã sửa, chưa có lượt kiểm thứ ba.
