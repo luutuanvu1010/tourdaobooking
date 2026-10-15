@@ -31,12 +31,18 @@ test("conLai: đủ, thiếu, dư; hoàn khách trừ đã thu; cặp gốc/đ�
 test("NT-S1 (luật thuần, ADR-0118): HDV thu 1.000.000 tiền mặt → giữ 1.000.000; khai 'Công ty thu – CK' 500.000 → KHÔNG giữ thêm (đang đối chiếu); Kế toán ghi đã nộp → về 0", () => {
   let lines = ghi(sinhDongLanThu({ kind: "CUSTOMER_PAYMENT", amount: 1_000_000, collectorRole: "STAFF", collectorPartyId: HDV, nguoiGhiPartyId: HDV, nguoiGhiLaKeToan: false, congTyId: CT }));
   assert.equal(soDuTheoBen(lines, CT).get(HDV), 1_000_000);
-  const ck = { kind: "CUSTOMER_PAYMENT", amount: 500_000, collectorRole: "COMPANY", collectorPartyId: CT, nguoiGhiPartyId: HDV, nguoiGhiLaKeToan: false, congTyId: CT } as const;
+  const ck = { kind: "CUSTOMER_PAYMENT", amount: 500_000, collectorRole: "COMPANY", collectorPartyId: CT, method: "BANK_TRANSFER", nguoiGhiPartyId: HDV, nguoiGhiLaKeToan: false, congTyId: CT } as const;
   assert.deepEqual(sinhDongLanThu(ck), [], "khoản công ty thu do HDV khai không sinh dòng giữ hộ");
   assert.equal(canDoiChieu(ck), true, "mà là khoản đang đối chiếu");
   assert.equal(canDoiChieu({ ...ck, nguoiGhiLaKeToan: true }), false, "Kế toán tự ghi: đã về công ty, không đối chiếu");
   assert.equal(canDoiChieu({ ...ck, nguoiGhiPartyId: CT }), false);
   assert.equal(canDoiChieu({ ...ck, collectorRole: "STAFF" }), false, "người thu là nhân viên: đi đường giữ hộ");
+  // Chủ chốt 2026-10-15: CHỈ chuyển khoản. Tiền mặt "Công ty thu" do người khác khai giữ luật H3 cũ: dòng giữ hộ trên người khai, không đối chiếu.
+  const mat = { ...ck, method: "CASH" } as const;
+  assert.equal(canDoiChieu(mat), false);
+  assert.equal(canDoiChieu({ ...ck, method: "OTHER" }), false);
+  assert.deepEqual(sinhDongLanThu(mat), [{ debtorPartyId: HDV, creditorPartyId: CT, amount: 500_000, kind: "HELD", reversesLineId: null }]);
+  assert.deepEqual(sinhDongLanThu({ ...mat, nguoiGhiLaKeToan: true }), [], "Kế toán tự ghi tiền mặt Công ty thu: không dòng");
   assert.equal(canDoiChieu({ ...ck, kind: "CUSTOMER_REFUND" }), false);
   assert.equal(soDuTheoBen(lines, CT).get(HDV), 1_000_000, "nợ HDV không tăng");
   lines = ghi(sinhDongQuyetToan({ nguoiNopPartyId: HDV, congTyId: CT, phanBo: [{ orderId: "o1", amount: 1_000_000 }] }), lines);

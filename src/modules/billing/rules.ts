@@ -143,11 +143,12 @@ export const SO_NGAY_NHAC_DOI_CHIEU = 3;
 export const nhacDoiChieu = (input: { homNay: string; ngayKhai: string }): boolean => input.ngayKhai < congNgay(input.homNay, -SO_NGAY_NHAC_DOI_CHIEU);
 
 /**
- * Lần thu này có phải KHOẢN MỚI ĐANG ĐỐI CHIẾU ngay khi ghi không (ADR-0118 Điều 1.1): lần thu của khách, người thu = Công ty, mà người GHI không phải
- * Kế toán/Toàn quyền (và không phải hồ sơ công ty). Khi đúng: máy chủ ghi dấu DECLARED, KHÔNG sinh dòng giữ hộ.
+ * Lần thu này có phải KHOẢN MỚI ĐANG ĐỐI CHIẾU ngay khi ghi không (ADR-0118 Điều 1.1; chủ chốt 2026-10-15: CHỈ chuyển khoản): lần thu của khách, người thu = Công ty,
+ * hình thức CHUYỂN KHOẢN, mà người GHI không phải Kế toán/Toàn quyền (và không phải hồ sơ công ty). Khi đúng: máy chủ ghi dấu DECLARED, KHÔNG sinh dòng giữ hộ.
+ * Tiền mặt (hoặc hình thức khác) ghi "Công ty thu" giữ luật H3 cũ: dòng giữ hộ trên người khai — người cầm tiền thật vẫn chịu nợ.
  */
-export const canDoiChieu = (input: { kind: ReceiptKind; collectorRole: CollectorRole; nguoiGhiPartyId: string; nguoiGhiLaKeToan: boolean; congTyId: string }): boolean =>
-  input.kind === "CUSTOMER_PAYMENT" && input.collectorRole === "COMPANY" && !input.nguoiGhiLaKeToan && input.nguoiGhiPartyId !== input.congTyId;
+export const canDoiChieu = (input: { kind: ReceiptKind; collectorRole: CollectorRole; method?: MethodCode; nguoiGhiPartyId: string; nguoiGhiLaKeToan: boolean; congTyId: string }): boolean =>
+  input.kind === "CUSTOMER_PAYMENT" && input.collectorRole === "COMPANY" && input.method === "BANK_TRANSFER" && !input.nguoiGhiLaKeToan && input.nguoiGhiPartyId !== input.congTyId;
 
 /**
  * Nộp / trả không đổi dấu số dư (ADR-0092 Đ2): `soDu` = số bên đó đang nợ công ty trên đơn. Nộp ≤ số đang nợ; trả ≤ số công ty đang nợ bên đó.
@@ -409,23 +410,30 @@ export function nhacCoc(input: { nhom: NhomHuy; han: string; homNay: string; coc
 }
 
 /**
- * Dòng nợ sinh NGAY khi ghi một lần thu của khách (ADR-0026 điều 4 gạch 1; gạch 2 bị ADR-0118 Điều 1 thay):
+ * Dòng nợ sinh NGAY khi ghi một lần thu của khách (ADR-0026 điều 4 gạch 1–2; ADR-0118 Điều 1 chỉ thay gạch 2 cho CHUYỂN KHOẢN):
  *  - người thu không phải Công ty (nhân viên, bên đặt) ⇒ *tiền đang giữ hộ*: người thu nợ công ty đúng số đó;
- *  - người thu = Công ty ⇒ KHÔNG dòng nào, dù ai ghi: Kế toán/Toàn quyền tự ghi là tiền đã về công ty; người khác khai thì khoản ĐANG ĐỐI CHIẾU (dấu DECLARED —
- *    `canDoiChieu`) tới khi Kế toán bấm "Công ty đã nhận", hướng dẫn viên chỉ nợ phần tiền họ thật sự cầm;
+ *  - người thu = Công ty, người GHI là Kế toán/Toàn quyền ⇒ không dòng (tiền đã về công ty);
+ *  - người thu = Công ty, người khác khai, hình thức CHUYỂN KHOẢN ⇒ KHÔNG dòng nào — khoản ĐANG ĐỐI CHIẾU (dấu DECLARED, `canDoiChieu`) tới khi Kế toán bấm
+ *    "Công ty đã nhận"; hướng dẫn viên chỉ nợ phần tiền họ thật sự cầm;
+ *  - người thu = Công ty, người khác khai, TIỀN MẶT / hình thức khác ⇒ giữ luật H3 cũ: *giữ hộ* trên NGƯỜI KHAI tới khi Kế toán bấm "Công ty đã nhận";
  *  - người thu "chưa rõ" (cọc cũ) ⇒ không dòng (không biết ai nợ).
- * Trả lại khách (CUSTOMER_REFUND) không đi đường này — xem `sinhDongHoanKhach`.
+ * `method` thiếu coi như không phải chuyển khoản (đường H3 cũ). Trả lại khách (CUSTOMER_REFUND) không đi đường này — xem `sinhDongHoanKhach`.
  */
 export function sinhDongLanThu(input: {
   kind: ReceiptKind;
   amount: number;
   collectorRole: CollectorRole;
   collectorPartyId: string | null;
+  method?: MethodCode;
   nguoiGhiPartyId: string;
   nguoiGhiLaKeToan: boolean;
   congTyId: string;
 }): LineDraft[] {
-  if (input.kind !== "CUSTOMER_PAYMENT" || input.collectorRole === "UNKNOWN" || input.collectorRole === "COMPANY") return [];
+  if (input.kind !== "CUSTOMER_PAYMENT" || input.collectorRole === "UNKNOWN") return [];
+  if (input.collectorRole === "COMPANY") {
+    if (input.nguoiGhiLaKeToan || input.nguoiGhiPartyId === input.congTyId || input.method === "BANK_TRANSFER") return [];
+    return [{ debtorPartyId: input.nguoiGhiPartyId, creditorPartyId: input.congTyId, amount: input.amount, kind: "HELD", reversesLineId: null }];
+  }
   if (!input.collectorPartyId || input.collectorPartyId === input.congTyId) return [];
   return [{ debtorPartyId: input.collectorPartyId, creditorPartyId: input.congTyId, amount: input.amount, kind: "HELD", reversesLineId: null }];
 }

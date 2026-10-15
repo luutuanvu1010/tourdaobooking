@@ -102,8 +102,8 @@ function chayTrenMa(c: Ca): { dap: DapAn; lech: string[] } {
       const role = e.vai_nguoi_thu === "cong_ty" ? "COMPANY" : "STAFF";
       const r: ReceiptRow = { id: `r${++k}`, kind: "CUSTOMER_PAYMENT", amount: e.so as number, collectorRole: role, collectorPartyId: role === "COMPANY" ? CONG_TY : (e.nguoi_thu as string), reversesId: null };
       receipts.push(r);
-      if (canDoiChieu({ kind: r.kind, collectorRole: role, nguoiGhiPartyId: e.nguoi_ghi as string, nguoiGhiLaKeToan: e.nguoi_ghi_la_ke_toan as boolean, congTyId: CONG_TY })) doiChieu.push({ receiptId: r.id, kind: "DECLARED" });
-      thu.push({ receipt: r, dong: ghiDong(sinhDongLanThu({ kind: r.kind, amount: r.amount, collectorRole: role, collectorPartyId: r.collectorPartyId, nguoiGhiPartyId: e.nguoi_ghi as string, nguoiGhiLaKeToan: e.nguoi_ghi_la_ke_toan as boolean, congTyId: CONG_TY }), r.id) });
+      if (canDoiChieu({ kind: r.kind, collectorRole: role, method: "BANK_TRANSFER", nguoiGhiPartyId: e.nguoi_ghi as string, nguoiGhiLaKeToan: e.nguoi_ghi_la_ke_toan as boolean, congTyId: CONG_TY })) doiChieu.push({ receiptId: r.id, kind: "DECLARED" });
+      thu.push({ receipt: r, dong: ghiDong(sinhDongLanThu({ kind: r.kind, amount: r.amount, collectorRole: role, collectorPartyId: r.collectorPartyId, method: "BANK_TRANSFER", nguoiGhiPartyId: e.nguoi_ghi as string, nguoiGhiLaKeToan: e.nguoi_ghi_la_ke_toan as boolean, congTyId: CONG_TY }), r.id) });
     } else if (e.loai === "xac_nhan_cong_ty") {
       const t = thu[(e.thu_so as number) - 1]!;
       if (t.dong.length === 0) doiChieu.push({ receiptId: t.receipt.id, kind: "CONFIRMED" }); // khoản mới: không dòng nợ nào

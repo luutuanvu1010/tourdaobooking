@@ -147,6 +147,35 @@ test("Bán hàng / HDV ghi 'tôi thu' (STAFF) vẫn sinh dòng giữ hộ như c
   assert.equal(n(w, "SELECT count(*) AS n FROM bil_receipt_recon"), 0);
 });
 
+test("TIỀN MẶT 'Công ty thu' do HDV khai: GIỮ luật H3 cũ — có dòng giữ hộ, HDV nợ, không vào đang đối chiếu, không bị chặn Đã giao; Kế toán xác nhận thì đảo dòng giữ hộ", async () => {
+  const w = setup();
+  const id = don(w, 300_000);
+  const mat = { soTien: 300_000, hinhThuc: "CASH", nguoiThu: "cong_ty" };
+  assert.equal((await thu(w, HDV, id, mat)).status, 201);
+  const r = cuoi(w, id);
+  assert.equal(n(w, "SELECT count(*) AS n FROM bil_debt_line WHERE order_id = ? AND kind_code = 'HELD' AND receipt_id = ?", id, r), 1, "có dòng giữ hộ trên người khai");
+  assert.equal(n(w, "SELECT count(*) AS n FROM bil_receipt_recon"), 0, "không dấu đối chiếu");
+  let t = await tien(w, HDV, id);
+  assert.equal(t.banDangGiu, 300_000, "HDV cầm tiền thật nên vẫn nợ");
+  assert.notEqual(t.lyDoChuaGiao?.ma, "reconciling");
+  assert.equal(t.coTheGiao, true, "tiền mặt không bị chặn Đã giao bởi đối chiếu");
+  assert.deepEqual((await tien(w, KT, id)).keToan.choXacNhan, [r], "vẫn chờ Kế toán xác nhận theo dòng giữ hộ");
+  assert.equal((await w.call("GET", "/api/ledger/coc", { as: KT })).json.doiChieu.length, 1, "nằm trong danh sách chờ xác nhận của sổ");
+  assert.equal((await xacNhan(w, r)).status, 200);
+  assert.equal(n(w, "SELECT count(*) AS n FROM bil_debt_line WHERE order_id = ? AND reverses_line_id IS NOT NULL", id), 1, "đảo dòng giữ hộ");
+  t = await tien(w, HDV, id);
+  assert.equal(t.banDangGiu, 0);
+  assert.equal(n(w, "SELECT count(*) AS n FROM bil_receipt_recon"), 0);
+});
+
+test("lớp CSDL: dấu DECLARED chỉ cho lần thu CHUYỂN KHOẢN — tiền mặt bị trigger từ chối", async () => {
+  const w = setup();
+  const id = don(w);
+  assert.equal((await thu(w, KT, id, { soTien: 100_000, hinhThuc: "CASH", nguoiThu: "cong_ty" })).status, 201);
+  assert.throws(() => w.sqlite.prepare(`INSERT INTO bil_receipt_recon (id, receipt_id, kind_code, occurred_date, created_at, created_by, updated_at, updated_by)
+    VALUES (?, ?, 'DECLARED', ?, ?, ?, ?, ?)`).run(uuid(), cuoi(w, id), vnHomNay(), AT, HDV, AT, HDV), /recon_receipt_invalid/);
+});
+
 test("khoản CŨ (đã có dòng giữ hộ): vẫn đảo dòng giữ hộ khi xác nhận, không thêm dấu CONFIRMED", async () => {
   const w = setup();
   const id = don(w);

@@ -119,8 +119,8 @@ function chayTrenMa(phaiThu: number, suKien: readonly SuKien[]) {
       const role = VAI[e.vai_nguoi_thu]!;
       const r: ReceiptRow = { id: `r${++k}`, kind: "CUSTOMER_PAYMENT", amount: e.so, collectorRole: role, collectorPartyId: role === "UNKNOWN" ? null : role === "COMPANY" ? CONG_TY : e.nguoi_thu, reversesId: null };
       receipts.push(r);
-      const dongMoi = ghiDong(sinhDongLanThu({ kind: r.kind, amount: r.amount, collectorRole: role, collectorPartyId: r.collectorPartyId, nguoiGhiPartyId: e.nguoi_ghi, nguoiGhiLaKeToan: e.nguoi_ghi_la_ke_toan, congTyId: CONG_TY }), r.id);
-      if (canDoiChieu({ kind: r.kind, collectorRole: role, nguoiGhiPartyId: e.nguoi_ghi, nguoiGhiLaKeToan: e.nguoi_ghi_la_ke_toan, congTyId: CONG_TY })) doiChieu.push({ receiptId: r.id, kind: "DECLARED" });
+      const dongMoi = ghiDong(sinhDongLanThu({ kind: r.kind, amount: r.amount, collectorRole: role, collectorPartyId: r.collectorPartyId, method: "BANK_TRANSFER", nguoiGhiPartyId: e.nguoi_ghi, nguoiGhiLaKeToan: e.nguoi_ghi_la_ke_toan, congTyId: CONG_TY }), r.id);
+      if (canDoiChieu({ kind: r.kind, collectorRole: role, method: "BANK_TRANSFER", nguoiGhiPartyId: e.nguoi_ghi, nguoiGhiLaKeToan: e.nguoi_ghi_la_ke_toan, congTyId: CONG_TY })) doiChieu.push({ receiptId: r.id, kind: "DECLARED" });
       thu.push({ receipt: r, dong: dongMoi });
     } else if (e.loai === "xac_nhan_cong_ty") {
       const t = thu[e.thu_so - 1]!;

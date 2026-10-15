@@ -114,7 +114,7 @@ export async function ghiThayLanThu(db: D1Database, input: { raw: unknown; ai: N
       note: m.ghiChu, at, by, replacementId: markerId,
     }));
     const dongMoi = sinhDongLanThu({
-      kind: "CUSTOMER_PAYMENT", amount: m.soTien, collectorRole: m.collectorRole, collectorPartyId: m.collectorPartyId, nguoiGhiPartyId: input.ai.partyId ?? congTyId,
+      kind: "CUSTOMER_PAYMENT", amount: m.soTien, collectorRole: m.collectorRole, collectorPartyId: m.collectorPartyId, method: m.hinhThuc, nguoiGhiPartyId: input.ai.partyId ?? congTyId,
       nguoiGhiLaKeToan: input.ai.laKeToan, congTyId,
     });
     if (dongMoi.length > 0) {

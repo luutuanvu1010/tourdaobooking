@@ -1,6 +1,7 @@
--- Migration 0099 — KHOẢN "CÔNG TY THU" DO NGƯỜI KHÔNG PHẢI KẾ TOÁN KHAI: ĐANG ĐỐI CHIẾU, KHÔNG TẠO NỢ (ADR-0118 Điều 1; thay điều H3 của ADR-0026). Module `billing`. Chỉ THÊM.
+-- Migration 0099 — KHOẢN "CÔNG TY THU – CHUYỂN KHOẢN" DO NGƯỜI KHÔNG PHẢI KẾ TOÁN KHAI: ĐANG ĐỐI CHIẾU, KHÔNG TẠO NỢ (ADR-0118 Điều 1; thay điều H3 của ADR-0026). Module `billing`. Chỉ THÊM.
 -- Vì sao cần bảng: luật mới không còn sinh dòng giữ hộ (HELD) cho khoản này, nên không còn dấu nào phân biệt "đang chờ Kế toán đối chiếu" với "Kế toán tự ghi" (cùng là
 -- lần thu vai COMPANY, không dòng nợ). Hai view/trigger của 0079 và hàng rào R-BIL-D6b cũng cần dấu đó. Chủ dự án duyệt thêm migration này (chat 2026-10-15).
+-- Phạm vi (chủ chốt 2026-10-15): CHỈ chuyển khoản. Tiền mặt ghi "Công ty thu" giữ luật H3 cũ (dòng giữ hộ trên người khai) và KHÔNG có dấu ở bảng này.
 -- Dữ liệu cũ KHÔNG đổi: khoản đã khai trước ngày áp luật giữ dòng giữ hộ đang có và đi đường cũ (không có dòng trong bảng mới).
 -- "Đang đối chiếu" = có dòng DECLARED mà chưa có dòng CONFIRMED (lần thu còn hiệu lực). "Công ty đã nhận" cho khoản MỚI ghi dòng CONFIRMED (kèm mã giao dịch của 0088),
 -- không sinh dòng nợ nào. Câu lỗi có tiền tố mã — service dịch sang tiếng Việt. Thân trigger chỉ đọc bảng bil_ (ADR-0024 điều 5).
@@ -25,12 +26,12 @@ BEGIN SELECT RAISE(ABORT, 'bil_append_only: dấu đối chiếu không sửa đ
 CREATE TRIGGER bil_receipt_recon_no_delete BEFORE DELETE ON bil_receipt_recon
 BEGIN SELECT RAISE(ABORT, 'bil_append_only: dấu đối chiếu không xoá được'); END;
 
--- DECLARED chỉ gắn vào lần thu của khách, GỐC, người thu Công ty, không phải nửa thu của lệnh chuyển cọc.
+-- DECLARED chỉ gắn vào lần thu của khách, GỐC, người thu Công ty, CHUYỂN KHOẢN, không phải nửa thu của lệnh chuyển cọc.
 CREATE TRIGGER bil_receipt_recon_declared BEFORE INSERT ON bil_receipt_recon
 WHEN NEW.kind_code = 'DECLARED' AND NOT EXISTS (
   SELECT 1 FROM bil_payment_receipt r WHERE r.id = NEW.receipt_id AND r.kind_code = 'CUSTOMER_PAYMENT' AND r.reverses_id IS NULL AND r.transfer_of_id IS NULL
-    AND r.collector_role_code = 'COMPANY')
-BEGIN SELECT RAISE(ABORT, 'recon_receipt_invalid: chỉ đánh dấu đối chiếu cho lần thu “Công ty thu” của khách'); END;
+    AND r.collector_role_code = 'COMPANY' AND r.method_code = 'BANK_TRANSFER')
+BEGIN SELECT RAISE(ABORT, 'recon_receipt_invalid: chỉ đánh dấu đối chiếu cho lần thu chuyển khoản “Công ty thu” của khách'); END;
 
 -- CONFIRMED: phải có DECLARED, lần thu còn hiệu lực (chưa bị đảo); khoản chuyển khoản ghi TỪ mốc R-BIL-D6 của 0088 phải có mã giao dịch ngân hàng (lớp CSDL cho
 -- đường xác nhận khoản MỚI — nơi trigger (e) của 0088 không với tới vì không có dòng giữ hộ để đảo).

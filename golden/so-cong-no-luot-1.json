@@ -24,7 +24,7 @@
     },
     {
       "ma": "SV-SC-02",
-      "mo_ta": "Khách lẻ, 1.000.000. Khách chuyển khoản 500.000 vào tài khoản công ty, HDV Nam KHAI 'Công ty thu – CK'; HDV thu 500.000 tiền mặt. Theo ADR-0118 Điều 1: khoản khai chuyển khoản KHÔNG tạo nợ cho HDV, nó ở trạng thái ĐANG ĐỐI CHIẾU — HDV chỉ nợ phần tiền mặt 500.000 họ thật sự cầm, và đơn CHƯA bấm Đã giao được cho tới khi Kế toán bấm 'Công ty đã nhận'. Kế toán bấm xong: khoản thành đã thu, không phát sinh dòng nợ nào, HDV vẫn nợ 500.000, đơn Đã giao được. (Đáp án dưới đây là trạng thái SAU khi xác nhận; trạng thái đang đối chiếu được kiểm bằng bài src/modules/billing/doi-chieu-ck.test.ts vì khuôn ca này chưa có bước chụp trạng thái giữa chừng.)",
+      "mo_ta": "Khách lẻ, 1.000.000. Khách chuyển khoản 500.000 vào tài khoản công ty, HDV Nam KHAI 'Công ty thu – CK' (chuyển khoản); HDV thu 500.000 tiền mặt (tiền mặt ghi 'Công ty thu' thì vẫn giữ hộ như cũ — chỉ chuyển khoản đổi luật). Theo ADR-0118 Điều 1: khoản khai chuyển khoản KHÔNG tạo nợ cho HDV, nó ở trạng thái ĐANG ĐỐI CHIẾU — HDV chỉ nợ phần tiền mặt 500.000 họ thật sự cầm, và đơn CHƯA bấm Đã giao được cho tới khi Kế toán bấm 'Công ty đã nhận'. Kế toán bấm xong: khoản thành đã thu, không phát sinh dòng nợ nào, HDV vẫn nợ 500.000, đơn Đã giao được. (Đáp án dưới đây là trạng thái SAU khi xác nhận; trạng thái đang đối chiếu được kiểm bằng bài src/modules/billing/doi-chieu-ck.test.ts vì khuôn ca này chưa có bước chụp trạng thái giữa chừng.)",
       "nguon": "ADR-0118 Điều 1 (thay H3 của ADR-0026 điều 4 gạch 2), ADR-0026 Hệ quả 2",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "dau_vao": {
