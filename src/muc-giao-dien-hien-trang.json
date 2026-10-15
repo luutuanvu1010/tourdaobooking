@@ -1,6 +1,6 @@
 {
  "ghiChu": "Sinh bằng scripts/chup-muc-giao-dien.mjs (chạy mã giao diện thật trên DOM giả). KHÔNG sửa tay. Mặt nạ: base64, bit m = tập con m (bit i của m = PERMISSION_CODES[i]).",
- "nguon": "3ff7786f + phần A4/A5 của gói Vận chuyển A+C (ghép 2026-10-12: Cuốc của tôi cho tài xế đối tác, Đề nghị chuyển khách, Báo bận của tôi)",
+ "nguon": "cb7da197",
  "maQuyen": [
   "SALES",
   "ACCOUNTING",
@@ -38,6 +38,7 @@
     "QUẢN TRỊ|con|Chính sách điều phối|/chinh-sach-dieu-phoi",
     "QUẢN TRỊ|con|Lý do điều phối|/ly-do-dieu-phoi",
     "QUẢN TRỊ||Khoá sổ tháng|/khoa-thang",
+    "QUẢN TRỊ||Điều chỉnh công nợ|/dieu-chinh-cong-no",
     "QUẢN TRỊ||Hoa hồng đối tác|/hoa-hong",
     "QUẢN TRỊ||Người bán dịch vụ|/nguoi-ban",
     "QUẢN TRỊ||Nhật ký|/audit",
@@ -48,7 +49,7 @@
     "TÔI||Cuốc của tôi|/cuoc",
     "TÔI||Báo bận của tôi|/ban",
     "TÔI||Của tôi|/account",
-    "TÔI||Góp ý / Báo lỗi|/feedback?new=1&from=%2Faccount",
+    "TÔI||Hỗ trợ|/feedback?new=1&from=%2Faccount",
     "TÔI||Trợ giúp|/help"
    ],
    "tap": [
@@ -74,6 +75,7 @@
     "AAAAAP////8AAAAA/////wAAAAD/////AAAAAP////8AAAAA/////wAAAAD/////AAAAAP////8AAAAA/////wAAAAD/////AAAAAP////8AAAAA/////wAAAAD/////AAAAAP////8AAAAA/////wAAAAD/////AAAAAP////8=",
     "8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P////8=",
     "zMzMzP/////MzMzM/////8zMzMz/////zMzMzP/////MzMzM/////8zMzMz/////zMzMzP/////MzMzM/////8zMzMz/////zMzMzP/////MzMzM/////8zMzMz/////zMzMzP/////MzMzM/////8zMzMz/////zMzMzP////8=",
+    "/Pz8/P/////8/Pz8//////z8/Pz//////Pz8/P/////8/Pz8//////z8/Pz//////Pz8/P/////8/Pz8//////z8/Pz//////Pz8/P/////8/Pz8//////z8/Pz//////Pz8/P/////8/Pz8//////z8/Pz//////Pz8/P////8=",
     "/v4AAP//AAD+/gAA//8AAP7+AAD//wAA/v4AAP//AAD+/gAA//8AAP7+AAD//wAA/v4AAP//AAD+/gAA//8AAP7+AAD//wAA/v4AAP//AAD+/gAA//8AAP7+AAD//wAA/v4AAP//AAD+/gAA//8AAP7+AAD//wAA/v4AAP//AAA=",
     "/PwAAP//AAD8/AAA//8AAPz8AAD//wAA/PwAAP//AAD8/AAA//8AAPz8AAD//wAA/PwAAP//AAD8/AAA//8AAPz8AAD//wAA/PwAAP//AAD8/AAA//8AAPz8AAD//wAA/PwAAP//AAD8/AAA//8AAPz8AAD//wAA/PwAAP//AAA=",
     "AAAAAP////8AAAAA/////wAAAAD/////AAAAAP////8AAAAA/////wAAAAD/////AAAAAP////8AAAAA/////wAAAAD/////AAAAAP////8AAAAA/////wAAAAD/////AAAAAP////8AAAAA/////wAAAAD/////AAAAAP////8=",
@@ -140,6 +142,7 @@
     "vc-links|Chính sách điều phối|/chinh-sach-dieu-phoi",
     "vc-links|Lý do điều phối|/ly-do-dieu-phoi",
     "links|Khoá sổ tháng|/khoa-thang",
+    "links|Điều chỉnh công nợ|/dieu-chinh-cong-no",
     "links|Hoa hồng đối tác|/hoa-hong",
     "links|Người bán dịch vụ|/nguoi-ban",
     "links|Nhật ký|/audit",
@@ -147,7 +150,7 @@
     "links|Gửi thông báo|/gui-thong-bao",
     "links|Trợ lý Hỗ trợ|/tro-ly-cai-dat",
     "links|Giao diện|/giao-dien",
-    "links|Góp ý / Báo lỗi|/feedback",
+    "links|Hỗ trợ|/feedback",
     "links|Trợ giúp|/help"
    ],
    "tap": [
@@ -167,6 +170,7 @@
     "AAAAAP////8AAAAA/////wAAAAD/////AAAAAP////8AAAAA/////wAAAAD/////AAAAAP////8AAAAA/////wAAAAD/////AAAAAP////8AAAAA/////wAAAAD/////AAAAAP////8AAAAA/////wAAAAD/////AAAAAP////8=",
     "8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P////8=",
     "zMzMzP/////MzMzM/////8zMzMz/////zMzMzP/////MzMzM/////8zMzMz/////zMzMzP/////MzMzM/////8zMzMz/////zMzMzP/////MzMzM/////8zMzMz/////zMzMzP/////MzMzM/////8zMzMz/////zMzMzP////8=",
+    "/Pz8/P/////8/Pz8//////z8/Pz//////Pz8/P/////8/Pz8//////z8/Pz//////Pz8/P/////8/Pz8//////z8/Pz//////Pz8/P/////8/Pz8//////z8/Pz//////Pz8/P/////8/Pz8//////z8/Pz//////Pz8/P////8=",
     "/v4AAP//AAD+/gAA//8AAP7+AAD//wAA/v4AAP//AAD+/gAA//8AAP7+AAD//wAA/v4AAP//AAD+/gAA//8AAP7+AAD//wAA/v4AAP//AAD+/gAA//8AAP7+AAD//wAA/v4AAP//AAD+/gAA//8AAP7+AAD//wAA/v4AAP//AAA=",
     "/PwAAP//AAD8/AAA//8AAPz8AAD//wAA/PwAAP//AAD8/AAA//8AAPz8AAD//wAA/PwAAP//AAD8/AAA//8AAPz8AAD//wAA/PwAAP//AAD8/AAA//8AAPz8AAD//wAA/PwAAP//AAD8/AAA//8AAPz8AAD//wAA/PwAAP//AAA=",
     "AAAAAP////8AAAAA/////wAAAAD/////AAAAAP////8AAAAA/////wAAAAD/////AAAAAP////8AAAAA/////wAAAAD/////AAAAAP////8AAAAA/////wAAAAD/////AAAAAP////8AAAAA/////wAAAAD/////AAAAAP////8=",
@@ -202,7 +206,7 @@
     "Vận chuyển|chinh-sach|Chính sách điều phối|/chinh-sach-dieu-phoi",
     "Vận chuyển|ly-do|Lý do điều phối|/ly-do-dieu-phoi",
     "Của tôi|toi|Tôi|/account",
-    "Của tôi|gop-y|Góp ý / Báo lỗi|/feedback",
+    "Của tôi|gop-y|Hỗ trợ|/feedback",
     "Của tôi|tro-giup|Trợ giúp|/help"
    ],
    "tap": [
@@ -242,7 +246,7 @@
     "QUẢN TRỊ||Quản lý tài khoản|/staff",
     "QUẢN TRỊ||Địa điểm|/locations",
     "TÔI||Của tôi|/account",
-    "TÔI||Góp ý / Báo lỗi|/feedback?new=1&from=%2Faccount",
+    "TÔI||Hỗ trợ|/feedback?new=1&from=%2Faccount",
     "TÔI||Trợ giúp|/help"
    ],
    "tap": [
