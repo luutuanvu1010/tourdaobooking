@@ -14,9 +14,9 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Mức TA dùng chung (ADR-0117 lần 2; chủ duyệt lần 2 bằng lời trong chat 2026-10-14): bộ hoa hồng có tên, gắn loại đối tác vào mức theo ngày; chọn mức thêm bậc 7–9.
     // Có thay đổi cơ sở dữ liệu (migration 0096 thêm hai bảng, 0097 dựng lại bảng mức hoa hồng) — cần npm run trien-khai sau day-len (Task 7 của kế hoạch, chủ tự chạy).
-    // Số 2.3 là số TẠM (= origin/main 2.2 + 1, kiểm 2026-10-16: main 20103d40): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) —
+    // Số 2.4 là số TẠM (= main 2.3 «Trợ lý» + 1, kiểm 2026-10-16: main 4ac66bc1): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) —
     // người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
-    version: "2.3",
+    version: "2.4",
     date: "2026-10-16",
     items: [
       { kind: "moi", text: "Trang Hoa hồng đối tác có thêm khối Mức TA: Kế toán đặt tên mức (ví dụ Đại lý cấp 1), thêm dòng hoa hồng cho mức, rồi gắn loại đối tác vào mức từ một ngày." },
@@ -24,6 +24,14 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Gắn mức cho loại còn mức riêng: Nền tảng hiện khung vàng liệt kê các dòng riêng đó, không chặn. Đóng các dòng riêng nếu muốn dùng mức TA." },
       { kind: "moi", text: "Thử tra cho biết mức TA nào đang áp, kèm tên mức." },
       { kind: "doi", text: "Đổi mức hay sửa số của mức không làm đổi hoa hồng đơn đã xác nhận. Mỗi loại một mức trong một ngày: muốn đổi từ hôm nay thì kết thúc gắn cũ tới hôm qua." },
+    ],
+  },
+  {
+    // Đổi tên nút nổi và khung của trợ lý AI từ «Hỗ trợ» thành «Trợ lý» để khỏi trùng mục menu Hỗ trợ (chủ dự án 2026-10-15). Không migration. Số tạm.
+    version: "2.3",
+    date: "2026-10-16",
+    items: [
+      { kind: "doi", text: "Nút nổi và khung hỏi đáp của trợ lý đổi tên từ «Hỗ trợ» thành «Trợ lý», để khỏi nhầm với mục Hỗ trợ ở menu." },
     ],
   },
   {

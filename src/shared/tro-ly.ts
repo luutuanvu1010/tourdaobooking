@@ -380,7 +380,7 @@ export function duocDungTroLy(perms: readonly PermissionCode[], vai: Partial<Rec
   return perms.some((p) => vai[p] === true);
 }
 
-export const CAU_VAI_TAT = "Trợ lý Hỗ trợ đang tắt với vai của bạn. Xem hướng dẫn ở Trợ giúp hoặc hỏi Quản trị.";
+export const CAU_VAI_TAT = "Trợ lý đang tắt với vai của bạn. Xem hướng dẫn ở Trợ giúp hoặc hỏi Quản trị.";
 
 type Kiem<T> = { ok: true; value: T } | { ok: false; message: string };
 
