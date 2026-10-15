@@ -43,8 +43,9 @@ test("không việc nào → danh sách rỗng, conLai 0", () => {
 test("nguồn chưa tải (khoá vắng) thì không có thẻ, không phải thẻ 0", () => {
   assert.deepEqual(viecCuaBan(who("SALES"), {}).the, []);
 });
-test("chỉ thẻ đầu 'nhap' là nút chốt (san hô); người khác không có thẻ chốt thừa", () => {
-  const the = viecCuaBan(who("SALES"), day).the;
+test("chỉ thẻ 'nhap' của Quản trị là nút chốt (san hô); Bán hàng không có thẻ chốt", () => {
+  assert.equal(viecCuaBan(who("SALES"), day).the.filter((t) => t.chot).length, 0);
+  const the = viecCuaBan(who("ADMIN"), day).the;
   assert.equal(the.filter((t) => t.chot).length, 1);
   assert.equal(the.find((t) => t.chot)?.khoa, "nhap");
 });
@@ -80,7 +81,11 @@ test("1024 tập quyền: không xem mọi đơn ⇒ không thẻ đơn/tiền/c
 });
 test("nút theo quyền thật: Xác nhận đơn chỉ khi sửa được đơn; Ghi thu chỉ khi ghi được sổ", () => {
   const nut = (w: ReturnType<typeof who>, k: string) => viecCuaBan(w, day).the.find((t) => t.khoa === k);
-  assert.equal(nut(who("SALES"), "nhap")?.nut, "Xác nhận đơn");
+  // Số đơn nháp là của cả công ty; Bán hàng chỉ xác nhận được đơn của mình nên chỉ "xem" (chủ chốt 2026-10-16); Quản trị xác nhận được mọi đơn.
+  assert.equal(nut(who("SALES"), "nhap")?.nut, "Xem đơn nháp");
+  assert.equal(nut(who("SALES"), "nhap")?.chot, false);
+  assert.equal(nut(who("ADMIN"), "nhap")?.nut, "Xác nhận đơn");
+  assert.equal(nut(who("ADMIN"), "nhap")?.chot, true);
   assert.equal(nut(who("ACCOUNTING"), "nhap")?.nut, "Xem đơn nháp");
   assert.equal(nut(who("ACCOUNTING"), "nhap")?.chot, false);
   assert.equal(nut(who("ACCOUNTING"), "conThieu")?.nut, "Ghi thu");

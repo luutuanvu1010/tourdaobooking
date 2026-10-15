@@ -63,8 +63,8 @@ const THE: readonly MoTa[] = [
     phu: () => "Những điều Nền tảng đang nhắc Quản trị" },
   { khoa: "dieuChinh", uuTien: (w) => (quanTri(w) ? 8 : 2), hien: (w) => can(w, "ledger.adjust.approve"), nhan: "Điều chỉnh công nợ chờ duyệt", nut: () => "Duyệt",
     href: "/dieu-chinh-cong-no", tone: "xanh", chot: khong, phu: () => "Yêu cầu đang chờ bạn duyệt" },
-  // Nút chốt (san hô) chỉ khi người này xác nhận được đơn nháp của mình; ngược lại chỉ xem.
-  { khoa: "nhap", uuTien: () => 3, hien: xemDon, nhan: "Đơn nháp", nut: (w) => (suaDon(w) ? "Xác nhận đơn" : "Xem đơn nháp"), href: "/orders", tone: "xanh", chot: suaDon,
+  // Số đơn nháp là của CẢ công ty: nút chốt (san hô) "Xác nhận đơn" chỉ cho Quản trị (xác nhận được mọi đơn); vai khác chỉ "Xem đơn nháp".
+  { khoa: "nhap", uuTien: () => 3, hien: xemDon, nhan: "Đơn nháp", nut: (w) => (xacNhanDuocMoiDon(w) ? "Xác nhận đơn" : "Xem đơn nháp"), href: "/orders", tone: "xanh", chot: xacNhanDuocMoiDon,
     phu: () => "Đơn còn ở trạng thái nháp, chưa xác nhận" },
   { khoa: "conThieu", uuTien: (w) => (quanTri(w) ? 9 : 4), hien: xemDon, nhan: "Đơn còn thiếu tiền", nut: (w) => (can(w, "ledger.write") ? "Ghi thu" : "Xem đơn"), href: "/orders",
     tone: "cat", chot: khong, phu: (n) => (n.conThieu ? `Còn phải thu ${vndShort(n.conThieu.total)} ₫` : "Chưa tải được số tiền còn thu") },
@@ -78,6 +78,10 @@ const THE: readonly MoTa[] = [
 
 function suaDon(who: PermissionHolder): boolean {
   return can(who, "order.modify", { ownerId: who.id });
+}
+
+function xacNhanDuocMoiDon(who: PermissionHolder): boolean {
+  return quanTri(who) && suaDon(who);
 }
 
 const theoUuTien = (who: PermissionHolder): MoTa[] => [...THE].sort((a, b) => a.uuTien(who) - b.uuTien(who));

@@ -12,6 +12,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa chữ nút thẻ «Đơn nháp» ở Trang chủ (chủ chốt 2026-10-16, DAC-TA §10.7). Không migration, không đổi quyền ở máy chủ.
+    // Số 1.98 là số TẠM (= main 1.97 + 1): phiên phát hành kiểm lại cho đúng số kế tiếp (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
+    version: "1.98",
+    date: "2026-10-16",
+    items: [
+      { kind: "doi", text: "Trang chủ: thẻ Đơn nháp chỉ còn nút Xác nhận đơn cho Quản trị; vai khác thấy nút Xem đơn nháp, vì số này là của cả công ty, còn bạn chỉ xác nhận đơn của mình." },
+    ],
+  },
+  {
     // Menu máy tính theo việc + khối Việc của bạn ở Trang chủ (chủ chọn bản dựng 14/10; đặc tả docs/superpowers/specs/2026-10-14-menu-may-tinh-viec-cua-ban/DAC-TA.md). Không migration, không đổi quyền.
     // Số 1.97 là số TẠM (= main 1.96 + 1, 2026-10-15): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
     version: "1.97",
