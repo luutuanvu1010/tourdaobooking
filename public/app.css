@@ -1004,6 +1004,8 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
    mới cuộn (mặc định `min-height: auto` giữ nguyên chiều cao nội dung và đẩy chân thanh ra khỏi khung nhìn). */
 .sidebar-groups { display: flex; flex-direction: column; gap: var(--s5); padding: var(--s4) var(--s3); overflow-y: auto; min-height: 0; }
 .sidebar-group { display: flex; flex-direction: column; gap: var(--s1); }
+/* Nút Thiết lập ĐÓNG dính đáy vùng cuộn: màn thấp (700–900px) vẫn luôn thấy lối vào Thiết lập, không phải cuộn tìm (sửa vòng 2, 7b). Khi nhóm MỞ thì trôi theo dòng như thường. */
+.sidebar-group:has(> .sidebar-group-toggle[aria-expanded="false"]) { position: sticky; bottom: calc(-1 * var(--s4)); z-index: 1; margin-bottom: calc(-1 * var(--s4)); padding: var(--s1) 0 var(--s4); background: var(--c-sidebar-bg); }
 .sidebar-group-title { padding: 0 var(--s3) var(--s1); font-size: var(--fs-badge); font-weight: var(--fw-bold); letter-spacing: var(--ls-eyebrow); color: var(--c-sidebar-title); text-transform: uppercase; }
 .sidebar-group-items { display: flex; flex-direction: column; gap: var(--gap-muc-menu); }
 .sidebar-group-items[hidden] { display: none; } /* thuộc tính hidden của nhóm Thiết lập thu gọn thắng `display: flex` ở trên */
@@ -1028,14 +1030,18 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 #nhom-thiet-lap .sidebar-item { min-height: var(--h-muc-nho); padding-top: var(--s1); padding-bottom: var(--s1); padding-left: var(--sidebar-sub-indent); font-weight: var(--fw-regular); }
 #nhom-thiet-lap .sidebar-item[aria-current="page"] { font-weight: var(--fw-bold); }
 /* Chân thanh: ba mục chân menu, rồi người dùng, rồi Đăng xuất */
-.sidebar-foot { margin-top: auto; display: flex; flex-direction: column; gap: var(--s1); padding: var(--s2) var(--s3) var(--s3); border-top: 1px solid var(--c-sidebar-border); }
+/* Chân gọn (sửa vòng 2, 7b): Đăng xuất đứng CÙNG hàng với người dùng (lưới hai cột) thay vì một hàng riêng — bớt ~44px để vùng danh sách mục có chỗ ở màn thấp. */
+.sidebar-foot { margin-top: auto; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: var(--s2); row-gap: var(--s1); padding: var(--s2) var(--s3); border-top: 1px solid var(--c-sidebar-border); }
+.sidebar-foot > .sidebar-group-items { grid-column: 1 / -1; }
+.sidebar-foot > .sidebar-user { grid-column: 1; }
+.sidebar-foot > .sidebar-logout { grid-column: 2; }
 .sidebar-foot .sidebar-item { min-height: var(--h-muc-nho); padding-top: var(--s1); padding-bottom: var(--s1); font-weight: var(--fw-medium); }
-.sidebar-user { display: flex; align-items: center; gap: var(--s3); margin-top: var(--s2); padding: var(--s3) var(--s1) 0; border-top: 1px solid var(--c-sidebar-border); }
+.sidebar-user { display: flex; align-items: center; gap: var(--s3); margin-top: var(--s2); padding: var(--s2) var(--s1) 0; border-top: 1px solid var(--c-sidebar-border); }
 .sidebar-avatar { flex: none; display: flex; align-items: center; justify-content: center; width: var(--h-muc-nho); height: var(--h-muc-nho); font-weight: var(--fw-heavy); font-size: var(--fs-badge); color: var(--c-sand-text); background: var(--c-sand); border-radius: var(--radius-pill); }
 .sidebar-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .sidebar-name { font-size: var(--fs-label); font-weight: var(--fw-bold); color: var(--c-sidebar-text-on); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-role { font-size: var(--fs-step-2); color: var(--c-sidebar-item); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sidebar-logout { align-self: flex-start; min-height: var(--h-muc-nho); margin-left: calc(var(--h-muc-nho) + var(--s4)); padding: var(--s1) var(--s2); font: inherit; font-size: var(--fs-label); font-weight: var(--fw-medium); color: var(--c-sidebar-item); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
+.sidebar-logout { align-self: end; min-height: var(--h-muc-nho); margin: 0; padding: var(--s1) var(--s2); font: inherit; font-size: var(--fs-label); font-weight: var(--fw-medium); color: var(--c-sidebar-item); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
 @media (hover: hover) { .sidebar-logout:hover { color: var(--c-danger); background: var(--c-sidebar-hover); } }
 
 /* Thanh công việc trên: mockup không vẽ ở khổ điện thoại. Nút "Lập đơn mới" hiện từ 641px — CÙNG mốc với thanh bên,
