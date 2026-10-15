@@ -259,12 +259,19 @@ test("(a) PUT /api/staff/:id/roles: vai bên ngoài → vai nội bộ → ân h
   assert.equal(han(w, DT2).g, null);
 });
 
-test("(a) hạn cũ đã qua khi trở lại nội bộ → đặt lại; hạn còn → giữ", async () => {
+test("(a) vòng sửa 1: hạn cũ đã qua khi trở lại nội bộ → KHÔNG gia hạn (giữ nguyên, đăng nhập PIN 403); mọi phiên mang từ giai đoạn bên ngoài kết thúc + nhật ký session_revoked; hạn còn → giữ", async () => {
   const w = await setup();
   const qua = new Date(Date.now() - NGAY).toISOString();
   w.sqlite.prepare("UPDATE staff SET mfa_grace_until = ? WHERE id = ?").run(qua, DT);
+  await w.token(DT); // Đối tác đang có một phiên sống (bên ngoài, chưa bật — không bị hỏi lớp hai)
   assert.equal((await w.call("PUT", `/api/staff/${DT}/permissions`, { as: TQ, body: { permissions: ["SALES"] } })).status, 200);
-  assert.ok(gan(han(w, DT).g, Date.now() + 14 * NGAY));
+  assert.equal(han(w, DT).g, qua, "hạn đã qua giữ nguyên — đi đường Quản trị tắt lớp hai (cửa sổ 24 giờ)");
+  assert.equal(dem(w, "SELECT count(*) AS n FROM aut_session WHERE staff_id = ? AND ended_at IS NULL", DT), 0, "phiên mang qua giai đoạn bên ngoài kết thúc trong cùng lô");
+  assert.deepEqual(w.q("SELECT DISTINCT end_reason AS l, ended_by AS b FROM aut_session WHERE staff_id = ?", DT).map((x: any) => ({ ...x })), [{ l: "bi_go", b: TQ }]);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM audit_log WHERE action = 'session_revoked' AND target_id = ? AND staff_id = ?", DT, TQ), 1);
+  const chan = await pinLogin(w, DT);
+  assert.equal(chan.status, 403, chan.text);
+  assert.equal(chan.json.error.code, "mfa_setup_required");
   const con = new Date(Date.now() + 3 * NGAY).toISOString();
   w.sqlite.prepare("UPDATE staff SET mfa_grace_until = ? WHERE id = ?").run(con, DT);
   assert.equal((await w.call("PUT", `/api/staff/${DT}/permissions`, { as: TQ, body: { permissions: ["PARTNER"] } })).status, 200);
@@ -272,7 +279,7 @@ test("(a) hạn cũ đã qua khi trở lại nội bộ → đặt lại; hạn 
   assert.equal(han(w, DT).g, con, "hạn còn hiệu lực giữ nguyên");
 });
 
-test("(b) kích hoạt lại tài khoản nội bộ thiếu / hết ân hạn, chưa có yếu tố → ân hạn 14 ngày từ lúc kích hoạt (Nhân sự kích hoạt được — không làm hỗ trợ đăng nhập)", async () => {
+test("(b) kích hoạt lại tài khoản nội bộ CHƯA có ân hạn (NULL — ngưng lúc migration 0101 chạy), chưa có yếu tố → ân hạn 14 ngày; hạn đã qua → giữ nguyên (vòng sửa 1)", async () => {
   const w = await setup();
   w.sqlite.prepare("UPDATE staff SET active = 0, mfa_grace_until = NULL WHERE id = ?").run(BH);
   const r = await w.call("PATCH", `/api/staff/${BH}`, { as: NS, body: { active: true } });
@@ -280,6 +287,12 @@ test("(b) kích hoạt lại tài khoản nội bộ thiếu / hết ân hạn, 
   assert.ok(gan(han(w, BH).g, Date.now() + 14 * NGAY), `ân hạn: ${han(w, BH).g}`);
   const l = await pinLogin(w, BH);
   assert.ok(cookieTen(l, "td_session"), l.text);
+  // Hạn đã qua → KHÔNG gia hạn tự động (vòng sửa 1): vẫn 403, đi đường Quản trị tắt lớp hai.
+  const qua = new Date(Date.now() - NGAY).toISOString();
+  w.sqlite.prepare("UPDATE staff SET active = 0, mfa_grace_until = ? WHERE id = ?").run(qua, BH);
+  assert.equal((await w.call("PATCH", `/api/staff/${BH}`, { as: NS, body: { active: true } })).status, 200);
+  assert.equal(han(w, BH).g, qua);
+  assert.equal((await pinLogin(w, BH)).status, 403);
   // Còn hạn → giữ; có yếu tố → không đặt; bên ngoài → không đặt.
   const con = new Date(Date.now() + 2 * NGAY).toISOString();
   w.sqlite.prepare("UPDATE staff SET active = 0, mfa_grace_until = ? WHERE id = ?").run(con, BH);
@@ -292,6 +305,37 @@ test("(b) kích hoạt lại tài khoản nội bộ thiếu / hết ân hạn, 
   w.sqlite.prepare("UPDATE staff SET active = 0 WHERE id = ?").run(DT);
   assert.equal((await w.call("PATCH", `/api/staff/${DT}`, { as: NS, body: { active: true } })).status, 200);
   assert.equal(han(w, DT).g, null);
+});
+
+test("vòng sửa 1, ca kiểm độc lập: Bán hàng hết ân hạn → đổi vai Cộng tác viên (bên ngoài) → có phiên → đổi lại Bán hàng → phiên cũ 401 ở /api/auth/me", async () => {
+  const w = await setup();
+  w.sqlite.prepare("UPDATE staff SET mfa_grace_until = ? WHERE id = ?").run(new Date(Date.now() - NGAY).toISOString(), BH);
+  assert.equal((await pinLogin(w, BH)).status, 403, "hết ân hạn: bị chặn");
+  const r1 = await w.call("PUT", `/api/staff/${BH}/roles`, { as: TQ, body: { roles: ["COLLABORATOR"] } });
+  assert.equal(r1.status, 200, r1.text);
+  const l = await pinLogin(w, BH);
+  const phien = cookieTen(l, "td_session");
+  assert.ok(phien, `bên ngoài chưa bật: vào được — ${l.text}`);
+  assert.equal((await w.call("GET", "/api/auth/me", { headers: { cookie: phien! } })).status, 200);
+  const r2 = await w.call("PUT", `/api/staff/${BH}/roles`, { as: TQ, body: { roles: ["SALES_STAFF"] } });
+  assert.equal(r2.status, 200, r2.text);
+  assert.equal((await w.call("GET", "/api/auth/me", { headers: { cookie: phien! } })).status, 401, "phiên mang qua giai đoạn bên ngoài phải chết");
+  assert.equal((await pinLogin(w, BH)).status, 403, "và đăng nhập lại vẫn bị chặn (không gia hạn tự động)");
+});
+
+test("vòng sửa 1: lên nội bộ mà CÒN ân hạn / có yếu tố → không kết thúc phiên", async () => {
+  const w = await setup();
+  await w.token(DT);
+  assert.equal((await w.call("PUT", `/api/staff/${DT}/permissions`, { as: TQ, body: { permissions: ["SALES"] } })).status, 200);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM aut_session WHERE staff_id = ? AND ended_at IS NULL", DT), 1, "hạn NULL → +14 ngày, phiên giữ");
+  const DT2 = "0c000000-0000-4000-8000-000000000009";
+  seedStaff(w.sqlite, { id: DT2, phone: "0902000009", name: "Đối Tác Hai", perms: ["PARTNER"] });
+  await gieoHaiLop(w, DT2);
+  w.sqlite.prepare("UPDATE staff SET mfa_grace_until = ? WHERE id = ?").run(new Date(Date.now() - NGAY).toISOString(), DT2);
+  await w.token(DT2);
+  assert.equal((await w.call("PUT", `/api/staff/${DT2}/permissions`, { as: TQ, body: { permissions: ["SALES"] } })).status, 200);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM aut_session WHERE staff_id = ? AND ended_at IS NULL", DT2), 1, "có yếu tố sống → phiên giữ");
+  assert.equal(dem(w, "SELECT count(*) AS n FROM audit_log WHERE action = 'session_revoked'"), 0);
 });
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------

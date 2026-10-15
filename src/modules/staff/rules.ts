@@ -91,16 +91,25 @@ export const MFA_GRACE_DAYS = 14;
 export const mfaGraceOnCreate = (perms: readonly PermissionCode[], nowMs: number): string | null =>
   coQuyenNoiBo(perms) ? new Date(nowMs + MFA_GRACE_DAYS * 86_400_000).toISOString() : null;
 /**
- * ADR-0074 điều 1 (bổ sung chủ xác nhận 2026-10-01; kế hoạch Task 6): đổi quyền / vai làm tài khoản TỪ không nội bộ THÀNH nội bộ, mà chưa có yếu tố sống →
- * lúc đổi + 14 ngày; còn lại null (không đặt). Câu ghi (`mfaGraceIfDueStatement`) chỉ đè khi hạn đang NULL hoặc đã qua. Lô có câu chốt gỡ ADMIN không bao giờ
- * sinh ân hạn (TRƯỚC đã nội bộ) — route chỉ nối câu ân hạn vào lô không chốt.
+ * ADR-0074 điều 1 (bổ sung chủ xác nhận 2026-10-01; kế hoạch Task 6; vòng sửa 1 — điều phối quyết): đổi quyền / vai làm tài khoản TỪ không nội bộ THÀNH nội
+ * bộ mà chưa có yếu tố sống:
+ * - hạn ân hạn đang NULL (chưa từng có) → `anHan` = lúc đổi + 14 ngày (câu ghi chỉ đặt khi cột còn NULL);
+ * - hạn đã qua (≤ lúc đổi) → KHÔNG gia hạn tự động (người đó đi đường Quản trị tắt lớp hai → cửa sổ 24 giờ), và `ketThucPhien` = true: mọi phiên cấp trong giai
+ *   đoạn "bên ngoài" (không bị hỏi lớp hai) phải kết thúc trong CÙNG lô — không thì tài khoản nội bộ hết hạn vẫn dùng phiên cũ, lách cổng lớp hai;
+ * - hạn còn → không làm gì.
+ * Lô có câu chốt gỡ ADMIN không bao giờ cần (TRƯỚC đã nội bộ) — route chỉ nối vào lô không chốt.
  */
-export const mfaGraceOnBecomingInternal = (before: readonly PermissionCode[], after: readonly PermissionCode[], coYeuTo: boolean, nowMs: number): string | null =>
-  !coYeuTo && !coQuyenNoiBo(before) && coQuyenNoiBo(after) ? new Date(nowMs + MFA_GRACE_DAYS * 86_400_000).toISOString() : null;
+export function mfaKhiThanhNoiBo(
+  before: readonly PermissionCode[], after: readonly PermissionCode[], coYeuTo: boolean, graceUntil: string | null, nowMs: number,
+): { anHan: string | null; ketThucPhien: boolean } {
+  if (coYeuTo || coQuyenNoiBo(before) || !coQuyenNoiBo(after)) return { anHan: null, ketThucPhien: false };
+  if (graceUntil === null) return { anHan: new Date(nowMs + MFA_GRACE_DAYS * 86_400_000).toISOString(), ketThucPhien: false };
+  return { anHan: null, ketThucPhien: graceUntil <= new Date(nowMs).toISOString() };
+}
 /**
- * Kích hoạt lại tài khoản nội bộ chưa có yếu tố → lúc kích hoạt + 14 ngày (kế hoạch Task 6, nhóm (b) của người kiểm độc lập Task 3–4: tài khoản đang ngưng lúc
- * migration 0101 chạy không có ân hạn). Cùng nguyên tắc "tạo tài khoản nội bộ" của ADR-0074 điều 1; Nhân sự kích hoạt được nhưng không làm hỗ trợ đăng nhập
- * (ADR-0071 điều 1e) nên không dựa vào đường Quản trị tắt lớp hai. Câu ghi chỉ đè khi hạn NULL hoặc đã qua.
+ * Kích hoạt lại tài khoản nội bộ chưa có yếu tố → lúc kích hoạt + 14 ngày, CHỈ khi hạn đang NULL (kế hoạch Task 6, nhóm (b): tài khoản đang ngưng lúc migration
+ * 0101 chạy không có ân hạn; Nhân sự kích hoạt được nhưng không làm hỗ trợ đăng nhập — ADR-0071 điều 1e). Hạn đã qua thì không gia hạn (vòng sửa 1): đi đường
+ * Quản trị tắt lớp hai. Câu ghi tự giữ điều kiện "hạn NULL".
  */
 export const mfaGraceOnReactivate = (perms: readonly PermissionCode[], coYeuTo: boolean, nowMs: number): string | null =>
   coYeuTo ? null : mfaGraceOnCreate(perms, nowMs);

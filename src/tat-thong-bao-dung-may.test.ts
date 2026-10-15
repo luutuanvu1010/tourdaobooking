@@ -122,8 +122,9 @@ test("ADR-0046 điểm 2–3: MỌI route gọi dongBangTin khai cờ tatThongBa
     "POST /api/account/pin-by-passkey": [true], // đổi PIN bằng Face ID
     "PATCH /api/staff/:id": [true], // ngưng tài khoản / đổi SĐT đăng nhập
     // đổi quyền / vai — ADR-0046 điểm 2: KHÔNG tắt; riêng khi mất miễn một máy (ADR-0075 điều 3) tắt máy vừa bị kết thúc, giữ máy còn lại
-    "PUT /api/staff/:id/permissions": [false, "giữ-phiên"],
-    "PUT /api/staff/:id/roles": [false, "giữ-phiên"],
+    // + `true` (vòng sửa 1 Task 6, ADR-0074 đ1): lên nội bộ khi hết ân hạn mà chưa bật lớp hai — mọi phiên mang từ giai đoạn bên ngoài kết thúc trong lô (thao tác bảo mật).
+    "PUT /api/staff/:id/permissions": [true, false, "giữ-phiên"],
+    "PUT /api/staff/:id/roles": [true, false, "giữ-phiên"],
     "POST /api/staff/:id/reset-pin": [true], // quản trị đặt lại PIN
     "POST /api/staff/:id/passkeys/remove-all": [true], // quản trị gỡ mọi Face ID
     "POST /api/staff/:id/mfa-reset": [true], // ADR-0074 đ5 (Phần B Task 6): Quản trị/Toàn quyền tắt bảo mật hai lớp — mọi phiên kết thúc

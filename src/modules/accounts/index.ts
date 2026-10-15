@@ -15,7 +15,7 @@ import {
   KHONG_NHAN_VAI_NOI_BO, accountRoleCodes, canManageAccount, checkAccountChange, chuPhienTheoId, hoSoCoNhanDoiTac, moNoiBoChoHoSoCoNhanProblem, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
   generatePin, getAccountRoleState, getStaffAccount, isValidPin, listStaffAccounts, mfaDeadlinesOf, normalizePhone, renameAccountStatements, roleChangeStatements,
   setPermissionStatements, setPinStatement, touchCredentialsStatement, updateStaffStatement, validateFreshPin, validateNewPin, type StaffAccount,
-  MFA_ENROLL_WINDOW_MS, mfaEnrollWindowStatement, mfaGraceIfDueStatement, mfaGraceOnBecomingInternal, mfaGraceOnReactivate, mfaGraceTheoId,
+  MFA_ENROLL_WINDOW_MS, mfaEnrollWindowStatement, mfaGraceIfNullStatement, mfaKhiThanhNoiBo, mfaGraceOnReactivate, mfaGraceTheoId,
 } from "../staff";
 import type {
   AccountMfaResponse, MfaRecoveryCodesResponse, MfaTotpConfirmResponse, MfaTotpStartResponse, PartyMatchResponse, PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, SessionListResponse, SessionPolicyPreviewResponse,
@@ -30,7 +30,7 @@ import {
 import { PERMISSION_CODES, PERMISSION_LABEL, can, isPermissionCode, type PermissionCode, quyenHienThi } from "../../shared/permissions";
 import { route, type AppModule, type Ctx } from "../../shared/router";
 import {
-  TIEN_CHI_TOAN_QUYEN_MESSAGE, chamTaiKhoanTienDuoc, datLaiPinDuoc as datLaiPinDuocTheoDong, giuQuanTriHoacToanQuyen, highPermissionProblem, tatHaiLopDuoc, parseRoleAssignment, permissionsLabel, roleAssignmentProblem,
+  TIEN_CHI_TOAN_QUYEN_MESSAGE, chamTaiKhoanTienDuoc, chanTatHaiLop, datLaiPinDuoc as datLaiPinDuocTheoDong, highPermissionProblem, tatHaiLopDuoc, parseRoleAssignment, permissionsLabel, roleAssignmentProblem,
   rolesLabel, taiKhoanLaiProblem, laiNoiBoBenNgoaiProblem, type RoleCode, type RoleProblem,
 } from "../../shared/roles";
 import { vnToday } from "../../shared/vn-date";
@@ -202,19 +202,35 @@ export function patchStaffStatements(
     );
   }
   // ADR-0074 điều 1 (kế hoạch Task 6, nhóm (b)): kích hoạt lại tài khoản nội bộ chưa có yếu tố → ân hạn 14 ngày (`anHanKhiKichHoat`, route tính bằng
-  // mfaGraceOnReactivate). CUỐI lô, không chen vào chuỗi changes(); câu tự giữ điều kiện "đang hoạt động, hạn NULL hoặc đã qua".
-  if (patch.active === true && args.anHanKhiKichHoat) stmts.push(mfaGraceIfDueStatement(db, t.id, args.anHanKhiKichHoat, at));
+  // mfaGraceOnReactivate). CUỐI lô, không chen vào chuỗi changes(); câu tự giữ điều kiện "đang hoạt động, hạn NULL" (vòng sửa 1: hạn đã qua không gia hạn).
+  if (patch.active === true && args.anHanKhiKichHoat) stmts.push(mfaGraceIfNullStatement(db, t.id, args.anHanKhiKichHoat));
   return { statements: stmts, guardIndex: needsUpdate ? 0 : -1 };
 }
 
 /**
- * ADR-0074 điều 1 (bổ sung chủ xác nhận 2026-10-01; kế hoạch Task 6, nhóm (a)): câu ân hạn 14 ngày khi lần đổi quyền / vai làm tài khoản TỪ không nội bộ THÀNH
- * nội bộ mà chưa có yếu tố sống (đọc qua auth — staff không đọc bảng aut_*). Rỗng khi không cần. CHƯA chạy.
+ * ADR-0074 điều 1 (bổ sung chủ xác nhận 2026-10-01; kế hoạch Task 6, nhóm (a); vòng sửa 1): câu lệnh khi lần đổi quyền / vai làm tài khoản TỪ không nội bộ
+ * THÀNH nội bộ mà chưa có yếu tố sống (đọc qua auth — staff không đọc bảng aut_*). Luật thuần: mfaKhiThanhNoiBo.
+ * - hạn NULL → câu ân hạn 14 ngày;
+ * - hạn đã qua → kết thúc MỌI phiên của tài khoản (lý do 'bi_go', người làm = người đổi quyền) + nhật ký session_revoked (khuôn của POST /api/sessions/:id/revoke:
+ *   câu nhật ký ngay sau câu kết thúc, `changes() > 0`) — phiên cấp trong giai đoạn "bên ngoài" không qua cổng lớp hai.
+ * `ketThucPhien` để route đóng Bảng tin + tắt thông báo của tài khoản. Câu CHƯA chạy; người gọi đặt TRƯỚC câu phiên của exemptionChangeStatements (ketQua đọc vị
+ * trí cuối lô) và chỉ ở lô không chốt.
  */
-async function anHanKhiThanhNoiBo(db: D1Database, t: StaffAccount, next: readonly PermissionCode[], at: string): Promise<D1PreparedStatement[]> {
-  if (isInternal(t.permissions) || !isInternal(next)) return [];
-  const han = mfaGraceOnBecomingInternal(t.permissions, next, (await yeuToSong(db, t.id)).length > 0, Date.parse(at));
-  return han ? [mfaGraceIfDueStatement(db, t.id, han, at)] : [];
+async function haiLopKhiThanhNoiBo(
+  db: D1Database, t: StaffAccount, next: readonly PermissionCode[], at: string, adminId: string,
+): Promise<{ statements: D1PreparedStatement[]; ketThucPhien: boolean }> {
+  if (isInternal(t.permissions) || !isInternal(next)) return { statements: [], ketThucPhien: false };
+  const [song, han] = await Promise.all([yeuToSong(db, t.id), mfaDeadlinesOf(db, t.id)]);
+  const kq = mfaKhiThanhNoiBo(t.permissions, next, song.length > 0, han.graceUntil, Date.parse(at));
+  if (kq.anHan) return { statements: [mfaGraceIfNullStatement(db, t.id, kq.anHan)], ketThucPhien: false };
+  if (!kq.ketThucPhien) return { statements: [], ketThucPhien: false };
+  return {
+    statements: [
+      endAllSessionsStatement(db, t.id, "bi_go", at, adminId),
+      adminAudit(db, adminId, "session_revoked", t.id, "mọi phiên — lên quyền nội bộ khi chưa bật bảo mật hai lớp và đã hết ân hạn", "changes() > 0"),
+    ],
+    ketThucPhien: true,
+  };
 }
 
 /** Route "staff" luôn có mã phiên (router đọc từ sổ phiên — ADR-0075); thiếu là bất thường → coi như chưa đăng nhập, không cấp lại cookie. */
@@ -540,7 +556,7 @@ export const accountsModule: AppModule = {
 
       const now = Date.now(); // MỘT mốc cho cả lần sửa: `at` (ISO) và, khi ngưng tài khoản, `credentials_changed_at` = Date.parse(at) = now
       const at = new Date(now).toISOString();
-      // Kế hoạch Task 6, nhóm (b): kích hoạt lại → ân hạn 14 ngày nếu nội bộ, chưa có yếu tố (câu ghi tự bỏ qua khi hạn còn).
+      // Kế hoạch Task 6, nhóm (b): kích hoạt lại → ân hạn 14 ngày nếu nội bộ, chưa có yếu tố, hạn đang NULL (câu ghi tự bỏ qua khi đã có hạn — còn hay đã qua).
       const anHanKhiKichHoat = patch.active === true ? mfaGraceOnReactivate(t.permissions, (await yeuToSong(db, t.id)).length > 0, now) : null;
       const built = patchStaffStatements(db, { target: t, patch, adminId: admin.id, at, losesAdmin, anHanKhiKichHoat });
       if (!built) return error(409, "no_party", "Tài khoản này chưa có hồ sơ (đang di trú dữ liệu). Thử lại sau ít phút.");
@@ -593,10 +609,10 @@ export const accountsModule: AppModule = {
       const phien = exemptionChangeStatements(db, { staffId: t.id, at, by: admin.id, nhieuMay, before: { permissions: t.permissions, roles: [] }, after: { permissions: next, roles: [] } });
       // ADR-0074 điều 1 (kế hoạch Task 6, nhóm (a)): bên ngoài → nội bộ, chưa có yếu tố → ân hạn 14 ngày. Chỉ ở lô KHÔNG chốt (lô chốt = gỡ ADMIN ⇒ trước đã nội bộ
       // ⇒ không có ân hạn — bài staff/rules.test.ts); đứng TRƯỚC câu phiên (ketQua đọc vị trí cuối lô).
-      const anHan = await anHanKhiThanhNoiBo(db, t, next, at);
+      const haiLop = await haiLopKhiThanhNoiBo(db, t, next, at, admin.id);
       const stmts = [
         ...(plan.guarded ? [plan.guarded] : []), adminAudit(db, admin.id, "permission_changed", t.id, detail, plan.guarded ? "changes() > 0" : undefined), ...plan.rest,
-        ...(plan.guarded ? [] : [...anHan, ...phien.statements]),
+        ...(plan.guarded ? [] : [...haiLop.statements, ...phien.statements]),
       ];
       let results: D1Result[];
       let loPhien: D1Result[] = [];
@@ -613,7 +629,9 @@ export const accountsModule: AppModule = {
       const matMien = phien.ketQua(loPhien);
       // ADR-0075 điều 6: máy vừa mất phiên vì mất miễn — đóng Bảng tin của đúng các phiên đó, tắt thông báo của tài khoản trừ máy được giữ.
       if (matMien.endedSessionIds.length) ctx.dongBangTin({ staffId: t.id, sessionIds: matMien.endedSessionIds, giuPhien: matMien.keptSessionId });
-      ctx.dongBangTin({ staffId: t.id, tatThongBao: false }); // BẢNG TIN (KN-2): quyền vừa đổi. ADR-0046: đổi quyền KHÔNG tắt thông báo điện thoại.
+      // Vòng sửa 1 Task 6: lên nội bộ khi hết ân hạn mà chưa bật lớp hai — mọi phiên vừa kết thúc trong lô: đóng Bảng tin + tắt thông báo như thao tác bảo mật.
+      if (!plan.guarded && haiLop.ketThucPhien) ctx.dongBangTin({ staffId: t.id, tatThongBao: true });
+      else ctx.dongBangTin({ staffId: t.id, tatThongBao: false }); // BẢNG TIN (KN-2): quyền vừa đổi. ADR-0046: đổi quyền KHÔNG tắt thông báo điện thoại.
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);
     }),
 
@@ -667,6 +685,7 @@ export const accountsModule: AppModule = {
         before: { permissions: t.permissions, roles: state.roles }, after: { permissions: change.next, roles: parsed.value.roles },
       });
       let cuoi: D1Result[] = [];
+      let ketThucPhienHaiLop = false;
       try {
         if (change.permissions.guarded) {
           // Gỡ ADMIN: câu chốt "còn quản trị viên khác" ĐẦU batch; nhật ký + quyền + chỉnh tay mang cùng điều kiện. Vai (module parties) không mang được
@@ -682,11 +701,12 @@ export const accountsModule: AppModule = {
         } else {
           // ADR-0074 điều 1 (kế hoạch Task 6, nhóm (a)): vai bên ngoài → vai nội bộ, chưa có yếu tố → ân hạn 14 ngày; TRƯỚC câu phiên (ketQua đọc vị trí cuối lô).
           // Nhánh chốt ở trên (gỡ ADMIN) không cần: trước đã nội bộ.
-          const anHan = await anHanKhiThanhNoiBo(db, t, change.next, at);
+          const haiLop = await haiLopKhiThanhNoiBo(db, t, change.next, at, admin.id);
           cuoi = await db.batch([
-            ...change.roleStatements, ...change.adjustmentStatements, ...change.permissions.rest, adminAudit(db, admin.id, "account_roles_changed", t.id, detail), ...anHan,
-            ...phien.statements,
+            ...change.roleStatements, ...change.adjustmentStatements, ...change.permissions.rest, adminAudit(db, admin.id, "account_roles_changed", t.id, detail),
+            ...haiLop.statements, ...phien.statements,
           ]);
+          ketThucPhienHaiLop = haiLop.ketThucPhien;
         }
       } catch (e) {
         // Lô hai lỗi ⇒ quyền/vai đã đổi, phiên thừa sống tới lần đăng nhập sau; R-AUT-SESSION-3 thấy.
@@ -697,7 +717,9 @@ export const accountsModule: AppModule = {
       const matMien = phien.ketQua(cuoi);
       // ADR-0075 điều 6: máy vừa mất phiên vì mất miễn — đóng Bảng tin của đúng các phiên đó, tắt thông báo của tài khoản trừ máy được giữ.
       if (matMien.endedSessionIds.length) ctx.dongBangTin({ staffId: t.id, sessionIds: matMien.endedSessionIds, giuPhien: matMien.keptSessionId });
-      ctx.dongBangTin({ staffId: t.id, tatThongBao: false }); // BẢNG TIN (KN-2): vai/quyền vừa đổi. ADR-0046: đổi vai KHÔNG tắt thông báo điện thoại.
+      // Vòng sửa 1 Task 6: lên nội bộ khi hết ân hạn mà chưa bật lớp hai — mọi phiên vừa kết thúc trong lô: đóng Bảng tin + tắt thông báo như thao tác bảo mật.
+      if (ketThucPhienHaiLop) ctx.dongBangTin({ staffId: t.id, tatThongBao: true });
+      else ctx.dongBangTin({ staffId: t.id, tatThongBao: false }); // BẢNG TIN (KN-2): vai/quyền vừa đổi. ADR-0046: đổi vai KHÔNG tắt thông báo điện thoại.
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);
     }),
 
@@ -770,12 +792,14 @@ export const accountsModule: AppModule = {
       const db = ctx.env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
-      if (t.id === ctx.staff.id) return error(409, "self_mfa_reset", "Không tự tắt bảo mật hai lớp của chính mình ở đây. Vào trang Tôi, mục “Bảo mật đăng nhập”.");
-      if (!mayManage(ctx.staff, t)) return NOT_MANAGER();
-      if (giuQuanTriHoacToanQuyen(t.permissions) && !can(ctx.staff, "admin.manage.superadmin")) {
-        return error(403, "forbidden", "Chỉ Toàn quyền tắt được bảo mật hai lớp của Quản trị/Toàn quyền.");
-      }
-      if (!chamTaiKhoanTienDuoc(ctx.staff, t)) return error(403, "forbidden", TIEN_CHI_TOAN_QUYEN_MESSAGE); // ADR-0090 đ1(iv) — TRƯỚC mọi ghi
+      // MỘT hàm cổng với cờ canResetMfa (chanTatHaiLop, src/shared/roles.ts) — TRƯỚC mọi ghi. Hai lý do đầu đã chặn ở trên (giữ cho bài cổng admin của router).
+      const chan = chanTatHaiLop(ctx.staff, t);
+      if (chan === "khong_quan_tri") return NOT_ADMIN();
+      if (chan === "khong_ho_tro_dang_nhap") return NOT_SUPER_ONLY();
+      if (chan === "chinh_minh") return error(409, "self_mfa_reset", "Không tự tắt bảo mật hai lớp của chính mình ở đây. Vào trang Tôi, mục “Bảo mật đăng nhập”.");
+      if (chan === "khong_cap_duoi") return NOT_MANAGER();
+      if (chan === "chi_toan_quyen") return error(403, "forbidden", "Chỉ Toàn quyền tắt được bảo mật hai lớp của Quản trị/Toàn quyền."); // ADR-0074 đ5
+      if (chan === "quyen_tien") return error(403, "forbidden", TIEN_CHI_TOAN_QUYEN_MESSAGE); // ADR-0090 đ1(iv)
       const now = Date.now();
       const at = new Date(now).toISOString();
       await db.batch([

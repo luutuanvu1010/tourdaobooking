@@ -10,11 +10,11 @@ import { hashPin, verifyDummy, verifyPin } from "./password";
 import { isValidPin, normalizePhone } from "./phone";
 import {
   accountIdOfParty, closeAdjustmentStatement, closePermissionStatement, countActiveAdmins, findById, findByPhone, insertAdjustmentStatement, insertPermissionStatement,
-  insertStaffStatement, labelsByIds, listAll, mfaDeadlinesRow, mfaEnrollSetRow, mfaGraceAll, mfaGraceIfDueRow, openAdjustments, parsePermissions, partiesWithAccount, phonesByParty, recordLoginRow, sessionOwnersByIds, setPinStatement as setPinRow, touchCredentialsStatement, updateStaffStatement,
+  insertStaffStatement, labelsByIds, listAll, mfaDeadlinesRow, mfaEnrollSetRow, mfaGraceAll, mfaGraceIfNullRow, openAdjustments, parsePermissions, partiesWithAccount, phonesByParty, recordLoginRow, sessionOwnersByIds, setPinStatement as setPinRow, touchCredentialsStatement, updateStaffStatement,
   type AdjustmentRow, type StaffRow,
 } from "./repository";
 import {
-  KHONG_NHAN_VAI_NOI_BO, canManageAccount, checkAccountChange, coQuyenNoiBo, generatePin, isWeakPin, MFA_ENROLL_WINDOW_MS, mfaGraceOnBecomingInternal, mfaGraceOnCreate, mfaGraceOnReactivate, moNoiBoChoHoSoCoNhanProblem, partyAccountVerdict,
+  KHONG_NHAN_VAI_NOI_BO, canManageAccount, checkAccountChange, coQuyenNoiBo, generatePin, isWeakPin, MFA_ENROLL_WINDOW_MS, mfaGraceOnCreate, mfaGraceOnReactivate, mfaKhiThanhNoiBo, moNoiBoChoHoSoCoNhanProblem, partyAccountVerdict,
   validateFreshPin,
 } from "./rules";
 import type { PartyMatchResponse, StaffAccount, StaffProfile } from "../../shared/contracts";
@@ -24,7 +24,7 @@ import { addDays, vnToday } from "../../shared/vn-date";
 
 export type { StaffAccount, StaffProfile };
 export {
-  KHONG_NHAN_VAI_NOI_BO, MFA_ENROLL_WINDOW_MS, canManageAccount, checkAccountChange, countActiveAdmins, generatePin, hashPin, isValidPin, isWeakPin, mfaGraceOnBecomingInternal,
+  KHONG_NHAN_VAI_NOI_BO, MFA_ENROLL_WINDOW_MS, canManageAccount, checkAccountChange, countActiveAdmins, generatePin, hashPin, isValidPin, isWeakPin, mfaKhiThanhNoiBo,
   mfaGraceOnReactivate, moNoiBoChoHoSoCoNhanProblem, normalizePhone, touchCredentialsStatement, updateStaffStatement, validateFreshPin,
 };
 
@@ -118,10 +118,10 @@ export async function mfaDeadlinesOf(db: D1Database, id: string): Promise<{ grac
 /** HÀM CÔNG BỐ (kế hoạch Task 6) — nhãn "Hai lớp" ở danh sách Quản lý tài khoản: hạn ân hạn của mọi tài khoản theo id (ISO UTC hoặc null). */
 export const mfaGraceTheoId = (db: D1Database): Promise<Map<string, string | null>> => mfaGraceAll(db);
 /**
- * Câu (CHƯA chạy) đặt hạn ân hạn `until` cho tài khoản đang hoạt động khi hạn đang NULL hoặc đã qua lúc `at` (ADR-0074 điều 1: trở thành nội bộ, kích hoạt lại).
- * `until` tính bằng mfaGraceOnBecomingInternal / mfaGraceOnReactivate (null ⇒ người gọi không nối câu này).
+ * Câu (CHƯA chạy) đặt hạn ân hạn `until` cho tài khoản đang hoạt động CHỈ khi hạn đang NULL (ADR-0074 điều 1: trở thành nội bộ, kích hoạt lại; vòng sửa 1
+ * Task 6: hạn đã qua không gia hạn tự động). `until` tính bằng mfaKhiThanhNoiBo / mfaGraceOnReactivate (null ⇒ người gọi không nối câu này).
  */
-export const mfaGraceIfDueStatement = (db: D1Database, id: string, until: string, at: string): D1PreparedStatement => mfaGraceIfDueRow(db, id, until, at);
+export const mfaGraceIfNullStatement = (db: D1Database, id: string, until: string): D1PreparedStatement => mfaGraceIfNullRow(db, id, until);
 /** Câu (CHƯA chạy) đặt / xoá cửa sổ bật lại lớp hai `mfa_enroll_until` (ADR-0074 điều 5). Auth gọi với null trong lô bật xong ở bước đăng nhập. */
 export const mfaEnrollWindowStatement = (db: D1Database, id: string, until: string | null): D1PreparedStatement => mfaEnrollSetRow(db, id, until);
 

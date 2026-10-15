@@ -360,4 +360,21 @@ assert.ok(Math.abs(Date.parse(hanE) - (Date.now() + 14 * 86_400_000)) < 120_000,
 assert.equal((await pinLogin(E)).status, 200, "trong ân hạn vào được");
 console.log("✓ T6. Đối tác được cấp quyền nội bộ → ân hạn 14 ngày từ lúc cấp");
 
+// Vòng sửa 1 (kẽ hở người kiểm độc lập tái hiện): Bán hàng hết ân hạn → vai Cộng tác viên (bên ngoài) → có phiên → đổi lại Bán hàng → phiên cũ phải chết.
+const F = await gieoTaiKhoanLai("Vòng Qua Bên Ngoài", ["SALES"]);
+await datHanAnHan(F, "2020-01-01T00:00:00.000Z");
+assert.equal((await pinLogin(F)).status, 403);
+r = await call(TQ, "PUT", `/api/staff/${F.id}/roles`, { roles: ["COLLABORATOR"] });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+r = await pinLogin(F);
+const SF = cookieOf(r, "td_session");
+assert.ok(SF, JSON.stringify(r.body));
+assert.equal((await call(SF, "GET", "/api/auth/me")).status, 200);
+r = await call(TQ, "PUT", `/api/staff/${F.id}/roles`, { roles: ["SALES_STAFF"] });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal((await call(SF, "GET", "/api/auth/me")).status, 401, "phiên cấp lúc còn là bên ngoài phải chết khi lên nội bộ mà hết ân hạn");
+assert.equal((await pinLogin(F)).status, 403, "không gia hạn tự động");
+assert.deepEqual(await sqlRows(`SELECT mfa_grace_until FROM staff WHERE id = '${F.id}'`), [{ mfa_grace_until: "2020-01-01T00:00:00.000Z" }]);
+console.log("✓ T6 vòng sửa 1. hết ân hạn → bên ngoài → nội bộ: phiên cũ 401, đăng nhập lại 403, hạn không gia hạn");
+
 console.log("E2E HAI LỚP OK");

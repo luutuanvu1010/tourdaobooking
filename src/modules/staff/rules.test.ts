@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  KHONG_NHAN_VAI_NOI_BO, canManageAccount, checkAccountChange, coQuyenNoiBo, generatePin, isWeakPin, mfaGraceOnBecomingInternal, mfaGraceOnCreate, mfaGraceOnReactivate, moNoiBoChoHoSoCoNhanProblem, partyAccountVerdict, validateFreshPin,
+  KHONG_NHAN_VAI_NOI_BO, canManageAccount, checkAccountChange, coQuyenNoiBo, generatePin, isWeakPin, mfaGraceOnCreate, mfaGraceOnReactivate, mfaKhiThanhNoiBo, moNoiBoChoHoSoCoNhanProblem, partyAccountVerdict, validateFreshPin,
 } from "./rules.ts";
 
 test("ADR-0074 điều 1: tạo tài khoản nội bộ → hạn ân hạn lúc tạo + 14 ngày; chỉ quyền bên ngoài → null", () => {
@@ -13,16 +13,23 @@ test("ADR-0074 điều 1: tạo tài khoản nội bộ → hạn ân hạn lúc
   assert.equal(mfaGraceOnCreate(["DRIVER_PARTNER"], t), null);
 });
 
-test("ADR-0074 điều 1 (bổ sung): bên ngoài → nội bộ khi đổi quyền/vai, chưa có yếu tố → lúc đổi + 14 ngày; các trường hợp khác → null", () => {
+test("ADR-0074 điều 1 (bổ sung; vòng sửa 1 Task 6): bên ngoài → nội bộ, chưa có yếu tố — hạn NULL → lúc đổi + 14 ngày; hạn đã qua → giữ nguyên và kết thúc mọi phiên; hạn còn → không làm gì", () => {
   const t = Date.parse("2026-10-16T01:02:03.004Z");
-  assert.equal(mfaGraceOnBecomingInternal(["PARTNER"], ["SALES"], false, t), "2026-10-30T01:02:03.004Z");
-  assert.equal(mfaGraceOnBecomingInternal(["DRIVER_PARTNER"], ["DRIVER"], false, t), "2026-10-30T01:02:03.004Z");
-  assert.equal(mfaGraceOnBecomingInternal(["PARTNER"], ["SALES"], true, t), null, "đã có yếu tố sống");
-  assert.equal(mfaGraceOnBecomingInternal(["SALES"], ["SALES", "FIELD"], false, t), null, "đã nội bộ từ trước");
-  assert.equal(mfaGraceOnBecomingInternal(["PARTNER"], ["PARTNER"], false, t), null, "vẫn bên ngoài");
-  // Lô đổi quyền có câu chốt (gỡ ADMIN) chỉ xảy ra khi TRƯỚC đã nội bộ ⇒ không bao giờ sinh ân hạn: route chỉ cần nối câu ân hạn ở lô không chốt.
-  assert.equal(mfaGraceOnBecomingInternal(["ADMIN"], ["SALES"], false, t), null);
-  assert.equal(mfaGraceOnBecomingInternal([], ["SALES"], false, t), "2026-10-30T01:02:03.004Z", "không quyền nào (không nội bộ) → nội bộ");
+  const MOI = "2026-10-30T01:02:03.004Z";
+  const QUA = "2026-10-01T00:00:00.000Z";
+  const CON = "2026-10-20T00:00:00.000Z";
+  const khong = { anHan: null, ketThucPhien: false };
+  assert.deepEqual(mfaKhiThanhNoiBo(["PARTNER"], ["SALES"], false, null, t), { anHan: MOI, ketThucPhien: false });
+  assert.deepEqual(mfaKhiThanhNoiBo(["DRIVER_PARTNER"], ["DRIVER"], false, null, t), { anHan: MOI, ketThucPhien: false });
+  assert.deepEqual(mfaKhiThanhNoiBo(["PARTNER"], ["SALES"], false, QUA, t), { anHan: null, ketThucPhien: true }, "hạn đã qua: không gia hạn, phiên bên ngoài phải chết");
+  assert.deepEqual(mfaKhiThanhNoiBo(["PARTNER"], ["SALES"], false, "2026-10-16T01:02:03.004Z", t), { anHan: null, ketThucPhien: true }, "hạn đúng bằng lúc đổi = đã qua");
+  assert.deepEqual(mfaKhiThanhNoiBo(["PARTNER"], ["SALES"], false, CON, t), khong, "hạn còn: giữ, phiên sống");
+  assert.deepEqual(mfaKhiThanhNoiBo(["PARTNER"], ["SALES"], true, QUA, t), khong, "đã có yếu tố sống");
+  assert.deepEqual(mfaKhiThanhNoiBo(["SALES"], ["SALES", "FIELD"], false, QUA, t), khong, "đã nội bộ từ trước");
+  assert.deepEqual(mfaKhiThanhNoiBo(["PARTNER"], ["PARTNER"], false, QUA, t), khong, "vẫn bên ngoài");
+  // Lô đổi quyền có câu chốt (gỡ ADMIN) chỉ xảy ra khi TRƯỚC đã nội bộ ⇒ không bao giờ có câu ân hạn / kết thúc phiên: route chỉ nối vào lô không chốt.
+  assert.deepEqual(mfaKhiThanhNoiBo(["ADMIN"], ["SALES"], false, QUA, t), khong);
+  assert.deepEqual(mfaKhiThanhNoiBo([], ["SALES"], false, null, t), { anHan: MOI, ketThucPhien: false }, "không quyền nào (không nội bộ) → nội bộ");
 });
 
 test("ADR-0074 điều 1 (Task 6): kích hoạt lại tài khoản nội bộ chưa có yếu tố → lúc kích hoạt + 14 ngày; bên ngoài / có yếu tố → null", () => {
