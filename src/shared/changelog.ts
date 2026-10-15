@@ -12,6 +12,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Bảo mật hai lớp bằng ứng dụng xác thực (ADR-0074 Phần B). Có thay đổi cơ sở dữ liệu (migration 0101) — cần trien-khai sau day-len; chủ đặt bí mật
+    // MFA_ENCRYPTION_KEY TRƯỚC khi triển khai (docs/HANDOFF-N1.md). Ân hạn 14 ngày tính từ lúc migration áp.
+    // Số 2.4 là số TẠM (= main 2.3 + 1, 2026-10-15): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "2.4",
+    date: "2026-10-16",
+    items: [
+      { kind: "moi", text: "Bảo mật hai lớp: đăng nhập bằng PIN trên máy lạ sẽ hỏi thêm mã 6 số từ ứng dụng xác thực (Google Authenticator) trên điện thoại của bạn." },
+      { kind: "moi", text: "Nhân viên nội bộ có 14 ngày để bật ở trang Tôi, mục Bảo mật đăng nhập. Mất điện thoại thì dùng mã dự phòng hoặc nhờ Quản trị tắt giúp." },
+    ],
+  },
+  {
     // Đổi tên nút nổi và khung của trợ lý AI từ «Hỗ trợ» thành «Trợ lý» để khỏi trùng mục menu Hỗ trợ (chủ dự án 2026-10-15). Không migration. Số tạm.
     version: "2.3",
     date: "2026-10-16",
