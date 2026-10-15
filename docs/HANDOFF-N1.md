@@ -11,7 +11,7 @@ Nằm trên nhánh `claude/stoic-heisenberg-72c05d`, **chưa `day-len`, chưa `t
 - **Cần biết khi phát hành:** có **migration `0099_bil_doi_chieu_khoan_cong_ty_thu`** (bảng chỉ-thêm `bil_receipt_recon`, tạo lại view `v_bil_coc_don` và trigger đảo lần thu) nên phải qua điểm khôi phục Time Travel và `audit-invariants --db remote`; trần gói trang Đơn hàng nới lên 96.500 byte (chủ chấp nhận); phải thêm mục nhật ký thay đổi mới (bước A.0) trước khi triển khai.
 - **Đã kiểm:** `typecheck` 0 lỗi, `npm test` xanh cả hai bước; hai lượt kiểm độc lập (đạt có điều kiện), điều kiện còn lại là dòng nhắc chỉ cho chuyển khoản — đã sửa, chưa có lượt kiểm thứ ba.
 - **Chưa kiểm:** kịch bản Chrome (`a2-smoke-*.mjs` cho `web/order.ts`, `trang-chu-smoke.mjs` cho `web/home.ts`, cần `AXE_JS`), e2e `so-tien` và `audit-invariants` chưa chạy sau lượt sửa cuối, chưa xem bằng mắt trên iPhone.
-- **Chờ chủ:** xác nhận lại ca sổ vàng SV-SC-02, SV-SC-06, SV-DH-05 (đã đổi nội dung theo ADR-0119); các ca còn chờ khác ở `golden/README.md`.
+- **Sổ vàng:** SV-SC-02, SV-SC-06, SV-DH-05 chủ đã xác nhận lại 2026-10-15; các ca còn chờ khác ở `golden/README.md`.
 
 ## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.94 ĐÃ LÊN PRODUCTION (sửa nút «Gửi yêu cầu» của màn «Điều chỉnh công nợ»; Trợ giúp Kế toán và Quản trị cho màn đó; kèm bản 1.93 — sửa số khách, ADR-0114: nhắc khuyến mại khi bớt khách, lịch sử số khách, mỗi đơn có ít nhất một người lớn) — không migration (2026-10-13 khoảng 23:13 giờ VN)
 

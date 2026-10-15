@@ -91,7 +91,7 @@
       "ma": "SV-DH-05",
       "mo_ta": "Công ty huỷ, dời lịch: HDV Nam thu 500.000 tiền mặt (Nam đang giữ). Quản trị huỷ “Thời tiết / cấm biển”. Kế toán Lan duyệt chuyển 500.000 sang đơn B (Kế toán được duyệt chuyển, không duyệt hoàn); Kế toán Mai (người khác) ghi chuyển (người giữ: Nam). Đơn A: đã chuyển 500.000, còn giữ 0; Nam giữ trên A = 0. Đơn B: đã trả 500.000, Nam giữ trên B = 500.000 (tổng Nam giữ không đổi).",
       "nguon": "ADR-0089 đ6 (Đ-1: chuyển tính như chi, Kế toán duyệt trước (ADR-0119 Điều 2), người duyệt không tự chuyển, một lô hai đơn)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-15" },
       "dau_vao": {
         "phai_thu": 2000000, "ngay_di": ["2026-11-10"], "hom_nay": "2026-11-10",
         "su_kien": [
