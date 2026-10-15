@@ -18,7 +18,7 @@ import {
 } from "./mfa-dang-nhap";
 import {
   factorEndAllStatement, factorListLive, recoveryCountLeft, recoveryRevokeAllStatement, staffIdsWithFactor, trustedFind, trustedInsertStatement, trustedRevokeAllStatement,
-  trustedRevokeAllIfSuspendedStatement, trustedTouchStatement,
+  trustedRevokeAllIfSuspendedStatement, trustedRevokeOfSessionStatement, trustedTouchStatement,
 } from "./mfa-repo";
 import { batTotpStatements, boMaDuPhongMoi, khopKhoaMoi, moiKhoaTotp } from "./mfa-tu-phuc-vu";
 import { PENDING_COOKIE, clearedPendingCookie, createPendingToken, loginStep, pendingCookie, verifyPendingToken } from "./mfa-rules";
@@ -179,6 +179,17 @@ export const endAllSessionsIfSuspendedStatement = (db: D1Database, staffId: stri
  * được kích hoạt lại vẫn dùng máy tin cũ để bỏ qua bước hai.
  */
 export { trustedRevokeAllIfSuspendedStatement };
+/**
+ * Thu hồi MỌI máy được tin còn sống của tài khoản khi tự đổi PIN ('doi_pin') hoặc Quản trị đặt lại PIN ('dat_lai_pin') — đặc tả hai lớp §6 quy tắc 3
+ * (dòng thật, không chỉ lưới credentials_changed_at: danh sách "Máy được tin" ở trang Tôi phải hết máy). Chưa chạy — đặt CUỐI lô, ngoài chuỗi changes().
+ */
+export const trustedRevokeOnPinStatement = (db: D1Database, staffId: string, reason: "doi_pin" | "dat_lai_pin", at: string, by: string): D1PreparedStatement =>
+  trustedRevokeAllStatement(db, staffId, reason, at, by);
+/**
+ * IT/Toàn quyền gỡ MỘT phiên (ADR-0075 điều 6c): thu hồi máy được tin gắn với phiên đó ('bi_go') chỉ khi chính lô vừa kết thúc phiên (khớp lý do 'bi_go',
+ * mốc `at`, người gỡ `by` của endOneSessionStatement). Chưa chạy — đặt SAU câu kết thúc phiên và câu nhật ký trong cùng lô.
+ */
+export { trustedRevokeOfSessionStatement };
 /**
  * Đánh dấu phiên được GIỮ và cấp lại cookie khi tự đổi PIN / gỡ Face ID: `at` PHẢI là ISO của đúng mốc ms ghi vào credentials_changed_at. Chưa chạy —
  * gộp vào cùng lô với endOtherSessionsStatement.

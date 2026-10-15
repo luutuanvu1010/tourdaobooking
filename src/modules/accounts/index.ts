@@ -10,6 +10,7 @@ import {
   revokePasskeyStatement, toPasskeyDto, unlockPhone, verifyPinThrottled, verifyRegistration,
   MFA_UNAVAILABLE, allowedFactors, batTotpStatements, boMaDuPhongMoi, goYeuToStatements, isInternal, khopKhoaMoi, kiemMaHienCo, mayTinSong, mfaBanner, moiKhoaTotp,
   quenMayStatement, quenMoiMayStatement, recoveryCountLeft, yeuToSong, lockedMfaStaffIds, staffIdsWithFactor, tatHaiLopStatements, trustedRevokeAllIfSuspendedStatement, unlockLogin,
+  trustedRevokeOfSessionStatement, trustedRevokeOnPinStatement,
 } from "../auth";
 import {
   KHONG_NHAN_VAI_NOI_BO, accountRoleCodes, canManageAccount, checkAccountChange, chuPhienTheoId, hoSoCoNhanDoiTac, moNoiBoChoHoSoCoNhanProblem, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
@@ -260,6 +261,7 @@ export const accountsModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "pin_changed", at, targetType: "staff", targetId: staff.id }),
         endOtherSessionsStatement(env.DB, staff.id, sessionId, "doi_pin", at, staff.id), // ADR-0075 điều 5: máy khác bị đăng xuất trong cùng lô
         markSessionReissuedStatement(env.DB, sessionId, at, staff.id),
+        trustedRevokeOnPinStatement(env.DB, staff.id, "doi_pin", at, staff.id), // đặc tả hai lớp §6.3: mọi máy được tin bị thu hồi
       ]);
       // BẢNG TIN (KN-2): PIN vừa đổi — đóng các kết nối cũ của chính tài khoản này (thiết bị khác sẽ phải đăng nhập lại rồi mới nối lại được).
       dongBangTin({ staffId: staff.id, tatThongBao: true });
@@ -411,6 +413,7 @@ export const accountsModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "pin_set_by_passkey", at, targetType: "staff", targetId: staff.id }),
         endOtherSessionsStatement(env.DB, staff.id, sessionId, "doi_pin", at, staff.id), // ADR-0075 điều 5
         markSessionReissuedStatement(env.DB, sessionId, at, staff.id),
+        trustedRevokeOnPinStatement(env.DB, staff.id, "doi_pin", at, staff.id), // đặc tả hai lớp §6.3
       ]);
       await unlockPhone(env.DB, staff.phone); // chủ quyết 2026-09-23: có PIN mới thì gỡ khoá "sai PIN quá nhiều", như admin reset-pin
       dongBangTin({ staffId: staff.id, tatThongBao: true }); // BẢNG TIN (KN-2): PIN vừa đổi.
@@ -744,6 +747,7 @@ export const accountsModule: AppModule = {
         revokeAllPasskeysStatement(db, t.id, at, ctx.staff.id), // ADR-0016 điều 6: đặt lại PIN gỡ mọi Face ID
         adminAudit(db, ctx.staff.id, "passkey_removed", t.id, "gỡ khi đặt lại PIN", "changes() > 0"),
         endAllSessionsStatement(db, t.id, "dat_lai_pin", at, ctx.staff.id), // ADR-0075 điều 4: mọi máy của tài khoản bị đăng xuất trong cùng lô
+        trustedRevokeOnPinStatement(db, t.id, "dat_lai_pin", at, ctx.staff.id), // đặc tả hai lớp §6.3: mọi máy được tin bị thu hồi
       ]);
       await unlockPhone(db, t.phone);
       ctx.dongBangTin({ staffId: t.id, tatThongBao: true }); // BẢNG TIN (KN-2): PIN vừa được đặt lại.
@@ -973,9 +977,10 @@ export const accountsModule: AppModule = {
         endOneSessionStatement(db, row.id, "bi_go", at, ctx.staff.id),
         // ADR-0075 điều 8: ai gỡ (staff_id), tài khoản bị gỡ (target), mã phiên (detail) — KHÔNG IP/User-Agent. Chỉ ghi khi câu trên thật sự kết thúc phiên.
         auditStatement(db, { staffId: ctx.staff.id, action: "session_revoked", at, targetType: "staff", targetId: row.staff_id, detail: `phiên ${row.id}` }, "changes() > 0"),
+        // ADR-0075 điều 6c: bỏ máy được tin gắn với phiên này (lần sau phải nhập mã) — chỉ khi câu đầu lô thật sự kết thúc phiên; nhật ký không mang mã máy.
+        trustedRevokeOfSessionStatement(db, row.id, at, ctx.staff.id),
       ]);
       if ((res[0]?.meta.changes ?? 0) === 0) return error(409, "already_ended", "Phiên này đã kết thúc.");
-      // Phần B: bỏ máy được tin gắn với row.trusted_device_id (ADR-0075 điều 6c).
       // ADR-0075 điều 6(a)(b): đóng Bảng tin và tắt thông báo màn hình khoá CHỈ của đúng máy bị gỡ (đăng ký mang mã phiên này, lý do bi-go) — máy khác của
       // tài khoản (Toàn quyền nhiều máy) không đụng. Đăng ký cũ session_id NULL (trước phát hành) không biết thuộc máy nào → không tắt ở đây (lần đăng nhập
       // sau của tài khoản một máy tắt nó — tat_may_tru_phien).

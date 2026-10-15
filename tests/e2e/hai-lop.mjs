@@ -96,6 +96,20 @@ const [may] = await sqlRows(`SELECT token_hash FROM aut_trusted_device WHERE sta
 assert.notEqual(may.token_hash, TIN.slice("td_trusted=".length), "CSDL chỉ giữ băm");
 console.log("✓ 7. tin máy 30 ngày → lần sau đăng nhập PIN không hỏi mã, sổ phiên PIN_TRUSTED");
 
+// ADR-0075 điều 6(c): Toàn quyền gỡ phiên vừa vào bằng máy tin → máy tin đó bị thu hồi trong cùng lô ('bi_go'); PIN lại với cookie cũ → phải hỏi mã.
+const [phienTin] = await sqlRows(`SELECT id FROM aut_session WHERE staff_id = '${AID}' AND method = 'PIN_TRUSTED' AND ended_at IS NULL`);
+r = await call(await session(ACCOUNTS.superAdmin), "POST", `/api/sessions/${phienTin.id}/revoke`, {});
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.deepEqual(
+  (await sqlRows(`SELECT revoke_reason FROM aut_trusted_device WHERE staff_id = '${AID}'`)).map((x) => x.revoke_reason),
+  ["bi_go"],
+);
+r = await pinLogin(A, TIN);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.next, "mfa", JSON.stringify(r.body));
+assert.equal(cookieOf(r, "td_session"), null);
+console.log("✓ gỡ phiên vào bằng máy tin → máy tin bị thu hồi, PIN lại với cookie cũ phải nhập mã");
+
 // Mã dự phòng: dùng một lần, recoveryLeft giảm
 r = await verify(await pendingOf(A), { method: "RECOVERY", code: MA_DU_PHONG[0].toUpperCase(), trustDevice: false });
 assert.equal(r.status, 200, JSON.stringify(r.body));
