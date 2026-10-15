@@ -12,6 +12,21 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Vé hỗ trợ đợt 1 (ADR-0119): nhóm hỗ trợ, hàng đợi nhóm, nhận việc, chuyển nhóm, quản lý nhóm; menu «Góp ý / Báo lỗi» đổi thành «Hỗ trợ».
+    // Có thay đổi cơ sở dữ liệu (migration 0100) — cần trien-khai sau day-len.
+    // Số 1.97 là số TẠM (= main 1.96 + 1, 2026-10-15). Lúc soạn, 1.97 đã có ở hai nhánh chưa gộp khác và 1.98 ở một nhánh nữa: phiên phát hành kiểm lại
+    // cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
+    version: "1.97",
+    date: "2026-10-15",
+    items: [
+      { kind: "doi", text: "Mục Góp ý / Báo lỗi đổi tên thành Hỗ trợ. Khi gửi yêu cầu, bạn chọn nhóm nhận: Kỹ thuật, Kế toán, Nhân sự hoặc Điều hành." },
+      { kind: "moi", text: "Thành viên nhóm hỗ trợ có tab Hàng đợi nhóm: xem yêu cầu gửi tới nhóm mình, lọc Của tôi hoặc Chưa ai nhận, bấm Nhận việc rồi đổi trạng thái." },
+      { kind: "moi", text: "Trưởng nhóm chuyển được yêu cầu sang nhóm khác, kèm lý do. Nhóm mới không đọc ghi chú nội bộ của nhóm cũ." },
+      { kind: "moi", text: "Người phụ trách hệ thống có tab Quản lý nhóm: tạo nhóm, ngưng nhóm, thêm hoặc gỡ thành viên, chọn Trưởng nhóm." },
+      { kind: "doi", text: "Yêu cầu chỉ người gửi, nhóm nhận và người phụ trách hệ thống đọc được. Yêu cầu gửi Kế toán hoặc Nhân sự không hiện tiêu đề trong thư báo." },
+    ],
+  },
+  {
     // Loại đối tác là dữ liệu (ADR-0117 lần 1; chủ duyệt 14/10: «duyệt gắn vai làm ADR-0117»): Kế toán/Quản trị/Toàn quyền thêm, tắt, bật loại đối tác trên màn Hoa hồng đối tác; nhân viên nội bộ không mang loại được hưởng hoa hồng.
     // Có thay đổi cơ sở dữ liệu (migration 0095) — cần trien-khai sau day-len.
     // Số 1.96 là số TẠM (= main 1.95 + 1, 2026-10-14): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
