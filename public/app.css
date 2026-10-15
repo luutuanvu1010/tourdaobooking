@@ -458,6 +458,7 @@
   --w-home-all: 800px;         /* hộp "Tất cả chức năng" máy tính (bản vẽ 1.73) */
   --w-home-all-col: 160px;     /* … một cột nhóm rộng tối thiểu (hẹp hơn thì xuống hàng) */
   --w-the-viec: 240px;         /* thẻ "Việc của bạn": rộng tối thiểu một thẻ (hẹp hơn thì xuống hàng) — bản vẽ menu máy tính 15/10 */
+  --h-the-viec-xuong: 272px;   /* … chiều cao khung xương một thẻ việc (bằng thẻ thật ở 1440 để trang không nhảy) */
   --w-viec-ico: 32px;          /* … ô vuông biểu tượng đầu thẻ */
   --fs-viec-so: var(--fs-step-14);  /* … số lớn của thẻ (bản vẽ 40px; bậc lớn nhất của thang chữ là 32px) */
   --fw-home-stat: min(calc(var(--fw-heavy) + 100), 800);  /* số lớn của thẻ số liệu: bản vẽ 600 = một bậc trên mức "số lớn" — vẫn đi theo token độ đậm (ADR-0087) */
@@ -1513,7 +1514,7 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
    xương, dòng thời gian, viên "Sắp tới") cũng mặc định ẩn — chỉ hiện ở khối "Trang chủ MÁY TÍNH" bên dưới.
    Dải đầu trang = CHÍNH #topbar đổi kiểu (body.trang-chu ở public/index.html): chuông của web/thong-bao-ui.ts giữ nguyên nút, ngăn tin, cách đếm. */
 .dash-tim, .dash-o, .dash-so, .dash-xuong, .dash-hero-chao, .dash-hero-nut, .dash-hero-dong, .dash-loi-ico, .dash-loi-nut { display: none; }
-.dash-dai, .dash-so-mt, .dash-xuong-mt, .dash-tl, .dash-sap-toi, .dash-loi-tat, .dash-viec { display: none; } /* .dash-viec: chỉ máy tính (khối ≥641px bên dưới) */
+.dash-dai, .dash-so-mt, .dash-xuong-mt, .dash-xuong-viec, .dash-tl, .dash-sap-toi, .dash-loi-tat, .dash-viec { display: none; } /* .dash-viec: chỉ máy tính (khối ≥641px bên dưới) */
 /* Ô của lưới chức năng — dùng chung lưới chính và bảng trượt "Tất cả chức năng" (bảng trượt chỉ mở được từ lưới điện thoại). */
 .dash-o-luoi { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: var(--s3); column-gap: calc(var(--s1) / 2); }
 .dash-o-muc { display: flex; flex-direction: column; align-items: center; gap: var(--s2); min-width: 0; min-height: var(--tap-min); padding: 0; font: inherit; color: var(--c-text); text-decoration: none; background: none; border: 0; cursor: pointer; transition: transform var(--m-fast) var(--ease-out); }
@@ -1688,6 +1689,9 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
   .dash-xuong-mt-chuyen, .dash-xuong-mt-so { display: flex; flex-direction: column; gap: var(--s4); min-width: 0; padding: var(--s4); background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--radius-lg); }
   .dash-xuong-mt-so { gap: var(--s5); }
   .dash-xuong-mt-so > div, .dash-xuong-mt-dong > div { display: flex; flex-direction: column; gap: var(--s2); }
+  /* Khung xương "Việc của bạn": cùng lưới và chiều cao với thẻ thật (chừa chỗ hàng tiêu đề khối) */
+  .dash-xuong-viec { display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--w-the-viec), 1fr)); gap: var(--s4); margin-bottom: var(--s5); padding-top: calc(var(--lh-24) + var(--s4)); }
+  .dash-xuong-viec-the { display: flex; flex-direction: column; gap: var(--s3); min-width: 0; min-height: var(--h-the-viec-xuong); padding: var(--s5); background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--radius-lg); }
   .dash-xuong-mt .dash-xuong-vien { display: flex; gap: var(--s2); }
   .dash-xuong-mt-dong { display: grid; grid-template-columns: var(--w-trip-time-mt) minmax(0, 1fr) auto; gap: var(--s4); padding-top: var(--s4); border-top: 1px solid var(--c-surface-alt); }
   .dash-xuong-mt .dash-xg { display: block; flex: none; background: var(--c-surface-alt); border-radius: var(--radius-sm); }
