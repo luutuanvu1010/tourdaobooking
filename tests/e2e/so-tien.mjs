@@ -66,7 +66,7 @@ const fldB = await me(await session(ACCOUNTS.fieldB));
   assert.deepEqual([p.phaiThu, p.daThu, p.conLai, p.deliveredAt], [tong, 100000, tong - 100000, null]);
   assert.ok(p.lyDoChuaGiao && /[À-ỹ]/.test(p.lyDoChuaGiao.cau), "lý do chưa giao được bằng tiếng Việt");
 
-  // ADR-0119 Điều 1: khoản CK Bán hàng khai ĐANG ĐỐI CHIẾU (không dòng giữ hộ); chưa Đã giao được tới khi Kế toán bấm "Công ty đã nhận" (ghi dấu, không sinh nợ).
+  // ADR-0120 Điều 1: khoản CK Bán hàng khai ĐANG ĐỐI CHIẾU (không dòng giữ hộ); chưa Đã giao được tới khi Kế toán bấm "Công ty đã nhận" (ghi dấu, không sinh nợ).
   assert.equal(p.lyDoChuaGiao.ma, "reconciling", "còn khoản đang đối chiếu");
   const so = (await call(ACC, "GET", "/api/ledger")).body;
   const cho = so.choXacNhan.find((x) => x.orderId === o.id);
@@ -101,7 +101,7 @@ const fldB = await me(await session(ACCOUNTS.fieldB));
   assert.equal(h.status, 409, JSON.stringify(h.body));
   const soHdv = await call(F, "GET", "/api/ledger/mine");
   assert.equal(soHdv.status, 200, "HDV xem sổ của mình");
-  assert.equal(soHdv.body.dangGiu, tong - 100000, "HDV chỉ giữ phần tiền mặt (khoản CK không tạo nợ — ADR-0119)");
+  assert.equal(soHdv.body.dangGiu, tong - 100000, "HDV chỉ giữ phần tiền mặt (khoản CK không tạo nợ — ADR-0120)");
 
   // Kế toán ghi HDV nộp tiền mặt về công ty (khoản CK đã xác nhận ở trên).
   const hdvParty = (await sqlRows(`SELECT collector_party_id AS p FROM bil_payment_receipt WHERE order_id = '${o.id}' AND collector_role_code = 'STAFF'`))[0].p;
@@ -124,7 +124,7 @@ const fldB = await me(await session(ACCOUNTS.fieldB));
   console.log(`✓ luồng chính (D1 local): Công ty thu – CK 100.000 + HDV thu ${(tong - 100000).toLocaleString("vi-VN")} lúc Đã giao → đơn khoá → biên nhận đủ → Hoàn thành sau khi xác nhận + nộp`);
 }
 
-// ---- TNV-VP01 / ADR-0092 Đ2, Đ2b + ADR-0119 Điều 1 trên D1 local thật: khoản CK do HDV khai KHÔNG tạo nợ — "Nộp" bị chặn (HDV không giữ gì), "Công ty đã nhận" ghi dấu,
+// ---- TNV-VP01 / ADR-0092 Đ2, Đ2b + ADR-0120 Điều 1 trên D1 local thật: khoản CK do HDV khai KHÔNG tạo nợ — "Nộp" bị chặn (HDV không giữ gì), "Công ty đã nhận" ghi dấu,
 // sổ người khai không âm; phần tiền mặt HDV cầm vẫn tất toán MỘT lần (nộp quá số giữ bị 409), SQL gõ tay đi vòng máy chủ bị trigger 0080 chặn.
 {
   const ACC = await session(ACCOUNTS.accountant);
@@ -148,7 +148,7 @@ const fldB = await me(await session(ACCOUNTS.fieldB));
   await assert.rejects(() => sql(`INSERT INTO bil_debt_line (id, posting_id, debtor_party_id, creditor_party_id, amount, kind_code, order_id, created_at, updated_at)
     SELECT 'e2e-vp01', p.id, (SELECT party_id FROM v_pty_owner_company LIMIT 1), '${hdvParty}', 1, 'SETTLEMENT', '${o.id}', '2026-10-05T00:00:00.000Z', '2026-10-05T00:00:00.000Z'
     FROM bil_posting p WHERE p.order_id = '${o.id}' LIMIT 1`), /settlement_sign_flip/);
-  console.log("✓ VP-01 + ADR-0119 (D1 local): khai CK không tạo nợ; nộp quá số giữ 409; xác nhận ghi dấu; sổ HDV = 0; SQL tay thêm dòng nộp bị trigger chặn");
+  console.log("✓ VP-01 + ADR-0120 (D1 local): khai CK không tạo nợ; nộp quá số giữ 409; xác nhận ghi dấu; sổ HDV = 0; SQL tay thêm dòng nộp bị trigger chặn");
 }
 
 // ---- TNV-G3 / ADR-0088 đ2, đ3, đ4 (iv), đ5 (năm lỗi tiền) trên D1 local thật: sau Đã giao "Đảo" đơn lẻ 409, "Thay lần thu" giữ I1 201, hoàn sau Đã giao 409;

@@ -105,7 +105,7 @@ function chayTrenMa(phaiThu: number, suKien: readonly SuKien[]) {
   const receipts: ReceiptRow[] = [];
   const lines: LineRow[] = [];
   const thu: { receipt: ReceiptRow; dong: LineRow[] }[] = [];
-  // ADR-0119 Điều 1: khoản "Công ty thu" do người không phải Kế toán khai ⇒ dấu DECLARED (không dòng giữ hộ); "Công ty đã nhận" ⇒ CONFIRMED.
+  // ADR-0120 Điều 1: khoản "Công ty thu" do người không phải Kế toán khai ⇒ dấu DECLARED (không dòng giữ hộ); "Công ty đã nhận" ⇒ CONFIRMED.
   const doiChieu: DoiChieuRow[] = [];
   let k = 0;
   const ghiDong = (ds: { debtorPartyId: string; creditorPartyId: string; amount: number; kind: LineRow["kind"]; reversesLineId: string | null }[], receiptId: string | null = null) => {

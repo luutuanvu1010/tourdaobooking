@@ -99,7 +99,7 @@ test("đường 2: Kế toán tự ghi CK – Công ty thu thiếu mã 400 (cả
   assert.equal((await thu(w, SALES, id, ck(1_000))).status, 201, "Bán hàng khai bình thường ⇒ giữ hộ, chưa cần mã");
 });
 
-test("đường 2 kèm Đã giao: Toàn quyền thiếu mã 400, có mã 200; Quản trị khai kèm Đã giao ⇒ không đòi mã nhưng bị chặn vì khoản đang đối chiếu (ADR-0119); Kế toán thuần ⇒ 403", async () => {
+test("đường 2 kèm Đã giao: Toàn quyền thiếu mã 400, có mã 200; Quản trị khai kèm Đã giao ⇒ không đòi mã nhưng bị chặn vì khoản đang đối chiếu (ADR-0120); Kế toán thuần ⇒ 403", async () => {
   const w = setup();
   const a = don(w);
   let g = await w.call("POST", `/api/orders/${a}/delivered`, { as: SA, body: { lanThu: ck(1_000_000) } });
@@ -134,7 +134,7 @@ test("đảo lần thu có mã rồi ghi lại số thực chuyển khác ⇒ đ
   assert.equal((await thu(w, KT, id, ck(600_000, { maGiaoDich: "DA0001", soThucChuyen: 600_000 }))).status, 201);
 });
 
-test("khai trùng (ADR-0119): hai khoản HDV khai cùng một lần chuyển — khoản thứ hai bị chặn trùng mã, đơn chưa Đã giao được; Kế toán đảo khoản thừa, HDV không nợ gì", async () => {
+test("khai trùng (ADR-0120): hai khoản HDV khai cùng một lần chuyển — khoản thứ hai bị chặn trùng mã, đơn chưa Đã giao được; Kế toán đảo khoản thừa, HDV không nợ gì", async () => {
   const w = setup();
   const id = don(w, 800_000);
   assert.equal((await thu(w, HDV, id, ck(400_000))).status, 201);

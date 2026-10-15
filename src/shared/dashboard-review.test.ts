@@ -154,7 +154,7 @@ test("reviewAlerts 1.73: Bán hàng / Kế toán / Nhân sự không nhận dòn
   for (const w of [SALES, ACCOUNTING, who("HR")]) assert.equal(reviewAlerts(w, { catalogItems: [], tickets: [], expiringCount: 3 }), null);
 });
 
-test("reviewAlerts ADR-0119: Kế toán (ô ledger.view) thấy ĐÚNG dòng khoản đang đối chiếu quá hạn, không thấy dòng nào khác; Bán hàng / Quản trị không nhận dòng này", () => {
+test("reviewAlerts ADR-0120: Kế toán (ô ledger.view) thấy ĐÚNG dòng khoản đang đối chiếu quá hạn, không thấy dòng nào khác; Bán hàng / Quản trị không nhận dòng này", () => {
   const items = [catalogItem("CANO_RIENG", [{ code: "adult", base: 2_400_000, current: 2_600_000, override: 2_500_000 }])];
   const du = { catalogItems: items, tickets: [ticket("YC-1", "NEW")], expiringCount: 3, doiChieuQuaHan: 2 };
   assert.deepEqual(reviewAlerts(ACCOUNTING, du), { catalogConflict: null, feedbackQueue: null, expiringDocs: null, doiChieu: { count: 2 } });

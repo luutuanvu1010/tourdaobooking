@@ -24,8 +24,8 @@
     },
     {
       "ma": "SV-SC-02",
-      "mo_ta": "Khách lẻ, 1.000.000. Khách chuyển khoản 500.000 vào tài khoản công ty, HDV Nam KHAI 'Công ty thu – CK' (chuyển khoản); HDV thu 500.000 tiền mặt (tiền mặt ghi 'Công ty thu' thì vẫn giữ hộ như cũ — chỉ chuyển khoản đổi luật). Theo ADR-0119 Điều 1: khoản khai chuyển khoản KHÔNG tạo nợ cho HDV, nó ở trạng thái ĐANG ĐỐI CHIẾU — HDV chỉ nợ phần tiền mặt 500.000 họ thật sự cầm, và đơn CHƯA bấm Đã giao được cho tới khi Kế toán bấm 'Công ty đã nhận'. Kế toán bấm xong: khoản thành đã thu, không phát sinh dòng nợ nào, HDV vẫn nợ 500.000, đơn Đã giao được. (Đáp án dưới đây là trạng thái SAU khi xác nhận; trạng thái đang đối chiếu được kiểm bằng bài src/modules/billing/doi-chieu-ck.test.ts vì khuôn ca này chưa có bước chụp trạng thái giữa chừng.)",
-      "nguon": "ADR-0119 Điều 1 (thay H3 của ADR-0026 điều 4 gạch 2), ADR-0026 Hệ quả 2",
+      "mo_ta": "Khách lẻ, 1.000.000. Khách chuyển khoản 500.000 vào tài khoản công ty, HDV Nam KHAI 'Công ty thu – CK' (chuyển khoản); HDV thu 500.000 tiền mặt (tiền mặt ghi 'Công ty thu' thì vẫn giữ hộ như cũ — chỉ chuyển khoản đổi luật). Theo ADR-0120 Điều 1: khoản khai chuyển khoản KHÔNG tạo nợ cho HDV, nó ở trạng thái ĐANG ĐỐI CHIẾU — HDV chỉ nợ phần tiền mặt 500.000 họ thật sự cầm, và đơn CHƯA bấm Đã giao được cho tới khi Kế toán bấm 'Công ty đã nhận'. Kế toán bấm xong: khoản thành đã thu, không phát sinh dòng nợ nào, HDV vẫn nợ 500.000, đơn Đã giao được. (Đáp án dưới đây là trạng thái SAU khi xác nhận; trạng thái đang đối chiếu được kiểm bằng bài src/modules/billing/doi-chieu-ck.test.ts vì khuôn ca này chưa có bước chụp trạng thái giữa chừng.)",
+      "nguon": "ADR-0120 Điều 1 (thay H3 của ADR-0026 điều 4 gạch 2), ADR-0026 Hệ quả 2",
       "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-15" },
       "dau_vao": {
         "phai_thu": 1000000,
@@ -89,8 +89,8 @@
     },
     {
       "ma": "SV-SC-06",
-      "mo_ta": "ADR-0119 Điều 1 (thay ca nộp bù của VP-01). Khách lẻ, 1.000.000. HDV Nam KHAI 'Công ty thu – CK' 1.000.000 nhưng tiền không về tài khoản. Khoản khai không tạo nợ nào cho HDV (đang đối chiếu), nên không còn chuyện 'HDV nộp bù rồi Kế toán xác nhận bị từ chối' (chuyện đó chỉ còn với khoản khai TRƯỚC ngày áp luật, có dòng giữ hộ — kiểm bằng bài src/modules/billing/doi-chieu-ck.test.ts và lo-ghi.test.ts). Kế toán thấy tiền không về thì ĐẢO LẦN THU (đường có sẵn): đơn lại còn phải thu 1.000.000, HDV nợ 0, chưa bấm Đã giao được.",
-      "nguon": "ADR-0119 Điều 1 mục 4, 6 (viết lại từ ca VP-01 — ADR-0092 Đ2b, TNV-VP01)",
+      "mo_ta": "ADR-0120 Điều 1 (thay ca nộp bù của VP-01). Khách lẻ, 1.000.000. HDV Nam KHAI 'Công ty thu – CK' 1.000.000 nhưng tiền không về tài khoản. Khoản khai không tạo nợ nào cho HDV (đang đối chiếu), nên không còn chuyện 'HDV nộp bù rồi Kế toán xác nhận bị từ chối' (chuyện đó chỉ còn với khoản khai TRƯỚC ngày áp luật, có dòng giữ hộ — kiểm bằng bài src/modules/billing/doi-chieu-ck.test.ts và lo-ghi.test.ts). Kế toán thấy tiền không về thì ĐẢO LẦN THU (đường có sẵn): đơn lại còn phải thu 1.000.000, HDV nợ 0, chưa bấm Đã giao được.",
+      "nguon": "ADR-0120 Điều 1 mục 4, 6 (viết lại từ ca VP-01 — ADR-0092 Đ2b, TNV-VP01)",
       "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-15" },
       "dau_vao": {
         "phai_thu": 1000000,

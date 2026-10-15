@@ -577,7 +577,7 @@
       "name": "bil_receipt_recon",
       "module": "billing",
       "kind": "table",
-      "note": "dấu đối chiếu của khoản \"Công ty thu\" bằng CHUYỂN KHOẢN do người không phải Kế toán khai (ADR-0119 Điều 1; migration 0099; tiền mặt giữ luật giữ hộ cũ, không có dấu), CHỈ-THÊM. DECLARED = đang đối chiếu (không có dòng giữ hộ nào), CONFIRMED = Kế toán đã bấm \"Công ty đã nhận\"; đang đối chiếu = có DECLARED chưa có CONFIRMED, lần thu còn hiệu lực. Khoản khai trước ngày áp luật không có dòng ở đây (đi đường dòng giữ hộ cũ). Đơn còn khoản đang đối chiếu chưa Đã giao được (trigger bil_posting_delivered_reconciling)"
+      "note": "dấu đối chiếu của khoản \"Công ty thu\" bằng CHUYỂN KHOẢN do người không phải Kế toán khai (ADR-0120 Điều 1; migration 0099; tiền mặt giữ luật giữ hộ cũ, không có dấu), CHỈ-THÊM. DECLARED = đang đối chiếu (không có dòng giữ hộ nào), CONFIRMED = Kế toán đã bấm \"Công ty đã nhận\"; đang đối chiếu = có DECLARED chưa có CONFIRMED, lần thu còn hiệu lực. Khoản khai trước ngày áp luật không có dòng ở đây (đi đường dòng giữ hộ cũ). Đơn còn khoản đang đối chiếu chưa Đã giao được (trigger bil_posting_delivered_reconciling)"
     },
     {
       "name": "bil_receipt_bank_txn",

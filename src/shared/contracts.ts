@@ -1934,7 +1934,7 @@ export interface CocDonDto {
   coThePhanLoai: boolean;
   /** Nút duyệt HOÀN cho khách / huỷ duyệt khoản hoàn (ô `deposit.refund.approve`). */
   coTheDuyet: boolean;
-  /** Nút duyệt CHUYỂN sang đơn mới / huỷ duyệt khoản chuyển (ô `deposit.transfer.approve`, ADR-0119 Điều 2). */
+  /** Nút duyệt CHUYỂN sang đơn mới / huỷ duyệt khoản chuyển (ô `deposit.transfer.approve`, ADR-0120 Điều 2). */
   coTheDuyetChuyen: boolean;
   coTheChi: boolean;
   coTheChuyen: boolean;
@@ -1950,7 +1950,7 @@ export interface CocListResponse {
   donHuyGiuCoc: { orderId: string; maDon: string; nhom: string; nhomNhan: string; conGiu: number; han: string; sapHetHan: boolean; legacy: boolean }[];
   /** Đơn huỷ còn người giữ tiền mặt của công ty (đ11). */
   conNguoiGiu: { orderId: string; maDon: string; nguoi: string; soTien: number }[];
-  /** Khoản "Công ty thu" chờ Kế toán đối chiếu (ADR-0119 Điều 1.3): `qua3Ngay` = khai quá 3 ngày ⇒ nhắc. `ngayKhai` ngày dân sự giờ VN. */
+  /** Khoản "Công ty thu" chờ Kế toán đối chiếu (ADR-0120 Điều 1.3): `qua3Ngay` = khai quá 3 ngày ⇒ nhắc. `ngayKhai` ngày dân sự giờ VN. */
   doiChieu: { receiptId: string; orderId: string; maDon: string; soTien: number; ngayKhai: string; qua3Ngay: boolean }[];
 }
 /** `GET /api/ledger/coc/doi-chieu` — đơn huỷ CŨ còn giữ tiền để đối chiếu "đã hoàn ngoài hệ thống" (đ16). */
@@ -1963,7 +1963,7 @@ export interface CocDemResponse {
   duyetQua7Ngay: number;
   sapHetHan: number;
   conNguoiGiu: number;
-  /** Số khoản "Công ty thu" đang đối chiếu quá 3 ngày (ADR-0119). */
+  /** Số khoản "Công ty thu" đang đối chiếu quá 3 ngày (ADR-0120). */
   doiChieuQua3Ngay: number;
 }
 

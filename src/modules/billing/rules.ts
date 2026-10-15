@@ -98,7 +98,7 @@ export function soDuCap(lines: readonly Pick<LineRow, "debtorPartyId" | "credito
   return so;
 }
 
-/** Dấu đối chiếu của một lần thu (bảng `bil_receipt_recon`, migration 0099 — ADR-0119 Điều 1): DECLARED = người không phải Kế toán khai "Công ty thu"; CONFIRMED = Kế toán đã bấm "Công ty đã nhận". */
+/** Dấu đối chiếu của một lần thu (bảng `bil_receipt_recon`, migration 0099 — ADR-0120 Điều 1): DECLARED = người không phải Kế toán khai "Công ty thu"; CONFIRMED = Kế toán đã bấm "Công ty đã nhận". */
 export interface DoiChieuRow {
   receiptId: string;
   kind: "DECLARED" | "CONFIRMED";
@@ -109,9 +109,9 @@ export interface DoiChieuRow {
 /**
  * Lần thu "Công ty thu" CHỜ XÁC NHẬN / ĐANG ĐỐI CHIẾU (MỘT định nghĩa — dùng cho `choXacNhan` của màn đơn, cho "đang đối chiếu" của đơn huỷ và cho chặn "Đã giao"; view
  * `v_bil_coc_don` và trigger đảo của 0079/0099 theo đúng định nghĩa này). Hai đường:
- *  - khoản CŨ (khai trước ngày áp ADR-0119): lần thu vai COMPANY còn dòng giữ hộ (HELD, dòng gốc) chưa bị đảo, VÀ người khai còn nợ công ty trên đơn ≥ số của
+ *  - khoản CŨ (khai trước ngày áp ADR-0120): lần thu vai COMPANY còn dòng giữ hộ (HELD, dòng gốc) chưa bị đảo, VÀ người khai còn nợ công ty trên đơn ≥ số của
  *    dòng giữ hộ (ADR-0092 Đ2b — khoản đã được tất toán bằng "Nộp" không còn chờ; một dòng giữ hộ chỉ tất toán MỘT lần);
- *  - khoản MỚI (ADR-0119 Điều 1): có dấu DECLARED mà chưa có dấu CONFIRMED — không có dòng nợ nào.
+ *  - khoản MỚI (ADR-0120 Điều 1): có dấu DECLARED mà chưa có dấu CONFIRMED — không có dòng nợ nào.
  * `lines` = dòng của MỘT đơn. Trả tập id lần thu. `doiChieu` mặc định rỗng (đơn không có khoản mới).
  */
 export function khoanChoXacNhan(
@@ -128,7 +128,7 @@ export function khoanChoXacNhan(
   return new Set([...cu, ...khoanMoiDoiChieu(receipts, doiChieu)]);
 }
 
-/** Khoản MỚI đang đối chiếu (ADR-0119): lần thu Công ty còn hiệu lực (chưa bị đảo) có dấu DECLARED mà chưa có CONFIRMED. Khoản cũ (dòng giữ hộ) KHÔNG nằm ở đây. */
+/** Khoản MỚI đang đối chiếu (ADR-0120): lần thu Công ty còn hiệu lực (chưa bị đảo) có dấu DECLARED mà chưa có CONFIRMED. Khoản cũ (dòng giữ hộ) KHÔNG nằm ở đây. */
 export function khoanMoiDoiChieu(receipts: readonly (Pick<ReceiptRow, "id" | "collectorRole"> & { reversesId?: string | null })[], doiChieu: readonly DoiChieuRow[]): Set<string> {
   const daNhan = new Set(doiChieu.filter((d) => d.kind === "CONFIRMED").map((d) => d.receiptId));
   const biDao = new Set(receipts.flatMap((r) => (r.reversesId ? [r.reversesId] : [])));
@@ -136,14 +136,14 @@ export function khoanMoiDoiChieu(receipts: readonly (Pick<ReceiptRow, "id" | "co
   return new Set(doiChieu.filter((d) => d.kind === "DECLARED" && !daNhan.has(d.receiptId) && !biDao.has(d.receiptId) && congTyThu.has(d.receiptId)).map((d) => d.receiptId));
 }
 
-/** Số ngày khoản đang đối chiếu để quá hạn thì nhắc Kế toán (ADR-0119 Điều 1.3 — chủ để mặc định 3 ngày). Quá = nhiều HƠN số này. */
+/** Số ngày khoản đang đối chiếu để quá hạn thì nhắc Kế toán (ADR-0120 Điều 1.3 — chủ để mặc định 3 ngày). Quá = nhiều HƠN số này. */
 export const SO_NGAY_NHAC_DOI_CHIEU = 3;
 
 /** Khoản đang đối chiếu khai ngày `ngayKhai` (ngày dân sự giờ VN) có phải nhắc không: `ngayKhai` sớm hơn `homNay` hơn 3 ngày (đúng 3 ngày chưa nhắc, 4 ngày nhắc). */
 export const nhacDoiChieu = (input: { homNay: string; ngayKhai: string }): boolean => input.ngayKhai < congNgay(input.homNay, -SO_NGAY_NHAC_DOI_CHIEU);
 
 /**
- * Lần thu này có phải KHOẢN MỚI ĐANG ĐỐI CHIẾU ngay khi ghi không (ADR-0119 Điều 1.1; chủ chốt 2026-10-15: CHỈ chuyển khoản): lần thu của khách, người thu = Công ty,
+ * Lần thu này có phải KHOẢN MỚI ĐANG ĐỐI CHIẾU ngay khi ghi không (ADR-0120 Điều 1.1; chủ chốt 2026-10-15: CHỈ chuyển khoản): lần thu của khách, người thu = Công ty,
  * hình thức CHUYỂN KHOẢN, mà người GHI không phải Kế toán/Toàn quyền (và không phải hồ sơ công ty). Khi đúng: máy chủ ghi dấu DECLARED, KHÔNG sinh dòng giữ hộ.
  * Tiền mặt (hoặc hình thức khác) ghi "Công ty thu" giữ luật H3 cũ: dòng giữ hộ trên người khai — người cầm tiền thật vẫn chịu nợ.
  */
@@ -306,7 +306,7 @@ export function soTienCoc(input: {
   lines: readonly Pick<LineRow, "id" | "kind" | "receiptId" | "reversesLineId" | "debtorPartyId" | "creditorPartyId" | "amount">[];
   duyet: readonly DuyetRow[];
   hoanNgoai: readonly HoanNgoaiRow[];
-  /** Dấu đối chiếu của khoản MỚI (ADR-0119) — thiếu = đơn không có khoản mới. */
+  /** Dấu đối chiếu của khoản MỚI (ADR-0120) — thiếu = đơn không có khoản mới. */
   doiChieu?: readonly DoiChieuRow[];
 }): SoTienCoc {
   const cho = khoanChoXacNhan(input.receipts, input.lines, input.doiChieu ?? []);
@@ -410,7 +410,7 @@ export function nhacCoc(input: { nhom: NhomHuy; han: string; homNay: string; coc
 }
 
 /**
- * Dòng nợ sinh NGAY khi ghi một lần thu của khách (ADR-0026 điều 4 gạch 1–2; ADR-0119 Điều 1 chỉ thay gạch 2 cho CHUYỂN KHOẢN):
+ * Dòng nợ sinh NGAY khi ghi một lần thu của khách (ADR-0026 điều 4 gạch 1–2; ADR-0120 Điều 1 chỉ thay gạch 2 cho CHUYỂN KHOẢN):
  *  - người thu không phải Công ty (nhân viên, bên đặt) ⇒ *tiền đang giữ hộ*: người thu nợ công ty đúng số đó;
  *  - người thu = Công ty, người GHI là Kế toán/Toàn quyền ⇒ không dòng (tiền đã về công ty);
  *  - người thu = Công ty, người khác khai, hình thức CHUYỂN KHOẢN ⇒ KHÔNG dòng nào — khoản ĐANG ĐỐI CHIẾU (dấu DECLARED, `canDoiChieu`) tới khi Kế toán bấm
@@ -504,7 +504,7 @@ export function lyDoChuaGiaoDuoc(input: {
   dichVuThieuNgay: readonly string[];
   /** Bên đặt mang vai nhóm bên ngoài đang mở (người hưởng — M1 = A: chờ lượt 2). */
   coNguoiHuong: boolean;
-  /** Số khoản "Công ty thu" ĐANG ĐỐI CHIẾU của đơn (ADR-0119 Điều 1.2) — còn khoản thì chưa "Đã giao" được. */
+  /** Số khoản "Công ty thu" ĐANG ĐỐI CHIẾU của đơn (ADR-0120 Điều 1.2) — còn khoản thì chưa "Đã giao" được. */
   soKhoanDoiChieu: number;
   so: SoTienDon;
 }): LyDoGiu | null {

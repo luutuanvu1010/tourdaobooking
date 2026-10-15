@@ -75,7 +75,7 @@ function chayTrenMa(c: Ca): { dap: DapAn; lech: string[] } {
   const lines: LineRow[] = [];
   const duyet: DuyetRow[] = [];
   const hoanNgoai: HoanNgoaiRow[] = [];
-  // ADR-0119 Điều 1: khoản "Công ty thu" do người không phải Kế toán khai ⇒ dấu DECLARED (không dòng giữ hộ); xác nhận ⇒ CONFIRMED.
+  // ADR-0120 Điều 1: khoản "Công ty thu" do người không phải Kế toán khai ⇒ dấu DECLARED (không dòng giữ hộ); xác nhận ⇒ CONFIRMED.
   const doiChieu: DoiChieuRow[] = [];
   const thu: { receipt: ReceiptRow; dong: LineRow[] }[] = [];
   const nhan: { receipts: ReceiptRow[]; lines: LineRow[] } = { receipts: [], lines: [] };

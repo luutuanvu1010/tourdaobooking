@@ -1,4 +1,4 @@
-// ADR-0119 Điều 1 qua ROUTE THẬT (khung thử): khoản "Công ty thu – chuyển khoản" do người không phải Kế toán khai KHÔNG sinh dòng giữ hộ; khoản ở trạng thái
+// ADR-0120 Điều 1 qua ROUTE THẬT (khung thử): khoản "Công ty thu – chuyển khoản" do người không phải Kế toán khai KHÔNG sinh dòng giữ hộ; khoản ở trạng thái
 // ĐANG ĐỐI CHIẾU tới khi Kế toán bấm "Công ty đã nhận"; đơn còn khoản đang đối chiếu chưa "Đã giao" được; quá 3 ngày thì nhắc Kế toán; khoản CŨ (đã có dòng
 // giữ hộ trước ngày áp luật) vẫn đảo dòng giữ hộ khi xác nhận. Bảng `bil_receipt_recon` (migration 0099) là dấu phân biệt.
 import { test } from "node:test";

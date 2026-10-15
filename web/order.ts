@@ -731,7 +731,7 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
     }));
   }
   if (c.coTheDuyet || c.coTheDuyetChuyen) {
-    // ADR-0119 Điều 2: mỗi lựa chọn hiện theo ĐÚNG ô của nó (Kế toán chỉ thấy "Chuyển sang đơn mới"); máy chủ kiểm lại.
+    // ADR-0120 Điều 2: mỗi lựa chọn hiện theo ĐÚNG ô của nó (Kế toán chỉ thấy "Chuyển sang đơn mới"); máy chủ kiểm lại.
     const loai = h("select", null,
       ...(c.coTheDuyet ? [h("option", { value: "hoan" }, "Hoàn cho khách")] : []),
       ...(c.coTheDuyetChuyen ? [h("option", { value: "chuyen" }, "Chuyển sang đơn mới")] : []),
@@ -776,9 +776,9 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
   );
 }
 
-/** ADR-0119 Điều 1 mục 3: dòng nhắc Kế toán dưới khoản "Công ty thu" đang đối chiếu — người khai, số tiền, số ngày chờ (quá 3 ngày thì nổi màu cảnh báo). Không số điện thoại / tài khoản / mã giao dịch. */
+/** ADR-0120 Điều 1 mục 3: dòng nhắc Kế toán dưới khoản "Công ty thu" đang đối chiếu — người khai, số tiền, số ngày chờ (quá 3 ngày thì nổi màu cảnh báo). Không số điện thoại / tài khoản / mã giao dịch. */
 function nhacDoiChieuLanThu(t: Api.OrderPaymentsResponse, l: Api.LanThuDto): HTMLElement | null {
-  // Chỉ khoản CHUYỂN KHOẢN mới là "đang đối chiếu" (ADR-0119 Điều 1): tiền mặt "Công ty thu" vẫn là nợ giữ hộ (H3 cũ), không nhắc kiểu này.
+  // Chỉ khoản CHUYỂN KHOẢN mới là "đang đối chiếu" (ADR-0120 Điều 1): tiền mặt "Công ty thu" vẫn là nợ giữ hộ (H3 cũ), không nhắc kiểu này.
   if (!t.keToan!.choXacNhan.includes(l.id) || l.daDao || l.laDongDao || l.hinhThuc !== METHOD_LABEL.BANK_TRANSFER) return null;
   const soNgay = soNgayCho(l.ghiLuc, new Date());
   return h("p", { class: quaHanDoiChieu(soNgay) ? "dd-canh-xn is-do" : "muted", "data-khoi": "nhac-doi-chieu" }, cauNhacKhoan({ nguoiKhai: l.nguoiGhi ?? null, soTienDaDinhDang: vnd(l.soTien), soNgay }));
