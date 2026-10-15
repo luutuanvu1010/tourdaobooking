@@ -120,7 +120,7 @@
       "ma": "SV-TA-01",
       "mo_ta": "Mức TA bậc 8 (mức TA của loại, theo nhóm). Mức khai trong ca: TA1 có dòng «nhóm Du thuyền» 15%. Loại «Lễ tân khách sạn» KHÔNG còn dòng riêng nào, được gắn TA1 ở ngày xác nhận. Đơn có một dòng Du thuyền 3.000.000.",
       "nguon": "Đề xuất ADR-0117 (docs/superpowers/specs/2026-10-13-gan-vai-voi-muc-chiet-khau/de-xuat-adr.md, bảng ca vàng SV-TA-01…06) — số lấy NGUYÊN từ bảng đó (ví dụ của người soạn, chưa ai xác nhận). Thêm vào sổ 2026-10-15 (ADR-0117 lần 2, Task 5); AI không tự đánh dấu xác nhận (N-18)",
-      "xac_nhan": {"trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null},
+      "xac_nhan": {"trang_thai": "da_xac_nhan", "nguoi": "Chủ dự án (xác nhận trong chat)", "ngay": "2026-10-15"},
       "dong": [
         {
           "nhan": "Du thuyền 3.000.000 — bậc 8 (TA1 · nhóm Du thuyền 15%)",
@@ -133,7 +133,7 @@
       "ma": "SV-TA-02",
       "mo_ta": "Mức TA bậc 9 (mức TA của loại, mọi dịch vụ). Mức khai trong ca: TA3 CHỈ có dòng «mọi dịch vụ» 10% (số của riêng ca này). Loại gắn TA3, không còn dòng riêng. Đơn có một dòng Tour đảo 1.000.000.",
       "nguon": "Đề xuất ADR-0117 (docs/superpowers/specs/2026-10-13-gan-vai-voi-muc-chiet-khau/de-xuat-adr.md, bảng ca vàng SV-TA-01…06) — số lấy NGUYÊN từ bảng đó (ví dụ của người soạn, chưa ai xác nhận). Thêm vào sổ 2026-10-15 (ADR-0117 lần 2, Task 5); AI không tự đánh dấu xác nhận (N-18)",
-      "xac_nhan": {"trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null},
+      "xac_nhan": {"trang_thai": "da_xac_nhan", "nguoi": "Chủ dự án (xác nhận trong chat)", "ngay": "2026-10-15"},
       "dong": [
         {
           "nhan": "Tour đảo 1.000.000 — bậc 9 (TA3 · mọi dịch vụ 10%)",
@@ -164,7 +164,7 @@
       "ma": "SV-TA-04a",
       "mo_ta": "Dòng riêng theo loại thắng mức TA (bậc 5 thắng bậc 8). Mức khai trong ca: loại có dòng riêng «nhóm Du thuyền» 8%; TA1 có dòng «nhóm Du thuyền» 15%; loại gắn TA1. Dòng Du thuyền 3.000.000.",
       "nguon": "Đề xuất ADR-0117 (docs/superpowers/specs/2026-10-13-gan-vai-voi-muc-chiet-khau/de-xuat-adr.md, bảng ca vàng SV-TA-01…06) — số lấy NGUYÊN từ bảng đó (ví dụ của người soạn, chưa ai xác nhận). Thêm vào sổ 2026-10-15 (ADR-0117 lần 2, Task 5); AI không tự đánh dấu xác nhận (N-18)",
-      "xac_nhan": {"trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null},
+      "xac_nhan": {"trang_thai": "da_xac_nhan", "nguoi": "Chủ dự án (xác nhận trong chat)", "ngay": "2026-10-15"},
       "dong": [
         {
           "nhan": "Du thuyền 3.000.000 — bậc 5 (dòng riêng của loại 8%) thắng TA1 15%",
@@ -177,7 +177,7 @@
       "ma": "SV-TA-04b",
       "mo_ta": "Dòng riêng cũ «mọi dịch vụ» vẫn thắng mức TA theo dịch vụ/nhóm (bậc 6 thắng bậc 8 — thứ tự giữ nguyên nghĩa, có cảnh báo khi gắn). Mức khai trong ca: «Lễ tân khách sạn» còn dòng cũ «mọi dịch vụ» 10%; được gắn TA1 có dòng «nhóm Du thuyền» 15%. Dòng Du thuyền 3.000.000: trước khi đóng dòng cũ ra 300.000 (KHÔNG phải 450.000); sau khi Kế toán đóng dòng cũ thì đơn xác nhận sau ra 450.000.",
       "nguon": "Đề xuất ADR-0117 (docs/superpowers/specs/2026-10-13-gan-vai-voi-muc-chiet-khau/de-xuat-adr.md, bảng ca vàng SV-TA-01…06) — số lấy NGUYÊN từ bảng đó (ví dụ của người soạn, chưa ai xác nhận). Thêm vào sổ 2026-10-15 (ADR-0117 lần 2, Task 5); AI không tự đánh dấu xác nhận (N-18)",
-      "xac_nhan": {"trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null},
+      "xac_nhan": {"trang_thai": "da_xac_nhan", "nguoi": "Chủ dự án (xác nhận trong chat)", "ngay": "2026-10-15"},
       "dong": [
         {
           "nhan": "Du thuyền 3.000.000 — còn dòng cũ: bậc 6 (10%) thắng TA1",
@@ -195,7 +195,7 @@
       "ma": "SV-TA-05",
       "mo_ta": "Mức riêng của đối tác thắng mức TA (bậc 1–3 trước bậc 7–9). Mức khai trong ca: đối tác có mức riêng 12% cho dịch vụ; loại của đối tác gắn TA1 có 15% cho cùng dịch vụ. Dòng 2.000.000.",
       "nguon": "Đề xuất ADR-0117 (docs/superpowers/specs/2026-10-13-gan-vai-voi-muc-chiet-khau/de-xuat-adr.md, bảng ca vàng SV-TA-01…06) — số lấy NGUYÊN từ bảng đó (ví dụ của người soạn, chưa ai xác nhận). Thêm vào sổ 2026-10-15 (ADR-0117 lần 2, Task 5); AI không tự đánh dấu xác nhận (N-18)",
-      "xac_nhan": {"trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null},
+      "xac_nhan": {"trang_thai": "da_xac_nhan", "nguoi": "Chủ dự án (xác nhận trong chat)", "ngay": "2026-10-15"},
       "dong": [
         {
           "nhan": "Dịch vụ 2.000.000 — bậc 1 (mức riêng của đối tác 12%) thắng TA1 15%",
