@@ -3397,4 +3397,6 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .dd-tom-tat svg { flex: none; color: var(--c-text-muted); }
 .dai-anh-em { display: flex; flex-wrap: nowrap; gap: var(--s2); margin-bottom: var(--s4); overflow-x: auto; max-width: 100%; } /* dải chuyển nhanh giữa trang anh em (menu theo việc 15/10): hẹp thì cuộn ngang, không tràn */
 .dai-anh-em-muc { flex: none; display: inline-flex; align-items: center; min-height: var(--tap-min); padding: 0 var(--s4); font-size: var(--fs-label); font-weight: var(--fw-medium); color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-pill); text-decoration: none; white-space: nowrap; }
+.dai-anh-em-muc:focus-visible { outline: var(--focus-ring) solid var(--c-primary); outline-offset: calc(-1 * var(--focus-ring)); } /* vòng focus lùi vào trong: `.dai-anh-em { overflow-x: auto }` cắt vòng ngoài */
+.xb-main > .dai-anh-em { margin-bottom: 0; } /* Lịch xe bận đã có gap của .xb-main: tránh khoảng cách đôi */
 .dai-anh-em-muc[aria-current="page"] { color: var(--c-primary); background: var(--c-primary-soft); border-color: var(--c-primary); font-weight: var(--fw-bold); }

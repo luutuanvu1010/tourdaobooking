@@ -20,8 +20,8 @@ export const HD_DOI_TAC: NhomHuongDan = {
       noiDung: `### Trên máy tính
 
 Thanh menu dọc bên trái có:
-- Nhóm BÁN HÀNG: [[Đơn hàng]], [[Tạo đơn]].
-- Nhóm TÔI: [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]].
+- Đầu menu: nút nổi bật [[Tạo đơn]], rồi [[Đơn hàng]].
+- Chân menu: [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]].
 
 ### Trên điện thoại
 

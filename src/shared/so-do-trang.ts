@@ -13,7 +13,7 @@ export interface TrangSoDo {
   readonly tieuDe: string;
   /** Nhãn của mục menu trỏ tới trang (thanh bên / thanh tab); rỗng = mở từ trang khác. */
   readonly menu: readonly string[];
-  /** Nhóm của thanh bên máy tính (BÁN HÀNG, QUẢN TRỊ, "QUẢN TRỊ › Vận chuyển", TÔI). */
+  /** Nhóm của thanh bên máy tính (HẰNG NGÀY và CHÂN MENU không có tiêu đề trên màn hình; VẬN CHUYỂN, TIỀN, THIẾT LẬP có). */
   readonly nhomMenu: readonly string[];
   /** Nhãn nút, liên kết dạng nút, tiêu đề mục trên trang (danh sách phẳng — kho c). */
   readonly nut: readonly string[];

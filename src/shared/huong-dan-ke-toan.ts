@@ -8,7 +8,7 @@ export const HD_KE_TOAN: NhomHuongDan = {
   gioiThieu:
     "Bạn là kế toán của công ty. Bạn xem được mọi đơn: khách, dịch vụ, số khách, tiền, lịch sử sửa đơn, và mở được biên nhận để gửi khách. Trên trang đơn, bạn ghi và đối chiếu tiền, bấm Hoàn thành, đánh dấu đã nhập phần mềm kế toán. Bạn không lập, không sửa, không xác nhận, không huỷ đơn; riêng số khách của đơn đã xác nhận thì bạn sửa được.",
   batDauNhanh: `1. Mở app. App vào thẳng [[Trang chủ]].
-2. Nhìn thẻ số liệu: **Còn thiếu tiền**, **Chờ xác nhận**, **Chưa phụ trách**. Đây là số của cả công ty.
+2. Nhìn khối [[Việc của bạn]]: các thẻ [[Điều chỉnh công nợ chờ duyệt]], [[Đơn còn thiếu tiền]], [[Đơn nháp]]. Thẻ có nhãn **Toàn công ty** là số của cả công ty.
 3. Bấm [[Đơn hàng]] để xem danh sách đơn.
 4. Gõ tên khách, số điện thoại hoặc mã đơn vào ô tìm kiếm của danh sách.
 5. Bấm vào một đơn, xem khối **Thanh toán** để biết tổng tiền, đã thu và còn lại.
@@ -19,9 +19,11 @@ export const HD_KE_TOAN: NhomHuongDan = {
       noiDung: `### Trên máy tính
 
 Thanh menu dọc bên trái có:
-- Nhóm BÁN HÀNG: [[Trang chủ]], [[Đơn hàng]], [[Danh bạ]]. Cạnh [[Đơn hàng]] có số nhỏ, là số đơn chưa xác nhận.
-- Nhóm QUẢN TRỊ: [[Vận chuyển]], bên dưới là [[Điều phối xe]] và [[Xe đang chạy]]; rồi [[Khoá sổ tháng]], [[Điều chỉnh công nợ]], [[Hoa hồng đối tác]] và [[Người bán dịch vụ]].
-- Nhóm TÔI: [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]].
+- Đầu menu: [[Trang chủ]], [[Đơn hàng]], [[Danh bạ]]. Cạnh [[Đơn hàng]] có số nhỏ, là số đơn chưa xác nhận.
+- Nhóm VẬN CHUYỂN: [[Điều phối xe]], [[Xe đang chạy]], [[Giá & chi phí]].
+- Nhóm TIỀN: [[Điều chỉnh công nợ]], [[Khoá sổ tháng]].
+- Nhóm THIẾT LẬP (bấm để mở, thu gọn): [[Hoa hồng đối tác]], [[Người bán dịch vụ]].
+- Chân menu: [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]].
 
 Trên đầu trang có ô tìm kiếm. Gõ mã đơn, tên khách hoặc số điện thoại rồi bấm phím Enter là ra danh sách đơn khớp.
 
@@ -34,14 +36,15 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
     {
       tieuDe: "Xem tình hình chung ở Trang chủ",
       noiDung: `1. Mở app. App vào thẳng [[Trang chủ]].
-2. Nhìn thẻ số liệu (máy tính: hàng ngay dưới lời chào; điện thoại: dưới các ô chức năng). Ba ô sau là số của **cả công ty**:
-   - **Còn thiếu tiền**: tổng tiền khách còn phải trả của các đơn đã xác nhận. Dòng nhỏ bên dưới ghi số đơn và ngày đón sớm nhất (máy tính).
-   - **Chờ xác nhận**: số đơn đã lưu nhưng chưa chốt.
-   - **Chưa phụ trách**: số đơn chưa có ai nhận lo.
-3. Bấm vào một ô để mở danh sách đơn.
-4. Xem thẻ **Chuyến đón**: các đơn đã xác nhận có giờ đón hôm nay (bấm Ngày mai, Ngày kia để xem tiếp).
+2. Máy tính: nhìn khối [[Việc của bạn]] dưới lời chào. Mỗi thẻ có số và một nút bấm:
+   - [[Điều chỉnh công nợ chờ duyệt]] (nhãn **Của tôi**): yêu cầu đang chờ chính bạn duyệt.
+   - [[Đơn còn thiếu tiền]] (nhãn **Toàn công ty**): tổng tiền khách còn phải trả của các đơn đã xác nhận.
+   - [[Đơn nháp]] (nhãn **Toàn công ty**): đơn đã lưu nhưng chưa chốt; bạn chỉ xem.
+   - [[Chuyến hôm nay]]: số chuyến đi hôm nay.
+   Điện thoại: các ô số **Còn thiếu tiền**, **Chờ xác nhận**, **Chưa phụ trách** (cả công ty).
+3. Xem thẻ **Chuyến đón**: các đơn đã xác nhận có giờ đón hôm nay (bấm Ngày mai, Ngày kia để xem tiếp).
 
-> Lưu ý: Ô **Doanh thu của tôi** chỉ tính đơn do chính bạn lập. Kế toán không lập đơn nên ô này luôn bằng không (máy tính ghi thêm "Chưa có đơn nào tuần này"). Không phải lỗi.`,
+> Lưu ý: Ô **Doanh thu của tôi** chỉ tính đơn do chính bạn lập. Kế toán không lập đơn nên ô này luôn bằng không. Không phải lỗi.`,
     },
     {
       tieuDe: "Tìm và lọc đơn",
@@ -95,7 +98,7 @@ Không bớt hết người lớn được: đơn luôn cần ít nhất một n
     },
     {
       tieuDe: "Xem Điều phối xe (chỉ xem)",
-      noiDung: `1. Máy tính: bấm [[Vận chuyển]] rồi [[Điều phối xe]]. Điện thoại: bấm tab [[Tôi]], tìm nhóm VẬN CHUYỂN, bấm [[Điều phối xe]].
+      noiDung: `1. Máy tính: bấm [[Điều phối xe]] trong nhóm Vận chuyển. Điện thoại: bấm tab [[Tôi]], tìm nhóm VẬN CHUYỂN, bấm [[Điều phối xe]].
 2. Chọn ngày ở ô ngày trên cùng. Bấm mũi tên trái hoặc phải để lùi hay tiến một ngày.
 3. Màn có ba phần: **Chưa xếp**, **Xe**, **Cần xử lý**. Trên điện thoại, ba phần này là ba thẻ để bấm qua lại.
 4. Bạn sẽ thấy dải chữ "Chỉ xem — Kế toán không xếp xe, không điều chỉnh khẩn cấp hay phá lệ." Bạn không có nút [[+ Chuyến mới]], không xếp khách, không sửa chuyến.
@@ -235,7 +238,7 @@ Không. Dòng này giải thích vì sao bạn không có nút sửa.
 
 ### Ô Doanh thu của tôi luôn trống?
 
-Đúng vậy, vì ô này chỉ đếm đơn do bạn lập. Xem tiền cả công ty ở ô **Còn thiếu tiền** và trong [[Đơn hàng]].
+Đúng vậy, vì ô này chỉ đếm đơn do bạn lập. Xem tiền cả công ty ở thẻ [[Đơn còn thiếu tiền]] (điện thoại: ô **Còn thiếu tiền**) và trong [[Đơn hàng]].
 
 ### Tôi quên mã PIN thì sao?
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
-import { TRANG, coHien } from "./muc-giao-dien.ts";
+import { THANH_BEN, TRANG, coHien } from "./muc-giao-dien.ts";
 import { traAnhEm } from "./muc-giao-dien-gom.ts";
 
 const holder = (permissions: readonly string[]) => ({ id: "x", permissions: permissions as readonly PermissionCode[] });
@@ -36,5 +36,16 @@ test("MỌI tập quyền: chỉ trả trang người đó thấy, theo thứ t�
       assert.deepEqual(r.map((x) => x.href), mong.map((k) => TRANG[k as keyof typeof TRANG].duong), `${p.join("+")} ở ${duong}`);
       assert.ok(r.filter((x) => x.hienTai).length <= 1);
     }
+  }
+});
+
+test("MỌI khoá trong `gom` của THANH_BEN đều có nhãn tiếng Việt (không rơi về khoá trang bằng chữ Anh)", () => {
+  const dayDu = holder(PERMISSION_CODES) as never;
+  const khoaGom = THANH_BEN.flatMap((c) => ("gom" in c ? (c.gom as readonly (keyof typeof TRANG)[]) : []));
+  assert.ok(khoaGom.length >= 5, "phải thấy các mục gộp");
+  for (const k of khoaGom) {
+    const dong = traAnhEm(TRANG[k].duong, dayDu).find((x) => x.href === TRANG[k].duong);
+    assert.ok(dong, `${k}: người đủ quyền phải thấy trang này trong dải`);
+    assert.notEqual(dong.nhan, k, `${k}: thiếu nhãn trong NHAN (đang hiện khoá trang bằng chữ Anh)`);
   }
 });
