@@ -64,6 +64,11 @@ export type LoginMfaStepResponse =
   | { next: "mfa_enroll" };
 /** `POST /api/auth/mfa/verify` đúng mã → `td_session` (+ `td_trusted` nếu chọn tin máy 30 ngày). `recoveryLeft`: chỉ khi vừa dùng mã dự phòng — số mã còn lại. */
 export interface MfaVerifyResponse { staff: StaffProfile; recoveryLeft?: number }
+/**
+ * `POST /api/auth/mfa/enroll/confirm` (kế hoạch Task 6) — bật xong lớp hai ở bước đăng nhập (cửa sổ 24 giờ sau khi Quản trị/Toàn quyền tắt): `td_session` (phiên
+ * PIN_MFA) + 10 mã dự phòng hiện MỘT lần. `POST /api/auth/mfa/enroll/start` trả `MfaTotpStartResponse` như bật trong phiên.
+ */
+export interface MfaEnrollConfirmResponse { staff: StaffProfile; recoveryCodes: string[] }
 /** Máy được tin của chính mình (không bao giờ kèm token / băm). `thisDevice` = phiên đang dùng được cấp qua máy này (sổ phiên `trusted_device_id`). */
 export interface TrustedDeviceDto { id: string; label: string; createdAt: string; lastUsedAt: string; thisDevice: boolean }
 /**
@@ -203,7 +208,12 @@ export interface MaintenanceErrorBody { code: "maintenance"; message: string; en
  * Một dòng của GET /api/staff: `datLaiPinDuoc` = nút "Đặt lại PIN" hiện ở dòng này cho người đang xem — máy chủ tính bằng CÙNG hàm với cổng route reset-pin
  * (`datLaiPinDuoc` của src/shared/roles.ts: cấp dưới, không phải chính mình, tài khoản có quyền tiền chỉ Toàn quyền — ADR-0090 đ2). Giao diện không tự tính.
  */
-export interface StaffListRowDto extends StaffAccountDto { datLaiPinDuoc: boolean }
+/**
+ * Một dòng của GET /api/staff. `datLaiPinDuoc`, `canResetMfa`: cờ MÁY CHỦ tính theo dòng (giao diện không suy từ mã quyền). `canResetMfa` = route
+ * POST /api/staff/:id/mfa-reset sẽ nhận (ADR-0074 đ5, ADR-0090 đ1 iv). `mfa` (kế hoạch Task 6): `enabled` = có ít nhất một yếu tố sống; `graceUntil` = hạn ân
+ * hạn đang lưu (có thể đã qua) khi tài khoản nội bộ chưa bật, null khi đã bật hoặc tài khoản bên ngoài.
+ */
+export interface StaffListRowDto extends StaffAccountDto { datLaiPinDuoc: boolean; canResetMfa: boolean; mfa: { enabled: boolean; graceUntil: string | null } }
 export interface StaffListResponse { staff: StaffListRowDto[] }
 export interface StaffResponse { staff: StaffAccountDto }
 export interface StaffWithPinResponse { staff: StaffAccountDto; pin: string }

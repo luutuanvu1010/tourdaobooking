@@ -113,6 +113,14 @@ export async function sql(q) {
  * cũ vẫn có thể còn (điều 1c: không sửa dữ liệu đã có), nên ca thử HÀNH VI của tài khoản lai gieo thẳng vào D1 local tạm bằng `insertStaffSql` (cùng hàm
  * run.mjs gieo tài khoản dùng chung) rồi đăng nhập thật. Trả `{ id, partyId, phone, pin, cookie }`.
  */
+/**
+ * ADR-0074 điều 1 (Phần B Task 6): đặt hạn ân hạn bảo mật hai lớp (`staff.mfa_grace_until`) của tài khoản theo SĐT — `iso` = chuỗi ISO UTC hoặc null. Dùng để thử
+ * "hết ân hạn mà chưa bật → 403". Chỉ dùng trên tài khoản DÙNG MỘT LẦN (gieoTaiKhoanLai): đặt hạn quá khứ cho salesA/salesB làm `session()` của kịch bản khác hỏng.
+ */
+export async function datHanAnHan(account, iso) {
+  await sql(`UPDATE staff SET mfa_grace_until = ${iso === null ? "NULL" : `'${iso}'`} WHERE phone = '${account.phone}'`);
+}
+
 export async function gieoTaiKhoanLai(name, permissions) {
   const { insertStaffSql } = await import("../../scripts/staff-lib.mjs");
   const phone = randomPhone();

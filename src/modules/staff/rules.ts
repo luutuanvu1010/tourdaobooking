@@ -90,6 +90,22 @@ export const MFA_GRACE_DAYS = 14;
  */
 export const mfaGraceOnCreate = (perms: readonly PermissionCode[], nowMs: number): string | null =>
   coQuyenNoiBo(perms) ? new Date(nowMs + MFA_GRACE_DAYS * 86_400_000).toISOString() : null;
+/**
+ * ADR-0074 điều 1 (bổ sung chủ xác nhận 2026-10-01; kế hoạch Task 6): đổi quyền / vai làm tài khoản TỪ không nội bộ THÀNH nội bộ, mà chưa có yếu tố sống →
+ * lúc đổi + 14 ngày; còn lại null (không đặt). Câu ghi (`mfaGraceIfDueStatement`) chỉ đè khi hạn đang NULL hoặc đã qua. Lô có câu chốt gỡ ADMIN không bao giờ
+ * sinh ân hạn (TRƯỚC đã nội bộ) — route chỉ nối câu ân hạn vào lô không chốt.
+ */
+export const mfaGraceOnBecomingInternal = (before: readonly PermissionCode[], after: readonly PermissionCode[], coYeuTo: boolean, nowMs: number): string | null =>
+  !coYeuTo && !coQuyenNoiBo(before) && coQuyenNoiBo(after) ? new Date(nowMs + MFA_GRACE_DAYS * 86_400_000).toISOString() : null;
+/**
+ * Kích hoạt lại tài khoản nội bộ chưa có yếu tố → lúc kích hoạt + 14 ngày (kế hoạch Task 6, nhóm (b) của người kiểm độc lập Task 3–4: tài khoản đang ngưng lúc
+ * migration 0101 chạy không có ân hạn). Cùng nguyên tắc "tạo tài khoản nội bộ" của ADR-0074 điều 1; Nhân sự kích hoạt được nhưng không làm hỗ trợ đăng nhập
+ * (ADR-0071 điều 1e) nên không dựa vào đường Quản trị tắt lớp hai. Câu ghi chỉ đè khi hạn NULL hoặc đã qua.
+ */
+export const mfaGraceOnReactivate = (perms: readonly PermissionCode[], coYeuTo: boolean, nowMs: number): string | null =>
+  coYeuTo ? null : mfaGraceOnCreate(perms, nowMs);
+/** ADR-0074 điều 5 / đặc tả §4.5: cửa sổ bật lại ngay ở bước đăng nhập sau khi Quản trị/Toàn quyền tắt lớp hai. */
+export const MFA_ENROLL_WINDOW_MS = 24 * 3_600_000;
 
 /** Câu chặn chiều 2 — KHÔNG nêu tên loại hay nhãn (Nhân sự không giữ party.view nhận đúng câu này — ADR-0117 điều 4). */
 export const KHONG_NHAN_VAI_NOI_BO = "Hồ sơ này không nhận thêm vai nội bộ vào lúc này.";

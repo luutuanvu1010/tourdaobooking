@@ -88,6 +88,23 @@ export function datLaiPinDuoc(actor: PermissionHolder, target: PermissionHolder)
     && canManageAccount(actor.permissions, target.permissions) && chamTaiKhoanTienDuoc(actor, target);
 }
 
+/** ADR-0074 điều 5: tài khoản giữ Quản trị hoặc Toàn quyền — chỉ Toàn quyền tắt được bảo mật hai lớp của họ. */
+const QUAN_TRI_TOAN_QUYEN: readonly PermissionCode[] = ["ADMIN", "SUPER_ADMIN"];
+export const giuQuanTriHoacToanQuyen = (perms: readonly PermissionCode[]): boolean => perms.some((p) => QUAN_TRI_TOAN_QUYEN.includes(p));
+
+/**
+ * Nút "Tắt bảo mật hai lớp" hiện ở dòng `target` không — CÙNG các cổng của route POST /api/staff/:id/mfa-reset (kế hoạch Phần B Task 6): hai ô (admin.manage,
+ * account.access.manage — Nhân sự không, ADR-0071 đ1e), không phải chính mình, cấp dưới (canManageAccount), người bị tắt giữ Quản trị/Toàn quyền thì chỉ Toàn
+ * quyền (ADR-0074 đ5), luật quyền tiền (ADR-0090 đ1 iv). MỘT nguồn cho cờ `canResetMfa` của GET /api/staff; bài accounts/tat-hai-lop.test.ts đối chiếu cờ với
+ * mã trả của route.
+ */
+export function tatHaiLopDuoc(actor: PermissionHolder, target: PermissionHolder): boolean {
+  return can(actor, "admin.manage") && can(actor, "account.access.manage") && actor.id !== target.id
+    && canManageAccount(actor.permissions, target.permissions)
+    && (!giuQuanTriHoacToanQuyen(target.permissions) || can(actor, "admin.manage.superadmin"))
+    && chamTaiKhoanTienDuoc(actor, target);
+}
+
 /**
  * ADR-0090 đ1(ii) (bảng "Thay câu nào", dòng LC-4: "cấp hoặc gỡ"): mã quyền tiền mà LC-4 cũ CHƯA canh — suy từ MA_QUYEN_TIEN trừ SUPER_ADMIN_GRANTED (hôm nay
  * = ACCOUNTING). SUPER_ADMIN đã thuộc SUPER_ADMIN_GRANTED nên giữ câu cũ "cấp hoặc gỡ quyền Quản trị" (ruling R-Q1, sổ thi công luồng Q).

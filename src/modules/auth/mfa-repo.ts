@@ -24,6 +24,8 @@ export type TrustedRevokeReason = "quen_may" | "quen_moi_may" | "doi_pin" | "dat
 
 const F_COLS = "id, staff_id, kind, secret_enc, email, last_totp_step, valid_from_at";
 const FACTOR_LIST_LIVE = defineSql("auth", "mfa_factor_list_live", `SELECT ${F_COLS} FROM aut_mfa_factor WHERE staff_id = ?1 AND valid_to_at IS NULL ORDER BY created_at, id`);
+// Nhãn "Hai lớp" ở danh sách Quản lý tài khoản (kế hoạch Task 6): những tài khoản đang có ít nhất một yếu tố sống — chỉ id.
+const FACTOR_STAFF_LIVE = defineSql("auth", "mfa_factor_staff_live", "SELECT DISTINCT staff_id FROM aut_mfa_factor WHERE valid_to_at IS NULL");
 const FACTOR_INSERT = defineSql(
   "auth",
   "mfa_factor_insert",
@@ -63,6 +65,9 @@ const TRUSTED_LIST = defineSql("auth", "trusted_list", `SELECT ${TD_COLS} FROM a
 
 export async function factorListLive(db: D1Database, staffId: string): Promise<MfaFactorRow[]> {
   return (await db.prepare(FACTOR_LIST_LIVE).bind(staffId).all<MfaFactorRow>()).results;
+}
+export async function staffIdsWithFactor(db: D1Database): Promise<Set<string>> {
+  return new Set((await db.prepare(FACTOR_STAFF_LIVE).all<{ staff_id: string }>()).results.map((r) => r.staff_id));
 }
 export const factorInsertStatement = (
   db: D1Database,

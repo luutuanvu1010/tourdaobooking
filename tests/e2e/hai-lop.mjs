@@ -7,7 +7,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { insertStaffSql } from "../../scripts/staff-lib.mjs";
 import { createFakeAuthenticator } from "./fake-authenticator.mjs";
 import { base32Encode, maHoaKhoa, totp } from "./fake-totp.mjs";
-import { ACCOUNTS, BASE, TURNSTILE_TEST, call, freshIp, gieoTaiKhoanLai, randomPhone, session, sql, sqlRows } from "./lib.mjs";
+import { ACCOUNTS, BASE, TURNSTILE_TEST, call, datHanAnHan, freshIp, gieoTaiKhoanLai, randomPhone, session, sql, sqlRows } from "./lib.mjs";
 
 const KHOA = process.env.E2E_MFA_KEY;
 if (!KHOA) throw new Error("Thiếu E2E_MFA_KEY (run.mjs truyền cùng giá trị --var MFA_ENCRYPTION_KEY cho wrangler dev)");
@@ -282,5 +282,82 @@ console.log("✓ T5. Đối tác tự bật được (bị hỏi mã), gỡ đư
 const nhatKy5 = JSON.stringify(await sqlRows(`SELECT * FROM audit_log WHERE staff_id IN ('${B.id}', '${P.id}')`));
 for (const d of [KHOA_B, KHOA_B2, KHOA_P, ...MA_B, ...MA_P]) assert.ok(!nhatKy5.includes(d), `nhật ký chứa "${d}"`);
 console.log("✓ T5. nhật ký không chứa khoá / mã dự phòng");
+
+// ===================== Task 6 (ADR-0074 điều 1, 5): Quản trị/Toàn quyền tắt lớp hai → cửa sổ 24 giờ bật lại ở bước đăng nhập; ân hạn 14 ngày.
+// Tài khoản DÙNG MỘT LẦN (gieoTaiKhoanLai) — KHÔNG dùng salesA/salesB như bản nháp kế hoạch: tắt lớp hai mở cửa sổ bật BẮT BUỘC, bật xong thì tài khoản có yếu tố
+// TOTP ⇒ mọi `session(salesA)` của kịch bản khác (cùng D1 tạm) bị hỏi mã.
+const QT = await session(ACCOUNTS.admin);
+const TQ = await session(ACCOUNTS.superAdmin);
+const NS = await session(ACCOUNTS.hr);
+const [{ id: QT_ID }] = await sqlRows(`SELECT id FROM staff WHERE phone = '${ACCOUNTS.admin.phone}'`);
+const [{ id: TQ_ID }] = await sqlRows(`SELECT id FROM staff WHERE phone = '${ACCOUNTS.superAdmin.phone}'`);
+const tat = (cookie, id) => call(cookie, "POST", `/api/staff/${id}/mfa-reset`, {});
+
+const C = await gieoTaiKhoanLai("Hai Lớp Bị Tắt", ["SALES"]);
+r = await call(C.cookie, "POST", "/api/account/mfa/totp/start", {});
+r = await call(C.cookie, "POST", "/api/account/mfa/totp/confirm", { setupToken: r.body.setupToken, code: maBuoc(r.body.secret, await buocAnToan()) });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+r = await tat(QT, C.id);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal((await call(C.cookie, "GET", "/api/auth/me")).status, 401, "phiên cũ của người bị tắt hết hiệu lực");
+assert.deepEqual(await sqlRows(`SELECT DISTINCT end_reason FROM aut_session WHERE staff_id = '${C.id}'`), [{ end_reason: "tat_hai_lop" }]);
+assert.equal((await sqlRows(`SELECT count(*) AS n FROM aut_mfa_factor WHERE staff_id = '${C.id}' AND valid_to_at IS NULL`))[0].n, 0);
+assert.deepEqual(await sqlRows(`SELECT staff_id, detail FROM audit_log WHERE action = 'mfa_reset' AND target_id = '${C.id}'`), [{ staff_id: QT_ID, detail: null }]);
+console.log("✓ T6. Quản trị tắt lớp hai của Bán hàng → 200; phiên kết thúc 'tat_hai_lop'; yếu tố hết; nhật ký mfa_reset không chi tiết");
+
+const QT2 = await gieoTaiKhoanLai("Quản Trị Hai Lớp", ["ADMIN"]);
+assert.equal((await tat(QT, QT2.id)).status, 403, "Quản trị không tắt của Quản trị khác");
+assert.equal((await tat(NS, C.id)).status, 403, "Nhân sự không làm hỗ trợ đăng nhập (ADR-0071 đ1e)");
+assert.equal((await tat(TQ, TQ_ID)).status, 409, "không tự tắt của chính mình");
+assert.equal((await tat(QT, QT_ID)).status, 409, "Quản trị tự tắt của mình → 409");
+assert.equal((await tat(TQ, QT2.id)).status, 200, "Toàn quyền tắt của Quản trị");
+console.log("✓ T6. Quản trị → Quản trị khác 403; Nhân sự 403; tự tắt 409; Toàn quyền → Quản trị 200");
+
+r = await pinLogin(C);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.deepEqual(r.body, { next: "mfa_enroll" });
+assert.equal(cookieOf(r, "td_session"), null);
+const CHO_C = cookieOf(r, "td_mfa_pending");
+r = await call(CHO_C, "POST", "/api/auth/mfa/enroll/start", {});
+assert.equal(r.status, 200, JSON.stringify(r.body));
+const PHIEU_C = r.body.setupToken;
+const KHOA_C = r.body.secret;
+r = await call(CHO_C, "POST", "/api/auth/mfa/enroll/confirm", { setupToken: PHIEU_C, code: "000000" });
+assert.equal(r.status, 401, JSON.stringify(r.body));
+r = await call(CHO_C, "POST", "/api/auth/mfa/enroll/confirm", { setupToken: PHIEU_C, code: maBuoc(KHOA_C, await buocAnToan()) });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.recoveryCodes.length, 10);
+const SC = cookieOf(r, "td_session");
+assert.ok(SC);
+assert.equal((await call(SC, "GET", "/api/auth/me")).status, 200);
+assert.deepEqual(await sqlRows(`SELECT method FROM aut_session WHERE staff_id = '${C.id}' AND ended_at IS NULL`), [{ method: "PIN_MFA" }]);
+assert.deepEqual(await sqlRows(`SELECT mfa_enroll_until FROM staff WHERE id = '${C.id}'`), [{ mfa_enroll_until: null }]);
+console.log("✓ T6. trong 24 giờ: PIN → next=mfa_enroll; bật xong (mã sai 401, mã đúng 200) → có phiên PIN_MFA + 10 mã dự phòng; cửa sổ đóng");
+
+const D = await gieoTaiKhoanLai("Hết Ân Hạn", ["SALES"]);
+await datHanAnHan(D, "2020-01-01T00:00:00.000Z");
+r = await pinLogin(D);
+assert.equal(r.status, 403, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "mfa_setup_required");
+console.log("✓ T6. hết ân hạn mà chưa bật → 403 mfa_setup_required");
+
+const taoMoi = async (permissions) => {
+  const phone = randomPhone();
+  const t = await call(TQ, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Tạo Mới Hai Lớp", phone, permissions });
+  assert.equal(t.status, 201, JSON.stringify(t.body));
+  return (await sqlRows(`SELECT mfa_grace_until FROM staff WHERE phone = '${phone}'`))[0].mfa_grace_until;
+};
+const hanMoi = await taoMoi(["SALES"]);
+assert.ok(Math.abs(Date.parse(hanMoi) - (Date.now() + 14 * 86_400_000)) < 120_000, `nội bộ mới: ân hạn ≈ +14 ngày (${hanMoi})`);
+assert.equal(await taoMoi(["PARTNER"]), null, "Đối tác mới: không ân hạn (không bắt buộc)");
+console.log("✓ T6. tạo tài khoản nội bộ mới → ân hạn ≈ 14 ngày; Đối tác mới → NULL");
+
+const E = await gieoTaiKhoanLai("Đối Tác Thành Nội Bộ", ["PARTNER"]);
+r = await call(TQ, "PUT", `/api/staff/${E.id}/permissions`, { permissions: ["SALES"] });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+const hanE = (await sqlRows(`SELECT mfa_grace_until FROM staff WHERE id = '${E.id}'`))[0].mfa_grace_until;
+assert.ok(Math.abs(Date.parse(hanE) - (Date.now() + 14 * 86_400_000)) < 120_000, `bên ngoài → nội bộ: ân hạn ≈ +14 ngày (${hanE})`);
+assert.equal((await pinLogin(E)).status, 200, "trong ân hạn vào được");
+console.log("✓ T6. Đối tác được cấp quyền nội bộ → ân hạn 14 ngày từ lúc cấp");
 
 console.log("E2E HAI LỚP OK");

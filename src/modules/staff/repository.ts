@@ -63,6 +63,21 @@ const MFA_DEADLINES = defineSql("staff", "mfa_deadlines", "SELECT mfa_grace_unti
 export async function mfaDeadlinesRow(db: D1Database, id: string): Promise<{ mfa_grace_until: string | null; mfa_enroll_until: string | null } | null> {
   return db.prepare(MFA_DEADLINES).bind(id).first<{ mfa_grace_until: string | null; mfa_enroll_until: string | null }>();
 }
+// Nhãn "Hai lớp" ở danh sách Quản lý tài khoản (kế hoạch Task 6): hạn ân hạn của MỌI tài khoản trong một câu.
+const MFA_GRACE_ALL = defineSql("staff", "mfa_grace_all", "SELECT id, mfa_grace_until FROM staff");
+export async function mfaGraceAll(db: D1Database): Promise<Map<string, string | null>> {
+  return new Map((await db.prepare(MFA_GRACE_ALL).all<{ id: string; mfa_grace_until: string | null }>()).results.map((r) => [r.id, r.mfa_grace_until]));
+}
+// Ân hạn 14 ngày khi trở thành nội bộ / kích hoạt lại (ADR-0074 điều 1): chỉ khi tài khoản đang hoạt động và hạn đang NULL hoặc đã qua (?3 = lúc ghi).
+const MFA_GRACE_IF_DUE = defineSql(
+  "staff",
+  "mfa_grace_if_due",
+  "UPDATE staff SET mfa_grace_until = ?2 WHERE id = ?1 AND active = 1 AND (mfa_grace_until IS NULL OR mfa_grace_until <= ?3)",
+);
+export const mfaGraceIfDueRow = (db: D1Database, id: string, until: string, at: string): D1PreparedStatement => db.prepare(MFA_GRACE_IF_DUE).bind(id, until, at);
+// Cửa sổ bật lại 24 giờ sau khi Quản trị/Toàn quyền tắt lớp hai (ADR-0074 điều 5); NULL = không mở (tài khoản bên ngoài — ADR-G1 chưa duyệt) hoặc đã bật xong.
+const MFA_ENROLL_SET = defineSql("staff", "mfa_enroll_set", "UPDATE staff SET mfa_enroll_until = ?2 WHERE id = ?1");
+export const mfaEnrollSetRow = (db: D1Database, id: string, until: string | null): D1PreparedStatement => db.prepare(MFA_ENROLL_SET).bind(id, until);
 // phone/active tuỳ chọn (COALESCE); ?4 = 1 khi thay đổi này có thể làm mất một quản trị viên (ngưng tài khoản đang là ADMIN).
 const UPDATE_STAFF = defineSql(
   "staff",

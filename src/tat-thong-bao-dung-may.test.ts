@@ -126,6 +126,7 @@ test("ADR-0046 điểm 2–3: MỌI route gọi dongBangTin khai cờ tatThongBa
     "PUT /api/staff/:id/roles": [false, "giữ-phiên"],
     "POST /api/staff/:id/reset-pin": [true], // quản trị đặt lại PIN
     "POST /api/staff/:id/passkeys/remove-all": [true], // quản trị gỡ mọi Face ID
+    "POST /api/staff/:id/mfa-reset": [true], // ADR-0074 đ5 (Phần B Task 6): Quản trị/Toàn quyền tắt bảo mật hai lớp — mọi phiên kết thúc
     "POST /api/sessions/:id/revoke": ["chỉ-phiên"], // ADR-0075 điều 6b–7: IT/Toàn quyền gỡ phiên — tắt CHỈ máy của phiên bị gỡ (không phải mọi máy)
     "PUT /api/sessions/policy": ["chỉ-phiên danh sách"], // ADR-0085 Q3: lưu chính sách — tắt CHỈ máy của các phiên vừa kết thúc (một lời gọi cho cả danh sách)
   });

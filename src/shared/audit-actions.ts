@@ -248,6 +248,8 @@ export const AUDIT_ACTIONS = {
   mfa_enabled: { label: "Bật bảo mật hai lớp", group: "staff" },
   mfa_removed: { label: "Gỡ bảo mật hai lớp", group: "staff" },
   mfa_recovery_regenerated: { label: "Tạo bộ mã dự phòng mới", group: "staff" },
+  // ADR-0074 điều 5 (kế hoạch Task 6): Quản trị/Toàn quyền tắt lớp hai của người khác — chỉ người làm (staff_id) + người bị tắt (target); KHÔNG email, mã, chi tiết.
+  mfa_reset: { label: "Tắt bảo mật hai lớp của tài khoản", group: "staff" },
 } as const satisfies Record<string, { label: string; group: AuditGroup; doiSoKhach?: true }>;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;
@@ -276,6 +278,7 @@ export const SILENT_AUDIT_ACTIONS = [
   "passkey_removed",
   "session_policy_changed", // ADR-0085 điều 9
   "session_revoked", // ADR-0075 điều 8: cùng loại với pin_reset, passkey_removed
+  "mfa_reset", // ADR-0074 (kế hoạch Phần B Task 6, dòng audit-actions): cùng loại với pin_reset — hỗ trợ đăng nhập
 ] as const satisfies readonly AuditAction[];
 
 /**
