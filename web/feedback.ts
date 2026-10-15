@@ -288,16 +288,19 @@ async function loadThread(id: string): Promise<void> {
   const box = byId("thread");
   box.hidden = false;
   let d: Api.FeedbackDetailResponse | null = null;
+  let loiMo = "";
   try {
     d = await api<Api.FeedbackDetailResponse>(`/api/feedback/${id}`);
   } catch (err) {
     fail(err);
+    loiMo = err instanceof ApiError ? err.message : "Không kết nối được máy chủ.";
   }
   // ≥ 900px danh sách hiện cạnh luồng: nạp lại SAU lời gọi trên (máy chủ vừa đánh dấu đã xem) — gọi mỗi lần loadThread() chạy
   // (mở, trả lời, đổi trạng thái) để danh sách không giữ trạng thái "Mới" cũ khi yêu cầu đã xong (góp ý 1/10).
   if (wide()) void loadList();
   if (!d) {
-    replaceChildren(box, h("a", { href: "/feedback" }, "← Quay lại"));
+    // Câu lỗi ghi NGAY trong khung luồng: ≥ 900px loadList() phía trên xoá dòng báo lỗi chung khi dựng lại danh sách.
+    replaceChildren(box, h("a", { href: "/feedback" }, "← Quay lại"), h("p", { class: "muted", id: "fb-loi-mo" }, loiMo));
     return;
   }
   const t = d.ticket;
