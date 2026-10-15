@@ -75,6 +75,7 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
 /** Module đã áp điều 8(b) (SQL đăng ký qua defineSql). Module cũ nằm ở LEGACY cho tới hạn ghi kèm. */
 const STRICT: readonly { module: string; file: string }[] = [
   { module: "auth", file: "modules/auth/repository.ts" },
+  { module: "auth", file: "modules/auth/mfa-repo.ts" }, // ADR-0074 (migration 0101): SQL yếu tố hai lớp, mã dự phòng, máy tin — nghiêm từ ngày đầu (defineSql + EXPLAIN)
   { module: "billing", file: "modules/billing/repository.ts" }, // ADR-0024 điều 1: nghiêm từ ngày đầu (sổ tiền lượt 1 — NT-R2)
   { module: "billing", file: "modules/billing/coc-repo.ts" }, // ADR-0089 (cọc đơn huỷ, migration 0079) — SIẾT theo K-A-1 (kiểm toán 2026-10-12): SQL tiền này từng đứng ngoài bài EXPLAIN / ranh giới
   { module: "billing", file: "modules/billing/thay-lan-thu-repo.ts" }, // ADR-0088 đ2, đ6 (thay lần thu, migration 0083) — SIẾT theo K-A-1: SQL tiền này từng đứng ngoài bài EXPLAIN / ranh giới

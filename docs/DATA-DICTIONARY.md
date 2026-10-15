@@ -22,6 +22,9 @@
 | `aut_passkey` | bảng |  |
 | `aut_session` | bảng | sổ phiên đăng nhập (ADR-0075, migration 0065): mỗi lần cấp phiên là một dòng, KHÔNG xoá (kết thúc = ended_at + end_reason đi cặp). single = 1: tài khoản chịu luật một máy, chỉ mục duy nhất aut_session_one_live chặn hai phiên sống cùng lúc. ip và user_agent là DỮ LIỆU CÁ NHÂN, giữ vô hạn, chỉ IT/Toàn quyền và chính chủ tài khoản xem, KHÔNG vào nhật ký |
 | `aut_session_policy` | bảng | chính sách đăng nhập (ADR-0085, migration 0067): mỗi quyền app đặt được (9 mã, không SUPER_ADMIN) tối đa một dòng hiện hành; multi = 1 là Nhiều máy; bảng trống = mọi quyền Một máy. Không xoá dòng — đổi = đóng dòng hiện hành (valid_to_at) + chèn dòng mới trong cùng lô; lưu có kiểm phiên bản (id dòng đang xem) |
+| `aut_mfa_factor` | bảng | yếu tố bảo mật hai lớp của TÀI KHOẢN (ADR-0074, migration 0101): TOTP (secret_enc = khoá AES-GCM 'v1.iv.ct', khoá mã hoá MFA_ENCRYPTION_KEY, KHÔNG bao giờ vào nhật ký / DTO / câu lỗi) hoặc EMAIL (Phần C). Mỗi (người, loại) tối đa một dòng hiện hành (valid_to_at rỗng); đổi = đóng dòng cũ + chèn dòng mới. last_totp_step chống dùng lại mã: chỉ tăng |
+| `aut_mfa_recovery_code` | bảng | mã dự phòng hai lớp (ADR-0074, migration 0101): chỉ lưu băm SHA-256 gắn với tài khoản (code_hash), không lưu mã thô. Mỗi mã dùng một lần (used_at); tạo bộ mới = thu hồi bộ cũ (revoked_at). Không xoá dòng |
+| `aut_trusted_device` | bảng | máy được tin cho bước hai lớp (ADR-0074, migration 0101): chỉ lưu băm token (token_hash), token thô nằm ở cookie của máy, KHÔNG vào nhật ký / DTO. Hết hạn bằng expires_at, thu hồi bằng revoked_at + revoke_reason (danh sách cố định). Không xoá dòng |
 
 ## billing
 

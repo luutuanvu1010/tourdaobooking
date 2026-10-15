@@ -6,6 +6,10 @@ SESSION_SECRET=
 # Tạo: openssl rand -base64 48 | tr -d '\n'   rồi dán vào sau dấu =. Production: CHỈ `wrangler secret put LAN_GUI_SECRET` (chủ dự án tự chạy).
 LAN_GUI_SECRET=
 
+# Khoá mã hoá khoá TOTP của bảo mật hai lớp (ADR-0074): ĐÚNG 32 byte ngẫu nhiên mã hoá base64. Thiếu/sai độ dài → các route hai lớp báo lỗi cấu hình (không in khoá).
+# Tạo: openssl rand -base64 32 | tr -d '\n'   rồi dán vào sau dấu =. KHÔNG dùng lại khoá production. Production: CHỈ `wrangler secret put MFA_ENCRYPTION_KEY` (chủ dự án tự chạy).
+MFA_ENCRYPTION_KEY=
+
 # Cloudflare Turnstile ở màn hình đăng nhập. ĐỂ TRỐNG = TẮT (đăng nhập không đòi token; máy chủ ghi cảnh báo mỗi lần đăng nhập) — local không cần bật.
 # Phía máy chủ (kiểm token) VÀ trang đăng nhập (widget dựng ở web/login.ts, khoá site lấy từ GET /api/auth/config) đều đã có: đặt CẶP dưới đây là widget hiện ra
 # ở /login khi chạy `npm run dev`. Muốn thử ở máy mình, dùng CẶP KHOÁ THỬ của Cloudflare (luôn đạt, dùng được với localhost, cần mạng):
