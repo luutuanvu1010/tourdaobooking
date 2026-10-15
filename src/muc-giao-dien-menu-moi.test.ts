@@ -22,7 +22,10 @@ function toiDuoc(permissions: readonly PermissionCode[]): Set<KhoaTrang> {
   return out;
 }
 
-test("MỌI tập quyền: trang thấy trước đây vẫn tới được, và không thấy thêm trang nào mới", () => {
+// Bài này kiểm: bảng thanh bên (kể cả `gom`) khớp với điều kiện hiện của TRANG — không mất lối vào và không có mục dẫn tới trang mà người đó không thấy.
+// Nó so với `TRANG[k].hien` HIỆN TẠI nên KHÔNG bắt được việc nới điều kiện hiện của một trang: bảo đảm "không thấy thêm so với trước" do ảnh chụp
+// src/muc-giao-dien-hien-trang.json bắt (ai chụp lại phải đọc phần thay đổi). Không đóng băng mặt nạ cũ.
+test("MỌI tập quyền: bảng thanh bên (kể cả gom) khớp điều kiện hiện của TRANG — không mất lối vào, không có mục dẫn tới trang người đó không thấy", () => {
   for (let m = 0; m < 1 << PERMISSION_CODES.length; m++) {
     const p = PERMISSION_CODES.filter((_, i) => m & (1 << i));
     const truoc = new Set(TRANG_THANH_BEN_CU.filter((k) => TRANG[k].hien(holder(p))));
@@ -63,4 +66,20 @@ test("Thiết lập đóng sẵn cho Quản trị ở Trang chủ; mở khi đ�
   assert.equal(thietLapMoSan(thanhBen({ staff: holder(["ADMIN"]) }, "/"), "/"), false);
   assert.equal(thietLapMoSan(thanhBen({ staff: holder(["ADMIN"]) }, "/locations"), "/locations"), true);
   assert.equal(thietLapMoSan(thanhBen({ staff: holder(["HR"]) }, "/"), "/"), true);
+});
+
+// Đọc mã tĩnh (như các bài *-cong-bo): huy hiệu "dịch vụ lệch giá" của nút Thiết lập gọi route `admin` (GET /api/catalog/dem-xung-dot); chỉ được đăng ký khi nhóm có mục
+// "Dịch vụ & giá" — nếu không, Bán hàng, Kế toán, Nhân sự (có Thiết lập, không có mục đó) nhận 403 ở mọi trang.
+test("nút Thiết lập chỉ đăng ký lời gọi lệch giá khi nhóm có mục dichVu", async () => {
+  const { readFileSync } = await import("node:fs");
+  const nguon = readFileSync(new URL("../web/shell.ts", import.meta.url), "utf8");
+  const cho = nguon.indexOf("void catalogConflictBadge()");
+  assert.ok(cho > 0, "không thấy chỗ đăng ký lời gọi lệch giá của nút Thiết lập");
+  assert.match(nguon.slice(Math.max(0, cho - 120), cho), /if \(muc\.some\(\(m\) => m\.trang === "dichVu"\)\)\s*loaders\.push\(\(\) => \{\s*$/, "lời gọi lệch giá phải nằm sau điều kiện nhóm có mục dichVu");
+  // Điều kiện đó đúng với bảng: chỉ người thấy dichVu mới có mục này trong Thiết lập.
+  const co = (p: PermissionCode[]) => thanhBen({ staff: holder(p) }, "/").find((g) => g.nhom === "THIẾT LẬP")!.muc.some((m) => m.trang === "dichVu");
+  assert.equal(co(["SALES"]), false);
+  assert.equal(co(["ACCOUNTING"]), false);
+  assert.equal(co(["HR"]), false);
+  assert.equal(co(["ADMIN"]), true);
 });

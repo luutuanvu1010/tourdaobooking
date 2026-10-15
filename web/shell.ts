@@ -15,6 +15,7 @@ import {
   thietLapMoSan,
   type KhoaTrang,
   type NguoiXem,
+  type NhomThanhBen,
 } from "../src/shared/muc-giao-dien";
 import { append, byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
@@ -223,7 +224,7 @@ function sidebarItem(m: Muc, path: string, loaders: (() => void)[], seesAll: boo
  * trả `null`. HẰNG NGÀY không có tiêu đề và đứng đầu với nút "Tạo đơn" nổi bật; THIẾT LẬP là nút thu gọn (`aria-expanded`) mở sẵn theo `thietLapMoSan`, kèm số mục và
  * số "dịch vụ lệch giá" (khi > 0) để việc đó không biến mất khi nhóm đóng.
  */
-function sidebarGroup(nhom: string, muc: readonly Muc[], path: string, loaders: (() => void)[], seesAll: boolean, moSan: boolean): HTMLElement | null {
+function sidebarGroup(nhom: NhomThanhBen, muc: readonly Muc[], path: string, loaders: (() => void)[], seesAll: boolean, moSan: boolean): HTMLElement | null {
   const noiBat = muc.find((m) => m.noiBat);
   const rows = muc.filter((m) => !m.noiBat).map((m) => sidebarItem(m, path, loaders, seesAll));
   if (rows.length === 0 && !noiBat) return null;
@@ -245,11 +246,12 @@ function sidebarGroup(nhom: string, muc: readonly Muc[], path: string, loaders: 
     toggle.setAttribute("aria-expanded", String(mo));
     body.hidden = !mo;
   });
-  loaders.push(() => {
-    void catalogConflictBadge().then((n) => {
-      if (n > 0) dem.textContent = `${rows.length} · ${n} lệch giá`;
+  if (muc.some((m) => m.trang === "dichVu"))
+    loaders.push(() => {
+      void catalogConflictBadge().then((n) => {
+        if (n > 0) dem.textContent = `${rows.length} · ${n} lệch giá`;
+      });
     });
-  });
   return h("div", { class: "sidebar-group" }, toggle, body);
 }
 

@@ -292,13 +292,12 @@ export function sangTai(k: KhoaTrang, duong: string): boolean {
 }
 
 export interface MucThanhBen {
-  readonly kieu: "muc";
   readonly trang: KhoaTrang;
   readonly nhan: string;
   readonly href: string;
   readonly bieuTuong?: string;
-  readonly noiBat: boolean;
-  readonly gom: readonly KhoaTrang[];
+  readonly noiBat?: boolean;
+  readonly gom?: readonly KhoaTrang[];
 }
 
 /** Mục thanh bên sáng ở đường này: trang của chính nó hoặc của BẤT KỲ khoá nào trong `gom` (mục gộp "Xe & giấy tờ", "Giá & chi phí"). */
@@ -312,7 +311,7 @@ export function thanhBen(n: NguoiXem, duongHienTai: string): { nhom: NhomThanhBe
     nhom,
     muc: (THANH_BEN as readonly ChoThanhBen[])
       .filter((c) => c.nhom === nhom && coHien(c, n))
-      .map((c): MucThanhBen => ({ kieu: "muc", trang: c.trang, nhan: c.nhan, href: c.moTu ? c.moTu(duongHienTai) : TRANG[c.trang].duong, bieuTuong: c.bieuTuong, noiBat: !!c.noiBat, gom: c.gom ?? [] })),
+      .map((c): MucThanhBen => ({ trang: c.trang, nhan: c.nhan, href: c.moTu ? c.moTu(duongHienTai) : TRANG[c.trang].duong, bieuTuong: c.bieuTuong, noiBat: c.noiBat, gom: c.gom })),
   }));
 }
 

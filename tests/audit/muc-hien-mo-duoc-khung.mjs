@@ -59,7 +59,7 @@ const boChuThich = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`]
 // Các nơi đặt lối vào: dòng khai + mục THẬT SỰ hiện (đọc từ chính hàm mà web/shell.ts, web/account.ts, web/home.ts vẽ).
 
 const NOI = {
-  "thanh-ben": { dong: THANH_BEN, hien: (s) => thanhBen({ staff: s }, "/").flatMap((g) => g.muc.flatMap((x) => (x.kieu === "muc" ? [x.trang] : []))) },
+  "thanh-ben": { dong: THANH_BEN, hien: (s) => thanhBen({ staff: s }, "/").flatMap((g) => g.muc.map((x) => x.trang)) },
   "thanh-tab": { dong: THANH_TAB, hien: (s) => thanhTab({ staff: s }).map((x) => x.trang) },
   "thanh-tren": { dong: THANH_TREN, hien: (s) => thanhTren({ staff: s }).map((x) => x.trang) },
   "trang-toi": {

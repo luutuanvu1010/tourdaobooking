@@ -138,6 +138,7 @@
   --avatar: 48px;
   --logo-bar: 30px;
   --h-muc-menu: 40px;       /* mục thanh bên máy tính (bản vẽ menu 15/10; vùng bấm ≥ 36px) */
+  --gap-muc-menu: 2px;      /* khoảng cách giữa các mục thanh bên */
   --h-muc-nho: 36px;        /* mục thu gọn trong Thiết lập, mục chân menu, nút Đăng xuất */
   /* Đăng nhập — giá trị từ bản thiết kế "Đăng nhập.dc.html" (Claude Design 2026-09-24; chủ dự án yêu cầu tuân thủ 100% — coi là duyệt các màu/số đo mới dưới đây) */
   --logo-login: 72px;       /* biểu tượng app trên tiêu đề */
@@ -237,7 +238,7 @@
   --fs-vc-plate-lg: var(--fs-step-13);      /* biển số ở đầu chi tiết xe (máy tính) */
   --ls-vc-no: .04em;           /* giãn chữ số giấy tờ */
   --sidebar-sub-indent: 42px;  /* thụt lề mục trong nhóm Thiết lập (bản vẽ: 42px, không biểu tượng) */
-  --h-vc-sub: 36px;            /* mục con thanh bên, dòng lịch sử gia hạn */
+  --h-vc-sub: 36px;            /* dòng lịch sử gia hạn */
   --h-vc-link: 32px;           /* nút chữ "Xem đủ số" / "Che lại" trong bảng máy tính */
   --h-vc-row: 56px;            /* dòng bảng danh sách xe, Giấy tờ của tôi (máy tính) */
   --h-vc-row-lg: 60px;         /* dòng bảng giấy tờ xe, sắp hết hạn (máy tính), dòng giấy tờ ở trang đầu tài xế */
@@ -1001,7 +1002,7 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .sidebar-groups { display: flex; flex-direction: column; gap: var(--s5); padding: var(--s4) var(--s3); overflow-y: auto; min-height: 0; }
 .sidebar-group { display: flex; flex-direction: column; gap: var(--s1); }
 .sidebar-group-title { padding: 0 var(--s3) var(--s1); font-size: var(--fs-badge); font-weight: var(--fw-bold); letter-spacing: var(--ls-eyebrow); color: var(--c-sidebar-title); text-transform: uppercase; }
-.sidebar-group-items { display: flex; flex-direction: column; gap: 2px; }
+.sidebar-group-items { display: flex; flex-direction: column; gap: var(--gap-muc-menu); }
 .sidebar-group-items[hidden] { display: none; } /* thuộc tính hidden của nhóm Thiết lập thu gọn thắng `display: flex` ở trên */
 .sidebar-new { display: flex; align-items: center; justify-content: center; gap: var(--s2); min-height: var(--h-muc-menu); margin-bottom: var(--s2); padding: var(--s2) var(--s4); font-size: var(--fs-step-4); font-weight: var(--fw-bold); color: var(--c-text-inverse); text-decoration: none; background: var(--c-accent); border-radius: var(--radius-sm); box-shadow: var(--shadow-btn-accent); transition: background-color var(--m-fast) var(--ease-out); }
 @media (hover: hover) { .sidebar-new:hover { background: var(--c-accent-strong); } }
@@ -1016,7 +1017,7 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .sidebar-item-badge-sand { color: var(--c-sand-text); background: var(--c-sand-soft); font-weight: var(--fw-heavy); } /* huy hiệu cát "Xe & giấy tờ", "Dịch vụ & giá" — bản vẽ menu 15/10 */
 .sidebar-item-badge-accent { color: var(--c-on-dark); background: var(--c-accent); } /* huy hiệu "Góp ý / Báo lỗi" — đúng màu bản mẫu */
 /* Nhóm Thiết lập thu gọn: nút tiêu đề (số mục, mũi tên) + các mục thấp hơn, không biểu tượng, thụt vào như bản vẽ */
-.sidebar-group-toggle { display: flex; align-items: center; gap: var(--s2); min-height: var(--h-muc-nho); padding: var(--s1) var(--s3); font: inherit; font-size: var(--fs-badge); font-weight: var(--fw-bold); letter-spacing: var(--ls-eyebrow); text-transform: uppercase; text-align: left; color: var(--c-sidebar-title); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; transition: background-color var(--m-fast) var(--ease-out), color var(--m-fast) var(--ease-out); }
+.sidebar-group-toggle { display: flex; align-items: center; gap: var(--s2); min-height: var(--h-muc-nho); padding: var(--s1) var(--s3); font: inherit; font-size: var(--fs-label); font-weight: var(--fw-bold); letter-spacing: var(--ls-eyebrow); text-transform: uppercase; text-align: left; color: var(--c-sidebar-title); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; transition: background-color var(--m-fast) var(--ease-out), color var(--m-fast) var(--ease-out); }
 @media (hover: hover) { .sidebar-group-toggle:hover { color: var(--c-text); background: var(--c-sidebar-hover); } }
 .sidebar-group-count { margin-left: auto; font-weight: var(--fw-semibold); letter-spacing: 0; text-transform: none; }
 .sidebar-chevron { display: flex; transition: transform var(--m-fast) var(--ease-out); }
@@ -1031,7 +1032,7 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .sidebar-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .sidebar-name { font-size: var(--fs-label); font-weight: var(--fw-bold); color: var(--c-sidebar-text-on); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-role { font-size: var(--fs-step-2); color: var(--c-sidebar-item); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sidebar-logout { align-self: flex-start; min-height: var(--h-muc-nho); margin-left: calc(var(--h-muc-nho) + var(--s4)); padding: var(--s1) var(--s2); font: inherit; font-size: var(--fs-step-2); font-weight: var(--fw-medium); color: var(--c-sidebar-item); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
+.sidebar-logout { align-self: flex-start; min-height: var(--h-muc-nho); margin-left: calc(var(--h-muc-nho) + var(--s4)); padding: var(--s1) var(--s2); font: inherit; font-size: var(--fs-label); font-weight: var(--fw-medium); color: var(--c-sidebar-item); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
 @media (hover: hover) { .sidebar-logout:hover { color: var(--c-danger); background: var(--c-sidebar-hover); } }
 
 /* Thanh công việc trên: mockup không vẽ ở khổ điện thoại. Nút "Lập đơn mới" hiện từ 641px — CÙNG mốc với thanh bên,
