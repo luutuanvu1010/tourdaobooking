@@ -143,7 +143,7 @@ export const feedbackModule: AppModule = {
       await env.DB.batch([
         insertTicketStatement(env.DB, { id, kind: v.value.kind, title: v.value.title, context: v.value.context, submitterId: staff.id, clientRequestId: v.value.clientRequestId, now: at, windowStart: windowStart(now), limit: TICKET_LIMIT_PER_HOUR, teamId }),
         insertFirstMessageStatement(env.DB, { id: crypto.randomUUID(), ticketId: id, authorId: staff.id, body: v.value.body, now: at }),
-        auditStatement(env.DB, { staffId: staff.id, action: "feedback_created", at, targetType: "feedback", targetId: id, detail: v.value.title.slice(0, 100) }, `EXISTS (SELECT 1 FROM fbk_ticket WHERE id = '${id}')`),
+        auditStatement(env.DB, { staffId: staff.id, action: "feedback_created", at, targetType: "feedback", targetId: id, detail: team.sensitive === 1 ? "phiếu nhóm nhạy cảm" : v.value.title.slice(0, 100) }, `EXISTS (SELECT 1 FROM fbk_ticket WHERE id = '${id}')`),
       ]);
       const mine = await findByRequest(env.DB, staff.id, v.value.clientRequestId);
       if (!mine) return RATE_LIMITED(); // không chèn được và cũng không phải gửi lại → chạm trần
@@ -151,7 +151,7 @@ export const feedbackModule: AppModule = {
       if (!d) return NOT_FOUND();
       if (mine.id !== id) return json(d, 200); // gửi lại cùng clientRequestId: trả yêu cầu cũ, không gửi email lần nữa
       scheduleMail(env, exec, request, id, {
-        type: "created", code: d.ticket.code, kindName: FEEDBACK_KIND_NAME[d.ticket.kind], title: d.ticket.title, submitterName: staff.fullName, excerpt: v.value.body,
+        type: "created", code: d.ticket.code, kindName: FEEDBACK_KIND_NAME[d.ticket.kind], title: d.ticket.title, submitterName: staff.fullName, excerpt: v.value.body, teamName: team.name, sensitive: team.sensitive === 1,
       });
       return json(d, 201, { location: "/feedback" });
     }),
@@ -491,7 +491,7 @@ export const feedbackModule: AppModule = {
       }
       if (staff.id === t.submitter_id) {
         scheduleMail(env, exec, request, id, {
-          type: "user_replied", code: feedbackCode(t.seq), kindName: FEEDBACK_KIND_NAME[t.kind_code as FeedbackKind], title: t.title, submitterName: staff.fullName, excerpt: v.value.body,
+          type: "user_replied", code: feedbackCode(t.seq), kindName: FEEDBACK_KIND_NAME[t.kind_code as FeedbackKind], title: t.title, submitterName: staff.fullName, excerpt: v.value.body, teamName: t.team_name, sensitive: t.team_sensitive === 1,
         });
       }
       const d = await detail(env.DB, staff, id);

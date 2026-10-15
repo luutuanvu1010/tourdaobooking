@@ -712,3 +712,14 @@ test("R13: phiếu đã đóng (Đã xong/Từ chối) không chuyển nhóm ⇒
   assert.equal(w.q("SELECT count(*) AS n FROM fbk_ticket_event")[0].n, 0);
   assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'feedback_team_changed'")[0].n, 0);
 });
+
+test("nhật ký tạo phiếu nhóm nhạy cảm KHÔNG ghi tiêu đề (phiếu vẫn tra được qua target_id)", async () => {
+  const w = setup();
+  const r = await tao(w, SALES, NHAN_SU, { title: "Xin giấy xác nhận lương" });
+  const dong = w.q("SELECT detail, target_id FROM audit_log WHERE action = 'feedback_created'")[0];
+  assert.ok(!String(dong.detail).includes("lương"));
+  assert.equal(dong.detail, "phiếu nhóm nhạy cảm");
+  assert.equal(dong.target_id, r.json.ticket.id);
+  await tao(w, SALES, KY_THUAT, { title: "Lỗi nút lưu" });
+  assert.ok(w.q("SELECT detail FROM audit_log WHERE action = 'feedback_created' ORDER BY rowid DESC")[0].detail.includes("Lỗi nút lưu"), "nhóm thường giữ hành vi cũ");
+});

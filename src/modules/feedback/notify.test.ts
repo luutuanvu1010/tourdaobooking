@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildMail, notifyAdmins, type MailDeps, type NotifyEvent } from "./notify.ts";
 
-const ev: NotifyEvent = { type: "created", code: "YC-0007", kindName: "Báo lỗi", title: "Lỗi <b>lưu</b>\r\nBcc: x@y.z", submitterName: "An & Bình", excerpt: "<script>alert(1)</script>", url: "https://booking.tourdao.vn/feedback?id=abc" };
+const ev: NotifyEvent = { type: "created", code: "YC-0007", kindName: "Báo lỗi", title: "Lỗi <b>lưu</b>\r\nBcc: x@y.z", submitterName: "An & Bình", excerpt: "<script>alert(1)</script>", teamName: "Kỹ thuật", sensitive: false, url: "https://booking.tourdao.vn/feedback?id=abc" };
 
 function deps(over: Partial<MailDeps> = {}): { d: MailDeps; notified: (string | null)[]; logs: string[] } {
   const notified: (string | null)[] = [];
@@ -53,4 +53,15 @@ test("thiếu cấu hình (binding/địa chỉ nhận/địa chỉ gửi) → b
 test("setNotified ném lỗi cũng không làm hỏng luồng", async () => {
   const { d } = deps({ setNotified: async () => Promise.reject(new Error("D1 lỗi")) });
   assert.equal(await notifyAdmins(d, ev), "sent");
+});
+
+test("buildMail: có tên nhóm trong tiêu đề; nhóm nhạy cảm KHÔNG kèm tiêu đề/nội dung phiếu", () => {
+  const thuong = buildMail({ ...ev, teamName: "Kỹ thuật", sensitive: false });
+  assert.ok(thuong.subject.includes("Kỹ thuật"));
+  const nhay = buildMail({ ...ev, title: "Lỗi lương", teamName: "Nhân sự", sensitive: true });
+  assert.ok(nhay.subject.includes("Nhân sự") && nhay.subject.includes("YC-0007"));
+  assert.ok(!nhay.subject.includes("Lỗi") && !nhay.html.includes("Lỗi") && !nhay.html.includes(ev.excerpt) && !nhay.html.includes("Bình"), "không lộ tiêu đề, người gửi hay nội dung");
+  assert.ok(nhay.html.includes(ev.url));
+  const traLoi = buildMail({ ...ev, type: "user_replied", teamName: "Nhân sự", sensitive: true });
+  assert.ok(traLoi.html.includes("Nhân sự") && !traLoi.html.includes("Lỗi") && !traLoi.html.includes("Bình"));
 });
