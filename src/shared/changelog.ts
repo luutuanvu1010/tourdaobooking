@@ -12,6 +12,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đổi tên nút nổi và khung của trợ lý AI từ «Hỗ trợ» thành «Trợ lý» để khỏi trùng mục menu Hỗ trợ (chủ dự án 2026-10-15). Không migration. Số tạm.
+    version: "2.3",
+    date: "2026-10-16",
+    items: [
+      { kind: "doi", text: "Nút nổi và khung hỏi đáp của trợ lý đổi tên từ «Hỗ trợ» thành «Trợ lý», để khỏi nhầm với mục Hỗ trợ ở menu." },
+    ],
+  },
+  {
     // Khoản chuyển khoản «Công ty thu» không tạo nợ cho người khai + Kế toán duyệt chuyển tiền sang đơn khác + đổi chữ «cọc» thành «Thu trước» (ADR-0120 của dòng sổ tiền, chủ duyệt 14/10: «duyệt cả hai theo khuyến nghị»).
     // Có thay đổi cơ sở dữ liệu (migration 0099) — cần trien-khai sau day-len.
     // Số 2.2 là số TẠM (= main 2.1 của Vé hỗ trợ + 1, 2026-10-16; chủ chọn cho mục này vào main trước nhánh đưa đón): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
