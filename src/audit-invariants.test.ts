@@ -6,6 +6,8 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync, type SupportedValueType } from "node:sqlite";
 import { demSietTheoTap } from "./modules/auth/repository.ts";
+import { isInternal } from "./modules/auth/mfa-rules.ts";
+import { EXTERNAL_PERMISSIONS } from "./shared/permissions.ts";
 import { OWNER_COMPANY_ROLE } from "./shared/cong-ty-chu.ts";
 import { vnToday } from "./shared/vn-date.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts — hàm gieo DÙNG CHUNG mốc giờ hẹn (ADR-0051)
@@ -612,6 +614,88 @@ test("R-AUT-SESSION-3 đếm cùng tập tài khoản với xem trước khi t�
   const d1 = { prepare: (sql: string) => ({ bind: (...a: SupportedValueType[]) => ({ first: async () => ({ ...db.prepare(sql).get(...a) }) }) }) } as unknown as D1Database;
   const xemTruoc = await demSietTheoTap(d1, ["PARTNER"], new Date().toISOString());
   assert.equal(xemTruoc.soNguoi, violations(db, one("R-AUT-SESSION-3")));
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// R-AUT-MFA-1/2/3 (ADR-0074, kế hoạch Phần B Task 8): lưới dữ liệu của bảo mật hai lớp. Đường API giữ cả ba (ân hạn khi tạo/kích hoạt lại/lên nội bộ,
+// cửa sổ 24 giờ khi tắt lớp hai; chỉ mục aut_mfa_factor_one_live; lô ngưng thu hồi máy tin) — chỉ dữ liệu sửa tay / chỉ mục mất mới đỏ.
+// ---------------------------------------------------------------------------------------------------------------------
+function addFactor(db: DatabaseSync, o: { id: string; staffId: string; kind?: "TOTP" | "EMAIL"; to?: string | null }): void {
+  const kind = o.kind ?? "TOTP";
+  db.prepare(
+    `INSERT INTO aut_mfa_factor (id, staff_id, kind, secret_enc, email, last_totp_step, valid_from_at, valid_to_at, created_at, created_by, updated_at, updated_by)
+     VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, NULL, ?, NULL)`,
+  ).run(o.id, o.staffId, kind, kind === "TOTP" ? "v1.iv.ct" : null, kind === "EMAIL" ? "a@b.vn" : null, T1, o.to ?? null, T1, T1);
+}
+function addTrusted(db: DatabaseSync, o: { id: string; staffId: string; revoked?: boolean; expires?: string }): void {
+  db.prepare(
+    `INSERT INTO aut_trusted_device (id, staff_id, token_hash, label, created_at, created_by, updated_at, updated_by, last_used_at, expires_at, revoked_at, revoke_reason)
+     VALUES (?, ?, ?, 'iPhone', ?, NULL, ?, NULL, ?, ?, ?, ?)`,
+  ).run(o.id, o.staffId, `bam-${o.id}`, T1, T1, T1, o.expires ?? XA, o.revoked ? T2 : null, o.revoked ? "ngung" : null);
+}
+const boHan = (db: DatabaseSync, id: string) => db.prepare("UPDATE staff SET mfa_grace_until = NULL, mfa_enroll_until = NULL WHERE id = ?").run(id);
+
+test("R-AUT-MFA-1/2/3: đúng một kiểm mỗi mã, mức fail", () => {
+  for (const c of ["R-AUT-MFA-1", "R-AUT-MFA-2", "R-AUT-MFA-3"]) assert.equal(one(c).level, "fail", c);
+});
+
+test("R-AUT-MFA-1: tài khoản NỘI BỘ đang hoạt động không yếu tố sống, không ân hạn, không cửa sổ bật lại là vi phạm; có một trong ba thì không", () => {
+  const db = build(); // migration 0101 đặt ân hạn cho s-admin, s-an, s-cuu, s-lai (đang hoạt động, có quyền nội bộ)
+  assert.equal(violations(db, one("R-AUT-MFA-1")), 0);
+  boHan(db, "s-an");
+  assert.equal(violations(db, one("R-AUT-MFA-1")), 1);
+  db.prepare("UPDATE staff SET mfa_enroll_until = ? WHERE id = 's-an'").run(T2);
+  assert.equal(violations(db, one("R-AUT-MFA-1")), 0, "cửa sổ bật lại 24 giờ");
+  boHan(db, "s-an");
+  addFactor(db, { id: "f-an-cu", staffId: "s-an", to: T2 });
+  assert.equal(violations(db, one("R-AUT-MFA-1")), 1, "yếu tố đã kết thúc không tính");
+  addFactor(db, { id: "f-an", staffId: "s-an" });
+  assert.equal(violations(db, one("R-AUT-MFA-1")), 0, "yếu tố sống");
+  db.prepare("UPDATE staff SET mfa_grace_until = ? WHERE id = 's-cuu'").run("2020-01-01T00:00:00.000Z");
+  assert.equal(violations(db, one("R-AUT-MFA-1")), 0, "ân hạn ĐÃ QUA vẫn là 'có hạn' (cổng đăng nhập chặn 403 — đúng luật, không phải lỗi dữ liệu)");
+});
+
+test("R-AUT-MFA-1: tài khoản đã ngưng, tài khoản chỉ quyền bên ngoài, tài khoản không còn quyền nào KHÔNG tính (khớp isInternal của auth)", () => {
+  const db = build();
+  boHan(db, "s-binh"); // đã ngưng
+  db.exec(`INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at) VALUES
+           ('s-dt', '', '0901000009', 'x', 'sales', 1, '${T1}'), ('s-tx', '', '0901000011', 'x', 'sales', 1, '${T1}'), ('s-rong', '', '0901000010', 'x', 'sales', 1, '${T1}')`);
+  db.exec(`INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES
+           ('p-dt', 's-dt', 'PARTNER', '${T1}', '${T1}', '${T1}'), ('p-tx', 's-tx', 'DRIVER_PARTNER', '${T1}', '${T1}', '${T1}')`);
+  assert.equal(violations(db, one("R-AUT-MFA-1")), 0);
+  // Lai (SALES + PARTNER) là nội bộ: isInternal = có một quyền KHÔNG phải bên ngoài.
+  assert.equal(isInternal(["SALES", "PARTNER"]), true);
+  assert.equal(isInternal(["PARTNER", "DRIVER_PARTNER"]), false);
+  assert.equal(isInternal([]), false);
+  boHan(db, "s-lai");
+  assert.equal(violations(db, one("R-AUT-MFA-1")), 1);
+});
+
+test("R-AUT-MFA-1: danh sách quyền bên ngoài trong SQL khớp ĐÚNG EXTERNAL_PERMISSIONS (thêm quyền bên ngoài mới mà quên kiểm này → đỏ)", () => {
+  const m = one("R-AUT-MFA-1").sql.match(/NOT IN \(([^)]*)\)/);
+  assert.ok(m, "kiểm phải liệt kê quyền bên ngoài bằng NOT IN (…)");
+  assert.deepEqual(m[1]!.split(",").map((x) => x.trim().replace(/'/g, "")).sort(), [...EXTERNAL_PERMISSIONS].sort());
+});
+
+test("R-AUT-MFA-2: hai yếu tố SỐNG cùng loại của một người (chỉ mục aut_mfa_factor_one_live đã mất) là MỘT vi phạm; khác loại / đã kết thúc không tính", () => {
+  const db = build();
+  addFactor(db, { id: "f1", staffId: "s-an" });
+  addFactor(db, { id: "f2", staffId: "s-an", kind: "EMAIL" });
+  addFactor(db, { id: "f3", staffId: "s-an", to: T2 });
+  assert.equal(violations(db, one("R-AUT-MFA-2")), 0);
+  db.exec("DROP INDEX aut_mfa_factor_one_live");
+  addFactor(db, { id: "f4", staffId: "s-an" });
+  addFactor(db, { id: "f5", staffId: "s-an" });
+  assert.equal(violations(db, one("R-AUT-MFA-2")), 1, "đếm theo (người, loại), không theo dòng");
+});
+
+test("R-AUT-MFA-3: máy được tin chưa thu hồi của tài khoản đã ngưng là vi phạm (kể cả đã quá hạn); đã thu hồi / tài khoản đang hoạt động không tính", () => {
+  const db = build();
+  addTrusted(db, { id: "t-an", staffId: "s-an" });
+  addTrusted(db, { id: "t-binh-cu", staffId: "s-binh", revoked: true });
+  assert.equal(violations(db, one("R-AUT-MFA-3")), 0);
+  addTrusted(db, { id: "t-binh", staffId: "s-binh", expires: T2 });
+  assert.equal(violations(db, one("R-AUT-MFA-3")), 1, "lô ngưng thu hồi mọi máy chưa thu hồi, không lọc hạn");
 });
 
 // ---------------------------------------------------------------------------------------------------------------------

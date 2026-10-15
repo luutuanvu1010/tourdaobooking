@@ -1407,6 +1407,35 @@ export const CHECKS = [
           GROUP BY x.staff_id HAVING count(*) > 1)`,
     level: "warn",
   },
+  // R-AUT-MFA-1 (ADR-0074 điều 1; kế hoạch Phần B Task 8): tài khoản NỘI BỘ đang hoạt động phải có yếu tố hai lớp sống, HOẶC hạn ân hạn 14 ngày
+  // (`staff.mfa_grace_until`), HOẶC cửa sổ bật lại 24 giờ sau khi Quản trị tắt lớp hai (`staff.mfa_enroll_until`) khác NULL. Hạn ĐÃ QUA vẫn tính là có (cổng
+  // đăng nhập chặn 403 — đúng luật). Thiếu cả ba = tài khoản rơi khỏi mọi đường của cổng: lưới cho mọi lô đặt hạn (tạo tài khoản, kích hoạt lại, lên nội
+  // bộ — chỉ đặt khi NULL). "Nội bộ" = có ít nhất một quyền còn hiệu lực KHÔNG thuộc EXTERNAL_PERMISSIONS (src/shared/permissions.ts; khớp `isInternal` của
+  // auth — tài khoản không còn quyền nào là KHÔNG nội bộ); danh sách NOT IN dưới đây được bài src/audit-invariants.test.ts đối chiếu với hằng đó.
+  {
+    code: "R-AUT-MFA-1",
+    what: "mọi tài khoản nội bộ đang hoạt động có bảo mật hai lớp, hoặc hạn ân hạn / cửa sổ bật lại",
+    sql: `SELECT count(*) FROM staff s WHERE s.active = 1 AND s.mfa_grace_until IS NULL AND s.mfa_enroll_until IS NULL
+          AND EXISTS (SELECT 1 FROM v_stf_quyen_mo q WHERE q.staff_id = s.id AND q.permission_code NOT IN ('PARTNER', 'DRIVER_PARTNER'))
+          AND NOT EXISTS (SELECT 1 FROM aut_mfa_factor f WHERE f.staff_id = s.id AND f.valid_to_at IS NULL)`,
+    level: "fail",
+  },
+  // R-AUT-MFA-2 (ADR-0074; migration 0101): không quá một yếu tố SỐNG mỗi loại mỗi người. Chỉ mục duy nhất có điều kiện `aut_mfa_factor_one_live` đã chặn ⇒
+  // chỉ đỏ khi chỉ mục bị mất/sửa (lưới, như R-AUT-SESSION-1). Đếm số cặp (người, loại).
+  {
+    code: "R-AUT-MFA-2",
+    what: "không ai có hai yếu tố hai lớp cùng loại còn hiệu lực",
+    sql: `SELECT count(*) FROM (SELECT staff_id, kind FROM aut_mfa_factor WHERE valid_to_at IS NULL GROUP BY staff_id, kind HAVING count(*) > 1)`,
+    level: "fail",
+  },
+  // R-AUT-MFA-3 (ADR-0074; Task 8): tài khoản đã ngưng không còn máy được tin CHƯA thu hồi (kể cả đã quá hạn — lô ngưng thu hồi mọi dòng chưa thu hồi,
+  // câu `trusted_revoke_all_if_suspended` không lọc hạn). Đăng nhập của tài khoản ngưng còn bị chặn ở tầng ứng dụng — kiểm này là lưới (vd ngưng bằng SQL tay).
+  {
+    code: "R-AUT-MFA-3",
+    what: "không có máy được tin còn hiệu lực của tài khoản đã ngưng",
+    sql: "SELECT count(*) FROM aut_trusted_device d JOIN v_stf_staff_label s ON s.id = d.staff_id WHERE d.revoked_at IS NULL AND s.active = 0",
+    level: "fail",
+  },
   // R-CTL-1 (ADR-0058, NT-A11): dịch vụ ĐANG HIỆN (in_sheet = 1, không bị catalog_override.hidden = 1) mà CHƯA PHÂN LOẠI — không có dòng gán hiện hành
   // (seq lớn nhất của service_code), hoặc dòng hiện hành có group_code NULL, hoặc trỏ tới nhóm đang TẮT (form đơn hiện nó là "Chưa phân loại"). Mã mới trên
   // Sheet ở lại "Chưa phân loại" cho tới khi Quản trị gán — tình trạng nghiệp vụ hợp lệ, cần người rà soát ⇒ mức warn (in số, không bao giờ đỏ). Chỉ đếm số.
