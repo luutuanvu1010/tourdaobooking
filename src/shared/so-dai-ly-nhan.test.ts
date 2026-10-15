@@ -11,7 +11,7 @@ test("nhãn tiếng Việt, không lộ mã thô", () => {
   assert.equal(nhanMuc({ kind: "RATE", rateBp: 1250, perPax: null }), "12,5%");
   for (const v of Object.values(NHAN_LY_DO_THIEU)) assert.doesNotMatch(v, /[A-Z]{3,}/);
   assert.equal(NHAN_LY_DO_THIEU.NO_RULE, "Chưa có mức cho dịch vụ này");
-  assert.equal(CAU_THIEU_MUC, "Thiếu mức — Kế toán xử lý");
+  assert.equal(CAU_THIEU_MUC, "cần cài mức (cấp) thì mới tính được hoa hồng");
 });
 
 test("laDongThuongMai: ba hành động order_terms_*", () => {

@@ -93,7 +93,7 @@ test("HÀNG RÀO vai tắt: tắt Đối tác ⇒ tài khoản chỉ-Đối tác
   r = await hoi(w, DOITAC, "đổi mã PIN thế nào");
   assert.equal(r.status, 403, r.text);
   assert.equal(r.json.error.code, "tro_ly_vai_tat");
-  assert.match(r.json.error.message, /^Trợ lý Hỗ trợ đang tắt với vai của bạn/);
+  assert.match(r.json.error.message, /^Trợ lý đang tắt với vai của bạn/);
   assert.equal(goi.length, 0);
   assert.equal(w.q("SELECT count(*) AS n FROM tl_luot_hoi")[0]!.n, 0);
   assert.equal(w.q("SELECT count(*) AS n FROM tl_hoi_dap")[0]!.n, 0);

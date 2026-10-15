@@ -5,6 +5,7 @@
 import { randomUUID } from "node:crypto";
 import { splitPersonName, composePersonName } from "../src/modules/parties/rules.ts";
 import { hashPin } from "../src/modules/staff/password.ts";
+import { mfaGraceOnCreate } from "../src/modules/staff/rules.ts";
 import { PERMISSION_CODES, isPermissionCode } from "../src/shared/permissions.ts";
 import { vnToday } from "../src/shared/vn-date.ts";
 
@@ -40,7 +41,8 @@ export async function insertStaffSql(input) {
     `INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (${q(partyId)}, 'PERSON', ${q(composePersonName(n))}, ${active}, ${at}, ${at});`,
     `INSERT INTO pty_person (party_id, family_name, middle_name, given_name, created_at, updated_at) VALUES (${q(partyId)}, ${qn(n.family)}, ${qn(n.middle)}, ${q(n.given)}, ${at}, ${at});`,
     `INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (${q(randomUUID())}, ${q(partyId)}, 'STAFF', ${q(vnToday(now))}, ${at}, ${at});`,
-    `INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at, party_id) VALUES (${q(staffId)}, '', ${q(phone)}, ${q(await hashPin(pin))}, 'sales', ${active}, ${at}, ${q(partyId)});`,
+    // ADR-0074 điều 1: tài khoản nội bộ có 14 ngày ân hạn bảo mật hai lớp từ lúc tạo — CÙNG hàm với lô tạo tài khoản của Worker.
+    `INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at, party_id, mfa_grace_until) VALUES (${q(staffId)}, '', ${q(phone)}, ${q(await hashPin(pin))}, 'sales', ${active}, ${at}, ${q(partyId)}, ${qn(mfaGraceOnCreate(permissions, now.getTime()))});`,
     ...permissions.map(
       (code) => `INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES (${q(randomUUID())}, ${q(staffId)}, ${q(code)}, ${at}, ${at}, ${at});`,
     ),

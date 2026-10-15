@@ -863,6 +863,34 @@ npm run trien-khai
 
 **Giới hạn đã biết của đợt 1:** đại lý là hồ sơ TỔ CHỨC (công ty lữ hành) chưa mang được vai được hưởng bằng đường quản trị nào, nên đợt 1 chạy trọn cho đại lý là hồ sơ cá nhân (xem «Việc còn treo» và `docs/SYSTEM-DESIGN.md` §17).
 
+## Lần phát hành kế tiếp: bảo mật hai lớp bằng ứng dụng xác thực (ADR-0074 Phần B; migration `0101`) — RUNBOOK
+
+**Trạng thái: CHƯA phát hành** (nhánh `worktree-hai-lop-dang-nhap`, soạn 2026-10-15; chờ người kiểm độc lập Task 8 và chủ duyệt). Mọi bước sau A.0 do `npm run trien-khai` làm như thường; mục này chỉ ghi điều KHÁC. Đặc tả: `docs/superpowers/specs/2026-10-01-xac-thuc-hai-lop-dac-ta.md`; kế hoạch: `docs/superpowers/plans/2026-10-01-dang-nhap-b-hai-lop-ung-dung-xac-thuc.md`; công thức và bẫy: `docs/CHANGE-GUIDE.md` (z18, bẫy 77); hệ thống: `docs/SYSTEM-DESIGN.md` §4 "Bảo mật hai lớp".
+
+**Việc của chủ TRƯỚC khi triển khai (bắt buộc — thiếu thì không ai bật hay nhập được mã ứng dụng xác thực, máy chủ trả 503):** đặt bí mật mới `MFA_ENCRYPTION_KEY`, đứng ở thư mục `tourdao-sales`. AI KHÔNG chạy các lệnh này (CLAUDE.md §8). Quên bước này thì `npm run trien-khai` DỪNG ở bước 1d (chỉ đọc TÊN khoá, trước migration) và in lại đúng hai lệnh dưới.
+
+1. Sinh một khoá ngẫu nhiên 32 byte (in ra một chuỗi base64):
+
+```
+openssl rand -base64 32
+```
+
+2. Đặt khoá đó làm bí mật của Worker (dán chuỗi vừa sinh khi được hỏi):
+
+```
+npx wrangler secret put MFA_ENCRYPTION_KEY
+```
+
+3. Cất chuỗi này ở nơi an toàn (trình quản lý mật khẩu). **Mất hoặc đổi khoá = mọi người đã bật phải nhờ Quản trị tắt rồi bật lại** (khoá ứng dụng xác thực đã lưu không giải được nữa). Không dùng lại khoá này cho `.dev.vars` local.
+
+**Điều kiện phát hành (kiểm LÚC phát hành bằng lệnh chỉ đọc):** `npx wrangler d1 migrations list tourdao-sales-db --remote` — rà số `0101` còn trống và còn là số kế tiếp trên mọi nhánh chưa gộp. Bước A.0: mục `2.4` ở đầu `src/shared/changelog.ts` là số TẠM — kiểm lại cho đúng số kế tiếp ở `main` và chạy lại `node --test src/shared/app-info.test.ts`.
+
+**Ân hạn 14 ngày tính từ lúc migration `0101` ÁP** (câu `UPDATE staff SET mfa_grace_until = now + 14 ngày` cho mọi tài khoản nội bộ đang hoạt động): áp migration và deploy liền nhau như `trien-khai` làm. Báo nhân viên trước: trong 14 ngày vào trang **Tôi → Bảo mật đăng nhập** bật bằng Google Authenticator; hết hạn mà chưa bật thì đăng nhập PIN bị chặn, phải nhờ Quản trị bấm "Tắt bảo mật hai lớp" (mở 24 giờ để bật lại). Face ID không bị hỏi mã. Tài khoản Đối tác / Tài xế đối tác chưa bắt buộc (ADR-G1 chưa duyệt).
+
+**Ngay sau deploy (chủ làm trên Nền tảng thật):** bằng một tài khoản nội bộ, xem dải "Còn 14 ngày để bật bảo mật hai lớp"; bật ở trang Tôi bằng iPhone thật (nút "Mở ứng dụng xác thực" phải mở Google Authenticator và thêm "Tour Đảo" — CHƯA kiểm trên máy thật), cất 10 mã dự phòng; đăng xuất, đăng nhập PIN → phải hỏi mã 6 số. `node scripts/audit-invariants.mjs --db remote` (trien-khai tự chạy) phải xanh `R-AUT-MFA-1/2/3`.
+
+**Ca xấu: hoàn tác Worker về bản cũ SAU KHI đã áp `0101`.** `wrangler rollback` làm được (không đổi Durable Object); mã cũ không đọc các bảng / cột mới nên đăng nhập trở lại PIN thường. Migration ở lại vô hại (chỉ thêm bảng và cột). Khi triển khai lại bản Phần B, hạn ân hạn vẫn tính từ lần áp đầu (có thể đã trôi vài ngày) — báo chủ trước khi chọn rollback lâu.
+
 ## Chế độ bảo trì — đường thoát khẩn
 
 Dùng CHỈ khi chủ dự án bị khoá ngoài (không vào được app để bấm tắt) hoặc chế độ bảo trì kẹt bật. Đây là thao tác GHI lên D1 remote, đi vòng app: theo `CLAUDE.md` §8 chỉ làm khi chủ dự án ra lệnh (hoặc tự chạy bằng `!`). Tác dụng TỨC THÌ (cổng ở máy chủ đọc D1 mỗi request, không đệm), không cần deploy.

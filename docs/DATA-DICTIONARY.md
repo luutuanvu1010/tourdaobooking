@@ -22,6 +22,9 @@
 | `aut_passkey` | bảng |  |
 | `aut_session` | bảng | sổ phiên đăng nhập (ADR-0075, migration 0065): mỗi lần cấp phiên là một dòng, KHÔNG xoá (kết thúc = ended_at + end_reason đi cặp). single = 1: tài khoản chịu luật một máy, chỉ mục duy nhất aut_session_one_live chặn hai phiên sống cùng lúc. ip và user_agent là DỮ LIỆU CÁ NHÂN, giữ vô hạn, chỉ IT/Toàn quyền và chính chủ tài khoản xem, KHÔNG vào nhật ký |
 | `aut_session_policy` | bảng | chính sách đăng nhập (ADR-0085, migration 0067): mỗi quyền app đặt được (9 mã, không SUPER_ADMIN) tối đa một dòng hiện hành; multi = 1 là Nhiều máy; bảng trống = mọi quyền Một máy. Không xoá dòng — đổi = đóng dòng hiện hành (valid_to_at) + chèn dòng mới trong cùng lô; lưu có kiểm phiên bản (id dòng đang xem) |
+| `aut_mfa_factor` | bảng | yếu tố bảo mật hai lớp của TÀI KHOẢN (ADR-0074, migration 0101): TOTP (secret_enc = khoá AES-GCM 'v1.iv.ct', khoá mã hoá MFA_ENCRYPTION_KEY, KHÔNG bao giờ vào nhật ký / DTO / câu lỗi) hoặc EMAIL (Phần C). Mỗi (người, loại) tối đa một dòng hiện hành (valid_to_at rỗng); đổi = đóng dòng cũ + chèn dòng mới. last_totp_step chống dùng lại mã: chỉ tăng |
+| `aut_mfa_recovery_code` | bảng | mã dự phòng hai lớp (ADR-0074, migration 0101): chỉ lưu băm SHA-256 gắn với tài khoản (code_hash), không lưu mã thô. Mỗi mã dùng một lần (used_at); tạo bộ mới = thu hồi bộ cũ (revoked_at). Không xoá dòng |
+| `aut_trusted_device` | bảng | máy được tin cho bước hai lớp (ADR-0074, migration 0101): chỉ lưu băm token (token_hash), token thô nằm ở cookie của máy, KHÔNG vào nhật ký / DTO. Hết hạn bằng expires_at, thu hồi bằng revoked_at + revoke_reason (danh sách cố định). Không xoá dòng |
 
 ## billing
 
@@ -242,10 +245,12 @@
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
 | `prc_beneficiary_role` | bảng | danh sách vai hồ sơ được hưởng hoa hồng (ADR-0077 điều 3, C3 = A; migration 0090): gieo năm vai (Công ty lữ hành, HDV độc lập, Lễ tân khách sạn, Tài xế taxi, Cộng tác viên). Không xoá, không đổi khoá hay cột tạo (trigger prc_beneficiary_role_update_scope); tắt một vai bằng active = 0 (dòng mức cũ vẫn giữ, R-PRC-2 báo) |
-| `prc_commission_rule` | bảng | bảng mức hoa hồng đối tác (ADR-0077 điều 4; migration 0090), chính sách có hiệu lực: áp cho một hồ sơ HOẶC cho một vai; phạm vi dịch vụ / nhóm / mọi dịch vụ; kiểu tỷ lệ (phần vạn) hoặc đ/khách. Không xoá, chỉ đóng hiệu lực một lần, không hai dòng cùng đối tượng + phạm vi chồng khoảng ngày; đối tượng phải mang vai đang bật trong prc_beneficiary_role. Tỷ lệ và đ/khách KHÔNG vào DTO của Đối tác (C9 = A) |
+| `prc_rate_tier` | bảng | mức TA dùng chung (ADR-0117 lần 2; migration 0096): tên do Kế toán đặt (TA1, TA2…), name_key duy nhất (khoá so tên, máy chủ ghi). Không xoá; chỉ đổi tên/active (trigger prc_rate_tier_update_scope); tắt mức = chặn gắn mới và thêm dòng mới, dòng đang áp vẫn áp |
+| `prc_role_tier` | bảng | gắn loại hồ sơ với mức TA theo ngày (ADR-0117 lần 2; migration 0096): chỉ thêm hoặc đóng một lần, mỗi loại tối đa một mức tại một ngày (prc_tier_overlap); loại phải nằm trong danh sách được hưởng còn bật (prc_tier_target), mức phải còn bật (prc_tier_inactive). Đổi mức = đóng gắn cũ, mở gắn mới |
+| `prc_commission_rule` | bảng | bảng mức hoa hồng đối tác (ADR-0077 điều 4; migration 0090, dựng lại ở 0097 — ADR-0117 lần 2), chính sách có hiệu lực: áp cho đúng MỘT trong ba đích — một hồ sơ, một vai, hoặc một mức TA (target_tier_code → prc_rate_tier); phạm vi dịch vụ / nhóm / mọi dịch vụ; kiểu tỷ lệ (phần vạn) hoặc đ/khách. Không xoá, chỉ đóng hiệu lực một lần (không đổi số hay đích, kể cả mức), không hai dòng cùng đích + phạm vi chồng khoảng ngày (khoá gồm cả mức: hai mức khác nhau cùng có dòng mọi dịch vụ được); hồ sơ / vai phải đang được hưởng, mức phải còn bật (prc_tier_inactive). Tỷ lệ và đ/khách KHÔNG vào DTO của Đối tác (C9 = A) |
 | `prc_supply_term` | bảng | điều khoản cung ứng — người bán của dịch vụ (ADR-0078 điều 2; migration 0090), chính sách có hiệu lực: phạm vi dịch vụ / nhóm / mọi dịch vụ. Người bán = công ty chủ thì không có nhà cung cấp; người bán khác phải đang mang vai SUPPLIER và có tỷ lệ mua lại a% (cost_rate_bp). Không xoá, chỉ đóng một lần, không chồng; dòng ALL chỉ cho công ty chủ; luật X3: không ghi a% cho nhóm Thuê xe (TXE). Gieo một dòng ALL của công ty chủ từ 2025-01-01. a% KHÔNG vào DTO của Đối tác |
 | `v_prc_beneficiary_role` | view công bố | cột: role_type_code |
-| `v_prc_commission_rule` | view công bố | cột: id, target_party_id, target_role_code, scope, catalog_code, group_code, kind, rate_bp, per_pax_amount, valid_from_date, valid_to_date |
+| `v_prc_commission_rule` | view công bố | cột: id, target_party_id, target_role_code, scope, catalog_code, group_code, kind, rate_bp, per_pax_amount, valid_from_date, valid_to_date, target_tier_code |
 | `v_prc_supply_term` | view công bố | cột: id, scope, catalog_code, group_code, seller_party_id, supplier_party_id, cost_rate_bp, valid_from_date, valid_to_date |
 
 ## ky-so

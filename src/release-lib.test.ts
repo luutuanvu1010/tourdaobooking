@@ -262,7 +262,7 @@ const WHOAMI = "CI=1 npx wrangler whoami";
 const WHOAMI_OK = out("👋 You are logged in with an OAuth Token, associated with the email x@y.z.\n");
 /** ADR-0094 đ4 (L13): cổng chỉ-đọc kiểm TÊN khoá bí mật đã đặt (không đọc giá trị). Đầu ra mẫu theo dạng `--format json` của wrangler 4. */
 const SECRETS = "CI=1 npx wrangler secret list --format json";
-const SECRETS_OK = out('[\n  {\n    "name": "LAN_GUI_SECRET",\n    "type": "secret_text"\n  },\n  {\n    "name": "SESSION_SECRET",\n    "type": "secret_text"\n  }\n]\n');
+const SECRETS_OK = out('[\n  {\n    "name": "LAN_GUI_SECRET",\n    "type": "secret_text"\n  },\n  {\n    "name": "MFA_ENCRYPTION_KEY",\n    "type": "secret_text"\n  },\n  {\n    "name": "SESSION_SECRET",\n    "type": "secret_text"\n  }\n]\n');
 const LIST = "CI=1 npx wrangler d1 migrations list tourdao-sales-db --remote";
 /** Lỗi THẬT chủ dự án gặp 2026-10-01 (cũng 26/9, 29/9): lần gọi đầu bị từ chối, chạy lại là qua. */
 const LOI_7403: RunResult = { code: 1, stdout: "", stderr: "✘ [ERROR] A request to the Cloudflare API (/accounts/381557e4e08091d31a3235baf2513df6/d1/database/bcd4c0ac/query) failed.\n\n  The given account is not valid or is not authorized to access this service [code: 7403]\n" };
@@ -658,6 +658,30 @@ test("trien-khai (khoá — T15): thiếu LAN_GUI_SECRET hoặc SESSION_SECRET �
     assert.match(t, new RegExp(`Chưa đặt khoá ${thieu}`));
     assert.match(t, new RegExp(`npx wrangler secret put ${thieu}`));
   }
+});
+
+test("trien-khai (khoá hai lớp — ADR-0074, kiểm độc lập I-1): thiếu MFA_ENCRYPTION_KEY ⇒ DỪNG trước migration/deploy, câu RIÊNG nói hậu quả + lệnh khoá 32 byte", async () => {
+  for (const dau of ['[{"name":"SESSION_SECRET","type":"secret_text"},{"name":"LAN_GUI_SECRET","type":"secret_text"}]']) {
+    const h = harness(tkScript({ [SECRETS]: out(dau) }), ["c", "c"]);
+    assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW, sleep: async () => {} }), 0, dau);
+    assert.ok(!h.calls.includes(LIST), "không chạm D1");
+    assertNothingDangerous(h.calls);
+    assert.ok(!h.calls.includes(DEPLOY) && !h.calls.includes(APPLY));
+    assert.equal(h.calls.at(-1), SECRETS, "phải dừng NGAY ở bước kiểm khoá");
+    assert.ok(!h.calls.some((c) => /secret (put|get|delete)/.test(c)), "chỉ ĐỌC danh sách tên, không ghi, không đọc giá trị");
+    const t = h.text();
+    assert.match(t, /Chưa đặt khoá MFA_ENCRYPTION_KEY/);
+    assert.match(t, /bảo mật hai lớp/, "nói rõ hậu quả: không ai bật được lớp hai");
+    assert.match(t, /ngày thứ 15/, "nói rõ hậu quả: hết ân hạn thì tài khoản nội bộ không đăng nhập PIN được");
+    assert.match(t, /openssl rand -base64 32/, "khoá phải đúng 32 byte");
+    assert.doesNotMatch(t, /base64 48[^\n]*MFA_ENCRYPTION_KEY/, "không gợi ý khoá 48 byte cho khoá hai lớp");
+    assert.match(t, /npx wrangler secret put MFA_ENCRYPTION_KEY/);
+    assert.doesNotMatch(t, /MỌI màn hình/, "khoá hai lớp thiếu không làm MỌI API 500 — không dùng câu của khoá bắt buộc");
+  }
+  // Đủ ba khoá → đi tiếp, ghi đã có khoá hai lớp.
+  const h = harness(tkScript(), ["c", "c"]);
+  assert.equal(await lib.trienKhai({ ...h.deps, now: NOW, sleep: async () => {} }), 0);
+  assert.match(h.text(), /MFA_ENCRYPTION_KEY/);
 });
 
 test("trien-khai (khoá): lệnh secret list lỗi hoặc đầu ra không đọc được ⇒ DỪNG (không bao giờ coi là đạt)", async () => {

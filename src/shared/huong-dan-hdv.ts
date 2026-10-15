@@ -1,5 +1,6 @@
 // Hướng dẫn: Hướng dẫn viên (bản 1.40). Luật viết ở src/shared/huong-dan.ts; nguồn đối chiếu docs/superpowers/plans/2026-09-30-huong-dan-theo-vai-nguon/hdv.md.
 import type { NhomHuongDan } from "./huong-dan.ts";
+import { mucBatHaiLop } from "./huong-dan-hai-lop.ts";
 
 export const HD_HDV: NhomHuongDan = {
   id: "hdv",
@@ -154,5 +155,6 @@ Không. Bạn sửa được tới hết ngày đi. Từ hôm sau, nhờ văn ph
 ### Tôi có thấy tiền của đơn không?
 Có, chỉ ở đơn bạn đang lo: **Tổng tiền**, **Đã thu**, **Còn lại**.`,
     },
+    mucBatHaiLop("noi-bo"),
   ],
 };

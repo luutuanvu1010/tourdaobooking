@@ -10,11 +10,12 @@ import { hashPin, verifyDummy, verifyPin } from "./password";
 import { isValidPin, normalizePhone } from "./phone";
 import {
   accountIdOfParty, closeAdjustmentStatement, closePermissionStatement, countActiveAdmins, findById, findByPhone, insertAdjustmentStatement, insertPermissionStatement,
-  insertStaffStatement, labelsByIds, listAll, openAdjustments, parsePermissions, partiesWithAccount, phonesByParty, recordLoginRow, sessionOwnersByIds, setPinStatement as setPinRow, touchCredentialsStatement, updateStaffStatement,
+  insertStaffStatement, labelsByIds, listAll, mfaDeadlinesRow, mfaEnrollSetRow, mfaGraceAll, mfaGraceIfNullRow, openAdjustments, parsePermissions, partiesWithAccount, phonesByParty, recordLoginRow, sessionOwnersByIds, setPinStatement as setPinRow, touchCredentialsStatement, updateStaffStatement,
   type AdjustmentRow, type StaffRow,
 } from "./repository";
 import {
-  KHONG_NHAN_VAI_NOI_BO, canManageAccount, checkAccountChange, coQuyenNoiBo, generatePin, isWeakPin, moNoiBoChoHoSoCoNhanProblem, partyAccountVerdict, validateFreshPin,
+  KHONG_NHAN_VAI_NOI_BO, canManageAccount, checkAccountChange, coQuyenNoiBo, generatePin, isWeakPin, MFA_ENROLL_WINDOW_MS, mfaGraceOnCreate, mfaGraceOnReactivate, mfaKhiThanhNoiBo, moNoiBoChoHoSoCoNhanProblem, partyAccountVerdict,
+  validateFreshPin,
 } from "./rules";
 import type { PartyMatchResponse, StaffAccount, StaffProfile } from "../../shared/contracts";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions";
@@ -23,8 +24,8 @@ import { addDays, vnToday } from "../../shared/vn-date";
 
 export type { StaffAccount, StaffProfile };
 export {
-  KHONG_NHAN_VAI_NOI_BO, canManageAccount, checkAccountChange, countActiveAdmins, generatePin, hashPin, isValidPin, isWeakPin, moNoiBoChoHoSoCoNhanProblem, normalizePhone,
-  touchCredentialsStatement, updateStaffStatement, validateFreshPin,
+  KHONG_NHAN_VAI_NOI_BO, MFA_ENROLL_WINDOW_MS, canManageAccount, checkAccountChange, countActiveAdmins, generatePin, hashPin, isValidPin, isWeakPin, mfaKhiThanhNoiBo,
+  mfaGraceOnReactivate, moNoiBoChoHoSoCoNhanProblem, normalizePhone, touchCredentialsStatement, updateStaffStatement, validateFreshPin,
 };
 
 /**
@@ -105,6 +106,25 @@ export async function getActiveStaff(db: D1Database, id: string, sessionIssuedAt
   return toProfile(staff);
 }
 
+/**
+ * HÀM CÔNG BỐ (ADR-0074) — module auth gọi ở cổng lớp hai của đăng nhập PIN: hạn ân hạn 14 ngày (`mfa_grace_until`) và cửa sổ bật lại 24 giờ sau khi
+ * Quản trị/Toàn quyền tắt lớp hai (`mfa_enroll_until`), ISO UTC hoặc null. Tài khoản không có → cả hai null (cổng đóng cửa an toàn với tài khoản nội bộ).
+ */
+export async function mfaDeadlinesOf(db: D1Database, id: string): Promise<{ graceUntil: string | null; enrollUntil: string | null }> {
+  const r = await mfaDeadlinesRow(db, id);
+  return { graceUntil: r?.mfa_grace_until ?? null, enrollUntil: r?.mfa_enroll_until ?? null };
+}
+
+/** HÀM CÔNG BỐ (kế hoạch Task 6) — nhãn "Hai lớp" ở danh sách Quản lý tài khoản: hạn ân hạn của mọi tài khoản theo id (ISO UTC hoặc null). */
+export const mfaGraceTheoId = (db: D1Database): Promise<Map<string, string | null>> => mfaGraceAll(db);
+/**
+ * Câu (CHƯA chạy) đặt hạn ân hạn `until` cho tài khoản đang hoạt động CHỈ khi hạn đang NULL (ADR-0074 điều 1: trở thành nội bộ, kích hoạt lại; vòng sửa 1
+ * Task 6: hạn đã qua không gia hạn tự động). `until` tính bằng mfaKhiThanhNoiBo / mfaGraceOnReactivate (null ⇒ người gọi không nối câu này).
+ */
+export const mfaGraceIfNullStatement = (db: D1Database, id: string, until: string): D1PreparedStatement => mfaGraceIfNullRow(db, id, until);
+/** Câu (CHƯA chạy) đặt / xoá cửa sổ bật lại lớp hai `mfa_enroll_until` (ADR-0074 điều 5). Auth gọi với null trong lô bật xong ở bước đăng nhập. */
+export const mfaEnrollWindowStatement = (db: D1Database, id: string, until: string | null): D1PreparedStatement => mfaEnrollSetRow(db, id, until);
+
 export async function getStaffAccount(db: D1Database, id: string): Promise<StaffAccount | null> {
   const s = await findById(db, id);
   return s ? toAccount(s) : null;
@@ -161,7 +181,7 @@ export async function createAccountStatements(
     pin,
     statements: [
       ...person.statements,
-      insertStaffStatement(db, { id, phone: input.phone, pinHash: await hashPin(pin), createdAt: at, partyId: person.partyId }),
+      insertStaffStatement(db, { id, phone: input.phone, pinHash: await hashPin(pin), createdAt: at, partyId: person.partyId, mfaGraceUntil: mfaGraceOnCreate(input.permissions, now.getTime()) }),
       ...input.permissions.map((code) => insertPermissionStatement(db, id, code, actorId, at, false)),
     ],
   };
@@ -381,7 +401,7 @@ export async function createAccountWithRolesStatements(
   const adjust = (code: PermissionCode, direction: "ADD" | "REMOVE") =>
     insertAdjustmentStatement(db, { staffId: id, code, direction, reason: assignment.reason ?? "", at, actorId, guarded: false });
   statements.push(
-    insertStaffStatement(db, { id, phone: input.phone, pinHash: await hashPin(pin), createdAt: at, partyId }),
+    insertStaffStatement(db, { id, phone: input.phone, pinHash: await hashPin(pin), createdAt: at, partyId, mfaGraceUntil: mfaGraceOnCreate(permissions, now.getTime()) }),
     ...permissions.map((code) => insertPermissionStatement(db, id, code, actorId, at, false)),
     ...assignment.adds.map((c) => adjust(c, "ADD")),
     ...assignment.removes.map((c) => adjust(c, "REMOVE")),

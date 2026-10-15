@@ -73,6 +73,12 @@ const ATTEMPT_INSERT = defineSql("auth", "attempt_insert", "INSERT INTO login_at
 const ATTEMPT_PRUNE = defineSql("auth", "attempt_prune", "DELETE FROM login_attempt WHERE at < ?1");
 const ATTEMPT_DELETE_ID = defineSql("auth", "attempt_delete_id", "DELETE FROM login_attempt WHERE id = ?1");
 const ATTEMPT_DELETE_KEY = defineSql("auth", "attempt_delete_key", "DELETE FROM login_attempt WHERE key = ?1");
+// ADR-0074 (kế hoạch Task 6): tài khoản đang bị khoá bước hai (khoá đếm `mfa:<staffId>` đủ số lần sai trong cửa sổ) — danh sách Quản lý tài khoản hiện "bị khoá".
+const ATTEMPT_LOCKED_MFA = defineSql(
+  "auth",
+  "attempt_locked_mfa",
+  "SELECT key FROM login_attempt WHERE key LIKE 'mfa:%' AND at > ?1 GROUP BY key HAVING count(*) >= ?2",
+);
 const ATTEMPT_LOCKED = defineSql(
   "auth",
   "attempt_locked_phones",
@@ -86,6 +92,10 @@ export async function attemptCount(db: D1Database, key: string, since: number): 
 export const attemptInsertStatement = (db: D1Database, id: string, key: string, at: number): D1PreparedStatement => db.prepare(ATTEMPT_INSERT).bind(id, key, at);
 export const attemptPruneStatement = (db: D1Database, before: number): D1PreparedStatement => db.prepare(ATTEMPT_PRUNE).bind(before);
 export const attemptDeleteIdStatement = (db: D1Database, id: string): D1PreparedStatement => db.prepare(ATTEMPT_DELETE_ID).bind(id);
+export async function lockedMfaKeys(db: D1Database, since: number, limit: number): Promise<string[]> {
+  const { results } = await db.prepare(ATTEMPT_LOCKED_MFA).bind(since, limit).all<{ key: string }>();
+  return results.map((r) => r.key);
+}
 export const attemptDeleteKeyStatement = (db: D1Database, key: string): D1PreparedStatement => db.prepare(ATTEMPT_DELETE_KEY).bind(key);
 export async function lockedPhoneKeys(db: D1Database, since: number, limit: number): Promise<string[]> {
   const { results } = await db.prepare(ATTEMPT_LOCKED).bind(since, limit).all<{ key: string }>();

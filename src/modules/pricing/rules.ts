@@ -5,6 +5,7 @@ import { parseUnit, payingGuests, type PaxCounts } from "../../shared/order-line
 import { giaVonDong, hoaHongDong, lamTronNuaLen, tinhDongDoiTac, type BanChup, type DongPhanDoiTac, type KieuMuc, type LyDoThieu } from "../../shared/hoa-hong-dong.ts";
 import { nhanMuc } from "../../shared/so-dai-ly-nhan.ts";
 import { MOI_KHACH_TOI_DA } from "../../shared/so-dai-ly-nhap.ts"; // trần «Số tiền mỗi khách»: MỘT hằng cho giao diện và máy chủ (Task 14, nợ (a))
+import { khoaTen } from "../../shared/khoa-ten.ts";
 
 // Phép tính tiền MỘT dòng (làm tròn nửa lên, hoa hồng, giá vốn, `tinhDongDoiTac`) và kiểu bản chụp nằm ở src/shared/hoa-hong-dong.ts để `orders/thuong-mai.ts` (DTO) chạy được bằng node trực tiếp
 // mà không nhập index.ts của module khác; ở đây chỉ tái xuất — vẫn MỘT định nghĩa (Task 5, Ruling ở sổ thi công).
@@ -16,6 +17,8 @@ export interface DongMuc {
   id: string;
   targetPartyId: string | null;
   targetRoleCode: string | null;
+  /** Đích thứ ba (ADR-0117 lần 2): mã mức TA. Đúng một trong ba đích có giá trị. Thiếu = null (nơi gọi cũ chưa đọc cột này). */
+  targetTierCode?: string | null;
   scope: PhamVi;
   catalogCode: string | null;
   groupCode: string | null;
@@ -38,7 +41,11 @@ export interface DongDieuKhoan {
 }
 /** Người hưởng của đơn: HUONG = bên đặt mang vai được hưởng; KHONG_HUONG = bên đặt mang vai bên ngoài (hoặc loại đối tác ADR-0117) KHÔNG thuộc danh sách; NONE = khách lẻ / nội bộ / công ty / trống. */
 export type NguoiHuong = { loai: "NONE" } | { loai: "HUONG"; partyId: string; vai: readonly string[] } | { loai: "KHONG_HUONG"; partyId: string };
-export type KetQuaMuc = { trangThai: "NONE" } | { trangThai: "SET"; dong: DongMuc; bac: 1 | 2 | 3 | 4 | 5 | 6 } | { trangThai: "MISSING"; lyDo: LyDoThieu };
+/** Gắn loại↔mức TA theo ngày (ADR-0117 lần 2): loại `roleTypeCode` mang mức `tierCode` trong khoảng [validFrom, validTo]. */
+export interface GanLoaiMuc { roleTypeCode: string; tierCode: string; validFrom: string; validTo: string | null }
+/** Bậc thắng: 1–3 riêng đối tác, 4–6 riêng loại, 7–9 mức TA (mỗi nhóm ba: dịch vụ, nhóm, mọi dịch vụ). */
+export type BacMuc = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+export type KetQuaMuc = { trangThai: "NONE" } | { trangThai: "SET"; dong: DongMuc; bac: BacMuc } | { trangThai: "MISSING"; lyDo: LyDoThieu };
 export type KetQuaDieuKhoan = { trangThai: "SET"; dong: DongDieuKhoan } | { trangThai: "MISSING" };
 
 export const hieuLuc = (d: { validFrom: string; validTo: string | null }, ngay: string): boolean => d.validFrom <= ngay && (d.validTo === null || d.validTo >= ngay);
@@ -69,8 +76,12 @@ function khop(d: { scope: PhamVi; catalogCode: string | null; groupCode: string 
 const cungMuc = (a: DongMuc, b: DongMuc): boolean => a.kind === b.kind && a.rateBp === b.rateBp && a.perPaxAmount === b.perPaxAmount;
 const theoThuTu = (a: DongMuc, b: DongMuc): number => (a.targetRoleCode ?? "").localeCompare(b.targetRoleCode ?? "") || a.id.localeCompare(b.id);
 
-/** Chọn mức (ADR-0077 điều 5): sáu bậc, bậc cụ thể nhất thắng; chỉ dòng hiệu lực ở `ngay`. Không bao giờ tự lấy 0 khi không khớp. */
-export function chonMuc(v: { nguoiHuong: NguoiHuong; catalogCode: string | null; groupCode: string | null; ngay: string; dong: readonly DongMuc[] }): KetQuaMuc {
+/**
+ * Chọn mức (ADR-0077 điều 5, ADR-0117 lần 2): chín bậc, bậc cụ thể nhất thắng; chỉ dòng hiệu lực ở `ngay`. Không bao giờ tự lấy 0 khi không khớp.
+ * Bậc 1–3: riêng đối tác. Bậc 4–6: riêng loại. Bậc 7–9: dòng của các mức TA mà loại hồ sơ đang mang được gắn (`gan`) ở `ngay`; dòng riêng của loại (4–6) luôn thắng dòng TA.
+ * Hai mức khác số ở cùng bậc (qua hai loại) ⇒ RULE_CONFLICT; cùng số thì không xung đột, dòng `id` nhỏ nhất đứng ra (xác định).
+ */
+export function chonMuc(v: { nguoiHuong: NguoiHuong; catalogCode: string | null; groupCode: string | null; ngay: string; dong: readonly DongMuc[]; gan?: readonly GanLoaiMuc[] }): KetQuaMuc {
   if (v.nguoiHuong.loai === "NONE") return { trangThai: "NONE" };
   if (v.nguoiHuong.loai === "KHONG_HUONG") return { trangThai: "MISSING", lyDo: "BOOKER_NOT_BENEFICIARY" };
   if (v.catalogCode === null) return { trangThai: "MISSING", lyDo: "MANUAL_LINE" };
@@ -86,6 +97,15 @@ export function chonMuc(v: { nguoiHuong: NguoiHuong; catalogCode: string | null;
     if (ds.length === 0) continue;
     if (ds.some((x) => !cungMuc(x, ds[0]!))) return { trangThai: "MISSING", lyDo: "RULE_CONFLICT" };
     return { trangThai: "SET", dong: ds[0]!, bac: (i + 4) as 4 | 5 | 6 };
+  }
+  const muc = new Set((v.gan ?? []).filter((g) => nh.vai.includes(g.roleTypeCode) && hieuLuc(g, v.ngay)).map((g) => g.tierCode));
+  if (muc.size > 0) {
+    for (const [i, pv] of THU_TU.entries()) {
+      const ds = con.filter((x) => x.targetTierCode != null && muc.has(x.targetTierCode) && khop(x, pv, code, v.groupCode));
+      if (ds.length === 0) continue;
+      if (ds.some((x) => !cungMuc(x, ds[0]!))) return { trangThai: "MISSING", lyDo: "RULE_CONFLICT" };
+      return { trangThai: "SET", dong: ds[0]!, bac: (i + 7) as 7 | 8 | 9 };
+    }
   }
   return { trangThai: "MISSING", lyDo: "NO_RULE" };
 }
@@ -108,8 +128,12 @@ export function soKhachTinhHoaHong(v: { unit: string; pax: PaxCounts; items: rea
 }
 
 export interface DongDon { serviceId: string; catalogCode: string | null; groupCode: string | null }
-/** Tính bản chụp cho mọi dòng của đơn ở `ngay` (Xác nhận / đổi bên đặt). */
-export function chupDon(v: { nguoiHuong: NguoiHuong; ngay: string; dong: readonly DongDon[]; muc: readonly DongMuc[]; dieuKhoan: readonly DongDieuKhoan[] }): BanChup[] {
+/**
+ * Tính bản chụp cho mọi dòng của đơn ở `ngay` (Xác nhận / đổi bên đặt / tính thử đơn nháp). `gan` = gắn loại↔mức TA hiệu lực (ADR-0117 lần 2) — BẮT BUỘC (không tuỳ chọn như ở
+ * `chonMuc`): typecheck chỉ bắt nơi gọi QUÊN hẳn tham số; truyền nhầm `gan: []` vẫn biên dịch. Thứ canh thật là các bài ở src/modules/pricing/muc-ta.test.ts — mỗi đường gọi
+ * (xác nhận, đổi bên đặt, bản tính thử đơn nháp) có một ca đỏ khi mất `gan`.
+ */
+export function chupDon(v: { nguoiHuong: NguoiHuong; ngay: string; dong: readonly DongDon[]; muc: readonly DongMuc[]; gan: readonly GanLoaiMuc[]; dieuKhoan: readonly DongDieuKhoan[] }): BanChup[] {
   const beneficiaryPartyId = v.nguoiHuong.loai === "NONE" ? null : v.nguoiHuong.partyId;
   return v.dong.map((d) => {
     const dk = chonDieuKhoan({ catalogCode: d.catalogCode, groupCode: d.groupCode, ngay: v.ngay, dong: v.dieuKhoan });
@@ -117,7 +141,7 @@ export function chupDon(v: { nguoiHuong: NguoiHuong; ngay: string; dong: readonl
       ? { status: "SET", termId: dk.dong.id, sellerPartyId: dk.dong.sellerPartyId, supplierPartyId: dk.dong.supplierPartyId, costRateBp: dk.dong.costRateBp }
       : { status: "MISSING" };
     const laNhaCungCap = v.nguoiHuong.loai === "HUONG" && dk.trangThai === "SET" && dk.dong.supplierPartyId === beneficiaryPartyId;
-    const m: KetQuaMuc = laNhaCungCap ? { trangThai: "MISSING", lyDo: "RULE_CONFLICT" } : chonMuc({ nguoiHuong: v.nguoiHuong, catalogCode: d.catalogCode, groupCode: d.groupCode, ngay: v.ngay, dong: v.muc });
+    const m: KetQuaMuc = laNhaCungCap ? { trangThai: "MISSING", lyDo: "RULE_CONFLICT" } : chonMuc({ nguoiHuong: v.nguoiHuong, catalogCode: d.catalogCode, groupCode: d.groupCode, ngay: v.ngay, dong: v.muc, gan: v.gan });
     const hoaHong: BanChup["hoaHong"] = m.trangThai === "NONE" ? { status: "NONE" }
       : m.trangThai === "MISSING" ? { status: "MISSING", reason: m.lyDo }
       : { status: "SET", kind: m.dong.kind, rateBp: m.dong.rateBp, perPax: m.dong.perPaxAmount, ruleId: m.dong.id };
@@ -153,16 +177,9 @@ function docKhoangNgay(b: Record<string, unknown>): Ket<{ validFrom: string; val
 }
 
 export type ThanMuc = Omit<DongMuc, "id" | "validFrom" | "validTo"> & { validFrom: string; validTo: string | null; note: string | null };
-/** Thân `POST /api/pricing/hoa-hong`: { doiTuong: { loai: "VAI", code } | { loai: "DOI_TAC", partyId }, phamVi, catalogCode?, groupCode?, kieu, tyLeBp? | moiKhach?, tuNgay, denNgay?, ghiChu? }. */
-export function kiemThanMuc(raw: unknown): Ket<ThanMuc> {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, message: "Thiếu thông tin mức hoa hồng." };
-  const b = raw as Record<string, unknown>;
-  const dt = b.doiTuong as Record<string, unknown> | undefined;
-  let targetPartyId: string | null = null;
-  let targetRoleCode: string | null = null;
-  if (dt?.loai === "VAI" && typeof dt.code === "string" && MA_RE.test(dt.code)) targetRoleCode = dt.code;
-  else if (dt?.loai === "DOI_TAC" && typeof dt.partyId === "string" && PARTY_RE.test(dt.partyId)) targetPartyId = dt.partyId;
-  else return { ok: false, message: "Chọn áp cho một loại đối tác hoặc một đối tác cụ thể." };
+type PhanMuc = Pick<ThanMuc, "scope" | "catalogCode" | "groupCode" | "kind" | "rateBp" | "perPaxAmount" | "validFrom" | "validTo" | "note">;
+/** Phần chung của thân một dòng mức (phạm vi, mức, khoảng ngày, ghi chú) — dùng cho dòng theo loại / đối tác và dòng của mức TA. */
+function docPhanMuc(b: Record<string, unknown>): Ket<PhanMuc> {
   const pv = docPhamVi(b);
   if (!pv.ok) return pv;
   let kind: KieuMuc;
@@ -175,7 +192,54 @@ export function kiemThanMuc(raw: unknown): Ket<ThanMuc> {
   if (!kn.ok) return kn;
   const gc = docGhiChu(b.ghiChu);
   if (!gc.ok) return gc;
-  return { ok: true, value: { targetPartyId, targetRoleCode, ...pv.value, kind, rateBp, perPaxAmount, ...kn.value, note: gc.value } };
+  return { ok: true, value: { ...pv.value, kind, rateBp, perPaxAmount, ...kn.value, note: gc.value } };
+}
+/** Thân `POST /api/pricing/hoa-hong`: { doiTuong: { loai: "VAI", code } | { loai: "DOI_TAC", partyId }, phamVi, catalogCode?, groupCode?, kieu, tyLeBp? | moiKhach?, tuNgay, denNgay?, ghiChu? }. */
+export function kiemThanMuc(raw: unknown): Ket<ThanMuc> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, message: "Thiếu thông tin mức hoa hồng." };
+  const b = raw as Record<string, unknown>;
+  const dt = b.doiTuong as Record<string, unknown> | undefined;
+  let targetPartyId: string | null = null;
+  let targetRoleCode: string | null = null;
+  if (dt?.loai === "VAI" && typeof dt.code === "string" && MA_RE.test(dt.code)) targetRoleCode = dt.code;
+  else if (dt?.loai === "DOI_TAC" && typeof dt.partyId === "string" && PARTY_RE.test(dt.partyId)) targetPartyId = dt.partyId;
+  else return { ok: false, message: "Chọn áp cho một loại đối tác hoặc một đối tác cụ thể." };
+  const pm = docPhanMuc(b);
+  if (!pm.ok) return pm;
+  return { ok: true, value: { targetPartyId, targetRoleCode, ...pm.value } };
+}
+
+// ===== Mức TA dùng chung (ADR-0117 lần 2). =====
+/** Thân `POST /api/pricing/muc-ta/:code/dong` (thêm dòng cho mức `tierCode`): như thân bảng mức nhưng không có `doiTuong` — đích là chính mức. */
+export function kiemThanDongMucTa(raw: unknown, tierCode: string): Ket<ThanMuc> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, message: "Thiếu thông tin dòng của mức." };
+  const pm = docPhanMuc(raw as Record<string, unknown>);
+  if (!pm.ok) return pm;
+  return { ok: true, value: { targetPartyId: null, targetRoleCode: null, targetTierCode: tierCode, ...pm.value } };
+}
+/**
+ * Tên mức TA do người dùng nhập: gọn khoảng trắng, 2–60 ký tự (chặt hơn CHECK 1–60 của bảng để CHECK không bao giờ nổ thành 500), khoá so tên (`khoaTen`) không rỗng; tên đi vào
+ * nhật ký nên không cho dãy ≥ 8 chữ số (SĐT / số tài khoản) hay `@` (email) — cùng khuôn tên loại đối tác. Trùng tên KHÔNG kiểm ở đây: cột `name_key` UNIQUE quyết (một nơi,
+ * đúng cả khi hai lần thêm đồng thời).
+ */
+export function kiemTenMucTa(raw: unknown): Ket<{ ten: string; khoa: string }> {
+  const ten = typeof raw === "string" ? raw.trim().replace(/\s+/g, " ") : "";
+  if (ten.length < 2 || ten.length > 60) return { ok: false, message: "Tên mức TA dài từ 2 đến 60 ký tự." };
+  if (/\d{8,}/.test(ten.replace(/[\s.]/g, "")) || /\d{9,}/.test(ten.replace(/[\s.-]/g, "")) || ten.includes("@")) return { ok: false, message: "Tên mức TA không được chứa số điện thoại, số tài khoản hay địa chỉ email." };
+  const khoa = khoaTen(ten);
+  if (khoa.length < 2) return { ok: false, message: "Tên mức TA dài từ 2 đến 60 ký tự." };
+  return { ok: true, value: { ten, khoa } };
+}
+/** Mã mức TA máy chủ sinh: `MT_` + 8 chữ hoa (không bao giờ trùng đoạn đường cố định như «gan»; khớp `MA_RE`). `bytes` lấy từ `crypto.getRandomValues` ở nơi gọi. */
+export const maMucTa = (bytes: Uint8Array): string => "MT_" + Array.from(bytes.slice(0, 8), (b) => String.fromCharCode(65 + (b % 26))).join("");
+export const MUC_TA_RE = /^MT_[A-Z]{8}$/;
+/** Thân `POST /api/pricing/muc-ta/gan`: { loai, muc, tuNgay, denNgay? }. */
+export function kiemThanGan(raw: unknown): Ket<{ roleTypeCode: string; tierCode: string; validFrom: string; validTo: string | null }> {
+  const b = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  if (typeof b.loai !== "string" || !MA_RE.test(b.loai) || typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn loại đối tác và mức TA." };
+  const kn = docKhoangNgay(b);
+  if (!kn.ok) return kn;
+  return { ok: true, value: { roleTypeCode: b.loai, tierCode: b.muc, ...kn.value } };
 }
 
 export type ThanDieuKhoan = { scope: PhamVi; catalogCode: string | null; groupCode: string | null; sellerPartyId: string; costRateBp: number | null; validFrom: string; validTo: string | null; note: string | null };

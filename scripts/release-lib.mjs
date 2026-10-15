@@ -14,6 +14,11 @@ const CI = { CI: "1" };
 
 /** Khoá bí mật Worker BẮT BUỘC (thiếu ⇒ mọi API 500): khoá phiên + khoá HMAC lớp chống ghi trùng (ADR-0094 đ4). */
 export const KHOA_BAT_BUOC = ["SESSION_SECRET", "LAN_GUI_SECRET"];
+/**
+ * Khoá mã hoá bảo mật hai lớp (ADR-0074 Phần B) — kiểm RIÊNG, không nằm trong KHOA_BAT_BUOC: thiếu khoá này KHÔNG làm mọi API 500, mà máy chủ trả 503 ở mọi
+ * thao tác lớp hai (không ai bật được; hết ân hạn 14 ngày thì tài khoản nội bộ không đăng nhập PIN được). Khoá phải ĐÚNG 32 byte (`openssl rand -base64 32`).
+ */
+export const KHOA_HAI_LOP = "MFA_ENCRYPTION_KEY";
 
 /** Tên khoá từ `wrangler secret list --format json` (mảng `{ name, type }`), hoặc null nếu đầu ra không đọc được. Không bao giờ đọc giá trị khoá. */
 export function parseSecretNames(output) {
@@ -341,7 +346,14 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), 
       `Chạy trong Terminal, ở thư mục tourdao-sales:\n${thieuKhoa.map((k) => `  openssl rand -base64 48 | tr -d '\\n' | npx wrangler secret put ${k}`).join("\n")}\nrồi chạy lại \`npm run trien-khai\`.`,
     );
   }
-  log(`Đã có đủ khoá: ${KHOA_BAT_BUOC.join(", ")}.`);
+  // 1d. cùng danh sách TÊN ở trên (không gọi thêm lệnh, không đọc giá trị): khoá mã hoá bảo mật hai lớp. Câu báo riêng vì hậu quả và độ dài khoá khác.
+  if (!tenKhoa.includes(KHOA_HAI_LOP)) {
+    return stop(
+      `Chưa đặt khoá ${KHOA_HAI_LOP} trên Cloudflare. Nếu triển khai lúc này thì không ai bật được bảo mật hai lớp, và từ ngày thứ 15 sau khi phát hành, mọi tài khoản nội bộ sẽ không đăng nhập bằng PIN được nữa. CHƯA có gì bị đổi trên production.`,
+      `Chạy trong Terminal, ở thư mục tourdao-sales:\n  1) openssl rand -base64 32\n     (sinh khoá đúng 32 byte; cất chuỗi in ra vào trình quản lý mật khẩu — mất khoá thì mọi người phải bật lại lớp hai)\n  2) npx wrangler secret put ${KHOA_HAI_LOP}\n     (dán chuỗi vừa sinh khi được hỏi)\nrồi chạy lại \`npm run trien-khai\`.`,
+    );
+  }
+  log(`Đã có đủ khoá: ${[...KHOA_BAT_BUOC, KHOA_HAI_LOP].join(", ")}.`);
 
   // 2. cổng chỉ-đọc: migration nào chưa áp. Lỗi 7403 ở bước CHỈ ĐỌC này được thử lại đúng MỘT lần; bước ghi (áp migration, deploy) không bao giờ tự thử lại.
   log("\n▶ Cổng chỉ-đọc: migration nào chưa áp trên production");

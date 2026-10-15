@@ -13,6 +13,7 @@ import {
   thanhTab,
   thanhTren,
   thietLapMoSan,
+  TRANG,
   type KhoaTrang,
   type NguoiXem,
   type NhomThanhBen,
@@ -29,6 +30,7 @@ import { registerServiceWorker } from "./pwa";
 import { ganThongBao } from "./thong-bao-ui";
 import { KHOA_GAN_PHIEN_THONG_BAO, thietBiTu } from "./push-ui";
 import { ganTroLy } from "./tro-ly";
+import { daiNhacHaiLop } from "../src/shared/hai-lop-hien-thi";
 
 // MỤC NÀO HIỆN CHO AI (thanh bên, thanh tab, thanh trên) KHAI Ở MỘT NƠI: src/shared/muc-giao-dien.ts — tệp này chỉ vẽ danh sách bảng đó trả về, không tự hỏi quyền.
 // Rào máy: src/muc-hien-mo-duoc-{1,2,3}.test.ts (mục hiện ⇔ đường gọi chính của trang không bị máy chủ từ chối, 1024 tập quyền), src/muc-giao-dien-hien-trang.test.ts.
@@ -81,6 +83,45 @@ function stripsEl(): HTMLElement {
 export function setMaintenanceStrip(on: boolean): void {
   document.getElementById(MAINTENANCE_STRIP_ID)?.remove();
   if (on) stripsEl().append(h("a", { class: "maint-strip", id: MAINTENANCE_STRIP_ID, href: "/account" }, "Đang ở chế độ bảo trì — chỉ tài khoản Toàn quyền dùng được"));
+}
+
+/**
+ * Dải nhắc bật bảo mật hai lớp (ADR-0074 điều 1; đặc tả §4.4, §13 dòng "Dải nhắc"): "Còn N ngày để bật bảo mật hai lớp — Bật ngay", dẫn tới mục Bảo mật đăng
+ * nhập ở trang Tôi. AI phải bật, còn bao lâu: MÁY CHỦ trả (`GET /api/account/mfa` → `required`, `graceUntil` — cùng luật `mfaBanner`); trang không tự suy
+ * từ mã quyền. Không đọc từ `/api/auth/me` (kế hoạch ghi vậy, nhưng /me đi qua MỌI trang và bị ghim đúng 3 câu đọc — src/modules/auth/nen-moi-yeu-cau.test.ts):
+ * hỏi NỀN sau khi khung đã vẽ, nhớ kết quả trong sessionStorage (một lần mỗi phiên của thẻ, theo id tài khoản); trang đăng nhập và trang Tôi (sau khi bật) xoá.
+ */
+export const KHOA_NHAC_HAI_LOP = "td_mfa_nhac";
+const MFA_STRIP_ID = "mfa-strip";
+
+function setMfaStrip(text: string | null): void {
+  document.getElementById(MFA_STRIP_ID)?.remove();
+  // Đích lấy từ bảng mục (trang Tôi — ai cũng mở được), không viết tay đường dẫn (tests/audit/muc-hien-mo-duoc-khung.mjs bài (6)); `#mfa` = mục Bảo mật đăng nhập.
+  if (text) stripsEl().append(h("a", { class: "mfa-strip", id: MFA_STRIP_ID, href: TRANG.toi.duong + "#mfa" }, text));
+}
+
+async function ganDaiNhacHaiLop(id: string): Promise<void> {
+  try {
+    // Số ngày tính lại theo giờ máy mỗi lần vẽ (từ `graceUntil`), nên nhớ cả phiên của thẻ không làm số cũ đi; `required` đổi khi bật → trang Tôi xoá.
+    let m = JSON.parse(sessionStorage.getItem(KHOA_NHAC_HAI_LOP) || "0") as { id: string; required: boolean; graceUntil: string | null } | 0;
+    if (!m || m.id !== id) {
+      const r = await api<Api.AccountMfaResponse>("/api/account/mfa");
+      sessionStorage.setItem(KHOA_NHAC_HAI_LOP, JSON.stringify((m = { id, required: r.required, graceUntil: r.graceUntil })));
+    }
+    setMfaStrip(daiNhacHaiLop(m, Date.now()));
+  } catch {
+    // sessionStorage bị chặn, mạng / máy chủ lỗi: không dải, không chặn trang
+  }
+}
+
+/** Trang Tôi gọi ngay sau khi bật bảo mật hai lớp: gỡ dải và quên kết quả đã nhớ. */
+export function xoaDaiNhacHaiLop(): void {
+  try {
+    sessionStorage.removeItem(KHOA_NHAC_HAI_LOP);
+  } catch {
+    // bỏ qua
+  }
+  setMfaStrip(null);
 }
 
 /** Huỷ thông báo màn hình khoá (Web Push) của ĐÚNG MÁY NÀY trước khi đăng xuất — ADR-0046 (thay ADR-0036 điều 6): đăng xuất
@@ -452,6 +493,7 @@ export async function initShell(): Promise<Staff> {
   // mới qua được máy chủ (ADR-0071), đúng những người đang dùng app — ẩn trợ lý với họ là sai (chủ báo 30/9 "chưa thấy trợ lý bật lên" khi bảo trì đang bật).
   // ADR-0069 điều 3: nút chỉ dựng khi máy chủ báo tài khoản được dùng (vai đang bật) — hỏi không chặn khung trang.
   void ganTroLy(staff);
+  void ganDaiNhacHaiLop(staff.id); // ADR-0074: dải nhắc bật bảo mật hai lớp — hỏi nền, không chặn khung
   return staff;
 }
 

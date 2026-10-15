@@ -12,6 +12,8 @@ interface __BaseEnv_Env {
 	LAN_GUI_SECRET: string;
 	TURNSTILE_SITE_KEY?: string;
 	TURNSTILE_SECRET_KEY?: string;
+	// Khoá AES-GCM 256 (32 byte, base64) mã hoá khoá TOTP (ADR-0074) — khai TAY như LAN_GUI_SECRET; production chỉ `wrangler secret put` (chủ tự chạy).
+	MFA_ENCRYPTION_KEY?: string;
 	PASSKEY_RP_ID?: string;
 	PASSKEY_ORIGIN?: string;
 	// Hai dòng dưới khai TAY (Bảng tin, ADR-0022; worktree thi công không có .dev.vars nên không chạy `npm run types`). `npm run types` sinh lại BANG_TIN

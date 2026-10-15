@@ -16,6 +16,10 @@ export const BI_MAT: readonly MauRoute[] = [
   { method: "POST", path: "/api/account/change-pin" },
   { method: "POST", path: "/api/account/passkeys/options" }, // thân có PIN hiện tại (bật Face ID, điều 2a) — sót ở L8, vòng 2 kiểm độc lập bắt
   { method: "POST", path: "/api/account/pin-by-passkey" },
+  // ADR-0074 (Task 5): thân có mã 6 số của ứng dụng xác thực / mã dự phòng (ít khả năng) — vé chỉ giữ trong bộ nhớ trang.
+  { method: "POST", path: "/api/account/mfa/totp/confirm" },
+  { method: "POST", path: "/api/account/mfa/recovery/regenerate" },
+  { method: "POST", path: "/api/account/mfa/remove" },
   { method: "POST", path: "/api/staff/:id/reset-pin" },
   { method: "POST", path: "/api/parties/:id/documents" },
   { method: "POST", path: "/api/parties/:id/documents/:did/renew" },
@@ -29,6 +33,9 @@ export const KHONG_VE: readonly MauRoute[] = [
   { method: "POST", path: "/api/auth/passkey/login" },
   { method: "POST", path: "/api/auth/logout" },
   { method: "POST", path: "/api/auth/session-ended" },
+  { method: "POST", path: "/api/auth/mfa/verify" }, // bước hai đăng nhập (ADR-0074): thân có mã TOTP / mã dự phòng — không vé, không lưu gì
+  { method: "POST", path: "/api/auth/mfa/enroll/start" }, // bật lại lớp hai ở bước đăng nhập (ADR-0074 đ5, Task 6): công khai, cookie chờ "enroll"
+  { method: "POST", path: "/api/auth/mfa/enroll/confirm" }, // như trên; thân có mã TOTP — không vé, không lưu gì
 ];
 
 /** Đường dẫn thật (có thể kèm `?query`) có khớp MẪU route không — `:x` khớp đúng một đoạn không rỗng. */

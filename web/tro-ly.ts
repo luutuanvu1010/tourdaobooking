@@ -126,11 +126,11 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
     ds.lastElementChild?.scrollIntoView({ block: "nearest" });
   };
 
-  const co = h("button", { class: "tl-co", type: "button", "aria-label": "Đổi cỡ khung Hỗ trợ: kéo góc này, hoặc dùng phím mũi tên" }, icon("resize", 16));
+  const co = h("button", { class: "tl-co", type: "button", "aria-label": "Đổi cỡ khung Trợ lý: kéo góc này, hoặc dùng phím mũi tên" }, icon("resize", 16));
   const keoThanh = h(
     "div",
-    { class: "tl-keo", role: "button", tabindex: 0, "aria-label": "Di chuyển khung Hỗ trợ: kéo thanh này, hoặc dùng phím mũi tên" },
-    h("h2", { id: "tl-khung-tieu-de", class: "tl-tieu-de" }, "Hỗ trợ"),
+    { class: "tl-keo", role: "button", tabindex: 0, "aria-label": "Di chuyển khung Trợ lý: kéo thanh này, hoặc dùng phím mũi tên" },
+    h("h2", { id: "tl-khung-tieu-de", class: "tl-tieu-de" }, "Trợ lý"),
   );
   const veGoc = h("button", { class: "btn btn-link tl-ve-goc", type: "button" }, "Về góc");
   const dong = h("button", { class: "btn btn-link tl-dong", type: "button", "aria-label": "Đóng" }, icon("close", 20));
@@ -353,7 +353,7 @@ export async function ganTroLy(_staff: Staff): Promise<void> {
     return;
   }
   if (!khung.duocDung || document.getElementById("tl-fab")) return;
-  const fab = h("button", { id: "tl-fab", class: "tl-fab", type: "button", "aria-haspopup": "dialog", "aria-expanded": "false" }, icon("chat", 20), h("span", null, "Hỗ trợ"));
+  const fab = h("button", { id: "tl-fab", class: "tl-fab", type: "button", "aria-haspopup": "dialog", "aria-expanded": "false" }, icon("chat", 20), h("span", null, "Trợ lý"));
   // Bấm nút khi khung đang mở = đóng khung.
   fab.addEventListener("click", () => (dongKhungDangMo ? dongKhungDangMo() : moKhung(fab, khung)));
   document.body.append(fab);

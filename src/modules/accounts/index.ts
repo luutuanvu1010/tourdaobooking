@@ -8,14 +8,18 @@ import {
   demSietTheoTap, docChinhSachPhien, docTapNhieuMay, endOneSessionStatement, laLoiChinhSachCu, luuChinhSachStatements, sietTheoTapStatements, endOtherSessionsStatement, exemptionChangeStatements, getSession, listMySessions, listSessions, toSessionDto, firstUserHandle, insertPasskeyStatement, issuePasskeyChallenge, limitChallenge, listActivePasskeys, lockedPhones, logPasskeyRejected,
   markSessionReissuedStatement, passkeyRp, readPasskeyChallenge, revokeAllPasskeysIfSuspendedStatement, reissueSessionCookie, revokeAllPasskeysStatement,
   revokePasskeyStatement, toPasskeyDto, unlockPhone, verifyPinThrottled, verifyRegistration,
+  MFA_UNAVAILABLE, allowedFactors, batTotpStatements, boMaDuPhongMoi, goYeuToStatements, isInternal, khopKhoaMoi, kiemMaHienCo, mayTinSong, mfaBanner, moiKhoaTotp,
+  quenMayStatement, quenMoiMayStatement, recoveryCountLeft, yeuToSong, lockedMfaStaffIds, staffIdsWithFactor, tatHaiLopStatements, trustedRevokeAllIfSuspendedStatement, unlockLogin,
+  trustedRevokeOfSessionStatement, trustedRevokeOnPinStatement,
 } from "../auth";
 import {
   KHONG_NHAN_VAI_NOI_BO, accountRoleCodes, canManageAccount, checkAccountChange, chuPhienTheoId, hoSoCoNhanDoiTac, moNoiBoChoHoSoCoNhanProblem, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
-  generatePin, getAccountRoleState, getStaffAccount, isValidPin, listStaffAccounts, normalizePhone, renameAccountStatements, roleChangeStatements,
+  generatePin, getAccountRoleState, getStaffAccount, isValidPin, listStaffAccounts, mfaDeadlinesOf, normalizePhone, renameAccountStatements, roleChangeStatements,
   setPermissionStatements, setPinStatement, touchCredentialsStatement, updateStaffStatement, validateFreshPin, validateNewPin, type StaffAccount,
+  MFA_ENROLL_WINDOW_MS, mfaEnrollWindowStatement, mfaGraceIfNullStatement, mfaKhiThanhNoiBo, mfaGraceOnReactivate, mfaGraceTheoId,
 } from "../staff";
 import type {
-  PartyMatchResponse, PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, SessionListResponse, SessionPolicyPreviewResponse,
+  AccountMfaResponse, MfaRecoveryCodesResponse, MfaTotpConfirmResponse, MfaTotpStartResponse, PartyMatchResponse, PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, SessionListResponse, SessionPolicyPreviewResponse,
   SessionPolicyResponse, SessionPolicyRowDto, SessionPolicySaveResponse, StaffAccountDto, StaffListResponse, StaffResponse, StaffRolesResponse, StaffSessionListResponse, StaffWithPinResponse,
 } from "../../shared/contracts";
 import { toBase64Url } from "../../shared/encoding";
@@ -27,7 +31,7 @@ import {
 import { PERMISSION_CODES, PERMISSION_LABEL, can, isPermissionCode, type PermissionCode, quyenHienThi } from "../../shared/permissions";
 import { route, type AppModule, type Ctx } from "../../shared/router";
 import {
-  TIEN_CHI_TOAN_QUYEN_MESSAGE, chamTaiKhoanTienDuoc, datLaiPinDuoc as datLaiPinDuocTheoDong, highPermissionProblem, parseRoleAssignment, permissionsLabel, roleAssignmentProblem,
+  TIEN_CHI_TOAN_QUYEN_MESSAGE, chamTaiKhoanTienDuoc, chanTatHaiLop, datLaiPinDuoc as datLaiPinDuocTheoDong, highPermissionProblem, tatHaiLopDuoc, parseRoleAssignment, permissionsLabel, roleAssignmentProblem,
   rolesLabel, taiKhoanLaiProblem, laiNoiBoBenNgoaiProblem, type RoleCode, type RoleProblem,
 } from "../../shared/roles";
 import { vnToday } from "../../shared/vn-date";
@@ -35,6 +39,10 @@ import { vnToday } from "../../shared/vn-date";
 const isUniqueViolation = (e: unknown) => e instanceof Error && /UNIQUE constraint failed: staff\.phone/.test(e.message);
 // A-1: trùng khoá passkey là một ràng buộc UNIQUE KHÁC (aut_passkey.credential_id) — isUniqueViolation ở trên KHÔNG khớp, nên phải kiểm riêng.
 const isPasskeyTaken = (e: unknown) => e instanceof Error && /UNIQUE constraint failed: aut_passkey\.credential_id/.test(e.message);
+// ADR-0074: hai lần bật cùng lúc đụng chỉ mục "một yếu tố sống mỗi loại" (hoặc băm mã dự phòng trùng) — bên thua nhận 409, không 500.
+const isMfaRace = (e: unknown) => e instanceof Error && /UNIQUE constraint failed: aut_mfa_(factor|recovery_code)\./.test(e.message);
+const MFA_CHANGED = () => error(409, "mfa_changed", "Bảo mật hai lớp vừa được đổi ở nơi khác — tải lại trang rồi thử lại.");
+const MFA_LAST_FACTOR = () => error(409, "mfa_last_factor", "Tài khoản nội bộ phải giữ ít nhất một cách xác thực.");
 const PHONE_TAKEN = () => error(409, "phone_taken", "Số điện thoại này đã có tài khoản.");
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy nhân viên.");
 const LAST_ADMIN = () => error(409, "account_rule", "Hệ thống phải còn ít nhất một quản trị viên đang hoạt động.");
@@ -117,17 +125,18 @@ function cleanPermissions(v: unknown): { value?: PermissionCode[]; error?: strin
   return { value: PERMISSION_CODES.filter((code) => v.includes(code)) };
 }
 
-const dto = (s: StaffAccount, locked: Set<string>, passkeys: Map<string, number>, roles: Map<string, RoleCode[]>): StaffAccountDto => ({
+// `locked`: khoá "sai PIN quá nhiều" (theo SĐT) HOẶC khoá "sai mã bước hai quá nhiều" (`mfa:<id>`, kế hoạch Task 6) — để nút "Mở khoá" hiện ở cả hai trường hợp.
+const dto = (s: StaffAccount, locked: Set<string>, mfaLocked: Set<string>, passkeys: Map<string, number>, roles: Map<string, RoleCode[]>): StaffAccountDto => ({
   ...s,
-  locked: locked.has(s.phone),
+  locked: locked.has(s.phone) || mfaLocked.has(s.id),
   passkeyCount: passkeys.get(s.id) ?? 0,
   roles: roles.get(s.id) ?? [],
 });
 /** DTO của MỘT tài khoản sau thao tác — đọc lại khoá đăng nhập, số Face ID, vai. */
 async function one(db: D1Database, id: string): Promise<StaffAccountDto> {
   const s = (await getStaffAccount(db, id))!;
-  const [locked, passkeys, roles] = await Promise.all([lockedPhones(db), countActivePasskeys(db), accountRoleCodes(db, [s])]);
-  return dto(s, locked, passkeys, roles);
+  const [locked, mfaLocked, passkeys, roles] = await Promise.all([lockedPhones(db), lockedMfaStaffIds(db), countActivePasskeys(db), accountRoleCodes(db, [s])]);
+  return dto(s, locked, mfaLocked, passkeys, roles);
 }
 
 /** Câu lệnh nhật ký cho thao tác quản trị trên một tài khoản. */
@@ -166,7 +175,7 @@ export interface StaffPatch {
  */
 export function patchStaffStatements(
   db: D1Database,
-  args: { target: StaffAccount; patch: StaffPatch; adminId: string; at: string; losesAdmin: boolean },
+  args: { target: StaffAccount; patch: StaffPatch; adminId: string; at: string; losesAdmin: boolean; anHanKhiKichHoat?: string | null },
 ): { statements: D1PreparedStatement[]; guardIndex: number } | null {
   const { target: t, patch, adminId, at, losesAdmin } = args;
   const needsUpdate = patch.phone !== undefined || patch.active !== undefined;
@@ -191,9 +200,41 @@ export function patchStaffStatements(
       adminAudit(db, adminId, "passkey_removed", t.id, "gỡ khi ngưng tài khoản", "changes() > 0"),
       // ADR-0075 điều 4: CUỐI lô (sau câu chốt "còn quản trị viên khác" và sau chuỗi changes() ở trên) — chỉ kết thúc phiên khi tài khoản đã thật sự ngưng.
       endAllSessionsIfSuspendedStatement(db, t.id, at, adminId),
+      // ADR-0074 Phần B Task 8 (bất biến R-AUT-MFA-3): máy được tin thu hồi 'ngung' — cùng điều kiện "đang ngưng", ngoài chuỗi changes(). Lưới
+      // credentials_changed_at ở trên chỉ touch khi gỡ được Face ID, nên không có câu này thì máy tin cũ qua được bước hai sau khi kích hoạt lại.
+      trustedRevokeAllIfSuspendedStatement(db, t.id, at, adminId),
     );
   }
+  // ADR-0074 điều 1 (kế hoạch Task 6, nhóm (b)): kích hoạt lại tài khoản nội bộ chưa có yếu tố → ân hạn 14 ngày (`anHanKhiKichHoat`, route tính bằng
+  // mfaGraceOnReactivate). CUỐI lô, không chen vào chuỗi changes(); câu tự giữ điều kiện "đang hoạt động, hạn NULL" (vòng sửa 1: hạn đã qua không gia hạn).
+  if (patch.active === true && args.anHanKhiKichHoat) stmts.push(mfaGraceIfNullStatement(db, t.id, args.anHanKhiKichHoat));
   return { statements: stmts, guardIndex: needsUpdate ? 0 : -1 };
+}
+
+/**
+ * ADR-0074 điều 1 (bổ sung chủ xác nhận 2026-10-01; kế hoạch Task 6, nhóm (a); vòng sửa 1): câu lệnh khi lần đổi quyền / vai làm tài khoản TỪ không nội bộ
+ * THÀNH nội bộ mà chưa có yếu tố sống (đọc qua auth — staff không đọc bảng aut_*). Luật thuần: mfaKhiThanhNoiBo.
+ * - hạn NULL → câu ân hạn 14 ngày;
+ * - hạn đã qua → kết thúc MỌI phiên của tài khoản (lý do 'bi_go', người làm = người đổi quyền) + nhật ký session_revoked (khuôn của POST /api/sessions/:id/revoke:
+ *   câu nhật ký ngay sau câu kết thúc, `changes() > 0`) — phiên cấp trong giai đoạn "bên ngoài" không qua cổng lớp hai.
+ * `ketThucPhien` để route đóng Bảng tin + tắt thông báo của tài khoản. Câu CHƯA chạy; người gọi đặt TRƯỚC câu phiên của exemptionChangeStatements (ketQua đọc vị
+ * trí cuối lô) và chỉ ở lô không chốt.
+ */
+async function haiLopKhiThanhNoiBo(
+  db: D1Database, t: StaffAccount, next: readonly PermissionCode[], at: string, adminId: string,
+): Promise<{ statements: D1PreparedStatement[]; ketThucPhien: boolean }> {
+  if (isInternal(t.permissions) || !isInternal(next)) return { statements: [], ketThucPhien: false };
+  const [song, han] = await Promise.all([yeuToSong(db, t.id), mfaDeadlinesOf(db, t.id)]);
+  const kq = mfaKhiThanhNoiBo(t.permissions, next, song.length > 0, han.graceUntil, Date.parse(at));
+  if (kq.anHan) return { statements: [mfaGraceIfNullStatement(db, t.id, kq.anHan)], ketThucPhien: false };
+  if (!kq.ketThucPhien) return { statements: [], ketThucPhien: false };
+  return {
+    statements: [
+      endAllSessionsStatement(db, t.id, "bi_go", at, adminId),
+      adminAudit(db, adminId, "session_revoked", t.id, "mọi phiên — lên quyền nội bộ khi chưa bật bảo mật hai lớp và đã hết ân hạn", "changes() > 0"),
+    ],
+    ketThucPhien: true,
+  };
 }
 
 /** Route "staff" luôn có mã phiên (router đọc từ sổ phiên — ADR-0075); thiếu là bất thường → coi như chưa đăng nhập, không cấp lại cookie. */
@@ -220,6 +261,7 @@ export const accountsModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "pin_changed", at, targetType: "staff", targetId: staff.id }),
         endOtherSessionsStatement(env.DB, staff.id, sessionId, "doi_pin", at, staff.id), // ADR-0075 điều 5: máy khác bị đăng xuất trong cùng lô
         markSessionReissuedStatement(env.DB, sessionId, at, staff.id),
+        trustedRevokeOnPinStatement(env.DB, staff.id, "doi_pin", at, staff.id), // đặc tả hai lớp §6.3: mọi máy được tin bị thu hồi
       ]);
       // BẢNG TIN (KN-2): PIN vừa đổi — đóng các kết nối cũ của chính tài khoản này (thiết bị khác sẽ phải đăng nhập lại rồi mới nối lại được).
       dongBangTin({ staffId: staff.id, tatThongBao: true });
@@ -371,6 +413,7 @@ export const accountsModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "pin_set_by_passkey", at, targetType: "staff", targetId: staff.id }),
         endOtherSessionsStatement(env.DB, staff.id, sessionId, "doi_pin", at, staff.id), // ADR-0075 điều 5
         markSessionReissuedStatement(env.DB, sessionId, at, staff.id),
+        trustedRevokeOnPinStatement(env.DB, staff.id, "doi_pin", at, staff.id), // đặc tả hai lớp §6.3
       ]);
       await unlockPhone(env.DB, staff.phone); // chủ quyết 2026-09-23: có PIN mới thì gỡ khoá "sai PIN quá nhiều", như admin reset-pin
       dongBangTin({ staffId: staff.id, tatThongBao: true }); // BẢNG TIN (KN-2): PIN vừa đổi.
@@ -382,12 +425,20 @@ export const accountsModule: AppModule = {
     // ---- Danh sách / tạo thủ công ------------------------------------------------
     route("GET", "/api/staff", "accounts", async ({ env, staff: admin }) => {
       if (!can(admin, "account.view")) return NOT_ACCOUNT_VIEW();
-      const [staff, locked, passkeys] = await Promise.all([listStaffAccounts(env.DB), lockedPhones(env.DB), countActivePasskeys(env.DB)]);
+      const [staff, locked, mfaLocked, passkeys, coYeuTo, anHan] = await Promise.all([
+        listStaffAccounts(env.DB), lockedPhones(env.DB), lockedMfaStaffIds(env.DB), countActivePasskeys(env.DB), staffIdsWithFactor(env.DB), mfaGraceTheoId(env.DB),
+      ]);
       const roles = await accountRoleCodes(env.DB, staff);
       const seesHidden = can(admin, "admin.manage.superadmin"); // ADR-0042: Toàn quyền là vai ẩn với người khác
-      // ADR-0090 đ2: cờ theo dòng tính trên quyền THẬT (trước khi che Toàn quyền thành Quản trị).
+      // ADR-0090 đ2: cờ theo dòng tính trên quyền THẬT (trước khi che Toàn quyền thành Quản trị). Kế hoạch Task 6: nhãn hai lớp + cờ "tắt lớp hai được" cũng vậy.
       return json({
-        staff: staff.map((s) => ({ ...dto(s, locked, passkeys, roles), permissions: quyenHienThi(s.permissions, seesHidden), datLaiPinDuoc: datLaiPinDuocTheoDong(admin, s) })),
+        staff: staff.map((s) => {
+          const daBat = coYeuTo.has(s.id);
+          return {
+            ...dto(s, locked, mfaLocked, passkeys, roles), permissions: quyenHienThi(s.permissions, seesHidden), datLaiPinDuoc: datLaiPinDuocTheoDong(admin, s),
+            canResetMfa: tatHaiLopDuoc(admin, s), mfa: { enabled: daBat, graceUntil: daBat || !isInternal(s.permissions) ? null : (anHan.get(s.id) ?? null) },
+          };
+        }),
       } satisfies StaffListResponse);
     }),
 
@@ -511,7 +562,9 @@ export const accountsModule: AppModule = {
 
       const now = Date.now(); // MỘT mốc cho cả lần sửa: `at` (ISO) và, khi ngưng tài khoản, `credentials_changed_at` = Date.parse(at) = now
       const at = new Date(now).toISOString();
-      const built = patchStaffStatements(db, { target: t, patch, adminId: admin.id, at, losesAdmin });
+      // Kế hoạch Task 6, nhóm (b): kích hoạt lại → ân hạn 14 ngày nếu nội bộ, chưa có yếu tố, hạn đang NULL (câu ghi tự bỏ qua khi đã có hạn — còn hay đã qua).
+      const anHanKhiKichHoat = patch.active === true ? mfaGraceOnReactivate(t.permissions, (await yeuToSong(db, t.id)).length > 0, now) : null;
+      const built = patchStaffStatements(db, { target: t, patch, adminId: admin.id, at, losesAdmin, anHanKhiKichHoat });
       if (!built) return error(409, "no_party", "Tài khoản này chưa có hồ sơ (đang di trú dữ liệu). Thử lại sau ít phút.");
       let results;
       try {
@@ -560,9 +613,12 @@ export const accountsModule: AppModule = {
       // (gỡ ADMIN) thì câu phiên chạy ở lô THỨ HAI, chỉ khi lô quyền đã thắng câu chốt; không có câu chốt thì nối cuối lô duy nhất (nguyên tử).
       const nhieuMay = await docTapNhieuMay(db);
       const phien = exemptionChangeStatements(db, { staffId: t.id, at, by: admin.id, nhieuMay, before: { permissions: t.permissions, roles: [] }, after: { permissions: next, roles: [] } });
+      // ADR-0074 điều 1 (kế hoạch Task 6, nhóm (a)): bên ngoài → nội bộ, chưa có yếu tố → ân hạn 14 ngày. Chỉ ở lô KHÔNG chốt (lô chốt = gỡ ADMIN ⇒ trước đã nội bộ
+      // ⇒ không có ân hạn — bài staff/rules.test.ts); đứng TRƯỚC câu phiên (ketQua đọc vị trí cuối lô).
+      const haiLop = await haiLopKhiThanhNoiBo(db, t, next, at, admin.id);
       const stmts = [
         ...(plan.guarded ? [plan.guarded] : []), adminAudit(db, admin.id, "permission_changed", t.id, detail, plan.guarded ? "changes() > 0" : undefined), ...plan.rest,
-        ...(plan.guarded ? [] : phien.statements),
+        ...(plan.guarded ? [] : [...haiLop.statements, ...phien.statements]),
       ];
       let results: D1Result[];
       let loPhien: D1Result[] = [];
@@ -579,7 +635,9 @@ export const accountsModule: AppModule = {
       const matMien = phien.ketQua(loPhien);
       // ADR-0075 điều 6: máy vừa mất phiên vì mất miễn — đóng Bảng tin của đúng các phiên đó, tắt thông báo của tài khoản trừ máy được giữ.
       if (matMien.endedSessionIds.length) ctx.dongBangTin({ staffId: t.id, sessionIds: matMien.endedSessionIds, giuPhien: matMien.keptSessionId });
-      ctx.dongBangTin({ staffId: t.id, tatThongBao: false }); // BẢNG TIN (KN-2): quyền vừa đổi. ADR-0046: đổi quyền KHÔNG tắt thông báo điện thoại.
+      // Vòng sửa 1 Task 6: lên nội bộ khi hết ân hạn mà chưa bật lớp hai — mọi phiên vừa kết thúc trong lô: đóng Bảng tin + tắt thông báo như thao tác bảo mật.
+      if (!plan.guarded && haiLop.ketThucPhien) ctx.dongBangTin({ staffId: t.id, tatThongBao: true });
+      else ctx.dongBangTin({ staffId: t.id, tatThongBao: false }); // BẢNG TIN (KN-2): quyền vừa đổi. ADR-0046: đổi quyền KHÔNG tắt thông báo điện thoại.
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);
     }),
 
@@ -633,6 +691,7 @@ export const accountsModule: AppModule = {
         before: { permissions: t.permissions, roles: state.roles }, after: { permissions: change.next, roles: parsed.value.roles },
       });
       let cuoi: D1Result[] = [];
+      let ketThucPhienHaiLop = false;
       try {
         if (change.permissions.guarded) {
           // Gỡ ADMIN: câu chốt "còn quản trị viên khác" ĐẦU batch; nhật ký + quyền + chỉnh tay mang cùng điều kiện. Vai (module parties) không mang được
@@ -646,9 +705,14 @@ export const accountsModule: AppModule = {
           if ((results[0]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
           if (change.roleStatements.length || phien.statements.length) cuoi = await db.batch([...change.roleStatements, ...phien.statements]);
         } else {
+          // ADR-0074 điều 1 (kế hoạch Task 6, nhóm (a)): vai bên ngoài → vai nội bộ, chưa có yếu tố → ân hạn 14 ngày; TRƯỚC câu phiên (ketQua đọc vị trí cuối lô).
+          // Nhánh chốt ở trên (gỡ ADMIN) không cần: trước đã nội bộ.
+          const haiLop = await haiLopKhiThanhNoiBo(db, t, change.next, at, admin.id);
           cuoi = await db.batch([
-            ...change.roleStatements, ...change.adjustmentStatements, ...change.permissions.rest, adminAudit(db, admin.id, "account_roles_changed", t.id, detail), ...phien.statements,
+            ...change.roleStatements, ...change.adjustmentStatements, ...change.permissions.rest, adminAudit(db, admin.id, "account_roles_changed", t.id, detail),
+            ...haiLop.statements, ...phien.statements,
           ]);
+          ketThucPhienHaiLop = haiLop.ketThucPhien;
         }
       } catch (e) {
         // Lô hai lỗi ⇒ quyền/vai đã đổi, phiên thừa sống tới lần đăng nhập sau; R-AUT-SESSION-3 thấy.
@@ -659,7 +723,9 @@ export const accountsModule: AppModule = {
       const matMien = phien.ketQua(cuoi);
       // ADR-0075 điều 6: máy vừa mất phiên vì mất miễn — đóng Bảng tin của đúng các phiên đó, tắt thông báo của tài khoản trừ máy được giữ.
       if (matMien.endedSessionIds.length) ctx.dongBangTin({ staffId: t.id, sessionIds: matMien.endedSessionIds, giuPhien: matMien.keptSessionId });
-      ctx.dongBangTin({ staffId: t.id, tatThongBao: false }); // BẢNG TIN (KN-2): vai/quyền vừa đổi. ADR-0046: đổi vai KHÔNG tắt thông báo điện thoại.
+      // Vòng sửa 1 Task 6: lên nội bộ khi hết ân hạn mà chưa bật lớp hai — mọi phiên vừa kết thúc trong lô: đóng Bảng tin + tắt thông báo như thao tác bảo mật.
+      if (ketThucPhienHaiLop) ctx.dongBangTin({ staffId: t.id, tatThongBao: true });
+      else ctx.dongBangTin({ staffId: t.id, tatThongBao: false }); // BẢNG TIN (KN-2): vai/quyền vừa đổi. ADR-0046: đổi vai KHÔNG tắt thông báo điện thoại.
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);
     }),
 
@@ -681,6 +747,7 @@ export const accountsModule: AppModule = {
         revokeAllPasskeysStatement(db, t.id, at, ctx.staff.id), // ADR-0016 điều 6: đặt lại PIN gỡ mọi Face ID
         adminAudit(db, ctx.staff.id, "passkey_removed", t.id, "gỡ khi đặt lại PIN", "changes() > 0"),
         endAllSessionsStatement(db, t.id, "dat_lai_pin", at, ctx.staff.id), // ADR-0075 điều 4: mọi máy của tài khoản bị đăng xuất trong cùng lô
+        trustedRevokeOnPinStatement(db, t.id, "dat_lai_pin", at, ctx.staff.id), // đặc tả hai lớp §6.3: mọi máy được tin bị thu hồi
       ]);
       await unlockPhone(db, t.phone);
       ctx.dongBangTin({ staffId: t.id, tatThongBao: true }); // BẢNG TIN (KN-2): PIN vừa được đặt lại.
@@ -716,9 +783,41 @@ export const accountsModule: AppModule = {
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
       if (!mayManage(ctx.staff, t)) return NOT_MANAGER();
-      await unlockPhone(db, t.phone);
+      await unlockLogin(db, t.phone, t.id); // kế hoạch Task 6, nhóm (c): gỡ CẢ khoá sai PIN lẫn khoá sai mã bước hai (`mfa:<id>`), cùng phạm vi quyền như cũ
       await adminAudit(db, ctx.staff.id, "login_unlocked", t.id).run();
       return json({ ok: true });
+    }),
+
+    // ---- Tắt bảo mật hai lớp của người khác (ADR-0074 điều 5; đặc tả §4.5; kế hoạch Phần B Task 6) — mở rộng hộp đặt lại của ADR-0042. Cổng như đặt lại PIN:
+    // admin.manage → account.access.manage (Nhân sự dừng ở đây — ADR-0071 đ1e) → không tự tắt của mình (409) → cấp dưới → người bị tắt giữ Quản trị/Toàn quyền thì
+    // chỉ Toàn quyền (ADR-0074 đ5) → tài khoản có quyền tiền chỉ Toàn quyền (ADR-0090 đ1 iv). Cùng các cổng với cờ `canResetMfa` (tatHaiLopDuoc). MỘT lô:
+    // yếu tố, mã dự phòng, máy tin, mọi phiên, bộ đếm bước hai (auth) → touch credentials_changed_at → cửa sổ bật lại 24 giờ (chỉ tài khoản NỘI BỘ — bên ngoài
+    // không bắt buộc, ADR-G1 chưa duyệt) → nhật ký mfa_reset (không chi tiết). Không câu nào đòi câu trước đổi dòng: tài khoản chưa có yếu tố vẫn tắt được (§4.4).
+    route("POST", "/api/staff/:id/mfa-reset", "admin", async (ctx) => {
+      if (!can(ctx.staff, "admin.manage")) return NOT_ADMIN();
+      if (!can(ctx.staff, "account.access.manage")) return NOT_SUPER_ONLY(); // ADR-0071 điều 1e: HCNS không làm hỗ trợ đăng nhập
+      const db = ctx.env.DB;
+      const t = await target(ctx);
+      if (!t) return NOT_FOUND();
+      // MỘT hàm cổng với cờ canResetMfa (chanTatHaiLop, src/shared/roles.ts) — TRƯỚC mọi ghi. Hai lý do đầu đã chặn ở trên (giữ cho bài cổng admin của router).
+      const chan = chanTatHaiLop(ctx.staff, t);
+      if (chan === "khong_quan_tri") return NOT_ADMIN();
+      if (chan === "khong_ho_tro_dang_nhap") return NOT_SUPER_ONLY();
+      if (chan === "chinh_minh") return error(409, "self_mfa_reset", "Không tự tắt bảo mật hai lớp của chính mình ở đây. Vào trang Tôi, mục “Bảo mật đăng nhập”.");
+      if (chan === "khong_cap_duoi") return NOT_MANAGER();
+      if (chan === "chi_toan_quyen") return error(403, "forbidden", "Chỉ Toàn quyền tắt được bảo mật hai lớp của Quản trị/Toàn quyền."); // ADR-0074 đ5
+      if (chan === "quyen_tien") return error(403, "forbidden", TIEN_CHI_TOAN_QUYEN_MESSAGE); // ADR-0090 đ1(iv)
+      const now = Date.now();
+      const at = new Date(now).toISOString();
+      await db.batch([
+        ...tatHaiLopStatements(db, t.id, at, ctx.staff.id),
+        endAllSessionsStatement(db, t.id, "tat_hai_lop", at, ctx.staff.id), // ADR-0075 điều 4: mọi máy của tài khoản bị đăng xuất trong cùng lô
+        touchCredentialsStatement(db, t.id, now, false), // lưới: cookie chờ, máy tin, phiên cấp trước lúc này đều hết hiệu lực
+        mfaEnrollWindowStatement(db, t.id, isInternal(t.permissions) ? new Date(now + MFA_ENROLL_WINDOW_MS).toISOString() : null),
+        adminAudit(db, ctx.staff.id, "mfa_reset", t.id), // KHÔNG email, mã, chi tiết
+      ]);
+      ctx.dongBangTin({ staffId: t.id, tatThongBao: true }); // BẢNG TIN (KN-2): mọi phiên của người bị tắt vừa kết thúc.
+      return json({ staff: await one(db, t.id) } satisfies StaffResponse);
     }),
 
     // ---- Sổ phiên đăng nhập (ADR-0075 điều 7–8). Ở module accounts vì gỡ phiên ghi nhật ký trong cùng lô (auth không import audit). ----
@@ -728,6 +827,117 @@ export const accountsModule: AppModule = {
       const [rows, owners] = await Promise.all([listMySessions(env.DB, staff.id), chuPhienTheoId(env.DB, [staff.id])]);
       const cred = owners.get(staff.id)?.credentialsChangedAt ?? null;
       return json({ sessions: rows.map((r) => toSessionDto(r, cred, nowIso, sessionId)) } satisfies SessionListResponse);
+    }),
+
+    // ---- Bảo mật hai lớp của CHÍNH MÌNH (ADR-0074 điều 5; đặc tả §4.3). Ở module accounts vì lô ghi kèm nhật ký (auth không import audit). Tự phục vụ: id lấy
+    // từ phiên, không nhận tham số người. Khoá TOTP thô chỉ trả MỘT lần ở bước bắt đầu; mã dự phòng thô chỉ trả một lần lúc tạo; nhật ký chỉ ghi loại yếu tố.
+    route("GET", "/api/account/mfa", "staff", async ({ env, staff, sessionId }) => {
+      const nowIso = new Date().toISOString();
+      const [factors, recoveryLeft, devices, han, phien] = await Promise.all([
+        yeuToSong(env.DB, staff.id), recoveryCountLeft(env.DB, staff.id), mayTinSong(env.DB, staff.id, nowIso), mfaDeadlinesOf(env.DB, staff.id),
+        sessionId ? getSession(env.DB, sessionId) : Promise.resolve(null),
+      ]);
+      const banner = mfaBanner({ perms: staff.permissions, hasFactor: factors.length > 0, trusted: false, graceUntil: han.graceUntil, enrollUntil: han.enrollUntil, nowIso });
+      const mayNay = phien?.staff_id === staff.id ? phien.trusted_device_id : null;
+      return json({
+        required: banner.required, graceUntil: banner.graceUntil,
+        factors: factors.map((f) => ({ kind: f.kind, createdAt: f.createdAt })),
+        allowed: allowedFactors(staff.permissions), recoveryLeft,
+        trustedDevices: devices.map((d) => ({ id: d.id, label: d.label, createdAt: d.createdAt, lastUsedAt: d.lastUsedAt, thisDevice: mayNay !== null && d.id === mayNay })),
+      } satisfies AccountMfaResponse);
+    }),
+
+    // Bước 1 bật ứng dụng xác thực: KHÔNG ghi CSDL — khoá mới đi trong phiếu bật (đã mã hoá, ký, 10 phút). Thiếu khoá máy chủ → 503 + log mfa_key_missing.
+    route("POST", "/api/account/mfa/totp/start", "staff", async ({ env, staff }) => {
+      const r = await moiKhoaTotp(env, staff.id, staff.fullName.trim() || "Tài khoản", Date.now()); // nhãn là TÊN, không SĐT
+      return r ? json(r satisfies MfaTotpStartResponse) : MFA_UNAVAILABLE();
+    }),
+
+    // Bước 2: mã của khoá mới đúng → [đã có yếu tố: mã của yếu tố hiện có (TOTP hoặc mã dự phòng), có hạn mức] → MỘT lô: kết thúc TOTP cũ (nếu thay) → chèn
+    // TOTP mới (tiêu bước vừa khớp) → (yếu tố đầu tiên) thu hồi mã cũ + 10 mã mới → nhật ký mfa_enabled.
+    route("POST", "/api/account/mfa/totp/confirm", "staff", async ({ request, env, staff }) => {
+      const body = await readJson(request);
+      const code = typeof body?.code === "string" ? body.code.trim().slice(0, 32) : "";
+      const now = Date.now();
+      const at = new Date(now).toISOString();
+      const moi = await khopKhoaMoi(env, staff.id, body?.setupToken, code, now);
+      if (moi.kq === "unavailable") return MFA_UNAVAILABLE();
+      if (moi.kq === "expired") return error(400, "setup_expired", "Phiên bật đã hết hạn (10 phút). Bấm “Bật ứng dụng xác thực” lại để lấy khoá mới.");
+      if (moi.kq !== "ok") return error(401, "invalid_code", "Mã không đúng. Nhập mã 6 số mới nhất trên ứng dụng xác thực (kiểm giờ tự động trên điện thoại nếu sai nhiều lần).");
+      const song = await yeuToSong(env.DB, staff.id);
+      if (song.length > 0) {
+        if (typeof body?.currentCode !== "string" || !body.currentCode.trim()) {
+          return error(400, "current_code_required", "Bảo mật hai lớp đang bật: nhập mã hiện tại từ ứng dụng xác thực (hoặc một mã dự phòng) để đổi sang khoá mới.");
+        }
+        const chan = await kiemMaHienCo(env, staff.id, body.currentCode, now, "TOTP_HOAC_DU_PHONG");
+        if (chan) return chan;
+      }
+      const ma = song.length === 0 ? await boMaDuPhongMoi(env.DB, staff.id, at) : null;
+      try {
+        await env.DB.batch([
+          ...batTotpStatements(env.DB, { staffId: staff.id, thayId: song.find((f) => f.kind === "TOTP")?.id ?? null, id: crypto.randomUUID(), secretEnc: moi.secretEnc, step: moi.step, at }),
+          ...(ma ? ma.statements : []),
+          auditStatement(env.DB, { staffId: staff.id, action: "mfa_enabled", at, targetType: "staff", targetId: staff.id, detail: "TOTP" }),
+        ]);
+      } catch (e) {
+        if (isMfaRace(e)) return MFA_CHANGED();
+        throw e;
+      }
+      return json((ma ? { recoveryCodes: ma.codes } : {}) satisfies MfaTotpConfirmResponse);
+    }),
+
+    // Tạo bộ mã dự phòng mới: cần mã TOTP hiện tại (có hạn mức). Lô: thu hồi bộ cũ → 10 mã mới → nhật ký.
+    route("POST", "/api/account/mfa/recovery/regenerate", "staff", async ({ request, env, staff }) => {
+      if (!(await yeuToSong(env.DB, staff.id)).some((f) => f.kind === "TOTP")) return error(409, "mfa_off", "Chưa bật ứng dụng xác thực nên chưa có mã dự phòng để tạo lại.");
+      const now = Date.now();
+      const at = new Date(now).toISOString();
+      const chan = await kiemMaHienCo(env, staff.id, (await readJson(request))?.code, now, "TOTP");
+      if (chan) return chan;
+      const ma = await boMaDuPhongMoi(env.DB, staff.id, at);
+      await env.DB.batch([
+        ...ma.statements,
+        auditStatement(env.DB, { staffId: staff.id, action: "mfa_recovery_regenerated", at, targetType: "staff", targetId: staff.id, detail: "TOTP" }),
+      ]);
+      return json({ recoveryCodes: ma.codes } satisfies MfaRecoveryCodesResponse);
+    }),
+
+    // Gỡ một yếu tố: tài khoản nội bộ không gỡ được yếu tố cuối (kiểm TRƯỚC khi kiểm mã — không tiêu lượt thử; câu SQL giữ một làm lưới khi chạy đua). Cần mã
+    // của yếu tố hiện có. Gỡ yếu tố cuối (chỉ tài khoản bên ngoài) thì thu hồi luôn mã dự phòng và máy được tin.
+    route("POST", "/api/account/mfa/remove", "staff", async ({ request, env, staff }) => {
+      const body = await readJson(request);
+      const kind = body?.kind;
+      if (kind !== "TOTP" && kind !== "EMAIL") return error(400, "invalid_input", "Cần chọn cách xác thực cần gỡ.");
+      const song = await yeuToSong(env.DB, staff.id);
+      const f = song.find((x) => x.kind === kind);
+      if (!f) return error(404, "not_found", "Chưa bật cách xác thực này.");
+      const noiBo = isInternal(staff.permissions);
+      if (noiBo && song.length <= 1) return MFA_LAST_FACTOR();
+      const now = Date.now();
+      const at = new Date(now).toISOString();
+      const chan = await kiemMaHienCo(env, staff.id, body?.code, now, "TOTP_HOAC_DU_PHONG");
+      if (chan) return chan;
+      const go = goYeuToStatements(env.DB, { staffId: staff.id, id: f.id, giuMot: noiBo, cuoi: !noiBo && song.length === 1, at });
+      const [r] = await env.DB.batch([
+        go.goStatement,
+        auditStatement(env.DB, { staffId: staff.id, action: "mfa_removed", at, targetType: "staff", targetId: staff.id, detail: kind }, "changes() > 0"),
+        ...go.sauKhiGoCuoi,
+      ]);
+      if ((r!.meta.changes ?? 0) === 0) return noiBo ? MFA_LAST_FACTOR() : MFA_CHANGED();
+      return json({ ok: true });
+    }),
+
+    // Quên máy được tin của CHÍNH MÌNH (một máy / mọi máy): lần đăng nhập PIN sau trên máy đó bị hỏi mã. Máy không phải của mình / đã quên → 404.
+    route("POST", "/api/account/mfa/trusted/:id/forget", "staff", async ({ env, staff, params }) => {
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return error(404, "not_found", "Không tìm thấy máy này.");
+      const r = await quenMayStatement(env.DB, id, staff.id, new Date().toISOString()).run();
+      if ((r.meta.changes ?? 0) === 0) return error(404, "not_found", "Không tìm thấy máy này.");
+      return json({ ok: true });
+    }),
+
+    route("POST", "/api/account/mfa/trusted/forget-all", "staff", async ({ env, staff }) => {
+      const r = await quenMoiMayStatement(env.DB, staff.id, new Date().toISOString()).run();
+      return json({ revoked: r.meta.changes ?? 0 });
     }),
 
     // IT/Toàn quyền: sổ phiên của mọi tài khoản (tối đa 200 dòng mới nhất), lọc `staffId` và `live=1` (đang hiệu lực — kể cả lưới credentials_changed_at).
@@ -767,9 +977,10 @@ export const accountsModule: AppModule = {
         endOneSessionStatement(db, row.id, "bi_go", at, ctx.staff.id),
         // ADR-0075 điều 8: ai gỡ (staff_id), tài khoản bị gỡ (target), mã phiên (detail) — KHÔNG IP/User-Agent. Chỉ ghi khi câu trên thật sự kết thúc phiên.
         auditStatement(db, { staffId: ctx.staff.id, action: "session_revoked", at, targetType: "staff", targetId: row.staff_id, detail: `phiên ${row.id}` }, "changes() > 0"),
+        // ADR-0075 điều 6c: bỏ máy được tin gắn với phiên này (lần sau phải nhập mã) — chỉ khi câu đầu lô thật sự kết thúc phiên; nhật ký không mang mã máy.
+        trustedRevokeOfSessionStatement(db, row.id, at, ctx.staff.id),
       ]);
       if ((res[0]?.meta.changes ?? 0) === 0) return error(409, "already_ended", "Phiên này đã kết thúc.");
-      // Phần B: bỏ máy được tin gắn với row.trusted_device_id (ADR-0075 điều 6c).
       // ADR-0075 điều 6(a)(b): đóng Bảng tin và tắt thông báo màn hình khoá CHỈ của đúng máy bị gỡ (đăng ký mang mã phiên này, lý do bi-go) — máy khác của
       // tài khoản (Toàn quyền nhiều máy) không đụng. Đăng ký cũ session_id NULL (trước phát hành) không biết thuộc máy nào → không tắt ở đây (lần đăng nhập
       // sau của tài khoản một máy tắt nó — tat_may_tru_phien).

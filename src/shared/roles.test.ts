@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { EXTERNAL_PERMISSIONS, PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 import {
-  ROLES, ROLE_CODES, SUPER_ADMIN_GRANTED, TIEN_CHI_TOAN_QUYEN_MESSAGE, canManageAccount, chamTaiKhoanTienDuoc, datLaiPinDuoc, defaultPermissions, effectivePermissions, groupOf, highPermissionProblem, isRoleCode, laiNoiBoBenNgoaiProblem, parseRoleAssignment,
+  ROLES, ROLE_CODES, SUPER_ADMIN_GRANTED, TIEN_CHI_TOAN_QUYEN_MESSAGE, canManageAccount, chamTaiKhoanTienDuoc, chanTatHaiLop, datLaiPinDuoc, tatHaiLopDuoc, defaultPermissions, effectivePermissions, groupOf, highPermissionProblem, isRoleCode, laiNoiBoBenNgoaiProblem, parseRoleAssignment,
   permissionsLabel, roleAssignmentProblem, rolesLabel, taiKhoanLaiProblem, tuDoiQuyenCuaMinh, vaiTaiXeDoiTacXungDot, type RoleAssignment, type RoleCode,
 } from "./roles.ts";
 
@@ -367,4 +367,29 @@ test("ADR-0090 đ1(i): datLaiPinDuoc — Quản trị không đặt lại PIN t�
   assert.equal(chamTaiKhoanTienDuoc(QT, BH), true);
   assert.equal(chamTaiKhoanTienDuoc(TQ, KT), true);
   assert.equal(TIEN_CHI_TOAN_QUYEN_MESSAGE, TIEN);
+});
+
+test("ADR-0074 đ5 (Task 6, vòng sửa 1 — M1b): chanTatHaiLop theo đúng thứ tự cổng; cổng 'Quản trị/Toàn quyền chỉ Toàn quyền' đứng được MỘT MÌNH khi luật cấp dưới bị nới", () => {
+  const QT = { id: "qt", permissions: ["ADMIN"] as PermissionCode[] };
+  const QT2 = { id: "qt2", permissions: ["ADMIN"] as PermissionCode[] };
+  const TQ = { id: "tq", permissions: ["SUPER_ADMIN"] as PermissionCode[] };
+  const TQ2 = { id: "tq2", permissions: ["SUPER_ADMIN"] as PermissionCode[] };
+  const NS = { id: "ns", permissions: ["HR"] as PermissionCode[] };
+  const BH = { id: "bh", permissions: ["SALES"] as PermissionCode[] };
+  const KT = { id: "kt", permissions: ["ACCOUNTING"] as PermissionCode[] };
+  assert.equal(chanTatHaiLop(BH, QT), "khong_quan_tri");
+  assert.equal(chanTatHaiLop(NS, BH), "khong_quan_tri", "Nhân sự không làm hỗ trợ đăng nhập (ADR-0071 đ1e) — không giữ cả hai ô");
+  assert.equal(chanTatHaiLop(QT, QT), "chinh_minh");
+  assert.equal(chanTatHaiLop(QT, QT2), "khong_cap_duoi");
+  assert.equal(chanTatHaiLop(QT, KT), "quyen_tien");
+  assert.equal(chanTatHaiLop(QT, BH), null);
+  assert.equal(chanTatHaiLop(TQ, QT2), null);
+  assert.equal(chanTatHaiLop(TQ, TQ2), null);
+  // Luật cấp dưới giả (nới hết) — cổng ADR-0074 đ5 vẫn phải tự chặn Quản trị tắt của Quản trị / Toàn quyền.
+  const noiHet = () => true;
+  assert.equal(chanTatHaiLop(QT, QT2, noiHet), "chi_toan_quyen");
+  assert.equal(chanTatHaiLop(QT, TQ, noiHet), "chi_toan_quyen");
+  assert.equal(chanTatHaiLop(TQ, QT2, noiHet), null);
+  assert.equal(tatHaiLopDuoc(QT, BH), true);
+  assert.equal(tatHaiLopDuoc(QT, QT2), false);
 });

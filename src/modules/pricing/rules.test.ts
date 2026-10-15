@@ -10,7 +10,7 @@ const VAI = new Set(["TRAVEL_AGENCY", "GUIDE_FREELANCE", "HOTEL_RECEPTION", "TAX
 const DL_A: NguoiHuong = { loai: "HUONG", partyId: "dl-a", vai: ["TRAVEL_AGENCY"] };
 let k = 0;
 const muc = (o: Partial<DongMuc>): DongMuc => ({
-  id: `m${++k}`, targetPartyId: null, targetRoleCode: "TRAVEL_AGENCY", scope: "ALL", catalogCode: null, groupCode: null, kind: "RATE", rateBp: 1000, perPaxAmount: null,
+  id: `m${++k}`, targetPartyId: null, targetRoleCode: "TRAVEL_AGENCY", targetTierCode: null, scope: "ALL", catalogCode: null, groupCode: null, kind: "RATE", rateBp: 1000, perPaxAmount: null,
   validFrom: "2026-01-01", validTo: null, ...o,
 });
 const dk = (o: Partial<DongDieuKhoan>): DongDieuKhoan => ({
@@ -101,6 +101,128 @@ test("chonMuc: hai vai cùng bậc, cùng giá trị 1000 nhưng khác kiểu (t
 test("chonMuc: dịch vụ Chưa phân loại chỉ khớp bậc dịch vụ hoặc mọi dịch vụ", () => {
   const ds = [muc({ scope: "GROUP", groupCode: "VE", rateBp: 500 })];
   assert.deepEqual(chonMuc({ nguoiHuong: DL_A, catalogCode: "MOI", groupCode: null, ngay: "2026-10-10", dong: ds }), { trangThai: "MISSING", lyDo: "NO_RULE" });
+});
+
+// ===== ADR-0117 lần 2: chín bậc — bậc 7–9 là mức TA (dòng đích mức) của các mức mà loại hồ sơ đang mang được GẮN ở ngày tra. =====
+const DICH_MUC = { targetPartyId: null, targetRoleCode: null } as const;
+const mucTa = (tier: string, o: Partial<DongMuc>): DongMuc => muc({ ...DICH_MUC, targetTierCode: tier, ...o });
+const gan = (roleTypeCode: string, tierCode: string, validFrom = "2026-01-01", validTo: string | null = null) => ({ roleTypeCode, tierCode, validFrom, validTo });
+const NGAY = "2026-10-10";
+const chon = (nh: NguoiHuong, ds: DongMuc[], g: ReturnType<typeof gan>[], code: string | null = "KHAC", group: string | null = "VE", ngay = NGAY) =>
+  chonMuc({ nguoiHuong: nh, catalogCode: code, groupCode: group, ngay, dong: ds, gan: g });
+const tomTat = (r: ReturnType<typeof chonMuc>) => (r.trangThai === "SET" ? { bac: r.bac, id: r.dong.id, bp: r.dong.rateBp } : r);
+
+test("chonMuc chín bậc (bảng ca): mỗi bậc thắng đúng khi các bậc dưới nó vắng", () => {
+  const g = [gan("TRAVEL_AGENCY", "TA1")];
+  const dongTa = [
+    mucTa("TA1", { id: "ta-dv", scope: "SERVICE", catalogCode: "HONTAM", rateBp: 1500 }),
+    mucTa("TA1", { id: "ta-nhom", scope: "GROUP", groupCode: "DTH", rateBp: 1400 }),
+    mucTa("TA1", { id: "ta-all", scope: "ALL", rateBp: 1300 }),
+  ];
+  const dongDt = muc({ id: "dt-dv", targetPartyId: "dl-a", targetRoleCode: null, scope: "SERVICE", catalogCode: "DT", rateBp: 2000 });
+  const dongDtNhom = muc({ id: "dt-nhom", targetPartyId: "dl-a", targetRoleCode: null, scope: "GROUP", groupCode: "G1", rateBp: 2100 });
+  const dongDtAll = muc({ id: "dt-all", targetPartyId: "dl-a", targetRoleCode: null, scope: "ALL", rateBp: 2200 });
+  const dongVaiDv = muc({ id: "vai-dv", scope: "SERVICE", catalogCode: "VV", rateBp: 900 });
+  const dongVaiNhom = muc({ id: "vai-nhom", scope: "GROUP", groupCode: "G2", rateBp: 800 });
+  const dongVaiAll = muc({ id: "vai-all", scope: "ALL", rateBp: 700 });
+  const cat = [...dongTa, dongDt, dongDtNhom, dongDtAll, dongVaiDv, dongVaiNhom, dongVaiAll];
+  const hang: [string, DongMuc[], string, string | null, number, string][] = [
+    ["bậc 1", cat, "DT", null, 1, "dt-dv"],
+    ["bậc 2", cat, "X1", "G1", 2, "dt-nhom"],
+    ["bậc 3", cat, "X2", "ZZ", 3, "dt-all"],
+    ["bậc 4", [...dongTa, dongVaiDv, dongVaiNhom, dongVaiAll], "VV", null, 4, "vai-dv"],
+    ["bậc 5", [...dongTa, dongVaiNhom, dongVaiAll], "X1", "G2", 5, "vai-nhom"],
+    ["bậc 6", [...dongTa, dongVaiAll], "X2", "ZZ", 6, "vai-all"],
+    ["bậc 7", dongTa, "HONTAM", "VE", 7, "ta-dv"],
+    ["bậc 8", dongTa, "X1", "DTH", 8, "ta-nhom"],
+    ["bậc 9", dongTa, "X2", "ZZ", 9, "ta-all"],
+  ];
+  for (const [ten, ds, code, group, bac, id] of hang) assert.deepEqual(tomTat(chon(DL_A, ds, g, code, group)).valueOf(), { bac, id, bp: (ds.find((d) => d.id === id) as DongMuc).rateBp }, ten);
+  // Nhóm trống (Chưa phân loại) không khớp bậc nhóm ở bậc 8.
+  assert.deepEqual(chon(DL_A, dongTa, g, "X1", null), { trangThai: "SET", bac: 9, dong: dongTa[2] });
+});
+
+test("chonMuc bậc 7–9: ranh ngày của gắn loại↔mức (= ngày bắt đầu, = ngày kết thúc, ngoài khoảng), mức TA không được gắn thì không áp", () => {
+  const ds = [mucTa("TA1", { id: "ta1", scope: "ALL", rateBp: 1500 })];
+  const g = [gan("TRAVEL_AGENCY", "TA1", "2026-10-01", "2026-10-31")];
+  assert.equal(chon(DL_A, ds, g, "X", null, "2026-10-01").trangThai, "SET");
+  assert.equal(chon(DL_A, ds, g, "X", null, "2026-10-31").trangThai, "SET");
+  assert.deepEqual(chon(DL_A, ds, g, "X", null, "2026-11-01"), { trangThai: "MISSING", lyDo: "NO_RULE" });
+  assert.deepEqual(chon(DL_A, ds, g, "X", null, "2026-09-30"), { trangThai: "MISSING", lyDo: "NO_RULE" });
+  // Gắn của loại KHÁC (hồ sơ không mang loại ấy), mức khác, và không có gắn nào ⇒ không áp.
+  assert.deepEqual(chon(DL_A, ds, [gan("GUIDE_FREELANCE", "TA1")], "X", null), { trangThai: "MISSING", lyDo: "NO_RULE" });
+  assert.deepEqual(chon(DL_A, ds, [gan("TRAVEL_AGENCY", "TA2")], "X", null), { trangThai: "MISSING", lyDo: "NO_RULE" });
+  assert.deepEqual(chon(DL_A, ds, [], "X", null), { trangThai: "MISSING", lyDo: "NO_RULE" });
+  // Dòng đích mức hết hiệu lực ở ngày tra thì không áp dù gắn còn.
+  const het = [mucTa("TA1", { scope: "ALL", rateBp: 1500, validTo: "2026-09-30" })];
+  assert.deepEqual(chon(DL_A, het, [gan("TRAVEL_AGENCY", "TA1")], "X", null), { trangThai: "MISSING", lyDo: "NO_RULE" });
+});
+
+test("chonMuc bậc 7–9: hai loại → hai mức KHÁC số cùng bậc ⇒ RULE_CONFLICT; hai mức CÙNG số thì không xung đột; cùng một mức qua hai loại thì không xung đột", () => {
+  const hai: NguoiHuong = { loai: "HUONG", partyId: "p", vai: ["COLLABORATOR", "TRAVEL_AGENCY"] };
+  const g = [gan("TRAVEL_AGENCY", "TA1"), gan("COLLABORATOR", "TA2")];
+  for (const pv of [{ scope: "SERVICE", catalogCode: "X" }, { scope: "GROUP", groupCode: "VE" }, { scope: "ALL" }] as Partial<DongMuc>[]) {
+    const khac = [mucTa("TA1", { ...pv, rateBp: 1500 }), mucTa("TA2", { ...pv, rateBp: 1000 })];
+    assert.deepEqual(chon(hai, khac, g, "X", "VE"), { trangThai: "MISSING", lyDo: "RULE_CONFLICT" }, `${pv.scope} khác số`);
+    const cung = [mucTa("TA1", { ...pv, id: "b-id", rateBp: 1000 }), mucTa("TA2", { ...pv, id: "a-id", rateBp: 1000 })];
+    assert.equal(chon(hai, cung, g, "X", "VE").trangThai, "SET", `${pv.scope} cùng số`);
+  }
+  // Khác KIỂU cùng giá trị 1000 ⇒ xung đột (đúng nghĩa cungMuc).
+  const kieu = [mucTa("TA1", { scope: "ALL", kind: "RATE", rateBp: 1000 }), mucTa("TA2", { scope: "ALL", kind: "PER_PAX", rateBp: null, perPaxAmount: 1000 })];
+  assert.deepEqual(chon(hai, kieu, g, "X", null), { trangThai: "MISSING", lyDo: "RULE_CONFLICT" });
+  // Hai loại cùng gắn MỘT mức ⇒ một dòng, không xung đột.
+  const mot = [mucTa("TA1", { scope: "ALL", rateBp: 1500 })];
+  assert.equal(chon(hai, mot, [gan("TRAVEL_AGENCY", "TA1"), gan("COLLABORATOR", "TA1")], "X", null).trangThai, "SET");
+});
+
+test("chonMuc bậc 7–9: hai dòng TA cùng số ⇒ kết quả xác định theo id (dòng id nhỏ nhất), không phụ thuộc thứ tự đầu vào", () => {
+  const hai: NguoiHuong = { loai: "HUONG", partyId: "p", vai: ["COLLABORATOR", "TRAVEL_AGENCY"] };
+  const g = [gan("TRAVEL_AGENCY", "TA1"), gan("COLLABORATOR", "TA2")];
+  const a = mucTa("TA2", { id: "a-id", scope: "ALL", rateBp: 1000 });
+  const b = mucTa("TA1", { id: "b-id", scope: "ALL", rateBp: 1000 });
+  for (const ds of [[a, b], [b, a]]) {
+    const r = chon(hai, ds, g, "X", null);
+    assert.ok(r.trangThai === "SET" && r.bac === 9 && r.dong.id === "a-id");
+  }
+});
+
+test("SV-TA-04b: dòng riêng bậc 6 (loại, mọi dịch vụ 10%) thắng dòng TA bậc 8 (Du thuyền 15%): 300.000đ, KHÔNG phải 450.000đ; đóng dòng cũ ⇒ bậc 8, 450.000đ", () => {
+  const g = [gan("TRAVEL_AGENCY", "TA1")];
+  const ta = mucTa("TA1", { id: "ta-dt", scope: "GROUP", groupCode: "DTH", rateBp: 1500 });
+  const cu = muc({ id: "vai-cu", scope: "ALL", rateBp: 1000 });
+  const r = chon(DL_A, [cu, ta], g, "DUTHUYEN", "DTH");
+  assert.ok(r.trangThai === "SET" && r.bac === 6 && r.dong.id === "vai-cu");
+  assert.equal(r.trangThai === "SET" && hoaHongDong({ kind: r.dong.kind, rateBp: r.dong.rateBp, perPaxAmount: r.dong.perPaxAmount, thanhTien: 3_000_000, soKhachTinh: 1 }), 300_000);
+  const sau = chon(DL_A, [{ ...cu, validTo: "2026-10-09" }, ta], g, "DUTHUYEN", "DTH");
+  assert.ok(sau.trangThai === "SET" && sau.bac === 8);
+  assert.equal(sau.trangThai === "SET" && hoaHongDong({ kind: sau.dong.kind, rateBp: sau.dong.rateBp, perPaxAmount: sau.dong.perPaxAmount, thanhTien: 3_000_000, soKhachTinh: 1 }), 450_000);
+});
+
+test("SV-TA-04a: dòng riêng bậc 5 (loại, nhóm Du thuyền 8%) thắng dòng TA bậc 8 (15%): 240.000đ", () => {
+  const g = [gan("TRAVEL_AGENCY", "TA1")];
+  const ds = [muc({ id: "vai-nhom", scope: "GROUP", groupCode: "DTH", rateBp: 800 }), mucTa("TA1", { id: "ta-dt", scope: "GROUP", groupCode: "DTH", rateBp: 1500 })];
+  const r = chon(DL_A, ds, g, "DUTHUYEN", "DTH");
+  assert.ok(r.trangThai === "SET" && r.bac === 5 && r.dong.id === "vai-nhom");
+  assert.equal(r.trangThai === "SET" && hoaHongDong({ kind: r.dong.kind, rateBp: r.dong.rateBp, perPaxAmount: r.dong.perPaxAmount, thanhTien: 3_000_000, soKhachTinh: 1 }), 240_000);
+});
+
+test("SV-TA-05: mức riêng của đối tác (bậc 1–3, 12%) thắng mức TA 15% cùng dịch vụ: 240.000đ", () => {
+  const g = [gan("TRAVEL_AGENCY", "TA1")];
+  const ds = [mucTa("TA1", { id: "ta", scope: "SERVICE", catalogCode: "HONTAM", rateBp: 1500 }),
+    muc({ id: "dt", targetPartyId: "dl-a", targetRoleCode: null, scope: "ALL", rateBp: 1200 })];
+  const r = chon(DL_A, ds, g, "HONTAM", "VE");
+  assert.ok(r.trangThai === "SET" && r.bac === 3 && r.dong.id === "dt");
+  assert.equal(r.trangThai === "SET" && hoaHongDong({ kind: r.dong.kind, rateBp: r.dong.rateBp, perPaxAmount: r.dong.perPaxAmount, thanhTien: 2_000_000, soKhachTinh: 1 }), 240_000);
+});
+
+test("chonMuc chín bậc: không khớp bậc nào ⇒ NO_RULE (không bao giờ 0); dòng nhập tay ⇒ MANUAL_LINE kể cả có mức TA; tham số gan bỏ trống vẫn chạy như sáu bậc", () => {
+  const g = [gan("TRAVEL_AGENCY", "TA1")];
+  const dongTa = [mucTa("TA1", { scope: "SERVICE", catalogCode: "HONTAM", rateBp: 0 })];
+  assert.deepEqual(chon(DL_A, dongTa, g, "KHAC", "VE"), { trangThai: "MISSING", lyDo: "NO_RULE" });
+  assert.deepEqual(chon(DL_A, dongTa, g, null, null), { trangThai: "MISSING", lyDo: "MANUAL_LINE" });
+  assert.equal(chon(DL_A, dongTa, g, "HONTAM", null).trangThai, "SET", "mức 0 là mức hợp lệ ở bậc 7");
+  const khongGan = chonMuc({ nguoiHuong: DL_A, catalogCode: "HONTAM", groupCode: null, ngay: NGAY, dong: dongTa });
+  assert.deepEqual(khongGan, { trangThai: "MISSING", lyDo: "NO_RULE" });
 });
 
 test("chonDieuKhoan: SERVICE > GROUP > ALL theo ngày; dòng nhập tay ⇒ MISSING", () => {
