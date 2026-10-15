@@ -18,9 +18,10 @@ export const HD_BAN_HANG: NhomHuongDan = {
       tieuDe: "Menu của bạn",
       noiDung: `### Trên máy tính (thanh bên trái)
 
-- Nhóm **BÁN HÀNG**: [[Trang chủ]], [[Đơn hàng]] (số nhỏ bên cạnh là số đơn đang chờ xác nhận), [[Tạo đơn]], [[Danh bạ]].
-- Nhóm **QUẢN TRỊ**: [[Vận chuyển]] › [[Điều phối xe]] (xem mục riêng), [[Hoa hồng đối tác]] (chỉ xem).
-- Nhóm **TÔI**: [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]]. Nút [[Đăng xuất]] ở dưới cùng.
+- **Đầu menu**: [[Tạo đơn]], [[Trang chủ]], [[Đơn hàng]] (số nhỏ bên cạnh là số đơn đang chờ xác nhận), [[Danh bạ]].
+- Nhóm **VẬN CHUYỂN**: [[Điều phối xe]], [[Xe đang chạy]].
+- Nhóm **THIẾT LẬP** (bấm để mở, thu gọn): [[Hoa hồng đối tác]] (chỉ xem).
+- **Chân menu**: [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]]. Nút [[Đăng xuất]] ở dưới cùng.
 - Thanh trên cùng: ô tìm đơn, nút [[Tạo đơn]] và cái chuông thông báo.
 
 ### Trên điện thoại (thanh dưới đáy)
@@ -102,9 +103,10 @@ App chỉ cho xác nhận khi mỗi dịch vụ có ngày khởi hành, ngày đ
 
 ### Trang chủ
 
-- Trên cùng là lời chào. Máy tính có thẻ [[Lối tắt]] ở cột phải; điện thoại có một hàng ô (chỉ những gì chưa có ở thanh dưới). Bấm [[Tất cả]] để xem mọi chức năng.
-- Số của cả công ty: [[Còn thiếu tiền]], [[Chờ xác nhận]], [[Chưa phụ trách]] — bấm để sang [[Đơn hàng]].
-- [[Chuyến đón]]: đơn đã xác nhận, xếp theo giờ đón; bấm [[Hôm nay]] / [[Ngày mai]] / [[Ngày kia]] để đổi ngày. Trên máy tính có dòng thời gian trong ngày; chuyến kế tiếp có nhãn **Sắp tới** và số phút còn lại, chuyến đã qua giờ hiện chữ xám. Trên điện thoại có nút [[Gọi]] khách.
+- Máy tính có thẻ [[Lối tắt]]; bấm [[Tất cả]] để xem mọi chức năng.
+- Máy tính: khối [[Việc của bạn]] hiện các thẻ việc đang chờ, mỗi thẻ có số và nút làm ngay: [[Đơn nháp]], [[Đơn còn thiếu tiền]], [[Đơn chưa có người phụ trách]], [[Chuyến hôm nay]]. Nhãn **Toàn công ty** là số của cả công ty.
+- Điện thoại: các ô số **Còn thiếu tiền**, [[Chờ xác nhận]], [[Chưa phụ trách]] — bấm để sang [[Đơn hàng]].
+- [[Chuyến đón]]: đơn đã xác nhận, xếp theo giờ đón; bấm [[Hôm nay]] / [[Ngày mai]] / [[Ngày kia]] để đổi ngày. Điện thoại có nút [[Gọi]] khách.
 - [[Doanh thu của tôi]]: chỉ đơn **bạn lập** đã xác nhận trong tuần.`,
     },
     {

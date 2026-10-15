@@ -92,7 +92,9 @@ const dsMuc = (ds: readonly MucBoCuc[]): string =>
 /** Đoạn "Sơ đồ trang › …" (kho c + e): nhóm menu, bố cục từ trên xuống, phần dựng khi trang chạy. Chỉ nhãn chữ đọc từ mã (đã qua bộ lọc lúc sinh). */
 export function dongTrang(t: TrangSoDo): string {
   const dong = [`Trang "${t.tieuDe}".`];
-  if (t.nhomMenu.length) dong.push(`Trong menu: nhóm ${t.nhomMenu.join(", ")}, mục ${t.menu.join(" / ")}.`);
+  // HẰNG NGÀY và CHÂN MENU không có tiêu đề trên màn hình: nói theo vị trí ("ở đầu menu", "ở chân menu"), không đưa tên nhóm người dùng không thấy.
+  const cho = (n: string) => (n === "HẰNG NGÀY" ? "ở đầu menu" : n === "CHÂN MENU" ? "ở chân menu" : `nhóm ${n}`);
+  if (t.nhomMenu.length) dong.push(`Trong menu: ${t.nhomMenu.map(cho).join(", ")}, mục ${t.menu.join(" / ")}.`);
   else if (t.menu.length) dong.push(`Mở từ thanh tab: ${t.menu.join(", ")}.`);
   else dong.push("Không có mục menu riêng — mở từ trang khác.");
   if (t.boCuc.length) dong.push(`Bố cục từ trên xuống: ${dsMuc(t.boCuc)}`);

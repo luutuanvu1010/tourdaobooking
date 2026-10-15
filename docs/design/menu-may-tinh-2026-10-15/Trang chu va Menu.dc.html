@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:"Be Vietnam Pro";font-weight:400;font-display:swap;src:url(public/fonts/be-vietnam-pro-400.woff2) format("woff2")}
+@font-face{font-family:"Be Vietnam Pro";font-weight:500;font-display:swap;src:url(public/fonts/be-vietnam-pro-500.woff2) format("woff2")}
+@font-face{font-family:"Be Vietnam Pro";font-weight:600;font-display:swap;src:url(public/fonts/be-vietnam-pro-600.woff2) format("woff2")}
+@font-face{font-family:"Be Vietnam Pro";font-weight:700;font-display:swap;src:url(public/fonts/be-vietnam-pro-700.woff2) format("woff2")}
+html,body{margin:0;background:#e1e7ef;font-family:"Be Vietnam Pro",system-ui,sans-serif;color:#0f172a;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:#0c4a6e}a:hover{color:#082f49}
+button{font-family:inherit}
+:focus-visible{outline:2px solid #0c4a6e;outline-offset:2px}
+:focus:not(:focus-visible){outline:none}
+</style>
+</helmet>
+<div style="width:{{ frameWidth }};margin:0 auto;min-height:100vh;display:grid;grid-template-columns:248px minmax(0,1fr);background:#f2f5f9;box-shadow:0 0 0 1px #e1e7ef">
+
+  <nav aria-label="Điều hướng chính" style="position:sticky;top:0;height:100vh;display:flex;flex-direction:column;background:#f2f5f9;border-right:1px solid #e1e7ef">
+    <a href="#" onClick="{{ noop }}" style="display:flex;align-items:center;gap:12px;padding:16px;text-decoration:none;color:#0c4a6e;border-bottom:1px solid #e1e7ef">
+      <img src="public/icons/logo-96.png" alt="" width="30" height="30" style="border-radius:999px;flex:none">
+      <span style="font-size:15px;font-weight:600;line-height:1.25">Island Booking <span style="font-weight:400;color:#475569">System</span></span>
+    </a>
+
+    <div style="flex:1;min-height:0;overflow-y:auto;padding:16px 12px;display:flex;flex-direction:column;gap:24px">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <sc-if value="{{ nav.canCreate }}" hint-placeholder-val="{{ true }}">
+          <a href="#" onClick="{{ noop }}" style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:8px 16px;border-radius:8px;background:#c0392b;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;box-shadow:0 1px 2px rgba(150,39,26,.18),0 4px 12px rgba(192,57,43,.22)" style-hover="background:#96271a;color:#ffffff">{{ icons.plus }}<span>Tạo đơn</span></a>
+        </sc-if>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <sc-for list="{{ nav.top }}" as="it" hint-placeholder-count="3">
+            <sc-if value="{{ it.active }}">
+              <a href="#" aria-current="page" onClick="{{ noop }}" style="display:flex;align-items:center;gap:12px;min-height:40px;padding:8px 12px;border-radius:8px;background:#dcebf6;color:#0c4a6e;font-size:14px;font-weight:600;text-decoration:none;box-shadow:inset 3px 0 0 #0c4a6e">{{ it.icon }}<span style="flex:1">{{ it.label }}</span></a>
+            </sc-if>
+            <sc-if value="{{ it.idle }}">
+              <a href="#" onClick="{{ noop }}" style="display:flex;align-items:center;gap:12px;min-height:40px;padding:8px 12px;border-radius:8px;color:#475569;font-size:14px;font-weight:500;text-decoration:none" style-hover="background:#ffffff;color:#0f172a">{{ it.icon }}<span style="flex:1">{{ it.label }}</span>
+                <sc-if value="{{ it.badge }}"><span aria-label="{{ it.badgeAria }}" style="flex:none;min-width:22px;text-align:center;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:600;background:#dcebf6;color:#0c4a6e">{{ it.badge }}</span></sc-if>
+              </a>
+            </sc-if>
+          </sc-for>
+        </div>
+      </div>
+
+      <sc-for list="{{ nav.groups }}" as="g" hint-placeholder-count="2">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="padding:0 12px 4px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#475569">{{ g.title }}</div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <sc-for list="{{ g.items }}" as="it">
+              <a href="#" onClick="{{ noop }}" style="display:flex;align-items:center;gap:12px;min-height:40px;padding:8px 12px;border-radius:8px;color:#475569;font-size:14px;font-weight:500;text-decoration:none" style-hover="background:#ffffff;color:#0f172a">{{ it.icon }}<span style="flex:1">{{ it.label }}</span>
+                <sc-if value="{{ it.badgeSand }}"><span aria-label="{{ it.badgeAria }}" style="flex:none;min-width:22px;text-align:center;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:600;background:#fbe3b3;color:#5a4109">{{ it.badgeSand }}</span></sc-if>
+              </a>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+
+      <sc-if value="{{ nav.hasSettings }}">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <button type="button" aria-expanded="{{ settingsOpenStr }}" aria-controls="nhom-thiet-lap" onClick="{{ toggleSettings }}" style="display:flex;align-items:center;gap:8px;min-height:36px;padding:4px 12px;border:0;border-radius:8px;background:transparent;cursor:pointer;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#475569;text-align:left" style-hover="background:#ffffff;color:#0f172a">
+            <span style="flex:1">Thiết lập</span>
+            <span style="font-size:12px;font-weight:500;letter-spacing:0;text-transform:none">{{ nav.settingsCount }}</span>
+            <span style="display:flex;transition:transform 180ms cubic-bezier(.22,1,.36,1);transform:rotate({{ chevronDeg }}deg)">{{ icons.chevron }}</span>
+          </button>
+          <sc-if value="{{ settingsOpen }}">
+            <div id="nhom-thiet-lap" style="display:flex;flex-direction:column;gap:2px">
+              <sc-for list="{{ nav.settings }}" as="s">
+                <a href="#" onClick="{{ noop }}" style="display:flex;align-items:center;min-height:36px;padding:6px 12px 6px 42px;border-radius:8px;color:#475569;font-size:14px;text-decoration:none" style-hover="background:#ffffff;color:#0f172a">{{ s }}</a>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="border-top:1px solid #e1e7ef;padding:8px 12px 12px;display:flex;flex-direction:column;gap:2px">
+      <sc-for list="{{ nav.footer }}" as="it" hint-placeholder-count="3">
+        <a href="#" onClick="{{ noop }}" style="display:flex;align-items:center;gap:12px;min-height:36px;padding:6px 12px;border-radius:8px;color:#475569;font-size:14px;font-weight:500;text-decoration:none" style-hover="background:#ffffff;color:#0f172a">{{ it.icon }}<span>{{ it.label }}</span></a>
+      </sc-for>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 4px 0;margin-top:8px;border-top:1px solid #e1e7ef">
+        <span aria-hidden="true" style="flex:none;width:36px;height:36px;border-radius:999px;background:#dcebf6;color:#0c4a6e;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600">{{ user.initials }}</span>
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column">
+          <span style="font-size:14px;font-weight:600;color:#0c4a6e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ user.name }}</span>
+          <span style="font-size:13px;color:#475569">{{ roleLabel }}</span>
+        </span>
+      </div>
+      <button type="button" style="align-self:flex-start;min-height:36px;margin-left:48px;padding:4px 8px;border:0;border-radius:8px;background:transparent;color:#475569;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#ffffff;color:#b01235">Đăng xuất</button>
+    </div>
+  </nav>
+
+  <main style="min-width:0;padding:{{ contentPad }}">
+    <div style="max-width:1120px;display:flex;flex-direction:column;gap:32px">
+
+      <header style="display:flex;flex-direction:column;gap:8px;padding-top:8px">
+        <h1 style="margin:0;font-size:28px;font-weight:600;letter-spacing:-.01em;color:#0f172a">{{ greeting }}</h1>
+        <p style="margin:0;font-size:16px;line-height:1.5;color:#475569;text-wrap:pretty">{{ summary }}</p>
+      </header>
+
+      <sc-if value="{{ showWork }}" hint-placeholder-val="{{ true }}">
+        <section aria-labelledby="h-viec" style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+            <h2 id="h-viec" style="margin:0;font-size:18px;font-weight:600">Việc của bạn</h2>
+            <sc-if value="{{ hasCards }}"><span style="font-size:14px;color:#475569">Xếp theo độ gấp, việc gấp nhất bên trái</span></sc-if>
+          </div>
+
+          <sc-if value="{{ hasCards }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
+              <sc-for list="{{ cards }}" as="c" hint-placeholder-count="4">
+                <article style="background:#ffffff;border:1px solid #e1e7ef;border-radius:12px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 3px 10px rgba(15,23,42,.05);padding:20px;display:flex;flex-direction:column;gap:12px;min-height:220px">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span aria-hidden="true" style="flex:none;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:{{ c.iconBg }};color:{{ c.iconFg }}">{{ c.icon }}</span>
+                    <h3 style="margin:0;font-size:14px;font-weight:600;color:#0f172a;line-height:1.35">{{ c.label }}</h3>
+                  </div>
+                  <sc-if value="{{ c.ok }}">
+                    <div style="display:flex;align-items:baseline;gap:8px">
+                      <span style="font-size:40px;line-height:1;font-weight:600;font-variant-numeric:tabular-nums;color:#0f172a">{{ c.value }}</span>
+                      <span style="font-size:15px;color:#475569">{{ c.unit }}</span>
+                    </div>
+                    <p style="margin:0;font-size:14px;line-height:1.5;color:#475569;text-wrap:pretty">{{ c.sub }}</p>
+                    <div style="margin-top:auto;display:flex">
+                      <sc-if value="{{ c.btnCoral }}"><button type="button" onClick="{{ c.onAct }}" style="min-height:40px;padding:8px 16px;border:0;border-radius:8px;background:#c0392b;color:#ffffff;font-size:14px;font-weight:600;cursor:pointer" style-hover="background:#96271a">{{ c.action }}</button></sc-if>
+                      <sc-if value="{{ c.btnPrimary }}"><button type="button" onClick="{{ c.onAct }}" style="min-height:40px;padding:8px 16px;border:0;border-radius:8px;background:#0c4a6e;color:#ffffff;font-size:14px;font-weight:600;cursor:pointer" style-hover="background:#082f49">{{ c.action }}</button></sc-if>
+                      <sc-if value="{{ c.btnSecondary }}"><button type="button" onClick="{{ c.onAct }}" style="min-height:40px;padding:8px 16px;border:0;border-radius:8px;background:#dcebf6;color:#0c4a6e;font-size:14px;font-weight:600;cursor:pointer" style-hover="background:#c9def0">{{ c.action }}</button></sc-if>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ c.err }}">
+                    <span aria-label="Chưa có số" style="font-size:40px;line-height:1;font-weight:600;color:#475569">—</span>
+                    <p role="status" style="margin:0;font-size:14px;line-height:1.5;color:#b01235">{{ c.errText }}</p>
+                    <div style="margin-top:auto;display:flex">
+                      <button type="button" onClick="{{ c.onRetry }}" style="min-height:40px;padding:8px 16px;border:1px solid #e1e7ef;border-radius:8px;background:#ffffff;color:#0c4a6e;font-size:14px;font-weight:600;cursor:pointer" style-hover="background:#f2f5f9">{{ c.retryLabel }}</button>
+                    </div>
+                  </sc-if>
+                </article>
+              </sc-for>
+            </div>
+            <sc-if value="{{ overflow }}">
+              <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px;color:#475569">
+                <span>{{ overflow.text }}</span>
+                <a href="#" onClick="{{ noop }}" style="font-weight:600;color:#0c4a6e">{{ overflow.action }}</a>
+              </div>
+            </sc-if>
+          </sc-if>
+
+          <sc-if value="{{ noCards }}">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:20px 24px;background:#ffffff;border:1px solid #e1e7ef;border-radius:12px">
+              <span style="display:flex;align-items:center;gap:12px;font-size:16px;color:#475569"><span style="display:flex;color:#166534">{{ icons.checkCircle }}</span>Hôm nay không có việc chờ bạn</span>
+              <sc-if value="{{ nav.canCreate }}">
+                <button type="button" style="min-height:40px;padding:8px 16px;border:0;border-radius:8px;background:#c0392b;color:#ffffff;font-size:14px;font-weight:600;cursor:pointer" style-hover="background:#96271a">Tạo đơn</button>
+              </sc-if>
+            </div>
+          </sc-if>
+        </section>
+      </sc-if>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;align-items:start">
+        <sc-if value="{{ showTrips }}" hint-placeholder-val="{{ true }}">
+          <section ref="{{ tripsRef }}" aria-labelledby="h-chuyen" style="background:#ffffff;border:1px solid #e1e7ef;border-radius:12px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 3px 10px rgba(15,23,42,.05);padding:20px;display:flex;flex-direction:column;gap:16px;min-width:0">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+              <h2 id="h-chuyen" style="margin:0;font-size:18px;font-weight:600">{{ tripsTitle }}</h2>
+              <div role="tablist" aria-label="Chọn ngày" style="display:flex;gap:4px;padding:4px;background:#f2f5f9;border-radius:8px">
+                <sc-for list="{{ dayTabs }}" as="t" hint-placeholder-count="3">
+                  <sc-if value="{{ t.on }}"><button type="button" role="tab" aria-selected="true" style="min-height:36px;padding:4px 12px;border:0;border-radius:6px;background:#ffffff;color:#0c4a6e;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 1px 2px rgba(15,23,42,.08)">{{ t.label }} · {{ t.n }}</button></sc-if>
+                  <sc-if value="{{ t.off }}"><button type="button" role="tab" aria-selected="false" onClick="{{ t.pick }}" style="min-height:36px;padding:4px 12px;border:0;border-radius:6px;background:transparent;color:#475569;font-size:14px;font-weight:500;cursor:pointer" style-hover="color:#0f172a">{{ t.label }} · {{ t.n }}</button></sc-if>
+                </sc-for>
+              </div>
+            </div>
+            <sc-if value="{{ hasTrips }}" hint-placeholder-val="{{ true }}">
+              <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column">
+                <sc-for list="{{ trips }}" as="r" hint-placeholder-count="4">
+                  <li style="display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:12px;align-items:start;padding:12px;border-radius:8px;background:{{ r.bg }};border-top:1px solid {{ r.line }}">
+                    <span style="font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;color:{{ r.timeColor }};padding-top:1px">{{ r.time }}</span>
+                    <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                      <sc-if value="{{ r.next }}"><span style="font-size:12px;font-weight:600;color:#0c4a6e">{{ r.next }}</span></sc-if>
+                      <span style="font-size:15px;font-weight:500;color:#0f172a">{{ r.place }}</span>
+                      <span style="font-size:14px;color:#475569">{{ r.customer }} · {{ r.guests }} khách · {{ r.tour }}</span>
+                    </span>
+                    <sc-if value="{{ r.owe }}"><span style="white-space:nowrap;padding:2px 8px;border-radius:999px;background:#fbe3b3;color:#5a4109;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums">Còn {{ r.owe }}</span></sc-if>
+                    <sc-if value="{{ r.paid }}"><span style="white-space:nowrap;padding:2px 8px;border-radius:999px;background:#dcfce7;color:#166534;font-size:13px;font-weight:600">Đủ tiền</span></sc-if>
+                  </li>
+                </sc-for>
+              </ul>
+            </sc-if>
+            <sc-if value="{{ noTrips }}"><p style="margin:0;padding:12px;font-size:15px;color:#475569">Không có chuyến đón ngày này.</p></sc-if>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{ showChart }}" hint-placeholder-val="{{ true }}">
+          <section aria-labelledby="h-doanhthu" style="background:#ffffff;border:1px solid #e1e7ef;border-radius:12px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 3px 10px rgba(15,23,42,.05);padding:20px;display:flex;flex-direction:column;gap:16px;min-width:0">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <h2 id="h-doanhthu" style="margin:0;font-size:18px;font-weight:600">Doanh thu tuần của tôi</h2>
+              <span style="font-size:14px;color:#475569">7 ngày gần nhất · đơn đã xác nhận</span>
+            </div>
+            <div style="font-size:26px;font-weight:600;font-variant-numeric:tabular-nums">{{ weekTotal }}</div>
+            <div role="img" aria-label="{{ chartAria }}" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:end;height:180px">
+              <sc-for list="{{ bars }}" as="b" hint-placeholder-count="7">
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%">
+                  <span style="font-size:12px;color:#475569;font-variant-numeric:tabular-nums">{{ b.short }}</span>
+                  <div title="{{ b.full }}" style="width:100%;max-width:40px;height:{{ b.h }}%;background:{{ b.bg }};border-radius:8px 8px 2px 2px"></div>
+                  <span style="font-size:13px;color:{{ b.dayColor }};font-weight:{{ b.dayWeight }}">{{ b.day }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </sc-if>
+      </div>
+
+      <sc-if value="{{ hasShortcuts }}" hint-placeholder-val="{{ true }}">
+        <section aria-labelledby="h-loitat" style="display:flex;flex-direction:column;gap:12px;padding-bottom:32px">
+          <h2 id="h-loitat" style="margin:0;font-size:14px;font-weight:600;color:#475569">Lối tắt</h2>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <sc-for list="{{ shortcuts }}" as="s" hint-placeholder-count="4">
+              <a href="#" onClick="{{ noop }}" style="display:flex;align-items:center;gap:8px;min-height:36px;padding:6px 12px;border:1px solid #e1e7ef;border-radius:8px;background:#ffffff;color:#0f172a;font-size:14px;text-decoration:none" style-hover="border-color:#0c4a6e;color:#0c4a6e"><span style="display:flex;color:#0c4a6e">{{ s.icon }}</span>{{ s.label }}</a>
+            </sc-for>
+          </div>
+        </section>
+      </sc-if>
+    </div>
+  </main>
+</div>
+
+<sc-if value="{{ panelOpen }}" hint-placeholder-val="{{ true }}">
+  <aside aria-label="Bảng thử trạng thái" style="position:fixed;top:16px;right:16px;z-index:50;width:300px;max-height:calc(100vh - 32px);overflow-y:auto;background:#ffffff;border:1px solid #e1e7ef;border-radius:12px;box-shadow:0 16px 48px rgba(15,23,42,.18),0 2px 8px rgba(15,23,42,.06);padding:16px;display:flex;flex-direction:column;gap:16px;font-size:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <strong style="font-size:14px;font-weight:600">Bảng thử</strong>
+      <button type="button" onClick="{{ togglePanel }}" style="min-height:32px;padding:4px 8px;border:0;border-radius:8px;background:#f2f5f9;color:#475569;font-size:13px;cursor:pointer">Thu gọn</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#475569">Vai</span>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+        <sc-for list="{{ roleOpts }}" as="o">
+          <button type="button" aria-pressed="{{ o.pressed }}" onClick="{{ o.pick }}" style="min-height:36px;padding:4px 8px;border:1px solid {{ o.border }};border-radius:8px;background:{{ o.bg }};color:{{ o.fg }};font-size:13px;font-weight:{{ o.weight }};cursor:pointer;text-align:left">{{ o.label }}</button>
+        </sc-for>
+      </div>
+      <sc-if value="{{ isDriver }}">
+        <label style="display:flex;align-items:center;gap:8px;min-height:32px;color:#475569;cursor:pointer"><input type="checkbox" checked="{{ partnerDriver }}" onChange="{{ togglePartner }}">Tài xế đối tác (có Báo bận)</label>
+      </sc-if>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#475569">Trạng thái</span>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <sc-for list="{{ stateOpts }}" as="o">
+          <button type="button" aria-pressed="{{ o.pressed }}" onClick="{{ o.pick }}" style="min-height:36px;padding:4px 8px;border:1px solid {{ o.border }};border-radius:8px;background:{{ o.bg }};color:{{ o.fg }};font-size:13px;font-weight:{{ o.weight }};cursor:pointer;text-align:left">{{ o.label }}</button>
+        </sc-for>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;min-height:32px;color:#475569;cursor:pointer"><input type="checkbox" checked="{{ settingsOpen }}" onChange="{{ toggleSettings }}">Nhóm Thiết lập mở</label>
+      <span style="font-size:13px;color:#475569;line-height:1.5">Rê chuột lên mục menu, hoặc nhấn Tab để thấy viền focus.</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#475569">Khổ màn hình</span>
+      <div style="display:flex;gap:4px">
+        <sc-for list="{{ widthOpts }}" as="o">
+          <button type="button" aria-pressed="{{ o.pressed }}" onClick="{{ o.pick }}" style="flex:1;min-height:36px;padding:4px 8px;border:1px solid {{ o.border }};border-radius:8px;background:{{ o.bg }};color:{{ o.fg }};font-size:13px;font-weight:{{ o.weight }};cursor:pointer">{{ o.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;padding-top:12px;border-top:1px solid #e1e7ef">
+      <span style="font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#475569">Vì sao không phải tìm</span>
+      <ol style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;color:#0f172a;line-height:1.5;font-size:13px">
+        <li>Menu xếp theo việc (bán · vận chuyển · tiền), mỗi vai chỉ thấy tối đa 10 mục của mình; 14 mục thiết lập ít dùng gói vào một nhóm đóng sẵn.</li>
+        <li>Trang chủ mở bằng "Việc của bạn": chỉ hiện việc có số, xếp gấp nhất bên trái, mỗi thẻ đúng một nút làm tiếp.</li>
+        <li>Màu mang nghĩa: san hô chỉ cho xác nhận và tạo đơn, cát cho chỗ cần để ý, xanh lá cho đã xong — mắt đi thẳng tới việc cần bấm.</li>
+      </ol>
+      <span style="font-size:13px;color:#475569;line-height:1.5">Menu nền sáng (cùng nền trang) để nút Tạo đơn san hô và mục đang mở là hai điểm nổi duy nhất.</span>
+    </div>
+  </aside>
+</sc-if>
+<sc-if value="{{ panelClosed }}">
+  <button type="button" onClick="{{ togglePanel }}" style="position:fixed;top:16px;right:16px;z-index:50;min-height:36px;padding:6px 12px;border:1px solid #e1e7ef;border-radius:8px;background:#ffffff;color:#0c4a6e;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 1px 2px rgba(15,23,42,.04),0 3px 10px rgba(15,23,42,.05)">Bảng thử · {{ roleLabel }}</button>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;defaultRole&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ban&quot;,&quot;ketoan&quot;,&quot;quantri&quot;,&quot;toanquyen&quot;,&quot;taixe&quot;,&quot;hdv&quot;,&quot;doitac&quot;,&quot;nhansu&quot;],&quot;default&quot;:&quot;ban&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;taiXeDoiTac&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const P = {
+  home: [["path", { d: "M4 11l8-6 8 6v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" }]],
+  orders: [["rect", { x: 5, y: 4, width: 14, height: 17, rx: 2 }], ["path", { d: "M9 9h6M9 13h6M9 17h3" }]],
+  plus: [["path", { d: "M12 5v14M5 12h14" }]],
+  me: [["circle", { cx: 12, cy: 8, r: 4 }], ["path", { d: "M4 21c0-4 3.5-6 8-6s8 2 8 6" }]],
+  staff: [["circle", { cx: 9, cy: 8, r: 3.5 }], ["path", { d: "M2.5 20c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5" }], ["circle", { cx: 17, cy: 9, r: 2.5 }], ["path", { d: "M17.5 14.5c2.5.3 4 2 4 4.5" }]],
+  lock: [["rect", { x: 5, y: 11, width: 14, height: 9, rx: 2 }], ["path", { d: "M8 11V8a4 4 0 0 1 8 0v3" }]],
+  alert: [["path", { d: "M12 4l9 16H3L12 4z" }], ["path", { d: "M12 10v4M12 17v.01" }]],
+  contact: [["rect", { x: 3, y: 5, width: 18, height: 14, rx: 2 }], ["circle", { cx: 9, cy: 11, r: 2.2 }], ["path", { d: "M5.8 16.2c.5-1.4 1.7-2.1 3.2-2.1s2.7.7 3.2 2.1M15.5 10h3.2M15.5 13.5h3.2" }]],
+  pin: [["path", { d: "M12 21s7-5.6 7-11a7 7 0 0 0-14 0c0 5.4 7 11 7 11z" }], ["circle", { cx: 12, cy: 10, r: 2.4 }]],
+  history: [["path", { d: "M3.5 12a8.5 8.5 0 1 0 2.6-6.1" }], ["path", { d: "M3.2 4.4v3.9h3.9" }], ["path", { d: "M12 8.2V12l2.8 1.8" }]],
+  chat: [["path", { d: "M4.5 5.5h15v10.5H9.5l-5 4V5.5z" }], ["path", { d: "M8.5 9.5h7M8.5 12.5h4.5" }]],
+  docCheck: [["rect", { x: 6, y: 3, width: 12, height: 18, rx: 2 }], ["path", { d: "M9 12.6l2 2 4-5.4" }]],
+  money: [["rect", { x: 2, y: 9, width: 15, height: 9, rx: 1.5 }], ["rect", { x: 7, y: 6, width: 15, height: 9, rx: 1.5 }], ["circle", { cx: 14.5, cy: 10.5, r: 2 }]],
+  assign: [["circle", { cx: 9, cy: 8, r: 3.2 }], ["path", { d: "M3 20c0-3.6 2.8-5.6 6-5.6s6 2 6 5.6" }], ["circle", { cx: 18, cy: 7, r: 3.4 }], ["path", { d: "M18 5.4v3.2M16.4 7h3.2" }]],
+  clock: [["circle", { cx: 12, cy: 12.5, r: 8.5 }], ["path", { d: "M12 7.5v5l3.5 2" }]],
+  chart: [["path", { d: "M4 20V13" }], ["path", { d: "M9.5 20V6" }], ["path", { d: "M15 20V15.5" }], ["path", { d: "M20 20V10" }]],
+  help: [["circle", { cx: 12, cy: 12, r: 8.5 }], ["path", { d: "M9.6 9.6a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2.2-2.4 3.6" }], ["path", { d: "M12 17v.01" }]],
+  userPlus: [["circle", { cx: 9, cy: 8, r: 4 }], ["path", { d: "M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6" }]],
+  checkCircle: [["circle", { cx: 12, cy: 12, r: 9 }], ["path", { d: "m8 12 3 3 5-6" }]],
+  swap: [["path", { d: "M7 7h13l-3-3M17 17H4l3 3" }]],
+  truck: [["path", { d: "M3 16V6h11v10M14 9h4l3 4v3h-2M3 16h1M10 16h5M7 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM17 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" }]],
+  chevron: [["path", { d: "M6 9l6 6 6-6" }]],
+  ban: [["circle", { cx: 12, cy: 12, r: 9 }], ["path", { d: "m6 6 12 12" }]],
+};
+const ic = (n, s = 18) => React.createElement("svg", { width: s, height: s, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: n === "plus" ? 2.2 : 1.8, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true, style: { flex: "none" } }, ...P[n].map(([t, a], i) => React.createElement(t, { key: i, ...a })));
+
+const ROLES = [["ban", "Bán hàng"], ["ketoan", "Kế toán"], ["quantri", "Quản trị"], ["toanquyen", "Toàn quyền"], ["taixe", "Tài xế"], ["hdv", "Hướng dẫn viên"], ["doitac", "Đối tác"], ["nhansu", "Nhân sự"]];
+const USERS = { ban: "Trần Minh Thư", ketoan: "Lê Thị Hạnh", quantri: "Nguyễn Văn Đức", toanquyen: "Phạm Quốc Bảo", taixe: "Huỳnh Văn Tài", hdv: "Võ Thị Ngọc", doitac: "Đặng Thanh Tùng", nhansu: "Bùi Thị Lan" };
+const M = {
+  home: ["Trang chủ", "home"], orders: ["Đơn hàng", "orders"], contacts: ["Danh bạ", "contact"],
+  dieuphoi: ["Điều phối xe", "truck"], dangchay: ["Xe đang chạy", "pin"], chuyenkhach: ["Đề nghị chuyển khách", "swap"], xegiayto: ["Xe & giấy tờ", "docCheck"], gia: ["Giá & chi phí", "chart"],
+  congno: ["Điều chỉnh công nợ", "money"], khoaso: ["Khoá sổ tháng", "lock"],
+  cuoc: ["Cuốc của tôi", "truck"], baoban: ["Báo bận", "ban"], taikhoan: ["Quản lý tài khoản", "staff"],
+};
+const SET_ALL = ["Hoa hồng đối tác", "Người bán dịch vụ", "Dịch vụ & giá", "Địa điểm", "Loại giấy tờ cá nhân", "Loại giấy tờ xe", "Lý do điều phối", "Chính sách điều phối", "Quản lý tài khoản", "Phiên đăng nhập", "Nhật ký", "Gửi thông báo", "Trợ lý Hỗ trợ", "Giao diện"];
+const SET_QT = ["Hoa hồng đối tác", "Người bán dịch vụ", "Dịch vụ & giá", "Địa điểm", "Loại giấy tờ cá nhân", "Loại giấy tờ xe", "Lý do điều phối", "Quản lý tài khoản"];
+const VC_ALL = ["dieuphoi", "dangchay", "chuyenkhach", "xegiayto", "gia"];
+const MENU = {
+  ban: { top: ["home", "orders", "contacts"], create: true, vc: ["dieuphoi", "dangchay"], tien: [], set: ["Hoa hồng đối tác"] },
+  ketoan: { top: ["home", "orders", "contacts"], create: false, vc: ["dieuphoi", "dangchay", "gia"], tien: ["congno", "khoaso"], set: ["Hoa hồng đối tác", "Người bán dịch vụ"] },
+  quantri: { top: ["home", "orders", "contacts"], create: true, vc: VC_ALL, tien: ["congno", "khoaso"], set: SET_QT },
+  toanquyen: { top: ["home", "orders", "contacts"], create: true, vc: VC_ALL, tien: ["congno", "khoaso"], set: SET_ALL },
+  taixe: { top: ["home", "cuoc"], create: false, vc: [], tien: [], set: [] },
+  hdv: { top: ["home", "orders"], create: false, vc: [], tien: [], set: [] },
+  doitac: { top: ["home", "orders"], create: true, vc: [], tien: [], set: [] },
+  nhansu: { top: ["home", "taikhoan"], create: false, vc: [], tien: [], set: [] },
+};
+const SEES_ALL = ["ban", "ketoan", "quantri", "toanquyen"];
+const SHORTCUTS = {
+  ban: ["contacts", "dieuphoi", "dangchay", "set:Hoa hồng đối tác"],
+  ketoan: ["congno", "khoaso", "gia", "set:Người bán dịch vụ"],
+  quantri: ["dieuphoi", "xegiayto", "set:Dịch vụ & giá", "set:Địa điểm", "set:Quản lý tài khoản"],
+  toanquyen: ["dieuphoi", "xegiayto", "set:Dịch vụ & giá", "set:Nhật ký", "set:Gửi thông báo"],
+  taixe: [], hdv: [], doitac: ["orders"], nhansu: ["taikhoan"],
+};
+const C = {
+  nhap: { icon: "docCheck", label: "Đơn nháp chờ xác nhận", value: 3, unit: "đơn", sub: "Khách đã chốt, cần xác nhận để giữ chỗ tàu.", action: "Xác nhận đơn", chot: true },
+  nhapKT: { icon: "docCheck", label: "Đơn nháp", value: 3, unit: "đơn", sub: "Chưa xác nhận nên chưa vào công nợ.", action: "Xem đơn nháp" },
+  thieu: { icon: "money", tone: "sand", label: "Còn thiếu tiền", value: 5, unit: "đơn", sub: "Tổng còn phải thu 18.400.000 ₫.", action: "Ghi thu" },
+  phutrach: { icon: "assign", label: "Đơn chưa có người phụ trách", value: 2, unit: "đơn", sub: "Chưa ai nhận chăm sóc khách.", action: "Nhận phụ trách" },
+  phutrachQT: { icon: "assign", label: "Chưa phụ trách", value: 2, unit: "đơn", sub: "Cần giao cho một người bán.", action: "Phân công" },
+  donHomNay: { icon: "clock", label: "Chuyến đón hôm nay", value: 4, unit: "chuyến", sub: "Chuyến sớm nhất lúc 07:30.", action: "Xem chuyến", scroll: true },
+  dieuchinh: { icon: "history", label: "Đề nghị điều chỉnh chờ duyệt", value: 2, unit: "đề nghị", sub: "Bán hàng xin sửa công nợ của đơn.", action: "Duyệt" },
+  coc: { icon: "money", label: "Cọc cần chi hoàn", value: 1, unit: "đơn", sub: "Đơn đã huỷ, chờ trả lại cọc cho khách.", action: "Chi hoàn" },
+  xemlai: { icon: "alert", tone: "sand", label: "Cần xem lại", value: 3, unit: "mục", sub: "2 giấy tờ xe sắp hết hạn · 1 dịch vụ lệch giá.", action: "Xem lại" },
+  chuyenkhach: { icon: "swap", label: "Đề nghị chuyển khách", value: 2, unit: "đề nghị", sub: "Điều phối xin chuyển khách sang xe khác.", action: "Duyệt" },
+  gopy: { icon: "chat", label: "Góp ý chưa xử lý", value: 4, unit: "góp ý", sub: "Nhân viên báo lỗi hoặc đề xuất.", action: "Xử lý" },
+  cuoc: { icon: "truck", label: "Cuốc hôm nay", value: 3, unit: "cuốc", sub: "Cuốc đầu lúc 07:00 tại Khách sạn Sheraton.", action: "Mở cuốc", scroll: true },
+  giayto: { icon: "alert", tone: "sand", label: "Giấy tờ sắp hết hạn", value: 1, unit: "giấy", sub: "Đăng kiểm xe 79B-024.18 hết hạn 21/10.", action: "Xem giấy tờ" },
+  tudo: { icon: "userPlus", label: "Đơn tự do chờ nhận", value: 2, unit: "đơn", sub: "Chưa có hướng dẫn viên nào nhận.", action: "Nhận đơn" },
+  thuHDV: { icon: "money", tone: "sand", label: "Đơn của tôi còn thu tiền", value: 1, unit: "đơn", sub: "Còn thu 2.400.000 ₫ khi đón khách.", action: "Ghi thu" },
+};
+const CARDS = {
+  ban: ["nhap", "thieu", "phutrach", "donHomNay"], ketoan: ["thieu", "dieuchinh", "coc", "nhapKT"],
+  quantri: ["xemlai", "chuyenkhach", "nhap", "phutrachQT"], toanquyen: ["xemlai", "chuyenkhach", "nhap", "phutrachQT", "gopy"],
+  taixe: ["cuoc", "giayto"], hdv: ["tudo", "thuHDV"], doitac: [], nhansu: [],
+};
+const T = (time, place, customer, guests, tour, owe) => ({ time, place, customer, guests, tour, owe });
+const TRIPS = {
+  office: [
+    [T("07:30", "Khách sạn Mường Thanh Luxury, 60 Trần Phú", "Nguyễn Thị Mai Anh", 4, "Hòn Mun lặn ngắm san hô", 0), T("08:15", "Liberty Central, Biệt Thự", "Trần Văn Hùng", 2, "Hòn Tằm", 1200000), T("13:30", "Sân bay Cam Ranh", "Lê Hoàng Phúc", 6, "Bãi Dài", 3600000), T("15:00", "Cảng Cầu Đá", "Phạm Thu Hà", 3, "Vinpearl", 0)],
+    [T("06:45", "Khách sạn Havana, 38 Trần Phú", "Đỗ Minh Khoa", 5, "Hòn Mun", 2500000), T("08:00", "Bến tàu Vinpearl", "Hoàng Gia Linh", 2, "Vinpearl", 0), T("14:00", "Sheraton Nha Trang", "Ngô Thị Thảo", 4, "Hòn Tằm", 1800000)],
+    [T("07:15", "Novotel, 50 Trần Phú", "Vũ Đức Anh", 8, "Bãi Dài", 0)],
+  ],
+  taixe: [
+    [T("07:00", "Khách sạn Sheraton, 26 Trần Phú", "Nguyễn Thị Mai Anh", 4, "đưa ra Cảng Cầu Đá", 0), T("11:30", "Cảng Cầu Đá", "Trần Văn Hùng", 2, "về Liberty Central", 0), T("16:00", "Bến tàu Vinpearl", "Phạm Thu Hà", 3, "về Mường Thanh", 0)],
+    [T("06:30", "Khách sạn Havana", "Đỗ Minh Khoa", 5, "đưa ra Cảng Cầu Đá", 0)], [],
+  ],
+  hdv: [
+    [T("08:15", "Liberty Central, Biệt Thự", "Trần Văn Hùng", 2, "Hòn Tằm", 2400000), T("13:30", "Cảng Cầu Đá", "Lý Bảo Châu", 4, "Hòn Mun", 0)],
+    [T("07:00", "Bến tàu Vinpearl", "Phan Gia Hân", 3, "Vinpearl", 0)], [],
+  ],
+};
+const WEEK = [9800000, 14200000, 21500000, 18000000, 6400000, 12600000, 5200000];
+const WD = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const WDL = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+const vnd = (n) => n.toLocaleString("vi-VN").replace(/,/g, ".") + " ₫";
+const tr = (n) => (n / 1e6).toFixed(1).replace(".", ",") + "tr";
+const loiChao = (p) => (p >= 240 && p < 660 ? "Chào buổi sáng" : p >= 660 && p < 780 ? "Chào buổi trưa" : p >= 780 && p < 1080 ? "Chào buổi chiều" : "Chào buổi tối");
+const initials = (n) => { const w = n.split(" "); return (w[w.length - 2][0] + w[w.length - 1][0]).toUpperCase(); };
+const opt = (on) => ({ pressed: on ? "true" : "false", border: on ? "#0c4a6e" : "#e1e7ef", bg: on ? "#dcebf6" : "#ffffff", fg: on ? "#0c4a6e" : "#0f172a", weight: on ? 600 : 400 });
+
+class Component extends DCLogic {
+  state = { role: this.props.defaultRole ?? "ban", mode: "normal", width: "1440", settingsOpen: false, day: 0, panelOpen: true, partner: this.props.taiXeDoiTac ?? true, fixed: {}, loading: {} };
+  tripsRef = React.createRef();
+  set = (p) => this.setState({ ...p, fixed: {}, loading: {} });
+  retry = (k) => {
+    this.setState((s) => ({ loading: { ...s.loading, [k]: true } }));
+    setTimeout(() => this.setState((s) => ({ loading: { ...s.loading, [k]: false }, fixed: { ...s.fixed, [k]: true } })), 900);
+  };
+  scrollTrips = () => { const el = this.tripsRef.current; if (el) window.scrollBy({ top: el.getBoundingClientRect().top - 24, behavior: "smooth" }); };
+
+  renderVals() {
+    const { role, mode, width, settingsOpen, day, panelOpen, partner, fixed, loading } = this.state;
+    const empty = mode === "empty";
+    const menu = MENU[role];
+    const item = (k, extra = {}) => ({ key: k, label: M[k][0], icon: ic(M[k][1]), ...extra });
+    const top = menu.top.concat(role === "taixe" && partner ? ["baoban"] : []).map((k) => {
+      const badge = k === "orders" && SEES_ALL.includes(role) && !empty ? 3 : null;
+      return item(k, { active: k === "home", idle: k !== "home", badge, badgeAria: badge ? `${badge} đơn nháp` : null });
+    });
+    const groups = [];
+    if (menu.vc.length) groups.push({ title: "Vận chuyển", items: menu.vc.map((k) => item(k, k === "xegiayto" && !empty ? { badgeSand: 2, badgeAria: "2 giấy tờ sắp hết hạn" } : {})) });
+    if (menu.tien.length) groups.push({ title: "Tiền", items: menu.tien.map((k) => item(k)) });
+    const nav = {
+      canCreate: menu.create, top, groups, hasSettings: menu.set.length > 0, settings: menu.set, settingsCount: menu.set.length,
+      footer: [["Của tôi", "me"], ["Góp ý / Báo lỗi", "chat"], ["Trợ giúp", "help"]].map(([label, i]) => ({ label, icon: ic(i) })),
+    };
+
+    // Cards
+    const keys = empty ? [] : CARDS[role];
+    const errIdx = mode === "error" ? Math.min(1, keys.length - 1) : -1;
+    const all = keys.map((k, i) => {
+      const d = C[k];
+      const isErr = i === errIdx && !fixed[k];
+      const first = i === 0;
+      const sand = d.tone === "sand";
+      return {
+        ...d, key: k, icon: ic(d.icon), ok: !isErr, err: isErr,
+        iconBg: sand ? "#fbe3b3" : "#dcebf6", iconFg: sand ? "#5a4109" : "#0c4a6e",
+        btnCoral: first && d.chot, btnPrimary: first && !d.chot, btnSecondary: !first,
+        onAct: d.scroll ? this.scrollTrips : () => {},
+        errText: loading[k] ? "Đang tải lại…" : "Chưa tải được số này.",
+        retryLabel: loading[k] ? "Đang thử…" : "Thử lại", onRetry: () => this.retry(k),
+      };
+    });
+    const cards = all.slice(0, 4);
+    const extra = all.slice(4);
+    const overflow = extra.length ? { text: `Còn ${extra.length} việc nữa: ${extra[0].label.toLowerCase()} (${extra[0].value}).`, action: extra[0].action } : null;
+
+    // Greeting
+    const now = new Date();
+    const pm = now.getHours() * 60 + now.getMinutes();
+    const name = USERS[role];
+    const dateStr = `${WDL[now.getDay()]}, ${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
+    const okCards = all.filter((c) => c.ok);
+    let line;
+    if (role === "doitac") line = "Lập đơn cho khách của bạn bằng nút Tạo đơn bên trái.";
+    else if (role === "nhansu") line = "Hôm nay không có việc chờ bạn.";
+    else if (!all.length) line = "Hôm nay không có việc chờ bạn.";
+    else if (okCards.length) line = `Có ${all.length} việc chờ bạn — gấp nhất: ${okCards[0].label.toLowerCase()} (${okCards[0].value}).`;
+    else line = `Có ${all.length} việc chờ bạn.`;
+
+    // Trips
+    const tripSet = role === "taixe" ? TRIPS.taixe : role === "hdv" ? TRIPS.hdv : TRIPS.office;
+    const days = tripSet.map((d, i) => (empty && i === 0 ? [] : d));
+    const showTrips = ["ban", "quantri", "toanquyen", "taixe", "hdv"].includes(role);
+    const list = days[day] || [];
+    let nextI = -1;
+    if (day === 0) list.forEach((r, i) => { const [h, m] = r.time.split(":").map(Number); if (nextI === -1 && h * 60 + m >= pm) nextI = i; });
+    const trips = list.map((r, i) => {
+      const [h, m] = r.time.split(":").map(Number);
+      const past = day === 0 && h * 60 + m < pm;
+      const left = h * 60 + m - pm;
+      const next = i === nextI ? `Sắp tới · ${left >= 60 ? `còn ${Math.floor(left / 60)} giờ${left % 60 ? ` ${left % 60} phút` : ""}` : `còn ${left} phút`}` : null;
+      return {
+        ...r, next, bg: next ? "#dcebf6" : "transparent", line: i === 0 || next || i === nextI + 1 ? "transparent" : "#e1e7ef",
+        timeColor: past ? "#475569" : "#0c4a6e", owe: role !== "taixe" && r.owe ? vnd(r.owe) : null, paid: role !== "taixe" && !r.owe,
+      };
+    });
+    const dayTabs = ["Hôm nay", "Ngày mai", "Ngày kia"].map((label, i) => ({ label, n: days[i].length, on: i === day, off: i !== day, pick: () => this.setState({ day: i }) }));
+
+    // Chart
+    const showChart = ["ban", "quantri", "toanquyen"].includes(role);
+    const max = Math.max(...WEEK);
+    const bars = WEEK.map((v, i) => {
+      const d = new Date(now); d.setDate(now.getDate() - (6 - i));
+      const today = i === 6;
+      return { short: tr(v), full: `${WDL[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}: ${vnd(v)}`, h: Math.max(4, Math.round((v / max) * 78)), bg: today ? "#0c4a6e" : "#dcebf6", day: today ? "Hôm nay" : WD[d.getDay()], dayColor: today ? "#0c4a6e" : "#475569", dayWeight: today ? 600 : 400 };
+    });
+
+    const shortcuts = SHORTCUTS[role].map((k) => (k.startsWith("set:") ? { label: k.slice(4), icon: ic("chevron", 0) } : { label: M[k][0], icon: ic(M[k][1], 16) }))
+      .map((s) => (s.icon.props.width === 0 ? { label: s.label, icon: null } : s));
+
+    const isDriver = role === "taixe";
+    return {
+      noop: (e) => e && e.preventDefault && e.preventDefault(),
+      icons: { plus: ic("plus"), chevron: ic("chevron", 16), checkCircle: ic("checkCircle", 20) },
+      frameWidth: width === "auto" ? "100%" : width + "px",
+      contentPad: width === "1024" ? "32px 32px 48px" : "48px 48px 48px",
+      nav, settingsOpen, settingsOpenStr: settingsOpen ? "true" : "false", chevronDeg: settingsOpen ? 180 : 0,
+      toggleSettings: () => this.setState((s) => ({ settingsOpen: !s.settingsOpen })),
+      user: { name, initials: initials(name) }, roleLabel: ROLES.find((r) => r[0] === role)[1] + (isDriver && partner ? " đối tác" : ""),
+      greeting: `${loiChao(pm)}, ${name.split(" ").pop()}`, summary: `${dateStr} · ${line}`,
+      showWork: role !== "doitac", hasCards: cards.length > 0, noCards: cards.length === 0 && role !== "doitac", cards, overflow,
+      showTrips, tripsRef: this.tripsRef, tripsTitle: isDriver ? "Cuốc của tôi" : role === "hdv" ? "Chuyến đón của tôi" : "Chuyến đón",
+      dayTabs, trips, hasTrips: trips.length > 0, noTrips: trips.length === 0,
+      showChart, bars, weekTotal: vnd(WEEK.reduce((a, b) => a + b, 0)), chartAria: "Doanh thu 7 ngày: " + bars.map((b) => b.full).join("; "),
+      shortcuts, hasShortcuts: shortcuts.length > 0,
+      panelOpen, panelClosed: !panelOpen, togglePanel: () => this.setState((s) => ({ panelOpen: !s.panelOpen })),
+      roleOpts: ROLES.map(([k, label]) => ({ label, ...opt(k === role), pick: () => this.set({ role: k, day: 0 }) })),
+      stateOpts: [["normal", "Bình thường"], ["empty", "Không có việc"], ["error", "Một thẻ lỗi nguồn"]].map(([k, label]) => ({ label, ...opt(k === mode), pick: () => this.set({ mode: k }) })),
+      widthOpts: [["1440", "1440px"], ["1024", "1024px"], ["auto", "Vừa khung"]].map(([k, label]) => ({ label, ...opt(k === width), pick: () => this.setState({ width: k }) })),
+      isDriver, partnerDriver: partner, togglePartner: () => this.setState((s) => ({ partner: !s.partner })),
+    };
+  }
+}
+</script>
+</body>
+</html>

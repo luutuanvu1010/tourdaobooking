@@ -8,7 +8,7 @@ import { taoBoLamMoi } from "./lam-moi-logic";
 import { goiSom } from "./goi-som";
 import { layKhungNho } from "./khung-nho";
 import { feedbackBadge, initShell } from "./shell";
-import { demSapHetHan } from "./vc-dem";
+import { demSapHetHan, layDanhSachSapHet } from "./vc-dem";
 import { canSeeReviewAlerts, reviewAlerts, type ReviewAlerts } from "../src/shared/dashboard-review";
 import { tieuDeDemDoiChieu } from "../src/shared/doi-chieu-hien-thi";
 import { PERMISSION_LABEL, can } from "../src/shared/permissions";
@@ -16,6 +16,7 @@ import { homeRedirect } from "../src/shared/start-page";
 import { conLai, dongThoiGian, loiChao, phutVN, type DongThoiGian, type LoaiChuyen } from "../src/shared/trang-chu-may-tinh";
 import { loiTatMayTinh, luoiDienThoai, mauO, nhomMayTinh, type KhoaO, type LuoiTrangChu, type OChucNang } from "../src/shared/trang-chu-o";
 import { vnToday } from "../src/shared/vn-date";
+import { cauConLai, cauTomTatViec, KHOA_PHAM_VI, nguonCanTai, soTuKetQua, soXemLai, viecCuaBan, type KhoaThe, type NguonSo, type TheViec } from "../src/shared/viec-cua-ban";
 import { NHAN_PHAM_VI, PHAM_VI_O_TRANG_CHU, type PhamVi } from "../src/shared/pham-vi-so";
 
 const SHORT_WEEKDAY = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]; // chỉ số = Date.getUTCDay() (0 = Chủ nhật)
@@ -83,21 +84,14 @@ function oSoMayTinh(lopO: string, iconName: IconName, nhan: string, phamVi: Pham
 }
 
 /**
- * Thẻ số liệu máy tính, thứ tự bản vẽ 1.73 (đọc theo câu hỏi đầu ca: tiền, đơn đang chờ, rồi doanh thu): Còn thiếu tiền · Chờ xác nhận · Chưa phụ trách ·
- * Doanh thu của tôi (tuần, biểu đồ bên phải) — cùng số với thẻ điện thoại. "Còn thiếu tiền" lấy từ billing (`GET /api/ledger/unpaid-summary` — sổ tiền lượt 1,
- * ADR-0026 đ9); `null` = chưa tải được (hiện "—", không đoán). Ba ô kia là số TOÀN CÔNG TY của `GET /api/orders/dashboard`; "Doanh thu của tôi" chỉ đơn người
- * xem lập. Kiểu D (V1.5c): mỗi ô mang nhãn phạm vi "Toàn công ty" / "Của tôi" từ bảng chung `PHAM_VI_O_TRANG_CHU` (src/shared/pham-vi-so.ts).
+ * Thẻ số liệu máy tính: từ bản "Menu máy tính theo việc" (15/10) chỉ còn MỘT ô "Doanh thu của tôi" (tuần, biểu đồ bên phải). Ba ô cũ (Còn thiếu tiền, Chờ xác nhận,
+ * Chưa phụ trách) nay là thẻ trong khối "Việc của bạn" (renderViec) — cùng số, lấy từ cùng nguồn. Điện thoại không đổi: #dash-so vẫn đủ bốn ô (renderSoDienThoai).
+ * Số đầy đủ ("12.500.000 ₫"), khác thẻ điện thoại (số rút gọn). Nhãn phạm vi "Của tôi" từ bảng chung `PHAM_VI_O_TRANG_CHU` (src/shared/pham-vi-so.ts).
  */
-function renderSoMayTinh(data: Api.DashboardResponse, unpaid: Api.UnpaidSummaryResponse | null): void {
+function renderSoMayTinh(data: Api.DashboardResponse): void {
   const rev = data.revenueWeek;
-  const phuThieu = (u: Api.UnpaidSummaryResponse): string => (u.count === 0 ? "Không có đơn nào" : `${u.count} đơn${u.earliestDate ? ` · sớm nhất đón ${ngayNganHomNay(u.earliestDate)}` : ""}`);
   replaceChildren(
     byId("dash-so-mt"),
-    unpaid
-      ? oSoMayTinh("dash-smt-o-thieu", "money", "Còn thiếu tiền", PHAM_VI_O_TRANG_CHU.conThieu, vnd(unpaid.total), phuThieu(unpaid), { lop: "dash-smt-thieu" })
-      : oSoMayTinh("dash-smt-o-thieu", "money", "Còn thiếu tiền", PHAM_VI_O_TRANG_CHU.conThieu, "—", "Chưa tải được số"),
-    oSoMayTinh("dash-smt-o-cho", "doc-check", "Chờ xác nhận", PHAM_VI_O_TRANG_CHU.choXacNhan, String(data.draftCount), "Cần xác nhận đơn"),
-    oSoMayTinh("dash-smt-o-chua", "assign", "Chưa phụ trách", PHAM_VI_O_TRANG_CHU.chuaPhuTrach, String(data.unassignedCount), "Chờ người nhận"),
     oSoMayTinh("dash-smt-o-dt", "chart", "Doanh thu của tôi", PHAM_VI_O_TRANG_CHU.doanhThu, vnd(rev.total), `Tuần này · ${ngayNganHomNay(rev.from)}–${ngayNganHomNay(rev.to)} · ${rev.count} đơn`, {
       lop: "dash-smt-doanh-thu", ben: revenueChart(rev.daily),
     }),
@@ -260,25 +254,30 @@ function renderToday(data: Pick<Api.DashboardResponse, "today" | "tomorrow" | "d
  * Dùng `allSettled`: MỘT trong hai API lỗi (mạng chập chờn) không được kéo API còn lại xuống theo — coi phần lỗi là
  * "không có cảnh báo nào" (mảng rỗng) thay vì ẩn HẲN khối chỉ vì một nửa dữ liệu chưa tải được.
  */
-async function loadReview(staff: Staff): Promise<ReviewAlerts | null> {
+/** `loi`: một nguồn của bảng (danh mục hoặc giấy tờ) không tải được — thẻ "Cần xem lại" phải hiện "—" + Thử lại, KHÔNG biến mất như thể không có việc. */
+async function loadReview(staff: Staff, taiMoi: boolean): Promise<{ alerts: ReviewAlerts | null; loi: boolean }> {
   const laQuanTri = canSeeReviewAlerts(staff);
   const laKeToan = can(staff, "ledger.view"); // ADR-0119: dòng "khoản đang đối chiếu quá 3 ngày" của Kế toán (cùng ô route /api/ledger/coc/dem hỏi)
-  if (!laQuanTri && !laKeToan) return null;
+  if (!laQuanTri && !laKeToan) return { alerts: null, loi: false };
   // Giấy tờ sắp hết hạn (bản vẽ 1.73): CHUNG lời gọi với huy hiệu ô / thanh bên (web/vc-dem.ts giữ lời hỏi đang chạy); lỗi mạng → 0 → không dòng.
   const [catalogRes, feedbackRes, sapHetRes, doiChieuRes] = await Promise.allSettled([
     laQuanTri ? layCatalogAdmin() : Promise.resolve<Api.CatalogAdminResponse | null>(null),
     laQuanTri && can(staff, "feedback.triage") ? layFeedback() : Promise.resolve<Api.FeedbackQueueResponse | null>(null),
-    laQuanTri && can(staff, "vehicle.manage") ? demSapHetHan() : Promise.resolve(null),
+    laQuanTri && can(staff, "vehicle.manage")
+      // Lời gọi biết lỗi (demSapHetHan nuốt lỗi thành 0 — dùng cho huy hiệu, nằm trong gói orders). `layDanhSachSapHet` nhớ cả lời hứa BỊ TỪ CHỐI nên "Thử lại" (`taiMoi`) gọi thẳng, bỏ bản nhớ.
+      ? (taiMoi ? api<Api.ExpiringListResponse>("/api/van-chuyen/sap-het-han").then((r) => r.count) : layDanhSachSapHet().then((r) => r.count))
+      : Promise.resolve(null),
     laKeToan ? api<Api.CocDemResponse>("/api/ledger/coc/dem") : Promise.resolve<Api.CocDemResponse | null>(null),
   ]);
   // Huy hiệu cát của ô "Dịch vụ & giá" (Trang chủ điện thoại) — CÙNG phép đếm với huy hiệu thanh bên (web/shell.ts catalogConflictBadge), dùng lại lời gọi vừa có.
   if (catalogRes.status === "fulfilled" && catalogRes.value) datHuyHieu("dich-vu", catalogRes.value.items.filter((i) => i.conflicts.length > 0).length);
-  return reviewAlerts(staff, {
+  const alerts = reviewAlerts(staff, {
     catalogItems: catalogRes.status === "fulfilled" ? (catalogRes.value?.items ?? []) : [],
     tickets: feedbackRes.status === "fulfilled" ? (feedbackRes.value?.tickets ?? []) : [],
     expiringCount: sapHetRes.status === "fulfilled" ? sapHetRes.value : null,
     doiChieuQuaHan: doiChieuRes.status === "fulfilled" ? (doiChieuRes.value?.doiChieuQua3Ngay ?? null) : null,
   });
+  return { alerts, loi: catalogRes.status === "rejected" || sapHetRes.status === "rejected" };
 }
 
 /**
@@ -328,6 +327,81 @@ function renderReview(alerts: ReviewAlerts | null): void {
   replaceChildren(byId("dash-review-list"), ...rows);
   soViecXemLai = rows.length;
   section.hidden = false;
+}
+
+// ---- "Việc của bạn" (Trang chủ MÁY TÍNH, bốn vai văn phòng — đặc tả 2026-10-14-menu-may-tinh-viec-cua-ban §3, §5) ------------------------------------------
+// Luật chọn thẻ + nguồn cần tải ở src/shared/viec-cua-ban.ts (hàm thuần, có bài). Ở đây chỉ tải số và vẽ. Điện thoại ẩn khối này bằng CSS và vẫn dùng #dash-so.
+const ICON_VIEC: Record<KhoaThe, IconName> = { xemLai: "alert", dieuChinh: "doc-check", nhap: "doc-check", conThieu: "money", chuaPhuTrach: "assign", chuyenHomNay: "clock", gopY: "chat" };
+/** Số "Cần xem lại" lần tải đầy đủ gần nhất — lần làm mới lặng lẽ (Bảng tin) không chạy lại loadReview nên dùng số này. */
+let soXemLaiGanNhat: number | null = 0;
+/** Hai nguồn ngoài (điều chỉnh công nợ, góp ý) lần tải gần nhất; chỉ tải khi khối "Việc của bạn" thật sự hiện (điện thoại ẩn nó) và chưa có số, làm mới lặng lẽ dùng lại. */
+let soNgoaiGanNhat: { dieuChinh?: number | null; gopY?: number | null } = {};
+let ngoaiDaTai = false;
+/** Khối máy tính có đang hiện không — hỏi chính trình duyệt (`offsetParent` null khi CSS ẩn), cùng cách web/shell.ts nạp huy hiệu thanh bên; không chép mốc 641px sang JS. */
+const khoiHien = (): boolean => byId("dash-dai").offsetParent !== null;
+
+/** Nút cuộn tới khối cùng trang (thẻ "Chuyến hôm nay", "Cần xem lại"): không đổi địa chỉ trang; tôn trọng `prefers-reduced-motion`; chuyển tiêu điểm tới khối cho bàn phím. */
+function cuonToi(id: string): void {
+  const dich = document.getElementById(id);
+  if (!dich || dich.hidden) return;
+  dich.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  dich.tabIndex = -1;
+  dich.focus({ preventScroll: true });
+}
+
+/** Một thẻ việc: biểu tượng + nhãn (đọc trước), số lớn, dòng phụ, MỘT nút làm tiếp. Nguồn lỗi (`so === null`) → "—" + "Thử lại" (tải lại số), không nút làm tiếp. */
+function theViec(staff: Staff, t: TheViec, thuTu: number): HTMLElement {
+  const idNhan = `dash-viec-nhan-${t.khoa}`;
+  const lop = t.chot ? "btn btn-accent" : thuTu === 0 ? "btn btn-primary" : "btn";
+  let nut: HTMLElement;
+  if (t.so === null) {
+    nut = h("button", { type: "button", class: "btn", "aria-describedby": idNhan }, "Thử lại");
+    nut.addEventListener("click", () => {
+      const b = nut as HTMLButtonElement;
+      b.disabled = true;
+      b.textContent = "Đang thử…";
+      void taiDashboard(staff, false, true).finally(() => { b.disabled = false; b.textContent = "Thử lại"; });
+    });
+  } else if (t.href.startsWith("#")) {
+    nut = h("button", { type: "button", class: lop, "aria-describedby": idNhan, onclick: () => cuonToi(t.href.slice(1)) }, t.nut);
+  } else {
+    nut = h("a", { class: lop, href: t.href, "aria-describedby": idNhan }, t.nut);
+  }
+  return h(
+    "article",
+    { class: `dash-viec-the dash-viec-the-${t.tone}`, "data-khoa": t.khoa },
+    h("div", { class: "dash-viec-hang" }, h("span", { class: "dash-viec-ico", "aria-hidden": "true" }, icon(ICON_VIEC[t.khoa], 18)), h("h3", { id: idNhan, class: "dash-viec-nhan" }, t.nhan)),
+    // Nhãn phạm vi (CHANGE-GUIDE bẫy 59(3)): số "Toàn công ty" và "Của tôi" đứng cạnh nhau thì thẻ nào cũng mang nhãn — cùng viên `.dash-pham-vi` của ô số, bảng chung `PHAM_VI_O_TRANG_CHU`.
+    h("span", { class: `dash-pham-vi is-${PHAM_VI_O_TRANG_CHU[KHOA_PHAM_VI[t.khoa]] === "CUA_TOI" ? "cua-toi" : "cong-ty"}`, "data-pham-vi": PHAM_VI_O_TRANG_CHU[KHOA_PHAM_VI[t.khoa]] }, NHAN_PHAM_VI[PHAM_VI_O_TRANG_CHU[KHOA_PHAM_VI[t.khoa]]]),
+    t.so === null
+      ? h("p", { class: "dash-viec-so is-loi" }, h("span", { "aria-hidden": "true" }, "—"), h("span", { class: "visually-hidden" }, "chưa tải được"))
+      : h("p", { class: "dash-viec-so" }, String(t.so)),
+    t.so === null ? h("p", { class: "dash-viec-phu is-loi", role: "status" }, "Chưa tải được số này") : h("p", { class: "dash-viec-phu" }, t.phu),
+    h("div", { class: "dash-viec-nut" }, nut),
+  );
+}
+
+/** Vẽ khối "Việc của bạn"; trả câu tóm tắt cho dải chào (`null` khi không thẻ → giữ câu cũ). Không việc nào → dòng "Hôm nay không có việc chờ bạn." (+ "Tạo đơn" nếu được lập đơn). */
+function renderViec(staff: Staff, nguon: NguonSo): string | null {
+  const sec = byId("dash-viec");
+  const { the, conLai, conLaiThe } = viecCuaBan(staff, nguon);
+  const tieuDe = h("h2", { id: "dash-viec-h", class: "dash-viec-tieu-de" }, "Việc của bạn");
+  if (the.length === 0) {
+    replaceChildren(
+      sec,
+      tieuDe,
+      h("div", { class: "dash-viec-rong" }, h("p", { class: "dash-viec-rong-chu icon-label" }, icon("checkCircle", 20), "Hôm nay không có việc chờ bạn."), can(staff, "order.create") ? h("a", { class: "btn btn-accent", href: "/order-form" }, "Tạo đơn") : false),
+    );
+  } else {
+    replaceChildren(
+      sec,
+      h("div", { class: "dash-viec-dau" }, tieuDe, h("span", { class: "dash-viec-goi-y" }, "Xếp theo độ gấp, việc gấp nhất bên trái")),
+      h("div", { class: "dash-viec-luoi" }, ...the.map((t, i) => theViec(staff, t, i))),
+      cauConLai(conLai, conLaiThe) && h("p", { class: "dash-viec-con" }, cauConLai(conLai, conLaiThe)),
+    );
+  }
+  sec.hidden = false;
+  return cauTomTatViec(the, conLai);
 }
 
 /** Biểu tượng trang trí trước ba tiêu đề khối tĩnh có sẵn trong `public/index.html` (không phụ thuộc dữ liệu/quyền — chạy một lần, giữ nguyên chữ gốc). Đợt E Phần B. */
@@ -488,17 +562,20 @@ function veDai(staff: Staff): void {
   dai.hidden = false;
 }
 
-/** Dòng tóm tắt dưới lời chào: "N chuyến đón hôm nay" (+ " · M việc cần xem lại" khi khối Cần xem lại có dòng) — chỉ khi số liệu đã về. */
-function datTomTatDai(soChuyen: number): void {
+/**
+ * Dòng tóm tắt dưới lời chào: có thẻ "Việc của bạn" → câu của `cauTomTatViec` ("Có N việc chờ bạn — gấp nhất: …"); không thì câu cũ "N chuyến đón hôm nay"
+ * (+ " · M việc cần xem lại" khi khối Cần xem lại có dòng) — chỉ khi số liệu đã về.
+ */
+function datTomTatDai(soChuyen: number, cauViec: string | null): void {
   const el = document.getElementById("dash-dai-tom");
   if (!el) return;
-  el.textContent = soViecXemLai > 0 ? `${soChuyen} chuyến đón hôm nay · ${soViecXemLai} việc cần xem lại` : `${soChuyen} chuyến đón hôm nay`;
+  el.textContent = cauViec ?? (soViecXemLai > 0 ? `${soChuyen} chuyến đón hôm nay · ${soViecXemLai} việc cần xem lại` : `${soChuyen} chuyến đón hôm nay`);
   el.hidden = false;
 }
 
 /**
  * Đồng hồ phút (máy tính): "Bây giờ", chuyến đã qua / sắp tới và "còn N phút" đi theo giờ thật mà không gọi lại máy chủ. MỘT bộ hẹn giờ cho cả trang; chỉ vẽ lại khi
- * đang xem Hôm nay, trang đang hiện, và tiêu điểm KHÔNG nằm trong khối Chuyến đón (vẽ lại thay các dòng — không giật tiêu điểm của người đang dùng bàn phím).
+ * đang xem Hôm nay, trang đang hiện, và tiêu điểm KHÔNG nằm trong nút chọn ngày hay danh sách chuyến (chỉ hai chỗ đó bị vẽ lại thay; tiêu điểm ở tiêu đề khối sau khi bấm thẻ "Chuyến hôm nay" không chặn — vẽ lại thay các dòng — không giật tiêu điểm của người đang dùng bàn phím).
  */
 let dongHoPhut: number | undefined;
 function batDongHoPhut(): void {
@@ -510,7 +587,7 @@ function batDongHoPhut(): void {
     if (dai) dai.textContent = `${buoi}, `;
     const dt = document.querySelector(".dash-hero-xin");
     if (dt) dt.textContent = `${buoi},`;
-    if (ngayDonChon !== 0 || !veGanNhat || byId("dash-today").contains(document.activeElement)) return;
+    if (ngayDonChon !== 0 || !veGanNhat || byId("dash-today-days").contains(document.activeElement) || byId("dash-today-list").contains(document.activeElement)) return;
     renderToday(veGanNhat.data, veGanNhat.tien);
   }, 60_000);
 }
@@ -600,7 +677,7 @@ function baoLoi(cau: Child): void {
     if (!nguoiXem) return;
     baoLoi(null);
     byId("loading").hidden = false;
-    void taiDashboard(nguoiXem);
+    void taiDashboard(nguoiXem, false, true);
   });
   replaceChildren(el, h("span", { class: "dash-loi-ico", "aria-hidden": "true" }, icon("alert", 20)), h("span", { class: "dash-loi-chu" }, cau), nut);
   el.hidden = false;
@@ -641,6 +718,15 @@ async function main(): Promise<void> {
   veLoiTat(staff);
   napHuyHieu();
   await taiDashboard(staff);
+  if (!khoiHien()) {
+    // Điện thoại / iPad dựng đứng: hai nguồn ngoài chưa tải. Cửa sổ rộng ra tới khổ máy tính thì tải và vẽ lại MỘT lần rồi tự gỡ người nghe (khuôn web/shell.ts).
+    const khiDoiKho = (): void => {
+      if (!khoiHien()) return;
+      window.removeEventListener("resize", khiDoiKho);
+      void taiDashboard(staff);
+    };
+    window.addEventListener("resize", khiDoiKho);
+  }
   batDongHoPhut();
   // Bảng tin (ADR-0022, TD-3): đơn đổi / vừa nối lại → tải lại số liệu và danh sách hôm nay. Đăng ký MỘT lần, sau lần tải đầu; bộ gộp bảo đảm
   // một đợt tin + `can-tai-lai` đến cùng lúc không chạy hai lần tải song song.
@@ -654,15 +740,25 @@ async function main(): Promise<void> {
  * `lamMoi` (theo tin của Bảng tin): không hiện lại khung "đang tải", không chạy lại "Cần xem lại" (không phụ thuộc đơn, gọi thêm hai API của Admin),
  * và lỗi mạng thì giữ nguyên số cũ đang hiện (không xoá khối, không dựng banner lỗi).
  */
-async function taiDashboard(staff: Staff, lamMoi = false): Promise<void> {
+async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promise<void> {
   const loadingEl = byId("loading");
   try {
     // loadReview() không bao giờ ném lỗi (allSettled + canSeeReviewAlerts() chặn trước) — gọi song song với
     // dashboard chính, không làm chậm phần còn lại của trang.
-    const [data, review, unpaid] = await Promise.all([
+    // Nguồn số của "Việc của bạn": CHỈ gọi route mà nguonCanTai(staff) đòi (không gọi route chỉ-quản-trị cho người không phải quản trị); lỗi mạng một nguồn → null cho khoá đó.
+    const canTai = nguonCanTai(staff);
+    const lay = !ngoaiDaTai && khoiHien();
+    const [data, review, unpaid, ngoai] = await Promise.all([
       layDashboard(),
-      lamMoi ? undefined : loadReview(staff),
+      lamMoi ? undefined : loadReview(staff, taiMoi || soXemLaiGanNhat === null),
       api<Api.UnpaidSummaryResponse>("/api/ledger/unpaid-summary").catch(() => null), // sổ tiền lượt 1: ô "Còn thiếu tiền" rời dashboard của orders
+      lay
+        ? Promise.allSettled([
+            canTai.includes("dieuChinh") ? api<Api.YeuCauDieuChinhListResponse>("/api/ledger/adjustment-requests").then((r) => r.choDuyetChoToi) : undefined,
+            // Trùng một lời gọi với feedbackBadge() của shell.ts (nó trả mine+queue, không export queue; đổi sẽ động byte gói orders) — chấp nhận, chỉ Toàn quyền.
+            canTai.includes("gopY") ? api<Api.FeedbackBadgeResponse>("/api/feedback/badge").then((r) => r.queue) : undefined,
+          ])
+        : null,
     ]);
     // Số "còn lại" cho cả ba ngày của khối "Chuyến đón" (Hôm nay / Ngày mai / Ngày kia — góp ý YC-0007); billing nhận tối đa 100 mã một lần.
     const maDon = [...new Set([...data.today, ...data.tomorrow, ...data.dayAfter].map((o) => o.id))].slice(0, 100);
@@ -671,11 +767,24 @@ async function taiDashboard(staff: Staff, lamMoi = false): Promise<void> {
       : {};
     loadingEl.hidden = true;
     // Lần trước lỗi mà lần này được → gỡ dải. Chỉ thiếu số "Còn thiếu" → dải "Thử lại" (bản vẽ điện thoại 1f, máy tính v2), ô đó hiện "—".
-    baoLoi(unpaid ? null : LOI_SO_LIEU);
-    if (review !== undefined) renderReview(review);
-    datTomTatDai(data.today.length);
+    if (review !== undefined) {
+      renderReview(review.alerts);
+      soXemLaiGanNhat = soXemLai(review.alerts, review.loi);
+    }
+    if (ngoai) {
+      soNgoaiGanNhat = { dieuChinh: soTuKetQua(ngoai[0]), gopY: soTuKetQua(ngoai[1]) };
+      ngoaiDaTai = soNgoaiGanNhat.dieuChinh !== null && soNgoaiGanNhat.gopY !== null; // có nguồn lỗi thì lần làm mới sau thử lại
+    }
+    // Dựng khối "Việc của bạn" SAU renderReview (thẻ "Cần xem lại" cuộn tới khối đó nên khối phải hiện cùng nguồn) và TRƯỚC dòng tóm tắt (nó lấy câu từ thẻ).
+    const nguon: NguonSo = {
+      nhap: data.draftCount, chuaPhuTrach: data.unassignedCount, chuyenHomNay: data.today.length, conThieu: unpaid, xemLai: soXemLaiGanNhat,
+      dieuChinh: soNgoaiGanNhat.dieuChinh, gopY: soNgoaiGanNhat.gopY,
+    };
+    // Dải lỗi chung (thiếu số "Còn thiếu"): máy tính mà thẻ "Đơn còn thiếu tiền" đang hiện "—" + Thử lại thì thẻ là chỗ thử lại DUY NHẤT (không cộng nút ở dải); điện thoại (thẻ ẩn) vẫn dùng dải.
+    baoLoi(unpaid || (khoiHien() && viecCuaBan(staff, nguon).the.some((t) => t.khoa === "conThieu")) ? null : LOI_SO_LIEU);
+    datTomTatDai(data.today.length, canTai.length > 0 ? renderViec(staff, nguon) : null);
     datHuyHieu("don-hang", data.draftCount); // huy hiệu ô "Đơn hàng" = số đơn chưa xác nhận (quyết định 8 của chủ dự án — cùng số huy hiệu thanh bên)
-    renderSoMayTinh(data, unpaid);
+    renderSoMayTinh(data);
     renderSoDienThoai(data, unpaid);
     renderToday(data, tien);
     // Chỉ hiện khối nội dung SAU KHI dựng xong dữ liệu thật — lúc đang tải/lỗi giữ ẩn (tránh khối rỗng đọng lại cạnh skeleton/banner lỗi).

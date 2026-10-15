@@ -14,15 +14,37 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Khoản chuyển khoản «Công ty thu» không tạo nợ cho người khai + Kế toán duyệt chuyển tiền sang đơn khác + đổi chữ «cọc» thành «Thu trước» (ADR-0119 của dòng sổ tiền, chủ duyệt 14/10: «duyệt cả hai theo khuyến nghị»).
     // Có thay đổi cơ sở dữ liệu (migration 0099) — cần trien-khai sau day-len.
-    // Số 1.98 là số TẠM (= nhánh đưa đón 1.97 + 1, 2026-10-15; nhánh đó vào main trước): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
-    version: "1.98",
-    date: "2026-10-15",
+    // Số 2.1 là số TẠM (= main 2.0 + 1, 2026-10-16; chủ chọn cho mục này vào main trước nhánh đưa đón): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
+    version: "2.1",
+    date: "2026-10-16",
     items: [
       { kind: "doi", text: "Hướng dẫn viên khai \"Công ty thu\" bằng chuyển khoản thì không bị tính nợ phần đó; khoản hiện \"đang đối chiếu\" tới khi Kế toán bấm \"Công ty đã nhận\"." },
       { kind: "doi", text: "Đơn còn khoản chuyển khoản đang đối chiếu thì chưa bấm được \"Đã giao – đã thu đủ\". Tiền mặt khai \"Công ty thu\" vẫn tính vào nợ người khai như trước." },
       { kind: "moi", text: "Khoản đang đối chiếu quá 3 ngày được nhắc đỏ cho Kế toán ở trang đơn và Trang chủ." },
       { kind: "moi", text: "Kế toán duyệt được việc chuyển tiền thu trước sang đơn mới. Duyệt hoàn tiền cho khách vẫn chỉ Quản trị và Toàn quyền; người duyệt phải khác người ghi chuyển." },
       { kind: "doi", text: "Chữ \"cọc\" trên màn hình nhân viên đổi thành \"Thu trước\"; bản xác nhận gửi khách giữ nguyên." },
+    ],
+  },
+  {
+    // Sửa chữ nút thẻ «Đơn nháp» ở Trang chủ (chủ chốt 2026-10-16, DAC-TA §10.7). Không migration, không đổi quyền ở máy chủ.
+    // Số 2.0 do chủ dự án chốt (2026-10-16, «cho lên bản 2.0»), đánh dấu menu mới theo việc. Ngày là ngày dự kiến.
+    version: "2.0",
+    date: "2026-10-16",
+    items: [
+      { kind: "doi", text: "Trang chủ: thẻ Đơn nháp chỉ Quản trị có nút Xác nhận đơn, vai khác có nút Xem đơn nháp." },
+    ],
+  },
+  {
+    // Menu máy tính theo việc + khối Việc của bạn ở Trang chủ (chủ chọn bản dựng 14/10; đặc tả docs/superpowers/specs/2026-10-14-menu-may-tinh-viec-cua-ban/DAC-TA.md). Không migration, không đổi quyền.
+    // Số 1.97 là số TẠM (= main 1.96 + 1, 2026-10-15): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
+    version: "1.97",
+    date: "2026-10-15",
+    items: [
+      { kind: "doi", text: "Menu bên trái trên máy tính gọn hơn, xếp theo việc: việc hằng ngày ở đầu, rồi Vận chuyển, Tiền; các mục cài đặt gom vào Thiết lập, bấm để mở hoặc thu gọn." },
+      { kind: "moi", text: "Trang chủ trên máy tính có khối Việc của bạn: mỗi thẻ cho biết có bao nhiêu việc đang chờ (đơn nháp, đơn còn thiếu tiền, chuyến hôm nay…) kèm nút làm ngay." },
+      { kind: "doi", text: "Xe & giấy tờ, Giá & chi phí mỗi mục gộp nhiều trang; mở ra thì đầu trang có dải nút chuyển nhanh sang trang cùng nhóm." },
+      { kind: "doi", text: "Hoa hồng đối tác và Người bán dịch vụ chuyển vào nhóm Thiết lập; Điều chỉnh công nợ và Khoá sổ tháng nằm ở nhóm Tiền." },
+      { kind: "moi", text: "Hướng dẫn viên có mục Đơn hàng trong menu, hiện các đơn mình đang phụ trách." },
     ],
   },
   {

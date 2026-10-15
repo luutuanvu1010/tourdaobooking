@@ -4,16 +4,31 @@
 
 ## CHỜ PHÁT HÀNH (chưa lên production, ghi 2026-10-15) — ADR-0119 (đổi từ 0118) và đợt xác nhận sổ vàng
 
-Nằm trên nhánh `claude/stoic-heisenberg-72c05d`, **chưa `day-len`, chưa `trien-khai`**; mục hiện trạng ngay dưới vẫn là bản 1.94.
+Nằm trên nhánh `claude/stoic-heisenberg-72c05d`, **chưa `day-len`, chưa `trien-khai`**; mục hiện trạng ngay dưới (bản 1.96, rồi 2.0 của phiên khác) chưa gồm phần này.
 
-- **Số hiệu:** ADR đổi từ 0118 sang 0119 và nhật ký thay đổi dùng số tạm **1.98** vì nhánh đưa đón theo nhóm (ADR-0118, 1.97, migration 0098) vào `main` trước; kiểm lại số ở bước A.0 khi phát hành.
+- **Số hiệu:** ADR đổi từ 0118 sang 0119 và nhật ký thay đổi dùng số tạm **2.1** (main đã ở 2.0) vì nhánh đưa đón theo nhóm (ADR-0118, migration 0098) CHƯA vào `main` — chủ chọn cho mục này vào trước, nhánh đưa đón sẽ đổi số sau; kiểm lại số ở bước A.0 khi phát hành.
 - **Có gì:** ADR-0119 Điều 1 (khoản chuyển khoản do người không phải Kế toán khai là «đang đối chiếu», không tạo nợ giữ hộ; chặn Đã giao; nhắc Kế toán sau 3 ngày; tiền mặt «Công ty thu» giữ luật cũ) và Điều 2 (ô quyền `deposit.transfer.approve`: Kế toán duyệt chuyển tiền sang đơn khác); đổi chữ «cọc» → «Thu trước» ở chữ nhân viên thấy (câu gửi khách giữ nguyên); sổ vàng: 26 ca + 7 khoá mới đã xác nhận 2026-10-14.
 - **Cần biết khi phát hành:** có **migration `0099_bil_doi_chieu_khoan_cong_ty_thu`** (bảng chỉ-thêm `bil_receipt_recon`, tạo lại view `v_bil_coc_don` và trigger đảo lần thu) nên phải qua điểm khôi phục Time Travel và `audit-invariants --db remote`; trần gói trang Đơn hàng nới lên 96.500 byte (chủ chấp nhận); phải thêm mục nhật ký thay đổi mới (bước A.0) trước khi triển khai.
 - **Đã kiểm:** `typecheck` 0 lỗi, `npm test` xanh cả hai bước; hai lượt kiểm độc lập (đạt có điều kiện), điều kiện còn lại là dòng nhắc chỉ cho chuyển khoản — đã sửa, chưa có lượt kiểm thứ ba.
 - **Chưa kiểm:** kịch bản Chrome (`a2-smoke-*.mjs` cho `web/order.ts`, `trang-chu-smoke.mjs` cho `web/home.ts`, cần `AXE_JS`), e2e `so-tien` và `audit-invariants` chưa chạy sau lượt sửa cuối, chưa xem bằng mắt trên iPhone.
 - **Sổ vàng:** SV-SC-02, SV-SC-06, SV-DH-05 chủ đã xác nhận lại 2026-10-15; các ca còn chờ khác ở `golden/README.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.94 ĐÃ LÊN PRODUCTION (sửa nút «Gửi yêu cầu» của màn «Điều chỉnh công nợ»; Trợ giúp Kế toán và Quản trị cho màn đó; kèm bản 1.93 — sửa số khách, ADR-0114: nhắc khuyến mại khi bớt khách, lịch sử số khách, mỗi đơn có ít nhất một người lớn) — không migration (2026-10-13 khoảng 23:13 giờ VN)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.96 ĐÃ LÊN PRODUCTION (ADR-0117 lần 1: loại đối tác là dữ liệu — Kế toán, Quản trị, Toàn quyền thêm / tắt / bật loại ở màn «Hoa hồng đối tác», gắn loại cho hồ sơ ở Danh bạ; nhân viên nội bộ không mang loại được hưởng hoa hồng; kiểm định kỳ `R-PRC-6`) — migration `0095_loai_doi_tac_la_du_lieu` đã áp (2026-10-14 12:37 giờ VN)
+
+Khối do `npm run trien-khai` in ra (chủ chạy), kèm phần AI tự kiểm lại bằng lệnh chỉ đọc (2026-10-14):
+
+- **Commit:** `d2ea2c68` (= `origin/main` lúc triển khai). Điểm khôi phục Time Travel trước khi áp: `00001059-00000002-00005104-d6a34009dee81c97119559308e5ea16f`.
+- **Worker** (`wrangler deployments list`): mới nhất **18d2969e-9a7b-404c-a192-c75d74bb19b4** (2026-10-14T05:36Z, 100%); trước đó 583ab741 (2026-10-13T22:16Z).
+- **Phiên bản:** cổng trước và sau deploy ĐẠT (theo khối `trien-khai`); `GET /api/auth/config` → `"version":"1.96"`. Số 1.96 lúc soạn nhánh là số tạm, `origin/main` khi đó chưa có mục 1.96 nào khác; bản 1.95 (màn Tạo đơn bốn bước, phiên khác) đã lên trước đó và chưa có mục riêng ở tệp này.
+- **Migration:** `wrangler d1 migrations list --remote` → "No migrations to apply!".
+- **Dữ liệu:** `audit-invariants --db remote` (chủ chạy trong `trien-khai`) → ĐẠT, trong đó có kiểm mới `R-PRC-6`. AI chưa đọc được số cảnh báo chi tiết của lần chạy này (khối in ra chỉ ghi ĐẠT).
+- **Kiểm trước phát hành:** typecheck 0; `npm test` 4721 bài / 0 đỏ (cả hai bước); e2e đủ bộ xanh theo khối `trien-khai`. Người kiểm độc lập (chỉ đọc) đã duyệt từng việc của nhánh, rồi toàn nhánh (kết luận «cần sửa», sửa một lượt, duyệt lại «đạt»); sổ điều phối và các phán quyết ở `docs/superpowers/plans/2026-10-14-adr-0117-lan-1-thi-cong-nhat-ky.md`.
+- **Bảo trì:** BẬT tới 2026-10-14T11:49Z (18:49 giờ VN) — chủ tự quyết khi tắt.
+- **Hoàn tác:** migration 0095 chỉ THÊM (một cột, hai view, sáu trigger), không sửa hay xoá dữ liệu cũ. Chưa diễn tập quay Worker về bản trước sau khi đã có loại mới trong dữ liệu — AI chưa kiểm hành vi bản cũ với dữ liệu đó; cần quay lại thì dùng điểm Time Travel ở trên và xem phần Hoàn tác của tệp này.
+- **Chưa kiểm:** bộ e2e đầy đủ và kịch bản Chrome sau lượt sửa cuối của nhánh (người kiểm độc lập không tự chạy; khối `trien-khai` báo e2e xanh nhưng AI chưa đọc chi tiết); màn «Loại đối tác» và ô «Thêm công việc» ở Danh bạ bằng tài khoản thật; iPhone; dữ liệu thật về vai cũ `STAFF` / `SALES` (xem `BL-ADR0117-VAI-CU`).
+- **Còn mở:** lỗi tương phản màu của dòng loại «đã tắt» (`.row-off`, CSS dùng chung; ghi ở README bằng chứng `docs/evidence/2026-10-14-loai-doi-tac/`); hố vai cũ `STAFF` / `SALES` kết thúc ngày tương lai (`docs/BACKLOG.md` `BL-ADR0117-VAI-CU`); **lần 2 của ADR-0117 (mức TA dùng chung, dựng lại bảng `prc_commission_rule`) CHƯA duyệt, không làm**; năm mục sổ hoãn hạn 2026-10-31 (`docs/quyen-hoan.json`: TNV-G1/G3/G4, HC-4.2, HC-5.19) cần chủ gia hạn hoặc đóng trước khi `npm test` đỏ từ 1/11.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.94 ĐÃ LÊN PRODUCTION (sửa nút «Gửi yêu cầu» của màn «Điều chỉnh công nợ»; Trợ giúp Kế toán và Quản trị cho màn đó; kèm bản 1.93 — sửa số khách, ADR-0114: nhắc khuyến mại khi bớt khách, lịch sử số khách, mỗi đơn có ít nhất một người lớn) — không migration (2026-10-13 khoảng 23:13 giờ VN)
 
 Chủ chạy `day-len` rồi `trien-khai`; AI kiểm lại bằng lệnh chỉ đọc (2026-10-13):
 

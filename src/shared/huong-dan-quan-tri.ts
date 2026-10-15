@@ -9,15 +9,17 @@ export const HD_QUAN_TRI: NhomHuongDan = {
   batDauNhanh: `1. Mở [[Quản lý tài khoản]], xem cột [[Đăng nhập gần nhất]] để biết ai đã vào app.
 2. Nhân viên mới: Hành chính nhân sự tạo tài khoản; bạn gán vai, đặt lại PIN khi họ cần.
 3. Mở [[Dịch vụ & giá]], xem lần đồng bộ gần nhất với Google Sheet có lỗi không.
-4. Trên Trang chủ, xem khối [[Cần xem lại]].
-5. Mở [[Sắp hết hạn]] trong nhóm Vận chuyển để xem giấy tờ xe, tài xế sắp hết hạn.`,
+4. Trên Trang chủ, xem khối [[Việc của bạn]] (thẻ [[Cần xem lại]] đứng đầu).
+5. Mở [[Xe & giấy tờ]], chọn [[Giấy tờ sắp hết hạn]] để xem giấy tờ xe, tài xế sắp hết hạn.`,
   muc: [
     {
       tieuDe: "Menu của bạn",
       noiDung: `### Trên máy tính
-- Nhóm **BÁN HÀNG**: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Danh bạ]].
-- Nhóm **QUẢN TRỊ**: [[Dịch vụ & giá]], [[Quản lý tài khoản]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], rồi **Vận chuyển** gồm [[Điều phối xe]], [[Xe đang chạy]], [[Xe]], [[Lịch xe bận]], [[Sắp hết hạn]], [[Loại giấy tờ xe]], [[Lý do điều phối]]. Thêm [[Điều chỉnh công nợ]], [[Hoa hồng đối tác]] và [[Người bán dịch vụ]], nơi đặt mức hoa hồng và ghi người bán.
-- Số nhỏ cạnh Dịch vụ & giá là số dịch vụ có giá trên Sheet vừa đổi. Số cạnh Sắp hết hạn là số giấy tờ đã hoặc sắp hết hạn.
+- **Đầu menu**: [[Tạo đơn]], [[Trang chủ]], [[Đơn hàng]], [[Danh bạ]].
+- Nhóm **VẬN CHUYỂN**: [[Điều phối xe]], [[Xe đang chạy]], [[Đề nghị chuyển khách]], [[Xe & giấy tờ]] (gộp [[Xe]], [[Lịch xe bận]], [[Giấy tờ sắp hết hạn]]) và [[Giá & chi phí]].
+- Nhóm **TIỀN**: [[Điều chỉnh công nợ]]; [[Khoá sổ tháng]] chỉ Toàn quyền thấy.
+- Nhóm **THIẾT LẬP** (bấm để mở, thu gọn): [[Hoa hồng đối tác]], [[Người bán dịch vụ]], [[Dịch vụ & giá]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], [[Loại giấy tờ xe]], [[Lý do điều phối]], [[Quản lý tài khoản]].
+- Số nhỏ cạnh Dịch vụ & giá: dịch vụ có giá Sheet vừa đổi; cạnh Xe & giấy tờ: giấy tờ đã hoặc sắp hết hạn.
 
 ### Trên điện thoại
 - Tab ở đáy: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Dịch vụ]], [[Tài khoản]], **Tôi**.
@@ -130,7 +132,7 @@ Lọc: [[Đang ghi đè giá]], [[Sheet đã đổi giá (cần xem)]], [[Đã �
 5. Không dùng xe nữa: [[Sửa thông tin xe]], [[Ngừng dùng xe]], rồi [[Ngừng dùng]]. Xe không bị xoá; dùng lại bằng [[Dùng lại xe]].
 
 ### Giấy tờ sắp hết hạn
-Mở [[Sắp hết hạn]] (điện thoại: [[Giấy tờ sắp hết hạn]] ở trang Tôi). Danh sách gồm giấy của xe và tài xế, cả giấy đã hết hạn. Bấm một dòng để mở xe hoặc hồ sơ rồi gia hạn.`,
+Mở [[Xe & giấy tờ]], chọn [[Giấy tờ sắp hết hạn]] (điện thoại: ở trang Tôi). Danh sách gồm giấy của xe và tài xế, cả giấy đã hết hạn. Bấm một dòng để mở rồi gia hạn.`,
     },
     {
       tieuDe: "Điều chỉnh khẩn cấp và phá lệ",
@@ -168,7 +170,7 @@ Mở [[Sắp hết hạn]] (điện thoại: [[Giấy tờ sắp hết hạn]] �
 Mở [[Loại giấy tờ cá nhân]] (có cả [[Hạng giấy phép lái xe]]) hoặc [[Loại giấy tờ xe]]. Thêm: gõ mã, tên, tick [[Có ngày hết hạn]] nếu cần, thứ tự, [[Thêm]]. Sửa: [[Sửa]], [[Lưu]]. Không xoá, chỉ ngưng dùng.
 
 ### Trợ lý Hỗ trợ (chỉ Toàn quyền)
-Mở [[Trợ lý Hỗ trợ]] ở nhóm QUẢN TRỊ (điện thoại: trang **Tôi**). Sáu phần, mỗi phần có nút lưu riêng, hiệu lực ngay:
+Mở [[Trợ lý Hỗ trợ]] ở nhóm THIẾT LẬP (điện thoại: trang **Tôi**). Sáu phần, mỗi phần có nút lưu riêng, hiệu lực ngay:
 1. **Tình trạng**: bật / tắt cả công ty, trần chi phí tháng, chi phí, số câu, lượt thử. [[Thử key]] cho biết key còn dùng được, sai hay hết tiền. Đổi key làm ngoài app.
 2. **Ai được dùng**: bật / tắt theo từng vai và số câu mỗi người mỗi ngày, [[Lưu]]. Tài khoản nhiều vai: dùng được khi có một vai đang bật.
 3. **Bộ não**: chọn mẫu AI (có giá ước tính), mức suy nghĩ, độ dài; sửa lời nhắc, [[Lưu bộ não]]. [[Khôi phục mặc định]] chỉ đưa lời nhắc gốc vào ô soạn, phải bấm [[Lưu bộ não]] thì mới có hiệu lực; mở Lịch sử bản, [[Quay lại bản này]]. Thử trước: chọn vai, gõ câu hỏi, [[Thử với cấu hình đang soạn]].

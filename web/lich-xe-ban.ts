@@ -11,6 +11,7 @@ import { dai } from "./dieu-phoi-ui";
 import { byId, h, replaceChildren } from "./dom";
 import { datCrumb, loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
+import { ganDaiTrangAnhEm } from "./dai-trang-anh-em";
 import { initShell, showError } from "./shell";
 
 const errorEl = byId("error");
@@ -30,6 +31,7 @@ let tu = tuanXem(new URLSearchParams(location.search).get("tu"), homNay).tu;
 let duLieu: Api.LichXeBanResponse | null = null;
 
 const staff = await initShell();
+ganDaiTrangAnhEm("/lich-xe-ban", staff);
 datCrumb("Vận chuyển", "Lịch xe bận");
 const quanLy = can(staff, "vehicle.manage");
 
