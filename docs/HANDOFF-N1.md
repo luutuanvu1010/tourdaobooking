@@ -973,7 +973,6 @@ Ba phương án, chủ dự án chọn một (chưa chọn thay):
 **(c) ADR-0005 mục Quyết định 2 lệch DDL đã duyệt — ghi errata.** ADR viết `stf_permission(staff_id, permission_type_code, created_at, created_by)`, khoá duy nhất `(staff_id, permission_type_code)`; DDL đã duyệt và `0012` thực tế có `id`, `valid_from_at`/`valid_to_at`, đủ bốn cột kiểm toán và chỉ mục duy nhất MỘT PHẦN `stf_permission_open_uq … WHERE valid_to_at IS NULL` (đóng/mở lại quyền giữ lịch sử, đúng "không xoá cứng" của ADR-0003 điều 8). Mã theo DDL; chỉ cần chủ dự án đồng ý ghi errata vào ADR-0005 (chi phí: chỉ tài liệu).
 
 ## Việc còn treo / nợ
-- **Bảo mật hai lớp (ADR-0074 Phần B) — CHƯA ĐỦ, lỗi mã so với ADR đã duyệt (ghi 2026-10-15, Task 8):** ADR-0075 điều 6(c) / tiêu chí 18 của đặc tả hai lớp — Toàn quyền gỡ một phiên thì máy được tin gắn với phiên đó phải bị bỏ (lần sau phải nhập mã). `POST /api/sessions/:id/revoke` (`src/modules/accounts/index.ts`) mới có chú thích giữ chỗ «Phần B: bỏ máy được tin gắn với row.trusted_device_id» — chưa có câu thu hồi. Việc nhỏ (câu thu hồi máy tin lý do `bi_go` trong CÙNG lô với câu kết thúc phiên + bài đỏ trước), chạm phiên/quyền ⇒ cần người kiểm độc lập. Làm trước khi phát hành Phần B.
 - **CHƯƠNG TRÌNH KHẮC PHỤC KIỂM TOÁN 1–2/10 (lập kế hoạch 2026-10-02, CHƯA thi công) — ưu tiên cao nhất, có hạn sổ dừng dây chuyền.**
   - **Kiểm lại trên `main` @`fc268abe`:**
     - 8/9 phát hiện CAO của đánh giá kiến trúc xác nhận;
