@@ -1828,7 +1828,7 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
   .dash-viec-luoi { display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--w-the-viec), 1fr)); gap: var(--s4); }
   .dash-viec-the { display: flex; flex-direction: column; gap: var(--s3); min-width: 0; padding: var(--s5); background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
   .dash-viec-the-cat { border-color: var(--c-sand-border); }
-  .dash-viec-hang { display: flex; align-items: center; gap: var(--s2); min-width: 0; }
+  .dash-viec-hang { display: flex; align-items: center; gap: var(--s2); min-width: 0; min-height: calc(2 * var(--lh-20)); } /* chừa đủ hai dòng: tiêu đề dài không đẩy số/nút lệch hàng với thẻ bên cạnh */
   .dash-viec-ico { display: flex; flex: none; align-items: center; justify-content: center; width: var(--w-viec-ico); height: var(--w-viec-ico); color: var(--c-primary); background: var(--c-primary-soft); border-radius: var(--radius-md); }
   .dash-viec-the-cat .dash-viec-ico { color: var(--c-sand-text); background: var(--c-sand-soft); }
   .dash-viec-nhan { margin: 0; min-width: 0; font-size: var(--fs-step-3); font-weight: var(--fw-semibold); line-height: var(--lh-20); color: var(--c-text); text-wrap: pretty; }
