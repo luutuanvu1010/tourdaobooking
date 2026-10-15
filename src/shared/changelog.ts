@@ -12,6 +12,20 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Khoản chuyển khoản «Công ty thu» không tạo nợ cho người khai + Kế toán duyệt chuyển tiền sang đơn khác + đổi chữ «cọc» thành «Thu trước» (ADR-0118 của dòng sổ tiền, chủ duyệt 14/10: «duyệt cả hai theo khuyến nghị»).
+    // Có thay đổi cơ sở dữ liệu (migration 0099) — cần trien-khai sau day-len.
+    // Số 1.97 là số TẠM (= main 1.96 + 1, 2026-10-15): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến. Lưu ý: nhánh giá đưa đón cũng đang giữ số tạm 1.97 và số ADR-0118; bên vào sau phải đổi số.
+    version: "1.97",
+    date: "2026-10-15",
+    items: [
+      { kind: "doi", text: "Hướng dẫn viên khai \"Công ty thu\" bằng chuyển khoản thì không bị tính nợ phần đó; khoản hiện \"đang đối chiếu\" tới khi Kế toán bấm \"Công ty đã nhận\"." },
+      { kind: "doi", text: "Đơn còn khoản chuyển khoản đang đối chiếu thì chưa bấm được \"Đã giao – đã thu đủ\". Tiền mặt khai \"Công ty thu\" vẫn tính vào nợ người khai như trước." },
+      { kind: "moi", text: "Khoản đang đối chiếu quá 3 ngày được nhắc đỏ cho Kế toán ở trang đơn và Trang chủ." },
+      { kind: "moi", text: "Kế toán duyệt được việc chuyển tiền thu trước sang đơn mới. Duyệt hoàn tiền cho khách vẫn chỉ Quản trị và Toàn quyền; người duyệt phải khác người ghi chuyển." },
+      { kind: "doi", text: "Chữ \"cọc\" trên màn hình nhân viên đổi thành \"Thu trước\"; bản xác nhận gửi khách giữ nguyên." },
+    ],
+  },
+  {
     // Loại đối tác là dữ liệu (ADR-0117 lần 1; chủ duyệt 14/10: «duyệt gắn vai làm ADR-0117»): Kế toán/Quản trị/Toàn quyền thêm, tắt, bật loại đối tác trên màn Hoa hồng đối tác; nhân viên nội bộ không mang loại được hưởng hoa hồng.
     // Có thay đổi cơ sở dữ liệu (migration 0095) — cần trien-khai sau day-len.
     // Số 1.96 là số TẠM (= main 1.95 + 1, 2026-10-14): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
