@@ -1073,7 +1073,7 @@ export interface FeedbackTicketDto {
   createdAt: string;
   /** Có gì mới người xem chưa đọc (chấm đỏ). */
   unread: boolean;
-  /** Chỉ admin thấy: true = email báo admin chưa gửi được. */
+  /** true = email báo nhóm nhận chưa gửi được. Chỉ người xử lý được phiếu (thành viên nhóm giữ phiếu, Toàn quyền) thấy dòng này ở hàng đợi. */
   mailPending: boolean;
   /** Nhóm hỗ trợ đang giữ phiếu (ADR-0119). */
   teamId: string;

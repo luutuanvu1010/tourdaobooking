@@ -353,7 +353,7 @@ async function loadThread(id: string): Promise<void> {
       : null,
     khoiTrangThai,
     khoiNguoiXuLy,
-    perms.chuyenNhom && t.status !== "DONE" && t.status !== "DECLINED" ? khoiChuyenNhom(t, reload) : null,
+    perms.chuyenNhom && t.status !== "DONE" && t.status !== "DECLINED" ? khoiChuyenNhom(t) : null,
     ...d.messages.map((m) =>
       h("div", { class: "card" }, h("div", { class: "muted" }, `${m.authorName ?? "?"} · ${when(m.createdAt)}`, m.internal && h("span", { class: "badge badge-draft" }, "Ghi chú nội bộ")), h("p", null, m.body)),
     ),
@@ -364,7 +364,7 @@ async function loadThread(id: string): Promise<void> {
 }
 
 /** Chuyển phiếu sang nhóm khác (Trưởng nhóm đang giữ phiếu hoặc Toàn quyền): nhóm nhận + lý do bắt buộc. Sau khi chuyển, người chuyển có thể mất quyền xem — nạp lại sẽ báo. */
-function khoiChuyenNhom(t: Api.FeedbackTicketDto, reload: () => void): HTMLElement | null {
+function khoiChuyenNhom(t: Api.FeedbackTicketDto): HTMLElement | null {
   const dich = nhomChuyenDuoc(teams, t.teamId);
   if (dich.length === 0) return null;
   const chon = h("select", { id: "fb-chuyen-nhom" }, ...dich.map((x) => h("option", { value: x.id }, x.name)));
@@ -373,7 +373,8 @@ function khoiChuyenNhom(t: Api.FeedbackTicketDto, reload: () => void): HTMLEleme
   nut.addEventListener("click", async () => {
     if (!lyDo.value.trim()) return showError(errorEl, "Ghi lý do chuyển nhóm.");
     const r = await act(() => api<unknown>(`/api/feedback/${t.id}/transfer`, { method: "POST", body: { teamId: chon.value, reason: lyDo.value } }), nut);
-    if (r !== undefined) reload();
+    // Chuyển xong người chuyển thường mất quyền xem phiếu (nhóm mới giữ): về danh sách kèm câu báo, không nạp lại phiếu rồi hiện lỗi.
+    if (r !== undefined) location.replace("/feedback?chuyen=1");
   });
   return h(
     "details",
@@ -400,6 +401,7 @@ if (id) {
     if (mq.matches) void loadList();
   });
 } else {
+  if (params.get("chuyen") === "1") byId("list-card").prepend(h("p", { class: "muted", role: "status", id: "fb-da-chuyen" }, "Đã chuyển nhóm."));
   void loadList();
   if (params.get("new") === "1") openForm();
 }

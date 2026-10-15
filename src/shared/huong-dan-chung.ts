@@ -98,11 +98,11 @@ Mở [[Trợ giúp]] để đọc hướng dẫn và [[Nhật ký thay đổi]] 
 
 ### Gửi góp ý, báo lỗi
 1. Bấm [[Hỗ trợ]].
-2. Chọn nhóm nhận và loại: [[Báo lỗi]], [[Đề xuất]] hoặc [[Câu hỏi]].
+2. Chọn nhóm (nếu có) và loại: [[Báo lỗi]], [[Đề xuất]] hoặc [[Câu hỏi]].
 3. Gõ tiêu đề và mô tả, bấm [[Gửi]]. App tự đính kèm trang đang mở, loại máy, phiên bản.
 4. Xem trả lời ở ngăn [[Yêu cầu của tôi]].
 
-Chỉ bạn và người phụ trách hệ thống đọc được yêu cầu của bạn.
+Chỉ bạn, nhóm nhận và người phụ trách hệ thống đọc được.
 
 > Ví dụ: Anh Tuấn thấy nút lưu bị bàn phím che, chọn Báo lỗi, ghi đang ở màn nào, bấm Gửi.`,
     },

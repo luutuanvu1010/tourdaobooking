@@ -9,6 +9,7 @@
 //   4. Bán hàng Hai (ngoài nhóm): mở thẳng phiếu → báo lỗi, không có tiêu đề phiếu.
 //   5. Đối tác (390): ô «Gửi tới nhóm» ẩn (chỉ một nhóm Kỹ thuật).
 //   6. Toàn quyền (1040 + 390): tab «Quản lý nhóm»: 4 nhóm; Kế toán có thành viên «Kế Toán»; Kỹ thuật không có nút «Ngưng»; axe ở 390.
+//   7. Toàn quyền chuyển phiếu sang Kỹ thuật → về danh sách kèm «Đã chuyển nhóm.», không mở lại phiếu, không dòng lỗi.
 // Mỗi bước dùng phiên riêng qua env.as và đóng trang trước khi mở trang kế (các trang dùng CHUNG kho cookie, CLAUDE.md §10).
 // Chạy từ GỐC repo, sau `npm run build:web` (không cần mạng ngoài; D1 tạm):
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=$PWD/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh [OUT=<thư mục ảnh>] node docs/evidence/2026-10-15-ve-ho-tro/kich-ban/ve-ho-tro-smoke.mjs
@@ -177,6 +178,22 @@ try {
     p.close();
   }
   ok("6. Toàn quyền (1040 + 390): ba tab; Quản lý nhóm 4 nhóm, Kế toán có «Kế Toán · Thành viên», Kỹ thuật không có nút Ngưng");
+
+  // ---- 7. Toàn quyền chuyển phiếu sang Kỹ thuật → về danh sách kèm «Đã chuyển nhóm.» (vòng sửa 1, M-3)
+  p = await env.as(ACCOUNTS.chu, `/feedback?id=${ticketId}`, DESK);
+  await p.waitFor("!!document.getElementById('fb-chuyen')", "7. có khối Chuyển nhóm");
+  await p.ev("document.getElementById('fb-chuyen').open = true");
+  await p.ev(setInput("document.getElementById('fb-chuyen-nhom')", KY_THUAT));
+  await p.ev(setInput("document.getElementById('fb-chuyen-ly-do')", "Lỗi hiển thị số, không phải công nợ"));
+  await p.ev("[...document.querySelectorAll('#fb-chuyen button')].find((b) => b.textContent.trim() === 'Chuyển').click()");
+  await p.waitFor("location.search.includes('chuyen=1') && document.getElementById('fb-da-chuyen')?.textContent === 'Đã chuyển nhóm.'", "7. về danh sách kèm câu báo", 10000);
+  assert.equal(await p.ev("!!document.querySelector('#thread h2')"), false, "7. không mở lại phiếu");
+  assert.equal(await p.ev("document.getElementById('error').hidden"), true, "7. không có dòng lỗi");
+  const sau = await call(ACCOUNTS.chu, "GET", `/api/feedback/${ticketId}`);
+  assert.equal(sau.json.ticket.teamId, KY_THUAT, "7. phiếu đã sang Kỹ thuật");
+  assert.deepEqual(p.consoleErrors, [], "7. không lỗi JS");
+  p.close();
+  ok("7. Toàn quyền chuyển phiếu sang Kỹ thuật → về /feedback kèm «Đã chuyển nhóm.», không lỗi");
 } catch (e) {
   loi = 1;
   console.error(`✗ ${e.message}`);
