@@ -59,7 +59,7 @@ test("reviewAlerts: Toàn quyền + dữ liệu có cả hai cảnh báo → tr�
   const r = reviewAlerts(SUPER_ADMIN, { catalogItems: items, tickets });
   assert.deepEqual(r, {
     catalogConflict: { code: "CANO_RIENG", base: 2_400_000, current: 2_600_000, moreCount: 0, hidden: false },
-    feedbackQueue: { count: 2, items: [{ code: "YC-0042", kindName: "Báo lỗi" }, { code: "YC-0041", kindName: "Đề xuất" }] },
+    feedbackQueue: { count: 2, items: [{ id: "YC-0042", code: "YC-0042", kindName: "Báo lỗi" }, { id: "YC-0041", code: "YC-0041", kindName: "Đề xuất" }] },
     expiringDocs: null,
     doiChieu: null,
   });
@@ -107,7 +107,7 @@ test("reviewAlerts: nhiều dịch vụ lệch Sheet → lấy dịch vụ ĐẦ
 test("reviewAlerts: góp ý ĐÃ ĐỌC (unread=false) nhưng còn trạng thái NEW vẫn tính là 'chưa trả lời' — không dùng cờ unread (admin mở xem nhưng chưa trả lời)", () => {
   const t = { ...ticket("YC-0099", "NEW"), unread: false };
   const r = reviewAlerts(SUPER_ADMIN, { catalogItems: [], tickets: [t] });
-  assert.deepEqual(r?.feedbackQueue, { count: 1, items: [{ code: "YC-0099", kindName: "Báo lỗi" }] });
+  assert.deepEqual(r?.feedbackQueue, { count: 1, items: [{ id: "YC-0099", code: "YC-0099", kindName: "Báo lỗi" }] });
 });
 
 test("reviewAlerts: hơn 2 góp ý Mới → items chỉ lấy 2 mục ĐẦU (đã sắp mới nhất trước), count = tổng thật", () => {
