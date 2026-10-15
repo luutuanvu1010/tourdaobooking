@@ -9,7 +9,7 @@ import {
   markSessionReissuedStatement, passkeyRp, readPasskeyChallenge, revokeAllPasskeysIfSuspendedStatement, reissueSessionCookie, revokeAllPasskeysStatement,
   revokePasskeyStatement, toPasskeyDto, unlockPhone, verifyPinThrottled, verifyRegistration,
   MFA_UNAVAILABLE, allowedFactors, batTotpStatements, boMaDuPhongMoi, goYeuToStatements, isInternal, khopKhoaMoi, kiemMaHienCo, mayTinSong, mfaBanner, moiKhoaTotp,
-  quenMayStatement, quenMoiMayStatement, recoveryCountLeft, yeuToSong, lockedMfaStaffIds, staffIdsWithFactor, tatHaiLopStatements, unlockLogin,
+  quenMayStatement, quenMoiMayStatement, recoveryCountLeft, yeuToSong, lockedMfaStaffIds, staffIdsWithFactor, tatHaiLopStatements, trustedRevokeAllIfSuspendedStatement, unlockLogin,
 } from "../auth";
 import {
   KHONG_NHAN_VAI_NOI_BO, accountRoleCodes, canManageAccount, checkAccountChange, chuPhienTheoId, hoSoCoNhanDoiTac, moNoiBoChoHoSoCoNhanProblem, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
@@ -199,6 +199,9 @@ export function patchStaffStatements(
       adminAudit(db, adminId, "passkey_removed", t.id, "gỡ khi ngưng tài khoản", "changes() > 0"),
       // ADR-0075 điều 4: CUỐI lô (sau câu chốt "còn quản trị viên khác" và sau chuỗi changes() ở trên) — chỉ kết thúc phiên khi tài khoản đã thật sự ngưng.
       endAllSessionsIfSuspendedStatement(db, t.id, at, adminId),
+      // ADR-0074 Phần B Task 8 (bất biến R-AUT-MFA-3): máy được tin thu hồi 'ngung' — cùng điều kiện "đang ngưng", ngoài chuỗi changes(). Lưới
+      // credentials_changed_at ở trên chỉ touch khi gỡ được Face ID, nên không có câu này thì máy tin cũ qua được bước hai sau khi kích hoạt lại.
+      trustedRevokeAllIfSuspendedStatement(db, t.id, at, adminId),
     );
   }
   // ADR-0074 điều 1 (kế hoạch Task 6, nhóm (b)): kích hoạt lại tài khoản nội bộ chưa có yếu tố → ân hạn 14 ngày (`anHanKhiKichHoat`, route tính bằng

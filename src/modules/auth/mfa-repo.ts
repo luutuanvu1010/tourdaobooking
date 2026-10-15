@@ -61,6 +61,10 @@ const TRUSTED_FIND = defineSql("auth", "trusted_find", `SELECT ${TD_COLS} FROM a
 const TRUSTED_TOUCH = defineSql("auth", "trusted_touch", "UPDATE aut_trusted_device SET last_used_at = ?2, updated_at = ?2 WHERE id = ?1 AND revoked_at IS NULL");
 const TRUSTED_REVOKE = defineSql("auth", "trusted_revoke", "UPDATE aut_trusted_device SET revoked_at = ?4, revoke_reason = ?3, updated_at = ?4, updated_by = ?5 WHERE id = ?1 AND staff_id = ?2 AND revoked_at IS NULL");
 const TRUSTED_REVOKE_ALL = defineSql("auth", "trusted_revoke_all", "UPDATE aut_trusted_device SET revoked_at = ?3, revoke_reason = ?2, updated_at = ?3, updated_by = ?4 WHERE staff_id = ?1 AND revoked_at IS NULL");
+// Ngưng tài khoản (Task 8, bất biến R-AUT-MFA-3): thu hồi mọi máy tin CHỈ KHI tài khoản đang ngưng lúc câu chạy (đặt cuối lô ngưng, như câu kết thúc phiên).
+const TRUSTED_REVOKE_ALL_IF_SUSPENDED = defineSql("auth", "trusted_revoke_all_if_suspended",
+  "UPDATE aut_trusted_device SET revoked_at = ?2, revoke_reason = 'ngung', updated_at = ?2, updated_by = ?3 WHERE staff_id = ?1 AND revoked_at IS NULL " +
+    "AND EXISTS (SELECT 1 FROM v_stf_staff_label WHERE id = ?1 AND active = 0)");
 const TRUSTED_LIST = defineSql("auth", "trusted_list", `SELECT ${TD_COLS} FROM aut_trusted_device WHERE staff_id = ?1 AND revoked_at IS NULL ORDER BY last_used_at DESC, id`);
 
 export async function factorListLive(db: D1Database, staffId: string): Promise<MfaFactorRow[]> {
@@ -102,6 +106,8 @@ export const trustedRevokeStatement = (db: D1Database, id: string, staffId: stri
   db.prepare(TRUSTED_REVOKE).bind(id, staffId, reason, at, by);
 export const trustedRevokeAllStatement = (db: D1Database, staffId: string, reason: TrustedRevokeReason, at: string, by: string | null): D1PreparedStatement =>
   db.prepare(TRUSTED_REVOKE_ALL).bind(staffId, reason, at, by);
+export const trustedRevokeAllIfSuspendedStatement = (db: D1Database, staffId: string, at: string, by: string | null): D1PreparedStatement =>
+  db.prepare(TRUSTED_REVOKE_ALL_IF_SUSPENDED).bind(staffId, at, by);
 export async function trustedList(db: D1Database, staffId: string): Promise<TrustedDeviceRow[]> {
   return (await db.prepare(TRUSTED_LIST).bind(staffId).all<TrustedDeviceRow>()).results;
 }

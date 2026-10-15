@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { hashPin } from "../staff/password.ts";
-import { encryptSecret, recoveryHash } from "../auth/mfa-crypto.ts";
+import { encryptSecret, recoveryHash, sha256Hex } from "../auth/mfa-crypto.ts";
 import { base32Decode, totpCode, TOTP_PERIOD } from "../auth/totp.ts";
 
 const QT = "0c000000-0000-4000-8000-000000000001"; // Quản trị
@@ -367,4 +367,25 @@ test("GET /api/staff: nhãn hai lớp mfa = { enabled, graceUntil } theo từng 
   assert.equal(dong(BH).enabled, false);
   assert.ok(gan(dong(BH).graceUntil, Date.now() + 14 * NGAY));
   assert.deepEqual(dong(DT), { enabled: false, graceUntil: null });
+});
+
+test("Task 8 (R-AUT-MFA-3): ngưng tài khoản thu hồi mọi máy được tin ('ngung') trong CÙNG lô — kể cả khi không có Face ID; kích hoạt lại → máy tin cũ không còn miễn bước hai", async () => {
+  const w = await setup();
+  await gieoHaiLop(w, BH);
+  const tok = "may-tin-cu-cua-ban-hang-0000000000000000000";
+  w.sqlite.prepare("UPDATE aut_trusted_device SET token_hash = ? WHERE staff_id = ?").run(await sha256Hex(tok), BH);
+  const voiMayTin = () => w.call("POST", "/api/auth/login", { body: { phone: PHONE[BH], pin: PIN }, headers: { "cf-connecting-ip": ip(), cookie: `td_trusted=${tok}` } });
+  assert.ok(cookieTen(await voiMayTin(), "td_session"), "trước khi ngưng: máy tin miễn bước hai");
+  assert.equal(dem(w, "SELECT count(*) AS n FROM aut_passkey WHERE staff_id = ?", BH), 0, "ca không có Face ID: lưới credentials_changed_at không được touch");
+  assert.equal((await w.call("PATCH", `/api/staff/${BH}`, { as: QT, body: { active: false } })).status, 200);
+  assert.deepEqual(w.q("SELECT revoke_reason AS l, updated_by AS b FROM aut_trusted_device WHERE staff_id = ?", BH).map((x: any) => ({ ...x })), [{ l: "ngung", b: QT }]);
+  assert.equal((await w.call("PATCH", `/api/staff/${BH}`, { as: QT, body: { active: true } })).status, 200);
+  const r = await voiMayTin();
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.next, "mfa", "máy tin của giai đoạn trước khi ngưng không còn tác dụng");
+  assert.equal(cookieTen(r, "td_session"), null);
+  // Câu thu hồi mang điều kiện "đang ngưng": lô đổi tên (không ngưng) không đụng máy tin.
+  await gieoHaiLop(w, KT);
+  assert.equal((await w.call("PATCH", `/api/staff/${KT}`, { as: TQ, body: { fullName: "Kế Toán Mới" } })).status, 200);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM aut_trusted_device WHERE staff_id = ? AND revoked_at IS NULL", KT), 1);
 });

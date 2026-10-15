@@ -18,7 +18,7 @@ import {
 } from "./mfa-dang-nhap";
 import {
   factorEndAllStatement, factorListLive, recoveryCountLeft, recoveryRevokeAllStatement, staffIdsWithFactor, trustedFind, trustedInsertStatement, trustedRevokeAllStatement,
-  trustedTouchStatement,
+  trustedRevokeAllIfSuspendedStatement, trustedTouchStatement,
 } from "./mfa-repo";
 import { batTotpStatements, boMaDuPhongMoi, khopKhoaMoi, moiKhoaTotp } from "./mfa-tu-phuc-vu";
 import { PENDING_COOKIE, clearedPendingCookie, createPendingToken, loginStep, pendingCookie, verifyPendingToken } from "./mfa-rules";
@@ -173,6 +173,12 @@ export function tatHaiLopStatements(db: D1Database, staffId: string, at: string,
 /** Kết thúc mọi phiên của tài khoản CHỈ KHI nó đã ngưng lúc câu chạy (đặt CUỐI lô ngưng tài khoản, sau câu chốt). Chưa chạy. */
 export const endAllSessionsIfSuspendedStatement = (db: D1Database, staffId: string, at: string, by: string | null): D1PreparedStatement =>
   endAllIfSuspendedRow(db, staffId, "ngung" satisfies EndReason, at, by);
+/**
+ * Thu hồi mọi máy được tin của tài khoản ('ngung') CHỈ KHI nó đã ngưng lúc câu chạy (Task 8 Phần B, bất biến R-AUT-MFA-3). Chưa chạy — đặt CUỐI lô ngưng
+ * tài khoản, ngoài chuỗi changes(). Cần vì lưới credentials_changed_at chỉ được touch khi lô ngưng gỡ được Face ID: không có câu này, tài khoản không Face ID
+ * được kích hoạt lại vẫn dùng máy tin cũ để bỏ qua bước hai.
+ */
+export { trustedRevokeAllIfSuspendedStatement };
 /**
  * Đánh dấu phiên được GIỮ và cấp lại cookie khi tự đổi PIN / gỡ Face ID: `at` PHẢI là ISO của đúng mốc ms ghi vào credentials_changed_at. Chưa chạy —
  * gộp vào cùng lô với endOtherSessionsStatement.
