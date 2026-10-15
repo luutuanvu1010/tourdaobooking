@@ -37,7 +37,7 @@ ok(`A-3: đọc token trần bề rộng THẲNG từ văn bản public/app.css 
 // đổi theo nhau, lưới không bắt được (người kiểm độc lập đã đột biến chứng minh: đổi --w-sidebar thành 300px, chạy
 // lại TOÀN BỘ lưới, không khẳng định nào đỏ). Hằng số dưới đây viết THẲNG trong kịch bản — không đọc từ CSS bằng
 // bất kỳ cách nào — lấy từ bản mẫu 00 Trang chu v2.dc.html + chủ dự án đã duyệt (đặc tả §16 mục 3, ADR-0015).
-const SIDEBAR_WIDTH_MOCKUP_PX = 236; // BẢN MẪU (00 Trang chu v2.dc.html) — KHÔNG đọc từ public/app.css
+const SIDEBAR_WIDTH_MOCKUP_PX = 248; // BẢN VẼ MENU 15/10 (docs/design/menu-may-tinh-2026-10-15/Trang chu va Menu.dc.html, grid-template-columns:248px; trước đó 236px của 00 Trang chu v2.dc.html) — KHÔNG đọc từ public/app.css
 const TOPBAR_HEIGHT_MOCKUP_PX = 60; // CHỦ DỰ ÁN duyệt tăng từ 52px của bản mẫu (đặc tả thiết kế §16 mục 3) — KHÔNG đọc từ public/app.css
 // GHI CHÚ, KHÔNG PHẢI PHÉP KIỂM: chỉ công bố hai hằng số trên. Phép kiểm thật nằm ở hai khẳng định C-1 phía dưới
 // (so bề rộng #sidebar và chiều cao #topbar ĐO ĐƯỢC với hai hằng số này). Trước đây dòng này dùng `ok(...)` nên
@@ -368,6 +368,26 @@ try {
           href: row.getAttribute('href'),
         })),
       };
+      // MENU THEO VIỆC (15/10, Việc 7b): ba ô cũ Còn thiếu tiền / Chờ xác nhận / Chưa phụ trách nay là thẻ trong #dash-viec (tối đa 4 thẻ, mỗi thẻ đúng một nút); #dash-so-mt chỉ còn ô Doanh thu.
+      const vienEl = document.querySelector('#dash-viec');
+      const viec = {
+        exists: !!vienEl,
+        hiddenAttr: vienEl ? vienEl.hidden : null,
+        shown: vis(vienEl),
+        tieuDe: vienEl?.querySelector('.dash-viec-tieu-de')?.textContent.trim() ?? null,
+        rong: vienEl?.querySelector('.dash-viec-rong-chu')?.textContent.trim() ?? null,
+        rongNut: [...(vienEl?.querySelectorAll('.dash-viec-rong a, .dash-viec-rong button') ?? [])].map((x) => x.textContent.trim()),
+        con: vienEl?.querySelector('.dash-viec-con')?.textContent.trim() ?? null,
+        the: [...(vienEl?.querySelectorAll('.dash-viec-the') ?? [])].map((t) => ({
+          khoa: t.getAttribute('data-khoa'),
+          nhan: t.querySelector('.dash-viec-nhan').textContent.trim(),
+          phamVi: t.querySelector('.dash-pham-vi')?.getAttribute('data-pham-vi') ?? null,
+          so: t.querySelector('.dash-viec-so').textContent.replace('chưa tải được', '').trim(),
+          phu: t.querySelector('.dash-viec-phu').textContent.trim(),
+          nut: [...t.querySelectorAll('.dash-viec-nut a, .dash-viec-nut button')].map((x) => ({ chu: x.textContent.trim(), lop: x.className, href: x.getAttribute('href'), describedby: x.getAttribute('aria-describedby') })),
+          soNut: t.querySelectorAll('a, button').length,
+        })),
+      };
       const chartEl = document.querySelector('#dash-so-mt .dash-revenue-chart');
       const chart = chartEl ? {
         shown: chartEl.offsetParent !== null,
@@ -392,6 +412,7 @@ try {
         todayEmptyHidden: document.querySelector('#dash-today-empty').hidden,
         todayDays: [...document.querySelectorAll('#dash-today-days .dash-day')].map((b) => ({ t: b.textContent.trim(), on: b.getAttribute('aria-pressed') })),
         statsMt,
+        viec,
         statsShown: vis(document.querySelector('#dash-so-mt')),
         dai,
         daiShown: vis(document.querySelector('#dash-dai')),
@@ -405,8 +426,8 @@ try {
         timShown: vis(document.querySelector('#dash-tim')),
         luoiShown: vis(document.querySelector('#dash-o')),
         // Doanh thu: ô đang HIỂN THỊ thật — máy tính ô CUỐI của #dash-so-mt (bản vẽ 1.73), điện thoại ô thứ hai của #dash-so.
-        revenueValue: (vis(document.querySelector('#dash-so-mt')) ? statsMt[3]?.value : so[1]?.value) ?? null,
-        revenueSub: (vis(document.querySelector('#dash-so-mt')) ? statsMt[3]?.sub : so[1]?.sub) ?? null,
+        revenueValue: (vis(document.querySelector('#dash-so-mt')) ? statsMt[0]?.value : so[1]?.value) ?? null,
+        revenueSub: (vis(document.querySelector('#dash-so-mt')) ? statsMt[0]?.sub : so[1]?.sub) ?? null,
         chart,
         review,
         errorHidden: document.querySelector('#error').hidden,
@@ -424,16 +445,23 @@ try {
     assert.ok(m.scrollOverflow <= 1, `${label}: không được tràn ngang — lệch ${m.scrollOverflow}px`);
 
     // Thẻ số liệu máy tính (bản vẽ 1.73) — bốn ô, đối chiếu với API (nguồn sự thật vừa đọc), theo ĐÚNG thứ tự renderSoMayTinh() dựng.
-    assert.equal(m.statsMt.length, 4, `${label}: thẻ số liệu máy tính phải có đúng 4 ô — ${JSON.stringify(m.statsMt)}`);
+    assert.equal(m.statsMt.length, 1, `${label}: thẻ số liệu máy tính nay chỉ còn 1 ô (Doanh thu của tôi; ba ô kia thành thẻ Việc của bạn) — ${JSON.stringify(m.statsMt)}`);
     if (mode === "desktop") {
-      assert.deepEqual(m.statsMt.map((x) => x.label), ["Còn thiếu tiền", "Chờ xác nhận", "Chưa phụ trách", "Doanh thu của tôi"], `${label}: nhãn bốn ô đúng thứ tự bản vẽ 1.73 — ${JSON.stringify(m.statsMt)}`);
-      assert.equal(m.statsMt[0].value, "12.345.000 ₫", `${label}: ô "Còn thiếu tiền" phải hiện ĐẦY ĐỦ 12.345.000 ₫ — ${JSON.stringify(m.statsMt[0])}`);
-      assert.ok(m.statsMt[0].sub.includes("1 đơn"), `${label}: ô "Còn thiếu tiền" phải nói "1 đơn" — ${JSON.stringify(m.statsMt[0])}`);
-      assert.equal(m.statsMt[1].value, "1", `${label}: ô "Chờ xác nhận" phải = 1 (chỉ R2, không đếm R1/R3 đã xác nhận) — ${JSON.stringify(m.statsMt[1])}`);
-      assert.equal(m.statsMt[1].sub, "Cần xác nhận đơn", `${label}: ${JSON.stringify(m.statsMt[1])}`);
-      assert.equal(m.statsMt[2].value, String(data.unassignedCount), `${label}: ô "Chưa phụ trách" phải khớp API (${data.unassignedCount}) — ${JSON.stringify(m.statsMt[2])}`);
-      assert.equal(m.statsMt[2].sub, "Chờ người nhận", `${label}: dòng phụ ô chưa phụ trách phải là "Chờ người nhận" (ADR-0020 điều 7, M1 = A) — ${JSON.stringify(m.statsMt[2])}`);
-      assert.ok(m.statsMt.every((x) => x.shown && x.href === "/orders"), `${label}: bốn ô hiển thị thật và dẫn tới /orders — ${JSON.stringify(m.statsMt)}`);
+      assert.deepEqual(m.statsMt.map((x) => x.label), ["Doanh thu của tôi"], `${label}: ô số liệu máy tính còn đúng "Doanh thu của tôi" — ${JSON.stringify(m.statsMt)}`);
+      assert.ok(m.statsMt.every((x) => x.shown && x.href === "/orders"), `${label}: ô số liệu hiển thị thật và dẫn tới /orders — ${JSON.stringify(m.statsMt)}`);
+      // Khối "Việc của bạn" của QUẢN TRỊ (dữ liệu của kịch bản: Sheet lệch giá 1, đơn nháp 1, chưa phụ trách = API, chuyến hôm nay 1, còn thiếu tiền 1 đơn): năm việc ⇒ bốn thẻ theo
+      // độ gấp (Cần xem lại → Đơn nháp → Chưa phụ trách → Chuyến hôm nay), việc thứ năm (Còn thiếu tiền) dồn vào dòng "Còn 1 việc nữa". Thẻ "Điều chỉnh công nợ" vắng vì số = 0.
+      assert.equal(m.viec.shown, true, `${label}: khối Việc của bạn phải hiển thị thật ở máy tính — ${JSON.stringify(m.viec)}`);
+      assert.equal(m.viec.tieuDe, "Việc của bạn", `${label}: tiêu đề khối — ${JSON.stringify(m.viec)}`);
+      assert.ok(m.viec.the.length >= 1 && m.viec.the.length <= 4, `${label}: tối đa 4 thẻ — ${JSON.stringify(m.viec.the)}`);
+      assert.deepEqual(m.viec.the.map((t) => t.khoa), ["xemLai", "nhap", "chuaPhuTrach", "chuyenHomNay"], `${label}: thẻ Việc của bạn (Quản trị) đúng thứ tự độ gấp — ${JSON.stringify(m.viec.the)}`);
+      assert.deepEqual(m.viec.the.map((t) => t.so), ["1", "1", String(data.unassignedCount), "1"], `${label}: số trên thẻ khớp dữ liệu thử (cần xem lại 1, đơn nháp 1, chưa phụ trách = API ${data.unassignedCount}, chuyến hôm nay 1) — ${JSON.stringify(m.viec.the)}`);
+      assert.ok(m.viec.the.every((t) => t.so !== "0" && t.so !== "" && t.soNut === 1 && t.nut.length === 1 && t.nut[0].describedby && t.phamVi), `${label}: thẻ chỉ hiện khi số > 0, mỗi thẻ ĐÚNG MỘT nút (có aria-describedby trỏ nhãn) và có nhãn phạm vi — ${JSON.stringify(m.viec.the)}`);
+      assert.deepEqual(m.viec.the.map((t) => t.nut[0].chu), ["Xem lại", "Xác nhận đơn", "Phân công", "Xem chuyến"], `${label}: chữ nút từng thẻ (Quản trị) — ${JSON.stringify(m.viec.the)}`);
+      assert.deepEqual(m.viec.the.map((t) => /\bbtn-accent\b/.test(t.nut[0].lop)), [false, true, false, false], `${label}: nút san hô (btn-accent) CHỈ ở hành động chốt (thẻ thứ hai "Xác nhận đơn") — ${JSON.stringify(m.viec.the)}`);
+      assert.match(m.viec.the[0].nut[0].lop, /\bbtn-primary\b/, `${label}: nút thẻ đầu nhấn bằng btn-primary — ${JSON.stringify(m.viec.the[0])}`);
+      assert.equal(m.viec.con, "Còn 1 việc nữa: đơn còn thiếu tiền (1).", `${label}: việc dồn ra ngoài bốn thẻ được nói thẳng — ${JSON.stringify(m.viec)}`);
+      assert.equal(m.dai.tom, "Có 5 việc chờ bạn — gấp nhất: cần xem lại (1).", `${label}: tóm tắt dưới lời chào lấy từ thẻ đầu (cauTomTatViec) — ${JSON.stringify(m.dai)}`);
       assert.equal(m.revenueValue, "12.645.000 ₫", `${label}: doanh thu ĐẦY ĐỦ phải = 12.645.000 ₫ (R1 300.000 + R3 12.345.000) — ${JSON.stringify(m)}`);
       assert.match(m.revenueSub ?? "", /^Tuần này · \d\d\/\d\d–\d\d\/\d\d · 2 đơn$/, `${label}: dòng phụ ô doanh thu "Tuần này · dd/mm–dd/mm · 2 đơn" (bản vẽ 1.73) — ${m.revenueSub}`);
 
@@ -483,7 +511,6 @@ try {
       assert.equal(m.daiShown, true, `${label}: lời chào máy tính (#dash-dai) phải hiển thị thật — ${JSON.stringify(m.dai)}`);
       assert.match(m.dai.chao ?? "", /^Chào buổi (sáng|trưa|chiều|tối), \S/, `${label}: lời chào "Chào buổi …, <tên>" — ${JSON.stringify(m.dai)}`);
       assert.match(m.dai.ngay ?? "", /^(Thứ .+|Chủ nhật), \d\d\/\d\d\/\d{4}$/i, `${label}: dòng ngày "Thứ …, dd/mm/yyyy" — ${JSON.stringify(m.dai)}`);
-      assert.equal(m.dai.tom, `1 chuyến đón hôm nay · ${m.review.rows.length} việc cần xem lại`, `${label}: tóm tắt khớp API (chỉ R1) và số dòng Cần xem lại — ${JSON.stringify(m.dai)} / ${JSON.stringify(m.review.rows)}`);
       assert.equal(m.dai.vai, "Quản trị", `${label}: nhãn vai — ${JSON.stringify(m.dai)}`);
       assert.equal(m.dai.soO, 0, `${label}: lời chào không còn ô chức năng (bản vẽ 1.73) — ${JSON.stringify(m.dai)}`);
       // Thẻ "Lối tắt" (bản vẽ 1a): 7 ô theo thứ tự ưu tiên, không có "Tạo đơn" (thanh trên có nút), + "Tất cả".
@@ -497,6 +524,7 @@ try {
       // Bản vẽ điện thoại 2026-09-30: số liệu ở MỘT thẻ 2×2 (#dash-so), đúng thứ tự Còn thiếu · Doanh thu của tôi · Chờ xác nhận · Chưa phụ trách.
       // Thẻ số liệu, dải chào và dòng thời gian của máy tính phải ẩn thật (không hiện hai lần).
       assert.equal(m.statsShown, false, `${label}: thẻ số liệu máy tính (#dash-so-mt) phải ẨN ở khổ điện thoại — ${JSON.stringify(m)}`);
+      assert.equal(m.viec.shown, false, `${label}: khối Việc của bạn (chỉ máy tính) phải ẨN ở khổ điện thoại — ${JSON.stringify(m.viec)}`);
       assert.equal(m.daiShown, false, `${label}: lời chào máy tính (#dash-dai) phải ẨN ở khổ điện thoại — ${JSON.stringify(m)}`);
       assert.equal(m.loiTatShown, false, `${label}: thẻ Lối tắt (chỉ máy tính) phải ẨN ở khổ điện thoại — ${JSON.stringify(m)}`);
       assert.equal(m.tlShown, false, `${label}: dòng thời gian (chỉ máy tính) phải ẨN ở khổ điện thoại — ${JSON.stringify(m)}`);
@@ -655,16 +683,24 @@ try {
   // Tiền xe thuê (Đợt 4 G0, 2/10): mục con "Bảng giá thuê xe" (ô transport.rate.view) + "Bảng kê chi phí xe" (ô transport.cost.view) ngay sau "Điều phối xe" ⇒ +2 ⇒ 19.
   // Sổ đại lý đợt 1 (Task 10, 12/10 — số đọc từ lần chạy thật của Task 13, không gõ theo ghi chú): + "Hoa hồng đối tác" (ô partner.commission.view) và "Người bán dịch vụ"
   // (ô supply.terms.view) sau "Lý do điều phối" ⇒ 21 + 2 = 23. "Khoá sổ tháng" (ô ledger.view) Quản trị KHÔNG có.
+  // MENU THEO VIỆC (15/10, Việc 7b): thanh bên đổi theo bảng `THANH_BEN` (src/shared/muc-giao-dien.ts). Danh sách dưới là các `.sidebar-item` (KHÔNG gồm nút nổi bật
+  // `.sidebar-new` "Tạo đơn") THEO THỨ TỰ DOM của tài khoản Quản trị, đọc từ lần chạy thật ngày 15/10: HẰNG NGÀY 3 + VẬN CHUYỂN 5 + TIỀN 1 + THIẾT LẬP 8 (nằm trong nhóm
+  // ĐÓNG mặc định nên vẫn ở trong DOM nhưng ẩn) + CHÂN MENU 3 = 20 mục + 1 nút Tạo đơn = 21 (khớp bảng của DE-XUAT-SUA-LUAT.md).
   const ADMIN_NAV = [
-    "Trang chủ", "Đơn hàng", "Tạo đơn", "Danh bạ",
-    "Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ cá nhân", "Vận chuyển", "Điều phối xe", "Xe đang chạy", "Đề nghị chuyển khách", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Lịch xe bận", "Sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối",
+    "Trang chủ", "Đơn hàng", "Danh bạ",
+    "Điều phối xe", "Xe đang chạy", "Đề nghị chuyển khách", "Xe & giấy tờ", "Giá & chi phí",
     "Điều chỉnh công nợ", "Hoa hồng đối tác", "Người bán dịch vụ",
+    "Dịch vụ & giá", "Địa điểm", "Loại giấy tờ cá nhân", "Loại giấy tờ xe", "Lý do điều phối", "Quản lý tài khoản",
     "Của tôi", "Góp ý / Báo lỗi", "Trợ giúp",
   ];
   const navMeasure = await p.ev(`(() => {
     const links = [...document.querySelectorAll('#sidebar .sidebar-item')];
     return {
       linkCount: links.length,
+      taoDon: [...document.querySelectorAll('#sidebar .sidebar-new')].map((x) => x.textContent.trim()),
+      tieuDe: [...document.querySelectorAll('#sidebar .sidebar-group-title')].map((x) => x.textContent.trim()),
+      thietLap: (() => { const t = document.querySelector('#sidebar .sidebar-group-toggle'); return t ? { dong: t.getAttribute('aria-expanded') === 'false', anTrongNhom: document.querySelector('#nhom-thiet-lap').hidden, dem: t.querySelector('.sidebar-group-count').textContent.trim() } : null; })(),
+      anCount: links.filter((x) => x.offsetParent === null).length,
       labels: links.map((a) => a.querySelector('.sidebar-item-label').textContent.trim()),
       scrollOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       topbarOverflow: document.querySelector('#topbar').scrollWidth - document.querySelector('#topbar').clientWidth,
@@ -674,7 +710,12 @@ try {
   assert.deepEqual(navMeasure.labels, ADMIN_NAV, `Thanh điều hướng dọc (ADMIN): đúng 25 mục theo thứ tự — ${JSON.stringify(navMeasure.labels)}`);
   // 2/10 (ADR-0055 VK2-A, Vận chuyển Đợt 3): + "Lịch xe bận" (ô vehicle.manage, sau "Xe") ⇒ 18 trên main; gộp main ffed6f1c vào Đợt 4 (5/10): 18 + 2 mục tiền xe thuê ⇒ 20; gộp Đợt 4 vào Đợt 5 (5/10): + "Xe đang chạy" (ô trip.view, sau "Điều phối xe") ⇒ 21.
   // Sổ đại lý đợt 1 (12/10): + "Hoa hồng đối tác", "Người bán dịch vụ" ⇒ 23; gói A5 (ADR-0111): + "Đề nghị chuyển khách" (ô trip.override, sau "Xe đang chạy") ⇒ 24 (ghép main 1c471990 vào gói A+C, 12/10); ADR-0115 (13/10): + "Điều chỉnh công nợ" ⇒ 25 (số đã đo bằng Chrome 13/10 ở dieu-chinh-smoke.mjs).
-  assert.equal(navMeasure.linkCount, 25, `Thanh điều hướng dọc (ADMIN) phải có 25 mục (ADR-0115 13/10: + "Điều chỉnh công nợ" cho ô ledger.adjust.approve — số ĐÃ ĐO bằng Chrome ngày 13/10 ở docs/evidence/2026-10-13-dieu-chinh-cong-no/kich-ban/dieu-chinh-smoke.mjs (Quản trị 25, Toàn quyền 32; cùng bộ quyền); ADR-0111 gói A5: + "Đề nghị chuyển khách" cho ô trip.override; ADR-0038: không "Nhật ký"; ADR-0049 B8: có "Lý do điều phối"; B1: có "Điều phối xe"; Đợt 3: có "Lịch xe bận"; Đợt 4: có "Bảng giá thuê xe", "Bảng kê chi phí xe"; Đợt 5: có "Xe đang chạy"; sổ đại lý đợt 1: có "Hoa hồng đối tác", "Người bán dịch vụ") — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
+  assert.equal(navMeasure.linkCount, 20, `Thanh điều hướng dọc (ADMIN) phải có 20 mục .sidebar-item (+ nút Tạo đơn = 21 theo bảng THANH_BEN; số ĐO bằng Chrome 15/10, menu theo việc) — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
+  assert.deepEqual(navMeasure.taoDon, ["Tạo đơn"], `Thanh điều hướng dọc (ADMIN): đúng một nút nổi bật "Tạo đơn" — ${JSON.stringify(navMeasure.taoDon)}`);
+  assert.deepEqual(navMeasure.tieuDe, ["VẬN CHUYỂN", "TIỀN"], `Thanh điều hướng dọc (ADMIN): hai tiêu đề nhóm (HẰNG NGÀY không tiêu đề; THIẾT LẬP là nút thu gọn) — ${JSON.stringify(navMeasure.tieuDe)}`);
+  // Nhóm Thiết lập ĐÓNG mặc định với vai không đứng ở trang thuộc nhóm đó (thietLapMoSan): 8 mục nằm trong DOM nhưng ẩn.
+  assert.deepEqual(navMeasure.thietLap, { dong: true, anTrongNhom: true, dem: "8 · 1 lệch giá" }, `Thanh điều hướng dọc (ADMIN): nhóm Thiết lập đóng mặc định, ẩn thân nhóm, đếm 8 + "1 lệch giá" (dữ liệu T3: TD101 đổi giá) — ${JSON.stringify(navMeasure.thietLap)}`);
+  assert.equal(navMeasure.anCount, 8, `Thanh điều hướng dọc (ADMIN): đúng 8 mục ẩn (cả nhóm Thiết lập) — ${JSON.stringify(navMeasure)}`);
   assert.ok(navMeasure.scrollOverflow <= 1, `Thanh điều hướng máy tính: trang không được tràn ngang — lệch ${navMeasure.scrollOverflow}px`);
   assert.ok(navMeasure.topbarOverflow <= 1, `Thanh điều hướng máy tính: #topbar tự nó không được tràn ngang (flex-wrap phải nhận đủ) — lệch ${navMeasure.topbarOverflow}px`);
   assert.ok(navMeasure.sidebarOverflow <= 1, `Thanh điều hướng dọc: #sidebar tự nó không được tràn ngang — lệch ${navMeasure.sidebarOverflow}px`);
@@ -979,11 +1020,11 @@ try {
       };
     })()`);
     assert.equal(fieldNav.sidebarShown, true, `D-1 (FIELD, 1040px): thanh bên phải hiển thị thật — ${JSON.stringify(fieldNav)}`);
-    assert.deepEqual(fieldNav.groupTitles, ["TÔI"], `D-1 (FIELD): thanh bên chỉ được có nhóm "TÔI" — nhóm BÁN HÀNG/QUẢN TRỊ rỗng phải ẩn CẢ tiêu đề — ${JSON.stringify(fieldNav)}`);
-    assert.deepEqual(fieldNav.labels, ["Của tôi", "Góp ý / Báo lỗi", "Trợ giúp"], `D-1 (FIELD): thanh bên chỉ được có 3 mục của nhóm TÔI — ${JSON.stringify(fieldNav)}`);
+    assert.deepEqual(fieldNav.groupTitles, [], `D-1 (FIELD): thanh bên không có tiêu đề nhóm nào (menu theo việc 15/10: HẰNG NGÀY/CHÂN MENU không tiêu đề; nhóm VẬN CHUYỂN/TIỀN/THIẾT LẬP rỗng phải ẩn CẢ tiêu đề) — ${JSON.stringify(fieldNav)}`);
+    assert.deepEqual(fieldNav.labels, ["Đơn hàng", "Của tôi", "Góp ý / Báo lỗi", "Trợ giúp"], `D-1 (FIELD): thanh bên đúng 4 mục — "Đơn hàng" (HẰNG NGÀY, chỉ-FIELD đọc đơn mình phụ trách) + 3 mục CHÂN MENU — ${JSON.stringify(fieldNav)}`);
     assert.equal(fieldNav.logoutShown, true, `D-1 (FIELD): "Đăng xuất" phải hiển thị thật trong thanh bên — ${JSON.stringify(fieldNav)}`);
     await shot(pErr, "task-4-sidebar-field-may-tinh.png");
-    ok(`D-1) Thanh bên của tài khoản chỉ FIELD (1040px): đúng 1 nhóm ${JSON.stringify(fieldNav.groupTitles)}, đúng 3 mục ${JSON.stringify(fieldNav.labels)}, có "Đăng xuất", không huy hiệu nào (${fieldNav.badgeCount})`);
+    ok(`D-1) Thanh bên của tài khoản chỉ FIELD (1040px): không tiêu đề nhóm nào ${JSON.stringify(fieldNav.groupTitles)}, đúng 4 mục ${JSON.stringify(fieldNav.labels)}, có "Đăng xuất", không huy hiệu nào (${fieldNav.badgeCount})`);
     pErr.close();
   }
 
@@ -1017,7 +1058,7 @@ try {
   }
   {
     const FRAME_PAGES = [
-      { path: "/staff", label: "/staff", widths: [640, 641, 645, 650, 700, 768, 899, 900, 910, 929, 930, 1040, 1440, 1920], ready: null, mainCap: () => CSS_W_MAIN, account: ACCOUNTS.admin, sidebar: 25 }, // ADR-0115 (13/10): 24 + "Điều chỉnh công nợ" (số ĐÃ ĐO bằng Chrome ngày 13/10 ở docs/evidence/2026-10-13-dieu-chinh-cong-no/kich-ban/dieu-chinh-smoke.mjs (Quản trị 25, Toàn quyền 32; cùng bộ quyền)). Trước đó — sổ đại lý đợt 1: 22 + "Hoa hồng đối tác", "Người bán dịch vụ"
+      { path: "/staff", label: "/staff", widths: [640, 641, 645, 650, 700, 768, 899, 900, 910, 929, 930, 1040, 1440, 1920], ready: null, mainCap: () => CSS_W_MAIN, account: ACCOUNTS.admin, sidebar: 20 }, // MENU THEO VIỆC 15/10: /staff nằm trong nhóm Thiết lập ⇒ nhóm MỞ ⇒ thấy đủ 20 .sidebar-item của Quản trị (số đếm trong DOM; bảng THANH_BEN: 21 gồm nút Tạo đơn)
       {
         // PHẢI là đơn NHÁP (R2). Đơn đã xác nhận (R1/R3) bị web/order-form.ts khoá form ("Chỉ sửa được đơn ở trạng
         // thái nháp") và KHÔNG gọi setBarTitle(`Sửa đơn <mã>`) — breadcrumb kẹt ở chữ "Sửa đơn" ngắn, lưới xanh giả.
@@ -1033,7 +1074,7 @@ try {
         // (đã tự đo: bản đầu của khẳng định này báo đỏ SAI ở 641px vì giả định --w-form áp dụng mọi khổ ≥641px).
         mainCap: (width) => (width >= 960 ? CSS_W_FORM : CSS_W_MAIN),
         account: ACCOUNTS.admin,
-        sidebar: 25, // ADR-0115 (13/10): + "Điều chỉnh công nợ" (ô ledger.adjust.approve; số ĐÃ ĐO bằng Chrome ngày 13/10 ở docs/evidence/2026-10-13-dieu-chinh-cong-no/kich-ban/dieu-chinh-smoke.mjs (Quản trị 25, Toàn quyền 32; cùng bộ quyền)) ⇒ 24 + 1. Trước đó — Đợt 4: + 2 mục tiền xe thuê; Đợt 5: + "Xe đang chạy"; gói A5: + "Đề nghị chuyển khách" (ô trip.override); sổ đại lý đợt 1: + "Hoa hồng đối tác", "Người bán dịch vụ"
+        sidebar: 12, // MENU THEO VIỆC 15/10: /order-form KHÔNG thuộc nhóm Thiết lập ⇒ nhóm ĐÓNG ⇒ thấy 12 = 20 − 8 mục Thiết lập (Quản trị)
       },
       {
         path: "/audit",
@@ -1043,7 +1084,7 @@ try {
         ready: `document.querySelector('.toolbar select option[value]:not([value=""])') !== null`,
         mainCap: () => CSS_W_MAIN,
         account: TOAN_QUYEN,
-        sidebar: 32, // ADR-0115 (13/10): + "Điều chỉnh công nợ" ⇒ 31 + 1 (số ĐÃ ĐO bằng Chrome ngày 13/10 ở docs/evidence/2026-10-13-dieu-chinh-cong-no/kich-ban/dieu-chinh-smoke.mjs (Quản trị 25, Toàn quyền 32; cùng bộ quyền)). Trước đó — 12/10 ghép main vào gói A+C: 28 (gói A5, 9/10) + 3 mục của sổ đại lý đợt 1 = 31. 12/10 sổ đại lý đợt 1 (đọc từ lần chạy thật của Task 13): + "Khoá sổ tháng", "Hoa hồng đối tác", "Người bán dịch vụ" (sau "Lý do điều phối") = 30 (Quản trị 24). 5/10 gộp Đợt 4 vào Đợt 5: + "Xe đang chạy" (ô trip.view) = 27 (Quản trị 21). 5/10 gộp main ffed6f1c vào Đợt 4: 24 + "Bảng giá thuê xe", "Bảng kê chi phí xe" (Đợt 4 G0) = 26. 2/10 (ADR-0055 VK2-A, Vận chuyển Đợt 3): + "Lịch xe bận" (ô vehicle.manage) = 24. 2/10 (ADR-0087, Task 5): + "Giao diện" (ô settings.ops, chỉ Toàn quyền) = 23; Quản trị không có ô này. Trước đó 22 (1/10, ADR-0075: + "Phiên đăng nhập")
+        sidebar: 27, // MENU THEO VIỆC 15/10: /audit (Nhật ký) nằm trong nhóm Thiết lập ⇒ nhóm MỞ ⇒ thấy đủ 27 `.sidebar-item` của Quản trị + Toàn quyền (bảng THANH_BEN: 28 gồm nút Tạo đơn)
       },
     ];
 
@@ -1155,7 +1196,7 @@ try {
         assert.equal(f.newBtnShown, false, `${at}: nút "Tạo đơn" trên thanh công việc chỉ từ 641px (điện thoại đã có tab "Tạo đơn") — ${JSON.stringify(f)}`);
       } else {
         assert.equal(f.sidebarShown, true, `${at}: thanh bên PHẢI hiện từ 641px (quyết định 9 của chủ dự án) — ${JSON.stringify(f)}`);
-        assert.equal(f.sidebarLinks, spec.sidebar, `${at}: thanh bên phải đủ ${spec.sidebar} mục của tài khoản mở trang (Quản trị 25 — ADR-0115 thêm "Điều chỉnh công nợ"; trước đó 24 — ADR-0111 gói A5 thêm "Đề nghị chuyển khách" (ô trip.override), ADR-0038 không "Nhật ký", ADR-0049 B8 có "Lý do điều phối", B1 có "Điều phối xe", Đợt 3 có "Lịch xe bận", Đợt 4 có "Bảng giá thuê xe", "Bảng kê chi phí xe", Đợt 5 có "Xe đang chạy", sổ đại lý đợt 1 có "Hoa hồng đối tác", "Người bán dịch vụ"; Toàn quyền 31 — ADR-0069 thêm "Trợ lý Hỗ trợ", ADR-0075 thêm "Phiên đăng nhập", ADR-0087 thêm "Giao diện", sổ đại lý đợt 1 thêm "Khoá sổ tháng" và hai mục trên) — ${JSON.stringify(f)}`);
+        assert.equal(f.sidebarLinks, spec.sidebar, `${at}: thanh bên phải đủ ${spec.sidebar} mục .sidebar-item nhìn thấy của tài khoản mở trang (nhóm Thiết lập mở chỉ khi trang thuộc nhóm đó; số theo bảng THANH_BEN trừ nút Tạo đơn) — ${JSON.stringify(f)}`);
         assert.equal(f.tabbarLinks, 0, `${at}: thanh tab dưới đáy KHÔNG được hiện cùng thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.logoutShown, true, `${at}: "Đăng xuất" phải hiển thị thật trong thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.sidebarWidth, f.sidebarToken, `${at}: thanh bên phải rộng đúng token --w-sidebar (${f.sidebarToken}px) — ${JSON.stringify(f)}`);
@@ -1578,6 +1619,7 @@ try {
       return {
         stats,
         statLabels: [...document.querySelectorAll('#dash-so-mt .dash-smt-nhan-chu')].map((e) => e.textContent.trim()),
+        viecIco: [...document.querySelectorAll('#dash-viec .dash-viec-the')].map((t) => ({ nhan: t.querySelector('.dash-viec-nhan').textContent.trim(), ...info(t.querySelector('.dash-viec-ico')), nhanChu: t.querySelector('.dash-viec-nhan').textContent.trim() })),
         todayTitle: info(document.querySelector('.dash-today-title')),
         reviewHeading: info(document.querySelector('.dash-review-heading')),
         reviewRow: info(document.querySelector('#dash-review-list .dash-review-row .dash-review-icon')),
@@ -1585,7 +1627,10 @@ try {
         todayPlace: info(today?.querySelector('.dash-today-place')),
       };
     })()`);
-    assert.deepEqual(icons.statLabels, ["Còn thiếu tiền", "Chờ xác nhận", "Chưa phụ trách", "Doanh thu của tôi"], `J: bốn ô số liệu (bản vẽ 1.73) đúng thứ tự — ${JSON.stringify(icons.statLabels)}`);
+    assert.deepEqual(icons.statLabels, ["Doanh thu của tôi"], `J: ô số liệu máy tính còn một ô (menu theo việc 15/10) — ${JSON.stringify(icons.statLabels)}`);
+    // Thẻ Việc của bạn: mỗi thẻ có biểu tượng aria-hidden (trang trí) và nhãn chữ là tiêu đề h3 đi kèm.
+    assert.ok(icons.viecIco.length >= 1, `J: khối Việc của bạn có thẻ — ${JSON.stringify(icons.viecIco)}`);
+    icons.viecIco.forEach((s) => assert.ok(s.hasSvg && s.ariaHidden === "true" && s.nhan.length > 0, `J: thẻ Việc của bạn "${s.nhan}" phải có biểu tượng aria-hidden và nhãn chữ — ${JSON.stringify(s)}`));
     icons.stats.forEach((s, i) => {
       assert.ok(s.hasSvg && s.ariaHidden === "true", `J: ô số liệu #${i} (${icons.statLabels[i]}) phải có biểu tượng aria-hidden — ${JSON.stringify(s)}`);
       assert.ok(s.text && s.text.length > 0, `J: ô số liệu #${i} phải còn chữ đi kèm biểu tượng (không đứng một mình) — ${JSON.stringify(s)}`);
@@ -1605,7 +1650,7 @@ try {
     await axe(p, "trang-chu-bieu-tuong-390");
     await shot(p, "task-5-dot-e-bieu-tuong-390.png");
     p.close();
-    ok(`J) Đợt E Phần B: biểu tượng có mặt + aria-hidden + đi kèm chữ ở bốn ô số liệu (${JSON.stringify(icons.statLabels)}), hai tiêu đề khối, dòng "Cần xem lại", SĐT và nơi đón ở "Chuyến đón hôm nay"; axe 0 vi phạm critical/serious ở 1040 và 390px`);
+    ok(`J) Đợt E Phần B: biểu tượng có mặt + aria-hidden + đi kèm chữ ở ô số liệu và các thẻ Việc của bạn (${JSON.stringify(icons.statLabels)}), hai tiêu đề khối, dòng "Cần xem lại", SĐT và nơi đón ở "Chuyến đón hôm nay"; axe 0 vi phạm critical/serious ở 1040 và 390px`);
   }
 
   // ==================================================================================================

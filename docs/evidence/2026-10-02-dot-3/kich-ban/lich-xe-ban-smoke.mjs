@@ -85,11 +85,11 @@ try {
 
   // ---- 4–8. Quản trị 1040 ----
   p = await env.as(ACCOUNTS.admin, `/lich-xe-ban?tu=${D}`, DESK);
-  await dem.step("4", "Quản trị 1040: tiêu đề + dòng phụ; mục “Lịch xe bận” sáng; hàng xe A có khung bận và chuyến CX (chỉ mã + giờ); xe B chip “Bảo dưỡng”; không mã thô" + axeNote(), async () => {
+  await dem.step("4", "Quản trị 1040: tiêu đề + dòng phụ; mục gộp “Xe & giấy tờ” sáng; hàng xe A có khung bận và chuyến CX (chỉ mã + giờ); xe B chip “Bảo dưỡng”; không mã thô" + axeNote(), async () => {
     await p.waitFor("!!document.querySelector('.xb-xe')", "lưới");
     assert.equal(await p.ev(txt(".xb-title")), "Lịch xe bận");
     assert.match(await p.ev(txt("#xb-sub")), /^\d\d\/\d\d – \d\d\/\d\d\/\d{4} · \d+ lịch bận$/);
-    assert.equal(await p.ev("document.querySelector('#sidebar .sidebar-sub[aria-current=\"page\"]')?.innerText.trim()"), "Lịch xe bận");
+    assert.equal(await p.ev("document.querySelector('#sidebar .sidebar-item[aria-current=\"page\"]')?.innerText.trim()"), "Xe & giấy tờ", "menu theo việc 15/10: Lịch xe bận nằm trong mục gộp «Xe & giấy tờ», mục này sáng");
     const muc = await p.ev(`[...document.querySelectorAll('.xb-muc')].map((m) => m.innerText.replace(/\\s+/g, ' ').trim())`);
     assert.ok(muc.includes("13:00–17:00 Bảo dưỡng"), JSON.stringify(muc));
     assert.ok(muc.includes(`09:00–11:00 ${MA_T1}`), JSON.stringify(muc));
