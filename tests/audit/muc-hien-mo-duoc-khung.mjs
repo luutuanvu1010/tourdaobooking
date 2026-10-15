@@ -59,7 +59,7 @@ const boChuThich = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`]
 // Các nơi đặt lối vào: dòng khai + mục THẬT SỰ hiện (đọc từ chính hàm mà web/shell.ts, web/account.ts, web/home.ts vẽ).
 
 const NOI = {
-  "thanh-ben": { dong: THANH_BEN, hien: (s) => thanhBen({ staff: s }, "/").flatMap((g) => g.muc.flatMap((x) => (x.kieu === "muc" ? [x.trang] : []))) },
+  "thanh-ben": { dong: THANH_BEN, hien: (s) => thanhBen({ staff: s }, "/").flatMap((g) => g.muc.map((x) => x.trang)) },
   "thanh-tab": { dong: THANH_TAB, hien: (s) => thanhTab({ staff: s }).map((x) => x.trang) },
   "thanh-tren": { dong: THANH_TREN, hien: (s) => thanhTren({ staff: s }).map((x) => x.trang) },
   "trang-toi": {
@@ -90,14 +90,7 @@ const TU_CHOI_BANG_404 = new Set();
 // Giữ "Cuốc của tôi" = ô trip.view ĐÚNG BẰNG assigned: tài xế công ty (DRIVER) và, từ A4 (ADR-0053 D7.1), tài xế đối tác (DRIVER_PARTNER) — ghép main 1c471990, 12/10.
 const coDriver = (s) => coCuocCuaToi(s);
 const DUOC_MA_AN = [
-  {
-    noi: ["thanh-ben", "thanh-tab", "trang-chu"],
-    trang: "donHang",
-    khi: (s) => canAccessOrders(s) && !seesAllOrders(s) && !can(s, "order.create"),
-    lyDo:
-      "HDV chỉ-FIELD (và FIELD kèm tài xế / Nhân sự): GET /api/orders cho xem đơn mình phụ trách và trang đầu của họ là /orders (homeRedirect), nhưng mục " +
-      "'Đơn hàng' ẩn theo coMucDonHang (lỗi báo 30/9 L3 chỉ mở cho Đối tác, Thực tập; HDV dùng 'Việc của tôi'). Chờ chủ: hiện mục cho HDV hay giữ.",
-  },
+  // Dòng "HDV chỉ-FIELD không thấy mục Đơn hàng" đã BỎ 15/10: chủ quyết hiện mục cho HDV (ADR-0017); trang /orders của HDV = đơn mình phụ trách.
   {
     noi: ["thanh-tren"],
     trang: "donHang",
@@ -154,7 +147,6 @@ const CHO_CHU_TRANG_DAU = new Map([
 const LIEN_KET_VIET_TAY = [
   { tep: "web/shell.ts", href: "/", lan: 2, lyDo: "logo ở đầu thanh bên và thanh trên — về trang đầu; bài (5) kiểm trang đầu của mọi tập" },
   { tep: "web/shell.ts", href: "/account", lan: 1, lyDo: "dải 'Đang ở chế độ bảo trì' — trang Tôi, ai cũng mở được (TRANG.toi; bài kiểm ở phần gọi /api/auth/me)" },
-  { tep: "web/shell.ts", href: "", lan: 1, lyDo: "mục cha 'Vận chuyển' — vẽ thành <div>, không phải liên kết" },
 ];
 
 /**
@@ -375,7 +367,7 @@ function kiemTinh() {
   test(`[tĩnh] (4) khung tạm (bản nhớ khung ADR-0035) chỉ vẽ mục mà khung thật của cùng tài khoản cũng vẽ (${SO_TAP} tập)`, () => {
     const loi = [];
     const cap = [
-      ["thanh-ben", (n) => thanhBen(n, "/").flatMap((g) => g.muc.map((x) => (x.kieu === "muc" ? x.trang : `cha:${x.nhan}`)))],
+      ["thanh-ben", (n) => thanhBen(n, "/").flatMap((g) => g.muc.map((x) => x.trang))],
       ["thanh-tab", (n) => thanhTab(n).map((x) => x.trang)],
       ["thanh-tren", (n) => thanhTren(n).map((x) => `${x.kieu}:${x.trang}`)],
     ];

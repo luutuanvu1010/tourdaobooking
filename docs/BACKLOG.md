@@ -338,14 +338,39 @@
   - Đơn MỚI bị giữ ở «Đã giao» sau bản vá (đơn đã xác nhận, chưa giao, bản chụp hiện hành có người hưởng nhưng bên đặt KHÔNG còn vai bên ngoài): `SELECT o.order_code FROM orders o WHERE o.status='confirmed' AND o.delivered_at IS NULL AND EXISTS (SELECT 1 FROM ord_service_terms t WHERE t.order_id=o.id AND t.commission_status<>'NONE' AND NOT EXISTS (SELECT 1 FROM ord_service_terms n WHERE n.supersedes_id=t.id)) AND NOT EXISTS (SELECT 1 FROM v_pty_open_role_group g WHERE g.party_id=o.booker_party_id AND g.role_group='EXTERNAL');`
   - Đơn ĐÃ lọt «Đã giao» trước khi vá (khe đã bị dùng): `SELECT o.order_code FROM orders o WHERE o.delivered_at IS NOT NULL AND EXISTS (SELECT 1 FROM ord_service_terms t WHERE t.order_id=o.id AND t.commission_status<>'NONE' AND NOT EXISTS (SELECT 1 FROM ord_service_terms n WHERE n.supersedes_id=t.id)) AND NOT EXISTS (SELECT 1 FROM v_pty_open_role_group g WHERE g.party_id=o.booker_party_id AND g.role_group='EXTERNAL');` — kết quả khác 0 là đơn đối tác giao mà sổ không có dòng hoa hồng, cần Kế toán xem. (Chú ý: đơn đã giao có bản chụp sau khi đối tác đổi sang khách lẻ cũng là bản NONE nên không lọt vào đây — đúng thiết kế.)
 
-## 30. Chat thời gian thực trong Vé hỗ trợ (mã `BL-VE-CHAT-THOI-GIAN-THUC`)
+## 30. Thẻ "Cọc cần chi hoàn" trên Việc của bạn — chờ có trang cọc
+
+- **Ngày:** 2026-10-15 · **Trạng thái:** `chờ`. Thẻ "Cọc cần chi hoàn" trên Việc của bạn — chờ có trang cọc: route `GET /api/ledger/coc` có nhưng chưa trang web nào gọi nên nút "Chi hoàn" chưa có đích; khi có trang cọc thì thêm lại khoá `cocCanChi` (ưu tiên 6, điều kiện `ledger.view`) vào `src/shared/viec-cua-ban.ts`.
+
+## 31. Menu máy tính theo việc và «Việc của bạn» — nợ sau đợt 1 (chủ chốt đợt 1 ngày 2026-10-15)
+
+- **Ngày:** 2026-10-15 · **Trạng thái:** `chờ`. Đặc tả `docs/superpowers/specs/2026-10-14-menu-may-tinh-viec-cua-ban/DAC-TA.md` (§10 là điều chỉnh sau thi công). Mỗi gạch dưới là một việc riêng; việc nào cần route đếm mới thì chạm API và quyền → ADR + trang ghép, chủ duyệt (CLAUDE.md §9).
+- **Trang chủ cho Hướng dẫn viên, Đối tác, Nhân sự (đợt 2).** Chủ đã chọn «dựng Trang chủ mới» cho ba vai này (15/10). Hôm nay họ được đưa thẳng sang trang khác (`homeRedirect`) và `GET /api/orders/dashboard` trả 403. Cần ADR + trang ghép; xem thêm mục 18 (nội dung theo vai). Đợt 1 không thêm mục «Trang chủ» cho ba vai này để không dẫn tới trang lỗi.
+- **Thẻ «Đề nghị chuyển khách»** (Quản trị, Toàn quyền): bỏ khỏi đợt 1 vì chỉ đếm được theo ngày. Cần route đếm tổng đề nghị đang chờ.
+- **Thẻ «Đơn của tôi cần làm»** cho Bán hàng: cần route đếm riêng (đơn mình lập / mình phụ trách còn việc).
+- **Thẻ «Đơn sắp đi chưa có xe», «Chuyến chưa xếp xe», «Đơn đã giao chờ Kế toán Hoàn thành»:** mỗi thẻ cần route đếm; không đếm trên trình duyệt (đặc tả §5).
+- **`/orders` đọc `?status=draft`:** để nút «Xem đơn nháp» của thẻ Đơn nháp mở sẵn bộ lọc nháp. Hôm nay `web/orders.ts` chỉ đọc `q` nên thẻ dẫn tới `/orders` trơn. Cần nới trần gói `web/orders.ts` (chủ quyết) hoặc tách gói.
+- **Thanh bên: nhớ trạng thái mở / đóng nhóm Thiết lập theo máy** (đặc tả §3, bỏ khỏi đợt 1). Hiện chỉ có luật `thietLapMoSan`. Làm khi có chỗ trong trần gói `web/orders.ts`.
+- **Mục gộp: `aria-current` `"true"` thay `"page"` cho trang con** (nhận xét M-6 của người kiểm độc lập, chưa xác minh lại bằng trình đọc màn hình). Khi đứng ở một trang con của mục gộp, thanh bên sáng mục gộp; cân nhắc đặt `aria-current="true"` thay vì `"page"` cho trang con. Việc nhỏ, đổi ở `web/shell.ts` (chạm trần gói).
+- **Chuỗi lỗi → Thử lại → hồi phục của thẻ Việc của bạn** (nhất là «Cần xem lại» và hai nguồn ngoài) mới được khóa bằng bài đọc mã, chưa chạy thật. Cần kịch bản Chrome / e2e (Task 7b của đợt này).
+- **Ghi chú liên quan:** thẻ «Cọc cần chi hoàn» của Kế toán: xem mục 30.
+
+## 32. Trợ giúp theo vai: nới trần 30 phút hoặc tách theo mục để bổ sung ý phụ
+
+- **Ngày:** 2026-10-15 · **Trạng thái:** `chờ`. Khi viết lại Trợ giúp cho khớp menu theo việc, bài A4 (`src/shared/huong-dan.test.ts`: Phần chung + một nhóm vai ≤ 30 phút) buộc phải rút chữ, nên mất vài ý phụ: dòng thời gian trong thẻ «Chuyến đón» của Bán hàng (chuyến kế tiếp có nhãn «Sắp tới»); ở Kế toán: ô «Doanh thu của tôi» ghi «Chưa có đơn nào tuần này» và dòng «số đơn và ngày đón sớm nhất» của «Còn thiếu tiền»; Trợ giúp Quản trị không nói chân menu (Của tôi, Góp ý, Trợ giúp). Việc: nới trần A4 (chủ quyết) hoặc tách Trợ giúp theo mục để bổ sung ý phụ mà không vượt.
+
+## 33. Chat thời gian thực trong Vé hỗ trợ (mã `BL-VE-CHAT-THOI-GIAN-THUC`)
+
+> Đánh lại số khi gộp main ngày 2026-10-15: trên nhánh Vé hỗ trợ mục này là **mục 30** (ADR-0119 và kế hoạch đợt 1 còn ghi «mục 30» — hồ sơ đóng băng, không sửa); main đã dùng 30–32.
 
 - **Ngày:** 2026-10-14 · **Nêu bởi:** chủ dự án, trong phiên đặc tả Vé hỗ trợ · **Trạng thái:** `để sau`
 - **Ý:** tin đến tức thì và hiện «đang soạn» trong phiếu hỗ trợ. Chủ chốt: **không nhúng chat của bên thứ ba** (lý do: hai nơi lưu hội thoại, nội dung nhạy cảm rời D1, không biết quy tắc nhóm); nếu làm thì dùng Durable Objects của Cloudflare chạy trong chính Worker.
 - **Vì sao để sau:** đợt 2 của Vé hỗ trợ dùng tải lại ngầm mỗi 5 giây là đủ cho ~30 người; Durable Objects thêm một loại hạ tầng vào cấu hình triển khai nên cần ADR riêng và chủ duyệt.
 - **Đặc tả gốc:** `docs/superpowers/specs/2026-10-14-ve-ho-tro-design.md`.
 
-## 31. Vé hỗ trợ — nợ đợt 1 (mã `BL-VE-…`)
+## 34. Vé hỗ trợ — nợ đợt 1 (mã `BL-VE-…`)
+
+> Đánh lại số khi gộp main ngày 2026-10-15: trên nhánh Vé hỗ trợ mục này là mục 31.
 
 - **Ngày:** 2026-10-15 · **Nêu bởi:** điều phối và người thi công Vé hỗ trợ đợt 1 (ADR-0119, nhánh `claude/support-ticket-module-eb6445`, chưa gộp) · **Trạng thái:** `để sau` (đợt 2 hoặc lần phát hành sau). Cột «Nơi» ghi tên tệp / chức năng, không ghi số dòng.
 

@@ -23,7 +23,7 @@ try {
         title: t(document.querySelector('#due-title')), sub: t(document.querySelector('#due-sub')),
         empty: document.querySelector('#due-empty') && !document.querySelector('#due-empty').hidden ? t(document.querySelector('#due-empty')) : null,
         rows: rows.map((r) => ({ href: r.getAttribute('href'), kind: r.querySelector('.vc-ring')?.getAttribute('aria-label') ?? null, who: t(r.querySelector('.vc-due-who')), doc: t(r.querySelector('.vc-due-doc')), chip: t(r.querySelector('.vc-chip')), tone: [...(r.querySelector('.vc-chip')?.classList ?? [])].find((c) => c.startsWith('vc-chip-')) ?? null })),
-        badge: t(document.querySelector('#sidebar a[href="/giay-to-sap-het-han"] .sidebar-item-badge')),
+        badge: t(document.querySelector('#sidebar a[href="/xe"] .sidebar-item-badge')),
         threshold: !!document.querySelector('#due-threshold'),
         html: document.documentElement.outerHTML,
       };
@@ -73,7 +73,7 @@ try {
     const p = await env.as(ADMIN, "/giay-to-sap-het-han", DESK);
     try {
       await p.waitFor("document.querySelectorAll('#due-table a.vc-due-trow').length === 6", "sáu dòng", 10000);
-      await p.waitFor(`!!document.querySelector('#sidebar a[href="/giay-to-sap-het-han"] .sidebar-item-badge')`, "huy hiệu", 8000);
+      await p.waitFor(`!!document.querySelector('#sidebar a[href="/xe"] .sidebar-item-badge')`, "huy hiệu", 8000);
       const s = await read(p, "desk");
       assert.equal(s.title, "Giấy tờ sắp hết hạn");
       assert.equal(s.sub, "Trong 30 ngày tới · gồm cả giấy đã hết hạn · 6 giấy");

@@ -17,6 +17,7 @@
 // Bài này đỏ nếu bảng mới lệch mã cũ đã gộp ở BẤT KỲ tập nào trong 1024 tập quyền (đã đạt lúc ghép).
 // Chụp lại 2026-10-15 (Vé hỗ trợ đợt 1, Việc 7): đổi nhãn có chủ ý «Góp ý / Báo lỗi» → «Hỗ trợ» (bản giao việc Bước 6). `--rev cb7da197` (lần lưu đổi nhãn); so ảnh cũ chỉ đổi
 // đúng chuỗi nhãn đó ở bốn nơi, và ghim thêm mục «Điều chỉnh công nợ» (mục mới có từ trước, ảnh cũ chưa ghim — chỉ siết thêm).
+// Chụp lại khi gộp main fc533d49 (menu theo việc) vào nhánh Vé hỗ trợ: chạy lệnh trên cây gộp, so ảnh của main chỉ đổi đúng chuỗi «Góp ý / Báo lỗi» → «Hỗ trợ» ở bốn chuỗi, các tập không đổi.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -40,7 +41,7 @@ const co = (b64: string, m: number): boolean => ((Buffer.from(b64, "base64")[m >
 /** Chuỗi so sánh — ĐÚNG dạng scripts/chup-muc-giao-dien.mjs đọc từ DOM (docMuc). */
 function chuoiThanhBen(n: NguoiXem): string[] {
   return thanhBen(n, DUONG_CHUP).flatMap(({ nhom, muc }) =>
-    muc.map((x) => (x.kieu === "cha" ? `${nhom}|cha|${x.nhan}|` : `${nhom}|${x.con ? "con" : ""}|${x.nhan}|${x.href}`)),
+    muc.map((x) => `${nhom}|${x.noiBat ? "noi-bat" : ""}|${x.nhan}|${x.href}`),
   );
 }
 const chuoiThanhTab = (n: NguoiXem): string[] => thanhTab(n).map((t) => `${t.nhan}|${t.href}`);

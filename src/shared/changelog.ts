@@ -14,16 +14,38 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Vé hỗ trợ đợt 1 (ADR-0119): nhóm hỗ trợ, hàng đợi nhóm, nhận việc, chuyển nhóm, quản lý nhóm; menu «Góp ý / Báo lỗi» đổi thành «Hỗ trợ».
     // Có thay đổi cơ sở dữ liệu (migration 0100) — cần trien-khai sau day-len.
-    // Số 1.97 là số TẠM (= main 1.96 + 1, 2026-10-15). Lúc soạn, 1.97 đã có ở hai nhánh chưa gộp khác và 1.98 ở một nhánh nữa: phiên phát hành kiểm lại
-    // cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
-    version: "1.97",
-    date: "2026-10-15",
+    // Số 2.1 là số TẠM (= main 2.0 + 1, lúc gộp main fc533d49 ngày 2026-10-15; trước đó nhánh dùng 1.97 tạm, nay main đã chiếm 1.97 và 2.0): phiên phát hành
+    // kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
+    version: "2.1",
+    date: "2026-10-16",
     items: [
       { kind: "doi", text: "Mục Góp ý / Báo lỗi đổi tên thành Hỗ trợ. Khi gửi yêu cầu, bạn chọn nhóm nhận: Kỹ thuật, Kế toán, Nhân sự hoặc Điều hành." },
       { kind: "moi", text: "Thành viên nhóm hỗ trợ có tab Hàng đợi nhóm: xem yêu cầu gửi tới nhóm mình, lọc Của tôi hoặc Chưa ai nhận, bấm Nhận việc rồi đổi trạng thái." },
       { kind: "moi", text: "Trưởng nhóm chuyển được yêu cầu sang nhóm khác, kèm lý do. Nhóm mới không đọc ghi chú nội bộ của nhóm cũ." },
       { kind: "moi", text: "Người phụ trách hệ thống có tab Quản lý nhóm: tạo nhóm, ngưng nhóm, thêm hoặc gỡ thành viên, chọn Trưởng nhóm." },
       { kind: "doi", text: "Yêu cầu chỉ người gửi, nhóm nhận và người phụ trách hệ thống đọc được. Yêu cầu gửi Kế toán hoặc Nhân sự không hiện tiêu đề trong thư báo." },
+    ],
+  },
+  {
+    // Sửa chữ nút thẻ «Đơn nháp» ở Trang chủ (chủ chốt 2026-10-16, DAC-TA §10.7). Không migration, không đổi quyền ở máy chủ.
+    // Số 2.0 do chủ dự án chốt (2026-10-16, «cho lên bản 2.0»), đánh dấu menu mới theo việc. Ngày là ngày dự kiến.
+    version: "2.0",
+    date: "2026-10-16",
+    items: [
+      { kind: "doi", text: "Trang chủ: thẻ Đơn nháp chỉ Quản trị có nút Xác nhận đơn, vai khác có nút Xem đơn nháp." },
+    ],
+  },
+  {
+    // Menu máy tính theo việc + khối Việc của bạn ở Trang chủ (chủ chọn bản dựng 14/10; đặc tả docs/superpowers/specs/2026-10-14-menu-may-tinh-viec-cua-ban/DAC-TA.md). Không migration, không đổi quyền.
+    // Số 1.97 là số TẠM (= main 1.96 + 1, 2026-10-15): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
+    version: "1.97",
+    date: "2026-10-15",
+    items: [
+      { kind: "doi", text: "Menu bên trái trên máy tính gọn hơn, xếp theo việc: việc hằng ngày ở đầu, rồi Vận chuyển, Tiền; các mục cài đặt gom vào Thiết lập, bấm để mở hoặc thu gọn." },
+      { kind: "moi", text: "Trang chủ trên máy tính có khối Việc của bạn: mỗi thẻ cho biết có bao nhiêu việc đang chờ (đơn nháp, đơn còn thiếu tiền, chuyến hôm nay…) kèm nút làm ngay." },
+      { kind: "doi", text: "Xe & giấy tờ, Giá & chi phí mỗi mục gộp nhiều trang; mở ra thì đầu trang có dải nút chuyển nhanh sang trang cùng nhóm." },
+      { kind: "doi", text: "Hoa hồng đối tác và Người bán dịch vụ chuyển vào nhóm Thiết lập; Điều chỉnh công nợ và Khoá sổ tháng nằm ở nhóm Tiền." },
+      { kind: "moi", text: "Hướng dẫn viên có mục Đơn hàng trong menu, hiện các đơn mình đang phụ trách." },
     ],
   },
   {

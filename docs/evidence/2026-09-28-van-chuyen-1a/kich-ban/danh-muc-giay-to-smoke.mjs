@@ -5,9 +5,9 @@
 //   /loai-giay-to-xe    — loại giấy tờ xe: mục con của "Vận chuyển" (điện thoại: dòng trong nhóm VẬN CHUYỂN của trang Tôi).
 // Giữ TÊN tệp cũ: bảng "Sửa tệp nào → chạy kịch bản Chrome nào" của web/CLAUDE.md đang trỏ tới tên này (đổi bảng đó phải chờ chủ duyệt). Kiểm:
 // (a) Quản trị 390: trang Tôi — thẻ đầu Danh bạ / Địa điểm / Loại giấy tờ cá nhân (không còn "Danh mục giấy tờ"); bấm → hai khối 4 / 8 thẻ, không khối xe.
-// (b) Quản trị 1040: thanh bên — "Loại giấy tờ cá nhân" ngay sau "Địa điểm", trước "Vận chuyển"; bấm → mục sáng; breadcrumb; hai khối 4 / 8 dòng bảng.
+// (b) Quản trị 1040: thanh bên — "Loại giấy tờ cá nhân" trong nhóm Thiết lập (menu theo việc 15/10: nhóm thu gọn, đóng ở trang Tôi), ngay sau "Địa điểm"; mở nhóm → bấm → mục sáng; breadcrumb; hai khối 4 / 8 dòng bảng.
 // (c) Quản trị 390: nhóm VẬN CHUYỂN — Xe / Giấy tờ sắp hết hạn / Loại giấy tờ xe; bấm → MỘT khối 6 thẻ (không khối người / hạng); tiêu đề thanh đầu; tab Tôi sáng.
-// (d) Quản trị 1040: dưới "Vận chuyển" — Xe / Sắp hết hạn / Loại giấy tờ xe; bấm → mục con sáng, mục cha chữ trắng; breadcrumb "Vận chuyển › Loại giấy tờ xe".
+// (d) Quản trị 1040: nhóm VẬN CHUYỂN phẳng (không còn mục cha); "Loại giấy tờ xe" ở nhóm Thiết lập — mở nhóm, bấm → mục sáng, nhóm tự mở, breadcrumb "Loại giấy tờ xe".
 // (e) thêm loại giấy tờ người "Thẻ hướng dẫn viên" → hiện ngay.  (f) sửa tên một hạng → Lưu, tải lại vẫn đúng.
 // (g) ngưng "Giấy phép lái xe" → câu tiếng Việt "không ngưng được", không lộ mã fixed_type.  (h) thêm loại giấy tờ xe → hiện ngay.
 // (i) đường dẫn cũ /danh-muc-giay-to → tự chuyển sang /loai-giay-to-nguoi (không 404).
@@ -31,10 +31,11 @@ try {
   const tieuDe = (p, id, cap) => p.ev(`[...document.querySelectorAll('${id} ${cap}')].map((e) => e.textContent.trim())`);
   /** Các dòng liên kết của một thẻ ở trang Tôi. */
   const dongToi = (p, sel) => p.ev(`[...document.querySelectorAll('${sel} .row-link')].map((a) => ({ href: a.getAttribute('href'), text: a.innerText.replace(/\\s+/g, ' ').trim() }))`);
-  /** Thanh bên: nhóm → mục (nhãn, đường dẫn, mục con, đang sáng). */
-  const thanhBen = (p) =>
-    p.ev(`[...document.querySelectorAll('#sidebar .sidebar-group')].map((g) => ({ title: g.querySelector('.sidebar-group-title').textContent.trim(), items: [...g.querySelectorAll('.sidebar-item')].map((a) => ({ label: a.querySelector('.sidebar-item-label').textContent.trim(), href: a.getAttribute('href'), sub: a.classList.contains('sidebar-sub'), parent: a.classList.contains('sidebar-parent'), open: a.classList.contains('is-open-parent'), current: a.getAttribute('aria-current') })) }))`);
+  /** Thanh bên theo việc (15/10): nhóm → mục (nhãn, đường dẫn, đang sáng); nhóm THIẾT LẬP là nút thu gọn (`open` = aria-expanded). */
+const thanhBen = (p) =>
+    p.ev(`[...document.querySelectorAll('#sidebar .sidebar-group')].map((g) => ({ title: g.querySelector('.sidebar-group-title')?.textContent.trim() ?? (g.querySelector('.sidebar-group-toggle') ? 'THIẾT LẬP' : 'HẰNG NGÀY'), open: g.querySelector('.sidebar-group-toggle')?.getAttribute('aria-expanded') ?? null, items: [...g.querySelectorAll('.sidebar-item')].map((a) => ({ label: a.querySelector('.sidebar-item-label').textContent.trim(), href: a.getAttribute('href'), current: a.getAttribute('aria-current') })) }))`);
   const coLienKet = (p, hrefs) => p.ev(`[...document.querySelectorAll('a')].filter((a) => ${JSON.stringify(hrefs)}.includes(a.getAttribute('href'))).map((a) => a.getAttribute('href'))`);
+  const moThietLap = (p) => p.ev(`(() => { const t = document.querySelector('#sidebar .sidebar-group-toggle'); if (t.getAttribute('aria-expanded') !== 'true') t.click(); return t.getAttribute('aria-expanded'); })()`);
 
   await dem.step("a", "(a) Quản trị 390: trang Tôi — Danh bạ / Địa điểm / Loại giấy tờ cá nhân (không còn “Danh mục giấy tờ”); bấm → hai khối 4 / 8 thẻ, không khối xe" + axeNote(), async () => {
     const p = await env.as(ADMIN, "/account", MOB);
@@ -57,19 +58,22 @@ try {
     }
   });
 
-  await dem.step("b", "(b) Quản trị 1040: thanh bên — “Loại giấy tờ cá nhân” ngay sau “Địa điểm”, trước “Vận chuyển”; bấm → mục sáng, breadcrumb; hai khối 4 / 8 dòng" + axeNote(), async () => {
+await dem.step("b", "(b) Quản trị 1040: thanh bên — “Loại giấy tờ cá nhân” trong nhóm Thiết lập (đóng ở trang Tôi) ngay sau “Địa điểm”, trước “Loại giấy tờ xe”; mở nhóm → bấm → mục sáng, nhóm tự mở, breadcrumb; hai khối 4 / 8 dòng" + axeNote(), async () => {
     const p = await env.as(ADMIN, "/account", DESK);
     try {
       await p.waitFor(`!!document.querySelector('#sidebar a[href="${NGUOI}"]')`, "mục Loại giấy tờ cá nhân", 10000);
-      const qt = (await thanhBen(p)).find((g) => g.title === "QUẢN TRỊ");
-      const nhan = qt.items.map((i) => i.label);
+      const tl = (await thanhBen(p)).find((g) => g.title === "THIẾT LẬP");
+      assert.equal(tl.open, "false", "nhóm Thiết lập ĐÓNG ở trang Tôi");
+      const nhan = tl.items.map((i) => i.label);
       const at = nhan.indexOf("Địa điểm");
-      assert.deepEqual(nhan.slice(at, at + 3), ["Địa điểm", "Loại giấy tờ cá nhân", "Vận chuyển"], JSON.stringify(nhan));
-      assert.deepEqual([qt.items[at + 1].href, qt.items[at + 1].sub], [NGUOI, false]);
+      assert.deepEqual(nhan.slice(at, at + 3), ["Địa điểm", "Loại giấy tờ cá nhân", "Loại giấy tờ xe"], JSON.stringify(nhan));
+      assert.equal(tl.items[at + 1].href, NGUOI);
+      assert.equal(await moThietLap(p), "true", "bấm nút Thiết lập thì nhóm mở");
       assert.ok(await p.ev(clickVisible("#sidebar", "Loại giấy tờ cá nhân")));
       await p.waitFor(`location.pathname === '${NGUOI}' && !document.querySelector('#dm-hang').hidden`, "trang Loại giấy tờ cá nhân", 10000);
-      const moi = (await thanhBen(p)).find((g) => g.title === "QUẢN TRỊ").items.find((i) => i.href === NGUOI);
-      assert.equal(moi.current, "page", "mục đang mở sáng");
+      const g2 = (await thanhBen(p)).find((g) => g.title === "THIẾT LẬP");
+      assert.equal(g2.open, "true", "đứng ở trang thuộc nhóm Thiết lập thì nhóm tự mở");
+      assert.equal(g2.items.find((i) => i.href === NGUOI).current, "page", "mục đang mở sáng");
       assert.equal(await p.ev(txt("#bar-title")), "Loại giấy tờ cá nhân");
       assert.deepEqual(await soDong(p, ["#dm-xe", "#dm-nguoi", "#dm-hang"], "table.items tbody tr"), [null, 4, 8]);
       await axe(p, "Loại giấy tờ cá nhân 1040");
@@ -84,7 +88,7 @@ try {
     try {
       await p.waitFor(`!!document.querySelector('#vc-links a[href="${XE}"]')`, "dòng Loại giấy tờ xe", 10000);
       // ADR-0049 B8 (2026-09-29): Quản trị có thêm dòng "Lý do điều phối" cuối nhóm VẬN CHUYỂN.
-      assert.deepEqual(await dongToi(p, "#vc-links"), [{ href: "/dieu-phoi", text: "Điều phối xe" }, { href: "/xe-dang-chay", text: "Xe đang chạy" }, { href: "/bang-gia-xe", text: "Bảng giá thuê xe" }, { href: "/bang-ke-xe", text: "Bảng kê chi phí xe" }, { href: "/xe", text: "Xe" }, { href: "/lich-xe-ban", text: "Lịch xe bận" }, { href: "/giay-to-sap-het-han", text: "Giấy tờ sắp hết hạn" }, { href: XE, text: "Loại giấy tờ xe" }, { href: "/ly-do-dieu-phoi", text: "Lý do điều phối" }]); // + Đợt 4 (tiền xe thuê) + "Lịch xe bận" (Đợt 3)
+      assert.deepEqual(await dongToi(p, "#vc-links"), [{ href: "/dieu-phoi", text: "Điều phối xe" }, { href: "/xe-dang-chay", text: "Xe đang chạy" }, { href: "/de-nghi", text: "Đề nghị chuyển khách" }, { href: "/bang-gia-xe", text: "Bảng giá thuê xe" }, { href: "/bang-ke-xe", text: "Bảng kê chi phí xe" }, { href: "/xe", text: "Xe" }, { href: "/lich-xe-ban", text: "Lịch xe bận" }, { href: "/giay-to-sap-het-han", text: "Giấy tờ sắp hết hạn" }, { href: XE, text: "Loại giấy tờ xe" }, { href: "/ly-do-dieu-phoi", text: "Lý do điều phối" }]); // + Đợt 4 (tiền xe thuê) + "Lịch xe bận" (Đợt 3)
       await shotFull(p, "loai-giay-to-toi-390.png");
       assert.ok(await p.ev(clickVisible("#vc-links", "Loại giấy tờ xe")));
       await p.waitFor(`location.pathname === '${XE}' && !document.querySelector('#dm-xe').hidden`, "trang Loại giấy tờ xe", 10000);
@@ -101,21 +105,23 @@ try {
     }
   });
 
-  await dem.step("d", "(d) Quản trị 1040: dưới “Vận chuyển” — Điều phối xe / Xe / Sắp hết hạn / Loại giấy tờ xe; bấm → mục con sáng, mục cha chữ trắng, breadcrumb “Vận chuyển › Loại giấy tờ xe”; 6 dòng" + axeNote(), async () => {
+await dem.step("d", "(d) Quản trị 1040: nhóm VẬN CHUYỂN phẳng 5 mục (không còn mục cha); “Loại giấy tờ xe” nằm trong nhóm Thiết lập — mở nhóm, bấm → mục sáng, nhóm tự mở, breadcrumb “Loại giấy tờ xe”; 6 dòng" + axeNote(), async () => {
     const p = await env.as(ADMIN, "/account", DESK);
     try {
-      await p.waitFor(`!!document.querySelector('#sidebar a[href="${XE}"]')`, "mục con Loại giấy tờ xe", 10000);
-      const qt = (await thanhBen(p)).find((g) => g.title === "QUẢN TRỊ");
-      const at = qt.items.findIndex((i) => i.parent && i.label === "Vận chuyển");
-      // ADR-0049 B1 (vòng 3): mục con "Điều phối xe" (ô trip.view) đứng đầu dưới "Vận chuyển".
-      assert.deepEqual(qt.items.slice(at, at + 9).map((i) => [i.label, i.sub]), [["Vận chuyển", false], ["Điều phối xe", true], ["Xe đang chạy", true], ["Bảng giá thuê xe", true], ["Bảng kê chi phí xe", true], ["Xe", true], ["Lịch xe bận", true], ["Sắp hết hạn", true], ["Loại giấy tờ xe", true]], JSON.stringify(qt.items)); // + Đợt 4 + "Lịch xe bận" (Đợt 3)
+      await p.waitFor(`!!document.querySelector('#sidebar a[href="${XE}"]')`, "mục Loại giấy tờ xe", 10000);
+      const nhomTruoc = await thanhBen(p);
+      assert.deepEqual(nhomTruoc.find((g) => g.title === "VẬN CHUYỂN").items.map((i) => i.label), ["Điều phối xe", "Xe đang chạy", "Đề nghị chuyển khách", "Xe & giấy tờ", "Giá & chi phí"]);
+      assert.equal(nhomTruoc.find((g) => g.title === "THIẾT LẬP").items.some((i) => i.href === XE), true, "Loại giấy tờ xe thuộc nhóm Thiết lập");
+      assert.equal(await p.ev("!!document.querySelector('#sidebar .sidebar-parent')"), false, "không còn mục cha Vận chuyển");
+      await moThietLap(p);
       assert.ok(await p.ev(clickVisible("#sidebar", "Loại giấy tờ xe")));
       await p.waitFor(`location.pathname === '${XE}' && !document.querySelector('#dm-xe').hidden`, "trang Loại giấy tờ xe", 10000);
-      const moi = (await thanhBen(p)).find((g) => g.title === "QUẢN TRỊ").items;
-      const cha = moi.find((i) => i.parent);
-      assert.equal(moi.find((i) => i.href === XE).current, "page", "mục con đang mở sáng");
-      assert.equal(cha.open, true, "mục cha chữ trắng khi đang ở một mục con");
-      assert.equal(await p.ev(txt("#bar-title")), "Vận chuyển › Loại giấy tờ xe");
+      const moi = await thanhBen(p);
+      const tl = moi.find((g) => g.title === "THIẾT LẬP");
+      assert.equal(tl.items.find((i) => i.href === XE).current, "page", "mục đang mở sáng");
+      assert.equal(tl.open, "true", "nhóm Thiết lập tự mở");
+      assert.equal(moi.find((g) => g.title === "VẬN CHUYỂN").items.filter((i) => i.current === "page").length, 0, "không mục Vận chuyển nào sáng ở trang này");
+      assert.equal(await p.ev(txt("#bar-title")), "Vận chuyển › Loại giấy tờ xe", "breadcrumb do data-title của trang (giữ nguyên sau menu theo việc)");
       assert.deepEqual(await soDong(p, ["#dm-xe", "#dm-nguoi", "#dm-hang"], "table.items tbody tr"), [6, null, null]);
       await axe(p, "Loại giấy tờ xe 1040");
       await shotFull(p, "loai-giay-to-xe-1040.png");
@@ -216,8 +222,9 @@ try {
       assert.deepEqual(await coLienKet(d, [NGUOI, XE, CU]), [], "thanh bên + trang Tôi (1040)");
       // ADR-0049 B1 (vòng 3, Q-B-4): Bán hàng nay có nhóm QUẢN TRỊ chỉ với "Vận chuyển › Điều phối xe" (ô trip.view) — vẫn không mục danh mục giấy tờ.
       const nhom = await thanhBen(d);
-      assert.deepEqual(nhom.map((g) => g.title), ["BÁN HÀNG", "QUẢN TRỊ", "TÔI"]);
-      assert.deepEqual(nhom.find((g) => g.title === "QUẢN TRỊ").items.map((i) => i.label), ["Vận chuyển", "Điều phối xe", "Xe đang chạy"], "Bán hàng: nhóm QUẢN TRỊ chỉ có Vận chuyển › Điều phối xe, Xe đang chạy");
+      assert.deepEqual(nhom.map((g) => g.title), ["HẰNG NGÀY", "VẬN CHUYỂN", "THIẾT LẬP"], "Bán hàng: ba nhóm (CHÂN MENU không phải nhóm có tiêu đề ở đây)"); // menu theo việc 15/10
+      assert.deepEqual(nhom.find((g) => g.title === "VẬN CHUYỂN").items.map((i) => i.label), ["Điều phối xe", "Xe đang chạy"], "Bán hàng: nhóm VẬN CHUYỂN chỉ có Điều phối xe, Xe đang chạy (không Xe & giấy tờ / Giá & chi phí)");
+      assert.deepEqual(nhom.find((g) => g.title === "THIẾT LẬP").items.map((i) => i.label), ["Hoa hồng đối tác"], "Bán hàng: nhóm Thiết lập chỉ có Hoa hồng đối tác — không mục danh mục giấy tờ");
     } finally {
       d.close();
     }

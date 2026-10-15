@@ -37,7 +37,8 @@ try {
     await sleep(600); // để các lời gọi API của trang về (lỗi 403 nếu có sẽ hiện ra)
     return p;
   };
-  const thanhBen = (p) => p.ev(`[...document.querySelectorAll('#sidebar .sidebar-group')].map((g) => [g.querySelector('.sidebar-group-title').textContent.trim(), [...g.querySelectorAll('.sidebar-item-label')].map((e) => e.textContent.trim())])`);
+  // Menu theo việc (15/10): HẰNG NGÀY không có tiêu đề, THIẾT LẬP là nút thu gọn (đọc cả mục trong DOM dù nhóm đóng), CHÂN MENU nằm ở `.sidebar-foot` (không phải `.sidebar-group`).
+  const thanhBen = (p) => p.ev(`[...document.querySelectorAll('#sidebar .sidebar-group')].map((g) => [g.querySelector('.sidebar-group-title')?.textContent.trim() ?? (g.querySelector('.sidebar-group-toggle') ? 'THIẾT LẬP' : 'HẰNG NGÀY'), [...g.querySelectorAll('.sidebar-item-label')].map((e) => e.textContent.trim())]).concat([['CHÂN MENU', [...document.querySelectorAll('#sidebar .sidebar-foot .sidebar-item-label')].map((e) => e.textContent.trim())]])`);
   const thanhTab = (p) => p.ev(`[...document.querySelectorAll('#tabbar .tab')].map((t) => t.textContent.trim())`);
   /** Mọi khối báo lỗi đang HIỆN trên trang (`.alert` không hidden, có chữ). */
   const baoLoi = (p) => p.ev(`[...document.querySelectorAll('.alert')].filter((e) => !e.hidden && e.offsetParent !== null && e.textContent.trim()).map((e) => e.textContent.trim())`);
@@ -55,7 +56,7 @@ try {
   p = await mo(CHI_TOAN_QUYEN, "/account", DESK);
   const benTQ = await thanhBen(p);
   assert.deepEqual(benTQ, mocBen, "B. thanh bên chỉ Toàn quyền phải GIỐNG HỆT Quản trị + Toàn quyền (Toàn quyền = any ở mọi ô)");
-  const quanTriTQ = benTQ.find(([t]) => t === "QUẢN TRỊ")?.[1] ?? [];
+  const quanTriTQ = benTQ.find(([t]) => t === "THIẾT LẬP")?.[1] ?? [];
   for (const m of ["Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Nhật ký", "Gửi thông báo", "Trợ lý Hỗ trợ", "Giao diện"]) assert.ok(quanTriTQ.includes(m), `B. thiếu mục "${m}": ${JSON.stringify(quanTriTQ)}`);
   await p.waitFor("!document.getElementById('maintenance').hidden", "B. mục bảo trì hiện ở trang Tôi", 8000);
   const linkTQ = await p.ev(`[...document.querySelectorAll('main .row-link')].map((a) => a.textContent.trim())`);
@@ -63,7 +64,7 @@ try {
   assert.deepEqual(await baoLoi(p), [], "B. trang Tôi không có dòng báo lỗi");
   assert.deepEqual(p.consoleErrors, [], "B. trang Tôi không lỗi JS");
   p.close();
-  ok(`B. chỉ Toàn quyền: thanh bên giống mốc (${quanTriTQ.length} mục QUẢN TRỊ), trang Tôi có mục bảo trì + dòng Địa điểm, Gửi thông báo, Nhật ký`);
+  ok(`B. chỉ Toàn quyền: thanh bên giống mốc (${quanTriTQ.length} mục THIẾT LẬP), trang Tôi có mục bảo trì + dòng Địa điểm, Gửi thông báo, Nhật ký`);
   p = await mo(CHI_TOAN_QUYEN, "/account", MOB);
   assert.deepEqual(await thanhTab(p), mocTab, "B. thanh tab chỉ Toàn quyền phải giống mốc");
   p.close();
@@ -78,7 +79,7 @@ try {
 
   // ---- C. chỉ Nhân sự (mở SAU CÙNG)
   p = await mo(CHI_NHAN_SU, "/account", DESK);
-  assert.deepEqual(await thanhBen(p), [["QUẢN TRỊ", ["Quản lý tài khoản"]], ["TÔI", ["Của tôi", "Hỗ trợ", "Trợ giúp"]]], "C. thanh bên Nhân sự");
+  assert.deepEqual(await thanhBen(p), [["THIẾT LẬP", ["Quản lý tài khoản"]], ["CHÂN MENU", ["Của tôi", "Hỗ trợ", "Trợ giúp"]]], "C. thanh bên Nhân sự (menu theo việc 15/10)");
   assert.equal(await p.ev("document.getElementById('maintenance').hidden"), true, "C. trang Tôi KHÔNG có mục bảo trì");
   const linkNS = await p.ev(`[...document.querySelectorAll('main .row-link')].map((a) => a.textContent.trim())`);
   for (const m of ["Địa điểm", "Gửi thông báo", "Nhật ký", "Danh bạ", "Loại giấy tờ cá nhân"]) assert.ok(!linkNS.some((t) => t.startsWith(m)), `C. trang Tôi không được có dòng "${m}": ${JSON.stringify(linkNS)}`);

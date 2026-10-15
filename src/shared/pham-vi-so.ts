@@ -13,4 +13,9 @@ export const PHAM_VI_O_TRANG_CHU = {
   choXacNhan: "TOAN_CONG_TY",
   chuaPhuTrach: "TOAN_CONG_TY",
   doanhThu: "CUA_TOI",
+  // Thẻ "Việc của bạn" (máy tính, 15/10): `dieuChinh` đếm phần chờ CHÍNH người xem duyệt (`choDuyetChoToi`); `xemLai` (cảnh báo giá + giấy tờ), `chuyenHomNay`, `gopY` (hàng đợi) là cả công ty.
+  dieuChinh: "CUA_TOI",
+  xemLai: "TOAN_CONG_TY",
+  chuyenHomNay: "TOAN_CONG_TY",
+  gopY: "TOAN_CONG_TY",
 } as const satisfies Record<string, PhamVi>;
