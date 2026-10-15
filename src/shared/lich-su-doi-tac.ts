@@ -78,7 +78,7 @@ export const LICH_SU_DOI_TAC_AN = [
   "location_created", "location_updated", "maintenance_changed", "manual_service_policy_changed", "tro_ly_settings_changed", "giao_dien_changed", "client_outdated_body",
   "catalog_synced", "catalog_overridden", "catalog_override_cleared", "catalog_hidden", "catalog_unhidden", "catalog_group_created", "catalog_group_updated",
   "catalog_group_assigned", "catalog_groups_seeded", "feedback_created", "feedback_replied", "feedback_status_changed", "feedback_assigned",
-  "feedback_team_created", "feedback_team_updated", "feedback_team_member_changed", "notice_sent", "notice_revoked",
+  "feedback_claimed", "feedback_team_created", "feedback_team_updated", "feedback_team_member_changed", "notice_sent", "notice_revoked",
   "notice_acknowledged",
 ] as const satisfies readonly AuditAction[];
 

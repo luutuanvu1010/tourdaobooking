@@ -1065,6 +1065,8 @@ export interface FeedbackTicketDto {
   submitterName: string | null;
   assigneeId: string | null;
   assigneeName: string | null;
+  /** Người xử lý còn hoạt động (ADR-0119 điều 8). false ⇒ giao diện coi như «chưa ai nhận» (chưa giao, hoặc người giữ đã bị khoá). */
+  assigneeActive: boolean;
   resolvedIn: string | null;
   lastActivityAt: string;
   lastPublicReplyAt: string | null;

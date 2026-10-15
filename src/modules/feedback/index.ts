@@ -15,7 +15,7 @@ import { NHOM_KY_THUAT_ID, isLocHangDoi } from "../../shared/ve-ho-tro";
 import { mailConfig, notifyAdmins, type NotifyEvent } from "./notify";
 import { choPhepNhomGui, quyenPhieu, type Membership, type QuyenPhieu } from "./quyen";
 import {
-  badgeCounts, endMemberStatement, findByRequest, getTeam, getTicket, insertFirstMessageStatement, insertMemberStatement, insertReplyStatement, insertTeamStatement,
+  badgeCounts, claimStatement, endMemberStatement, findByRequest, getTeam, getTicket, insertEventStatement, insertFirstMessageStatement, insertMemberStatement, insertReplyStatement, insertTeamStatement,
   insertTicketStatement, listMembersAll, listMessages, listMine, listQueue, listQueueTeam, listTeamsActive, listTeamsAll, markSeen, markSeenAfterWriteStatement,
   membershipsOf, messageExists, patchTeamStatement, patchTicketStatement, setNotified, statsTeam, touchAfterReplyStatement, weeklyStats, type MessageRow, type TeamMemberRow, type TeamRow, type TicketRow,
 } from "./repository";
@@ -26,6 +26,7 @@ import {
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy yêu cầu.");
 const RATE_LIMITED = () => error(429, "rate_limited", "Bạn gửi quá nhiều trong một giờ, hãy thử lại sau.");
+const BAD_ASSIGNEE = () => error(400, "invalid_input", "Người xử lý phải là thành viên đang hoạt động của nhóm giữ phiếu (không phải người gửi).");
 const BAD_JSON = () => error(400, "invalid_input", "Nội dung gửi lên không hợp lệ.");
 const TEAM_FORBIDDEN = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống được quản lý nhóm hỗ trợ.");
 const TEAM_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy nhóm hỗ trợ.");
@@ -53,6 +54,7 @@ const toTicket = (r: TicketRow, showMail: boolean): FeedbackTicketDto => ({
   submitterName: r.submitter_name,
   assigneeId: r.assignee_id,
   assigneeName: r.assignee_name,
+  assigneeActive: r.assignee_active === 1,
   resolvedIn: r.resolved_in,
   lastActivityAt: r.last_activity_at,
   lastPublicReplyAt: r.last_public_reply_at,
@@ -283,7 +285,7 @@ export const feedbackModule: AppModule = {
       if (!q.xuLy) return error(403, "forbidden", "Bạn không thuộc nhóm này.");
       const since = new Date(Date.now() - 8 * 7 * 24 * 60 * 60 * 1000).toISOString();
       const [rows, stats] = await Promise.all([
-        listQueueTeam(env.DB, staff.id, team, status, loc, can(staff, "feedback.triage"), intParam(url.searchParams.get("limit"), 50, 1, 100), intParam(url.searchParams.get("offset"), 0, 0, 100000)),
+        listQueueTeam(env.DB, staff.id, team, status, loc, intParam(url.searchParams.get("limit"), 50, 1, 100), intParam(url.searchParams.get("offset"), 0, 0, 100000)),
         statsTeam(env.DB, since, team),
       ]);
       return json({
@@ -307,6 +309,80 @@ export const feedbackModule: AppModule = {
         tickets: rows.map((r) => toTicket(r, true)),
         stats: stats.map((s) => ({ week: s.week, kind: s.kind_code as FeedbackKind, status: s.status_code as FeedbackStatus, count: s.n })),
       } satisfies FeedbackQueueResponse);
+    }),
+
+    // ---- Xử lý theo nhóm (ADR-0119 điều 2, 3, 8): cổng `staff`, quyền trong thân bằng quyenPhieu. Khai TRƯỚC /api/feedback/:id. ---------------------------
+    // Thứ tự kiểm: id → phiếu → quyenPhieu (404 khi không đọc được, 403 khi không xử lý được) → thân. Không đọc thân trước khi biết người gọi đọc được phiếu.
+    // Nhận việc cho mình. KHÔNG kiểm trước assignee_id ở đây: 409 chỉ đến từ điều kiện của chính câu CLAIM (hai người bấm cùng lúc — một thắng).
+    route("POST", "/api/feedback/:id/claim", "staff", async ({ env, staff, params }) => {
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const t = await getTicket(env.DB, id);
+      if (!t) return NOT_FOUND();
+      const q = quyenPhieu({ who: staff, submitterId: t.submitter_id, ticketTeamId: t.team_id, memberships: await memberships(env.DB, staff) });
+      if (!q.doc) return NOT_FOUND();
+      if (!q.xuLy) return error(403, "forbidden", "Chỉ nhóm xử lý được nhận việc.");
+      const at = new Date().toISOString();
+      const eventId = crypto.randomUUID();
+      // Lô: cổng (CLAIM) → sự kiện (changes() của CLAIM) → nhật ký (có sự kiện) → mốc đã xem của người nhận (phiếu vừa đổi bởi người này).
+      const res = await env.DB.batch([
+        claimStatement(env.DB, { id, staffId: staff.id, now: at }),
+        insertEventStatement(env.DB, { id: eventId, ticketId: id, type: "CLAIMED", from: t.assignee_id, to: staff.id, actor: staff.id, now: at }),
+        auditStatement(
+          env.DB,
+          { staffId: staff.id, action: "feedback_claimed", at, targetType: "feedback", targetId: id, detail: feedbackCode(t.seq) },
+          `EXISTS (SELECT 1 FROM fbk_ticket_event WHERE id = '${eventId}')`,
+        ),
+        markSeenAfterWriteStatement(env.DB, { ticketId: id, staffId: staff.id, now: at }),
+      ]);
+      if ((res[0]?.meta.changes ?? 0) === 0) return error(409, "taken", "Vừa có người nhận việc này, hoặc phiếu đã đóng.");
+      const d = await detail(env.DB, staff, id);
+      return d ? json(d) : NOT_FOUND();
+    }),
+    // Đổi trạng thái / người xử lý theo nhóm: như tuyến cũ (bảng luật canTransition, khoá lạc quan theo trạng thái cũ) nhưng quyền theo quyenPhieu.
+    // Đổi người xử lý (kể cả gỡ, kể cả tự gán) cần giaoViecChoNguoiKhac (Trưởng nhóm, Toàn quyền); thành viên thường nhận việc cho mình qua /claim
+    // (có điều kiện chống giành — tự gán ở đây sẽ đè lên người đang giữ).
+    route("PATCH", "/api/feedback/:id/xu-ly", "staff", async ({ request, env, staff, params }) => {
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const t = await getTicket(env.DB, id);
+      if (!t) return NOT_FOUND();
+      const q = quyenPhieu({ who: staff, submitterId: t.submitter_id, ticketTeamId: t.team_id, memberships: await memberships(env.DB, staff) });
+      if (!q.doc) return NOT_FOUND();
+      if (!q.xuLy) return error(403, "forbidden", "Chỉ nhóm xử lý được đổi trạng thái phiếu.");
+      const raw = await readJson(request);
+      if (!raw) return BAD_JSON();
+      const v = validatePatchInput(raw);
+      if (!v.ok) return error(400, "invalid_input", v.message);
+      if (v.value.assignee && !q.giaoViecChoNguoiKhac) return error(403, "forbidden", "Chỉ Trưởng nhóm được giao việc; bạn hãy bấm «Nhận việc» để nhận cho mình.");
+      const from = t.status_code as FeedbackStatus;
+      const to = v.value.status ?? null;
+      if (to !== null && !canTransition(from, to)) {
+        return error(409, "bad_transition", `Không thể chuyển từ "${FEEDBACK_STATUS_NAME[from]}" sang "${FEEDBACK_STATUS_NAME[to]}".`);
+      }
+      const at = new Date().toISOString();
+      const doiNguoi = v.value.assignee !== undefined && v.value.assignee.value !== t.assignee_id;
+      // Lô: cổng (PATCH_TICKET) → sự kiện ASSIGNED khi đổi người (changes() của câu cập nhật) → nhật ký (changes() của câu ngay trước: sự kiện, hoặc câu cập nhật
+      // khi không có sự kiện — sự kiện chỉ chèn khi câu cập nhật đổi dòng nên hai cách đều nghĩa là «cổng đã qua») → mốc đã xem của người làm.
+      const res = await env.DB.batch([
+        patchTicketStatement(env.DB, { id, status: to, assignee: v.value.assignee, resolvedIn: v.value.resolvedIn, now: at, adminId: staff.id, fromStatus: from }),
+        ...(doiNguoi
+          ? [insertEventStatement(env.DB, { id: crypto.randomUUID(), ticketId: id, type: "ASSIGNED", from: t.assignee_id, to: v.value.assignee!.value, actor: staff.id, now: at })]
+          : []),
+        auditStatement(
+          env.DB,
+          { staffId: staff.id, action: to ? "feedback_status_changed" : "feedback_assigned", at, targetType: "feedback", targetId: id, detail: to ? `${feedbackCode(t.seq)}: ${from} → ${to}` : feedbackCode(t.seq) },
+          "changes() > 0",
+        ),
+        markSeenAfterWriteStatement(env.DB, { ticketId: id, staffId: staff.id, now: at }),
+      ]);
+      if ((res[0]?.meta.changes ?? 0) === 0) {
+        const now = await getTicket(env.DB, id);
+        if (now && now.status_code !== from) return error(409, "stale", "Yêu cầu vừa được người khác đổi trạng thái, hãy tải lại.");
+        return BAD_ASSIGNEE();
+      }
+      const d = await detail(env.DB, staff, id);
+      return d ? json(d) : NOT_FOUND();
     }),
 
     route("GET", "/api/feedback/:id", "staff", async ({ env, staff, params }) => {
@@ -383,7 +459,7 @@ export const feedbackModule: AppModule = {
       if ((res[0]?.meta.changes ?? 0) === 0) {
         const now = await getTicket(env.DB, id);
         if (now && now.status_code !== from) return error(409, "stale", "Yêu cầu vừa được người khác đổi trạng thái, hãy tải lại.");
-        return error(400, "invalid_input", "Người xử lý không tồn tại hoặc đã ngưng hoạt động.");
+        return BAD_ASSIGNEE();
       }
       const d = await detail(env.DB, staff, id);
       return d ? json(d) : NOT_FOUND();

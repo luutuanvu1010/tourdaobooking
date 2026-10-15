@@ -277,6 +277,8 @@ test("R6b: tài khoản bên ngoài có dòng thành viên cũ (chèn thẳng SQ
 });
 
 // ---- Việc 5b: hàng đợi nhóm, chưa đọc riêng từng người, thống kê và huy hiệu theo nhóm -----------------------------
+const nhan = (w: any, id: string, as: string) => w.call("POST", `/api/feedback/${id}/claim`, { as });
+const xuLy = (w: any, id: string, as: string, body: unknown) => w.call("PATCH", `/api/feedback/${id}/xu-ly`, { as, body });
 const hang = (w: any, as: string, q = "") => w.call("GET", `/api/feedback/queue?team=${KE_TOAN}${q}`, { as });
 const huy = async (w: any, as: string) => (await w.call("GET", "/api/feedback/badge", { as })).json.queue;
 
@@ -296,15 +298,15 @@ test("hàng đợi không chứa phiếu do chính người xem gửi (trừ khi
   const a = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
   await tao(w, KT_GUI, KE_TOAN);
   assert.equal((await hang(w, KT_GUI)).json.tickets.length, 1, "phiếu tự gửi nằm ở 'của tôi', không ở hàng đợi");
-  // Nhận việc (route claim làm ở 5c): giao qua tuyến cũ của Toàn quyền — đường thật.
-  assert.equal((await w.call("PATCH", `/api/feedback/${a}`, { as: SUPER, body: { assigneeId: KT_TV } })).status, 200);
+  assert.equal((await nhan(w, a, KT_TV)).status, 200, "nhận việc qua route claim — đường thật");
   assert.equal((await hang(w, KT_TV, "&loc=MINE")).json.tickets.length, 1);
   assert.equal((await hang(w, KT_TN, "&loc=MINE")).json.tickets.length, 0);
   assert.equal((await hang(w, KT_TN, "&loc=UNASSIGNED")).json.tickets.length, 1);
   // Người giữ phiếu bị khoá tài khoản ⇒ phiếu coi như chưa ai nhận.
   w.sqlite.exec(`UPDATE staff SET active = 0 WHERE id = '${KT_TV}'`);
   assert.equal((await hang(w, KT_TN, "&loc=UNASSIGNED")).json.tickets.length, 2);
-  assert.equal((await hang(w, KT_TN, "&status=NEW")).json.tickets.length, 2);
+  assert.equal((await hang(w, KT_TN, "&status=NEW")).json.tickets.length, 1, "nhận việc đưa phiếu Mới sang Đã tiếp nhận");
+  assert.equal((await hang(w, KT_TN, "&status=ACK")).json.tickets.length, 1);
   assert.equal((await hang(w, KT_TN, "&status=DONE")).json.tickets.length, 0);
 });
 
@@ -366,4 +368,123 @@ test("R6b: tài khoản bên ngoài có dòng thành viên chèn thẳng SQL: /q
   await tao(w, SALES, KE_TOAN);
   assert.equal((await hang(w, PARTNER)).status, 403);
   assert.equal(await huy(w, PARTNER), 0);
+});
+
+test("huy hiệu không đếm phiếu do chính thành viên gửi vào nhóm mình (chỉ đếm phiếu của người khác)", async () => {
+  const w = setup();
+  await tao(w, KT_GUI, KE_TOAN);
+  assert.equal(await huy(w, KT_GUI), 0, "phiếu tự gửi không vào huy hiệu hàng đợi");
+  assert.equal(await huy(w, KT_TV), 1, "thành viên khác vẫn đếm phiếu đó");
+  await tao(w, SALES, KE_TOAN);
+  assert.equal(await huy(w, KT_GUI), 1, "phiếu của người khác thì đếm");
+  assert.equal(await huy(w, KT_TV), 2);
+});
+
+// ---- Việc 5c: nhận việc, giao việc, đổi trạng thái theo nhóm --------------------------------------------------------
+test("nhận việc: thành viên nhận được, phiếu Mới ⇒ Đã tiếp nhận; người ngoài nhóm và người gửi ⇒ 404/403", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  assert.equal((await nhan(w, id, NS_TV)).status, 404);
+  assert.equal((await nhan(w, id, SALES)).status, 403, "người gửi đọc được nhưng không xử lý");
+  const r = await nhan(w, id, KT_TV);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.ticket.assigneeId, KT_TV);
+  assert.equal(r.json.ticket.status, "ACK");
+  assert.equal(r.json.ticket.assigneeActive, true);
+  // Sự kiện và nhật ký: đúng một dòng mỗi thứ; nhật ký chỉ mã phiếu.
+  const ev = w.q(`SELECT type, from_value, to_value, actor_id FROM fbk_ticket_event WHERE ticket_id = '${id}'`).map((e: any) => ({ ...e }));
+  assert.deepEqual(ev, [{ type: "CLAIMED", from_value: null, to_value: KT_TV, actor_id: KT_TV }]);
+  const nk = w.q(`SELECT detail FROM audit_log WHERE action = 'feedback_claimed' AND target_id = '${id}'`);
+  assert.equal(nk.length, 1);
+  assert.match(nk[0].detail, /^YC-\d+$/);
+  assert.equal(await huy(w, KT_TV), 0, "người nhận việc coi như đã xem");
+  // Đã có người giữ (còn hoạt động) ⇒ 409, không ghi thêm gì.
+  const lai = await nhan(w, id, KT_TN);
+  assert.equal(lai.status, 409, lai.text);
+  assert.equal(lai.json.error.code, "taken");
+  assert.equal(w.q(`SELECT count(*) AS n FROM fbk_ticket_event WHERE ticket_id = '${id}'`)[0].n, 1);
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'feedback_claimed'")[0].n, 1);
+});
+
+test("người gửi tự là thành viên nhóm nhận: không nhận việc được phiếu của mình (403)", async () => {
+  const w = setup();
+  const id = (await tao(w, KT_GUI, KE_TOAN)).json.ticket.id;
+  assert.equal((await nhan(w, id, KT_GUI)).status, 403);
+  assert.equal((await xuLy(w, id, KT_GUI, { status: "ACK" })).status, 403);
+});
+
+test("hai người nhận việc cùng lúc: đúng một người thắng, người kia 409", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  const [a, b] = await Promise.all([nhan(w, id, KT_TV), nhan(w, id, KT_TN)]);
+  assert.deepEqual([a.status, b.status].sort(), [200, 409], `${a.text} | ${b.text}`);
+  assert.equal(w.q(`SELECT count(*) AS n FROM fbk_ticket_event WHERE ticket_id = '${id}' AND type = 'CLAIMED'`)[0].n, 1);
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'feedback_claimed'")[0].n, 1);
+});
+
+test("phiếu do người đã khoá giữ: coi như chưa ai nhận, người khác nhận được", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  await nhan(w, id, KT_TV);
+  w.sqlite.exec(`UPDATE staff SET active = 0 WHERE id = '${KT_TV}'`);
+  assert.equal((await d(w, id, KT_TN)).json.ticket.assigneeActive, false, "giao diện coi như chưa ai nhận");
+  const r = await nhan(w, id, KT_TN);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.ticket.assigneeId, KT_TN);
+  assert.equal(r.json.ticket.status, "ACK", "đã ở Đã tiếp nhận thì giữ nguyên");
+  const ev = w.q(`SELECT from_value, to_value FROM fbk_ticket_event WHERE ticket_id = '${id}' ORDER BY at, rowid`);
+  assert.deepEqual(ev.map((e: any) => [e.from_value, e.to_value]), [[null, KT_TV], [KT_TV, KT_TN]]);
+});
+
+test("nhận việc phiếu đã đóng ⇒ 409", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  w.sqlite.exec(`UPDATE fbk_ticket SET status_code = 'DONE' WHERE id = '${id}'`);
+  assert.equal((await nhan(w, id, KT_TV)).status, 409);
+});
+
+test("giao việc cho người khác: chỉ Trưởng nhóm/Toàn quyền, người nhận phải là thành viên nhóm", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  assert.equal((await xuLy(w, id, KT_TV, { assigneeId: KT_TN })).status, 403, "thành viên thường không giao người khác");
+  assert.equal((await xuLy(w, id, KT_TN, { assigneeId: NS_TV })).status, 400, "người nhận không thuộc nhóm");
+  const ok = await xuLy(w, id, KT_TN, { assigneeId: KT_TV });
+  assert.equal(ok.status, 200, ok.text);
+  assert.equal(ok.json.ticket.assigneeId, KT_TV);
+  const ev = w.q(`SELECT type, from_value, to_value, actor_id FROM fbk_ticket_event WHERE ticket_id = '${id}'`).map((e: any) => ({ ...e }));
+  assert.deepEqual(ev, [{ type: "ASSIGNED", from_value: null, to_value: KT_TV, actor_id: KT_TN }]);
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'feedback_assigned'")[0].n, 1);
+});
+
+test("giao việc: không giao cho người đã khoá, cho người gửi phiếu, hay thành viên thường giành phiếu người khác đang giữ", async () => {
+  const w = setup();
+  const id = (await tao(w, KT_GUI, KE_TOAN)).json.ticket.id;
+  assert.equal((await xuLy(w, id, KT_TN, { assigneeId: KT_GUI })).status, 400, "người gửi không xử lý phiếu của chính mình");
+  w.sqlite.exec(`UPDATE staff SET active = 0 WHERE id = '${KT_TV}'`);
+  assert.equal((await xuLy(w, id, KT_TN, { assigneeId: KT_TV })).status, 400, "người đã khoá");
+  w.sqlite.exec(`UPDATE staff SET active = 1 WHERE id = '${KT_TV}'`);
+  assert.equal((await nhan(w, id, KT_TN)).status, 200);
+  assert.equal((await xuLy(w, id, KT_TV, { assigneeId: KT_TV })).status, 403, "thành viên thường không tự gán đè lên người đang giữ");
+  assert.equal((await xuLy(w, id, KT_TV, { assigneeId: null })).status, 403, "thành viên thường không gỡ người giữ");
+  // Toàn quyền qua tuyến cũ cũng chỉ giao được cho thành viên nhóm giữ phiếu (câu PATCH_TICKET dùng chung).
+  assert.equal((await w.call("PATCH", `/api/feedback/${id}`, { as: SUPER, body: { assigneeId: NS_TV } })).status, 400);
+  assert.equal((await w.call("PATCH", `/api/feedback/${id}`, { as: SUPER, body: { assigneeId: KT_TV } })).status, 200);
+  assert.equal(w.q(`SELECT assignee_id FROM fbk_ticket WHERE id = '${id}'`)[0].assignee_id, KT_TV);
+  assert.equal(w.q(`SELECT count(*) AS n FROM fbk_ticket_event WHERE ticket_id = '${id}'`)[0].n, 1, "tuyến cũ không ghi sự kiện (giữ nguyên)");
+});
+
+test("đổi trạng thái theo bảng luật hiện có; thành viên nhóm khác 404; người gửi 403", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  assert.equal((await xuLy(w, id, KT_TV, { status: "DONE" })).status, 409, "Mới ⇒ Xong không hợp lệ");
+  assert.equal((await xuLy(w, id, KT_TV, { status: "ACK" })).status, 200);
+  assert.equal((await xuLy(w, id, NS_TV, { status: "ACK" })).status, 404);
+  assert.equal((await xuLy(w, id, SALES, { status: "IN_PROGRESS" })).status, 403);
+  assert.equal((await xuLy(w, id, KT_TV, {})).status, 400, "không có gì để đổi");
+  const r = await xuLy(w, id, KT_TV, { status: "IN_PROGRESS" });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.ticket.status, "IN_PROGRESS");
+  assert.deepEqual(w.q("SELECT detail FROM audit_log WHERE action = 'feedback_status_changed' ORDER BY rowid").map((x: any) => x.detail.replace(/^YC-\d+: /, "")), ["NEW → ACK", "ACK → IN_PROGRESS"]);
+  assert.equal(await huy(w, KT_TV), 0, "người đổi trạng thái coi như đã xem");
+  assert.equal((await xuLy(w, id, SUPER, { status: "DONE", resolvedIn: "20261015" })).status, 200, "Toàn quyền dùng tuyến mới được");
 });

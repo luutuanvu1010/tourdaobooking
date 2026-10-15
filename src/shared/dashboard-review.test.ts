@@ -43,6 +43,7 @@ function ticket(code: string, status: FeedbackTicketDto["status"], kindName = "B
     submitterName: "Ai đó",
     assigneeId: null,
     assigneeName: null,
+    assigneeActive: false,
     resolvedIn: null,
     lastActivityAt: "2026-09-23T00:00:00.000Z",
     lastPublicReplyAt: null,

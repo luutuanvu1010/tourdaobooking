@@ -24,6 +24,8 @@ export interface TicketRow {
   created_at: string;
   updated_at: string;
   unread: number;
+  /** 1 = người xử lý còn hoạt động; 0 khi chưa ai giữ hoặc người giữ đã khoá (ADR-0119 điều 8: coi như chưa ai nhận). */
+  assignee_active: number;
   team_id: string;
   team_name: string;
   team_sensitive: number;
@@ -39,7 +41,7 @@ export interface MessageRow {
 }
 
 const COLS = `t.id, t.seq, t.kind_code, k.name AS kind_name, t.status_code, st.name AS status_name, t.title, t.context, t.submitter_id,
-  s.label AS submitter_name, t.assignee_id, a.label AS assignee_name, t.resolved_in, t.last_activity_at, t.last_public_reply_at, t.notified_at,
+  s.label AS submitter_name, t.assignee_id, a.label AS assignee_name, COALESCE(a.active, 0) AS assignee_active, t.resolved_in, t.last_activity_at, t.last_public_reply_at, t.notified_at,
   t.created_at, t.updated_at, t.team_id, tm.name AS team_name, tm.sensitive AS team_sensitive`;
 const FROM = `FROM fbk_ticket t JOIN fbk_kind k ON k.code = t.kind_code JOIN fbk_status st ON st.code = t.status_code JOIN fbk_team tm ON tm.id = t.team_id
   LEFT JOIN v_stf_staff_label s ON s.id = t.submitter_id LEFT JOIN v_stf_staff_label a ON a.id = t.assignee_id`;
@@ -63,7 +65,7 @@ const MESSAGE_EXISTS = defineSql("feedback", "message_exists", `SELECT 1 AS ok F
 //  3. BADGE: đếm theo người xem (mine lọc `submitter_id = ?1`; queue = phiếu chưa đọc ở nhóm người xem thuộc, hoặc mọi nhóm khi ?2 = 1 tức Toàn quyền;
 //     tài khoản bên ngoài: route không gọi câu này cho phần queue — index.ts trả 0).
 //  4. GET / messages theo id (GET, FIND_BY_REQUEST, LIST_MESSAGES): không lọc chủ trong SQL; index.ts gọi quyenPhieu() trước khi trả (`doc`), và LIST_MESSAGES lọc ghi chú nội bộ theo `noiBo` của quyenPhieu (nhóm đang giữ phiếu).
-//  5. Các câu ghi (TOUCH_AFTER_REPLY, PATCH_TICKET, markSeen): chỉ chạy sau quyenPhieu()/quyền admin ở route.
+//  5. Các câu ghi (TOUCH_AFTER_REPLY, PATCH_TICKET, CLAIM, INSERT_EVENT, markSeen): chỉ chạy sau quyenPhieu()/quyền admin ở route.
 const LIST_MINE = defineSql(
   "feedback",
   "list_mine",
@@ -86,7 +88,7 @@ const LIST_MESSAGES = defineSql(
    WHERE m.ticket_id = ?1 AND (m.internal = 0 OR ?2 = 'all' OR (?2 = 'team' AND m.team_id = ?3)) ORDER BY m.created_at, m.rowid`,
 );
 // Hàng đợi MỘT nhóm (route GET /api/feedback/queue, sau quyenPhieu). Không chứa phiếu do chính người xem gửi (nằm ở "của tôi").
-// ?1 người xem, ?2 nhóm, ?3 trạng thái|NULL, ?4 loc (ALL|MINE|UNASSIGNED), ?5 là Toàn quyền (1/0, dự phòng), ?6 limit, ?7 offset.
+// ?1 người xem, ?2 nhóm, ?3 trạng thái|NULL, ?4 loc (ALL|MINE|UNASSIGNED), ?5 limit, ?6 offset.
 // UNASSIGNED gồm cả phiếu người giữ đã bị khoá tài khoản (coi như chưa ai nhận — ADR-0119 điều 8).
 const LIST_QUEUE_TEAM = defineSql(
   "feedback",
@@ -95,8 +97,7 @@ const LIST_QUEUE_TEAM = defineSql(
    WHERE t.team_id = ?2 AND (?3 IS NULL OR t.status_code = ?3) AND t.submitter_id <> ?1
      AND (?4 = 'ALL' OR (?4 = 'MINE' AND t.assignee_id = ?1)
           OR (?4 = 'UNASSIGNED' AND (t.assignee_id IS NULL OR NOT EXISTS (SELECT 1 FROM v_stf_staff_label x WHERE x.id = t.assignee_id AND x.active = 1))))
-     AND ?5 IN (0, 1)
-   ORDER BY t.last_activity_at DESC LIMIT ?6 OFFSET ?7`,
+   ORDER BY t.last_activity_at DESC LIMIT ?5 OFFSET ?6`,
 );
 // ?1 người xem, ?2 Toàn quyền (1/0): "queue" = phiếu CHƯA ĐỌC ở nhóm tôi đang thuộc (Toàn quyền: mọi nhóm), trừ phiếu tôi gửi.
 const BADGE = defineSql(
@@ -153,8 +154,8 @@ export const listQueue = async (db: D1Database, staffId: string, status: string 
 export const listMessages = async (db: D1Database, ticketId: string, noiBo: "none" | "team" | "all", teamId: string): Promise<MessageRow[]> =>
   (await db.prepare(LIST_MESSAGES).bind(ticketId, noiBo, teamId).all<MessageRow>()).results;
 export const listQueueTeam = async (
-  db: D1Database, staffId: string, teamId: string, status: string | null, loc: string, isSuper: boolean, limit: number, offset: number,
-): Promise<TicketRow[]> => (await db.prepare(LIST_QUEUE_TEAM).bind(staffId, teamId, status, loc, isSuper ? 1 : 0, limit, offset).all<TicketRow>()).results;
+  db: D1Database, staffId: string, teamId: string, status: string | null, loc: string, limit: number, offset: number,
+): Promise<TicketRow[]> => (await db.prepare(LIST_QUEUE_TEAM).bind(staffId, teamId, status, loc, limit, offset).all<TicketRow>()).results;
 /** Huy hiệu: `mine` phiếu của tôi có phản hồi mới; `queue` phiếu chưa đọc (riêng tôi) ở nhóm tôi thuộc — Toàn quyền: mọi nhóm. */
 export async function badgeCounts(db: D1Database, staffId: string, isSuper: boolean): Promise<{ mine: number; queue: number }> {
   const r = await db.prepare(BADGE).bind(staffId, isSuper ? 1 : 0).first<{ mine: number; queue: number }>();
@@ -215,8 +216,10 @@ const TOUCH_AFTER_REPLY = defineSql(
      updated_at = ?3, updated_by = ?5
    WHERE id = ?1 AND EXISTS (SELECT 1 FROM fbk_message WHERE id = ?2 AND ticket_id = ?1)`,
 );
-// Admin đổi trạng thái/người xử lý. ?1 id, ?2 trạng thái mới hoặc NULL, ?3 có đổi người xử lý (0/1), ?4 người xử lý mới, ?5 có đổi resolved_in (0/1),
-// ?6 resolved_in mới, ?7 bây giờ, ?8 admin, ?9 trạng thái CŨ (khoá lạc quan: đã khác → 0 dòng đổi). Người xử lý mới phải là tài khoản đang hoạt động.
+// Đổi trạng thái/người xử lý (tuyến cũ PATCH /api/feedback/:id của Toàn quyền VÀ tuyến PATCH …/xu-ly theo quyenPhieu dùng chung câu này).
+// ?1 id, ?2 trạng thái mới hoặc NULL, ?3 có đổi người xử lý (0/1), ?4 người xử lý mới, ?5 có đổi resolved_in (0/1),
+// ?6 resolved_in mới, ?7 bây giờ, ?8 người làm, ?9 trạng thái CŨ (khoá lạc quan: đã khác → 0 dòng đổi).
+// Người xử lý mới (ADR-0119 điều 2) phải là thành viên ĐANG hiệu lực, tài khoản còn hoạt động, của nhóm ĐANG giữ phiếu, và không phải người gửi phiếu.
 // Mốc "đã xem" riêng của người làm ghi bằng markSeenAfterWriteStatement CÙNG lô, sau câu này.
 const PATCH_TICKET = defineSql(
   "feedback",
@@ -229,7 +232,30 @@ const PATCH_TICKET = defineSql(
      last_public_reply_at = CASE WHEN ?2 IS NULL THEN last_public_reply_at ELSE ?7 END,
      updated_at = ?7, updated_by = ?8
    WHERE id = ?1 AND status_code = ?9
-     AND (?3 = 0 OR ?4 IS NULL OR EXISTS (SELECT 1 FROM v_stf_staff_label WHERE id = ?4 AND active = 1))`,
+     AND (?3 = 0 OR ?4 IS NULL OR (?4 <> fbk_ticket.submitter_id AND EXISTS (SELECT 1 FROM fbk_team_member m JOIN v_stf_staff_label s ON s.id = m.staff_id
+       WHERE m.team_id = fbk_ticket.team_id AND m.staff_id = ?4 AND m.valid_to_at IS NULL AND s.active = 1)))`,
+);
+// Nhận việc (ADR-0119 điều 8): chỉ khi chưa ai giữ (hoặc người giữ không còn hoạt động) và phiếu chưa đóng — hai người bấm cùng lúc: D1 tuần tự hoá ghi,
+// câu sau thấy assignee_id đã có (còn hoạt động) ⇒ 0 dòng ⇒ route trả 409. Phiếu Mới ⇒ Đã tiếp nhận (báo người gửi như đổi trạng thái).
+// ?1 phiếu, ?2 người nhận, ?3 bây giờ. updated_at/updated_by = mốc của lệnh (cổng cho markSeenAfterWriteStatement cùng lô).
+const CLAIM = defineSql(
+  "feedback",
+  "claim",
+  `UPDATE fbk_ticket SET
+     assignee_id = ?2,
+     last_public_reply_at = CASE WHEN status_code = 'NEW' THEN ?3 ELSE last_public_reply_at END,
+     status_code = CASE WHEN status_code = 'NEW' THEN 'ACK' ELSE status_code END,
+     last_activity_at = ?3, updated_at = ?3, updated_by = ?2
+   WHERE id = ?1 AND status_code NOT IN ('DONE', 'DECLINED')
+     AND (assignee_id IS NULL OR NOT EXISTS (SELECT 1 FROM v_stf_staff_label x WHERE x.id = fbk_ticket.assignee_id AND x.active = 1))`,
+);
+// Sự kiện phiếu (chỉ thêm). Cổng `changes() > 0`: PHẢI đứng NGAY SAU câu cập nhật phiếu (CLAIM / PATCH_TICKET) và TRƯỚC auditStatement — changes() đổi sau mỗi câu.
+// ?1 id, ?2 phiếu, ?3 loại (TEAM_CHANGED|ASSIGNED|CLAIMED), ?4 giá trị cũ, ?5 giá trị mới, ?6 người làm, ?7 bây giờ.
+const INSERT_EVENT = defineSql(
+  "feedback",
+  "insert_event",
+  `INSERT INTO fbk_ticket_event (id, ticket_id, type, from_value, to_value, actor_id, at, created_by, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?6, ?6 WHERE changes() > 0`,
 );
 // Đánh dấu đã xem khi MỞ chi tiết: mốc riêng của người xem (fbk_ticket_read, upsert) và, nếu là người gửi, submitter_seen_at. Không đổi updated_at của phiếu.
 // ?1 phiếu, ?2 người xem, ?3 bây giờ. updated_at của dòng đọc đặt = seen_at (cột có mặc định giờ máy nên không tự đổi khi ON CONFLICT).
@@ -270,6 +296,12 @@ export const patchTicketStatement = (
   db
     .prepare(PATCH_TICKET)
     .bind(a.id, a.status, a.assignee ? 1 : 0, a.assignee?.value ?? null, a.resolvedIn ? 1 : 0, a.resolvedIn?.value ?? null, a.now, a.adminId, a.fromStatus);
+export const claimStatement = (db: D1Database, a: { id: string; staffId: string; now: string }) => db.prepare(CLAIM).bind(a.id, a.staffId, a.now);
+export type TicketEventType = "TEAM_CHANGED" | "ASSIGNED" | "CLAIMED";
+export const insertEventStatement = (
+  db: D1Database,
+  a: { id: string; ticketId: string; type: TicketEventType; from: string | null; to: string | null; actor: string; now: string },
+) => db.prepare(INSERT_EVENT).bind(a.id, a.ticketId, a.type, a.from, a.to, a.actor, a.now);
 /** Mở chi tiết (route đã kiểm quyền đọc): ghi mốc riêng của người xem; người gửi thì thêm submitter_seen_at — một lô. Không gọi ở tuyến làm mới danh sách. */
 export const markSeen = async (db: D1Database, ticketId: string, viewerId: string, asSubmitter: boolean, now: string): Promise<void> => {
   const user = db.prepare(MARK_SEEN_USER).bind(ticketId, viewerId, now);
