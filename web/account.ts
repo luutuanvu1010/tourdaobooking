@@ -495,7 +495,7 @@ async function renderMfa(): Promise<void> {
     !totp && m.required
       ? h(
           "p",
-          { class: "alert warn", id: "mfa-required" },
+          { class: "mfa-note", id: "mfa-required" }, // lời nhắc, không phải lỗi: không dùng .alert (các kịch bản coi .alert đang hiện là "dòng báo lỗi")
           m.graceUntil
             ? `Tài khoản của bạn phải bật bảo mật hai lớp. Hạn bật: ${vnDateTimeText(m.graceUntil)}. Quá hạn mà chưa bật thì không đăng nhập bằng PIN được nữa.`
             : "Tài khoản của bạn phải bật bảo mật hai lớp và đã quá hạn: lần đăng nhập bằng PIN sau sẽ bị chặn. Bật ngay bây giờ.",
@@ -554,7 +554,7 @@ async function renderMfa(): Promise<void> {
     replaceChildren(
       vung,
       h("p", { id: "mfa-recovery-left" }, `Mã dự phòng: còn ${m.recoveryLeft} mã chưa dùng.`),
-      m.recoveryLeft <= 3 && h("p", { class: "alert warn" }, "Sắp hết mã dự phòng — bấm “Tạo bộ mới”."),
+      m.recoveryLeft <= 3 && h("p", { class: "mfa-note" }, "Sắp hết mã dự phòng — bấm “Tạo bộ mới”."),
       h(
         "div",
         { class: "actions" },

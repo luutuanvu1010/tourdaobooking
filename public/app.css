@@ -3422,6 +3422,7 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .mfa-key { margin: 0 0 var(--s2); }
 .mfa-key code, .mfa-codes code { font-family: var(--font-mono); font-size: var(--fs-step-5); font-weight: var(--fw-bold); color: var(--c-text); overflow-wrap: anywhere; }
 .mfa-code { font-family: var(--font-mono); }
+.mfa-note { padding: var(--s3) var(--s4); margin: 0 0 var(--s3); color: var(--c-sand-text); background: var(--c-sand-soft); border: 1px solid var(--c-sand-border); border-radius: var(--radius-sm); } /* như .alert.warn nhưng là lời nhắc, không phải lỗi */
 .mfa-warn { margin: 0 0 var(--s2); font-weight: var(--fw-bold); color: var(--c-danger-text); }
 .mfa-codes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2) var(--s4); margin: var(--s2) 0 var(--s3); padding-left: var(--s5); }
 .mfa-action { margin-top: var(--s3); }
