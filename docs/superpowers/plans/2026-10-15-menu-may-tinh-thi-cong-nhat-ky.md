@@ -25,3 +25,10 @@
 - M-1: `web/giay-to-sap-het-han.ts` tìm huy hiệu ở `#sidebar a[href="/xe"] .sidebar-item-badge` (mục gộp "Xe & giấy tờ", đúng DOM của `sidebarItem` ở `web/shell.ts`) thay vì liên kết riêng không còn tồn tại. Bài tĩnh `src/huy-hieu-sap-het-han-dong-bo.test.ts` đọc href mục gộp từ THANH_BEN. Cách cập nhật giữ nguyên: đổi chữ số, hoặc gỡ phần tử khi đếm về 0.
 - Việc cho Task 7: các kịch bản Chrome (`xe-smoke.mjs`, `sap-het-han-smoke.mjs`, `lich-xe-ban-smoke.mjs`, `trang-chu-smoke.mjs`) CHƯA chạy ở Task 4 (cần Chrome + mạng); cần rà các bước đếm mục thanh bên theo bảng menu mới và thêm kiểm dải `nav.dai-anh-em`.
 - Gói `web/orders.ts` vẫn dư 3 byte (95997/96000), không đổi.
+
+## Task 5 — Luật chọn thẻ "Việc của bạn" (hàm thuần)
+
+- Tệp mới `src/shared/viec-cua-ban.ts` (+ bài `viec-cua-ban.test.ts`): `viecCuaBan(who, nguon)` và `nguonCanTai(who)`. Chỉ `web/home.ts` (Task 6) và bài kiểm được import; gói `web/orders.ts` vẫn dư 3 byte (95997/96000), tệp mới không nằm trong gói.
+- Đối chiếu bản đồ quyền thật: Kế toán GIỮ `ledger.adjust.approve` (any), nên có thẻ `dieuChinh`; Kế toán không có `order.create`/`admin.manage` nên không có `chuaPhuTrach`. Quản trị và Toàn quyền cũng giữ `dieuChinh`; chỉ Toàn quyền giữ `feedback.triage`.
+- Quyết định thẻ cọc: `grep -rn "ledger/coc" web/` không có kết quả, nên BỎ khoá `cocCanChi`; Kế toán thành bốn thẻ `dieuChinh · nhap · conThieu · chuyenHomNay`. Nợ ghi ở `docs/BACKLOG.md` mục 30.
+- Điều kiện "cả bốn vai" dùng ô `order.view` (chỉ ô `any` tính khi không có ngữ cảnh). Tiền định dạng bằng `vndShort` (`src/shared/money.ts`).
