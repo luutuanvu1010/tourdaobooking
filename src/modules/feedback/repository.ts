@@ -58,8 +58,8 @@ const MESSAGE_EXISTS = defineSql("feedback", "message_exists", `SELECT 1 AS ok F
 //  1. LIST_MINE: lọc `t.submitter_id = ?1` (người thường chỉ thấy yêu cầu của mình).
 //  2. LIST_QUEUE: KHÔNG lọc chủ; dựa vào route GET /api/feedback khai `access: "admin"` trong index.ts (kèm điều kiện tenant khi có).
 //  3. BADGE: đếm theo người xem (mine lọc `submitter_id = ?1`; queue chỉ đếm khi ?2 = 1, tức admin).
-//  4. GET / messages theo id (GET, FIND_BY_REQUEST, LIST_MESSAGES): không lọc trong SQL; index.ts gọi canRead() trước khi trả (và ẩn tin nội bộ với người không phải admin).
-//  5. Các câu ghi (TOUCH_AFTER_REPLY, PATCH_TICKET, markSeen): chỉ chạy sau canRead()/quyền admin ở route.
+//  4. GET / messages theo id (GET, FIND_BY_REQUEST, LIST_MESSAGES): không lọc chủ trong SQL; index.ts gọi quyenPhieu() trước khi trả (`doc`), và LIST_MESSAGES lọc ghi chú nội bộ theo `noiBo` của quyenPhieu (nhóm đang giữ phiếu).
+//  5. Các câu ghi (TOUCH_AFTER_REPLY, PATCH_TICKET, markSeen): chỉ chạy sau quyenPhieu()/quyền admin ở route.
 const LIST_MINE = defineSql(
   "feedback",
   "list_mine",
@@ -79,7 +79,7 @@ const LIST_MESSAGES = defineSql(
   "list_messages",
   `SELECT m.id, m.author_id, s.label AS author_name, m.body, m.internal, m.created_at
    FROM fbk_message m LEFT JOIN v_stf_staff_label s ON s.id = m.author_id
-   WHERE m.ticket_id = ?1 AND (?2 = 1 OR m.internal = 0) ORDER BY m.created_at, m.rowid`,
+   WHERE m.ticket_id = ?1 AND (m.internal = 0 OR ?2 = 'all' OR (?2 = 'team' AND m.team_id = ?3)) ORDER BY m.created_at, m.rowid`,
 );
 // ?1 = id người xem, ?2 = 1 nếu là admin.
 const BADGE = defineSql(
@@ -124,8 +124,9 @@ export const listMine = async (db: D1Database, staffId: string, limit: number, o
   (await db.prepare(LIST_MINE).bind(staffId, limit, offset).all<TicketRow>()).results;
 export const listQueue = async (db: D1Database, staffId: string, status: string | null, kind: string | null, limit: number, offset: number): Promise<TicketRow[]> =>
   (await db.prepare(LIST_QUEUE).bind(staffId, status, kind, limit, offset).all<TicketRow>()).results;
-export const listMessages = async (db: D1Database, ticketId: string, includeInternal: boolean): Promise<MessageRow[]> =>
-  (await db.prepare(LIST_MESSAGES).bind(ticketId, includeInternal ? 1 : 0).all<MessageRow>()).results;
+/** Ghi chú nội bộ theo `noiBo` của quyenPhieu: "none" không có; "team" chỉ ghi chú do nhóm `teamId` (nhóm đang giữ phiếu) viết; "all" mọi ghi chú (Toàn quyền). */
+export const listMessages = async (db: D1Database, ticketId: string, noiBo: "none" | "team" | "all", teamId: string): Promise<MessageRow[]> =>
+  (await db.prepare(LIST_MESSAGES).bind(ticketId, noiBo, teamId).all<MessageRow>()).results;
 export async function badgeCounts(db: D1Database, staffId: string, isAdmin: boolean): Promise<{ mine: number; queue: number }> {
   const r = await db.prepare(BADGE).bind(staffId, isAdmin ? 1 : 0).first<{ mine: number; queue: number }>();
   return { mine: r?.mine ?? 0, queue: r?.queue ?? 0 };

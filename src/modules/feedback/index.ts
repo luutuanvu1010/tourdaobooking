@@ -13,7 +13,7 @@ import { can, isExternalPermission, type PermissionHolder } from "../../shared/p
 import { route, type AppModule } from "../../shared/router";
 import { NHOM_KY_THUAT_ID } from "../../shared/ve-ho-tro";
 import { mailConfig, notifyAdmins, type NotifyEvent } from "./notify";
-import { choPhepNhomGui } from "./quyen";
+import { choPhepNhomGui, quyenPhieu, type Membership, type QuyenPhieu } from "./quyen";
 import {
   badgeCounts, endMemberStatement, findByRequest, getTeam, getTicket, insertFirstMessageStatement, insertMemberStatement, insertReplyStatement, insertTeamStatement,
   insertTicketStatement, listMembersAll, listMessages, listMine, listQueue, listTeamsActive, listTeamsAll, markSeen, membershipsOf, messageExists, patchTeamStatement,
@@ -73,14 +73,37 @@ const toMessage = (m: MessageRow, viewerId: string): FeedbackMessageDto => ({
   mine: m.author_id === viewerId,
 });
 
-/** Ai xem được yêu cầu: chủ (feedback.view ô `own`) hoặc admin (ô `any`). Người khác nhận 404, không lộ sự tồn tại. */
+/**
+ * Quyền đọc kiểu cũ (chủ phiếu ô `own`, Toàn quyền ô `any`). Từ Việc 5a các route theo id dùng quyenPhieu; giữ lại cho tới khi gỡ tuyến cũ
+ * (tên còn trong GUARDS của src/route-write-guard.test.ts). Đừng dùng cho route mới.
+ */
 const canRead = (who: PermissionHolder, submitterId: string): boolean => can(who, "feedback.view", { ownerId: submitterId });
 
+/**
+ * Tư cách thành viên nhóm của người gọi cho MỘT request — mọi chỗ nạp tư cách đi qua ĐÂY (ruling R6b).
+ * Tài khoản có mã quyền bên ngoài (kể cả tài khoản lai) ⇒ luôn rỗng, dù dữ liệu còn dòng thành viên cũ (quyenPhieu cũng bỏ qua — lưới thứ hai).
+ */
+async function memberships(db: D1Database, who: PermissionHolder): Promise<Membership[]> {
+  return who.permissions.some(isExternalPermission) ? [] : membershipsOf(db, who.id);
+}
+
+/** Nạp tư cách rồi quyết quyền trên một phiếu. CHỈ dùng trong detail(); route gọi thẳng quyenPhieu (hàng rào route-write-guard đọc thân route). */
+async function quyenCuaToi(db: D1Database, who: PermissionHolder, t: TicketRow): Promise<QuyenPhieu> {
+  return quyenPhieu({ who, submitterId: t.submitter_id, ticketTeamId: t.team_id, memberships: await memberships(db, who) });
+}
+
+/** Chi tiết theo quyền của người xem: không đọc được ⇒ null (route trả 404, không lộ sự tồn tại); ghi chú nội bộ lọc theo `noiBo`. */
 async function detail(db: D1Database, who: PermissionHolder, id: string): Promise<FeedbackDetailResponse | null> {
   const t = await getTicket(db, id);
-  if (!t || !canRead(who, t.submitter_id)) return null;
-  const triage = can(who, "feedback.triage");
-  return { ticket: toTicket(t, triage), messages: (await listMessages(db, id, triage)).map((m) => toMessage(m, who.id)), canTriage: triage };
+  if (!t) return null;
+  const q = await quyenCuaToi(db, who, t);
+  if (!q.doc) return null;
+  return {
+    ticket: toTicket(t, can(who, "feedback.triage")),
+    messages: (await listMessages(db, id, q.noiBo, t.team_id)).map((m) => toMessage(m, who.id)),
+    canTriage: q.xuLy,
+    perms: { xuLy: q.xuLy, giaoViec: q.giaoViecChoNguoiKhac, chuyenNhom: q.chuyenNhom },
+  };
 }
 
 /** Email báo admin sau khi D1 đã ghi; lỗi không làm hỏng yêu cầu (xem notify.ts). */
@@ -132,7 +155,7 @@ export const feedbackModule: AppModule = {
     // Tuyến TĨNH khai trước tuyến có :id để "mine"/"badge"/"teams" không bị hiểu là id.
     // Danh sách nhóm để chọn khi gửi (bên ngoài chỉ thấy Kỹ thuật — ADR-0119 điều 6) + tư cách thành viên của chính người gọi.
     route("GET", "/api/feedback/teams", "staff", async ({ env, staff }) => {
-      const [teams, mine] = await Promise.all([listTeamsActive(env.DB), membershipsOf(env.DB, staff.id)]);
+      const [teams, mine] = await Promise.all([listTeamsActive(env.DB), memberships(env.DB, staff)]);
       const ngoai = staff.permissions.some(isExternalPermission);
       return json({
         teams: teams
@@ -266,7 +289,9 @@ export const feedbackModule: AppModule = {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const t = await getTicket(env.DB, id);
-      if (!t || !canRead(staff, t.submitter_id)) return NOT_FOUND();
+      if (!t) return NOT_FOUND();
+      const q = quyenPhieu({ who: staff, submitterId: t.submitter_id, ticketTeamId: t.team_id, memberships: await memberships(env.DB, staff) });
+      if (!q.doc) return NOT_FOUND();
       await markSeen(env.DB, id, t.submitter_id === staff.id, can(staff, "feedback.triage"), new Date().toISOString());
       const d = await detail(env.DB, staff, id);
       return d ? json(d) : NOT_FOUND();
@@ -276,13 +301,15 @@ export const feedbackModule: AppModule = {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const t = await getTicket(env.DB, id);
-      if (!t || !canRead(staff, t.submitter_id)) return NOT_FOUND();
+      if (!t) return NOT_FOUND();
+      const q = quyenPhieu({ who: staff, submitterId: t.submitter_id, ticketTeamId: t.team_id, memberships: await memberships(env.DB, staff) });
+      if (!q.doc) return NOT_FOUND();
       const raw = await readJson(request);
       if (!raw) return BAD_JSON();
       const v = validateMessageInput(raw);
       if (!v.ok) return error(400, "invalid_input", v.message);
-      const triage = can(staff, "feedback.triage");
-      if (v.value.internal && !triage) return error(403, "forbidden", "Chỉ quản trị viên được ghi chú nội bộ.");
+      // Ghi chú nội bộ: chỉ người xử lý được phiếu (Toàn quyền hoặc thành viên nhóm đang giữ phiếu, KHÔNG phải người gửi — R2).
+      if (v.value.internal && !q.xuLy) return error(403, "forbidden", "Chỉ nhóm xử lý được ghi chú nội bộ.");
       const now = new Date();
       const at = now.toISOString();
       const messageId = crypto.randomUUID();

@@ -1107,7 +1107,10 @@ export interface FeedbackQueueResponse extends FeedbackListResponse {
 export interface FeedbackDetailResponse {
   ticket: FeedbackTicketDto;
   messages: FeedbackMessageDto[];
+  /** Giữ cho giao diện cũ: luôn bằng `perms.xuLy`. */
   canTriage: boolean;
+  /** Quyền của NGƯỜI XEM trên phiếu này (ADR-0119, tính bằng `quyenPhieu` ở máy chủ). Giao diện chỉ ẩn/hiện; máy chủ luôn kiểm lại. */
+  perms: { xuLy: boolean; giaoViec: boolean; chuyenNhom: boolean };
 }
 export interface FeedbackBadgeResponse {
   /** Số yêu cầu CỦA TÔI có phản hồi mới. */

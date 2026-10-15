@@ -196,3 +196,82 @@ test("không ngưng được nhóm Kỹ thuật (nhóm mặc định cho phiếu
   assert.equal((await admin(w, "PATCH", `/${KY_THUAT}`, SUPER, { active: true })).status, 200);
   assert.equal((await admin(w, "PATCH", `/${NHAN_SU}`, SUPER, { active: false })).json.team.active, false);
 });
+
+// ---- Việc 5a: phiếu xem được theo quyenPhieu; ghi chú nội bộ theo nhóm ---------------------------------------------
+const d = (w: any, id: string, as: string) => w.call("GET", `/api/feedback/${id}`, { as });
+const traLoi = (w: any, id: string, as: string, body: string, internal = false) => w.call("POST", `/api/feedback/${id}/messages`, { as, body: { body, internal } });
+
+test("thành viên nhóm nhận đọc được phiếu và ghi chú nội bộ của nhóm; người ngoài nhóm 404; người gửi không thấy ghi chú nội bộ", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  assert.equal((await traLoi(w, id, KT_TV, "Ghi chú nội bộ kế toán", true)).status, 201);
+  const tv = await d(w, id, KT_TV);
+  assert.equal(tv.status, 200, tv.text);
+  assert.ok(tv.json.messages.some((m: any) => m.internal), "thành viên thấy ghi chú nội bộ");
+  assert.equal(tv.json.perms.xuLy, true);
+  const gui = await d(w, id, SALES);
+  assert.equal(gui.status, 200);
+  assert.ok(gui.json.messages.every((m: any) => !m.internal), "người gửi KHÔNG thấy ghi chú nội bộ");
+  assert.equal(gui.json.perms.xuLy, false);
+  for (const as of [NS_TV, QT, PARTNER]) assert.equal((await d(w, id, as)).status, 404, as);
+  assert.equal((await d(w, id, SUPER)).status, 200);
+});
+
+test("người gửi tự là thành viên nhóm nhận: không ghi được ghi chú nội bộ trên phiếu của mình (403) và không thấy ghi chú", async () => {
+  const w = setup();
+  const id = (await tao(w, KT_GUI, KE_TOAN)).json.ticket.id;
+  assert.equal((await traLoi(w, id, KT_GUI, "tự ghi", true)).status, 403);
+  assert.equal((await traLoi(w, id, KT_TV, "nhóm ghi", true)).status, 201);
+  assert.ok((await d(w, id, KT_GUI)).json.messages.every((m: any) => !m.internal));
+});
+
+test("thành viên bị khoá tài khoản hoặc bị gỡ khỏi nhóm: mất quyền đọc ngay", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  assert.equal((await d(w, id, KT_TV)).status, 200);
+  await admin(w, "DELETE", `/${KE_TOAN}/members/${KT_TV}`, SUPER);
+  assert.equal((await d(w, id, KT_TV)).status, 404);
+  w.sqlite.exec(`UPDATE staff SET active = 0 WHERE id = '${KT_TN}'`);
+  assert.equal((await d(w, id, KT_TN)).status, 401, "tài khoản khoá không còn phiên hợp lệ");
+});
+
+test("ghi chú nội bộ theo nhóm: chuyển phiếu sang nhóm khác thì nhóm mới không đọc ghi chú của nhóm cũ; Toàn quyền đọc tất cả", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  assert.equal((await traLoi(w, id, KT_TV, "ghi chú kế toán", true)).status, 201);
+  // Mô phỏng phiếu đã chuyển sang Nhân sự (route chuyển nhóm làm ở 5b).
+  w.sqlite.exec(`UPDATE fbk_ticket SET team_id = '${NHAN_SU}' WHERE id = '${id}'`);
+  const ns = await d(w, id, NS_TV);
+  assert.equal(ns.status, 200, ns.text);
+  assert.ok(ns.json.messages.every((m: any) => !m.internal), "nhóm mới không thấy ghi chú nhóm cũ");
+  assert.equal((await traLoi(w, id, NS_TV, "ghi chú nhân sự", true)).status, 201);
+  const ns2 = await d(w, id, NS_TV);
+  assert.deepEqual(ns2.json.messages.filter((m: any) => m.internal).map((m: any) => m.body), ["ghi chú nhân sự"]);
+  assert.equal((await d(w, id, KT_TV)).status, 404, "nhóm cũ mất quyền ngay");
+  const sp = await d(w, id, SUPER);
+  assert.deepEqual(sp.json.messages.filter((m: any) => m.internal).map((m: any) => m.body), ["ghi chú kế toán", "ghi chú nhân sự"]);
+  assert.equal(sp.json.perms.xuLy, true);
+  assert.equal(sp.json.perms.chuyenNhom, true);
+});
+
+test("perms: Trưởng nhóm giao việc và chuyển nhóm được; thành viên thường không; canTriage = perms.xuLy", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  const tn = (await d(w, id, KT_TN)).json;
+  assert.deepEqual(tn.perms, { xuLy: true, giaoViec: true, chuyenNhom: true });
+  assert.equal(tn.canTriage, true);
+  const tv = (await d(w, id, KT_TV)).json;
+  assert.deepEqual(tv.perms, { xuLy: true, giaoViec: false, chuyenNhom: false });
+  assert.deepEqual((await d(w, id, SALES)).json.perms, { xuLy: false, giaoViec: false, chuyenNhom: false });
+});
+
+test("R6b: tài khoản bên ngoài có dòng thành viên cũ (chèn thẳng SQL): /teams trả mine rỗng và không đọc được phiếu nhóm", async () => {
+  const w = setup();
+  w.sqlite.exec(`INSERT INTO fbk_team_member (id, team_id, staff_id, role, valid_from_at, created_at, updated_at) VALUES ('tv-cu-partner', '${KE_TOAN}', '${PARTNER}', 'LEAD', '${NOW}', '${NOW}', '${NOW}')`);
+  const g = await w.call("GET", "/api/feedback/teams", { as: PARTNER });
+  assert.equal(g.status, 200, g.text);
+  assert.deepEqual(g.json.mine, []);
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  assert.equal((await d(w, id, PARTNER)).status, 404);
+  assert.equal((await traLoi(w, id, PARTNER, "chen", true)).status, 404);
+});
