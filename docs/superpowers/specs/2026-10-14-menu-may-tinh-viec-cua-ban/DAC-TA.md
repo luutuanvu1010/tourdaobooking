@@ -125,3 +125,8 @@ Ghi thêm (vòng sửa 1 của 7a, theo người kiểm độc lập):
 9. **Trần 10 mục hiện sẵn:** tổ hợp lai văn phòng + tài xế công ty thấy 11 mục (thêm «Cuốc của tôi»). Chấp nhận, vì tổ hợp này vốn là ngoại lệ của thiết kế (K2b T2) và cắt «Cuốc của tôi» làm mất lối vào.
 10. **Cỡ chữ:** nút «Thiết lập» và «Đăng xuất» là 14px (bản dựng 12px và 13px), theo §3 vì là nút bấm; tiêu đề nhóm không bấm giữ 12px viết hoa như bản dựng.
 11. **Vị trí dải chuyển nhanh** (đang đặt TRÊN tiêu đề trang `h1`) hay dưới `h1`: chờ chủ xem ảnh thật rồi quyết.
+
+Ghi thêm (người kiểm cuối toàn nhánh, 15/10):
+
+12. **Điện thoại của Hướng dẫn viên CÓ đổi.** Mục «Đơn hàng» dùng chung điều kiện `canAccessOrders` cho cả thanh bên máy tính lẫn điện thoại, nên trên điện thoại thanh tab dưới của Hướng dẫn viên thành «Đơn hàng · Tôi» và ô Trang chủ thêm «Đơn hàng». Đây là hệ quả của việc chủ duyệt Hướng dẫn viên có mục Đơn hàng (ADR-0017 S23-4), không phải ý định riêng của đợt này. **Chờ chủ biết.**
+13. **«Đơn hàng» của Hướng dẫn viên chỉ có đơn mình phụ trách.** Đặc tả §7.3 viết «gồm đơn tự do», nhưng đơn tự do (chưa ai phụ trách) vẫn ở «Của tôi › Đơn chờ nhận» (Ruling Task 1), không vào mục «Đơn hàng». **Chờ chủ quyết** có đưa đơn tự do vào «Đơn hàng» hay giữ như hiện nay.
