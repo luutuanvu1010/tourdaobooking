@@ -32,3 +32,4 @@
 - Đối chiếu bản đồ quyền thật: Kế toán GIỮ `ledger.adjust.approve` (any), nên có thẻ `dieuChinh`; Kế toán không có `order.create`/`admin.manage` nên không có `chuaPhuTrach`. Quản trị và Toàn quyền cũng giữ `dieuChinh`; chỉ Toàn quyền giữ `feedback.triage`.
 - Quyết định thẻ cọc: `grep -rn "ledger/coc" web/` không có kết quả, nên BỎ khoá `cocCanChi`; Kế toán thành bốn thẻ `dieuChinh · nhap · conThieu · chuyenHomNay`. Nợ ghi ở `docs/BACKLOG.md` mục 30.
 - Điều kiện "cả bốn vai" dùng ô `order.view` (chỉ ô `any` tính khi không có ngữ cảnh). Tiền định dạng bằng `vndShort` (`src/shared/money.ts`).
+- Task 5 sửa vòng 1: mọi thẻ đơn/tiền/chuyến cần `seesAllOrders` (cả `nguonCanTai`; bài 1024 tập quyền); đích thẻ nháp là `/orders`; Quản trị xếp dieuChinh/conThieu sau chuyenHomNay theo đặc tả §9.3; nút `nhap`/`conThieu` theo `order.modify`/`ledger.write`; gói orders vẫn dư 3 byte.
