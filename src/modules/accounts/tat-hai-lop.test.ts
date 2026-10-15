@@ -230,6 +230,32 @@ test("bước bật: cookie chờ 'verify' bị từ chối; cửa sổ đã đ�
   assert.equal((await enroll(w, "confirm", cho, { setupToken: "x", code: "123456" })).status, 503);
 });
 
+test("bước bật (kiểm độc lập M-1): hạn mức theo TÀI KHOẢN `mfa:<id>` — 5 mã sai, mỗi lần một cookie chờ + phiếu bật MỚI → lần 6 dù mã ĐÚNG vẫn 429, không cấp phiên", async () => {
+  const w = await setup();
+  assert.equal((await reset(w, QT, BH)).status, 200);
+  const moiLuot = async () => {
+    const l = await pinLogin(w, BH);
+    assert.deepEqual(l.json, { next: "mfa_enroll" }, l.text);
+    const cho = cookieTen(l, "td_mfa_pending")!;
+    const s = await enroll(w, "start", cho);
+    assert.equal(s.status, 200, s.text);
+    return { cho, setupToken: s.json.setupToken as string, secret: s.json.secret as string };
+  };
+  for (let i = 1; i <= 5; i++) {
+    const { cho, setupToken } = await moiLuot();
+    const r = await enroll(w, "confirm", cho, { setupToken, code: "000000" });
+    assert.equal(r.status, 401, `lần ${i}: ${r.text}`);
+  }
+  assert.equal(dem(w, "SELECT count(*) AS n FROM login_attempt WHERE key = ?", `mfa:${BH}`), 5, "đếm theo tài khoản, không theo cookie chờ / phiếu bật");
+  const { cho, setupToken, secret } = await moiLuot();
+  const buoc = await buocAnToan();
+  const r = await enroll(w, "confirm", cho, { setupToken, code: await totpCode(base32Decode(secret), buoc) });
+  assert.equal(r.status, 429, r.text);
+  assert.equal(r.json.error.code, "too_many_attempts");
+  assert.equal(cookieTen(r, "td_session"), null);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM aut_mfa_factor WHERE staff_id = ? AND valid_to_at IS NULL", BH), 0, "không bật được khi đang bị khoá");
+});
+
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
 // Ân hạn 14 ngày: bên ngoài → nội bộ (đổi quyền / vai), kích hoạt lại
 
