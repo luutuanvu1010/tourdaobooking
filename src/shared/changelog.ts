@@ -12,6 +12,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Menu máy tính theo việc + khối Việc của bạn ở Trang chủ (chủ chọn bản dựng 14/10; đặc tả docs/superpowers/specs/2026-10-14-menu-may-tinh-viec-cua-ban/DAC-TA.md). Không migration, không đổi quyền.
+    // Số 1.97 là số TẠM (= main 1.96 + 1, 2026-10-15): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
+    version: "1.97",
+    date: "2026-10-15",
+    items: [
+      { kind: "doi", text: "Menu bên trái trên máy tính gọn hơn, xếp theo việc: việc hằng ngày ở đầu, rồi Vận chuyển, Tiền; các mục cài đặt gom vào Thiết lập, bấm để mở hoặc thu gọn." },
+      { kind: "moi", text: "Trang chủ trên máy tính có khối Việc của bạn: mỗi thẻ cho biết có bao nhiêu việc đang chờ (đơn nháp, đơn còn thiếu tiền, chuyến hôm nay…) kèm nút làm ngay." },
+      { kind: "doi", text: "Xe & giấy tờ, Giá & chi phí mỗi mục gộp nhiều trang; mở ra thì đầu trang có dải nút chuyển nhanh sang trang cùng nhóm." },
+      { kind: "doi", text: "Hoa hồng đối tác và Người bán dịch vụ chuyển vào nhóm Thiết lập; Điều chỉnh công nợ và Khoá sổ tháng nằm ở nhóm Tiền." },
+      { kind: "moi", text: "Hướng dẫn viên có mục Đơn hàng trong menu, hiện các đơn mình đang phụ trách." },
+    ],
+  },
+  {
     // Loại đối tác là dữ liệu (ADR-0117 lần 1; chủ duyệt 14/10: «duyệt gắn vai làm ADR-0117»): Kế toán/Quản trị/Toàn quyền thêm, tắt, bật loại đối tác trên màn Hoa hồng đối tác; nhân viên nội bộ không mang loại được hưởng hoa hồng.
     // Có thay đổi cơ sở dữ liệu (migration 0095) — cần trien-khai sau day-len.
     // Số 1.96 là số TẠM (= main 1.95 + 1, 2026-10-14): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
