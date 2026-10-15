@@ -128,6 +128,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/feedback/:id/messages", access: "staff" },
   { method: "POST", path: "/api/feedback/:id/claim", access: "staff" }, // ADR-0119 Việc 5c — nhận việc cho mình (quyenPhieu xuLy; 409 taken khi đã có người giữ)
   { method: "PATCH", path: "/api/feedback/:id/xu-ly", access: "staff" }, // ADR-0119 Việc 5c — đổi trạng thái / giao việc theo nhóm (quyenPhieu; giao việc cần giaoViecChoNguoiKhac)
+  { method: "POST", path: "/api/feedback/:id/transfer", access: "staff" }, // ADR-0119 Việc 5d — chuyển nhóm (quyenPhieu chuyenNhom: Trưởng nhóm đang giữ phiếu, Toàn quyền)
   { method: "GET", path: "/api/feedback/badge", access: "staff" },
   { method: "GET", path: "/api/feedback/mine", access: "staff" },
   { method: "GET", path: "/api/feedback/teams", access: "staff" },
@@ -520,6 +521,7 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-15 (ADR-0119 Việc 4): + năm route quản lý nhóm /api/feedback/admin/teams* (staff, rồi can feedback.team.manage) = 302.
   // 2026-10-15 (ADR-0119 Việc 5b): + GET /api/feedback/queue (staff, rồi quyenPhieu theo nhóm) = 303.
   // 2026-10-15 (ADR-0119 Việc 5c): + POST /api/feedback/:id/claim, PATCH /api/feedback/:id/xu-ly (staff, rồi quyenPhieu) = 305.
-  assert.equal(actual.length, 305, "số route thực tế lệch 305 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 305, "SNAPSHOT phải có đúng 305 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-15 (ADR-0119 Việc 5d): + POST /api/feedback/:id/transfer (staff, rồi quyenPhieu chuyenNhom) = 306.
+  assert.equal(actual.length, 306, "số route thực tế lệch 306 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 306, "SNAPSHOT phải có đúng 306 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

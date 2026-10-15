@@ -16,12 +16,12 @@ import { mailConfig, notifyAdmins, type NotifyEvent } from "./notify";
 import { choPhepNhomGui, quyenPhieu, type Membership, type QuyenPhieu } from "./quyen";
 import {
   badgeCounts, claimStatement, endMemberStatement, findByRequest, getTeam, getTicket, insertEventStatement, insertFirstMessageStatement, insertMemberStatement, insertReplyStatement, insertTeamStatement,
-  insertTicketStatement, listMembersAll, listMessages, listMine, listQueue, listQueueTeam, listTeamsActive, listTeamsAll, markSeen, markSeenAfterWriteStatement,
-  membershipsOf, messageExists, patchTeamStatement, patchTicketStatement, setNotified, statsTeam, touchAfterReplyStatement, weeklyStats, type MessageRow, type TeamMemberRow, type TeamRow, type TicketRow,
+  insertTicketStatement, insertTransferNoteStatement, listMembersAll, listMessages, listMine, listQueue, listQueueTeam, listTeamsActive, listTeamsAll, markSeen, markSeenAfterWriteStatement,
+  membershipsOf, messageExists, patchTeamStatement, patchTicketStatement, setNotified, statsTeam, touchAfterReplyStatement, transferStatement, weeklyStats, type MessageRow, type TeamMemberRow, type TeamRow, type TicketRow,
 } from "./repository";
 import {
   MESSAGE_LIMIT_PER_HOUR, TEAM_ID_RE, TICKET_LIMIT_PER_HOUR, parseContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch,
-  validateTicketInput, windowStart,
+  validateTicketInput, validateTransferInput, windowStart,
 } from "./rules";
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy yêu cầu.");
@@ -336,7 +336,11 @@ export const feedbackModule: AppModule = {
         ),
         markSeenAfterWriteStatement(env.DB, { ticketId: id, staffId: staff.id, now: at }),
       ]);
-      if ((res[0]?.meta.changes ?? 0) === 0) return error(409, "taken", "Vừa có người nhận việc này, hoặc phiếu đã đóng.");
+      if ((res[0]?.meta.changes ?? 0) === 0) {
+        const lai = await getTicket(env.DB, id);
+        if (!lai || lai.team_id !== t.team_id) return STALE_TEAM(); // R11: phiếu vừa chuyển nhóm sau lúc kiểm quyền
+        return error(409, "taken", "Vừa có người nhận việc này, hoặc phiếu đã đóng.");
+      }
       const d = await detail(env.DB, staff, id);
       return d ? json(d) : NOT_FOUND();
     }),
@@ -384,6 +388,59 @@ export const feedbackModule: AppModule = {
       }
       const d = await detail(env.DB, staff, id);
       return d ? json(d) : NOT_FOUND();
+    }),
+
+    // Chuyển nhóm (ADR-0119 điều 2, 8): Toàn quyền hoặc Trưởng nhóm của nhóm ĐANG giữ phiếu (quyenPhieu chuyenNhom). Bỏ người xử lý, Đang xử lý ⇒ Đã tiếp nhận
+    // (câu TRANSFER đặt). Lý do chuyển = ghi chú nội bộ của nhóm MỚI; ghi chú cũ giữ nhãn nhóm cũ nên nhóm mới không đọc được (điều 5).
+    // Lô: cổng (TRANSFER, khoá lạc quan theo nhóm đã kiểm quyền) → sự kiện TEAM_CHANGED (changes() của TRANSFER) → ghi chú lý do (có sự kiện) → nhật ký (có sự
+    // kiện; detail CHỈ mã phiếu, kể cả nhóm nhạy cảm) → mốc đã xem của người làm.
+    route("POST", "/api/feedback/:id/transfer", "staff", async ({ request, env, staff, params }) => {
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const t = await getTicket(env.DB, id);
+      if (!t) return NOT_FOUND();
+      const q = quyenPhieu({ who: staff, submitterId: t.submitter_id, ticketTeamId: t.team_id, memberships: await memberships(env.DB, staff) });
+      if (!q.doc) return NOT_FOUND();
+      if (!q.chuyenNhom) return error(403, "forbidden", "Chỉ Trưởng nhóm hoặc người phụ trách hệ thống được chuyển nhóm.");
+      const raw = await readJson(request);
+      if (!raw) return BAD_JSON();
+      const v = validateTransferInput(raw);
+      if (!v.ok) return error(400, "invalid_input", v.message);
+      const dich = await getTeam(env.DB, v.value.teamId);
+      if (!dich || dich.active !== 1) return error(400, "invalid_input", "Nhóm nhận không hợp lệ.");
+      if (dich.id === t.team_id) return error(409, "stale", "Phiếu đang ở nhóm này.");
+      const cu = await getTeam(env.DB, t.team_id);
+      const at = new Date().toISOString();
+      const eventId = crypto.randomUUID();
+      const res = await env.DB.batch([
+        transferStatement(env.DB, { id, toTeam: dich.id, fromTeam: t.team_id, now: at, by: staff.id }),
+        insertEventStatement(env.DB, { id: eventId, ticketId: id, type: "TEAM_CHANGED", from: t.team_id, to: dich.id, actor: staff.id, now: at }),
+        insertTransferNoteStatement(env.DB, {
+          id: crypto.randomUUID(), ticketId: id, authorId: staff.id, body: `Chuyển từ ${cu?.name ?? "nhóm cũ"}: ${v.value.reason}`, now: at, teamId: dich.id, eventId,
+        }),
+        auditStatement(
+          env.DB,
+          { staffId: staff.id, action: "feedback_team_changed", at, targetType: "feedback", targetId: id, detail: feedbackCode(t.seq) },
+          `EXISTS (SELECT 1 FROM fbk_ticket_event WHERE id = '${eventId}')`,
+        ),
+        markSeenAfterWriteStatement(env.DB, { ticketId: id, staffId: staff.id, now: at }),
+      ]);
+      if ((res[0]?.meta.changes ?? 0) === 0) {
+        const lai = await getTicket(env.DB, id);
+        if (!lai || lai.team_id !== t.team_id) return STALE_TEAM();
+        return error(400, "invalid_input", "Nhóm nhận không hợp lệ."); // nhóm đích vừa bị ngưng
+      }
+      // Trưởng nhóm cũ mất quyền ngay (detail ⇒ null): vẫn trả 200 với phiếu và tin CÔNG KHAI, mọi quyền false — không kèm ghi chú nội bộ nhóm nào.
+      const d = await detail(env.DB, staff, id);
+      if (d) return json(d);
+      const sau = await getTicket(env.DB, id);
+      if (!sau) return NOT_FOUND();
+      return json({
+        ticket: toTicket(sau, false),
+        messages: (await listMessages(env.DB, id, "none", sau.team_id)).map((m) => toMessage(m, staff.id)),
+        canTriage: false,
+        perms: { xuLy: false, giaoViec: false, chuyenNhom: false },
+      } satisfies FeedbackDetailResponse);
     }),
 
     route("GET", "/api/feedback/:id", "staff", async ({ env, staff, params }) => {

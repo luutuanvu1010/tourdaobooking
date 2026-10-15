@@ -195,3 +195,16 @@ export function validateTeamPatch(raw: Record<string, unknown>): Checked<TeamPat
 export function validateMemberRole(raw: Record<string, unknown>): Checked<"LEAD" | "MEMBER"> {
   return raw.role === "LEAD" || raw.role === "MEMBER" ? { ok: true, value: raw.role } : bad("Vai trong nhóm phải là Trưởng nhóm hoặc Thành viên.");
 }
+
+/** Chuyển nhóm (ADR-0119 điều 8): nhóm đích (chỉ kiểm hình dạng; có thật/đang dùng do route kiểm) + lý do 1–300 ký tự sau khi gọn khoảng trắng. */
+export const TRANSFER_REASON_MAX = 300;
+export interface TransferInput {
+  teamId: string;
+  reason: string;
+}
+export function validateTransferInput(raw: Record<string, unknown>): Checked<TransferInput> {
+  if (typeof raw.teamId !== "string" || !TEAM_ID_RE.test(raw.teamId)) return bad("Nhóm nhận không hợp lệ.");
+  const reason = cleanTitle(raw.reason);
+  if (reason.length < 1 || reason.length > TRANSFER_REASON_MAX) return bad(`Lý do chuyển nhóm phải từ 1 đến ${TRANSFER_REASON_MAX} ký tự.`);
+  return { ok: true, value: { teamId: raw.teamId, reason } };
+}

@@ -559,3 +559,89 @@ test("R11b: ghi chú nội bộ đúng lúc phiếu vừa chuyển nhóm ⇒ 409
   }
   assert.equal((await traLoi(w, id2, KT_TV, "quá trần", true)).status, 429);
 });
+
+// ---- Việc 5d: chuyển nhóm ------------------------------------------------------------------------------------------
+const chuyen = (w: any, id: string, as: string, teamId: string, reason = "Nhầm nhóm") => w.call("POST", `/api/feedback/${id}/transfer`, { as, body: { teamId, reason } });
+
+test("chuyển nhóm: Trưởng nhóm/Toàn quyền được; thành viên thường 403; người ngoài 404; lý do bắt buộc; nhóm đích phải đang dùng", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  assert.equal((await chuyen(w, id, KT_TV, NHAN_SU)).status, 403);
+  assert.equal((await chuyen(w, id, NS_TV, NHAN_SU)).status, 404);
+  assert.equal((await chuyen(w, id, KT_TN, NHAN_SU, "")).status, 400);
+  assert.equal((await chuyen(w, id, KT_TN, NHAN_SU, "   ")).status, 400, "lý do chỉ có khoảng trắng");
+  assert.equal((await chuyen(w, id, KT_TN, NHAN_SU, "x".repeat(301))).status, 400, "lý do quá 300 ký tự");
+  assert.equal((await chuyen(w, id, KT_TN, "khong-co")).status, 400);
+  w.sqlite.exec(`UPDATE fbk_team SET active = 0 WHERE id = 'fbk-team-dieu-hanh'`);
+  assert.equal((await chuyen(w, id, KT_TN, "fbk-team-dieu-hanh")).status, 400, "nhóm đã ngưng");
+  assert.equal(w.q(`SELECT team_id FROM fbk_ticket WHERE id = '${id}'`)[0].team_id, KE_TOAN, "các lần hỏng không đổi gì");
+  assert.equal(w.q("SELECT count(*) AS n FROM fbk_ticket_event")[0].n, 0);
+  const r = await chuyen(w, id, KT_TN, NHAN_SU);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.ticket.teamId, NHAN_SU);
+  assert.deepEqual(r.json.perms, { xuLy: false, giaoViec: false, chuyenNhom: false }, "Trưởng nhóm cũ không còn quyền trên phiếu");
+  assert.ok(r.json.messages.every((m: any) => !m.internal), "phản hồi cho Trưởng nhóm cũ không kèm ghi chú nội bộ của nhóm mới");
+  // Nhật ký: đúng một dòng, chỉ mã phiếu.
+  const nk = w.q(`SELECT detail FROM audit_log WHERE action = 'feedback_team_changed' AND target_id = '${id}'`);
+  assert.equal(nk.length, 1);
+  assert.match(nk[0].detail, /^YC-\d+$/);
+  // Toàn quyền chuyển tiếp được.
+  const s = await chuyen(w, id, SUPER, KY_THUAT, "Thật ra là lỗi kỹ thuật");
+  assert.equal(s.status, 200, s.text);
+  assert.equal(s.json.ticket.teamId, KY_THUAT);
+  assert.equal(s.json.perms.chuyenNhom, true);
+});
+
+test("sau chuyển nhóm: bỏ người xử lý, Đang xử lý ⇒ Đã tiếp nhận; Trưởng nhóm cũ mất quyền; nhóm mới không đọc ghi chú nội bộ của nhóm cũ", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  await nhan(w, id, KT_TV);
+  await xuLy(w, id, KT_TV, { status: "IN_PROGRESS" });
+  await traLoi(w, id, KT_TV, "Bí mật của Kế toán", true);
+  const r = await chuyen(w, id, KT_TN, NHAN_SU, "Việc của Nhân sự");
+  assert.equal(r.json.ticket.assigneeId, null);
+  assert.equal(r.json.ticket.status, "ACK");
+  assert.equal((await d(w, id, KT_TN)).status, 404, "Trưởng nhóm cũ mất quyền ngay");
+  const moi = await d(w, id, NS_TV);
+  assert.equal(moi.status, 200);
+  const noiBo = moi.json.messages.filter((m: any) => m.internal).map((m: any) => m.body);
+  assert.ok(!noiBo.some((b: string) => b.includes("Bí mật của Kế toán")), "ghi chú nhóm cũ không lộ cho nhóm mới");
+  assert.ok(noiBo.some((b: string) => b.includes("Việc của Nhân sự")), "lý do chuyển là ghi chú nội bộ của nhóm MỚI");
+  assert.ok((await d(w, id, SUPER)).json.messages.some((m: any) => m.body.includes("Bí mật của Kế toán")), "Toàn quyền đọc tất cả");
+  assert.equal(w.q(`SELECT count(*) AS n FROM fbk_ticket_event WHERE ticket_id='${id}' AND type='TEAM_CHANGED'`)[0].n, 1);
+  const ev = w.q(`SELECT from_value, to_value, actor_id FROM fbk_ticket_event WHERE ticket_id='${id}' AND type='TEAM_CHANGED'`)[0];
+  assert.deepEqual([ev.from_value, ev.to_value, ev.actor_id], [KE_TOAN, NHAN_SU, KT_TN]);
+  assert.ok(!(await d(w, id, SALES)).json.messages.some((m: any) => m.body.includes("Việc của Nhân sự")), "người gửi không thấy lý do chuyển (ghi chú nội bộ)");
+});
+
+test("chuyển sang chính nhóm đang giữ hoặc chuyển lúc phiếu đã đổi nhóm ⇒ 409", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  assert.equal((await chuyen(w, id, KT_TN, KE_TOAN)).status, 409);
+  // Phiếu vừa được người khác chuyển sang Kỹ thuật đúng lúc Trưởng nhóm Kế toán bấm chuyển sang Nhân sự.
+  chenTruocLo(w, /UPDATE fbk_ticket SET team_id = \?2/, doiNhomThang(w, id, KY_THUAT));
+  const r = await chuyen(w, id, KT_TN, NHAN_SU);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "stale");
+  assert.equal(w.q(`SELECT team_id FROM fbk_ticket WHERE id = '${id}'`)[0].team_id, KY_THUAT);
+  assert.equal(w.q("SELECT count(*) AS n FROM fbk_ticket_event")[0].n, 0);
+  assert.equal(w.q("SELECT count(*) AS n FROM fbk_message WHERE internal = 1")[0].n, 0, "không chèn ghi chú lý do khi lô thua cổng");
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'feedback_team_changed'")[0].n, 0);
+});
+
+test("phiếu nhóm nhạy cảm: Quản trị và Nhân sự (không thuộc nhóm) không có đường tắt ở /claim, /xu-ly, /transfer", async () => {
+  const w = setup();
+  const kt = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  const ns = (await tao(w, SALES, NHAN_SU)).json.ticket.id;
+  // NS_TV là thành viên Nhân sự nên chỉ thử trên phiếu Kế toán; Quản trị thử cả hai.
+  const ca: [string, string][] = [[QT, kt], [QT, ns], [NS_TV, kt]];
+  for (const [as, id] of ca) {
+    assert.equal((await nhan(w, id, as)).status, 404, `${as} claim`);
+    assert.equal((await xuLy(w, id, as, { status: "ACK" })).status, 404, `${as} xu-ly`);
+    assert.equal((await chuyen(w, id, as, KY_THUAT)).status, 404, `${as} transfer`);
+  }
+  assert.equal(w.q("SELECT count(*) AS n FROM fbk_ticket WHERE status_code <> 'NEW' OR assignee_id IS NOT NULL")[0].n, 0);
+  assert.equal(w.q(`SELECT count(*) AS n FROM fbk_ticket WHERE team_id = '${KY_THUAT}'`)[0].n, 0);
+  // Thành viên thường của nhóm nhạy cảm: thấy được nhưng không chuyển được (403).
+  assert.equal((await chuyen(w, ns, NS_TV, KY_THUAT)).status, 403);
+});

@@ -78,6 +78,7 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
   "POST /api/feedback/:id/messages": { ma: 404, ly_do: "như trên" },
   "POST /api/feedback/:id/claim": { ma: 404, ly_do: "ADR-0119 Việc 5c: nhận việc — phiếu lạ → 404 trước mọi kiểm khác; tài xế không có tư cách nhóm nên phiếu có thật mà không phải của mình cũng 404 (quyenPhieu doc = false)" },
   "PATCH /api/feedback/:id/xu-ly": { ma: 404, ly_do: "như trên — kiểm phiếu và quyenPhieu TRƯỚC khi đọc thân (thân {} không thành 400)" },
+  "POST /api/feedback/:id/transfer": { ma: 404, ly_do: "ADR-0119 Việc 5d: chuyển nhóm — như trên (phiếu lạ / không đọc được → 404 trước khi đọc thân)" },
   "GET /api/feedback/badge": { ma: 200, ly_do: "số góp ý của mình (ADR-0038)" },
   "GET /api/feedback/mine": { ma: 200, ly_do: "góp ý của mình" },
   "GET /api/feedback/admin/teams": { ma: 403, ly_do: "ADR-0119: quản lý nhóm hỗ trợ chỉ Toàn quyền (feedback.team.manage none ở cả hai cột tài xế) — can() chặn đầu thân" },

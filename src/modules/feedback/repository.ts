@@ -73,7 +73,7 @@ const MESSAGE_EXISTS = defineSql("feedback", "message_exists", `SELECT 1 AS ok F
 //  3. BADGE: đếm theo người xem (mine lọc `submitter_id = ?1`; queue = phiếu chưa đọc ở nhóm người xem thuộc, hoặc mọi nhóm khi ?2 = 1 tức Toàn quyền;
 //     tài khoản bên ngoài: route không gọi câu này cho phần queue — index.ts trả 0).
 //  4. GET / messages theo id (GET, FIND_BY_REQUEST, LIST_MESSAGES): không lọc chủ trong SQL; index.ts gọi quyenPhieu() trước khi trả (`doc`), và LIST_MESSAGES lọc ghi chú nội bộ theo `noiBo` của quyenPhieu (nhóm đang giữ phiếu).
-//  5. Các câu ghi (TOUCH_AFTER_REPLY, PATCH_TICKET, CLAIM, INSERT_EVENT, markSeen): chỉ chạy sau quyenPhieu()/quyền admin ở route.
+//  5. Các câu ghi (TOUCH_AFTER_REPLY, PATCH_TICKET, CLAIM, TRANSFER, INSERT_TRANSFER_NOTE, INSERT_EVENT, markSeen): chỉ chạy sau quyenPhieu()/quyền admin ở route.
 const LIST_MINE = defineSql(
   "feedback",
   "list_mine",
@@ -260,13 +260,32 @@ const CLAIM = defineSql(
    WHERE id = ?1 AND team_id = ?4 AND status_code NOT IN ('DONE', 'DECLINED')
      AND (assignee_id IS NULL OR NOT ${nguoiGiuHopLe("fbk_ticket")})`,
 );
-// Sự kiện phiếu (chỉ thêm). Cổng `changes() > 0`: PHẢI đứng NGAY SAU câu cập nhật phiếu (CLAIM / PATCH_TICKET) và TRƯỚC auditStatement — changes() đổi sau mỗi câu.
+// Sự kiện phiếu (chỉ thêm). Cổng `changes() > 0`: PHẢI đứng NGAY SAU câu cập nhật phiếu (CLAIM / PATCH_TICKET / TRANSFER) và TRƯỚC auditStatement — changes() đổi sau mỗi câu.
 // ?1 id, ?2 phiếu, ?3 loại (TEAM_CHANGED|ASSIGNED|CLAIMED), ?4 giá trị cũ, ?5 giá trị mới, ?6 người làm, ?7 bây giờ.
 const INSERT_EVENT = defineSql(
   "feedback",
   "insert_event",
   `INSERT INTO fbk_ticket_event (id, ticket_id, type, from_value, to_value, actor_id, at, created_by, updated_by)
    SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?6, ?6 WHERE changes() > 0`,
+);
+// Chuyển nhóm (ADR-0119 điều 8): khoá lạc quan theo nhóm HIỆN TẠI (?4 — nhóm route đã kiểm quyền); bỏ người xử lý; Đang xử lý ⇒ Đã tiếp nhận do chính câu này đặt
+// (không qua bảng luật chuyển trạng thái thủ công). Chuyển sang chính nhóm đang giữ, phiếu vừa đổi nhóm, hay nhóm đích không có/đã ngưng ⇒ 0 dòng.
+// ?1 phiếu, ?2 nhóm mới, ?3 bây giờ, ?4 nhóm cũ, ?5 người làm. updated_at/updated_by = mốc của lệnh (cổng cho markSeenAfterWriteStatement cùng lô).
+const TRANSFER = defineSql(
+  "feedback",
+  "transfer",
+  `UPDATE fbk_ticket SET team_id = ?2, assignee_id = NULL,
+     status_code = CASE WHEN status_code = 'IN_PROGRESS' THEN 'ACK' ELSE status_code END,
+     last_activity_at = ?3, updated_at = ?3, updated_by = ?5
+   WHERE id = ?1 AND team_id = ?4 AND ?2 <> ?4 AND EXISTS (SELECT 1 FROM fbk_team WHERE id = ?2 AND active = 1)`,
+);
+// Lý do chuyển = ghi chú nội bộ của nhóm MỚI (?6). Cổng: sự kiện TEAM_CHANGED ?7 của CÙNG lô đã chèn (sự kiện chỉ chèn khi TRANSFER đổi dòng) — chính xác hơn so
+// mốc giờ. ?1 id tin, ?2 phiếu, ?3 tác giả, ?4 nội dung, ?5 bây giờ, ?6 nhóm mới, ?7 id sự kiện.
+const INSERT_TRANSFER_NOTE = defineSql(
+  "feedback",
+  "insert_transfer_note",
+  `INSERT INTO fbk_message (id, ticket_id, author_id, body, internal, created_at, created_by, updated_at, updated_by, team_id)
+   SELECT ?1, ?2, ?3, ?4, 1, ?5, ?3, ?5, ?3, ?6 WHERE EXISTS (SELECT 1 FROM fbk_ticket_event WHERE id = ?7 AND ticket_id = ?2 AND type = 'TEAM_CHANGED')`,
 );
 // Đánh dấu đã xem khi MỞ chi tiết: mốc riêng của người xem (fbk_ticket_read, upsert) và, nếu là người gửi, submitter_seen_at. Không đổi updated_at của phiếu.
 // ?1 phiếu, ?2 người xem, ?3 bây giờ. updated_at của dòng đọc đặt = seen_at (cột có mặc định giờ máy nên không tự đổi khi ON CONFLICT).
@@ -308,6 +327,10 @@ export const patchTicketStatement = (
     .prepare(PATCH_TICKET)
     .bind(a.id, a.status, a.assignee ? 1 : 0, a.assignee?.value ?? null, a.resolvedIn ? 1 : 0, a.resolvedIn?.value ?? null, a.now, a.adminId, a.fromStatus);
 export const claimStatement = (db: D1Database, a: { id: string; staffId: string; now: string; teamId: string }) => db.prepare(CLAIM).bind(a.id, a.staffId, a.now, a.teamId);
+export const transferStatement = (db: D1Database, a: { id: string; toTeam: string; fromTeam: string; now: string; by: string }) =>
+  db.prepare(TRANSFER).bind(a.id, a.toTeam, a.now, a.fromTeam, a.by);
+export const insertTransferNoteStatement = (db: D1Database, a: { id: string; ticketId: string; authorId: string; body: string; now: string; teamId: string; eventId: string }) =>
+  db.prepare(INSERT_TRANSFER_NOTE).bind(a.id, a.ticketId, a.authorId, a.body, a.now, a.teamId, a.eventId);
 export type TicketEventType = "TEAM_CHANGED" | "ASSIGNED" | "CLAIMED";
 export const insertEventStatement = (
   db: D1Database,
