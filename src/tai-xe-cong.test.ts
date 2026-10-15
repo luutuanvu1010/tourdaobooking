@@ -84,6 +84,7 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
   "PUT /api/feedback/admin/teams/:id/members/:staffId": { ma: 403, ly_do: "như trên" },
   "DELETE /api/feedback/admin/teams/:id/members/:staffId": { ma: 403, ly_do: "như trên" },
   "GET /api/feedback/teams": { ma: 200, ly_do: "ADR-0119: danh sách nhóm hỗ trợ để chọn khi gửi (tên, mô tả nhóm) + tư cách thành viên của chính mình — không dữ liệu đơn / khách / tiền; tài khoản bên ngoài chỉ thấy Kỹ thuật" },
+  "GET /api/feedback/queue": { ma: 400, ly_do: "ADR-0119: hàng đợi MỘT nhóm hỗ trợ — thiếu ?team ⇒ 400 trước khi đọc gì; có team thì quyenPhieu chỉ cho thành viên nhóm / Toàn quyền (tài xế không có tư cách nhóm ⇒ 403; tài khoản bên ngoài luôn rỗng tư cách — R6b)" },
   "GET /api/ledger/mine": { ma: 403, ly_do: "sổ tiền lượt 1: \"Sổ của tôi\" — ô ledger.view của DRIVER, DRIVER_PARTNER là none (tài xế không thu tiền khách — bản làm mới §2)" },
   "GET /api/locations": { ma: 200, ly_do: "tên địa điểm (không nhạy cảm; mọi tài khoản đăng nhập — người làm hiện trường cũng cần)" },
   "POST /api/orders/:id/handler-cancel": { ma: 403, ly_do: "huỷ đơn đang phụ trách — ô order.cancel của DRIVER là none (đơn có thật → 403, không dữ liệu)" },

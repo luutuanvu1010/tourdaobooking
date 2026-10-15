@@ -275,3 +275,95 @@ test("R6b: tài khoản bên ngoài có dòng thành viên cũ (chèn thẳng SQ
   assert.equal((await d(w, id, PARTNER)).status, 404);
   assert.equal((await traLoi(w, id, PARTNER, "chen", true)).status, 404);
 });
+
+// ---- Việc 5b: hàng đợi nhóm, chưa đọc riêng từng người, thống kê và huy hiệu theo nhóm -----------------------------
+const hang = (w: any, as: string, q = "") => w.call("GET", `/api/feedback/queue?team=${KE_TOAN}${q}`, { as });
+const huy = async (w: any, as: string) => (await w.call("GET", "/api/feedback/badge", { as })).json.queue;
+
+test("hàng đợi nhóm: thành viên và Toàn quyền xem được; người ngoài nhóm, Quản trị, Nhân sự, bên ngoài ⇒ 403; thiếu team ⇒ 400", async () => {
+  const w = setup();
+  await tao(w, SALES, KE_TOAN);
+  for (const as of [KT_TV, KT_TN, SUPER]) assert.equal((await hang(w, as)).json.tickets.length, 1, as);
+  for (const as of [NS_TV, QT, SALES, PARTNER]) assert.equal((await hang(w, as)).status, 403, as);
+  assert.equal((await w.call("GET", "/api/feedback/queue", { as: SUPER })).status, 400);
+  assert.equal((await hang(w, SUPER, "&loc=KHAC")).status, 400);
+  assert.equal((await hang(w, SUPER, "&status=KHAC")).status, 400);
+  assert.equal((await w.call("GET", "/api/feedback/queue?team=khong-co", { as: SUPER })).status, 404);
+});
+
+test("hàng đợi không chứa phiếu do chính người xem gửi (trừ khi là phiếu của người khác); lọc MINE / UNASSIGNED", async () => {
+  const w = setup();
+  const a = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  await tao(w, KT_GUI, KE_TOAN);
+  assert.equal((await hang(w, KT_GUI)).json.tickets.length, 1, "phiếu tự gửi nằm ở 'của tôi', không ở hàng đợi");
+  // Nhận việc (route claim làm ở 5c): giao qua tuyến cũ của Toàn quyền — đường thật.
+  assert.equal((await w.call("PATCH", `/api/feedback/${a}`, { as: SUPER, body: { assigneeId: KT_TV } })).status, 200);
+  assert.equal((await hang(w, KT_TV, "&loc=MINE")).json.tickets.length, 1);
+  assert.equal((await hang(w, KT_TN, "&loc=MINE")).json.tickets.length, 0);
+  assert.equal((await hang(w, KT_TN, "&loc=UNASSIGNED")).json.tickets.length, 1);
+  // Người giữ phiếu bị khoá tài khoản ⇒ phiếu coi như chưa ai nhận.
+  w.sqlite.exec(`UPDATE staff SET active = 0 WHERE id = '${KT_TV}'`);
+  assert.equal((await hang(w, KT_TN, "&loc=UNASSIGNED")).json.tickets.length, 2);
+  assert.equal((await hang(w, KT_TN, "&status=NEW")).json.tickets.length, 2);
+  assert.equal((await hang(w, KT_TN, "&status=DONE")).json.tickets.length, 0);
+});
+
+test("chưa đọc tính RIÊNG từng người: một người mở không làm người kia hết chấm đỏ", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  assert.equal((await w.call("GET", "/api/feedback/badge", { as: KT_TV })).json.queue, 1);
+  assert.equal((await w.call("GET", "/api/feedback/badge", { as: KT_TN })).json.queue, 1);
+  await d(w, id, KT_TV); // KT_TV mở phiếu
+  assert.equal((await w.call("GET", "/api/feedback/badge", { as: KT_TV })).json.queue, 0);
+  assert.equal((await w.call("GET", "/api/feedback/badge", { as: KT_TN })).json.queue, 1, "người kia vẫn còn chấm đỏ");
+  assert.equal((await w.call("GET", "/api/feedback/badge", { as: NS_TV })).json.queue, 0, "nhóm khác không đếm phiếu nhóm này");
+  // Cờ unread trên hàng đợi cũng riêng từng người.
+  assert.equal((await hang(w, KT_TV)).json.tickets[0].unread, false);
+  assert.equal((await hang(w, KT_TN)).json.tickets[0].unread, true);
+  // Có hoạt động mới (người gửi trả lời) ⇒ chấm đỏ quay lại với người đã mở. Lùi mốc đã xem để hai lần ghi không trùng mili giây.
+  w.sqlite.exec(`UPDATE fbk_ticket_read SET seen_at = '2000-01-01T00:00:00.000Z' WHERE ticket_id = '${id}'`);
+  assert.equal((await traLoi(w, id, SALES, "Bổ sung.")).status, 201);
+  assert.equal(await huy(w, KT_TV), 1);
+  // Toàn quyền đếm mọi nhóm; người gửi không đếm phiếu của mình ở "queue".
+  assert.equal(await huy(w, SUPER), 1);
+  assert.equal(await huy(w, SALES), 0);
+});
+
+test("người làm tự ghi mốc đã xem trong cùng lô: trả lời / đổi trạng thái không làm chính mình có chấm đỏ, người khác vẫn có", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  assert.equal((await traLoi(w, id, KT_TV, "Đã nhận, đang xem.")).status, 201);
+  assert.equal(await huy(w, KT_TV), 0, "người trả lời đã xem");
+  assert.equal(await huy(w, KT_TN), 1);
+  assert.equal(w.q(`SELECT count(*) AS n FROM fbk_ticket_read WHERE ticket_id = '${id}' AND staff_id = '${KT_TV}'`)[0].n, 1);
+  w.sqlite.exec(`UPDATE fbk_ticket_read SET seen_at = '2000-01-01T00:00:00.000Z' WHERE ticket_id = '${id}'`); // tránh trùng mili giây
+  const r = await w.call("PATCH", `/api/feedback/${id}`, { as: SUPER, body: { status: "ACK" } });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(await huy(w, SUPER), 0, "Toàn quyền đổi trạng thái ⇒ đã xem");
+  assert.equal(await huy(w, KT_TV), 1, "đổi trạng thái là hoạt động mới với người khác");
+  // Upsert: mở lại phiếu chỉ cập nhật một dòng, updated_at = seen_at.
+  await d(w, id, KT_TV);
+  const row = w.q(`SELECT seen_at, updated_at FROM fbk_ticket_read WHERE ticket_id = '${id}' AND staff_id = '${KT_TV}'`);
+  assert.equal(row.length, 1);
+  assert.equal(row[0].updated_at, row[0].seen_at);
+  // Người gửi mở: ghi mốc người gửi (hết chấm "mine").
+  assert.equal((await w.call("GET", "/api/feedback/badge", { as: SALES })).json.mine, 1);
+  await d(w, id, SALES);
+  assert.equal((await w.call("GET", "/api/feedback/badge", { as: SALES })).json.mine, 0);
+});
+
+test("thống kê tuần của hàng đợi chỉ đếm phiếu của nhóm đó", async () => {
+  const w = setup();
+  await tao(w, SALES, KE_TOAN);
+  await tao(w, SALES, NHAN_SU, { clientRequestId: crypto.randomUUID() });
+  const n = (await hang(w, KT_TV)).json.stats.reduce((s: number, r: any) => s + r.count, 0);
+  assert.equal(n, 1);
+});
+
+test("R6b: tài khoản bên ngoài có dòng thành viên chèn thẳng SQL: /queue ⇒ 403, huy hiệu queue = 0", async () => {
+  const w = setup();
+  w.sqlite.exec(`INSERT INTO fbk_team_member (id, team_id, staff_id, role, valid_from_at, created_at, updated_at) VALUES ('tv-cu-partner', '${KE_TOAN}', '${PARTNER}', 'LEAD', '${NOW}', '${NOW}', '${NOW}')`);
+  await tao(w, SALES, KE_TOAN);
+  assert.equal((await hang(w, PARTNER)).status, 403);
+  assert.equal(await huy(w, PARTNER), 0);
+});

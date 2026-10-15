@@ -129,6 +129,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/feedback/badge", access: "staff" },
   { method: "GET", path: "/api/feedback/mine", access: "staff" },
   { method: "GET", path: "/api/feedback/teams", access: "staff" },
+  { method: "GET", path: "/api/feedback/queue", access: "staff" },
   { method: "GET", path: "/api/feedback/admin/teams", access: "staff" },
   { method: "POST", path: "/api/feedback/admin/teams", access: "staff" },
   { method: "PATCH", path: "/api/feedback/admin/teams/:id", access: "staff" },
@@ -515,6 +516,7 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-14 (ADR-0117 lần 1): + GET/POST /api/pricing/loai-doi-tac, POST …/loai-doi-tac/:code/{tat, bat} (office) = 296.
   // 2026-10-15 (ADR-0119 Vé hỗ trợ đợt 1, Việc 3): + GET /api/feedback/teams (staff) = 297.
   // 2026-10-15 (ADR-0119 Việc 4): + năm route quản lý nhóm /api/feedback/admin/teams* (staff, rồi can feedback.team.manage) = 302.
-  assert.equal(actual.length, 302, "số route thực tế lệch 302 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 302, "SNAPSHOT phải có đúng 302 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-15 (ADR-0119 Việc 5b): + GET /api/feedback/queue (staff, rồi quyenPhieu theo nhóm) = 303.
+  assert.equal(actual.length, 303, "số route thực tế lệch 303 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 303, "SNAPSHOT phải có đúng 303 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

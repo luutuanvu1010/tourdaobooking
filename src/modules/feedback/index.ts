@@ -11,13 +11,13 @@ import { FEEDBACK_KIND_NAME, FEEDBACK_STATUS_NAME, canTransition, feedbackCode, 
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
 import { can, isExternalPermission, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
-import { NHOM_KY_THUAT_ID } from "../../shared/ve-ho-tro";
+import { NHOM_KY_THUAT_ID, isLocHangDoi } from "../../shared/ve-ho-tro";
 import { mailConfig, notifyAdmins, type NotifyEvent } from "./notify";
 import { choPhepNhomGui, quyenPhieu, type Membership, type QuyenPhieu } from "./quyen";
 import {
   badgeCounts, endMemberStatement, findByRequest, getTeam, getTicket, insertFirstMessageStatement, insertMemberStatement, insertReplyStatement, insertTeamStatement,
-  insertTicketStatement, listMembersAll, listMessages, listMine, listQueue, listTeamsActive, listTeamsAll, markSeen, membershipsOf, messageExists, patchTeamStatement,
-  patchTicketStatement, setNotified, touchAfterReplyStatement, weeklyStats, type MessageRow, type TeamMemberRow, type TeamRow, type TicketRow,
+  insertTicketStatement, listMembersAll, listMessages, listMine, listQueue, listQueueTeam, listTeamsActive, listTeamsAll, markSeen, markSeenAfterWriteStatement,
+  membershipsOf, messageExists, patchTeamStatement, patchTicketStatement, setNotified, statsTeam, touchAfterReplyStatement, weeklyStats, type MessageRow, type TeamMemberRow, type TeamRow, type TicketRow,
 } from "./repository";
 import {
   MESSAGE_LIMIT_PER_HOUR, TEAM_ID_RE, TICKET_LIMIT_PER_HOUR, parseContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch,
@@ -263,9 +263,33 @@ export const feedbackModule: AppModule = {
       const rows = await listMine(env.DB, staff.id, intParam(url.searchParams.get("limit"), 50, 1, 100), intParam(url.searchParams.get("offset"), 0, 0, 100000));
       return json({ tickets: rows.map((r) => toTicket(r, false)) });
     }),
+    // Huy hiệu: queue = phiếu chưa đọc (riêng người gọi) ở nhóm mình thuộc; Toàn quyền mọi nhóm. Tài khoản bên ngoài không có tư cách nhóm (helper memberships
+    // trả rỗng) ⇒ queue = 0, KHÔNG dựa vào câu SQL tư cách (dòng thành viên cũ chèn thẳng vẫn có thể còn — R6b).
     route("GET", "/api/feedback/badge", "staff", async ({ env, staff }) => {
-      const b = await badgeCounts(env.DB, staff.id, can(staff, "feedback.triage"));
-      return json(b satisfies FeedbackBadgeResponse);
+      const sieu = can(staff, "feedback.triage");
+      const [b, tv] = await Promise.all([badgeCounts(env.DB, staff.id, sieu), memberships(env.DB, staff)]);
+      return json({ mine: b.mine, queue: sieu || tv.length > 0 ? b.queue : 0 } satisfies FeedbackBadgeResponse);
+    }),
+    // Hàng đợi MỘT nhóm (ADR-0119 điều 2, 3): thành viên đang hiệu lực của nhóm đó hoặc Toàn quyền; người khác 403. Thống kê tuần CHỈ của nhóm đó.
+    // submitterId "" vì không có phiếu cụ thể: không ai có id rỗng nên chỉ còn nhánh thành viên/Toàn quyền của quyenPhieu.
+    route("GET", "/api/feedback/queue", "staff", async ({ env, staff, url }) => {
+      const team = url.searchParams.get("team");
+      const loc = url.searchParams.get("loc") ?? "ALL";
+      const status = url.searchParams.get("status");
+      if (!team || !isLocHangDoi(loc) || (status !== null && !isFeedbackStatus(status))) return error(400, "invalid_input", "Bộ lọc không hợp lệ.");
+      const t = await getTeam(env.DB, team);
+      if (!t) return error(404, "not_found", "Không tìm thấy nhóm.");
+      const q = quyenPhieu({ who: staff, submitterId: "", ticketTeamId: team, memberships: await memberships(env.DB, staff) });
+      if (!q.xuLy) return error(403, "forbidden", "Bạn không thuộc nhóm này.");
+      const since = new Date(Date.now() - 8 * 7 * 24 * 60 * 60 * 1000).toISOString();
+      const [rows, stats] = await Promise.all([
+        listQueueTeam(env.DB, staff.id, team, status, loc, can(staff, "feedback.triage"), intParam(url.searchParams.get("limit"), 50, 1, 100), intParam(url.searchParams.get("offset"), 0, 0, 100000)),
+        statsTeam(env.DB, since, team),
+      ]);
+      return json({
+        tickets: rows.map((r) => toTicket(r, true)),
+        stats: stats.map((s) => ({ week: s.week, kind: s.kind_code as FeedbackKind, status: s.status_code as FeedbackStatus, count: s.n })),
+      } satisfies FeedbackQueueResponse);
     }),
 
     // Hàng đợi (admin).
@@ -292,7 +316,8 @@ export const feedbackModule: AppModule = {
       if (!t) return NOT_FOUND();
       const q = quyenPhieu({ who: staff, submitterId: t.submitter_id, ticketTeamId: t.team_id, memberships: await memberships(env.DB, staff) });
       if (!q.doc) return NOT_FOUND();
-      await markSeen(env.DB, id, t.submitter_id === staff.id, can(staff, "feedback.triage"), new Date().toISOString());
+      // Mọi người đọc được phiếu đều ghi mốc đã xem RIÊNG của mình (chưa đọc tính theo từng người — ADR-0119).
+      await markSeen(env.DB, id, staff.id, t.submitter_id === staff.id, new Date().toISOString());
       const d = await detail(env.DB, staff, id);
       return d ? json(d) : NOT_FOUND();
     }),
@@ -317,6 +342,7 @@ export const feedbackModule: AppModule = {
         insertReplyStatement(env.DB, { id: messageId, ticketId: id, authorId: staff.id, body: v.value.body, internal: v.value.internal, now: at, windowStart: windowStart(now), limit: MESSAGE_LIMIT_PER_HOUR }),
         touchAfterReplyStatement(env.DB, { ticketId: id, messageId, now: at, internal: v.value.internal, authorId: staff.id }),
         auditStatement(env.DB, { staffId: staff.id, action: "feedback_replied", at, targetType: "feedback", targetId: id, detail: feedbackCode(t.seq) }, `EXISTS (SELECT 1 FROM fbk_message WHERE id = '${messageId}')`),
+        markSeenAfterWriteStatement(env.DB, { ticketId: id, staffId: staff.id, now: at }),
       ]);
       if (!(await messageExists(env.DB, messageId))) return RATE_LIMITED();
       if (staff.id === t.submitter_id) {
@@ -352,6 +378,7 @@ export const feedbackModule: AppModule = {
           { staffId: staff.id, action: to ? "feedback_status_changed" : "feedback_assigned", at, targetType: "feedback", targetId: id, detail: to ? `${feedbackCode(t.seq)}: ${from} → ${to}` : feedbackCode(t.seq) },
           "changes() > 0",
         ),
+        markSeenAfterWriteStatement(env.DB, { ticketId: id, staffId: staff.id, now: at }),
       ]);
       if ((res[0]?.meta.changes ?? 0) === 0) {
         const now = await getTicket(env.DB, id);
