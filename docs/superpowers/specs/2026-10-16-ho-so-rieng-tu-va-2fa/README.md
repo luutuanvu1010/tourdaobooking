@@ -1,6 +1,6 @@
 # Hồ sơ đầy đủ, giấy tờ đính kèm, quyền riêng tư, đăng nhập hai lớp — bản suy ra từ luật
 
-> Hồ sơ có ngày (2026-10-16), chỉ tài liệu, chưa có mã. Trạng thái: **đề xuất, chờ chủ duyệt các lượt ADR**. Bản này đã sửa theo một lượt kiểm độc lập và đã ghi ba quyết định chủ chốt ngày 2026-10-16. Đọc tiếp: `SUY-RA.md` (luật → hệ quả, điều mới cho Hiến chương, xung đột) · `PHUONG-AN.md` (kể cả mục "Bắt buộc đối tác" và bảng kiểm kê dữ liệu cá nhân §2.8) · `TRANG-GHEP.md` · `DE-XUAT-ADR.md` · `KE-HOACH-SUY-RA.md`.
+> Hồ sơ có ngày (2026-10-16), chỉ tài liệu, chưa có mã. Trạng thái: **đề xuất, chờ chủ duyệt các lượt ADR**. Bản này đã sửa theo hai lượt kiểm độc lập và đã ghi ba quyết định chủ chốt ngày 2026-10-16. Đọc tiếp: `SUY-RA.md` (luật → hệ quả, điều mới cho Hiến chương, xung đột) · `PHUONG-AN.md` (kể cả mục "Bắt buộc đối tác" và bảng kiểm kê dữ liệu cá nhân §2.8) · `TRANG-GHEP.md` · `DE-XUAT-ADR.md` · `KE-HOACH-SUY-RA.md`.
 
 ## Kết luận
 
@@ -33,6 +33,9 @@ Phần hồ sơ: **Quản trị và Nhân sự** cùng xác minh giấy tờ. Đ
 **M1. Nhân sự xác minh phiếu của những ai?**
 - **A (khuyến nghị, đang là giả định):** mọi phiếu, gồm đối tác và khách có tài khoản, trừ tài khoản Nhân sự không quản được (Quản trị, Toàn quyền, Nhân sự khác). Cách này chia được gánh ~1000 đối tác.
 - B: chỉ phiếu của nhân viên nội bộ. Nhân sự thấy ít dữ liệu người ngoài hơn, nhưng Quản trị gánh toàn bộ đối tác.
+- C: không thêm quyền cho Nhân sự, mà lập riêng một vai "Người xác minh hồ sơ" rồi Toàn quyền gán cho đúng người cần làm (đúng câu "gán thêm vai khác cho cùng người" của quyết định cũ về Nhân sự). Cách này không phải thay câu nào của quyết định cũ, nhưng thêm một loại quyền mới nên mọi bài kiểm tổ hợp quyền tăng gấp đôi và phải có thêm một bước sửa cơ sở dữ liệu. Đây là đổi cách chia quyền nên chỉ chủ chọn được.
+
+Dù chọn cách nào, người xác minh cũng **không được** xác minh phiếu của tài khoản mà chính họ đã tạo, hoặc đã đặt lại PIN, đổi quyền trong vòng 30 ngày trước khi phiếu được gửi. Luật này chặn trò "tự tạo tài khoản đối tác giả rồi tự xác minh giấy tờ giả", vì Nhân sự tạo được tài khoản và thấy PIN đầu, còn Quản trị đặt lại được PIN. Khi không còn ai hợp lệ thì phiếu chuyển lên Toàn quyền.
 
 **M2. Đối tác có được dùng Face ID thay lớp hai không?**
 - **A (khuyến nghị, đang là giả định):** có, như ADR-0074 đ3 cho mọi người, vì Face ID đã là hai yếu tố (máy + khuôn mặt).
@@ -42,9 +45,16 @@ Phần hồ sơ: **Quản trị và Nhân sự** cùng xác minh giấy tờ. Đ
 - **A (khuyến nghị, đang là giả định):** mỗi đợt có 14 ngày ân hạn như nội bộ. Đợt đầu khoảng 5 cộng tác viên thí điểm (như ADR-0014), sau đó khoảng 100 người mỗi đợt, do Toàn quyền bật.
 - B: một lần cho tất cả, 30 ngày ân hạn. Đơn giản hơn, nhưng dễ dồn hàng trăm cuộc gọi hỗ trợ cùng lúc.
 
+**M4. Đối tác không có hộp thư và không cài được ứng dụng xác thực thì sao?** Người này hết ân hạn sẽ bị chặn, và nút "mở lại 24 giờ" không cứu được vì họ không có gì để bật. Chưa ai đếm có bao nhiêu người như vậy; muốn biết phải chạy một truy vấn chỉ đọc trên dữ liệu thật, việc này của chủ.
+- **A (khuyến nghị, đang là giả định):** bắt buộc mỗi người có ít nhất một trong ba thứ: email đã xác nhận, ứng dụng xác thực, hoặc Face ID (Face ID chỉ tính nếu M2 chọn A). Trong thời gian ân hạn, Quản trị giúp trực tiếp (tạo email, cài ứng dụng, đăng ký Face ID). Không ai được miễn vĩnh viễn; chỉ Toàn quyền được cho miễn tạm, tối đa khoảng 14 ngày mỗi lần, có ghi nhật ký và tự hết hạn.
+- B: chấp nhận khoá. Người đó không dùng Nền tảng nữa, làm việc với văn phòng qua điện thoại; đơn giản nhưng văn phòng phải làm thay.
+- C: Quản trị giữ mã dự phòng hộ. Làm yếu bảo mật vì Quản trị đăng nhập thay được người khác (đúng lỗ tài khoản giả ở M1), cần một quyết định riêng.
+- D: chờ kênh khác như Zalo. Chưa có ngày, tốn phí, và trong lúc chờ phải hoãn những người này, trái ý "không phân biệt".
+
 ## Giả định khác đã ghi (bề mặt, đổi được)
 
-- Hết quan hệ nghĩa là tài khoản ngưng hoặc mọi vai đã đóng; lúc đó ảnh vào danh sách xoá.
+- Hết quan hệ nghĩa là **mọi vai** của người đó với công ty đã kết thúc; lúc đó ảnh vào danh sách xoá. Tài khoản chỉ bị ngưng thì chưa tính, vì ngưng có thể mở lại; nên người đã nghỉ mà chưa được đóng vai thì ảnh vẫn còn giữ.
+- Người xác minh chỉ bấm chấp nhận nguyên văn hoặc từ chối kèm lý do chọn sẵn, không sửa chữ người dùng khai. Phiếu đã xử lý thì không xem lại được chữ khai hay ảnh.
 - Giấy tờ không ghi ngày hết hạn được giữ tới khi người đó hết quan hệ.
 - Phiếu bị từ chối hoặc bị rút thì ảnh của phiếu vào danh sách xoá.
 - Kho R2 dùng bucket riêng; chỉ nhận ảnh JPG/PNG/HEIC và PDF tới 10 MB.

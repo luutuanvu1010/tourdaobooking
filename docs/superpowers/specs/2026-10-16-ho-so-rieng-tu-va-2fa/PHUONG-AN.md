@@ -49,7 +49,8 @@ Face ID: không qua bước 2 (đã là hai yếu tố, ADR-0074 đ3), vẫn qua
 | Mốc bắt đầu, tránh khoá cả ngàn người | **Cờ toàn cục** "bắt buộc lớp hai cho tài khoản bên ngoài" (dữ liệu có hiệu lực, chỉ Toàn quyền đổi, Hiến chương 5.2) + **đưa vào theo đợt**: Toàn quyền chọn một nhóm (vd 5 cộng tác viên thí điểm như ADR-0014, rồi ~100/đợt) → máy chủ đặt hạn ân hạn cho đúng nhóm đó. Cờ tắt → không đối tác nào bị chặn. Chỉ bật đợt đầu khi Phần C đã chạy ổn trên production | ADR-0014 (tiền lệ thí điểm 5 CTV) |
 | Hết ân hạn chưa bật | Đăng nhập PIN bị chặn, lời nhắn "Liên hệ Quản trị để mở lại việc bật bảo mật đăng nhập". Quản trị (sau khi gọi điện xác nhận đúng người) bấm "mở lại 24 giờ" → lần đăng nhập PIN kế tiếp trong 24 giờ chỉ vào được trang bật lớp hai | đặc tả 10-01 §4.5 (cơ chế 24 giờ sau khi bị tắt) |
 | Mất máy / mất hộp thư | Mã dự phòng; không có thì Quản trị tắt lớp hai (ADR-0074 đ5) rồi người đó bật lại trong 24 giờ. Nhân sự **không** làm hỗ trợ đăng nhập (ADR-0071 đ1e) | ADR-0074 đ5; ADR-0042 |
-| Face ID | **Giả định: vẫn miễn** (passkey đã là hai yếu tố, ADR-0074 đ3); chủ chưa nói về Face ID | ADR-0074 đ3 |
+| Face ID | **Giả định: vẫn miễn** (passkey đã là hai yếu tố, ADR-0074 đ3); chủ chưa nói về Face ID. Có Face ID đã đăng ký = đạt yêu cầu; nhưng hết ân hạn mà đăng nhập bằng PIN trên máy chưa tin thì bị chặn (không có yếu tố để hỏi), phải dùng Face ID | ADR-0074 đ3; ADR-G1 đ6 |
+| **Đối tác không có hộp thư và không cài được ứng dụng xác thực** | **Nói thẳng:** người này hết ân hạn sẽ **bị chặn**, và nút "mở lại 24 giờ" **không giải được** — nút đó chỉ mở trang bật lớp hai, mà người này không có yếu tố nào để bật. Số đối tác rơi vào trường hợp này: **chưa kiểm** (phải truy vấn chỉ đọc trên production, việc của chủ). **Đang áp làm giả định (README M4-A):** bắt buộc ít nhất **một** yếu tố — email đã xác nhận, ứng dụng xác thực, hoặc Face ID; trong ân hạn Quản trị hỗ trợ trực tiếp (giúp tạo email, cài ứng dụng, đăng ký Face ID trên điện thoại của chính người đó); **không có ngoại lệ vĩnh viễn**; ngoại lệ **tạm thời** thời hạn ngắn (giả định ≤ 14 ngày mỗi lần), chỉ Toàn quyền đặt, nhật ký trước, tự hết hạn bằng cách so lúc đăng nhập (không Cron ghi). Phương án khác và hệ quả: (B) **chấp nhận khoá** — người đó không dùng Nền tảng, làm việc với văn phòng qua điện thoại; đơn giản, nhưng văn phòng gánh thay việc của họ; (C) **Quản trị cấp mã dự phòng hộ** — Quản trị cầm yếu tố thứ hai của người khác, tức đăng nhập thay được: chính lỗ "tự xác minh qua tài khoản giả" (ADR-H5 đ5), làm yếu bảo mật, cần ADR riêng; (D) **chờ kênh khác** như Zalo (đợt 2 của đặc tả 10-01) — cần ADR + bí mật mới + chi phí, chưa có ngày; trong lúc chờ phải hoãn người đó khỏi đợt, trái "không phân biệt" của chủ | ADR-G1 đ6, đ7; HC-5.11 |
 | Bảo trì, Turnstile, sổ phiên | Không đổi: bước 2 qua `maintenanceBlock`; Turnstile ở bước 1; đối tác "nhiều máy" (ADR-0085) vẫn qua lớp hai ở mỗi máy chưa tin | đặc tả §6 |
 | Tải hỗ trợ | Ước tính (chưa đo): mỗi đợt ~100 người, nếu 10–20% không tự bật kịp thì 10–20 cuộc gọi Quản trị/đợt; thư gửi: mỗi máy mới một thư, máy được tin 30 ngày → cỡ vài nghìn thư/tháng cho ~1000 tài khoản (giá, giới hạn chưa tra). **Chưa kiểm** bao nhiêu đối tác đã có email trong hồ sơ (cần truy vấn chỉ đọc trên production — chủ chạy) | — |
 | Hoàn tác | Toàn quyền tắt cờ toàn cục → mọi đối tác trở lại như ADR-0074 đ1 ngay ở lần đăng nhập kế tiếp; yếu tố đã bật vẫn giữ (đã bật thì bị hỏi, như ADR-0074 đ1). Không mất dữ liệu | — |
@@ -72,7 +73,7 @@ Email là việc bên ngoài chạy **sau** lô ghi (Hiến chương 5.16): ghi 
 | Số CCCD, GPLX… của người | `pty_person_document` (đã có) | thực thể | B4; ADR-0040 D2 |
 | Loại giấy tờ tổ chức | `pty_organization_document_type` (mới; mã, tên, có hạn hay không, thứ tự, `active`; Quản trị sửa trên màn hình) | bảng tra cứu | B5; Hiến chương 2.2 |
 | Giấy tờ tổ chức (GPKD, GP lữ hành nội địa/quốc tế, GP kinh doanh lưu trú/xếp hạng, GP kinh doanh vận tải…) | `pty_organization_document` (mới; khuôn y hệt `pty_person_document`: số, `number_key`, ngày cấp, nơi cấp, hết hạn, `previous_id`, `voided_at`, `erased_at`, trigger cấm xoá / cấm sửa dòng đã gia hạn) | thực thể | B5, B6; khuôn đã có người kiểm |
-| Kết quả xác minh | `pty_verification` (mới, **chỉ-thêm**: đối tượng (loại + id dòng), kết luận `DA_XAC_MINH` / `TU_CHOI` / `CAN_XAC_MINH_LAI`, lý do (danh sách đóng + chữ ngắn), người xác minh, lúc) — trạng thái hiện tại = dòng mới nhất | sự kiện | B8; 5.5; trigger 0032 cấm sửa dòng cũ |
+| Kết quả xác minh | `pty_verification` (mới, **chỉ-thêm**: đối tượng (loại + id dòng), kết luận `DA_XAC_MINH` / `TU_CHOI` / `CAN_XAC_MINH_LAI`, lý do (chỉ danh sách đóng, không chữ tự do — ADR-H5 đ6), người xác minh, cờ "người xác minh từng tạo/chạm tài khoản" (chỉ khi Toàn quyền là chốt cuối — ADR-H5 đ5), lúc) — trạng thái hiện tại = dòng mới nhất | sự kiện | B8; 5.5; trigger 0032 cấm sửa dòng cũ |
 | Phiếu tự khai | `pty_self_submission` (mới, chỉ-thêm: hồ sơ, người khai = tài khoản phiên, các trường khai có kiểu, trạng thái `CHO` → `CHAP_NHAN` / `TU_CHOI` / `RUT`, người xử lý) | đối tượng có vòng đời (K5) | X4; 5.23 |
 | Tệp | `pty_attachment` (mới: khoá R2 ngẫu nhiên, loại theo nội dung thật, dung lượng, băm SHA-256 của tệp, hồ sơ chủ, người tải, lúc tải, `purged_at`, `purge_reason`) + `pty_attachment_link` (chỉ-thêm: tệp ↔ dòng giấy tờ hoặc phiếu) | thực thể + liên kết | 5.22; X8 |
 | Chính sách riêng tư | `pty_privacy_policy` (mới: phiên bản, nội dung tóm tắt các mục đích, `valid_from_at`; chỉ-thêm) | chính sách có hiệu lực | 5.21; Hiến chương 5.2 |
@@ -94,7 +95,12 @@ Người xác minh (ô party.verify — Quản trị, Nhân sự, Toàn quyền;
   ├─ Chấp nhận: MỘT lô = ghi vào pty_person / pty_contact_point / pty_*_document
   │     (câu lệnh do parties sinh) + pty_verification DA_XAC_MINH + phiếu CHAP_NHAN + nhật ký (chỉ mã)
   └─ Từ chối: phiếu TU_CHOI + lý do (danh sách đóng) ; người khai thấy lý do, khai lại
+  KHÔNG có nút sửa trường khai: chấp nhận nguyên văn hoặc từ chối (ADR-H5 đ6)
+  Sau khi xử lý: người xác minh không xem lại trường khai / ảnh; chỉ thấy mã phiếu, loại, kết luận, người xử lý, lúc
 Người xác minh ≠ người khai (máy chủ chặn, như ADR-0089 đ4c "người duyệt không tự chi")
+Tách nhiệm vụ (ADR-H5 đ5): người xác minh ≠ người đã tạo tài khoản chủ phiếu, ≠ người đã chạm quyền truy cập
+  tài khoản đó trong [lúc gửi phiếu − 30 ngày, lúc xác minh]; nguồn = audit_log qua lính gác của module audit;
+  không còn ai hợp lệ → "Chuyển Toàn quyền"
 Cấp bậc: Quản trị, Nhân sự không xác minh phiếu của tài khoản họ không quản được (canManageAccount: ADMIN/SUPER_ADMIN, và HR với HR khác — ADR-0071 đ1c)
 Sửa giá trị đã xác minh (kể cả Quản trị sửa ở Danh bạ) → pty_verification CAN_XAC_MINH_LAI cùng lô
 ```
@@ -157,8 +163,8 @@ Quá hạn chưa xử lý: chỉ cảnh báo đỏ ở hàng chờ (không Cron 
 |---|---|
 | Giấy tờ còn hạn (`expiry_date` rỗng hoặc ≥ hôm nay VN), là dòng hiện hành (chưa gia hạn thay, chưa huỷ) **và** người đó còn quan hệ | giữ |
 | Giấy tờ hết hạn, hoặc đã có dòng gia hạn thay, hoặc dòng bị huỷ | vào **danh sách xoá** ngay (không chờ 12 tháng) |
-| Giấy tờ không có ngày hết hạn (vd giấy phép kinh doanh thường không ghi hạn) | giữ khi còn quan hệ và hồ sơ còn hoạt động |
-| **Giả định:** chấm dứt quan hệ = tài khoản ngưng **và/hoặc** mọi vai với công ty đã đóng; hồ sơ bị gộp vào hồ sơ khác thì ảnh đi theo dòng giấy tờ sang hồ sơ chính (X8) | vào danh sách xoá khi hết quan hệ |
+| Giấy tờ không có ngày hết hạn (vd giấy phép kinh doanh thường không ghi hạn) | giữ tới khi hết quan hệ (định nghĩa ở dòng dưới) |
+| **Định nghĩa duy nhất (giả định):** hết quan hệ = **mọi vai** của hồ sơ (`pty_party_role`) đã đóng (`valid_to_date` đã qua theo giờ VN). Tài khoản bị ngưng **không** tính (ngưng có thể mở lại; hồ sơ không có tài khoản cũng phải tính được). Hệ quả biết trước: người đã nghỉ mà chỉ bị ngưng tài khoản, vai chưa đóng, thì ảnh còn giữ. Hồ sơ bị gộp vào hồ sơ khác thì ảnh đi theo dòng giấy tờ sang hồ sơ chính (X8) | vào danh sách xoá khi hết quan hệ |
 | Phiếu tự khai bị **từ chối** hoặc **rút** | vào danh sách xoá (không còn lý do giữ) — giả định |
 
 Danh sách xoá là **hình chiếu đọc** (tính lúc mở, không Cron ghi — X10, HC-5.11); Quản trị hoặc Toàn quyền bấm "Xoá ảnh" theo lô, máy chủ chạy lệnh có tên như phiếu xoá (chỉ phần tệp), nhật ký chỉ mã. CCCD gắn chip có ngày hết hạn (kiến thức chung, chưa tra) nên đi theo dòng đầu.
