@@ -18,7 +18,7 @@ export const HD_HDV: NhomHuongDan = {
       tieuDe: "Menu của bạn",
       noiDung: `Trên điện thoại, thanh dưới đáy chỉ có một nút: [[Tôi]].
 
-Trên máy tính, menu bên trái có: [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]].
+Trên máy tính, menu bên trái có: [[Của tôi]], [[Hỗ trợ]], [[Trợ giúp]].
 
 Mở app, bạn thấy trang [[Đơn hàng]]. Trang này chỉ có đơn **bạn đang lo**.
 

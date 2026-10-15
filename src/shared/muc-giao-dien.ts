@@ -188,7 +188,7 @@ export const THANH_BEN = [
   { nhom: "TÔI", trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "assign" },
   { nhom: "TÔI", trang: "ban", nhan: "Báo bận của tôi", bieuTuong: "clock" },
   { nhom: "TÔI", trang: "toi", nhan: "Của tôi", bieuTuong: "me" },
-  { nhom: "TÔI", trang: "gopY", nhan: "Góp ý / Báo lỗi", bieuTuong: "chat", moTu: (p: string) => `/feedback?new=1&from=${encodeURIComponent(p)}` },
+  { nhom: "TÔI", trang: "gopY", nhan: "Hỗ trợ", bieuTuong: "chat", moTu: (p: string) => `/feedback?new=1&from=${encodeURIComponent(p)}` },
   { nhom: "TÔI", trang: "troGiup", nhan: "Trợ giúp", bieuTuong: "help" },
 ] as const satisfies readonly ChoThanhBen[];
 
@@ -263,7 +263,7 @@ export const TRANG_TOI = [
   { phan: "sau", trang: "guiThongBao", nhan: "Gửi thông báo" },
   { phan: "sau", trang: "troLy", nhan: "Trợ lý Hỗ trợ" },
   { phan: "sau", trang: "giaoDien", nhan: "Giao diện" },
-  { phan: "sau", trang: "gopY", nhan: "Góp ý / Báo lỗi", khongSangTabToi: true },
+  { phan: "sau", trang: "gopY", nhan: "Hỗ trợ", khongSangTabToi: true },
   { phan: "sau", trang: "troGiup", nhan: "Trợ giúp" },
 ] as const satisfies readonly ChoTrangToi[];
 

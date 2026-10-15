@@ -114,7 +114,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "account.view": { ten: "xem danh sách tài khoản", moTa: "Mở trang Quản lý tài khoản." },
   "account.edit": { ten: "sửa tài khoản", moTa: "Sửa tên, số điện thoại, ngưng hoặc mở lại, gán vai cho tài khoản cấp dưới." },
   "audit.view": { ten: "xem trang Nhật ký", moTa: "Xem nhật ký toàn hệ thống." },
-  "feedback.submit": { ten: "gửi góp ý, báo lỗi", moTa: "Gửi góp ý hoặc báo lỗi từ mục Góp ý / Báo lỗi." },
+  "feedback.submit": { ten: "gửi góp ý, báo lỗi", moTa: "Gửi góp ý hoặc báo lỗi từ mục Hỗ trợ." },
   "feedback.view": { ten: "xem góp ý", moTa: "Xem yêu cầu góp ý mình đã gửi (Toàn quyền xem mọi yêu cầu)." },
   "feedback.triage": { ten: "tiếp nhận góp ý", moTa: "Đổi trạng thái, người xử lý, ghi chú nội bộ cho góp ý." },
   "feedback.team.manage": { ten: "quản lý nhóm hỗ trợ", moTa: "Tạo, sửa, ngưng nhóm hỗ trợ và gán, gỡ thành viên nhóm." },

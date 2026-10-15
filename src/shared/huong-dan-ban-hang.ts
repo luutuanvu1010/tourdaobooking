@@ -20,12 +20,12 @@ export const HD_BAN_HANG: NhomHuongDan = {
 
 - Nhóm **BÁN HÀNG**: [[Trang chủ]], [[Đơn hàng]] (số nhỏ bên cạnh là số đơn đang chờ xác nhận), [[Tạo đơn]], [[Danh bạ]].
 - Nhóm **QUẢN TRỊ**: [[Vận chuyển]] › [[Điều phối xe]] (xem mục riêng), [[Hoa hồng đối tác]] (chỉ xem).
-- Nhóm **TÔI**: [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]]. Nút [[Đăng xuất]] ở dưới cùng.
+- Nhóm **TÔI**: [[Của tôi]], [[Hỗ trợ]], [[Trợ giúp]]. Nút [[Đăng xuất]] ở dưới cùng.
 - Thanh trên cùng: ô tìm đơn, nút [[Tạo đơn]] và cái chuông thông báo.
 
 ### Trên điện thoại (thanh dưới đáy)
 
-Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong trang [[Tôi]] có [[Danh bạ]], [[Điều phối xe]], [[Góp ý / Báo lỗi]], [[Trợ giúp]], [[Đăng xuất]] và nút [[Bật thông báo trên điện thoại]].`,
+Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong trang [[Tôi]] có [[Danh bạ]], [[Điều phối xe]], [[Hỗ trợ]], [[Trợ giúp]], [[Đăng xuất]] và nút [[Bật thông báo trên điện thoại]].`,
     },
     {
       tieuDe: "Lập đơn mới",
@@ -202,7 +202,7 @@ Huỷ được đơn chờ xác nhận lẫn đã xác nhận mà bạn lập ho
 - Khách trả thêm: bấm [[Ghi lần thu]] trên đơn bạn lập. Hoàn tiền, hoá đơn → **Kế toán**.
 - Quên mã PIN, bị khoá đăng nhập → **Quản trị**.
 - Xe thiếu giấy tờ, tài xế thiếu bằng lái, thiếu nghỉ hay trái cam kết xe khi còn hơn 6 giờ → **Quản trị**.
-- Báo lỗi app, góp ý → [[Góp ý / Báo lỗi]].`,
+- Báo lỗi app, góp ý → [[Hỗ trợ]].`,
     },
     {
       tieuDe: "Câu hỏi thường gặp",

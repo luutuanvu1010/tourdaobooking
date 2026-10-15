@@ -21,13 +21,13 @@ export const HD_KE_TOAN: NhomHuongDan = {
 Thanh menu dọc bên trái có:
 - Nhóm BÁN HÀNG: [[Trang chủ]], [[Đơn hàng]], [[Danh bạ]]. Cạnh [[Đơn hàng]] có số nhỏ, là số đơn chưa xác nhận.
 - Nhóm QUẢN TRỊ: [[Vận chuyển]], bên dưới là [[Điều phối xe]] và [[Xe đang chạy]]; rồi [[Khoá sổ tháng]], [[Điều chỉnh công nợ]], [[Hoa hồng đối tác]] và [[Người bán dịch vụ]].
-- Nhóm TÔI: [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]].
+- Nhóm TÔI: [[Của tôi]], [[Hỗ trợ]], [[Trợ giúp]].
 
 Trên đầu trang có ô tìm kiếm. Gõ mã đơn, tên khách hoặc số điện thoại rồi bấm phím Enter là ra danh sách đơn khớp.
 
 ### Trên điện thoại
 
-Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các mục khác như [[Danh bạ]], [[Điều phối xe]], [[Điều chỉnh công nợ]], [[Góp ý / Báo lỗi]], [[Trợ giúp]] nằm trong trang [[Tôi]].
+Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các mục khác như [[Danh bạ]], [[Điều phối xe]], [[Điều chỉnh công nợ]], [[Hỗ trợ]], [[Trợ giúp]] nằm trong trang [[Tôi]].
 
 > Lưu ý: Bạn không thấy nút [[Tạo đơn]]. Đó là đúng, vì Kế toán không lập đơn.`,
     },
@@ -243,7 +243,7 @@ Máy đã bật Face ID: vào [[Tôi]], bấm [[Quên PIN? Đặt PIN mới bằ
 
 ### Tôi muốn báo một chỗ sai trong app
 
-Bấm [[Góp ý / Báo lỗi]], ghi rõ mã đơn và việc bạn thấy sai.`,
+Bấm [[Hỗ trợ]], ghi rõ mã đơn và việc bạn thấy sai.`,
     },
   ],
 };
