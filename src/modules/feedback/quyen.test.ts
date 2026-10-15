@@ -28,10 +28,19 @@ test("người gửi: đọc được phiếu của mình, không xử lý, khô
 
 test("người gửi đồng thời là thành viên nhóm nhận: vẫn chỉ là người gửi (R2)", () => {
   const r = q(who("gui", "ACCOUNTING"), [TV(KE_TOAN, "LEAD")], { submitterId: "gui" });
-  assert.equal(r.doc, true);
-  assert.equal(r.xuLy, false);
-  assert.equal(r.chuyenNhom, false);
-  assert.equal(r.noiBo, "none");
+  assert.deepEqual(r, { doc: true, xuLy: false, giaoViecChoNguoiKhac: false, chuyenNhom: false, noiBo: "none" });
+});
+
+test("R6: tài khoản có mã quyền bên ngoài (kể cả tài khoản lai) KHÔNG có tư cách thành viên nhóm, dù dữ liệu có dòng thành viên", () => {
+  const ngoai: PermissionCode[][] = [["PARTNER"], ["DRIVER_PARTNER"], ["SALES", "PARTNER"]];
+  for (const p of ngoai) {
+    for (const role of ["LEAD", "MEMBER"] as const) {
+      const r = q(who("ngoai", ...p), [TV(KE_TOAN, role)]);
+      assert.deepEqual(r, { doc: false, xuLy: false, giaoViecChoNguoiKhac: false, chuyenNhom: false, noiBo: "none" }, `${p.join("+")} ${role}`);
+    }
+  }
+  // Phiếu của chính mình: vẫn đọc được với tư cách người gửi (feedback.view own), không hơn.
+  assert.deepEqual(q(who("ngoai", "PARTNER"), [TV(KE_TOAN, "LEAD")], { submitterId: "ngoai" }), { doc: true, xuLy: false, giaoViecChoNguoiKhac: false, chuyenNhom: false, noiBo: "none" });
 });
 
 test("thành viên nhóm giữ phiếu: đọc, xử lý, thấy ghi chú của nhóm; không giao người khác, không chuyển nhóm", () => {

@@ -19,7 +19,9 @@ export interface QuyenPhieu {
 export function quyenPhieu(a: { who: PermissionHolder; submitterId: string; ticketTeamId: string; memberships: readonly Membership[] }): QuyenPhieu {
   const sieu = can(a.who, "feedback.triage");
   const laNguoiGui = a.who.id === a.submitterId;
-  const tv = a.memberships.find((m) => m.teamId === a.ticketTeamId) ?? null;
+  // R6: tài khoản có mã quyền bên ngoài (kể cả tài khoản lai) không bao giờ có tư cách thành viên nhóm, dù dữ liệu có dòng thành viên (lưới thứ hai sau route gán).
+  const ngoai = a.who.permissions.some(isExternalPermission);
+  const tv = ngoai ? null : (a.memberships.find((m) => m.teamId === a.ticketTeamId) ?? null);
   // Người gửi chỉ có tư cách người gửi với phiếu của chính mình (R2), trừ Toàn quyền.
   const xuLy = sieu || (tv !== null && !laNguoiGui);
   const truongNhom = tv !== null && tv.role === "LEAD" && !laNguoiGui;
