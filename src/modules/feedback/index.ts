@@ -28,6 +28,7 @@ const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy yêu cầu."
 const RATE_LIMITED = () => error(429, "rate_limited", "Bạn gửi quá nhiều trong một giờ, hãy thử lại sau.");
 const BAD_ASSIGNEE = () => error(400, "invalid_input", "Người xử lý phải là thành viên đang hoạt động của nhóm giữ phiếu (không phải người gửi).");
 const STALE_TEAM = () => error(409, "stale", "Phiếu vừa đổi nhóm, hãy tải lại.");
+const CLOSED_NO_TRANSFER = () => error(409, "conflict", "Phiếu đã đóng, hãy mở lại trước khi chuyển nhóm.");
 const BAD_JSON = () => error(400, "invalid_input", "Nội dung gửi lên không hợp lệ.");
 const TEAM_FORBIDDEN = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống được quản lý nhóm hỗ trợ.");
 const TEAM_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy nhóm hỗ trợ.");
@@ -370,7 +371,7 @@ export const feedbackModule: AppModule = {
       // Lô: cổng (PATCH_TICKET) → sự kiện ASSIGNED khi đổi người (changes() của câu cập nhật) → nhật ký (changes() của câu ngay trước: sự kiện, hoặc câu cập nhật
       // khi không có sự kiện — sự kiện chỉ chèn khi câu cập nhật đổi dòng nên hai cách đều nghĩa là «cổng đã qua») → mốc đã xem của người làm.
       const res = await env.DB.batch([
-        patchTicketStatement(env.DB, { id, status: to, assignee: v.value.assignee, resolvedIn: v.value.resolvedIn, now: at, adminId: staff.id, fromStatus: from }),
+        patchTicketStatement(env.DB, { id, status: to, assignee: v.value.assignee, resolvedIn: v.value.resolvedIn, now: at, adminId: staff.id, fromStatus: from, teamId: t.team_id }),
         ...(doiNguoi
           ? [insertEventStatement(env.DB, { id: crypto.randomUUID(), ticketId: id, type: "ASSIGNED", from: t.assignee_id, to: v.value.assignee!.value, actor: staff.id, now: at })]
           : []),
@@ -383,7 +384,8 @@ export const feedbackModule: AppModule = {
       ]);
       if ((res[0]?.meta.changes ?? 0) === 0) {
         const now = await getTicket(env.DB, id);
-        if (now && now.status_code !== from) return error(409, "stale", "Yêu cầu vừa được người khác đổi trạng thái, hãy tải lại.");
+        if (!now || now.team_id !== t.team_id) return STALE_TEAM();
+        if (now.status_code !== from) return error(409, "stale", "Yêu cầu vừa được người khác đổi trạng thái, hãy tải lại.");
         return BAD_ASSIGNEE();
       }
       const d = await detail(env.DB, staff, id);
@@ -409,6 +411,8 @@ export const feedbackModule: AppModule = {
       const dich = await getTeam(env.DB, v.value.teamId);
       if (!dich || dich.active !== 1) return error(400, "invalid_input", "Nhóm nhận không hợp lệ.");
       if (dich.id === t.team_id) return error(409, "stale", "Phiếu đang ở nhóm này.");
+      // R13: phiếu đã đóng không chuyển nhóm (tránh xoá người xử lý / đẩy chấm đỏ của phiếu đã đóng). Câu TRANSFER cũng có điều kiện này (khỏi race).
+      if (t.status_code === "DONE" || t.status_code === "DECLINED") return CLOSED_NO_TRANSFER();
       const cu = await getTeam(env.DB, t.team_id);
       const at = new Date().toISOString();
       const eventId = crypto.randomUUID();
@@ -428,6 +432,7 @@ export const feedbackModule: AppModule = {
       if ((res[0]?.meta.changes ?? 0) === 0) {
         const lai = await getTicket(env.DB, id);
         if (!lai || lai.team_id !== t.team_id) return STALE_TEAM();
+        if (lai.status_code === "DONE" || lai.status_code === "DECLINED") return CLOSED_NO_TRANSFER(); // phiếu vừa đóng
         return error(400, "invalid_input", "Nhóm nhận không hợp lệ."); // nhóm đích vừa bị ngưng
       }
       // Trưởng nhóm cũ mất quyền ngay (detail ⇒ null): vẫn trả 200 với phiếu và tin CÔNG KHAI, mọi quyền false — không kèm ghi chú nội bộ nhóm nào.
@@ -511,7 +516,7 @@ export const feedbackModule: AppModule = {
       }
       const at = new Date().toISOString();
       const res = await env.DB.batch([
-        patchTicketStatement(env.DB, { id, status: to, assignee: v.value.assignee, resolvedIn: v.value.resolvedIn, now: at, adminId: staff.id, fromStatus: from }),
+        patchTicketStatement(env.DB, { id, status: to, assignee: v.value.assignee, resolvedIn: v.value.resolvedIn, now: at, adminId: staff.id, fromStatus: from, teamId: t.team_id }),
         auditStatement(
           env.DB,
           { staffId: staff.id, action: to ? "feedback_status_changed" : "feedback_assigned", at, targetType: "feedback", targetId: id, detail: to ? `${feedbackCode(t.seq)}: ${from} → ${to}` : feedbackCode(t.seq) },
@@ -521,7 +526,8 @@ export const feedbackModule: AppModule = {
       ]);
       if ((res[0]?.meta.changes ?? 0) === 0) {
         const now = await getTicket(env.DB, id);
-        if (now && now.status_code !== from) return error(409, "stale", "Yêu cầu vừa được người khác đổi trạng thái, hãy tải lại.");
+        if (!now || now.team_id !== t.team_id) return STALE_TEAM();
+        if (now.status_code !== from) return error(409, "stale", "Yêu cầu vừa được người khác đổi trạng thái, hãy tải lại.");
         return BAD_ASSIGNEE();
       }
       const d = await detail(env.DB, staff, id);

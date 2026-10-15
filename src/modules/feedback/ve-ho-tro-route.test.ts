@@ -645,3 +645,70 @@ test("phiếu nhóm nhạy cảm: Quản trị và Nhân sự (không thuộc nh
   // Thành viên thường của nhóm nhạy cảm: thấy được nhưng không chuyển được (403).
   assert.equal((await chuyen(w, ns, NS_TV, KY_THUAT)).status, 403);
 });
+
+// ---- Vòng sửa 1 (người kiểm 5d) ---------------------------------------------------------------------------------------
+test("PATCH_TICKET theo nhóm: đổi trạng thái / giao việc đúng lúc phiếu vừa chuyển nhóm ⇒ 409 stale (cả /xu-ly lẫn tuyến cũ), không sự kiện, không nhật ký", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  const PATCH_RE = /assignee_id = CASE WHEN \?3 = 1/;
+  const kiemKhongGhi = (nhan: string) => {
+    assert.equal(w.q(`SELECT status_code FROM fbk_ticket WHERE id = '${id}'`)[0].status_code, "NEW", nhan);
+    assert.equal(w.q(`SELECT assignee_id FROM fbk_ticket WHERE id = '${id}'`)[0].assignee_id, null, nhan);
+    assert.equal(w.q(`SELECT count(*) AS n FROM fbk_ticket_event WHERE ticket_id = '${id}'`)[0].n, 0, nhan);
+    assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action IN ('feedback_status_changed', 'feedback_assigned')")[0].n, 0, nhan);
+  };
+  // /xu-ly: thành viên đổi trạng thái.
+  chenTruocLo(w, PATCH_RE, doiNhomThang(w, id, NHAN_SU));
+  let r = await xuLy(w, id, KT_TV, { status: "ACK" });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "stale");
+  assert.equal(r.json.error.message, "Phiếu vừa đổi nhóm, hãy tải lại.");
+  kiemKhongGhi("xu-ly trạng thái");
+  // /xu-ly: Trưởng nhóm giao việc (người nhận thuộc nhóm MỚI — không được gán chéo).
+  w.sqlite.exec(`UPDATE fbk_ticket SET team_id = '${KE_TOAN}' WHERE id = '${id}'`);
+  chenTruocLo(w, PATCH_RE, () => { w.sqlite.exec(`UPDATE fbk_ticket SET team_id = '${NHAN_SU}' WHERE id = '${id}'`); });
+  w.sqlite.exec(`INSERT INTO fbk_team_member (id, team_id, staff_id, role, valid_from_at, created_at, updated_at) VALUES ('tv-ns-kttv', '${NHAN_SU}', '${KT_TV}', 'MEMBER', '${NOW}', '${NOW}', '${NOW}')`);
+  r = await xuLy(w, id, KT_TN, { assigneeId: KT_TV });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.message, "Phiếu vừa đổi nhóm, hãy tải lại.");
+  kiemKhongGhi("xu-ly giao việc");
+  // Tuyến cũ (Toàn quyền).
+  w.sqlite.exec(`UPDATE fbk_ticket SET team_id = '${KE_TOAN}' WHERE id = '${id}'`);
+  chenTruocLo(w, PATCH_RE, doiNhomThang(w, id, NHAN_SU));
+  r = await w.call("PATCH", `/api/feedback/${id}`, { as: SUPER, body: { status: "ACK" } });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.message, "Phiếu vừa đổi nhóm, hãy tải lại.");
+  kiemKhongGhi("tuyến cũ");
+});
+
+test("Toàn quyền nhận việc rồi bị khoá ⇒ assigneeActive false, hiện ở UNASSIGNED, thành viên nhận được", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  assert.equal((await nhan(w, id, SUPER)).status, 200);
+  w.sqlite.exec(`UPDATE staff SET active = 0 WHERE id = '${SUPER}'`);
+  assert.equal((await d(w, id, KT_TN)).json.ticket.assigneeActive, false);
+  assert.deepEqual((await hang(w, KT_TN, "&loc=UNASSIGNED")).json.tickets.map((t: any) => t.id), [id]);
+  const r = await nhan(w, id, KT_TV);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.ticket.assigneeId, KT_TV);
+});
+
+test("R13: phiếu đã đóng (Đã xong/Từ chối) không chuyển nhóm ⇒ 409 conflict, kể cả khi phiếu vừa đóng giữa lúc kiểm và lúc ghi", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  for (const st of ["DONE", "DECLINED"]) {
+    w.sqlite.exec(`UPDATE fbk_ticket SET status_code = '${st}' WHERE id = '${id}'`);
+    const r = await chuyen(w, id, KT_TN, NHAN_SU);
+    assert.equal(r.status, 409, `${st} ${r.text}`);
+    assert.equal(r.json.error.code, "conflict");
+    assert.equal(r.json.error.message, "Phiếu đã đóng, hãy mở lại trước khi chuyển nhóm.");
+  }
+  w.sqlite.exec(`UPDATE fbk_ticket SET status_code = 'ACK' WHERE id = '${id}'`);
+  chenTruocLo(w, /UPDATE fbk_ticket SET team_id = \?2/, () => { w.sqlite.exec(`UPDATE fbk_ticket SET status_code = 'DONE' WHERE id = '${id}'`); });
+  const r = await chuyen(w, id, KT_TN, NHAN_SU);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "conflict");
+  assert.equal(w.q(`SELECT team_id FROM fbk_ticket WHERE id = '${id}'`)[0].team_id, KE_TOAN);
+  assert.equal(w.q("SELECT count(*) AS n FROM fbk_ticket_event")[0].n, 0);
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'feedback_team_changed'")[0].n, 0);
+});

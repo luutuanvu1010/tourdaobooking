@@ -228,7 +228,8 @@ const TOUCH_AFTER_REPLY = defineSql(
 );
 // Đổi trạng thái/người xử lý (tuyến cũ PATCH /api/feedback/:id của Toàn quyền VÀ tuyến PATCH …/xu-ly theo quyenPhieu dùng chung câu này).
 // ?1 id, ?2 trạng thái mới hoặc NULL, ?3 có đổi người xử lý (0/1), ?4 người xử lý mới, ?5 có đổi resolved_in (0/1),
-// ?6 resolved_in mới, ?7 bây giờ, ?8 người làm, ?9 trạng thái CŨ (khoá lạc quan: đã khác → 0 dòng đổi).
+// ?6 resolved_in mới, ?7 bây giờ, ?8 người làm, ?9 trạng thái CŨ (khoá lạc quan: đã khác → 0 dòng đổi),
+// ?10 nhóm route đã kiểm quyền (khoá lạc quan theo nhóm như R11: phiếu vừa chuyển nhóm → 0 dòng, người vừa mất quyền không ghi được).
 // Người xử lý mới (ADR-0119 điều 2) phải là thành viên ĐANG hiệu lực, tài khoản còn hoạt động, của nhóm ĐANG giữ phiếu, và không phải người gửi phiếu.
 // Mốc "đã xem" riêng của người làm ghi bằng markSeenAfterWriteStatement CÙNG lô, sau câu này.
 const PATCH_TICKET = defineSql(
@@ -241,7 +242,7 @@ const PATCH_TICKET = defineSql(
      last_activity_at = CASE WHEN ?2 IS NULL THEN last_activity_at ELSE ?7 END,
      last_public_reply_at = CASE WHEN ?2 IS NULL THEN last_public_reply_at ELSE ?7 END,
      updated_at = ?7, updated_by = ?8
-   WHERE id = ?1 AND status_code = ?9
+   WHERE id = ?1 AND status_code = ?9 AND team_id = ?10
      AND (?3 = 0 OR ?4 IS NULL OR (?4 <> fbk_ticket.submitter_id AND EXISTS (SELECT 1 FROM fbk_team_member m JOIN v_stf_staff_label s ON s.id = m.staff_id
        WHERE m.team_id = fbk_ticket.team_id AND m.staff_id = ?4 AND m.valid_to_at IS NULL AND s.active = 1)))`,
 );
@@ -269,7 +270,7 @@ const INSERT_EVENT = defineSql(
    SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?6, ?6 WHERE changes() > 0`,
 );
 // Chuyển nhóm (ADR-0119 điều 8): khoá lạc quan theo nhóm HIỆN TẠI (?4 — nhóm route đã kiểm quyền); bỏ người xử lý; Đang xử lý ⇒ Đã tiếp nhận do chính câu này đặt
-// (không qua bảng luật chuyển trạng thái thủ công). Chuyển sang chính nhóm đang giữ, phiếu vừa đổi nhóm, hay nhóm đích không có/đã ngưng ⇒ 0 dòng.
+// (không qua bảng luật chuyển trạng thái thủ công). Chuyển sang chính nhóm đang giữ, phiếu vừa đổi nhóm, phiếu đã đóng (R13), hay nhóm đích không có/đã ngưng ⇒ 0 dòng.
 // ?1 phiếu, ?2 nhóm mới, ?3 bây giờ, ?4 nhóm cũ, ?5 người làm. updated_at/updated_by = mốc của lệnh (cổng cho markSeenAfterWriteStatement cùng lô).
 const TRANSFER = defineSql(
   "feedback",
@@ -277,7 +278,7 @@ const TRANSFER = defineSql(
   `UPDATE fbk_ticket SET team_id = ?2, assignee_id = NULL,
      status_code = CASE WHEN status_code = 'IN_PROGRESS' THEN 'ACK' ELSE status_code END,
      last_activity_at = ?3, updated_at = ?3, updated_by = ?5
-   WHERE id = ?1 AND team_id = ?4 AND ?2 <> ?4 AND EXISTS (SELECT 1 FROM fbk_team WHERE id = ?2 AND active = 1)`,
+   WHERE id = ?1 AND team_id = ?4 AND ?2 <> ?4 AND status_code NOT IN ('DONE', 'DECLINED') AND EXISTS (SELECT 1 FROM fbk_team WHERE id = ?2 AND active = 1)`,
 );
 // Lý do chuyển = ghi chú nội bộ của nhóm MỚI (?6). Cổng: sự kiện TEAM_CHANGED ?7 của CÙNG lô đã chèn (sự kiện chỉ chèn khi TRANSFER đổi dòng) — chính xác hơn so
 // mốc giờ. ?1 id tin, ?2 phiếu, ?3 tác giả, ?4 nội dung, ?5 bây giờ, ?6 nhóm mới, ?7 id sự kiện.
@@ -321,11 +322,11 @@ export const touchAfterReplyStatement = (db: D1Database, a: { ticketId: string; 
   db.prepare(TOUCH_AFTER_REPLY).bind(a.ticketId, a.messageId, a.now, a.internal ? 1 : 0, a.authorId);
 export const patchTicketStatement = (
   db: D1Database,
-  a: { id: string; status: string | null; assignee?: { value: string | null }; resolvedIn?: { value: string | null }; now: string; adminId: string; fromStatus: string },
+  a: { id: string; status: string | null; assignee?: { value: string | null }; resolvedIn?: { value: string | null }; now: string; adminId: string; fromStatus: string; teamId: string },
 ) =>
   db
     .prepare(PATCH_TICKET)
-    .bind(a.id, a.status, a.assignee ? 1 : 0, a.assignee?.value ?? null, a.resolvedIn ? 1 : 0, a.resolvedIn?.value ?? null, a.now, a.adminId, a.fromStatus);
+    .bind(a.id, a.status, a.assignee ? 1 : 0, a.assignee?.value ?? null, a.resolvedIn ? 1 : 0, a.resolvedIn?.value ?? null, a.now, a.adminId, a.fromStatus, a.teamId);
 export const claimStatement = (db: D1Database, a: { id: string; staffId: string; now: string; teamId: string }) => db.prepare(CLAIM).bind(a.id, a.staffId, a.now, a.teamId);
 export const transferStatement = (db: D1Database, a: { id: string; toTeam: string; fromTeam: string; now: string; by: string }) =>
   db.prepare(TRANSFER).bind(a.id, a.toTeam, a.now, a.fromTeam, a.by);
