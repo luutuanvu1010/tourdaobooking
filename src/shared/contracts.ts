@@ -53,6 +53,18 @@ export interface StaffRolesResponse { roles: RoleCode[]; adds: PermissionCode[];
  */
 export interface MeResponse { staff: StaffProfile; maintenance?: MaintenanceStatusDto; benDatCuaToi?: { partyId: string; ten: string } | null }
 /**
+ * `POST /api/auth/login` khi PIN đúng nhưng CHƯA cấp phiên (ADR-0074 điều 2–3): kèm cookie chờ `td_mfa_pending` (5 phút, chỉ mở `/api/auth/mfa/*`).
+ * - `next: "mfa"`: nhập mã ở bước hai (`POST /api/auth/mfa/verify`); `factors` = các cách đang có (luôn kèm "RECOVERY" — mã dự phòng); `emailMask` = email đã che
+ *   (`t***@gmail.com`) khi có yếu tố email (Phần C), không bao giờ là email đầy đủ.
+ * - `next: "mfa_enroll"`: cửa sổ 24 giờ sau khi Quản trị/Toàn quyền tắt lớp hai — chỉ được bật lại (Task 6).
+ * Các phản hồi khác của route: `200 MeResponse` + `td_session`; `403 mfa_setup_required` (nội bộ chưa bật, hết ân hạn).
+ */
+export type LoginMfaStepResponse =
+  | { next: "mfa"; factors: ("TOTP" | "EMAIL" | "RECOVERY")[]; emailMask: string | null }
+  | { next: "mfa_enroll" };
+/** `POST /api/auth/mfa/verify` đúng mã → `td_session` (+ `td_trusted` nếu chọn tin máy 30 ngày). `recoveryLeft`: chỉ khi vừa dùng mã dự phòng — số mã còn lại. */
+export interface MfaVerifyResponse { staff: StaffProfile; recoveryLeft?: number }
+/**
  * `GET /api/auth/config` (công khai): khoá site để trang đăng nhập dựng widget Turnstile; null = máy chủ không bật Turnstile (đừng dựng widget, đăng nhập không cần token).
  * `maintenance`: trang đăng nhập hiện banner + đếm ngược khi đang bảo trì. KHÔNG lộ ai được phép.
  */

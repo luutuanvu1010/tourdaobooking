@@ -10,11 +10,11 @@ import { hashPin, verifyDummy, verifyPin } from "./password";
 import { isValidPin, normalizePhone } from "./phone";
 import {
   accountIdOfParty, closeAdjustmentStatement, closePermissionStatement, countActiveAdmins, findById, findByPhone, insertAdjustmentStatement, insertPermissionStatement,
-  insertStaffStatement, labelsByIds, listAll, openAdjustments, parsePermissions, partiesWithAccount, phonesByParty, recordLoginRow, sessionOwnersByIds, setPinStatement as setPinRow, touchCredentialsStatement, updateStaffStatement,
+  insertStaffStatement, labelsByIds, listAll, mfaDeadlinesRow, openAdjustments, parsePermissions, partiesWithAccount, phonesByParty, recordLoginRow, sessionOwnersByIds, setPinStatement as setPinRow, touchCredentialsStatement, updateStaffStatement,
   type AdjustmentRow, type StaffRow,
 } from "./repository";
 import {
-  KHONG_NHAN_VAI_NOI_BO, canManageAccount, checkAccountChange, coQuyenNoiBo, generatePin, isWeakPin, moNoiBoChoHoSoCoNhanProblem, partyAccountVerdict, validateFreshPin,
+  KHONG_NHAN_VAI_NOI_BO, canManageAccount, checkAccountChange, coQuyenNoiBo, generatePin, isWeakPin, mfaGraceOnCreate, moNoiBoChoHoSoCoNhanProblem, partyAccountVerdict, validateFreshPin,
 } from "./rules";
 import type { PartyMatchResponse, StaffAccount, StaffProfile } from "../../shared/contracts";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions";
@@ -105,6 +105,15 @@ export async function getActiveStaff(db: D1Database, id: string, sessionIssuedAt
   return toProfile(staff);
 }
 
+/**
+ * HÀM CÔNG BỐ (ADR-0074) — module auth gọi ở cổng lớp hai của đăng nhập PIN: hạn ân hạn 14 ngày (`mfa_grace_until`) và cửa sổ bật lại 24 giờ sau khi
+ * Quản trị/Toàn quyền tắt lớp hai (`mfa_enroll_until`), ISO UTC hoặc null. Tài khoản không có → cả hai null (cổng đóng cửa an toàn với tài khoản nội bộ).
+ */
+export async function mfaDeadlinesOf(db: D1Database, id: string): Promise<{ graceUntil: string | null; enrollUntil: string | null }> {
+  const r = await mfaDeadlinesRow(db, id);
+  return { graceUntil: r?.mfa_grace_until ?? null, enrollUntil: r?.mfa_enroll_until ?? null };
+}
+
 export async function getStaffAccount(db: D1Database, id: string): Promise<StaffAccount | null> {
   const s = await findById(db, id);
   return s ? toAccount(s) : null;
@@ -161,7 +170,7 @@ export async function createAccountStatements(
     pin,
     statements: [
       ...person.statements,
-      insertStaffStatement(db, { id, phone: input.phone, pinHash: await hashPin(pin), createdAt: at, partyId: person.partyId }),
+      insertStaffStatement(db, { id, phone: input.phone, pinHash: await hashPin(pin), createdAt: at, partyId: person.partyId, mfaGraceUntil: mfaGraceOnCreate(input.permissions, now.getTime()) }),
       ...input.permissions.map((code) => insertPermissionStatement(db, id, code, actorId, at, false)),
     ],
   };
@@ -381,7 +390,7 @@ export async function createAccountWithRolesStatements(
   const adjust = (code: PermissionCode, direction: "ADD" | "REMOVE") =>
     insertAdjustmentStatement(db, { staffId: id, code, direction, reason: assignment.reason ?? "", at, actorId, guarded: false });
   statements.push(
-    insertStaffStatement(db, { id, phone: input.phone, pinHash: await hashPin(pin), createdAt: at, partyId }),
+    insertStaffStatement(db, { id, phone: input.phone, pinHash: await hashPin(pin), createdAt: at, partyId, mfaGraceUntil: mfaGraceOnCreate(permissions, now.getTime()) }),
     ...permissions.map((code) => insertPermissionStatement(db, id, code, actorId, at, false)),
     ...assignment.adds.map((c) => adjust(c, "ADD")),
     ...assignment.removes.map((c) => adjust(c, "REMOVE")),

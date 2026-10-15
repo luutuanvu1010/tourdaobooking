@@ -2,12 +2,16 @@
 // Kiểm quyền từng route KHÔNG nằm ở đây: router (src/shared/router.ts) dùng `currentStaff` do gốc lắp ráp truyền vào.
 import { getMaintenanceState, maintenanceBlock, toStatus, type MaintenanceState } from "../maintenance";
 import { ownerCompany } from "../parties";
-import { accountRoleCodesOf, authenticate, findStaffByPhone, getActiveStaff, isValidPin, normalizePhone, recordLogin, type StaffProfile } from "../staff";
+import { accountRoleCodesOf, authenticate, findStaffByPhone, getActiveStaff, isValidPin, mfaDeadlinesOf, normalizePhone, recordLogin, type StaffProfile } from "../staff";
 import { APP_VERSION } from "../../shared/app-info";
-import type { AuthConfigResponse, MeResponse, PasskeyRequestOptionsResponse, SessionPolicyChange } from "../../shared/contracts";
+import type { AuthConfigResponse, LoginMfaStepResponse, MeResponse, MfaVerifyResponse, PasskeyRequestOptionsResponse, SessionPolicyChange } from "../../shared/contracts";
 import { error, getCookie, json, readJson } from "../../shared/http";
 import { dbNgoaiVe } from "../../shared/lan-gui-boc";
 import { route, type AppModule } from "../../shared/router";
+import { newTrustedToken, sha256Hex } from "./mfa-crypto";
+import { MFA_LIMIT, TRUSTED_COOKIE, TRUSTED_TTL_SECONDS, maskEmail, mfaKey, mfaKeyReady, trustedCookie, useRecoveryCode, useTotp } from "./mfa-dang-nhap";
+import { factorListLive, recoveryCountLeft, trustedFind, trustedInsertStatement, trustedTouchStatement } from "./mfa-repo";
+import { PENDING_COOKIE, clearedPendingCookie, createPendingToken, loginStep, pendingCookie, verifyPendingToken } from "./mfa-rules";
 import { PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, issuePasskeyChallenge, limitChallenge, passkeyRp, readPasskeyChallenge } from "./passkey";
 import {
   endAllButNewestStatement, endAllSessionsIfSuspendedStatement as endAllIfSuspendedRow, endExpiredSessionsStatement, endOtherSessionsStatement, endSessionStatement, findLiveSession,
@@ -202,6 +206,25 @@ export function exemptionChangeStatements(
   };
 }
 
+/** Thân 429 chung của bộ chống dò (PIN và bước hai — ADR-0074: "429 như PIN"). */
+function tooMany(seconds: number): Response {
+  return json(
+    { error: { code: "too_many_attempts", message: `Nhập sai quá nhiều lần. Thử lại sau ${Math.ceil(seconds / 60)} phút hoặc nhờ người phụ trách hệ thống mở khoá.`, retryAfterSeconds: seconds } },
+    429,
+    { "retry-after": String(seconds) },
+  );
+}
+
+/** Ghi "Đăng nhập gần nhất" SAU khi phiên đã cấp (qua bước hai mới tính). Lỗi ghi không được làm hỏng đăng nhập (chỉ là thống kê): ghi log rồi cho qua. */
+async function ghiDangNhap(env: Env, staffId: string): Promise<void> {
+  await recordLogin(env.DB, staffId, new Date().toISOString()).catch((e: unknown) =>
+    console.error(JSON.stringify({ level: "error", event: "record_login_failed", message: e instanceof Error ? e.message : String(e) })),
+  );
+}
+
+const MFA_EXPIRED = (): Response => error(401, "mfa_expired", "Đã quá 5 phút, đăng nhập lại.");
+const MFA_UNAVAILABLE = (): Response => error(503, "mfa_unavailable", "Máy chủ chưa cấu hình khoá bảo mật hai lớp. Báo IT.");
+
 export type PinAttemptResult =
   | { ok: true; profile: StaffProfile }
   | { ok: false; response: Response };
@@ -218,15 +241,7 @@ export async function verifyPinThrottled(request: Request, env: Env, rawPhone: s
   // ghi cả khi lệnh bị từ chối — không được mang vé chống ghi trùng của lệnh đó. Đăng nhập (route công khai) không có vé: `dbNgoaiVe` trả nguyên D1.
   const db = dbNgoaiVe(env.DB);
   const reservation = await reserveAttempts(db, keys);
-  if (!reservation.allowed) {
-    const seconds = reservation.retryAfterSeconds;
-    const res = json(
-      { error: { code: "too_many_attempts", message: `Nhập sai quá nhiều lần. Thử lại sau ${Math.ceil(seconds / 60)} phút hoặc nhờ người phụ trách hệ thống mở khoá.`, retryAfterSeconds: seconds } },
-      429,
-      { "retry-after": String(seconds) },
-    );
-    return { ok: false, response: res };
-  }
+  if (!reservation.allowed) return { ok: false, response: tooMany(reservation.retryAfterSeconds) };
   const profile = await authenticate(db, rawPhone, pin);
   if (!profile) return { ok: false, response: error(401, "invalid_credentials", "Số điện thoại hoặc mã PIN không đúng.") };
   await clearAttempts(db, phone ? phoneKey(phone) : null, reservation.ids);
@@ -288,16 +303,89 @@ export const authModule: AppModule = {
       if (inMaintenance) return inMaintenance;
       const result = await verifyPinThrottled(request, env, phone, pin);
       if (!result.ok) return result.response;
-      // Ghi nhận đăng nhập thành công cho cột "Đăng nhập gần nhất". Lỗi ghi không được làm hỏng đăng nhập (chỉ là thống kê): ghi log rồi cho qua.
-      await recordLogin(env.DB, result.profile.id, new Date().toISOString()).catch((e: unknown) =>
-        console.error(JSON.stringify({ level: "error", event: "record_login_failed", message: e instanceof Error ? e.message : String(e) })),
-      );
-      const issued = await issueLoginSession(request, env, result.profile, "PIN");
+      // ---- Cổng lớp hai (ADR-0074 điều 2–3; đặc tả §4.1). PIN đúng CHƯA đủ: tài khoản đã bật lớp hai mà máy chưa được tin → chưa cấp phiên, trả cookie chờ
+      // (khoá ký riêng, 5 phút, chỉ mở /api/auth/mfa/*). Nội bộ chưa bật và hết ân hạn (kể cả hạn NULL) → 403 (đóng cửa an toàn). Luật thuần: loginStep.
+      const now = Date.now();
+      const nowIso = new Date(now).toISOString();
+      const profile = result.profile;
+      const trustedTok = getCookie(request, TRUSTED_COOKIE);
+      const [factors, trusted, { graceUntil, enrollUntil }] = await Promise.all([
+        factorListLive(env.DB, profile.id),
+        trustedTok ? sha256Hex(trustedTok).then((h) => trustedFind(env.DB, h, profile.id, nowIso)) : Promise.resolve(null),
+        mfaDeadlinesOf(env.DB, profile.id),
+      ]);
+      // Lưới credentials_changed_at: máy tin tạo TRƯỚC lần đổi PIN / đặt lại PIN / gỡ Face ID gần nhất hết tác dụng (đặc tả §6 quy tắc 3).
+      const trustedOk = trusted !== null && (await getActiveStaff(env.DB, profile.id, Date.parse(trusted.created_at))) !== null;
+      const step = loginStep({ perms: profile.permissions, hasFactor: factors.length > 0, trusted: trustedOk, graceUntil, enrollUntil, nowIso });
+      if (step === "blocked_no_factor") return error(403, "mfa_setup_required", "Tài khoản cần bật bảo mật hai lớp. Liên hệ Quản trị để được hỗ trợ.");
+      if (step === "enroll") {
+        // Cửa sổ 24 giờ sau khi Quản trị/Toàn quyền tắt lớp hai (route bật ở bước đăng nhập: Task 6). Cookie chờ purpose "enroll" không qua được verify.
+        const pending = await createPendingToken(env.SESSION_SECRET, profile.id, "enroll", now);
+        return json({ next: "mfa_enroll" } satisfies LoginMfaStepResponse, 200, { "set-cookie": pendingCookie(pending, isSecure(request)) });
+      }
+      if (step === "mfa") {
+        const pending = await createPendingToken(env.SESSION_SECRET, profile.id, "verify", now);
+        const buoc: LoginMfaStepResponse = {
+          next: "mfa", factors: [...factors.map((f) => f.kind), "RECOVERY"], emailMask: maskEmail(factors.find((f) => f.kind === "EMAIL")?.email ?? null),
+        };
+        return json(buoc, 200, { "set-cookie": pendingCookie(pending, isSecure(request)) });
+      }
+      // step === "session". Máy tin chỉ tính là "đã dùng" khi tài khoản có yếu tố (không yếu tố thì lớp hai không áp — phiên PIN thường).
+      const dungMayTin = trustedOk && factors.length > 0;
+      if (dungMayTin) await trustedTouchStatement(env.DB, trusted!.id, nowIso).run();
+      const issued = await issueLoginSession(request, env, profile, dungMayTin ? "PIN_TRUSTED" : "PIN", { trustedDeviceId: dungMayTin ? trusted!.id : null, now });
       if ("conflict" in issued) return issued.conflict;
       // ADR-0075 điều 6: máy cũ bị thay tắt hẳn — đóng Bảng tin của đúng phiên bị thay; tắt thông báo của mọi máy trừ máy mang phiên mới. Gọi cả khi không
       // phiên nào bị thay (đăng ký thông báo cũ có session_id NULL, hoặc của phiên đã đăng xuất/hết hạn, vẫn phải tắt — Review Focus 3).
-      if (issued.single) dongBangTin({ staffId: result.profile.id, sessionIds: issued.endedSessionIds, giuPhien: issued.sessionId });
-      return json({ staff: result.profile } satisfies MeResponse, 200, { "set-cookie": issued.cookie });
+      if (issued.single) dongBangTin({ staffId: profile.id, sessionIds: issued.endedSessionIds, giuPhien: issued.sessionId });
+      await ghiDangNhap(env, profile.id);
+      return json({ staff: profile } satisfies MeResponse, 200, { "set-cookie": issued.cookie });
+    }),
+
+    // ---- Bước hai (ADR-0074 điều 2–3; đặc tả §4.1 bước 5, §6). Công khai: KHÔNG đi qua cổng bảo trì của router nên tự gọi maintenanceBlock (như Face ID).
+    // Thứ tự: cookie chờ (purpose verify, lưới credentials_changed_at) → bảo trì → kiểm thân → khoá máy chủ → hạn mức theo TÀI KHOẢN → kiểm mã → cấp phiên.
+    route("POST", "/api/auth/mfa/verify", "public", async ({ request, env, dongBangTin }) => {
+      const now = Date.now();
+      const nowIso = new Date(now).toISOString();
+      const raw = getCookie(request, PENDING_COOKIE);
+      const p = raw ? await verifyPendingToken(env.SESSION_SECRET, raw, now) : null;
+      if (!p || p.purpose !== "verify") return MFA_EXPIRED();
+      const profile = await getActiveStaff(env.DB, p.staffId, p.issuedAt);
+      if (!profile) return MFA_EXPIRED();
+      const blocked = await maintenanceBlock(env.DB, () => profile.permissions);
+      if (blocked) return blocked;
+      const body = await readJson(request);
+      const method = body?.method;
+      if (method !== "TOTP" && method !== "RECOVERY") return error(400, "invalid_input", "Cần chọn cách xác minh (mã ứng dụng xác thực hoặc mã dự phòng) và nhập mã.");
+      const code = typeof body?.code === "string" ? body.code.slice(0, 32) : "";
+      // Lỗi cấu hình máy chủ không được tiêu lượt thử của người dùng: kiểm khoá TRƯỚC khi đặt chỗ lượt thử.
+      if (method === "TOTP" && !mfaKeyReady(env)) return MFA_UNAVAILABLE();
+      const reservation = await reserveAttempts(env.DB, [{ key: mfaKey(profile.id), max: MFA_LIMIT }]);
+      if (!reservation.allowed) return tooMany(reservation.retryAfterSeconds);
+      const kq = method === "RECOVERY" ? ((await useRecoveryCode(env.DB, profile.id, code, nowIso)) ? "ok" : "invalid") : await useTotp(env, profile.id, code, now);
+      if (kq === "unavailable") return MFA_UNAVAILABLE();
+      if (kq !== "ok") return error(401, "invalid_code", "Mã không đúng hoặc đã dùng. Kiểm giờ tự động trên điện thoại nếu sai nhiều lần.");
+      await clearAttempts(env.DB, mfaKey(profile.id), reservation.ids);
+      const cookies: string[] = [clearedPendingCookie(isSecure(request))];
+      let trustedId: string | null = null;
+      if (body?.trustDevice === true) {
+        const tok = newTrustedToken();
+        trustedId = crypto.randomUUID();
+        await trustedInsertStatement(env.DB, {
+          id: trustedId, staffId: profile.id, tokenHash: await sha256Hex(tok), label: sessionDeviceLabel(request.headers.get("user-agent")),
+          at: nowIso, expiresAt: new Date(now + TRUSTED_TTL_SECONDS * 1000).toISOString(),
+        }).run();
+        cookies.push(trustedCookie(tok, isSecure(request)));
+      }
+      const issued = await issueLoginSession(request, env, profile, "PIN_MFA", { trustedDeviceId: trustedId, now });
+      if ("conflict" in issued) return issued.conflict;
+      if (issued.single) dongBangTin({ staffId: profile.id, sessionIds: issued.endedSessionIds, giuPhien: issued.sessionId }); // ADR-0075 điều 6 (như đăng nhập PIN)
+      await ghiDangNhap(env, profile.id);
+      const out: MfaVerifyResponse = { staff: profile };
+      if (method === "RECOVERY") out.recoveryLeft = await recoveryCountLeft(env.DB, profile.id);
+      const res = json(out, 200, { "set-cookie": issued.cookie });
+      for (const c of cookies) res.headers.append("set-cookie", c);
+      return res;
     }),
 
     // ---- Đăng nhập bằng Face ID (passkey, ADR-0016). Công khai: KHÔNG đi qua cổng bảo trì của router nên tự gọi maintenanceBlock. Không Turnstile, không bộ chống dò PIN (không có PIN để dò) — chỉ hạn mức xin thách thức theo IP.
@@ -335,12 +423,11 @@ export const authModule: AppModule = {
       // Gate ở trên đã xác nhận tài khoản đang hoạt động; đọc lại để có kiểu StaffProfile cho phản hồi (tránh giả định trạng thái không đổi giữa hai lần đọc).
       const profile = await getActiveStaff(env.DB, checked.passkey.staff_id);
       if (!profile) return PASSKEY_ERRORS.unknown();
-      await recordLogin(env.DB, profile.id, new Date().toISOString()).catch((e: unknown) =>
-        console.error(JSON.stringify({ level: "error", event: "record_login_failed", message: e instanceof Error ? e.message : String(e) })),
-      );
+      // ADR-0074 / đặc tả §4.2: Face ID KHÔNG qua bước hai (đã là hai yếu tố: máy + sinh trắc học).
       const issued = await issueLoginSession(request, env, profile, "PASSKEY", { now: phatHanh });
       if ("conflict" in issued) return issued.conflict;
       if (issued.single) dongBangTin({ staffId: profile.id, sessionIds: issued.endedSessionIds, giuPhien: issued.sessionId }); // ADR-0075 điều 6 (như đăng nhập PIN)
+      await ghiDangNhap(env, profile.id);
       const res = json({ staff: profile } satisfies MeResponse, 200, { "set-cookie": issued.cookie });
       res.headers.append("set-cookie", clearChallengeCookie(request));
       return res;

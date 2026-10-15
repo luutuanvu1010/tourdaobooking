@@ -103,6 +103,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/auth/me", access: "staff" },
   { method: "POST", path: "/api/auth/passkey/login", access: "public" }, // đăng nhập bằng Face ID (ADR-0016) — tự gọi maintenanceBlock, không qua cổng bảo trì của router
   { method: "POST", path: "/api/auth/passkey/options", access: "public" }, // xin thách thức WebAuthn để đăng nhập
+  { method: "POST", path: "/api/auth/mfa/verify", access: "public" }, // bước hai của đăng nhập PIN (ADR-0074) — cổng là cookie chờ td_mfa_pending (khoá ký riêng, 5 phút); tự gọi maintenanceBlock
   { method: "GET", path: "/api/catalog", access: "office" }, // ADR-0033 (2026-09-27): về cổng office như ADR-0019 điều 1 — đảo có chủ đích bản 1.15 (ADR-0028 điều 1: orders)
   { method: "GET", path: "/api/catalog/for-order", access: "orders" }, // ADR-0033: danh mục cho form lập đơn (Đối tác, Thực tập); chốt chặn thật là can(order.create) trong thân
   { method: "PATCH", path: "/api/catalog/:code", access: "admin" },
@@ -522,6 +523,7 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-15 (ADR-0119 Việc 5b): + GET /api/feedback/queue (staff, rồi quyenPhieu theo nhóm) = 303.
   // 2026-10-15 (ADR-0119 Việc 5c): + POST /api/feedback/:id/claim, PATCH /api/feedback/:id/xu-ly (staff, rồi quyenPhieu) = 305.
   // 2026-10-15 (ADR-0119 Việc 5d): + POST /api/feedback/:id/transfer (staff, rồi quyenPhieu chuyenNhom) = 306.
-  assert.equal(actual.length, 306, "số route thực tế lệch 306 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 306, "SNAPSHOT phải có đúng 306 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-16 (ADR-0074 Phần B Task 4): + POST /api/auth/mfa/verify (public; cổng = cookie chờ, tự gọi maintenanceBlock) = 307.
+  assert.equal(actual.length, 307, "số route thực tế lệch 307 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 307, "SNAPSHOT phải có đúng 307 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

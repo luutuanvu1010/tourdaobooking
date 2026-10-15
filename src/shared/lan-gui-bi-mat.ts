@@ -29,6 +29,7 @@ export const KHONG_VE: readonly MauRoute[] = [
   { method: "POST", path: "/api/auth/passkey/login" },
   { method: "POST", path: "/api/auth/logout" },
   { method: "POST", path: "/api/auth/session-ended" },
+  { method: "POST", path: "/api/auth/mfa/verify" }, // bước hai đăng nhập (ADR-0074): thân có mã TOTP / mã dự phòng — không vé, không lưu gì
 ];
 
 /** Đường dẫn thật (có thể kèm `?query`) có khớp MẪU route không — `:x` khớp đúng một đoạn không rỗng. */

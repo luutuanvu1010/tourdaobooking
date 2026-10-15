@@ -1,6 +1,6 @@
 // HÀNG RÀO H2 (ADR-0094 đ1, T6): mọi route GHI có đăng nhập đi qua lớp vé. Router áp lớp cho mọi route ghi `access ≠ "public"` không có trong tệp miễn
 // (src/shared/lan-gui-mien.ts) — nên "lọt lớp" chỉ xảy ra qua hai cửa, bài này canh cả hai:
-//   (1) đổi một route ghi sang `"public"`: tập route ghi công khai phải BẰNG ĐÚNG 5 route `auth` đã biết ∪ mục miễn `congKhai: true`;
+//   (1) đổi một route ghi sang `"public"`: tập route ghi công khai phải BẰNG ĐÚNG 6 route `auth` đã biết ∪ mục miễn `congKhai: true`;
 //   (2) tệp miễn: mỗi mục phải khớp một route ghi có thật (mục ma ⇒ đỏ) và có lý do.
 // Bóc route bằng cùng khuôn `route("METHOD", "path", "access"` của src/route-write-guard.test.ts; số route bóc được phải bằng số lời gọi `route(` (khuôn lạ ⇒ đỏ).
 // Giới hạn: canh QUÊN, không canh CỐ Ý (vd sửa router bỏ lớp — đó là việc của H1 và người kiểm đọc mã).
@@ -14,7 +14,8 @@ import { LAN_GUI_MIEN } from "./shared/lan-gui-mien.ts";
 
 const SRC = fileURLToPath(new URL(".", import.meta.url));
 const GHI = new Set(["POST", "PUT", "PATCH", "DELETE"]);
-const CONG_KHAI_DA_BIET = ["POST /api/auth/login", "POST /api/auth/passkey/options", "POST /api/auth/passkey/login", "POST /api/auth/logout", "POST /api/auth/session-ended"];
+// ADR-0074 (Phần B Task 4, 2026-10-16): + "POST /api/auth/mfa/verify" — bước hai của đăng nhập, chưa có phiên (cổng là cookie chờ), như đăng nhập PIN.
+const CONG_KHAI_DA_BIET = ["POST /api/auth/login", "POST /api/auth/passkey/options", "POST /api/auth/passkey/login", "POST /api/auth/logout", "POST /api/auth/session-ended", "POST /api/auth/mfa/verify"];
 
 function routes(): { method: string; path: string; access: string }[] {
   const out: { method: string; path: string; access: string }[] = [];
@@ -30,7 +31,7 @@ function routes(): { method: string; path: string; access: string }[] {
   return out;
 }
 
-test("H2 (1): route ghi công khai = đúng 5 route auth đã biết ∪ mục miễn congKhai — đổi route ghi sang public mà không khai ⇒ đỏ", () => {
+test("H2 (1): route ghi công khai = đúng 6 route auth đã biết ∪ mục miễn congKhai — đổi route ghi sang public mà không khai ⇒ đỏ", () => {
   const congKhai = routes().filter((r) => GHI.has(r.method) && r.access === "public").map((r) => `${r.method} ${r.path}`).sort();
   const choPhep = [...CONG_KHAI_DA_BIET, ...LAN_GUI_MIEN.filter((m) => m.congKhai).map((m) => `${m.method} ${m.path}`)].sort();
   assert.deepEqual(congKhai, choPhep, "route ghi công khai không có trong danh sách — route này sẽ KHÔNG đi qua lớp chống ghi trùng");

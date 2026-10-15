@@ -1,8 +1,17 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  KHONG_NHAN_VAI_NOI_BO, canManageAccount, checkAccountChange, coQuyenNoiBo, generatePin, isWeakPin, moNoiBoChoHoSoCoNhanProblem, partyAccountVerdict, validateFreshPin,
+  KHONG_NHAN_VAI_NOI_BO, canManageAccount, checkAccountChange, coQuyenNoiBo, generatePin, isWeakPin, mfaGraceOnCreate, moNoiBoChoHoSoCoNhanProblem, partyAccountVerdict, validateFreshPin,
 } from "./rules.ts";
+
+test("ADR-0074 điều 1: tạo tài khoản nội bộ → hạn ân hạn lúc tạo + 14 ngày; chỉ quyền bên ngoài → null", () => {
+  const t = Date.parse("2026-10-16T01:02:03.004Z");
+  assert.equal(mfaGraceOnCreate(["SALES"], t), "2026-10-30T01:02:03.004Z");
+  assert.equal(mfaGraceOnCreate(["HR"], t), "2026-10-30T01:02:03.004Z");
+  assert.equal(mfaGraceOnCreate(["PARTNER", "SALES"], t), "2026-10-30T01:02:03.004Z");
+  assert.equal(mfaGraceOnCreate(["PARTNER"], t), null);
+  assert.equal(mfaGraceOnCreate(["DRIVER_PARTNER"], t), null);
+});
 
 const admin = { id: "a1", permissions: ["ADMIN"] as const, active: true };
 const sales = { id: "s1", permissions: ["SALES"] as const, active: true };

@@ -82,6 +82,15 @@ export function partyAccountVerdict(
  */
 export const coQuyenNoiBo = (perms: readonly PermissionCode[]): boolean => perms.some((p) => !isExternalPermission(p));
 
+/** ADR-0074 điều 1: số ngày ân hạn để tài khoản nội bộ tự bật bảo mật hai lớp. */
+export const MFA_GRACE_DAYS = 14;
+/**
+ * Hạn ân hạn ghi CÙNG lô tạo tài khoản (ADR-0074 điều 1, kế hoạch Phần B Task 6 dòng "Tạo tài khoản nội bộ"): nội bộ → lúc tạo + 14 ngày (ISO UTC);
+ * chỉ có quyền bên ngoài → null (không bắt buộc lớp hai). Cùng luật «nội bộ» với `coQuyenNoiBo` và migration 0101.
+ */
+export const mfaGraceOnCreate = (perms: readonly PermissionCode[], nowMs: number): string | null =>
+  coQuyenNoiBo(perms) ? new Date(nowMs + MFA_GRACE_DAYS * 86_400_000).toISOString() : null;
+
 /** Câu chặn chiều 2 — KHÔNG nêu tên loại hay nhãn (Nhân sự không giữ party.view nhận đúng câu này — ADR-0117 điều 4). */
 export const KHONG_NHAN_VAI_NOI_BO = "Hồ sơ này không nhận thêm vai nội bộ vào lúc này.";
 
