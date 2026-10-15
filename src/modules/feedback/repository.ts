@@ -24,7 +24,7 @@ export interface TicketRow {
   created_at: string;
   updated_at: string;
   unread: number;
-  /** 1 = người xử lý còn hoạt động; 0 khi chưa ai giữ hoặc người giữ đã khoá (ADR-0119 điều 8: coi như chưa ai nhận). */
+  /** 1 = người giữ hợp lệ (nguoiGiuHopLe); 0 khi chưa ai giữ, người giữ đã khoá, bị gỡ khỏi nhóm hoặc phiếu đã sang nhóm khác (ADR-0119 điều 8: coi như chưa ai nhận). */
   assignee_active: number;
   team_id: string;
   team_name: string;
@@ -40,8 +40,16 @@ export interface MessageRow {
   created_at: string;
 }
 
+// NGƯỜI GIỮ HỢP LỆ (ADR-0119 điều 2, 8; ruling R10): tài khoản còn hoạt động VÀ (còn là thành viên đang hiệu lực của nhóm ĐANG giữ phiếu, HOẶC đang giữ Toàn quyền —
+// Toàn quyền nhận việc không cần là thành viên). Bị khoá, bị gỡ khỏi nhóm, hay phiếu đã chuyển sang nhóm khác ⇒ coi như chưa ai nhận. Quyền Toàn quyền đọc qua view
+// công bố v_stf_toan_quyen của staff (ADR-0038, migration 0027) — không đọc thẳng stf_permission. Một nguồn cho ba chỗ: cột assignee_active, lọc UNASSIGNED, CLAIM.
+// `p` = tên/bí danh bảng phiếu ("t" trong câu đọc, "fbk_ticket" trong câu UPDATE không có bí danh). Chuỗi dựng lúc nạp tệp ⇒ câu SQL vẫn tĩnh.
+const nguoiGiuHopLe = (p: string) => `EXISTS (SELECT 1 FROM v_stf_staff_label gx WHERE gx.id = ${p}.assignee_id AND gx.active = 1
+    AND (EXISTS (SELECT 1 FROM fbk_team_member gm WHERE gm.staff_id = ${p}.assignee_id AND gm.team_id = ${p}.team_id AND gm.valid_to_at IS NULL)
+         OR EXISTS (SELECT 1 FROM v_stf_toan_quyen gq WHERE gq.staff_id = ${p}.assignee_id)))`;
+
 const COLS = `t.id, t.seq, t.kind_code, k.name AS kind_name, t.status_code, st.name AS status_name, t.title, t.context, t.submitter_id,
-  s.label AS submitter_name, t.assignee_id, a.label AS assignee_name, COALESCE(a.active, 0) AS assignee_active, t.resolved_in, t.last_activity_at, t.last_public_reply_at, t.notified_at,
+  s.label AS submitter_name, t.assignee_id, a.label AS assignee_name, CASE WHEN t.assignee_id IS NOT NULL AND ${nguoiGiuHopLe("t")} THEN 1 ELSE 0 END AS assignee_active, t.resolved_in, t.last_activity_at, t.last_public_reply_at, t.notified_at,
   t.created_at, t.updated_at, t.team_id, tm.name AS team_name, tm.sensitive AS team_sensitive`;
 const FROM = `FROM fbk_ticket t JOIN fbk_kind k ON k.code = t.kind_code JOIN fbk_status st ON st.code = t.status_code JOIN fbk_team tm ON tm.id = t.team_id
   LEFT JOIN v_stf_staff_label s ON s.id = t.submitter_id LEFT JOIN v_stf_staff_label a ON a.id = t.assignee_id`;
@@ -89,14 +97,14 @@ const LIST_MESSAGES = defineSql(
 );
 // Hàng đợi MỘT nhóm (route GET /api/feedback/queue, sau quyenPhieu). Không chứa phiếu do chính người xem gửi (nằm ở "của tôi").
 // ?1 người xem, ?2 nhóm, ?3 trạng thái|NULL, ?4 loc (ALL|MINE|UNASSIGNED), ?5 limit, ?6 offset.
-// UNASSIGNED gồm cả phiếu người giữ đã bị khoá tài khoản (coi như chưa ai nhận — ADR-0119 điều 8).
+// UNASSIGNED gồm cả phiếu có người giữ KHÔNG hợp lệ (nguoiGiuHopLe: khoá tài khoản, bị gỡ khỏi nhóm — coi như chưa ai nhận, ADR-0119 điều 8).
 const LIST_QUEUE_TEAM = defineSql(
   "feedback",
   "list_queue_team",
   `SELECT ${COLS}, CASE WHEN ${UNREAD_USER} THEN 1 ELSE 0 END AS unread ${FROM}
    WHERE t.team_id = ?2 AND (?3 IS NULL OR t.status_code = ?3) AND t.submitter_id <> ?1
      AND (?4 = 'ALL' OR (?4 = 'MINE' AND t.assignee_id = ?1)
-          OR (?4 = 'UNASSIGNED' AND (t.assignee_id IS NULL OR NOT EXISTS (SELECT 1 FROM v_stf_staff_label x WHERE x.id = t.assignee_id AND x.active = 1))))
+          OR (?4 = 'UNASSIGNED' AND (t.assignee_id IS NULL OR NOT ${nguoiGiuHopLe("t")})))
    ORDER BY t.last_activity_at DESC LIMIT ?5 OFFSET ?6`,
 );
 // ?1 người xem, ?2 Toàn quyền (1/0): "queue" = phiếu CHƯA ĐỌC ở nhóm tôi đang thuộc (Toàn quyền: mọi nhóm), trừ phiếu tôi gửi.
@@ -235,7 +243,7 @@ const PATCH_TICKET = defineSql(
      AND (?3 = 0 OR ?4 IS NULL OR (?4 <> fbk_ticket.submitter_id AND EXISTS (SELECT 1 FROM fbk_team_member m JOIN v_stf_staff_label s ON s.id = m.staff_id
        WHERE m.team_id = fbk_ticket.team_id AND m.staff_id = ?4 AND m.valid_to_at IS NULL AND s.active = 1)))`,
 );
-// Nhận việc (ADR-0119 điều 8): chỉ khi chưa ai giữ (hoặc người giữ không còn hoạt động) và phiếu chưa đóng — hai người bấm cùng lúc: D1 tuần tự hoá ghi,
+// Nhận việc (ADR-0119 điều 8): chỉ khi chưa ai giữ (hoặc người giữ không hợp lệ — nguoiGiuHopLe) và phiếu chưa đóng — hai người bấm cùng lúc: D1 tuần tự hoá ghi,
 // câu sau thấy assignee_id đã có (còn hoạt động) ⇒ 0 dòng ⇒ route trả 409. Phiếu Mới ⇒ Đã tiếp nhận (báo người gửi như đổi trạng thái).
 // ?1 phiếu, ?2 người nhận, ?3 bây giờ. updated_at/updated_by = mốc của lệnh (cổng cho markSeenAfterWriteStatement cùng lô).
 const CLAIM = defineSql(
@@ -247,7 +255,7 @@ const CLAIM = defineSql(
      status_code = CASE WHEN status_code = 'NEW' THEN 'ACK' ELSE status_code END,
      last_activity_at = ?3, updated_at = ?3, updated_by = ?2
    WHERE id = ?1 AND status_code NOT IN ('DONE', 'DECLINED')
-     AND (assignee_id IS NULL OR NOT EXISTS (SELECT 1 FROM v_stf_staff_label x WHERE x.id = fbk_ticket.assignee_id AND x.active = 1))`,
+     AND (assignee_id IS NULL OR NOT ${nguoiGiuHopLe("fbk_ticket")})`,
 );
 // Sự kiện phiếu (chỉ thêm). Cổng `changes() > 0`: PHẢI đứng NGAY SAU câu cập nhật phiếu (CLAIM / PATCH_TICKET) và TRƯỚC auditStatement — changes() đổi sau mỗi câu.
 // ?1 id, ?2 phiếu, ?3 loại (TEAM_CHANGED|ASSIGNED|CLAIMED), ?4 giá trị cũ, ?5 giá trị mới, ?6 người làm, ?7 bây giờ.

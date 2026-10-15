@@ -488,3 +488,33 @@ test("đổi trạng thái theo bảng luật hiện có; thành viên nhóm kh�
   assert.equal(await huy(w, KT_TV), 0, "người đổi trạng thái coi như đã xem");
   assert.equal((await xuLy(w, id, SUPER, { status: "DONE", resolvedIn: "20261015" })).status, 200, "Toàn quyền dùng tuyến mới được");
 });
+
+// ---- R10 (ruling điều phối): người giữ hợp lệ = tài khoản còn hoạt động VÀ còn là thành viên nhóm giữ phiếu, hoặc đang giữ Toàn quyền ---------------
+test("R10: người giữ bị gỡ khỏi nhóm (tài khoản còn hoạt động) ⇒ coi như chưa ai nhận, hiện ở lọc UNASSIGNED, người khác nhận được", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  assert.equal((await nhan(w, id, KT_TV)).status, 200);
+  assert.equal((await hang(w, KT_TN, "&loc=UNASSIGNED")).json.tickets.length, 0, "đang có người giữ hợp lệ");
+  assert.equal((await admin(w, "DELETE", `/${KE_TOAN}/members/${KT_TV}`, SUPER)).status, 200);
+  assert.equal((await d(w, id, KT_TN)).json.ticket.assigneeActive, false, "người giữ không còn trong nhóm ⇒ chưa ai nhận");
+  assert.deepEqual((await hang(w, KT_TN, "&loc=UNASSIGNED")).json.tickets.map((t: any) => t.id), [id]);
+  const r = await nhan(w, id, KT_GUI);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.ticket.assigneeId, KT_GUI);
+  assert.equal(r.json.ticket.assigneeActive, true);
+});
+
+test("R10: Toàn quyền nhận việc/đổi trạng thái dù không là thành viên; phiếu vẫn «đã có người nhận», thành viên khác nhận ⇒ 409", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  const r = await nhan(w, id, SUPER);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.ticket.assigneeId, SUPER);
+  assert.equal(r.json.ticket.assigneeActive, true, "Toàn quyền giữ phiếu là người giữ hợp lệ");
+  assert.equal((await d(w, id, KT_TN)).json.ticket.assigneeActive, true);
+  assert.equal((await hang(w, KT_TN, "&loc=UNASSIGNED")).json.tickets.length, 0);
+  const b = await nhan(w, id, KT_TV);
+  assert.equal(b.status, 409, b.text);
+  assert.equal(w.q(`SELECT assignee_id FROM fbk_ticket WHERE id = '${id}'`)[0].assignee_id, SUPER);
+  assert.equal((await xuLy(w, id, SUPER, { status: "IN_PROGRESS" })).status, 200);
+});
