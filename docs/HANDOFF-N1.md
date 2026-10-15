@@ -867,7 +867,7 @@ npm run trien-khai
 
 **Trạng thái: CHƯA phát hành** (nhánh `worktree-hai-lop-dang-nhap`, soạn 2026-10-15; chờ người kiểm độc lập Task 8 và chủ duyệt). Mọi bước sau A.0 do `npm run trien-khai` làm như thường; mục này chỉ ghi điều KHÁC. Đặc tả: `docs/superpowers/specs/2026-10-01-xac-thuc-hai-lop-dac-ta.md`; kế hoạch: `docs/superpowers/plans/2026-10-01-dang-nhap-b-hai-lop-ung-dung-xac-thuc.md`; công thức và bẫy: `docs/CHANGE-GUIDE.md` (z18, bẫy 77); hệ thống: `docs/SYSTEM-DESIGN.md` §4 "Bảo mật hai lớp".
 
-**Việc của chủ TRƯỚC khi triển khai (bắt buộc — thiếu thì không ai bật hay nhập được mã ứng dụng xác thực, máy chủ trả 503):** đặt bí mật mới `MFA_ENCRYPTION_KEY`, đứng ở thư mục `tourdao-sales`. AI KHÔNG chạy các lệnh này (CLAUDE.md §8).
+**Việc của chủ TRƯỚC khi triển khai (bắt buộc — thiếu thì không ai bật hay nhập được mã ứng dụng xác thực, máy chủ trả 503):** đặt bí mật mới `MFA_ENCRYPTION_KEY`, đứng ở thư mục `tourdao-sales`. AI KHÔNG chạy các lệnh này (CLAUDE.md §8). Quên bước này thì `npm run trien-khai` DỪNG ở bước 1d (chỉ đọc TÊN khoá, trước migration) và in lại đúng hai lệnh dưới.
 
 1. Sinh một khoá ngẫu nhiên 32 byte (in ra một chuỗi base64):
 
