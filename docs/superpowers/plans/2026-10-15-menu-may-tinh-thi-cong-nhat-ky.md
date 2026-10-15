@@ -64,3 +64,11 @@
 - **Kết quả:** mọi kịch bản `sidebar-item` xanh ngoại trừ các đỏ CŨ (đỏ cả trên bản chép của main): `xe-smoke` bước 8b, 9; `cuoc-smoke-va` 10 bước. `npm test` 4769 bài, 0 đỏ; `typecheck` 0 lỗi. Ghi chi tiết ở `.superpowers/sdd/2026-10-15-menu-may-tinh-viec-cua-ban/task-7b-report.md`.
 - **Hàng rào quan sát chặn thật:** bỏ `ganDaiTrangAnhEm` ở `web/xe.ts` ⇒ `hết giờ chờ: dải anh em ở /xe (1440)`; `TOI_DA` 4→5 ⇒ `Quản trị: 1–4 thẻ`; cả hai đã hoàn nguyên.
 - **Nhìn ảnh thật — điều còn nợ (đề xuất, chủ quyết):** (1) chân thanh bên cao 239px nên khi cửa sổ cao ≤ 900px Quản trị/Toàn quyền không thấy nút Thiết lập, ≤ 700px mục đang mở bị cắt nửa; (2) bộ xương `.dash-xuong-mt-so` còn 3 ô, trang thật là 4 thẻ + ô doanh thu (nhảy bố cục); (3) nhãn «14 · 1 lệch giá» của nút Thiết lập xuống hai dòng ở Toàn quyền; (4) tiêu đề thẻ dài («Đơn chưa có người phụ trách») xuống 2 dòng làm lệch hàng với thẻ bên cạnh; (5) khi nguồn «còn thiếu tiền» lỗi có hai nút Thử lại (dải + thẻ). Đề xuất dải anh em: giữ TRÊN tiêu đề.
+
+### Việc 7b — Sửa vòng 2 (năm lỗi thị giác, mỗi lỗi một commit)
+- (1) `b226eb47` chân thanh bên 239 → 191px (Đăng xuất cùng hàng người dùng); nút Thiết lập đóng dính đáy vùng cuộn: thấy đủ ở 1440×700–1080 cho Quản trị và Toàn quyền.
+- (2) `ab324100` khung xương Trang chủ: 4 thẻ Việc của bạn + 1 ô doanh thu (trước 3 ô) như khối thật.
+- (3) `fcc39620` nút Thiết lập Toàn quyền không xuống dòng: cao 50 → 36px.
+- (4) `edf4eb5a` hàng tiêu đề thẻ Việc luôn chừa hai dòng, số và nút thẳng hàng.
+- (5) `6f2e7b5f` nguồn "còn thiếu tiền" lỗi: chỉ còn một nút Thử lại (của thẻ), bỏ dải lỗi trùng ở máy tính; điện thoại giữ dải.
+- Ảnh chụp lại `bb4e51ce`. Kiểm: `menu-viec-cua-ban-smoke` và `trang-chu-smoke` xanh (có AXE_JS); build, typecheck 0 lỗi; `npm test` 4769 bài, 0 đỏ. Còn nợ: `web/CLAUDE.md` chưa sửa (chỉ đề xuất); số 1.97 trùng nhánh khác.
