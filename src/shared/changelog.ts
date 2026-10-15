@@ -25,6 +25,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Thử tra cho biết mức TA nào đang áp, kèm tên mức." },
       { kind: "doi", text: "Đổi mức hay sửa số của mức không làm đổi hoa hồng đơn đã xác nhận. Mỗi loại một mức trong một ngày: muốn đổi từ hôm nay thì kết thúc gắn cũ tới hôm qua." },
     ],
+  },
   {
     // Khoản chuyển khoản «Công ty thu» không tạo nợ cho người khai + Kế toán duyệt chuyển tiền sang đơn khác + đổi chữ «cọc» thành «Thu trước» (ADR-0120 của dòng sổ tiền, chủ duyệt 14/10: «duyệt cả hai theo khuyến nghị»).
     // Có thay đổi cơ sở dữ liệu (migration 0099) — cần trien-khai sau day-len.

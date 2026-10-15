@@ -24,12 +24,12 @@ const all = <T>(db: DatabaseSync, sql: string, ...a: V[]) => db.prepare(sql).all
 const sqlDungLai = (): string => readFileSync(process.env.DUNG_LAI_SQL_THAY ?? new URL(FILE!, DIR), "utf8");
 const COT_CU = "id, target_party_id, target_role_code, scope, catalog_code, group_code, kind, rate_bp, per_pax_amount, valid_from_date, valid_to_date, note, created_at, created_by, updated_at, updated_by";
 
-/** CSDL dựng từ mọi migration ĐỨNG TRƯỚC 0097 (gồm 0096), bật khoá ngoại, gieo dữ liệu sạch. */
+/** CSDL dựng từ MỌI migration TRỪ 0097 (gồm 0096 và các số lớn hơn đã lên main trước — đúng thứ tự áp thật trên production, vì wrangler áp theo tên tệp chưa áp), bật khoá ngoại, gieo dữ liệu sạch. */
 function dungTruoc(): DatabaseSync {
   assert.ok(FILE, "thiếu migrations/*_dung_lai_muc_hoa_hong.sql");
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = OFF");
-  for (const f of files.filter((x) => x < FILE!)) db.exec(readFileSync(new URL(f, DIR), "utf8"));
+  for (const f of files.filter((x) => x !== FILE)) db.exec(readFileSync(new URL(f, DIR), "utf8"));
   db.exec("PRAGMA foreign_keys = ON");
   gieo(db);
   return db;
