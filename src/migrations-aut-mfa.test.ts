@@ -3,7 +3,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
-import { isExternalPermission, type PermissionCode } from "./shared/permissions.ts";
+import { type PermissionCode } from "./shared/permissions.ts";
+import { isInternal as isInternalReal } from "./modules/auth/mfa-rules.ts";
 
 const DIR = new URL("../migrations/", import.meta.url);
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
@@ -90,8 +91,8 @@ test("(e) hạn ân hạn: đúng tập tài khoản nội bộ đang hoạt đ�
       m.perms.forEach(([code, to], j) => addPerm(d, `${m.id}-${j}`, m.id, code, to));
     });
   });
-  // isInternal bằng TS: có ít nhất một quyền đang hiệu lực không thuộc EXTERNAL_PERMISSIONS (và tài khoản đang hoạt động).
-  const isInternal = (m: Mau) => m.active === 1 && m.perms.some(([c, to]) => to === null && !isExternalPermission(c as PermissionCode));
+  // Hàm thật isInternal (mfa-rules.ts) trên các quyền đang hiệu lực, và tài khoản đang hoạt động.
+  const isInternal = (m: Mau) => m.active === 1 && isInternalReal(m.perms.filter(([, to]) => to === null).map(([c]) => c as PermissionCode));
   const rows = db.prepare("SELECT id, mfa_grace_until AS g, mfa_enroll_until AS e FROM staff").all() as { id: string; g: string | null; e: string | null }[];
   assert.equal(rows.length, mau.length);
   for (const m of mau) {
