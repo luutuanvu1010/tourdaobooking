@@ -18,7 +18,9 @@ export const HD_QUAN_TRI: NhomHuongDan = {
 - **Đầu menu**: [[Tạo đơn]], [[Trang chủ]], [[Đơn hàng]], [[Danh bạ]].
 - Nhóm **VẬN CHUYỂN**: [[Điều phối xe]], [[Xe đang chạy]], [[Đề nghị chuyển khách]], [[Xe & giấy tờ]] (gộp [[Xe]], [[Lịch xe bận]], [[Giấy tờ sắp hết hạn]]) và [[Giá & chi phí]].
 - Nhóm **TIỀN**: [[Điều chỉnh công nợ]]; [[Khoá sổ tháng]] chỉ Toàn quyền thấy.
-- Nhóm **THIẾT LẬP** (bấm để mở, thu gọn): [[Hoa hồng đối tác]], [[Người bán dịch vụ]], [[Dịch vụ & giá]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], [[Loại giấy tờ xe]], [[Lý do điều phối]], [[Quản lý tài khoản]].- Số nhỏ cạnh Dịch vụ & giá: dịch vụ có giá Sheet vừa đổi; cạnh Xe & giấy tờ: giấy tờ đã hoặc sắp hết hạn.
+- Nhóm **THIẾT LẬP** (bấm để mở, thu gọn): [[Hoa hồng đối tác]], [[Người bán dịch vụ]], [[Dịch vụ & giá]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], [[Loại giấy tờ xe]], [[Lý do điều phối]], [[Quản lý tài khoản]].
+- Số nhỏ cạnh Dịch vụ & giá: dịch vụ có giá Sheet vừa đổi; cạnh Xe & giấy tờ: giấy tờ đã hoặc sắp hết hạn.
+
 ### Trên điện thoại
 - Tab ở đáy: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Dịch vụ]], [[Tài khoản]], **Tôi**.
 - Các trang khác mở từ trang Tôi: [[Danh bạ]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], [[Điều chỉnh công nợ]], nhóm VẬN CHUYỂN ([[Điều phối xe]], [[Xe]], [[Giấy tờ sắp hết hạn]], [[Loại giấy tờ xe]], [[Lý do điều phối]]).

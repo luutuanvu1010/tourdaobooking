@@ -3,7 +3,7 @@
 > Trạng thái: **ĐỀ XUẤT, chưa áp dụng.** `web/CLAUDE.md` là luật chi phối AI (CLAUDE.md §3, N9): AI không tự sửa, chủ duyệt mới có hiệu lực. Tệp này chỉ để chủ đọc và dán vào (hoặc bảo một phiên sửa luật làm).
 > Số mục lấy từ chạy hàm `thanhBen()` thật ngày 15/10 (script thử ngoài repo), KHÔNG đoán. Đếm gồm nút nổi bật «Tạo đơn» và ba mục chân menu (Của tôi, Góp ý / Báo lỗi, Trợ giúp), gồm cả các mục của nhóm Thiết lập.
 
-## Số mục thanh bên theo vai (đo bằng `thanhBen()`)
+## Số mục thanh bên theo vai (đo bằng `thanhBen()`, TẠI NGÀY 2026-10-15; hồ sơ có ngày, không sửa lại khi bảng đổi)
 
 | Vai | Tổng mục | Hiện sẵn (không tính Tạo đơn, Thiết lập, chân menu) | Thiết lập |
 |---|---|---|---|

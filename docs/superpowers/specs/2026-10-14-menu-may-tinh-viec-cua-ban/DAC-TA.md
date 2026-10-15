@@ -119,3 +119,9 @@ Bản dựng: `docs/design/menu-may-tinh-2026-10-15/` (dữ liệu trong đó l�
 8. **Hướng dẫn viên:** mục «Đơn hàng» hiện đơn mình đang phụ trách (đúng ADR-0030 S23-4). Đơn tự do (chưa ai phụ trách) giữ ở khối «Đơn chờ nhận» của trang «Của tôi», không đưa vào «Đơn hàng» (tính năng thêm khối vào `/orders` là việc giao diện mới, cần đặc tả riêng). §7.3 viết «gồm đơn tự do» nên điểm này là lệch có chủ ý, đã ghi ở sổ điều phối thi công (Ruling Task 1).
 
 Số mục thanh bên thực đo bằng hàm `thanhBen()` ngày 15/10 (tính cả nút Tạo đơn và ba mục chân menu): Bán hàng 10, Kế toán 13, Quản trị 21, Toàn quyền 28; số hiện sẵn (không tính Thiết lập, chân menu, Tạo đơn): Bán hàng 5, Kế toán 8, Quản trị 9, Toàn quyền 10.
+
+Ghi thêm (vòng sửa 1 của 7a, theo người kiểm độc lập):
+
+9. **Trần 10 mục hiện sẵn:** tổ hợp lai văn phòng + tài xế công ty thấy 11 mục (thêm «Cuốc của tôi»). Chấp nhận, vì tổ hợp này vốn là ngoại lệ của thiết kế (K2b T2) và cắt «Cuốc của tôi» làm mất lối vào.
+10. **Cỡ chữ:** nút «Thiết lập» và «Đăng xuất» là 14px (bản dựng 12px và 13px), theo §3 vì là nút bấm; tiêu đề nhóm không bấm giữ 12px viết hoa như bản dựng.
+11. **Vị trí dải chuyển nhanh** (đang đặt TRÊN tiêu đề trang `h1`) hay dưới `h1`: chờ chủ xem ảnh thật rồi quyết.

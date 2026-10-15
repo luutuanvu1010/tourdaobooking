@@ -354,3 +354,7 @@
 - **Mục gộp: `aria-current` `"true"` thay `"page"` cho trang con** (nhận xét M-6 của người kiểm độc lập, chưa xác minh lại bằng trình đọc màn hình). Khi đứng ở một trang con của mục gộp, thanh bên sáng mục gộp; cân nhắc đặt `aria-current="true"` thay vì `"page"` cho trang con. Việc nhỏ, đổi ở `web/shell.ts` (chạm trần gói).
 - **Chuỗi lỗi → Thử lại → hồi phục của thẻ Việc của bạn** (nhất là «Cần xem lại» và hai nguồn ngoài) mới được khóa bằng bài đọc mã, chưa chạy thật. Cần kịch bản Chrome / e2e (Task 7b của đợt này).
 - **Ghi chú liên quan:** thẻ «Cọc cần chi hoàn» của Kế toán: xem mục 30.
+
+## 32. Trợ giúp theo vai: nới trần 30 phút hoặc tách theo mục để bổ sung ý phụ
+
+- **Ngày:** 2026-10-15 · **Trạng thái:** `chờ`. Khi viết lại Trợ giúp cho khớp menu theo việc, bài A4 (`src/shared/huong-dan.test.ts`: Phần chung + một nhóm vai ≤ 30 phút) buộc phải rút chữ, nên mất vài ý phụ: dòng thời gian trong thẻ «Chuyến đón» của Bán hàng (chuyến kế tiếp có nhãn «Sắp tới»); ở Kế toán: ô «Doanh thu của tôi» ghi «Chưa có đơn nào tuần này» và dòng «số đơn và ngày đón sớm nhất» của «Còn thiếu tiền»; Trợ giúp Quản trị không nói chân menu (Của tôi, Góp ý, Trợ giúp). Việc: nới trần A4 (chủ quyết) hoặc tách Trợ giúp theo mục để bổ sung ý phụ mà không vượt.
