@@ -2,16 +2,18 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## CHỜ PHÁT HÀNH (chưa lên production, ghi 2026-10-15) — ADR-0120 (đổi từ 0118) và đợt xác nhận sổ vàng
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.2 ĐÃ LÊN PRODUCTION (ADR-0120, đổi từ 0118: khoản chuyển khoản «Công ty thu» không tạo nợ người khai, «đang đối chiếu», chặn Đã giao, nhắc Kế toán sau 3 ngày; Kế toán duyệt chuyển tiền thu trước sang đơn khác; chữ «cọc» → «Thu trước»; 54 ca sổ vàng đã xác nhận) — migration `0099_bil_doi_chieu_khoan_cong_ty_thu` đã áp (2026-10-15 19:28 giờ VN)
 
-Nằm trên nhánh `claude/stoic-heisenberg-72c05d`, **chưa `day-len`, chưa `trien-khai`**; mục hiện trạng ngay dưới (bản 1.96, rồi 2.0 của phiên khác) chưa gồm phần này.
+Chủ chạy `day-len` rồi `trien-khai` (lần đầu dừng vì `main` có commit mới, hai lần dừng ở bài đo giờ của hàng rào do máy bận, lần ba qua); AI kiểm lại bằng lệnh chỉ đọc:
 
-- **Số hiệu:** ADR đổi từ 0118 sang 0120 (0119 là Vé hỗ trợ, vào main trước) và nhật ký thay đổi dùng số tạm **2.2** (main đã ở 2.1) vì nhánh đưa đón theo nhóm (ADR-0118, migration 0098) CHƯA vào `main` — chủ chọn cho mục này vào trước, nhánh đưa đón sẽ đổi số sau; kiểm lại số ở bước A.0 khi phát hành.
-- **Có gì:** ADR-0120 Điều 1 (khoản chuyển khoản do người không phải Kế toán khai là «đang đối chiếu», không tạo nợ giữ hộ; chặn Đã giao; nhắc Kế toán sau 3 ngày; tiền mặt «Công ty thu» giữ luật cũ) và Điều 2 (ô quyền `deposit.transfer.approve`: Kế toán duyệt chuyển tiền sang đơn khác); đổi chữ «cọc» → «Thu trước» ở chữ nhân viên thấy (câu gửi khách giữ nguyên); sổ vàng: 26 ca + 7 khoá mới đã xác nhận 2026-10-14.
-- **Cần biết khi phát hành:** có **migration `0099_bil_doi_chieu_khoan_cong_ty_thu`** (bảng chỉ-thêm `bil_receipt_recon`, tạo lại view `v_bil_coc_don` và trigger đảo lần thu) nên phải qua điểm khôi phục Time Travel và `audit-invariants --db remote`; trần gói trang Đơn hàng nới lên 96.500 byte (chủ chấp nhận); phải thêm mục nhật ký thay đổi mới (bước A.0) trước khi triển khai.
-- **Đã kiểm:** `typecheck` 0 lỗi, `npm test` xanh cả hai bước; hai lượt kiểm độc lập (đạt có điều kiện), điều kiện còn lại là dòng nhắc chỉ cho chuyển khoản — đã sửa, chưa có lượt kiểm thứ ba.
-- **Chưa kiểm:** kịch bản Chrome (`a2-smoke-*.mjs` cho `web/order.ts`, `trang-chu-smoke.mjs` cho `web/home.ts`, cần `AXE_JS`), e2e `so-tien` và `audit-invariants` chưa chạy sau lượt sửa cuối, chưa xem bằng mắt trên iPhone.
-- **Sổ vàng:** SV-SC-02, SV-SC-06, SV-DH-05 chủ đã xác nhận lại 2026-10-15; các ca còn chờ khác ở `golden/README.md`.
+- **Commit:** `20103d40` (= `main` = `origin/main`). Điểm khôi phục Time Travel trước khi áp: `0000114c-00000000-00005105-0ea2cb110842df173bfb71ccf3221f25`.
+- **Worker:** `4cfc8ced-bc28-425f-acb4-93a8631f8f53` (100%). `GET /api/auth/config` → `"version":"2.2"`; `d1 migrations list --remote` → "No migrations to apply!".
+- **Theo khối `trien-khai`:** e2e xanh, `audit-invariants --db remote` ĐẠT (4 cảnh báo cũ: R-CTL-1 nhóm dịch vụ, R-ORD-T1w đơn cũ chờ chụp bù…), cổng phiên bản trước và sau deploy ĐẠT.
+- **Bảo trì:** BẬT tới 2026-10-16T12:38Z (19:38 giờ VN 16/10) — chủ quyết khi tắt.
+- **Chưa kiểm:** xem bằng iPhone thật dòng nhắc «đang đối chiếu» (trang đơn Kế toán, Trang chủ Kế toán/Toàn quyền); Chrome đã chạy trước gộp lần cuối cho trang đơn, form, Trang chủ, menu (kịch bản `a2-smoke-sheet` đỏ một bước có sẵn trên `main`: tên hành động lịch sử `order_leg_updated`).
+- **Số hiệu:** nhánh đưa đón theo nhóm (ADR-0118, migration 0098) CHƯA vào `main`; khi vào phải đổi số phiên bản lên 2.3 trở lên.
+- **Sổ vàng:** các ca còn chờ chủ ở `golden/README.md`.
+- **Hoàn tác:** migration 0099 chỉ THÊM (bảng `bil_receipt_recon`, tạo lại một view và trigger đảo lần thu), không sửa dữ liệu cũ; chưa diễn tập quay Worker về bản trước.
 
 ## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.96 ĐÃ LÊN PRODUCTION (ADR-0117 lần 1: loại đối tác là dữ liệu — Kế toán, Quản trị, Toàn quyền thêm / tắt / bật loại ở màn «Hoa hồng đối tác», gắn loại cho hồ sơ ở Danh bạ; nhân viên nội bộ không mang loại được hưởng hoa hồng; kiểm định kỳ `R-PRC-6`) — migration `0095_loai_doi_tac_la_du_lieu` đã áp (2026-10-14 12:37 giờ VN)
 
