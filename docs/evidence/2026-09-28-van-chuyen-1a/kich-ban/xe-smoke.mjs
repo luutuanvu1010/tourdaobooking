@@ -1,7 +1,7 @@
 // Kịch bản Chrome — chỗ vào phân hệ Vận chuyển (bản vẽ 00), màn 01 Danh sách xe, màn 02 Thêm / sửa xe (ADR-0040 D1; docs/design/van-chuyen-1a/).
-// 1) menu máy tính: mục cha "Vận chuyển" (nhóm QUẢN TRỊ, sau Địa điểm) luôn mở hai mục con "Xe", "Sắp hết hạn" (huy hiệu số); breadcrumb "Vận chuyển › Xe".
-//    Từ 2026-09-28 (tách "Danh mục giấy tờ" theo chủ dữ liệu — không có trong bản vẽ): giữa "Địa điểm" và "Vận chuyển" có "Loại giấy tờ cá nhân"; mục con thứ ba
-//    "Loại giấy tờ xe" (ô admin.manage) — kiểm kỹ ở danh-muc-giay-to-smoke.mjs.
+// 1) menu máy tính theo việc (15/10): nhóm VẬN CHUYỂN phẳng (không còn mục cha "Vận chuyển" + mục con): Điều phối xe, Xe đang chạy, Đề nghị chuyển khách, "Xe & giấy tờ" (gộp Xe / Lịch xe bận / Sắp hết hạn), "Giá & chi phí" (gộp hai bảng tiền xe thuê); nhóm Thiết lập ĐÓNG ở trang xe; breadcrumb "Xe & giấy tờ".
+//    Mục gộp sáng ở MỌI trang trong `gom`. "Loại giấy tờ xe" nay nằm trong nhóm Thiết lập (kiểm kỹ ở danh-muc-giay-to-smoke.mjs).
+//    (Từ 2026-09-28: "Loại giấy tờ cá nhân" và "Loại giấy tờ xe" tách theo chủ dữ liệu — không có trong bản vẽ 00.)
 // 2) trang Tôi điện thoại của Quản trị: nhãn "VẬN CHUYỂN" + hai dòng Xe / Giấy tờ sắp hết hạn (+ "Loại giấy tờ xe", 2026-09-28), ngay dưới Danh bạ / Địa điểm
 //    (+ "Loại giấy tờ cá nhân", 2026-09-28).
 // 3) Bán hàng: không mục, không dòng, không lời gọi /api/van-chuyen/*; mở thẳng /xe → câu từ chối của máy chủ, không nút Thêm xe.
@@ -20,38 +20,41 @@ try {
     p.ev(`(() => {
       const t = (el) => (el ? el.innerText.replace(/\\s+/g, ' ').trim() : null);
       const groups = [...document.querySelectorAll('#sidebar .sidebar-group')].map((g) => ({ title: t(g.querySelector('.sidebar-group-title')), items: [...g.querySelectorAll('.sidebar-item')].map((a) => ({ tag: a.tagName, href: a.getAttribute('href'), label: t(a.querySelector('.sidebar-item-label')), badge: t(a.querySelector('.sidebar-item-badge')), sub: a.classList.contains('sidebar-sub'), current: a.getAttribute('aria-current') })) }));
-      return { groups, crumb: t(document.querySelector('#bar-title')) };
+      const tg = document.querySelector('#sidebar .sidebar-group-toggle'); const thietLap = tg ? { dong: tg.getAttribute('aria-expanded') === 'false', an: document.querySelector('#nhom-thiet-lap').hidden } : null;
+      return { groups, thietLap, crumb: t(document.querySelector('#bar-title')) };
     })()`);
 
-  await dem.step("1", "menu máy tính (Quản trị): “Vận chuyển” sau Địa điểm, luôn mở “Xe” + “Sắp hết hạn”; mục con đang mở sáng; breadcrumb “Vận chuyển › Xe”", async () => {
+await dem.step("1", "menu máy tính theo việc (Quản trị): nhóm VẬN CHUYỂN phẳng 5 mục; \"Xe & giấy tờ\" sáng ở /xe, /lich-xe-ban, /giay-to-sap-het-han; \"Giá & chi phí\" sáng ở /bang-ke-xe; nhóm Thiết lập đóng; breadcrumb đúng", async () => {
     const p = await env.as(ADMIN, "/xe", DESK);
     try {
-      await p.waitFor("!!document.querySelector('#sidebar .sidebar-parent')", "mục Vận chuyển", 10000);
+      await p.waitFor("!!document.querySelector('#sidebar .sidebar-group-title')", "nhóm VẬN CHUYỂN", 10000);
       await sleep(800);
       const m = await menu(p);
-      const qt = m.groups.find((g) => g.title === "QUẢN TRỊ");
-      assert.ok(qt, JSON.stringify(m.groups));
-      const labels = qt.items.map((i) => i.label);
-      const at = labels.indexOf("Địa điểm");
-      // "Loại giấy tờ cá nhân" (sau Địa điểm) và mục con "Loại giấy tờ xe": tách "Danh mục giấy tờ" 2026-09-28 (chủ dự án), không có trong bản vẽ 00.
-      // ADR-0049 B1 (vòng 3, bản vẽ Bảng điều phối vo-may-tinh): mục con "Điều phối xe" (ô trip.view) đứng ĐẦU dưới "Vận chuyển", trước "Xe".
-      assert.deepEqual(labels.slice(at, at + 11), ["Địa điểm", "Loại giấy tờ cá nhân", "Vận chuyển", "Điều phối xe", "Xe đang chạy", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Lịch xe bận", "Sắp hết hạn", "Loại giấy tờ xe"], JSON.stringify(labels));
-      const [cha, dieuPhoi, xeChay, bangGia, bangKe, xe, lichBan, han, loaiXe] = qt.items.slice(at + 2, at + 11); // + "Xe đang chạy" (Đợt 5) ngay sau "Điều phối xe", rồi hai mục tiền xe thuê (Đợt 4)
-      assert.deepEqual([xeChay.href, xeChay.sub, xeChay.current], ["/xe-dang-chay", true, null]);
-      assert.deepEqual([bangGia.href, bangKe.href], ["/bang-gia-xe", "/bang-ke-xe"], "Đợt 4 G0: hai mục con tiền xe thuê sau Điều phối xe / Xe đang chạy");
-      assert.deepEqual([lichBan.href, lichBan.sub, lichBan.current], ["/lich-xe-ban", true, null]); // Đợt 3 (2/10)
-      assert.equal(cha.tag, "DIV", "mục cha không phải liên kết (bản vẽ: luôn mở, chỉ các mục con bấm được)");
-      assert.equal(cha.current, null);
-      assert.deepEqual([dieuPhoi.href, dieuPhoi.sub, dieuPhoi.current], ["/dieu-phoi", true, null]);
-      assert.deepEqual([xe.href, xe.sub, xe.current], ["/xe", true, "page"]);
-      assert.deepEqual([han.href, han.sub, han.current], ["/giay-to-sap-het-han", true, null]);
-      assert.deepEqual([loaiXe.href, loaiXe.sub, loaiXe.current], ["/loai-giay-to-xe", true, null]);
-      assert.equal(m.crumb, "Vận chuyển › Xe");
-      const cls = await p.ev(`document.querySelector('#sidebar .sidebar-parent').classList.contains('is-open-parent')`);
-      assert.equal(cls, true, "mục cha chữ trắng khi đang ở một mục con");
+      const vc = m.groups.find((g) => g.title === "VẬN CHUYỂN");
+      assert.ok(vc, JSON.stringify(m.groups));
+      assert.deepEqual(vc.items.map((i) => i.label), ["Điều phối xe", "Xe đang chạy", "Đề nghị chuyển khách", "Xe & giấy tờ", "Giá & chi phí"]);
+      assert.deepEqual(vc.items.map((i) => i.href), ["/dieu-phoi", "/xe-dang-chay", "/de-nghi", "/xe", "/bang-gia-xe"]);
+      assert.ok(vc.items.every((i) => i.tag === "A" && !i.sub), "mọi mục là liên kết phẳng, không còn mục cha / mục con");
+      assert.deepEqual(vc.items.map((i) => i.current), [null, null, null, "page", null], "chỉ \"Xe & giấy tờ\" sáng ở /xe");
+      assert.equal(await p.ev("!!document.querySelector('#sidebar .sidebar-parent')"), false, "không còn mục cha Vận chuyển");
+      assert.deepEqual(m.thietLap, { dong: true, an: true }, "nhóm Thiết lập đóng ở trang xe");
+      assert.equal(m.crumb, "Vận chuyển › Xe", "breadcrumb do data-title của trang (không đổi theo menu)");
       await shotFull(p, "00-cho-vao-1040.png");
     } finally {
       p.close();
+    }
+    // Mục gộp sáng ở các trang anh em và "Giá & chi phí" ở trang bảng kê (mỗi lần mở một trang; cùng phiên Quản trị).
+    for (const [duong, sang] of [["/lich-xe-ban", "Xe & giấy tờ"], ["/giay-to-sap-het-han", "Xe & giấy tờ"], ["/bang-ke-xe", "Giá & chi phí"], ["/bang-gia-xe", "Giá & chi phí"]]) {
+      const q = await env.as(ADMIN, duong, DESK);
+      try {
+        await q.waitFor("!!document.querySelector('#sidebar .sidebar-group-title')", `thanh bên ở ${duong}`, 10000);
+        await sleep(500);
+        const mm = await menu(q);
+        const sangLa = mm.groups.flatMap((g) => g.items).filter((i) => i.current === "page").map((i) => i.label);
+        assert.deepEqual(sangLa, [sang], `${duong}: đúng một mục sáng`);
+      } finally {
+        q.close();
+      }
     }
   });
 
@@ -69,7 +72,7 @@ try {
       assert.deepEqual(s.top.map((r) => r.text), ["Danh bạ", "Địa điểm", "Loại giấy tờ cá nhân"]);
       assert.equal(s.eyebrow, "VẬN CHUYỂN");
       // ADR-0049 B8 (bản vẽ Bảng điều phối 08 khung 8d, 2026-09-29): Quản trị có thêm dòng "Lý do điều phối" cuối nhóm (không có "Chính sách điều phối" — chỉ Toàn quyền).
-      assert.deepEqual(s.vc, [{ href: "/dieu-phoi", text: "Điều phối xe" }, { href: "/xe-dang-chay", text: "Xe đang chạy" }, { href: "/bang-gia-xe", text: "Bảng giá thuê xe" }, { href: "/bang-ke-xe", text: "Bảng kê chi phí xe" }, { href: "/xe", text: "Xe" }, { href: "/lich-xe-ban", text: "Lịch xe bận" }, { href: "/giay-to-sap-het-han", text: "Giấy tờ sắp hết hạn" }, { href: "/loai-giay-to-xe", text: "Loại giấy tờ xe" }, { href: "/ly-do-dieu-phoi", text: "Lý do điều phối" }]);
+      assert.deepEqual(s.vc, [{ href: "/dieu-phoi", text: "Điều phối xe" }, { href: "/xe-dang-chay", text: "Xe đang chạy" }, { href: "/de-nghi", text: "Đề nghị chuyển khách" }, { href: "/bang-gia-xe", text: "Bảng giá thuê xe" }, { href: "/bang-ke-xe", text: "Bảng kê chi phí xe" }, { href: "/xe", text: "Xe" }, { href: "/lich-xe-ban", text: "Lịch xe bận" }, { href: "/giay-to-sap-het-han", text: "Giấy tờ sắp hết hạn" }, { href: "/loai-giay-to-xe", text: "Loại giấy tờ xe" }, { href: "/ly-do-dieu-phoi", text: "Lý do điều phối" }]);
       assert.ok(s.rest.some((r) => r.text?.startsWith("Góp ý")) && s.rest.some((r) => r.text === "Đăng xuất"), JSON.stringify(s.rest));
       const iTop = s.order.indexOf("links-top");
       assert.deepEqual(s.order.slice(iTop, iTop + 4), ["links-top", "vc-eyebrow", "vc-links", "links"], JSON.stringify(s.order));
@@ -82,13 +85,14 @@ try {
 
   // ADR-0049 B1 (vòng 3, Q-B-4): Bán hàng có ô trip.view nên nay THẤY mục cha "Vận chuyển" với đúng một mục con "Điều phối xe" và dòng "Điều phối xe" ở trang Tôi —
   // vẫn KHÔNG có Xe / Sắp hết hạn (ô vehicle.manage), không gọi /api/van-chuyen/* ở trang Tôi.
-  await dem.step("3", "Bán hàng: nhóm Vận chuyển chỉ có Điều phối xe (không Xe / Sắp hết hạn), trang Tôi chỉ dòng Điều phối xe, không gọi /api/van-chuyen/*; mở thẳng /xe → câu từ chối, không nút Thêm xe", async () => {
+  await dem.step("3", "Bán hàng: nhóm Vận chuyển chỉ có Điều phối xe + Xe đang chạy (không Xe & giấy tờ / Giá & chi phí), trang Tôi chỉ dòng Điều phối xe, không gọi /api/van-chuyen/*; mở thẳng /xe → câu từ chối, không nút Thêm xe", async () => {
     const p = await env.as(ACCOUNTS.salesA, "/account", DESK);
     try {
       await p.waitFor("!!document.querySelector('#links .row-link')", "trang Tôi", 10000);
       await sleep(1000);
-      const s = await p.ev(`({ parent: !!document.querySelector('#sidebar .sidebar-parent'), sub: [...document.querySelectorAll('#sidebar .sidebar-sub')].map((a) => a.innerText.trim()), vc: [...document.querySelectorAll('#vc-links .row-link')].map((a) => a.innerText.trim()), eyebrow: !!document.querySelector('.vc-eyebrow'), top: !!document.querySelector('#links-top') })`);
-      assert.deepEqual(s, { parent: true, sub: ["Điều phối xe", "Xe đang chạy"], vc: ["Điều phối xe", "Xe đang chạy"], eyebrow: true, top: true });
+      const s = await p.ev(`({ parent: !!document.querySelector('#sidebar .sidebar-parent'), sub: [...document.querySelectorAll('#sidebar .sidebar-group')].filter((g) => g.querySelector('.sidebar-group-title')?.textContent.trim() === 'VẬN CHUYỂN').flatMap((g) => [...g.querySelectorAll('.sidebar-item')].map((a) => a.innerText.trim())), vc: [...document.querySelectorAll('#vc-links .row-link')].map((a) => a.innerText.trim()), eyebrow: !!document.querySelector('.vc-eyebrow'), top: !!document.querySelector('#links-top') })`);
+      // Menu theo việc (15/10): không còn mục cha (`parent: false`); `sub` nay là các mục của nhóm VẬN CHUYỂN ở thanh bên (phẳng).
+      assert.deepEqual(s, { parent: false, sub: ["Điều phối xe", "Xe đang chạy"], vc: ["Điều phối xe", "Xe đang chạy"], eyebrow: true, top: true });
       assert.deepEqual(apiCalls(p).filter((c) => c.path.startsWith("/api/van-chuyen")), []);
     } finally {
       p.close();

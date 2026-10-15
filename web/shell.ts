@@ -1,7 +1,6 @@
 import { ApiError, api, datNguoiDangNhap, type Staff, type Api } from "./api";
 import { PERMISSION_LABEL } from "../src/shared/permissions";
 import {
-  CHA_THANH_BEN,
   KHUNG_MAT_MANG,
   THANH_BEN,
   THANH_TAB,
@@ -9,11 +8,14 @@ import {
   nhanTheoDuong,
   sangTabToi,
   sangTai,
+  sangTaiMuc,
   thanhBen,
   thanhTab,
   thanhTren,
+  thietLapMoSan,
   type KhoaTrang,
   type NguoiXem,
+  type NhomThanhBen,
 } from "../src/shared/muc-giao-dien";
 import { append, byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
@@ -34,7 +36,6 @@ import { ganTroLy } from "./tro-ly";
 ([] as (
   | Extract<(typeof THANH_BEN)[number], { bieuTuong: string }>["bieuTuong"]
   | (typeof THANH_TAB)[number]["bieuTuong"]
-  | (typeof CHA_THANH_BEN)[keyof typeof CHA_THANH_BEN]["bieuTuong"]
 )[]) satisfies readonly IconName[];
 
 /**
@@ -147,12 +148,13 @@ export function feedbackBadge(): Promise<number> {
  * `GET /api/catalog/admin` (cả danh mục kèm giá) ở MỌI trang (nghiên cứu tốc độ 2026-10-02, đợt 1 việc 3). Chỉ gọi khi ĐÃ BIẾT là admin (tránh 403 cho phần lớn tài
  * khoản mở bất kỳ trang nào). Lỗi mạng → 0, giống feedbackBadge().
  */
-async function catalogConflictBadge(): Promise<number> {
-  try {
-    return (await api<Api.CatalogConflictCountResponse>("/api/catalog/dem-xung-dot")).conflictCount;
-  } catch {
-    return 0;
-  }
+let xungDotHoi: Promise<number> | null = null; // MỘT lời gọi dù hai nơi cần: huy hiệu mục "Dịch vụ & giá" và chữ đếm của nút Thiết lập
+function catalogConflictBadge(): Promise<number> {
+  xungDotHoi ??= api<Api.CatalogConflictCountResponse>("/api/catalog/dem-xung-dot").then(
+    (r) => r.conflictCount,
+    () => 0,
+  );
+  return xungDotHoi;
 }
 
 /**
@@ -170,38 +172,21 @@ async function draftOrderBadge(): Promise<number> {
   }
 }
 
-interface NavItem {
-  href: string;
-  label: string;
-  /** Mục con (Vận chuyển → Xe, Sắp hết hạn, …) không có biểu tượng (bản vẽ Vận chuyển). */
-  icon?: IconName;
-  /** "parent": mục cha KHÔNG phải liên kết, luôn mở (bản vẽ Vận chuyển, quyết định 1); "sub": mục con thụt lề. */
-  kind?: "parent" | "sub";
-  /** Chỉ gắn khi có NGUỒN THẬT (route đã có sẵn số đó) — không mục nào được vẽ số giả. */
-  badge?: () => Promise<number>;
-  /** Màu huy hiệu khác màu mặc định (đúng bản mẫu: "Dịch vụ & giá" màu cát, "Góp ý" màu san hô). */
-  badgeClass?: string;
-  /** Chấm đỏ "Có bản mới" (chỉ mục Trợ giúp): đọc ngay từ máy này, không gọi mạng. */
-  dot?: () => boolean;
-  active: (path: string) => boolean;
-}
-interface NavGroup {
-  title: string;
-  items: NavItem[];
-}
+type Muc = ReturnType<typeof thanhBen>[number]["muc"][number];
 
 /**
  * Phần CHỈ TRÌNH BÀY của mục thanh bên (không quyết ai thấy mục — việc đó ở bảng mục): huy hiệu số và chấm "Có bản mới".
  * "Đơn hàng" = số đơn CHƯA XÁC NHẬN (quyết định 8 của chủ dự án), chỉ cho người xem mọi đơn (route đếm hỏi cùng ba ô với dashboard) — mục "Đơn hàng" của Đối tác,
- * Thực tập (lỗi báo 30/9 L3) không có huy hiệu. "Sắp hết hạn" (Vận chuyển, ADR-0040 D1) = số giấy đã hết + sắp hết.
+ * Thực tập (lỗi báo 30/9 L3) không có huy hiệu. "Xe & giấy tờ" (ADR-0040 D1) = số giấy đã hết + sắp hết. "Dịch vụ & giá" nằm trong nhóm Thiết lập (thu gọn): số lệch giá còn cộng vào nút Thiết lập.
+ * Chỉ gắn khi có NGUỒN THẬT (route đã có sẵn số đó) — không mục nào được vẽ số giả.
  */
-function trinhBay(k: KhoaTrang, seesAll: boolean): Pick<NavItem, "badge" | "badgeClass" | "dot"> {
+function trinhBay(k: KhoaTrang, seesAll: boolean): { badge?: () => Promise<number>; badgeClass?: string; dot?: () => boolean } {
   switch (k) {
     case "donHang":
       return seesAll ? { badge: draftOrderBadge } : {};
     case "dichVu":
       return { badge: catalogConflictBadge, badgeClass: "sidebar-item-badge-sand" };
-    case "sapHetHan":
+    case "xe":
       return { badge: demSapHetHan, badgeClass: "sidebar-item-badge-sand" };
     case "gopY":
       return { badge: feedbackBadge, badgeClass: "sidebar-item-badge-accent" };
@@ -213,74 +198,75 @@ function trinhBay(k: KhoaTrang, seesAll: boolean): Pick<NavItem, "badge" | "badg
 }
 
 /**
- * Ba nhóm của thanh điều hướng dọc (ADR-0015, máy tính ≥900px): mục nào hiện cho ai do `thanhBen()` của bảng mục quyết (src/shared/muc-giao-dien.ts —
- * THANH_BEN, cùng bảng quyền với máy chủ). Nhóm rỗng bị lọc ở sidebar() (ẩn cả tiêu đề, đặc tả §3.1). Mục cha "Vận chuyển" sáng khi đang ở trang của BẤT KỲ mục con nào.
- */
-function navGroups(n: NguoiXem, path: string): NavGroup[] {
-  const seesAll = ("staff" in n ? coKhungNho(n.staff) : n.khungNho).seesAll;
-  return thanhBen(n, path).map(({ nhom, muc }) => ({
-    title: nhom,
-    items: muc.map((m): NavItem =>
-      m.kieu === "cha"
-        ? { href: "", label: m.nhan, icon: m.bieuTuong as IconName, kind: "parent", active: (p) => m.con.some((k) => sangTai(k, p)) }
-        : {
-            href: m.href,
-            label: m.nhan,
-            ...(m.bieuTuong ? { icon: m.bieuTuong as IconName } : {}),
-            ...(m.con ? { kind: "sub" as const } : {}),
-            ...trinhBay(m.trang, seesAll),
-            active: (p) => sangTai(m.trang, p),
-          },
-    ),
-  }));
-}
-
-/**
  * `loaders` gom lại lời gọi huy hiệu thay vì bắn ngay: chỉ chạy khi thanh bên THẬT SỰ hiển thị (xem addNav()) —
- * ở khổ điện thoại thanh bên bị CSS ẩn nên ba lời gọi kia chỉ tốn mạng trên chính thiết bị yếu nhất.
+ * ở khổ điện thoại thanh bên bị CSS ẩn nên các lời gọi kia chỉ tốn mạng trên chính thiết bị yếu nhất. Mục gộp sáng khi đứng ở trang của BẤT KỲ trang nào nó gom.
  */
-function sidebarItem(item: NavItem, path: string, loaders: (() => void)[]): HTMLElement {
-  const iconEl = item.icon ? h("span", { class: "sidebar-item-icon" }, icon(item.icon, 18)) : null;
-  const labelEl = h("span", { class: "sidebar-item-label" }, item.label, item.dot?.() && newDot());
-  // Mục cha "Vận chuyển": chữ trắng khi đang ở một mục con, nền sáng chỉ ở mục con đang chọn (bản vẽ 00).
-  if (item.kind === "parent") return h("div", { class: item.active(path) ? "sidebar-item sidebar-parent is-open-parent" : "sidebar-item sidebar-parent" }, iconEl, labelEl);
+function sidebarItem(m: Muc, path: string, loaders: (() => void)[], seesAll: boolean): HTMLElement {
+  const { badge, badgeClass, dot } = trinhBay(m.trang, seesAll);
   const a = h(
     "a",
-    { class: item.kind === "sub" ? "sidebar-item sidebar-sub" : "sidebar-item", href: item.href, "aria-current": item.active(path) ? "page" : false },
-    iconEl,
-    labelEl,
+    { class: "sidebar-item", href: m.href, "aria-current": sangTaiMuc(m, path) ? "page" : false },
+    m.bieuTuong && h("span", { class: "sidebar-item-icon" }, icon(m.bieuTuong as IconName, 18)),
+    h("span", { class: "sidebar-item-label" }, m.nhan, dot?.() && newDot()),
   );
-  const badge = item.badge;
   if (badge) {
     loaders.push(() => {
       void badge().then((n) => {
-        if (n > 0) a.append(h("span", { class: item.badgeClass ? `sidebar-item-badge ${item.badgeClass}` : "sidebar-item-badge" }, String(n)));
+        if (n > 0) a.append(h("span", { class: badgeClass ? `sidebar-item-badge ${badgeClass}` : "sidebar-item-badge" }, String(n)));
       });
     });
   }
   return a;
 }
 
-/** Nhóm rỗng ẩn CẢ tiêu đề (đặc tả §3.1) — trả `null` để sidebar() lọc bỏ, không hiện tiêu đề mồ côi. */
-function sidebarGroup(group: NavGroup, path: string, loaders: (() => void)[]): HTMLElement | null {
-  if (group.items.length === 0) return null;
-  return h(
-    "div",
-    { class: "sidebar-group" },
-    h("div", { class: "sidebar-group-title" }, group.title),
-    h("div", { class: "sidebar-group-items" }, ...group.items.map((it) => sidebarItem(it, path, loaders))),
+/**
+ * Một nhóm của thanh bên (nhóm do `thanhBen()` của bảng mục trả, cùng bảng quyền với máy chủ — src/shared/muc-giao-dien.ts). Nhóm rỗng ẩn CẢ tiêu đề (đặc tả §3.1) —
+ * trả `null`. HẰNG NGÀY không có tiêu đề và đứng đầu với nút "Tạo đơn" nổi bật; THIẾT LẬP là nút thu gọn (`aria-expanded`) mở sẵn theo `thietLapMoSan`, kèm số mục và
+ * số "dịch vụ lệch giá" (khi > 0) để việc đó không biến mất khi nhóm đóng.
+ */
+function sidebarGroup(nhom: NhomThanhBen, muc: readonly Muc[], path: string, loaders: (() => void)[], seesAll: boolean, moSan: boolean): HTMLElement | null {
+  const noiBat = muc.find((m) => m.noiBat);
+  const rows = muc.filter((m) => !m.noiBat).map((m) => sidebarItem(m, path, loaders, seesAll));
+  if (rows.length === 0 && !noiBat) return null;
+  const nutMoi = noiBat && h("a", { class: "sidebar-new", href: noiBat.href, "aria-current": sangTaiMuc(noiBat, path) ? "page" : false }, icon("plus", 18), h("span", null, noiBat.nhan));
+  if (nhom !== "THIẾT LẬP") {
+    return h("div", { class: "sidebar-group" }, nutMoi, nhom !== "HẰNG NGÀY" && h("div", { class: "sidebar-group-title" }, nhom), h("div", { class: "sidebar-group-items" }, ...rows));
+  }
+  const dem = h("span", { class: "sidebar-group-count" }, String(rows.length));
+  const toggle = h(
+    "button",
+    { type: "button", class: "sidebar-group-toggle", "aria-expanded": String(moSan), "aria-controls": "nhom-thiet-lap" },
+    "Thiết lập",
+    dem,
+    h("span", { class: "sidebar-chevron" }, icon("chevron-down", 16)),
   );
+  const body = h("div", { id: "nhom-thiet-lap", class: "sidebar-group-items", hidden: !moSan }, ...rows);
+  toggle.addEventListener("click", () => {
+    const mo = toggle.getAttribute("aria-expanded") !== "true";
+    toggle.setAttribute("aria-expanded", String(mo));
+    body.hidden = !mo;
+  });
+  if (muc.some((m) => m.trang === "dichVu"))
+    loaders.push(() => {
+      void catalogConflictBadge().then((n) => {
+        if (n > 0) dem.textContent = `${rows.length} · ${n} lệch giá`;
+      });
+    });
+  return h("div", { class: "sidebar-group" }, toggle, body);
 }
 
 /**
  * Thanh điều hướng dọc ở máy tính (ADR-0015) — luôn ở trong DOM (CSS ẩn ở <900px, KHÔNG gỡ khỏi cây — DOM phẳng,
- * bài học Đợt C). Cấu trúc đúng bản mẫu: đầu (logo + tên app) → ba nhóm → chân (avatar + tên + vai + đăng xuất).
- * Đăng xuất: bản mẫu không vẽ (ảnh chỉ là một phần khung), nhưng đây là thao tác BẮT BUỘC PHẢI CÒN (trang Tôi
- * cũng có "Đăng xuất" riêng, `web/account.ts`) — thêm một liên kết nhỏ, không đổi khối nào bản mẫu đã vẽ.
+ * bài học Đợt C). Cấu trúc theo bản vẽ 15/10: đầu (logo + tên app) → các nhóm → chân (ba mục CHÂN MENU, rồi avatar + tên + vai, rồi Đăng xuất).
+ * Đăng xuất là thao tác BẮT BUỘC PHẢI CÒN (trang Tôi cũng có "Đăng xuất" riêng, `web/account.ts`).
  */
 function sidebar(n: NguoiXem, path: string, staff: Staff | null, loaders: (() => void)[], tat = ""): HTMLElement {
-  const groups = navGroups(n, path)
-    .map((g) => sidebarGroup(g, path, loaders))
+  const seesAll = ("staff" in n ? coKhungNho(n.staff) : n.khungNho).seesAll;
+  const hien = thanhBen(n, path);
+  const chan = hien.pop()!; // CHÂN MENU luôn là nhóm cuối của NHOM_THANH_BEN
+  const moSan = thietLapMoSan(hien, path);
+  const groups = hien
+    .map((g) => sidebarGroup(g.nhom, g.muc, path, loaders, seesAll, moSan))
     .filter((g): g is HTMLElement => g !== null);
   // `staff` null = khung tạm từ bản nhớ (ADR-0035): chân thanh chỉ có chữ cái đầu, tên/vai điền khi /api/auth/me về.
   const roleLabel = staff ? staff.permissions.map((p) => PERMISSION_LABEL[p]).join(" · ") || "Chưa có quyền" : "";
@@ -298,13 +284,17 @@ function sidebar(n: NguoiXem, path: string, staff: Staff | null, loaders: (() =>
     h(
       "div",
       { class: "sidebar-foot" },
-      h("span", { class: "sidebar-avatar", "aria-hidden": "true" }, staff ? initials(staff.fullName) : tat),
-      h("span", { class: "sidebar-who" }, h("span", { class: "sidebar-name" }, staff?.fullName ?? ""), h("span", { class: "sidebar-role" }, roleLabel)),
+      h("div", { class: "sidebar-group-items" }, ...chan.muc.map((m) => sidebarItem(m, path, loaders, seesAll))),
+      h(
+        "div",
+        { class: "sidebar-user" },
+        h("span", { class: "sidebar-avatar", "aria-hidden": "true" }, staff ? initials(staff.fullName) : tat),
+        h("span", { class: "sidebar-who" }, h("span", { class: "sidebar-name" }, staff?.fullName ?? ""), h("span", { class: "sidebar-role" }, roleLabel)),
+      ),
       logoutBtn,
     ),
   );
 }
-
 
 /**
  * Chữ breadcrumb trên thanh công việc: `data-title` của trang → nhãn mục thanh bên ĐẦU TIÊN sáng ở đường này (`nhanTheoDuong` — tra mọi mục, không xét

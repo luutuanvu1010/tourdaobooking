@@ -10,6 +10,7 @@ import { moBangTruot } from "./bang-truot";
 import { byId, h, replaceChildren } from "./dom";
 import { chipEl, datCrumb, loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
+import { ganDaiTrangAnhEm } from "./dai-trang-anh-em";
 import { initShell, showError } from "./shell";
 import { layDanhSachSapHet } from "./vc-dem";
 
@@ -79,8 +80,9 @@ function ve(r: Api.ExpiringListResponse): void {
     ),
   );
   tableEl.hidden = r.items.length === 0;
-  // Huy hiệu "Sắp hết hạn" ở thanh bên khớp đúng danh sách vừa vẽ (cùng một lần đọc với web/vc-dem.ts; ẩn khi 0).
-  const huyHieu = document.querySelector('#sidebar a[href="/giay-to-sap-het-han"] .sidebar-item-badge');
+  // Huy hiệu ở thanh bên khớp đúng danh sách vừa vẽ (cùng một lần đọc với web/vc-dem.ts; ẩn khi 0). Từ menu theo việc (15/10) huy hiệu này nằm ở mục gộp
+  // "Xe & giấy tờ" (liên kết /xe, web/shell.ts trinhBay) — không còn mục riêng /giay-to-sap-het-han ở thanh bên. Bài src/huy-hieu-sap-het-han-dong-bo.test.ts ghim selector.
+  const huyHieu = document.querySelector('#sidebar a[href="/xe"] .sidebar-item-badge');
   if (huyHieu) {
     if (r.count > 0) huyHieu.textContent = String(r.count);
     else huyHieu.remove();
@@ -88,6 +90,7 @@ function ve(r: Api.ExpiringListResponse): void {
 }
 
 const staff = await initShell();
+ganDaiTrangAnhEm("/giay-to-sap-het-han", staff);
 datCrumb("Vận chuyển", "Sắp hết hạn");
 try {
   ve(await layDanhSachSapHet());

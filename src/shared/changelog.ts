@@ -14,16 +14,38 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Mức TA dùng chung (ADR-0117 lần 2; chủ duyệt lần 2 bằng lời trong chat 2026-10-14): bộ hoa hồng có tên, gắn loại đối tác vào mức theo ngày; chọn mức thêm bậc 7–9.
     // Có thay đổi cơ sở dữ liệu (migration 0096 thêm hai bảng, 0097 dựng lại bảng mức hoa hồng) — cần npm run trien-khai sau day-len (Task 7 của kế hoạch, chủ tự chạy).
-    // Số 1.97 là số TẠM (= origin/main 1.96 + 1, kiểm 2026-10-15 bằng git ls-remote: main 7b832996): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) —
+    // Số 2.1 là số TẠM (= origin/main 2.0 + 1, kiểm 2026-10-16: main fc533d49): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) —
     // người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
-    version: "1.97",
-    date: "2026-10-15",
+    version: "2.1",
+    date: "2026-10-16",
     items: [
       { kind: "moi", text: "Trang Hoa hồng đối tác có thêm khối Mức TA: Kế toán đặt tên mức (ví dụ Đại lý cấp 1), thêm dòng hoa hồng cho mức, rồi gắn loại đối tác vào mức từ một ngày." },
       { kind: "moi", text: "Đối tác mang loại đã gắn mức được tính hoa hồng theo mức đó khi đơn được xác nhận. Mức riêng của đối tác hay của loại vẫn được ưu tiên hơn mức TA." },
       { kind: "moi", text: "Gắn mức cho loại còn mức riêng: Nền tảng hiện khung vàng liệt kê các dòng riêng đó, không chặn. Đóng các dòng riêng nếu muốn dùng mức TA." },
       { kind: "moi", text: "Thử tra cho biết mức TA nào đang áp, kèm tên mức." },
       { kind: "doi", text: "Đổi mức hay sửa số của mức không làm đổi hoa hồng đơn đã xác nhận. Mỗi loại một mức trong một ngày: muốn đổi từ hôm nay thì kết thúc gắn cũ tới hôm qua." },
+    ],
+  },
+  {
+    // Sửa chữ nút thẻ «Đơn nháp» ở Trang chủ (chủ chốt 2026-10-16, DAC-TA §10.7). Không migration, không đổi quyền ở máy chủ.
+    // Số 2.0 do chủ dự án chốt (2026-10-16, «cho lên bản 2.0»), đánh dấu menu mới theo việc. Ngày là ngày dự kiến.
+    version: "2.0",
+    date: "2026-10-16",
+    items: [
+      { kind: "doi", text: "Trang chủ: thẻ Đơn nháp chỉ Quản trị có nút Xác nhận đơn, vai khác có nút Xem đơn nháp." },
+    ],
+  },
+  {
+    // Menu máy tính theo việc + khối Việc của bạn ở Trang chủ (chủ chọn bản dựng 14/10; đặc tả docs/superpowers/specs/2026-10-14-menu-may-tinh-viec-cua-ban/DAC-TA.md). Không migration, không đổi quyền.
+    // Số 1.97 là số TẠM (= main 1.96 + 1, 2026-10-15): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
+    version: "1.97",
+    date: "2026-10-15",
+    items: [
+      { kind: "doi", text: "Menu bên trái trên máy tính gọn hơn, xếp theo việc: việc hằng ngày ở đầu, rồi Vận chuyển, Tiền; các mục cài đặt gom vào Thiết lập, bấm để mở hoặc thu gọn." },
+      { kind: "moi", text: "Trang chủ trên máy tính có khối Việc của bạn: mỗi thẻ cho biết có bao nhiêu việc đang chờ (đơn nháp, đơn còn thiếu tiền, chuyến hôm nay…) kèm nút làm ngay." },
+      { kind: "doi", text: "Xe & giấy tờ, Giá & chi phí mỗi mục gộp nhiều trang; mở ra thì đầu trang có dải nút chuyển nhanh sang trang cùng nhóm." },
+      { kind: "doi", text: "Hoa hồng đối tác và Người bán dịch vụ chuyển vào nhóm Thiết lập; Điều chỉnh công nợ và Khoá sổ tháng nằm ở nhóm Tiền." },
+      { kind: "moi", text: "Hướng dẫn viên có mục Đơn hàng trong menu, hiện các đơn mình đang phụ trách." },
     ],
   },
   {

@@ -106,7 +106,9 @@ export function dungCauTruc(vao) {
   };
   const trangTheo = (duong) => trang.find((t) => t.duongDan === duong);
   const viTriTrang = (t) => {
-    const menu = t.nhomMenu.length ? ` (menu ${t.nhomMenu.join(", ")} › ${t.menu[t.menu.length - 1] ?? t.tieuDe})` : t.menu.length ? ` (thanh tab: ${t.menu.join(", ")})` : " (mở từ trang khác)";
+    // HẰNG NGÀY và CHÂN MENU không có tiêu đề trên màn hình (thanh bên theo việc 15/10): nói theo vị trí, không nói tên nhóm.
+    const cho = (n) => (n === "HẰNG NGÀY" ? "ở đầu menu" : n === "CHÂN MENU" ? "ở chân menu" : `menu ${n}`);
+    const menu = t.nhomMenu.length ? ` (${t.nhomMenu.map(cho).join(", ")} › ${t.menu[t.menu.length - 1] ?? t.tieuDe})` : t.menu.length ? ` (thanh tab: ${t.menu.join(", ")})` : " (mở từ trang khác)";
     return `trang "${t.tieuDe}"${menu}`;
   };
 

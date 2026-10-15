@@ -108,3 +108,18 @@ test("A4 T10 (ADR-0053 D8, D9): nhóm Tài xế dạy Từ chối chuyến, Báo
   assert.ok(!chu.includes("sẽ hiện ở đây"), "câu giữ chỗ cũ của trang chủ tài xế");
   assert.ok(!chu.includes("chưa có phần cuốc xe"), "tài xế đối tác nay có Cuốc của tôi (A4 T6)");
 });
+
+test("A6: định dạng nội dung — không dòng dính ('.- ') và tiêu đề '### ' có dòng trống phía trên", () => {
+  const loi: string[] = [];
+  for (const n of HUONG_DAN) {
+    for (const m of n.muc) {
+      const dong = m.noiDung.split("\n");
+      dong.forEach((d, i) => {
+        const k = d.search(/[.!?]- /);
+        if (k >= 0) loi.push(`${n.id} › ${m.tieuDe}: dòng dính gạch đầu dòng: …${d.slice(Math.max(0, k - 20), k + 10)}`);
+        if (d.startsWith("### ") && i > 0 && dong[i - 1]!.trim() !== "") loi.push(`${n.id} › ${m.tieuDe}: thiếu dòng trống trên "${d.slice(0, 30)}"`);
+      });
+    }
+  }
+  assert.deepEqual(loi, []);
+});

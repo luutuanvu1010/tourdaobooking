@@ -8,7 +8,7 @@
 //   5) ca bị chặn (quyết toán khi chưa có nợ, tăng nợ vượt trần, giảm nợ vượt số đang nợ) hiện câu tiếng Việt, không mã thô, không tạo thẻ; sau lỗi biểu mẫu vẫn dùng lại được;
 //   6) Quản trị chỉ thấy khối «Chờ duyệt» (không «Gửi yêu cầu mới», không «Yêu cầu của tôi», không gọi được /api/ledger); Bán hàng không có mục menu và bị chặn bằng câu tiếng Việt;
 //   7) hai khổ 390 và 1040 (+ 1280 chỉ đo bố cục): không tràn ngang, ô gõ ≥ 16px, ô lý do từ chối mở ra vẫn vừa khung, không chữ Anh / mã thô lộ ra;
-//   8) axe-core (critical / serious ⇒ đỏ); 9) đếm mục thanh bên của Quản trị và Toàn quyền (con số 25 / 32 trong docs/evidence/2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs).
+//   8) axe-core (critical / serious ⇒ đỏ); 9) đếm mục thanh bên của Quản trị và Toàn quyền (con số 20 / 27 mục `.sidebar-item` — bảng THANH_BEN 21 / 28 gồm nút «Tạo đơn» vẽ riêng trong docs/evidence/2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs).
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, không --remote, không gọi production, danh mục giả (không Sheet).
 // Quy tắc ADR-0074/0075: một lần đăng nhập MỚI của cùng tài khoản làm phiên của trang đang mở bị thay ⇒ dữ liệu dựng bằng API TRƯỚC khi mở trang của tài khoản đó; trong lúc trang mở thì
 // đọc / ghi bằng chính trang (`p.ev(fetch…)`); mỗi lúc chỉ một trang mở, đóng trang trước khi mở trang kế (kho cookie của Chrome dùng chung).
@@ -342,11 +342,11 @@ try {
         });
 
         if (vp === DESK) {
-          await buoc(`9${kho}`, "thanh bên của Quản trị: có mục «Điều chỉnh công nợ» và đúng 25 mục (số trong trang-chu-smoke.mjs)", async () => {
+          await buoc(`9${kho}`, "thanh bên của Quản trị: có mục «Điều chỉnh công nợ» và đúng 20 mục .sidebar-item (+ nút «Tạo đơn» = 21 theo bảng; menu theo việc 15/10)", async () => {
             const nhan = await nhanMuc(p);
             assert.ok(nhan.includes("Điều chỉnh công nợ"), JSON.stringify(nhan));
             ghiChu.push(`thanh bên Quản trị (1040): ${nhan.length} mục`);
-            assert.equal(nhan.length, 25, `thanh bên Quản trị: ${nhan.length} mục: ${JSON.stringify(nhan)}`);
+            assert.equal(nhan.length, 20, `thanh bên Quản trị: ${nhan.length} mục: ${JSON.stringify(nhan)}`);
           });
         }
       } finally {
@@ -385,11 +385,11 @@ try {
           await axeKiem(p, `Toàn quyền ${kho}`);
         });
         if (vp === DESK) {
-          await buoc(`9b${kho}`, "thanh bên của Toàn quyền (Quản trị + Toàn quyền): có «Điều chỉnh công nợ» và đúng 32 mục (số trong trang-chu-smoke.mjs)", async () => {
+          await buoc(`9b${kho}`, "thanh bên của Toàn quyền (Quản trị + Toàn quyền): có «Điều chỉnh công nợ» và đúng 27 mục .sidebar-item (+ nút «Tạo đơn» = 28 theo bảng; menu theo việc 15/10)", async () => {
             const nhan = await nhanMuc(p);
             assert.ok(nhan.includes("Điều chỉnh công nợ"), JSON.stringify(nhan));
             ghiChu.push(`thanh bên Toàn quyền (1040): ${nhan.length} mục`);
-            assert.equal(nhan.length, 32, `thanh bên Toàn quyền: ${nhan.length} mục: ${JSON.stringify(nhan)}`);
+            assert.equal(nhan.length, 27, `thanh bên Toàn quyền: ${nhan.length} mục: ${JSON.stringify(nhan)}`);
           });
         }
       } finally {

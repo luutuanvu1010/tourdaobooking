@@ -38,7 +38,7 @@ const co = (b64: string, m: number): boolean => ((Buffer.from(b64, "base64")[m >
 /** Chuỗi so sánh — ĐÚNG dạng scripts/chup-muc-giao-dien.mjs đọc từ DOM (docMuc). */
 function chuoiThanhBen(n: NguoiXem): string[] {
   return thanhBen(n, DUONG_CHUP).flatMap(({ nhom, muc }) =>
-    muc.map((x) => (x.kieu === "cha" ? `${nhom}|cha|${x.nhan}|` : `${nhom}|${x.con ? "con" : ""}|${x.nhan}|${x.href}`)),
+    muc.map((x) => `${nhom}|${x.noiBat ? "noi-bat" : ""}|${x.nhan}|${x.href}`),
   );
 }
 const chuoiThanhTab = (n: NguoiXem): string[] => thanhTab(n).map((t) => `${t.nhan}|${t.href}`);

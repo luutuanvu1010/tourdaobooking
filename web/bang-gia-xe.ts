@@ -14,6 +14,7 @@ import { taoLenh } from "./dieu-phoi-ui";
 import { byId, h, replaceChildren } from "./dom";
 import { vnd } from "./format";
 import { datCrumb } from "./giay-to-ui";
+import { ganDaiTrangAnhEm } from "./dai-trang-anh-em";
 import { initShell, showError } from "./shell";
 import { cauLoi, chipTx, daiLoi, dangGui, dangTai, loiTai, moForm, nutGui, o, trong } from "./tien-xe-ui";
 
@@ -22,6 +23,7 @@ const trangEl = byId("bg-trang");
 const dauNutEl = byId("bg-dau-nut");
 
 const staff = await initShell();
+ganDaiTrangAnhEm("/bang-gia-xe", staff);
 datCrumb("Vận chuyển", "Bảng giá thuê xe");
 const coSua = can(staff, "transport.rate.manage");
 

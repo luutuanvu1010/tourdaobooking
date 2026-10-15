@@ -8,8 +8,8 @@
 //      - bố cục (e) theo THỨ TỰ TỆP: `<h2>`/`<h3>` mở một mục; `<button>`, `<a class="…btn…">` thuộc mục gần nhất phía trên; khối `form-actions` /
 //        `vc-bottom-bar` mở mục "Thanh nút cuối trang". Phần dựng trong web/X.ts (`h("h2"|"h3"|"button"|"a", …, "Nhãn")`, chuỗi LITERAL) ghi riêng là
 //        "dựng khi trang chạy": danh sách mục và danh sách nút, KHÔNG gán nút vào mục (thứ tự trong mã không phải vị trí trên màn hình);
-//      - menu: bảng mục src/shared/muc-giao-dien.ts — THANH_TAB rồi THANH_BEN (nhãn theo đường trang); NHÓM menu (BÁN HÀNG / QUẢN TRỊ / QUẢN TRỊ › Vận chuyển /
-//        TÔI) từ THANH_BEN. Dòng trang Tôi dựng từ TRANG_TOI (không phải chuỗi literal): nhãn chèn vào phần "dựng khi trang chạy" của /account ở chú thích
+//      - menu: bảng mục src/shared/muc-giao-dien.ts — THANH_TAB rồi THANH_BEN (nhãn theo đường trang); NHÓM menu (HẰNG NGÀY / VẬN CHUYỂN / TIỀN / THIẾT LẬP /
+//        CHÂN MENU) từ THANH_BEN. Dòng trang Tôi dựng từ TRANG_TOI (không phải chuỗi literal): nhãn chèn vào phần "dựng khi trang chạy" của /account ở chú thích
 //        `// sinh-so-do-trang: nhãn các dòng TRANG_TOI…` của web/account.ts (CHEN_NHAN dưới đây) — trừ nhóm VẬN CHUYỂN (bộ dò cũ không bắt các dòng đó; giữ nguyên kho).
 //   2. src/shared/tro-ly-cau-truc.ts — kho (d) cấu trúc app (lõi thuần scripts/tro-ly-cau-truc-lib.mjs): phân hệ + phụ thuộc (`ALLOWED_EDGES`), luồng chính,
 //      vai → làm được / không làm được (`MATRIX` + `PERMISSION_CODES`), dịch qua bảng tên src/shared/tro-ly-cau-truc-ten.ts.
@@ -60,7 +60,8 @@ function docMenu() {
     menu.set(duong, o);
   };
   for (const c of THANH_TAB) them(c.trang, c.nhan, null);
-  for (const c of THANH_BEN) them(c.trang, c.nhan, "cha" in c ? `${c.nhom} › ${c.cha}` : c.nhom);
+  // Mục gộp ("Xe & giấy tờ", "Giá & chi phí") cũng là lối vào của các trang nó gom — trợ lý phải chỉ đúng nhãn mục cho từng trang đó.
+  for (const c of THANH_BEN) for (const k of [c.trang, ...(c.gom ?? [])]) them(k, c.nhan, c.nhom);
   return menu;
 }
 
@@ -200,7 +201,7 @@ export interface TrangSoDo {
   readonly tieuDe: string;
   /** Nhãn của mục menu trỏ tới trang (thanh bên / thanh tab); rỗng = mở từ trang khác. */
   readonly menu: readonly string[];
-  /** Nhóm của thanh bên máy tính (BÁN HÀNG, QUẢN TRỊ, "QUẢN TRỊ › Vận chuyển", TÔI). */
+  /** Nhóm của thanh bên máy tính (HẰNG NGÀY và CHÂN MENU không có tiêu đề trên màn hình; VẬN CHUYỂN, TIỀN, THIẾT LẬP có). */
   readonly nhomMenu: readonly string[];
   /** Nhãn nút, liên kết dạng nút, tiêu đề mục trên trang (danh sách phẳng — kho c). */
   readonly nut: readonly string[];
