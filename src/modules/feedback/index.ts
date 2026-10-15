@@ -173,6 +173,10 @@ export const feedbackModule: AppModule = {
       if (!raw) return BAD_JSON();
       const v = validateTeamPatch(raw);
       if (!v.ok) return error(400, "invalid_input", v.message);
+      // Kỹ thuật là nhóm mặc định (phiếu cũ, bản web cũ không gửi teamId) và là nhóm DUY NHẤT tài khoản bên ngoài gửi được (ADR-0119 điều 1, 6) — không ngưng được.
+      if (id === NHOM_KY_THUAT_ID && v.value.active === false) {
+        return error(409, "conflict", "Không thể ngưng nhóm Kỹ thuật: đây là nhóm mặc định cho phiếu cũ và tài khoản bên ngoài.");
+      }
       const truoc = await getTeam(env.DB, id);
       if (!truoc) return TEAM_NOT_FOUND();
       const at = new Date().toISOString();

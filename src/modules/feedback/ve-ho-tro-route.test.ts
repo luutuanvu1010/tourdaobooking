@@ -183,3 +183,16 @@ test("R6: tài khoản bên ngoài (PARTNER, tài xế đối tác, tài khoản
   }
   assert.equal(w.q(`SELECT count(*) AS n FROM fbk_team_member WHERE staff_id IN ('${PARTNER}', '${TXDT}', '${LAI}')`)[0].n, 0);
 });
+
+test("không ngưng được nhóm Kỹ thuật (nhóm mặc định cho phiếu cũ và tài khoản bên ngoài) ⇒ 409; nhóm khác ngưng được", async () => {
+  const w = setup();
+  const r = await admin(w, "PATCH", `/${KY_THUAT}`, SUPER, { active: false });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "conflict");
+  assert.equal(r.json.error.message, "Không thể ngưng nhóm Kỹ thuật: đây là nhóm mặc định cho phiếu cũ và tài khoản bên ngoài.");
+  assert.equal(w.q(`SELECT active FROM fbk_team WHERE id = '${KY_THUAT}'`)[0].active, 1);
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'feedback_team_updated'")[0].n, 0, "lần bị chặn không ghi nhật ký");
+  assert.equal((await admin(w, "PATCH", `/${KY_THUAT}`, SUPER, { sensitive: true })).status, 200, "sửa trường khác của Kỹ thuật vẫn được");
+  assert.equal((await admin(w, "PATCH", `/${KY_THUAT}`, SUPER, { active: true })).status, 200);
+  assert.equal((await admin(w, "PATCH", `/${NHAN_SU}`, SUPER, { active: false })).json.team.active, false);
+});
