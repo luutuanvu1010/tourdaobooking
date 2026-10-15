@@ -341,3 +341,16 @@
 ## 30. Thẻ "Cọc cần chi hoàn" trên Việc của bạn — chờ có trang cọc
 
 - **Ngày:** 2026-10-15 · **Trạng thái:** `chờ`. Thẻ "Cọc cần chi hoàn" trên Việc của bạn — chờ có trang cọc: route `GET /api/ledger/coc` có nhưng chưa trang web nào gọi nên nút "Chi hoàn" chưa có đích; khi có trang cọc thì thêm lại khoá `cocCanChi` (ưu tiên 6, điều kiện `ledger.view`) vào `src/shared/viec-cua-ban.ts`.
+
+## 31. Menu máy tính theo việc và «Việc của bạn» — nợ sau đợt 1 (chủ chốt đợt 1 ngày 2026-10-15)
+
+- **Ngày:** 2026-10-15 · **Trạng thái:** `chờ`. Đặc tả `docs/superpowers/specs/2026-10-14-menu-may-tinh-viec-cua-ban/DAC-TA.md` (§10 là điều chỉnh sau thi công). Mỗi gạch dưới là một việc riêng; việc nào cần route đếm mới thì chạm API và quyền → ADR + trang ghép, chủ duyệt (CLAUDE.md §9).
+- **Trang chủ cho Hướng dẫn viên, Đối tác, Nhân sự (đợt 2).** Chủ đã chọn «dựng Trang chủ mới» cho ba vai này (15/10). Hôm nay họ được đưa thẳng sang trang khác (`homeRedirect`) và `GET /api/orders/dashboard` trả 403. Cần ADR + trang ghép; xem thêm mục 18 (nội dung theo vai). Đợt 1 không thêm mục «Trang chủ» cho ba vai này để không dẫn tới trang lỗi.
+- **Thẻ «Đề nghị chuyển khách»** (Quản trị, Toàn quyền): bỏ khỏi đợt 1 vì chỉ đếm được theo ngày. Cần route đếm tổng đề nghị đang chờ.
+- **Thẻ «Đơn của tôi cần làm»** cho Bán hàng: cần route đếm riêng (đơn mình lập / mình phụ trách còn việc).
+- **Thẻ «Đơn sắp đi chưa có xe», «Chuyến chưa xếp xe», «Đơn đã giao chờ Kế toán Hoàn thành»:** mỗi thẻ cần route đếm; không đếm trên trình duyệt (đặc tả §5).
+- **`/orders` đọc `?status=draft`:** để nút «Xem đơn nháp» của thẻ Đơn nháp mở sẵn bộ lọc nháp. Hôm nay `web/orders.ts` chỉ đọc `q` nên thẻ dẫn tới `/orders` trơn. Cần nới trần gói `web/orders.ts` (chủ quyết) hoặc tách gói.
+- **Thanh bên: nhớ trạng thái mở / đóng nhóm Thiết lập theo máy** (đặc tả §3, bỏ khỏi đợt 1). Hiện chỉ có luật `thietLapMoSan`. Làm khi có chỗ trong trần gói `web/orders.ts`.
+- **Mục gộp: `aria-current` `"true"` thay `"page"` cho trang con** (nhận xét M-6 của người kiểm độc lập, chưa xác minh lại bằng trình đọc màn hình). Khi đứng ở một trang con của mục gộp, thanh bên sáng mục gộp; cân nhắc đặt `aria-current="true"` thay vì `"page"` cho trang con. Việc nhỏ, đổi ở `web/shell.ts` (chạm trần gói).
+- **Chuỗi lỗi → Thử lại → hồi phục của thẻ Việc của bạn** (nhất là «Cần xem lại» và hai nguồn ngoài) mới được khóa bằng bài đọc mã, chưa chạy thật. Cần kịch bản Chrome / e2e (Task 7b của đợt này).
+- **Ghi chú liên quan:** thẻ «Cọc cần chi hoàn» của Kế toán: xem mục 30.
