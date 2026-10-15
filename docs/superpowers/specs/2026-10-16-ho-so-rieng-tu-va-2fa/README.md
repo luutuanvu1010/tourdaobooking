@@ -1,6 +1,6 @@
 # Hồ sơ đầy đủ, giấy tờ đính kèm, quyền riêng tư, đăng nhập hai lớp — bản suy ra từ luật
 
-> Hồ sơ có ngày (2026-10-16), chỉ tài liệu, chưa có mã. Trạng thái: **đề xuất, chờ chủ duyệt các lượt ADR**. Bản này đã sửa theo hai lượt kiểm độc lập và đã ghi ba quyết định chủ chốt ngày 2026-10-16. Đọc tiếp: `SUY-RA.md` (luật → hệ quả, điều mới cho Hiến chương, xung đột) · `PHUONG-AN.md` (kể cả mục "Bắt buộc đối tác" và bảng kiểm kê dữ liệu cá nhân §2.8) · `TRANG-GHEP.md` · `DE-XUAT-ADR.md` · `KE-HOACH-SUY-RA.md`.
+> Hồ sơ có ngày (2026-10-16), chỉ tài liệu, chưa có mã. Trạng thái: **đề xuất, chờ chủ duyệt các lượt ADR**. Bản này đã sửa theo các lượt kiểm độc lập và đã ghi mọi quyết định chủ chốt ngày 2026-10-16 (kể cả M1–M4); không còn câu hỏi mở cho chủ ngoài việc duyệt các lượt. Đọc tiếp: `SUY-RA.md` (luật → hệ quả, điều mới cho Hiến chương, xung đột) · `PHUONG-AN.md` (kể cả mục "Bắt buộc đối tác" và bảng kiểm kê dữ liệu cá nhân §2.8) · `TRANG-GHEP.md` · `DE-XUAT-ADR.md` · `KE-HOACH-SUY-RA.md`.
 
 ## Kết luận
 
@@ -26,30 +26,20 @@ Phần hồ sơ: **Quản trị và Nhân sự** cùng xác minh giấy tờ. Đ
 | **Quản trị và Nhân sự xác minh giấy tờ** | ADR-H5 (đảo ADR-0083 đ2; thêm hai ô cho Nhân sự, trái ADR-0071 đ1e); `TRANG-GHEP.md` §2 |
 | **Ảnh giấy tờ giữ khi giấy tờ còn hiệu lực**; hết hiệu lực thì vào danh sách xoá, Quản trị bấm xoá | điều đề xuất 5.25; ADR-H4 mục 6; `PHUONG-AN.md` §2.5 |
 | Yêu cầu xoá: Quản trị xử lý; ảnh xoá khỏi R2; số giấy tờ ẩn danh hoá, không xoá cứng; phần luật bắt giữ giữ lại, ghi trong phiếu | ADR-H4; điều đề xuất 5.24 |
-| Thời hạn xử lý: chủ nói "30 ngày". Tôi đọc là **"trong thời hạn luật định, không quá 30 ngày"**, vì một bản tóm tắt luật nói Nghị định 356/2025 đặt 20 ngày. Con số cuối cùng **chờ luật sư** (cần chủ xác nhận cách đọc) | `SUY-RA.md` X13 |
+| Thời hạn xử lý: chủ nói "30 ngày", hiểu là **"trong thời hạn luật định, không quá 30 ngày"**, vì một bản tóm tắt luật nói Nghị định 356/2025 đặt 20 ngày. Con số cuối cùng **chờ luật sư** | `SUY-RA.md` X13 |
+| **Nhân sự xác minh "tất cả"**: cả nhân viên lẫn đối tác, vẫn chỉ thấy ảnh và số của phiếu đang xử lý; **không** lập vai "Người xác minh" riêng (M1, phương án A) | ADR-H5 đ4; `TRANG-GHEP.md` §2 |
+| **Đối tác dùng Face ID thay lớp hai** (M2) | ADR-G1 đ5, đ6 |
+| **Ân hạn 14 ngày**, đợt đầu khoảng 5 cộng tác viên, sau đó khoảng 100 người mỗi đợt (M3) | ADR-G1 đ3; lát G1-4 |
+| **Đối tác không có hộp thư, không cài ứng dụng** (M4, phương án A): mỗi người phải có ít nhất một trong ba thứ (email đã xác nhận, ứng dụng xác thực, Face ID); trong ân hạn Quản trị giúp trực tiếp; không ai được miễn vĩnh viễn; chỉ Toàn quyền cho miễn tạm, tối đa khoảng 14 ngày mỗi lần, có nhật ký và tự hết hạn | ADR-G1 đ6, đ7; `PHUONG-AN.md` "Bắt buộc đối tác" |
 
-## Câu hỏi mới (phát sinh từ ba quyết định; không trả lời thì áp phương án khuyến nghị)
+Người xác minh **không được** xác minh phiếu của tài khoản mà chính họ đã tạo, hoặc đã đặt lại PIN, đổi quyền trong vòng 30 ngày trước khi phiếu được gửi; không còn ai hợp lệ thì phiếu lên Toàn quyền. Luật này chặn trò "tự tạo tài khoản đối tác giả rồi tự xác minh giấy tờ giả". Còn một kẽ hở nhỏ: Quản trị đặt lại PIN một tài khoản ít dùng, chờ hơn 30 ngày rồi mới khai thì luật không bắt. Cách bịt (với việc đặt lại PIN và tắt lớp hai thì chặn mãi, không chỉ 30 ngày) để chủ quyết lúc duyệt lượt ADR thứ tư, chưa đưa vào luật.
 
-**M1. Nhân sự xác minh phiếu của những ai?**
-- **A (khuyến nghị, đang là giả định):** mọi phiếu, gồm đối tác và khách có tài khoản, trừ tài khoản Nhân sự không quản được (Quản trị, Toàn quyền, Nhân sự khác). Cách này chia được gánh ~1000 đối tác.
-- B: chỉ phiếu của nhân viên nội bộ. Nhân sự thấy ít dữ liệu người ngoài hơn, nhưng Quản trị gánh toàn bộ đối tác.
-- C: không thêm quyền cho Nhân sự, mà lập riêng một vai "Người xác minh hồ sơ" rồi Toàn quyền gán cho đúng người cần làm (đúng câu "gán thêm vai khác cho cùng người" của quyết định cũ về Nhân sự). Cách này không phải thay câu nào của quyết định cũ, nhưng thêm một loại quyền mới nên mọi bài kiểm tổ hợp quyền tăng gấp đôi và phải có thêm một bước sửa cơ sở dữ liệu. Đây là đổi cách chia quyền nên chỉ chủ chọn được.
+## Còn chờ ngoài chủ
 
-Dù chọn cách nào, người xác minh cũng **không được** xác minh phiếu của tài khoản mà chính họ đã tạo, hoặc đã đặt lại PIN, đổi quyền trong vòng 30 ngày trước khi phiếu được gửi. Luật này chặn trò "tự tạo tài khoản đối tác giả rồi tự xác minh giấy tờ giả", vì Nhân sự tạo được tài khoản và thấy PIN đầu, còn Quản trị đặt lại được PIN. Khi không còn ai hợp lệ thì phiếu chuyển lên Toàn quyền.
-
-**M2. Đối tác có được dùng Face ID thay lớp hai không?**
-- **A (khuyến nghị, đang là giả định):** có, như ADR-0074 đ3 cho mọi người, vì Face ID đã là hai yếu tố (máy + khuôn mặt).
-- B: không. Chặt hơn, nhưng làm Face ID vô ích với đối tác và trái lý do kỹ thuật của ADR-0074.
-
-**M3. Ân hạn và cách đưa đối tác vào diện bắt buộc**
-- **A (khuyến nghị, đang là giả định):** mỗi đợt có 14 ngày ân hạn như nội bộ. Đợt đầu khoảng 5 cộng tác viên thí điểm (như ADR-0014), sau đó khoảng 100 người mỗi đợt, do Toàn quyền bật.
-- B: một lần cho tất cả, 30 ngày ân hạn. Đơn giản hơn, nhưng dễ dồn hàng trăm cuộc gọi hỗ trợ cùng lúc.
-
-**M4. Đối tác không có hộp thư và không cài được ứng dụng xác thực thì sao?** Người này hết ân hạn sẽ bị chặn, và nút "mở lại 24 giờ" không cứu được vì họ không có gì để bật. Chưa ai đếm có bao nhiêu người như vậy; muốn biết phải chạy một truy vấn chỉ đọc trên dữ liệu thật, việc này của chủ.
-- **A (khuyến nghị, đang là giả định):** bắt buộc mỗi người có ít nhất một trong ba thứ: email đã xác nhận, ứng dụng xác thực, hoặc Face ID (Face ID chỉ tính nếu M2 chọn A). Trong thời gian ân hạn, Quản trị giúp trực tiếp (tạo email, cài ứng dụng, đăng ký Face ID). Không ai được miễn vĩnh viễn; chỉ Toàn quyền được cho miễn tạm, tối đa khoảng 14 ngày mỗi lần, có ghi nhật ký và tự hết hạn.
-- B: chấp nhận khoá. Người đó không dùng Nền tảng nữa, làm việc với văn phòng qua điện thoại; đơn giản nhưng văn phòng phải làm thay.
-- C: Quản trị giữ mã dự phòng hộ. Làm yếu bảo mật vì Quản trị đăng nhập thay được người khác (đúng lỗ tài khoản giả ở M1), cần một quyết định riêng.
-- D: chờ kênh khác như Zalo. Chưa có ngày, tốn phí, và trong lúc chờ phải hoãn những người này, trái ý "không phân biệt".
+1. **Luật sư** xác nhận thời hạn trả lời yêu cầu xoá theo văn bản gốc Nghị định 356/2025 (`SUY-RA.md` X13). Việc này chặn phần xoá dữ liệu.
+2. **Kiểm gửi email** tới địa chỉ bất kỳ (bước đầu của phần email, lát G1-1). Gửi không được thì phần email và việc bắt buộc đối tác phải trình lại.
+3. **Diễn tập khôi phục** dữ liệu (lỗ HC-5.19, hạn 31/10). Chưa xong thì không duyệt được ADR-H4.
+4. **Đếm số đối tác chưa có email** trong hồ sơ, bằng một truy vấn chỉ đọc trên dữ liệu thật, để ước tải hỗ trợ và số người cần miễn tạm. Chưa kiểm.
 
 ## Giả định khác đã ghi (bề mặt, đổi được)
 
