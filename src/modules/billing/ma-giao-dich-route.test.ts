@@ -99,7 +99,7 @@ test("đường 2: Kế toán tự ghi CK – Công ty thu thiếu mã 400 (cả
   assert.equal((await thu(w, SALES, id, ck(1_000))).status, 201, "Bán hàng khai bình thường ⇒ giữ hộ, chưa cần mã");
 });
 
-test("đường 2 kèm Đã giao: Toàn quyền thiếu mã 400, có mã 200; Quản trị ⇒ giữ hộ, không đòi mã; Kế toán thuần ⇒ 403", async () => {
+test("đường 2 kèm Đã giao: Toàn quyền thiếu mã 400, có mã 200; Quản trị khai kèm Đã giao ⇒ không đòi mã nhưng bị chặn vì khoản đang đối chiếu (ADR-0120); Kế toán thuần ⇒ 403", async () => {
   const w = setup();
   const a = don(w);
   let g = await w.call("POST", `/api/orders/${a}/delivered`, { as: SA, body: { lanThu: ck(1_000_000) } });
@@ -108,8 +108,8 @@ test("đường 2 kèm Đã giao: Toàn quyền thiếu mã 400, có mã 200; Qu
   assert.equal(g.status, 200, g.text);
   const b = don(w);
   g = await w.call("POST", `/api/orders/${b}/delivered`, { as: ADM, body: { lanThu: ck(1_000_000) } });
-  assert.equal(g.status, 200, g.text);
-  assert.equal(soDong(w, "SELECT count(*) AS n FROM bil_debt_line WHERE order_id = ? AND kind_code = 'HELD' AND debtor_party_id = ?", b, `pty-${ADM}`), 1);
+  assert.equal(g.status, 409, g.text);
+  assert.equal(soDong(w, "SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = ?", b), 0, "lô bị chặn không để lại lần thu nào");
   assert.equal((await w.call("POST", `/api/orders/${don(w)}/delivered`, { as: KT, body: {} })).status, 403);
 });
 
@@ -134,21 +134,20 @@ test("đảo lần thu có mã rồi ghi lại số thực chuyển khác ⇒ đ
   assert.equal((await thu(w, KT, id, ck(600_000, { maGiaoDich: "DA0001", soThucChuyen: 600_000 }))).status, 201);
 });
 
-test("khai trùng bị chặn sau Đã giao: khoản thừa ở người khai; người khai nộp xong thì Hoàn thành được", async () => {
+test("khai trùng (ADR-0120): hai khoản HDV khai cùng một lần chuyển — khoản thứ hai bị chặn trùng mã, đơn chưa Đã giao được; Kế toán đảo khoản thừa, HDV không nợ gì", async () => {
   const w = setup();
   const id = don(w, 800_000);
   assert.equal((await thu(w, HDV, id, ck(400_000))).status, 201);
   const r1 = cuoi(w, id);
   assert.equal((await thu(w, HDV, id, ck(400_000))).status, 201);
   const r2 = cuoi(w, id);
-  assert.equal((await w.call("POST", `/api/orders/${id}/delivered`, { as: HDV, body: {} })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${id}/delivered`, { as: HDV, body: {} })).status, 409, "còn hai khoản đang đối chiếu");
   assert.equal((await xacNhan(w, r1, { maGiaoDich: "KT0001", soThucChuyen: 400_000 })).status, 200);
   assert.equal((await xacNhan(w, r2, { maGiaoDich: "KT0001", soThucChuyen: 400_000 })).json.error.code, "bank_txn_duplicate");
-  assert.equal((await w.call("POST", `/api/orders/${id}/completed`, { as: KT, body: {} })).status, 409, "còn HDV giữ 400.000");
-  const nop = await w.call("POST", "/api/ledger/settlements", { as: KT, body: { chieu: "nop", partyId: `pty-${HDV}`, phanBo: [{ orderId: id, soTien: 400_000 }] } });
-  assert.equal(nop.status, 201, nop.text);
-  const xong = await w.call("POST", `/api/orders/${id}/completed`, { as: KT, body: {} });
-  assert.equal(xong.status, 200, xong.text);
+  assert.equal((await w.call("POST", `/api/orders/${id}/delivered`, { as: HDV, body: {} })).status, 409, "khoản thứ hai vẫn đang đối chiếu");
+  const dao = await w.call("POST", "/api/ledger/adjustments", { as: KT, body: { loai: "dao_lan_thu", receiptId: r2, lyDo: "khai trùng cùng một lần chuyển" } });
+  assert.equal(dao.status, 201, dao.text);
+  assert.equal(soDong(w, "SELECT count(*) AS n FROM bil_debt_line WHERE order_id = ?", id), 0, "HDV không nợ khoản nào");
 });
 
 test("ai thấy mã: Kế toán có khoá maGiaoDich/soThucChuyen; Bán hàng KHÔNG có khoá", async () => {

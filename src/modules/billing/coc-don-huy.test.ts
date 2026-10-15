@@ -62,7 +62,7 @@ test("NT-D2/D3 (đ5, H-C3): khách huỷ — duyệt đúng ngày hạn được
   const s = coc0([rc({ amount: 500_000 })]);
   const han = "2027-01-09";
   assert.deepEqual(kiemDuyet({ coc: s, nhom: "KHACH_HUY", han, homNay: "2027-01-09", soTien: 100_000 }), { ok: true }, "biên: ngày duyệt = hạn → được");
-  assert.deepEqual(kiemDuyet({ coc: s, nhom: "KHACH_HUY", han, homNay: "2027-01-10", soTien: 100_000 }), { ok: false, ma: "coc_deadline", cau: "Đã quá hạn hoàn cọc (hạn: 09/01/2027)." });
+  assert.deepEqual(kiemDuyet({ coc: s, nhom: "KHACH_HUY", han, homNay: "2027-01-10", soTien: 100_000 }), { ok: false, ma: "coc_deadline", cau: "Đã quá hạn hoàn thu trước (hạn: 09/01/2027)." });
   assert.deepEqual(kiemDuyet({ coc: s, nhom: "CONG_TY_HUY", han, homNay: "2027-01-20", soTien: 500_000 }), { ok: true }, "SV-DH-04");
   assert.deepEqual(kiemDuyet({ coc: s, nhom: "LAP_LAI", han, homNay: "2027-03-01", soTien: 300_000 }), { ok: true }, "SV-DH-06");
   assert.equal(ma(kiemDuyet({ coc: s, nhom: "CHUA_KET_LUAN", han, homNay: "2026-11-01", soTien: 1 })), "coc_unclassified", "SV-DH-11");

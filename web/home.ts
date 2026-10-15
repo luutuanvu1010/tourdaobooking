@@ -10,6 +10,7 @@ import { layKhungNho } from "./khung-nho";
 import { feedbackBadge, initShell } from "./shell";
 import { demSapHetHan, layDanhSachSapHet } from "./vc-dem";
 import { canSeeReviewAlerts, reviewAlerts, type ReviewAlerts } from "../src/shared/dashboard-review";
+import { tieuDeDemDoiChieu } from "../src/shared/doi-chieu-hien-thi";
 import { PERMISSION_LABEL, can } from "../src/shared/permissions";
 import { homeRedirect } from "../src/shared/start-page";
 import { conLai, dongThoiGian, loiChao, phutVN, type DongThoiGian, type LoaiChuyen } from "../src/shared/trang-chu-may-tinh";
@@ -255,22 +256,26 @@ function renderToday(data: Pick<Api.DashboardResponse, "today" | "tomorrow" | "d
  */
 /** `loi`: một nguồn của bảng (danh mục hoặc giấy tờ) không tải được — thẻ "Cần xem lại" phải hiện "—" + Thử lại, KHÔNG biến mất như thể không có việc. */
 async function loadReview(staff: Staff, taiMoi: boolean): Promise<{ alerts: ReviewAlerts | null; loi: boolean }> {
-  if (!canSeeReviewAlerts(staff)) return { alerts: null, loi: false };
+  const laQuanTri = canSeeReviewAlerts(staff);
+  const laKeToan = can(staff, "ledger.view"); // ADR-0120: dòng "khoản đang đối chiếu quá 3 ngày" của Kế toán (cùng ô route /api/ledger/coc/dem hỏi)
+  if (!laQuanTri && !laKeToan) return { alerts: null, loi: false };
   // Giấy tờ sắp hết hạn (bản vẽ 1.73): CHUNG lời gọi với huy hiệu ô / thanh bên (web/vc-dem.ts giữ lời hỏi đang chạy); lỗi mạng → 0 → không dòng.
-  const [catalogRes, feedbackRes, sapHetRes] = await Promise.allSettled([
-    layCatalogAdmin(),
-    can(staff, "feedback.triage") ? layFeedback() : Promise.resolve<Api.FeedbackQueueResponse | null>(null),
-    can(staff, "vehicle.manage")
+  const [catalogRes, feedbackRes, sapHetRes, doiChieuRes] = await Promise.allSettled([
+    laQuanTri ? layCatalogAdmin() : Promise.resolve<Api.CatalogAdminResponse | null>(null),
+    laQuanTri && can(staff, "feedback.triage") ? layFeedback() : Promise.resolve<Api.FeedbackQueueResponse | null>(null),
+    laQuanTri && can(staff, "vehicle.manage")
       // Lời gọi biết lỗi (demSapHetHan nuốt lỗi thành 0 — dùng cho huy hiệu, nằm trong gói orders). `layDanhSachSapHet` nhớ cả lời hứa BỊ TỪ CHỐI nên "Thử lại" (`taiMoi`) gọi thẳng, bỏ bản nhớ.
       ? (taiMoi ? api<Api.ExpiringListResponse>("/api/van-chuyen/sap-het-han").then((r) => r.count) : layDanhSachSapHet().then((r) => r.count))
       : Promise.resolve(null),
+    laKeToan ? api<Api.CocDemResponse>("/api/ledger/coc/dem") : Promise.resolve<Api.CocDemResponse | null>(null),
   ]);
   // Huy hiệu cát của ô "Dịch vụ & giá" (Trang chủ điện thoại) — CÙNG phép đếm với huy hiệu thanh bên (web/shell.ts catalogConflictBadge), dùng lại lời gọi vừa có.
-  if (catalogRes.status === "fulfilled") datHuyHieu("dich-vu", catalogRes.value.items.filter((i) => i.conflicts.length > 0).length);
+  if (catalogRes.status === "fulfilled" && catalogRes.value) datHuyHieu("dich-vu", catalogRes.value.items.filter((i) => i.conflicts.length > 0).length);
   const alerts = reviewAlerts(staff, {
-    catalogItems: catalogRes.status === "fulfilled" ? catalogRes.value.items : [],
+    catalogItems: catalogRes.status === "fulfilled" ? (catalogRes.value?.items ?? []) : [],
     tickets: feedbackRes.status === "fulfilled" ? (feedbackRes.value?.tickets ?? []) : [],
     expiringCount: sapHetRes.status === "fulfilled" ? sapHetRes.value : null,
+    doiChieuQuaHan: doiChieuRes.status === "fulfilled" ? (doiChieuRes.value?.doiChieuQua3Ngay ?? null) : null,
   });
   return { alerts, loi: catalogRes.status === "rejected" || sapHetRes.status === "rejected" };
 }
@@ -310,6 +315,9 @@ function renderReview(alerts: ReviewAlerts | null): void {
   }
   if (alerts.expiringDocs) {
     rows.push(reviewRow("dash-review-icon-sand", "truck", "/giay-to-sap-het-han", `${alerts.expiringDocs.count} giấy tờ sắp hết hạn`, "Vận chuyển · Giấy tờ sắp hết hạn"));
+  }
+  if (alerts.doiChieu) {
+    rows.push(reviewRow("dash-review-icon-sand", "money", "/orders", tieuDeDemDoiChieu(alerts.doiChieu.count), "Mở đơn, đối chiếu rồi bấm “Công ty đã nhận” hoặc đảo lần thu"));
   }
   if (alerts.feedbackQueue) {
     const f = alerts.feedbackQueue;

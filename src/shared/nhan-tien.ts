@@ -15,7 +15,7 @@ export function nhanTienDaTra(input: {
 }): { nhan: string; phu: string | null } {
   if (input.deliveredAt) return { nhan: "Đã thu", phu: null };
   if (input.status === "cancelled" && input.nhom === "KHACH_HUY" && input.han && input.homNay) {
-    return input.homNay <= input.han ? { nhan: "Cọc giữ lại – khách huỷ", phu: `còn có thể hoàn tới ${ngayDayDu(input.han)}` } : { nhan: "Cọc giữ lại", phu: null };
+    return input.homNay <= input.han ? { nhan: "Thu trước giữ lại – khách huỷ", phu: `còn có thể hoàn tới ${ngayDayDu(input.han)}` } : { nhan: "Thu trước giữ lại", phu: null };
   }
   return { nhan: "Khách hàng đã trả trước", phu: null };
 }

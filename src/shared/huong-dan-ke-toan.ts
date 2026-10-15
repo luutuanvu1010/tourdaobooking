@@ -23,13 +23,13 @@ Thanh menu dọc bên trái có:
 - Nhóm VẬN CHUYỂN: [[Điều phối xe]], [[Xe đang chạy]], [[Giá & chi phí]].
 - Nhóm TIỀN: [[Điều chỉnh công nợ]], [[Khoá sổ tháng]].
 - Nhóm THIẾT LẬP (bấm để mở, thu gọn): [[Hoa hồng đối tác]], [[Người bán dịch vụ]].
-- Chân menu: [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]].
+- Chân menu: [[Của tôi]], [[Hỗ trợ]], [[Trợ giúp]].
 
 Ô tìm kiếm trên đầu trang: gõ mã đơn, tên khách hoặc số điện thoại rồi bấm Enter.
 
 ### Trên điện thoại
 
-Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các mục khác như [[Danh bạ]], [[Điều phối xe]], [[Điều chỉnh công nợ]], [[Góp ý / Báo lỗi]], [[Trợ giúp]] nằm trong trang [[Tôi]].
+Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các mục khác như [[Danh bạ]], [[Điều phối xe]], [[Điều chỉnh công nợ]], [[Hỗ trợ]], [[Trợ giúp]] nằm trong trang [[Tôi]].
 
 > Lưu ý: Bạn không thấy nút [[Tạo đơn]]. Đó là đúng, vì Kế toán không lập đơn.`,
     },
@@ -254,7 +254,7 @@ Máy đã bật Face ID: vào [[Tôi]], bấm [[Quên PIN? Đặt PIN mới bằ
 
 ### Tôi muốn báo một chỗ sai trong app
 
-Bấm [[Góp ý / Báo lỗi]], ghi rõ mã đơn và việc bạn thấy sai.`,
+Bấm [[Hỗ trợ]], ghi rõ mã đơn và việc bạn thấy sai.`,
     },
   ],
 };

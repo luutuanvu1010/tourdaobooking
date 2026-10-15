@@ -516,9 +516,10 @@ export const CHECKS = [
   },
   {
     // C1 đường 2 (Kế toán / Toàn quyền tự ghi — CHỈ máy chủ đòi mã, không có phiếu để gắn trigger): lần thu CK – Công ty thu còn hiệu lực ghi TỪ mốc 'R-BIL-D6'
-    // đã là "công ty nhận" (không có dòng giữ hộ, hoặc dòng giữ hộ đã được "Công ty đã nhận") mà KHÔNG có mã. Bỏ nửa thu của lệnh chuyển cọc (transfer_of_id).
+    // đã là "công ty nhận" (không có dòng giữ hộ và không còn đang đối chiếu, hoặc dòng giữ hộ đã được "Công ty đã nhận") mà KHÔNG có mã. Bỏ nửa thu của lệnh chuyển cọc (transfer_of_id).
     // Đã lần mọi câu chèn bil_payment_receipt (lập kế hoạch 2026-10-08): lần thu CUSTOMER_PAYMENT gốc chỉ sinh ở ghiLanThu, daGiao, Thay lần thu (đều đòi mã)
     // và nửa thu chuyển cọc (có transfer_of_id); chi hoàn cọc / hoàn khách là CUSTOMER_REFUND. Thêm đường ghi lần thu mới ⇒ xét lại luật này.
+    // ADR-0120 (migration 0099): khoản MỚI đang đối chiếu (dấu DECLARED chưa có CONFIRMED, không dòng giữ hộ) chưa là "công ty nhận" ⇒ chưa đòi mã; xác nhận xong (CONFIRMED) thì đòi.
     code: "R-BIL-D6b",
     what: "lần thu chuyển khoản – Công ty thu ghi từ mốc 0088 đã được công ty nhận đều có mã giao dịch ngân hàng",
     sql: `SELECT count(*) FROM bil_payment_receipt r
@@ -526,7 +527,9 @@ export const CHECKS = [
        AND r.transfer_of_id IS NULL AND r.collector_role_code = 'COMPANY' AND r.method_code = 'BANK_TRANSFER'
        AND r.created_at >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-D6')
        AND NOT EXISTS (SELECT 1 FROM bil_receipt_bank_txn t WHERE t.receipt_id = r.id)
-       AND (NOT EXISTS (SELECT 1 FROM bil_debt_line l WHERE l.receipt_id = r.id AND l.kind_code = 'HELD' AND l.reverses_line_id IS NULL)
+       AND ((NOT EXISTS (SELECT 1 FROM bil_debt_line l WHERE l.receipt_id = r.id AND l.kind_code = 'HELD' AND l.reverses_line_id IS NULL)
+             AND NOT EXISTS (SELECT 1 FROM bil_receipt_recon dc WHERE dc.receipt_id = r.id AND dc.kind_code = 'DECLARED'
+                             AND NOT EXISTS (SELECT 1 FROM bil_receipt_recon xc WHERE xc.receipt_id = r.id AND xc.kind_code = 'CONFIRMED')))
          OR EXISTS (SELECT 1 FROM bil_debt_line d JOIN bil_posting p ON p.id = d.posting_id WHERE d.receipt_id = r.id AND p.kind_code = 'COMPANY_RECEIVED'))`,
     level: "fail",
   },

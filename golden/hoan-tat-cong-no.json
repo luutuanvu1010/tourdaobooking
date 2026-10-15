@@ -6,7 +6,7 @@
       "ma": "SV-HT-01",
       "mo_ta": "Vé Hòn Tằm (Tour Đảo bán), bên đặt là Cộng tác viên hưởng 15%. 2 người lớn × 500.000. HDV thu đủ 1.000.000 tiền mặt tại bến.",
       "nguon": "đặc tả Hoàn tất §5.1",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "nguoi_ban_tren_bien_nhan": "Tour Đảo",
         "gia_ban": 1000000,
@@ -60,7 +60,7 @@
       "ma": "SV-HT-04",
       "mo_ta": "Như SV-HT-03 nhưng HDV của Tour Đảo thu trước 200.000 (lễ tân không cầm tiền).",
       "nguon": "đặc tả Hoàn tất §5.2 trường hợp B",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "nguoi_ban_tren_bien_nhan": "i-resort",
         "gia_ban": 600000,
@@ -79,7 +79,7 @@
       "ma": "SV-HT-05",
       "mo_ta": "Như SV-HT-03 nhưng không ai thu trước: khách trả đủ 600.000 tại quầy i-resort (nhà cung cấp thu nhiều hơn giá vốn → nợ Tour Đảo).",
       "nguon": "đặc tả Hoàn tất §5.2 lưu ý P = 0",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "nguoi_ban_tren_bien_nhan": "i-resort",
         "gia_ban": 600000,

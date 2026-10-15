@@ -11,12 +11,12 @@ import {
   approvalInsertStatement, approvalsOfOrder, approvalsOpen, approvalVoidStatement, cancelledHolders, cancelStateOf, cocCancelledOrders, orderByCode, outsideDecideStatement,
   outsideOfOrder, outsideRecordStatement, receiptPayoutStatement, receiptTransferInStatement, type ApprovalDbRow, type CancelStateRow, type OutsideDbRow,
 } from "./coc-repo";
-import { linesOfOrder, orderState, ownerCompanyId, partyLabels, postingIfReceiptStatement, receiptsOfOrder, lineIfPostingStatement } from "./repository";
+import { linesOfOrder, orderState, ownerCompanyId, partyLabels, pendingCompany, postingIfReceiptStatement, receiptsOfOrder, reconOfOrder, lineIfPostingStatement } from "./repository";
 import {
-  conLaiCuaKhoan, hoanNgoaiTrangThai, kiemChi, kiemDuyet, kiemGhiHoanNgoai, kiemHuyDuyet, kiemXacNhanHoanNgoai, METHOD_CODES, nhacCoc, sinhDongHoanKhach, sinhDongLanThu,
+  conLaiCuaKhoan, hoanNgoaiTrangThai, kiemChi, kiemDuyet, kiemGhiHoanNgoai, kiemHuyDuyet, kiemXacNhanHoanNgoai, METHOD_CODES, nhacCoc, nhacDoiChieu, sinhDongHoanKhach, sinhDongLanThu,
   soDuTheoBen, soTienCoc, type DuyetRow, type HoanNgoaiRow, type KiemCoc, type SoTienCoc,
 } from "./rules";
-import { CHUA_CO_CONG_TY, PARTY_ID_RE, docLyDo, docNgay, docSoTien, layKyDaKhoa, lineOf, loi, loiKhoaKy, toLineRow, toReceiptRow, type KetQua, type NguoiGoi } from "./service";
+import { CHUA_CO_CONG_TY, PARTY_ID_RE, docLyDo, docNgay, docSoTien, layKyDaKhoa, lineOf, loi, loiKhoaKy, toDoiChieuRow, toLineRow, toReceiptRow, type KetQua, type NguoiGoi } from "./service";
 
 /** Kiểm độc lập vòng 2 CAO-1: đơn nhận đổi trạng thái giữa lúc duyệt chuyển và lúc chuyển. */
 const CAU_DON_NHAN_HONG = "Đơn nhận đã huỷ hoặc đã giao — huỷ khoản duyệt chuyển rồi duyệt lại sang đơn khác.";
@@ -28,21 +28,21 @@ const toHoanNgoaiRow = (g: OutsideDbRow): HoanNgoaiRow => ({ id: g.id, kind: g.k
 
 /** Câu tiếng Việt cho lỗi trigger 0079 / 0045 (mã có tiền tố trong thông báo RAISE) — không lộ mã thô. */
 const CAU_TRIGGER: [string, string][] = [
-  ["coc_not_cancelled", "Đơn chưa huỷ — không duyệt hoàn cọc được."],
-  ["coc_unclassified", "Lý do huỷ chưa được phân loại — Quản trị phân loại lý do trước khi duyệt hoàn cọc."],
-  ["coc_deadline", "Đã quá hạn hoàn cọc."],
+  ["coc_not_cancelled", "Đơn chưa huỷ — không duyệt hoàn thu trước được."],
+  ["coc_unclassified", "Lý do huỷ chưa được phân loại — Quản trị phân loại lý do trước khi duyệt hoàn thu trước."],
+  ["coc_deadline", "Đã quá hạn hoàn thu trước."],
   ["coc_exceeds_paid", "Vượt số tiền còn giữ của đơn — số tiền vừa thay đổi, tải lại rồi thử lại."],
   ["coc_bad_target", "Đơn nhận phải còn hiệu lực và chưa Đã giao."],
   ["coc_void_exceeds_unspent", "Chỉ huỷ được phần chưa chi của khoản duyệt — tải lại rồi thử lại."],
   ["coc_void_mismatch", "Khoản duyệt không thuộc đơn này."],
-  ["coc_needs_approval", "Đơn huỷ: hoàn qua “Duyệt hoàn cọc” rồi “Ghi chi hoàn”."],
+  ["coc_needs_approval", "Đơn huỷ: hoàn qua “Duyệt hoàn thu trước” rồi “Ghi chi hoàn”."],
   ["coc_bad_approval", "Khoản duyệt không thuộc đơn này."],
   ["coc_exceeds_approved", "Vượt phần đã duyệt còn lại — tải lại rồi thử lại."],
   ["coc_same_person", "Người duyệt không tự chi / chuyển / xác nhận khoản này — cần một người khác (tách nhiệm vụ)."],
   ["coc_transfer_mismatch", "Lệnh chuyển không khớp đơn nhận, số tiền hoặc người giữ tiền."],
   ["coc_transfer_target_invalid", CAU_DON_NHAN_HONG],
-  ["coc_paid_below_approved", "Đơn đã duyệt hoàn cọc — huỷ duyệt phần chưa chi trước khi đảo lần thu."],
-  ["coc_outside_not_legacy", "Chỉ ghi được cho đơn huỷ trước khi có lệnh hoàn cọc trong Nền tảng."],
+  ["coc_paid_below_approved", "Đơn đã duyệt hoàn thu trước — huỷ duyệt phần chưa chi trước khi đảo lần thu."],
+  ["coc_outside_not_legacy", "Chỉ ghi được cho đơn huỷ trước khi có lệnh hoàn thu trước trong Nền tảng."],
   ["coc_outside_once", "Đơn này đã có một dòng đã hoàn ngoài hệ thống đang hiệu lực."],
   ["coc_outside_exceeds", "Vượt số tiền còn giữ của đơn — tải lại rồi thử lại."],
   ["coc_outside_mismatch", "Dòng đã hoàn ngoài hệ thống không thuộc đơn này."],
@@ -85,15 +85,15 @@ interface DuLieuCoc {
 async function docCoc(db: D1Database, orderId: string): Promise<DuLieuCoc | null> {
   const huy = await cancelStateOf(db, orderId);
   if (!huy) return null;
-  const [receiptsDb, linesDb, duyetRows, hoanNgoaiRows, congTyId] = await Promise.all([
-    receiptsOfOrder(db, orderId), linesOfOrder(db, orderId), approvalsOfOrder(db, orderId), outsideOfOrder(db, orderId), ownerCompanyId(db),
+  const [receiptsDb, linesDb, duyetRows, hoanNgoaiRows, congTyId, reconDb] = await Promise.all([
+    receiptsOfOrder(db, orderId), linesOfOrder(db, orderId), approvalsOfOrder(db, orderId), outsideOfOrder(db, orderId), ownerCompanyId(db), reconOfOrder(db, orderId),
   ]);
   const receipts = receiptsDb.map(toReceiptRow);
   const lines = linesDb.map(toLineRow);
   const duyet = duyetRows.map(toDuyetRow);
   const hoanNgoai = hoanNgoaiRows.map(toHoanNgoaiRow);
   return {
-    huy, coc: soTienCoc({ receipts, lines, duyet, hoanNgoai }), duyet, duyetRows, hoanNgoai, hoanNgoaiRows, receipts,
+    huy, coc: soTienCoc({ receipts, lines, duyet, hoanNgoai, doiChieu: reconDb.map(toDoiChieuRow) }), duyet, duyetRows, hoanNgoai, hoanNgoaiRows, receipts,
     soDu: congTyId ? soDuTheoBen(lines, congTyId) : new Map(), congTyId,
   };
 }
@@ -101,6 +101,7 @@ async function docCoc(db: D1Database, orderId: string): Promise<DuLieuCoc | null
 export interface CoCoc {
   coThePhanLoai: boolean;
   coTheDuyet: boolean;
+  coTheDuyetChuyen: boolean;
   coTheChi: boolean;
   coTheChuyen: boolean;
   coTheGhiHoanNgoai: boolean;
@@ -143,6 +144,7 @@ export async function cocCuaDon(db: D1Database, orderId: string, co: CoCoc): Pro
     conGiu: d.coc.conGiu, choChi: d.coc.choChi, khoanDuyet, hoanNgoaiDong, nguoiGiu,
     coThePhanLoai: co.coThePhanLoai && nhom === "CHUA_KET_LUAN",
     coTheDuyet: co.coTheDuyet && nhom !== "CHUA_KET_LUAN" && d.coc.conGiuLucHuy - d.coc.daDuyet > 0 && !(nhom === "KHACH_HUY" && homNay > d.huy.refund_deadline),
+    coTheDuyetChuyen: co.coTheDuyetChuyen && nhom !== "CHUA_KET_LUAN" && d.coc.conGiuLucHuy - d.coc.daDuyet > 0 && !(nhom === "KHACH_HUY" && homNay > d.huy.refund_deadline),
     coTheChi: co.coTheChi && khoanDuyet.some((k) => k.loai === "hoan" && k.conLai > 0),
     coTheChuyen: co.coTheChuyen && khoanDuyet.some((k) => k.loai === "chuyen" && k.conLai > 0),
     coTheGhiHoanNgoai: co.coTheGhiHoanNgoai && d.huy.legacy === 1 && coHieuLuc.length === 0 && d.coc.conGiu > 0,
@@ -160,7 +162,7 @@ export async function cocChoBienNhan(db: D1Database, orderId: string): Promise<R
   };
 }
 
-const DON_CHUA_HUY = () => loi(409, "coc_not_cancelled", "Đơn chưa huỷ — không có tiền cọc để xử lý.");
+const DON_CHUA_HUY = () => loi(409, "coc_not_cancelled", "Đơn chưa huỷ — không có tiền thu trước để xử lý.");
 const KHOAN_KHONG_CO = () => loi(404, "not_found", "Không tìm thấy khoản duyệt của đơn này.");
 
 /** Đọc "người trả / người giữ": "cong_ty" hoặc { partyId } của một hồ sơ có thật. */
@@ -208,7 +210,7 @@ export async function ghiDuyet(db: D1Database, input: { orderId: string; raw: un
 }
 
 /** Huỷ duyệt phần chưa chi (đ4c) — lý do bắt buộc, mỗi khoản một lần. */
-export async function ghiHuyDuyet(db: D1Database, input: { orderId: string; duyetId: string; raw: unknown; ai: NguoiGoi }): Promise<KetQua<null>> {
+export async function ghiHuyDuyet(db: D1Database, input: { orderId: string; duyetId: string; raw: unknown; ai: NguoiGoi; duocHoan: boolean; duocChuyen: boolean }): Promise<KetQua<null>> {
   if (!UUID_RE.test(input.duyetId)) return KHOAN_KHONG_CO();
   const b = (input.raw ?? {}) as Record<string, unknown>;
   const so = docSoTien(b.soTien);
@@ -219,6 +221,8 @@ export async function ghiHuyDuyet(db: D1Database, input: { orderId: string; duye
   if (!d) return DON_CHUA_HUY();
   const goc = d.duyet.find((x) => x.id === input.duyetId && x.voidsId === null);
   if (!goc) return KHOAN_KHONG_CO();
+  // ADR-0120: huỷ duyệt theo ĐÚNG ô của loại khoản (hoàn ↔ deposit.refund.approve, chuyển ↔ deposit.transfer.approve).
+  if (goc.kind === "TRANSFER" ? !input.duocChuyen : !input.duocHoan) return loi(403, "forbidden", goc.kind === "TRANSFER" ? "Bạn không có quyền huỷ duyệt khoản chuyển này." : "Chỉ Quản trị hoặc Toàn quyền mới huỷ duyệt được khoản hoàn.");
   if (d.duyet.some((x) => x.voidsId === goc.id)) return loi(409, "stale", "Khoản duyệt này đã được huỷ duyệt một lần.");
   const tc = tuChoi(kiemHuyDuyet({ conLaiKhoan: conLaiCuaKhoan(goc.id, d.duyet, d.receipts), soTien: so.value }));
   if (tc) return tc;
@@ -389,7 +393,7 @@ export async function xacNhanHoanNgoai(db: D1Database, input: { orderId: string;
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 async function tongHop(db: D1Database): Promise<CocListResponse> {
   const homNay = vnToday(new Date());
-  const [dons, mo, giu] = await Promise.all([cocCancelledOrders(db), approvalsOpen(db), cancelledHolders(db)]);
+  const [dons, mo, giu, doiChieu] = await Promise.all([cocCancelledOrders(db), approvalsOpen(db), cancelledHolders(db), pendingCompany(db)]);
   const ten = await partyLabels(db, [...new Set(giu.map((g) => g.party_id))]);
   const maDon = new Map(dons.map((x) => [x.order_id, x.order_code ?? "—"]));
   const moc7 = new Date(Date.parse(`${homNay}T00:00:00Z`) - 7 * 86_400_000).toISOString().slice(0, 10);
@@ -406,6 +410,7 @@ async function tongHop(db: D1Database): Promise<CocListResponse> {
       };
     }),
     conNguoiGiu: giu.map((g) => ({ orderId: g.order_id, maDon: maDon.get(g.order_id) ?? "—", nguoi: ten.get(g.party_id)?.label ?? "Một người", soTien: g.balance })),
+    doiChieu: doiChieu.map((x) => ({ receiptId: x.receipt_id, orderId: x.order_id, maDon: x.order_code ?? "—", soTien: x.amount, ngayKhai: x.ngay_khai, qua3Ngay: nhacDoiChieu({ homNay, ngayKhai: x.ngay_khai }) })),
   };
 }
 export const danhSachCoc = (db: D1Database): Promise<CocListResponse> => tongHop(db);
@@ -417,6 +422,7 @@ export async function demCoc(db: D1Database): Promise<CocDemResponse> {
     duyetQua7Ngay: t.canChi.filter((k) => k.qua7Ngay).length,
     sapHetHan: t.donHuyGiuCoc.filter((x) => x.sapHetHan).length,
     conNguoiGiu: new Set(t.conNguoiGiu.map((x) => x.orderId)).size,
+    doiChieuQua3Ngay: t.doiChieu.filter((x) => x.qua3Ngay).length,
   };
 }
 

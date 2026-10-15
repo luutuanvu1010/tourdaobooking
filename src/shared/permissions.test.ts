@@ -43,6 +43,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "order.cancel": ["none", "none", "none", "assigned", "none", "any", "none", "none", "none", "none"], // ADR-0014 điều 11: thao tác MỚI
   "order.cancel.classify": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0089 đ8 (Đ-2): chọn "Công ty huỷ" + phân loại — Quản trị, Toàn quyền
   "deposit.refund.approve": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0089 đ4a, đ6, X-1, X-4: duyệt hoàn / chuyển, huỷ duyệt, xác nhận hoàn ngoài — Quản trị, Toàn quyền
+  "deposit.transfer.approve": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0120 Điều 2: duyệt chuyển tiền sang đơn mới — Kế toán, Quản trị, Toàn quyền (hoàn vẫn chỉ Quản trị, Toàn quyền)
   "deposit.outside.record": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0089 đ16, X-4: ghi đã hoàn ngoài hệ thống — chỉ Toàn quyền
   "dispatch.assign": ["ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"],
   "dispatch.claim": ["any", "none", "any", "any", "none", "any", "none", "none", "none", "none"], // ADR-0009 điều 2: nhận phụ trách đơn chưa có người (điều kiện do dịch vụ của dispatch kiểm, không phải ô ma trận); ADR-0030 S20-6/S20-12: FIELD any
@@ -78,6 +79,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "feedback.submit": ["any", "any", "any", "any", "any", "any", "any", "any", "any", "any"],
   "feedback.view": ["own", "own", "own", "own", "own", "any", "own", "own", "own", "own"], // ADR-0038: Quản trị any → own
   "feedback.triage": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0038: Quản trị any → none
+  "feedback.team.manage": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0119: quản lý nhóm hỗ trợ chỉ Toàn quyền
   "settings.ops": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0019: chỉ Toàn quyền (chế độ bảo trì)
   "order.pool.view": ["none", "none", "none", "any", "none", "any", "none", "none", "none", "none"], // ADR-0030 S23-1: thao tác MỚI — hàng chờ nhận (phần hẹp); Quản trị KHÔNG có (xem mọi đơn qua order.view)
   "notice.send": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0034 điều 7: chỉ Toàn quyền gửi/thu hồi tin thủ công
@@ -262,9 +264,10 @@ test("mặc định từ chối: không quyền, thao tác lạ, chủ đơn thi
 // Quản trị lấy lại theo ADR-0042 nên không còn ở đây).
 // ADR-0038 điều 7 + ADR-0024 6.4 (T2b): company.legal.write — chỉ Toàn quyền sửa hồ sơ công ty chủ và đổi công ty chủ.
 // ADR-0040 D2: party.document.view — ô `own` của Quản trị (giấy tờ của chính mình); Quản trị xem giấy tờ NGƯỜI KHÁC qua party.document.write.
+// ADR-0119: feedback.team.manage — quản lý nhóm hỗ trợ chỉ Toàn quyền (Quản trị không có đường tắt vào nhóm nhạy cảm).
 const ADMIN_NONE_OPS: readonly OperationCode[] = [
   "admin.manage.superadmin", "order.cancel", "dispatch.guides.view", "settings.ops", "order.pool.view",
-  "notice.send", "feedback.view", "feedback.triage", "account.create", "audit.view", "company.legal.write", "party.document.view",
+  "notice.send", "feedback.view", "feedback.triage", "feedback.team.manage", "account.create", "audit.view", "company.legal.write", "party.document.view",
   "payment.refund", // sổ tiền lượt 1 (ADR-0026 điều 10): hoàn khách chỉ Kế toán, Toàn quyền (H4)
   "order.complete", "ledger.write", // sổ tiền lượt 1: Hoàn thành / ghi sổ chỉ Kế toán, Toàn quyền (ADR-0025 đ6, ADR-0026 đ10)
   "ledger.view", // ADMIN "own" — chỉ sổ của chính mình (ngữ cảnh ownerId người khác → không)
@@ -342,7 +345,7 @@ test("seesOnlyAssignedOrders: trên cả 1024 tập con quyền — đúng bằn
 test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguyên dòng", () => {
   const DRIVER_ROW: Record<string, Scope> = {
     "order.view": "none", "money.view": "none", "order.history.view": "none", "contact.view": "none", "order.create": "none", "order.modify": "none",
-    "order.trip.edit": "none", "task.progress": "none", "order.money.edit": "none", "order.cancel": "none", "order.cancel.classify": "none", "deposit.refund.approve": "none", "deposit.outside.record": "none", "dispatch.assign": "none", "dispatch.claim": "none",
+    "order.trip.edit": "none", "task.progress": "none", "order.money.edit": "none", "order.cancel": "none", "order.cancel.classify": "none", "deposit.refund.approve": "none", "deposit.transfer.approve": "none", "deposit.outside.record": "none", "dispatch.assign": "none", "dispatch.claim": "none",
     "order.passenger.write": "none", // ADR-0047 A2: tài xế KHÔNG đi qua ô này (đường ghi của tài xế, nếu có, do ADR lượt 2 quyết)
     "order.leg.short_notice": "none", // ADR-0049 D3: đặt gấp chỉ Quản trị, Toàn quyền
     "order.leg.short_notice.view": "none", // chủ H4/N-14: tài xế không xem chi tiết đơn (không đổi)
@@ -352,7 +355,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "party.view": "none", "party.write": "none", "party.staff.write": "none", "admin.manage": "none", "admin.manage.superadmin": "none",
     "account.access.manage": "none", "account.create": "none", "account.view": "none", "account.edit": "none", "audit.view": "none",
     "feedback.submit": "any", "feedback.view": "own", // ngoại lệ có tên (Ruling R2)
-    "feedback.triage": "none", "settings.ops": "none", "order.pool.view": "none", "notice.send": "none", "company.legal.write": "none",
+    "feedback.triage": "none", "feedback.team.manage": "none", "settings.ops": "none", "order.pool.view": "none", "notice.send": "none", "company.legal.write": "none",
     "party.document.view": "own", // ngoại lệ có tên (Ruling R2, R5): xem giấy tờ của CHÍNH MÌNH, số che
     "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
@@ -385,7 +388,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
 test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghim nguyên dòng, mọi ô tiền = none", () => {
   const DRIVER_PARTNER_ROW: Record<string, Scope> = {
     "order.view": "none", "money.view": "none", "order.history.view": "none", "contact.view": "none", "order.create": "none", "order.modify": "none",
-    "order.trip.edit": "none", "task.progress": "none", "order.money.edit": "none", "order.cancel": "none", "order.cancel.classify": "none", "deposit.refund.approve": "none", "deposit.outside.record": "none", "dispatch.assign": "none", "dispatch.claim": "none",
+    "order.trip.edit": "none", "task.progress": "none", "order.money.edit": "none", "order.cancel": "none", "order.cancel.classify": "none", "deposit.refund.approve": "none", "deposit.transfer.approve": "none", "deposit.outside.record": "none", "dispatch.assign": "none", "dispatch.claim": "none",
     "order.passenger.write": "none", // ADR-0047 A2 × ADR-0048 D2 (mọi ô nghiệp vụ của tài xế đối tác = none): không nhập / sửa / huỷ danh sách hành khách
     "order.leg.short_notice": "none", // ADR-0049 D3 × ADR-0048 D2
     "order.leg.short_notice.view": "none", // chủ H4/N-14 × ADR-0048 D2
@@ -395,7 +398,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "party.view": "none", "party.write": "none", "party.staff.write": "none", "admin.manage": "none", "admin.manage.superadmin": "none",
     "account.access.manage": "none", "account.create": "none", "account.view": "none", "account.edit": "none", "audit.view": "none",
     "feedback.submit": "any", "feedback.view": "own", // ngoại lệ có tên (ADR-0048 D2)
-    "feedback.triage": "none", "settings.ops": "none", "order.pool.view": "none", "notice.send": "none", "company.legal.write": "none",
+    "feedback.triage": "none", "feedback.team.manage": "none", "settings.ops": "none", "order.pool.view": "none", "notice.send": "none", "company.legal.write": "none",
     "party.document.view": "own", // ngoại lệ có tên (ADR-0048 D2): xem giấy tờ của CHÍNH MÌNH, số che
     "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
@@ -434,7 +437,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
   const HR_ROW: Record<string, Scope> = {
     "order.view": "none", "money.view": "none", "order.history.view": "none", "contact.view": "none", "order.create": "none", "order.modify": "none",
     "order.trip.edit": "none", "order.leg.short_notice": "none", "order.leg.short_notice.view": "none", "order.passenger.write": "none", "order.service.manual": "none",
-    "task.progress": "none", "order.money.edit": "none", "order.cancel": "none", "order.cancel.classify": "none", "deposit.refund.approve": "none", "deposit.outside.record": "none", "dispatch.assign": "none", "dispatch.claim": "none", "dispatch.guides.view": "none",
+    "task.progress": "none", "order.money.edit": "none", "order.cancel": "none", "order.cancel.classify": "none", "deposit.refund.approve": "none", "deposit.transfer.approve": "none", "deposit.outside.record": "none", "dispatch.assign": "none", "dispatch.claim": "none", "dispatch.guides.view": "none",
     "payment.receive": "none", "payment.refund": "none", "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none",
     "ledger.period.close": "none", // khoá sổ tháng (ADR-0080 D1): Nhân sự chỉ ba ô tài khoản
     "ledger.adjust.approve": "none", // ADR-0115: duyệt điều chỉnh công nợ chỉ Kế toán, Quản trị, Toàn quyền
@@ -442,7 +445,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "party.view": "none", "party.write": "none", "party.staff.write": "none", "admin.manage": "none", "admin.manage.superadmin": "none",
     "account.access.manage": "none", // điều 1e: hỗ trợ đăng nhập vẫn Quản trị + Toàn quyền (ADR-0042)
     "account.create": "any", "account.view": "any", "account.edit": "any", // điều 1b
-    "audit.view": "none", "feedback.submit": "any", "feedback.view": "own", "feedback.triage": "none", "settings.ops": "none", "order.pool.view": "none",
+    "audit.view": "none", "feedback.submit": "any", "feedback.view": "own", "feedback.triage": "none", "feedback.team.manage": "none", "settings.ops": "none", "order.pool.view": "none",
     "notice.send": "none", "company.legal.write": "none",
     "party.document.view": "own", // như mọi tài khoản nội bộ (ADR-0040 D2, R5): giấy tờ của CHÍNH MÌNH, số che
     "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",

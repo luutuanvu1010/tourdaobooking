@@ -14,9 +14,9 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Mức TA dùng chung (ADR-0117 lần 2; chủ duyệt lần 2 bằng lời trong chat 2026-10-14): bộ hoa hồng có tên, gắn loại đối tác vào mức theo ngày; chọn mức thêm bậc 7–9.
     // Có thay đổi cơ sở dữ liệu (migration 0096 thêm hai bảng, 0097 dựng lại bảng mức hoa hồng) — cần npm run trien-khai sau day-len (Task 7 của kế hoạch, chủ tự chạy).
-    // Số 2.1 là số TẠM (= origin/main 2.0 + 1, kiểm 2026-10-16: main fc533d49): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) —
+    // Số 2.3 là số TẠM (= origin/main 2.2 + 1, kiểm 2026-10-16: main 20103d40): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) —
     // người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
-    version: "2.1",
+    version: "2.3",
     date: "2026-10-16",
     items: [
       { kind: "moi", text: "Trang Hoa hồng đối tác có thêm khối Mức TA: Kế toán đặt tên mức (ví dụ Đại lý cấp 1), thêm dòng hoa hồng cho mức, rồi gắn loại đối tác vào mức từ một ngày." },
@@ -24,6 +24,34 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Gắn mức cho loại còn mức riêng: Nền tảng hiện khung vàng liệt kê các dòng riêng đó, không chặn. Đóng các dòng riêng nếu muốn dùng mức TA." },
       { kind: "moi", text: "Thử tra cho biết mức TA nào đang áp, kèm tên mức." },
       { kind: "doi", text: "Đổi mức hay sửa số của mức không làm đổi hoa hồng đơn đã xác nhận. Mỗi loại một mức trong một ngày: muốn đổi từ hôm nay thì kết thúc gắn cũ tới hôm qua." },
+    ],
+  {
+    // Khoản chuyển khoản «Công ty thu» không tạo nợ cho người khai + Kế toán duyệt chuyển tiền sang đơn khác + đổi chữ «cọc» thành «Thu trước» (ADR-0120 của dòng sổ tiền, chủ duyệt 14/10: «duyệt cả hai theo khuyến nghị»).
+    // Có thay đổi cơ sở dữ liệu (migration 0099) — cần trien-khai sau day-len.
+    // Số 2.2 là số TẠM (= main 2.1 của Vé hỗ trợ + 1, 2026-10-16; chủ chọn cho mục này vào main trước nhánh đưa đón): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
+    version: "2.2",
+    date: "2026-10-16",
+    items: [
+      { kind: "doi", text: "Hướng dẫn viên khai \"Công ty thu\" bằng chuyển khoản thì không bị tính nợ phần đó; khoản hiện \"đang đối chiếu\" tới khi Kế toán bấm \"Công ty đã nhận\"." },
+      { kind: "doi", text: "Đơn còn khoản chuyển khoản đang đối chiếu thì chưa bấm được \"Đã giao – đã thu đủ\". Tiền mặt khai \"Công ty thu\" vẫn tính vào nợ người khai như trước." },
+      { kind: "moi", text: "Khoản đang đối chiếu quá 3 ngày được nhắc đỏ cho Kế toán ở trang đơn và Trang chủ." },
+      { kind: "moi", text: "Kế toán duyệt được việc chuyển tiền thu trước sang đơn mới. Duyệt hoàn tiền cho khách vẫn chỉ Quản trị và Toàn quyền; người duyệt phải khác người ghi chuyển." },
+      { kind: "doi", text: "Chữ \"cọc\" trên màn hình nhân viên đổi thành \"Thu trước\"; bản xác nhận gửi khách giữ nguyên." },
+    ],
+  },
+  {
+    // Vé hỗ trợ đợt 1 (ADR-0119): nhóm hỗ trợ, hàng đợi nhóm, nhận việc, chuyển nhóm, quản lý nhóm; menu «Góp ý / Báo lỗi» đổi thành «Hỗ trợ».
+    // Có thay đổi cơ sở dữ liệu (migration 0100) — cần trien-khai sau day-len.
+    // Số 2.1 là số TẠM (= main 2.0 + 1, lúc gộp main fc533d49 ngày 2026-10-15; trước đó nhánh dùng 1.97 tạm, nay main đã chiếm 1.97 và 2.0): phiên phát hành
+    // kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
+    version: "2.1",
+    date: "2026-10-16",
+    items: [
+      { kind: "doi", text: "Mục Góp ý / Báo lỗi đổi tên thành Hỗ trợ. Khi gửi yêu cầu, bạn chọn nhóm nhận: Kỹ thuật, Kế toán, Nhân sự hoặc Điều hành." },
+      { kind: "moi", text: "Thành viên nhóm hỗ trợ có tab Hàng đợi nhóm: xem yêu cầu gửi tới nhóm mình, lọc Của tôi hoặc Chưa ai nhận, bấm Nhận việc rồi đổi trạng thái." },
+      { kind: "moi", text: "Trưởng nhóm chuyển được yêu cầu sang nhóm khác, kèm lý do. Nhóm mới không đọc ghi chú nội bộ của nhóm cũ." },
+      { kind: "moi", text: "Người phụ trách hệ thống có tab Quản lý nhóm: tạo nhóm, ngưng nhóm, thêm hoặc gỡ thành viên, chọn Trưởng nhóm." },
+      { kind: "doi", text: "Yêu cầu chỉ người gửi, nhóm nhận và người phụ trách hệ thống đọc được. Yêu cầu gửi Kế toán hoặc Nhân sự không hiện tiêu đề trong thư báo." },
     ],
   },
   {

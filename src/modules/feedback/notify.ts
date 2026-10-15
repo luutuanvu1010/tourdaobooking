@@ -12,6 +12,9 @@ export interface NotifyEvent {
   title: string;
   submitterName: string;
   excerpt: string;
+  teamName: string;
+  /** Nhóm nhạy cảm: thư không kèm tiêu đề, tên người gửi hay nội dung (ADR-0119 điều 9). */
+  sensitive: boolean;
   url: string;
 }
 
@@ -36,13 +39,21 @@ const oneLine = (s: string, max: number): string => s.replace(/[\r\n\u0000-\u001
 
 export function buildMail(e: NotifyEvent): { subject: string; html: string } {
   const head = e.type === "created" ? "Yêu cầu mới" : "Người gửi vừa trả lời";
-  const subject = oneLine(`[Góp ý] ${head} ${e.code}: ${e.title}`, 150);
+  const team = oneLine(e.teamName, 60);
+  const link = `<p><a href="${esc(e.url)}">Mở trong Nền tảng</a></p>`;
+  if (e.sensitive) {
+    const subject = oneLine(`[${team}] ${head} ${e.code}`, 150);
+    const cau = e.type === "created" ? `Có phiếu mới cho nhóm ${team}. Mở Nền tảng để xem.` : `Có phản hồi mới ở phiếu nhóm ${team}. Mở Nền tảng để xem.`;
+    const html = `<p><strong>${esc(head)}</strong> — ${esc(e.code)}</p><p>${esc(cau)}</p>` + link;
+    return { subject, html };
+  }
+  const subject = oneLine(`[${team}] ${head} ${e.code}: ${e.title}`, 150);
   const html =
-    `<p><strong>${esc(head)}</strong> — ${esc(e.code)} (${esc(e.kindName)})</p>` +
+    `<p><strong>${esc(head)}</strong> — ${esc(e.code)} (${esc(e.kindName)}) · nhóm ${esc(team)}</p>` +
     `<p><strong>${esc(oneLine(e.title, 200))}</strong></p>` +
     `<p>Người gửi: ${esc(oneLine(e.submitterName, 100))}</p>` +
     `<blockquote>${esc(e.excerpt.slice(0, 500)).replace(/\n/g, "<br>")}</blockquote>` +
-    `<p><a href="${esc(e.url)}">Mở trong app</a></p>`;
+    link;
   return { subject, html };
 }
 

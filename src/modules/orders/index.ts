@@ -1040,7 +1040,7 @@ export const ordersModule: AppModule = {
       // Q2 (chủ trả lời 2026-09-30 "Đưa cọc cũ về 0, ghi nhật ký"): nháp CŨ còn cọc ghi trên đơn mà tổng mới < cọc cũ → câu lưu nháp đưa cột cọc về 0 (số tiền
       // không mất — đã là lần thu "chưa rõ" trong sổ của billing); ghi số cọc cũ vào dòng nhật ký `updated` (không SĐT).
       const cocCu = await cocCuNhap(env.DB, id);
-      const ghiChuCoc = cocCu > placed.value.total ? `đưa tiền cọc cũ ${cocCu.toLocaleString("vi-VN")} ₫ ghi trên đơn về 0 (tiền đã nằm ở lần thu "chưa rõ" trong sổ)` : null;
+      const ghiChuCoc = cocCu > placed.value.total ? `đưa tiền thu trước cũ ${cocCu.toLocaleString("vi-VN")} ₫ ghi trên đơn về 0 (tiền đã nằm ở lần thu "chưa rõ" trong sổ)` : null;
       if (!(await updateDraftOrder(env.DB, id, staff.id, { ...placed.value, expectedUpdatedAt: expected }, booker.write, legMeta, datGapNhap, ghiChuCoc))) {
         const now = await getMeta(env.DB, id);
         return now && now.status !== "draft" ? NOT_EDITABLE() : STALE();

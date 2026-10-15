@@ -25,7 +25,7 @@ export const HD_TAI_XE: NhomHuongDan = {
 - [[Báo bận của tôi]]: ghi giờ bạn bận để văn phòng không xếp chuyến.
 - [[Tôi]]: đủ **Giấy tờ của tôi**, đổi PIN, bật thông báo.
 
-Trên máy tính, menu bên trái có các mục trên, cùng [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]].`,
+Trên máy tính, menu bên trái có các mục trên, cùng [[Của tôi]], [[Hỗ trợ]], [[Trợ giúp]].`,
     },
     {
       tieuDe: "Xem cuốc và chuẩn bị",
@@ -83,7 +83,7 @@ Trên máy tính, menu bên trái có các mục trên, cùng [[Của tôi]], [[
 - **Tên khách và mã đơn:** chỉ hiện từ giờ ghi ở dòng "Bạn thấy tên khách và mã đơn từ …".
 - **Báo bận:** ở [[Báo bận của tôi]], chọn giờ bắt đầu, giờ kết thúc, lý do rồi bấm [[Lưu khung bận]]. Văn phòng chỉ thấy bạn bận, không thấy lý do. Giờ đó trùng chuyến bạn đang được xếp thì không lưu được: từ chối chuyến đó trước (nếu còn hạn) hoặc gọi văn phòng. Hết bận thì bấm [[Rút khung bận]].
 - Số giấy tờ bị che một phần. Bạn không thấy đơn, giá hay tin nội bộ của công ty.
-- Giấy tờ sai hoặc có giấy mới: báo văn phòng, hoặc bấm [[Góp ý / Báo lỗi]].`,
+- Giấy tờ sai hoặc có giấy mới: báo văn phòng, hoặc bấm [[Hỗ trợ]].`,
     },
     {
       tieuDe: "Câu hỏi thường gặp",

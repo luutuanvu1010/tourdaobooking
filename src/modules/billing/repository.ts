@@ -133,20 +133,56 @@ const THANG_SO_SOM_NHAT = defineSql(
 );
 export const earliestLedgerMonth = async (db: D1Database): Promise<string | null> => (await db.prepare(THANG_SO_SOM_NHAT).first<{ thang: string | null }>())?.thang ?? null;
 
-/** Khoản "Công ty thu" do người không phải Kế toán khai, CHƯA được Kế toán xác nhận (dòng giữ hộ trên người khai chưa bị đảo — H3). */
+/**
+ * Khoản "Công ty thu" do người không phải Kế toán khai, CHƯA được Kế toán xác nhận. Hai đường (ADR-0120): khoản CŨ — dòng giữ hộ trên người khai chưa bị đảo (H3);
+ * khoản MỚI — dấu DECLARED (`bil_receipt_recon`, 0099) chưa có CONFIRMED, lần thu còn hiệu lực. `ngay_khai` = ngày dân sự khai (gốc tính "quá 3 ngày").
+ */
 const PENDING_COMPANY = defineSql(
   "billing",
   "pending_company",
-  `SELECT r.id AS receipt_id, r.order_id, ol.order_code, r.amount, r.occurred_date, pl.display_name AS nguoi_khai
-   FROM bil_payment_receipt r JOIN bil_debt_line l ON l.receipt_id = r.id AND l.kind_code = 'HELD' AND l.reverses_line_id IS NULL
-   LEFT JOIN v_ord_order_label ol ON ol.id = r.order_id LEFT JOIN v_pty_party_label pl ON pl.id = l.debtor_party_id
-   WHERE r.collector_role_code = 'COMPANY' AND r.reverses_id IS NULL
-     AND NOT EXISTS (SELECT 1 FROM bil_debt_line x WHERE x.reverses_line_id = l.id)
-     AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt y WHERE y.reverses_id = r.id)
-   ORDER BY r.rowid`,
+  `SELECT t.receipt_id, t.order_id, t.order_code, t.amount, t.occurred_date, t.nguoi_khai, t.ngay_khai FROM (
+     SELECT r.rowid AS ord, r.id AS receipt_id, r.order_id, ol.order_code, r.amount, r.occurred_date, pl.display_name AS nguoi_khai, r.occurred_date AS ngay_khai
+     FROM bil_payment_receipt r JOIN bil_debt_line l ON l.receipt_id = r.id AND l.kind_code = 'HELD' AND l.reverses_line_id IS NULL
+     LEFT JOIN v_ord_order_label ol ON ol.id = r.order_id LEFT JOIN v_pty_party_label pl ON pl.id = l.debtor_party_id
+     WHERE r.collector_role_code = 'COMPANY' AND r.reverses_id IS NULL
+       AND NOT EXISTS (SELECT 1 FROM bil_debt_line x WHERE x.reverses_line_id = l.id)
+       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt y WHERE y.reverses_id = r.id)
+     UNION ALL
+     SELECT r.rowid, r.id, r.order_id, ol.order_code, r.amount, r.occurred_date, sl.label, d.occurred_date
+     FROM bil_payment_receipt r JOIN bil_receipt_recon d ON d.receipt_id = r.id AND d.kind_code = 'DECLARED'
+     LEFT JOIN v_ord_order_label ol ON ol.id = r.order_id LEFT JOIN v_stf_staff_label sl ON sl.id = r.created_by
+     WHERE r.reverses_id IS NULL
+       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt y WHERE y.reverses_id = r.id)
+       AND NOT EXISTS (SELECT 1 FROM bil_receipt_recon c WHERE c.receipt_id = r.id AND c.kind_code = 'CONFIRMED')
+   ) t ORDER BY t.ord`,
 );
 export const pendingCompany = async (db: D1Database) =>
-  (await db.prepare(PENDING_COMPANY).all<{ receipt_id: string; order_id: string; order_code: string | null; amount: number; occurred_date: string; nguoi_khai: string | null }>()).results;
+  (await db.prepare(PENDING_COMPANY).all<{ receipt_id: string; order_id: string; order_code: string | null; amount: number; occurred_date: string; nguoi_khai: string | null; ngay_khai: string }>()).results;
+
+// ---- Dấu đối chiếu của khoản "Công ty thu" MỚI (ADR-0120 Điều 1; bảng `bil_receipt_recon`, 0099) — chỉ-thêm ----
+const RECON_OF_ORDER = defineSql(
+  "billing",
+  "recon_of_order",
+  `SELECT d.receipt_id, d.kind_code, d.occurred_date FROM bil_receipt_recon d JOIN bil_payment_receipt r ON r.id = d.receipt_id WHERE r.order_id = ?1 ORDER BY d.rowid`,
+);
+export interface ReconDbRow {
+  receipt_id: string;
+  kind_code: "DECLARED" | "CONFIRMED";
+  occurred_date: string;
+}
+export const reconOfOrder = async (db: D1Database, orderId: string): Promise<ReconDbRow[]> => (await db.prepare(RECON_OF_ORDER).bind(orderId).all<ReconDbRow>()).results;
+const RECON_OF_RECEIPT = defineSql("billing", "recon_of_receipt", `SELECT receipt_id, kind_code, occurred_date FROM bil_receipt_recon WHERE receipt_id = ?1 ORDER BY rowid`);
+export const reconOfReceipt = async (db: D1Database, receiptId: string): Promise<ReconDbRow[]> => (await db.prepare(RECON_OF_RECEIPT).bind(receiptId).all<ReconDbRow>()).results;
+
+/** Dấu DECLARED — chỉ áp khi lần thu ?2 đã được chèn trong lô (lính gác); trigger `bil_receipt_recon_declared` canh loại lần thu. */
+const RECON_INSERT = defineSql(
+  "billing",
+  "recon_insert",
+  `INSERT INTO bil_receipt_recon (id, receipt_id, kind_code, occurred_date, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6 WHERE EXISTS (SELECT 1 FROM bil_payment_receipt WHERE id = ?2)`,
+);
+export const reconInsertStatement = (db: D1Database, v: { id: string; receiptId: string; kind: "DECLARED" | "CONFIRMED"; occurredDate: string; at: string; by: string }) =>
+  db.prepare(RECON_INSERT).bind(v.id, v.receiptId, v.kind, v.occurredDate, v.at, v.by);
 
 /** Lần thu người thu CHƯA RÕ còn hiệu lực (cọc cũ chuyển sang — việc của Kế toán, ADR-0026 đ9). */
 const UNKNOWN_RECEIPTS = defineSql(

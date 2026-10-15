@@ -10,7 +10,7 @@ export const HD_CHUNG: NhomHuongDan = {
 2. Vào trang **Tôi**, mục [[Đổi mã PIN]]: đổi PIN công ty cấp sang PIN chỉ bạn biết.
 3. Trên iPhone: mở bằng Safari, bấm [[Chia sẻ]] rồi **Thêm vào MH chính**.
 4. Mở app từ biểu tượng, vào **Tôi**, bấm [[Bật thông báo trên điện thoại]].
-5. Gặp lỗi hay cần hỏi: bấm [[Góp ý / Báo lỗi]].`,
+5. Gặp lỗi hay cần hỏi: bấm [[Hỗ trợ]].`,
   muc: [
     {
       tieuDe: "Đăng nhập",
@@ -92,17 +92,17 @@ Bấm [[Đăng xuất]] ở trang Tôi hoặc dưới cùng menu máy tính. Má
 - [[Phiên đăng nhập của tôi]] ở trang Tôi ghi các lần đăng nhập gần đây; dòng **Máy này** là máy đang cầm. Thấy lạ thì đổi PIN ngay.`,
     },
     {
-      tieuDe: "Trợ giúp và Góp ý",
+      tieuDe: "Trợ giúp và Hỗ trợ",
       noiDung: `### Trợ giúp
 Mở [[Trợ giúp]] để đọc hướng dẫn và [[Nhật ký thay đổi]] của từng phiên bản. Khi có bản mới chưa đọc, tab Tôi và mục Trợ giúp có chấm đỏ, bản đó có nhãn [[Mới cập nhật]].
 
 ### Gửi góp ý, báo lỗi
-1. Bấm [[Góp ý / Báo lỗi]].
-2. Chọn loại: [[Báo lỗi]], [[Đề xuất]] hoặc [[Câu hỏi]].
+1. Bấm [[Hỗ trợ]].
+2. Chọn nhóm (nếu có) và loại: [[Báo lỗi]], [[Đề xuất]] hoặc [[Câu hỏi]].
 3. Gõ tiêu đề và mô tả, bấm [[Gửi]]. App tự đính kèm trang đang mở, loại máy, phiên bản.
 4. Xem trả lời ở ngăn [[Yêu cầu của tôi]].
 
-Chỉ bạn và người phụ trách hệ thống đọc được yêu cầu của bạn.
+Chỉ bạn, nhóm nhận và người phụ trách hệ thống đọc được.
 
 > Ví dụ: Anh Tuấn thấy nút lưu bị bàn phím che, chọn Báo lỗi, ghi đang ở màn nào, bấm Gửi.`,
     },

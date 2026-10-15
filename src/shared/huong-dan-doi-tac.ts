@@ -21,7 +21,7 @@ export const HD_DOI_TAC: NhomHuongDan = {
 
 Thanh menu dọc bên trái có:
 - Đầu menu: nút nổi bật [[Tạo đơn]], rồi [[Đơn hàng]].
-- Chân menu: [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]].
+- Chân menu: [[Của tôi]], [[Hỗ trợ]], [[Trợ giúp]].
 
 ### Trên điện thoại
 
@@ -180,7 +180,7 @@ Máy đã bật Face ID: vào [[Tôi]], bấm [[Quên PIN? Đặt PIN mới bằ
 
 ### Tôi muốn góp ý về app
 
-Bấm [[Góp ý / Báo lỗi]]. Bạn xem lại được các góp ý mình đã gửi.`,
+Bấm [[Hỗ trợ]]. Bạn xem lại được các góp ý mình đã gửi.`,
     },
   ],
 };

@@ -651,7 +651,7 @@ try {
       ["Bán hàng", ["Tạo đơn", "Đơn hàng", "Danh bạ"]],
       ["Quản lý", ["Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ cá nhân"]],
       ["Vận chuyển", ["Điều phối xe", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Giấy tờ sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối"]],
-      ["Của tôi", ["Tôi", "Góp ý / Báo lỗi", "Trợ giúp"]],
+      ["Của tôi", ["Tôi", "Hỗ trợ", "Trợ giúp"]],
     ], `Hộp Tất cả (máy tính): bốn nhóm đúng quyền Quản trị, có ô Tôi — ${JSON.stringify(hop)}`);
     assert.equal(hop.phu, "17 chức năng theo quyền Quản trị", `Hộp Tất cả (máy tính): dòng phụ — ${JSON.stringify(hop)}`);
     assert.equal(hop.soDon, "1", `Hộp Tất cả (máy tính): huy hiệu Đơn hàng — ${JSON.stringify(hop)}`);
@@ -691,7 +691,7 @@ try {
     "Điều phối xe", "Xe đang chạy", "Đề nghị chuyển khách", "Xe & giấy tờ", "Giá & chi phí",
     "Điều chỉnh công nợ", "Hoa hồng đối tác", "Người bán dịch vụ",
     "Dịch vụ & giá", "Địa điểm", "Loại giấy tờ cá nhân", "Loại giấy tờ xe", "Lý do điều phối", "Quản lý tài khoản",
-    "Của tôi", "Góp ý / Báo lỗi", "Trợ giúp",
+    "Của tôi", "Hỗ trợ", "Trợ giúp",
   ];
   const navMeasure = await p.ev(`(() => {
     const links = [...document.querySelectorAll('#sidebar .sidebar-item')];
@@ -810,7 +810,7 @@ try {
         ["Bán hàng", ["Tạo đơn", "Đơn hàng", "Danh bạ"]],
         ["Quản lý", ["Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ cá nhân"]],
         ["Vận chuyển", ["Điều phối xe", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Giấy tờ sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối"]],
-        ["Của tôi", ["Góp ý / Báo lỗi", "Trợ giúp"]],
+        ["Của tôi", ["Hỗ trợ", "Trợ giúp"]],
       ],
       `K: bốn nhóm của bảng trượt Quản trị — ${JSON.stringify(sheet.nhom)}`,
     );
@@ -1021,7 +1021,7 @@ try {
     })()`);
     assert.equal(fieldNav.sidebarShown, true, `D-1 (FIELD, 1040px): thanh bên phải hiển thị thật — ${JSON.stringify(fieldNav)}`);
     assert.deepEqual(fieldNav.groupTitles, [], `D-1 (FIELD): thanh bên không có tiêu đề nhóm nào (menu theo việc 15/10: HẰNG NGÀY/CHÂN MENU không tiêu đề; nhóm VẬN CHUYỂN/TIỀN/THIẾT LẬP rỗng phải ẩn CẢ tiêu đề) — ${JSON.stringify(fieldNav)}`);
-    assert.deepEqual(fieldNav.labels, ["Đơn hàng", "Của tôi", "Góp ý / Báo lỗi", "Trợ giúp"], `D-1 (FIELD): thanh bên đúng 4 mục — "Đơn hàng" (HẰNG NGÀY, chỉ-FIELD đọc đơn mình phụ trách) + 3 mục CHÂN MENU — ${JSON.stringify(fieldNav)}`);
+    assert.deepEqual(fieldNav.labels, ["Đơn hàng", "Của tôi", "Hỗ trợ", "Trợ giúp"], `D-1 (FIELD): thanh bên đúng 4 mục — "Đơn hàng" (HẰNG NGÀY, chỉ-FIELD đọc đơn mình phụ trách) + 3 mục CHÂN MENU — ${JSON.stringify(fieldNav)}`);
     assert.equal(fieldNav.logoutShown, true, `D-1 (FIELD): "Đăng xuất" phải hiển thị thật trong thanh bên — ${JSON.stringify(fieldNav)}`);
     await shot(pErr, "task-4-sidebar-field-may-tinh.png");
     ok(`D-1) Thanh bên của tài khoản chỉ FIELD (1040px): không tiêu đề nhóm nào ${JSON.stringify(fieldNav.groupTitles)}, đúng 4 mục ${JSON.stringify(fieldNav.labels)}, có "Đăng xuất", không huy hiệu nào (${fieldNav.badgeCount})`);

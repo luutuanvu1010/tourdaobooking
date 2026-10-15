@@ -18,7 +18,7 @@ export const HD_HDV: NhomHuongDan = {
       tieuDe: "Menu của bạn",
       noiDung: `Trên điện thoại, thanh dưới đáy chỉ có một nút: [[Tôi]].
 
-Trên máy tính, menu bên trái có [[Đơn hàng]] (chỉ đơn bạn đang lo) ở đầu menu; ở chân menu có [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]]. Đơn tự do đang chờ nhận nằm ở [[Của tôi]], không nằm ở [[Đơn hàng]].
+Trên máy tính, menu bên trái có [[Đơn hàng]] (chỉ đơn bạn đang lo) ở đầu menu; ở chân menu có [[Của tôi]], [[Hỗ trợ]], [[Trợ giúp]]. Đơn tự do đang chờ nhận nằm ở [[Của tôi]], không nằm ở [[Đơn hàng]].
 
 Mở app, bạn thấy trang [[Đơn hàng]]. Trang này chỉ có đơn **bạn đang lo**.
 

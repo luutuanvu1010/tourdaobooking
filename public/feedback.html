@@ -1,14 +1,15 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Góp ý — Island Booking System</title></head>
-<body data-title="Góp ý" data-back="/account">
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Hỗ trợ — Island Booking System</title></head>
+<body data-title="Hỗ trợ" data-back="/account">
 <header id="topbar"></header>
 <main>
-  <h1>Góp ý / Báo lỗi</h1>
-  <p class="muted">Gửi báo lỗi, đề xuất hoặc câu hỏi cho người phụ trách hệ thống. Chúng tôi phản hồi ngay tại đây.</p>
+  <h1>Hỗ trợ</h1>
+  <p class="muted">Gửi báo lỗi, đề xuất hoặc câu hỏi tới đúng nhóm. Chúng tôi phản hồi ngay tại đây.</p>
   <div id="error" class="alert" role="alert" hidden></div>
   <section id="new-card" class="card" hidden>
     <h2>Gửi yêu cầu mới</h2>
     <form id="new-form" class="grid" autocomplete="off">
+      <label id="new-team-label">Gửi tới nhóm<select id="new-team"></select><span id="new-team-hint" class="muted"></span></label>
       <label>Loại<select id="new-kind"></select></label>
       <label>Tiêu đề<input id="new-title" type="text" maxlength="120" required></label>
       <label>Mô tả<textarea id="new-body" rows="5" maxlength="4000" required></textarea></label>

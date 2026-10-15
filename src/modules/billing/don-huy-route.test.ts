@@ -212,13 +212,13 @@ test("NT-H5 (H-C7): trả dư tự do (POST /api/ledger/refunds) trên đơn HU�
   assert.equal((await w.call("POST", "/api/ledger/refunds", { as: KT, body: { orderId: x, soTien: 50_000, hinhThuc: "CASH", nguoiTra: "cong_ty" } })).status, 201);
 });
 
-test("NT-D2/D3 (đ5, H-C3): khách huỷ — duyệt sau hạn → 409 'Đã quá hạn hoàn cọc'; công ty huỷ sau hạn → 201; nhóm chưa kết luận → 409 tới khi Quản trị phân loại (SV-DH-11)", async () => {
+test("NT-D2/D3 (đ5, H-C3): khách huỷ — duyệt sau hạn → 409 'Đã quá hạn hoàn thu trước'; công ty huỷ sau hạn → 201; nhóm chưa kết luận → 409 tới khi Quản trị phân loại (SV-DH-11)", async () => {
   const w = setup();
   const qua = await donHuyCoTien(w, { depart: vnNgay(-70) });
   const r = await duyet(w, ADMIN, qua, { loai: "hoan", soTien: 100_000, lyDo: "trễ" });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "coc_deadline");
-  assert.match(r.json.error.message, /^Đã quá hạn hoàn cọc \(hạn: \d{2}\/\d{2}\/\d{4}\)\.$/);
+  assert.match(r.json.error.message, /^Đã quá hạn hoàn thu trước \(hạn: \d{2}\/\d{2}\/\d{4}\)\.$/);
   assert.equal((await tien(w, ADMIN, qua)).coc.coTheDuyet, false);
   const ct = await donHuyCoTien(w, { depart: vnNgay(-70), lyDo: "THOI_TIET", nguoiHuy: ADMIN });
   assert.equal((await duyet(w, ADMIN, ct, { loai: "hoan", soTien: 500_000, lyDo: "Công ty huỷ — hoàn toàn bộ" })).status, 201, "SV-DH-04");
@@ -415,4 +415,45 @@ test("NT-H2 ca đua: hai Quản trị cùng duyệt phần cuối (đọc trư�
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "coc_exceeds_paid");
   assert.equal((await tien(w, KT, id)).coc.daDuyet, 400_000);
+});
+
+test("ADR-0120 Điều 2: duyệt CHUYỂN sang đơn mới — Kế toán 201; duyệt HOÀN — Kế toán 403; Bán hàng, HDV, Đối tác không duyệt được cả hai; huỷ duyệt khoản chuyển theo ô chuyển, khoản hoàn theo ô hoàn", async () => {
+  const w = setup();
+  const a = donDaXacNhan(w);
+  assert.equal((await thu(w, HDV, a, 500_000)).status, 201);
+  assert.equal((await huy(w, ADMIN, a, "THOI_TIET")).status, 200);
+  const b = donDaXacNhan(w);
+  const maB = (w.q("SELECT order_code FROM orders WHERE id = ?", b)[0] as { order_code: string }).order_code;
+  for (const as of [SALES, HDV, DT]) {
+    assert.equal((await duyet(w, as, a, { loai: "chuyen", soTien: 1, lyDo: "x", donNhan: maB })).status, 403, `chuyển × ${as}`);
+    assert.equal((await duyet(w, as, a, { loai: "hoan", soTien: 1, lyDo: "x" })).status, 403, `hoàn × ${as}`);
+  }
+  const hoanKT = await duyet(w, KT, a, { loai: "hoan", soTien: 100_000, lyDo: "Kế toán không duyệt hoàn được" });
+  assert.equal(hoanKT.status, 403, hoanKT.text);
+  assert.equal((await duyet(w, KT, a, { loai: "khac", soTien: 1, lyDo: "x" })).status, 403, "loại lạ không lách được ô hoàn");
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = 'deposit_refund_approved'", a)[0]!.n, 0);
+  const d = await duyet(w, KT, a, { loai: "chuyen", soTien: 500_000, lyDo: "Dời lịch do thời tiết", donNhan: maB });
+  assert.equal(d.status, 201, d.text);
+  assert.equal(d.headers.get("location"), `/order?id=${a}`);
+  const nguoiGiu = { partyId: `pty-${HDV}` };
+  const cung = await w.call("POST", `/api/orders/${a}/coc/chuyen`, { as: KT, body: { duyetId: d.json.duyetId, soTien: 500_000, nguoiGiu } });
+  assert.equal(cung.status, 409, cung.text);
+  assert.equal(cung.json.error.code, "coc_same_person", "Kế toán duyệt rồi không tự ghi chuyển");
+  assert.equal((await w.call("POST", `/api/orders/${a}/coc/chuyen`, { as: KT2, body: { duyetId: d.json.duyetId, soTien: 500_000, nguoiGiu } })).status, 201, "Kế toán KHÁC ghi chuyển");
+  // huỷ duyệt: khoản chuyển — Kế toán được; khoản hoàn — Kế toán không
+  const a2 = donDaXacNhan(w);
+  assert.equal((await thu(w, HDV, a2, 500_000)).status, 201);
+  assert.equal((await huy(w, ADMIN, a2, "THOI_TIET")).status, 200);
+  const dc = await duyet(w, ADMIN, a2, { loai: "chuyen", soTien: 200_000, lyDo: "Chuyển một phần", donNhan: maB });
+  const dh = await duyet(w, ADMIN, a2, { loai: "hoan", soTien: 200_000, lyDo: "Hoàn một phần" });
+  assert.equal((await w.call("POST", `/api/orders/${a2}/coc/duyet/${dh.json.duyetId}/huy`, { as: KT, body: { soTien: 1, lyDo: "x" } })).status, 403, "KT không huỷ duyệt khoản hoàn");
+  assert.equal((await w.call("POST", `/api/orders/${a2}/coc/duyet/${dc.json.duyetId}/huy`, { as: KT, body: { soTien: 200_000, lyDo: "Bỏ chuyển" } })).status, 201, "KT huỷ duyệt khoản chuyển");
+  assert.equal((await w.call("POST", `/api/orders/${a2}/coc/duyet/${dh.json.duyetId}/huy`, { as: SALES, body: { soTien: 1, lyDo: "x" } })).status, 403);
+  // cờ nút trả cho giao diện theo đúng ô của route
+  const ckt = (await tien(w, KT, a2)).coc;
+  assert.deepEqual([ckt.coTheDuyetChuyen, ckt.coTheDuyet], [true, false], "Kế toán: nút chuyển có, nút hoàn không");
+  const cad = (await tien(w, ADMIN, a2)).coc;
+  assert.deepEqual([cad.coTheDuyetChuyen, cad.coTheDuyet], [true, true]);
+  const csl = (await tien(w, SALES, a2)).coc;
+  assert.deepEqual([csl.coTheDuyetChuyen, csl.coTheDuyet], [false, false]);
 });
