@@ -20,6 +20,7 @@ import {
   boDongMucTa,
   cauCanhBaoDongRieng,
   cauThuTra,
+  thuTraThieuMuc,
   coTheTimDoiTac,
   dongDongDuoc,
   locMuc,
@@ -695,7 +696,7 @@ async function main(): Promise<void> {
         const r = await api<Api.ThuTraResponse>(`/api/pricing/thu-tra?${q.toString()}`);
         replaceChildren(
           ketQuaEl,
-          h("p", { class: "hh-ket-qua" }, cauThuTra(r)),
+          h("p", { class: thuTraThieuMuc(r) ? "hh-ket-qua is-thieu" : "hh-ket-qua" }, cauThuTra(r)),
           r.nguoiHuong.loai === "HUONG" && r.nguoiHuong.vai.length > 0 && h("p", { class: "muted" }, `Vai của đối tác: ${r.nguoiHuong.vai.join(", ")}`),
           h("p", { class: "muted" }, `Tra theo bảng mức ngày ${ngayDayDu(r.ngay)}.`),
         );

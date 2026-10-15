@@ -2375,7 +2375,7 @@ export interface ThuongMaiDongVanPhong {
   serviceId: string; ten: string; thanhTien: number; soKhachTinh: number;
   /** "12%" / "50.000đ/khách"; null khi thiếu mức hoặc không người hưởng. */
   muc: string | null; hoaHong: number | null; giaDaiLy: number | null; ghiTay: boolean;
-  /** Câu tiếng Việt khi thiếu mức; null khi đủ. Giao diện ghi thêm "Thiếu mức — Kế toán xử lý". */
+  /** Câu tiếng Việt khi thiếu mức; null khi đủ. Giao diện nối thêm câu «cần cài mức (cấp) thì mới tính được hoa hồng; đơn bị giữ ở bước Đã giao». */
   thieu: string | null;
   nguoiBan: { ten: string; laCongTy: boolean } | null;
   /** Chỉ khi người gọi có `supply.terms.view` VÀ người bán là nhà cung cấp. */

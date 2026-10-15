@@ -14,6 +14,7 @@ import {
   canXacNhanDongDieuKhoan,
   nhanLoaiDoiTac,
   cauThuTra,
+  thuTraThieuMuc,
   coTheTimDoiTac,
   dongDongDuoc,
   locDieuKhoan,
@@ -115,7 +116,9 @@ test("cauThuTra: chín bậc có lời riêng, thiếu mức dùng câu của m�
   const loi = new Set<string>();
   for (const b of [1, 2, 3, 4, 5, 6, 7, 8, 9] as const) loi.add(LOI_BAC[b]);
   assert.equal(loi.size, 9, "mỗi bậc một lời khác nhau");
-  assert.equal(cauThuTra({ ...base, ketQua: { trangThai: "MISSING", lyDo: "Chưa có mức cho dịch vụ này" } }), "Chưa có mức cho dịch vụ này");
+  assert.equal(cauThuTra({ ...base, ketQua: { trangThai: "MISSING", lyDo: "Chưa có mức cho dịch vụ này" } }), "Chưa có mức cho dịch vụ này — cần cài mức (cấp) thì mới tính được hoa hồng.");
+  assert.equal(thuTraThieuMuc({ ...base, ketQua: { trangThai: "MISSING", lyDo: "x" } }), true);
+  assert.equal(thuTraThieuMuc({ ...base, ketQua: { trangThai: "NONE" } }), false);
   assert.equal(cauThuTra({ ...base, ketQua: { trangThai: "NONE" } }), CAU_KHONG_CO_NGUOI_HUONG);
   assert.equal(CAU_KHONG_CO_NGUOI_HUONG, "Không có người hưởng hoa hồng");
   assert.equal(cauThuTra({ ...base, ketQua: { trangThai: "SET", bac: 1, muc: muc({ kieu: "PER_PAX", tyLeBp: null, moiKhach: 50_000 }) } }), "Áp mức 50.000đ/khách — mức riêng của đối tác cho dịch vụ này");

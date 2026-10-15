@@ -3,7 +3,7 @@
 // «mức nào thắng» do máy chủ trả (`bac`), ở đây chỉ dịch bậc ra lời.
 import type { CommissionRuleDto, DoiTuongMucDto, LoaiDoiTacDto, MucTaDto, SupplyTermDto, ThuTraResponse } from "./contracts.ts";
 import { can, holdsPartner, type PermissionHolder } from "./permissions.ts";
-import { nhanMuc, nhanTyLeBp } from "./so-dai-ly-nhan.ts";
+import { CAU_THIEU_MUC, nhanMuc, nhanTyLeBp } from "./so-dai-ly-nhan.ts";
 
 export const CAU_KHONG_CO_QUYEN_XEM = "Bạn không có quyền xem trang này.";
 /** Thay ô tìm đối tác ở người không qua cổng của route tìm người hưởng (xem `coTheTimDoiTac`). */
@@ -98,10 +98,13 @@ export const LOI_BAC: Record<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9, string> = {
 };
 
 /** Dòng kết quả của Thử tra: «Áp mức 12,5% — mức riêng của đối tác cho nhóm»; thiếu mức → câu lý do của máy chủ (đã là tiếng Việt); không người hưởng → câu riêng. */
+/** Kết quả «Thử tra» thiếu mức → giao diện tô đỏ. */
+export const thuTraThieuMuc = (r: ThuTraResponse): boolean => r.ketQua.trangThai === "MISSING";
+
 export function cauThuTra(r: ThuTraResponse): string {
   const k = r.ketQua;
   if (k.trangThai === "NONE") return CAU_KHONG_CO_NGUOI_HUONG;
-  if (k.trangThai === "MISSING") return k.lyDo;
+  if (k.trangThai === "MISSING") return `${k.lyDo} — ${CAU_THIEU_MUC}.`;
   // Bậc 7–9: kèm TÊN mức TA (N-12) — tên Kế toán đặt, không bao giờ mã máy.
   const tenMuc = k.bac >= 7 && k.muc.doiTuong.loai === "MUC" ? `: «${k.muc.doiTuong.ten}»` : "";
   return `Áp mức ${nhanMucDto(k.muc)} — ${LOI_BAC[k.bac]}${tenMuc}`;

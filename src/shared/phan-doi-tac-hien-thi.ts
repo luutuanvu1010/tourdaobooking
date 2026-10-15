@@ -8,7 +8,7 @@
 // Bài `docTyLeTay / docTienTay` ở phan-doi-tac-hien-thi.test.ts và bài nối `ghi-tay-nhap-noi.test.ts` (đối chiếu `kiemThanGhiTay` của máy chủ) giữ nguyên làm bài canh.
 import type { ThuongMaiDoiTacDto, ThuongMaiVanPhongDto } from "./contracts.ts";
 import { can, holdsPartner, type PermissionHolder } from "./permissions.ts";
-import { CAU_THIEU_MUC } from "./so-dai-ly-nhan.ts";
+import { CAU_DON_BI_GIU, CAU_THIEU_MUC, NHAN_LY_DO_THIEU } from "./so-dai-ly-nhan.ts";
 import { MOI_KHACH_TOI_DA, docTienMoiKhach, docTyLePhanTram } from "./so-dai-ly-nhap.ts";
 import { PHONE_IN_TEXT_MESSAGE, hasLongDigitRun } from "./text-guards.ts";
 
@@ -98,8 +98,12 @@ export function ghiChuTrangThai(d: Pick<ThuongMaiVanPhongDto, "duKien" | "chuaCh
   return null;
 }
 
-/** Câu cảnh báo của dòng thiếu mức: lý do (do máy chủ viết) + câu cố định "Thiếu mức — Kế toán xử lý". */
-export const canhBaoThieuMuc = (thieu: string | null): string | null => (thieu === null ? null : `${thieu} · ${CAU_THIEU_MUC}`);
+/** Câu cảnh báo (màu đỏ) của dòng thiếu mức. Chưa có mức: «Chưa có mức cho đối tác này — cần cài mức (cấp) thì mới tính được hoa hồng; đơn bị giữ ở bước Đã giao.»; lý do khác (hai mức xung đột…): giữ lý do của máy chủ rồi nối cùng đuôi. */
+export const canhBaoThieuMuc = (thieu: string | null): string | null => {
+  if (thieu === null) return null;
+  const dau = thieu === NHAN_LY_DO_THIEU.NO_RULE ? "Chưa có mức cho đối tác này" : thieu;
+  return `${dau} — ${CAU_THIEU_MUC}; ${CAU_DON_BI_GIU}.`;
+};
 
 /** Tổng hoa hồng: null = chưa đủ mức (không bao giờ hiện 0 thay cho thiếu); 0 là số thật (đơn không người hưởng). `dinhDang` = hàm hiện tiền của nơi gọi. */
 export const chuTongHoaHong = (v: number | null, dinhDang: (n: number) => string): string => (v === null ? "Chưa đủ mức" : dinhDang(v));
