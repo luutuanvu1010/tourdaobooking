@@ -128,6 +128,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/feedback/:id/messages", access: "staff" },
   { method: "GET", path: "/api/feedback/badge", access: "staff" },
   { method: "GET", path: "/api/feedback/mine", access: "staff" },
+  { method: "GET", path: "/api/feedback/teams", access: "staff" },
   { method: "GET", path: "/api/giao-dien", access: "admin" }, // ADR-0087: chỉ Toàn quyền (ô settings.ops viết thẳng trong thân route)
   { method: "PUT", path: "/api/giao-dien", access: "admin" },
   { method: "GET", path: "/giao-dien.css", access: "public" }, // ADR-0102: đường MỚI (ngoài /api, service worker đệm được); cùng thân với đường cũ ngay dưới
@@ -507,6 +508,7 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-08 (sổ đại lý đợt 1, Task 5 — phần thương mại của đơn, module orders; ADR-0077 điều 10–11): + GET /api/orders/:id/thuong-mai (orders), POST /api/orders/:id/thuong-mai/:serviceId (office) = HIỆU +2 (tuyệt đối 268 khi cả Task 3, 5, 7 đã gộp).
   // 2026-10-13 (ADR-0115 đợt 1, điều chỉnh công nợ cần duyệt): + GET /api/ledger/adjustment-requests, + POST …/:requestId/{approve, reject, withdraw} (office) = 292.
   // 2026-10-14 (ADR-0117 lần 1): + GET/POST /api/pricing/loai-doi-tac, POST …/loai-doi-tac/:code/{tat, bat} (office) = 296.
-  assert.equal(actual.length, 296, "số route thực tế lệch 296 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 296, "SNAPSHOT phải có đúng 296 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-15 (ADR-0119 Vé hỗ trợ đợt 1, Việc 3): + GET /api/feedback/teams (staff) = 297.
+  assert.equal(actual.length, 297, "số route thực tế lệch 297 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 297, "SNAPSHOT phải có đúng 297 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

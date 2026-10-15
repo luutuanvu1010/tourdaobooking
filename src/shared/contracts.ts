@@ -1047,6 +1047,8 @@ export interface FeedbackCreateInput {
   /** UUID sinh một lần khi mở form; gửi lại cùng mã thì trả yêu cầu cũ (chống trùng khi mạng yếu). */
   clientRequestId: string;
   context?: FeedbackContextDto;
+  /** Nhóm nhận (ADR-0119); vắng = nhóm Kỹ thuật (bản web cũ vẫn gửi được). Tài khoản bên ngoài chỉ gửi được Kỹ thuật. */
+  teamId?: string;
 }
 
 export interface FeedbackTicketDto {
@@ -1071,6 +1073,11 @@ export interface FeedbackTicketDto {
   unread: boolean;
   /** Chỉ admin thấy: true = email báo admin chưa gửi được. */
   mailPending: boolean;
+  /** Nhóm hỗ trợ đang giữ phiếu (ADR-0119). */
+  teamId: string;
+  teamName: string;
+  /** Nhóm nhạy cảm: tiêu đề/nội dung không ra nhật ký và email chung. */
+  teamSensitive: boolean;
 }
 
 export interface FeedbackMessageDto {
@@ -1108,6 +1115,11 @@ export interface FeedbackBadgeResponse {
   /** Số yêu cầu chờ admin (0 với người không phải admin). */
   queue: number;
 }
+// Nhóm hỗ trợ (ADR-0119).
+export interface FeedbackTeamDto { id: string; code: string; name: string; description: string; sensitive: boolean }
+export interface FeedbackMyTeamDto { teamId: string; role: "LEAD" | "MEMBER" }
+/** GET /api/feedback/teams: nhóm người gọi được gửi tới (bên ngoài chỉ thấy Kỹ thuật), tư cách thành viên của chính người gọi, có phải Toàn quyền. */
+export interface FeedbackTeamsResponse { teams: FeedbackTeamDto[]; mine: FeedbackMyTeamDto[]; isSuper: boolean }
 
 // ---- Thông báo hệ thống (ADR-0034) --------------------------------------------
 // "chuyen": tin chuyến xe (ADR-0052 D6, kể cả MQ-07 "giờ hẹn chặng đổi khi đã xếp"); "tai_khoan": ngưng tài khoản giữ tiền — chỉ Toàn quyền nhận (ADR-0090 đ3);

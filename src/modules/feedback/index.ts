@@ -3,16 +3,18 @@
 // Phụ thuộc: staff (tên qua view công bố — chỉ trong repository) và audit (dấu vết). Module khác CHỈ import từ file này.
 import { auditStatement } from "../audit";
 import type {
-  FeedbackBadgeResponse, FeedbackDetailResponse, FeedbackMessageDto, FeedbackQueueResponse, FeedbackTicketDto,
+  FeedbackBadgeResponse, FeedbackDetailResponse, FeedbackMessageDto, FeedbackQueueResponse, FeedbackTeamsResponse, FeedbackTicketDto,
 } from "../../shared/contracts";
 import { FEEDBACK_KIND_NAME, FEEDBACK_STATUS_NAME, canTransition, feedbackCode, isFeedbackKind, isFeedbackStatus, type FeedbackKind, type FeedbackStatus } from "../../shared/feedback-catalog";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
-import { can, type PermissionHolder } from "../../shared/permissions";
+import { can, isExternalPermission, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
+import { NHOM_KY_THUAT_ID } from "../../shared/ve-ho-tro";
 import { mailConfig, notifyAdmins, type NotifyEvent } from "./notify";
+import { choPhepNhomGui } from "./quyen";
 import {
-  badgeCounts, findByRequest, getTicket, insertFirstMessageStatement, insertReplyStatement, insertTicketStatement, listMessages, listMine, listQueue, markSeen,
-  messageExists, patchTicketStatement, setNotified, touchAfterReplyStatement, weeklyStats, type MessageRow, type TicketRow,
+  badgeCounts, findByRequest, getTeam, getTicket, insertFirstMessageStatement, insertReplyStatement, insertTicketStatement, listMessages, listMine, listQueue, listTeamsActive, markSeen,
+  membershipsOf, messageExists, patchTicketStatement, setNotified, touchAfterReplyStatement, weeklyStats, type MessageRow, type TicketRow,
 } from "./repository";
 import {
   MESSAGE_LIMIT_PER_HOUR, TICKET_LIMIT_PER_HOUR, parseContext, validateMessageInput, validatePatchInput, validateTicketInput, windowStart,
@@ -41,6 +43,9 @@ const toTicket = (r: TicketRow, showMail: boolean): FeedbackTicketDto => ({
   createdAt: r.created_at,
   unread: r.unread === 1,
   mailPending: showMail && r.notified_at === null,
+  teamId: r.team_id,
+  teamName: r.team_name,
+  teamSensitive: r.team_sensitive === 1,
 });
 const toMessage = (m: MessageRow, viewerId: string): FeedbackMessageDto => ({
   id: m.id,
@@ -84,11 +89,16 @@ export const feedbackModule: AppModule = {
       if (!raw) return BAD_JSON();
       const v = validateTicketInput(raw);
       if (!v.ok) return error(400, "invalid_input", v.message);
+      // Nhóm nhận (ADR-0119 điều 1, 6): vắng = Kỹ thuật; phải có thật và đang dùng; tài khoản bên ngoài chỉ gửi Kỹ thuật.
+      const teamId = v.value.teamId ?? NHOM_KY_THUAT_ID;
+      const team = await getTeam(env.DB, teamId);
+      if (!team || team.active !== 1) return error(400, "invalid_input", "Nhóm nhận không hợp lệ.");
+      if (!choPhepNhomGui(staff, teamId)) return error(403, "forbidden", "Tài khoản của bạn chỉ gửi được tới nhóm Kỹ thuật.");
       const now = new Date();
       const at = now.toISOString();
       const id = crypto.randomUUID();
       await env.DB.batch([
-        insertTicketStatement(env.DB, { id, kind: v.value.kind, title: v.value.title, context: v.value.context, submitterId: staff.id, clientRequestId: v.value.clientRequestId, now: at, windowStart: windowStart(now), limit: TICKET_LIMIT_PER_HOUR }),
+        insertTicketStatement(env.DB, { id, kind: v.value.kind, title: v.value.title, context: v.value.context, submitterId: staff.id, clientRequestId: v.value.clientRequestId, now: at, windowStart: windowStart(now), limit: TICKET_LIMIT_PER_HOUR, teamId }),
         insertFirstMessageStatement(env.DB, { id: crypto.randomUUID(), ticketId: id, authorId: staff.id, body: v.value.body, now: at }),
         auditStatement(env.DB, { staffId: staff.id, action: "feedback_created", at, targetType: "feedback", targetId: id, detail: v.value.title.slice(0, 100) }, `EXISTS (SELECT 1 FROM fbk_ticket WHERE id = '${id}')`),
       ]);
@@ -103,7 +113,19 @@ export const feedbackModule: AppModule = {
       return json(d, 201, { location: "/feedback" });
     }),
 
-    // Tuyến TĨNH khai trước tuyến có :id để "mine"/"badge" không bị hiểu là id.
+    // Tuyến TĨNH khai trước tuyến có :id để "mine"/"badge"/"teams" không bị hiểu là id.
+    // Danh sách nhóm để chọn khi gửi (bên ngoài chỉ thấy Kỹ thuật — ADR-0119 điều 6) + tư cách thành viên của chính người gọi.
+    route("GET", "/api/feedback/teams", "staff", async ({ env, staff }) => {
+      const [teams, mine] = await Promise.all([listTeamsActive(env.DB), membershipsOf(env.DB, staff.id)]);
+      const ngoai = staff.permissions.some(isExternalPermission);
+      return json({
+        teams: teams
+          .filter((t) => !ngoai || t.id === NHOM_KY_THUAT_ID)
+          .map((t) => ({ id: t.id, code: t.code, name: t.name, description: t.description, sensitive: t.sensitive === 1 })),
+        mine,
+        isSuper: can(staff, "feedback.triage"),
+      } satisfies FeedbackTeamsResponse);
+    }),
     route("GET", "/api/feedback/mine", "staff", async ({ env, staff, url }) => {
       const rows = await listMine(env.DB, staff.id, intParam(url.searchParams.get("limit"), 50, 1, 100), intParam(url.searchParams.get("offset"), 0, 0, 100000));
       return json({ tickets: rows.map((r) => toTicket(r, false)) });

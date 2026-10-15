@@ -2,6 +2,7 @@
 // SQL của các bảng module feedback sở hữu (fbk_*). Mọi câu đi qua defineSql (ADR-0002 điều 8(b)); câu SQL TĨNH, tham số đánh số ?N.
 // Tên người đọc CHỈ qua view công bố v_stf_staff_label (module staff). Không có DELETE (R-N1-9).
 import { defineSql } from "../../shared/sql-registry.ts";
+import type { Membership } from "./quyen.ts";
 
 export interface TicketRow {
   id: string;
@@ -23,7 +24,11 @@ export interface TicketRow {
   created_at: string;
   updated_at: string;
   unread: number;
+  team_id: string;
+  team_name: string;
+  team_sensitive: number;
 }
+export interface TeamRow { id: string; code: string; name: string; description: string; sensitive: number; active: number; sort_order: number }
 export interface MessageRow {
   id: string;
   author_id: string;
@@ -35,8 +40,8 @@ export interface MessageRow {
 
 const COLS = `t.id, t.seq, t.kind_code, k.name AS kind_name, t.status_code, st.name AS status_name, t.title, t.context, t.submitter_id,
   s.label AS submitter_name, t.assignee_id, a.label AS assignee_name, t.resolved_in, t.last_activity_at, t.last_public_reply_at, t.notified_at,
-  t.created_at, t.updated_at`;
-const FROM = `FROM fbk_ticket t JOIN fbk_kind k ON k.code = t.kind_code JOIN fbk_status st ON st.code = t.status_code
+  t.created_at, t.updated_at, t.team_id, tm.name AS team_name, tm.sensitive AS team_sensitive`;
+const FROM = `FROM fbk_ticket t JOIN fbk_kind k ON k.code = t.kind_code JOIN fbk_status st ON st.code = t.status_code JOIN fbk_team tm ON tm.id = t.team_id
   LEFT JOIN v_stf_staff_label s ON s.id = t.submitter_id LEFT JOIN v_stf_staff_label a ON a.id = t.assignee_id`;
 
 // "Chưa đọc" theo người xem: người gửi → có phản hồi công khai mới hơn lần xem của họ; admin → có hoạt động mới hơn lần xem của admin.
@@ -91,6 +96,17 @@ const STATS = defineSql(
    FROM fbk_ticket WHERE created_at >= ?1 GROUP BY 1, 2, 3 ORDER BY 1 DESC, 2, 3`,
 );
 
+// Nhóm hỗ trợ (ADR-0119).
+const LIST_TEAMS_ACTIVE = defineSql("feedback", "list_teams_active", `SELECT id, code, name, description, sensitive, active, sort_order FROM fbk_team WHERE active = 1 ORDER BY sort_order, name`);
+const GET_TEAM = defineSql("feedback", "get_team", `SELECT id, code, name, description, sensitive, active, sort_order FROM fbk_team WHERE id = ?1`);
+// Thành viên ĐANG hiệu lực của MỘT tài khoản CÒN HOẠT ĐỘNG (khoá tài khoản ⇒ mất quyền ngay — ADR-0119 điều 8).
+const MEMBERSHIPS_OF = defineSql(
+  "feedback",
+  "memberships_of",
+  `SELECT m.team_id, m.role FROM fbk_team_member m
+   WHERE m.staff_id = ?1 AND m.valid_to_at IS NULL AND EXISTS (SELECT 1 FROM v_stf_staff_label s WHERE s.id = ?1 AND s.active = 1)`,
+);
+
 export const getTicket = (db: D1Database, id: string) => db.prepare(GET).bind(id).first<TicketRow>();
 export const findByRequest = (db: D1Database, submitterId: string, clientRequestId: string) =>
   db.prepare(FIND_BY_REQUEST).bind(submitterId, clientRequestId).first<{ id: string }>();
@@ -105,34 +121,39 @@ export async function badgeCounts(db: D1Database, staffId: string, isAdmin: bool
   const r = await db.prepare(BADGE).bind(staffId, isAdmin ? 1 : 0).first<{ mine: number; queue: number }>();
   return { mine: r?.mine ?? 0, queue: r?.queue ?? 0 };
 }
+export const listTeamsActive = async (db: D1Database): Promise<TeamRow[]> => (await db.prepare(LIST_TEAMS_ACTIVE).all<TeamRow>()).results;
+export const getTeam = (db: D1Database, id: string) => db.prepare(GET_TEAM).bind(id).first<TeamRow>();
+export const membershipsOf = async (db: D1Database, staffId: string): Promise<Membership[]> =>
+  (await db.prepare(MEMBERSHIPS_OF).bind(staffId).all<{ team_id: string; role: "LEAD" | "MEMBER" }>()).results.map((r) => ({ teamId: r.team_id, role: r.role }));
 export const weeklyStats = async (db: D1Database, sinceIso: string) =>
   (await db.prepare(STATS).bind(sinceIso).all<{ week: string; kind_code: string; status_code: string; n: number }>()).results;
 
 // ---- Ghi -----------------------------------------------------------------------------------------------------------
 // Tạo yêu cầu: MỘT câu INSERT … SELECT … WHERE (đếm trong cửa sổ) < trần AND chưa có cùng (người gửi, client_request_id).
 // Đếm và chèn trong cùng một câu lệnh nên hai request song song không cùng qua trần (D1 tuần tự hoá ghi). seq = max+1 cùng câu.
-// ?1 id, ?2 loại, ?3 tiêu đề, ?4 context JSON, ?5 người gửi, ?6 client_request_id, ?7 bây giờ, ?8 đầu cửa sổ, ?9 trần.
+// ?1 id, ?2 loại, ?3 tiêu đề, ?4 context JSON, ?5 người gửi, ?6 client_request_id, ?7 bây giờ, ?8 đầu cửa sổ, ?9 trần, ?10 nhóm nhận (route đã kiểm có thật, đang dùng).
 const INSERT_TICKET = defineSql(
   "feedback",
   "insert_ticket",
-  `INSERT INTO fbk_ticket (id, seq, kind_code, status_code, title, context, submitter_id, client_request_id, last_activity_at, created_at, created_by, updated_at, updated_by)
-   SELECT ?1, COALESCE((SELECT max(seq) FROM fbk_ticket), 0) + 1, ?2, 'NEW', ?3, ?4, ?5, ?6, ?7, ?7, ?5, ?7, ?5
+  `INSERT INTO fbk_ticket (id, seq, kind_code, status_code, title, context, submitter_id, client_request_id, last_activity_at, created_at, created_by, updated_at, updated_by, team_id)
+   SELECT ?1, COALESCE((SELECT max(seq) FROM fbk_ticket), 0) + 1, ?2, 'NEW', ?3, ?4, ?5, ?6, ?7, ?7, ?5, ?7, ?5, ?10
    WHERE (SELECT count(*) FROM fbk_ticket WHERE submitter_id = ?5 AND created_at > ?8) < ?9
      AND NOT EXISTS (SELECT 1 FROM fbk_ticket WHERE submitter_id = ?5 AND client_request_id = ?6)`,
 );
 // Tin mô tả ban đầu: chỉ chèn khi yêu cầu ?2 (vừa chèn ở câu trước) có mặt. ?1 id tin, ?2 id yêu cầu, ?3 tác giả, ?4 nội dung, ?5 bây giờ.
+// team_id của tin = nhóm đang giữ phiếu lúc viết (ADR-0119).
 const INSERT_FIRST_MESSAGE = defineSql(
   "feedback",
   "insert_first_message",
-  `INSERT INTO fbk_message (id, ticket_id, author_id, body, internal, created_at, created_by, updated_at, updated_by)
-   SELECT ?1, ?2, ?3, ?4, 0, ?5, ?3, ?5, ?3 WHERE EXISTS (SELECT 1 FROM fbk_ticket WHERE id = ?2)`,
+  `INSERT INTO fbk_message (id, ticket_id, author_id, body, internal, created_at, created_by, updated_at, updated_by, team_id)
+   SELECT ?1, ?2, ?3, ?4, 0, ?5, ?3, ?5, ?3, (SELECT team_id FROM fbk_ticket WHERE id = ?2) WHERE EXISTS (SELECT 1 FROM fbk_ticket WHERE id = ?2)`,
 );
 // Trả lời: chèn khi yêu cầu có mặt VÀ dưới trần tin nhắn. ?1 id tin, ?2 id yêu cầu, ?3 tác giả, ?4 nội dung, ?5 internal 0/1, ?6 bây giờ, ?7 đầu cửa sổ, ?8 trần.
 const INSERT_REPLY = defineSql(
   "feedback",
   "insert_reply",
-  `INSERT INTO fbk_message (id, ticket_id, author_id, body, internal, created_at, created_by, updated_at, updated_by)
-   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?3, ?6, ?3
+  `INSERT INTO fbk_message (id, ticket_id, author_id, body, internal, created_at, created_by, updated_at, updated_by, team_id)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?3, ?6, ?3, (SELECT team_id FROM fbk_ticket WHERE id = ?2)
    WHERE EXISTS (SELECT 1 FROM fbk_ticket WHERE id = ?2)
      AND (SELECT count(*) FROM fbk_message WHERE author_id = ?3 AND created_at > ?7) < ?8`,
 );
@@ -179,8 +200,8 @@ const SET_NOTIFIED = defineSql("feedback", "set_notified", `UPDATE fbk_ticket SE
 
 export const insertTicketStatement = (
   db: D1Database,
-  a: { id: string; kind: string; title: string; context: string; submitterId: string; clientRequestId: string; now: string; windowStart: string; limit: number },
-) => db.prepare(INSERT_TICKET).bind(a.id, a.kind, a.title, a.context, a.submitterId, a.clientRequestId, a.now, a.windowStart, a.limit);
+  a: { id: string; kind: string; title: string; context: string; submitterId: string; clientRequestId: string; now: string; windowStart: string; limit: number; teamId: string },
+) => db.prepare(INSERT_TICKET).bind(a.id, a.kind, a.title, a.context, a.submitterId, a.clientRequestId, a.now, a.windowStart, a.limit, a.teamId);
 export const insertFirstMessageStatement = (db: D1Database, a: { id: string; ticketId: string; authorId: string; body: string; now: string }) =>
   db.prepare(INSERT_FIRST_MESSAGE).bind(a.id, a.ticketId, a.authorId, a.body, a.now);
 export const insertReplyStatement = (

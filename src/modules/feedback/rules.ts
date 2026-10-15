@@ -69,7 +69,10 @@ export interface TicketInput {
   clientRequestId: string;
   /** JSON đã lọc. */
   context: string;
+  /** Nhóm nhận (ADR-0119); vắng = route dùng nhóm Kỹ thuật. Chỉ kiểm hình dạng; có thật/đang dùng do route kiểm. */
+  teamId?: string;
 }
+export const TEAM_ID_RE = /^[a-z0-9-]{1,60}$/;
 
 export function validateTicketInput(raw: Record<string, unknown>): Checked<TicketInput> {
   if (!isFeedbackKind(raw.kind)) return bad("Loại yêu cầu không hợp lệ.");
@@ -78,7 +81,10 @@ export function validateTicketInput(raw: Record<string, unknown>): Checked<Ticke
   const body = cleanBody(raw.body);
   if (body.length < 1 || body.length > BODY_MAX) return bad(`Nội dung phải từ 1 đến ${BODY_MAX} ký tự.`);
   if (typeof raw.clientRequestId !== "string" || !CLIENT_REQUEST_ID_RE.test(raw.clientRequestId)) return bad("Mã yêu cầu của thiết bị không hợp lệ.");
-  return { ok: true, value: { kind: raw.kind, title, body, clientRequestId: raw.clientRequestId, context: sanitizeContext(raw.context) } };
+  if (raw.teamId !== undefined && (typeof raw.teamId !== "string" || !TEAM_ID_RE.test(raw.teamId))) return bad("Nhóm nhận không hợp lệ.");
+  const value: TicketInput = { kind: raw.kind, title, body, clientRequestId: raw.clientRequestId, context: sanitizeContext(raw.context) };
+  if (typeof raw.teamId === "string") value.teamId = raw.teamId;
+  return { ok: true, value };
 }
 
 export interface MessageInput {
