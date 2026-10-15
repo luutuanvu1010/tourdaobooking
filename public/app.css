@@ -1753,9 +1753,6 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
   /* position: relative — bảng ẩn cho máy đọc màn hình của biểu đồ (.visually-hidden, bảng tự giãn theo chữ dù đặt rộng 1px) lấy thẻ làm khung nên bị cắt theo thẻ,
      không lòi ra mép phải trang (đo 1.73: tràn ngang 65px khi biểu đồ đứng sát mép phải). */
   .dash-so-mt { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "dt"; gap: 1px; min-width: 0; overflow: hidden; background: var(--c-border); border: 1px solid var(--c-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
-  .dash-smt-o-thieu { grid-area: thieu; }
-  .dash-smt-o-cho { grid-area: cho; }
-  .dash-smt-o-chua { grid-area: chua; }
   .dash-smt-o-dt { grid-area: dt; flex-wrap: wrap; }
   .dash-smt-o { display: flex; align-items: flex-end; gap: var(--s4); min-width: 0; padding: var(--s4) var(--s5); color: var(--c-text); text-decoration: none; background: var(--c-card); transition: background-color var(--m-fast) ease; }
   .dash-smt-o:hover { color: var(--c-text); background: var(--c-soft-hover); }
@@ -1763,8 +1760,6 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
   .dash-smt-nhan { display: flex; align-items: center; gap: var(--s2); color: var(--c-primary); }
   .dash-smt-nhan-chu { flex: 1; min-width: 0; font-size: var(--fs-step-2); line-height: var(--lh-18); color: var(--c-text-muted); }
   .dash-smt-gt { font-size: var(--fs-home-stat); font-weight: var(--fw-home-stat); line-height: var(--lh-36); color: var(--c-text); white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .dash-smt-o-cho .dash-smt-gt, .dash-smt-o-chua .dash-smt-gt { color: var(--c-primary); }
-  .dash-smt-thieu { color: var(--c-danger); }
   .dash-smt-phu { font-size: var(--fs-step-2); line-height: var(--lh-18); color: var(--c-text-muted); font-variant-numeric: tabular-nums; text-wrap: pretty; }
   .dash-smt-o .dash-revenue-chart { flex: none; gap: var(--s1); width: var(--w-home-chart); margin: 0; }
   .dash-smt-o .dash-chart-bars, .dash-smt-o .dash-chart-labels { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--s1); }

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { cauTomTatViec, nguonCanTai, soXemLai, viecCuaBan } from "./viec-cua-ban.ts";
+import { cauConLai, cauTomTatViec, KHOA_PHAM_VI, nguonCanTai, soTuKetQua, soXemLai, viecCuaBan } from "./viec-cua-ban.ts";
+import { PHAM_VI_O_TRANG_CHU } from "./pham-vi-so.ts";
 import { PERMISSION_CODES, seesAllOrders } from "./permissions.ts";
 import type { PermissionCode } from "./permissions.ts";
 
@@ -37,7 +38,7 @@ test("số 0 thì không có thẻ; nguồn lỗi (null) thì GIỮ thẻ với 
   assert.equal(r.the.find((t) => t.khoa === "conThieu")?.so, null);
 });
 test("không việc nào → danh sách rỗng, conLai 0", () => {
-  assert.deepEqual(viecCuaBan(who("SALES"), { nhap: 0, conThieu: { count: 0, total: 0 }, chuaPhuTrach: 0, chuyenHomNay: 0 }), { the: [], conLai: 0 });
+  assert.deepEqual(viecCuaBan(who("SALES"), { nhap: 0, conThieu: { count: 0, total: 0 }, chuaPhuTrach: 0, chuyenHomNay: 0 }), { the: [], conLai: 0, conLaiThe: [] });
 });
 test("nguồn chưa tải (khoá vắng) thì không có thẻ, không phải thẻ 0", () => {
   assert.deepEqual(viecCuaBan(who("SALES"), {}).the, []);
@@ -104,4 +105,34 @@ test("cauTomTatViec: 'Có N việc chờ bạn — gấp nhất: <nhãn thườn
 test("cauTomTatViec: số chưa tải (null) thì không viết số", () => {
   const r = viecCuaBan(who("SALES"), { ...day, nhap: null });
   assert.equal(cauTomTatViec(r.the, r.conLai), "Có 4 việc chờ bạn — gấp nhất: đơn nháp.");
+});
+
+// ---- Sửa vòng 1 (kiểm độc lập Task 6) ----
+test("soXemLai: nguồn lỗi (loi) thì null — KHÔNG lẫn với 0 (không việc)", () => {
+  assert.equal(soXemLai(null, true), null);
+  assert.equal(soXemLai({ catalogConflict: { moreCount: 0 }, expiringDocs: null }, true), null);
+  assert.equal(soXemLai(null, false), 0);
+});
+test("soTuKetQua: fulfilled → số, rejected → null (thẻ '—' + Thử lại), nguồn không cần (undefined) → vắng", () => {
+  assert.equal(soTuKetQua({ status: "fulfilled", value: 3 }), 3);
+  assert.equal(soTuKetQua({ status: "fulfilled", value: 0 }), 0);
+  assert.equal(soTuKetQua({ status: "rejected", reason: new Error("mạng") }), null);
+  assert.equal(soTuKetQua({ status: "fulfilled", value: undefined }), undefined);
+  assert.equal(viecCuaBan(who("ACCOUNTING"), { ...day, dieuChinh: soTuKetQua({ status: "rejected", reason: 1 }) }).the[0]?.so, null);
+  assert.ok(!viecCuaBan(who("SALES"), { ...day, dieuChinh: soTuKetQua({ status: "fulfilled", value: undefined }) }).the.some((t) => t.khoa === "dieuChinh"));
+});
+test("conLaiThe: phần dồn theo thứ tự ưu tiên; cauConLai viết nhãn thường + số (bỏ số nếu null)", () => {
+  const r = viecCuaBan(who("ADMIN"), day);
+  assert.deepEqual(r.conLaiThe.map((t) => t.khoa), ["dieuChinh", "conThieu"]);
+  assert.equal(r.conLai, r.conLaiThe.length);
+  assert.equal(cauConLai(r.conLai, r.conLaiThe), "Còn 2 việc nữa: điều chỉnh công nợ chờ duyệt (2).");
+  assert.equal(cauConLai(1, [{ ...r.conLaiThe[0]!, so: null }]), "Còn 1 việc nữa: điều chỉnh công nợ chờ duyệt.");
+  assert.equal(cauConLai(0, []), null);
+  assert.deepEqual(viecCuaBan(who("SALES"), day).conLaiThe, []);
+});
+test("nhãn phạm vi: mỗi khoá thẻ có phạm vi trong bảng chung (điều chỉnh = Của tôi, còn lại Toàn công ty)", () => {
+  assert.deepEqual(
+    Object.entries(KHOA_PHAM_VI).map(([k, v]) => [k, PHAM_VI_O_TRANG_CHU[v]]),
+    [["xemLai", "TOAN_CONG_TY"], ["dieuChinh", "CUA_TOI"], ["nhap", "TOAN_CONG_TY"], ["conThieu", "TOAN_CONG_TY"], ["chuaPhuTrach", "TOAN_CONG_TY"], ["chuyenHomNay", "TOAN_CONG_TY"], ["gopY", "TOAN_CONG_TY"]],
+  );
 });

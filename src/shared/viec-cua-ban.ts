@@ -3,6 +3,7 @@
 // Đợt 1: bốn vai văn phòng. Thẻ "Đề nghị chuyển khách" bỏ (đặc tả §9.3). Thẻ "Cọc cần chi hoàn" bỏ vì CHƯA có trang web nào
 // dùng GET /api/ledger/coc để làm đích cho nút (nợ ở docs/BACKLOG.md). Không vẽ số giả: số lấy từ nguồn đã có.
 import { vndShort } from "./money.ts";
+import type { PHAM_VI_O_TRANG_CHU } from "./pham-vi-so.ts";
 import { can, seesAllOrders } from "./permissions.ts";
 import type { PermissionHolder } from "./permissions.ts";
 
@@ -33,6 +34,11 @@ export interface TheViec {
 }
 
 const TOI_DA = 4;
+
+/** Khoá thẻ → khoá phạm vi trong `PHAM_VI_O_TRANG_CHU` (bảng chung; CHANGE-GUIDE bẫy 59(3): ô số khác phạm vi đứng cạnh nhau phải mang nhãn "Toàn công ty" / "Của tôi"). */
+export const KHOA_PHAM_VI: Readonly<Record<KhoaThe, keyof typeof PHAM_VI_O_TRANG_CHU>> = {
+  xemLai: "xemLai", dieuChinh: "dieuChinh", nhap: "choXacNhan", conThieu: "conThieu", chuaPhuTrach: "chuaPhuTrach", chuyenHomNay: "chuyenHomNay", gopY: "gopY",
+};
 
 interface MoTa {
   readonly khoa: KhoaThe;
@@ -83,7 +89,7 @@ function soCua(khoa: KhoaThe, nguon: NguonSo): number | null | undefined {
 }
 
 /** Chọn tối đa 4 thẻ theo ưu tiên; `conLai` = số thẻ còn việc nhưng không đủ chỗ. */
-export function viecCuaBan(who: PermissionHolder, nguon: NguonSo): { the: TheViec[]; conLai: number } {
+export function viecCuaBan(who: PermissionHolder, nguon: NguonSo): { the: TheViec[]; conLai: number; conLaiThe: TheViec[] } {
   const du: TheViec[] = [];
   for (const m of theoUuTien(who)) {
     if (!m.hien(who)) continue;
@@ -91,7 +97,7 @@ export function viecCuaBan(who: PermissionHolder, nguon: NguonSo): { the: TheVie
     if (so === undefined || so === 0) continue;
     du.push({ khoa: m.khoa, nhan: m.nhan, so, phu: m.phu(nguon), nut: m.nut(who), href: m.href, tone: m.tone, chot: m.chot(who) });
   }
-  return { the: du.slice(0, TOI_DA), conLai: Math.max(0, du.length - TOI_DA) };
+  return { the: du.slice(0, TOI_DA), conLai: Math.max(0, du.length - TOI_DA), conLaiThe: du.slice(TOI_DA) };
 }
 
 /** Thẻ nào người này cần tải số — để trang không gọi route thừa (nhất là route chỉ-quản-trị). */
@@ -100,7 +106,8 @@ export function nguonCanTai(who: PermissionHolder): readonly KhoaThe[] {
 }
 
 /** Số cho thẻ `xemLai` từ bảng "Cần xem lại": dịch vụ lệch giá Sheet + giấy tờ sắp hết hạn. KHÔNG cộng góp ý (thẻ `gopY` đã có — tránh đếm trùng). Không có bảng = 0 (không việc). */
-export function soXemLai(alerts: { catalogConflict: { moreCount: number } | null; expiringDocs: { count: number } | null } | null): number {
+export function soXemLai(alerts: { catalogConflict: { moreCount: number } | null; expiringDocs: { count: number } | null } | null, loi = false): number | null {
+  if (loi) return null; // một nguồn của bảng không tải được: "chưa biết", KHÔNG phải 0 (thẻ hiện "—" + Thử lại)
   if (!alerts) return 0;
   return (alerts.catalogConflict ? 1 + alerts.catalogConflict.moreCount : 0) + (alerts.expiringDocs ? alerts.expiringDocs.count : 0);
 }
@@ -110,4 +117,16 @@ export function cauTomTatViec(the: readonly TheViec[], conLai: number): string |
   const dau = the[0];
   if (!dau) return null;
   return `Có ${the.length + conLai} việc chờ bạn — gấp nhất: ${dau.nhan.toLocaleLowerCase("vi-VN")}${dau.so === null ? "" : ` (${dau.so})`}.`;
+}
+
+/** Kết quả một lời gọi `Promise.allSettled` → số của thẻ: thành công → số (`undefined` = nguồn người này không dùng, thẻ vắng); lỗi → `null` (thẻ "—" + Thử lại), không bao giờ 0. */
+export function soTuKetQua(r: PromiseSettledResult<number | undefined>): number | null | undefined {
+  return r.status === "fulfilled" ? r.value : null;
+}
+
+/** Dòng dưới lưới thẻ khi còn việc không đủ chỗ: "Còn N việc nữa: <nhãn thường> (<số>)." — nói thẳng việc gấp nhất bị dồn (Quản trị/Toàn quyền: không khối nào bên dưới hiện nó). */
+export function cauConLai(conLai: number, conLaiThe: readonly TheViec[]): string | null {
+  const dau = conLaiThe[0];
+  if (conLai <= 0 || !dau) return null;
+  return `Còn ${conLai} việc nữa: ${dau.nhan.toLocaleLowerCase("vi-VN")}${dau.so === null ? "" : ` (${dau.so})`}.`;
 }
