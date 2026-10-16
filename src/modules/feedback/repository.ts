@@ -84,13 +84,16 @@ const LIST_MINE = defineSql(
   `SELECT ${COLS}, CASE WHEN ${UNREAD_SUBMITTER} THEN 1 ELSE 0 END AS unread ${FROM}
    WHERE t.submitter_id = ?1 ORDER BY t.last_activity_at DESC LIMIT ?2 OFFSET ?3`,
 );
+// Thứ tự hàng đợi (ADR-0127 quyết định 2): Khẩn → Cao → Thường (mức lạ coi như Thường), rồi hoạt động gần nhất. Sắp bằng CASE, KHÔNG theo chữ
+// (chữ sẽ ra HIGH < NORMAL < URGENT). Chỉ hàng đợi (LIST_QUEUE, LIST_QUEUE_TEAM); hộp thư «của tôi» (LIST_MINE) giữ thứ tự thời gian.
+const THU_TU_UU_TIEN = `CASE t.priority WHEN 'URGENT' THEN 0 WHEN 'HIGH' THEN 1 ELSE 2 END`;
 // Hàng đợi: CHỈ route admin gọi. ?2 trạng thái, ?3 loại (NULL = tất cả), ?4 giới hạn, ?5 vị trí bắt đầu.
 const LIST_QUEUE = defineSql(
   "feedback",
   "list_queue",
   `SELECT ${COLS}, CASE WHEN ${UNREAD_USER} THEN 1 ELSE 0 END AS unread ${FROM}
    WHERE (?2 IS NULL OR t.status_code = ?2) AND (?3 IS NULL OR t.kind_code = ?3) AND ?1 IS NOT NULL
-   ORDER BY t.last_activity_at DESC LIMIT ?4 OFFSET ?5`,
+   ORDER BY ${THU_TU_UU_TIEN}, t.last_activity_at DESC LIMIT ?4 OFFSET ?5`,
 );
 const LIST_MESSAGES = defineSql(
   "feedback",
@@ -109,7 +112,7 @@ const LIST_QUEUE_TEAM = defineSql(
    WHERE t.team_id = ?2 AND (?3 IS NULL OR t.status_code = ?3) AND t.submitter_id <> ?1
      AND (?4 = 'ALL' OR (?4 = 'MINE' AND t.assignee_id = ?1)
           OR (?4 = 'UNASSIGNED' AND (t.assignee_id IS NULL OR NOT ${nguoiGiuHopLe("t")})))
-   ORDER BY t.last_activity_at DESC LIMIT ?5 OFFSET ?6`,
+   ORDER BY ${THU_TU_UU_TIEN}, t.last_activity_at DESC LIMIT ?5 OFFSET ?6`,
 );
 // ?1 người xem, ?2 Toàn quyền (1/0): "queue" = phiếu CHƯA ĐỌC ở nhóm tôi đang thuộc (Toàn quyền: mọi nhóm), trừ phiếu tôi gửi.
 const BADGE = defineSql(
@@ -233,7 +236,9 @@ const TOUCH_AFTER_REPLY = defineSql(
 // Đổi trạng thái/người xử lý (tuyến cũ PATCH /api/feedback/:id của Toàn quyền VÀ tuyến PATCH …/xu-ly theo quyenPhieu dùng chung câu này).
 // ?1 id, ?2 trạng thái mới hoặc NULL, ?3 có đổi người xử lý (0/1), ?4 người xử lý mới, ?5 có đổi resolved_in (0/1),
 // ?6 resolved_in mới, ?7 bây giờ, ?8 người làm, ?9 trạng thái CŨ (khoá lạc quan: đã khác → 0 dòng đổi),
-// ?10 nhóm route đã kiểm quyền (khoá lạc quan theo nhóm như R11: phiếu vừa chuyển nhóm → 0 dòng, người vừa mất quyền không ghi được).
+// ?10 nhóm route đã kiểm quyền (khoá lạc quan theo nhóm như R11: phiếu vừa chuyển nhóm → 0 dòng, người vừa mất quyền không ghi được),
+// ?11 mức ưu tiên mới hoặc NULL (ADR-0127; giá trị đã kiểm ở rules.ts — cột không có CHECK liệt kê). Đổi mức ưu tiên KHÔNG đổi last_activity_at /
+// last_public_reply_at (như đổi người xử lý: người gửi không có chấm đỏ vì việc nội bộ); không có khoá lạc quan riêng cho mức (mức «cũ» chỉ để ghi nhật ký).
 // Người xử lý mới (ADR-0119 điều 2) phải là thành viên ĐANG hiệu lực, tài khoản còn hoạt động, của nhóm ĐANG giữ phiếu, và không phải người gửi phiếu.
 // Mốc "đã xem" riêng của người làm ghi bằng markSeenAfterWriteStatement CÙNG lô, sau câu này.
 const PATCH_TICKET = defineSql(
@@ -243,6 +248,7 @@ const PATCH_TICKET = defineSql(
      status_code = COALESCE(?2, status_code),
      assignee_id = CASE WHEN ?3 = 1 THEN ?4 ELSE assignee_id END,
      resolved_in = CASE WHEN ?5 = 1 THEN ?6 ELSE resolved_in END,
+     priority = COALESCE(?11, priority),
      last_activity_at = CASE WHEN ?2 IS NULL THEN last_activity_at ELSE ?7 END,
      last_public_reply_at = CASE WHEN ?2 IS NULL THEN last_public_reply_at ELSE ?7 END,
      updated_at = ?7, updated_by = ?8
@@ -326,11 +332,13 @@ export const touchAfterReplyStatement = (db: D1Database, a: { ticketId: string; 
   db.prepare(TOUCH_AFTER_REPLY).bind(a.ticketId, a.messageId, a.now, a.internal ? 1 : 0, a.authorId);
 export const patchTicketStatement = (
   db: D1Database,
-  a: { id: string; status: string | null; assignee?: { value: string | null }; resolvedIn?: { value: string | null }; now: string; adminId: string; fromStatus: string; teamId: string },
+  a: {
+    id: string; status: string | null; assignee?: { value: string | null }; resolvedIn?: { value: string | null }; priority?: string; now: string; adminId: string; fromStatus: string; teamId: string;
+  },
 ) =>
   db
     .prepare(PATCH_TICKET)
-    .bind(a.id, a.status, a.assignee ? 1 : 0, a.assignee?.value ?? null, a.resolvedIn ? 1 : 0, a.resolvedIn?.value ?? null, a.now, a.adminId, a.fromStatus, a.teamId);
+    .bind(a.id, a.status, a.assignee ? 1 : 0, a.assignee?.value ?? null, a.resolvedIn ? 1 : 0, a.resolvedIn?.value ?? null, a.now, a.adminId, a.fromStatus, a.teamId, a.priority ?? null);
 export const claimStatement = (db: D1Database, a: { id: string; staffId: string; now: string; teamId: string }) => db.prepare(CLAIM).bind(a.id, a.staffId, a.now, a.teamId);
 export const transferStatement = (db: D1Database, a: { id: string; toTeam: string; fromTeam: string; now: string; by: string }) =>
   db.prepare(TRANSFER).bind(a.id, a.toTeam, a.now, a.fromTeam, a.by);

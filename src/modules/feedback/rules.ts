@@ -1,6 +1,8 @@
 // Luật thuần của Góp ý / Báo lỗi (không I/O). Kiểm đầu vào, lọc `context` (không đáng tin), trần tần suất.
 // Import bằng đuôi .ts để node --test chạy trực tiếp.
 import { isFeedbackKind, isFeedbackStatus, type FeedbackKind, type FeedbackStatus } from "../../shared/feedback-catalog.ts";
+import { isPriority, type Priority } from "../../shared/ve-ho-tro.ts";
+import type { FeedbackPatchRequest } from "../../shared/contracts.ts";
 
 export const TITLE_MAX = 120;
 export const BODY_MAX = 4000;
@@ -103,7 +105,14 @@ export interface PatchInput {
   status?: FeedbackStatus;
   assignee?: { value: string | null };
   resolvedIn?: { value: string | null };
+  /** Mức ưu tiên (ADR-0127): route chỉ cho người xử lý được phiếu (quyenPhieu.xuLy) tới đây. */
+  priority?: Priority;
 }
+// Khoá hai chiều: thân PATCH (FeedbackPatchRequest ở contracts.ts, giao diện dùng) và bộ kiểm dưới đây phải cùng bộ trường.
+// Thêm/bớt trường ở MỘT bên mà quên bên kia ⇒ `npm run typecheck` đỏ ở đây.
+type PatchBodyKeys = "status" | "assigneeId" | "resolvedIn" | "priority";
+type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+export const PATCH_BODY_KEYS_KHOP: Same<keyof FeedbackPatchRequest, PatchBodyKeys> = true;
 
 export function validatePatchInput(raw: Record<string, unknown>): Checked<PatchInput> {
   const out: PatchInput = {};
@@ -120,7 +129,11 @@ export function validatePatchInput(raw: Record<string, unknown>): Checked<PatchI
     if (raw.resolvedIn !== null && (typeof raw.resolvedIn !== "string" || !/^[A-Za-z0-9._-]{1,40}$/.test(raw.resolvedIn))) return bad("Mã bản sửa không hợp lệ.");
     out.resolvedIn = { value: raw.resolvedIn };
   }
-  if (out.status === undefined && out.assignee === undefined) return bad("Không có thay đổi nào để lưu.");
+  if (raw.priority !== undefined) {
+    if (!isPriority(raw.priority)) return bad("Mức ưu tiên không hợp lệ.");
+    out.priority = raw.priority;
+  }
+  if (out.status === undefined && out.assignee === undefined && out.priority === undefined) return bad("Không có thay đổi nào để lưu.");
   return { ok: true, value: out };
 }
 

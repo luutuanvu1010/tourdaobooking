@@ -103,3 +103,20 @@ test("validateMemberRole: chỉ LEAD hoặc MEMBER", () => {
   assert.deepEqual(validateMemberRole({ role: "MEMBER" }), { ok: true, value: "MEMBER" });
   for (const role of ["BOSS", "lead", undefined, 1]) assert.equal(validateMemberRole({ role }).ok, false, String(role));
 });
+
+// ---- Đợt 2a (ADR-0127 quyết định 2): mức ưu tiên ---------------------------------------------------------------------------
+test("validatePatchInput: thân chỉ có priority hợp lệ là đủ để lưu; giá trị lạ / null / không phải chữ ⇒ từ chối", () => {
+  for (const p of ["NORMAL", "HIGH", "URGENT"]) assert.deepEqual(validatePatchInput({ priority: p }), { ok: true, value: { priority: p } });
+  for (const p of ["LOW", "urgent", "", null, 2, {}]) {
+    const r = validatePatchInput({ priority: p });
+    assert.equal(r.ok, false, `priority=${JSON.stringify(p)}`);
+    if (!r.ok) assert.equal(r.message, "Mức ưu tiên không hợp lệ.");
+  }
+  assert.deepEqual(validatePatchInput({ status: "ACK", priority: "URGENT" }), { ok: true, value: { status: "ACK", priority: "URGENT" } });
+});
+
+test("validateTicketInput: người gửi kèm priority ⇒ bị bỏ qua (không có trong giá trị trả về)", () => {
+  const r = validateTicketInput({ ...ok, priority: "URGENT" });
+  assert.ok(r.ok);
+  assert.equal("priority" in r.value, false);
+});

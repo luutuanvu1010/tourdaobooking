@@ -21,7 +21,7 @@ import {
 } from "./repository";
 import {
   MESSAGE_LIMIT_PER_HOUR, TEAM_ID_RE, TICKET_LIMIT_PER_HOUR, parseContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch,
-  validateTicketInput, validateTransferInput, windowStart,
+  validateTicketInput, validateTransferInput, windowStart, type PatchInput,
 } from "./rules";
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy yêu cầu.");
@@ -90,6 +90,23 @@ const canRead = (who: PermissionHolder, submitterId: string): boolean => can(who
  * Tư cách thành viên nhóm của người gọi cho MỘT request — mọi chỗ nạp tư cách đi qua ĐÂY (ruling R6b).
  * Tài khoản có mã quyền bên ngoài (kể cả tài khoản lai) ⇒ luôn rỗng, dù dữ liệu còn dòng thành viên cũ (quyenPhieu cũng bỏ qua — lưới thứ hai).
  */
+// Nhật ký của lệnh đổi phiếu (dùng chung PATCH …/xu-ly và tuyến cũ PATCH /api/feedback/:id — ADR-0127): đổi trạng thái ⇒ feedback_status_changed; không đổi
+// trạng thái mà có người xử lý ⇒ feedback_assigned; có mức ưu tiên ⇒ THÊM một dòng feedback_priority_changed «mã: cũ → mới» (không tiêu đề, kể cả nhóm nhạy
+// cảm; gửi lại đúng mức cũ vẫn ghi, như giao việc). Mọi dòng gác bằng `changes() > 0`: dòng đầu theo câu cập nhật (hoặc sự kiện ngay sau nó), dòng sau theo dòng
+// nhật ký ngay trước (INSERT…SELECT không chèn ⇒ changes() = 0) — nên cả chuỗi chỉ ghi khi cổng đã qua. Gọi ĐÚNG sau câu cập nhật/sự kiện, TRƯỚC mốc đã xem.
+function nhatKyDoiPhieu(db: D1Database, a: { staffId: string; t: TicketRow; v: PatchInput; from: FeedbackStatus; to: FeedbackStatus | null; at: string }): D1PreparedStatement[] {
+  const code = feedbackCode(a.t.seq);
+  const ra: D1PreparedStatement[] = [];
+  const goc = { staffId: a.staffId, at: a.at, targetType: "feedback", targetId: a.t.id } as const;
+  if (a.to) ra.push(auditStatement(db, { ...goc, action: "feedback_status_changed", detail: `${code}: ${a.from} → ${a.to}` }, "changes() > 0"));
+  else if (a.v.assignee !== undefined) ra.push(auditStatement(db, { ...goc, action: "feedback_assigned", detail: code }, "changes() > 0"));
+  if (a.v.priority !== undefined) {
+    const cu = isPriority(a.t.priority) ? a.t.priority : "NORMAL";
+    ra.push(auditStatement(db, { ...goc, action: "feedback_priority_changed", detail: `${code}: ${cu} → ${a.v.priority}` }, "changes() > 0"));
+  }
+  return ra;
+}
+
 async function memberships(db: D1Database, who: PermissionHolder): Promise<Membership[]> {
   return who.permissions.some(isExternalPermission) ? [] : membershipsOf(db, who.id);
 }
@@ -374,15 +391,11 @@ export const feedbackModule: AppModule = {
       // Lô: cổng (PATCH_TICKET) → sự kiện ASSIGNED khi đổi người (changes() của câu cập nhật) → nhật ký (changes() của câu ngay trước: sự kiện, hoặc câu cập nhật
       // khi không có sự kiện — sự kiện chỉ chèn khi câu cập nhật đổi dòng nên hai cách đều nghĩa là «cổng đã qua») → mốc đã xem của người làm.
       const res = await env.DB.batch([
-        patchTicketStatement(env.DB, { id, status: to, assignee: v.value.assignee, resolvedIn: v.value.resolvedIn, now: at, adminId: staff.id, fromStatus: from, teamId: t.team_id }),
+        patchTicketStatement(env.DB, { id, status: to, assignee: v.value.assignee, resolvedIn: v.value.resolvedIn, priority: v.value.priority, now: at, adminId: staff.id, fromStatus: from, teamId: t.team_id }),
         ...(doiNguoi
           ? [insertEventStatement(env.DB, { id: crypto.randomUUID(), ticketId: id, type: "ASSIGNED", from: t.assignee_id, to: v.value.assignee!.value, actor: staff.id, now: at })]
           : []),
-        auditStatement(
-          env.DB,
-          { staffId: staff.id, action: to ? "feedback_status_changed" : "feedback_assigned", at, targetType: "feedback", targetId: id, detail: to ? `${feedbackCode(t.seq)}: ${from} → ${to}` : feedbackCode(t.seq) },
-          "changes() > 0",
-        ),
+        ...nhatKyDoiPhieu(env.DB, { staffId: staff.id, t, v: v.value, from, to, at }),
         markSeenAfterWriteStatement(env.DB, { ticketId: id, staffId: staff.id, now: at }),
       ]);
       if ((res[0]?.meta.changes ?? 0) === 0) {
@@ -519,12 +532,8 @@ export const feedbackModule: AppModule = {
       }
       const at = new Date().toISOString();
       const res = await env.DB.batch([
-        patchTicketStatement(env.DB, { id, status: to, assignee: v.value.assignee, resolvedIn: v.value.resolvedIn, now: at, adminId: staff.id, fromStatus: from, teamId: t.team_id }),
-        auditStatement(
-          env.DB,
-          { staffId: staff.id, action: to ? "feedback_status_changed" : "feedback_assigned", at, targetType: "feedback", targetId: id, detail: to ? `${feedbackCode(t.seq)}: ${from} → ${to}` : feedbackCode(t.seq) },
-          "changes() > 0",
-        ),
+        patchTicketStatement(env.DB, { id, status: to, assignee: v.value.assignee, resolvedIn: v.value.resolvedIn, priority: v.value.priority, now: at, adminId: staff.id, fromStatus: from, teamId: t.team_id }),
+        ...nhatKyDoiPhieu(env.DB, { staffId: staff.id, t, v: v.value, from, to, at }),
         markSeenAfterWriteStatement(env.DB, { ticketId: id, staffId: staff.id, now: at }),
       ]);
       if ((res[0]?.meta.changes ?? 0) === 0) {

@@ -768,3 +768,103 @@ for (const [ten, nhom, nhay] of [["nhạy cảm (Nhân sự)", NHAN_SU, true], [
     }
   });
 }
+
+// ---- Đợt 2a Việc 2 (ADR-0127 quyết định 2): mức ưu tiên ---------------------------------------------------------------------
+const nkUuTien = (w: any) => w.q("SELECT staff_id, target_id, detail FROM audit_log WHERE action = 'feedback_priority_changed' ORDER BY rowid").map((x: any) => ({ ...x }));
+
+test("mức ưu tiên: thành viên nhóm đặt Cao ⇒ 200, DTO mang priority, đúng một dòng nhật ký «mã: cũ → mới», không ghi nhầm feedback_assigned", async () => {
+  const w = setup();
+  const t = (await tao(w, SALES, KE_TOAN)).json.ticket;
+  assert.equal(t.priority, "NORMAL", "phiếu mới luôn Thường");
+  const r = await xuLy(w, t.id, KT_TV, { priority: "HIGH" });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.ticket.priority, "HIGH");
+  assert.equal(w.q(`SELECT priority FROM fbk_ticket WHERE id = '${t.id}'`)[0].priority, "HIGH");
+  assert.deepEqual(nkUuTien(w), [{ staff_id: KT_TV, target_id: t.id, detail: `${t.code}: NORMAL → HIGH` }]);
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action IN ('feedback_assigned', 'feedback_status_changed')")[0].n, 0);
+  assert.equal(w.q(`SELECT count(*) AS n FROM fbk_ticket_event WHERE ticket_id = '${t.id}'`)[0].n, 0, "không thêm loại vào fbk_ticket_event");
+  assert.equal(await huy(w, KT_TV), 0, "người đặt coi như đã xem (cùng lô)");
+});
+
+test("mức ưu tiên: người gửi ⇒ 403, người ngoài nhóm ⇒ 404, giá trị lạ ⇒ 400; không đổi gì, không nhật ký", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  assert.equal((await xuLy(w, id, SALES, { priority: "URGENT" })).status, 403);
+  assert.equal((await xuLy(w, id, NS_TV, { priority: "URGENT" })).status, 404);
+  assert.equal((await xuLy(w, id, QT, { priority: "URGENT" })).status, 404, "Quản trị không có đường tắt");
+  const lạ = await xuLy(w, id, KT_TV, { priority: "LOW" });
+  assert.equal(lạ.status, 400, lạ.text);
+  assert.equal(w.q(`SELECT priority FROM fbk_ticket WHERE id = '${id}'`)[0].priority, "NORMAL");
+  assert.equal(nkUuTien(w).length, 0);
+});
+
+test("mức ưu tiên đi cùng đổi trạng thái: hai dòng nhật ký (trạng thái + ưu tiên), cùng một lô; đặt lại đúng mức cũ vẫn ghi (như giao việc)", async () => {
+  const w = setup();
+  const t = (await tao(w, SALES, KE_TOAN)).json.ticket;
+  const r = await xuLy(w, t.id, KT_TV, { status: "ACK", priority: "URGENT" });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.ticket.status, "ACK");
+  assert.equal(r.json.ticket.priority, "URGENT");
+  assert.deepEqual(w.q("SELECT detail FROM audit_log WHERE action = 'feedback_status_changed'").map((x: any) => x.detail), [`${t.code}: NEW → ACK`]);
+  assert.equal((await xuLy(w, t.id, KT_TV, { priority: "URGENT" })).status, 200);
+  assert.deepEqual(nkUuTien(w).map((x: any) => x.detail), [`${t.code}: NORMAL → URGENT`, `${t.code}: URGENT → URGENT`]);
+});
+
+test("mức ưu tiên phiếu nhóm nhạy cảm: nhật ký chỉ mã phiếu + mức, không tiêu đề", async () => {
+  const w = setup();
+  const t = (await tao(w, SALES, NHAN_SU, { title: "Xin giấy xác nhận lương" })).json.ticket;
+  assert.equal((await xuLy(w, t.id, NS_TV, { priority: "HIGH" })).status, 200);
+  const [dong] = nkUuTien(w);
+  assert.equal(dong.detail, `${t.code}: NORMAL → HIGH`);
+  assert.ok(!String(dong.detail).includes("lương"));
+});
+
+test("mức ưu tiên đúng lúc phiếu vừa chuyển nhóm ⇒ 409 stale, không đổi, không nhật ký (khoá lạc quan theo nhóm như đợt 1)", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  chenTruocLo(w, /assignee_id = CASE WHEN \?3 = 1/, doiNhomThang(w, id, NHAN_SU));
+  const r = await xuLy(w, id, KT_TV, { priority: "URGENT" });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.message, "Phiếu vừa đổi nhóm, hãy tải lại.");
+  assert.equal(w.q(`SELECT priority FROM fbk_ticket WHERE id = '${id}'`)[0].priority, "NORMAL");
+  assert.equal(nkUuTien(w).length, 0);
+});
+
+test("tuyến cũ PATCH /api/feedback/:id (Toàn quyền): thân chỉ có priority ⇒ 200, ghi feedback_priority_changed, không ghi feedback_assigned", async () => {
+  const w = setup();
+  const t = (await tao(w, SALES, KE_TOAN)).json.ticket;
+  const r = await w.call("PATCH", `/api/feedback/${t.id}`, { as: SUPER, body: { priority: "HIGH" } });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.ticket.priority, "HIGH");
+  assert.deepEqual(nkUuTien(w).map((x: any) => x.detail), [`${t.code}: NORMAL → HIGH`]);
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'feedback_assigned'")[0].n, 0);
+});
+
+test("người gửi kèm priority khi tạo phiếu ⇒ bị bỏ qua, phiếu vẫn Thường", async () => {
+  const w = setup();
+  const r = await tao(w, SALES, KE_TOAN, { priority: "URGENT" });
+  assert.equal(r.status, 201, r.text);
+  assert.equal(r.json.ticket.priority, "NORMAL");
+  assert.equal(w.q(`SELECT priority FROM fbk_ticket WHERE id = '${r.json.ticket.id}'`)[0].priority, "NORMAL");
+});
+
+test("hàng đợi nhóm (và hàng đợi admin) sắp Khẩn → Cao → Thường rồi hoạt động gần nhất; «của tôi» giữ thứ tự thời gian", async () => {
+  const w = setup();
+  const mk = async (title: string) => (await tao(w, SALES, KE_TOAN, { title })).json.ticket.id as string;
+  const U = await mk("U"), H = await mk("H"), N1 = await mk("N1"), N2 = await mk("N2");
+  assert.equal((await xuLy(w, U, KT_TV, { priority: "URGENT" })).status, 200);
+  assert.equal((await xuLy(w, H, KT_TV, { priority: "HIGH" })).status, 200);
+  // U cũ nhất, N1 mới nhất, H và N2 ở giữa: thứ tự đúng khác cả thứ tự thời gian lẫn thứ tự chữ (xuôi hay ngược).
+  const moc: [string, string][] = [[U, "2026-10-01T00:00:00.000Z"], [H, "2026-10-02T00:00:00.000Z"], [N2, "2026-10-03T00:00:00.000Z"], [N1, "2026-10-04T00:00:00.000Z"]];
+  for (const [id, at] of moc) w.sqlite.exec(`UPDATE fbk_ticket SET last_activity_at = '${at}' WHERE id = '${id}'`);
+  const tieuDe = (ds: any[]) => ds.map((x: any) => x.title);
+  const q = await hang(w, KT_TN);
+  assert.equal(q.status, 200, q.text);
+  assert.deepEqual(tieuDe(q.json.tickets), ["U", "H", "N1", "N2"]);
+  assert.deepEqual(q.json.tickets.map((x: any) => x.priority), ["URGENT", "HIGH", "NORMAL", "NORMAL"]);
+  const a = await w.call("GET", "/api/feedback", { as: SUPER });
+  assert.equal(a.status, 200, a.text);
+  assert.deepEqual(tieuDe(a.json.tickets), ["U", "H", "N1", "N2"]);
+  const mine = await w.call("GET", "/api/feedback/mine", { as: SALES });
+  assert.deepEqual(tieuDe(mine.json.tickets), ["N1", "N2", "H", "U"], "người gửi giữ thứ tự cũ");
+});
