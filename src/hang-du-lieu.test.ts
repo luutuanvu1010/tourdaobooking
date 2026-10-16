@@ -40,7 +40,10 @@ const NGOAI_LE_TEN: Record<string, string> = {
   "vc_dispatch_policy.office_phone": "số điện thoại văn phòng công ty",
   "vc_vehicle_document.document_number": "số giấy tờ XE — ADR-0040 D2 chỉ coi giấy tờ của người là dữ liệu cá nhân",
 };
-const N3_GHIM = ["pty_person_document.document_number", "pty_person_document.issued_place", "pty_person_document.number_key"];
+const N3_GHIM = [
+  "pty_organization_document.document_number", "pty_organization_document.issued_place", "pty_organization_document.number_key",
+  "pty_person_document.document_number", "pty_person_document.issued_place", "pty_person_document.number_key",
+];
 const N4_GHIM = ["aut_mfa_email_code.code_hash", "aut_mfa_factor.secret_enc", "aut_mfa_recovery_code.code_hash", "aut_trusted_device.token_hash", "staff.pin_hash"];
 
 test("5.20: mọi cột của mọi bảng và view có đúng một hạng N0–N4; sổ không thừa đối tượng / cột đã mất", () => {

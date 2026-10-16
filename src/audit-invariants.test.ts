@@ -952,6 +952,79 @@ test("R-PD-1: nơi cấp giấy tờ người lọt nhật ký → 1; nhật ký
   assert.equal(violations(db, c), 1);
 });
 
+function toChucMoi(db: DatabaseSync, id: string): string {
+  db.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', ?, 1, ?, ?)").run(id, `Tổ chức ${id}`, T1, T1);
+  db.prepare("INSERT INTO pty_organization (party_id, created_at, updated_at) VALUES (?, ?, ?)").run(id, T1, T1);
+  return id;
+}
+function giayToToChuc(db: DatabaseSync, o: { id: string; party: string; type?: string; key?: string | null; truoc?: string }): string {
+  const type = o.type ?? "GPKD";
+  const key = o.key === undefined ? `42000${o.id.length}0000` : o.key;
+  db.prepare(
+    `INSERT INTO pty_organization_document (id, party_id, document_type_code, document_number, number_key, previous_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(o.id, o.party, type, key, key, o.truoc ?? null, T1, T1);
+  return o.id;
+}
+
+test("R-PTY-7 (ADR-0122 đ2): một số GPKD thuộc đúng một tổ chức — gia hạn cùng số của chính tổ chức → 0; hai tổ chức cùng số (trigger bị gỡ) → 1", () => {
+  const c = one("R-PTY-7");
+  assert.equal(c.level, "fail");
+  const db = build();
+  const a = toChucMoi(db, "o-a");
+  const b = toChucMoi(db, "o-b");
+  const a1 = giayToToChuc(db, { id: "ga-1", party: a, key: "4201234567" });
+  giayToToChuc(db, { id: "ga-2", party: a, key: "4201234567", truoc: a1 });
+  assert.equal(violations(db, c), 0);
+  db.exec("DROP TRIGGER pty_organization_document_gpkd_one_org_ins");
+  giayToToChuc(db, { id: "gb-1", party: b, key: "4201234567" });
+  assert.equal(violations(db, c), 1);
+});
+
+test("R-PTY-8 (ADR-0122 đ2): dòng gia hạn giấy tờ tổ chức cùng tổ chức, cùng loại; tối đa một dòng gia hạn chưa huỷ — nối lệch (trigger bị gỡ) → 1", () => {
+  const c = one("R-PTY-8");
+  assert.equal(c.level, "fail");
+  const db = build();
+  const a = toChucMoi(db, "o-a");
+  const b = toChucMoi(db, "o-b");
+  const a1 = giayToToChuc(db, { id: "ga-1", party: a, type: "TRANSPORT", key: null });
+  assert.equal(violations(db, c), 0);
+  db.exec("DROP TRIGGER pty_organization_document_renew_ins");
+  giayToToChuc(db, { id: "gb-1", party: b, type: "TRANSPORT", key: null, truoc: a1 });
+  assert.equal(violations(db, c), 1);
+});
+
+test("R-PTY-9 (ADR-0122 đ3): mỗi dòng xác minh trỏ đúng dòng của đúng hồ sơ — đúng → 0; trỏ giấy tờ của hồ sơ khác (trigger bị gỡ) → 1", () => {
+  const c = one("R-PTY-9");
+  assert.equal(c.level, "fail");
+  const db = build();
+  const gd = giayToNguoi(db, { party: "pty-s-an", key: "079888777666" });
+  const v = (id: string, party: string) =>
+    db.prepare(
+      "INSERT INTO pty_verification (id, party_id, target_kind, target_id, outcome, created_at, created_by, updated_at, updated_by) VALUES (?, ?, 'PERSON_DOCUMENT', ?, 'DA_XAC_MINH', ?, 's-admin', ?, 's-admin')",
+    ).run(id, party, gd, T1, T1);
+  v("v-1", "pty-s-an");
+  assert.equal(violations(db, c), 0);
+  db.exec("DROP TRIGGER pty_verification_target_ins");
+  v("v-2", "pty-xa");
+  assert.equal(violations(db, c), 1);
+});
+
+test("R-PTY-10 (ADR-0122 đ1): liên hệ ADDRESS chỉ ở hồ sơ cá nhân — người → 0; tổ chức (trigger bị gỡ) → 1", () => {
+  const c = one("R-PTY-10");
+  assert.equal(c.level, "fail");
+  const db = build();
+  const o = toChucMoi(db, "o-dc");
+  const lh = (id: string, party: string) =>
+    db.prepare(
+      "INSERT INTO pty_contact_point (id, party_id, contact_kind_code, value, value_normalized, is_primary, valid_from_date, created_at, updated_at) VALUES (?, ?, 'ADDRESS', '12 Trần Phú', '12 trần phú', 1, '2026-10-16', ?, ?)",
+    ).run(id, party, T1, T1);
+  lh("dc-1", "pty-s-an");
+  assert.equal(violations(db, c), 0);
+  db.exec("DROP TRIGGER pty_contact_point_address_person_ins");
+  lh("dc-2", o);
+  assert.equal(violations(db, c), 1);
+});
+
 test("R-VC-1 (ADR-0040 D1): biển số không trùng giữa các xe CHƯA NGỪNG — xe đã ngừng giữ biển cũ không tính → 0; hai xe đang dùng cùng biển (chỉ mục bị gỡ) → 1", () => {
   const c = one("R-VC-1");
   assert.equal(c.level, "fail");

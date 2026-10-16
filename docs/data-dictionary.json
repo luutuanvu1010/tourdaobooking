@@ -298,6 +298,41 @@
       "kind": "table"
     },
     {
+      "name": "pty_organization_document_type",
+      "module": "parties",
+      "kind": "table"
+    },
+    {
+      "name": "pty_organization_document",
+      "module": "parties",
+      "kind": "table",
+      "note": "giấy tờ của TỔ CHỨC (ADR-0122 đ2; migration 0103) — khuôn pty_person_document: gia hạn = dòng mới nối previous_id, huỷ dòng nhầm, không xoá; một số GPKD thuộc một tổ chức (trigger). Số, khoá số, nơi cấp hạng N3: KHÔNG vào nhật ký"
+    },
+    {
+      "name": "pty_verification_attribute",
+      "module": "parties",
+      "kind": "table",
+      "note": "danh mục thuộc tính hồ sơ xác minh được (migration 0103), là dữ liệu chứ không CHECK liệt kê; applies_to PERSON / ORGANIZATION; bảy dòng gieo là đề xuất (câu hỏi Q1 của kế hoạch 2026-10-16-goi-2-h0-h1)"
+    },
+    {
+      "name": "pty_verification",
+      "module": "parties",
+      "kind": "table",
+      "note": "kết quả xác minh theo từng dòng (ADR-0122 đ3; migration 0103), CHỈ-THÊM; dòng mới nhất là trạng thái hiện tại; người xác minh ở created_by"
+    },
+    {
+      "name": "pty_privacy_policy",
+      "module": "parties",
+      "kind": "table",
+      "note": "chính sách riêng tư có phiên bản (ADR-0126 đ1; migration 0103), CHỈ-THÊM, phiên bản liên tiếp; không gieo dòng nào; không có thời hạn xoá (chờ luật sư — lát H-5)"
+    },
+    {
+      "name": "pty_consent",
+      "module": "parties",
+      "kind": "table",
+      "note": "đồng ý / rút đồng ý theo cả phiên bản chính sách (ADR-0126 đ1; migration 0103), CHỈ-THÊM; tài khoản bấm ở created_by"
+    },
+    {
       "name": "pty_bank",
       "module": "parties",
       "kind": "lookup",
@@ -1238,8 +1273,14 @@
     "pty_party": { "id": "N1", "party_kind": "N1", "display_name": "N2", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "merged_into_id": "N1", "merged_at": "N1" },
     "pty_party_relationship": { "id": "N1", "from_party_id": "N1", "to_party_id": "N1", "relationship_type_code": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_party_role": { "id": "N1", "party_id": "N1", "role_type_code": "N1", "location_id": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "pty_person": { "party_id": "N1", "family_name": "N2", "middle_name": "N2", "given_name": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "gender": "N2" },
+    "pty_person": { "party_id": "N1", "family_name": "N2", "middle_name": "N2", "given_name": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "gender": "N2", "birth_date": "N2" },
     "pty_person_document": { "id": "N1", "party_id": "N1", "document_type_code": "N1", "document_number": "N3", "number_key": "N3", "license_class_code": "N1", "issued_date": "N1", "issued_place": "N3", "expiry_date": "N1", "previous_id": "N1", "voided_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "pty_consent": { "id": "N1", "party_id": "N1", "policy_id": "N1", "decision": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "pty_organization_document": { "id": "N1", "party_id": "N1", "document_type_code": "N1", "document_number": "N3", "number_key": "N3", "issued_date": "N1", "issued_place": "N3", "expiry_date": "N1", "previous_id": "N1", "voided_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "pty_organization_document_type": { "code": "N1", "name": "N1", "has_expiry": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "pty_privacy_policy": { "id": "N1", "version": "N1", "purposes": "N1", "body": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "pty_verification_attribute": { "code": "N1", "name": "N1", "applies_to": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "pty_verification": { "id": "N1", "party_id": "N1", "target_kind": "N1", "target_id": "N1", "attribute_code": "N1", "outcome": "N1", "reason_code": "N1", "verifier_touched_account": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_person_document_type": { "code": "N1", "name": "N1", "has_expiry": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_relationship_type": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
     "pty_role_type": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1", "role_group": "N1", "is_partner_label": "N1" },

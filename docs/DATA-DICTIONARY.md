@@ -153,6 +153,12 @@
 | `pty_person_document_type` | bảng |  |
 | `pty_license_class` | bảng |  |
 | `pty_person_document` | bảng |  |
+| `pty_organization_document_type` | bảng |  |
+| `pty_organization_document` | bảng | giấy tờ của TỔ CHỨC (ADR-0122 đ2; migration 0103) — khuôn pty_person_document: gia hạn = dòng mới nối previous_id, huỷ dòng nhầm, không xoá; một số GPKD thuộc một tổ chức (trigger). Số, khoá số, nơi cấp hạng N3: KHÔNG vào nhật ký |
+| `pty_verification_attribute` | bảng | danh mục thuộc tính hồ sơ xác minh được (migration 0103), là dữ liệu chứ không CHECK liệt kê; applies_to PERSON / ORGANIZATION; bảy dòng gieo là đề xuất (câu hỏi Q1 của kế hoạch 2026-10-16-goi-2-h0-h1) |
+| `pty_verification` | bảng | kết quả xác minh theo từng dòng (ADR-0122 đ3; migration 0103), CHỈ-THÊM; dòng mới nhất là trạng thái hiện tại; người xác minh ở created_by |
+| `pty_privacy_policy` | bảng | chính sách riêng tư có phiên bản (ADR-0126 đ1; migration 0103), CHỈ-THÊM, phiên bản liên tiếp; không gieo dòng nào; không có thời hạn xoá (chờ luật sư — lát H-5) |
+| `pty_consent` | bảng | đồng ý / rút đồng ý theo cả phiên bản chính sách (ADR-0126 đ1; migration 0103), CHỈ-THÊM; tài khoản bấm ở created_by |
 | `pty_bank` | bảng tra cứu | ngân hàng Việt Nam: mã, BIN 6 số (NAPAS), tên ngắn, tên đầy đủ (ADR-0108 đ2; migration 0087). Nguồn gieo: danh sách công khai VietQR.io, đối chiếu khi gieo. Thêm ngân hàng = migration mới |
 | `pty_bank_account` | bảng | tài khoản nhận tiền của CÔNG TY CHỦ (ADR-0108 đ2; migration 0087), chính sách có hiệu lực: tối đa một dòng mở mỗi hồ sơ, chỉ đóng một lần (valid_to), không sửa, không xoá; trigger chỉ cho hồ sơ đang mở vai OWNER_COMPANY. Ghi bằng ô company.legal.write. Số tài khoản KHÔNG vào nhật ký, KHÔNG vào CompanyDto công khai, KHÔNG vào kho tri thức Trợ lý |
 | `v_pty_open_role_group` | view công bố | cột: party_id, role_group |
@@ -306,8 +312,9 @@
 | `pty_contact_point` |  | `value`, `value_normalized` |  |  |
 | `pty_organization` |  | `legal_name`, `tax_code`, `address`, `invoice_email` |  |  |
 | `pty_party` |  | `display_name` |  |  |
-| `pty_person` |  | `family_name`, `middle_name`, `given_name`, `gender` |  |  |
+| `pty_person` |  | `family_name`, `middle_name`, `given_name`, `gender`, `birth_date` |  |  |
 | `pty_person_document` |  |  | `document_number`, `number_key`, `issued_place` |  |
+| `pty_organization_document` |  |  | `document_number`, `number_key`, `issued_place` |  |
 | `staff` |  | `full_name`, `phone` |  | `pin_hash` |
 | `stf_permission_adjustment` |  | `reason` |  |  |
 | `tl_hoi_dap` |  | `cau_hoi`, `tra_loi` |  |  |

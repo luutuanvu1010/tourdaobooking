@@ -105,6 +105,9 @@ const GHI_SAU_KHOA = (bang) =>
  * N4 dò ở bài chạy cả ứng dụng (tests/audit/nhat-ky-hang.mjs).
  */
 export const COT_N3_NHAT_KY = {
+  "pty_organization_document.document_number": { kiem: "R-PD-1", chuanHoa: false },
+  "pty_organization_document.number_key": { kiem: "R-PD-1", chuanHoa: true },
+  "pty_organization_document.issued_place": { kiem: "R-PD-1", chuanHoa: false },
   "pty_person_document.document_number": { kiem: "R-PTY-4" }, // R-PTY-4 dò qua number_key (cùng số, đã chuẩn hoá)
   "pty_person_document.number_key": { kiem: "R-PTY-4" },
   "pty_person_document.issued_place": { kiem: "R-PD-1", chuanHoa: false },
@@ -619,6 +622,38 @@ export const CHECKS = [
           + (SELECT count(*) FROM pty_party_relationship WHERE valid_to_date > date('now', '+7 hours'))`,
     level: "warn",
     note: "cảnh báo, không chặn phát hành: vai / quan hệ này đã bị coi là KẾT THÚC từ lúc bấm, dù màn hiện ngày trong tương lai — Quản trị xem lại dòng đó (ai gọi API với ngày tương lai)",
+  },
+  // ---- Hồ sơ mở rộng (ADR-0122, migration *_ho_so_mo_rong — lát H-1 Gói 2). D1 chưa áp migration thì các câu dưới lỗi "no such table" → thoát mã 2;
+  // `npm run trien-khai` chạy kiểm SAU khi áp. Lưới thứ hai sau trigger (bắt trigger bị gỡ nhầm hay SQL gõ tay đi vòng).
+  {
+    code: "R-PTY-7",
+    what: "một số giấy chứng nhận đăng ký kinh doanh thuộc đúng một tổ chức (dòng chưa huỷ)",
+    sql: `SELECT count(*) FROM (SELECT number_key FROM pty_organization_document WHERE document_type_code = 'GPKD' AND voided_at IS NULL AND number_key IS NOT NULL
+          GROUP BY number_key HAVING count(DISTINCT party_id) > 1)`,
+    level: "fail",
+  },
+  {
+    code: "R-PTY-8",
+    what: "dòng gia hạn giấy tờ tổ chức cùng tổ chức, cùng loại với dòng trước; mỗi dòng tối đa một dòng gia hạn chưa huỷ",
+    sql: `SELECT (SELECT count(*) FROM pty_organization_document n JOIN pty_organization_document p ON p.id = n.previous_id
+                  WHERE p.party_id <> n.party_id OR p.document_type_code <> n.document_type_code)
+          + (SELECT count(*) FROM (SELECT previous_id FROM pty_organization_document WHERE previous_id IS NOT NULL AND voided_at IS NULL GROUP BY previous_id HAVING count(*) > 1))`,
+    level: "fail",
+  },
+  {
+    code: "R-PTY-9",
+    what: "mỗi dòng xác minh trỏ đúng dòng giấy tờ / liên hệ của đúng hồ sơ",
+    sql: `SELECT count(*) FROM pty_verification v WHERE
+            (v.target_kind = 'PERSON_DOCUMENT' AND NOT EXISTS (SELECT 1 FROM pty_person_document d WHERE d.id = v.target_id AND d.party_id = v.party_id))
+         OR (v.target_kind = 'ORG_DOCUMENT' AND NOT EXISTS (SELECT 1 FROM pty_organization_document d WHERE d.id = v.target_id AND d.party_id = v.party_id))
+         OR (v.target_kind = 'CONTACT' AND NOT EXISTS (SELECT 1 FROM pty_contact_point c WHERE c.id = v.target_id AND c.party_id = v.party_id))`,
+    level: "fail",
+  },
+  {
+    code: "R-PTY-10",
+    what: "liên hệ địa chỉ (ADDRESS) chỉ ở hồ sơ cá nhân",
+    sql: "SELECT count(*) FROM pty_contact_point c WHERE c.contact_kind_code = 'ADDRESS' AND NOT EXISTS (SELECT 1 FROM pty_person p WHERE p.party_id = c.party_id)",
+    level: "fail",
   },
   {
     code: "R-VC-1",
