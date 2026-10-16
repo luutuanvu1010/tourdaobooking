@@ -8,8 +8,8 @@ import {
   demSietTheoTap, docChinhSachPhien, docTapNhieuMay, endOneSessionStatement, laLoiChinhSachCu, luuChinhSachStatements, sietTheoTapStatements, endOtherSessionsStatement, exemptionChangeStatements, getSession, listMySessions, listSessions, toSessionDto, firstUserHandle, insertPasskeyStatement, issuePasskeyChallenge, limitChallenge, listActivePasskeys, lockedPhones, logPasskeyRejected,
   markSessionReissuedStatement, passkeyRp, readPasskeyChallenge, revokeAllPasskeysIfSuspendedStatement, reissueSessionCookie, revokeAllPasskeysStatement,
   revokePasskeyStatement, toPasskeyDto, unlockPhone, verifyPinThrottled, verifyRegistration,
-  MFA_UNAVAILABLE, allowedFactors, batTotpStatements, boMaDuPhongMoi, goYeuToStatements, isInternal, khopKhoaMoi, kiemMaHienCo, mayTinSong, mfaBanner, moiKhoaTotp,
-  quenMayStatement, quenMoiMayStatement, recoveryCountLeft, yeuToSong, lockedMfaStaffIds, staffIdsWithFactor, tatHaiLopStatements, trustedRevokeAllIfSuspendedStatement, unlockLogin,
+  MFA_UNAVAILABLE, allowedFactors, daBatHaiLop, batTotpStatements, boMaDuPhongMoi, goYeuToStatements, isInternal, khopKhoaMoi, kiemMaHienCo, mayTinSong, mfaBanner, moiKhoaTotp,
+  quenMayStatement, quenMoiMayStatement, recoveryCountLeft, yeuToSong, lockedMfaStaffIds, factorKindsByStaff, tatHaiLopStatements, trustedRevokeAllIfSuspendedStatement, unlockLogin,
   trustedRevokeOfSessionStatement, trustedRevokeOnEmailLossStatement, trustedRevokeOnPinStatement,
   EMAIL_VAI_LON, batEmailStatements, factorEndKindStatement, guiMaBatEmail, kiemMaBatEmail, normalizeEmail,
 } from "../auth";
@@ -450,15 +450,15 @@ export const accountsModule: AppModule = {
     // ---- Danh sách / tạo thủ công ------------------------------------------------
     route("GET", "/api/staff", "accounts", async ({ env, staff: admin }) => {
       if (!can(admin, "account.view")) return NOT_ACCOUNT_VIEW();
-      const [staff, locked, mfaLocked, passkeys, coYeuTo, anHan] = await Promise.all([
-        listStaffAccounts(env.DB), lockedPhones(env.DB), lockedMfaStaffIds(env.DB), countActivePasskeys(env.DB), staffIdsWithFactor(env.DB), mfaGraceTheoId(env.DB),
+      const [staff, locked, mfaLocked, passkeys, loaiYeuTo, anHan] = await Promise.all([
+        listStaffAccounts(env.DB), lockedPhones(env.DB), lockedMfaStaffIds(env.DB), countActivePasskeys(env.DB), factorKindsByStaff(env.DB), mfaGraceTheoId(env.DB),
       ]);
       const roles = await accountRoleCodes(env.DB, staff);
       const seesHidden = can(admin, "admin.manage.superadmin"); // ADR-0042: Toàn quyền là vai ẩn với người khác
       // ADR-0090 đ2: cờ theo dòng tính trên quyền THẬT (trước khi che Toàn quyền thành Quản trị). Kế hoạch Task 6: nhãn hai lớp + cờ "tắt lớp hai được" cũng vậy.
       return json({
         staff: staff.map((s) => {
-          const daBat = coYeuTo.has(s.id);
+          const daBat = daBatHaiLop(s.permissions, loaiYeuTo.get(s.id) ?? []); // dòng EMAIL lệch của vai lớn không tính (Phần C Task 4)
           return {
             ...dto(s, locked, mfaLocked, passkeys, roles), permissions: quyenHienThi(s.permissions, seesHidden), datLaiPinDuoc: datLaiPinDuocTheoDong(admin, s),
             canResetMfa: tatHaiLopDuoc(admin, s), mfa: { enabled: daBat, graceUntil: daBat || !isInternal(s.permissions) ? null : (anHan.get(s.id) ?? null) },

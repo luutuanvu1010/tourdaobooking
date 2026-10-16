@@ -19,7 +19,7 @@ import {
 } from "./mfa-dang-nhap";
 import { MAIL_LIMIT, mailKey, maskEmail, normalizeEmail, phatMaEmail, useEmailCode } from "./mfa-email";
 import {
-  factorEndAllStatement, factorEndKindStatement, factorListLive, recoveryCountLeft, recoveryRevokeAllStatement, staffIdsWithFactor, trustedFind, trustedInsertStatement, trustedRevokeAllStatement,
+  factorEndAllStatement, factorEndKindStatement, factorListLive, recoveryCountLeft, recoveryRevokeAllStatement, factorKindsByStaff, trustedFind, trustedInsertStatement, trustedRevokeAllStatement,
   trustedRevokeAllIfSuspendedStatement, trustedRevokeOfSessionStatement, trustedTouchStatement,
 } from "./mfa-repo";
 import { batTotpStatements, boMaDuPhongMoi, khopKhoaMoi, moiKhoaTotp } from "./mfa-tu-phuc-vu";
@@ -52,13 +52,13 @@ export {
   batEmailStatements, batTotpStatements, boMaDuPhongMoi, goYeuToStatements, khopKhoaMoi, mayTinSong, moiKhoaTotp, quenMayStatement, quenMoiMayStatement, yeuToSong,
   type MayTin, type YeuToSong,
 } from "./mfa-tu-phuc-vu";
-export { allowedFactors, isInternal, mfaBanner } from "./mfa-rules";
+export { allowedFactors, daBatHaiLop, isInternal, mfaBanner } from "./mfa-rules";
 export { recoveryCountLeft };
 // Phần C Task 3: tự bật yếu tố email (chuẩn hoá / che địa chỉ) và lô đổi quyền / vai kết thúc yếu tố email của vai lớn (ADR-0074 điều 7).
 export { maskEmail, normalizeEmail };
 export { factorEndKindStatement };
 // Kế hoạch Task 6: danh sách Quản lý tài khoản (ai đã bật, ai đang bị khoá bước hai) và nút "Mở khoá" gỡ cả khoá bước hai.
-export { lockedMfaStaffIds, staffIdsWithFactor, unlockLogin };
+export { lockedMfaStaffIds, factorKindsByStaff, unlockLogin };
 export { PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, issuePasskeyChallenge, limitChallenge, passkeyRp, readPasskeyChallenge };
 export { verifyRegistration } from "./webauthn";
 export { deviceLabel } from "./device-label";

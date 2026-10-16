@@ -24,8 +24,9 @@ export type TrustedRevokeReason = "quen_may" | "quen_moi_may" | "doi_pin" | "dat
 
 const F_COLS = "id, staff_id, kind, secret_enc, email, last_totp_step, valid_from_at";
 const FACTOR_LIST_LIVE = defineSql("auth", "mfa_factor_list_live", `SELECT ${F_COLS} FROM aut_mfa_factor WHERE staff_id = ?1 AND valid_to_at IS NULL ORDER BY created_at, id`);
-// Nhãn "Hai lớp" ở danh sách Quản lý tài khoản (kế hoạch Task 6): những tài khoản đang có ít nhất một yếu tố sống — chỉ id.
-const FACTOR_STAFF_LIVE = defineSql("auth", "mfa_factor_staff_live", "SELECT DISTINCT staff_id FROM aut_mfa_factor WHERE valid_to_at IS NULL");
+// Nhãn "Hai lớp" ở danh sách Quản lý tài khoản (kế hoạch Task 6; Phần C Task 4): loại yếu tố sống của từng tài khoản — chỉ id + loại (không địa chỉ, không khoá);
+// route lọc theo quyền hiện tại (`daBatHaiLop`) để dòng EMAIL lệch của vai lớn không thành "Đã bật".
+const FACTOR_STAFF_LIVE = defineSql("auth", "mfa_factor_staff_live", "SELECT DISTINCT staff_id, kind FROM aut_mfa_factor WHERE valid_to_at IS NULL");
 const FACTOR_INSERT = defineSql(
   "auth",
   "mfa_factor_insert",
@@ -111,8 +112,10 @@ export const emailCodeBumpStatement = (db: D1Database, id: string, at: string): 
 export async function factorListLive(db: D1Database, staffId: string): Promise<MfaFactorRow[]> {
   return (await db.prepare(FACTOR_LIST_LIVE).bind(staffId).all<MfaFactorRow>()).results;
 }
-export async function staffIdsWithFactor(db: D1Database): Promise<Set<string>> {
-  return new Set((await db.prepare(FACTOR_STAFF_LIVE).all<{ staff_id: string }>()).results.map((r) => r.staff_id));
+export async function factorKindsByStaff(db: D1Database): Promise<Map<string, MfaKind[]>> {
+  const out = new Map<string, MfaKind[]>();
+  for (const r of (await db.prepare(FACTOR_STAFF_LIVE).all<{ staff_id: string; kind: MfaKind }>()).results) out.set(r.staff_id, [...(out.get(r.staff_id) ?? []), r.kind]);
+  return out;
 }
 export const factorInsertStatement = (
   db: D1Database,

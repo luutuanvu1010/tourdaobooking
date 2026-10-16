@@ -357,3 +357,19 @@ test("Đăng nhập PIN: tài khoản quyền lớn có dòng EMAIL lệch → p
   assert.deepEqual(g.json.allowed, ["TOTP"]);
   assert.ok(!g.text.includes("qt@gmail.com"));
 });
+
+test("Quản lý tài khoản (GET /api/staff): nhãn «Đã bật» KHÔNG tính dòng EMAIL lệch của vai lớn — Quản trị chỉ có EMAIL lệch = chưa bật (kèm hạn ân hạn); có TOTP = đã bật; Bán hàng có EMAIL = đã bật", async () => {
+  const { w } = await setup();
+  await gieoYeuTo(w, QT, "EMAIL", "qt@gmail.com");
+  await gieoYeuTo(w, KT, "TOTP");
+  await gieoYeuTo(w, KT, "EMAIL", "kt@gmail.com");
+  await gieoYeuTo(w, BH, "EMAIL", EMAIL_CHUAN);
+  w.sqlite.prepare("UPDATE staff SET mfa_grace_until = ? WHERE id = ?").run("2099-01-01T00:00:00.000Z", QT);
+  const r = await w.call("GET", "/api/staff", { as: TQ });
+  assert.equal(r.status, 200, r.text);
+  const mfa = (id: string) => r.json.staff.find((s: any) => s.id === id).mfa;
+  assert.deepEqual(mfa(QT), { enabled: false, graceUntil: "2099-01-01T00:00:00.000Z" }, "Quản trị chỉ có dòng EMAIL lệch");
+  assert.deepEqual(mfa(KT), { enabled: true, graceUntil: null }, "Kế toán có TOTP (EMAIL lệch không đổi gì)");
+  assert.deepEqual(mfa(BH), { enabled: true, graceUntil: null }, "Bán hàng bật email");
+  assert.ok(!r.text.includes("@gmail.com"), "danh sách không mang địa chỉ email");
+});
