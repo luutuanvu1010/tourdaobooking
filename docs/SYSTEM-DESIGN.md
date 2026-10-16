@@ -538,6 +538,8 @@ erDiagram
 
 Migration siết B5 (`staff_party_required`: bắt buộc `staff.party_id`) **chưa có trong `migrations/`** — cố ý, theo expand–contract (`docs/HANDOFF-N1.md`); số thứ tự của nó chưa chốt: `0019` từng được dự kiến nhưng vẫn bỏ trống, và số mới phải tính lại từ MỌI nhánh chưa gộp (`CLAUDE.md` §10); `src/migrations-n1.test.ts` nhận nó theo TÊN tệp, không theo số.
 
+**Hạng dữ liệu cá nhân (Hiến chương 5.20, từ lát H-0 Gói 2).** Mỗi cột của mỗi bảng và view mang một hạng N0–N4 ở `docs/data-dictionary.json` (khoá `hangDuLieu`; bản đọc: mục cuối `docs/DATA-DICTIONARY.md`). Bài `src/hang-du-lieu.test.ts` đỏ khi cột mới chưa có hạng. Nhật ký không chứa giá trị N3/N4: kiểm dữ liệu `R-PTY-4`, `R-PD-1` (N3, chạy cả production) và bộ dò `tests/audit/nhat-ky-hang.mjs` trong các bài chạy cả ứng dụng (N3 + N4).
+
 ---
 
 ## 6. Luồng nghiệp vụ chính

@@ -267,3 +267,60 @@
 - `audit_log` → `orders` — audit_log.order_id — ADR-0002 điều 6
 - `catalog_override` → `staff` — catalog_override.updated_by — ADR-0002 điều 6
 - `company_profile` → `staff` — company_profile.updated_by — ADR-0002 điều 6
+
+## Hạng dữ liệu cá nhân (Hiến chương 5.20)
+
+> N0 công khai · N1 nội bộ · N2 cá nhân cơ bản · N3 định danh · N4 bí mật xác thực. Mọi cột **không** liệt kê dưới đây là **N1**. Bài `src/hang-du-lieu.test.ts` đòi mọi cột của mọi bảng và view có hạng.
+
+| Đối tượng | N0 | N2 | N3 | N4 |
+|---|---|---|---|---|
+| `audit_log` |  | `detail` |  |  |
+| `aut_mfa_email_code` |  | `email_hash` |  | `code_hash` |
+| `aut_mfa_factor` |  | `email` |  | `secret_enc` |
+| `aut_mfa_recovery_code` |  |  |  | `code_hash` |
+| `aut_passkey` |  | `label` |  |  |
+| `aut_session` |  | `device_label`, `user_agent`, `ip` |  |  |
+| `aut_trusted_device` |  | `label` |  | `token_hash` |
+| `bil_accounting_entry` |  | `reason` |  |  |
+| `bil_adjustment_request` |  | `reason` |  |  |
+| `bil_deposit_approval` |  | `reason` |  |  |
+| `bil_outside_refund` |  | `reason` |  |  |
+| `bil_payment_receipt` |  | `note` |  |  |
+| `bil_posting` |  | `reason` |  |  |
+| `dsp_assignment` |  | `place_text` |  |  |
+| `fbk_message` |  | `body` |  |  |
+| `fbk_ticket` |  | `title`, `context` |  |  |
+| `ky_period_close` |  | `note` |  |  |
+| `login_attempt` |  | `key` |  |  |
+| `mnt_setting` |  | `allowed_phones` |  |  |
+| `ntf_notice` |  | `tieu_de`, `noi_dung` |  |  |
+| `ntf_push_sub` |  | `endpoint`, `thiet_bi` |  |  |
+| `ord_cancel_reason` |  | `note` |  |  |
+| `ord_passenger` |  | `full_name`, `birth_year`, `person_key` |  |  |
+| `ord_service_terms` |  | `reason` |  |  |
+| `ord_transfer_leg` |  | `pickup_place`, `dropoff_place`, `short_notice_note` |  |  |
+| `order_service` |  | `pickup_place`, `checkin_place`, `note` |  |  |
+| `orders` |  | `customer_name`, `customer_phone`, `customer_email`, `customer_note`, `payment_note` |  |  |
+| `prc_commission_rule` |  | `note` |  |  |
+| `prc_supply_term` |  | `note` |  |  |
+| `pty_contact_point` |  | `value`, `value_normalized` |  |  |
+| `pty_organization` |  | `legal_name`, `tax_code`, `address`, `invoice_email` |  |  |
+| `pty_party` |  | `display_name` |  |  |
+| `pty_person` |  | `family_name`, `middle_name`, `given_name`, `gender` |  |  |
+| `pty_person_document` |  |  | `document_number`, `number_key`, `issued_place` |  |
+| `staff` |  | `full_name`, `phone` |  | `pin_hash` |
+| `stf_permission_adjustment` |  | `reason` |  |  |
+| `tl_hoi_dap` |  | `cau_hoi`, `tra_loi` |  |  |
+| `v_aud_order_change` |  | `detail` |  |  |
+| `v_dsp_order_handler` |  | `label` |  |  |
+| `v_ord_passenger_key` |  | `person_key` |  |  |
+| `v_ord_passenger_row` |  | `person_key` |  |  |
+| `v_pty_party_label` |  | `display_name`, `sort_key` |  |  |
+| `v_pty_person_xung_ho` |  | `given_name`, `gender` |  |  |
+| `v_stf_staff_label` |  | `label` |  |  |
+| `v_stf_staff_xung_ho` |  | `given_name`, `gender` |  |  |
+| `vc_rental_rate` |  | `note` |  |  |
+| `vc_transfer_request` |  | `meet_place_text` |  |  |
+| `vc_trip_allocation` |  | `passenger_key` |  |  |
+| `vc_trip_cost_line` |  | `note` |  |  |
+| `vc_trip_stop` |  | `place_text` |  |  |

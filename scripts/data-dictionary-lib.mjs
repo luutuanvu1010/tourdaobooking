@@ -28,5 +28,21 @@ export function renderDictionaryMarkdown(dict) {
   out.push("## Cạnh toàn vẹn (khoá ngoại có sẵn, không phải phụ thuộc mã — ADR-0002 điều 6)", "");
   for (const e of dict.integrityEdges) out.push(`- \`${e.fromTable}\` → \`${e.toTable}\` — ${e.note}`);
   out.push("");
+  if (dict.hangDuLieu) {
+    out.push(
+      "## Hạng dữ liệu cá nhân (Hiến chương 5.20)",
+      "",
+      "> N0 công khai · N1 nội bộ · N2 cá nhân cơ bản · N3 định danh · N4 bí mật xác thực. Mọi cột **không** liệt kê dưới đây là **N1**. Bài `src/hang-du-lieu.test.ts` đòi mọi cột của mọi bảng và view có hạng.",
+      "",
+      "| Đối tượng | N0 | N2 | N3 | N4 |",
+      "|---|---|---|---|---|",
+    );
+    for (const [ten, cot] of Object.entries(dict.hangDuLieu)) {
+      if (Object.values(cot).every((x) => x === "N1")) continue;
+      const theo = (h) => Object.entries(cot).filter(([, x]) => x === h).map(([c]) => `\`${c}\``).join(", ");
+      out.push(`| \`${ten}\` | ${theo("N0")} | ${theo("N2")} | ${theo("N3")} | ${theo("N4")} |`);
+    }
+    out.push("");
+  }
   return out.join("\n");
 }
