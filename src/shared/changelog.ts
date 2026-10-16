@@ -12,6 +12,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Thẻ «góp ý mới chưa trả lời» ở Trang chủ không còn đếm phiếu đã có người trả lời công khai (chủ dự án 2026-10-16). Không migration. Số tạm.
+    version: "2.6",
+    date: "2026-10-16",
+    items: [
+      { kind: "sua", text: "Thẻ «góp ý mới chưa trả lời» ở Trang chủ không còn đếm những yêu cầu đã được trả lời." },
+    ],
+  },
+  {
     // Bảo mật hai lớp bằng ứng dụng xác thực (ADR-0074 Phần B). Có thay đổi cơ sở dữ liệu (migration 0101) — cần trien-khai sau day-len; chủ đặt bí mật
     // MFA_ENCRYPTION_KEY TRƯỚC khi triển khai (docs/HANDOFF-N1.md). Ân hạn 14 ngày tính từ lúc migration áp.
     // Số 2.5 là số TẠM (= main 2.4 «Mức TA» + 1, kiểm 2026-10-16): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
