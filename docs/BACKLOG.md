@@ -404,3 +404,10 @@ Nêu bởi chủ dự án trong lúc trả lời từng ca sổ vàng; hồ sơ 
   - **Việc khi làm:** đặc tả ngắn, chủ duyệt; sửa ca sổ vàng liên quan; chủ xác nhận lại.
 
 Các việc khác từ cùng buổi xác nhận (đang chờ chủ quyết, chưa phải backlog): SV-SC-02 (tính nợ trước khi Kế toán xác nhận), SV-DH-05 (cho Kế toán ghi chuyển sang đơn khác), SV-DH-08 (điều chỉnh có dấu vết thay vì «đảo»), SV-SK-07 và SV-SK-11 (nhật ký hiện đủ chuỗi, hiện khoản đã thu), SV-DH-04 (dòng «Đã hoàn trả»). Chi tiết ở `golden/README.md`.
+
+## 36. Nợ hạ tầng dữ liệu hồ sơ (mã `BL-PTY-…`)
+
+- **BL-PTY-REPLACE-0103** · **Trạng thái:** `chưa làm`.
+  - **Vấn đề:** `INSERT OR REPLACE` xoá dòng cũ mà không chạy trigger xoá, nên lách được "chỉ-thêm" của `pty_consent` và `pty_verification` (migration `0103`). Migration `0104` đã chặn cho hai bảng kho tệp (trigger `no_replace`) nhưng `0103` chưa có.
+  - **Việc khi làm:** migration MỚI (không sửa `0103`) thêm trigger BEFORE INSERT cùng khuôn, kèm bài đỏ→xanh; rà các bảng chỉ-thêm khác.
+- **BL-PTY-ISO-MOC-TEP** · **Trạng thái:** `chưa làm`. Ba mốc `stored_at`, `purged_at`, `r2_deleted_at` của `pty_attachment` chưa có CHECK khuôn ISO (repo chưa có quy ước CHECK cho dấu thời gian); máy chủ ghi `toISOString()`. Làm khi có quy ước chung.

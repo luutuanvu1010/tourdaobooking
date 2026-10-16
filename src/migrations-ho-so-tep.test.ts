@@ -182,3 +182,42 @@ test("(f) INSERT OR REPLACE không lách được chỉ-thêm: tệp đã quyế
   assert.equal(rows(db, "SELECT created_by FROM pty_attachment_link WHERE attachment_id = 't-r'")[0]!.created_by, "s-sup");
   assert.equal(rows(db, "SELECT created_by FROM pty_attachment WHERE id = 't-r'")[0]!.created_by, "s-sup");
 });
+
+test("(g) chỉ nối vào dòng giấy tờ HIỆN HÀNH (người và tổ chức): đã gia hạn thay / đã huỷ → chặn; hiện hành → qua; dòng nối cũ không bị đụng", () => {
+  const db = all();
+  const a = nguoi(db, "pa");
+  const o = toChuc(db, "o1");
+  giayToNguoi(db, "cu", a);
+  giayToToChuc(db, "ocu", o);
+  const ta = tep(db, a);
+  const to = tep(db, o);
+  noi(db, ta, "PERSON_DOCUMENT", "cu"); // nối TRƯỚC khi bị gia hạn: vẫn giữ nguyên
+  db.prepare(`INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, previous_id, created_at, updated_at)
+    VALUES ('moi', ?, 'HEALTH_CHECK', 'SKM', 'SKM', 'cu', ?, ?)`).run(a, AT, AT);
+  db.prepare(`INSERT INTO pty_organization_document (id, party_id, document_type_code, document_number, number_key, previous_id, created_at, updated_at)
+    VALUES ('omoi', ?, 'GPKD', 'GPM', 'GPM', 'ocu', ?, ?)`).run(o, AT, AT);
+  const ta2 = tep(db, a);
+  assert.throws(() => noi(db, ta2, "PERSON_DOCUMENT", "cu"), /attachment_link_target_stale/, "người: đã gia hạn thay");
+  assert.throws(() => noi(db, to, "ORG_DOCUMENT", "ocu"), /attachment_link_target_stale/, "tổ chức: đã gia hạn thay");
+  assert.doesNotThrow(() => noi(db, ta2, "PERSON_DOCUMENT", "moi"));
+  assert.doesNotThrow(() => noi(db, to, "ORG_DOCUMENT", "omoi"));
+  assert.equal(rows(db, "SELECT count(*) AS n FROM pty_attachment_link WHERE target_id = 'cu'")[0]!.n, 1, "dòng nối cũ còn nguyên");
+  // đã huỷ
+  giayToNguoi(db, "huy", a);
+  giayToToChuc(db, "ohuy", o);
+  db.prepare("UPDATE pty_person_document SET voided_at = ? WHERE id = 'huy'").run(AT2);
+  db.prepare("UPDATE pty_organization_document SET voided_at = ? WHERE id = 'ohuy'").run(AT2);
+  assert.throws(() => noi(db, ta2, "PERSON_DOCUMENT", "huy"), /attachment_link_target_stale/, "người: đã huỷ");
+  assert.throws(() => noi(db, to, "ORG_DOCUMENT", "ohuy"), /attachment_link_target_stale/, "tổ chức: đã huỷ");
+});
+
+test("(h) ca còn hở: r2_deleted_at khi chưa quyết xoá bị CHECK chặn lúc CHÈN; bảng nối bắt buộc người tạo", () => {
+  const db = all();
+  const p = nguoi(db, "p1");
+  giayToNguoi(db, "d1", p);
+  assert.throws(() => db.prepare(`INSERT INTO pty_attachment (id, party_id, storage_key, content_kind, byte_size, content_hash, r2_deleted_at, created_at, created_by, updated_at, updated_by)
+    VALUES ('x1', ?, ?, 'png', 5, ?, ?, ?, 's', ?, 's')`).run(p, KEY(700), HASH, AT2, AT, AT), /CHECK/);
+  const t = tep(db, p);
+  assert.throws(() => db.prepare(`INSERT INTO pty_attachment_link (attachment_id, target_kind, target_id, created_at, created_by, updated_at, updated_by)
+    VALUES (?, 'PERSON_DOCUMENT', 'd1', ?, NULL, ?, 's')`).run(t, AT, AT), /CHECK|NOT NULL/);
+});

@@ -82,6 +82,16 @@ WHEN (NEW.target_kind = 'PERSON_DOCUMENT' AND NOT EXISTS (
         WHERE d.id = NEW.target_id
           AND (d.party_id = a.party_id OR d.party_id = (SELECT p.merged_into_id FROM pty_party p WHERE p.id = a.party_id))))
 BEGIN SELECT RAISE(ABORT, 'attachment_link_target_mismatch: dòng giấy tờ không thuộc hồ sơ của tệp'); END;
+-- Chỉ gắn vào dòng giấy tờ HIỆN HÀNH (chưa huỷ, không có dòng gia hạn chưa huỷ nối tiếp — cùng nghĩa 0032) — chỉ lúc CHÈN, không đụng dòng nối cũ.
+-- Lô gộp hồ sơ nối sang dòng MỚI của hồ sơ chính (là dòng hiện hành) nên không bị chặn. Hai lớp với route (Hiến chương 5.1).
+CREATE TRIGGER pty_attachment_link_current_ins BEFORE INSERT ON pty_attachment_link
+WHEN (NEW.target_kind = 'PERSON_DOCUMENT' AND EXISTS (
+        SELECT 1 FROM pty_person_document d WHERE d.id = NEW.target_id
+          AND (d.voided_at IS NOT NULL OR EXISTS (SELECT 1 FROM pty_person_document n WHERE n.previous_id = d.id AND n.voided_at IS NULL))))
+  OR (NEW.target_kind = 'ORG_DOCUMENT' AND EXISTS (
+        SELECT 1 FROM pty_organization_document d WHERE d.id = NEW.target_id
+          AND (d.voided_at IS NOT NULL OR EXISTS (SELECT 1 FROM pty_organization_document n WHERE n.previous_id = d.id AND n.voided_at IS NULL))))
+BEGIN SELECT RAISE(ABORT, 'attachment_link_target_stale: dòng giấy tờ đã huỷ hoặc đã được gia hạn thay — chỉ gắn vào dòng hiện hành'); END;
 CREATE TRIGGER pty_attachment_link_no_update BEFORE UPDATE ON pty_attachment_link
 BEGIN SELECT RAISE(ABORT, 'attachment_link_append_only: dòng nối tệp chỉ thêm, không sửa'); END;
 CREATE TRIGGER pty_attachment_link_no_delete BEFORE DELETE ON pty_attachment_link

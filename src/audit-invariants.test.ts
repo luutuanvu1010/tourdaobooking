@@ -1078,6 +1078,19 @@ test("R-PTY-12 (ADR-0123 đ6, Hiến chương 5.16): tệp chờ xoá khỏi kho
   assert.equal(violations(db, c), 0);
 });
 
+test("R-PTY-12 vòng đời 'tải lỗi': quyết xoá khi stored_at còn rỗng, rồi r2_deleted_at đã đặt → không còn cảnh báo", () => {
+  const c = one("R-PTY-12");
+  const db = build();
+  NGUOI_T(db, "p-loi");
+  const xaRoi = new Date(Date.now() - 2 * 3600e3).toISOString();
+  TEP_T(db, "t-loi", "p-loi", 7, xaRoi);
+  assert.equal(violations(db, c), 1, "dở dang quá 1 giờ");
+  db.prepare("UPDATE pty_attachment SET purged_at = ?, purge_reason = 'TAI_LEN_LOI', content_hash = NULL WHERE id = 't-loi'").run(xaRoi);
+  assert.equal(violations(db, c), 1, "chờ xoá khỏi kho (stored_at vẫn rỗng)");
+  db.prepare("UPDATE pty_attachment SET r2_deleted_at = ? WHERE id = 't-loi'").run(xaRoi);
+  assert.equal(violations(db, c), 0, "đã xoá khỏi kho — hết cảnh báo dù stored_at rỗng");
+});
+
 test("R-VC-1 (ADR-0040 D1): biển số không trùng giữa các xe CHƯA NGỪNG — xe đã ngừng giữ biển cũ không tính → 0; hai xe đang dùng cùng biển (chỉ mục bị gỡ) → 1", () => {
   const c = one("R-VC-1");
   assert.equal(c.level, "fail");
