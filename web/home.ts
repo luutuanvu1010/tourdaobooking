@@ -322,7 +322,9 @@ function renderReview(alerts: ReviewAlerts | null): void {
   if (alerts.feedbackQueue) {
     const f = alerts.feedbackQueue;
     const sub = f.items.map((i) => `${i.code} ${i.kindName.toLocaleLowerCase("vi-VN")}`).join(" · ");
-    rows.push(reviewRow("dash-review-icon-accent", "chat", "/feedback", `${f.count} góp ý mới chưa trả lời`, sub));
+    // Chỉ MỘT phiếu Mới → mở thẳng phiếu đó (trang Góp ý nhận `?id=`); nhiều phiếu → danh sách chung, vì danh sách xếp theo hoạt động gần nhất, phiếu đầu có thể không phải phiếu Mới.
+    const href = f.count === 1 && f.items[0] ? `/feedback?id=${encodeURIComponent(f.items[0].id)}` : "/feedback";
+    rows.push(reviewRow("dash-review-icon-accent", "chat", href, `${f.count} góp ý mới chưa trả lời`, sub));
   }
   replaceChildren(byId("dash-review-list"), ...rows);
   soViecXemLai = rows.length;

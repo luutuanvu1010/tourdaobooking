@@ -31,7 +31,7 @@ export interface ReviewFeedbackAlert {
   /** Tổng số yêu cầu còn ở trạng thái "Mới" (chưa trả lời). */
   count: number;
   /** Tối đa `max` yêu cầu gần nhất (tickets truyền vào đã sắp mới nhất trước — GET /api/feedback: ORDER BY last_activity_at DESC). */
-  items: { code: string; kindName: string }[];
+  items: { id: string; code: string; kindName: string }[];
 }
 
 export interface ReviewAlerts {
@@ -64,7 +64,7 @@ function summarizeCatalogConflicts(items: readonly CatalogAdminItemDto[]): Revie
 function summarizeFeedbackQueue(tickets: readonly FeedbackTicketDto[], max = 2): ReviewFeedbackAlert | null {
   const pending = tickets.filter((t) => t.status === "NEW");
   if (pending.length === 0) return null;
-  return { count: pending.length, items: pending.slice(0, max).map((t) => ({ code: t.code, kindName: t.kindName })) };
+  return { count: pending.length, items: pending.slice(0, max).map((t) => ({ id: t.id, code: t.code, kindName: t.kindName })) };
 }
 
 /**
