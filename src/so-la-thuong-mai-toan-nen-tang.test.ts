@@ -103,8 +103,8 @@ const MIEN_200: Record<string, string> = {
   "/api/bang-tin": "bắt tay WebSocket: khung thử không có trạm Bảng tin (426/503); sự kiện phát đi chỉ 5 khoá (ADR-0022 điều 4), không chở tiền",
   "/api/van-chuyen/chuyen/:id/xe-nhan": "gói A5 (ADR-0111): chỉ 200 khi chuyến ĐANG CHẠY có tài xế (409 nếu không) — khung thử không dựng chuyến chạy cho bài này; phản hồi chỉ chở năm khoá XeNhanDto (mã chuyến, tên tài xế, chỗ trống, điểm sắp tới; không biển số, không khách, không tiền, không hoa hồng); thân 4xx vẫn được quét",
   "/api/van-chuyen/cuoc-cua-toi/:id/xe-nhan": "gói A5 (ADR-0111): như dòng trên, và chỉ tài xế đang lái chuyến mới gọi được (404 với người khác)",
-  "/api/parties/:id/documents/:did/tep": "ADR-0123 (lát H-2 kho tệp): danh sách ảnh của MỘT dòng giấy tờ người — chỉ Toàn quyền; bài này không gieo giấy tờ + ảnh; DTO chỉ mã / loại / cỡ / mốc, không chở tiền; thân 4xx vẫn được quét",
-  "/api/parties/:id/documents/:did/tep/:tid": "ADR-0123: thân là byte ảnh / PDF giấy tờ (không phải JSON, không chở tiền) — chỉ Toàn quyền, cần tệp đã tải lên; bài này không gieo ảnh; thân 4xx vẫn được quét",
+  "/api/parties/:id/documents/:did/tep": "ADR-0123 (lát H-2 kho tệp): danh sách ảnh của MỘT dòng giấy tờ người — chỉ Toàn quyền; bài này không gieo giấy tờ + ảnh; DTO chỉ mã / loại / cỡ / mốc, không chở tiền; bangDien gọi bằng mã lạ nên thân 4xx vẫn được quét",
+  "/api/parties/:id/documents/:did/tep/:tid": "ADR-0123: thân là byte ảnh / PDF giấy tờ (không phải JSON, không chở tiền) — chỉ Toàn quyền, cần tệp đã tải lên; bài này không gieo ảnh; bangDien gọi bằng mã lạ nên thân 4xx vẫn được quét",
 };
 
 /**
@@ -145,6 +145,9 @@ function bangDien(g: Gieo): Record<string, string[]> {
     "/api/catalog/:code/group-history": ["/api/catalog/SLX/group-history"],
     "/api/parties/:id": [`/api/parties/${PTY_B}`, "/api/parties/pty-ncc"],
     "/api/parties/:id/documents": [`/api/parties/${PTY_B}/documents`],
+    // ADR-0123 (lát H-2 kho tệp): bài không gieo giấy tờ + ảnh ⇒ mã dòng / mã tệp lạ (Toàn quyền 404, người khác 403) — vẫn GỌI để thân được quét (MIEN_200 chỉ miễn 200).
+    "/api/parties/:id/documents/:did/tep": [`/api/parties/${PTY_B}/documents/${uuid()}/tep`],
+    "/api/parties/:id/documents/:did/tep/:tid": [`/api/parties/${PTY_B}/documents/${uuid()}/tep/${uuid()}`],
     "/api/parties/:id/tai-khoan-nhan-tien": [`/api/parties/${PTY_B}/tai-khoan-nhan-tien`, `/api/parties/${g.congTy}/tai-khoan-nhan-tien`],
     "/api/van-chuyen/xe/:id": [`/api/van-chuyen/xe/${g.xe}`],
     "/api/van-chuyen/xe/:id/ban": [`/api/van-chuyen/xe/${g.xe}/ban`],
