@@ -3,6 +3,7 @@
 import { isFeedbackKind, isFeedbackStatus, type FeedbackKind, type FeedbackStatus } from "../../shared/feedback-catalog.ts";
 import { isPriority, type Priority } from "../../shared/ve-ho-tro.ts";
 import type { FeedbackPatchRequest } from "../../shared/contracts.ts";
+import { UUID_RE } from "../../shared/http.ts";
 
 export const TITLE_MAX = 120;
 export const BODY_MAX = 4000;
@@ -73,12 +74,10 @@ export interface TicketInput {
   context: string;
   /** Nhóm nhận (ADR-0119); vắng = route dùng nhóm Kỹ thuật. Chỉ kiểm hình dạng; có thật/đang dùng do route kiểm. */
   teamId?: string;
-  /** Đơn liên quan (ADR-0127): chỉ kiểm hình dạng ở đây; đơn có thật và do chính người gửi lập do route kiểm (repository `donCuaNguoi`). */
+  /** Đơn liên quan (ADR-0127): chỉ kiểm hình dạng ở đây; đơn có thật và do chính người gửi lập do route kiểm (repository: đoạn `DON_CUA_NGUOI`, hàm `getDonCuaToi`). */
   orderId?: string;
 }
 export const TEAM_ID_RE = /^[a-z0-9-]{1,60}$/;
-/** Hình dạng id đơn (crypto.randomUUID — như UUID_RE của shared/http.ts). */
-const ORDER_ID_RE = /^[0-9a-f-]{36}$/;
 /**
  * MỘT câu cho MỌI cách gắn đơn hỏng (ADR-0127 quyết định 3, Review Focus 3): sai dạng, không tồn tại, không phải của người gửi, tài khoản không có quyền
  * xem đơn — giống hệt nhau để không dò được đơn của người khác.
@@ -94,7 +93,7 @@ export function validateTicketInput(raw: Record<string, unknown>): Checked<Ticke
   if (typeof raw.clientRequestId !== "string" || !CLIENT_REQUEST_ID_RE.test(raw.clientRequestId)) return bad("Mã yêu cầu của thiết bị không hợp lệ.");
   if (raw.teamId !== undefined && (typeof raw.teamId !== "string" || !TEAM_ID_RE.test(raw.teamId))) return bad("Nhóm nhận không hợp lệ.");
   const coDon = raw.orderId !== undefined && raw.orderId !== null;
-  if (coDon && (typeof raw.orderId !== "string" || !ORDER_ID_RE.test(raw.orderId))) return bad(CAU_DON_LIEN_QUAN_SAI);
+  if (coDon && (typeof raw.orderId !== "string" || !UUID_RE.test(raw.orderId))) return bad(CAU_DON_LIEN_QUAN_SAI);
   // Dựng giá trị từ trường TƯỜNG MINH (không chép raw): `priority` người gửi kèm theo bị bỏ qua (ADR-0127 quyết định 2).
   const value: TicketInput = { kind: raw.kind, title, body, clientRequestId: raw.clientRequestId, context: sanitizeContext(raw.context) };
   if (typeof raw.teamId === "string") value.teamId = raw.teamId;

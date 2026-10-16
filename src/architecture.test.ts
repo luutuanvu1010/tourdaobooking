@@ -1025,7 +1025,9 @@ test("ADR-0049 D1 (siết): KHÔNG module nào import van-chuyen — không cạ
 //   (1) SQL đã đăng ký của feedback: mọi quan hệ thuộc orders mà câu ĐỌC (theo EXPLAIN) và mọi tên v_ord_* xuất hiện trong chữ câu phải thuộc ba view; cộng
 //       quét mọi tệp src/modules/feedback/** (kể cả *.test.ts; che CHÚ THÍCH, KHÔNG che chuỗi) tìm tên v_ord_* ngoài ba view;
 //   (2) không tệp nào dưới src/modules/feedback/** (kể cả *.test.ts) import ../orders (kể cả ../orders/index, ../orders/<tệp>).
-// Thêm view vào danh sách = NỚI (Điều 9.4) — cần ADR/chủ duyệt. KHÔNG canh: tên ghép động ("v_" + "ord_…").
+// Thêm view vào danh sách = NỚI (Điều 9.4) — cần ADR/chủ duyệt. SQL ĐÃ ĐĂNG KÝ có ghép tên động vẫn bị bắt (EXPLAIN đọc câu cuối cùng). Lối hở thật, KHÔNG
+// canh: (i) mã KHÔNG phải SQL đã đăng ký dựng tên v_ord_* lúc chạy ("v_" + "ord_…") — phần lớn bị bài cấm `.prepare(` chuỗi thô ở module nghiêm che;
+// (ii) `import("…")` động — relativeImports chỉ bắt `import`/`export` ở đầu dòng.
 // ---------------------------------------------------------------------------------------------------------------------
 const VIEW_ORDERS_CHO_FEEDBACK: readonly string[] = ["v_ord_order_owner", "v_ord_order_label", "v_ord_order_state"];
 /** Tên v_ord_* ngoài ba view cho phép, trong một đoạn mã/SQL (không phân biệt hoa thường — tên SQLite cũng vậy). */
