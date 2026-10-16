@@ -1024,6 +1024,8 @@ export interface HoSoCuaToiResponse {
   hoSo: HoSoCuaToiDto | null;
   chinhSach: ChinhSachRiengTuDto | null;
   dongY: boolean;
+  /** Vòng sửa 1 (ruling I-2): mọi phiên bản chính sách mà quyết định mới nhất của hồ sơ là đồng ý (mới trước) — để rút đồng ý được cả bản cũ. */
+  dongYPhienBan: { id: string; phienBan: number }[];
   coTheGui: boolean;
   lyDoKhongGui: string | null;
   phieu: PhieuTuKhaiDto[];
@@ -1032,7 +1034,10 @@ export interface HoSoCuaToiResponse {
 }
 /** `POST /api/parties/chinh-sach-rieng-tu` (chỉ Toàn quyền) — thân `{ mucDich, noiDung }`. */
 export interface ChinhSachDangResponse { phienBan: number }
-/** `POST /api/parties/cua-toi/dong-y` — thân `{ chinhSachId, quyetDinh: "DONG_Y" | "RUT" }`. Rút đồng ý rút luôn mọi phiếu đang chờ (ruling Q2). */
+/**
+ * `POST /api/parties/cua-toi/dong-y` — thân `{ chinhSachId, quyetDinh: "DONG_Y" | "RUT" }`. Đồng ý: chỉ phiên bản hiện hành. Rút: mọi phiên bản đang đồng ý
+ * (`dongYPhienBan` của GET — ruling I-2), rút luôn phiếu đang chờ khai theo phiên bản đó (ruling Q2). `dongY` = quyết định vừa ghi là đồng ý.
+ */
 export interface DongYResponse { dongY: boolean }
 /** `POST /api/parties/cua-toi/phieu` — thân `{ chinhSachId, loai, ngaySinh? | diaChi? | giayTo?: { typeCode, number?, classCode?, issuedDate?, issuedPlace?, expiryDate? } }`. */
 export interface PhieuTuKhaiTaoResponse { phieuId: string }

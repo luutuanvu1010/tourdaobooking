@@ -99,6 +99,8 @@ test("đồng ý cho MỌI loại tài khoản (Bán hàng, Đối tác, Tài x�
     assert.equal((await cuaToi(w, as)).dongY, false, as);
   }
   assert.equal(w.q("SELECT count(*) n FROM pty_consent WHERE created_by = ? AND party_id <> ?", PARTNER, pty(PARTNER))[0].n, 0, "dòng đồng ý luôn gắn hồ sơ của PHIÊN");
+  // M-2 (vòng sửa 1): rút đồng ý khi KHÔNG có phiếu đang chờ ⇒ không dòng nhật ký "rút phiếu" (ghim điều kiện changes() > 0).
+  assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'self_submission_withdrawn'")[0].n, 0, "không phiếu nào bị rút thì không có nhật ký rút phiếu");
   assert.equal((await dongY(w, SALES, "khong-co", "BAT_KY")).status, 400);
 });
 
@@ -121,7 +123,7 @@ test("Review Focus 2: DTO 'Hồ sơ của tôi' đúng DANH SÁCH CHO PHÉP cho 
     VALUES ('doc-drv', ?, 'CCCD', '079 333 444 555', '079333444555', '2035-01-01', ?, ?)`).run(pty(DRV), AT, AT);
   for (const as of [PARTNER, DRVP, HYB, SALES, DRV]) {
     const d = await cuaToi(w, as);
-    assert.deepEqual(Object.keys(d).sort(), ["chinhSach", "coTheGui", "dongY", "hangGplx", "hoSo", "loaiGiayTo", "lyDoKhongGui", "phieu"], as);
+    assert.deepEqual(Object.keys(d).sort(), ["chinhSach", "coTheGui", "dongY", "dongYPhienBan", "hangGplx", "hoSo", "loaiGiayTo", "lyDoKhongGui", "phieu"], as);
     assert.deepEqual(Object.keys(d.hoSo).sort(), ["diaChi", "dienThoai", "email", "giayTo", "hoTen", "loai", "ngaySinh"], as);
     assert.deepEqual(Object.keys(d.chinhSach).sort(), ["hieuLucTu", "id", "mucDich", "noiDung", "phienBan"], as);
     assert.doesNotMatch(JSON.stringify(d), /"(roles|relationships|mergedFrom|mergedInto|accountLinked|editable|createdAt|updatedAt|createdBy|staffId|partyId)"/, as);
@@ -282,6 +284,22 @@ test("giống giá trị đang có (ruling R12): ngày sinh trùng / địa ch�
   assert.equal((await gui(w, SALES, { chinhSachId: cs, loai: "DIA_CHI", diaChi: "1 ĐƯỜNG CŨ" })).json.error.code, "same_as_current");
 });
 
+test("M-3 (vòng sửa 1): so trùng địa chỉ chỉ với địa chỉ ĐANG MỞ; giá trị đang lưu được chuẩn hoá NFC + gộp khoảng trắng trước khi so", async () => {
+  const w = setup();
+  const chen = (id: string, value: string, validTo: string | null) =>
+    w.sqlite.prepare("INSERT INTO pty_contact_point (id, party_id, contact_kind_code, value, value_normalized, is_primary, valid_from_date, valid_to_date, created_at, updated_at) VALUES (?, ?, 'ADDRESS', ?, ?, 0, '2026-01-01', ?, ?, ?)")
+      .run(id, pty(SALES), value, value.toLowerCase(), validTo, AT, AT);
+  chen("cp-dong", "2 Đường Đã Đóng", "2026-02-01");
+  chen("cp-nfd", "3  Đường  Lê Lợi".normalize("NFD"), null); // dòng cũ lưu dạng tổ hợp (NFD) và thừa khoảng trắng
+  const cs = await sanSang(w, SALES);
+  const dong = await gui(w, SALES, { chinhSachId: cs, loai: "DIA_CHI", diaChi: "2 Đường Đã Đóng" });
+  assert.equal(dong.status, 201, `địa chỉ đã đóng không tính là "đang có": ${dong.text}`);
+  await rut(w, SALES, dong.json.phieuId);
+  const nfd = await gui(w, SALES, { chinhSachId: cs, loai: "DIA_CHI", diaChi: "3 đường lê lợi" });
+  assert.equal(nfd.status, 409, nfd.text);
+  assert.equal(nfd.json.error.code, "same_as_current");
+});
+
 test("lính gác trong câu ghi: đồng ý bị rút trong khe giữa lúc đọc và lúc ghi ⇒ 409 consent_required, không phiếu", async () => {
   const w = setup();
   const cs = await sanSang(w, PARTNER);
@@ -336,4 +354,56 @@ test("ngày sinh tương lai / trước 1900 / sai khuôn bị MÁY CHỦ chặn
     assert.ok(!r.text.includes(ngaySinh), ngaySinh);
   }
   assert.equal(dem(w, "pty_self_submission"), 0);
+});
+
+// ==== Vòng sửa 1 (ruling I-2 của điều phối): rút đồng ý một phiên bản CŨ vẫn đang đồng ý ===================================================================
+test("I-2: đồng ý bản 1, gửi phiếu, Toàn quyền đăng bản 2 ⇒ rút bản 1 được (200): phiếu theo bản 1 thành đã rút, có dòng RUT mới; phiếu theo bản 2 không bị đụng", async () => {
+  const w = setup();
+  const cs1 = await sanSang(w, PARTNER);
+  const p1 = await gui(w, PARTNER, { chinhSachId: cs1, loai: "NGAY_SINH", ngaySinh: "1991-02-03" });
+  assert.equal(p1.status, 201, p1.text);
+  await dang(w, "Toàn văn chính sách THỬ bản hai");
+  let d = await cuaToi(w, PARTNER);
+  assert.equal(d.dongY, false, "bản hiện hành (2) chưa đồng ý");
+  assert.deepEqual(d.dongYPhienBan, [{ id: cs1, phienBan: 1 }], "GET kể các phiên bản ĐANG đồng ý");
+  const cs2 = d.chinhSach.id as string;
+  assert.equal((await dongY(w, PARTNER, cs2)).status, 200);
+  const p2 = await gui(w, PARTNER, { chinhSachId: cs2, loai: "DIA_CHI", diaChi: "1 Đường Bản Hai" });
+  assert.equal(p2.status, 201, p2.text);
+  assert.deepEqual((await cuaToi(w, PARTNER)).dongYPhienBan.map((x: any) => x.phienBan), [2, 1]);
+
+  const r = await dongY(w, PARTNER, cs1, "RUT");
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json, { dongY: false });
+  assert.deepEqual(w.q("SELECT id, status FROM pty_self_submission ORDER BY created_at").map((x: any) => [x.id, x.status]), [[p1.json.phieuId, "RUT"], [p2.json.phieuId, "CHO_XAC_MINH"]]);
+  assert.deepEqual(w.q("SELECT decision FROM pty_consent WHERE party_id = ? AND policy_id = ? ORDER BY created_at, rowid", pty(PARTNER), cs1).map((x: any) => x.decision), ["DONG_Y", "RUT"]);
+  d = await cuaToi(w, PARTNER);
+  assert.equal(d.dongY, true, "đồng ý bản 2 còn nguyên");
+  assert.deepEqual(d.dongYPhienBan, [{ id: cs2, phienBan: 2 }]);
+  assert.deepEqual(w.q("SELECT detail FROM audit_log WHERE action = 'privacy_consent_withdrawn'").map((x: any) => x.detail), ["phiên bản 1"]);
+  assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'self_submission_withdrawn'")[0].n, 1);
+  assert.equal(w.q(`SELECT count(*) n FROM pty_self_submission s WHERE s.status = 'CHO_XAC_MINH' AND COALESCE((SELECT c.decision FROM pty_consent c WHERE c.party_id = s.party_id
+    AND c.policy_id = s.policy_id ORDER BY c.created_at DESC, c.rowid DESC LIMIT 1), '') <> 'DONG_Y'`)[0].n, 0, "bất biến R-PTY-13");
+
+  // Rút lại bản 1 / rút bản chưa từng đồng ý / mã lạ ⇒ 409 consent_unchanged, không dòng mới. Đồng ý bản 1 (không còn hiện hành) ⇒ 409 policy_changed.
+  const truoc = dem(w, "pty_consent");
+  for (const id of [cs1, crypto.randomUUID()]) {
+    const x = await dongY(w, PARTNER, id, "RUT");
+    assert.equal(x.status, 409, x.text);
+    assert.equal(x.json.error.code, "consent_unchanged");
+  }
+  assert.equal((await dongY(w, PARTNER, cs1)).json.error.code, "policy_changed");
+  assert.equal(dem(w, "pty_consent"), truoc);
+});
+
+test("M-4: đồng ý / rút đồng ý với partyId, party_id của người khác trong thân ⇒ bị bỏ qua, dòng đồng ý luôn gắn hồ sơ của PHIÊN", async () => {
+  const w = setup();
+  await dang(w);
+  const cs = (await cuaToi(w, SALES)).chinhSach.id;
+  let r = await w.call("POST", "/api/parties/cua-toi/dong-y", { as: SALES, body: { chinhSachId: cs, quyetDinh: "DONG_Y", partyId: pty(PARTNER), party_id: pty(PARTNER) } });
+  assert.equal(r.status, 200, r.text);
+  r = await w.call("POST", "/api/parties/cua-toi/dong-y", { as: SALES, body: { chinhSachId: cs, quyetDinh: "RUT", partyId: pty(PARTNER), party_id: pty(PARTNER) } });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(w.q("SELECT party_id, decision FROM pty_consent ORDER BY created_at, rowid").map((x: any) => [x.party_id, x.decision]), [[pty(SALES), "DONG_Y"], [pty(SALES), "RUT"]]);
+  assert.equal((await cuaToi(w, PARTNER)).dongY, false, "hồ sơ người khác không bị ghi");
 });

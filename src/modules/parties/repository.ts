@@ -1100,13 +1100,17 @@ const MAX_POLICY_VERSION = defineSql("parties", "max_privacy_policy_version", "S
 const INSERT_POLICY = defineSql("parties", "insert_privacy_policy",
   `INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by)
    VALUES (?1, ?2, ?3, ?4, ?5, ?5, ?6, ?5, ?6)`);
-const LATEST_CONSENT = defineSql("parties", "latest_consent",
-  "SELECT decision FROM pty_consent WHERE party_id = ?1 AND policy_id = ?2 ORDER BY created_at DESC, rowid DESC LIMIT 1");
+// Phiên bản chính sách mà quyết định MỚI NHẤT của hồ sơ là DONG_Y (vòng sửa 1, ruling I-2: rút được mọi phiên bản đang đồng ý, không chỉ bản hiện hành).
+// Cùng khuôn "mới nhất" với trigger 0105 pty_self_submission_consent_ins và bất biến R-PTY-13 (created_at DESC, rowid DESC).
+const CONSENTED_POLICIES = defineSql("parties", "consented_policies_of_party",
+  `SELECT p.id, p.version FROM pty_privacy_policy p
+   WHERE (SELECT c.decision FROM pty_consent c WHERE c.party_id = ?1 AND c.policy_id = p.id ORDER BY c.created_at DESC, c.rowid DESC LIMIT 1) = 'DONG_Y'
+   ORDER BY p.version DESC`);
 const INSERT_CONSENT = defineSql("parties", "insert_consent",
   "INSERT INTO pty_consent (id, party_id, policy_id, decision, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6)");
 const RUT_MOI_PHIEU_CHO = defineSql("parties", "withdraw_pending_self_submissions_of_party",
   `UPDATE pty_self_submission SET status = 'RUT', decided_at = ?2, decided_by = ?3, updated_at = ?2, updated_by = ?3
-   WHERE party_id = ?1 AND status = 'CHO_XAC_MINH'`);
+   WHERE party_id = ?1 AND policy_id = ?4 AND status = 'CHO_XAC_MINH'`);
 const LIST_PHIEU = defineSql("parties", "list_self_submissions_of_party",
   `SELECT s.id, s.subject_kind, s.status, s.policy_id, s.birth_date, s.address_value, s.document_type_code, t.name AS type_name, s.number_key,
           s.license_class_code, c.name AS class_name, s.issued_date, s.issued_place, s.expiry_date, s.created_at, s.decided_at
@@ -1121,13 +1125,14 @@ export async function phienBanLonNhat(db: D1Database): Promise<number> {
 }
 export const dangChinhSachStatement = (db: D1Database, v: { id: string; version: number; mucDich: string; noiDung: string; at: string; actorId: string }): D1PreparedStatement =>
   db.prepare(INSERT_POLICY).bind(v.id, v.version, v.mucDich, v.noiDung, v.at, v.actorId);
-export async function quyetDinhDongYMoiNhat(db: D1Database, partyId: string, policyId: string): Promise<"DONG_Y" | "RUT" | null> {
-  return (await db.prepare(LATEST_CONSENT).bind(partyId, policyId).first<{ decision: "DONG_Y" | "RUT" }>())?.decision ?? null;
+export async function phienBanDangDongY(db: D1Database, partyId: string): Promise<{ id: string; version: number }[]> {
+  return (await db.prepare(CONSENTED_POLICIES).bind(partyId).all<{ id: string; version: number }>()).results;
 }
 export const ghiDongYStatement = (db: D1Database, v: { id: string; partyId: string; policyId: string; quyetDinh: "DONG_Y" | "RUT"; at: string; actorId: string }): D1PreparedStatement =>
   db.prepare(INSERT_CONSENT).bind(v.id, v.partyId, v.policyId, v.quyetDinh, v.at, v.actorId);
-export const rutMoiPhieuChoStatement = (db: D1Database, v: { partyId: string; at: string; actorId: string }): D1PreparedStatement =>
-  db.prepare(RUT_MOI_PHIEU_CHO).bind(v.partyId, v.at, v.actorId);
+/** Rút mọi phiếu ĐANG CHỜ của hồ sơ khai theo ĐÚNG phiên bản `policyId` (rút đồng ý phiên bản đó — ruling Q2 + I-2; bất biến R-PTY-13 xét theo phiên bản). */
+export const rutMoiPhieuChoStatement = (db: D1Database, v: { partyId: string; policyId: string; at: string; actorId: string }): D1PreparedStatement =>
+  db.prepare(RUT_MOI_PHIEU_CHO).bind(v.partyId, v.at, v.actorId, v.policyId);
 export async function listPhieuCuaHoSo(db: D1Database, partyId: string): Promise<PhieuRow[]> {
   return (await db.prepare(LIST_PHIEU).bind(partyId).all<PhieuRow>()).results;
 }

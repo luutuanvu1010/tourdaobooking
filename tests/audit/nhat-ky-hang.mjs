@@ -47,12 +47,18 @@ const chuan = (s) => s.normalize("NFC").toUpperCase().replace(/[\s.\-/]/g, "");
  * Dò mọi giá trị của mọi cột N3/N4 trong audit_log.detail (nguyên văn, hoặc đã bỏ khoảng trắng . - / và viết HOA).
  * `phaiCoDuLieu`: các cột bài gọi chịu trách nhiệm — cột nào không có giá trị ≥ 8 ký tự thì vào `rong` (chống bài rỗng).
  * Thông báo lộ KHÔNG in lại giá trị.
+ * `cotThem` (vòng sửa 1 lát H-3, M-5): cột BẢNG hạng N2 bài gọi muốn dò thêm (vd ngày sinh / địa chỉ của phiếu tự khai) — phải có hạng N2 trong sổ dữ liệu
+ * (gõ sai tên thì ném, không lặng lẽ bỏ qua); dò và chống-bài-rỗng y như cột N3/N4.
  */
-export function doNhatKyHang(sqlite, phaiCoDuLieu) {
+export function doNhatKyHang(sqlite, phaiCoDuLieu, cotThem = []) {
+  for (const cot of cotThem) {
+    const [bang, ten] = cot.split(".");
+    if (!BANG.has(bang) || DICT.hangDuLieu?.[bang]?.[ten] !== "N2") throw new Error(`doNhatKyHang: cotThem "${cot}" không phải cột bảng hạng N2 trong docs/data-dictionary.json`);
+  }
   const nhatKy = sqlite.prepare("SELECT id, action, detail FROM audit_log WHERE detail IS NOT NULL").all();
   const lo = [];
   const rong = [];
-  for (const cot of cotN3N4()) {
+  for (const cot of [...cotN3N4(), ...cotThem]) {
     const [bang, ten] = cot.split(".");
     const giaTri = sqlite.prepare(`SELECT DISTINCT "${ten}" AS v FROM "${bang}" WHERE "${ten}" IS NOT NULL AND length("${ten}") >= 8`).all().map((r) => String(r.v));
     if (phaiCoDuLieu.includes(cot) && giaTri.length === 0) rong.push(cot);

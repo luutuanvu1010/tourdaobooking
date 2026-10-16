@@ -158,9 +158,13 @@ test("danh sách bí mật / không vé: mục là route ghi có thật; KHONG_V
 // T16 (vòng 2 kiểm độc lập, mục 1): `POST /api/account/passkeys/options` nhận PIN mà sót khỏi BI_MAT ⇒ mã băm thân (dò ngược được, 10^6 khả năng) nằm
 // trong localStorage tới 24 giờ. Thay "dựa vào kỷ luật" bằng quét: route ghi có đăng nhập mà THÂN HANDLER kiểm PIN (isValidPin / validateNewPin /
 // validateFreshPin / verifyPinThrottled), hoặc là route giấy tờ của người (`/documents`), PHẢI nằm trong BI_MAT.
+// Vòng sửa 1 lát H-3 (I-1): route có thân đi qua luật kiểm SỐ GIẤY TỜ (kiemPhieuTuKhai / kiemThemGiayTo / kiemGiaHan) — kể cả đường không chứa `/documents`
+// như phiếu tự khai `/api/parties/cua-toi/phieu` — cũng PHẢI nằm trong BI_MAT.
 test("T16: route ghi đọc PIN hoặc số giấy tờ trong thân ⇒ phải nằm trong BI_MAT (quét mã route)", () => {
   const SRC = fileURLToPath(new URL("..", import.meta.url));
   const DAU_PIN = /\b(isValidPin|validateNewPin|validateFreshPin|verifyPinThrottled)\(/;
+  const DAU_SO_GIAY_TO = /\b(kiemPhieuTuKhai|kiemThemGiayTo|kiemGiaHan)\(/;
+  let soRouteSoGiayTo = 0;
   const thieu: string[] = [];
   let soRouteThay = 0;
   for (const mod of readdirSync(join(SRC, "modules"))) {
@@ -171,11 +175,14 @@ test("T16: route ghi đọc PIN hoặc số giấy tờ trong thân ⇒ phải n
     dau.forEach((h, i) => {
       const than = ma.slice(h.index!, i + 1 < dau.length ? dau[i + 1]!.index : ma.length);
       if (h[3] === "public") return; // KHONG_VE: không sinh vé, không lưu gì
-      if (!(DAU_PIN.test(than) || h[2]!.includes("/documents"))) return;
+      const coSoGiayTo = DAU_SO_GIAY_TO.test(than);
+      if (coSoGiayTo) soRouteSoGiayTo++;
+      if (!(DAU_PIN.test(than) || coSoGiayTo || h[2]!.includes("/documents"))) return;
       soRouteThay++;
       if (!laRouteBiMat(h[1]!, h[2]!.replace(/:[a-z]+/g, "x"))) thieu.push(`${h[1]} ${h[2]}`);
     });
   }
   assert.ok(soRouteThay >= 7, `bài quét phải thấy ít nhất 7 route PIN/giấy tờ, thấy ${soRouteThay} (mẫu quét hỏng?)`);
+  assert.ok(soRouteSoGiayTo >= 3, `bài quét phải thấy ít nhất 3 route gọi luật kiểm số giấy tờ (thêm, gia hạn, phiếu tự khai), thấy ${soRouteSoGiayTo}`);
   assert.deepEqual(thieu, [], `route có PIN/số giấy tờ trong thân mà thiếu ở BI_MAT (src/shared/lan-gui-bi-mat.ts): ${thieu.join(", ")}`);
 });

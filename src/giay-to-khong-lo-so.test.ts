@@ -86,6 +86,9 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
     "POST /api/parties/cua-toi/phieu": async () => {
       const cs = (await w.call("GET", "/api/parties/cua-toi", { as: TX })).json.chinhSach.id as string;
       await goi("phiếu tự khai CCCD", "POST", "/api/parties/cua-toi/phieu", TX, { chinhSachId: cs, loai: "GIAY_TO", giayTo: { typeCode: "CCCD", number: "079 666 555 444", issuedPlace: NOI_PHIEU, expiryDate: "2036-01-01" } }, 201);
+      // Vòng sửa 1 (M-5): ngày sinh + địa chỉ đánh dấu của phiếu (hạng N2) — để doNhatKyHang có dữ liệu thật dò ở nhật ký.
+      await goi("phiếu tự khai ngày sinh", "POST", "/api/parties/cua-toi/phieu", TX, { chinhSachId: cs, loai: "NGAY_SINH", ngaySinh: "1977-07-17" }, 201);
+      await goi("phiếu tự khai địa chỉ", "POST", "/api/parties/cua-toi/phieu", TX, { chinhSachId: cs, loai: "DIA_CHI", diaChi: "88 Đường Đánh Dấu Phiếu" }, 201);
       await goi("hồ sơ của tôi sau khi khai", "GET", "/api/parties/cua-toi", TX, undefined, 200);
     },
     "POST /api/parties/cua-toi/phieu/:pid/rut": async () => {
@@ -198,7 +201,8 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
   const dsN3 = doNhatKyHang(w.sqlite, [
     "pty_person_document.document_number", "pty_person_document.number_key", "pty_person_document.issued_place",
     "pty_self_submission.document_number", "pty_self_submission.number_key", "pty_self_submission.issued_place", // lát H-3 Task 4: phiếu tự khai qua route thật
-  ]);
+    "pty_self_submission.birth_date", "pty_self_submission.address_value", // vòng sửa 1 (M-5): hai cột N2 của phiếu cũng dò (cột thêm bên dưới)
+  ], ["pty_self_submission.birth_date", "pty_self_submission.address_value"]);
   assert.deepEqual(dsN3.rong, [], "bài rỗng: cột N3 phụ trách chưa có dữ liệu thật");
   assert.deepEqual(dsN3.lo, [], "nhật ký chứa giá trị hạng N3/N4");
 });

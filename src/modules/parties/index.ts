@@ -28,7 +28,7 @@ import {
   listCarriers, listPartiesByIds, openPersonPhones, personsForMatch, listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, mergedFromOf, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
   voidPersonDocStatement,
   datChoXoaTepStatement, findTepDeTai, insertTepLinkStatement, insertTepStatement, listTepChoXoa, listTepCuaGiayTo, markTepStored, tepCuaGiayTo,
-  chinhSachHienHanh, phienBanLonNhat, dangChinhSachStatement, quyetDinhDongYMoiNhat, ghiDongYStatement, rutMoiPhieuChoStatement, listPhieuCuaHoSo, type PhieuRow,
+  chinhSachHienHanh, phienBanLonNhat, dangChinhSachStatement, phienBanDangDongY, ghiDongYStatement, rutMoiPhieuChoStatement, listPhieuCuaHoSo, type PhieuRow,
   ghiPhieuStatement, timPhieuCuaHoSo, rutPhieuStatement,
   datHoatDongLoaiDoiTacStatement, hoSoMangNhan, openRoleCodesFor, themLoaiDoiTacStatement, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements, vaiDangMo,
   type BankAccountRow, type BankRow, type GopDocRow, type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
@@ -639,12 +639,18 @@ const SAME_AS_CURRENT = () => error(409, "same_as_current", "Thông tin này đ�
 
 /** Hồ sơ của PHIÊN + tình trạng tự khai. ADR-0124 đ4: own = staff.partyId — KHÔNG BAO GIỜ lấy mã hồ sơ từ đường dẫn hay thân lệnh. */
 async function tinhTuKhai(db: D1Database, staff: StaffProfile, nowIso: string) {
-  const [detail, chinhSach] = await Promise.all([staff.partyId ? getPartyDetail(db, staff.partyId) : Promise.resolve(null), chinhSachHienHanh(db, nowIso)]);
-  const daDongY = detail && chinhSach ? (await quyetDinhDongYMoiNhat(db, detail.party.id, chinhSach.id)) === "DONG_Y" : false;
+  const [detail, chinhSach, dsDongY] = await Promise.all([
+    staff.partyId ? getPartyDetail(db, staff.partyId) : Promise.resolve(null),
+    chinhSachHienHanh(db, nowIso),
+    staff.partyId ? phienBanDangDongY(db, staff.partyId) : Promise.resolve([]),
+  ]);
+  // Phiên bản mà quyết định MỚI NHẤT của hồ sơ phiên là DONG_Y (vòng sửa 1, ruling I-2) — rỗng khi chưa gắn hồ sơ.
+  const dangDongY = detail ? dsDongY : [];
+  const daDongY = chinhSach !== null && dangDongY.some((p) => p.id === chinhSach.id);
   const tt: TinhTrangTuKhai = {
     coHoSo: detail !== null, laCaNhan: detail?.party.party_kind === "PERSON", daGop: (detail?.party.merged_into_id ?? null) !== null, coChinhSach: chinhSach !== null, daDongY,
   };
-  return { detail, chinhSach, tt };
+  return { detail, chinhSach, tt, dangDongY };
 }
 const tenGiayTo = (typeName: string | null, typeCode: string, className: string | null): string => {
   const ten = typeName ?? typeCode;
@@ -746,7 +752,7 @@ export const partiesModule: AppModule = {
 
     route("GET", "/api/parties/cua-toi", "staff", async ({ env, staff }) => {
       if (!can(staff, "party.self.view", { ownerId: staff.id })) return SELF_FORBIDDEN();
-      const { detail, chinhSach, tt } = await tinhTuKhai(env.DB, staff, new Date().toISOString());
+      const { detail, chinhSach, tt, dangDongY } = await tinhTuKhai(env.DB, staff, new Date().toISOString());
       const [giayTo, phieu, types, classes] = await Promise.all([
         detail && tt.laCaNhan ? listPersonDocuments(env.DB, detail.party.id, true) : Promise.resolve([]),
         detail ? listPhieuCuaHoSo(env.DB, detail.party.id) : Promise.resolve([]),
@@ -758,6 +764,7 @@ export const partiesModule: AppModule = {
         hoSo: detail ? hoSoCuaToiDto(detail, giayTo) : null,
         chinhSach: chinhSach ? { id: chinhSach.id, phienBan: chinhSach.version, mucDich: chinhSach.purposes, noiDung: chinhSach.body, hieuLucTu: chinhSach.valid_from_at } : null,
         dongY: tt.daDongY,
+        dongYPhienBan: dangDongY.map((p) => ({ id: p.id, phienBan: p.version })),
         coTheGui: ly === null,
         lyDoKhongGui: ly?.message ?? null,
         phieu: phieu.map(phieuDto),
@@ -772,26 +779,39 @@ export const partiesModule: AppModule = {
       const quyetDinh = body?.quyetDinh;
       if (quyetDinh !== "DONG_Y" && quyetDinh !== "RUT") return error(400, "invalid_input", "Chọn đồng ý hoặc rút đồng ý.");
       const at = new Date().toISOString();
-      const { detail, chinhSach, tt } = await tinhTuKhai(env.DB, staff, at);
+      const { detail, chinhSach, tt, dangDongY } = await tinhTuKhai(env.DB, staff, at);
       const chan = lyDoKhongGhi(tt);
       if (chan) return tuChoi(chan);
-      const chuaCo = lyDoKhongGui({ ...tt, daDongY: true });
-      if (chuaCo || !chinhSach) return tuChoi(chuaCo ?? { code: "no_privacy_policy", message: CAU_KHONG_GUI.chuaChinhSach });
-      if (body?.chinhSachId !== chinhSach.id) return POLICY_CHANGED();
-      if ((quyetDinh === "DONG_Y") === tt.daDongY) {
-        return error(409, "consent_unchanged", quyetDinh === "DONG_Y" ? "Bạn đã đồng ý phiên bản này rồi." : "Bạn chưa đồng ý phiên bản này nên không có gì để rút.");
+      let muc: { id: string; version: number };
+      if (quyetDinh === "DONG_Y") {
+        // Đồng ý: CHỈ phiên bản hiện hành (mã cũ ⇒ policy_changed — Review Focus 1).
+        const chuaCo = lyDoKhongGui({ ...tt, daDongY: true });
+        if (chuaCo || !chinhSach) return tuChoi(chuaCo ?? { code: "no_privacy_policy", message: CAU_KHONG_GUI.chuaChinhSach });
+        if (body?.chinhSachId !== chinhSach.id) return POLICY_CHANGED();
+        if (tt.daDongY) return error(409, "consent_unchanged", "Bạn đã đồng ý phiên bản này rồi.");
+        muc = { id: chinhSach.id, version: chinhSach.version };
+      } else {
+        // Rút đồng ý (vòng sửa 1, ruling I-2 của điều phối): MỌI phiên bản mà quyết định mới nhất của hồ sơ phiên đang là DONG_Y — kể cả bản cũ đã bị thay
+        // (trigger 0103 pty_consent_withdraw_ins cho phép). Mã lạ / chưa đồng ý / đã rút ⇒ 409, không ghi.
+        const m = dangDongY.find((p) => p.id === body?.chinhSachId);
+        if (!m) {
+          if (!chinhSach) return tuChoi({ code: "no_privacy_policy", message: CAU_KHONG_GUI.chuaChinhSach });
+          return error(409, "consent_unchanged", "Bạn chưa đồng ý phiên bản này nên không có gì để rút.");
+        }
+        muc = m;
       }
       const partyId = detail!.party.id;
       const lo: D1PreparedStatement[] = [
-        ghiDongYStatement(env.DB, { id: crypto.randomUUID(), partyId, policyId: chinhSach.id, quyetDinh, at, actorId: staff.id }),
+        ghiDongYStatement(env.DB, { id: crypto.randomUUID(), partyId, policyId: muc.id, quyetDinh, at, actorId: staff.id }),
         auditStatement(env.DB, {
-          staffId: staff.id, action: quyetDinh === "DONG_Y" ? "privacy_consent_given" : "privacy_consent_withdrawn", at, targetType: "party", targetId: partyId, detail: `phiên bản ${chinhSach.version}`,
+          staffId: staff.id, action: quyetDinh === "DONG_Y" ? "privacy_consent_given" : "privacy_consent_withdrawn", at, targetType: "party", targetId: partyId, detail: `phiên bản ${muc.version}`,
         }),
       ];
-      // Ruling Q2: rút đồng ý ⇒ rút luôn MỌI phiếu đang chờ của hồ sơ, CÙNG lô (bất biến R-PTY-13). Nhật ký chỉ khi có phiếu bị rút.
+      // Ruling Q2 + I-2: rút đồng ý một phiên bản ⇒ rút luôn mọi phiếu ĐANG CHỜ khai theo đúng phiên bản đó, CÙNG lô (bất biến R-PTY-13 xét theo phiên bản ghi
+      // trên phiếu). Nhật ký rút phiếu chỉ khi có phiếu bị rút (changes() > 0).
       if (quyetDinh === "RUT") {
         lo.push(
-          rutMoiPhieuChoStatement(env.DB, { partyId, at, actorId: staff.id }),
+          rutMoiPhieuChoStatement(env.DB, { partyId, policyId: muc.id, at, actorId: staff.id }),
           auditStatement(env.DB, { staffId: staff.id, action: "self_submission_withdrawn", at, targetType: "party", targetId: partyId, detail: "rút mọi phiếu đang chờ vì rút đồng ý" }, "changes() > 0"),
         );
       }
@@ -816,7 +836,9 @@ export const partiesModule: AppModule = {
       const n = k.value;
       // Ruling R12: trùng giá trị đang có thì không tạo phiếu vô nghĩa. Giấy tờ không kiểm (gia hạn). KHÔNG kiểm trùng CCCD với người khác (R8 — không dò số).
       if (n.loai === "NGAY_SINH" && p.birth_date === n.ngaySinh) return SAME_AS_CURRENT();
-      if (n.loai === "DIA_CHI" && detail!.contacts.some((c) => c.contact_kind_code === "ADDRESS" && c.valid_to_date === null && c.value.toLowerCase() === n.diaChi.toLowerCase())) {
+      // So với địa chỉ ĐANG MỞ; giá trị đang lưu chuẩn hoá như giá trị khai (NFC + gộp khoảng trắng — validateContact) vì dòng cũ / gieo thẳng có thể lưu dạng khác.
+      const khoaDiaChi = (v: string) => v.normalize("NFC").trim().replace(/\s+/g, " ").toLowerCase();
+      if (n.loai === "DIA_CHI" && detail!.contacts.some((c) => c.contact_kind_code === "ADDRESS" && c.valid_to_date === null && khoaDiaChi(c.value) === khoaDiaChi(n.diaChi))) {
         return SAME_AS_CURRENT();
       }
       const id = crypto.randomUUID();

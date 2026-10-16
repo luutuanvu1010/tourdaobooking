@@ -1,6 +1,7 @@
 // HÀNG RÀO 5.23 (ADR-0124 đ1, Hệ quả; lát H-3 Gói 2): giá trị TỰ KHAI chưa xác minh không bao giờ lên nhãn, đơn, chứng từ, Danh bạ. Chỉ bốn route /api/parties/cua-toi* đọc
 // / ghi bảng pty_self_submission. Ba lưới: (1) chữ "pty_self_submission" chỉ ở src/modules/parties/repository.ts (ngoài tệp test); không view nào đọc bảng; (2) câu SQL đăng ký
-// chạm bảng = ĐÚNG tập ghim; (3) trong index.ts, năm hàm repository chạm bảng chỉ xuất hiện trong khối import và trong thân route có đường bắt đầu /api/parties/cua-toi.
+// chạm bảng = ĐÚNG tập ghim; (3) năm hàm repository chạm bảng chỉ được GỌI trong thân route /api/parties/cua-toi* của parties/index.ts — mọi tệp parties khác không nhắc,
+// không bí danh, không nhập cả gói (vòng sửa 1, M-1).
 // Phá thử: gọi listPhieuCuaHoSo trong respondParty → (3) đỏ; thêm view chọn từ pty_self_submission vào migration → (1) đỏ.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -37,15 +38,39 @@ test("(2) câu SQL đăng ký chạm bảng phiếu = đúng tập ghim", async 
   assert.deepEqual(ten, CAU_GHIM);
 });
 
-test("(3) trong parties/index.ts, hàm chạm bảng phiếu chỉ được gọi trong thân route /api/parties/cua-toi*", () => {
-  const src = readFileSync(join(SRC, "modules/parties/index.ts"), "utf8").replace(/^import[\s\S]*?from\s+"[^"]+";\s*$/gm, "");
-  const khuc = src.split(/(?=\broute\(")/);
+// Vòng sửa 1 (M-1): lưới (3) quét MỌI tệp .ts của modules/parties (trừ repository.ts và tệp test), và chặn đường vòng: bí danh khi nhập (`h as x`, `{ h: x }`),
+// nhập cả gói repository (`import * as`), dùng tên hàm mà không gọi (gán sang biến khác). Trong repository.ts mỗi hàm chỉ xuất hiện đúng một lần (lúc định nghĩa).
+test("(3) hàm chạm bảng phiếu chỉ được GỌI trong thân route /api/parties/cua-toi* của parties/index.ts — mọi tệp parties khác không nhắc; không bí danh", () => {
+  const THU_MUC = join(SRC, "modules/parties");
   const loi: string[] = [];
-  for (const k of khuc) {
-    const m = /^route\("[A-Z]+", "([^"]+)"/.exec(k);
-    const duong = m?.[1] ?? "(ngoài route)";
-    for (const h of HAM) if (new RegExp(`\\b${h}\\b`).test(k) && !duong.startsWith("/api/parties/cua-toi")) loi.push(`${h} ở ${duong}`);
+  let coIndex = false;
+  for (const f of tepTs(THU_MUC).filter((p) => !p.endsWith("/repository.ts"))) {
+    const ten = f.slice(SRC.length);
+    const goc = readFileSync(f, "utf8");
+    if (/import\s+\*\s+as\s+[A-Za-z_$][\w$]*\s+from\s+"\.\/repository(\.ts)?"/.test(goc)) loi.push(`nhập cả gói repository ở ${ten}`);
+    for (const h of HAM) if (new RegExp(`\\b${h}\\s+as\\b|\\b${h}\\s*:\\s*[A-Za-z_$]`).test(goc)) loi.push(`bí danh ${h} ở ${ten}`);
+    const src = goc.replace(/^import[\s\S]*?from\s+"[^"]+";\s*$/gm, "");
+    if (!f.endsWith("/parties/index.ts")) {
+      for (const h of HAM) if (new RegExp(`\\b${h}\\b`).test(src)) loi.push(`${h} ở ${ten} (ngoài index.ts)`);
+      continue;
+    }
+    coIndex = true;
+    const khuc = src.split(/(?=\broute\(")/);
+    for (const k of khuc) {
+      const m = /^route\("[A-Z]+", "([^"]+)"/.exec(k);
+      const duong = m?.[1] ?? "(ngoài route)";
+      for (const h of HAM) {
+        if (new RegExp(`\\b${h}\\b`).test(k) && !duong.startsWith("/api/parties/cua-toi")) loi.push(`${h} ở ${duong}`);
+        if (new RegExp(`\\b${h}\\b(?!\\s*\\()`).test(k)) loi.push(`${h} được nhắc mà không gọi ở ${duong} (gán / truyền đi là đường vòng)`);
+      }
+    }
+    for (const h of HAM) assert.ok(khuc.some((k) => new RegExp(`\\b${h}\\s*\\(`).test(k)), `chống bài rỗng: ${h} phải được gọi`);
+  }
+  assert.ok(coIndex, "chống bài rỗng: phải quét được parties/index.ts");
+  const repo = readFileSync(join(THU_MUC, "repository.ts"), "utf8");
+  for (const h of HAM) {
+    const n = repo.match(new RegExp(`\\b${h}\\b`, "g"))?.length ?? 0;
+    if (n !== 1) loi.push(`repository.ts nhắc ${h} ${n} lần (chỉ được đúng một — lúc định nghĩa)`);
   }
   assert.deepEqual(loi, []);
-  for (const h of HAM) assert.ok(khuc.some((k) => new RegExp(`\\b${h}\\b`).test(k)), `chống bài rỗng: ${h} phải được dùng`);
 });
