@@ -33,7 +33,7 @@ const lh = (id: string, so: string, chinh: boolean) => ({ id, kind: "PHONE", val
 const cv = (id: string, code: string) => ({ id, code, name: code, group: "OTHER" as const, locationId: null, locationName: null, validFrom: "2026-09-01", validTo: null });
 const q = (db: DatabaseSync, sql: string, ...a: unknown[]) => db.prepare(sql).all(...(a as never[])) as Record<string, unknown>[];
 const lo = (D: unknown, a: HoSoGop, b: HoSoGop, giayToDu = new Map()) => {
-  const l = loGop(D as D1Database, { a: a.id, b: b.id, ke: keHoachGop(a, b, RANH, HOM_NAY), giayToDu, homNay: HOM_NAY, at: AT2, actorId: "s-test" });
+  const l = loGop(D as D1Database, { a: a.id, b: b.id, ke: keHoachGop(a, b, RANH, HOM_NAY), giayToDu, tepTheoGiayTo: new Map(), homNay: HOM_NAY, at: AT2, actorId: "s-test" });
   return [...l.truocDon, l.lat];
 };
 const dem = (db: DatabaseSync) => q(db, `SELECT
@@ -229,4 +229,57 @@ test("Sửa 3 không chặn nhầm: A có HAI dòng hiện hành cùng loại (h
   const r = await D.batch(lo(D, a, hs("pb"), giayToDu));
   assert.equal(r.at(-1).meta.changes, 1);
   assert.deepEqual(q(db, "SELECT expiry_date h FROM pty_person_document WHERE party_id = 'pb' AND voided_at IS NULL ORDER BY h").map((x) => x.h), ["2027-01-01", "2027-02-01"]);
+});
+
+// ---- Ảnh giấy tờ đi theo khi gộp (ADR-0123 + ADR-0068 Đ1 bước 4; ruling R15 kế hoạch H-2 kho tệp) ----
+const tep = (db: DatabaseSync, id: string, party: string, k: number) =>
+  db.prepare(`INSERT INTO pty_attachment (id, party_id, storage_key, content_kind, byte_size, content_hash, stored_at, created_at, created_by, updated_at, updated_by)
+    VALUES (?, ?, ?, 'png', 3, ?, ?, ?, 's', ?, 's')`).run(id, party, `pty/${String(k).padStart(32, "0")}`, "d".repeat(64), AT, AT, AT);
+const noi = (db: DatabaseSync, tepId: string, docId: string) =>
+  db.prepare("INSERT INTO pty_attachment_link (attachment_id, target_kind, target_id, created_at, created_by, updated_at, updated_by) VALUES (?, 'PERSON_DOCUMENT', ?, ?, 's', ?, 's')")
+    .run(tepId, docId, AT, AT);
+const dongNoi = (db: DatabaseSync) => q(db, "SELECT attachment_id a, target_id t FROM pty_attachment_link ORDER BY created_at, a, t").map((r) => ({ ...r }));
+function loAnh(D: unknown, a: HoSoGop, giayToDu: Map<string, unknown>, tepTheoGiayTo: Map<string, string[]>) {
+  const l = loGop(D as D1Database, { a: a.id, b: "pb", ke: keHoachGop(a, hs("pb"), RANH, HOM_NAY), giayToDu: giayToDu as never, tepTheoGiayTo, homNay: HOM_NAY, at: AT2, actorId: "s-test" });
+  return [...l.truocDon, l.lat, ...l.sauNhatKy];
+}
+
+test("ảnh đi theo giấy tờ được chép: dòng nối MỚI tệp → dòng giấy tờ mới của B; dòng nối cũ giữ nguyên; hồ sơ của tệp không đổi", async () => {
+  const db = openDb();
+  const D = fakeD1(db);
+  nguoi(db, "pa"); nguoi(db, "pb");
+  giayTo(db, "g1", "pa", "HEALTH_CHECK", "2027-01-01");
+  tep(db, "t1", "pa", 1);
+  noi(db, "t1", "g1");
+  const { a, giayToDu } = await hoSoCoGiayTo(D, "pa");
+  await D.batch(loAnh(D, a, giayToDu, new Map([["g1", ["t1"]]])));
+  const moi = q(db, "SELECT id FROM pty_person_document WHERE party_id = 'pb'")[0]!.id;
+  assert.deepEqual(dongNoi(db), [{ a: "t1", t: "g1" }, { a: "t1", t: moi }]);
+  assert.equal(q(db, "SELECT party_id p FROM pty_attachment WHERE id = 't1'")[0]!.p, "pa");
+});
+
+test("lính gác dòng nối: kế hoạch nói t2 thuộc g1 nhưng CSDL không có dòng nối đó ⇒ CẢ lô huỷ, không dòng nào đổi", async () => {
+  const db = openDb();
+  const D = fakeD1(db);
+  nguoi(db, "pa"); nguoi(db, "pb");
+  giayTo(db, "g1", "pa", "HEALTH_CHECK", "2027-01-01");
+  tep(db, "t2", "pa", 2); // không nối vào g1
+  const { a, giayToDu } = await hoSoCoGiayTo(D, "pa");
+  const truoc = { ...anh(db), noi: dongNoi(db) };
+  await assert.rejects(D.batch(loAnh(D, a, giayToDu, new Map([["g1", ["t2"]]]))));
+  assert.deepEqual({ ...anh(db), noi: dongNoi(db) }, truoc);
+});
+
+test("lô thua (chạy lại cùng kế hoạch sau khi đã gộp): hỏng cả lô, không thêm dòng nối", async () => {
+  const db = openDb();
+  const D = fakeD1(db);
+  nguoi(db, "pa"); nguoi(db, "pb");
+  giayTo(db, "g1", "pa", "HEALTH_CHECK", "2027-01-01");
+  tep(db, "t1", "pa", 1);
+  noi(db, "t1", "g1");
+  const { a, giayToDu } = await hoSoCoGiayTo(D, "pa");
+  await D.batch(loAnh(D, a, giayToDu, new Map([["g1", ["t1"]]])));
+  const sau = dongNoi(db);
+  await assert.rejects(D.batch(loAnh(D, a, giayToDu, new Map([["g1", ["t1"]]]))));
+  assert.deepEqual(dongNoi(db), sau);
 });

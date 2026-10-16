@@ -281,3 +281,26 @@ test("hàng chờ xoá: Quản trị / Bán hàng → 403 ở cả xem lẫn ch�
   delete w.env.HO_SO;
   assert.equal((await chayLai(w)).status, 503);
 });
+
+test("Review Focus 4: gộp hồ sơ ⇒ ảnh mở được qua dòng giấy tờ MỚI của hồ sơ chính; ảnh đã quyết xoá không đi theo", async () => {
+  const w = setup();
+  const TEN = "Người Gộp Ảnh";
+  const g = await nguoiCoCccd(w, TEN);
+  const tid = (await taiLen(w, g)).json.tep.id as string;
+  w.r2.hong.put = true;
+  assert.equal((await taiLen(w, g)).status, 500); // ảnh hỏng: đã quyết xoá TAI_LEN_LOI
+  w.r2.hong.put = false;
+  const hong = w.q("SELECT id FROM pty_attachment WHERE purged_at IS NOT NULL")[0].id as string;
+  const B = (await w.call("POST", "/api/parties", { as: ADM, body: { kind: "PERSON", fullName: TEN, contacts: [] } })).json.party.id as string;
+  const r = await w.call("POST", `/api/parties/${g.id}/merge`, { as: ADM, body: { intoPartyId: B, xacNhan: TEN } });
+  assert.equal(r.status, 200, r.text);
+  const ds = await w.call("GET", `/api/parties/${B}/documents`, { as: ADM });
+  const did = ds.json.documents.find((d: any) => d.typeCode === "CCCD" && d.current).id as string;
+  assert.notEqual(did, g.did);
+  assert.deepEqual((await w.call("GET", `/api/parties/${B}/documents/${did}/tep`, { as: SUP })).json.tep.map((t: any) => t.id), [tid]);
+  const x = await w.call("GET", `/api/parties/${B}/documents/${did}/tep/${tid}`, { as: SUP });
+  assert.equal(x.status, 200);
+  assert.deepEqual([...x.bytes], [...PNG]);
+  assert.deepEqual(w.q("SELECT target_id t FROM audit_log WHERE action = 'party_attachment_viewed'").map((v: any) => v.t), [B]);
+  assert.equal(w.q("SELECT count(*) n FROM pty_attachment_link WHERE attachment_id = ?", hong)[0].n, 1, "ảnh đã quyết xoá không nối sang hồ sơ chính");
+});

@@ -26,7 +26,7 @@ import {
   insertLicenseClassStatement, insertPersonDocTypeStatement, updateLicenseClassStatement, updatePersonDocTypeStatement, insertPersonDocStatement, isCarrierParty, isOwnerCompanyParty, listLicenseClasses, listParties,
   listCarriers, listPartiesByIds, openPersonPhones, personsForMatch, listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, mergedFromOf, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
   voidPersonDocStatement,
-  datChoXoaTepStatement, findTepDeTai, insertTepLinkStatement, insertTepStatement, listTepChoXoa, listTepCuaGiayTo, markTepStored,
+  datChoXoaTepStatement, findTepDeTai, insertTepLinkStatement, insertTepStatement, listTepChoXoa, listTepCuaGiayTo, markTepStored, tepCuaGiayTo,
   datHoatDongLoaiDoiTacStatement, hoSoMangNhan, openRoleCodesFor, themLoaiDoiTacStatement, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements, vaiDangMo,
   type BankAccountRow, type BankRow, type GopDocRow, type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
 } from "./repository";
@@ -1102,15 +1102,21 @@ export const partiesModule: AppModule = {
       }
       if (chuanHoaTen(typeof body?.xacNhan === "string" ? body.xacNhan : "") !== chuanHoaTen(t.A.hs.displayName)) return MERGE_CONFIRM();
       const at = now.toISOString();
-      const lo = loGop(env.DB, { a: id, b: into, ke: t.ke, giayToDu: new Map(t.A.giayToDu.map((d) => [d.id, d])), homNay: t.homNay, at, actorId: staff.id });
+      // ADR-0123 + ruling R15: ảnh còn hiệu lực của các dòng giấy tờ ĐƯỢC CHÉP đi theo (dòng nối mới, đứng sau câu lật). Ảnh tải lên trong khe giữa lúc đọc
+      // này và lúc ghi lô không đi theo — nằm lại ở dòng đã huỷ của A (chấp nhận, Review Focus kế hoạch H-2).
+      const tepTheoGiayTo = await tepCuaGiayTo(env.DB, t.ke.giayTo.chep.map((d) => d.id));
+      const lo = loGop(env.DB, { a: id, b: into, ke: t.ke, giayToDu: new Map(t.A.giayToDu.map((d) => [d.id, d])), tepTheoGiayTo, homNay: t.homNay, at, actorId: staff.id });
       const detail = chiTietGop(t);
-      // Thứ tự (kế hoạch R1, R2): phần parties → câu đổi người đặt đơn (thấy "A còn đang dùng") → câu LẬT A → hai dòng nhật ký `changes() > 0`.
+      // Thứ tự (kế hoạch R1, R2): phần parties → câu đổi người đặt đơn (thấy "A còn đang dùng") → câu LẬT A → hai dòng nhật ký `changes() > 0` → dòng nối ảnh
+      // (trigger cần A đã trỏ B). Vị trí câu lật tính TƯỜNG MINH (không đếm từ cuối — đuôi lô dài ngắn theo số ảnh).
+      const iLat = lo.truocDon.length + 1;
       const stmts = [
         ...lo.truocDon,
         ctx.gopHoSo.cauDoiDon(id, into, at),
         lo.lat,
         auditStatement(env.DB, { staffId: staff.id, action: "party_merged", at, targetType: "party", targetId: id, detail }, "changes() > 0"),
         auditStatement(env.DB, { staffId: staff.id, action: "party_merged", at, targetType: "party", targetId: into, detail }, "changes() > 0"),
+        ...lo.sauNhatKy,
       ];
       let results: D1Result[];
       try {
@@ -1130,7 +1136,7 @@ export const partiesModule: AppModule = {
         console.error(JSON.stringify({ level: "error", event: "merge_batch_failed", constraint: tenRangBuoc(m) }));
         return MERGE_STALE();
       }
-      if ((results[stmts.length - 3]!.meta.changes ?? 0) === 0) return MERGE_LOST_RACE();
+      if ((results[iLat]!.meta.changes ?? 0) === 0) return MERGE_LOST_RACE();
       return respondParty(ctx, into);
     }),
 

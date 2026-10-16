@@ -885,12 +885,45 @@ export const gopMoQuanHeStatement = (db: D1Database, v: Nguoi & { fromId: string
   db.prepare(GOP_MO_QUAN_HE).bind(crypto.randomUUID(), v.fromId, v.toId, v.typeCode, v.from, v.to, v.at, v.actorId, v.a, v.b);
 export const gopHuyGiayToStatement = (db: D1Database, v: Nguoi & { id: string; expectedUpdatedAt: string }): D1PreparedStatement =>
   db.prepare(GOP_HUY_GIAY_TO).bind(v.id, v.a, v.expectedUpdatedAt, v.at, v.actorId, v.b);
-export const gopChepGiayToStatement = (db: D1Database, v: Nguoi & { du: GopDocRow }): D1PreparedStatement =>
+export const gopChepGiayToStatement = (db: D1Database, v: Nguoi & { du: GopDocRow; id: string }): D1PreparedStatement =>
   db.prepare(GOP_CHEP_GIAY_TO).bind(
-    crypto.randomUUID(), v.b, v.du.document_type_code, v.du.document_number, v.du.number_key, v.du.license_class_code, v.du.issued_date, v.du.issued_place, v.du.expiry_date,
+    v.id, v.b, v.du.document_type_code, v.du.document_number, v.du.number_key, v.du.license_class_code, v.du.issued_date, v.du.issued_place, v.du.expiry_date,
     v.at, v.actorId, v.a, v.du.id,
   );
 export const gopLatStatement = (db: D1Database, v: Nguoi & { homNay: string }): D1PreparedStatement => db.prepare(GOP_LAT).bind(v.a, v.b, v.at, v.actorId, v.homNay);
+
+// ---- Gộp hồ sơ mang ảnh (ADR-0068 Đ1 bước 4 + ADR-0123; ruling R15 kế hoạch 2026-10-16-goi-2-h2-kho-tep) ----
+// Thêm dòng nối tệp → dòng giấy tờ MỚI vừa chép sang hồ sơ chính; dòng nối cũ (sang dòng đã huỷ của hồ sơ phụ) giữ nguyên — bảng chỉ-thêm.
+// Dạng VALUES, lính gác ở cột target_id (NOT NULL) như GOP_CHEP_GIAY_TO: (a) dòng nối cũ tệp ?1 → dòng nguồn ?2 CÓ THẬT; (b) dòng mới ?3 thuộc hồ sơ chính ?4
+// và do CHÍNH lô này tạo (created_at = mốc lô ?5). Sai một điều ⇒ target_id NULL ⇒ CẢ LÔ huỷ. Câu đứng SAU câu lật: trigger pty_attachment_link_target_ins
+// chỉ nhận dòng giấy tờ của hồ sơ mà hồ sơ của tệp ĐÃ gộp vào.
+// ?1 tệp, ?2 dòng giấy tờ nguồn, ?3 dòng giấy tờ mới, ?4 hồ sơ chính, ?5 lúc, ?6 người
+const GOP_NOI_TEP = defineSql(
+  "parties",
+  "gop_noi_tep",
+  `INSERT INTO pty_attachment_link (attachment_id, target_kind, target_id, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, 'PERSON_DOCUMENT',
+     (SELECT ?3 WHERE EXISTS (SELECT 1 FROM pty_attachment_link l WHERE l.attachment_id = ?1 AND l.target_kind = 'PERSON_DOCUMENT' AND l.target_id = ?2)
+        AND EXISTS (SELECT 1 FROM pty_person_document d WHERE d.id = ?3 AND d.party_id = ?4 AND d.created_at = ?5)),
+     ?5, ?6, ?5, ?6)`,
+);
+// Ảnh còn hiệu lực (đã lưu, chưa quyết xoá) của các dòng giấy tờ ?1 (mảng JSON mã dòng) — route gộp đọc trước khi dựng lô.
+const TEP_CUA_GIAY_TO = defineSql(
+  "parties",
+  "attachments_of_person_documents",
+  `SELECT l.target_id AS doc_id, a.id AS tep_id FROM pty_attachment_link l JOIN pty_attachment a ON a.id = l.attachment_id
+   WHERE l.target_kind = 'PERSON_DOCUMENT' AND l.target_id IN (SELECT value FROM json_each(?1)) AND a.stored_at IS NOT NULL AND a.purged_at IS NULL
+   ORDER BY a.created_at, a.id`,
+);
+export const gopNoiTepStatement = (db: D1Database, v: { tepId: string; docCu: string; docMoi: string; b: string; at: string; actorId: string }): D1PreparedStatement =>
+  db.prepare(GOP_NOI_TEP).bind(v.tepId, v.docCu, v.docMoi, v.b, v.at, v.actorId);
+export async function tepCuaGiayTo(db: D1Database, docIds: readonly string[]): Promise<Map<string, string[]>> {
+  const m = new Map<string, string[]>();
+  if (docIds.length === 0) return m;
+  const rows = (await db.prepare(TEP_CUA_GIAY_TO).bind(JSON.stringify(docIds)).all<{ doc_id: string; tep_id: string }>()).results;
+  for (const r of rows) m.set(r.doc_id, [...(m.get(r.doc_id) ?? []), r.tep_id]);
+  return m;
+}
 
 // ---- Tài khoản nhận tiền của công ty chủ (ADR-0108 đ2; migration 0087) — số tài khoản chỉ đi ra route có ô company.legal.write và hàm công bố cho QR. ----
 export interface BankRow {
