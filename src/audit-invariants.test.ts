@@ -1091,6 +1091,23 @@ test("R-PTY-12 vòng đời 'tải lỗi': quyết xoá khi stored_at còn rỗn
   assert.equal(violations(db, c), 0, "đã xoá khỏi kho — hết cảnh báo dù stored_at rỗng");
 });
 
+test("R-PTY-13 (ADR-0124 đ3, Hiến chương 5.21): phiếu tự khai ĐANG CHỜ của người đã rút / chưa từng đồng ý phiên bản ghi trên phiếu — fail", () => {
+  const c = one("R-PTY-13");
+  assert.equal(c.level, "fail");
+  const db = build();
+  NGUOI_T(db, "p-tk");
+  const at = "2026-10-17T03:00:00.000Z";
+  db.prepare("INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('pol-tk', 1, 'thử', 'thử', ?, ?, 's', ?, 's')").run(at, at, at);
+  db.prepare("INSERT INTO pty_consent (id, party_id, policy_id, decision, created_at, created_by, updated_at, updated_by) VALUES ('c1', 'p-tk', 'pol-tk', 'DONG_Y', ?, 's', ?, 's')").run(at, at);
+  db.prepare(`INSERT INTO pty_self_submission (id, party_id, subject_kind, policy_id, birth_date, status, created_at, created_by, updated_at, updated_by)
+    VALUES ('ph1', 'p-tk', 'NGAY_SINH', 'pol-tk', '1990-01-01', 'CHO_XAC_MINH', ?, 's', ?, 's')`).run(at, at);
+  assert.equal(violations(db, c), 0);
+  db.prepare("INSERT INTO pty_consent (id, party_id, policy_id, decision, created_at, created_by, updated_at, updated_by) VALUES ('c2', 'p-tk', 'pol-tk', 'RUT', '2026-10-17T03:05:00.000Z', 's', '2026-10-17T03:05:00.000Z', 's')").run();
+  assert.equal(violations(db, c), 1, "rút đồng ý mà phiếu vẫn chờ (route phải rút phiếu cùng lô)");
+  db.prepare("UPDATE pty_self_submission SET status = 'RUT', decided_at = '2026-10-17T03:05:00.000Z', decided_by = 's', updated_at = '2026-10-17T03:05:00.000Z' WHERE id = 'ph1'").run();
+  assert.equal(violations(db, c), 0, "phiếu đã rút không tính");
+});
+
 test("R-VC-1 (ADR-0040 D1): biển số không trùng giữa các xe CHƯA NGỪNG — xe đã ngừng giữ biển cũ không tính → 0; hai xe đang dùng cùng biển (chỉ mục bị gỡ) → 1", () => {
   const c = one("R-VC-1");
   assert.equal(c.level, "fail");

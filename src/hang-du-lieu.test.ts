@@ -44,6 +44,7 @@ const N3_GHIM = [
   "pty_attachment.content_hash", "pty_attachment.storage_key",
   "pty_organization_document.document_number", "pty_organization_document.issued_place", "pty_organization_document.number_key",
   "pty_person_document.document_number", "pty_person_document.issued_place", "pty_person_document.number_key",
+  "pty_self_submission.document_number", "pty_self_submission.issued_place", "pty_self_submission.number_key",
 ];
 const N4_GHIM = ["aut_mfa_email_code.code_hash", "aut_mfa_factor.secret_enc", "aut_mfa_recovery_code.code_hash", "aut_trusted_device.token_hash", "staff.pin_hash"];
 

@@ -112,6 +112,9 @@ export const COT_N3_NHAT_KY = {
   "pty_person_document.document_number": { kiem: "R-PTY-4" }, // R-PTY-4 dò qua number_key (cùng số, đã chuẩn hoá)
   "pty_person_document.number_key": { kiem: "R-PTY-4" },
   "pty_person_document.issued_place": { kiem: "R-PD-1", chuanHoa: false },
+  "pty_self_submission.document_number": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0124 (lát H-3): số giấy tờ TỰ KHAI — nhật ký chỉ mang mã phiếu
+  "pty_self_submission.number_key": { kiem: "R-PD-1", chuanHoa: true },
+  "pty_self_submission.issued_place": { kiem: "R-PD-1", chuanHoa: false },
 };
 const DETAIL_CHUAN = "upper(replace(replace(replace(replace(a.detail, ' ', ''), '.', ''), '-', ''), '/', ''))";
 const DO_COT_N3 = Object.entries(COT_N3_NHAT_KY)
@@ -672,6 +675,14 @@ export const CHECKS = [
     sql: `SELECT count(*) FROM pty_attachment WHERE (purged_at IS NOT NULL AND r2_deleted_at IS NULL)
             OR (purged_at IS NULL AND stored_at IS NULL AND created_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 hour'))`,
     level: "warn",
+  },
+  // R-PTY-13 (ADR-0124 đ3, Hiến chương 5.21; lát H-3 Gói 2): phiếu tự khai ĐANG CHỜ mà quyết định đồng ý mới nhất của chủ phiếu với ĐÚNG phiên bản ghi trên phiếu không còn là
+  // DONG_Y. Rút đồng ý phải rút phiếu cùng lô (route POST /api/parties/cua-toi/dong-y — ruling Q2). fail: người xác minh (lát H-4) không được xử lý phiếu như vậy.
+  {
+    code: "R-PTY-13",
+    what: "phiếu tự khai đang chờ của người đã rút (hoặc chưa từng) đồng ý chính sách ghi trên phiếu",
+    sql: "SELECT count(*) FROM pty_self_submission s WHERE s.status = 'CHO_XAC_MINH' AND COALESCE((SELECT c.decision FROM pty_consent c WHERE c.party_id = s.party_id AND c.policy_id = s.policy_id ORDER BY c.created_at DESC, c.rowid DESC LIMIT 1), '') <> 'DONG_Y'",
+    level: "fail",
   },
   {
     code: "R-VC-1",

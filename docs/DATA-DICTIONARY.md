@@ -157,6 +157,7 @@
 | `pty_organization_document` | bảng | giấy tờ của TỔ CHỨC (ADR-0122 đ2; migration 0103) — khuôn pty_person_document: gia hạn = dòng mới nối previous_id, huỷ dòng nhầm, không xoá; một số GPKD thuộc một tổ chức (trigger). Số, khoá số, nơi cấp hạng N3: KHÔNG vào nhật ký |
 | `pty_verification_attribute` | bảng | danh mục thuộc tính hồ sơ xác minh được (migration 0103), là dữ liệu chứ không CHECK liệt kê; applies_to PERSON / ORGANIZATION; bảy dòng gieo là đề xuất (câu hỏi Q1 của kế hoạch 2026-10-16-goi-2-h0-h1) |
 | `pty_verification` | bảng | kết quả xác minh theo từng dòng (ADR-0122 đ3; migration 0103), CHỈ-THÊM; dòng mới nhất là trạng thái hiện tại; người xác minh ở created_by |
+| `pty_self_submission` | bảng | phiếu tự khai hồ sơ (ADR-0124; migration 0105): giá trị khai là ĐỀ XUẤT, không ghi đè hiện hành; nội dung bất biến, trạng thái một chiều CHO_XAC_MINH → DA_CHAP_NHAN / TU_CHOI / RUT; ghi kèm phiên bản chính sách đã đồng ý; chỉ hồ sơ cá nhân; không view công bố (5.23) |
 | `pty_privacy_policy` | bảng | chính sách riêng tư có phiên bản (ADR-0126 đ1; migration 0103), CHỈ-THÊM, phiên bản liên tiếp; không gieo dòng nào; không có thời hạn xoá (chờ luật sư — lát H-5) |
 | `pty_attachment` | bảng | tệp hồ sơ (ảnh / PDF giấy tờ) ở kho R2 riêng HO_SO (ADR-0123; migration 0104): khoá kho ngẫu nhiên, loại theo chữ ký, cỡ, băm SHA-256; KHÔNG tên tệp gốc; không xoá dòng — ba mốc một chiều stored_at / purged_at (+ lý do, băm về rỗng) / r2_deleted_at; 'chờ xoá' = purged_at có, r2_deleted_at rỗng |
 | `pty_attachment_link` | bảng | nối tệp hồ sơ với dòng giấy tờ người / tổ chức (ADR-0123 đ4, đ5; migration 0104), CHỈ-THÊM; loại nối là mã mở, trigger chỉ mở PERSON_DOCUMENT, ORG_DOCUMENT; gộp hồ sơ thêm dòng nối sang dòng giấy tờ mới của hồ sơ chính |
@@ -318,6 +319,7 @@
 | `pty_person_document` |  |  | `document_number`, `number_key`, `issued_place` |  |
 | `pty_attachment` |  |  | `storage_key`, `content_hash` |  |
 | `pty_organization_document` |  |  | `document_number`, `number_key`, `issued_place` |  |
+| `pty_self_submission` |  | `birth_date`, `address_value` | `document_number`, `number_key`, `issued_place` |  |
 | `staff` |  | `full_name`, `phone` |  | `pin_hash` |
 | `stf_permission_adjustment` |  | `reason` |  |  |
 | `tl_hoi_dap` |  | `cau_hoi`, `tra_loi` |  |  |

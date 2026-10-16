@@ -36,6 +36,9 @@ export const MIEN = {
   "pty_organization_document.document_number": "chưa có route ghi giấy tờ tổ chức (lát H-1 chỉ có bảng) — lát H-2 chuyển sang src/giay-to-khong-lo-so.test.ts",
   "pty_organization_document.number_key": "chưa có route ghi giấy tờ tổ chức (lát H-1 chỉ có bảng) — lát H-2 chuyển sang src/giay-to-khong-lo-so.test.ts",
   "pty_organization_document.issued_place": "chưa có route ghi giấy tờ tổ chức (lát H-1 chỉ có bảng) — lát H-2 chuyển sang src/giay-to-khong-lo-so.test.ts",
+  "pty_self_submission.document_number": "lát H-3 Task 1 chỉ có bảng — Task 4 (route gửi phiếu) chuyển sang PHU_TRACH: src/giay-to-khong-lo-so.test.ts",
+  "pty_self_submission.number_key": "lát H-3 Task 1 chỉ có bảng — Task 4 (route gửi phiếu) chuyển sang PHU_TRACH: src/giay-to-khong-lo-so.test.ts",
+  "pty_self_submission.issued_place": "lát H-3 Task 1 chỉ có bảng — Task 4 (route gửi phiếu) chuyển sang PHU_TRACH: src/giay-to-khong-lo-so.test.ts",
 };
 
 const chuan = (s) => s.normalize("NFC").toUpperCase().replace(/[\s.\-/]/g, "");

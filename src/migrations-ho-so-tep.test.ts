@@ -59,7 +59,8 @@ const noi = (db: DatabaseSync, tepId: string, kind: string, target: string) =>
 
 test("(a) đúng MỘT tệp đuôi _ho_so_tep.sql, đứng sau mọi tệp khác; chỉ THÊM (không DROP, không ALTER bảng cũ)", () => {
   assert.equal(MATCHES.length, 1, `cần đúng một tệp *_ho_so_tep.sql, thấy ${MATCHES.join(", ")}`);
-  assert.equal(files.at(-1), FILE, "migration kho tệp phải là tệp mới nhất của nhánh");
+  // Lát H-3 (0105) đứng sau tệp này: chỉ còn đòi kho tệp đứng SAU hồ sơ mở rộng (0103) mà nó dựa vào (kế hoạch 2026-10-17-goi-2-h3-tu-khai, sự thật 7).
+  assert.ok(files.indexOf(FILE) > files.findIndex((f) => f.endsWith("_ho_so_mo_rong.sql")), "migration kho tệp phải đứng sau migration hồ sơ mở rộng");
   const sql = sqlOf(FILE).split("\n").filter((d) => !d.trim().startsWith("--")).join("\n");
   assert.doesNotMatch(sql, /\bDROP\b/i);
   assert.doesNotMatch(sql, /\bALTER\s+TABLE\b/i);
