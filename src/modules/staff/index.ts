@@ -14,7 +14,7 @@ import {
   type AdjustmentRow, type StaffRow,
 } from "./repository";
 import {
-  KHONG_NHAN_VAI_NOI_BO, canManageAccount, checkAccountChange, coQuyenNoiBo, generatePin, isWeakPin, MFA_ENROLL_WINDOW_MS, mfaGraceOnCreate, mfaGraceOnReactivate, mfaKhiThanhNoiBo, moNoiBoChoHoSoCoNhanProblem, partyAccountVerdict,
+  KHONG_NHAN_VAI_NOI_BO, canManageAccount, checkAccountChange, coQuyenNoiBo, generatePin, isWeakPin, MFA_ENROLL_WINDOW_MS, mfaGraceOnCreate, mfaGraceOnReactivate, mfaKhiThanhNoiBo, mfaSauDoiQuyen, moNoiBoChoHoSoCoNhanProblem, partyAccountVerdict,
   validateFreshPin,
 } from "./rules";
 import type { PartyMatchResponse, StaffAccount, StaffProfile } from "../../shared/contracts";
@@ -25,7 +25,7 @@ import { addDays, vnToday } from "../../shared/vn-date";
 export type { StaffAccount, StaffProfile };
 export {
   KHONG_NHAN_VAI_NOI_BO, MFA_ENROLL_WINDOW_MS, canManageAccount, checkAccountChange, countActiveAdmins, generatePin, hashPin, isValidPin, isWeakPin, mfaKhiThanhNoiBo,
-  mfaGraceOnReactivate, moNoiBoChoHoSoCoNhanProblem, normalizePhone, touchCredentialsStatement, updateStaffStatement, validateFreshPin,
+  mfaGraceOnReactivate, mfaSauDoiQuyen, moNoiBoChoHoSoCoNhanProblem, normalizePhone, touchCredentialsStatement, updateStaffStatement, validateFreshPin,
 };
 
 /**

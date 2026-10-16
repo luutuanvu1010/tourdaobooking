@@ -123,3 +123,11 @@ test("A6: định dạng nội dung — không dòng dính ('.- ') và tiêu đ�
   }
   assert.deepEqual(loi, []);
 });
+
+// Mục "Nhận mã đăng nhập qua email" (ADR-0074 Phần C Task 4): ruling điều phối — chỉ vào nhóm vai CÒN CHỖ trong ngân sách đọc (bài A4 không nới). Bán hàng đầy
+// (chưa có mục, chờ chủ quyết); Kế toán, Quản trị không dùng được email (ADR-0074 điều 7) nên không đặt.
+test("Phần C: mục «Nhận mã đăng nhập qua email» có ở nhóm Hướng dẫn viên, Tài xế, Nhân sự, Đối tác; không ở Kế toán, Quản trị", () => {
+  const co = (id: string) => HUONG_DAN.find((n) => n.id === id)!.muc.some((m) => m.tieuDe === "Nhận mã đăng nhập qua email");
+  for (const id of ["hdv", "tai-xe", "nhan-su", "doi-tac"]) assert.ok(co(id), id);
+  for (const id of ["ke-toan", "quan-tri"]) assert.ok(!co(id), id);
+});

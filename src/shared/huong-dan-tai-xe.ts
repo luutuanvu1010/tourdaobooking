@@ -1,6 +1,6 @@
 // Hướng dẫn: Tài xế (bản 1.40). Luật viết ở src/shared/huong-dan.ts; nguồn đối chiếu docs/superpowers/plans/2026-09-30-huong-dan-theo-vai-nguon/tai-xe.md.
 import type { NhomHuongDan } from "./huong-dan.ts";
-import { mucBatHaiLop } from "./huong-dan-hai-lop.ts";
+import { mucBatHaiLop, mucNhanMaEmail } from "./huong-dan-hai-lop.ts";
 
 export const HD_TAI_XE: NhomHuongDan = {
   id: "tai-xe",
@@ -102,6 +102,6 @@ Văn phòng vừa xếp thêm, rút hay chuyển khách trên chuyến bạn lá
 - **Hết hạn hôm nay** hoặc **Đã hết hạn … ngày**: báo văn phòng ngay.
 - **Không hạn**: giấy không có ngày hết hạn.`,
     },
-    mucBatHaiLop("tai-xe"),
+    mucBatHaiLop("tai-xe"), mucNhanMaEmail("tai-xe"),
   ],
 };

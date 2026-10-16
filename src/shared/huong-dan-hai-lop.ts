@@ -43,3 +43,35 @@ export function mucBatHaiLop(loai: Loai): MucHuongDan {
 - Thấy máy lạ trong danh sách **Máy được tin**: bấm [[Quên máy này]] hoặc [[Quên mọi máy]], rồi đổi PIN.`,
   };
 }
+
+// Phần C (ADR-0074 điều 4, 7; kế hoạch Task 4): nhận mã qua email. Cùng bốn nhóm vai như mục trên (ruling: nhóm còn chỗ trong ngân sách đọc). Không ghi địa
+// chỉ mẫu (bài A3 cấm chuỗi giống email). "Gửi mã qua email" để chữ đậm, không [[…]]: nút thật ghép thêm địa chỉ che nên không phải nguyên một chuỗi.
+const GO_EMAIL: Record<Loai, string> = {
+  "noi-bo": "Nhân viên nội bộ phải giữ ít nhất một cách xác thực: muốn bỏ email thì bật ứng dụng xác thực trước.",
+  "tai-xe": "Tài xế công ty phải giữ ít nhất một cách xác thực: muốn bỏ email thì bật ứng dụng xác thực trước.",
+  "doi-tac": "Gỡ cách cuối cùng thì Nền tảng thôi hỏi mã khi đăng nhập, và bộ mã dự phòng cũ hết hiệu lực.",
+};
+
+export function mucNhanMaEmail(loai: Loai): MucHuongDan {
+  return {
+    tieuDe: "Nhận mã đăng nhập qua email",
+    noiDung: `Thay cho ứng dụng xác thực, hoặc kèm theo, bạn có thể nhận mã 6 số qua email. Tài khoản Quản trị, Toàn quyền, Kế toán không dùng được cách này.
+
+1. Vào trang **Tôi**, mục **Bảo mật đăng nhập**, bấm [[Nhận mã qua email]].
+2. Gõ địa chỉ email riêng của bạn, bấm [[Gửi mã xác minh]]. Đã bật ứng dụng xác thực thì nhập thêm mã 6 số của ứng dụng hoặc một mã dự phòng.
+3. Mở hộp thư (xem cả mục Thư rác), nhập mã 6 số trong thư, bấm [[Xác nhận email]]. Không thấy thư thì bấm [[Gửi lại mã]].
+4. Lần đầu bật bảo mật hai lớp, Nền tảng hiện 10 mã dự phòng: cất như mục trên rồi bấm [[Tôi đã cất mã]].
+
+### Đăng nhập bằng mã email
+
+- Gõ PIN như cũ, bấm **Gửi mã qua email**, mở thư và nhập mã. Mã dùng được 10 phút; gửi mã mới thì mã cũ hết hiệu lực.
+- Mỗi 15 phút gửi được tối đa 3 thư. Báo chưa gửi được email thì thử lại sau ít phút, hoặc bấm [[Dùng mã dự phòng]].
+- Thư thật chỉ có mã 6 số, không có liên kết. Thấy thư lạ có liên kết thì đừng bấm, báo IT.
+
+### Đổi hoặc gỡ email
+
+- Bấm [[Đổi email]], gõ địa chỉ mới và nhập mã hiện có. Chỉ dùng email thì nhập một mã dự phòng.
+- Muốn thôi nhận mã qua email: mở **Gỡ email nhận mã**, nhập mã, bấm [[Gỡ email]]. ${GO_EMAIL[loai]}
+- Chỉ dùng email thì không tạo lại được bộ mã dự phòng: sắp hết mã thì bật thêm ứng dụng xác thực.`,
+  };
+}

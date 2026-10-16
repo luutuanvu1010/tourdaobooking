@@ -1,6 +1,7 @@
 import { ApiError, api, type Api } from "./api";
 import { chipHan, coMucGiayToCuaToi, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
 import { PERMISSION_LABEL, can, hasPermission } from "../src/shared/permissions";
+import { CAU_CHI_UNG_DUNG_XAC_THUC } from "../src/shared/hai-lop-hien-thi";
 import { coPhanTaiXe } from "../src/shared/start-page";
 import { trangToi, type MucHien } from "../src/shared/muc-giao-dien";
 import { canHuyDangKyCu } from "../src/shared/push-khoa";
@@ -14,7 +15,7 @@ import { ganCaiDatNhapTay } from "./nhap-tay-cai-dat";
 import { enableFlow, getAssertion, passkeyErrorMessage, platformAuthenticatorAvailable } from "./passkey";
 import { b64uSangBytes, thietBiTu } from "./push-ui";
 import { feedbackBadge, initShell, logout, setMaintenanceStrip, showError, xoaDaiNhacHaiLop } from "./shell";
-import { datKieuO, khoiBatTotp, khoiMaDuPhong, loiHaiLop, oMaSau } from "./hai-lop-ui";
+import { datKieuO, khoiBatTotp, khoiMaDuPhong, loiGuiThu, loiHaiLop, oMaSau } from "./hai-lop-ui";
 import { chipEl } from "./giay-to-ui";
 import { demSapHetHan } from "./vc-dem";
 import { initViecCuaToi } from "./viec-cua-toi";
@@ -419,8 +420,9 @@ void renderMySessions();
 
 // ---- Bảo mật đăng nhập (bảo mật hai lớp — ADR-0074 điều 5; đặc tả §4.3, §7; kế hoạch Phần B Task 7) --------------------------------------------------
 // Mọi tài khoản có phiên (tự phục vụ, id lấy từ phiên ở máy chủ). Bắt buộc hay không, hạn bật: máy chủ trả (`required`, `graceUntil`) — trang không suy từ mã
-// quyền. Đợt này chỉ có ứng dụng xác thực (TOTP); email (Phần C) chưa có route nên không hiện dù `allowed` có "EMAIL". Gỡ yếu tố cuối của tài khoản nội bộ:
-// máy chủ chặn 409 (câu lời thường hiện tại chỗ) — trang không tự đoán "nội bộ". HTML cũ trong bộ nhớ đệm chưa có #mfa → tự dựng khối trước #passkeys.
+// quyền. Lựa chọn "Email" (Phần C) chỉ hiện khi máy chủ trả `allowed` có "EMAIL" (Quản trị / Toàn quyền / Kế toán không có — ADR-0074 điều 7); địa chỉ chỉ hiện
+// dạng che do máy chủ trả. Gỡ yếu tố cuối của tài khoản nội bộ: máy chủ chặn 409 (câu lời thường hiện tại chỗ) — trang không tự đoán "nội bộ". HTML cũ trong bộ
+// nhớ đệm chưa có #mfa → tự dựng khối trước #passkeys.
 const mfaEl =
   document.getElementById("mfa") ??
   (() => {
@@ -457,6 +459,93 @@ function thaoTacCanMa(o: {
   return h("div", { class: "mfa-action" }, h("p", { class: "muted" }, o.ghiChu), h("label", null, o.nhanO, ma), loi, h("div", { class: "actions" }, lam, huy));
 }
 
+/**
+ * Khối "Nhận mã đăng nhập qua email" (ADR-0074 điều 4; Phần C Task 3): gõ địa chỉ → máy chủ gửi mã 6 số tới địa chỉ đó → nhập đúng mới lưu. Địa chỉ đầy đủ chỉ
+ * nằm trong ô và trong biến của khối này (gửi lại ở bước xác nhận) — KHÔNG ghi localStorage / sessionStorage / URL / nhật ký; ngoài ô chỉ hiện dạng che.
+ */
+function khoiBatEmail(o: { hoiMaHienTai: boolean; nhanMaHienTai: string; onXong: (codes: string[] | undefined) => void; onHuy: () => void }): HTMLElement {
+  const goc = h("div", { class: "mfa-enroll", id: "mfa-email-enroll" });
+  const loi = h("div", { class: "alert", role: "alert", hidden: true });
+  let email = "";
+  const huy = () => {
+    const b = h("button", { type: "button", class: "btn" }, "Huỷ");
+    b.addEventListener("click", o.onHuy);
+    return b;
+  };
+  function buocGui(ghiChu: string | null): void {
+    showError(loi, ghiChu);
+    const oEmail = h("input", { id: "mfa-email-input", type: "email", inputmode: "email", autocomplete: "email", autocapitalize: "none", maxlength: "254", placeholder: "ten@vidu.com" });
+    oEmail.spellcheck = false;
+    oEmail.value = email;
+    const oMa = o.hoiMaHienTai ? h("input", { id: "mfa-email-current", type: "text", autocomplete: "off", autocapitalize: "none", maxlength: "9" }) : null;
+    if (oMa) oMa.spellcheck = false;
+    const gui = h("button", { type: "button", class: "btn btn-primary btn-chinh" }, "Gửi mã xác minh");
+    gui.addEventListener("click", async () => {
+      const v = oEmail.value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return showError(loi, "Nhập địa chỉ email đúng dạng (ví dụ ten@vidu.com).");
+      if (oMa && !oMa.value.trim()) return showError(loi, `Nhập ô “${o.nhanMaHienTai}”.`);
+      showError(loi, null);
+      gui.disabled = true;
+      try {
+        const r = await api<Api.MfaEmailStartResponse>("/api/account/mfa/email/start", { method: "POST", body: { email: v, ...(oMa ? { currentCode: oMa.value.trim() } : {}) } });
+        email = v;
+        buocNhap(r.emailMask ?? "");
+      } catch (err) {
+        gui.disabled = false;
+        if (oMa) oMa.value = ""; // mã hiện có có thể đã bị tiêu — nhập mã mới
+        showError(loi, loiGuiThu(err));
+      }
+    });
+    replaceChildren(
+      goc,
+      h("h3", null, "Nhận mã đăng nhập qua email"),
+      h("p", { class: "muted" }, "Khi đăng nhập bằng PIN trên máy lạ, bạn bấm “Gửi mã qua email” để nhận mã 6 số tại địa chỉ này. Địa chỉ chỉ dùng để nhận mã đăng nhập, không đổi email liên hệ trong hồ sơ. Nền tảng gửi một mã để xác minh bạn nhận được thư."),
+      h("label", null, "Địa chỉ email", oEmail),
+      oMa && h("label", null, o.nhanMaHienTai, oMa),
+      loi,
+      h("div", { class: "actions" }, gui, huy()),
+    );
+    oEmail.focus();
+  }
+  function buocNhap(che: string): void {
+    showError(loi, null);
+    const ma = oMaSau("mfa-email-code");
+    const xn = h("button", { type: "button", class: "btn btn-primary btn-chinh" }, "Xác nhận email");
+    const guiLai = h("button", { type: "button", class: "btn" }, "Gửi lại mã");
+    guiLai.addEventListener("click", () => buocGui(o.hoiMaHienTai ? "Gửi lại mã: nhập lại mã hiện có (mã lần trước đã dùng)." : null));
+    const xacNhan = async () => {
+      if (ma.value.length !== 6) return showError(loi, "Nhập đủ 6 số trong email.");
+      showError(loi, null);
+      xn.disabled = true;
+      try {
+        const r = await api<Api.MfaTotpConfirmResponse>("/api/account/mfa/email/confirm", { method: "POST", body: { email, code: ma.value } });
+        email = "";
+        o.onXong(r.recoveryCodes);
+      } catch (err) {
+        xn.disabled = false;
+        ma.value = "";
+        showError(loi, loiHaiLop(err));
+        ma.focus();
+      }
+    };
+    xn.addEventListener("click", () => void xacNhan());
+    ma.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") void xacNhan();
+    });
+    replaceChildren(
+      goc,
+      h("h3", null, "Nhập mã trong email"),
+      h("p", { class: "muted", id: "mfa-email-sent" }, `Đã gửi mã 6 số tới ${che}. Mở hộp thư (xem cả mục Thư rác), nhập mã. Mã dùng được trong 10 phút.`),
+      h("label", null, "Mã 6 số trong email", ma),
+      loi,
+      h("div", { class: "actions" }, xn, guiLai, huy()),
+    );
+    ma.focus();
+  }
+  buocGui(null);
+  return goc;
+}
+
 async function renderMfa(): Promise<void> {
   let m: Api.AccountMfaResponse;
   try {
@@ -465,14 +554,21 @@ async function renderMfa(): Promise<void> {
     return; // lỗi mạng: mục giữ ẩn (khuôn renderMySessions)
   }
   const totp = m.factors.find((f) => f.kind === "TOTP") ?? null;
+  const email = m.factors.find((f) => f.kind === "EMAIL") ?? null;
+  const coYeuTo = m.factors.length > 0;
+  const emailDuoc = m.allowed.includes("EMAIL"); // máy chủ quyết (Quản trị / Toàn quyền / Kế toán: không) — trang không suy từ mã quyền
+  // Mã của yếu tố hiện có (khi thêm / đổi / gỡ): máy chủ nhận mã ứng dụng xác thực hoặc một mã dự phòng — người chỉ có email thì chỉ còn mã dự phòng.
+  const nhanMaHienCo = totp ? "Mã 6 số từ ứng dụng xác thực hoặc một mã dự phòng" : "Một mã dự phòng (dạng xxxx-xxxx)";
   const vung = h("div", { id: "mfa-body" }); // vùng đổi nội dung theo thao tác (bật, mã dự phòng, gỡ…)
   const veLai = () => void renderMfa();
+  const dongYeuTo = (f: Api.AccountMfaResponse["factors"][number]) =>
+    h("span", null, f.kind === "TOTP" ? `Ứng dụng xác thực · bật lúc ${vnDateTimeText(f.createdAt)}` : `Email ${f.emailMask ?? ""} · bật lúc ${vnDateTimeText(f.createdAt)}`);
   /** Sau khi bật: gỡ dải nhắc ở khung trang, hiện mã dự phòng (nếu máy chủ vừa tạo), xong thì vẽ lại khối. */
-  const sauKhiBat = (codes: string[] | undefined) => {
+  const sauKhiBat = (nhan: string) => (codes: string[] | undefined) => {
     xoaDaiNhacHaiLop();
     if (codes && codes.length) {
       // Trạng thái đổi ngay (khối chỉ vẽ lại khi bấm "Tôi đã cất mã" — mã dự phòng không lấy lại được nên không vẽ lại cả khối lúc này).
-      trangThai.replaceWith(h("p", { class: "maint-state" }, h("span", { class: "badge badge-confirmed" }, "Đã bật"), h("span", null, "Ứng dụng xác thực")));
+      trangThai.replaceWith(h("p", { class: "maint-state" }, h("span", { class: "badge badge-confirmed" }, "Đã bật"), h("span", null, nhan)));
       batBuoc?.remove();
       replaceChildren(vung, khoiMaDuPhong(codes, veLai));
       vung.scrollIntoView({ block: "start" });
@@ -483,16 +579,18 @@ async function renderMfa(): Promise<void> {
       batDau: () => api<Api.MfaTotpStartResponse>("/api/account/mfa/totp/start", { method: "POST", body: {} }),
       xacNhan: async (setupToken, code, maHienTai) =>
         (await api<Api.MfaTotpConfirmResponse>("/api/account/mfa/totp/confirm", { method: "POST", body: { setupToken, code, ...(maHienTai ? { currentCode: maHienTai } : {}) } })).recoveryCodes,
-      hoiMaHienTai: doiMay,
-      onXong: sauKhiBat,
+      hoiMaHienTai: doiMay || coYeuTo,
+      ...(doiMay ? {} : { nhanMaHienTai: nhanMaHienCo }),
+      onXong: sauKhiBat("Ứng dụng xác thực"),
       onHuy: veLai,
     });
+  const batEmail = () => khoiBatEmail({ hoiMaHienTai: coYeuTo, nhanMaHienTai: nhanMaHienCo, onXong: sauKhiBat("Email"), onHuy: veLai });
 
-  const trangThai = totp
-    ? h("p", { class: "maint-state" }, h("span", { class: "badge badge-confirmed" }, "Đã bật"), h("span", null, `Ứng dụng xác thực · bật lúc ${vnDateTimeText(totp.createdAt)}`))
+  const trangThai = coYeuTo
+    ? h("p", { class: "maint-state" }, h("span", { class: "badge badge-confirmed" }, "Đã bật"), ...m.factors.map(dongYeuTo))
     : h("p", { class: "maint-state" }, h("span", { class: "badge badge-draft" }, "Chưa bật"));
   const batBuoc =
-    !totp && m.required
+    !coYeuTo && m.required
       ? h(
           "p",
           { class: "mfa-note", id: "mfa-required" }, // lời nhắc, không phải lỗi: không dùng .alert (các kịch bản coi .alert đang hiện là "dòng báo lỗi")
@@ -538,7 +636,7 @@ async function renderMfa(): Promise<void> {
     if (confirm("Quên mọi máy được tin? Lần đăng nhập bằng PIN sau trên các máy đó sẽ hỏi mã 6 số. Máy đang đăng nhập không bị đăng xuất.")) void quen("/api/account/mfa/trusted/forget-all");
   });
   const mayTin =
-    totp || m.trustedDevices.length > 0
+    coYeuTo || m.trustedDevices.length > 0
       ? h(
           "div",
           { id: "mfa-devices" },
@@ -550,14 +648,27 @@ async function renderMfa(): Promise<void> {
         )
       : null;
 
-  if (totp) {
-    replaceChildren(
-      vung,
-      h("p", { id: "mfa-recovery-left" }, `Mã dự phòng: còn ${m.recoveryLeft} mã chưa dùng.`),
-      m.recoveryLeft <= 3 && h("p", { class: "mfa-note" }, "Sắp hết mã dự phòng — bấm “Tạo bộ mới”."),
-      h(
-        "div",
-        { class: "actions" },
+  /** Ô gỡ một yếu tố (cần mã của yếu tố hiện có). */
+  const goYeuTo = (kind: "TOTP" | "EMAIL", tom: string, nhanNut: string) =>
+    h(
+      "details",
+      { class: "mfa-remove", "data-go": kind },
+      h("summary", null, tom),
+      thaoTacCanMa({
+        nhanO: nhanMaHienCo, duPhong: true, nhanNut, nutCls: "btn btn-danger",
+        ghiChu: kind === "TOTP"
+          ? "Tài khoản nhân viên nội bộ phải giữ ít nhất một cách xác thực — đổi điện thoại thì dùng “Đổi sang điện thoại mới”."
+          : "Tài khoản nhân viên nội bộ phải giữ ít nhất một cách xác thực — đổi địa chỉ thì dùng “Đổi email”.",
+        lam: async (code) => {
+          await api("/api/account/mfa/remove", { method: "POST", body: { kind, code } });
+          veLai();
+        },
+        huy: veLai,
+      }),
+    );
+
+  const nutTotp = totp
+    ? [
         nutVung("Tạo bộ mới", "btn", () =>
           thaoTacCanMa({
             nhanO: "Mã 6 số đang hiện trên ứng dụng xác thực", duPhong: false, nhanNut: "Tạo bộ mã mới", nutCls: "btn btn-primary btn-chinh",
@@ -570,30 +681,24 @@ async function renderMfa(): Promise<void> {
           }),
         ),
         nutVung("Đổi sang điện thoại mới", "btn", () => batTotp(true)),
-      ),
-      h(
-        "details",
-        { class: "mfa-remove" },
-        h("summary", null, "Gỡ bảo mật hai lớp"),
-        thaoTacCanMa({
-          nhanO: "Mã 6 số hoặc một mã dự phòng", duPhong: true, nhanNut: "Gỡ ứng dụng xác thực", nutCls: "btn btn-danger",
-          ghiChu: "Tài khoản nhân viên nội bộ không gỡ được (bắt buộc giữ) — đổi điện thoại thì dùng “Đổi sang điện thoại mới”.",
-          lam: async (code) => {
-            await api("/api/account/mfa/remove", { method: "POST", body: { kind: "TOTP", code } });
-            veLai();
-          },
-          huy: veLai,
-        }),
-      ),
-    );
-  } else {
-    replaceChildren(vung, h("div", { class: "actions" }, nutVung("Bật ứng dụng xác thực", "btn btn-primary btn-chinh", () => batTotp(false))));
-  }
+      ]
+    : [nutVung("Bật ứng dụng xác thực", coYeuTo ? "btn" : "btn btn-primary btn-chinh", () => batTotp(false))];
+  const nutEmail = emailDuoc ? [nutVung(email ? "Đổi email" : "Nhận mã qua email", "btn", batEmail)] : [];
+
+  replaceChildren(
+    vung,
+    coYeuTo && h("p", { id: "mfa-recovery-left" }, `Mã dự phòng: còn ${m.recoveryLeft} mã chưa dùng.`),
+    coYeuTo && m.recoveryLeft <= 3 && h("p", { class: "mfa-note" }, totp ? "Sắp hết mã dự phòng — bấm “Tạo bộ mới”." : "Sắp hết mã dự phòng — bật thêm ứng dụng xác thực để tạo được bộ mã mới."),
+    h("div", { class: "actions" }, ...nutTotp, ...nutEmail),
+    totp && goYeuTo("TOTP", "Gỡ ứng dụng xác thực", "Gỡ ứng dụng xác thực"),
+    email && goYeuTo("EMAIL", "Gỡ email nhận mã", "Gỡ email"),
+  );
 
   replaceChildren(
     mfaEl,
     h("h2", { id: "mfa-heading" }, "Bảo mật đăng nhập"),
-    h("p", { class: "muted" }, "Bảo mật hai lớp: đăng nhập bằng PIN trên máy lạ, Nền tảng hỏi thêm mã 6 số từ ứng dụng xác thực trên điện thoại của bạn. Kẻ biết PIN mà không cầm điện thoại thì không vào được."),
+    h("p", { class: "muted" }, `Bảo mật hai lớp: đăng nhập bằng PIN trên máy lạ, Nền tảng hỏi thêm mã 6 số từ ứng dụng xác thực trên điện thoại của bạn${emailDuoc ? " hoặc mã gửi qua email" : ""}. Kẻ biết PIN mà không có mã thì không vào được.`),
+    !emailDuoc && h("p", { class: "muted" }, CAU_CHI_UNG_DUNG_XAC_THUC), // máy chủ không cho Email (Quản trị / Toàn quyền / Kế toán): nói rõ để khỏi tưởng là lỗi
     trangThai,
     batBuoc,
     vung,

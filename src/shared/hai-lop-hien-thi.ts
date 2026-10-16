@@ -16,6 +16,9 @@ export function cauLoiHaiLop(code: string, message: string): string {
   return code === "too_many_attempts" ? CAU_SAI_QUA_NHIEU_HAI_LOP : message;
 }
 
+/** Dòng giải thích ở khối Bảo mật đăng nhập khi máy chủ không cho chọn Email (ADR-0074 điều 7): người dùng khỏi tưởng là lỗi. */
+export const CAU_CHI_UNG_DUNG_XAC_THUC = "Tài khoản Quản trị, Toàn quyền, Kế toán chỉ dùng ứng dụng xác thực, không nhận mã qua email.";
+
 /** Chữ đỏ dưới bộ mã dự phòng (nguyên văn kế hoạch Task 7). */
 export const CHU_DO_MA_DU_PHONG = "Cất các mã này ở nơi an toàn — mỗi mã dùng một lần.";
 

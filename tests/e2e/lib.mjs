@@ -1,6 +1,6 @@
 // Dùng chung cho các kịch bản e2e. Chạy qua `npm run test:e2e` (tests/e2e/run.mjs dựng D1 tạm + wrangler dev riêng).
 // Chạy lẻ một kịch bản: đặt E2E_BASE_URL (server đang chạy) và E2E_PERSIST_TO (thư mục D1 local của server đó).
-import { randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import { request as httpRequest } from "node:http";
 import { promisify } from "node:util";
@@ -119,6 +119,24 @@ export async function sql(q) {
  */
 export async function datHanAnHan(account, iso) {
   await sql(`UPDATE staff SET mfa_grace_until = ${iso === null ? "NULL" : `'${iso}'`} WHERE phone = '${account.phone}'`);
+}
+
+/**
+ * ADR-0074 điều 4 (Phần C): e2e KHÔNG đọc được hộp thư, và mã sản phẩm KHÔNG có công tắc lộ mã — nên kịch bản lấy mã email bằng cách GIEO một dòng
+ * `aut_mfa_email_code` với mã BIẾT TRƯỚC: huỷ mã còn mở của (người, mục đích) rồi chèn dòng mới, băm đúng như máy chủ (`email_hash` = SHA-256 địa chỉ chữ
+ * thường, `code_hash` = SHA-256("<staffId>:<id>:<mã>")). Sống 10 phút. Trả id dòng.
+ */
+export async function gieoMaEmail(staffId, email, code, purpose = "login") {
+  const bam = (s) => createHash("sha256").update(s).digest("hex");
+  const id = randomBytes(8).toString("hex");
+  const at = new Date().toISOString();
+  const het = new Date(Date.now() + 600_000).toISOString();
+  await sql(
+    `UPDATE aut_mfa_email_code SET revoked_at = '${at}', updated_at = '${at}' WHERE staff_id = '${staffId}' AND purpose = '${purpose}' AND used_at IS NULL AND revoked_at IS NULL; ` +
+      "INSERT INTO aut_mfa_email_code (id, staff_id, purpose, email_hash, code_hash, created_at, created_by, updated_at, updated_by, expires_at, attempts, used_at, revoked_at) " +
+      `VALUES ('${id}', '${staffId}', '${purpose}', '${bam(email.trim().toLowerCase())}', '${bam(`${staffId}:${id}:${code}`)}', '${at}', '${staffId}', '${at}', '${staffId}', '${het}', 0, NULL, NULL);`,
+  );
+  return id;
 }
 
 export async function gieoTaiKhoanLai(name, permissions) {

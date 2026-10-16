@@ -1436,6 +1436,16 @@ export const CHECKS = [
     sql: "SELECT count(*) FROM aut_trusted_device d JOIN v_stf_staff_label s ON s.id = d.staff_id WHERE d.revoked_at IS NULL AND s.active = 0",
     level: "fail",
   },
+  // R-AUT-MFA-4 (ADR-0074 điều 7; kế hoạch Phần C Task 4): tài khoản giữ Quản trị / Toàn quyền / Kế toán (quyền còn hiệu lực) không có yếu tố EMAIL sống. Đường API
+  // giữ: bật email → 409; lô đổi quyền / vai kết thúc yếu tố email cùng lô (haiLopSauDoiQuyen). KHÔNG lọc `active`: tài khoản ngưng mà còn dòng lệch thì kích hoạt
+  // lại sẽ mang nó về — lưới chặt hơn. Danh sách IN được bài src/audit-invariants.test.ts đối chiếu với `allowedFactors` (mfa-rules). Đếm theo tài khoản.
+  {
+    code: "R-AUT-MFA-4",
+    what: "không tài khoản Quản trị / Toàn quyền / Kế toán nào có yếu tố email còn hiệu lực",
+    sql: `SELECT count(DISTINCT f.staff_id) FROM aut_mfa_factor f WHERE f.kind = 'EMAIL' AND f.valid_to_at IS NULL
+          AND EXISTS (SELECT 1 FROM v_stf_quyen_mo q WHERE q.staff_id = f.staff_id AND q.permission_code IN ('ADMIN', 'SUPER_ADMIN', 'ACCOUNTING'))`,
+    level: "fail",
+  },
   // R-CTL-1 (ADR-0058, NT-A11): dịch vụ ĐANG HIỆN (in_sheet = 1, không bị catalog_override.hidden = 1) mà CHƯA PHÂN LOẠI — không có dòng gán hiện hành
   // (seq lớn nhất của service_code), hoặc dòng hiện hành có group_code NULL, hoặc trỏ tới nhóm đang TẮT (form đơn hiện nó là "Chưa phân loại"). Mã mới trên
   // Sheet ở lại "Chưa phân loại" cho tới khi Quản trị gán — tình trạng nghiệp vụ hợp lệ, cần người rà soát ⇒ mức warn (in số, không bao giờ đỏ). Chỉ đếm số.

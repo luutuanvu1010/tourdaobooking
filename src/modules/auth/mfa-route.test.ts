@@ -129,7 +129,8 @@ test("xác nhận: mã sai → 401 không ghi gì; mã đúng → TOTP sống (b
   assert.equal(st.json.required, false);
   assert.equal(st.json.graceUntil, null);
   assert.equal(st.json.recoveryLeft, 10);
-  assert.deepEqual(st.json.factors.map((x: any) => Object.keys(x).sort()), [["createdAt", "kind"]]);
+  assert.deepEqual(st.json.factors.map((x: any) => Object.keys(x).sort()), [["createdAt", "emailMask", "kind"]]); // Phần C: + emailMask (TOTP → null)
+  assert.equal(st.json.factors[0].emailMask, null);
   assert.equal(st.json.factors[0].kind, "TOTP");
 
   // Mã vừa dùng để bật không qua được bước hai của đăng nhập (chống dùng lại).

@@ -1,4 +1,4 @@
-// SQL bảo mật hai lớp (ADR-0074, migration 0101): `aut_mfa_factor`, `aut_mfa_recovery_code`, `aut_trusted_device`. Mọi câu đi qua defineSql (ADR-0002 điều 8(b)), SQL TĨNH.
+// SQL bảo mật hai lớp (ADR-0074, migration 0101, 0102): `aut_mfa_factor`, `aut_mfa_recovery_code`, `aut_trusted_device`, `aut_mfa_email_code`. Mọi câu đi qua defineSql (ADR-0002 điều 8(b)), SQL TĨNH.
 // Khoá TOTP đã mã hoá (secret_enc), băm mã dự phòng và băm token máy tin KHÔNG bao giờ vào nhật ký / DTO / câu lỗi: hàm đọc dưới đây không trả băm token.
 import { defineSql } from "../../shared/sql-registry.ts";
 
@@ -24,8 +24,9 @@ export type TrustedRevokeReason = "quen_may" | "quen_moi_may" | "doi_pin" | "dat
 
 const F_COLS = "id, staff_id, kind, secret_enc, email, last_totp_step, valid_from_at";
 const FACTOR_LIST_LIVE = defineSql("auth", "mfa_factor_list_live", `SELECT ${F_COLS} FROM aut_mfa_factor WHERE staff_id = ?1 AND valid_to_at IS NULL ORDER BY created_at, id`);
-// Nhãn "Hai lớp" ở danh sách Quản lý tài khoản (kế hoạch Task 6): những tài khoản đang có ít nhất một yếu tố sống — chỉ id.
-const FACTOR_STAFF_LIVE = defineSql("auth", "mfa_factor_staff_live", "SELECT DISTINCT staff_id FROM aut_mfa_factor WHERE valid_to_at IS NULL");
+// Nhãn "Hai lớp" ở danh sách Quản lý tài khoản (kế hoạch Task 6; Phần C Task 4): loại yếu tố sống của từng tài khoản — chỉ id + loại (không địa chỉ, không khoá);
+// route lọc theo quyền hiện tại (`daBatHaiLop`) để dòng EMAIL lệch của vai lớn không thành "Đã bật".
+const FACTOR_STAFF_LIVE = defineSql("auth", "mfa_factor_staff_live", "SELECT DISTINCT staff_id, kind FROM aut_mfa_factor WHERE valid_to_at IS NULL");
 const FACTOR_INSERT = defineSql(
   "auth",
   "mfa_factor_insert",
@@ -41,6 +42,10 @@ const FACTOR_END_KEEP_ONE = defineSql(
   "UPDATE aut_mfa_factor SET valid_to_at = ?3, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND staff_id = ?2 AND valid_to_at IS NULL " +
     "AND EXISTS (SELECT 1 FROM aut_mfa_factor o WHERE o.staff_id = ?2 AND o.valid_to_at IS NULL AND o.id <> ?1)",
 );
+// ADR-0074 điều 7 (Phần C Task 3): lô đổi quyền / vai kết thúc yếu tố MỘT loại (EMAIL) khi quyền sau lô có Quản trị / Toàn quyền / Kế toán. Không có dòng sống
+// thì không đổi gì (câu đặt vô điều kiện trong lô được).
+const FACTOR_END_KIND = defineSql("auth", "mfa_factor_end_kind",
+  "UPDATE aut_mfa_factor SET valid_to_at = ?3, updated_at = ?3, updated_by = ?4 WHERE staff_id = ?1 AND kind = ?2 AND valid_to_at IS NULL");
 const FACTOR_END_ALL = defineSql("auth", "mfa_factor_end_all", "UPDATE aut_mfa_factor SET valid_to_at = ?2, updated_at = ?2, updated_by = ?3 WHERE staff_id = ?1 AND valid_to_at IS NULL");
 // Chống dùng lại mã TOTP: chỉ đổi khi bước mới LỚN HƠN bước đã dùng. Người gọi đòi changes = 1.
 const TOTP_CONSUME = defineSql("auth", "mfa_totp_consume", "UPDATE aut_mfa_factor SET last_totp_step = ?2, updated_at = ?3 WHERE id = ?1 AND valid_to_at IS NULL AND last_totp_step < ?2");
@@ -49,6 +54,8 @@ const RECOVERY_INSERT = defineSql("auth", "mfa_recovery_insert", "INSERT INTO au
 const RECOVERY_REVOKE_ALL = defineSql("auth", "mfa_recovery_revoke_all", "UPDATE aut_mfa_recovery_code SET revoked_at = ?2, updated_at = ?2, updated_by = ?3 WHERE staff_id = ?1 AND used_at IS NULL AND revoked_at IS NULL");
 // Dùng MỘT lần: chỉ đổi khi chưa dùng, chưa thu hồi. Người gọi đòi changes = 1.
 const RECOVERY_USE = defineSql("auth", "mfa_recovery_use", "UPDATE aut_mfa_recovery_code SET used_at = ?3, updated_at = ?3, updated_by = ?1 WHERE staff_id = ?1 AND code_hash = ?2 AND used_at IS NULL AND revoked_at IS NULL");
+// CHỈ KIỂM (không tiêu) — bước 1 đổi email bằng mã dự phòng: mã chỉ bị tiêu SAU khi thư đã gửi được (vòng sửa 2 Phần C).
+const RECOVERY_LIVE = defineSql("auth", "mfa_recovery_live", "SELECT 1 AS ok FROM aut_mfa_recovery_code WHERE staff_id = ?1 AND code_hash = ?2 AND used_at IS NULL AND revoked_at IS NULL");
 const RECOVERY_COUNT_LEFT = defineSql("auth", "mfa_recovery_count_left", "SELECT count(*) AS n FROM aut_mfa_recovery_code WHERE staff_id = ?1 AND used_at IS NULL AND revoked_at IS NULL");
 
 const TD_COLS = "id, staff_id, label, created_at, last_used_at, expires_at";
@@ -73,11 +80,44 @@ const TRUSTED_REVOKE_OF_SESSION = defineSql("auth", "trusted_revoke_of_session",
     "AND staff_id = (SELECT staff_id FROM aut_session WHERE id = ?1)");
 const TRUSTED_LIST = defineSql("auth", "trusted_list", `SELECT ${TD_COLS} FROM aut_trusted_device WHERE staff_id = ?1 AND revoked_at IS NULL ORDER BY last_used_at DESC, id`);
 
+// ---- Mã email (Phần C, migration 0102). Chỉ băm: email_hash (địa chỉ chuẩn hoá), code_hash ("<staffId>:<id>:<mã>"). Mã sống 10 phút, tối đa 5 lần nhập.
+export type EmailCodePurpose = "login" | "enroll";
+// Gửi mã mới: huỷ MỌI mã còn mở của (người, mục đích) — kể cả mã đã hết hạn chưa dùng (chỉ mục duy nhất aut_mfa_email_code_one_open là lưới).
+const EMAIL_CODE_REVOKE_OPEN = defineSql("auth", "email_code_revoke_open",
+  "UPDATE aut_mfa_email_code SET revoked_at = ?3, updated_at = ?3, updated_by = ?4 WHERE staff_id = ?1 AND purpose = ?2 AND used_at IS NULL AND revoked_at IS NULL");
+const EMAIL_CODE_INSERT = defineSql("auth", "email_code_insert",
+  "INSERT INTO aut_mfa_email_code (id, staff_id, purpose, email_hash, code_hash, created_at, created_by, updated_at, updated_by, expires_at, attempts, used_at, revoked_at) " +
+    "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?8, ?6, ?8, ?7, 0, NULL, NULL)");
+// Mã đang mở (chưa dùng, chưa huỷ, chưa hết hạn, chưa đủ 5 lần) — không trả băm mã.
+const EMAIL_CODE_OPEN = defineSql("auth", "email_code_open",
+  "SELECT id, email_hash, created_at FROM aut_mfa_email_code WHERE staff_id = ?1 AND purpose = ?2 AND used_at IS NULL AND revoked_at IS NULL AND expires_at > ?3 AND attempts < 5 " +
+    "ORDER BY created_at DESC, id DESC LIMIT 1");
+// Dùng MỘT lần: người gọi đòi changes = 1.
+const EMAIL_CODE_TRY = defineSql("auth", "email_code_try",
+  "UPDATE aut_mfa_email_code SET used_at = ?4, updated_at = ?4 WHERE id = ?1 AND staff_id = ?2 AND code_hash = ?3 AND used_at IS NULL AND revoked_at IS NULL AND expires_at > ?4 AND attempts < 5");
+// Đếm lần nhập sai; dừng ở 5 (CHECK attempts BETWEEN 0 AND 5 — lần thứ 6 không làm vỡ câu).
+const EMAIL_CODE_BUMP = defineSql("auth", "email_code_bump",
+  "UPDATE aut_mfa_email_code SET attempts = attempts + 1, updated_at = ?2 WHERE id = ?1 AND attempts < 5 AND used_at IS NULL AND revoked_at IS NULL");
+
+export const emailCodeRevokeOpenStatement = (db: D1Database, staffId: string, purpose: EmailCodePurpose, at: string, by: string | null): D1PreparedStatement =>
+  db.prepare(EMAIL_CODE_REVOKE_OPEN).bind(staffId, purpose, at, by);
+export const emailCodeInsertStatement = (
+  db: D1Database,
+  r: { id: string; staffId: string; purpose: EmailCodePurpose; emailHash: string; codeHash: string; at: string; expiresAt: string; by: string | null },
+): D1PreparedStatement => db.prepare(EMAIL_CODE_INSERT).bind(r.id, r.staffId, r.purpose, r.emailHash, r.codeHash, r.at, r.expiresAt, r.by);
+export const emailCodeOpen = (db: D1Database, staffId: string, purpose: EmailCodePurpose, now: string): Promise<{ id: string; email_hash: string; created_at: string } | null> =>
+  db.prepare(EMAIL_CODE_OPEN).bind(staffId, purpose, now).first<{ id: string; email_hash: string; created_at: string }>();
+export const emailCodeTryStatement = (db: D1Database, id: string, staffId: string, codeHash: string, at: string): D1PreparedStatement =>
+  db.prepare(EMAIL_CODE_TRY).bind(id, staffId, codeHash, at);
+export const emailCodeBumpStatement = (db: D1Database, id: string, at: string): D1PreparedStatement => db.prepare(EMAIL_CODE_BUMP).bind(id, at);
+
 export async function factorListLive(db: D1Database, staffId: string): Promise<MfaFactorRow[]> {
   return (await db.prepare(FACTOR_LIST_LIVE).bind(staffId).all<MfaFactorRow>()).results;
 }
-export async function staffIdsWithFactor(db: D1Database): Promise<Set<string>> {
-  return new Set((await db.prepare(FACTOR_STAFF_LIVE).all<{ staff_id: string }>()).results.map((r) => r.staff_id));
+export async function factorKindsByStaff(db: D1Database): Promise<Map<string, MfaKind[]>> {
+  const out = new Map<string, MfaKind[]>();
+  for (const r of (await db.prepare(FACTOR_STAFF_LIVE).all<{ staff_id: string; kind: MfaKind }>()).results) out.set(r.staff_id, [...(out.get(r.staff_id) ?? []), r.kind]);
+  return out;
 }
 export const factorInsertStatement = (
   db: D1Database,
@@ -87,6 +127,8 @@ export const factorEndStatement = (db: D1Database, id: string, staffId: string, 
   db.prepare(FACTOR_END).bind(id, staffId, at, by);
 export const factorEndKeepOneStatement = (db: D1Database, id: string, staffId: string, at: string, by: string | null): D1PreparedStatement =>
   db.prepare(FACTOR_END_KEEP_ONE).bind(id, staffId, at, by);
+export const factorEndKindStatement = (db: D1Database, staffId: string, kind: MfaKind, at: string, by: string | null): D1PreparedStatement =>
+  db.prepare(FACTOR_END_KIND).bind(staffId, kind, at, by);
 export const factorEndAllStatement =(db: D1Database, staffId: string, at: string, by: string | null): D1PreparedStatement =>
   db.prepare(FACTOR_END_ALL).bind(staffId, at, by);
 export const totpConsumeStatement = (db: D1Database, id: string, step: number, at: string): D1PreparedStatement => db.prepare(TOTP_CONSUME).bind(id, step, at);
@@ -97,6 +139,9 @@ export const recoveryRevokeAllStatement = (db: D1Database, staffId: string, at: 
   db.prepare(RECOVERY_REVOKE_ALL).bind(staffId, at, by);
 export const recoveryUseStatement = (db: D1Database, staffId: string, codeHash: string, at: string): D1PreparedStatement =>
   db.prepare(RECOVERY_USE).bind(staffId, codeHash, at);
+export async function recoveryLive(db: D1Database, staffId: string, codeHash: string): Promise<boolean> {
+  return (await db.prepare(RECOVERY_LIVE).bind(staffId, codeHash).first<{ ok: number }>()) !== null;
+}
 export async function recoveryCountLeft(db: D1Database, staffId: string): Promise<number> {
   return (await db.prepare(RECOVERY_COUNT_LEFT).bind(staffId).first<{ n: number }>())?.n ?? 0;
 }

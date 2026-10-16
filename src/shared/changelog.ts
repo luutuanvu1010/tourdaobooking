@@ -12,6 +12,45 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa hiển thị Góp ý ở Trang chủ (chỉ giao diện và cách đếm, KHÔNG đổi cơ sở dữ liệu, không migration).
+    // Số 2.9 là số TẠM (= main 2.8 + 1, kiểm 2026-10-16): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "2.9",
+    date: "2026-10-16",
+    items: [
+      { kind: "sua", text: "Trang chủ của Quản trị: dòng \"góp ý mới chưa trả lời\" chỉ có một phiếu thì bấm vào mở thẳng phiếu đó, không còn mở danh sách chung." },
+      { kind: "sua", text: "Chấm đếm Góp ý (thanh bên và thẻ \"Góp ý chờ xử lý\") không còn đếm phiếu đã xong hoặc đã từ chối; người gửi trả lời lại thì phiếu được đếm lại." },
+    ],
+  },
+  {
+    // Dòng giải thích ở trang Tôi → Bảo mật đăng nhập khi không có lựa chọn Email (chủ dự án 2026-10-16: Toàn quyền không thấy Email, tưởng là lỗi). Không migration.
+    // Số 2.8 là số TẠM (= main 2.7 + 1, kiểm 2026-10-16: main 476099d3): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
+    version: "2.8",
+    date: "2026-10-16",
+    items: [
+      { kind: "sua", text: "Trang Tôi, mục Bảo mật đăng nhập: tài khoản Quản trị, Toàn quyền, Kế toán nay có dòng giải thích vì sao không có lựa chọn nhận mã qua email." },
+    ],
+  },
+  {
+    // Mã đăng nhập qua email (ADR-0074 Phần C). Có thay đổi cơ sở dữ liệu (migration 0102 thêm bảng mã email) — cần trien-khai sau day-len. Gửi thư dùng binding
+    // EMAIL + bí mật FEEDBACK_MAIL_FROM đã có (chủ xác nhận; gửi thật chưa thử — docs/HANDOFF-N1.md).
+    // Số 2.7 là số TẠM (= main 2.6 «thẻ góp ý chưa trả lời» + 1, kiểm 2026-10-16: main 238f740a): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của
+    // docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
+    version: "2.7",
+    date: "2026-10-16",
+    items: [
+      { kind: "moi", text: "Có thể nhận mã đăng nhập qua email thay cho ứng dụng xác thực (không áp cho Quản trị, Toàn quyền, Kế toán). Bật ở trang Tôi, mục Bảo mật đăng nhập." },
+      { kind: "moi", text: "Khi đăng nhập bằng PIN trên máy lạ, bấm \"Gửi mã qua email\" rồi nhập mã 6 số trong thư. Mã dùng được 10 phút; thư thật không bao giờ có liên kết." },
+    ],
+  },
+  {
+    // Thẻ «góp ý mới chưa trả lời» ở Trang chủ không còn đếm phiếu đã có người trả lời công khai (chủ dự án 2026-10-16). Không migration. Số tạm.
+    version: "2.6",
+    date: "2026-10-16",
+    items: [
+      { kind: "sua", text: "Thẻ «góp ý mới chưa trả lời» ở Trang chủ không còn đếm những yêu cầu đã được trả lời." },
+    ],
+  },
+  {
     // Bảo mật hai lớp bằng ứng dụng xác thực (ADR-0074 Phần B). Có thay đổi cơ sở dữ liệu (migration 0101) — cần trien-khai sau day-len; chủ đặt bí mật
     // MFA_ENCRYPTION_KEY TRƯỚC khi triển khai (docs/HANDOFF-N1.md). Ân hạn 14 ngày tính từ lúc migration áp.
     // Số 2.5 là số TẠM (= main 2.4 «Mức TA» + 1, kiểm 2026-10-16): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.

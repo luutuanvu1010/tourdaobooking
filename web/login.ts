@@ -12,7 +12,7 @@ import { xoaKhungNho } from "./khung-nho";
 import { KHOA_GAN_PHIEN_THONG_BAO } from "./push-ui";
 import { datCoTuMo } from "./tro-ly-co";
 import { enableFlow, getAssertion, passkeyErrorMessage, passkeySupported, platformAuthenticatorAvailable } from "./passkey";
-import { datKieuO, khoiBatTotp, khoiMaDuPhong, loiHaiLop, oMaSau } from "./hai-lop-ui";
+import { datKieuO, khoiBatTotp, khoiMaDuPhong, loiGuiThu, loiHaiLop, oMaSau } from "./hai-lop-ui";
 
 registerServiceWorker();
 // ADR-0035: màn đăng nhập = có thể là người KHÁC sắp dùng máy này → bỏ bản nhớ khung của phiên trước (không để thoáng hiện chữ cái tên/menu của họ).
@@ -530,31 +530,71 @@ function loiPhaiVeFormPin(err: unknown): boolean {
 function buocHaiLop(r: Api.LoginMfaStepResponse): void {
   showError(errorEl, null);
   anFormPin();
-  khungHaiLop = r.next === "mfa" ? khungNhapMa() : khungBatLai();
+  khungHaiLop = r.next === "mfa" ? khungNhapMa(r) : khungBatLai();
   form.after(khungHaiLop);
   khungHaiLop.querySelector<HTMLInputElement>("input")?.focus();
 }
 
-/** "Nhập mã xác thực": mã 6 số (hoặc mã dự phòng), "Tin máy này 30 ngày" mặc định bật. */
-function khungNhapMa(): HTMLElement {
-  let duPhong = false;
+/**
+ * "Nhập mã xác thực": mã 6 số của ứng dụng xác thực, mã gửi qua email (Phần C — chỉ khi máy chủ liệt kê EMAIL; nút "Gửi mã qua email (t***@gmail.com)"), hoặc mã
+ * dự phòng; "Tin máy này 30 ngày" mặc định bật. Cách mặc định theo danh sách máy chủ trả: có ứng dụng xác thực → mã ứng dụng; chỉ có email → mã email.
+ */
+function khungNhapMa(r: Extract<Api.LoginMfaStepResponse, { next: "mfa" }>): HTMLElement {
+  type Cach = "TOTP" | "EMAIL" | "RECOVERY";
+  const coTotp = r.factors.includes("TOTP");
+  const che = r.factors.includes("EMAIL") ? r.emailMask : null; // địa chỉ dạng che do máy chủ trả — không bao giờ là địa chỉ đầy đủ
+  const goc: Cach = coTotp ? "TOTP" : che ? "EMAIL" : "RECOVERY";
+  let cach: Cach = goc;
+  let daGui = false;
   const o = oMaSau("mfa-code");
   const nhan = h("label", { for: "mfa-code" }, "Mã 6 số");
-  const goiY = h("p", { class: "muted", id: "mfa-hint" }, "Mở ứng dụng xác thực (Google Authenticator…) trên điện thoại, nhập mã 6 số đang hiện cho Tour Đảo.");
+  const goiY = h("p", { class: "muted", id: "mfa-hint" });
   const tin = h("input", { type: "checkbox", id: "mfa-trust", class: "o-tick", checked: true });
   const goi = h("button", { type: "submit", class: "btn btn-primary login-submit", id: "mfa-submit" }, "Xác nhận");
-  const doiCach = h("button", { type: "button", class: "btn btn-link", id: "mfa-switch" }, "Dùng mã dự phòng");
+  const nutEmail = che ? h("button", { type: "button", class: "btn", id: "mfa-email-send" }, `Gửi mã qua email (${che})`) : null;
+  const veTotp = coTotp && che ? h("button", { type: "button", class: "btn btn-link", id: "mfa-use-totp" }, "Dùng mã từ ứng dụng xác thực") : null;
+  const doiCach = h("button", { type: "button", class: "btn btn-link", id: "mfa-switch" });
   const quayLai = h("button", { type: "button", class: "btn btn-link", id: "mfa-back" }, "Quay lại");
-  doiCach.addEventListener("click", () => {
-    duPhong = !duPhong;
-    datKieuO(o, duPhong);
-    nhan.textContent = duPhong ? "Mã dự phòng (dạng xxxx-xxxx)" : "Mã 6 số";
-    goiY.textContent = duPhong
-      ? "Nhập một mã trong bộ mã dự phòng đã cất lúc bật bảo mật hai lớp. Mỗi mã chỉ dùng được một lần."
+  const ve = () => {
+    datKieuO(o, cach === "RECOVERY");
+    nhan.textContent = cach === "RECOVERY" ? "Mã dự phòng (dạng xxxx-xxxx)" : cach === "EMAIL" ? "Mã 6 số trong email" : "Mã 6 số";
+    goiY.textContent =
+      cach === "RECOVERY" ? "Nhập một mã trong bộ mã dự phòng đã cất lúc bật bảo mật hai lớp. Mỗi mã chỉ dùng được một lần."
+      : cach === "EMAIL" ? (daGui ? `Đã gửi mã tới ${che}. Mở hộp thư (xem cả mục Thư rác), nhập mã 6 số. Mã dùng được trong 10 phút.` : `Bấm “Gửi mã qua email” để nhận mã 6 số tại ${che}.`)
       : "Mở ứng dụng xác thực (Google Authenticator…) trên điện thoại, nhập mã 6 số đang hiện cho Tour Đảo.";
-    doiCach.textContent = duPhong ? "Dùng mã từ ứng dụng xác thực" : "Dùng mã dự phòng";
+    doiCach.textContent = cach === "RECOVERY" ? (goc === "EMAIL" ? "Dùng mã gửi qua email" : "Dùng mã từ ứng dụng xác thực") : "Dùng mã dự phòng";
+    doiCach.hidden = goc === "RECOVERY";
+    if (veTotp) veTotp.hidden = cach !== "EMAIL";
+  };
+  ve();
+  doiCach.addEventListener("click", () => {
+    cach = cach === "RECOVERY" ? goc : "RECOVERY";
+    ve();
     showError(errorEl, null);
     o.focus();
+  });
+  veTotp?.addEventListener("click", () => {
+    cach = "TOTP";
+    ve();
+    showError(errorEl, null);
+    o.focus();
+  });
+  nutEmail?.addEventListener("click", async () => {
+    showError(errorEl, null);
+    nutEmail.disabled = true;
+    try {
+      await api<Api.MfaEmailSendResponse>("/api/auth/mfa/email", { method: "POST", body: {} });
+      daGui = true;
+      nutEmail.textContent = `Gửi lại mã qua email (${che})`;
+      cach = "EMAIL";
+      ve();
+      o.focus();
+    } catch (err) {
+      if (loiPhaiVeFormPin(err)) return;
+      showError(errorEl, loiGuiThu(err));
+    } finally {
+      nutEmail.disabled = false;
+    }
   });
   quayLai.addEventListener("click", () => veFormPin(null));
   const f = h(
@@ -562,20 +602,21 @@ function khungNhapMa(): HTMLElement {
     { class: "login-form login-mfa", id: "mfa-form", autocomplete: "off" },
     h("h2", { id: "mfa-heading" }, "Nhập mã xác thực"),
     goiY,
+    nutEmail && h("div", { class: "login-mfa-links" }, nutEmail),
     h("div", { class: "login-field" }, nhan, o),
     h("label", { class: "check" }, tin, "Tin máy này 30 ngày (không hỏi mã nữa trên máy này)"),
     goi,
-    h("div", { class: "login-mfa-links" }, doiCach, quayLai),
+    h("div", { class: "login-mfa-links" }, veTotp, doiCach, quayLai),
   );
   f.addEventListener("submit", async (e) => {
     e.preventDefault();
     const code = o.value.trim();
-    if (!duPhong && code.length !== 6) return showError(errorEl, "Nhập đủ 6 số đang hiện trên ứng dụng xác thực.");
-    if (duPhong && !code) return showError(errorEl, "Nhập một mã dự phòng.");
+    if (cach !== "RECOVERY" && code.length !== 6) return showError(errorEl, cach === "EMAIL" ? "Nhập đủ 6 số trong email." : "Nhập đủ 6 số đang hiện trên ứng dụng xác thực.");
+    if (cach === "RECOVERY" && !code) return showError(errorEl, "Nhập một mã dự phòng.");
     showError(errorEl, null);
     goi.disabled = true;
     try {
-      const kq = await api<Api.MfaVerifyResponse>("/api/auth/mfa/verify", { method: "POST", body: { method: duPhong ? "RECOVERY" : "TOTP", code, trustDevice: tin.checked } });
+      const kq = await api<Api.MfaVerifyResponse>("/api/auth/mfa/verify", { method: "POST", body: { method: cach, code, trustDevice: tin.checked } });
       datCoTuMo(); // ADR-0066 điều 9 (như đăng nhập PIN)
       if (kq.recoveryLeft === undefined) return void (await sauDangNhap(kq.staff.id));
       // Vừa dùng một mã dự phòng: báo số mã còn lại trước khi vào (mã đã dùng không dùng lại được).

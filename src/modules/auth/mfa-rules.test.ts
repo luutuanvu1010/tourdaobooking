@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions.ts";
 import {
-  SETUP_TTL_SECONDS, allowedFactors, clearedPendingCookie, createPendingToken, createSetupToken, isInternal, loginStep, mfaBanner, PENDING_COOKIE, PENDING_TTL_SECONDS, pendingCookie,
+  SETUP_TTL_SECONDS, allowedFactors, clearedPendingCookie, daBatHaiLop, createPendingToken, createSetupToken, isInternal, loginStep, mfaBanner, PENDING_COOKIE, PENDING_TTL_SECONDS, pendingCookie,
   verifyPendingToken, verifySetupToken,
 } from "./mfa-rules.ts";
 import { createSessionToken, verifySessionToken } from "./session.ts";
@@ -29,6 +29,18 @@ test("allowedFactors: Quản trị, Toàn quyền, Kế toán chỉ TOTP; còn l
   }
   assert.deepEqual(allowedFactors(["SALES", "ACCOUNTING"]), ["TOTP"], "một quyền nhạy cảm kéo cả tài khoản về TOTP");
   assert.deepEqual(allowedFactors(["HR"]), ["TOTP", "EMAIL"]);
+});
+
+test("daBatHaiLop (nhãn «Hai lớp: Đã bật» ở Quản lý tài khoản — Phần C Task 4): chỉ tính yếu tố mà quyền HIỆN TẠI cho dùng; dòng EMAIL lệch của vai lớn không tính", () => {
+  assert.equal(daBatHaiLop(["SALES"], ["EMAIL"]), true);
+  assert.equal(daBatHaiLop(["SALES"], ["TOTP"]), true);
+  assert.equal(daBatHaiLop(["SALES"], []), false);
+  assert.equal(daBatHaiLop(["PARTNER"], ["EMAIL"]), true, "đối tác tự bật email được (ADR-G1 chưa duyệt)");
+  for (const p of ["ADMIN", "SUPER_ADMIN", "ACCOUNTING"] as const) {
+    assert.equal(daBatHaiLop([p], ["EMAIL"]), false, `${p}: chỉ có dòng EMAIL lệch = chưa bật`);
+    assert.equal(daBatHaiLop([p], ["TOTP", "EMAIL"]), true, `${p}: còn TOTP = đã bật`);
+  }
+  assert.equal(daBatHaiLop(["SALES", "ACCOUNTING"], ["EMAIL"]), false, "một quyền nhạy cảm kéo cả tài khoản");
 });
 
 type In = Parameters<typeof loginStep>[0];
