@@ -234,7 +234,7 @@ test("Địa chỉ sai khuôn → 400; thiếu mã ở confirm → 400", async (
 
 // ---- Lô đổi quyền / vai (ADR-0074 điều 7; kế hoạch Phần C Task 3; đặc tả §4.3 Q4 = A) ----
 
-test("Bán hàng chỉ có email → gán vai Kế toán: yếu tố email hết hiệu lực trong CÙNG lô (người làm = Toàn quyền) + nhật ký; hạn NULL → ân hạn 14 ngày, phiên giữ", async () => {
+test("Bán hàng chỉ có email → gán vai Kế toán: yếu tố email hết hiệu lực trong CÙNG lô (người làm = Toàn quyền) + nhật ký; hạn NULL → ân hạn 14 ngày; VÒNG SỬA 1: mọi phiên + máy tin bị thu hồi (phiên/máy tin sinh từ email không còn hợp lệ)", async () => {
   const { w } = await setup();
   await gieoYeuTo(w, BH, "EMAIL", EMAIL_CHUAN);
   w.sqlite.prepare("UPDATE staff SET mfa_grace_until = NULL WHERE id = ?").run(BH);
@@ -245,7 +245,9 @@ test("Bán hàng chỉ có email → gán vai Kế toán: yếu tố email hết
   assert.deepEqual(w.q("SELECT updated_by AS b FROM aut_mfa_factor WHERE staff_id = ? AND kind = 'EMAIL'", BH).map((x: any) => x.b), [TQ]);
   assert.equal(dem(w, "SELECT count(*) AS n FROM audit_log WHERE action = 'mfa_removed' AND target_id = ? AND staff_id = ?", BH, TQ), 1);
   assert.ok(gan(han(w, BH), Date.now() + 14 * NGAY), `ân hạn: ${han(w, BH)}`);
-  assert.equal(phienSong(w, BH), 1);
+  assert.equal(phienSong(w, BH), 0, "vòng sửa 1: phiên đăng nhập bằng email kết thúc trong cùng lô");
+  assert.deepEqual(w.q("SELECT DISTINCT end_reason AS l, ended_by AS b FROM aut_session WHERE staff_id = ?", BH).map((x: any) => ({ ...x })), [{ l: "bi_go", b: TQ }]);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM audit_log WHERE action = 'session_revoked' AND target_id = ? AND staff_id = ?", BH, TQ), 1);
   const g = await w.call("GET", "/api/account/mfa", { as: BH });
   assert.deepEqual(g.json.factors, []);
   assert.deepEqual(g.json.allowed, ["TOTP"]);
@@ -263,11 +265,11 @@ test("Bán hàng chỉ có email, ân hạn ĐÃ QUA → cấp Kế toán (đư�
   assert.deepEqual(yeuToSong(w, BH), []);
   assert.equal(han(w, BH), qua, "hạn đã qua giữ nguyên (không gia hạn — kẽ hở Phần B)");
   assert.equal(phienSong(w, BH), 0);
-  assert.equal(dem(w, "SELECT count(*) AS n FROM audit_log WHERE action = 'session_revoked' AND target_id = ? AND staff_id = ?", BH, TQ), 1);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM audit_log WHERE action = 'session_revoked' AND target_id = ? AND staff_id = ?", BH, TQ), 1, "đúng MỘT dòng (không kết thúc phiên hai lần)");
   assert.equal((await pinLogin(w, BH)).status, 403);
 });
 
-test("Bán hàng chỉ có email, ân hạn CÒN → cấp Kế toán: email hết hiệu lực, hạn giữ nguyên, phiên giữ", async () => {
+test("Bán hàng chỉ có email, ân hạn CÒN → cấp Kế toán: email hết hiệu lực, hạn giữ nguyên; vòng sửa 1: phiên kết thúc", async () => {
   const { w } = await setup();
   await gieoYeuTo(w, BH, "EMAIL", EMAIL_CHUAN);
   const con = new Date(Date.now() + 3 * NGAY).toISOString();
@@ -276,10 +278,10 @@ test("Bán hàng chỉ có email, ân hạn CÒN → cấp Kế toán: email h�
   assert.equal((await w.call("PUT", `/api/staff/${BH}/permissions`, { as: TQ, body: { permissions: ["SALES", "ACCOUNTING"] } })).status, 200);
   assert.deepEqual(yeuToSong(w, BH), []);
   assert.equal(han(w, BH), con);
-  assert.equal(phienSong(w, BH), 1);
+  assert.equal(phienSong(w, BH), 0);
 });
 
-test("Có cả ứng dụng xác thực lẫn email → lên Quản trị: chỉ email hết hiệu lực; TOTP giữ; hạn không đổi; phiên giữ", async () => {
+test("Có cả ứng dụng xác thực lẫn email → lên Quản trị: chỉ email hết hiệu lực; TOTP giữ; hạn không đổi; vòng sửa 1: phiên + máy tin thu hồi toàn bộ (không tách được cái nào sinh từ email)", async () => {
   const { w } = await setup();
   await gieoYeuTo(w, BH2, "EMAIL", EMAIL_CHUAN);
   const hanTruoc = han(w, BH2);
@@ -287,9 +289,42 @@ test("Có cả ứng dụng xác thực lẫn email → lên Quản trị: chỉ
   assert.equal((await w.call("PUT", `/api/staff/${BH2}/permissions`, { as: TQ, body: { permissions: ["SALES", "ADMIN"] } })).status, 200);
   assert.deepEqual(yeuToSong(w, BH2).map((f: any) => f.kind), ["TOTP"]);
   assert.equal(han(w, BH2), hanTruoc);
-  assert.equal(phienSong(w, BH2), 1);
+  assert.equal(phienSong(w, BH2), 0);
   const l = await pinLogin(w, BH2);
   assert.deepEqual(l.json, { next: "mfa", factors: ["TOTP", "RECOVERY"], emailMask: null });
+});
+
+test("Vòng sửa 1 (an ninh): đăng nhập bằng mã EMAIL + tin máy → được gán vai Kế toán → phiên cũ 401, máy tin thu hồi 'tat_hai_lop': PIN với cookie máy tin cũ phải hỏi mã (chỉ TOTP / dự phòng)", async () => {
+  const { w, thu } = await setup();
+  await gieoYeuTo(w, BH2, "EMAIL", EMAIL_CHUAN);
+  const cookieTen = (r: any, ten: string): string | null => {
+    const c = (r.headers.getSetCookie() as string[]).find((x) => x.startsWith(`${ten}=`) && !x.startsWith(`${ten}=;`));
+    return c ? c.split(";")[0]! : null;
+  };
+  const ip = () => `203.0.113.${(++ipn % 250) + 1}`;
+  const l = await pinLogin(w, BH2);
+  assert.deepEqual([...l.json.factors].sort(), ["EMAIL", "RECOVERY", "TOTP"]); // cùng mốc tạo ⇒ thứ tự theo id ngẫu nhiên
+  const cho = cookieTen(l, "td_mfa_pending")!;
+  const g = await w.call("POST", "/api/auth/mfa/email", { body: {}, headers: { "cf-connecting-ip": ip(), cookie: cho } });
+  assert.equal(g.status, 200, g.text);
+  const v = await w.call("POST", "/api/auth/mfa/verify", { body: { method: "EMAIL", code: maTrongThu(thu.at(-1)!), trustDevice: true }, headers: { "cf-connecting-ip": ip(), cookie: cho } });
+  assert.equal(v.status, 200, v.text);
+  const phien = cookieTen(v, "td_session")!;
+  const mayTin = cookieTen(v, "td_trusted")!;
+  assert.ok(phien && mayTin);
+  // Trước khi đổi quyền: máy tin bỏ qua bước hai.
+  const truoc = await w.call("POST", "/api/auth/login", { body: { phone: PHONE[BH2], pin: PIN }, headers: { "cf-connecting-ip": ip(), cookie: mayTin } });
+  assert.ok(cookieTen(truoc, "td_session"), `máy tin còn hiệu lực trước khi đổi quyền: ${truoc.text}`);
+  const phienMoiNhat = cookieTen(truoc, "td_session")!;
+  const r = await w.call("PUT", `/api/staff/${BH2}/roles`, { as: TQ, body: { roles: ["ACCOUNTANT"] } });
+  assert.equal(r.status, 200, r.text);
+  assert.equal((await w.call("GET", "/api/auth/me", { headers: { cookie: phienMoiNhat } })).status, 401, "phiên sinh từ máy tin / email phải chết");
+  assert.equal((await w.call("GET", "/api/auth/me", { headers: { cookie: phien } })).status, 401);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM aut_trusted_device WHERE staff_id = ? AND revoked_at IS NULL", BH2), 0);
+  assert.deepEqual(w.q("SELECT DISTINCT revoke_reason AS l, updated_by AS b FROM aut_trusted_device WHERE staff_id = ?", BH2).map((x: any) => ({ ...x })), [{ l: "tat_hai_lop", b: TQ }]);
+  const sau = await w.call("POST", "/api/auth/login", { body: { phone: PHONE[BH2], pin: PIN }, headers: { "cf-connecting-ip": ip(), cookie: mayTin } });
+  assert.equal(cookieTen(sau, "td_session"), null, "máy tin cũ không còn bỏ qua bước hai");
+  assert.deepEqual(sau.json, { next: "mfa", factors: ["TOTP", "RECOVERY"], emailMask: null });
 });
 
 test("Đối tác có email → cấp Kế toán (bên ngoài → nội bộ): email hết hiệu lực VÀ hạn NULL → ân hạn 14 ngày (yếu tố tính SAU lô)", async () => {

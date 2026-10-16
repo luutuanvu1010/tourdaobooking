@@ -191,6 +191,12 @@ export { trustedRevokeAllIfSuspendedStatement };
 export const trustedRevokeOnPinStatement = (db: D1Database, staffId: string, reason: "doi_pin" | "dat_lai_pin", at: string, by: string): D1PreparedStatement =>
   trustedRevokeAllStatement(db, staffId, reason, at, by);
 /**
+ * Thu hồi MỌI máy được tin còn sống ('tat_hai_lop') khi đổi quyền/vai làm yếu tố email hết hiệu lực (ADR-0074 điều 7, vòng sửa 1 Task 3 Phần C): không
+ * tách được máy nào được tin nhờ mã email ⇒ thu hồi toàn bộ, kể cả máy tin nhờ ứng dụng xác thực. Chưa chạy — người gọi đặt trong CÙNG lô với câu kết thúc EMAIL.
+ */
+export const trustedRevokeOnEmailLossStatement = (db: D1Database, staffId: string, at: string, by: string): D1PreparedStatement =>
+  trustedRevokeAllStatement(db, staffId, "tat_hai_lop", at, by);
+/**
  * IT/Toàn quyền gỡ MỘT phiên (ADR-0075 điều 6c): thu hồi máy được tin gắn với phiên đó ('bi_go') chỉ khi chính lô vừa kết thúc phiên (khớp lý do 'bi_go',
  * mốc `at`, người gỡ `by` của endOneSessionStatement). Chưa chạy — đặt SAU câu kết thúc phiên và câu nhật ký trong cùng lô.
  */

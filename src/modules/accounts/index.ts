@@ -10,7 +10,7 @@ import {
   revokePasskeyStatement, toPasskeyDto, unlockPhone, verifyPinThrottled, verifyRegistration,
   MFA_UNAVAILABLE, allowedFactors, batTotpStatements, boMaDuPhongMoi, goYeuToStatements, isInternal, khopKhoaMoi, kiemMaHienCo, mayTinSong, mfaBanner, moiKhoaTotp,
   quenMayStatement, quenMoiMayStatement, recoveryCountLeft, yeuToSong, lockedMfaStaffIds, staffIdsWithFactor, tatHaiLopStatements, trustedRevokeAllIfSuspendedStatement, unlockLogin,
-  trustedRevokeOfSessionStatement, trustedRevokeOnPinStatement,
+  trustedRevokeOfSessionStatement, trustedRevokeOnEmailLossStatement, trustedRevokeOnPinStatement,
   EMAIL_VAI_LON, batEmailStatements, factorEndKindStatement, guiMaBatEmail, kiemMaBatEmail, normalizeEmail,
 } from "../auth";
 import {
@@ -222,6 +222,8 @@ export function patchStaffStatements(
  *   - hạn đã qua → kết thúc MỌI phiên của tài khoản (lý do 'bi_go', người làm = người đổi quyền) + nhật ký session_revoked (khuôn của POST /api/sessions/:id/revoke:
  *     câu nhật ký ngay sau câu kết thúc, `changes() > 0`) — không gia hạn (kẽ hở gia hạn vô hạn đã bịt ở Phần B);
  *   - hạn còn → không làm gì.
+ * - Vòng sửa 1 (an ninh): lô vừa kết thúc yếu tố email ⇒ trong CÙNG lô thu hồi MỌI máy được tin ('tat_hai_lop') và kết thúc MỌI phiên ('bi_go') + nhật ký
+ *   session_revoked — không tách được máy tin / phiên nào sinh từ mã email, nên thu hồi toàn bộ (câu ân hạn nếu có vẫn đặt; phiên không kết thúc hai lần).
  * `ketThucPhien` để route đóng Bảng tin + tắt thông báo của tài khoản. Câu CHƯA chạy; người gọi đặt TRƯỚC câu phiên của exemptionChangeStatements (ketQua đọc vị
  * trí cuối lô). Lô có câu chốt (gỡ ADMIN): người gọi chỉ chạy các câu này ở lô thứ hai, sau khi câu chốt thắng.
  */
@@ -234,19 +236,27 @@ async function haiLopSauDoiQuyen(
   const [song, han] = await Promise.all([yeuToSong(db, t.id), mfaDeadlinesOf(db, t.id)]);
   const vuaMatEmail = boEmail && song.some((f) => f.kind === "EMAIL");
   const conSauLo = song.some((f) => !(vuaMatEmail && f.kind === "EMAIL"));
-  const ketThucEmail = vuaMatEmail
-    ? [factorEndKindStatement(db, t.id, "EMAIL", at, adminId), adminAudit(db, adminId, "mfa_removed", t.id, "EMAIL — quyền mới chỉ dùng ứng dụng xác thực", "changes() > 0")]
-    : [];
   const kq = mfaSauDoiQuyen(t.permissions, next, conSauLo, vuaMatEmail, han.graceUntil, Date.parse(at));
-  if (kq.anHan) return { statements: [...ketThucEmail, mfaGraceIfNullStatement(db, t.id, kq.anHan)], ketThucPhien: false };
-  if (!kq.ketThucPhien) return { statements: ketThucEmail, ketThucPhien: false };
+  const anHan = kq.anHan ? [mfaGraceIfNullStatement(db, t.id, kq.anHan)] : [];
+  if (vuaMatEmail) {
+    return {
+      statements: [
+        factorEndKindStatement(db, t.id, "EMAIL", at, adminId),
+        adminAudit(db, adminId, "mfa_removed", t.id, "EMAIL — quyền mới chỉ dùng ứng dụng xác thực", "changes() > 0"),
+        trustedRevokeOnEmailLossStatement(db, t.id, at, adminId),
+        endAllSessionsStatement(db, t.id, "bi_go", at, adminId),
+        adminAudit(db, adminId, "session_revoked", t.id, "mọi phiên và máy được tin — quyền mới không dùng được email", "changes() > 0"),
+        ...anHan,
+      ],
+      ketThucPhien: true,
+    };
+  }
+  if (kq.anHan) return { statements: anHan, ketThucPhien: false };
+  if (!kq.ketThucPhien) return { statements: [], ketThucPhien: false };
   return {
     statements: [
-      ...ketThucEmail,
       endAllSessionsStatement(db, t.id, "bi_go", at, adminId),
-      adminAudit(db, adminId, "session_revoked", t.id,
-        vuaMatEmail ? "mọi phiên — quyền mới không dùng được email, chưa bật ứng dụng xác thực và đã hết ân hạn" : "mọi phiên — lên quyền nội bộ khi chưa bật bảo mật hai lớp và đã hết ân hạn",
-        "changes() > 0"),
+      adminAudit(db, adminId, "session_revoked", t.id, "mọi phiên — lên quyền nội bộ khi chưa bật bảo mật hai lớp và đã hết ân hạn", "changes() > 0"),
     ],
     ketThucPhien: true,
   };

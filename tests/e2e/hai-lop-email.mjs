@@ -4,7 +4,7 @@
 //   "chưa gửi được mail"); dòng mã vẫn được ghi trước và hạn mức gửi vẫn tính.
 // - e2e không đọc được hộp thư và mã sản phẩm không có công tắc lộ mã: kịch bản lấy mã bằng cách GIEO dòng aut_mfa_email_code với mã biết trước (gieoMaEmail).
 // - Tài khoản Bán hàng DÙNG MỘT LẦN (SĐT ngẫu nhiên) — không dùng salesA (yếu tố sống trên tài khoản dùng chung làm `session()` của kịch bản sau bị hỏi mã).
-//   Yếu tố EMAIL / TOTP của A, C gieo thẳng bằng SQL; ca 9–12 (Task 3) bật yếu tố email qua route thật trên tài khoản dùng một lần D. Ca 429 chạy CUỐI (khoá mfa-mail:<id> 15 phút, chỉ của tài khoản thử).
+//   Yếu tố EMAIL / TOTP của A, C gieo thẳng bằng SQL; ca 9–12 (Task 3) bật yếu tố email qua route thật trên tài khoản dùng một lần D; ca 13 (vòng sửa 1) trên tài khoản dùng một lần E. Ca 429 chạy CUỐI (khoá mfa-mail:<id> 15 phút, chỉ của tài khoản thử).
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import { insertStaffSql } from "../../scripts/staff-lib.mjs";
@@ -160,21 +160,52 @@ for (const acc of [ACCOUNTS.admin, ACCOUNTS.accountant]) {
 }
 console.log("✓ 11. Quản trị / Kế toán bật email → 409 \"…chỉ dùng ứng dụng xác thực.\"");
 
-// 12. D được gán vai Kế toán → yếu tố email hết hiệu lực trong cùng lô; GET /api/account/mfa không còn EMAIL, chỉ được TOTP
-r = await call(await session(ACCOUNTS.superAdmin), "PUT", `/api/staff/${D.id}/roles`, { roles: ["ACCOUNTANT"] });
+// 12. D được gán vai Kế toán → yếu tố email hết hiệu lực trong cùng lô; mọi phiên cũ kết thúc (vòng sửa 1); đăng nhập lại: GET /api/account/mfa không còn
+// EMAIL, chỉ được TOTP
+const SA = await session(ACCOUNTS.superAdmin);
+r = await call(SA, "PUT", `/api/staff/${D.id}/roles`, { roles: ["ACCOUNTANT"] });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal((await sqlRows(`SELECT count(*) AS n FROM aut_mfa_factor WHERE staff_id = '${D.id}' AND valid_to_at IS NULL`))[0].n, 0);
-r = await call(SD2, "GET", "/api/account/mfa");
+for (const s of [SD, SD2]) assert.equal((await call(s, "GET", "/api/auth/me")).status, 401, "phiên cũ (có phiên sinh từ mã email) phải kết thúc");
+r = await pinLogin(D);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+const SD3 = cookieOf(r, "td_session");
+assert.ok(SD3, "còn ân hạn (14 ngày từ lúc tạo) và không còn yếu tố → vào thẳng, dải nhắc bật ứng dụng xác thực");
+r = await call(SD3, "GET", "/api/account/mfa");
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.deepEqual(r.body.factors, []);
 assert.deepEqual(r.body.allowed, ["TOTP"]);
-r = await pinLogin(D);
+console.log("✓ 12. gán vai Kế toán → yếu tố email hết hiệu lực, phiên cũ 401; đăng nhập lại: GET không còn EMAIL, chỉ cho TOTP");
+
+// 13. (vòng sửa 1, an ninh) E có TOTP + EMAIL, đăng nhập bằng mã email + "tin máy này" → được gán vai Kế toán → phiên cũ 401; PIN kèm cookie máy tin cũ
+// KHÔNG còn bỏ qua bước hai: next=mfa, chỉ TOTP / mã dự phòng; máy tin bị thu hồi lý do 'tat_hai_lop'
+const E = await taoTaiKhoan("Hai Lớp Email Tin Máy");
+const EMAIL_E = `e2e.tin.${randomBytes(4).toString("hex")}@example.com`;
+await sql(yeuTo(E.id, "TOTP", maHoaKhoa(KHOA, randomBytes(20)), null) + " " + yeuTo(E.id, "EMAIL", null, EMAIL_E));
+const PE = await pendingOf(E);
+await gieoMaEmail(E.id, EMAIL_E, "753195");
+r = await call(PE, "POST", "/api/auth/mfa/verify", { method: "EMAIL", code: "753195", trustDevice: true }, freshIp());
 assert.equal(r.status, 200, JSON.stringify(r.body));
-assert.ok(cookieOf(r, "td_session"), "còn ân hạn (14 ngày từ lúc tạo) và không còn yếu tố → vào thẳng, dải nhắc bật ứng dụng xác thực");
-console.log("✓ 12. gán vai Kế toán → yếu tố email hết hiệu lực; GET không còn EMAIL, chỉ cho TOTP");
+const SE = cookieOf(r, "td_session");
+const TE = cookieOf(r, "td_trusted");
+assert.ok(SE && TE);
+const pinVoiMayTin = () => call(TE, "POST", "/api/auth/login", { phone: E.phone, pin: E.pin, turnstileToken: TURNSTILE_TEST.dummyToken }, freshIp());
+r = await pinVoiMayTin();
+assert.equal(r.status, 200, JSON.stringify(r.body));
+const SE2 = cookieOf(r, "td_session");
+assert.ok(SE2, "trước khi đổi vai: máy tin bỏ qua bước hai");
+r = await call(SA, "PUT", `/api/staff/${E.id}/roles`, { roles: ["ACCOUNTANT"] });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+for (const s of [SE, SE2]) assert.equal((await call(s, "GET", "/api/auth/me")).status, 401, "phiên sinh từ mã email / máy tin phải kết thúc");
+r = await pinVoiMayTin();
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(cookieOf(r, "td_session"), null, "máy tin cũ không còn bỏ qua bước hai");
+assert.deepEqual(r.body, { next: "mfa", factors: ["TOTP", "RECOVERY"], emailMask: null });
+assert.deepEqual(await sqlRows(`SELECT DISTINCT revoke_reason FROM aut_trusted_device WHERE staff_id = '${E.id}'`), [{ revoke_reason: "tat_hai_lop" }]);
+console.log("✓ 13. đăng nhập bằng mã email + tin máy → gán vai Kế toán → phiên cũ 401; máy tin cũ phải hỏi mã (chỉ TOTP / dự phòng)");
 
 const nhatKy2 = JSON.stringify(await sqlRows("SELECT * FROM audit_log"));
-for (const d of [EMAIL_D_CHUAN, K3]) assert.ok(!nhatKy2.includes(d), `nhật ký chứa "${d}"`);
+for (const d of [EMAIL_D_CHUAN, K3, EMAIL_E]) assert.ok(!nhatKy2.includes(d), `nhật ký chứa "${d}"`);
 
 // 8. (CUỐI) Hạn mức gửi 3 thư / 15 phút — lần thứ 4 trong 15 phút → 429, không ghi thêm dòng mã
 assert.equal(soLanGui, 2);
