@@ -473,7 +473,9 @@ async function congBatLai(request: Request, env: Env, nowMs: number): Promise<{ 
   const blocked = await maintenanceBlock(env.DB, () => profile.permissions);
   if (blocked) return { response: blocked };
   const [factors, { enrollUntil }] = await Promise.all([factorListLive(env.DB, profile.id), mfaDeadlinesOf(env.DB, profile.id)]);
-  if (factors.length > 0) return { response: ENROLL_DONE() };
+  // "Đã có yếu tố" theo CÙNG cách với cổng đăng nhập (daBatHaiLop): dòng EMAIL lệch của vai lớn không tính — nếu không, PIN trả next mfa_enroll mà bước bật
+  // lại 409, ngõ cụt (vòng sửa 3). Bật TOTP bên cạnh dòng lệch không đụng chỉ mục "một yếu tố sống mỗi loại".
+  if (daBatHaiLop(profile.permissions, factors.map((f) => f.kind))) return { response: ENROLL_DONE() };
   if (enrollUntil === null || enrollUntil <= new Date(nowMs).toISOString()) return { response: MFA_SETUP_REQUIRED() };
   return { profile };
 }

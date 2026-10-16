@@ -989,7 +989,10 @@ export const accountsModule: AppModule = {
       const f = song.find((x) => x.kind === kind);
       if (!f) return error(404, "not_found", "Chưa bật cách xác thực này.");
       const noiBo = isInternal(staff.permissions);
-      if (noiBo && song.length <= 1) return MFA_LAST_FACTOR();
+      // "Yếu tố cuối" tính theo yếu tố CÒN LẠI mà quyền hiện tại cho dùng (daBatHaiLop — như cổng đăng nhập): Quản trị có TOTP + dòng EMAIL lệch gỡ TOTP thì
+      // không còn gì dùng được ở bước hai → 409 (trước vòng sửa 3: 200 rồi tự khoá 403 ở lần đăng nhập sau). Lưới SQL giuMot vẫn đếm mọi loại khi chạy đua.
+      const conLai = song.filter((x) => x.id !== f.id).map((x) => x.kind);
+      if (noiBo && !daBatHaiLop(staff.permissions, conLai)) return MFA_LAST_FACTOR();
       const now = Date.now();
       const at = new Date(now).toISOString();
       const chan = await kiemMaHienCo(env, staff.id, body?.code, now, "TOTP_HOAC_DU_PHONG");

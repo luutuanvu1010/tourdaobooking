@@ -571,3 +571,62 @@ test("Vòng sửa 2: mã dự phòng bị tiêu SONG SONG trong lúc thư đang 
   assert.notEqual(c.status, 200, `mã bật của lần thua không được xác nhận: ${c.text}`);
   assert.deepEqual(yeuToSong(w, BH).map((f: any) => f.email), [EMAIL_CHUAN], "địa chỉ cũ giữ nguyên");
 });
+
+// ---- Vòng sửa 3 (Minor 2, 3 của người kiểm): gỡ yếu tố (POST /api/account/mfa/remove) và cổng bật lại ở bước đăng nhập (congBatLai) đếm yếu tố theo CÙNG
+// cách với daBatHaiLop — dòng EMAIL lệch của vai lớn không phải "yếu tố dùng được". ----
+
+test("Vòng sửa 3: Quản trị có TOTP + dòng EMAIL lệch, ân hạn NULL → gỡ TOTP bị 409 mfa_last_factor (không còn 200 rồi tự khoá 403); gỡ dòng EMAIL lệch thì được", async () => {
+  const { w } = await setup();
+  await gieoYeuTo(w, QT, "TOTP");
+  await gieoYeuTo(w, QT, "EMAIL", "qt@gmail.com");
+  w.sqlite.prepare("UPDATE staff SET mfa_grace_until = NULL WHERE id = ?").run(QT);
+  const chan = await w.call("POST", "/api/account/mfa/remove", { as: QT, body: { kind: "TOTP", code: await maTotp() } });
+  assert.equal(chan.status, 409, chan.text);
+  assert.equal(chan.json.error.code, "mfa_last_factor");
+  assert.deepEqual(yeuToSong(w, QT).map((f: any) => f.kind), ["EMAIL", "TOTP"], "không gỡ gì");
+  assert.equal(dem(w, "SELECT count(*) AS n FROM audit_log WHERE action = 'mfa_removed'"), 0);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM login_attempt WHERE key = ?", `mfa:${QT}`), 0, "chặn TRƯỚC khi kiểm mã — không tiêu lượt thử");
+  const go = await w.call("POST", "/api/account/mfa/remove", { as: QT, body: { kind: "EMAIL", code: await maTotp(1) } });
+  assert.equal(go.status, 200, go.text);
+  assert.deepEqual(yeuToSong(w, QT).map((f: any) => f.kind), ["TOTP"]);
+  const l = await pinLogin(w, QT);
+  assert.equal(l.json.next, "mfa", `vẫn đăng nhập được bằng TOTP: ${l.text}`);
+});
+
+const cookieTen = (r: any, ten: string): string | null => {
+  const c = (r.headers.getSetCookie() as string[]).find((x) => x.startsWith(`${ten}=`) && !x.startsWith(`${ten}=;`));
+  return c ? c.split(";")[0]! : null;
+};
+const enroll = (w: W, buoc: "start" | "confirm", cookie: string, body: unknown = {}) =>
+  w.call("POST", `/api/auth/mfa/enroll/${buoc}`, { body, headers: { "cf-connecting-ip": `203.0.113.${(++ipn % 250) + 1}`, cookie } });
+
+test("Vòng sửa 3: Quản trị CHỈ có dòng EMAIL lệch, cửa sổ bật lại mở → PIN next mfa_enroll → enroll/start 200 (không còn 409 mfa_changed ngõ cụt) → confirm: TOTP + phiên PIN_MFA", async () => {
+  const { w } = await setup();
+  const { base32Decode } = await import("../auth/totp.ts");
+  await gieoYeuTo(w, QT, "EMAIL", "qt@gmail.com");
+  w.sqlite.prepare("UPDATE staff SET mfa_grace_until = NULL, mfa_enroll_until = ? WHERE id = ?").run(new Date(Date.now() + NGAY).toISOString(), QT);
+  const l = await pinLogin(w, QT);
+  assert.deepEqual(l.json, { next: "mfa_enroll" }, l.text);
+  const cho = cookieTen(l, "td_mfa_pending")!;
+  const s = await enroll(w, "start", cho);
+  assert.equal(s.status, 200, s.text);
+  await maTotp(); // chờ qua mốc bước nếu sắp sang bước mới
+  const buoc = Math.floor(Date.now() / (TOTP_PERIOD * 1000));
+  const ok = await enroll(w, "confirm", cho, { setupToken: s.json.setupToken, code: await totpCode(base32Decode(s.json.secret), buoc) });
+  assert.equal(ok.status, 200, ok.text);
+  assert.equal(ok.json.recoveryCodes.length, 10);
+  assert.equal(w.q("SELECT method FROM aut_session WHERE staff_id = ? AND ended_at IS NULL", QT)[0].method, "PIN_MFA");
+  assert.ok(yeuToSong(w, QT).some((f: any) => f.kind === "TOTP"));
+});
+
+test("Vòng sửa 3: cổng bật lại vẫn trả 409 mfa_changed khi đã có yếu tố DÙNG ĐƯỢC (Bán hàng thêm email sau khi lấy cookie bật lại)", async () => {
+  const { w } = await setup();
+  w.sqlite.prepare("UPDATE staff SET mfa_enroll_until = ? WHERE id = ?").run(new Date(Date.now() + NGAY).toISOString(), BH);
+  const l = await pinLogin(w, BH);
+  assert.deepEqual(l.json, { next: "mfa_enroll" }, l.text);
+  const cho = cookieTen(l, "td_mfa_pending")!;
+  await gieoYeuTo(w, BH, "EMAIL", EMAIL_CHUAN);
+  const s = await enroll(w, "start", cho);
+  assert.equal(s.status, 409, s.text);
+  assert.equal(s.json.error.code, "mfa_changed");
+});
