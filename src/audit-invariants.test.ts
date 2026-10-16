@@ -6,8 +6,8 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync, type SupportedValueType } from "node:sqlite";
 import { demSietTheoTap } from "./modules/auth/repository.ts";
-import { isInternal } from "./modules/auth/mfa-rules.ts";
-import { EXTERNAL_PERMISSIONS } from "./shared/permissions.ts";
+import { allowedFactors, isInternal } from "./modules/auth/mfa-rules.ts";
+import { EXTERNAL_PERMISSIONS, PERMISSION_CODES } from "./shared/permissions.ts";
 import { OWNER_COMPANY_ROLE } from "./shared/cong-ty-chu.ts";
 import { vnToday } from "./shared/vn-date.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts — hàm gieo DÙNG CHUNG mốc giờ hẹn (ADR-0051)
@@ -635,8 +635,40 @@ function addTrusted(db: DatabaseSync, o: { id: string; staffId: string; revoked?
 }
 const boHan = (db: DatabaseSync, id: string) => db.prepare("UPDATE staff SET mfa_grace_until = NULL, mfa_enroll_until = NULL WHERE id = ?").run(id);
 
-test("R-AUT-MFA-1/2/3: đúng một kiểm mỗi mã, mức fail", () => {
-  for (const c of ["R-AUT-MFA-1", "R-AUT-MFA-2", "R-AUT-MFA-3"]) assert.equal(one(c).level, "fail", c);
+test("R-AUT-MFA-1/2/3/4: đúng một kiểm mỗi mã, mức fail", () => {
+  for (const c of ["R-AUT-MFA-1", "R-AUT-MFA-2", "R-AUT-MFA-3", "R-AUT-MFA-4"]) assert.equal(one(c).level, "fail", c);
+});
+
+// R-AUT-MFA-4 (ADR-0074 điều 7; Phần C Task 4): tài khoản giữ Quản trị / Toàn quyền / Kế toán không có yếu tố EMAIL sống. Đường API giữ (409 khi bật; lô đổi
+// quyền / vai kết thúc email) — chỉ dữ liệu sửa tay mới đỏ.
+const quyenThem = (db: DatabaseSync, staffId: string, code: string) =>
+  db.prepare("INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").run(`p-${staffId}-${code}`, staffId, code, T1, T1, T1);
+
+test("R-AUT-MFA-4: yếu tố EMAIL sống của tài khoản giữ ADMIN / SUPER_ADMIN / ACCOUNTING là vi phạm (đếm theo tài khoản, kể cả đã ngưng); TOTP, email đã kết thúc, quyền đã đóng, quyền thường không tính", () => {
+  const db = build();
+  addFactor(db, { id: "e-an", staffId: "s-an", kind: "EMAIL" }); // Bán hàng có email → đúng luật
+  addFactor(db, { id: "t-admin", staffId: "s-admin" }); // Quản trị có TOTP → đúng luật
+  addFactor(db, { id: "e-admin-cu", staffId: "s-admin", kind: "EMAIL", to: T2 }); // email đã kết thúc (lô đổi quyền) → không tính
+  assert.equal(violations(db, one("R-AUT-MFA-4")), 0);
+  addFactor(db, { id: "e-admin", staffId: "s-admin", kind: "EMAIL" });
+  assert.equal(violations(db, one("R-AUT-MFA-4")), 1, "Quản trị có email sống");
+  quyenThem(db, "s-an", "ACCOUNTING");
+  assert.equal(violations(db, one("R-AUT-MFA-4")), 2, "được cấp Kế toán bằng SQL tay mà email còn sống");
+  db.prepare("UPDATE stf_permission SET valid_to_at = ? WHERE id = 'p-s-an-ACCOUNTING'").run(T2);
+  assert.equal(violations(db, one("R-AUT-MFA-4")), 1, "quyền Kế toán đã đóng không tính");
+  addFactor(db, { id: "e-binh", staffId: "s-binh", kind: "EMAIL" });
+  quyenThem(db, "s-binh", "SUPER_ADMIN");
+  assert.equal(violations(db, one("R-AUT-MFA-4")), 2, "tài khoản đã ngưng vẫn tính: kích hoạt lại sẽ mang dòng lệch về");
+  quyenThem(db, "s-admin", "ACCOUNTING");
+  assert.equal(violations(db, one("R-AUT-MFA-4")), 2, "đếm theo tài khoản, không theo dòng quyền");
+});
+
+test("R-AUT-MFA-4: danh sách quyền trong SQL khớp ĐÚNG các quyền mà allowedFactors không cho EMAIL (thêm quyền lớn mới mà quên kiểm này → đỏ)", () => {
+  const m = one("R-AUT-MFA-4").sql.match(/permission_code IN \(([^)]*)\)/);
+  assert.ok(m, "kiểm phải liệt kê quyền lớn bằng permission_code IN (…)");
+  const khongEmail = PERMISSION_CODES.filter((p) => !allowedFactors([p]).includes("EMAIL"));
+  assert.ok(khongEmail.length >= 3, "chống rỗng");
+  assert.deepEqual(m[1]!.split(",").map((x) => x.trim().replace(/'/g, "")).sort(), [...khongEmail].sort());
 });
 
 test("R-AUT-MFA-1: tài khoản NỘI BỘ đang hoạt động không yếu tố sống, không ân hạn, không cửa sổ bật lại là vi phạm; có một trong ba thì không", () => {
