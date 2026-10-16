@@ -14,6 +14,16 @@
 //   3b nhân viên có CẢ ứng dụng xác thực lẫn email: mặc định mã ứng dụng; gửi email → cách email + liên kết "Dùng mã từ ứng dụng xác thực" → quay lại → vào app
 //   4  Quản trị có dòng EMAIL lệch + TOTP: bước hai đăng nhập không có nút gửi email (máy chủ không liệt kê EMAIL)
 //   5  console sạch, không lỗi CSP (axe ở bước 1, 2, 3 khi có AXE_JS)
+// Phần C Task 4 (các đường giao diện Task 3 đã dựng nhưng chưa chạy Chrome) — mỗi ca hạn mức một tài khoản riêng vì bộ đếm `mfa-mail:<id>` / `mfa:<id>` dùng chung:
+//   6  "Đổi email" bằng MÃ DỰ PHÒNG (Bán hàng Hai chỉ có email: ô mã hiện có ghi "Một mã dự phòng (dạng xxxx-xxxx)") → mã tới địa chỉ mới (che) → Đã bật · địa chỉ mới
+//   7  "Gỡ email nhận mã" khi email là cách DUY NHẤT của tài khoản nội bộ → 409, câu lời thường tại chỗ, yếu tố còn nguyên
+//   8  người chỉ có email thêm ứng dụng xác thực (ô mã hiện có "Một mã dự phòng…") → Đã bật cả hai
+//   9  có cả hai → "Gỡ email nhận mã" bằng mã dự phòng → chỉ còn ứng dụng xác thực, nút "Nhận mã qua email" trở lại
+//   10 429 hạn mức gửi thư (3 thư / 15 phút): lần gửi thứ tư hiện câu máy chủ "Đã gửi quá nhiều mã qua email…" (tài khoản dùng một lần)
+//   11 429 nhập sai ở bước "Xác nhận email": nhập sai liên tiếp → câu cố định "Nhập sai quá nhiều lần…" (tài khoản dùng một lần)
+//   12 MÁY CHỦ THỨ HAI không có người gửi (`FEEDBACK_MAIL_FROM` rỗng → máy chủ trả 502 THẬT, không giả lập): trang Tôi bấm "Gửi mã xác minh" → câu
+//      "Chưa gửi được email, thử lại hoặc dùng cách khác." tại chỗ, vẫn ở bước nhập địa chỉ
+//   13 cùng máy chủ thứ hai: bước hai đăng nhập bấm "Gửi mã qua email (…)" → câu 502 ở ô báo lỗi, chưa chuyển sang "Đã gửi mã"
 import { createHash, randomBytes } from "node:crypto";
 
 process.env.OUT ??= "docs/evidence/2026-10-01-dang-nhap-c";
@@ -28,6 +38,9 @@ const NV = ACCOUNTS.salesA;
 const DIA_CHI = "TuanBao.Thu@Example.com"; // gõ chữ hoa — máy chủ lưu dạng chuẩn hoá
 const CHUAN = DIA_CHI.toLowerCase();
 const CHE = "t***@example.com";
+const B1 = "BinhMot.Thu@Example.com"; // Bán hàng Hai (bước 6–9, 13)
+const B2 = "cuong.hai@example.org";
+const B2_CHE = "c***@example.org";
 const KHOA = randomBytes(32).toString("base64");
 
 const env = await startEnv({ vars: { MFA_ENCRYPTION_KEY: KHOA, FEEDBACK_MAIL_FROM: "no-reply@tourdao.vn" } });
@@ -82,6 +95,20 @@ function consoleProblems(p) {
   // Tiếng ồn ĐÃ BIẾT: dò phiên 401 ở /api/auth/me của trang đăng nhập; 401 CỐ Ý khi nhập sai mã.
   const noise = (e) => e.source === "network" && /status of 401/.test(e.text) && /\/api\/(auth\/me|account\/mfa\/email\/confirm)$/.test(e.url ?? "");
   return { csp, errors: [...p.consoleErrors, ...p.logEntries.filter((e) => e.level === "error" && !noise(e) && !csp.includes(e)).map((e) => `${e.text} ${e.url ?? ""}`)] };
+}
+/** Như consoleProblems, cho phép thêm đúng các lỗi mạng CỐ Ý của một bước: `choPhep` = [[mã HTTP, mẫu đường dẫn], …] (Chrome tự ghi "status of N" ở miền Log). */
+function loiConsole(p, choPhep) {
+  const csp = p.logEntries.filter((e) => /Content Security Policy|Refused to/i.test(e.text));
+  const coY = (e) => e.source === "network" && choPhep.some(([st, re]) => new RegExp(`status of ${st}`).test(e.text) && re.test(new URL(e.url ?? "http://x/").pathname));
+  const noise = (e) => e.source === "network" && /status of 401/.test(e.text) && /\/api\/auth\/me$/.test(e.url ?? "");
+  return { csp, errors: [...p.consoleErrors, ...p.logEntries.filter((e) => e.level === "error" && !noise(e) && !coY(e) && !csp.includes(e)).map((e) => `${e.text} ${e.url ?? ""}`)] };
+}
+const { insertStaffSql } = await import("../../../../scripts/staff-lib.mjs");
+/** Tài khoản Bán hàng dùng một lần (bộ đếm hạn mức theo tài khoản — mỗi ca hạn mức một người). Một lệnh wrangler cho cả lô chèn. */
+async function taiKhoanMotLan(ten) {
+  const acc = { name: ten, phone: `09${String(Math.floor(Math.random() * 1e8)).padStart(8, "0")}`, pin: String(200000 + Math.floor(Math.random() * 700000)), permissions: ["SALES"] };
+  env.sql((await insertStaffSql(acc)).replace(/\n/g, " "));
+  return acc;
 }
 
 const nv = await env.openPage(M);
@@ -233,8 +260,238 @@ try {
     assert.deepEqual(sp.csp, []);
     assert.deepEqual(sp.errors, []);
   });
+
+  // ---- Phần C Task 4: các đường còn thiếu (bước 6–11) trên cùng máy chủ có người gửi.
+  const SB = ACCOUNTS.salesB;
+  const sbId = idCua(SB);
+  let duPhong = [];
+  let sb = null;
+  const goTrangToi = async (p) => {
+    await go(p, "/account#mfa");
+    await p.waitFor(`!${q("#mfa")}.hidden && !!${q("#mfa-body")}`, "khối Bảo mật đăng nhập hiện", 10000);
+  };
+  const yeuToSong = (id) => env.sql(`SELECT kind FROM aut_mfa_factor WHERE staff_id = '${id}' AND valid_to_at IS NULL ORDER BY kind`).map((r) => r.kind);
+  const nhanO = (p, sel) => p.ev(`${q(sel)}.closest('label').firstChild.textContent`);
+
+  await b.step("6", `"Đổi email" bằng mã dự phòng (chỉ có email): ô mã hiện có "Một mã dự phòng…" → mã tới ${B2_CHE} → Đã bật · ${B2_CHE}${axeNote()}`, async () => {
+    sb = await env.as(SB, "/account#mfa", M);
+    pages.push(sb);
+    await sb.waitFor(`!${q("#mfa")}.hidden`, "khối Bảo mật đăng nhập hiện", 10000);
+    // Bật email lần đầu (đường của bước 1) để có bộ mã dự phòng thật.
+    await mustBam(sb, "#mfa", "Nhận mã qua email");
+    await sb.waitFor(`!!${q("#mfa-email-input")}`, "ô địa chỉ hiện", 5000);
+    await type(sb, "#mfa-email-input", B1);
+    await mustBam(sb, "#mfa", "Gửi mã xác minh");
+    await sb.waitFor(`!!${q("#mfa-email-sent")}`, "bước nhập mã hiện", 10000);
+    gieoMa(sbId, B1.toLowerCase(), "246135", "enroll");
+    await type(sb, "#mfa-email-code", "246135");
+    await mustBam(sb, "#mfa", "Xác nhận email");
+    await sb.waitFor(`!!${q("#mfa-recovery")}`, "bộ mã dự phòng hiện", 10000);
+    duPhong = await sb.ev("[...document.querySelectorAll('#mfa-recovery .mfa-codes code')].map((c) => c.textContent.trim())");
+    assert.equal(duPhong.length, 10);
+    await mustBam(sb, "#mfa", "Tôi đã cất mã");
+    await sb.waitFor(`/Đã bật/.test(${q("#mfa")}.innerText) && !!${q("#mfa-recovery-left")}`, "khối vẽ lại: Đã bật", 10000);
+    // Đổi email: chỉ có email → máy chủ chỉ nhận mã dự phòng; nhãn ô nói đúng điều đó.
+    await mustBam(sb, "#mfa", "Đổi email");
+    await sb.waitFor(`!!${q("#mfa-email-current")}`, "ô mã hiện có hiện", 5000);
+    assert.equal(await nhanO(sb, "#mfa-email-current"), "Một mã dự phòng (dạng xxxx-xxxx)");
+    assert.ok((await fontPx(sb, "#mfa-email-current")) >= 16, "ô mã hiện có phải ≥ 16px");
+    await type(sb, "#mfa-email-input", B2);
+    await type(sb, "#mfa-email-current", duPhong[0]);
+    await shotFull(sb, "08-doi-email-ma-du-phong-390.png");
+    await axe(sb, "trang Tôi — đổi email bằng mã dự phòng");
+    await mustBam(sb, "#mfa", "Gửi mã xác minh");
+    await sb.waitFor(`!!${q("#mfa-email-sent")}`, "bước nhập mã của địa chỉ mới", 10000);
+    assert.ok((await sb.ev(txt("#mfa-email-sent"))).includes(B2_CHE));
+    gieoMa(sbId, B2, "531642", "enroll");
+    await type(sb, "#mfa-email-code", "531642");
+    await mustBam(sb, "#mfa", "Xác nhận email");
+    await sb.waitFor(`${q("#mfa .maint-state")}?.innerText.includes(${JSON.stringify(B2_CHE)})`, "khối vẽ lại với địa chỉ mới", 10000);
+    assert.equal(await sb.ev(`!!${q("#mfa-recovery")}`), false, "đổi địa chỉ không sinh bộ mã dự phòng mới");
+    assert.deepEqual(yeuToSong(sbId), ["EMAIL"]);
+    const body = (await sb.ev("document.body.innerText")).toLowerCase();
+    assert.ok(!body.includes(B2) && !body.includes(B1.toLowerCase()), "địa chỉ đầy đủ không hiện");
+    assert.match(await sb.ev(txt("#mfa-recovery-left")), /còn 9 mã/);
+  });
+
+  await b.step("7", "\"Gỡ email nhận mã\" khi email là cách duy nhất (tài khoản nội bộ) → 409, câu lời thường tại chỗ, yếu tố còn nguyên", async () => {
+    await mustBam(sb, "#mfa", "Gỡ email nhận mã");
+    await sb.waitFor(`${q("details[data-go=EMAIL]")}.open`, "ô gỡ mở", 5000);
+    assert.equal(await sb.ev(`${q("details[data-go=EMAIL] label")}.firstChild.textContent`), "Một mã dự phòng (dạng xxxx-xxxx)");
+    await type(sb, "details[data-go=EMAIL] input", duPhong[1]);
+    await mustBam(sb, "details[data-go=EMAIL]", "Gỡ email");
+    await sb.waitFor(`!${q("details[data-go=EMAIL] .alert")}.hidden`, "báo lỗi tại chỗ", 10000);
+    assert.equal(await sb.ev(txt("details[data-go=EMAIL] .alert")), "Tài khoản nội bộ phải giữ ít nhất một cách xác thực.");
+    assert.deepEqual(yeuToSong(sbId), ["EMAIL"], "yếu tố email còn nguyên");
+    assert.ok(await sb.ev(noOverflowX), "tràn ngang ở 390");
+    await shotFull(sb, "09-go-email-cuoi-409-390.png");
+  });
+
+  await b.step("8", `người chỉ có email thêm ứng dụng xác thực: ô mã hiện có "Một mã dự phòng…" → Đã bật cả hai${axeNote()}`, async () => {
+    await goTrangToi(sb);
+    await mustBam(sb, "#mfa", "Bật ứng dụng xác thực");
+    await sb.waitFor(`!!${q("#mfa-key")} && !!${q("#mfa-enroll-current")}`, "khoá + ô mã hiện có hiện", 10000);
+    assert.equal(await nhanO(sb, "#mfa-enroll-current"), "Một mã dự phòng (dạng xxxx-xxxx)");
+    const khoa = (await sb.ev(txt("#mfa-key"))).replace(/\s/g, "");
+    await type(sb, "#mfa-enroll-code", totp(khoa));
+    await type(sb, "#mfa-enroll-current", duPhong[1]); // mã [1] chưa bị tiêu ở bước 7 (409 trả trước khi kiểm mã)
+    await shotFull(sb, "10-chi-email-them-totp-390.png");
+    await axe(sb, "trang Tôi — người chỉ có email thêm ứng dụng xác thực");
+    await mustBam(sb, "#mfa", "Xác nhận bật");
+    await sb.waitFor(`/Ứng dụng xác thực/.test(${q("#mfa .maint-state")}?.innerText ?? '') && ${q("#mfa .maint-state")}.innerText.includes(${JSON.stringify(B2_CHE)})`, "Đã bật cả hai", 10000);
+    assert.equal(await sb.ev(`!!${q("#mfa-recovery")}`), false, "không phải yếu tố đầu → không sinh bộ mã mới");
+    assert.deepEqual(yeuToSong(sbId), ["EMAIL", "TOTP"]);
+  });
+
+  await b.step("9", `có cả hai → "Gỡ email nhận mã" bằng mã dự phòng → chỉ còn ứng dụng xác thực${axeNote()}`, async () => {
+    await mustBam(sb, "#mfa", "Gỡ email nhận mã");
+    await sb.waitFor(`${q("details[data-go=EMAIL]")}.open`, "ô gỡ mở", 5000);
+    assert.equal(await sb.ev(`${q("details[data-go=EMAIL] label")}.firstChild.textContent`), "Mã 6 số từ ứng dụng xác thực hoặc một mã dự phòng");
+    await type(sb, "details[data-go=EMAIL] input", duPhong[2]);
+    await mustBam(sb, "details[data-go=EMAIL]", "Gỡ email");
+    await sb.waitFor(`!!${q("#mfa .maint-state")} && !/Email/.test(${q("#mfa .maint-state")}.innerText) && !${q("details[data-go=EMAIL]")}`, "khối vẽ lại không còn email", 10000);
+    assert.deepEqual(yeuToSong(sbId), ["TOTP"]);
+    assert.ok(await coNut(sb, "#mfa", "Nhận mã qua email"), "nút Nhận mã qua email trở lại");
+    await shotFull(sb, "11-go-email-con-totp-390.png");
+    await axe(sb, "trang Tôi — đã gỡ email");
+    const sp = loiConsole(sb, [[409, /\/api\/account\/mfa\/remove$/]]);
+    assert.deepEqual(sp.csp, []);
+    assert.deepEqual(sp.errors, []);
+    sb.close();
+    pages.splice(pages.indexOf(sb), 1);
+  });
+
+  await b.step("10", "429 hạn mức gửi thư: lần gửi thứ tư trong 15 phút → câu máy chủ «Đã gửi quá nhiều mã qua email…» tại chỗ", async () => {
+    const acc = await taiKhoanMotLan("Thử Gửi Thư");
+    const p = await env.as(acc, "/account#mfa", M);
+    pages.push(p);
+    await p.waitFor(`!${q("#mfa")}.hidden`, "khối Bảo mật đăng nhập hiện", 10000);
+    await mustBam(p, "#mfa", "Nhận mã qua email");
+    await p.waitFor(`!!${q("#mfa-email-input")}`, "ô địa chỉ hiện", 5000);
+    await type(p, "#mfa-email-input", "han.muc@example.com");
+    for (let lan = 1; lan <= 3; lan++) {
+      await mustBam(p, "#mfa", "Gửi mã xác minh");
+      await p.waitFor(`!!${q("#mfa-email-sent")}`, `lần gửi ${lan} thành công`, 10000);
+      await mustBam(p, "#mfa", "Gửi lại mã");
+      await p.waitFor(`!!${q("#mfa-email-input")}`, "về bước nhập địa chỉ", 5000);
+      assert.equal(await p.ev(`${q("#mfa-email-input")}.value`), "han.muc@example.com", "gửi lại giữ địa chỉ trong ô");
+    }
+    await mustBam(p, "#mfa", "Gửi mã xác minh");
+    await p.waitFor(`!${q("#mfa-email-enroll .alert")}.hidden`, "báo lỗi lần thứ tư", 10000);
+    assert.match(await p.ev(txt("#mfa-email-enroll .alert")), /^Đã gửi quá nhiều mã qua email\. Thử lại sau \d+ phút/);
+    assert.equal(await p.ev(`!!${q("#mfa-email-sent")}`), false, "không sang bước nhập mã");
+    await shotFull(p, "12-han-muc-gui-thu-429-390.png");
+    const sp = loiConsole(p, [[429, /\/api\/account\/mfa\/email\/start$/]]);
+    assert.deepEqual(sp.csp, []);
+    assert.deepEqual(sp.errors, []);
+    p.close();
+    pages.splice(pages.indexOf(p), 1);
+  });
+
+  await b.step("11", "429 nhập sai ở bước «Xác nhận email»: nhập sai liên tiếp → câu cố định «Nhập sai quá nhiều lần…»", async () => {
+    const acc = await taiKhoanMotLan("Thử Nhập Sai");
+    const p = await env.as(acc, "/account#mfa", M);
+    pages.push(p);
+    await p.waitFor(`!${q("#mfa")}.hidden`, "khối Bảo mật đăng nhập hiện", 10000);
+    await mustBam(p, "#mfa", "Nhận mã qua email");
+    await p.waitFor(`!!${q("#mfa-email-input")}`, "ô địa chỉ hiện", 5000);
+    await type(p, "#mfa-email-input", "nhap.sai@example.com");
+    await mustBam(p, "#mfa", "Gửi mã xác minh");
+    await p.waitFor(`!!${q("#mfa-email-sent")}`, "bước nhập mã hiện", 10000);
+    gieoMa(idCua(acc), "nhap.sai@example.com", "777888", "enroll");
+    let cau = "";
+    let lan = 0;
+    while (lan < 8 && !/Nhập sai quá nhiều lần/.test(cau)) {
+      lan++;
+      await p.ev(`${q("#mfa-email-enroll .alert")}.textContent = ''; true`);
+      await type(p, "#mfa-email-code", String(100000 + lan));
+      await mustBam(p, "#mfa", "Xác nhận email");
+      await p.waitFor(`${q("#mfa-email-enroll .alert")}.textContent !== ''`, `câu báo lần ${lan}`, 10000);
+      cau = await p.ev(txt("#mfa-email-enroll .alert"));
+    }
+    assert.equal(cau, "Nhập sai quá nhiều lần. Chờ 15 phút hoặc nhờ Quản trị mở khoá.", `sau ${lan} lần: ${cau}`);
+    assert.ok(lan <= 6, `hạn mức 5 lần / 15 phút: tới lần ${lan} mới khoá`);
+    // Mã ĐÚNG lúc đang khoá cũng không qua.
+    await p.ev(`${q("#mfa-email-enroll .alert")}.textContent = ''; true`);
+    await type(p, "#mfa-email-code", "777888");
+    await mustBam(p, "#mfa", "Xác nhận email");
+    await p.waitFor(`${q("#mfa-email-enroll .alert")}.textContent !== ''`, "câu báo khi đang khoá", 10000);
+    assert.match(await p.ev(txt("#mfa-email-enroll .alert")), /Nhập sai quá nhiều lần/);
+    assert.deepEqual(yeuToSong(idCua(acc)), [], "chưa lưu yếu tố");
+    await shotFull(p, "13-nhap-sai-429-390.png");
+    const sp = loiConsole(p, [[401, /\/api\/account\/mfa\/email\/confirm$/], [429, /\/api\/account\/mfa\/email\/confirm$/]]);
+    assert.deepEqual(sp.csp, []);
+    assert.deepEqual(sp.errors, []);
+    p.close();
+    pages.splice(pages.indexOf(p), 1);
+  });
 } finally {
   for (const p of pages) p.close();
   await env.stop();
+}
+
+// ---- Bước 12–13: máy chủ THỨ HAI không có người gửi (`FEEDBACK_MAIL_FROM` rỗng ghi đè `.dev.vars`) → máy chủ trả 502 thật (`mail_failed`), không giả lập.
+const env2 = await startEnv({ vars: { MFA_ENCRYPTION_KEY: KHOA, FEEDBACK_MAIL_FROM: "" } });
+const pages2 = [];
+const CAU_502 = "Chưa gửi được email, thử lại hoặc dùng cách khác.";
+try {
+  await b.step("12", `máy chủ không gửi được thư (502 thật): trang Tôi bấm "Gửi mã xác minh" → câu 502 tại chỗ, vẫn ở bước nhập địa chỉ${axeNote()}`, async () => {
+    const p = await env2.as(ACCOUNTS.salesA, "/account#mfa", M);
+    pages2.push(p);
+    await p.waitFor(`!${q("#mfa")}.hidden`, "khối Bảo mật đăng nhập hiện", 10000);
+    await mustBam(p, "#mfa", "Nhận mã qua email");
+    await p.waitFor(`!!${q("#mfa-email-input")}`, "ô địa chỉ hiện", 5000);
+    await type(p, "#mfa-email-input", DIA_CHI);
+    await mustBam(p, "#mfa", "Gửi mã xác minh");
+    await p.waitFor(`!${q("#mfa-email-enroll .alert")}.hidden`, "báo lỗi gửi thư", 10000);
+    assert.equal(await p.ev(txt("#mfa-email-enroll .alert")), CAU_502);
+    assert.equal(await p.ev(`!!${q("#mfa-email-sent")}`), false, "không sang bước nhập mã");
+    assert.equal(await p.ev(`${q("#mfa-email-input")}.value`), DIA_CHI, "ô địa chỉ giữ nguyên để thử lại");
+    assert.ok(!(await p.ev("document.body.innerText")).includes("send_threw") && !(await p.ev("document.body.innerText")).includes("no_from"), "không lộ mã lỗi nhà cung cấp");
+    await shotFull(p, "14-gui-thu-502-trang-toi-390.png");
+    await axe(p, "trang Tôi — gửi thư hỏng 502");
+    const sp = loiConsole(p, [[502, /\/api\/account\/mfa\/email\/start$/]]);
+    assert.deepEqual(sp.csp, []);
+    assert.deepEqual(sp.errors, []);
+    p.close();
+    pages2.splice(pages2.indexOf(p), 1);
+  });
+
+  await b.step("13", "máy chủ không gửi được thư (502 thật): bước hai đăng nhập bấm \"Gửi mã qua email (…)\" → câu 502 ở ô báo lỗi, chưa sang \"Đã gửi mã\"", async () => {
+    const id = env2.sql(`SELECT id FROM staff WHERE phone = '${ACCOUNTS.salesB.phone}'`)[0].id;
+    const at = new Date().toISOString();
+    env2.sql(
+      "INSERT INTO aut_mfa_factor (id, staff_id, kind, secret_enc, email, last_totp_step, valid_from_at, valid_to_at, created_at, created_by, updated_at, updated_by) " +
+        `VALUES ('${randomBytes(8).toString("hex")}', '${id}', 'EMAIL', NULL, '${B2}', 0, '${at}', NULL, '${at}', '${id}', '${at}', '${id}')`,
+    );
+    const p = await env2.openPage(M);
+    pages2.push(p);
+    // Kho cookie chung còn phiên của bước 12: đăng xuất trước (như dangXuat của máy chủ thứ nhất) rồi mới mở trang đăng nhập.
+    await p.send("Page.navigate", { url: env2.base + "/login" });
+    await p.waitFor("document.readyState === 'complete'", "trang /login tải xong", 15000);
+    await dangXuat(p);
+    await p.send("Page.navigate", { url: env2.base + "/login" });
+    await p.waitFor("document.readyState === 'complete'", "trang /login tải lại xong", 15000);
+    await p.waitFor(`location.pathname === '/login' && !!${q("#phone")} && !${q("#login-form")}.hidden`, "trang đăng nhập sẵn sàng", 15000);
+    await type(p, "#phone", ACCOUNTS.salesB.phone);
+    await type(p, "#pin", ACCOUNTS.salesB.pin);
+    await p.waitFor(`!${q("#submit")}.disabled`, "nút Đăng nhập bấm được");
+    await p.ev(`${q("#submit")}.click(); true`);
+    await p.waitFor(`!!${q("#mfa-step")}`, "bước nhập mã hiện", 10000);
+    assert.equal(await p.ev(txt("#mfa-email-send")), `Gửi mã qua email (${B2_CHE})`);
+    await p.ev(`${q("#mfa-email-send")}.click(); true`);
+    await p.waitFor(`!${q("#error")}.hidden && ${q("#error")}.textContent !== ''`, "báo lỗi gửi thư", 10000);
+    assert.equal(await p.ev(txt("#error")), CAU_502);
+    assert.equal(await p.ev(txt("#mfa-email-send")), `Gửi mã qua email (${B2_CHE})`, "chưa đổi thành «Gửi lại mã…»");
+    assert.doesNotMatch(await p.ev(txt("#mfa-hint")), /Đã gửi mã tới/);
+    assert.equal(await p.ev(`${q("#mfa-email-send")}.disabled`), false, "nút gửi bấm lại được");
+    await shotFull(p, "15-gui-thu-502-dang-nhap-390.png");
+    const sp = loiConsole(p, [[502, /\/api\/auth\/mfa\/email$/]]);
+    assert.deepEqual(sp.csp, []);
+    assert.deepEqual(sp.errors, []);
+  });
+} finally {
+  for (const p of pages2) p.close();
+  await env2.stop();
   b.xong();
 }
