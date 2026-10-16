@@ -897,7 +897,7 @@ npx wrangler secret put MFA_ENCRYPTION_KEY
 
 **Không cần bí mật mới.** Gửi thư dùng binding `EMAIL` (`wrangler.jsonc`, `send_email` không khoá danh sách nhận) và bí mật có sẵn `FEEDBACK_MAIL_FROM` (người gửi, cùng tên miền đã cài ở Cloudflare Email). Hai thứ này có sẵn THEO LỜI CHỦ (chủ xác nhận tên miền gửi đã cài 16/10/2026); AI KHÔNG kiểm danh sách bí mật trên Cloudflare. Thiếu một trong hai thì bấm gửi mã trả câu "Chưa gửi được email, thử lại hoặc dùng cách khác." (không lỗi 500, không lộ lỗi nhà cung cấp) — người dùng vẫn đăng nhập bằng ứng dụng xác thực hoặc mã dự phòng.
 
-**Điều kiện phát hành (kiểm LÚC phát hành bằng lệnh chỉ đọc):** `npx wrangler d1 migrations list tourdao-sales-db --remote` — `0102` còn trống và còn là số kế tiếp trên mọi nhánh chưa gộp. Bước A.0: mục `2.6` ở đầu `src/shared/changelog.ts` là số TẠM — kiểm lại cho đúng số kế tiếp ở `main` và chạy lại `node --test src/shared/app-info.test.ts`.
+**Điều kiện phát hành (kiểm LÚC phát hành bằng lệnh chỉ đọc):** `npx wrangler d1 migrations list tourdao-sales-db --remote` — `0102` còn trống và còn là số kế tiếp trên mọi nhánh chưa gộp. Bước A.0: mục `2.7` ở đầu `src/shared/changelog.ts` là số TẠM — kiểm lại cho đúng số kế tiếp ở `main` và chạy lại `node --test src/shared/app-info.test.ts`.
 
 **Thử gửi thật lần đầu (bước 0b của kế hoạch — CHƯA ai thử; chủ tự làm SAU khi phát hành, trên chính tài khoản của mình):** gửi thật chỉ thấy được ở môi trường có tên miền gửi đã cài — e2e và kịch bản Chrome không đi ra hộp thư thật. Cách thử an toàn, không đụng tài khoản người khác:
 1. Đăng nhập bằng một tài khoản CỦA CHỦ không giữ Quản trị / Toàn quyền / Kế toán (tài khoản quyền lớn không có lựa chọn email). Không có tài khoản như vậy thì DỪNG, hỏi AI cách khác — đừng tạo tài khoản hay đổi quyền tài khoản thật chỉ để thử (xem "cửa sổ đóng băng" ở phần Hoàn tác).
@@ -911,6 +911,13 @@ npx wrangler secret put MFA_ENCRYPTION_KEY
 **Sau deploy:** `node scripts/audit-invariants.mjs --db remote` (trien-khai tự chạy) phải xanh `R-AUT-MFA-1/2/3/4`.
 
 **Ca xấu: hoàn tác Worker về bản Phần B SAU KHI đã áp `0102`.** `wrangler rollback` làm được (không đổi Durable Object); mã cũ không đọc bảng `aut_mfa_email_code`. Nhưng yếu tố EMAIL đã bật vẫn nằm ở `aut_mfa_factor`: bản Phần B coi đó là "đã có yếu tố" (người đó bị hỏi mã) mà không có nút gửi email ⇒ người CHỈ có email phải dùng mã dự phòng hoặc nhờ Quản trị tắt lớp hai (suy từ mã Phần B, chưa thử). Báo chủ trước khi chọn rollback.
+
+**CỨU HỘ: Toàn quyền bị khoá vì dòng EMAIL lệch.** Tài khoản Toàn quyền (hoặc Quản trị / Kế toán) chỉ có một dòng yếu tố EMAIL lệch (dữ liệu sửa tay — bất biến `R-AUT-MFA-4` báo đỏ), ân hạn `mfa_grace_until` đã qua hoặc NULL, không có Face ID ⇒ đăng nhập PIN trả 403 `mfa_setup_required` (dòng email không dùng được cho vai lớn nên coi như chưa bật). Người đó KHÔNG tự gỡ được. Đường thoát: (1) một Toàn quyền KHÁC bấm "Tắt bảo mật hai lớp" ở Quản lý tài khoản (kết thúc mọi yếu tố kể cả dòng lệch, mở cửa sổ 24 giờ để bật lại ứng dụng xác thực ngay ở bước đăng nhập); (2) nếu đó là Toàn quyền DUY NHẤT thì chỉ chủ chạy SQL trên D1 remote (CHỦ tự chạy, AI không chạy — `CLAUDE.md` §8; tạo điểm khôi phục Time Travel trước). Câu an toàn, chỉ đụng đúng một tài khoản, không xoá dòng nào (thay `<ID>` bằng id tài khoản, `<GIỜ>` bằng giờ UTC hiện tại dạng `2026-10-20T03:00:00.000Z`, `<GIỜ+24h>` bằng giờ đó cộng một ngày):
+```sql
+UPDATE aut_mfa_factor SET valid_to_at = '<GIỜ>', updated_at = '<GIỜ>', updated_by = '<ID>' WHERE staff_id = '<ID>' AND kind = 'EMAIL' AND valid_to_at IS NULL;
+UPDATE staff SET mfa_enroll_until = '<GIỜ+24h>' WHERE id = '<ID>';
+```
+Câu đầu kết thúc dòng EMAIL lệch (hết lệch `R-AUT-MFA-4`); câu sau mở cửa sổ bật lại 24 giờ — lần đăng nhập PIN kế tiếp vào thẳng bước "bật ứng dụng xác thực" rồi mới có phiên. (Thay cho câu sau, đặt `mfa_grace_until` = giờ cộng vài ngày cũng mở được, nhưng cho vào thẳng không qua mã — kém an toàn hơn.) Kiểm sau: `node scripts/audit-invariants.mjs --db remote` xanh `R-AUT-MFA-4`.
 
 ## Chế độ bảo trì — đường thoát khẩn
 
