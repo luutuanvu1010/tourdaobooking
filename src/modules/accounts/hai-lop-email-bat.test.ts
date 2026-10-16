@@ -213,6 +213,19 @@ test("Gửi hỏng → 502 lời thường (dòng mã vẫn ghi); hạn mức g�
   assert.match(r4.json.error.message, /Đã gửi quá nhiều mã qua email/);
 });
 
+test("Gửi lại sau 502 với CÙNG vé (máy khách giữ vé khi 5xx) → máy chủ gửi thư MỚI, không báo 'đã ghi' (start không có lô ghi mang vé — NGOAI_VE guiMaBatEmail)", async () => {
+  const { w } = await setup({ mailer: "nem" });
+  const ve = crypto.randomUUID();
+  const goi = () => w.call("POST", "/api/account/mfa/email/start", { as: BH, body: { email: EMAIL }, headers: { "idempotency-key": ve } });
+  const r1 = await batLog(goi);
+  assert.equal(r1.kq.status, 502, r1.kq.text);
+  await w.choNen();
+  const r2 = await batLog(goi);
+  assert.equal(r2.kq.status, 502, `lần hai phải thử gửi lại, không phát lại: ${r2.kq.text}`);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM aut_mfa_email_code WHERE staff_id = ? AND purpose = 'enroll'", BH), 2, "hai lần gửi → hai dòng mã");
+  assert.equal(dem(w, "SELECT count(*) AS n FROM lg_lan_gui WHERE staff_id = ?", BH), 0, "start không ghi vé");
+});
+
 test("Địa chỉ sai khuôn → 400; thiếu mã ở confirm → 400", async () => {
   const { w } = await setup();
   assert.equal((await start(w, BH, { email: "khong-phai-email" })).status, 400);

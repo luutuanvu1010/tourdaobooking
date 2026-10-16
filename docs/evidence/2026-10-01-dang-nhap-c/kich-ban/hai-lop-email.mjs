@@ -11,6 +11,7 @@
 //   2  đăng xuất → đăng nhập PIN → bước hai chỉ có email: nút "Gửi mã qua email (t***@example.com)", không có lựa chọn ứng dụng xác thực → bấm gửi → câu "Đã gửi
 //      mã tới t***@example.com…" → mã đúng → vào app
 //   3  Kế toán (1040): khối Bảo mật đăng nhập KHÔNG có lựa chọn email (máy chủ trả allowed = TOTP)
+//   3b nhân viên có CẢ ứng dụng xác thực lẫn email: mặc định mã ứng dụng; gửi email → cách email + liên kết "Dùng mã từ ứng dụng xác thực" → quay lại → vào app
 //   4  Quản trị có dòng EMAIL lệch + TOTP: bước hai đăng nhập không có nút gửi email (máy chủ không liệt kê EMAIL)
 //   5  console sạch, không lỗi CSP (axe ở bước 1, 2, 3 khi có AXE_JS)
 import { createHash, randomBytes } from "node:crypto";
@@ -18,7 +19,7 @@ import { createHash, randomBytes } from "node:crypto";
 process.env.OUT ??= "docs/evidence/2026-10-01-dang-nhap-c";
 const { ACCOUNTS, startEnv, sleep } = await import("../../2026-09-20-a2/kich-ban/a2-cdp.mjs");
 const { assert, axe, axeNote, boDem, noOverflowX, shotFull, shotView, txt } = await import("../../2026-09-29-adr-0049/kich-ban/dp-lib.mjs");
-const { maHoaKhoa } = await import("../../../../tests/e2e/fake-totp.mjs");
+const { base32Encode, maHoaKhoa, totp } = await import("../../../../tests/e2e/fake-totp.mjs");
 
 const M = { width: 390, height: 844, mobile: true };
 const NARROW = { width: 320, height: 568, mobile: true };
@@ -159,6 +160,7 @@ try {
     await shotFull(nv, "05-da-gui-ma-390.png");
     gieoMa(nvId, CHUAN, "864201", "login");
     await type(nv, "#mfa-code", "864201");
+    await nv.ev(`${q("#mfa-trust")}.checked = false; true`); // không tin máy: bước 3b còn phải thấy bước hai
     await nv.ev(`${q("#mfa-submit")}.click(); true`);
     await vaoApp(nv);
     assert.ok(await khoTrinhDuyetSach(nv));
@@ -183,6 +185,30 @@ try {
     assert.deepEqual(sp.errors, []);
     kt.close();
     pages.splice(pages.indexOf(kt), 1);
+  });
+
+  await b.step("3b", "nhân viên có CẢ ứng dụng xác thực lẫn email: mặc định mã ứng dụng; bấm gửi email → cách email + liên kết “Dùng mã từ ứng dụng xác thực” → quay lại → mã ứng dụng đúng → vào app", async () => {
+    const raw = randomBytes(20);
+    const at = new Date().toISOString();
+    env.sql(
+      "INSERT INTO aut_mfa_factor (id, staff_id, kind, secret_enc, email, last_totp_step, valid_from_at, valid_to_at, created_at, created_by, updated_at, updated_by) " +
+        `VALUES ('${randomBytes(8).toString("hex")}', '${nvId}', 'TOTP', '${maHoaKhoa(KHOA, raw)}', NULL, 0, '${at}', NULL, '${at}', '${nvId}', '${at}', '${nvId}')`,
+    );
+    await dangXuat(nv);
+    await dienPin(nv, NV);
+    await nv.waitFor(`!!${q("#mfa-step")}`, "bước nhập mã hiện", 10000);
+    assert.match(await nv.ev(txt("#mfa-hint")), /ứng dụng xác thực/, "có TOTP → mặc định mã ứng dụng");
+    assert.equal(await nv.ev(txt("#mfa-email-send")), `Gửi mã qua email (${CHE})`);
+    assert.equal(await nv.ev(`${q("#mfa-use-totp")}.hidden`), true, "đang ở cách ứng dụng → không hiện liên kết quay lại");
+    await nv.ev(`${q("#mfa-email-send")}.click(); true`);
+    await nv.waitFor(`/Đã gửi mã tới/.test(${q("#mfa-hint")}.innerText)`, "chuyển sang cách email", 10000);
+    assert.equal(await nv.ev(`${q("#mfa-use-totp")}.hidden`), false, "cách email → có liên kết “Dùng mã từ ứng dụng xác thực”");
+    await shotFull(nv, "07b-totp-va-email-390.png");
+    await nv.ev(`${q("#mfa-use-totp")}.click(); true`);
+    assert.match(await nv.ev(txt("#mfa-hint")), /Mở ứng dụng xác thực/);
+    await type(nv, "#mfa-code", totp(base32Encode(raw)));
+    await nv.ev(`${q("#mfa-submit")}.click(); true`);
+    await vaoApp(nv);
   });
 
   await b.step("4", "Quản trị có dòng EMAIL lệch + ứng dụng xác thực: bước hai không có nút gửi email", async () => {
