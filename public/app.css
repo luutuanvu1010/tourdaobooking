@@ -127,6 +127,8 @@
   --h-buoc-thanh: 72px;     /* Tạo đơn bốn bước (14/10/2026): chiều cao thanh tiến độ dính (chấm 28px + chữ + đệm) — chừa cho scroll-margin-top của mỗi bước và cho cột Tóm tắt dính ở máy tính */
   --w-gd-o: 160px;         /* ADR-0087: bề rộng ô chọn phông / độ đậm / cỡ chữ ở màn Giao diện */
   --w-gd-xem: 360px;        /* ADR-0087: bề rộng cột xem trước ở màn Giao diện (máy tính) */
+  --h-hs-chinh-sach: 16rem; /* Hồ sơ của tôi (ADR-0124, lát H-3): chiều cao tối đa khung toàn văn chính sách riêng tư ở trang Tôi (cuộn bên trong) */
+  --w-hs-nhan: 8em;         /* Hồ sơ của tôi: bề rộng tối thiểu cột nhãn ("Họ tên", "Ngày sinh"…) */
   --w-qr: 18rem;            /* QR thanh toán (ADR-0108): bề rộng tối đa ảnh mã trong bảng QR ở trang đơn */
   --w-mfa-qr: 12rem;        /* Bảo mật hai lớp (ADR-0074): bề rộng mã QR ở khối bật ứng dụng xác thực (trang Tôi, bước bật lại khi đăng nhập) */
   --w-o-hep: 12rem;         /* Tạo đơn: bề rộng tối thiểu một ô nhãn nổi ở cột hẹp của form (ba / hai ô cạnh nhau tự xuống hàng) và bề rộng tối đa dòng ghi chú giá trong danh sách dịch vụ */
@@ -799,6 +801,17 @@ td.chon-td { width: var(--tap-min); padding-top: 0; padding-bottom: 0; }
 .nhom-sua-hang { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--s2) var(--s3); }
 .nhom-sua-hang label { flex: 1 1 14rem; min-width: 0; }
 .nhom-sua-hang .btn { min-height: var(--tap-min); }
+
+/* ---------- Hồ sơ của tôi (ADR-0124, lát H-3) — chỉ token ---------- */
+.hs-dong { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s2); padding: var(--s1) 0; }
+.hs-dong > .muted { min-width: var(--w-hs-nhan); }
+.hs-chinh-sach { white-space: pre-line; max-height: var(--h-hs-chinh-sach); overflow: auto; padding: var(--s2); border: 1px solid var(--c-input-border); border-radius: var(--radius-sm); }
+.hs-check { display: flex; gap: var(--s2); align-items: flex-start; }
+.hs-check input { width: auto; margin-top: var(--s1); }
+.hs-phieu { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s2); align-items: baseline; padding: var(--s2) 0; border-top: 1px solid var(--c-input-border); }
+.hs-xac-nhan { display: inline-flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
+/* Máy tính (bố cục 2 cột của trang Tôi): khối cao — trải hết bề ngang như #myjobs, #my-docs; để ở nửa cột thì hàng đầu lưới cao theo khối, cột trái trống một khoảng lớn (ảnh 1040 lần chạy đầu). */
+@media (min-width: 900px) { #ho-so-cua-toi { grid-column: 1 / -1; } }
 
 /* ---------- app iPhone (PWA) — từ dấu mốc này đến cuối file: KHÔNG viết cứng màu/px, dùng token (tests/e2e/pwa.mjs kiểm) ---------- */
 /* trang "Tôi" */

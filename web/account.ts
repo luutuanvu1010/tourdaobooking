@@ -19,6 +19,7 @@ import { datKieuO, khoiBatTotp, khoiMaDuPhong, loiGuiThu, loiHaiLop, oMaSau } fr
 import { chipEl } from "./giay-to-ui";
 import { demSapHetHan } from "./vc-dem";
 import { initViecCuaToi } from "./viec-cua-toi";
+import { initHoSoCuaToi } from "./ho-so-cua-toi";
 
 const errorEl = byId("error");
 const okEl = byId("ok");
@@ -110,6 +111,8 @@ async function initGiayToCuaToi(): Promise<void> {
   );
 }
 void initGiayToCuaToi();
+// Hồ sơ của tôi (ADR-0124, lát H-3): mọi tài khoản có hồ sơ + ô party.self.view (kể cả Đối tác) — khối tự ẩn khi không đủ điều kiện.
+void initHoSoCuaToi(staff, byId("ho-so-cua-toi"), (m) => showError(errorEl, m));
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   showError(errorEl, null);
