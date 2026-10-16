@@ -19,7 +19,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     date: "2026-10-16",
     items: [
       { kind: "doi", text: "Danh bạ: ngày sinh và địa chỉ cá nhân chỉ Quản trị, Toàn quyền và chính người đó xem được. Bán hàng, Kế toán không thấy; tìm theo chữ số địa chỉ cũng không ra." },
-      { kind: "doi", text: "Nền tảng đã có chỗ lưu giấy phép của công ty đối tác và kết quả xác minh hồ sơ. Màn nhập sẽ có ở bản sau." },
+      { kind: "doi", text: "Nền tảng đã có chỗ lưu giấy phép công ty đối tác và kết quả xác minh hồ sơ, nhưng chưa có màn hình nhập nên chưa có gì cho người dùng thấy." },
     ],
   },
   {

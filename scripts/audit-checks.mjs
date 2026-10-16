@@ -97,7 +97,6 @@ const SO_BAN_CHUP_HIEN_HANH = (s) =>
 const GHI_SAU_KHOA = (bang) =>
   `(SELECT count(*) FROM ${bang} x JOIN ky_period_close k ON k.period = substr(x.occurred_date, 1, 7) WHERE julianday(x.created_at) > julianday(k.closed_at))`;
 
-/** @type {{ code: string, what: string, sql: string, level: 'fail' | 'warn-unless-strict' | 'warn', mode?: 'rows', note?: string }[]} */
 /**
  * Cột hạng N3 (Hiến chương 5.20) → kiểm nào dò cột đó trong audit_log.detail. `src/audit-invariants.test.ts` đòi tập khoá BẰNG tập cột BẢNG hạng N3 của
  * docs/data-dictionary.json (khoá hangDuLieu) — thêm cột N3 mà quên ở đây ⇒ đỏ. `chuanHoa: true` = so detail đã bỏ khoảng trắng . - / và viết HOA (cột đã chuẩn
@@ -120,6 +119,7 @@ const DO_COT_N3 = Object.entries(COT_N3_NHAT_KY)
     return `EXISTS (SELECT 1 FROM ${bang} x WHERE x.${ten} IS NOT NULL AND length(x.${ten}) >= 8 AND instr(${v.chuanHoa ? DETAIL_CHUAN : "a.detail"}, x.${ten}) > 0)`;
   });
 
+/** @type {{ code: string, what: string, sql: string, level: 'fail' | 'warn-unless-strict' | 'warn', mode?: 'rows', note?: string }[]} */
 export const CHECKS = [
   { code: "R-N1-1", what: "mọi tài khoản có party_id", sql: "SELECT count(*) FROM staff WHERE party_id IS NULL", level: "warn-unless-strict" },
   { code: "R-N1-1", what: "một hồ sơ tối đa một tài khoản", sql: "SELECT count(*) FROM (SELECT party_id FROM staff WHERE party_id IS NOT NULL GROUP BY party_id HAVING count(*) > 1)", level: "fail" },

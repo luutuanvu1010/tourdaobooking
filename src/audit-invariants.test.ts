@@ -966,6 +966,19 @@ function giayToToChuc(db: DatabaseSync, o: { id: string; party: string; type?: s
   return o.id;
 }
 
+test("R-PD-1: số GPKD của tổ chức viết cách quãng (dấu cách, gạch, chấm) lọt nhật ký → 1; nhật ký chỉ có tên loại → 0 (chuanHoa của number_key)", () => {
+  const c = one("R-PD-1");
+  const db = build();
+  const o = toChucMoi(db, "o-pd1");
+  giayToToChuc(db, { id: "gpd-1", party: o, key: "4201234567" });
+  const log = (lid: string, detail: string) =>
+    db.prepare("INSERT INTO audit_log (id, action, target_type, target_id, detail, created_at) VALUES (?, 'party_document_added', 'party', 'o-pd1', ?, ?)").run(lid, detail, T1);
+  log("pd1-a", "Giấy chứng nhận đăng ký kinh doanh (GPKD), hết hạn 2030-01-01");
+  assert.equal(violations(db, c), 0);
+  log("pd1-b", "số 420 123-4567");
+  assert.equal(violations(db, c), 1);
+});
+
 test("R-PTY-7 (ADR-0122 đ2): một số GPKD thuộc đúng một tổ chức — gia hạn cùng số của chính tổ chức → 0; hai tổ chức cùng số (trigger bị gỡ) → 1", () => {
   const c = one("R-PTY-7");
   assert.equal(c.level, "fail");

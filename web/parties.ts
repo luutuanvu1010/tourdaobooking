@@ -289,7 +289,7 @@ async function openDetail(id: string): Promise<void> {
 
   // -- liên hệ
   const contactRows = p.contacts.map((c) =>
-    h("tr", { class: c.validTo ? "row-off" : "" }, h("td", null, nhanLoaiLienHe(c.kind)),h("td", null, c.value, c.isPrimary && !c.validTo && h("span", { class: "badge" }, "chính")), h("td", { class: "muted" }, c.label ?? ""), h("td", { class: "muted" }, period(c.validFrom, c.validTo)), h("td", null, p.editable && !c.validTo && button("Đóng", (b) => void act(async () => { await api(`/api/parties/${id}/contacts/${c.id}/end`, { method: "POST", body: {} }); await reload(); }, b)))),
+    h("tr", { class: c.validTo ? "row-off" : "" }, h("td", null, nhanLoaiLienHe(c.kind)), h("td", null, c.value, c.isPrimary && !c.validTo && h("span", { class: "badge" }, "chính")), h("td", { class: "muted" }, c.label ?? ""), h("td", { class: "muted" }, period(c.validFrom, c.validTo)), h("td", null, p.editable && !c.validTo && button("Đóng", (b) => void act(async () => { await api(`/api/parties/${id}/contacts/${c.id}/end`, { method: "POST", body: {} }); await reload(); }, b)))),
   );
   const cKind = select([{ value: "PHONE", label: "Điện thoại" }, { value: "EMAIL", label: "Email" }]);
   const cValue = input("", { maxLength: 200 });
