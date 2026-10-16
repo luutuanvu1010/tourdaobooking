@@ -558,8 +558,10 @@ async function respondDocs(db: D1Database, partyId: string, status: number, warn
 const KIND_LABEL = { PERSON: "cá nhân", ORGANIZATION: "tổ chức" } as const;
 const idParam = (params: Record<string, string>, name: string, re: RegExp): string | null => (re.test(params[name] ?? "") ? params[name]! : null);
 
-const RIENG_TU_FORBIDDEN = () => error(403, "personal_forbidden", "Tài khoản này không ghi được ngày sinh hay địa chỉ cá nhân của hồ sơ này.");
-const RIENG_TU_CHINH_CHU = () => error(403, "personal_self", "Ngày sinh và địa chỉ của chính bạn cần người khác xác minh, chưa sửa trực tiếp ở đây được.");
+const LY_DO_RIENG_TU = {
+  forbidden: { code: "personal_forbidden", message: "Tài khoản này không ghi được ngày sinh hay địa chỉ cá nhân của hồ sơ này." },
+  self: { code: "personal_self", message: "Ngày sinh và địa chỉ của chính bạn cần người khác xác minh, chưa sửa trực tiếp ở đây được." },
+} as const;
 const CHI_TIET_THEM_LIEN_HE: Record<string, string> = { PHONE: "thêm số điện thoại", EMAIL: "thêm email", ADDRESS: "thêm địa chỉ" };
 /** Người xem của luật riêng tư (rieng-tu.ts) — MỘT chỗ dựng cho cả đọc lẫn ghi. `id` null = hồ sơ đang tạo (chưa ai là chính chủ, chưa tài khoản). */
 function nguoiXemRiengTu(staff: StaffProfile, id: string | null, acc: PartyAccountVerdict | null): NguoiXem {
@@ -570,11 +572,15 @@ function nguoiXemRiengTu(staff: StaffProfile, id: string | null, acc: PartyAccou
     quanDuocTaiKhoan: acc?.linked === true && acc.manageable,
   };
 }
-/** ADR-0122 đ5: chặn GHI ngày sinh / liên hệ ADDRESS (null = được). */
-function chanGhiRiengTu(staff: StaffProfile, id: string | null, acc: PartyAccountVerdict | null): Response | null {
+/** ADR-0122 đ5: lý do không GHI được ngày sinh / liên hệ ADDRESS (null = được) — dùng cho cả 403 của route ghi lẫn danh sách chặn của xem trước gộp. */
+function lyDoChanGhiRiengTu(staff: StaffProfile, id: string | null, acc: PartyAccountVerdict | null): { code: string; message: string } | null {
   const v = nguoiXemRiengTu(staff, id, acc);
   if (ghiDuocRiengTu(v)) return null;
-  return v.laChinhChu ? RIENG_TU_CHINH_CHU() : RIENG_TU_FORBIDDEN();
+  return v.laChinhChu ? LY_DO_RIENG_TU.self : LY_DO_RIENG_TU.forbidden;
+}
+function chanGhiRiengTu(staff: StaffProfile, id: string | null, acc: PartyAccountVerdict | null): Response | null {
+  const l = lyDoChanGhiRiengTu(staff, id, acc);
+  return l ? error(403, l.code, l.message) : null;
 }
 
 /**
@@ -913,7 +919,11 @@ export const partiesModule: AppModule = {
       const t = await tinhGop(ctx, id, into, vnToday(new Date()));
       if (t instanceof Response) return t;
       const xemDiaChiA = xemDuocRiengTu(nguoiXemRiengTu(staff, id, t.A.acc));
-      return json(xemTruocDto(t, xemDiaChiA) satisfies MergePreviewResponse);
+      const dto = xemTruocDto(t, xemDiaChiA);
+      // ADR-0122 đ5: báo TRƯỚC lý do mà route gộp sẽ trả 403 (chuyển địa chỉ sang hồ sơ chính người gọi không ghi được) — nút gộp khoá theo `chan`.
+      const lyDo = t.ke.lienHe.mo.some((m) => laLienHeRiengTu(m.tu.kind)) ? lyDoChanGhiRiengTu(staff, into, t.B.acc) : null;
+      if (lyDo) dto.chan.push({ code: lyDo.code, message: lyDo.message });
+      return json(dto satisfies MergePreviewResponse);
     }),
 
     route("POST", "/api/parties/:id/merge", "admin", async (ctx) => {

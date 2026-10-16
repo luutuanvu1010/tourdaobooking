@@ -120,6 +120,25 @@ test("ghi: Toàn quyền sửa ngày sinh của CHÍNH MÌNH → 403 personal_se
   r = await sua(w, SUP, pty(ADM), { birthDate: NGAY });
   assert.equal(r.status, 200, r.text);
   assert.equal(r.json.party.birthDate, NGAY);
+  // Vòng sửa 1 (I-2): nhật ký đổi ngày sinh của hồ sơ có tài khoản cũng không mang giá trị.
+  const nk = nhatKy(w, pty(ADM));
+  assert.ok(nk.some((d) => d.includes("đổi ngày sinh")), JSON.stringify(nk));
+  for (const d of nk) assert.doesNotMatch(d, new RegExp(NGAY), "nhật ký chứa ngày sinh");
+});
+
+test("ghi liên hệ của CHÍNH MÌNH: Toàn quyền thêm địa chỉ cho hồ sơ mình, đóng địa chỉ của hồ sơ mình → 403 personal_self, không đổi gì", async () => {
+  // Dùng Toàn quyền: Quản trị vấp cổng sửa hồ sơ có tài khoản trước khi tới luật riêng tư; Toàn quyền quản được hồ sơ của chính mình.
+  const w = setup();
+  let r = await w.call("POST", `/api/parties/${pty(SUP)}/contacts`, { as: SUP, body: { kind: "ADDRESS", value: "5 Đường Của Mình" } });
+  assert.equal(r.status, 403, r.text);
+  assert.equal(r.json.error.code, "personal_self");
+  assert.equal(w.q("SELECT count(*) n FROM pty_contact_point WHERE party_id = ? AND contact_kind_code = 'ADDRESS'", pty(SUP))[0].n, 0);
+  gieoDiaChi(w, pty(SUP), "6 Đường Của Mình");
+  const dc = w.q("SELECT id FROM pty_contact_point WHERE party_id = ? AND contact_kind_code = 'ADDRESS'", pty(SUP))[0].id as string;
+  r = await w.call("POST", `/api/parties/${pty(SUP)}/contacts/${dc}/end`, { as: SUP, body: {} });
+  assert.equal(r.status, 403, r.text);
+  assert.equal(r.json.error.code, "personal_self");
+  assert.equal(w.q("SELECT valid_to_date v FROM pty_contact_point WHERE id = ?", dc)[0].v, null, "địa chỉ vẫn mở");
 });
 
 test("PUT vắng birthDate ⇒ giữ nguyên (Bán hàng đổi tên không xoá ngày sinh); '' ⇒ xoá; nhật ký 'đổi ngày sinh' không kèm giá trị", async () => {
@@ -198,4 +217,30 @@ test("xem trước gộp theo cấp bậc: Quản trị xem trước gộp hồ 
   r = await w.call("POST", `/api/parties/${pty(ADM)}/merge/preview`, { as: SUP, body: { intoPartyId: b } });
   assert.equal(r.status, 200, r.text);
   assert.match(r.text, /864213/, "Toàn quyền quản được hồ sơ Quản trị nên thấy");
+});
+
+test("xem trước gộp theo cấp bậc — danh sách 'bỏ': địa chỉ của Quản trị khác trùng địa chỉ hồ sơ chính cũng không hiện; Toàn quyền thấy", async () => {
+  // Vòng sửa 1 (M-1): liên hệ trùng hồ sơ chính đi vào `bo`, không vào `chuyen` — bộ lọc phải phủ cả hai danh sách.
+  const w = setup();
+  const DC = "864213 Đường Cấp Trên, Nha Trang";
+  gieoDiaChi(w, pty(ADM), DC);
+  const r0 = await w.call("POST", "/api/parties", { as: ADM, body: { kind: "PERSON", fullName: "Khách Cùng Địa Chỉ", contacts: [{ kind: "ADDRESS", value: DC }] } });
+  assert.equal(r0.status, 201, r0.text);
+  const b = r0.json.party.id as string;
+  let r = await w.call("POST", `/api/parties/${pty(ADM)}/merge/preview`, { as: ADM2, body: { intoPartyId: b } });
+  assert.equal(r.status, 200, r.text);
+  assert.doesNotMatch(r.text, /864213|Đường Cấp Trên/, "địa chỉ của Quản trị khác lộ qua danh sách 'bỏ'");
+  r = await w.call("POST", `/api/parties/${pty(ADM)}/merge/preview`, { as: SUP, body: { intoPartyId: b } });
+  assert.ok(r.json.bo.some((m: any) => m.loai === "LIEN_HE" && m.nhan.startsWith("Địa chỉ 864213")), r.text);
+});
+
+test("xem trước gộp báo trước: gộp khách có địa chỉ vào hồ sơ CỦA CHÍNH MÌNH ⇒ lý do chặn personal_self; vào hồ sơ người khác quản được ⇒ không", async () => {
+  // Vòng sửa 1 (M-2): bảng xem trước khoá nút gộp (chan khác rỗng) thay vì để người dùng bấm rồi mới gặp 403.
+  const w = setup();
+  const a = await taoKhach(w, "Khách Gộp Thử", "31 Đường Gộp Thử, Nha Trang");
+  let r = await w.call("POST", `/api/parties/${a}/merge/preview`, { as: SUP, body: { intoPartyId: pty(SUP) } });
+  assert.equal(r.status, 200, r.text);
+  assert.ok(r.json.chan.some((c: any) => c.code === "personal_self" && /chính bạn/.test(c.message)), r.text);
+  r = await w.call("POST", `/api/parties/${a}/merge/preview`, { as: SUP, body: { intoPartyId: pty(ADM) } });
+  assert.equal(r.json.chan.some((c: any) => /^personal_/.test(c.code)), false, r.text);
 });
