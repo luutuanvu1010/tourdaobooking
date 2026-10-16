@@ -29,6 +29,10 @@ export interface TicketRow {
   team_id: string;
   team_name: string;
   team_sensitive: number;
+  /** ADR-0127: không CHECK liệt kê ⇒ toTicket kiểm lại bằng isPriority. */
+  priority: string;
+  order_id: string | null;
+  order_code: string | null;
 }
 export interface TeamRow { id: string; code: string; name: string; description: string; sensitive: number; active: number; sort_order: number }
 export interface MessageRow {
@@ -50,7 +54,7 @@ const nguoiGiuHopLe = (p: string) => `EXISTS (SELECT 1 FROM v_stf_staff_label gx
 
 const COLS = `t.id, t.seq, t.kind_code, k.name AS kind_name, t.status_code, st.name AS status_name, t.title, t.context, t.submitter_id,
   s.label AS submitter_name, t.assignee_id, a.label AS assignee_name, CASE WHEN t.assignee_id IS NOT NULL AND ${nguoiGiuHopLe("t")} THEN 1 ELSE 0 END AS assignee_active, t.resolved_in, t.last_activity_at, t.last_public_reply_at, t.notified_at,
-  t.created_at, t.updated_at, t.team_id, tm.name AS team_name, tm.sensitive AS team_sensitive`;
+  t.created_at, t.updated_at, t.team_id, tm.name AS team_name, tm.sensitive AS team_sensitive, t.priority, t.order_id, t.order_code`;
 const FROM = `FROM fbk_ticket t JOIN fbk_kind k ON k.code = t.kind_code JOIN fbk_status st ON st.code = t.status_code JOIN fbk_team tm ON tm.id = t.team_id
   LEFT JOIN v_stf_staff_label s ON s.id = t.submitter_id LEFT JOIN v_stf_staff_label a ON a.id = t.assignee_id`;
 

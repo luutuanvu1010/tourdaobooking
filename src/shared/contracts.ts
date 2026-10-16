@@ -3,6 +3,7 @@
 import type { AuditAction, AuditTargetType } from "./audit-actions.ts";
 import type { CatalogService, PaxCode, PaxCounts, Prices } from "./order-lines.ts";
 import type { FeedbackKind, FeedbackStatus } from "./feedback-catalog.ts";
+import type { Priority, TeamRole } from "./ve-ho-tro.ts";
 import type { LyDoSuaSai } from "./giay-to.ts";
 import type { NhomLyDo } from "./dieu-phoi-kieu.ts";
 import type { PermissionCode } from "./permissions.ts";
@@ -1108,6 +1109,19 @@ export interface FeedbackCreateInput {
   context?: FeedbackContextDto;
   /** Nhóm nhận (ADR-0119); vắng = nhóm Kỹ thuật (bản web cũ vẫn gửi được). Tài khoản bên ngoài chỉ gửi được Kỹ thuật. */
   teamId?: string;
+  /** Đơn liên quan (ADR-0127): chỉ đơn do chính người gửi lập; máy chủ chụp mã đơn lúc gửi. Người gửi KHÔNG đặt được mức ưu tiên (trường `priority` gửi kèm bị bỏ qua). */
+  orderId?: string;
+}
+
+/** Thân PATCH /api/feedback/:id/xu-ly (và tuyến cũ PATCH /api/feedback/:id): mọi trường tuỳ chọn, phải có ít nhất một thay đổi. */
+export interface FeedbackPatchRequest {
+  status?: FeedbackStatus;
+  /** null = gỡ người xử lý. Chỉ Trưởng nhóm / Toàn quyền. */
+  assigneeId?: string | null;
+  /** Chỉ khi chuyển sang Đã xong. */
+  resolvedIn?: string | null;
+  /** Mức ưu tiên (ADR-0127): chỉ người xử lý được phiếu (quyenPhieu.xuLy). */
+  priority?: Priority;
 }
 
 export interface FeedbackTicketDto {
@@ -1139,6 +1153,11 @@ export interface FeedbackTicketDto {
   teamName: string;
   /** Nhóm nhạy cảm: tiêu đề/nội dung không ra nhật ký và email chung. */
   teamSensitive: boolean;
+  /** Mức ưu tiên (ADR-0127); người gửi chỉ xem. */
+  priority: Priority;
+  /** Đơn liên quan gắn lúc gửi (ADR-0127): cùng có hoặc cùng null. `orderCode` là mã chụp lúc gửi, không đọc lại từ đơn. */
+  orderId: string | null;
+  orderCode: string | null;
 }
 
 export interface FeedbackMessageDto {
@@ -1188,6 +1207,16 @@ export interface FeedbackTeamsResponse { teams: FeedbackTeamDto[]; mine: Feedbac
 export interface FeedbackAdminTeamDto extends FeedbackTeamDto { active: boolean; members: { staffId: string; name: string | null; role: "LEAD" | "MEMBER" }[] }
 /** GET /api/feedback/admin/teams. POST/PATCH trả `{ team: FeedbackAdminTeamDto }`. */
 export interface FeedbackAdminTeamsResponse { teams: FeedbackAdminTeamDto[] }
+// Vé hỗ trợ đợt 2a (ADR-0127).
+/** GET /api/feedback/:id/messages?since=…: tin mới (người gửi không bao giờ nhận ghi chú nội bộ) + phần đầu phiếu gọn để phát hiện đóng / đổi người / đổi mức / chuyển nhóm. Không ghi mốc đã xem. */
+export interface FeedbackMessagesSinceResponse {
+  messages: FeedbackMessageDto[];
+  ticket: { status: FeedbackStatus; assigneeId: string | null; assigneeName: string | null; priority: Priority; teamId: string };
+}
+/** GET /api/feedback/teams/:id/members: thành viên ĐANG hiệu lực, còn hoạt động, để Trưởng nhóm giao việc (không có người gửi phiếu, tài khoản bị khoá, tài khoản bên ngoài). */
+export interface FeedbackMembersResponse { members: { staffId: string; name: string; role: TeamRole }[] }
+/** GET /api/feedback/my-orders: tối đa 30 đơn gần nhất do người gọi lập — CHỈ id, mã đơn, trạng thái (không tiền, không khách, không SĐT). */
+export interface FeedbackMyOrdersResponse { orders: { id: string; orderCode: string; status: OrderStatus }[] }
 
 // ---- Thông báo hệ thống (ADR-0034) --------------------------------------------
 // "chuyen": tin chuyến xe (ADR-0052 D6, kể cả MQ-07 "giờ hẹn chặng đổi khi đã xếp"); "tai_khoan": ngưng tài khoản giữ tiền — chỉ Toàn quyền nhận (ADR-0090 đ3);

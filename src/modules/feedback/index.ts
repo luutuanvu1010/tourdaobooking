@@ -11,7 +11,7 @@ import { FEEDBACK_KIND_NAME, FEEDBACK_STATUS_NAME, canTransition, feedbackCode, 
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
 import { can, isExternalPermission, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
-import { NHOM_KY_THUAT_ID, isLocHangDoi } from "../../shared/ve-ho-tro";
+import { NHOM_KY_THUAT_ID, isLocHangDoi, isPriority } from "../../shared/ve-ho-tro";
 import { mailConfig, notifyAdmins, type NotifyEvent } from "./notify";
 import { choPhepNhomGui, quyenPhieu, type Membership, type QuyenPhieu } from "./quyen";
 import {
@@ -66,6 +66,9 @@ const toTicket = (r: TicketRow, showMail: boolean): FeedbackTicketDto => ({
   teamId: r.team_id,
   teamName: r.team_name,
   teamSensitive: r.team_sensitive === 1,
+  priority: isPriority(r.priority) ? r.priority : "NORMAL",
+  orderId: r.order_id,
+  orderCode: r.order_code,
 });
 const toMessage = (m: MessageRow, viewerId: string): FeedbackMessageDto => ({
   id: m.id,

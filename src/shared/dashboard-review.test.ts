@@ -50,6 +50,12 @@ function ticket(code: string, status: FeedbackTicketDto["status"], kindName = "B
     createdAt: "2026-09-23T00:00:00.000Z",
     unread: true,
     mailPending: false,
+    teamId: "fbk-team-ky-thuat",
+    teamName: "Kỹ thuật",
+    teamSensitive: false,
+    priority: "NORMAL",
+    orderId: null,
+    orderCode: null,
   };
 }
 

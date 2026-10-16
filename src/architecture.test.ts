@@ -39,7 +39,10 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   // Import thật của mã: `orders` (findOrderOwner: đơn có không, ai lập), `staff` (tài khoản người được giao / danh sách người có thể được giao), `audit` (auditStatement).
   // View v_dsp_order_handler đọc view công bố v_pty_party_label và v_stf_staff_label ở tầng SQL (cạnh dispatch → parties, dispatch → staff).
   dispatch: ["orders", "parties", "locations", "staff", "audit"],
-  feedback: ["staff", "audit"], // đọc nhãn nhân viên (v_stf_staff_label) + ghi nhật ký `feedback_*`; không module nào import feedback
+  // feedback: đọc nhãn nhân viên (v_stf_staff_label) + ghi nhật ký `feedback_*`; không module nào import feedback.
+  // ADR-0127 (Vé hỗ trợ đợt 2a, chủ duyệt): cạnh feedback → orders CHỈ ĐỌC ba view công bố có sẵn v_ord_order_owner, v_ord_order_label, v_ord_order_state
+  // (gắn đơn của chính người gửi vào phiếu, danh sách my-orders); không import src/modules/orders/, không view mới.
+  feedback: ["staff", "audit", "orders"],
   "giao-dien": ["audit"], // ADR-0087: ghi nhật ký giao_dien_changed
   // ky-so (ADR-0080 D1): khoá tháng — chỉ ghi nhật ký. NỚI hàng rào đã duyệt (Điều 9.4) — chủ duyệt C12 2026-10-01, xem docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/de-xuat-luat.md.
   "ky-so": ["audit"],
