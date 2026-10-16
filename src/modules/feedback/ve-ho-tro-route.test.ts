@@ -331,6 +331,19 @@ test("chưa đọc tính RIÊNG từng người: một người mở không làm
   assert.equal(await huy(w, SALES), 0);
 });
 
+test("huy hiệu hàng đợi không đếm phiếu đã đóng (Đã xong / Từ chối); người gửi trả lời mở lại thì đếm lại", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  assert.equal(await huy(w, KT_TN), 1, "phiếu Mới: có chấm");
+  assert.equal((await xuLy(w, id, KT_TV, { status: "ACK" })).status, 200);
+  assert.equal((await xuLy(w, id, KT_TV, { status: "DONE" })).status, 200);
+  assert.equal(await huy(w, KT_TN), 0, "phiếu đã xong: người chưa mở không còn bị đếm");
+  assert.equal(await huy(w, SUPER), 0, "Toàn quyền cũng vậy");
+  w.sqlite.exec(`UPDATE fbk_ticket_read SET seen_at = '2000-01-01T00:00:00.000Z' WHERE ticket_id = '${id}'`);
+  assert.equal((await traLoi(w, id, SALES, "Vẫn chưa được.")).status, 201); // người gửi trả lời ⇒ mở lại thành Đã tiếp nhận
+  assert.equal(await huy(w, KT_TN), 1, "phiếu mở lại: đếm lại");
+});
+
 test("người làm tự ghi mốc đã xem trong cùng lô: trả lời / đổi trạng thái không làm chính mình có chấm đỏ, người khác vẫn có", async () => {
   const w = setup();
   const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;

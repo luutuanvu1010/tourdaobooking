@@ -113,7 +113,7 @@ const BADGE = defineSql(
   "badge",
   `SELECT
      (SELECT count(*) FROM fbk_ticket t WHERE t.submitter_id = ?1 AND ${UNREAD_SUBMITTER}) AS mine,
-     (SELECT count(*) FROM fbk_ticket t WHERE t.submitter_id <> ?1 AND ${UNREAD_USER}
+     (SELECT count(*) FROM fbk_ticket t WHERE t.submitter_id <> ?1 AND t.status_code NOT IN ('DONE', 'DECLINED') AND ${UNREAD_USER}
         AND (?2 = 1 OR t.team_id IN (SELECT m.team_id FROM fbk_team_member m WHERE m.staff_id = ?1 AND m.valid_to_at IS NULL))) AS queue`,
 );
 const STATS = defineSql(
