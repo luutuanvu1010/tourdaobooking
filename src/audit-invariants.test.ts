@@ -23,7 +23,10 @@ interface Check {
   mode?: "rows";
   note?: string;
 }
-const { CHECKS } = (await import(new URL("../scripts/audit-checks.mjs", import.meta.url).href)) as { CHECKS: Check[] };
+const { CHECKS, COT_N3_NHAT_KY } = (await import(new URL("../scripts/audit-checks.mjs", import.meta.url).href)) as {
+  CHECKS: Check[];
+  COT_N3_NHAT_KY: Record<string, { kiem: string; chuanHoa?: boolean }>;
+};
 
 const DIR = new URL("../migrations/", import.meta.url);
 const FILES = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
@@ -914,6 +917,38 @@ test("R-PTY-4 (ADR-0040 D2): nhật ký chứa số giấy tờ của người (
   log("l-2", "Khám sức khoẻ SK12");
   assert.equal(violations(db, c), 0);
   log("l-3", "Căn cước công dân (CCCD) 079 888.777-666");
+  assert.equal(violations(db, c), 1);
+});
+
+test("R-PD-1 + COT_N3_NHAT_KY (Hiến chương 5.20): tập khoá = mọi cột BẢNG hạng N3 của sổ dữ liệu; kiểm được giao có thật; cột giao R-PD-1 có trong câu SQL", () => {
+  const sd = JSON.parse(readFileSync(new URL("../docs/data-dictionary.json", import.meta.url), "utf8")) as { tables: { name: string }[]; hangDuLieu: Record<string, Record<string, string>> };
+  const bang = new Set(sd.tables.map((t) => t.name));
+  const n3 = Object.entries(sd.hangDuLieu)
+    .filter(([o]) => bang.has(o))
+    .flatMap(([o, c]) => Object.entries(c).filter(([, h]) => h === "N3").map(([k]) => `${o}.${k}`))
+    .sort();
+  assert.deepEqual(Object.keys(COT_N3_NHAT_KY).sort(), n3, "cột N3 mới phải có dòng ở COT_N3_NHAT_KY (scripts/audit-checks.mjs)");
+  const pd = one("R-PD-1");
+  assert.equal(pd.level, "warn-unless-strict");
+  assert.match(pd.note ?? "", /dữ liệu cá nhân/);
+  for (const [cot, v] of Object.entries(COT_N3_NHAT_KY)) {
+    one(v.kiem);
+    if (v.kiem !== "R-PD-1") continue;
+    const [b, c] = cot.split(".");
+    assert.ok(pd.sql.includes(`FROM ${b} x WHERE x.${c} IS NOT NULL`), `${cot} chưa có trong câu R-PD-1`);
+  }
+});
+
+test("R-PD-1: nơi cấp giấy tờ người lọt nhật ký → 1; nhật ký chỉ có tên loại, ngày → 0", () => {
+  const c = one("R-PD-1");
+  const db = build();
+  const id = giayToNguoi(db, { party: "pty-s-an", key: "079888777666" });
+  db.prepare("UPDATE pty_person_document SET issued_place = ? WHERE id = ?").run("NOI CAP DANH DAU 77", id);
+  const log = (lid: string, detail: string) =>
+    db.prepare("INSERT INTO audit_log (id, action, target_type, target_id, detail, created_at) VALUES (?, 'party_document_added', 'party', 'pty-s-an', ?, ?)").run(lid, detail, T1);
+  log("l-1", "Căn cước công dân (CCCD), hết hạn 2030-01-01");
+  assert.equal(violations(db, c), 0);
+  log("l-2", "nơi cấp NOI CAP DANH DAU 77");
   assert.equal(violations(db, c), 1);
 });
 

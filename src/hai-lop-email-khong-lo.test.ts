@@ -14,6 +14,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../tests/audit/harness.mjs";
+import { doNhatKyHang } from "../tests/audit/nhat-ky-hang.mjs";
 import { hashPin } from "./modules/staff/password.ts";
 import { encryptSecret } from "./modules/auth/mfa-crypto.ts";
 import { totpCode, TOTP_PERIOD } from "./modules/auth/totp.ts";
@@ -198,6 +199,11 @@ test("không lộ địa chỉ email: MỌI route /api/auth/mfa/* và /api/accou
     // ---- Danh sách Quản lý tài khoản (DTO của người khác).
     await call("GET", "/api/staff", { as: TQ });
     coStatus("/api/staff", 200);
+
+    // Hiến chương 5.20 (lát H-0 Gói 2): bài này chịu trách nhiệm sinh dữ liệu thật cho các cột bí mật xác thực (N4) rồi dò chúng trong nhật ký.
+    const dsN4 = doNhatKyHang(w.sqlite, ["staff.pin_hash", "aut_mfa_factor.secret_enc", "aut_mfa_recovery_code.code_hash", "aut_mfa_email_code.code_hash", "aut_trusted_device.token_hash"]);
+    assert.deepEqual(dsN4.rong, [], "bài rỗng: cột N4 phụ trách chưa có dữ liệu thật");
+    assert.deepEqual(dsN4.lo, [], "nhật ký chứa giá trị hạng N3/N4");
   } finally {
     Object.assign(console, goc);
   }

@@ -98,6 +98,25 @@ const GHI_SAU_KHOA = (bang) =>
   `(SELECT count(*) FROM ${bang} x JOIN ky_period_close k ON k.period = substr(x.occurred_date, 1, 7) WHERE julianday(x.created_at) > julianday(k.closed_at))`;
 
 /** @type {{ code: string, what: string, sql: string, level: 'fail' | 'warn-unless-strict' | 'warn', mode?: 'rows', note?: string }[]} */
+/**
+ * Cột hạng N3 (Hiến chương 5.20) → kiểm nào dò cột đó trong audit_log.detail. `src/audit-invariants.test.ts` đòi tập khoá BẰNG tập cột BẢNG hạng N3 của
+ * docs/data-dictionary.json (khoá hangDuLieu) — thêm cột N3 mà quên ở đây ⇒ đỏ. `chuanHoa: true` = so detail đã bỏ khoảng trắng . - / và viết HOA (cột đã chuẩn
+ * hoá như number_key). N4 (bí mật xác thực) KHÔNG dò ở đây: phải so từng giá trị băm với mọi dòng nhật ký — quá nặng cho bước kiểm của `npm run trien-khai`;
+ * N4 dò ở bài chạy cả ứng dụng (tests/audit/nhat-ky-hang.mjs).
+ */
+export const COT_N3_NHAT_KY = {
+  "pty_person_document.document_number": { kiem: "R-PTY-4" }, // R-PTY-4 dò qua number_key (cùng số, đã chuẩn hoá)
+  "pty_person_document.number_key": { kiem: "R-PTY-4" },
+  "pty_person_document.issued_place": { kiem: "R-PD-1", chuanHoa: false },
+};
+const DETAIL_CHUAN = "upper(replace(replace(replace(replace(a.detail, ' ', ''), '.', ''), '-', ''), '/', ''))";
+const DO_COT_N3 = Object.entries(COT_N3_NHAT_KY)
+  .filter(([, v]) => v.kiem === "R-PD-1")
+  .map(([cot, v]) => {
+    const [bang, ten] = cot.split(".");
+    return `EXISTS (SELECT 1 FROM ${bang} x WHERE x.${ten} IS NOT NULL AND length(x.${ten}) >= 8 AND instr(${v.chuanHoa ? DETAIL_CHUAN : "a.detail"}, x.${ten}) > 0)`;
+  });
+
 export const CHECKS = [
   { code: "R-N1-1", what: "mọi tài khoản có party_id", sql: "SELECT count(*) FROM staff WHERE party_id IS NULL", level: "warn-unless-strict" },
   { code: "R-N1-1", what: "một hồ sơ tối đa một tài khoản", sql: "SELECT count(*) FROM (SELECT party_id FROM staff WHERE party_id IS NOT NULL GROUP BY party_id HAVING count(*) > 1)", level: "fail" },
@@ -571,6 +590,15 @@ export const CHECKS = [
               AND instr(upper(replace(replace(replace(replace(a.detail, ' ', ''), '.', ''), '-', ''), '/', '')), d.number_key) > 0)`,
     level: "warn-unless-strict",
     note: "nhật ký chỉ-thêm — không gỡ được; báo chủ dự án ngay, đây là dữ liệu cá nhân (số giấy tờ lọt vào nhật ký — tìm route ghi sai)",
+  },
+  // R-PD-1 (Hiến chương 5.20, lát H-0 Gói 2): nhật ký không chứa giá trị cột hạng N3 nào khác ngoài số giấy tờ người (đã có R-PTY-4). Danh sách cột: COT_N3_NHAT_KY.
+  // Mức warn-unless-strict như R-PTY-4: nhật ký chỉ-thêm — một dòng lỡ ghi không xoá được, "fail" sẽ chặn vĩnh viễn mọi lần triển khai sau.
+  {
+    code: "R-PD-1",
+    what: "nhật ký không chứa giá trị cột hạng N3 (nơi cấp giấy tờ, giấy phép tổ chức…)",
+    sql: `SELECT count(*) FROM audit_log a WHERE a.detail IS NOT NULL AND (${DO_COT_N3.join(" OR ")})`,
+    level: "warn-unless-strict",
+    note: "nhật ký chỉ-thêm — không gỡ được; báo chủ dự án ngay, đây là dữ liệu cá nhân hạng N3 lọt vào nhật ký (tìm route ghi sai)",
   },
   // R-PTY-5 (ADR-0048 B1.2): quan hệ "Tài xế của" đang mở đi từ hồ sơ NGƯỜI — lưới thứ hai của trigger pty_relationship_drives_for_person (chỉ canh INSERT).
   // KHÔNG kiểm "đầu tới đang là nhà xe": nhà xe thôi hợp tác (đóng vai) thì quan hệ còn mở vẫn hợp lệ (ADR-0048 D1 — quan hệ không tự đóng).

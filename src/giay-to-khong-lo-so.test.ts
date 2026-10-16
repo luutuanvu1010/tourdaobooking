@@ -14,6 +14,7 @@ import * as esbuild from "esbuild";
 import type { AppModule } from "./shared/router.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../tests/audit/harness.mjs";
+import { doNhatKyHang } from "../tests/audit/nhat-ky-hang.mjs";
 import { DRIVER, DRIVER2, SALES, batDongHo, denGio, don, setup, taoChuyen, uuid, xe, xepHet } from "../tests/audit/dieu-phoi-khung.mjs";
 
 async function routesOf(entry: string, exportName: string): Promise<string[]> {
@@ -155,6 +156,11 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
 
   // (4) "xem đủ số" có đúng số.
   assert.ok(lanXemSo.includes(SO_CCCD_MOI), "thân 'xem đủ số' phải có số đầy đủ");
+
+  // Hiến chương 5.20 (lát H-0 Gói 2): dò MỌI cột N3/N4 của sổ dữ liệu trong nhật ký; bài này chịu trách nhiệm sinh dữ liệu thật cho cột giấy tờ người.
+  const dsN3 = doNhatKyHang(w.sqlite, ["pty_person_document.document_number", "pty_person_document.number_key", "pty_person_document.issued_place"]);
+  assert.deepEqual(dsN3.rong, [], "bài rỗng: cột N3 phụ trách chưa có dữ liệu thật");
+  assert.deepEqual(dsN3.lo, [], "nhật ký chứa giá trị hạng N3/N4");
 });
 
 // ==== BA ROUTE ĐIỀU PHỐI (ADR-0049 Task A18 bước 1 — kế hoạch mục 1.6): GET /chuyen/:id, GET /cuoc-cua-toi/:id, POST …/xuat-ben ===============================
