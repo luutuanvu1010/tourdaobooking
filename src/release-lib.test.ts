@@ -923,9 +923,9 @@ test("trien-khai (kho tệp — cổng 1e): kiểm kho SAU khoá bí mật, TRƯ
   assert.match(h.text(), /Đã có kho tệp hồ sơ: tourdao-sales-ho-so/);
 });
 
-test("trien-khai (kho tệp — cổng 1e): chưa có kho (danh sách rỗng, chỉ có tên GẦN giống, tên bị tô màu khác) ⇒ DỪNG trước migration, chỉ nguyên lệnh tạo kho; KHÔNG tự tạo", async () => {
+test("trien-khai (kho tệp — cổng 1e): chưa có kho (chỉ có tên GẦN giống, tên bị tô màu khác) ⇒ DỪNG trước migration, chỉ nguyên lệnh tạo kho, nêu thư mục; KHÔNG tự tạo", async () => {
   for (const r of [
-    out("Listing buckets...\n"),
+    out("Listing buckets...\nname:           tourdao-booking-anh\ncreation_date:  2026-09-01T00:00:00.000Z\n"),
     out("Listing buckets...\nname:           tourdao-sales-ho-so-cu\ncreation_date:  2026-10-01T00:00:00.000Z\n"),
     out("Listing buckets...\n\x1b[2mname:\x1b[22m           khac\n"),
   ]) {
@@ -937,8 +937,29 @@ test("trien-khai (kho tệp — cổng 1e): chưa có kho (danh sách rỗng, ch
     const t = h.text();
     assert.match(t, /Chưa có kho tệp hồ sơ tourdao-sales-ho-so/);
     assert.match(t, /CHƯA có gì bị đổi trên production/);
+    assert.match(t, /ở thư mục tourdao-sales/, "C9: câu dừng nói rõ chạy lệnh ở thư mục nào");
+    assert.doesNotMatch(t, /không đọc được đầu ra/, "m2: có đọc được danh sách kho — câu 'chưa có kho', không phải câu 'đầu ra lạ'");
     assert.ok(t.replace(/\x1b\[[0-9;]*m/g, "").split("\n").map((x) => x.trim()).includes("npx wrangler r2 bucket create tourdao-sales-ho-so"), "lệnh tạo kho đứng một mình trên dòng");
   }
+});
+
+test("trien-khai (kho tệp — cổng 1e, m2 + C13): đầu ra không có dòng 'name: …' nào (rỗng, dạng lạ, chỉ có 'bucket_name: tourdao-sales-ho-so') ⇒ DỪNG với câu 'không đọc được đầu ra', KHÔNG đạt giả", async () => {
+  for (const r of [
+    out("Listing buckets...\n"),
+    out("Listing buckets...\nbucket_name:    tourdao-sales-ho-so\ncreation_date:  2026-10-16T03:00:00.000Z\n"),
+    out('[{"name":"tourdao-sales-ho-so"}]\n'),
+  ]) {
+    const h = harness(tkScript({ [KHO]: r }), ["c", "c"]);
+    assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW, sleep: async () => {} }), 0);
+    assert.equal(h.calls.at(-1), KHO, "phải dừng NGAY ở cổng kho");
+    assert.ok(!h.calls.some((c) => /r2 (bucket (create|delete|update)|object)/.test(c)), "cổng chỉ ĐỌC");
+    const t = h.text();
+    assert.match(t, /không đọc được đầu ra của `wrangler r2 bucket list`/);
+    assert.doesNotMatch(t, /Chưa có kho tệp hồ sơ/, "đầu ra lạ không được khẳng định 'chưa có kho'");
+    assert.match(t, /CHƯA có gì bị đổi trên production/);
+    assert.match(t, /ở thư mục tourdao-sales/);
+  }
+  assert.deepEqual(lib.parseR2BucketNames("bucket_name:    tourdao-sales-ho-so\n"), [], "C13: 'bucket_name:' không phải dòng 'name:'");
 });
 
 test("trien-khai (kho tệp — cổng 1e): tên kho tô màu đúng ⇒ vẫn nhận (bỏ mã màu trước khi đọc)", async () => {
@@ -953,6 +974,7 @@ test("trien-khai (kho tệp — cổng 1e): lệnh lỗi (kể cả 7403) ⇒ D�
     assert.equal(h.calls.filter((c) => c === KHO).length, 1);
     assert.ok(!h.calls.includes(LIST));
     assert.match(h.text(), /`wrangler r2 bucket list` lỗi/);
+    assert.match(h.text(), /CHƯA có gì bị đổi trên production/, "C10: nhánh lệnh lỗi cũng nói chưa đổi gì");
   }
 });
 

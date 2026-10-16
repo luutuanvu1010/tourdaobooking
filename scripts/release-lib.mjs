@@ -398,7 +398,16 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), 
   if (kho.code !== 0) {
     return stop("`wrangler r2 bucket list` lỗi — chưa kiểm được kho tệp hồ sơ nên KHÔNG đi tiếp. CHƯA có gì bị đổi trên production.", String(kho.stderr ?? "").trim().slice(0, 400));
   }
-  if (!parseR2BucketNames(String(kho.stdout ?? "")).includes(tenKho)) {
+  const tenCacKho = parseR2BucketNames(String(kho.stdout ?? ""));
+  // Không đọc ra tên kho nào (đầu ra lạ — wrangler đổi dạng — hoặc tài khoản chưa có kho nào): câu RIÊNG, không khẳng định "chưa có kho" (m2 vòng sửa cuối H-2).
+  if (tenCacKho.length === 0) {
+    return stop(
+      "không đọc được đầu ra của `wrangler r2 bucket list` (không thấy dòng \"name: …\" nào — dạng đầu ra lạ, hoặc tài khoản chưa có kho nào) — chưa kiểm được kho tệp hồ sơ nên KHÔNG đi tiếp. CHƯA có gì bị đổi trên production.",
+      `Chạy trong Terminal, ở thư mục tourdao-sales, để xem tận mắt:\n  npx wrangler r2 bucket list\nKhông có dòng "name: ${tenKho}" thì tạo kho:\n  npx wrangler r2 bucket create ${tenKho}\nrồi chạy lại \`npm run trien-khai\`. CÓ dòng đó mà lệnh vẫn dừng ở đây thì báo AI (dạng đầu ra của wrangler đã đổi).\n` +
+        String(kho.stdout ?? "").slice(0, 400),
+    );
+  }
+  if (!tenCacKho.includes(tenKho)) {
     return stop(
       `Chưa có kho tệp hồ sơ ${tenKho} trên Cloudflare — triển khai lúc này thì ảnh giấy tờ không tải lên hay mở được. CHƯA có gì bị đổi trên production.`,
       `Chạy trong Terminal, ở thư mục tourdao-sales:\n  npx wrangler r2 bucket create ${tenKho}\nKiểm lại (phải thấy dòng "name: ${tenKho}"):\n  npx wrangler r2 bucket list\nrồi chạy lại \`npm run trien-khai\`.`,
