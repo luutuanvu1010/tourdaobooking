@@ -3,6 +3,9 @@
 // Runtime types generated with workerd@1.20260918.1 2026-09-01 
 interface __BaseEnv_Env {
 	DB: D1Database;
+	// Kho tệp hồ sơ (ADR-0123) — khai TAY như LAN_GUI_SECRET (worktree thi công không chạy `npm run types`). `npm run types` sinh lại từ khối r2_buckets của
+	// wrangler.jsonc thành `HO_SO: R2Bucket` (bắt buộc); giữ DẤU HỎI: route tệp trả 503 khi binding vắng (khung thử không có kho) — không kiểm cấu hình toàn cục.
+	HO_SO?: R2Bucket;
 	ASSETS: Fetcher;
 	SERVICES_SHEET_ID: "1XPx1g0JVTdevdX35MeCpt6Cc6Dgxdmfer6okEWleD3s";
 	SESSION_SECRET: string;

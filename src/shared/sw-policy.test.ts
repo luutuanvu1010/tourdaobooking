@@ -141,3 +141,16 @@ test("tệp màu giao diện: /giao-dien.css vào cache khung và nạp sẵn; �
   assert.equal(shell("/giao-dien.css/x"), "pass");
   assert.equal(shell("/giao-dien.js"), "pass");
 });
+
+test("Hiến chương 5.22: đường tệp hồ sơ không bao giờ vào cache — lớp 1 (routeFor 'pass') VÀ lớp 3 (phản hồi no-store không lưu, kể cả ảnh PNG)", () => {
+  const o = "https://booking.tourdao.vn";
+  const id = "11111111-1111-4111-8111-111111111111";
+  for (const p of [`/api/parties/${id}/documents/${id}/tep/${id}`, `/api/parties/${id}/documents/${id}/tep`, "/api/parties/tep-cho-xoa"]) {
+    assert.equal(routeFor("GET", o + p, o), "pass", p);
+  }
+  const anh = { status: 200, type: "basic", redirected: false, contentType: "image/png" };
+  assert.equal(isCacheable({ ...anh, cacheControl: "no-store" }), false, "PNG có no-store");
+  assert.equal(isCacheable({ ...anh, cacheControl: "private, NO-STORE" }), false, "không phân biệt hoa thường");
+  assert.equal(isCacheable({ ...anh, cacheControl: null }), true, "PNG của khung (icon) vẫn lưu được");
+  assert.equal(isCacheable(anh), true, "lời gọi cũ không truyền cacheControl vẫn chạy");
+});

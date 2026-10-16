@@ -130,6 +130,43 @@ export function seedStaff(sqlite, { id, phone, name, perms }) {
 export const MOC_GIA_POLICY_ID = "moc-gia-khung-thu";
 
 /**
+ * Kho R2 GIẢ cho bài chạy cả ứng dụng (ADR-0123; kế hoạch 2026-10-16-goi-2-h2-kho-tep). Lưu byte trong bộ nhớ. Không nới luật nào:
+ * - `hong.put / hong.get / hong.delete = true` — lần gọi kế tiếp ném lỗi (giả kho hỏng) để bài thấy dòng "chờ xoá" / "tải dở dang";
+ * - `khiGet(key)` — chạy NGAY khi route gọi get (trước khi trả thân): bài kiểm "nhật ký đã có TRƯỚC khi đọc kho";
+ * - `soLan` — đếm lời gọi; `co(key)` — đối tượng còn trong kho không.
+ */
+export function khoR2Gia() {
+  const kho = new Map();
+  const r2 = {
+    hong: { put: false, get: false, delete: false },
+    khiGet: null,
+    soLan: { put: 0, get: 0, delete: 0 },
+    co: (key) => kho.has(key),
+    async put(key, value, opts) {
+      r2.soLan.put++;
+      if (r2.hong.put) throw new Error("r2_put_gia_hong");
+      const b = value instanceof Uint8Array ? new Uint8Array(value) : new Uint8Array(await new Response(value).arrayBuffer());
+      kho.set(key, { b, contentType: opts?.httpMetadata?.contentType ?? null });
+      return { key, size: b.length };
+    },
+    async get(key) {
+      r2.soLan.get++;
+      if (r2.hong.get) throw new Error("r2_get_gia_hong");
+      r2.khiGet?.(key);
+      const x = kho.get(key);
+      if (!x) return null;
+      return { key, size: x.b.length, httpMetadata: { contentType: x.contentType }, body: new Response(x.b).body };
+    },
+    async delete(keys) {
+      r2.soLan.delete++;
+      if (r2.hong.delete) throw new Error("r2_delete_gia_hong");
+      for (const k of [keys].flat()) kho.delete(k);
+    },
+  };
+  return r2;
+}
+
+/**
  * Dựng một "thế giới" thử: SQLite thật + CẢ ứng dụng. MẶC ĐỊNH dùng mốc tối thiểu THẬT (hàm tiêm của gốc lắp ráp đọc chính sách gieo 360 phút) — bài nào
  * vô tình chạm mốc 6 giờ sẽ ĐỎ, không bị che. Tuỳ chọn (ADR-0049 D2 — Ruling N-9, TC-26):
  * - `mocGiaChoBaiKhongKiemMoc: <phút>` — CHỈ cho bài KHÔNG kiểm mốc (vd xác nhận đơn đón "hôm nay" để kiểm việc khác): hàm tiêm GIẢ trả mốc do bài chỉ
@@ -224,7 +261,8 @@ export function world(tuyChon = {}) {
       mo();
     }, 2000).unref?.();
   }
-  const env = { DB: fakeD1(sqlite, moc), SESSION_SECRET: SECRET, LAN_GUI_SECRET: LAN_GUI_SECRET_GIA, SERVICES_SHEET_ID: "x" };
+  const r2 = khoR2Gia();
+  const env = { DB: fakeD1(sqlite, moc), HO_SO: r2, SESSION_SECRET: SECRET, LAN_GUI_SECRET: LAN_GUI_SECRET_GIA, SERVICES_SHEET_ID: "x" };
   // Danh mục đã đồng bộ gần đây để POST /api/orders không đi gọi Google Sheet.
   sqlite.exec(`UPDATE catalog_sync SET last_attempt_at = '${new Date().toISOString()}', last_success_at = '${new Date().toISOString()}' WHERE id = 'default'`);
   // waitUntil THU promise (promise vốn đã chạy — bài cũ không đổi hành vi); `choNen()` chờ hết việc chạy nền (ADR-0094 L5: bước 6 cập nhật kết quả vé).
@@ -266,9 +304,10 @@ export function world(tuyChon = {}) {
     if (res.status === 201 && !LOCATION_HOP_LE.test(res.headers.get("location") ?? "")) {
       throw new Error(`H7: ${method} ${path} trả 201 mà thiếu/sai header Location ("${res.headers.get("location")}") — thêm Location (src/shared/http.ts kemLocation)`);
     }
-    const text = await res.text();
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    const text = new TextDecoder().decode(bytes); // = res.text() (UTF-8, thay ký tự hỏng) — bài cũ không đổi
     let json = null; try { json = JSON.parse(text); } catch {}
-    return { status: res.status, json, text, headers: res.headers };
+    return { status: res.status, json, text, bytes, headers: res.headers };
   }
-  return { sqlite, env, call, token, choNen, raoTraVe, chenTruocLo, q:(sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
+  return { sqlite, env, r2, call, token, choNen, raoTraVe, chenTruocLo, q:(sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
 }

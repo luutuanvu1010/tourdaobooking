@@ -5,6 +5,8 @@
 //     Cố ý KHÔNG viết luật "bỏ qua /api": router của Worker khớp đường dẫn bằng split("/").filter(Boolean) nên "//api/auth/me" vẫn chạm API thật,
 //     và một bộ lọc theo tiền tố phải khớp ĐÚNG như router — hai luật khớp cho cùng một khái niệm sẽ lệch nhau (QA2 độc lập lần 1, Q2-01).
 //  2. isCacheable: chỉ lưu đúng các loại nội dung của khung (HTML/CSS/JS/PNG/manifest/font woff2); JSON và văn bản thường không bao giờ được lưu.
+//  3. isCacheable: phản hồi có `Cache-Control: no-store` KHÔNG BAO GIỜ được lưu (Hiến chương 5.22 — ảnh giấy tờ là image/png / image/jpeg, vốn thuộc loại
+//     nội dung của khung; lớp 1 đã cho "pass", lớp này giữ khi ai đó lỡ thêm đường tệp vào danh sách khung).
 
 declare const __BUILD_ID__: string | undefined;
 
@@ -50,7 +52,8 @@ export function cacheKey(url: string): string {
 
 const CACHEABLE_TYPE = /^(?:text\/html|text\/css|(?:text|application)\/javascript|image\/png|font\/woff2|application\/manifest\+json)\b/i;
 
-/** Không lưu lỗi, phản hồi khác origin hay chuyển hướng, và không bao giờ lưu nội dung không thuộc khung (JSON, văn bản thường, loại lạ). */
-export function isCacheable(res: { status: number; type: string; redirected: boolean; contentType: string | null }): boolean {
+/** Không lưu lỗi, phản hồi khác origin hay chuyển hướng, phản hồi `no-store` (lớp 3), và không bao giờ lưu nội dung không thuộc khung (JSON, văn bản thường, loại lạ). */
+export function isCacheable(res: { status: number; type: string; redirected: boolean; contentType: string | null; cacheControl?: string | null }): boolean {
+  if (/\bno-store\b/i.test(res.cacheControl ?? "")) return false;
   return res.status === 200 && res.type === "basic" && !res.redirected && CACHEABLE_TYPE.test(res.contentType ?? "");
 }
