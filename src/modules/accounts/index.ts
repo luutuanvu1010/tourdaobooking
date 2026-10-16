@@ -863,7 +863,9 @@ export const accountsModule: AppModule = {
         yeuToSong(env.DB, staff.id), recoveryCountLeft(env.DB, staff.id), mayTinSong(env.DB, staff.id, nowIso), mfaDeadlinesOf(env.DB, staff.id),
         sessionId ? getSession(env.DB, sessionId) : Promise.resolve(null),
       ]);
-      const banner = mfaBanner({ perms: staff.permissions, hasFactor: factors.length > 0, trusted: false, graceUntil: han.graceUntil, enrollUntil: han.enrollUntil, nowIso });
+      // Dòng EMAIL lệch của vai lớn không tính là có yếu tố (daBatHaiLop — như cổng đăng nhập; vòng sửa 2 Minor 3); vẫn liệt kê ở `factors` để tự gỡ.
+      const coYeuTo = daBatHaiLop(staff.permissions, factors.map((f) => f.kind));
+      const banner = mfaBanner({ perms: staff.permissions, hasFactor: coYeuTo, trusted: false, graceUntil: han.graceUntil, enrollUntil: han.enrollUntil, nowIso });
       const mayNay = phien?.staff_id === staff.id ? phien.trusted_device_id : null;
       return json({
         required: banner.required, graceUntil: banner.graceUntil,

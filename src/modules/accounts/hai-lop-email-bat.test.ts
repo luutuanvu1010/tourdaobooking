@@ -456,6 +456,42 @@ test("Vòng sửa 2: mã dự phòng SAI → 401, không thư, không dòng mã 
   assert.equal(conLaiDuPhong(w, BH), 10);
 });
 
+// ---- Vòng sửa 2 (Minor 3): dòng EMAIL lệch của vai lớn (Quản trị / Toàn quyền / Kế toán — dữ liệu sửa tay, bất biến R-AUT-MFA-4) KHÔNG tính là "có yếu tố" ở
+// cổng đăng nhập (loginStep, máy tin) và dải nhắc (GET /api/account/mfa) — cùng cách lọc với emailCuaYeuTo / allowedFactors / daBatHaiLop. ----
+
+test("Vòng sửa 2: Quản trị CHỈ có dòng EMAIL lệch, ân hạn NULL → đăng nhập PIN 403 mfa_setup_required (không vào bước hai chỉ có mã dự phòng); dải nhắc: bắt buộc bật", async () => {
+  const { w } = await setup();
+  await gieoYeuTo(w, QT, "EMAIL", "qt@gmail.com");
+  w.sqlite.prepare("UPDATE staff SET mfa_grace_until = NULL WHERE id = ?").run(QT);
+  const l = await pinLogin(w, QT);
+  assert.equal(l.status, 403, l.text);
+  assert.equal(l.json.error.code, "mfa_setup_required");
+  const g = await w.call("GET", "/api/account/mfa", { as: QT });
+  assert.equal(g.status, 200, g.text);
+  assert.equal(g.json.required, true, "dòng EMAIL lệch không làm tắt dải nhắc bật hai lớp");
+});
+
+test("Vòng sửa 2: Quản trị CHỈ có dòng EMAIL lệch, ân hạn CÒN + cookie máy tin → phiên PIN thường (không PIN_TRUSTED, máy tin không được chạm); dải nhắc kèm hạn", async () => {
+  const { w } = await setup();
+  await gieoYeuTo(w, QT, "EMAIL", "qt@gmail.com");
+  const con = new Date(Date.now() + 3 * NGAY).toISOString();
+  w.sqlite.prepare("UPDATE staff SET mfa_grace_until = ? WHERE id = ?").run(con, QT);
+  const tok = "may-tin-thu-" + crypto.randomUUID();
+  const { sha256Hex } = await import("../auth/mfa-crypto.ts");
+  const at = new Date(Date.now() + 1000).toISOString();
+  w.sqlite.prepare(
+    "INSERT INTO aut_trusted_device (id, staff_id, token_hash, label, created_at, created_by, updated_at, updated_by, last_used_at, expires_at) VALUES (?, ?, ?, 'Máy thử', ?, ?, ?, ?, ?, ?)",
+  ).run("td-qt", QT, await sha256Hex(tok), at, QT, at, QT, at, new Date(Date.now() + 10 * NGAY).toISOString());
+  const l = await w.call("POST", "/api/auth/login", { body: { phone: PHONE[QT], pin: PIN }, headers: { "cf-connecting-ip": `203.0.113.${(++ipn % 250) + 1}`, cookie: `td_trusted=${tok}` } });
+  assert.equal(l.status, 200, l.text);
+  assert.ok(l.json.staff, `vào thẳng bằng ân hạn: ${l.text}`);
+  assert.deepEqual(w.q("SELECT method FROM aut_session WHERE staff_id = ? AND ended_at IS NULL", QT).map((x: any) => x.method), ["PIN"]);
+  assert.equal((w.q("SELECT last_used_at AS u FROM aut_trusted_device WHERE id = 'td-qt'")[0] as { u: string }).u, at, "máy tin không được tính là đã dùng");
+  const g = await w.call("GET", "/api/account/mfa", { as: QT });
+  assert.equal(g.json.required, true);
+  assert.equal(g.json.graceUntil, con);
+});
+
 test("Vòng sửa 2: mã dự phòng bị tiêu SONG SONG trong lúc thư đang gửi → lần này 401, mã bật vừa phát bị huỷ (không xác nhận được) — một mã dự phòng không mở được hai lần", async () => {
   const { w, thu } = await setup();
   const codes: string[] = (await batEmail(w, thu, BH)).json.recoveryCodes;

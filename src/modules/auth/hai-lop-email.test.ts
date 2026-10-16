@@ -217,6 +217,12 @@ test("tài khoản không có yếu tố email → 409, không tiêu hạn mức
 
 test("Quản trị có yếu tố email (dữ liệu lệch ADR-0074 điều 7): gửi mã → 409, không gửi thư; verify EMAIL → 401 (chỉ siết)", async () => {
   const { w, thu } = await setup();
+  // Vòng sửa 2 (Minor 3): dòng EMAIL lệch ĐƠN ĐỘC không còn đưa tới bước hai (không tính là có yếu tố — bài ở accounts/hai-lop-email-bat.test.ts) ⇒ gieo
+  // thêm ứng dụng xác thực để Quản trị có cookie chờ; cổng email vẫn phải từ chối.
+  const at0 = new Date().toISOString();
+  w.sqlite.prepare(
+    "INSERT INTO aut_mfa_factor (id, staff_id, kind, secret_enc, email, last_totp_step, valid_from_at, valid_to_at, created_at, created_by, updated_at, updated_by) VALUES ('ft-admin', ?, 'TOTP', ?, NULL, 0, ?, NULL, ?, ?, ?, ?)",
+  ).run(ADMIN, await encryptSecret(KHOA, new Uint8Array(20).fill(5)), at0, at0, ADMIN, at0, ADMIN);
   const p = await pending(w, "0900000003");
   const r = await guiMa(w, p);
   assert.equal(r.status, 409, r.text);

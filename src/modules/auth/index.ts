@@ -24,7 +24,7 @@ import {
   trustedRevokeAllIfSuspendedStatement, trustedRevokeOfSessionStatement, trustedTouchStatement,
 } from "./mfa-repo";
 import { batTotpStatements, boMaDuPhongMoi, khopKhoaMoi, moiKhoaTotp } from "./mfa-tu-phuc-vu";
-import { PENDING_COOKIE, allowedFactors, clearedPendingCookie, createPendingToken, loginStep, pendingCookie, verifyPendingToken } from "./mfa-rules";
+import { PENDING_COOKIE, allowedFactors, clearedPendingCookie, createPendingToken, daBatHaiLop, loginStep, pendingCookie, verifyPendingToken } from "./mfa-rules";
 import { PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, issuePasskeyChallenge, limitChallenge, passkeyRp, readPasskeyChallenge } from "./passkey";
 import {
   endAllButNewestStatement, endAllSessionsIfSuspendedStatement as endAllIfSuspendedRow, endExpiredSessionsStatement, endOtherSessionsStatement, endSessionStatement, findLiveSession,
@@ -521,7 +521,10 @@ export const authModule: AppModule = {
       ]);
       // Lưới credentials_changed_at: máy tin tạo TRƯỚC lần đổi PIN / đặt lại PIN / gỡ Face ID gần nhất hết tác dụng (đặc tả §6 quy tắc 3).
       const trustedOk = trusted !== null && (await getActiveStaff(env.DB, profile.id, Date.parse(trusted.created_at))) !== null;
-      const step = loginStep({ perms: profile.permissions, hasFactor: factors.length > 0, trusted: trustedOk, graceUntil, enrollUntil, nowIso });
+      // "Có yếu tố" = có yếu tố mà quyền HIỆN TẠI cho dùng (daBatHaiLop — cùng cách lọc với allowedFactors / emailCuaYeuTo): dòng EMAIL lệch của Quản trị /
+      // Toàn quyền / Kế toán (R-AUT-MFA-4) không tính — vòng sửa 2 Phần C, Minor 3.
+      const coYeuTo = daBatHaiLop(profile.permissions, factors.map((f) => f.kind));
+      const step = loginStep({ perms: profile.permissions, hasFactor: coYeuTo, trusted: trustedOk, graceUntil, enrollUntil, nowIso });
       if (step === "blocked_no_factor") return MFA_SETUP_REQUIRED();
       if (step === "enroll") {
         // Cửa sổ 24 giờ sau khi Quản trị/Toàn quyền tắt lớp hai: chỉ được bật lại (/api/auth/mfa/enroll/*), chưa cấp phiên. Cookie chờ purpose "enroll" không qua được verify.
@@ -540,7 +543,7 @@ export const authModule: AppModule = {
         return json(buoc, 200, { "set-cookie": pendingCookie(pending, isSecure(request)) });
       }
       // step === "session". Máy tin chỉ tính là "đã dùng" khi tài khoản có yếu tố (không yếu tố thì lớp hai không áp — phiên PIN thường).
-      const dungMayTin = trustedOk && factors.length > 0;
+      const dungMayTin = trustedOk && coYeuTo;
       if (dungMayTin) await trustedTouchStatement(env.DB, trusted!.id, nowIso).run();
       const issued = await issueLoginSession(request, env, profile, dungMayTin ? "PIN_TRUSTED" : "PIN", { trustedDeviceId: dungMayTin ? trusted!.id : null, now });
       if ("conflict" in issued) return issued.conflict;
