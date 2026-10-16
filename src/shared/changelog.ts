@@ -14,13 +14,21 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Mã đăng nhập qua email (ADR-0074 Phần C). Có thay đổi cơ sở dữ liệu (migration 0102 thêm bảng mã email) — cần trien-khai sau day-len. Gửi thư dùng binding
     // EMAIL + bí mật FEEDBACK_MAIL_FROM đã có (chủ xác nhận; gửi thật chưa thử — docs/HANDOFF-N1.md).
-    // Số 2.6 là số TẠM (= main 2.5 «Bảo mật hai lớp» + 1, kiểm 2026-10-16: main b7287f6e): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của
+    // Số 2.7 là số TẠM (= main 2.6 «thẻ góp ý chưa trả lời» + 1, kiểm 2026-10-16: main 238f740a): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của
     // docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
-    version: "2.6",
+    version: "2.7",
     date: "2026-10-16",
     items: [
       { kind: "moi", text: "Có thể nhận mã đăng nhập qua email thay cho ứng dụng xác thực (không áp cho Quản trị, Toàn quyền, Kế toán). Bật ở trang Tôi, mục Bảo mật đăng nhập." },
       { kind: "moi", text: "Khi đăng nhập bằng PIN trên máy lạ, bấm \"Gửi mã qua email\" rồi nhập mã 6 số trong thư. Mã dùng được 10 phút; thư thật không bao giờ có liên kết." },
+    ],
+  },
+  {
+    // Thẻ «góp ý mới chưa trả lời» ở Trang chủ không còn đếm phiếu đã có người trả lời công khai (chủ dự án 2026-10-16). Không migration. Số tạm.
+    version: "2.6",
+    date: "2026-10-16",
+    items: [
+      { kind: "sua", text: "Thẻ «góp ý mới chưa trả lời» ở Trang chủ không còn đếm những yêu cầu đã được trả lời." },
     ],
   },
   {

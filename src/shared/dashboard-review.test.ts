@@ -110,6 +110,14 @@ test("reviewAlerts: góp ý ĐÃ ĐỌC (unread=false) nhưng còn trạng thái
   assert.deepEqual(r?.feedbackQueue, { count: 1, items: [{ id: "YC-0099", code: "YC-0099", kindName: "Báo lỗi" }] });
 });
 
+test("reviewAlerts: góp ý còn trạng thái NEW nhưng ĐÃ có trả lời công khai (lastPublicReplyAt) KHÔNG còn là 'chưa trả lời'", () => {
+  const daTraLoi = { ...ticket("YC-0050", "NEW"), lastPublicReplyAt: "2026-10-16T01:00:00.000Z" };
+  const chuaTraLoi = ticket("YC-0051", "NEW");
+  const r = reviewAlerts(SUPER_ADMIN, { catalogItems: [], tickets: [daTraLoi, chuaTraLoi] });
+  assert.deepEqual(r?.feedbackQueue, { count: 1, items: [{ id: "YC-0051", code: "YC-0051", kindName: "Báo lỗi" }] });
+  assert.equal(reviewAlerts(SUPER_ADMIN, { catalogItems: [], tickets: [daTraLoi] }), null);
+});
+
 test("reviewAlerts: hơn 2 góp ý Mới → items chỉ lấy 2 mục ĐẦU (đã sắp mới nhất trước), count = tổng thật", () => {
   const tickets = [ticket("YC-0004", "NEW"), ticket("YC-0003", "NEW"), ticket("YC-0002", "NEW")];
   const r = reviewAlerts(SUPER_ADMIN, { catalogItems: [], tickets });
