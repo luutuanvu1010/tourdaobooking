@@ -12,6 +12,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Gói 2 hồ sơ riêng tư, lát H-0 + H-1 (Hiến chương 5.20; ADR-0122, ADR-0126 đ1): hạng dữ liệu cá nhân cho mọi cột; migration 0103 thêm ngày sinh, liên hệ địa chỉ,
+    // giấy tờ tổ chức, sổ xác minh, chính sách riêng tư + đồng ý (chưa có màn nhập). CÓ migration — cần trien-khai sau day-len.
+    // Số 2.10 là số TẠM (main 2.8; worktree stoic-heisenberg giữ 2.9 — kiểm 2026-10-16): phiên phát hành kiểm lại số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
+    version: "2.10",
+    date: "2026-10-16",
+    items: [
+      { kind: "doi", text: "Danh bạ: ngày sinh và địa chỉ cá nhân chỉ Quản trị, Toàn quyền và chính người đó xem được. Bán hàng, Kế toán không thấy; tìm theo chữ số địa chỉ cũng không ra." },
+      { kind: "doi", text: "Nền tảng đã có chỗ lưu giấy phép của công ty đối tác và kết quả xác minh hồ sơ. Màn nhập sẽ có ở bản sau." },
+    ],
+  },
+  {
     // Dòng giải thích ở trang Tôi → Bảo mật đăng nhập khi không có lựa chọn Email (chủ dự án 2026-10-16: Toàn quyền không thấy Email, tưởng là lỗi). Không migration.
     // Số 2.8 là số TẠM (= main 2.7 + 1, kiểm 2026-10-16: main 476099d3): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
     version: "2.8",
