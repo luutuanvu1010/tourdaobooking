@@ -1,7 +1,7 @@
 // Luật thuần của module parties: tách/ghép tên người, kiểm liên hệ, thời hạn, đầu vào hồ sơ/vai trò/quan hệ. Không I/O.
 // Import bằng đuôi .ts (node --test chạy trực tiếp). Giới hạn độ dài khớp CHECK của migration 0011.
 import { normalizePhone } from "../../shared/phone.ts";
-import { isISODate } from "../../shared/vn-date.ts";
+import { isISODate, vnToday } from "../../shared/vn-date.ts";
 import { khoaTen } from "../../shared/khoa-ten.ts";
 import { PARTY_ID_RE } from "../../shared/party-id.ts";
 import { kiemGioiTinh, type GioiTinh } from "../../shared/xung-ho.ts";
@@ -100,7 +100,10 @@ export function validateEndDate(body: Record<string, unknown> | null, today: str
 // ---------------------------------------------------------------------------------------------------------------------
 // Liên hệ
 // ---------------------------------------------------------------------------------------------------------------------
-export type ContactKind = "PHONE" | "EMAIL";
+/** ADR-0122 đ6: thêm ADDRESS (địa chỉ cá nhân — chỉ hồ sơ người; ai xem / ghi: src/modules/parties/rieng-tu.ts). */
+export type ContactKind = "PHONE" | "EMAIL" | "ADDRESS";
+export const CONTACT_KINDS: readonly ContactKind[] = ["PHONE", "EMAIL", "ADDRESS"];
+const isContactKind = (v: unknown): v is ContactKind => typeof v === "string" && (CONTACT_KINDS as readonly string[]).includes(v);
 export interface ContactInput {
   kind: ContactKind;
   value: string;
@@ -113,16 +116,21 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function validateContact(v: unknown): Result<ContactInput> {
   if (!v || typeof v !== "object" || Array.isArray(v)) return fail("Liên hệ không hợp lệ.");
   const b = v as Record<string, unknown>;
-  if (b.kind !== "PHONE" && b.kind !== "EMAIL") return fail("Loại liên hệ phải là PHONE hoặc EMAIL.");
+  if (!isContactKind(b.kind)) return fail("Loại liên hệ không hợp lệ (điện thoại, email hoặc địa chỉ).");
   if (typeof b.value !== "string" || !b.value.trim()) return fail("Thiếu giá trị liên hệ.");
-  const value = b.value.trim();
+  let value = b.value.trim();
   let valueNormalized: string;
   if (b.kind === "PHONE") {
     const p = normalizePhone(value);
     if (!p) return fail("Số điện thoại không hợp lệ (cần 10 số, bắt đầu bằng 0 hoặc +84).");
     valueNormalized = p;
-  } else {
+  } else if (b.kind === "EMAIL") {
     if (value.length > 200 || !EMAIL_RE.test(value)) return fail("Email không hợp lệ.");
+    valueNormalized = value.toLowerCase();
+  } else {
+    // ADDRESS (ruling R8): NFC, gộp khoảng trắng; khoá so = chữ thường. Trần 200 = CHECK của pty_contact_point.value.
+    value = squash(value.normalize("NFC"));
+    if (value.length > 200) return fail("Địa chỉ tối đa 200 ký tự.");
     valueNormalized = value.toLowerCase();
   }
   if (value.length > 200) return fail("Liên hệ tối đa 200 ký tự.");
@@ -148,12 +156,23 @@ export function validateContactList(v: unknown): Result<ContactInput[]> {
     if (!c.ok) return c;
     list.push(c.value);
   }
-  for (const kind of ["PHONE", "EMAIL"] as const) {
+  for (const kind of CONTACT_KINDS) {
     const of = list.filter((c) => c.kind === kind);
     if (of.filter((c) => c.isPrimary).length > 1) return fail("Mỗi loại liên hệ chỉ có một liên hệ chính.");
     if (of.length > 0 && !of.some((c) => c.isPrimary)) of[0]!.isPrimary = true;
   }
   return { ok: true, value: list };
+}
+
+/** Ngày sinh sớm nhất nhận (khớp CHECK của migration 0103). */
+export const NGAY_SINH_SOM_NHAT = "1900-01-01";
+/** ADR-0122 đ1 (ruling R10): `undefined` = vắng ô (sửa: giữ giá trị đang lưu); `null` / `""` = xoá; ngày `YYYY-MM-DD` từ 1900 tới hôm nay giờ VN. */
+export function kiemNgaySinh(v: unknown, today: string): Result<string | null | undefined> {
+  if (v === undefined) return { ok: true, value: undefined };
+  if (v === null || v === "") return { ok: true, value: null };
+  if (typeof v !== "string" || !isISODate(v)) return fail("Ngày sinh không hợp lệ (YYYY-MM-DD).");
+  if (v < NGAY_SINH_SOM_NHAT || v > today) return fail("Ngày sinh phải từ năm 1900 tới hôm nay.");
+  return { ok: true, value: v };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -166,17 +185,21 @@ export interface OrgFields {
   address: string | null;
   invoiceEmail: string | null;
 }
-/** ADR-0084 Đ1: `gender` của hồ sơ người — tạo: NULL = chưa ghi; sửa: `undefined` = giữ nguyên giá trị đang lưu, NULL = xoá. */
+/** ADR-0084 Đ1: `gender` của hồ sơ người — tạo: NULL = chưa ghi; sửa: `undefined` = giữ nguyên giá trị đang lưu, NULL = xoá. ADR-0122 đ1: `birthDate` cùng quy ước. */
 export type PartyCreate =
-  | { kind: "PERSON"; name: PersonName; gender: GioiTinh | null; contacts: ContactInput[] }
+  | { kind: "PERSON"; name: PersonName; gender: GioiTinh | null; birthDate: string | null; contacts: ContactInput[] }
   | { kind: "ORGANIZATION"; org: OrgFields; contacts: ContactInput[] };
 export type PartyUpdate =
-  | { kind: "PERSON"; name: PersonName; gender: GioiTinh | null | undefined; active: boolean; expectedUpdatedAt: string }
+  | { kind: "PERSON"; name: PersonName; gender: GioiTinh | null | undefined; birthDate: string | null | undefined; active: boolean; expectedUpdatedAt: string }
   | { kind: "ORGANIZATION"; org: OrgFields; active: boolean; expectedUpdatedAt: string };
 
 /** Tổ chức không có giới tính: ô trống / vắng bỏ qua, có giá trị ⇒ lỗi (không lặng lẽ nuốt). */
 const KHONG_GIOI_TINH_TO_CHUC = (b: Record<string, unknown>): string | null =>
   b.gender === undefined || b.gender === null || b.gender === "" ? null : "Hồ sơ tổ chức không có giới tính.";
+/** Tổ chức không có ngày sinh; địa chỉ tổ chức ở pty_organization.address, không phải liên hệ ADDRESS (ruling R8). */
+const KHONG_NGAY_SINH_TO_CHUC = (b: Record<string, unknown>): string | null =>
+  b.birthDate === undefined || b.birthDate === null || b.birthDate === "" ? null : "Hồ sơ tổ chức không có ngày sinh.";
+const DIA_CHI_TO_CHUC = "Địa chỉ của tổ chức ghi ở ô Địa chỉ của hồ sơ, không thêm như liên hệ.";
 
 const optText = (v: unknown, label: string, max: number): Result<string | null> => {
   if (v === undefined || v === null || v === "") return { ok: true, value: null };
@@ -205,7 +228,7 @@ function orgFields(b: Record<string, unknown>): Result<OrgFields> {
   return { ok: true, value: { displayName: squash(b.displayName), legalName: legalName.value, taxCode, address: address.value, invoiceEmail } };
 }
 
-export function validatePartyCreate(body: Record<string, unknown> | null): Result<PartyCreate> {
+export function validatePartyCreate(body: Record<string, unknown> | null, today: string = vnToday(new Date())): Result<PartyCreate> {
   if (!body) return fail("Dữ liệu không hợp lệ.");
   const contacts = validateContactList(body.contacts);
   if (!contacts.ok) return contacts;
@@ -214,11 +237,14 @@ export function validatePartyCreate(body: Record<string, unknown> | null): Resul
     if (!name.ok) return name;
     const gender = kiemGioiTinh(body.gender);
     if (!gender.ok) return gender;
-    return { ok: true, value: { kind: "PERSON", name: name.value, gender: gender.value ?? null, contacts: contacts.value } };
+    const ngaySinh = kiemNgaySinh(body.birthDate, today);
+    if (!ngaySinh.ok) return ngaySinh;
+    return { ok: true, value: { kind: "PERSON", name: name.value, gender: gender.value ?? null, birthDate: ngaySinh.value ?? null, contacts: contacts.value } };
   }
   if (body.kind === "ORGANIZATION") {
-    const khong = KHONG_GIOI_TINH_TO_CHUC(body);
+    const khong = KHONG_GIOI_TINH_TO_CHUC(body) ?? KHONG_NGAY_SINH_TO_CHUC(body);
     if (khong) return fail(khong);
+    if (contacts.value.some((c) => c.kind === "ADDRESS")) return fail(DIA_CHI_TO_CHUC);
     const org = orgFields(body);
     return org.ok ? { ok: true, value: { kind: "ORGANIZATION", org: org.value, contacts: contacts.value } } : org;
   }
@@ -226,7 +252,7 @@ export function validatePartyCreate(body: Record<string, unknown> | null): Resul
 }
 
 /** Loại hồ sơ KHÔNG đổi được: `kind` lấy từ hồ sơ hiện có. */
-export function validatePartyUpdate(body: Record<string, unknown> | null, kind: "PERSON" | "ORGANIZATION"): Result<PartyUpdate> {
+export function validatePartyUpdate(body: Record<string, unknown> | null, kind: "PERSON" | "ORGANIZATION", today: string = vnToday(new Date())): Result<PartyUpdate> {
   if (!body) return fail("Dữ liệu không hợp lệ.");
   if (typeof body.expectedUpdatedAt !== "string" || !body.expectedUpdatedAt) return fail("Thiếu mốc cập nhật (expectedUpdatedAt) — hãy tải lại trang.");
   if (typeof body.active !== "boolean") return fail("Trạng thái hoạt động phải là true/false.");
@@ -235,9 +261,11 @@ export function validatePartyUpdate(body: Record<string, unknown> | null, kind: 
     if (!name.ok) return name;
     const gender = kiemGioiTinh(body.gender);
     if (!gender.ok) return gender;
-    return { ok: true, value: { kind, name: name.value, gender: gender.value, active: body.active, expectedUpdatedAt: body.expectedUpdatedAt } };
+    const ngaySinh = kiemNgaySinh(body.birthDate, today);
+    if (!ngaySinh.ok) return ngaySinh;
+    return { ok: true, value: { kind, name: name.value, gender: gender.value, birthDate: ngaySinh.value, active: body.active, expectedUpdatedAt: body.expectedUpdatedAt } };
   }
-  const khong = KHONG_GIOI_TINH_TO_CHUC(body);
+  const khong = KHONG_GIOI_TINH_TO_CHUC(body) ?? KHONG_NGAY_SINH_TO_CHUC(body);
   if (khong) return fail(khong);
   const org = orgFields(body);
   return org.ok ? { ok: true, value: { kind, org: org.value, active: body.active, expectedUpdatedAt: body.expectedUpdatedAt } } : org;

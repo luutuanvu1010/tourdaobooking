@@ -69,6 +69,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "party.view": ["any", "any", "any", "none", "none", "any", "none", "none", "none", "none"],
   "party.write": ["any", "any", "any", "none", "none", "any", "none", "none", "none", "none"],
   "party.staff.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0013
+  "party.personal.view": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0122 đ5: ngày sinh + địa chỉ cá nhân của người khác — Quản trị (theo cấp bậc), Toàn quyền
   "admin.manage": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"],
   "admin.manage.superadmin": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0014 điều 2/8: thao tác MỚI
   "account.access.manage": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0042: Quản trị lấy lại (cấp dưới); ADR-0071 điều 1e: HR none
@@ -352,7 +353,9 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "order.service.manual": "none", // ADR-0061 điều 2: tài xế không nhập tay
     "dispatch.guides.view": "none", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
     "accounting.entry.mark": "none", "accounting.entry.view": "none", // ADR-0060: tài xế không xem đơn, không ghi dấu kế toán
-    "party.view": "none", "party.write": "none", "party.staff.write": "none", "admin.manage": "none", "admin.manage.superadmin": "none",
+    "party.view": "none", "party.write": "none", "party.staff.write": "none",
+    "party.personal.view": "none", // ADR-0122 đ5
+    "admin.manage": "none", "admin.manage.superadmin": "none",
     "account.access.manage": "none", "account.create": "none", "account.view": "none", "account.edit": "none", "audit.view": "none",
     "feedback.submit": "any", "feedback.view": "own", // ngoại lệ có tên (Ruling R2)
     "feedback.triage": "none", "feedback.team.manage": "none", "settings.ops": "none", "order.pool.view": "none", "notice.send": "none", "company.legal.write": "none",
@@ -395,7 +398,9 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "order.service.manual": "none", // ADR-0061 điều 2 × ADR-0048 D2
     "dispatch.guides.view": "none", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
     "accounting.entry.mark": "none", "accounting.entry.view": "none", // ADR-0060: tài xế không xem đơn, không ghi dấu kế toán
-    "party.view": "none", "party.write": "none", "party.staff.write": "none", "admin.manage": "none", "admin.manage.superadmin": "none",
+    "party.view": "none", "party.write": "none", "party.staff.write": "none",
+    "party.personal.view": "none", // ADR-0122 đ5
+    "admin.manage": "none", "admin.manage.superadmin": "none",
     "account.access.manage": "none", "account.create": "none", "account.view": "none", "account.edit": "none", "audit.view": "none",
     "feedback.submit": "any", "feedback.view": "own", // ngoại lệ có tên (ADR-0048 D2)
     "feedback.triage": "none", "feedback.team.manage": "none", "settings.ops": "none", "order.pool.view": "none", "notice.send": "none", "company.legal.write": "none",
@@ -442,7 +447,9 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "ledger.period.close": "none", // khoá sổ tháng (ADR-0080 D1): Nhân sự chỉ ba ô tài khoản
     "ledger.adjust.approve": "none", // ADR-0115: duyệt điều chỉnh công nợ chỉ Kế toán, Quản trị, Toàn quyền
     "invoice.request": "none", "invoice.issue": "none", "accounting.entry.mark": "none", "accounting.entry.view": "none",
-    "party.view": "none", "party.write": "none", "party.staff.write": "none", "admin.manage": "none", "admin.manage.superadmin": "none",
+    "party.view": "none", "party.write": "none", "party.staff.write": "none",
+    "party.personal.view": "none", // ADR-0122 đ5
+    "admin.manage": "none", "admin.manage.superadmin": "none",
     "account.access.manage": "none", // điều 1e: hỗ trợ đăng nhập vẫn Quản trị + Toàn quyền (ADR-0042)
     "account.create": "any", "account.view": "any", "account.edit": "any", // điều 1b
     "audit.view": "none", "feedback.submit": "any", "feedback.view": "own", "feedback.triage": "none", "feedback.team.manage": "none", "settings.ops": "none", "order.pool.view": "none",

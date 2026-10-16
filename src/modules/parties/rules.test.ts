@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   composePersonName, splitPersonName, validateContact, validateContactList, validateEndDate, validatePartyCreate, validatePartyUpdate,
   ownerCompanyAssignProblem, validatePeriod, validatePersonFullName, validateRelationship, validateRole, PARTY_ID_RE, ROW_ID_RE, hoSoNoiBo, VAI_CU_NOI_BO, kiemTenLoaiDoiTac, maLoaiDoiTac,
+  kiemNgaySinh,
 } from "./rules.ts";
 import { readdirSync, readFileSync } from "node:fs";
 
@@ -265,4 +266,54 @@ test("ADR-0117: maLoaiDoiTac — LD_ + 8 chữ hoa (CODE_RE của Danh bạ khô
   assert.equal(ma, "LD_ABZAVWHV");
   const re = /^[A-Z][A-Z_]{1,29}$/;
   assert.ok(re.test(ma));
+});
+
+test("ADR-0122 đ6: liên hệ ADDRESS — chuẩn hoá NFC, gộp khoảng trắng, chữ thường; trống / quá 200 ký tự ⇒ lỗi; loại lạ ⇒ lời thường không mã Anh", () => {
+  const r = validateContact({ kind: "ADDRESS", value: "  12   Trần Phú,\tNha Trang " });
+  assert.ok(r.ok);
+  if (r.ok) {
+    assert.equal(r.value.value, "12 Trần Phú, Nha Trang");
+    assert.equal(r.value.valueNormalized, "12 trần phú, nha trang");
+  }
+  assert.equal(validateContact({ kind: "ADDRESS", value: "   " }).ok, false);
+  assert.deepEqual(validateContact({ kind: "ADDRESS", value: "a".repeat(201) }), { ok: false, message: "Địa chỉ tối đa 200 ký tự." });
+  assert.deepEqual(validateContact({ kind: "ZALO", value: "x" }), { ok: false, message: "Loại liên hệ không hợp lệ (điện thoại, email hoặc địa chỉ)." });
+});
+
+test("validateContactList: mỗi loại kể cả ADDRESS một liên hệ chính; dòng đầu của loại tự thành chính", () => {
+  const r = validateContactList([{ kind: "ADDRESS", value: "1 A" }, { kind: "ADDRESS", value: "2 B" }]);
+  assert.ok(r.ok);
+  if (r.ok) assert.deepEqual(r.value.map((c) => c.isPrimary), [true, false]);
+  assert.equal(validateContactList([{ kind: "ADDRESS", value: "1 A", isPrimary: true }, { kind: "ADDRESS", value: "2 B", isPrimary: true }]).ok, false);
+});
+
+test("kiemNgaySinh: vắng ⇒ undefined (giữ); '' / null ⇒ null (xoá); trước 1900, sau hôm nay, sai lịch ⇒ lỗi", () => {
+  const HOM_NAY = "2026-10-16";
+  assert.deepEqual(kiemNgaySinh(undefined, HOM_NAY), { ok: true, value: undefined });
+  assert.deepEqual(kiemNgaySinh("", HOM_NAY), { ok: true, value: null });
+  assert.deepEqual(kiemNgaySinh(null, HOM_NAY), { ok: true, value: null });
+  assert.deepEqual(kiemNgaySinh("1988-04-23", HOM_NAY), { ok: true, value: "1988-04-23" });
+  assert.deepEqual(kiemNgaySinh(HOM_NAY, HOM_NAY), { ok: true, value: HOM_NAY });
+  assert.deepEqual(kiemNgaySinh("2026-10-17", HOM_NAY), { ok: false, message: "Ngày sinh phải từ năm 1900 tới hôm nay." });
+  assert.deepEqual(kiemNgaySinh("1899-12-31", HOM_NAY), { ok: false, message: "Ngày sinh phải từ năm 1900 tới hôm nay." });
+  assert.deepEqual(kiemNgaySinh("1990-02-30", HOM_NAY), { ok: false, message: "Ngày sinh không hợp lệ (YYYY-MM-DD)." });
+  assert.deepEqual(kiemNgaySinh(19900101, HOM_NAY), { ok: false, message: "Ngày sinh không hợp lệ (YYYY-MM-DD)." });
+});
+
+test("validatePartyCreate / Update: ngày sinh cho người (vắng khi sửa = giữ); tổ chức gửi ngày sinh hoặc liên hệ ADDRESS ⇒ lỗi", () => {
+  const HOM_NAY = "2026-10-16";
+  const tao = validatePartyCreate({ kind: "PERSON", fullName: "Lê An", birthDate: "1988-04-23", contacts: [] }, HOM_NAY);
+  assert.ok(tao.ok && tao.value.kind === "PERSON" && tao.value.birthDate === "1988-04-23");
+  const taoVang = validatePartyCreate({ kind: "PERSON", fullName: "Lê An", contacts: [] }, HOM_NAY);
+  assert.ok(taoVang.ok && taoVang.value.kind === "PERSON" && taoVang.value.birthDate === null);
+  assert.deepEqual(validatePartyCreate({ kind: "ORGANIZATION", displayName: "Đại lý A", birthDate: "1988-04-23", contacts: [] }, HOM_NAY), { ok: false, message: "Hồ sơ tổ chức không có ngày sinh." });
+  assert.deepEqual(
+    validatePartyCreate({ kind: "ORGANIZATION", displayName: "Đại lý A", contacts: [{ kind: "ADDRESS", value: "1 A" }] }, HOM_NAY),
+    { ok: false, message: "Địa chỉ của tổ chức ghi ở ô Địa chỉ của hồ sơ, không thêm như liên hệ." },
+  );
+  const sua = validatePartyUpdate({ fullName: "Lê An", active: true, expectedUpdatedAt: "x" }, "PERSON", HOM_NAY);
+  assert.ok(sua.ok && sua.value.kind === "PERSON" && sua.value.birthDate === undefined, "vắng ô ⇒ undefined (route giữ giá trị đang lưu)");
+  const suaXoa = validatePartyUpdate({ fullName: "Lê An", active: true, expectedUpdatedAt: "x", birthDate: "" }, "PERSON", HOM_NAY);
+  assert.ok(suaXoa.ok && suaXoa.value.kind === "PERSON" && suaXoa.value.birthDate === null);
+  assert.deepEqual(validatePartyUpdate({ displayName: "Đại lý A", active: true, expectedUpdatedAt: "x", birthDate: "1988-04-23" }, "ORGANIZATION", HOM_NAY), { ok: false, message: "Hồ sơ tổ chức không có ngày sinh." });
 });

@@ -158,6 +158,10 @@ export const MATRIX = {
   "party.view": row("any", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // xem hồ sơ khách/đại lý
   "party.write": row("any", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // tạo/sửa hồ sơ KHÔNG gắn tài khoản (khách, đại lý, HDV/tài xế chưa có tài khoản) — ADR-0007, ADR-0013
   "party.staff.write": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"), // sửa hồ sơ GẮN TÀI KHOẢN (tên, liên hệ) — ADR-0013; ADMIN còn phải quản được tài khoản đó (cấp bậc, ADR-0014 điều 8: ctx.partyAccount)
+  // ADR-0122 đ5 (accepted 2026-10-16): xem / ghi NGÀY SINH và liên hệ ĐỊA CHỈ (ADDRESS) của hồ sơ người KHÁC — Quản trị + Toàn quyền. party.view (Bán hàng, Kế toán)
+  // KHÔNG thấy hai trường này; chính chủ thấy của mình nhưng không ghi trực tiếp (Hiến chương 5.23). Quản trị còn theo luật cấp bậc khi hồ sơ gắn tài khoản
+  // (ctx.partyAccount — ruling R6 của kế hoạch 2026-10-16-goi-2-h0-h1). Route: GET/PUT/POST /api/parties*, luật ở src/modules/parties/rieng-tu.ts.
+  "party.personal.view": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
   "admin.manage": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"), // tài khoản, quyền, địa điểm, danh mục, vai trò hồ sơ, gộp hồ sơ — ADR-0014 điều 8: "cấp dưới" nằm NGOÀI MATRIX (canManageAccount)
   "admin.manage.superadmin": chiToanQuyen(), // gán/gỡ quyền SUPER_ADMIN của một tài khoản — thao tác MỚI (ADR-0014 điều 2/8)
   // ADR-0038 điều 6 (sửa bởi ADR-0042, ADR-0071): việc KỸ THUẬT tách khỏi admin.manage — Nhật ký chỉ Toàn quyền; đăng nhập (PIN, Face ID, mở khoá) Quản trị làm được cho cấp dưới

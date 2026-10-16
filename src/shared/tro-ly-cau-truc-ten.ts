@@ -108,6 +108,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "party.view": { ten: "xem Danh bạ", moTa: "Xem hồ sơ khách, đại lý và người trong Danh bạ." },
   "party.write": { ten: "thêm, sửa hồ sơ trong Danh bạ", moTa: "Tạo, sửa hồ sơ khách, đại lý, người chưa có tài khoản." },
   "party.staff.write": { ten: "sửa hồ sơ người có tài khoản", moTa: "Sửa tên, liên hệ của hồ sơ gắn với một tài khoản." },
+  "party.personal.view": { ten: "xem ngày sinh, địa chỉ cá nhân", moTa: "Xem và ghi ngày sinh, địa chỉ cá nhân của hồ sơ người khác trong Danh bạ." },
   "admin.manage": { ten: "quản trị danh mục", moTa: "Quản lý địa điểm, dịch vụ và giá, các danh mục cài đặt, vai trong Danh bạ." },
   "admin.manage.superadmin": { ten: "gán, gỡ quyền Toàn quyền", moTa: "Cấp hoặc bỏ quyền Toàn quyền của một tài khoản." },
   "account.access.manage": { ten: "đặt lại PIN, gỡ Face ID, mở khoá", moTa: "Giúp tài khoản khác đăng nhập lại." },

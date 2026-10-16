@@ -20,7 +20,9 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // cùng thêm mã vào đường của trang Đơn hàng (phần thương mại của sổ đại lý; chi tiết đơn phải thu không âm, thông tin chuyến), không có gói nào thừa nhật ký thay đổi.
 // Nới 96.000 → 96.500 (ADR-0120 Điều 2, 2026-10-14): thêm một dòng bản đồ quyền `deposit.transfer.approve` vào `permissions.ts`, mà gói Đơn hàng nhúng cả bản đồ
 // (+~100 byte, làm gói vượt trần 91 byte). Chỉ nới vừa đủ chỗ cho dòng quyền mới, không thêm mã giao diện nào vào gói này.
-const TRAN_ORDERS = 96_500;
+// Nới 96.500 → 96.600 (ADR-0122 đ5, lát H-1 Gói 2, 2026-10-16): cùng lý do như trên — thêm dòng bản đồ quyền `party.personal.view` (+56 byte vượt trần).
+// Không thêm mã giao diện nào vào gói này.
+const TRAN_ORDERS = 96_600;
 
 function dung(trang: string) {
   const r = buildSync({

@@ -28,6 +28,8 @@ export interface PartyRow {
   given_name: string | null;
   /** ADR-0084 Đ1: 'NAM' | 'NU' | NULL (= chưa ghi). Đọc thô — giá trị lạ (không qua mã) coi như chưa ghi ở DTO. */
   gender: string | null;
+  /** ADR-0122 đ1: 'YYYY-MM-DD' | NULL. Chỉ ra DTO cho người được xem (src/modules/parties/rieng-tu.ts) — đừng đưa vào nhật ký, câu báo lỗi. */
+  birth_date: string | null;
   legal_name: string | null;
   tax_code: string | null;
   address: string | null;
@@ -60,14 +62,15 @@ const LIST_SELECT = `SELECT p.id, p.party_kind, p.display_name, p.active,
     WHERE r.party_id = p.id AND r.valid_from_date <= ?1 AND (r.valid_to_date IS NULL OR r.valid_to_date >= ?1)) AS role_codes
   FROM v_pty_party_label p`;
 
-// ?2 loại, ?3 LIKE tên, ?4 LIKE số (chuẩn hoá), ?5 mã vai trò, ?6 địa điểm, ?7 gồm cả đã ngưng, ?8 giới hạn, ?9 vị trí bắt đầu
+// ?2 loại, ?3 LIKE tên, ?4 LIKE số (chuẩn hoá — CHỈ liên hệ SĐT / email: chữ số của liên hệ ĐỊA CHỈ không được dò ra người, ADR-0122 đ5), ?5 mã vai trò, ?6 địa điểm, ?7 gồm cả đã ngưng, ?8 giới hạn, ?9 vị trí bắt đầu
 const LIST = defineSql(
   "parties",
   "list",
   `${LIST_SELECT}
    WHERE (?2 IS NULL OR p.party_kind = ?2)
      AND (?3 IS NULL OR p.display_name LIKE ?3 ESCAPE '\\'
-          OR EXISTS (SELECT 1 FROM pty_contact_point c WHERE c.party_id = p.id AND c.valid_to_date IS NULL AND c.value_normalized LIKE ?4 ESCAPE '\\'))
+          OR EXISTS (SELECT 1 FROM pty_contact_point c WHERE c.party_id = p.id AND c.valid_to_date IS NULL AND c.contact_kind_code IN ('PHONE', 'EMAIL')
+                     AND c.value_normalized LIKE ?4 ESCAPE '\\'))
      AND ((?5 IS NULL AND ?6 IS NULL)
           OR EXISTS (SELECT 1 FROM pty_party_role r WHERE r.party_id = p.id AND (?5 IS NULL OR r.role_type_code = ?5) AND (?6 IS NULL OR r.location_id = ?6)
                        AND r.valid_from_date <= ?1 AND (r.valid_to_date IS NULL OR r.valid_to_date >= ?1)))
@@ -89,7 +92,7 @@ const LOOKUP = defineSql(
 const FIND = defineSql(
   "parties",
   "find",
-  `SELECT p.id, p.party_kind, p.display_name, p.active, p.created_at, p.updated_at, pe.family_name, pe.middle_name, pe.given_name, pe.gender,
+  `SELECT p.id, p.party_kind, p.display_name, p.active, p.created_at, p.updated_at, pe.family_name, pe.middle_name, pe.given_name, pe.gender, pe.birth_date,
           o.legal_name, o.tax_code, o.address, o.invoice_email, p.merged_into_id, p.merged_at, t.display_name AS merged_into_name
    FROM pty_party p LEFT JOIN pty_person pe ON pe.party_id = p.id LEFT JOIN pty_organization o ON o.party_id = p.id LEFT JOIN pty_party t ON t.id = p.merged_into_id
    WHERE p.id = ?1`,
@@ -233,8 +236,8 @@ const INSERT_PARTY = defineSql(
 const INSERT_PERSON = defineSql(
   "parties",
   "insert_person",
-  `INSERT INTO pty_person (party_id, family_name, middle_name, given_name, gender, created_at, created_by, updated_at, updated_by)
-   VALUES (?1, ?2, ?3, ?4, ?7, ?5, ?6, ?5, ?6)`,
+  `INSERT INTO pty_person (party_id, family_name, middle_name, given_name, gender, birth_date, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?7, ?8, ?5, ?6, ?5, ?6)`,
 );
 const INSERT_ORG = defineSql(
   "parties",
@@ -289,7 +292,7 @@ const END_RELATIONSHIP = defineSql(
 const UPDATE_PERSON = defineSql(
   "parties",
   "update_person",
-  `UPDATE pty_person SET family_name = ?2, middle_name = ?3, given_name = ?4, gender = ?8, updated_at = ?5, updated_by = ?6
+  `UPDATE pty_person SET family_name = ?2, middle_name = ?3, given_name = ?4, gender = ?8, birth_date = ?9, updated_at = ?5, updated_by = ?6
    WHERE party_id = ?1 AND (SELECT updated_at FROM pty_party WHERE id = ?1) = ?7`,
 );
 const UPDATE_ORG = defineSql(
@@ -328,7 +331,7 @@ const roleStatement = (db: D1Database, partyId: string, r: RoleInput, actorId: s
 /** Tạo hồ sơ cá nhân (+ liên hệ + vai trò ban đầu). API công khai cho module khác (staff tạo tài khoản kèm hồ sơ + vai STAFF). */
 export function newPersonStatements(
   db: D1Database,
-  input: { name: PersonName; gender?: GioiTinh | null; contacts?: ContactInput[]; roles?: RoleInput[]; contactsFrom: string },
+  input: { name: PersonName; gender?: GioiTinh | null; birthDate?: string | null; contacts?: ContactInput[]; roles?: RoleInput[]; contactsFrom: string },
   actorId: string | null,
   at: string,
 ): { partyId: string; statements: D1PreparedStatement[] } {
@@ -338,7 +341,7 @@ export function newPersonStatements(
     partyId,
     statements: [
       db.prepare(INSERT_PARTY).bind(partyId, "PERSON", composePersonName(name), at, actorId),
-      db.prepare(INSERT_PERSON).bind(partyId, name.family, name.middle, name.given, at, actorId, input.gender ?? null),
+      db.prepare(INSERT_PERSON).bind(partyId, name.family, name.middle, name.given, at, actorId, input.gender ?? null, input.birthDate ?? null),
       ...(input.contacts ?? []).map((c) => contactStatement(db, partyId, c, input.contactsFrom, actorId, at)),
       ...(input.roles ?? []).map((r) => roleStatement(db, partyId, r, actorId, at)),
     ],
@@ -367,14 +370,14 @@ export function newOrganizationStatements(
 export function updatePartyStatements(
   db: D1Database,
   id: string,
-  // `gender` ĐÃ quyết (route thay "vắng ô" bằng giá trị đang lưu — ADR-0084 Đ1).
-  v: { kind: "PERSON"; name: PersonName; gender: GioiTinh | null; active: boolean; expectedUpdatedAt: string } | { kind: "ORGANIZATION"; org: OrgFields; active: boolean; expectedUpdatedAt: string },
+  // `gender`, `birthDate` ĐÃ quyết (route thay "vắng ô" bằng giá trị đang lưu — ADR-0084 Đ1, ADR-0122 đ1).
+  v: { kind: "PERSON"; name: PersonName; gender: GioiTinh | null; birthDate: string | null; active: boolean; expectedUpdatedAt: string } | { kind: "ORGANIZATION"; org: OrgFields; active: boolean; expectedUpdatedAt: string },
   actorId: string,
   at: string,
 ): D1PreparedStatement[] {
   if (v.kind === "PERSON") {
     return [
-      db.prepare(UPDATE_PERSON).bind(id, v.name.family, v.name.middle, v.name.given, at, actorId, v.expectedUpdatedAt, v.gender),
+      db.prepare(UPDATE_PERSON).bind(id, v.name.family, v.name.middle, v.name.given, at, actorId, v.expectedUpdatedAt, v.gender, v.birthDate),
       db.prepare(UPDATE_PARTY).bind(id, composePersonName(v.name), v.active ? 1 : 0, at, actorId, v.expectedUpdatedAt),
     ];
   }

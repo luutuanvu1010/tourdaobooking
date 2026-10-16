@@ -5,11 +5,12 @@ import { auditStatement } from "../audit";
 import type {
   ContactPointDto, MergeItemDto, MergePreviewResponse, PartyDto, PartyDuplicatesResponse, PartyListItemDto, PartyListResponse, PartyLookupResponse, PartyMergeRef, PartyMetaResponse,
   PartyRelationshipDto, PartyResponse, PartyRoleDto, PersonDocumentDto, PersonDocumentListResponse, PersonDocumentMetaResponse, PersonDocumentRevealResponse,
-  TaiKhoanNhanTienResponse,
+  StaffProfile, TaiKhoanNhanTienResponse,
 } from "../../shared/contracts";
 import { LOAI_CO_DINH, MA_LOAI_GIAY_TO_RE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo, soNgayConLai } from "../../shared/giay-to";
 import { OWNER_COMPANY_ROLE, thieuChoCongTyChu } from "../../shared/cong-ty-chu";
 import { capNghiTrung, chuanHoaTen } from "../../shared/ho-so-trung";
+import { nhanLoaiLienHe } from "../../shared/lien-he";
 import type { RoleCode } from "../../shared/roles";
 import { UUID_RE, error, intParam, mauLikeChua, json, kemLocation, readJson } from "../../shared/http";
 import { can, holdsPartner } from "../../shared/permissions";
@@ -30,6 +31,7 @@ import {
 } from "./repository";
 import { chanCo, keHoachGop, type CongViecGop, type GiayToGop, type HoSoGop, type KeHoachGop, type NhomVai } from "./gop";
 import { loGop } from "./gop-lo";
+import { anTruongRiengTu, ghiDuocRiengTu, laLienHeRiengTu, xemDuocRiengTu, type NguoiXem } from "./rieng-tu";
 import { docTaiKhoanNhanTien } from "./tai-khoan-nhan-tien";
 import { MA_HANG_RE, cheSo, chiTietNhatKy, chuanHoaSo, kiemGiaHan, kiemHangMoi, kiemSuaHang, kiemSuaSai, kiemThemGiayTo, type DanhMucGiayTo, type GiayToNhap } from "./giay-to";
 import {
@@ -365,11 +367,15 @@ const NHAN_CHI_DONG = {
   DA_CO: "hồ sơ chính đã có",
   VUA_KET_THUC: "hồ sơ chính vừa kết thúc quan hệ này hôm nay",
 } as const;
-/** Bảng xem trước (G10). Liên hệ hiện nguyên giá trị (người xem giữ admin.manage); giấy tờ chỉ loại + hạng, KHÔNG số. */
-function xemTruocDto(t: TinhGop): MergePreviewResponse {
+/**
+ * Bảng xem trước (G10). Liên hệ hiện nguyên giá trị (người xem giữ admin.manage); giấy tờ chỉ loại + hạng, KHÔNG số. ADR-0122 đ5: liên hệ ĐỊA CHỈ của hồ sơ
+ * phụ chỉ hiện khi người xem được xem trường riêng tư của hồ sơ đó (`xemDiaChiA`) — hồ sơ phụ gắn tài khoản cấp trên chỉ bị CHẶN gộp, bảng vẫn kê liên hệ.
+ */
+function xemTruocDto(t: TinhGop, xemDiaChiA: boolean): MergePreviewResponse {
   const { A, B, ke } = t;
   const tenSau = (id: string, ten: string) => (id === B.hs.id ? B.hs.displayName : ten);
-  const nhanLienHe = (c: { kind: string; value: string }) => `${c.kind === "PHONE" ? "Điện thoại" : "Email"} ${c.value}`;
+  const nhanLienHe = (c: { kind: string; value: string }) => `${nhanLoaiLienHe(c.kind)} ${c.value}`;
+  const hienLienHe = (c: { kind: string }) => xemDiaChiA || !laLienHeRiengTu(c.kind);
   const nhanViec = (r: CongViecGop) => `${r.name} — ${r.locationName ?? "mọi nơi"}`;
   const nhanGiayTo = (d: GiayToGop) => (d.className ? `${d.typeName} ${d.className}` : d.typeName);
   const muc = (loai: MergeItemDto["loai"], nhan: string, ghiChu: string | null = null): MergeItemDto => ({ loai, nhan, ghiChu });
@@ -378,14 +384,14 @@ function xemTruocDto(t: TinhGop): MergePreviewResponse {
     target: { id: B.hs.id, displayName: B.hs.displayName },
     chan: ke.chan.map((c) => ({ code: c.code, message: c.message })),
     chuyen: [
-      ...ke.lienHe.mo.map((m) => muc("LIEN_HE", nhanLienHe(m.tu), m.chinh ? "liên hệ chính" : null)),
+      ...ke.lienHe.mo.filter((m) => hienLienHe(m.tu)).map((m) => muc("LIEN_HE", nhanLienHe(m.tu), m.chinh ? "liên hệ chính" : null)),
       ...ke.congViec.mo.map((r) => muc("CONG_VIEC", nhanViec(r))),
       ...ke.quanHe.mo.map((m) => muc("QUAN_HE", `${tenSau(m.fromId, m.tu.fromName)} — ${m.tu.typeName} — ${tenSau(m.toId, m.tu.toName)}`)),
       ...ke.giayTo.chep.map((d) => muc("GIAY_TO", nhanGiayTo(d))),
     ],
     giu: ke.giayTo.giu.map((d) => muc("GIAY_TO", nhanGiayTo(d), "hồ sơ chính đã có loại giấy tờ này")),
     bo: [
-      ...ke.lienHe.bo.map((c) => muc("LIEN_HE", nhanLienHe(c), "hồ sơ chính đã có")),
+      ...ke.lienHe.bo.filter(hienLienHe).map((c) => muc("LIEN_HE", nhanLienHe(c), "hồ sơ chính đã có")),
       ...ke.congViec.bo.map((x) => muc("CONG_VIEC", nhanViec(x.cv), NHAN_BO_VAI[x.lyDo])),
       ...ke.quanHe.chiDong.map((x) => muc("QUAN_HE", `${x.qh.fromName} — ${x.qh.typeName} — ${x.qh.toName}`, NHAN_CHI_DONG[x.lyDo])),
     ],
@@ -462,6 +468,7 @@ function toDetail(
     middleName: p.middle_name,
     givenName: p.given_name,
     gender: gioiTinhHopLe(p.gender),
+    birthDate: p.birth_date,
     legalName: p.legal_name,
     taxCode: p.tax_code,
     address: p.address,
@@ -551,6 +558,25 @@ async function respondDocs(db: D1Database, partyId: string, status: number, warn
 const KIND_LABEL = { PERSON: "cá nhân", ORGANIZATION: "tổ chức" } as const;
 const idParam = (params: Record<string, string>, name: string, re: RegExp): string | null => (re.test(params[name] ?? "") ? params[name]! : null);
 
+const RIENG_TU_FORBIDDEN = () => error(403, "personal_forbidden", "Tài khoản này không ghi được ngày sinh hay địa chỉ cá nhân của hồ sơ này.");
+const RIENG_TU_CHINH_CHU = () => error(403, "personal_self", "Ngày sinh và địa chỉ của chính bạn cần người khác xác minh, chưa sửa trực tiếp ở đây được.");
+const CHI_TIET_THEM_LIEN_HE: Record<string, string> = { PHONE: "thêm số điện thoại", EMAIL: "thêm email", ADDRESS: "thêm địa chỉ" };
+/** Người xem của luật riêng tư (rieng-tu.ts) — MỘT chỗ dựng cho cả đọc lẫn ghi. `id` null = hồ sơ đang tạo (chưa ai là chính chủ, chưa tài khoản). */
+function nguoiXemRiengTu(staff: StaffProfile, id: string | null, acc: PartyAccountVerdict | null): NguoiXem {
+  return {
+    coO: can(staff, "party.personal.view"),
+    laChinhChu: id !== null && staff.partyId === id,
+    hoSoCoTaiKhoan: acc?.linked === true,
+    quanDuocTaiKhoan: acc?.linked === true && acc.manageable,
+  };
+}
+/** ADR-0122 đ5: chặn GHI ngày sinh / liên hệ ADDRESS (null = được). */
+function chanGhiRiengTu(staff: StaffProfile, id: string | null, acc: PartyAccountVerdict | null): Response | null {
+  const v = nguoiXemRiengTu(staff, id, acc);
+  if (ghiDuocRiengTu(v)) return null;
+  return v.laChinhChu ? RIENG_TU_CHINH_CHU() : RIENG_TU_FORBIDDEN();
+}
+
 /**
  * Hồ sơ đầy đủ cho NGƯỜI ĐANG XEM: `editable` = đúng điều kiện mà route ghi hỏi (ADR-0013 điều 3; hồ sơ công ty chủ: ô company.legal.write — ADR-0024 6.4).
  * Gọi được từ route "office" hoặc "admin" (cả hai luôn có `staff`).
@@ -565,7 +591,9 @@ async function respondParty<A extends "office" | "admin">(ctx: Ctx<A>, id: strin
   const party = toDetail(detail, today, { accountLinked: acc.linked, editable }, vao);
   // ADR-0044 (chủ chọn 28/9): hồ sơ của tài khoản Toàn quyền — người xem không giữ Toàn quyền chỉ thấy vai ĐANG MỞ, không thấy lịch sử vai.
   if (acc.linked && acc.vaiAn && !can(ctx.staff, "admin.manage.superadmin")) party.roles = party.roles.filter((r) => r.validFrom <= today && (r.validTo === null || r.validTo >= today));
-  return json({ party } satisfies PartyResponse, status);
+  // ADR-0122 đ5: ngày sinh + liên hệ ADDRESS chỉ cho chính chủ hoặc người giữ party.personal.view (Quản trị theo cấp bậc — ruling R6). Mọi phản hồi hồ sơ đi qua đây.
+  const xem = xemDuocRiengTu(nguoiXemRiengTu(ctx.staff, id, acc));
+  return json({ party: xem ? party : anTruongRiengTu(party) } satisfies PartyResponse, status);
 }
 
 export const partiesModule: AppModule = {
@@ -883,7 +911,9 @@ export const partiesModule: AppModule = {
       const into = intoParam(await readJson(request));
       if (!into) return error(400, "invalid_input", "Chọn hồ sơ chính để gộp vào.");
       const t = await tinhGop(ctx, id, into, vnToday(new Date()));
-      return t instanceof Response ? t : json(xemTruocDto(t) satisfies MergePreviewResponse);
+      if (t instanceof Response) return t;
+      const xemDiaChiA = xemDuocRiengTu(nguoiXemRiengTu(staff, id, t.A.acc));
+      return json(xemTruocDto(t, xemDiaChiA) satisfies MergePreviewResponse);
     }),
 
     route("POST", "/api/parties/:id/merge", "admin", async (ctx) => {
@@ -902,6 +932,12 @@ export const partiesModule: AppModule = {
       if (t.A.hs.mergedIntoId === into) return MERGE_LOST_RACE();
       const dau = t.ke.chan[0];
       if (dau) return error(409, dau.code, dau.message);
+      // ADR-0122 đ5 (ruling R12: từ chối, không lặng lẽ bỏ dòng): gộp chuyển liên hệ ĐỊA CHỈ sang hồ sơ chính = ghi trường riêng tư của hồ sơ chính — chính chủ
+      // không tự ghi, Quản trị theo cấp bậc. Đứng sau lý do chặn của kế hoạch (câu hợp ngữ cảnh hơn) và trước câu xác nhận tên.
+      if (t.ke.lienHe.mo.some((m) => laLienHeRiengTu(m.tu.kind))) {
+        const chan = chanGhiRiengTu(staff, into, t.B.acc);
+        if (chan) return chan;
+      }
       if (chuanHoaTen(typeof body?.xacNhan === "string" ? body.xacNhan : "") !== chuanHoaTen(t.A.hs.displayName)) return MERGE_CONFIRM();
       const at = now.toISOString();
       const lo = loGop(env.DB, { a: id, b: into, ke: t.ke, giayToDu: new Map(t.A.giayToDu.map((d) => [d.id, d])), homNay: t.homNay, at, actorId: staff.id });
@@ -940,15 +976,20 @@ export const partiesModule: AppModule = {
     route("POST", "/api/parties", "office", async (ctx) => {
       const { request, env, staff } = ctx;
       if (!can(staff, "party.write")) return FORBIDDEN_WRITE();
-      const parsed = validatePartyCreate(await readJson(request));
-      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
-      const v = parsed.value;
       const now = new Date();
       const at = now.toISOString();
       const today = vnToday(now);
+      const parsed = validatePartyCreate(await readJson(request), today);
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      const v = parsed.value;
+      // ADR-0122 đ5 (ruling R12): gửi ngày sinh / địa chỉ khi không giữ ô ⇒ 403, không lặng lẽ bỏ.
+      if ((v.kind === "PERSON" && v.birthDate !== null) || v.contacts.some((c) => laLienHeRiengTu(c.kind))) {
+        const chan = chanGhiRiengTu(staff, null, null);
+        if (chan) return chan;
+      }
       const made =
         v.kind === "PERSON"
-          ? newPersonStatements(env.DB, { name: v.name, gender: v.gender, contacts: v.contacts, contactsFrom: today }, staff.id, at)
+          ? newPersonStatements(env.DB, { name: v.name, gender: v.gender, birthDate: v.birthDate, contacts: v.contacts, contactsFrom: today }, staff.id, at)
           : newOrganizationStatements(env.DB, { org: v.org, contacts: v.contacts, contactsFrom: today }, staff.id, at);
       const name = v.kind === "PERSON" ? composePersonName(v.name) : v.org.displayName;
       // Không ghi SĐT/email/MST vào nhật ký (chỉ tên và loại) — đặc tả N1 §5.
@@ -975,19 +1016,31 @@ export const partiesModule: AppModule = {
       }
       // ADR-0068 G16: hồ sơ đã gộp chỉ đọc — chặn TRƯỚC khi đọc thân (bật lại "đang dùng" không bao giờ chạm tới trigger party_merge_no_reopen).
       if (current.merged_into_id) return DA_GOP();
-      const parsed = validatePartyUpdate(await readJson(request), current.party_kind);
+      const now = new Date();
+      const parsed = validatePartyUpdate(await readJson(request), current.party_kind, vnToday(now));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       if (acc.linked && parsed.value.active !== (current.active === 1)) return ACTIVE_BY_ACCOUNT();
       // Ruling D17 (b): hồ sơ công ty chủ không ngưng dùng được (kể cả người giữ ô) — muốn thôi dùng thì đổi công ty chủ trước. PUT là đường DUY NHẤT đặt active.
       if (chu && !parsed.value.active) return OWNER_COMPANY_KEEP_ACTIVE();
-      const at = new Date().toISOString();
+      const at = now.toISOString();
       // ADR-0084 Đ1: vắng ô giới tính ⇒ giữ giá trị đang lưu. Nhật ký chỉ ghi "đổi giới tính" — KHÔNG giá trị cũ / mới (cùng lối dữ liệu cá nhân).
       const pv = parsed.value;
+      // ADR-0122 đ5: ô ngày sinh CÓ mặt (kể cả để xoá) ⇒ phải giữ party.personal.view, không phải chính chủ, qua cấp bậc. VẮNG ⇒ giữ giá trị đang lưu
+      // (Review Focus 1: Bán hàng đổi tên không được xoá ngày sinh họ không thấy).
+      if (pv.kind === "PERSON" && pv.birthDate !== undefined) {
+        const chan = chanGhiRiengTu(staff, id, acc);
+        if (chan) return chan;
+      }
       const gioiTinhCu = gioiTinhHopLe(current.gender);
-      const v = pv.kind === "PERSON" ? { ...pv, gender: pv.gender === undefined ? gioiTinhCu : pv.gender } : pv;
+      const ngaySinhCu = current.birth_date;
+      const v = pv.kind === "PERSON"
+        ? { ...pv, gender: pv.gender === undefined ? gioiTinhCu : pv.gender, birthDate: pv.birthDate === undefined ? ngaySinhCu : pv.birthDate }
+        : pv;
       const doiGioiTinh = v.kind === "PERSON" && v.gender !== gioiTinhCu;
+      const doiNgaySinh = v.kind === "PERSON" && v.birthDate !== ngaySinhCu;
       const stmts = updatePartyStatements(env.DB, id, v, staff.id, at);
-      const detail = `${KIND_LABEL[current.party_kind]}${doiGioiTinh ? " — đổi giới tính" : ""}`;
+      // Nhật ký chỉ ghi "đổi giới tính" / "đổi ngày sinh" — KHÔNG giá trị (Hiến chương 5.20).
+      const detail = `${KIND_LABEL[current.party_kind]}${doiGioiTinh ? " — đổi giới tính" : ""}${doiNgaySinh ? " — đổi ngày sinh" : ""}`;
       const results = await env.DB.batch([...stmts, auditStatement(env.DB, { staffId: staff.id, action: "party_updated", at, targetType: "party", targetId: id, detail }, "changes() > 0")]);
       if ((results[stmts.length - 1]!.meta.changes ?? 0) === 0) return STALE();
       return respondParty(ctx, id);
@@ -1008,6 +1061,11 @@ export const partiesModule: AppModule = {
       const parsed = validateContact(await readJson(request));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       const c = parsed.value;
+      if (laLienHeRiengTu(c.kind)) {
+        if (detail.party.party_kind !== "PERSON") return error(400, "invalid_input", "Địa chỉ của tổ chức ghi ở ô Địa chỉ của hồ sơ, không thêm như liên hệ.");
+        const chan = chanGhiRiengTu(staff, id, acc);
+        if (chan) return chan;
+      }
       // Chưa có liên hệ CHÍNH đang mở cùng loại thì liên hệ này tự thành liên hệ chính. Hỏi "chính đang mở" chứ không phải "còn dòng
       // nào đang mở": sau khi đóng liên hệ chính mà vẫn còn dòng phụ, hồ sơ sẽ kẹt ở trạng thái không có liên hệ chính.
       const hasOpenPrimary = detail.contacts.some((x) => x.contact_kind_code === c.kind && x.is_primary === 1 && x.valid_to_date === null);
@@ -1016,7 +1074,7 @@ export const partiesModule: AppModule = {
       const at = now.toISOString();
       await env.DB.batch([
         ...addContactStatements(env.DB, id, c, vnToday(now), staff.id, at),
-        auditStatement(env.DB, { staffId: staff.id, action: "party_contact_changed", at, targetType: "party", targetId: id, detail: c.kind === "PHONE" ? "thêm số điện thoại" : "thêm email" }),
+        auditStatement(env.DB, { staffId: staff.id, action: "party_contact_changed", at, targetType: "party", targetId: id, detail: CHI_TIET_THEM_LIEN_HE[c.kind] ?? "thêm liên hệ" }),
       ]);
       return kemLocation(await respondParty(ctx, id, 201), `/parties?id=${id}`);
     }),
@@ -1025,14 +1083,20 @@ export const partiesModule: AppModule = {
       const { request, env, params, staff } = ctx;
       const id = idParam(params, "id", PARTY_ID_RE);
       const cid = idParam(params, "cid", ROW_ID_RE);
-      const hoSo = id ? await findParty(env.DB, id) : null;
-      if (!id || !cid || !hoSo) return NOT_FOUND();
+      const chiTiet = id ? await getPartyDetail(env.DB, id) : null;
+      if (!id || !cid || !chiTiet) return NOT_FOUND();
       const [acc, chu]: [PartyAccountVerdict, boolean] = await Promise.all([ctx.partyAccount(id), laCongTyChu(env.DB, id)]);
       // ADR-0024 6.4: đóng liên hệ của hồ sơ công ty chủ (vd Hotline — biên nhận báo lỗi nếu hết Hotline) — chỉ ô company.legal.write.
       if (chu ? !can(staff, "company.legal.write") : acc.linked ? !(can(staff, "party.staff.write") && acc.manageable) : !can(staff, "party.write")) {
         return chu ? OWNER_COMPANY_FORBIDDEN() : FORBIDDEN_WRITE();
       }
-      if (hoSo.merged_into_id) return DA_GOP();
+      if (chiTiet.party.merged_into_id) return DA_GOP();
+      // ADR-0122 đ5 (Review Focus 4): đóng liên hệ ĐỊA CHỈ cũng là ghi trường riêng tư — kể cả khi người gọi đoán được id dòng.
+      const lienHe = chiTiet.contacts.find((x) => x.id === cid);
+      if (lienHe && laLienHeRiengTu(lienHe.contact_kind_code)) {
+        const chan = chanGhiRiengTu(staff, id, acc);
+        if (chan) return chan;
+      }
       const now = new Date();
       const to = validateEndDate(await readJson(request), vnToday(now));
       if (!to.ok) return error(400, "invalid_input", to.message);

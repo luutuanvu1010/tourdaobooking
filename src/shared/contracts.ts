@@ -846,7 +846,8 @@ export type PartyKind = "PERSON" | "ORGANIZATION";
 
 export interface ContactPointDto {
   id: string;
-  kind: "PHONE" | "EMAIL";
+  /** ADR-0122 đ6: thêm ADDRESS (địa chỉ cá nhân) — chỉ trả cho người giữ party.personal.view hoặc chính chủ (src/modules/parties/rieng-tu.ts). */
+  kind: "PHONE" | "EMAIL" | "ADDRESS";
   value: string;
   label: string | null;
   isPrimary: boolean;
@@ -893,6 +894,8 @@ export interface PartyDto extends PartyListItemDto {
   givenName: string | null;
   /** ADR-0084 Đ1: giới tính của hồ sơ người — 'NAM' | 'NU' | null (chưa ghi; tổ chức luôn null). */
   gender: "NAM" | "NU" | null;
+  /** ADR-0122 đ1, đ5: ngày sinh 'YYYY-MM-DD' | null. Khoá VẮNG MẶT khi người xem không giữ party.personal.view và không phải chính chủ (không phải null). */
+  birthDate?: string | null;
   legalName: string | null;
   taxCode: string | null;
   address: string | null;
