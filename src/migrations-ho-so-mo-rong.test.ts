@@ -81,6 +81,7 @@ test("(b) pty_person.birth_date: ngày dân sự từ 1900; NULL được; sai l
   assert.throws(() => dat("1990-02-30"), /CHECK/);
   assert.throws(() => dat("1899-12-31"), /CHECK/);
   assert.throws(() => dat("17/05/1990"), /CHECK/);
+  for (const v of ["abc", "2000-13-45", "1990-5-17", "19900517", "9999-99-99"]) assert.throws(() => dat(v), /CHECK/, v);
 });
 
 test("(c) loại liên hệ ADDRESS có trong danh mục; chỉ hồ sơ CÁ NHÂN — chèn cho tổ chức, đổi loại sang ADDRESS, chuyển dòng ADDRESS sang tổ chức đều bị chặn", () => {
@@ -129,6 +130,10 @@ test("(e) giấy tờ tổ chức: chỉ hồ sơ TỔ CHỨC; GPKD phải có s
   assert.throws(() => ins(db, { party: p, type: "TRANSPORT" }), /FOREIGN KEY/, "giấy tờ tổ chức cho hồ sơ người");
   assert.throws(() => ins(db, { party: o, type: "GPKD" }), /CHECK/, "GPKD thiếu số");
   assert.throws(() => ins(db, { party: o, type: "TRANSPORT", cap: "2026-09-10", het: "2026-09-01" }), /CHECK/, "hết hạn trước ngày cấp");
+  for (const v of ["abc", "2000-13-45", "1990-5-17", "19900517", "9999-99-99"]) {
+    assert.throws(() => ins(db, { party: o, type: "TRANSPORT", cap: v }), /CHECK/, `ngày cấp ${v}`);
+    assert.throws(() => ins(db, { party: o, type: "TRANSPORT", het: v }), /CHECK/, `ngày hết hạn ${v}`);
+  }
   ins(db, { party: o, type: "TRANSPORT", het: "2030-01-01" });
   ins(db, { party: o, type: "GPKD", so: GPKD_A });
 });

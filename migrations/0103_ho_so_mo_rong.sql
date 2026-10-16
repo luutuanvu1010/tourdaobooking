@@ -4,7 +4,7 @@
 -- Người thao tác (người xác minh, người đăng chính sách, tài khoản đồng ý) ghi ở created_by — KHÔNG khoá ngoại sang staff (ADR-0003; cạnh parties → staff không có).
 
 -- (1) Ngày sinh (ADR-0122 đ1). NULL = chưa khai. "Không ở tương lai" kiểm ở máy chủ (CHECK không dùng được date('now')).
-ALTER TABLE pty_person ADD COLUMN birth_date TEXT CHECK (birth_date IS NULL OR (date(birth_date) = birth_date AND birth_date >= '1900-01-01'));
+ALTER TABLE pty_person ADD COLUMN birth_date TEXT CHECK (birth_date IS NULL OR (date(birth_date) IS birth_date AND birth_date >= '1900-01-01'));
 
 -- (2) Địa chỉ cá nhân = loại liên hệ ADDRESS (ADR-0122 đ1, đ6). Chỉ hồ sơ CÁ NHÂN: địa chỉ tổ chức ở pty_organization.address (một nơi, N7).
 INSERT INTO pty_contact_kind (code, name, sort_order) VALUES ('ADDRESS', 'Địa chỉ', 3);
@@ -43,9 +43,9 @@ CREATE TABLE pty_organization_document (
   document_type_code  TEXT NOT NULL REFERENCES pty_organization_document_type(code),
   document_number     TEXT CHECK (document_number IS NULL OR length(trim(document_number)) BETWEEN 1 AND 40),
   number_key          TEXT CHECK (number_key IS NULL OR (number_key = upper(number_key) AND length(number_key) BETWEEN 1 AND 40)),
-  issued_date         TEXT CHECK (issued_date IS NULL OR date(issued_date) = issued_date),
+  issued_date         TEXT CHECK (issued_date IS NULL OR date(issued_date) IS issued_date),
   issued_place        TEXT CHECK (issued_place IS NULL OR length(trim(issued_place)) BETWEEN 1 AND 200),
-  expiry_date         TEXT CHECK (expiry_date IS NULL OR date(expiry_date) = expiry_date),     -- NULL = không hạn
+  expiry_date         TEXT CHECK (expiry_date IS NULL OR date(expiry_date) IS expiry_date),     -- NULL = không hạn
   previous_id         TEXT REFERENCES pty_organization_document(id),                            -- dòng này GIA HẠN dòng nào
   voided_at           TEXT,                                                                      -- huỷ dòng nhập nhầm (không xoá)
   created_at          TEXT NOT NULL,
