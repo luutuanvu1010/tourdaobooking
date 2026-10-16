@@ -662,7 +662,8 @@
    "trang_thai": "da_xac_nhan",
    "kich_ban_e2e": "dong-bo-chuyen",
    "adr": "ADR-0104 Đ2 (chủ chọn «máy tự thêm ghế khi còn chỗ»)",
-   "ghi_chu_chu": "Kịch bản e2e dong-bo-chuyen đã kiểm cơ chế tương tự (đổi khách, tăng khách, huỷ đơn) nhưng chưa có ca «bớt» riêng."
+   "ghi_chu_chu": "Kịch bản e2e dong-bo-chuyen đã kiểm cơ chế tương tự (đổi khách, tăng khách, huỷ đơn) nhưng chưa có ca «bớt» riêng.",
+   "bai_chay_that": "src/modules/van-chuyen/so-vang-dong-bo-va-tu-choi.test.ts"
   },
   {
    "ma": "VC-15",
@@ -683,7 +684,8 @@
    "trang_thai": "da_xac_nhan",
    "kich_ban_e2e": "dong-bo-chuyen",
    "adr": "ADR-0104 Đ2 mục 2 (ý cuối)",
-   "ghi_chu_chu": "Ý 1 đến 3 theo kịch bản e2e dong-bo-chuyen (3), (4), (5); ý 4 theo ADR."
+   "ghi_chu_chu": "Ý 1 đến 3 theo kịch bản e2e dong-bo-chuyen (3), (4), (5); ý 4 theo ADR.",
+   "bai_chay_that": "src/modules/van-chuyen/so-vang-dong-bo-va-tu-choi.test.ts"
   },
   {
    "ma": "VC-16",
@@ -702,7 +704,8 @@
    "trang_thai": "da_xac_nhan",
    "kich_ban_e2e": "dong-bo-chuyen",
    "adr": "ADR-0104 Đ2",
-   "ghi_chu_chu": "Kịch bản e2e: đơn tăng 2 lên 3 thì máy mở thêm đúng 1 suất, cùng cơ chế."
+   "ghi_chu_chu": "Kịch bản e2e: đơn tăng 2 lên 3 thì máy mở thêm đúng 1 suất, cùng cơ chế.",
+   "bai_chay_that": "src/modules/van-chuyen/so-vang-dong-bo-va-tu-choi.test.ts"
   },
   {
    "ma": "VC-17",
@@ -719,9 +722,10 @@
     "Đơn VẪN LƯU (tăng lên 6)."
    ],
    "co_so": "adr",
-   "trang_thai": "da_xac_nhan",
+   "trang_thai": "da_xac_nhan_ma_chua_theo",
    "adr": "ADR-0104 Đ2; điểm «đơn vẫn lưu» do chủ chốt 2026-10-16",
-   "ghi_chu_chu": "Chưa kiểm mã hiện tại có lưu đơn khi xe hết chỗ không; nếu mã chặn lệnh tăng khách thì đó là một điểm lệch cần ghi."
+   "ghi_chu_chu": "Chủ 2026-10-16: «đơn vẫn lưu (tăng lên 6), xe giữ nguyên, báo người xếp xe». Mã hiện hành khác: đơn vẫn lưu 6, nhưng máy MỞ PHẦN CÒN CHỖ (xe còn 1 chỗ thì tự thêm 1 ghế, giữ thiếu 1) chứ không giữ nguyên xe. Quan sát bằng bài chạy thật 2026-10-16 (5 ghế mở thay vì 4). Cần quyết định riêng trước khi sửa mã.",
+   "bai_chay_that": "src/modules/van-chuyen/so-vang-dong-bo-va-tu-choi.test.ts"
   },
   {
    "ma": "VC-18",
@@ -788,7 +792,8 @@
    "co_so": "e2e",
    "trang_thai": "da_xac_nhan",
    "kich_ban_e2e": "tu-choi-bao-ban",
-   "ghi_chu_chu": "12 giờ là mặc định của hệ thống (migration 0092)."
+   "ghi_chu_chu": "12 giờ là mặc định của hệ thống (migration 0092).",
+   "bai_chay_that": "src/modules/van-chuyen/so-vang-tu-choi.test.ts"
   },
   {
    "ma": "VC-20",
@@ -804,7 +809,8 @@
    ],
    "co_so": "e2e",
    "trang_thai": "da_xac_nhan",
-   "kich_ban_e2e": "tu-choi-bao-ban"
+   "kich_ban_e2e": "tu-choi-bao-ban",
+   "bai_chay_that": "src/modules/van-chuyen/so-vang-tu-choi.test.ts"
   },
   {
    "ma": "VC-21",
@@ -820,7 +826,8 @@
    ],
    "co_so": "e2e",
    "trang_thai": "da_xac_nhan",
-   "kich_ban_e2e": "tu-choi-bao-ban"
+   "kich_ban_e2e": "tu-choi-bao-ban",
+   "bai_chay_that": "src/modules/van-chuyen/so-vang-dong-bo-va-tu-choi.test.ts"
   },
   {
    "ma": "VC-22",
@@ -838,7 +845,9 @@
    ],
    "co_so": "e2e",
    "trang_thai": "da_xac_nhan",
-   "kich_ban_e2e": "tu-choi-bao-ban"
+   "kich_ban_e2e": "tu-choi-bao-ban",
+   "bai_chay_that": "src/modules/van-chuyen/so-vang-dong-bo-va-tu-choi.test.ts",
+   "ghi_chu_bai": "Nửa «chèn tay bằng SQL cũng bị cơ sở dữ liệu chặn» của chiều xếp tài xế vào khung bận chưa có bài riêng; chiều ngược (chèn khung chồng chuyến) đã có bài canh ở bao-ban-tai-xe.test.ts."
   },
   {
    "ma": "VC-23",
@@ -855,7 +864,8 @@
    ],
    "co_so": "e2e",
    "trang_thai": "da_xac_nhan",
-   "kich_ban_e2e": "tu-choi-bao-ban"
+   "kich_ban_e2e": "tu-choi-bao-ban",
+   "bai_chay_that": "src/modules/van-chuyen/so-vang-dong-bo-va-tu-choi.test.ts"
   },
   {
    "ma": "VC-24",

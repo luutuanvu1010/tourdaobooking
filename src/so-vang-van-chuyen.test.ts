@@ -22,7 +22,7 @@ type Json = null | boolean | number | string | Json[] | { [k: string]: Json };
 interface Kiem { loai: string; [k: string]: any }
 interface Ca {
   ma: string; nhom: string; ten: string; boi_canh: string; so_lieu: string[]; cau_hoi: string; dap_an: string[]; co_so: string; trang_thai: string;
-  kiem_may?: Kiem[]; kich_ban_e2e?: string; adr?: string; ghi_chu_chu?: string;
+  kiem_may?: Kiem[]; kich_ban_e2e?: string; bai_chay_that?: string; ghi_chu_bai?: string; adr?: string; ghi_chu_chu?: string;
 }
 interface Tep { xac_nhan: { trang_thai: string; nguoi: string | null; ngay: string | null }; thong_so: Record<string, number>; cac_ca: Ca[] }
 interface BuocMau { ma: string; ham: string; dau_vao: Record<string, Json> }
@@ -138,6 +138,13 @@ for (const c of tep.cac_ca) {
   if (c.trang_thai === "da_xac_nhan" && c.kiem_may && c.kiem_may.length > 0) {
     soCaChayMay++;
     test(ten, () => { for (const k of c.kiem_may!) chayKiem(k); });
+  } else if (c.trang_thai === "da_xac_nhan" && c.bai_chay_that) {
+    soCaChayMay++;
+    test(`${ten} — chạy thật ở ${c.bai_chay_that}`, () => {
+      const f = join(GOC, c.bai_chay_that!);
+      assert.ok(existsSync(f), `${c.ma}: tệp bài ${c.bai_chay_that} không tồn tại`);
+      assert.match(readFileSync(f, "utf8"), new RegExp(`test\\("${c.ma} `), `${c.ma}: tệp bài chạy thật phải có bài mang tên bắt đầu bằng «${c.ma} »`);
+    });
   } else if (c.trang_thai === "da_xac_nhan_ma_chua_theo") {
     test(`${ten} — CHỦ MUỐN KHÁC LUẬT ĐANG CHẠY (cần quyết định riêng trước khi sửa mã)`, { todo: c.adr ?? "chủ muốn khác luật hiện hành" }, () => { assert.fail(c.ghi_chu_chu); });
   } else {
@@ -146,6 +153,6 @@ for (const c of tep.cac_ca) {
   }
 }
 
-test("không xanh vì rỗng: ít nhất 14 ca vàng đã xác nhận có phép kiểm máy chạy thật", () => {
-  assert.ok(soCaChayMay >= 14, `chỉ ${soCaChayMay} ca chạy máy`);
+test("không xanh vì rỗng: ít nhất 27 ca vàng đã xác nhận có phép kiểm máy chạy thật", () => {
+  assert.ok(soCaChayMay >= 27, `chỉ ${soCaChayMay} ca chạy máy`);
 });
