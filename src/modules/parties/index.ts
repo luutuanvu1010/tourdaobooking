@@ -5,7 +5,7 @@ import { auditStatement } from "../audit";
 import type {
   ContactPointDto, MergeItemDto, MergePreviewResponse, PartyDto, PartyDuplicatesResponse, PartyListItemDto, PartyListResponse, PartyLookupResponse, PartyMergeRef, PartyMetaResponse,
   PartyRelationshipDto, PartyResponse, PartyRoleDto, PersonDocumentDto, PersonDocumentListResponse, PersonDocumentMetaResponse, PersonDocumentRevealResponse,
-  StaffProfile, TaiKhoanNhanTienResponse,
+  StaffProfile, TaiKhoanNhanTienResponse, HoSoTepCreatedResponse, HoSoTepListResponse,
 } from "../../shared/contracts";
 import { LOAI_CO_DINH, MA_LOAI_GIAY_TO_RE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo, soNgayConLai } from "../../shared/giay-to";
 import { OWNER_COMPANY_ROLE, thieuChoCongTyChu } from "../../shared/cong-ty-chu";
@@ -26,6 +26,7 @@ import {
   insertLicenseClassStatement, insertPersonDocTypeStatement, updateLicenseClassStatement, updatePersonDocTypeStatement, insertPersonDocStatement, isCarrierParty, isOwnerCompanyParty, listLicenseClasses, listParties,
   listCarriers, listPartiesByIds, openPersonPhones, personsForMatch, listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, mergedFromOf, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
   voidPersonDocStatement,
+  datChoXoaTepStatement, findTepDeTai, insertTepLinkStatement, insertTepStatement, listTepCuaGiayTo, markTepStored,
   datHoatDongLoaiDoiTacStatement, hoSoMangNhan, openRoleCodesFor, themLoaiDoiTacStatement, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements, vaiDangMo,
   type BankAccountRow, type BankRow, type GopDocRow, type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
 } from "./repository";
@@ -33,6 +34,8 @@ import { chanCo, keHoachGop, type CongViecGop, type GiayToGop, type HoSoGop, typ
 import { loGop } from "./gop-lo";
 import { anTruongRiengTu, ghiDuocRiengTu, laLienHeRiengTu, xemDuocRiengTu, type NguoiXem } from "./rieng-tu";
 import { docTaiKhoanNhanTien } from "./tai-khoan-nhan-tien";
+import { LOAI_NOI_DUNG, LY_DO_XOA_TEP, TOI_DA_THAN, bamSha256, dauPhanHoiTep, khoaNgauNhien, kiemTepTaiLen } from "./tep";
+import { ghiRoiXoaKho } from "./kho-tep";
 import { MA_HANG_RE, cheSo, chiTietNhatKy, chuanHoaSo, kiemGiaHan, kiemHangMoi, kiemSuaHang, kiemSuaSai, kiemThemGiayTo, type DanhMucGiayTo, type GiayToNhap } from "./giay-to";
 import {
   PARTY_ID_RE, QUAN_HE_TAI_XE_CUA, ROW_ID_RE, composePersonName, hoSoNoiBo, ownerCompanyAssignProblem, splitPersonName, validateContact, validateEndDate, validatePartyCreate, validatePartyUpdate,
@@ -510,6 +513,21 @@ const DOC_NOT_CURRENT = () => error(409, "document_not_current", "Dòng này đ�
 const DOC_STALE = () => error(409, "stale", "Giấy tờ vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
 const DOC_ID_RE = /^[0-9a-f-]{36}$/;
 
+// ---- Kho tệp hồ sơ (ADR-0123; lát H-2 Gói 2) ----------------------------------------------------------------------------------------------------
+const TEP_FORBIDDEN = () => error(403, "forbidden", "Tài khoản này không được tải lên hay mở ảnh giấy tờ.");
+const TEP_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy tệp này.");
+const KHO_CHUA_BAT = () => error(503, "storage_unavailable", "Kho tệp hồ sơ chưa sẵn sàng. Hãy báo quản trị viên.");
+/**
+ * Lô "quyết xoá" MỘT tệp (ADR-0123 đ6, ADR-0126 đ3): câu đặt purged_at (do nơi gọi dựng — có / không điều kiện dở dang) + nhật ký CHỈ MÃ, ghi khi câu đầu
+ * đổi được dòng (`changes() > 0`). Dùng chung: tải lên hỏng (Task 4), chạy lại (Task 5), phiếu xoá (lát H-5). Xoá kho chạy SAU lô này (kho-tep.ts).
+ */
+function cauDatChoXoa(db: D1Database, cau: D1PreparedStatement, t: { id: string; party_id: string }, lyDo: string, at: string, actorId: string): D1PreparedStatement[] {
+  return [
+    cau,
+    auditStatement(db, { staffId: actorId, action: "party_attachment_purged", at, targetType: "party", targetId: t.party_id, detail: `tệp ${t.id} · ${lyDo}` }, "changes() > 0"),
+  ];
+}
+
 /** Lỗi ràng buộc CSDL của giấy tờ → phản hồi rõ nghĩa, KHÔNG nhắc số; lỗi lạ trả null để ném lên (500 có requestId). */
 function docProblem(e: unknown): Response | null {
   const m = e instanceof Error ? e.message : "";
@@ -906,6 +924,109 @@ export const partiesModule: AppModule = {
       if (row.document_number === null) return error(409, "no_number", "Giấy tờ này không có số để xem.");
       await env.DB.batch([auditStatement(env.DB, { staffId: staff.id, action: "party_document_number_viewed", at: new Date().toISOString(), targetType: "party", targetId: id, detail: row.type_name })]);
       return json({ number: row.document_number } satisfies PersonDocumentRevealResponse);
+    }),
+
+    // ---- Kho tệp hồ sơ (ADR-0123; lát H-2 Gói 2) — ruling Q1: tải lên cần CẢ party.document.write LẪN party.attachment.view (= chỉ Toàn quyền). -----------
+    // Thứ tự: 403 ô → 503 kho → 404 hồ sơ → 403 cấp bậc → 409 đã gộp → 400 không phải người → 404 / 409 dòng giấy tờ → 413 Content-Length (TRƯỚC khi đọc thân)
+    // → 400 / 413 / 415 nội dung → (1) LÔ D1 TRƯỚC: dòng tệp + dòng nối + nhật ký chỉ mã (ruling Q2) → (2) đặt kho → (3) đánh dấu đã lưu.
+    // Kho hỏng ở (2) ⇒ quyết xoá TAI_LEN_LOI rồi xoá kho (5.16) ⇒ 500. (3) hỏng ⇒ dòng "tải dở dang", lệnh chạy lại xử lý. Hai lần ghi D1 trong một yêu cầu là CÓ
+    // CHỦ Ý — route có tên trong GHI_NHIEU_LAN (src/shared/lan-gui-no.ts, ruling Q6). Bài src/kho-tep-ho-so.test.ts (4) ghim thứ tự TOI_DA_THAN → readJson, env.DB.batch → kho.put.
+    route("POST", "/api/parties/:id/documents/:did/tep", "office", async (ctx) => {
+      const { request, env, params, staff } = ctx;
+      if (!can(staff, "party.document.write") || !can(staff, "party.attachment.view")) return TEP_FORBIDDEN();
+      const kho = env.HO_SO;
+      if (!kho) return KHO_CHUA_BAT();
+      const id = idParam(params, "id", PARTY_ID_RE);
+      const party = id ? await findParty(env.DB, id) : null;
+      if (!id || !party) return NOT_FOUND();
+      const acc: PartyAccountVerdict = await ctx.partyAccount(id);
+      if (acc.linked && !acc.manageable) return TEP_FORBIDDEN();
+      if (party.merged_into_id) return DA_GOP();
+      if (party.party_kind !== "PERSON") return error(400, "invalid_input", "Giấy tờ chỉ gắn với hồ sơ cá nhân.");
+      const did = idParam(params, "did", DOC_ID_RE);
+      const cu = did ? await findPersonDocument(env.DB, did, id) : null;
+      if (!did || !cu) return DOC_NOT_FOUND();
+      if (cu.is_current !== 1) return DOC_NOT_CURRENT();
+      if (Number(request.headers.get("content-length") ?? "0") > TOI_DA_THAN) return error(413, "file_too_large", "Tệp lớn hơn 10 MB.");
+      const k = kiemTepTaiLen(await readJson(request));
+      if (!k.ok) return error(k.status, k.code, k.message);
+      const now = new Date();
+      const at = now.toISOString();
+      const tepId = crypto.randomUUID();
+      const key = khoaNgauNhien();
+      const bam = await bamSha256(k.bytes);
+      const tenLoai = (await danhMucGiayTo(env.DB, vnToday(now))).tenLoai(cu.document_type_code);
+      await env.DB.batch([
+        insertTepStatement(env.DB, { id: tepId, partyId: id, key, loai: k.loai, kichThuoc: k.bytes.length, bam, at, actorId: staff.id }),
+        insertTepLinkStatement(env.DB, { tepId, kind: "PERSON_DOCUMENT", targetId: did, at, actorId: staff.id }),
+        auditStatement(env.DB, { staffId: staff.id, action: "party_attachment_added", at, targetType: "party", targetId: id, detail: `${tenLoai} · tệp ${tepId}` }),
+      ]);
+      try {
+        await kho.put(key, k.bytes, { httpMetadata: { contentType: LOAI_NOI_DUNG[k.loai] } });
+      } catch (e) {
+        console.error(JSON.stringify({ level: "error", event: "ho_so_tep_tai_len_loi", tepId, loi: e instanceof Error ? e.name : "unknown" }));
+        try {
+          const luc = () => new Date().toISOString();
+          const lucXoa = luc();
+          const lo = cauDatChoXoa(env.DB, datChoXoaTepStatement(env.DB, { id: tepId, lyDo: LY_DO_XOA_TEP.TAI_LEN_LOI, at: lucXoa, actorId: staff.id }), { id: tepId, party_id: id }, LY_DO_XOA_TEP.TAI_LEN_LOI, lucXoa, staff.id);
+          await ghiRoiXoaKho(env.DB, kho, lo, [{ id: tepId, storage_key: key }], luc);
+        } catch (e2) {
+          // Dòng còn "tải dở dang" — POST /api/parties/tep-cho-xoa/chay-lai xử lý sau DO_DANG_SAU_MS; R-PTY-12 báo sau 1 giờ.
+          console.error(JSON.stringify({ level: "error", event: "ho_so_tep_danh_dau_xoa_loi", tepId, loi: e2 instanceof Error ? e2.name : "unknown" }));
+        }
+        return error(500, "upload_failed", "Không tải tệp lên được. Thử lại sau ít phút.");
+      }
+      try {
+        await markTepStored(env.DB, tepId, new Date().toISOString());
+      } catch (e) {
+        // Lần ghi thứ hai hỏng (ruling Q6): KHÔNG báo "đã tải" — dòng thành "tải dở dang", lệnh chạy lại quyết xoá + xoá kho sau DO_DANG_SAU_MS.
+        console.error(JSON.stringify({ level: "error", event: "ho_so_tep_danh_dau_luu_loi", tepId, loi: e instanceof Error ? e.name : "unknown" }));
+        return error(500, "upload_failed", "Không tải tệp lên được. Thử lại sau ít phút.");
+      }
+      return kemLocation(json({ tep: { id: tepId, loai: k.loai, kichThuoc: k.bytes.length, taiLuc: at } } satisfies HoSoTepCreatedResponse, 201), `/parties?id=${id}`);
+    }),
+
+    route("GET", "/api/parties/:id/documents/:did/tep", "office", async (ctx) => {
+      const { env, params, staff } = ctx;
+      if (!can(staff, "party.attachment.view")) return TEP_FORBIDDEN();
+      const id = idParam(params, "id", PARTY_ID_RE);
+      const did = idParam(params, "did", DOC_ID_RE);
+      if (!id || !did) return DOC_NOT_FOUND();
+      const acc: PartyAccountVerdict = await ctx.partyAccount(id);
+      if (acc.linked && !acc.manageable) return TEP_FORBIDDEN();
+      if (!(await findPersonDocument(env.DB, did, id))) return DOC_NOT_FOUND();
+      const ds = await listTepCuaGiayTo(env.DB, id, did);
+      return json({ tep: ds.map((r) => ({ id: r.id, loai: r.content_kind, kichThuoc: r.byte_size, taiLuc: r.stored_at })) } satisfies HoSoTepListResponse);
+    }),
+
+    // Tải xuống (ADR-0123 đ3; Hiến chương 5.22): GET — thẻ ảnh dùng được, và KHÔNG đi qua lớp chống ghi trùng (lớp đó lưu thân phản hồi để phát lại — ruling R4).
+    // Thứ tự: 403 ô → 503 kho → 404 mã → 403 cấp bậc → 404 tệp (chưa lưu / đã quyết xoá / không thuộc dòng giấy tờ của hồ sơ) → GHI NHẬT KÝ chỉ mã → đọc kho →
+    // thân + header no-store, nosniff. Ghi nhật ký lỗi thì ném lên (500), KHÔNG đọc kho. Bài src/kho-tep-ho-so.test.ts (3) ghim thứ tự can → auditStatement → kho.get (bài đếm chữ "kho.get" kèm ngoặc
+    // trên mã nguồn thô — chú thích đừng viết kèm ngoặc).
+    route("GET", "/api/parties/:id/documents/:did/tep/:tid", "office", async (ctx) => {
+      const { request, env, params, staff } = ctx;
+      if (!can(staff, "party.attachment.view")) return TEP_FORBIDDEN();
+      // GET không qua lớp chặn gọi chéo trang của router (lớp đó chỉ cho lệnh ghi) — chặn yêu cầu do trang khác phát ra (ruling R4).
+      if (request.headers.get("sec-fetch-site") === "cross-site") return TEP_FORBIDDEN();
+      const kho = env.HO_SO;
+      if (!kho) return KHO_CHUA_BAT();
+      const id = idParam(params, "id", PARTY_ID_RE);
+      const did = idParam(params, "did", DOC_ID_RE);
+      const tid = idParam(params, "tid", DOC_ID_RE);
+      if (!id || !did || !tid) return TEP_NOT_FOUND();
+      const acc: PartyAccountVerdict = await ctx.partyAccount(id);
+      if (acc.linked && !acc.manageable) return TEP_FORBIDDEN();
+      const tep = await findTepDeTai(env.DB, id, did, tid);
+      if (!tep) return TEP_NOT_FOUND();
+      await env.DB.batch([
+        auditStatement(env.DB, { staffId: staff.id, action: "party_attachment_viewed", at: new Date().toISOString(), targetType: "party", targetId: id, detail: `${tep.type_name} · tệp ${tep.id}` }),
+      ]);
+      const obj = await kho.get(tep.storage_key);
+      if (!obj) {
+        console.error(JSON.stringify({ level: "error", event: "ho_so_tep_thieu_doi_tuong", tepId: tep.id }));
+        return TEP_NOT_FOUND();
+      }
+      return new Response(obj.body, { status: 200, headers: dauPhanHoiTep({ id: tep.id, loai: tep.content_kind }) });
     }),
 
     // ---- Gộp hồ sơ cá nhân (ADR-0068 Đ1, Đ2, Đ5): admin.manage + cấp bậc; xem trước không ghi gì; gộp TÍNH LẠI kế hoạch rồi chạy MỘT db.batch() --------------

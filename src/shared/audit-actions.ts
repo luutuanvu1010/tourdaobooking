@@ -128,6 +128,11 @@ export const AUDIT_ACTIONS = {
   party_document_renewed: { label: "Gia hạn giấy tờ của người", group: "party" },
   party_document_corrected: { label: "Sửa sai giấy tờ của người", group: "party" },
   party_document_number_viewed: { label: "Xem đủ số giấy tờ", group: "party" },
+  // ADR-0123 (kho tệp hồ sơ, lát H-2 Gói 2): `detail` CHỈ MÃ — "<tên loại giấy tờ> · tệp <mã tệp>" / "tệp <mã> · <mã lý do>"; KHÔNG tên tệp gốc, khoá kho, băm.
+  party_attachment_added: { label: "Thêm ảnh giấy tờ", group: "party" },
+  party_attachment_viewed: { label: "Mở ảnh giấy tờ", group: "party" },
+  party_attachment_purged: { label: "Quyết xoá ảnh giấy tờ khỏi kho", group: "party" },
+  party_attachment_purge_retried: { label: "Chạy lại xoá ảnh khỏi kho", group: "system" },
   party_document_catalog_changed: { label: "Sửa danh mục giấy tờ của người", group: "party" },
   // ADR-0108 đ2: cài / đổi tài khoản nhận tiền của công ty chủ — target = hồ sơ công ty; `detail` = "cài|đổi tài khoản nhận tiền" (chữ cố định); KHÔNG chép số tài khoản (5.12).
   party_bank_account_changed: { label: "Đổi tài khoản nhận tiền", group: "party" },

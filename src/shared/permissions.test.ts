@@ -88,6 +88,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "party.document.view": ["own", "own", "own", "own", "none", "any", "own", "own", "own", "own"], // ADR-0040 D2 + R5 (chủ 28/9: "Mọi nhân viên"): giấy tờ của CHÍNH MÌNH, số che; Đối tác không
   "party.document.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0040 D2: ghi giấy tờ của người + xem danh sách (số che) của người khác — Quản trị + Toàn quyền
   "party.document.reveal": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0040 D2 sửa bởi ADR-0083 điều 2: "xem đủ số" — CHỈ Toàn quyền; mỗi lần một dòng nhật ký không kèm số
+  "party.attachment.view": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0124 đ4 + ADR-0123: mở ảnh giấy tờ của người khác — CHỈ Toàn quyền; nhật ký trước mỗi lần mở
   "vehicle.manage": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0040 D1: xe, giấy tờ xe, danh sách sắp hết hạn — Quản trị + Toàn quyền (ADR-0038 điều 6)
   "transport.rate.view": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0057 B3: xem bảng giá thuê xe — Kế toán = Quản trị (lần 18), Toàn quyền
   "transport.rate.manage": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0057 B3: thêm / đóng giá, danh mục tuyến, cỡ xe
@@ -277,6 +278,7 @@ const ADMIN_NONE_OPS: readonly OperationCode[] = [
   "deposit.outside.record", // ADR-0089 đ16, X-4: ghi "đã hoàn ngoài hệ thống" chỉ Toàn quyền — Quản trị là người XÁC NHẬN (deposit.refund.approve)
   "auth.session.viewAll", "auth.session.revoke", "auth.session.policy", // ADR-0075 điều 7: sổ phiên của mọi người, gỡ phiên — chỉ Toàn quyền (Quản trị không giữ Toàn quyền → 403)
   "party.document.reveal", // ADR-0083 điều 2: xem đủ số giấy tờ chỉ Toàn quyền — Quản trị chỉ thấy số đã che
+  "party.attachment.view", // ADR-0124 đ4: mở ảnh giấy tờ chỉ Toàn quyền — Quản trị ghi giấy tờ nhưng không mở ảnh (ruling Q1 kế hoạch H-2 kho tệp)
   "trip.passenger.add", // ADR-0052 D5b (Đợt 5 A-1b): chỉ tài xế đang lái bổ sung tên — văn phòng nhập tên ở đơn (không route văn phòng)
   "trip.refuse", // ADR-0053 D8.3 (kế hoạch A4 T3): Từ chối chuyến chỉ tài xế đang lái — văn phòng không từ chối thay (đổi người bằng xếp xe; N-TU-CHOI)
   "unavailability.self", // ADR-0053 D9 (kế hoạch A4 T8): báo bận của CHÍNH tài xế — văn phòng không ghi thay (xem dải "Tài xế bận" qua trip.dispatch)
@@ -360,7 +362,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "feedback.submit": "any", "feedback.view": "own", // ngoại lệ có tên (Ruling R2)
     "feedback.triage": "none", "feedback.team.manage": "none", "settings.ops": "none", "order.pool.view": "none", "notice.send": "none", "company.legal.write": "none",
     "party.document.view": "own", // ngoại lệ có tên (Ruling R2, R5): xem giấy tờ của CHÍNH MÌNH, số che
-    "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
+    "party.document.write": "none", "party.document.reveal": "none", "party.attachment.view": "none", "vehicle.manage": "none",
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     // ADR-0049 D3 — NỚI (ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2): tài xế công ty xem + bấm tiến độ chuyến MÌNH ĐANG LÁI (`assigned` — A13 / A15).
@@ -405,7 +407,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "feedback.submit": "any", "feedback.view": "own", // ngoại lệ có tên (ADR-0048 D2)
     "feedback.triage": "none", "feedback.team.manage": "none", "settings.ops": "none", "order.pool.view": "none", "notice.send": "none", "company.legal.write": "none",
     "party.document.view": "own", // ngoại lệ có tên (ADR-0048 D2): xem giấy tờ của CHÍNH MÌNH, số che
-    "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
+    "party.document.write": "none", "party.document.reveal": "none", "party.attachment.view": "none", "vehicle.manage": "none",
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     "trip.passenger.add": "none", // ADR-0052 D5b × lời chủ 5/10 ("chỉ tài xế công ty"): tài xế đối tác KHÔNG bổ sung tên
@@ -455,7 +457,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "audit.view": "none", "feedback.submit": "any", "feedback.view": "own", "feedback.triage": "none", "feedback.team.manage": "none", "settings.ops": "none", "order.pool.view": "none",
     "notice.send": "none", "company.legal.write": "none",
     "party.document.view": "own", // như mọi tài khoản nội bộ (ADR-0040 D2, R5): giấy tờ của CHÍNH MÌNH, số che
-    "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
+    "party.document.write": "none", "party.document.reveal": "none", "party.attachment.view": "none", "vehicle.manage": "none",
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.urgent_adjust": "none", "trip.progress": "none", "trip.call_ack": "none", "trip.passenger.add": "none",

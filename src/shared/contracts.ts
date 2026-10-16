@@ -983,6 +983,15 @@ export interface PersonDocumentDto {
 export interface PersonDocumentListResponse { documents: PersonDocumentDto[]; warnDays: number }
 /** Chỉ ở POST /api/parties/:id/documents/:did/reveal ("Xem đủ số", ô party.document.reveal; mỗi lần một dòng nhật ký KHÔNG kèm số). */
 export interface PersonDocumentRevealResponse { number: string }
+// ---- Kho tệp hồ sơ (ADR-0123; lát H-2 Gói 2) — KHÔNG tên tệp gốc, KHÔNG khoá kho, KHÔNG băm (N3). Thân tệp chỉ ở GET …/tep/:tid. ----
+export type LoaiTepHoSo = "jpg" | "png" | "heic" | "pdf";
+export interface HoSoTepDto { id: string; loai: LoaiTepHoSo; kichThuoc: number; taiLuc: string }
+export interface HoSoTepListResponse { tep: HoSoTepDto[] }
+export interface HoSoTepCreatedResponse { tep: HoSoTepDto }
+/** Hàng "chờ xoá" (Hiến chương 5.16): CHO_XOA = đã quyết xoá, kho chưa xoá xong; TAI_DO_DANG = tải lên chưa xác nhận đã lưu quá 10 phút. */
+export interface HoSoTepChoXoaDto { id: string; trangThai: "CHO_XOA" | "TAI_DO_DANG"; lyDo: string | null; luc: string }
+export interface HoSoTepChoXoaResponse { tep: HoSoTepChoXoaDto[] }
+export interface HoSoTepChayLaiResponse { daXoa: number; conLai: number }
 export interface DocumentTypeDto { code: string; name: string; hasExpiry: boolean; sortOrder: number; active: boolean; updatedAt: string }
 export interface LicenseClassDto { code: string; name: string; sortOrder: number; active: boolean; updatedAt: string }
 export interface PersonDocumentMetaResponse { types: DocumentTypeDto[]; classes: LicenseClassDto[] }

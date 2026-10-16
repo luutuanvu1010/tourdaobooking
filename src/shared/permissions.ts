@@ -200,6 +200,11 @@ export const MATRIX = {
   // party.document.write); mỗi lần xem một dòng nhật ký KHÔNG kèm số, ghi TRƯỚC khi trả số. Route DUY NHẤT trả số đầy đủ: POST /api/parties/:id/documents/:did/reveal
   // (route còn giữ luật cấp bậc R8 — lưới phòng thủ, Toàn quyền quản lý mọi tài khoản).
   "party.document.reveal": chiToanQuyen(),
+  // ADR-0124 đ4 + ADR-0123 (accepted 2026-10-16): MỞ ẢNH giấy tờ của người khác ngoài hàng chờ xác minh — CHỈ Toàn quyền. Mỗi lần mở một dòng nhật ký CHỈ MÃ,
+  // ghi TRƯỚC khi đọc kho R2. Lát H-2 dùng thêm ô này cho: tải ảnh lên (kèm party.document.write — ruling Q1 kế hoạch 2026-10-16-goi-2-h2-kho-tep) và hàng
+  // "chờ xoá" của kho (ruling Q4). Route: GET/POST /api/parties/:id/documents/:did/tep*, GET /api/parties/tep-cho-xoa, POST …/chay-lai. Mở ảnh của PHIẾU ĐANG
+  // CHỜ là ô khác (party.verify.attachment — lát H-4).
+  "party.attachment.view": chiToanQuyen(),
   // ADR-0040 D1: quản lý xe, giấy tờ xe, xem danh sách giấy tờ sắp hết hạn (xe + tài xế, không số) — Quản trị + Toàn quyền (việc kinh doanh, ADR-0038
   // điều 6). Route: /api/van-chuyen/* (module van-chuyen, cổng office). Danh mục loại giấy tờ xe: admin.manage; ngưỡng sắp hết hạn: settings.ops.
   "vehicle.manage": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"),

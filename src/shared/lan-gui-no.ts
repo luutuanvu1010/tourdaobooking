@@ -62,4 +62,5 @@ export const GHI_NHIEU_LAN: readonly MucGhiNhieuLan[] = [
   { duong: "POST /api/tro-ly/hoi", lyDo: "Bộ nhớ đệm tìm theo nghĩa / trạng thái trần rồi dòng lượt hỏi. Không chạm dữ liệu nghiệp vụ; gửi lặp chỉ thấy 'đã ghi' và tải lại (lượt hỏi đã lưu trong lịch sử)." },
   { duong: "POST /api/feedback", lyDo: "Lô tạo yêu cầu, rồi dấu 'đã gửi email báo' (setNotified) trong waitUntil SAU lô chính. Vé đi ở lô chính — đúng; lần ghi thứ hai chỉ là dấu email. Còn cơ chế clientRequestId cũ (ADR-0094 đ10)." },
   { duong: "POST /api/feedback/:id/messages", lyDo: "Lô thêm trả lời, rồi dấu 'đã gửi email báo' trong waitUntil SAU lô chính (cùng khuôn POST /api/feedback)." },
+  { duong: "POST /api/parties/:id/documents/:did/tep", lyDo: "ADR-0123, ruling Q2/Q6 kế hoạch H-2 kho tệp: lô D1 (dòng tệp + dòng nối + nhật ký, mang vé) → đặt kho R2 → đánh dấu đã lưu ở lần ghi thứ hai; đặt kho nằm giữa nên không gộp được một lô. Lần hai hỏng ⇒ route trả 500, dòng thành 'tải dở dang' và POST /api/parties/tep-cho-xoa/chay-lai dọn — không có ảnh 'đã tải' mà mất. Kho hỏng ⇒ thêm lô quyết xoá rồi đánh dấu đã-xoá-khỏi-kho." },
 ];

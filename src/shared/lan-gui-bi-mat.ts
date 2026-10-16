@@ -12,23 +12,27 @@ export interface MauRoute {
   readonly path: string;
 }
 
+// Mọi route bí mật hôm nay đều là POST — liệt kê ĐƯỜNG DẪN rồi dựng mẫu như KHONG_VE dưới đây (gói trang nào cũng nhúng danh sách này; lát H-2 kho tệp thêm route
+// thứ 14 làm gói Đơn hàng vượt trần của src/goi-trang-nhe.test.ts — viết gọn thay vì nới trần). Route bí mật bằng phương thức khác thì đổi lại dạng đầy đủ.
 export const BI_MAT: readonly MauRoute[] = [
-  { method: "POST", path: "/api/account/change-pin" },
-  { method: "POST", path: "/api/account/passkeys/options" }, // thân có PIN hiện tại (bật Face ID, điều 2a) — sót ở L8, vòng 2 kiểm độc lập bắt
-  { method: "POST", path: "/api/account/pin-by-passkey" },
+  "/api/account/change-pin",
+  "/api/account/passkeys/options", // thân có PIN hiện tại (bật Face ID, điều 2a) — sót ở L8, vòng 2 kiểm độc lập bắt
+  "/api/account/pin-by-passkey",
   // ADR-0074 (Task 5): thân có mã 6 số của ứng dụng xác thực / mã dự phòng (ít khả năng) — vé chỉ giữ trong bộ nhớ trang.
-  { method: "POST", path: "/api/account/mfa/totp/confirm" },
-  { method: "POST", path: "/api/account/mfa/recovery/regenerate" },
-  { method: "POST", path: "/api/account/mfa/remove" },
+  "/api/account/mfa/totp/confirm",
+  "/api/account/mfa/recovery/regenerate",
+  "/api/account/mfa/remove",
   // ADR-0074 Phần C Task 3: thân có địa chỉ email đầy đủ + mã hiện có / mã trong thư — vé chỉ giữ trong bộ nhớ trang.
-  { method: "POST", path: "/api/account/mfa/email/start" },
-  { method: "POST", path: "/api/account/mfa/email/confirm" },
-  { method: "POST", path: "/api/staff/:id/reset-pin" },
-  { method: "POST", path: "/api/parties/:id/documents" },
-  { method: "POST", path: "/api/parties/:id/documents/:did/renew" },
-  { method: "POST", path: "/api/parties/:id/documents/:did/correct" },
-  { method: "POST", path: "/api/parties/:id/documents/:did/reveal" },
-];
+  "/api/account/mfa/email/start",
+  "/api/account/mfa/email/confirm",
+  "/api/staff/:id/reset-pin",
+  "/api/parties/:id/documents",
+  "/api/parties/:id/documents/:did/renew",
+  "/api/parties/:id/documents/:did/correct",
+  "/api/parties/:id/documents/:did/reveal",
+  // ADR-0123 (lát H-2 kho tệp): thân là ảnh giấy tờ (base64) — đường giấy tờ của người, bài T16 bắt; vé chỉ giữ trong bộ nhớ trang.
+  "/api/parties/:id/documents/:did/tep",
+].map((path): MauRoute => ({ method: "POST", path }));
 
 // Mọi route ghi công khai hôm nay đều là POST — liệt kê ĐƯỜNG DẪN rồi dựng mẫu (gói trang nào cũng nhúng danh sách này: viết gọn để gói Đơn hàng không vượt
 // trần dung lượng của src/goi-trang-nhe.test.ts — Phần C thêm route thứ 9). Route công khai bằng phương thức khác thì đổi lại dạng đầy đủ.

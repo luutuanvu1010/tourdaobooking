@@ -65,6 +65,7 @@ export const LICH_SU_DOI_TAC_AN = [
   "mfa_enabled", "mfa_removed", "mfa_recovery_regenerated", "mfa_reset",
   "party_created", "party_updated", "party_contact_changed", "party_role_added", "party_role_ended", "party_relationship_changed", "party_merged", "party_document_added",
   "party_document_renewed", "party_document_corrected", "party_document_number_viewed", "party_document_catalog_changed", "party_bank_account_changed",
+  "party_attachment_added", "party_attachment_viewed", "party_attachment_purged", "party_attachment_purge_retried", // ADR-0123: ảnh giấy tờ — không gắn đơn
   // Xe, điều phối
   "vehicle_created", "vehicle_updated", "vehicle_document_added", "vehicle_document_renewed", "vehicle_document_corrected", "vehicle_document_type_changed",
   "expiry_policy_changed", "vehicle_unavailability_added", "vehicle_unavailability_withdrawn",

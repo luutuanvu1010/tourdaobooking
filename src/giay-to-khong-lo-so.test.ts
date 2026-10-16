@@ -39,6 +39,7 @@ const SO_CCCD_DT = "079555444333";
 const SO_GPLX_DT = "790555444333";
 const SO_XE = "KD-DANHDAU-9";
 const SO_XE_MOI = "KD-DANHDAU-8";
+const PNG_B64 = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]).toString("base64"); // ADR-0123: ảnh giả (chữ ký PNG)
 /** Mọi dạng lộ của số người: đủ số, 8 ký tự đầu, 8 ký tự cuối (số che chỉ để lộ 4 ký tự cuối). */
 const DAU_SO_NGUOI = [SO_CCCD, SO_CCCD_MOI, SO_GPLX, SO_SUC_KHOE, SO_CCCD_DT, SO_GPLX_DT].flatMap((s) => [s, s.slice(0, 8), s.slice(-8)]);
 const DAU_SO_XE = [SO_XE, SO_XE_MOI, "DANHDAU"];
@@ -97,6 +98,20 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
         assert.equal(x.status, 200, x.text);
         lanXemSo += x.text; // KHÔNG đưa vào `than` — thân "xem đủ số" là nơi DUY NHẤT được có số
       }
+    },
+    "POST /api/parties/:id/documents/:did/tep": async () => {
+      const r = await w.call("GET", `/api/parties/${P}/documents`, { as: ADM });
+      await goi("tải ảnh CCCD (Toàn quyền)", "POST", `/api/parties/${P}/documents/${idCua(r, "CCCD")}/tep`, SUP, { noiDung: PNG_B64 }, 201);
+    },
+    "GET /api/parties/:id/documents/:did/tep": async () => {
+      const r = await w.call("GET", `/api/parties/${P}/documents`, { as: ADM });
+      await goi("danh sách ảnh CCCD", "GET", `/api/parties/${P}/documents/${idCua(r, "CCCD")}/tep`, SUP, undefined, 200);
+    },
+    "GET /api/parties/:id/documents/:did/tep/:tid": async () => {
+      const r = await w.call("GET", `/api/parties/${P}/documents`, { as: ADM });
+      const did = idCua(r, "CCCD");
+      const ds = await w.call("GET", `/api/parties/${P}/documents/${did}/tep`, { as: SUP });
+      await goi("mở ảnh CCCD", "GET", `/api/parties/${P}/documents/${did}/tep/${ds.json.tep[0].id}`, SUP, undefined, 200);
     },
     "GET /api/parties/documents/mine": async () => {
       await goi("giấy tờ của tôi", "GET", "/api/parties/documents/mine", TX, undefined, 200);

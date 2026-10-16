@@ -27,12 +27,12 @@ export const PHU_TRACH = {
   "aut_mfa_recovery_code.code_hash": "src/hai-lop-email-khong-lo.test.ts",
   "aut_mfa_email_code.code_hash": "src/hai-lop-email-khong-lo.test.ts",
   "aut_trusted_device.token_hash": "src/hai-lop-email-khong-lo.test.ts",
+  "pty_attachment.content_hash": "src/modules/parties/tep-route.test.ts",
+  "pty_attachment.storage_key": "src/modules/parties/tep-route.test.ts",
 };
 
 /** Cột N3/N4 chưa có route ghi nên chưa bài nào sinh được dữ liệu thật — kèm lý do và lát sẽ chuyển sang PHU_TRACH. */
 export const MIEN = {
-  "pty_attachment.content_hash": "chưa có route tải lên (Task 1 của kế hoạch 2026-10-16-goi-2-h2-kho-tep chỉ có bảng) — Task 4 chuyển sang src/modules/parties/tep-route.test.ts",
-  "pty_attachment.storage_key": "chưa có route tải lên (Task 1 của kế hoạch 2026-10-16-goi-2-h2-kho-tep chỉ có bảng) — Task 4 chuyển sang src/modules/parties/tep-route.test.ts",
   "pty_organization_document.document_number": "chưa có route ghi giấy tờ tổ chức (lát H-1 chỉ có bảng) — lát H-2 chuyển sang src/giay-to-khong-lo-so.test.ts",
   "pty_organization_document.number_key": "chưa có route ghi giấy tờ tổ chức (lát H-1 chỉ có bảng) — lát H-2 chuyển sang src/giay-to-khong-lo-so.test.ts",
   "pty_organization_document.issued_place": "chưa có route ghi giấy tờ tổ chức (lát H-1 chỉ có bảng) — lát H-2 chuyển sang src/giay-to-khong-lo-so.test.ts",

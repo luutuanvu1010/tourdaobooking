@@ -5,6 +5,7 @@ import { defineSql } from "../../shared/sql-registry.ts";
 import type { ContactInput, OrgFields, PersonName, RelationshipInput, RoleInput } from "./rules.ts";
 import type { GioiTinh } from "../../shared/xung-ho.ts";
 import { composePersonName } from "./rules.ts";
+import type { LoaiTep } from "./tep.ts";
 
 export type PartyKind = "PERSON" | "ORGANIZATION";
 
@@ -960,3 +961,76 @@ export const bankAccountInsertStatement = (
   db: D1Database,
   v: { id: string; partyId: string; bankCode: string; accountNumber: string; accountName: string; at: string; by: string },
 ) => db.prepare(BANK_ACCOUNT_INSERT).bind(v.id, v.partyId, v.bankCode, v.accountNumber, v.accountName, v.at, v.by);
+
+// ---- Kho tệp hồ sơ (ADR-0123; migration 0104; lát H-2 Gói 2) — storage_key và content_hash là N3: CHỈ đi trong câu lệnh, KHÔNG BAO GIỜ ra DTO, nhật ký,
+// câu lỗi. Tải lên ghi D1 TRƯỚC (dòng tệp + dòng nối, stored_at rỗng) rồi mới đặt R2, rồi mark_attachment_stored (ruling Q2 kế hoạch 2026-10-16-goi-2-h2-kho-tep).
+export interface TepRow { id: string; content_kind: LoaiTep; byte_size: number; stored_at: string }
+export interface TepTaiRow { id: string; storage_key: string; content_kind: LoaiTep; type_name: string }
+const INSERT_TEP = defineSql(
+  "parties",
+  "insert_attachment",
+  `INSERT INTO pty_attachment (id, party_id, storage_key, content_kind, byte_size, content_hash, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?7, ?8)`,
+);
+const INSERT_TEP_LINK = defineSql(
+  "parties",
+  "insert_attachment_link",
+  "INSERT INTO pty_attachment_link (attachment_id, target_kind, target_id, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?4, ?5)",
+);
+const MARK_TEP_STORED = defineSql(
+  "parties",
+  "mark_attachment_stored",
+  "UPDATE pty_attachment SET stored_at = ?2, updated_at = ?2 WHERE id = ?1 AND stored_at IS NULL AND purged_at IS NULL",
+);
+// Chỉ tệp ĐÃ LƯU, CHƯA quyết xoá, nối tới dòng giấy tờ ?2 của ĐÚNG hồ sơ ?1 (đường dẫn mang cả hai — không tin một mình mã tệp).
+const LIST_TEP_CUA_GIAY_TO = defineSql(
+  "parties",
+  "list_attachments_of_person_document",
+  `SELECT a.id, a.content_kind, a.byte_size, a.stored_at FROM pty_attachment a
+   JOIN pty_attachment_link l ON l.attachment_id = a.id AND l.target_kind = 'PERSON_DOCUMENT' AND l.target_id = ?2
+   JOIN pty_person_document d ON d.id = l.target_id AND d.party_id = ?1
+   WHERE a.stored_at IS NOT NULL AND a.purged_at IS NULL ORDER BY a.stored_at, a.id`,
+);
+const FIND_TEP_DE_TAI = defineSql(
+  "parties",
+  "find_attachment_for_download",
+  `SELECT a.id, a.storage_key, a.content_kind, t.name AS type_name FROM pty_attachment a
+   JOIN pty_attachment_link l ON l.attachment_id = a.id AND l.target_kind = 'PERSON_DOCUMENT' AND l.target_id = ?2
+   JOIN pty_person_document d ON d.id = l.target_id AND d.party_id = ?1
+   JOIN pty_person_document_type t ON t.code = d.document_type_code
+   WHERE a.id = ?3 AND a.stored_at IS NOT NULL AND a.purged_at IS NULL`,
+);
+// Quyết xoá (ADR-0123 đ6, ADR-0126 đ3): purged_at + mã lý do + băm về rỗng, MỘT lần (trigger một chiều). ?5 = điều kiện thêm cho tệp tải dở dang (Task 5):
+// NULL = không điều kiện; có giá trị = chỉ khi stored_at còn rỗng và created_at < ?5 (tệp đã lưu xong trong khe thì KHÔNG bị quyết xoá).
+const PURGE_TEP = defineSql(
+  "parties",
+  "purge_attachment",
+  `UPDATE pty_attachment SET purged_at = ?2, purge_reason = ?3, content_hash = NULL, updated_at = ?2, updated_by = ?4
+   WHERE id = ?1 AND purged_at IS NULL AND (?5 IS NULL OR (stored_at IS NULL AND created_at < ?5))`,
+);
+const MARK_TEP_R2_DELETED = defineSql(
+  "parties",
+  "mark_attachment_r2_deleted",
+  "UPDATE pty_attachment SET r2_deleted_at = ?2, updated_at = ?2 WHERE id = ?1 AND purged_at IS NOT NULL AND r2_deleted_at IS NULL",
+);
+
+export const insertTepStatement = (
+  db: D1Database, v: { id: string; partyId: string; key: string; loai: LoaiTep; kichThuoc: number; bam: string; at: string; actorId: string },
+): D1PreparedStatement => db.prepare(INSERT_TEP).bind(v.id, v.partyId, v.key, v.loai, v.kichThuoc, v.bam, v.at, v.actorId);
+export const insertTepLinkStatement = (
+  db: D1Database, v: { tepId: string; kind: "PERSON_DOCUMENT" | "ORG_DOCUMENT"; targetId: string; at: string; actorId: string },
+): D1PreparedStatement => db.prepare(INSERT_TEP_LINK).bind(v.tepId, v.kind, v.targetId, v.at, v.actorId);
+export async function markTepStored(db: D1Database, id: string, at: string): Promise<number> {
+  return (await db.prepare(MARK_TEP_STORED).bind(id, at).run()).meta.changes ?? 0;
+}
+export async function listTepCuaGiayTo(db: D1Database, partyId: string, docId: string): Promise<TepRow[]> {
+  return (await db.prepare(LIST_TEP_CUA_GIAY_TO).bind(partyId, docId).all<TepRow>()).results;
+}
+export function findTepDeTai(db: D1Database, partyId: string, docId: string, tepId: string): Promise<TepTaiRow | null> {
+  return db.prepare(FIND_TEP_DE_TAI).bind(partyId, docId, tepId).first<TepTaiRow>();
+}
+export const datChoXoaTepStatement = (db: D1Database, v: { id: string; lyDo: string; at: string; actorId: string; doDangTruoc?: string }): D1PreparedStatement =>
+  db.prepare(PURGE_TEP).bind(v.id, v.at, v.lyDo, v.actorId, v.doDangTruoc ?? null);
+export async function markTepR2Deleted(db: D1Database, id: string, at: string): Promise<number> {
+  return (await db.prepare(MARK_TEP_R2_DELETED).bind(id, at).run()).meta.changes ?? 0;
+}

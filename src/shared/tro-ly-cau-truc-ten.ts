@@ -127,6 +127,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "party.document.view": { ten: "xem giấy tờ của mình", moTa: "Xem giấy tờ của chính mình ở trang Tôi (số bị che)." },
   "party.document.write": { ten: "ghi giấy tờ của người", moTa: "Thêm, gia hạn, sửa sai giấy tờ của người và xem danh sách giấy tờ (số bị che)." },
   "party.document.reveal": { ten: "xem đủ số giấy tờ", moTa: "Bấm Xem đủ số; mỗi lần xem được ghi lại." },
+  "party.attachment.view": { ten: "mở ảnh giấy tờ", moTa: "Tải ảnh giấy tờ lên và mở ảnh giấy tờ của người khác; mỗi lần mở được ghi lại." },
   "vehicle.manage": { ten: "quản lý xe và giấy tờ xe", moTa: "Thêm, sửa xe, giấy tờ xe, xem danh sách sắp hết hạn." },
   "transport.rate.view": { ten: "xem bảng giá thuê xe", moTa: "Xem giá thuê xe theo chuyến của từng nhà xe." },
   "transport.rate.manage": { ten: "nhập bảng giá thuê xe", moTa: "Thêm, kết thúc giá thuê xe; sửa danh mục tuyến và cỡ xe." },
