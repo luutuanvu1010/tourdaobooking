@@ -267,8 +267,8 @@ test("(c) đúng tập trigger mới; trigger cũ của 0103 / 0104 còn nguyên
   db.exec(sqlOf(FILE));
   assert.deepEqual(triggers(db).filter((t) => !truoc.has(t)), [
     "pty_consent_no_replace", "pty_privacy_policy_no_replace", "pty_privacy_policy_valid_from_ins",
-    "pty_self_submission_consent_ins", "pty_self_submission_content", "pty_self_submission_kind_ins", "pty_self_submission_new_pending",
-    "pty_self_submission_no_delete", "pty_self_submission_no_replace", "pty_self_submission_one_pending_ins", "pty_self_submission_status_one_way",
+    "pty_self_submission_consent_ins", "pty_self_submission_content", "pty_self_submission_kind_ins",
+    "pty_self_submission_no_delete", "pty_self_submission_no_replace", "pty_self_submission_one_pending_ins", "pty_self_submission_status_ins", "pty_self_submission_status_one_way",
     "pty_verification_no_replace",
   ]);
   for (const t of truoc) assert.ok(triggers(db).includes(t), `trigger cũ ${t} bị mất`);
@@ -449,7 +449,7 @@ CREATE TRIGGER pty_self_submission_kind_ins BEFORE INSERT ON pty_self_submission
 WHEN NEW.subject_kind NOT IN ('NGAY_SINH', 'DIA_CHI', 'GIAY_TO')
   AND NEW.subject_kind = upper(NEW.subject_kind) AND length(NEW.subject_kind) BETWEEN 2 AND 30 AND NEW.subject_kind NOT GLOB '*[^A-Z_]*'
 BEGIN SELECT RAISE(ABORT, 'self_submission_kind_closed: loại phiếu này chưa mở'); END;
-CREATE TRIGGER pty_self_submission_new_pending BEFORE INSERT ON pty_self_submission
+CREATE TRIGGER pty_self_submission_status_ins BEFORE INSERT ON pty_self_submission
 WHEN NEW.status <> 'CHO_XAC_MINH'
 BEGIN SELECT RAISE(ABORT, 'self_submission_new_not_pending: phiếu mới phải ở trạng thái chờ xác minh'); END;
 -- Đồng ý (5.21, ADR-0124 đ3) — lớp CSDL (lớp máy chủ: route + lính gác trong câu ghi): quyết định MỚI NHẤT của chính hồ sơ với ĐÚNG phiên bản ghi trên phiếu là DONG_Y,

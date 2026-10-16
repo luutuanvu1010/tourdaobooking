@@ -1108,6 +1108,23 @@ test("R-PTY-13 (ADR-0124 đ3, Hiến chương 5.21): phiếu tự khai ĐANG CH�
   assert.equal(violations(db, c), 0, "phiếu đã rút không tính");
 });
 
+test("R-PTY-13 hai chính sách: đồng ý phiên bản CŨ không cứu phiếu ghi phiên bản MỚI (và ngược lại đồng ý đúng phiên bản của phiếu thì sạch)", () => {
+  const c = one("R-PTY-13");
+  const db = build();
+  NGUOI_T(db, "p-2c");
+  const at = "2026-10-17T03:00:00.000Z";
+  const at2 = "2026-10-17T03:05:00.000Z";
+  for (const [id, v, t] of [["pol-1", 1, at], ["pol-2", 2, at2]] as const)
+    db.prepare("INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?, ?, 'thử', 'thử', ?, ?, 's', ?, 's')").run(id, v, t, t, t);
+  db.prepare("INSERT INTO pty_consent (id, party_id, policy_id, decision, created_at, created_by, updated_at, updated_by) VALUES ('c1', 'p-2c', 'pol-1', 'DONG_Y', ?, 's', ?, 's')").run(at, at);
+  db.exec("DROP TRIGGER pty_self_submission_consent_ins"); // dựng trạng thái lỗi mà trigger đồng ý vẫn chặn được ở đường ghi thật
+  db.prepare(`INSERT INTO pty_self_submission (id, party_id, subject_kind, policy_id, birth_date, status, created_at, created_by, updated_at, updated_by)
+    VALUES ('ph2', 'p-2c', 'NGAY_SINH', 'pol-2', '1990-01-01', 'CHO_XAC_MINH', ?, 's', ?, 's')`).run(at2, at2);
+  assert.equal(violations(db, c), 1, "phiếu ghi pol-2 nhưng chỉ đồng ý pol-1");
+  db.prepare("INSERT INTO pty_consent (id, party_id, policy_id, decision, created_at, created_by, updated_at, updated_by) VALUES ('c2', 'p-2c', 'pol-2', 'DONG_Y', ?, 's', ?, 's')").run(at2, at2);
+  assert.equal(violations(db, c), 0, "đã đồng ý đúng pol-2");
+});
+
 test("R-VC-1 (ADR-0040 D1): biển số không trùng giữa các xe CHƯA NGỪNG — xe đã ngừng giữ biển cũ không tính → 0; hai xe đang dùng cùng biển (chỉ mục bị gỡ) → 1", () => {
   const c = one("R-VC-1");
   assert.equal(c.level, "fail");

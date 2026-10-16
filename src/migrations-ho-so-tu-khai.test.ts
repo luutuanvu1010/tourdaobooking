@@ -148,6 +148,13 @@ test("(f) CHECK hình dạng: trường phải khớp loại; ngày, độ dài,
     ["GPLX thiếu hạng (luật 0032)", "p1", { subject_kind: "GIAY_TO", document_type_code: "GPLX", document_number: "790000000111", number_key: "790000000111" }],
     ["hạng kèm loại không phải GPLX", "p1", { subject_kind: "GIAY_TO", license_class_code: "B" }],
     ["không người khai", "p1", { created_by: null }],
+    // Ngày sai khuôn: date('abc') là NULL nên `date(x) = x` cho NULL (CHECK coi là qua) — phải là `IS`.
+    ["ngày sinh chữ", "p1", { birth_date: "abc" }],
+    ["ngày sinh không có thật", "p1", { birth_date: "2000-13-45" }],
+    ["ngày cấp chữ", "p1", { subject_kind: "GIAY_TO", issued_date: "abc" }],
+    ["ngày cấp không có thật", "p1", { subject_kind: "GIAY_TO", issued_date: "2030-02-30" }],
+    ["ngày hết hạn chữ", "p1", { subject_kind: "GIAY_TO", expiry_date: "abc" }],
+    ["ngày hết hạn không có thật", "p1", { subject_kind: "GIAY_TO", expiry_date: "2030-02-30" }],
   ] as const) assert.throws(() => phieu(db, party, x as Record<string, unknown>), /CHECK constraint failed/, ten);
   assert.throws(() => phieu(db, "o1"), /FOREIGN KEY constraint failed/, "hồ sơ tổ chức (ruling R5)");
   assert.throws(() => phieu(db, "p1", { subject_kind: "GIAY_TO", document_type_code: "KHONG_CO" }), /FOREIGN KEY constraint failed/, "loại giấy tờ lạ");
@@ -190,6 +197,29 @@ test("(j) bất biến: không xoá; không sửa nội dung; trạng thái ch�
   db.prepare("UPDATE pty_self_submission SET status = 'RUT', decided_at = ?, decided_by = 's-1', updated_at = ?, updated_by = 's-1' WHERE id = ?").run(AT2, AT2, a);
   assert.throws(() => db.prepare("UPDATE pty_self_submission SET status = 'CHO_XAC_MINH', decided_at = NULL, decided_by = NULL WHERE id = ?").run(a), /self_submission_status_one_way/);
   assert.throws(() => db.prepare("UPDATE pty_self_submission SET status = 'DA_CHAP_NHAN', decided_at = ?, decided_by = 's-2' WHERE id = ?").run(AT3, a), /self_submission_status_one_way/);
+});
+
+test("(j2) MỌI cột nội dung (15 cột): sửa kèm chuyển hợp lệ sang RUT ⇒ self_submission_content", () => {
+  const db = coBan();
+  nguoi(db, "p2");
+  const a = phieu(db, "p1", { subject_kind: "GIAY_TO", document_type_code: "GPLX", document_number: "790000000111", number_key: "790000000111", license_class_code: "B", issued_place: "Nơi thử", issued_date: "2020-01-01", expiry_date: "2030-01-01" });
+  chinhSach(db, "pol-2", 2, AT3);
+  const GIA_TRI: Record<string, string> = {
+    id: "ph-doi", party_id: "p2", subject_kind: "DIA_CHI", policy_id: "pol-2", birth_date: "1991-01-01", address_value: "2 Đường Thử", document_type_code: "CCCD",
+    document_number: "999", number_key: "999", license_class_code: "C", issued_date: "2021-01-01", issued_place: "Nơi khác", expiry_date: "2031-01-01",
+    created_at: AT3, created_by: "s-9",
+  };
+  assert.equal(Object.keys(GIA_TRI).length, 15);
+  for (const [cot, giaTri] of Object.entries(GIA_TRI))
+    assert.throws(() => db.prepare(`UPDATE pty_self_submission SET ${cot} = ?, status = 'RUT', decided_at = ?, decided_by = 's-1' WHERE id = ?`).run(giaTri, AT2, a), /self_submission_content/, cot);
+  assert.equal(trangThai(db, a), "CHO_XAC_MINH");
+});
+
+test("(j3) CHECK decided_by: đặt decided_at mà thiếu decided_by ⇒ CHECK", () => {
+  const db = coBan();
+  const a = phieu(db, "p1");
+  assert.throws(() => db.prepare("UPDATE pty_self_submission SET status = 'RUT', decided_at = ? WHERE id = ?").run(AT2, a), /CHECK constraint failed/);
+  assert.throws(() => db.prepare("UPDATE pty_self_submission SET status = 'RUT', decided_by = 's-1' WHERE id = ?").run(a), /CHECK constraint failed/);
 });
 
 test("(k) vá INSERT OR REPLACE của 0103 (ruling R11) + phiên bản chính sách không hiệu lực lùi", () => {
