@@ -12,6 +12,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Gói 2 hồ sơ riêng tư, lát H-2 (ADR-0123): kho tệp hồ sơ R2, route tải / mở ảnh giấy tờ chỉ Toàn quyền, hàng chờ xoá, gộp mang ảnh;
+    // migration 0104. CÓ migration + CHỦ PHẢI TẠO KHO R2 TRƯỚC (docs/HANDOFF-N1.md; cổng 1e của trien-khai dừng nếu chưa có). Chưa có màn hình.
+    // Số 2.11 là số TẠM (điều phối chọn 2026-10-17: không trùng 2.8 / 2.10 đang tạm ở các nhánh khác). Cùng nhánh với 2.10 (lát H-0/H-1) nên sẽ lên CÙNG một lần
+    // phát hành — phiên phát hành có thể gộp hai mục thành một số; kiểm lại số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
+    version: "2.11",
+    date: "2026-10-17",
+    items: [
+      { kind: "doi", text: "Nền tảng đã có chỗ cất ảnh chụp giấy tờ (căn cước, bằng lái): chỉ Toàn quyền tải lên và mở xem, mỗi lần mở đều được ghi lại." },
+      { kind: "doi", text: "Chưa có màn hình tải hay xem ảnh nên người dùng chưa thấy gì thay đổi." },
+    ],
+  },
+  {
     // Gói 2 hồ sơ riêng tư, lát H-0 + H-1 (Hiến chương 5.20; ADR-0122, ADR-0126 đ1): hạng dữ liệu cá nhân cho mọi cột; migration 0103 thêm ngày sinh, liên hệ địa chỉ,
     // giấy tờ tổ chức, sổ xác minh, chính sách riêng tư + đồng ý (chưa có màn nhập). CÓ migration — cần trien-khai sau day-len.
     // Số 2.10 là số TẠM (main 2.8; worktree stoic-heisenberg giữ 2.9 — kiểm 2026-10-16): phiên phát hành kiểm lại số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).

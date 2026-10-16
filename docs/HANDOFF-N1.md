@@ -919,6 +919,34 @@ UPDATE staff SET mfa_enroll_until = '<GIỜ+24h>' WHERE id = '<ID>';
 ```
 Câu đầu kết thúc dòng EMAIL lệch (hết lệch `R-AUT-MFA-4`); câu sau mở cửa sổ bật lại 24 giờ — lần đăng nhập PIN kế tiếp vào thẳng bước "bật ứng dụng xác thực" rồi mới có phiên. (Thay cho câu sau, đặt `mfa_grace_until` = giờ cộng vài ngày cũng mở được, nhưng cho vào thẳng không qua mã — kém an toàn hơn.) Kiểm sau: `node scripts/audit-invariants.mjs --db remote` xanh `R-AUT-MFA-4`.
 
+## Lần phát hành kế tiếp có kho tệp hồ sơ (ADR-0123 — Gói 2 lát H-2; migration `0104`) — RUNBOOK
+
+**Trạng thái: CHƯA phát hành** (nhánh `worktree-ho-so-rieng-tu-2fa`, soạn 2026-10-17; chờ người kiểm độc lập cuối nhánh và chủ duyệt). Cùng nhánh còn migration `0103` (lát H-1, hồ sơ mở rộng) chưa phát hành — lần phát hành này mang cả hai. Mọi bước sau A.0 do `npm run trien-khai` làm như thường; mục này chỉ thêm việc của chủ và điều cần biết.
+
+**Việc của chủ — làm MỘT lần, TRƯỚC `npm run trien-khai`** (AI không được tạo kho — CLAUDE.md §8; `npm run trien-khai` sẽ dừng ở cổng 1e và in lại đúng lệnh này nếu chưa làm). Đứng ở thư mục `tourdao-sales`, trong Terminal:
+
+1. Tạo kho tệp hồ sơ (kho riêng, không công khai):
+
+```
+npx wrangler r2 bucket create tourdao-sales-ho-so
+```
+
+2. Kiểm đã có kho (phải thấy dòng `name: tourdao-sales-ho-so`):
+
+```
+npx wrangler r2 bucket list
+```
+
+3. Chạy `npm run trien-khai` như thường lệ.
+
+**Điều kiện phát hành (kiểm LÚC phát hành bằng lệnh chỉ đọc):** `npx wrangler d1 migrations list tourdao-sales-db --remote` — rà `0103`, `0104` còn trống và còn là số kế tiếp trên mọi nhánh chưa gộp (`git ls-tree --name-only <nhánh> migrations/`); đổi số lúc gộp được (bài `src/migrations-ho-so-tep.test.ts` nhận tệp theo đuôi `_ho_so_tep.sql` và đòi nó đứng sau mọi tệp khác).
+
+**Sau phát hành, chủ thử một lần bằng tài khoản Toàn quyền** (chưa có màn hình — lát này chỉ có API; thử khi có màn hình ở lát giao diện): tải một ảnh CCCD chụp bằng iPhone (HEIC) và một PDF, mở lại, xem nhật ký có "Thêm ảnh giấy tờ" / "Mở ảnh giấy tờ" mà không có tên tệp. **Chưa kiểm khi soạn:** (a) `wrangler deploy` có từ chối khi kho chưa tạo không; (b) đầu ra thật của `wrangler r2 bucket list` (cổng 1e đọc theo mã nguồn wrangler 4.147.0); (c) nhãn HEIC thật của iPhone; (d) tốc độ tải 10 MB qua 4G và bộ nhớ Worker khi thân ~14 MB (`BL-TEP-THAN-HAI-LAN`).
+
+**Sau deploy:** `node scripts/audit-invariants.mjs --db remote` (trien-khai tự chạy) phải không vi phạm `R-PTY-11`; `R-PTY-12` (cảnh báo) báo tệp chờ xoá kho — chạy lại bằng `POST /api/parties/tep-cho-xoa/chay-lai` (Toàn quyền).
+
+**Hoàn tác:** migration `0104` chỉ THÊM hai bảng — lùi Worker về bản trước không cần đụng D1; kho R2 để nguyên (rỗng hoặc có ảnh) — KHÔNG xoá kho khi còn dòng `pty_attachment` chưa `r2_deleted_at`.
+
 ## Chế độ bảo trì — đường thoát khẩn
 
 Dùng CHỈ khi chủ dự án bị khoá ngoài (không vào được app để bấm tắt) hoặc chế độ bảo trì kẹt bật. Đây là thao tác GHI lên D1 remote, đi vòng app: theo `CLAUDE.md` §8 chỉ làm khi chủ dự án ra lệnh (hoặc tự chạy bằng `!`). Tác dụng TỨC THÌ (cổng ở máy chủ đọc D1 mỗi request, không đệm), không cần deploy.
