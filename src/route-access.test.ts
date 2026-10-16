@@ -264,6 +264,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/parties/chinh-sach-rieng-tu", access: "admin" }, // ADR-0126 đ1 (lát H-3): đăng chính sách riêng tư — thân hỏi party.privacy.policy (chỉ Toàn quyền)
   { method: "GET", path: "/api/parties/cua-toi", access: "staff" }, // ADR-0124 đ4: hồ sơ của TÔI — party.self.view own (staff.partyId); cổng staff để Đối tác, Tài xế đối tác vào được
   { method: "POST", path: "/api/parties/cua-toi/dong-y", access: "staff" }, // ADR-0124 đ3, 5.21: đồng ý / rút đồng ý — party.self.submit own; rút đồng ý rút phiếu đang chờ cùng lô
+  { method: "POST", path: "/api/parties/cua-toi/phieu", access: "staff" }, // ADR-0124 đ1, đ3: gửi phiếu tự khai — party.self.submit own; giá trị khai là đề xuất (5.23)
+  { method: "POST", path: "/api/parties/cua-toi/phieu/:pid/rut", access: "staff" }, // rút phiếu ĐANG CHỜ của chính mình — phiếu người khác 404
   { method: "GET", path: "/api/parties/meta", access: "office" },
   { method: "GET", path: "/api/parties/documents/mine", access: "staff" }, // ADR-0040 D2 (Ruling R4, R5): giấy tờ của CHÍNH MÌNH, số che — mọi nhân viên nội bộ; thân hỏi party.document.view (Đối tác 403)
   { method: "GET", path: "/api/parties/documents/meta", access: "office" }, // ADR-0040 D2: danh mục loại giấy tờ của người + hạng GPLX; thân hỏi party.document.write / admin.manage
@@ -567,6 +569,7 @@ test("mức truy cập của 332 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-17 (ADR-0123 đ6, Task 5): + GET /api/parties/tep-cho-xoa, POST …/tep-cho-xoa/chay-lai (office; party.attachment.view) = 332.
   // 2026-10-17 (ADR-0124, ADR-0126 đ1; lát H-3 Gói 2, Task 3): + POST /api/parties/chinh-sach-rieng-tu (admin; party.privacy.policy), GET /api/parties/cua-toi,
   // POST /api/parties/cua-toi/dong-y (staff; party.self.view / party.self.submit own) = 335.
-  assert.equal(actual.length, 335, "số route thực tế lệch 335 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 335, "SNAPSHOT phải có đúng 335 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-17 (ADR-0124 đ1, đ3; lát H-3 Task 4): + POST /api/parties/cua-toi/phieu, POST /api/parties/cua-toi/phieu/:pid/rut (staff; party.self.submit own) = 337.
+  assert.equal(actual.length, 337, "số route thực tế lệch 337 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 337, "SNAPSHOT phải có đúng 337 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

@@ -29,6 +29,9 @@ export const PHU_TRACH = {
   "aut_trusted_device.token_hash": "src/hai-lop-email-khong-lo.test.ts",
   "pty_attachment.content_hash": "src/modules/parties/tep-route.test.ts",
   "pty_attachment.storage_key": "src/modules/parties/tep-route.test.ts",
+  "pty_self_submission.document_number": "src/giay-to-khong-lo-so.test.ts",
+  "pty_self_submission.number_key": "src/giay-to-khong-lo-so.test.ts",
+  "pty_self_submission.issued_place": "src/giay-to-khong-lo-so.test.ts", // lát H-3 Task 4: route gửi phiếu tự khai (ADR-0124)
 };
 
 /** Cột N3/N4 chưa có route ghi nên chưa bài nào sinh được dữ liệu thật — kèm lý do và lát sẽ chuyển sang PHU_TRACH. */
@@ -36,9 +39,6 @@ export const MIEN = {
   "pty_organization_document.document_number": "chưa có route ghi giấy tờ tổ chức (lát H-1 chỉ có bảng) — lát H-2 chuyển sang src/giay-to-khong-lo-so.test.ts",
   "pty_organization_document.number_key": "chưa có route ghi giấy tờ tổ chức (lát H-1 chỉ có bảng) — lát H-2 chuyển sang src/giay-to-khong-lo-so.test.ts",
   "pty_organization_document.issued_place": "chưa có route ghi giấy tờ tổ chức (lát H-1 chỉ có bảng) — lát H-2 chuyển sang src/giay-to-khong-lo-so.test.ts",
-  "pty_self_submission.document_number": "lát H-3 Task 1 chỉ có bảng — Task 4 (route gửi phiếu) chuyển sang PHU_TRACH: src/giay-to-khong-lo-so.test.ts",
-  "pty_self_submission.number_key": "lát H-3 Task 1 chỉ có bảng — Task 4 (route gửi phiếu) chuyển sang PHU_TRACH: src/giay-to-khong-lo-so.test.ts",
-  "pty_self_submission.issued_place": "lát H-3 Task 1 chỉ có bảng — Task 4 (route gửi phiếu) chuyển sang PHU_TRACH: src/giay-to-khong-lo-so.test.ts",
 };
 
 const chuan = (s) => s.normalize("NFC").toUpperCase().replace(/[\s.\-/]/g, "");

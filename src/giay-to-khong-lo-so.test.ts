@@ -23,7 +23,7 @@ async function routesOf(entry: string, exportName: string): Promise<string[]> {
   return mod[exportName]!.routes.map((r) => `${r.method} ${r.path}`);
 }
 const TUYEN_THAT = [...(await routesOf("./modules/parties/index.ts", "partiesModule")), ...(await routesOf("./modules/van-chuyen/index.ts", "vanChuyenModule"))]
-  .filter((k) => /\/documents|\/giay-to/.test(k.split(" ")[1]!))
+  .filter((k) => /\/documents|\/giay-to|^\/api\/parties\/cua-toi/.test(k.split(" ")[1]!)) // lát H-3: route "của tôi" (phiếu tự khai mang số giấy tờ) — không bắt /api/van-chuyen/ban/cua-toi
   .sort();
 
 const ADM = "33333333-3333-4333-8333-333333333333";
@@ -32,6 +32,9 @@ const SO_CCCD = "079888777666";
 const SO_CCCD_MOI = "079888777665";
 const SO_GPLX = "790888777666";
 const SO_SUC_KHOE = "SK888777444";
+// ADR-0124 (lát H-3): số + nơi cấp đánh dấu của PHIẾU TỰ KHAI (giá trị đề xuất — cũng không bao giờ rời máy chủ, kể cả với chính chủ).
+const SO_PHIEU = "079666555444";
+const NOI_PHIEU = "NOI CAP PHIEU DANH DAU";
 const NOI = "NOI CAP DANH DAU";
 const NOI_MOI = "NOI CAP DANH DAU MOI";
 // ADR-0048 D1: tài xế ĐỐI TÁC (vai "Tài xế đối tác", thuộc một nhà xe) cũng có giấy tờ — số đánh dấu riêng, sắp hết hạn để lên danh sách "sắp hết hạn".
@@ -41,7 +44,7 @@ const SO_XE = "KD-DANHDAU-9";
 const SO_XE_MOI = "KD-DANHDAU-8";
 const PNG_B64 = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]).toString("base64"); // ADR-0123: ảnh giả (chữ ký PNG)
 /** Mọi dạng lộ của số người: đủ số, 8 ký tự đầu, 8 ký tự cuối (số che chỉ để lộ 4 ký tự cuối). */
-const DAU_SO_NGUOI = [SO_CCCD, SO_CCCD_MOI, SO_GPLX, SO_SUC_KHOE, SO_CCCD_DT, SO_GPLX_DT].flatMap((s) => [s, s.slice(0, 8), s.slice(-8)]);
+const DAU_SO_NGUOI = [SO_CCCD, SO_CCCD_MOI, SO_GPLX, SO_SUC_KHOE, SO_CCCD_DT, SO_GPLX_DT, SO_PHIEU].flatMap((s) => [s, s.slice(0, 8), s.slice(-8)]);
 const DAU_SO_XE = [SO_XE, SO_XE_MOI, "DANHDAU"];
 const HOM_NAY = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
 const ngay = (n: number) => new Date(Date.parse(`${HOM_NAY}T00:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
@@ -71,6 +74,25 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
 
   // Bảng ca: mỗi route giấy tờ chạy ÍT NHẤT một lần (khoá = "PHƯƠNG_THỨC đường_dẫn" đúng như route khai).
   const TUYEN: Record<string, () => Promise<void>> = {
+    // Lát H-3 (ADR-0124): bốn route "của tôi" chạy TRƯỚC — ca đầu đăng chính sách (Toàn quyền), hồ sơ TX lúc này chưa có giấy tờ.
+    "GET /api/parties/cua-toi": async () => {
+      await goi("Toàn quyền đăng chính sách (thử)", "POST", "/api/parties/chinh-sach-rieng-tu", SUP, { mucDich: "thử", noiDung: "thử" }, 201);
+      await goi("hồ sơ của tôi", "GET", "/api/parties/cua-toi", TX, undefined, 200);
+    },
+    "POST /api/parties/cua-toi/dong-y": async () => {
+      const cs = (await w.call("GET", "/api/parties/cua-toi", { as: TX })).json.chinhSach.id as string;
+      await goi("đồng ý chính sách", "POST", "/api/parties/cua-toi/dong-y", TX, { chinhSachId: cs, quyetDinh: "DONG_Y" }, 200);
+    },
+    "POST /api/parties/cua-toi/phieu": async () => {
+      const cs = (await w.call("GET", "/api/parties/cua-toi", { as: TX })).json.chinhSach.id as string;
+      await goi("phiếu tự khai CCCD", "POST", "/api/parties/cua-toi/phieu", TX, { chinhSachId: cs, loai: "GIAY_TO", giayTo: { typeCode: "CCCD", number: "079 666 555 444", issuedPlace: NOI_PHIEU, expiryDate: "2036-01-01" } }, 201);
+      await goi("hồ sơ của tôi sau khi khai", "GET", "/api/parties/cua-toi", TX, undefined, 200);
+    },
+    "POST /api/parties/cua-toi/phieu/:pid/rut": async () => {
+      const cs = (await w.call("GET", "/api/parties/cua-toi", { as: TX })).json.chinhSach.id as string;
+      const r = await goi("phiếu khám sức khoẻ để rút", "POST", "/api/parties/cua-toi/phieu", TX, { chinhSachId: cs, loai: "GIAY_TO", giayTo: { typeCode: "HEALTH_CHECK", number: SO_SUC_KHOE, expiryDate: ngay(30) } }, 201);
+      await goi("rút phiếu", "POST", `/api/parties/cua-toi/phieu/${r.json.phieuId}/rut`, TX, undefined, 200);
+    },
     "POST /api/parties/:id/documents": async () => {
       await goi("thêm CCCD", "POST", `/api/parties/${P}/documents`, ADM, { typeCode: "CCCD", number: "079 888 777 666", issuedPlace: NOI, expiryDate: "2035-01-01" }, 201);
       await goi("thêm GPLX", "POST", `/api/parties/${P}/documents`, ADM, { typeCode: "GPLX", number: SO_GPLX, classCode: "D2", issuedPlace: NOI, expiryDate: ngay(10) }, 201);
@@ -161,7 +183,7 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
   const nhatKy = JSON.stringify(w.q("SELECT * FROM audit_log"));
   const nhatKyGon = nhatKy.replace(/[\s.\-]/g, "");
   for (const s of [...DAU_SO_NGUOI, ...DAU_SO_XE]) assert.ok(!nhatKy.includes(s) && !nhatKyGon.includes(s.replace(/[\s.\-]/g, "")), `nhật ký lộ "${s}"`);
-  for (const noi of [NOI, NOI_MOI]) assert.ok(!nhatKy.includes(noi), `nhật ký lộ nơi cấp "${noi}"`);
+  for (const noi of [NOI, NOI_MOI, NOI_PHIEU]) assert.ok(!nhatKy.includes(noi), `nhật ký lộ nơi cấp "${noi}"`);
   assert.ok(w.q("SELECT count(*) n FROM audit_log WHERE action LIKE 'party_document_%' OR action LIKE 'vehicle_document_%'")[0].n >= 10, "chống bài rỗng: có nhật ký giấy tờ để quét");
 
   // (3) THÂN TRẢ VỀ (trừ "xem đủ số"): không số của NGƯỜI.
@@ -173,7 +195,10 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
   assert.ok(lanXemSo.includes(SO_CCCD_MOI), "thân 'xem đủ số' phải có số đầy đủ");
 
   // Hiến chương 5.20 (lát H-0 Gói 2): dò MỌI cột N3/N4 của sổ dữ liệu trong nhật ký; bài này chịu trách nhiệm sinh dữ liệu thật cho cột giấy tờ người.
-  const dsN3 = doNhatKyHang(w.sqlite, ["pty_person_document.document_number", "pty_person_document.number_key", "pty_person_document.issued_place"]);
+  const dsN3 = doNhatKyHang(w.sqlite, [
+    "pty_person_document.document_number", "pty_person_document.number_key", "pty_person_document.issued_place",
+    "pty_self_submission.document_number", "pty_self_submission.number_key", "pty_self_submission.issued_place", // lát H-3 Task 4: phiếu tự khai qua route thật
+  ]);
   assert.deepEqual(dsN3.rong, [], "bài rỗng: cột N3 phụ trách chưa có dữ liệu thật");
   assert.deepEqual(dsN3.lo, [], "nhật ký chứa giá trị hạng N3/N4");
 });

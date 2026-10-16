@@ -1131,3 +1131,30 @@ export const rutMoiPhieuChoStatement = (db: D1Database, v: { partyId: string; at
 export async function listPhieuCuaHoSo(db: D1Database, partyId: string): Promise<PhieuRow[]> {
   return (await db.prepare(LIST_PHIEU).bind(partyId).all<PhieuRow>()).results;
 }
+export interface PhieuTimRow { id: string; subject_kind: string; status: string }
+const INSERT_PHIEU = defineSql("parties", "insert_self_submission",
+  `INSERT INTO pty_self_submission (id, party_id, subject_kind, policy_id, birth_date, address_value, document_type_code, document_number, number_key,
+     license_class_code, issued_date, issued_place, expiry_date, status, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, 'CHO_XAC_MINH', ?14, ?15, ?14, ?15
+   WHERE (SELECT c.decision FROM pty_consent c WHERE c.party_id = ?2 AND c.policy_id = ?4 ORDER BY c.created_at DESC, c.rowid DESC LIMIT 1) = 'DONG_Y'`);
+const FIND_PHIEU = defineSql("parties", "find_self_submission_of_party",
+  "SELECT id, subject_kind, status FROM pty_self_submission WHERE id = ?1 AND party_id = ?2");
+const RUT_PHIEU = defineSql("parties", "withdraw_self_submission",
+  `UPDATE pty_self_submission SET status = 'RUT', decided_at = ?3, decided_by = ?4, updated_at = ?3, updated_by = ?4
+   WHERE id = ?1 AND party_id = ?2 AND status = 'CHO_XAC_MINH'`);
+
+/** Lô gửi phiếu: câu có LÍNH GÁC đồng ý (đồng ý bị rút trong khe ⇒ không chèn, changes() = 0); trigger pty_self_submission_consent_ins là lớp thứ hai. */
+export const ghiPhieuStatement = (db: D1Database, v: {
+  id: string; partyId: string; loai: string; policyId: string; ngaySinh: string | null; diaChi: string | null;
+  giayTo: { typeCode: string; number: string | null; numberKey: string | null; classCode: string | null; issuedDate: string | null; issuedPlace: string | null; expiryDate: string | null } | null;
+  at: string; actorId: string;
+}): D1PreparedStatement => {
+  const g = v.giayTo;
+  return db.prepare(INSERT_PHIEU).bind(
+    v.id, v.partyId, v.loai, v.policyId, v.ngaySinh, v.diaChi, g?.typeCode ?? null, g?.number ?? null, g?.numberKey ?? null, g?.classCode ?? null,
+    g?.issuedDate ?? null, g?.issuedPlace ?? null, g?.expiryDate ?? null, v.at, v.actorId,
+  );
+};
+export const timPhieuCuaHoSo = (db: D1Database, id: string, partyId: string): Promise<PhieuTimRow | null> => db.prepare(FIND_PHIEU).bind(id, partyId).first<PhieuTimRow>();
+export const rutPhieuStatement = (db: D1Database, v: { id: string; partyId: string; at: string; actorId: string }): D1PreparedStatement =>
+  db.prepare(RUT_PHIEU).bind(v.id, v.partyId, v.at, v.actorId);

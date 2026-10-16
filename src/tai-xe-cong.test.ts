@@ -105,6 +105,8 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
   "GET /api/parties/documents/mine": { ma: 200, ly_do: "giấy tờ của CHÍNH MÌNH, số che (Ruling R4, R5; ô party.document.view own)" },
   "GET /api/parties/cua-toi": { ma: 200, ly_do: "ADR-0124 đ4 (lát H-3): hồ sơ của CHÍNH MÌNH (ô party.self.view own, hồ sơ = staff.partyId), số che, chính sách riêng tư — không dữ liệu đơn" },
   "POST /api/parties/cua-toi/dong-y": { ma: 400, ly_do: "ADR-0124 đ3 (ô party.self.submit own); thân rỗng (thiếu quyết định đồng ý / rút) → 400 trước mọi ghi" },
+  "POST /api/parties/cua-toi/phieu": { ma: 409, ly_do: "ADR-0124 đ1 (ô party.self.submit own); khung thử chưa đăng chính sách riêng tư → 409 no_privacy_policy trước mọi ghi" },
+  "POST /api/parties/cua-toi/phieu/:pid/rut": { ma: 404, ly_do: "ADR-0124 đ1: chỉ phiếu của hồ sơ PHIÊN — mã lạ / phiếu người khác → 404 (không dò được)" },
   "GET /api/thong-bao": { ma: 200, ly_do: "hộp thông báo gửi cho mình (D3)" },
   "GET /api/thong-bao/tom-tat": { ma: 200, ly_do: "như trên" },
   "GET /api/thong-bao/moi-nhat": { ma: 200, ly_do: "như trên (Web Push)" },
