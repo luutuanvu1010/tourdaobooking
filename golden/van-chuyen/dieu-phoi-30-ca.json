@@ -1,0 +1,1264 @@
+{
+ "mo_ta": "Bộ ca vàng phân hệ Vận chuyển (30 ca mới), soạn và duyệt từng ca ngay trong chat ngày 2026-10-16. KHÔNG phải luật tiền. Mốc ra lệnh ghi 30 phút theo ý chủ. Mỗi ca: bối cảnh, số liệu, câu hỏi, đáp án; `kiem_may` là phần chạy bằng luật thuần thật (src/so-vang-van-chuyen.test.ts); `kich_ban_e2e` là kịch bản chạy thử trên máy chủ thật; ca nào chưa có bài máy thì chạy dạng todo có tên. Hồ sơ: docs/superpowers/specs/2026-10-16-so-vang-van-chuyen-ket-qua-duyet.md.",
+ "xac_nhan": {
+  "trang_thai": "da_xac_nhan",
+  "nguoi": "Lưu Tuấn Vũ / Chủ dự án — duyệt từng ca trong chat",
+  "ngay": "2026-10-16",
+  "ghi_chu": "26 ca đúng như đề xuất; ca 5, 6 chủ muốn khác luật (da_xac_nhan_ma_chua_theo); ca 8 và 17 chủ trả lời bằng lời của mình (xem ghi_chu_chu)."
+ },
+ "thong_so": {
+  "mocLenhPhut": 30,
+  "nghiPhut": 30,
+  "cuaSoXuatBenPhut": 720,
+  "gioLaiToiDaNgayPhut": 480,
+  "chuyenDaiPhut": 240,
+  "hanTuChoiPhut": 720
+ },
+ "cac_ca": [
+  {
+   "ma": "VC-01",
+   "nhom": "Mốc 6 giờ → 30 phút và điều chỉnh khẩn cấp",
+   "ten": "Đổi xe khi chuyến sắp chạy (dưới mốc)",
+   "boi_canh": "Chuyến CX-3009-07 xuất bến 05:50. Lúc 05:30 khách đổi kế hoạch, Bán hàng muốn đổi sang xe khác.",
+   "so_lieu": [
+    "Còn 05:50 − 05:30 = 20 phút",
+    "20 < 30 nên chuyến DƯỚI MỐC"
+   ],
+   "cau_hoi": "Bán hàng đổi xe được không?",
+   "dap_an": [
+    "Gửi không nêu lý do: BỊ CHẶN, máy hỏi lý do.",
+    "Chọn lý do rồi gửi lại: ĐƯỢC, chuyến mang nhãn «điều chỉnh khẩn cấp» ở chi tiết và lịch, ghi 1 dòng nhật ký (ai, lý do gì, lúc nào)."
+   ],
+   "co_so": "may+e2e",
+   "trang_thai": "da_xac_nhan",
+   "kiem_may": [
+    {
+     "loai": "duoi_moc",
+     "gio_xet": "2026-09-30 05:50",
+     "bay_gio": "2026-09-30 05:30",
+     "moc_phut": 30,
+     "ky_vong": true
+    },
+    {
+     "loai": "lop_vuot_moc",
+     "lenh": [
+      "DOI_XE"
+     ],
+     "ky_vong": "KHAN_CAP"
+    },
+    {
+     "loai": "quyen",
+     "permission": "SALES",
+     "op": "trip.urgent_adjust",
+     "ky_vong": true
+    },
+    {
+     "loai": "mau_buoc",
+     "mau": "B01",
+     "ghi_de": [
+      [
+       "lenh",
+       "SUA"
+      ],
+      [
+       "cu",
+       {
+        "batDauMs": "2026-09-30 05:50",
+        "batDauSomNhatMs": "2026-09-30 05:50",
+        "xeId": "xe-b",
+        "taiXePartyId": "tx-a",
+        "trangThai": "PLANNED"
+       }
+      ],
+      [
+       "bayGioMs",
+       "2026-09-30 05:30"
+      ]
+     ],
+     "ky_vong": {
+      "quyet_dinh": "CAN_PHA_LE",
+      "ma_luat": [
+       "MOC_TOI_THIEU"
+      ]
+     }
+    }
+   ],
+   "kich_ban_e2e": "dieu-chinh-khan-cap",
+   "adr": "ADR-0104 Đ1"
+  },
+  {
+   "ma": "VC-02",
+   "nhom": "Mốc 6 giờ → 30 phút và điều chỉnh khẩn cấp",
+   "ten": "Hai chuyến cùng xe, nghỉ thiếu, chuyến còn xa (ngoài mốc)",
+   "boi_canh": "2 ngày nữa, xe có chuyến 08:00 đến 10:00. Bán hàng tạo thêm chuyến thứ hai cùng xe, 10:10 đến 11:00.",
+   "so_lieu": [
+    "Nghỉ = 10:10 − 10:00 = 10 phút",
+    "Tối thiểu 30 phút; 10 < 30 nên THIẾU",
+    "Chuyến còn rất xa nên NGOÀI mốc"
+   ],
+   "cau_hoi": "Ai được cho qua?",
+   "dap_an": [
+    "Bán hàng tạo: BỊ CHẶN, cần Quản trị phá lệ.",
+    "Bán hàng gửi kèm lý do vẫn BỊ TỪ CHỐI quyền, không ghi gì.",
+    "Quản trị kèm lý do: ĐƯỢC, chuyến KHÔNG có nhãn khẩn cấp (vì không sát giờ)."
+   ],
+   "co_so": "may+e2e",
+   "trang_thai": "da_xac_nhan",
+   "kiem_may": [
+    {
+     "loai": "lop_nghi_cam_ket",
+     "duoi_moc": false,
+     "ky_vong": "QUAN_TRI"
+    },
+    {
+     "loai": "quyen",
+     "permission": "SALES",
+     "op": "trip.override",
+     "ky_vong": false
+    },
+    {
+     "loai": "quyen",
+     "permission": "ADMIN",
+     "op": "trip.override",
+     "ky_vong": true
+    },
+    {
+     "loai": "mau_buoc",
+     "mau": "B01",
+     "ghi_de": [
+      [
+       "chuyen.batDauMs",
+       "2026-10-02 10:10"
+      ],
+      [
+       "chuyen.ketThucMs",
+       "2026-10-02 11:00"
+      ],
+      [
+       "chuyenKhac",
+       [
+        {
+         "id": "c1",
+         "ma": "CX-A-1",
+         "xeId": "xe-a",
+         "taiXePartyId": "tx-a",
+         "batDauMs": "2026-10-02 08:00",
+         "ketThucMs": "2026-10-02 10:00",
+         "ketThucThatMs": null,
+         "trangThai": "PLANNED"
+        }
+       ]
+      ],
+      [
+       "bayGioMs",
+       "2026-09-30 09:00"
+      ]
+     ],
+     "ky_vong": {
+      "quyet_dinh": "CAN_PHA_LE",
+      "ma_luat": [
+       "KHOANG_NGHI"
+      ]
+     }
+    }
+   ],
+   "kich_ban_e2e": "dieu-chinh-khan-cap",
+   "adr": "ADR-0104 Đ1 mục 0b"
+  },
+  {
+   "ma": "VC-03",
+   "nhom": "Mốc 6 giờ → 30 phút và điều chỉnh khẩn cấp",
+   "ten": "Biên khoảng nghỉ 29, 30 và 31 phút",
+   "boi_canh": "Xe A, chuyến trước kết thúc thật lúc 07:50. Chuyến sau cùng xe, văn phòng khai giờ xuất bến khác nhau 1 phút.",
+   "so_lieu": [
+    "Nghỉ = giờ xuất bến chuyến sau − 07:50",
+    "Đủ khi nghỉ ≥ 30",
+    "08:19 → 29 phút; 08:20 → 30 phút; 08:21 → 31 phút"
+   ],
+   "cau_hoi": "Lúc nào bị giữ?",
+   "dap_an": [
+    "Xuất bến 08:19: nghỉ 29 phút → GIỮ (thiếu nghỉ), Quản trị xử lý.",
+    "Xuất bến 08:20: nghỉ đúng 30 phút → ĐẠT.",
+    "Xuất bến 08:21: nghỉ 31 phút → ĐẠT."
+   ],
+   "co_so": "may",
+   "trang_thai": "da_xac_nhan",
+   "kiem_may": [
+    {
+     "loai": "mau_buoc",
+     "mau": "B22",
+     "ghi_de": [
+      [
+       "xuatBenMs",
+       "2026-09-30 08:19"
+      ]
+     ],
+     "ky_vong": {
+      "quyet_dinh": "GIU",
+      "ma_luat": [
+       "NGHI_THIEU"
+      ]
+     }
+    },
+    {
+     "loai": "mau_buoc",
+     "mau": "B22",
+     "ghi_de": [
+      [
+       "xuatBenMs",
+       "2026-09-30 08:20"
+      ]
+     ],
+     "ky_vong": {
+      "quyet_dinh": "DAT",
+      "ma_luat": []
+     }
+    },
+    {
+     "loai": "mau_buoc",
+     "mau": "B22",
+     "ghi_de": [
+      [
+       "xuatBenMs",
+       "2026-09-30 08:21"
+      ]
+     ],
+     "ky_vong": {
+      "quyet_dinh": "DAT",
+      "ma_luat": []
+     }
+    }
+   ]
+  },
+  {
+   "ma": "VC-04",
+   "nhom": "Mốc 6 giờ → 30 phút và điều chỉnh khẩn cấp",
+   "ten": "Một lệnh vừa dời giờ vừa thiếu nghỉ",
+   "boi_canh": "Xe A có chuyến 1 kết thúc thật lúc 07:50. Chuyến 2 dự kiến xuất bến 12:00 (còn xa). Lúc 07:55, trong CÙNG MỘT lệnh sửa chuyến, Bán hàng dời chuyến 2 lên 08:10.",
+   "so_lieu": [
+    "Sau lệnh còn 08:10 − 07:55 = 15 phút (< 30, dưới mốc)",
+    "Nghỉ = 08:10 − 07:50 = 20 phút (< 30, thiếu)"
+   ],
+   "cau_hoi": "Bán hàng có tự làm được không?",
+   "dap_an": [
+    "ĐƯỢC, kèm lý do. Lệnh này tính là SÁT GIỜ (sau lệnh chuyến đã dưới mốc), chuyến mang nhãn khẩn cấp."
+   ],
+   "co_so": "may_mot_phan",
+   "trang_thai": "da_xac_nhan",
+   "kiem_may": [
+    {
+     "loai": "gio_xet_sua",
+     "cu": "2026-09-30 12:00",
+     "moi": "2026-09-30 08:10",
+     "som_nhat": null,
+     "ky_vong": "2026-09-30 08:10"
+    },
+    {
+     "loai": "duoi_moc",
+     "gio_xet": "2026-09-30 08:10",
+     "bay_gio": "2026-09-30 07:55",
+     "moc_phut": 30,
+     "ky_vong": true
+    },
+    {
+     "loai": "lop_nghi_cam_ket",
+     "duoi_moc": true,
+     "ky_vong": "KHAN_CAP"
+    },
+    {
+     "loai": "quyen",
+     "permission": "SALES",
+     "op": "trip.urgent_adjust",
+     "ky_vong": true
+    },
+    {
+     "loai": "mau_buoc",
+     "mau": "B01",
+     "ghi_de": [
+      [
+       "lenh",
+       "SUA"
+      ],
+      [
+       "cu",
+       {
+        "batDauMs": "2026-09-30 12:00",
+        "batDauSomNhatMs": "2026-09-30 12:00",
+        "xeId": "xe-a",
+        "taiXePartyId": "tx-a",
+        "trangThai": "PLANNED"
+       }
+      ],
+      [
+       "chuyen.batDauMs",
+       "2026-09-30 08:10"
+      ],
+      [
+       "chuyen.ketThucMs",
+       "2026-09-30 10:00"
+      ],
+      [
+       "chuyenKhac",
+       [
+        {
+         "id": "c1",
+         "ma": "CX-3009-07",
+         "xeId": "xe-a",
+         "taiXePartyId": "tx-a",
+         "batDauMs": "2026-09-30 05:50",
+         "ketThucMs": "2026-09-30 08:30",
+         "ketThucThatMs": "2026-09-30 07:50",
+         "trangThai": "ENDED"
+        }
+       ]
+      ],
+      [
+       "bayGioMs",
+       "2026-09-30 07:55"
+      ]
+     ],
+     "ky_vong": {
+      "quyet_dinh": "CAN_PHA_LE",
+      "ma_luat": [
+       "KHOANG_NGHI"
+      ]
+     }
+    }
+   ],
+   "adr": "ADR-0104 Đ1 mục 0, cách (a)",
+   "ghi_chu_chu": "Phần luật thuần chạy bằng máy; việc Bán hàng được làm kèm lý do và nhãn khẩn cấp thuộc lớp route (chưa có bài máy riêng)."
+  },
+  {
+   "ma": "VC-05",
+   "nhom": "Mốc 6 giờ → 30 phút và điều chỉnh khẩn cấp",
+   "ten": "Xe riêng, sát giờ, Bán hàng xếp thêm đơn lẻ",
+   "boi_canh": "Đoàn A đặt XE RIÊNG (cam kết chỉ chở đoàn mình). Chuyến xuất bến 05:50. Lúc 05:30 Bán hàng muốn xếp thêm một đơn lẻ 2 khách của người khác vào xe này.",
+   "so_lieu": [
+    "Còn 20 phút (< 30, dưới mốc)"
+   ],
+   "cau_hoi": "Xếp được không?",
+   "dap_an": [
+    "Chủ chốt: xe riêng KHÔNG được xếp thêm khách lẻ, kể cả khi điều chỉnh khẩn cấp."
+   ],
+   "co_so": "chu_muon",
+   "trang_thai": "da_xac_nhan_ma_chua_theo",
+   "kich_ban_e2e": "cam-ket-xe",
+   "adr": "Khác ADR-0104 mục 0b (đang cho bỏ qua cam kết khi chọn lý do)",
+   "ghi_chu_chu": "Chủ 2026-10-16: «xe riêng không được xếp thêm, kể cả khẩn cấp». Luật hiện hành cho bỏ qua cam kết xe riêng khi điều chỉnh khẩn cấp kèm lý do (kịch bản e2e cam-ket-xe bước 5). Cần quyết định riêng trước khi sửa mã."
+  },
+  {
+   "ma": "VC-06",
+   "nhom": "Mốc 6 giờ → 30 phút và điều chỉnh khẩn cấp",
+   "ten": "Xe riêng, chuyến còn xa, Quản trị xếp thêm",
+   "boi_canh": "Như ca 5 nhưng chuyến còn hơn 30 phút (NGOÀI mốc), đã có tài xế. Quản trị xếp đơn lẻ 2 khách vào, gửi kèm cờ «phá lệ cam kết».",
+   "so_lieu": [
+    "Ngoài mốc"
+   ],
+   "cau_hoi": "Chuyện gì xảy ra?",
+   "dap_an": [
+    "Chủ chốt: xe thuê riêng KHÔNG bao giờ chấp nhận ghép thêm khách lẻ, kể cả Quản trị phá lệ."
+   ],
+   "co_so": "chu_muon",
+   "trang_thai": "da_xac_nhan_ma_chua_theo",
+   "adr": "Khác bài máy CAO-C hiện có (chủ chọn «báo mọi lệnh có bỏ qua luật» ngày 08/10)",
+   "ghi_chu_chu": "Chủ 2026-10-16: «xe thuê riêng không bao giờ chấp nhận ghép thêm khách lẻ». Luật hiện hành: Quản trị xếp được, sự kiện mang CAM_KET, tài xế nhận một tin trung tính."
+  },
+  {
+   "ma": "VC-07",
+   "nhom": "Mốc 6 giờ → 30 phút và điều chỉnh khẩn cấp",
+   "ten": "Người không có quyền không bấm được khẩn cấp",
+   "boi_canh": "Chuyến dưới mốc (còn 20 phút). Một Kế toán gửi lệnh đổi xe kèm lý do khẩn cấp.",
+   "so_lieu": [
+    "Quyền điều chỉnh khẩn cấp: chỉ Bán hàng, Quản trị, Toàn quyền"
+   ],
+   "cau_hoi": "Kết quả?",
+   "dap_an": [
+    "BỊ TỪ CHỐI (không đủ quyền).",
+    "Không ghi thay đổi nào, không có dòng nhật ký điều chỉnh."
+   ],
+   "co_so": "may+e2e",
+   "trang_thai": "da_xac_nhan",
+   "kiem_may": [
+    {
+     "loai": "quyen",
+     "permission": "ACCOUNTING",
+     "op": "trip.urgent_adjust",
+     "ky_vong": false
+    },
+    {
+     "loai": "quyen",
+     "permission": "SALES",
+     "op": "trip.urgent_adjust",
+     "ky_vong": true
+    },
+    {
+     "loai": "quyen",
+     "permission": "ADMIN",
+     "op": "trip.urgent_adjust",
+     "ky_vong": true
+    },
+    {
+     "loai": "quyen",
+     "permission": "SUPER_ADMIN",
+     "op": "trip.urgent_adjust",
+     "ky_vong": true
+    }
+   ],
+   "kich_ban_e2e": "dieu-chinh-khan-cap"
+  },
+  {
+   "ma": "VC-08",
+   "nhom": "Mốc 6 giờ → 30 phút và điều chỉnh khẩn cấp",
+   "ten": "Dấu «Đặt gấp» không làm chuyến hết dưới mốc",
+   "boi_canh": "Quản trị đã bấm «Đặt gấp» cho một chặng khách. Chuyến chứa chặng đó còn 20 phút tới giờ xuất bến. Bán hàng muốn đổi TÀI XẾ cho cả chuyến.",
+   "so_lieu": [
+    "Còn 20 phút (< 30, dưới mốc)"
+   ],
+   "cau_hoi": "Dấu đặt gấp có miễn luật mốc cho việc đổi tài xế không?",
+   "dap_an": [
+    "KHÔNG miễn. Dấu đặt gấp chỉ miễn luật mốc cho lệnh XẾP và DỜI ĐẾN của chính chặng đó.",
+    "Đổi tài xế vẫn là lệnh dưới mốc: cần điều chỉnh khẩn cấp kèm lý do."
+   ],
+   "co_so": "may_mot_phan",
+   "trang_thai": "da_xac_nhan",
+   "kiem_may": [
+    {
+     "loai": "duoi_moc",
+     "gio_xet": "2026-09-30 05:50",
+     "bay_gio": "2026-09-30 05:30",
+     "moc_phut": 30,
+     "ky_vong": true
+    },
+    {
+     "loai": "lop_vuot_moc",
+     "lenh": [
+      "DOI_TAI_XE"
+     ],
+     "ky_vong": "KHAN_CAP"
+    }
+   ],
+   "adr": "ADR-0104 Đ1 mục 0",
+   "ghi_chu_chu": "Chủ trả lời bằng chữ «không bao giờ miễn luật gốc, tất cả đều được luật hóa»; hiểu là đồng ý «không miễn». Phần dấu đặt gấp không đổi kết quả của hàm chuyenDuoiMoc (hàm không nhận dấu đó)."
+  },
+  {
+   "ma": "VC-09",
+   "nhom": "Sức chứa, hạng bằng, giấy tờ xe",
+   "ten": "Xếp vừa khít số chỗ",
+   "boi_canh": "Xe A 15 chỗ đang có 12 người. Lúc 20:00 hôm trước (ngoài mốc), văn phòng xếp thêm chặng Amiana 3 người.",
+   "so_lieu": [
+    "12 + 3 = 15; số chỗ 15; 15 ≤ 15"
+   ],
+   "cau_hoi": "Xếp được không?",
+   "dap_an": [
+    "CHO QUA."
+   ],
+   "co_so": "may",
+   "trang_thai": "da_xac_nhan",
+   "kiem_may": [
+    {
+     "loai": "mau_buoc",
+     "mau": "B09",
+     "ghi_de": [
+      [
+       "them.0.chang",
+       "$nen.chang.AMIANA"
+      ],
+      [
+       "them.0.soSuatMoi",
+       3
+      ],
+      [
+       "bayGioMs",
+       "2026-09-29 20:00"
+      ]
+     ],
+     "ky_vong": {
+      "quyet_dinh": "CHO_QUA",
+      "ma_luat": []
+     }
+    }
+   ]
+  },
+  {
+   "ma": "VC-10",
+   "nhom": "Sức chứa, hạng bằng, giấy tờ xe",
+   "ten": "Tài xế bằng D1, xe 16 chỗ",
+   "boi_canh": "Văn phòng tạo chuyến với xe 16 chỗ cho tài xế có bằng D1.",
+   "so_lieu": [
+    "D1 chở tối đa 16 khách; xe 16 chỗ; 16 ≤ 16"
+   ],
+   "cau_hoi": "Tạo được không?",
+   "dap_an": [
+    "CHO QUA."
+   ],
+   "co_so": "may",
+   "trang_thai": "da_xac_nhan",
+   "kiem_may": [
+    {
+     "loai": "mau_buoc",
+     "mau": "B02",
+     "ghi_de": [
+      [
+       "chuyen.xe",
+       {
+        "$nen": "xe.A",
+        "soCho": 16
+       }
+      ]
+     ],
+     "ky_vong": {
+      "quyet_dinh": "CHO_QUA",
+      "ma_luat": []
+     }
+    }
+   ]
+  },
+  {
+   "ma": "VC-11",
+   "nhom": "Sức chứa, hạng bằng, giấy tờ xe",
+   "ten": "Tài xế bằng D1, xe 17 chỗ",
+   "boi_canh": "Như ca 10 nhưng xe 17 chỗ.",
+   "so_lieu": [
+    "D1 tối đa 16; xe 17 chỗ; 17 > 16"
+   ],
+   "cau_hoi": "Tạo được không?",
+   "dap_an": [
+    "CHẶN (mã HANG_BANG_KHONG_DU)."
+   ],
+   "co_so": "may",
+   "trang_thai": "da_xac_nhan",
+   "kiem_may": [
+    {
+     "loai": "mau_buoc",
+     "mau": "B02",
+     "ghi_de": [
+      [
+       "chuyen.xe",
+       {
+        "$nen": "xe.A",
+        "soCho": 17
+       }
+      ]
+     ],
+     "ky_vong": {
+      "quyet_dinh": "CHAN",
+      "ma_luat": [
+       "HANG_BANG_KHONG_DU"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "ma": "VC-12",
+   "nhom": "Sức chứa, hạng bằng, giấy tờ xe",
+   "ten": "Kiểm định xe hết hạn từ hôm trước",
+   "boi_canh": "Chuyến chạy ngày 30/09. Giấy kiểm định xe A hết hạn ngày 29/09. Tài xế bấm Xuất bến.",
+   "so_lieu": [
+    "Hạn 29/09 < ngày chạy 30/09: quá hạn một ngày"
+   ],
+   "cau_hoi": "Xuất bến được không?",
+   "dap_an": [
+    "BỊ GIỮ, lý do «xe thiếu giấy tờ bắt buộc» (mã DIEU_KIEN_GIAY_TO_XE), Quản trị xử lý."
+   ],
+   "co_so": "may",
+   "trang_thai": "da_xac_nhan",
+   "kiem_may": [
+    {
+     "loai": "mau_buoc",
+     "mau": "B22",
+     "ghi_de": [
+      [
+       "chuyen.xe",
+       {
+        "$nen": "xe.A",
+        "giayTo": [
+         {
+          "rowId": "kd-a",
+          "typeCode": "INSPECTION",
+          "expiryDate": "2026-09-29"
+         },
+         {
+          "rowId": "bh-a",
+          "typeCode": "TPL_INSURANCE",
+          "expiryDate": "2027-06-30"
+         }
+        ]
+       }
+      ]
+     ],
+     "ky_vong": {
+      "quyet_dinh": "GIU",
+      "ma_luat": [
+       "DIEU_KIEN_GIAY_TO_XE"
+      ],
+      "ai_xu_ly": [
+       "QUAN_TRI"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "ma": "VC-13",
+   "nhom": "Sức chứa, hạng bằng, giấy tờ xe",
+   "ten": "Kiểm định hết hạn đúng ngày chạy",
+   "boi_canh": "Như ca 12 nhưng giấy hết hạn đúng ngày 30/09 (cùng ngày chuyến chạy).",
+   "so_lieu": [
+    "Giấy còn hiệu lực hết ngày hạn; từ 01/10 mới coi là hết"
+   ],
+   "cau_hoi": "Xuất bến được không?",
+   "dap_an": [
+    "ĐẠT."
+   ],
+   "co_so": "may",
+   "trang_thai": "da_xac_nhan",
+   "kiem_may": [
+    {
+     "loai": "mau_buoc",
+     "mau": "B22",
+     "ghi_de": [
+      [
+       "chuyen.xe",
+       {
+        "$nen": "xe.A",
+        "giayTo": [
+         {
+          "rowId": "kd-a",
+          "typeCode": "INSPECTION",
+          "expiryDate": "2026-09-30"
+         },
+         {
+          "rowId": "bh-a",
+          "typeCode": "TPL_INSURANCE",
+          "expiryDate": "2027-06-30"
+         }
+        ]
+       }
+      ]
+     ],
+     "ky_vong": {
+      "quyet_dinh": "DAT",
+      "ma_luat": []
+     }
+    }
+   ]
+  },
+  {
+   "ma": "VC-14",
+   "nhom": "Đồng bộ chuyến theo đơn và số người của chặng",
+   "ten": "Bớt khách trên đơn khi xe sắp chạy",
+   "boi_canh": "Đơn ĐH-1001 có 4 khách ở Sheraton, đã xếp xe A. Xe xuất bến 05:50. Lúc 05:35, 2 khách báo không đi; Bán hàng bớt đơn từ 4 xuống 2.",
+   "so_lieu": [
+    "Còn 15 phút (< 30, dưới mốc)",
+    "Ghế cần trả = 4 − 2 = 2"
+   ],
+   "cau_hoi": "Ghế trên chuyến có tự giải phóng không, có vướng khoá mốc không?",
+   "dap_an": [
+    "Máy tự TRẢ 2 GHẾ, KHÔNG vướng khoá giờ.",
+    "Số chỗ đã xếp của xe A giảm đúng 2."
+   ],
+   "co_so": "adr",
+   "trang_thai": "da_xac_nhan",
+   "kich_ban_e2e": "dong-bo-chuyen",
+   "adr": "ADR-0104 Đ2 (chủ chọn «máy tự thêm ghế khi còn chỗ»)",
+   "ghi_chu_chu": "Kịch bản e2e dong-bo-chuyen đã kiểm cơ chế tương tự (đổi khách, tăng khách, huỷ đơn) nhưng chưa có ca «bớt» riêng."
+  },
+  {
+   "ma": "VC-15",
+   "nhom": "Đồng bộ chuyến theo đơn và số người của chặng",
+   "ten": "Huỷ cả đơn",
+   "boi_canh": "Như ca 14 nhưng Bán hàng HUỶ CẢ đơn ĐH-1001 (4 ghế đang giữ trên chuyến).",
+   "so_lieu": [
+    "4 ghế đang giữ"
+   ],
+   "cau_hoi": "Ghế xử lý ra sao?",
+   "dap_an": [
+    "Máy tự ĐÓNG cả 4 ghế (lý do «gỡ khỏi chuyến») cùng một lô với lệnh huỷ đơn; không còn lý do giữ «đơn đã huỷ».",
+    "Nhật ký máy ghi không có tên khách.",
+    "Nếu chuyến ĐANG CHẠY thì máy KHÔNG đổi ghế nào; chỉ nhắc «Báo huỷ» để tài xế biết, chuyến không đổi phiên bản.",
+    "Nếu đơn thua tranh chấp (có người sửa trước) thì không ghế nào bị đóng."
+   ],
+   "co_so": "e2e",
+   "trang_thai": "da_xac_nhan",
+   "kich_ban_e2e": "dong-bo-chuyen",
+   "adr": "ADR-0104 Đ2 mục 2 (ý cuối)",
+   "ghi_chu_chu": "Ý 1 đến 3 theo kịch bản e2e dong-bo-chuyen (3), (4), (5); ý 4 theo ADR."
+  },
+  {
+   "ma": "VC-16",
+   "nhom": "Đồng bộ chuyến theo đơn và số người của chặng",
+   "ten": "Thêm khách, xe còn chỗ",
+   "boi_canh": "Xe A 15 chỗ đang có 12 người. Đơn ĐH-1001 tăng từ 4 lên 6 khách.",
+   "so_lieu": [
+    "Cần thêm 6 − 4 = 2 ghế",
+    "Chỗ còn 15 − 12 = 3; 2 ≤ 3"
+   ],
+   "cau_hoi": "Máy có tự thêm ghế không?",
+   "dap_an": [
+    "Máy TỰ THÊM ĐÚNG 2 ghế, trên đúng xe đó, cùng điểm đón; không thêm nhiều hơn số vừa tăng."
+   ],
+   "co_so": "e2e",
+   "trang_thai": "da_xac_nhan",
+   "kich_ban_e2e": "dong-bo-chuyen",
+   "adr": "ADR-0104 Đ2",
+   "ghi_chu_chu": "Kịch bản e2e: đơn tăng 2 lên 3 thì máy mở thêm đúng 1 suất, cùng cơ chế."
+  },
+  {
+   "ma": "VC-17",
+   "nhom": "Đồng bộ chuyến theo đơn và số người của chặng",
+   "ten": "Thêm khách, xe hết chỗ",
+   "boi_canh": "Như ca 16 nhưng xe A đang có 14 người. Đơn ĐH-1001 tăng từ 4 lên 6 khách.",
+   "so_lieu": [
+    "Cần thêm 2 ghế",
+    "Chỗ còn 15 − 14 = 1; 2 > 1"
+   ],
+   "cau_hoi": "Máy xử lý thế nào?",
+   "dap_an": [
+    "Máy KHÔNG tự thêm ghế, giữ nguyên xe cũ, báo người xếp xe xử lý (xếp thêm xe hay đổi xe).",
+    "Đơn VẪN LƯU (tăng lên 6)."
+   ],
+   "co_so": "adr",
+   "trang_thai": "da_xac_nhan",
+   "adr": "ADR-0104 Đ2; điểm «đơn vẫn lưu» do chủ chốt 2026-10-16",
+   "ghi_chu_chu": "Chưa kiểm mã hiện tại có lưu đơn khi xe hết chỗ không; nếu mã chặn lệnh tăng khách thì đó là một điểm lệch cần ghi."
+  },
+  {
+   "ma": "VC-18",
+   "nhom": "Đồng bộ chuyến theo đơn và số người của chặng",
+   "ten": "Xếp nhiều suất hơn số người của chặng",
+   "boi_canh": "Chặng Amiana của đơn ĐH-1002 chỉ có 2 NGƯỜI. Văn phòng xếp chặng này vào xe A (đang 12/15, lúc 20:00 hôm trước) nhưng nhập nhầm 3 SUẤT.",
+   "so_lieu": [
+    "Số người chặng 2; suất xếp mới 3",
+    "Chỗ xe 12 + 3 = 15 ≤ 15 (xe vẫn đủ chỗ)"
+   ],
+   "cau_hoi": "Có được không?",
+   "dap_an": [
+    "CHẶN, vì 3 > 2 (mã VUOT_SO_NGUOI_CHANG). Xe còn chỗ nhưng không được xếp nhiều hơn số người của chặng."
+   ],
+   "co_so": "may",
+   "trang_thai": "da_xac_nhan",
+   "kiem_may": [
+    {
+     "loai": "mau_buoc",
+     "mau": "B09",
+     "ghi_de": [
+      [
+       "them.0.chang",
+       {
+        "$nen": "chang.AMIANA",
+        "soNguoi": 2
+       }
+      ],
+      [
+       "them.0.soSuatMoi",
+       3
+      ],
+      [
+       "bayGioMs",
+       "2026-09-29 20:00"
+      ]
+     ],
+     "ky_vong": {
+      "quyet_dinh": "CHAN",
+      "ma_luat": [
+       "VUOT_SO_NGUOI_CHANG"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "ma": "VC-19",
+   "nhom": "Tài xế đối tác từ chối và báo bận",
+   "ten": "Tài xế đối tác từ chối trong hạn",
+   "boi_canh": "Chuyến CX-3009-12 xuất bến 07:30 ngày 30/09, giao cho tài xế đối tác của nhà xe Minh Phát. Lúc 18:00 ngày 29/09, tài xế bấm «Từ chối» và chọn một lý do trong danh sách.",
+   "so_lieu": [
+    "Hạn từ chối = 07:30 − 720 phút (12 giờ) = 19:30 ngày 29/09",
+    "Bây giờ 18:00 < 19:30: CÒN HẠN"
+   ],
+   "cau_hoi": "Chuyện gì xảy ra, ai nhận tin?",
+   "dap_an": [
+    "Lệnh được chấp nhận, có MỘT dòng nhật ký, không ghi tên khách.",
+    "Chuyến về trạng thái «chưa có tài xế».",
+    "Quản trị và Toàn quyền nhận tin «đã từ chối, cần xếp người khác» (không tên tài xế, không lý do).",
+    "Kế toán và tài xế khác KHÔNG nhận tin.",
+    "Bấm lại cùng lệnh: vẫn thành công, không ghi thêm."
+   ],
+   "co_so": "e2e",
+   "trang_thai": "da_xac_nhan",
+   "kich_ban_e2e": "tu-choi-bao-ban",
+   "ghi_chu_chu": "12 giờ là mặc định của hệ thống (migration 0092)."
+  },
+  {
+   "ma": "VC-20",
+   "nhom": "Tài xế đối tác từ chối và báo bận",
+   "ten": "Tài xế đối tác từ chối quá hạn",
+   "boi_canh": "Như ca 19 nhưng tài xế bấm lúc 20:00 ngày 29/09.",
+   "so_lieu": [
+    "Hạn 19:30; bây giờ 20:00, quá 30 phút"
+   ],
+   "cau_hoi": "Kết quả?",
+   "dap_an": [
+    "BỊ TỪ CHỐI (mã refuse_deadline_passed). Chuyến vẫn do tài xế đó giữ; tài xế phải gọi văn phòng."
+   ],
+   "co_so": "e2e",
+   "trang_thai": "da_xac_nhan",
+   "kich_ban_e2e": "tu-choi-bao-ban"
+  },
+  {
+   "ma": "VC-21",
+   "nhom": "Tài xế đối tác từ chối và báo bận",
+   "ten": "Báo bận trùng chuyến của chính mình",
+   "boi_canh": "Tài xế đối tác có chuyến CX-3009-12 từ 07:30 đến 09:00 ngày 30/09. Anh báo bận khung 08:00 đến 10:00 cùng ngày.",
+   "so_lieu": [
+    "Khung bận 08:00–10:00 chồng chuyến 07:30–09:00 ở đoạn 08:00–09:00 (60 phút)"
+   ],
+   "cau_hoi": "Kết quả?",
+   "dap_an": [
+    "CHẶN, báo rõ chuyến đang chồng (mã chuyến, giờ). Không tạo khung bận."
+   ],
+   "co_so": "e2e",
+   "trang_thai": "da_xac_nhan",
+   "kich_ban_e2e": "tu-choi-bao-ban"
+  },
+  {
+   "ma": "VC-22",
+   "nhom": "Tài xế đối tác từ chối và báo bận",
+   "ten": "Văn phòng xếp tài xế vào khung bận",
+   "boi_canh": "Tài xế báo bận 13:00 đến 17:00 ngày 30/09 (chưa có chuyến). Văn phòng muốn xếp anh vào chuyến 14:00 đến 16:00.",
+   "so_lieu": [
+    "14:00–16:00 nằm trọn trong 13:00–17:00"
+   ],
+   "cau_hoi": "Xếp được không, câu thông báo nói gì?",
+   "dap_an": [
+    "CHẶN.",
+    "Câu báo cho văn phòng KHÔNG nêu lý do bận của tài xế, chỉ nói tài xế bận khung đó.",
+    "Chèn tay bằng SQL cũng bị cơ sở dữ liệu chặn."
+   ],
+   "co_so": "e2e",
+   "trang_thai": "da_xac_nhan",
+   "kich_ban_e2e": "tu-choi-bao-ban"
+  },
+  {
+   "ma": "VC-23",
+   "nhom": "Tài xế đối tác từ chối và báo bận",
+   "ten": "Rút khung bận rồi xếp lại",
+   "boi_canh": "Sau ca 22, tài xế rút khung bận 13:00–17:00. Văn phòng xếp lại chuyến 14:00–16:00.",
+   "so_lieu": [
+    "Khung bận đã rút"
+   ],
+   "cau_hoi": "Kết quả?",
+   "dap_an": [
+    "Rút khung THÀNH CÔNG, ghi 1 nhật ký; rút lần hai báo đã rút.",
+    "Xếp lại: ĐƯỢC."
+   ],
+   "co_so": "e2e",
+   "trang_thai": "da_xac_nhan",
+   "kich_ban_e2e": "tu-choi-bao-ban"
+  },
+  {
+   "ma": "VC-24",
+   "nhom": "Giờ lái và nghỉ (mặc định 480 phút mỗi ngày, chuyến dài khi > 240 phút)",
+   "ten": "Ba chuyến trong ngày, tổng 9 giờ lái",
+   "boi_canh": "Ngày 30/09 tài xế A đã có chuyến 05:00–09:00 và 10:00–13:00. Văn phòng thêm chuyến thứ ba 14:00–16:00.",
+   "so_lieu": [
+    "Tổng giờ lái = cộng thời lượng các chuyến của tài xế trong ngày (không tính chuyến đã huỷ)",
+    "240 + 180 + 120 = 540 phút (9 giờ)",
+    "540 > 480"
+   ],
+   "cau_hoi": "Tạo được không?",
+   "dap_an": [
+    "TẠO ĐƯỢC (chỉ nhắc, không chặn).",
+    "Có dòng «Tài xế lái quá giờ tối đa trong ngày» gắn vào cả ba chuyến, hiện lúc tạo và ở chi tiết chuyến."
+   ],
+   "co_so": "may+e2e",
+   "trang_thai": "da_xac_nhan",
+   "kiem_may": [
+    {
+     "loai": "gio_lai",
+     "ngay": "2026-09-30",
+     "chuyen": [
+      {
+       "id": "a",
+       "bd": "2026-09-30 05:00",
+       "kt": "2026-09-30 09:00",
+       "tt": "PLANNED"
+      },
+      {
+       "id": "b",
+       "bd": "2026-09-30 10:00",
+       "kt": "2026-09-30 13:00",
+       "tt": "PLANNED"
+      },
+      {
+       "id": "c",
+       "bd": "2026-09-30 14:00",
+       "kt": "2026-09-30 16:00",
+       "tt": "PLANNED"
+      }
+     ],
+     "ky_vong": [
+      [
+       "GIO_LAI_VUOT",
+       "a",
+       540
+      ],
+      [
+       "GIO_LAI_VUOT",
+       "b",
+       540
+      ],
+      [
+       "GIO_LAI_VUOT",
+       "c",
+       540
+      ]
+     ]
+    }
+   ],
+   "kich_ban_e2e": "khung-ban-xe",
+   "ghi_chu_chu": "Chủ chấp nhận 8 giờ lái mỗi ngày làm số vàng."
+  },
+  {
+   "ma": "VC-25",
+   "nhom": "Giờ lái và nghỉ (mặc định 480 phút mỗi ngày, chuyến dài khi > 240 phút)",
+   "ten": "Biên giờ lái: đúng 480 phút và 481 phút",
+   "boi_canh": "Hai tình huống của cùng một tài xế, cùng ngày.",
+   "so_lieu": [
+    "TH1: chuyến 05:00–09:00 (240) + chuyến 10:00–14:00 (240) = 480",
+    "TH2: chuyến thứ hai kéo tới 14:01 (241) → tổng 240 + 241 = 481"
+   ],
+   "cau_hoi": "Tình huống nào bị nhắc?",
+   "dap_an": [
+    "TH1 (480): KHÔNG nhắc, vì chỉ nhắc khi LỚN HƠN 480.",
+    "TH2 (481): nhắc «lái quá giờ tối đa» trên cả hai chuyến, và nhắc thêm «chuyến dài» cho chuyến 241 phút (241 > 240)."
+   ],
+   "co_so": "may",
+   "trang_thai": "da_xac_nhan",
+   "kiem_may": [
+    {
+     "loai": "gio_lai",
+     "ngay": "2026-09-30",
+     "chuyen": [
+      {
+       "id": "a",
+       "bd": "2026-09-30 05:00",
+       "kt": "2026-09-30 09:00",
+       "tt": "PLANNED"
+      },
+      {
+       "id": "b",
+       "bd": "2026-09-30 10:00",
+       "kt": "2026-09-30 14:00",
+       "tt": "PLANNED"
+      }
+     ],
+     "ky_vong": []
+    },
+    {
+     "loai": "gio_lai",
+     "ngay": "2026-09-30",
+     "chuyen": [
+      {
+       "id": "a",
+       "bd": "2026-09-30 05:00",
+       "kt": "2026-09-30 09:00",
+       "tt": "PLANNED"
+      },
+      {
+       "id": "b",
+       "bd": "2026-09-30 10:00",
+       "kt": "2026-09-30 14:01",
+       "tt": "PLANNED"
+      }
+     ],
+     "ky_vong": [
+      [
+       "GIO_LAI_VUOT",
+       "a",
+       481
+      ],
+      [
+       "GIO_LAI_VUOT",
+       "b",
+       481
+      ],
+      [
+       "CHUYEN_DAI_CAN_NGHI",
+       "b",
+       241
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "ma": "VC-26",
+   "nhom": "Giờ lái và nghỉ (mặc định 480 phút mỗi ngày, chuyến dài khi > 240 phút)",
+   "ten": "Một chuyến dài 4 giờ 30",
+   "boi_canh": "Tài xế A chỉ có một chuyến 05:00 đến 09:30.",
+   "so_lieu": [
+    "270 phút; ngưỡng nghỉ liên tục 240; 270 > 240",
+    "Tổng ngày 270 ≤ 480"
+   ],
+   "cau_hoi": "Có nhắc gì không?",
+   "dap_an": [
+    "Nhắc «Chuyến dài, nhớ cho tài xế nghỉ giữa chuyến».",
+    "KHÔNG nhắc quá giờ ngày."
+   ],
+   "co_so": "may",
+   "trang_thai": "da_xac_nhan",
+   "kiem_may": [
+    {
+     "loai": "gio_lai",
+     "ngay": "2026-09-30",
+     "chuyen": [
+      {
+       "id": "a",
+       "bd": "2026-09-30 05:00",
+       "kt": "2026-09-30 09:30",
+       "tt": "PLANNED"
+      }
+     ],
+     "ky_vong": [
+      [
+       "CHUYEN_DAI_CAN_NGHI",
+       "a",
+       270
+      ]
+     ]
+    }
+   ],
+   "ghi_chu_chu": "Chủ chấp nhận ngưỡng nghỉ liên tục 4 giờ."
+  },
+  {
+   "ma": "VC-27",
+   "nhom": "Giờ lái và nghỉ (mặc định 480 phút mỗi ngày, chuyến dài khi > 240 phút)",
+   "ten": "Chuyến đúng 4 giờ",
+   "boi_canh": "Chuyến đúng 05:00 đến 09:00.",
+   "so_lieu": [
+    "240 phút; ngưỡng 240"
+   ],
+   "cau_hoi": "Có nhắc không?",
+   "dap_an": [
+    "KHÔNG nhắc, vì chỉ nhắc khi LỚN HƠN 240."
+   ],
+   "co_so": "may",
+   "trang_thai": "da_xac_nhan",
+   "kiem_may": [
+    {
+     "loai": "gio_lai",
+     "ngay": "2026-09-30",
+     "chuyen": [
+      {
+       "id": "a",
+       "bd": "2026-09-30 05:00",
+       "kt": "2026-09-30 09:00",
+       "tt": "PLANNED"
+      }
+     ],
+     "ky_vong": []
+    }
+   ]
+  },
+  {
+   "ma": "VC-28",
+   "nhom": "Giờ lái và nghỉ (mặc định 480 phút mỗi ngày, chuyến dài khi > 240 phút)",
+   "ten": "Chuyến đã huỷ không tính giờ lái",
+   "boi_canh": "Tài xế A có chuyến 05:00–09:00 (kế hoạch, 240 phút) và chuyến 10:00–14:01 đã bị HUỶ (241 phút).",
+   "so_lieu": [
+    "Tổng ngày = 240 (chuyến huỷ không tính; nếu tính nhầm sẽ thành 481)"
+   ],
+   "cau_hoi": "Có nhắc quá giờ không?",
+   "dap_an": [
+    "KHÔNG nhắc quá giờ, vì 240 ≤ 480."
+   ],
+   "co_so": "may",
+   "trang_thai": "da_xac_nhan",
+   "kiem_may": [
+    {
+     "loai": "gio_lai",
+     "ngay": "2026-09-30",
+     "chuyen": [
+      {
+       "id": "a",
+       "bd": "2026-09-30 05:00",
+       "kt": "2026-09-30 09:00",
+       "tt": "PLANNED"
+      },
+      {
+       "id": "b",
+       "bd": "2026-09-30 10:00",
+       "kt": "2026-09-30 14:01",
+       "tt": "CANCELLED"
+      }
+     ],
+     "ky_vong": []
+    }
+   ]
+  },
+  {
+   "ma": "VC-29",
+   "nhom": "Xuất bến sớm, cửa sổ, huỷ chuyến",
+   "ten": "Cửa sổ xuất bến 12 giờ",
+   "boi_canh": "Chuyến khởi hành 08:00 ngày 30/09. Tài xế bấm Xuất bến tối hôm trước ở ba thời điểm. Cửa sổ mặc định 720 phút (12 giờ): được xuất bến từ 20:00 ngày 29/09.",
+   "so_lieu": [
+    "20:10 → sớm 710 phút",
+    "20:00 → sớm đúng 720 phút",
+    "19:59 → sớm 721 phút"
+   ],
+   "cau_hoi": "Lúc nào được?",
+   "dap_an": [
+    "20:10: ĐẠT.",
+    "20:00: ĐẠT.",
+    "19:59: BỊ GIỮ (mã NGOAI_CUA_SO_XUAT_BEN), văn phòng xử lý; chuyến vẫn ở trạng thái kế hoạch. Nếu xe thật sự chạy sớm thì văn phòng sửa giờ chuyến.",
+    "Chuyến chạy cách đó 3 ngày: bấm xuất bến luôn bị giữ như dòng 19:59.",
+    "Dù xuất bến sớm trong cửa sổ, tài xế VẪN CHƯA thấy tên và số liên hệ khách (chỉ thấy trong ngày chạy)."
+   ],
+   "co_so": "may+e2e",
+   "trang_thai": "da_xac_nhan",
+   "kiem_may": [
+    {
+     "loai": "mau_buoc",
+     "mau": "B22",
+     "ghi_de": [
+      [
+       "chuyen.batDauMs",
+       "2026-09-30 08:00"
+      ],
+      [
+       "chuyen.ketThucMs",
+       "2026-09-30 10:00"
+      ],
+      [
+       "chuyenKhac",
+       []
+      ],
+      [
+       "bayGioMs",
+       "2026-09-29 20:10"
+      ],
+      [
+       "xuatBenMs",
+       "2026-09-29 20:10"
+      ]
+     ],
+     "ky_vong": {
+      "quyet_dinh": "DAT",
+      "ma_luat": []
+     }
+    },
+    {
+     "loai": "mau_buoc",
+     "mau": "B22",
+     "ghi_de": [
+      [
+       "chuyen.batDauMs",
+       "2026-09-30 08:00"
+      ],
+      [
+       "chuyen.ketThucMs",
+       "2026-09-30 10:00"
+      ],
+      [
+       "chuyenKhac",
+       []
+      ],
+      [
+       "bayGioMs",
+       "2026-09-29 20:00"
+      ],
+      [
+       "xuatBenMs",
+       "2026-09-29 20:00"
+      ]
+     ],
+     "ky_vong": {
+      "quyet_dinh": "DAT",
+      "ma_luat": []
+     }
+    },
+    {
+     "loai": "mau_buoc",
+     "mau": "B22",
+     "ghi_de": [
+      [
+       "chuyen.batDauMs",
+       "2026-09-30 08:00"
+      ],
+      [
+       "chuyen.ketThucMs",
+       "2026-09-30 10:00"
+      ],
+      [
+       "chuyenKhac",
+       []
+      ],
+      [
+       "bayGioMs",
+       "2026-09-29 19:59"
+      ],
+      [
+       "xuatBenMs",
+       "2026-09-29 19:59"
+      ]
+     ],
+     "ky_vong": {
+      "quyet_dinh": "GIU",
+      "ma_luat": [
+       "NGOAI_CUA_SO_XUAT_BEN"
+      ]
+     }
+    }
+   ],
+   "kich_ban_e2e": "tai-xe-cuoc",
+   "ghi_chu_chu": "Ý «chuyến cách 3 ngày» và «chưa thấy tên khách» theo kịch bản e2e tai-xe-cuoc (LC-20, Q-L3-B). Chủ chấp nhận cửa sổ 12 giờ."
+  },
+  {
+   "ma": "VC-30",
+   "nhom": "Xuất bến sớm, cửa sổ, huỷ chuyến",
+   "ten": "Huỷ chuyến còn khách, sát giờ",
+   "boi_canh": "Chuyến CX-3009-07 xuất bến 05:50, còn 12 khách. Lúc 05:30 xe hỏng đột xuất, Bán hàng muốn huỷ chuyến.",
+   "so_lieu": [
+    "Còn 20 phút (< 30, dưới mốc)",
+    "Huỷ chuyến còn khách là lệnh bị khoá mốc"
+   ],
+   "cau_hoi": "Ai làm được, ai nhận tin?",
+   "dap_an": [
+    "Bán hàng huỷ được bằng điều chỉnh khẩn cấp kèm lý do; thiếu lý do thì bị chặn.",
+    "Tài xế ĐANG LÁI nhận tin «chuyến đã bị huỷ».",
+    "Tài xế đã bị đổi ra trước đó KHÔNG nhận.",
+    "Khung Bảng tin tới tài xế đang lái và Kế toán (nhóm điều xe); Tài xế đối tác không nhận.",
+    "Tin không có tên khách, không số điện thoại."
+   ],
+   "co_so": "may_mot_phan",
+   "trang_thai": "da_xac_nhan",
+   "kiem_may": [
+    {
+     "loai": "duoi_moc",
+     "gio_xet": "2026-09-30 05:50",
+     "bay_gio": "2026-09-30 05:30",
+     "moc_phut": 30,
+     "ky_vong": true
+    },
+    {
+     "loai": "lop_vuot_moc",
+     "lenh": [
+      "HUY_CO_KHACH"
+     ],
+     "ky_vong": "KHAN_CAP"
+    },
+    {
+     "loai": "quyen",
+     "permission": "SALES",
+     "op": "trip.urgent_adjust",
+     "ky_vong": true
+    }
+   ],
+   "kich_ban_e2e": "tin-chuyen",
+   "adr": "ADR-0104 Đ1",
+   "ghi_chu_chu": "Số phận các chặng sau khi huỷ chưa đối chiếu ADR nên không đưa vào đáp án."
+  }
+ ]
+}
