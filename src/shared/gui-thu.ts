@@ -3,7 +3,7 @@
 // Không import module nào; nhận môi trường theo DẠNG (không dùng kiểu Env toàn cục) để bài thử truyền bộ gửi giả.
 // Người gửi = biến bí mật có sẵn `FEEDBACK_MAIL_FROM` (cùng tên miền gửi đã xác minh — ruling Task 0 Phần C; không thêm bí mật mới).
 
-/** Bộ gửi thư: đúng hình `env.EMAIL.send({ to, from, subject, text | html })` của Email Service. */
+/** Bộ gửi thư: đúng hình `env.EMAIL.send({ to, from, subject, text, html })` của Email Service (thư Góp ý chỉ html; thư mã hai lớp gửi cả hai). */
 export interface Mailer {
   send(msg: { to: string; from: string; subject: string; text?: string; html?: string }): Promise<unknown>;
 }

@@ -32,10 +32,19 @@ test("emailBody: tiếng Việt có dấu, có mã + câu cảnh báo; KHÔNG li
   assert.equal(text, "Mã xác minh đăng nhập của bạn là: 482913\n\nNếu không phải bạn, đổi PIN ngay và báo IT.\n", "chỉ mã + câu cảnh báo (kế hoạch, ruling d)");
   assert.doesNotMatch(subject, /482913/, "mã không nằm ở chủ đề (hiện trên màn hình khoá)");
   assert.match(subject, /[ăâđêôơưáàảãạ]/i, "chủ đề tiếng Việt có dấu");
-  for (const s of [subject, text]) {
+  for (const s of [subject, text, emailBody("482913").html]) {
     assert.doesNotMatch(s, /https?|:\/\/|www\.|<a\b|href/i);
     assert.doesNotMatch(s, /\b[a-z0-9-]+\.(vn|com|net|org)\b/i, "không có tên miền (ứng dụng thư tự biến thành liên kết)");
   }
+});
+
+test("emailBody (vòng sửa 2): thư mang CẢ text lẫn html — đường thư đang chạy trên production (Góp ý) gửi html; html chỉ là đoạn văn thuần, cùng nội dung, không thẻ nào khác", () => {
+  const { text, html } = emailBody("048213");
+  assert.equal(typeof text, "string");
+  assert.equal(html, "<p>Mã xác minh đăng nhập của bạn là: <strong>048213</strong></p><p>Nếu không phải bạn, đổi PIN ngay và báo IT.</p>");
+  const the = [...html.matchAll(/<\/?([a-z]+)\b[^>]*>/gi)].map((m) => m[1]!.toLowerCase());
+  assert.deepEqual([...new Set(the)].sort(), ["p", "strong"], "chỉ thẻ đoạn văn và chữ đậm — không liên kết, ảnh, kiểu");
+  assert.doesNotMatch(html, /\b(src|style|on\w+)=/i);
 });
 
 test("newEmailCode: 6 chữ số, giữ số 0 đầu, không lặp một giá trị", () => {

@@ -30,13 +30,19 @@ export function normalizeEmail(s: unknown): string | null {
  * Nội dung thư (tiếng Việt có dấu). KHÔNG có liên kết, `http`, hay tên miền (ứng dụng thư tự biến tên miền thành liên kết — chống lừa đảo: thư thật của
  * Nền tảng không bao giờ có chỗ bấm). Mã không nằm ở chủ đề (chủ đề hiện trên màn hình khoá điện thoại).
  */
-export function emailBody(code: string): { subject: string; text: string } {
+export function emailBody(code: string): { subject: string; text: string; html: string } {
+  const CANH_BAO = "Nếu không phải bạn, đổi PIN ngay và báo IT.";
   return {
     subject: "Mã xác minh đăng nhập Nền tảng Tour Đảo",
     // Kế hoạch Phần C (Global Constraints) + ruling (d): CHỈ mã + câu cảnh báo — không thêm câu nào khác.
-    text: `Mã xác minh đăng nhập của bạn là: ${code}\n\nNếu không phải bạn, đổi PIN ngay và báo IT.\n`,
+    text: `Mã xác minh đăng nhập của bạn là: ${code}\n\n${CANH_BAO}\n`,
+    // Vòng sửa 2: gửi KÈM html — đường thư đang chạy được trên production (thư Góp ý, feedback/notify.ts) gửi html; chưa chắc Email Service nhận thư chỉ
+    // có text. Cùng nội dung, chỉ thẻ đoạn văn + chữ đậm, đã thoát ký tự; không liên kết.
+    html: `<p>Mã xác minh đăng nhập của bạn là: <strong>${escHtml(code)}</strong></p><p>${escHtml(CANH_BAO)}</p>`,
   };
 }
+const ESC: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+const escHtml = (s: string): string => s.replace(/[&<>"']/g, (c) => ESC[c]!);
 
 /** Mã 6 chữ số đều nhau (lấy mẫu loại bỏ trên số ngẫu nhiên 32 bit — không lệch về số nhỏ), giữ số 0 đầu. */
 export function newEmailCode(): string {
