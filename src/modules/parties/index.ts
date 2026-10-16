@@ -5,7 +5,7 @@ import { auditStatement } from "../audit";
 import type {
   ContactPointDto, MergeItemDto, MergePreviewResponse, PartyDto, PartyDuplicatesResponse, PartyListItemDto, PartyListResponse, PartyLookupResponse, PartyMergeRef, PartyMetaResponse,
   PartyRelationshipDto, PartyResponse, PartyRoleDto, PersonDocumentDto, PersonDocumentListResponse, PersonDocumentMetaResponse, PersonDocumentRevealResponse,
-  StaffProfile, TaiKhoanNhanTienResponse, HoSoTepCreatedResponse, HoSoTepListResponse,
+  StaffProfile, TaiKhoanNhanTienResponse, HoSoTepChayLaiResponse, HoSoTepChoXoaResponse, HoSoTepCreatedResponse, HoSoTepListResponse,
 } from "../../shared/contracts";
 import { LOAI_CO_DINH, MA_LOAI_GIAY_TO_RE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo, soNgayConLai } from "../../shared/giay-to";
 import { OWNER_COMPANY_ROLE, thieuChoCongTyChu } from "../../shared/cong-ty-chu";
@@ -26,7 +26,7 @@ import {
   insertLicenseClassStatement, insertPersonDocTypeStatement, updateLicenseClassStatement, updatePersonDocTypeStatement, insertPersonDocStatement, isCarrierParty, isOwnerCompanyParty, listLicenseClasses, listParties,
   listCarriers, listPartiesByIds, openPersonPhones, personsForMatch, listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, mergedFromOf, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
   voidPersonDocStatement,
-  datChoXoaTepStatement, findTepDeTai, insertTepLinkStatement, insertTepStatement, listTepCuaGiayTo, markTepStored,
+  datChoXoaTepStatement, findTepDeTai, insertTepLinkStatement, insertTepStatement, listTepChoXoa, listTepCuaGiayTo, markTepStored,
   datHoatDongLoaiDoiTacStatement, hoSoMangNhan, openRoleCodesFor, themLoaiDoiTacStatement, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements, vaiDangMo,
   type BankAccountRow, type BankRow, type GopDocRow, type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
 } from "./repository";
@@ -34,8 +34,8 @@ import { chanCo, keHoachGop, type CongViecGop, type GiayToGop, type HoSoGop, typ
 import { loGop } from "./gop-lo";
 import { anTruongRiengTu, ghiDuocRiengTu, laLienHeRiengTu, xemDuocRiengTu, type NguoiXem } from "./rieng-tu";
 import { docTaiKhoanNhanTien } from "./tai-khoan-nhan-tien";
-import { LOAI_NOI_DUNG, LY_DO_XOA_TEP, TOI_DA_THAN, bamSha256, dauPhanHoiTep, khoaNgauNhien, kiemTepTaiLen } from "./tep";
-import { ghiRoiXoaKho } from "./kho-tep";
+import { DO_DANG_SAU_MS, LOAI_NOI_DUNG, LY_DO_XOA_TEP, TOI_DA_THAN, bamSha256, dauPhanHoiTep, khoaNgauNhien, kiemTepTaiLen } from "./tep";
+import { ghiRoiXoaKho, xoaKhoiKho } from "./kho-tep";
 import { MA_HANG_RE, cheSo, chiTietNhatKy, chuanHoaSo, kiemGiaHan, kiemHangMoi, kiemSuaHang, kiemSuaSai, kiemThemGiayTo, type DanhMucGiayTo, type GiayToNhap } from "./giay-to";
 import {
   PARTY_ID_RE, QUAN_HE_TAI_XE_CUA, ROW_ID_RE, composePersonName, hoSoNoiBo, ownerCompanyAssignProblem, splitPersonName, validateContact, validateEndDate, validatePartyCreate, validatePartyUpdate,
@@ -662,6 +662,37 @@ export const partiesModule: AppModule = {
         }),
         conNua,
       } satisfies PartyDuplicatesResponse);
+    }),
+
+    // ---- Hàng "chờ xoá" của kho tệp hồ sơ (ADR-0123 đ6; Hiến chương 5.16; ruling Q4: chỉ Toàn quyền) — khai TRƯỚC GET /api/parties/:id. DTO chỉ mã. -------
+    route("GET", "/api/parties/tep-cho-xoa", "office", async ({ env, staff }) => {
+      if (!can(staff, "party.attachment.view")) return TEP_FORBIDDEN();
+      const ds = await listTepChoXoa(env.DB, new Date(Date.now() - DO_DANG_SAU_MS).toISOString());
+      return json({
+        tep: ds.map((t) => ({ id: t.id, trangThai: t.purged_at === null ? ("TAI_DO_DANG" as const) : ("CHO_XOA" as const), lyDo: t.purge_reason, luc: t.purged_at ?? t.created_at })),
+      } satisfies HoSoTepChoXoaResponse);
+    }),
+
+    // Chạy lại: (1) tệp tải dở dang ⇒ MỘT lô quyết xoá TAI_LEN_DO_DANG (câu có điều kiện: còn chưa lưu, còn quá mốc — tệp vừa lưu xong trong khe không bị đụng)
+    // + nhật ký chỉ mã; (2) ĐỌC LẠI hàng chờ, chỉ lấy dòng ĐÃ quyết xoá; (3) xoá kho rồi đánh dấu (kho-tep.ts — lỗi không ném); (4) một dòng nhật ký tổng.
+    // Không bao giờ xoá kho cho dòng chưa quyết xoá trong CSDL (bước 2).
+    route("POST", "/api/parties/tep-cho-xoa/chay-lai", "office", async ({ env, staff }) => {
+      if (!can(staff, "party.attachment.view")) return TEP_FORBIDDEN();
+      const kho = env.HO_SO;
+      if (!kho) return KHO_CHUA_BAT();
+      const moc = new Date(Date.now() - DO_DANG_SAU_MS).toISOString();
+      const at = new Date().toISOString();
+      const lo = (await listTepChoXoa(env.DB, moc))
+        .filter((t) => t.purged_at === null)
+        .flatMap((t) =>
+          cauDatChoXoa(env.DB, datChoXoaTepStatement(env.DB, { id: t.id, lyDo: LY_DO_XOA_TEP.TAI_LEN_DO_DANG, at, actorId: staff.id, doDangTruoc: moc }), t, LY_DO_XOA_TEP.TAI_LEN_DO_DANG, at, staff.id));
+      if (lo.length > 0) await env.DB.batch(lo);
+      const canXoa = (await listTepChoXoa(env.DB, moc)).filter((t) => t.purged_at !== null);
+      const kq = await xoaKhoiKho(env.DB, kho, canXoa, () => new Date().toISOString());
+      await env.DB.batch([
+        auditStatement(env.DB, { staffId: staff.id, action: "party_attachment_purge_retried", at: new Date().toISOString(), targetType: "system", targetId: "ho-so-tep", detail: `đã xoá ${kq.daXoa}, còn ${kq.loi}` }),
+      ]);
+      return json({ daXoa: kq.daXoa, conLai: kq.loi } satisfies HoSoTepChayLaiResponse);
     }),
 
     route("GET", "/api/parties", "office", async ({ env, url, staff }) => {

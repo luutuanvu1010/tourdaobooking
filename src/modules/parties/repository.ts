@@ -1034,3 +1034,16 @@ export const datChoXoaTepStatement = (db: D1Database, v: { id: string; lyDo: str
 export async function markTepR2Deleted(db: D1Database, id: string, at: string): Promise<number> {
   return (await db.prepare(MARK_TEP_R2_DELETED).bind(id, at).run()).meta.changes ?? 0;
 }
+export interface TepCanXoaRow { id: string; party_id: string; storage_key: string; purged_at: string | null; purge_reason: string | null; created_at: string }
+// Hàng "chờ xoá" (5.16): đã quyết xoá mà kho chưa xoá xong, HOẶC tải dở dang (chưa lưu, chưa quyết xoá) tạo trước ?1. Tối đa 50 dòng, cũ trước (ruling R16).
+// storage_key chỉ để lệnh chạy lại xoá kho — route KHÔNG đưa ra DTO.
+const LIST_TEP_CHO_XOA = defineSql(
+  "parties",
+  "list_attachments_pending_purge",
+  `SELECT id, party_id, storage_key, purged_at, purge_reason, created_at FROM pty_attachment
+   WHERE r2_deleted_at IS NULL AND (purged_at IS NOT NULL OR (stored_at IS NULL AND created_at < ?1))
+   ORDER BY created_at, id LIMIT 50`,
+);
+export async function listTepChoXoa(db: D1Database, doDangTruoc: string): Promise<TepCanXoaRow[]> {
+  return (await db.prepare(LIST_TEP_CHO_XOA).bind(doDangTruoc).all<TepCanXoaRow>()).results;
+}

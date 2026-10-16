@@ -218,3 +218,66 @@ test("nhật ký không chứa khoá kho / băm (bộ dò toàn tuyến, Hiến 
   assert.deepEqual(ds.rong, [], "bài rỗng: cột N3 phụ trách chưa có dữ liệu thật");
   assert.deepEqual(ds.lo, [], "nhật ký chứa giá trị hạng N3");
 });
+
+const choXoa = (w: any) => w.call("GET", "/api/parties/tep-cho-xoa", { as: SUP });
+const chayLai = (w: any, as = SUP) => w.call("POST", "/api/parties/tep-cho-xoa/chay-lai", { as, body: {} });
+
+test("Review Focus 3: kho hỏng khi đặt VÀ khi xoá ⇒ dòng 'chờ xoá' hiện ở danh sách (chỉ mã, không khoá kho); tải xuống 404 dù kho còn đối tượng; chạy lại ⇒ xoá xong", async () => {
+  const w = setup();
+  const g = await nguoiCoCccd(w);
+  const tot = (await taiLen(w, g)).json.tep.id as string;
+  const keyTot = w.q("SELECT storage_key k FROM pty_attachment WHERE id = ?", tot)[0].k;
+  // Quyết xoá thẳng một tệp ĐÃ lưu (giả lập phiếu xoá của H-5) mà kho hỏng khi xoá: còn đối tượng trong kho
+  w.r2.hong.delete = true;
+  w.r2.hong.put = true;
+  assert.equal((await taiLen(w, g)).status, 500);
+  w.r2.hong.put = false;
+  w.sqlite.prepare("UPDATE pty_attachment SET purged_at = ?, purge_reason = 'PHIEU_XOA_GIA', content_hash = NULL WHERE id = ?").run(new Date().toISOString(), tot);
+  const ds = await choXoa(w);
+  assert.equal(ds.status, 200);
+  assert.deepEqual(ds.json.tep.map((t: any) => t.trangThai).sort(), ["CHO_XOA", "CHO_XOA"]);
+  assert.doesNotMatch(ds.text, /pty\/[0-9a-f]{32}/, "danh sách không lộ khoá kho");
+  assert.ok(w.r2.co(keyTot), "kho còn đối tượng");
+  assert.equal((await w.call("GET", `${duong(g)}/${tot}`, { as: SUP })).status, 404, "đã quyết xoá thì không phục vụ, dù kho còn");
+  const hong = await chayLai(w);
+  assert.deepEqual(hong.json, { daXoa: 0, conLai: 2 });
+  w.r2.hong.delete = false;
+  const lanh = await chayLai(w);
+  assert.deepEqual(lanh.json, { daXoa: 2, conLai: 0 });
+  assert.equal(w.r2.co(keyTot), false);
+  assert.deepEqual((await choXoa(w)).json.tep, []);
+  assert.deepEqual(nhatKy(w, "party_attachment_purge_retried"), ["đã xoá 0, còn 2", "đã xoá 2, còn 0"]);
+});
+
+test("tải dở dang (stored_at rỗng) quá 10 phút ⇒ hiện TAI_DO_DANG; chạy lại quyết xoá TAI_LEN_DO_DANG rồi xoá kho; dòng vừa tạo (< 10 phút) và dòng đã lưu KHÔNG bị đụng", async () => {
+  const w = setup();
+  const g = await nguoiCoCccd(w);
+  const daLuu = (await taiLen(w, g)).json.tep.id as string;
+  const cu = new Date(Date.now() - 11 * 60_000).toISOString();
+  const chen = (id: string, k: number, luc: string) => {
+    w.sqlite.prepare(`INSERT INTO pty_attachment (id, party_id, storage_key, content_kind, byte_size, content_hash, created_at, created_by, updated_at, updated_by)
+      VALUES (?, ?, ?, 'png', 3, ?, ?, ?, ?, ?)`).run(id, g.id, `pty/${String(k).padStart(32, "0")}`, "e".repeat(64), luc, SUP, luc, SUP);
+    w.sqlite.prepare("INSERT INTO pty_attachment_link (attachment_id, target_kind, target_id, created_at, created_by, updated_at, updated_by) VALUES (?, 'PERSON_DOCUMENT', ?, ?, ?, ?, ?)").run(id, g.did, luc, SUP, luc, SUP);
+  };
+  chen("dd-cu", 1, cu);
+  chen("dd-moi", 2, new Date().toISOString());
+  await w.r2.put(`pty/${"1".padStart(32, "0")}`, new Uint8Array([1]));
+  assert.deepEqual((await choXoa(w)).json.tep.map((t: any) => [t.id, t.trangThai]), [["dd-cu", "TAI_DO_DANG"]]);
+  assert.deepEqual((await chayLai(w)).json, { daXoa: 1, conLai: 0 });
+  const r = (id: string) => w.q("SELECT purge_reason p, r2_deleted_at d, stored_at s FROM pty_attachment WHERE id = ?", id)[0];
+  assert.equal(r("dd-cu").p, "TAI_LEN_DO_DANG");
+  assert.ok(r("dd-cu").d);
+  assert.equal(r("dd-moi").p, null, "dòng vừa tạo chưa bị đụng");
+  assert.equal(r(daLuu).p, null, "dòng đã lưu không bị đụng");
+  assert.deepEqual(nhatKy(w, "party_attachment_purged"), ["tệp dd-cu · TAI_LEN_DO_DANG"]);
+});
+
+test("hàng chờ xoá: Quản trị / Bán hàng → 403 ở cả xem lẫn chạy lại (ruling Q4); thiếu kho ⇒ chạy lại 503", async () => {
+  const w = setup();
+  for (const as of [ADM, SALES]) {
+    assert.equal((await w.call("GET", "/api/parties/tep-cho-xoa", { as })).status, 403);
+    assert.equal((await chayLai(w, as)).status, 403);
+  }
+  delete w.env.HO_SO;
+  assert.equal((await chayLai(w)).status, 503);
+});
