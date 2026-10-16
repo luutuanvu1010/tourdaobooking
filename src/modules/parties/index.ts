@@ -667,9 +667,10 @@ export const partiesModule: AppModule = {
     // ---- Hàng "chờ xoá" của kho tệp hồ sơ (ADR-0123 đ6; Hiến chương 5.16; ruling Q4: chỉ Toàn quyền) — khai TRƯỚC GET /api/parties/:id. DTO chỉ mã. -------
     route("GET", "/api/parties/tep-cho-xoa", "office", async ({ env, staff }) => {
       if (!can(staff, "party.attachment.view")) return TEP_FORBIDDEN();
-      const ds = await listTepChoXoa(env.DB, new Date(Date.now() - DO_DANG_SAU_MS).toISOString());
+      const { ds, conNua } = await listTepChoXoa(env.DB, new Date(Date.now() - DO_DANG_SAU_MS).toISOString());
       return json({
         tep: ds.map((t) => ({ id: t.id, trangThai: t.purged_at === null ? ("TAI_DO_DANG" as const) : ("CHO_XOA" as const), lyDo: t.purge_reason, luc: t.purged_at ?? t.created_at })),
+        conNua,
       } satisfies HoSoTepChoXoaResponse);
     }),
 
@@ -682,13 +683,15 @@ export const partiesModule: AppModule = {
       if (!kho) return KHO_CHUA_BAT();
       const moc = new Date(Date.now() - DO_DANG_SAU_MS).toISOString();
       const at = new Date().toISOString();
-      const lo = (await listTepChoXoa(env.DB, moc))
+      const lo = (await listTepChoXoa(env.DB, moc)).ds
         .filter((t) => t.purged_at === null)
         .flatMap((t) =>
           cauDatChoXoa(env.DB, datChoXoaTepStatement(env.DB, { id: t.id, lyDo: LY_DO_XOA_TEP.TAI_LEN_DO_DANG, at, actorId: staff.id, doDangTruoc: moc }), t, LY_DO_XOA_TEP.TAI_LEN_DO_DANG, at, staff.id));
       if (lo.length > 0) await env.DB.batch(lo);
-      const canXoa = (await listTepChoXoa(env.DB, moc)).filter((t) => t.purged_at !== null);
+      const canXoa = (await listTepChoXoa(env.DB, moc)).ds.filter((t) => t.purged_at !== null);
       const kq = await xoaKhoiKho(env.DB, kho, canXoa, () => new Date().toISOString());
+      // Không có việc (không lô quyết xoá, không dòng nào để xoá kho) ⇒ không ghi nhật ký (m-5 vòng sửa nhóm C — bấm lại nhiều lần không làm đầy nhật ký).
+      if (lo.length === 0 && canXoa.length === 0) return json({ daXoa: 0, conLai: 0 } satisfies HoSoTepChayLaiResponse);
       await env.DB.batch([
         auditStatement(env.DB, { staffId: staff.id, action: "party_attachment_purge_retried", at: new Date().toISOString(), targetType: "system", targetId: "ho-so-tep", detail: `đã xoá ${kq.daXoa}, còn ${kq.loi}` }),
       ]);
@@ -987,11 +990,17 @@ export const partiesModule: AppModule = {
       const key = khoaNgauNhien();
       const bam = await bamSha256(k.bytes);
       const tenLoai = (await danhMucGiayTo(env.DB, vnToday(now))).tenLoai(cu.document_type_code);
-      await env.DB.batch([
-        insertTepStatement(env.DB, { id: tepId, partyId: id, key, loai: k.loai, kichThuoc: k.bytes.length, bam, at, actorId: staff.id }),
-        insertTepLinkStatement(env.DB, { tepId, kind: "PERSON_DOCUMENT", targetId: did, at, actorId: staff.id }),
-        auditStatement(env.DB, { staffId: staff.id, action: "party_attachment_added", at, targetType: "party", targetId: id, detail: `${tenLoai} · tệp ${tepId}` }),
-      ]);
+      try {
+        await env.DB.batch([
+          insertTepStatement(env.DB, { id: tepId, partyId: id, key, loai: k.loai, kichThuoc: k.bytes.length, bam, at, actorId: staff.id }),
+          insertTepLinkStatement(env.DB, { tepId, kind: "PERSON_DOCUMENT", targetId: did, at, actorId: staff.id }),
+          auditStatement(env.DB, { staffId: staff.id, action: "party_attachment_added", at, targetType: "party", targetId: id, detail: `${tenLoai} · tệp ${tepId}` }),
+        ]);
+      } catch (e) {
+        // Dòng giấy tờ bị gia hạn thay / huỷ trong khe giữa lúc kiểm và lúc ghi (trigger 0104) — cả lô huỷ, chưa chạm kho; cùng câu với lời kiểm ở trên (m-4).
+        if (/attachment_link_target_stale/.test(e instanceof Error ? e.message : "")) return DOC_NOT_CURRENT();
+        throw e;
+      }
       try {
         await kho.put(key, k.bytes, { httpMetadata: { contentType: LOAI_NOI_DUNG[k.loai] } });
       } catch (e) {
@@ -1007,11 +1016,17 @@ export const partiesModule: AppModule = {
         }
         return error(500, "upload_failed", "Không tải tệp lên được. Thử lại sau ít phút.");
       }
+      let daDanhDau = 0;
       try {
-        await markTepStored(env.DB, tepId, new Date().toISOString());
+        daDanhDau = await markTepStored(env.DB, tepId, new Date().toISOString());
       } catch (e) {
         // Lần ghi thứ hai hỏng (ruling Q6): KHÔNG báo "đã tải" — dòng thành "tải dở dang", lệnh chạy lại quyết xoá + xoá kho sau DO_DANG_SAU_MS.
         console.error(JSON.stringify({ level: "error", event: "ho_so_tep_danh_dau_luu_loi", tepId, loi: e instanceof Error ? e.name : "unknown" }));
+        return error(500, "upload_failed", "Không tải tệp lên được. Thử lại sau ít phút.");
+      }
+      if (daDanhDau !== 1) {
+        // Câu đánh dấu không đổi được dòng (m-3 vòng sửa nhóm C): tệp đã bị quyết xoá trong khe ⇒ nằm ở hàng "chờ xoá" (hoặc còn "tải dở dang") — KHÔNG báo 201.
+        console.error(JSON.stringify({ level: "error", event: "ho_so_tep_danh_dau_luu_khong_doi", tepId }));
         return error(500, "upload_failed", "Không tải tệp lên được. Thử lại sau ít phút.");
       }
       return kemLocation(json({ tep: { id: tepId, loai: k.loai, kichThuoc: k.bytes.length, taiLuc: at } } satisfies HoSoTepCreatedResponse, 201), `/parties?id=${id}`);
@@ -1037,8 +1052,10 @@ export const partiesModule: AppModule = {
     route("GET", "/api/parties/:id/documents/:did/tep/:tid", "office", async (ctx) => {
       const { request, env, params, staff } = ctx;
       if (!can(staff, "party.attachment.view")) return TEP_FORBIDDEN();
-      // GET không qua lớp chặn gọi chéo trang của router (lớp đó chỉ cho lệnh ghi) — chặn yêu cầu do trang khác phát ra (ruling R4).
-      if (request.headers.get("sec-fetch-site") === "cross-site") return TEP_FORBIDDEN();
+      // GET không qua lớp chặn gọi chéo trang của router (lớp đó chỉ cho lệnh ghi) — chặn yêu cầu do trang khác phát ra (ruling R4). DANH SÁCH CHO PHÉP
+      // (vòng sửa nhóm C, m-1): chỉ same-origin, none (người dùng gõ / mở thẳng) hoặc vắng header (máy khách cũ); same-site (tên miền phụ) và giá trị lạ bị chặn.
+      const sfs = request.headers.get("sec-fetch-site");
+      if (sfs !== null && sfs !== "same-origin" && sfs !== "none") return TEP_FORBIDDEN();
       const kho = env.HO_SO;
       if (!kho) return KHO_CHUA_BAT();
       const id = idParam(params, "id", PARTY_ID_RE);

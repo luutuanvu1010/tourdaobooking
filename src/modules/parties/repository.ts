@@ -1068,15 +1068,19 @@ export async function markTepR2Deleted(db: D1Database, id: string, at: string): 
   return (await db.prepare(MARK_TEP_R2_DELETED).bind(id, at).run()).meta.changes ?? 0;
 }
 export interface TepCanXoaRow { id: string; party_id: string; storage_key: string; purged_at: string | null; purge_reason: string | null; created_at: string }
-// Hàng "chờ xoá" (5.16): đã quyết xoá mà kho chưa xoá xong, HOẶC tải dở dang (chưa lưu, chưa quyết xoá) tạo trước ?1. Tối đa 50 dòng, cũ trước (ruling R16).
-// storage_key chỉ để lệnh chạy lại xoá kho — route KHÔNG đưa ra DTO.
+/** Trần một lượt của hàng "chờ xoá" (ruling R16): cũ trước; câu đọc lấy thêm MỘT dòng để biết "còn nữa". */
+export const TEP_CHO_XOA_MOT_LUOT = 50;
+// Hàng "chờ xoá" (5.16): đã quyết xoá mà kho chưa xoá xong, HOẶC tải dở dang (chưa lưu, chưa quyết xoá) tạo trước ?1. Tối đa 50 dòng (+1 để biết còn nữa), cũ
+// trước (ruling R16). storage_key chỉ để lệnh chạy lại xoá kho — route KHÔNG đưa ra DTO.
 const LIST_TEP_CHO_XOA = defineSql(
   "parties",
   "list_attachments_pending_purge",
   `SELECT id, party_id, storage_key, purged_at, purge_reason, created_at FROM pty_attachment
    WHERE r2_deleted_at IS NULL AND (purged_at IS NOT NULL OR (stored_at IS NULL AND created_at < ?1))
-   ORDER BY created_at, id LIMIT 50`,
+   ORDER BY created_at, id LIMIT 51`,
 );
-export async function listTepChoXoa(db: D1Database, doDangTruoc: string): Promise<TepCanXoaRow[]> {
-  return (await db.prepare(LIST_TEP_CHO_XOA).bind(doDangTruoc).all<TepCanXoaRow>()).results;
+/** Tối đa `TEP_CHO_XOA_MOT_LUOT` dòng cũ nhất; `conNua` = còn dòng sau lượt này. */
+export async function listTepChoXoa(db: D1Database, doDangTruoc: string): Promise<{ ds: TepCanXoaRow[]; conNua: boolean }> {
+  const r = (await db.prepare(LIST_TEP_CHO_XOA).bind(doDangTruoc).all<TepCanXoaRow>()).results;
+  return { ds: r.slice(0, TEP_CHO_XOA_MOT_LUOT), conNua: r.length > TEP_CHO_XOA_MOT_LUOT };
 }

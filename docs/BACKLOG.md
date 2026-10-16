@@ -411,3 +411,12 @@ Các việc khác từ cùng buổi xác nhận (đang chờ chủ quyết, chư
   - **Vấn đề:** `INSERT OR REPLACE` xoá dòng cũ mà không chạy trigger xoá, nên lách được "chỉ-thêm" của `pty_consent` và `pty_verification` (migration `0103`). Migration `0104` đã chặn cho hai bảng kho tệp (trigger `no_replace`) nhưng `0103` chưa có.
   - **Việc khi làm:** migration MỚI (không sửa `0103`) thêm trigger BEFORE INSERT cùng khuôn, kèm bài đỏ→xanh; rà các bảng chỉ-thêm khác.
 - **BL-PTY-ISO-MOC-TEP** · **Trạng thái:** `chưa làm`. Ba mốc `stored_at`, `purged_at`, `r2_deleted_at` của `pty_attachment` chưa có CHECK khuôn ISO (repo chưa có quy ước CHECK cho dấu thời gian); máy chủ ghi `toISOString()`. Làm khi có quy ước chung.
+
+## 37. Kho tệp hồ sơ — nợ lát H-2 (mã `BL-TEP-…`)
+
+- **BL-TEP-PHAT-LAI-500** · **Trạng thái:** `chưa làm` · **Phải giải TRƯỚC lát giao diện tải ảnh** · **Cần chủ quyết** (chạm ADR-0094 đ6).
+  - **Vấn đề (người kiểm độc lập tái hiện 2026-10-17):** route tải ảnh `POST /api/parties/:id/documents/:did/tep` ghi vé chống ghi trùng ở lô đầu. Khi kho hỏng, route trả 500; bấm lại CÙNG vé thì nhận phát lại 200 `{ da_ghi_truoc_do: true, ket_qua: null }` — ảnh không được lưu nhưng giao diện sẽ báo «Lần bấm trước đã được ghi.». Không mất dữ liệu đã lưu (vé của route này chỉ sống trong bộ nhớ trang; lần bấm sau tạo vé mới).
+  - **Hướng sửa (chủ chọn):** (a) máy khách coi phát lại có `ket_qua = null` ở route này là «chưa rõ — tải lại để kiểm»; (b) route trả mã khiến máy khách đóng vé (không phát lại 200); (c) sửa ADR-0094 đ6. Không đổi hành vi lớp vé khi chưa có quyết định.
+- **BL-TEP-MO-QUA-HO-SO-PHU** · **Trạng thái:** `chưa làm` · **Cần chủ quyết.**
+  - **Vấn đề:** sau khi gộp, ảnh vẫn mở được qua đường dẫn của hồ sơ PHỤ (dòng giấy tờ đã huỷ của nó; dòng nối cũ giữ nguyên — bảng chỉ-thêm), nhật ký ghi đích là hồ sơ phụ. Người kiểm đề nghị chặn (404 khi hồ sơ đã gộp). Chưa làm vì mơ hồ: ADR-0068 / ADR-0123 không nói; «xem đủ số» trên hồ sơ đã gộp hiện vẫn cho; ảnh tải lên trong khe gộp (`BL-TEP-KHE-GOP`) CHỈ mở được qua đường hồ sơ phụ — chặn thì chúng không còn đường mở trước khi lát H-5 xoá.
+  - **Việc khi làm:** chủ chọn chặn / giữ; nếu chặn thì quyết cùng lúc số phận ảnh trong khe gộp.

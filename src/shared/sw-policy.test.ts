@@ -154,3 +154,12 @@ test("Hiến chương 5.22: đường tệp hồ sơ không bao giờ vào cache
   assert.equal(isCacheable({ ...anh, cacheControl: null }), true, "PNG của khung (icon) vẫn lưu được");
   assert.equal(isCacheable(anh), true, "lời gọi cũ không truyền cacheControl vẫn chạy");
 });
+
+// Vòng sửa nhóm C (M13b): lớp 3 chỉ sống nếu service worker THẬT truyền header Cache-Control vào isCacheable — `cacheControl` là tuỳ chọn nên bỏ nó vẫn biên
+// dịch được. Phân tích TĨNH web/sw/sw.ts: MỌI lời gọi isCacheable( phải mang `cacheControl: res.headers.get("cache-control")`.
+test("lớp 3 sống trong service worker thật: mọi lời gọi isCacheable ở web/sw/sw.ts truyền cacheControl từ header của phản hồi", () => {
+  const sw = readFileSync(new URL("../../web/sw/sw.ts", import.meta.url), "utf8");
+  const goi = [...sw.matchAll(/\bisCacheable\(\{([^}]*)\}\)/g)].map((m) => m[1]!);
+  assert.ok(goi.length >= 1, "không thấy lời gọi isCacheable({ … }) nào trong web/sw/sw.ts (mẫu quét hỏng?)");
+  for (const g of goi) assert.match(g, /cacheControl:\s*res\.headers\.get\("cache-control"\)/, `lời gọi thiếu cacheControl: ${g}`);
+});

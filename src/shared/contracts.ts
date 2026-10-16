@@ -990,7 +990,8 @@ export interface HoSoTepListResponse { tep: HoSoTepDto[] }
 export interface HoSoTepCreatedResponse { tep: HoSoTepDto }
 /** Hàng "chờ xoá" (Hiến chương 5.16): CHO_XOA = đã quyết xoá, kho chưa xoá xong; TAI_DO_DANG = tải lên chưa xác nhận đã lưu quá 10 phút. */
 export interface HoSoTepChoXoaDto { id: string; trangThai: "CHO_XOA" | "TAI_DO_DANG"; lyDo: string | null; luc: string }
-export interface HoSoTepChoXoaResponse { tep: HoSoTepChoXoaDto[] }
+/** `conNua` = hàng chờ dài hơn một lượt (50 dòng cũ nhất được trả) — chạy lại xong thì xem lại. */
+export interface HoSoTepChoXoaResponse { tep: HoSoTepChoXoaDto[]; conNua: boolean }
 export interface HoSoTepChayLaiResponse { daXoa: number; conLai: number }
 export interface DocumentTypeDto { code: string; name: string; hasExpiry: boolean; sortOrder: number; active: boolean; updatedAt: string }
 export interface LicenseClassDto { code: string; name: string; sortOrder: number; active: boolean; updatedAt: string }

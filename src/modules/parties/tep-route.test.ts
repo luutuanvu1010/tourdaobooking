@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { doNhatKyHang } from "../../../tests/audit/nhat-ky-hang.mjs";
-import { TOI_DA_BYTE } from "./tep.ts";
+import { TOI_DA_BYTE, TOI_DA_THAN } from "./tep.ts";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const ADM = "33333333-3333-4333-8333-333333333333";
@@ -303,4 +303,125 @@ test("Review Focus 4: gộp hồ sơ ⇒ ảnh mở được qua dòng giấy t�
   assert.deepEqual([...x.bytes], [...PNG]);
   assert.deepEqual(w.q("SELECT target_id t FROM audit_log WHERE action = 'party_attachment_viewed'").map((v: any) => v.t), [B]);
   assert.equal(w.q("SELECT count(*) n FROM pty_attachment_link WHERE attachment_id = ?", hong)[0].n, 1, "ảnh đã quyết xoá không nối sang hồ sơ chính");
+});
+
+// ---- Vòng sửa nhóm C (người kiểm độc lập 2026-10-17) ----
+test("m-1: tải xuống chỉ cho qua sec-fetch-site same-origin / none / vắng — same-site cũng bị chặn (403, không nhật ký, không đọc kho)", async () => {
+  const w = setup();
+  const g = await nguoiCoCccd(w);
+  const tid = (await taiLen(w, g)).json.tep.id as string;
+  for (const sfs of ["same-site", "cross-site", "la-ky"]) {
+    assert.equal((await w.call("GET", `${duong(g)}/${tid}`, { as: SUP, headers: { "sec-fetch-site": sfs } })).status, 403, sfs);
+  }
+  assert.deepEqual(nhatKy(w, "party_attachment_viewed"), []);
+  assert.equal(w.r2.soLan.get, 0);
+  for (const sfs of ["same-origin", "none"]) {
+    assert.equal((await w.call("GET", `${duong(g)}/${tid}`, { as: SUP, headers: { "sec-fetch-site": sfs } })).status, 200, sfs);
+  }
+});
+
+test("m-3: đánh dấu đã lưu không đổi được dòng (tệp bị quyết xoá giữa chừng) ⇒ 500, KHÔNG báo 201; tệp nằm ở hàng chờ xoá", async () => {
+  const w = setup();
+  const g = await nguoiCoCccd(w);
+  const datGoc = w.r2.put;
+  w.r2.put = async (...a: unknown[]) => {
+    const r = await datGoc(...a);
+    w.sqlite.prepare("UPDATE pty_attachment SET purged_at = ?, purge_reason = 'PHIEU_XOA_GIA', content_hash = NULL WHERE stored_at IS NULL AND purged_at IS NULL").run(new Date().toISOString());
+    return r;
+  };
+  const r = await taiLen(w, g);
+  assert.equal(r.status, 500, r.text);
+  assert.equal(r.json.error.message, "Không tải tệp lên được. Thử lại sau ít phút.");
+  const row = w.q("SELECT id, stored_at FROM pty_attachment")[0];
+  assert.equal(row.stored_at, null);
+  assert.deepEqual((await w.call("GET", "/api/parties/tep-cho-xoa", { as: SUP })).json.tep.map((t: any) => [t.id, t.trangThai]), [[row.id, "CHO_XOA"]]);
+});
+
+test("m-4: dòng giấy tờ bị gia hạn thay giữa lúc kiểm và lúc ghi lô ⇒ 409 document_not_current (trigger attachment_link_target_stale), không 500; không dòng, không đặt kho", async () => {
+  const w = setup();
+  const g = await nguoiCoCccd(w);
+  w.chenTruocLo(
+    (stmts: any[]) => stmts.some((s) => JSON.stringify(s.args).includes("party_attachment_added")),
+    async () => {
+      const gh = await w.call("POST", `/api/parties/${g.id}/documents/${g.did}/renew`, { as: ADM, body: { expiryDate: "2040-01-01" } });
+      assert.equal(gh.status, 201, gh.text);
+    },
+  );
+  const r = await taiLen(w, g);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "document_not_current");
+  assert.equal(soTep(w), 0);
+  assert.equal(w.r2.soLan.put, 0);
+});
+
+test("m-5: chạy lại khi không có việc ⇒ {0, 0} và KHÔNG ghi nhật ký; hàng chờ quá 50 dòng ⇒ trả 50 dòng CŨ NHẤT + conNua", async () => {
+  const w = setup();
+  const g = await nguoiCoCccd(w);
+  assert.deepEqual((await chayLai(w)).json, { daXoa: 0, conLai: 0 });
+  assert.deepEqual(nhatKy(w, "party_attachment_purge_retried"), [], "không việc thì không dòng nhật ký");
+  const chen = w.sqlite.prepare(`INSERT INTO pty_attachment (id, party_id, storage_key, content_kind, byte_size, content_hash, purged_at, purge_reason, created_at, created_by, updated_at, updated_by)
+    VALUES (?, ?, ?, 'png', 3, NULL, ?, 'PHIEU_XOA_GIA', ?, ?, ?, ?)`);
+  for (let i = 0; i < 51; i++) {
+    const luc = new Date(Date.parse("2026-10-01T00:00:00.000Z") + i * 60_000).toISOString();
+    chen.run(`cx-${String(i).padStart(2, "0")}`, g.id, `pty/${String(i).padStart(32, "0")}`, luc, luc, SUP, luc, SUP);
+  }
+  const ds = (await choXoa(w)).json;
+  assert.equal(ds.tep.length, 50);
+  assert.equal(ds.tep[0].id, "cx-00", "cũ nhất trước");
+  assert.equal(ds.conNua, true);
+  w.sqlite.prepare("UPDATE pty_attachment SET r2_deleted_at = ? WHERE id = 'cx-50'").run(new Date().toISOString());
+  assert.equal((await choXoa(w)).json.conNua, false);
+});
+
+test("M14: Content-Length khai lớn hơn trần thân ⇒ 413 TRƯỚC khi đọc thân (thân nhỏ hợp lệ vẫn bị chặn); không dòng, không đặt kho", async () => {
+  const w = setup();
+  const g = await nguoiCoCccd(w);
+  const r = await taiLen(w, g, PNG, SUP, { "content-length": String(TOI_DA_THAN + 1) });
+  assert.equal(r.status, 413, r.text);
+  assert.equal(r.json.error.code, "file_too_large");
+  assert.equal(soTep(w), 0);
+  assert.equal(w.r2.soLan.put, 0);
+});
+
+test("M15: tải xuống tệp CHƯA lưu xong (stored_at rỗng) ⇒ 404 dù kho có đối tượng; không nhật ký, không đọc kho", async () => {
+  const w = setup();
+  const g = await nguoiCoCccd(w);
+  const at = new Date().toISOString();
+  const key = `pty/${"a".repeat(32)}`;
+  w.sqlite.prepare(`INSERT INTO pty_attachment (id, party_id, storage_key, content_kind, byte_size, content_hash, created_at, created_by, updated_at, updated_by)
+    VALUES (?, ?, ?, 'png', 3, ?, ?, ?, ?, ?)`).run("0000aaaa-1111-4111-8111-111111111111", g.id, key, "e".repeat(64), at, SUP, at, SUP);
+  w.sqlite.prepare("INSERT INTO pty_attachment_link (attachment_id, target_kind, target_id, created_at, created_by, updated_at, updated_by) VALUES (?, 'PERSON_DOCUMENT', ?, ?, ?, ?, ?)")
+    .run("0000aaaa-1111-4111-8111-111111111111", g.did, at, SUP, at, SUP);
+  await w.r2.put(key, PNG);
+  const soDocTruoc = w.r2.soLan.get;
+  assert.equal((await w.call("GET", `${duong(g)}/0000aaaa-1111-4111-8111-111111111111`, { as: SUP })).status, 404);
+  assert.equal(w.r2.soLan.get, soDocTruoc);
+  assert.deepEqual(nhatKy(w, "party_attachment_viewed"), []);
+});
+
+test("M17: tải xuống với mã dòng giấy tờ của hồ sơ KHÁC trên đường dẫn hồ sơ này ⇒ 404 (đúng tệp, đúng dòng nhưng sai hồ sơ)", async () => {
+  const w = setup();
+  const g = await nguoiCoCccd(w);
+  const khac = await nguoiCoCccd(w, "Người Khác");
+  const tidKhac = (await taiLen(w, khac)).json.tep.id as string;
+  assert.equal((await w.call("GET", `/api/parties/${g.id}/documents/${khac.did}/tep/${tidKhac}`, { as: SUP })).status, 404);
+  assert.equal((await w.call("GET", `/api/parties/${g.id}/documents/${khac.did}/tep`, { as: SUP })).status, 404, "danh sách cũng vậy");
+  assert.deepEqual(nhatKy(w, "party_attachment_viewed"), []);
+  assert.equal(w.r2.soLan.get, 0);
+});
+
+test("M19: gộp không mang tệp ĐÃ LƯU rồi bị quyết xoá (stored_at VÀ purged_at có); tệp còn hiệu lực vẫn đi theo", async () => {
+  const w = setup();
+  const TEN = "Người Gộp Xoá";
+  const g = await nguoiCoCccd(w, TEN);
+  const giu = (await taiLen(w, g)).json.tep.id as string;
+  const xoa = (await taiLen(w, g, PDF)).json.tep.id as string;
+  w.sqlite.prepare("UPDATE pty_attachment SET purged_at = ?, purge_reason = 'PHIEU_XOA_GIA', content_hash = NULL WHERE id = ?").run(new Date().toISOString(), xoa);
+  assert.ok(w.q("SELECT stored_at s FROM pty_attachment WHERE id = ?", xoa)[0].s, "tệp bị xoá đã từng lưu xong");
+  const B = (await w.call("POST", "/api/parties", { as: ADM, body: { kind: "PERSON", fullName: TEN, contacts: [] } })).json.party.id as string;
+  const r = await w.call("POST", `/api/parties/${g.id}/merge`, { as: ADM, body: { intoPartyId: B, xacNhan: TEN } });
+  assert.equal(r.status, 200, r.text);
+  const did = (await w.call("GET", `/api/parties/${B}/documents`, { as: ADM })).json.documents.find((d: any) => d.typeCode === "CCCD" && d.current).id as string;
+  assert.deepEqual((await w.call("GET", `/api/parties/${B}/documents/${did}/tep`, { as: SUP })).json.tep.map((t: any) => t.id), [giu]);
+  assert.equal(w.q("SELECT count(*) n FROM pty_attachment_link WHERE attachment_id = ?", xoa)[0].n, 1);
 });
