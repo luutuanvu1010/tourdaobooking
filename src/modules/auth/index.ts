@@ -333,7 +333,7 @@ const SAI_MA_HIEN_CO = (cach: "TOTP" | "TOTP_HOAC_DU_PHONG"): Response => error(
  */
 async function kiemMaHienCoNoi(
   env: Env, staffId: string, rawCode: unknown, nowMs: number, cach: "TOTP" | "TOTP_HOAC_DU_PHONG", duPhong: "tieu" | "chiKiem",
-): Promise<Response | { duPhongHash: string | null }> {
+): Promise<Response | { duPhongHash: string | null; ids: Record<string, string> }> {
   const code = typeof rawCode === "string" ? rawCode.trim().slice(0, 32) : "";
   if (!code) return error(400, "invalid_input", cach === "TOTP" ? "Cần nhập mã 6 số đang hiện trên ứng dụng xác thực." : "Cần nhập mã từ ứng dụng xác thực hoặc một mã dự phòng.");
   const laTotp = /^\d{6}$/.test(code);
@@ -353,8 +353,10 @@ async function kiemMaHienCoNoi(
   }
   if (kq === "unavailable") return MFA_UNAVAILABLE();
   if (kq !== "ok") return SAI_MA_HIEN_CO(cach);
-  await clearAttempts(db, mfaKey(staffId), reservation.ids);
-  return { duPhongHash };
+  // Mã dự phòng đúng nhưng CHƯA tiêu: KHÔNG xoá bộ đếm `mfa:<id>` ở đây — người gọi xoá cả khoá chỉ khi đã tiêu được mã, còn không thì chỉ gỡ đúng lượt vừa
+  // đặt chỗ. Nếu xoá ngay, một mã dự phòng (không bị tiêu khi 429 / 502) thành nút xoá bộ đếm dùng mãi → dò mã TOTP vô hạn (vòng sửa 2, góp ý người kiểm).
+  if (duPhongHash === null) await clearAttempts(db, mfaKey(staffId), reservation.ids);
+  return { duPhongHash, ids: reservation.ids };
 }
 
 /** ADR-0074 điều 7: câu 409 khi tài khoản giữ Quản trị / Toàn quyền / Kế toán định bật yếu tố email (nguyên văn kế hoạch Phần C Task 3). */
@@ -375,22 +377,28 @@ export async function guiMaBatEmail(
   env: Env, staffId: string, email: string, nowMs: number, maHienCo?: unknown,
 ): Promise<{ emailMask: string } | { response: Response }> {
   const db = dbNgoaiVe(env.DB);
-  let duPhongHash: string | null = null;
+  let duPhong: { hash: string; ids: Record<string, string> } | null = null;
   if (maHienCo !== undefined) {
     const kq = await kiemMaHienCoNoi(env, staffId, maHienCo, nowMs, "TOTP_HOAC_DU_PHONG", "chiKiem");
     if (kq instanceof Response) return { response: kq };
-    duPhongHash = kq.duPhongHash;
+    if (kq.duPhongHash !== null) duPhong = { hash: kq.duPhongHash, ids: kq.ids };
   }
+  // Mã dự phòng đúng mà lệnh dừng trước khi tiêu (429 / 502 / tiêu thua): chỉ gỡ lượt vừa đặt chỗ — không tính là sai, không xoá các lần sai trước.
+  const goLuot = async (r: Response): Promise<{ response: Response }> => {
+    if (duPhong) await clearAttempts(db, null, duPhong.ids);
+    return { response: r };
+  };
   const reservation = await reserveAttempts(db, [{ key: mailKey(staffId), max: MAIL_LIMIT }]);
-  if (!reservation.allowed) return { response: tooMany(reservation.retryAfterSeconds, "gui_thu") };
+  if (!reservation.allowed) return goLuot(tooMany(reservation.retryAfterSeconds, "gui_thu"));
   const sent = await phatMaEmail({ ...env, DB: db }, { staffId, email, purpose: "enroll", by: staffId, nowMs });
-  if (!sent) return { response: MAIL_FAILED() };
-  if (duPhongHash !== null) {
+  if (!sent) return goLuot(MAIL_FAILED());
+  if (duPhong) {
     const at = new Date(nowMs).toISOString();
-    if (!(await useRecoveryHash(db, staffId, duPhongHash, at))) {
+    if (!(await useRecoveryHash(db, staffId, duPhong.hash, at))) {
       await emailCodeRevokeOpenStatement(db, staffId, "enroll", at, staffId).run();
-      return { response: SAI_MA_HIEN_CO("TOTP_HOAC_DU_PHONG") };
+      return goLuot(SAI_MA_HIEN_CO("TOTP_HOAC_DU_PHONG"));
     }
+    await clearAttempts(db, mfaKey(staffId), duPhong.ids); // đã tiêu mã → như mọi lần nhập đúng: xoá bộ đếm
   }
   return { emailMask: maskEmail(email) ?? "" };
 }

@@ -538,6 +538,24 @@ test("Vòng sửa 2: thăng vai qua PUT …/permissions (Bán hàng có TOTP + E
   assert.deepEqual(w.q("SELECT DISTINCT revoke_reason AS l, updated_by AS b FROM aut_trusted_device WHERE staff_id = ?", BH2).map((x: any) => ({ ...x })), [{ l: "tat_hai_lop", b: TQ }]);
 });
 
+test("Vòng sửa 2: mã dự phòng đúng nhưng CHƯA tiêu (429 hạn mức gửi) KHÔNG xoá bộ đếm nhập sai mfa:<id> — không thành vòng lặp dò mã vô hạn bằng một mã dự phòng", async () => {
+  const { w, thu } = await setup();
+  const codes: string[] = (await batEmail(w, thu, BH)).json.recoveryCodes;
+  for (let i = 0; i < 2; i++) w.sqlite.prepare("INSERT INTO login_attempt (id, key, at) VALUES (?, ?, ?)").run(crypto.randomUUID(), `mfa-mail:${BH}`, Date.now());
+  for (let i = 0; i < 4; i++) assert.equal((await start(w, BH, { email: "moi@example.com", currentCode: "zzzz-zzzz" })).status, 401);
+  for (let i = 0; i < 3; i++) {
+    const r = await start(w, BH, { email: "moi@example.com", currentCode: codes[0] });
+    assert.equal(r.status, 429, r.text);
+    assert.match(r.json.error.message, /Đã gửi quá nhiều mã qua email/);
+  }
+  assert.equal(dem(w, "SELECT count(*) AS n FROM login_attempt WHERE key = ?", `mfa:${BH}`), 4, "4 lần sai còn nguyên; lần đúng-chưa-tiêu không đếm, không xoá");
+  assert.equal((await start(w, BH, { email: "moi@example.com", currentCode: "zzzz-zzzz" })).status, 401);
+  const khoa = await start(w, BH, { email: "moi@example.com", currentCode: codes[0] });
+  assert.equal(khoa.status, 429, khoa.text);
+  assert.match(khoa.json.error.message, /Nhập sai quá nhiều lần/);
+  assert.equal(conLaiDuPhong(w, BH), 10);
+});
+
 test("Vòng sửa 2: mã dự phòng bị tiêu SONG SONG trong lúc thư đang gửi → lần này 401, mã bật vừa phát bị huỷ (không xác nhận được) — một mã dự phòng không mở được hai lần", async () => {
   const { w, thu } = await setup();
   const codes: string[] = (await batEmail(w, thu, BH)).json.recoveryCodes;
