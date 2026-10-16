@@ -73,8 +73,17 @@ export interface TicketInput {
   context: string;
   /** Nhóm nhận (ADR-0119); vắng = route dùng nhóm Kỹ thuật. Chỉ kiểm hình dạng; có thật/đang dùng do route kiểm. */
   teamId?: string;
+  /** Đơn liên quan (ADR-0127): chỉ kiểm hình dạng ở đây; đơn có thật và do chính người gửi lập do route kiểm (repository `donCuaNguoi`). */
+  orderId?: string;
 }
 export const TEAM_ID_RE = /^[a-z0-9-]{1,60}$/;
+/** Hình dạng id đơn (crypto.randomUUID — như UUID_RE của shared/http.ts). */
+const ORDER_ID_RE = /^[0-9a-f-]{36}$/;
+/**
+ * MỘT câu cho MỌI cách gắn đơn hỏng (ADR-0127 quyết định 3, Review Focus 3): sai dạng, không tồn tại, không phải của người gửi, tài khoản không có quyền
+ * xem đơn — giống hệt nhau để không dò được đơn của người khác.
+ */
+export const CAU_DON_LIEN_QUAN_SAI = "Không gắn được đơn này: chỉ gắn được đơn do chính bạn lập.";
 
 export function validateTicketInput(raw: Record<string, unknown>): Checked<TicketInput> {
   if (!isFeedbackKind(raw.kind)) return bad("Loại yêu cầu không hợp lệ.");
@@ -84,8 +93,12 @@ export function validateTicketInput(raw: Record<string, unknown>): Checked<Ticke
   if (body.length < 1 || body.length > BODY_MAX) return bad(`Nội dung phải từ 1 đến ${BODY_MAX} ký tự.`);
   if (typeof raw.clientRequestId !== "string" || !CLIENT_REQUEST_ID_RE.test(raw.clientRequestId)) return bad("Mã yêu cầu của thiết bị không hợp lệ.");
   if (raw.teamId !== undefined && (typeof raw.teamId !== "string" || !TEAM_ID_RE.test(raw.teamId))) return bad("Nhóm nhận không hợp lệ.");
+  const coDon = raw.orderId !== undefined && raw.orderId !== null;
+  if (coDon && (typeof raw.orderId !== "string" || !ORDER_ID_RE.test(raw.orderId))) return bad(CAU_DON_LIEN_QUAN_SAI);
+  // Dựng giá trị từ trường TƯỜNG MINH (không chép raw): `priority` người gửi kèm theo bị bỏ qua (ADR-0127 quyết định 2).
   const value: TicketInput = { kind: raw.kind, title, body, clientRequestId: raw.clientRequestId, context: sanitizeContext(raw.context) };
   if (typeof raw.teamId === "string") value.teamId = raw.teamId;
+  if (coDon) value.orderId = raw.orderId as string;
   return { ok: true, value };
 }
 

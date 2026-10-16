@@ -157,6 +157,24 @@ const LIST_MEMBERS_ALL = defineSql(
    WHERE m.valid_to_at IS NULL ORDER BY m.team_id, m.role, s.label`,
 );
 
+// ---- Đơn liên quan (ADR-0127 quyết định 3; cạnh feedback → orders) ------------------------------------------------------------------------------
+// CHỈ ba view công bố có sẵn của orders: v_ord_order_owner (người lập), v_ord_order_label (mã đơn), v_ord_order_state (trạng thái). Không tiền, khách, SĐT.
+// Bài siết ở src/architecture.test.ts: SQL của feedback nhắc view v_ord_* nào khác (hay đọc thẳng bảng orders) ⇒ đỏ.
+// «Đơn do chính người gọi lập» quyết ở MỘT đoạn dưới đây (`o.staff_id = ?1`), dùng chung cho danh sách chọn (my-orders) và kiểm lúc gửi phiếu.
+// Quyền xem đơn (ô order.view của chính người gọi) do route hỏi bằng can() TRƯỚC khi gọi hai hàm này.
+const DON_CUA_NGUOI = `SELECT o.id, l.order_code, s.status FROM v_ord_order_owner o JOIN v_ord_order_label l ON l.id = o.id JOIN v_ord_order_state s ON s.id = o.id
+   WHERE o.staff_id = ?1`;
+/** Mã đơn dạng TD-YYYYMMDD-NNNN ⇒ thứ tự mã là thứ tự thời gian. ?1 người gọi, ?2 giới hạn. */
+const MY_ORDERS = defineSql("feedback", "my_orders", `${DON_CUA_NGUOI} ORDER BY l.order_code DESC LIMIT ?2`);
+/** ?1 người gửi, ?2 id đơn. Không thấy = không tồn tại HOẶC không phải của người gửi (route trả cùng một câu). */
+const MY_ORDER_ONE = defineSql("feedback", "my_order_one", `${DON_CUA_NGUOI} AND o.id = ?2`);
+export interface DonCuaToiRow { id: string; order_code: string; status: string }
+/** Tối đa bao nhiêu đơn ở danh sách chọn khi gửi phiếu (đặc tả đợt 2a mục mã đơn). */
+export const MY_ORDERS_LIMIT = 30;
+export const listDonCuaToi = async (db: D1Database, staffId: string): Promise<DonCuaToiRow[]> =>
+  (await db.prepare(MY_ORDERS).bind(staffId, MY_ORDERS_LIMIT).all<DonCuaToiRow>()).results;
+export const getDonCuaToi = (db: D1Database, staffId: string, orderId: string) => db.prepare(MY_ORDER_ONE).bind(staffId, orderId).first<DonCuaToiRow>();
+
 export const getTicket = (db: D1Database, id: string) => db.prepare(GET).bind(id).first<TicketRow>();
 export const findByRequest = (db: D1Database, submitterId: string, clientRequestId: string) =>
   db.prepare(FIND_BY_REQUEST).bind(submitterId, clientRequestId).first<{ id: string }>();
@@ -191,12 +209,14 @@ export const statsTeam = async (db: D1Database, sinceIso: string, teamId: string
 // ---- Ghi -----------------------------------------------------------------------------------------------------------
 // Tạo yêu cầu: MỘT câu INSERT … SELECT … WHERE (đếm trong cửa sổ) < trần AND chưa có cùng (người gửi, client_request_id).
 // Đếm và chèn trong cùng một câu lệnh nên hai request song song không cùng qua trần (D1 tuần tự hoá ghi). seq = max+1 cùng câu.
-// ?1 id, ?2 loại, ?3 tiêu đề, ?4 context JSON, ?5 người gửi, ?6 client_request_id, ?7 bây giờ, ?8 đầu cửa sổ, ?9 trần, ?10 nhóm nhận (route đã kiểm có thật, đang dùng).
+// ?1 id, ?2 loại, ?3 tiêu đề, ?4 context JSON, ?5 người gửi, ?6 client_request_id, ?7 bây giờ, ?8 đầu cửa sổ, ?9 trần, ?10 nhóm nhận (route đã kiểm có thật, đang dùng),
+// ?11/?12 id và mã đơn liên quan chụp lúc gửi (cùng NULL hoặc cùng có — CHECK của cột; route đã kiểm đơn của chính người gửi qua getDonCuaToi).
 const INSERT_TICKET = defineSql(
   "feedback",
   "insert_ticket",
-  `INSERT INTO fbk_ticket (id, seq, kind_code, status_code, title, context, submitter_id, client_request_id, last_activity_at, created_at, created_by, updated_at, updated_by, team_id)
-   SELECT ?1, COALESCE((SELECT max(seq) FROM fbk_ticket), 0) + 1, ?2, 'NEW', ?3, ?4, ?5, ?6, ?7, ?7, ?5, ?7, ?5, ?10
+  `INSERT INTO fbk_ticket (id, seq, kind_code, status_code, title, context, submitter_id, client_request_id, last_activity_at, created_at, created_by, updated_at, updated_by, team_id,
+     order_id, order_code)
+   SELECT ?1, COALESCE((SELECT max(seq) FROM fbk_ticket), 0) + 1, ?2, 'NEW', ?3, ?4, ?5, ?6, ?7, ?7, ?5, ?7, ?5, ?10, ?11, ?12
    WHERE (SELECT count(*) FROM fbk_ticket WHERE submitter_id = ?5 AND created_at > ?8) < ?9
      AND NOT EXISTS (SELECT 1 FROM fbk_ticket WHERE submitter_id = ?5 AND client_request_id = ?6)`,
 );
@@ -320,8 +340,14 @@ const SET_NOTIFIED = defineSql("feedback", "set_notified", `UPDATE fbk_ticket SE
 
 export const insertTicketStatement = (
   db: D1Database,
-  a: { id: string; kind: string; title: string; context: string; submitterId: string; clientRequestId: string; now: string; windowStart: string; limit: number; teamId: string },
-) => db.prepare(INSERT_TICKET).bind(a.id, a.kind, a.title, a.context, a.submitterId, a.clientRequestId, a.now, a.windowStart, a.limit, a.teamId);
+  a: {
+    id: string; kind: string; title: string; context: string; submitterId: string; clientRequestId: string; now: string; windowStart: string; limit: number; teamId: string;
+    order: { id: string; code: string } | null;
+  },
+) =>
+  db
+    .prepare(INSERT_TICKET)
+    .bind(a.id, a.kind, a.title, a.context, a.submitterId, a.clientRequestId, a.now, a.windowStart, a.limit, a.teamId, a.order?.id ?? null, a.order?.code ?? null);
 export const insertFirstMessageStatement = (db: D1Database, a: { id: string; ticketId: string; authorId: string; body: string; now: string }) =>
   db.prepare(INSERT_FIRST_MESSAGE).bind(a.id, a.ticketId, a.authorId, a.body, a.now);
 export const insertReplyStatement = (

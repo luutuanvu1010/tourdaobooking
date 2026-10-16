@@ -868,3 +868,122 @@ test("hàng đợi nhóm (và hàng đợi admin) sắp Khẩn → Cao → Thư�
   const mine = await w.call("GET", "/api/feedback/mine", { as: SALES });
   assert.deepEqual(tieuDe(mine.json.tickets), ["N1", "N2", "H", "U"], "người gửi giữ thứ tự cũ");
 });
+
+test("câu 403 của tuyến xử lý (kể cả thân chỉ có priority) nói đúng việc: «Chỉ nhóm xử lý được xử lý phiếu.»", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  for (const body of [{ priority: "URGENT" }, { status: "IN_PROGRESS" }]) {
+    const r = await xuLy(w, id, SALES, body);
+    assert.equal(r.status, 403, r.text);
+    assert.equal(r.json.error.message, "Chỉ nhóm xử lý được xử lý phiếu.");
+  }
+});
+
+// ---- Việc 3 (ADR-0127 quyết định 3): mã đơn liên quan ---------------------------------------------------------------------------------------------
+// Đơn gieo thẳng bảng orders (khung thử); id dạng UUID như đơn thật. Mã TD-YYYYMMDD-NNNN ⇒ thứ tự mã = thứ tự thời gian.
+const DON = (n: number) => `d0000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+const MA = (n: number) => `TD-20261001-${String(n).padStart(4, "0")}`;
+function gieoDon(w: any, n: number, staffId: string, status = "confirmed") {
+  w.sqlite.exec(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, created_at, updated_at)
+                 VALUES ('${DON(n)}', '${MA(n)}', '${staffId}', '${status}', 'Khách Bí Mật', '0911222333', '${NOW}', '${NOW}')`);
+}
+const donCuaToi = (w: any, as: string) => w.call("GET", "/api/feedback/my-orders", { as });
+const CAU_DON_SAI = "Không gắn được đơn này: chỉ gắn được đơn do chính bạn lập.";
+
+test("my-orders: chỉ đơn do chính người gọi lập, sắp mã giảm dần, tối đa 30, chỉ id/orderCode/status (không tiền, khách, SĐT)", async () => {
+  const w = setup();
+  for (let n = 1; n <= 31; n++) gieoDon(w, n, SALES, n === 31 ? "draft" : "confirmed");
+  gieoDon(w, 40, SUPER); // đơn người khác, mã LỚN hơn mọi đơn của SALES
+  const r = await donCuaToi(w, SALES);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.orders.length, 30);
+  assert.deepEqual(r.json.orders.map((o: any) => o.orderCode), Array.from({ length: 30 }, (_, i) => MA(31 - i)));
+  assert.deepEqual(r.json.orders[0], { id: DON(31), orderCode: MA(31), status: "draft" });
+  for (const o of r.json.orders) assert.deepEqual(Object.keys(o).sort(), ["id", "orderCode", "status"]);
+  assert.deepEqual(Object.keys(r.json), ["orders"]);
+  assert.ok(!r.text.includes("Khách Bí Mật") && !r.text.includes("0911222333"), "không lộ tên khách / SĐT");
+  assert.ok(!r.text.includes(MA(40)), "không lộ đơn của người khác");
+});
+
+test("my-orders: Đối tác chỉ thấy đơn họ lập; tuyến tĩnh không bị hiểu là id phiếu; chưa đăng nhập ⇒ 401", async () => {
+  const w = setup();
+  gieoDon(w, 1, PARTNER); gieoDon(w, 2, SALES);
+  const r = await donCuaToi(w, PARTNER);
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json.orders, [{ id: DON(1), orderCode: MA(1), status: "confirmed" }]);
+  assert.equal((await w.call("GET", "/api/feedback/my-orders")).status, 401);
+});
+
+test("my-orders: tài khoản không có quyền xem đơn (Nhân sự, tài xế đối tác) hoặc vừa bị rút quyền ⇒ 403, không lộ mã đơn cũ", async () => {
+  const w = setup();
+  gieoDon(w, 1, NS_TV); gieoDon(w, 2, TXDT); gieoDon(w, 3, SALES);
+  for (const as of [NS_TV, TXDT]) {
+    const r = await donCuaToi(w, as);
+    assert.equal(r.status, 403, `${as} ${r.text}`);
+    assert.equal(r.json.error.message, "Tài khoản của bạn không xem được đơn hàng.");
+  }
+  assert.equal((await donCuaToi(w, SALES)).status, 200);
+  // Rút quyền Bán hàng, chỉ còn Nhân sự: cùng phiên đăng nhập đọc lại quyền mỗi request ⇒ 403 của THÂN route (không phải 401 / câu của cổng).
+  w.sqlite.exec(`UPDATE stf_permission SET valid_to_at = '${NOW}' WHERE staff_id = '${SALES}' AND permission_type_code = 'SALES'`);
+  w.sqlite.exec(`INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES ('${SALES}-HR', '${SALES}', 'HR', '${NOW}', '${NOW}', '${NOW}')`);
+  const r = await donCuaToi(w, SALES);
+  assert.equal(r.status, 403, r.text);
+  assert.equal(r.json.error.message, "Tài khoản của bạn không xem được đơn hàng.");
+  assert.ok(!r.text.includes(MA(3)));
+});
+
+test("gửi phiếu kèm đơn của mình ⇒ phiếu chụp mã đơn lúc gửi; người gửi, thành viên nhóm, Toàn quyền đều thấy mã; nhật ký không ghi mã đơn", async () => {
+  const w = setup();
+  gieoDon(w, 7, SALES);
+  const r = await tao(w, SALES, KE_TOAN, { orderId: DON(7) });
+  assert.equal(r.status, 201, r.text);
+  assert.equal(r.json.ticket.orderId, DON(7));
+  assert.equal(r.json.ticket.orderCode, MA(7));
+  const id = r.json.ticket.id;
+  assert.deepEqual({ ...w.q(`SELECT order_id, order_code FROM fbk_ticket WHERE id = '${id}'`)[0] }, { order_id: DON(7), order_code: MA(7) });
+  // Chụp lúc gửi: mã đơn đổi về sau, phiếu vẫn giữ mã cũ.
+  w.sqlite.exec(`UPDATE orders SET order_code = 'TD-20261001-9999' WHERE id = '${DON(7)}'`);
+  for (const as of [SALES, KT_TV, SUPER]) {
+    const d = await w.call("GET", `/api/feedback/${id}`, { as });
+    assert.equal(d.status, 200, `${as} ${d.text}`);
+    assert.equal(d.json.ticket.orderCode, MA(7), as);
+  }
+  const q = await hang(w, KT_TV);
+  assert.equal(q.json.tickets[0].orderCode, MA(7));
+  const nk = w.q(`SELECT action, detail FROM audit_log WHERE target_id = '${id}'`);
+  assert.ok(nk.length > 0);
+  for (const x of nk) assert.ok(!String(x.detail ?? "").includes(MA(7)) && !String(x.detail ?? "").includes(DON(7)), JSON.stringify(x));
+  // Không gắn đơn ⇒ cả hai cột NULL.
+  const k = await tao(w, SALES, KE_TOAN);
+  assert.equal(k.status, 201, k.text);
+  assert.equal(k.json.ticket.orderId, null);
+  assert.equal(k.json.ticket.orderCode, null);
+  const n = await tao(w, SALES, KE_TOAN, { orderId: null });
+  assert.equal(n.status, 201, n.text);
+  assert.equal(n.json.ticket.orderCode, null);
+});
+
+test("gắn đơn của người khác, đơn không tồn tại, mã sai dạng, hay tài khoản không có quyền xem đơn ⇒ CÙNG 400 và CÙNG câu (không dò đơn), không tạo phiếu", async () => {
+  const w = setup();
+  gieoDon(w, 1, SUPER); gieoDon(w, 2, NS_TV);
+  const ca: [string, unknown][] = [[SALES, DON(1)], [SALES, DON(99)], [SALES, "khong-phai-uuid"], [SALES, 12345], [NS_TV, DON(2)], [PARTNER, DON(1)]];
+  const than = new Set<string>();
+  for (const [as, orderId] of ca) {
+    const r = await tao(w, as, as === PARTNER ? KY_THUAT : KE_TOAN, { orderId });
+    assert.equal(r.status, 400, `${as} ${String(orderId)} ${r.text}`);
+    assert.equal(r.json.error.message, CAU_DON_SAI);
+    than.add(r.text);
+  }
+  assert.equal(than.size, 1, `mọi ca trả CÙNG một thân: ${[...than].join(" | ")}`);
+  assert.equal(w.q("SELECT count(*) AS n FROM fbk_ticket")[0].n, 0);
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'feedback_created'")[0].n, 0);
+});
+
+test("gửi kèm đơn của mình VÀ priority: đơn được gắn, priority vẫn bị bỏ qua (Việc 2 không vỡ)", async () => {
+  const w = setup();
+  gieoDon(w, 5, SALES);
+  const r = await tao(w, SALES, KE_TOAN, { orderId: DON(5), priority: "URGENT" });
+  assert.equal(r.status, 201, r.text);
+  assert.equal(r.json.ticket.orderCode, MA(5));
+  assert.equal(r.json.ticket.priority, "NORMAL");
+});

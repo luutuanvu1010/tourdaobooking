@@ -4,7 +4,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { FEEDBACK_KINDS, FEEDBACK_KIND_NAME, FEEDBACK_STATUSES, FEEDBACK_STATUS_NAME } from "../../shared/feedback-catalog.ts";
 import {
-  BODY_MAX, TITLE_MAX, parseContext, sanitizeContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch, validateTicketInput, windowStart,
+  BODY_MAX, CAU_DON_LIEN_QUAN_SAI, TITLE_MAX, parseContext, sanitizeContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch, validateTicketInput, windowStart,
 } from "./rules.ts";
 
 const REQ = "0b8f6f2e-3c1a-4f6e-9a55-2b6f4d1c7e10";
@@ -119,4 +119,26 @@ test("validateTicketInput: người gửi kèm priority ⇒ bị bỏ qua (khôn
   const r = validateTicketInput({ ...ok, priority: "URGENT" });
   assert.ok(r.ok);
   assert.equal("priority" in r.value, false);
+});
+
+test("validateTicketInput: orderId tuỳ chọn — vắng / null ⇒ không gắn; UUID ⇒ giữ đúng; sai dạng ⇒ CÙNG câu với đơn không tồn tại / không phải của mình", () => {
+  const vang = validateTicketInput(ok);
+  assert.ok(vang.ok);
+  assert.equal("orderId" in vang.value, false);
+  const rong = validateTicketInput({ ...ok, orderId: null });
+  assert.ok(rong.ok);
+  assert.equal("orderId" in rong.value, false);
+  const id = "d0000000-0000-4000-8000-000000000007";
+  const co = validateTicketInput({ ...ok, orderId: id });
+  assert.ok(co.ok);
+  assert.equal(co.value.orderId, id);
+  for (const x of ["", "abc", 123, true, {}, [], "D0000000-0000-4000-8000-000000000007", `${id} `]) {
+    const r = validateTicketInput({ ...ok, orderId: x });
+    assert.equal(r.ok, false, `orderId=${JSON.stringify(x)}`);
+    if (!r.ok) assert.equal(r.message, CAU_DON_LIEN_QUAN_SAI);
+  }
+  assert.equal(CAU_DON_LIEN_QUAN_SAI, "Không gắn được đơn này: chỉ gắn được đơn do chính bạn lập.");
+  const kem = validateTicketInput({ ...ok, orderId: id, priority: "URGENT" });
+  assert.ok(kem.ok);
+  assert.equal("priority" in kem.value, false, "kèm orderId vẫn bỏ qua priority");
 });

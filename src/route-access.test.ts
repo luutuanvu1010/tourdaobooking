@@ -139,6 +139,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/feedback/badge", access: "staff" },
   { method: "GET", path: "/api/feedback/mine", access: "staff" },
   { method: "GET", path: "/api/feedback/teams", access: "staff" },
+  { method: "GET", path: "/api/feedback/my-orders", access: "staff" }, // ADR-0127 Việc 3 — đơn do chính mình lập để gắn vào phiếu (can order.view, ownerId = người gọi)
   { method: "GET", path: "/api/feedback/queue", access: "staff" },
   { method: "GET", path: "/api/feedback/admin/teams", access: "staff" },
   { method: "POST", path: "/api/feedback/admin/teams", access: "staff" },
@@ -555,6 +556,7 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-16 (ADR-0074 Phần B Task 6): + POST /api/staff/:id/mfa-reset (admin) và POST /api/auth/mfa/enroll/{start, confirm} (public; cookie chờ "enroll") = 324.
   // 2026-10-16 (ADR-0074 Phần C Task 2): + POST /api/auth/mfa/email (public; cookie chờ "verify", tự gọi maintenanceBlock) = 325.
   // 2026-10-16 (ADR-0074 Phần C Task 3): + POST /api/account/mfa/email/{start, confirm} (staff, tự phục vụ; vai lớn 409 trong thân) = 327.
-  assert.equal(actual.length, 327, "số route thực tế lệch 327 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 327, "SNAPSHOT phải có đúng 327 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-17 (ADR-0127 Vé hỗ trợ đợt 2a, Việc 3): + GET /api/feedback/my-orders (staff, rồi can order.view của chính mình) = 328.
+  assert.equal(actual.length, 328, "số route thực tế lệch 328 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 328, "SNAPSHOT phải có đúng 328 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });
