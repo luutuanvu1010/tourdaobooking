@@ -69,6 +69,8 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
   "GET /api/account/mfa": { ma: 200, ly_do: "tự phục vụ: trạng thái bảo mật hai lớp của chính mình (chỉ loại yếu tố, số mã còn lại, máy tin)" },
   "POST /api/account/mfa/totp/start": { ma: 503, ly_do: "tự phục vụ bật ứng dụng xác thực; khung thử không có MFA_ENCRYPTION_KEY → 503" },
   "POST /api/account/mfa/totp/confirm": { ma: 503, ly_do: "như trên (kiểm khoá máy chủ trước phiếu bật)" },
+  "POST /api/account/mfa/email/start": { ma: 400, ly_do: "tự phục vụ bật yếu tố email (tài xế được dùng email — ADR-0074 điều 7); thân rỗng (thiếu địa chỉ) → 400" },
+  "POST /api/account/mfa/email/confirm": { ma: 400, ly_do: "như trên; thân rỗng → 400" },
   "POST /api/account/mfa/recovery/regenerate": { ma: 409, ly_do: "tự phục vụ; chưa bật ứng dụng xác thực → 409" },
   "POST /api/account/mfa/remove": { ma: 400, ly_do: "tự phục vụ; thân rỗng (thiếu loại yếu tố) → 400" },
   "POST /api/account/mfa/trusted/:id/forget": { ma: 404, ly_do: "tự phục vụ quên máy tin của chính mình; máy lạ → 404" },

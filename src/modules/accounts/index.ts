@@ -11,15 +11,16 @@ import {
   MFA_UNAVAILABLE, allowedFactors, batTotpStatements, boMaDuPhongMoi, goYeuToStatements, isInternal, khopKhoaMoi, kiemMaHienCo, mayTinSong, mfaBanner, moiKhoaTotp,
   quenMayStatement, quenMoiMayStatement, recoveryCountLeft, yeuToSong, lockedMfaStaffIds, staffIdsWithFactor, tatHaiLopStatements, trustedRevokeAllIfSuspendedStatement, unlockLogin,
   trustedRevokeOfSessionStatement, trustedRevokeOnPinStatement,
+  EMAIL_VAI_LON, batEmailStatements, factorEndKindStatement, guiMaBatEmail, kiemMaBatEmail, normalizeEmail,
 } from "../auth";
 import {
   KHONG_NHAN_VAI_NOI_BO, accountRoleCodes, canManageAccount, checkAccountChange, chuPhienTheoId, hoSoCoNhanDoiTac, moNoiBoChoHoSoCoNhanProblem, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
   generatePin, getAccountRoleState, getStaffAccount, isValidPin, listStaffAccounts, mfaDeadlinesOf, normalizePhone, renameAccountStatements, roleChangeStatements,
   setPermissionStatements, setPinStatement, touchCredentialsStatement, updateStaffStatement, validateFreshPin, validateNewPin, type StaffAccount,
-  MFA_ENROLL_WINDOW_MS, mfaEnrollWindowStatement, mfaGraceIfNullStatement, mfaKhiThanhNoiBo, mfaGraceOnReactivate, mfaGraceTheoId,
+  MFA_ENROLL_WINDOW_MS, mfaEnrollWindowStatement, mfaGraceIfNullStatement, mfaSauDoiQuyen, mfaGraceOnReactivate, mfaGraceTheoId,
 } from "../staff";
 import type {
-  AccountMfaResponse, MfaRecoveryCodesResponse, MfaTotpConfirmResponse, MfaTotpStartResponse, PartyMatchResponse, PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, SessionListResponse, SessionPolicyPreviewResponse,
+  AccountMfaResponse, MfaEmailStartResponse, MfaRecoveryCodesResponse, MfaTotpConfirmResponse, MfaTotpStartResponse, PartyMatchResponse, PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, SessionListResponse, SessionPolicyPreviewResponse,
   SessionPolicyResponse, SessionPolicyRowDto, SessionPolicySaveResponse, StaffAccountDto, StaffListResponse, StaffResponse, StaffRolesResponse, StaffSessionListResponse, StaffWithPinResponse,
 } from "../../shared/contracts";
 import { toBase64Url } from "../../shared/encoding";
@@ -212,26 +213,40 @@ export function patchStaffStatements(
 }
 
 /**
- * ADR-0074 điều 1 (bổ sung chủ xác nhận 2026-10-01; kế hoạch Task 6, nhóm (a); vòng sửa 1): câu lệnh khi lần đổi quyền / vai làm tài khoản TỪ không nội bộ
- * THÀNH nội bộ mà chưa có yếu tố sống (đọc qua auth — staff không đọc bảng aut_*). Luật thuần: mfaKhiThanhNoiBo.
- * - hạn NULL → câu ân hạn 14 ngày;
- * - hạn đã qua → kết thúc MỌI phiên của tài khoản (lý do 'bi_go', người làm = người đổi quyền) + nhật ký session_revoked (khuôn của POST /api/sessions/:id/revoke:
- *   câu nhật ký ngay sau câu kết thúc, `changes() > 0`) — phiên cấp trong giai đoạn "bên ngoài" không qua cổng lớp hai.
+ * Câu lệnh bảo mật hai lớp của một lô đổi quyền / vai (đọc yếu tố qua auth — staff không đọc bảng aut_*). Luật thuần: mfaSauDoiQuyen (staff/rules.ts).
+ * - ADR-0074 điều 7 (Phần C Task 3): quyền SAU lô không cho email (Quản trị / Toàn quyền / Kế toán — `allowedFactors`) mà đang có yếu tố email → kết thúc yếu tố
+ *   email trong CÙNG lô (người làm = người đổi quyền) + nhật ký mfa_removed (`changes() > 0`, chi tiết chỉ loại yếu tố — không địa chỉ).
+ * - ADR-0074 điều 1 (kế hoạch Phần B Task 6, nhóm (a); vòng sửa 1) và điều 7: SAU lô là nội bộ mà không còn yếu tố sống (trừ yếu tố email vừa kết thúc), khi
+ *   trước đó không nội bộ HOẶC lô vừa lấy mất yếu tố email:
+ *   - hạn NULL → câu ân hạn 14 ngày (câu chỉ đặt khi cột còn NULL);
+ *   - hạn đã qua → kết thúc MỌI phiên của tài khoản (lý do 'bi_go', người làm = người đổi quyền) + nhật ký session_revoked (khuôn của POST /api/sessions/:id/revoke:
+ *     câu nhật ký ngay sau câu kết thúc, `changes() > 0`) — không gia hạn (kẽ hở gia hạn vô hạn đã bịt ở Phần B);
+ *   - hạn còn → không làm gì.
  * `ketThucPhien` để route đóng Bảng tin + tắt thông báo của tài khoản. Câu CHƯA chạy; người gọi đặt TRƯỚC câu phiên của exemptionChangeStatements (ketQua đọc vị
- * trí cuối lô) và chỉ ở lô không chốt.
+ * trí cuối lô). Lô có câu chốt (gỡ ADMIN): người gọi chỉ chạy các câu này ở lô thứ hai, sau khi câu chốt thắng.
  */
-async function haiLopKhiThanhNoiBo(
+async function haiLopSauDoiQuyen(
   db: D1Database, t: StaffAccount, next: readonly PermissionCode[], at: string, adminId: string,
 ): Promise<{ statements: D1PreparedStatement[]; ketThucPhien: boolean }> {
-  if (isInternal(t.permissions) || !isInternal(next)) return { statements: [], ketThucPhien: false };
+  const boEmail = !allowedFactors(next).includes("EMAIL");
+  // Nhanh: không mất email, không chuyển bên ngoài → nội bộ ⇒ không đọc gì thêm.
+  if (!boEmail && (isInternal(t.permissions) || !isInternal(next))) return { statements: [], ketThucPhien: false };
   const [song, han] = await Promise.all([yeuToSong(db, t.id), mfaDeadlinesOf(db, t.id)]);
-  const kq = mfaKhiThanhNoiBo(t.permissions, next, song.length > 0, han.graceUntil, Date.parse(at));
-  if (kq.anHan) return { statements: [mfaGraceIfNullStatement(db, t.id, kq.anHan)], ketThucPhien: false };
-  if (!kq.ketThucPhien) return { statements: [], ketThucPhien: false };
+  const vuaMatEmail = boEmail && song.some((f) => f.kind === "EMAIL");
+  const conSauLo = song.some((f) => !(vuaMatEmail && f.kind === "EMAIL"));
+  const ketThucEmail = vuaMatEmail
+    ? [factorEndKindStatement(db, t.id, "EMAIL", at, adminId), adminAudit(db, adminId, "mfa_removed", t.id, "EMAIL — quyền mới chỉ dùng ứng dụng xác thực", "changes() > 0")]
+    : [];
+  const kq = mfaSauDoiQuyen(t.permissions, next, conSauLo, vuaMatEmail, han.graceUntil, Date.parse(at));
+  if (kq.anHan) return { statements: [...ketThucEmail, mfaGraceIfNullStatement(db, t.id, kq.anHan)], ketThucPhien: false };
+  if (!kq.ketThucPhien) return { statements: ketThucEmail, ketThucPhien: false };
   return {
     statements: [
+      ...ketThucEmail,
       endAllSessionsStatement(db, t.id, "bi_go", at, adminId),
-      adminAudit(db, adminId, "session_revoked", t.id, "mọi phiên — lên quyền nội bộ khi chưa bật bảo mật hai lớp và đã hết ân hạn", "changes() > 0"),
+      adminAudit(db, adminId, "session_revoked", t.id,
+        vuaMatEmail ? "mọi phiên — quyền mới không dùng được email, chưa bật ứng dụng xác thực và đã hết ân hạn" : "mọi phiên — lên quyền nội bộ khi chưa bật bảo mật hai lớp và đã hết ân hạn",
+        "changes() > 0"),
     ],
     ketThucPhien: true,
   };
@@ -613,19 +628,21 @@ export const accountsModule: AppModule = {
       // (gỡ ADMIN) thì câu phiên chạy ở lô THỨ HAI, chỉ khi lô quyền đã thắng câu chốt; không có câu chốt thì nối cuối lô duy nhất (nguyên tử).
       const nhieuMay = await docTapNhieuMay(db);
       const phien = exemptionChangeStatements(db, { staffId: t.id, at, by: admin.id, nhieuMay, before: { permissions: t.permissions, roles: [] }, after: { permissions: next, roles: [] } });
-      // ADR-0074 điều 1 (kế hoạch Task 6, nhóm (a)): bên ngoài → nội bộ, chưa có yếu tố → ân hạn 14 ngày. Chỉ ở lô KHÔNG chốt (lô chốt = gỡ ADMIN ⇒ trước đã nội bộ
-      // ⇒ không có ân hạn — bài staff/rules.test.ts); đứng TRƯỚC câu phiên (ketQua đọc vị trí cuối lô).
-      const haiLop = await haiLopKhiThanhNoiBo(db, t, next, at, admin.id);
+      // ADR-0074 điều 1 (kế hoạch Task 6, nhóm (a)) + điều 7 (Phần C Task 3): kết thúc yếu tố email khi quyền sau có Quản trị / Toàn quyền / Kế toán; ân hạn / kết
+      // thúc phiên khi sau lô không còn yếu tố (haiLopSauDoiQuyen). Đứng TRƯỚC câu phiên (ketQua đọc vị trí cuối lô). Lô có câu chốt (gỡ ADMIN): đi cùng câu phiên ở
+      // lô THỨ HAI, chỉ khi câu chốt thắng (chỉ dữ liệu lệch mới có yếu tố email ở đây — trước đó đã giữ ADMIN).
+      const haiLop = await haiLopSauDoiQuyen(db, t, next, at, admin.id);
+      const sauChot = [...haiLop.statements, ...phien.statements];
       const stmts = [
         ...(plan.guarded ? [plan.guarded] : []), adminAudit(db, admin.id, "permission_changed", t.id, detail, plan.guarded ? "changes() > 0" : undefined), ...plan.rest,
-        ...(plan.guarded ? [] : [...haiLop.statements, ...phien.statements]),
+        ...(plan.guarded ? [] : sauChot),
       ];
       let results: D1Result[];
       let loPhien: D1Result[] = [];
       try {
         results = await db.batch(stmts);
         if (plan.guarded && (results[0]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
-        loPhien = plan.guarded ? (phien.statements.length ? await db.batch(phien.statements) : []) : results;
+        loPhien = plan.guarded ? (sauChot.length ? await db.batch(sauChot) : []) : results;
       } catch (e) {
         // Lô hai lỗi ⇒ quyền/vai đã đổi, phiên thừa sống tới lần đăng nhập sau; R-AUT-SESSION-3 thấy.
         const rule = ruleViolation(e); // lưới cuối: lỗi trigger (LC-1b…) thành 409, không 500
@@ -635,8 +652,8 @@ export const accountsModule: AppModule = {
       const matMien = phien.ketQua(loPhien);
       // ADR-0075 điều 6: máy vừa mất phiên vì mất miễn — đóng Bảng tin của đúng các phiên đó, tắt thông báo của tài khoản trừ máy được giữ.
       if (matMien.endedSessionIds.length) ctx.dongBangTin({ staffId: t.id, sessionIds: matMien.endedSessionIds, giuPhien: matMien.keptSessionId });
-      // Vòng sửa 1 Task 6: lên nội bộ khi hết ân hạn mà chưa bật lớp hai — mọi phiên vừa kết thúc trong lô: đóng Bảng tin + tắt thông báo như thao tác bảo mật.
-      if (!plan.guarded && haiLop.ketThucPhien) ctx.dongBangTin({ staffId: t.id, tatThongBao: true });
+      // Vòng sửa 1 Task 6 (+ Phần C Task 3): hết ân hạn mà sau lô không còn yếu tố — mọi phiên vừa kết thúc trong lô: đóng Bảng tin + tắt thông báo như thao tác bảo mật.
+      if (haiLop.ketThucPhien) ctx.dongBangTin({ staffId: t.id, tatThongBao: true });
       else ctx.dongBangTin({ staffId: t.id, tatThongBao: false }); // BẢNG TIN (KN-2): quyền vừa đổi. ADR-0046: đổi quyền KHÔNG tắt thông báo điện thoại.
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);
     }),
@@ -691,7 +708,9 @@ export const accountsModule: AppModule = {
         before: { permissions: t.permissions, roles: state.roles }, after: { permissions: change.next, roles: parsed.value.roles },
       });
       let cuoi: D1Result[] = [];
-      let ketThucPhienHaiLop = false;
+      // ADR-0074 điều 1 (kế hoạch Task 6, nhóm (a)) + điều 7 (Phần C Task 3): xem haiLopSauDoiQuyen. TRƯỚC câu phiên (ketQua đọc vị trí cuối lô); nhánh chốt (gỡ
+      // ADMIN): đi cùng lô vai, sau khi câu chốt thắng.
+      const haiLop = await haiLopSauDoiQuyen(db, t, change.next, at, admin.id);
       try {
         if (change.permissions.guarded) {
           // Gỡ ADMIN: câu chốt "còn quản trị viên khác" ĐẦU batch; nhật ký + quyền + chỉnh tay mang cùng điều kiện. Vai (module parties) không mang được
@@ -703,16 +722,13 @@ export const accountsModule: AppModule = {
             ...change.adjustmentStatements,
           ]);
           if ((results[0]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
-          if (change.roleStatements.length || phien.statements.length) cuoi = await db.batch([...change.roleStatements, ...phien.statements]);
+          const loHai = [...change.roleStatements, ...haiLop.statements, ...phien.statements];
+          if (loHai.length) cuoi = await db.batch(loHai);
         } else {
-          // ADR-0074 điều 1 (kế hoạch Task 6, nhóm (a)): vai bên ngoài → vai nội bộ, chưa có yếu tố → ân hạn 14 ngày; TRƯỚC câu phiên (ketQua đọc vị trí cuối lô).
-          // Nhánh chốt ở trên (gỡ ADMIN) không cần: trước đã nội bộ.
-          const haiLop = await haiLopKhiThanhNoiBo(db, t, change.next, at, admin.id);
           cuoi = await db.batch([
             ...change.roleStatements, ...change.adjustmentStatements, ...change.permissions.rest, adminAudit(db, admin.id, "account_roles_changed", t.id, detail),
             ...haiLop.statements, ...phien.statements,
           ]);
-          ketThucPhienHaiLop = haiLop.ketThucPhien;
         }
       } catch (e) {
         // Lô hai lỗi ⇒ quyền/vai đã đổi, phiên thừa sống tới lần đăng nhập sau; R-AUT-SESSION-3 thấy.
@@ -724,7 +740,7 @@ export const accountsModule: AppModule = {
       // ADR-0075 điều 6: máy vừa mất phiên vì mất miễn — đóng Bảng tin của đúng các phiên đó, tắt thông báo của tài khoản trừ máy được giữ.
       if (matMien.endedSessionIds.length) ctx.dongBangTin({ staffId: t.id, sessionIds: matMien.endedSessionIds, giuPhien: matMien.keptSessionId });
       // Vòng sửa 1 Task 6: lên nội bộ khi hết ân hạn mà chưa bật lớp hai — mọi phiên vừa kết thúc trong lô: đóng Bảng tin + tắt thông báo như thao tác bảo mật.
-      if (ketThucPhienHaiLop) ctx.dongBangTin({ staffId: t.id, tatThongBao: true });
+      if (haiLop.ketThucPhien) ctx.dongBangTin({ staffId: t.id, tatThongBao: true });
       else ctx.dongBangTin({ staffId: t.id, tatThongBao: false }); // BẢNG TIN (KN-2): vai/quyền vừa đổi. ADR-0046: đổi vai KHÔNG tắt thông báo điện thoại.
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);
     }),
@@ -841,7 +857,7 @@ export const accountsModule: AppModule = {
       const mayNay = phien?.staff_id === staff.id ? phien.trusted_device_id : null;
       return json({
         required: banner.required, graceUntil: banner.graceUntil,
-        factors: factors.map((f) => ({ kind: f.kind, createdAt: f.createdAt })),
+        factors: factors.map((f) => ({ kind: f.kind, createdAt: f.createdAt, emailMask: f.emailMask })), // email chỉ dạng che (ADR-0074 điều 8)
         allowed: allowedFactors(staff.permissions), recoveryLeft,
         trustedDevices: devices.map((d) => ({ id: d.id, label: d.label, createdAt: d.createdAt, lastUsedAt: d.lastUsedAt, thisDevice: mayNay !== null && d.id === mayNay })),
       } satisfies AccountMfaResponse);
@@ -878,6 +894,58 @@ export const accountsModule: AppModule = {
           ...batTotpStatements(env.DB, { staffId: staff.id, thayId: song.find((f) => f.kind === "TOTP")?.id ?? null, id: crypto.randomUUID(), secretEnc: moi.secretEnc, step: moi.step, at }),
           ...(ma ? ma.statements : []),
           auditStatement(env.DB, { staffId: staff.id, action: "mfa_enabled", at, targetType: "staff", targetId: staff.id, detail: "TOTP" }),
+        ]);
+      } catch (e) {
+        if (isMfaRace(e)) return MFA_CHANGED();
+        throw e;
+      }
+      return json((ma ? { recoveryCodes: ma.codes } : {}) satisfies MfaTotpConfirmResponse);
+    }),
+
+    // ---- Tự bật / đổi yếu tố email (ADR-0074 điều 4, 7; đặc tả §4.3; kế hoạch Phần C Task 3). Địa chỉ thuộc module auth (KHÔNG đọc liên hệ hồ sơ), xác nhận bằng
+    // mã gửi tới CHÍNH địa chỉ đó; chưa xác nhận thì không lưu. Quản trị / Toàn quyền / Kế toán → 409 (máy chủ trả `allowed`, giao diện không tự suy). Địa chỉ đầy
+    // đủ không vào phản hồi, nhật ký, log — chỉ dạng che.
+    // Bước 1: 409 vai lớn (TRƯỚC mọi ghi) → địa chỉ đúng khuôn → [đã có yếu tố: mã của yếu tố hiện có (ứng dụng xác thực hoặc mã dự phòng), có hạn mức] → hạn
+    // mức gửi 3 thư / 15 phút (chung với bước đăng nhập) → ghi dòng mã → gửi thư. Không lô ghi mang vé (guiMaBatEmail — ngoài vé có tên).
+    route("POST", "/api/account/mfa/email/start", "staff", async ({ request, env, staff }) => {
+      if (!allowedFactors(staff.permissions).includes("EMAIL")) return EMAIL_VAI_LON();
+      const body = await readJson(request);
+      const email = normalizeEmail(body?.email);
+      if (!email) return error(400, "invalid_input", "Địa chỉ email chưa đúng (dạng ten@vidu.com).");
+      const now = Date.now();
+      if ((await yeuToSong(env.DB, staff.id)).length > 0) {
+        if (typeof body?.currentCode !== "string" || !body.currentCode.trim()) {
+          return error(400, "current_code_required", "Bảo mật hai lớp đang bật: nhập mã 6 số từ ứng dụng xác thực hoặc một mã dự phòng để thêm hoặc đổi email.");
+        }
+        const chan = await kiemMaHienCo(env, staff.id, body.currentCode, now, "TOTP_HOAC_DU_PHONG");
+        if (chan) return chan;
+      }
+      const gui = await guiMaBatEmail(env, staff.id, email, now);
+      if ("response" in gui) return gui.response;
+      return json({ sent: true, emailMask: gui.emailMask } satisfies MfaEmailStartResponse);
+    }),
+
+    // Bước 2: 409 vai lớn (lại — có thể vừa được cấp quyền giữa hai bước) → mã bật gửi tới ĐÚNG địa chỉ này, phát SAU yếu tố sống mới nhất (đã có yếu tố thì mã chỉ
+    // phát được sau khi đưa mã hiện có), hạn mức chung `mfa:<id>` → MỘT lô: kết thúc EMAIL cũ (nếu đổi địa chỉ) → chèn EMAIL mới → (yếu tố đầu tiên) thu hồi mã cũ
+    // + 10 mã dự phòng mới → nhật ký mfa_enabled (chi tiết chỉ "EMAIL").
+    route("POST", "/api/account/mfa/email/confirm", "staff", async ({ request, env, staff }) => {
+      if (!allowedFactors(staff.permissions).includes("EMAIL")) return EMAIL_VAI_LON();
+      const body = await readJson(request);
+      const email = normalizeEmail(body?.email);
+      const code = typeof body?.code === "string" ? body.code.trim().slice(0, 32) : "";
+      if (!email || !code) return error(400, "invalid_input", "Cần địa chỉ email và mã 6 số trong thư.");
+      const now = Date.now();
+      const at = new Date(now).toISOString();
+      const song = await yeuToSong(env.DB, staff.id);
+      const moiNhat = song.reduce<string | null>((m, f) => (m === null || f.createdAt > m ? f.createdAt : m), null);
+      const chan = await kiemMaBatEmail(env, staff.id, email, code, now, moiNhat);
+      if (chan) return chan;
+      const ma = song.length === 0 ? await boMaDuPhongMoi(env.DB, staff.id, at) : null;
+      try {
+        await env.DB.batch([
+          ...batEmailStatements(env.DB, { staffId: staff.id, thayId: song.find((f) => f.kind === "EMAIL")?.id ?? null, id: crypto.randomUUID(), email, at }),
+          ...(ma ? ma.statements : []),
+          auditStatement(env.DB, { staffId: staff.id, action: "mfa_enabled", at, targetType: "staff", targetId: staff.id, detail: "EMAIL" }),
         ]);
       } catch (e) {
         if (isMfaRace(e)) return MFA_CHANGED();

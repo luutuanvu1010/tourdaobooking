@@ -17,9 +17,9 @@ import { newTrustedToken, sha256Hex } from "./mfa-crypto";
 import {
   MFA_LIMIT, TRUSTED_COOKIE, TRUSTED_TTL_SECONDS, clearMfaAttemptsStatement, lockedMfaStaffIds, mfaKey, mfaKeyReady, trustedCookie, unlockLogin, useRecoveryCode, useTotp,
 } from "./mfa-dang-nhap";
-import { MAIL_LIMIT, mailKey, maskEmail, phatMaEmail, useEmailCode } from "./mfa-email";
+import { MAIL_LIMIT, mailKey, maskEmail, normalizeEmail, phatMaEmail, useEmailCode } from "./mfa-email";
 import {
-  factorEndAllStatement, factorListLive, recoveryCountLeft, recoveryRevokeAllStatement, staffIdsWithFactor, trustedFind, trustedInsertStatement, trustedRevokeAllStatement,
+  factorEndAllStatement, factorEndKindStatement, factorListLive, recoveryCountLeft, recoveryRevokeAllStatement, staffIdsWithFactor, trustedFind, trustedInsertStatement, trustedRevokeAllStatement,
   trustedRevokeAllIfSuspendedStatement, trustedRevokeOfSessionStatement, trustedTouchStatement,
 } from "./mfa-repo";
 import { batTotpStatements, boMaDuPhongMoi, khopKhoaMoi, moiKhoaTotp } from "./mfa-tu-phuc-vu";
@@ -49,11 +49,14 @@ export { logPasskeyRejected, toPasskeyDto } from "./passkey";
 // Xuất cho module `accounts` — tự bật / đổi / gỡ bảo mật hai lớp, mã dự phòng, quên máy được tin (ADR-0074 điều 5; route /api/account/mfa*). Không hàm nào trả
 // khoá đã mã hoá hay băm; câu lệnh chưa chạy để route gộp với dòng nhật ký trong một lô.
 export {
-  batTotpStatements, boMaDuPhongMoi, goYeuToStatements, khopKhoaMoi, mayTinSong, moiKhoaTotp, quenMayStatement, quenMoiMayStatement, yeuToSong,
+  batEmailStatements, batTotpStatements, boMaDuPhongMoi, goYeuToStatements, khopKhoaMoi, mayTinSong, moiKhoaTotp, quenMayStatement, quenMoiMayStatement, yeuToSong,
   type MayTin, type YeuToSong,
 } from "./mfa-tu-phuc-vu";
 export { allowedFactors, isInternal, mfaBanner } from "./mfa-rules";
 export { recoveryCountLeft };
+// Phần C Task 3: tự bật yếu tố email (chuẩn hoá / che địa chỉ) và lô đổi quyền / vai kết thúc yếu tố email của vai lớn (ADR-0074 điều 7).
+export { maskEmail, normalizeEmail };
+export { factorEndKindStatement };
 // Kế hoạch Task 6: danh sách Quản lý tài khoản (ai đã bật, ai đang bị khoá bước hai) và nút "Mở khoá" gỡ cả khoá bước hai.
 export { lockedMfaStaffIds, staffIdsWithFactor, unlockLogin };
 export { PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, issuePasskeyChallenge, limitChallenge, passkeyRp, readPasskeyChallenge };
@@ -329,6 +332,40 @@ export async function kiemMaHienCo(env: Env, staffId: string, rawCode: unknown, 
   return null;
 }
 
+/** ADR-0074 điều 7: câu 409 khi tài khoản giữ Quản trị / Toàn quyền / Kế toán định bật yếu tố email (nguyên văn kế hoạch Phần C Task 3). */
+export const EMAIL_VAI_LON = (): Response => error(409, "email_not_allowed", "Tài khoản Quản trị, Toàn quyền, Kế toán chỉ dùng ứng dụng xác thực.");
+
+/**
+ * Bước 1 tự bật / đổi yếu tố email (Phần C Task 3; route `POST /api/account/mfa/email/start` ở accounts): hạn mức gửi theo TÀI KHOẢN `mfa-mail:<id>` (3 thư / 15
+ * phút, CHUNG với gửi mã ở bước đăng nhập) → MỘT lô [huỷ mã bật còn mở → chèn mã mới (băm, gắn băm địa chỉ MỚI)] → rồi mới gửi (Hiến chương 5.16). Trả
+ * `{ emailMask }` hoặc Response chặn (429 câu gửi thư, 502 lời thường). KHÔNG ghi yếu tố — chỉ bước xác nhận mới lưu.
+ * - NGOÀI VÉ (ADR-0094, T17 — mục có tên trong src/shared/lan-gui-no.ts): bộ đếm gửi thư và dòng mã ghi thẳng D1 gốc. Gửi hỏng (502 — máy khách GIỮ vé) thì
+ *   bấm gửi lại phải gửi được thư mới; nếu dòng mã mang vé, lần gửi lại cùng thân bị báo "đã ghi" mà không có thư nào đi. Lệnh không có lô ghi mang vé.
+ */
+export async function guiMaBatEmail(env: Env, staffId: string, email: string, nowMs: number): Promise<{ emailMask: string } | { response: Response }> {
+  const db = dbNgoaiVe(env.DB);
+  const reservation = await reserveAttempts(db, [{ key: mailKey(staffId), max: MAIL_LIMIT }]);
+  if (!reservation.allowed) return { response: tooMany(reservation.retryAfterSeconds, "gui_thu") };
+  const sent = await phatMaEmail({ ...env, DB: db }, { staffId, email, purpose: "enroll", by: staffId, nowMs });
+  return sent ? { emailMask: maskEmail(email) ?? "" } : { response: MAIL_FAILED() };
+}
+
+/**
+ * Bước 2 tự bật / đổi yếu tố email: kiểm mã bật gửi tới ĐÚNG địa chỉ `email`, phát SAU yếu tố sống mới nhất (`phatTu`), có hạn mức nhập CHUNG `mfa:<id>` với
+ * bước hai đăng nhập (5 lần / 15 phút) — ngoài giới hạn 5 lần mỗi mã. `null` = đúng (mã đã tiêu, bộ đếm đã xoá); ngược lại là Response trả thẳng (401 / 429).
+ * - NGOÀI VÉ (ADR-0094, T17): đặt chỗ lượt thử, tiêu / đếm sai mã và xoá bộ đếm ghi TRƯỚC lô chính, và phải ghi cả khi lệnh bị từ chối hay lô chính hỏng (đếm
+ *   lần sai, chống dùng lại mã) — như kiemMaHienCo.
+ */
+export async function kiemMaBatEmail(env: Env, staffId: string, email: string, code: string, nowMs: number, phatTu: string | null): Promise<Response | null> {
+  const db = dbNgoaiVe(env.DB);
+  const reservation = await reserveAttempts(db, [{ key: mfaKey(staffId), max: MFA_LIMIT }]);
+  if (!reservation.allowed) return tooMany(reservation.retryAfterSeconds);
+  const ok = await useEmailCode(db, { staffId, email, purpose: "enroll", code, nowIso: new Date(nowMs).toISOString(), phatTu });
+  if (!ok) return error(401, "invalid_code", "Mã không đúng hoặc đã hết hạn. Bấm “Gửi lại mã” để nhận mã mới.");
+  await clearAttempts(db, mfaKey(staffId), reservation.ids);
+  return null;
+}
+
 export type PinAttemptResult =
   | { ok: true; profile: StaffProfile }
   | { ok: false; response: Response };
@@ -448,8 +485,12 @@ export const authModule: AppModule = {
       }
       if (step === "mfa") {
         const pending = await createPendingToken(env.SESSION_SECRET, profile.id, "verify", now);
+        // Chỉ liệt kê cách xác minh quyền hiện tại CHO PHÉP (ADR-0074 điều 7 — Phần C Task 3): tài khoản Quản trị / Toàn quyền / Kế toán có dòng EMAIL lệch không
+        // thấy lựa chọn email (gửi / nhập mã email của họ đã bị chặn ở máy chủ). Ai phải qua bước hai (loginStep) KHÔNG đổi.
+        const duocDung = allowedFactors(profile.permissions);
+        const hienThi = factors.filter((f) => duocDung.includes(f.kind));
         const buoc: LoginMfaStepResponse = {
-          next: "mfa", factors: [...factors.map((f) => f.kind), "RECOVERY"], emailMask: maskEmail(factors.find((f) => f.kind === "EMAIL")?.email ?? null),
+          next: "mfa", factors: [...hienThi.map((f) => f.kind), "RECOVERY"], emailMask: maskEmail(hienThi.find((f) => f.kind === "EMAIL")?.email ?? null),
         };
         return json(buoc, 200, { "set-cookie": pendingCookie(pending, isSecure(request)) });
       }

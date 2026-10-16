@@ -126,7 +126,7 @@ test("danh sách máy tin không trả băm token", async () => {
   assert.ok(!JSON.stringify(await trustedList(db, "s1")).includes("th-bi-mat"));
 });
 
-// ---- Mã email (Phần C Task 1, migration 0102): mã hết hạn / quá 5 lần / đã dùng / đã huỷ không khớp; gửi mã mới huỷ mã mở cũ.
+// ---- Mã email (Phần C Task 1, migration 0102; Task 3: đọc thêm created_at — mã bật phải phát sau yếu tố sống mới nhất): mã hết hạn / quá 5 lần / đã dùng / đã huỷ không khớp; gửi mã mới huỷ mã mở cũ.
 const HET = "2026-10-02T00:10:00.000Z";
 const maEmail = (id: string, staffId = "s1", purpose: "login" | "enroll" = "login", codeHash = `ch-${id}`) =>
   ({ id, staffId, purpose, emailHash: "eh", codeHash, at: T1, expiresAt: HET, by: staffId });
@@ -134,7 +134,7 @@ const maEmail = (id: string, staffId = "s1", purpose: "login" | "enroll" = "logi
 test("mã email: chèn, đọc mã mở; khớp đúng → dùng một lần; sai băm / sai chủ / hết hạn → không khớp", async () => {
   const { db, sqlite } = setup();
   await emailCodeInsertStatement(db, maEmail("e1")).run();
-  assert.deepEqual(await emailCodeOpen(db, "s1", "login", T2), { id: "e1", email_hash: "eh" });
+  assert.deepEqual(await emailCodeOpen(db, "s1", "login", T2), { id: "e1", email_hash: "eh", created_at: T1 });
   assert.equal(await emailCodeOpen(db, "s1", "enroll", T2), null, "khác mục đích");
   assert.equal(await emailCodeOpen(db, "s2", "login", T2), null, "người khác");
   assert.equal(await emailCodeOpen(db, "s1", "login", HET), null, "đúng lúc hết hạn là hết");
@@ -168,11 +168,11 @@ test("mã email: gửi mã mới (huỷ mã mở cũ → chèn) — mã cũ khô
   assert.equal((await emailCodeRevokeOpenStatement(db, "s1", "login", T2, "s1").run()).meta.changes, 1);
   await emailCodeInsertStatement(db, maEmail("e2")).run();
   assert.equal((await emailCodeTryStatement(db, "e1", "s1", "ch-e1", T2).run()).meta.changes, 0, "mã cũ đã huỷ");
-  assert.deepEqual(await emailCodeOpen(db, "s1", "login", T2), { id: "e2", email_hash: "eh" });
+  assert.deepEqual(await emailCodeOpen(db, "s1", "login", T2), { id: "e2", email_hash: "eh", created_at: T1 });
   assert.equal((await emailCodeBumpStatement(db, "e1", T2).run()).meta.changes, 0, "mã đã huỷ không đếm");
   assert.equal((await emailCodeTryStatement(db, "e2", "s1", "ch-e2", T2).run()).meta.changes, 1);
-  assert.deepEqual(await emailCodeOpen(db, "s2", "login", T2), { id: "k1", email_hash: "eh" }, "người khác không bị huỷ");
-  assert.deepEqual(await emailCodeOpen(db, "s1", "enroll", T2), { id: "n1", email_hash: "eh" }, "mục đích khác không bị huỷ");
+  assert.deepEqual(await emailCodeOpen(db, "s2", "login", T2), { id: "k1", email_hash: "eh", created_at: T1 }, "người khác không bị huỷ");
+  assert.deepEqual(await emailCodeOpen(db, "s1", "enroll", T2), { id: "n1", email_hash: "eh", created_at: T1 }, "mục đích khác không bị huỷ");
   const r = sqlite.prepare("SELECT revoked_at AS r, updated_by AS b FROM aut_mfa_email_code WHERE id = 'e1'").get() as { r: string; b: string };
   assert.deepEqual({ ...r }, { r: T2, b: "s1" });
 });

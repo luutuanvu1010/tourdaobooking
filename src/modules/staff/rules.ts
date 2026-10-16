@@ -102,7 +102,20 @@ export const mfaGraceOnCreate = (perms: readonly PermissionCode[], nowMs: number
 export function mfaKhiThanhNoiBo(
   before: readonly PermissionCode[], after: readonly PermissionCode[], coYeuTo: boolean, graceUntil: string | null, nowMs: number,
 ): { anHan: string | null; ketThucPhien: boolean } {
-  if (coYeuTo || coQuyenNoiBo(before) || !coQuyenNoiBo(after)) return { anHan: null, ketThucPhien: false };
+  return mfaSauDoiQuyen(before, after, coYeuTo, false, graceUntil, nowMs);
+}
+/**
+ * Luật chung của lô đổi quyền / vai (ADR-0074 điều 1, 7; Phần C Task 3). `coYeuToSauLo` = còn yếu tố sống SAU lô (đã trừ yếu tố email mà chính lô kết thúc);
+ * `vuaMatEmail` = lô kết thúc yếu tố email vì quyền sau có Quản trị / Toàn quyền / Kế toán. Áp ba nhánh ân hạn khi sau lô là nội bộ, không còn yếu tố, VÀ
+ * (trước không nội bộ HOẶC lô vừa lấy mất yếu tố email):
+ * - hạn NULL → `anHan` = lúc đổi + 14 ngày (câu ghi chỉ đặt khi cột còn NULL);
+ * - hạn đã qua (≤ lúc đổi) → KHÔNG gia hạn (đường Quản trị tắt lớp hai → cửa sổ 24 giờ) và `ketThucPhien` = true (phiên không còn được yếu tố nào đỡ);
+ * - hạn còn → không làm gì.
+ */
+export function mfaSauDoiQuyen(
+  before: readonly PermissionCode[], after: readonly PermissionCode[], coYeuToSauLo: boolean, vuaMatEmail: boolean, graceUntil: string | null, nowMs: number,
+): { anHan: string | null; ketThucPhien: boolean } {
+  if (coYeuToSauLo || !coQuyenNoiBo(after) || (coQuyenNoiBo(before) && !vuaMatEmail)) return { anHan: null, ketThucPhien: false };
   if (graceUntil === null) return { anHan: new Date(nowMs + MFA_GRACE_DAYS * 86_400_000).toISOString(), ketThucPhien: false };
   return { anHan: null, ketThucPhien: graceUntil <= new Date(nowMs).toISOString() };
 }

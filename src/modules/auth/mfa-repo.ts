@@ -41,6 +41,10 @@ const FACTOR_END_KEEP_ONE = defineSql(
   "UPDATE aut_mfa_factor SET valid_to_at = ?3, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND staff_id = ?2 AND valid_to_at IS NULL " +
     "AND EXISTS (SELECT 1 FROM aut_mfa_factor o WHERE o.staff_id = ?2 AND o.valid_to_at IS NULL AND o.id <> ?1)",
 );
+// ADR-0074 điều 7 (Phần C Task 3): lô đổi quyền / vai kết thúc yếu tố MỘT loại (EMAIL) khi quyền sau lô có Quản trị / Toàn quyền / Kế toán. Không có dòng sống
+// thì không đổi gì (câu đặt vô điều kiện trong lô được).
+const FACTOR_END_KIND = defineSql("auth", "mfa_factor_end_kind",
+  "UPDATE aut_mfa_factor SET valid_to_at = ?3, updated_at = ?3, updated_by = ?4 WHERE staff_id = ?1 AND kind = ?2 AND valid_to_at IS NULL");
 const FACTOR_END_ALL = defineSql("auth", "mfa_factor_end_all", "UPDATE aut_mfa_factor SET valid_to_at = ?2, updated_at = ?2, updated_by = ?3 WHERE staff_id = ?1 AND valid_to_at IS NULL");
 // Chống dùng lại mã TOTP: chỉ đổi khi bước mới LỚN HƠN bước đã dùng. Người gọi đòi changes = 1.
 const TOTP_CONSUME = defineSql("auth", "mfa_totp_consume", "UPDATE aut_mfa_factor SET last_totp_step = ?2, updated_at = ?3 WHERE id = ?1 AND valid_to_at IS NULL AND last_totp_step < ?2");
@@ -83,7 +87,7 @@ const EMAIL_CODE_INSERT = defineSql("auth", "email_code_insert",
     "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?8, ?6, ?8, ?7, 0, NULL, NULL)");
 // Mã đang mở (chưa dùng, chưa huỷ, chưa hết hạn, chưa đủ 5 lần) — không trả băm mã.
 const EMAIL_CODE_OPEN = defineSql("auth", "email_code_open",
-  "SELECT id, email_hash FROM aut_mfa_email_code WHERE staff_id = ?1 AND purpose = ?2 AND used_at IS NULL AND revoked_at IS NULL AND expires_at > ?3 AND attempts < 5 " +
+  "SELECT id, email_hash, created_at FROM aut_mfa_email_code WHERE staff_id = ?1 AND purpose = ?2 AND used_at IS NULL AND revoked_at IS NULL AND expires_at > ?3 AND attempts < 5 " +
     "ORDER BY created_at DESC, id DESC LIMIT 1");
 // Dùng MỘT lần: người gọi đòi changes = 1.
 const EMAIL_CODE_TRY = defineSql("auth", "email_code_try",
@@ -98,8 +102,8 @@ export const emailCodeInsertStatement = (
   db: D1Database,
   r: { id: string; staffId: string; purpose: EmailCodePurpose; emailHash: string; codeHash: string; at: string; expiresAt: string; by: string | null },
 ): D1PreparedStatement => db.prepare(EMAIL_CODE_INSERT).bind(r.id, r.staffId, r.purpose, r.emailHash, r.codeHash, r.at, r.expiresAt, r.by);
-export const emailCodeOpen = (db: D1Database, staffId: string, purpose: EmailCodePurpose, now: string): Promise<{ id: string; email_hash: string } | null> =>
-  db.prepare(EMAIL_CODE_OPEN).bind(staffId, purpose, now).first<{ id: string; email_hash: string }>();
+export const emailCodeOpen = (db: D1Database, staffId: string, purpose: EmailCodePurpose, now: string): Promise<{ id: string; email_hash: string; created_at: string } | null> =>
+  db.prepare(EMAIL_CODE_OPEN).bind(staffId, purpose, now).first<{ id: string; email_hash: string; created_at: string }>();
 export const emailCodeTryStatement = (db: D1Database, id: string, staffId: string, codeHash: string, at: string): D1PreparedStatement =>
   db.prepare(EMAIL_CODE_TRY).bind(id, staffId, codeHash, at);
 export const emailCodeBumpStatement = (db: D1Database, id: string, at: string): D1PreparedStatement => db.prepare(EMAIL_CODE_BUMP).bind(id, at);
@@ -118,6 +122,8 @@ export const factorEndStatement = (db: D1Database, id: string, staffId: string, 
   db.prepare(FACTOR_END).bind(id, staffId, at, by);
 export const factorEndKeepOneStatement = (db: D1Database, id: string, staffId: string, at: string, by: string | null): D1PreparedStatement =>
   db.prepare(FACTOR_END_KEEP_ONE).bind(id, staffId, at, by);
+export const factorEndKindStatement = (db: D1Database, staffId: string, kind: MfaKind, at: string, by: string | null): D1PreparedStatement =>
+  db.prepare(FACTOR_END_KIND).bind(staffId, kind, at, by);
 export const factorEndAllStatement =(db: D1Database, staffId: string, at: string, by: string | null): D1PreparedStatement =>
   db.prepare(FACTOR_END_ALL).bind(staffId, at, by);
 export const totpConsumeStatement = (db: D1Database, id: string, step: number, at: string): D1PreparedStatement => db.prepare(TOTP_CONSUME).bind(id, step, at);

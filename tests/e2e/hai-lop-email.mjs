@@ -4,12 +4,12 @@
 //   "chưa gửi được mail"); dòng mã vẫn được ghi trước và hạn mức gửi vẫn tính.
 // - e2e không đọc được hộp thư và mã sản phẩm không có công tắc lộ mã: kịch bản lấy mã bằng cách GIEO dòng aut_mfa_email_code với mã biết trước (gieoMaEmail).
 // - Tài khoản Bán hàng DÙNG MỘT LẦN (SĐT ngẫu nhiên) — không dùng salesA (yếu tố sống trên tài khoản dùng chung làm `session()` của kịch bản sau bị hỏi mã).
-//   Yếu tố EMAIL / TOTP gieo thẳng bằng SQL (đường bật yếu tố email là Task 3). Ca 429 chạy CUỐI (khoá mfa-mail:<id> 15 phút, chỉ của tài khoản thử).
+//   Yếu tố EMAIL / TOTP của A, C gieo thẳng bằng SQL; ca 9–12 (Task 3) bật yếu tố email qua route thật trên tài khoản dùng một lần D. Ca 429 chạy CUỐI (khoá mfa-mail:<id> 15 phút, chỉ của tài khoản thử).
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import { insertStaffSql } from "../../scripts/staff-lib.mjs";
 import { maHoaKhoa } from "./fake-totp.mjs";
-import { TURNSTILE_TEST, call, freshIp, gieoMaEmail, randomPhone, sql, sqlRows } from "./lib.mjs";
+import { ACCOUNTS, TURNSTILE_TEST, call, freshIp, gieoMaEmail, randomPhone, session, sql, sqlRows } from "./lib.mjs";
 
 const KHOA = process.env.E2E_MFA_KEY;
 if (!KHOA) throw new Error("Thiếu E2E_MFA_KEY (run.mjs truyền cùng giá trị --var MFA_ENCRYPTION_KEY cho wrangler dev)");
@@ -108,6 +108,73 @@ console.log("✓ 6. tài khoản không có yếu tố email gọi gửi → 409
 const nhatKy = JSON.stringify(await sqlRows("SELECT * FROM audit_log"));
 for (const d of [EMAIL, K1, K2]) assert.ok(!nhatKy.includes(d), `nhật ký chứa "${d}"`);
 console.log("✓ 7. nhật ký không chứa địa chỉ email / mã");
+
+// ---- Phần C Task 3: tự bật yếu tố email; vai lớn chỉ dùng ứng dụng xác thực (ADR-0074 điều 7). Tài khoản Bán hàng DÙNG MỘT LẦN D (không dùng salesA như
+// brief viết: yếu tố sống trên tài khoản dùng chung làm `session()` của kịch bản sau bị hỏi mã — lệch có chủ ý, ghi ở báo cáo Task 3).
+const D = await taoTaiKhoan("Hai Lớp Email Tự Bật");
+const EMAIL_D = `E2E.Tu.${randomBytes(4).toString("hex")}@Example.com`; // gõ chữ hoa — máy chủ lưu dạng chuẩn hoá
+const EMAIL_D_CHUAN = EMAIL_D.toLowerCase();
+r = await pinLogin(D);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+const SD = cookieOf(r, "td_session");
+assert.ok(SD, "D chưa có yếu tố, còn ân hạn → vào thẳng");
+
+// 9. start: máy e2e không có người gửi → 502 lời thường, NHƯNG dòng mã bật (purpose enroll) đã ghi trước; chưa có yếu tố nào được lưu
+r = await call(SD, "POST", "/api/account/mfa/email/start", { email: EMAIL_D });
+assert.equal(r.status, 502, JSON.stringify(r.body));
+assert.deepEqual(r.body.error, LOI_502);
+assert.equal((await sqlRows(`SELECT count(*) AS n FROM aut_mfa_email_code WHERE staff_id = '${D.id}' AND purpose = 'enroll'`))[0].n, 1);
+assert.equal((await sqlRows(`SELECT count(*) AS n FROM aut_mfa_factor WHERE staff_id = '${D.id}'`))[0].n, 0);
+// confirm với mã sai → 401, không lưu
+const K3 = "975310";
+await gieoMaEmail(D.id, EMAIL_D_CHUAN, K3, "enroll");
+r = await call(SD, "POST", "/api/account/mfa/email/confirm", { email: EMAIL_D, code: "000001" });
+assert.equal(r.status, 401, JSON.stringify(r.body));
+// confirm đúng → yếu tố EMAIL + 10 mã dự phòng + nhật ký mfa_enabled "EMAIL"
+r = await call(SD, "POST", "/api/account/mfa/email/confirm", { email: EMAIL_D, code: K3 });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.recoveryCodes.length, 10);
+assert.deepEqual(await sqlRows(`SELECT kind, email FROM aut_mfa_factor WHERE staff_id = '${D.id}' AND valid_to_at IS NULL`), [{ kind: "EMAIL", email: EMAIL_D_CHUAN }]);
+assert.deepEqual((await sqlRows(`SELECT detail FROM audit_log WHERE action = 'mfa_enabled' AND staff_id = '${D.id}'`)).map((x) => x.detail), ["EMAIL"]);
+r = await call(SD, "GET", "/api/account/mfa");
+assert.deepEqual(r.body.factors.map((f) => [f.kind, f.emailMask]), [["EMAIL", "e***@example.com"]]);
+assert.ok(!JSON.stringify(r.body).includes(EMAIL_D_CHUAN));
+console.log("✓ 9. tự bật email: start 502 (dòng mã vẫn ghi) → confirm sai 401 → mã gieo đúng: yếu tố EMAIL + 10 mã dự phòng + nhật ký; GET chỉ địa chỉ che");
+
+// 10. Đăng nhập PIN → bước hai có EMAIL → mã email gieo → vào được
+r = await pinLogin(D);
+assert.deepEqual(r.body, { next: "mfa", factors: ["EMAIL", "RECOVERY"], emailMask: "e***@example.com" });
+const PD = cookieOf(r, "td_mfa_pending");
+await gieoMaEmail(D.id, EMAIL_D_CHUAN, "864201");
+r = await verify(PD, "864201");
+assert.equal(r.status, 200, JSON.stringify(r.body));
+const SD2 = cookieOf(r, "td_session");
+assert.ok(SD2);
+console.log("✓ 10. đăng nhập PIN → bước hai EMAIL → mã email đúng → vào được");
+
+// 11. Quản trị / Kế toán bật email → 409 đúng câu (trước mọi ghi — không đổi gì trên tài khoản dùng chung)
+for (const acc of [ACCOUNTS.admin, ACCOUNTS.accountant]) {
+  r = await call(await session(acc), "POST", "/api/account/mfa/email/start", { email: EMAIL_D });
+  assert.equal(r.status, 409, JSON.stringify(r.body));
+  assert.equal(r.body.error.message, "Tài khoản Quản trị, Toàn quyền, Kế toán chỉ dùng ứng dụng xác thực.");
+}
+console.log("✓ 11. Quản trị / Kế toán bật email → 409 \"…chỉ dùng ứng dụng xác thực.\"");
+
+// 12. D được gán vai Kế toán → yếu tố email hết hiệu lực trong cùng lô; GET /api/account/mfa không còn EMAIL, chỉ được TOTP
+r = await call(await session(ACCOUNTS.superAdmin), "PUT", `/api/staff/${D.id}/roles`, { roles: ["ACCOUNTANT"] });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal((await sqlRows(`SELECT count(*) AS n FROM aut_mfa_factor WHERE staff_id = '${D.id}' AND valid_to_at IS NULL`))[0].n, 0);
+r = await call(SD2, "GET", "/api/account/mfa");
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.deepEqual(r.body.factors, []);
+assert.deepEqual(r.body.allowed, ["TOTP"]);
+r = await pinLogin(D);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.ok(cookieOf(r, "td_session"), "còn ân hạn (14 ngày từ lúc tạo) và không còn yếu tố → vào thẳng, dải nhắc bật ứng dụng xác thực");
+console.log("✓ 12. gán vai Kế toán → yếu tố email hết hiệu lực; GET không còn EMAIL, chỉ cho TOTP");
+
+const nhatKy2 = JSON.stringify(await sqlRows("SELECT * FROM audit_log"));
+for (const d of [EMAIL_D_CHUAN, K3]) assert.ok(!nhatKy2.includes(d), `nhật ký chứa "${d}"`);
 
 // 8. (CUỐI) Hạn mức gửi 3 thư / 15 phút — lần thứ 4 trong 15 phút → 429, không ghi thêm dòng mã
 assert.equal(soLanGui, 2);

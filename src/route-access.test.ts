@@ -287,6 +287,9 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/account/mfa", access: "staff" },
   { method: "POST", path: "/api/account/mfa/totp/start", access: "staff" },
   { method: "POST", path: "/api/account/mfa/totp/confirm", access: "staff" },
+  // ADR-0074 điều 4, 7 (Phần C Task 3): tự bật / đổi yếu tố email — tự phục vụ; Quản trị / Toàn quyền / Kế toán → 409 trong thân (allowedFactors).
+  { method: "POST", path: "/api/account/mfa/email/start", access: "staff" },
+  { method: "POST", path: "/api/account/mfa/email/confirm", access: "staff" },
   { method: "POST", path: "/api/account/mfa/recovery/regenerate", access: "staff" },
   { method: "POST", path: "/api/account/mfa/remove", access: "staff" },
   { method: "POST", path: "/api/account/mfa/trusted/:id/forget", access: "staff" },
@@ -551,6 +554,7 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-16 (ADR-0074 Phần B Task 5): + GET /api/account/mfa và sáu route ghi /api/account/mfa/* (staff, tự phục vụ) = 321.
   // 2026-10-16 (ADR-0074 Phần B Task 6): + POST /api/staff/:id/mfa-reset (admin) và POST /api/auth/mfa/enroll/{start, confirm} (public; cookie chờ "enroll") = 324.
   // 2026-10-16 (ADR-0074 Phần C Task 2): + POST /api/auth/mfa/email (public; cookie chờ "verify", tự gọi maintenanceBlock) = 325.
-  assert.equal(actual.length, 325, "số route thực tế lệch 325 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 325, "SNAPSHOT phải có đúng 325 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-16 (ADR-0074 Phần C Task 3): + POST /api/account/mfa/email/{start, confirm} (staff, tự phục vụ; vai lớn 409 trong thân) = 327.
+  assert.equal(actual.length, 327, "số route thực tế lệch 327 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 327, "SNAPSHOT phải có đúng 327 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

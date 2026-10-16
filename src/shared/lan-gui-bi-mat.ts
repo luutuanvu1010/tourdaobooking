@@ -20,6 +20,9 @@ export const BI_MAT: readonly MauRoute[] = [
   { method: "POST", path: "/api/account/mfa/totp/confirm" },
   { method: "POST", path: "/api/account/mfa/recovery/regenerate" },
   { method: "POST", path: "/api/account/mfa/remove" },
+  // ADR-0074 Phần C Task 3: thân có địa chỉ email đầy đủ + mã hiện có / mã trong thư — vé chỉ giữ trong bộ nhớ trang.
+  { method: "POST", path: "/api/account/mfa/email/start" },
+  { method: "POST", path: "/api/account/mfa/email/confirm" },
   { method: "POST", path: "/api/staff/:id/reset-pin" },
   { method: "POST", path: "/api/parties/:id/documents" },
   { method: "POST", path: "/api/parties/:id/documents/:did/renew" },

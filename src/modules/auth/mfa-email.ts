@@ -90,9 +90,14 @@ export async function phatMaEmail(
  * Kiểm mã người dùng gõ với mã đang mở của (người, mục đích): phải gửi tới ĐÚNG địa chỉ `email` (địa chỉ của yếu tố hiện hành), chưa hết hạn, chưa đủ 5
  * lần, chưa dùng/huỷ. Đúng → tiêu mã (MỘT câu có điều kiện, đòi changes = 1 — hai lần nhập song song chỉ một lần thắng). Sai → đếm thêm một lần cho mã đó.
  */
-export async function useEmailCode(db: D1Database, v: { staffId: string; email: string; purpose: EmailCodePurpose; code: string; nowIso: string }): Promise<boolean> {
+export async function useEmailCode(
+  db: D1Database, v: { staffId: string; email: string; purpose: EmailCodePurpose; code: string; nowIso: string; phatTu?: string | null },
+): Promise<boolean> {
   const row = await emailCodeOpen(db, v.staffId, v.purpose, v.nowIso);
   if (!row) return false;
+  // `phatTu` (bật yếu tố email — Phần C Task 3): mã phải phát SAU khi yếu tố sống mới nhất được bật. Mã phát trước đó (lúc chưa phải đưa mã yếu tố hiện có)
+  // không được dùng để thêm yếu tố sau khi đã có yếu tố khác — không tiêu, không đếm.
+  if (v.phatTu && row.created_at < v.phatTu) return false;
   const ma = v.code.trim();
   if (/^\d{6}$/.test(ma) && row.email_hash === (await emailHash(v.email))) {
     const r = await emailCodeTryStatement(db, row.id, v.staffId, await emailCodeHash(v.staffId, row.id, ma), v.nowIso).run();

@@ -26,6 +26,16 @@ export const NGOAI_VE: readonly MucNgoaiVe[] = [
       "Kiểm mã của yếu tố hiện có khi tự đổi khoá / gỡ yếu tố / tạo lại mã dự phòng (ADR-0074 điều 5): đặt chỗ lượt thử (login_attempt, khoá mfa:<id>), tiêu bước TOTP hoặc một mã dự phòng, xoá bộ đếm — ghi TRƯỚC lô chính và phải ghi cả khi lệnh bị từ chối hay lô chính hỏng (đếm lần sai, chống dùng lại mã). Cùng lý do với verifyPinThrottled.",
   },
   {
+    noi: "src/modules/auth/index.ts#guiMaBatEmail",
+    lyDo:
+      "Bước 1 tự bật yếu tố email (ADR-0074 điều 4, Phần C Task 3): bộ đếm gửi thư (login_attempt, khoá mfa-mail:<id>) và dòng mã bật (aut_mfa_email_code) ghi TRƯỚC khi gửi thư (Hiến chương 5.16). Gửi hỏng trả 502 và máy khách GIỮ vé: nếu dòng mã mang vé thì bấm gửi lại cùng thân bị báo 'đã ghi' mà không thư nào đi. Lệnh không có lô ghi nào khác.",
+  },
+  {
+    noi: "src/modules/auth/index.ts#kiemMaBatEmail",
+    lyDo:
+      "Bước 2 tự bật yếu tố email: đặt chỗ lượt thử (login_attempt, khoá mfa:<id>), tiêu hoặc đếm sai mã bật, xoá bộ đếm — ghi TRƯỚC lô chính (chèn yếu tố + nhật ký) và phải ghi cả khi lệnh bị từ chối hay lô chính hỏng (đếm lần sai, chống dùng lại mã). Cùng lý do với kiemMaHienCo.",
+  },
+  {
     noi: "src/modules/auth/passkey.ts#limitChallenge",
     lyDo:
       "Sổ đếm thách thức Face ID theo IP (login_attempt, khoá webauthn:<ip>) ghi TRƯỚC lô chính của Bật Face ID / Đặt PIN bằng Face ID và phải ghi cả khi bị từ chối — cùng lý do với verifyPinThrottled. Không mang vé thì bước 'xin thách thức' (chỉ ghi sổ đếm) cũng không bị phát lại thành 'đã ghi'.",
