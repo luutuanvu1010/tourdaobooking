@@ -327,6 +327,18 @@
       "note": "chính sách riêng tư có phiên bản (ADR-0126 đ1; migration 0103), CHỈ-THÊM, phiên bản liên tiếp; không gieo dòng nào; không có thời hạn xoá (chờ luật sư — lát H-5)"
     },
     {
+      "name": "pty_attachment",
+      "module": "parties",
+      "kind": "table",
+      "note": "tệp hồ sơ (ảnh / PDF giấy tờ) ở kho R2 riêng HO_SO (ADR-0123; migration 0104): khoá kho ngẫu nhiên, loại theo chữ ký, cỡ, băm SHA-256; KHÔNG tên tệp gốc; không xoá dòng — ba mốc một chiều stored_at / purged_at (+ lý do, băm về rỗng) / r2_deleted_at; 'chờ xoá' = purged_at có, r2_deleted_at rỗng"
+    },
+    {
+      "name": "pty_attachment_link",
+      "module": "parties",
+      "kind": "table",
+      "note": "nối tệp hồ sơ với dòng giấy tờ người / tổ chức (ADR-0123 đ4, đ5; migration 0104), CHỈ-THÊM; loại nối là mã mở, trigger chỉ mở PERSON_DOCUMENT, ORG_DOCUMENT; gộp hồ sơ thêm dòng nối sang dòng giấy tờ mới của hồ sơ chính"
+    },
+    {
       "name": "pty_consent",
       "module": "parties",
       "kind": "table",
@@ -1275,6 +1287,13 @@
     "pty_party_role": { "id": "N1", "party_id": "N1", "role_type_code": "N1", "location_id": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_person": { "party_id": "N1", "family_name": "N2", "middle_name": "N2", "given_name": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "gender": "N2", "birth_date": "N2" },
     "pty_person_document": { "id": "N1", "party_id": "N1", "document_type_code": "N1", "document_number": "N3", "number_key": "N3", "license_class_code": "N1", "issued_date": "N1", "issued_place": "N3", "expiry_date": "N1", "previous_id": "N1", "voided_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "pty_attachment": {
+      "id": "N1", "party_id": "N1", "storage_key": "N3", "content_kind": "N1", "byte_size": "N1", "content_hash": "N3", "stored_at": "N1",
+      "purged_at": "N1", "purge_reason": "N1", "r2_deleted_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1"
+    },
+    "pty_attachment_link": {
+      "attachment_id": "N1", "target_kind": "N1", "target_id": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1"
+    },
     "pty_consent": { "id": "N1", "party_id": "N1", "policy_id": "N1", "decision": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_organization_document": { "id": "N1", "party_id": "N1", "document_type_code": "N1", "document_number": "N3", "number_key": "N3", "issued_date": "N1", "issued_place": "N3", "expiry_date": "N1", "previous_id": "N1", "voided_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_organization_document_type": { "code": "N1", "name": "N1", "has_expiry": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },

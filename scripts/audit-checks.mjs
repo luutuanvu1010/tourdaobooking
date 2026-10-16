@@ -104,6 +104,8 @@ const GHI_SAU_KHOA = (bang) =>
  * N4 dò ở bài chạy cả ứng dụng (tests/audit/nhat-ky-hang.mjs).
  */
 export const COT_N3_NHAT_KY = {
+  "pty_attachment.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0123 (lát H-2 Gói 2): băm ảnh giấy tờ — nhật ký chỉ mang mã tệp
+  "pty_attachment.storage_key": { kiem: "R-PD-1", chuanHoa: false }, // khoá kho R2 — không bao giờ vào nhật ký
   "pty_organization_document.document_number": { kiem: "R-PD-1", chuanHoa: false },
   "pty_organization_document.number_key": { kiem: "R-PD-1", chuanHoa: true },
   "pty_organization_document.issued_place": { kiem: "R-PD-1", chuanHoa: false },
@@ -654,6 +656,22 @@ export const CHECKS = [
     what: "liên hệ địa chỉ (ADDRESS) chỉ ở hồ sơ cá nhân",
     sql: "SELECT count(*) FROM pty_contact_point c WHERE c.contact_kind_code = 'ADDRESS' AND NOT EXISTS (SELECT 1 FROM pty_person p WHERE p.party_id = c.party_id)",
     level: "fail",
+  },
+  // R-PTY-11 (ADR-0123 đ4): lô tải lên chèn dòng tệp + dòng nối cùng lúc — tệp không có dòng nối là dấu hiệu lô hỏng hoặc ghi tay.
+  {
+    code: "R-PTY-11",
+    what: "mỗi tệp hồ sơ có ít nhất một dòng nối tới dòng giấy tờ",
+    sql: "SELECT count(*) FROM pty_attachment a WHERE NOT EXISTS (SELECT 1 FROM pty_attachment_link l WHERE l.attachment_id = a.id)",
+    level: "fail",
+  },
+  // R-PTY-12 (ADR-0123 đ6; Hiến chương 5.16): việc bên ngoài chưa xong — tệp đã quyết xoá mà kho chưa xoá, hoặc tải dở dang quá 1 giờ. Mức warn: THẤY được ở
+  // mỗi lần audit-invariants (kể cả bước của npm run trien-khai), chạy lại bằng POST /api/parties/tep-cho-xoa/chay-lai; không chặn phát hành.
+  {
+    code: "R-PTY-12",
+    what: "tệp hồ sơ chờ xoá khỏi kho R2, hoặc tải lên dở dang quá 1 giờ (chạy lại ở POST /api/parties/tep-cho-xoa/chay-lai)",
+    sql: `SELECT count(*) FROM pty_attachment WHERE (purged_at IS NOT NULL AND r2_deleted_at IS NULL)
+            OR (purged_at IS NULL AND stored_at IS NULL AND created_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 hour'))`,
+    level: "warn",
   },
   {
     code: "R-VC-1",

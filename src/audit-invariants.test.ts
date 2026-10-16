@@ -1038,6 +1038,46 @@ test("R-PTY-10 (ADR-0122 đ1): liên hệ ADDRESS chỉ ở hồ sơ cá nhân �
   assert.equal(violations(db, c), 1);
 });
 
+const NGUOI_T = (db: DatabaseSync, id: string) => {
+  db.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'PERSON', ?, 1, ?, ?)").run(id, id, T1, T1);
+  db.prepare("INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES (?, ?, ?, ?)").run(id, id, T1, T1);
+};
+const TEP_T = (db: DatabaseSync, id: string, party: string, k: number, createdAt = T1) =>
+  db.prepare(`INSERT INTO pty_attachment (id, party_id, storage_key, content_kind, byte_size, content_hash, created_at, created_by, updated_at, updated_by)
+    VALUES (?, ?, ?, 'png', 10, ?, ?, 's', ?, 's')`).run(id, party, `pty/${String(k).padStart(32, "0")}`, "c".repeat(64), createdAt, createdAt);
+
+test("R-PTY-11 (ADR-0123 đ4): mỗi tệp hồ sơ có ít nhất một dòng nối — có nối → 0; tệp mồ côi → 1", () => {
+  const c = one("R-PTY-11");
+  assert.equal(c.level, "fail");
+  const db = build();
+  NGUOI_T(db, "p-tep");
+  db.prepare(`INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, created_at, updated_at)
+    VALUES ('g-tep', 'p-tep', 'HEALTH_CHECK', 'SKTEP1', 'SKTEP1', ?, ?)`).run(T1, T1);
+  TEP_T(db, "t1", "p-tep", 1);
+  db.prepare("INSERT INTO pty_attachment_link (attachment_id, target_kind, target_id, created_at, created_by, updated_at, updated_by) VALUES ('t1', 'PERSON_DOCUMENT', 'g-tep', ?, 's', ?, 's')").run(T1, T1);
+  assert.equal(violations(db, c), 0);
+  TEP_T(db, "t2", "p-tep", 2);
+  assert.equal(violations(db, c), 1);
+});
+
+test("R-PTY-12 (ADR-0123 đ6, Hiến chương 5.16): tệp chờ xoá khỏi kho hoặc tải dở dang quá 1 giờ — mức warn (thấy được, không chặn phát hành)", () => {
+  const c = one("R-PTY-12");
+  assert.equal(c.level, "warn");
+  const db = build();
+  NGUOI_T(db, "p-tep");
+  const xaRoi = new Date(Date.now() - 2 * 3600e3).toISOString();
+  TEP_T(db, "t-moi", "p-tep", 1, new Date().toISOString()); // tải dở dang VỪA tạo — chưa tính
+  assert.equal(violations(db, c), 0);
+  TEP_T(db, "t-do-dang", "p-tep", 2, xaRoi);                 // tải dở dang quá 1 giờ
+  assert.equal(violations(db, c), 1);
+  db.prepare("UPDATE pty_attachment SET stored_at = ? WHERE id = 't-do-dang'").run(xaRoi);
+  assert.equal(violations(db, c), 0);
+  db.prepare("UPDATE pty_attachment SET purged_at = ?, purge_reason = 'TAI_LEN_LOI', content_hash = NULL WHERE id = 't-do-dang'").run(xaRoi);
+  assert.equal(violations(db, c), 1, "chờ xoá khỏi kho");
+  db.prepare("UPDATE pty_attachment SET r2_deleted_at = ? WHERE id = 't-do-dang'").run(xaRoi);
+  assert.equal(violations(db, c), 0);
+});
+
 test("R-VC-1 (ADR-0040 D1): biển số không trùng giữa các xe CHƯA NGỪNG — xe đã ngừng giữ biển cũ không tính → 0; hai xe đang dùng cùng biển (chỉ mục bị gỡ) → 1", () => {
   const c = one("R-VC-1");
   assert.equal(c.level, "fail");
