@@ -203,7 +203,11 @@ try {
     await kt.waitFor(`!${q("#mfa")}.hidden`, "khối Bảo mật đăng nhập hiện", 10000);
     assert.ok(await coNut(kt, "#mfa", "Bật ứng dụng xác thực"));
     assert.equal(await coNut(kt, "#mfa", "Nhận mã qua email"), false, "Kế toán không được thấy lựa chọn email");
-    assert.ok(!/email/i.test(await kt.ev(txt("#mfa"))), "khối của Kế toán không nhắc email");
+    // Từ 2026-10-16 khối có MỘT dòng giải thích vì sao không có Email (chủ: Toàn quyền tưởng là lỗi); ngoài dòng đó thì không nhắc email.
+    const chu = await kt.ev(txt("#mfa"));
+    const CAU = "Tài khoản Quản trị, Toàn quyền, Kế toán chỉ dùng ứng dụng xác thực, không nhận mã qua email.";
+    assert.ok(chu.includes(CAU), "khối của Kế toán có dòng giải thích vì sao không có email");
+    assert.ok(!/email/i.test(chu.replace(CAU, "")), "ngoài dòng giải thích, khối của Kế toán không nhắc email");
     await kt.ev(`${q("#mfa")}.scrollIntoView({ block: 'start' }); true`);
     await shotView(kt, "06-ke-toan-khong-co-email-1040.png");
     await axe(kt, "trang Tôi — Kế toán");

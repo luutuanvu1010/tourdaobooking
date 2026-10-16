@@ -1,6 +1,7 @@
 import { ApiError, api, type Api } from "./api";
 import { chipHan, coMucGiayToCuaToi, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
 import { PERMISSION_LABEL, can, hasPermission } from "../src/shared/permissions";
+import { CAU_CHI_UNG_DUNG_XAC_THUC } from "../src/shared/hai-lop-hien-thi";
 import { coPhanTaiXe } from "../src/shared/start-page";
 import { trangToi, type MucHien } from "../src/shared/muc-giao-dien";
 import { canHuyDangKyCu } from "../src/shared/push-khoa";
@@ -697,6 +698,7 @@ async function renderMfa(): Promise<void> {
     mfaEl,
     h("h2", { id: "mfa-heading" }, "Bảo mật đăng nhập"),
     h("p", { class: "muted" }, `Bảo mật hai lớp: đăng nhập bằng PIN trên máy lạ, Nền tảng hỏi thêm mã 6 số từ ứng dụng xác thực trên điện thoại của bạn${emailDuoc ? " hoặc mã gửi qua email" : ""}. Kẻ biết PIN mà không có mã thì không vào được.`),
+    !emailDuoc && h("p", { class: "muted" }, CAU_CHI_UNG_DUNG_XAC_THUC), // máy chủ không cho Email (Quản trị / Toàn quyền / Kế toán): nói rõ để khỏi tưởng là lỗi
     trangThai,
     batBuoc,
     vung,

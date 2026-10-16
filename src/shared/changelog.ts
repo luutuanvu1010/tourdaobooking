@@ -12,6 +12,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Dòng giải thích ở trang Tôi → Bảo mật đăng nhập khi không có lựa chọn Email (chủ dự án 2026-10-16: Toàn quyền không thấy Email, tưởng là lỗi). Không migration.
+    // Số 2.8 là số TẠM (= main 2.7 + 1, kiểm 2026-10-16: main 476099d3): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
+    version: "2.8",
+    date: "2026-10-16",
+    items: [
+      { kind: "sua", text: "Trang Tôi, mục Bảo mật đăng nhập: tài khoản Quản trị, Toàn quyền, Kế toán nay có dòng giải thích vì sao không có lựa chọn nhận mã qua email." },
+    ],
+  },
+  {
     // Mã đăng nhập qua email (ADR-0074 Phần C). Có thay đổi cơ sở dữ liệu (migration 0102 thêm bảng mã email) — cần trien-khai sau day-len. Gửi thư dùng binding
     // EMAIL + bí mật FEEDBACK_MAIL_FROM đã có (chủ xác nhận; gửi thật chưa thử — docs/HANDOFF-N1.md).
     // Số 2.7 là số TẠM (= main 2.6 «thẻ góp ý chưa trả lời» + 1, kiểm 2026-10-16: main 238f740a): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của
