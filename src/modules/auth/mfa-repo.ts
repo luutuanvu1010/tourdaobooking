@@ -54,6 +54,8 @@ const RECOVERY_INSERT = defineSql("auth", "mfa_recovery_insert", "INSERT INTO au
 const RECOVERY_REVOKE_ALL = defineSql("auth", "mfa_recovery_revoke_all", "UPDATE aut_mfa_recovery_code SET revoked_at = ?2, updated_at = ?2, updated_by = ?3 WHERE staff_id = ?1 AND used_at IS NULL AND revoked_at IS NULL");
 // Dùng MỘT lần: chỉ đổi khi chưa dùng, chưa thu hồi. Người gọi đòi changes = 1.
 const RECOVERY_USE = defineSql("auth", "mfa_recovery_use", "UPDATE aut_mfa_recovery_code SET used_at = ?3, updated_at = ?3, updated_by = ?1 WHERE staff_id = ?1 AND code_hash = ?2 AND used_at IS NULL AND revoked_at IS NULL");
+// CHỈ KIỂM (không tiêu) — bước 1 đổi email bằng mã dự phòng: mã chỉ bị tiêu SAU khi thư đã gửi được (vòng sửa 2 Phần C).
+const RECOVERY_LIVE = defineSql("auth", "mfa_recovery_live", "SELECT 1 AS ok FROM aut_mfa_recovery_code WHERE staff_id = ?1 AND code_hash = ?2 AND used_at IS NULL AND revoked_at IS NULL");
 const RECOVERY_COUNT_LEFT = defineSql("auth", "mfa_recovery_count_left", "SELECT count(*) AS n FROM aut_mfa_recovery_code WHERE staff_id = ?1 AND used_at IS NULL AND revoked_at IS NULL");
 
 const TD_COLS = "id, staff_id, label, created_at, last_used_at, expires_at";
@@ -137,6 +139,9 @@ export const recoveryRevokeAllStatement = (db: D1Database, staffId: string, at: 
   db.prepare(RECOVERY_REVOKE_ALL).bind(staffId, at, by);
 export const recoveryUseStatement = (db: D1Database, staffId: string, codeHash: string, at: string): D1PreparedStatement =>
   db.prepare(RECOVERY_USE).bind(staffId, codeHash, at);
+export async function recoveryLive(db: D1Database, staffId: string, codeHash: string): Promise<boolean> {
+  return (await db.prepare(RECOVERY_LIVE).bind(staffId, codeHash).first<{ ok: number }>()) !== null;
+}
 export async function recoveryCountLeft(db: D1Database, staffId: string): Promise<number> {
   return (await db.prepare(RECOVERY_COUNT_LEFT).bind(staffId).first<{ n: number }>())?.n ?? 0;
 }

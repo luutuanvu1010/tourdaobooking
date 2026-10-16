@@ -373,3 +373,101 @@ test("Quản lý tài khoản (GET /api/staff): nhãn «Đã bật» KHÔNG tín
   assert.deepEqual(mfa(BH), { enabled: true, graceUntil: null }, "Bán hàng bật email");
   assert.ok(!r.text.includes("@gmail.com"), "danh sách không mang địa chỉ email");
 });
+
+// ---- Vòng sửa 2 (người kiểm độc lập, IMPORTANT): người CHỈ dùng email đổi địa chỉ bằng MÃ DỰ PHÒNG — gửi thư hỏng (502) hay vượt hạn mức gửi (429) KHÔNG được
+// tiêu mã dự phòng (mã hữu hạn, người chỉ có email không tạo lại được bộ mã). Thứ tự ở start: chứng minh mã hiện có (mã dự phòng chỉ KIỂM, chưa tiêu) → hạn mức
+// gửi → ghi dòng mã + gửi → CHỈ khi gửi thành công mới tiêu mã dự phòng. ----
+
+const conLaiDuPhong = (w: W, id: string) => dem(w, "SELECT count(*) AS n FROM aut_mfa_recovery_code WHERE staff_id = ? AND used_at IS NULL AND revoked_at IS NULL", id);
+/** Bộ gửi đổi được giữa chừng: `hong = true` → nhà cung cấp ném lỗi; `trongKhiGui` chạy ngay lúc gửi (giả một yêu cầu song song). */
+function boGuiDoiDuoc(w: W, thu: Thu[]) {
+  const bo = { hong: false, trongKhiGui: null as null | (() => void) };
+  w.env.EMAIL = {
+    send: async (m: Thu) => {
+      if (bo.hong) throw new Error(`E_PROVIDER gửi tới ${m.to} hỏng`);
+      bo.trongKhiGui?.();
+      thu.push(m);
+    },
+  };
+  return bo;
+}
+
+test("Vòng sửa 2: người chỉ có email — vượt hạn mức gửi (429) KHÔNG tiêu mã dự phòng; hết hạn mức thì CÙNG mã đó dùng được", async () => {
+  const { w, thu } = await setup();
+  const codes: string[] = (await batEmail(w, thu, BH)).json.recoveryCodes;
+  assert.equal(conLaiDuPhong(w, BH), 10);
+  // Lấp đầy hạn mức gửi (đã gửi 1 thư lúc bật; thêm 2 dòng đếm = 3 thư / 15 phút).
+  for (let i = 0; i < 2; i++) w.sqlite.prepare("INSERT INTO login_attempt (id, key, at) VALUES (?, ?, ?)").run(crypto.randomUUID(), `mfa-mail:${BH}`, Date.now());
+  const soThu = thu.length;
+  const r = await start(w, BH, { email: "moi@example.com", currentCode: codes[0] });
+  assert.equal(r.status, 429, r.text);
+  assert.match(r.json.error.message, /Đã gửi quá nhiều mã qua email/);
+  assert.equal(thu.length, soThu, "không thư nào đi");
+  assert.equal(conLaiDuPhong(w, BH), 10, "mã dự phòng còn nguyên sau 429");
+  // Hết cửa sổ 15 phút (xoá bộ đếm gửi) → CÙNG mã dự phòng dùng được, và lúc này mới bị tiêu.
+  w.sqlite.prepare("DELETE FROM login_attempt WHERE key = ?").run(`mfa-mail:${BH}`);
+  const lai = await start(w, BH, { email: "moi@example.com", currentCode: codes[0] });
+  assert.equal(lai.status, 200, lai.text);
+  assert.equal(conLaiDuPhong(w, BH), 9, "gửi thành công → tiêu đúng một mã");
+  const c = await confirm(w, BH, { email: "moi@example.com", code: maTrongThu(thu.at(-1)!) });
+  assert.equal(c.status, 200, c.text);
+  assert.deepEqual(yeuToSong(w, BH).map((f: any) => f.email), ["moi@example.com"]);
+});
+
+test("Vòng sửa 2: người chỉ có email — gửi thư hỏng (502) KHÔNG tiêu mã dự phòng; gửi lại CÙNG thân khi nhà cung cấp hồi phục → 200; recovery/regenerate vẫn 409 mfa_off theo thiết kế, mã còn nguyên", async () => {
+  const { w, thu } = await setup();
+  const codes: string[] = (await batEmail(w, thu, BH)).json.recoveryCodes;
+  const bo = boGuiDoiDuoc(w, thu);
+  bo.hong = true;
+  const { kq: r, log } = await batLog(() => start(w, BH, { email: "moi@example.com", currentCode: codes[0] }));
+  assert.equal(r.status, 502, r.text);
+  assert.deepEqual(r.json.error, { code: "mail_failed", message: "Chưa gửi được email, thử lại hoặc dùng cách khác." });
+  assert.ok(!log.includes("E_PROVIDER") && !log.includes("moi@example.com"), log);
+  assert.equal(conLaiDuPhong(w, BH), 10, "mã dự phòng còn nguyên sau 502");
+  // Tạo lại bộ mã khi chỉ có email: 409 mfa_off (thiết kế — câu chờ chủ), KHÔNG phải vì mất mã.
+  const rg = await w.call("POST", "/api/account/mfa/recovery/regenerate", { as: BH, body: { code: codes[1] } });
+  assert.equal(rg.status, 409, rg.text);
+  assert.equal(rg.json.error.code, "mfa_off");
+  assert.equal(conLaiDuPhong(w, BH), 10);
+  bo.hong = false;
+  const lai = await start(w, BH, { email: "moi@example.com", currentCode: codes[0] });
+  assert.equal(lai.status, 200, `gửi lại cùng thân sau 502: ${lai.text}`);
+  assert.equal(conLaiDuPhong(w, BH), 9);
+  const c = await confirm(w, BH, { email: "moi@example.com", code: maTrongThu(thu.at(-1)!) });
+  assert.equal(c.status, 200, c.text);
+});
+
+test("Vòng sửa 2: mã dự phòng SAI → 401, không thư, không dòng mã bật, không tiêu mã nào; vẫn đếm vào hạn mức nhập sai mfa:<id> (lần 6 → 429 kể cả mã đúng)", async () => {
+  const { w, thu } = await setup();
+  const codes: string[] = (await batEmail(w, thu, BH)).json.recoveryCodes;
+  const soThu = thu.length;
+  const soDong = dem(w, "SELECT count(*) AS n FROM aut_mfa_email_code WHERE staff_id = ? AND purpose = 'enroll'", BH);
+  for (let i = 0; i < 5; i++) {
+    const r = await start(w, BH, { email: "moi@example.com", currentCode: "zzzz-zzzz" });
+    assert.equal(r.status, 401, r.text);
+  }
+  assert.equal(thu.length, soThu);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM aut_mfa_email_code WHERE staff_id = ? AND purpose = 'enroll'", BH), soDong, "không phát mã bật mới");
+  assert.equal(conLaiDuPhong(w, BH), 10);
+  const khoa = await start(w, BH, { email: "moi@example.com", currentCode: codes[0] });
+  assert.equal(khoa.status, 429, khoa.text);
+  assert.match(khoa.json.error.message, /Nhập sai quá nhiều lần/);
+  assert.equal(thu.length, soThu);
+  assert.equal(conLaiDuPhong(w, BH), 10);
+});
+
+test("Vòng sửa 2: mã dự phòng bị tiêu SONG SONG trong lúc thư đang gửi → lần này 401, mã bật vừa phát bị huỷ (không xác nhận được) — một mã dự phòng không mở được hai lần", async () => {
+  const { w, thu } = await setup();
+  const codes: string[] = (await batEmail(w, thu, BH)).json.recoveryCodes;
+  const bo = boGuiDoiDuoc(w, thu);
+  // Giả một yêu cầu song song vừa tiêu mã dự phòng (đánh dấu mọi mã còn sống — gồm codes[0]) đúng lúc thư đang đi.
+  bo.trongKhiGui = () => {
+    bo.trongKhiGui = null;
+    w.sqlite.prepare("UPDATE aut_mfa_recovery_code SET used_at = ? WHERE staff_id = ? AND used_at IS NULL AND revoked_at IS NULL").run(new Date().toISOString(), BH);
+  };
+  const r = await start(w, BH, { email: "moi@example.com", currentCode: codes[0] });
+  assert.equal(r.status, 401, r.text);
+  const c = await confirm(w, BH, { email: "moi@example.com", code: maTrongThu(thu.at(-1)!) });
+  assert.notEqual(c.status, 200, `mã bật của lần thua không được xác nhận: ${c.text}`);
+  assert.deepEqual(yeuToSong(w, BH).map((f: any) => f.email), [EMAIL_CHUAN], "địa chỉ cũ giữ nguyên");
+});

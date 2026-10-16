@@ -916,21 +916,19 @@ export const accountsModule: AppModule = {
     // mã gửi tới CHÍNH địa chỉ đó; chưa xác nhận thì không lưu. Quản trị / Toàn quyền / Kế toán → 409 (máy chủ trả `allowed`, giao diện không tự suy). Địa chỉ đầy
     // đủ không vào phản hồi, nhật ký, log — chỉ dạng che.
     // Bước 1: 409 vai lớn (TRƯỚC mọi ghi) → địa chỉ đúng khuôn → [đã có yếu tố: mã của yếu tố hiện có (ứng dụng xác thực hoặc mã dự phòng), có hạn mức] → hạn
-    // mức gửi 3 thư / 15 phút (chung với bước đăng nhập) → ghi dòng mã → gửi thư. Không lô ghi mang vé (guiMaBatEmail — ngoài vé có tên).
+    // mức gửi 3 thư / 15 phút (chung với bước đăng nhập) → ghi dòng mã → gửi thư → (mã dự phòng) mới tiêu mã. Không lô ghi mang vé (guiMaBatEmail — ngoài vé có tên).
     route("POST", "/api/account/mfa/email/start", "staff", async ({ request, env, staff }) => {
       if (!allowedFactors(staff.permissions).includes("EMAIL")) return EMAIL_VAI_LON();
       const body = await readJson(request);
       const email = normalizeEmail(body?.email);
       if (!email) return error(400, "invalid_input", "Địa chỉ email chưa đúng (dạng ten@vidu.com).");
       const now = Date.now();
-      if ((await yeuToSong(env.DB, staff.id)).length > 0) {
-        if (typeof body?.currentCode !== "string" || !body.currentCode.trim()) {
-          return error(400, "current_code_required", "Bảo mật hai lớp đang bật: nhập mã 6 số từ ứng dụng xác thực hoặc một mã dự phòng để thêm hoặc đổi email.");
-        }
-        const chan = await kiemMaHienCo(env, staff.id, body.currentCode, now, "TOTP_HOAC_DU_PHONG");
-        if (chan) return chan;
+      const daCoYeuTo = (await yeuToSong(env.DB, staff.id)).length > 0;
+      if (daCoYeuTo && (typeof body?.currentCode !== "string" || !body.currentCode.trim())) {
+        return error(400, "current_code_required", "Bảo mật hai lớp đang bật: nhập mã 6 số từ ứng dụng xác thực hoặc một mã dự phòng để thêm hoặc đổi email.");
       }
-      const gui = await guiMaBatEmail(env, staff.id, email, now);
+      // Đã có yếu tố: guiMaBatEmail kiểm mã hiện có TRƯỚC khi gửi; mã dự phòng chỉ bị tiêu SAU khi thư đã đi (vòng sửa 2 — 429 / 502 không làm mất mã).
+      const gui = await guiMaBatEmail(env, staff.id, email, now, daCoYeuTo ? body?.currentCode : undefined);
       if ("response" in gui) return gui.response;
       return json({ sent: true, emailMask: gui.emailMask } satisfies MfaEmailStartResponse);
     }),

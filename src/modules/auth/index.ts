@@ -15,11 +15,12 @@ import { dbNgoaiVe } from "../../shared/lan-gui-boc";
 import { route, type AppModule } from "../../shared/router";
 import { newTrustedToken, sha256Hex } from "./mfa-crypto";
 import {
-  MFA_LIMIT, TRUSTED_COOKIE, TRUSTED_TTL_SECONDS, clearMfaAttemptsStatement, lockedMfaStaffIds, mfaKey, mfaKeyReady, trustedCookie, unlockLogin, useRecoveryCode, useTotp,
+  MFA_LIMIT, TRUSTED_COOKIE, TRUSTED_TTL_SECONDS, checkRecoveryCode, clearMfaAttemptsStatement, lockedMfaStaffIds, mfaKey, mfaKeyReady, trustedCookie, unlockLogin,
+  useRecoveryCode, useRecoveryHash, useTotp,
 } from "./mfa-dang-nhap";
 import { MAIL_LIMIT, mailKey, maskEmail, normalizeEmail, phatMaEmail, useEmailCode } from "./mfa-email";
 import {
-  factorEndAllStatement, factorEndKindStatement, factorListLive, recoveryCountLeft, recoveryRevokeAllStatement, factorKindsByStaff, trustedFind, trustedInsertStatement, trustedRevokeAllStatement,
+  emailCodeRevokeOpenStatement, factorEndAllStatement, factorEndKindStatement, factorListLive, recoveryCountLeft, recoveryRevokeAllStatement, factorKindsByStaff, trustedFind, trustedInsertStatement, trustedRevokeAllStatement,
   trustedRevokeAllIfSuspendedStatement, trustedRevokeOfSessionStatement, trustedTouchStatement,
 } from "./mfa-repo";
 import { batTotpStatements, boMaDuPhongMoi, khopKhoaMoi, moiKhoaTotp } from "./mfa-tu-phuc-vu";
@@ -317,6 +318,22 @@ export const MFA_UNAVAILABLE = (): Response => error(503, "mfa_unavailable", "M�
  *   của lệnh, và phải ghi cả khi lệnh bị từ chối hay lô chính hỏng (chống dùng lại mã, đếm lần sai) — như verifyPinThrottled.
  */
 export async function kiemMaHienCo(env: Env, staffId: string, rawCode: unknown, nowMs: number, cach: "TOTP" | "TOTP_HOAC_DU_PHONG"): Promise<Response | null> {
+  const kq = await kiemMaHienCoNoi(env, staffId, rawCode, nowMs, cach, "tieu");
+  return kq instanceof Response ? kq : null;
+}
+
+const SAI_MA_HIEN_CO = (cach: "TOTP" | "TOTP_HOAC_DU_PHONG"): Response => error(401, "invalid_code", cach === "TOTP"
+  ? "Mã không đúng hoặc đã dùng. Nhập mã mới nhất trên ứng dụng xác thực (kiểm giờ tự động trên điện thoại nếu sai nhiều lần)."
+  : "Mã hiện tại không đúng hoặc đã dùng. Nhập mã mới nhất trên ứng dụng xác thực, hoặc một mã dự phòng chưa dùng.");
+
+/**
+ * Lõi của kiemMaHienCo. `duPhong = "tieu"`: mã dự phòng đúng bị tiêu ngay. `duPhong = "chiKiem"` (bước 1 đổi email — vòng sửa 2 Phần C): mã dự phòng đúng CHƯA
+ * bị tiêu, trả băm để người gọi tiêu SAU khi việc bên ngoài (gửi thư) đã thành; hạn mức `mfa:<id>` và xoá bộ đếm khi đúng y hệt. Mã TOTP luôn tiêu bước ngay
+ * (rẻ: 30 giây có mã mới; giữ chống dùng lại).
+ */
+async function kiemMaHienCoNoi(
+  env: Env, staffId: string, rawCode: unknown, nowMs: number, cach: "TOTP" | "TOTP_HOAC_DU_PHONG", duPhong: "tieu" | "chiKiem",
+): Promise<Response | { duPhongHash: string | null }> {
   const code = typeof rawCode === "string" ? rawCode.trim().slice(0, 32) : "";
   if (!code) return error(400, "invalid_input", cach === "TOTP" ? "Cần nhập mã 6 số đang hiện trên ứng dụng xác thực." : "Cần nhập mã từ ứng dụng xác thực hoặc một mã dự phòng.");
   const laTotp = /^\d{6}$/.test(code);
@@ -325,17 +342,19 @@ export async function kiemMaHienCo(env: Env, staffId: string, rawCode: unknown, 
   const db = dbNgoaiVe(env.DB);
   const reservation = await reserveAttempts(db, [{ key: mfaKey(staffId), max: MFA_LIMIT }]);
   if (!reservation.allowed) return tooMany(reservation.retryAfterSeconds);
-  const kq = laTotp
-    ? await useTotp({ ...env, DB: db }, staffId, code, nowMs)
-    : ((cach === "TOTP_HOAC_DU_PHONG" && (await useRecoveryCode(db, staffId, code, new Date(nowMs).toISOString()))) ? "ok" : "invalid");
-  if (kq === "unavailable") return MFA_UNAVAILABLE();
-  if (kq !== "ok") {
-    return error(401, "invalid_code", cach === "TOTP"
-      ? "Mã không đúng hoặc đã dùng. Nhập mã mới nhất trên ứng dụng xác thực (kiểm giờ tự động trên điện thoại nếu sai nhiều lần)."
-      : "Mã hiện tại không đúng hoặc đã dùng. Nhập mã mới nhất trên ứng dụng xác thực, hoặc một mã dự phòng chưa dùng.");
+  let duPhongHash: string | null = null;
+  let kq: "ok" | "invalid" | "unavailable";
+  if (laTotp) kq = await useTotp({ ...env, DB: db }, staffId, code, nowMs);
+  else if (cach !== "TOTP_HOAC_DU_PHONG") kq = "invalid";
+  else if (duPhong === "tieu") kq = (await useRecoveryCode(db, staffId, code, new Date(nowMs).toISOString())) ? "ok" : "invalid";
+  else {
+    duPhongHash = await checkRecoveryCode(db, staffId, code);
+    kq = duPhongHash ? "ok" : "invalid";
   }
+  if (kq === "unavailable") return MFA_UNAVAILABLE();
+  if (kq !== "ok") return SAI_MA_HIEN_CO(cach);
   await clearAttempts(db, mfaKey(staffId), reservation.ids);
-  return null;
+  return { duPhongHash };
 }
 
 /** ADR-0074 điều 7: câu 409 khi tài khoản giữ Quản trị / Toàn quyền / Kế toán định bật yếu tố email (nguyên văn kế hoạch Phần C Task 3). */
@@ -347,13 +366,33 @@ export const EMAIL_VAI_LON = (): Response => error(409, "email_not_allowed", "T�
  * `{ emailMask }` hoặc Response chặn (429 câu gửi thư, 502 lời thường). KHÔNG ghi yếu tố — chỉ bước xác nhận mới lưu.
  * - NGOÀI VÉ (ADR-0094, T17 — mục có tên trong src/shared/lan-gui-no.ts): bộ đếm gửi thư và dòng mã ghi thẳng D1 gốc. Gửi hỏng (502 — máy khách GIỮ vé) thì
  *   bấm gửi lại phải gửi được thư mới; nếu dòng mã mang vé, lần gửi lại cùng thân bị báo "đã ghi" mà không có thư nào đi. Lệnh không có lô ghi mang vé.
+ * - `maHienCo` (đã có yếu tố — route đã đòi có mã): CHỨNG MINH TRƯỚC, GỬI SAU — không thư nào tới địa chỉ mới khi chưa chứng minh yếu tố hiện có (bước xác
+ *   nhận chỉ kiểm mã phát sau yếu tố mới nhất, không hỏi lại ai đã xin). Vòng sửa 2 (người kiểm độc lập): mã DỰ PHÒNG đúng chỉ KIỂM ở đây và CHỈ bị tiêu SAU
+ *   khi thư đã gửi được — 429 hạn mức gửi hay 502 gửi hỏng không làm người chỉ có email mất mã (mã hữu hạn, không tạo lại được). Tiêu thua (mã vừa bị dùng song
+ *   song) → huỷ mã bật vừa phát + 401: một mã dự phòng không mở được hai lần. Mã sai: 401 trước khi đụng hạn mức gửi, vẫn đếm vào `mfa:<id>` (5 / 15 phút).
  */
-export async function guiMaBatEmail(env: Env, staffId: string, email: string, nowMs: number): Promise<{ emailMask: string } | { response: Response }> {
+export async function guiMaBatEmail(
+  env: Env, staffId: string, email: string, nowMs: number, maHienCo?: unknown,
+): Promise<{ emailMask: string } | { response: Response }> {
   const db = dbNgoaiVe(env.DB);
+  let duPhongHash: string | null = null;
+  if (maHienCo !== undefined) {
+    const kq = await kiemMaHienCoNoi(env, staffId, maHienCo, nowMs, "TOTP_HOAC_DU_PHONG", "chiKiem");
+    if (kq instanceof Response) return { response: kq };
+    duPhongHash = kq.duPhongHash;
+  }
   const reservation = await reserveAttempts(db, [{ key: mailKey(staffId), max: MAIL_LIMIT }]);
   if (!reservation.allowed) return { response: tooMany(reservation.retryAfterSeconds, "gui_thu") };
   const sent = await phatMaEmail({ ...env, DB: db }, { staffId, email, purpose: "enroll", by: staffId, nowMs });
-  return sent ? { emailMask: maskEmail(email) ?? "" } : { response: MAIL_FAILED() };
+  if (!sent) return { response: MAIL_FAILED() };
+  if (duPhongHash !== null) {
+    const at = new Date(nowMs).toISOString();
+    if (!(await useRecoveryHash(db, staffId, duPhongHash, at))) {
+      await emailCodeRevokeOpenStatement(db, staffId, "enroll", at, staffId).run();
+      return { response: SAI_MA_HIEN_CO("TOTP_HOAC_DU_PHONG") };
+    }
+  }
+  return { emailMask: maskEmail(email) ?? "" };
 }
 
 /**

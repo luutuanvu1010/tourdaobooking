@@ -21,14 +21,14 @@ export const NGOAI_VE: readonly MucNgoaiVe[] = [
       "Sổ đếm lần thử PIN (bảng login_attempt — đặt chỗ, xoá khi đúng) dùng chung cho đăng nhập, Đổi PIN, Bật Face ID; ghi TRƯỚC lô chính và phải ghi cả khi lệnh bị từ chối. Mang vé thì lô Đổi PIN hỏng vẫn để lại vé ⇒ gửi lại bị báo nhầm 'đã ghi' mà PIN chưa đổi (bài lan-gui-hanh-vi ca k).",
   },
   {
-    noi: "src/modules/auth/index.ts#kiemMaHienCo",
+    noi: "src/modules/auth/index.ts#kiemMaHienCoNoi",
     lyDo:
-      "Kiểm mã của yếu tố hiện có khi tự đổi khoá / gỡ yếu tố / tạo lại mã dự phòng (ADR-0074 điều 5): đặt chỗ lượt thử (login_attempt, khoá mfa:<id>), tiêu bước TOTP hoặc một mã dự phòng, xoá bộ đếm — ghi TRƯỚC lô chính và phải ghi cả khi lệnh bị từ chối hay lô chính hỏng (đếm lần sai, chống dùng lại mã). Cùng lý do với verifyPinThrottled.",
+      "Lõi của kiemMaHienCo — kiểm mã của yếu tố hiện có khi tự đổi khoá / gỡ yếu tố / tạo lại mã dự phòng / đổi email (ADR-0074 điều 5): đặt chỗ lượt thử (login_attempt, khoá mfa:<id>), tiêu bước TOTP hoặc một mã dự phòng (bước 1 đổi email: mã dự phòng chỉ kiểm, tiêu sau ở guiMaBatEmail), xoá bộ đếm — ghi TRƯỚC lô chính và phải ghi cả khi lệnh bị từ chối hay lô chính hỏng (đếm lần sai, chống dùng lại mã). Cùng lý do với verifyPinThrottled.",
   },
   {
     noi: "src/modules/auth/index.ts#guiMaBatEmail",
     lyDo:
-      "Bước 1 tự bật yếu tố email (ADR-0074 điều 4, Phần C Task 3): bộ đếm gửi thư (login_attempt, khoá mfa-mail:<id>) và dòng mã bật (aut_mfa_email_code) ghi TRƯỚC khi gửi thư (Hiến chương 5.16). Gửi hỏng trả 502 và máy khách GIỮ vé: nếu dòng mã mang vé thì bấm gửi lại cùng thân bị báo 'đã ghi' mà không thư nào đi. Lệnh không có lô ghi nào khác.",
+      "Bước 1 tự bật yếu tố email (ADR-0074 điều 4, Phần C Task 3): bộ đếm gửi thư (login_attempt, khoá mfa-mail:<id>) và dòng mã bật (aut_mfa_email_code) ghi TRƯỚC khi gửi thư (Hiến chương 5.16). Gửi hỏng trả 502 và máy khách GIỮ vé: nếu dòng mã mang vé thì bấm gửi lại cùng thân bị báo 'đã ghi' mà không thư nào đi. Vòng sửa 2: mã dự phòng (nếu dùng) chỉ bị tiêu SAU khi thư đã đi, cũng ngoài vé — mang vé thì 502 rồi gửi lại cùng thân sẽ bị báo 'đã ghi'. Tiêu thua → huỷ mã bật vừa phát. Lệnh không có lô ghi nào khác.",
   },
   {
     noi: "src/modules/auth/index.ts#kiemMaBatEmail",
