@@ -62,8 +62,16 @@ export interface MeResponse { staff: StaffProfile; maintenance?: MaintenanceStat
 export type LoginMfaStepResponse =
   | { next: "mfa"; factors: ("TOTP" | "EMAIL" | "RECOVERY")[]; emailMask: string | null }
   | { next: "mfa_enroll" };
-/** `POST /api/auth/mfa/verify` đúng mã → `td_session` (+ `td_trusted` nếu chọn tin máy 30 ngày). `recoveryLeft`: chỉ khi vừa dùng mã dự phòng — số mã còn lại. */
+/**
+ * `POST /api/auth/mfa/verify` — thân `{ method: "TOTP" | "EMAIL" | "RECOVERY", code, trustDevice }`. Đúng mã → `td_session` (+ `td_trusted` nếu chọn tin máy 30
+ * ngày). `recoveryLeft`: chỉ khi vừa dùng mã dự phòng — số mã còn lại.
+ */
 export interface MfaVerifyResponse { staff: StaffProfile; recoveryLeft?: number }
+/**
+ * `POST /api/auth/mfa/email` (Phần C — ADR-0074 điều 4): gửi mã 6 số tới email của yếu tố EMAIL (cookie chờ purpose "verify"); gửi mã mới huỷ mã cũ. Chỉ trả
+ * địa chỉ dạng che. Lỗi: `409 no_email_factor`, `429 too_many_attempts` (3 thư / 15 phút), `502 mail_failed` ("Chưa gửi được email, thử lại hoặc dùng cách khác.").
+ */
+export interface MfaEmailSendResponse { sent: true; emailMask: string | null }
 /**
  * `POST /api/auth/mfa/enroll/confirm` (kế hoạch Task 6) — bật xong lớp hai ở bước đăng nhập (cửa sổ 24 giờ sau khi Quản trị/Toàn quyền tắt): `td_session` (phiên
  * PIN_MFA) + 10 mã dự phòng hiện MỘT lần. `POST /api/auth/mfa/enroll/start` trả `MfaTotpStartResponse` như bật trong phiên.

@@ -7,7 +7,8 @@ import {
 } from "../staff";
 import { APP_VERSION } from "../../shared/app-info";
 import type {
-  AuthConfigResponse, LoginMfaStepResponse, MeResponse, MfaEnrollConfirmResponse, MfaTotpStartResponse, MfaVerifyResponse, PasskeyRequestOptionsResponse, SessionPolicyChange,
+  AuthConfigResponse, LoginMfaStepResponse, MeResponse, MfaEmailSendResponse, MfaEnrollConfirmResponse, MfaTotpStartResponse, MfaVerifyResponse, PasskeyRequestOptionsResponse,
+  SessionPolicyChange,
 } from "../../shared/contracts";
 import { error, getCookie, json, readJson } from "../../shared/http";
 import { dbNgoaiVe } from "../../shared/lan-gui-boc";
@@ -16,13 +17,13 @@ import { newTrustedToken, sha256Hex } from "./mfa-crypto";
 import {
   MFA_LIMIT, TRUSTED_COOKIE, TRUSTED_TTL_SECONDS, clearMfaAttemptsStatement, lockedMfaStaffIds, mfaKey, mfaKeyReady, trustedCookie, unlockLogin, useRecoveryCode, useTotp,
 } from "./mfa-dang-nhap";
-import { maskEmail } from "./mfa-email";
+import { MAIL_LIMIT, mailKey, maskEmail, phatMaEmail, useEmailCode } from "./mfa-email";
 import {
   factorEndAllStatement, factorListLive, recoveryCountLeft, recoveryRevokeAllStatement, staffIdsWithFactor, trustedFind, trustedInsertStatement, trustedRevokeAllStatement,
   trustedRevokeAllIfSuspendedStatement, trustedRevokeOfSessionStatement, trustedTouchStatement,
 } from "./mfa-repo";
 import { batTotpStatements, boMaDuPhongMoi, khopKhoaMoi, moiKhoaTotp } from "./mfa-tu-phuc-vu";
-import { PENDING_COOKIE, clearedPendingCookie, createPendingToken, loginStep, pendingCookie, verifyPendingToken } from "./mfa-rules";
+import { PENDING_COOKIE, allowedFactors, clearedPendingCookie, createPendingToken, loginStep, pendingCookie, verifyPendingToken } from "./mfa-rules";
 import { PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, issuePasskeyChallenge, limitChallenge, passkeyRp, readPasskeyChallenge } from "./passkey";
 import {
   endAllButNewestStatement, endAllSessionsIfSuspendedStatement as endAllIfSuspendedRow, endExpiredSessionsStatement, endOtherSessionsStatement, endSessionStatement, findLiveSession,
@@ -259,14 +260,31 @@ export function exemptionChangeStatements(
   };
 }
 
-/** Thân 429 chung của bộ chống dò (PIN và bước hai — ADR-0074: "429 như PIN"). */
-function tooMany(seconds: number): Response {
-  return json(
-    { error: { code: "too_many_attempts", message: `Nhập sai quá nhiều lần. Thử lại sau ${Math.ceil(seconds / 60)} phút hoặc nhờ người phụ trách hệ thống mở khoá.`, retryAfterSeconds: seconds } },
-    429,
-    { "retry-after": String(seconds) },
-  );
+/** Thân 429 chung của bộ chống dò (PIN và bước hai — ADR-0074: "429 như PIN"). `vi = "gui_thu"`: hạn mức gửi mã email (cùng mã lỗi, câu nói đúng việc). */
+function tooMany(seconds: number, vi: "nhap_sai" | "gui_thu" = "nhap_sai"): Response {
+  const phut = Math.ceil(seconds / 60);
+  const message = vi === "gui_thu"
+    ? `Đã gửi quá nhiều mã qua email. Thử lại sau ${phut} phút, hoặc dùng ứng dụng xác thực / mã dự phòng.`
+    : `Nhập sai quá nhiều lần. Thử lại sau ${phut} phút hoặc nhờ người phụ trách hệ thống mở khoá.`;
+  return json({ error: { code: "too_many_attempts", message, retryAfterSeconds: seconds } }, 429, { "retry-after": String(seconds) });
 }
+
+/**
+ * Địa chỉ của yếu tố EMAIL đang sống, CHỈ khi quyền hiện tại cho phép email (ADR-0074 điều 7: Quản trị, Toàn quyền, Kế toán chỉ dùng ứng dụng xác thực — dữ
+ * liệu lệch thì coi như không có yếu tố email; chỉ siết). Địa chỉ đầy đủ không bao giờ ra khỏi máy chủ, trừ chính lá thư gửi tới nó.
+ */
+async function emailCuaYeuTo(db: D1Database, profile: StaffProfile): Promise<string | null> {
+  if (!allowedFactors(profile.permissions).includes("EMAIL")) return null;
+  return (await factorListLive(db, profile.id)).find((f) => f.kind === "EMAIL")?.email ?? null;
+}
+/** Bước hai bằng mã email: phải có yếu tố EMAIL sống (quyền cho phép) và mã mở gửi tới ĐÚNG địa chỉ đó (useEmailCode). */
+async function useEmailLogin(db: D1Database, profile: StaffProfile, code: string, nowIso: string): Promise<"ok" | "invalid"> {
+  const email = await emailCuaYeuTo(db, profile);
+  if (!email) return "invalid";
+  return (await useEmailCode(db, { staffId: profile.id, email, purpose: "login", code, nowIso })) ? "ok" : "invalid";
+}
+const NO_EMAIL_FACTOR = (): Response => error(409, "no_email_factor", "Tài khoản này chưa bật nhận mã qua email. Dùng ứng dụng xác thực hoặc mã dự phòng.");
+const MAIL_FAILED = (): Response => error(502, "mail_failed", "Chưa gửi được email, thử lại hoặc dùng cách khác.");
 
 /** Ghi "Đăng nhập gần nhất" SAU khi phiên đã cấp (qua bước hai mới tính). Lỗi ghi không được làm hỏng đăng nhập (chỉ là thống kê): ghi log rồi cho qua. */
 async function ghiDangNhap(env: Env, staffId: string): Promise<void> {
@@ -449,6 +467,7 @@ export const authModule: AppModule = {
 
     // ---- Bước hai (ADR-0074 điều 2–3; đặc tả §4.1 bước 5, §6). Công khai: KHÔNG đi qua cổng bảo trì của router nên tự gọi maintenanceBlock (như Face ID).
     // Thứ tự: cookie chờ (purpose verify, lưới credentials_changed_at) → bảo trì → kiểm thân → khoá máy chủ → hạn mức theo TÀI KHOẢN → kiểm mã → cấp phiên.
+    // `method`: "TOTP" (ứng dụng xác thực), "EMAIL" (mã gửi qua email — Phần C; sai thì đếm thêm lần cho mã đó), "RECOVERY" (mã dự phòng).
     route("POST", "/api/auth/mfa/verify", "public", async ({ request, env, dongBangTin }) => {
       const now = Date.now();
       const nowIso = new Date(now).toISOString();
@@ -461,15 +480,24 @@ export const authModule: AppModule = {
       if (blocked) return blocked;
       const body = await readJson(request);
       const method = body?.method;
-      if (method !== "TOTP" && method !== "RECOVERY") return error(400, "invalid_input", "Cần chọn cách xác minh (mã ứng dụng xác thực hoặc mã dự phòng) và nhập mã.");
+      if (method !== "TOTP" && method !== "EMAIL" && method !== "RECOVERY") {
+        return error(400, "invalid_input", "Cần chọn cách xác minh (mã ứng dụng xác thực, mã gửi qua email hoặc mã dự phòng) và nhập mã.");
+      }
       const code = typeof body?.code === "string" ? body.code.slice(0, 32) : "";
       // Lỗi cấu hình máy chủ không được tiêu lượt thử của người dùng: kiểm khoá TRƯỚC khi đặt chỗ lượt thử.
       if (method === "TOTP" && !mfaKeyReady(env)) return MFA_UNAVAILABLE();
+      // CÙNG hạn mức theo tài khoản `mfa:<id>` cho cả ba cách (Phần C: mã email không thành đường dò riêng). Mã email còn giới hạn 5 lần mỗi mã (cột attempts).
       const reservation = await reserveAttempts(env.DB, [{ key: mfaKey(profile.id), max: MFA_LIMIT }]);
       if (!reservation.allowed) return tooMany(reservation.retryAfterSeconds);
-      const kq = method === "RECOVERY" ? ((await useRecoveryCode(env.DB, profile.id, code, nowIso)) ? "ok" : "invalid") : await useTotp(env, profile.id, code, now);
+      const kq = method === "RECOVERY"
+        ? ((await useRecoveryCode(env.DB, profile.id, code, nowIso)) ? "ok" : "invalid")
+        : method === "EMAIL"
+          ? await useEmailLogin(env.DB, profile, code, nowIso)
+          : await useTotp(env, profile.id, code, now);
       if (kq === "unavailable") return MFA_UNAVAILABLE();
-      if (kq !== "ok") return error(401, "invalid_code", "Mã không đúng hoặc đã dùng. Kiểm giờ tự động trên điện thoại nếu sai nhiều lần.");
+      if (kq !== "ok") return error(401, "invalid_code", method === "EMAIL"
+        ? "Mã không đúng hoặc đã hết hạn. Bấm “Gửi mã qua email” để nhận mã mới."
+        : "Mã không đúng hoặc đã dùng. Kiểm giờ tự động trên điện thoại nếu sai nhiều lần.");
       await clearAttempts(env.DB, mfaKey(profile.id), reservation.ids);
       const cookies: string[] = [clearedPendingCookie(isSecure(request))];
       let trustedId: string | null = null;
@@ -491,6 +519,29 @@ export const authModule: AppModule = {
       const res = json(out, 200, { "set-cookie": issued.cookie });
       for (const c of cookies) res.headers.append("set-cookie", c);
       return res;
+    }),
+
+    // ---- Gửi mã qua email ở bước hai (ADR-0074 điều 4; đặc tả §4.1 bước 4, §6 quy tắc 2, 6, 8; kế hoạch Phần C Task 2). Công khai: tự gọi maintenanceBlock.
+    // Thứ tự: cookie chờ (purpose verify, lưới credentials_changed_at) → bảo trì → có yếu tố EMAIL sống mà quyền cho phép (409 — TRƯỚC hạn mức, không tiêu lượt)
+    // → hạn mức gửi theo TÀI KHOẢN `mfa-mail:<id>`, 3 thư / 15 phút (đếm mọi lần gửi, không bao giờ xoá) → MỘT lô [huỷ mã mở cũ → chèn mã mới (băm)] → rồi
+    // mới gửi (Hiến chương 5.16). Gửi hỏng → 502 lời thường; dòng mã còn, hết hạn tự nhiên. Không vé (KHONG_VE). Không nhật ký: auth không import audit, và
+    // mã / địa chỉ không bao giờ vào nhật ký; dấu vết là dòng aut_mfa_email_code (created_by).
+    route("POST", "/api/auth/mfa/email", "public", async ({ request, env }) => {
+      const now = Date.now();
+      const raw = getCookie(request, PENDING_COOKIE);
+      const p = raw ? await verifyPendingToken(env.SESSION_SECRET, raw, now) : null;
+      if (!p || p.purpose !== "verify") return MFA_EXPIRED();
+      const profile = await getActiveStaff(env.DB, p.staffId, p.issuedAt);
+      if (!profile) return MFA_EXPIRED();
+      const blocked = await maintenanceBlock(env.DB, () => profile.permissions);
+      if (blocked) return blocked;
+      const email = await emailCuaYeuTo(env.DB, profile);
+      if (!email) return NO_EMAIL_FACTOR();
+      const reservation = await reserveAttempts(env.DB, [{ key: mailKey(profile.id), max: MAIL_LIMIT }]);
+      if (!reservation.allowed) return tooMany(reservation.retryAfterSeconds, "gui_thu");
+      const sent = await phatMaEmail(env, { staffId: profile.id, email, purpose: "login", by: profile.id, nowMs: now });
+      if (!sent) return MAIL_FAILED();
+      return json({ sent: true, emailMask: maskEmail(email) } satisfies MfaEmailSendResponse);
     }),
 
     // ---- Bật lại lớp hai NGAY ở bước đăng nhập — cửa sổ 24 giờ sau khi Quản trị/Toàn quyền tắt (ADR-0074 điều 5; đặc tả §4.5; kế hoạch Task 6). Công khai: cổng

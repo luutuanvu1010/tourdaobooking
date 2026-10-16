@@ -1,0 +1,125 @@
+// E2E mã email ở bước đăng nhập (ADR-0074 điều 4; kế hoạch Phần C Task 2) trên wrangler dev thật. Bài cùng ý chạy không mạng (có bộ gửi thư giả — đường
+// gửi THÀNH CÔNG chỉ thấy ở đó): src/modules/auth/hai-lop-email.test.ts.
+// - wrangler dev của e2e KHÔNG có người gửi (FEEDBACK_MAIL_FROM) ⇒ mọi lần gửi trả 502 "Chưa gửi được email…" — đó là hành vi mong đợi (như feedback.mjs:
+//   "chưa gửi được mail"); dòng mã vẫn được ghi trước và hạn mức gửi vẫn tính.
+// - e2e không đọc được hộp thư và mã sản phẩm không có công tắc lộ mã: kịch bản lấy mã bằng cách GIEO dòng aut_mfa_email_code với mã biết trước (gieoMaEmail).
+// - Tài khoản Bán hàng DÙNG MỘT LẦN (SĐT ngẫu nhiên) — không dùng salesA (yếu tố sống trên tài khoản dùng chung làm `session()` của kịch bản sau bị hỏi mã).
+//   Yếu tố EMAIL / TOTP gieo thẳng bằng SQL (đường bật yếu tố email là Task 3). Ca 429 chạy CUỐI (khoá mfa-mail:<id> 15 phút, chỉ của tài khoản thử).
+import assert from "node:assert/strict";
+import { randomBytes } from "node:crypto";
+import { insertStaffSql } from "../../scripts/staff-lib.mjs";
+import { maHoaKhoa } from "./fake-totp.mjs";
+import { TURNSTILE_TEST, call, freshIp, gieoMaEmail, randomPhone, sql, sqlRows } from "./lib.mjs";
+
+const KHOA = process.env.E2E_MFA_KEY;
+if (!KHOA) throw new Error("Thiếu E2E_MFA_KEY (run.mjs truyền cùng giá trị --var MFA_ENCRYPTION_KEY cho wrangler dev)");
+const LOI_502 = { code: "mail_failed", message: "Chưa gửi được email, thử lại hoặc dùng cách khác." };
+
+const cookieOf = (r, name) => {
+  const c = r.headers.getSetCookie().find((x) => x.startsWith(`${name}=`) && !x.startsWith(`${name}=;`));
+  return c ? c.split(";")[0] : null;
+};
+const pinLogin = (acc) => call(null, "POST", "/api/auth/login", { phone: acc.phone, pin: acc.pin, turnstileToken: TURNSTILE_TEST.dummyToken }, freshIp());
+async function pendingOf(acc) {
+  const r = await pinLogin(acc);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.next, "mfa", JSON.stringify(r.body));
+  return cookieOf(r, "td_mfa_pending");
+}
+const guiMa = (pending) => call(pending, "POST", "/api/auth/mfa/email", {}, freshIp());
+const verify = (pending, code) => call(pending, "POST", "/api/auth/mfa/verify", { method: "EMAIL", code, trustDevice: false }, freshIp());
+async function taoTaiKhoan(name) {
+  const acc = { name, phone: randomPhone(), pin: String(200000 + Math.floor(Math.random() * 700000)) };
+  await sql((await insertStaffSql({ ...acc, permissions: ["SALES"] })).replace(/\n/g, " "));
+  const [{ id }] = await sqlRows(`SELECT id FROM staff WHERE phone = '${acc.phone}'`);
+  return { ...acc, id };
+}
+const at = new Date().toISOString();
+const yeuTo = (staffId, kind, secretEnc, email) =>
+  `INSERT INTO aut_mfa_factor (id, staff_id, kind, secret_enc, email, last_totp_step, valid_from_at, valid_to_at, created_at, created_by, updated_at, updated_by) ` +
+  `VALUES ('${randomBytes(8).toString("hex")}', '${staffId}', '${kind}', ${secretEnc ? `'${secretEnc}'` : "NULL"}, ${email ? `'${email}'` : "NULL"}, 0, '${at}', NULL, '${at}', '${staffId}', '${at}', '${staffId}');`;
+
+// ---- Chuẩn bị: A có yếu tố EMAIL; C chỉ có TOTP.
+const A = await taoTaiKhoan("Hai Lớp Email Thử");
+const EMAIL = `e2e.${randomBytes(4).toString("hex")}@example.com`;
+const C = await taoTaiKhoan("Hai Lớp TOTP Thử");
+await sql(yeuTo(A.id, "EMAIL", null, EMAIL) + " " + yeuTo(C.id, "TOTP", maHoaKhoa(KHOA, randomBytes(20)), null));
+const dongMa = () => sqlRows(`SELECT id, used_at, revoked_at FROM aut_mfa_email_code WHERE staff_id = '${A.id}' ORDER BY created_at, rowid`);
+let soLanGui = 0;
+
+// 1. PIN đúng → next=mfa, có EMAIL, địa chỉ chỉ hiện dạng che
+let r = await pinLogin(A);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.deepEqual(r.body, { next: "mfa", factors: ["EMAIL", "RECOVERY"], emailMask: "e***@example.com" });
+const P1 = cookieOf(r, "td_mfa_pending");
+assert.ok(P1);
+console.log("✓ 1. PIN đúng → next=mfa, factors có EMAIL, emailMask che");
+
+// 2. Gửi mã: máy e2e không có người gửi → 502 lời thường; dòng mã đã ghi TRƯỚC (còn mở, chỉ băm)
+r = await guiMa(P1);
+soLanGui++;
+assert.equal(r.status, 502, JSON.stringify(r.body));
+assert.deepEqual(r.body.error, LOI_502);
+let rows = await dongMa();
+assert.equal(rows.length, 1);
+assert.equal(rows[0].used_at, null);
+assert.equal(rows[0].revoked_at, null);
+console.log("✓ 2. gửi mã khi chưa cấu hình người gửi → 502 \"Chưa gửi được email…\"; dòng mã vẫn được ghi");
+
+// 3. Mã gieo đúng → 200 + td_session (PIN_MFA)
+const K1 = "246810";
+await gieoMaEmail(A.id, EMAIL, K1);
+r = await verify(P1, K1);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.staff.phone, A.phone);
+const S1 = cookieOf(r, "td_session");
+assert.ok(S1);
+assert.equal((await call(S1, "GET", "/api/auth/me")).status, 200);
+assert.equal((await sqlRows(`SELECT method FROM aut_session WHERE staff_id = '${A.id}' ORDER BY created_at DESC LIMIT 1`))[0].method, "PIN_MFA");
+console.log("✓ 3. mã email đúng → 200 + td_session, sổ phiên PIN_MFA");
+
+// 4. Dùng lại mã vừa dùng → 401
+r = await verify(await pendingOf(A), K1);
+assert.equal(r.status, 401, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "invalid_code");
+console.log("✓ 4. dùng lại mã email vừa dùng → 401");
+
+// 5. Mã cũ sau khi gửi mã mới → 401 (gửi mã mới huỷ mã mở cũ)
+const P2 = await pendingOf(A);
+const K2 = "135791";
+const idK2 = await gieoMaEmail(A.id, EMAIL, K2);
+r = await guiMa(P2);
+soLanGui++;
+assert.equal(r.status, 502, JSON.stringify(r.body));
+assert.notEqual((await sqlRows(`SELECT revoked_at FROM aut_mfa_email_code WHERE id = '${idK2}'`))[0].revoked_at, null, "mã cũ bị huỷ khi gửi mã mới");
+r = await verify(P2, K2);
+assert.equal(r.status, 401, JSON.stringify(r.body));
+assert.equal(cookieOf(r, "td_session"), null);
+console.log("✓ 5. mã cũ sau khi gửi mã mới → 401");
+
+// 6. Tài khoản không có yếu tố email gọi gửi → 409
+r = await guiMa(await pendingOf(C));
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "no_email_factor");
+assert.equal((await sqlRows(`SELECT count(*) AS n FROM aut_mfa_email_code WHERE staff_id = '${C.id}'`))[0].n, 0);
+console.log("✓ 6. tài khoản không có yếu tố email gọi gửi → 409");
+
+// 7. Nhật ký không chứa địa chỉ email, mã
+const nhatKy = JSON.stringify(await sqlRows("SELECT * FROM audit_log"));
+for (const d of [EMAIL, K1, K2]) assert.ok(!nhatKy.includes(d), `nhật ký chứa "${d}"`);
+console.log("✓ 7. nhật ký không chứa địa chỉ email / mã");
+
+// 8. (CUỐI) Hạn mức gửi 3 thư / 15 phút — lần thứ 4 trong 15 phút → 429, không ghi thêm dòng mã
+assert.equal(soLanGui, 2);
+r = await guiMa(await pendingOf(A));
+soLanGui++;
+assert.equal(r.status, 502, JSON.stringify(r.body));
+const truoc = (await dongMa()).length;
+r = await guiMa(await pendingOf(A));
+assert.equal(r.status, 429, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "too_many_attempts");
+assert.ok(Number(r.headers.get("retry-after")) > 0);
+assert.equal((await dongMa()).length, truoc, "429 không ghi dòng mã mới");
+console.log("✓ 8. gửi lần 4 trong 15 phút → 429");
+
+console.log("E2E HAI LỚP EMAIL OK");

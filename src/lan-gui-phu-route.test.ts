@@ -17,9 +17,10 @@ const GHI = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 // ADR-0074 (Phần B Task 4, 2026-10-16): + "POST /api/auth/mfa/verify" — bước hai của đăng nhập, chưa có phiên (cổng là cookie chờ), như đăng nhập PIN.
 // ADR-0074 (Phần B Task 6, 2026-10-16): + "POST /api/auth/mfa/enroll/start", "POST /api/auth/mfa/enroll/confirm" — bật lại lớp hai ở bước đăng nhập (cửa sổ 24 giờ),
 // chưa có phiên (cổng là cookie chờ purpose "enroll"), như bước hai.
+// ADR-0074 (Phần C Task 2, 2026-10-16): + "POST /api/auth/mfa/email" — gửi mã email ở bước hai, chưa có phiên (cổng là cookie chờ purpose "verify"), như bước hai.
 const CONG_KHAI_DA_BIET = [
   "POST /api/auth/login", "POST /api/auth/passkey/options", "POST /api/auth/passkey/login", "POST /api/auth/logout", "POST /api/auth/session-ended", "POST /api/auth/mfa/verify",
-  "POST /api/auth/mfa/enroll/start", "POST /api/auth/mfa/enroll/confirm",
+  "POST /api/auth/mfa/enroll/start", "POST /api/auth/mfa/enroll/confirm", "POST /api/auth/mfa/email",
 ];
 
 function routes(): { method: string; path: string; access: string }[] {
@@ -36,7 +37,7 @@ function routes(): { method: string; path: string; access: string }[] {
   return out;
 }
 
-test("H2 (1): route ghi công khai = đúng 8 route auth đã biết ∪ mục miễn congKhai — đổi route ghi sang public mà không khai ⇒ đỏ", () => {
+test("H2 (1): route ghi công khai = đúng 9 route auth đã biết ∪ mục miễn congKhai — đổi route ghi sang public mà không khai ⇒ đỏ", () => {
   const congKhai = routes().filter((r) => GHI.has(r.method) && r.access === "public").map((r) => `${r.method} ${r.path}`).sort();
   const choPhep = [...CONG_KHAI_DA_BIET, ...LAN_GUI_MIEN.filter((m) => m.congKhai).map((m) => `${m.method} ${m.path}`)].sort();
   assert.deepEqual(congKhai, choPhep, "route ghi công khai không có trong danh sách — route này sẽ KHÔNG đi qua lớp chống ghi trùng");

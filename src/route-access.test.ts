@@ -104,6 +104,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/auth/passkey/login", access: "public" }, // đăng nhập bằng Face ID (ADR-0016) — tự gọi maintenanceBlock, không qua cổng bảo trì của router
   { method: "POST", path: "/api/auth/passkey/options", access: "public" }, // xin thách thức WebAuthn để đăng nhập
   { method: "POST", path: "/api/auth/mfa/verify", access: "public" }, // bước hai của đăng nhập PIN (ADR-0074) — cổng là cookie chờ td_mfa_pending (khoá ký riêng, 5 phút); tự gọi maintenanceBlock
+  // ADR-0074 điều 4 (Phần C Task 2): gửi mã email ở bước hai — cổng là cookie chờ purpose "verify" + yếu tố EMAIL sống; tự gọi maintenanceBlock; hạn mức mfa-mail:<id> 3 thư / 15 phút.
+  { method: "POST", path: "/api/auth/mfa/email", access: "public" },
   // ADR-0074 điều 5 (Phần B Task 6): bật lại lớp hai ở bước đăng nhập trong cửa sổ 24 giờ sau khi Quản trị/Toàn quyền tắt — cổng là cookie chờ purpose "enroll"
   // (+ cửa sổ còn mở, chưa có yếu tố); tự gọi maintenanceBlock; confirm có hạn mức mfa:<id>.
   { method: "POST", path: "/api/auth/mfa/enroll/start", access: "public" },
@@ -548,6 +550,7 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-16 (ADR-0074 Phần B Task 4): + POST /api/auth/mfa/verify (public; cổng = cookie chờ, tự gọi maintenanceBlock) = 314.
   // 2026-10-16 (ADR-0074 Phần B Task 5): + GET /api/account/mfa và sáu route ghi /api/account/mfa/* (staff, tự phục vụ) = 321.
   // 2026-10-16 (ADR-0074 Phần B Task 6): + POST /api/staff/:id/mfa-reset (admin) và POST /api/auth/mfa/enroll/{start, confirm} (public; cookie chờ "enroll") = 324.
-  assert.equal(actual.length, 324, "số route thực tế lệch 324 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 324, "SNAPSHOT phải có đúng 324 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-16 (ADR-0074 Phần C Task 2): + POST /api/auth/mfa/email (public; cookie chờ "verify", tự gọi maintenanceBlock) = 325.
+  assert.equal(actual.length, 325, "số route thực tế lệch 325 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 325, "SNAPSHOT phải có đúng 325 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });
