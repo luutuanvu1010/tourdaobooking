@@ -56,3 +56,7 @@ Tổng 26 + 4 = 30 ca có câu trả lời.
 5. **Ca 17** đơn vẫn lưu khi xe hết chỗ (đã chốt; nếu mã hiện tại chặn lệnh tăng khách thì thêm một điểm lệch).
 
 Cả năm điểm đụng luật cứng (có trigger ở cơ sở dữ liệu) hoặc phân quyền, nên cần quyết định riêng do chủ duyệt trước khi sửa mã. Ca vàng sẽ ghi đáp án theo ý chủ, bài máy đánh dấu «đã xác nhận, mã chưa theo kịp» (`todo` có tên) để `npm test` không đỏ.
+
+## Đính chính số đếm (tôi đếm lại sau khi ghi)
+- Lượt 1: **22 bước đã xác nhận** (B01, B02, B03, B05, B07, B08, B09 theo mốc 30, B10, B10B, B11, B12, B13, B14, B15, B16, B17, B18, B19 đến B23) và **2 bước khác luật hiện hành** (B04, B06). Tổng 24. Câu «21 trên 24» ở trên là đếm nhầm.
+- 30 ca mới: **26 ca** chủ chọn «đúng như đề xuất» (1, 2, 3, 4, 7, 9 đến 16, 18 đến 30). **4 ca** chủ trả lời khác hoặc chốt điểm còn mở: ca 5 và 6 (khác luật), ca 8 (đồng ý «không miễn», chữ của chủ rộng hơn đề xuất), ca 17 (chốt điểm ADR chưa nói). Dòng «24 ca» ở trên là đếm nhầm, đúng là 26.
