@@ -29,8 +29,7 @@ test("normalizeEmail: cắt khoảng trắng, chữ thường, đúng khuôn, �
 test("emailBody: tiếng Việt có dấu, có mã + câu cảnh báo; KHÔNG liên kết / http / tên miền bấm được; chủ đề không chứa mã", () => {
   const { subject, text } = emailBody("482913");
   assert.match(text, /482913/);
-  assert.ok(text.includes("Nếu không phải bạn, đổi PIN ngay và báo IT."), text);
-  assert.match(text, /10 phút/);
+  assert.equal(text, "Mã xác minh đăng nhập của bạn là: 482913\n\nNếu không phải bạn, đổi PIN ngay và báo IT.\n", "chỉ mã + câu cảnh báo (kế hoạch, ruling d)");
   assert.doesNotMatch(subject, /482913/, "mã không nằm ở chủ đề (hiện trên màn hình khoá)");
   assert.match(subject, /[ăâđêôơưáàảãạ]/i, "chủ đề tiếng Việt có dấu");
   for (const s of [subject, text]) {

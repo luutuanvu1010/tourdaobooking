@@ -33,10 +33,8 @@ export function normalizeEmail(s: unknown): string | null {
 export function emailBody(code: string): { subject: string; text: string } {
   return {
     subject: "Mã xác minh đăng nhập Nền tảng Tour Đảo",
-    text:
-      `Mã xác minh đăng nhập của bạn là: ${code}\n\n` +
-      "Mã có hiệu lực trong 10 phút và chỉ dùng được một lần. Không đưa mã này cho bất kỳ ai, kể cả người xưng là nhân viên công ty.\n\n" +
-      "Nếu không phải bạn, đổi PIN ngay và báo IT.\n",
+    // Kế hoạch Phần C (Global Constraints) + ruling (d): CHỈ mã + câu cảnh báo — không thêm câu nào khác.
+    text: `Mã xác minh đăng nhập của bạn là: ${code}\n\nNếu không phải bạn, đổi PIN ngay và báo IT.\n`,
   };
 }
 
