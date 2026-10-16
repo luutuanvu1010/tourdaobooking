@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  CAU_SAI_QUA_NHIEU_HAI_LOP, CHU_DO_MA_DU_PHONG, cauLoiHaiLop, daiNhacHaiLop, khoaDeDoc, maTotpTuO, nhanHaiLop, soNgayCon, tenTepMaDuPhong, vanBanMaDuPhong,
+  CAU_CHI_UNG_DUNG_XAC_THUC, CAU_SAI_QUA_NHIEU_HAI_LOP, CHU_DO_MA_DU_PHONG, cauLoiHaiLop, daiNhacHaiLop, khoaDeDoc, maTotpTuO, nhanHaiLop, soNgayCon, tenTepMaDuPhong, vanBanMaDuPhong,
 } from "./hai-lop-hien-thi.ts";
 
 const NOW = Date.parse("2026-10-16T03:00:00.000Z"); // 10:00 giờ Việt Nam
@@ -65,4 +65,8 @@ test("tệp mã dự phòng: đủ 10 mã đánh số, câu cảnh báo, không 
   assert.ok(t.includes(CHU_DO_MA_DU_PHONG));
   assert.equal(CHU_DO_MA_DU_PHONG, "Cất các mã này ở nơi an toàn — mỗi mã dùng một lần.");
   assert.equal(tenTepMaDuPhong(iso(NOW)), "ma-du-phong-tour-dao-2026-10-16.txt");
+});
+
+test("câu giải thích khi không có lựa chọn Email: nêu rõ ba nhóm quyền chỉ dùng ứng dụng xác thực", () => {
+  assert.equal(CAU_CHI_UNG_DUNG_XAC_THUC, "Tài khoản Quản trị, Toàn quyền, Kế toán chỉ dùng ứng dụng xác thực, không nhận mã qua email.");
 });

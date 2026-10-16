@@ -1,7 +1,7 @@
 // Bước hai của đăng nhập (ADR-0074 điều 2–3): kiểm mã TOTP / mã dự phòng, cookie máy được tin. Route ở ./index.ts (`POST /api/auth/login`, `POST /api/auth/mfa/verify`).
 // KHÔNG BAO GIỜ đưa khoá TOTP (thô hay đã mã hoá), mã người dùng gõ, mã dự phòng, token máy tin vào nhật ký, log máy, DTO hay câu lỗi.
 import { checkMfaKey, decryptSecret, normalizeRecoveryCode, recoveryHash } from "./mfa-crypto";
-import { factorListLive, recoveryUseStatement, totpConsumeStatement } from "./mfa-repo";
+import { factorListLive, recoveryLive, recoveryUseStatement, totpConsumeStatement } from "./mfa-repo";
 import { attemptDeleteKeyStatement, lockedMfaKeys } from "./repository";
 import { LOGIN_WINDOW_MS, phoneKey } from "./throttle";
 import { matchTotp } from "./totp";
@@ -29,14 +29,6 @@ export const TRUSTED_TTL_SECONDS = 30 * 86_400;
 /** Cookie máy được tin: token 32 byte ngẫu nhiên (CSDL chỉ giữ SHA-256), chỉ gửi tới /api/auth (đăng nhập), 30 ngày. */
 export function trustedCookie(token: string, secure: boolean): string {
   return `${TRUSTED_COOKIE}=${token}; Path=/api/auth; Max-Age=${TRUSTED_TTL_SECONDS}; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`;
-}
-
-/** Email che dạng `t***@gmail.com` (đặc tả §6 quy tắc 5). Không phải email hợp lệ → null. */
-export function maskEmail(email: string | null): string | null {
-  if (!email) return null;
-  const at = email.lastIndexOf("@");
-  if (at < 1 || at === email.length - 1) return null;
-  return `${email[0]}***${email.slice(at)}`;
 }
 
 /** Log một dòng KHÔNG chứa khoá (chỉ tên sự kiện + lý do cố định). */
@@ -73,8 +65,20 @@ export async function useTotp(env: Env, staffId: string, code: string, nowMs: nu
 
 /** Dùng MỘT lần một mã dự phòng (chuẩn hoá: bỏ gạch/khoảng trắng, chữ thường). */
 export async function useRecoveryCode(db: D1Database, staffId: string, code: string, nowIso: string): Promise<boolean> {
+  const h = await recoveryCodeHash(staffId, code);
+  return h !== null && (await useRecoveryHash(db, staffId, h, nowIso));
+}
+/** Băm của mã dự phòng người dùng gõ (đã chuẩn hoá); sai khuôn → null. */
+export async function recoveryCodeHash(staffId: string, code: string): Promise<string | null> {
   const n = normalizeRecoveryCode(code);
-  if (!n) return false;
-  const r = await recoveryUseStatement(db, staffId, await recoveryHash(staffId, n), nowIso).run();
-  return r.meta.changes === 1;
+  return n ? recoveryHash(staffId, n) : null;
+}
+/** Tiêu mã dự phòng theo băm — MỘT câu có điều kiện, đòi changes = 1 (hai lần dùng song song chỉ một lần thắng). */
+export async function useRecoveryHash(db: D1Database, staffId: string, codeHash: string, nowIso: string): Promise<boolean> {
+  return (await recoveryUseStatement(db, staffId, codeHash, nowIso).run()).meta.changes === 1;
+}
+/** CHỈ KIỂM mã dự phòng còn sống (không tiêu) — trả băm để tiêu sau; sai / đã dùng → null. */
+export async function checkRecoveryCode(db: D1Database, staffId: string, code: string): Promise<string | null> {
+  const h = await recoveryCodeHash(staffId, code);
+  return h !== null && (await recoveryLive(db, staffId, h)) ? h : null;
 }

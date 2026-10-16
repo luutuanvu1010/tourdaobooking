@@ -13,6 +13,15 @@ export function allowedFactors(perms: readonly PermissionCode[]): MfaFactor[] {
   return perms.some((p) => p === "ADMIN" || p === "SUPER_ADMIN" || p === "ACCOUNTING") ? ["TOTP"] : ["TOTP", "EMAIL"];
 }
 
+/**
+ * Nhãn "Hai lớp: Đã bật" ở Quản lý tài khoản (Phần C Task 4): có ít nhất một yếu tố sống mà quyền HIỆN TẠI cho dùng (`allowedFactors`). Dòng EMAIL lệch
+ * của tài khoản giữ Quản trị / Toàn quyền / Kế toán (dữ liệu sửa tay; bất biến R-AUT-MFA-4) không dùng được ở bước đăng nhập nên không tính là đã bật.
+ */
+export const daBatHaiLop = (perms: readonly PermissionCode[], kinds: readonly MfaFactor[]): boolean => {
+  const choPhep = allowedFactors(perms);
+  return kinds.some((k) => choPhep.includes(k));
+};
+
 export type LoginStepInput = {
   perms: readonly PermissionCode[];
   hasFactor: boolean;

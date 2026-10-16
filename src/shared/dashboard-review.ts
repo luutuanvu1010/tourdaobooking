@@ -56,13 +56,15 @@ function summarizeCatalogConflicts(items: readonly CatalogAdminItemDto[]): Revie
 }
 
 /**
- * "Chưa trả lời" = trạng thái NEW (nhãn "Mới" — đúng chữ mockup "góp ý MỚI chưa trả lời"). CỐ Ý không dùng cờ
+ * "Chưa trả lời" = trạng thái NEW (nhãn "Mới" — đúng chữ mockup "góp ý MỚI chưa trả lời") VÀ chưa có trả lời công khai nào
+ * (`lastPublicReplyAt` rỗng). Người xử lý trả lời công khai KHÔNG đổi trạng thái (chỉ Nhận việc / đổi trạng thái mới đổi), nên nếu chỉ
+ * xét NEW thì phiếu đã được trả lời vẫn bị đếm là "chưa trả lời" cho tới khi ai đó bấm Nhận việc. CỐ Ý không dùng cờ
  * `unread` (UNREAD_USER ở feedback/repository.ts, riêng từng người xem): cờ đó tắt ngay khi người xem MỞ yêu cầu (markSeen), kể
  * cả khi chưa ai trả lời — dùng nó sẽ làm rớt những yêu cầu admin đã lỡ mở xem nhưng quên trả lời, khiến số đếm ít
  * hơn số "mới chưa trả lời" thật.
  */
 function summarizeFeedbackQueue(tickets: readonly FeedbackTicketDto[], max = 2): ReviewFeedbackAlert | null {
-  const pending = tickets.filter((t) => t.status === "NEW");
+  const pending = tickets.filter((t) => t.status === "NEW" && t.lastPublicReplyAt === null);
   if (pending.length === 0) return null;
   return { count: pending.length, items: pending.slice(0, max).map((t) => ({ id: t.id, code: t.code, kindName: t.kindName })) };
 }

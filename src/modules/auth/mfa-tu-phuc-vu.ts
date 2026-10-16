@@ -4,6 +4,7 @@
 import type { MfaTotpStartResponse } from "../../shared/contracts";
 import { decryptSecret, encryptSecret, newRecoveryCodes, normalizeRecoveryCode, recoveryHash } from "./mfa-crypto";
 import { mfaKeyReady } from "./mfa-dang-nhap";
+import { maskEmail } from "./mfa-email";
 import {
   factorEndKeepOneStatement, factorEndStatement, factorInsertStatement, factorListLive, recoveryInsertStatement, recoveryRevokeAllStatement, totpConsumeStatement,
   trustedList, trustedRevokeAllStatement, trustedRevokeStatement, type MfaKind,
@@ -11,10 +12,10 @@ import {
 import { createSetupToken, verifySetupToken } from "./mfa-rules";
 import { base32Encode, matchTotp, otpauthUri } from "./totp";
 
-/** Yếu tố còn hiệu lực — chỉ id, loại, lúc bật (KHÔNG khoá, KHÔNG email). */
-export interface YeuToSong { id: string; kind: MfaKind; createdAt: string }
+/** Yếu tố còn hiệu lực — chỉ id, loại, lúc bật, email DẠNG CHE (KHÔNG khoá, KHÔNG email đầy đủ — ADR-0074 điều 8). */
+export interface YeuToSong { id: string; kind: MfaKind; createdAt: string; emailMask: string | null }
 export async function yeuToSong(db: D1Database, staffId: string): Promise<YeuToSong[]> {
-  return (await factorListLive(db, staffId)).map((f) => ({ id: f.id, kind: f.kind, createdAt: f.valid_from_at }));
+  return (await factorListLive(db, staffId)).map((f) => ({ id: f.id, kind: f.kind, createdAt: f.valid_from_at, emailMask: f.kind === "EMAIL" ? maskEmail(f.email) : null }));
 }
 
 /** Máy được tin còn hiệu lực (chưa thu hồi, chưa hết hạn) — không băm token. */
@@ -68,6 +69,17 @@ export function batTotpStatements(
     ...(v.thayId ? [factorEndStatement(db, v.thayId, v.staffId, v.at, v.staffId)] : []),
     factorInsertStatement(db, { id: v.id, staffId: v.staffId, kind: "TOTP", secretEnc: v.secretEnc, email: null, at: v.at, by: v.staffId }),
     totpConsumeStatement(db, v.id, v.step, v.at),
+  ];
+}
+
+/**
+ * Lô bật/đổi yếu tố email (CHƯA chạy — Phần C Task 3): [kết thúc EMAIL cũ (nếu đổi địa chỉ)] → chèn EMAIL mới (địa chỉ đã chuẩn hoá, đã xác nhận bằng mã gửi
+ * tới chính nó). Chỉ mục duy nhất `aut_mfa_factor_one_live` là lưới khi hai lần bật chạy đua (người gọi đổi lỗi UNIQUE thành 409).
+ */
+export function batEmailStatements(db: D1Database, v: { staffId: string; thayId: string | null; id: string; email: string; at: string }): D1PreparedStatement[] {
+  return [
+    ...(v.thayId ? [factorEndStatement(db, v.thayId, v.staffId, v.at, v.staffId)] : []),
+    factorInsertStatement(db, { id: v.id, staffId: v.staffId, kind: "EMAIL", secretEnc: null, email: v.email, at: v.at, by: v.staffId }),
   ];
 }
 

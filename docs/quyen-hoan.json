@@ -46,6 +46,8 @@
     { "method": "POST", "path": "/api/account/thong-bao/may/huy", "loai": "ngoại lệ", "ly_do": "Tự phục vụ: tắt địa chỉ nhận của chính mình, một máy hoặc mọi máy (ADR-0036 điều 1–2, 6); chỉ đổi dòng của staffId trong phiên." },
     { "method": "POST", "path": "/api/account/mfa/totp/start", "loai": "ngoại lệ", "ly_do": "Tự phục vụ bảo mật đăng nhập của chính mình (ADR-0074); id lấy từ phiên." },
     { "method": "POST", "path": "/api/account/mfa/totp/confirm", "loai": "ngoại lệ", "ly_do": "Tự phục vụ bảo mật đăng nhập của chính mình (ADR-0074); id lấy từ phiên." },
+    { "method": "POST", "path": "/api/account/mfa/email/start", "loai": "ngoại lệ", "ly_do": "Tự phục vụ bảo mật đăng nhập của chính mình (ADR-0074 điều 4, 7 — Phần C); id lấy từ phiên; Quản trị/Toàn quyền/Kế toán bị chặn 409 trong thân." },
+    { "method": "POST", "path": "/api/account/mfa/email/confirm", "loai": "ngoại lệ", "ly_do": "Tự phục vụ bảo mật đăng nhập của chính mình (ADR-0074 điều 4, 7 — Phần C); id lấy từ phiên; Quản trị/Toàn quyền/Kế toán bị chặn 409 trong thân." },
     { "method": "POST", "path": "/api/account/mfa/recovery/regenerate", "loai": "ngoại lệ", "ly_do": "Tự phục vụ bảo mật đăng nhập của chính mình (ADR-0074); id lấy từ phiên." },
     { "method": "POST", "path": "/api/account/mfa/remove", "loai": "ngoại lệ", "ly_do": "Tự phục vụ bảo mật đăng nhập của chính mình (ADR-0074); id lấy từ phiên." },
     { "method": "POST", "path": "/api/account/mfa/trusted/:id/forget", "loai": "ngoại lệ", "ly_do": "Tự phục vụ bảo mật đăng nhập của chính mình (ADR-0074); id lấy từ phiên." },

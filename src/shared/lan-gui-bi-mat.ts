@@ -20,6 +20,9 @@ export const BI_MAT: readonly MauRoute[] = [
   { method: "POST", path: "/api/account/mfa/totp/confirm" },
   { method: "POST", path: "/api/account/mfa/recovery/regenerate" },
   { method: "POST", path: "/api/account/mfa/remove" },
+  // ADR-0074 Phần C Task 3: thân có địa chỉ email đầy đủ + mã hiện có / mã trong thư — vé chỉ giữ trong bộ nhớ trang.
+  { method: "POST", path: "/api/account/mfa/email/start" },
+  { method: "POST", path: "/api/account/mfa/email/confirm" },
   { method: "POST", path: "/api/staff/:id/reset-pin" },
   { method: "POST", path: "/api/parties/:id/documents" },
   { method: "POST", path: "/api/parties/:id/documents/:did/renew" },
@@ -27,16 +30,19 @@ export const BI_MAT: readonly MauRoute[] = [
   { method: "POST", path: "/api/parties/:id/documents/:did/reveal" },
 ];
 
+// Mọi route ghi công khai hôm nay đều là POST — liệt kê ĐƯỜNG DẪN rồi dựng mẫu (gói trang nào cũng nhúng danh sách này: viết gọn để gói Đơn hàng không vượt
+// trần dung lượng của src/goi-trang-nhe.test.ts — Phần C thêm route thứ 9). Route công khai bằng phương thức khác thì đổi lại dạng đầy đủ.
 export const KHONG_VE: readonly MauRoute[] = [
-  { method: "POST", path: "/api/auth/login" },
-  { method: "POST", path: "/api/auth/passkey/options" },
-  { method: "POST", path: "/api/auth/passkey/login" },
-  { method: "POST", path: "/api/auth/logout" },
-  { method: "POST", path: "/api/auth/session-ended" },
-  { method: "POST", path: "/api/auth/mfa/verify" }, // bước hai đăng nhập (ADR-0074): thân có mã TOTP / mã dự phòng — không vé, không lưu gì
-  { method: "POST", path: "/api/auth/mfa/enroll/start" }, // bật lại lớp hai ở bước đăng nhập (ADR-0074 đ5, Task 6): công khai, cookie chờ "enroll"
-  { method: "POST", path: "/api/auth/mfa/enroll/confirm" }, // như trên; thân có mã TOTP — không vé, không lưu gì
-];
+  "/api/auth/login",
+  "/api/auth/passkey/options",
+  "/api/auth/passkey/login",
+  "/api/auth/logout",
+  "/api/auth/session-ended",
+  "/api/auth/mfa/verify", // bước hai đăng nhập (ADR-0074): thân có mã TOTP / mã email / mã dự phòng — không vé, không lưu gì
+  "/api/auth/mfa/enroll/start", // bật lại lớp hai ở bước đăng nhập (ADR-0074 đ5, Task 6): công khai, cookie chờ "enroll"
+  "/api/auth/mfa/enroll/confirm", // như trên; thân có mã TOTP — không vé, không lưu gì
+  "/api/auth/mfa/email", // gửi mã email ở bước hai (ADR-0074 đ4, Phần C): công khai, cookie chờ "verify" — không vé, không lưu gì
+].map((path): MauRoute => ({ method: "POST", path }));
 
 /** Đường dẫn thật (có thể kèm `?query`) có khớp MẪU route không — `:x` khớp đúng một đoạn không rỗng. */
 export function khopMau(mau: string, duongDan: string): boolean {

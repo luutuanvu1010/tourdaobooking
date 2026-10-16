@@ -1,9 +1,9 @@
 // Email báo admin. Mọi email đi qua notifyAdmins(); CHỈ trong đây mới đụng bộ gửi (env.EMAIL, Cloudflare Email Service — đang beta).
 // Chạy trong ctx.exec.waitUntil nên tự bắt mọi lỗi và tự ghi kết quả (notified_at): lỗi gửi KHÔNG bao giờ làm hỏng yêu cầu đã lưu.
 
-export interface Mailer {
-  send(msg: { to: string; from: string; subject: string; html: string }): Promise<unknown>;
-}
+import type { Mailer } from "../../shared/gui-thu.ts";
+// Kiểu bộ gửi dùng chung với `auth` (mã email hai lớp — ADR-0074) ở src/shared/gui-thu.ts; giữ tên xuất cũ cho các tệp đang import từ đây.
+export type { Mailer };
 
 export interface NotifyEvent {
   type: "created" | "user_replied";
