@@ -12,6 +12,12 @@ import { CHU_DO_MA_DU_PHONG, cauLoiHaiLop, khoaDeDoc, maTotpTuO, tenTepMaDuPhong
 /** Câu hiện cho một lỗi ở chỗ nhập mã: 429 → câu cố định (không hứa mở khoá bằng mã dự phòng); lỗi khác → nguyên câu máy chủ; mất mạng → câu chung. */
 export const loiHaiLop = (err: unknown): string => (err instanceof ApiError ? cauLoiHaiLop(err.code, err.message) : "Không kết nối được máy chủ.");
 
+/**
+ * Câu hiện cho lỗi khi GỬI mã qua email (Phần C): nguyên câu máy chủ — kể cả 429, vì hạn mức gửi thư có câu riêng ("Đã gửi quá nhiều mã qua email…"), khác
+ * câu 429 cố định của chỗ nhập mã (loiHaiLop). Mất mạng → câu chung.
+ */
+export const loiGuiThu = (err: unknown): string => (err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
+
 /** Ô mã 6 số của ứng dụng xác thực: bàn phím số, iPhone gợi ý mã (one-time-code), chỉ nhận chữ số. Cỡ chữ 16px do CSS chung của `input`. */
 export function oMaSau(id?: string): HTMLInputElement {
   const el = h("input", {
@@ -70,6 +76,8 @@ export interface BatTotpOpts {
   xacNhan: (setupToken: string, code: string, maHienTai: string | null) => Promise<string[] | undefined>;
   /** Đổi sang khoá mới khi đã bật: hỏi thêm mã hiện tại (ứng dụng cũ) hoặc một mã dự phòng. */
   hoiMaHienTai?: boolean;
+  /** Nhãn ô mã hiện tại (mặc định "Mã hiện tại (ứng dụng cũ) hoặc một mã dự phòng"; người chỉ có email: "Một mã dự phòng"). */
+  nhanMaHienTai?: string;
   onXong: (codes: string[] | undefined) => void;
   onHuy?: () => void;
   /** Lỗi cần đưa ra ngoài (vd phiếu chờ đăng nhập hết hạn → quay về form PIN). Trả true = đã xử lý, khối không hiện lỗi. */
@@ -81,6 +89,7 @@ export interface BatTotpOpts {
  * khoá mới và báo người dùng thêm lại.
  */
 export function khoiBatTotp(opts: BatTotpOpts): HTMLElement {
+  const nhanMaCu = opts.nhanMaHienTai ?? "Mã hiện tại (ứng dụng cũ) hoặc một mã dự phòng";
   const goc = h("div", { class: "mfa-enroll", id: "mfa-enroll" });
   const loiEl = h("div", { class: "alert", role: "alert", hidden: true });
   const baoLoi = (msg: string | null) => {
@@ -113,7 +122,7 @@ export function khoiBatTotp(opts: BatTotpOpts): HTMLElement {
     const nutXacNhan = nut("Xác nhận bật", "btn btn-primary btn-chinh", () => void guiMa());
     async function guiMa(): Promise<void> {
       if (ma.value.length !== 6) return baoLoi("Nhập đủ 6 số đang hiện trên ứng dụng xác thực.");
-      if (maCu && !maCu.value.trim()) return baoLoi("Nhập mã hiện tại (ứng dụng cũ) hoặc một mã dự phòng.");
+      if (maCu && !maCu.value.trim()) return baoLoi(`Nhập ô “${nhanMaCu}”.`);
       baoLoi(null);
       nutXacNhan.disabled = true;
       try {
@@ -145,7 +154,7 @@ export function khoiBatTotp(opts: BatTotpOpts): HTMLElement {
       h("div", { class: "actions" }, nutChep),
       h("h3", null, "Bước 2 — Nhập mã 6 số ứng dụng đang hiện"),
       h("label", null, "Mã 6 số", ma),
-      maCu && h("label", null, "Mã hiện tại (ứng dụng cũ) hoặc một mã dự phòng", maCu),
+      maCu && h("label", null, nhanMaCu, maCu),
       loiEl,
       h("div", { class: "actions" }, nutXacNhan, opts.onHuy && nut("Huỷ", "btn", opts.onHuy)),
     );
