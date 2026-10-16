@@ -492,6 +492,52 @@ test("Vòng sửa 2: Quản trị CHỈ có dòng EMAIL lệch, ân hạn CÒN +
   assert.equal(g.json.graceUntil, con);
 });
 
+// ---- Vòng sửa 2 (Minor 1/2): nhánh GỠ ADMIN (câu chốt "còn quản trị viên khác" → lô THỨ HAI) của PUT …/permissions và PUT …/roles phải mang câu hai lớp
+// (kết thúc EMAIL + thu hồi máy tin + kết thúc phiên); và thu hồi máy tin khi thăng vai đi đường PUT …/permissions. ----
+
+async function gieoMayTin(w: W, id: string, ten: string) {
+  const { sha256Hex } = await import("../auth/mfa-crypto.ts");
+  const at = new Date().toISOString();
+  w.sqlite.prepare(
+    "INSERT INTO aut_trusted_device (id, staff_id, token_hash, label, created_at, created_by, updated_at, updated_by, last_used_at, expires_at) VALUES (?, ?, ?, 'Máy thử', ?, ?, ?, ?, ?, ?)",
+  ).run(ten, id, await sha256Hex(`tok-${ten}`), at, id, at, id, at, new Date(Date.now() + 10 * NGAY).toISOString());
+}
+const mayTinSong = (w: W, id: string) => dem(w, "SELECT count(*) AS n FROM aut_trusted_device WHERE staff_id = ? AND revoked_at IS NULL", id);
+
+for (const duong of ["permissions", "roles"] as const) {
+  test(`Vòng sửa 2: GỠ ADMIN qua PUT …/${duong} (Quản trị → Kế toán, có dòng EMAIL lệch) — lô thứ hai sau câu chốt: email hết hiệu lực, máy tin 'tat_hai_lop', mọi phiên kết thúc`, async () => {
+    const { w } = await setup();
+    seedStaff(w.sqlite, { id: "0e000000-0000-4000-8000-000000000007", phone: "0903000007", name: "Quản Trị Hai", perms: ["ADMIN"] }); // còn quản trị viên khác — câu chốt thắng
+    await gieoYeuTo(w, QT, "TOTP");
+    await gieoYeuTo(w, QT, "EMAIL", "qt@gmail.com");
+    await gieoMayTin(w, QT, "td-qt-1");
+    await w.token(QT);
+    assert.equal(phienSong(w, QT), 1);
+    const body = duong === "permissions" ? { permissions: ["ACCOUNTING"] } : { roles: ["ACCOUNTANT"] };
+    const r = await w.call("PUT", `/api/staff/${QT}/${duong}`, { as: TQ, body });
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(w.q("SELECT permission_type_code AS p FROM stf_permission WHERE staff_id = ? AND valid_to_at IS NULL", QT).map((x: any) => x.p), ["ACCOUNTING"], "câu chốt thắng — đúng nhánh gỡ ADMIN");
+    assert.deepEqual(yeuToSong(w, QT).map((f: any) => f.kind), ["TOTP"], "dòng EMAIL lệch kết thúc ở lô thứ hai");
+    assert.equal(dem(w, "SELECT count(*) AS n FROM audit_log WHERE action = 'mfa_removed' AND target_id = ? AND staff_id = ?", QT, TQ), 1);
+    assert.equal(mayTinSong(w, QT), 0);
+    assert.deepEqual(w.q("SELECT DISTINCT revoke_reason AS l FROM aut_trusted_device WHERE staff_id = ?", QT).map((x: any) => x.l), ["tat_hai_lop"]);
+    assert.equal(phienSong(w, QT), 0);
+    assert.equal(dem(w, "SELECT count(*) AS n FROM audit_log WHERE action = 'session_revoked' AND target_id = ? AND staff_id = ?", QT, TQ), 1);
+  });
+}
+
+test("Vòng sửa 2: thăng vai qua PUT …/permissions (Bán hàng có TOTP + EMAIL → thêm Kế toán) — máy tin bị thu hồi 'tat_hai_lop' (trước chỉ route roles có bài)", async () => {
+  const { w } = await setup();
+  await gieoYeuTo(w, BH2, "EMAIL", EMAIL_CHUAN);
+  await gieoMayTin(w, BH2, "td-bh2-1");
+  await gieoMayTin(w, BH2, "td-bh2-2");
+  const r = await w.call("PUT", `/api/staff/${BH2}/permissions`, { as: TQ, body: { permissions: ["SALES", "ACCOUNTING"] } });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(yeuToSong(w, BH2).map((f: any) => f.kind), ["TOTP"]);
+  assert.equal(mayTinSong(w, BH2), 0);
+  assert.deepEqual(w.q("SELECT DISTINCT revoke_reason AS l, updated_by AS b FROM aut_trusted_device WHERE staff_id = ?", BH2).map((x: any) => ({ ...x })), [{ l: "tat_hai_lop", b: TQ }]);
+});
+
 test("Vòng sửa 2: mã dự phòng bị tiêu SONG SONG trong lúc thư đang gửi → lần này 401, mã bật vừa phát bị huỷ (không xác nhận được) — một mã dự phòng không mở được hai lần", async () => {
   const { w, thu } = await setup();
   const codes: string[] = (await batEmail(w, thu, BH)).json.recoveryCodes;
