@@ -1,6 +1,6 @@
 // Logic thuần của hai lệnh CHỦ DỰ ÁN tự gõ (đặc tả docs/superpowers/specs/2026-09-23-lenh-day-trien-khai-an-toan.md):
 //   `npm run day-len [-- <nhánh>]`  → scripts/day-len.mjs    (gộp tiến thẳng vào main, kiểm, hỏi, rồi git push origin main)
-//   `npm run trien-khai`            → scripts/trien-khai.mjs (cổng chỉ-đọc, cổng số phiên bản, kiểm, Time Travel, áp migration, deploy, kiểm dữ liệu, cổng số phiên bản sau deploy)
+//   `npm run trien-khai`            → scripts/trien-khai.mjs (cổng chỉ-đọc gồm khoá bí mật và kho tệp hồ sơ, cổng số phiên bản, kiểm, Time Travel, áp migration, deploy, kiểm dữ liệu, cổng số phiên bản sau deploy)
 // AI KHÔNG được chạy hai lệnh này (CLAUDE.md §8; hook .claude/hooks/guard-remote-lib.mjs + permissions.deny chặn). Lớp thứ hai: tự từ chối khi không có TTY.
 //
 // Mọi hàm nhận "bộ chạy lệnh" tiêm vào để test được bằng bộ chạy giả (src/release-lib.test.ts):
@@ -19,6 +19,26 @@ export const KHOA_BAT_BUOC = ["SESSION_SECRET", "LAN_GUI_SECRET"];
  * thao tác lớp hai (không ai bật được; hết ân hạn 14 ngày thì tài khoản nội bộ không đăng nhập PIN được). Khoá phải ĐÚNG 32 byte (`openssl rand -base64 32`).
  */
 export const KHOA_HAI_LOP = "MFA_ENCRYPTION_KEY";
+/** Binding kho tệp hồ sơ R2 (ADR-0123). Tên kho đọc từ wrangler.jsonc — MỘT nguồn (kế hoạch H-2 kho tệp, ruling R2, R10). */
+export const BINDING_HO_SO = "HO_SO";
+/**
+ * Tên kho R2 của binding HO_SO trong nội dung wrangler.jsonc, hoặc null. Chỉ bỏ chú thích CẢ DÒNG (luật của tệp — như src/cau-hinh-toc-do.test.ts);
+ * chú thích cuối dòng làm JSON hỏng ⇒ null ⇒ cổng dừng (không đoán).
+ */
+export function docKhoHoSoTuCauHinh(text) {
+  try {
+    const cfg = JSON.parse(String(text).split("\n").filter((d) => !/^\s*\/\//.test(d)).join("\n"));
+    const kho = Array.isArray(cfg?.r2_buckets) ? cfg.r2_buckets.find((b) => b?.binding === BINDING_HO_SO) : undefined;
+    return typeof kho?.bucket_name === "string" && /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(kho.bucket_name) ? kho.bucket_name : null;
+  } catch {
+    return null;
+  }
+}
+/** Đọc tệp thật (bài src/release-lib.test.ts "docKhoHoSoTuCauHinh" ghim kết quả). */
+export async function docKhoHoSoMacDinh() {
+  const { readFile } = await import("node:fs/promises");
+  return docKhoHoSoTuCauHinh(await readFile(new URL("../wrangler.jsonc", import.meta.url), "utf8"));
+}
 
 /** Tên khoá từ `wrangler secret list --format json` (mảng `{ name, type }`), hoặc null nếu đầu ra không đọc được. Không bao giờ đọc giá trị khoá. */
 export function parseSecretNames(output) {
@@ -67,6 +87,11 @@ const BOLD = "\x1b[1m";
 const RESET = "\x1b[0m";
 
 const ANSI = /\x1b\[[0-9;]*m/g;
+/** Tên kho từ đầu ra `wrangler r2 bucket list` (wrangler 4.x: mỗi kho một khối "name: <tên>" / "creation_date: …"). Bỏ mã màu trước. Dạng theo mã nguồn 4.147.0. */
+export function parseR2BucketNames(output) {
+  const text = String(output ?? "").replace(ANSI, "");
+  return [...text.matchAll(/^\s*name:\s+(\S+)\s*$/gm)].map((m) => m[1]);
+}
 // KHÔNG có cờ /g: regex /g mang lastIndex giữa các lần gọi (test() rồi matchAll() có thể bỏ sót tên). Cần tìm tất cả thì dựng regex /g mới tại chỗ.
 const MIGRATION_NAME = /\b\d{4}_[A-Za-z0-9_.-]*?\.sql\b/;
 
@@ -308,8 +333,9 @@ const RETRY_7403_MS = 5_000;
 /**
  * @param version số phiên bản ở máy (mục đầu CHANGELOG) — vỏ scripts/trien-khai.mjs truyền vào; lib không tự import mã ứng dụng.
  * @param sleep chờ trước khi thử lại cổng sau; test truyền hàm tức thì.
+ * @param docKhoHoSo đọc tên kho tệp hồ sơ; test truyền hàm giả.
  */
-export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), sleep = realSleep, version, docMocTinDoi = docMocTinDoiMacDinh }) {
+export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), sleep = realSleep, version, docMocTinDoi = docMocTinDoiMacDinh, docKhoHoSo = docKhoHoSoMacDinh }) {
   const stop = makeStop(log);
   if (!isTTY) return stop(NOT_TTY);
 
@@ -354,6 +380,31 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), 
     );
   }
   log(`Đã có đủ khoá: ${[...KHOA_BAT_BUOC, KHOA_HAI_LOP].join(", ")}.`);
+
+  // 1e. cổng chỉ-đọc: kho tệp hồ sơ R2 (ADR-0123) đã được CHỦ tạo chưa. Tên kho đọc từ wrangler.jsonc (binding HO_SO — một nguồn). Chưa có kho thì Worker mới
+  // không tải lên / mở được ảnh giấy tờ (Cloudflare có từ chối deploy hay không: chưa kiểm). Lệnh lỗi (kể cả 7403) hay không thấy đúng tên ⇒ DỪNG, không thử lại.
+  // KHÔNG BAO GIỜ tự tạo kho — chỉ in lệnh cho chủ.
+  log("\n▶ Cổng chỉ-đọc: kho tệp hồ sơ đã tạo trên Cloudflare chưa");
+  let tenKho = null;
+  try {
+    tenKho = await docKhoHoSo();
+  } catch {
+    tenKho = null;
+  }
+  if (!tenKho) {
+    return stop("không đọc được tên kho tệp hồ sơ (mục r2_buckets, binding HO_SO) trong wrangler.jsonc — CHƯA có gì bị đổi trên production.", "Báo AI kiểm lại wrangler.jsonc rồi chạy lại `npm run trien-khai`.");
+  }
+  const kho = await run("npx", ["wrangler", "r2", "bucket", "list"], { env: CI });
+  if (kho.code !== 0) {
+    return stop("`wrangler r2 bucket list` lỗi — chưa kiểm được kho tệp hồ sơ nên KHÔNG đi tiếp. CHƯA có gì bị đổi trên production.", String(kho.stderr ?? "").trim().slice(0, 400));
+  }
+  if (!parseR2BucketNames(String(kho.stdout ?? "")).includes(tenKho)) {
+    return stop(
+      `Chưa có kho tệp hồ sơ ${tenKho} trên Cloudflare — triển khai lúc này thì ảnh giấy tờ không tải lên hay mở được. CHƯA có gì bị đổi trên production.`,
+      `Chạy trong Terminal, ở thư mục tourdao-sales:\n  npx wrangler r2 bucket create ${tenKho}\nKiểm lại (phải thấy dòng "name: ${tenKho}"):\n  npx wrangler r2 bucket list\nrồi chạy lại \`npm run trien-khai\`.`,
+    );
+  }
+  log(`Đã có kho tệp hồ sơ: ${tenKho}.`);
 
   // 2. cổng chỉ-đọc: migration nào chưa áp. Lỗi 7403 ở bước CHỈ ĐỌC này được thử lại đúng MỘT lần; bước ghi (áp migration, deploy) không bao giờ tự thử lại.
   log("\n▶ Cổng chỉ-đọc: migration nào chưa áp trên production");
