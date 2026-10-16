@@ -891,6 +891,27 @@ npx wrangler secret put MFA_ENCRYPTION_KEY
 
 **Ca xấu: hoàn tác Worker về bản cũ SAU KHI đã áp `0101`.** `wrangler rollback` làm được (không đổi Durable Object); mã cũ không đọc các bảng / cột mới nên đăng nhập trở lại PIN thường. Migration ở lại vô hại (chỉ thêm bảng và cột). Khi triển khai lại bản Phần B, hạn ân hạn vẫn tính từ lần áp đầu (có thể đã trôi vài ngày) — báo chủ trước khi chọn rollback lâu.
 
+## Lần phát hành kế tiếp: mã đăng nhập qua email (ADR-0074 Phần C; migration `0102`) — RUNBOOK
+
+**Trạng thái: CHƯA phát hành** (nhánh `worktree-hai-lop-email`, soạn 2026-10-16; chờ người kiểm độc lập toàn Phần C và chủ duyệt). Cần Phần B đã lên trước (bảng `aut_mfa_factor` của `0101`). Mọi bước sau A.0 do `npm run trien-khai` làm như thường; mục này chỉ ghi điều KHÁC. Kế hoạch: `docs/superpowers/plans/2026-10-01-dang-nhap-c-hai-lop-email.md`; công thức: `docs/CHANGE-GUIDE.md` z18b; hệ thống: `docs/SYSTEM-DESIGN.md` §4 "Mã qua email".
+
+**Không cần bí mật mới.** Gửi thư dùng binding `EMAIL` (`wrangler.jsonc`, `send_email` không khoá danh sách nhận) và bí mật có sẵn `FEEDBACK_MAIL_FROM` (người gửi, cùng tên miền đã cài ở Cloudflare Email). Hai thứ này có sẵn THEO LỜI CHỦ (chủ xác nhận tên miền gửi đã cài 16/10/2026); AI KHÔNG kiểm danh sách bí mật trên Cloudflare. Thiếu một trong hai thì bấm gửi mã trả câu "Chưa gửi được email, thử lại hoặc dùng cách khác." (không lỗi 500, không lộ lỗi nhà cung cấp) — người dùng vẫn đăng nhập bằng ứng dụng xác thực hoặc mã dự phòng.
+
+**Điều kiện phát hành (kiểm LÚC phát hành bằng lệnh chỉ đọc):** `npx wrangler d1 migrations list tourdao-sales-db --remote` — `0102` còn trống và còn là số kế tiếp trên mọi nhánh chưa gộp. Bước A.0: mục `2.6` ở đầu `src/shared/changelog.ts` là số TẠM — kiểm lại cho đúng số kế tiếp ở `main` và chạy lại `node --test src/shared/app-info.test.ts`.
+
+**Thử gửi thật lần đầu (bước 0b của kế hoạch — CHƯA ai thử; chủ tự làm SAU khi phát hành, trên chính tài khoản của mình):** gửi thật chỉ thấy được ở môi trường có tên miền gửi đã cài — e2e và kịch bản Chrome không đi ra hộp thư thật. Cách thử an toàn, không đụng tài khoản người khác:
+1. Đăng nhập bằng một tài khoản CỦA CHỦ không giữ Quản trị / Toàn quyền / Kế toán (tài khoản quyền lớn không có lựa chọn email). Không có tài khoản như vậy thì DỪNG, hỏi AI cách khác — đừng tạo tài khoản hay đổi quyền tài khoản thật chỉ để thử (xem "cửa sổ đóng băng" ở phần Hoàn tác).
+2. Trang **Tôi → Bảo mật đăng nhập → Nhận mã qua email**, gõ địa chỉ email của chủ, bấm "Gửi mã xác minh". Nếu tài khoản đã bật ứng dụng xác thực thì nhập kèm mã của ứng dụng.
+3. Mở hộp thư (xem cả mục Thư rác): thư chủ đề "Mã xác minh đăng nhập Nền tảng Tour Đảo", thân chỉ có mã 6 số và câu "Nếu không phải bạn, đổi PIN ngay và báo IT.", không có liên kết. Nhập mã, bấm "Xác nhận email".
+4. Đăng xuất, đăng nhập PIN trên máy chưa tin → bấm "Gửi mã qua email (…)" → nhận thư thứ hai → nhập mã → vào được.
+5. Không nhận được thư sau vài phút: bấm gửi lại (tối đa 3 thư / 15 phút). Vẫn không có thì báo AI kèm giờ thử; AI đọc log Worker tìm dòng `mfa_mail_failed` (chỉ có lý do cố định `no_binding` / `no_from` / `send_threw`). Thử xong muốn bỏ thì "Gỡ email nhận mã" (tài khoản nội bộ phải còn ứng dụng xác thực).
+
+**Báo nhân viên:** chỉ người KHÔNG giữ Quản trị / Toàn quyền / Kế toán thấy lựa chọn email; tự nguyện, không bắt buộc ai (ADR-G1 chưa duyệt). Người chỉ dùng email muốn đổi địa chỉ / gỡ email phải dùng một mã dự phòng — dặn cất kỹ bộ mã.
+
+**Sau deploy:** `node scripts/audit-invariants.mjs --db remote` (trien-khai tự chạy) phải xanh `R-AUT-MFA-1/2/3/4`.
+
+**Ca xấu: hoàn tác Worker về bản Phần B SAU KHI đã áp `0102`.** `wrangler rollback` làm được (không đổi Durable Object); mã cũ không đọc bảng `aut_mfa_email_code`. Nhưng yếu tố EMAIL đã bật vẫn nằm ở `aut_mfa_factor`: bản Phần B coi đó là "đã có yếu tố" (người đó bị hỏi mã) mà không có nút gửi email ⇒ người CHỈ có email phải dùng mã dự phòng hoặc nhờ Quản trị tắt lớp hai (suy từ mã Phần B, chưa thử). Báo chủ trước khi chọn rollback.
+
 ## Chế độ bảo trì — đường thoát khẩn
 
 Dùng CHỈ khi chủ dự án bị khoá ngoài (không vào được app để bấm tắt) hoặc chế độ bảo trì kẹt bật. Đây là thao tác GHI lên D1 remote, đi vòng app: theo `CLAUDE.md` §8 chỉ làm khi chủ dự án ra lệnh (hoặc tự chạy bằng `!`). Tác dụng TỨC THÌ (cổng ở máy chủ đọc D1 mỗi request, không đệm), không cần deploy.
