@@ -50,6 +50,9 @@ const row = (
 /** Hàng "chỉ Toàn quyền": SUPER_ADMIN `any`, mọi cột khác `none`. Một hàm dùng chung (mỗi lần gọi một đối tượng MỚI) để gói giao diện gọn — giá trị y như viết
  * tay `row("none", "none", "none", "none", "none", "any", "none", "none", "none", "none")`; bài ghim từng ô ở permissions.test.ts canh. */
 const chiToanQuyen = (): Row => row("none", "none", "none", "none", "none", "any", "none", "none", "none", "none");
+/** Hàng "tự phục vụ": mọi cột `own` (chính mình — route truyền `{ ownerId: staff.id }` và lấy hồ sơ từ `staff.partyId`), SUPER_ADMIN `any` (ADR-0014 điều 2 — Toàn quyền
+ * any ở MỌI ô; route vẫn chỉ phục vụ hồ sơ của phiên). Một hàm dùng chung để gói giao diện gọn (trần gói Đơn hàng — src/goi-trang-nhe.test.ts, không nới). */
+const tuPhucVu = (): Row => row("own", "own", "own", "own", "own", "any", "own", "own", "own", "own");
 
 /**
  * Bản đồ ADR-0007 điều 1 (ADMIN làm được mọi thao tác) đã đổi theo ADR-0009, ADR-0014 (thêm PARTNER/SUPER_ADMIN, bốn thao tác mới), cộng 3 thao tác
@@ -205,6 +208,15 @@ export const MATRIX = {
   // "chờ xoá" của kho (ruling Q4). Route: GET/POST /api/parties/:id/documents/:did/tep*, GET /api/parties/tep-cho-xoa, POST …/chay-lai. Mở ảnh của PHIẾU ĐANG
   // CHỜ là ô khác (party.verify.attachment — lát H-4).
   "party.attachment.view": chiToanQuyen(),
+  // ADR-0124 đ4 (accepted 2026-10-16; lát H-3 Gói 2): XEM hồ sơ của CHÍNH MÌNH (giá trị hiện hành, số che, chính sách riêng tư hiện hành, phiếu tự khai của mình) — mọi
+  // tài khoản; NỚI có chủ ý cho Đối tác, Tài xế đối tác (ADR-0124 Hệ quả; ruling R7 — party.document.view KHÔNG đổi). Route: GET /api/parties/cua-toi (cổng staff).
+  // Phạm vi own = staff.partyId của PHIÊN, không bao giờ từ đường dẫn / thân.
+  "party.self.view": tuPhucVu(),
+  // ADR-0124 đ1, đ3, đ4: GỬI / RÚT phiếu tự khai của chính mình và ĐỒNG Ý / RÚT ĐỒNG Ý chính sách riêng tư (Hiến chương 5.21). Route: POST /api/parties/cua-toi/dong-y,
+  // POST /api/parties/cua-toi/phieu, POST /api/parties/cua-toi/phieu/:pid/rut (cổng staff).
+  "party.self.submit": tuPhucVu(),
+  // ADR-0126 đ1: ĐĂNG phiên bản chính sách riêng tư mới — chỉ Toàn quyền (ruling Q4: hiệu lực ngay lúc đăng). Route: POST /api/parties/chinh-sach-rieng-tu (cổng admin).
+  "party.privacy.policy": chiToanQuyen(),
   // ADR-0040 D1: quản lý xe, giấy tờ xe, xem danh sách giấy tờ sắp hết hạn (xe + tài xế, không số) — Quản trị + Toàn quyền (việc kinh doanh, ADR-0038
   // điều 6). Route: /api/van-chuyen/* (module van-chuyen, cổng office). Danh mục loại giấy tờ xe: admin.manage; ngưỡng sắp hết hạn: settings.ops.
   "vehicle.manage": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"),

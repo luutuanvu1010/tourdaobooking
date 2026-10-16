@@ -1009,6 +1009,35 @@ export interface PersonDocumentAddRequest {
 export type PersonDocumentRenewRequest = Omit<PersonDocumentAddRequest, "typeCode">;
 /** Thân POST …/documents/:did/correct (người) và …/giay-to/:did/sua-sai (xe) — `reason` thuộc LY_DO_SUA_SAI; `value` của đúng trường; NHAP_NHAM_DONG không gửi `value`. */
 export interface DocumentCorrectRequest { reason: LyDoSuaSai; value?: string | null; expectedUpdatedAt: string }
+// ---- Hồ sơ của tôi + chính sách riêng tư (ADR-0124, ADR-0126 đ1; lát H-3 Gói 2) — DANH SÁCH CHO PHÉP, giống nhau cho mọi quyền (tiền lệ vá D-1). Số giấy tờ LUÔN che. ----
+export type LoaiPhieuTuKhai = "NGAY_SINH" | "DIA_CHI" | "GIAY_TO";
+export type TrangThaiPhieuTuKhai = "CHO_XAC_MINH" | "DA_CHAP_NHAN" | "TU_CHOI" | "RUT";
+export interface GiayToCuaToiDto { loai: string; soChe: string | null; hetHan: string | null }
+/** Giá trị HIỆN HÀNH (đã có trong hồ sơ). Hồ sơ tổ chức: ngaySinh null, diaChi [], giayTo []. */
+export interface HoSoCuaToiDto { loai: "PERSON" | "ORGANIZATION"; hoTen: string; ngaySinh: string | null; diaChi: string[]; dienThoai: string[]; email: string[]; giayTo: GiayToCuaToiDto[] }
+export interface ChinhSachRiengTuDto { id: string; phienBan: number; mucDich: string; noiDung: string; hieuLucTu: string }
+export interface PhieuTuKhaiGiayToDto { loai: string; soChe: string | null; ngayCap: string | null; noiCap: string | null; hetHan: string | null }
+/** Giá trị ĐỀ XUẤT của chính người xem (5.23) — chưa dùng ở đâu cho tới khi được xác minh. */
+export interface PhieuTuKhaiDto { id: string; loai: LoaiPhieuTuKhai; trangThai: TrangThaiPhieuTuKhai; guiLuc: string; xuLyLuc: string | null; ngaySinh: string | null; diaChi: string | null; giayTo: PhieuTuKhaiGiayToDto | null }
+/** `GET /api/parties/cua-toi`. `hoSo` null = tài khoản chưa gắn hồ sơ. `coTheGui` false thì `lyDoKhongGui` là câu tiếng Việt. `phieu`: 50 phiếu mới nhất. */
+export interface HoSoCuaToiResponse {
+  hoSo: HoSoCuaToiDto | null;
+  chinhSach: ChinhSachRiengTuDto | null;
+  dongY: boolean;
+  coTheGui: boolean;
+  lyDoKhongGui: string | null;
+  phieu: PhieuTuKhaiDto[];
+  loaiGiayTo: { ma: string; ten: string; coHan: boolean }[];
+  hangGplx: { ma: string; ten: string }[];
+}
+/** `POST /api/parties/chinh-sach-rieng-tu` (chỉ Toàn quyền) — thân `{ mucDich, noiDung }`. */
+export interface ChinhSachDangResponse { phienBan: number }
+/** `POST /api/parties/cua-toi/dong-y` — thân `{ chinhSachId, quyetDinh: "DONG_Y" | "RUT" }`. Rút đồng ý rút luôn mọi phiếu đang chờ (ruling Q2). */
+export interface DongYResponse { dongY: boolean }
+/** `POST /api/parties/cua-toi/phieu` — thân `{ chinhSachId, loai, ngaySinh? | diaChi? | giayTo?: { typeCode, number?, classCode?, issuedDate?, issuedPlace?, expiryDate? } }`. */
+export interface PhieuTuKhaiTaoResponse { phieuId: string }
+/** `POST /api/parties/cua-toi/phieu/:pid/rut`. */
+export interface PhieuTuKhaiRutResponse { phieuId: string; trangThai: "RUT" }
 
 // ---- Vận chuyển (ADR-0040 D1; module van-chuyen) ----
 export type VehicleStatus = "active" | "maintenance" | "retired";

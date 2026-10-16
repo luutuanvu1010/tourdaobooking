@@ -1084,3 +1084,50 @@ export async function listTepChoXoa(db: D1Database, doDangTruoc: string): Promis
   const r = (await db.prepare(LIST_TEP_CHO_XOA).bind(doDangTruoc).all<TepCanXoaRow>()).results;
   return { ds: r.slice(0, TEP_CHO_XOA_MOT_LUOT), conNua: r.length > TEP_CHO_XOA_MOT_LUOT };
 }
+
+// ---- Chính sách riêng tư + đồng ý + phiếu tự khai (ADR-0124, ADR-0126 đ1; lát H-3 Gói 2) ---------------------------------------------------------------
+// Câu đọc phiếu KHÔNG chọn document_number (số đủ không bao giờ rời CSDL qua đường "của tôi"). Mọi câu chạm pty_self_submission chỉ dùng trong route /api/parties/cua-toi*
+// (rào src/tu-khai-khong-len-nhan.test.ts — Hiến chương 5.23).
+export interface PolicyRow { id: string; version: number; purposes: string; body: string; valid_from_at: string }
+export interface PhieuRow {
+  id: string; subject_kind: string; status: string; policy_id: string; birth_date: string | null; address_value: string | null; document_type_code: string | null;
+  type_name: string | null; number_key: string | null; license_class_code: string | null; class_name: string | null; issued_date: string | null;
+  issued_place: string | null; expiry_date: string | null; created_at: string; decided_at: string | null;
+}
+const CURRENT_POLICY = defineSql("parties", "current_privacy_policy",
+  "SELECT id, version, purposes, body, valid_from_at FROM pty_privacy_policy WHERE valid_from_at <= ?1 ORDER BY version DESC LIMIT 1");
+const MAX_POLICY_VERSION = defineSql("parties", "max_privacy_policy_version", "SELECT COALESCE(MAX(version), 0) AS v FROM pty_privacy_policy");
+const INSERT_POLICY = defineSql("parties", "insert_privacy_policy",
+  `INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?5, ?6, ?5, ?6)`);
+const LATEST_CONSENT = defineSql("parties", "latest_consent",
+  "SELECT decision FROM pty_consent WHERE party_id = ?1 AND policy_id = ?2 ORDER BY created_at DESC, rowid DESC LIMIT 1");
+const INSERT_CONSENT = defineSql("parties", "insert_consent",
+  "INSERT INTO pty_consent (id, party_id, policy_id, decision, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6)");
+const RUT_MOI_PHIEU_CHO = defineSql("parties", "withdraw_pending_self_submissions_of_party",
+  `UPDATE pty_self_submission SET status = 'RUT', decided_at = ?2, decided_by = ?3, updated_at = ?2, updated_by = ?3
+   WHERE party_id = ?1 AND status = 'CHO_XAC_MINH'`);
+const LIST_PHIEU = defineSql("parties", "list_self_submissions_of_party",
+  `SELECT s.id, s.subject_kind, s.status, s.policy_id, s.birth_date, s.address_value, s.document_type_code, t.name AS type_name, s.number_key,
+          s.license_class_code, c.name AS class_name, s.issued_date, s.issued_place, s.expiry_date, s.created_at, s.decided_at
+   FROM pty_self_submission s
+   LEFT JOIN pty_person_document_type t ON t.code = s.document_type_code
+   LEFT JOIN pty_license_class c ON c.code = s.license_class_code
+   WHERE s.party_id = ?1 ORDER BY s.created_at DESC, s.id DESC LIMIT 50`);
+
+export const chinhSachHienHanh = (db: D1Database, nowIso: string): Promise<PolicyRow | null> => db.prepare(CURRENT_POLICY).bind(nowIso).first<PolicyRow>();
+export async function phienBanLonNhat(db: D1Database): Promise<number> {
+  return (await db.prepare(MAX_POLICY_VERSION).first<{ v: number }>())?.v ?? 0;
+}
+export const dangChinhSachStatement = (db: D1Database, v: { id: string; version: number; mucDich: string; noiDung: string; at: string; actorId: string }): D1PreparedStatement =>
+  db.prepare(INSERT_POLICY).bind(v.id, v.version, v.mucDich, v.noiDung, v.at, v.actorId);
+export async function quyetDinhDongYMoiNhat(db: D1Database, partyId: string, policyId: string): Promise<"DONG_Y" | "RUT" | null> {
+  return (await db.prepare(LATEST_CONSENT).bind(partyId, policyId).first<{ decision: "DONG_Y" | "RUT" }>())?.decision ?? null;
+}
+export const ghiDongYStatement = (db: D1Database, v: { id: string; partyId: string; policyId: string; quyetDinh: "DONG_Y" | "RUT"; at: string; actorId: string }): D1PreparedStatement =>
+  db.prepare(INSERT_CONSENT).bind(v.id, v.partyId, v.policyId, v.quyetDinh, v.at, v.actorId);
+export const rutMoiPhieuChoStatement = (db: D1Database, v: { partyId: string; at: string; actorId: string }): D1PreparedStatement =>
+  db.prepare(RUT_MOI_PHIEU_CHO).bind(v.partyId, v.at, v.actorId);
+export async function listPhieuCuaHoSo(db: D1Database, partyId: string): Promise<PhieuRow[]> {
+  return (await db.prepare(LIST_PHIEU).bind(partyId).all<PhieuRow>()).results;
+}

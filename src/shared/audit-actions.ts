@@ -133,6 +133,13 @@ export const AUDIT_ACTIONS = {
   party_attachment_viewed: { label: "Mở ảnh giấy tờ", group: "party" },
   party_attachment_purged: { label: "Quyết xoá ảnh giấy tờ khỏi kho", group: "party" },
   party_attachment_purge_retried: { label: "Chạy lại xoá ảnh khỏi kho", group: "system" },
+  // ADR-0124, ADR-0126 đ1 (lát H-3 Gói 2): `detail` CHỈ MÃ / NHÃN — "phiên bản <n>", "phiếu <mã> · <nhãn loại>[ · <tên loại giấy tờ>]"; KHÔNG ngày sinh, địa chỉ, số, nơi cấp,
+  // chữ chính sách (Hiến chương 5.20).
+  privacy_policy_published: { label: "Đăng chính sách riêng tư", group: "system" },
+  privacy_consent_given: { label: "Đồng ý chính sách riêng tư", group: "party" },
+  privacy_consent_withdrawn: { label: "Rút đồng ý chính sách riêng tư", group: "party" },
+  self_submission_created: { label: "Gửi phiếu tự khai hồ sơ", group: "party" },
+  self_submission_withdrawn: { label: "Rút phiếu tự khai hồ sơ", group: "party" },
   party_document_catalog_changed: { label: "Sửa danh mục giấy tờ của người", group: "party" },
   // ADR-0108 đ2: cài / đổi tài khoản nhận tiền của công ty chủ — target = hồ sơ công ty; `detail` = "cài|đổi tài khoản nhận tiền" (chữ cố định); KHÔNG chép số tài khoản (5.12).
   party_bank_account_changed: { label: "Đổi tài khoản nhận tiền", group: "party" },

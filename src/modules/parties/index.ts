@@ -6,6 +6,7 @@ import type {
   ContactPointDto, MergeItemDto, MergePreviewResponse, PartyDto, PartyDuplicatesResponse, PartyListItemDto, PartyListResponse, PartyLookupResponse, PartyMergeRef, PartyMetaResponse,
   PartyRelationshipDto, PartyResponse, PartyRoleDto, PersonDocumentDto, PersonDocumentListResponse, PersonDocumentMetaResponse, PersonDocumentRevealResponse,
   StaffProfile, TaiKhoanNhanTienResponse, HoSoTepChayLaiResponse, HoSoTepChoXoaResponse, HoSoTepCreatedResponse, HoSoTepListResponse,
+  ChinhSachDangResponse, DongYResponse, HoSoCuaToiDto, HoSoCuaToiResponse, PhieuTuKhaiDto, TrangThaiPhieuTuKhai,
 } from "../../shared/contracts";
 import { LOAI_CO_DINH, MA_LOAI_GIAY_TO_RE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo, soNgayConLai } from "../../shared/giay-to";
 import { OWNER_COMPANY_ROLE, thieuChoCongTyChu } from "../../shared/cong-ty-chu";
@@ -27,6 +28,7 @@ import {
   listCarriers, listPartiesByIds, openPersonPhones, personsForMatch, listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, mergedFromOf, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
   voidPersonDocStatement,
   datChoXoaTepStatement, findTepDeTai, insertTepLinkStatement, insertTepStatement, listTepChoXoa, listTepCuaGiayTo, markTepStored, tepCuaGiayTo,
+  chinhSachHienHanh, phienBanLonNhat, dangChinhSachStatement, quyetDinhDongYMoiNhat, ghiDongYStatement, rutMoiPhieuChoStatement, listPhieuCuaHoSo, type PhieuRow,
   datHoatDongLoaiDoiTacStatement, hoSoMangNhan, openRoleCodesFor, themLoaiDoiTacStatement, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements, vaiDangMo,
   type BankAccountRow, type BankRow, type GopDocRow, type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
 } from "./repository";
@@ -36,6 +38,8 @@ import { anTruongRiengTu, ghiDuocRiengTu, laLienHeRiengTu, xemDuocRiengTu, type 
 import { docTaiKhoanNhanTien } from "./tai-khoan-nhan-tien";
 import { DO_DANG_SAU_MS, LOAI_NOI_DUNG, LY_DO_XOA_TEP, TOI_DA_THAN, bamSha256, dauPhanHoiTep, khoaNgauNhien, kiemTepTaiLen } from "./tep";
 import { ghiRoiXoaKho, xoaKhoiKho } from "./kho-tep";
+import { CAU_KHONG_GUI, kiemChinhSach, lyDoKhongGhi, lyDoKhongGui, type LoaiPhieu, type TinhTrangTuKhai } from "./tu-khai";
+import { nhanLoaiPhieu } from "../../shared/tu-khai-hien-thi";
 import { MA_HANG_RE, cheSo, chiTietNhatKy, chuanHoaSo, kiemGiaHan, kiemHangMoi, kiemSuaHang, kiemSuaSai, kiemThemGiayTo, type DanhMucGiayTo, type GiayToNhap } from "./giay-to";
 import {
   PARTY_ID_RE, QUAN_HE_TAI_XE_CUA, ROW_ID_RE, composePersonName, hoSoNoiBo, ownerCompanyAssignProblem, splitPersonName, validateContact, validateEndDate, validatePartyCreate, validatePartyUpdate,
@@ -620,6 +624,55 @@ async function respondParty<A extends "office" | "admin">(ctx: Ctx<A>, id: strin
   return json({ party: xem ? party : anTruongRiengTu(party) } satisfies PartyResponse, status);
 }
 
+// ---- Hồ sơ của tôi + chính sách riêng tư (ADR-0124, ADR-0126 đ1; lát H-3 Gói 2) ----------------------------------------------------------------------
+const SELF_FORBIDDEN = () => error(403, "forbidden", "Tài khoản này không có mục Hồ sơ của tôi.");
+const POLICY_FORBIDDEN = () => error(403, "forbidden", "Chỉ Toàn quyền đăng chính sách riêng tư.");
+const POLICY_CHANGED = () => error(409, "policy_changed", "Chính sách riêng tư vừa có phiên bản mới. Hãy đọc và đồng ý lại trước khi gửi.");
+const POLICY_RACE = () => error(409, "policy_version_race", "Vừa có phiên bản chính sách khác được đăng. Tải lại rồi thử lại.");
+const tuChoi = (l: { code: string; message: string }) => error(409, l.code, l.message);
+
+/** Hồ sơ của PHIÊN + tình trạng tự khai. ADR-0124 đ4: own = staff.partyId — KHÔNG BAO GIỜ lấy mã hồ sơ từ đường dẫn hay thân lệnh. */
+async function tinhTuKhai(db: D1Database, staff: StaffProfile, nowIso: string) {
+  const [detail, chinhSach] = await Promise.all([staff.partyId ? getPartyDetail(db, staff.partyId) : Promise.resolve(null), chinhSachHienHanh(db, nowIso)]);
+  const daDongY = detail && chinhSach ? (await quyetDinhDongYMoiNhat(db, detail.party.id, chinhSach.id)) === "DONG_Y" : false;
+  const tt: TinhTrangTuKhai = {
+    coHoSo: detail !== null, laCaNhan: detail?.party.party_kind === "PERSON", daGop: (detail?.party.merged_into_id ?? null) !== null, coChinhSach: chinhSach !== null, daDongY,
+  };
+  return { detail, chinhSach, tt };
+}
+const tenGiayTo = (typeName: string | null, typeCode: string, className: string | null): string => {
+  const ten = typeName ?? typeCode;
+  return className ? `${ten} hạng ${className}` : ten;
+};
+/** DTO "Hồ sơ của tôi" — DANH SÁCH CHO PHÉP, mọi quyền như nhau (tiền lệ vá D-1; ADR-0124 đ6). Không vai, quan hệ, gộp, tài khoản, người tạo, mốc. Số giấy tờ CHE. */
+function hoSoCuaToiDto(d: { party: PartyRow; contacts: ContactRow[] }, giayTo: PersonDocRow[]): HoSoCuaToiDto {
+  const mo = (k: string) => d.contacts.filter((c) => c.contact_kind_code === k && c.valid_to_date === null).map((c) => c.value);
+  const caNhan = d.party.party_kind === "PERSON";
+  return {
+    loai: d.party.party_kind,
+    hoTen: d.party.display_name,
+    ngaySinh: caNhan ? d.party.birth_date : null,
+    diaChi: caNhan ? mo("ADDRESS") : [],
+    dienThoai: mo("PHONE"),
+    email: mo("EMAIL"),
+    giayTo: caNhan ? giayTo.map((r) => ({ loai: tenGiayTo(r.type_name, r.document_type_code, r.class_name), soChe: cheSo(r.number_key), hetHan: r.expiry_date })) : [],
+  };
+}
+function phieuDto(r: PhieuRow): PhieuTuKhaiDto {
+  return {
+    id: r.id,
+    loai: r.subject_kind as LoaiPhieu,
+    trangThai: r.status as TrangThaiPhieuTuKhai,
+    guiLuc: r.created_at,
+    xuLyLuc: r.decided_at,
+    ngaySinh: r.birth_date,
+    diaChi: r.address_value,
+    giayTo: r.document_type_code === null ? null : {
+      loai: tenGiayTo(r.type_name, r.document_type_code, r.class_name), soChe: cheSo(r.number_key), ngayCap: r.issued_date, noiCap: r.issued_place, hetHan: r.expiry_date,
+    },
+  };
+}
+
 export const partiesModule: AppModule = {
   name: "parties",
   routes: [
@@ -662,6 +715,82 @@ export const partiesModule: AppModule = {
         }),
         conNua,
       } satisfies PartyDuplicatesResponse);
+    }),
+
+    // ---- Hồ sơ của tôi + chính sách riêng tư (ADR-0124, ADR-0126 đ1; lát H-3) — khai TRƯỚC /api/parties/:id. Cổng staff: cổng duy nhất Đối tác, Tài xế đối tác qua. ----
+    route("POST", "/api/parties/chinh-sach-rieng-tu", "admin", async ({ request, env, staff }) => {
+      // Hàng rào cổng quản trị (ADR-0019; src/route-write-guard.test.ts): route cổng admin hỏi ô quản trị viết thẳng TRƯỚC — tiền lệ GET /api/audit (admin.manage rồi ô hẹp).
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      if (!can(staff, "party.privacy.policy")) return POLICY_FORBIDDEN();
+      const k = kiemChinhSach(await readJson(request));
+      if (!k.ok) return error(400, "invalid_input", k.message);
+      const at = new Date().toISOString();
+      const version = (await phienBanLonNhat(env.DB)) + 1;
+      try {
+        await env.DB.batch([
+          dangChinhSachStatement(env.DB, { id: crypto.randomUUID(), version, mucDich: k.value.mucDich, noiDung: k.value.noiDung, at, actorId: staff.id }),
+          auditStatement(env.DB, { staffId: staff.id, action: "privacy_policy_published", at, targetType: "system", targetId: "chinh-sach-rieng-tu", detail: `phiên bản ${version}` }),
+        ]);
+      } catch (e) {
+        if (/privacy_policy_(version_gap|no_replace|valid_from_back)|UNIQUE constraint failed: pty_privacy_policy/.test(e instanceof Error ? e.message : "")) return POLICY_RACE();
+        throw e;
+      }
+      return kemLocation(json({ phienBan: version } satisfies ChinhSachDangResponse, 201), "/account"); // H7 (ADR-0094 A-10): khung đăng ở trang Tôi (ruling Q4)
+    }),
+
+    route("GET", "/api/parties/cua-toi", "staff", async ({ env, staff }) => {
+      if (!can(staff, "party.self.view", { ownerId: staff.id })) return SELF_FORBIDDEN();
+      const { detail, chinhSach, tt } = await tinhTuKhai(env.DB, staff, new Date().toISOString());
+      const [giayTo, phieu, types, classes] = await Promise.all([
+        detail && tt.laCaNhan ? listPersonDocuments(env.DB, detail.party.id, true) : Promise.resolve([]),
+        detail ? listPhieuCuaHoSo(env.DB, detail.party.id) : Promise.resolve([]),
+        listPersonDocumentTypes(env.DB),
+        listLicenseClasses(env.DB),
+      ]);
+      const ly = lyDoKhongGui(tt);
+      return json({
+        hoSo: detail ? hoSoCuaToiDto(detail, giayTo) : null,
+        chinhSach: chinhSach ? { id: chinhSach.id, phienBan: chinhSach.version, mucDich: chinhSach.purposes, noiDung: chinhSach.body, hieuLucTu: chinhSach.valid_from_at } : null,
+        dongY: tt.daDongY,
+        coTheGui: ly === null,
+        lyDoKhongGui: ly?.message ?? null,
+        phieu: phieu.map(phieuDto),
+        loaiGiayTo: types.filter((t) => t.active === 1).map((t) => ({ ma: t.code, ten: t.name, coHan: t.has_expiry === 1 })),
+        hangGplx: classes.filter((c) => c.active === 1).map((c) => ({ ma: c.code, ten: c.name })),
+      } satisfies HoSoCuaToiResponse);
+    }),
+
+    route("POST", "/api/parties/cua-toi/dong-y", "staff", async ({ request, env, staff }) => {
+      if (!can(staff, "party.self.submit", { ownerId: staff.id })) return SELF_FORBIDDEN();
+      const body = await readJson(request);
+      const quyetDinh = body?.quyetDinh;
+      if (quyetDinh !== "DONG_Y" && quyetDinh !== "RUT") return error(400, "invalid_input", "Chọn đồng ý hoặc rút đồng ý.");
+      const at = new Date().toISOString();
+      const { detail, chinhSach, tt } = await tinhTuKhai(env.DB, staff, at);
+      const chan = lyDoKhongGhi(tt);
+      if (chan) return tuChoi(chan);
+      const chuaCo = lyDoKhongGui({ ...tt, daDongY: true });
+      if (chuaCo || !chinhSach) return tuChoi(chuaCo ?? { code: "no_privacy_policy", message: CAU_KHONG_GUI.chuaChinhSach });
+      if (body?.chinhSachId !== chinhSach.id) return POLICY_CHANGED();
+      if ((quyetDinh === "DONG_Y") === tt.daDongY) {
+        return error(409, "consent_unchanged", quyetDinh === "DONG_Y" ? "Bạn đã đồng ý phiên bản này rồi." : "Bạn chưa đồng ý phiên bản này nên không có gì để rút.");
+      }
+      const partyId = detail!.party.id;
+      const lo: D1PreparedStatement[] = [
+        ghiDongYStatement(env.DB, { id: crypto.randomUUID(), partyId, policyId: chinhSach.id, quyetDinh, at, actorId: staff.id }),
+        auditStatement(env.DB, {
+          staffId: staff.id, action: quyetDinh === "DONG_Y" ? "privacy_consent_given" : "privacy_consent_withdrawn", at, targetType: "party", targetId: partyId, detail: `phiên bản ${chinhSach.version}`,
+        }),
+      ];
+      // Ruling Q2: rút đồng ý ⇒ rút luôn MỌI phiếu đang chờ của hồ sơ, CÙNG lô (bất biến R-PTY-13). Nhật ký chỉ khi có phiếu bị rút.
+      if (quyetDinh === "RUT") {
+        lo.push(
+          rutMoiPhieuChoStatement(env.DB, { partyId, at, actorId: staff.id }),
+          auditStatement(env.DB, { staffId: staff.id, action: "self_submission_withdrawn", at, targetType: "party", targetId: partyId, detail: "rút mọi phiếu đang chờ vì rút đồng ý" }, "changes() > 0"),
+        );
+      }
+      await env.DB.batch(lo);
+      return json({ dongY: quyetDinh === "DONG_Y" } satisfies DongYResponse);
     }),
 
     // ---- Hàng "chờ xoá" của kho tệp hồ sơ (ADR-0123 đ6; Hiến chương 5.16; ruling Q4: chỉ Toàn quyền) — khai TRƯỚC GET /api/parties/:id. DTO chỉ mã. -------

@@ -103,6 +103,8 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
   "POST /api/orders/:id/handler-cancel": { ma: 403, ly_do: "huỷ đơn đang phụ trách — ô order.cancel của DRIVER là none (đơn có thật → 403, không dữ liệu)" },
   "POST /api/orders/:id/handler-money-edit": { ma: 403, ly_do: "sửa số khách đơn đang phụ trách — chỉ cấp hẹp đang được giao / Toàn quyền (đơn có thật → 403)" },
   "GET /api/parties/documents/mine": { ma: 200, ly_do: "giấy tờ của CHÍNH MÌNH, số che (Ruling R4, R5; ô party.document.view own)" },
+  "GET /api/parties/cua-toi": { ma: 200, ly_do: "ADR-0124 đ4 (lát H-3): hồ sơ của CHÍNH MÌNH (ô party.self.view own, hồ sơ = staff.partyId), số che, chính sách riêng tư — không dữ liệu đơn" },
+  "POST /api/parties/cua-toi/dong-y": { ma: 400, ly_do: "ADR-0124 đ3 (ô party.self.submit own); thân rỗng (thiếu quyết định đồng ý / rút) → 400 trước mọi ghi" },
   "GET /api/thong-bao": { ma: 200, ly_do: "hộp thông báo gửi cho mình (D3)" },
   "GET /api/thong-bao/tom-tat": { ma: 200, ly_do: "như trên" },
   "GET /api/thong-bao/moi-nhat": { ma: 200, ly_do: "như trên (Web Push)" },
