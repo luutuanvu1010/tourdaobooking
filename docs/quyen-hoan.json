@@ -90,7 +90,7 @@
       "muc_do": "HIGH",
       "ly_do": "Chưa từng diễn tập khôi phục dữ liệu. Mỗi lần triển khai có ghi điểm khôi phục Time Travel của D1, nhưng chưa ai khôi phục thử một lần để biết khôi phục chạy được, mất bao lâu, mất gì; Hiến chương hệ thống 5.19 (kho luật gốc v2.0.0) tính như chưa có sao lưu. Nếu sự cố mất dữ liệu xảy ra mà khôi phục không chạy, CRM có thể mất đơn hàng và sổ tiền.",
       "ke_hoach": "Diễn tập một lần theo đặc tả docs/superpowers/specs/2026-09-22-dien-tap-khoi-phuc.md (cập nhật cho hiện trạng, chủ duyệt): khôi phục vào một chỗ KHÔNG phải D1 thật (ví dụ xuất D1 rồi nạp vào D1 cục bộ hoặc D1 tạm), đếm bảng và chạy scripts/audit-invariants.mjs trên bản khôi phục, ghi thời gian và kết quả vào docs/SO-HANG-RAO.md và docs/HANDOFF-N1.md. Không chạy `wrangler d1 time-travel restore` lên D1 thật trong diễn tập (lệnh đó ghi đè tại chỗ). Mọi lệnh remote do chủ chạy.",
-      "han": "2026-10-31",
+      "han": "2026-11-05",
       "nguoi_chiu_trach_nhiem": "chủ dự án",
       "nguon": "Tờ khai docs/kernel-18.md và đối chiếu docs/superpowers/specs/2026-10-05-doi-chieu-bo-luat-v2.md mục 3.3; chủ dự án đồng ý đưa vào sổ, hạn khuyến nghị 2026-10-05 (\"đồng ý hạn khuyến nghị\")."
     },
