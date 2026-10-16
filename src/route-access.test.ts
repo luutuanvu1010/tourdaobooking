@@ -103,6 +103,13 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/auth/me", access: "staff" },
   { method: "POST", path: "/api/auth/passkey/login", access: "public" }, // đăng nhập bằng Face ID (ADR-0016) — tự gọi maintenanceBlock, không qua cổng bảo trì của router
   { method: "POST", path: "/api/auth/passkey/options", access: "public" }, // xin thách thức WebAuthn để đăng nhập
+  { method: "POST", path: "/api/auth/mfa/verify", access: "public" }, // bước hai của đăng nhập PIN (ADR-0074) — cổng là cookie chờ td_mfa_pending (khoá ký riêng, 5 phút); tự gọi maintenanceBlock
+  // ADR-0074 điều 4 (Phần C Task 2): gửi mã email ở bước hai — cổng là cookie chờ purpose "verify" + yếu tố EMAIL sống; tự gọi maintenanceBlock; hạn mức mfa-mail:<id> 3 thư / 15 phút.
+  { method: "POST", path: "/api/auth/mfa/email", access: "public" },
+  // ADR-0074 điều 5 (Phần B Task 6): bật lại lớp hai ở bước đăng nhập trong cửa sổ 24 giờ sau khi Quản trị/Toàn quyền tắt — cổng là cookie chờ purpose "enroll"
+  // (+ cửa sổ còn mở, chưa có yếu tố); tự gọi maintenanceBlock; confirm có hạn mức mfa:<id>.
+  { method: "POST", path: "/api/auth/mfa/enroll/start", access: "public" },
+  { method: "POST", path: "/api/auth/mfa/enroll/confirm", access: "public" },
   { method: "GET", path: "/api/catalog", access: "office" }, // ADR-0033 (2026-09-27): về cổng office như ADR-0019 điều 1 — đảo có chủ đích bản 1.15 (ADR-0028 điều 1: orders)
   { method: "GET", path: "/api/catalog/for-order", access: "orders" }, // ADR-0033: danh mục cho form lập đơn (Đối tác, Thực tập); chốt chặn thật là can(order.create) trong thân
   { method: "PATCH", path: "/api/catalog/:code", access: "admin" },
@@ -193,6 +200,14 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/pricing/loai-doi-tac", access: "office" },
   { method: "POST", path: "/api/pricing/loai-doi-tac/:code/tat", access: "office" },
   { method: "POST", path: "/api/pricing/loai-doi-tac/:code/bat", access: "office" },
+  // ADR-0117 lần 2: mức TA dùng chung — xem (partner.commission.view), tạo / gắn / kết thúc gắn / tắt / bật / thêm dòng (partner.commission.write); chặn tài khoản giữ quyền Đối tác (holdsPartner).
+  { method: "GET", path: "/api/pricing/muc-ta", access: "office" },
+  { method: "POST", path: "/api/pricing/muc-ta", access: "office" },
+  { method: "POST", path: "/api/pricing/muc-ta/gan", access: "office" },
+  { method: "POST", path: "/api/pricing/muc-ta/gan/:id/ket-thuc", access: "office" },
+  { method: "POST", path: "/api/pricing/muc-ta/:code/tat", access: "office" },
+  { method: "POST", path: "/api/pricing/muc-ta/:code/bat", access: "office" },
+  { method: "POST", path: "/api/pricing/muc-ta/:code/dong", access: "office" }, // thêm MỘT DÒNG cho mức (đóng dòng: POST /api/pricing/hoa-hong/:id/dong)
   { method: "GET", path: "/api/pricing/nguoi-huong", access: "orders" }, // order.create và không phải Đối tác — tìm người hưởng theo tên cho form lập đơn
   // Sổ đại lý đợt 1 (module orders — ADR-0077 điều 10–11; đặc tả §6, Task 5): phần thương mại của đơn. Đọc: order.view + order.terms.view phạm vi đơn (Đối tác nhận DTO hẹp); ghi: order.terms.override, không bao giờ cho tài khoản có quyền Đối tác.
   { method: "GET", path: "/api/orders/:id/thuong-mai", access: "orders" },
@@ -266,7 +281,19 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/staff/:id/passkeys/remove-all", access: "admin" }, // quản trị viên gỡ mọi Face ID của một tài khoản (ADR-0016 điều 6/8) — GIỮ cổng admin (ADR-0071 điều 1e: HCNS không)
   { method: "POST", path: "/api/staff/:id/reset-pin", access: "admin" },
   { method: "POST", path: "/api/staff/:id/unlock", access: "admin" },
+  { method: "POST", path: "/api/staff/:id/mfa-reset", access: "admin" }, // ADR-0074 đ5 (Phần B Task 6): tắt lớp hai của người khác — GIỮ cổng admin như đặt lại PIN (ADR-0071 đ1e: HCNS không)
   { method: "GET", path: "/api/account/sessions", access: "staff" }, // ADR-0075 điều 7: lịch sử phiên của CHÍNH MÌNH (tự phục vụ)
+  // ADR-0074 điều 5 (Phần B Task 5): bảo mật hai lớp của CHÍNH MÌNH — tự phục vụ, id lấy từ phiên; đổi khoá / gỡ / tạo lại mã dự phòng cần mã yếu tố hiện có.
+  { method: "GET", path: "/api/account/mfa", access: "staff" },
+  { method: "POST", path: "/api/account/mfa/totp/start", access: "staff" },
+  { method: "POST", path: "/api/account/mfa/totp/confirm", access: "staff" },
+  // ADR-0074 điều 4, 7 (Phần C Task 3): tự bật / đổi yếu tố email — tự phục vụ; Quản trị / Toàn quyền / Kế toán → 409 trong thân (allowedFactors).
+  { method: "POST", path: "/api/account/mfa/email/start", access: "staff" },
+  { method: "POST", path: "/api/account/mfa/email/confirm", access: "staff" },
+  { method: "POST", path: "/api/account/mfa/recovery/regenerate", access: "staff" },
+  { method: "POST", path: "/api/account/mfa/remove", access: "staff" },
+  { method: "POST", path: "/api/account/mfa/trusted/:id/forget", access: "staff" },
+  { method: "POST", path: "/api/account/mfa/trusted/forget-all", access: "staff" },
   { method: "GET", path: "/api/sessions", access: "admin" }, // ADR-0075 điều 7: sổ phiên của mọi tài khoản — thân hỏi auth.session.viewAll (chỉ Toàn quyền)
   { method: "POST", path: "/api/sessions/:id/revoke", access: "admin" }, // ADR-0075 điều 7–8: gỡ một phiên — thân hỏi auth.session.revoke (chỉ Toàn quyền), nhật ký im lặng session_revoked
   { method: "GET", path: "/api/sessions/policy", access: "admin" }, // ADR-0085: chính sách đăng nhập — thân hỏi auth.session.policy (chỉ Toàn quyền)
@@ -522,6 +549,12 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-15 (ADR-0119 Việc 5b): + GET /api/feedback/queue (staff, rồi quyenPhieu theo nhóm) = 303.
   // 2026-10-15 (ADR-0119 Việc 5c): + POST /api/feedback/:id/claim, PATCH /api/feedback/:id/xu-ly (staff, rồi quyenPhieu) = 305.
   // 2026-10-15 (ADR-0119 Việc 5d): + POST /api/feedback/:id/transfer (staff, rồi quyenPhieu chuyenNhom) = 306.
-  assert.equal(actual.length, 306, "số route thực tế lệch 306 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 306, "SNAPSHOT phải có đúng 306 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-14 (ADR-0117 lần 2, mức TA): + 7 route /api/pricing/muc-ta* (office) = 313.
+  // 2026-10-16 (ADR-0074 Phần B Task 4): + POST /api/auth/mfa/verify (public; cổng = cookie chờ, tự gọi maintenanceBlock) = 314.
+  // 2026-10-16 (ADR-0074 Phần B Task 5): + GET /api/account/mfa và sáu route ghi /api/account/mfa/* (staff, tự phục vụ) = 321.
+  // 2026-10-16 (ADR-0074 Phần B Task 6): + POST /api/staff/:id/mfa-reset (admin) và POST /api/auth/mfa/enroll/{start, confirm} (public; cookie chờ "enroll") = 324.
+  // 2026-10-16 (ADR-0074 Phần C Task 2): + POST /api/auth/mfa/email (public; cookie chờ "verify", tự gọi maintenanceBlock) = 325.
+  // 2026-10-16 (ADR-0074 Phần C Task 3): + POST /api/account/mfa/email/{start, confirm} (staff, tự phục vụ; vai lớn 409 trong thân) = 327.
+  assert.equal(actual.length, 327, "số route thực tế lệch 327 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 327, "SNAPSHOT phải có đúng 327 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

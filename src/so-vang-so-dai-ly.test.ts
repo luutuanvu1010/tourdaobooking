@@ -22,12 +22,13 @@ interface Ca {
 const TEP = JSON.parse(readFileSync(new URL("../golden/so-cong-no-luot-2.json", import.meta.url), "utf8")) as { cac_ca: Ca[] };
 const DA_XAC_NHAN = TEP.cac_ca.filter((c) => c.xac_nhan.trang_thai === "da_xac_nhan");
 const CHO = TEP.cac_ca.filter((c) => c.xac_nhan.trang_thai !== "da_xac_nhan");
-const MA_BAT_BUOC = ["A-1", "A-2", "A-3", "A-4", "A-5", "B-3"];
+// SV-TA-*: ca vàng mức TA (ADR-0117 lần 2, N-18) — bảy dòng, 04 tách a / b; thêm 2026-10-15 ở trạng thái chờ xác nhận, không được lặng lẽ rơi khỏi sổ.
+const MA_BAT_BUOC = ["A-1", "A-2", "A-3", "A-4", "A-5", "B-3", "SV-TA-01", "SV-TA-02", "SV-TA-03", "SV-TA-04a", "SV-TA-04b", "SV-TA-05", "SV-TA-06"];
 
 const laTienNguyen = (n: unknown): boolean => n === null || (typeof n === "number" && Number.isSafeInteger(n) && n >= 0);
 const so = (...x: (number | null)[]): x is number[] => x.every((v) => v !== null);
 
-test("sổ vàng sổ đại lý — LỚP 1: đủ ca A-1…A-5, B-3; mã không trùng; số nguyên đồng không âm; mỗi dòng tự cân; tổng = cộng dòng; xác nhận có người + ngày", () => {
+test("sổ vàng sổ đại lý — LỚP 1: đủ ca A-1…A-5, B-3, SV-TA-01…06; mã không trùng; số nguyên đồng không âm; mỗi dòng tự cân; tổng = cộng dòng; xác nhận có người + ngày", () => {
   const ma = new Set<string>();
   for (const c of TEP.cac_ca) {
     assert.ok(!ma.has(c.ma), `${c.ma}: trùng mã`);

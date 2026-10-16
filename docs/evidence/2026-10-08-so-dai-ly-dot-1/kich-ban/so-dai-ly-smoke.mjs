@@ -282,8 +282,9 @@ try {
       await buoc(`1-${kho}b`, `ô tỷ lệ gõ «12,555» ⇒ lỗi dưới ô, không gửi`, async () => {
         const truoc = p.requests.length;
         await themMuc(p, { vai: "TRAVEL_AGENCY", nhom: "DTH", tyLe: "12,555" });
-        await cho(p, "!document.querySelector('p.field-error[data-loi=\"muc\"]').hidden", "lỗi ô mức");
-        const cau = await p.ev("document.querySelector('p.field-error[data-loi=\"muc\"]').textContent.trim()");
+        // Khoanh trong #muc-add-form: từ ADR-0117 lần 2 trang có thêm biểu mẫu «Thêm dòng cho mức TA» (cũng có dòng lỗi data-loi="muc") đứng TRƯỚC — bộ chọn không khoanh sẽ bắt nhầm.
+        await cho(p, "!document.querySelector('#muc-add-form p.field-error[data-loi=\"muc\"]').hidden", "lỗi ô mức");
+        const cau = await p.ev("document.querySelector('#muc-add-form p.field-error[data-loi=\"muc\"]').textContent.trim()");
         ghiQuanSat(`1-${kho}) «12,555» ⇒ «${cau}»`);
         assert.ok(cau.length > 0);
         assert.equal(p.requests.slice(truoc).filter((r) => r.method === "POST").length, 0, "chưa gửi gì");

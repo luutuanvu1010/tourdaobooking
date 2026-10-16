@@ -12,6 +12,83 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Dòng giải thích ở trang Tôi → Bảo mật đăng nhập khi không có lựa chọn Email (chủ dự án 2026-10-16: Toàn quyền không thấy Email, tưởng là lỗi). Không migration.
+    // Số 2.8 là số TẠM (= main 2.7 + 1, kiểm 2026-10-16: main 476099d3): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
+    version: "2.8",
+    date: "2026-10-16",
+    items: [
+      { kind: "sua", text: "Trang Tôi, mục Bảo mật đăng nhập: tài khoản Quản trị, Toàn quyền, Kế toán nay có dòng giải thích vì sao không có lựa chọn nhận mã qua email." },
+    ],
+  },
+  {
+    // Mã đăng nhập qua email (ADR-0074 Phần C). Có thay đổi cơ sở dữ liệu (migration 0102 thêm bảng mã email) — cần trien-khai sau day-len. Gửi thư dùng binding
+    // EMAIL + bí mật FEEDBACK_MAIL_FROM đã có (chủ xác nhận; gửi thật chưa thử — docs/HANDOFF-N1.md).
+    // Số 2.7 là số TẠM (= main 2.6 «thẻ góp ý chưa trả lời» + 1, kiểm 2026-10-16: main 238f740a): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của
+    // docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
+    version: "2.7",
+    date: "2026-10-16",
+    items: [
+      { kind: "moi", text: "Có thể nhận mã đăng nhập qua email thay cho ứng dụng xác thực (không áp cho Quản trị, Toàn quyền, Kế toán). Bật ở trang Tôi, mục Bảo mật đăng nhập." },
+      { kind: "moi", text: "Khi đăng nhập bằng PIN trên máy lạ, bấm \"Gửi mã qua email\" rồi nhập mã 6 số trong thư. Mã dùng được 10 phút; thư thật không bao giờ có liên kết." },
+    ],
+  },
+  {
+    // Thẻ «góp ý mới chưa trả lời» ở Trang chủ không còn đếm phiếu đã có người trả lời công khai (chủ dự án 2026-10-16). Không migration. Số tạm.
+    version: "2.6",
+    date: "2026-10-16",
+    items: [
+      { kind: "sua", text: "Thẻ «góp ý mới chưa trả lời» ở Trang chủ không còn đếm những yêu cầu đã được trả lời." },
+    ],
+  },
+  {
+    // Bảo mật hai lớp bằng ứng dụng xác thực (ADR-0074 Phần B). Có thay đổi cơ sở dữ liệu (migration 0101) — cần trien-khai sau day-len; chủ đặt bí mật
+    // MFA_ENCRYPTION_KEY TRƯỚC khi triển khai (docs/HANDOFF-N1.md). Ân hạn 14 ngày tính từ lúc migration áp.
+    // Số 2.5 là số TẠM (= main 2.4 «Mức TA» + 1, kiểm 2026-10-16): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "2.5",
+    date: "2026-10-16",
+    items: [
+      { kind: "moi", text: "Bảo mật hai lớp: đăng nhập bằng PIN trên máy lạ sẽ hỏi thêm mã 6 số từ ứng dụng xác thực (Google Authenticator) trên điện thoại của bạn." },
+      { kind: "moi", text: "Nhân viên nội bộ có 14 ngày để bật ở trang Tôi, mục Bảo mật đăng nhập. Mất điện thoại thì dùng mã dự phòng hoặc nhờ Quản trị tắt giúp." },
+    ],
+  },
+  {
+    // Mức TA dùng chung (ADR-0117 lần 2; chủ duyệt lần 2 bằng lời trong chat 2026-10-14): bộ hoa hồng có tên, gắn loại đối tác vào mức theo ngày; chọn mức thêm bậc 7–9.
+    // Có thay đổi cơ sở dữ liệu (migration 0096 thêm hai bảng, 0097 dựng lại bảng mức hoa hồng) — cần npm run trien-khai sau day-len (Task 7 của kế hoạch, chủ tự chạy).
+    // Số 2.4 là số TẠM (= main 2.3 «Trợ lý» + 1, kiểm 2026-10-16: main 4ac66bc1): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) —
+    // người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
+    version: "2.4",
+    date: "2026-10-16",
+    items: [
+      { kind: "moi", text: "Trang Hoa hồng đối tác có thêm khối Mức TA: Kế toán đặt tên mức (ví dụ Đại lý cấp 1), thêm dòng hoa hồng cho mức, rồi gắn loại đối tác vào mức từ một ngày." },
+      { kind: "moi", text: "Đối tác mang loại đã gắn mức được tính hoa hồng theo mức đó khi đơn được xác nhận. Mức riêng của đối tác hay của loại vẫn được ưu tiên hơn mức TA." },
+      { kind: "moi", text: "Gắn mức cho loại còn mức riêng: Nền tảng hiện khung vàng liệt kê các dòng riêng đó, không chặn. Đóng các dòng riêng nếu muốn dùng mức TA." },
+      { kind: "moi", text: "Thử tra cho biết mức TA nào đang áp, kèm tên mức." },
+      { kind: "doi", text: "Đổi mức hay sửa số của mức không làm đổi hoa hồng đơn đã xác nhận. Mỗi loại một mức trong một ngày: muốn đổi từ hôm nay thì kết thúc gắn cũ tới hôm qua." },
+    ],
+  },
+  {
+    // Đổi tên nút nổi và khung của trợ lý AI từ «Hỗ trợ» thành «Trợ lý» để khỏi trùng mục menu Hỗ trợ (chủ dự án 2026-10-15). Không migration. Số tạm.
+    version: "2.3",
+    date: "2026-10-16",
+    items: [
+      { kind: "doi", text: "Nút nổi và khung hỏi đáp của trợ lý đổi tên từ «Hỗ trợ» thành «Trợ lý», để khỏi nhầm với mục Hỗ trợ ở menu." },
+    ],
+  },
+  {
+    // Khoản chuyển khoản «Công ty thu» không tạo nợ cho người khai + Kế toán duyệt chuyển tiền sang đơn khác + đổi chữ «cọc» thành «Thu trước» (ADR-0120 của dòng sổ tiền, chủ duyệt 14/10: «duyệt cả hai theo khuyến nghị»).
+    // Có thay đổi cơ sở dữ liệu (migration 0099) — cần trien-khai sau day-len.
+    // Số 2.2 là số TẠM (= main 2.1 của Vé hỗ trợ + 1, 2026-10-16; chủ chọn cho mục này vào main trước nhánh đưa đón): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md) — người thi công KHÔNG tự chốt số. Ngày là ngày dự kiến.
+    version: "2.2",
+    date: "2026-10-16",
+    items: [
+      { kind: "doi", text: "Hướng dẫn viên khai \"Công ty thu\" bằng chuyển khoản thì không bị tính nợ phần đó; khoản hiện \"đang đối chiếu\" tới khi Kế toán bấm \"Công ty đã nhận\"." },
+      { kind: "doi", text: "Đơn còn khoản chuyển khoản đang đối chiếu thì chưa bấm được \"Đã giao – đã thu đủ\". Tiền mặt khai \"Công ty thu\" vẫn tính vào nợ người khai như trước." },
+      { kind: "moi", text: "Khoản đang đối chiếu quá 3 ngày được nhắc đỏ cho Kế toán ở trang đơn và Trang chủ." },
+      { kind: "moi", text: "Kế toán duyệt được việc chuyển tiền thu trước sang đơn mới. Duyệt hoàn tiền cho khách vẫn chỉ Quản trị và Toàn quyền; người duyệt phải khác người ghi chuyển." },
+      { kind: "doi", text: "Chữ \"cọc\" trên màn hình nhân viên đổi thành \"Thu trước\"; bản xác nhận gửi khách giữ nguyên." },
+    ],
+  },
+  {
     // Vé hỗ trợ đợt 1 (ADR-0119): nhóm hỗ trợ, hàng đợi nhóm, nhận việc, chuyển nhóm, quản lý nhóm; menu «Góp ý / Báo lỗi» đổi thành «Hỗ trợ».
     // Có thay đổi cơ sở dữ liệu (migration 0100) — cần trien-khai sau day-len.
     // Số 2.1 là số TẠM (= main 2.0 + 1, lúc gộp main fc533d49 ngày 2026-10-15; trước đó nhánh dùng 1.97 tạm, nay main đã chiếm 1.97 và 2.0): phiên phát hành

@@ -24,7 +24,7 @@
       },
       "dap_an": {
         "da_tra": 500000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 0, "da_chi": 0, "da_chuyen": 0, "hoan_ngoai": 0,
-        "con_giu": 500000, "cho_chi": 0, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
+        "con_giu": 500000, "cho_chi": 0, "han": "2027-01-09", "nhan": "Thu trước giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
       }
     },
     {
@@ -44,14 +44,14 @@
       },
       "dap_an": {
         "da_tra": 500000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 200000, "da_chi": 200000, "da_chuyen": 0, "hoan_ngoai": 0,
-        "con_giu": 300000, "cho_chi": 0, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
+        "con_giu": 300000, "cho_chi": 0, "han": "2027-01-09", "nhan": "Thu trước giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
       }
     },
     {
       "ma": "SV-DH-03",
       "mo_ta": "Quá hạn (chỉ khách huỷ). Như SV-DH-01. Duyệt 100.000 ngày 09/01/2027 (đúng hạn) → được; duyệt 100.000 ngày 10/01/2027 → bị từ chối “Đã quá hạn hoàn cọc (hạn: 09/01/2027)”; khoản duyệt ngày 09/01 được chi ngày 15/01.",
       "nguon": "ADR-0089 đ5 (khoản đã duyệt trước hạn vẫn chi được sau hạn)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "phai_thu": 2000000, "ngay_di": ["2026-11-10"], "hom_nay": "2027-01-15",
         "su_kien": [
@@ -64,7 +64,7 @@
       },
       "dap_an": {
         "da_tra": 500000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 100000, "da_chi": 100000, "da_chuyen": 0, "hoan_ngoai": 0,
-        "con_giu": 400000, "cho_chi": 0, "han": "2027-01-09", "nhan": "Cọc giữ lại", "nhan_phu": null, "so_du": {}
+        "con_giu": 400000, "cho_chi": 0, "han": "2027-01-09", "nhan": "Thu trước giữ lại", "nhan_phu": null, "so_du": {}
       }
     },
     {
@@ -89,16 +89,16 @@
     },
     {
       "ma": "SV-DH-05",
-      "mo_ta": "Công ty huỷ, dời lịch: HDV Nam thu 500.000 tiền mặt (Nam đang giữ). Quản trị huỷ “Thời tiết / cấm biển”, duyệt chuyển 500.000 sang đơn B. Kế toán ghi chuyển (người giữ: Nam). Đơn A: đã chuyển 500.000, còn giữ 0; Nam giữ trên A = 0. Đơn B: đã trả 500.000, Nam giữ trên B = 500.000 (tổng Nam giữ không đổi).",
-      "nguon": "ADR-0089 đ6 (Đ-1: chuyển tính như chi, Quản trị duyệt trước, người duyệt không tự chuyển, một lô hai đơn)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "mo_ta": "Công ty huỷ, dời lịch: HDV Nam thu 500.000 tiền mặt (Nam đang giữ). Quản trị huỷ “Thời tiết / cấm biển”. Kế toán Lan duyệt chuyển 500.000 sang đơn B (Kế toán được duyệt chuyển, không duyệt hoàn); Kế toán Mai (người khác) ghi chuyển (người giữ: Nam). Đơn A: đã chuyển 500.000, còn giữ 0; Nam giữ trên A = 0. Đơn B: đã trả 500.000, Nam giữ trên B = 500.000 (tổng Nam giữ không đổi).",
+      "nguon": "ADR-0089 đ6 (Đ-1: chuyển tính như chi, Kế toán duyệt trước (ADR-0120 Điều 2), người duyệt không tự chuyển, một lô hai đơn)",
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-15" },
       "dau_vao": {
         "phai_thu": 2000000, "ngay_di": ["2026-11-10"], "hom_nay": "2026-11-10",
         "su_kien": [
           { "loai": "thu", "vai_nguoi_thu": "nhan_vien", "nguoi_thu": "HDV Nam", "nguoi_ghi": "HDV Nam", "nguoi_ghi_la_ke_toan": false, "so": 500000 },
           { "loai": "huy", "nhom": "CONG_TY_HUY", "ma": "THOI_TIET", "ngay": "2026-11-09", "nguoi": "Quản Trị", "legacy": false },
-          { "loai": "duyet", "loai_duyet": "chuyen", "so": 500000, "nguoi": "Quản Trị", "ngay": "2026-11-09", "don_nhan": "B" },
-          { "loai": "chuyen", "duyet_so": 1, "so": 500000, "nguoi": "Lan Kế Toán", "nguoi_giu": "HDV Nam" }
+          { "loai": "duyet", "loai_duyet": "chuyen", "so": 500000, "nguoi": "Lan Kế Toán", "ngay": "2026-11-09", "don_nhan": "B" },
+          { "loai": "chuyen", "duyet_so": 1, "so": 500000, "nguoi": "Mai Kế Toán", "nguoi_giu": "HDV Nam" }
         ]
       },
       "dap_an": {
@@ -111,7 +111,7 @@
       "ma": "SV-DH-06",
       "mo_ta": "Huỷ để lập lại, chuyển tiền: Kế toán ghi Công ty thu 300.000. Bán hàng huỷ “Sai thông tin — lập lại đơn”. Sau hạn (01/02/2027) Quản trị duyệt chuyển 300.000 sang đơn C → được (nhóm này không bị hạn chặn); Kế toán ghi chuyển.",
       "nguon": "ADR-0089 đ7 (Đ-3: lập lại / trùng không bị hạn chặn, chỉ nhắc)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "phai_thu": 1000000, "ngay_di": ["2026-11-10"], "hom_nay": "2027-02-01",
         "su_kien": [
@@ -167,14 +167,14 @@
       },
       "dap_an": {
         "da_tra": 0, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 0, "da_chi": 0, "da_chuyen": 0, "hoan_ngoai": 0,
-        "con_giu": 0, "cho_chi": 0, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
+        "con_giu": 0, "cho_chi": 0, "han": "2027-01-09", "nhan": "Thu trước giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
       }
     },
     {
       "ma": "SV-DH-09",
       "mo_ta": "Tách người: Kế toán ghi Công ty thu 500.000; khách huỷ. Tài khoản kiêm Quản trị + Kế toán duyệt hoàn 100.000 → được; chính tài khoản đó chi → bị từ chối; Kế toán khác chi → được.",
       "nguon": "ADR-0089 đ4c",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "phai_thu": 2000000, "ngay_di": ["2026-11-10"], "hom_nay": "2026-10-26",
         "su_kien": [
@@ -187,14 +187,14 @@
       },
       "dap_an": {
         "da_tra": 500000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 100000, "da_chi": 100000, "da_chuyen": 0, "hoan_ngoai": 0,
-        "con_giu": 400000, "cho_chi": 0, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
+        "con_giu": 400000, "cho_chi": 0, "han": "2027-01-09", "nhan": "Thu trước giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
       }
     },
     {
       "ma": "SV-DH-10",
       "mo_ta": "Khoản chưa xác nhận: HDV Nam khai “Công ty thu – chuyển khoản” 300.000; khách huỷ. Trước khi Kế toán xác nhận: đã trả 0, đang đối chiếu 300.000, duyệt 1 đồng → bị từ chối. Kế toán bấm “Công ty đã nhận” → duyệt 300.000 được.",
       "nguon": "ADR-0089 đ2 (chỉ khoản đã xác nhận tính vào đã trả), đ9a (ảnh gửi khách ghi “đang đối chiếu”)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "phai_thu": 2000000, "ngay_di": ["2026-11-10"], "hom_nay": "2026-10-26",
         "su_kien": [
@@ -208,14 +208,14 @@
       },
       "dap_an": {
         "da_tra": 300000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 300000, "da_chi": 0, "da_chuyen": 0, "hoan_ngoai": 0,
-        "con_giu": 300000, "cho_chi": 300000, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": { "HDV Nam": 0 }
+        "con_giu": 300000, "cho_chi": 300000, "han": "2027-01-09", "nhan": "Thu trước giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": { "HDV Nam": 0 }
       }
     },
     {
       "ma": "SV-DH-11",
       "mo_ta": "Chưa kết luận: Kế toán ghi Công ty thu 400.000; Bán hàng huỷ lý do “Khác” (ghi chú). Duyệt hoàn 100.000 → bị từ chối (chưa phân loại). Quản trị phân loại “Khách huỷ” → duyệt 100.000 được.",
       "nguon": "ADR-0089 đ8, X-2",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "phai_thu": 2000000, "ngay_di": ["2026-11-10"], "hom_nay": "2026-10-26",
         "su_kien": [
@@ -228,14 +228,14 @@
       },
       "dap_an": {
         "da_tra": 400000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 100000, "da_chi": 0, "da_chuyen": 0, "hoan_ngoai": 0,
-        "con_giu": 400000, "cho_chi": 100000, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
+        "con_giu": 400000, "cho_chi": 100000, "han": "2027-01-09", "nhan": "Thu trước giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
       }
     },
     {
       "ma": "SV-DH-12",
       "mo_ta": "Đơn nháp chưa có ngày đi: Kế toán ghi Công ty thu 200.000; huỷ ngày 05/10/2026 (khách huỷ) → hạn hoàn cọc = ngày huỷ + 60 = 04/12/2026.",
       "nguon": "ADR-0089 đ5",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": {
         "phai_thu": 600000, "ngay_di": [null], "hom_nay": "2026-10-05",
         "su_kien": [
@@ -245,7 +245,7 @@
       },
       "dap_an": {
         "da_tra": 200000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 0, "da_chi": 0, "da_chuyen": 0, "hoan_ngoai": 0,
-        "con_giu": 200000, "cho_chi": 0, "han": "2026-12-04", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 04/12/2026", "so_du": {}
+        "con_giu": 200000, "cho_chi": 0, "han": "2026-12-04", "nhan": "Thu trước giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 04/12/2026", "so_du": {}
       }
     },
     {
@@ -265,7 +265,7 @@
       },
       "dap_an": {
         "da_tra": 1200000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 200000, "da_duyet": 1000000, "da_chi": 0, "da_chuyen": 0, "hoan_ngoai": 0,
-        "con_giu": 1000000, "cho_chi": 1000000, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
+        "con_giu": 1000000, "cho_chi": 1000000, "han": "2027-01-09", "nhan": "Thu trước giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
       }
     }
   ]

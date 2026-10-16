@@ -3,32 +3,39 @@
 import { auditStatement } from "../audit";
 import { getEffectiveServices } from "../catalog";
 import { datHoatDongLoaiDoiTacStatement, kiemTenLoaiDoiTac, loaiVaiChiTiet, maLoaiDoiTac, ownerCompany, tenLoaiVai, themLoaiDoiTacStatement } from "../parties";
-import type { CommissionRuleDto, CommissionRuleListResponse, LoaiDoiTacDto, LoaiDoiTacListResponse, LoaiDoiTacResponse, NguoiHuongTimResponse, SupplyTermDto, SupplyTermListResponse, ThuTraResponse } from "../../shared/contracts";
+import type { CommissionRuleDto, CommissionRuleListResponse, GanLoaiMucDto, GanLoaiMucResponse, LoaiDoiTacDto, LoaiDoiTacListResponse, LoaiDoiTacResponse, MucTaDto, MucTaListResponse, MucTaResponse,
+  NguoiHuongTimResponse, SupplyTermDto, SupplyTermListResponse, ThuTraResponse } from "../../shared/contracts";
 import { error, json, mauLikeChua, kemLocation, readJson } from "../../shared/http";
 import { can, holdsPartner } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { CAU_X3_THUE_XE, NHAN_LY_DO_THIEU } from "../../shared/so-dai-ly-nhan";
 import { vnToday } from "../../shared/vn-date";
-import { allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, huongCuaHoSo, insertBeneficiaryStatement, insertRuleStatement, insertTermStatement, isBeneficiary,
-  openRolesOf, ruleById, rulesOn, setBeneficiaryActiveStatement, suppliers, termById, termsOn, type RuleRow, type TermRow } from "./repository";
-import { MA_RE, PARTY_RE, chonMuc, hieuLuc, kiemNgayDong, kiemThanDieuKhoan, kiemThanMuc, laNgay, moTaMuc, nguoiHuongCua, type DongDieuKhoan, type DongMuc,
-  type NguoiHuong } from "./rules";
+import { allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRoleTierStatement, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, huongCuaHoSo, insertBeneficiaryStatement,
+  insertRateTierStatement, insertRoleTierStatement, insertRuleStatement, insertTermStatement, isBeneficiary, openRolesOf, rateTierByCode, rateTiers, roleRulesForTierLink, roleTierById, roleTiersAll,
+  roleTiersOn, ruleById, rulesOn, setBeneficiaryActiveStatement, setRateTierActiveStatement, suppliers, termById, termsOn, type RoleTierRow, type RuleRow, type TermRow, type TierRow } from "./repository";
+import { MA_RE, MUC_TA_RE, PARTY_RE, chonMuc, hieuLuc, kiemNgayDong, kiemThanDieuKhoan, kiemThanDongMucTa, kiemThanGan, kiemThanMuc, kiemTenMucTa, laNgay, maMucTa, moTaMuc, nguoiHuongCua,
+  type DongDieuKhoan, type DongMuc, type GanLoaiMuc, type NguoiHuong } from "./rules";
 
 export { chupDon, soKhachTinhHoaHong, tinhDongDoiTac, type BanChup, type DongPhanDoiTac, type KieuMuc, type LyDoThieu, type NguoiHuong } from "./rules";
 
-const dongMuc = (r: RuleRow): DongMuc => ({ id: r.id, targetPartyId: r.target_party_id, targetRoleCode: r.target_role_code, scope: r.scope, catalogCode: r.catalog_code,
-  groupCode: r.group_code, kind: r.kind, rateBp: r.rate_bp, perPaxAmount: r.per_pax_amount, validFrom: r.valid_from_date, validTo: r.valid_to_date });
+const dongMuc = (r: RuleRow): DongMuc => ({ id: r.id, targetPartyId: r.target_party_id, targetRoleCode: r.target_role_code, targetTierCode: r.target_tier_code, scope: r.scope,
+  catalogCode: r.catalog_code, groupCode: r.group_code, kind: r.kind, rateBp: r.rate_bp, perPaxAmount: r.per_pax_amount, validFrom: r.valid_from_date, validTo: r.valid_to_date });
+const dongGan = (r: RoleTierRow): GanLoaiMuc => ({ roleTypeCode: r.role_type_code, tierCode: r.tier_code, validFrom: r.valid_from_date, validTo: r.valid_to_date });
 const dongDk = (r: TermRow): DongDieuKhoan => ({ id: r.id, scope: r.scope, catalogCode: r.catalog_code, groupCode: r.group_code, sellerPartyId: r.seller_party_id,
   supplierPartyId: r.supplier_party_id, costRateBp: r.cost_rate_bp, validFrom: r.valid_from_date, validTo: r.valid_to_date });
 
-export interface DuLieuChup { nguoiHuong: NguoiHuong; muc: DongMuc[]; dieuKhoan: DongDieuKhoan[]; nhom: ReadonlyMap<string, string | null> }
-/** Đọc MỘT lần mọi thứ để chụp một đơn ở `ngay` (đặc tả §5): vai của bên đặt, mức và điều khoản hiệu lực ở `ngay`, nhóm hiện hành của các mã. */
+export interface DuLieuChup { nguoiHuong: NguoiHuong; muc: DongMuc[]; gan: GanLoaiMuc[]; dieuKhoan: DongDieuKhoan[]; nhom: ReadonlyMap<string, string | null> }
+/**
+ * Đọc MỘT lần mọi thứ để chụp một đơn ở `ngay` (đặc tả §5): vai của bên đặt, mức (cả dòng đích mức TA) và điều khoản hiệu lực ở `ngay`, gắn loại↔mức TA hiệu lực ở `ngay`
+ * (ADR-0117 lần 2 — không lọc theo mức đang bật: mức tắt vẫn áp cho gắn đang có), nhóm hiện hành của các mã. Nơi gọi truyền `gan` cho `chupDon` / `chonMuc`.
+ */
 export async function docBangChoChup(db: D1Database, v: { bookerPartyId: string | null; catalogCodes: readonly string[]; ngay: string }): Promise<DuLieuChup> {
-  const [vai, duocHuong, cty, muc, dk, nhom] = await Promise.all([
-    v.bookerPartyId ? openRolesOf(db, v.bookerPartyId) : Promise.resolve([]), beneficiaryRoles(db), ownerCompany(db), rulesOn(db, v.ngay), termsOn(db, v.ngay), groupsOf(db, v.catalogCodes),
+  const [vai, duocHuong, cty, muc, gan, dk, nhom] = await Promise.all([
+    v.bookerPartyId ? openRolesOf(db, v.bookerPartyId) : Promise.resolve([]), beneficiaryRoles(db), ownerCompany(db), rulesOn(db, v.ngay), roleTiersOn(db, v.ngay), termsOn(db, v.ngay),
+    groupsOf(db, v.catalogCodes),
   ]);
   const nguoiHuong = nguoiHuongCua({ bookerPartyId: v.bookerPartyId, vaiMo: vai.map((r) => ({ roleTypeCode: r.role_type_code, roleGroup: r.role_group, nhanDoiTac: r.is_partner_label === 1 })), vaiDuocHuong: new Set(duocHuong), congTyChuId: cty?.partyId ?? null });
-  return { nguoiHuong, muc: muc.map(dongMuc), dieuKhoan: dk.map(dongDk), nhom };
+  return { nguoiHuong, muc: muc.map(dongMuc), gan: gan.map(dongGan), dieuKhoan: dk.map(dongDk), nhom };
 }
 export const laNguoiHuong = (db: D1Database, partyId: string): Promise<boolean> => isBeneficiary(db, partyId);
 /**
@@ -50,6 +57,12 @@ function loiBang(e: unknown): Response | null {
   if (/\bprc_supplier_mismatch:/.test(m)) return error(400, "invalid_input", CAU_TY_LE_MUA_LAI);
   if (/\bprc_all_owner_only:/.test(m)) return error(400, "invalid_input", "Dòng \"mọi dịch vụ\" chỉ dành cho Tour Đảo.");
   if (/\bprc_transfer_no_supplier:/.test(m)) return error(409, "prc_transfer_no_supplier", CAU_X3_THUE_XE);
+  // ADR-0117 lần 2 (migration 0096 / 0097): mức TA và gắn loại↔mức. Trùng tên do cột `name_key` UNIQUE quyết (một nơi — đúng cả khi hai lần thêm đồng thời).
+  if (/UNIQUE constraint failed: prc_rate_tier\.name_key/.test(m)) return error(409, "muc_trung", "Đã có mức TA với tên này.");
+  if (/UNIQUE constraint failed: prc_rate_tier\.code/.test(m)) return error(409, "stale", "Trùng mã mức vừa sinh — thử lại.");
+  if (/\bprc_tier_overlap:/.test(m)) return error(409, "prc_tier_overlap", "Loại này đã mang một mức TA trong khoảng ngày này — kết thúc gắn cũ trước.");
+  if (/\bprc_tier_target:/.test(m)) return error(400, "invalid_input", "Loại đối tác này không nằm trong danh sách được hưởng hoa hồng hoặc đã tắt.");
+  if (/\bprc_tier_inactive:/.test(m)) return error(409, "muc_tat", "Mức TA này đã tắt — bật lại trước khi gắn loại hay thêm dòng.");
   if (/\bprc_append_only:/.test(m)) return error(409, "stale", "Dòng này vừa được người khác đóng — tải lại.");
   if (/FOREIGN KEY constraint failed/.test(m)) return error(400, "invalid_input", "Nhóm dịch vụ hoặc hồ sơ không có.");
   return null;
@@ -64,7 +77,9 @@ const dtoMuc = (r: RuleRow, tenVai: ReadonlyMap<string, string>, homNay: string)
   id: r.id,
   doiTuong: r.target_role_code !== null
     ? { loai: "VAI", code: r.target_role_code, ten: tenVai.get(r.target_role_code) ?? r.target_role_code }
-    : { loai: "DOI_TAC", partyId: r.target_party_id ?? "", ten: r.target_name ?? "Hồ sơ không còn" },
+    : r.target_tier_code !== null
+      ? { loai: "MUC", code: r.target_tier_code, ten: r.tier_name ?? r.target_tier_code }
+      : { loai: "DOI_TAC", partyId: r.target_party_id ?? "", ten: r.target_name ?? "Hồ sơ không còn" },
   phamVi: r.scope, catalogCode: r.catalog_code, groupCode: r.group_code, kieu: r.kind, tyLeBp: r.rate_bp, moiKhach: r.per_pax_amount,
   tuNgay: r.valid_from_date, denNgay: r.valid_to_date, ghiChu: r.note, conHieuLuc: hieuLuc({ validFrom: r.valid_from_date, validTo: r.valid_to_date }, homNay),
 });
@@ -73,9 +88,10 @@ const dtoDk = (r: TermRow, congTyId: string | null, homNay: string): SupplyTermD
   nguoiBan: { partyId: r.seller_party_id, ten: r.seller_name ?? "Hồ sơ không còn", laCongTy: congTyId !== null && r.seller_party_id === congTyId },
   tyLeMuaBp: r.cost_rate_bp, tuNgay: r.valid_from_date, denNgay: r.valid_to_date, ghiChu: r.note, conHieuLuc: hieuLuc({ validFrom: r.valid_from_date, validTo: r.valid_to_date }, homNay),
 });
-/** Tên đối tượng của một dòng mức cho nhật ký: tên vai bằng tiếng Việt, hoặc "đối tác <mã hồ sơ>" (không tên riêng, không liên hệ). */
-const tenDoiTuongNhatKy = (r: { target_role_code: string | null; target_party_id: string | null }, tenVai: ReadonlyMap<string, string>): string =>
-  r.target_role_code !== null ? tenVai.get(r.target_role_code) ?? r.target_role_code : `đối tác ${r.target_party_id}`;
+/** Tên đối tượng của một dòng mức cho nhật ký: tên vai bằng tiếng Việt, "mức TA <tên mức>", hoặc "đối tác <mã hồ sơ>" (không tên riêng, không liên hệ). */
+const tenDoiTuongNhatKy = (r: { target_role_code: string | null; target_party_id: string | null; target_tier_code?: string | null; tier_name?: string | null }, tenVai: ReadonlyMap<string, string>): string =>
+  r.target_role_code !== null ? tenVai.get(r.target_role_code) ?? r.target_role_code
+    : r.target_tier_code != null ? `mức TA ${r.tier_name ?? r.target_tier_code}` : `đối tác ${r.target_party_id}`;
 
 /**
  * Loại đối tác được hưởng (ADR-0117): mỗi dòng của danh sách được hưởng, tên + cờ loại đối tác lấy từ parties (hàm công bố `loaiVaiChiTiet`). `dangBat` = CẢ HAI cờ cùng bật
@@ -108,6 +124,41 @@ async function doiTrangThaiLoai(db: D1Database, code: string, bat: boolean, staf
   if (res instanceof Response) return res;
   if (dongDaDong(res)) return error(409, "stale", bat ? "Loại này đang bật rồi — tải lại." : "Loại này đã tắt rồi — tải lại.");
   return json({ loai: (await docLoaiDoiTac(db)).find((x) => x.code === code)! } satisfies LoaiDoiTacResponse);
+}
+
+// ===== Mức TA dùng chung (ADR-0117 lần 2) =====
+const MUC_KHONG_CO = () => error(404, "not_found", "Không tìm thấy mức TA này.");
+const dtoGan = (r: RoleTierRow, tenVai: ReadonlyMap<string, string>, tenMuc: ReadonlyMap<string, string>, homNay: string): GanLoaiMucDto => ({
+  id: r.id, loai: { code: r.role_type_code, ten: tenVai.get(r.role_type_code) ?? r.role_type_code }, muc: { code: r.tier_code, ten: tenMuc.get(r.tier_code) ?? r.tier_code },
+  tuNgay: r.valid_from_date, denNgay: r.valid_to_date, conHieuLuc: hieuLuc({ validFrom: r.valid_from_date, validTo: r.valid_to_date }, homNay),
+});
+/** Mọi mức TA kèm dòng và gắn của từng mức (màn «Mức TA»). Chỉ mã, tên, số mức — không số liệu hồ sơ. Khoá tên `name_key` không đọc ra. */
+async function docMucTa(db: D1Database, homNay: string): Promise<MucTaDto[]> {
+  const [muc, dong, gan, tenVai] = await Promise.all([rateTiers(db), allRules(db), roleTiersAll(db), tenLoaiVai(db)]);
+  const tenMuc = new Map(muc.map((m) => [m.code, m.name]));
+  return muc.map((m: TierRow) => ({
+    code: m.code, ten: m.name, dangBat: m.active === 1,
+    dong: dong.filter((r) => r.target_tier_code === m.code).map((r) => dtoMuc(r, tenVai, homNay)),
+    gan: gan.filter((g) => g.tier_code === m.code).map((g) => dtoGan(g, tenVai, tenMuc, homNay)),
+  }));
+}
+/** Mức `code` (đã qua `can` + `holdsPartner` ở route) ⇒ DTO hiện hành, hoặc null khi mã sai dạng / không có. */
+const timMuc = async (db: D1Database, code: string): Promise<TierRow | null> => (MUC_TA_RE.test(code) ? rateTierByCode(db, code) : null);
+/**
+ * Tắt / bật một mức TA (thân chung của `/tat`, `/bat`). Tắt chỉ chặn gắn mới và thêm dòng mới (trigger 0096 / 0097); dòng và gắn đang có VẪN áp — muốn ngừng áp thì kết thúc gắn
+ * (giả định kế hoạch, N-23). Câu cập nhật chỉ đổi dòng khi mức CHƯA ở trạng thái đích; nhật ký đi theo `changes() > 0` ⇒ bên thua một lượt tranh chấp không ghi gì, nhận 409.
+ */
+async function doiTrangThaiMuc(db: D1Database, code: string, bat: boolean, staffId: string): Promise<Response> {
+  const muc = await timMuc(db, code);
+  if (!muc) return MUC_KHONG_CO();
+  const at = new Date().toISOString();
+  const res = await chayLo(db, [
+    setRateTierActiveStatement(db, code, bat, at, staffId),
+    auditStatement(db, { staffId, action: bat ? "prc_rate_tier_on" : "prc_rate_tier_off", at, detail: muc.name }, "changes() > 0"),
+  ]);
+  if (res instanceof Response) return res;
+  if (dongDaDong(res)) return error(409, "stale", bat ? "Mức này đang bật rồi — tải lại." : "Mức này đã tắt rồi — tải lại.");
+  return json({ muc: (await docMucTa(db, vnToday(new Date()))).find((m) => m.code === code)! } satisfies MucTaResponse);
 }
 
 export const pricingModule: AppModule = {
@@ -187,7 +238,95 @@ export const pricingModule: AppModule = {
       if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();
       return doiTrangThaiLoai(env.DB, params.code!, true, staff.id);
     }),
-    // "Thử tra" cho văn phòng: một đối tác + một dịch vụ + một ngày ⇒ mức nào thắng (cùng hàm `chonMuc` với lúc Xác nhận đơn). Chỉ đọc.
+    // ADR-0117 lần 2: MỨC TA dùng chung. Tạo / tắt / bật mức, thêm dòng cho mức, gắn loại↔mức theo ngày, kết thúc gắn: Kế toán, Quản trị, Toàn quyền (ô partner.commission.write);
+    // xem: ô partner.commission.view. Tài khoản giữ quyền Đối tác (kể cả lai) không đọc, không ghi (`holdsPartner`). Mỗi lệnh ghi là MỘT lô: câu ghi → nhật ký. Đóng một dòng của
+    // mức đi qua route đóng dòng chung `POST /api/pricing/hoa-hong/:id/dong`. Đường cố định («gan») trước đường có :code / :id; mã mức luôn `MT_` + 8 chữ hoa nên không trùng «gan».
+    route("GET", "/api/pricing/muc-ta", "office", async ({ env, staff }) => {
+      if (!can(staff, "partner.commission.view") || holdsPartner(staff)) return FORBIDDEN();
+      const homNay = vnToday(new Date());
+      const [muc, vaiHuong, tenVai] = await Promise.all([docMucTa(env.DB, homNay), beneficiaryRoles(env.DB), tenLoaiVai(env.DB)]);
+      return json({ homNay, muc, loai: vaiHuong.map((code) => ({ code, ten: tenVai.get(code) ?? code })) } satisfies MucTaListResponse);
+    }),
+    route("POST", "/api/pricing/muc-ta", "office", async ({ env, request, staff }) => {
+      if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();
+      const kq = kiemTenMucTa((await readJson(request))?.ten);
+      if (!kq.ok) return error(400, "invalid_input", kq.message);
+      const code = maMucTa(crypto.getRandomValues(new Uint8Array(8)));
+      const at = new Date().toISOString();
+      const res = await chayLo(env.DB, [
+        insertRateTierStatement(env.DB, { code, ten: kq.value.ten, khoa: kq.value.khoa }, at, staff.id),
+        auditStatement(env.DB, { staffId: staff.id, action: "prc_rate_tier_added", at, detail: kq.value.ten }),
+      ]);
+      if (res instanceof Response) return res;
+      return kemLocation(json({ muc: { code, ten: kq.value.ten, dangBat: true, dong: [], gan: [] } } satisfies MucTaResponse, 201), "/hoa-hong");
+    }),
+    route("POST", "/api/pricing/muc-ta/gan", "office", async ({ env, request, staff }) => {
+      if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();
+      const kq = kiemThanGan(await readJson(request));
+      if (!kq.ok) return error(400, "invalid_input", kq.message);
+      const v = kq.value;
+      const muc = await timMuc(env.DB, v.tierCode);
+      if (!muc) return MUC_KHONG_CO();
+      const tenVai = await tenLoaiVai(env.DB);
+      const at = new Date().toISOString();
+      const id = crypto.randomUUID();
+      const res = await chayLo(env.DB, [
+        insertRoleTierStatement(env.DB, id, v, at, staff.id),
+        auditStatement(env.DB, { staffId: staff.id, action: "prc_role_tier_set", at,
+          detail: `${tenVai.get(v.roleTypeCode) ?? v.roleTypeCode} → ${muc.name} · từ ${v.validFrom}${v.validTo === null ? "" : ` đến ${v.validTo}`}` }),
+      ]);
+      if (res instanceof Response) return res;
+      const homNay = vnToday(new Date());
+      const [gan, dongRieng] = await Promise.all([roleTierById(env.DB, id), roleRulesForTierLink(env.DB, v.roleTypeCode, v.validFrom, v.validTo)]);
+      const than: GanLoaiMucResponse = { gan: dtoGan(gan!, tenVai, new Map([[muc.code, muc.name]]), homNay), dongRieng: dongRieng.map((r) => dtoMuc(r, tenVai, homNay)) };
+      return kemLocation(json(than, 201), "/hoa-hong");
+    }),
+    route("POST", "/api/pricing/muc-ta/gan/:id/ket-thuc", "office", async ({ env, request, params, staff }) => {
+      if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();
+      const id = params.id!;
+      const row = PARTY_RE.test(id) ? await roleTierById(env.DB, id) : null;
+      if (!row) return error(404, "not_found", "Không tìm thấy gắn loại với mức này.");
+      const den = kiemNgayDong(await readJson(request), row.valid_from_date);
+      if (!den.ok) return error(400, "invalid_input", den.message);
+      const [tenVai, muc] = await Promise.all([tenLoaiVai(env.DB), rateTierByCode(env.DB, row.tier_code)]);
+      const tenMuc = new Map([[row.tier_code, muc?.name ?? row.tier_code]]);
+      const at = new Date().toISOString();
+      const res = await chayLo(env.DB, [
+        closeRoleTierStatement(env.DB, id, den.value, at, staff.id),
+        auditStatement(env.DB, { staffId: staff.id, action: "prc_role_tier_closed", at,
+          detail: `${tenVai.get(row.role_type_code) ?? row.role_type_code} → ${tenMuc.get(row.tier_code)} · đến ${den.value}` }, "changes() > 0"),
+      ]);
+      if (res instanceof Response) return res;
+      if (dongDaDong(res)) return error(409, "stale", "Gắn này vừa được kết thúc — tải lại.");
+      return json({ gan: dtoGan((await roleTierById(env.DB, id))!, tenVai, tenMuc, vnToday(new Date())) });
+    }),
+    route("POST", "/api/pricing/muc-ta/:code/tat", "office", async ({ env, params, staff }) => {
+      if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();
+      return doiTrangThaiMuc(env.DB, params.code!, false, staff.id);
+    }),
+    route("POST", "/api/pricing/muc-ta/:code/bat", "office", async ({ env, params, staff }) => {
+      if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();
+      return doiTrangThaiMuc(env.DB, params.code!, true, staff.id);
+    }),
+    // Thêm MỘT DÒNG cho mức (đích = mức). Mức đã tắt ⇒ trigger chặn (409 muc_tat). Đóng dòng: route đóng dòng chung.
+    route("POST", "/api/pricing/muc-ta/:code/dong", "office", async ({ env, request, params, staff }) => {
+      if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();
+      const muc = await timMuc(env.DB, params.code!);
+      if (!muc) return MUC_KHONG_CO();
+      const kq = kiemThanDongMucTa(await readJson(request), muc.code);
+      if (!kq.ok) return error(400, "invalid_input", kq.message);
+      const v = kq.value;
+      if (v.scope === "SERVICE" && !(await getEffectiveServices(env.DB, [v.catalogCode!])).has(v.catalogCode!)) return error(400, "invalid_input", "Không có dịch vụ này trong danh mục.");
+      const at = new Date().toISOString();
+      const id = crypto.randomUUID();
+      const res = await chayLo(env.DB, [
+        insertRuleStatement(env.DB, id, v, at, staff.id),
+        auditStatement(env.DB, { staffId: staff.id, action: "prc_commission_rule_added", at, detail: moTaMuc({ doiTuong: `mức TA ${muc.name}`, ...v }) }),
+      ]);
+      if (res instanceof Response) return res;
+      return kemLocation(json({ dong: dtoMuc((await ruleById(env.DB, id))!, await tenLoaiVai(env.DB), vnToday(new Date())) }, 201), "/hoa-hong");
+    }),
+    // "Thử tra" cho văn phòng: một đối tác + một dịch vụ + một ngày ⇒ mức nào thắng (cùng hàm `chonMuc` với lúc Xác nhận đơn, cùng `gan` của `docBangChoChup`). Chỉ đọc.
     route("GET", "/api/pricing/thu-tra", "office", async ({ env, url, staff }) => {
       if (!can(staff, "partner.commission.view") || holdsPartner(staff)) return FORBIDDEN();
       const doiTac = url.searchParams.get("doiTac") ?? "";
@@ -197,7 +336,7 @@ export const pricingModule: AppModule = {
       const [bang, tenVai] = await Promise.all([docBangChoChup(env.DB, { bookerPartyId: doiTac, catalogCodes: [dichVu], ngay }), tenLoaiVai(env.DB)]);
       const nh = bang.nguoiHuong;
       const nguoiHuong = { loai: nh.loai, vai: nh.loai === "HUONG" ? nh.vai.map((c) => tenVai.get(c) ?? c) : [] };
-      const kq = chonMuc({ nguoiHuong: nh, ngay, catalogCode: dichVu, groupCode: bang.nhom.get(dichVu) ?? null, dong: bang.muc });
+      const kq = chonMuc({ nguoiHuong: nh, ngay, catalogCode: dichVu, groupCode: bang.nhom.get(dichVu) ?? null, dong: bang.muc, gan: bang.gan });
       if (kq.trangThai === "NONE") return json({ ngay, nguoiHuong, ketQua: { trangThai: "NONE" } } satisfies ThuTraResponse);
       if (kq.trangThai === "MISSING") return json({ ngay, nguoiHuong, ketQua: { trangThai: "MISSING", lyDo: NHAN_LY_DO_THIEU[kq.lyDo] } } satisfies ThuTraResponse);
       const dong = await ruleById(env.DB, kq.dong.id);

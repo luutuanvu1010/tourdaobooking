@@ -1,8 +1,61 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  KHONG_NHAN_VAI_NOI_BO, canManageAccount, checkAccountChange, coQuyenNoiBo, generatePin, isWeakPin, moNoiBoChoHoSoCoNhanProblem, partyAccountVerdict, validateFreshPin,
+  KHONG_NHAN_VAI_NOI_BO, canManageAccount, checkAccountChange, coQuyenNoiBo, generatePin, isWeakPin, mfaGraceOnCreate, mfaGraceOnReactivate, mfaKhiThanhNoiBo, mfaSauDoiQuyen, moNoiBoChoHoSoCoNhanProblem, partyAccountVerdict, validateFreshPin,
 } from "./rules.ts";
+
+test("ADR-0074 điều 1: tạo tài khoản nội bộ → hạn ân hạn lúc tạo + 14 ngày; chỉ quyền bên ngoài → null", () => {
+  const t = Date.parse("2026-10-16T01:02:03.004Z");
+  assert.equal(mfaGraceOnCreate(["SALES"], t), "2026-10-30T01:02:03.004Z");
+  assert.equal(mfaGraceOnCreate(["HR"], t), "2026-10-30T01:02:03.004Z");
+  assert.equal(mfaGraceOnCreate(["PARTNER", "SALES"], t), "2026-10-30T01:02:03.004Z");
+  assert.equal(mfaGraceOnCreate(["PARTNER"], t), null);
+  assert.equal(mfaGraceOnCreate(["DRIVER_PARTNER"], t), null);
+});
+
+test("ADR-0074 điều 1 (bổ sung; vòng sửa 1 Task 6): bên ngoài → nội bộ, chưa có yếu tố — hạn NULL → lúc đổi + 14 ngày; hạn đã qua → giữ nguyên và kết thúc mọi phiên; hạn còn → không làm gì", () => {
+  const t = Date.parse("2026-10-16T01:02:03.004Z");
+  const MOI = "2026-10-30T01:02:03.004Z";
+  const QUA = "2026-10-01T00:00:00.000Z";
+  const CON = "2026-10-20T00:00:00.000Z";
+  const khong = { anHan: null, ketThucPhien: false };
+  assert.deepEqual(mfaKhiThanhNoiBo(["PARTNER"], ["SALES"], false, null, t), { anHan: MOI, ketThucPhien: false });
+  assert.deepEqual(mfaKhiThanhNoiBo(["DRIVER_PARTNER"], ["DRIVER"], false, null, t), { anHan: MOI, ketThucPhien: false });
+  assert.deepEqual(mfaKhiThanhNoiBo(["PARTNER"], ["SALES"], false, QUA, t), { anHan: null, ketThucPhien: true }, "hạn đã qua: không gia hạn, phiên bên ngoài phải chết");
+  assert.deepEqual(mfaKhiThanhNoiBo(["PARTNER"], ["SALES"], false, "2026-10-16T01:02:03.004Z", t), { anHan: null, ketThucPhien: true }, "hạn đúng bằng lúc đổi = đã qua");
+  assert.deepEqual(mfaKhiThanhNoiBo(["PARTNER"], ["SALES"], false, CON, t), khong, "hạn còn: giữ, phiên sống");
+  assert.deepEqual(mfaKhiThanhNoiBo(["PARTNER"], ["SALES"], true, QUA, t), khong, "đã có yếu tố sống");
+  assert.deepEqual(mfaKhiThanhNoiBo(["SALES"], ["SALES", "FIELD"], false, QUA, t), khong, "đã nội bộ từ trước");
+  assert.deepEqual(mfaKhiThanhNoiBo(["PARTNER"], ["PARTNER"], false, QUA, t), khong, "vẫn bên ngoài");
+  // Lô đổi quyền có câu chốt (gỡ ADMIN) chỉ xảy ra khi TRƯỚC đã nội bộ ⇒ không bao giờ có câu ân hạn / kết thúc phiên: route chỉ nối vào lô không chốt.
+  assert.deepEqual(mfaKhiThanhNoiBo(["ADMIN"], ["SALES"], false, QUA, t), khong);
+  assert.deepEqual(mfaKhiThanhNoiBo([], ["SALES"], false, null, t), { anHan: MOI, ketThucPhien: false }, "không quyền nào (không nội bộ) → nội bộ");
+});
+
+test("ADR-0074 điều 7 (Phần C Task 3): lô đổi quyền vừa kết thúc yếu tố email và sau lô không còn yếu tố → CÙNG ba nhánh ân hạn (NULL → +14; đã qua → kết thúc phiên; còn → không)", () => {
+  const t = Date.parse("2026-10-16T01:02:03.004Z");
+  const MOI = "2026-10-30T01:02:03.004Z";
+  const QUA = "2026-10-01T00:00:00.000Z";
+  const CON = "2026-10-20T00:00:00.000Z";
+  const khong = { anHan: null, ketThucPhien: false };
+  assert.deepEqual(mfaSauDoiQuyen(["SALES"], ["SALES", "ACCOUNTING"], false, true, null, t), { anHan: MOI, ketThucPhien: false });
+  assert.deepEqual(mfaSauDoiQuyen(["SALES"], ["ACCOUNTING"], false, true, QUA, t), { anHan: null, ketThucPhien: true }, "hạn đã qua: không gia hạn (kẽ hở Phần B)");
+  assert.deepEqual(mfaSauDoiQuyen(["SALES"], ["ADMIN"], false, true, CON, t), khong);
+  assert.deepEqual(mfaSauDoiQuyen(["SALES"], ["ADMIN"], true, true, QUA, t), khong, "còn TOTP sau lô");
+  assert.deepEqual(mfaSauDoiQuyen(["PARTNER"], ["ACCOUNTING"], false, true, null, t), { anHan: MOI, ketThucPhien: false }, "bên ngoài có email → Kế toán: yếu tố tính SAU lô");
+  assert.deepEqual(mfaSauDoiQuyen(["SALES"], ["SALES", "FIELD"], false, false, QUA, t), khong, "không mất yếu tố, đã nội bộ từ trước");
+  // Không mất email → đúng luật cũ (mfaKhiThanhNoiBo là trường hợp riêng).
+  for (const [b, a, co, g] of [[["PARTNER"], ["SALES"], false, null], [["PARTNER"], ["SALES"], false, QUA], [["PARTNER"], ["SALES"], true, QUA], [["ADMIN"], ["SALES"], false, QUA]] as const) {
+    assert.deepEqual(mfaSauDoiQuyen(b, a, co, false, g, t), mfaKhiThanhNoiBo(b, a, co, g, t));
+  }
+});
+
+test("ADR-0074 điều 1 (Task 6): kích hoạt lại tài khoản nội bộ chưa có yếu tố → lúc kích hoạt + 14 ngày; bên ngoài / có yếu tố → null", () => {
+  const t = Date.parse("2026-10-16T01:02:03.004Z");
+  assert.equal(mfaGraceOnReactivate(["SALES"], false, t), "2026-10-30T01:02:03.004Z");
+  assert.equal(mfaGraceOnReactivate(["SALES"], true, t), null);
+  assert.equal(mfaGraceOnReactivate(["PARTNER"], false, t), null);
+});
 
 const admin = { id: "a1", permissions: ["ADMIN"] as const, active: true };
 const sales = { id: "s1", permissions: ["SALES"] as const, active: true };

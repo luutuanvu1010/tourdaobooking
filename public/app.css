@@ -128,6 +128,7 @@
   --w-gd-o: 160px;         /* ADR-0087: bề rộng ô chọn phông / độ đậm / cỡ chữ ở màn Giao diện */
   --w-gd-xem: 360px;        /* ADR-0087: bề rộng cột xem trước ở màn Giao diện (máy tính) */
   --w-qr: 18rem;            /* QR thanh toán (ADR-0108): bề rộng tối đa ảnh mã trong bảng QR ở trang đơn */
+  --w-mfa-qr: 12rem;        /* Bảo mật hai lớp (ADR-0074): bề rộng mã QR ở khối bật ứng dụng xác thực (trang Tôi, bước bật lại khi đăng nhập) */
   --w-o-hep: 12rem;         /* Tạo đơn: bề rộng tối thiểu một ô nhãn nổi ở cột hẹp của form (ba / hai ô cạnh nhau tự xuống hàng) và bề rộng tối đa dòng ghi chú giá trong danh sách dịch vụ */
   --w-hh-loc: 14rem;        /* Hoa hồng đối tác / Người bán dịch vụ (sổ đại lý đợt 1 Task 10): bề rộng tối thiểu một ô lọc trên hàng lọc — hẹp hơn thì xuống dòng */
   --tabbar-h: 56px;         /* thanh tab dưới đáy, chưa tính vùng an toàn */
@@ -3298,6 +3299,7 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .hh-tim-ket-qua .btn { min-height: var(--tap-min); text-align: left; }
 .hh-da-chon { margin: var(--s1) 0 0; }
 .hh-ket-qua { margin: var(--s3) 0 var(--s1); font-weight: var(--fw-bold); }
+.hh-ket-qua.is-thieu { padding: var(--s3) var(--s4); color: var(--c-danger-text); background: var(--c-danger-soft); border: 1px solid var(--c-danger-border); border-radius: var(--radius-sm); }
 /* Mục «Loại đối tác» ở /hoa-hong (ADR-0117 lần 1): danh sách dòng (không bảng, khỏi tràn ngang ở 390px) + form thêm loại. */
 .hh-loai { margin: 0 0 var(--s3); padding: 0; list-style: none; }
 .hh-loai > li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s1) var(--s3); padding: var(--s2) 0; border-bottom: 1px solid var(--c-line); }
@@ -3306,6 +3308,17 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .hh-loai-nhan { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); }
 #loai-add-form { display: grid; gap: var(--s3); }
 #muc-dong-khu, #dk-dong-khu { margin-top: var(--s4); }
+/* Mục «Mức TA» ở /hoa-hong (ADR-0117 lần 2): mỗi mức một khối (tên + trạng thái + nút), bên dưới hai danh sách dòng kiểu .hh-loai (dòng của mức, loại đang gắn); ba form xếp lưới. Chỉ token. */
+.hh-mucta { padding: var(--s3) 0; border-bottom: 1px solid var(--c-line); }
+.hh-mucta:last-child { border-bottom: 0; }
+.hh-mucta-dau { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s1) var(--s3); }
+.hh-mucta-dau h3 { margin: 0 0 var(--s1); }
+.hh-mucta h4 { margin: var(--s3) 0 0; font-size: var(--fs-label); color: var(--c-text-muted); }
+.hh-mucta .hh-loai { margin: 0; }
+.hh-mucta-dong-rieng { margin: var(--s2) 0; padding-left: var(--s4); overflow-wrap: anywhere; }
+#mucta-add-form, #mucta-dong-form, #mucta-gan-form { display: grid; gap: var(--s3); margin-top: var(--s4); }
+#mucta-add-form h3, #mucta-dong-form h3, #mucta-gan-form h3 { margin: 0; }
+#mucta-dong-khu { margin-top: var(--s4); }
 
 /* Đặt qua đối tác + Phần đối tác (web/dat-qua-doi-tac.ts, web/phan-doi-tac.ts; sổ đại lý đợt 1 Task 11): ô chọn bên đặt ở form lập đơn / bảng "Đổi khách", dòng "Bên đặt" chỉ đọc của tài khoản Đối tác, khối hoa hồng ở trang đơn. Chỉ token. */
 .dqdt { display: flex; flex-direction: column; gap: var(--s2); margin: var(--s3) 0; }
@@ -3324,14 +3337,14 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .pdt-cho-muc { margin: 0 0 var(--s3); padding: var(--s3) var(--s4); color: var(--c-sand-text); background: var(--c-sand-soft); border: 1px solid var(--c-sand-border); border-radius: var(--radius-sm); }
 .pdt-ds { display: flex; flex-direction: column; gap: var(--s3); margin-bottom: var(--s3); }
 .pdt-dong { padding: var(--s3) var(--s4); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-sm); }
-.pdt-dong.is-thieu { background: var(--c-sand-soft); border-color: var(--c-sand-border); }
+.pdt-dong.is-thieu { background: var(--c-danger-soft); border-color: var(--c-danger-border); }
 .pdt-dong-dau { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s2); margin-bottom: var(--s2); }
 .pdt-ten { margin: 0; font-size: var(--fs-ui); overflow-wrap: anywhere; }
 .pdt-luoi { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2) var(--s4); margin: 0; }
 .pdt-o { min-width: 0; }
 .pdt-o dt { font-size: var(--fs-label); }
 .pdt-o dd { margin: 0; font-weight: var(--fw-semibold); overflow-wrap: anywhere; }
-.pdt-canh { margin: var(--s2) 0 0; font-size: var(--fs-label); font-weight: var(--fw-semibold); color: var(--c-sand-text); }
+.pdt-canh { margin: var(--s2) 0 0; font-size: var(--fs-label); font-weight: var(--fw-semibold); color: var(--c-danger-text); }
 .pdt-ncc { margin: var(--s2) 0 0; font-size: var(--fs-label); }
 .pdt-nut { margin-top: var(--s3); }
 .pdt-tong { padding-top: var(--s3); border-top: 1px solid var(--c-border); }
@@ -3411,3 +3424,27 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .dai-anh-em-muc:focus-visible { outline: var(--focus-ring) solid var(--c-primary); outline-offset: calc(-1 * var(--focus-ring)); } /* vòng focus lùi vào trong: `.dai-anh-em { overflow-x: auto }` cắt vòng ngoài */
 .xb-main > .dai-anh-em { margin-bottom: 0; } /* Lịch xe bận đã có gap của .xb-main: tránh khoảng cách đôi */
 .dai-anh-em-muc[aria-current="page"] { color: var(--c-primary); background: var(--c-primary-soft); border-color: var(--c-primary); font-weight: var(--fw-bold); }
+
+/* ---------- Bảo mật hai lớp (ADR-0074; kế hoạch Phần B Task 7): dải nhắc ở khung trang, khối bật ứng dụng xác thực, mã dự phòng, bước nhập mã ở đăng nhập ---------- */
+.mfa-strip { display: flex; align-items: center; justify-content: center; min-height: var(--tap-min); padding: 0 var(--s4); font-size: var(--fs-label); font-weight: var(--fw-bold); text-align: center; text-decoration: none; color: var(--c-danger-text); background: var(--c-danger-soft); border-bottom: 1px solid var(--c-danger-border); }
+.mfa-enroll h3, .mfa-recovery h3 { margin: var(--s4) 0 var(--s2); }
+.mfa-open { display: flex; width: 100%; min-height: var(--tap-min); margin: var(--s2) 0 var(--s3); text-decoration: none; }
+.mfa-qr-wrap { display: flex; justify-content: center; margin: var(--s2) 0; }
+.mfa-qr { width: var(--w-mfa-qr); max-width: 100%; height: auto; image-rendering: pixelated; border: 1px solid var(--c-border); }
+.mfa-key { margin: 0 0 var(--s2); }
+.mfa-key code, .mfa-codes code { font-family: var(--font-mono); font-size: var(--fs-step-5); font-weight: var(--fw-bold); color: var(--c-text); overflow-wrap: anywhere; }
+.mfa-code { font-family: var(--font-mono); }
+.mfa-note { padding: var(--s3) var(--s4); margin: 0 0 var(--s3); color: var(--c-sand-text); background: var(--c-sand-soft); border: 1px solid var(--c-sand-border); border-radius: var(--radius-sm); } /* như .alert.warn nhưng là lời nhắc, không phải lỗi */
+.mfa-warn { margin: 0 0 var(--s2); font-weight: var(--fw-bold); color: var(--c-danger-text); }
+.mfa-codes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2) var(--s4); margin: var(--s2) 0 var(--s3); padding-left: var(--s5); }
+.mfa-action { margin-top: var(--s3); }
+.mfa-remove { margin-top: var(--s4); }
+.mfa-remove summary { display: flex; align-items: center; min-height: var(--tap-min); cursor: pointer; color: var(--c-danger); font-weight: var(--fw-semibold); }
+.mfa-badge { display: inline-block; margin-top: var(--s1); white-space: nowrap; }
+/* Quản lý tài khoản (máy tính): thêm nút "Tắt bảo mật hai lớp" làm hàng nút dài hơn bảng — cho xuống dòng giữa các nút (mỗi nút vẫn một dòng), như .phien-bang. */
+#list .row-actions { white-space: normal; }
+#list .row-actions .btn-link { white-space: nowrap; }
+.login-mfa-card { width: 100%; margin: var(--s5) 0 0; }
+.login-mfa h2 { margin: 0 0 var(--s2); }
+.login-mfa label.check { margin: var(--s2) 0 var(--s3); }
+.login-mfa-links { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s2); margin-top: var(--s2); }

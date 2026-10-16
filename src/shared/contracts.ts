@@ -53,6 +53,60 @@ export interface StaffRolesResponse { roles: RoleCode[]; adds: PermissionCode[];
  */
 export interface MeResponse { staff: StaffProfile; maintenance?: MaintenanceStatusDto; benDatCuaToi?: { partyId: string; ten: string } | null }
 /**
+ * `POST /api/auth/login` khi PIN đúng nhưng CHƯA cấp phiên (ADR-0074 điều 2–3): kèm cookie chờ `td_mfa_pending` (5 phút, chỉ mở `/api/auth/mfa/*`).
+ * - `next: "mfa"`: nhập mã ở bước hai (`POST /api/auth/mfa/verify`); `factors` = các cách đang có (luôn kèm "RECOVERY" — mã dự phòng); `emailMask` = email đã che
+ *   (`t***@gmail.com`) khi có yếu tố email (Phần C), không bao giờ là email đầy đủ.
+ * - `next: "mfa_enroll"`: cửa sổ 24 giờ sau khi Quản trị/Toàn quyền tắt lớp hai — chỉ được bật lại (Task 6).
+ * Các phản hồi khác của route: `200 MeResponse` + `td_session`; `403 mfa_setup_required` (nội bộ chưa bật, hết ân hạn).
+ */
+export type LoginMfaStepResponse =
+  | { next: "mfa"; factors: ("TOTP" | "EMAIL" | "RECOVERY")[]; emailMask: string | null }
+  | { next: "mfa_enroll" };
+/**
+ * `POST /api/auth/mfa/verify` — thân `{ method: "TOTP" | "EMAIL" | "RECOVERY", code, trustDevice }`. Đúng mã → `td_session` (+ `td_trusted` nếu chọn tin máy 30
+ * ngày). `recoveryLeft`: chỉ khi vừa dùng mã dự phòng — số mã còn lại.
+ */
+export interface MfaVerifyResponse { staff: StaffProfile; recoveryLeft?: number }
+/**
+ * `POST /api/auth/mfa/email` (Phần C — ADR-0074 điều 4): gửi mã 6 số tới email của yếu tố EMAIL (cookie chờ purpose "verify"); gửi mã mới huỷ mã cũ. Chỉ trả
+ * địa chỉ dạng che. Lỗi: `409 no_email_factor`, `429 too_many_attempts` (3 thư / 15 phút), `502 mail_failed` ("Chưa gửi được email, thử lại hoặc dùng cách khác.").
+ */
+export interface MfaEmailSendResponse { sent: true; emailMask: string | null }
+/**
+ * `POST /api/auth/mfa/enroll/confirm` (kế hoạch Task 6) — bật xong lớp hai ở bước đăng nhập (cửa sổ 24 giờ sau khi Quản trị/Toàn quyền tắt): `td_session` (phiên
+ * PIN_MFA) + 10 mã dự phòng hiện MỘT lần. `POST /api/auth/mfa/enroll/start` trả `MfaTotpStartResponse` như bật trong phiên.
+ */
+export interface MfaEnrollConfirmResponse { staff: StaffProfile; recoveryCodes: string[] }
+/** Máy được tin của chính mình (không bao giờ kèm token / băm). `thisDevice` = phiên đang dùng được cấp qua máy này (sổ phiên `trusted_device_id`). */
+export interface TrustedDeviceDto { id: string; label: string; createdAt: string; lastUsedAt: string; thisDevice: boolean }
+/**
+ * `GET /api/account/mfa` — khối "Bảo mật đăng nhập" của chính mình (ADR-0074 điều 5). `required`/`graceUntil` = CÙNG luật dải nhắc (`mfaBanner`): nội bộ chưa
+ * bật thì bắt buộc, `graceUntil` chỉ có khi còn ân hạn. `allowed` = yếu tố được phép bật (máy chủ tính — Quản trị/Toàn quyền/Kế toán chỉ TOTP). KHÔNG chứa
+ * khoá, mã, mã dự phòng, email đầy đủ.
+ */
+export interface AccountMfaResponse {
+  required: boolean;
+  graceUntil: string | null;
+  /** `emailMask`: địa chỉ của yếu tố EMAIL dạng che (`t***@gmail.com`, Phần C); TOTP → null. */
+  factors: { kind: "TOTP" | "EMAIL"; createdAt: string; emailMask: string | null }[];
+  allowed: ("TOTP" | "EMAIL")[];
+  recoveryLeft: number;
+  trustedDevices: TrustedDeviceDto[];
+}
+/** `POST /api/account/mfa/totp/start` — khoá base32 + `otpauth://` trả MỘT lần (chưa lưu); `setupToken` mang khoá đã mã hoá, ký HMAC, sống 10 phút. */
+export interface MfaTotpStartResponse { setupToken: string; secret: string; otpauth: string }
+/** `POST /api/account/mfa/totp/confirm` — `recoveryCodes` (10 mã `xxxx-xxxx`) chỉ có khi đây là yếu tố ĐẦU TIÊN; hiện một lần duy nhất. */
+export interface MfaTotpConfirmResponse { recoveryCodes?: string[] }
+/**
+ * `POST /api/account/mfa/email/start` (Phần C Task 3) — thân `{ email, currentCode? }` (`currentCode`: mã ứng dụng xác thực hoặc một mã dự phòng, bắt buộc khi đã
+ * có yếu tố). Gửi mã 6 số tới địa chỉ MỚI, CHƯA lưu yếu tố; chỉ trả địa chỉ dạng che. Lỗi: `409 email_not_allowed` (Quản trị/Toàn quyền/Kế toán), `400`,
+ * `401 invalid_code`, `429 too_many_attempts`, `502 mail_failed`. `POST /api/account/mfa/email/confirm` — thân `{ email, code }` → `MfaTotpConfirmResponse`
+ * (mã dự phòng khi là yếu tố đầu tiên).
+ */
+export type MfaEmailStartResponse = MfaEmailSendResponse;
+/** `POST /api/account/mfa/recovery/regenerate` — bộ 10 mã mới (bộ cũ hết hiệu lực); hiện một lần duy nhất. */
+export interface MfaRecoveryCodesResponse { recoveryCodes: string[] }
+/**
  * `GET /api/auth/config` (công khai): khoá site để trang đăng nhập dựng widget Turnstile; null = máy chủ không bật Turnstile (đừng dựng widget, đăng nhập không cần token).
  * `maintenance`: trang đăng nhập hiện banner + đếm ngược khi đang bảo trì. KHÔNG lộ ai được phép.
  */
@@ -170,7 +224,12 @@ export interface MaintenanceErrorBody { code: "maintenance"; message: string; en
  * Một dòng của GET /api/staff: `datLaiPinDuoc` = nút "Đặt lại PIN" hiện ở dòng này cho người đang xem — máy chủ tính bằng CÙNG hàm với cổng route reset-pin
  * (`datLaiPinDuoc` của src/shared/roles.ts: cấp dưới, không phải chính mình, tài khoản có quyền tiền chỉ Toàn quyền — ADR-0090 đ2). Giao diện không tự tính.
  */
-export interface StaffListRowDto extends StaffAccountDto { datLaiPinDuoc: boolean }
+/**
+ * Một dòng của GET /api/staff. `datLaiPinDuoc`, `canResetMfa`: cờ MÁY CHỦ tính theo dòng (giao diện không suy từ mã quyền). `canResetMfa` = route
+ * POST /api/staff/:id/mfa-reset sẽ nhận (ADR-0074 đ5, ADR-0090 đ1 iv). `mfa` (kế hoạch Task 6): `enabled` = có ít nhất một yếu tố sống; `graceUntil` = hạn ân
+ * hạn đang lưu (có thể đã qua) khi tài khoản nội bộ chưa bật, null khi đã bật hoặc tài khoản bên ngoài.
+ */
+export interface StaffListRowDto extends StaffAccountDto { datLaiPinDuoc: boolean; canResetMfa: boolean; mfa: { enabled: boolean; graceUntil: string | null } }
 export interface StaffListResponse { staff: StaffListRowDto[] }
 export interface StaffResponse { staff: StaffAccountDto }
 export interface StaffWithPinResponse { staff: StaffAccountDto; pin: string }
@@ -1953,7 +2012,10 @@ export interface CocDonDto {
   hoanNgoaiDong: HoanNgoaiDto[];
   nguoiGiu: { ten: string; soTien: number }[] | null;
   coThePhanLoai: boolean;
+  /** Nút duyệt HOÀN cho khách / huỷ duyệt khoản hoàn (ô `deposit.refund.approve`). */
   coTheDuyet: boolean;
+  /** Nút duyệt CHUYỂN sang đơn mới / huỷ duyệt khoản chuyển (ô `deposit.transfer.approve`, ADR-0120 Điều 2). */
+  coTheDuyetChuyen: boolean;
   coTheChi: boolean;
   coTheChuyen: boolean;
   coTheGhiHoanNgoai: boolean;
@@ -1968,6 +2030,8 @@ export interface CocListResponse {
   donHuyGiuCoc: { orderId: string; maDon: string; nhom: string; nhomNhan: string; conGiu: number; han: string; sapHetHan: boolean; legacy: boolean }[];
   /** Đơn huỷ còn người giữ tiền mặt của công ty (đ11). */
   conNguoiGiu: { orderId: string; maDon: string; nguoi: string; soTien: number }[];
+  /** Khoản "Công ty thu" chờ Kế toán đối chiếu (ADR-0120 Điều 1.3): `qua3Ngay` = khai quá 3 ngày ⇒ nhắc. `ngayKhai` ngày dân sự giờ VN. */
+  doiChieu: { receiptId: string; orderId: string; maDon: string; soTien: number; ngayKhai: string; qua3Ngay: boolean }[];
 }
 /** `GET /api/ledger/coc/doi-chieu` — đơn huỷ CŨ còn giữ tiền để đối chiếu "đã hoàn ngoài hệ thống" (đ16). */
 export interface CocDoiChieuResponse {
@@ -1979,6 +2043,8 @@ export interface CocDemResponse {
   duyetQua7Ngay: number;
   sapHetHan: number;
   conNguoiGiu: number;
+  /** Số khoản "Công ty thu" đang đối chiếu quá 3 ngày (ADR-0120). */
+  doiChieuQua3Ngay: number;
 }
 
 /** Thân ghi một lần thu (`POST /api/orders/:id/payments`, và `lanThu` tuỳ chọn của `POST /api/orders/:id/delivered`). */
@@ -2353,7 +2419,8 @@ export interface BangKeResponse {
 
 // ===== Sổ đại lý đợt 1 (ADR-0077, ADR-0078 B1; module pricing) =====
 /** Đối tượng của một dòng mức: một LOẠI đối tác (vai) hoặc MỘT đối tác cụ thể. `ten` là tên lời thường (tên vai / tên hồ sơ) — không SĐT. */
-export type DoiTuongMucDto = { loai: "VAI"; code: string; ten: string } | { loai: "DOI_TAC"; partyId: string; ten: string };
+/** Đối tượng của một dòng mức: một loại đối tác, một đối tác, hoặc một MỨC TA (ADR-0117 lần 2 — `code` mã máy sinh, `ten` tên Kế toán đặt). */
+export type DoiTuongMucDto = { loai: "VAI"; code: string; ten: string } | { loai: "DOI_TAC"; partyId: string; ten: string } | { loai: "MUC"; code: string; ten: string };
 export interface CommissionRuleDto {
   id: string; doiTuong: DoiTuongMucDto; phamVi: "SERVICE" | "GROUP" | "ALL"; catalogCode: string | null; groupCode: string | null;
   kieu: "RATE" | "PER_PAX"; tyLeBp: number | null; moiKhach: number | null; tuNgay: string; denNgay: string | null; ghiChu: string | null; conHieuLuc: boolean;
@@ -2368,7 +2435,7 @@ export interface SupplyTermListResponse { homNay: string; dong: SupplyTermDto[];
 export interface ThuTraResponse {
   ngay: string;
   nguoiHuong: { loai: "NONE" | "HUONG" | "KHONG_HUONG"; vai: string[] };
-  ketQua: { trangThai: "NONE" } | { trangThai: "SET"; bac: 1 | 2 | 3 | 4 | 5 | 6; muc: CommissionRuleDto } | { trangThai: "MISSING"; lyDo: string };
+  ketQua: { trangThai: "NONE" } | { trangThai: "SET"; bac: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9; muc: CommissionRuleDto } | { trangThai: "MISSING"; lyDo: string };
 }
 /**
  * Loại đối tác được hưởng hoa hồng (ADR-0117 lần 1). `coSan` = vai bên ngoài có từ đầu (không tắt / bật ở màn này); `dangBat` = CẢ HAI cờ (loại vai đang dùng VÀ dòng danh sách được hưởng
@@ -2377,6 +2444,16 @@ export interface ThuTraResponse {
 export interface LoaiDoiTacDto { code: string; ten: string; coSan: boolean; dangBat: boolean }
 export interface LoaiDoiTacListResponse { loai: LoaiDoiTacDto[] }
 export interface LoaiDoiTacResponse { loai: LoaiDoiTacDto }
+/**
+ * Mức TA dùng chung (ADR-0117 lần 2): bộ hoa hồng có tên; loại đối tác gắn vào mức theo ngày (mỗi loại tối đa một mức tại một ngày). `dangBat` = false ⇒ không gắn mới,
+ * không thêm dòng mới; dòng và gắn đang có VẪN áp (giả định kế hoạch, N-23). Chỉ văn phòng có `partner.commission.view` và KHÔNG giữ quyền Đối tác đọc được.
+ */
+export interface GanLoaiMucDto { id: string; loai: { code: string; ten: string }; muc: { code: string; ten: string }; tuNgay: string; denNgay: string | null; conHieuLuc: boolean }
+export interface MucTaDto { code: string; ten: string; dangBat: boolean; dong: CommissionRuleDto[]; gan: GanLoaiMucDto[] }
+export interface MucTaListResponse { homNay: string; muc: MucTaDto[]; loai: { code: string; ten: string }[] }
+export interface MucTaResponse { muc: MucTaDto }
+/** Gắn loại↔mức: 201 kèm `dongRieng` = dòng riêng theo loại (bậc 4–6) còn hiệu lực trong khoảng gắn, của loại này VÀ của mọi loại mà hồ sơ mang loại này đang mang — các dòng đó thắng TA (cảnh báo, không chặn — N-17). */
+export interface GanLoaiMucResponse { gan: GanLoaiMucDto; dongRieng: CommissionRuleDto[] }
 export interface NguoiHuongTimResponse { ketQua: { partyId: string; ten: string; loai: "PERSON" | "ORGANIZATION" }[] }
 
 // ===== Phần thương mại của đơn (sổ đại lý đợt 1 — ADR-0077 điều 10–11; đặc tả §6). HAI DTO danh sách trắng: văn phòng thấy mức, hoa hồng, giá đại lý, cờ thiếu mức;
@@ -2385,7 +2462,7 @@ export interface ThuongMaiDongVanPhong {
   serviceId: string; ten: string; thanhTien: number; soKhachTinh: number;
   /** "12%" / "50.000đ/khách"; null khi thiếu mức hoặc không người hưởng. */
   muc: string | null; hoaHong: number | null; giaDaiLy: number | null; ghiTay: boolean;
-  /** Câu tiếng Việt khi thiếu mức; null khi đủ. Giao diện ghi thêm "Thiếu mức — Kế toán xử lý". */
+  /** Câu tiếng Việt khi thiếu mức; null khi đủ. Giao diện nối thêm câu «cần cài mức (cấp) thì mới tính được hoa hồng; đơn bị giữ ở bước Đã giao». */
   thieu: string | null;
   nguoiBan: { ten: string; laCongTy: boolean } | null;
   /** Chỉ khi người gọi có `supply.terms.view` VÀ người bán là nhà cung cấp. */

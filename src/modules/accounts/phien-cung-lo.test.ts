@@ -16,8 +16,11 @@ const SRC = new URL("../..", import.meta.url).pathname;
 const SELF = new URL(import.meta.url).pathname;
 const CALLS = /\b(setPinStatement|touchCredentialsStatement)\s*\(/g;
 const ENDS = /\b(endOtherSessionsStatement|endAllSessionsStatement|endAllSessionsIfSuspendedStatement)\s*\(/;
-/** Số chỗ đổi thông tin đăng nhập hôm nay (2026-10-01): accounts/index.ts — ngưng, đổi PIN, gỡ mọi Face ID, gỡ một Face ID, đặt PIN bằng Face ID, đặt lại PIN, quản trị gỡ Face ID. */
-const SO_CHO = 7;
+/**
+ * Số chỗ đổi thông tin đăng nhập hôm nay (2026-10-01): accounts/index.ts — ngưng, đổi PIN, gỡ mọi Face ID, gỡ một Face ID, đặt PIN bằng Face ID, đặt lại PIN, quản
+ * trị gỡ Face ID. 2026-10-16 (ADR-0074 Phần B Task 6): + Quản trị/Toàn quyền tắt bảo mật hai lớp (POST /api/staff/:id/mfa-reset, kết thúc phiên 'tat_hai_lop') = 8.
+ */
+const SO_CHO = 8;
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((n) => {

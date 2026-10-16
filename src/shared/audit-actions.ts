@@ -68,10 +68,10 @@ export const AUDIT_ACTIONS = {
   // (chữ cố định); KHÔNG chép mã giao dịch, không số tài khoản.
   ledger_bank_txn_linked: { label: "Gắn mã giao dịch ngân hàng", group: "ledger" },
   // ADR-0089 (cọc đơn huỷ — migration 0079): duyệt / huỷ duyệt / chi / chuyển / đã hoàn ngoài hệ thống. Không số tiền trong detail (chỉ lý do).
-  deposit_refund_approved: { label: "Duyệt hoàn cọc", group: "ledger" },
+  deposit_refund_approved: { label: "Duyệt hoàn thu trước", group: "ledger" },
   deposit_transfer_approved: { label: "Duyệt chuyển tiền sang đơn mới", group: "ledger" },
-  deposit_approval_voided: { label: "Huỷ duyệt hoàn cọc", group: "ledger" },
-  deposit_refund_paid: { label: "Ghi chi hoàn cọc", group: "ledger" },
+  deposit_approval_voided: { label: "Huỷ duyệt hoàn thu trước", group: "ledger" },
+  deposit_refund_paid: { label: "Ghi chi hoàn thu trước", group: "ledger" },
   deposit_transferred_out: { label: "Chuyển tiền sang đơn mới", group: "ledger" },
   deposit_transferred_in: { label: "Nhận tiền chuyển từ đơn huỷ", group: "ledger" },
   deposit_outside_recorded: { label: "Ghi đã hoàn ngoài hệ thống", group: "ledger" },
@@ -87,6 +87,13 @@ export const AUDIT_ACTIONS = {
   prc_partner_type_added: { label: "Thêm loại đối tác", group: "ledger" },
   prc_partner_type_off: { label: "Tắt loại đối tác", group: "ledger" },
   prc_partner_type_on: { label: "Bật lại loại đối tác", group: "ledger" },
+  // ADR-0117 lần 2: mức TA dùng chung — `detail` = tên mức / «tên loại → tên mức · từ … đến …» (tên đã cấm số điện thoại / email), không mã thô. Dòng của mức đi qua
+  // `prc_commission_rule_added` / `_closed` (đối tượng «mức TA <tên>»).
+  prc_rate_tier_added: { label: "Thêm mức TA", group: "ledger" },
+  prc_rate_tier_off: { label: "Tắt mức TA", group: "ledger" },
+  prc_rate_tier_on: { label: "Bật lại mức TA", group: "ledger" },
+  prc_role_tier_set: { label: "Gắn loại đối tác vào mức TA", group: "ledger" },
+  prc_role_tier_closed: { label: "Kết thúc gắn loại đối tác với mức TA", group: "ledger" },
   // Khoá sổ tháng (ADR-0080 D1; module ky-so — route ở billing): `order_id` NULL; `detail` = "Khoá sổ tháng MM/YYYY" (không tiền, không SĐT).
   ledger_period_closed: { label: "Khoá sổ tháng", group: "ledger" },
   order_handler_changed: { label: "Đổi người phụ trách", group: "order" },
@@ -244,6 +251,13 @@ export const AUDIT_ACTIONS = {
   notice_acknowledged: { label: "Xác nhận đã hiểu thông báo", group: "notice" },
   session_policy_changed: { label: "Đổi chính sách đăng nhập", group: "staff" }, // ADR-0085 điều 9: quyền đổi + giá trị mới + số máy/số người — KHÔNG tên, SĐT, IP
   session_revoked: { label: "Gỡ phiên đăng nhập", group: "staff" }, // ADR-0075 điều 8: ai gỡ, tài khoản bị gỡ (target), mã phiên (detail) — KHÔNG IP/User-Agent
+  // ADR-0074 điều 5 (tự phục vụ): detail CHỈ loại yếu tố ("TOTP") — KHÔNG khoá, mã, mã dự phòng, email.
+  mfa_enabled: { label: "Bật bảo mật hai lớp", group: "staff" },
+  mfa_removed: { label: "Gỡ bảo mật hai lớp", group: "staff" },
+  mfa_recovery_regenerated: { label: "Tạo bộ mã dự phòng mới", group: "staff" },
+  // ADR-0074 điều 5 (kế hoạch Task 6): Quản trị/Toàn quyền tắt lớp hai của người khác — chỉ người làm (staff_id) + người bị tắt (target); KHÔNG email, mã, chi tiết.
+  // KHÔNG thuộc SILENT_AUDIT_ACTIONS (vòng sửa 1: chưa có ADR duyệt cho nó im lặng) — hiện như mọi thao tác thường.
+  mfa_reset: { label: "Tắt bảo mật hai lớp của tài khoản", group: "staff" },
 } as const satisfies Record<string, { label: string; group: AuditGroup; doiSoKhach?: true }>;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;

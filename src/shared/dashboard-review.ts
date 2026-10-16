@@ -31,7 +31,7 @@ export interface ReviewFeedbackAlert {
   /** Tổng số yêu cầu còn ở trạng thái "Mới" (chưa trả lời). */
   count: number;
   /** Tối đa `max` yêu cầu gần nhất (tickets truyền vào đã sắp mới nhất trước — GET /api/feedback: ORDER BY last_activity_at DESC). */
-  items: { code: string; kindName: string }[];
+  items: { id: string; code: string; kindName: string }[];
 }
 
 export interface ReviewAlerts {
@@ -39,6 +39,8 @@ export interface ReviewAlerts {
   feedbackQueue: ReviewFeedbackAlert | null;
   /** Giấy tờ sắp hết hạn (xe + tài xế — `count` của GET /api/van-chuyen/sap-het-han, bản vẽ "Trang chu Quan tri.dc.html" 1.73). Chỉ ô vehicle.manage. */
   expiringDocs: { count: number } | null;
+  /** Khoản "Công ty thu" đang đối chiếu quá 3 ngày (ADR-0120 Điều 1 mục 3; `doiChieuQua3Ngay` của GET /api/ledger/coc/dem). Chỉ ô `ledger.view` (Kế toán, Toàn quyền). */
+  doiChieu: { count: number } | null;
 }
 
 /** Hỏi bảng quyền — ô `admin.manage`, CÙNG ô route `GET /api/catalog/admin` hỏi (ADR-0072 mục 4a: giao diện không hỏi thẳng mã quyền). Quản trị và
@@ -54,15 +56,17 @@ function summarizeCatalogConflicts(items: readonly CatalogAdminItemDto[]): Revie
 }
 
 /**
- * "Chưa trả lời" = trạng thái NEW (nhãn "Mới" — đúng chữ mockup "góp ý MỚI chưa trả lời"). CỐ Ý không dùng cờ
+ * "Chưa trả lời" = trạng thái NEW (nhãn "Mới" — đúng chữ mockup "góp ý MỚI chưa trả lời") VÀ chưa có trả lời công khai nào
+ * (`lastPublicReplyAt` rỗng). Người xử lý trả lời công khai KHÔNG đổi trạng thái (chỉ Nhận việc / đổi trạng thái mới đổi), nên nếu chỉ
+ * xét NEW thì phiếu đã được trả lời vẫn bị đếm là "chưa trả lời" cho tới khi ai đó bấm Nhận việc. CỐ Ý không dùng cờ
  * `unread` (UNREAD_USER ở feedback/repository.ts, riêng từng người xem): cờ đó tắt ngay khi người xem MỞ yêu cầu (markSeen), kể
  * cả khi chưa ai trả lời — dùng nó sẽ làm rớt những yêu cầu admin đã lỡ mở xem nhưng quên trả lời, khiến số đếm ít
  * hơn số "mới chưa trả lời" thật.
  */
 function summarizeFeedbackQueue(tickets: readonly FeedbackTicketDto[], max = 2): ReviewFeedbackAlert | null {
-  const pending = tickets.filter((t) => t.status === "NEW");
+  const pending = tickets.filter((t) => t.status === "NEW" && t.lastPublicReplyAt === null);
   if (pending.length === 0) return null;
-  return { count: pending.length, items: pending.slice(0, max).map((t) => ({ code: t.code, kindName: t.kindName })) };
+  return { count: pending.length, items: pending.slice(0, max).map((t) => ({ id: t.id, code: t.code, kindName: t.kindName })) };
 }
 
 /**
@@ -73,16 +77,21 @@ function summarizeFeedbackQueue(tickets: readonly FeedbackTicketDto[], max = 2):
  */
 export function reviewAlerts(
   staff: PermissionHolder,
-  data: { catalogItems: readonly CatalogAdminItemDto[]; tickets: readonly FeedbackTicketDto[]; expiringCount?: number | null } | null,
+  data: { catalogItems: readonly CatalogAdminItemDto[]; tickets: readonly FeedbackTicketDto[]; expiringCount?: number | null; doiChieuQuaHan?: number | null } | null,
 ): ReviewAlerts | null {
-  if (!canSeeReviewAlerts(staff)) return null;
+  // Dòng "đang đối chiếu" hỏi ô RIÊNG `ledger.view` (Kế toán + Toàn quyền) — Kế toán không phải Quản trị vẫn thấy khối với đúng dòng này, không thấy dòng nào khác.
+  const laQuanTri = canSeeReviewAlerts(staff);
+  const n2 = can(staff, "ledger.view") ? (data?.doiChieuQuaHan ?? 0) : 0;
+  const doiChieu = n2 > 0 ? { count: n2 } : null;
+  if (!laQuanTri && !doiChieu) return null;
   if (!data) return null;
+  if (!laQuanTri) return { catalogConflict: null, feedbackQueue: null, expiringDocs: null, doiChieu };
   const catalogConflict = summarizeCatalogConflicts(data.catalogItems);
   // ADR-0038: hàng đợi Góp ý chỉ dành cho người có `feedback.triage` (hôm nay: Toàn quyền) — Quản trị không nhận dòng góp ý dù `data` có.
   const feedbackQueue = can(staff, "feedback.triage") ? summarizeFeedbackQueue(data.tickets) : null;
   // Cùng ô với ô "Giấy tờ sắp hết hạn" và route danh sách (vehicle.manage); `null` = chưa tải được / lỗi → không dòng (không vẽ số giả).
   const n = can(staff, "vehicle.manage") ? (data.expiringCount ?? 0) : 0;
   const expiringDocs = n > 0 ? { count: n } : null;
-  if (!catalogConflict && !feedbackQueue && !expiringDocs) return null;
-  return { catalogConflict, feedbackQueue, expiringDocs };
+  if (!catalogConflict && !feedbackQueue && !expiringDocs && !doiChieu) return null;
+  return { catalogConflict, feedbackQueue, expiringDocs, doiChieu };
 }

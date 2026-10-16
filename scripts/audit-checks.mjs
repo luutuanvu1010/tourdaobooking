@@ -516,9 +516,10 @@ export const CHECKS = [
   },
   {
     // C1 đường 2 (Kế toán / Toàn quyền tự ghi — CHỈ máy chủ đòi mã, không có phiếu để gắn trigger): lần thu CK – Công ty thu còn hiệu lực ghi TỪ mốc 'R-BIL-D6'
-    // đã là "công ty nhận" (không có dòng giữ hộ, hoặc dòng giữ hộ đã được "Công ty đã nhận") mà KHÔNG có mã. Bỏ nửa thu của lệnh chuyển cọc (transfer_of_id).
+    // đã là "công ty nhận" (không có dòng giữ hộ và không còn đang đối chiếu, hoặc dòng giữ hộ đã được "Công ty đã nhận") mà KHÔNG có mã. Bỏ nửa thu của lệnh chuyển cọc (transfer_of_id).
     // Đã lần mọi câu chèn bil_payment_receipt (lập kế hoạch 2026-10-08): lần thu CUSTOMER_PAYMENT gốc chỉ sinh ở ghiLanThu, daGiao, Thay lần thu (đều đòi mã)
     // và nửa thu chuyển cọc (có transfer_of_id); chi hoàn cọc / hoàn khách là CUSTOMER_REFUND. Thêm đường ghi lần thu mới ⇒ xét lại luật này.
+    // ADR-0120 (migration 0099): khoản MỚI đang đối chiếu (dấu DECLARED chưa có CONFIRMED, không dòng giữ hộ) chưa là "công ty nhận" ⇒ chưa đòi mã; xác nhận xong (CONFIRMED) thì đòi.
     code: "R-BIL-D6b",
     what: "lần thu chuyển khoản – Công ty thu ghi từ mốc 0088 đã được công ty nhận đều có mã giao dịch ngân hàng",
     sql: `SELECT count(*) FROM bil_payment_receipt r
@@ -526,7 +527,9 @@ export const CHECKS = [
        AND r.transfer_of_id IS NULL AND r.collector_role_code = 'COMPANY' AND r.method_code = 'BANK_TRANSFER'
        AND r.created_at >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-D6')
        AND NOT EXISTS (SELECT 1 FROM bil_receipt_bank_txn t WHERE t.receipt_id = r.id)
-       AND (NOT EXISTS (SELECT 1 FROM bil_debt_line l WHERE l.receipt_id = r.id AND l.kind_code = 'HELD' AND l.reverses_line_id IS NULL)
+       AND ((NOT EXISTS (SELECT 1 FROM bil_debt_line l WHERE l.receipt_id = r.id AND l.kind_code = 'HELD' AND l.reverses_line_id IS NULL)
+             AND NOT EXISTS (SELECT 1 FROM bil_receipt_recon dc WHERE dc.receipt_id = r.id AND dc.kind_code = 'DECLARED'
+                             AND NOT EXISTS (SELECT 1 FROM bil_receipt_recon xc WHERE xc.receipt_id = r.id AND xc.kind_code = 'CONFIRMED')))
          OR EXISTS (SELECT 1 FROM bil_debt_line d JOIN bil_posting p ON p.id = d.posting_id WHERE d.receipt_id = r.id AND p.kind_code = 'COMPANY_RECEIVED'))`,
     level: "fail",
   },
@@ -1404,6 +1407,45 @@ export const CHECKS = [
           GROUP BY x.staff_id HAVING count(*) > 1)`,
     level: "warn",
   },
+  // R-AUT-MFA-1 (ADR-0074 điều 1; kế hoạch Phần B Task 8): tài khoản NỘI BỘ đang hoạt động phải có yếu tố hai lớp sống, HOẶC hạn ân hạn 14 ngày
+  // (`staff.mfa_grace_until`), HOẶC cửa sổ bật lại 24 giờ sau khi Quản trị tắt lớp hai (`staff.mfa_enroll_until`) khác NULL. Hạn ĐÃ QUA vẫn tính là có (cổng
+  // đăng nhập chặn 403 — đúng luật). Thiếu cả ba = tài khoản rơi khỏi mọi đường của cổng: lưới cho mọi lô đặt hạn (tạo tài khoản, kích hoạt lại, lên nội
+  // bộ — chỉ đặt khi NULL). "Nội bộ" = có ít nhất một quyền còn hiệu lực KHÔNG thuộc EXTERNAL_PERMISSIONS (src/shared/permissions.ts; khớp `isInternal` của
+  // auth — tài khoản không còn quyền nào là KHÔNG nội bộ); danh sách NOT IN dưới đây được bài src/audit-invariants.test.ts đối chiếu với hằng đó.
+  {
+    code: "R-AUT-MFA-1",
+    what: "mọi tài khoản nội bộ đang hoạt động có bảo mật hai lớp, hoặc hạn ân hạn / cửa sổ bật lại",
+    sql: `SELECT count(*) FROM staff s WHERE s.active = 1 AND s.mfa_grace_until IS NULL AND s.mfa_enroll_until IS NULL
+          AND EXISTS (SELECT 1 FROM v_stf_quyen_mo q WHERE q.staff_id = s.id AND q.permission_code NOT IN ('PARTNER', 'DRIVER_PARTNER'))
+          AND NOT EXISTS (SELECT 1 FROM aut_mfa_factor f WHERE f.staff_id = s.id AND f.valid_to_at IS NULL)`,
+    level: "fail",
+  },
+  // R-AUT-MFA-2 (ADR-0074; migration 0101): không quá một yếu tố SỐNG mỗi loại mỗi người. Chỉ mục duy nhất có điều kiện `aut_mfa_factor_one_live` đã chặn ⇒
+  // chỉ đỏ khi chỉ mục bị mất/sửa (lưới, như R-AUT-SESSION-1). Đếm số cặp (người, loại).
+  {
+    code: "R-AUT-MFA-2",
+    what: "không ai có hai yếu tố hai lớp cùng loại còn hiệu lực",
+    sql: `SELECT count(*) FROM (SELECT staff_id, kind FROM aut_mfa_factor WHERE valid_to_at IS NULL GROUP BY staff_id, kind HAVING count(*) > 1)`,
+    level: "fail",
+  },
+  // R-AUT-MFA-3 (ADR-0074; Task 8): tài khoản đã ngưng không còn máy được tin CHƯA thu hồi (kể cả đã quá hạn — lô ngưng thu hồi mọi dòng chưa thu hồi,
+  // câu `trusted_revoke_all_if_suspended` không lọc hạn). Đăng nhập của tài khoản ngưng còn bị chặn ở tầng ứng dụng — kiểm này là lưới (vd ngưng bằng SQL tay).
+  {
+    code: "R-AUT-MFA-3",
+    what: "không có máy được tin còn hiệu lực của tài khoản đã ngưng",
+    sql: "SELECT count(*) FROM aut_trusted_device d JOIN v_stf_staff_label s ON s.id = d.staff_id WHERE d.revoked_at IS NULL AND s.active = 0",
+    level: "fail",
+  },
+  // R-AUT-MFA-4 (ADR-0074 điều 7; kế hoạch Phần C Task 4): tài khoản giữ Quản trị / Toàn quyền / Kế toán (quyền còn hiệu lực) không có yếu tố EMAIL sống. Đường API
+  // giữ: bật email → 409; lô đổi quyền / vai kết thúc yếu tố email cùng lô (haiLopSauDoiQuyen). KHÔNG lọc `active`: tài khoản ngưng mà còn dòng lệch thì kích hoạt
+  // lại sẽ mang nó về — lưới chặt hơn. Danh sách IN được bài src/audit-invariants.test.ts đối chiếu với `allowedFactors` (mfa-rules). Đếm theo tài khoản.
+  {
+    code: "R-AUT-MFA-4",
+    what: "không tài khoản Quản trị / Toàn quyền / Kế toán nào có yếu tố email còn hiệu lực",
+    sql: `SELECT count(DISTINCT f.staff_id) FROM aut_mfa_factor f WHERE f.kind = 'EMAIL' AND f.valid_to_at IS NULL
+          AND EXISTS (SELECT 1 FROM v_stf_quyen_mo q WHERE q.staff_id = f.staff_id AND q.permission_code IN ('ADMIN', 'SUPER_ADMIN', 'ACCOUNTING'))`,
+    level: "fail",
+  },
   // R-CTL-1 (ADR-0058, NT-A11): dịch vụ ĐANG HIỆN (in_sheet = 1, không bị catalog_override.hidden = 1) mà CHƯA PHÂN LOẠI — không có dòng gán hiện hành
   // (seq lớn nhất của service_code), hoặc dòng hiện hành có group_code NULL, hoặc trỏ tới nhóm đang TẮT (form đơn hiện nó là "Chưa phân loại"). Mã mới trên
   // Sheet ở lại "Chưa phân loại" cho tới khi Quản trị gán — tình trạng nghiệp vụ hợp lệ, cần người rà soát ⇒ mức warn (in số, không bao giờ đỏ). Chỉ đếm số.
@@ -1425,21 +1467,28 @@ export const CHECKS = [
   // chuyện đổi SAU khi ghi (tắt vai, đổi nhóm dịch vụ, đổi công ty chủ) — thứ trigger lúc chèn không nhìn thấy. Bảng mức / điều khoản / bản chụp chỉ-thêm: dòng sai không sửa
   // được, chỉ ĐÓNG (mức, điều khoản) — nên R-PRC-2/3/4 chỉ xét dòng CHƯA HẾT HẠN (đóng rồi là hết báo; đặc tả §13: đổi công ty chủ thì đóng dòng ALL cũ, mở dòng mới). ----
   {
-    // R-PRC-1: trigger `prc_commission_rule_overlap` chặn lúc chèn; kiểm này bắt dòng lọt qua (trigger bị gỡ / SQL tay). Cùng khoá với trigger: (hồ sơ, vai, phạm vi, mã dịch vụ, nhóm).
+    // R-PRC-1: trigger `prc_commission_rule_overlap` chặn lúc chèn; kiểm này bắt dòng lọt qua (trigger bị gỡ / SQL tay). Cùng khoá với trigger: (hồ sơ, vai, mức TA, phạm vi, mã dịch vụ,
+    // nhóm) — ADR-0117 lần 2 (0097) thêm đích mức vào khoá: hai mức khác nhau cùng có dòng «mọi dịch vụ» là hợp lệ. Cộng thêm bảng gắn loại ↔ mức (0096, trigger
+    // `prc_role_tier_overlap`): một loại tối đa MỘT mức tại một ngày.
     code: "R-PRC-1",
-    what: "không có hai dòng mức hoa hồng cùng đối tượng (hồ sơ hoặc vai), cùng phạm vi và mã mà khoảng hiệu lực chồng nhau",
-    sql: overlap("prc_commission_rule", ["target_party_id", "target_role_code", "scope", "catalog_code", "group_code"], "valid_from_date"),
+    what: "không có hai dòng mức hoa hồng cùng đối tượng (hồ sơ, vai hoặc mức TA), cùng phạm vi và mã mà khoảng hiệu lực chồng nhau; không loại nào mang hai mức TA cùng một ngày",
+    sql: `SELECT (${overlap("prc_commission_rule", ["target_party_id", "target_role_code", "target_tier_code", "scope", "catalog_code", "group_code"], "valid_from_date")})
+       + (${overlap("prc_role_tier", ["role_type_code"], "valid_from_date")})`,
     level: "fail",
-    note: "đặc tả sổ đại lý đợt 1 §9: một đối tượng, một phạm vi, một mã chỉ có MỘT mức tại mỗi ngày — Kế toán đóng một trong hai dòng",
+    note: "đặc tả sổ đại lý đợt 1 §9: một đối tượng (hồ sơ, vai hoặc mức TA), một phạm vi, một mã chỉ có MỘT mức tại mỗi ngày; một loại chỉ mang MỘT mức TA tại mỗi ngày (ADR-0117 lần 2) — Kế toán đóng một trong hai dòng",
   },
   {
     // R-PRC-2: "tắt một vai = active 0, dòng mức cũ vẫn giữ; R-PRC-2 báo" (0090) — việc của Kế toán là đóng dòng mức theo vai đó (hết hạn ⇒ hết báo).
+    // ADR-0117 lần 2 (0097): dòng đích MỨC TA chỉ báo khi mức KHÔNG TỒN TẠI (trigger `prc_commission_rule_target_tier` bị gỡ / SQL tay). Mức đã TẮT (active 0) không báo:
+    // tắt mức chỉ chặn gắn mới và thêm dòng mới, dòng đang áp vẫn áp (kế hoạch «Thiết kế chốt», N-23; ruling điều phối Task 2 vòng sửa 1) — muốn ngừng áp thì đóng dòng / gắn.
     code: "R-PRC-2",
-    what: "dòng mức hoa hồng còn hiệu lực theo vai mà vai đó không còn trong danh sách vai được hưởng đang bật",
-    sql: `SELECT count(*) FROM prc_commission_rule r WHERE r.target_role_code IS NOT NULL AND ${CHUA_HET_HAN("r")}
-       AND r.target_role_code NOT IN (SELECT role_type_code FROM v_prc_beneficiary_role)`,
+    what: "dòng mức hoa hồng còn hiệu lực theo vai mà vai đó không còn trong danh sách vai được hưởng đang bật, hoặc theo mức TA không tồn tại",
+    sql: `SELECT (SELECT count(*) FROM prc_commission_rule r WHERE r.target_role_code IS NOT NULL AND ${CHUA_HET_HAN("r")}
+       AND r.target_role_code NOT IN (SELECT role_type_code FROM v_prc_beneficiary_role))
+     + (SELECT count(*) FROM prc_commission_rule r WHERE r.target_tier_code IS NOT NULL AND ${CHUA_HET_HAN("r")}
+       AND r.target_tier_code NOT IN (SELECT code FROM prc_rate_tier))`,
     level: "fail",
-    note: "đặc tả sổ đại lý đợt 1 §9: vai bị tắt khỏi danh sách được hưởng mà dòng mức còn hiệu lực — Kế toán đóng dòng mức đó (hoặc bật lại vai)",
+    note: "đặc tả sổ đại lý đợt 1 §9: vai bị tắt mà dòng mức còn hiệu lực — Kế toán đóng dòng mức đó (hoặc bật lại vai); dòng trỏ mức TA không tồn tại (ADR-0117 lần 2) — đóng dòng đó. Mức TA đã tắt không báo (dòng đang áp vẫn áp)",
   },
   {
     // R-PRC-3: ba nhánh, mỗi dòng đếm MỘT lần. (1) có a% mà người bán là công ty chủ; (2) người bán ≠ công ty chủ mà không mang vai Nhà cung cấp (đang mở);

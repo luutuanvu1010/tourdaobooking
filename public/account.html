@@ -15,6 +15,8 @@
     <section id="maintenance" class="card" aria-labelledby="maintenance-heading" hidden></section>
     <!-- Dịch vụ nhập tay (ADR-0061): web/nhap-tay-cai-dat.ts chỉ hiện cho Toàn quyền (GET /api/cai-dat/nhap-tay trả doiDuoc — ô settings.ops). -->
     <section id="nhap-tay-cai-dat" class="card" aria-labelledby="nhap-tay-heading" hidden></section>
+    <!-- Bảo mật đăng nhập (bảo mật hai lớp — ADR-0074 điều 5): web/account.ts hiện sau khi GET /api/account/mfa về; mọi tài khoản có phiên. -->
+    <section id="mfa" class="card" aria-labelledby="mfa-heading" hidden></section>
     <!-- Đăng nhập bằng Face ID (ADR-0016): web/account.ts chỉ hiện khi máy chủ bật (GET /api/auth/config → passkey). -->
     <section id="passkeys" class="card" aria-labelledby="passkeys-heading" hidden></section>
     <!-- Thông báo màn hình khoá (ADR-0036): web/account.ts chỉ hiện khi máy chủ có khoá công khai VAPID (GET /api/account/thong-bao/may → khoa). -->

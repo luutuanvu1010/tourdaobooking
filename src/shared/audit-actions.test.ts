@@ -37,3 +37,12 @@ test("ADR-0117 lần 1: ba hành động loại đối tác (thêm, tắt, bật
   assert.deepEqual({ ...AUDIT_ACTIONS.prc_partner_type_on }, { label: "Bật lại loại đối tác", group: "ledger" });
   for (const a of ["prc_partner_type_added", "prc_partner_type_off", "prc_partner_type_on"]) assert.equal(laHanhDongThuongMai(a), true, a);
 });
+
+test("ADR-0117 lần 2: năm hành động mức TA (thêm, tắt, bật lại, gắn loại, kết thúc gắn) nhóm 'ledger', có nhãn tiếng Việt, và là hành động thương mại (Đối tác không thấy)", () => {
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_rate_tier_added }, { label: "Thêm mức TA", group: "ledger" });
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_rate_tier_off }, { label: "Tắt mức TA", group: "ledger" });
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_rate_tier_on }, { label: "Bật lại mức TA", group: "ledger" });
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_role_tier_set }, { label: "Gắn loại đối tác vào mức TA", group: "ledger" });
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_role_tier_closed }, { label: "Kết thúc gắn loại đối tác với mức TA", group: "ledger" });
+  for (const a of ["prc_rate_tier_added", "prc_rate_tier_off", "prc_rate_tier_on", "prc_role_tier_set", "prc_role_tier_closed"]) assert.equal(laHanhDongThuongMai(a), true, a);
+});

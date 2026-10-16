@@ -59,8 +59,9 @@ test("reviewAlerts: Toàn quyền + dữ liệu có cả hai cảnh báo → tr�
   const r = reviewAlerts(SUPER_ADMIN, { catalogItems: items, tickets });
   assert.deepEqual(r, {
     catalogConflict: { code: "CANO_RIENG", base: 2_400_000, current: 2_600_000, moreCount: 0, hidden: false },
-    feedbackQueue: { count: 2, items: [{ code: "YC-0042", kindName: "Báo lỗi" }, { code: "YC-0041", kindName: "Đề xuất" }] },
+    feedbackQueue: { count: 2, items: [{ id: "YC-0042", code: "YC-0042", kindName: "Báo lỗi" }, { id: "YC-0041", code: "YC-0041", kindName: "Đề xuất" }] },
     expiringDocs: null,
+    doiChieu: null,
   });
 });
 
@@ -106,7 +107,15 @@ test("reviewAlerts: nhiều dịch vụ lệch Sheet → lấy dịch vụ ĐẦ
 test("reviewAlerts: góp ý ĐÃ ĐỌC (unread=false) nhưng còn trạng thái NEW vẫn tính là 'chưa trả lời' — không dùng cờ unread (admin mở xem nhưng chưa trả lời)", () => {
   const t = { ...ticket("YC-0099", "NEW"), unread: false };
   const r = reviewAlerts(SUPER_ADMIN, { catalogItems: [], tickets: [t] });
-  assert.deepEqual(r?.feedbackQueue, { count: 1, items: [{ code: "YC-0099", kindName: "Báo lỗi" }] });
+  assert.deepEqual(r?.feedbackQueue, { count: 1, items: [{ id: "YC-0099", code: "YC-0099", kindName: "Báo lỗi" }] });
+});
+
+test("reviewAlerts: góp ý còn trạng thái NEW nhưng ĐÃ có trả lời công khai (lastPublicReplyAt) KHÔNG còn là 'chưa trả lời'", () => {
+  const daTraLoi = { ...ticket("YC-0050", "NEW"), lastPublicReplyAt: "2026-10-16T01:00:00.000Z" };
+  const chuaTraLoi = ticket("YC-0051", "NEW");
+  const r = reviewAlerts(SUPER_ADMIN, { catalogItems: [], tickets: [daTraLoi, chuaTraLoi] });
+  assert.deepEqual(r?.feedbackQueue, { count: 1, items: [{ id: "YC-0051", code: "YC-0051", kindName: "Báo lỗi" }] });
+  assert.equal(reviewAlerts(SUPER_ADMIN, { catalogItems: [], tickets: [daTraLoi] }), null);
 });
 
 test("reviewAlerts: hơn 2 góp ý Mới → items chỉ lấy 2 mục ĐẦU (đã sắp mới nhất trước), count = tổng thật", () => {
@@ -135,6 +144,7 @@ test("reviewAlerts (ADR-0038): Quản trị KHÔNG thấy cảnh báo góp ý D�
     catalogConflict: { code: "CANO_RIENG", base: 2_400_000, current: 2_600_000, moreCount: 0, hidden: false },
     feedbackQueue: null,
     expiringDocs: null,
+    doiChieu: null,
   });
   assert.equal(reviewAlerts(ADMIN, { catalogItems: [], tickets }), null, "chỉ có góp ý → ẩn cả khối với Quản trị");
 });
@@ -142,7 +152,7 @@ test("reviewAlerts (ADR-0038): Quản trị KHÔNG thấy cảnh báo góp ý D�
 // Bản vẽ "Trang chu Quan tri.dc.html" (1.73): "Cần xem lại" gom thêm giấy tờ sắp hết hạn (số `count` của GET /api/van-chuyen/sap-het-han — xe + tài xế).
 test("reviewAlerts 1.73: giấy tờ sắp hết hạn — Quản trị / Toàn quyền (ô vehicle.manage) thấy; một mình nó cũng đủ hiện khối; 0 hoặc chưa tải → không dòng", () => {
   for (const w of [ADMIN, SUPER_ADMIN]) {
-    assert.deepEqual(reviewAlerts(w, { catalogItems: [], tickets: [], expiringCount: 2 }), { catalogConflict: null, feedbackQueue: null, expiringDocs: { count: 2 } });
+    assert.deepEqual(reviewAlerts(w, { catalogItems: [], tickets: [], expiringCount: 2 }), { catalogConflict: null, feedbackQueue: null, expiringDocs: { count: 2 }, doiChieu: null });
     assert.equal(reviewAlerts(w, { catalogItems: [], tickets: [], expiringCount: 0 }), null);
     assert.equal(reviewAlerts(w, { catalogItems: [], tickets: [], expiringCount: null }), null);
     assert.equal(reviewAlerts(w, { catalogItems: [], tickets: [] }), null);
@@ -151,4 +161,15 @@ test("reviewAlerts 1.73: giấy tờ sắp hết hạn — Quản trị / Toàn 
 
 test("reviewAlerts 1.73: Bán hàng / Kế toán / Nhân sự không nhận dòng giấy tờ dù có số", () => {
   for (const w of [SALES, ACCOUNTING, who("HR")]) assert.equal(reviewAlerts(w, { catalogItems: [], tickets: [], expiringCount: 3 }), null);
+});
+
+test("reviewAlerts ADR-0120: Kế toán (ô ledger.view) thấy ĐÚNG dòng khoản đang đối chiếu quá hạn, không thấy dòng nào khác; Bán hàng / Quản trị không nhận dòng này", () => {
+  const items = [catalogItem("CANO_RIENG", [{ code: "adult", base: 2_400_000, current: 2_600_000, override: 2_500_000 }])];
+  const du = { catalogItems: items, tickets: [ticket("YC-1", "NEW")], expiringCount: 3, doiChieuQuaHan: 2 };
+  assert.deepEqual(reviewAlerts(ACCOUNTING, du), { catalogConflict: null, feedbackQueue: null, expiringDocs: null, doiChieu: { count: 2 } });
+  assert.equal(reviewAlerts(ACCOUNTING, { ...du, doiChieuQuaHan: 0 }), null, "không khoản nào quá hạn ⇒ ẩn khối");
+  assert.equal(reviewAlerts(ACCOUNTING, null), null);
+  assert.equal(reviewAlerts(SALES, du), null, "Bán hàng không có ô ledger.view any");
+  assert.equal(reviewAlerts(ADMIN, du)?.doiChieu ?? null, null, "Quản trị không giữ ô ledger.view any");
+  assert.deepEqual(reviewAlerts(SUPER_ADMIN, du)?.doiChieu, { count: 2 }, "Toàn quyền giữ cả hai");
 });

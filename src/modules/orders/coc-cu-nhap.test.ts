@@ -45,6 +45,6 @@ test("Q2: nháp cũ cọc 800.000 — lưu nháp tổng 500.000 (< cọc) → c�
   assert.equal(ha.status, 200, ha.text);
   assert.deepEqual(cot(w, id), { total: 500_000, deposit_amount: 0, deposit_method: null, remaining_amount: 500_000 }, "tổng < cọc cũ → cọc về 0 (Q2)");
   const nk = w.q("SELECT detail FROM audit_log WHERE order_id = ? AND action = 'updated' ORDER BY rowid DESC LIMIT 1", id)[0].detail as string;
-  assert.match(nk, /đưa tiền cọc cũ 800\.000 ₫ ghi trên đơn về 0/);
+  assert.match(nk, /đưa tiền thu trước cũ 800\.000 ₫ ghi trên đơn về 0/);
   assert.doesNotMatch(nk, /0912345678/, "không SĐT trong nhật ký");
 });

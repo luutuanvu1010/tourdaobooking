@@ -1,5 +1,6 @@
 // Hướng dẫn: Đối tác (bản 1.40). Luật viết ở src/shared/huong-dan.ts; nguồn đối chiếu docs/superpowers/plans/2026-09-30-huong-dan-theo-vai-nguon/doi-tac.md.
 import type { NhomHuongDan } from "./huong-dan.ts";
+import { mucBatHaiLop, mucNhanMaEmail } from "./huong-dan-hai-lop.ts";
 
 export const HD_DOI_TAC: NhomHuongDan = {
   id: "doi-tac",
@@ -182,5 +183,6 @@ Máy đã bật Face ID: vào [[Tôi]], bấm [[Quên PIN? Đặt PIN mới bằ
 
 Bấm [[Hỗ trợ]]. Bạn xem lại được các góp ý mình đã gửi.`,
     },
+    mucBatHaiLop("doi-tac"), mucNhanMaEmail("doi-tac"),
   ],
 };

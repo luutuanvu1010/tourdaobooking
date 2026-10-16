@@ -1,5 +1,6 @@
 // Hướng dẫn: Hành chính nhân sự (ADR-0071, bản 1.52). Luật viết ở src/shared/huong-dan.ts.
 import type { NhomHuongDan } from "./huong-dan.ts";
+import { mucBatHaiLop, mucNhanMaEmail } from "./huong-dan-hai-lop.ts";
 
 export const HD_NHAN_SU: NhomHuongDan = {
   id: "nhan-su",
@@ -47,5 +48,6 @@ Bạn chỉ sửa được tài khoản **không có quyền Quản trị hoặc
 - **Xem đơn, giá, Danh bạ, danh mục dịch vụ**: không thuộc việc của vai này; cần thì nhờ người phụ trách hệ thống gán thêm vai.
 - **Tạo tài khoản báo số đã có tài khoản**: tìm người đó trong danh sách, có thể họ đang bị ngưng.`,
     },
+    mucBatHaiLop("noi-bo"), mucNhanMaEmail("noi-bo"),
   ],
 };

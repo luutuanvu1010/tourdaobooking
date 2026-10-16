@@ -17,7 +17,7 @@ const FILES = readdirSync(DIR).filter((f) => f.endsWith(".json")).sort();
 const HAM = new Set(["kiemTaoSuaChuyen", "kiemXep", "kiemXuatBen", "kiemKetThuc", "trangThaiChang", "kiemGioXayRa"]); // kiemGioXayRa: ADR-0050 VK1-A (A8b)
 
 type Json = null | boolean | number | string | Json[] | { [k: string]: Json };
-interface Buoc { ma: string; mo_ta: string; ham: string; dau_vao: Record<string, Json>; dap_an: Record<string, Json> }
+interface Buoc { ma: string; mo_ta: string; ham: string; dau_vao: Record<string, Json>; dap_an: Record<string, Json>; trang_thai_buoc?: string; dap_an_chu_muon?: Record<string, Json> }
 interface Tep { mo_ta: string; xac_nhan: { trang_thai: string; nguoi: string | null; ngay: string | null }; nen: Record<string, Json>; cac_buoc: Buoc[] }
 
 /** Giải '$nen.<đường>' và đổi giờ VN 'YYYY-MM-DD HH:MM' ở khoá tận cùng 'Ms' thành mili-giây. */
@@ -145,8 +145,17 @@ for (const f of FILES) {
   });
 
   for (const b of tep.cac_buoc) {
+    // Bước mà CHỦ muốn khác luật đang chạy (ghi vào tệp bước `dap_an_chu_muon`): `dap_an` vẫn là điều mã làm HÔM NAY và vẫn phải khớp (bài thường);
+    // thêm một bài `todo` kiểm điều chủ muốn — đỏ cho tới khi có quyết định (ADR) và mã đổi, không làm npm test đỏ. Chủ 2026-10-16.
     test(`ca mẫu ${f} / ${b.ma}: ${b.mo_ta}`, () => {
       assert.deepEqual(chay(b, tep.nen), b.dap_an);
     });
+    if (b.trang_thai_buoc === "chu_muon_khac_luat") {
+      assert.ok(b.dap_an_chu_muon, `${b.ma}: bước chu_muon_khac_luat phải có dap_an_chu_muon`);
+      const { ghi_chu: _ghiChu, ...chuMuon } = b.dap_an_chu_muon;
+      test(`ca mẫu ${f} / ${b.ma} — ĐIỀU CHỦ MUỐN (mã chưa theo kịp, cần quyết định riêng)`, { todo: "chủ muốn khác luật hiện hành — xem ghi_chu của bước" }, () => {
+        assert.deepEqual(chay(b, tep.nen), chuMuon);
+      });
+    }
   }
 }

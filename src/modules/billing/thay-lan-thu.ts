@@ -9,11 +9,11 @@ import { auditStatement } from "../audit";
 import { UUID_RE } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
 import { transferInOf } from "./coc-repo";
-import { lineIfPostingStatement, linesOfOrder, linesOfReceipt, lineReversed, orderState, ownerCompanyId, postingIfReceiptStatement, postingPlainStatement, receiptsOfOrder } from "./repository";
+import { lineIfPostingStatement, linesOfOrder, linesOfReceipt, lineReversed, orderState, ownerCompanyId, postingIfReceiptStatement, postingPlainStatement, receiptsOfOrder, reconOfOrder } from "./repository";
 import type { GiaoDich } from "./ma-giao-dich";
 import { conLai, dong, khoanChoXacNhan, sinhDongDao, sinhDongLanThu } from "./rules";
 import {
-  CHUA_CO_CONG_TY, cauGanMa, docGiaoDichCuaLanThu, docLanThu, docLyDo, docNgay, kiemCacMa, layKyDaKhoa, lineOf, loi, loiKhoaKy, loiMaTrigger, loiTrigger, toLineRow, toReceiptRow, type KetQua,
+  CHUA_CO_CONG_TY, cauGanMa, docGiaoDichCuaLanThu, docLanThu, docLyDo, docNgay, kiemCacMa, layKyDaKhoa, lineOf, loi, loiKhoaKy, loiMaTrigger, loiTrigger, toDoiChieuRow, toLineRow, toReceiptRow, type KetQua,
   type LanThuHopLe, type NguoiGoi,
 } from "./service";
 import { phaiThuLucGiao, receiptThayDaoStatement, receiptThayMoiStatement } from "./thay-lan-thu-repo";
@@ -65,8 +65,8 @@ export async function ghiThayLanThu(db: D1Database, input: { raw: unknown; ai: N
   if (cu.length === 0 && due === null) return loi(400, "invalid_input", "Đơn chưa Đã giao — chọn lần thu cần thay, hoặc ghi lần thu như thường.");
   // ADR-0088 đ4 (i) + kiểm độc lập vòng 3 (CAO): khoản "Công ty thu – CK" do người khác khai còn CHỜ XÁC NHẬN thì KHÔNG đảo — dòng giữ hộ trên người khai còn
   // nguyên tới khi Kế toán xác nhận đã nhận hoặc người khai nộp (một lần thu mới do Kế toán ghi "Công ty thu" sẽ xoá khoản người khai đang giữ).
-  const choXacNhan = khoanChoXacNhan(receipts.map(toReceiptRow), dongDon.map(toLineRow));
-  if (st.status === "cancelled") return loi(409, "invalid_state", "Đơn đã huỷ — tiền của đơn huỷ đi qua “Duyệt hoàn cọc” / “Chuyển tiền sang đơn mới”.");
+  const choXacNhan = khoanChoXacNhan(receipts.map(toReceiptRow), dongDon.map(toLineRow), (await reconOfOrder(db, orderId)).map(toDoiChieuRow));
+  if (st.status === "cancelled") return loi(409, "invalid_state", "Đơn đã huỷ — tiền của đơn huỷ đi qua “Duyệt hoàn thu trước” / “Chuyển tiền sang đơn mới”.");
   const cuRows = [];
   for (const id of cu as string[]) {
     const r = receipts.find((x) => x.id === id);
@@ -114,7 +114,7 @@ export async function ghiThayLanThu(db: D1Database, input: { raw: unknown; ai: N
       note: m.ghiChu, at, by, replacementId: markerId,
     }));
     const dongMoi = sinhDongLanThu({
-      kind: "CUSTOMER_PAYMENT", amount: m.soTien, collectorRole: m.collectorRole, collectorPartyId: m.collectorPartyId, nguoiGhiPartyId: input.ai.partyId ?? congTyId,
+      kind: "CUSTOMER_PAYMENT", amount: m.soTien, collectorRole: m.collectorRole, collectorPartyId: m.collectorPartyId, method: m.hinhThuc, nguoiGhiPartyId: input.ai.partyId ?? congTyId,
       nguoiGhiLaKeToan: input.ai.laKeToan, congTyId,
     });
     if (dongMoi.length > 0) {

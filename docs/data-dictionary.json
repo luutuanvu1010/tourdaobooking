@@ -162,6 +162,30 @@
       "note": "chính sách đăng nhập (ADR-0085, migration 0067): mỗi quyền app đặt được (9 mã, không SUPER_ADMIN) tối đa một dòng hiện hành; multi = 1 là Nhiều máy; bảng trống = mọi quyền Một máy. Không xoá dòng — đổi = đóng dòng hiện hành (valid_to_at) + chèn dòng mới trong cùng lô; lưu có kiểm phiên bản (id dòng đang xem)"
     },
     {
+      "name": "aut_mfa_factor",
+      "module": "auth",
+      "kind": "table",
+      "note": "yếu tố bảo mật hai lớp của TÀI KHOẢN (ADR-0074, migration 0101): TOTP (secret_enc = khoá AES-GCM 'v1.iv.ct', khoá mã hoá MFA_ENCRYPTION_KEY, KHÔNG bao giờ vào nhật ký / DTO / câu lỗi) hoặc EMAIL (Phần C). Mỗi (người, loại) tối đa một dòng hiện hành (valid_to_at rỗng); đổi = đóng dòng cũ + chèn dòng mới. last_totp_step chống dùng lại mã: chỉ tăng"
+    },
+    {
+      "name": "aut_mfa_email_code",
+      "module": "auth",
+      "kind": "table",
+      "note": "mã gửi qua email cho bước hai lớp (ADR-0074 điều 4, Phần C; migration 0102): chỉ lưu băm — email_hash (địa chỉ đã chuẩn hoá; địa chỉ thật ở aut_mfa_factor.email) và code_hash (SHA-256 \"<staffId>:<id>:<mã>\"); mã thô và địa chỉ KHÔNG vào nhật ký / DTO / log. purpose 'login' (bước đăng nhập) hoặc 'enroll' (bật yếu tố). Sống 10 phút (expires_at), tối đa 5 lần nhập (attempts). Mỗi (người, mục đích) tối đa một mã còn mở: gửi mã mới đặt revoked_at cho mã cũ; dùng = used_at. Không xoá dòng"
+    },
+    {
+      "name": "aut_mfa_recovery_code",
+      "module": "auth",
+      "kind": "table",
+      "note": "mã dự phòng hai lớp (ADR-0074, migration 0101): chỉ lưu băm SHA-256 gắn với tài khoản (code_hash), không lưu mã thô. Mỗi mã dùng một lần (used_at); tạo bộ mới = thu hồi bộ cũ (revoked_at). Không xoá dòng"
+    },
+    {
+      "name": "aut_trusted_device",
+      "module": "auth",
+      "kind": "table",
+      "note": "máy được tin cho bước hai lớp (ADR-0074, migration 0101): chỉ lưu băm token (token_hash), token thô nằm ở cookie của máy, KHÔNG vào nhật ký / DTO. Hết hạn bằng expires_at, thu hồi bằng revoked_at + revoke_reason (danh sách cố định). Không xoá dòng"
+    },
+    {
       "name": "order_item",
       "module": "orders",
       "kind": "table",
@@ -594,6 +618,12 @@
       "note": "dòng nợ hai chân (ADR-0026 đ3), CHỈ-THÊM; nguồn = đơn HOẶC chuyến (ADR-0057 T3 — trip_id cột dự trữ, không khoá ngoại, lượt 1 luôn trống). 0080 (ADR-0092 Đ2, Đ2b): trigger bil_debt_line_settlement_no_flip — dòng quyết toán gốc gắn đơn không làm số dư cặp (bên, công ty chủ) đổi dấu; bil_debt_line_held_once — dòng đảo giữ hộ chỉ khi người giữ hộ còn nợ ≥ số dòng gốc (một dòng giữ hộ tất toán MỘT lần: \"Công ty đã nhận\" HOẶC \"Nộp\")"
     },
     {
+      "name": "bil_receipt_recon",
+      "module": "billing",
+      "kind": "table",
+      "note": "dấu đối chiếu của khoản \"Công ty thu\" bằng CHUYỂN KHOẢN do người không phải Kế toán khai (ADR-0120 Điều 1; migration 0099; tiền mặt giữ luật giữ hộ cũ, không có dấu), CHỈ-THÊM. DECLARED = đang đối chiếu (không có dòng giữ hộ nào), CONFIRMED = Kế toán đã bấm \"Công ty đã nhận\"; đang đối chiếu = có DECLARED chưa có CONFIRMED, lần thu còn hiệu lực. Khoản khai trước ngày áp luật không có dòng ở đây (đi đường dòng giữ hộ cũ). Đơn còn khoản đang đối chiếu chưa Đã giao được (trigger bil_posting_delivered_reconciling)"
+    },
+    {
       "name": "bil_receipt_bank_txn",
       "module": "billing",
       "kind": "table",
@@ -654,10 +684,22 @@
       "note": "danh sách vai hồ sơ được hưởng hoa hồng (ADR-0077 điều 3, C3 = A; migration 0090): gieo năm vai (Công ty lữ hành, HDV độc lập, Lễ tân khách sạn, Tài xế taxi, Cộng tác viên). Không xoá, không đổi khoá hay cột tạo (trigger prc_beneficiary_role_update_scope); tắt một vai bằng active = 0 (dòng mức cũ vẫn giữ, R-PRC-2 báo)"
     },
     {
+      "name": "prc_rate_tier",
+      "module": "pricing",
+      "kind": "table",
+      "note": "mức TA dùng chung (ADR-0117 lần 2; migration 0096): tên do Kế toán đặt (TA1, TA2…), name_key duy nhất (khoá so tên, máy chủ ghi). Không xoá; chỉ đổi tên/active (trigger prc_rate_tier_update_scope); tắt mức = chặn gắn mới và thêm dòng mới, dòng đang áp vẫn áp"
+    },
+    {
+      "name": "prc_role_tier",
+      "module": "pricing",
+      "kind": "table",
+      "note": "gắn loại hồ sơ với mức TA theo ngày (ADR-0117 lần 2; migration 0096): chỉ thêm hoặc đóng một lần, mỗi loại tối đa một mức tại một ngày (prc_tier_overlap); loại phải nằm trong danh sách được hưởng còn bật (prc_tier_target), mức phải còn bật (prc_tier_inactive). Đổi mức = đóng gắn cũ, mở gắn mới"
+    },
+    {
       "name": "prc_commission_rule",
       "module": "pricing",
       "kind": "table",
-      "note": "bảng mức hoa hồng đối tác (ADR-0077 điều 4; migration 0090), chính sách có hiệu lực: áp cho một hồ sơ HOẶC cho một vai; phạm vi dịch vụ / nhóm / mọi dịch vụ; kiểu tỷ lệ (phần vạn) hoặc đ/khách. Không xoá, chỉ đóng hiệu lực một lần, không hai dòng cùng đối tượng + phạm vi chồng khoảng ngày; đối tượng phải mang vai đang bật trong prc_beneficiary_role. Tỷ lệ và đ/khách KHÔNG vào DTO của Đối tác (C9 = A)"
+      "note": "bảng mức hoa hồng đối tác (ADR-0077 điều 4; migration 0090, dựng lại ở 0097 — ADR-0117 lần 2), chính sách có hiệu lực: áp cho đúng MỘT trong ba đích — một hồ sơ, một vai, hoặc một mức TA (target_tier_code → prc_rate_tier); phạm vi dịch vụ / nhóm / mọi dịch vụ; kiểu tỷ lệ (phần vạn) hoặc đ/khách. Không xoá, chỉ đóng hiệu lực một lần (không đổi số hay đích, kể cả mức), không hai dòng cùng đích + phạm vi chồng khoảng ngày (khoá gồm cả mức: hai mức khác nhau cùng có dòng mọi dịch vụ được); hồ sơ / vai phải đang được hưởng, mức phải còn bật (prc_tier_inactive). Tỷ lệ và đ/khách KHÔNG vào DTO của Đối tác (C9 = A)"
     },
     {
       "name": "prc_supply_term",
@@ -1061,7 +1103,8 @@
         "rate_bp",
         "per_pax_amount",
         "valid_from_date",
-        "valid_to_date"
+        "valid_to_date",
+        "target_tier_code"
       ]
     },
     {

@@ -31,6 +31,7 @@ import { can } from "../src/shared/permissions";
 import { GHI_CHU_HUY_TOI_DA, NHOM_HUY_NHAN, luaChonLyDo, nhanNhomHuy } from "../src/shared/ly-do-huy";
 import { nhanTienDaTra as nhanTienLuat } from "../src/shared/nhan-tien";
 import { ngayDayDu } from "../src/shared/vn-date";
+import { cauNhacKhoan, quaHanDoiChieu, soNgayCho } from "../src/shared/doi-chieu-hien-thi";
 import { cauMoc, changDuoiMoc, tomTatChanXacNhan, type ChangCanDatGap } from "../src/shared/dat-gap-hien-thi";
 import { NO_BOOKER_TEXT } from "../src/shared/booker";
 import { coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, duocGhiTay, nhanBenDat } from "../src/shared/phan-doi-tac-hien-thi";
@@ -505,6 +506,7 @@ function tienCard(order: Order): HTMLElement {
               ` — ${l.traLai ? "Trả lại khách " : ""}${vnd(l.soTien)} · ${l.hinhThuc} · người thu: ${l.nguoiThu}`,
               l.laDongDao ? h("span", { class: "muted" }, " (dòng đảo)") : l.daDao ? h("span", { class: "muted" }, " (đã đảo)") : null,
               l.maGiaoDich ? h("span", { class: "muted" }, ` · mã GD ${l.maGiaoDich} (thực chuyển ${vnd(l.soThucChuyen ?? 0)})`) : null,
+              t.keToan && !t.completedAt ? nhacDoiChieuLanThu(t, l) : null,
               t.keToan && !t.completedAt ? nutKeToanLanThu(order, t, l) : null,
             ),
           ),
@@ -672,7 +674,7 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
         bao: "Đã chuyển tiền sang đơn mới.",
       }));
     }
-    if (c.coTheDuyet && k.conLai > 0 && k.daHuy === 0) {
+    if ((k.loai === "chuyen" ? c.coTheDuyetChuyen : c.coTheDuyet) && k.conLai > 0 && k.daHuy === 0) {
       const so = oSoTien(k.conLai);
       const lyDo = oLyDo("Vì sao huỷ duyệt (bắt buộc)");
       nut.push(hangXacNhan({
@@ -721,20 +723,24 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
     const lyDo = oLyDo("Vì sao xếp nhóm này (bắt buộc)");
     nut.push(hangXacNhan({
       nhan: "Phân loại lý do", action: "phan-loai-huy", nutGhi: "Phân loại",
-      cau: "Lý do huỷ đang “chưa kết luận”. Chọn nhóm (quyết định giữ cọc và hạn hoàn):",
+      cau: "Lý do huỷ đang “chưa kết luận”. Chọn nhóm (quyết định giữ thu trước và hạn hoàn):",
       o: [h("label", null, "Nhóm", nhom), h("label", null, "Lý do", lyDo)],
       kiem: () => (lyDo.value.trim() ? null : "Nhập lý do phân loại."),
       ghi: () => api(`/api/orders/${encodeURIComponent(order.id)}/cancel-reason`, { method: "POST", body: { nhom: nhom.value, lyDo: lyDo.value.trim() } }),
       bao: "Đã phân loại lý do huỷ.",
     }));
   }
-  if (c.coTheDuyet) {
-    const loai = h("select", null, h("option", { value: "hoan" }, "Hoàn cho khách"), h("option", { value: "chuyen" }, "Chuyển sang đơn mới")) as HTMLSelectElement;
+  if (c.coTheDuyet || c.coTheDuyetChuyen) {
+    // ADR-0120 Điều 2: mỗi lựa chọn hiện theo ĐÚNG ô của nó (Kế toán chỉ thấy "Chuyển sang đơn mới"); máy chủ kiểm lại.
+    const loai = h("select", null,
+      ...(c.coTheDuyet ? [h("option", { value: "hoan" }, "Hoàn cho khách")] : []),
+      ...(c.coTheDuyetChuyen ? [h("option", { value: "chuyen" }, "Chuyển sang đơn mới")] : []),
+    ) as HTMLSelectElement;
     const so = oSoTien(null);
     const donNhan = h("input", { type: "text", autocomplete: "off", placeholder: "Mã đơn nhận (khi chuyển)" }) as HTMLInputElement;
     const lyDo = oLyDo("Vì sao hoàn / chuyển (bắt buộc)");
     nut.push(hangXacNhan({
-      nhan: "Duyệt hoàn cọc", action: "coc-duyet", nutGhi: "Duyệt",
+      nhan: c.coTheDuyet ? "Duyệt hoàn thu trước" : "Duyệt chuyển sang đơn mới", action: "coc-duyet", nutGhi: "Duyệt",
       cau: `Công ty còn giữ ${vnd(c.conGiu)}.${c.nhom === "KHACH_HUY" ? ` Hạn hoàn: ${ngayDayDu(c.han)}.` : ""} Người duyệt không tự chi.`,
       o: [h("label", null, "Loại", loai), h("label", null, "Số tiền (₫)", so), h("label", null, "Đơn nhận", donNhan), h("label", null, "Lý do", lyDo)],
       kiem: () => (parseMoney(so.value) <= 0 ? "Nhập số tiền." : !lyDo.value.trim() ? "Nhập lý do." : loai.value === "chuyen" && !donNhan.value.trim() ? "Nhập mã đơn nhận." : null),
@@ -752,7 +758,7 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
     const lyDo = oLyDo("Đã trả tay khách thế nào (bắt buộc, không số tài khoản)");
     nut.push(hangXacNhan({
       nhan: "Ghi đã hoàn ngoài hệ thống", action: "coc-ghi-ngoai", nutGhi: "Ghi",
-      cau: "Đơn huỷ trước khi có lệnh hoàn cọc: ghi khoản công ty đã trả tay cho khách (cần Quản trị xác nhận mới tính).",
+      cau: "Đơn huỷ trước khi có lệnh hoàn thu trước: ghi khoản công ty đã trả tay cho khách (cần Quản trị xác nhận mới tính).",
       o: [h("label", null, "Số tiền (₫)", so), h("label", null, "Lý do", lyDo)],
       kiem: () => (parseMoney(so.value) <= 0 ? "Nhập số tiền." : lyDo.value.trim() ? null : "Nhập lý do."),
       ghi: () => api(`/api/orders/${encodeURIComponent(order.id)}/coc/hoan-ngoai`, { method: "POST", body: { soTien: parseMoney(so.value), lyDo: lyDo.value.trim() } }),
@@ -768,6 +774,14 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
     ngoai.length ? h("ul", { class: "pay-list" }, ...ngoai) : null,
     nut.length ? h("div", { class: "handler-actions" }, ...nut) : null,
   );
+}
+
+/** ADR-0120 Điều 1 mục 3: dòng nhắc Kế toán dưới khoản "Công ty thu" đang đối chiếu — người khai, số tiền, số ngày chờ (quá 3 ngày thì nổi màu cảnh báo). Không số điện thoại / tài khoản / mã giao dịch. */
+function nhacDoiChieuLanThu(t: Api.OrderPaymentsResponse, l: Api.LanThuDto): HTMLElement | null {
+  // Chỉ khoản CHUYỂN KHOẢN mới là "đang đối chiếu" (ADR-0120 Điều 1): tiền mặt "Công ty thu" vẫn là nợ giữ hộ (H3 cũ), không nhắc kiểu này.
+  if (!t.keToan!.choXacNhan.includes(l.id) || l.daDao || l.laDongDao || l.hinhThuc !== METHOD_LABEL.BANK_TRANSFER) return null;
+  const soNgay = soNgayCho(l.ghiLuc, new Date());
+  return h("p", { class: quaHanDoiChieu(soNgay) ? "dd-canh-xn is-do" : "muted", "data-khoi": "nhac-doi-chieu" }, cauNhacKhoan({ nguoiKhai: l.nguoiGhi ?? null, soTienDaDinhDang: vnd(l.soTien), soNgay }));
 }
 
 /** Nút trên từng lần thu: "Xác nhận đã nhận" (Công ty thu – CK do người khác khai — H3), "Đảo" (ghi dòng đảo, bắt buộc lý do; gồm lần thu "chưa rõ" từ cọc cũ). */

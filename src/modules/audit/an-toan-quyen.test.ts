@@ -12,7 +12,7 @@ const ADM = "33333333-3333-4333-8333-333333333333";
 const SUP = "77777777-7777-4777-8777-777777777777";
 const DIR = "99999999-9999-4999-8999-999999999999"; // giống vai IT: giữ cả ADMIN và SUPER_ADMIN (ADR-0072: vai Giám đốc nay chỉ ADMIN)
 
-const SILENT = ["account_roles_changed", "permission_changed", "staff_role_changed", "maintenance_changed", "pin_reset", "passkey_removed", "session_policy_changed", "session_revoked"]; // ADR-0075 điều 8: thêm session_revoked; ADR-0085 điều 9: thêm session_policy_changed. Gõ tay CÓ CHỦ Ý (không lấy từ SILENT_AUDIT_ACTIONS) để bỏ sót ở nguồn thì bài đỏ
+const SILENT = ["account_roles_changed", "permission_changed", "staff_role_changed", "maintenance_changed", "pin_reset", "passkey_removed", "session_policy_changed", "session_revoked"]; // ADR-0075 điều 8: thêm session_revoked; ADR-0085 điều 9: thêm session_policy_changed. mfa_reset (ADR-0074 Task 6) CỐ Ý không im lặng — chưa có ADR duyệt (vòng sửa 1). Gõ tay CÓ CHỦ Ý (không lấy từ SILENT_AUDIT_ACTIONS) để bỏ sót ở nguồn thì bài đỏ
 
 function setup() {
   const w = world();
@@ -48,10 +48,12 @@ test("ADR-0038: người không giữ Toàn quyền KHÔNG nhận 8 thao tác im
   const silentBySup = SILENT.map((a) => log(SUP, a));
   const silentByDir = SILENT.map((a) => log(DIR, a));
   const normalBySup = log(SUP, "location_created");
+  // ADR-0074 Task 6, vòng sửa 1: Toàn quyền tắt bảo mật hai lớp của người khác là thao tác THƯỜNG (chưa có ADR cho nó im lặng) — người khác vẫn thấy.
+  const mfaResetBySup = log(SUP, "mfa_reset");
   const silentByAdm = SILENT.map((a) => log(ADM, a));
   const seen = ids(await asNonSuper(w));
   for (const id of [...silentBySup, ...silentByDir]) assert.ok(!seen.includes(id), `không được thấy ${id}`);
-  assert.deepEqual(seen, [normalBySup, ...silentByAdm].sort());
+  assert.deepEqual(seen, [normalBySup, mfaResetBySup, ...silentByAdm].sort());
 });
 
 test("ADR-0038: Toàn quyền thấy đủ mọi dòng nhật ký", async () => {

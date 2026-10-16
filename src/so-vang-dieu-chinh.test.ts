@@ -1,7 +1,7 @@
 // Sổ vàng golden/dieu-chinh-cong-no.json (Hiến chương 5.17; ADR-0115 đợt 1): điều chỉnh công nợ cần người thứ hai duyệt. Khuôn src/so-vang-don-huy.test.ts:
 //  LỚP 1 tự cân: dựng lại số dư sau MỖI bước bằng số học viết tay (chỉ tính bước "duyệt" có mong_doi 201), so với đáp án — bắt CA MẪU viết sai, không gọi mã.
 //  LỚP 2 chạy từng ca qua CHÍNH các route thật trên khung thử (tests/audit/harness.mjs): mã kết quả, mã lỗi, số dư sau từng bước, số phiếu điều chỉnh, dòng nhật ký.
-// Mọi ca đang "cho_xac_nhan" (AI soạn, chờ Kế toán / chủ xác nhận — Hiến pháp N8). Lớp 2 SIẾT từ đầu: lệch là ĐỎ (ca chờ vẫn phải khớp mã, như sổ vàng sửa số khách
+// Ca "cho_xac_nhan" (AI soạn, chờ Kế toán / chủ xác nhận — Hiến pháp N8) không có tên người; ca "da_xac_nhan" phải có tên người + ngày (chủ xác nhận 2026-10-14). Lớp 2 SIẾT từ đầu: lệch là ĐỎ (ca chờ vẫn phải khớp mã, như sổ vàng sửa số khách
 // từ ADR-0109) — nếu Kế toán sửa con số thì sửa luật, không nới bài. SV-DC-05 (đợt 2: chi phí chuyến) chỉ qua lớp 1.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -27,7 +27,12 @@ const dongTien = (n: unknown): n is number => Number.isInteger(n) && (n as numbe
 test("sổ vàng dieu-chinh-cong-no LỚP 1: đủ 5 ca (SV-DC-01…05), mã không trùng, số nguyên đồng, mỗi ca tự cân từng bước", () => {
   assert.deepEqual(cases.map((c) => c.ma), ["SV-DC-01", "SV-DC-02", "SV-DC-03", "SV-DC-04", "SV-DC-05"]);
   for (const c of cases) {
-    assert.equal(c.xac_nhan.trang_thai, "cho_xac_nhan", `${c.ma}: AI không tự xác nhận (N8)`);
+    assert.ok(["cho_xac_nhan", "da_xac_nhan"].includes(c.xac_nhan.trang_thai), `${c.ma}: trạng thái xác nhận lạ`);
+    if (c.xac_nhan.trang_thai === "da_xac_nhan") {
+      assert.ok(c.xac_nhan.nguoi && /^\d{4}-\d{2}-\d{2}$/.test(c.xac_nhan.ngay ?? ""), `${c.ma}: ca đã xác nhận phải có tên người + ngày (N8, AI không tự xác nhận)`);
+    } else {
+      assert.equal(c.xac_nhan.nguoi, null, `${c.ma}: ca chờ xác nhận không được có tên người`);
+    }
     if (c.ap_dung === "dot_2") {
       const { chi_phi_chuyen: g, dieu_chinh: d } = c.dau_vao;
       assert.ok(dongTien(g) && Number.isInteger(d), c.ma);

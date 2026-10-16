@@ -13,7 +13,7 @@
     {
       "ma": "SV-DC-01",
       "ten": "Chia nhỏ để vượt trần (lỗ C-2): đơn phải thu 500.000, đã thu 300.000",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": { "phai_thu": 500000, "da_thu_cong_ty": 300000, "so_du_dau": 0 },
       "buoc": [
         { "lam": "yeu_cau", "ai": "ke_toan_1", "huong": "tang", "so_tien": 500000, "nhan": "A", "mong_doi": { "ma": 201 }, "so_du_sau": 0 },
@@ -25,7 +25,7 @@
     {
       "ma": "SV-DC-02",
       "ten": "HDV giữ hộ 300.000: Kế toán gửi giảm nợ 300.000 — tự duyệt bị chặn, Toàn quyền duyệt thì về 0",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": { "phai_thu": 1000000, "da_thu_cong_ty": 0, "so_du_dau": 0 },
       "buoc": [
         { "lam": "thu", "so_tien": 300000, "mong_doi": { "ma": 201 }, "so_du_sau": 300000 },
@@ -38,7 +38,7 @@
     {
       "ma": "SV-DC-03",
       "ten": "Hai yêu cầu giảm 300.000 trên khoản nợ 300.000: duyệt cái đầu về 0, cái sau bị chặn (không đổi dấu)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": { "phai_thu": 1000000, "da_thu_cong_ty": 0, "so_du_dau": 0 },
       "buoc": [
         { "lam": "thu", "so_tien": 300000, "mong_doi": { "ma": 201 }, "so_du_sau": 300000 },
@@ -52,7 +52,7 @@
     {
       "ma": "SV-DC-04",
       "ten": "Hết hạn ngày thứ 8: yêu cầu cách đây 8 ngày không duyệt được; yêu cầu cách đây 6 ngày còn duyệt được",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": { "phai_thu": 1000000, "da_thu_cong_ty": 0, "so_du_dau": 0 },
       "buoc": [
         { "lam": "thu", "so_tien": 300000, "mong_doi": { "ma": 201 }, "so_du_sau": 300000 },
@@ -67,7 +67,7 @@
       "ma": "SV-DC-05",
       "ten": "(ĐỢT 2, chưa thi công) Chi phí chuyến thuê xe: giá thoả thuận 3.000.000, điều chỉnh −200.000",
       "ap_dung": "dot_2",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-14" },
       "dau_vao": { "chi_phi_chuyen": 3000000, "dieu_chinh": -200000 },
       "dap_an": { "tong_khi_cho_duyet": 3000000, "tong_sau_duyet": 2800000 }
     }

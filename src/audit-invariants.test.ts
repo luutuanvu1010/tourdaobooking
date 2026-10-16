@@ -6,6 +6,8 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync, type SupportedValueType } from "node:sqlite";
 import { demSietTheoTap } from "./modules/auth/repository.ts";
+import { allowedFactors, isInternal } from "./modules/auth/mfa-rules.ts";
+import { EXTERNAL_PERMISSIONS, PERMISSION_CODES } from "./shared/permissions.ts";
 import { OWNER_COMPANY_ROLE } from "./shared/cong-ty-chu.ts";
 import { vnToday } from "./shared/vn-date.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts — hàm gieo DÙNG CHUNG mốc giờ hẹn (ADR-0051)
@@ -612,6 +614,120 @@ test("R-AUT-SESSION-3 đếm cùng tập tài khoản với xem trước khi t�
   const d1 = { prepare: (sql: string) => ({ bind: (...a: SupportedValueType[]) => ({ first: async () => ({ ...db.prepare(sql).get(...a) }) }) }) } as unknown as D1Database;
   const xemTruoc = await demSietTheoTap(d1, ["PARTNER"], new Date().toISOString());
   assert.equal(xemTruoc.soNguoi, violations(db, one("R-AUT-SESSION-3")));
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// R-AUT-MFA-1/2/3 (ADR-0074, kế hoạch Phần B Task 8): lưới dữ liệu của bảo mật hai lớp. Đường API giữ cả ba (ân hạn khi tạo/kích hoạt lại/lên nội bộ,
+// cửa sổ 24 giờ khi tắt lớp hai; chỉ mục aut_mfa_factor_one_live; lô ngưng thu hồi máy tin) — chỉ dữ liệu sửa tay / chỉ mục mất mới đỏ.
+// ---------------------------------------------------------------------------------------------------------------------
+function addFactor(db: DatabaseSync, o: { id: string; staffId: string; kind?: "TOTP" | "EMAIL"; to?: string | null }): void {
+  const kind = o.kind ?? "TOTP";
+  db.prepare(
+    `INSERT INTO aut_mfa_factor (id, staff_id, kind, secret_enc, email, last_totp_step, valid_from_at, valid_to_at, created_at, created_by, updated_at, updated_by)
+     VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, NULL, ?, NULL)`,
+  ).run(o.id, o.staffId, kind, kind === "TOTP" ? "v1.iv.ct" : null, kind === "EMAIL" ? "a@b.vn" : null, T1, o.to ?? null, T1, T1);
+}
+function addTrusted(db: DatabaseSync, o: { id: string; staffId: string; revoked?: boolean; expires?: string }): void {
+  db.prepare(
+    `INSERT INTO aut_trusted_device (id, staff_id, token_hash, label, created_at, created_by, updated_at, updated_by, last_used_at, expires_at, revoked_at, revoke_reason)
+     VALUES (?, ?, ?, 'iPhone', ?, NULL, ?, NULL, ?, ?, ?, ?)`,
+  ).run(o.id, o.staffId, `bam-${o.id}`, T1, T1, T1, o.expires ?? XA, o.revoked ? T2 : null, o.revoked ? "ngung" : null);
+}
+const boHan = (db: DatabaseSync, id: string) => db.prepare("UPDATE staff SET mfa_grace_until = NULL, mfa_enroll_until = NULL WHERE id = ?").run(id);
+
+test("R-AUT-MFA-1/2/3/4: đúng một kiểm mỗi mã, mức fail", () => {
+  for (const c of ["R-AUT-MFA-1", "R-AUT-MFA-2", "R-AUT-MFA-3", "R-AUT-MFA-4"]) assert.equal(one(c).level, "fail", c);
+});
+
+// R-AUT-MFA-4 (ADR-0074 điều 7; Phần C Task 4): tài khoản giữ Quản trị / Toàn quyền / Kế toán không có yếu tố EMAIL sống. Đường API giữ (409 khi bật; lô đổi
+// quyền / vai kết thúc email) — chỉ dữ liệu sửa tay mới đỏ.
+const quyenThem = (db: DatabaseSync, staffId: string, code: string) =>
+  db.prepare("INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").run(`p-${staffId}-${code}`, staffId, code, T1, T1, T1);
+
+test("R-AUT-MFA-4: yếu tố EMAIL sống của tài khoản giữ ADMIN / SUPER_ADMIN / ACCOUNTING là vi phạm (đếm theo tài khoản, kể cả đã ngưng); TOTP, email đã kết thúc, quyền đã đóng, quyền thường không tính", () => {
+  const db = build();
+  addFactor(db, { id: "e-an", staffId: "s-an", kind: "EMAIL" }); // Bán hàng có email → đúng luật
+  addFactor(db, { id: "t-admin", staffId: "s-admin" }); // Quản trị có TOTP → đúng luật
+  addFactor(db, { id: "e-admin-cu", staffId: "s-admin", kind: "EMAIL", to: T2 }); // email đã kết thúc (lô đổi quyền) → không tính
+  assert.equal(violations(db, one("R-AUT-MFA-4")), 0);
+  addFactor(db, { id: "e-admin", staffId: "s-admin", kind: "EMAIL" });
+  assert.equal(violations(db, one("R-AUT-MFA-4")), 1, "Quản trị có email sống");
+  quyenThem(db, "s-an", "ACCOUNTING");
+  assert.equal(violations(db, one("R-AUT-MFA-4")), 2, "được cấp Kế toán bằng SQL tay mà email còn sống");
+  db.prepare("UPDATE stf_permission SET valid_to_at = ? WHERE id = 'p-s-an-ACCOUNTING'").run(T2);
+  assert.equal(violations(db, one("R-AUT-MFA-4")), 1, "quyền Kế toán đã đóng không tính");
+  addFactor(db, { id: "e-binh", staffId: "s-binh", kind: "EMAIL" });
+  quyenThem(db, "s-binh", "SUPER_ADMIN");
+  assert.equal(violations(db, one("R-AUT-MFA-4")), 2, "tài khoản đã ngưng vẫn tính: kích hoạt lại sẽ mang dòng lệch về");
+  quyenThem(db, "s-admin", "ACCOUNTING");
+  assert.equal(violations(db, one("R-AUT-MFA-4")), 2, "đếm theo tài khoản, không theo dòng quyền");
+});
+
+test("R-AUT-MFA-4: danh sách quyền trong SQL khớp ĐÚNG các quyền mà allowedFactors không cho EMAIL (thêm quyền lớn mới mà quên kiểm này → đỏ)", () => {
+  const m = one("R-AUT-MFA-4").sql.match(/permission_code IN \(([^)]*)\)/);
+  assert.ok(m, "kiểm phải liệt kê quyền lớn bằng permission_code IN (…)");
+  const khongEmail = PERMISSION_CODES.filter((p) => !allowedFactors([p]).includes("EMAIL"));
+  assert.ok(khongEmail.length >= 3, "chống rỗng");
+  assert.deepEqual(m[1]!.split(",").map((x) => x.trim().replace(/'/g, "")).sort(), [...khongEmail].sort());
+});
+
+test("R-AUT-MFA-1: tài khoản NỘI BỘ đang hoạt động không yếu tố sống, không ân hạn, không cửa sổ bật lại là vi phạm; có một trong ba thì không", () => {
+  const db = build(); // migration 0101 đặt ân hạn cho s-admin, s-an, s-cuu, s-lai (đang hoạt động, có quyền nội bộ)
+  assert.equal(violations(db, one("R-AUT-MFA-1")), 0);
+  boHan(db, "s-an");
+  assert.equal(violations(db, one("R-AUT-MFA-1")), 1);
+  db.prepare("UPDATE staff SET mfa_enroll_until = ? WHERE id = 's-an'").run(T2);
+  assert.equal(violations(db, one("R-AUT-MFA-1")), 0, "cửa sổ bật lại 24 giờ");
+  boHan(db, "s-an");
+  addFactor(db, { id: "f-an-cu", staffId: "s-an", to: T2 });
+  assert.equal(violations(db, one("R-AUT-MFA-1")), 1, "yếu tố đã kết thúc không tính");
+  addFactor(db, { id: "f-an", staffId: "s-an" });
+  assert.equal(violations(db, one("R-AUT-MFA-1")), 0, "yếu tố sống");
+  db.prepare("UPDATE staff SET mfa_grace_until = ? WHERE id = 's-cuu'").run("2020-01-01T00:00:00.000Z");
+  assert.equal(violations(db, one("R-AUT-MFA-1")), 0, "ân hạn ĐÃ QUA vẫn là 'có hạn' (cổng đăng nhập chặn 403 — đúng luật, không phải lỗi dữ liệu)");
+});
+
+test("R-AUT-MFA-1: tài khoản đã ngưng, tài khoản chỉ quyền bên ngoài, tài khoản không còn quyền nào KHÔNG tính (khớp isInternal của auth)", () => {
+  const db = build();
+  boHan(db, "s-binh"); // đã ngưng
+  db.exec(`INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at) VALUES
+           ('s-dt', '', '0901000009', 'x', 'sales', 1, '${T1}'), ('s-tx', '', '0901000011', 'x', 'sales', 1, '${T1}'), ('s-rong', '', '0901000010', 'x', 'sales', 1, '${T1}')`);
+  db.exec(`INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES
+           ('p-dt', 's-dt', 'PARTNER', '${T1}', '${T1}', '${T1}'), ('p-tx', 's-tx', 'DRIVER_PARTNER', '${T1}', '${T1}', '${T1}')`);
+  assert.equal(violations(db, one("R-AUT-MFA-1")), 0);
+  // Lai (SALES + PARTNER) là nội bộ: isInternal = có một quyền KHÔNG phải bên ngoài.
+  assert.equal(isInternal(["SALES", "PARTNER"]), true);
+  assert.equal(isInternal(["PARTNER", "DRIVER_PARTNER"]), false);
+  assert.equal(isInternal([]), false);
+  boHan(db, "s-lai");
+  assert.equal(violations(db, one("R-AUT-MFA-1")), 1);
+});
+
+test("R-AUT-MFA-1: danh sách quyền bên ngoài trong SQL khớp ĐÚNG EXTERNAL_PERMISSIONS (thêm quyền bên ngoài mới mà quên kiểm này → đỏ)", () => {
+  const m = one("R-AUT-MFA-1").sql.match(/NOT IN \(([^)]*)\)/);
+  assert.ok(m, "kiểm phải liệt kê quyền bên ngoài bằng NOT IN (…)");
+  assert.deepEqual(m[1]!.split(",").map((x) => x.trim().replace(/'/g, "")).sort(), [...EXTERNAL_PERMISSIONS].sort());
+});
+
+test("R-AUT-MFA-2: hai yếu tố SỐNG cùng loại của một người (chỉ mục aut_mfa_factor_one_live đã mất) là MỘT vi phạm; khác loại / đã kết thúc không tính", () => {
+  const db = build();
+  addFactor(db, { id: "f1", staffId: "s-an" });
+  addFactor(db, { id: "f2", staffId: "s-an", kind: "EMAIL" });
+  addFactor(db, { id: "f3", staffId: "s-an", to: T2 });
+  assert.equal(violations(db, one("R-AUT-MFA-2")), 0);
+  db.exec("DROP INDEX aut_mfa_factor_one_live");
+  addFactor(db, { id: "f4", staffId: "s-an" });
+  addFactor(db, { id: "f5", staffId: "s-an" });
+  assert.equal(violations(db, one("R-AUT-MFA-2")), 1, "đếm theo (người, loại), không theo dòng");
+});
+
+test("R-AUT-MFA-3: máy được tin chưa thu hồi của tài khoản đã ngưng là vi phạm (kể cả đã quá hạn); đã thu hồi / tài khoản đang hoạt động không tính", () => {
+  const db = build();
+  addTrusted(db, { id: "t-an", staffId: "s-an" });
+  addTrusted(db, { id: "t-binh-cu", staffId: "s-binh", revoked: true });
+  assert.equal(violations(db, one("R-AUT-MFA-3")), 0);
+  addTrusted(db, { id: "t-binh", staffId: "s-binh", expires: T2 });
+  assert.equal(violations(db, one("R-AUT-MFA-3")), 1, "lô ngưng thu hồi mọi máy chưa thu hồi, không lọc hạn");
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -2784,6 +2900,60 @@ test("R-PRC-2: dòng mức theo vai mà vai KHÔNG còn trong danh sách đang b
   assert.equal(violations(db, c), 1, "Kế toán đóng dòng mức (hết hạn từ hôm qua) → hết báo — bản cũ nằm lại làm lịch sử, không báo mãi");
   tat("TAXI_DRIVER", 1);
   assert.equal(violations(db, c), 0, "bật lại vai");
+});
+
+// ---- ADR-0117 lần 2 (migration 0096 + 0097): đích thứ ba của dòng mức là MỨC TA; bảng gắn loại ↔ mức theo ngày. ----
+const mucTaSdl = (db: DatabaseSync, code: string, active: 0 | 1 = 1) =>
+  db.prepare("INSERT INTO prc_rate_tier (code, name, name_key, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").run(code, code, code.toLowerCase(), active, T1, T1);
+function dongMucTaSdl(db: DatabaseSync, o: { id: string; tier: string; scope?: "SERVICE" | "ALL"; tu?: string; den?: string | null }): void {
+  const scope = o.scope ?? "ALL";
+  db.prepare(
+    `INSERT INTO prc_commission_rule (id, target_tier_code, scope, catalog_code, kind, rate_bp, valid_from_date, valid_to_date, created_at, updated_at) VALUES (?, ?, ?, ?, 'RATE', 300, ?, ?, ?, ?)`,
+  ).run(o.id, o.tier, scope, scope === "SERVICE" ? "S1" : null, o.tu ?? "2026-01-01", o.den ?? null, T1, T1);
+}
+const ganMucSdl = (db: DatabaseSync, o: { id: string; role: string; tier: string; tu?: string; den?: string | null }) =>
+  db.prepare("INSERT INTO prc_role_tier (id, role_type_code, tier_code, valid_from_date, valid_to_date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+    .run(o.id, o.role, o.tier, o.tu ?? "2026-01-01", o.den ?? null, T1, T1);
+
+test("R-PRC-1 (ADR-0117 lần 2): khoá chồng ngày có ĐÍCH MỨC — hai mức khác nhau cùng có dòng «mọi dịch vụ» → 0; cùng mức cùng phạm vi chồng → vi phạm; bảng gắn loại ↔ mức chồng ngày cùng loại → vi phạm", () => {
+  const c = one("R-PRC-1");
+  const db = build();
+  mucTaSdl(db, "TA1");
+  mucTaSdl(db, "TA2");
+  dongMucTaSdl(db, { id: "u-1", tier: "TA1" });
+  dongMucTaSdl(db, { id: "u-2", tier: "TA2" }); // khác mức, cùng ALL, cùng ngày: hợp lệ
+  dongMucTaSdl(db, { id: "u-3", tier: "TA1", scope: "SERVICE" }); // cùng mức, khác phạm vi
+  mucSdl(db, { id: "m-vai", role: "TRAVEL_AGENCY", scope: "ALL" }); // vai cùng ALL: khác loại đích
+  ganMucSdl(db, { id: "g-1", role: "TRAVEL_AGENCY", tier: "TA1", tu: "2026-01-01", den: "2026-06-30" });
+  ganMucSdl(db, { id: "g-2", role: "TRAVEL_AGENCY", tier: "TA2", tu: "2026-07-01" }); // đổi mức = nối tiếp
+  ganMucSdl(db, { id: "g-3", role: "TAXI_DRIVER", tier: "TA1" }); // loại khác
+  assert.equal(violations(db, c), 0, "ca xanh: mọi dòng đích mức / gắn khác khoá hoặc không chồng");
+  db.exec("DROP TRIGGER prc_commission_rule_overlap");
+  dongMucTaSdl(db, { id: "u-x", tier: "TA1", tu: "2026-05-01" }); // chồng u-1
+  assert.equal(violations(db, c), 1, "cùng mức, cùng ALL, chồng");
+  db.exec("DROP TRIGGER prc_role_tier_overlap");
+  ganMucSdl(db, { id: "g-x", role: "TRAVEL_AGENCY", tier: "TA1", tu: "2026-08-01" }); // chồng g-2 (mở) — cùng loại, khác cả mức
+  assert.equal(violations(db, c), 2, "một loại mang hai mức cùng ngày");
+});
+
+test("R-PRC-2 (ADR-0117 lần 2): dòng đích mức trỏ mức KHÔNG TỒN TẠI → vi phạm; mức đã TẮT mà dòng còn hiệu lực → 0 (tắt mức chỉ chặn thêm mới, dòng đang áp vẫn áp); dòng đã hết hạn → 0", () => {
+  const c = one("R-PRC-2");
+  const db = build();
+  mucTaSdl(db, "TA1");
+  mucTaSdl(db, "TA2");
+  dongMucTaSdl(db, { id: "u-1", tier: "TA1" });
+  dongMucTaSdl(db, { id: "u-2", tier: "TA2" });
+  assert.equal(violations(db, c), 0, "mọi mức đang bật");
+  db.prepare("UPDATE prc_rate_tier SET active = 0, updated_at = ? WHERE code = 'TA1'").run(T2); // đường THẬT: tắt mức
+  assert.equal(violations(db, c), 0, "mức đã tắt, dòng đang áp vẫn áp — không báo (N-23)");
+  // Mức không tồn tại: chỉ lọt được khi gỡ trigger + tắt khoá ngoại (SQL gõ tay).
+  db.exec("DROP TRIGGER prc_commission_rule_target_tier");
+  db.exec("PRAGMA foreign_keys = OFF");
+  dongMucTaSdl(db, { id: "u-ma", tier: "KHONG_CO", scope: "SERVICE" });
+  db.exec("PRAGMA foreign_keys = ON");
+  assert.equal(violations(db, c), 1, "mức không tồn tại");
+  dongDongSdl(db, "prc_commission_rule", "u-ma", vnNgay(-1));
+  assert.equal(violations(db, c), 0, "Kế toán đóng dòng (hết hạn từ hôm qua) → hết báo");
 });
 
 test("R-PRC-3: điều khoản cung ứng — có tỷ lệ mà người bán là công ty chủ; người bán khác mà không mang vai Nhà cung cấp; người bán khác mà không có tỷ lệ → vi phạm (đủ ba nhánh, mỗi dòng đếm MỘT lần); chỉ xét dòng còn hiệu lực", () => {

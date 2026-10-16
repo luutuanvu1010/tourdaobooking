@@ -82,6 +82,53 @@ export function partyAccountVerdict(
  */
 export const coQuyenNoiBo = (perms: readonly PermissionCode[]): boolean => perms.some((p) => !isExternalPermission(p));
 
+/** ADR-0074 điều 1: số ngày ân hạn để tài khoản nội bộ tự bật bảo mật hai lớp. */
+export const MFA_GRACE_DAYS = 14;
+/**
+ * Hạn ân hạn ghi CÙNG lô tạo tài khoản (ADR-0074 điều 1, kế hoạch Phần B Task 6 dòng "Tạo tài khoản nội bộ"): nội bộ → lúc tạo + 14 ngày (ISO UTC);
+ * chỉ có quyền bên ngoài → null (không bắt buộc lớp hai). Cùng luật «nội bộ» với `coQuyenNoiBo` và migration 0101.
+ */
+export const mfaGraceOnCreate = (perms: readonly PermissionCode[], nowMs: number): string | null =>
+  coQuyenNoiBo(perms) ? new Date(nowMs + MFA_GRACE_DAYS * 86_400_000).toISOString() : null;
+/**
+ * ADR-0074 điều 1 (bổ sung chủ xác nhận 2026-10-01; kế hoạch Task 6; vòng sửa 1 — điều phối quyết): đổi quyền / vai làm tài khoản TỪ không nội bộ THÀNH nội
+ * bộ mà chưa có yếu tố sống:
+ * - hạn ân hạn đang NULL (chưa từng có) → `anHan` = lúc đổi + 14 ngày (câu ghi chỉ đặt khi cột còn NULL);
+ * - hạn đã qua (≤ lúc đổi) → KHÔNG gia hạn tự động (người đó đi đường Quản trị tắt lớp hai → cửa sổ 24 giờ), và `ketThucPhien` = true: mọi phiên cấp trong giai
+ *   đoạn "bên ngoài" (không bị hỏi lớp hai) phải kết thúc trong CÙNG lô — không thì tài khoản nội bộ hết hạn vẫn dùng phiên cũ, lách cổng lớp hai;
+ * - hạn còn → không làm gì.
+ * Lô có câu chốt gỡ ADMIN không bao giờ cần (TRƯỚC đã nội bộ) — route chỉ nối vào lô không chốt.
+ */
+export function mfaKhiThanhNoiBo(
+  before: readonly PermissionCode[], after: readonly PermissionCode[], coYeuTo: boolean, graceUntil: string | null, nowMs: number,
+): { anHan: string | null; ketThucPhien: boolean } {
+  return mfaSauDoiQuyen(before, after, coYeuTo, false, graceUntil, nowMs);
+}
+/**
+ * Luật chung của lô đổi quyền / vai (ADR-0074 điều 1, 7; Phần C Task 3). `coYeuToSauLo` = còn yếu tố sống SAU lô (đã trừ yếu tố email mà chính lô kết thúc);
+ * `vuaMatEmail` = lô kết thúc yếu tố email vì quyền sau có Quản trị / Toàn quyền / Kế toán. Áp ba nhánh ân hạn khi sau lô là nội bộ, không còn yếu tố, VÀ
+ * (trước không nội bộ HOẶC lô vừa lấy mất yếu tố email):
+ * - hạn NULL → `anHan` = lúc đổi + 14 ngày (câu ghi chỉ đặt khi cột còn NULL);
+ * - hạn đã qua (≤ lúc đổi) → KHÔNG gia hạn (đường Quản trị tắt lớp hai → cửa sổ 24 giờ) và `ketThucPhien` = true (phiên không còn được yếu tố nào đỡ);
+ * - hạn còn → không làm gì.
+ */
+export function mfaSauDoiQuyen(
+  before: readonly PermissionCode[], after: readonly PermissionCode[], coYeuToSauLo: boolean, vuaMatEmail: boolean, graceUntil: string | null, nowMs: number,
+): { anHan: string | null; ketThucPhien: boolean } {
+  if (coYeuToSauLo || !coQuyenNoiBo(after) || (coQuyenNoiBo(before) && !vuaMatEmail)) return { anHan: null, ketThucPhien: false };
+  if (graceUntil === null) return { anHan: new Date(nowMs + MFA_GRACE_DAYS * 86_400_000).toISOString(), ketThucPhien: false };
+  return { anHan: null, ketThucPhien: graceUntil <= new Date(nowMs).toISOString() };
+}
+/**
+ * Kích hoạt lại tài khoản nội bộ chưa có yếu tố → lúc kích hoạt + 14 ngày, CHỈ khi hạn đang NULL (kế hoạch Task 6, nhóm (b): tài khoản đang ngưng lúc migration
+ * 0101 chạy không có ân hạn; Nhân sự kích hoạt được nhưng không làm hỗ trợ đăng nhập — ADR-0071 điều 1e). Hạn đã qua thì không gia hạn (vòng sửa 1): đi đường
+ * Quản trị tắt lớp hai. Câu ghi tự giữ điều kiện "hạn NULL".
+ */
+export const mfaGraceOnReactivate = (perms: readonly PermissionCode[], coYeuTo: boolean, nowMs: number): string | null =>
+  coYeuTo ? null : mfaGraceOnCreate(perms, nowMs);
+/** ADR-0074 điều 5 / đặc tả §4.5: cửa sổ bật lại ngay ở bước đăng nhập sau khi Quản trị/Toàn quyền tắt lớp hai. */
+export const MFA_ENROLL_WINDOW_MS = 24 * 3_600_000;
+
 /** Câu chặn chiều 2 — KHÔNG nêu tên loại hay nhãn (Nhân sự không giữ party.view nhận đúng câu này — ADR-0117 điều 4). */
 export const KHONG_NHAN_VAI_NOI_BO = "Hồ sơ này không nhận thêm vai nội bộ vào lúc này.";
 

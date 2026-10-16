@@ -1,7 +1,7 @@
 import { ApiError, api, safeNext, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { registerServiceWorker } from "./pwa";
-import { showError } from "./shell";
+import { KHOA_NHAC_HAI_LOP, showError } from "./shell";
 import { APP_RELEASE_DATE, APP_VERSION } from "./phien-ban";
 import { chanTrangCongTy } from "../src/shared/cong-ty-chu";
 import { MAINTENANCE_CODE } from "../src/shared/maintenance";
@@ -12,6 +12,7 @@ import { xoaKhungNho } from "./khung-nho";
 import { KHOA_GAN_PHIEN_THONG_BAO } from "./push-ui";
 import { datCoTuMo } from "./tro-ly-co";
 import { enableFlow, getAssertion, passkeyErrorMessage, passkeySupported, platformAuthenticatorAvailable } from "./passkey";
+import { datKieuO, khoiBatTotp, khoiMaDuPhong, loiGuiThu, loiHaiLop, oMaSau } from "./hai-lop-ui";
 
 registerServiceWorker();
 // ADR-0035: màn đăng nhập = có thể là người KHÁC sắp dùng máy này → bỏ bản nhớ khung của phiên trước (không để thoáng hiện chữ cái tên/menu của họ).
@@ -117,6 +118,7 @@ pinToggle?.addEventListener("click", () => {
 // (một chỗ duy nhất, không phải mỗi nhánh thành công — PIN, Face ID, bật Face ID…). sessionStorage bị chặn → bỏ qua.
 try {
   sessionStorage.removeItem(KHOA_GAN_PHIEN_THONG_BAO);
+  sessionStorage.removeItem(KHOA_NHAC_HAI_LOP); // dải nhắc bật bảo mật hai lớp (web/shell.ts) hỏi lại máy chủ cho phiên mới
 } catch {
   // bỏ qua
 }
@@ -446,10 +448,13 @@ form.addEventListener("submit", async (e) => {
   busy = true;
   syncSubmit();
   try {
-    const me = await api<Api.MeResponse>("/api/auth/login", {
+    const r = await api<Api.MeResponse | Api.LoginMfaStepResponse>("/api/auth/login", {
       method: "POST",
       body: { phone: phoneInput.value.trim(), pin: pinInput.value, turnstileToken: token ?? undefined },
     });
+    // ADR-0074 điều 2–3: PIN đúng nhưng máy chủ CHƯA cấp phiên — bước hai (nhập mã) hoặc bật lại trong cửa sổ 24 giờ. Token Turnstile đã bị đốt ở bước PIN.
+    if ("next" in r) return void buocHaiLop(r);
+    const me = r;
     datCoTuMo(); // ADR-0066 điều 9: khung Hỗ trợ tự mở MỘT lần ở trang đầu tiên sau đăng nhập
     if (await shouldInvite(me.staff.id)) return showInvite(me.staff.id);
     location.replace(next);
@@ -469,3 +474,192 @@ form.addEventListener("submit", async (e) => {
     if (err instanceof ApiError && siteKey === null && TURNSTILE_REJECT_CODES.has(err.code)) void recoverConfig(AFTER_REJECT_RETRY_DELAYS_MS);
   }
 });
+
+// ---- Bước hai sau PIN (ADR-0074 điều 2–3, 5; đặc tả §4.1, §4.5; kế hoạch Phần B Task 7) ----
+// Khung dựng bằng JS ngay sau form PIN (không thêm vào login.html: HTML cũ trong bộ nhớ đệm của service worker vẫn chạy được với login.js mới). Cookie chờ
+// `td_mfa_pending` (5 phút) do máy chủ đặt, trang không đọc được (HttpOnly). Lỗi hiện ở #error chung của trang.
+let khungHaiLop: HTMLElement | null = null;
+/** Phần tử form PIN bị ẩn khi sang bước hai, kèm trạng thái ẩn lúc trước để trả lại đúng như cũ. */
+let daAn: [HTMLElement, boolean][] = [];
+
+function anFormPin(): void {
+  daAn = [form, passkeyBlock, forgotEl].filter((el): el is HTMLElement => el !== null).map((el) => [el, el.hidden === true]);
+  for (const [el] of daAn) el.hidden = true;
+}
+
+/** Về form PIN: PIN gõ lại (lần trước đã dùng), token Turnstile đã bị đốt ở bước PIN → xin token mới. `loi` = câu của máy chủ cần hiện (vd quá 5 phút). */
+function veFormPin(loi: string | null): void {
+  khungHaiLop?.remove();
+  khungHaiLop = null;
+  for (const [el, hidden] of daAn) el.hidden = hidden;
+  daAn = [];
+  busy = false;
+  pinInput.value = "";
+  onFieldsChanged();
+  resetWidget();
+  syncSubmit();
+  showError(errorEl, loi);
+  pinInput.focus();
+}
+
+/** Sau khi có phiên: cùng đuôi với đăng nhập PIN (lời mời Face ID, rồi tới trang định vào). */
+async function sauDangNhap(staffId: string): Promise<void> {
+  if (await shouldInvite(staffId)) {
+    khungHaiLop?.remove();
+    khungHaiLop = null;
+    return showInvite(staffId);
+  }
+  location.replace(next);
+}
+
+/** Lỗi chung của hai khung bước hai: bảo trì → banner; cookie chờ hết hạn / yếu tố vừa đổi / cửa sổ đã đóng → về form PIN kèm câu máy chủ. true = đã xử lý. */
+function loiPhaiVeFormPin(err: unknown): boolean {
+  if (!(err instanceof ApiError)) return false;
+  if (err.code === MAINTENANCE_CODE) {
+    veFormPin(null);
+    showMaintenanceBanner(err);
+    return true;
+  }
+  if (err.code === "mfa_expired" || err.code === "mfa_changed" || err.code === "mfa_setup_required") {
+    veFormPin(err.message);
+    return true;
+  }
+  return false;
+}
+
+function buocHaiLop(r: Api.LoginMfaStepResponse): void {
+  showError(errorEl, null);
+  anFormPin();
+  khungHaiLop = r.next === "mfa" ? khungNhapMa(r) : khungBatLai();
+  form.after(khungHaiLop);
+  khungHaiLop.querySelector<HTMLInputElement>("input")?.focus();
+}
+
+/**
+ * "Nhập mã xác thực": mã 6 số của ứng dụng xác thực, mã gửi qua email (Phần C — chỉ khi máy chủ liệt kê EMAIL; nút "Gửi mã qua email (t***@gmail.com)"), hoặc mã
+ * dự phòng; "Tin máy này 30 ngày" mặc định bật. Cách mặc định theo danh sách máy chủ trả: có ứng dụng xác thực → mã ứng dụng; chỉ có email → mã email.
+ */
+function khungNhapMa(r: Extract<Api.LoginMfaStepResponse, { next: "mfa" }>): HTMLElement {
+  type Cach = "TOTP" | "EMAIL" | "RECOVERY";
+  const coTotp = r.factors.includes("TOTP");
+  const che = r.factors.includes("EMAIL") ? r.emailMask : null; // địa chỉ dạng che do máy chủ trả — không bao giờ là địa chỉ đầy đủ
+  const goc: Cach = coTotp ? "TOTP" : che ? "EMAIL" : "RECOVERY";
+  let cach: Cach = goc;
+  let daGui = false;
+  const o = oMaSau("mfa-code");
+  const nhan = h("label", { for: "mfa-code" }, "Mã 6 số");
+  const goiY = h("p", { class: "muted", id: "mfa-hint" });
+  const tin = h("input", { type: "checkbox", id: "mfa-trust", class: "o-tick", checked: true });
+  const goi = h("button", { type: "submit", class: "btn btn-primary login-submit", id: "mfa-submit" }, "Xác nhận");
+  const nutEmail = che ? h("button", { type: "button", class: "btn", id: "mfa-email-send" }, `Gửi mã qua email (${che})`) : null;
+  const veTotp = coTotp && che ? h("button", { type: "button", class: "btn btn-link", id: "mfa-use-totp" }, "Dùng mã từ ứng dụng xác thực") : null;
+  const doiCach = h("button", { type: "button", class: "btn btn-link", id: "mfa-switch" });
+  const quayLai = h("button", { type: "button", class: "btn btn-link", id: "mfa-back" }, "Quay lại");
+  const ve = () => {
+    datKieuO(o, cach === "RECOVERY");
+    nhan.textContent = cach === "RECOVERY" ? "Mã dự phòng (dạng xxxx-xxxx)" : cach === "EMAIL" ? "Mã 6 số trong email" : "Mã 6 số";
+    goiY.textContent =
+      cach === "RECOVERY" ? "Nhập một mã trong bộ mã dự phòng đã cất lúc bật bảo mật hai lớp. Mỗi mã chỉ dùng được một lần."
+      : cach === "EMAIL" ? (daGui ? `Đã gửi mã tới ${che}. Mở hộp thư (xem cả mục Thư rác), nhập mã 6 số. Mã dùng được trong 10 phút.` : `Bấm “Gửi mã qua email” để nhận mã 6 số tại ${che}.`)
+      : "Mở ứng dụng xác thực (Google Authenticator…) trên điện thoại, nhập mã 6 số đang hiện cho Tour Đảo.";
+    doiCach.textContent = cach === "RECOVERY" ? (goc === "EMAIL" ? "Dùng mã gửi qua email" : "Dùng mã từ ứng dụng xác thực") : "Dùng mã dự phòng";
+    doiCach.hidden = goc === "RECOVERY";
+    if (veTotp) veTotp.hidden = cach !== "EMAIL";
+  };
+  ve();
+  doiCach.addEventListener("click", () => {
+    cach = cach === "RECOVERY" ? goc : "RECOVERY";
+    ve();
+    showError(errorEl, null);
+    o.focus();
+  });
+  veTotp?.addEventListener("click", () => {
+    cach = "TOTP";
+    ve();
+    showError(errorEl, null);
+    o.focus();
+  });
+  nutEmail?.addEventListener("click", async () => {
+    showError(errorEl, null);
+    nutEmail.disabled = true;
+    try {
+      await api<Api.MfaEmailSendResponse>("/api/auth/mfa/email", { method: "POST", body: {} });
+      daGui = true;
+      nutEmail.textContent = `Gửi lại mã qua email (${che})`;
+      cach = "EMAIL";
+      ve();
+      o.focus();
+    } catch (err) {
+      if (loiPhaiVeFormPin(err)) return;
+      showError(errorEl, loiGuiThu(err));
+    } finally {
+      nutEmail.disabled = false;
+    }
+  });
+  quayLai.addEventListener("click", () => veFormPin(null));
+  const f = h(
+    "form",
+    { class: "login-form login-mfa", id: "mfa-form", autocomplete: "off" },
+    h("h2", { id: "mfa-heading" }, "Nhập mã xác thực"),
+    goiY,
+    nutEmail && h("div", { class: "login-mfa-links" }, nutEmail),
+    h("div", { class: "login-field" }, nhan, o),
+    h("label", { class: "check" }, tin, "Tin máy này 30 ngày (không hỏi mã nữa trên máy này)"),
+    goi,
+    h("div", { class: "login-mfa-links" }, veTotp, doiCach, quayLai),
+  );
+  f.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const code = o.value.trim();
+    if (cach !== "RECOVERY" && code.length !== 6) return showError(errorEl, cach === "EMAIL" ? "Nhập đủ 6 số trong email." : "Nhập đủ 6 số đang hiện trên ứng dụng xác thực.");
+    if (cach === "RECOVERY" && !code) return showError(errorEl, "Nhập một mã dự phòng.");
+    showError(errorEl, null);
+    goi.disabled = true;
+    try {
+      const kq = await api<Api.MfaVerifyResponse>("/api/auth/mfa/verify", { method: "POST", body: { method: cach, code, trustDevice: tin.checked } });
+      datCoTuMo(); // ADR-0066 điều 9 (như đăng nhập PIN)
+      if (kq.recoveryLeft === undefined) return void (await sauDangNhap(kq.staff.id));
+      // Vừa dùng một mã dự phòng: báo số mã còn lại trước khi vào (mã đã dùng không dùng lại được).
+      const tiep = h("button", { type: "button", class: "btn btn-primary login-submit", id: "mfa-continue" }, "Tiếp tục");
+      tiep.addEventListener("click", () => void sauDangNhap(kq.staff.id));
+      replaceChildren(
+        f,
+        h("h2", null, "Đã đăng nhập bằng mã dự phòng"),
+        h("p", { id: "mfa-recovery-left" }, `Còn ${kq.recoveryLeft} mã dự phòng chưa dùng.`),
+        h("p", { class: "muted" }, kq.recoveryLeft <= 3 ? "Sắp hết mã: vào trang Tôi, mục Bảo mật đăng nhập, bấm “Tạo bộ mới”. Mất điện thoại thì nhờ Quản trị tắt bảo mật hai lớp để bật lại trên máy mới." : "Mất điện thoại thì nhờ Quản trị tắt bảo mật hai lớp để bật lại trên máy mới."),
+        tiep,
+      );
+      tiep.focus();
+    } catch (err) {
+      goi.disabled = false;
+      if (loiPhaiVeFormPin(err)) return;
+      o.value = "";
+      showError(errorEl, loiHaiLop(err));
+      o.focus();
+    }
+  });
+  return h("section", { class: "card login-mfa-card", id: "mfa-step", "aria-labelledby": "mfa-heading" }, f);
+}
+
+/** Cửa sổ 24 giờ sau khi Quản trị/Toàn quyền tắt bảo mật hai lớp: chỉ được bật lại, xong thì có phiên + 10 mã dự phòng (hiện một lần). */
+function khungBatLai(): HTMLElement {
+  const box = h("section", { class: "card login-mfa-card", id: "mfa-step" });
+  const batLai = khoiBatTotp({
+    batDau: () => api<Api.MfaTotpStartResponse>("/api/auth/mfa/enroll/start", { method: "POST", body: {} }),
+    xacNhan: async (setupToken, code) => (await api<Api.MfaEnrollConfirmResponse>("/api/auth/mfa/enroll/confirm", { method: "POST", body: { setupToken, code } })).recoveryCodes,
+    onXong: (codes) => {
+      datCoTuMo();
+      replaceChildren(box, khoiMaDuPhong(codes ?? [], () => location.replace(next), "Tôi đã cất mã, vào Nền tảng"));
+      box.scrollIntoView({ block: "start" });
+    },
+    onHuy: () => veFormPin(null),
+    onLoi: loiPhaiVeFormPin,
+  });
+  replaceChildren(
+    box,
+    h("h2", null, "Bật lại bảo mật hai lớp"),
+    h("p", { class: "muted" }, "Quản trị vừa tắt bảo mật hai lớp của tài khoản này (thường do đổi hoặc mất điện thoại). Bật lại trên điện thoại của bạn để vào Nền tảng. Làm xong trong 5 phút, quá thì đăng nhập lại; quá 24 giờ kể từ lúc tắt thì phải nhờ Quản trị lần nữa."),
+    batLai,
+  );
+  return box;
+}

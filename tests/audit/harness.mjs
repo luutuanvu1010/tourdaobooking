@@ -3,6 +3,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import * as esbuild from "esbuild";
+import { mfaGraceOnCreate } from "../../src/modules/staff/rules.ts";
 
 export const ROOT = process.env.AUDIT_ROOT ?? new URL("../../", import.meta.url).pathname;
 const MIG = `${ROOT}/migrations/`;
@@ -119,6 +120,10 @@ export function seedStaff(sqlite, { id, phone, name, perms }) {
   sqlite.exec(`INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES ('pty-${id}', '${name}', '${NOW}', '${NOW}')`);
   sqlite.exec(`INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at, party_id) VALUES ('${id}', '', '${phone}', 'x', 'sales', 1, '${NOW}', 'pty-${id}')`);
   for (const p of perms) sqlite.exec(`INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES ('${id}-${p}', '${id}', '${p}', '${NOW}', '${NOW}', '${NOW}')`);
+  // ADR-0074 điều 1: tài khoản nội bộ có hạn ân hạn bảo mật hai lớp như lô tạo tài khoản thật (CÙNG hàm mfaGraceOnCreate) — tính từ giờ THẬT (không
+  // từ NOW giả ở trên, kẻo hạn đã qua và cổng lớp hai chặn đăng nhập PIN của mọi bài). Bài kiểm cổng tự đặt lại cột này.
+  const grace = mfaGraceOnCreate(perms, Date.now());
+  if (grace) sqlite.prepare("UPDATE staff SET mfa_grace_until = ? WHERE id = ?").run(grace, id);
 }
 
 /** Mã chính sách của mốc GIẢ khung thử (Ruling N-9 (iii)) — bài thấy mã này trong dữ liệu là biết mình đang chạy mốc giả. */

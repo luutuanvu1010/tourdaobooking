@@ -266,7 +266,7 @@ try {
   r = await hoi(SALES, "đổi PIN thế nào");
   assert.equal(r.status, 403, JSON.stringify(r.body));
   assert.equal(r.body.error.code, "tro_ly_vai_tat");
-  assert.match(r.body.error.message, /^Trợ lý Hỗ trợ đang tắt với vai của bạn/);
+  assert.match(r.body.error.message, /^Trợ lý đang tắt với vai của bạn/);
   assert.equal(nhan.length, n, "vai tắt không được gọi OpenAI");
   assert.equal((await call(SALES, "GET", "/api/tro-ly/khung")).body.duocDung, false);
   assert.equal((await hoi(laiCookie, "đổi PIN thế nào")).status, 200, "ít nhất một vai bật là được");
