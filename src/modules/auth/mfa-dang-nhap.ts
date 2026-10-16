@@ -31,14 +31,6 @@ export function trustedCookie(token: string, secure: boolean): string {
   return `${TRUSTED_COOKIE}=${token}; Path=/api/auth; Max-Age=${TRUSTED_TTL_SECONDS}; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`;
 }
 
-/** Email che dạng `t***@gmail.com` (đặc tả §6 quy tắc 5). Không phải email hợp lệ → null. */
-export function maskEmail(email: string | null): string | null {
-  if (!email) return null;
-  const at = email.lastIndexOf("@");
-  if (at < 1 || at === email.length - 1) return null;
-  return `${email[0]}***${email.slice(at)}`;
-}
-
 /** Log một dòng KHÔNG chứa khoá (chỉ tên sự kiện + lý do cố định). */
 const logMfa = (event: "mfa_key_missing" | "mfa_decrypt_failed", reason: string): void =>
   console.error(JSON.stringify({ level: "error", event, message: reason }));

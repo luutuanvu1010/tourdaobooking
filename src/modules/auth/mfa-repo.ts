@@ -1,4 +1,4 @@
-// SQL bảo mật hai lớp (ADR-0074, migration 0101): `aut_mfa_factor`, `aut_mfa_recovery_code`, `aut_trusted_device`. Mọi câu đi qua defineSql (ADR-0002 điều 8(b)), SQL TĨNH.
+// SQL bảo mật hai lớp (ADR-0074, migration 0101, 0102): `aut_mfa_factor`, `aut_mfa_recovery_code`, `aut_trusted_device`, `aut_mfa_email_code`. Mọi câu đi qua defineSql (ADR-0002 điều 8(b)), SQL TĨNH.
 // Khoá TOTP đã mã hoá (secret_enc), băm mã dự phòng và băm token máy tin KHÔNG bao giờ vào nhật ký / DTO / câu lỗi: hàm đọc dưới đây không trả băm token.
 import { defineSql } from "../../shared/sql-registry.ts";
 
@@ -72,6 +72,37 @@ const TRUSTED_REVOKE_OF_SESSION = defineSql("auth", "trusted_revoke_of_session",
     "AND id = (SELECT trusted_device_id FROM aut_session WHERE id = ?1 AND end_reason = 'bi_go' AND ended_at = ?2 AND ended_by = ?3) " +
     "AND staff_id = (SELECT staff_id FROM aut_session WHERE id = ?1)");
 const TRUSTED_LIST = defineSql("auth", "trusted_list", `SELECT ${TD_COLS} FROM aut_trusted_device WHERE staff_id = ?1 AND revoked_at IS NULL ORDER BY last_used_at DESC, id`);
+
+// ---- Mã email (Phần C, migration 0102). Chỉ băm: email_hash (địa chỉ chuẩn hoá), code_hash ("<staffId>:<id>:<mã>"). Mã sống 10 phút, tối đa 5 lần nhập.
+export type EmailCodePurpose = "login" | "enroll";
+// Gửi mã mới: huỷ MỌI mã còn mở của (người, mục đích) — kể cả mã đã hết hạn chưa dùng (chỉ mục duy nhất aut_mfa_email_code_one_open là lưới).
+const EMAIL_CODE_REVOKE_OPEN = defineSql("auth", "email_code_revoke_open",
+  "UPDATE aut_mfa_email_code SET revoked_at = ?3, updated_at = ?3, updated_by = ?4 WHERE staff_id = ?1 AND purpose = ?2 AND used_at IS NULL AND revoked_at IS NULL");
+const EMAIL_CODE_INSERT = defineSql("auth", "email_code_insert",
+  "INSERT INTO aut_mfa_email_code (id, staff_id, purpose, email_hash, code_hash, created_at, created_by, updated_at, updated_by, expires_at, attempts, used_at, revoked_at) " +
+    "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?8, ?6, ?8, ?7, 0, NULL, NULL)");
+// Mã đang mở (chưa dùng, chưa huỷ, chưa hết hạn, chưa đủ 5 lần) — không trả băm mã.
+const EMAIL_CODE_OPEN = defineSql("auth", "email_code_open",
+  "SELECT id, email_hash FROM aut_mfa_email_code WHERE staff_id = ?1 AND purpose = ?2 AND used_at IS NULL AND revoked_at IS NULL AND expires_at > ?3 AND attempts < 5 " +
+    "ORDER BY created_at DESC, id DESC LIMIT 1");
+// Dùng MỘT lần: người gọi đòi changes = 1.
+const EMAIL_CODE_TRY = defineSql("auth", "email_code_try",
+  "UPDATE aut_mfa_email_code SET used_at = ?4, updated_at = ?4 WHERE id = ?1 AND staff_id = ?2 AND code_hash = ?3 AND used_at IS NULL AND revoked_at IS NULL AND expires_at > ?4 AND attempts < 5");
+// Đếm lần nhập sai; dừng ở 5 (CHECK attempts BETWEEN 0 AND 5 — lần thứ 6 không làm vỡ câu).
+const EMAIL_CODE_BUMP = defineSql("auth", "email_code_bump",
+  "UPDATE aut_mfa_email_code SET attempts = attempts + 1, updated_at = ?2 WHERE id = ?1 AND attempts < 5 AND used_at IS NULL AND revoked_at IS NULL");
+
+export const emailCodeRevokeOpenStatement = (db: D1Database, staffId: string, purpose: EmailCodePurpose, at: string, by: string | null): D1PreparedStatement =>
+  db.prepare(EMAIL_CODE_REVOKE_OPEN).bind(staffId, purpose, at, by);
+export const emailCodeInsertStatement = (
+  db: D1Database,
+  r: { id: string; staffId: string; purpose: EmailCodePurpose; emailHash: string; codeHash: string; at: string; expiresAt: string; by: string | null },
+): D1PreparedStatement => db.prepare(EMAIL_CODE_INSERT).bind(r.id, r.staffId, r.purpose, r.emailHash, r.codeHash, r.at, r.expiresAt, r.by);
+export const emailCodeOpen = (db: D1Database, staffId: string, purpose: EmailCodePurpose, now: string): Promise<{ id: string; email_hash: string } | null> =>
+  db.prepare(EMAIL_CODE_OPEN).bind(staffId, purpose, now).first<{ id: string; email_hash: string }>();
+export const emailCodeTryStatement = (db: D1Database, id: string, staffId: string, codeHash: string, at: string): D1PreparedStatement =>
+  db.prepare(EMAIL_CODE_TRY).bind(id, staffId, codeHash, at);
+export const emailCodeBumpStatement = (db: D1Database, id: string, at: string): D1PreparedStatement => db.prepare(EMAIL_CODE_BUMP).bind(id, at);
 
 export async function factorListLive(db: D1Database, staffId: string): Promise<MfaFactorRow[]> {
   return (await db.prepare(FACTOR_LIST_LIVE).bind(staffId).all<MfaFactorRow>()).results;

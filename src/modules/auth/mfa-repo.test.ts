@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { DatabaseSync, type SupportedValueType } from "node:sqlite";
 import { readFileSync, readdirSync } from "node:fs";
 import {
+  emailCodeBumpStatement, emailCodeInsertStatement, emailCodeOpen, emailCodeRevokeOpenStatement, emailCodeTryStatement,
   factorEndAllStatement, factorEndKeepOneStatement, factorEndStatement, factorInsertStatement, factorListLive, recoveryCountLeft, recoveryInsertStatement, recoveryRevokeAllStatement,
   recoveryUseStatement, totpConsumeStatement, trustedFind, trustedInsertStatement, trustedList, trustedRevokeAllStatement, trustedRevokeStatement, trustedTouchStatement,
 } from "./mfa-repo.ts";
@@ -123,4 +124,55 @@ test("danh sách máy tin không trả băm token", async () => {
   const { db } = setup();
   await trustedInsertStatement(db, td("t1", "th-bi-mat")).run();
   assert.ok(!JSON.stringify(await trustedList(db, "s1")).includes("th-bi-mat"));
+});
+
+// ---- Mã email (Phần C Task 1, migration 0102): mã hết hạn / quá 5 lần / đã dùng / đã huỷ không khớp; gửi mã mới huỷ mã mở cũ.
+const HET = "2026-10-02T00:10:00.000Z";
+const maEmail = (id: string, staffId = "s1", purpose: "login" | "enroll" = "login", codeHash = `ch-${id}`) =>
+  ({ id, staffId, purpose, emailHash: "eh", codeHash, at: T1, expiresAt: HET, by: staffId });
+
+test("mã email: chèn, đọc mã mở; khớp đúng → dùng một lần; sai băm / sai chủ / hết hạn → không khớp", async () => {
+  const { db, sqlite } = setup();
+  await emailCodeInsertStatement(db, maEmail("e1")).run();
+  assert.deepEqual(await emailCodeOpen(db, "s1", "login", T2), { id: "e1", email_hash: "eh" });
+  assert.equal(await emailCodeOpen(db, "s1", "enroll", T2), null, "khác mục đích");
+  assert.equal(await emailCodeOpen(db, "s2", "login", T2), null, "người khác");
+  assert.equal(await emailCodeOpen(db, "s1", "login", HET), null, "đúng lúc hết hạn là hết");
+  assert.equal((await emailCodeTryStatement(db, "e1", "s1", "sai", T2).run()).meta.changes, 0, "sai băm");
+  assert.equal((await emailCodeTryStatement(db, "e1", "s2", "ch-e1", T2).run()).meta.changes, 0, "sai chủ");
+  assert.equal((await emailCodeTryStatement(db, "e1", "s1", "ch-e1", HET).run()).meta.changes, 0, "hết hạn");
+  assert.equal((await emailCodeTryStatement(db, "e1", "s1", "ch-e1", T2).run()).meta.changes, 1);
+  assert.equal((sqlite.prepare("SELECT used_at AS u FROM aut_mfa_email_code WHERE id = 'e1'").get() as { u: string }).u, T2);
+  assert.equal((await emailCodeTryStatement(db, "e1", "s1", "ch-e1", T2).run()).meta.changes, 0, "đã dùng");
+  assert.equal(await emailCodeOpen(db, "s1", "login", T2), null, "đã dùng thì không còn mở");
+});
+
+test("mã email: quá 5 lần nhập thì không khớp nữa (kể cả đúng mã); lần đếm thứ 6 không vỡ CHECK", async () => {
+  const { db, sqlite } = setup();
+  await emailCodeInsertStatement(db, maEmail("e1")).run();
+  for (let i = 0; i < 5; i++) assert.equal((await emailCodeBumpStatement(db, "e1", T2).run()).meta.changes, 1, `lần ${i + 1}`);
+  assert.equal((await emailCodeBumpStatement(db, "e1", T2).run()).meta.changes, 0, "đã đủ 5 thì không đếm thêm (không 500)");
+  assert.equal((sqlite.prepare("SELECT attempts AS n FROM aut_mfa_email_code WHERE id = 'e1'").get() as { n: number }).n, 5);
+  assert.equal(await emailCodeOpen(db, "s1", "login", T2), null);
+  assert.equal((await emailCodeTryStatement(db, "e1", "s1", "ch-e1", T2).run()).meta.changes, 0, "đủ 5 lần thì mã đúng cũng không khớp");
+});
+
+test("mã email: gửi mã mới (huỷ mã mở cũ → chèn) — mã cũ không khớp, mã mới khớp; chỉ huỷ đúng người + đúng mục đích", async () => {
+  const { db, sqlite } = setup();
+  await emailCodeInsertStatement(db, maEmail("e1")).run();
+  await emailCodeInsertStatement(db, maEmail("k1", "s2")).run();
+  await emailCodeInsertStatement(db, maEmail("n1", "s1", "enroll")).run();
+  assert.throws(() => sqlite.prepare(
+    "INSERT INTO aut_mfa_email_code (id, staff_id, purpose, email_hash, code_hash, created_at, updated_at, expires_at) VALUES ('x', 's1', 'login', 'eh', 'c', ?, ?, ?)",
+  ).run(T1, T1, HET), /UNIQUE/, "lưới: hai mã mở cùng lúc");
+  assert.equal((await emailCodeRevokeOpenStatement(db, "s1", "login", T2, "s1").run()).meta.changes, 1);
+  await emailCodeInsertStatement(db, maEmail("e2")).run();
+  assert.equal((await emailCodeTryStatement(db, "e1", "s1", "ch-e1", T2).run()).meta.changes, 0, "mã cũ đã huỷ");
+  assert.deepEqual(await emailCodeOpen(db, "s1", "login", T2), { id: "e2", email_hash: "eh" });
+  assert.equal((await emailCodeBumpStatement(db, "e1", T2).run()).meta.changes, 0, "mã đã huỷ không đếm");
+  assert.equal((await emailCodeTryStatement(db, "e2", "s1", "ch-e2", T2).run()).meta.changes, 1);
+  assert.deepEqual(await emailCodeOpen(db, "s2", "login", T2), { id: "k1", email_hash: "eh" }, "người khác không bị huỷ");
+  assert.deepEqual(await emailCodeOpen(db, "s1", "enroll", T2), { id: "n1", email_hash: "eh" }, "mục đích khác không bị huỷ");
+  const r = sqlite.prepare("SELECT revoked_at AS r, updated_by AS b FROM aut_mfa_email_code WHERE id = 'e1'").get() as { r: string; b: string };
+  assert.deepEqual({ ...r }, { r: T2, b: "s1" });
 });
