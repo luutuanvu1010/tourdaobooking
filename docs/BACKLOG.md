@@ -472,3 +472,8 @@ Các việc khác từ cùng buổi xác nhận (đang chờ chủ quyết, chư
 - **BL-XOA-TRAN-30** · **Trạng thái:** `chờ chủ` (Q2). Có bắt buộc nhập «số ngày xử lý yêu cầu xoá» khi đăng chính sách và chặn số lớn hơn 30 (lời chủ 16/10) không. Khuyến nghị: bắt buộc nhập, chặn trên 30. Hôm nay để trống được và không chặn trên.
 - **BL-XOA-CAU-HOI-LUAT-SU** · **Trạng thái:** `chờ chủ + luật sư`. Q1 (bộ câu cho luật sư: hạn 20/30 ngày, giữ IP, căn cứ từng phần giữ lại, khi nào được từ chối), Q3 (ẩn danh cả phiếu tự khai — kế hoạch đã áp), Q4 (xoá thêm giới tính và nhãn máy — hôm nay GIỮ cả hai, danh sách «phần giữ lại» đã nói rõ), Q5 (luật giữ tên — kế hoạch đã áp), Q6 (hộ kinh doanh và khách không tài khoản). Câu trả lời khi có ghi vào đây.
 - **Cập nhật `BL-TEP-KHE-GOP`:** ảnh nằm lại ở dòng đã HUỶ của hồ sơ phụ (khe gộp) nay hiện ở danh sách «ảnh hết lý do giữ» với lý do `DA_HUY` (lát H-5) — người có quyền xoá được; mục gốc ở trên giữ nguyên cho phần mở ảnh qua đường hồ sơ phụ.
+## 41. Sổ tay hướng dẫn nghiệp vụ (mã `BL-SO-TAY-NGHIEP-VU`)
+
+- **Trạng thái:** `chưa làm` · Ý của chủ 17/10/2026: gom luật nghiệp vụ thành sổ tay cho nhân viên.
+- **Nguồn đã có để soạn:** `docs/VAN-CHUYEN.md` mục 0 (luật vận chuyển hiện hành từ bản 2.11, kèm nghĩa từng ô của Chính sách điều phối); Trợ giúp theo vai trong Nền tảng; nhật ký thay đổi (`src/shared/changelog.ts`); sổ vàng `golden/` (các ca đã chủ xác nhận).
+- **Việc khi làm:** chủ chọn phạm vi (theo vai hay theo luồng việc) và nơi đặt (trong Trợ giúp hay tài liệu riêng); rà lại các mục 1–5 của `docs/VAN-CHUYEN.md` (còn theo bản 1.38).

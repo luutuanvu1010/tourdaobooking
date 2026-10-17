@@ -22,7 +22,20 @@
 
 Nợ kỹ thuật của lát này: `docs/BACKLOG.md` mục 40 (mã `BL-XOA-…`). Ghi rõ **dựa vào kỷ luật** (chưa có hàng rào máy): câu ẩn danh sổ phiên của auth không có lính gác phiếu riêng (chỉ nhờ câu chặn lô), chạy lại phiếu sau khôi phục D1.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.10 ĐÃ LÊN PRODUCTION (Vé hỗ trợ đợt 2a, ADR-0127: khung trò chuyện tự làm mới, mức ưu tiên Thường/Cao/Khẩn, đơn liên quan, Trưởng nhóm «Giao cho người khác») — migration `0106_ve_ho_tro_2a` đã áp (2026-10-17 12:25 giờ VN)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.11 ĐÃ LÊN PRODUCTION (sổ vàng vận chuyển: ADR-0128 — mốc ra lệnh do Quản trị đặt, xe riêng không ai ghép thêm khách, thêm khách thiếu chỗ thì không thêm ghế nào; ADR-0129 — tài xế công ty lái được xe nhà xe thuê kèm cảnh báo, vẫn chặn vượt số chỗ) — migration `0109_cho_phep_tai_xe_cong_ty_lai_xe_thue`, `0110_dieu_kien_chuyen_khach_xe_rieng` đã áp (2026-10-17 20:58 giờ VN)
+
+Chủ chạy `day-len` rồi `trien-khai`; lần `trien-khai` đầu dừng ở bước áp migration vì lỗi Cloudflare 7403 (chưa ghi gì — kiểm bằng `d1 migrations list --remote`), chạy lại thì qua. AI kiểm lại bằng lệnh chỉ đọc:
+
+- **Commit:** `01695a3c` (= `main` = `origin/main` lúc triển khai). Điểm khôi phục Time Travel trước khi áp: `000012f4-00000000-00005107-0960b14d3b5d4f2a4297a4cb12326f65`.
+- **Worker:** `3bc7af8e-a1cd-48d3-a6de-b0b961dccf68`. `d1 migrations list --remote` → "No migrations to apply!"; `GET /api/auth/config` → `version` "2.11".
+- **Theo khối `trien-khai`:** e2e đủ bộ xanh, `audit-invariants --db remote` ĐẠT (4 cảnh báo cũ: R-CTL-1, R-ORD-T1w), cổng phiên bản trước và sau deploy ĐẠT.
+- **Kiểm trước phát hành:** `npm test` 5199 đạt / 0 đỏ; ba lượt người kiểm độc lập (ADR-0128, ADR-0129, bản sửa 0110) đều ĐẠT.
+- **Lúc triển khai chế độ bảo trì đang BẬT** (tới 2026-10-19 00:17 UTC) — chủ xác nhận có chủ ý hay không.
+- **Việc chủ sau triển khai:** Quản trị / Toàn quyền vào Vận chuyển › Chính sách điều phối đặt mốc 0,5 giờ (30 phút) — mốc KHÔNG gieo bằng migration, tới lúc đặt vẫn là 6 giờ. Hỏi nhà xe: bảo hiểm xe thuê có bao tài xế công ty không (ADR-0129 Q4, CHƯA BIẾT).
+- **Chưa kiểm:** kịch bản Chrome trang Chính sách điều phối; chuyến cũ đã phá lệ xe riêng trên production (đếm bằng lệnh chỉ đọc nếu cần).
+- **Hoàn tác:** 0109 dựng lại hai trigger LC-13 (nới một chiều), 0110 chỉ THÊM một dòng `vc_transfer_rule`. `wrangler rollback` về 2.10: mã cũ không biết điều kiện `XE_RIENG_DICH` → nhờ chuyển khách bị trigger chặn (409) tới khi lên lại 2.11; muốn lùi hẳn thì khôi phục Time Travel (mất mọi ghi sau điểm trên).
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 2.10 ĐÃ LÊN PRODUCTION (Vé hỗ trợ đợt 2a, ADR-0127: khung trò chuyện tự làm mới, mức ưu tiên Thường/Cao/Khẩn, đơn liên quan, Trưởng nhóm «Giao cho người khác») — migration `0106_ve_ho_tro_2a` đã áp (2026-10-17 12:25 giờ VN)
 
 Chủ chạy `day-len` rồi `trien-khai` (lần đầu gõ nhầm thư mục — phải đứng ở thư mục gốc, nhánh `main`); AI kiểm lại bằng lệnh chỉ đọc:
 
