@@ -357,6 +357,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   // danh mục lý do — cổng admin, thân hỏi admin.manage viết thẳng (luật 4).
   { method: "GET", path: "/api/van-chuyen/chinh-sach-dieu-phoi", access: "office" }, // bản đang hiệu lực + lịch sử; thân hỏi settings.ops
   { method: "POST", path: "/api/van-chuyen/chinh-sach-dieu-phoi", access: "office" }, // thêm bản mới (hiệu lực ngay, không nhận ngày hiệu lực); như trên
+  { method: "GET", path: "/api/van-chuyen/moc-ra-lenh", access: "office" }, // ADR-0128 Q1: mốc ra lệnh hiện hành; thân hỏi dispatch.policy.lead
+  { method: "POST", path: "/api/van-chuyen/moc-ra-lenh", access: "office" }, // đặt mốc (Quản trị, Toàn quyền); như trên
   { method: "GET", path: "/api/van-chuyen/dieu-kien", access: "office" }, // điều kiện xuất bến theo cỡ xe; thân hỏi settings.ops
   { method: "POST", path: "/api/van-chuyen/dieu-kien", access: "office" }, // thêm điều kiện; như trên
   { method: "POST", path: "/api/van-chuyen/dieu-kien/:id/dong", access: "office" }, // đóng hiệu lực một lần; như trên
@@ -555,6 +557,6 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-16 (ADR-0074 Phần B Task 6): + POST /api/staff/:id/mfa-reset (admin) và POST /api/auth/mfa/enroll/{start, confirm} (public; cookie chờ "enroll") = 324.
   // 2026-10-16 (ADR-0074 Phần C Task 2): + POST /api/auth/mfa/email (public; cookie chờ "verify", tự gọi maintenanceBlock) = 325.
   // 2026-10-16 (ADR-0074 Phần C Task 3): + POST /api/account/mfa/email/{start, confirm} (staff, tự phục vụ; vai lớn 409 trong thân) = 327.
-  assert.equal(actual.length, 327, "số route thực tế lệch 327 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 327, "SNAPSHOT phải có đúng 327 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 329, "số route thực tế lệch 329 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 329, "SNAPSHOT phải có đúng 329 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

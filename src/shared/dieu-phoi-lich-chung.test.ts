@@ -229,16 +229,22 @@ test("HT-01 TRA_TRUOC_DON: suất CHỜ ĐÓN có điểm xuống đứng trư�
   assert.ok(NHAN_CANH_BAO_LICH.TRA_TRUOC_DON.length > 0);
 });
 
-test("Đợt 7 (ADR-0056 VK3-A, Review Focus 3): chuyến chưa chạy vi phạm cam kết xe riêng, không phá lệ → lịch chung hiện 'giữ' CAM_KET (Quản trị) bằng lời; khoá phá lệ khớp → không giữ", () => {
-  const ds = [chang("a", { xeRieng: true, soNguoi: 1, nguoiCuaDon: ["a-p1"] }), chang("b", { soNguoi: 1, nguoiCuaDon: ["b-p1"] })];
+// ADR-0128 Q2 (chủ 2026-10-17): xe riêng không phá lệ được → ống dẫn "giữ / đã phá lệ" của lịch chung chạy bằng SỐ CHỖ TỐI THIỂU (R-CX); xe riêng thì khoá khớp cũng không che được.
+test("Đợt 7 (ADR-0056 VK3-A, Review Focus 3): chuyến chưa chạy vi phạm cam kết số chỗ tối thiểu, không phá lệ → lịch chung hiện 'giữ' CAM_KET (Quản trị) bằng lời; khoá phá lệ khớp → không giữ; xe riêng thì khoá khớp vẫn giữ (ADR-0128 Q2)", () => {
+  const ds = [chang("a", { choToiThieu: 16, soNguoi: 1, nguoiCuaDon: ["a-p1"] }), chang("b", { soNguoi: 1, nguoiCuaDon: ["b-p1"] })];
   const suatAB = [suat("s1", "a", "07", { personKey: "a-p1" }), suat("s2", "b", "07", { personKey: "b-p1" })];
   const giu = dungLichChung(vao({ chang: ds, chuyen: [chuyen("07")], suat: suatAB }));
   const c = giu.chuyen[0]!;
-  assert.deepEqual(c.lyDoGiu.map((l) => `${l.ma}:${l.aiXuLy}`), ["CAM_KET:QUAN_TRI", "CAM_KET:QUAN_TRI"]);
-  assert.ok(c.lyDoGiu.some((l) => /xe riêng/.test(l.loiNhan) && /ĐH-a/.test(l.loiNhan)));
+  assert.deepEqual(c.lyDoGiu.map((l) => `${l.ma}:${l.aiXuLy}`), ["CAM_KET:QUAN_TRI"]);
+  assert.ok(c.lyDoGiu.some((l) => /≥ 16 chỗ/.test(l.loiNhan) && /ĐH-a/.test(l.loiNhan)));
   assert.deepEqual(giu.canhBao.filter((x) => x.loai === "CHUYEN_GIU").map((x) => x.tripId), ["07"]);
-  // Khoá đúng tập vi phạm (xe-a + hai dòng XR — C5) → đã phá lệ, không giữ.
-  const khoa = "xe:xe-a|a:XR:1:-|b:XR:0:-";
+  // Khoá đúng tập vi phạm (xe-a + dòng CX — C5) → đã phá lệ, không giữ.
+  const khoa = "xe:xe-a|a:CX:0:16";
   const daPhaLe = dungLichChung(vao({ chang: ds, chuyen: [chuyen("07", { camKetPhaLeKhoa: khoa })], suat: suatAB }));
   assert.deepEqual(daPhaLe.chuyen[0]!.lyDoGiu, []);
+  // ADR-0128 Q2: cùng ca với XE RIÊNG của A — khoá phá lệ khớp đúng tập vi phạm vẫn KHÔNG che được: lịch chung vẫn giữ CAM_KET.
+  const dsXr = [chang("a", { xeRieng: true, soNguoi: 1, nguoiCuaDon: ["a-p1"] }), chang("b", { soNguoi: 1, nguoiCuaDon: ["b-p1"] })];
+  const xr = dungLichChung(vao({ chang: dsXr, chuyen: [chuyen("07", { camKetPhaLeKhoa: "xe:xe-a|a:XR:1:-|b:XR:0:-" })], suat: suatAB }));
+  assert.ok(xr.chuyen[0]!.lyDoGiu.length >= 1 && xr.chuyen[0]!.lyDoGiu.every((l) => l.ma === "CAM_KET"), JSON.stringify(xr.chuyen[0]!.lyDoGiu));
+  assert.ok(xr.chuyen[0]!.lyDoGiu.some((l) => /xe riêng/.test(l.loiNhan) && /ĐH-a/.test(l.loiNhan)));
 });

@@ -14,7 +14,7 @@ import type {
   TrangThaiChuyen, XeVao,
 } from "./dieu-phoi-kieu.ts";
 import { xetKetThuc } from "./ket-thuc-chuyen.ts";
-import { kiemCamKet, type KetQuaCamKet } from "./cam-ket-xe.ts";
+import { kiemCamKet, tachLyDoCamKet, type KetQuaCamKet } from "./cam-ket-xe.ts";
 import { LOAI_CO_DINH } from "./giay-to.ts";
 import { canhBaoGioLai, type CanhBaoGioLai, type ChuyenGioLai } from "./gio-lai.ts";
 import { chongNuaMo, nhanKhoangGio, nhanTuDen } from "./khung-ban.ts";
@@ -157,7 +157,9 @@ export function kiemTaoSuaChuyen(v: KiemTaoSuaChuyenVao): KetQuaTaoSua {
   let camKet: KetQuaCamKet | null = null;
   if (v.lenh === "SUA" && v.cu && v.camKet && v.cu.xeId !== c.xe.id) {
     camKet = kiemCamKet({ xe: c.xe, chang: v.camKet.changTrenChuyen, khoaDaPhaLe: v.camKet.khoaDaPhaLe });
-    if (!camKet.daPhaLe) canPhaLe.push(...camKet.lyDo);
+    const t = tachLyDoCamKet(camKet);
+    chan.push(...t.chan);
+    canPhaLe.push(...t.canPhaLe);
   }
   // ADR-0055 VK2-B B3: nhắc giờ lái cho chuyến đang tạo / sửa (MỘT hàm với lịch chung — canhBaoGioLai). "__moi__" = id tạm của chuyến chưa có id.
   const id = c.id ?? "__moi__";
@@ -304,7 +306,9 @@ export function kiemXep(v: KiemXepVao): KetQuaXep {
   // ADR-0056 VK3-A: cam kết xe riêng / số chỗ trên chuyến SAU lệnh — còn vi phạm mà khoá khác khoá đã phá lệ → cần Quản trị phá lệ (CAM_KET).
   const sau = [...v.changTrenChuyen, ...v.them.filter((t) => t.soSuatMoi > 0).map((t) => t.chang)];
   const camKet = kiemCamKet({ xe: { id: v.xeId, soCho: v.chuyen.soCho }, chang: sau, khoaDaPhaLe: v.camKetPhaLeKhoa });
-  if (!camKet.daPhaLe) canPhaLe.push(...camKet.lyDo);
+  const tc = tachLyDoCamKet(camKet); // ADR-0128 Q2: xe riêng → chặn cứng; số chỗ tối thiểu → cần phá lệ
+  chan.push(...tc.chan);
+  canPhaLe.push(...tc.canPhaLe);
   return { ...ketQua(khongTrung(chan), khongTrung(canPhaLe)), canhBao: khongTrung(canhBao), camKet };
 }
 

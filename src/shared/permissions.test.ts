@@ -28,6 +28,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "trip.dispatch": ["any", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0049 D3: ô MỚI
   "trip.override": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0049 D3: ô MỚI — phá lệ luật cấu hình, chỉ Quản trị, Toàn quyền (ADR-0104 Đ1: khoảng nghỉ, cam kết khi chuyến ngoài mốc)
   "trip.urgent_adjust": ["any", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0104 Đ1 (Q-1 b): ô MỚI — điều chỉnh khẩn cấp: Bán hàng, Quản trị, Toàn quyền; còn lại none
+  "dispatch.policy.lead": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0128 Q1: đặt mốc ra lệnh — Quản trị, Toàn quyền
   "trip.progress": ["any", "none", "any", "none", "none", "any", "none", "assigned", "assigned", "none"], // ADR-0053 D7.1 (A4 T6): DRIVER_PARTNER assigned; ADR-0049 D3 (A15): ô MỚI — lệnh tiến độ; DRIVER assigned (NỚI ghim DRIVER — ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2); văn phòng bấm thay (R-P1)
   "trip.passenger.add": ["none", "none", "none", "none", "none", "any", "none", "assigned", "none", "none"], // ADR-0052 D5b (Đợt 5 A-1b): ô MỚI — tài xế bổ sung tên khách chưa có tên trên chuyến mình đang lái; DRIVER assigned (nới ghim DRIVER — chủ DUYỆT 5/10, đề xuất luật A-1b mục 1); DRIVER_PARTNER none (chủ 5/10: chỉ tài xế công ty)
   "trip.refuse": ["none", "none", "none", "none", "none", "any", "none", "none", "assigned", "none"], // ADR-0053 D8 (kế hoạch A4 T3; DRIVER_PARTNER assigned ở T6): ô MỚI — tài xế từ chối chuyến MÌNH ĐANG LÁI trước hạn; cũng bật VẾ HẠN của khung xem khách (G-A4-2). T3: chỉ Toàn quyền any; DRIVER_PARTNER lật assigned ở T6; DRIVER none (tài xế công ty không Từ chối — D8.3)
@@ -361,7 +362,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     // ADR-0049 D3 — NỚI (ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2): tài xế công ty xem + bấm tiến độ chuyến MÌNH ĐANG LÁI (`assigned` — A13 / A15).
-    "trip.view": "assigned", "trip.dispatch": "none", "trip.override": "none", "trip.urgent_adjust": "none", "trip.progress": "assigned", "trip.call_ack": "none",
+    "trip.view": "assigned", "trip.dispatch": "none", "trip.override": "none", "trip.urgent_adjust": "none", "dispatch.policy.lead": "none", "trip.progress": "assigned", "trip.call_ack": "none",
     // ADR-0052 D5b — NỚI (chủ duyệt 5/10, đề xuất luật A-1b mục 1): tài xế công ty bổ sung tên khách chưa có tên trên chuyến MÌNH ĐANG LÁI (ô assigned thứ ba).
     "trip.passenger.add": "assigned",
     // ADR-0052 D4 — NỚI N1 (chủ duyệt A-1 30/9, ADR-0052:190): tài xế công ty gửi / nhận đề nghị chuyển khách của chuyến MÌNH ĐANG LÁI (ô assigned thứ tư).
@@ -413,7 +414,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "trip.refuse": "assigned",
     // NỚI có tên (Điều 9.4) — ADR-0053 D9, :49 (kế hoạch A4 T8, NT-1): báo bận của CHÍNH MÌNH (ownerId = staff.id; route luôn dùng staff.partyId). Ô thứ 8.
     "unavailability.self": "own",
-    "trip.view": "assigned", "trip.dispatch": "none", "trip.override": "none", "trip.urgent_adjust": "none", "trip.progress": "assigned", "trip.call_ack": "none", // ADR-0053 D7.1 (A4 T6)
+    "trip.view": "assigned", "trip.dispatch": "none", "trip.override": "none", "trip.urgent_adjust": "none", "dispatch.policy.lead": "none", "trip.progress": "assigned", "trip.call_ack": "none", // ADR-0053 D7.1 (A4 T6)
     "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none", // sổ tiền lượt 1 (bản làm mới §2) — mọi ô tiền = none
     "ledger.period.close": "none", // khoá sổ tháng (ADR-0080 D1): tài xế đối tác không khoá sổ
     "ledger.adjust.approve": "none", // ADR-0115: duyệt điều chỉnh công nợ chỉ Kế toán, Quản trị, Toàn quyền
@@ -451,7 +452,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
-    "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.urgent_adjust": "none", "trip.progress": "none", "trip.call_ack": "none", "trip.passenger.add": "none",
+    "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.urgent_adjust": "none", "dispatch.policy.lead": "none", "trip.progress": "none", "trip.call_ack": "none", "trip.passenger.add": "none",
     "trip.refuse": "none", // ADR-0053 D8: Nhân sự không lái chuyến
     "unavailability.self": "none", // ADR-0053 D9: Nhân sự không lái chuyến
     "trip.transfer": "none", // ADR-0111: Nhân sự không điều xe

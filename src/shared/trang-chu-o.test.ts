@@ -33,20 +33,22 @@ test("Quản trị: bảng trượt Tất cả chia bốn nhóm, mỗi nhóm đ�
     [
       ["Bán hàng", ["tao-don", "don-hang", "danh-ba"]],
       ["Quản lý", ["dich-vu", "tai-khoan", "dia-diem", "giay-to-nguoi"]],
-      ["Vận chuyển", ["dieu-phoi", "bang-gia-xe", "bang-ke-xe", "xe", "sap-het-han", "giay-to-xe", "ly-do"]],
+      ["Vận chuyển", ["dieu-phoi", "bang-gia-xe", "bang-ke-xe", "xe", "sap-het-han", "giay-to-xe", "chinh-sach", "ly-do"]],
       ["Của tôi", ["gop-y", "tro-giup"]],
     ],
   );
 });
 
-test("Toàn quyền: thêm Nhật ký, Phiên đăng nhập, Gửi thông báo, Trợ lý Hỗ trợ, Chính sách điều phối (ô chỉ Toàn quyền)", () => {
+test("Toàn quyền: thêm Nhật ký, Phiên đăng nhập, Gửi thông báo, Trợ lý Hỗ trợ, Chính sách điều phối (Quản trị chỉ có Chính sách điều phối)", () => {
   const r = oTrangChu(who("SUPER_ADMIN"));
   const tatCa = r.nhom.flatMap((n) => khoa(n.o));
   for (const k of ["nhat-ky", "phien", "gui-thong-bao", "tro-ly", "chinh-sach"] as const) assert.ok(tatCa.includes(k), k);
   assert.equal(r.coTatCa, true);
   // Quản trị không có các ô đó (ADR-0038: Nhật ký chỉ Toàn quyền; ADR-0075: sổ phiên chỉ Toàn quyền).
   const qt = oTrangChu(who("ADMIN")).nhom.flatMap((n) => khoa(n.o));
-  for (const k of ["nhat-ky", "phien", "gui-thong-bao", "tro-ly", "chinh-sach"] as const) assert.ok(!qt.includes(k), `Quản trị không có ${k}`);
+  for (const k of ["nhat-ky", "phien", "gui-thong-bao", "tro-ly"] as const) assert.ok(!qt.includes(k), `Quản trị không có ${k}`);
+  // ADR-0128 Q1 (2026-10-17): riêng «Chính sách điều phối» Quản trị có (vào để đặt hai số mốc; các ô khác trong trang vẫn chỉ Toàn quyền).
+  assert.ok(qt.includes("chinh-sach"), "Quản trị có chinh-sach");
 });
 
 test("Bán hàng không có ô Bảng giá thuê xe / Bảng kê chi phí xe (ô transport.rate.view / transport.cost.view = none)", () => {
@@ -119,7 +121,7 @@ test("Máy tính, bản vẽ v2 (2/10): đúng các ô của ba vai đã vẽ", 
   assert.deepEqual(mt("ADMIN"), [
     ["Bán hàng", ["tao-don", "don-hang", "danh-ba"]],
     ["Quản lý", ["dich-vu", "tai-khoan", "dia-diem", "giay-to-nguoi"]],
-    ["Vận chuyển", ["dieu-phoi", "bang-gia-xe", "bang-ke-xe", "xe", "sap-het-han", "giay-to-xe", "ly-do"]],
+    ["Vận chuyển", ["dieu-phoi", "bang-gia-xe", "bang-ke-xe", "xe", "sap-het-han", "giay-to-xe", "chinh-sach", "ly-do"]],
     ["Của tôi", ["toi", "gop-y", "tro-giup"]],
   ]);
   // Toàn quyền: bản vẽ có 8 ô Quản lý (vẽ trước khi 1.67 thêm màn Giao diện); ô Giao diện đứng cuối nhóm.

@@ -183,7 +183,8 @@ export function kiemChuyen(v: KiemChuyenVao): { dong: DongKiemChuyen[]; camKet: 
   };
   const dong = v.danhMuc.filter((m) => m.active).map((m): DongKiemChuyen => {
     if (!laMaLuat(m.code)) return { ma: m.code, tang: m.tier, ketQua: "KHONG_DAT", giaTri: null, gioiHan: null };
-    return { ma: m.code, tang: m.tier, ...tinh[m.code]() };
+    // ADR-0128 Q2: vi phạm xe riêng ở xe nhận KHÔNG phá lệ được → tầng LOI (chỉ Bác), dù danh mục xếp CAM_KET_DICH tầng CAU_HINH (số chỗ tối thiểu vẫn duyệt được).
+    return { ma: m.code, tang: m.code === "CAM_KET_DICH" && camKet.coXeRieng ? "LOI" : m.tier, ...tinh[m.code]() };
   });
   return { dong, camKet };
 }

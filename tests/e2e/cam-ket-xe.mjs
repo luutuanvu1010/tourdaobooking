@@ -1,11 +1,14 @@
-// Cam kết "xe riêng" / "xe tối thiểu N chỗ" trên chặng đưa đón (ADR-0056 VK3-A, Vận chuyển Đợt 7, Task 7) trên API THẬT (wrangler dev, D1 local tạm):
+// Cam kết "xe riêng" / "xe tối thiểu N chỗ" trên chặng đưa đón (ADR-0056 VK3-A, Vận chuyển Đợt 7, Task 7) trên API THẬT (wrangler dev, D1 local tạm).
+// ADR-0128 Q2 (chủ duyệt 2026-10-17): XE RIÊNG KHÔNG AI GHÉP THÊM KHÁCH LẺ, kể cả khẩn cấp hay phá lệ (chặn cứng 409 chang_khong_hop_le, không có đường phá lệ);
+// SỐ CHỖ TỐI THIỂU vẫn phá lệ được như cũ. Nên ống dẫn phá lệ (2)–(5) chạy bằng đơn đòi ≥ 16 chỗ (xe thử 15 chỗ), còn xe riêng canh ở (2a) và (5).
 //   (1) Đối tác (PARTNER) lập đơn nháp có chặng XE RIÊNG → 201, cờ đọc lại đúng (tiêu chí 4); văn phòng xác nhận;
-//   (2) xếp A → 200; xếp B (đơn khác) vào cùng chuyến → 409 can_pha_le_cam_ket (canQuyen theo vai, lý do CAM_KET); Bán hàng gửi camKetPhaLe → 403
+//   (2a) xếp A (xe riêng) → 200; xếp B (đơn khác) vào cùng chuyến → 409 chang_khong_hop_le (chặn cứng); Quản trị gửi camKetPhaLe cũng 409; hai cột phá lệ trống;
+//   (2) [sau khi rút A] B đòi ≥ 16 chỗ: xếp B → 409 can_pha_le_cam_ket (canQuyen theo vai, lý do CAM_KET); Bán hàng gửi camKetPhaLe → 403
 //       (không ghi); Quản trị gửi camKetPhaLe → 200, hai cột phá lệ của chuyến CÓ (lý do thuộc nhóm PHA_LE);
-//   (3) xếp C → 409; Quản trị phá lệ → 200; rút B và C → hết vi phạm → hai cột về trống (kiểm trực tiếp D1) và ghép lại B → 409 cần phá lệ MỚI;
-//   (4) bật minVehicleSeats = 30 trên chặng A (xe 15 chỗ; đường thật PUT /legs) → xuất bến 409 chua_du_dieu_kien_xuat_ben có lý do CAM_KET;
-//   (5) ADR-0104 Đ1 (NỚI có tên N5): chuyến DƯỚI mốc (bắt đầu sau 2 giờ 30) — Bán hàng xếp đơn thường vào chuyến có xe riêng: 409 lớp KHAN_CAP (canQuyen
-//       đúng); kèm điều chỉnh khẩn cấp (mốc + cam kết) → 200, cột phá lệ cam kết có. Vế (2) — chuyến NGÀY MAI, ngoài mốc — Bán hàng vẫn 403.
+//   (3) xếp C (cũng đòi ≥ 16 chỗ) → 409; Quản trị phá lệ → 200; rút B và C → hết vi phạm → hai cột về trống (kiểm trực tiếp D1) và ghép lại B → 409 cần phá lệ MỚI;
+//   (4) xếp lại A, bật minVehicleSeats = 30 trên chặng A (xe 15 chỗ; đường thật PUT /legs) → xuất bến 409 chua_du_dieu_kien_xuat_ben có lý do CAM_KET;
+//   (5) ADR-0104 Đ1 (NỚI có tên N5): chuyến DƯỚI mốc (bắt đầu sau 2 giờ 30) — Bán hàng xếp đơn đòi ≥ 16 chỗ: 409 lớp KHAN_CAP (canQuyen
+//       đúng); kèm điều chỉnh khẩn cấp (mốc + cam kết) → 200, cột phá lệ cam kết có; xe riêng ghép vào thì 409 chặn cứng dù đủ hai cờ. Vế (2) — chuyến NGÀY MAI, ngoài mốc — Bán hàng vẫn 403.
 // Dữ liệu độc nhất theo lần chạy (SĐT ngẫu nhiên, biển số theo Date.now()). Chuyến chạy NGÀY MAI (xếp không vướng mốc 6 giờ). Tên khách, giấy tờ là GIẢ.
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, catalogService, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows, vnDate, moCuaSoXuatBen48Gio } from "./lib.mjs";
@@ -49,20 +52,20 @@ assert.equal(r.status, 201, JSON.stringify(r.body));
 const a = r.body.order;
 assert.equal(a.services[0].legs[0].exclusiveVehicle, true, "đọc lại: chặng của Đối tác mang cờ xe riêng");
 assert.equal(a.services[0].legs[0].minVehicleSeats, null);
-const donThuong = async (ten, noi) => {
-  const x = await call(SALES, "POST", "/api/orders", orderInput({ services: [catalogService({ pax: { adult: 2 }, departDate: D, legs: [leg(noi)] })], passengers: ten }));
+const donThuong = async (ten, noi, extra = {}) => {
+  const x = await call(SALES, "POST", "/api/orders", orderInput({ services: [catalogService({ pax: { adult: 2 }, departDate: D, legs: [leg(noi, extra)] })], passengers: ten }));
   assert.equal(x.status, 201, JSON.stringify(x.body));
   assert.equal((await call(SALES, "POST", `/api/orders/${x.body.order.id}/status`, { status: "confirmed" })).status, 200);
   return x.body.order;
 };
 r = await call(ADMIN, "POST", `/api/orders/${a.id}/status`, { status: "confirmed" });
 assert.equal(r.status, 200, JSON.stringify(r.body));
-const b = await donThuong([P(3), P(4)], `Khách sạn Cam Kết B ${duoi}`);
-const c = await donThuong([P(5), P(6)], `Khách sạn Cam Kết C ${duoi}`);
+const b = await donThuong([P(3), P(4)], `Khách sạn Cam Kết B ${duoi}`, { minVehicleSeats: 16 }); // ADR-0128 Q2: đòi ≥ 16 chỗ (xe 15) — vi phạm phá lệ được
+const c = await donThuong([P(5), P(6)], `Khách sạn Cam Kết C ${duoi}`, { minVehicleSeats: 16 });
 const legA = a.services[0].legs[0].id, legB = b.services[0].legs[0].id, legC = c.services[0].legs[0].id;
-console.log("✓ (1) Đối tác lập nháp có xe riêng → 201, cờ đọc lại đúng; văn phòng xác nhận A, B, C");
+console.log("✓ (1) Đối tác lập nháp có xe riêng → 201, cờ đọc lại đúng; văn phòng xác nhận A; B, C đòi ≥ 16 chỗ");
 
-// --- (2) xếp A; xếp B → 409; Bán hàng phá lệ → 403 (chuyến NGÀY MAI — ngoài mốc, lớp QUAN_TRI; ADR-0104 Đ1); Quản trị phá lệ → 200 ---
+// --- (2a) xếp A (xe riêng); xếp B → 409 chặn cứng (ADR-0128 Q2); rút A. (2) xếp B (đòi ≥ 16 chỗ) → 409; Bán hàng phá lệ → 403 (chuyến NGÀY MAI — ngoài mốc, lớp QUAN_TRI; ADR-0104 Đ1); Quản trị phá lệ → 200 ---
 r = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId, taiXePartyId: txParty, batDau: { ngay: D, gio: "09:30" }, ketThuc: { ngay: D, gio: "12:00" } });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 const tripId = r.body.chuyen.id;
@@ -71,6 +74,20 @@ r = await xep(SALES, r.body.chuyen, legA);
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.deepEqual(await cot(tripId), { r: null, k: null }, "chuyến chỉ có đơn A: không vi phạm, không có dấu phá lệ");
 let ch = r.body.chuyen;
+// (2a) ADR-0128 Q2: xe riêng của A — ghép thêm đơn B: chặn cứng, Quản trị gửi camKetPhaLe cũng 409, không ghi gì.
+r = await xep(SALES, ch, legB);
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "chang_khong_hop_le", "xe riêng: chặn cứng, không phải can_pha_le_cam_ket");
+assert.ok(r.body.error.lyDo.every((l) => l.ma === "CAM_KET"), JSON.stringify(r.body.error.lyDo));
+r = await xep(ADMIN, ch, legB, { camKetPhaLe: PL });
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "chang_khong_hop_le");
+assert.deepEqual(await cot(tripId), { r: null, k: null }, "xe riêng không phá lệ được: không ghi cột");
+console.log("✓ (2a) xe riêng của A: ghép B → 409 chang_khong_hop_le (cả Quản trị kèm camKetPhaLe); hai cột trống");
+const rutA = await sqlRows(`SELECT id FROM vc_trip_allocation WHERE trip_id = '${tripId}' AND leg_id = '${legA}' AND valid_to_at IS NULL`);
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${tripId}/rut`, { version: ch.version, requestId: uuid(), suatIds: rutA.map((x) => x.id) });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+ch = r.body.chuyen;
 r = await xep(SALES, ch, legB);
 assert.equal(r.status, 409, JSON.stringify(r.body));
 assert.equal(r.body.error.code, "can_pha_le_cam_ket");
@@ -90,7 +107,7 @@ assert.ok(typeof sauB.k === "string" && sauB.k.length > 0, "khoá cam kết đư
 assert.ok(!JSON.stringify(r.body).includes(sauB.k), "khoá không lộ ở phản hồi");
 console.log("✓ (2) xếp B: 409 can_pha_le_cam_ket (canQuyen sai/đúng theo vai); Bán hàng phá lệ 403 không ghi; Quản trị phá lệ 200, hai cột phá lệ có");
 
-// --- (3) xếp C: 409 → Quản trị phá lệ; rút B và C → hai cột trống; ghép lại phải 409 ---
+// --- (3) xếp C (đòi ≥ 16 chỗ): 409 → Quản trị phá lệ; rút B và C → hai cột trống; ghép lại phải 409 ---
 r = await xep(SALES, ch, legC);
 assert.equal(r.status, 409, JSON.stringify(r.body));
 assert.equal(r.body.error.code, "can_pha_le_cam_ket");
@@ -114,7 +131,10 @@ assert.equal(r.status, 409, "cột đã xoá: ghép lại phải cần phá lệ
 assert.equal(r.body.error.code, "can_pha_le_cam_ket");
 console.log("✓ (3) xếp C 409 → phá lệ 200; rút B, rút C → hai cột trống (đọc D1); ghép lại B → 409 cần phá lệ mới");
 
-// --- (4) số chỗ tối thiểu 30 trên chặng A (xe 15 chỗ) → xuất bến 409 CAM_KET ---
+// --- (4) xếp lại A (xe riêng, một mình trên chuyến trống → không vi phạm); số chỗ tối thiểu 30 trên chặng A (xe 15 chỗ) → xuất bến 409 CAM_KET ---
+r = await xep(SALES, ch, legA);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.deepEqual(await cot(tripId), { r: null, k: null }, "A một mình: không vi phạm");
 const la = (await call(SALES, "GET", `/api/orders/${a.id}`)).body.order.services[0].legs[0];
 r = await call(ADMIN, "PUT", `/api/orders/${a.id}/legs/${la.id}`, {
   expectedUpdatedAt: la.updatedAt,
@@ -135,18 +155,22 @@ const vnSau = (phut) => {
   const iso = new Date(Date.now() + 7 * 3600e3 + phut * 60e3).toISOString();
   return { ngay: iso.slice(0, 10), gio: iso.slice(11, 16) };
 };
-r = await call(SALES, "POST", "/api/orders", orderInput({ services: [catalogService({ pax: { adult: 2 }, departDate: D, legs: [leg(`Khách sạn Cam Kết E ${duoi}`, { exclusiveVehicle: true })] })], passengers: [P(9), P(10)] }));
-assert.equal(r.status, 201, JSON.stringify(r.body));
-assert.equal((await call(SALES, "POST", `/api/orders/${r.body.order.id}/status`, { status: "confirmed" })).status, 200);
-const legE = r.body.order.services[0].legs[0].id;
-const f = await donThuong([P(11), P(12)], `Khách sạn Cam Kết F ${duoi}`);
+const e = await donThuong([P(9), P(10)], `Khách sạn Cam Kết E ${duoi}`, { minVehicleSeats: 16 }); // ADR-0128 Q2: đòi ≥ 16 chỗ thay cho xe riêng (phá lệ được)
+const legE = e.services[0].legs[0].id;
+const f = await donThuong([P(11), P(12)], `Khách sạn Cam Kết F ${duoi}`, { minVehicleSeats: 16 });
 const legF = f.services[0].legs[0].id;
+const g = await donThuong([P(13), P(14)], `Khách sạn Cam Kết G ${duoi}`, { exclusiveVehicle: true }); // xe riêng: chặn cứng
+const legG = g.services[0].legs[0].id;
 r = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId, taiXePartyId: txParty, batDau: vnSau(150), ketThuc: vnSau(240) });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.equal(r.body.chuyen.khoaMoc.dangKhoa, true, "chuyến dưới mốc 6 giờ");
 const gan = r.body.chuyen.id;
 const xepGan = (chuyen, legId, extra = {}) => call(SALES, "POST", `/api/van-chuyen/chuyen/${gan}/phan-bo`, { version: chuyen.version, requestId: uuid(), chang: [{ legId, soSuat: 2 }], ...extra });
-r = await xepGan(r.body.chuyen, legE, { phaLe: PL });
+const chMoi = r.body.chuyen;
+r = await xepGan(chMoi, legE, { phaLe: PL });
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.deepEqual([r.body.error.code, r.body.error.lop, r.body.error.canQuyen], ["can_pha_le_cam_ket", "KHAN_CAP", true], "E đòi ≥ 16 chỗ: vi phạm ngay từ một đơn");
+r = await xepGan(chMoi, legE, { phaLe: PL, camKetPhaLe: PL });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 let chGan = r.body.chuyen;
 r = await xepGan(chGan, legF, { phaLe: PL });
@@ -154,5 +178,15 @@ assert.equal(r.status, 409, JSON.stringify(r.body));
 assert.deepEqual([r.body.error.code, r.body.error.lop, r.body.error.canQuyen], ["can_pha_le_cam_ket", "KHAN_CAP", true]);
 r = await xepGan(chGan, legF, { phaLe: PL, camKetPhaLe: PL });
 assert.equal(r.status, 200, JSON.stringify(r.body));
-assert.equal((await cot(gan)).r, PL.lyDo, "cột phá lệ cam kết có (lớp điều chỉnh khẩn cấp)");
-console.log("✓ (5) chuyến dưới mốc: Bán hàng xếp đơn thường vào chuyến xe riêng → 409 lớp KHAN_CAP (canQuyen đúng); kèm điều chỉnh khẩn cấp → 200, cột cam kết có");
+chGan = r.body.chuyen;
+const cotGan = await cot(gan);
+assert.equal(cotGan.r, PL.lyDo, "cột phá lệ cam kết có (lớp điều chỉnh khẩn cấp)");
+// ADR-0128 Q2: xe riêng của G ghép vào — chặn cứng dù đủ cả hai cờ (Bán hàng và Quản trị), cột phá lệ giữ nguyên.
+r = await xepGan(chGan, legG, { phaLe: PL, camKetPhaLe: PL });
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "chang_khong_hop_le", "xe riêng: chặn cứng, không còn lớp KHAN_CAP");
+r = await call(ADMIN, "POST", `/api/van-chuyen/chuyen/${gan}/phan-bo`, { version: chGan.version, requestId: uuid(), chang: [{ legId: legG, soSuat: 2 }], phaLe: PL, camKetPhaLe: PL });
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "chang_khong_hop_le");
+assert.deepEqual(await cot(gan), cotGan, "cột phá lệ giữ nguyên");
+console.log("✓ (5) chuyến dưới mốc: Bán hàng xếp đơn đòi ≥ 16 chỗ → 409 lớp KHAN_CAP (canQuyen đúng); kèm điều chỉnh khẩn cấp → 200, cột cam kết có; xe riêng ghép vào → 409 chặn cứng");

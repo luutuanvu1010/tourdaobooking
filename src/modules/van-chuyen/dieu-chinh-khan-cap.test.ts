@@ -31,7 +31,8 @@ function taiXeMoi(w: any): string {
   return id;
 }
 /** Đơn ĐÃ XÁC NHẬN có cam kết xe riêng (chặng chiều đi, đón `gio` ngày `ngay`, trả ở bến). */
-async function donXeRieng(w: any, v: { ngay?: string; gio: string; soNguoi?: number }) {
+// ADR-0128 Q2: `cx` = đơn đòi xe tối thiểu `cx` chỗ (R-CX — phá lệ được) thay cho xe riêng (R-XR — chặn cứng); xe thử 15 chỗ nên cx = 16 là vi phạm ngay từ một đơn.
+async function donXeRieng(w: any, v: { ngay?: string; gio: string; soNguoi?: number; cx?: number }) {
   const soNguoi = v.soNguoi ?? 2;
   const r = await w.call("POST", "/api/orders", {
     as: SALES,
@@ -39,7 +40,7 @@ async function donXeRieng(w: any, v: { ngay?: string; gio: string; soNguoi?: num
       customerName: "Khách Riêng", customerPhone: "0912345678",
       services: [{
         kind: "catalog", catalogCode: "ZA1", pax: { adult: soNguoi, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: v.ngay ?? NGAY,
-        legs: [{ direction: "OUT", pickupDate: v.ngay ?? NGAY, pickupTime: v.gio, pickupLocationId: null, pickupPlace: "Khách sạn Riêng", dropoffLocationId: LOC, dropoffPlace: "", exclusiveVehicle: true }],
+        legs: [{ direction: "OUT", pickupDate: v.ngay ?? NGAY, pickupTime: v.gio, pickupLocationId: null, pickupPlace: "Khách sạn Riêng", dropoffLocationId: LOC, dropoffPlace: "", ...(v.cx ? { minVehicleSeats: v.cx } : { exclusiveVehicle: true }) }],
       }],
       passengers: Array.from({ length: soNguoi }, (_x, i) => ({ fullName: `Khách Riêng ${i + 1}`, birthYear: 1980 + i, paxCode: "adult" })),
     },
@@ -164,16 +165,21 @@ test("NT-1 (ADR-0104 Đ1 mục 0, 2 — 'Chỉ khi chuyến còn dưới 6 giờ
   }
 });
 
-test("NT-1 (ADR-0104 Đ1 mục 0b, 0): cam kết xe riêng — chuyến DƯỚI mốc: Bán hàng 409 can_pha_le_cam_ket lớp KHAN_CAP, kèm lý do 200; chặng ĐẶT GẤP không làm chuyến thôi dưới mốc (Bán hàng chỉ gửi cờ cam kết → 200)", async () => {
+// ADR-0128 Q2 (chủ 2026-10-17): xe riêng KHÔNG ai ghép thêm khách lẻ được → ống dẫn khẩn cấp của cam kết chạy bằng SỐ CHỖ TỐI THIỂU (R-CX, đơn đòi ≥ 16 chỗ, xe 15); cuối bài canh luật mới.
+test("NT-1 (ADR-0104 Đ1 mục 0b, 0): cam kết số chỗ tối thiểu — chuyến DƯỚI mốc: Bán hàng 409 can_pha_le_cam_ket lớp KHAN_CAP, kèm lý do 200; chặng ĐẶT GẤP không làm chuyến thôi dưới mốc (Bán hàng chỉ gửi cờ cam kết → 200); xe riêng thì chặn cứng (ADR-0128 Q2)", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
-    const rieng = await donXeRieng(w, { gio: "13:00" });
-    const thuong = await don(w, { gio: "13:00" });
-    const gap = await don(w, { gio: "13:00" });
+    const dau = await donXeRieng(w, { gio: "13:00", cx: 16 });
+    const thuong = await donXeRieng(w, { gio: "13:00", cx: 16 });
+    const gap = await donXeRieng(w, { gio: "13:00", cx: 16 });
     assert.equal((await w.call("POST", `/api/orders/${gap.id}/legs/${gap.legId}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } })).status, 200);
     const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, bd: "11:00", kt: "15:00" });
-    assert.equal((await xep(w, SALES, t.chuyen.id, [{ legId: rieng.legId, soSuat: 2 }], { phaLe: PL })).status, 200);
+    const c00 = await xep(w, SALES, t.chuyen.id, [{ legId: dau.legId, soSuat: 2 }], { phaLe: PL });
+    assert.equal(c00.status, 409, c00.text);
+    assert.equal(c00.json.error.code, "can_pha_le_cam_ket");
+    assert.equal(c00.json.error.lop, "KHAN_CAP");
+    assert.equal((await xep(w, SALES, t.chuyen.id, [{ legId: dau.legId, soSuat: 2 }], { phaLe: PL, camKetPhaLe: PL })).status, 200);
     const c0 = await xep(w, SALES, t.chuyen.id, [{ legId: thuong.legId, soSuat: 2 }], { phaLe: PL });
     assert.equal(c0.status, 409, c0.text);
     assert.equal(c0.json.error.code, "can_pha_le_cam_ket");
@@ -187,6 +193,20 @@ test("NT-1 (ADR-0104 Đ1 mục 0b, 0): cam kết xe riêng — chuyến DƯỚI 
     const g = await xep(w, SALES, t.chuyen.id, [{ legId: gap.legId, soSuat: 2 }], { camKetPhaLe: PL });
     assert.equal(g.status, 200, g.text);
     assert.equal(suKien(w, "ALLOCATED", t.chuyen.id)[0].r, "CAM_KET", "đặt gấp không vượt mốc — sự kiện mang CAM_KET (ca lệch nhãn 2, ADR-0104 Đ1 mục 5)");
+    // ADR-0128 Q2: cùng thao tác với XE RIÊNG thì chặn cứng — chuyến dưới mốc, Bán hàng kèm đủ hai cờ vẫn 409 (không còn can_pha_le_cam_ket / lớp KHAN_CAP); không ghi sự kiện, cột phá lệ giữ nguyên.
+    const rieng = await donXeRieng(w, { gio: "13:00" });
+    const t2 = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}`, bd: "11:00", kt: "15:00" });
+    const khach = await don(w, { gio: "13:00" });
+    assert.equal((await xep(w, SALES, t2.chuyen.id, [{ legId: rieng.legId, soSuat: 2 }], { phaLe: PL })).status, 200);
+    const cot = () => ({ ...w.q("SELECT commitment_override_reason_code r, commitment_override_key k FROM vc_trip WHERE id = ?", t2.chuyen.id)[0] });
+    const sk = suKien(w, "ALLOCATED", t2.chuyen.id).length;
+    const rc = await xep(w, SALES, t2.chuyen.id, [{ legId: khach.legId, soSuat: 2 }], { phaLe: PL, camKetPhaLe: PL });
+    assert.equal(rc.status, 409, rc.text);
+    assert.equal(rc.json.error.code, "chang_khong_hop_le", rc.text);
+    const qt = await xep(w, ADM, t2.chuyen.id, [{ legId: khach.legId, soSuat: 2 }], { phaLe: PL, camKetPhaLe: PL });
+    assert.equal(qt.status, 409, qt.text);
+    assert.deepEqual(cot(), { r: null, k: null });
+    assert.equal(suKien(w, "ALLOCATED", t2.chuyen.id).length, sk, "lệnh bị chặn không ghi sự kiện");
   } finally {
     tat();
   }
@@ -215,17 +235,18 @@ test("NT-1 rào mềm (ADR-0104 Đ1 mục 0, cách (a) — chủ 2026-10-08 'Cho
   }
 });
 
-test("NT-1 dời hỗn hợp (ADR-0104 Đ1 mục 0: dời xét 'dưới mốc' ở chuyến ĐÍCH): nguồn dưới mốc, đích NGOÀI mốc trái cam kết — Bán hàng 409 lớp QUAN_TRI (canQuyen false), gửi cờ → 403; Quản trị → 200", async () => {
+test("NT-1 dời hỗn hợp (ADR-0104 Đ1 mục 0: dời xét 'dưới mốc' ở chuyến ĐÍCH): nguồn dưới mốc, đích NGOÀI mốc trái cam kết số chỗ tối thiểu (ADR-0128 Q2: xe riêng chặn cứng nên dùng R-CX) — Bán hàng 409 lớp QUAN_TRI (canQuyen false), gửi cờ → 403; Quản trị → 200; xe riêng ghép vào đích thì Quản trị cũng 409", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
-    const a = await don(w, { gio: "13:00" });
-    const rieng = await donXeRieng(w, { gio: "13:00" });
+    const a = await donXeRieng(w, { gio: "13:00", cx: 16 });
+    const rieng = await donXeRieng(w, { gio: "13:00", cx: 16 });
     const nguon = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, bd: "11:00", kt: "15:00" }); // dưới mốc
     const dich = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}`, bd: "12:30", kt: "15:30" }); // 6 giờ 30 — ngoài mốc
-    const x = await xep(w, SALES, nguon.chuyen.id, [{ legId: a.legId, soSuat: 2 }], { phaLe: PL });
+    const x = await xep(w, SALES, nguon.chuyen.id, [{ legId: a.legId, soSuat: 2 }], { phaLe: PL, camKetPhaLe: PL });
     assert.equal(x.status, 200, x.text);
-    assert.equal((await xep(w, SALES, dich.chuyen.id, [{ legId: rieng.legId, soSuat: 2 }])).status, 200, "đích ngoài mốc: xếp không cần cờ");
+    assert.equal((await xep(w, SALES, dich.chuyen.id, [{ legId: rieng.legId, soSuat: 2 }])).status, 409, "đích ngoài mốc: số chỗ tối thiểu cần phá lệ (lớp QUAN_TRI)");
+    assert.equal((await xep(w, ADM, dich.chuyen.id, [{ legId: rieng.legId, soSuat: 2 }], { camKetPhaLe: PL })).status, 200);
     const than = async (extra: Record<string, unknown>) => ({
       version: await phienBan(w, nguon.chuyen.id), suatIds: x.json.suat.map((s: any) => s.id), denChuyenId: dich.chuyen.id, denVersion: await phienBan(w, dich.chuyen.id), ...extra,
     });
@@ -240,6 +261,11 @@ test("NT-1 dời hỗn hợp (ADR-0104 Đ1 mục 0: dời xét 'dưới mốc' �
     assert.equal(r1.json.error.message, CAU_QUAN_TRI);
     const r2 = await goi(w, ADM, "POST", `/${nguon.chuyen.id}/doi`, await than({ phaLe: PL, camKetPhaLe: PL }));
     assert.equal(r2.status, 200, r2.text);
+    // ADR-0128 Q2: cùng thao tác với XE RIÊNG — ghép vào chuyến đích: chặn cứng, Quản trị gửi cờ cũng 409.
+    const that = await donXeRieng(w, { gio: "13:00" });
+    const rt = await xep(w, ADM, dich.chuyen.id, [{ legId: that.legId, soSuat: 2 }], { phaLe: PL, camKetPhaLe: PL });
+    assert.equal(rt.status, 409, rt.text);
+    assert.equal(rt.json.error.code, "chang_khong_hop_le", rt.text);
   } finally {
     tat();
   }

@@ -146,15 +146,22 @@ test("DIEM_CHUA_TOI: STOP — điểm nguồn còn Chờ ⇒ DAT, đã tới ⇒
   assert.equal(ket(nen({ diemNguon: null })).DIEM_CHUA_TOI, "KHONG_DAT", "STOP mà không thấy điểm ⇒ không đoán");
 });
 
-test("CAM_KET_DICH gọi kiemCamKet trên chuyến nhận SAU chuyển (R-XR cả hai chiều, R-CX); đã phá lệ đúng khoá ⇒ DAT; trả khoá cho lô duyệt", () => {
+test("CAM_KET_DICH gọi kiemCamKet trên chuyến nhận SAU chuyển (R-XR cả hai chiều, R-CX); ADR-0128 Q2: xe riêng ⇒ tầng LOI ⇒ chỉ Bác, khoá lưu không cứu; số chỗ tối thiểu vẫn duyệt được, đã phá lệ đúng khoá ⇒ DAT", () => {
   const xr = nen({ changTrenDich: [chang("hc", { soNguoi: 20, xeRieng: true })] });
   assert.equal(ket(xr).CAM_KET_DICH, "KHONG_DAT");
-  assert.equal(hopDuyet(kiemChuyen(xr).dong), "DUYET_HOAC_BAC");
+  assert.equal(hopDuyet(kiemChuyen(xr).dong), "CHI_BAC", "xe riêng không duyệt được");
+  assert.equal(dong(xr, "CAM_KET_DICH")?.tang, "LOI");
   assert.equal(ket(nen({ changChuyen: [chang("mt", { xeRieng: true })] })).CAM_KET_DICH, "KHONG_DAT", "đưa đoàn xe riêng vào xe đang chở khách khác");
-  assert.equal(ket(nen({ changChuyen: [chang("mt", { choToiThieu: 30 })] })).CAM_KET_DICH, "KHONG_DAT", "xe 29 chỗ < tối thiểu 30");
-  const khoa = kiemChuyen(xr).camKet.khoa;
-  assert.ok(khoa);
-  assert.equal(ket(nen({ changTrenDich: [chang("hc", { soNguoi: 20, xeRieng: true })], dich: { ...nen().dich, camKetPhaLeKhoa: khoa } })).CAM_KET_DICH, "DAT");
+  const cx = nen({ changChuyen: [chang("mt", { choToiThieu: 30 })] });
+  assert.equal(ket(cx).CAM_KET_DICH, "KHONG_DAT", "xe 29 chỗ < tối thiểu 30");
+  assert.equal(hopDuyet(kiemChuyen(cx).dong), "DUYET_HOAC_BAC", "số chỗ tối thiểu vẫn duyệt được");
+  assert.equal(dong(cx, "CAM_KET_DICH")?.tang, "CAU_HINH");
+  const khoaXr = kiemChuyen(xr).camKet.khoa;
+  assert.ok(khoaXr);
+  assert.equal(ket(nen({ changTrenDich: [chang("hc", { soNguoi: 20, xeRieng: true })], dich: { ...nen().dich, camKetPhaLeKhoa: khoaXr } })).CAM_KET_DICH, "KHONG_DAT", "khoá lưu khớp vẫn không che xe riêng");
+  const khoaCx = kiemChuyen(cx).camKet.khoa;
+  assert.ok(khoaCx);
+  assert.equal(ket(nen({ changChuyen: [chang("mt", { choToiThieu: 30 })], dich: { ...nen().dich, camKetPhaLeKhoa: khoaCx } })).CAM_KET_DICH, "DAT");
   // Người đi kèm không có chặng ⇒ không vào R-XR.
   const crew = suat("c1", { loai: "CREW", legId: null, crewPartyId: "hdv", boardStopId: null, alightStopId: null, trangThai: "BOARDED" });
   assert.equal(ket(nen({ suatChuyen: [crew], changChuyen: [], changTrenDich: [chang("hc", { xeRieng: true })] })).CAM_KET_DICH, "DAT");

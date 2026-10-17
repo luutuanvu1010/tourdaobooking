@@ -25,8 +25,8 @@ Tiền của đơn (thành tiền, tổng, còn lại) do máy chủ tự tính 
     noiDung: `Người lập đơn có thể chọn người phụ trách ngay khi lập; không chọn thì đơn nằm ở hàng chờ để hướng dẫn viên hoặc nhân viên bấm nhận. Người phụ trách sửa được đơn mình phụ trách như người lập. Hướng dẫn viên chỉ thấy đơn khi đang là người phụ trách; khi được đổi sang người khác thì thôi thấy đơn đó. Hướng dẫn viên huỷ được đơn mình đang phụ trách (đơn đã xác nhận, trước ngày đi), luôn kèm lý do.`,
   },
   {
-    tieuDe: "Mốc 6 giờ và Đặt gấp",
-    noiDung: `Nếu giờ đón cách hiện tại dưới 6 giờ, đơn vẫn lưu nháp được nhưng chưa xác nhận được. Quản trị hoặc Toàn quyền phải bấm Đặt gấp cho chặng đó và chọn lý do; sau đó người lập mới xác nhận được. Mốc này không tắt được. Trên trang đơn, dải cảnh báo "dưới 6 giờ" cho biết chặng nào đang chờ duyệt đặt gấp.`,
+    tieuDe: "Mốc ra lệnh và Đặt gấp",
+    noiDung: `Nếu giờ đón cách hiện tại dưới mốc ra lệnh, đơn vẫn lưu nháp được nhưng chưa xác nhận được. Quản trị hoặc Toàn quyền phải bấm Đặt gấp cho chặng đó và chọn lý do; sau đó người lập mới xác nhận được. Mốc này không tắt được. Trên trang đơn, dải cảnh báo "dưới mốc ra lệnh" cho biết chặng nào đang chờ duyệt đặt gấp.`,
   },
   {
     tieuDe: "Thông báo: chuông, dải tin quan trọng, điện thoại",

@@ -244,7 +244,80 @@ async function luu(): Promise<void> {
   }
 }
 
+// ---- chế độ hẹp cho Quản trị: chỉ hai ô mốc (ADR-0128 Q1; ô dispatch.policy.lead, route /api/van-chuyen/moc-ra-lenh) ------------------------------------------
+const soPhut = (v: string, min: number, max: number): number | null => {
+  const t = v.trim();
+  if (!/^\d+$/.test(t)) return null;
+  const n = Number(t);
+  return n >= min && n <= max ? n : null;
+};
+async function veMocRieng(): Promise<void> {
+  let hienHanh = await api<Api.MocRaLenhResponse>("/api/van-chuyen/moc-ra-lenh");
+  const oMoc = h("input", { id: "cs-moc-phut", class: "vc-input", type: "text", inputmode: "numeric", autocomplete: "off", value: String(hienHanh.minLeadMinutes), "aria-describedby": "cs-moc-phut-hint" });
+  const oSat = h("input", { id: "cs-sat-phut", class: "vc-input", type: "text", inputmode: "numeric", autocomplete: "off", value: String(hienHanh.warnLeadMinutes), "aria-describedby": "cs-sat-phut-hint" });
+  const loiMoc = h("div", { id: "cs-moc-phut-error", class: "vc-field-error", role: "alert", hidden: true });
+  const loiSat = h("div", { id: "cs-sat-phut-error", class: "vc-field-error", role: "alert", hidden: true });
+  const nut = h("button", { type: "submit", class: "vc-btn btn btn-primary" }, "Lưu mốc");
+  const bao = (el: HTMLElement, cau: string | null): void => {
+    replaceChildren(el, ...(cau ? [icon("alert", 16, 2), cau] : []));
+    el.hidden = !cau;
+  };
+  replaceChildren(
+    formEl,
+    h("p", { class: "vc-hint dp-cs-note" }, "Bạn chỉ đổi được hai con số này; các cài đặt điều phối khác do Toàn quyền giữ."),
+    h(
+      "div",
+      { class: "dp-cs-nums" },
+      h("div", { class: "vc-field" }, h("label", { for: "cs-moc-phut" }, "Mốc ra lệnh (phút)"), oMoc,
+        h("div", { id: "cs-moc-phut-hint", class: "vc-hint" }, "Chuyến còn ít hơn số phút này trước giờ xuất bến thì Bán hàng phải dùng «Điều chỉnh khẩn cấp» kèm lý do. Từ 1 đến 2880."), loiMoc),
+      h("div", { class: "vc-field" }, h("label", { for: "cs-sat-phut" }, "Cảnh báo sát mốc (phút)"), oSat,
+        h("div", { id: "cs-sat-phut-hint", class: "vc-hint" }, "Chặng chưa xếp trong khoảng này trước mốc hiện nhãn «Sát mốc». Từ 0 đến 1440."), loiSat),
+    ),
+    h("p", { class: "vc-hint dp-cs-note" }, "Bản mới có hiệu lực ngay khi lưu."),
+    h("div", { class: "dp-cs-actions" }, nut),
+  );
+  formEl.addEventListener("submit", (e) => {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    void (async () => {
+      showError(errorEl, null);
+      showError(okEl, null);
+      const moc = soPhut(oMoc.value, 1, 2880);
+      const sat = soPhut(oSat.value, 0, 1440);
+      bao(loiMoc, moc === null ? "Nhập số phút nguyên từ 1 đến 2880." : null);
+      bao(loiSat, sat === null ? "Nhập số phút nguyên từ 0 đến 1440." : null);
+      if (moc === null || sat === null) return;
+      if (moc === hienHanh.minLeadMinutes && sat === hienHanh.warnLeadMinutes) {
+        showError(errorEl, "Chưa đổi gì so với bản đang dùng — không cần lưu.");
+        errorEl.className = "alert warn";
+        return;
+      }
+      nut.disabled = true;
+      try {
+        hienHanh = await api<Api.MocRaLenhResponse>("/api/van-chuyen/moc-ra-lenh", { method: "POST", body: { minLeadMinutes: moc, warnLeadMinutes: sat } });
+        oMoc.value = String(hienHanh.minLeadMinutes);
+        oSat.value = String(hienHanh.warnLeadMinutes);
+        showError(okEl, "Đã lưu mốc mới — có hiệu lực từ bây giờ.");
+      } catch (err) {
+        errorEl.className = "alert";
+        showError(errorEl, loiCua(err));
+      } finally {
+        nut.disabled = false;
+      }
+    })();
+  }, { capture: true });
+  layoutEl.hidden = false;
+  bottomEl.hidden = true;
+}
+
 async function main(): Promise<void> {
+  if (!can(staff, "settings.ops") && can(staff, "dispatch.policy.lead")) {
+    try {
+      return await veMocRieng();
+    } catch (err) {
+      return showError(errorEl, loiCua(err));
+    }
+  }
   if (!can(staff, "settings.ops")) return showError(errorEl, "Chỉ Toàn quyền xem và đổi được chính sách điều phối.");
   try {
     await nap();

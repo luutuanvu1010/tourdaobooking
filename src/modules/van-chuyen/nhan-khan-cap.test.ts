@@ -44,14 +44,15 @@ async function datGap(w: any, d: { id: string; legId: string }) {
   assert.equal(r.status, 200, r.text);
 }
 /** Đơn ĐÃ XÁC NHẬN có cam kết xe riêng (chặng chiều đi, đón 13:00 ngày NGAY, trả ở bến). */
-async function donXeRieng(w: any) {
+// ADR-0128 Q2: `cx` = đơn đòi xe tối thiểu `cx` chỗ (R-CX, phá lệ được) thay cho xe riêng (R-XR, chặn cứng); xe thử 15 chỗ nên cx = 16 vi phạm ngay từ một đơn.
+async function donXeRieng(w: any, cx?: number) {
   const r = await w.call("POST", "/api/orders", {
     as: SALES,
     body: {
       customerName: "Khách Riêng", customerPhone: "0912345678",
       services: [{
         kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY,
-        legs: [{ direction: "OUT", pickupDate: NGAY, pickupTime: "13:00", pickupLocationId: null, pickupPlace: "Khách sạn Riêng", dropoffLocationId: LOC, dropoffPlace: "", exclusiveVehicle: true }],
+        legs: [{ direction: "OUT", pickupDate: NGAY, pickupTime: "13:00", pickupLocationId: null, pickupPlace: "Khách sạn Riêng", dropoffLocationId: LOC, dropoffPlace: "", ...(cx ? { minVehicleSeats: cx } : { exclusiveVehicle: true }) }],
       }],
       passengers: [{ fullName: "Khách Riêng Một", birthYear: 1980, paxCode: "adult" }, { fullName: "Khách Riêng Hai", birthYear: 1981, paxCode: "adult" }],
     },
@@ -170,11 +171,11 @@ test("NT-4 lệch đã biết ADR-0104 Đ1.5 (bốn ca): Bán hàng làm dưới
       assert.match(nhatKy(w, "trip_created", r.json.chuyen.id), / · điều chỉnh khẩn cấp khoảng nghỉ: Sự cố vận hành · còn 250 phút/, "ca 1: nhật ký đúng lớp");
       assert.deepEqual(await phaLeDong(w, r.json.chuyen.id, "CREATED"), [{ luat: "KHOANG_NGHI", lyDoNhan: "Sự cố vận hành" }], "ca 1: dòng nhật ký có nhãn Phá lệ");
     }
-    // Ca 2: xếp chặng ĐÃ ĐẶT GẤP kèm vượt cam kết (chuyến vẫn dưới mốc).
+    // Ca 2: xếp chặng ĐÃ ĐẶT GẤP kèm vượt cam kết (chuyến vẫn dưới mốc). ADR-0128 Q2: xe riêng không phá lệ được → chặng thứ hai đòi ≥ 16 chỗ (xe 15); cuối ca: xe riêng thì chặn cứng.
     {
       const w = setup();
-      const rieng = await donXeRieng(w);
-      const gap = await don(w, { gio: "13:00", soNguoi: 2 });
+      const rieng = await don(w, { gio: "13:00", soNguoi: 2 });
+      const gap = await donXeRieng(w, 16);
       await datGap(w, rieng);
       await datGap(w, gap);
       const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, bd: "11:00", kt: "15:00" });
@@ -185,6 +186,12 @@ test("NT-4 lệch đã biết ADR-0104 Đ1.5 (bốn ca): Bán hàng làm dưới
       assert.equal(await nhan(w, t.chuyen.id), false, "ca 2: lệch đã biết — nhãn 'Phá lệ'");
       assert.match(nhatKy(w, "trip_allocated", t.chuyen.id), / · điều chỉnh khẩn cấp cam kết: Sự cố vận hành · còn 300 phút$/, "ca 2: nhật ký đúng lớp");
       assert.deepEqual(await phaLeDong(w, t.chuyen.id, "ALLOCATED"), [{ luat: "CAM_KET", lyDoNhan: "Sự cố vận hành" }], "ca 2: dòng xếp thứ hai có nhãn Phá lệ");
+      const rr = await donXeRieng(w);
+      await datGap(w, rr);
+      const chan = await xep(w, SALES, t.chuyen.id, [{ legId: rr.legId, soSuat: 2 }], { camKetPhaLe: PL });
+      assert.equal(chan.status, 409, `ca 2 (xe riêng): ${chan.text}`);
+      assert.equal(chan.json.error.code, "chang_khong_hop_le", "ca 2 (xe riêng): chặn cứng, không còn lớp khẩn cấp");
+      assert.deepEqual(luatSuKien(w, "ALLOCATED", t.chuyen.id), [null, "CAM_KET"], "ca 2 (xe riêng): không ghi sự kiện mới");
     }
     // Ca 3: sửa chuyến CHỈ đổi giờ (vào sát chuyến trước) kèm vượt khoảng nghỉ.
     {

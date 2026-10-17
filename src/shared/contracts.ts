@@ -1263,6 +1263,8 @@ export interface DispatchPolicyDto {
 }
 /** GET/POST /api/van-chuyen/chinh-sach-dieu-phoi — bản đang hiệu lực + lịch sử mọi bản (mới trước). */
 export interface DispatchPolicyResponse { current: DispatchPolicyDto | null; history: DispatchPolicyDto[] }
+/** ADR-0128 Q1: mốc ra lệnh hiện hành — hai con số Quản trị đặt được (route `/api/van-chuyen/moc-ra-lenh`). */
+export interface MocRaLenhResponse { minLeadMinutes: number; warnLeadMinutes: number }
 export interface DispatchPolicyCreateRequest {
   minLeadMinutes: number;
   warnLeadMinutes: number;

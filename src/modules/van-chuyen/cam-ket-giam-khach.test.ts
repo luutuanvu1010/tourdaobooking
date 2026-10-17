@@ -84,11 +84,13 @@ test("Tiêu chí 3: ghép A + B rồi bật XE RIÊNG cho A (sửa đơn qua PUT
   }
 });
 
-test("Tiêu chí 3b: đã phá lệ (A xe riêng + B) — xếp thêm C → 409 can_pha_le_cam_ket lúc xếp; bật xe riêng ở chặng của B (sửa đơn, không lệnh chuyến) → cột giữ khoá cũ, xuất bến giữ CAM_KET", async () => {
+// ADR-0128 Q2 (chủ duyệt 2026-10-17): xe riêng KHÔNG phá lệ được → ống dẫn phá lệ cam kết chạy bằng SỐ CHỖ TỐI THIỂU (R-CX); bước xe riêng canh luật mới.
+test("Tiêu chí 3b: đã phá lệ số chỗ (B cần ≥ 16 chỗ) — xếp thêm C cũng cần ≥ 16 chỗ → 409 can_pha_le_cam_ket lúc xếp; bật xe riêng ở chặng của B (sửa đơn, không lệnh chuyến) → cột giữ khoá cũ, xuất bến giữ CAM_KET", async () => {
   const tat = batDongHo();
   try {
-    const { w, id, a, b } = await the({ exclusiveVehicle: true });
+    const { w, id, a, b } = await the({}, { minVehicleSeats: 16 });
     const c = await don(w, { soNguoi: 2 });
+    await suaChang(w, c.id, c.legId, { minVehicleSeats: 16 });
     assert.equal((await xep(w, id, a.legId)).status, 200);
     const pl = await xep(w, id, b.legId, ADM, { camKetPhaLe: PL });
     assert.equal(pl.status, 200, pl.text);
@@ -103,6 +105,22 @@ test("Tiêu chí 3b: đã phá lệ (A xe riêng + B) — xếp thêm C → 409 
     assert.equal(x.status, 409, x.text);
     assert.equal(x.json.error.code, "chua_du_dieu_kien_xuat_ben");
     assert.ok(x.json.error.lyDo.some((l: any) => l.ma === "CAM_KET"), JSON.stringify(x.json.error.lyDo));
+  } finally {
+    tat();
+  }
+});
+
+test("ADR-0128 Q2: chuyến đã có chặng XE RIÊNG của A — xếp B bị CHẶN CỨNG: Quản trị gửi camKetPhaLe cũng 409, không ghi cột phá lệ", async () => {
+  const tat = batDongHo();
+  try {
+    const { w, id, a, b } = await the({ exclusiveVehicle: true });
+    assert.equal((await xep(w, id, a.legId)).status, 200);
+    const pl = await xep(w, id, b.legId, ADM, { camKetPhaLe: PL });
+    assert.equal(pl.status, 409, pl.text);
+    assert.equal(pl.json.error.code, "chang_khong_hop_le", "chặn cứng, KHÔNG phải can_pha_le_cam_ket");
+    assert.ok(pl.json.error.lyDo.some((l: any) => l.ma === "CAM_KET"), pl.text);
+    assert.deepEqual(camKetCua(w, id), TRONG);
+    assert.equal(w.q("SELECT COUNT(*) n FROM vc_trip_event WHERE trip_id = ? AND kind = 'ALLOCATED'", id)[0].n, 1, "chỉ sự kiện xếp A; lệnh bị chặn không ghi sự kiện");
   } finally {
     tat();
   }
@@ -150,14 +168,16 @@ test("Tiêu chí 3c (rút, Review Focus 4): đã phá lệ số chỗ của B �
 test("C7: rút / cập nhật khách / cập nhật điểm KHÔNG BAO GIỜ trả can_pha_le_cam_ket dù còn vi phạm; khoá đổi thì cột GIỮ khoá cũ (không ghi khoá mới) → xuất bến giữ CAM_KET", async () => {
   const tat = batDongHo();
   try {
-    const { w, id, a, b } = await the({ exclusiveVehicle: true });
+    // ADR-0128 Q2: xe riêng không phá lệ được → ống dẫn phá lệ chạy bằng số chỗ tối thiểu (B, C cần ≥ 16 chỗ, xe 15).
+    const { w, id, a, b } = await the({}, { minVehicleSeats: 16 });
     const c = await don(w, { soNguoi: 2 });
+    await suaChang(w, c.id, c.legId, { minVehicleSeats: 16 });
     assert.equal((await xep(w, id, a.legId)).status, 200);
     assert.equal((await xep(w, id, b.legId, ADM, { camKetPhaLe: PL })).status, 200);
     assert.equal((await xep(w, id, c.legId, ADM, { camKetPhaLe: { lyDo: "PHA_LE_KHAC" } })).status, 200);
     const ck = camKetCua(w, id);
     assert.ok(ck.k.includes(c.legId), ck.k);
-    // Rút C: còn vi phạm (A xe riêng + B), khoá khác khoá đã lưu → Bán hàng làm được, cột giữ.
+    // Rút C: còn vi phạm (B), khoá khác khoá đã lưu → Bán hàng làm được, cột giữ.
     const rut = await lenh(w, id, "rut", { suatIds: await suatCua(w, id, c.legId) });
     assert.equal(rut.status, 200, rut.text);
     assert.deepEqual(camKetCua(w, id), ck);
@@ -180,14 +200,14 @@ test("C7: rút / cập nhật khách / cập nhật điểm KHÔNG BAO GIỜ tr�
   }
 });
 
-test("Hết vi phạm do SỬA ĐƠN (tắt xe riêng của A): xuất bến ĐẠT và lô xuất bến xoá hai cột, nhật ký 'bỏ phá lệ cam kết'", async () => {
+test("Hết vi phạm do SỬA ĐƠN (B bỏ yêu cầu ≥ 16 chỗ; ADR-0128 Q2: xe riêng không còn phá lệ được nên dùng số chỗ): xuất bến ĐẠT và lô xuất bến xoá hai cột, nhật ký 'bỏ phá lệ cam kết'", async () => {
   const tat = batDongHo();
   try {
-    const { w, id, a, b } = await the({ exclusiveVehicle: true });
+    const { w, id, a, b } = await the({}, { minVehicleSeats: 16 });
     assert.equal((await xep(w, id, a.legId)).status, 200);
     assert.equal((await xep(w, id, b.legId, ADM, { camKetPhaLe: PL })).status, 200);
     assert.notDeepEqual(camKetCua(w, id), TRONG);
-    await suaChang(w, a.id, a.legId, { exclusiveVehicle: false });
+    await suaChang(w, b.id, b.legId, { minVehicleSeats: null });
     const x = await xuatBen(w, id);
     assert.equal(x.status, 200, x.text);
     assert.equal(w.q("SELECT status s FROM vc_trip WHERE id = ?", id)[0].s, "RUNNING");
@@ -206,11 +226,11 @@ test("Hết vi phạm do sửa đơn, rồi 'cập nhật khách theo đơn' / '
   for (const loai of ["cap-nhat-khach", "cap-nhat-diem", "may-dong-bo"] as const) {
     const tat = batDongHo();
     try {
-      const { w, id, a, b } = await the({ exclusiveVehicle: true }, {}, loai === "cap-nhat-khach" ? { khongDongBoChuyen: true } : {});
+      const { w, id, a, b } = await the({}, { minVehicleSeats: 16 }, loai === "cap-nhat-khach" ? { khongDongBoChuyen: true } : {});
       assert.equal((await xep(w, id, a.legId)).status, 200);
       assert.equal((await xep(w, id, b.legId, ADM, { camKetPhaLe: PL })).status, 200);
       assert.notDeepEqual(camKetCua(w, id), TRONG);
-      await suaChang(w, a.id, a.legId, { exclusiveVehicle: false });
+      await suaChang(w, b.id, b.legId, { minVehicleSeats: null });
       if (loai === "cap-nhat-diem") await suaChang(w, b.id, b.legId, { pickupPlace: "Khách sạn Đổi Dò Tìm" });
       else await thayKhach(w, b.id);
       if (loai !== "may-dong-bo") {

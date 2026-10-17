@@ -18,6 +18,8 @@
 // Chụp lại 2026-10-15 (Vé hỗ trợ đợt 1, Việc 7): đổi nhãn có chủ ý «Góp ý / Báo lỗi» → «Hỗ trợ» (bản giao việc Bước 6). `--rev cb7da197` (lần lưu đổi nhãn); so ảnh cũ chỉ đổi
 // đúng chuỗi nhãn đó ở bốn nơi, và ghim thêm mục «Điều chỉnh công nợ» (mục mới có từ trước, ảnh cũ chưa ghim — chỉ siết thêm).
 // Chụp lại khi gộp main fc533d49 (menu theo việc) vào nhánh Vé hỗ trợ: chạy lệnh trên cây gộp, so ảnh của main chỉ đổi đúng chuỗi «Góp ý / Báo lỗi» → «Hỗ trợ» ở bốn chuỗi, các tập không đổi.
+// Vá ảnh chụp 2026-10-17 (ADR-0128 Q1, chủ duyệt): Quản trị nay thấy mục «Chính sách điều phối» (ô mới `dispatch.policy.lead`, chỉ đặt hai số mốc). Mã giao diện cũ không có luật này nên không chụp lại được;
+// bật tay đúng 768 bit của chuỗi «Chính sách điều phối» ở thanh bên, trang Tôi, Trang chủ cho mọi tập CÓ quyền ADMIN (768 = số tập có ADMIN mà trước đó chưa có SUPER_ADMIN). Mọi chuỗi khác giữ nguyên.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";

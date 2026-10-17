@@ -412,7 +412,7 @@
     },
     {
       "ma": "TH09-SAI-CAM-KET-CHO-QUAN-TRI",
-      "mo_ta": "Việc chuyển làm sai cam kết với khách đã đặt xe riêng hoặc đặt số chỗ tối thiểu: chờ Quản trị duyệt kèm lý do, không tự đồng ý. 9A: đưa thêm khách vào xe B mà đoàn trên xe B đã đặt xe riêng. 9B: chuyển đoàn đã đặt xe tối thiểu 29 chỗ sang xe A 15 chỗ. Duyệt thì cùng lần ghi lưu 'khoá cam kết' của xe nhận (ADR-0056 A3).",
+      "mo_ta": "Việc chuyển làm sai cam kết với khách đã đặt xe riêng hoặc đặt số chỗ tối thiểu: chờ Quản trị duyệt kèm lý do, không tự đồng ý. 9A: đưa thêm khách vào xe B mà đoàn trên xe B đã đặt xe riêng — ADR-0128 Q2 (chủ duyệt 2026-10-17): xe riêng không ai ghép thêm khách lẻ, nên bước này chỉ Bác duyệt được, Quản trị bị chặn (không phá lệ). 9B: chuyển đoàn đã đặt xe tối thiểu 29 chỗ sang xe A 15 chỗ — chờ Quản trị duyệt kèm lý do. Duyệt số chỗ tối thiểu thì cùng lần ghi lưu 'khoá cam kết' của xe nhận (ADR-0056 A3).",
       "nen_rieng": {
         "9A": { "chang.HON_CHONG.xeRieng": true, "chuyen.CX04": { "tai": 20, "ghi_chu": "chỉ có đoàn ĐH-2001 (xe riêng, 20 khách); không có nhóm Alibu" } },
         "9B": { "chang.ALIBU.choToiThieu": 29, "chuyen.CX07": { "tai": 10, "ghi_chu": "A chở 10/15: bỏ nhóm Novotel" } }
@@ -428,13 +428,15 @@
             "kiem": { "SUC_CHUA_DICH": "DAT", "SUC_CHUA_NGUON": "DAT", "TRUNG_GIO_DICH": "DAT", "KHOANG_NGHI_DICH": "DAT", "MOC_TOI_THIEU": "DAT", "HANG_BANG_DICH": "DAT", "GIAY_TO_DICH": "DAT", "KHONG_CHEO": "DAT", "DIEM_CHUA_TOI": "DAT", "CAM_KET_DICH": "KHONG_DAT", "CHANG_KHACH_HIEU_LUC": "DAT" },
             "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 23, "gioi_han": 29 } },
             "ly_do_cam_ket": "R-XR: CX-3009-04 có đoàn ĐH-2001 đặt xe riêng, thêm khách ĐH-1003 (ADR-0056:57)",
-            "hop_duyet": "DUYET_HOAC_BAC",
+            "hop_duyet": "CHI_BAC",
+            "ghi_chu": "ADR-0128 Q2, chủ duyệt 2026-10-17: xe riêng không ai ghép thêm khách lẻ, kể cả khẩn cấp hay phá lệ — vi phạm R-XR ở xe nhận thành điều kiện tầng LOI nên hộp duyệt chỉ còn Bác (trước đây DUYET_HOAC_BAC). Số chỗ tối thiểu (R-CX, bước 9B) vẫn duyệt được.",
             "suat_doi": false,
             "tin": ["tk-quan-tri", "tk-toan-quyen"]
           } },
-        { "ma": "TH09-9A-3-QUAN-TRI-DUYET", "lenh": "DUYET", "ai": "tk-quan-tri", "bayGioMs": "2026-09-30 06:25",
+        { "ma": "TH09-9A-3-QUAN-TRI-DUYET-BI-CHAN", "lenh": "DUYET", "ai": "tk-quan-tri", "bayGioMs": "2026-09-30 06:25",
           "dau_vao": { "deNghi": "r-th09a", "lyDo": "PHA_LE_SU_CO", "requestId": "lenh-th09a-duyet" },
-          "dap_an": { "http": "2xx", "ketQua": "CONFIRMED", "de_nghi": { "trangThai": "CONFIRMED", "decidedMode": "NGUOI", "overrideReasonCode": "PHA_LE_SU_CO" }, "suat_mo": { "tripId": "cx-3009-04", "so": 3, "transferId": "r-th09a" }, "khoa_cam_ket": { "tripId": "cx-3009-04", "commitmentOverrideReasonCode": "PHA_LE_SU_CO", "commitmentOverrideKey": "có giá trị (khoá theo ADR-0056 A3 :67)" }, "tin": ["tk-tx-a", "tk-tx-b"], "tai_sau": { "cx-3009-07": 11, "cx-3009-04": 23 } } },
+          "dap_an": { "http": 409, "ma_loi": "luat_loi_khong_duyet", "ghi_gi": "không ghi gì (không có suất mở, không lưu khoá cam kết)", "nut_duyet_tren_man_hinh": "tắt",
+            "ghi_chu": "ADR-0128 Q2, chủ duyệt 2026-10-17: trước đây bước này là Quản trị duyệt kèm lý do → CONFIRMED + lưu khoá cam kết của xe nhận; nay xe riêng không phá lệ được nên Quản trị bị chặn như TH03-3A (đề nghị vẫn ESCALATED, chờ Bác hoặc tự hết hạn)." } },
         { "ma": "TH09-9B-1-GUI", "lenh": "GUI", "ai": "tk-tx-b", "bayGioMs": "2026-09-30 06:20",
           "dau_vao": { "tuChuyen": "cx-3009-04", "denChuyen": "cx-3009-07", "phamVi": "STOP", "diem": "d4-alibu", "requestId": "lenh-th09b-gui" },
           "dap_an": { "http": "2xx", "de_nghi": { "id": "r-th09b", "trangThai": "PENDING" }, "tin": ["tk-tx-a"] } },
