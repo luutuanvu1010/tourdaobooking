@@ -1125,7 +1125,14 @@ const LIST_PHIEU = defineSql("parties", "list_self_submissions_of_party",
    LEFT JOIN pty_license_class c ON c.code = s.license_class_code
    WHERE s.party_id = ?1 ORDER BY s.created_at DESC, s.id DESC LIMIT 50`);
 
-export const chinhSachHienHanh = (db: D1Database, nowIso: string): Promise<PolicyRow | null> => db.prepare(CURRENT_POLICY).bind(nowIso).first<PolicyRow>();
+// ADR-0126 đ8 — số ngày giữ IP / User-Agent của phiên đã kết thúc: đọc từ chính sách phiên bản LỚN NHẤT (bản mới nhất thắng, kể cả khi rỗng). Không có con số nào trong mã.
+const HAN_GIU_PHIEN = defineSql("parties", "privacy_policy_session_retention_days",
+  "SELECT session_retention_days AS ngay FROM pty_privacy_policy ORDER BY version DESC LIMIT 1");
+export async function hanGiuPhienNgay(db: D1Database): Promise<number | null> {
+  const r = await db.prepare(HAN_GIU_PHIEN).first<{ ngay: number | null }>();
+  return r?.ngay ?? null;
+}
+export const chinhSachHienHanh =(db: D1Database, nowIso: string): Promise<PolicyRow | null> => db.prepare(CURRENT_POLICY).bind(nowIso).first<PolicyRow>();
 export async function phienBanLonNhat(db: D1Database): Promise<number> {
   return (await db.prepare(MAX_POLICY_VERSION).first<{ v: number }>())?.v ?? 0;
 }

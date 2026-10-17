@@ -15,7 +15,7 @@
 
 import { accountsModule } from "./modules/accounts";
 import { auditModule } from "./modules/audit";
-import { authModule, checkAuthConfig, currentStaff } from "./modules/auth";
+import { anDanhPhienCuaTaiKhoanStatement, authModule, checkAuthConfig, currentStaff } from "./modules/auth";
 import { bangtinModule, dongCua, phatChuyen, phatDon, xepHangDay } from "./modules/bangtin";
 import { billingModule, nhapKeToanCuaDon, soDongNoCuaNguoi } from "./modules/billing";
 import { receiptModule } from "./modules/receipt";
@@ -27,7 +27,7 @@ import { checkLanGuiConfig, lanGuiNoi } from "./modules/lan-gui";
 import { locationsModule } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
-import { partiesModule } from "./modules/parties";
+import { hanGiuPhienNgay, partiesModule } from "./modules/parties";
 import { nguoiHuongCuaHoSo, pricingModule } from "./modules/pricing";
 import { cauDoiNguoiDat, donCuaNguoiDat, findOrderRef, ordersModule } from "./modules/orders";
 import { accountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
@@ -176,6 +176,9 @@ const APP_OPTIONS: AppOptions = {
     nhanNhanVien: (env, ids) => nhanNhanVienTheoId(env.DB, ids),
     // XÁC MINH PHIẾU TỰ KHAI (ADR-0125 đ3, đ5): parties không import staff — gốc lắp ráp tiêm MỘT truy vấn đọc mọi tài khoản (id, quyền hiện hiệu lực, hoạt động, hồ sơ).
     taiKhoanXacMinh: (env) => taiKhoanChoXacMinh(env.DB),
+    // ẨN DANH SỔ PHIÊN (ADR-0126 đ8): parties không import auth / accounts không import parties — gốc lắp ráp tiêm câu của auth và số ngày giữ (chính sách riêng tư) của parties.
+    cauAnDanhPhien: (env, staffId, at, by) => anDanhPhienCuaTaiKhoanStatement(env.DB, staffId, at, by),
+    hanGiuPhienNgay: (env) => hanGiuPhienNgay(env.DB),
     // BÊN ĐẶT MÁY CHỦ ÉP (sổ đại lý đợt 1, Task 11 — Ruling 21): `auth` không import `pricing` (không nới ALLOWED_EDGES) — gốc lắp ráp là NƠI DUY NHẤT nối. Chỉ tài khoản giữ quyền Đối tác
     // CÓ hồ sơ mới tốn một truy vấn; mọi người khác trả null ngay (`/api/auth/me` đi qua đây ở MỌI trang). Điều kiện y hệt `benDatChoTaiKhoan` (holdsPartner + hồ sơ mang vai được hưởng).
     benDatCuaToi: (env, actor) => (holdsPartner(actor) && actor.partyId !== null ? nguoiHuongCuaHoSo(env.DB, actor.partyId) : Promise.resolve(null)),

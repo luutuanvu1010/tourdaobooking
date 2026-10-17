@@ -152,7 +152,22 @@ const SS_LIST_ALL = defineSql("auth", "session_list_all",
   `SELECT ${SS_COLS} FROM aut_session WHERE (?1 IS NULL OR staff_id = ?1) AND (?2 = 0 OR (ended_at IS NULL AND expires_at > ?3)) ORDER BY created_at DESC LIMIT 200`);
 const SS_GET = defineSql("auth", "session_get", `SELECT ${SS_COLS} FROM aut_session WHERE id = ?1`);
 
-export const endExpiredSessionsStatement = (db: D1Database, staffId: string, at: string): D1PreparedStatement => db.prepare(SS_END_EXPIRED).bind(staffId, at);
+// ADR-0126 đ8 — ẩn danh IP / User-Agent của sổ phiên: chỉ làm rỗng hai cột, KHÔNG xoá dòng (số phiên, mốc, phương thức, nhãn máy nguyên). Điều kiện `ip IS NOT NULL OR user_agent IS NOT NULL`
+// làm lần chạy lại `changes = 0`. Thời hạn giữ KHÔNG ở đây: số ngày do chính sách riêng tư quy định, gốc lắp ráp tiêm; hàm gọi truyền mốc `ketThucTruoc`.
+const SS_ANON_OF_STAFF = defineSql("auth", "session_anonymize_of_staff",
+  "UPDATE aut_session SET ip = NULL, user_agent = NULL, updated_at = ?2, updated_by = ?3 WHERE staff_id = ?1 AND (ip IS NOT NULL OR user_agent IS NOT NULL)");
+const SS_ANON_OLD = defineSql("auth", "session_anonymize_old",
+  "UPDATE aut_session SET ip = NULL, user_agent = NULL, updated_at = ?2, updated_by = ?3 WHERE ended_at IS NOT NULL AND ended_at < ?1 AND (ip IS NOT NULL OR user_agent IS NOT NULL)");
+const SS_ANON_OLD_COUNT = defineSql("auth", "session_anonymize_old_count",
+  "SELECT count(*) AS n FROM aut_session WHERE ended_at IS NOT NULL AND ended_at < ?1 AND (ip IS NOT NULL OR user_agent IS NOT NULL)");
+
+export const anDanhPhienCuaTaiKhoanStatement = (db: D1Database, staffId: string, at: string, by: string): D1PreparedStatement => db.prepare(SS_ANON_OF_STAFF).bind(staffId, at, by);
+export const anDanhPhienCuStatement = (db: D1Database, ketThucTruoc: string, at: string, by: string): D1PreparedStatement => db.prepare(SS_ANON_OLD).bind(ketThucTruoc, at, by);
+export async function demPhienCanAnDanh(db: D1Database, ketThucTruoc: string): Promise<number> {
+  return Number((await db.prepare(SS_ANON_OLD_COUNT).bind(ketThucTruoc).first<{ n: number }>())?.n ?? 0);
+}
+
+export const endExpiredSessionsStatement =(db: D1Database, staffId: string, at: string): D1PreparedStatement => db.prepare(SS_END_EXPIRED).bind(staffId, at);
 export const endOtherSessionsStatement = (db: D1Database, staffId: string, keep: string | null, reason: string, at: string, by: string | null): D1PreparedStatement =>
   db.prepare(SS_END_OTHERS).bind(staffId, keep, reason, at, by);
 export const endAllSessionsIfSuspendedStatement = (db: D1Database, staffId: string, reason: string, at: string, by: string | null): D1PreparedStatement =>

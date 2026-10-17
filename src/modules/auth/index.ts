@@ -155,6 +155,8 @@ export type { EndReason };
  */
 export { getSession, listMySessions, listSessions, type SessionRow } from "./repository";
 export { toSessionDto } from "./session-ledger";
+/** ADR-0126 đ8 — ẩn danh IP / User-Agent của sổ phiên (chỉ làm rỗng hai cột, giữ dòng). Chưa chạy; gốc lắp ráp tiêm cho `parties`. */
+export { anDanhPhienCuaTaiKhoanStatement, anDanhPhienCuStatement, demPhienCanAnDanh } from "./repository";
 /** Kết thúc MỘT phiên (đăng xuất, bị gỡ). Chưa chạy; `changes` = 0 khi phiên đã kết thúc từ trước. */
 export const endOneSessionStatement = (db: D1Database, id: string, reason: EndReason, at: string, by: string | null): D1PreparedStatement =>
   endSessionStatement(db, id, reason, at, by);

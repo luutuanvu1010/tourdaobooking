@@ -52,6 +52,8 @@ import {
 } from "./rules";
 
 export { kiemTenLoaiDoiTac, maLoaiDoiTac } from "./rules";
+/** ADR-0126 đ8 — số ngày giữ IP / User-Agent của phiên đã kết thúc, theo chính sách riêng tư phiên bản lớn nhất; null = chưa có số. Gốc lắp ráp tiêm cho nơi cần (auth/accounts không import parties). */
+export { hanGiuPhienNgay } from "./repository";
 export { composePersonName, newOrganizationStatements, newPersonStatements, findPartiesByPhone, renamePersonStatements, splitPersonName, validatePersonFullName };
 export type { ContactInput, OrgFields, PersonName, RoleInput } from "./rules";
 
