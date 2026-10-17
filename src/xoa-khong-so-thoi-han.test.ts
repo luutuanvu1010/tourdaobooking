@@ -18,6 +18,22 @@ test("(1) không giá trị dự phòng / gán số cho số ngày thời hạn 
   assert.deepEqual(sai, []);
 });
 
+// Vòng sửa 1, m-6 (G3): hai dạng lọt kiểu (1) — gọi hàm rồi `?? 30`, và COALESCE(cột, số) trong SQL.
+const DANG_DU_PHONG = [
+  new RegExp(`${TEN}\\s*\\(?[^\\n;]{0,30}?\\)\\s*\\)?\\s*(\\?\\?|\\|\\|)\\s*\\d`),
+  new RegExp(`COALESCE\\(\\s*[\\w.]*${TEN}\\s*,\\s*\\d`, "i"),
+];
+test("(1b) không giá trị dự phòng dạng `(await hanGiuPhienNgay()) ?? 30` hay COALESCE(cột, số); rào tự bắt đúng các dạng đó", () => {
+  for (const xau of ["(await hanGiuPhienNgay()) ?? 30", "hanGiuPhienNgay(env.DB) || 30", "COALESCE(p.erasure_days, 20)", "coalesce(session_retention_days,30)"]) {
+    assert.ok(DANG_DU_PHONG.some((re) => re.test(xau)), `rào phải bắt: ${xau}`);
+  }
+  for (const xau of ["hanGiuPhienNgay: k.value.hanGiuPhienNgay ?? null", "const han = await hanGiuPhienNgay();", "p.erasure_days IS NOT NULL"]) {
+    assert.ok(!DANG_DU_PHONG.some((re) => re.test(xau)), `rào không được bắt nhầm: ${xau}`);
+  }
+  const sai = NGUON.filter((p) => { const t = readFileSync(p, "utf8").replace(/\/\/.*$|--.*$/gm, ""); return DANG_DU_PHONG.some((re) => re.test(t)); });
+  assert.deepEqual(sai, []);
+});
+
 test("(2) không DEFAULT cho hai cột, không INSERT chính sách trong migration", () => {
   for (const p of NGUON.filter((x) => x.endsWith(".sql"))) {
     const s = readFileSync(p, "utf8").replace(/--.*$/gm, "");

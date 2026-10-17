@@ -552,6 +552,49 @@ test("(p5b) hồ sơ đã xoá dữ liệu (cùng tên dấu giữ chỗ) không
   assert.deepEqual(r.json, { pairs: [], conNua: false });
 });
 
+test("(p5c) Quản trị bấm Thực hiện / Từ chối phiếu của Nhân sự (ngoài cấp bậc) → 404 như không có phiếu; phiếu nguyên (vòng sửa 1, m-6 / R4)", async () => {
+  const w = setup();
+  const hr = (await gui(w, HR)).json.id as string;
+  const t = await thucHien(w, ADM, hr);
+  assert.equal(t.status, 404, t.text);
+  assert.equal(t.json.error.code, "not_found");
+  const c = await w.call("POST", `${PHIEU}/${hr}/tu-choi`, { as: ADM, body: { lyDo: "CAN_GIU_THEO_LUAT" } });
+  assert.equal(c.status, 404, c.text);
+  assert.equal(Q(w, "SELECT status FROM pty_erasure_request WHERE id = ?", hr)[0].status, "CHO_XU_LY");
+  assert.equal(dem(w, "audit_log WHERE action IN ('party_erased', 'party_erasure_rejected')"), 0);
+});
+
+test("(p5d) danh sách 'đã xử lý': Quản trị chỉ thấy phiếu trong cấp bậc (Đối tác), không thấy phiếu của Nhân sự; Toàn quyền thấy cả hai (vòng sửa 1, m-6 / R6)", async () => {
+  const w = setup();
+  const a = (await gui(w, PARTNER)).json.id as string;
+  const hr = (await gui(w, HR)).json.id as string;
+  assert.equal((await thucHien(w, SUP, a)).status, 200);
+  assert.equal((await thucHien(w, SUP, hr)).status, 200);
+  const ids = (j: { daXuLy: { id: string }[] }) => j.daXuLy.map((x) => x.id).sort();
+  assert.deepEqual(ids((await hangCho(w, ADM)).json), [a]);
+  assert.deepEqual(ids((await hangCho(w, SUP)).json), [a, hr].sort());
+});
+
+test("(p5e) nhánh 'tệp nối tới giấy tờ của tập hồ sơ' của câu ẩn danh tệp: tiền đề là trigger không cho nối tệp của hồ sơ này vào giấy tờ của hồ sơ khác ⇒ nhánh chỉ là lớp hai; còn tệp của cả hồ sơ chính lẫn hồ sơ đã gộp đều bị quyết xoá (vòng sửa 1, m-6 / R23)", async () => {
+  const w = setup();
+  const a = await guiDayDu(w, PARTNER);
+  vaiMo(w, pty(HR));
+  const la = "tep-nhan-la";
+  w.sqlite.prepare(
+    `INSERT INTO pty_attachment (id, party_id, storage_key, content_kind, byte_size, content_hash, stored_at, created_at, created_by, updated_at, updated_by)
+     VALUES (?, ?, ?, 'jpg', 3, ?, ?, ?, 'x', ?, 'x')`,
+  ).run(la, pty(HR), `pty/${"ab12".repeat(8)}`, "d".repeat(64), AT, AT, AT);
+  // Tiền đề: không nối được tệp của hồ sơ khác vào giấy tờ của hồ sơ bị xoá (nếu trigger này mất, nhánh trong câu ẩn danh tệp mới thành lớp duy nhất — bài này đỏ để nhắc xem lại).
+  assert.throws(
+    () => w.sqlite.prepare("INSERT INTO pty_attachment_link (attachment_id, target_kind, target_id, created_at, created_by, updated_at, updated_by) VALUES (?, 'PERSON_DOCUMENT', ?, ?, 'x', ?, 'x')").run(la, a.docId, AT, AT),
+    /attachment_link_target_mismatch/,
+  );
+  const r = await thucHien(w, ADM, a.phieuId);
+  assert.equal(r.status, 200, r.text);
+  assert.notEqual(Q(w, "SELECT purged_at FROM pty_attachment WHERE id = ?", a.tepId)[0].purged_at, null, "tệp nối giấy tờ của chính hồ sơ bị xoá");
+  assert.equal(Q(w, "SELECT purged_at FROM pty_attachment WHERE id = ?", la)[0].purged_at, null, "tệp của hồ sơ khác nguyên");
+});
+
 test("(p6) người gửi tự bấm → 409 erasure_self (Quản trị và Toàn quyền); Đối tác còn đơn chưa giao → 409 erasure_busy (Toàn quyền cũng chịu), dữ liệu nguyên", async () => {
   const w = setup();
   const m = (await gui(w, ADM)).json.id as string;
