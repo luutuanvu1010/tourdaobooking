@@ -411,3 +411,9 @@ Nêu bởi chủ dự án trong lúc trả lời từng ca sổ vàng; hồ sơ 
   - **Việc khi làm:** đặc tả ngắn, chủ duyệt; sửa ca sổ vàng liên quan; chủ xác nhận lại.
 
 Các việc khác từ cùng buổi xác nhận (đang chờ chủ quyết, chưa phải backlog): SV-SC-02 (tính nợ trước khi Kế toán xác nhận), SV-DH-05 (cho Kế toán ghi chuyển sang đơn khác), SV-DH-08 (điều chỉnh có dấu vết thay vì «đảo»), SV-SK-07 và SV-SK-11 (nhật ký hiện đủ chuỗi, hiện khoản đã thu), SV-DH-04 (dòng «Đã hoàn trả»). Chi tiết ở `golden/README.md`.
+
+## 36. Sổ tay hướng dẫn nghiệp vụ (mã `BL-SO-TAY-NGHIEP-VU`)
+
+- **Trạng thái:** `chưa làm` · Ý của chủ 17/10/2026: gom luật nghiệp vụ thành sổ tay cho nhân viên.
+- **Nguồn đã có để soạn:** `docs/VAN-CHUYEN.md` mục 0 (luật vận chuyển hiện hành từ bản 2.11, kèm nghĩa từng ô của Chính sách điều phối); Trợ giúp theo vai trong Nền tảng; nhật ký thay đổi (`src/shared/changelog.ts`); sổ vàng `golden/` (các ca đã chủ xác nhận).
+- **Việc khi làm:** chủ chọn phạm vi (theo vai hay theo luồng việc) và nơi đặt (trong Trợ giúp hay tài liệu riêng); rà lại các mục 1–5 của `docs/VAN-CHUYEN.md` (còn theo bản 1.38).

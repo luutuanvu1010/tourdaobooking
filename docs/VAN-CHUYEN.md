@@ -7,14 +7,73 @@
 
 **Điều quan trọng nhất:** bản 1.38 đã chạy trên mạng thật, nhưng **chủ đã quyết chưa dùng Bảng điều phối cho chuyến thật** cho tới khi có màn nhập tên khách. Màn đó đã có từ bản 1.62; việc dùng Bảng điều phối cho chuyến thật đang chờ chủ quyết. Văn phòng vẫn điều xe như cũ. Riêng **quy tắc 6 giờ đã có hiệu lực ngay** với việc xác nhận đơn.
 
+> **Cập nhật 17/10 (bản 2.11):** mục 0 ngay dưới là luật nghiệp vụ hiện hành về mốc, xe riêng, thêm khách, chéo xe – tài xế, số chỗ, và nghĩa từng ô của Chính sách điều phối. Mục 0 **thắng** mọi chữ «6 giờ», «chỉ Toàn quyền đổi mốc», «cần Quản trị phá lệ» ở các mục 1–5 (viết theo bản 1.38). Dùng mục 0 làm gốc khi soạn sổ tay nghiệp vụ.
+
 ## Mục lục
 
+0. [Luật nghiệp vụ hiện hành (bản 2.11)](#0-luật-nghiệp-vụ-hiện-hành-bản-211)
 1. [Phân hệ làm gì](#1-phân-hệ-làm-gì)
 2. [Đang có gì trên bản 1.38](#2-đang-có-gì-trên-bản-138)
 3. [Cách sử dụng theo vai](#3-cách-sử-dụng-theo-vai)
 4. [Checklist sẵn sàng thử tính năng](#4-checklist-sẵn-sàng-thử-tính-năng)
 5. [Lưu ý và giới hạn đã biết](#5-lưu-ý-và-giới-hạn-đã-biết)
 6. [Nguồn (cho người kỹ thuật)](#6-nguồn-cho-người-kỹ-thuật)
+
+---
+
+## 0. Luật nghiệp vụ hiện hành (bản 2.11)
+
+Nguồn quyết định: ADR-0128 và ADR-0129, chủ duyệt 17/10/2026 khi rà sổ vàng vận chuyển. Mỗi luật dưới đây đã có bài kiểm tự động.
+
+### 0.1 Mốc ra lệnh
+
+- **Một con số cho cả hai việc:** xác nhận đơn có giờ đón sát, và xếp / đổi xe / đổi tài xế / rút khách trên chuyến sắp chạy. Chủ chọn **30 phút** (trước đây 6 giờ).
+- **Ai đặt:** Quản trị và Toàn quyền, ở Vận chuyển › Chính sách điều phối. Quản trị chỉ thấy hai ô theo phút (mốc, cảnh báo sát mốc); Toàn quyền thấy đủ các ô, ghi theo giờ (gõ «0,5» hay «0.5» đều là 30 phút). Mốc không tắt được.
+- **Còn ít hơn mốc** trước giờ xuất bến: Bán hàng không thao tác thẳng được, phải bấm **«Điều chỉnh khẩn cấp»** kèm lý do; tài xế đang lái nhận tin báo. Xác nhận đơn có chặng dưới mốc vẫn cần Quản trị / Toàn quyền bấm **«Đặt gấp»**.
+- Còn **đúng bằng** mốc là ngoài mốc (không bị chặn).
+
+### 0.2 Xe riêng — không bao giờ ghép khách lẻ
+
+- Chặng khách đã đặt **xe riêng**: **không ai** (kể cả Toàn quyền, kể cả khẩn cấp) xếp đơn khác lên chuyến đó. Muốn ghép thì phải sửa đơn xe riêng trước.
+- Chuyển khách giữa hai xe: nếu xe nhận đang chở khách xe riêng thì lần nhờ **không đạt**, Quản trị cũng không duyệt được.
+- Khác với **«xe tối thiểu N chỗ»**: luật này vẫn bỏ qua được như cũ (dưới mốc: Bán hàng kèm lý do; ngoài mốc: Quản trị / Toàn quyền).
+
+### 0.3 Đơn thêm khách khi xe thiếu chỗ
+
+- Xe đủ chỗ cho **cả** phần tăng → máy tự thêm đủ ghế.
+- Không đủ → **không thêm ghế nào**; đơn vẫn lưu số khách mới, chặng hiện «thiếu suất» để người xếp xe xử lý (đổi xe, thêm chuyến). Không có chuyến nửa vời (người ngồi, người chờ).
+
+### 0.4 Tài xế và xe khác chủ (chéo xe – tài xế)
+
+| Tài xế | Xe công ty | Xe nhà xe thuê |
+|---|---|---|
+| Tài xế công ty | được | **được** nếu đủ hạng bằng cho số chỗ và xe đủ giấy tờ; lịch chung hiện cảnh báo «Tài xế công ty lái xe của nhà xe thuê» |
+| Tài xế của nhà xe X | **không** | chỉ xe của chính nhà xe X |
+
+Giá xe thuê của chuyến giữ nguyên giá nhà xe (giả định, chủ chưa xác nhận riêng). **Chưa biết:** bảo hiểm của xe thuê có bao tài xế công ty không — chủ tự hỏi nhà xe trước khi dùng thật.
+
+### 0.5 Số chỗ của xe
+
+Tổng khách đang chờ đón + đã lên xe **không bao giờ vượt** số chỗ của xe. Không ai phá lệ được (giới hạn an toàn, không phải luật quản lý).
+
+### 0.6 Nghĩa từng ô của Chính sách điều phối
+
+| Ô | Nghĩa | Ghi chú |
+|---|---|---|
+| Mốc tối thiểu | Xem 0.1 | 30 phút; từ trên 0 tới 48 giờ |
+| Cảnh báo sát mốc | Chặng **chưa xếp xe** còn trong khoảng này trước mốc thì hiện nhãn «Sát mốc» — chỉ nhắc | 0 = không nhắc; tối đa 24 giờ. Với mốc 30 phút, nên đặt 15 phút – 1 giờ |
+| Khoảng nghỉ tài xế (phút) | Thời gian nghỉ ít nhất giữa hai chuyến của cùng tài xế | 0–480 |
+| Khai lùi tối đa (phút) | Văn phòng bấm thay tài xế (Đã đón, Đã tới…) được ghi giờ xảy ra lùi lại tối đa bấy nhiêu | 1–1440, mặc định 180 |
+| Giờ lái tối đa một ngày (giờ) | Vượt thì cảnh báo, không chặn | mặc định 8 |
+| Nhắc nghỉ khi chuyến dài hơn (giờ) | Chỉ nhắc | mặc định 4 |
+| Cửa sổ xuất bến (giờ) | Tài xế chỉ bấm «Xuất bến» được từ giờ chạy trừ số giờ này — chống bấm nhầm sớm; không ai phá lệ | 1–48 |
+| Hạn từ chối chuyến (giờ) | Tài xế nhà xe chỉ từ chối được trước giờ chạy ít nhất bấy nhiêu; sát hơn phải gọi văn phòng | 1–48; chỉ áp cho chuyến xếp sau lúc lưu |
+| Số điện thoại văn phòng | Số mà nút «Gọi văn phòng» của tài xế gọi | để trống thì ẩn nút |
+| Chờ tài xế xe nhận trả lời (phút) | Thời gian tài xế xe nhận có để bấm khi được nhờ chuyển khách; quá thì lần nhờ hết hạn | 1–120 |
+| Công tắc «Phải đủ danh sách khách» | Bật: chuyến thiếu tên khách chưa xuất bến được | |
+| Công tắc «Tự đồng ý chuyển khách» | Bật: lần nhờ đạt mọi điều kiện thì chuyển ngay; tắt: mọi lần chờ Quản trị duyệt | |
+
+Mỗi lần lưu là một **bản mới**, có hiệu lực ngay; bản cũ ở «Lịch sử bản», đổi lại lúc nào cũng được.
 
 ---
 
