@@ -961,6 +961,20 @@ npx wrangler r2 bucket list
 
 **Hoàn tác:** `0105` chỉ THÊM một bảng + trigger — lùi Worker về bản trước không cần đụng D1. Nếu chính sách đã đăng và đã có phiếu: lùi Worker làm mục "Hồ sơ của tôi" biến mất, phiếu và dòng đồng ý nằm nguyên trong D1 (không xoá).
 
+## Lần phát hành kế tiếp có xác minh hồ sơ (ADR-0125 — Gói 2 lát H-4; migration `0107`) — RUNBOOK
+
+**Trạng thái: CHƯA phát hành** (nhánh `worktree-ho-so-rieng-tu-2fa`, soạn 2026-10-17; chờ người kiểm độc lập cuối lát và chủ duyệt). Cùng nhánh với `0103`–`0105`: lần phát hành mang cả bốn; `0107` áp SAU `0103`–`0105` (wrangler áp theo tên, tự đúng thứ tự). Mọi bước sau A.0 do `npm run trien-khai` làm như thường. **Không cần lệnh Cloudflare mới.** Mục nhật ký thay đổi A.0 là mục **2.13 TẠM** (không trùng 2.8–2.12): phiên phát hành đánh số lại theo `main` lúc đó.
+
+**Điều kiện phát hành (kiểm LÚC phát hành bằng lệnh chỉ đọc):** `npx wrangler d1 migrations list tourdao-sales-db --remote`, rồi `git ls-tree --name-only <nhánh> migrations/` cho MỌI nhánh / worktree chưa gộp. Số `0106` đang thuộc nhánh vé hỗ trợ (`0106_ve_ho_tro_2a.sql`, nhánh `claude/support-ticket-module-eb6445`); `0107` là số kế tiếp ở thời điểm soạn — nhánh nào vào `main` sau thì đổi số lúc gộp (bài `src/migrations-xac-minh-ho-so.test.ts` nhận tệp theo đuôi `_xac_minh_ho_so.sql`). `0107` chỉ THÊM (chỉ mục, view, trigger): không bảng, không cột, không gieo.
+
+**Xác minh vô hại khi chưa có chính sách đăng:** hàng chờ là mục trống (chưa ai gửi được phiếu), chấp nhận / từ chối không có phiếu nào để xử lý. Tự khai vẫn CHỈ BẬT khi Toàn quyền đăng chính sách riêng tư (điều kiện Q1 ở mục `0105` ngay trên — luật sư duyệt chữ và lát H-5 có đường xoá; dựa vào kỷ luật). **Chưa có:** ảnh đi kèm phiếu và chấp nhận phiếu giấy tờ (phiếu giấy tờ chỉ từ chối được, 409 `can_anh_giay_to` — ruling Q1 của kế hoạch H-4, chờ lát ảnh). Phiếu ngày sinh và địa chỉ chấp nhận được bình thường.
+
+**Việc của chủ:** (1) duyệt ảnh giao diện `docs/evidence/2026-10-17-xac-minh/anh/` (390 và 1040); (2) trả lời câu Q1–Q5 còn mở (mục "Câu hỏi còn mở" ở báo cáo việc 6 và `docs/BACKLOG.md` mục 39); (3) chạy `day-len` rồi `trien-khai` khi quyết phát hành — nhắc: nhánh phải dựng trên `main` mới nhất.
+
+**Sau deploy:** `node scripts/audit-invariants.mjs --db remote` (trien-khai tự chạy) phải không vi phạm `R-PTY-14`, `R-PTY-15`, `R-PTY-16` (bảng phiếu rỗng ⇒ đạt). Chủ thử bằng tài khoản Nhân sự: trang Quản lý tài khoản có khối "Hàng chờ xác minh" (trống); Bán hàng, Kế toán không thấy khối và `GET /api/parties/xac-minh` trả 403.
+
+**Hoàn tác:** `0107` chỉ THÊM view + chỉ mục + trigger — lùi Worker về bản trước không cần đụng D1; phiếu đã chấp nhận / từ chối và dòng xác minh nằm nguyên (không xoá). Nếu cần gỡ riêng trigger: migration MỚI `DROP TRIGGER` (không sửa tệp `0107` đã áp).
+
 ## Chế độ bảo trì — đường thoát khẩn
 
 Dùng CHỈ khi chủ dự án bị khoá ngoài (không vào được app để bấm tắt) hoặc chế độ bảo trì kẹt bật. Đây là thao tác GHI lên D1 remote, đi vòng app: theo `CLAUDE.md` §8 chỉ làm khi chủ dự án ra lệnh (hoặc tự chạy bằng `!`). Tác dụng TỨC THÌ (cổng ở máy chủ đọc D1 mỗi request, không đệm), không cần deploy.

@@ -12,6 +12,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Gói 2 hồ sơ riêng tư, lát H-4 (ADR-0125): Hàng chờ xác minh ở trang Quản lý tài khoản + luật tách nhiệm vụ; migration 0107 (số TẠM — kiểm số kế tiếp lúc phát hành,
+    // nhánh vé hỗ trợ giữ 0106). CÓ migration — cần trien-khai sau day-len. Tự khai vẫn chỉ bật khi Toàn quyền đăng chính sách; chấp nhận phiếu giấy tờ chưa có (chưa có ảnh).
+    // Số 2.13 là số TẠM (không trùng 2.8–2.12 đang tạm ở các nhánh): phiên phát hành gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.13",
+    date: "2026-10-17",
+    items: [
+      { kind: "moi", text: "Quản trị và Nhân sự có Hàng chờ xác minh ở trang Quản lý tài khoản: xem thông tin người dùng tự khai, chấp nhận nguyên văn hoặc từ chối kèm lý do." },
+      { kind: "doi", text: "Người đã tạo tài khoản hoặc từng hỗ trợ đăng nhập cho người đó không xác minh được phiếu của họ." },
+    ],
+  },
+  {
     // Gói 2 hồ sơ riêng tư, lát H-3 (ADR-0124, ADR-0126 đ1): khối "Hồ sơ của tôi" ở trang Tôi, chính sách riêng tư + đồng ý, phiếu tự khai (chưa có xác minh — lát H-4);
     // migration 0105. CÓ migration — cần trien-khai sau day-len. TỰ KHAI CHỈ BẬT KHI TOÀN QUYỀN ĐĂNG CHÍNH SÁCH (không gieo bản nào — ruling Q1).
     // Số 2.12 là số TẠM (không trùng 2.8 / 2.9 / 2.10 / 2.11 đang tạm ở các nhánh): phiên phát hành gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
