@@ -185,7 +185,7 @@
   --w-toast: 360px;
   --fb-line: 2px;             /* nét nối + viền chấm của thanh bước Góp ý */
   --fb-dot: 28px;              /* chấm của thanh bước trạng thái Góp ý (ảnh phác c, chủ duyệt 30/9) */
-  --w-fb-tin: 85%;             /* Vé hỗ trợ đợt 2a (ADR-0127): bề rộng tối đa một bong bóng tin — chừa lề phía bên kia để thấy rõ tin của ai */            /* Bảng tin (ADR-0022): bề rộng thông báo nổi ở máy tính (điện thoại: gần hết bề ngang) */
+  --w-fb-tin: 85%;             /* Vé hỗ trợ đợt 2a (ADR-0127): bề rộng tối đa một bong bóng tin — chừa lề phía bên kia để thấy rõ tin của ai */
   /* "Việc của tôi" của hướng dẫn viên (Task 1.8 ADR-0030) — số đo từ bản thiết kế "Viec cua toi - HDV v2.dc.html" (Claude Design 2026-09-27; chủ dự án
      yêu cầu làm đúng bản thiết kế — coi là duyệt các cỡ chữ/số đo dưới đây, cùng tiền lệ trang Đăng nhập). Màu đều là token sẵn có. */
   --fs-hdv-title: var(--fs-step-10);        /* "HDV: <tên>" đầu khối */

@@ -1141,6 +1141,8 @@ test("tuyến làm mới KHÔNG ghi gì: không mốc «đã xem» (fbk_ticket_r
   // (2) Đã có dòng đọc (mở chi tiết), rồi có tin mới: làm mới không đẩy seen_at (upsert cũng không được — so cả giá trị, không chỉ đếm).
   assert.equal((await d(w, id, KT_TV)).status, 200);
   assert.equal(await huy(w, KT_TV), 0);
+  // Chờ qua mili giây của mốc đã xem: tin mang đúng cùng mili giây với seen_at được tính là đã đọc (nợ đã biết BL-VE-THONG-KE), bài từng đỏ chập chờn ở đây.
+  await new Promise((r) => setTimeout(r, 5));
   assert.equal((await traLoi(w, id, KT_TN, "Trả lời công khai")).status, 201);
   assert.equal(await huy(w, KT_TV), 1);
   const a1 = anh();
@@ -1251,6 +1253,20 @@ test("R6 giao việc — đối chứng: bỏ gán, tự gán, giao cho thành v
       assert.equal(tu.status, 200, `Trưởng nhóm tự giao cho mình: ${tu.text}`);
       assert.equal(tu.json.ticket.assigneeId, KT_TN);
     }
+  }
+});
+
+test("R6 giao việc — đối chứng: phiếu kẹt cũ đang do tài khoản bên ngoài giữ, gửi lại ĐÚNG người đó ⇒ 200, không đổi gì (phép kiểm bên ngoài chỉ chạy khi đổi người) — ở cả hai route", async () => {
+  for (const [ten, giao] of giaoQua) {
+    const w = setup();
+    w.sqlite.exec(`INSERT INTO fbk_team_member (id, team_id, staff_id, role, valid_from_at, created_at, updated_at) VALUES ('tv-ngoai-p', '${KE_TOAN}', '${PARTNER}', 'MEMBER', '${NOW}', '${NOW}', '${NOW}')`);
+    const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+    // Phiếu kẹt từ trước bản vá R6: API không còn giao được cho tài khoản bên ngoài, nên gieo thẳng người giữ.
+    w.sqlite.exec(`UPDATE fbk_ticket SET assignee_id = '${PARTNER}' WHERE id = '${id}'`);
+    const r = await giao(w, id, { assigneeId: PARTNER });
+    assert.equal(r.status, 200, `${ten} gửi lại đúng người đang giữ (bên ngoài): ${r.text}`);
+    assert.equal(w.q(`SELECT assignee_id FROM fbk_ticket WHERE id = '${id}'`)[0].assignee_id, PARTNER, `${ten}: người giữ không đổi`);
+    assert.equal(w.q(`SELECT count(*) AS n FROM fbk_ticket_event WHERE ticket_id = '${id}' AND type = 'ASSIGNED'`)[0].n, 0, `${ten}: không sự kiện ASSIGNED`);
   }
 });
 

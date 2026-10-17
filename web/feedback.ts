@@ -443,6 +443,9 @@ async function loadThread(id: string): Promise<void> {
   });
 
   const khoiDau = h("div", { id: "fb-dau" }, ...dungDau(t, perms, reload));
+  // Khối chuyển nhóm chỉ có khi phiếu còn mở: vòng làm mới thấy trạng thái đổi (đóng / mở lại) thì dựng lại ngay sau khối đầu.
+  const dungChuyen = (): HTMLElement | null => (perms.chuyenNhom && t.status !== "DONE" && t.status !== "DECLINED" ? khoiChuyenNhom(t) : null);
+  let khoiChuyen = dungChuyen();
   const tinDs = h("div", { class: "fb-tin-ds", id: "fb-tin-ds" });
   veTin(tinDs, d.messages);
   const traLoi = h("div", { id: "fb-tra-loi" }, h("label", null, "Trả lời", body), perms.xuLy && h("label", null, internal, " Ghi chú nội bộ (người gửi không thấy)"), send);
@@ -463,7 +466,7 @@ async function loadThread(id: string): Promise<void> {
     baoDung,
     baoChuyen,
     khoiDau,
-    perms.chuyenNhom && t.status !== "DONE" && t.status !== "DECLINED" ? khoiChuyenNhom(t) : null,
+    khoiChuyen,
     tinDs,
     traLoi,
   );
@@ -485,14 +488,23 @@ async function loadThread(id: string): Promise<void> {
       }
       if (r.ticket.teamId !== t.teamId) baoChuyen.hidden = false; // quyền trên nhóm mới (perms) chỉ có ở tuyến chi tiết: người xem tự bấm tải lại
       if (dauPhieuDoi(s.dau, r.ticket)) {
+        const doiTrangThai = r.ticket.status !== t.status;
         Object.assign(t, { status: r.ticket.status, statusName: FEEDBACK_STATUS_NAME[r.ticket.status], assigneeId: r.ticket.assigneeId, assigneeName: r.ticket.assigneeName, assigneeActive: r.ticket.assigneeActive, priority: r.ticket.priority });
         replaceChildren(khoiDau, ...dungDau(t, perms, reload));
+        if (doiTrangThai) {
+          const moi = dungChuyen();
+          if (khoiChuyen) khoiChuyen.replaceWith(...(moi ? [moi] : []));
+          else if (moi) khoiDau.after(moi);
+          khoiChuyen = moi;
+        }
       }
     },
     dungVi: () => {
       baoDung.textContent = "Phiếu này không còn trong nhóm của bạn.";
       baoDung.hidden = false;
       traLoi.hidden = true;
+      khoiDau.hidden = true; // nút đổi trạng thái / mức / giao việc không còn dùng được: ẩn cùng ô trả lời
+      if (khoiChuyen) khoiChuyen.hidden = true;
     },
   };
   const b0 = buocLamMoi([], d.messages, t.createdAt);
