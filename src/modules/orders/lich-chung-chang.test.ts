@@ -77,7 +77,7 @@ test("TC-20 lichChungChang: ĐÚNG các khoá của chặng (có khoaNoiDon / kh
   assert.equal(ret.khoaNoiDon, `L:${LOC}`);
   assert.equal(ret.khoaNoiTra, null, "chưa có nơi trả → null");
   const text = JSON.stringify(kq);
-  for (const leak of ["0912345678", "0905123456", "do.tim@example.com", "Ghi chú kín", "Tiền mặt", "500000", "Chủ Đơn", "Khách Dò Tìm Một", "1911", SALES]) assert.ok(!text.includes(leak), `lộ "${leak}"`);
+  for (const leak of ["0912345678", "0905123456", "do.tim@example.com", "Ghi chú kín", "Tiền mặt", "500000", "Chủ Đơn", "Khách Dò Tìm Một", "1911", SALES]) assert.ok(leak === "1911" ? !/(?<![0-9a-fA-F])1911(?![0-9a-fA-F])/.test(text) : !text.includes(leak), `lộ "${leak}"`); // năm sinh dò riêng: khoá SHA-256 / UUID ngẫu nhiên đôi khi tình cờ chứa «1911» (bài chập chờn 17/10)
   // lọc theo NGÀY ĐÓN: chiều về (ngày +4) ra khỏi khoảng [D, D]
   assert.deepEqual((await lichChungChang(w.env.DB, D, D)).chang.map((c: any) => c.direction), ["OUT"]);
   // chặng đã đóng không có
