@@ -189,6 +189,7 @@ try {
   const nhanHangDoi = await p.ev(`({ nhan: document.querySelector('#list [data-ticket="${ticketId}"] [data-uu-tien]').textContent, chu: document.getElementById('list').textContent })`);
   assert.equal(nhanHangDoi.nhan, "Khẩn", "3. nhãn «Khẩn»");
   assert.ok(!/URGENT|HIGH|NORMAL/.test(nhanHangDoi.chu), "3. hàng đợi không lộ mã mức thô");
+  await axe(p, "/feedback hàng đợi nhóm 1040 (nhãn mức ưu tiên)"); // Việc 6 (M5 của người kiểm Việc 5)
   await p.shot(join(OUT, "03-ke-toan-hang-doi-1040.png"));
   p.close();
   p = await env.as(ACCOUNTS.accounting, `/feedback?id=${ticketId}`, DESK);
@@ -205,7 +206,7 @@ try {
   await p.shot(join(OUT, "04-ke-toan-luong-1040.png"));
   assert.deepEqual(p.consoleErrors, [], "3. không lỗi JS");
   p.close();
-  ok("3. Kế toán: hàng đợi «Khẩn»; ô Mức ưu tiên ba mức tiếng Việt, đổi sang Cao qua /xu-ly; ghi chú nội bộ viền riêng; không có nút giao việc");
+  ok("3. Kế toán: hàng đợi «Khẩn» (axe); ô Mức ưu tiên ba mức tiếng Việt, đổi sang Cao qua /xu-ly; ghi chú nội bộ viền riêng; không có nút giao việc");
 
   // ---- 4. Bán hàng Hai — Trưởng nhóm: giao cho người khác (390)
   p = await env.as(ACCOUNTS.salesB, `/feedback?id=${ticketId}`, MOB);
