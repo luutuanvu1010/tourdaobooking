@@ -29,6 +29,10 @@ export interface TicketRow {
   team_id: string;
   team_name: string;
   team_sensitive: number;
+  /** ADR-0127: không CHECK liệt kê ⇒ toTicket kiểm lại bằng isPriority. */
+  priority: string;
+  order_id: string | null;
+  order_code: string | null;
 }
 export interface TeamRow { id: string; code: string; name: string; description: string; sensitive: number; active: number; sort_order: number }
 export interface MessageRow {
@@ -50,7 +54,7 @@ const nguoiGiuHopLe = (p: string) => `EXISTS (SELECT 1 FROM v_stf_staff_label gx
 
 const COLS = `t.id, t.seq, t.kind_code, k.name AS kind_name, t.status_code, st.name AS status_name, t.title, t.context, t.submitter_id,
   s.label AS submitter_name, t.assignee_id, a.label AS assignee_name, CASE WHEN t.assignee_id IS NOT NULL AND ${nguoiGiuHopLe("t")} THEN 1 ELSE 0 END AS assignee_active, t.resolved_in, t.last_activity_at, t.last_public_reply_at, t.notified_at,
-  t.created_at, t.updated_at, t.team_id, tm.name AS team_name, tm.sensitive AS team_sensitive`;
+  t.created_at, t.updated_at, t.team_id, tm.name AS team_name, tm.sensitive AS team_sensitive, t.priority, t.order_id, t.order_code`;
 const FROM = `FROM fbk_ticket t JOIN fbk_kind k ON k.code = t.kind_code JOIN fbk_status st ON st.code = t.status_code JOIN fbk_team tm ON tm.id = t.team_id
   LEFT JOIN v_stf_staff_label s ON s.id = t.submitter_id LEFT JOIN v_stf_staff_label a ON a.id = t.assignee_id`;
 
@@ -72,7 +76,9 @@ const MESSAGE_EXISTS = defineSql("feedback", "message_exists", `SELECT 1 AS ok F
 //  2b. LIST_QUEUE_TEAM / STATS_TEAM: lọc `t.team_id = ?2`; route GET /api/feedback/queue gọi quyenPhieu (thành viên nhóm đó hoặc Toàn quyền) trước.
 //  3. BADGE: đếm theo người xem (mine lọc `submitter_id = ?1`; queue = phiếu chưa đọc ở nhóm người xem thuộc, hoặc mọi nhóm khi ?2 = 1 tức Toàn quyền;
 //     tài khoản bên ngoài: route không gọi câu này cho phần queue — index.ts trả 0).
-//  4. GET / messages theo id (GET, FIND_BY_REQUEST, LIST_MESSAGES): không lọc chủ trong SQL; index.ts gọi quyenPhieu() trước khi trả (`doc`), và LIST_MESSAGES lọc ghi chú nội bộ theo `noiBo` của quyenPhieu (nhóm đang giữ phiếu).
+//  4. GET / messages theo id (GET, FIND_BY_REQUEST, LIST_MESSAGES, LIST_MESSAGES_SINCE): không lọc chủ trong SQL; index.ts gọi quyenPhieu() trước khi trả (`doc`), và
+//     TIN_CHO_NGUOI_XEM lọc ghi chú nội bộ theo `noiBo` của quyenPhieu (nhóm đang giữ phiếu).
+//  4b. LIST_ASSIGNABLE: lọc `m.team_id = ?1`; route GET /api/feedback/teams/:id/members gọi quyenPhieu (giaoViecChoNguoiKhac của nhóm đó) trước.
 //  5. Các câu ghi (TOUCH_AFTER_REPLY, PATCH_TICKET, CLAIM, TRANSFER, INSERT_TRANSFER_NOTE, INSERT_EVENT, markSeen): chỉ chạy sau quyenPhieu()/quyền admin ở route.
 const LIST_MINE = defineSql(
   "feedback",
@@ -80,21 +86,26 @@ const LIST_MINE = defineSql(
   `SELECT ${COLS}, CASE WHEN ${UNREAD_SUBMITTER} THEN 1 ELSE 0 END AS unread ${FROM}
    WHERE t.submitter_id = ?1 ORDER BY t.last_activity_at DESC LIMIT ?2 OFFSET ?3`,
 );
+// Thứ tự hàng đợi (ADR-0127 quyết định 2): Khẩn → Cao → Thường (mức lạ coi như Thường), rồi hoạt động gần nhất. Sắp bằng CASE, KHÔNG theo chữ
+// (chữ sẽ ra HIGH < NORMAL < URGENT). Chỉ hàng đợi (LIST_QUEUE, LIST_QUEUE_TEAM); hộp thư «của tôi» (LIST_MINE) giữ thứ tự thời gian.
+const THU_TU_UU_TIEN = `CASE t.priority WHEN 'URGENT' THEN 0 WHEN 'HIGH' THEN 1 ELSE 2 END`;
 // Hàng đợi: CHỈ route admin gọi. ?2 trạng thái, ?3 loại (NULL = tất cả), ?4 giới hạn, ?5 vị trí bắt đầu.
 const LIST_QUEUE = defineSql(
   "feedback",
   "list_queue",
   `SELECT ${COLS}, CASE WHEN ${UNREAD_USER} THEN 1 ELSE 0 END AS unread ${FROM}
    WHERE (?2 IS NULL OR t.status_code = ?2) AND (?3 IS NULL OR t.kind_code = ?3) AND ?1 IS NOT NULL
-   ORDER BY t.last_activity_at DESC LIMIT ?4 OFFSET ?5`,
+   ORDER BY ${THU_TU_UU_TIEN}, t.last_activity_at DESC LIMIT ?4 OFFSET ?5`,
 );
-const LIST_MESSAGES = defineSql(
-  "feedback",
-  "list_messages",
-  `SELECT m.id, m.author_id, s.label AS author_name, m.body, m.internal, m.created_at
+// Tin của MỘT phiếu mà người xem được đọc: bộ lọc ghi chú nội bộ theo `noiBo` của quyenPhieu (?2) và nhóm đang giữ phiếu (?3) — MỘT đoạn dùng chung cho tuyến
+// chi tiết (LIST_MESSAGES) và tuyến làm mới (LIST_MESSAGES_SINCE, ADR-0127 quyết định 1) để hai tuyến không bao giờ lọc khác nhau.
+const TIN_CHO_NGUOI_XEM = `SELECT m.id, m.author_id, s.label AS author_name, m.body, m.internal, m.created_at
    FROM fbk_message m LEFT JOIN v_stf_staff_label s ON s.id = m.author_id
-   WHERE m.ticket_id = ?1 AND (m.internal = 0 OR ?2 = 'all' OR (?2 = 'team' AND m.team_id = ?3)) ORDER BY m.created_at, m.rowid`,
-);
+   WHERE m.ticket_id = ?1 AND (m.internal = 0 OR ?2 = 'all' OR (?2 = 'team' AND m.team_id = ?3))`;
+const LIST_MESSAGES = defineSql("feedback", "list_messages", `${TIN_CHO_NGUOI_XEM} ORDER BY m.created_at, m.rowid`);
+// Tuyến làm mới: ?4 mốc đã chuẩn hoá toISOString (so CHUỖI, nghiêm ngặt >), ?5 trần. Cũ trước mới sau: chạm trần thì trả 100 tin CŨ NHẤT sau mốc để khách tiến
+// dần (sắp mới trước sẽ nhảy cóc). Mất tin do dấu giờ tính trước lô ghi: khách lùi mốc 30 giây và bỏ trùng theo id (đặc tả 2.1) — câu này không tự lùi.
+const LIST_MESSAGES_SINCE = defineSql("feedback", "list_messages_since", `${TIN_CHO_NGUOI_XEM} AND m.created_at > ?4 ORDER BY m.created_at, m.rowid LIMIT ?5`);
 // Hàng đợi MỘT nhóm (route GET /api/feedback/queue, sau quyenPhieu). Không chứa phiếu do chính người xem gửi (nằm ở "của tôi").
 // ?1 người xem, ?2 nhóm, ?3 trạng thái|NULL, ?4 loc (ALL|MINE|UNASSIGNED), ?5 limit, ?6 offset.
 // UNASSIGNED gồm cả phiếu có người giữ KHÔNG hợp lệ (nguoiGiuHopLe: khoá tài khoản, bị gỡ khỏi nhóm — coi như chưa ai nhận, ADR-0119 điều 8).
@@ -105,7 +116,7 @@ const LIST_QUEUE_TEAM = defineSql(
    WHERE t.team_id = ?2 AND (?3 IS NULL OR t.status_code = ?3) AND t.submitter_id <> ?1
      AND (?4 = 'ALL' OR (?4 = 'MINE' AND t.assignee_id = ?1)
           OR (?4 = 'UNASSIGNED' AND (t.assignee_id IS NULL OR NOT ${nguoiGiuHopLe("t")})))
-   ORDER BY t.last_activity_at DESC LIMIT ?5 OFFSET ?6`,
+   ORDER BY ${THU_TU_UU_TIEN}, t.last_activity_at DESC LIMIT ?5 OFFSET ?6`,
 );
 // ?1 người xem, ?2 Toàn quyền (1/0): "queue" = phiếu CHƯA ĐỌC ở nhóm tôi đang thuộc (Toàn quyền: mọi nhóm), trừ phiếu tôi gửi.
 const BADGE = defineSql(
@@ -149,6 +160,36 @@ const LIST_MEMBERS_ALL = defineSql(
   `SELECT m.team_id, m.staff_id, s.label AS name, m.role FROM fbk_team_member m LEFT JOIN v_stf_staff_label s ON s.id = m.staff_id
    WHERE m.valid_to_at IS NULL ORDER BY m.team_id, m.role, s.label`,
 );
+// Ứng viên giao việc của MỘT nhóm (ADR-0127 quyết định 4; route GET /api/feedback/teams/:id/members, sau quyenPhieu giaoViecChoNguoiKhac): thành viên ĐANG hiệu lực,
+// tài khoản CÒN HOẠT ĐỘNG (cùng điều kiện người nhận của PATCH_TICKET), trừ người gửi phiếu ?2 — CHỈ khi phiếu ?2 thuộc ĐÚNG nhóm ?1 (phiếu nhóm khác / id lạ không
+// loại ai, để Trưởng nhóm không dò được ai gửi phiếu của nhóm khác). Tài khoản bên ngoài còn dòng cũ: route lọc bằng hàm công bố của staff (R6 — không chép
+// danh sách mã quyền bên ngoài vào SQL). ?1 nhóm, ?2 phiếu đang giao hoặc ''.
+const LIST_ASSIGNABLE = defineSql(
+  "feedback",
+  "list_assignable",
+  `SELECT m.staff_id, s.label AS name, m.role FROM fbk_team_member m JOIN v_stf_staff_label s ON s.id = m.staff_id
+   WHERE m.team_id = ?1 AND m.valid_to_at IS NULL AND s.active = 1
+     AND m.staff_id <> COALESCE((SELECT t.submitter_id FROM fbk_ticket t WHERE t.id = ?2 AND t.team_id = ?1), '')
+   ORDER BY m.role, s.label`,
+);
+
+// ---- Đơn liên quan (ADR-0127 quyết định 3; cạnh feedback → orders) ------------------------------------------------------------------------------
+// CHỈ ba view công bố có sẵn của orders: v_ord_order_owner (người lập), v_ord_order_label (mã đơn), v_ord_order_state (trạng thái). Không tiền, khách, SĐT.
+// Bài siết ở src/architecture.test.ts: SQL của feedback nhắc view v_ord_* nào khác (hay đọc thẳng bảng orders) ⇒ đỏ.
+// «Đơn do chính người gọi lập» quyết ở MỘT đoạn dưới đây (`o.staff_id = ?1`), dùng chung cho danh sách chọn (my-orders) và kiểm lúc gửi phiếu.
+// Quyền xem đơn (ô order.view của chính người gọi) do route hỏi bằng can() TRƯỚC khi gọi hai hàm này.
+const DON_CUA_NGUOI = `SELECT o.id, l.order_code, s.status FROM v_ord_order_owner o JOIN v_ord_order_label l ON l.id = o.id JOIN v_ord_order_state s ON s.id = o.id
+   WHERE o.staff_id = ?1`;
+/** Mã đơn dạng TD-YYYYMMDD-NNNN ⇒ thứ tự mã là thứ tự thời gian. ?1 người gọi, ?2 giới hạn. */
+const MY_ORDERS = defineSql("feedback", "my_orders", `${DON_CUA_NGUOI} ORDER BY l.order_code DESC LIMIT ?2`);
+/** ?1 người gửi, ?2 id đơn. Không thấy = không tồn tại HOẶC không phải của người gửi (route trả cùng một câu). */
+const MY_ORDER_ONE = defineSql("feedback", "my_order_one", `${DON_CUA_NGUOI} AND o.id = ?2`);
+export interface DonCuaToiRow { id: string; order_code: string; status: string }
+/** Tối đa bao nhiêu đơn ở danh sách chọn khi gửi phiếu (đặc tả đợt 2a mục mã đơn). */
+export const MY_ORDERS_LIMIT = 30;
+export const listDonCuaToi = async (db: D1Database, staffId: string): Promise<DonCuaToiRow[]> =>
+  (await db.prepare(MY_ORDERS).bind(staffId, MY_ORDERS_LIMIT).all<DonCuaToiRow>()).results;
+export const getDonCuaToi = (db: D1Database, staffId: string, orderId: string) => db.prepare(MY_ORDER_ONE).bind(staffId, orderId).first<DonCuaToiRow>();
 
 export const getTicket = (db: D1Database, id: string) => db.prepare(GET).bind(id).first<TicketRow>();
 export const findByRequest = (db: D1Database, submitterId: string, clientRequestId: string) =>
@@ -161,6 +202,10 @@ export const listQueue = async (db: D1Database, staffId: string, status: string 
 /** Ghi chú nội bộ theo `noiBo` của quyenPhieu: "none" không có; "team" chỉ ghi chú do nhóm `teamId` (nhóm đang giữ phiếu) viết; "all" mọi ghi chú (Toàn quyền). */
 export const listMessages = async (db: D1Database, ticketId: string, noiBo: "none" | "team" | "all", teamId: string): Promise<MessageRow[]> =>
   (await db.prepare(LIST_MESSAGES).bind(ticketId, noiBo, teamId).all<MessageRow>()).results;
+/** Tuyến làm mới: như listMessages nhưng chỉ tin `created_at > since` (mốc đã qua parseSince), tối đa `limit`. CHỈ ĐỌC — không ghi mốc đã xem. */
+export const listMessagesSince = async (
+  db: D1Database, ticketId: string, noiBo: "none" | "team" | "all", teamId: string, since: string, limit: number,
+): Promise<MessageRow[]> => (await db.prepare(LIST_MESSAGES_SINCE).bind(ticketId, noiBo, teamId, since, limit).all<MessageRow>()).results;
 export const listQueueTeam = async (
   db: D1Database, staffId: string, teamId: string, status: string | null, loc: string, limit: number, offset: number,
 ): Promise<TicketRow[]> => (await db.prepare(LIST_QUEUE_TEAM).bind(staffId, teamId, status, loc, limit, offset).all<TicketRow>()).results;
@@ -176,6 +221,9 @@ export const membershipsOf = async (db: D1Database, staffId: string): Promise<Me
 export interface TeamMemberRow { team_id: string; staff_id: string; name: string | null; role: "LEAD" | "MEMBER" }
 export const listTeamsAll = async (db: D1Database): Promise<TeamRow[]> => (await db.prepare(LIST_TEAMS_ALL).all<TeamRow>()).results;
 export const listMembersAll = async (db: D1Database): Promise<TeamMemberRow[]> => (await db.prepare(LIST_MEMBERS_ALL).all<TeamMemberRow>()).results;
+export interface AssignableRow { staff_id: string; name: string; role: "LEAD" | "MEMBER" }
+export const listAssignable = async (db: D1Database, teamId: string, ticketId: string): Promise<AssignableRow[]> =>
+  (await db.prepare(LIST_ASSIGNABLE).bind(teamId, ticketId).all<AssignableRow>()).results;
 export const weeklyStats = async (db: D1Database, sinceIso: string) =>
   (await db.prepare(STATS).bind(sinceIso).all<{ week: string; kind_code: string; status_code: string; n: number }>()).results;
 export const statsTeam = async (db: D1Database, sinceIso: string, teamId: string) =>
@@ -184,12 +232,14 @@ export const statsTeam = async (db: D1Database, sinceIso: string, teamId: string
 // ---- Ghi -----------------------------------------------------------------------------------------------------------
 // Tạo yêu cầu: MỘT câu INSERT … SELECT … WHERE (đếm trong cửa sổ) < trần AND chưa có cùng (người gửi, client_request_id).
 // Đếm và chèn trong cùng một câu lệnh nên hai request song song không cùng qua trần (D1 tuần tự hoá ghi). seq = max+1 cùng câu.
-// ?1 id, ?2 loại, ?3 tiêu đề, ?4 context JSON, ?5 người gửi, ?6 client_request_id, ?7 bây giờ, ?8 đầu cửa sổ, ?9 trần, ?10 nhóm nhận (route đã kiểm có thật, đang dùng).
+// ?1 id, ?2 loại, ?3 tiêu đề, ?4 context JSON, ?5 người gửi, ?6 client_request_id, ?7 bây giờ, ?8 đầu cửa sổ, ?9 trần, ?10 nhóm nhận (route đã kiểm có thật, đang dùng),
+// ?11/?12 id và mã đơn liên quan chụp lúc gửi (cùng NULL hoặc cùng có — CHECK của cột; route đã kiểm đơn của chính người gửi qua getDonCuaToi).
 const INSERT_TICKET = defineSql(
   "feedback",
   "insert_ticket",
-  `INSERT INTO fbk_ticket (id, seq, kind_code, status_code, title, context, submitter_id, client_request_id, last_activity_at, created_at, created_by, updated_at, updated_by, team_id)
-   SELECT ?1, COALESCE((SELECT max(seq) FROM fbk_ticket), 0) + 1, ?2, 'NEW', ?3, ?4, ?5, ?6, ?7, ?7, ?5, ?7, ?5, ?10
+  `INSERT INTO fbk_ticket (id, seq, kind_code, status_code, title, context, submitter_id, client_request_id, last_activity_at, created_at, created_by, updated_at, updated_by, team_id,
+     order_id, order_code)
+   SELECT ?1, COALESCE((SELECT max(seq) FROM fbk_ticket), 0) + 1, ?2, 'NEW', ?3, ?4, ?5, ?6, ?7, ?7, ?5, ?7, ?5, ?10, ?11, ?12
    WHERE (SELECT count(*) FROM fbk_ticket WHERE submitter_id = ?5 AND created_at > ?8) < ?9
      AND NOT EXISTS (SELECT 1 FROM fbk_ticket WHERE submitter_id = ?5 AND client_request_id = ?6)`,
 );
@@ -229,7 +279,9 @@ const TOUCH_AFTER_REPLY = defineSql(
 // Đổi trạng thái/người xử lý (tuyến cũ PATCH /api/feedback/:id của Toàn quyền VÀ tuyến PATCH …/xu-ly theo quyenPhieu dùng chung câu này).
 // ?1 id, ?2 trạng thái mới hoặc NULL, ?3 có đổi người xử lý (0/1), ?4 người xử lý mới, ?5 có đổi resolved_in (0/1),
 // ?6 resolved_in mới, ?7 bây giờ, ?8 người làm, ?9 trạng thái CŨ (khoá lạc quan: đã khác → 0 dòng đổi),
-// ?10 nhóm route đã kiểm quyền (khoá lạc quan theo nhóm như R11: phiếu vừa chuyển nhóm → 0 dòng, người vừa mất quyền không ghi được).
+// ?10 nhóm route đã kiểm quyền (khoá lạc quan theo nhóm như R11: phiếu vừa chuyển nhóm → 0 dòng, người vừa mất quyền không ghi được),
+// ?11 mức ưu tiên mới hoặc NULL (ADR-0127; giá trị đã kiểm ở rules.ts — cột không có CHECK liệt kê). Đổi mức ưu tiên KHÔNG đổi last_activity_at /
+// last_public_reply_at (như đổi người xử lý: người gửi không có chấm đỏ vì việc nội bộ); không có khoá lạc quan riêng cho mức (mức «cũ» chỉ để ghi nhật ký).
 // Người xử lý mới (ADR-0119 điều 2) phải là thành viên ĐANG hiệu lực, tài khoản còn hoạt động, của nhóm ĐANG giữ phiếu, và không phải người gửi phiếu.
 // Mốc "đã xem" riêng của người làm ghi bằng markSeenAfterWriteStatement CÙNG lô, sau câu này.
 const PATCH_TICKET = defineSql(
@@ -239,6 +291,7 @@ const PATCH_TICKET = defineSql(
      status_code = COALESCE(?2, status_code),
      assignee_id = CASE WHEN ?3 = 1 THEN ?4 ELSE assignee_id END,
      resolved_in = CASE WHEN ?5 = 1 THEN ?6 ELSE resolved_in END,
+     priority = COALESCE(?11, priority),
      last_activity_at = CASE WHEN ?2 IS NULL THEN last_activity_at ELSE ?7 END,
      last_public_reply_at = CASE WHEN ?2 IS NULL THEN last_public_reply_at ELSE ?7 END,
      updated_at = ?7, updated_by = ?8
@@ -310,8 +363,14 @@ const SET_NOTIFIED = defineSql("feedback", "set_notified", `UPDATE fbk_ticket SE
 
 export const insertTicketStatement = (
   db: D1Database,
-  a: { id: string; kind: string; title: string; context: string; submitterId: string; clientRequestId: string; now: string; windowStart: string; limit: number; teamId: string },
-) => db.prepare(INSERT_TICKET).bind(a.id, a.kind, a.title, a.context, a.submitterId, a.clientRequestId, a.now, a.windowStart, a.limit, a.teamId);
+  a: {
+    id: string; kind: string; title: string; context: string; submitterId: string; clientRequestId: string; now: string; windowStart: string; limit: number; teamId: string;
+    order: { id: string; code: string } | null;
+  },
+) =>
+  db
+    .prepare(INSERT_TICKET)
+    .bind(a.id, a.kind, a.title, a.context, a.submitterId, a.clientRequestId, a.now, a.windowStart, a.limit, a.teamId, a.order?.id ?? null, a.order?.code ?? null);
 export const insertFirstMessageStatement = (db: D1Database, a: { id: string; ticketId: string; authorId: string; body: string; now: string }) =>
   db.prepare(INSERT_FIRST_MESSAGE).bind(a.id, a.ticketId, a.authorId, a.body, a.now);
 export const insertReplyStatement = (
@@ -322,11 +381,13 @@ export const touchAfterReplyStatement = (db: D1Database, a: { ticketId: string; 
   db.prepare(TOUCH_AFTER_REPLY).bind(a.ticketId, a.messageId, a.now, a.internal ? 1 : 0, a.authorId);
 export const patchTicketStatement = (
   db: D1Database,
-  a: { id: string; status: string | null; assignee?: { value: string | null }; resolvedIn?: { value: string | null }; now: string; adminId: string; fromStatus: string; teamId: string },
+  a: {
+    id: string; status: string | null; assignee?: { value: string | null }; resolvedIn?: { value: string | null }; priority?: string; now: string; adminId: string; fromStatus: string; teamId: string;
+  },
 ) =>
   db
     .prepare(PATCH_TICKET)
-    .bind(a.id, a.status, a.assignee ? 1 : 0, a.assignee?.value ?? null, a.resolvedIn ? 1 : 0, a.resolvedIn?.value ?? null, a.now, a.adminId, a.fromStatus, a.teamId);
+    .bind(a.id, a.status, a.assignee ? 1 : 0, a.assignee?.value ?? null, a.resolvedIn ? 1 : 0, a.resolvedIn?.value ?? null, a.now, a.adminId, a.fromStatus, a.teamId, a.priority ?? null);
 export const claimStatement = (db: D1Database, a: { id: string; staffId: string; now: string; teamId: string }) => db.prepare(CLAIM).bind(a.id, a.staffId, a.now, a.teamId);
 export const transferStatement = (db: D1Database, a: { id: string; toTeam: string; fromTeam: string; now: string; by: string }) =>
   db.prepare(TRANSFER).bind(a.id, a.toTeam, a.now, a.fromTeam, a.by);

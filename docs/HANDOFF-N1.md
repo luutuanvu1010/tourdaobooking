@@ -6,9 +6,9 @@
 
 **Trạng thái: CHƯA phát hành** (nhánh `worktree-ho-so-rieng-tu-2fa`; chưa gộp `main`, chưa lên production). Đừng khẳng định trạng thái production từ mục này — kiểm bằng `wrangler d1 migrations list … --remote` và `GET /api/auth/config`.
 
-- **Migration:** `0108_xoa_an_danh.sql` áp SAU `0103`–`0107` (`0106` giữ cho nhánh vé hỗ trợ, `0107` là H-4). Lúc phát hành kiểm số lại: `ls migrations` rồi `git ls-tree --name-only <nhánh> migrations/` cho mọi nhánh chưa gộp (CLAUDE.md §10). `0108` TẠO LẠI bốn trigger chặn sửa của giấy tờ / phiếu tự khai (DROP rồi CREATE) — vô hại khi bảng rỗng hay có dữ liệu; không gieo chính sách, không gieo con số thời hạn.
+- **Migration:** `0108_xoa_an_danh.sql` áp SAU `0103`–`0107` (`0106` là vé hỗ trợ đợt 2a, đã ở `main`; `0107` là H-4; `0109`, `0110` của sổ vàng vận chuyển cũng đã ở `main`). Lúc phát hành kiểm số lại: `ls migrations` rồi `git ls-tree --name-only <nhánh> migrations/` cho mọi nhánh chưa gộp (CLAUDE.md §10). `0108` TẠO LẠI bốn trigger chặn sửa của giấy tờ / phiếu tự khai (DROP rồi CREATE) — vô hại khi bảng rỗng hay có dữ liệu; không gieo chính sách, không gieo con số thời hạn.
 - **Không cần lệnh Cloudflare mới:** kho `HO_SO` đã có từ H-2. Quy trình chung vẫn là `npm run trien-khai` sau `day-len`.
-- **Nhật ký thay đổi:** mục 2.14 trong `src/shared/changelog.ts` là số TẠM — đánh số lại ở bước A.0.
+- **Nhật ký thay đổi:** mục 2.16 trong `src/shared/changelog.ts` là số TẠM (các mục tạm của nhánh này: 2.12 H0/H1, 2.13 H2, 2.14 H3, 2.15 H4, 2.16 H5; main đã dùng thật 2.10 và 2.11) — đánh số lại ở bước A.0.
 
 **Việc của chủ / kiểm trước phát hành:**
 1. **Không đăng chính sách riêng tư trên production trước khi luật sư duyệt chữ VÀ bản này đã lên.** (Điều kiện Q1 cập nhật: phần «bản dựng có đường xoá» nay là hàng rào máy — cổng phát hành `src/cong-phat-hanh-anh-tu-khai.test.ts`; phần luật sư duyệt chữ và con số ngày vẫn dựa vào kỷ luật.) Hai ô số ngày (`hanXuLyXoaNgay`, `hanGiuPhienNgay`) để TRỐNG cho tới khi luật sư xác nhận; **đăng bản mới thì mọi người phải đồng ý lại, và quên nhập số ở bản mới làm phiếu gửi sau mất hạn** (bản mới nhất thắng — Q2).
@@ -22,7 +22,20 @@
 
 Nợ kỹ thuật của lát này: `docs/BACKLOG.md` mục 40 (mã `BL-XOA-…`). Ghi rõ **dựa vào kỷ luật** (chưa có hàng rào máy): câu ẩn danh sổ phiên của auth không có lính gác phiếu riêng (chỉ nhờ câu chặn lô), chạy lại phiếu sau khôi phục D1.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.2 ĐÃ LÊN PRODUCTION (ADR-0120, đổi từ 0118: khoản chuyển khoản «Công ty thu» không tạo nợ người khai, «đang đối chiếu», chặn Đã giao, nhắc Kế toán sau 3 ngày; Kế toán duyệt chuyển tiền thu trước sang đơn khác; chữ «cọc» → «Thu trước»; 54 ca sổ vàng đã xác nhận) — migration `0099_bil_doi_chieu_khoan_cong_ty_thu` đã áp (2026-10-15 19:28 giờ VN)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.10 ĐÃ LÊN PRODUCTION (Vé hỗ trợ đợt 2a, ADR-0127: khung trò chuyện tự làm mới, mức ưu tiên Thường/Cao/Khẩn, đơn liên quan, Trưởng nhóm «Giao cho người khác») — migration `0106_ve_ho_tro_2a` đã áp (2026-10-17 12:25 giờ VN)
+
+Chủ chạy `day-len` rồi `trien-khai` (lần đầu gõ nhầm thư mục — phải đứng ở thư mục gốc, nhánh `main`); AI kiểm lại bằng lệnh chỉ đọc:
+
+- **Commit:** `99d8cadb` (= `main` = `origin/main` lúc triển khai). Điểm khôi phục Time Travel trước khi áp: `000012ba-00000000-00005107-a11b7cfc7a7477de132b9902dccfa64f`.
+- **Worker:** `f8b6d338-c99c-456a-b4d4-9a0535d0b700`. `d1 migrations list --remote` → "No migrations to apply!"; `GET /` → 200; gói `feedback.js` trên production có đường `my-orders`; `GET /api/feedback/my-orders` khi chưa đăng nhập → 401.
+- **Theo khối `trien-khai`:** e2e đủ bộ xanh, `audit-invariants --db remote` ĐẠT (4 cảnh báo cũ: R-CTL-1 nhóm dịch vụ, R-ORD-T1w đơn cũ chờ chụp bù), cổng phiên bản trước và sau deploy ĐẠT (production đúng bản 2.10).
+- **Kiểm trước phát hành:** `npm test` 5183 bài đạt / 0 đỏ; mỗi việc và cả nhánh có người kiểm độc lập (chỉ đọc), không còn lỗi nặng.
+- **Chưa kiểm:** xem vé thật trên production bằng hai tài khoản (tin mới tự hiện sau vài giây); iPhone thật; trạng thái chế độ bảo trì lúc triển khai (AI không đọc).
+- **Số hiệu:** ADR-0127 ghi dự kiến migration `0104`, số thật là `0106` (ADR đã duyệt, không sửa; lệch ghi ở `docs/superpowers/plans/2026-10-16-ve-ho-tro-dot-2a-thi-cong-nhat-ky.md`). Nhánh hồ sơ riêng tư (`worktree-ho-so-rieng-tu-2fa`) giữ 0104, 0105, 0107.
+- **Việc chờ chủ quyết:** danh sách chọn đơn có cả đơn nháp / đã huỷ; phiếu cũ lỡ giao cho tài khoản bên ngoài (vá `nguoiGiuHopLe`, đụng luật R6); chuyển nhóm có đặt lại mức ưu tiên không — xem `docs/BACKLOG.md` (BL-VE-*).
+- **Hoàn tác:** migration 0106 chỉ THÊM ba cột ở `fbk_ticket`; `wrangler rollback` đưa Worker về bản trước, mã cũ chạy bình thường trên cấu trúc mới.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 2.2 ĐÃ LÊN PRODUCTION (ADR-0120, đổi từ 0118: khoản chuyển khoản «Công ty thu» không tạo nợ người khai, «đang đối chiếu», chặn Đã giao, nhắc Kế toán sau 3 ngày; Kế toán duyệt chuyển tiền thu trước sang đơn khác; chữ «cọc» → «Thu trước»; 54 ca sổ vàng đã xác nhận) — migration `0099_bil_doi_chieu_khoan_cong_ty_thu` đã áp (2026-10-15 19:28 giờ VN)
 
 Chủ chạy `day-len` rồi `trien-khai` (lần đầu dừng vì `main` có commit mới, hai lần dừng ở bài đo giờ của hàng rào do máy bận, lần ba qua); AI kiểm lại bằng lệnh chỉ đọc:
 
@@ -983,7 +996,7 @@ npx wrangler r2 bucket list
 
 ## Lần phát hành kế tiếp có xác minh hồ sơ (ADR-0125 — Gói 2 lát H-4; migration `0107`) — RUNBOOK
 
-**Trạng thái: CHƯA phát hành** (nhánh `worktree-ho-so-rieng-tu-2fa`, soạn 2026-10-17; chờ người kiểm độc lập cuối lát và chủ duyệt). Cùng nhánh với `0103`–`0105`: lần phát hành mang cả bốn; `0107` áp SAU `0103`–`0105` (wrangler áp theo tên, tự đúng thứ tự). Mọi bước sau A.0 do `npm run trien-khai` làm như thường. **Không cần lệnh Cloudflare mới.** Mục nhật ký thay đổi A.0 là mục **2.13 TẠM** (không trùng 2.8–2.12): phiên phát hành đánh số lại theo `main` lúc đó.
+**Trạng thái: CHƯA phát hành** (nhánh `worktree-ho-so-rieng-tu-2fa`, soạn 2026-10-17; chờ người kiểm độc lập cuối lát và chủ duyệt). Cùng nhánh với `0103`–`0105`: lần phát hành mang cả bốn; `0107` áp SAU `0103`–`0105` (wrangler áp theo tên, tự đúng thứ tự). Mọi bước sau A.0 do `npm run trien-khai` làm như thường. **Không cần lệnh Cloudflare mới.** Mục nhật ký thay đổi A.0 là mục **2.15 TẠM** (không trùng 2.8–2.14; main đã dùng thật 2.10, 2.11): phiên phát hành đánh số lại theo `main` lúc đó.
 
 **Điều kiện phát hành (kiểm LÚC phát hành bằng lệnh chỉ đọc):** `npx wrangler d1 migrations list tourdao-sales-db --remote`, rồi `git ls-tree --name-only <nhánh> migrations/` cho MỌI nhánh / worktree chưa gộp. Số `0106` đang thuộc nhánh vé hỗ trợ (`0106_ve_ho_tro_2a.sql`, nhánh `claude/support-ticket-module-eb6445`); `0107` là số kế tiếp ở thời điểm soạn — nhánh nào vào `main` sau thì đổi số lúc gộp (bài `src/migrations-xac-minh-ho-so.test.ts` nhận tệp theo đuôi `_xac_minh_ho_so.sql`). `0107` chỉ THÊM (chỉ mục, view, trigger): không bảng, không cột, không gieo.
 

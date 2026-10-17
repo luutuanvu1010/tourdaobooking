@@ -93,8 +93,8 @@ export const TRANG = {
   chinhSachDieuPhoi: {
     duong: "/chinh-sach-dieu-phoi",
     cungSang: ["/dieu-kien-xuat-ben"],
-    goi: "GET /api/van-chuyen/chinh-sach-dieu-phoi",
-    hien: (s) => quanLyXe(s) && can(s, "settings.ops"),
+    goi: "GET /api/van-chuyen/moc-ra-lenh", // ADR-0128 Q1: route mốc mở cho cả Quản trị lẫn Toàn quyền; Toàn quyền còn đọc thêm chính sách đầy đủ
+    hien: (s) => quanLyXe(s) && (can(s, "settings.ops") || can(s, "dispatch.policy.lead")), // ADR-0128 Q1: Quản trị vào để đặt mốc ra lệnh (chế độ hẹp)
   },
   lyDoDieuPhoi: { duong: "/ly-do-dieu-phoi", goi: "GET /api/van-chuyen/ly-do", hien: (s) => quanLyXe(s) && can(s, "admin.manage") },
   // Khoá sổ tháng (sổ đại lý đợt 1 Task 12): ô ledger.view không ngữ cảnh — Kế toán, Toàn quyền.

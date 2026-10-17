@@ -26,12 +26,12 @@ import {
 // ADR-0049 D2 (lát 1.1): hàm công bố mốc tối thiểu (chỉ gốc lắp ráp gọi — không module nào import van-chuyen); route chính sách điều phối, điều kiện xuất
 // bến, hạng bằng (cổng office + ô settings.ops), danh mục lý do (cổng admin + ô admin.manage).
 import type {
-  DepartureRuleDto, DepartureRuleListResponse, DispatchPolicyDto, DispatchPolicyResponse, LicenseCapacityDto, LicenseCapacityResponse, TripReasonDto, TripReasonListResponse,
+  DepartureRuleDto, DepartureRuleListResponse, DispatchPolicyDto, DispatchPolicyResponse, LicenseCapacityDto, LicenseCapacityResponse, MocRaLenhResponse, TripReasonDto, TripReasonListResponse,
 } from "../../shared/contracts";
 import { NHAN_NHOM_LY_DO, laLyDoHeThong, type NhomLyDo } from "../../shared/dieu-phoi-kieu";
 import type { MocToiThieu } from "../../shared/moc-toi-thieu";
 import {
-  MA_LY_DO_RE, chiTietChinhSach, chiTietDieuKien, chiTietHangBang, chiTietLyDo, kiemChinhSachMoi, kiemDieuKienMoi, kiemHangBangMoi, kiemLyDoMoi, kiemSuaLyDo,
+  MA_LY_DO_RE, type ChinhSachMoi, chiTietChinhSach, chiTietDieuKien, chiTietHangBang, chiTietLyDo, kiemChinhSachMoi, kiemDieuKienMoi, kiemHangBangMoi, kiemLyDoMoi, kiemSuaLyDo,
 } from "./chinh-sach";
 import {
   chinhSachHienHanh, closeDepartureRuleStatement, currentDispatchPolicy, currentLicenseCapacity, findDepartureRule, findTripReason, insertDepartureRuleStatement, insertDispatchPolicyStatement,
@@ -263,6 +263,14 @@ export { dongBoChuyenChoDon } from "./dong-bo-don";
 // ---- Chính sách điều phối, điều kiện xuất bến, hạng bằng, danh mục lý do (ADR-0049 D2; kế hoạch mục 1.7 route 9–18, Task A7) ------------------------------
 // Chính sách / điều kiện / hạng bằng: dòng có ngày hiệu lực, CHỈ THÊM, `valid_from_at` = lúc ghi (I28). Hai lần ghi cùng mili-giây vấp khoá duy nhất → 409
 // stale (tiền lệ Ruling R19). Mã lạ trỏ danh mục của parties vấp khoá ngoại → 400 (van-chuyen không đọc thẳng bảng của parties; cả lô huỷ, không nhật ký).
+/** Dòng chính sách hiện hành → giá trị `ChinhSachMoi` (cùng nghĩa với thân POST đầy đủ) — dùng chung cho route đầy đủ và route mốc (ADR-0128 Q1). */
+const chinhSachTuDong = (cu: NonNullable<Awaited<ReturnType<typeof currentDispatchPolicy>>>): ChinhSachMoi => ({
+  minLeadMinutes: cu.min_lead_minutes, warnLeadMinutes: cu.warn_lead_minutes, restMinutes: cu.rest_minutes, requireManifest: cu.require_manifest === 1,
+  proxyBackdateMaxMinutes: cu.proxy_backdate_max_minutes, dutyDayMaxMinutes: cu.duty_day_max_minutes, tripNoBreakMaxMinutes: cu.trip_no_break_max_minutes,
+  departureWindowMinutes: cu.departure_window_minutes, refuseLeadMinutes: cu.refuse_lead_minutes, officePhone: cu.office_phone, acceptWaitMinutes: cu.accept_wait_minutes,
+  autoConfirmTransfer: cu.auto_confirm_transfer === 1,
+});
+const CHI_QUAN_TRI_MOC = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền đặt được mốc ra lệnh.");
 const CHI_TOAN_QUYEN = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống xem và đổi được chính sách điều phối xe.");
 const LOI_KHOA_NGOAI = /FOREIGN KEY constraint failed/;
 const toPolicyDto = (r: DispatchPolicyRow, currentId: string | null, nhan: ReadonlyMap<string, string> | null): DispatchPolicyDto => ({
@@ -763,14 +771,7 @@ export const vanChuyenModule: AppModule = {
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       const at = new Date().toISOString();
       const cu = await currentDispatchPolicy(env.DB, at);
-      const truoc = cu
-        ? {
-          minLeadMinutes: cu.min_lead_minutes, warnLeadMinutes: cu.warn_lead_minutes, restMinutes: cu.rest_minutes, requireManifest: cu.require_manifest === 1,
-          proxyBackdateMaxMinutes: cu.proxy_backdate_max_minutes, dutyDayMaxMinutes: cu.duty_day_max_minutes, tripNoBreakMaxMinutes: cu.trip_no_break_max_minutes,
-          departureWindowMinutes: cu.departure_window_minutes, refuseLeadMinutes: cu.refuse_lead_minutes, officePhone: cu.office_phone, acceptWaitMinutes: cu.accept_wait_minutes,
-          autoConfirmTransfer: cu.auto_confirm_transfer === 1,
-        }
-        : null;
+      const truoc = cu ? chinhSachTuDong(cu) : null;
       try {
         await env.DB.batch([
           insertDispatchPolicyStatement(env.DB, crypto.randomUUID(), parsed.value, at, staff.id),
@@ -781,6 +782,41 @@ export const vanChuyenModule: AppModule = {
         throw e;
       }
       return kemLocation(await respondChinhSach(env.DB, nhanNhanVien, 201), "/chinh-sach-dieu-phoi");
+    }),
+
+    // ---- ADR-0128 Q1: MỐC RA LỆNH do Quản trị đặt — route hẹp, ô riêng `dispatch.policy.lead` (Quản trị, Toàn quyền). Chỉ đổi hai con số; mọi cột khác chép nguyên từ
+    // bản hiện hành (cùng luật kiểm với route đầy đủ — `kiemChinhSachMoi`). Chính sách đầy đủ vẫn chỉ `settings.ops`.
+    route("GET", "/api/van-chuyen/moc-ra-lenh", "office", async ({ env, staff }) => {
+      if (!can(staff, "dispatch.policy.lead")) return CHI_QUAN_TRI_MOC();
+      const cu = await currentDispatchPolicy(env.DB, new Date().toISOString());
+      if (!cu) return error(404, "not_found", "Chưa có chính sách điều phối.");
+      return json({ minLeadMinutes: cu.min_lead_minutes, warnLeadMinutes: cu.warn_lead_minutes } satisfies MocRaLenhResponse);
+    }),
+
+    route("POST", "/api/van-chuyen/moc-ra-lenh", "office", async ({ request, env, staff }) => {
+      if (!can(staff, "dispatch.policy.lead")) return CHI_QUAN_TRI_MOC();
+      const body = await readJson(request);
+      const khoaDuocPhep = new Set(["minLeadMinutes", "warnLeadMinutes"]);
+      if (!body || Object.keys(body).some((k) => !khoaDuocPhep.has(k)) || body.minLeadMinutes === undefined || body.warnLeadMinutes === undefined) {
+        return error(400, "invalid_input", "Chỉ gửi mốc tối thiểu và cảnh báo sát mốc (cả hai số phút).");
+      }
+      const at = new Date().toISOString();
+      const cu = await currentDispatchPolicy(env.DB, at);
+      if (!cu) return error(404, "not_found", "Chưa có chính sách điều phối.");
+      const truoc = chinhSachTuDong(cu);
+      // Bản đầy đủ = bản hiện hành + hai số mới, đi qua ĐÚNG hàm kiểm của route đầy đủ (biên, kiểu số nguyên, các khoá bắt buộc I43).
+      const parsed = kiemChinhSachMoi({ ...truoc, minLeadMinutes: body.minLeadMinutes, warnLeadMinutes: body.warnLeadMinutes });
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      try {
+        await env.DB.batch([
+          insertDispatchPolicyStatement(env.DB, crypto.randomUUID(), parsed.value, at, staff.id),
+          auditStatement(env.DB, { staffId: staff.id, action: "dispatch_policy_changed", at, detail: chiTietChinhSach(truoc, parsed.value) }),
+        ]);
+      } catch (e) {
+        if (e instanceof Error && /UNIQUE constraint failed: vc_dispatch_policy\.valid_from_at/.test(e.message)) return error(409, "stale", "Vừa có người đổi chính sách, tải lại rồi thử lại.");
+        throw e;
+      }
+      return json({ minLeadMinutes: parsed.value.minLeadMinutes, warnLeadMinutes: parsed.value.warnLeadMinutes } satisfies MocRaLenhResponse);
     }),
 
     route("GET", "/api/van-chuyen/dieu-kien", "office", async ({ env, staff }) => {

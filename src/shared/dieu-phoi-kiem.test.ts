@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { ChangVao, ChinhSachVao, ChuyenVao, DiemVao, DieuKienVao, HangBangVao, KhungBanVao, KhungChuyen, SuatVao, TaiXeVao, XeVao } from "./dieu-phoi-kieu.ts";
-import { changXetTheoDon, khoaNguoiRanh, kiemKetThuc, lyDoNoiTra, lyDoThieuTen, kiemTaoSuaChuyen, kiemXep, kiemXuatBen, noiLechCuaSuat, suatKhachDaDoi, tenLucXep, trongNgayChay, type KiemTaoSuaChuyenVao, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
+import { changXetTheoDon, khoaNguoiRanh, kiemKetThuc, lyDoNoiTra, lyDoThieuTen, kiemTaoSuaChuyen, kiemXep, kiemXuatBen, laiXeThueBangTaiXeCongTy, noiLechCuaSuat, suatKhachDaDoi, tenLucXep, trongNgayChay, type KiemTaoSuaChuyenVao, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
 import { MA_GIU, NUT_CAP_NHAT_KHACH, type LyDoGiu } from "./ly-do-giu.ts";
 import { MA_LUAT_PHA_LE } from "./dieu-phoi-kieu.ts";
 import { batDauSomNhatSauDoiGio } from "./moc-toi-thieu.ts";
@@ -90,7 +90,12 @@ test("LC-13 không chéo xe – tài xế (lớp máy chủ): xe công ty ↔ t�
   const txX = taiXe("D1", null, { partyId: "tx-x", loai: "NHA_XE", carrierPartyIds: ["nx-x"] });
   const txY = taiXe("D1", null, { partyId: "tx-y", loai: "NHA_XE", carrierPartyIds: ["nx-y"] });
   assert.deepEqual(ai(kiemTaoSuaChuyen(tao({ taiXe: txX })).chan), ["CHEO_XE_TAI_XE:VAN_PHONG"], "tài xế nhà xe lái xe công ty");
-  assert.deepEqual(ma(kiemTaoSuaChuyen(tao({ xe: nhaXeX })).chan), ["CHEO_XE_TAI_XE"], "tài xế công ty lái xe nhà xe");
+  // ADR-0129 Q4 (a): tài xế công ty (không thuộc nhà xe nào) lái được xe nhà xe thuê — kèm cảnh báo ở lịch chung, vẫn qua hạng bằng; chiều ngược vẫn chặn.
+  assert.equal(kiemTaoSuaChuyen(tao({ xe: nhaXeX })).ok, true, "tài xế công ty lái xe nhà xe: nay được");
+  assert.equal(laiXeThueBangTaiXeCongTy(nhaXeX, taiXe("D1", null)), true);
+  assert.equal(laiXeThueBangTaiXeCongTy(xe({}), taiXe("D1", null)), false, "xe công ty: không phải ca chéo");
+  assert.equal(laiXeThueBangTaiXeCongTy(nhaXeX, txX), false, "tài xế của chính nhà xe: không cảnh báo");
+  assert.deepEqual(ma(kiemTaoSuaChuyen(tao({ xe: xe({ id: "xe-x45", chuXePartyId: "nx-x", chuLaCongTy: false, soCho: 45 }) })).chan), ["HANG_BANG_KHONG_DU"], "hạng D1 không đủ xe 45 chỗ — vẫn chặn");
   assert.deepEqual(ma(kiemTaoSuaChuyen(tao({ xe: nhaXeX, taiXe: txY })).chan), ["CHEO_XE_TAI_XE"], "tài xế nhà xe Y lái xe nhà xe X");
   assert.equal(kiemTaoSuaChuyen(tao({ xe: nhaXeX, taiXe: txX })).ok, true);
   // T-2: vừa là tài xế công ty vừa "Tài xế của" nhà xe X → không lái xe công ty (khớp lớp CSDL), lái được xe của X.
@@ -138,7 +143,7 @@ const CX = { id: "cx-07", ma: "CX-3009-07", trangThai: "PLANNED" as const, batDa
 const xep = (them: Parameters<typeof kiemXep>[0]["them"], v: Partial<Parameters<typeof kiemXep>[0]> = {}) => kiemXep({ chuyen: CX, them, changTrenChuyen: [], xeId: "xe-a", camKetPhaLeKhoa: null, chinhSach: CS, bayGioMs: HOM_TRUOC, ...v });
 
 test("kiemXep: xếp 4 người (2 có tên, 2 chưa tên) của chặng đã xác nhận vào xe 15 chỗ → đạt", () => {
-  assert.deepEqual(xep([{ chang: chang(), soSuatMoi: 4, personKeys: ["p1", "p2"], suatMoCuaChang: [] }]), { ok: true, chan: [], canPhaLe: [], canhBao: [], camKet: { viPham: [], khoa: null, daPhaLe: false, lyDo: [] } });
+  assert.deepEqual(xep([{ chang: chang(), soSuatMoi: 4, personKeys: ["p1", "p2"], suatMoCuaChang: [] }]), { ok: true, chan: [], canPhaLe: [], canhBao: [], camKet: { viPham: [], khoa: null, daPhaLe: false, coXeRieng: false, lyDo: [] } });
 });
 
 test("TC-17 kiemXep LC-09: đơn đã huỷ, đơn nháp, chặng đã bỏ → chặn; I13 chặng chưa có giờ → chặn", () => {
@@ -601,15 +606,24 @@ const xbCK = (ds: ChangVao[], v: Partial<ChuyenVao> = {}) => {
 };
 const coCamKet = (xs: LyDoGiu[]) => xs.some((l) => l.ma === "CAM_KET");
 
-test("Đợt 7 kiemXep — tiêu chí 1: chặng xe riêng của đơn A trên chuyến, xếp thêm đơn B → canPhaLe có CAM_KET (Quản trị); khoá phá lệ khớp → hết CAM_KET", () => {
+test("Đợt 7 kiemXep — tiêu chí 1 (ADR-0128 Q2): chặng xe riêng của đơn A trên chuyến, xếp thêm đơn B → CHẶN CỨNG (CAM_KET trong chan, không canPhaLe); khoá lưu khớp cũng không che được", () => {
   const a = changCK("leg-a", "a", { xeRieng: true });
   const b = changCK("leg-b", "b");
   const r = xep([{ chang: b, soSuatMoi: 1, personKeys: [], suatMoCuaChang: [] }], { changTrenChuyen: [a] });
-  assert.deepEqual(r.chan, []);
-  assert.deepEqual(ai(r.canPhaLe), ["CAM_KET:QUAN_TRI", "CAM_KET:QUAN_TRI"]);
+  assert.deepEqual(r.canPhaLe, [], "không còn đường phá lệ cho xe riêng");
+  assert.deepEqual(ma(r.chan), ["CAM_KET", "CAM_KET"]);
   assert.equal(r.ok, false);
-  assert.notEqual(r.camKet.khoa, null);
-  const daPhaLe = xep([{ chang: b, soSuatMoi: 1, personKeys: [], suatMoCuaChang: [] }], { changTrenChuyen: [a], camKetPhaLeKhoa: r.camKet.khoa });
+  assert.equal(r.camKet.coXeRieng, true);
+  const voiKhoa = xep([{ chang: b, soSuatMoi: 1, personKeys: [], suatMoCuaChang: [] }], { changTrenChuyen: [a], camKetPhaLeKhoa: r.camKet.khoa });
+  assert.equal(voiKhoa.camKet.daPhaLe, false, "khoá khớp không bao giờ che xe riêng");
+  assert.equal(voiKhoa.ok, false);
+  assert.deepEqual(ma(voiKhoa.chan), ["CAM_KET", "CAM_KET"]);
+  // Số chỗ tối thiểu (R-CX) vẫn phá lệ được: chặng cần ≥ 20 chỗ xếp vào xe 15 chỗ → canPhaLe; khoá khớp → hết CAM_KET.
+  const can20 = changCK("leg-c", "c", { choToiThieu: 20 });
+  const cx = xep([{ chang: can20, soSuatMoi: 1, personKeys: [], suatMoCuaChang: [] }]);
+  assert.deepEqual(ai(cx.canPhaLe), ["CAM_KET:QUAN_TRI"]);
+  assert.deepEqual(cx.chan, []);
+  const daPhaLe = xep([{ chang: can20, soSuatMoi: 1, personKeys: [], suatMoCuaChang: [] }], { camKetPhaLeKhoa: cx.camKet.khoa });
   assert.equal(daPhaLe.camKet.daPhaLe, true);
   assert.equal(coCamKet(daPhaLe.canPhaLe), false);
   assert.equal(daPhaLe.ok, true);
@@ -640,13 +654,19 @@ test("Đợt 7 kiemTaoSuaChuyen: đổi sang xe 7 chỗ khi chặng trên chuy�
   assert.equal(khongDoi.camKet, null);
   assert.equal(khongDoi.ok, true);
   assert.equal(kiemTaoSuaChuyen(tao({ xe: xe({ id: "xe-7", soCho: 7 }) })).camKet, null, "TẠO chuyến: không xét (chưa có khách)");
-  // Xe riêng A + B đã phá lệ trên xe-a; đổi sang xe-b (đủ chỗ) → khoá có id xe mới ⇒ khác ⇒ cần phá lệ lại (một luật với cổng xuất bến).
-  const ab = [changCK("leg-a", "a", { xeRieng: true }), changCK("leg-b", "b")];
+  // Số chỗ tối thiểu (R-CX) đã phá lệ trên xe-a; đổi sang xe-b (cùng vi phạm) → khoá có id xe mới ⇒ khác ⇒ cần phá lệ lại (một luật với cổng xuất bến).
+  const ab = [changCK("leg-a", "a", { choToiThieu: 20 })];
   const khoaCu = xbCK(ab).camKet.khoa;
   assert.notEqual(khoaCu, null);
   const sangXeB = kiemTaoSuaChuyen(tao({ xe: xe({ id: "xe-b" }) }, [], { lenh: "SUA", cu, camKet: { changTrenChuyen: ab, khoaDaPhaLe: khoaCu } }));
   assert.ok(coCamKet(sangXeB.canPhaLe));
   assert.equal(kiemTaoSuaChuyen(tao({}, [], { lenh: "SUA", cu: { ...cu, xeId: "xe-a" }, camKet: { changTrenChuyen: ab, khoaDaPhaLe: khoaCu } })).camKet, null);
+  // ADR-0128 Q2: đổi sang xe khi chuyến có đơn khác ghép vào xe riêng → chặn cứng, khoá lưu không cứu.
+  const xr = [changCK("leg-a", "a", { xeRieng: true }), changCK("leg-b", "b")];
+  const khoaXr = xbCK(xr).camKet.khoa;
+  const doiXr = kiemTaoSuaChuyen(tao({ xe: xe({ id: "xe-b" }) }, [], { lenh: "SUA", cu, camKet: { changTrenChuyen: xr, khoaDaPhaLe: khoaXr } }));
+  assert.ok(coCamKet(doiXr.chan));
+  assert.equal(coCamKet(doiXr.canPhaLe), false);
 });
 
 test("Đợt 7 kiemXuatBen — tiêu chí 3 / 3b / 3c: giữ CAM_KET bằng lời khi vi phạm chưa phá lệ hoặc khoá đã lưu không khớp; khoá khớp → đạt", () => {
@@ -657,14 +677,13 @@ test("Đợt 7 kiemXuatBen — tiêu chí 3 / 3b / 3c: giữ CAM_KET bằng lờ
   assert.equal(giu.dat, false);
   assert.deepEqual(ai(giu.lyDo), ["CAM_KET:QUAN_TRI", "CAM_KET:QUAN_TRI"]);
   assert.ok(giu.lyDo.some((l) => /ĐH-A xe riêng/.test(l.loiNhan)));
-  // Khoá khớp → đạt.
+  // ADR-0128 Q2: khoá lưu khớp cũng KHÔNG cứu xe riêng — vẫn giữ (chỉ gỡ khi đơn khác rời chuyến hoặc cờ xe riêng tắt).
   const khoa = giu.camKet.khoa;
-  const dat = xbCK([a, b], { camKetPhaLeKhoa: khoa });
-  assert.equal(dat.dat, true, JSON.stringify(dat.lyDo));
-  assert.equal(dat.camKet.daPhaLe, true);
-  // 3b: đã phá lệ A + B, xếp thêm đơn C → giữ; bật xe riêng ở chặng khác của A → giữ.
+  const van = xbCK([a, b], { camKetPhaLeKhoa: khoa });
+  assert.equal(van.dat, false, JSON.stringify(van.lyDo));
+  assert.equal(van.camKet.daPhaLe, false);
+  assert.ok(coCamKet(van.lyDo));
   assert.ok(coCamKet(xbCK([a, b, changCK("leg-c", "c")], { camKetPhaLeKhoa: khoa }).lyDo));
-  assert.ok(coCamKet(xbCK([a, changCK("leg-a2", "a", { xeRieng: true }), b], { camKetPhaLeKhoa: khoa }).lyDo));
   // 3c: đã phá lệ số chỗ trên xe 7 chỗ; đổi sang xe nhỏ hơn (id khác) / tăng số chỗ tối thiểu → giữ.
   const can15 = changCK("leg-a", "a", { choToiThieu: 15 });
   const xe7 = xe({ id: "xe-7", soCho: 7 });

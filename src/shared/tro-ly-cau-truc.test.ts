@@ -230,10 +230,10 @@ test("Đ4 dungLoiNhac luật 2: ĐƯỢC giải thích mức khái niệm; VẪN
 
 const tong = (ds: readonly DoanTriThuc[]): number => ds.reduce((a, d) => a + uocToken(dinhDangDoan(d)), 0);
 
-test("Đ6: 'Vì sao tôi không xác nhận được đơn?' ⇒ chọn đoạn Mốc 6 giờ và Đặt gấp + bước Xác nhận đơn của luồng chính; trong ngân sách", () => {
+test("Đ6: 'Vì sao tôi không xác nhận được đơn?' ⇒ chọn đoạn Mốc ra lệnh và Đặt gấp + bước Xác nhận đơn của luồng chính; trong ngân sách", () => {
   const ds = chonDoan("Vì sao tôi không xác nhận được đơn?", ["SALES"]);
   const ten = ds.map((d) => d.ten);
-  assert.ok(ten.includes("Cách app vận hành › Mốc 6 giờ và Đặt gấp"), ten.join(" | "));
+  assert.ok(ten.includes("Cách app vận hành › Mốc ra lệnh và Đặt gấp"), ten.join(" | "));
   assert.ok(ten.includes("Cấu trúc app › Luồng chính, bước 2: Xác nhận đơn"), ten.join(" | "));
   assert.ok(tong(ds) <= NGAN_SACH_TOKEN);
 });

@@ -139,6 +139,9 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/feedback/badge", access: "staff" },
   { method: "GET", path: "/api/feedback/mine", access: "staff" },
   { method: "GET", path: "/api/feedback/teams", access: "staff" },
+  { method: "GET", path: "/api/feedback/my-orders", access: "staff" }, // ADR-0127 Việc 3 — đơn do chính mình lập để gắn vào phiếu (can order.view, ownerId = người gọi)
+  { method: "GET", path: "/api/feedback/teams/:id/members", access: "staff" }, // ADR-0127 Việc 4 — ứng viên giao việc (quyenPhieu giaoViecChoNguoiKhac của nhóm đó; chỉ đọc)
+  { method: "GET", path: "/api/feedback/:id/messages", access: "staff" }, // ADR-0127 Việc 4 — tuyến làm mới khung trò chuyện (quyenPhieu doc như chi tiết; KHÔNG ghi mốc đã xem)
   { method: "GET", path: "/api/feedback/queue", access: "staff" },
   { method: "GET", path: "/api/feedback/admin/teams", access: "staff" },
   { method: "POST", path: "/api/feedback/admin/teams", access: "staff" },
@@ -383,6 +386,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   // danh mục lý do — cổng admin, thân hỏi admin.manage viết thẳng (luật 4).
   { method: "GET", path: "/api/van-chuyen/chinh-sach-dieu-phoi", access: "office" }, // bản đang hiệu lực + lịch sử; thân hỏi settings.ops
   { method: "POST", path: "/api/van-chuyen/chinh-sach-dieu-phoi", access: "office" }, // thêm bản mới (hiệu lực ngay, không nhận ngày hiệu lực); như trên
+  { method: "GET", path: "/api/van-chuyen/moc-ra-lenh", access: "office" }, // ADR-0128 Q1: mốc ra lệnh hiện hành; thân hỏi dispatch.policy.lead
+  { method: "POST", path: "/api/van-chuyen/moc-ra-lenh", access: "office" }, // đặt mốc (Quản trị, Toàn quyền); như trên
   { method: "GET", path: "/api/van-chuyen/dieu-kien", access: "office" }, // điều kiện xuất bến theo cỡ xe; thân hỏi settings.ops
   { method: "POST", path: "/api/van-chuyen/dieu-kien", access: "office" }, // thêm điều kiện; như trên
   { method: "POST", path: "/api/van-chuyen/dieu-kien/:id/dong", access: "office" }, // đóng hiệu lực một lần; như trên
@@ -591,6 +596,8 @@ test("mức truy cập của 332 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-17 (ADR-0126 đ2; lát H-5 việc 4): + POST /api/parties/cua-toi/phieu-xoa, POST …/phieu-xoa/:pid/rut (staff; party.erasure.request own) = 344.
   // 2026-10-17 (ADR-0126 đ2, đ3, đ7; lát H-5 việc 5): + GET /api/parties/phieu-xoa, GET …/phieu-xoa/:pid, POST …/:pid/thuc-hien, POST …/:pid/tu-choi, POST /api/parties/phieu-xoa/chay-lai (admin; party.erasure.process) = 349.
   // 2026-10-17 (ADR-0126 đ6, đ8; lát H-5 việc 6): + GET /api/parties/anh-can-xoa, POST …/anh-can-xoa/xoa (admin; party.erasure.process), GET + POST /api/sessions/an-danh-cu (admin; auth.session.policy) = 353.
-  assert.equal(actual.length, 353, "số route thực tế lệch 353 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 353, "SNAPSHOT phải có đúng 353 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // Nhận main (bản 2.11) vào nhánh hồ sơ riêng tư: main thêm 5 route so với tổ tiên (327 → 332: vé hỗ trợ đợt 2a +3 — GET /api/feedback/my-orders, GET /api/feedback/teams/:id/members,
+  // GET /api/feedback/:id/messages; ADR-0128 Q1 +2 — GET, POST /api/van-chuyen/moc-ra-lenh, office, ô dispatch.policy.lead); nhánh này thêm 26 (327 → 353) => 327 + 26 + 5 = 358.
+  assert.equal(actual.length, 358, "số route thực tế lệch 358 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 358, "SNAPSHOT phải có đúng 358 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

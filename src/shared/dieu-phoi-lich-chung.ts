@@ -7,7 +7,7 @@
 //   `order.leg.short_notice`), hàm này không biết quyền.
 // - Chính sách rỗng → cảnh báo, không đoán mốc.
 import type { ChangVao, ChinhSachVao, ChuyenVao, DiemVao, DieuKienVao, HangBangVao, KhungChuyen, SuatVao, TrangThaiChuyen } from "./dieu-phoi-kieu.ts";
-import { kiemXuatBen, noiLechCuaSuat, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
+import { kiemXuatBen, laiXeThueBangTaiXeCongTy, noiLechCuaSuat, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
 import { trangThaiChang, type TrangThaiChangRa } from "./dieu-phoi-trang-thai.ts";
 import { canhBaoGioLai, NHAN_CANH_BAO_GIO_LAI } from "./gio-lai.ts";
 import type { LyDoGiu } from "./ly-do-giu.ts";
@@ -52,6 +52,8 @@ export const LOAI_CANH_BAO_LICH = [
   "GIO_LAI_VUOT", "CHUYEN_DAI_CAN_NGHI",
   // HT-01 (kiểm theo vai 2/10 — V1.2): suất chờ đón có điểm xuống đứng trước điểm lên — CHỈ cảnh báo; chặn ở cổng xuất bến chờ ADR-0096.
   "TRA_TRUOC_DON",
+  // ADR-0129 Q4 (chủ duyệt 2026-10-17): tài xế công ty lái xe của nhà xe thuê — được phép, CHỈ cảnh báo (hạng bằng, giấy tờ xe vẫn chặn/giữ như thường).
+  "CHEO_XE_TAI_XE",
 ] as const;
 export type LoaiCanhBaoLich = (typeof LOAI_CANH_BAO_LICH)[number];
 /** Nhãn tiếng Việt của cảnh báo lịch chung (màn hình không tự đặt chữ — một chỗ). */
@@ -70,6 +72,7 @@ export const NHAN_CANH_BAO_LICH: Readonly<Record<LoaiCanhBaoLich, string>> = {
   GIO_LAI_VUOT: NHAN_CANH_BAO_GIO_LAI.GIO_LAI_VUOT,
   CHUYEN_DAI_CAN_NGHI: NHAN_CANH_BAO_GIO_LAI.CHUYEN_DAI_CAN_NGHI,
   TRA_TRUOC_DON: "Điểm trả đứng trước điểm đón của khách",
+  CHEO_XE_TAI_XE: "Tài xế công ty lái xe của nhà xe thuê (chéo xe – tài xế)",
 };
 export interface CanhBaoLich {
   loai: LoaiCanhBaoLich;
@@ -194,6 +197,9 @@ export function dungLichChung(v: LichChungVao): LichChungRa {
   // ADR-0055 VK2-B B3: giờ lái — CHỈ cảnh báo. Gộp chuyến của lịch + chuyến khác (khử trùng id trong canhBaoGioLai); chỉ gắn mục cho chuyến của lịch này.
   const csGioLai = v.chinhSach ? { dutyDayMaxMinutes: v.chinhSach.dutyDayMaxMinutes, tripNoBreakMaxMinutes: v.chinhSach.tripNoBreakMaxMinutes } : null;
   for (const w of canhBaoGioLai([...v.chuyen.map(khung), ...v.chuyenKhac], csGioLai, v.bayGioMs, new Set(v.chuyen.map((c) => c.id)))) cb(w.loai, null, w.tripId, null);
+
+  // ADR-0129 Q4: chuyến chưa kết thúc mà tài xế công ty lái xe nhà xe thuê → cảnh báo cố định (chi tiết chuyến, lịch, bảng việc).
+  for (const c of v.chuyen) if (c.taiXe && laiXeThueBangTaiXeCongTy(c.xe, c.taiXe) && (c.trangThai === "PLANNED" || c.trangThai === "RUNNING")) cb("CHEO_XE_TAI_XE", null, c.id, null);
 
   const nhapChoDatGap = v.chinhSach ? v.nhap.filter((n) => kiemMocDat(n, v.bayGioMs, v.chinhSach!.minLeadMinutes).duoiMoc) : [];
   for (const n of nhapChoDatGap) cb("NHAP_CHO_DAT_GAP", n.legId, null, n.orderCode);

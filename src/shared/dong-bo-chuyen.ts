@@ -287,7 +287,8 @@ export function dongBoChuyenTheoDon(v: VaoDongBo): KetQuaDongBo {
     if (c.soCho !== null) {
       const ck = kiemCamKet({ xe: { id: c.xeId, soCho: c.soCho }, chang: changSauCua(c), khoaDaPhaLe: c.camKetPhaLeKhoa });
       const dangChiem = c.suat.filter((s) => chiemCho(s) && !daDong.has(s.id)).length + (mo.get(c.id) ?? []).length;
-      duoc = ck.khoa !== null && !ck.daPhaLe ? 0 : Math.min(muon, Math.max(0, c.soCho - dangChiem));
+      // ADR-0128 Q3 (chủ duyệt 2026-10-17): tất cả hoặc không — đủ chỗ cho CẢ phần tăng thì mở đủ, thiếu dù một chỗ thì không mở ghế nào (giữ THIEU_SUAT cho người xếp xe).
+      duoc = ck.khoa !== null && !ck.daPhaLe ? 0 : c.soCho - dangChiem >= muon ? muon : 0;
     }
     // Suất mới cùng điểm lên / xuống của suất hiện có của chặng trên chuyến (mã suất nhỏ nhất); không còn suất mở thì suất vừa đóng trong lô.
     const mau = [...moAll.filter((s) => !daDong.has(s.id)), ...moAll.filter((s) => daDong.has(s.id))][0];

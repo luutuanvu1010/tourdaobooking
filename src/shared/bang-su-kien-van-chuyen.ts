@@ -434,6 +434,7 @@ export const NGOAI_PHAM_VI_ROUTE: Readonly<Record<string, string>> = {
   "POST /api/van-chuyen/ban": "khung bận của tài xế (ADR-0053 D9)",
   "POST /api/van-chuyen/ban/:id/rut": "khung bận của tài xế (ADR-0053 D9)",
   "POST /api/van-chuyen/chinh-sach-dieu-phoi": "cấu hình",
+  "POST /api/van-chuyen/moc-ra-lenh": "cấu hình",
   "POST /api/van-chuyen/dieu-kien": "cấu hình",
   "POST /api/van-chuyen/dieu-kien/:id/dong": "cấu hình",
   "POST /api/van-chuyen/hang-bang": "cấu hình",

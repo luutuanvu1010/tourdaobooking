@@ -39,7 +39,10 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   // Import thật của mã: `orders` (findOrderOwner: đơn có không, ai lập), `staff` (tài khoản người được giao / danh sách người có thể được giao), `audit` (auditStatement).
   // View v_dsp_order_handler đọc view công bố v_pty_party_label và v_stf_staff_label ở tầng SQL (cạnh dispatch → parties, dispatch → staff).
   dispatch: ["orders", "parties", "locations", "staff", "audit"],
-  feedback: ["staff", "audit"], // đọc nhãn nhân viên (v_stf_staff_label) + ghi nhật ký `feedback_*`; không module nào import feedback
+  // feedback: đọc nhãn nhân viên (v_stf_staff_label) + ghi nhật ký `feedback_*`; không module nào import feedback.
+  // ADR-0127 (Vé hỗ trợ đợt 2a, chủ duyệt): cạnh feedback → orders CHỈ ĐỌC ba view công bố có sẵn v_ord_order_owner, v_ord_order_label, v_ord_order_state
+  // (gắn đơn của chính người gửi vào phiếu, danh sách my-orders); không import src/modules/orders/, không view mới.
+  feedback: ["staff", "audit", "orders"],
   "giao-dien": ["audit"], // ADR-0087: ghi nhật ký giao_dien_changed
   // ky-so (ADR-0080 D1): khoá tháng — chỉ ghi nhật ký. NỚI hàng rào đã duyệt (Điều 9.4) — chủ duyệt C12 2026-10-01, xem docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/de-xuat-luat.md.
   "ky-so": ["audit"],
@@ -1014,6 +1017,61 @@ test("ADR-0049 D1 (siết): KHÔNG module nào import van-chuyen — không cạ
     }
   }
   assert.deepEqual(problems, [], "orders nhận mốc tối thiểu qua hàm tiêm của gốc lắp ráp (ctx.mocToiThieu) — không module nào đọc van-chuyen (ADR-0049 D1)");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0127 quyết định 3 (Ruling R3 của điều phối, SIẾT — không nới): cạnh feedback → orders CHỈ để đọc ba view công bố có sẵn. Luật chung (8(a), 8(b)) một khi
+// cạnh đã mở thì nhận MỌI view v_ord_* và cho import ../orders — hai bài dưới khoá hẹp lại:
+//   (1) SQL đã đăng ký của feedback: mọi quan hệ thuộc orders mà câu ĐỌC (theo EXPLAIN) và mọi tên v_ord_* xuất hiện trong chữ câu phải thuộc ba view; cộng
+//       quét mọi tệp src/modules/feedback/** (kể cả *.test.ts; che CHÚ THÍCH, KHÔNG che chuỗi) tìm tên v_ord_* ngoài ba view;
+//   (2) không tệp nào dưới src/modules/feedback/** (kể cả *.test.ts) import ../orders (kể cả ../orders/index, ../orders/<tệp>).
+// Thêm view vào danh sách = NỚI (Điều 9.4) — cần ADR/chủ duyệt. SQL ĐÃ ĐĂNG KÝ có ghép tên động vẫn bị bắt (EXPLAIN đọc câu cuối cùng). Lối hở thật, KHÔNG
+// canh: (i) mã KHÔNG phải SQL đã đăng ký dựng tên v_ord_* lúc chạy ("v_" + "ord_…") — phần lớn bị bài cấm `.prepare(` chuỗi thô ở module nghiêm che;
+// (ii) `import("…")` động — relativeImports chỉ bắt `import`/`export` ở đầu dòng.
+// ---------------------------------------------------------------------------------------------------------------------
+const VIEW_ORDERS_CHO_FEEDBACK: readonly string[] = ["v_ord_order_owner", "v_ord_order_label", "v_ord_order_state"];
+/** Tên v_ord_* ngoài ba view cho phép, trong một đoạn mã/SQL (không phân biệt hoa thường — tên SQLite cũng vậy). */
+function viewOrdersLa(text: string): string[] {
+  return [...text.matchAll(/\bv_ord_\w+/gi)].map((m) => m[0].toLowerCase()).filter((n) => !VIEW_ORDERS_CHO_FEEDBACK.includes(n));
+}
+/** Vi phạm của MỘT câu SQL feedback: đọc quan hệ của orders ngoài ba view (EXPLAIN), hoặc nhắc view v_ord_* khác trong chữ câu. */
+function feedbackDocOrdersSai(sql: string): string[] {
+  const out = viewOrdersLa(sql).map((n) => `nhắc ${n}`);
+  for (const r of touched(sql).reads) if (ownerOf(r) === "orders" && !VIEW_ORDERS_CHO_FEEDBACK.includes(r)) out.push(`đọc ${r}`);
+  return out;
+}
+const laImportOrders = (rel: string): boolean => /^modules\/orders(?:\/|$)/.test(rel);
+
+test("bộ bắt cạnh feedback → orders (ADR-0127, R3): cho qua ba view; bắt view v_ord_* khác (mọi kiểu chữ), bảng orders, import ../orders mọi dạng", () => {
+  const ba = "SELECT o.id, l.order_code, s.status FROM v_ord_order_owner o JOIN v_ord_order_label l ON l.id = o.id JOIN v_ord_order_state s ON s.id = o.id WHERE o.staff_id = ?1";
+  assert.deepEqual(feedbackDocOrdersSai(ba), []);
+  assert.ok(feedbackDocOrdersSai("SELECT id FROM v_ord_order_flag").length > 0, "view orders khác");
+  assert.ok(feedbackDocOrdersSai(`${ba} AND EXISTS (SELECT 1 FROM V_ORD_ORDER_FLAG f WHERE f.id = o.id)`).length > 0, "chữ hoa");
+  assert.ok(feedbackDocOrdersSai("SELECT id, order_code FROM orders WHERE staff_id = ?1").some((x) => x === "đọc orders"), "bảng orders thẳng");
+  assert.deepEqual(viewOrdersLa(maskSource("// v_ord_order_flag chỉ trong chú thích\nconst q = `FROM v_ord_order_owner`;", { strings: false, comments: true })), []);
+  assert.deepEqual(viewOrdersLa(maskSource("const q = `FROM v_ord_passenger_row`;", { strings: false, comments: true })), ["v_ord_passenger_row"]);
+  for (const rel of ["modules/orders", "modules/orders/index", "modules/orders/index.ts", "modules/orders/repository.ts"]) assert.equal(laImportOrders(rel), true, rel);
+  for (const rel of ["modules/staff", "modules/orders-x", "shared/order-status-label.ts", "modules/feedback/repository.ts"]) assert.equal(laImportOrders(rel), false, rel);
+});
+
+test("ADR-0127 (siết, R3): SQL của feedback chỉ đọc đúng ba view v_ord_order_owner / v_ord_order_label / v_ord_order_state; mã feedback không nhắc view v_ord_* khác", async () => {
+  await import(pathToFileURL(join(SRC, "modules/feedback/repository.ts")).href);
+  const cua = registeredSql().filter((e) => e.module === "feedback");
+  assert.ok(cua.some((e) => /\bv_ord_order_owner\b/.test(e.sql)), "chống bài rỗng: feedback phải có câu đọc v_ord_order_owner (my-orders)");
+  const problems = cua.flatMap((e) => feedbackDocOrdersSai(e.sql).map((x) => `feedback.${e.name}: ${x}`));
+  for (const file of walkAll(join(SRC, "modules", "feedback"))) {
+    const rel = relative(ROOT, file).split(sep).join("/");
+    for (const n of viewOrdersLa(maskSource(readFileSync(file, "utf8"), { strings: false, comments: true }))) problems.push(`${rel}: nhắc ${n}`);
+  }
+  assert.deepEqual(problems, [], "cạnh feedback → orders chỉ mở cho ba view (ADR-0127 quyết định 3) — thêm view là NỚI hàng rào, cần ADR");
+});
+
+test("ADR-0127 (siết, R3): không tệp nào dưới src/modules/feedback/** (kể cả *.test.ts) import ../orders — kể cả ../orders/index", () => {
+  const problems: string[] = [];
+  for (const file of walkAll(join(SRC, "modules", "feedback"))) {
+    for (const spec of relativeImports(file)) if (laImportOrders(relSrc(file, spec))) problems.push(`${relative(ROOT, file)}: import "${spec}"`);
+  }
+  assert.deepEqual(problems, [], "feedback đọc đơn CHỈ qua ba view trong repository.ts (ADR-0127) — không import hàm / tệp của orders");
 });
 
 /**

@@ -22,7 +22,9 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // (+~100 byte, làm gói vượt trần 91 byte). Chỉ nới vừa đủ chỗ cho dòng quyền mới, không thêm mã giao diện nào vào gói này.
 // Nới 96.500 → 96.600 (ADR-0122 đ5, lát H-1 Gói 2, 2026-10-16): cùng lý do như trên — thêm dòng bản đồ quyền `party.personal.view` (+56 byte vượt trần).
 // Không thêm mã giao diện nào vào gói này.
-const TRAN_ORDERS = 96_600;
+// Nới 96.500 → 96.700 (ADR-0128 Q1, 2026-10-17): thêm một dòng bản đồ quyền `dispatch.policy.lead` vào `permissions.ts` (gói nhúng cả bản đồ, +~90 byte); không thêm mã giao diện.
+// Nhận main vào nhánh hồ sơ riêng tư: giữ trần LỚN HƠN của hai bên (96.700); không nới thêm — đo gói thật sau gộp ở báo cáo.
+const TRAN_ORDERS = 96_700;
 
 function dung(trang: string) {
   const r = buildSync({

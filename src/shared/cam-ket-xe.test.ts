@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { khoaCamKet, kiemCamKet, nhanCamKet } from "./cam-ket-xe.ts";
+import { khoaCamKet, kiemCamKet, nhanCamKet, tachLyDoCamKet } from "./cam-ket-xe.ts";
 import type { ChangVao, ChinhSachVao, ChuyenVao, SuatVao } from "./dieu-phoi-kieu.ts";
 import { kiemXuatBen } from "./dieu-phoi-kiem.ts";
 import { vnLocalToMs } from "./vn-date.ts";
@@ -19,7 +19,7 @@ const dong = (r: ReturnType<typeof kiemCamKet>) => r.viPham.map((v) => `${v.legI
 
 test("R-XR: đơn A có chặng xe riêng và chỉ suất của A → không vi phạm; thêm suất người đi kèm (CREW) vẫn không vi phạm (G-2)", () => {
   const r = ck([ch("a1", "a", { xeRieng: true }), ch("a2", "a")]);
-  assert.deepEqual(r, { viPham: [], khoa: null, daPhaLe: false, lyDo: [] });
+  assert.deepEqual(r, { viPham: [], khoa: null, daPhaLe: false, coXeRieng: false, lyDo: [] });
   // CREW không có chặng: cổng xuất bến THẬT với một suất CREW (legId null) trên chuyến chỉ có khách đơn A xe riêng → không CAM_KET.
   const ms = (d: string, t: string) => vnLocalToMs(d, t)!;
   const CS: ChinhSachVao = { id: "cs", minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: false, requireContract: false, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720 };
@@ -85,16 +85,32 @@ test("C5: đổi id xe với cùng vi phạm CX → khoá khác; tăng choToiThi
   assert.equal(ab.khoa, ba.khoa);
 });
 
-test("khoaDaPhaLe đúng bằng khoá → daPhaLe = true; khác một ký tự → false; không vi phạm → daPhaLe = false dù có khoá cũ", () => {
-  const r = ck([ch("a1", "a", { xeRieng: true }), ch("b1", "b")]);
+test("khoaDaPhaLe đúng bằng khoá → daPhaLe = true (R-CX, số chỗ tối thiểu); khác một ký tự → false; không vi phạm → daPhaLe = false dù có khoá cũ", () => {
+  const r = ck([ch("a1", "a", { choToiThieu: 15 }), ch("b1", "b", { choToiThieu: 16 })], XE15);
   const k = r.khoa!;
-  const khop = ck([ch("a1", "a", { xeRieng: true }), ch("b1", "b")], XE15, k);
+  const khop = ck([ch("a1", "a", { choToiThieu: 15 }), ch("b1", "b", { choToiThieu: 16 })], XE15, k);
   assert.equal(khop.daPhaLe, true);
-  assert.deepEqual(khop.viPham.length, 2, "đã phá lệ vẫn liệt kê vi phạm");
-  const lech = ck([ch("a1", "a", { xeRieng: true }), ch("b1", "b")], XE15, `${k.slice(0, -1)}${k.endsWith("-") ? "0" : "-"}`);
+  assert.equal(khop.coXeRieng, false);
+  assert.deepEqual(khop.viPham.length, 1, "đã phá lệ vẫn liệt kê vi phạm");
+  const lech = ck([ch("a1", "a", { choToiThieu: 15 }), ch("b1", "b", { choToiThieu: 16 })], XE15, `${k.slice(0, -1)}${k.endsWith("-") ? "0" : "-"}`);
   assert.equal(lech.daPhaLe, false);
   assert.equal(ck([ch("a1", "a")], XE15, k).daPhaLe, false);
   assert.equal(khoaCamKet("xe-1", []), null);
+});
+
+test("ADR-0128 Q2: xe riêng KHÔNG phá lệ được — khoá đã lưu khớp vẫn daPhaLe = false, coXeRieng = true; tachLyDoCamKet đưa R-XR vào chặn cứng, R-CX vào cần phá lệ", () => {
+  const chang = [ch("a1", "a", { xeRieng: true }), ch("b1", "b")];
+  const r = ck(chang);
+  assert.equal(r.coXeRieng, true);
+  const khop = ck(chang, XE15, r.khoa);
+  assert.equal(khop.daPhaLe, false, "khoá khớp cũng không che được xe riêng");
+  assert.deepEqual(tachLyDoCamKet(khop).canPhaLe, []);
+  assert.equal(tachLyDoCamKet(khop).chan.length, 2);
+  // Hỗn hợp: xe riêng + số chỗ tối thiểu — xe riêng chặn, số chỗ cần phá lệ.
+  const hon = ck([ch("a1", "a", { xeRieng: true }), ch("b1", "b"), ch("c1", "c", { choToiThieu: 16 })]);
+  const t = tachLyDoCamKet(hon);
+  assert.equal(t.chan.length, 3, "xe riêng: chặng của A, của B và của C (C cũng bị ghép vào xe riêng của A)");
+  assert.equal(t.canPhaLe.length, 1, "số chỗ tối thiểu: chỉ chặng của C (cần ≥ 16 chỗ, xe 15)");
 });
 
 test("C4: khoá chỉ gồm id / mã / số (khuôn ^[A-Za-z0-9:|\\-]+$) — không tên, không chữ tự do, không mã đơn có dấu", () => {

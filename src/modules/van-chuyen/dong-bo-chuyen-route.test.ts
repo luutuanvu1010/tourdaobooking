@@ -110,7 +110,7 @@ test("NT-5 tăng khách (văn phòng sửa số khách 3 → 5, chặng đang th
   }
 });
 
-test("NT-5 tăng khách: xe hết chỗ (LC-02) → chỉ mở phần còn chỗ, còn lại giữ THIEU_SUAT; lệnh đơn 200", async () => {
+test("NT-5 tăng khách: xe hết chỗ (LC-02) → ADR-0128 Q3 tất cả hoặc không: không mở ghế nào, giữ THIEU_SUAT; lệnh đơn 200", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
@@ -119,7 +119,7 @@ test("NT-5 tăng khách: xe hết chỗ (LC-02) → chỉ mở phần còn chỗ
     await xepHet(w, t, d, 2);
     const r = await suaSoKhach(w, d.id, 5);
     assert.equal(r.status, 200, r.text);
-    assert.equal(moCua(w, t.chuyen.id, d.legId).length, 3, "xe 3 chỗ: mở thêm 1");
+    assert.equal(moCua(w, t.chuyen.id, d.legId).length, 2, "xe 3 chỗ, đã giữ 2, cần thêm 3 (còn 1): không mở ghế nào");
     assert.ok((await lyDo(w, t.chuyen.id)).includes("THIEU_SUAT"));
   } finally {
     tat();

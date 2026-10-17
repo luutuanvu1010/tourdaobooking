@@ -602,7 +602,7 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
       },
       "GET /api/van-chuyen/de-nghi": async () => {
         const r = await goi("GET /api/van-chuyen/de-nghi", "văn phòng xem đề nghị trong ngày", "GET", `/api/van-chuyen/de-nghi?ngay=${NGAY}`, ADM);
-        assert.ok(r.deNghi.filter((x: any) => x.trangThai === "ESCALATED" && Array.isArray(x.kiem) && x.kiem.length === 11).length >= 2, "chống bài rỗng: hai đề nghị leo thang có dòng kiểm");
+        assert.ok(r.deNghi.filter((x: any) => x.trangThai === "ESCALATED" && Array.isArray(x.kiem) && x.kiem.length === 12).length >= 2, "chống bài rỗng: hai đề nghị leo thang có dòng kiểm");
       },
       "POST /api/van-chuyen/de-nghi/:rid/bac": async () => {
         await goi("POST /api/van-chuyen/de-nghi/:rid/bac", "Quản trị bác", "POST", `/api/van-chuyen/de-nghi/${S.DN2!.tra}/bac`, ADM, { requestId: rid(), lyDo: "TU_CHOI_KHAC" });

@@ -123,7 +123,7 @@ App chỉ cho xác nhận khi mỗi dịch vụ có ngày khởi hành, ngày đ
 
 Xe đã chạy: mở [[Xe đang chạy]], bấm chuyến. Thêm khách: [[Thêm điểm đón / thêm khách]]. Khách huỷ: [[Báo huỷ]]; ghế giữ tới khi tài xế xác nhận. Đổi nơi đón: [[Cập nhật điểm theo đơn]]. Xe hỏng: [[Gửi đề nghị cứu hộ]] nhờ xe đang chạy (gõ nơi gặp), hoặc [[Cứu hộ]] rồi xếp khách ở khối **Cứu hộ**.
 
-> Lưu ý: xe chỉ chạy được khi đơn đủ họ tên, năm sinh khách và nơi trả. Trong 6 giờ trước xuất bến, xếp, rút khách, đổi xe, tài xế, huỷ chuyến là **điều chỉnh khẩn cấp**: bạn làm kèm lý do.
+> Lưu ý: xe chỉ chạy được khi đơn đủ họ tên, năm sinh khách và nơi trả. Trong mốc ra lệnh trước xuất bến, xếp, rút khách, đổi xe, tài xế, huỷ chuyến là **điều chỉnh khẩn cấp**: bạn làm kèm lý do.
 
 Mục "Giờ hẹn đổi — gọi báo khách" ở [[Cần xử lý]]: gọi khách rồi bấm [[Đã gọi báo]], chỉ cho đơn bạn lập hoặc phụ trách.`,
     },
@@ -139,7 +139,7 @@ Mục "Giờ hẹn đổi — gọi báo khách" ở [[Cần xử lý]]: gọi k
 4. App nhắc bản xác nhận đã gửi khách có thể lỗi thời → bấm [[Xem biên nhận]] và gửi lại ảnh mới.
 5. Tự gọi hoặc nhắn hướng dẫn viên phụ trách: app chưa tự báo cho họ khi giờ hoặc nơi đón đổi.
 
-> Lưu ý: nếu giờ đón mới cách bây giờ dưới mốc 6 giờ, app từ chối và chỉ Quản trị sửa được — hãy nhờ Quản trị. Muốn đổi hồ sơ khách của đơn đã xác nhận thì bấm [[Đổi khách]].
+> Lưu ý: nếu giờ đón mới cách bây giờ dưới mốc ra lệnh, app từ chối và chỉ Quản trị sửa được — hãy nhờ Quản trị. Muốn đổi hồ sơ khách của đơn đã xác nhận thì bấm [[Đổi khách]].
 
 ### Khách đổi số người hoặc dịch vụ sau khi đã xác nhận
 
@@ -155,7 +155,7 @@ Nền tảng tự tính lại tiền (giảm giá giữ nguyên), ghi vào [[L�
 
 > Ví dụ: 10 giờ sáng khách gọi đặt đưa đón lúc 13 giờ cùng ngày.
 
-1. Lập đơn như thường. Khi giờ đón cách bây giờ dưới mốc (hiện là 6 giờ), cuối thẻ dịch vụ hiện dải vàng báo còn bao lâu tới giờ đón, kèm dòng [[Lưu nháp được. Xác nhận cần Quản trị duyệt đặt gấp.]]
+1. Lập đơn như thường. Khi giờ đón cách bây giờ dưới mốc ra lệnh, cuối thẻ dịch vụ hiện dải vàng báo còn bao lâu tới giờ đón, kèm dòng [[Lưu nháp được. Xác nhận cần Quản trị duyệt đặt gấp.]]
 2. Bấm [[Lưu, chờ xác nhận]] như thường.
 3. Trên trang đơn, nút [[Xác nhận đơn]] bị khoá, kèm dòng [[Cần Quản trị duyệt đặt gấp]].
 4. Gọi Quản trị, đọc mã đơn. Quản trị mở đơn, bấm [[Đặt gấp]], chọn lý do, bấm [[Duyệt đặt gấp]].
@@ -203,7 +203,7 @@ Huỷ được đơn chờ xác nhận lẫn đã xác nhận mà bạn lập ho
 - Thêm, sửa dịch vụ và giá trong danh mục; dịch vụ "chưa có giá" → **Quản trị**.
 - Khách trả thêm: bấm [[Ghi lần thu]] trên đơn bạn lập. Hoàn tiền, hoá đơn → **Kế toán**.
 - Quên mã PIN, bị khoá đăng nhập → **Quản trị**.
-- Xe thiếu giấy tờ, tài xế thiếu bằng lái, thiếu nghỉ hay trái cam kết xe khi còn hơn 6 giờ → **Quản trị**.
+- Xe thiếu giấy tờ, tài xế thiếu bằng lái, thiếu nghỉ hay trái cam kết xe khi còn hơn mốc ra lệnh → **Quản trị**.
 - Báo lỗi app, góp ý → [[Hỗ trợ]].`,
     },
     {
@@ -214,7 +214,7 @@ Chưa. Đơn mới lưu ở trạng thái [[Chờ xác nhận]]. Phải bấm [[
 
 ### Sao tôi không bấm được "Xác nhận đơn"?
 
-Hoặc có chặng đón dưới mốc 6 giờ chưa được Quản trị duyệt (dòng [[Cần Quản trị duyệt đặt gấp]] hiện ngay dưới), hoặc thiếu thông tin chuyến (app liệt kê từng dịch vụ kèm liên kết [[Sửa]]).
+Hoặc có chặng đón dưới mốc ra lệnh chưa được Quản trị duyệt (dòng [[Cần Quản trị duyệt đặt gấp]] hiện ngay dưới), hoặc thiếu thông tin chuyến (app liệt kê từng dịch vụ kèm liên kết [[Sửa]]).
 
 ### Sao tôi không thấy nút Sửa, Xác nhận, Huỷ?
 

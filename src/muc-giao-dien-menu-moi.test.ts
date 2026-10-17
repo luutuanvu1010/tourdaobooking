@@ -57,9 +57,10 @@ test("Kế toán: Hoa hồng đối tác và Người bán dịch vụ nằm tro
   assert.deepEqual(tl?.muc.map((m) => m.nhan), ["Hoa hồng đối tác", "Người bán dịch vụ"]);
 });
 
-test("Quản trị chưa có Phiên đăng nhập, Nhật ký, Chính sách điều phối (chỉ Toàn quyền)", () => {
+test("Quản trị chưa có Phiên đăng nhập, Nhật ký (chỉ Toàn quyền); có Chính sách điều phối để đặt mốc (ADR-0128 Q1)", () => {
   const nhan = thanhBen({ staff: holder(["ADMIN"]) }, "/").flatMap((x) => x.muc).map((m) => m.nhan);
-  for (const c of ["Phiên đăng nhập", "Nhật ký", "Chính sách điều phối"]) assert.ok(!nhan.includes(c), c);
+  for (const c of ["Phiên đăng nhập", "Nhật ký"]) assert.ok(!nhan.includes(c), c);
+  assert.ok(nhan.includes("Chính sách điều phối"));
 });
 
 test("Thiết lập đóng sẵn cho Quản trị ở Trang chủ; mở khi đứng ở /locations; mở sẵn cho Nhân sự", () => {

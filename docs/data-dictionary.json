@@ -116,7 +116,11 @@
     {
       "name": "fbk_ticket",
       "module": "feedback",
-      "kind": "table"
+      "kind": "table",
+      "note": "phiếu hỗ trợ. 0106 (ADR-0127, đợt 2a): priority = mức ưu tiên NORMAL / HIGH / URGENT (mặc định NORMAL; KHÔNG CHECK liệt kê — giá trị hợp lệ kiểm ở mã src/shared/ve-ho-tro.ts; chỉ người xử lý đặt, người gửi chỉ xem; hàng đợi sắp bằng CASE, không theo chữ). order_id / order_code = đơn liên quan gắn lúc gửi (chỉ đơn do chính người gửi lập; không sửa sau): cùng có hoặc cùng NULL (CHECK); order_code là mã đơn CHỤP lúc gửi để phiếu không phụ thuộc đơn; không ghi vào nhật ký.",
+      "logicalRefs": [
+        { "column": "order_id", "toTable": "orders", "viaView": "v_ord_order_owner", "note": "kiểm đơn tồn tại và do người gửi lập lúc gửi (máy chủ, view v_ord_order_owner); mã chụp ở order_code — R-P19" }
+      ]
     },
     {
       "name": "fbk_ticket_event",
@@ -1267,7 +1271,7 @@
     "fbk_status": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
     "fbk_team": { "id": "N1", "code": "N1", "name": "N1", "description": "N1", "sensitive": "N1", "active": "N1", "sort_order": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "fbk_team_member": { "id": "N1", "team_id": "N1", "staff_id": "N1", "role": "N1", "valid_from_at": "N1", "valid_to_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "fbk_ticket": { "id": "N1", "seq": "N1", "kind_code": "N1", "status_code": "N1", "title": "N2", "context": "N2", "submitter_id": "N1", "assignee_id": "N1", "client_request_id": "N1", "resolved_in": "N1", "submitter_seen_at": "N1", "admin_seen_at": "N1", "last_activity_at": "N1", "last_public_reply_at": "N1", "notified_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "team_id": "N1" },
+    "fbk_ticket": { "id": "N1", "seq": "N1", "kind_code": "N1", "status_code": "N1", "title": "N2", "context": "N2", "submitter_id": "N1", "assignee_id": "N1", "client_request_id": "N1", "resolved_in": "N1", "submitter_seen_at": "N1", "admin_seen_at": "N1", "last_activity_at": "N1", "last_public_reply_at": "N1", "notified_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "team_id": "N1", "priority": "N1", "order_id": "N1", "order_code": "N1" },
     "fbk_ticket_event": { "id": "N1", "ticket_id": "N1", "type": "N1", "from_value": "N1", "to_value": "N1", "actor_id": "N1", "at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "fbk_ticket_read": { "ticket_id": "N1", "staff_id": "N1", "seen_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "gd_setting": { "id": "N1", "tokens": "N1", "version": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },

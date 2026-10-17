@@ -1,27 +1,29 @@
 // src/modules/feedback/index.ts
 // Module feedback — Góp ý / Báo lỗi (ticket): người dùng gửi, admin tiếp nhận/trả lời/đổi trạng thái. Route: /api/feedback*.
-// Phụ thuộc: staff (tên qua view công bố — chỉ trong repository; quyền của người được gán vào nhóm qua hàm công bố `getStaffAccount` — R6) và audit (dấu vết).
+// Phụ thuộc: staff (tên qua view công bố — chỉ trong repository; quyền của người được gán vào nhóm qua hàm công bố `getStaffAccount` — R6), audit (dấu vết) và
+// orders CHỈ qua ba view công bố trong repository (đơn liên quan — ADR-0127; KHÔNG import ../orders, bài siết ở src/architecture.test.ts).
 // Module khác CHỈ import từ file này.
 import { auditStatement } from "../audit";
 import { getStaffAccount } from "../staff";
 import type {
-  FeedbackAdminTeamDto, FeedbackAdminTeamsResponse, FeedbackBadgeResponse, FeedbackDetailResponse, FeedbackMessageDto, FeedbackQueueResponse, FeedbackTeamsResponse, FeedbackTicketDto,
+  FeedbackAdminTeamDto, FeedbackAdminTeamsResponse, FeedbackBadgeResponse, FeedbackDetailResponse, FeedbackMembersResponse, FeedbackMessageDto, FeedbackMessagesSinceResponse, FeedbackMyOrdersResponse, FeedbackQueueResponse, FeedbackTeamsResponse,
+  FeedbackTicketDto, OrderStatus,
 } from "../../shared/contracts";
 import { FEEDBACK_KIND_NAME, FEEDBACK_STATUS_NAME, canTransition, feedbackCode, isFeedbackKind, isFeedbackStatus, type FeedbackKind, type FeedbackStatus } from "../../shared/feedback-catalog";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
 import { can, isExternalPermission, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
-import { NHOM_KY_THUAT_ID, isLocHangDoi } from "../../shared/ve-ho-tro";
+import { NHOM_KY_THUAT_ID, isLocHangDoi, isPriority } from "../../shared/ve-ho-tro";
 import { mailConfig, notifyAdmins, type NotifyEvent } from "./notify";
 import { choPhepNhomGui, quyenPhieu, type Membership, type QuyenPhieu } from "./quyen";
 import {
-  badgeCounts, claimStatement, endMemberStatement, findByRequest, getTeam, getTicket, insertEventStatement, insertFirstMessageStatement, insertMemberStatement, insertReplyStatement, insertTeamStatement,
-  insertTicketStatement, insertTransferNoteStatement, listMembersAll, listMessages, listMine, listQueue, listQueueTeam, listTeamsActive, listTeamsAll, markSeen, markSeenAfterWriteStatement,
+  badgeCounts, claimStatement, endMemberStatement, findByRequest, getDonCuaToi, getTeam, getTicket, insertEventStatement, insertFirstMessageStatement, insertMemberStatement, insertReplyStatement, insertTeamStatement,
+  insertTicketStatement, insertTransferNoteStatement, listAssignable, listDonCuaToi, listMembersAll, listMessages, listMessagesSince, listMine, listQueue, listQueueTeam, listTeamsActive, listTeamsAll, markSeen, markSeenAfterWriteStatement,
   membershipsOf, messageExists, patchTeamStatement, patchTicketStatement, setNotified, statsTeam, touchAfterReplyStatement, transferStatement, weeklyStats, type MessageRow, type TeamMemberRow, type TeamRow, type TicketRow,
 } from "./repository";
 import {
-  MESSAGE_LIMIT_PER_HOUR, TEAM_ID_RE, TICKET_LIMIT_PER_HOUR, parseContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch,
-  validateTicketInput, validateTransferInput, windowStart,
+  CAU_DON_LIEN_QUAN_SAI, MESSAGE_LIMIT_PER_HOUR, MESSAGES_SINCE_LIMIT, TEAM_ID_RE, TICKET_LIMIT_PER_HOUR, parseContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch,
+  parseSince, validateTicketInput, validateTransferInput, windowStart, type PatchInput,
 } from "./rules";
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy yêu cầu.");
@@ -66,6 +68,9 @@ const toTicket = (r: TicketRow, showMail: boolean): FeedbackTicketDto => ({
   teamId: r.team_id,
   teamName: r.team_name,
   teamSensitive: r.team_sensitive === 1,
+  priority: isPriority(r.priority) ? r.priority : "NORMAL",
+  orderId: r.order_id,
+  orderCode: r.order_code,
 });
 const toMessage = (m: MessageRow, viewerId: string): FeedbackMessageDto => ({
   id: m.id,
@@ -83,12 +88,39 @@ const toMessage = (m: MessageRow, viewerId: string): FeedbackMessageDto => ({
  */
 const canRead = (who: PermissionHolder, submitterId: string): boolean => can(who, "feedback.view", { ownerId: submitterId });
 
+// Nhật ký của lệnh đổi phiếu (dùng chung PATCH …/xu-ly và tuyến cũ PATCH /api/feedback/:id — ADR-0127): đổi trạng thái ⇒ feedback_status_changed; không đổi
+// trạng thái mà có người xử lý ⇒ feedback_assigned; có mức ưu tiên ⇒ THÊM một dòng feedback_priority_changed «mã: cũ → mới» (không tiêu đề, kể cả nhóm nhạy
+// cảm; gửi lại đúng mức cũ vẫn ghi, như giao việc). Mọi dòng gác bằng `changes() > 0`: dòng đầu theo câu cập nhật (hoặc sự kiện ngay sau nó), dòng sau theo dòng
+// nhật ký ngay trước (INSERT…SELECT không chèn ⇒ changes() = 0) — nên cả chuỗi chỉ ghi khi cổng đã qua. Gọi ĐÚNG sau câu cập nhật/sự kiện, TRƯỚC mốc đã xem.
+function nhatKyDoiPhieu(db: D1Database, a: { staffId: string; t: TicketRow; v: PatchInput; from: FeedbackStatus; to: FeedbackStatus | null; at: string }): D1PreparedStatement[] {
+  const code = feedbackCode(a.t.seq);
+  const ra: D1PreparedStatement[] = [];
+  const goc = { staffId: a.staffId, at: a.at, targetType: "feedback", targetId: a.t.id } as const;
+  if (a.to) ra.push(auditStatement(db, { ...goc, action: "feedback_status_changed", detail: `${code}: ${a.from} → ${a.to}` }, "changes() > 0"));
+  else if (a.v.assignee !== undefined) ra.push(auditStatement(db, { ...goc, action: "feedback_assigned", detail: code }, "changes() > 0"));
+  if (a.v.priority !== undefined) {
+    const cu = isPriority(a.t.priority) ? a.t.priority : "NORMAL";
+    ra.push(auditStatement(db, { ...goc, action: "feedback_priority_changed", detail: `${code}: ${cu} → ${a.v.priority}` }, "changes() > 0"));
+  }
+  return ra;
+}
+
 /**
  * Tư cách thành viên nhóm của người gọi cho MỘT request — mọi chỗ nạp tư cách đi qua ĐÂY (ruling R6b).
  * Tài khoản có mã quyền bên ngoài (kể cả tài khoản lai) ⇒ luôn rỗng, dù dữ liệu còn dòng thành viên cũ (quyenPhieu cũng bỏ qua — lưới thứ hai).
  */
 async function memberships(db: D1Database, who: PermissionHolder): Promise<Membership[]> {
   return who.permissions.some(isExternalPermission) ? [] : membershipsOf(db, who.id);
+}
+
+/**
+ * Người nhận phiếu là tài khoản BÊN NGOÀI (kể cả tài khoản lai, tài xế đối tác)? R6: họ không làm thành viên nhóm, nhưng dữ liệu có thể còn dòng thành viên cũ
+ * (chèn thẳng, hoặc trước khi luật có) mà câu PATCH_TICKET không biết (không chép mã quyền bên ngoài vào SQL). Cùng phép thử với route gán thành viên.
+ * Hai route giao việc gọi TRƯỚC lô ghi khi đổi sang người khác; true ⇒ BAD_ASSIGNEE (cùng câu với ca hỏng khác, không lộ loại tài khoản).
+ */
+async function nguoiNhanNgoai(db: D1Database, staffId: string): Promise<boolean> {
+  const tk = UUID_RE.test(staffId) ? await getStaffAccount(db, staffId) : null;
+  return tk !== null && tk.permissions.some(isExternalPermission);
 }
 
 /** Nạp tư cách rồi quyết quyền trên một phiếu. CHỈ dùng trong detail(); route gọi thẳng quyenPhieu (hàng rào route-write-guard đọc thân route). */
@@ -137,11 +169,19 @@ export const feedbackModule: AppModule = {
       const team = await getTeam(env.DB, teamId);
       if (!team || team.active !== 1) return error(400, "invalid_input", "Nhóm nhận không hợp lệ.");
       if (!choPhepNhomGui(staff, teamId)) return error(403, "forbidden", "Tài khoản của bạn chỉ gửi được tới nhóm Kỹ thuật.");
+      // Đơn liên quan (ADR-0127 quyết định 3): cùng cổng với my-orders — quyền xem đơn của chính mình (ô order.view, ownerId = người gửi) rồi đơn phải có thật VÀ do
+      // người gửi lập. Mọi cách hỏng trả CÙNG một câu (không dò đơn của người khác). Mã đơn chụp lúc gửi; nhật ký không ghi mã đơn.
+      let order: { id: string; code: string } | null = null;
+      if (v.value.orderId !== undefined) {
+        const don = can(staff, "order.view", { ownerId: staff.id }) ? await getDonCuaToi(env.DB, staff.id, v.value.orderId) : null;
+        if (!don) return error(400, "invalid_input", CAU_DON_LIEN_QUAN_SAI);
+        order = { id: don.id, code: don.order_code };
+      }
       const now = new Date();
       const at = now.toISOString();
       const id = crypto.randomUUID();
       await env.DB.batch([
-        insertTicketStatement(env.DB, { id, kind: v.value.kind, title: v.value.title, context: v.value.context, submitterId: staff.id, clientRequestId: v.value.clientRequestId, now: at, windowStart: windowStart(now), limit: TICKET_LIMIT_PER_HOUR, teamId }),
+        insertTicketStatement(env.DB, { id, kind: v.value.kind, title: v.value.title, context: v.value.context, submitterId: staff.id, clientRequestId: v.value.clientRequestId, now: at, windowStart: windowStart(now), limit: TICKET_LIMIT_PER_HOUR, teamId, order }),
         insertFirstMessageStatement(env.DB, { id: crypto.randomUUID(), ticketId: id, authorId: staff.id, body: v.value.body, now: at }),
         auditStatement(env.DB, { staffId: staff.id, action: "feedback_created", at, targetType: "feedback", targetId: id, detail: team.sensitive === 1 ? "phiếu nhóm nhạy cảm" : v.value.title.slice(0, 100) }, `EXISTS (SELECT 1 FROM fbk_ticket WHERE id = '${id}')`),
       ]);
@@ -157,6 +197,13 @@ export const feedbackModule: AppModule = {
     }),
 
     // Tuyến TĨNH khai trước tuyến có :id để "mine"/"badge"/"teams" không bị hiểu là id.
+    // Danh sách đơn để gắn vào phiếu (ADR-0127 quyết định 3): tối đa 30 đơn do CHÍNH người gọi lập, mã giảm dần, chỉ id / mã / trạng thái (mã — nhãn tiếng Việt do
+    // giao diện lấy từ trangThaiHienThi). Cổng: ô order.view của chính mình — tài khoản bị rút quyền xem đơn không còn thấy mã đơn cũ qua cửa này. Không ghi gì.
+    route("GET", "/api/feedback/my-orders", "staff", async ({ env, staff }) => {
+      if (!can(staff, "order.view", { ownerId: staff.id })) return error(403, "forbidden", "Tài khoản của bạn không xem được đơn hàng.");
+      const rows = await listDonCuaToi(env.DB, staff.id);
+      return json({ orders: rows.map((r) => ({ id: r.id, orderCode: r.order_code, status: r.status as OrderStatus })) } satisfies FeedbackMyOrdersResponse);
+    }),
     // Danh sách nhóm để chọn khi gửi (bên ngoài chỉ thấy Kỹ thuật — ADR-0119 điều 6) + tư cách thành viên của chính người gọi.
     route("GET", "/api/feedback/teams", "staff", async ({ env, staff }) => {
       const [teams, mine] = await Promise.all([listTeamsActive(env.DB), memberships(env.DB, staff)]);
@@ -168,6 +215,21 @@ export const feedbackModule: AppModule = {
         mine,
         isSuper: can(staff, "feedback.triage"),
       } satisfies FeedbackTeamsResponse);
+    }),
+    // Ứng viên giao việc của MỘT nhóm (ADR-0127 quyết định 4): Trưởng nhóm của ĐÚNG nhóm đó và Toàn quyền — quyenPhieu với submitterId "" (không phiếu cụ thể, như
+    // hàng đợi) rồi DÙNG giaoViecChoNguoiKhac; không thêm hàm mới vào GUARDS. Thứ tự: hình dạng id → nhóm có thật (404) → quyền (403) → đọc. `?ticket=` (tuỳ chọn)
+    // = phiếu đang giao: loại người gửi phiếu đó CHỈ khi phiếu thuộc nhóm này (câu SQL tự kiểm). Tài khoản bên ngoài còn dòng thành viên cũ bị loại (R6, cùng
+    // phép thử với route gán thành viên) vì chọn họ thì giao việc thất bại. Chỉ id / tên (view nhãn) / vai — không SĐT, email. Không ghi gì.
+    route("GET", "/api/feedback/teams/:id/members", "staff", async ({ env, staff, params, url }) => {
+      const teamId = params.id!;
+      if (!TEAM_ID_RE.test(teamId)) return TEAM_NOT_FOUND();
+      if (!(await getTeam(env.DB, teamId))) return TEAM_NOT_FOUND();
+      const q = quyenPhieu({ who: staff, submitterId: "", ticketTeamId: teamId, memberships: await memberships(env.DB, staff) });
+      if (!q.giaoViecChoNguoiKhac) return error(403, "forbidden", "Chỉ Trưởng nhóm được giao việc.");
+      const rows = await listAssignable(env.DB, teamId, url.searchParams.get("ticket") ?? "");
+      const tk = await Promise.all(rows.map((r) => getStaffAccount(env.DB, r.staff_id)));
+      const members = rows.filter((_, i) => tk[i] !== null && tk[i]!.active && !tk[i]!.permissions.some(isExternalPermission));
+      return json({ members: members.map((r) => ({ staffId: r.staff_id, name: r.name, role: r.role })) } satisfies FeedbackMembersResponse);
     }),
     // ---- Quản lý nhóm hỗ trợ (ADR-0119 điều 2, 3): CHỈ Toàn quyền (ô feedback.team.manage). Tuyến tĩnh, khai trước /api/feedback/:id. ------------------
     // Nhật ký: targetId = id nhóm; detail CHỈ mã nhóm (+ vai với thành viên) — không tên/mô tả nhóm, không tên người, không SĐT.
@@ -355,7 +417,7 @@ export const feedbackModule: AppModule = {
       if (!t) return NOT_FOUND();
       const q = quyenPhieu({ who: staff, submitterId: t.submitter_id, ticketTeamId: t.team_id, memberships: await memberships(env.DB, staff) });
       if (!q.doc) return NOT_FOUND();
-      if (!q.xuLy) return error(403, "forbidden", "Chỉ nhóm xử lý được đổi trạng thái phiếu.");
+      if (!q.xuLy) return error(403, "forbidden", "Chỉ nhóm xử lý được xử lý phiếu.");
       const raw = await readJson(request);
       if (!raw) return BAD_JSON();
       const v = validatePatchInput(raw);
@@ -368,18 +430,15 @@ export const feedbackModule: AppModule = {
       }
       const at = new Date().toISOString();
       const doiNguoi = v.value.assignee !== undefined && v.value.assignee.value !== t.assignee_id;
+      if (doiNguoi && v.value.assignee!.value !== null && (await nguoiNhanNgoai(env.DB, v.value.assignee!.value))) return BAD_ASSIGNEE(); // R6
       // Lô: cổng (PATCH_TICKET) → sự kiện ASSIGNED khi đổi người (changes() của câu cập nhật) → nhật ký (changes() của câu ngay trước: sự kiện, hoặc câu cập nhật
       // khi không có sự kiện — sự kiện chỉ chèn khi câu cập nhật đổi dòng nên hai cách đều nghĩa là «cổng đã qua») → mốc đã xem của người làm.
       const res = await env.DB.batch([
-        patchTicketStatement(env.DB, { id, status: to, assignee: v.value.assignee, resolvedIn: v.value.resolvedIn, now: at, adminId: staff.id, fromStatus: from, teamId: t.team_id }),
+        patchTicketStatement(env.DB, { id, status: to, assignee: v.value.assignee, resolvedIn: v.value.resolvedIn, priority: v.value.priority, now: at, adminId: staff.id, fromStatus: from, teamId: t.team_id }),
         ...(doiNguoi
           ? [insertEventStatement(env.DB, { id: crypto.randomUUID(), ticketId: id, type: "ASSIGNED", from: t.assignee_id, to: v.value.assignee!.value, actor: staff.id, now: at })]
           : []),
-        auditStatement(
-          env.DB,
-          { staffId: staff.id, action: to ? "feedback_status_changed" : "feedback_assigned", at, targetType: "feedback", targetId: id, detail: to ? `${feedbackCode(t.seq)}: ${from} → ${to}` : feedbackCode(t.seq) },
-          "changes() > 0",
-        ),
+        ...nhatKyDoiPhieu(env.DB, { staffId: staff.id, t, v: v.value, from, to, at }),
         markSeenAfterWriteStatement(env.DB, { ticketId: id, staffId: staff.id, now: at }),
       ]);
       if ((res[0]?.meta.changes ?? 0) === 0) {
@@ -448,6 +507,26 @@ export const feedbackModule: AppModule = {
       } satisfies FeedbackDetailResponse);
     }),
 
+    // Tuyến làm mới khung trò chuyện (ADR-0127 quyết định 1): CHỈ ĐỌC — KHÔNG gọi markSeen / ghi mốc đã xem (tab chỉ để mở không được tắt chấm đỏ). Quyền đọc như
+    // tuyến chi tiết ngay dưới: id → phiếu → quyenPhieu (không đọc được ⇒ 404, kể cả khi since sai — không lộ phiếu có thật) → since (thiếu / sai ⇒ 400). Ghi chú
+    // nội bộ lọc bằng CÙNG đoạn SQL với tuyến chi tiết theo q.noiBo. Khai trước /api/feedback/:id (tuyến tĩnh/dài trước tuyến có tham số).
+    route("GET", "/api/feedback/:id/messages", "staff", async ({ env, staff, params, url }) => {
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const t = await getTicket(env.DB, id);
+      if (!t) return NOT_FOUND();
+      const q = quyenPhieu({ who: staff, submitterId: t.submitter_id, ticketTeamId: t.team_id, memberships: await memberships(env.DB, staff) });
+      if (!q.doc) return NOT_FOUND();
+      const since = parseSince(url.searchParams.get("since"));
+      if (!since) return error(400, "invalid_input", "Mốc thời gian không hợp lệ.");
+      const rows = await listMessagesSince(env.DB, id, q.noiBo, t.team_id, since, MESSAGES_SINCE_LIMIT);
+      const p = toTicket(t, false);
+      return json({
+        messages: rows.map((m) => toMessage(m, staff.id)),
+        ticket: { status: p.status, assigneeId: p.assigneeId, assigneeName: p.assigneeName, assigneeActive: p.assigneeActive, priority: p.priority, teamId: p.teamId },
+      } satisfies FeedbackMessagesSinceResponse);
+    }),
+
     route("GET", "/api/feedback/:id", "staff", async ({ env, staff, params }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
@@ -514,14 +593,12 @@ export const feedbackModule: AppModule = {
       if (to !== null && !canTransition(from, to)) {
         return error(409, "bad_transition", `Không thể chuyển từ "${FEEDBACK_STATUS_NAME[from]}" sang "${FEEDBACK_STATUS_NAME[to]}".`);
       }
+      const doiNguoi = v.value.assignee !== undefined && v.value.assignee.value !== t.assignee_id;
+      if (doiNguoi && v.value.assignee!.value !== null && (await nguoiNhanNgoai(env.DB, v.value.assignee!.value))) return BAD_ASSIGNEE(); // R6
       const at = new Date().toISOString();
       const res = await env.DB.batch([
-        patchTicketStatement(env.DB, { id, status: to, assignee: v.value.assignee, resolvedIn: v.value.resolvedIn, now: at, adminId: staff.id, fromStatus: from, teamId: t.team_id }),
-        auditStatement(
-          env.DB,
-          { staffId: staff.id, action: to ? "feedback_status_changed" : "feedback_assigned", at, targetType: "feedback", targetId: id, detail: to ? `${feedbackCode(t.seq)}: ${from} → ${to}` : feedbackCode(t.seq) },
-          "changes() > 0",
-        ),
+        patchTicketStatement(env.DB, { id, status: to, assignee: v.value.assignee, resolvedIn: v.value.resolvedIn, priority: v.value.priority, now: at, adminId: staff.id, fromStatus: from, teamId: t.team_id }),
+        ...nhatKyDoiPhieu(env.DB, { staffId: staff.id, t, v: v.value, from, to, at }),
         markSeenAfterWriteStatement(env.DB, { ticketId: id, staffId: staff.id, now: at }),
       ]);
       if ((res[0]?.meta.changes ?? 0) === 0) {

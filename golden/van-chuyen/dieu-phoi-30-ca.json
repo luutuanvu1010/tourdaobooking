@@ -341,10 +341,12 @@
     "Chủ chốt: xe riêng KHÔNG được xếp thêm khách lẻ, kể cả khi điều chỉnh khẩn cấp."
    ],
    "co_so": "chu_muon",
-   "trang_thai": "da_xac_nhan_ma_chua_theo",
+   "trang_thai": "da_xac_nhan",
    "kich_ban_e2e": "cam-ket-xe",
-   "adr": "Khác ADR-0104 mục 0b (đang cho bỏ qua cam kết khi chọn lý do)",
-   "ghi_chu_chu": "Chủ 2026-10-16: «xe riêng không được xếp thêm, kể cả khẩn cấp». Luật hiện hành cho bỏ qua cam kết xe riêng khi điều chỉnh khẩn cấp kèm lý do (kịch bản e2e cam-ket-xe bước 5). Cần quyết định riêng trước khi sửa mã."
+   "adr": "ADR-0128 Q2 thay ADR-0104 mục 0b (xe riêng không còn bỏ qua được)",
+   "ghi_chu_chu": "Chủ 2026-10-16: «xe riêng không được xếp thêm, kể cả khẩn cấp». Luật hiện hành cho bỏ qua cam kết xe riêng khi điều chỉnh khẩn cấp kèm lý do (kịch bản e2e cam-ket-xe bước 5). ĐÃ SỬA MÃ theo ADR-0128 (2026-10-17): mã nay khớp lời chủ.",
+   "adr_de_xuat": "ADR-0128 Q2 (accepted 2026-10-17, ĐÃ THI CÔNG 2026-10-17)",
+   "bai_chay_that": "src/modules/van-chuyen/so-vang-xe-rieng.test.ts"
   },
   {
    "ma": "VC-06",
@@ -359,9 +361,11 @@
     "Chủ chốt: xe thuê riêng KHÔNG bao giờ chấp nhận ghép thêm khách lẻ, kể cả Quản trị phá lệ."
    ],
    "co_so": "chu_muon",
-   "trang_thai": "da_xac_nhan_ma_chua_theo",
-   "adr": "Khác bài máy CAO-C hiện có (chủ chọn «báo mọi lệnh có bỏ qua luật» ngày 08/10)",
-   "ghi_chu_chu": "Chủ 2026-10-16: «xe thuê riêng không bao giờ chấp nhận ghép thêm khách lẻ». Luật hiện hành: Quản trị xếp được, sự kiện mang CAM_KET, tài xế nhận một tin trung tính."
+   "trang_thai": "da_xac_nhan",
+   "adr": "ADR-0128 Q2 thay bài máy CAO-C (xe riêng không còn phá lệ được; số chỗ tối thiểu vẫn phá lệ được)",
+   "ghi_chu_chu": "Chủ 2026-10-16: «xe thuê riêng không bao giờ chấp nhận ghép thêm khách lẻ». Luật hiện hành: Quản trị xếp được, sự kiện mang CAM_KET, tài xế nhận một tin trung tính.",
+   "adr_de_xuat": "ADR-0128 Q2 (accepted 2026-10-17, ĐÃ THI CÔNG 2026-10-17)",
+   "bai_chay_that": "src/modules/van-chuyen/so-vang-xe-rieng.test.ts"
   },
   {
    "ma": "VC-07",
@@ -722,10 +726,11 @@
     "Đơn VẪN LƯU (tăng lên 6)."
    ],
    "co_so": "adr",
-   "trang_thai": "da_xac_nhan_ma_chua_theo",
+   "trang_thai": "da_xac_nhan",
    "adr": "ADR-0104 Đ2; điểm «đơn vẫn lưu» do chủ chốt 2026-10-16",
-   "ghi_chu_chu": "Chủ 2026-10-16: «đơn vẫn lưu (tăng lên 6), xe giữ nguyên, báo người xếp xe». Mã hiện hành khác: đơn vẫn lưu 6, nhưng máy MỞ PHẦN CÒN CHỖ (xe còn 1 chỗ thì tự thêm 1 ghế, giữ thiếu 1) chứ không giữ nguyên xe. Quan sát bằng bài chạy thật 2026-10-16 (5 ghế mở thay vì 4). Cần quyết định riêng trước khi sửa mã.",
-   "bai_chay_that": "src/modules/van-chuyen/so-vang-dong-bo-va-tu-choi.test.ts"
+   "ghi_chu_chu": "Chủ 2026-10-16: «đơn vẫn lưu (tăng lên 6), xe giữ nguyên, báo người xếp xe». Mã hiện hành khác: đơn vẫn lưu 6, nhưng máy MỞ PHẦN CÒN CHỖ (xe còn 1 chỗ thì tự thêm 1 ghế, giữ thiếu 1) chứ không giữ nguyên xe. Quan sát bằng bài chạy thật 2026-10-16 (5 ghế mở thay vì 4). ĐÃ SỬA MÃ theo ADR-0128 (2026-10-17): mã nay khớp lời chủ.",
+   "bai_chay_that": "src/modules/van-chuyen/so-vang-dong-bo-va-tu-choi.test.ts",
+   "adr_de_xuat": "ADR-0128 Q3 (accepted 2026-10-17, ĐÃ THI CÔNG 2026-10-17)"
   },
   {
    "ma": "VC-18",

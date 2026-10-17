@@ -113,10 +113,10 @@ Lọc: [[Đang ghi đè giá]], [[Sheet đã đổi giá (cần xem)]], [[Đã �
 3. Chọn người, bấm [[Lưu người phụ trách]].`,
     },
     {
-      tieuDe: "Đặt gấp (giờ đón dưới 6 giờ)",
+      tieuDe: "Đặt gấp (giờ đón dưới mốc)",
       noiDung: `Đơn có giờ đón quá sát vẫn lưu nháp được, nhưng muốn xác nhận thì Quản trị phải duyệt Đặt gấp cho chặng đó.
 
-1. Mở đơn. Dưới dịch vụ có dải vàng báo giờ đón dưới mốc 6 giờ.
+1. Mở đơn. Dưới dịch vụ có dải vàng báo giờ đón dưới mốc.
 2. Bấm [[Đặt gấp]].
 3. Chọn lý do: [[Khách đoàn gọi gấp]], [[Chuyến bay đổi giờ]], [[Đơn bù cho khách bị lỡ chuyến]] hoặc [[Lý do khác]]. Gõ [[Ghi chú ngắn]] nếu cần.
 4. Bấm [[Duyệt đặt gấp]]. Sau đó đơn xác nhận được.
@@ -136,7 +136,7 @@ Mở [[Xe & giấy tờ]], chọn [[Giấy tờ sắp hết hạn]] (điện tho
     },
     {
       tieuDe: "Điều chỉnh khẩn cấp và phá lệ",
-      noiDung: `Trong 6 giờ trước giờ xuất bến (và khi xe chạy), xếp, rút, chuyển khách, đổi xe, đổi tài xế, huỷ chuyến còn khách là **điều chỉnh khẩn cấp**: Bán hàng cũng làm được. Chuyến còn hơn 6 giờ mà thiếu nghỉ, hoặc ghép khách, xe nhỏ trái cam kết [[Xe riêng]] hay [[Xe tối thiểu]] của đơn, là **phá lệ**: chỉ Quản trị.
+      noiDung: `Sát giờ xuất bến (trong mốc, và khi xe chạy), xếp, rút, chuyển khách, đổi xe, đổi tài xế, huỷ chuyến còn khách là **điều chỉnh khẩn cấp**: Bán hàng cũng làm được. Chuyến còn quá mốc mà thiếu nghỉ, hoặc ghép khách, xe nhỏ trái cam kết [[Xe riêng]] hay [[Xe tối thiểu]] của đơn, là **phá lệ**: chỉ Quản trị.
 
 1. Thao tác như thường trên [[Điều phối xe]] hoặc màn chuyến.
 2. Hộp hỏi hiện nút như [[Điều chỉnh khẩn cấp và rút]], [[Điều chỉnh khẩn cấp và lưu]], [[Phá lệ và xếp]], [[Phá lệ và lưu]].
@@ -242,7 +242,7 @@ Mở [[Phiên đăng nhập]] (điện thoại: trang **Tôi**) xem ai đang đ�
 
 ### Nhật ký, Hỗ trợ, hồ sơ công ty
 - [[Nhật ký]]: tìm theo mã đơn, mã dịch vụ hoặc tên nhân viên.
-- Hỗ trợ: thành viên nhóm có ngăn [[Hàng đợi nhóm]] để nhận việc, đổi trạng thái, trả lời; tick ghi chú nội bộ thì người gửi không thấy.
+- Hỗ trợ: ở [[Hàng đợi nhóm]], thành viên nhóm nhận việc, đổi trạng thái, mức ưu tiên, trả lời; Trưởng nhóm có thêm [[Giao cho người khác]].
 - Hồ sơ công ty trong Danh bạ: sửa tên, mã số thuế, địa chỉ, hotline (trang đăng nhập và biên nhận dùng các thông tin này). Thêm hotline mới trước khi đóng cái cũ.`,
     },
   ],

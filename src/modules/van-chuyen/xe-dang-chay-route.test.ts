@@ -282,12 +282,21 @@ test("D5.1 chặng về 'chưa xếp' sau khi xe kia kết thúc gián đoạn �
   }
 });
 
-test("Đợt 7 (THEM_KHI_CHAY — ADR-0056 VK3-A, ruling điều phối): thêm chặng đơn B vào xe đang chạy chở XE RIÊNG của A — Quản trị chỉ phá lệ mốc → 409 can_pha_le_cam_ket; kèm camKetPhaLe → 200, sự kiện mang MOC_TOI_THIEU (C6), cột phá lệ cam kết ghi, nhật ký hai đoạn", async () => {
+// ADR-0128 Q2 (chủ 2026-10-17): xe riêng KHÔNG phá lệ được → ống dẫn chạy bằng SỐ CHỖ TỐI THIỂU (chặng B đòi ≥ 16 chỗ, xe 15); đầu bài canh luật mới: xe riêng thì chặn cứng.
+test("Đợt 7 (THEM_KHI_CHAY — ADR-0056 VK3-A, ruling điều phối): thêm chặng đơn B đòi ≥ 16 chỗ vào xe đang chạy — Quản trị chỉ phá lệ mốc → 409 can_pha_le_cam_ket; kèm camKetPhaLe → 200, sự kiện mang MOC_TOI_THIEU (C6), cột phá lệ cam kết ghi, nhật ký hai đoạn", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
     const { a, b } = await xeDangChay(w);
+    // ADR-0128 Q2: xe đang chạy chở XE RIÊNG của A — thêm chặng B: chặn cứng, Quản trị gửi đủ hai cờ cũng 409 (không còn can_pha_le_cam_ket), không ghi sự kiện, cột phá lệ trống.
     w.sqlite.prepare("UPDATE ord_transfer_leg SET exclusive_vehicle = 1 WHERE id = ?").run(a.don.legId);
+    const chan = await themDiem(w, a.id, ADM, [{ legId: b.legId, soSuat: 2 }], { ...PHA_LE, camKetPhaLe: { lyDo: "PHA_LE_KHAC" } });
+    assert.equal(chan.status, 409, chan.text);
+    assert.equal(chan.json.error.code, "chang_khong_hop_le", chan.text);
+    assert.equal(w.q("SELECT count(*) n FROM vc_trip_event WHERE kind = 'STOP_ADDED_RUNNING'")[0].n, 0);
+    assert.equal(w.q("SELECT commitment_override_reason_code r FROM vc_trip WHERE id = ?", a.id)[0].r, null);
+    w.sqlite.prepare("UPDATE ord_transfer_leg SET exclusive_vehicle = 0 WHERE id = ?").run(a.don.legId);
+    w.sqlite.prepare("UPDATE ord_transfer_leg SET min_vehicle_seats = 16 WHERE id = ?").run(b.legId); // chặng B đòi xe ≥ 16 chỗ, xe 15 chỗ ⇒ vượt cam kết (phá lệ được)
     const r1 = await themDiem(w, a.id, ADM, [{ legId: b.legId, soSuat: 2 }], PHA_LE);
     assert.equal(r1.status, 409, r1.text);
     assert.equal(r1.json.error.code, "can_pha_le_cam_ket");
@@ -297,7 +306,7 @@ test("Đợt 7 (THEM_KHI_CHAY — ADR-0056 VK3-A, ruling điều phối): thêm 
     assert.deepEqual(dong(w.q("SELECT override_rule_code, override_reason_code FROM vc_trip_event WHERE kind = 'STOP_ADDED_RUNNING'")), [{ override_rule_code: "MOC_TOI_THIEU", override_reason_code: "PHA_LE_SU_CO" }]);
     const t = w.q("SELECT commitment_override_reason_code r, commitment_override_key k FROM vc_trip WHERE id = ?", a.id)[0];
     assert.equal(t.r, "PHA_LE_KHAC");
-    assert.ok(t.k.includes(a.don.legId) && t.k.includes(b.legId), t.k);
+    assert.ok(t.k.includes(`${b.legId}:CX:0:16`), t.k);
     const nk = w.q("SELECT detail FROM audit_log WHERE action = 'trip_stop_added_running'")[0].detail as string;
     // ADR-0104 Đ1 mục 4 (đổi có tên — chữ nhật ký): xe đang chạy luôn dưới mốc ⇒ cả hai luật lớp KHAN_CAP; đuôi " · xe đang chạy" một lần.
     assert.match(nk, / · điều chỉnh khẩn cấp mốc tối thiểu: Sự cố vận hành · điều chỉnh khẩn cấp cam kết: Khác · xe đang chạy$/);

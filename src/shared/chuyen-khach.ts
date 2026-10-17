@@ -23,6 +23,8 @@ const PHUT = 60_000;
 export const MA_LUAT_CHUYEN = [
   "SUC_CHUA_DICH", "SUC_CHUA_NGUON", "TRUNG_GIO_DICH", "KHOANG_NGHI_DICH", "MOC_TOI_THIEU", "HANG_BANG_DICH", "GIAY_TO_DICH", "KHONG_CHEO", "DIEM_CHUA_TOI",
   "CAM_KET_DICH", "CHANG_KHACH_HIEU_LUC",
+  // ADR-0128 Q2 — migration 0110: xe nhận có đơn xe riêng ⇒ không chuyển khách đơn khác vào (tầng LOI, chỉ Bác).
+  "XE_RIENG_DICH",
 ] as const;
 export type MaLuatChuyen = (typeof MA_LUAT_CHUYEN)[number];
 export type TangLuat = "LOI" | "CAU_HINH";
@@ -31,6 +33,7 @@ export type KetQuaLuat = "DAT" | "KHONG_DAT" | "CANH_BAO";
 export const TANG_LUAT: Readonly<Record<MaLuatChuyen, TangLuat>> = {
   SUC_CHUA_DICH: "LOI", SUC_CHUA_NGUON: "LOI", TRUNG_GIO_DICH: "LOI", KHOANG_NGHI_DICH: "CAU_HINH", MOC_TOI_THIEU: "CAU_HINH", HANG_BANG_DICH: "LOI",
   GIAY_TO_DICH: "LOI", KHONG_CHEO: "LOI", DIEM_CHUA_TOI: "LOI", CAM_KET_DICH: "CAU_HINH", CHANG_KHACH_HIEU_LUC: "LOI",
+  XE_RIENG_DICH: "LOI",
 };
 /** Nhãn của dòng gieo (`vc_transfer_rule.label`) — chữ chờ chủ duyệt. */
 export const NHAN_LUAT_CHUYEN: Readonly<Record<MaLuatChuyen, string>> = {
@@ -45,6 +48,7 @@ export const NHAN_LUAT_CHUYEN: Readonly<Record<MaLuatChuyen, string>> = {
   DIEM_CHUA_TOI: "Xe nhờ chưa tới điểm đón",
   CAM_KET_DICH: "Giữ cam kết xe với khách trên xe nhận",
   CHANG_KHACH_HIEU_LUC: "Chặng của khách còn hiệu lực",
+  XE_RIENG_DICH: "Xe nhận không chở khách đã đặt xe riêng",
 };
 const laMaLuat = (v: string): v is MaLuatChuyen => (MA_LUAT_CHUYEN as readonly string[]).includes(v);
 
@@ -171,7 +175,9 @@ export function kiemChuyen(v: KiemChuyenVao): { dong: DongKiemChuyen[]; camKet: 
     KHONG_CHEO: () => ({ ketQua: kq(d.taiXe !== null && khongCheo(d.xe, d.taiXe)), giaTri: null, gioiHan: null }),
     // STOP: điểm nguồn còn Chờ (LC-14); ONBOARD không có điểm nguồn → DAT cho đủ bằng chứng (giả định G-A5-26).
     DIEM_CHUA_TOI: () => ({ ketQua: kq(v.phamVi === "ONBOARD" || v.diemNguon?.trangThai === "PENDING"), giaTri: null, gioiHan: null }),
-    CAM_KET_DICH: () => ({ ketQua: kq(camKet.viPham.length === 0 || camKet.daPhaLe), giaTri: null, gioiHan: null }),
+    // ADR-0128 Q2: CAM_KET_DICH (CAU_HINH, duyệt được) chỉ còn xét số chỗ tối thiểu; xe riêng tách sang XE_RIENG_DICH (LOI, chỉ Bác).
+    CAM_KET_DICH: () => ({ ketQua: kq(camKet.viPham.every((x) => x.loai === "XR") || camKet.daPhaLe), giaTri: null, gioiHan: null }),
+    XE_RIENG_DICH: () => ({ ketQua: kq(!camKet.coXeRieng), giaTri: null, gioiHan: null }),
     // Đ2: mọi suất KHÁCH chuyển thuộc chặng mở của đơn đã xác nhận, chưa huỷ; người đi kèm không có chặng — không xét (khớp lc09_leg).
     CHANG_KHACH_HIEU_LUC: () => {
       const hong = khach.filter((s) => {

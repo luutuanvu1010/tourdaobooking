@@ -220,7 +220,7 @@ try {
   }
   let dn = await deNghiVp(rid2);
   assert.equal(dn.hop, "DUYET_HOAC_BAC");
-  assert.ok(dn.kiem.length === 11 && dn.kiem.every((k) => k.ketQua !== "KHONG_DAT"), "leo thang vì công tắc tắt, không vì điều kiện");
+  assert.ok(dn.kiem.length === 12 && dn.kiem.every((k) => k.ketQua !== "KHONG_DAT"), "leo thang vì công tắc tắt, không vì điều kiện");
   loi(await rut(A2, rid2), 409, "da_leo_thang");
   for (const who of [SALES, KE_TOAN]) assert.equal((await duyet(who, rid2)).status, 403, "chỉ trip.override duyệt");
   r = await duyet(ADMIN, rid2);
@@ -388,12 +388,16 @@ try {
   const rid9 = r.body.deNghi.id;
   ok(await nhan(w9.tx[1], rid9), "LEO_THANG", "ESCALATED");
   dn = await deNghiVp(rid9);
-  assert.equal(dn.hop, "DUYET_HOAC_BAC");
-  assert.deepEqual(dn.kiem.filter((k) => k.ketQua === "KHONG_DAT").map((k) => [k.ma, k.tang]), [["CAM_KET_DICH", "CAU_HINH"]]);
-  ok(await duyet(ADMIN, rid9), "DA_CHUYEN", "CONFIRMED");
+  // ADR-0128 Q2 (migration 0110): xe nhận chở đơn xe riêng ⇒ điều kiện XE_RIENG_DICH tầng LOI ⇒ chỉ Bác; Quản trị duyệt → 409, không ghi phá lệ.
+  assert.equal(dn.hop, "CHI_BAC");
+  assert.deepEqual(dn.kiem.filter((k) => k.ketQua === "KHONG_DAT").map((k) => [k.ma, k.tang]), [["XE_RIENG_DICH", "LOI"]]);
+  r = await duyet(ADMIN, rid9);
+  assert.equal(r.status, 409, JSON.stringify(r.body));
+  assert.equal(r.body.error.code, "luat_loi_khong_duyet");
   const [q9] = await sqlRows(`SELECT commitment_override_reason_code AS r, commitment_override_key AS k FROM vc_trip WHERE id = '${w9.id[1]}'`);
-  assert.ok(q9.r === "PHA_LE_SU_CO" && q9.k, `khoá phá lệ cam kết của xe nhận: ${JSON.stringify(q9)}`);
-  console.log("✓ TH09-9A: sai cam kết xe riêng → leo thang (Cấu hình) → Quản trị duyệt → khoá phá lệ cam kết của xe nhận");
+  assert.ok(q9.r === null && q9.k === null, `xe nhận KHÔNG có khoá phá lệ cam kết: ${JSON.stringify(q9)}`);
+  ok(await bac(ADMIN, rid9, TU_CHOI), "DA_BAC", "REJECTED");
+  console.log("✓ TH09-9A: xe nhận chở đơn xe riêng → leo thang chỉ Bác (XE_RIENG_DICH, Lỗi) → Quản trị duyệt 409 → Bác");
 
   // ==== TH10 nhờ chéo ====
   const p1 = await don("10:00", "Khách sạn Chéo A1", 1);

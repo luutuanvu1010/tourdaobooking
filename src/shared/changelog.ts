@@ -15,8 +15,8 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     // Gói 2 hồ sơ riêng tư, lát H-5 (ADR-0126): yêu cầu xoá dữ liệu cá nhân + Quản trị xem trước / thực hiện (ẩn danh hoá) + danh sách ảnh giấy tờ hết lý do giữ + ẩn danh phiên cũ;
     // migration 0108 (số TẠM — áp sau 0103–0107; kiểm số kế tiếp lúc phát hành). CÓ migration — cần trien-khai sau day-len. Chính sách riêng tư KHÔNG đăng trên production
     // cho tới khi luật sư duyệt chữ và chủ nhập số ngày hợp pháp (docs/HANDOFF-N1.md).
-    // Số 2.14 là số TẠM (không trùng 2.8–2.13 đang tạm ở các nhánh): phiên phát hành gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
-    version: "2.14",
+    // Số 2.16 là số TẠM (main đã dùng thật 2.10 và 2.11; không trùng 2.8–2.15): gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.16",
     date: "2026-10-17",
     items: [
       { kind: "moi", text: "Bạn có thể gửi yêu cầu xoá dữ liệu cá nhân của mình ở Tôi → Hồ sơ của tôi." },
@@ -27,8 +27,8 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Gói 2 hồ sơ riêng tư, lát H-4 (ADR-0125): Hàng chờ xác minh ở trang Quản lý tài khoản + luật tách nhiệm vụ; migration 0107 (số TẠM — kiểm số kế tiếp lúc phát hành,
     // nhánh vé hỗ trợ giữ 0106). CÓ migration — cần trien-khai sau day-len. Tự khai vẫn chỉ bật khi Toàn quyền đăng chính sách; chấp nhận phiếu giấy tờ chưa có (chưa có ảnh).
-    // Số 2.13 là số TẠM (không trùng 2.8–2.12 đang tạm ở các nhánh): phiên phát hành gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
-    version: "2.13",
+    // Số 2.15 là số TẠM (main đã dùng thật 2.10 và 2.11; không trùng 2.8–2.14): gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.15",
     date: "2026-10-17",
     items: [
       { kind: "moi", text: "Quản trị và Nhân sự có Hàng chờ xác minh ở trang Quản lý tài khoản: xem thông tin người dùng tự khai, chấp nhận nguyên văn hoặc từ chối kèm lý do." },
@@ -38,8 +38,8 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Gói 2 hồ sơ riêng tư, lát H-3 (ADR-0124, ADR-0126 đ1): khối "Hồ sơ của tôi" ở trang Tôi, chính sách riêng tư + đồng ý, phiếu tự khai (chưa có xác minh — lát H-4);
     // migration 0105. CÓ migration — cần trien-khai sau day-len. TỰ KHAI CHỈ BẬT KHI TOÀN QUYỀN ĐĂNG CHÍNH SÁCH (không gieo bản nào — ruling Q1).
-    // Số 2.12 là số TẠM (không trùng 2.8 / 2.9 / 2.10 / 2.11 đang tạm ở các nhánh): phiên phát hành gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
-    version: "2.12",
+    // Số 2.14 là số TẠM (main đã dùng thật 2.10 và 2.11; không trùng 2.8–2.13): gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.14",
     date: "2026-10-17",
     items: [
       { kind: "moi", text: "Trang Tôi có mục Hồ sơ của tôi: xem thông tin của mình, đọc chính sách riêng tư và gửi ngày sinh, địa chỉ, giấy tờ để được xác minh." },
@@ -49,9 +49,9 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Gói 2 hồ sơ riêng tư, lát H-2 (ADR-0123): kho tệp hồ sơ R2, route tải / mở ảnh giấy tờ chỉ Toàn quyền, hàng chờ xoá, gộp mang ảnh;
     // migration 0104. CÓ migration + CHỦ PHẢI TẠO KHO R2 TRƯỚC (docs/HANDOFF-N1.md; cổng 1e của trien-khai dừng nếu chưa có). Chưa có màn hình.
-    // Số 2.11 là số TẠM (điều phối chọn 2026-10-17: không trùng 2.8 / 2.10 đang tạm ở các nhánh khác). Cùng nhánh với 2.10 (lát H-0/H-1) nên sẽ lên CÙNG một lần
+    // Số 2.13 là số TẠM (main đã dùng thật 2.10 và 2.11). Cùng nhánh với 2.12 (lát H-0/H-1) nên sẽ lên CÙNG một lần
     // phát hành — phiên phát hành có thể gộp hai mục thành một số; kiểm lại số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
-    version: "2.11",
+    version: "2.13",
     date: "2026-10-17",
     items: [
       { kind: "doi", text: "Nền tảng đã có chỗ cất ảnh chụp giấy tờ (căn cước, bằng lái): chỉ Toàn quyền tải lên và mở xem, mỗi lần mở đều được ghi lại." },
@@ -61,12 +61,38 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Gói 2 hồ sơ riêng tư, lát H-0 + H-1 (Hiến chương 5.20; ADR-0122, ADR-0126 đ1): hạng dữ liệu cá nhân cho mọi cột; migration 0103 thêm ngày sinh, liên hệ địa chỉ,
     // giấy tờ tổ chức, sổ xác minh, chính sách riêng tư + đồng ý (chưa có màn nhập). CÓ migration — cần trien-khai sau day-len.
-    // Số 2.10 là số TẠM (main 2.8; worktree stoic-heisenberg giữ 2.9 — kiểm 2026-10-16): phiên phát hành kiểm lại số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Cập nhật 2026-10-17: main nay 2.9.
-    version: "2.10",
-    date: "2026-10-16",
+    // Số 2.12 là số TẠM (main đã dùng thật 2.10 và 2.11 — kiểm 2026-10-17): gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.12",
+    date: "2026-10-17",
     items: [
       { kind: "doi", text: "Danh bạ: ngày sinh và địa chỉ cá nhân chỉ Quản trị, Toàn quyền và chính người đó xem được. Bán hàng, Kế toán không thấy; tìm theo chữ số địa chỉ cũng không ra." },
       { kind: "doi", text: "Nền tảng đã có chỗ lưu giấy phép công ty đối tác và kết quả xác minh hồ sơ, nhưng chưa có màn hình nhập nên chưa có gì cho người dùng thấy." },
+    ],
+  },
+  {
+    // Sổ vàng vận chuyển (ADR-0128, ADR-0129): mốc ra lệnh Quản trị tự đặt, xe riêng không ghép khách lẻ, thêm khách thiếu chỗ giữ nguyên xe, tài xế công ty lái xe thuê.
+    // Có thay đổi cơ sở dữ liệu (migration 0109 viết lại hai trigger) — cần trien-khai sau day-len. Số 2.11 = production 2.10 + 1 (kiểm 2026-10-17).
+    version: "2.11",
+    date: "2026-10-17",
+    items: [
+      { kind: "moi", text: "Quản trị tự đặt được mốc ra lệnh và mức cảnh báo sát mốc (tính bằng phút) trong Chính sách điều phối; các cài đặt khác của trang vẫn chỉ Toàn quyền." },
+      { kind: "doi", text: "Xe riêng không bao giờ ghép thêm khách lẻ: bị chặn cả khi điều chỉnh khẩn cấp hay phá lệ. Riêng đơn đòi số chỗ tối thiểu thì Quản trị vẫn phá lệ được như trước." },
+      { kind: "doi", text: "Đơn tăng thêm khách mà xe không đủ chỗ cho cả phần tăng thì máy không thêm ghế nào, giữ nguyên xe và báo người xếp xe; đơn vẫn lưu số khách mới." },
+      { kind: "moi", text: "Tài xế công ty được lái xe nhà xe thuê khi đủ hạng bằng; chuyến hiện cảnh báo «chéo xe – tài xế». Tài xế nhà xe vẫn không lái xe công ty hay xe nhà xe khác." },
+      { kind: "sua", text: "Các hướng dẫn và trợ lý Mai nói «mốc ra lệnh» thay vì ghi cứng 6 giờ, vì mốc nay do Quản trị đặt." },
+    ],
+  },
+  {
+    // Vé hỗ trợ đợt 2a (ADR-0127): khung trò chuyện tự làm mới, mức ưu tiên, đơn liên quan, Trưởng nhóm giao việc. Có thay đổi cơ sở dữ liệu (migration 0106 thêm
+    // ba cột ở phiếu) — cần trien-khai sau day-len. Số 2.10 là số TẠM (= main / production 2.9 + 1, kiểm 2026-10-17; đã nhập main có mục 2.9):
+    // phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "2.10",
+    date: "2026-10-17",
+    items: [
+      { kind: "moi", text: "Trong một yêu cầu hỗ trợ, tin trả lời mới tự hiện sau vài giây khi trang đang mở, không cần tải lại; chữ bạn đang gõ vẫn giữ nguyên." },
+      { kind: "moi", text: "Khi gửi yêu cầu, bạn chọn được một đơn do chính mình lập ở ô Đơn liên quan; người xử lý thấy mã đơn; ai có quyền xem đơn đó thì bấm mở được." },
+      { kind: "moi", text: "Người xử lý đặt mức ưu tiên Thường, Cao hoặc Khẩn; hàng đợi nhóm xếp Khẩn lên đầu. Người gửi thấy mức nhưng không đổi được." },
+      { kind: "moi", text: "Trưởng nhóm hỗ trợ có nút Giao cho người khác để chọn thành viên trong nhóm nhận yêu cầu." },
     ],
   },
   {

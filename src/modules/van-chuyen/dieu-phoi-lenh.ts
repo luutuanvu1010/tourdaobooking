@@ -55,7 +55,7 @@ function camKetSauLenh(
   chung: DuLieuChung, ck: KetQuaCamKet, khoaDangLuu: string | null, p: { lyDo: string } | null, v: VuotLenh | null,
 ): { lo: CamKetLo | null; phaLe: PhaLe | null; nhatKy: string } {
   // ADR-0104 Đ1 mục 4: đuôi theo lớp lúc ghi (`v` — ngữ cảnh lớp của lệnh; lệnh chỉ giảm khách truyền null cùng p null, không bao giờ ghi mới).
-  if (ck.khoa !== null && !ck.daPhaLe && p && v) return { lo: { lyDo: p.lyDo, khoa: ck.khoa }, phaLe: phaLeCua(chung, "CAM_KET", p), nhatKy: phaLeNhatKy("CAM_KET", nhanLyDo(chung, p.lyDo), v) };
+  if (ck.khoa !== null && !ck.daPhaLe && !ck.coXeRieng && p && v) return { lo: { lyDo: p.lyDo, khoa: ck.khoa }, phaLe: phaLeCua(chung, "CAM_KET", p), nhatKy: phaLeNhatKy("CAM_KET", nhanLyDo(chung, p.lyDo), v) };
   if (ck.khoa === null && khoaDangLuu !== null) return { lo: { lyDo: null, khoa: null }, phaLe: null, nhatKy: " · hết vi phạm cam kết — bỏ phá lệ cam kết" };
   return { lo: null, phaLe: null, nhatKy: "" };
 }

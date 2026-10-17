@@ -103,11 +103,14 @@ test("(iv) tăng người, chặng chỉ trên chuyến này: mở thêm ĐÚNG 
   assert.equal(k2.mo[0]!.personKey, null);
 });
 
-test("(iv) hết chỗ (LC-02 — đếm suất WAITING/BOARDED mọi loại của chuyến): mở tới số chỗ còn, phần thiếu giữ THIEU_SUAT", () => {
+test("(iv) hết chỗ (LC-02 — đếm suất WAITING/BOARDED mọi loại của chuyến): ADR-0128 Q3 tất cả hoặc không — đủ chỗ cho CẢ phần tăng thì mở đủ, thiếu dù một chỗ thì KHÔNG mở ghế nào, giữ THIEU_SUAT", () => {
   const t = chuyen("T1", "CX-01", [suat("a1", "T1", "L1", null), suat("b1", "T1", "L2", null), suat("c1", "T1", null, null)], { soCho: 4 });
   const kq = chay([chang("L1", { soNguoi: 4, tang: 3 })], [t]);
-  assert.equal(kq.khuc[0]!.mo.length, 1);
+  assert.deepEqual(kq.khuc, [], "xe 4 chỗ, đã giữ 3, cần thêm 3 (còn 1): không mở ghế nào");
   assert.deepEqual(kq.giu, [{ tripId: "T1", legId: "L1", lyDo: "THIEU_SUAT" }]);
+  const vua = chay([chang("L1", { soNguoi: 4, tang: 3 })], [chuyen("T1", "CX-01", t.suat, { soCho: 6 })]);
+  assert.equal(vua.khuc[0]!.mo.length, 3, "xe 6 chỗ, đã giữ 3, cần thêm 3 (còn đúng 3): mở đủ 3");
+  assert.deepEqual(vua.giu, []);
   const day = chay([chang("L1", { soNguoi: 4, tang: 3 })], [chuyen("T1", "CX-01", t.suat, { soCho: 3 })]);
   assert.deepEqual(day.khuc, []);
   assert.deepEqual(day.giu, [{ tripId: "T1", legId: "L1", lyDo: "THIEU_SUAT" }]);
@@ -115,7 +118,7 @@ test("(iv) hết chỗ (LC-02 — đếm suất WAITING/BOARDED mọi loại c�
   assert.deepEqual(khongXe.khuc, [], "không đọc được xe → không mở thêm");
 });
 
-test("(iv) kiemCamKet vi phạm CHƯA phá lệ → không mở, giữ THIEU_SUAT; vi phạm ĐÃ phá lệ (khoá khớp) → mở như thường (khuôn kiemXep)", () => {
+test("(iv) kiemCamKet vi phạm CHƯA phá lệ → không mở, giữ THIEU_SUAT; số chỗ tối thiểu ĐÃ phá lệ (khoá khớp) → mở như thường; ADR-0128 Q2: xe riêng có khoá khớp vẫn KHÔNG mở", () => {
   const ds = [suat("a1", "T1", "L1", null), suat("b1", "T1", "LX", null)];
   const cam = new Map([
     ["L1", { legId: "L1", orderId: "o1", orderCode: "TD-1", xeRieng: false, choToiThieu: null }],
@@ -125,7 +128,18 @@ test("(iv) kiemCamKet vi phạm CHƯA phá lệ → không mở, giữ THIEU_SUA
   assert.deepEqual(kq.khuc, []);
   assert.deepEqual(kq.giu, [{ tripId: "T1", legId: "L1", lyDo: "THIEU_SUAT" }]);
   const khoa = "xe:xe-T1|L1:XR:0:-|LX:XR:1:-";
-  const da = chay([chang("L1", { soNguoi: 2, tang: 1 })], [chuyen("T1", "CX-01", ds, { changCamKet: cam, camKetPhaLeKhoa: khoa })]);
+  const xrDaKhoa = chay([chang("L1", { soNguoi: 2, tang: 1 })], [chuyen("T1", "CX-01", ds, { changCamKet: cam, camKetPhaLeKhoa: khoa })]);
+  assert.deepEqual(xrDaKhoa.khuc, [], "xe riêng: khoá lưu khớp cũng không mở thêm khách lẻ");
+  assert.deepEqual(xrDaKhoa.giu, [{ tripId: "T1", legId: "L1", lyDo: "THIEU_SUAT" }]);
+  // Số chỗ tối thiểu (R-CX) vẫn phá lệ được: chặng LX cần ≥ 20 chỗ trên xe 16 chỗ.
+  const camCx = new Map([
+    ["L1", { legId: "L1", orderId: "o1", orderCode: "TD-1", xeRieng: false, choToiThieu: null }],
+    ["LX", { legId: "LX", orderId: "o2", orderCode: "TD-2", xeRieng: false, choToiThieu: 20 }],
+  ]);
+  const chua = chay([chang("L1", { soNguoi: 2, tang: 1 })], [chuyen("T1", "CX-01", ds, { changCamKet: camCx })]);
+  assert.deepEqual(chua.khuc, []);
+  const khoaCx = "xe:xe-T1|LX:CX:0:20";
+  const da = chay([chang("L1", { soNguoi: 2, tang: 1 })], [chuyen("T1", "CX-01", ds, { changCamKet: camCx, camKetPhaLeKhoa: khoaCx })]);
   assert.equal(da.khuc[0]!.mo.length, 1);
 });
 

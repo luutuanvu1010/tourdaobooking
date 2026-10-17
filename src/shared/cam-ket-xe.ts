@@ -20,8 +20,10 @@ export interface KetQuaCamKet {
   viPham: ViPhamCamKet[];
   /** Khoá của tập vi phạm hiện tại (C4, C5); null khi không vi phạm. */
   khoa: string | null;
-  /** `khoa !== null && khoa === khoaDaPhaLe`. */
+  /** `khoa !== null && khoa === khoaDaPhaLe` VÀ không có vi phạm xe riêng (ADR-0128 Q2: xe riêng không phá lệ được — khoá đã lưu không bao giờ che nó). */
   daPhaLe: boolean;
+  /** Có ít nhất một vi phạm R-XR (đơn khác ghép vào xe riêng, hoặc chính chặng xe riêng bị ghép). ADR-0128 Q2: loại này KHÔNG ai bỏ qua được (kể cả khẩn cấp, Quản trị, Toàn quyền). */
+  coXeRieng: boolean;
   /** Mỗi vi phạm một lý do `CAM_KET`, lời gồm mã đơn và loại; rỗng khi không vi phạm. */
   lyDo: LyDoGiu[];
 }
@@ -76,7 +78,20 @@ export function kiemCamKet(v: { xe: { id: string; soCho: number }; chang: readon
   ds.sort((a, b) => (dongKhoa(a.x) < dongKhoa(b.x) ? -1 : dongKhoa(a.x) > dongKhoa(b.x) ? 1 : 0));
   const viPham = ds.map((d) => d.x);
   const khoa = khoaCamKet(v.xe.id, viPham);
-  return { viPham, khoa, daPhaLe: khoa !== null && khoa === v.khoaDaPhaLe, lyDo: ds.map((d) => lyDoGiu("CAM_KET", d.loi)) };
+  const coXeRieng = viPham.some((x) => x.loai === "XR");
+  return { viPham, khoa, daPhaLe: khoa !== null && khoa === v.khoaDaPhaLe && !coXeRieng, coXeRieng, lyDo: ds.map((d) => lyDoGiu("CAM_KET", d.loi)) };
+}
+
+/**
+ * ADR-0128 Q2: tách lý do cam kết thành CHẶN CỨNG (R-XR — xe riêng, không ai phá lệ được) và CẦN PHÁ LỆ (R-CX — số chỗ tối thiểu, bỏ qua được như ADR-0104 mục 0b).
+ * Đã phá lệ (khoá khớp, không có xe riêng) → cả hai rỗng. `lyDo` song song với `viPham` (cùng thứ tự).
+ */
+export function tachLyDoCamKet(ck: KetQuaCamKet): { chan: LyDoGiu[]; canPhaLe: LyDoGiu[] } {
+  const chan: LyDoGiu[] = [];
+  const canPhaLe: LyDoGiu[] = [];
+  if (ck.daPhaLe) return { chan, canPhaLe };
+  ck.viPham.forEach((x, i) => (x.loai === "XR" ? chan : canPhaLe).push(ck.lyDo[i]!));
+  return { chan, canPhaLe };
 }
 
 /**

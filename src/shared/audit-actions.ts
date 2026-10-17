@@ -263,6 +263,8 @@ export const AUDIT_ACTIONS = {
   feedback_claimed: { label: "Nhận việc yêu cầu hỗ trợ", group: "feedback" },
   // ADR-0119 điều 8: chuyển phiếu sang nhóm khác; targetId = id phiếu, detail CHỈ mã phiếu (YC-…) — không tên nhóm, không lý do (lý do là ghi chú nội bộ).
   feedback_team_changed: { label: "Chuyển nhóm yêu cầu hỗ trợ", group: "feedback" },
+  // ADR-0127 (đợt 2a): đổi mức ưu tiên; targetId = id phiếu, detail CHỈ mã phiếu + mức cũ → mới (vd "YC-0007: NORMAL → URGENT") — không tiêu đề, không mã đơn.
+  feedback_priority_changed: { label: "Đổi mức ưu tiên yêu cầu hỗ trợ", group: "feedback" },
   // ADR-0119 (Vé hỗ trợ đợt 1): targetId = id nhóm; detail CHỈ mã nhóm (+ vai với thành viên) — KHÔNG tên/mô tả nhóm, KHÔNG tên người, SĐT.
   feedback_team_created: { label: "Tạo nhóm hỗ trợ", group: "feedback" },
   feedback_team_updated: { label: "Sửa nhóm hỗ trợ", group: "feedback" },

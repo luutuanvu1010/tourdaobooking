@@ -97,10 +97,9 @@ test("VC-16 thêm khách, xe còn chỗ: xe 15 chỗ đã giữ 12, đơn 4 → 
   }
 });
 
-// VC-17: chủ chốt 2026-10-16 «đơn vẫn lưu (tăng lên 6), xe giữ nguyên, báo người xếp xe» — tức máy KHÔNG tự thêm ghế nào khi xe không đủ chỗ cho cả phần tăng.
-// Mã hiện hành (bài NT-5 «xe hết chỗ (LC-02)» ở dong-bo-chuyen-route.test.ts) mở phần CÒN CHỖ (ở đây 1 ghế) và giữ THIEU_SUAT cho phần còn lại: lệch ý chủ → ghi `todo`.
+// VC-17 (ADR-0128 Q3, chủ duyệt 2026-10-17): tất cả hoặc không — thiếu chỗ cho cả phần tăng thì không thêm ghế nào, đơn vẫn lưu.
 test("VC-17 thêm khách, xe hết chỗ: xe 15 chỗ đã giữ 14, đơn 4 → 6 cần 2 ghế, còn 1 → đơn VẪN LƯU; máy KHÔNG tự thêm ghế nào, xe giữ nguyên",
-  { todo: "chủ muốn khác luật hiện hành: máy hôm nay mở phần còn chỗ (1 ghế); cần quyết định riêng" }, async () => {
+  async () => {
     const tat = batDongHo();
     try {
       const { w, t, d } = await chuyenXeA(10, 4, 2);

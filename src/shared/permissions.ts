@@ -257,6 +257,8 @@ export const MATRIX = {
   // ADR-0104 Đ1 (accepted 2026-10-08, Q-1 b): "Điều chỉnh khẩn cấp" — vượt mốc ở MỌI lệnh bị khoá (xếp, rút, dời, thêm khách khi xe chạy, đổi xe, đổi tài
   // xế, huỷ chuyến còn khách); vượt khoảng nghỉ, cam kết KHI chuyến dưới mốc (ngoài mốc vẫn `trip.override`). Bán hàng, Quản trị, Toàn quyền — bằng
   // `trip.dispatch`; bài ghim: không rộng hơn `trip.dispatch` ở mọi cột. Lớp quyết ở `src/shared/moc-toi-thieu.ts` (lopVuotMoc / lopVuotNghiCamKet).
+  // ADR-0128 Q1 (chủ duyệt 2026-10-17): đặt MỐC RA LỆNH (mốc tối thiểu, cảnh báo sát mốc) — Quản trị, Toàn quyền; các cột khác của chính sách điều phối vẫn chỉ `settings.ops`.
+  "dispatch.policy.lead": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
   "trip.urgent_adjust": row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0049 D3 (Task A15): lệnh TIẾN ĐỘ (xuất bến, đã tới, đã đón, vắng, khách huỷ, đã trả, kết thúc, kết thúc gián đoạn, đổi thứ tự điểm khi đang chạy).
   // Tài xế công ty: CHỈ chuyến mình đang lái (`assigned` — route tài xế `…/cuoc-cua-toi/*`, cổng staff). Văn phòng (Bán hàng, Quản trị, Toàn quyền) bấm thay
