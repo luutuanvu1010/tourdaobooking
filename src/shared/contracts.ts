@@ -1211,7 +1211,8 @@ export interface FeedbackAdminTeamsResponse { teams: FeedbackAdminTeamDto[] }
 /** GET /api/feedback/:id/messages?since=…: tin mới (người gửi không bao giờ nhận ghi chú nội bộ) + phần đầu phiếu gọn để phát hiện đóng / đổi người / đổi mức / chuyển nhóm. Không ghi mốc đã xem. */
 export interface FeedbackMessagesSinceResponse {
   messages: FeedbackMessageDto[];
-  ticket: { status: FeedbackStatus; assigneeId: string | null; assigneeName: string | null; priority: Priority; teamId: string };
+  /** assigneeActive: như FeedbackTicketDto — false khi chưa ai giữ hoặc người giữ không hợp lệ (đã khoá, bị gỡ khỏi nhóm): giao diện coi như chưa ai nhận. */
+  ticket: { status: FeedbackStatus; assigneeId: string | null; assigneeName: string | null; assigneeActive: boolean; priority: Priority; teamId: string };
 }
 /** GET /api/feedback/teams/:id/members: thành viên ĐANG hiệu lực, còn hoạt động, để Trưởng nhóm giao việc (không có người gửi phiếu, tài khoản bị khoá, tài khoản bên ngoài). */
 export interface FeedbackMembersResponse { members: { staffId: string; name: string; role: TeamRole }[] }

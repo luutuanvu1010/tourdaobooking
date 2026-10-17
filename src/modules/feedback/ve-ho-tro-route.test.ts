@@ -1033,8 +1033,8 @@ test("tuyến làm mới — quyền: người gửi không thấy ghi chú nộ
   assert.ok(!sales.text.includes("Ghi chú nội bộ Kế toán"));
   assert.deepEqual(sales.json.messages.map((m: any) => m.body), ["Nội dung hỏi.", "Trả lời công khai"]);
   assert.deepEqual(Object.keys(sales.json).sort(), ["messages", "ticket"]);
-  assert.deepEqual(Object.keys(sales.json.ticket).sort(), ["assigneeId", "assigneeName", "priority", "status", "teamId"]);
-  assert.deepEqual(sales.json.ticket, { status: "NEW", assigneeId: null, assigneeName: null, priority: "NORMAL", teamId: KE_TOAN });
+  assert.deepEqual(Object.keys(sales.json.ticket).sort(), ["assigneeActive", "assigneeId", "assigneeName", "priority", "status", "teamId"]);
+  assert.deepEqual(sales.json.ticket, { status: "NEW", assigneeId: null, assigneeName: null, assigneeActive: false, priority: "NORMAL", teamId: KE_TOAN });
   for (const as of [KT_TV, KT_TN, SUPER]) {
     const r = await moi(w, id, as, XUA);
     assert.equal(r.status, 200, `${as} ${r.text}`);
@@ -1065,7 +1065,7 @@ test("tuyến làm mới sau chuyển nhóm: thành viên / Trưởng nhóm cũ 
   await nhan(w, id, KT_TV);
   await xuLy(w, id, KT_TN, { priority: "HIGH" });
   const truoc = await moi(w, id, KT_TV, XUA);
-  assert.deepEqual(truoc.json.ticket, { status: "ACK", assigneeId: KT_TV, assigneeName: "NV 3", priority: "HIGH", teamId: KE_TOAN });
+  assert.deepEqual(truoc.json.ticket, { status: "ACK", assigneeId: KT_TV, assigneeName: "NV 3", assigneeActive: true, priority: "HIGH", teamId: KE_TOAN });
   assert.equal((await traLoi(w, id, KT_TV, "Bí mật Kế toán", true)).status, 201);
   assert.equal((await chuyen(w, id, KT_TN, NHAN_SU, "Việc của Nhân sự")).status, 200);
   assert.equal((await moi(w, id, KT_TV, XUA)).status, 404, "thành viên nhóm cũ mất quyền ngay");
@@ -1075,7 +1075,7 @@ test("tuyến làm mới sau chuyển nhóm: thành viên / Trưởng nhóm cũ 
   const noiBo = ns.json.messages.filter((m: any) => m.internal).map((m: any) => m.body);
   assert.ok(!noiBo.some((b: string) => b.includes("Bí mật Kế toán")), "nhóm mới không thấy ghi chú nhóm cũ");
   assert.ok(noiBo.some((b: string) => b.includes("Việc của Nhân sự")));
-  assert.deepEqual(ns.json.ticket, { status: "ACK", assigneeId: null, assigneeName: null, priority: "HIGH", teamId: NHAN_SU });
+  assert.deepEqual(ns.json.ticket, { status: "ACK", assigneeId: null, assigneeName: null, assigneeActive: false, priority: "HIGH", teamId: NHAN_SU });
   assert.ok((await moi(w, id, SUPER, XUA)).json.messages.some((m: any) => m.body === "Bí mật Kế toán"));
   assert.ok(!(await moi(w, id, SALES, XUA)).json.messages.some((m: any) => m.internal), "người gửi vẫn không thấy ghi chú nào");
 });
@@ -1207,4 +1207,61 @@ test("tuyến thành viên: chỉ người đang hiệu lực + còn hoạt đ�
   const truoc = [w.q("SELECT count(*) AS n FROM audit_log")[0].n, w.q("SELECT count(*) AS n FROM fbk_team_member")[0].n, w.q("SELECT count(*) AS n FROM fbk_ticket_read")[0].n];
   await ids(phieuGui);
   assert.deepEqual([w.q("SELECT count(*) AS n FROM audit_log")[0].n, w.q("SELECT count(*) AS n FROM fbk_team_member")[0].n, w.q("SELECT count(*) AS n FROM fbk_ticket_read")[0].n], truoc);
+});
+
+// ---- Việc 4 vòng sửa 1 (Ruling R6, đặc tả 2.4): không giao phiếu cho tài khoản BÊN NGOÀI còn dòng thành viên cũ — cả /xu-ly lẫn tuyến cũ của Toàn quyền --------
+const giaoQua = [
+  ["xu-ly (Trưởng nhóm)", (w: any, id: string, body: unknown) => xuLy(w, id, KT_TN, body)],
+  ["tuyến cũ (Toàn quyền)", (w: any, id: string, body: unknown) => w.call("PATCH", `/api/feedback/${id}`, { as: SUPER, body })],
+] as const;
+
+test("R6 giao việc: người nhận là đối tác / tài khoản lai / tài xế đối tác còn dòng thành viên cũ ⇒ 400 cùng câu lỗi; không đổi người giữ, không sự kiện, không nhật ký — ở cả hai route", async () => {
+  for (const [ten, giao] of giaoQua) {
+    for (const [k, s] of [["p", PARTNER], ["l", LAI], ["t", TXDT]] as const) {
+      const w = setup();
+      w.sqlite.exec(`INSERT INTO fbk_team_member (id, team_id, staff_id, role, valid_from_at, created_at, updated_at) VALUES ('tv-ngoai-${k}', '${KE_TOAN}', '${s}', 'MEMBER', '${NOW}', '${NOW}', '${NOW}')`);
+      const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+      await nhan(w, id, KT_TV);
+      const nk0 = w.q(`SELECT count(*) AS n FROM audit_log WHERE target_id = '${id}'`)[0].n;
+      const r = await giao(w, id, { assigneeId: s });
+      assert.equal(r.status, 400, `${ten} ${k}: ${r.text}`);
+      assert.deepEqual(r.json.error, { code: "invalid_input", message: "Người xử lý phải là thành viên đang hoạt động của nhóm giữ phiếu (không phải người gửi)." }, `${ten} ${k}: cùng câu lỗi, không lộ loại tài khoản`);
+      assert.equal(w.q(`SELECT assignee_id FROM fbk_ticket WHERE id = '${id}'`)[0].assignee_id, KT_TV, `${ten} ${k}: người giữ không đổi`);
+      assert.equal(w.q(`SELECT count(*) AS n FROM fbk_ticket_event WHERE ticket_id = '${id}' AND type = 'ASSIGNED'`)[0].n, 0, `${ten} ${k}: không sự kiện ASSIGNED`);
+      assert.equal(w.q(`SELECT count(*) AS n FROM audit_log WHERE target_id = '${id}'`)[0].n, nk0, `${ten} ${k}: không dòng nhật ký`);
+    }
+  }
+});
+
+test("R6 giao việc — đối chứng: bỏ gán, tự gán, giao cho thành viên nội bộ, gửi lại đúng người đang giữ đều 200 (ở cả hai route)", async () => {
+  for (const [ten, giao] of giaoQua) {
+    const w = setup();
+    w.sqlite.exec(`INSERT INTO fbk_team_member (id, team_id, staff_id, role, valid_from_at, created_at, updated_at) VALUES ('tv-ngoai-p', '${KE_TOAN}', '${PARTNER}', 'MEMBER', '${NOW}', '${NOW}', '${NOW}')`);
+    const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+    const noiBo = await giao(w, id, { assigneeId: KT_TV });
+    assert.equal(noiBo.status, 200, `${ten} giao nội bộ: ${noiBo.text}`);
+    assert.equal(noiBo.json.ticket.assigneeId, KT_TV);
+    const lai = await giao(w, id, { assigneeId: KT_TV });
+    assert.equal(lai.status, 200, `${ten} gửi lại đúng người đang giữ: ${lai.text}`);
+    const bo = await giao(w, id, { assigneeId: null });
+    assert.equal(bo.status, 200, `${ten} bỏ gán: ${bo.text}`);
+    assert.equal(bo.json.ticket.assigneeId, null);
+    if (ten.startsWith("xu-ly")) {
+      const tu = await giao(w, id, { assigneeId: KT_TN });
+      assert.equal(tu.status, 200, `Trưởng nhóm tự giao cho mình: ${tu.text}`);
+      assert.equal(tu.json.ticket.assigneeId, KT_TN);
+    }
+  }
+});
+
+test("tuyến làm mới: phần đầu phiếu có assigneeActive — người giữ bị khoá ⇒ false (giao diện khỏi hiện tên như người đang giữ)", async () => {
+  const w = setup();
+  const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
+  assert.equal((await moi(w, id, KT_TN, XUA)).json.ticket.assigneeActive, false, "chưa ai giữ");
+  await nhan(w, id, KT_TV);
+  assert.equal((await moi(w, id, KT_TN, XUA)).json.ticket.assigneeActive, true);
+  w.sqlite.exec(`UPDATE staff SET active = 0 WHERE id = '${KT_TV}'`);
+  const r = await moi(w, id, KT_TN, XUA);
+  assert.equal(r.json.ticket.assigneeId, KT_TV);
+  assert.equal(r.json.ticket.assigneeActive, false, "người giữ đã khoá");
 });

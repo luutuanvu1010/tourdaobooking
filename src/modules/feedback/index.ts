@@ -113,6 +113,16 @@ async function memberships(db: D1Database, who: PermissionHolder): Promise<Membe
   return who.permissions.some(isExternalPermission) ? [] : membershipsOf(db, who.id);
 }
 
+/**
+ * Người nhận phiếu là tài khoản BÊN NGOÀI (kể cả tài khoản lai, tài xế đối tác)? R6: họ không làm thành viên nhóm, nhưng dữ liệu có thể còn dòng thành viên cũ
+ * (chèn thẳng, hoặc trước khi luật có) mà câu PATCH_TICKET không biết (không chép mã quyền bên ngoài vào SQL). Cùng phép thử với route gán thành viên.
+ * Hai route giao việc gọi TRƯỚC lô ghi khi đổi sang người khác; true ⇒ BAD_ASSIGNEE (cùng câu với ca hỏng khác, không lộ loại tài khoản).
+ */
+async function nguoiNhanNgoai(db: D1Database, staffId: string): Promise<boolean> {
+  const tk = UUID_RE.test(staffId) ? await getStaffAccount(db, staffId) : null;
+  return tk !== null && tk.permissions.some(isExternalPermission);
+}
+
 /** Nạp tư cách rồi quyết quyền trên một phiếu. CHỈ dùng trong detail(); route gọi thẳng quyenPhieu (hàng rào route-write-guard đọc thân route). */
 async function quyenCuaToi(db: D1Database, who: PermissionHolder, t: TicketRow): Promise<QuyenPhieu> {
   return quyenPhieu({ who, submitterId: t.submitter_id, ticketTeamId: t.team_id, memberships: await memberships(db, who) });
@@ -420,6 +430,7 @@ export const feedbackModule: AppModule = {
       }
       const at = new Date().toISOString();
       const doiNguoi = v.value.assignee !== undefined && v.value.assignee.value !== t.assignee_id;
+      if (doiNguoi && v.value.assignee!.value !== null && (await nguoiNhanNgoai(env.DB, v.value.assignee!.value))) return BAD_ASSIGNEE(); // R6
       // Lô: cổng (PATCH_TICKET) → sự kiện ASSIGNED khi đổi người (changes() của câu cập nhật) → nhật ký (changes() của câu ngay trước: sự kiện, hoặc câu cập nhật
       // khi không có sự kiện — sự kiện chỉ chèn khi câu cập nhật đổi dòng nên hai cách đều nghĩa là «cổng đã qua») → mốc đã xem của người làm.
       const res = await env.DB.batch([
@@ -512,7 +523,7 @@ export const feedbackModule: AppModule = {
       const p = toTicket(t, false);
       return json({
         messages: rows.map((m) => toMessage(m, staff.id)),
-        ticket: { status: p.status, assigneeId: p.assigneeId, assigneeName: p.assigneeName, priority: p.priority, teamId: p.teamId },
+        ticket: { status: p.status, assigneeId: p.assigneeId, assigneeName: p.assigneeName, assigneeActive: p.assigneeActive, priority: p.priority, teamId: p.teamId },
       } satisfies FeedbackMessagesSinceResponse);
     }),
 
@@ -582,6 +593,8 @@ export const feedbackModule: AppModule = {
       if (to !== null && !canTransition(from, to)) {
         return error(409, "bad_transition", `Không thể chuyển từ "${FEEDBACK_STATUS_NAME[from]}" sang "${FEEDBACK_STATUS_NAME[to]}".`);
       }
+      const doiNguoi = v.value.assignee !== undefined && v.value.assignee.value !== t.assignee_id;
+      if (doiNguoi && v.value.assignee!.value !== null && (await nguoiNhanNgoai(env.DB, v.value.assignee!.value))) return BAD_ASSIGNEE(); // R6
       const at = new Date().toISOString();
       const res = await env.DB.batch([
         patchTicketStatement(env.DB, { id, status: to, assignee: v.value.assignee, resolvedIn: v.value.resolvedIn, priority: v.value.priority, now: at, adminId: staff.id, fromStatus: from, teamId: t.team_id }),
