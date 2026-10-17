@@ -6,6 +6,7 @@ import type { ContactInput, OrgFields, PersonName, RelationshipInput, RoleInput 
 import type { GioiTinh } from "../../shared/xung-ho.ts";
 import { composePersonName } from "./rules.ts";
 import type { LoaiTep } from "./tep.ts";
+import type { ChamTaiKhoan, LoaiCham } from "./xac-minh.ts";
 
 export type PartyKind = "PERSON" | "ORGANIZATION";
 
@@ -1163,3 +1164,111 @@ export const ghiPhieuStatement = (db: D1Database, v: {
 export const timPhieuCuaHoSo = (db: D1Database, id: string, partyId: string): Promise<PhieuTimRow | null> => db.prepare(FIND_PHIEU).bind(id, partyId).first<PhieuTimRow>();
 export const rutPhieuStatement = (db: D1Database, v: { id: string; partyId: string; at: string; actorId: string }): D1PreparedStatement =>
   db.prepare(RUT_PHIEU).bind(v.id, v.partyId, v.at, v.actorId);
+
+// ---- Xác minh phiếu tự khai (ADR-0125; lát H-4 Gói 2) -------------------------------------------------------------------------------------------------
+// LÍNH GÁC TÁCH NHIỆM VỤ nằm TRONG câu quyết (ADR-0125 đ5; Hiến chương 5.23 bảng thi hành). ?3 = người xác minh, ?4 = 1 nếu người đó giữ Toàn quyền (chốt cuối,
+// chỉ bỏ vế b, c — vế a luôn áp + trigger 0107). View v_aud_cham_tai_khoan do module audit công bố (parties không đọc audit_log). Biên 30 ngày: strftime %f (R21).
+// Số giấy tờ đủ CHỈ rời CSDL qua hàm "số đủ của phiếu chờ" (route "xem đủ số", ghi nhật ký TRƯỚC); các câu đọc khác không chọn document_number.
+export interface PhieuChoRow {
+  id: string; party_id: string; subject_kind: string; document_type_code: string | null; created_at: string; created_by: string | null; display_name: string; merged: number;
+}
+export interface PhieuXongRow {
+  id: string; subject_kind: string; status: string; reason_code: string | null; decided_by: string | null; decided_at: string | null; verifier_touched_account: number | null;
+}
+export interface PhieuChiTietRow {
+  id: string; party_id: string; subject_kind: string; policy_id: string; birth_date: string | null; address_value: string | null; document_type_code: string | null;
+  type_name: string | null; number_key: string | null; license_class_code: string | null; class_name: string | null; issued_date: string | null; issued_place: string | null;
+  expiry_date: string | null; status: string; created_by: string | null; created_at: string; merged: number;
+}
+const LIST_PHIEU_CHO = defineSql("parties", "list_pending_self_submissions",
+  `SELECT s.id, s.party_id, s.subject_kind, s.document_type_code, s.created_at, s.created_by, p.display_name,
+          CASE WHEN p.merged_into_id IS NULL THEN 0 ELSE 1 END AS merged
+   FROM pty_self_submission s JOIN pty_party p ON p.id = s.party_id
+   WHERE s.status = 'CHO_XAC_MINH' ORDER BY s.created_at, s.id LIMIT ?1`);
+const LIST_PHIEU_XONG = defineSql("parties", "list_decided_self_submissions",
+  `SELECT s.id, s.subject_kind, s.status, s.reason_code, s.decided_by, s.decided_at, v.verifier_touched_account
+   FROM pty_self_submission s LEFT JOIN pty_verification v ON v.id = s.id
+   WHERE s.status IN ('DA_CHAP_NHAN', 'TU_CHOI') ORDER BY s.decided_at DESC, s.id DESC LIMIT ?1`);
+const FIND_PHIEU_XET = defineSql("parties", "find_self_submission_for_verify",
+  `SELECT s.id, s.party_id, s.subject_kind, s.policy_id, s.birth_date, s.address_value, s.document_type_code, t.name AS type_name, s.number_key,
+          s.license_class_code, c.name AS class_name, s.issued_date, s.issued_place, s.expiry_date, s.status, s.created_by, s.created_at,
+          CASE WHEN p.merged_into_id IS NULL THEN 0 ELSE 1 END AS merged
+   FROM pty_self_submission s JOIN pty_party p ON p.id = s.party_id
+   LEFT JOIN pty_person_document_type t ON t.code = s.document_type_code
+   LEFT JOIN pty_license_class c ON c.code = s.license_class_code
+   WHERE s.id = ?1`);
+const FIND_SO_DU = defineSql("parties", "find_pending_self_submission_number",
+  `SELECT s.document_number, t.name AS type_name FROM pty_self_submission s JOIN pty_person_document_type t ON t.code = s.document_type_code
+   WHERE s.id = ?1 AND s.status = 'CHO_XAC_MINH' AND s.document_number IS NOT NULL`);
+const LIST_CHAM = defineSql("parties", "list_account_touches",
+  "SELECT actor_id, account_id, loai, at FROM v_aud_cham_tai_khoan WHERE account_id IN (SELECT value FROM json_each(?1))");
+const SO_O_HO_SO_KHAC = defineSql("parties", "self_submission_number_elsewhere",
+  `SELECT 1 AS x FROM pty_person_document d WHERE d.party_id <> ?1 AND d.number_key = ?2 AND d.document_type_code = ?3 AND d.voided_at IS NULL LIMIT 1`);
+export const listPhieuCho = async (db: D1Database, tran = 5000): Promise<PhieuChoRow[]> => (await db.prepare(LIST_PHIEU_CHO).bind(tran).all<PhieuChoRow>()).results;
+export const listPhieuDaXuLy = async (db: D1Database, limit = 50): Promise<PhieuXongRow[]> => (await db.prepare(LIST_PHIEU_XONG).bind(limit).all<PhieuXongRow>()).results;
+export const timPhieuChoXet = (db: D1Database, id: string): Promise<PhieuChiTietRow | null> => db.prepare(FIND_PHIEU_XET).bind(id).first<PhieuChiTietRow>();
+export const soDuCuaPhieuCho = (db: D1Database, id: string): Promise<{ document_number: string; type_name: string } | null> =>
+  db.prepare(FIND_SO_DU).bind(id).first<{ document_number: string; type_name: string }>();
+export async function chamCuaTaiKhoan(db: D1Database, accountIds: readonly string[]): Promise<ChamTaiKhoan[]> {
+  if (accountIds.length === 0) return [];
+  const r = await db.prepare(LIST_CHAM).bind(JSON.stringify(accountIds)).all<{ actor_id: string; account_id: string; loai: LoaiCham; at: string }>();
+  return r.results.map((x) => ({ actorId: x.actor_id, accountId: x.account_id, loai: x.loai, at: x.at }));
+}
+export async function trungSoHoSoKhac(db: D1Database, partyId: string, numberKey: string, typeCode: string): Promise<boolean> {
+  return (await db.prepare(SO_O_HO_SO_KHAC).bind(partyId, numberKey, typeCode).first()) !== null;
+}
+
+const CHAM_CUA_NGUOI = (actor: string, alias: string): string =>
+  `EXISTS (SELECT 1 FROM v_aud_cham_tai_khoan c WHERE c.account_id = ${alias}.created_by AND c.actor_id = ${actor}
+     AND (c.loai IN ('TAO', 'VINH_VIEN') OR (c.loai = 'CUA_SO_30' AND c.at >= strftime('%Y-%m-%dT%H:%M:%fZ', ${alias}.created_at, '-30 days'))))`;
+const DECIDE = defineSql("parties", "decide_self_submission",
+  `UPDATE pty_self_submission SET status = ?2, reason_code = ?5, decided_at = ?6, decided_by = ?3, updated_at = ?6, updated_by = ?3
+   WHERE id IN (SELECT s.id FROM pty_self_submission s WHERE s.id = ?1 AND s.status = 'CHO_XAC_MINH' AND s.created_by <> ?3
+                  AND (?4 = 1 OR NOT ${CHAM_CUA_NGUOI("?3", "s")}))`);
+export const quyetPhieuStatement = (db: D1Database, v: { id: string; ketLuan: "DA_CHAP_NHAN" | "TU_CHOI"; lyDo: string | null; actorId: string; at: string; laToanQuyen: boolean }): D1PreparedStatement =>
+  db.prepare(DECIDE).bind(v.id, v.ketLuan, v.actorId, v.laToanQuyen ? 1 : 0, v.ketLuan === "TU_CHOI" ? v.lyDo : null, v.at);
+
+// Điều kiện THẮNG cho mọi câu phụ thuộc trong cùng lô (parties không có wonGuard — module nghiêm): chính dòng phiếu đã mang người + lúc của lô này.
+// ?1 = mã phiếu, ?2 = người xác minh, ?3 = lúc.
+const DA_THANG = `EXISTS (SELECT 1 FROM pty_self_submission w WHERE w.id = ?1 AND w.status = 'DA_CHAP_NHAN' AND w.decided_by = ?2 AND w.decided_at = ?3)`;
+const ACCEPT_BIRTH = defineSql("parties", "accept_self_submission_birth_date",
+  `UPDATE pty_person SET birth_date = (SELECT s.birth_date FROM pty_self_submission s WHERE s.id = ?1), updated_at = ?3, updated_by = ?2
+   WHERE party_id = (SELECT s.party_id FROM pty_self_submission s WHERE s.id = ?1) AND ${DA_THANG}`);
+const ACCEPT_ADDRESS = defineSql("parties", "accept_self_submission_address",
+  `INSERT INTO pty_contact_point (id, party_id, contact_kind_code, value, value_normalized, label, is_primary, valid_from_date, created_at, created_by, updated_at, updated_by)
+   SELECT ?4, s.party_id, 'ADDRESS', s.address_value, ?5, NULL,
+          CASE WHEN EXISTS (SELECT 1 FROM pty_contact_point c WHERE c.party_id = s.party_id AND c.contact_kind_code = 'ADDRESS' AND c.valid_to_date IS NULL) THEN 0 ELSE 1 END,
+          ?6, ?3, ?2, ?3, ?2
+   FROM pty_self_submission s WHERE s.id = ?1 AND ${DA_THANG}`);
+// previous_id = dòng giấy tờ hiện hành cùng loại của hồ sơ (chưa huỷ, chưa có dòng gia hạn) — tính TRONG câu ghi nên không lệch giữa lúc đọc và lúc ghi (R14).
+// DẠNG `INSERT OR IGNORE … VALUES (subselect)` CÓ CHỦ Ý (không `INSERT … SELECT`): chèn nhiều dòng vào pty_person_document làm SQLite đọc bảng con của module khác
+// (vc_trip_departure_check_item, khoá ngoại tới giấy tờ) và bài ranh giới SQL của architecture.test.ts đỏ — dạng VALUES một dòng thì không. Điều kiện thắng nằm ở `party_id`:
+// lô thua ⇒ NULL ⇒ vi phạm NOT NULL ⇒ IGNORE bỏ dòng (0 dòng, không lỗi). IGNORE cũng nuốt vi phạm CHECK / UNIQUE, nhưng câu dòng xác minh liền sau trỏ tới dòng giấy tờ
+// này và trigger đích (verification_target_mismatch) làm cả lô hỏng — còn trigger RAISE(ABORT) (số CCCD thuộc hồ sơ khác) vẫn ném lỗi như thường.
+// Mỗi cột đọc qua CÙNG điều kiện thắng ⇒ lô thua đưa NULL vào MỌI cột (trigger của bảng không thấy dòng nửa vời, ví dụ gia hạn nối dòng của lô thắng).
+const COT_THANG = (col: string): string => `(SELECT s.${col} FROM pty_self_submission s WHERE s.id = ?1 AND ${DA_THANG})`;
+const ACCEPT_DOCUMENT = defineSql("parties", "accept_self_submission_document",
+  `INSERT OR IGNORE INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, license_class_code, issued_date, issued_place, expiry_date,
+     previous_id, created_at, created_by, updated_at, updated_by)
+   VALUES (?4, ${COT_THANG("party_id")}, ${COT_THANG("document_type_code")}, ${COT_THANG("document_number")}, ${COT_THANG("number_key")}, ${COT_THANG("license_class_code")},
+     ${COT_THANG("issued_date")}, ${COT_THANG("issued_place")}, ${COT_THANG("expiry_date")},
+     (SELECT d.id FROM pty_person_document d WHERE d.party_id = ${COT_THANG("party_id")} AND d.document_type_code = ${COT_THANG("document_type_code")}
+        AND d.voided_at IS NULL AND NOT EXISTS (SELECT 1 FROM pty_person_document n WHERE n.previous_id = d.id AND n.voided_at IS NULL)
+        ORDER BY d.created_at DESC, d.id DESC LIMIT 1),
+     ?3, ?2, ?3, ?2)`);
+const ACCEPT_TOUCH_PARTY = defineSql("parties", "accept_self_submission_touch_party",
+  `UPDATE pty_party SET updated_at = ?3, updated_by = ?2 WHERE id = (SELECT s.party_id FROM pty_self_submission s WHERE s.id = ?1) AND ${DA_THANG}`);
+const ACCEPT_VERIFICATION = defineSql("parties", "accept_self_submission_verification",
+  `INSERT INTO pty_verification (id, party_id, target_kind, target_id, attribute_code, outcome, reason_code, verifier_touched_account, created_at, created_by, updated_at, updated_by)
+   SELECT s.id, s.party_id, ?4, ?5, ?6, 'DA_XAC_MINH', NULL, CASE WHEN ${CHAM_CUA_NGUOI("?2", "s")} THEN 1 ELSE 0 END, ?3, ?2, ?3, ?2
+   FROM pty_self_submission s WHERE s.id = ?1 AND ${DA_THANG}`);
+interface TuPhieu { id: string; actorId: string; at: string }
+export const ghiNgaySinhTuPhieuStatement = (db: D1Database, v: TuPhieu): D1PreparedStatement => db.prepare(ACCEPT_BIRTH).bind(v.id, v.actorId, v.at);
+/** `valueNormalized` = khoá so của địa chỉ (chữ thường — cùng luật `validateContact` ADDRESS); `today` = ngày VN. Giá trị địa chỉ chép NGUYÊN VĂN từ phiếu. */
+export const ghiDiaChiTuPhieuStatement = (db: D1Database, v: TuPhieu & { contactId: string; valueNormalized: string; today: string }): D1PreparedStatement =>
+  db.prepare(ACCEPT_ADDRESS).bind(v.id, v.actorId, v.at, v.contactId, v.valueNormalized, v.today);
+export const ghiGiayToTuPhieuStatement = (db: D1Database, v: TuPhieu & { documentId: string }): D1PreparedStatement =>
+  db.prepare(ACCEPT_DOCUMENT).bind(v.id, v.actorId, v.at, v.documentId);
+export const lamMoiHoSoTuPhieuStatement = (db: D1Database, v: TuPhieu): D1PreparedStatement => db.prepare(ACCEPT_TOUCH_PARTY).bind(v.id, v.actorId, v.at);
+export const ghiXacMinhTuPhieuStatement = (db: D1Database, v: TuPhieu & { targetKind: "ATTRIBUTE" | "CONTACT" | "PERSON_DOCUMENT"; targetId: string | null; attributeCode: string | null }): D1PreparedStatement =>
+  db.prepare(ACCEPT_VERIFICATION).bind(v.id, v.actorId, v.at, v.targetKind, v.targetId, v.attributeCode);

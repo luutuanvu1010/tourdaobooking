@@ -2,6 +2,7 @@
 // / ghi bảng pty_self_submission. Ba lưới: (1) chữ "pty_self_submission" chỉ ở src/modules/parties/repository.ts (ngoài tệp test); không view nào đọc bảng; (2) câu SQL đăng ký
 // chạm bảng = ĐÚNG tập ghim; (3) năm hàm repository chạm bảng chỉ được GỌI trong thân route /api/parties/cua-toi* của parties/index.ts — mọi tệp parties khác không nhắc,
 // không bí danh, không nhập cả gói (vòng sửa 1, M-1).
+// ADR-0125 đ1 (lát H-4): năm route /api/parties/xac-minh… được đọc phiếu ĐANG CHỜ để xác minh — liệt kê từng route ở bài (3) (mở ở việc 3, 4 khi route có thật).
 // Phá thử: gọi listPhieuCuaHoSo trong respondParty → (3) đỏ; thêm view chọn từ pty_self_submission vào migration → (1) đỏ.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -11,8 +12,20 @@ import { fileURLToPath } from "node:url";
 
 const SRC = fileURLToPath(new URL(".", import.meta.url));
 const BANG = "pty_self_submission";
-const CAU_GHIM = ["find_self_submission_of_party", "insert_self_submission", "list_self_submissions_of_party", "withdraw_pending_self_submissions_of_party", "withdraw_self_submission"];
+const CAU_GHIM = [
+  "find_self_submission_of_party", "insert_self_submission", "list_self_submissions_of_party", "withdraw_pending_self_submissions_of_party", "withdraw_self_submission",
+  // ADR-0125 (lát H-4): xác minh — đọc phiếu ĐANG CHỜ (không số đủ, trừ find_pending_self_submission_number) + câu quyết có lính gác + năm câu phụ thuộc có điều kiện thắng
+  "accept_self_submission_address", "accept_self_submission_birth_date", "accept_self_submission_document", "accept_self_submission_touch_party", "accept_self_submission_verification",
+  "decide_self_submission", "find_pending_self_submission_number", "find_self_submission_for_verify", "list_decided_self_submissions", "list_pending_self_submissions",
+].sort();
 const HAM = ["ghiPhieuStatement", "listPhieuCuaHoSo", "timPhieuCuaHoSo", "rutPhieuStatement", "rutMoiPhieuChoStatement"];
+// ADR-0125 đ1 (lát H-4): các route /api/parties/xac-minh… được đọc phiếu ĐANG CHỜ để xác minh — chỉ trong thân route có tiền tố này. Route có thật ở việc 3, 4 của lát
+// (hôm nay CHƯA route nào gọi nên chưa đòi "phải được gọi"); tới lúc đó bài (3) liệt kê từng route.
+const HAM_XAC_MINH = [
+  "listPhieuCho", "listPhieuDaXuLy", "timPhieuChoXet", "soDuCuaPhieuCho", "quyetPhieuStatement",
+  "ghiNgaySinhTuPhieuStatement", "ghiDiaChiTuPhieuStatement", "ghiGiayToTuPhieuStatement", "lamMoiHoSoTuPhieuStatement", "ghiXacMinhTuPhieuStatement",
+];
+const TIEN_TO_XAC_MINH = "/api/parties/xac-minh";
 
 function tepTs(dir: string): string[] {
   return readdirSync(dir).flatMap((f) => {
@@ -48,10 +61,10 @@ test("(3) hàm chạm bảng phiếu chỉ được GỌI trong thân route /api
     const ten = f.slice(SRC.length);
     const goc = readFileSync(f, "utf8");
     if (/import\s+\*\s+as\s+[A-Za-z_$][\w$]*\s+from\s+"\.\/repository(\.ts)?"/.test(goc)) loi.push(`nhập cả gói repository ở ${ten}`);
-    for (const h of HAM) if (new RegExp(`\\b${h}\\s+as\\b|\\b${h}\\s*:\\s*[A-Za-z_$]`).test(goc)) loi.push(`bí danh ${h} ở ${ten}`);
+    for (const h of [...HAM, ...HAM_XAC_MINH]) if (new RegExp(`\\b${h}\\s+as\\b|\\b${h}\\s*:\\s*[A-Za-z_$]`).test(goc)) loi.push(`bí danh ${h} ở ${ten}`);
     const src = goc.replace(/^import[\s\S]*?from\s+"[^"]+";\s*$/gm, "");
     if (!f.endsWith("/parties/index.ts")) {
-      for (const h of HAM) if (new RegExp(`\\b${h}\\b`).test(src)) loi.push(`${h} ở ${ten} (ngoài index.ts)`);
+      for (const h of [...HAM, ...HAM_XAC_MINH]) if (new RegExp(`\\b${h}\\b`).test(src)) loi.push(`${h} ở ${ten} (ngoài index.ts)`);
       continue;
     }
     coIndex = true;
@@ -59,6 +72,10 @@ test("(3) hàm chạm bảng phiếu chỉ được GỌI trong thân route /api
     for (const k of khuc) {
       const m = /^route\("[A-Z]+", "([^"]+)"/.exec(k);
       const duong = m?.[1] ?? "(ngoài route)";
+      for (const h of HAM_XAC_MINH) {
+        if (new RegExp(`\\b${h}\\b`).test(k) && !duong.startsWith(TIEN_TO_XAC_MINH)) loi.push(`${h} ở ${duong} (chỉ route ${TIEN_TO_XAC_MINH}…)`);
+        if (new RegExp(`\\b${h}\\b(?!\\s*\\()`).test(k)) loi.push(`${h} được nhắc mà không gọi ở ${duong} (gán / truyền đi là đường vòng)`);
+      }
       for (const h of HAM) {
         if (new RegExp(`\\b${h}\\b`).test(k) && !duong.startsWith("/api/parties/cua-toi")) loi.push(`${h} ở ${duong}`);
         if (new RegExp(`\\b${h}\\b(?!\\s*\\()`).test(k)) loi.push(`${h} được nhắc mà không gọi ở ${duong} (gán / truyền đi là đường vòng)`);
@@ -68,7 +85,7 @@ test("(3) hàm chạm bảng phiếu chỉ được GỌI trong thân route /api
   }
   assert.ok(coIndex, "chống bài rỗng: phải quét được parties/index.ts");
   const repo = readFileSync(join(THU_MUC, "repository.ts"), "utf8");
-  for (const h of HAM) {
+  for (const h of [...HAM, ...HAM_XAC_MINH]) {
     const n = repo.match(new RegExp(`\\b${h}\\b`, "g"))?.length ?? 0;
     if (n !== 1) loi.push(`repository.ts nhắc ${h} ${n} lần (chỉ được đúng một — lúc định nghĩa)`);
   }
