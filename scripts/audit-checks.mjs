@@ -717,9 +717,11 @@ export const CHECKS = [
     code: "R-PTY-17",
     what: "dòng giấy tờ hoặc phiếu tự khai đã ẩn danh mà số không phải dấu ẩn danh hoặc còn nơi cấp",
     sql: `SELECT (SELECT COUNT(*) FROM pty_person_document WHERE erased_at IS NOT NULL AND (issued_place IS NOT NULL
-             OR (document_number IS NOT NULL AND document_number <> 'XOA' || upper(replace(id, '-', '')))))
+             OR (document_number IS NOT NULL AND document_number <> 'XOA' || upper(replace(id, '-', '')))
+             OR (number_key IS NOT NULL AND number_key <> 'XOA' || upper(replace(id, '-', '')))))
          + (SELECT COUNT(*) FROM pty_self_submission WHERE erased_at IS NOT NULL AND (issued_place IS NOT NULL
              OR (document_number IS NOT NULL AND document_number <> 'XOA' || upper(replace(id, '-', '')))
+             OR (number_key IS NOT NULL AND number_key <> 'XOA' || upper(replace(id, '-', '')))
              OR (birth_date IS NOT NULL AND birth_date <> '1900-01-01') OR (address_value IS NOT NULL AND address_value <> 'Đã xoá')))`,
     level: "fail",
   },
@@ -733,7 +735,7 @@ export const CHECKS = [
          OR EXISTS (SELECT 1 FROM pty_self_submission s WHERE s.party_id = r.party_id AND s.created_at <= r.decided_at AND s.erased_at IS NULL)
          OR EXISTS (SELECT 1 FROM pty_contact_point c WHERE c.party_id IN (SELECT id FROM pty_party WHERE id = r.party_id OR merged_into_id = r.party_id)
                       AND c.created_at <= r.decided_at AND (c.value <> 'Đã xoá' OR c.value_normalized <> 'XOA' OR c.valid_to_date IS NULL))
-         OR EXISTS (SELECT 1 FROM pty_person p WHERE p.party_id = r.party_id AND p.birth_date IS NOT NULL AND p.updated_at <= r.decided_at)
+         OR EXISTS (SELECT 1 FROM pty_person p WHERE p.party_id IN (SELECT id FROM pty_party WHERE id = r.party_id OR merged_into_id = r.party_id) AND p.birth_date IS NOT NULL AND p.updated_at <= r.decided_at)
          OR EXISTS (SELECT 1 FROM pty_attachment a WHERE a.party_id IN (SELECT id FROM pty_party WHERE id = r.party_id OR merged_into_id = r.party_id)
                       AND a.created_at <= r.decided_at AND a.purged_at IS NULL))`,
     level: "fail",

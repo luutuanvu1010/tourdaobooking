@@ -160,8 +160,9 @@ test("(b2) tập trigger: có đủ trigger mới, trigger không đụng tới 
   assert.deepEqual(moi, [
     "pty_erasure_request_content", "pty_erasure_request_decider", "pty_erasure_request_new_ins", "pty_erasure_request_no_delete", "pty_erasure_request_no_replace",
     "pty_erasure_request_offsite_one_way", "pty_erasure_request_one_pending_ins", "pty_erasure_request_person_ins", "pty_erasure_request_status_one_way", "pty_erasure_request_withdraw",
-    "pty_party_merge_erasure", "pty_person_document_erase_shape", "pty_person_document_erased_frozen",
-    "pty_self_submission_erase_shape", "pty_self_submission_erased_frozen", "pty_self_submission_erasure_open_ins",
+    "pty_party_merge_erasure", "pty_person_document_erase_shape", "pty_person_document_erased_frozen", "pty_person_document_erased_ins",
+    "pty_person_document_next_ins", "pty_person_document_no_replace",
+    "pty_self_submission_erase_shape", "pty_self_submission_erased_frozen", "pty_self_submission_erased_ins", "pty_self_submission_erasure_open_ins",
   ]);
   for (const t of truoc) assert.ok(sau.includes(t), `trigger cũ ${t} bị mất`);
   for (const t of ["pty_person_document_identity", "pty_person_document_cccd_one_person_ins", "pty_person_document_cccd_one_person_upd", "pty_person_document_renew_ins",
@@ -185,15 +186,15 @@ test("(c) ẩn danh dòng giấy tờ HIỆN HÀNH, ĐÃ GIA HẠN THAY và ĐÃ
   assert.equal(r.find((x) => x.id === ID_B)!.voided_at, null);
 });
 
-test("(c2) hai người cùng số CCCD thật trước khi ẩn danh: dấu theo dòng nên không vướng trigger một CCCD một người", () => {
+test("(c2) hai người có CCCD HIỆN HÀNH khác nhau: dấu theo dòng nên ẩn danh cả hai không vướng trigger một CCCD một người", () => {
   const d = db();
   nguoi(d, "P");
   nguoi(d, "Q");
   giayTo(d, ID_A, "P");
-  d.prepare("UPDATE pty_person_document SET voided_at = ?, updated_at = ? WHERE id = ?").run(T2, T2, ID_A); // P nhập nhầm, huỷ; Q nhập đúng
-  giayTo(d, ID_B, "Q");
+  giayTo(d, ID_B, "Q", { num: "079000000999" });
   anDanhGiayTo(d, "1 = 1");
   assert.equal(rows(d, "SELECT count(DISTINCT number_key) n FROM pty_person_document")[0]!.n, 2);
+  assert.equal(rows(d, "SELECT count(*) n FROM pty_person_document WHERE voided_at IS NULL AND erased_at IS NOT NULL")[0]!.n, 2);
 });
 
 test("(d) dạng chuyển sai bị chặn: số khác dấu, giữ nơi cấp, đổi hạn / ngày cấp / hạng / huỷ cùng lúc đặt erased_at", () => {
@@ -266,6 +267,8 @@ test("(g) phiếu tự khai: ẩn danh phiếu ĐÃ CHẤP NHẬN, ĐÃ TỪ CH�
   sai("birth_date = '1900-01-01', decided_by = 's-9'", ns2, "đổi người xử lý cùng lúc");
   sai("address_value = 'x'", dc2, "địa chỉ khác dấu");
   sai("document_number = 'XOA1', number_key = 'XOA1', issued_place = NULL", gt2, "số khác dấu");
+  sai(`document_number = '${DAU(gt2)}', number_key = 'XOA1', issued_place = NULL`, gt2, "số đúng dấu, khoá số sai");
+  sai(`document_number = '${DAU(gt2)}', number_key = '079000000111', issued_place = NULL`, gt2, "số đúng dấu, giữ khoá số thật");
   sai(`document_number = '${DAU(gt2)}', number_key = '${DAU(gt2)}'`, gt2, "giữ nơi cấp");
   sai(`document_number = '${DAU(gt2)}', number_key = '${DAU(gt2)}', issued_place = NULL, expiry_date = '2040-01-01'`, gt2, "đổi hạn");
   sai(`document_number = '${DAU(ns2)}', number_key = '${DAU(ns2)}', birth_date = '1900-01-01'`, ns2, "đặt số lên phiếu ngày sinh (CHECK 0105 hoặc dạng)");
@@ -418,4 +421,48 @@ test("(m) migration trên dữ liệu mẫu của 0103–0107: dòng cũ vẫn h
   d.prepare("UPDATE pty_self_submission SET erased_at = ?, birth_date = '1900-01-01', updated_at = ? WHERE id = ?").run(T3, T3, ns);
   d.prepare("UPDATE pty_self_submission SET erased_at = ?, address_value = 'Đã xoá', updated_at = ? WHERE id = ?").run(T3, T3, dc);
   assert.equal(rows(d, "SELECT count(*) n FROM pty_person_document WHERE erased_at IS NOT NULL")[0]!.n, 4);
+});
+
+test("(n) INSERT không đảo ngược được ẩn danh (vòng sửa 1, I-1): REPLACE cùng id, giấy tờ / phiếu mang sẵn erased_at, REPLACE id mới cùng previous_id", () => {
+  const d = coGiayTo();
+  anDanhGiayTo(d, "party_id = 'P'");
+  const cot = `id, party_id, document_type_code, document_number, number_key, issued_date, issued_place, expiry_date, previous_id, voided_at, erased_at, created_at, created_by, updated_at, updated_by`;
+  const ghi = (kieu: string, id: string, prev: string | null, erased: string | null) =>
+    d.prepare(`INSERT ${kieu} INTO pty_person_document (${cot}) VALUES (?, 'P', 'CCCD', '079012345678', '079012345678', '2020-01-01', 'Nơi thật', '2035-01-01', ?, NULL, ?, ?, 's-1', ?, 's-1')`).run(id, prev, erased, T3, T3);
+  // A: REPLACE cùng id ghi đè dòng đã ẩn danh bằng số thật
+  assert.throws(() => ghi("OR REPLACE", ID_B, null, null), /person_document_no_replace/, "A");
+  assert.equal(rows(d, "SELECT document_number FROM pty_person_document WHERE id = ?", ID_B)[0]!.document_number, DAU(ID_B), "dòng ẩn danh còn nguyên");
+  // B: dòng mới mang sẵn erased_at
+  assert.throws(() => ghi("", "0b1e5c2a-0000-4000-8000-0000000000e1", null, T3), /person_document_erased_ins/, "B");
+  // D: id MỚI cùng previous_id với một dòng gia hạn đang sống — REPLACE xoá ngầm dòng cũ qua chỉ mục next_uq
+  assert.throws(() => ghi("OR REPLACE", "0b1e5c2a-0000-4000-8000-0000000000e2", ID_A, null), /person_document_next_exists/, "D");
+  assert.equal(rows(d, "SELECT count(*) n FROM pty_person_document WHERE id = ?", ID_B)[0]!.n, 1, "dòng gia hạn ẩn danh không bị xoá ngầm");
+  assert.throws(() => ghi("", "0b1e5c2a-0000-4000-8000-0000000000e3", ID_A, null), /person_document_next_exists|UNIQUE/, "INSERT thường cùng previous_id");
+  // Đường hợp lệ vẫn qua: gia hạn dòng hiện hành chưa có dòng nối (ID_G đã ẩn danh nhưng chưa có dòng nối) và dòng mới không erased_at
+  nguoi(d, "R");
+  d.prepare(`INSERT INTO pty_person_document (${cot}) VALUES ('0b1e5c2a-0000-4000-8000-0000000000e4', 'R', 'CCCD', '079000000555', '079000000555', '2020-01-01', 'Nơi cấp', '2035-01-01', NULL, NULL, NULL, ?, 's-1', ?, 's-1')`).run(T3, T3);
+  // E: phiếu CHO_XAC_MINH mang sẵn erased_at (người dùng kẹt vĩnh viễn)
+  const { d: d2 } = coPhieu();
+  nguoi(d2, "p2");
+  dongY(d2, "p2", "pol-1");
+  assert.throws(() => d2.prepare(`INSERT INTO pty_self_submission (id, party_id, subject_kind, policy_id, birth_date, status, erased_at, created_at, created_by, updated_at, updated_by)
+    VALUES ('ph-e', 'p2', 'NGAY_SINH', 'pol-1', '1990-05-06', 'CHO_XAC_MINH', ?, ?, 's-1', ?, 's-1')`).run(T3, T3, T3), /self_submission_erased_ins/, "E");
+  phieu(d2, "p2"); // phiếu thường vẫn gửi được
+});
+
+test("(o) phiếu xoá, vòng sửa 1 m-1: từng CHECK đứng riêng; trạng thái lạ; INSERT thẳng DA_THUC_HIEN; REPLACE id mới cùng hồ sơ", () => {
+  const d = db();
+  nguoi(d, "p1");
+  nguoi(d, "p2");
+  phieuXoa(d, "e-1", "p1");
+  const cap = (set: string) => d.prepare(`UPDATE pty_erasure_request SET ${set}, updated_at = '${T2}' WHERE id = 'e-1'`).run();
+  assert.throws(() => cap(`status = 'MO_LAI', decided_at = '${T2}', decided_by = 's-2'`), /CHECK constraint failed/, "trạng thái lạ");
+  assert.throws(() => cap(`status = 'DA_THUC_HIEN', decided_at = '${T2}', decided_by = 's-2', name_kept = 0`), /CHECK constraint failed/, "thiếu mã giữ lại, có name_kept");
+  assert.throws(() => cap(`status = 'DA_THUC_HIEN', decided_at = '${T2}', decided_by = 's-2', retained_codes = 'HOA_DON'`), /CHECK constraint failed/, "thiếu name_kept, có mã giữ lại");
+  // INSERT thẳng phiếu đã thực hiện, người xử lý trùng người gửi (đầy đủ cột để chỉ new_ins chặn)
+  assert.throws(() => d.prepare(`INSERT INTO pty_erasure_request (id, party_id, status, decided_at, decided_by, name_kept, retained_codes, created_at, created_by, updated_at, updated_by)
+    VALUES ('e-x', 'p2', 'DA_THUC_HIEN', ?, 's-1', 0, 'HOA_DON', ?, 's-1', ?, 's-1')`).run(T2, T, T2), /erasure_new_not_pending/);
+  // REPLACE với id MỚI cùng hồ sơ đang có phiếu chờ: chỉ one_pending_ins chặn (index duy nhất sẽ xoá ngầm phiếu cũ)
+  assert.throws(() => phieuXoa(d, "e-moi", "p1", { orReplace: true }), /erasure_pending_exists/);
+  assert.equal(rows(d, "SELECT status FROM pty_erasure_request WHERE id = 'e-1'")[0]!.status, "CHO_XU_LY", "phiếu chờ cũ còn nguyên");
 });

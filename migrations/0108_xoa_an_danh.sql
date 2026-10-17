@@ -27,6 +27,18 @@ BEGIN SELECT RAISE(ABORT, 'person_document_erase_shape: ẩn danh hoá chỉ tha
 CREATE TRIGGER pty_person_document_erased_frozen BEFORE UPDATE ON pty_person_document
 WHEN OLD.erased_at IS NOT NULL
 BEGIN SELECT RAISE(ABORT, 'person_document_erased: dòng đã ẩn danh hoá — không sửa'); END;
+-- Cửa INSERT (vòng sửa 1, I-1): ẩn danh chỉ đi bằng UPDATE. Không dòng mới nào mang sẵn erased_at; INSERT OR REPLACE không ghi đè dòng cùng mã (REPLACE xoá dòng cũ
+-- mà không chạy trigger xoá — bài học 0105) và không xoá ngầm dòng gia hạn đang sống qua chỉ mục duy nhất pty_person_document_next_uq (id mới cùng previous_id).
+CREATE TRIGGER pty_person_document_erased_ins BEFORE INSERT ON pty_person_document
+WHEN NEW.erased_at IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'person_document_erased_ins: dòng mới không mang sẵn dấu ẩn danh hoá'); END;
+CREATE TRIGGER pty_person_document_no_replace BEFORE INSERT ON pty_person_document
+WHEN EXISTS (SELECT 1 FROM pty_person_document p WHERE p.id = NEW.id)
+BEGIN SELECT RAISE(ABORT, 'person_document_no_replace: UNIQUE — mã giấy tờ đã có, không ghi đè'); END;
+CREATE TRIGGER pty_person_document_next_ins BEFORE INSERT ON pty_person_document
+WHEN NEW.previous_id IS NOT NULL AND NEW.voided_at IS NULL
+  AND EXISTS (SELECT 1 FROM pty_person_document p WHERE p.previous_id = NEW.previous_id AND p.voided_at IS NULL)
+BEGIN SELECT RAISE(ABORT, 'person_document_next_exists: UNIQUE constraint failed: pty_person_document.previous_id — giấy tờ đã có dòng gia hạn còn hiệu lực'); END;
 
 -- (2) Phiếu yêu cầu xoá (ADR-0126 đ2) — vòng đời một chiều CHO_XU_LY → DA_THUC_HIEN | TU_CHOI | RUT. due_at chụp lúc gửi từ chính sách hiện hành (rỗng = chưa có số).
 CREATE TABLE pty_erasure_request (
@@ -120,6 +132,10 @@ BEGIN SELECT RAISE(ABORT, 'self_submission_erase_shape: ẩn danh hoá phiếu c
 CREATE TRIGGER pty_self_submission_erased_frozen BEFORE UPDATE ON pty_self_submission
 WHEN OLD.erased_at IS NOT NULL
 BEGIN SELECT RAISE(ABORT, 'self_submission_erased: phiếu đã ẩn danh hoá — không sửa'); END;
+-- Cửa INSERT (vòng sửa 1, I-1): phiếu mới không mang sẵn erased_at (phiếu đang chờ đã ẩn danh sẽ kẹt vĩnh viễn: đóng băng + không rút được). Mã trùng đã chặn ở 0105.
+CREATE TRIGGER pty_self_submission_erased_ins BEFORE INSERT ON pty_self_submission
+WHEN NEW.erased_at IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'self_submission_erased_ins: phiếu mới không mang sẵn dấu ẩn danh hoá'); END;
 CREATE TRIGGER pty_self_submission_erasure_open_ins BEFORE INSERT ON pty_self_submission
 WHEN EXISTS (SELECT 1 FROM pty_erasure_request r WHERE r.party_id = NEW.party_id AND r.status = 'CHO_XU_LY')
 BEGIN SELECT RAISE(ABORT, 'self_submission_erasure_open: đang có yêu cầu xoá dữ liệu chờ xử lý — chưa gửi phiếu mới được'); END;
