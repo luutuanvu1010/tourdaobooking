@@ -704,8 +704,11 @@ const KHONG_VIEC: ViecDangMo = { doi: 0, phuTrachDon: 0, laiChuyen: 0, toLaiChuy
  */
 async function xetPhieuXoaDayDu(
   db: D1Database, gop: GopHoSoNoi, nguoi: { id: string; permissions: readonly PermissionCode[] }, p: { party_id: string; created_by: string }, chuPhieu: TaiKhoanXacMinh | null,
+  nhe = false,
 ): Promise<{ lyDo: LyDoKhongXuLy | null; don: DonCuaNguoiDatTom; soNo: number }> {
-  const [don, soNo, viec, chu] = await Promise.all([gop.donNguoiDat(p.party_id), gop.soDongNo(p.party_id), gop.viecCua(p.party_id), laCongTyChu(db, p.party_id)]);
+  // `nhe` (HÀNG CHỜ, vòng sửa 1, m-1): bỏ hai truy vấn không đổi được kết luận "xử lý được không" ở danh sách — số dòng nợ chỉ cho luật giữ tên (tính ở xem trước / Thực hiện),
+  // công ty chủ không bao giờ là phiếu (trigger chỉ nhận hồ sơ cá nhân; luật chặn ở Thực hiện và xem trước vẫn hỏi đủ).
+  const [don, soNo, viec, chu] = await Promise.all([gop.donNguoiDat(p.party_id), nhe ? Promise.resolve(0) : gop.soDongNo(p.party_id), gop.viecCua(p.party_id), nhe ? Promise.resolve(false) : laCongTyChu(db, p.party_id)]);
   const lyDo = xetXuLyPhieuXoa({ nguoi, phieu: { createdBy: p.created_by }, chuPhieu, laCongTyChu: chu, viec: { doi: don.doi, ...viec } });
   return { lyDo, don, soNo };
 }
@@ -1216,7 +1219,7 @@ export const partiesModule: AppModule = {
         anPhieu(xetXuLyPhieuXoa({ nguoi, phieu: { createdBy: r.created_by }, chuPhieu: chuCua(r.party_id), laCongTyChu: false, viec: KHONG_VIEC }));
       const cho = (await listPhieuXoaChoCoTen(env.DB, now)).filter((r) => !anPhieuXoa(r)).slice(0, TRAN_HANG_CHO);
       const phieu = await Promise.all(cho.map(async (r): Promise<PhieuXoaChoDto> => {
-        const kl = await xetPhieuXoaDayDu(env.DB, gopHoSo, nguoi, r, chuCua(r.party_id));
+        const kl = await xetPhieuXoaDayDu(env.DB, gopHoSo, nguoi, r, chuCua(r.party_id), true);
         return { id: r.id, tenHoSo: r.display_name, guiLuc: r.created_at, han: r.due_at, trangThaiHan: trangThaiHan(r.due_at, now), xuLyDuoc: kl.lyDo === null, lyDoKhong: kl.lyDo === null ? null : NHAN_LY_DO_KHONG_XU_LY[kl.lyDo] };
       }));
       const xong = (await listPhieuXoaDaXuLy(env.DB)).filter((r) => !anPhieuXoa(r)).slice(0, TRAN_HANG_CHO);

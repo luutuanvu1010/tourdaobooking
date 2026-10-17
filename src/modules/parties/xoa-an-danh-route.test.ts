@@ -398,6 +398,20 @@ test("(p2) hàng chờ: Quản trị thấy phiếu Đối tác / Bán hàng / T
   assert.doesNotMatch(JSON.stringify(sp.json), /erasure_self|nguoi_gui/);
 });
 
+test("(p2b) hàng chờ: số truy vấn D1 mỗi dòng ≤ 3 (không hỏi số dòng nợ, không hỏi công ty chủ theo từng dòng) — vòng sửa 1, m-1", async () => {
+  const w = setup();
+  for (const as of [DRVP, ADM2, HR, SUP, SALES]) assert.equal((await gui(w, as)).status, 201, as);
+  let n = 0;
+  const goc = w.env.DB.prepare.bind(w.env.DB);
+  w.env.DB.prepare = (sql: string) => { n++; return goc(sql); };
+  const r = await hangCho(w, SUP);
+  w.env.DB.prepare = goc;
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.phieu.length, 5);
+  // Toàn bộ lời gọi: phần chung (phiên, quyền, danh sách tài khoản, chính sách, hai danh sách phiếu, nhãn) + mỗi dòng không quá 3.
+  assert.ok(n <= 5 * 3 + 8, `số truy vấn ${n} vượt 5 dòng × 3 + 8 phần chung (đo 21; bản cũ 31)`);
+});
+
 test("(p3) xem trước: CHỈ số đếm, tập khoá đúng hợp đồng, không chuỗi nào khớp số giấy tờ / SĐT / ngày sinh / địa chỉ, no-store; ngoài cấp bậc → 404; mã lạ → 404", async () => {
   const w = setup();
   const { phieuId } = await guiDayDu(w, PARTNER);
