@@ -29,12 +29,12 @@ const Q = (w: W, sql: string, ...a: unknown[]) => w.q(sql, ...a).map((r: object)
 const dangChinhSach = (w: W, body: Record<string, unknown> = {}) =>
   w.call("POST", "/api/parties/chinh-sach-rieng-tu", { as: SUP, body: { mucDich: MUC_DICH, noiDung: "Toàn văn chính sách THỬ", ...body } });
 /** Gieo phiên: `ketThuc` = null ⇒ đang sống. Mọi phiên mang IP / User-Agent. */
-function gieoPhien(w: W, id: string, staffId: string, ketThuc: string | null): void {
+function gieoPhien(w: W, id: string, staffId: string, ketThuc: string | null, hetHan = "2099-01-01T00:00:00.000Z"): void {
   const now = new Date().toISOString();
   w.sqlite.prepare(
     `INSERT INTO aut_session (id, staff_id, method, single, device_label, user_agent, ip, created_at, last_seen_at, expires_at, ended_at, end_reason, updated_at)
-     VALUES (?, ?, 'PIN', 0, 'Máy thử', ?, ?, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', '2099-01-01T00:00:00.000Z', ?, ?, ?)`,
-  ).run(id, staffId, UA_THAT, IP_THAT, ketThuc, ketThuc === null ? null : "dang_xuat", now);
+     VALUES (?, ?, 'PIN', 0, 'Máy thử', ?, ?, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', ?, ?, ?, ?)`,
+  ).run(id, staffId, UA_THAT, IP_THAT, hetHan, ketThuc, ketThuc === null ? null : "dang_xuat", now);
 }
 const dongPhien = (w: W, id: string) => Q(w, "SELECT ip, user_agent, ended_at, device_label FROM aut_session WHERE id = ?", id)[0];
 
@@ -66,25 +66,28 @@ test("(s2) chính sách 30 ngày: GET đếm đúng; POST làm rỗng IP / User-
   gieoPhien(w, "p-cu2", ADM, "2000-01-01T00:00:00.000Z");
   gieoPhien(w, "p-moi", SALES, moi);
   gieoPhien(w, "p-song", HR, null);
+  // Vòng sửa 1, I-2: phiên đã HẾT HẠN từ lâu mà chưa ai đặt ended_at cũng phải được ẩn danh; phiên chưa hết hạn thì không.
+  gieoPhien(w, "p-hethan", HR, null, cu);
+  gieoPhien(w, "p-sap-het", HR, null, moi);
   const g = await w.call("GET", DUONG, { as: SUP });
   assert.equal(g.status, 200, g.text);
-  assert.deepEqual(g.json, { hanNgay: 30, soPhien: 2 });
+  assert.deepEqual(g.json, { hanNgay: 30, soPhien: 3 });
   assert.equal(Q(w, "SELECT count(*) n FROM audit_log WHERE action = 'sessions_anonymized'")[0].n, 0, "đọc không ghi");
   const p = await w.call("POST", DUONG, { as: SUP });
   assert.equal(p.status, 200, p.text);
-  assert.deepEqual(p.json, { daAnDanh: 2 });
-  for (const id of ["p-cu1", "p-cu2"]) {
+  assert.deepEqual(p.json, { daAnDanh: 3 });
+  for (const id of ["p-cu1", "p-cu2", "p-hethan"]) {
     const d = dongPhien(w, id);
     assert.equal(d.ip, null, id);
     assert.equal(d.user_agent, null, id);
     assert.equal(d.device_label, "Máy thử", "nhãn máy, mốc, lý do nguyên");
   }
-  for (const id of ["p-moi", "p-song"]) assert.deepEqual([dongPhien(w, id).ip, dongPhien(w, id).user_agent], [IP_THAT, UA_THAT], id);
+  for (const id of ["p-moi", "p-song", "p-sap-het"]) assert.deepEqual([dongPhien(w, id).ip, dongPhien(w, id).user_agent], [IP_THAT, UA_THAT], id);
   const nk = Q(w, "SELECT action, staff_id, target_type, detail FROM audit_log WHERE action = 'sessions_anonymized'");
   assert.equal(nk.length, 1);
   assert.equal(nk[0].staff_id, SUP);
   assert.equal(nk[0].target_type, "system");
-  assert.match(nk[0].detail, /^2 phiên kết thúc trước \d{2}:\d{2} \d{2}\/\d{2}\/\d{4}$/);
+  assert.match(nk[0].detail, /^3 phiên kết thúc trước \d{2}:\d{2} \d{2}\/\d{2}\/\d{4}$/);
   const tatCa = JSON.stringify(Q(w, "SELECT detail FROM audit_log"));
   for (const gt of [IP_THAT, UA_THAT]) assert.ok(!tatCa.includes(gt), `nhật ký lộ "${gt}"`);
   assert.ok(!p.text.includes(IP_THAT) && !g.text.includes(UA_THAT));
