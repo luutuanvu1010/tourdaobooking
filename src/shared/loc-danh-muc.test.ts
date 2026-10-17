@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { docNhoDanhMuc, locDanhMuc, NHO_DANH_MUC_TRONG, doiGhim, xepGhimTruoc, locTheoNhom, doiNhom, demTheoNhom, khoaNhoNhom, docNhoNhom, CHUA_PHAN_LOAI } from "./loc-danh-muc.ts";
+import { docNhoDanhMuc, locDanhMuc, NHO_DANH_MUC_TRONG, doiGhim, xepGhimTruoc, locTheoNhom, doiNhom, demTheoNhom, khoaNhoNhom, docNhoNhom, CHUA_PHAN_LOAI, docNhoMotNhom, ghiNhoMotNhom, chamNhom, doiChuTim, chiaMuc, nhomConKetQua, nhanDem, type TrangThaiNhom } from "./loc-danh-muc.ts";
 
 const it = (code: string, name: string, unit: string) => ({ code, name, unit });
 const DS = [it("TD101", "Tour 4 đảo", "perPax"), it("TTB03", "Phao chuối", "per5Pax"), it("TTB06", "Motor nước", "perPax"), it("DD01", "Đưa đón", "manual")];
@@ -107,4 +107,60 @@ test("docNhoNhom: dạng mới (mảng) giữ nhóm còn trong groups; dạng C�
   assert.deepEqual(docNhoNhom(JSON.stringify(CHUA_PHAN_LOAI), GROUPS), [CHUA_PHAN_LOAI], "bản nhớ cũ 'Chưa phân loại' đọc được");
   assert.deepEqual(docNhoNhom(JSON.stringify(["TTB", "TTB", CHUA_PHAN_LOAI]), GROUPS), ["TTB", CHUA_PHAN_LOAI], "bỏ trùng");
   for (const rac of [null, "", "rác", "{", "123", "null", "[]", '{"nhom":"TTB"}', '""', '[1,2]', '[null]', '["hay-dung"]', '"hay-dung"', '"theo-nguoi"']) assert.deepEqual(docNhoNhom(rac, GROUPS), [], String(rac));
+});
+
+// ---- Hàng nhóm CHỌN MỘT, chia mục, nhãn đếm (thiết kế lại màn Tạo đơn, 18/10/2026) ----
+test("docNhoMotNhom: mảng nhiều nhóm → lấy nhóm hợp lệ đầu; chuỗi đơn đọc được", () => {
+  assert.equal(docNhoMotNhom('["TTB","KON","TDA"]', GROUPS), "TTB");
+  assert.equal(docNhoMotNhom('["DA_TAT","KON","TDA"]', GROUPS), "KON", "bỏ nhóm không còn, lấy nhóm hợp lệ đầu");
+  assert.equal(docNhoMotNhom('"TTB"', GROUPS), "TTB", "chuỗi đơn");
+});
+
+test("docNhoMotNhom: JSON hỏng, null, nhóm đã xoá → '' (Tất cả)", () => {
+  assert.equal(docNhoMotNhom("{", GROUPS), "");
+  assert.equal(docNhoMotNhom(null, GROUPS), "");
+  assert.equal(docNhoMotNhom('["DA_TAT"]', GROUPS), "");
+});
+
+test("ghiNhoMotNhom: '' → [] ; có mã → mảng một phần tử", () => {
+  assert.deepEqual(ghiNhoMotNhom(""), []);
+  assert.deepEqual(ghiNhoMotNhom("TTB"), ["TTB"]);
+});
+
+test("chuỗi trạng thái nhóm: gõ chữ về 'Tất cả', chạm nhóm khi đang tìm thì giữ, xoá chữ thì trả nhóm cũ", () => {
+  const dau: TrangThaiNhom = { nhom: "TTB", truocKhiTim: null, daThuHep: false };
+  const a = doiChuTim(dau, "", "hòn");
+  assert.deepEqual(a, { nhom: "", truocKhiTim: "TTB", daThuHep: false });
+  const b = chamNhom(a, "HT", true);
+  assert.deepEqual(b, { nhom: "HT", truocKhiTim: "TTB", daThuHep: true });
+  const c = doiChuTim(b, "hòn", "hòn t");
+  assert.equal(c.nhom, "HT", "có→có: giữ nguyên");
+  assert.deepEqual(doiChuTim(c, "hòn t", ""), { nhom: "TTB", truocKhiTim: null, daThuHep: false });
+  assert.deepEqual(chamNhom(dau, "KON", false), { nhom: "KON", truocKhiTim: null, daThuHep: false }, "không tìm: không đánh dấu thu hẹp");
+  assert.deepEqual(doiChuTim({ nhom: "KON", truocKhiTim: null, daThuHep: false }, "x", ""), { nhom: "KON", truocKhiTim: null, daThuHep: false }, "xoá chữ khi chưa có nhóm cũ: giữ nhóm hiện tại");
+});
+
+test("chiaMuc: ★ Hay dùng đứng đầu, dịch vụ sao không lặp ở mục nhóm; mục nhóm theo thứ tự groups, Chưa phân loại cuối, mục rỗng bỏ", () => {
+  const ds = [g("TD1", "A", "perPax", "TDA"), g("TD2", "B", "perPax", "TDA"), g("TTB1", "C", "perPax", "TTB"), g("MOI1", "D", "perPax", null)];
+  const muc = chiaMuc(ds, GROUPS, ["TD2"]);
+  assert.deepEqual(muc.map((m) => m.khoa), ["hay-dung", "TDA", "TTB", CHUA_PHAN_LOAI]);
+  assert.equal(muc[0].tieuDe, "★ Hay dùng");
+  assert.deepEqual(ma(muc[0].dong), ["TD2"]);
+  assert.deepEqual(ma(muc[1].dong), ["TD1"], "TD2 không còn ở mục Tour đảo");
+  assert.equal(muc[1].tieuDe, "Tour đảo");
+  assert.equal(muc[3].tieuDe, "Chưa phân loại");
+  assert.deepEqual(chiaMuc(ds, GROUPS, null).map((m) => m.khoa), ["TDA", "TTB", CHUA_PHAN_LOAI], "null: không có mục sao");
+  assert.deepEqual(chiaMuc(ds, GROUPS, []).map((m) => m.khoa), ["TDA", "TTB", CHUA_PHAN_LOAI], "không dịch vụ sao: bỏ mục rỗng");
+  assert.deepEqual(chiaMuc([ds[2]], GROUPS, null).map((m) => m.khoa), ["TTB"], "nhóm rỗng bỏ");
+});
+
+test("nhomConKetQua: mã nhóm (kể cả Chưa phân loại) còn ít nhất một dòng", () => {
+  const s = nhomConKetQua([{ groupCode: "TDA" }, { groupCode: null }, { groupCode: "TDA" }]);
+  assert.deepEqual([...s].sort(), [CHUA_PHAN_LOAI, "TDA"].sort());
+  assert.equal(nhomConKetQua([]).size, 0);
+});
+
+test("nhanDem: có / không tên nhóm", () => {
+  assert.equal(nhanDem(114, null), "114 dịch vụ");
+  assert.equal(nhanDem(23, "Thể thao biển"), "23 dịch vụ · Thể thao biển");
 });

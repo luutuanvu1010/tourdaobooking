@@ -84,3 +84,56 @@ export function docNhoNhom(raw: string | null, groups: readonly { code: string }
     return [];
   }
 }
+
+// ---- Hàng nhóm CHỌN MỘT, chia mục, nhãn đếm (thiết kế lại màn Tạo đơn, 18/10/2026) ----
+/** Đọc bản nhớ nhóm dưới dạng MỘT nhóm: lấy nhóm hợp lệ đầu của `docNhoNhom` (bản nhớ cũ nhiều nhóm vẫn đọc được); "" = Tất cả. */
+export const docNhoMotNhom = (raw: string | null, groups: readonly { code: string }[]): string => docNhoNhom(raw, groups)[0] ?? "";
+
+/** Ghi nhóm đang chọn vào bản nhớ: giữ dạng mảng để tương thích bản đọc cũ; "" (Tất cả) → mảng rỗng. */
+export const ghiNhoMotNhom = (ma: string): string[] => (ma === "" ? [] : [ma]);
+
+/** Trạng thái hàng nhóm: nhóm đang chọn ("" = Tất cả), nhóm trước khi người dùng gõ tìm (để trả lại khi xoá chữ), và đã tự chạm thu hẹp lúc đang tìm chưa. */
+export interface TrangThaiNhom {
+  nhom: string;
+  truocKhiTim: string | null;
+  daThuHep: boolean;
+}
+
+/** Người dùng chạm một nhóm. Đang có chữ tìm thì đánh dấu là họ tự thu hẹp (xoá chữ sẽ không đè lựa chọn này). Không sửa đối tượng đầu vào. */
+export const chamNhom = (tt: TrangThaiNhom, ma: string, dangTim: boolean): TrangThaiNhom => ({ ...tt, nhom: ma, daThuHep: dangTim ? true : tt.daThuHep });
+
+/** Ô tìm đổi chữ. Trống→có chữ: nhớ nhóm hiện tại rồi về "Tất cả"; có→có: giữ nguyên; có→trống: trả nhóm đã nhớ (không có thì giữ nhóm hiện tại). */
+export function doiChuTim(tt: TrangThaiNhom, chuCu: string, chuMoi: string): TrangThaiNhom {
+  const cu = chuCu.trim() !== "";
+  const moi = chuMoi.trim() !== "";
+  if (!cu && moi) return { nhom: "", truocKhiTim: tt.nhom, daThuHep: false };
+  if (cu && !moi) return { nhom: tt.truocKhiTim ?? tt.nhom, truocKhiTim: null, daThuHep: false };
+  return tt;
+}
+
+/** Một mục của danh sách chia theo nhóm: `khoa` là "hay-dung", mã nhóm hoặc CHUA_PHAN_LOAI. */
+export interface MucDanhMuc<T> {
+  khoa: string;
+  tieuDe: string;
+  dong: T[];
+}
+
+/**
+ * Chia danh sách thành mục: "★ Hay dùng" (nếu `hayDung` khác null) đứng đầu, rồi mục theo thứ tự `groups`, "Chưa phân loại" cuối cùng.
+ * Dịch vụ có sao chỉ nằm ở mục Hay dùng, không lặp ở mục nhóm. Mục rỗng bỏ. Giữ thứ tự danh sách trong từng mục.
+ */
+export function chiaMuc<T extends { code: string; groupCode: string | null }>(ds: readonly T[], groups: readonly { code: string; name: string }[], hayDung: readonly string[] | null): MucDanhMuc<T>[] {
+  const sao = new Set(hayDung ?? []);
+  const muc: MucDanhMuc<T>[] = [];
+  if (hayDung !== null) muc.push({ khoa: "hay-dung", tieuDe: "★ Hay dùng", dong: ds.filter((c) => sao.has(c.code)) });
+  const con = ds.filter((c) => !sao.has(c.code));
+  for (const gr of groups) muc.push({ khoa: gr.code, tieuDe: gr.name, dong: con.filter((c) => c.groupCode === gr.code) });
+  muc.push({ khoa: CHUA_PHAN_LOAI, tieuDe: "Chưa phân loại", dong: con.filter((c) => c.groupCode === null) });
+  return muc.filter((m) => m.dong.length > 0);
+}
+
+/** Mã nhóm (kể cả CHUA_PHAN_LOAI) còn ít nhất một dòng trong kết quả — để làm mờ nhóm hết kết quả. */
+export const nhomConKetQua = (ds: readonly { groupCode: string | null }[]): ReadonlySet<string> => new Set(ds.map((c) => c.groupCode ?? CHUA_PHAN_LOAI));
+
+/** Nhãn đếm dưới ô tìm: "114 dịch vụ" hoặc "23 dịch vụ · Thể thao biển". */
+export const nhanDem = (n: number, tenNhom: string | null): string => `${n} dịch vụ${tenNhom ? ` · ${tenNhom}` : ""}`;
