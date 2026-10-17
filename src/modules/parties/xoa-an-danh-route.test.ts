@@ -212,6 +212,13 @@ test("(u7) chính sách có số ngày: phiếu gửi sau có due_at = lúc gử
   assert.equal(d.chinhSach.hanGiuPhienNgay, null);
   assert.equal(await hanGiuPhienNgay(w.env.DB), null);
   assert.equal(d.phieuXoa[0].han, dong.due_at);
+  // Vòng sửa 1, m-5: bản chính sách CHƯA tới ngày hiệu lực không được tính (cùng lọc valid_from_at <= bây giờ với GET và câu gửi phiếu).
+  w.sqlite.prepare(
+    `INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by, erasure_days, session_retention_days)
+     VALUES ('0b1e5c2a-0000-4000-8000-0000000000f1', (SELECT max(version) + 1 FROM pty_privacy_policy), ?, 'Bản tương lai', '2999-01-01T00:00:00.000Z', ?, ?, ?, ?, 5, 99)`,
+  ).run(MUC_DICH, AT, SUP, AT, SUP);
+  assert.equal(await hanGiuPhienNgay(w.env.DB), null, "bản tương lai không có hiệu lực");
+  assert.equal((await cuaToi(w, PARTNER)).chinhSach.hanGiuPhienNgay, null, "GET cũng không thấy");
   assert.equal((await rut(w, PARTNER, r.json.id)).status, 200);
   const r2 = await gui(w, PARTNER);
   assert.equal(Q(w, "SELECT due_at FROM pty_erasure_request WHERE id = ?", r2.json.id)[0].due_at, null);
