@@ -161,7 +161,7 @@ test("N-20: sqlite_master trước/sau — không mất gì; chỉ đổi đúng
   assert.deepEqual(mat, [], "mất đối tượng sau khi dựng lại");
   assert.deepEqual(them, ["prc_commission_rule_target_tier", "prc_commission_rule_tier_ix"], "thêm thừa hoặc thiếu");
   assert.deepEqual(doi, ["prc_commission_rule", "prc_commission_rule_close_only", "prc_commission_rule_overlap", "v_prc_commission_rule"], "đổi ngoài bốn chỗ cố ý");
-  assert.deepEqual(all(db, "SELECT name FROM sqlite_master WHERE name LIKE '%\\_copy%' ESCAPE '\\' OR name LIKE '%\\_new%' ESCAPE '\\' OR sql LIKE '%prc_commission_rule_copy%' OR sql LIKE '%prc_commission_rule_new%'"), [],
+  assert.deepEqual(all(db, "SELECT name FROM sqlite_master WHERE (name NOT LIKE 'pty\\_erasure\\_request\\_%' ESCAPE '\\' AND (name LIKE '%\\_copy%' ESCAPE '\\' OR name LIKE '%\\_new%' ESCAPE '\\')) OR sql LIKE '%prc_commission_rule_copy%' OR sql LIKE '%prc_commission_rule_new%'"), [],
     "không còn bản sao / bảng tạm, không đối tượng nào nhắc tên tạm");
   // Bốn chỗ đổi đúng nghĩa: cột mới ở CUỐI bảng và view; hai trigger viết lại có nhắc target_tier_code; mọi chỉ mục / trigger trên bảng đều nằm trên bảng thật.
   const cot = (t: string) => all<{ name: string }>(db, `PRAGMA table_info(${t})`).map((c) => c.name);

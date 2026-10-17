@@ -295,8 +295,7 @@
     {
       "name": "pty_person_document",
       "module": "parties",
-      "kind": "table",
-      "note": "giấy tờ của NGƯỜI (ADR-0040 D2; migration 0032). erased_at (migration 0108, ADR-0126 đ3): mốc ẩn danh hoá một chiều — số và khoá số thành dấu 'XOA' + mã dòng, nơi cấp xoá; dòng đã ẩn danh đóng băng. Số, khoá số, nơi cấp hạng N3: KHÔNG vào nhật ký"
+      "kind": "table"
     },
     {
       "name": "pty_organization_document_type",

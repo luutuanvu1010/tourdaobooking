@@ -153,7 +153,7 @@
 | `pty_role_type` | bảng tra cứu | cột is_partner_label (migration 0095, ADR-0117): loại đối tác (nhóm OTHER, được hưởng hoa hồng) là dữ liệu — hồ sơ nội bộ không mang loại này; bất biến khi đã có hồ sơ dùng |
 | `pty_person_document_type` | bảng |  |
 | `pty_license_class` | bảng |  |
-| `pty_person_document` | bảng | giấy tờ của NGƯỜI (ADR-0040 D2; migration 0032). erased_at (migration 0108, ADR-0126 đ3): mốc ẩn danh hoá một chiều — số và khoá số thành dấu 'XOA' + mã dòng, nơi cấp xoá; dòng đã ẩn danh đóng băng. Số, khoá số, nơi cấp hạng N3: KHÔNG vào nhật ký |
+| `pty_person_document` | bảng |  |
 | `pty_organization_document_type` | bảng |  |
 | `pty_organization_document` | bảng | giấy tờ của TỔ CHỨC (ADR-0122 đ2; migration 0103) — khuôn pty_person_document: gia hạn = dòng mới nối previous_id, huỷ dòng nhầm, không xoá; một số GPKD thuộc một tổ chức (trigger). Số, khoá số, nơi cấp hạng N3: KHÔNG vào nhật ký |
 | `pty_verification_attribute` | bảng | danh mục thuộc tính hồ sơ xác minh được (migration 0103), là dữ liệu chứ không CHECK liệt kê; applies_to PERSON / ORGANIZATION; bảy dòng gieo là đề xuất (câu hỏi Q1 của kế hoạch 2026-10-16-goi-2-h0-h1) |
