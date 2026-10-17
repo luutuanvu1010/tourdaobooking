@@ -1,10 +1,11 @@
 // tests/e2e/feedback.mjs
 // Góp ý / Báo lỗi trên route thật: quyền xem, ghi chú nội bộ, bảng chuyển trạng thái, idempotency, trần tần suất (kể cả song song), chấm đỏ.
-// Cuối tệp: Vé hỗ trợ đợt 1 (ADR-0119) — nhóm hỗ trợ, hàng đợi nhóm, nhận việc, /xu-ly, chuyển nhóm, người ngoài nhóm, tài khoản bên ngoài, quản lý nhóm.
+// Cuối tệp: Vé hỗ trợ đợt 1 (ADR-0119) — nhóm hỗ trợ, hàng đợi nhóm, nhận việc, /xu-ly, chuyển nhóm, người ngoài nhóm, tài khoản bên ngoài, quản lý nhóm;
+// rồi đợt 2a (ADR-0127) — tuyến làm mới không ghi mốc đã xem, mức ưu tiên, đơn liên quan, giao việc qua danh sách thành viên.
 // Local không có binding EMAIL → mailPending phải là true (tài liệu hoá hành vi "chưa gửi được mail").
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { ACCOUNTS, call, gieoTaiKhoanLai, session } from "./lib.mjs";
+import { ACCOUNTS, call, ensureFakeCatalog, gieoTaiKhoanLai, orderInput, session, sql, sqlRows } from "./lib.mjs";
 
 const SALES = await session(ACCOUNTS.salesA);
 const SALES_B = await session(ACCOUNTS.salesB);
@@ -341,5 +342,113 @@ try {
 assert.equal((await call(ADMIN, "PATCH", `/api/feedback/admin/teams/${KY_THUAT}`, { active: false })).status, 409, "không ngưng được nhóm Kỹ thuật");
 assert.equal((await call(SALES_B, "POST", "/api/feedback", input({ teamId: NHOM_A }))).status, 400, "nhóm đã ngưng không nhận phiếu mới");
 console.log("✓ dọn: gỡ thành viên, ngưng nhóm thử; Kỹ thuật không ngưng được; nhóm đã ngưng không nhận phiếu");
+
+// ===== Vé hỗ trợ đợt 2a (ADR-0127): tuyến làm mới, mức ưu tiên, đơn liên quan, giao việc =====
+// Nhóm thử C riêng (khối trên đã gỡ thành viên và ngưng hai nhóm A, B). Trần theo giờ: salesB mới gửi 2 phiếu (thêm 1 ở đây), ACC chỉ đọc/đổi mức, fieldB gửi 2 tin.
+await ensureFakeCatalog(); // orderInput() dùng dịch vụ danh mục giả ZE1
+const SALES_B_ID = await idOf(SALES_B);
+r = await call(ADMIN, "POST", "/api/feedback/admin/teams", { code: `E2E_C_${hau}`, name: "Nhóm thử C" });
+assert.equal(r.status, 201, JSON.stringify(r.body));
+const NHOM_C = r.body.team.id;
+const DT2 = await gieoTaiKhoanLai("Đối tác thử vé hỗ trợ đợt 2a", ["PARTNER"]);
+try {
+  for (const [id, vai] of [[ACC_ID, "MEMBER"], [FIELD_B_ID, "LEAD"]]) {
+    r = await call(ADMIN, "PUT", `/api/feedback/admin/teams/${NHOM_C}/members/${id}`, { role: vai });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+  }
+
+  // --- Đơn liên quan: danh sách chọn chỉ đơn của chính mình; gắn đơn người khác = gắn đơn không có (CÙNG một thân lỗi, không dò đơn).
+  r = await call(SALES_B, "POST", "/api/orders", orderInput());
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const donMinh = r.body.order;
+  r = await call(SALES, "POST", "/api/orders", orderInput());
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const donNguoiKhac = r.body.order;
+  r = await call(SALES_B, "GET", "/api/feedback/my-orders");
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const minh = r.body.orders.find((o) => o.id === donMinh.id);
+  assert.ok(minh, "đơn của mình có trong danh sách chọn");
+  assert.deepEqual(Object.keys(minh).sort(), ["id", "orderCode", "status"], "chỉ mã, số, trạng thái — không khách, không tiền");
+  assert.ok(!r.body.orders.some((o) => o.id === donNguoiKhac.id), "không có đơn người khác");
+  assert.equal((await call(HR, "GET", "/api/feedback/my-orders")).status, 403, "Nhân sự không xem được đơn ⇒ 403");
+  const loiNguoiKhac = await call(SALES_B, "POST", "/api/feedback", input({ title: "Gắn đơn người khác", teamId: NHOM_C, orderId: donNguoiKhac.id }));
+  const loiKhongCo = await call(SALES_B, "POST", "/api/feedback", input({ title: "Gắn đơn không có", teamId: NHOM_C, orderId: randomUUID() }));
+  assert.equal(loiNguoiKhac.status, 400, JSON.stringify(loiNguoiKhac.body));
+  assert.equal(loiKhongCo.status, 400, JSON.stringify(loiKhongCo.body));
+  assert.equal(JSON.stringify(loiNguoiKhac.body), JSON.stringify(loiKhongCo.body), "đơn người khác và đơn không có: cùng nguyên thân lỗi");
+
+  // --- Gửi phiếu gắn đơn của mình, kèm priority: người gửi không đặt được mức (bị bỏ qua ⇒ Thường).
+  r = await call(SALES_B, "POST", "/api/feedback", input({ title: "Hỏi về đơn của tôi", body: "Đơn này cần sửa giờ đón.", teamId: NHOM_C, orderId: donMinh.id, priority: "URGENT" }));
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const p = r.body.ticket;
+  assert.equal(p.orderId, donMinh.id);
+  assert.equal(p.orderCode, minh.orderCode, "mã đơn chụp vào phiếu");
+  assert.equal(p.priority, "NORMAL", "người gửi gửi kèm priority ⇒ bị bỏ qua");
+  r = await call(ACC, "GET", `/api/feedback/${p.id}`);
+  assert.equal(r.body.ticket.orderCode, minh.orderCode, "thành viên nhóm thấy mã đơn");
+  console.log("✓ đơn liên quan: chỉ đơn của mình, đơn người khác = đơn không có (cùng câu), người gửi không đặt được mức");
+
+  // --- Tuyến làm mới: tin mới hiện qua …/messages sau since; người gửi không thấy ghi chú nội bộ; KHÔNG ghi mốc đã xem.
+  const since = new Date(Date.parse(p.createdAt) - 30_000).toISOString();
+  assert.equal((await call(FIELD_B, "POST", `/api/feedback/${p.id}/messages`, { body: "Bên mình đã nhận, đang xem đơn." })).status, 201);
+  assert.equal((await call(FIELD_B, "POST", `/api/feedback/${p.id}/messages`, { body: "Ghi chú nội bộ đợt 2a", internal: true })).status, 201);
+  const anh = async () => JSON.stringify({
+    doc: await sqlRows(`SELECT staff_id, seen_at FROM fbk_ticket_read WHERE ticket_id = '${p.id}' ORDER BY staff_id`),
+    gui: await sqlRows(`SELECT submitter_seen_at FROM fbk_ticket WHERE id = '${p.id}'`),
+  });
+  const truoc = await anh();
+  for (let i = 0; i < 2; i++) {
+    r = await call(SALES_B, "GET", `/api/feedback/${p.id}/messages?since=${encodeURIComponent(since)}`);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.ok(r.body.messages.some((m) => m.body === "Bên mình đã nhận, đang xem đơn."), "người gửi thấy tin mới qua tuyến làm mới");
+    assert.ok(!r.body.messages.some((m) => m.internal || m.body.includes("nội bộ")), "người gửi không thấy ghi chú nội bộ qua tuyến làm mới");
+    r = await call(ACC, "GET", `/api/feedback/${p.id}/messages?since=${encodeURIComponent(since)}`);
+    assert.equal(r.status, 200);
+    assert.ok(r.body.messages.some((m) => m.internal), "thành viên nhóm thấy ghi chú nội bộ");
+  }
+  assert.equal(r.body.ticket.teamId, NHOM_C);
+  assert.equal(await anh(), truoc, "tuyến làm mới không ghi mốc đã xem (fbk_ticket_read, submitter_seen_at)");
+  assert.equal((await call(HR, "GET", `/api/feedback/${p.id}/messages?since=${encodeURIComponent(since)}`)).status, 404, "người ngoài nhóm: 404");
+  assert.equal((await call(ACC, "GET", `/api/feedback/${p.id}/messages`)).status, 400, "thiếu since ⇒ 400");
+  assert.equal((await call(SALES_B, "GET", `/api/feedback/${p.id}`)).status, 200);
+  assert.notEqual(await anh(), truoc, "đối chứng: mở chi tiết thì có ghi mốc đã xem");
+  console.log("✓ tuyến làm mới: tin mới sau since, người gửi không thấy ghi chú nội bộ, không ghi mốc đã xem, người ngoài 404");
+
+  // --- Mức ưu tiên: chỉ người xử lý đặt; người gửi 403; mức lạ 400; người gửi thấy mức (chỉ đọc) qua tuyến làm mới.
+  assert.equal((await call(SALES_B, "PATCH", `/api/feedback/${p.id}/xu-ly`, { priority: "HIGH" })).status, 403, "người gửi không đặt mức");
+  assert.equal((await call(ACC, "PATCH", `/api/feedback/${p.id}/xu-ly`, { priority: "LOW" })).status, 400, "mức lạ");
+  r = await call(ACC, "PATCH", `/api/feedback/${p.id}/xu-ly`, { priority: "HIGH" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.ticket.priority, "HIGH");
+  r = await call(SALES_B, "GET", `/api/feedback/${p.id}/messages?since=${encodeURIComponent(since)}`);
+  assert.equal(r.body.ticket.priority, "HIGH", "người gửi thấy mức ưu tiên");
+  assert.equal((await call(ADMIN, "GET", "/api/audit?action=feedback_priority_changed")).status, 200);
+  console.log("✓ mức ưu tiên: chỉ người xử lý đặt, người gửi 403, mức lạ 400");
+
+  // --- Giao việc: danh sách thành viên chỉ cho Trưởng nhóm; không có người gửi, không tài khoản bên ngoài còn dòng cũ; giao cho bên ngoài ⇒ 400 ở cả hai route.
+  await sql(`INSERT INTO fbk_team_member (id, team_id, staff_id, role, valid_from_at, created_at, updated_at) VALUES ('e2e-ngoai-${hau}', '${NHOM_C}', '${DT2.id}', 'MEMBER', '${new Date().toISOString()}', '${new Date().toISOString()}', '${new Date().toISOString()}')`);
+  r = await call(FIELD_B, "GET", `/api/feedback/teams/${NHOM_C}/members?ticket=${p.id}`);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const ds = r.body.members.map((m) => m.staffId);
+  assert.ok(ds.includes(ACC_ID) && ds.includes(FIELD_B_ID), "có thành viên và Trưởng nhóm");
+  assert.ok(!ds.includes(SALES_B_ID), "không có người gửi phiếu");
+  assert.ok(!ds.includes(DT2.id), "không có tài khoản bên ngoài còn dòng thành viên cũ");
+  for (const [ten, co] of [["thành viên thường", ACC], ["Nhân sự ngoài nhóm", HR], ["người gửi", SALES_B]]) {
+    assert.equal((await call(co, "GET", `/api/feedback/teams/${NHOM_C}/members`)).status, 403, `${ten}: không xem danh sách để giao`);
+  }
+  r = await call(FIELD_B, "PATCH", `/api/feedback/${p.id}/xu-ly`, { assigneeId: DT2.id });
+  assert.equal(r.status, 400, `Trưởng nhóm giao cho tài khoản bên ngoài: ${JSON.stringify(r.body)}`);
+  r = await call(ADMIN, "PATCH", `/api/feedback/${p.id}`, { assigneeId: DT2.id });
+  assert.equal(r.status, 400, `tuyến cũ của Toàn quyền giao cho tài khoản bên ngoài: ${JSON.stringify(r.body)}`);
+  r = await call(FIELD_B, "PATCH", `/api/feedback/${p.id}/xu-ly`, { assigneeId: ACC_ID });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.ticket.assigneeId, ACC_ID, "Trưởng nhóm giao cho thành viên");
+  console.log("✓ giao việc: danh sách chỉ Trưởng nhóm, không người gửi / bên ngoài; giao cho bên ngoài ⇒ 400 ở cả hai route");
+} finally {
+  // Dọn: gỡ thành viên, đóng dòng cũ của tài khoản bên ngoài (không xoá), ngưng nhóm thử C.
+  for (const id of [ACC_ID, FIELD_B_ID]) await call(ADMIN, "DELETE", `/api/feedback/admin/teams/${NHOM_C}/members/${id}`);
+  await sql(`UPDATE fbk_team_member SET valid_to_at = '${new Date().toISOString()}' WHERE team_id = '${NHOM_C}' AND staff_id = '${DT2.id}' AND valid_to_at IS NULL`);
+  assert.equal((await call(ADMIN, "PATCH", `/api/feedback/admin/teams/${NHOM_C}`, { active: false })).status, 200, "ngưng nhóm thử C");
+}
 
 console.log("feedback: OK");
