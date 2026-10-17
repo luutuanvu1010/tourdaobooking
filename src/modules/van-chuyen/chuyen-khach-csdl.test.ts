@@ -232,12 +232,13 @@ test("đúng MỘT tệp 0093_chuyen_khach_giua_xe.sql; đầu tệp có khối 
   assert.deepEqual([...sql.matchAll(/CREATE TABLE (\w+)/g)].map((m) => m[1]), ["vc_transfer_rule", "vc_transfer_request", "vc_transfer_check"]);
 });
 
-test("Đ1: danh mục 11 điều kiện đúng tầng; không xoá; mã / tầng không đổi; tắt được (active); chính sách gieo hai cột mặc định; bốn lý do TU_CHOI_NHAN", () => {
+test("Đ1: danh mục 12 điều kiện (11 gieo 0093 + XE_RIENG_DICH 0110) đúng tầng; không xoá; mã / tầng không đổi; tắt được (active); chính sách gieo hai cột mặc định; bốn lý do TU_CHOI_NHAN", () => {
   const db = openDb();
   const r = db.prepare("SELECT code, tier, active FROM vc_transfer_rule ORDER BY sort_order").all() as { code: string; tier: string; active: number }[];
   assert.deepEqual(r.map((x) => `${x.code}:${x.tier}:${x.active}`), [
     "SUC_CHUA_DICH:LOI:1", "SUC_CHUA_NGUON:LOI:1", "TRUNG_GIO_DICH:LOI:1", "KHOANG_NGHI_DICH:CAU_HINH:1", "MOC_TOI_THIEU:CAU_HINH:1", "HANG_BANG_DICH:LOI:1",
     "GIAY_TO_DICH:LOI:1", "KHONG_CHEO:LOI:1", "DIEM_CHUA_TOI:LOI:1", "CAM_KET_DICH:CAU_HINH:1", "CHANG_KHACH_HIEU_LUC:LOI:1",
+    "XE_RIENG_DICH:LOI:1", // migration 0110 (ADR-0128 Q2)
   ]);
   loi(() => run(db, "DELETE FROM vc_transfer_rule WHERE code = 'SUC_CHUA_DICH'"), /ck_rule_append_only/);
   loi(() => run(db, "UPDATE vc_transfer_rule SET tier = 'CAU_HINH' WHERE code = 'SUC_CHUA_DICH'"), /ck_rule_identity/);

@@ -50,11 +50,14 @@ function nen(o: Partial<KiemChuyenVao> = {}): KiemChuyenVao {
 const ket = (v: KiemChuyenVao) => Object.fromEntries(kiemChuyen(v).dong.map((d) => [d.ma, d.ketQua]));
 const dong = (v: KiemChuyenVao, ma: string) => kiemChuyen(v).dong.find((d) => d.ma === ma);
 
-test("TANG_LUAT, NHAN_LUAT_CHUYEN khớp đúng 11 dòng gieo của migration 0093 (NT-A5-1) — mã, tầng, nhãn, thứ tự", () => {
-  const sql = readFileSync(new URL("../../migrations/0093_chuyen_khach_giua_xe.sql", import.meta.url), "utf8");
-  const khoi = sql.slice(sql.indexOf("INSERT INTO vc_transfer_rule"), sql.indexOf(";", sql.indexOf("INSERT INTO vc_transfer_rule")));
+test("TANG_LUAT, NHAN_LUAT_CHUYEN khớp đúng 12 dòng gieo của migration 0093 (11, NT-A5-1) và 0110 (XE_RIENG_DICH, ADR-0128 Q2) — mã, tầng, nhãn, thứ tự", () => {
+  const khoiCua = (tep: string) => {
+    const sql = readFileSync(new URL(`../../migrations/${tep}`, import.meta.url), "utf8");
+    return sql.slice(sql.indexOf("INSERT INTO vc_transfer_rule"), sql.indexOf(";", sql.indexOf("INSERT INTO vc_transfer_rule")));
+  };
+  const khoi = khoiCua("0093_chuyen_khach_giua_xe.sql") + khoiCua("0110_dieu_kien_chuyen_khach_xe_rieng.sql");
   const gieo = [...khoi.matchAll(/\('([A-Z_]+)', '([^']+)', '(LOI|CAU_HINH)', (\d+),/g)].map((m) => ({ code: m[1], label: m[2], tier: m[3], sort: Number(m[4]) }));
-  assert.equal(gieo.length, 11);
+  assert.equal(gieo.length, 12);
   assert.deepEqual(gieo.map((g) => g.code), [...MA_LUAT_CHUYEN]);
   for (const g of gieo) {
     assert.equal(TANG_LUAT[g.code as keyof typeof TANG_LUAT], g.tier, g.code);
@@ -146,25 +149,27 @@ test("DIEM_CHUA_TOI: STOP — điểm nguồn còn Chờ ⇒ DAT, đã tới ⇒
   assert.equal(ket(nen({ diemNguon: null })).DIEM_CHUA_TOI, "KHONG_DAT", "STOP mà không thấy điểm ⇒ không đoán");
 });
 
-test("CAM_KET_DICH gọi kiemCamKet trên chuyến nhận SAU chuyển (R-XR cả hai chiều, R-CX); ADR-0128 Q2: xe riêng ⇒ tầng LOI ⇒ chỉ Bác, khoá lưu không cứu; số chỗ tối thiểu vẫn duyệt được, đã phá lệ đúng khoá ⇒ DAT", () => {
+test("CAM_KET_DICH / XE_RIENG_DICH gọi kiemCamKet trên chuyến nhận SAU chuyển (R-XR cả hai chiều, R-CX); ADR-0128 Q2: xe riêng ⇒ XE_RIENG_DICH tầng LOI ⇒ chỉ Bác, khoá lưu không cứu; số chỗ tối thiểu vẫn duyệt được, đã phá lệ đúng khoá ⇒ DAT", () => {
   const xr = nen({ changTrenDich: [chang("hc", { soNguoi: 20, xeRieng: true })] });
-  assert.equal(ket(xr).CAM_KET_DICH, "KHONG_DAT");
+  // ADR-0128 Q2 — migration 0110: xe riêng tách sang XE_RIENG_DICH (tầng LOI của danh mục); CAM_KET_DICH chỉ còn số chỗ tối thiểu.
+  assert.equal(ket(xr).XE_RIENG_DICH, "KHONG_DAT");
+  assert.equal(ket(xr).CAM_KET_DICH, "DAT", "chỉ có vi phạm xe riêng");
   assert.equal(hopDuyet(kiemChuyen(xr).dong), "CHI_BAC", "xe riêng không duyệt được");
-  assert.equal(dong(xr, "CAM_KET_DICH")?.tang, "LOI");
-  assert.equal(ket(nen({ changChuyen: [chang("mt", { xeRieng: true })] })).CAM_KET_DICH, "KHONG_DAT", "đưa đoàn xe riêng vào xe đang chở khách khác");
+  assert.equal(dong(xr, "XE_RIENG_DICH")?.tang, "LOI");
+  assert.equal(ket(nen({ changChuyen: [chang("mt", { xeRieng: true })] })).XE_RIENG_DICH, "KHONG_DAT", "đưa đoàn xe riêng vào xe đang chở khách khác");
   const cx = nen({ changChuyen: [chang("mt", { choToiThieu: 30 })] });
   assert.equal(ket(cx).CAM_KET_DICH, "KHONG_DAT", "xe 29 chỗ < tối thiểu 30");
   assert.equal(hopDuyet(kiemChuyen(cx).dong), "DUYET_HOAC_BAC", "số chỗ tối thiểu vẫn duyệt được");
   assert.equal(dong(cx, "CAM_KET_DICH")?.tang, "CAU_HINH");
   const khoaXr = kiemChuyen(xr).camKet.khoa;
   assert.ok(khoaXr);
-  assert.equal(ket(nen({ changTrenDich: [chang("hc", { soNguoi: 20, xeRieng: true })], dich: { ...nen().dich, camKetPhaLeKhoa: khoaXr } })).CAM_KET_DICH, "KHONG_DAT", "khoá lưu khớp vẫn không che xe riêng");
+  assert.equal(ket(nen({ changTrenDich: [chang("hc", { soNguoi: 20, xeRieng: true })], dich: { ...nen().dich, camKetPhaLeKhoa: khoaXr } })).XE_RIENG_DICH, "KHONG_DAT", "khoá lưu khớp vẫn không che xe riêng");
   const khoaCx = kiemChuyen(cx).camKet.khoa;
   assert.ok(khoaCx);
   assert.equal(ket(nen({ changChuyen: [chang("mt", { choToiThieu: 30 })], dich: { ...nen().dich, camKetPhaLeKhoa: khoaCx } })).CAM_KET_DICH, "DAT");
   // Người đi kèm không có chặng ⇒ không vào R-XR.
   const crew = suat("c1", { loai: "CREW", legId: null, crewPartyId: "hdv", boardStopId: null, alightStopId: null, trangThai: "BOARDED" });
-  assert.equal(ket(nen({ suatChuyen: [crew], changChuyen: [], changTrenDich: [chang("hc", { xeRieng: true })] })).CAM_KET_DICH, "DAT");
+  assert.equal(ket(nen({ suatChuyen: [crew], changChuyen: [], changTrenDich: [chang("hc", { xeRieng: true })] })).XE_RIENG_DICH, "DAT");
 });
 
 test("CHANG_KHACH_HIEU_LUC: đơn huỷ / chặng đóng / đơn chưa xác nhận / không thấy chặng ⇒ KHONG_DAT tầng LOI ⇒ chỉ Bác (NT-A5-29); người đi kèm không xét", () => {

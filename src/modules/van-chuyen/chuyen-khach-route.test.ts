@@ -287,7 +287,7 @@ test("NT-A5-6 nhận, máy tự xác nhận (xe nhận đang chạy): suất ngu
     const q = mot(w, "SELECT status, decided_mode, decided_by_party_id, decided_cmd_id, closed_cmd_id FROM vc_transfer_request WHERE id = ?", id);
     assert.deepEqual([q.status, q.decided_mode, q.decided_by_party_id, q.closed_cmd_id], ["CONFIRMED", "MAY", `pty-${DRIVER2}`, q.decided_cmd_id]);
     const cmd = q.decided_cmd_id as string;
-    assert.equal(mot(w, "SELECT count(*) AS n FROM vc_transfer_check WHERE transfer_id = ? AND cmd_id = ?", id, cmd).n, 11, "đủ 11 dòng kiểm của lần bấm");
+    assert.equal(mot(w, "SELECT count(*) AS n FROM vc_transfer_check WHERE transfer_id = ? AND cmd_id = ?", id, cmd).n, 12, "đủ 12 dòng kiểm của lần bấm (11 gieo 0093 + XE_RIENG_DICH 0110)");
     assert.equal(mot(w, "SELECT count(*) AS n FROM vc_transfer_check WHERE transfer_id = ? AND ket_qua = 'KHONG_DAT'", id).n, 0);
     assert.deepEqual(ds(w, "SELECT close_reason, closed_transfer_id, closed_cmd_id FROM vc_trip_allocation WHERE trip_id = ? AND kind = 'PASSENGER'", a.id),
       [{ close_reason: "TRANSFERRED", closed_transfer_id: id, closed_cmd_id: cmd }, { close_reason: "TRANSFERRED", closed_transfer_id: id, closed_cmd_id: cmd }]);
@@ -538,7 +538,7 @@ test("NT-A5-7, -11 nhận dưới mốc (xe nhận chưa chạy) → leo thang (
     const dsVp = await w.call("GET", `${VC}/de-nghi?ngay=${NGAY}`, { as: ACC });
     assert.equal(dsVp.status, 200, dsVp.text);
     const dto = dsVp.json.deNghi.find((x: any) => x.id === id);
-    assert.equal(dto.kiem.length, 11);
+    assert.equal(dto.kiem.length, 12); // 11 gieo 0093 + XE_RIENG_DICH (0110, ADR-0128 Q2)
     assert.equal(dto.hop, "DUYET_HOAC_BAC");
     // T14: lý do cho hộp Duyệt (PHA_LE) / Bác (TU_CHOI_NHAN) đi kèm danh sách — màn văn phòng không gọi route danh mục lý do (chỉ Quản trị).
     assert.deepEqual([...new Set(dsVp.json.lyDo.map((x: any) => x.nhom))].sort(), ["PHA_LE", "TU_CHOI_NHAN"]);
@@ -558,7 +558,7 @@ test("NT-A5-7, -11 nhận dưới mốc (xe nhận chưa chạy) → leo thang (
     const q2 = mot(w, "SELECT decided_mode, decided_by, decided_by_party_id, decided_cmd_id, closed_cmd_id, override_reason_code FROM vc_transfer_request WHERE id = ?", id);
     assert.deepEqual([q2.decided_mode, q2.decided_by, q2.decided_by_party_id, q2.override_reason_code, q2.closed_cmd_id], ["NGUOI", ADM, `pty-${DRIVER2}`, "PHA_LE_SU_CO", q2.decided_cmd_id]);
     assert.notEqual(q2.decided_cmd_id, q.decided_cmd_id);
-    assert.equal(mot(w, "SELECT count(*) AS n FROM vc_transfer_check WHERE transfer_id = ? AND cmd_id = ?", id, q2.decided_cmd_id).n, 11, "duyệt chạy lại kiểm");
+    assert.equal(mot(w, "SELECT count(*) AS n FROM vc_transfer_check WHERE transfer_id = ? AND cmd_id = ?", id, q2.decided_cmd_id).n, 12, "duyệt chạy lại kiểm");
     const moB = ds(w, "SELECT status, added_after_departure FROM vc_trip_allocation WHERE trip_id = ? AND transfer_id = ? AND valid_to_at IS NULL", b.id, id);
     assert.deepEqual(moB, [{ status: "WAITING", added_after_departure: 0 }, { status: "WAITING", added_after_departure: 0 }]);
     assert.equal(mot(w, "SELECT count(*) AS n FROM vc_trip_manifest WHERE trip_id = ?", b.id).n, 0, "xe nhận chưa xuất bến: không bản chốt");

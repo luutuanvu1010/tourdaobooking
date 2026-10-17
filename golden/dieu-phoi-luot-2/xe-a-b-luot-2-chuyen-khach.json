@@ -37,7 +37,8 @@
       { "code": "KHONG_CHEO", "tier": "LOI", "active": true },
       { "code": "DIEM_CHUA_TOI", "tier": "LOI", "active": true },
       { "code": "CAM_KET_DICH", "tier": "CAU_HINH", "active": true },
-      { "code": "CHANG_KHACH_HIEU_LUC", "tier": "LOI", "active": true }
+      { "code": "CHANG_KHACH_HIEU_LUC", "tier": "LOI", "active": true },
+      { "code": "XE_RIENG_DICH", "tier": "LOI", "active": true }
     ],
     "lyDo": {
       "TU_CHOI_NHAN": ["Xe đã đầy chỗ", "Không kịp giờ", "Đang xử lý sự cố", "Lý do khác"],
@@ -98,7 +99,7 @@
       { "id": "d5-tran-phu", "tripId": "cx-3009-05", "seq": 1, "loai": "PICKUP", "trangThai": "DONE", "placeKey": "L:loc-tran-phu", "tenNoi": "Trần Phú", "gioXeToiMs": null },
       { "id": "d5-cang", "tripId": "cx-3009-05", "seq": 2, "loai": "DROPOFF", "trangThai": "PENDING", "placeKey": "L:loc-cang", "tenNoi": "Cảng Vinpearl", "gioXeToiMs": null }
     ],
-    "kiemDatHet": { "SUC_CHUA_DICH": "DAT", "SUC_CHUA_NGUON": "DAT", "TRUNG_GIO_DICH": "DAT", "KHOANG_NGHI_DICH": "DAT", "MOC_TOI_THIEU": "DAT", "HANG_BANG_DICH": "DAT", "GIAY_TO_DICH": "DAT", "KHONG_CHEO": "DAT", "DIEM_CHUA_TOI": "DAT", "CAM_KET_DICH": "DAT", "CHANG_KHACH_HIEU_LUC": "DAT" }
+    "kiemDatHet": { "SUC_CHUA_DICH": "DAT", "SUC_CHUA_NGUON": "DAT", "TRUNG_GIO_DICH": "DAT", "KHOANG_NGHI_DICH": "DAT", "MOC_TOI_THIEU": "DAT", "HANG_BANG_DICH": "DAT", "GIAY_TO_DICH": "DAT", "KHONG_CHEO": "DAT", "DIEM_CHUA_TOI": "DAT", "CAM_KET_DICH": "DAT", "CHANG_KHACH_HIEU_LUC": "DAT", "XE_RIENG_DICH": "DAT" }
   },
   "cac_tinh_huong": [
     {
@@ -164,7 +165,7 @@
           "dap_an": {
             "http": "2xx", "ketQua": "ESCALATED",
             "de_nghi": { "trangThai": "ESCALATED", "decidedMode": null, "decidedByParty": "tx-b" },
-            "kiem": { "SUC_CHUA_DICH": "DAT", "SUC_CHUA_NGUON": "DAT", "TRUNG_GIO_DICH": "DAT", "KHOANG_NGHI_DICH": "DAT", "MOC_TOI_THIEU": "KHONG_DAT", "HANG_BANG_DICH": "DAT", "GIAY_TO_DICH": "DAT", "KHONG_CHEO": "DAT", "DIEM_CHUA_TOI": "DAT", "CAM_KET_DICH": "DAT", "CHANG_KHACH_HIEU_LUC": "DAT" },
+            "kiem": { "SUC_CHUA_DICH": "DAT", "SUC_CHUA_NGUON": "DAT", "TRUNG_GIO_DICH": "DAT", "KHOANG_NGHI_DICH": "DAT", "MOC_TOI_THIEU": "KHONG_DAT", "HANG_BANG_DICH": "DAT", "GIAY_TO_DICH": "DAT", "KHONG_CHEO": "DAT", "DIEM_CHUA_TOI": "DAT", "CAM_KET_DICH": "DAT", "CHANG_KHACH_HIEU_LUC": "DAT", "XE_RIENG_DICH": "DAT" },
             "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 25, "gioi_han": 29 }, "MOC_TOI_THIEU": { "gia_tri": 18, "gioi_han": 360 } },
             "hop_duyet": "DUYET_HOAC_BAC",
             "suat_doi": false,
@@ -219,7 +220,7 @@
           "dau_vao": { "deNghi": "r-th03", "requestId": "lenh-th03-nhan" },
           "dap_an": {
             "http": "2xx", "ketQua": "ESCALATED",
-            "kiem": { "SUC_CHUA_DICH": "KHONG_DAT", "SUC_CHUA_NGUON": "DAT", "TRUNG_GIO_DICH": "DAT", "KHOANG_NGHI_DICH": "DAT", "MOC_TOI_THIEU": "DAT", "HANG_BANG_DICH": "DAT", "GIAY_TO_DICH": "DAT", "KHONG_CHEO": "DAT", "DIEM_CHUA_TOI": "DAT", "CAM_KET_DICH": "DAT", "CHANG_KHACH_HIEU_LUC": "DAT" },
+            "kiem": { "SUC_CHUA_DICH": "KHONG_DAT", "SUC_CHUA_NGUON": "DAT", "TRUNG_GIO_DICH": "DAT", "KHOANG_NGHI_DICH": "DAT", "MOC_TOI_THIEU": "DAT", "HANG_BANG_DICH": "DAT", "GIAY_TO_DICH": "DAT", "KHONG_CHEO": "DAT", "DIEM_CHUA_TOI": "DAT", "CAM_KET_DICH": "DAT", "CHANG_KHACH_HIEU_LUC": "DAT", "XE_RIENG_DICH": "DAT" },
             "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 16, "gioi_han": 15 } },
             "hop_duyet": "CHI_BAC",
             "suat_doi": false,
@@ -425,7 +426,7 @@
           "dau_vao": { "deNghi": "r-th09a", "requestId": "lenh-th09a-nhan" },
           "dap_an": {
             "http": "2xx", "ketQua": "ESCALATED",
-            "kiem": { "SUC_CHUA_DICH": "DAT", "SUC_CHUA_NGUON": "DAT", "TRUNG_GIO_DICH": "DAT", "KHOANG_NGHI_DICH": "DAT", "MOC_TOI_THIEU": "DAT", "HANG_BANG_DICH": "DAT", "GIAY_TO_DICH": "DAT", "KHONG_CHEO": "DAT", "DIEM_CHUA_TOI": "DAT", "CAM_KET_DICH": "KHONG_DAT", "CHANG_KHACH_HIEU_LUC": "DAT" },
+            "kiem": { "SUC_CHUA_DICH": "DAT", "SUC_CHUA_NGUON": "DAT", "TRUNG_GIO_DICH": "DAT", "KHOANG_NGHI_DICH": "DAT", "MOC_TOI_THIEU": "DAT", "HANG_BANG_DICH": "DAT", "GIAY_TO_DICH": "DAT", "KHONG_CHEO": "DAT", "DIEM_CHUA_TOI": "DAT", "CAM_KET_DICH": "DAT", "CHANG_KHACH_HIEU_LUC": "DAT", "XE_RIENG_DICH": "KHONG_DAT" },
             "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 23, "gioi_han": 29 } },
             "ly_do_cam_ket": "R-XR: CX-3009-04 có đoàn ĐH-2001 đặt xe riêng, thêm khách ĐH-1003 (ADR-0056:57)",
             "hop_duyet": "CHI_BAC",
@@ -444,7 +445,7 @@
           "dau_vao": { "deNghi": "r-th09b", "requestId": "lenh-th09b-nhan" },
           "dap_an": {
             "http": "2xx", "ketQua": "ESCALATED",
-            "kiem": { "SUC_CHUA_DICH": "DAT", "SUC_CHUA_NGUON": "DAT", "TRUNG_GIO_DICH": "DAT", "KHOANG_NGHI_DICH": "DAT", "MOC_TOI_THIEU": "DAT", "HANG_BANG_DICH": "DAT", "GIAY_TO_DICH": "DAT", "KHONG_CHEO": "DAT", "DIEM_CHUA_TOI": "DAT", "CAM_KET_DICH": "KHONG_DAT", "CHANG_KHACH_HIEU_LUC": "DAT" },
+            "kiem": { "SUC_CHUA_DICH": "DAT", "SUC_CHUA_NGUON": "DAT", "TRUNG_GIO_DICH": "DAT", "KHOANG_NGHI_DICH": "DAT", "MOC_TOI_THIEU": "DAT", "HANG_BANG_DICH": "DAT", "GIAY_TO_DICH": "DAT", "KHONG_CHEO": "DAT", "DIEM_CHUA_TOI": "DAT", "CAM_KET_DICH": "KHONG_DAT", "CHANG_KHACH_HIEU_LUC": "DAT", "XE_RIENG_DICH": "DAT" },
             "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 12, "gioi_han": 15 } },
             "ly_do_cam_ket": "R-CX: xe A 15 chỗ < số chỗ tối thiểu 29 của chặng Alibu (ADR-0056:58)",
             "hop_duyet": "DUYET_HOAC_BAC",
@@ -472,7 +473,7 @@
           "dap_an": { "http": "2xx", "ketQua": "CONFIRMED", "kiem": "$nen.kiemDatHet", "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 13, "gioi_han": 15 } }, "diem_them": [{ "tripId": "cx-3009-07", "loai": "PICKUP", "placeKey": "L:loc-alibu", "addedWhileRunning": 1 }], "diem_ghep": [{ "placeKey": "L:loc-ben", "diem": "d7-ben" }], "diem_doi": [{ "id": "d4-alibu", "trangThai": "MOVED" }], "tin": ["tk-tx-b"], "tai_sau": { "cx-3009-07": 13, "cx-3009-04": 23 } } },
         { "ma": "TH10-10B-3-A-NHAN-TRUOC", "lenh": "NHAN", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:22",
           "dau_vao": { "deNghi": "r-th10-ba", "requestId": "lenh-th10b-nhan-a", "ghi_chu": "nhánh 10B chạy từ sau bước 2, không sau 10A" },
-          "dap_an": { "http": "2xx", "ketQua": "ESCALATED", "kiem": { "SUC_CHUA_DICH": "KHONG_DAT", "SUC_CHUA_NGUON": "DAT", "TRUNG_GIO_DICH": "DAT", "KHOANG_NGHI_DICH": "DAT", "MOC_TOI_THIEU": "DAT", "HANG_BANG_DICH": "DAT", "GIAY_TO_DICH": "DAT", "KHONG_CHEO": "DAT", "DIEM_CHUA_TOI": "DAT", "CAM_KET_DICH": "DAT", "CHANG_KHACH_HIEU_LUC": "DAT" }, "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 16, "gioi_han": 15 } }, "hop_duyet": "CHI_BAC", "suat_doi": false, "tin": ["tk-quan-tri", "tk-toan-quyen"] } },
+          "dap_an": { "http": "2xx", "ketQua": "ESCALATED", "kiem": { "SUC_CHUA_DICH": "KHONG_DAT", "SUC_CHUA_NGUON": "DAT", "TRUNG_GIO_DICH": "DAT", "KHOANG_NGHI_DICH": "DAT", "MOC_TOI_THIEU": "DAT", "HANG_BANG_DICH": "DAT", "GIAY_TO_DICH": "DAT", "KHONG_CHEO": "DAT", "DIEM_CHUA_TOI": "DAT", "CAM_KET_DICH": "DAT", "CHANG_KHACH_HIEU_LUC": "DAT", "XE_RIENG_DICH": "DAT" }, "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 16, "gioi_han": 15 } }, "hop_duyet": "CHI_BAC", "suat_doi": false, "tin": ["tk-quan-tri", "tk-toan-quyen"] } },
         { "ma": "TH10-10B-4-B-NHAN-SAU", "lenh": "NHAN", "ai": "tk-tx-b", "bayGioMs": "2026-09-30 06:23",
           "dau_vao": { "deNghi": "r-th10-ab", "requestId": "lenh-th10b-nhan-b" },
           "dap_an": { "http": "2xx", "ketQua": "CONFIRMED", "kiem": "$nen.kiemDatHet", "so_lieu": { "SUC_CHUA_DICH": { "gia_tri": 25, "gioi_han": 29 } }, "de_nghi_khac": { "r-th10-ba": "vẫn ESCALATED, hộp duyệt vẫn CHI_BAC" }, "tin": ["tk-tx-a"], "tai_sau": { "cx-3009-07": 11, "cx-3009-04": 25 } } },
