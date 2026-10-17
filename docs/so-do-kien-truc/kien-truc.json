@@ -1,0 +1,213 @@
+{
+  "quy_uoc": "Bản máy đọc của docs/so-do-kien-truc/README.md. Chỉ chứa thứ không suy ra được từ mã: mục đích, đối tượng dùng, giới hạn. Tầng và mối nối giữa các phần nằm ở ALLOWED_EDGES trong src/architecture.test.ts, không chép ở đây; số bảng, số trang, số route cũng không chép (đếm bằng máy). ai_dung dùng mã quyền trong PERMISSION_CODES (src/shared/permissions.ts) hoặc he_thong (mọi người dùng, hoặc chạy ngầm); đây là đối tượng dùng chính để hiểu mục đích, KHÔNG phải bản đồ quyền, bản đồ quyền chỉ ở MATRIX. tien_to_bang: tiền tố kết thúc bằng gạch dưới khớp theo đầu tên bảng; không có gạch dưới cuối là tên đầy đủ của một bảng cũ không tiền tố. Bài src/so-do-kien-truc.test.ts ép tệp này khớp mã.",
+  "phan": [
+    {
+      "ma": "accounts",
+      "ten_viet": "Quản lý tài khoản",
+      "muc_dich": "Cho Quản trị và Nhân sự tạo tài khoản nhân viên, cấp hoặc thu quyền, đặt lại mã PIN và xem các máy đang đăng nhập.",
+      "ai_dung": ["ADMIN", "SUPER_ADMIN", "HR"],
+      "tien_to_bang": [],
+      "khong_lam": ["Không có bảng riêng, dữ liệu tài khoản do phần Nhân viên giữ", "Không đọc đơn, khách, tiền"],
+      "doc_chi_tiet": ["docs/SYSTEM-DESIGN.md", "docs/adr/ADR-0071-vai-hanh-chinh-nhan-su-go-dong-bo-sheet-bao-tri-theo-toan-quyen.md"]
+    },
+    {
+      "ma": "audit",
+      "ten_viet": "Nhật ký thao tác",
+      "muc_dich": "Ghi lại ai đã làm việc gì vào lúc nào để sau này truy được, chỉ thêm dòng, không sửa không xoá.",
+      "ai_dung": ["he_thong"],
+      "tien_to_bang": ["audit_log"],
+      "khong_lam": ["Không ghi số điện thoại, email, mã số thuế, số giấy tờ vào nhật ký", "Không quyết định ai được làm gì"],
+      "doc_chi_tiet": ["docs/SYSTEM-DESIGN.md", "docs/ARCHITECTURE.md"]
+    },
+    {
+      "ma": "auth",
+      "ten_viet": "Đăng nhập",
+      "muc_dich": "Cho nhân viên và đối tác vào Nền tảng an toàn bằng mã PIN, Face ID hoặc bảo mật hai lớp, và quản lý phiên đăng nhập trên từng máy.",
+      "ai_dung": ["he_thong"],
+      "tien_to_bang": ["aut_", "login_attempt"],
+      "khong_lam": ["Không quyết định quyền làm việc nghiệp vụ, việc đó thuộc bản đồ quyền", "Không tự tạo tài khoản"],
+      "doc_chi_tiet": ["docs/SYSTEM-DESIGN.md", "docs/adr/ADR-0074-xac-thuc-hai-lop.md"]
+    },
+    {
+      "ma": "bangtin",
+      "ten_viet": "Bảng tin thời gian thực",
+      "muc_dich": "Báo tức thì cho các màn hình đang mở rằng đơn hoặc chuyến vừa đổi để người dùng không phải tải lại trang.",
+      "ai_dung": ["he_thong"],
+      "tien_to_bang": [],
+      "khong_lam": ["Không đụng cơ sở dữ liệu", "Không lưu tin, chỉ chuyển tiếp"],
+      "doc_chi_tiet": ["docs/adr/ADR-0022-bang-tin-thong-bao-tuc-thi.md", "docs/SYSTEM-DESIGN.md"]
+    },
+    {
+      "ma": "billing",
+      "ten_viet": "Sổ tiền",
+      "muc_dich": "Ghi các khoản khách đã trả, tiền cọc, công nợ và việc nhập sang phần mềm kế toán, cùng khoá sổ theo tháng, để tiền của công ty luôn có dấu vết.",
+      "ai_dung": ["ACCOUNTING", "SALES", "ADMIN", "SUPER_ADMIN"],
+      "tien_to_bang": ["bil_"],
+      "khong_lam": ["Không sửa hay xoá dòng sổ đã ghi, chỉ thêm", "Không tin số tiền do trình duyệt gửi, chỉ máy chủ tính"],
+      "doc_chi_tiet": ["docs/SYSTEM-DESIGN.md", "docs/adr/ADR-0024-do-thi-module-hoan-tat-pricing-billing-receipt.md"]
+    },
+    {
+      "ma": "catalog",
+      "ten_viet": "Danh mục dịch vụ",
+      "muc_dich": "Giữ danh sách dịch vụ tour và bảng giá kéo từ Google Sheet để nhân viên chọn khi lập đơn, kèm nhóm dịch vụ.",
+      "ai_dung": ["SALES", "ADMIN", "SUPER_ADMIN"],
+      "tien_to_bang": ["catalog_", "ctl_"],
+      "khong_lam": ["Không ghi ngược lên Google Sheet", "Không giữ đơn hàng hay khách"],
+      "doc_chi_tiet": ["docs/SYSTEM-DESIGN.md", "docs/adr/ADR-0058-nhom-dich-vu.md"]
+    },
+    {
+      "ma": "company",
+      "ten_viet": "Công ty",
+      "muc_dich": "Cung cấp thông tin công ty chủ (tên pháp lý, địa chỉ, hotline) để in biên nhận và hiện trên Nền tảng, cùng logo.",
+      "ai_dung": ["SUPER_ADMIN", "he_thong"],
+      "tien_to_bang": ["company_profile"],
+      "khong_lam": ["Không giữ thông tin pháp lý của công ty, phần đó lấy từ hồ sơ công ty chủ trong Danh bạ", "Không đọc đơn, khách, tiền"],
+      "doc_chi_tiet": ["docs/SYSTEM-DESIGN.md", "docs/CHANGE-GUIDE.md"]
+    },
+    {
+      "ma": "dispatch",
+      "ten_viet": "Phân công",
+      "muc_dich": "Chỉ định ai phụ trách từng đơn và cho hướng dẫn viên nhận hoặc từ chối việc được giao.",
+      "ai_dung": ["SALES", "FIELD", "ADMIN", "SUPER_ADMIN"],
+      "tien_to_bang": ["dsp_"],
+      "khong_lam": ["Không điều xe, việc đó thuộc Vận chuyển", "Không sửa nội dung đơn"],
+      "doc_chi_tiet": ["docs/SYSTEM-DESIGN.md", "docs/adr/README.md"]
+    },
+    {
+      "ma": "feedback",
+      "ten_viet": "Góp ý và vé hỗ trợ",
+      "muc_dich": "Cho mọi người trong công ty gửi góp ý, báo lỗi hoặc nhờ hỗ trợ, rồi để nhóm xử lý nhận việc, trao đổi và đóng vé.",
+      "ai_dung": ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "SUPER_ADMIN", "INTERN", "DRIVER", "HR"],
+      "tien_to_bang": ["fbk_"],
+      "khong_lam": ["Không đọc nội dung đơn, chỉ gắn đơn của chính người gửi qua cửa đọc công bố", "Không sửa dữ liệu nghiệp vụ"],
+      "doc_chi_tiet": ["docs/HANDOFF-FEEDBACK.md", "docs/adr/ADR-0119-ve-ho-tro-nhom-ho-tro-va-quyen-xu-ly-theo-nhom.md"]
+    },
+    {
+      "ma": "giao-dien",
+      "ten_viet": "Giao diện công ty",
+      "muc_dich": "Cho Toàn quyền chỉnh màu và phông chữ của Nền tảng theo nhận diện của công ty.",
+      "ai_dung": ["SUPER_ADMIN", "he_thong"],
+      "tien_to_bang": ["gd_"],
+      "khong_lam": ["Không đổi bố cục hay chức năng, chỉ màu và phông", "Không đọc đơn, khách, tiền"],
+      "doc_chi_tiet": ["docs/adr/ADR-0087-giao-dien-cong-ty.md", "web/CLAUDE.md"]
+    },
+    {
+      "ma": "ky-so",
+      "ten_viet": "Khoá sổ tháng",
+      "muc_dich": "Ghi nhớ những tháng kế toán đã khoá sổ để không ai thêm tiền vào tháng đó nữa.",
+      "ai_dung": ["ACCOUNTING", "SUPER_ADMIN"],
+      "tien_to_bang": ["ky_"],
+      "khong_lam": ["Không mở lại tháng đã khoá", "Không tự tính tiền"],
+      "doc_chi_tiet": ["docs/adr/ADR-0080-quyet-toan-thang-va-khoa-ky.md", "docs/SYSTEM-DESIGN.md"]
+    },
+    {
+      "ma": "lan-gui",
+      "ten_viet": "Chống ghi trùng",
+      "muc_dich": "Cấp một vé cho mỗi lần gửi lệnh ghi để bấm hai lần hay mạng chập chờn cũng không tạo ra hai đơn hoặc hai khoản thu.",
+      "ai_dung": ["he_thong"],
+      "tien_to_bang": ["lg_"],
+      "khong_lam": ["Không hiểu nội dung nghiệp vụ của lệnh", "Không lưu vé quá thời hạn giữ"],
+      "doc_chi_tiet": ["docs/adr/ADR-0094-lop-chong-ghi-trung-chung.md", "docs/SYSTEM-DESIGN.md"]
+    },
+    {
+      "ma": "locations",
+      "ten_viet": "Địa điểm",
+      "muc_dich": "Giữ danh sách khách sạn, bến tàu và điểm tham quan dùng chung cho đơn, phân công và chuyến xe.",
+      "ai_dung": ["SALES", "ADMIN", "SUPER_ADMIN"],
+      "tien_to_bang": ["loc_"],
+      "khong_lam": ["Không giữ toạ độ hay bản đồ", "Không đọc đơn, khách, tiền"],
+      "doc_chi_tiet": ["docs/SYSTEM-DESIGN.md", "docs/DATA-DICTIONARY.md"]
+    },
+    {
+      "ma": "maintenance",
+      "ten_viet": "Chế độ bảo trì",
+      "muc_dich": "Cho Toàn quyền tạm khoá Nền tảng với mọi người khác khi cần nâng cấp hay sửa dữ liệu, rồi mở lại.",
+      "ai_dung": ["SUPER_ADMIN", "he_thong"],
+      "tien_to_bang": ["mnt_"],
+      "khong_lam": ["Không khoá người giữ quyền Toàn quyền", "Không đọc đơn, khách, tiền"],
+      "doc_chi_tiet": ["docs/HANDOFF-CHE-DO-BAO-TRI.md", "docs/SYSTEM-DESIGN.md"]
+    },
+    {
+      "ma": "orders",
+      "ten_viet": "Đơn hàng",
+      "muc_dich": "Là trung tâm của công việc bán tour: lập đơn nháp, thêm dịch vụ, ghi giờ đón và hành khách, xác nhận đơn và tính tiền ở máy chủ.",
+      "ai_dung": ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN"],
+      "tien_to_bang": ["orders", "order_", "ord_"],
+      "khong_lam": ["Không tự điều xe và không tự biết ai là người phụ trách, các việc đó do gốc lắp ráp tiêm vào", "Không tin số tiền do trình duyệt gửi"],
+      "doc_chi_tiet": ["docs/SYSTEM-DESIGN.md", "docs/SPEC-tourdao-sales.md"]
+    },
+    {
+      "ma": "parties",
+      "ten_viet": "Danh bạ",
+      "muc_dich": "Là sổ của mọi bên mà công ty làm việc cùng (khách, đại lý, đối tác, nhân viên, nhà xe, chính công ty), giữ giấy tờ và tài khoản nhận tiền, và lo quyền riêng tư: tự khai, xác minh, xoá và ẩn danh hoá.",
+      "ai_dung": ["SALES", "ADMIN", "SUPER_ADMIN", "HR", "ACCOUNTING"],
+      "tien_to_bang": ["pty_"],
+      "khong_lam": ["Không dùng vai hồ sơ (hướng dẫn viên, tài xế) làm điều kiện cho phép", "Không đưa số giấy tờ vào nhật ký hay câu báo lỗi"],
+      "doc_chi_tiet": ["docs/adr/ADR-0001-danh-tinh-party-role-relationship.md", "docs/adr/ADR-0123-kho-tep-ho-so-tren-r2.md"]
+    },
+    {
+      "ma": "pricing",
+      "ten_viet": "Hoa hồng và điều khoản bán",
+      "muc_dich": "Giữ mức hoa hồng của đối tác theo dịch vụ hoặc nhóm dịch vụ và điều khoản ai được bán dịch vụ nào, để lúc xác nhận đơn chụp lại đúng mức đã thoả thuận.",
+      "ai_dung": ["ADMIN", "SUPER_ADMIN", "ACCOUNTING", "SALES"],
+      "tien_to_bang": ["prc_"],
+      "khong_lam": ["Không sửa đơn đã xác nhận", "Không lộ mức hoa hồng cho người không có quyền xem"],
+      "doc_chi_tiet": ["docs/adr/ADR-0077-chinh-sach-hoa-hong-va-chup-luc-xac-nhan.md", "docs/SYSTEM-DESIGN.md"]
+    },
+    {
+      "ma": "receipt",
+      "ten_viet": "Biên nhận và mã QR",
+      "muc_dich": "Dựng biên nhận gửi khách và mã QR thanh toán từ dữ liệu của các phần khác theo danh sách trắng.",
+      "ai_dung": ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"],
+      "tien_to_bang": [],
+      "khong_lam": ["Không có bảng và không có câu SQL riêng", "Không gọi dịch vụ ngoài để dựng mã QR"],
+      "doc_chi_tiet": ["docs/SYSTEM-DESIGN.md", "docs/adr/ADR-0024-do-thi-module-hoan-tat-pricing-billing-receipt.md"]
+    },
+    {
+      "ma": "staff",
+      "ten_viet": "Nhân viên",
+      "muc_dich": "Giữ tài khoản và quyền của từng người dùng Nền tảng, làm thư viện cho các phần khác tra ai là ai và được làm gì.",
+      "ai_dung": ["he_thong"],
+      "tien_to_bang": ["staff", "stf_"],
+      "khong_lam": ["Không có đường API riêng, đường API nằm ở phần Quản lý tài khoản", "Không còn đọc quyền từ cột chết staff.role"],
+      "doc_chi_tiet": ["docs/adr/ADR-0018-mo-hinh-nguoi-vai-quyen.md", "docs/SYSTEM-DESIGN.md"]
+    },
+    {
+      "ma": "thongbao",
+      "ten_viet": "Thông báo",
+      "muc_dich": "Gửi tin nội bộ và thông báo đẩy tới điện thoại khi có việc mới như đơn chờ nhận, đơn đổi hay chuyến đổi.",
+      "ai_dung": ["he_thong"],
+      "tien_to_bang": ["ntf_"],
+      "khong_lam": ["Không gửi thông báo nổi cho đơn nháp", "Không đọc hay sửa nội dung đơn"],
+      "doc_chi_tiet": ["docs/adr/ADR-0045-thong-bao-don-khi-xac-nhan.md", "docs/HUONG-DAN-BAT-THONG-BAO-DIEN-THOAI.md"]
+    },
+    {
+      "ma": "tro-ly",
+      "ten_viet": "Trợ lý Hỗ trợ",
+      "muc_dich": "Trả lời nhân viên cách dùng Nền tảng bằng trợ lý AI, và cho Toàn quyền chỉnh trợ lý.",
+      "ai_dung": ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "SUPER_ADMIN", "INTERN", "HR"],
+      "tien_to_bang": ["tl_"],
+      "khong_lam": ["Không đọc đơn, khách, tiền", "Không gửi dãy số điện thoại hay số giấy tờ ra dịch vụ ngoài"],
+      "doc_chi_tiet": ["docs/superpowers/specs/2026-09-30-adr-0066-tro-ly-ai-ho-tro.md", "docs/superpowers/specs/2026-09-30-adr-0069-bang-dieu-khien-tro-ly.md"]
+    },
+    {
+      "ma": "van-chuyen",
+      "ten_viet": "Vận chuyển",
+      "muc_dich": "Điều xe đưa đón khách: quản lý xe, giấy tờ xe, tài xế, xếp khách lên chuyến, theo dõi tiến độ và tiền xe thuê.",
+      "ai_dung": ["SALES", "ADMIN", "SUPER_ADMIN", "ACCOUNTING", "DRIVER", "DRIVER_PARTNER"],
+      "tien_to_bang": ["vc_"],
+      "khong_lam": ["Không để phần nào khác gọi vào nó", "Không cho tài xế thấy tên khách ngoài ngày chạy"],
+      "doc_chi_tiet": ["docs/VAN-CHUYEN.md", "docs/adr/ADR-0128-van-chuyen-nhom-1-moc-30-phut-xe-rieng-tuyet-doi-them-khach-tat-ca-hoac-khong.md"]
+    }
+  ],
+  "khoi_ngoai": [
+    { "ten": "Cơ sở dữ liệu D1 (binding DB)", "muc_dich": "Nguồn sự thật của mọi dữ liệu nghiệp vụ; trigger giữ các luật lõi ngay trong cơ sở dữ liệu.", "chieu": "máy chủ đọc và ghi", "phan_dung": [] },
+    { "ten": "Kho tệp R2 (binding HO_SO)", "muc_dich": "Giữ ảnh giấy tờ của người và dấu vết phiếu xoá ngoài cơ sở dữ liệu; không công khai.", "chieu": "máy chủ ghi, đọc, xoá", "phan_dung": ["parties"] },
+    { "ten": "Bảng tin (Durable Object, binding BANG_TIN)", "muc_dich": "Giữ kết nối WebSocket để báo tức thì cho màn hình đang mở; không lưu tin.", "chieu": "hai chiều", "phan_dung": ["bangtin"] },
+    { "ten": "Email (binding EMAIL)", "muc_dich": "Gửi thư báo góp ý cho người xử lý và mã đăng nhập hai lớp.", "chieu": "máy chủ gọi ra", "phan_dung": ["feedback", "auth"] },
+    { "ten": "Google Sheet danh mục dịch vụ", "muc_dich": "Nguồn danh sách dịch vụ và bảng giá, kéo mỗi 15 phút hoặc khi bấm đồng bộ.", "chieu": "chỉ đọc", "phan_dung": ["catalog"] },
+    { "ten": "Cloudflare Turnstile", "muc_dich": "Chặn máy tự dò mã PIN ở màn đăng nhập.", "chieu": "máy chủ gọi ra", "phan_dung": ["auth"] },
+    { "ten": "Thông báo đẩy Web Push", "muc_dich": "Gõ cửa điện thoại và máy tính của người dùng khi có việc mới.", "chieu": "máy chủ gọi ra", "phan_dung": ["thongbao"] },
+    { "ten": "OpenAI", "muc_dich": "Mô hình ngôn ngữ cho trợ lý Hỗ trợ; câu hỏi được che dãy số trước khi gửi.", "chieu": "máy chủ gọi ra", "phan_dung": ["tro-ly"] }
+  ]
+}
