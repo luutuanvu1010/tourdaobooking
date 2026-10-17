@@ -531,6 +531,20 @@ test("(p5) thực hiện lần hai (người khác) → 409 erasure_not_pending,
   assert.equal(dem(w, "audit_log WHERE action = 'party_erased'"), 1);
 });
 
+test("(p5b) hồ sơ đã xoá dữ liệu (cùng tên dấu giữ chỗ) không bị ghép thành cặp \"Cùng họ tên\" ở danh sách nghi trùng — vòng sửa 1, m-4", async () => {
+  const w = setup();
+  const PARTNER2 = "56565656-5656-4565-8565-565656565656";
+  seedStaff(w.sqlite, { id: PARTNER2, phone: "0900000066", name: "Đối Tác", perms: ["PARTNER"] }); // cùng tên, chỉ quyền Đối tác ⇒ không giữ tên
+  const a = await guiDayDu(w, PARTNER);
+  const b = await guiDayDu(w, PARTNER2, "079000000996");
+  assert.equal((await thucHien(w, ADM, a.phieuId)).status, 200);
+  assert.equal((await thucHien(w, ADM, b.phieuId)).status, 200);
+  assert.equal(Q(w, "SELECT display_name FROM pty_party WHERE id IN (?, ?)", a.p, b.p).every((x) => x.display_name === DAU_TEN), true);
+  const r = await w.call("GET", "/api/parties/duplicates", { as: ADM });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json, { pairs: [], conNua: false });
+});
+
 test("(p6) người gửi tự bấm → 409 erasure_self (Quản trị và Toàn quyền); Đối tác còn đơn chưa giao → 409 erasure_busy (Toàn quyền cũng chịu), dữ liệu nguyên", async () => {
   const w = setup();
   const m = (await gui(w, ADM)).json.id as string;

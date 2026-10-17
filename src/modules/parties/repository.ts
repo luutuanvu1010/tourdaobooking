@@ -851,7 +851,7 @@ const DOCS_FOR_MERGE = defineSql(
 );
 const MERGED_FROM = defineSql("parties", "merged_from", "SELECT id, display_name, merged_at FROM pty_party WHERE merged_into_id = ?1 ORDER BY merged_at, id");
 // Hồ sơ nghi trùng (Đ8) + hồ sơ khớp khi tạo tài khoản (Đ9): hồ sơ cá nhân đang dùng, chưa gộp; SĐT liên hệ đang mở của chúng.
-const PERSONS_FOR_MATCH = defineSql("parties", "persons_for_match", "SELECT id, display_name FROM pty_party WHERE party_kind = 'PERSON' AND active = 1 AND merged_into_id IS NULL");
+const PERSONS_FOR_MATCH = defineSql("parties", "persons_for_match", "SELECT id, display_name FROM pty_party WHERE party_kind = 'PERSON' AND active = 1 AND merged_into_id IS NULL AND NOT EXISTS (SELECT 1 FROM pty_erasure_request r WHERE r.party_id = pty_party.id AND r.status = 'DA_THUC_HIEN')"); // hồ sơ đã xoá dữ liệu mang tên dấu giữ chỗ chung, không đưa vào so khớp trùng (vòng sửa 1, m-4)
 const OPEN_PERSON_PHONES = defineSql(
   "parties",
   "open_person_phones",
