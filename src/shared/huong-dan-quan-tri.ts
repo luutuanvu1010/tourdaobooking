@@ -242,7 +242,7 @@ Mở [[Phiên đăng nhập]] (điện thoại: trang **Tôi**) xem ai đang đ�
 
 ### Nhật ký, Hỗ trợ, hồ sơ công ty
 - [[Nhật ký]]: tìm theo mã đơn, mã dịch vụ hoặc tên nhân viên.
-- Hỗ trợ: thành viên nhóm có ngăn [[Hàng đợi nhóm]] để nhận việc, đổi trạng thái, trả lời; tick ghi chú nội bộ thì người gửi không thấy.
+- Hỗ trợ: ở [[Hàng đợi nhóm]], thành viên nhóm nhận việc, đổi trạng thái, mức ưu tiên, trả lời; Trưởng nhóm có thêm [[Giao cho người khác]].
 - Hồ sơ công ty trong Danh bạ: sửa tên, mã số thuế, địa chỉ, hotline (trang đăng nhập và biên nhận dùng các thông tin này). Thêm hotline mới trước khi đóng cái cũ.`,
     },
   ],
