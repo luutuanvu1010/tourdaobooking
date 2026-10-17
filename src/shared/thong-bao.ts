@@ -89,7 +89,8 @@ const CAU: Record<Exclude<LoaiTinDon, "doi_sau_xac_nhan">, { coTen: (ten: string
   xac_nhan: { coTen: (t, m) => `${t} vừa xác nhận đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa được xác nhận` },
   huy: { coTen: (t, m) => `${t} vừa huỷ đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa bị huỷ` },
 };
-/** Tin "giao" đọc bởi chính người đang phụ trách đơn: "cho người khác" dễ làm họ tưởng mình không phải đi (B-01). Chọn theo `d.phuTrach` (người HIỆN TẠI). */
+/** Tin "giao" đọc bởi chính người đang phụ trách đơn: "cho người khác" dễ làm họ tưởng mình không phải đi (B-01). Chọn theo `d.phuTrach` (người HIỆN TẠI —
+ * nhật ký chỉ ghi tên) VÀ dòng phải là lần đổi người MỚI NHẤT của đơn (giao / tự nhận; kiểm độc lập F-1): dòng giao cũ hơn đã có người khác nhận sau. */
 const CAU_GIAO_CHO_BAN = { coTen: (t: string, m: string) => `${t} vừa giao đơn ${m} cho bạn phụ trách`, khongTen: (m: string) => `Đơn ${m} vừa được giao cho bạn phụ trách` };
 
 /** Chữ của một phần đổi khi GHÉP nhiều dòng cùng lô (câu chung thành cụm cố định — không chữ thô). */
@@ -153,6 +154,13 @@ export function locHopThongBao(
   const tat: TinDto[] = [];
   /** Dòng đổi đủ điều kiện nguồn, gom theo LÔ (cùng đơn + cùng người làm + cùng mốc — ADR-0062 Đ1 "cùng lô = một tin"). */
   const loDoi = new Map<string, { d: DongDon; p: PhanDoiTin }[]>();
+  /** Mốc đổi người phụ trách mới nhất của từng đơn (CAU_GIAO_CHO_BAN) — xét MỌI dòng, kể cả dòng do chính người xem làm (tự nhận). */
+  const doiNguoiCuoi = new Map<string, string>();
+  for (const d of vao.don) {
+    if (d.action !== "order_handler_changed" && d.action !== "order_claimed") continue;
+    const truoc = doiNguoiCuoi.get(d.orderId);
+    if (truoc === undefined || d.luc > truoc) doiNguoiCuoi.set(d.orderId, d.luc);
+  }
   for (const d of vao.don) {
     if (d.luc < moc || d.actorId === staff.id) continue;
     if (laHanhDongTinDoi(d.action)) {
@@ -182,7 +190,7 @@ export function locHopThongBao(
     const coTen = d.tenNguoiLam !== null && can(staff, "order.history.view", { ownerId: d.ownerId, assigned: d.phuTrach.staffId === staff.id });
     tat.push({
       id: d.id, loai, maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
-      cau: loai === "giao" && d.phuTrach.staffId === staff.id
+      cau: loai === "giao" && d.phuTrach.staffId === staff.id && doiNguoiCuoi.get(d.orderId) === d.luc
         ? (coTen ? CAU_GIAO_CHO_BAN.coTen(d.tenNguoiLam!, d.maDon) : CAU_GIAO_CHO_BAN.khongTen(d.maDon))
         : coTen ? CAU[loai].coTen(d.tenNguoiLam!, d.maDon) : CAU[loai].khongTen(d.maDon),
       lienKet: isOffice(staff) ? `/order?id=${d.orderId}` : "/account",

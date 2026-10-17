@@ -1,5 +1,6 @@
 // B-01 (rà soát trước launch): người ĐƯỢC GIAO đơn đọc "cho bạn phụ trách", không đọc "cho người khác" (dễ hiểu nhầm mình không phải đi).
-// Mọi người xem khác giữ câu cũ. Chữ chọn theo người đang phụ trách HIỆN TẠI (`d.phuTrach`) — nhật ký chỉ ghi tên, không ghi người được giao.
+// Mọi người xem khác giữ câu cũ. Chữ chọn theo người đang phụ trách HIỆN TẠI (`d.phuTrach`) — nhật ký chỉ ghi tên, không ghi người được giao —
+// và chỉ cho lần đổi người MỚI NHẤT của đơn (kiểm độc lập F-1).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { locHopThongBao, type DongDon } from "./thong-bao.ts";
@@ -23,4 +24,17 @@ test("B-01: tin giao đơn — người đang phụ trách đọc 'cho bạn ph�
   assert.equal(hop(MAI, [giao({ actorId: null, tenNguoiLam: null })]).tin[0]!.cau, "Đơn TD-20260927-0001 vừa đổi người phụ trách");
   // loại tin khác không bị đụng: người phụ trách xem tin "xác nhận" vẫn câu cũ
   assert.equal(hop(TAM, [giao({ action: "confirmed" })]).tin[0]!.cau, "Hùng vừa xác nhận đơn TD-20260927-0001");
+});
+
+test("B-01 (kiểm độc lập F-1): chỉ dòng đổi người phụ trách MỚI NHẤT của đơn đọc 'cho bạn' — dòng giao cũ hơn đã có người khác nhận sau", () => {
+  const cau = (d: DongDon[]) => hop(TAM, d).tin.map((t) => [t.luc, t.cau]);
+  // giao hai lần (lần 1 cho người khác lúc 01:00, lần 2 cho Tâm lúc 02:00): Tâm là người phụ trách hiện tại của CẢ hai dòng
+  const lan1 = giao({ luc: "2026-09-27T01:00:00.000Z" }), lan2 = giao({ luc: "2026-09-27T02:00:00.000Z" });
+  assert.deepEqual(cau([lan2, lan1]), [
+    ["2026-09-27T02:00:00.000Z", "Hùng vừa giao đơn TD-20260927-0001 cho bạn phụ trách"],
+    ["2026-09-27T01:00:00.000Z", "Hùng vừa giao đơn TD-20260927-0001 cho người khác phụ trách"],
+  ]);
+  // giao cho người khác rồi Tâm TỰ NHẬN (dòng tự nhận của chính Tâm không thành tin của Tâm, nhưng vẫn là lần đổi người mới nhất)
+  const tuNhan = giao({ action: "order_claimed", actorId: "tam", tenNguoiLam: "Tâm", luc: "2026-09-27T02:00:00.000Z" });
+  assert.deepEqual(cau([tuNhan, lan1]), [["2026-09-27T01:00:00.000Z", "Hùng vừa giao đơn TD-20260927-0001 cho người khác phụ trách"]]);
 });
