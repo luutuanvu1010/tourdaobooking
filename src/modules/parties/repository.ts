@@ -1344,7 +1344,7 @@ const LIST_PHIEU_XOA_CHO = defineSql("parties", "list_pending_erasure_requests",
 const LIST_PHIEU_XOA_CUA_HO_SO = defineSql("parties", "list_erasure_requests_of_party",
   `SELECT ${COT_PHIEU_XOA} FROM pty_erasure_request WHERE party_id = ?1 ORDER BY created_at DESC, id DESC LIMIT 20`);
 const LIST_PHIEU_CHUA_CHEP_NGOAI = defineSql("parties", "list_erasure_requests_not_offsite",
-  "SELECT id, party_id, decided_at FROM pty_erasure_request WHERE status = 'DA_THUC_HIEN' AND offsite_at IS NULL ORDER BY decided_at, id LIMIT 500");
+  "SELECT id, party_id, decided_at FROM pty_erasure_request WHERE status = 'DA_THUC_HIEN' AND offsite_at IS NULL ORDER BY decided_at, id LIMIT 100"); // 100 mỗi lượt (vòng sửa 1, m-2): mỗi tệp tốn một lần ghi D1 + một thao tác kho; route chạy lại tự lặp an toàn
 
 // R6: số ngày CHỈ ở dòng chính sách — chính sách chưa có số, hoặc chưa đăng bản nào ⇒ policy_id / due_at rỗng (CHECK policy_id rỗng ⇒ due_at rỗng). "Hiện hành" = cùng nghĩa
 // chinhSachHienHanh (đã có hiệu lực lúc gửi, phiên bản lớn nhất). ?1 mã phiếu, ?2 hồ sơ, ?3 người gửi, ?4 lúc.
@@ -1506,7 +1506,7 @@ const LIST_PHIEU_XOA_DA_XU_LY = defineSql("parties", "list_processed_erasure_req
 const DEM_HO_SO_GOP_VAO = defineSql("parties", "count_profiles_merged_into", "SELECT count(*) AS n FROM pty_party WHERE merged_into_id = ?1");
 const TEP_CHO_XOA_LY_DO_PHIEU = defineSql("parties", "list_attachments_pending_purge_by_erasure",
   `SELECT id, party_id, storage_key, purged_at, purge_reason, created_at FROM pty_attachment
-   WHERE purged_at IS NOT NULL AND r2_deleted_at IS NULL AND purge_reason IN ('${LY_DO_XOA_TEP_PHIEU}', '${LY_DO_XOA_TEP_HET_GIU}') ORDER BY created_at, id LIMIT 500`);
+   WHERE purged_at IS NOT NULL AND r2_deleted_at IS NULL AND purge_reason IN ('${LY_DO_XOA_TEP_PHIEU}', '${LY_DO_XOA_TEP_HET_GIU}') ORDER BY created_at, id LIMIT 100`); // 100 mỗi lượt (m-2)
 // Gộp bị chặn khi hồ sơ nào trong hai hồ sơ đang có / đã thực hiện phiếu xoá (ruling R16; lớp hai là trigger party_merge_erasure).
 const CO_PHIEU_XOA_CHO_HOAC_DA = defineSql("parties", "count_open_or_done_erasure_requests",
   "SELECT count(*) AS n FROM pty_erasure_request WHERE party_id IN (?1, ?2) AND status IN ('CHO_XU_LY', 'DA_THUC_HIEN')");

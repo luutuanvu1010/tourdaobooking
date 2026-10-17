@@ -3,6 +3,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { CHECKS } from "../../../scripts/audit-checks.mjs";
 import { anDanhStatements, hanGiuPhienNgay, quyetPhieuXoaStatement } from "./repository.ts";
@@ -410,6 +412,16 @@ test("(p2b) hàng chờ: số truy vấn D1 mỗi dòng ≤ 3 (không hỏi số
   assert.equal(r.json.phieu.length, 5);
   // Toàn bộ lời gọi: phần chung (phiên, quyền, danh sách tài khoản, chính sách, hai danh sách phiếu, nhãn) + mỗi dòng không quá 3.
   assert.ok(n <= 5 * 3 + 8, `số truy vấn ${n} vượt 5 dòng × 3 + 8 phần chung (đo 21; bản cũ 31)`);
+});
+
+test("(p2c) chạy lại: mỗi lượt tối đa 100 phiếu chưa chép ngoài và 100 tệp chờ xoá kho (không 500) — vòng sửa 1, m-2", () => {
+  const nguon = readFileSync(fileURLToPath(new URL("./repository.ts", import.meta.url)), "utf8");
+  for (const ten of ["list_erasure_requests_not_offsite", "list_attachments_pending_purge_by_erasure"]) {
+    const i = nguon.indexOf(`"${ten}"`);
+    assert.ok(i > 0, ten);
+    const cau = nguon.slice(i, nguon.indexOf(");", i));
+    assert.match(cau, /LIMIT 100\b/, ten);
+  }
 });
 
 test("(p3) xem trước: CHỈ số đếm, tập khoá đúng hợp đồng, không chuỗi nào khớp số giấy tờ / SĐT / ngày sinh / địa chỉ, no-store; ngoài cấp bậc → 404; mã lạ → 404", async () => {
