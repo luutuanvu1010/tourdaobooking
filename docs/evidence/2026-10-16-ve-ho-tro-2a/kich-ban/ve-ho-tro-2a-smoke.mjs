@@ -234,6 +234,7 @@ try {
   ok("4. Trưởng nhóm: «Giao cho người khác» (không có người gửi) → «Người xử lý: Kế Toán»; khoá Kế toán ⇒ tự hiện «Chưa ai nhận» + tên mờ; ≥ 44px, ≥ 16px, không tràn, axe");
 
   // ---- 5. chuyển nhóm khi trang Trưởng nhóm Kế toán đang mở ⇒ dừng làm mới
+  assert.equal(await p.ev("!!document.getElementById('fb-chuyen') && !document.getElementById('fb-dau').hidden"), true, "5. trước khi chuyển: có khối đầu phiếu và khối chuyển nhóm");
   const chuyen = await call(ACCOUNTS.chu, "POST", `/api/feedback/${ticketId}/transfer`, { teamId: KY_THUAT, reason: "Lỗi hiển thị, không phải công nợ" });
   assert.equal(chuyen.status, 200, `5. chuyển nhóm: ${JSON.stringify(chuyen.json)}`);
   await p.waitFor("document.getElementById('fb-lam-moi-dung')?.textContent === 'Phiếu này không còn trong nhóm của bạn.' && document.getElementById('fb-tra-loi').hidden", "5. câu báo + ẩn ô trả lời", 12000);
@@ -241,9 +242,11 @@ try {
   await sleep(11_000);
   assert.equal(lamMoi(p).length, dungLuc, "5. đã dừng làm mới");
   assert.equal(await p.ev("document.getElementById('error').hidden"), true, "5. không bật dòng lỗi chung");
+  // Việc 6 (dồn từ người kiểm Việc 5): nút đổi trạng thái / mức / giao việc / chuyển nhóm không còn dùng được ⇒ ẩn cùng ô trả lời.
+  assert.equal(await p.ev("document.getElementById('fb-dau').hidden && document.getElementById('fb-chuyen').hidden"), true, "5. ẩn khối đầu phiếu và khối chuyển nhóm");
   await p.shot(join(OUT, "07-truong-nhom-phieu-da-chuyen-390.png"));
   p.close();
-  ok("5. phiếu bị chuyển sang Kỹ thuật ⇒ «Phiếu này không còn trong nhóm của bạn.», ẩn ô trả lời, dừng làm mới");
+  ok("5. phiếu bị chuyển sang Kỹ thuật ⇒ «Phiếu này không còn trong nhóm của bạn.», ẩn ô trả lời, khối đầu phiếu và khối chuyển nhóm, dừng làm mới");
 
   // ---- 6. ảnh máy tính của người gửi (bố cục 2 cột) — sau cùng vì Bán hàng Một đăng nhập lại
   p = await env.as(ACCOUNTS.salesA, `/feedback?id=${ticketId}`, DESK);
