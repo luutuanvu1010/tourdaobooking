@@ -7,6 +7,7 @@ import { dateTime } from "./format";
 import { rolePicker, type RolePicker, type RolePickerValue } from "./role-picker";
 import { initShell, showError } from "./shell";
 import { nhanHaiLop } from "../src/shared/hai-lop-hien-thi";
+import { dungHangChoXacMinh } from "./xac-minh-hang-cho";
 
 const errorEl = byId("error");
 const listEl = byId("list");
@@ -464,5 +465,7 @@ else {
     byId("add-card").hidden = false;
     setupAddForm();
   }
+  // ADR-0125 đ6: hàng chờ xác minh phiếu tự khai — ô party.verify (Quản trị, Nhân sự, Toàn quyền); khối tự dựng và hiện, máy chủ kiểm lại từng route.
+  if (can(staff, "party.verify")) dungHangChoXacMinh(byId("xac-minh"), staff);
   await load();
 }
