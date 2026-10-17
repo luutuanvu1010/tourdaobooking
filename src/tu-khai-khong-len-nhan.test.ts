@@ -17,6 +17,10 @@ const CAU_GHIM = [
   // ADR-0125 (lát H-4): xác minh — đọc phiếu ĐANG CHỜ (không số đủ, trừ find_pending_self_submission_number) + câu quyết có lính gác + năm câu phụ thuộc có điều kiện thắng
   "accept_self_submission_address", "accept_self_submission_birth_date", "accept_self_submission_document", "accept_self_submission_touch_party", "accept_self_submission_verification",
   "decide_self_submission", "find_pending_self_submission_number", "find_self_submission_for_verify", "list_decided_self_submissions", "list_pending_self_submissions",
+  // ADR-0126 đ3 — ẩn danh hoá (lát H-5): hai câu ghi dấu ẩn danh lên phiếu đã xử lý (chỉ route thực hiện gọi — rào src/xoa-mot-lenh-co-ten.test.ts), một câu rút phiếu chờ khi gửi
+  // phiếu xoá, và ba câu CHỈ ĐỌC TRẠNG THÁI phiếu / đếm (không chọn cột giá trị): xem trước số đếm, hình chiếu ảnh hết lý do giữ, lính gác quyết xoá ảnh.
+  "an_danh_phieu_tu_khai", "an_danh_rut_phieu_cho", "withdraw_pending_self_submissions_on_erasure_request",
+  "erasure_preview_counts", "list_attachments_without_keep_reason", "purge_attachment_without_keep_reason",
 ].sort();
 const HAM = ["ghiPhieuStatement", "listPhieuCuaHoSo", "timPhieuCuaHoSo", "rutPhieuStatement", "rutMoiPhieuChoStatement"];
 // ADR-0125 đ1 (lát H-4): các route /api/parties/xac-minh… được đọc phiếu ĐANG CHỜ để xác minh — chỉ trong thân route có tiền tố này. Route có thật ở việc 3, 4 của lát

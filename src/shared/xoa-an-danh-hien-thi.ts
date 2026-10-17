@@ -1,0 +1,45 @@
+// Nhãn phiếu yêu cầu xoá dữ liệu — dùng chung máy chủ ↔ giao diện (ADR-0126; lát H-5 Gói 2). Thuần, không import. Chữ hiện ra là tiếng Việt có dấu,
+// không bao giờ lộ mã thô (DA_THUC_HIEN → "Đã thực hiện").
+
+/** Phần dữ liệu PHẢI giữ lại (đ4) — mã + nhãn, theo thứ tự hiện. Phiếu lưu danh sách MÃ lúc thực hiện (retained_codes) để chữ trả lời không đổi theo mã sau này.
+ *  Hai mã động: TEN_HO_SO (khi giữ tên), SDT_DANG_NHAP (khi hồ sơ có tài khoản — đ9). */
+export const PHAN_GIU_LAI: readonly { ma: string; nhan: string }[] = [
+  { ma: "DON_BAN_CHUP", nhan: "Đơn hàng kèm bản chụp thông tin khách lúc lập đơn" },
+  { ma: "HANH_KHACH", nhan: "Danh sách hành khách của chuyến, giữ tối thiểu 3 năm (chưa luật sư xác nhận)" },
+  { ma: "LAN_THU", nhan: "Các lần thu tiền" },
+  { ma: "SO_TIEN", nhan: "Sổ tiền và công nợ" },
+  { ma: "YEU_CAU_HOA_DON", nhan: "Bản chụp yêu cầu xuất hoá đơn" },
+  { ma: "HO_TEN_NHAT_KY", nhan: "Họ tên trong nhật ký thao tác" },
+  { ma: "NHAT_KY_CU_SDT", nhan: "Nhật ký cũ có số điện thoại" },
+  { ma: "PHIEN_DA_BO_IP", nhan: "Dòng phiên đăng nhập (đã bỏ địa chỉ mạng và thông tin trình duyệt)" },
+  { ma: "CHU_TU_DO", nhan: "Chữ tự do trong ghi chú, góp ý (chưa rà soát)" },
+  { ma: "TEN_HO_SO", nhan: "Tên trong hồ sơ" },
+  { ma: "SDT_DANG_NHAP", nhan: "Số điện thoại đăng nhập" },
+];
+
+/** Danh sách ĐÓNG lý do từ chối phiếu xoá: máy chủ chỉ nhận mã, không nhận chữ tự do. */
+export const LY_DO_TU_CHOI_XOA: readonly { ma: "CAN_GIU_THEO_LUAT" | "NGUOI_DUNG_HUY_QUA_KENH_KHAC"; nhan: string }[] = [
+  { ma: "CAN_GIU_THEO_LUAT", nhan: "Dữ liệu đang phải giữ theo quy định pháp luật" },
+  { ma: "NGUOI_DUNG_HUY_QUA_KENH_KHAC", nhan: "Người dùng đã báo huỷ yêu cầu qua kênh khác" },
+];
+
+export const CAU_CAN_CU_GIU_LAI = "Căn cứ giữ lại: chưa được luật sư hay kế toán xác nhận.";
+
+const TRANG_THAI_PHIEU_XOA: Readonly<Record<string, string>> = {
+  CHO_XU_LY: "Chờ xử lý",
+  DA_THUC_HIEN: "Đã thực hiện",
+  TU_CHOI: "Đã từ chối",
+  RUT: "Đã rút",
+};
+export const nhanTrangThaiPhieuXoa = (s: string): string => (Object.hasOwn(TRANG_THAI_PHIEU_XOA, s) ? TRANG_THAI_PHIEU_XOA[s]! : "Trạng thái khác");
+
+const LY_DO_XOA_ANH: Readonly<Record<string, string>> = {
+  HET_QUAN_HE: "Hồ sơ không còn vai trò nào đang hiệu lực",
+  DA_AN_DANH: "Giấy tờ đã được ẩn danh",
+  DA_HUY: "Giấy tờ đã huỷ",
+  DA_GIA_HAN: "Đã có giấy tờ gia hạn thay thế",
+  HET_HAN: "Giấy tờ đã hết hạn",
+  PHIEU_DA_XU_LY: "Phiếu tự khai đã xử lý xong",
+  KHONG_NOI: "Ảnh không gắn với giấy tờ nào",
+};
+export const nhanLyDoXoaAnh = (s: string): string => (Object.hasOwn(LY_DO_XOA_ANH, s) ? LY_DO_XOA_ANH[s]! : "Lý do khác");

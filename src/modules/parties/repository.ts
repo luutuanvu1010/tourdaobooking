@@ -7,6 +7,7 @@ import type { GioiTinh } from "../../shared/xung-ho.ts";
 import { composePersonName } from "./rules.ts";
 import type { LoaiTep } from "./tep.ts";
 import type { ChamTaiKhoan, LoaiCham } from "./xac-minh.ts";
+import { DAU_DIA_CHI_PHIEU, DAU_LIEN_HE, DAU_NGAY_SINH_PHIEU, DAU_TEN, LY_DO_XOA_TEP_HET_GIU, LY_DO_XOA_TEP_PHIEU } from "./xoa-an-danh.ts";
 
 export type PartyKind = "PERSON" | "ORGANIZATION";
 
@@ -521,7 +522,8 @@ export interface PersonDocRow {
   updated_at: string;
   is_current: number;
 }
-const HIEN_HANH = "(d.voided_at IS NULL AND NOT EXISTS (SELECT 1 FROM pty_person_document n WHERE n.previous_id = d.id AND n.voided_at IS NULL))";
+// ADR-0126 (lát H-5): dòng đã ẨN DANH (erased_at) không còn là "hiện hành" — không gia hạn, không nhận phiếu tự khai, không chép dấu XOA… sang dòng sống mới.
+const HIEN_HANH = "(d.voided_at IS NULL AND d.erased_at IS NULL AND NOT EXISTS (SELECT 1 FROM pty_person_document n WHERE n.previous_id = d.id AND n.voided_at IS NULL))";
 // ?1 = hồ sơ; ?2 = 1 chỉ dòng hiện hành (giấy tờ của tôi — R15 điểm 6). Thứ tự (quyết định thiết kế 3 của bản vẽ): hiện hành trước; trong đó ngày hết hạn
 // tăng dần (đã hết → sắp hết → còn hạn), "không hạn" cuối; rồi thứ tự loại, mốc tạo.
 const LIST_PERSON_DOCS = defineSql(
@@ -1257,7 +1259,7 @@ const ACCEPT_DOCUMENT = defineSql("parties", "accept_self_submission_document",
      ${COT_THANG("issued_date")}, ${COT_THANG("issued_place")}, ${COT_THANG("expiry_date")},
      (SELECT d.id FROM pty_person_document d WHERE d.party_id = ${COT_THANG("party_id")} AND d.document_type_code = ${COT_THANG("document_type_code")}
         AND d.license_class_code IS ${COT_THANG("license_class_code")}
-        AND d.voided_at IS NULL AND NOT EXISTS (SELECT 1 FROM pty_person_document n WHERE n.previous_id = d.id AND n.voided_at IS NULL)
+        AND d.voided_at IS NULL AND d.erased_at IS NULL AND NOT EXISTS (SELECT 1 FROM pty_person_document n WHERE n.previous_id = d.id AND n.voided_at IS NULL)
         ORDER BY d.created_at DESC, d.id DESC LIMIT 1),
      ?3, ?2, ?3, ?2)`);
 const ACCEPT_TOUCH_PARTY = defineSql("parties", "accept_self_submission_touch_party",
@@ -1299,3 +1301,219 @@ export function canXacMinhLaiStatement(
     ? db.prepare(MARK_REVERIFY_ATTRIBUTE).bind(crypto.randomUUID(), v.partyId, v.expectedUpdatedAt, v.actorId, v.at, v.attributeCode)
     : db.prepare(MARK_REVERIFY_DOCUMENT).bind(crypto.randomUUID(), v.partyId, v.expectedUpdatedAt, v.actorId, v.at, v.targetId);
 }
+
+// ---- Xoá dữ liệu: phiếu yêu cầu xoá + ẩn danh hoá (ADR-0126; migration 0108; Hiến chương 5.24, 5.25; lát H-5 Gói 2) -----------------------------------------------
+// Ẩn danh hoá là cửa MỘT CHIỀU: chỉ lô tám câu ẩn danh (hàm dựng lô ở cuối tệp) được đặt `erased_at` (ngoại lệ có tên — rào src/xoa-mot-lenh-co-ten.test.ts). Mỗi câu sau câu quyết mang LÍNH GÁC
+// `DA_THANG_XOA` (parties không có wonGuard — module nghiêm): chính dòng phiếu đã mang người + lúc của lô này. Thời hạn (số ngày) KHÔNG có ở đây — chỉ đọc từ dòng chính sách.
+// Dấu ẩn danh một nguồn ở xoa-an-danh.ts (khớp từng chữ với trigger 0108). Không giá trị nào dưới đây vào nhật ký / DTO mặc định / câu lỗi.
+export interface PhieuXoaRow {
+  id: string; party_id: string; policy_id: string | null; due_at: string | null; status: string; decided_at: string | null; decided_by: string | null;
+  reason_code: string | null; name_kept: number | null; retained_codes: string | null; offsite_at: string | null; created_at: string; created_by: string;
+}
+export interface AnhHetGiuRow { id: string; party_id: string; created_at: string; ly_do: string }
+export interface XemTruocXoa { giayTo: number; phieuTuKhai: number; lienHe: number; coNgaySinh: boolean; tep: number }
+
+/** Tập hồ sơ của một phiếu: hồ sơ chính + hồ sơ đã gộp vào nó (một bước — ADR-0068 Đ3). `n` = số thứ tự tham số mang mã hồ sơ. */
+const TAP_HO_SO_TU = (n: number): string => `(SELECT p.id FROM pty_party p WHERE p.id = ?${n} OR p.merged_into_id = ?${n})`;
+const TAP_HO_SO = TAP_HO_SO_TU(4);
+// ?1 = mã phiếu, ?2 = người thực hiện, ?3 = lúc.
+const DA_THANG_XOA = `EXISTS (SELECT 1 FROM pty_erasure_request r WHERE r.id = ?1 AND r.status = 'DA_THUC_HIEN' AND r.decided_by = ?2 AND r.decided_at = ?3)`;
+const DAU_SO = `'XOA' || upper(replace(id, '-', ''))`;
+const GIU_TEN_CUA_PHIEU = `(SELECT name_kept FROM pty_erasure_request WHERE id = ?1) = 1`;
+
+const COT_PHIEU_XOA = "id, party_id, policy_id, due_at, status, decided_at, decided_by, reason_code, name_kept, retained_codes, offsite_at, created_at, created_by";
+const FIND_PHIEU_XOA = defineSql("parties", "find_erasure_request", `SELECT ${COT_PHIEU_XOA} FROM pty_erasure_request WHERE id = ?1`);
+// Quá hạn lên đầu, rồi cũ trước; hạn rỗng không bao giờ quá hạn (R7). Trần 5 000 dòng. ?1 = bây giờ (ISO UTC).
+const LIST_PHIEU_XOA_CHO = defineSql("parties", "list_pending_erasure_requests",
+  `SELECT ${COT_PHIEU_XOA} FROM pty_erasure_request WHERE status = 'CHO_XU_LY'
+   ORDER BY (due_at IS NOT NULL AND due_at <= ?1) DESC, created_at, id LIMIT 5000`);
+const LIST_PHIEU_XOA_CUA_HO_SO = defineSql("parties", "list_erasure_requests_of_party",
+  `SELECT ${COT_PHIEU_XOA} FROM pty_erasure_request WHERE party_id = ?1 ORDER BY created_at DESC, id DESC LIMIT 20`);
+const LIST_PHIEU_CHUA_CHEP_NGOAI = defineSql("parties", "list_erasure_requests_not_offsite",
+  "SELECT id, party_id, decided_at FROM pty_erasure_request WHERE status = 'DA_THUC_HIEN' AND offsite_at IS NULL ORDER BY decided_at, id LIMIT 500");
+
+// R6: số ngày CHỈ ở dòng chính sách — chính sách chưa có số, hoặc chưa đăng bản nào ⇒ policy_id / due_at rỗng (CHECK policy_id rỗng ⇒ due_at rỗng). "Hiện hành" = cùng nghĩa
+// chinhSachHienHanh (đã có hiệu lực lúc gửi, phiên bản lớn nhất). ?1 mã phiếu, ?2 hồ sơ, ?3 người gửi, ?4 lúc.
+const GUI_PHIEU_XOA = defineSql("parties", "insert_erasure_request",
+  `INSERT INTO pty_erasure_request (id, party_id, policy_id, due_at, status, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, p.id,
+          CASE WHEN p.erasure_days IS NULL THEN NULL ELSE strftime('%Y-%m-%dT%H:%M:%fZ', ?4, '+' || p.erasure_days || ' days') END,
+          'CHO_XU_LY', ?4, ?3, ?4, ?3
+   FROM (SELECT 1) LEFT JOIN (SELECT id, erasure_days FROM pty_privacy_policy WHERE valid_from_at <= ?4 ORDER BY version DESC LIMIT 1) p ON 1 = 1`);
+// Rút phiếu tự khai đang chờ cùng lô với lúc gửi (R10): lính gác = phiếu xoá VỪA chèn (đúng mã, đúng người, đúng lúc, còn chờ). ?1 mã phiếu xoá, ?2 hồ sơ, ?3 người gửi, ?4 lúc.
+const RUT_PHIEU_TU_KHAI_KHI_GUI_XOA = defineSql("parties", "withdraw_pending_self_submissions_on_erasure_request",
+  `UPDATE pty_self_submission SET status = 'RUT', decided_at = ?4, decided_by = ?3, updated_at = ?4, updated_by = ?3
+   WHERE party_id IN ${TAP_HO_SO_TU(2)} AND status = 'CHO_XAC_MINH'
+     AND EXISTS (SELECT 1 FROM pty_erasure_request r WHERE r.id = ?1 AND r.party_id = ?2 AND r.status = 'CHO_XU_LY' AND r.created_by = ?3 AND r.created_at = ?4)`);
+const RUT_PHIEU_XOA = defineSql("parties", "withdraw_erasure_request",
+  `UPDATE pty_erasure_request SET status = 'RUT', decided_at = ?3, decided_by = ?2, updated_at = ?3, updated_by = ?2
+   WHERE id = ?1 AND status = 'CHO_XU_LY' AND created_by = ?2`);
+// Câu QUYẾT: người xử lý KHÁC người gửi (trigger decider là lớp hai). ?1 mã, ?2 người, ?3 lúc, ?4 giữ tên (0/1), ?5 mã phần giữ lại.
+const QUYET_PHIEU_XOA = defineSql("parties", "decide_erasure_request",
+  `UPDATE pty_erasure_request SET status = 'DA_THUC_HIEN', decided_at = ?3, decided_by = ?2, name_kept = ?4, retained_codes = ?5, updated_at = ?3, updated_by = ?2
+   WHERE id = ?1 AND status = 'CHO_XU_LY' AND created_by <> ?2`);
+const TU_CHOI_PHIEU_XOA = defineSql("parties", "reject_erasure_request",
+  `UPDATE pty_erasure_request SET status = 'TU_CHOI', decided_at = ?3, decided_by = ?2, reason_code = ?4, updated_at = ?3, updated_by = ?2
+   WHERE id = ?1 AND status = 'CHO_XU_LY' AND created_by <> ?2`);
+const DANH_DAU_OFFSITE = defineSql("parties", "mark_erasure_request_offsite",
+  "UPDATE pty_erasure_request SET offsite_at = ?2, updated_at = ?2 WHERE id = ?1 AND status = 'DA_THUC_HIEN' AND offsite_at IS NULL");
+
+// Tám câu ẩn danh — thứ tự CỐ ĐỊNH (người kiểm đối chiếu). ?1 mã phiếu, ?2 người thực hiện, ?3 lúc quyết, ?4 hồ sơ chính, ?5 hôm nay giờ VN (chỉ câu liên hệ).
+const AN_DANH_RUT_PHIEU_CHO = defineSql("parties", "an_danh_rut_phieu_cho",
+  `UPDATE pty_self_submission SET status = 'RUT', decided_at = ?3, decided_by = ?2, updated_at = ?3, updated_by = ?2
+   WHERE party_id IN ${TAP_HO_SO} AND status = 'CHO_XAC_MINH' AND ${DA_THANG_XOA}`);
+const AN_DANH_PHIEU_TU_KHAI = defineSql("parties", "an_danh_phieu_tu_khai",
+  `UPDATE pty_self_submission SET erased_at = ?3,
+     birth_date = CASE WHEN birth_date IS NULL THEN NULL ELSE '${DAU_NGAY_SINH_PHIEU}' END,
+     address_value = CASE WHEN address_value IS NULL THEN NULL ELSE '${DAU_DIA_CHI_PHIEU}' END,
+     document_number = CASE WHEN document_number IS NULL THEN NULL ELSE ${DAU_SO} END,
+     number_key = CASE WHEN number_key IS NULL THEN NULL ELSE ${DAU_SO} END,
+     issued_place = NULL, updated_at = ?3, updated_by = ?2
+   WHERE party_id IN ${TAP_HO_SO} AND erased_at IS NULL AND ${DA_THANG_XOA}`);
+// R11: đánh dấu "cần xác minh lại" TRƯỚC khi đổi giá trị (thứ tự đọc "đánh dấu rồi đổi" giống H-4 R16). `party_id` PHẢI là khoá phân nhóm đầu: đích ATTRIBUTE có target_id rỗng,
+// thiếu party_id thì NGAY_SINH đã xác minh của hồ sơ chính và hồ sơ đã gộp rơi chung một nhóm, chỉ một bên được đánh dấu.
+const AN_DANH_XAC_MINH_LAI = defineSql("parties", "an_danh_xac_minh_lai",
+  `INSERT INTO pty_verification (id, party_id, target_kind, target_id, attribute_code, outcome, reason_code, verifier_touched_account, created_at, created_by, updated_at, updated_by)
+   SELECT lower(hex(randomblob(16))), v.party_id, v.target_kind, v.target_id, v.attribute_code, 'CAN_XAC_MINH_LAI', NULL, 0, ?3, ?2, ?3, ?2
+   FROM (SELECT party_id, target_kind, target_id, attribute_code, outcome,
+                ROW_NUMBER() OVER (PARTITION BY party_id, target_kind, target_id, attribute_code ORDER BY created_at DESC, rowid DESC) AS n
+         FROM pty_verification WHERE party_id IN ${TAP_HO_SO}) v
+   WHERE v.n = 1 AND v.outcome = 'DA_XAC_MINH' AND ${DA_THANG_XOA}`);
+const AN_DANH_GIAY_TO = defineSql("parties", "an_danh_giay_to",
+  `UPDATE pty_person_document SET erased_at = ?3,
+     document_number = CASE WHEN document_number IS NULL THEN NULL ELSE ${DAU_SO} END,
+     number_key = CASE WHEN number_key IS NULL THEN NULL ELSE ${DAU_SO} END,
+     issued_place = NULL, updated_at = ?3, updated_by = ?2
+   WHERE party_id IN ${TAP_HO_SO} AND erased_at IS NULL AND ${DA_THANG_XOA}`);
+// Liên hệ không có cột erased_at: "đã xoá" = dấu + đóng hiệu lực (đã đóng thì giữ ngày đóng cũ; chưa tới ngày bắt đầu thì đóng đúng ngày bắt đầu — CHECK valid_to >= valid_from).
+const AN_DANH_LIEN_HE = defineSql("parties", "an_danh_lien_he",
+  `UPDATE pty_contact_point SET value = '${DAU_LIEN_HE.value}', value_normalized = '${DAU_LIEN_HE.normalized}', label = NULL, is_primary = 0,
+     valid_to_date = CASE WHEN valid_to_date IS NOT NULL THEN valid_to_date WHEN valid_from_date > ?5 THEN valid_from_date ELSE ?5 END,
+     updated_at = ?3, updated_by = ?2
+   WHERE party_id IN ${TAP_HO_SO}
+     AND NOT (value = '${DAU_LIEN_HE.value}' AND value_normalized = '${DAU_LIEN_HE.normalized}' AND valid_to_date IS NOT NULL) AND ${DA_THANG_XOA}`);
+const AN_DANH_NGUOI = defineSql("parties", "an_danh_nguoi",
+  `UPDATE pty_person SET birth_date = NULL,
+     family_name = CASE WHEN ${GIU_TEN_CUA_PHIEU} THEN family_name ELSE NULL END,
+     middle_name = CASE WHEN ${GIU_TEN_CUA_PHIEU} THEN middle_name ELSE NULL END,
+     given_name = CASE WHEN ${GIU_TEN_CUA_PHIEU} THEN given_name ELSE '${DAU_TEN}' END,
+     updated_at = ?3, updated_by = ?2
+   WHERE party_id IN ${TAP_HO_SO} AND ${DA_THANG_XOA}`);
+const AN_DANH_TEN_HO_SO = defineSql("parties", "an_danh_ten_ho_so",
+  `UPDATE pty_party SET display_name = '${DAU_TEN}', updated_at = ?3, updated_by = ?2
+   WHERE id IN ${TAP_HO_SO} AND (SELECT name_kept FROM pty_erasure_request WHERE id = ?1) = 0 AND ${DA_THANG_XOA}`);
+// R12: mọi tệp chưa quyết xoá của tập hồ sơ — theo hồ sơ nhận tệp HOẶC theo dòng nối tới giấy tờ của tập hồ sơ (không phân biệt loại nối). Xoá kho R2 làm SAU lô (route).
+const AN_DANH_TEP = defineSql("parties", "an_danh_tep",
+  `UPDATE pty_attachment SET purged_at = ?3, purge_reason = '${LY_DO_XOA_TEP_PHIEU}', content_hash = NULL, updated_at = ?3, updated_by = ?2
+   WHERE purged_at IS NULL
+     AND (party_id IN ${TAP_HO_SO}
+          OR id IN (SELECT l.attachment_id FROM pty_attachment_link l JOIN pty_person_document d ON l.target_kind = 'PERSON_DOCUMENT' AND d.id = l.target_id
+                    WHERE d.party_id IN ${TAP_HO_SO}))
+     AND ${DA_THANG_XOA}`);
+
+// Xem trước (số đếm thôi — không giá trị nào): ?1 = hồ sơ chính.
+const XEM_TRUOC_XOA = defineSql("parties", "erasure_preview_counts",
+  `SELECT
+     (SELECT count(*) FROM pty_person_document d WHERE d.party_id IN ${TAP_HO_SO_TU(1)} AND d.erased_at IS NULL) AS giay_to,
+     (SELECT count(*) FROM pty_self_submission s WHERE s.party_id IN ${TAP_HO_SO_TU(1)} AND s.erased_at IS NULL) AS phieu_tu_khai,
+     (SELECT count(*) FROM pty_contact_point c WHERE c.party_id IN ${TAP_HO_SO_TU(1)}
+        AND NOT (c.value = '${DAU_LIEN_HE.value}' AND c.value_normalized = '${DAU_LIEN_HE.normalized}' AND c.valid_to_date IS NOT NULL)) AS lien_he,
+     (SELECT count(*) FROM pty_person p WHERE p.party_id IN ${TAP_HO_SO_TU(1)} AND p.birth_date IS NOT NULL) AS co_ngay_sinh,
+     (SELECT count(*) FROM pty_attachment a WHERE a.purged_at IS NULL
+        AND (a.party_id IN ${TAP_HO_SO_TU(1)}
+             OR a.id IN (SELECT l.attachment_id FROM pty_attachment_link l JOIN pty_person_document d ON l.target_kind = 'PERSON_DOCUMENT' AND d.id = l.target_id
+                         WHERE d.party_id IN ${TAP_HO_SO_TU(1)}))) AS tep`);
+// Tệp đã quyết xoá mà kho chưa xoá của tập hồ sơ — route lấy khoá kho để xoá R2 sau lô (storage_key chỉ để xoá, KHÔNG ra DTO).
+const TEP_CHO_XOA_CUA_PHIEU = defineSql("parties", "list_attachments_pending_purge_of_party",
+  `SELECT id, party_id, storage_key, purged_at, purge_reason, created_at FROM pty_attachment
+   WHERE purged_at IS NOT NULL AND r2_deleted_at IS NULL
+     AND (party_id IN ${TAP_HO_SO_TU(1)}
+          OR id IN (SELECT l.attachment_id FROM pty_attachment_link l JOIN pty_person_document d ON l.target_kind = 'PERSON_DOCUMENT' AND d.id = l.target_id
+                    WHERE d.party_id IN ${TAP_HO_SO_TU(1)}))
+   ORDER BY created_at, id LIMIT 500`);
+
+// ---- Ảnh hết lý do giữ (đ6, 5.25): HÌNH CHIẾU ĐỌC tính lúc mở (không bảng, không Cron). Còn lý do giữ khi có ít nhất một dòng nối tới (a) giấy tờ người / tổ chức HIỆN HÀNH
+// (chưa huỷ, chưa ẩn danh, không dòng gia hạn chưa huỷ) còn hạn VÀ chủ còn ít nhất một vai chưa đóng, hoặc (b) phiếu tự khai đang chờ. `n` = số thứ tự tham số mang
+// "hôm nay giờ VN" — MỘT hàm cho cả câu đọc lẫn lính gác của câu quyết xoá (tránh lệch số tham số giữa hai câu). Bí danh `a` = pty_attachment ở cả hai câu.
+const VAI_CON = (n: number): string => `EXISTS (SELECT 1 FROM pty_party_role r WHERE r.party_id = d.party_id AND (r.valid_to_date IS NULL OR r.valid_to_date >= ?${n}))`;
+const DONG_NOI_NGUOI = (dieuKien: string): string =>
+  `EXISTS (SELECT 1 FROM pty_attachment_link l JOIN pty_person_document d ON l.target_kind = 'PERSON_DOCUMENT' AND d.id = l.target_id WHERE l.attachment_id = a.id AND ${dieuKien})`;
+const DONG_NOI_TO_CHUC = (dieuKien: string): string =>
+  `EXISTS (SELECT 1 FROM pty_attachment_link l JOIN pty_organization_document d ON l.target_kind = 'ORG_DOCUMENT' AND d.id = l.target_id WHERE l.attachment_id = a.id AND ${dieuKien})`;
+const DONG_NOI_PHIEU = (dieuKien: string): string =>
+  `EXISTS (SELECT 1 FROM pty_attachment_link l JOIN pty_self_submission s ON l.target_kind = 'SELF_SUBMISSION' AND s.id = l.target_id WHERE l.attachment_id = a.id AND ${dieuKien})`;
+const CHUA_GIA_HAN_NGUOI = "NOT EXISTS (SELECT 1 FROM pty_person_document n WHERE n.previous_id = d.id AND n.voided_at IS NULL)";
+const CHUA_GIA_HAN_TO_CHUC = "NOT EXISTS (SELECT 1 FROM pty_organization_document n WHERE n.previous_id = d.id AND n.voided_at IS NULL)";
+const GIU_ANH = (n: number): string => [
+  DONG_NOI_NGUOI(`d.voided_at IS NULL AND d.erased_at IS NULL AND ${CHUA_GIA_HAN_NGUOI} AND (d.expiry_date IS NULL OR d.expiry_date >= ?${n}) AND ${VAI_CON(n)}`),
+  DONG_NOI_TO_CHUC(`d.voided_at IS NULL AND ${CHUA_GIA_HAN_TO_CHUC} AND (d.expiry_date IS NULL OR d.expiry_date >= ?${n}) AND ${VAI_CON(n)}`),
+  DONG_NOI_PHIEU("s.status = 'CHO_XAC_MINH'"),
+].join("\n OR ");
+// Mã lý do (thứ tự ưu tiên khớp luật thuần `lyDoXoaAnh`): HET_QUAN_HE, DA_AN_DANH, DA_HUY, DA_GIA_HAN, HET_HAN, PHIEU_DA_XU_LY, KHONG_NOI. ?1 = hôm nay.
+const LY_DO_ANH = `CASE
+  WHEN ${DONG_NOI_NGUOI(`NOT ${VAI_CON(1)}`)} OR ${DONG_NOI_TO_CHUC(`NOT ${VAI_CON(1)}`)} THEN 'HET_QUAN_HE'
+  WHEN ${DONG_NOI_NGUOI("d.erased_at IS NOT NULL")} THEN 'DA_AN_DANH'
+  WHEN ${DONG_NOI_NGUOI("d.voided_at IS NOT NULL")} OR ${DONG_NOI_TO_CHUC("d.voided_at IS NOT NULL")} THEN 'DA_HUY'
+  WHEN ${DONG_NOI_NGUOI(`NOT ${CHUA_GIA_HAN_NGUOI}`)} OR ${DONG_NOI_TO_CHUC(`NOT ${CHUA_GIA_HAN_TO_CHUC}`)} THEN 'DA_GIA_HAN'
+  WHEN ${DONG_NOI_NGUOI("d.expiry_date < ?1")} OR ${DONG_NOI_TO_CHUC("d.expiry_date < ?1")} THEN 'HET_HAN'
+  WHEN ${DONG_NOI_PHIEU("s.status <> 'CHO_XAC_MINH'")} THEN 'PHIEU_DA_XU_LY'
+  ELSE 'KHONG_NOI' END`;
+const LIST_ANH_HET_GIU = defineSql("parties", "list_attachments_without_keep_reason",
+  `SELECT a.id, a.party_id, a.created_at, ${LY_DO_ANH} AS ly_do FROM pty_attachment a
+   WHERE a.purged_at IS NULL AND a.stored_at IS NOT NULL AND NOT (${GIU_ANH(1)})
+   ORDER BY a.created_at, a.id LIMIT 500`);
+// Lính gác: đến lúc bấm tệp vẫn hết lý do giữ (đã có lại lý do giữ giữa lúc đọc danh sách và lúc bấm ⇒ 0 dòng). ?1 tệp, ?2 người, ?3 lúc, ?4 hôm nay.
+const DAT_CHO_XOA_ANH_HET_GIU = defineSql("parties", "purge_attachment_without_keep_reason",
+  `UPDATE pty_attachment AS a SET purged_at = ?3, purge_reason = '${LY_DO_XOA_TEP_HET_GIU}', content_hash = NULL, updated_at = ?3, updated_by = ?2
+   WHERE a.id = ?1 AND a.purged_at IS NULL AND a.stored_at IS NOT NULL AND NOT (${GIU_ANH(4)})`);
+
+export const timPhieuXoa = (db: D1Database, id: string): Promise<PhieuXoaRow | null> => db.prepare(FIND_PHIEU_XOA).bind(id).first<PhieuXoaRow>();
+/** `nowIso` = bây giờ (ISO UTC) để đưa phiếu quá hạn lên đầu. */
+export async function listPhieuXoaCho(db: D1Database, nowIso: string): Promise<PhieuXoaRow[]> {
+  return (await db.prepare(LIST_PHIEU_XOA_CHO).bind(nowIso).all<PhieuXoaRow>()).results;
+}
+export async function listPhieuXoaCuaHoSo(db: D1Database, partyId: string): Promise<PhieuXoaRow[]> {
+  return (await db.prepare(LIST_PHIEU_XOA_CUA_HO_SO).bind(partyId).all<PhieuXoaRow>()).results;
+}
+export async function listPhieuChuaChepNgoai(db: D1Database): Promise<{ id: string; party_id: string; decided_at: string }[]> {
+  return (await db.prepare(LIST_PHIEU_CHUA_CHEP_NGOAI).all<{ id: string; party_id: string; decided_at: string }>()).results;
+}
+export async function demXemTruocXoa(db: D1Database, partyId: string): Promise<XemTruocXoa> {
+  const r = await db.prepare(XEM_TRUOC_XOA).bind(partyId).first<{ giay_to: number; phieu_tu_khai: number; lien_he: number; co_ngay_sinh: number; tep: number }>();
+  return { giayTo: r?.giay_to ?? 0, phieuTuKhai: r?.phieu_tu_khai ?? 0, lienHe: r?.lien_he ?? 0, coNgaySinh: (r?.co_ngay_sinh ?? 0) > 0, tep: r?.tep ?? 0 };
+}
+export async function tepChoXoaCuaPhieu(db: D1Database, partyId: string): Promise<TepCanXoaRow[]> {
+  return (await db.prepare(TEP_CHO_XOA_CUA_PHIEU).bind(partyId).all<TepCanXoaRow>()).results;
+}
+export async function listAnhHetLyDoGiu(db: D1Database, homNay: string): Promise<AnhHetGiuRow[]> {
+  return (await db.prepare(LIST_ANH_HET_GIU).bind(homNay).all<AnhHetGiuRow>()).results;
+}
+
+export const guiPhieuXoaStatement = (db: D1Database, v: { id: string; partyId: string; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(GUI_PHIEU_XOA).bind(v.id, v.partyId, v.actorId, v.at);
+export const rutPhieuTuKhaiKhiGuiXoaStatement = (db: D1Database, v: { phieuXoaId: string; partyId: string; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(RUT_PHIEU_TU_KHAI_KHI_GUI_XOA).bind(v.phieuXoaId, v.partyId, v.actorId, v.at);
+export const rutPhieuXoaStatement = (db: D1Database, v: { id: string; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(RUT_PHIEU_XOA).bind(v.id, v.actorId, v.at);
+export const quyetPhieuXoaStatement = (db: D1Database, v: { id: string; actorId: string; at: string; giuTen: boolean; phanGiuLai: string }): D1PreparedStatement =>
+  db.prepare(QUYET_PHIEU_XOA).bind(v.id, v.actorId, v.at, v.giuTen ? 1 : 0, v.phanGiuLai);
+export const tuChoiPhieuXoaStatement = (db: D1Database, v: { id: string; actorId: string; at: string; lyDo: string }): D1PreparedStatement =>
+  db.prepare(TU_CHOI_PHIEU_XOA).bind(v.id, v.actorId, v.at, v.lyDo);
+export const danhDauOffsiteStatement = (db: D1Database, v: { id: string; at: string }): D1PreparedStatement => db.prepare(DANH_DAU_OFFSITE).bind(v.id, v.at);
+/** Tám câu ẩn danh theo thứ tự CỐ ĐỊNH; đặt SAU `quyetPhieuXoaStatement` trong CÙNG một lô. Mỗi câu mang lính gác DA_THANG_XOA: câu quyết thua ⇒ mọi câu ở đây changes = 0.
+ *  `actorId` / `at` PHẢI bằng đúng hai giá trị đã truyền cho câu quyết (lính gác so decided_by / decided_at). Chỉ route thực hiện được gọi (rào src/xoa-mot-lenh-co-ten.test.ts). */
+export function anDanhStatements(db: D1Database, v: { id: string; partyId: string; actorId: string; at: string; homNay: string }): D1PreparedStatement[] {
+  const b4 = (sql: string): D1PreparedStatement => db.prepare(sql).bind(v.id, v.actorId, v.at, v.partyId);
+  return [
+    b4(AN_DANH_RUT_PHIEU_CHO),
+    b4(AN_DANH_PHIEU_TU_KHAI),
+    b4(AN_DANH_XAC_MINH_LAI),
+    b4(AN_DANH_GIAY_TO),
+    db.prepare(AN_DANH_LIEN_HE).bind(v.id, v.actorId, v.at, v.partyId, v.homNay),
+    b4(AN_DANH_NGUOI),
+    b4(AN_DANH_TEN_HO_SO),
+    b4(AN_DANH_TEP),
+  ];
+}
+export const datChoXoaAnhHetGiuStatement = (db: D1Database, v: { tepId: string; actorId: string; at: string; homNay: string }): D1PreparedStatement =>
+  db.prepare(DAT_CHO_XOA_ANH_HET_GIU).bind(v.tepId, v.actorId, v.at, v.homNay);
