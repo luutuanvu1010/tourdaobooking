@@ -1,0 +1,30 @@
+/* Typography — two roles: display (Be Vietnam Pro 700/800) and UI (Nunito variable 400–800). */
+:root {
+  --font-display: "Be Vietnam Pro", "Nunito", system-ui, sans-serif;
+  --font: "Nunito", "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-ui: var(--font);
+  /* App scale (px, not rem — matches production) */
+  --fs-badge: 12px;
+  --fs-tab: 12px;
+  --fs-label: 14px;
+  --fs-ui: 16px;         /* body + inputs; <16px makes iOS zoom */
+  --fs-field: 17px;      /* login inputs */
+  --fs-title: 18px;      /* sheet titles, greeting */
+  --fs-bar-title: 1.125rem;
+  --fs-name: 1.1rem;
+  --fs-counter: 20px;
+  --fs-stat-sm: 20px;
+  --fs-stat: 26px;
+  --fs-login-title: 26px;
+  --fs-login-title-wide: 32px;
+  --fs-h1: 1.5rem;       /* page h1 */
+  --fs-h2: 1.1rem;       /* card h2 */
+  --lh-body: 1.5; /* @kind font */
+  --lh-heading: 1.16; /* @kind font */
+  --lh-display: 1.22; /* @kind font */
+  --ls-eyebrow: .08em;   /* ONLY for uppercase group labels; everywhere else letter-spacing is 0 */
+  --fw-500: 500; /* @kind font */
+  --fw-600: 600; /* @kind font */
+  --fw-700: 700; /* @kind font */
+  --fw-800: 800; /* @kind font */
+}
