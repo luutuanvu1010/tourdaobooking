@@ -18,7 +18,7 @@ import { UUID_RE, error, intParam, mauLikeChua, json, kemLocation, readJson } fr
 import { can, holdsPartner } from "../../shared/permissions";
 import { normalizePhone } from "../../shared/phone";
 import { route, type AppModule, type Ctx } from "../../shared/router";
-import type { DonCuaNguoiDatTom, PartyAccountVerdict } from "../../shared/router";
+import type { DonCuaNguoiDatTom, PartyAccountVerdict, TaiKhoanXacMinh } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import { gioiTinhHopLe } from "../../shared/xung-ho";
 import {
@@ -31,7 +31,7 @@ import {
   datChoXoaTepStatement, findTepDeTai, insertTepLinkStatement, insertTepStatement, listTepChoXoa, listTepCuaGiayTo, markTepStored, tepCuaGiayTo,
   chinhSachHienHanh, phienBanLonNhat, dangChinhSachStatement, phienBanDangDongY, ghiDongYStatement, rutMoiPhieuChoStatement, listPhieuCuaHoSo, type PhieuRow,
   ghiPhieuStatement, timPhieuCuaHoSo, rutPhieuStatement,
-  chamCuaTaiKhoan, listPhieuCho, listPhieuDaXuLy, soDuCuaPhieuCho, timPhieuChoXet, trungSoHoSoKhac,
+  canXacMinhLaiStatement, chamCuaTaiKhoan, ghiDiaChiTuPhieuStatement, ghiGiayToTuPhieuStatement, ghiNgaySinhTuPhieuStatement, ghiXacMinhTuPhieuStatement, lamMoiHoSoTuPhieuStatement, quyetPhieuStatement, listPhieuCho, listPhieuDaXuLy, soDuCuaPhieuCho, timPhieuChoXet, trungSoHoSoKhac,
   datHoatDongLoaiDoiTacStatement, hoSoMangNhan, openRoleCodesFor, themLoaiDoiTacStatement, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements, vaiDangMo,
   type BankAccountRow, type BankRow, type GopDocRow, type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
 } from "./repository";
@@ -44,7 +44,7 @@ import { ghiRoiXoaKho, xoaKhoiKho } from "./kho-tep";
 import { CAU_KHONG_GUI, kiemChinhSach, kiemPhieuTuKhai, lyDoKhongGhi, lyDoKhongGui, type LoaiPhieu, type TinhTrangTuKhai } from "./tu-khai";
 import { nhanLoaiPhieu } from "../../shared/tu-khai-hien-thi";
 import { NHAN_LY_DO_CHAN, nhanLyDoTuChoi } from "../../shared/xac-minh-hien-thi";
-import { chuyenToanQuyen, xetNguoiXacMinh, type PhieuXet, type TaiKhoanTom } from "./xac-minh";
+import { chuyenToanQuyen, kiemTuChoi, loiLoChapNhan, lyDoKhongChapNhan, xetNguoiXacMinh, type KetLuanXet, type PhieuXet, type TaiKhoanTom } from "./xac-minh";
 import { MA_HANG_RE, cheSo, chiTietNhatKy, chuanHoaSo, kiemGiaHan, kiemHangMoi, kiemSuaHang, kiemSuaSai, kiemThemGiayTo, type DanhMucGiayTo, type GiayToNhap } from "./giay-to";
 import {
   PARTY_ID_RE, QUAN_HE_TAI_XE_CUA, ROW_ID_RE, composePersonName, hoSoNoiBo, ownerCompanyAssignProblem, splitPersonName, validateContact, validateEndDate, validatePartyCreate, validatePartyUpdate,
@@ -648,6 +648,22 @@ const TRAN_DOC_DA_XU_LY = 200;
 const nguoiXetCuaPhien = (staff: StaffProfile, ds: readonly TaiKhoanTom[]): TaiKhoanTom =>
   ds.find((t) => t.id === staff.id) ?? { id: staff.id, permissions: staff.permissions, active: true, partyId: staff.partyId ?? null };
 const lyDoKhongXacMinh = (lyDo: string | null): string | null => (lyDo === null ? null : NHAN_LY_DO_CHAN[lyDo] ?? null);
+const XM_KHONG_CHO = () => error(409, "submission_not_pending", "Phiếu đã được xử lý hoặc đã rút.");
+/**
+ * Cổng chung của hai route quyết (ADR-0125 đ3, đ5): ngoài cấp bậc 404 → không còn chờ 409 → người khai 409 verify_self → bị tách nhiệm vụ 409 verify_conflict. Chỉ là bảng hỏi; hàng rào
+ * THẬT là lính gác trong câu quyết (repository decide_self_submission), nên lô vẫn đúng khi hai người bấm cùng lúc.
+ */
+async function congQuyet(
+  db: D1Database, staff: StaffProfile, p: { id: string; party_id: string; created_by: string | null; created_at: string; status: string }, dsTk: readonly TaiKhoanXacMinh[],
+): Promise<{ loi: Response } | { kl: KetLuanXet }> {
+  const phieu: PhieuXet = { id: p.id, partyId: p.party_id, createdBy: p.created_by ?? "", createdAt: p.created_at };
+  const kl = xetNguoiXacMinh({ nguoi: nguoiXetCuaPhien(staff, dsTk), phieu, chuPhieu: dsTk.find((t) => t.id === p.created_by) ?? null, cham: p.created_by ? await chamCuaTaiKhoan(db, [p.created_by]) : [] });
+  if (kl.lyDo === "cap_bac") return { loi: XM_NOT_FOUND() };
+  if (p.status !== "CHO_XAC_MINH") return { loi: XM_KHONG_CHO() };
+  if (kl.lyDo === "nguoi_khai") return { loi: error(409, "verify_self", "Không xác minh phiếu của chính mình.") };
+  if (!kl.duoc) return { loi: error(409, "verify_conflict", lyDoKhongXacMinh(kl.lyDo) ?? "Bạn không xác minh được phiếu này.") };
+  return { kl };
+}
 const SUBMISSION_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy phiếu này.");
 const SUBMISSION_NOT_PENDING = () => error(409, "submission_not_pending", "Phiếu này đã được xử lý hoặc đã rút.");
 const SAME_AS_CURRENT = () => error(409, "same_as_current", "Thông tin này đã có trong hồ sơ của bạn.");
@@ -977,6 +993,79 @@ export const partiesModule: AppModule = {
       return json({ so: so.document_number } satisfies PhieuXemSoResponse); // json() mặc định cache-control: no-store
     }),
 
+    // Chấp nhận NGUYÊN VĂN giá trị khai (ADR-0125 đ4): MỘT db.batch theo thứ tự quyết (lính gác) → ghi giá trị → làm mới hồ sơ → dòng xác minh → nhật ký (đọc changes() của dòng xác minh).
+    // Phiếu giấy tờ chưa có ảnh thì chưa chấp nhận được (ruling Q1/R18: hôm nay chưa có ảnh nào nối với phiếu); phiếu hồ sơ đã gộp chỉ từ chối được (R20).
+    route("POST", "/api/parties/xac-minh/:pid/chap-nhan", "accounts", async ({ env, staff, params, taiKhoanXacMinh }) => {
+      if (!can(staff, "party.verify")) return XM_FORBIDDEN();
+      const pid = idParam(params, "pid", UUID_RE);
+      const p = pid ? await timPhieuChoXet(env.DB, pid) : null;
+      if (!p) return XM_NOT_FOUND();
+      const cong = await congQuyet(env.DB, staff, p, await taiKhoanXacMinh());
+      if ("loi" in cong) return cong.loi;
+      const chan = lyDoKhongChapNhan({ loai: p.subject_kind, daGop: p.merged === 1, coAnh: false });
+      if (chan) return error(409, chan.code, chan.message);
+      const at = new Date().toISOString();
+      const t = { id: p.id, actorId: staff.id, at };
+      const mocId = crypto.randomUUID();
+      const khoaDiaChi = (p.address_value ?? "").normalize("NFC").trim().replace(/\s+/g, " ").toLowerCase();
+      const cauGhi = p.subject_kind === "NGAY_SINH"
+        ? [ghiNgaySinhTuPhieuStatement(env.DB, t), lamMoiHoSoTuPhieuStatement(env.DB, t), ghiXacMinhTuPhieuStatement(env.DB, { ...t, targetKind: "ATTRIBUTE", targetId: null, attributeCode: "NGAY_SINH" })]
+        : p.subject_kind === "DIA_CHI"
+          ? [ghiDiaChiTuPhieuStatement(env.DB, { ...t, contactId: mocId, valueNormalized: khoaDiaChi, today: vnToday(new Date()) }), lamMoiHoSoTuPhieuStatement(env.DB, t),
+            ghiXacMinhTuPhieuStatement(env.DB, { ...t, targetKind: "CONTACT", targetId: mocId, attributeCode: null })]
+          : [ghiGiayToTuPhieuStatement(env.DB, { ...t, documentId: mocId }), lamMoiHoSoTuPhieuStatement(env.DB, t),
+            ghiXacMinhTuPhieuStatement(env.DB, { ...t, targetKind: "PERSON_DOCUMENT", targetId: mocId, attributeCode: null })];
+      const lo = [
+        quyetPhieuStatement(env.DB, { id: p.id, ketLuan: "DA_CHAP_NHAN", lyDo: null, actorId: staff.id, at, laToanQuyen: staff.permissions.includes("SUPER_ADMIN") }),
+        ...cauGhi,
+        auditStatement(env.DB, { staffId: staff.id, action: "self_submission_accepted", at, targetType: "party", targetId: p.party_id,
+          detail: `phiếu ${p.id} · ${nhanLoaiPhieu(p.subject_kind)}${cong.kl.coCham ? " · cờ chạm tài khoản" : ""}` }, "changes() > 0"),
+      ];
+      let kq: D1Result[];
+      try {
+        kq = await env.DB.batch(lo);
+      } catch (e) {
+        const l = loiLoChapNhan(e);
+        if (l) return error(l.status, l.code, l.message);
+        throw e;
+      }
+      if ((kq[0]?.meta.changes ?? 0) === 0) {
+        // Lính gác từ chối trong câu ghi: người khác vừa quyết xong, hoặc tài khoản vừa bị chạm — đọc lại để trả đúng lý do.
+        const lai = await timPhieuChoXet(env.DB, p.id);
+        return lai && lai.status === "CHO_XAC_MINH" ? error(409, "verify_conflict", NHAN_LY_DO_CHAN.da_cham!) : XM_KHONG_CHO();
+      }
+      return json({ ok: true });
+    }),
+
+    // Từ chối theo danh sách đóng (ADR-0125 đ6): thân chỉ { lyDo: mã }; chỉ đổi trạng thái phiếu + nhật ký (không giá trị, không dòng xác minh; Toàn quyền từ chối không cờ — ruling Q5).
+    route("POST", "/api/parties/xac-minh/:pid/tu-choi", "accounts", async ({ request, env, staff, params, taiKhoanXacMinh }) => {
+      if (!can(staff, "party.verify")) return XM_FORBIDDEN();
+      const k = kiemTuChoi(await readJson(request));
+      if (!k.ok) return error(400, "invalid_input", k.message);
+      const pid = idParam(params, "pid", UUID_RE);
+      const p = pid ? await timPhieuChoXet(env.DB, pid) : null;
+      if (!p) return XM_NOT_FOUND();
+      const cong = await congQuyet(env.DB, staff, p, await taiKhoanXacMinh());
+      if ("loi" in cong) return cong.loi;
+      const at = new Date().toISOString();
+      let kq: D1Result[];
+      try {
+        kq = await env.DB.batch([
+          quyetPhieuStatement(env.DB, { id: p.id, ketLuan: "TU_CHOI", lyDo: k.value.lyDo, actorId: staff.id, at, laToanQuyen: staff.permissions.includes("SUPER_ADMIN") }),
+          auditStatement(env.DB, { staffId: staff.id, action: "self_submission_rejected", at, targetType: "party", targetId: p.party_id, detail: `phiếu ${p.id} · ${nhanLoaiPhieu(p.subject_kind)} · lý do ${k.value.lyDo}` }, "changes() > 0"),
+        ]);
+      } catch (e) {
+        const l = loiLoChapNhan(e);
+        if (l) return error(l.status, l.code, l.message);
+        throw e;
+      }
+      if ((kq[0]?.meta.changes ?? 0) === 0) {
+        const lai = await timPhieuChoXet(env.DB, p.id);
+        return lai && lai.status === "CHO_XAC_MINH" ? error(409, "verify_conflict", NHAN_LY_DO_CHAN.da_cham!) : XM_KHONG_CHO();
+      }
+      return json({ ok: true });
+    }),
+
     // ---- Hàng "chờ xoá" của kho tệp hồ sơ (ADR-0123 đ6; Hiến chương 5.16; ruling Q4: chỉ Toàn quyền) — khai TRƯỚC GET /api/parties/:id. DTO chỉ mã. -------
     route("GET", "/api/parties/tep-cho-xoa", "office", async ({ env, staff }) => {
       if (!can(staff, "party.attachment.view")) return TEP_FORBIDDEN();
@@ -1228,6 +1317,7 @@ export const partiesModule: AppModule = {
       const at = now.toISOString();
       const loai = d.tenLoai(cu.document_type_code);
       let ghi: D1PreparedStatement;
+      let danhDau: D1PreparedStatement | null = null;
       let detail: string;
       if (s.huy) {
         ghi = voidPersonDocStatement(env.DB, did, id, s.expectedUpdatedAt, staff.id, at);
@@ -1237,6 +1327,7 @@ export const partiesModule: AppModule = {
         if (s.truong === "number") Object.assign(moi, { number: s.giaTri, numberKey: s.giaTri === null ? null : chuanHoaSo(s.giaTri) });
         else moi[s.truong] = s.giaTri;
         ghi = updatePersonDocStatement(env.DB, did, id, s.expectedUpdatedAt, moi, staff.id, at);
+        danhDau = canXacMinhLaiStatement(env.DB, { partyId: id, targetKind: "PERSON_DOCUMENT", targetId: did, attributeCode: null, expectedUpdatedAt: s.expectedUpdatedAt, actorId: staff.id, at }); // đứng TRƯỚC câu sửa (cùng mốc kỳ vọng)
         // Trước → sau CHỈ cho ngày (YYYY-MM-DD) và hạng (tên hạng); số và nơi cấp không bao giờ vào nhật ký (chiTietNhatKy còn tự bỏ nếu lỡ truyền).
         const [truoc, sau] =
           s.truong === "issuedDate" || s.truong === "expiryDate" ? [hienHanh[s.truong], moi[s.truong]]
@@ -1246,7 +1337,10 @@ export const partiesModule: AppModule = {
       }
       let results: D1Result[];
       try {
-        results = await env.DB.batch([ghi, auditStatement(env.DB, { staffId: staff.id, action: "party_document_corrected", at, targetType: "party", targetId: id, detail }, "changes() > 0")]);
+        // ADR-0125 R16: câu đánh dấu "cần xác minh lại" (nếu có) đứng TRƯỚC câu sửa; câu sửa vẫn là ngay trước nhật ký (changes() > 0 đọc câu sửa).
+        const lo = [...(danhDau ? [danhDau] : []), ghi, auditStatement(env.DB, { staffId: staff.id, action: "party_document_corrected", at, targetType: "party", targetId: id, detail }, "changes() > 0")];
+        results = await env.DB.batch(lo);
+        if (danhDau) results = results.slice(1);
       } catch (e) {
         const problem = docProblem(e);
         if (problem) return problem;
@@ -1536,7 +1630,7 @@ export const partiesModule: AppModule = {
         : pv;
       const doiGioiTinh = v.kind === "PERSON" && v.gender !== gioiTinhCu;
       const doiNgaySinh = v.kind === "PERSON" && v.birthDate !== ngaySinhCu;
-      const stmts = updatePartyStatements(env.DB, id, v, staff.id, at);
+      const stmts = updatePartyStatements(env.DB, id, v, staff.id, at, doiNgaySinh);
       // Nhật ký chỉ ghi "đổi giới tính" / "đổi ngày sinh" — KHÔNG giá trị (Hiến chương 5.20).
       const detail = `${KIND_LABEL[current.party_kind]}${doiGioiTinh ? " — đổi giới tính" : ""}${doiNgaySinh ? " — đổi ngày sinh" : ""}`;
       const results = await env.DB.batch([...stmts, auditStatement(env.DB, { staffId: staff.id, action: "party_updated", at, targetType: "party", targetId: id, detail }, "changes() > 0")]);

@@ -116,6 +116,21 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
       assert.equal(x.status, 200, x.text);
       lanXemSoPhieu += x.text; // KHÔNG đưa vào `than`
     },
+    // Lát H-4 việc 4: chấp nhận ngày sinh + địa chỉ (giá trị đề xuất chép vào hồ sơ — nhật ký chỉ mã phiếu + loại) và từ chối phiếu giấy tờ (nhật ký chỉ mã lý do). Phản hồi chỉ { ok }.
+    "POST /api/parties/xac-minh/:pid/chap-nhan": async () => {
+      const ds = await w.call("GET", "/api/parties/xac-minh?trang=cho", { as: ADM });
+      for (const loai of ["NGAY_SINH", "DIA_CHI"]) {
+        const ph = ds.json.phieu.find((x: any) => x.loai === loai);
+        assert.ok(ph, `chống bài rỗng: có phiếu ${loai}`);
+        await goi(`chấp nhận phiếu ${loai}`, "POST", `/api/parties/xac-minh/${ph.id}/chap-nhan`, ADM, {}, 200);
+      }
+    },
+    "POST /api/parties/xac-minh/:pid/tu-choi": async () => {
+      const ds = await w.call("GET", "/api/parties/xac-minh?trang=cho", { as: ADM });
+      const ph = ds.json.phieu.find((x: any) => x.loai === "GIAY_TO");
+      assert.ok(ph, "chống bài rỗng: có phiếu giấy tờ");
+      await goi("từ chối phiếu giấy tờ", "POST", `/api/parties/xac-minh/${ph.id}/tu-choi`, ADM, { lyDo: "TRUNG_HO_SO_KHAC" }, 200);
+    },
     "POST /api/parties/:id/documents": async () => {
       await goi("thêm CCCD", "POST", `/api/parties/${P}/documents`, ADM, { typeCode: "CCCD", number: "079 888 777 666", issuedPlace: NOI, expiryDate: "2035-01-01" }, 201);
       await goi("thêm GPLX", "POST", `/api/parties/${P}/documents`, ADM, { typeCode: "GPLX", number: SO_GPLX, classCode: "D2", issuedPlace: NOI, expiryDate: ngay(10) }, 201);

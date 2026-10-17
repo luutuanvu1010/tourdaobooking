@@ -26,14 +26,17 @@ const HAM_XAC_MINH = [
   "ghiNgaySinhTuPhieuStatement", "ghiDiaChiTuPhieuStatement", "ghiGiayToTuPhieuStatement", "lamMoiHoSoTuPhieuStatement", "ghiXacMinhTuPhieuStatement",
 ];
 const TIEN_TO_XAC_MINH = "/api/parties/xac-minh";
-// Việc 3 (ADR-0125): ĐÚNG ba route đọc gọi các hàm đọc; năm hàm ghi (quyết, ghi giá trị, làm mới hồ sơ, dòng xác minh) chưa route nào gọi — việc 4 thêm hai route quyết.
+// ADR-0125: ĐÚNG ba route đọc gọi các hàm đọc; hai route quyết (việc 4): chap-nhan gọi cả sáu hàm ghi, tu-choi chỉ gọi câu quyết.
 const XEM_SO = "POST /api/parties/xac-minh/:pid/xem-so";
+const CHAP_NHAN = "POST /api/parties/xac-minh/:pid/chap-nhan";
+const TU_CHOI = "POST /api/parties/xac-minh/:pid/tu-choi";
 const ROUTE_GOI_HAM_XAC_MINH: Record<string, string[]> = {
   listPhieuCho: ["GET /api/parties/xac-minh"],
   listPhieuDaXuLy: ["GET /api/parties/xac-minh"],
-  timPhieuChoXet: ["GET /api/parties/xac-minh/:pid", XEM_SO],
+  timPhieuChoXet: ["GET /api/parties/xac-minh/:pid", XEM_SO, CHAP_NHAN, TU_CHOI],
   soDuCuaPhieuCho: [XEM_SO],
-  quyetPhieuStatement: [], ghiNgaySinhTuPhieuStatement: [], ghiDiaChiTuPhieuStatement: [], ghiGiayToTuPhieuStatement: [], lamMoiHoSoTuPhieuStatement: [], ghiXacMinhTuPhieuStatement: [],
+  quyetPhieuStatement: [CHAP_NHAN, TU_CHOI],
+  ghiNgaySinhTuPhieuStatement: [CHAP_NHAN], ghiDiaChiTuPhieuStatement: [CHAP_NHAN], ghiGiayToTuPhieuStatement: [CHAP_NHAN], lamMoiHoSoTuPhieuStatement: [CHAP_NHAN], ghiXacMinhTuPhieuStatement: [CHAP_NHAN],
 };
 
 function tepTs(dir: string): string[] {

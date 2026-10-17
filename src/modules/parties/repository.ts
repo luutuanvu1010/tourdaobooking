@@ -376,10 +376,13 @@ export function updatePartyStatements(
   v: { kind: "PERSON"; name: PersonName; gender: GioiTinh | null; birthDate: string | null; active: boolean; expectedUpdatedAt: string } | { kind: "ORGANIZATION"; org: OrgFields; active: boolean; expectedUpdatedAt: string },
   actorId: string,
   at: string,
+  // ADR-0125 / ADR-0122 đ3: ngày sinh ĐỔI ⇒ đánh dấu "cần xác minh lại" (nếu đang DA_XAC_MINH), đứng TRƯỚC câu đổi mốc pty_party (câu cuối), cùng khoá lạc quan.
+  canXacMinhLai = false,
 ): D1PreparedStatement[] {
   if (v.kind === "PERSON") {
     return [
       db.prepare(UPDATE_PERSON).bind(id, v.name.family, v.name.middle, v.name.given, at, actorId, v.expectedUpdatedAt, v.gender, v.birthDate),
+      ...(canXacMinhLai ? [canXacMinhLaiStatement(db, { partyId: id, targetKind: "ATTRIBUTE", targetId: null, attributeCode: "NGAY_SINH", expectedUpdatedAt: v.expectedUpdatedAt, actorId, at })] : []),
       db.prepare(UPDATE_PARTY).bind(id, composePersonName(v.name), v.active ? 1 : 0, at, actorId, v.expectedUpdatedAt),
     ];
   }
@@ -1272,3 +1275,26 @@ export const ghiGiayToTuPhieuStatement = (db: D1Database, v: TuPhieu & { documen
 export const lamMoiHoSoTuPhieuStatement = (db: D1Database, v: TuPhieu): D1PreparedStatement => db.prepare(ACCEPT_TOUCH_PARTY).bind(v.id, v.actorId, v.at);
 export const ghiXacMinhTuPhieuStatement = (db: D1Database, v: TuPhieu & { targetKind: "ATTRIBUTE" | "CONTACT" | "PERSON_DOCUMENT"; targetId: string | null; attributeCode: string | null }): D1PreparedStatement =>
   db.prepare(ACCEPT_VERIFICATION).bind(v.id, v.actorId, v.at, v.targetKind, v.targetId, v.attributeCode);
+
+// ---- ĐÁNH DẤU "CẦN XÁC MINH LẠI" khi giá trị đã xác minh bị sửa bởi đường khác (ADR-0125, ADR-0122 đ3; R16) ----------------------------------------------------
+// Cùng điều kiện khoá lạc quan với câu sửa đứng ngay sau nó (cùng giao dịch ⇒ ghi khi và chỉ khi câu sửa ghi); chỉ khi kết quả xác minh MỚI NHẤT của đích là DA_XAC_MINH
+// (đã cần xác minh lại / từ chối thì không thêm). Dòng xác minh chỉ-thêm (trigger no_update / no_delete); created_by = người sửa; cờ chạm tài khoản luôn 0 (CHECK).
+// ?1 mã mới, ?2 hồ sơ, ?3 mốc kỳ vọng, ?4 người sửa, ?5 lúc, ?6 mã thuộc tính hoặc mã dòng giấy tờ.
+const MARK_REVERIFY_ATTRIBUTE = defineSql("parties", "mark_reverify_attribute",
+  `INSERT INTO pty_verification (id, party_id, target_kind, target_id, attribute_code, outcome, reason_code, verifier_touched_account, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, 'ATTRIBUTE', NULL, ?6, 'CAN_XAC_MINH_LAI', NULL, 0, ?5, ?4, ?5, ?4
+   WHERE (SELECT updated_at FROM pty_party WHERE id = ?2) = ?3
+     AND (SELECT v.outcome FROM pty_verification v WHERE v.party_id = ?2 AND v.target_kind = 'ATTRIBUTE' AND v.attribute_code = ?6 ORDER BY v.created_at DESC, v.rowid DESC LIMIT 1) = 'DA_XAC_MINH'`);
+const MARK_REVERIFY_DOCUMENT = defineSql("parties", "mark_reverify_document",
+  `INSERT INTO pty_verification (id, party_id, target_kind, target_id, attribute_code, outcome, reason_code, verifier_touched_account, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, 'PERSON_DOCUMENT', ?6, NULL, 'CAN_XAC_MINH_LAI', NULL, 0, ?5, ?4, ?5, ?4
+   WHERE (SELECT updated_at FROM pty_person_document WHERE id = ?6 AND party_id = ?2) = ?3
+     AND (SELECT v.outcome FROM pty_verification v WHERE v.party_id = ?2 AND v.target_kind = 'PERSON_DOCUMENT' AND v.target_id = ?6 ORDER BY v.created_at DESC, v.rowid DESC LIMIT 1) = 'DA_XAC_MINH'`);
+export function canXacMinhLaiStatement(
+  db: D1Database,
+  v: { partyId: string; targetKind: "ATTRIBUTE" | "PERSON_DOCUMENT"; targetId: string | null; attributeCode: string | null; expectedUpdatedAt: string; actorId: string; at: string },
+): D1PreparedStatement {
+  return v.targetKind === "ATTRIBUTE"
+    ? db.prepare(MARK_REVERIFY_ATTRIBUTE).bind(crypto.randomUUID(), v.partyId, v.expectedUpdatedAt, v.actorId, v.at, v.attributeCode)
+    : db.prepare(MARK_REVERIFY_DOCUMENT).bind(crypto.randomUUID(), v.partyId, v.expectedUpdatedAt, v.actorId, v.at, v.targetId);
+}

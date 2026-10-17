@@ -290,3 +290,228 @@ test("(r9) chi tiết phiếu và xem đủ số có Cache-Control: no-store", a
   assert.equal((await xemSo(w, HR, p)).headers.get("cache-control"), "no-store");
   assert.equal((await ds(w, HR)).headers.get("cache-control"), "no-store");
 });
+
+// ======== Việc 4 (lát H-4): chấp nhận nguyên văn, từ chối theo danh sách đóng, đánh dấu "cần xác minh lại" ========
+const chapNhan = (w: any, as: string, pid: string) => w.call("POST", `/api/parties/xac-minh/${pid}/chap-nhan`, { as, body: {} });
+const tuChoi = (w: any, as: string, pid: string, body: unknown = { lyDo: "KHONG_DOC_DUOC" }) => w.call("POST", `/api/parties/xac-minh/${pid}/tu-choi`, { as, body });
+const trangThai = (w: any, pid: string): string => String(w.q("SELECT status FROM pty_self_submission WHERE id = ?", pid)[0].status);
+const soXacMinh = (w: any): number => Number(w.q("SELECT count(*) n FROM pty_verification")[0].n);
+const nhatKyQuyet = (w: any): { action: string; detail: string }[] =>
+  w.q("SELECT action, detail FROM audit_log WHERE action IN ('self_submission_accepted', 'self_submission_rejected') ORDER BY rowid").map((r: any) => ({ ...r }));
+const khongGhi = (w: any, pid: string) => {
+  assert.equal(trangThai(w, pid), "CHO_XAC_MINH");
+  assert.equal(soXacMinh(w), 0);
+  assert.deepEqual(nhatKyQuyet(w), []);
+};
+const ngay = (iso: string, soNgay: number): string => new Date(Date.parse(iso) - soNgay * 86_400_000).toISOString();
+
+test("(w1) Nhân sự chấp nhận NGAY_SINH ⇒ 200; ngày sinh chép nguyên văn; phiếu DA_CHAP_NHAN; một dòng xác minh cờ 0; nhật ký không có ngày sinh; xem lại → 403", async () => {
+  const w = setup();
+  const p = phieu(w, { owner: DT });
+  const r = await chapNhan(w, HR, p);
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json, { ok: true });
+  assert.equal(w.q("SELECT birth_date b FROM pty_person WHERE party_id = ?", pty(DT))[0].b, "1990-05-06");
+  const s = w.q("SELECT status, decided_by FROM pty_self_submission WHERE id = ?", p)[0];
+  assert.deepEqual({ ...s }, { status: "DA_CHAP_NHAN", decided_by: HR });
+  const v = w.q("SELECT party_id, target_kind, target_id, attribute_code, outcome, verifier_touched_account c, created_by FROM pty_verification WHERE id = ?", p);
+  assert.equal(v.length, 1);
+  assert.deepEqual({ ...v[0] }, { party_id: pty(DT), target_kind: "ATTRIBUTE", target_id: null, attribute_code: "NGAY_SINH", outcome: "DA_XAC_MINH", c: 0, created_by: HR });
+  assert.deepEqual(nhatKyQuyet(w), [{ action: "self_submission_accepted", detail: `phiếu ${p} · Ngày sinh` }]);
+  const xem = await ct(w, HR, p);
+  assert.equal(xem.status, 403);
+  assert.equal(xem.json.error.code, "submission_processed");
+});
+
+test("(w1b) chấp nhận DIA_CHI ⇒ thêm đúng một liên hệ địa chỉ nguyên văn, dòng xác minh trỏ liên hệ đó; nhật ký không có địa chỉ", async () => {
+  const w = setup();
+  const p = phieu(w, { owner: DT, loai: "DIA_CHI" });
+  const truoc = Number(w.q("SELECT count(*) n FROM pty_contact_point WHERE party_id = ?", pty(DT))[0].n);
+  const r = await chapNhan(w, ADM, p);
+  assert.equal(r.status, 200, r.text);
+  const lh = w.q("SELECT id, value, is_primary FROM pty_contact_point WHERE party_id = ? AND contact_kind_code = 'ADDRESS'", pty(DT));
+  assert.equal(lh.length, 1);
+  assert.equal(Number(w.q("SELECT count(*) n FROM pty_contact_point WHERE party_id = ?", pty(DT))[0].n), truoc + 1);
+  assert.equal(lh[0].value, "12 Đường Thử, Nha Trang");
+  const v = w.q("SELECT target_kind, target_id FROM pty_verification WHERE id = ?", p)[0];
+  assert.deepEqual({ ...v }, { target_kind: "CONTACT", target_id: lh[0].id });
+  assert.ok(!JSON.stringify(nhatKyQuyet(w)).includes("Đường Thử"));
+});
+
+test("(w2) Quản trị từ chối DIA_CHI với KHONG_KHOP_GIAY_TO ⇒ 200; TU_CHOI + mã lý do; không dòng xác minh, không liên hệ mới; nhật ký có mã lý do, không địa chỉ", async () => {
+  const w = setup();
+  const p = phieu(w, { owner: DT, loai: "DIA_CHI" });
+  const r = await tuChoi(w, ADM, p, { lyDo: "KHONG_KHOP_GIAY_TO" });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(w.q("SELECT status, reason_code, decided_by FROM pty_self_submission WHERE id = ?", p).map((x: any) => ({ ...x })), [{ status: "TU_CHOI", reason_code: "KHONG_KHOP_GIAY_TO", decided_by: ADM }]);
+  assert.equal(soXacMinh(w), 0);
+  assert.equal(Number(w.q("SELECT count(*) n FROM pty_contact_point WHERE party_id = ? AND contact_kind_code = 'ADDRESS'", pty(DT))[0].n), 0);
+  const nk = nhatKyQuyet(w);
+  assert.equal(nk.length, 1);
+  assert.equal(nk[0]!.action, "self_submission_rejected");
+  assert.ok(nk[0]!.detail.includes(p) && nk[0]!.detail.includes("KHONG_KHOP_GIAY_TO") && !nk[0]!.detail.includes("Đường Thử"), nk[0]!.detail);
+});
+
+test("(w3) từ chối với lý do ngoài danh sách, có khoá ghiChu, thiếu thân ⇒ 400, không ghi", async () => {
+  const w = setup();
+  const p = phieu(w, { owner: DT });
+  for (const body of [{ lyDo: "TU_NHIEN" }, { lyDo: "KHONG_DOC_DUOC", ghiChu: "số 079000000111" }, {}, { lyDo: 5 }]) {
+    const r = await tuChoi(w, HR, p, body);
+    assert.equal(r.status, 400, JSON.stringify(body) + r.text);
+    assert.equal(r.json.error.code, "invalid_input");
+  }
+  khongGhi(w, p);
+});
+
+test("(w4) người khai tự chấp nhận / từ chối (tài khoản lai Quản trị + Đối tác) ⇒ 409 verify_self, không ghi", async () => {
+  const w = setup();
+  const LAI = "44444444-4444-4444-8444-444444444444";
+  seedStaff(w.sqlite, { id: LAI, phone: "0900000040", name: "Lai", perms: ["ADMIN", "PARTNER"] });
+  const p = phieu(w, { owner: LAI });
+  for (const r of [await chapNhan(w, LAI, p), await tuChoi(w, LAI, p)]) {
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.code, "verify_self");
+  }
+  khongGhi(w, p);
+});
+
+test("(w5) Nhân sự đã TẠO tài khoản chủ phiếu ⇒ chấp nhận và từ chối đều 409 verify_conflict (R13), không ghi", async () => {
+  const w = setup();
+  nhatKyCham(w, HR, NV);
+  const p = phieu(w, { owner: NV });
+  for (const r of [await chapNhan(w, HR, p), await tuChoi(w, HR, p)]) {
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.code, "verify_conflict");
+  }
+  khongGhi(w, p);
+  assert.equal((await chapNhan(w, ADM, p)).status, 200, "người khác không dính thì được");
+});
+
+test("(w6) đặt lại PIN cho chủ phiếu 400 ngày trước lúc gửi vẫn chặn (vĩnh viễn); mở khoá đăng nhập 31 ngày trước lúc gửi thì không", async () => {
+  const w = setup();
+  nhatKyCham(w, ADM, NV, "pin_reset", ngay(GUI, 400));
+  nhatKyCham(w, ADM, NV2, "login_unlocked", ngay(GUI, 31));
+  const pNV = phieu(w, { owner: NV });
+  const pNV2 = phieu(w, { owner: NV2 });
+  const a = await chapNhan(w, ADM, pNV);
+  assert.equal(a.status, 409, a.text);
+  assert.equal(a.json.error.code, "verify_conflict");
+  assert.equal(trangThai(w, pNV), "CHO_XAC_MINH");
+  const b = await chapNhan(w, ADM, pNV2);
+  assert.equal(b.status, 200, b.text);
+});
+
+test("(w7) Toàn quyền từng đặt lại PIN ⇒ 200, dòng xác minh cờ 1, hàng đã xử lý coChamTaiKhoan = true, nhật ký có \"cờ chạm tài khoản\"; Toàn quyền từ chối thì không có dòng xác minh (Q5)", async () => {
+  const w = setup();
+  nhatKyCham(w, SUP, NV2, "pin_reset", ngay(GUI, 5));
+  const p = phieu(w, { owner: NV2 });
+  const r = await chapNhan(w, SUP, p);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(Number(w.q("SELECT verifier_touched_account c FROM pty_verification WHERE id = ?", p)[0].c), 1);
+  const xong = await ds(w, SUP, "da-xu-ly");
+  assert.equal(xong.json.phieu.find((x: any) => x.id === p).coChamTaiKhoan, true);
+  assert.ok(nhatKyQuyet(w)[0]!.detail.includes("cờ chạm tài khoản"));
+  const q = phieu(w, { owner: NV });
+  nhatKyCham(w, SUP, NV, "staff_created");
+  assert.equal((await tuChoi(w, SUP, q)).status, 200);
+  assert.equal(soXacMinh(w), 1, "từ chối không sinh dòng xác minh");
+  assert.ok(!nhatKyQuyet(w).find((x) => x.action === "self_submission_rejected")!.detail.includes("cờ chạm"), "Q5: từ chối chỉ ghi nhật ký, không cờ");
+});
+
+test("(w8) Review Focus 1: chấp nhận lần hai (người khác) ⇒ 409 submission_not_pending; vẫn đúng một dòng xác minh", async () => {
+  const w = setup();
+  const p = phieu(w, { owner: DT });
+  assert.equal((await chapNhan(w, HR, p)).status, 200);
+  const r = await chapNhan(w, ADM, p);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "submission_not_pending");
+  assert.equal((await tuChoi(w, ADM, p)).status, 409);
+  assert.equal(soXacMinh(w), 1);
+  assert.equal(nhatKyQuyet(w).length, 1);
+});
+
+test("(w9) Review Focus 3: người dùng rút phiếu rồi người xác minh bấm chấp nhận / từ chối / xem số ⇒ 409 / 409 / 403, không ghi", async () => {
+  const w = setup();
+  const p = phieu(w, { owner: DT, loai: "GIAY_TO" });
+  w.sqlite.prepare("UPDATE pty_self_submission SET status = 'RUT', decided_at = ?, decided_by = ?, updated_at = ? WHERE id = ?").run(GUI, DT, GUI, p);
+  assert.equal((await chapNhan(w, HR, p)).status, 409);
+  assert.equal((await tuChoi(w, HR, p)).status, 409);
+  assert.equal((await xemSo(w, HR, p)).status, 403);
+  assert.equal(soXacMinh(w), 0);
+  assert.deepEqual(nhatKyQuyet(w), []);
+  assert.equal(soDongXem(w), 0);
+});
+
+test("(w10) R18: chấp nhận phiếu GIAY_TO ⇒ 409 can_anh_giay_to, không ghi; từ chối TRUNG_HO_SO_KHAC ⇒ 200", async () => {
+  const w = setup();
+  const p = phieu(w, { owner: DT, loai: "GIAY_TO" });
+  const a = await chapNhan(w, HR, p);
+  assert.equal(a.status, 409, a.text);
+  assert.equal(a.json.error.code, "can_anh_giay_to");
+  khongGhi(w, p);
+  assert.equal(Number(w.q("SELECT count(*) n FROM pty_person_document WHERE party_id = ?", pty(DT))[0].n), 0);
+  const b = await tuChoi(w, HR, p, { lyDo: "TRUNG_HO_SO_KHAC" });
+  assert.equal(b.status, 200, b.text);
+  assert.equal(trangThai(w, p), "TU_CHOI");
+  assert.ok(!JSON.stringify(nhatKyQuyet(w)).includes(KHOA_SO));
+});
+
+test("(w11) R20: phiếu của hồ sơ đã gộp ⇒ chấp nhận 409 ho_so_da_gop, không ghi; từ chối HO_SO_DA_GOP ⇒ 200", async () => {
+  const w = setup();
+  const p = phieu(w, { owner: DT });
+  w.sqlite.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('gop-dich', 'PERSON', 'Hồ Sơ Chính', 1, '${AT}', '${AT}')`);
+  w.sqlite.exec(`INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES ('gop-dich', 'Hồ Sơ Chính', '${AT}', '${AT}')`);
+  w.sqlite.prepare("UPDATE pty_party SET active = 0, merged_into_id = 'gop-dich', merged_at = ?, updated_at = ? WHERE id = ?").run(AT, AT, pty(DT));
+  const a = await chapNhan(w, HR, p);
+  assert.equal(a.status, 409, a.text);
+  assert.equal(a.json.error.code, "ho_so_da_gop");
+  khongGhi(w, p);
+  const b = await tuChoi(w, HR, p, { lyDo: "HO_SO_DA_GOP" });
+  assert.equal(b.status, 200, b.text);
+});
+
+test("(w12) chủ phiếu ngoài cấp bậc (Nhân sự khác) ⇒ 404 cho cả chấp nhận và từ chối, không ghi; id lạ ⇒ 404", async () => {
+  const w = setup();
+  const p = phieu(w, { owner: HR2 });
+  for (const r of [await chapNhan(w, HR, p), await tuChoi(w, HR, p), await chapNhan(w, HR, uid()), await tuChoi(w, HR, "khong-phai-ma")]) assert.equal(r.status, 404, r.text);
+  khongGhi(w, p);
+});
+
+test("(w12b) cổng: Bán hàng, Kế toán, Đối tác, Tài xế đối tác ⇒ 403 ở hai route quyết, không ghi", async () => {
+  const w = setup();
+  const p = phieu(w, { owner: DT });
+  for (const as of [SALES, ACC, PARTNER, DRVP]) for (const r of [await chapNhan(w, as, p), await tuChoi(w, as, p)]) assert.equal(r.status, 403, `${as}: ${r.text}`);
+  khongGhi(w, p);
+});
+
+test("(w13) R16: sau khi xác minh ngày sinh, Quản trị đổi ngày sinh qua PUT ⇒ thêm đúng một dòng CAN_XAC_MINH_LAI cùng lô; PUT không đổi / chưa từng xác minh / đã cần xác minh lại ⇒ không thêm", async () => {
+  const w = setup();
+  const p = phieu(w, { owner: DT });
+  assert.equal((await chapNhan(w, HR, p)).status, 200);
+  const sua = (id: string, body: Record<string, unknown>) => {
+    const cur = w.q("SELECT updated_at u, active a, display_name n FROM pty_party WHERE id = ?", id)[0];
+    return w.call("PUT", `/api/parties/${id}`, { as: ADM, body: { fullName: cur.n, active: cur.a === 1, expectedUpdatedAt: cur.u, ...body } });
+  };
+  const dem = (party: string, outcome: string) => Number(w.q("SELECT count(*) n FROM pty_verification WHERE party_id = ? AND outcome = ?", party, outcome)[0].n);
+  assert.equal((await sua(pty(DT), { birthDate: "1990-05-06" })).status, 200, "không đổi");
+  assert.equal(dem(pty(DT), "CAN_XAC_MINH_LAI"), 0);
+  const r = await sua(pty(DT), { birthDate: "1991-01-01" });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(dem(pty(DT), "CAN_XAC_MINH_LAI"), 1);
+  const d = w.q("SELECT target_kind, attribute_code, created_by, verifier_touched_account c FROM pty_verification WHERE outcome = 'CAN_XAC_MINH_LAI'")[0];
+  assert.deepEqual({ ...d }, { target_kind: "ATTRIBUTE", attribute_code: "NGAY_SINH", created_by: ADM, c: 0 });
+  assert.equal((await sua(pty(DT), { birthDate: "1992-02-02" })).status, 200);
+  assert.equal(dem(pty(DT), "CAN_XAC_MINH_LAI"), 1, "đã cần xác minh lại thì không thêm");
+  assert.equal((await sua(pty(NV2), { birthDate: "1993-03-03" })).status, 200);
+  assert.equal(dem(pty(NV2), "CAN_XAC_MINH_LAI"), 0, "chưa từng xác minh");
+});
+
+test("(w13b) PUT lỗi thời (expectedUpdatedAt cũ) ⇒ 409 stale và KHÔNG thêm dòng CAN_XAC_MINH_LAI", async () => {
+  const w = setup();
+  const p = phieu(w, { owner: DT });
+  assert.equal((await chapNhan(w, HR, p)).status, 200);
+  const cur = w.q("SELECT active a, display_name n FROM pty_party WHERE id = ?", pty(DT))[0];
+  const r = await w.call("PUT", `/api/parties/${pty(DT)}`, { as: ADM, body: { fullName: cur.n, active: cur.a === 1, expectedUpdatedAt: "2000-01-01T00:00:00.000Z", birthDate: "1991-01-01" } });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(Number(w.q("SELECT count(*) n FROM pty_verification WHERE outcome = 'CAN_XAC_MINH_LAI'")[0].n), 0);
+});

@@ -327,6 +327,27 @@ test("route 6 sửa sai: dòng cũ → 409 document_not_current; ngày hết h�
   for (const x of w.q("SELECT detail FROM audit_log WHERE action LIKE 'party_document_%'")) khongSo(String(x.detail).replace(/\d{4}-\d{2}-\d{2}/g, ""), "nhật ký");
 });
 
+test("route 6 + ADR-0125 (R16): sửa sai dòng giấy tờ đã DA_XAC_MINH ⇒ thêm đúng MỘT dòng CAN_XAC_MINH_LAI (PERSON_DOCUMENT); dòng chưa xác minh, hoặc sửa lỗi thời ⇒ không thêm", async () => {
+  const w = setup();
+  const g = gieoTaiXe(w);
+  const dem = () => Number(w.q("SELECT count(*) n FROM pty_verification WHERE outcome = 'CAN_XAC_MINH_LAI'")[0].n);
+  let r = await suaSai(w, ADM, pty(DRIVER), g.cccd, { reason: "SAI_NGAY_HET_HAN", value: "2038-03-12", expectedUpdatedAt: dong(w, g.cccd).updated_at });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(dem(), 0, "chưa từng xác minh ⇒ không thêm");
+  w.sqlite.prepare("INSERT INTO pty_verification (id, party_id, target_kind, target_id, outcome, created_at, created_by, updated_at, updated_by) VALUES ('xm-1', ?, 'PERSON_DOCUMENT', ?, 'DA_XAC_MINH', ?, ?, ?, ?)").run(pty(DRIVER), g.cccd, AT, SUP, AT, SUP);
+  r = await suaSai(w, ADM, pty(DRIVER), g.cccd, { reason: "SAI_NGAY_HET_HAN", value: "2038-03-13", expectedUpdatedAt: "2000-01-01T00:00:00.000Z" });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(dem(), 0, "sửa lỗi thời (409 stale) ⇒ không thêm");
+  r = await suaSai(w, ADM, pty(DRIVER), g.cccd, { reason: "SAI_NGAY_HET_HAN", value: "2038-03-13", expectedUpdatedAt: dong(w, g.cccd).updated_at });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(dem(), 1);
+  const d = w.q("SELECT party_id, target_kind, target_id, created_by FROM pty_verification WHERE outcome = 'CAN_XAC_MINH_LAI'")[0];
+  assert.deepEqual({ ...d }, { party_id: pty(DRIVER), target_kind: "PERSON_DOCUMENT", target_id: g.cccd, created_by: ADM });
+  r = await suaSai(w, ADM, pty(DRIVER), g.cccd, { reason: "SAI_NGAY_HET_HAN", value: "2038-03-14", expectedUpdatedAt: dong(w, g.cccd).updated_at });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(dem(), 1, "đã cần xác minh lại thì không thêm nữa");
+});
+
 test("route 6 'Nhập nhầm cả dòng' → 200: dòng bị huỷ (voided), vẫn còn trong danh sách; số CCCD của dòng đó rảnh cho người khác", async () => {
   const w = setup();
   const g = gieoTaiXe(w);
