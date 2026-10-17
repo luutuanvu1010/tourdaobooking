@@ -146,7 +146,7 @@
       "ma": "SV-TA-03",
       "mo_ta": "Đổi mức sau xác nhận. Mức khai trong ca: TA1 = «mọi dịch vụ» 10%, TA3 = «mọi dịch vụ» 12% (số của riêng ca này). Đơn A xác nhận 10/10 khi loại đang gắn TA1; ngày 15/10 loại chuyển sang TA3 (kết thúc gắn cũ tới 14/10, gắn mới từ 15/10); đơn B xác nhận 16/10, dịch vụ 2.000.000. Đơn A giữ 10% (bản chụp không đổi); bảng không nêu thành tiền đơn A nên chỉ ghi mức áp dụng.",
       "nguon": "Đề xuất ADR-0117 (docs/superpowers/specs/2026-10-13-gan-vai-voi-muc-chiet-khau/de-xuat-adr.md, bảng ca vàng SV-TA-01…06) — số lấy NGUYÊN từ bảng đó (ví dụ của người soạn, chưa ai xác nhận). Thêm vào sổ 2026-10-15 (ADR-0117 lần 2, Task 5); AI không tự đánh dấu xác nhận (N-18). Bảng không nêu thành tiền của đơn A ⇒ hoa_hong, gia_dai_ly của dòng đó để null — chờ Kế toán",
-      "xac_nhan": {"trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null},
+      "xac_nhan": {"trang_thai": "da_xac_nhan", "nguoi": "Chủ dự án (xác nhận trong chat)", "ngay": "2026-10-17"},
       "dong": [
         {
           "nhan": "Đơn A xác nhận 10/10 (loại gắn TA1) — giữ mức sau khi loại đổi sang TA3",
@@ -208,7 +208,7 @@
       "ma": "SV-TA-06",
       "mo_ta": "Hai mức TA khác số cùng bậc ⇒ thiếu mức, không tính 0. Mức khai trong ca: hồ sơ mang hai loại; loại 1 gắn một mức, loại 2 gắn một mức khác, hai mức có dòng cùng bậc nhưng KHÁC SỐ (kế hoạch hiểu «hai mức khác nhau» là khác số; cùng số thì không xung đột). Bản chụp MISSING / RULE_CONFLICT, Đã giao bị giữ tới khi Kế toán ghi tay.",
       "nguon": "Đề xuất ADR-0117 (docs/superpowers/specs/2026-10-13-gan-vai-voi-muc-chiet-khau/de-xuat-adr.md, bảng ca vàng SV-TA-01…06) — số lấy NGUYÊN từ bảng đó (ví dụ của người soạn, chưa ai xác nhận). Thêm vào sổ 2026-10-15 (ADR-0117 lần 2, Task 5); AI không tự đánh dấu xác nhận (N-18). Bảng không nêu thành tiền, số của hai mức ⇒ mọi số tiền để null",
-      "xac_nhan": {"trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null},
+      "xac_nhan": {"trang_thai": "da_xac_nhan", "nguoi": "Chủ dự án (xác nhận trong chat)", "ngay": "2026-10-17"},
       "dong": [
         {
           "nhan": "Hai loại → hai mức khác số ở cùng bậc ⇒ thiếu mức (xung đột)",
