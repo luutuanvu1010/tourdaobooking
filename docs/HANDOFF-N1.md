@@ -2,6 +2,26 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
+## Lần phát hành kế tiếp có xoá dữ liệu (ADR-0126 — Gói 2 lát H-5; migration `0108`) — RUNBOOK
+
+**Trạng thái: CHƯA phát hành** (nhánh `worktree-ho-so-rieng-tu-2fa`; chưa gộp `main`, chưa lên production). Đừng khẳng định trạng thái production từ mục này — kiểm bằng `wrangler d1 migrations list … --remote` và `GET /api/auth/config`.
+
+- **Migration:** `0108_xoa_an_danh.sql` áp SAU `0103`–`0107` (`0106` giữ cho nhánh vé hỗ trợ, `0107` là H-4). Lúc phát hành kiểm số lại: `ls migrations` rồi `git ls-tree --name-only <nhánh> migrations/` cho mọi nhánh chưa gộp (CLAUDE.md §10). `0108` TẠO LẠI bốn trigger chặn sửa của giấy tờ / phiếu tự khai (DROP rồi CREATE) — vô hại khi bảng rỗng hay có dữ liệu; không gieo chính sách, không gieo con số thời hạn.
+- **Không cần lệnh Cloudflare mới:** kho `HO_SO` đã có từ H-2. Quy trình chung vẫn là `npm run trien-khai` sau `day-len`.
+- **Nhật ký thay đổi:** mục 2.14 trong `src/shared/changelog.ts` là số TẠM — đánh số lại ở bước A.0.
+
+**Việc của chủ / kiểm trước phát hành:**
+1. **Không đăng chính sách riêng tư trên production trước khi luật sư duyệt chữ VÀ bản này đã lên.** (Điều kiện Q1 cập nhật: phần «bản dựng có đường xoá» nay là hàng rào máy — cổng phát hành `src/cong-phat-hanh-anh-tu-khai.test.ts`; phần luật sư duyệt chữ và con số ngày vẫn dựa vào kỷ luật.) Hai ô số ngày (`hanXuLyXoaNgay`, `hanGiuPhienNgay`) để TRỐNG cho tới khi luật sư xác nhận; **đăng bản mới thì mọi người phải đồng ý lại, và quên nhập số ở bản mới làm phiếu gửi sau mất hạn** (bản mới nhất thắng — Q2).
+2. Gửi luật sư bộ câu Q1 (xem `docs/BACKLOG.md` mục 40, `BL-XOA-CAU-HOI-LUAT-SU`).
+3. Duyệt ảnh giao diện ở `docs/evidence/2026-10-17-xoa-an-danh/anh/`.
+4. Trả lời Q2–Q6.
+5. **Kiểm trên D1 local của `wrangler dev` hoặc e2e (`npm run test:e2e -- xoa-an-danh`) trước khi tin cơ chế huỷ lô:** khi «Thực hiện» thua cuộc đua với «Rút» của người dùng, câu `erasure_batch_abort_if_lost` phải làm D1 HUỶ CẢ LÔ (kể cả câu xoá IP / trình duyệt của auth) và route trả 409 `erasure_not_pending`. Khung thử giả D1 bằng SQLite nên cơ chế này, thứ tự trigger cùng sự kiện và `ROW_NUMBER()` trên D1 thật **CHƯA kiểm** (e2e hôm nay chỉ phủ nhánh thắng).
+6. **Id giấy tờ production dài hơn 37 ký tự thì CHECK của dấu ẩn danh chặn ẩn danh** — chưa xem dữ liệu thật; chạy một câu SELECT chỉ-đọc `SELECT max(length(id)) FROM pty_person_document` trên production trước khi bấm «Thực hiện» đầu tiên.
+7. Đặc tả diễn tập khôi phục (HC-5.19, hạn 2026-11-05) thêm bước: sau khôi phục D1, liệt kê kho `HO_SO` tiền tố `xoa/` (lệnh chỉ đọc, chủ chạy) và so với `pty_erasure_request`: phiếu có trong kho mà D1 còn `CHO_XU_LY` ⇒ bấm «Thực hiện» lại; phiếu không còn dòng trong D1 ⇒ ghi lại mã hồ sơ, chờ công cụ (`BL-XOA-KHOI-PHUC`).
+8. Việc ẩn danh phiên cũ (trang Phiên) chỉ chạy khi chính sách có số ngày giữ phiên; chưa có số thì nút tắt / 409 `chua_co_thoi_han`.
+
+Nợ kỹ thuật của lát này: `docs/BACKLOG.md` mục 40 (mã `BL-XOA-…`). Ghi rõ **dựa vào kỷ luật** (chưa có hàng rào máy): câu ẩn danh sổ phiên của auth không có lính gác phiếu riêng (chỉ nhờ câu chặn lô), chạy lại phiếu sau khôi phục D1.
+
 ## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.2 ĐÃ LÊN PRODUCTION (ADR-0120, đổi từ 0118: khoản chuyển khoản «Công ty thu» không tạo nợ người khai, «đang đối chiếu», chặn Đã giao, nhắc Kế toán sau 3 ngày; Kế toán duyệt chuyển tiền thu trước sang đơn khác; chữ «cọc» → «Thu trước»; 54 ca sổ vàng đã xác nhận) — migration `0099_bil_doi_chieu_khoan_cong_ty_thu` đã áp (2026-10-15 19:28 giờ VN)
 
 Chủ chạy `day-len` rồi `trien-khai` (lần đầu dừng vì `main` có commit mới, hai lần dừng ở bài đo giờ của hàng rào do máy bận, lần ba qua); AI kiểm lại bằng lệnh chỉ đọc:

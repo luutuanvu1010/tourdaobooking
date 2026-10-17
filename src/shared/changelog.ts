@@ -12,6 +12,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Gói 2 hồ sơ riêng tư, lát H-5 (ADR-0126): yêu cầu xoá dữ liệu cá nhân + Quản trị xem trước / thực hiện (ẩn danh hoá) + danh sách ảnh giấy tờ hết lý do giữ + ẩn danh phiên cũ;
+    // migration 0108 (số TẠM — áp sau 0103–0107; kiểm số kế tiếp lúc phát hành). CÓ migration — cần trien-khai sau day-len. Chính sách riêng tư KHÔNG đăng trên production
+    // cho tới khi luật sư duyệt chữ và chủ nhập số ngày hợp pháp (docs/HANDOFF-N1.md).
+    // Số 2.14 là số TẠM (không trùng 2.8–2.13 đang tạm ở các nhánh): phiên phát hành gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.14",
+    date: "2026-10-17",
+    items: [
+      { kind: "moi", text: "Bạn có thể gửi yêu cầu xoá dữ liệu cá nhân của mình ở Tôi → Hồ sơ của tôi." },
+      { kind: "moi", text: "Quản trị xem trước rồi thực hiện yêu cầu xoá: giấy tờ, địa chỉ, ngày sinh, liên hệ, thông tin máy đăng nhập được xoá; phần phải giữ được liệt kê rõ." },
+      { kind: "moi", text: "Danh bạ có danh sách ảnh giấy tờ đã hết lý do giữ để người có quyền bấm xoá." },
+    ],
+  },
+  {
     // Gói 2 hồ sơ riêng tư, lát H-4 (ADR-0125): Hàng chờ xác minh ở trang Quản lý tài khoản + luật tách nhiệm vụ; migration 0107 (số TẠM — kiểm số kế tiếp lúc phát hành,
     // nhánh vé hỗ trợ giữ 0106). CÓ migration — cần trien-khai sau day-len. Tự khai vẫn chỉ bật khi Toàn quyền đăng chính sách; chấp nhận phiếu giấy tờ chưa có (chưa có ảnh).
     // Số 2.13 là số TẠM (không trùng 2.8–2.12 đang tạm ở các nhánh): phiên phát hành gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
