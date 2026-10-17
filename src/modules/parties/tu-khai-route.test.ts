@@ -191,8 +191,10 @@ test("gửi ba loại phiếu: 201; giá trị HIỆN HÀNH không đổi (5.23)
   const cs = await sanSang(w, PARTNER);
   let r = await gui(w, PARTNER, { chinhSachId: cs, loai: "NGAY_SINH", ngaySinh: "1991-02-03" });
   assert.equal(r.status, 201, r.text);
+  await new Promise((xong) => setTimeout(xong, 5)); // created_at khác mili-giây (vòng sửa 1, I-4)
   r = await gui(w, PARTNER, { chinhSachId: cs, loai: "DIA_CHI", diaChi: "86420 Đường Phiếu, Nha Trang" });
   assert.equal(r.status, 201, r.text);
+  await new Promise((xong) => setTimeout(xong, 5)); // created_at khác mili-giây (vòng sửa 1, I-4)
   r = await gui(w, PARTNER, { chinhSachId: cs, loai: "GIAY_TO", giayTo: { typeCode: "CCCD", number: "079 111 222 333", issuedDate: "2021-01-01", issuedPlace: "NOI CAP PHIEU THU", expiryDate: "2036-01-01" } });
   assert.equal(r.status, 201, r.text);
   // 5.23: hồ sơ hiện hành, nhãn, giấy tờ không đổi

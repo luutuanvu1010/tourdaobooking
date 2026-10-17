@@ -370,9 +370,11 @@ test("(p2) hàng chờ: Quản trị thấy phiếu Đối tác / Bán hàng / T
     const r = await gui(w, as);
     assert.equal(r.status, 201, `${as}: ${r.text}`);
     id[as] = r.json.id;
+    await new Promise((xong) => setTimeout(xong, 5)); // created_at khác mili-giây ⇒ thứ tự "cũ trước" không dựa mã ngẫu nhiên (vòng sửa 1, I-4)
   }
   // Chính sách có số ngày ⇒ phiếu Bán hàng còn hạn; phiếu Đối tác chèn thẳng với hạn đã qua (hạn không sửa được sau khi gửi — trigger nội dung phiếu).
   assert.equal((await dang(w, { hanXuLyXoaNgay: 7 })).status, 201);
+  await new Promise((xong) => setTimeout(xong, 5));
   const r = await gui(w, SALES);
   assert.equal(r.status, 201, r.text);
   id[SALES] = r.json.id;
