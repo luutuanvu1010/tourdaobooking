@@ -104,6 +104,16 @@ export async function sessionOwnersByIds(
   const { results } = await db.prepare(SESSION_OWNERS).bind(JSON.stringify(ids)).all<{ id: string; label: string; credentials_changed_at: number | null; permissions: string | null }>();
   return new Map(results.map((r) => [r.id, { label: r.label, credentialsChangedAt: r.credentials_changed_at, permissions: parsePermissions(r.permissions) }]));
 }
+// ADR-0125 đ3, đ5: MỌI tài khoản cho route xác minh phiếu tự khai — chỉ id, hoạt động, hồ sơ gắn, mã quyền ĐANG HIỆU LỰC (cùng điều kiện `valid_to_at IS NULL` của câu đọc quyền ở trên).
+// Không SĐT, không email, không tên. MỘT truy vấn (quy mô ~30 nhân viên + ~1000 đối tác — ADR-0014).
+const TAI_KHOAN_CHO_XAC_MINH = defineSql("staff", "tai_khoan_cho_xac_minh",
+  `SELECT s.id, s.active, s.party_id,
+    (SELECT group_concat(p.permission_type_code) FROM stf_permission p WHERE p.staff_id = s.id AND p.valid_to_at IS NULL) AS permissions
+   FROM staff s`);
+export async function taiKhoanChoXacMinhRows(db: D1Database): Promise<{ id: string; permissions: PermissionCode[]; active: boolean; partyId: string | null }[]> {
+  const { results } = await db.prepare(TAI_KHOAN_CHO_XAC_MINH).all<{ id: string; active: number; party_id: string | null; permissions: string | null }>();
+  return results.map((r) => ({ id: r.id, permissions: parsePermissions(r.permissions), active: r.active === 1, partyId: r.party_id }));
+}
 const SET_PIN = defineSql("staff", "set_pin", "UPDATE staff SET pin_hash = ?2, credentials_changed_at = ?3 WHERE id = ?1");
 const TOUCH_CREDENTIALS = defineSql("staff", "touch_credentials", "UPDATE staff SET credentials_changed_at = ?2 WHERE id = ?1");
 // Chỉ đẩy khi câu NGAY TRƯỚC trong cùng batch có đổi dòng (gỡ passkey): changes() trong WHERE nhìn thấy câu đã hoàn tất trước đó — cùng cơ chế với nhật ký `onlyIf`.

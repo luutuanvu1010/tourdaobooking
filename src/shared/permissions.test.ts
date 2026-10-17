@@ -92,6 +92,8 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "party.self.view": ["own", "own", "own", "own", "own", "any", "own", "own", "own", "own"], // ADR-0124 đ4 (lát H-3): hồ sơ của CHÍNH MÌNH — mọi tài khoản; SUPER any (ADR-0014 đ2) nhưng route chỉ phục vụ hồ sơ của phiên
   "party.self.submit": ["own", "own", "own", "own", "own", "any", "own", "own", "own", "own"], // ADR-0124 đ1, đ3, đ4: gửi / rút phiếu tự khai, đồng ý / rút đồng ý chính sách — của chính mình
   "party.privacy.policy": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0126 đ1: đăng chính sách riêng tư — chỉ Toàn quyền
+  "party.verify": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "any"], // ADR-0125 đ1, đ2 (lát H-4): hàng chờ xác minh phiếu tự khai — Quản trị, Toàn quyền, Nhân sự (HR vẫn party.view = none)
+  "party.verify.attachment": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "any"], // ADR-0125 đ1: xem đủ số của phiếu ĐANG CHỜ — nhật ký trước, không số trong nhật ký
   "vehicle.manage": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0040 D1: xe, giấy tờ xe, danh sách sắp hết hạn — Quản trị + Toàn quyền (ADR-0038 điều 6)
   "transport.rate.view": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0057 B3: xem bảng giá thuê xe — Kế toán = Quản trị (lần 18), Toàn quyền
   "transport.rate.manage": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0057 B3: thêm / đóng giá, danh mục tuyến, cỡ xe
@@ -370,6 +372,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "party.document.write": "none", "party.document.reveal": "none", "party.attachment.view": "none", "vehicle.manage": "none",
     "party.self.view": "own", "party.self.submit": "own", // ADR-0124 đ4 (lát H-3): ngoại lệ có tên — hồ sơ của CHÍNH MÌNH, như mọi tài khoản
     "party.privacy.policy": "none", // ADR-0126 đ1
+    "party.verify": "none", "party.verify.attachment": "none", // ADR-0125 đ1
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     // ADR-0049 D3 — NỚI (ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2): tài xế công ty xem + bấm tiến độ chuyến MÌNH ĐANG LÁI (`assigned` — A13 / A15).
@@ -417,6 +420,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "party.document.write": "none", "party.document.reveal": "none", "party.attachment.view": "none", "vehicle.manage": "none",
     "party.self.view": "own", "party.self.submit": "own", // ADR-0124 đ4 (lát H-3): ngoại lệ có tên — hồ sơ của CHÍNH MÌNH, như mọi tài khoản
     "party.privacy.policy": "none", // ADR-0126 đ1
+    "party.verify": "none", "party.verify.attachment": "none", // ADR-0125 đ1
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     "trip.passenger.add": "none", // ADR-0052 D5b × lời chủ 5/10 ("chỉ tài xế công ty"): tài xế đối tác KHÔNG bổ sung tên
@@ -470,6 +474,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "party.document.write": "none", "party.document.reveal": "none", "party.attachment.view": "none", "vehicle.manage": "none",
     "party.self.view": "own", "party.self.submit": "own", // ADR-0124 đ4 (lát H-3): ngoại lệ có tên — hồ sơ của CHÍNH MÌNH, như mọi tài khoản
     "party.privacy.policy": "none", // ADR-0126 đ1
+    "party.verify": "any", "party.verify.attachment": "any", // ADR-0125 đ1
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.urgent_adjust": "none", "trip.progress": "none", "trip.call_ack": "none", "trip.passenger.add": "none",
@@ -678,6 +683,38 @@ test("ADR-0124 đ4 (lát H-3): party.self.view / party.self.submit trên cả 10
       assert.equal(can(who, op), coSup, `${op} không ngữ cảnh: ${ten}`);
     }
     assert.equal(can(who, "party.privacy.policy", { ownerId: "u1" }), coSup, `party.privacy.policy: ${ten}`);
+    count++;
+  }
+  assert.equal(count, 1024);
+});
+
+test("ADR-0125 đ1, đ2: party.verify / party.verify.attachment — ADMIN, HR, SUPER_ADMIN any; mọi cột khác none; HR vẫn không Danh bạ, không dữ liệu cá nhân", () => {
+  for (const op of ["party.verify", "party.verify.attachment"] as const) {
+    assert.deepEqual(MATRIX[op], { SALES: "none", ACCOUNTING: "none", ADMIN: "any", FIELD: "none", PARTNER: "none", SUPER_ADMIN: "any", INTERN: "none", DRIVER: "none", DRIVER_PARTNER: "none", HR: "any" });
+  }
+  assert.equal(MATRIX["party.view"].HR, "none");
+  assert.equal(MATRIX["party.personal.view"].HR, "none");
+  assert.equal(MATRIX["party.document.reveal"].ADMIN, "none");
+  assert.equal(MATRIX["party.document.reveal"].HR, "none");
+});
+
+test("ADR-0125: HR đúng năm ô `any` ngoài hai ô của mọi tài khoản nội bộ", () => {
+  const MOI_TAI_KHOAN = new Set(["feedback.submit", "assistant.ask"]);
+  const hrAny = Object.entries(MATRIX).filter(([, r]) => r.HR === "any").map(([k]) => k).filter((k) => !MOI_TAI_KHOAN.has(k)).sort();
+  assert.deepEqual(hrAny, ["account.create", "account.edit", "account.view", "party.verify", "party.verify.attachment"]);
+});
+
+test("ADR-0125 đ1 (lát H-4): party.verify / party.verify.attachment trên cả 1024 tập con quyền — được khi có ADMIN, HR hoặc SUPER_ADMIN, có hay không có ngữ cảnh", () => {
+  let count = 0;
+  for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
+    const permissions = PERMISSION_CODES.filter((_, i) => mask & (1 << i));
+    const who = { id: "u1", permissions };
+    const duoc = permissions.includes("ADMIN") || permissions.includes("HR") || permissions.includes("SUPER_ADMIN");
+    const ten = permissions.join("+") || "(không quyền)";
+    for (const op of ["party.verify", "party.verify.attachment"] as const) {
+      assert.equal(can(who, op), duoc, `${op}: ${ten}`);
+      assert.equal(can(who, op, { ownerId: "u2" }), duoc, `${op} (ngữ cảnh người khác): ${ten}`);
+    }
     count++;
   }
   assert.equal(count, 1024);

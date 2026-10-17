@@ -23,7 +23,7 @@ async function routesOf(entry: string, exportName: string): Promise<string[]> {
   return mod[exportName]!.routes.map((r) => `${r.method} ${r.path}`);
 }
 const TUYEN_THAT = [...(await routesOf("./modules/parties/index.ts", "partiesModule")), ...(await routesOf("./modules/van-chuyen/index.ts", "vanChuyenModule"))]
-  .filter((k) => /\/documents|\/giay-to|^\/api\/parties\/cua-toi/.test(k.split(" ")[1]!)) // lát H-3: route "của tôi" (phiếu tự khai mang số giấy tờ) — không bắt /api/van-chuyen/ban/cua-toi
+  .filter((k) => /\/documents|\/giay-to|^\/api\/parties\/cua-toi|^\/api\/parties\/xac-minh/.test(k.split(" ")[1]!)) // lát H-3: route "của tôi" (phiếu tự khai mang số giấy tờ) — không bắt /api/van-chuyen/ban/cua-toi; lát H-4: ba route xác minh phiếu (ADR-0125)
   .sort();
 
 const ADM = "33333333-3333-4333-8333-333333333333";
@@ -63,6 +63,7 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
 
   const than: { khoa: string; text: string }[] = [];
   let lanXemSo = "";
+  let lanXemSoPhieu = "";
   const goi = async (khoa: string, method: string, path: string, as: string, body?: unknown, mongDoi?: number) => {
     const r = await w.call(method, path, { as, body });
     if (mongDoi !== undefined) assert.equal(r.status, mongDoi, `${khoa}: ${r.text}`);
@@ -95,6 +96,25 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
       const cs = (await w.call("GET", "/api/parties/cua-toi", { as: TX })).json.chinhSach.id as string;
       const r = await goi("phiếu khám sức khoẻ để rút", "POST", "/api/parties/cua-toi/phieu", TX, { chinhSachId: cs, loai: "GIAY_TO", giayTo: { typeCode: "HEALTH_CHECK", number: SO_SUC_KHOE, expiryDate: ngay(30) } }, 201);
       await goi("rút phiếu", "POST", `/api/parties/cua-toi/phieu/${r.json.phieuId}/rut`, TX, undefined, 200);
+    },
+    // Lát H-4 (ADR-0125): ba route xác minh — chạy SAU ba phiếu chờ của TX. Hàng chờ và chi tiết chỉ mang số CHE; "xem đủ số" là route trả số DUY NHẤT của nhóm này
+    // (thân vào `lanXemSo`, như "reveal"), nhật ký của nó ghi mã phiếu + tên loại, không số.
+    "GET /api/parties/xac-minh": async () => {
+      await goi("hàng chờ xác minh", "GET", "/api/parties/xac-minh?trang=cho", ADM, undefined, 200);
+      await goi("hàng đã xử lý", "GET", "/api/parties/xac-minh?trang=da-xu-ly", ADM, undefined, 200);
+    },
+    "GET /api/parties/xac-minh/:pid": async () => {
+      const ds = await w.call("GET", "/api/parties/xac-minh?trang=cho", { as: ADM });
+      const giayTo = ds.json.phieu.find((x: any) => x.loai === "GIAY_TO");
+      assert.ok(giayTo, "chống bài rỗng: có phiếu giấy tờ chờ xác minh");
+      const r = await goi("chi tiết phiếu chờ", "GET", `/api/parties/xac-minh/${giayTo.id}`, ADM, undefined, 200);
+      assert.equal(r.json.giayTo.soChe, "••••5444", "chống bài rỗng: chi tiết mang số che của phiếu");
+    },
+    "POST /api/parties/xac-minh/:pid/xem-so": async () => {
+      const ds = await w.call("GET", "/api/parties/xac-minh?trang=cho", { as: ADM });
+      const x = await w.call("POST", `/api/parties/xac-minh/${ds.json.phieu.find((p: any) => p.loai === "GIAY_TO").id}/xem-so`, { as: ADM });
+      assert.equal(x.status, 200, x.text);
+      lanXemSoPhieu += x.text; // KHÔNG đưa vào `than`
     },
     "POST /api/parties/:id/documents": async () => {
       await goi("thêm CCCD", "POST", `/api/parties/${P}/documents`, ADM, { typeCode: "CCCD", number: "079 888 777 666", issuedPlace: NOI, expiryDate: "2035-01-01" }, 201);
@@ -201,6 +221,8 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
 
   // (4) "xem đủ số" có đúng số.
   assert.ok(lanXemSo.includes(SO_CCCD_MOI), "thân 'xem đủ số' phải có số đầy đủ");
+  assert.ok(lanXemSoPhieu.includes("079 666 555 444"), "thân 'xem đủ số' của phiếu (ADR-0125) phải có số đầy đủ như khai");
+  assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'self_submission_number_viewed'")[0].n, 1, "mỗi lần xem số phiếu đúng một dòng nhật ký");
 
   // Hiến chương 5.20 (lát H-0 Gói 2): dò MỌI cột N3/N4 của sổ dữ liệu trong nhật ký; bài này chịu trách nhiệm sinh dữ liệu thật cho cột giấy tờ người.
   const dsN3 = doNhatKyHang(w.sqlite, [

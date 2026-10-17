@@ -288,6 +288,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "party.document.view": "none", "party.document.write": "none", "party.document.reveal": "none", "party.attachment.view": "none", // ADR-0040 D2, ADR-0124 đ4: Đối tác không có giấy tờ / ảnh của người khác
     "party.self.view": "own", "party.self.submit": "own", // ADR-0124 đ4 + Hệ quả: NỚI có chủ ý — Đối tác xem / tự khai hồ sơ của CHÍNH MÌNH
     "party.privacy.policy": "none", // ADR-0126 đ1
+    "party.verify": "none", "party.verify.attachment": "none", // ADR-0125 đ1: Đối tác không xác minh hồ sơ
     "vehicle.manage": "none", // ADR-0040 D1: quản lý xe chỉ Quản trị + Toàn quyền
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không

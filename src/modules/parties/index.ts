@@ -7,6 +7,7 @@ import type {
   PartyRelationshipDto, PartyResponse, PartyRoleDto, PersonDocumentDto, PersonDocumentListResponse, PersonDocumentMetaResponse, PersonDocumentRevealResponse,
   StaffProfile, TaiKhoanNhanTienResponse, HoSoTepChayLaiResponse, HoSoTepChoXoaResponse, HoSoTepCreatedResponse, HoSoTepListResponse,
   ChinhSachDangResponse, DongYResponse, HoSoCuaToiDto, HoSoCuaToiResponse, PhieuTuKhaiDto, TrangThaiPhieuTuKhai, PhieuTuKhaiTaoResponse, PhieuTuKhaiRutResponse,
+  PhieuChoXacMinhDto, PhieuDaXuLyDto, PhieuXacMinhChiTietDto, PhieuXemSoResponse,
 } from "../../shared/contracts";
 import { LOAI_CO_DINH, MA_LOAI_GIAY_TO_RE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo, soNgayConLai } from "../../shared/giay-to";
 import { OWNER_COMPANY_ROLE, thieuChoCongTyChu } from "../../shared/cong-ty-chu";
@@ -30,6 +31,7 @@ import {
   datChoXoaTepStatement, findTepDeTai, insertTepLinkStatement, insertTepStatement, listTepChoXoa, listTepCuaGiayTo, markTepStored, tepCuaGiayTo,
   chinhSachHienHanh, phienBanLonNhat, dangChinhSachStatement, phienBanDangDongY, ghiDongYStatement, rutMoiPhieuChoStatement, listPhieuCuaHoSo, type PhieuRow,
   ghiPhieuStatement, timPhieuCuaHoSo, rutPhieuStatement,
+  chamCuaTaiKhoan, listPhieuCho, listPhieuDaXuLy, soDuCuaPhieuCho, timPhieuChoXet, trungSoHoSoKhac,
   datHoatDongLoaiDoiTacStatement, hoSoMangNhan, openRoleCodesFor, themLoaiDoiTacStatement, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements, vaiDangMo,
   type BankAccountRow, type BankRow, type GopDocRow, type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
 } from "./repository";
@@ -41,6 +43,8 @@ import { DO_DANG_SAU_MS, LOAI_NOI_DUNG, LY_DO_XOA_TEP, TOI_DA_THAN, bamSha256, d
 import { ghiRoiXoaKho, xoaKhoiKho } from "./kho-tep";
 import { CAU_KHONG_GUI, kiemChinhSach, kiemPhieuTuKhai, lyDoKhongGhi, lyDoKhongGui, type LoaiPhieu, type TinhTrangTuKhai } from "./tu-khai";
 import { nhanLoaiPhieu } from "../../shared/tu-khai-hien-thi";
+import { NHAN_LY_DO_CHAN, nhanLyDoTuChoi } from "../../shared/xac-minh-hien-thi";
+import { chuyenToanQuyen, xetNguoiXacMinh, type PhieuXet, type TaiKhoanTom } from "./xac-minh";
 import { MA_HANG_RE, cheSo, chiTietNhatKy, chuanHoaSo, kiemGiaHan, kiemHangMoi, kiemSuaHang, kiemSuaSai, kiemThemGiayTo, type DanhMucGiayTo, type GiayToNhap } from "./giay-to";
 import {
   PARTY_ID_RE, QUAN_HE_TAI_XE_CUA, ROW_ID_RE, composePersonName, hoSoNoiBo, ownerCompanyAssignProblem, splitPersonName, validateContact, validateEndDate, validatePartyCreate, validatePartyUpdate,
@@ -633,6 +637,17 @@ const POLICY_RACE = () => error(409, "policy_version_race", "Vừa có phiên b�
 const tuChoi = (l: { code: string; message: string }) => error(409, l.code, l.message);
 const CONSENT_REQUIRED = () => error(409, "consent_required", "Bạn cần đọc và đồng ý chính sách riêng tư hiện hành trước khi gửi thông tin.");
 const SUBMISSION_PENDING = () => error(409, "submission_pending", "Bạn đã có một phiếu loại này đang chờ xác minh. Rút phiếu đó trước nếu muốn khai lại.");
+// ---- Xác minh phiếu tự khai (ADR-0125; lát H-4 Gói 2) — cổng accounts, ô party.verify / party.verify.attachment. Hàm chạm bảng phiếu chỉ gọi TRONG thân route (rào 5.23). ----
+const XM_FORBIDDEN = () => error(403, "forbidden", "Bạn không có quyền xác minh hồ sơ.");
+const XM_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy phiếu.");
+const XM_PROCESSED = () => error(403, "submission_processed", "Phiếu đã được xử lý hoặc đã rút — không xem lại được.");
+const XM_TRANG_LA = () => error(400, "invalid_input", "Trang xác minh không đúng.");
+const TRAN_HANG_CHO = 50;
+const TRAN_DOC_DA_XU_LY = 200;
+/** Người đang xét: dòng trong danh sách tài khoản nếu có (quyền hiện hiệu lực), không thì dựng từ phiên. */
+const nguoiXetCuaPhien = (staff: StaffProfile, ds: readonly TaiKhoanTom[]): TaiKhoanTom =>
+  ds.find((t) => t.id === staff.id) ?? { id: staff.id, permissions: staff.permissions, active: true, partyId: staff.partyId ?? null };
+const lyDoKhongXacMinh = (lyDo: string | null): string | null => (lyDo === null ? null : NHAN_LY_DO_CHAN[lyDo] ?? null);
 const SUBMISSION_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy phiếu này.");
 const SUBMISSION_NOT_PENDING = () => error(409, "submission_not_pending", "Phiếu này đã được xử lý hoặc đã rút.");
 const SAME_AS_CURRENT = () => error(409, "same_as_current", "Thông tin này đã có trong hồ sơ của bạn.");
@@ -879,6 +894,87 @@ export const partiesModule: AppModule = {
       ]);
       if ((kq[0]?.meta.changes ?? 0) !== 1) return SUBMISSION_NOT_PENDING();
       return json({ phieuId: pid, trangThai: "RUT" } satisfies PhieuTuKhaiRutResponse);
+    }),
+
+    // ---- Xác minh phiếu tự khai (ADR-0125 đ1, đ3, đ5, đ6; lát H-4 Gói 2) — khai TRƯỚC mọi /api/parties/:id…; cổng accounts (Quản trị, Toàn quyền, Nhân sự). ----
+    // Hàng chờ: lọc cấp bậc (trừ Toàn quyền) → xác minh được trước, cũ trước → cắt 50 (R23: phiếu xác minh được không bị phiếu cũ chặn) → chuyenToanQuyen CHỈ cho 50 dòng.
+    route("GET", "/api/parties/xac-minh", "accounts", async ({ env, url, staff, taiKhoanXacMinh, nhanNhanVien }) => {
+      if (!can(staff, "party.verify")) return XM_FORBIDDEN();
+      const trang = url.searchParams.get("trang") ?? "cho";
+      if (trang !== "cho" && trang !== "da-xu-ly") return XM_TRANG_LA();
+      const dsTk = await taiKhoanXacMinh();
+      const theoId = new Map(dsTk.map((t) => [t.id, t]));
+      const nguoi = nguoiXetCuaPhien(staff, dsTk);
+      const xet = (phieu: PhieuXet, cham: Parameters<typeof xetNguoiXacMinh>[0]["cham"]) => xetNguoiXacMinh({ nguoi, phieu, chuPhieu: theoId.get(phieu.createdBy) ?? null, cham });
+      if (trang === "da-xu-ly") {
+        const rows = (await listPhieuDaXuLy(env.DB, TRAN_DOC_DA_XU_LY))
+          .filter((r) => xet({ id: r.id, partyId: r.party_id, createdBy: r.created_by ?? "", createdAt: r.created_at }, []).lyDo !== "cap_bac")
+          .slice(0, TRAN_HANG_CHO);
+        const nhan = await nhanNhanVien([...new Set(rows.flatMap((r) => (r.decided_by ? [r.decided_by] : [])))]);
+        return json({
+          phieu: rows.map((r): PhieuDaXuLyDto => ({
+            id: r.id, loai: r.subject_kind, ketLuan: r.status === "DA_CHAP_NHAN" ? "DA_CHAP_NHAN" : "TU_CHOI", lyDo: r.reason_code === null ? null : nhanLyDoTuChoi(r.reason_code),
+            nguoiXuLy: (r.decided_by ? nhan?.get(r.decided_by) : null) ?? "Không rõ", luc: r.decided_at ?? r.created_at, coChamTaiKhoan: r.verifier_touched_account === 1,
+          })),
+        });
+      }
+      const rows = (await listPhieuCho(env.DB)).filter((r) => xet({ id: r.id, partyId: r.party_id, createdBy: r.created_by ?? "", createdAt: r.created_at }, []).lyDo !== "cap_bac");
+      const cham = await chamCuaTaiKhoan(env.DB, [...new Set(rows.flatMap((r) => (r.created_by ? [r.created_by] : [])))]);
+      const xetDu = rows.map((r) => {
+        const phieu: PhieuXet = { id: r.id, partyId: r.party_id, createdBy: r.created_by ?? "", createdAt: r.created_at };
+        return { r, phieu, kl: xet(phieu, cham) };
+      });
+      xetDu.sort((a, b) => Number(b.kl.duoc) - Number(a.kl.duoc) || (a.r.created_at < b.r.created_at ? -1 : a.r.created_at > b.r.created_at ? 1 : a.r.id < b.r.id ? -1 : 1));
+      return json({
+        phieu: xetDu.slice(0, TRAN_HANG_CHO).map(({ r, phieu, kl }): PhieuChoXacMinhDto => ({
+          id: r.id, loai: r.subject_kind, tenHoSo: r.display_name, guiLuc: r.created_at,
+          chuyenToanQuyen: chuyenToanQuyen(phieu, theoId.get(phieu.createdBy) ?? null, dsTk, cham), xacMinhDuoc: kl.duoc, lyDoKhong: lyDoKhongXacMinh(kl.lyDo),
+        })),
+      });
+    }),
+
+    route("GET", "/api/parties/xac-minh/:pid", "accounts", async ({ env, staff, params, taiKhoanXacMinh }) => {
+      if (!can(staff, "party.verify")) return XM_FORBIDDEN();
+      const pid = idParam(params, "pid", UUID_RE);
+      const p = pid ? await timPhieuChoXet(env.DB, pid) : null;
+      if (!p) return XM_NOT_FOUND();
+      const dsTk = await taiKhoanXacMinh();
+      const chuPhieu = dsTk.find((t) => t.id === p.created_by) ?? null;
+      const phieu: PhieuXet = { id: p.id, partyId: p.party_id, createdBy: p.created_by ?? "", createdAt: p.created_at };
+      const kl = xetNguoiXacMinh({ nguoi: nguoiXetCuaPhien(staff, dsTk), phieu, chuPhieu, cham: p.created_by ? await chamCuaTaiKhoan(env.DB, [p.created_by]) : [] });
+      if (kl.lyDo === "cap_bac") return XM_NOT_FOUND(); // ngoài cấp bậc: như không có phiếu (không lộ)
+      if (p.status !== "CHO_XAC_MINH") return XM_PROCESSED();
+      const giayTo = p.document_type_code === null ? null : {
+        tenLoai: p.type_name ?? p.document_type_code, soChe: cheSo(p.number_key), hang: p.class_name, ngayCap: p.issued_date, noiCap: p.issued_place, hetHan: p.expiry_date,
+        coDongHienHanhCungLoai: (await listPersonDocuments(env.DB, p.party_id, true)).some(
+          (d) => d.document_type_code === p.document_type_code && (p.license_class_code === null || d.license_class_code === p.license_class_code),
+        ),
+        trungHoSoKhac: p.number_key !== null && (await trungSoHoSoKhac(env.DB, p.party_id, p.number_key, p.document_type_code)),
+      };
+      return json({
+        id: p.id, loai: p.subject_kind, tenHoSo: p.display_name, guiLuc: p.created_at, daGop: p.merged === 1, ngaySinh: p.birth_date, diaChi: p.address_value, giayTo,
+        xacMinhDuoc: kl.duoc, lyDoKhong: lyDoKhongXacMinh(kl.lyDo), coAnh: false, // R4: chưa mở loại nối ảnh với phiếu tự khai
+      } satisfies PhieuXacMinhChiTietDto); // json() mặc định cache-control: no-store
+    }),
+
+    // "Xem đủ số" của phiếu ĐANG CHỜ (ô party.verify.attachment). Thứ tự: 403 ô → 404 phiếu / ngoài cấp bậc → 403 đã xử lý → 404 phiếu không có số → 409 bị tách nhiệm vụ
+    // → GHI NHẬT KÝ (chi tiết = mã phiếu + tên loại, KHÔNG số) → rồi mới trả số: ghi nhật ký lỗi thì ném lên (500), không trả số.
+    route("POST", "/api/parties/xac-minh/:pid/xem-so", "accounts", async ({ env, staff, params, taiKhoanXacMinh }) => {
+      if (!can(staff, "party.verify.attachment")) return XM_FORBIDDEN();
+      const pid = idParam(params, "pid", UUID_RE);
+      const p = pid ? await timPhieuChoXet(env.DB, pid) : null;
+      if (!p) return XM_NOT_FOUND();
+      const dsTk = await taiKhoanXacMinh();
+      const chuPhieu = dsTk.find((t) => t.id === p.created_by) ?? null;
+      const phieu: PhieuXet = { id: p.id, partyId: p.party_id, createdBy: p.created_by ?? "", createdAt: p.created_at };
+      const kl = xetNguoiXacMinh({ nguoi: nguoiXetCuaPhien(staff, dsTk), phieu, chuPhieu, cham: p.created_by ? await chamCuaTaiKhoan(env.DB, [p.created_by]) : [] });
+      if (kl.lyDo === "cap_bac") return XM_NOT_FOUND();
+      if (p.status !== "CHO_XAC_MINH") return XM_PROCESSED();
+      const so = await soDuCuaPhieuCho(env.DB, p.id);
+      if (!so) return XM_NOT_FOUND(); // phiếu ngày sinh / địa chỉ không có số
+      if (!kl.duoc) return error(409, "verify_conflict", lyDoKhongXacMinh(kl.lyDo) ?? "Bạn không xác minh được phiếu này.");
+      await env.DB.batch([auditStatement(env.DB, { staffId: staff.id, action: "self_submission_number_viewed", at: new Date().toISOString(), targetType: "party", targetId: p.party_id, detail: `phiếu ${p.id} · ${so.type_name}` })]);
+      return json({ so: so.document_number } satisfies PhieuXemSoResponse); // json() mặc định cache-control: no-store
     }),
 
     // ---- Hàng "chờ xoá" của kho tệp hồ sơ (ADR-0123 đ6; Hiến chương 5.16; ruling Q4: chỉ Toàn quyền) — khai TRƯỚC GET /api/parties/:id. DTO chỉ mã. -------

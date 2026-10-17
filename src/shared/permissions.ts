@@ -53,6 +53,11 @@ const chiToanQuyen = (): Row => row("none", "none", "none", "none", "none", "any
 /** Hàng "tự phục vụ": mọi cột `own` (chính mình — route truyền `{ ownerId: staff.id }` và lấy hồ sơ từ `staff.partyId`), SUPER_ADMIN `any` (ADR-0014 điều 2 — Toàn quyền
  * any ở MỌI ô; route vẫn chỉ phục vụ hồ sơ của phiên). Một hàm dùng chung để gói giao diện gọn (trần gói Đơn hàng — src/goi-trang-nhe.test.ts, không nới). */
 const tuPhucVu = (): Row => row("own", "own", "own", "own", "own", "any", "own", "own", "own", "own");
+/** Hàng "Quản trị + Toàn quyền": ADMIN, SUPER_ADMIN `any`, mọi cột khác `none`. Hàm dùng chung để gói giao diện gọn (trần gói Đơn hàng — src/goi-trang-nhe.test.ts,
+ * KHÔNG nới; kế hoạch H-4 R11). Giá trị y như viết tay; bài ghim từng ô ở permissions.test.ts canh. */
+const quanTri = (): Row => row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none");
+/** Hàng "Quản trị + Toàn quyền + Nhân sự" (ba cột của cổng accounts): như trên, thêm HR `any`. */
+const quanTriNhanSu = (): Row => row("none", "none", "any", "none", "none", "any", "none", "none", "none", "any");
 
 /**
  * Bản đồ ADR-0007 điều 1 (ADMIN làm được mọi thao tác) đã đổi theo ADR-0009, ADR-0014 (thêm PARTNER/SUPER_ADMIN, bốn thao tác mới), cộng 3 thao tác
@@ -89,7 +94,7 @@ export const MATRIX = {
   "order.trip.edit": row("ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"), // thông tin vận hành sau xác nhận
   // ADR-0049 D3: ĐẶT GẤP chặng dưới mốc tối thiểu (route POST /api/orders/:id/legs/:legId/short-notice + nhánh `datGap` của lệnh sửa chặng) — chỉ Quản trị,
   // Toàn quyền (ĐP2, chủ Q3 29/9). Không phạm vi đơn: Quản trị duyệt đặt gấp cho mọi đơn.
-  "order.leg.short_notice": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "order.leg.short_notice": quanTri(),
   // Chủ trả lời H4 / N-14 (29/9 tối, "Trả lời lần 12"): XEM ĐỦ dấu đặt gấp trên chi tiết đơn (mã + nhãn lý do, tên người duyệt, lúc duyệt, ghi chú đã che
   // số) — văn phòng (Bán hàng, Kế toán, Quản trị, Toàn quyền). Mã khác xem được đơn (Đối tác, HDV, Thực tập) chỉ nhận cờ "đặt gấp — Quản trị đã duyệt"
   // (`legs[].datGap = { daDuyet: true }`). Không phạm vi đơn: phạm vi đã do order.view quyết. Hỏi ở `loadOrderView` qua `xemDuDatGap` (orders/index.ts).
@@ -105,7 +110,7 @@ export const MATRIX = {
   "order.cancel": row("none", "none", "none", "assigned", "none", "any", "none", "none", "none", "none"), // huỷ đơn đang phụ trách, lý do bắt buộc — ADR-0014 điều 11, route: POST /api/orders/:id/handler-cancel (module dispatch)
   // ADR-0089 đ8 (lời chủ 5 Đ-2): chọn lý do nhóm "Công ty huỷ" khi huỷ (route POST /api/orders/:id/status) và PHÂN LOẠI lý do "chưa kết luận" (route
   // POST /api/orders/:id/cancel-reason) — chỉ Quản trị, Toàn quyền, vì nhóm này kéo theo hoàn toàn bộ và miễn hạn 60 ngày. Không phạm vi đơn.
-  "order.cancel.classify": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "order.cancel.classify": quanTri(),
   "dispatch.assign": row("ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"), // đặt/đổi người phụ trách và nhiệm vụ (ADR-0009: cả người phụ trách hiện tại)
   "dispatch.claim": row("any", "none", "any", "any", "none", "any", "none", "none", "none", "none"), // nhận phụ trách đơn CHƯA có người (ADR-0009; điều kiện "chưa có người" do dịch vụ của dispatch kiểm, không phải ô này) — FIELD any (ADR-0030 S20-6/S20-12); chốt Nhận (đã huỷ/qua ngày đi) + chặn tài khoản có quyền Đối tác ở route PUT /api/orders/:id/handler
   "dispatch.guides.view": row("none", "none", "none", "none", "any", "any", "none", "none", "none", "none"), // danh sách hẹp hướng dẫn viên nội bộ — thao tác MỚI (ADR-0014 điều 9, chưa có route)
@@ -118,7 +123,7 @@ export const MATRIX = {
   // ADR-0089 đ4a, đ6, X-1, X-4 (cọc đơn huỷ — migration 0079): DUYỆT hoàn cọc / huỷ duyệt khoản hoàn / XÁC NHẬN hoặc từ chối dòng "đã hoàn
   // ngoài hệ thống" — Quản trị (lời chủ 3 câu 3), Toàn quyền. Người duyệt không tự chi (đ4c — kiểm theo người ở máy chủ + trigger, không ở ô này).
   // Route: POST /api/orders/:id/coc/duyet, …/coc/duyet/:duyetId/huy, …/coc/hoan-ngoai/:ghiId/xac-nhan.
-  "deposit.refund.approve": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "deposit.refund.approve": quanTri(),
   // ADR-0120 Điều 2 (thay X-1 của ADR-0089): DUYỆT CHUYỂN tiền của đơn huỷ sang đơn mới (và huỷ duyệt khoản chuyển) — Kế toán, Quản trị, Toàn quyền, vì chuyển
   // không làm tiền ra khỏi công ty. Ô `deposit.refund.approve` ở trên chỉ còn duyệt HOÀN cho khách. Route POST /api/orders/:id/coc/duyet với loai "chuyen".
   "deposit.transfer.approve": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
@@ -160,23 +165,23 @@ export const MATRIX = {
   "accounting.entry.view": row("any", "any", "any", "assigned", "none", "any", "own", "none", "none", "none"),
   "party.view": row("any", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // xem hồ sơ khách/đại lý
   "party.write": row("any", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // tạo/sửa hồ sơ KHÔNG gắn tài khoản (khách, đại lý, HDV/tài xế chưa có tài khoản) — ADR-0007, ADR-0013
-  "party.staff.write": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"), // sửa hồ sơ GẮN TÀI KHOẢN (tên, liên hệ) — ADR-0013; ADMIN còn phải quản được tài khoản đó (cấp bậc, ADR-0014 điều 8: ctx.partyAccount)
+  "party.staff.write": quanTri(), // sửa hồ sơ GẮN TÀI KHOẢN (tên, liên hệ) — ADR-0013; ADMIN còn phải quản được tài khoản đó (cấp bậc, ADR-0014 điều 8: ctx.partyAccount)
   // ADR-0122 đ5 (accepted 2026-10-16): xem / ghi NGÀY SINH và liên hệ ĐỊA CHỈ (ADDRESS) của hồ sơ người KHÁC — Quản trị + Toàn quyền. party.view (Bán hàng, Kế toán)
   // KHÔNG thấy hai trường này; chính chủ thấy của mình nhưng không ghi trực tiếp (Hiến chương 5.23). Quản trị còn theo luật cấp bậc khi hồ sơ gắn tài khoản
   // (ctx.partyAccount — ruling R6 của kế hoạch 2026-10-16-goi-2-h0-h1). Route: GET/PUT/POST /api/parties*, luật ở src/modules/parties/rieng-tu.ts.
-  "party.personal.view": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
-  "admin.manage": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"), // tài khoản, quyền, địa điểm, danh mục, vai trò hồ sơ, gộp hồ sơ — ADR-0014 điều 8: "cấp dưới" nằm NGOÀI MATRIX (canManageAccount)
+  "party.personal.view": quanTri(),
+  "admin.manage": quanTri(), // tài khoản, quyền, địa điểm, danh mục, vai trò hồ sơ, gộp hồ sơ — ADR-0014 điều 8: "cấp dưới" nằm NGOÀI MATRIX (canManageAccount)
   "admin.manage.superadmin": chiToanQuyen(), // gán/gỡ quyền SUPER_ADMIN của một tài khoản — thao tác MỚI (ADR-0014 điều 2/8)
   // ADR-0038 điều 6 (sửa bởi ADR-0042, ADR-0071): việc KỸ THUẬT tách khỏi admin.manage — Nhật ký chỉ Toàn quyền; đăng nhập (PIN, Face ID, mở khoá) Quản trị làm được cho cấp dưới
   // (HCNS KHÔNG — ADR-0071 điều 1e). Route vẫn hỏi admin.manage TRƯỚC (hàng rào cổng quản trị), rồi hỏi ô dưới. Đồng bộ nhân viên từ Google Sheet (staff.sheet.sync) đã GỠ HẲN (ADR-0071 điều 2).
-  "account.access.manage": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"), // đặt lại PIN, gỡ Face ID, mở khoá đăng nhập của tài khoản khác — ADR-0042: Quản trị lấy lại (vẫn chỉ cấp dưới, luật mayManage)
+  "account.access.manage": quanTri(), // đặt lại PIN, gỡ Face ID, mở khoá đăng nhập của tài khoản khác — ADR-0042: Quản trị lấy lại (vẫn chỉ cấp dưới, luật mayManage)
   // ADR-0071 điều 1b (accepted 2026-10-01): Quản lý tài khoản. TẠO tài khoản (mọi loại — nội bộ, đối tác, tài xế đối tác): chỉ HCNS (HR) + Toàn quyền — Quản trị KHÔNG.
   // XEM danh sách / SỬA (tên, SĐT, ngưng / mở lại, gán vai thường): Quản trị, HCNS, Toàn quyền. Cấp bậc (canManageAccount, src/shared/roles.ts) + luật vai (superAdminOnly,
   // LC-4) vẫn hỏi SAU ô này. Route: POST /api/staff (+ GET /api/staff/ho-so-khop của luồng tạo) hỏi account.create; GET /api/staff, PATCH /api/staff/:id,
   // GET|PUT /api/staff/:id/roles, PUT /api/staff/:id/permissions hỏi account.view / account.edit (cổng router "accounts" = ACCOUNTS_GATE).
   "account.create": row("none", "none", "none", "none", "none", "any", "none", "none", "none", "any"),
-  "account.view": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "any"),
-  "account.edit": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "any"),
+  "account.view": quanTriNhanSu(),
+  "account.edit": quanTriNhanSu(),
   "audit.view": chiToanQuyen(), // xem trang Nhật ký toàn hệ thống (GET /api/audit)
   "feedback.submit": row("any", "any", "any", "any", "any", "any", "any", "any", "any", "any"), // gửi báo lỗi/đề xuất (mọi tài khoản đăng nhập)
   "feedback.view": row("own", "own", "own", "own", "own", "any", "own", "own", "own", "own"), // xem yêu cầu: chỉ của mình (ownerId = người gửi); đọc mọi yêu cầu chỉ Toàn quyền (ADR-0038)
@@ -198,7 +203,7 @@ export const MATRIX = {
   "party.document.view": row("own", "own", "own", "own", "none", "any", "own", "own", "own", "own"),
   // ghi giấy tờ của người (thêm, gia hạn, sửa sai) + xem danh sách giấy tờ (số che) của người khác — Quản trị + Toàn quyền; Quản trị còn theo luật cấp bậc
   // khi hồ sơ gắn tài khoản (Ruling R8). Route: GET/POST /api/parties/:id/documents…, GET /api/parties/documents/meta.
-  "party.document.write": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "party.document.write": quanTri(),
   // "xem đủ số" giấy tờ của người — CHỈ Toàn quyền (ADR-0083 điều 2 sửa ADR-0040 D2: Quản trị chỉ thấy số đã che, vẫn ghi/sửa giấy tờ qua
   // party.document.write); mỗi lần xem một dòng nhật ký KHÔNG kèm số, ghi TRƯỚC khi trả số. Route DUY NHẤT trả số đầy đủ: POST /api/parties/:id/documents/:did/reveal
   // (route còn giữ luật cấp bậc R8 — lưới phòng thủ, Toàn quyền quản lý mọi tài khoản).
@@ -217,9 +222,15 @@ export const MATRIX = {
   "party.self.submit": tuPhucVu(),
   // ADR-0126 đ1: ĐĂNG phiên bản chính sách riêng tư mới — chỉ Toàn quyền (ruling Q4: hiệu lực ngay lúc đăng). Route: POST /api/parties/chinh-sach-rieng-tu (cổng admin).
   "party.privacy.policy": chiToanQuyen(),
+  // ADR-0125 đ1 (accepted 2026-10-16; lát H-4 Gói 2): HÀNG CHỜ XÁC MINH — xem trường khai của phiếu ĐANG CHỜ (số che), chấp nhận nguyên văn / từ chối theo danh sách đóng.
+  // Cột ADMIN, HR, SUPER_ADMIN (đảo ADR-0083 đ2, thay ADR-0071 đ1e chỉ trong phạm vi phiếu đang chờ — HR vẫn party.view = none). Còn hỏi cấp bậc canManageAccount
+  // và tách nhiệm vụ (đ5 — lính gác trong câu ghi). Route: GET /api/parties/xac-minh*, POST …/:pid/chap-nhan, POST …/:pid/tu-choi (cổng accounts).
+  "party.verify": quanTriNhanSu(),
+  // ADR-0125 đ1: XEM ĐỦ SỐ (và ảnh — lát mở loại nối SELF_SUBMISSION) CHỈ của phiếu ĐANG CHỜ; nhật ký ghi TRƯỚC, không chứa số. Route: POST /api/parties/xac-minh/:pid/xem-so.
+  "party.verify.attachment": quanTriNhanSu(),
   // ADR-0040 D1: quản lý xe, giấy tờ xe, xem danh sách giấy tờ sắp hết hạn (xe + tài xế, không số) — Quản trị + Toàn quyền (việc kinh doanh, ADR-0038
   // điều 6). Route: /api/van-chuyen/* (module van-chuyen, cổng office). Danh mục loại giấy tờ xe: admin.manage; ngưỡng sắp hết hạn: settings.ops.
-  "vehicle.manage": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "vehicle.manage": quanTri(),
   // ADR-0057 T1 B3 (accepted 2026-09-30): BẢNG GIÁ THUÊ XE theo nhà xe (giá vốn). Xem: Kế toán, Quản trị, Toàn quyền. Thêm / đóng giá, sửa danh mục tuyến,
   // cỡ xe: cùng ba vai — Quản trị = Kế toán (chủ lần 18 "Hai vai giống hệt"). Bán hàng chọn tuyến qua trip.dispatch (đọc TÊN tuyến, không giá). HDV không bao
   // giờ đọc giá (ADR-0019 điều 3). HR none (ADR-0071). Route: /api/van-chuyen/bang-gia*, /tuyen*, /co-xe* (cổng office).
@@ -236,7 +247,7 @@ export const MATRIX = {
   // ADR-0053 D7.1 (kế hoạch A4 T6): tài xế đối tác `assigned` — chỉ chuyến mình có dòng lái mở (route tài xế), như tài xế công ty.
   "trip.view": row("any", "any", "any", "none", "none", "any", "none", "assigned", "assigned", "none"),
   "trip.dispatch": row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
-  "trip.override": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "trip.override": quanTri(),
   // ADR-0104 Đ1 (accepted 2026-10-08, Q-1 b): "Điều chỉnh khẩn cấp" — vượt mốc ở MỌI lệnh bị khoá (xếp, rút, dời, thêm khách khi xe chạy, đổi xe, đổi tài
   // xế, huỷ chuyến còn khách); vượt khoảng nghỉ, cam kết KHI chuyến dưới mốc (ngoài mốc vẫn `trip.override`). Bán hàng, Quản trị, Toàn quyền — bằng
   // `trip.dispatch`; bài ghim: không rộng hơn `trip.dispatch` ở mọi cột. Lớp quyết ở `src/shared/moc-toi-thieu.ts` (lopVuotMoc / lopVuotNghiCamKet).

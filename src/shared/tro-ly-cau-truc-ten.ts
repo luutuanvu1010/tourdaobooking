@@ -131,6 +131,8 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "party.self.view": { ten: "xem hồ sơ của mình", moTa: "Xem thông tin hồ sơ của chính mình, chính sách riêng tư và các phiếu tự khai đã gửi." },
   "party.self.submit": { ten: "tự khai hồ sơ", moTa: "Đồng ý chính sách riêng tư, gửi và rút phiếu tự khai ngày sinh, địa chỉ, giấy tờ của chính mình." },
   "party.privacy.policy": { ten: "đăng chính sách riêng tư", moTa: "Đăng phiên bản mới của chính sách riêng tư; mọi người phải đồng ý lại trước khi tự khai." },
+  "party.verify": { ten: "xác minh hồ sơ tự khai", moTa: "Xem hàng chờ phiếu tự khai của nhân viên và đối tác, chấp nhận đúng như khai hoặc từ chối kèm lý do; số giấy tờ luôn che." },
+  "party.verify.attachment": { ten: "xem đủ số giấy tờ khi xác minh", moTa: "Xem số đầy đủ của giấy tờ trong phiếu đang chờ xác minh; mỗi lần xem đều để lại dấu vết." },
   "vehicle.manage": { ten: "quản lý xe và giấy tờ xe", moTa: "Thêm, sửa xe, giấy tờ xe, xem danh sách sắp hết hạn." },
   "transport.rate.view": { ten: "xem bảng giá thuê xe", moTa: "Xem giá thuê xe theo chuyến của từng nhà xe." },
   "transport.rate.manage": { ten: "nhập bảng giá thuê xe", moTa: "Thêm, kết thúc giá thuê xe; sửa danh mục tuyến và cỡ xe." },

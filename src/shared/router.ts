@@ -11,13 +11,16 @@ import { laMienLanGui } from "./lan-gui-mien.ts";
 import type { MocToiThieu } from "./moc-toi-thieu.ts";
 import { dongBoDiThang, type DongBoTheoDon, type VaoDongBoTheoDon } from "./dong-bo-chuyen.ts";
 import type { ChuyenChoTin, HoiChuyenChoTin } from "./tin-chuyen.ts";
-import { canAccessOrders, isOffice, passesAccountsGate, passesAdminGate } from "./permissions.ts";
+import { canAccessOrders, isOffice, passesAccountsGate, passesAdminGate, type PermissionCode } from "./permissions.ts";
 
 /**
  * public: không cần đăng nhập; staff: mọi tài khoản đăng nhập; office: nhân sự văn phòng (mọi quyền trừ chỉ-FIELD — ADR-0007); orders: văn phòng HOẶC Đối tác (ADR-0014);
  * admin: quyền ADMIN/SUPER_ADMIN; accounts: Quản lý tài khoản — ADMIN/SUPER_ADMIN/HR (ADR-0071, ACCOUNTS_GATE).
  */
 export type Access = "public" | "staff" | "office" | "orders" | "admin" | "accounts";
+
+/** Tóm tắt một tài khoản cho xác minh phiếu tự khai (ADR-0125): chỉ khoá + quyền + trạng thái + hồ sơ gắn. */
+export interface TaiKhoanXacMinh { id: string; permissions: readonly PermissionCode[]; active: boolean; partyId: string | null }
 
 /** ADR-0013 điều 4: hồ sơ có gắn tài khoản không, và người đang đăng nhập có quản được tài khoản đó không (luật cấp bậc ADR-0014 điều 8, module `staff` tính). */
 /** `vaiAn` (ADR-0044): tài khoản gắn hồ sơ đang giữ Toàn quyền — vai ẩn; người xem không giữ Toàn quyền chỉ thấy vai đang mở của hồ sơ đó. */
@@ -174,6 +177,12 @@ export interface Ctx<A extends Access = Access> {
    */
   nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>;
   /**
+   * ADR-0125 đ3, đ5 — MỌI tài khoản (id, quyền ĐANG HIỆU LỰC, đang hoạt động, hồ sơ) cho route xác minh phiếu tự khai: xét cấp bậc, "còn ai xác minh được" (chuyển Toàn quyền)
+   * và phiếu của tài khoản nào. Do gốc lắp ráp tiêm (`staff`; `parties` không import `staff` — khuôn `huongDanVien`). MỘT truy vấn D1, gọi tối đa MỘT lần mỗi request.
+   * Chưa đăng nhập → `[]`, không truy vấn. Không tiêm (khung thử cũ) → `[]` ⇒ chỉ Toàn quyền xác minh được (mặc định từ chối). Không SĐT, không email, không tên.
+   */
+  taiKhoanXacMinh: () => Promise<TaiKhoanXacMinh[]>;
+  /**
    * BÊN ĐẶT MÁY CHỦ ÉP CHO NGƯỜI GỌI (sổ đại lý đợt 1, Task 11; Ruling 21) — do gốc lắp ráp tiêm (`pricing.nguoiHuongCuaHoSo`; `auth` KHÔNG import `pricing`, không nới ALLOWED_EDGES — khuôn
    * `mocToiThieu`, `nhanNhanVien`). Khác null khi và chỉ khi người gọi giữ quyền Đối tác, có hồ sơ, và hồ sơ đó đang mang vai được hưởng hoa hồng — ĐÚNG điều kiện `benDatChoTaiKhoan` ép bên đặt. Chỉ id + tên hồ sơ.
    * Người gọi không giữ quyền Đối tác thì KHÔNG truy vấn (mọi lời gọi `/api/auth/me` đi qua đây). Môi trường không tiêm (khung thử cũ) ⇒ null.
@@ -312,6 +321,8 @@ export interface AppOptions {
     huongDanVien: (env: Env) => Promise<{ partyId: string; ten: string }[]>;
     /** R-P20. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nhanNhanVienTheoId` của staff); thiếu (khung thử cố ý) → router trả `null` (route để trống nhãn). */
     nhanNhanVien: (env: Env, ids: readonly string[]) => Promise<Map<string, string>>;
+    /** ADR-0125 đ3, đ5. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `taiKhoanChoXacMinh` của staff); thiếu (khung thử cũ) → router trả `[]` (chỉ Toàn quyền xác minh được). */
+    taiKhoanXacMinh: (env: Env) => Promise<TaiKhoanXacMinh[]>;
     /** Task 11 (Ruling 21). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nguoiHuongCuaHoSo` của pricing, chỉ cho tài khoản giữ quyền Đối tác); thiếu (khung thử cũ) → router trả `null`. */
     benDatCuaToi: (env: Env, actor: StaffProfile) => Promise<{ partyId: string; ten: string } | null>;
     /** GỘP HỒ SƠ (ADR-0068). BẮT BUỘC trong mã chạy thật (`src/index.ts`). */
@@ -442,6 +453,7 @@ export function createApp(opts: AppOptions) {
       huongDanVien: () => (typeof opts.injected.huongDanVien === "function" ? opts.injected.huongDanVien(envH) : Promise.resolve([])),
       nhanNhanVien: (ids) =>
         typeof opts.injected.nhanNhanVien !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Map()) : opts.injected.nhanNhanVien(envH, ids),
+      taiKhoanXacMinh: () => (who && typeof opts.injected.taiKhoanXacMinh === "function" ? opts.injected.taiKhoanXacMinh(envH) : Promise.resolve([])),
       benDatCuaToi: () => (who && typeof opts.injected.benDatCuaToi === "function" ? opts.injected.benDatCuaToi(envH, who) : Promise.resolve(null)),
       // Lười (kế hoạch R9): gọi opts.injected.gopHoSo(env) trong từng phương thức — app dựng bằng injected cũ (src/shared/router.test.ts) không vỡ ở route khác.
       gopHoSo: {

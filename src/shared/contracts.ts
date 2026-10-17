@@ -1044,6 +1044,21 @@ export interface PhieuTuKhaiTaoResponse { phieuId: string }
 /** `POST /api/parties/cua-toi/phieu/:pid/rut`. */
 export interface PhieuTuKhaiRutResponse { phieuId: string; trangThai: "RUT" }
 
+// ---- Xác minh phiếu tự khai (ADR-0125; lát H-4 Gói 2) — route /api/parties/xac-minh*, cổng accounts, ô party.verify. KHÔNG SĐT, email, vai; số giấy tờ luôn che. ----
+/** Một dòng hàng chờ (`GET /api/parties/xac-minh?trang=cho`; tối đa 50, xác minh được trước, cũ trước). `loai`: NGAY_SINH | DIA_CHI | GIAY_TO. `lyDoKhong`: câu tiếng Việt khi `xacMinhDuoc` false. */
+export interface PhieuChoXacMinhDto { id: string; loai: string; tenHoSo: string; guiLuc: string; chuyenToanQuyen: boolean; xacMinhDuoc: boolean; lyDoKhong: string | null }
+/** Một dòng đã xử lý (`?trang=da-xu-ly`; 50 mới nhất). `lyDo` là chữ trong danh sách đóng; `coChamTaiKhoan`: người xử lý từng chạm tài khoản của chủ phiếu (Toàn quyền chốt cuối). */
+export interface PhieuDaXuLyDto { id: string; loai: string; ketLuan: "DA_CHAP_NHAN" | "TU_CHOI"; lyDo: string | null; nguoiXuLy: string; luc: string; coChamTaiKhoan: boolean }
+/** `GET /api/parties/xac-minh/:pid` (phiếu đang chờ). `giayTo.soChe` là số che — số đủ chỉ qua `POST …/xem-so`. `coAnh` luôn false cho tới lát nối ảnh (ruling R4). */
+export interface PhieuXacMinhChiTietDto {
+  id: string; loai: string; tenHoSo: string; guiLuc: string; daGop: boolean;
+  ngaySinh: string | null; diaChi: string | null;
+  giayTo: { tenLoai: string; soChe: string | null; hang: string | null; ngayCap: string | null; noiCap: string | null; hetHan: string | null; coDongHienHanhCungLoai: boolean; trungHoSoKhac: boolean } | null;
+  xacMinhDuoc: boolean; lyDoKhong: string | null; coAnh: boolean;
+}
+/** `POST /api/parties/xac-minh/:pid/xem-so` (ô party.verify.attachment) — số đủ của phiếu đang chờ; nhật ký ghi TRƯỚC. */
+export interface PhieuXemSoResponse { so: string }
+
 // ---- Vận chuyển (ADR-0040 D1; module van-chuyen) ----
 export type VehicleStatus = "active" | "maintenance" | "retired";
 export interface VehicleDto {

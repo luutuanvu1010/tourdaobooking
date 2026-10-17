@@ -102,7 +102,8 @@ export function isGuardedBody(body: string): boolean {
 // ADR-0085: auth.session.policy — chính sách đăng nhập, ô CHỈ Toàn quyền (cùng khuôn hai ô auth.session.* ở trên).
 const ADMIN_OPS = ["admin.manage", "admin.manage.superadmin", "feedback.triage", "settings.ops", "notice.send", "auth.session.viewAll", "auth.session.revoke", "auth.session.policy"];
 /** Luật (4b) — ADR-0071: ô Quản lý tài khoản được công nhận ở route cổng "accounts". Thêm ô = sửa hàng rào. */
-const ACCOUNTS_OPS = ["account.create", "account.view", "account.edit"];
+// ADR-0125 đ1: hai ô xác minh phiếu tự khai mở ở cổng accounts — nới có tên (kế hoạch H-4 sự thật 8); ba route /api/parties/xac-minh* hỏi chúng ở đầu thân.
+const ACCOUNTS_OPS = ["account.create", "account.view", "account.edit", "party.verify", "party.verify.attachment"];
 const denialRe = (ops: readonly string[]) =>
   new RegExp(`!\\s*can\\s*\\(\\s*[A-Za-z_$][\\w$]*(?:\\s*\\.\\s*[A-Za-z_$][\\w$]*)*\\s*,\\s*"(?:${ops.map((o) => o.replace(/\./g, "\\.")).join("|")})"\\s*\\)`, "g");
 const ADMIN_DENIAL_RE = denialRe(ADMIN_OPS);
@@ -319,8 +320,9 @@ test("hàng rào cổng quản trị: bộ đánh giá nhận đúng khuôn, t�
 // ---- Luật (4b) — ADR-0071: hàng rào cổng Quản lý tài khoản, cùng khuôn luật (4) với ba ô account.*. Không có mục hoãn nào. ----
 test("hàng rào cổng accounts (ADR-0071): mọi route cổng accounts có `if (!can(<người gọi>, \"account.*\")) return …` ở cấp thân handler", () => {
   const thuoc = routes.filter((r) => r.access === "accounts");
-  const known = ["GET /api/staff", "POST /api/staff", "GET /api/staff/ho-so-khop", "PATCH /api/staff/:id", "PUT /api/staff/:id/permissions", "GET /api/staff/:id/roles", "PUT /api/staff/:id/roles"];
-  assert.deepEqual(thuoc.map((r) => key(r.method, r.path)).sort(), [...known].sort(), "đúng bảy route Quản lý tài khoản ở cổng accounts");
+  const known = ["GET /api/staff", "POST /api/staff", "GET /api/staff/ho-so-khop", "PATCH /api/staff/:id", "PUT /api/staff/:id/permissions", "GET /api/staff/:id/roles", "PUT /api/staff/:id/roles",
+    "GET /api/parties/xac-minh", "GET /api/parties/xac-minh/:pid", "POST /api/parties/xac-minh/:pid/xem-so"];
+  assert.deepEqual(thuoc.map((r) => key(r.method, r.path)).sort(), [...known].sort(), "đúng bảy route Quản lý tài khoản + ba route xác minh phiếu (ADR-0125) ở cổng accounts");
   const missing = thuoc.filter((r) => !hasAdminDenial(r.body, ACCOUNTS_DENIAL_RE)).map((r) => `${r.method} ${r.path} (${r.module})`);
   assert.deepEqual(missing, [], `Route cổng accounts không hỏi ô tài khoản: ${missing.join("; ")}. Đầu thân: if (!can(staff, "<ô>")) return …; ô thuộc ${ACCOUNTS_OPS.join(", ")}.`);
   assert.equal(hasAdminDenial(`{ if (!can(actor, "account.create")) return F(); }`, ACCOUNTS_DENIAL_RE), true);

@@ -1173,12 +1173,12 @@ export interface PhieuChoRow {
   id: string; party_id: string; subject_kind: string; document_type_code: string | null; created_at: string; created_by: string | null; display_name: string; merged: number;
 }
 export interface PhieuXongRow {
-  id: string; subject_kind: string; status: string; reason_code: string | null; decided_by: string | null; decided_at: string | null; verifier_touched_account: number | null;
+  id: string; party_id: string; created_by: string | null; created_at: string; subject_kind: string; status: string; reason_code: string | null; decided_by: string | null; decided_at: string | null; verifier_touched_account: number | null;
 }
 export interface PhieuChiTietRow {
   id: string; party_id: string; subject_kind: string; policy_id: string; birth_date: string | null; address_value: string | null; document_type_code: string | null;
   type_name: string | null; number_key: string | null; license_class_code: string | null; class_name: string | null; issued_date: string | null; issued_place: string | null;
-  expiry_date: string | null; status: string; created_by: string | null; created_at: string; merged: number;
+  expiry_date: string | null; status: string; created_by: string | null; created_at: string; merged: number; display_name: string;
 }
 const LIST_PHIEU_CHO = defineSql("parties", "list_pending_self_submissions",
   `SELECT s.id, s.party_id, s.subject_kind, s.document_type_code, s.created_at, s.created_by, p.display_name,
@@ -1186,13 +1186,13 @@ const LIST_PHIEU_CHO = defineSql("parties", "list_pending_self_submissions",
    FROM pty_self_submission s JOIN pty_party p ON p.id = s.party_id
    WHERE s.status = 'CHO_XAC_MINH' ORDER BY s.created_at, s.id LIMIT ?1`);
 const LIST_PHIEU_XONG = defineSql("parties", "list_decided_self_submissions",
-  `SELECT s.id, s.subject_kind, s.status, s.reason_code, s.decided_by, s.decided_at, v.verifier_touched_account
+  `SELECT s.id, s.party_id, s.created_by, s.created_at, s.subject_kind, s.status, s.reason_code, s.decided_by, s.decided_at, v.verifier_touched_account
    FROM pty_self_submission s LEFT JOIN pty_verification v ON v.id = s.id
    WHERE s.status IN ('DA_CHAP_NHAN', 'TU_CHOI') ORDER BY s.decided_at DESC, s.id DESC LIMIT ?1`);
 const FIND_PHIEU_XET = defineSql("parties", "find_self_submission_for_verify",
   `SELECT s.id, s.party_id, s.subject_kind, s.policy_id, s.birth_date, s.address_value, s.document_type_code, t.name AS type_name, s.number_key,
           s.license_class_code, c.name AS class_name, s.issued_date, s.issued_place, s.expiry_date, s.status, s.created_by, s.created_at,
-          CASE WHEN p.merged_into_id IS NULL THEN 0 ELSE 1 END AS merged
+          CASE WHEN p.merged_into_id IS NULL THEN 0 ELSE 1 END AS merged, p.display_name
    FROM pty_self_submission s JOIN pty_party p ON p.id = s.party_id
    LEFT JOIN pty_person_document_type t ON t.code = s.document_type_code
    LEFT JOIN pty_license_class c ON c.code = s.license_class_code

@@ -10,7 +10,7 @@ import { hashPin, verifyDummy, verifyPin } from "./password";
 import { isValidPin, normalizePhone } from "./phone";
 import {
   accountIdOfParty, closeAdjustmentStatement, closePermissionStatement, countActiveAdmins, findById, findByPhone, insertAdjustmentStatement, insertPermissionStatement,
-  insertStaffStatement, labelsByIds, listAll, mfaDeadlinesRow, mfaEnrollSetRow, mfaGraceAll, mfaGraceIfNullRow, openAdjustments, parsePermissions, partiesWithAccount, phonesByParty, recordLoginRow, sessionOwnersByIds, setPinStatement as setPinRow, touchCredentialsStatement, updateStaffStatement,
+  insertStaffStatement, labelsByIds, listAll, mfaDeadlinesRow, mfaEnrollSetRow, mfaGraceAll, mfaGraceIfNullRow, openAdjustments, parsePermissions, partiesWithAccount, phonesByParty, recordLoginRow, sessionOwnersByIds, setPinStatement as setPinRow, taiKhoanChoXacMinhRows, touchCredentialsStatement, updateStaffStatement,
   type AdjustmentRow, type StaffRow,
 } from "./repository";
 import {
@@ -35,6 +35,12 @@ export {
 export async function hoSoCoNhanDoiTac(db: D1Database, partyId: string): Promise<boolean> {
   return (await hoSoMangNhanDoiTac(db, [partyId])).has(partyId);
 }
+
+/**
+ * HÀM CÔNG BỐ (ADR-0125 đ3, đ5) — CHỈ gốc lắp ráp gọi (tiêm `ctx.taiKhoanXacMinh`): mọi tài khoản (id, quyền ĐANG HIỆU LỰC, đang hoạt động, hồ sơ gắn) cho route xác minh phiếu
+ * tự khai của `parties` (cấp bậc, "còn ai xác minh được"). Không SĐT, email, tên. MỘT truy vấn D1.
+ */
+export const taiKhoanChoXacMinh = (db: D1Database): Promise<{ id: string; permissions: PermissionCode[]; active: boolean; partyId: string | null }[]> => taiKhoanChoXacMinhRows(db);
 
 /**
  * HÀM CÔNG BỐ (ruling R-P20 của điều phối — ADR-0049 kế hoạch mục 1.8 / R-P11): TÊN HIỂN THỊ của các tài khoản theo id — nhãn "người bấm" trên nhật ký chuyến

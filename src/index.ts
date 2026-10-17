@@ -30,7 +30,7 @@ import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./mo
 import { partiesModule } from "./modules/parties";
 import { nguoiHuongCuaHoSo, pricingModule } from "./modules/pricing";
 import { cauDoiNguoiDat, donCuaNguoiDat, findOrderRef, ordersModule } from "./modules/orders";
-import { accountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo } from "./modules/staff";
+import { accountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
 import { dayGoCua, dayGoCuaDoi, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
 import { chuyenChoTinTheoId, dongBoChuyenChoDon, mocToiThieuHienHanh, nguongHetHanHienHanh, suKienTheoYeuCau, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
@@ -174,6 +174,8 @@ const APP_OPTIONS: AppOptions = {
     nguongHetHan: (env) => nguongHetHanHienHanh(env.DB),
     // NHÃN NGƯỜI BẤM (ruling R-P20): van-chuyen không import staff — gốc lắp ráp gọi hàm công bố của staff (chỉ tên hiển thị).
     nhanNhanVien: (env, ids) => nhanNhanVienTheoId(env.DB, ids),
+    // XÁC MINH PHIẾU TỰ KHAI (ADR-0125 đ3, đ5): parties không import staff — gốc lắp ráp tiêm MỘT truy vấn đọc mọi tài khoản (id, quyền hiện hiệu lực, hoạt động, hồ sơ).
+    taiKhoanXacMinh: (env) => taiKhoanChoXacMinh(env.DB),
     // BÊN ĐẶT MÁY CHỦ ÉP (sổ đại lý đợt 1, Task 11 — Ruling 21): `auth` không import `pricing` (không nới ALLOWED_EDGES) — gốc lắp ráp là NƠI DUY NHẤT nối. Chỉ tài khoản giữ quyền Đối tác
     // CÓ hồ sơ mới tốn một truy vấn; mọi người khác trả null ngay (`/api/auth/me` đi qua đây ở MỌI trang). Điều kiện y hệt `benDatChoTaiKhoan` (holdsPartner + hồ sơ mang vai được hưởng).
     benDatCuaToi: (env, actor) => (holdsPartner(actor) && actor.partyId !== null ? nguoiHuongCuaHoSo(env.DB, actor.partyId) : Promise.resolve(null)),

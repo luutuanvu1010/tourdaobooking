@@ -2,7 +2,7 @@
 // / ghi bảng pty_self_submission. Ba lưới: (1) chữ "pty_self_submission" chỉ ở src/modules/parties/repository.ts (ngoài tệp test); không view nào đọc bảng; (2) câu SQL đăng ký
 // chạm bảng = ĐÚNG tập ghim; (3) năm hàm repository chạm bảng chỉ được GỌI trong thân route /api/parties/cua-toi* của parties/index.ts — mọi tệp parties khác không nhắc,
 // không bí danh, không nhập cả gói (vòng sửa 1, M-1).
-// ADR-0125 đ1 (lát H-4): năm route /api/parties/xac-minh… được đọc phiếu ĐANG CHỜ để xác minh — liệt kê từng route ở bài (3) (mở ở việc 3, 4 khi route có thật).
+// ADR-0125 đ1 (lát H-4): các route /api/parties/xac-minh… được đọc phiếu ĐANG CHỜ để xác minh — bài (3) liệt kê TỪNG route gọi TỪNG hàm (việc 3: ba route đọc; việc 4 thêm hai route quyết).
 // Phá thử: gọi listPhieuCuaHoSo trong respondParty → (3) đỏ; thêm view chọn từ pty_self_submission vào migration → (1) đỏ.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -26,6 +26,15 @@ const HAM_XAC_MINH = [
   "ghiNgaySinhTuPhieuStatement", "ghiDiaChiTuPhieuStatement", "ghiGiayToTuPhieuStatement", "lamMoiHoSoTuPhieuStatement", "ghiXacMinhTuPhieuStatement",
 ];
 const TIEN_TO_XAC_MINH = "/api/parties/xac-minh";
+// Việc 3 (ADR-0125): ĐÚNG ba route đọc gọi các hàm đọc; năm hàm ghi (quyết, ghi giá trị, làm mới hồ sơ, dòng xác minh) chưa route nào gọi — việc 4 thêm hai route quyết.
+const XEM_SO = "POST /api/parties/xac-minh/:pid/xem-so";
+const ROUTE_GOI_HAM_XAC_MINH: Record<string, string[]> = {
+  listPhieuCho: ["GET /api/parties/xac-minh"],
+  listPhieuDaXuLy: ["GET /api/parties/xac-minh"],
+  timPhieuChoXet: ["GET /api/parties/xac-minh/:pid", XEM_SO],
+  soDuCuaPhieuCho: [XEM_SO],
+  quyetPhieuStatement: [], ghiNgaySinhTuPhieuStatement: [], ghiDiaChiTuPhieuStatement: [], ghiGiayToTuPhieuStatement: [], lamMoiHoSoTuPhieuStatement: [], ghiXacMinhTuPhieuStatement: [],
+};
 
 function tepTs(dir: string): string[] {
   return readdirSync(dir).flatMap((f) => {
@@ -57,6 +66,7 @@ test("(3) hàm chạm bảng phiếu chỉ được GỌI trong thân route /api
   const THU_MUC = join(SRC, "modules/parties");
   const loi: string[] = [];
   let coIndex = false;
+  const goiTai: Record<string, string[]> = Object.fromEntries(HAM_XAC_MINH.map((h) => [h, []]));
   for (const f of tepTs(THU_MUC).filter((p) => !p.endsWith("/repository.ts"))) {
     const ten = f.slice(SRC.length);
     const goc = readFileSync(f, "utf8");
@@ -72,6 +82,8 @@ test("(3) hàm chạm bảng phiếu chỉ được GỌI trong thân route /api
     for (const k of khuc) {
       const m = /^route\("[A-Z]+", "([^"]+)"/.exec(k);
       const duong = m?.[1] ?? "(ngoài route)";
+      const khoaRoute = m ? `${/^route\("([A-Z]+)"/.exec(k)![1]} ${duong}` : duong;
+      for (const h of HAM_XAC_MINH) if (new RegExp(`\\b${h}\\s*\\(`).test(k)) goiTai[h]!.push(khoaRoute);
       for (const h of HAM_XAC_MINH) {
         if (new RegExp(`\\b${h}\\b`).test(k) && !duong.startsWith(TIEN_TO_XAC_MINH)) loi.push(`${h} ở ${duong} (chỉ route ${TIEN_TO_XAC_MINH}…)`);
         if (new RegExp(`\\b${h}\\b(?!\\s*\\()`).test(k)) loi.push(`${h} được nhắc mà không gọi ở ${duong} (gán / truyền đi là đường vòng)`);
@@ -84,6 +96,8 @@ test("(3) hàm chạm bảng phiếu chỉ được GỌI trong thân route /api
     for (const h of HAM) assert.ok(khuc.some((k) => new RegExp(`\\b${h}\\s*\\(`).test(k)), `chống bài rỗng: ${h} phải được gọi`);
   }
   assert.ok(coIndex, "chống bài rỗng: phải quét được parties/index.ts");
+  assert.deepEqual(Object.fromEntries(Object.entries(goiTai).map(([h, ds]) => [h, ds.sort()])), Object.fromEntries(Object.entries(ROUTE_GOI_HAM_XAC_MINH).map(([h, ds]) => [h, [...ds].sort()])),
+    "mỗi hàm xác minh chỉ được gọi ở ĐÚNG các route đã liệt kê (thêm route xác minh mới = sửa danh sách này có chủ đích)");
   const repo = readFileSync(join(THU_MUC, "repository.ts"), "utf8");
   for (const h of [...HAM, ...HAM_XAC_MINH]) {
     const n = repo.match(new RegExp(`\\b${h}\\b`, "g"))?.length ?? 0;
