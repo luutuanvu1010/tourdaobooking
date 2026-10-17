@@ -407,7 +407,7 @@ Các việc khác từ cùng buổi xác nhận (đang chờ chủ quyết, chư
 
 ## 36. Nợ hạ tầng dữ liệu hồ sơ (mã `BL-PTY-…`)
 
-- **BL-PTY-REPLACE-0103** · **Trạng thái:** `chưa làm`.
+- **BL-PTY-REPLACE-0103** · **Trạng thái:** `đã làm ở nhánh, CHƯA gộp` (2026-10-17, lát H-3: migration `0105` thêm `pty_consent_no_replace`, `pty_privacy_policy_no_replace`, `pty_verification_no_replace`; bài (k) của `src/migrations-ho-so-tu-khai.test.ts`; dòng ở `docs/SO-HANG-RAO.md`). Còn lại: rà các bảng chỉ-thêm khác ngoài `pty_*`.
   - **Vấn đề:** `INSERT OR REPLACE` xoá dòng cũ mà không chạy trigger xoá, nên lách được "chỉ-thêm" của `pty_consent` và `pty_verification` (migration `0103`). Migration `0104` đã chặn cho hai bảng kho tệp (trigger `no_replace`) nhưng `0103` chưa có.
   - **Việc khi làm:** migration MỚI (không sửa `0103`) thêm trigger BEFORE INSERT cùng khuôn, kèm bài đỏ→xanh; rà các bảng chỉ-thêm khác.
 - **BL-PTY-ISO-MOC-TEP** · **Trạng thái:** `chưa làm`. Ba mốc `stored_at`, `purged_at`, `r2_deleted_at` của `pty_attachment` chưa có CHECK khuôn ISO (repo chưa có quy ước CHECK cho dấu thời gian); máy chủ ghi `toISOString()`. Làm khi có quy ước chung.
@@ -425,3 +425,11 @@ Các việc khác từ cùng buổi xác nhận (đang chờ chủ quyết, chư
 - **BL-TEP-THAN-HAI-LAN** · **Trạng thái:** `chưa làm`. Tải 10 MB = thân ~14 MB bị lớp chống ghi trùng đọc một lần và route đọc lần nữa; bộ nhớ 128 MB của Worker thật CHƯA đo. Nếu Worker báo thiếu bộ nhớ thì xét đường tải lên riêng (cần ADR — đụng lớp chống ghi trùng).
 - **BL-TEP-KHE-GOP** · **Trạng thái:** `chưa làm`. Ảnh tải lên dòng giấy tờ của hồ sơ phụ trong khe giữa lúc đọc và lúc ghi lô gộp không đi theo (ruling R15) — nằm lại ở dòng đã huỷ của hồ sơ phụ; lát H-5 đưa vào danh sách xoá.
 - **BL-TEP-GIAO-DIEN** · **Trạng thái:** `chưa làm`. Chưa có màn hình tải / xem ảnh — lát H-2 chỉ có API; lát giao diện sau (phải giải `BL-TEP-PHAT-LAI-500` trước).
+
+## 38. Tự khai hồ sơ — nợ lát H-3 (mã `BL-TK-…`)
+
+- **BL-TK-ANH** · **Trạng thái:** `chưa làm`. Ảnh kèm phiếu tự khai (loại nối `SELF_SUBMISSION` của `0104` vẫn đóng — ruling R1; cổng `src/cong-phat-hanh-anh-tu-khai.test.ts`). Mở cùng lát H-5 (đường xoá) và sau khi giải `BL-TEP-PHAT-LAI-500`.
+- **BL-TK-TO-CHUC** · **Trạng thái:** `chưa làm` · **Cần chủ quyết** (Q3). Tự khai cho hồ sơ TỔ CHỨC (giấy tờ tổ chức, địa chỉ công ty) — lát H-3 chỉ hồ sơ cá nhân (ruling R5; tài khoản gắn hồ sơ tổ chức nhận 409 `self_person_only`).
+- **BL-TK-PHIEU-BAN-CU** · **Trạng thái:** `chưa làm` · **Quyết ở lát H-4** (Q5). Phiếu đang chờ ghi phiên bản chính sách CŨ khi đã có bản mới: người xác minh xử lý hay buộc khai lại? Hôm nay phiếu vẫn chờ (người khai vẫn còn đồng ý bản cũ) và rút đồng ý bản cũ thì rút phiếu đó (ruling I-2).
+- **BL-TK-CHINH-SACH-60KB** · **Trạng thái:** `chưa làm`. Toàn văn chính sách (tới ≈ 60 KB) đi kèm `GET /api/parties/cua-toi` mỗi lần mở trang Tôi; cân nhắc tải toàn văn theo yêu cầu (bấm "Đọc chính sách") khi văn bản thật dài.
+- **BL-TK-PHAN-TRANG** · **Trạng thái:** `chưa làm`. Danh sách phiếu của chính mình trả tối đa 50 dòng (mới trước), chưa phân trang — đủ cho tự khai; thêm khi có người vượt 50.

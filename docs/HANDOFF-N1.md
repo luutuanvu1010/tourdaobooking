@@ -947,6 +947,20 @@ npx wrangler r2 bucket list
 
 **Hoàn tác:** migration `0104` chỉ THÊM hai bảng — lùi Worker về bản trước không cần đụng D1; kho R2 để nguyên (rỗng hoặc có ảnh) — KHÔNG xoá kho khi còn dòng `pty_attachment` chưa `r2_deleted_at`.
 
+## Lần phát hành kế tiếp có tự khai hồ sơ (ADR-0124, ADR-0126 đ1 — Gói 2 lát H-3; migration `0105`) — RUNBOOK
+
+**Trạng thái: CHƯA phát hành** (nhánh `worktree-ho-so-rieng-tu-2fa`, soạn 2026-10-17; chờ người kiểm độc lập cuối lát và chủ duyệt). Cùng nhánh với `0103` (H-1) và `0104` (H-2, cần chủ tạo kho R2 — mục trên): lần phát hành mang cả ba, `0105` áp SAU `0103`, `0104` (wrangler áp theo tên, tự đúng thứ tự). Mọi bước sau A.0 do `npm run trien-khai` làm như thường. **Không cần lệnh Cloudflare mới** (không bí mật, không kho, không biến mới) ngoài việc tạo kho R2 của `0104`.
+
+**Tự khai CHỈ BẬT khi Toàn quyền đăng chính sách riêng tư** (`POST /api/parties/chinh-sach-rieng-tu`, khung đăng ở trang Tôi). Migration không gieo bản nào (ruling Q1): sau phát hành, mọi người thấy mục "Hồ sơ của tôi" nhưng nút gửi phiếu báo "chưa gửi được" — trạng thái bình thường, không phải lỗi.
+
+**Việc của chủ — Q1: KHÔNG đăng chính sách riêng tư trên production trước khi (1) luật sư duyệt chữ của chính sách và (2) lát H-5 có đường xoá dữ liệu (phiếu xoá, thời hạn lưu — ADR-0126 đ2).** Lý do: đăng là có hiệu lực ngay và không sửa / gỡ được (bảng chỉ-thêm; bản sau chỉ THAY bản trước, người đã đồng ý bản cũ vẫn còn dòng đồng ý); người dùng bắt đầu gửi ngày sinh, địa chỉ, số giấy tờ mà Nền tảng chưa có cách xoá theo yêu cầu. Muốn xem thử: dùng `wrangler dev` hoặc `node scripts/dev-iphone.mjs` (D1 tạm), không dùng production.
+
+**Điều kiện phát hành (kiểm LÚC phát hành bằng lệnh chỉ đọc):** `npx wrangler d1 migrations list tourdao-sales-db --remote` — rà `0103`–`0105` còn trống và còn là số kế tiếp trên mọi nhánh chưa gộp; đổi số lúc gộp được (bài `src/migrations-ho-so-tu-khai.test.ts` nhận tệp theo đuôi `_ho_so_tu_khai.sql` và đòi nó là tệp mới nhất; bài `migrations-ho-so-tep` đã nới để `0105` đứng sau `0104`).
+
+**Sau deploy:** `node scripts/audit-invariants.mjs --db remote` (trien-khai tự chạy) phải không vi phạm `R-PTY-13` (bảng phiếu rỗng ⇒ đạt). Chủ thử bằng tài khoản thường: trang Tôi có mục "Hồ sơ của tôi", thấy họ tên, điện thoại; chưa có chính sách thì chưa gửi được.
+
+**Hoàn tác:** `0105` chỉ THÊM một bảng + trigger — lùi Worker về bản trước không cần đụng D1. Nếu chính sách đã đăng và đã có phiếu: lùi Worker làm mục "Hồ sơ của tôi" biến mất, phiếu và dòng đồng ý nằm nguyên trong D1 (không xoá).
+
 ## Chế độ bảo trì — đường thoát khẩn
 
 Dùng CHỈ khi chủ dự án bị khoá ngoài (không vào được app để bấm tắt) hoặc chế độ bảo trì kẹt bật. Đây là thao tác GHI lên D1 remote, đi vòng app: theo `CLAUDE.md` §8 chỉ làm khi chủ dự án ra lệnh (hoặc tự chạy bằng `!`). Tác dụng TỨC THÌ (cổng ở máy chủ đọc D1 mỗi request, không đệm), không cần deploy.

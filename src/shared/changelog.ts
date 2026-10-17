@@ -12,6 +12,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Gói 2 hồ sơ riêng tư, lát H-3 (ADR-0124, ADR-0126 đ1): khối "Hồ sơ của tôi" ở trang Tôi, chính sách riêng tư + đồng ý, phiếu tự khai (chưa có xác minh — lát H-4);
+    // migration 0105. CÓ migration — cần trien-khai sau day-len. TỰ KHAI CHỈ BẬT KHI TOÀN QUYỀN ĐĂNG CHÍNH SÁCH (không gieo bản nào — ruling Q1).
+    // Số 2.12 là số TẠM (không trùng 2.8 / 2.9 / 2.10 / 2.11 đang tạm ở các nhánh): phiên phát hành gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.12",
+    date: "2026-10-17",
+    items: [
+      { kind: "moi", text: "Trang Tôi có mục Hồ sơ của tôi: xem thông tin của mình, đọc chính sách riêng tư và gửi ngày sinh, địa chỉ, giấy tờ để được xác minh." },
+      { kind: "doi", text: "Thông tin bạn gửi chỉ được dùng sau khi người khác xác minh; chưa có chính sách riêng tư thì chưa gửi được." },
+    ],
+  },
+  {
     // Gói 2 hồ sơ riêng tư, lát H-2 (ADR-0123): kho tệp hồ sơ R2, route tải / mở ảnh giấy tờ chỉ Toàn quyền, hàng chờ xoá, gộp mang ảnh;
     // migration 0104. CÓ migration + CHỦ PHẢI TẠO KHO R2 TRƯỚC (docs/HANDOFF-N1.md; cổng 1e của trien-khai dừng nếu chưa có). Chưa có màn hình.
     // Số 2.11 là số TẠM (điều phối chọn 2026-10-17: không trùng 2.8 / 2.10 đang tạm ở các nhánh khác). Cùng nhánh với 2.10 (lát H-0/H-1) nên sẽ lên CÙNG một lần
