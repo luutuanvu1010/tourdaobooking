@@ -6,7 +6,7 @@
 import { auditStatement } from "../audit";
 import { getStaffAccount } from "../staff";
 import type {
-  FeedbackAdminTeamDto, FeedbackAdminTeamsResponse, FeedbackBadgeResponse, FeedbackDetailResponse, FeedbackMessageDto, FeedbackMyOrdersResponse, FeedbackQueueResponse, FeedbackTeamsResponse,
+  FeedbackAdminTeamDto, FeedbackAdminTeamsResponse, FeedbackBadgeResponse, FeedbackDetailResponse, FeedbackMembersResponse, FeedbackMessageDto, FeedbackMessagesSinceResponse, FeedbackMyOrdersResponse, FeedbackQueueResponse, FeedbackTeamsResponse,
   FeedbackTicketDto, OrderStatus,
 } from "../../shared/contracts";
 import { FEEDBACK_KIND_NAME, FEEDBACK_STATUS_NAME, canTransition, feedbackCode, isFeedbackKind, isFeedbackStatus, type FeedbackKind, type FeedbackStatus } from "../../shared/feedback-catalog";
@@ -18,12 +18,12 @@ import { mailConfig, notifyAdmins, type NotifyEvent } from "./notify";
 import { choPhepNhomGui, quyenPhieu, type Membership, type QuyenPhieu } from "./quyen";
 import {
   badgeCounts, claimStatement, endMemberStatement, findByRequest, getDonCuaToi, getTeam, getTicket, insertEventStatement, insertFirstMessageStatement, insertMemberStatement, insertReplyStatement, insertTeamStatement,
-  insertTicketStatement, insertTransferNoteStatement, listDonCuaToi, listMembersAll, listMessages, listMine, listQueue, listQueueTeam, listTeamsActive, listTeamsAll, markSeen, markSeenAfterWriteStatement,
+  insertTicketStatement, insertTransferNoteStatement, listAssignable, listDonCuaToi, listMembersAll, listMessages, listMessagesSince, listMine, listQueue, listQueueTeam, listTeamsActive, listTeamsAll, markSeen, markSeenAfterWriteStatement,
   membershipsOf, messageExists, patchTeamStatement, patchTicketStatement, setNotified, statsTeam, touchAfterReplyStatement, transferStatement, weeklyStats, type MessageRow, type TeamMemberRow, type TeamRow, type TicketRow,
 } from "./repository";
 import {
-  CAU_DON_LIEN_QUAN_SAI, MESSAGE_LIMIT_PER_HOUR, TEAM_ID_RE, TICKET_LIMIT_PER_HOUR, parseContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch,
-  validateTicketInput, validateTransferInput, windowStart, type PatchInput,
+  CAU_DON_LIEN_QUAN_SAI, MESSAGE_LIMIT_PER_HOUR, MESSAGES_SINCE_LIMIT, TEAM_ID_RE, TICKET_LIMIT_PER_HOUR, parseContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch,
+  parseSince, validateTicketInput, validateTransferInput, windowStart, type PatchInput,
 } from "./rules";
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy yêu cầu.");
@@ -205,6 +205,21 @@ export const feedbackModule: AppModule = {
         mine,
         isSuper: can(staff, "feedback.triage"),
       } satisfies FeedbackTeamsResponse);
+    }),
+    // Ứng viên giao việc của MỘT nhóm (ADR-0127 quyết định 4): Trưởng nhóm của ĐÚNG nhóm đó và Toàn quyền — quyenPhieu với submitterId "" (không phiếu cụ thể, như
+    // hàng đợi) rồi DÙNG giaoViecChoNguoiKhac; không thêm hàm mới vào GUARDS. Thứ tự: hình dạng id → nhóm có thật (404) → quyền (403) → đọc. `?ticket=` (tuỳ chọn)
+    // = phiếu đang giao: loại người gửi phiếu đó CHỈ khi phiếu thuộc nhóm này (câu SQL tự kiểm). Tài khoản bên ngoài còn dòng thành viên cũ bị loại (R6, cùng
+    // phép thử với route gán thành viên) vì chọn họ thì giao việc thất bại. Chỉ id / tên (view nhãn) / vai — không SĐT, email. Không ghi gì.
+    route("GET", "/api/feedback/teams/:id/members", "staff", async ({ env, staff, params, url }) => {
+      const teamId = params.id!;
+      if (!TEAM_ID_RE.test(teamId)) return TEAM_NOT_FOUND();
+      if (!(await getTeam(env.DB, teamId))) return TEAM_NOT_FOUND();
+      const q = quyenPhieu({ who: staff, submitterId: "", ticketTeamId: teamId, memberships: await memberships(env.DB, staff) });
+      if (!q.giaoViecChoNguoiKhac) return error(403, "forbidden", "Chỉ Trưởng nhóm được giao việc.");
+      const rows = await listAssignable(env.DB, teamId, url.searchParams.get("ticket") ?? "");
+      const tk = await Promise.all(rows.map((r) => getStaffAccount(env.DB, r.staff_id)));
+      const members = rows.filter((_, i) => tk[i] !== null && tk[i]!.active && !tk[i]!.permissions.some(isExternalPermission));
+      return json({ members: members.map((r) => ({ staffId: r.staff_id, name: r.name, role: r.role })) } satisfies FeedbackMembersResponse);
     }),
     // ---- Quản lý nhóm hỗ trợ (ADR-0119 điều 2, 3): CHỈ Toàn quyền (ô feedback.team.manage). Tuyến tĩnh, khai trước /api/feedback/:id. ------------------
     // Nhật ký: targetId = id nhóm; detail CHỈ mã nhóm (+ vai với thành viên) — không tên/mô tả nhóm, không tên người, không SĐT.
@@ -479,6 +494,26 @@ export const feedbackModule: AppModule = {
         canTriage: false,
         perms: { xuLy: false, giaoViec: false, chuyenNhom: false },
       } satisfies FeedbackDetailResponse);
+    }),
+
+    // Tuyến làm mới khung trò chuyện (ADR-0127 quyết định 1): CHỈ ĐỌC — KHÔNG gọi markSeen / ghi mốc đã xem (tab chỉ để mở không được tắt chấm đỏ). Quyền đọc như
+    // tuyến chi tiết ngay dưới: id → phiếu → quyenPhieu (không đọc được ⇒ 404, kể cả khi since sai — không lộ phiếu có thật) → since (thiếu / sai ⇒ 400). Ghi chú
+    // nội bộ lọc bằng CÙNG đoạn SQL với tuyến chi tiết theo q.noiBo. Khai trước /api/feedback/:id (tuyến tĩnh/dài trước tuyến có tham số).
+    route("GET", "/api/feedback/:id/messages", "staff", async ({ env, staff, params, url }) => {
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const t = await getTicket(env.DB, id);
+      if (!t) return NOT_FOUND();
+      const q = quyenPhieu({ who: staff, submitterId: t.submitter_id, ticketTeamId: t.team_id, memberships: await memberships(env.DB, staff) });
+      if (!q.doc) return NOT_FOUND();
+      const since = parseSince(url.searchParams.get("since"));
+      if (!since) return error(400, "invalid_input", "Mốc thời gian không hợp lệ.");
+      const rows = await listMessagesSince(env.DB, id, q.noiBo, t.team_id, since, MESSAGES_SINCE_LIMIT);
+      const p = toTicket(t, false);
+      return json({
+        messages: rows.map((m) => toMessage(m, staff.id)),
+        ticket: { status: p.status, assigneeId: p.assigneeId, assigneeName: p.assigneeName, priority: p.priority, teamId: p.teamId },
+      } satisfies FeedbackMessagesSinceResponse);
     }),
 
     route("GET", "/api/feedback/:id", "staff", async ({ env, staff, params }) => {

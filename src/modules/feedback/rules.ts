@@ -14,6 +14,23 @@ export const RATE_WINDOW_MS = 60 * 60 * 1000;
 /** Đầu cửa sổ tần suất (ISO UTC) — so chuỗi với created_at (cũng ISO UTC). */
 export const windowStart = (now: Date): string => new Date(now.getTime() - RATE_WINDOW_MS).toISOString();
 
+/** Tuyến làm mới (ADR-0127 quyết định 1): tối đa bấy nhiêu tin mỗi lần — đủ vì khách chỉ lấy phần chồng 30 giây sau tin cuối đã nhận. */
+export const MESSAGES_SINCE_LIMIT = 100;
+const SINCE_RE = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.\d{1,3})?Z$/;
+/**
+ * Mốc `since` của tuyến làm mới: CHỈ ISO UTC đủ ngày giờ, có `Z` (không múi giờ khác, không chỉ ngày); ngày giờ không có thật (30/2, 24:00) ⇒ null.
+ * Trả chuỗi ĐÃ chuẩn hoá `toISOString()` (luôn 3 chữ số nghìn giây) vì SQL so CHUỖI với `created_at` — «…:05Z» không chuẩn hoá sẽ lớn hơn «…:05.500Z» (Z > .)
+ * và làm mất tin. null ⇒ route trả 400 (không để `new Date(sai).toISOString()` ném lỗi thành 500).
+ */
+export function parseSince(raw: string | null): string | null {
+  const m = raw === null ? null : SINCE_RE.exec(raw);
+  if (!m) return null;
+  const t = Date.parse(raw!);
+  if (Number.isNaN(t)) return null;
+  const iso = new Date(t).toISOString();
+  return iso.slice(0, 19) === m[1] ? iso : null; // ngày giờ bị «tràn» sang ngày khác (30/2 ⇒ 2/3) ⇒ không nhận
+}
+
 export const CLIENT_REQUEST_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 export type Checked<T> = { ok: true; value: T } | { ok: false; message: string };

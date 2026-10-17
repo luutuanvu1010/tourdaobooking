@@ -4,7 +4,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { FEEDBACK_KINDS, FEEDBACK_KIND_NAME, FEEDBACK_STATUSES, FEEDBACK_STATUS_NAME } from "../../shared/feedback-catalog.ts";
 import {
-  BODY_MAX, CAU_DON_LIEN_QUAN_SAI, TITLE_MAX, parseContext, sanitizeContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch, validateTicketInput, windowStart,
+  BODY_MAX, CAU_DON_LIEN_QUAN_SAI, MESSAGES_SINCE_LIMIT, TITLE_MAX, parseContext, parseSince, sanitizeContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch, validateTicketInput, windowStart,
 } from "./rules.ts";
 
 const REQ = "0b8f6f2e-3c1a-4f6e-9a55-2b6f4d1c7e10";
@@ -141,4 +141,16 @@ test("validateTicketInput: orderId tuỳ chọn — vắng / null ⇒ không g�
   const kem = validateTicketInput({ ...ok, orderId: id, priority: "URGENT" });
   assert.ok(kem.ok);
   assert.equal("priority" in kem.value, false, "kèm orderId vẫn bỏ qua priority");
+});
+
+test("parseSince (tuyến làm mới, ADR-0127 quyết định 1): chỉ nhận ISO UTC đủ ngày giờ có Z; chuẩn hoá về toISOString để so chuỗi với created_at", () => {
+  assert.equal(MESSAGES_SINCE_LIMIT, 100);
+  assert.equal(parseSince("2026-10-17T03:04:05.678Z"), "2026-10-17T03:04:05.678Z");
+  // Thiếu phần nghìn giây ⇒ bổ sung «.000»: không chuẩn hoá thì «…:05Z» lớn hơn «…:05.500Z» khi so chuỗi (Z > .) ⇒ mất tin.
+  assert.equal(parseSince("2026-10-17T03:04:05Z"), "2026-10-17T03:04:05.000Z");
+  assert.equal(parseSince("2026-10-17T03:04:05.5Z"), "2026-10-17T03:04:05.500Z");
+  for (const sai of [null, "", "abc", "2026-10-17", "2026-10-17T03:04:05", "2026-10-17T03:04:05+07:00", "2026-10-17 03:04:05Z", "2026-13-01T00:00:00Z",
+    "2026-02-30T00:00:00Z", "2026-10-17T24:00:00Z", "2026-10-17T03:04:05.1234Z", " 2026-10-17T03:04:05Z", "1e12"]) {
+    assert.equal(parseSince(sai), null, String(sai));
+  }
 });
