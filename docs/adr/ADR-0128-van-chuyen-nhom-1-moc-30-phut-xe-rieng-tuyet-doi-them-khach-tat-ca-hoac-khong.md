@@ -47,7 +47,7 @@
 - **(a) Khuyến nghị.** Tất cả hoặc không: đủ chỗ cho **cả** phần tăng thì thêm đủ; không đủ thì **không thêm ghế nào**, đơn vẫn lưu, giữ lý do «thiếu suất» để người xếp xe xử lý. Được: không có chuyến nửa vời (3 người ngồi, 1 người chờ tin). Mất: ca đơn tăng 2 mà xe còn 1 chỗ thì người xếp xe phải làm cả hai.
 - **(b)** Giữ hôm nay (mở phần còn chỗ). Mất: VC-17 vẫn lệch ý chủ.
 
-**Hệ quả.** Sửa một chỗ của `dong-bo-don` (chỉ máy chủ, không migration); bài NT-5 «xe hết chỗ (LC-02)» đổi kỳ vọng.
+**Hệ quả.** Sửa một chỗ của `dong-bo-don` (chỉ máy chủ, không migration); bài NT-5 «xe hết chỗ (LC-02)» ở `src/modules/van-chuyen/dong-bo-chuyen-route.test.ts` đổi kỳ vọng.
 
 **Nghiệm thu.** VC-17 chuyển xanh: đơn lưu 6, số ghế mở vẫn 4; lý do giữ «thiếu suất» hiện cho người xếp xe.
 
