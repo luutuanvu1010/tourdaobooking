@@ -41,6 +41,8 @@ test("(b) view phân tầng đúng: tạo → TAO; đặt lại PIN, tắt lớp
   vao.forEach(([action, detail], i) => ghiNhatKy(d, { id: `a${i}`, actor: X, action, target: A, at: T, detail }));
   ghiNhatKy(d, { id: "sync", actor: null, action: "staff_created", target: A, at: T }); // đồng bộ Sheet: không có người tạo
   ghiNhatKy(d, { id: "khac", actor: X, action: "pin_reset", target: "pty-1", at: T, targetType: "party" }); // không phải tài khoản
+  // m-2: dòng target_type 'party' có target_id TRÙNG mã tài khoản cũng không được vào view (bỏ điều kiện target_type = 'staff' thì đỏ)
+  ghiNhatKy(d, { id: "trung", actor: X, action: "pin_reset", target: A, at: T, targetType: "party" });
   const rows = d.prepare("SELECT loai, COUNT(*) AS n FROM v_aud_cham_tai_khoan WHERE account_id = ? AND actor_id = ? GROUP BY loai ORDER BY loai").all(A, X);
   assert.deepEqual(rows.map((r) => [r.loai, Number(r.n)]), [["CUA_SO_30", 6], ["TAO", 1], ["VINH_VIEN", 4]]);
   assert.equal(Number(d.prepare("SELECT COUNT(*) AS n FROM v_aud_cham_tai_khoan WHERE actor_id IS NULL").get()!.n), 0);
