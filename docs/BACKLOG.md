@@ -452,3 +452,6 @@ Các việc khác từ cùng buổi xác nhận (đang chờ chủ quyết, chư
 - **BL-XOA-THU-TU-TRIGGER** · **Trạng thái:** `chưa kiểm`. Thứ tự chạy các trigger cùng sự kiện trên D1 chưa kiểm (trên sqlite3 3.51 đóng băng `person_document_erased` bắn trước `_superseded`, ngược chú thích bài (e)); an toàn, chỉ khác câu báo lỗi. Cần thử thật trước khi route dịch mã lỗi.
 - **BL-XOA-MERGE-OLD** · **Trạng thái:** `ghi nhận`. `pty_party_merge_erasure` thiếu vế `OLD.merged_into_id IS NULL`; vô hại hôm nay (đã có `pty_party_merge_set_once`).
 - **BL-XOA-ERASED-DINH-DANG** · **Trạng thái:** `ghi nhận`. `erased_at` (hai bảng) không có CHECK định dạng thời điểm.
+- **BL-XOA-PHIEN-CHU-PHIEU** · **Trạng thái:** `ghi nhận`. Câu ẩn danh sổ phiên của lô Thực hiện dùng mã tài khoản đang gắn hồ sơ (`chuPhieu.id`), không phải người gửi phiếu (`created_by`): nếu tài khoản đã gắn sang hồ sơ khác thì phiên của người gửi không bị xoá IP. Hiếm; kiểm toán vòng sửa 1 (m-7).
+- **BL-XOA-DA-XOA-MAI** · **Trạng thái:** `ghi nhận`. `hoSo.daXoa` ở "Hồ sơ của tôi" giữ `true` mãi kể cả khi người dùng khai dữ liệu mới sau khi xoá; chưa có quyết định chủ về việc có hiện lại hay không (m-8).
+- **BL-XOA-LIEN-HE-DONG-PHONE** · **Trạng thái:** `ghi nhận`. Liên hệ đã đóng (dấu ẩn danh) hiện "Đã xoá" với loại PHONE ở `GET /api/parties/:id`; giao diện không được biến dòng này thành đường gọi điện (m-8).
