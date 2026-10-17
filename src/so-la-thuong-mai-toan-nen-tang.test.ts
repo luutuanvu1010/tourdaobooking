@@ -140,6 +140,9 @@ function bangDien(g: Gieo): Record<string, string[]> {
     "/api/feedback/:id": [`/api/feedback/${g.gopY}`],
     // ADR-0119 Việc 5b: hàng đợi MỘT nhóm (cần ?team) — nhóm Kỹ thuật giữ góp ý thử của B; Toàn quyền nhận 200.
     "/api/feedback/queue": ["/api/feedback/queue?team=fbk-team-ky-thuat"],
+    // ADR-0127 Việc 4: tuyến làm mới (cần ?since — người gửi B và Toàn quyền nhận 200) và ứng viên giao việc của nhóm Kỹ thuật (Toàn quyền nhận 200).
+    "/api/feedback/:id/messages": [`/api/feedback/${g.gopY}/messages?since=2000-01-01T00:00:00.000Z`],
+    "/api/feedback/teams/:id/members": [`/api/feedback/teams/fbk-team-ky-thuat/members?ticket=${g.gopY}`],
     "/api/catalog/:code/group-history": ["/api/catalog/SLX/group-history"],
     "/api/parties/:id": [`/api/parties/${PTY_B}`, "/api/parties/pty-ncc"],
     "/api/parties/:id/documents": [`/api/parties/${PTY_B}/documents`],
