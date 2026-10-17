@@ -19,10 +19,10 @@ test("mọi mã phần giữ lại có nhãn tiếng Việt có dấu, không ch
     assert.match(ma, /^[A-Z0-9_]+$/);
     kiemNhan(nhan, ma);
   }
-  const ma = PHAN_GIU_LAI.map((x) => x.ma);
-  for (const m of ["DON_BAN_CHUP", "HANH_KHACH", "LAN_THU", "SO_TIEN", "YEU_CAU_HOA_DON", "HO_TEN_NHAT_KY", "NHAT_KY_CU_SDT", "PHIEN_DA_BO_IP", "CHU_TU_DO", "TEN_HO_SO", "SDT_DANG_NHAP"]) {
-    assert.ok(ma.includes(m), m);
-  }
+  // Khoá DANH SÁCH mã (vòng sửa 1, I-3): thêm / bớt phần giữ lại phải sửa bài này, tức có người nhìn lại câu trả lời "còn giữ gì".
+  assert.deepEqual(PHAN_GIU_LAI.map((x) => x.ma), ["DON_BAN_CHUP", "HANH_KHACH", "LAN_THU", "SO_TIEN", "YEU_CAU_HOA_DON", "HO_TEN_NHAT_KY", "NHAT_KY_CU_SDT", "PHIEN_DA_BO_IP",
+    "GIOI_TINH", "THU_DIEN_TU_LOP_HAI", "NHAN_KHOA_NHANH", "NHAN_MAY_TIN_CAY", "NGAY_VA_HANG_GIAY_TO", "CHU_TU_DO", "TEN_HO_SO", "SDT_DANG_NHAP"]);
+  assert.match(PHAN_GIU_LAI.find((x) => x.ma === "PHIEN_DA_BO_IP")!.nhan, /tên máy vẫn giữ/, "device_label còn nguyên — nhãn không được nói đã bỏ hết");
 });
 
 test("nhãn HANH_KHACH nói rõ chưa luật sư xác nhận; câu căn cứ cố định đúng chữ ADR", () => {
