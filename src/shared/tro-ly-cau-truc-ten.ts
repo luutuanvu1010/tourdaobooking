@@ -132,6 +132,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "party.self.submit": { ten: "tự khai hồ sơ", moTa: "Đồng ý chính sách riêng tư, gửi và rút phiếu tự khai ngày sinh, địa chỉ, giấy tờ của chính mình." },
   "party.privacy.policy": { ten: "đăng chính sách riêng tư", moTa: "Đăng phiên bản mới của chính sách riêng tư; mọi người phải đồng ý lại trước khi tự khai." },
   "party.erasure.request": { ten: "gửi yêu cầu xoá dữ liệu của mình", moTa: "Gửi hoặc rút yêu cầu xoá dữ liệu cá nhân của chính mình; việc xoá do Quản trị xử lý." },
+  "party.erasure.process": { ten: "xử lý yêu cầu xoá dữ liệu", moTa: "Xem hàng chờ yêu cầu xoá dữ liệu của người khác, xem trước những gì sẽ xoá, thực hiện hoặc từ chối kèm lý do; không xử lý được yêu cầu của chính mình." },
   "party.verify": { ten: "xác minh hồ sơ tự khai", moTa: "Xem hàng chờ phiếu tự khai của nhân viên và đối tác, chấp nhận đúng như khai hoặc từ chối kèm lý do; số giấy tờ luôn che." },
   "party.verify.attachment": { ten: "xem đủ số giấy tờ khi xác minh", moTa: "Xem số đầy đủ của giấy tờ trong phiếu đang chờ xác minh; mỗi lần xem đều để lại dấu vết." },
   "vehicle.manage": { ten: "quản lý xe và giấy tờ xe", moTa: "Thêm, sửa xe, giấy tờ xe, xem danh sách sắp hết hạn." },

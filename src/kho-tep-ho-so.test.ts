@@ -54,3 +54,15 @@ test("(4) tải lên: chặn Content-Length TRƯỚC khi đọc thân; lô D1 TR
   const soLanDat = TEP.reduce((n, f) => n + (f.src.match(/\.put\(\s*key\b/g)?.length ?? 0), 0);
   assert.equal(soLanDat, 1);
 });
+
+// (5) ADR-0126 đ7 (lát H-5): ngoại lệ có tên duy nhất cho khoá kho ngoài `pty/` — bản ngoài D1 của phiếu xoá `xoa/<mã phiếu>.json`, ghi ở ĐÚNG một hàm (chepBanNgoai, kho-tep.ts) và chỉ chứa
+// ba khoá { phieu, hoSo, luc } (mã + thời điểm, không tên / số). Tổng số chỗ ĐẶT vào kho trong src/ = 2 (tải ảnh lên + bản ngoài).
+test("(5) khoá kho `xoa/` chỉ xuất hiện trong chepBanNgoai (kho-tep.ts); tổng chỗ đặt vào kho = 2; nội dung bản ngoài đúng ba khoá", () => {
+  const coXoa = TEP.filter((f) => /["'`]xoa\//.test(f.src)).map((f) => f.p);
+  assert.deepEqual(coXoa, ["modules/parties/kho-tep.ts"]);
+  const kho = TEP.find((f) => f.p === "modules/parties/kho-tep.ts")!.src;
+  const ham = /export async function chepBanNgoai\b[\s\S]*?\n\}\n/.exec(kho)?.[0] ?? "";
+  assert.match(ham, /kho\.put\(`xoa\/\$\{v\.id\}\.json`, JSON\.stringify\(\{ phieu: v\.id, hoSo: v\.partyId, luc: v\.luc \}\)/, "ba khoá, không khoá nào khác");
+  const soDat = TEP.reduce((n, f) => n + (f.src.match(/\b(?:kho|r2|HO_SO)\.put\(/g)?.length ?? 0), 0);
+  assert.equal(soDat, 2, "chỗ đặt vào kho thứ ba trong src/ — phải có tên ở đây");
+});

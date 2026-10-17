@@ -521,6 +521,8 @@ export interface PersonDocRow {
   voided_at: string | null;
   updated_at: string;
   is_current: number;
+  /** 1 = dòng đã ẩn danh (ADR-0126): số che trả null + `daXoa`, không "xem đủ số", không gia hạn / sửa sai. */
+  da_xoa: number;
 }
 // ADR-0126 (lát H-5): dòng đã ẨN DANH (erased_at) không còn là "hiện hành" — không gia hạn, không nhận phiếu tự khai, không chép dấu XOA… sang dòng sống mới.
 const HIEN_HANH = "(d.voided_at IS NULL AND d.erased_at IS NULL AND NOT EXISTS (SELECT 1 FROM pty_person_document n WHERE n.previous_id = d.id AND n.voided_at IS NULL))";
@@ -530,7 +532,7 @@ const LIST_PERSON_DOCS = defineSql(
   "parties",
   "list_person_documents",
   `SELECT d.id, d.document_type_code, t.name AS type_name, d.license_class_code, c.name AS class_name, d.number_key, d.issued_date, d.issued_place, d.expiry_date,
-          d.previous_id, d.voided_at, d.updated_at, ${HIEN_HANH} AS is_current
+          d.previous_id, d.voided_at, d.updated_at, ${HIEN_HANH} AS is_current, d.erased_at IS NOT NULL AS da_xoa
    FROM pty_person_document d JOIN pty_person_document_type t ON t.code = d.document_type_code LEFT JOIN pty_license_class c ON c.code = d.license_class_code
    WHERE d.party_id = ?1 AND (?2 = 0 OR ${HIEN_HANH})
    ORDER BY is_current DESC, d.expiry_date IS NULL, d.expiry_date, t.sort_order, d.created_at, d.id`,
@@ -570,12 +572,13 @@ export interface PersonDocFull {
   voided_at: string | null;
   updated_at: string;
   is_current: number;
+  da_xoa: number;
 }
 const FIND_PERSON_DOC = defineSql(
   "parties",
   "find_person_document",
   `SELECT d.id, d.party_id, d.document_type_code, d.document_number, d.number_key, d.license_class_code, d.issued_date, d.issued_place, d.expiry_date,
-          d.previous_id, d.voided_at, d.updated_at, ${HIEN_HANH} AS is_current
+          d.previous_id, d.voided_at, d.updated_at, ${HIEN_HANH} AS is_current, d.erased_at IS NOT NULL AS da_xoa
    FROM pty_person_document d WHERE d.id = ?1 AND d.party_id = ?2`,
 );
 const INSERT_PERSON_DOC = defineSql(
@@ -720,11 +723,11 @@ export const updateLicenseClassStatement = (
 const FIND_PERSON_DOC_NUMBER = defineSql(
   "parties",
   "find_person_document_number",
-  `SELECT d.document_number, t.name AS type_name FROM pty_person_document d JOIN pty_person_document_type t ON t.code = d.document_type_code
+  `SELECT d.document_number, t.name AS type_name, d.erased_at IS NOT NULL AS da_xoa FROM pty_person_document d JOIN pty_person_document_type t ON t.code = d.document_type_code
    WHERE d.id = ?1 AND d.party_id = ?2`,
 );
-export function findPersonDocumentNumber(db: D1Database, docId: string, partyId: string): Promise<{ document_number: string | null; type_name: string } | null> {
-  return db.prepare(FIND_PERSON_DOC_NUMBER).bind(docId, partyId).first<{ document_number: string | null; type_name: string }>();
+export function findPersonDocumentNumber(db: D1Database, docId: string, partyId: string): Promise<{ document_number: string | null; type_name: string; da_xoa: number } | null> {
+  return db.prepare(FIND_PERSON_DOC_NUMBER).bind(docId, partyId).first<{ document_number: string | null; type_name: string; da_xoa: number }>();
 }
 
 export function findPersonDocument(db: D1Database, docId: string, partyId: string): Promise<PersonDocFull | null> {
@@ -1476,6 +1479,41 @@ const LIST_ANH_HET_GIU = defineSql("parties", "list_attachments_without_keep_rea
 const DAT_CHO_XOA_ANH_HET_GIU = defineSql("parties", "purge_attachment_without_keep_reason",
   `UPDATE pty_attachment AS a SET purged_at = ?3, purge_reason = '${LY_DO_XOA_TEP_HET_GIU}', content_hash = NULL, updated_at = ?3, updated_by = ?2
    WHERE a.id = ?1 AND a.purged_at IS NULL AND a.stored_at IS NOT NULL AND NOT (${GIU_ANH(4)})`);
+
+// ---- Xử lý phiếu (route /api/parties/phieu-xoa*; ô party.erasure.process) ---------------------------------------------------------------------------------
+export interface PhieuXoaCoTenRow extends PhieuXoaRow { display_name: string }
+const COT_PHIEU_XOA_P = COT_PHIEU_XOA.split(", ").map((c) => `r.${c}`).join(", ");
+const FIND_PHIEU_XOA_TEN = defineSql("parties", "find_erasure_request_named",
+  `SELECT ${COT_PHIEU_XOA_P}, p.display_name FROM pty_erasure_request r JOIN pty_party p ON p.id = r.party_id WHERE r.id = ?1`);
+const LIST_PHIEU_XOA_CHO_TEN = defineSql("parties", "list_pending_erasure_requests_named",
+  `SELECT ${COT_PHIEU_XOA_P}, p.display_name FROM pty_erasure_request r JOIN pty_party p ON p.id = r.party_id WHERE r.status = 'CHO_XU_LY'
+   ORDER BY (r.due_at IS NOT NULL AND r.due_at <= ?1) DESC, r.created_at, r.id LIMIT 5000`);
+// Đã xử lý (thực hiện / từ chối / rút), mới nhất trước. Trần đọc 200 dòng để lọc cấp bậc rồi cắt 50 (khuôn hàng chờ xác minh).
+const LIST_PHIEU_XOA_DA_XU_LY = defineSql("parties", "list_processed_erasure_requests",
+  `SELECT ${COT_PHIEU_XOA} FROM pty_erasure_request WHERE status <> 'CHO_XU_LY' ORDER BY decided_at DESC, id DESC LIMIT 200`);
+const DEM_HO_SO_GOP_VAO = defineSql("parties", "count_profiles_merged_into", "SELECT count(*) AS n FROM pty_party WHERE merged_into_id = ?1");
+const TEP_CHO_XOA_LY_DO_PHIEU = defineSql("parties", "list_attachments_pending_purge_by_erasure",
+  `SELECT id, party_id, storage_key, purged_at, purge_reason, created_at FROM pty_attachment
+   WHERE purged_at IS NOT NULL AND r2_deleted_at IS NULL AND purge_reason IN ('${LY_DO_XOA_TEP_PHIEU}', '${LY_DO_XOA_TEP_HET_GIU}') ORDER BY created_at, id LIMIT 500`);
+// Gộp bị chặn khi hồ sơ nào trong hai hồ sơ đang có / đã thực hiện phiếu xoá (ruling R16; lớp hai là trigger party_merge_erasure).
+const CO_PHIEU_XOA_CHO_HOAC_DA = defineSql("parties", "count_open_or_done_erasure_requests",
+  "SELECT count(*) AS n FROM pty_erasure_request WHERE party_id IN (?1, ?2) AND status IN ('CHO_XU_LY', 'DA_THUC_HIEN')");
+export const timPhieuXoaCoTen = (db: D1Database, id: string): Promise<PhieuXoaCoTenRow | null> => db.prepare(FIND_PHIEU_XOA_TEN).bind(id).first<PhieuXoaCoTenRow>();
+export async function listPhieuXoaChoCoTen(db: D1Database, nowIso: string): Promise<PhieuXoaCoTenRow[]> {
+  return (await db.prepare(LIST_PHIEU_XOA_CHO_TEN).bind(nowIso).all<PhieuXoaCoTenRow>()).results;
+}
+export async function listPhieuXoaDaXuLy(db: D1Database): Promise<PhieuXoaRow[]> {
+  return (await db.prepare(LIST_PHIEU_XOA_DA_XU_LY).all<PhieuXoaRow>()).results;
+}
+export async function demHoSoGopVao(db: D1Database, partyId: string): Promise<number> {
+  return (await db.prepare(DEM_HO_SO_GOP_VAO).bind(partyId).first<{ n: number }>())?.n ?? 0;
+}
+export async function tepChoXoaLyDoPhieu(db: D1Database): Promise<TepCanXoaRow[]> {
+  return (await db.prepare(TEP_CHO_XOA_LY_DO_PHIEU).all<TepCanXoaRow>()).results;
+}
+export async function coPhieuXoaChoHoacDa(db: D1Database, a: string, b: string): Promise<boolean> {
+  return ((await db.prepare(CO_PHIEU_XOA_CHO_HOAC_DA).bind(a, b).first<{ n: number }>())?.n ?? 0) > 0;
+}
 
 export const timPhieuXoa = (db: D1Database, id: string): Promise<PhieuXoaRow | null> => db.prepare(FIND_PHIEU_XOA).bind(id).first<PhieuXoaRow>();
 /** `nowIso` = bây giờ (ISO UTC) để đưa phiếu quá hạn lên đầu. */

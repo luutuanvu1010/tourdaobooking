@@ -3,7 +3,7 @@
 // đã xử lý / đã ẩn danh — vốn bị trigger chặn; miễn trừ CHỈ mở cho câu đặt erased_at, nên ghim câu đặt erased_at là đủ); (2) chữ `erased_at` trong mã nguồn chỉ ở
 // parties/repository.ts (ngoài migrations/ và scripts/audit-checks.mjs, không thuộc src/ và web/); (3) `anDanhStatements(` chỉ được GỌI trong thân route thực hiện phiếu của parties/index.ts.
 // Phá thử: đăng ký thêm defineSql("parties", "thu_x", "UPDATE pty_person_document SET erased_at = ?1 WHERE id = ?2") → (1) đỏ; gọi anDanhStatements trong route khác → (3) đỏ.
-// Task 2 chưa có route: (3) ghim "không lời gọi anDanhStatements( nào trong index.ts"; Task 5 Step 8 đổi SO_LOI_GOI_DUOC thành 1 (đúng một lời gọi, trong thân route thực hiện).
+// Task 5 (lát H-5): (3) ghim ĐÚNG MỘT lời gọi anDanhStatements( và nó nằm trong thân route thực hiện phiếu của parties/index.ts (không bọc qua hàm phụ).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -14,7 +14,7 @@ const SRC = fileURLToPath(new URL(".", import.meta.url));
 const WEB = fileURLToPath(new URL("../web/", import.meta.url));
 const TEN_DUOC_PHEP = ["parties:an_danh_giay_to", "parties:an_danh_phieu_tu_khai"];
 const ROUTE_THUC_HIEN = "POST /api/parties/phieu-xoa/:pid/thuc-hien";
-const SO_LOI_GOI_DUOC = 0; // Task 5 Step 8: đổi thành 1
+const SO_LOI_GOI_DUOC = 1; // đúng một lời gọi, trong thân route thực hiện (Task 5 Step 8)
 
 /** Câu đặt `erased_at` trên hai bảng có cột đó: một lệnh UPDATE vào bảng, trong phần sau SET có `erased_at =`. */
 const DAT_ERASED_AT = /^\s*UPDATE\s+pty_(?:person_document|self_submission)\b[\s\S]*?\bSET\b[\s\S]*?\berased_at\s*=/i;

@@ -289,6 +289,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "party.self.view": "own", "party.self.submit": "own", // ADR-0124 đ4 + Hệ quả: NỚI có chủ ý — Đối tác xem / tự khai hồ sơ của CHÍNH MÌNH
     "party.privacy.policy": "none", // ADR-0126 đ1
     "party.erasure.request": "own", // ADR-0124 đ4 + ADR-0126 đ2 (lát H-5): Đối tác gửi / rút yêu cầu xoá dữ liệu của CHÍNH MÌNH
+    "party.erasure.process": "none", // ADR-0126 đ2 (lát H-5): Đối tác không xử lý phiếu xoá dữ liệu của người khác
     "party.verify": "none", "party.verify.attachment": "none", // ADR-0125 đ1: Đối tác không xác minh hồ sơ
     "vehicle.manage": "none", // ADR-0040 D1: quản lý xe chỉ Quản trị + Toàn quyền
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không

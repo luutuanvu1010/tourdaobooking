@@ -8,6 +8,7 @@ import type {
   StaffProfile, TaiKhoanNhanTienResponse, HoSoTepChayLaiResponse, HoSoTepChoXoaResponse, HoSoTepCreatedResponse, HoSoTepListResponse,
   ChinhSachDangResponse, DongYResponse, HoSoCuaToiDto, HoSoCuaToiResponse, PhieuTuKhaiDto, TrangThaiPhieuTuKhai, PhieuTuKhaiTaoResponse, PhieuTuKhaiRutResponse,
   PhieuChoXacMinhDto, PhieuDaXuLyDto, PhieuXacMinhChiTietDto, PhieuXemSoResponse, PhieuXoaCuaToiDto, PhieuXoaRutResponse, PhieuXoaTaoResponse, TrangThaiPhieuXoa,
+  PhieuXoaChoDto, PhieuXoaChoResponse, PhieuXoaChayLaiResponse, PhieuXoaDaXuLyDto, PhieuXoaThucHienResponse, PhieuXoaTuChoiResponse, PhieuXoaXemTruocDto,
 } from "../../shared/contracts";
 import { LOAI_CO_DINH, MA_LOAI_GIAY_TO_RE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo, soNgayConLai } from "../../shared/giay-to";
 import { OWNER_COMPANY_ROLE, thieuChoCongTyChu } from "../../shared/cong-ty-chu";
@@ -15,10 +16,10 @@ import { capNghiTrung, chuanHoaTen } from "../../shared/ho-so-trung";
 import { nhanLoaiLienHe } from "../../shared/lien-he";
 import type { RoleCode } from "../../shared/roles";
 import { UUID_RE, error, intParam, mauLikeChua, json, kemLocation, readJson } from "../../shared/http";
-import { can, holdsPartner } from "../../shared/permissions";
+import { can, holdsPartner, type PermissionCode } from "../../shared/permissions";
 import { normalizePhone } from "../../shared/phone";
 import { route, type AppModule, type Ctx } from "../../shared/router";
-import type { DonCuaNguoiDatTom, PartyAccountVerdict, TaiKhoanXacMinh } from "../../shared/router";
+import type { DonCuaNguoiDatTom, GopHoSoNoi, PartyAccountVerdict, TaiKhoanXacMinh } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import { gioiTinhHopLe } from "../../shared/xung-ho";
 import {
@@ -32,6 +33,8 @@ import {
   chinhSachHienHanh, phienBanLonNhat, dangChinhSachStatement, phienBanDangDongY, ghiDongYStatement, rutMoiPhieuChoStatement, listPhieuCuaHoSo, type PhieuRow,
   ghiPhieuStatement, timPhieuCuaHoSo, rutPhieuStatement,
   guiPhieuXoaStatement, listPhieuXoaCuaHoSo, rutPhieuTuKhaiKhiGuiXoaStatement, rutPhieuXoaStatement, timPhieuXoa, type PhieuXoaRow,
+  anDanhStatements, coPhieuXoaChoHoacDa, demHoSoGopVao, demXemTruocXoa, listPhieuChuaChepNgoai, listPhieuXoaChoCoTen, listPhieuXoaDaXuLy, quyetPhieuXoaStatement, tepChoXoaCuaPhieu,
+  tepChoXoaLyDoPhieu, timPhieuXoaCoTen, tuChoiPhieuXoaStatement,
   canXacMinhLaiStatement, chamCuaTaiKhoan, ghiDiaChiTuPhieuStatement, ghiGiayToTuPhieuStatement, ghiNgaySinhTuPhieuStatement, ghiXacMinhTuPhieuStatement, lamMoiHoSoTuPhieuStatement, quyetPhieuStatement, listPhieuCho, listPhieuDaXuLy, soDuCuaPhieuCho, timPhieuChoXet, trungSoHoSoKhac,
   datHoatDongLoaiDoiTacStatement, hoSoMangNhan, openRoleCodesFor, themLoaiDoiTacStatement, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements, vaiDangMo,
   type BankAccountRow, type BankRow, type GopDocRow, type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
@@ -41,11 +44,11 @@ import { loGop } from "./gop-lo";
 import { anTruongRiengTu, ghiDuocRiengTu, laLienHeRiengTu, xemDuocRiengTu, type NguoiXem } from "./rieng-tu";
 import { docTaiKhoanNhanTien } from "./tai-khoan-nhan-tien";
 import { DO_DANG_SAU_MS, LOAI_NOI_DUNG, LY_DO_XOA_TEP, TOI_DA_THAN, bamSha256, dauPhanHoiTep, khoaNgauNhien, kiemTepTaiLen } from "./tep";
-import { ghiRoiXoaKho, xoaKhoiKho } from "./kho-tep";
+import { chepBanNgoai, ghiRoiXoaKho, xoaKhoiKho } from "./kho-tep";
 import { CAU_KHONG_GUI, kiemChinhSach, kiemPhieuTuKhai, lyDoKhongGhi, lyDoKhongGui, type LoaiPhieu, type TinhTrangTuKhai } from "./tu-khai";
 import { nhanLoaiPhieu } from "../../shared/tu-khai-hien-thi";
 import { CAU_KHONG_GUI_XOA, LY_DO_TU_CHOI_XOA } from "../../shared/xoa-an-danh-hien-thi";
-import { xetGuiPhieuXoa, type LyDoKhongGuiXoa } from "./xoa-an-danh";
+import { MA_LOI_XU_LY, NHAN_LY_DO_KHONG_XU_LY, giuTen, phanGiuLai, trangThaiHan, xetGuiPhieuXoa, xetXuLyPhieuXoa, type LyDoKhongGuiXoa, type LyDoKhongXuLy, type ViecDangMo } from "./xoa-an-danh";
 import { NHAN_LY_DO_CHAN, nhanLyDoTuChoi } from "../../shared/xac-minh-hien-thi";
 import { chuyenToanQuyen, kiemTuChoi, loiLoChapNhan, lyDoKhongChapNhan, xetNguoiXacMinh, type KetLuanXet, type PhieuXet, type TaiKhoanTom } from "./xac-minh";
 import { MA_HANG_RE, cheSo, chiTietNhatKy, chuanHoaSo, kiemGiaHan, kiemHangMoi, kiemSuaHang, kiemSuaSai, kiemThemGiayTo, type DanhMucGiayTo, type GiayToNhap } from "./giay-to";
@@ -370,6 +373,9 @@ async function tinhGop(ctx: Ctx<"admin">, aId: string, bId: string, homNay: stri
   if (B.acc.linked && !B.acc.manageable) return MERGE_FORBIDDEN();
   const [viec, don, soNo] = await Promise.all([ctx.gopHoSo.viecCua(aId), ctx.gopHoSo.donNguoiDat(aId), ctx.gopHoSo.soDongNo(aId)]);
   const ke = keHoachGop(A.hs, B.hs, { ...viec, donLechTien: don.lechTien }, homNay);
+  // ADR-0126 (ruling R16): hồ sơ đang có / đã thực hiện phiếu xoá thì không gộp (hồ sơ phụ gộp vào hồ sơ đã ẩn danh sẽ mang dữ liệu thật vào hồ sơ "đã xoá"). Đứng ĐẦU danh sách
+  // chặn để câu trả lời của route là câu này, kể cả khi hồ sơ đã xoá là hồ sơ phụ có tài khoản.
+  if (await coPhieuXoaChoHoacDa(ctx.env.DB, aId, bId)) ke.chan.unshift(chanCo("merge_erasure"));
   // Kế hoạch R4: bên thứ ba của quan hệ bị chuyển / đóng cũng qua luật cấp bậc (như route kết thúc quan hệ xét cả hai đầu).
   for (const khac of ke.benThu3) {
     const v = await ctx.partyAccount(khac);
@@ -509,7 +515,7 @@ const toPersonDocDto = (r: PersonDocRow, today: string): PersonDocumentDto => ({
   typeName: r.type_name,
   classCode: r.license_class_code,
   className: r.class_name,
-  maskedNumber: cheSo(r.number_key),
+  maskedNumber: r.da_xoa === 1 ? null : cheSo(r.number_key),
   issuedDate: r.issued_date,
   issuedPlace: r.issued_place,
   expiryDate: r.expiry_date,
@@ -517,6 +523,7 @@ const toPersonDocDto = (r: PersonDocRow, today: string): PersonDocumentDto => ({
   previousId: r.previous_id,
   current: r.is_current === 1,
   voided: r.voided_at !== null,
+  daXoa: r.da_xoa === 1,
   updatedAt: r.updated_at,
 });
 
@@ -524,6 +531,9 @@ const DOC_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy giấy t
 // Lớp ROUTE của "chỉ dòng hiện hành gia hạn / sửa sai được"; lớp CSDL (trigger *_superseded, *_voided, *_renew_mismatch, chỉ mục *_next_uq) trả mã KHÁC
 // (document_changed) — để phép đột biến bỏ lời kiểm ở route thấy đỏ (Review Focus 1).
 const DOC_NOT_CURRENT = () => error(409, "document_not_current", "Dòng này đã được gia hạn hoặc đã huỷ — chỉ dòng hiện hành mới gia hạn hay sửa sai được.");
+// ADR-0126 (lát H-5): dòng giấy tờ đã ẨN DANH — không sửa, không gia hạn, không nối ảnh mới, không "xem đủ số". Muốn có giấy tờ mới thì khai một dòng mới.
+const DOC_ERASED = () => error(409, "document_erased", "Giấy tờ này đã được xoá theo yêu cầu — không sửa được.");
+const DOC_ERASED_REVEAL = () => error(409, "document_erased", "Giấy tờ này đã được xoá theo yêu cầu.");
 const DOC_STALE = () => error(409, "stale", "Giấy tờ vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
 const DOC_ID_RE = /^[0-9a-f-]{36}$/;
 
@@ -549,6 +559,7 @@ function docProblem(e: unknown): Response | null {
   if (/person_document_superseded|person_document_voided|person_document_renew_mismatch|UNIQUE constraint failed: pty_person_document\.previous_id/.test(m)) {
     return error(409, "document_changed", "Giấy tờ này vừa được người khác gia hạn hoặc sửa — tải lại rồi làm tiếp.");
   }
+  if (/person_document_erased|person_document_erase_shape/.test(m)) return DOC_ERASED();
   if (/FOREIGN KEY constraint failed/.test(m)) return error(400, "invalid_input", "Loại giấy tờ, hạng hoặc hồ sơ không tồn tại.");
   return null;
 }
@@ -677,6 +688,19 @@ const ERASURE_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy yêu
 const ERASURE_NOT_PENDING = () => error(409, "erasure_not_pending", "Yêu cầu xoá này đã được xử lý hoặc đã rút.");
 const ERASURE_PENDING_EXISTS = () => error(409, CAU_KHONG_GUI_XOA.dang_cho.code, CAU_KHONG_GUI_XOA.dang_cho.message);
 const ERASURE_PERSON_ONLY = () => error(409, CAU_KHONG_GUI_XOA.khong_ca_nhan.code, CAU_KHONG_GUI_XOA.khong_ca_nhan.message);
+const ERASURE_FORBIDDEN = () => error(403, "forbidden", "Tài khoản này không xử lý được yêu cầu xoá dữ liệu.");
+const KHONG_VIEC: ViecDangMo = { doi: 0, phuTrachDon: 0, laiChuyen: 0, toLaiChuyen: 0, chuXeChuyen: 0, soXe: 0 };
+/**
+ * Kết luận ĐỦ cho một phiếu xoá (luật thuần `xetXuLyPhieuXoa`): đọc việc đang mở (đơn chưa giao, phụ trách đơn, lái / tổ lái chuyến, chủ xe) và công ty chủ qua gốc lắp ráp.
+ * Trả luôn tóm tắt đơn + số dòng nợ (route Thực hiện / xem trước cần cho luật giữ tên). Chỉ là bảng hỏi — hàng rào THẬT là lính gác trong câu quyết và các câu ẩn danh.
+ */
+async function xetPhieuXoaDayDu(
+  db: D1Database, gop: GopHoSoNoi, nguoi: { id: string; permissions: readonly PermissionCode[] }, p: { party_id: string; created_by: string }, chuPhieu: TaiKhoanXacMinh | null,
+): Promise<{ lyDo: LyDoKhongXuLy | null; don: DonCuaNguoiDatTom; soNo: number }> {
+  const [don, soNo, viec, chu] = await Promise.all([gop.donNguoiDat(p.party_id), gop.soDongNo(p.party_id), gop.viecCua(p.party_id), laCongTyChu(db, p.party_id)]);
+  const lyDo = xetXuLyPhieuXoa({ nguoi, phieu: { createdBy: p.created_by }, chuPhieu, laCongTyChu: chu, viec: { doi: don.doi, ...viec } });
+  return { lyDo, don, soNo };
+}
 const SUBMISSION_NOT_PENDING = () => error(409, "submission_not_pending", "Phiếu này đã được xử lý hoặc đã rút.");
 const SAME_AS_CURRENT = () => error(409, "same_as_current", "Thông tin này đã có trong hồ sơ của bạn.");
 
@@ -1171,6 +1195,145 @@ export const partiesModule: AppModule = {
       return json({ ok: true });
     }),
 
+    // ---- Xử lý yêu cầu xoá dữ liệu (ADR-0126 đ2, đ3, đ7, đ8; lát H-5 Gói 2) — khai TRƯỚC mọi /api/parties/:id…; cổng admin: thân hỏi admin.manage RỒI party.erasure.process (khuôn route đăng chính sách). ----
+    // Hàng chờ: lọc cấp bậc (trừ Toàn quyền) CHỈ bằng danh sách tài khoản → cắt 50 → mới hỏi việc đang mở của đúng 50 hồ sơ đó (không truy vấn theo từng dòng của cả hàng chờ).
+    route("GET", "/api/parties/phieu-xoa", "admin", async ({ env, staff, taiKhoanXacMinh, gopHoSo, nhanNhanVien }) => {
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      if (!can(staff, "party.erasure.process")) return ERASURE_FORBIDDEN();
+      const now = new Date().toISOString();
+      const dsTk = await taiKhoanXacMinh();
+      const nguoi = { id: staff.id, permissions: staff.permissions };
+      const chuCua = (partyId: string) => dsTk.find((t) => t.partyId === partyId) ?? null;
+      const anPhieuXoa = (r: { party_id: string; created_by: string }) =>
+        anPhieu(xetXuLyPhieuXoa({ nguoi, phieu: { createdBy: r.created_by }, chuPhieu: chuCua(r.party_id), laCongTyChu: false, viec: KHONG_VIEC }));
+      const cho = (await listPhieuXoaChoCoTen(env.DB, now)).filter((r) => !anPhieuXoa(r)).slice(0, TRAN_HANG_CHO);
+      const phieu = await Promise.all(cho.map(async (r): Promise<PhieuXoaChoDto> => {
+        const kl = await xetPhieuXoaDayDu(env.DB, gopHoSo, nguoi, r, chuCua(r.party_id));
+        return { id: r.id, tenHoSo: r.display_name, guiLuc: r.created_at, han: r.due_at, trangThaiHan: trangThaiHan(r.due_at, now), xuLyDuoc: kl.lyDo === null, lyDoKhong: kl.lyDo === null ? null : NHAN_LY_DO_KHONG_XU_LY[kl.lyDo] };
+      }));
+      const xong = (await listPhieuXoaDaXuLy(env.DB)).filter((r) => !anPhieuXoa(r)).slice(0, TRAN_HANG_CHO);
+      const nhan = await nhanNhanVien([...new Set(xong.flatMap((r) => (r.decided_by ? [r.decided_by] : [])))]);
+      const daXuLy = xong.map((r): PhieuXoaDaXuLyDto => ({
+        id: r.id, ketQua: r.status as PhieuXoaDaXuLyDto["ketQua"], nguoiXuLy: (r.decided_by ? nhan?.get(r.decided_by) : null) ?? null, luc: r.decided_at ?? r.created_at,
+        lyDo: r.reason_code === null ? null : (LY_DO_TU_CHOI_XOA.find((x) => x.ma === r.reason_code)?.nhan ?? "Lý do khác"), chuaChepNgoai: r.status === "DA_THUC_HIEN" && r.offsite_at === null,
+      }));
+      return json({ phieu, daXuLy } satisfies PhieuXoaChoResponse);
+    }),
+
+    // Xem trước: CHỈ SỐ ĐẾM (không giá trị nào). json() mặc định no-store.
+    route("GET", "/api/parties/phieu-xoa/:pid", "admin", async ({ env, staff, params, taiKhoanXacMinh, gopHoSo }) => {
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      if (!can(staff, "party.erasure.process")) return ERASURE_FORBIDDEN();
+      const pid = idParam(params, "pid", UUID_RE);
+      const p = pid ? await timPhieuXoaCoTen(env.DB, pid) : null;
+      if (!p) return ERASURE_NOT_FOUND();
+      const chuPhieu = (await taiKhoanXacMinh()).find((t) => t.partyId === p.party_id) ?? null;
+      const kl = await xetPhieuXoaDayDu(env.DB, gopHoSo, { id: staff.id, permissions: staff.permissions }, p, chuPhieu);
+      if (anPhieu(kl.lyDo)) return ERASURE_NOT_FOUND(); // ngoài cấp bậc / mất tài khoản (người không phải Toàn quyền): như không có phiếu
+      if (p.status !== "CHO_XU_LY") return ERASURE_NOT_PENDING();
+      const [dem, gop] = await Promise.all([demXemTruocXoa(env.DB, p.party_id), demHoSoGopVao(env.DB, p.party_id)]);
+      const giu = giuTen({ permissions: chuPhieu?.permissions ?? [], don: kl.don, soDongNo: kl.soNo });
+      return json({
+        id: p.id, tenHoSo: p.display_name, guiLuc: p.created_at, han: p.due_at, trangThaiHan: trangThaiHan(p.due_at, new Date().toISOString()),
+        seXoa: { giayTo: dem.giayTo, phieuTuKhai: dem.phieuTuKhai, lienHe: dem.lienHe, ngaySinh: dem.coNgaySinh, tep: dem.tep, phienDangNhap: chuPhieu !== null },
+        giuTen: giu, phanGiuLai: phanGiuLai({ giuTen: giu, coTaiKhoan: chuPhieu !== null }), xuLyDuoc: kl.lyDo === null, lyDoKhong: kl.lyDo === null ? null : NHAN_LY_DO_KHONG_XU_LY[kl.lyDo], hoSoGopVao: gop,
+      } satisfies PhieuXoaXemTruocDto);
+    }),
+
+    // THỰC HIỆN (cửa MỘT CHIỀU). Thứ tự: 403 → 400 (xác nhận) → 404 phiếu / ngoài cấp bậc → 409 không còn chờ → 409 lý do không xử lý (người gửi, công ty chủ, đang bận) → 503 thiếu phần sổ phiên
+    // → MỘT lô: quyết (câu ĐẦU, lính gác) → nhật ký (changes() > 0) → tám câu ẩn danh (mỗi câu mang DA_THANG_XOA) → câu sổ phiên của auth. SAU lô: xoá kho R2 rồi chép bản ngoài D1 (5.16) — lỗi không làm
+    // hỏng kết quả, để lại hàng "chờ xoá" / cờ bản ngoài thấy được và chạy lại ở …/chay-lai. Câu sổ phiên (do auth cấp) KHÔNG mang lính gác: lô thua cuộc đua thì sổ phiên vẫn bị làm rỗng IP / User-Agent
+    // (chấp nhận có tên — việc làm rỗng tự lặp an toàn, không lộ thêm dữ liệu).
+    route("POST", "/api/parties/phieu-xoa/:pid/thuc-hien", "admin", async ({ request, env, staff, params, taiKhoanXacMinh, gopHoSo, cauAnDanhPhien }) => {
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      if (!can(staff, "party.erasure.process")) return ERASURE_FORBIDDEN();
+      if ((await readJson(request))?.xacNhan !== true) return error(400, "invalid_input", "Cần xác nhận trước khi thực hiện.");
+      const pid = idParam(params, "pid", UUID_RE);
+      const p = pid ? await timPhieuXoa(env.DB, pid) : null;
+      if (!p) return ERASURE_NOT_FOUND();
+      const chuPhieu = (await taiKhoanXacMinh()).find((t) => t.partyId === p.party_id) ?? null;
+      const kl = await xetPhieuXoaDayDu(env.DB, gopHoSo, { id: staff.id, permissions: staff.permissions }, p, chuPhieu);
+      if (anPhieu(kl.lyDo)) return ERASURE_NOT_FOUND();
+      if (p.status !== "CHO_XU_LY") return ERASURE_NOT_PENDING();
+      if (kl.lyDo !== null) return error(409, MA_LOI_XU_LY[kl.lyDo as keyof typeof MA_LOI_XU_LY], NHAN_LY_DO_KHONG_XU_LY[kl.lyDo]);
+      const at = new Date().toISOString();
+      const cauPhien = chuPhieu ? cauAnDanhPhien(chuPhieu.id, at, staff.id) : null;
+      if (chuPhieu && !cauPhien) return error(503, "erasure_unavailable", "Chưa thực hiện được: thiếu phần xoá thông tin phiên đăng nhập. Hãy báo quản trị viên.");
+      const giu = giuTen({ permissions: chuPhieu?.permissions ?? [], don: kl.don, soDongNo: kl.soNo });
+      const dem = await demXemTruocXoa(env.DB, p.party_id);
+      const lo = [
+        quyetPhieuXoaStatement(env.DB, { id: p.id, actorId: staff.id, at, giuTen: giu, phanGiuLai: phanGiuLai({ giuTen: giu, coTaiKhoan: chuPhieu !== null }).join(",") }),
+        auditStatement(env.DB, {
+          staffId: staff.id, action: "party_erased", at, targetType: "party", targetId: p.party_id,
+          detail: `phiếu ${p.id} · giấy tờ ${dem.giayTo} · phiếu tự khai ${dem.phieuTuKhai} · liên hệ ${dem.lienHe} · tệp ${dem.tep}`,
+        }, "changes() > 0"),
+        ...anDanhStatements(env.DB, { id: p.id, partyId: p.party_id, actorId: staff.id, at, homNay: vnToday(new Date(at)) }),
+        ...(cauPhien ? [cauPhien] : []),
+      ];
+      const kq = await env.DB.batch(lo);
+      if ((kq[0]?.meta.changes ?? 0) === 0) return ERASURE_NOT_PENDING(); // thua cuộc đua với "Rút" của người dùng / "Từ chối" của người khác: mọi câu ẩn danh changes = 0
+      let conChoXoaKho = dem.tep;
+      let chuaChepNgoai = true;
+      const kho = env.HO_SO;
+      if (kho) {
+        try {
+          conChoXoaKho = (await xoaKhoiKho(env.DB, kho, await tepChoXoaCuaPhieu(env.DB, p.party_id), () => new Date().toISOString())).loi;
+          chuaChepNgoai = !(await chepBanNgoai(env.DB, kho, { id: p.id, partyId: p.party_id, luc: at }));
+        } catch (e) {
+          // Lô D1 đã ghi xong — kho hỏng không được biến thành 500 làm người xử lý tưởng chưa xoá. Trạng thái dở dang thấy được ở hàng chờ xoá / R-PTY-12 / R-PTY-19.
+          console.error(JSON.stringify({ level: "error", event: "xoa_sau_lo_loi", phieuId: p.id, loi: e instanceof Error ? e.name : "unknown" }));
+        }
+      }
+      return json({ ok: true, conChoXoaKho, chuaChepNgoai } satisfies PhieuXoaThucHienResponse);
+    }),
+
+    // TỪ CHỐI: thân CHỈ { lyDo: mã danh sách đóng }. Chỉ câu quyết + nhật ký (không giá trị, không chữ tự do). Giả định có ghi: "đang bận" KHÔNG chặn từ chối (từ chối không xoá gì); người gửi vẫn không tự từ chối được.
+    route("POST", "/api/parties/phieu-xoa/:pid/tu-choi", "admin", async ({ request, env, staff, params, taiKhoanXacMinh, gopHoSo }) => {
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      if (!can(staff, "party.erasure.process")) return ERASURE_FORBIDDEN();
+      const body = await readJson(request);
+      const lyDo = body !== null && Object.keys(body).length === 1 ? body.lyDo : undefined;
+      if (typeof lyDo !== "string" || !LY_DO_TU_CHOI_XOA.some((x) => x.ma === lyDo)) return error(400, "invalid_input", "Hãy chọn một lý do từ chối trong danh sách.");
+      const pid = idParam(params, "pid", UUID_RE);
+      const p = pid ? await timPhieuXoa(env.DB, pid) : null;
+      if (!p) return ERASURE_NOT_FOUND();
+      const chuPhieu = (await taiKhoanXacMinh()).find((t) => t.partyId === p.party_id) ?? null;
+      const kl = await xetPhieuXoaDayDu(env.DB, gopHoSo, { id: staff.id, permissions: staff.permissions }, p, chuPhieu);
+      if (anPhieu(kl.lyDo)) return ERASURE_NOT_FOUND();
+      if (p.status !== "CHO_XU_LY") return ERASURE_NOT_PENDING();
+      if (kl.lyDo === "nguoi_gui" || kl.lyDo === "cong_ty_chu") return error(409, MA_LOI_XU_LY[kl.lyDo], NHAN_LY_DO_KHONG_XU_LY[kl.lyDo]);
+      const at = new Date().toISOString();
+      const kq = await env.DB.batch([
+        tuChoiPhieuXoaStatement(env.DB, { id: p.id, actorId: staff.id, at, lyDo }),
+        auditStatement(env.DB, { staffId: staff.id, action: "party_erasure_rejected", at, targetType: "party", targetId: p.party_id, detail: `phiếu ${p.id} · ${lyDo}` }, "changes() > 0"),
+      ]);
+      if ((kq[0]?.meta.changes ?? 0) === 0) return ERASURE_NOT_PENDING();
+      return json({ ok: true } satisfies PhieuXoaTuChoiResponse);
+    }),
+
+    // CHẠY LẠI (tự lặp an toàn): chép bản ngoài D1 còn thiếu + xoá kho tệp lý do PHIEU_XOA / HET_LY_DO_GIU còn chờ. Không có việc ⇒ không ghi nhật ký.
+    route("POST", "/api/parties/phieu-xoa/chay-lai", "admin", async ({ env, staff }) => {
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      if (!can(staff, "party.erasure.process")) return ERASURE_FORBIDDEN();
+      const kho = env.HO_SO;
+      if (!kho) return KHO_CHUA_BAT();
+      let daChep = 0;
+      let conLoi = 0;
+      const chua = await listPhieuChuaChepNgoai(env.DB);
+      for (const x of chua) {
+        if (await chepBanNgoai(env.DB, kho, { id: x.id, partyId: x.party_id, luc: x.decided_at })) daChep++;
+        else conLoi++;
+      }
+      const canXoa = await tepChoXoaLyDoPhieu(env.DB);
+      const xoa = await xoaKhoiKho(env.DB, kho, canXoa, () => new Date().toISOString());
+      conLoi += xoa.loi;
+      if (chua.length === 0 && canXoa.length === 0) return json({ daChep: 0, daXoaKho: 0, conLoi: 0 } satisfies PhieuXoaChayLaiResponse);
+      await env.DB.batch([
+        auditStatement(env.DB, { staffId: staff.id, action: "party_erasure_retried", at: new Date().toISOString(), targetType: "system", targetId: "phieu-xoa", detail: `chép ${daChep} · xoá kho ${xoa.daXoa} · còn ${conLoi}` }),
+      ]);
+      return json({ daChep, daXoaKho: xoa.daXoa, conLoi } satisfies PhieuXoaChayLaiResponse);
+    }),
+
     // ---- Hàng "chờ xoá" của kho tệp hồ sơ (ADR-0123 đ6; Hiến chương 5.16; ruling Q4: chỉ Toàn quyền) — khai TRƯỚC GET /api/parties/:id. DTO chỉ mã. -------
     route("GET", "/api/parties/tep-cho-xoa", "office", async ({ env, staff }) => {
       if (!can(staff, "party.attachment.view")) return TEP_FORBIDDEN();
@@ -1376,6 +1539,7 @@ export const partiesModule: AppModule = {
       const did = idParam(params, "did", DOC_ID_RE);
       const cu = did ? await findPersonDocument(env.DB, did, id) : null;
       if (!did || !cu) return DOC_NOT_FOUND();
+      if (cu.da_xoa === 1) return DOC_ERASED(); // gia hạn từ dòng đã ẩn danh sẽ chép dấu XOA… sang dòng sống mới — chặn; khai giấy tờ mới bằng dòng mới
       const now = new Date();
       const d = await danhMucGiayTo(env.DB, vnToday(now));
       // Gia hạn = dòng MỚI; không gửi số thì chép số (và hạng) của dòng trước — số đầy đủ không phải ra trình duyệt (Review Focus 3).
@@ -1412,6 +1576,7 @@ export const partiesModule: AppModule = {
       const did = idParam(params, "did", DOC_ID_RE);
       const cu = did ? await findPersonDocument(env.DB, did, id) : null;
       if (!did || !cu) return DOC_NOT_FOUND();
+      if (cu.da_xoa === 1) return DOC_ERASED();
       const now = new Date();
       const d = await danhMucGiayTo(env.DB, vnToday(now));
       const hienHanh = hienHanhCua(cu);
@@ -1467,6 +1632,7 @@ export const partiesModule: AppModule = {
       const did = idParam(params, "did", DOC_ID_RE);
       const row = did ? await findPersonDocumentNumber(env.DB, did, id) : null;
       if (!did || !row) return DOC_NOT_FOUND();
+      if (row.da_xoa === 1) return DOC_ERASED_REVEAL(); // TRƯỚC khi ghi nhật ký xem số: dòng đã ẩn danh chỉ còn dấu, không có số để xem
       if (row.document_number === null) return error(409, "no_number", "Giấy tờ này không có số để xem.");
       await env.DB.batch([auditStatement(env.DB, { staffId: staff.id, action: "party_document_number_viewed", at: new Date().toISOString(), targetType: "party", targetId: id, detail: row.type_name })]);
       return json({ number: row.document_number } satisfies PersonDocumentRevealResponse);
@@ -1492,6 +1658,7 @@ export const partiesModule: AppModule = {
       const did = idParam(params, "did", DOC_ID_RE);
       const cu = did ? await findPersonDocument(env.DB, did, id) : null;
       if (!did || !cu) return DOC_NOT_FOUND();
+      if (cu.da_xoa === 1) return DOC_ERASED();
       if (cu.is_current !== 1) return DOC_NOT_CURRENT();
       if (Number(request.headers.get("content-length") ?? "0") > TOI_DA_THAN) return error(413, "file_too_large", "Tệp lớn hơn 10 MB.");
       const k = kiemTepTaiLen(await readJson(request));
@@ -1651,6 +1818,7 @@ export const partiesModule: AppModule = {
       try {
         results = await env.DB.batch(stmts);
       } catch (e) {
+        if (/party_merge_erasure/.test(e instanceof Error ? e.message : "")) { const c = chanCo("merge_erasure"); return error(409, c.code, c.message); } // phiếu xoá vừa được gửi giữa lúc tính và lúc ghi (trigger 0108)
         // Hợp đồng lỗi của lô (phán quyết điều phối): mọi lệch giữa lúc tính và lúc ghi (lô thua có giấy tờ, dòng mở mới của A, giấy tờ / liên hệ chính đổi
         // trong khe…) làm trigger / chỉ mục / NOT NULL huỷ CẢ lô — không dòng nào đổi. Không bao giờ 500, không lộ câu lỗi CSDL.
         // Phán quyết Task 6 Minor 2 (như kiểm trước ở trên): chỉ "thua cuộc đua" khi A vừa gộp vào ĐÚNG hồ sơ chính này; gộp vào hồ sơ khác → merge_inactive.

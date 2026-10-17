@@ -47,6 +47,17 @@ export function xetXuLyPhieuXoa(v: {
   return null;
 }
 
+/** Mã lỗi 409 của route Thực hiện theo lý do; `cap_bac` / `khong_tai_khoan` là 404 (phiếu như không tồn tại với người đó) nên không có mã. */
+export const MA_LOI_XU_LY = { nguoi_gui: "erasure_self", cong_ty_chu: "owner_company_protected", dang_ban: "erasure_busy" } as const;
+/** Câu tiếng Việt cho từng lý do (dùng ở hàng chờ, xem trước và lỗi 409). */
+export const NHAN_LY_DO_KHONG_XU_LY: Readonly<Record<LyDoKhongXuLy, string>> = {
+  nguoi_gui: "Bạn là người gửi yêu cầu này — cần một quản trị viên khác xử lý.",
+  cap_bac: "Không tìm thấy yêu cầu này.",
+  khong_tai_khoan: "Không tìm thấy yêu cầu này.",
+  cong_ty_chu: "Hồ sơ công ty chủ không xoá được.",
+  dang_ban: "Người này còn việc đang mở (đơn chưa giao, chuyến, xe hoặc phụ trách đơn) — chưa xoá được.",
+};
+
 /** Giữ tên (R8): quyền nào ngoài PARTNER (tên là nhãn trên đơn / lệnh / nhật ký — ngoại lệ 5.20), hoặc đơn đã giao / đã huỷ, hoặc dòng nợ. */
 export function giuTen(v: { permissions: readonly PermissionCode[]; don: { giuDaGiao: number; giuDaHuy: number }; soDongNo: number }): boolean {
   return v.permissions.some((p) => p !== "PARTNER") || v.don.giuDaGiao + v.don.giuDaHuy > 0 || v.soDongNo > 0;

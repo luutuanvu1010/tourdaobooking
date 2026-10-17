@@ -75,7 +75,7 @@ test("route 1 (R4, R5): tài xế xem giấy tờ của CHÍNH MÌNH — chỉ d
   assert.deepEqual([gplx.classCode, gplx.className, gplx.previousId, gplx.maskedNumber], ["D2", "Hạng D2", g.gplxCu, "••••0001"]);
   assert.equal(typeof gplx.daysLeft, "number");
   assert.equal(r.json.documents.find((d: any) => d.typeCode === "HEALTH_CHECK").daysLeft, null, "không hạn");
-  assert.deepEqual(Object.keys(cccd).sort(), ["classCode", "className", "current", "daysLeft", "expiryDate", "id", "issuedDate", "issuedPlace", "maskedNumber", "previousId", "typeCode", "typeName", "updatedAt", "voided"]);
+  assert.deepEqual(Object.keys(cccd).sort(), ["classCode", "className", "current", "daXoa", "daysLeft", "expiryDate", "id", "issuedDate", "issuedPlace", "maskedNumber", "previousId", "typeCode", "typeName", "updatedAt", "voided"]);
   khongLoSo(r, "route 1 tài xế");
 });
 
@@ -567,4 +567,47 @@ test("ADR-0040 D1 (GB2/R23): mọi phản hồi danh sách giấy tờ người 
   const g = await giaHan(w, ADM, pty(DRIVER), ids.gplx, { expiryDate: "2027-11-05" });
   assert.equal(g.status, 201, g.text);
   assert.equal(g.json.warnDays, 7, "phản hồi sau khi ghi cũng mang mốc");
+});
+
+// ---- ADR-0126 (lát H-5 việc 5): dòng giấy tờ đã ẨN DANH — không sửa, không gia hạn, không nhận lệnh nào; lỗi trigger dịch sang 409 tiếng Việt (không 500) ------------------------------
+/** Ẩn danh MỘT dòng đúng như câu ẩn danh của lô thật (dấu theo dòng; nơi cấp rỗng) — để bài này đứng riêng, không cần dựng phiếu xoá. */
+function anDanhDong(w: any, did: string): void {
+  w.sqlite.prepare(
+    "UPDATE pty_person_document SET erased_at = ?, document_number = 'XOA' || upper(replace(id, '-', '')), number_key = 'XOA' || upper(replace(id, '-', '')), issued_place = NULL, updated_at = ? WHERE id = ?",
+  ).run(AT, AT, did);
+}
+const CAU_DA_XOA = "Giấy tờ này đã được xoá theo yêu cầu — không sửa được.";
+
+test("dòng đã ẩn danh: sửa sai / huỷ / gia hạn → 409 document_erased (không 500), không dòng mới nào mang dấu XOA… ở dòng còn sống; danh sách trả số che null + daXoa", async () => {
+  const w = setup();
+  const g = gieoTaiXe(w);
+  anDanhDong(w, g.cccd);
+  for (const [ten, r] of [
+    ["sửa sai ngày hết hạn", await suaSai(w, ADM, pty(DRIVER), g.cccd, { reason: "SAI_NGAY_HET_HAN", value: "2038-03-12", expectedUpdatedAt: AT })],
+    ["huỷ", await suaSai(w, SUP, pty(DRIVER), g.cccd, { reason: "NHAP_NHAM_DONG", expectedUpdatedAt: AT })],
+    ["gia hạn", await giaHan(w, ADM, pty(DRIVER), g.cccd, { expiryDate: "2040-01-01" })],
+  ] as const) {
+    assert.equal(r.status, 409, `${ten}: ${r.text}`);
+    assert.equal(r.json.error.code, "document_erased", ten);
+    assert.equal(r.json.error.message, CAU_DA_XOA, ten);
+  }
+  assert.equal(w.q("SELECT count(*) n FROM pty_person_document WHERE document_type_code = 'CCCD'")[0].n, 1, "không dòng mới");
+  assert.equal(w.q("SELECT count(*) n FROM pty_person_document WHERE erased_at IS NULL AND number_key LIKE 'XOA%'")[0].n, 0, "không chép dấu sang dòng sống");
+  const ds = await w.call("GET", `/api/parties/${pty(DRIVER)}/documents`, { as: ADM });
+  const c = ds.json.documents.find((d: any) => d.id === g.cccd);
+  assert.deepEqual([c.maskedNumber, c.daXoa, c.current], [null, true, false]);
+  assert.ok(!ds.text.includes("XOA0000"), "dấu ẩn danh không ra DTO");
+  const mine = await w.call("GET", "/api/parties/documents/mine", { as: DRIVER });
+  assert.ok(!mine.json.documents.some((d: any) => d.id === g.cccd), "giấy tờ của tôi không liệt kê dòng đã ẩn danh");
+});
+
+test("cuộc đua: dòng bị ẩn danh GIỮA lúc route đọc và lúc ghi → lỗi trigger dịch thành 409 document_erased (không 500), không sửa gì", async () => {
+  const w = setup();
+  const g = gieoTaiXe(w);
+  w.chenTruocLo((stmts: { sql: string }[]) => stmts.some((x) => /^\s*UPDATE pty_person_document SET/.test(x.sql)), async () => anDanhDong(w, g.cccd));
+  const r = await suaSai(w, ADM, pty(DRIVER), g.cccd, { reason: "SAI_NGAY_HET_HAN", value: "2038-03-12", expectedUpdatedAt: AT });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "document_erased");
+  assert.equal(r.json.error.message, CAU_DA_XOA);
+  assert.equal(dong(w, g.cccd).expiry_date, "2037-03-12", "ngày hết hạn nguyên");
 });

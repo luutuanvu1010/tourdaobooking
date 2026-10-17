@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import {
   dauSoGiayTo, DAU_DIA_CHI_PHIEU, DAU_LIEN_HE, DAU_NGAY_SINH_PHIEU, DAU_TEN, giuTen, LY_DO_XOA_TEP_HET_GIU, LY_DO_XOA_TEP_PHIEU, lyDoXoaAnh, phanGiuLai,
-  trangThaiHan, xetGuiPhieuXoa, xetXuLyPhieuXoa, type LienKetXetAnh,
+  MA_LOI_XU_LY, NHAN_LY_DO_KHONG_XU_LY, trangThaiHan, xetGuiPhieuXoa, xetXuLyPhieuXoa, type LienKetXetAnh,
 } from "./xoa-an-danh.ts";
 
 const VIEC0 = { doi: 0, phuTrachDon: 0, laiChuyen: 0, toLaiChuyen: 0, chuXeChuyen: 0, soXe: 0 };
@@ -103,4 +103,12 @@ test("lý do xoá ảnh: còn lý do giữ → null; hết thì mã theo thứ t
   // một lý do giữ ở BẤT KỲ dòng nối nào đủ giữ ảnh
   assert.equal(lyDoXoaAnh([{ ...sach, daHuy: true }, sach], HN), null);
   assert.equal(lyDoXoaAnh([{ ...sach, daHuy: true }, { loai: "SELF_SUBMISSION", trangThaiPhieu: "RUT" }], HN), "DA_HUY");
+});
+
+test("mã lỗi và câu tiếng Việt cho mọi lý do không xử lý được (route trả 409 hoặc 404, không bao giờ mã thô)", () => {
+  assert.deepEqual(MA_LOI_XU_LY, { nguoi_gui: "erasure_self", cong_ty_chu: "owner_company_protected", dang_ban: "erasure_busy" });
+  for (const ly of ["nguoi_gui", "cap_bac", "khong_tai_khoan", "cong_ty_chu", "dang_ban"] as const) {
+    assert.match(NHAN_LY_DO_KHONG_XU_LY[ly], /[à-ỹ]/, ly);
+    assert.doesNotMatch(NHAN_LY_DO_KHONG_XU_LY[ly], /[a-z]+_[a-z]+/, ly);
+  }
 });

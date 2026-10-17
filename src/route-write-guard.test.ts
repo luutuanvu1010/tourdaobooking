@@ -341,6 +341,22 @@ test("hàng rào cổng accounts (ADR-0071): mọi route cổng accounts có `if
   assert.equal(hasAdminDenial(`{ if (!can(actor, "account.create")) return F(); }`), false, "ô tài khoản không thay ô quản trị ở cổng admin");
 });
 
+// ADR-0126 đ2 (lát H-5 việc 5): năm route xử lý phiếu xoá ở cổng admin hỏi admin.manage RỒI party.erasure.process (khuôn route đăng chính sách) — ô thứ hai đứng ngay sau ô thứ nhất,
+// cùng cấp thân handler. Phá thử: bỏ câu hỏi party.erasure.process ở một route → đỏ.
+test("năm route /api/parties/phieu-xoa… hỏi admin.manage rồi party.erasure.process ở đầu thân", () => {
+  const thuoc = routes.filter((r) => r.path.startsWith("/api/parties/phieu-xoa"));
+  const known = ["GET /api/parties/phieu-xoa", "GET /api/parties/phieu-xoa/:pid", "POST /api/parties/phieu-xoa/:pid/thuc-hien", "POST /api/parties/phieu-xoa/:pid/tu-choi", "POST /api/parties/phieu-xoa/chay-lai"];
+  assert.deepEqual(thuoc.map((r) => key(r.method, r.path)).sort(), [...known].sort(), "chống bài rỗng: đúng năm route xử lý phiếu xoá");
+  for (const r of thuoc) {
+    assert.equal(r.access, "admin", `${r.method} ${r.path}`);
+    assert.ok(hasAdminDenial(r.body), `${r.method} ${r.path}: thiếu !can(staff, "admin.manage")`);
+    assert.ok(hasAdminDenial(r.body, denialRe(["party.erasure.process"])), `${r.method} ${r.path}: thiếu !can(staff, "party.erasure.process")`);
+    const i = r.body.indexOf('"admin.manage"');
+    const j = r.body.indexOf('"party.erasure.process"');
+    assert.ok(i >= 0 && j > i, `${r.method} ${r.path}: admin.manage phải đứng trước party.erasure.process`);
+  }
+});
+
 test("hàng rào cổng quản trị: bộ bóc thấy các route cổng admin đã biết và nhận chúng là có ô quản trị (chống bài kiểm rỗng)", () => {
   const known = ["POST /api/staff/:id/reset-pin", "POST /api/staff/:id/unlock", "GET /api/maintenance", "PUT /api/maintenance", "PATCH /api/feedback/:id", "POST /api/parties/:id/roles", "GET /api/audit"];
   for (const k of known) {

@@ -425,3 +425,16 @@ test("M19: gộp không mang tệp ĐÃ LƯU rồi bị quyết xoá (stored_at 
   assert.deepEqual((await w.call("GET", `/api/parties/${B}/documents/${did}/tep`, { as: SUP })).json.tep.map((t: any) => t.id), [giu]);
   assert.equal(w.q("SELECT count(*) n FROM pty_attachment_link WHERE attachment_id = ?", xoa)[0].n, 1);
 });
+
+test("ADR-0126 (lát H-5 việc 5): tải ảnh lên dòng giấy tờ đã ẩn danh → 409 document_erased, không dòng tệp, không đối tượng kho, không nhật ký", async () => {
+  const w = setup();
+  const g = await nguoiCoCccd(w);
+  w.sqlite.prepare("UPDATE pty_person_document SET erased_at = ?, document_number = 'XOA' || upper(replace(id, '-', '')), number_key = 'XOA' || upper(replace(id, '-', '')), issued_place = NULL WHERE id = ?")
+    .run("2026-10-17T00:00:00.000Z", g.did);
+  const r = await taiLen(w, g);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "document_erased");
+  assert.equal(soTep(w), 0);
+  assert.equal(w.r2.soLan.put, 0);
+  assert.deepEqual(nhatKy(w, "party_attachment_added"), []);
+});

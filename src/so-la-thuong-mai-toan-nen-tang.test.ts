@@ -106,6 +106,7 @@ const MIEN_200: Record<string, string> = {
   "/api/parties/:id/documents/:did/tep": "ADR-0123 (lát H-2 kho tệp): danh sách ảnh của MỘT dòng giấy tờ người — chỉ Toàn quyền; bài này không gieo giấy tờ + ảnh; DTO chỉ mã / loại / cỡ / mốc, không chở tiền; bangDien gọi bằng mã lạ nên thân 4xx vẫn được quét",
   "/api/parties/:id/documents/:did/tep/:tid": "ADR-0123: thân là byte ảnh / PDF giấy tờ (không phải JSON, không chở tiền) — chỉ Toàn quyền, cần tệp đã tải lên; bài này không gieo ảnh; bangDien gọi bằng mã lạ nên thân 4xx vẫn được quét",
   "/api/parties/xac-minh/:pid": "ADR-0125 (lát H-4): chi tiết MỘT phiếu tự khai đang chờ — cần phiếu gieo sẵn (bài này không gieo); DTO chỉ ngày sinh / địa chỉ / số che / cờ, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 vẫn được quét",
+  "/api/parties/phieu-xoa/:pid": "ADR-0126 (lát H-5 việc 5): xem trước MỘT phiếu yêu cầu xoá đang chờ — cần phiếu gieo sẵn (bài này không gieo); DTO chỉ tên hồ sơ, hạn và SỐ ĐẾM, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 vẫn được quét",
 };
 
 /**
@@ -151,6 +152,8 @@ function bangDien(g: Gieo): Record<string, string[]> {
     "/api/parties/:id/documents/:did/tep/:tid": [`/api/parties/${PTY_B}/documents/${uuid()}/tep/${uuid()}`],
     // ADR-0125 (lát H-4): bài không gieo phiếu tự khai ⇒ mã phiếu lạ (Quản trị / Toàn quyền 404, người khác 403) — vẫn GỌI để thân được quét (MIEN_200 chỉ miễn 200).
     "/api/parties/xac-minh/:pid": [`/api/parties/xac-minh/${uuid()}`],
+    // ADR-0126 (lát H-5 việc 5): như trên — bài không gieo phiếu xoá ⇒ mã phiếu lạ (Quản trị / Toàn quyền 404, người khác 403) — vẫn GỌI để thân được quét.
+    "/api/parties/phieu-xoa/:pid": [`/api/parties/phieu-xoa/${uuid()}`],
     "/api/parties/:id/tai-khoan-nhan-tien": [`/api/parties/${PTY_B}/tai-khoan-nhan-tien`, `/api/parties/${g.congTy}/tai-khoan-nhan-tien`],
     "/api/van-chuyen/xe/:id": [`/api/van-chuyen/xe/${g.xe}`],
     "/api/van-chuyen/xe/:id/ban": [`/api/van-chuyen/xe/${g.xe}/ban`],

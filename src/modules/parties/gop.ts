@@ -36,7 +36,7 @@ export interface NgoaiGop { phuTrachDon: number; laiChuyen: number; toLaiChuyen:
 export type MaChanGop =
   | "merge_same" | "merge_not_person" | "merge_inactive" | "merge_owner_company" | "merge_both_accounts" | "merge_source_has_account" | "merge_source_account_role"
   | "merge_role_group_conflict" | "merge_source_busy" | "merge_source_is_target" | "merge_source_future_row" | "merge_order_invalid" | "merge_source_owns_vehicle"
-  | "merge_partner_label_internal";
+  | "merge_partner_label_internal" | "merge_erasure";
 export interface LyDoChan { code: MaChanGop; message: string }
 export interface KeHoachGop {
   chan: LyDoChan[];
@@ -62,6 +62,8 @@ const CAU: Record<Exclude<MaChanGop, "merge_source_busy" | "merge_order_invalid"
   merge_source_is_target: "Đã có hồ sơ khác gộp vào hồ sơ phụ này — hãy chọn nó làm hồ sơ chính (không gộp nối tiếp).",
   merge_source_future_row: "Hồ sơ phụ có liên hệ, công việc hoặc quan hệ bắt đầu sau hôm nay — kết thúc hoặc sửa dòng đó trước khi gộp.",
   merge_source_owns_vehicle: "Hồ sơ phụ đang đứng tên xe — đổi chủ xe ở mục Xe trước khi gộp.",
+  // ADR-0126 (lát H-5): chặn ở route (đọc phiếu xoá của CẢ HAI hồ sơ trước lô) và ở trigger party_merge_erasure; cùng câu.
+  merge_erasure: "Hồ sơ đang có hoặc đã thực hiện yêu cầu xoá dữ liệu — không gộp được.",
 };
 export const chanCo = (code: keyof typeof CAU): LyDoChan => ({ code, message: CAU[code] });
 const conMo = (validTo: string | null, homNay: string): boolean => validTo === null || validTo > homNay;

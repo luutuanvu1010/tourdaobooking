@@ -144,6 +144,9 @@ export const AUDIT_ACTIONS = {
   self_submission_rejected: { label: "Từ chối phiếu tự khai hồ sơ", group: "party" },
   party_erasure_requested: { label: "Gửi yêu cầu xoá dữ liệu", group: "party" },
   party_erasure_withdrawn: { label: "Rút yêu cầu xoá dữ liệu", group: "party" },
+  party_erased: { label: "Thực hiện yêu cầu xoá dữ liệu", group: "party" },
+  party_erasure_rejected: { label: "Từ chối yêu cầu xoá dữ liệu", group: "party" },
+  party_erasure_retried: { label: "Chạy lại việc xoá dữ liệu", group: "system" },
   self_submission_number_viewed: { label: "Xem đủ số giấy tờ của phiếu tự khai", group: "party" },
   party_document_catalog_changed: { label: "Sửa danh mục giấy tờ của người", group: "party" },
   // ADR-0108 đ2: cài / đổi tài khoản nhận tiền của công ty chủ — target = hồ sơ công ty; `detail` = "cài|đổi tài khoản nhận tiền" (chữ cố định); KHÔNG chép số tài khoản (5.12).

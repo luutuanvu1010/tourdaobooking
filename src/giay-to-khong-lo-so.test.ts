@@ -23,7 +23,7 @@ async function routesOf(entry: string, exportName: string): Promise<string[]> {
   return mod[exportName]!.routes.map((r) => `${r.method} ${r.path}`);
 }
 const TUYEN_THAT = [...(await routesOf("./modules/parties/index.ts", "partiesModule")), ...(await routesOf("./modules/van-chuyen/index.ts", "vanChuyenModule"))]
-  .filter((k) => /\/documents|\/giay-to|^\/api\/parties\/cua-toi|^\/api\/parties\/xac-minh/.test(k.split(" ")[1]!)) // lát H-3: route "của tôi" (phiếu tự khai mang số giấy tờ) — không bắt /api/van-chuyen/ban/cua-toi; lát H-4: ba route xác minh phiếu (ADR-0125)
+  .filter((k) => /\/documents|\/giay-to|^\/api\/parties\/cua-toi|^\/api\/parties\/xac-minh|^\/api\/parties\/(phieu-xoa|anh-can-xoa)/.test(k.split(" ")[1]!)) // lát H-5: năm route xử lý phiếu xoá (ADR-0126) — KHÔNG bắt route khác; lát H-3: route "của tôi" (phiếu tự khai mang số giấy tờ) — không bắt /api/van-chuyen/ban/cua-toi; lát H-4: ba route xác minh phiếu (ADR-0125)
   .sort();
 
 const ADM = "33333333-3333-4333-8333-333333333333";
@@ -34,6 +34,9 @@ const SO_GPLX = "790888777666";
 const SO_SUC_KHOE = "SK888777444";
 // ADR-0124 (lát H-3): số + nơi cấp đánh dấu của PHIẾU TỰ KHAI (giá trị đề xuất — cũng không bao giờ rời máy chủ, kể cả với chính chủ).
 const SO_PHIEU = "079666555444";
+// ADR-0126 (lát H-5): giấy tờ của hồ sơ KHÔNG tài khoản bị ẩn danh hoá qua route Thực hiện — số + nơi cấp đánh dấu không được lọt vào xem trước / thực hiện / nhật ký.
+const SO_XOA = "079777666555";
+const NOI_XOA = "NOI CAP XOA DANH DAU";
 const NOI_PHIEU = "NOI CAP PHIEU DANH DAU";
 const NOI = "NOI CAP DANH DAU";
 const NOI_MOI = "NOI CAP DANH DAU MOI";
@@ -44,7 +47,7 @@ const SO_XE = "KD-DANHDAU-9";
 const SO_XE_MOI = "KD-DANHDAU-8";
 const PNG_B64 = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]).toString("base64"); // ADR-0123: ảnh giả (chữ ký PNG)
 /** Mọi dạng lộ của số người: đủ số, 8 ký tự đầu, 8 ký tự cuối (số che chỉ để lộ 4 ký tự cuối). */
-const DAU_SO_NGUOI = [SO_CCCD, SO_CCCD_MOI, SO_GPLX, SO_SUC_KHOE, SO_CCCD_DT, SO_GPLX_DT, SO_PHIEU].flatMap((s) => [s, s.slice(0, 8), s.slice(-8)]);
+const DAU_SO_NGUOI = [SO_CCCD, SO_CCCD_MOI, SO_GPLX, SO_SUC_KHOE, SO_CCCD_DT, SO_GPLX_DT, SO_PHIEU, SO_XOA].flatMap((s) => [s, s.slice(0, 8), s.slice(-8)]);
 const DAU_SO_XE = [SO_XE, SO_XE_MOI, "DANHDAU"];
 const HOM_NAY = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
 const ngay = (n: number) => new Date(Date.parse(`${HOM_NAY}T00:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
@@ -205,7 +208,37 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
       assert.ok(cho, "chống bài rỗng: có phiếu xoá đang chờ để rút");
       await goi("rút yêu cầu xoá dữ liệu", "POST", `/api/parties/cua-toi/phieu-xoa/${cho.id}/rut`, TX, undefined, 200);
     },
+    // Lát H-5 việc 5 (ADR-0126 đ2, đ3, đ7): năm route XỬ LÝ phiếu xoá, chạy trên hồ sơ KHÔNG tài khoản `khac` (Toàn quyền xử lý) có giấy tờ mang số + nơi cấp đánh dấu — để hồ sơ TX
+    // (đã gieo dữ liệu cho các bài dò ở cuối) không bị ẩn danh. Xem trước chỉ SỐ ĐẾM; thực hiện / nhật ký không có số; sau khi thực hiện, số đánh dấu không còn trong CSDL.
+    "GET /api/parties/phieu-xoa": async () => {
+      await goi("gieo giấy tờ cho hồ sơ sẽ bị xoá", "POST", `/api/parties/${khac}/documents`, ADM, { typeCode: "CCCD", number: SO_XOA, issuedPlace: NOI_XOA, expiryDate: "2035-01-01" }, 201);
+      guiXoaThang(khac);
+      const r = await goi("hàng chờ phiếu xoá", "GET", "/api/parties/phieu-xoa", SUP, undefined, 200);
+      assert.equal(r.json.phieu.length, 1, "chống bài rỗng: có phiếu xoá đang chờ");
+    },
+    "GET /api/parties/phieu-xoa/:pid": async () => {
+      const r = await goi("xem trước phiếu xoá", "GET", `/api/parties/phieu-xoa/${phieuXoaCho(khac)}`, SUP, undefined, 200);
+      assert.equal(r.json.seXoa.giayTo, 1, "chống bài rỗng: xem trước đếm được giấy tờ");
+    },
+    "POST /api/parties/phieu-xoa/:pid/tu-choi": async () => {
+      await goi("từ chối phiếu xoá", "POST", `/api/parties/phieu-xoa/${phieuXoaCho(khac)}/tu-choi`, SUP, { lyDo: "CAN_GIU_THEO_LUAT" }, 200);
+      guiXoaThang(khac); // phiếu mới để Thực hiện (mỗi hồ sơ một phiếu chờ)
+    },
+    "POST /api/parties/phieu-xoa/:pid/thuc-hien": async () => {
+      const r = await goi("thực hiện phiếu xoá", "POST", `/api/parties/phieu-xoa/${phieuXoaCho(khac)}/thuc-hien`, SUP, { xacNhan: true }, 200);
+      assert.equal(r.json.ok, true);
+      assert.notEqual(w.q("SELECT erased_at FROM pty_person_document WHERE party_id = ?", khac)[0].erased_at, null, "chống bài rỗng: giấy tờ đã ẩn danh");
+    },
+    "POST /api/parties/phieu-xoa/chay-lai": async () => {
+      await goi("chạy lại xoá kho + bản ngoài", "POST", "/api/parties/phieu-xoa/chay-lai", SUP, undefined, 200);
+    },
   };
+  /** Phiếu xoá đang chờ chèn THẲNG cho hồ sơ không tài khoản (người gửi = TX: hồ sơ này không đăng nhập được để tự gửi); route Thực hiện đọc phiếu như mọi phiếu khác. */
+  const guiXoaThang = (partyId: string) => {
+    w.sqlite.prepare("INSERT INTO pty_erasure_request (id, party_id, status, created_at, created_by, updated_at, updated_by) VALUES (?, ?, 'CHO_XU_LY', ?, ?, ?, ?)")
+      .run(crypto.randomUUID(), partyId, new Date().toISOString(), TX, new Date().toISOString(), TX);
+  };
+  const phieuXoaCho = (partyId: string): string => w.q("SELECT id FROM pty_erasure_request WHERE party_id = ? AND status = 'CHO_XU_LY'", partyId)[0].id as string;
 
   // (1) ĐỦ TUYẾN
   assert.deepEqual(Object.keys(TUYEN).sort(), TUYEN_THAT, "mỗi route giấy tờ thật phải có ca ở TUYEN (và ngược lại)");
@@ -235,11 +268,12 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
   const nhatKy = JSON.stringify(w.q("SELECT * FROM audit_log"));
   const nhatKyGon = nhatKy.replace(/[\s.\-]/g, "");
   for (const s of [...DAU_SO_NGUOI, ...DAU_SO_XE]) assert.ok(!nhatKy.includes(s) && !nhatKyGon.includes(s.replace(/[\s.\-]/g, "")), `nhật ký lộ "${s}"`);
-  for (const noi of [NOI, NOI_MOI, NOI_PHIEU]) assert.ok(!nhatKy.includes(noi), `nhật ký lộ nơi cấp "${noi}"`);
+  for (const noi of [NOI, NOI_MOI, NOI_PHIEU, NOI_XOA]) assert.ok(!nhatKy.includes(noi), `nhật ký lộ nơi cấp "${noi}"`);
   assert.ok(w.q("SELECT count(*) n FROM audit_log WHERE action LIKE 'party_document_%' OR action LIKE 'vehicle_document_%'")[0].n >= 10, "chống bài rỗng: có nhật ký giấy tờ để quét");
 
   // (3) THÂN TRẢ VỀ (trừ "xem đủ số"): không số của NGƯỜI.
   for (const t of than) for (const s of DAU_SO_NGUOI) assert.ok(!t.text.includes(s), `thân "${t.khoa}" lộ "${s}"`);
+  for (const t of than.filter((x) => /phiếu xoá|chạy lại xoá/.test(x.khoa))) assert.ok(!t.text.includes(NOI_XOA), `thân "${t.khoa}" lộ nơi cấp`); // xem trước / thực hiện chỉ số đếm
   assert.ok(than.some((t) => t.text.includes(NOI)), "chống bài rỗng: nơi cấp CÓ hiện ở danh sách giấy tờ (không phải số)");
   assert.ok(than.some((t) => t.text.includes("••••7665")), "chống bài rỗng: số che có mặt");
   assert.ok(cuaToiCoGiay.text.includes("••••7665") && cuaToiCoGiay.text.includes("••••7666"), "chống bài rỗng: Hồ sơ của tôi mang số che của CCCD và GPLX hiện hành");

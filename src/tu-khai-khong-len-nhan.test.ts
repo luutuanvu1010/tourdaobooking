@@ -145,3 +145,31 @@ test("(5) rutPhieuTuKhaiKhiGuiXoaStatement chỉ được gọi ở POST /api/pa
   }
   assert.deepEqual(noi, ["POST /api/parties/cua-toi/phieu-xoa"]);
 });
+
+// ADR-0126 đ3 (lát H-5 việc 5): các hàm của luồng XỬ LÝ phiếu xoá chạm bảng phiếu tự khai (ẩn danh hoá, đếm xem trước, quyết, từ chối) chỉ được GỌI ở ĐÚNG các route /api/parties/phieu-xoa… đã liệt kê.
+// Thêm một route xử lý mới gọi chúng = sửa danh sách này có chủ đích. Phá thử: gọi anDanhStatements trong respondParty → đỏ.
+const ROUTE_XU_LY_XOA: Record<string, string[]> = {
+  anDanhStatements: ["POST /api/parties/phieu-xoa/:pid/thuc-hien"],
+  demXemTruocXoa: ["GET /api/parties/phieu-xoa/:pid", "POST /api/parties/phieu-xoa/:pid/thuc-hien"],
+  quyetPhieuXoaStatement: ["POST /api/parties/phieu-xoa/:pid/thuc-hien"],
+  tuChoiPhieuXoaStatement: ["POST /api/parties/phieu-xoa/:pid/tu-choi"],
+};
+test("(6) hàm xử lý phiếu xoá chỉ được gọi ở đúng các route /api/parties/phieu-xoa…; tệp parties khác không nhắc; không đường vòng", () => {
+  const THU_MUC = join(SRC, "modules/parties");
+  const noi: Record<string, string[]> = Object.fromEntries(Object.keys(ROUTE_XU_LY_XOA).map((h) => [h, []]));
+  for (const f of tepTs(THU_MUC).filter((p) => !p.endsWith("/repository.ts"))) {
+    const goc = readFileSync(f, "utf8").replace(/^import[\s\S]*?from\s+"[^"]+";\s*$/gm, "");
+    if (!f.endsWith("/parties/index.ts")) {
+      for (const h of Object.keys(ROUTE_XU_LY_XOA)) assert.doesNotMatch(goc, new RegExp(`\\b${h}\\b`), `${h} ở ${f}`);
+      continue;
+    }
+    for (const k of goc.split(/(?=\broute\(")/)) {
+      const m = /^route\("([A-Z]+)", "([^"]+)"/.exec(k);
+      for (const h of Object.keys(ROUTE_XU_LY_XOA)) {
+        if (new RegExp(`\\b${h}\\s*\\(`).test(k)) noi[h]!.push(m ? `${m[1]} ${m[2]}` : "(ngoài route)");
+        assert.doesNotMatch(k, new RegExp(`\\b${h}\\b(?!\\s*\\()`), `${h} được nhắc mà không gọi (gán / truyền đi là đường vòng)`);
+      }
+    }
+  }
+  assert.deepEqual(Object.fromEntries(Object.entries(noi).map(([h, ds]) => [h, ds.sort()])), Object.fromEntries(Object.entries(ROUTE_XU_LY_XOA).map(([h, ds]) => [h, [...ds].sort()])));
+});

@@ -409,3 +409,49 @@ test("G16: sau gộp, mọi route ghi của parties trên hồ sơ phụ → 409
   assert.equal(tk.json.error.code, "party_merged", tk.text);
   assert.deepEqual({ ...w.q("SELECT active, merged_into_id m FROM pty_party WHERE id = ?", A)[0] }, { active: 0, m: B.partyId });
 });
+
+// ---- ADR-0126 (lát H-5 việc 5; ruling R16): hồ sơ đang có / đã thực hiện phiếu xoá thì KHÔNG gộp — cả hai chiều; xem trước báo cùng mã; trigger là lớp hai -----------------------------------
+const CAU_GOP_XOA = "Hồ sơ đang có hoặc đã thực hiện yêu cầu xoá dữ liệu — không gộp được.";
+const guiXoa = (w: any, as: string) => w.call("POST", "/api/parties/cua-toi/phieu-xoa", { as, body: { xacNhan: true } });
+
+test("(p11) gộp: hồ sơ có phiếu xoá đang chờ HOẶC đã thực hiện → 409 merge_erasure ở cả hai chiều (hồ sơ phụ lẫn hồ sơ chính), xem trước báo cùng mã, không đổi gì", async () => {
+  const w = nen();
+  const A = await taoA(w);
+  const B = await taoB(w);
+  const g = await guiXoa(w, B.staffId);
+  assert.equal(g.status, 201, g.text);
+  for (const [tu, den, ten] of [[A, B.partyId, "vào hồ sơ có phiếu xoá (chiều hồ sơ chính)"], [B.partyId, A, "từ hồ sơ có phiếu xoá (chiều hồ sơ phụ, có tài khoản)"]] as const) {
+    const r = await gop(w, ADM, tu, den, "bất kỳ");
+    assert.equal(r.status, 409, `${ten}: ${r.text}`);
+    assert.equal(r.json.error.code, "merge_erasure", ten);
+    assert.equal(r.json.error.message, CAU_GOP_XOA, ten);
+    const xt = await xemTruoc(w, ADM, tu, den);
+    assert.equal(xt.status, 200, xt.text);
+    assert.ok(xt.json.chan.some((c: { code: string; message: string }) => c.code === "merge_erasure" && c.message === CAU_GOP_XOA), `${ten}: xem trước phải báo`);
+  }
+  // Đã THỰC HIỆN (Toàn quyền xử lý; B là Bán hàng, không còn đơn nào): vẫn chặn.
+  const th = await w.call("POST", `/api/parties/phieu-xoa/${g.json.id}/thuc-hien`, { as: SUP, body: { xacNhan: true } });
+  assert.equal(th.status, 200, th.text);
+  const sau = await gop(w, ADM, A, B.partyId, "bất kỳ");
+  assert.equal(sau.status, 409);
+  assert.equal(sau.json.error.code, "merge_erasure");
+  assert.equal(w.q("SELECT active FROM pty_party WHERE id = ?", A)[0].active, 1);
+  assert.equal(w.q("SELECT merged_into_id FROM pty_party WHERE id = ?", A)[0].merged_into_id, null);
+  assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'party_merged'")[0].n, 0);
+});
+
+test("(p11b) phiếu xoá được gửi GIỮA lúc route tính và lúc ghi lô gộp → lỗi trigger party_merge_erasure dịch thành 409 merge_erasure (không 500, không gộp)", async () => {
+  const w = nen();
+  const A = await taoA(w);
+  const B = await taoB(w);
+  w.chenTruocLo((stmts: { sql: string }[]) => stmts.some((x) => /^\s*UPDATE pty_party\b/.test(x.sql) && /merged_into_id\s*=/.test(x.sql)), async () => {
+    w.sqlite.prepare("INSERT INTO pty_erasure_request (id, party_id, status, created_at, created_by, updated_at, updated_by) VALUES ('0b1e5c2a-0000-4000-8000-0000000000e3', ?, 'CHO_XU_LY', ?, ?, ?, ?)")
+      .run(B.partyId, AT, B.staffId, AT, B.staffId);
+  });
+  const r = await gop(w, ADM, A, B.partyId);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "merge_erasure");
+  assert.equal(r.json.error.message, CAU_GOP_XOA);
+  assert.equal(w.q("SELECT active FROM pty_party WHERE id = ?", A)[0].active, 1);
+  assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'party_merged'")[0].n, 0);
+});

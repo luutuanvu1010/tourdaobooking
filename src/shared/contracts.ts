@@ -976,6 +976,8 @@ export interface PersonDocumentDto {
   /** Chưa huỷ và không có dòng gia hạn còn hiệu lực — chỉ dòng hiện hành gia hạn / sửa sai được. */
   current: boolean;
   voided: boolean;
+  /** ADR-0126: dòng đã ẩn danh theo yêu cầu xoá — `maskedNumber` luôn null, không "xem đủ số", không sửa / gia hạn. */
+  daXoa: boolean;
   /** Khoá lạc quan của sửa sai (`expectedUpdatedAt`). */
   updatedAt: string;
 }
@@ -1055,6 +1057,25 @@ export interface PhieuTuKhaiRutResponse { phieuId: string; trangThai: "RUT" }
 /** `POST /api/parties/cua-toi/phieu-xoa` (thân `{ xacNhan: true }`) → 201; `POST …/phieu-xoa/:id/rut` → 200. */
 export interface PhieuXoaTaoResponse { id: string }
 export interface PhieuXoaRutResponse { id: string; trangThai: "RUT" }
+
+// ---- Xử lý yêu cầu xoá (ADR-0126 đ2, đ3; lát H-5 Gói 2) — route /api/parties/phieu-xoa*, cổng admin, ô party.erasure.process. KHÔNG giá trị cá nhân: xem trước chỉ SỐ ĐẾM. ----
+/** Một dòng hàng chờ (`GET /api/parties/phieu-xoa`; quá hạn trước, cũ trước; ngoài cấp bậc bị lọc; tối đa 50). `xuLyDuoc` false thì `lyDoKhong` là câu tiếng Việt. */
+export interface PhieuXoaChoDto { id: string; tenHoSo: string; guiLuc: string; han: string | null; trangThaiHan: "chua_co_han" | "con_han" | "qua_han"; xuLyDuoc: boolean; lyDoKhong: string | null }
+/** Một dòng đã xử lý (50 mới nhất). `chuaChepNgoai`: đã thực hiện nhưng bản ngoài D1 chưa chép (chạy lại ở `POST …/phieu-xoa/chay-lai`). */
+export interface PhieuXoaDaXuLyDto { id: string; ketQua: "DA_THUC_HIEN" | "TU_CHOI" | "RUT"; nguoiXuLy: string | null; luc: string; lyDo: string | null; chuaChepNgoai: boolean }
+export interface PhieuXoaChoResponse { phieu: PhieuXoaChoDto[]; daXuLy: PhieuXoaDaXuLyDto[] }
+/** `GET /api/parties/phieu-xoa/:pid` (no-store). `phanGiuLai`: mã (giao diện gắn nhãn bằng PHAN_GIU_LAI). `hoSoGopVao`: số hồ sơ phụ đã gộp vào hồ sơ này, cũng bị phủ. */
+export interface PhieuXoaXemTruocDto {
+  id: string; tenHoSo: string; guiLuc: string; han: string | null; trangThaiHan: string;
+  seXoa: { giayTo: number; phieuTuKhai: number; lienHe: number; ngaySinh: boolean; tep: number; phienDangNhap: boolean };
+  giuTen: boolean; phanGiuLai: string[]; xuLyDuoc: boolean; lyDoKhong: string | null; hoSoGopVao: number;
+}
+/** `POST …/phieu-xoa/:pid/thuc-hien` (thân `{ xacNhan: true }`). `conChoXoaKho`: tệp đã quyết xoá nhưng kho chưa xoá; `chuaChepNgoai`: bản ngoài D1 chưa chép. */
+export interface PhieuXoaThucHienResponse { ok: true; conChoXoaKho: number; chuaChepNgoai: boolean }
+/** `POST …/phieu-xoa/:pid/tu-choi` (thân `{ lyDo: <mã danh sách đóng> }`). */
+export interface PhieuXoaTuChoiResponse { ok: true }
+/** `POST …/phieu-xoa/chay-lai`. */
+export interface PhieuXoaChayLaiResponse { daChep: number; daXoaKho: number; conLoi: number }
 
 // ---- Xác minh phiếu tự khai (ADR-0125; lát H-4 Gói 2) — route /api/parties/xac-minh*, cổng accounts, ô party.verify. KHÔNG SĐT, email, vai; số giấy tờ luôn che. ----
 /** Một dòng hàng chờ (`GET /api/parties/xac-minh?trang=cho`; tối đa 50, xác minh được trước, cũ trước). `loai`: NGAY_SINH | DIA_CHI | GIAY_TO. `lyDoKhong`: câu tiếng Việt khi `xacMinhDuoc` false. */
