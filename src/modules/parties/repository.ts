@@ -1135,7 +1135,7 @@ export async function hanGiuPhienNgay(db: D1Database): Promise<number | null> {
   const r = await db.prepare(HAN_GIU_PHIEN).first<{ ngay: number | null }>();
   return r?.ngay ?? null;
 }
-export const chinhSachHienHanh =(db: D1Database, nowIso: string): Promise<PolicyRow | null> => db.prepare(CURRENT_POLICY).bind(nowIso).first<PolicyRow>();
+export const chinhSachHienHanh = (db: D1Database, nowIso: string): Promise<PolicyRow | null> => db.prepare(CURRENT_POLICY).bind(nowIso).first<PolicyRow>();
 export async function phienBanLonNhat(db: D1Database): Promise<number> {
   return (await db.prepare(MAX_POLICY_VERSION).first<{ v: number }>())?.v ?? 0;
 }
@@ -1366,6 +1366,10 @@ const RUT_PHIEU_XOA = defineSql("parties", "withdraw_erasure_request",
 const QUYET_PHIEU_XOA = defineSql("parties", "decide_erasure_request",
   `UPDATE pty_erasure_request SET status = 'DA_THUC_HIEN', decided_at = ?3, decided_by = ?2, name_kept = ?4, retained_codes = ?5, updated_at = ?3, updated_by = ?2
    WHERE id = ?1 AND status = 'CHO_XU_LY' AND created_by <> ?2`);
+// Câu CHẶN LÔ (vòng sửa 1, I-1): đứng ngay sau câu quyết. Lô thắng ⇒ lính gác sai ⇒ 0 dòng, không gì xảy ra. Lô THUA ⇒ đặt lại 'CHO_XU_LY' lên dòng đã rút / bị từ chối / do chính người gửi xử lý ⇒ trigger
+// pty_erasure_request_status_one_way ABORT ⇒ D1 huỷ cả lô, nên câu sổ phiên của auth (không lính gác — module khác) KHÔNG chạy. ?1 mã, ?2 người, ?3 lúc (cùng bộ với DA_THANG_XOA).
+const CHAN_LO_NEU_THUA_XOA = defineSql("parties", "erasure_batch_abort_if_lost",
+  `UPDATE pty_erasure_request SET status = 'CHO_XU_LY' WHERE id = ?1 AND NOT (${DA_THANG_XOA})`);
 const TU_CHOI_PHIEU_XOA = defineSql("parties", "reject_erasure_request",
   `UPDATE pty_erasure_request SET status = 'TU_CHOI', decided_at = ?3, decided_by = ?2, reason_code = ?4, updated_at = ?3, updated_by = ?2
    WHERE id = ?1 AND status = 'CHO_XU_LY' AND created_by <> ?2`);
@@ -1553,6 +1557,9 @@ export const rutPhieuXoaStatement = (db: D1Database, v: { id: string; actorId: s
   db.prepare(RUT_PHIEU_XOA).bind(v.id, v.actorId, v.at);
 export const quyetPhieuXoaStatement = (db: D1Database, v: { id: string; actorId: string; at: string; giuTen: boolean; phanGiuLai: string }): D1PreparedStatement =>
   db.prepare(QUYET_PHIEU_XOA).bind(v.id, v.actorId, v.at, v.giuTen ? 1 : 0, v.phanGiuLai);
+/** Đặt NGAY SAU câu quyết trong lô Thực hiện: nếu câu quyết thua thì ném lỗi `erasure_status_one_way` và D1 huỷ cả lô (câu sổ phiên của auth không chạy). Cùng ?1 ?2 ?3 với câu quyết. */
+export const chanLoNeuThuaXoaStatement = (db: D1Database, v: { id: string; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(CHAN_LO_NEU_THUA_XOA).bind(v.id, v.actorId, v.at);
 export const tuChoiPhieuXoaStatement = (db: D1Database, v: { id: string; actorId: string; at: string; lyDo: string }): D1PreparedStatement =>
   db.prepare(TU_CHOI_PHIEU_XOA).bind(v.id, v.actorId, v.at, v.lyDo);
 export const danhDauOffsiteStatement = (db: D1Database, v: { id: string; at: string }): D1PreparedStatement => db.prepare(DANH_DAU_OFFSITE).bind(v.id, v.at);

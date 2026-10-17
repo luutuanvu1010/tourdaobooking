@@ -495,7 +495,8 @@ test("(p5) thực hiện lần hai (người khác) → 409 erasure_not_pending,
   const dua = await thucHien(w, ADM, c.phieuId);
   assert.equal(dua.status, 409, dua.text);
   assert.equal(dua.json.error.code, "erasure_not_pending");
-  // Ghi nhận (chấp nhận có tên, báo cáo việc 5): câu sổ phiên của auth KHÔNG có lính gác — lô thua vẫn làm rỗng IP / User-Agent của tài khoản (không bài nào khoá hành vi này).
+  // Vòng sửa 1, I-1: lô thua (người dùng đã RÚT) thì câu sổ phiên của auth cũng không chạy — IP / User-Agent của họ còn nguyên.
+  assert.deepEqual(Q(w, "SELECT ip, user_agent FROM aut_session WHERE staff_id = ?", DRVP), [{ ip: IP_THAT, user_agent: UA_THAT }], "lô thua ⇒ phiên không bị ẩn danh");
   assert.equal(Q(w, "SELECT birth_date FROM pty_person WHERE party_id = ?", c.p)[0].birth_date, NGAY_SINH_THAT, "ngày sinh nguyên: lô thua thì mọi câu ẩn danh changes = 0");
   assert.equal(Q(w, "SELECT erased_at FROM pty_person_document WHERE id = ?", c.docId)[0].erased_at, null);
   assert.equal(Q(w, "SELECT value FROM pty_contact_point WHERE party_id = ?", c.p)[0].value, SDT_THAT);

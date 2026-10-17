@@ -34,7 +34,7 @@ import {
   chinhSachHienHanh, phienBanLonNhat, dangChinhSachStatement, phienBanDangDongY, ghiDongYStatement, rutMoiPhieuChoStatement, listPhieuCuaHoSo, type PhieuRow,
   ghiPhieuStatement, timPhieuCuaHoSo, rutPhieuStatement,
   guiPhieuXoaStatement, listPhieuXoaCuaHoSo, rutPhieuTuKhaiKhiGuiXoaStatement, rutPhieuXoaStatement, timPhieuXoa, type PhieuXoaRow,
-  anDanhStatements, coPhieuXoaChoHoacDa, demHoSoGopVao, demXemTruocXoa, listPhieuChuaChepNgoai, listPhieuXoaChoCoTen, listPhieuXoaDaXuLy, quyetPhieuXoaStatement, tepChoXoaCuaPhieu,
+  anDanhStatements, chanLoNeuThuaXoaStatement, coPhieuXoaChoHoacDa, demHoSoGopVao, demXemTruocXoa, listPhieuChuaChepNgoai, listPhieuXoaChoCoTen, listPhieuXoaDaXuLy, quyetPhieuXoaStatement, tepChoXoaCuaPhieu,
   tepChoXoaLyDoPhieu, timPhieuXoaCoTen, tuChoiPhieuXoaStatement, datChoXoaAnhHetGiuStatement, listAnhHetLyDoGiu, type AnhHetGiuRow,
   canXacMinhLaiStatement, chamCuaTaiKhoan, ghiDiaChiTuPhieuStatement, ghiGiayToTuPhieuStatement, ghiNgaySinhTuPhieuStatement, ghiXacMinhTuPhieuStatement, lamMoiHoSoTuPhieuStatement, quyetPhieuStatement, listPhieuCho, listPhieuDaXuLy, soDuCuaPhieuCho, timPhieuChoXet, trungSoHoSoKhac,
   datHoatDongLoaiDoiTacStatement, hoSoMangNhan, openRoleCodesFor, themLoaiDoiTacStatement, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements, vaiDangMo,
@@ -1275,10 +1275,17 @@ export const partiesModule: AppModule = {
           staffId: staff.id, action: "party_erased", at, targetType: "party", targetId: p.party_id,
           detail: `phiếu ${p.id} · giấy tờ ${dem.giayTo} · phiếu tự khai ${dem.phieuTuKhai} · liên hệ ${dem.lienHe} · tệp ${dem.tep}`,
         }, "changes() > 0"),
+        chanLoNeuThuaXoaStatement(env.DB, { id: p.id, actorId: staff.id, at }), // thua cuộc đua ⇒ trigger ABORT ⇒ D1 huỷ cả lô, câu sổ phiên của auth không chạy (vòng sửa 1, I-1)
         ...anDanhStatements(env.DB, { id: p.id, partyId: p.party_id, actorId: staff.id, at, homNay: vnToday(new Date(at)) }),
         ...(cauPhien ? [cauPhien] : []),
       ];
-      const kq = await env.DB.batch(lo);
+      let kq: D1Result[];
+      try {
+        kq = await env.DB.batch(lo);
+      } catch (e) {
+        if (e instanceof Error && e.message.includes("erasure_status_one_way")) return ERASURE_NOT_PENDING();
+        throw e;
+      }
       if ((kq[0]?.meta.changes ?? 0) === 0) return ERASURE_NOT_PENDING(); // thua cuộc đua với "Rút" của người dùng / "Từ chối" của người khác: mọi câu ẩn danh changes = 0
       let conChoXoaKho = dem.tep;
       let chuaChepNgoai = true;
