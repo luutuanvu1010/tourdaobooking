@@ -811,6 +811,21 @@ test("(a3) Quản trị chỉ thấy tệp của hồ sơ không tài khoản ho
   assert.notEqual(Q(w, "SELECT purged_at FROM pty_attachment WHERE id = ?", cuaDoiTac.tepId)[0].purged_at, null);
 });
 
+test("(a3b) Quản trị vẫn thấy và xoá được tệp của mình khi hơn 500 tệp cũ hơn thuộc hồ sơ ngoài cấp bậc (lọc phạm vi trong SQL) — vòng sửa 1, m-3", async () => {
+  const w = setup();
+  vaiMo(w, pty(HR));
+  const them = w.sqlite.prepare(
+    `INSERT INTO pty_attachment (id, party_id, storage_key, content_kind, byte_size, content_hash, stored_at, created_at, created_by, updated_at, updated_by)
+     VALUES (?, ?, ?, 'jpg', 3, ?, ?, '2019-01-01T00:00:00.000Z', 'x', ?, 'x')`);
+  for (let i = 0; i < 520; i++) { const id = uuidAnh(); them.run(id, pty(HR), `pty/${id.replace(/-/g, "")}`, "c".repeat(64), AT, AT); }
+  const cua = await gieoAnh(w, pty(PARTNER), { han: "2020-01-01" });
+  const ds = await dsAnh(w, ADM);
+  assert.deepEqual(ds.json.anh.map((x: { id: string }) => x.id), [cua.tepId], "Quản trị thấy tệp của mình, không thấy 520 tệp Nhân sự");
+  const r = await xoaAnh(w, ADM, [cua.tepId]);
+  assert.deepEqual(r.json, { daQuyet: 1, boQua: 0, conChoXoaKho: 0 });
+  assert.equal((await dsAnh(w, SUP)).json.anh.length, 500, "Toàn quyền: trần 500 vẫn áp");
+});
+
 test("(a4) xoá 2 tệp hợp lệ + 1 tệp đã có lại lý do giữ ⇒ daQuyet = 2, boQua = 1; đúng 2 dòng nhật ký chỉ mã; tệp bị bỏ qua vẫn mở được; kho đã xoá hai tệp kia", async () => {
   const w = setup();
   const t1 = await gieoAnh(w, pty(PARTNER), { han: "2020-01-01" });

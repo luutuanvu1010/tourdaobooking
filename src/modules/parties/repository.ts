@@ -1486,7 +1486,9 @@ const LIST_ANH_HET_GIU = defineSql("parties", "list_attachments_without_keep_rea
      ${LY_DO_ANH} AS ly_do
    FROM pty_attachment a JOIN pty_party p ON p.id = a.party_id
    WHERE a.purged_at IS NULL AND a.stored_at IS NOT NULL AND NOT (${GIU_ANH(1)})
+     AND a.party_id NOT IN (SELECT value FROM json_each(?2))
    ORDER BY a.created_at, a.id LIMIT 500`);
+// ?2 = mảng JSON mã hồ sơ NGOÀI phạm vi người bấm (lọc trong SQL để trần 500 không bị hồ sơ ngoài phạm vi chiếm hết — vòng sửa 1, m-3).
 // Lính gác: đến lúc bấm tệp vẫn hết lý do giữ (đã có lại lý do giữ giữa lúc đọc danh sách và lúc bấm ⇒ 0 dòng). ?1 tệp, ?2 người, ?3 lúc, ?4 hôm nay.
 const DAT_CHO_XOA_ANH_HET_GIU = defineSql("parties", "purge_attachment_without_keep_reason",
   `UPDATE pty_attachment AS a SET purged_at = ?3, purge_reason = '${LY_DO_XOA_TEP_HET_GIU}', content_hash = NULL, updated_at = ?3, updated_by = ?2
@@ -1545,8 +1547,8 @@ export async function demXemTruocXoa(db: D1Database, partyId: string): Promise<X
 export async function tepChoXoaCuaPhieu(db: D1Database, partyId: string): Promise<TepCanXoaRow[]> {
   return (await db.prepare(TEP_CHO_XOA_CUA_PHIEU).bind(partyId).all<TepCanXoaRow>()).results;
 }
-export async function listAnhHetLyDoGiu(db: D1Database, homNay: string): Promise<AnhHetGiuRow[]> {
-  return (await db.prepare(LIST_ANH_HET_GIU).bind(homNay).all<AnhHetGiuRow>()).results;
+export async function listAnhHetLyDoGiu(db: D1Database, homNay: string, hoSoNgoaiPham: readonly string[] = []): Promise<AnhHetGiuRow[]> {
+  return (await db.prepare(LIST_ANH_HET_GIU).bind(homNay, JSON.stringify(hoSoNgoaiPham)).all<AnhHetGiuRow>()).results;
 }
 
 export const guiPhieuXoaStatement = (db: D1Database, v: { id: string; partyId: string; actorId: string; at: string }): D1PreparedStatement =>

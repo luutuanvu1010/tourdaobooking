@@ -695,7 +695,9 @@ const ANH_SAI_KHUON = () => error(400, "invalid_input", `Hãy chọn từ 1 đ�
 /** Ảnh hết lý do giữ trong PHẠM VI người bấm (Toàn quyền: hết; Quản trị: hồ sơ không tài khoản hoặc tài khoản quản được). Chỉ ĐỌC. */
 async function anhTrongPham(db: D1Database, staff: StaffProfile, dsTk: readonly TaiKhoanXacMinh[], homNay: string): Promise<AnhHetGiuRow[]> {
   const nguoi = { permissions: staff.permissions };
-  return (await listAnhHetLyDoGiu(db, homNay)).filter((r) => thayAnhCuaHoSo({ nguoi, chuHoSo: dsTk.find((t) => t.partyId === r.party_id) ?? null }));
+  const duocXoa = (partyId: string) => thayAnhCuaHoSo({ nguoi, chuHoSo: dsTk.find((t) => t.partyId === partyId) ?? null });
+  const ngoaiPham = [...new Set(dsTk.flatMap((t) => (t.partyId ? [t.partyId] : [])))].filter((id) => !duocXoa(id)); // lọc ngay trong SQL; bộ lọc dưới là lớp hai
+  return (await listAnhHetLyDoGiu(db, homNay, ngoaiPham)).filter((r) => duocXoa(r.party_id));
 }
 const KHONG_VIEC: ViecDangMo = { doi: 0, phuTrachDon: 0, laiChuyen: 0, toLaiChuyen: 0, chuXeChuyen: 0, soXe: 0 };
 /**
