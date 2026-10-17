@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { FEEDBACK_KINDS, FEEDBACK_KIND_NAME, FEEDBACK_STATUSES, FEEDBACK_STATUS_NAME } from "../../shared/feedback-catalog.ts";
+import { LAM_MOI_TRAN } from "../../shared/ve-ho-tro-hien-thi.ts";
 import {
   BODY_MAX, CAU_DON_LIEN_QUAN_SAI, MESSAGES_SINCE_LIMIT, TITLE_MAX, parseContext, parseSince, sanitizeContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch, validateTicketInput, windowStart,
 } from "./rules.ts";
@@ -153,4 +154,8 @@ test("parseSince (tuyến làm mới, ADR-0127 quyết định 1): chỉ nhận 
     "2026-02-30T00:00:00Z", "2026-10-17T24:00:00Z", "2026-10-17T03:04:05.1234Z", " 2026-10-17T03:04:05Z", "1e12"]) {
     assert.equal(parseSince(sai), null, String(sai));
   }
+});
+
+test("trần trang của tuyến làm mới: hằng phía khách (LAM_MOI_TRAN) bằng đúng MESSAGES_SINCE_LIMIT của máy chủ — lệch thì khách không biết khi nào phải gọi tiếp ngay", () => {
+  assert.equal(LAM_MOI_TRAN, MESSAGES_SINCE_LIMIT);
 });
