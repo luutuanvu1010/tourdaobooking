@@ -1,6 +1,7 @@
 # ADR-0128 — Vận chuyển, nhóm 1 trong 2 điểm lệch sổ vàng: mốc ra lệnh 30 phút do Quản trị đặt; xe riêng không bao giờ ghép thêm khách lẻ; thêm khách khi xe thiếu chỗ thì giữ nguyên xe
 
-- **Trạng thái:** **proposed — chờ chủ dự án duyệt.** AI soạn, không tự duyệt (Hiến pháp N3, N9). Nguồn: lời chủ trong chat 2026-10-16 khi duyệt sổ vàng vận chuyển (`golden/van-chuyen/dieu-phoi-30-ca.json`, `golden/dieu-phoi/xe-a-b-luot-1.json`); các ca đang chạy ở dạng chờ có tên: B09 (mốc), VC-05, VC-06 (xe riêng), VC-17 (thêm khách).
+- **Trạng thái:** **accepted** — chủ dự án, chat 2026-10-17: *"duyệt cả ba theo khuyến nghị"*, hiểu là **Q1 = (a), Q2 = (a), Q3 = (a)** (ba quyết định của bản này, mỗi câu phương án khuyến nghị). Chưa thi công mã; thi công theo kế hoạch riêng, kiểm độc lập sau khi xong. *(Các chữ «proposed», «chờ duyệt» còn lại trong thân là bản đề xuất lúc soạn, giữ nguyên.)*
+- **Trạng thái lúc soạn:** proposed — AI soạn, không tự duyệt (Hiến pháp N3, N9). Nguồn: lời chủ trong chat 2026-10-16 khi duyệt sổ vàng vận chuyển (`golden/van-chuyen/dieu-phoi-30-ca.json`, `golden/dieu-phoi/xe-a-b-luot-1.json`); các ca đang chạy ở dạng chờ có tên: B09 (mốc), VC-05, VC-06 (xe riêng), VC-17 (thêm khách).
 - **Ngày:** 2026-10-17. **Số:** 0128 (kiểm số ở mọi nhánh: 0127 là số lớn nhất đã dùng).
 - **Loại:** việc lớn (quyền, luật thi hành ở máy chủ). Cả ba quyết định **đảo được** (đổi dòng chính sách, đổi mã); không có cửa một chiều về dữ liệu. Cửa một chiều nằm ở ADR-0129 (nhóm 2).
 - **Sửa/bổ sung (khi duyệt):** ADR-0049 D2 (con số mốc gieo, ai đặt); ADR-0104 mục 0b (nghĩa của «cam kết»), mục Đ2 (iv) (thêm khách). Không sửa thân ADR cũ; điều bị thay ghi ở bảng cuối.
