@@ -9,7 +9,7 @@ import {
   markSessionReissuedStatement, passkeyRp, readPasskeyChallenge, revokeAllPasskeysIfSuspendedStatement, reissueSessionCookie, revokeAllPasskeysStatement,
   revokePasskeyStatement, toPasskeyDto, unlockPhone, verifyPinThrottled, verifyRegistration,
   MFA_UNAVAILABLE, allowedFactors, daBatHaiLop, batTotpStatements, boMaDuPhongMoi, goYeuToStatements, isInternal, khopKhoaMoi, kiemMaHienCo, mayTinSong, mfaBanner, moiKhoaTotp,
-  quenMayStatement, quenMoiMayStatement, recoveryCountLeft, yeuToSong, lockedMfaStaffIds, factorKindsByStaff, tatHaiLopStatements, trustedRevokeAllIfSuspendedStatement, unlockLogin,
+  quenMayStatement, quenMoiMayStatement, recoveryCountLeft, yeuToSong, lockedMfaStaffIds, factorKindsByStaff, tatHaiLopStatements, trustedRevokeAllIfSuspendedStatement, unlockLoginStatements,
   trustedRevokeOfSessionStatement, trustedRevokeOnEmailLossStatement, trustedRevokeOnPinStatement,
   EMAIL_VAI_LON, batEmailStatements, factorEndKindStatement, guiMaBatEmail, kiemMaBatEmail, normalizeEmail,
 } from "../auth";
@@ -809,8 +809,9 @@ export const accountsModule: AppModule = {
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
       if (!mayManage(ctx.staff, t)) return NOT_MANAGER();
-      await unlockLogin(db, t.phone, t.id); // kế hoạch Task 6, nhóm (c): gỡ CẢ khoá sai PIN lẫn khoá sai mã bước hai (`mfa:<id>`), cùng phạm vi quyền như cũ
-      await adminAudit(db, ctx.staff.id, "login_unlocked", t.id).run();
+      // Kế hoạch Task 6, nhóm (c): gỡ CẢ khoá sai PIN lẫn khoá sai mã bước hai (`mfa:<id>`), cùng phạm vi quyền như cũ. MỘT lô, nhật ký TRƯỚC (vòng sửa 1 lát H-4, I-3):
+      // nhật ký hỏng thì lô hỏng cả, không có chuyện đã mở khoá mà thiếu dòng `login_unlocked` (tầng CUA_SO_30 của lính gác ADR-0125 đ5).
+      await db.batch([adminAudit(db, ctx.staff.id, "login_unlocked", t.id), ...unlockLoginStatements(db, t.phone, t.id)]);
       return json({ ok: true });
     }),
 

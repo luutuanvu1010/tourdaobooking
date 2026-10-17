@@ -58,3 +58,39 @@ test("(4) câu SQL GHI cột hạn lớp hai = đúng tập ghim", () => {
   // cửa sổ bật lại 24 giờ (CHỈ trong lô mfa_reset — đã là tầng VINH_VIEN). Thêm câu mới ⇒ ghi sự kiện tầng VINH_VIEN cùng lô rồi mới thêm vào đây.
   assert.deepEqual(ghi.sort(), ["staff/insert", "staff/mfa_enroll_set", "staff/mfa_grace_if_null"].sort());
 });
+
+// (5) Vòng sửa 1, I-2: câu SQL ghi cột hạn lớp hai chỉ là một nửa — ai GỌI hai hàm công bố của staff mới là nơi "mở lại 24 giờ" xảy ra. Mỗi lời gọi chỉ được nằm ở nơi có trong
+// danh sách đóng dưới đây, kèm lý do. Thêm lời gọi mới (vd lát ADR-0121 "mở lại 24 giờ") ⇒ phải ghi sự kiện tầng VINH_VIEN (mfa_grace_reopened) CÙNG LÔ rồi mới thêm vào đây.
+// GIỚI HẠN (dựa vào kỷ luật): bảng ngoại lệ tạm của ADR-0121 (sự kiện mfa_exception_set) chưa tồn tại nên chưa có bài canh — xem docs/SO-HANG-RAO.md.
+const nenCode = (s: string): string => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+const cacTepKhongTest = (d: string): string[] => readdirSync(d).flatMap((f) => {
+  const p = join(d, f);
+  return statSync(p).isDirectory() ? cacTepKhongTest(p) : p.endsWith(".ts") && !p.endsWith(".test.ts") ? [p] : [];
+});
+const GOC_SRC = fileURLToPath(new URL("../../", import.meta.url));
+
+test("(5) nơi gọi mfaEnrollWindowStatement / mfaGraceIfNullStatement = đúng tập ghim có lý do", () => {
+  const dem: Record<string, number> = {};
+  for (const p of cacTepKhongTest(GOC_SRC)) {
+    for (const m of nenCode(readFileSync(p, "utf8")).matchAll(/\b(mfaEnrollWindowStatement|mfaGraceIfNullStatement)\(/g)) {
+      const k = `${p.slice(GOC_SRC.length)}:${m[1]}`;
+      dem[k] = (dem[k] ?? 0) + 1;
+    }
+  }
+  const GHIM: Record<string, { n: number; lyDo: string }> = {
+    // định nghĩa của staff/index.ts là `= (db …) =>` nên không khớp mẫu gọi
+    "modules/auth/index.ts:mfaEnrollWindowStatement": { n: 1, lyDo: "đóng cửa sổ (đặt null) khi người dùng đã bật xong lớp hai — không mở thêm quyền" },
+    "modules/accounts/index.ts:mfaEnrollWindowStatement": { n: 1, lyDo: "route mfa-reset: cửa sổ 24 giờ nằm CÙNG LÔ với sự kiện mfa_reset (tầng VINH_VIEN)" },
+    "modules/accounts/index.ts:mfaGraceIfNullStatement": { n: 2, lyDo: "chỉ đặt ân hạn khi đang NULL (kích hoạt lại / trở thành nội bộ) — không trao quyền đăng nhập thay ai" },
+  };
+  assert.deepEqual(dem, Object.fromEntries(Object.entries(GHIM).map(([k, v]) => [k, v.n])));
+  for (const [k, v] of Object.entries(GHIM)) assert.ok(v.lyDo.length > 10, k);
+});
+
+test("(5b) accounts / auth không tự ghi cột hạn lớp hai bằng SQL thô (chỉ qua hàm công bố của staff)", () => {
+  for (const mod of ["accounts", "auth"]) {
+    for (const p of cacTepKhongTest(join(GOC_SRC, "modules", mod))) {
+      assert.doesNotMatch(nenCode(readFileSync(p, "utf8")), /mfa_grace_until|mfa_enroll_until/, `${p}: ghi cột hạn lớp hai bằng SQL thô`);
+    }
+  }
+});

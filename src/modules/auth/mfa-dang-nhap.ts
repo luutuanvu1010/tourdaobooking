@@ -21,8 +21,11 @@ export const clearMfaAttemptsStatement = (db: D1Database, staffId: string): D1Pr
  * quá nhiều" (`mfa:<id>`) trong MỘT lô. Phạm vi quyền của nút do route giữ — không đổi.
  */
 export async function unlockLogin(db: D1Database, phone: string, staffId: string): Promise<void> {
-  await db.batch([attemptDeleteKeyStatement(db, phoneKey(phone)), clearMfaAttemptsStatement(db, staffId)]);
+  await db.batch(unlockLoginStatements(db, phone, staffId));
 }
+/** Hai câu (CHƯA chạy) của nút "Mở khoá" — để route gộp CÙNG LÔ với dòng nhật ký `login_unlocked` (vòng sửa 1 lát H-4, I-3). */
+export const unlockLoginStatements = (db: D1Database, phone: string, staffId: string): D1PreparedStatement[] =>
+  [attemptDeleteKeyStatement(db, phoneKey(phone)), clearMfaAttemptsStatement(db, staffId)];
 
 export const TRUSTED_COOKIE = "td_trusted";
 export const TRUSTED_TTL_SECONDS = 30 * 86_400;

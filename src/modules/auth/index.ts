@@ -15,7 +15,7 @@ import { dbNgoaiVe } from "../../shared/lan-gui-boc";
 import { route, type AppModule } from "../../shared/router";
 import { newTrustedToken, sha256Hex } from "./mfa-crypto";
 import {
-  MFA_LIMIT, TRUSTED_COOKIE, TRUSTED_TTL_SECONDS, checkRecoveryCode, clearMfaAttemptsStatement, lockedMfaStaffIds, mfaKey, mfaKeyReady, trustedCookie, unlockLogin,
+  MFA_LIMIT, TRUSTED_COOKIE, TRUSTED_TTL_SECONDS, checkRecoveryCode, clearMfaAttemptsStatement, lockedMfaStaffIds, mfaKey, mfaKeyReady, trustedCookie, unlockLogin, unlockLoginStatements,
   useRecoveryCode, useRecoveryHash, useTotp,
 } from "./mfa-dang-nhap";
 import { MAIL_LIMIT, mailKey, maskEmail, normalizeEmail, phatMaEmail, useEmailCode } from "./mfa-email";
@@ -59,7 +59,7 @@ export { recoveryCountLeft };
 export { maskEmail, normalizeEmail };
 export { factorEndKindStatement };
 // Kế hoạch Task 6: danh sách Quản lý tài khoản (ai đã bật, ai đang bị khoá bước hai) và nút "Mở khoá" gỡ cả khoá bước hai.
-export { lockedMfaStaffIds, factorKindsByStaff, unlockLogin };
+export { lockedMfaStaffIds, factorKindsByStaff, unlockLogin, unlockLoginStatements };
 export { PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, issuePasskeyChallenge, limitChallenge, passkeyRp, readPasskeyChallenge };
 export { verifyRegistration } from "./webauthn";
 export { deviceLabel } from "./device-label";
