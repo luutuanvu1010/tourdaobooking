@@ -33,7 +33,7 @@ export const BI_MAT: readonly MauRoute[] = [
   // ADR-0123 (lát H-2 kho tệp): thân là ảnh giấy tờ (base64) — đường giấy tờ của người, bài T16 bắt; vé chỉ giữ trong bộ nhớ trang.
   "/api/parties/:id/documents/:did/tep",
   "/api/parties/cua-toi/phieu", // ADR-0124 (lát H-3): phiếu tự khai có số giấy tờ / ngày sinh / địa chỉ — T16 bắt qua kiemPhieuTuKhai
-  "/api/parties/xac-minh/:pid/xem-so", // ADR-0125 (lát H-4): phản hồi có số đủ của phiếu đang chờ
+  "/api/parties/xac-minh/:pid/xem-so", // ADR-0125 (lát H-4): THÂN RỖNG, số đủ nằm ở PHẢN HỒI (không phải thân gửi đi) — giữ dòng vì kế hoạch đòi; không bài nào canh dòng này (dựa vào kỷ luật, vòng sửa 1 m-1)
 ].map((path): MauRoute => ({ method: "POST", path }));
 
 // Mọi route ghi công khai hôm nay đều là POST — liệt kê ĐƯỜNG DẪN rồi dựng mẫu (gói trang nào cũng nhúng danh sách này: viết gọn để gói Đơn hàng không vượt

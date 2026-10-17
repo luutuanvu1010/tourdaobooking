@@ -27,7 +27,7 @@ test("(a) tệp 0107 có, đứng sau 0105, chỉ THÊM (không DROP, không ALT
   assert.doesNotMatch(sql, /\b(DROP|ALTER|INSERT|DELETE|UPDATE\s+\w+\s+SET)\b/i);
 });
 
-test("(b) view phân tầng đúng: tạo → TAO; đặt lại PIN, tắt lớp hai, hai sự kiện ADR-0121 → VINH_VIEN; năm hành động + đổi SĐT → CUA_SO_30; còn lại không vào", () => {
+test("(b) view phân tầng đúng: tạo → TAO; đặt lại PIN, tắt lớp hai, hai sự kiện ADR-0121 → VINH_VIEN; sáu hành động (kể cả kích hoạt lại tài khoản) + đổi SĐT → CUA_SO_30; còn lại không vào", () => {
   const d = db();
   const A = "acc-1", X = "actor-1";
   const vao: [string, string | undefined, string | null][] = [
@@ -35,6 +35,7 @@ test("(b) view phân tầng đúng: tạo → TAO; đặt lại PIN, tắt lớp
     ["mfa_grace_reopened", undefined, "VINH_VIEN"], ["mfa_exception_set", undefined, "VINH_VIEN"],
     ["passkey_removed", undefined, "CUA_SO_30"], ["login_unlocked", undefined, "CUA_SO_30"], ["permission_changed", undefined, "CUA_SO_30"],
     ["account_roles_changed", undefined, "CUA_SO_30"], ["staff_role_changed", undefined, "CUA_SO_30"],
+    ["staff_reactivated", undefined, "CUA_SO_30"], // vòng sửa 1, m-9 (ruling Q2, hướng siết)
     ["staff_updated", 'tên "A" → "B"; đổi SĐT đăng nhập', "CUA_SO_30"],
     ["staff_updated", 'tên "A" → "B"', null], ["staff_suspended", undefined, null], ["session_revoked", undefined, null], ["pin_changed", undefined, null],
   ];
@@ -44,7 +45,7 @@ test("(b) view phân tầng đúng: tạo → TAO; đặt lại PIN, tắt lớp
   // m-2: dòng target_type 'party' có target_id TRÙNG mã tài khoản cũng không được vào view (bỏ điều kiện target_type = 'staff' thì đỏ)
   ghiNhatKy(d, { id: "trung", actor: X, action: "pin_reset", target: A, at: T, targetType: "party" });
   const rows = d.prepare("SELECT loai, COUNT(*) AS n FROM v_aud_cham_tai_khoan WHERE account_id = ? AND actor_id = ? GROUP BY loai ORDER BY loai").all(A, X);
-  assert.deepEqual(rows.map((r) => [r.loai, Number(r.n)]), [["CUA_SO_30", 6], ["TAO", 1], ["VINH_VIEN", 4]]);
+  assert.deepEqual(rows.map((r) => [r.loai, Number(r.n)]), [["CUA_SO_30", 7], ["TAO", 1], ["VINH_VIEN", 4]]);
   assert.equal(Number(d.prepare("SELECT COUNT(*) AS n FROM v_aud_cham_tai_khoan WHERE actor_id IS NULL").get()!.n), 0);
 });
 

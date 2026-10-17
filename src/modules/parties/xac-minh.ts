@@ -58,5 +58,7 @@ export function loiLoChapNhan(e: unknown): { status: 409; code: string; message:
   if (m.includes("self_submission_decider_is_author")) return { status: 409, code: "verify_self", message: "Không xác minh phiếu của chính mình." };
   // Cùng một người bấm ở hai thẻ trong cùng mili-giây: lô sau thấy mình "thắng" (cùng decided_by, decided_at) và đụng dòng xác minh cùng mã ⇒ 409, không 500.
   if (m.includes("verification_no_replace")) return { status: 409, code: "submission_not_pending", message: "Phiếu đã được xử lý hoặc đã rút." };
+  // Đua với một lần gia hạn / sửa giấy tờ thủ công: dòng định xác minh không còn thuộc hồ sơ này ⇒ cả lô hỏng, phiếu vẫn chờ (vòng sửa 1, m-4).
+  if (m.includes("verification_target_mismatch")) return { status: 409, code: "verify_target_changed", message: "Hồ sơ đã thay đổi trong lúc xử lý nên phiếu này chưa được ghi — hãy mở lại phiếu và xem lại." };
   return null;
 }

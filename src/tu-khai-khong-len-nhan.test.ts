@@ -108,3 +108,17 @@ test("(3) hàm chạm bảng phiếu chỉ được GỌI trong thân route /api
   }
   assert.deepEqual(loi, []);
 });
+
+// Vòng sửa 1 (I-1): đường nối từ route xuống lính gác trong câu quyết. Lính gác tách nhiệm vụ chỉ đúng khi route truyền ĐÚNG hai thứ: người bấm (actorId) và việc người đó có phải
+// Toàn quyền không (laToanQuyen, lấy từ quyền của PHIÊN — không `true` cứng, không từ thân yêu cầu). Cả hai nơi gọi (chấp nhận, từ chối) phải ghim nguyên văn.
+// Phá thử: đổi `laToanQuyen: staff.permissions.includes("SUPER_ADMIN")` thành `laToanQuyen: true` ở một route → (4) đỏ.
+test("(4) mọi nơi gọi quyetPhieuStatement truyền actorId: staff.id và laToanQuyen từ quyền phiên (đúng 2 nơi: chấp nhận, từ chối)", () => {
+  const src = readFileSync(join(SRC, "modules/parties/index.ts"), "utf8").replace(/^import[\s\S]*?from\s+"[^"]+";\s*$/gm, "");
+  const goi = [...src.matchAll(/quyetPhieuStatement\(env\.DB, \{[^}]*\}\)/g)].map((m) => m[0]);
+  assert.equal(goi.length, 2, "chống bài rỗng: đúng hai nơi gọi (chap-nhan, tu-choi)");
+  assert.equal((src.match(/\bquyetPhieuStatement\s*\(/g) ?? []).length, 2, "không nơi gọi nào khác dạng");
+  for (const g of goi) {
+    assert.ok(g.includes("actorId: staff.id"), `thiếu actorId: staff.id — ${g}`);
+    assert.ok(g.includes('laToanQuyen: staff.permissions.includes("SUPER_ADMIN")'), `laToanQuyen không lấy từ quyền phiên — ${g}`);
+  }
+});

@@ -1258,6 +1258,9 @@ test("R-PTY-16 (ADR-0125 đ5 vế b, c): dòng xác minh KHÔNG mang cờ mà ng
   assert.equal(violations(db, c), 0, "sớm hơn biên 1 mili-giây: ngoài cửa sổ");
   db = xa(); nhatKyXm(db, "v4", "s-admin", "login_unlocked", ms(G, -25 * NGAY)); xacMinh(db, "ph-16", "p-16", "s-admin", 0, V);
   assert.equal(violations(db, c), 1, "sự kiện giữa G-30 và V-30: mốc cửa sổ là lúc GỬI (G), không phải lúc xác minh (V)");
+  // vòng sửa 1, m-9 (ruling Q2): kích hoạt lại tài khoản là tầng CUA_SO_30 — xác minh cờ 0 trong cửa sổ là lách
+  db = xa(); nhatKyXm(db, "v5", "s-admin", "staff_reactivated", ms(G, -5 * NGAY)); xacMinh(db, "ph-16", "p-16", "s-admin", 0, V);
+  assert.equal(violations(db, c), 1, "kích hoạt lại trong 30 ngày trước lúc gửi, cờ 0");
 });
 
 test("R-VC-1 (ADR-0040 D1): biển số không trùng giữa các xe CHƯA NGỪNG — xe đã ngừng giữ biển cũ không tính → 0; hai xe đang dùng cùng biển (chỉ mục bị gỡ) → 1", () => {

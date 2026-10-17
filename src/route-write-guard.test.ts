@@ -326,6 +326,16 @@ test("hàng rào cổng accounts (ADR-0071): mọi route cổng accounts có `if
   assert.deepEqual(thuoc.map((r) => key(r.method, r.path)).sort(), [...known].sort(), "đúng bảy route Quản lý tài khoản + năm route xác minh phiếu (ADR-0125) ở cổng accounts");
   const missing = thuoc.filter((r) => !hasAdminDenial(r.body, ACCOUNTS_DENIAL_RE)).map((r) => `${r.method} ${r.path} (${r.module})`);
   assert.deepEqual(missing, [], `Route cổng accounts không hỏi ô tài khoản: ${missing.join("; ")}. Đầu thân: if (!can(staff, "<ô>")) return …; ô thuộc ${ACCOUNTS_OPS.join(", ")}.`);
+  // Vòng sửa 1 (m-2): ô theo NHÓM đường dẫn — một route xác minh không được "mượn" ô account.* và ngược lại (ACCOUNTS_OPS dùng chung 12 route sẽ cho qua cả hai).
+  const NHOM_XAC_MINH = denialRe(["party.verify", "party.verify.attachment"]);
+  const NHOM_TAI_KHOAN = denialRe(["account.create", "account.view", "account.edit"]);
+  for (const r of thuoc) {
+    const xm = r.path.startsWith("/api/parties/xac-minh");
+    assert.ok(xm || r.path.startsWith("/api/staff"), `${r.method} ${r.path}: route cổng accounts ngoài hai nhóm đã biết — thêm nhóm có chủ đích`);
+    assert.ok(hasAdminDenial(r.body, xm ? NHOM_XAC_MINH : NHOM_TAI_KHOAN), `${r.method} ${r.path}: phải hỏi ${xm ? "party.verify*" : "account.*"}`);
+  }
+  assert.equal(thuoc.filter((r) => r.path.startsWith("/api/parties/xac-minh")).length, 5, "chống bài rỗng: năm route xác minh");
+  assert.equal(hasAdminDenial(`{ if (!can(actor, "account.view")) return F(); }`, denialRe(["party.verify", "party.verify.attachment"])), false, "ô tài khoản không thay ô xác minh");
   assert.equal(hasAdminDenial(`{ if (!can(actor, "account.create")) return F(); }`, ACCOUNTS_DENIAL_RE), true);
   assert.equal(hasAdminDenial(`{ if (!can(actor, "admin.manage")) return F(); }`, ACCOUNTS_DENIAL_RE), false, "ô quản trị không thay ô tài khoản");
   assert.equal(hasAdminDenial(`{ if (!can(actor, "account.create")) return F(); }`), false, "ô tài khoản không thay ô quản trị ở cổng admin");

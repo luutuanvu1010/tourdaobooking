@@ -10,11 +10,11 @@ export const CHAM_TAI_KHOAN = {
   TAO: ["staff_created"],
   // Trao quyền đăng nhập thay: áp vĩnh viễn (chủ duyệt 2026-10-16 "bịt kẽ hở 30 ngày"). Hai tên ADR-0121 đặt trước, CHƯA ai ghi.
   VINH_VIEN: ["pin_reset", "mfa_reset", "mfa_grace_reopened", "mfa_exception_set"],
-  CUA_SO_30: ["passkey_removed", "login_unlocked", "permission_changed", "account_roles_changed", "staff_role_changed"],
+  // staff_reactivated: ruling Q2 (chủ, hướng siết, vòng sửa 1 lát H-4) — kích hoạt lại là bật đăng nhập trở lại cho tài khoản, tính như chạm trong 30 ngày.
+  CUA_SO_30: ["passkey_removed", "login_unlocked", "permission_changed", "account_roles_changed", "staff_role_changed", "staff_reactivated"],
   CUA_SO_30_THEO_CHI_TIET: [{ action: "staff_updated", chua: CHI_TIET_DOI_SDT }],
   KHONG_CHAM: {
     staff_suspended: "Ngưng tài khoản lấy mất quyền đăng nhập, không trao quyền cho ai.",
-    staff_reactivated: "Kích hoạt lại trả quyền cho chính chủ; ngoài danh sách của ADR-0125 đ5 — chờ chủ quyết (Q2 kế hoạch H-4).",
     pin_changed: "Chính chủ tự đổi PIN của mình.",
     passkey_added: "Chính chủ tự bật Face ID.",
     pin_set_by_passkey: "Chính chủ đặt PIN mới bằng Face ID của mình.",

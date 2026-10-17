@@ -15,7 +15,7 @@ CREATE VIEW v_aud_cham_tai_khoan AS
   FROM audit_log
   WHERE target_type = 'staff' AND target_id IS NOT NULL AND staff_id IS NOT NULL
     AND (action IN ('staff_created', 'pin_reset', 'mfa_reset', 'mfa_grace_reopened', 'mfa_exception_set',
-                    'passkey_removed', 'login_unlocked', 'permission_changed', 'account_roles_changed', 'staff_role_changed')
+                    'passkey_removed', 'login_unlocked', 'permission_changed', 'account_roles_changed', 'staff_role_changed', 'staff_reactivated')
          OR (action = 'staff_updated' AND instr(COALESCE(detail, ''), 'đổi SĐT đăng nhập') > 0));
 
 -- Vế (a) của ADR-0125 đ5 ở lớp CSDL (lớp chính: lính gác trong câu ghi của parties). Vế (b)(c) KHÔNG ở trigger: trigger chỉ đọc bảng pty_* (khuôn 0105).

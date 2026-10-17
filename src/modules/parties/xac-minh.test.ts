@@ -57,6 +57,12 @@ test("loiLoChapNhan: ba lỗi CSDL đổi thành 409 có mã; lỗi lạ trả n
   assert.equal(loiLoChapNhan(new Error("person_document_cccd_other_person: số CCCD này đã thuộc một hồ sơ khác"))?.code, "document_number_taken");
   assert.equal(loiLoChapNhan(new Error("self_submission_decider_is_author: x"))?.code, "verify_self");
   assert.equal(loiLoChapNhan(new Error("verification_no_replace: x"))?.code, "submission_not_pending");
+  // Vòng sửa 1 (m-4): lô chấp nhận đua với gia hạn thủ công ⇒ trigger đích ném verification_target_mismatch ⇒ 409 tiếng Việt, không 500.
+  const lech = loiLoChapNhan(new Error("verification_target_mismatch: dòng được xác minh không thuộc hồ sơ này"));
+  assert.equal(lech?.status, 409);
+  assert.equal(lech?.code, "verify_target_changed");
+  assert.match(lech?.message ?? "", /đã thay đổi/);
+  assert.doesNotMatch(lech?.message ?? "", /verification_target_mismatch/);
   assert.equal(loiLoChapNhan(new Error("khác")), null);
   assert.equal(loiLoChapNhan("không phải Error"), null);
 });

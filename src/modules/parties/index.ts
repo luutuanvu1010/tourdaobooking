@@ -648,6 +648,8 @@ const TRAN_DOC_DA_XU_LY = 200;
 const nguoiXetCuaPhien = (staff: StaffProfile, ds: readonly TaiKhoanTom[]): TaiKhoanTom =>
   ds.find((t) => t.id === staff.id) ?? { id: staff.id, permissions: staff.permissions, active: true, partyId: staff.partyId ?? null };
 const lyDoKhongXacMinh = (lyDo: string | null): string | null => (lyDo === null ? null : NHAN_LY_DO_CHAN[lyDo] ?? null);
+/** Phiếu phải như KHÔNG TỒN TẠI với người xét: ngoài cấp bậc, hoặc mất gắn tài khoản mà người xét không phải Toàn quyền (vòng sửa 1, m-7 — đóng cửa an toàn; xetNguoiXacMinh chỉ trả `khong_tai_khoan` cho người không phải Toàn quyền). */
+const anPhieu = (lyDo: string | null): boolean => lyDo === "cap_bac" || lyDo === "khong_tai_khoan";
 const XM_KHONG_CHO = () => error(409, "submission_not_pending", "Phiếu đã được xử lý hoặc đã rút.");
 /**
  * Cổng chung của hai route quyết (ADR-0125 đ3, đ5): ngoài cấp bậc 404 → không còn chờ 409 → người khai 409 verify_self → bị tách nhiệm vụ 409 verify_conflict. Chỉ là bảng hỏi; hàng rào
@@ -658,7 +660,7 @@ async function congQuyet(
 ): Promise<{ loi: Response } | { kl: KetLuanXet }> {
   const phieu: PhieuXet = { id: p.id, partyId: p.party_id, createdBy: p.created_by ?? "", createdAt: p.created_at };
   const kl = xetNguoiXacMinh({ nguoi: nguoiXetCuaPhien(staff, dsTk), phieu, chuPhieu: dsTk.find((t) => t.id === p.created_by) ?? null, cham: p.created_by ? await chamCuaTaiKhoan(db, [p.created_by]) : [] });
-  if (kl.lyDo === "cap_bac") return { loi: XM_NOT_FOUND() };
+  if (anPhieu(kl.lyDo)) return { loi: XM_NOT_FOUND() };
   if (p.status !== "CHO_XAC_MINH") return { loi: XM_KHONG_CHO() };
   if (kl.lyDo === "nguoi_khai") return { loi: error(409, "verify_self", "Không xác minh phiếu của chính mình.") };
   if (!kl.duoc) return { loi: error(409, "verify_conflict", lyDoKhongXacMinh(kl.lyDo) ?? "Bạn không xác minh được phiếu này.") };
@@ -924,7 +926,7 @@ export const partiesModule: AppModule = {
       const xet = (phieu: PhieuXet, cham: Parameters<typeof xetNguoiXacMinh>[0]["cham"]) => xetNguoiXacMinh({ nguoi, phieu, chuPhieu: theoId.get(phieu.createdBy) ?? null, cham });
       if (trang === "da-xu-ly") {
         const rows = (await listPhieuDaXuLy(env.DB, TRAN_DOC_DA_XU_LY))
-          .filter((r) => xet({ id: r.id, partyId: r.party_id, createdBy: r.created_by ?? "", createdAt: r.created_at }, []).lyDo !== "cap_bac")
+          .filter((r) => !anPhieu(xet({ id: r.id, partyId: r.party_id, createdBy: r.created_by ?? "", createdAt: r.created_at }, []).lyDo))
           .slice(0, TRAN_HANG_CHO);
         const nhan = await nhanNhanVien([...new Set(rows.flatMap((r) => (r.decided_by ? [r.decided_by] : [])))]);
         return json({
@@ -934,17 +936,20 @@ export const partiesModule: AppModule = {
           })),
         });
       }
-      const rows = (await listPhieuCho(env.DB)).filter((r) => xet({ id: r.id, partyId: r.party_id, createdBy: r.created_by ?? "", createdAt: r.created_at }, []).lyDo !== "cap_bac");
+      const rows = (await listPhieuCho(env.DB)).filter((r) => !anPhieu(xet({ id: r.id, partyId: r.party_id, createdBy: r.created_by ?? "", createdAt: r.created_at }, []).lyDo));
       const cham = await chamCuaTaiKhoan(env.DB, [...new Set(rows.flatMap((r) => (r.created_by ? [r.created_by] : [])))]);
+      // m-6: gom dòng chạm theo tài khoản MỘT lần — mỗi phiếu chỉ quét dòng chạm của đúng chủ phiếu (không phải cả mảng cho từng phiếu).
+      const chamTheo = new Map<string, typeof cham>();
+      for (const c of cham) chamTheo.set(c.accountId, [...(chamTheo.get(c.accountId) ?? []), c]);
       const xetDu = rows.map((r) => {
         const phieu: PhieuXet = { id: r.id, partyId: r.party_id, createdBy: r.created_by ?? "", createdAt: r.created_at };
-        return { r, phieu, kl: xet(phieu, cham) };
+        return { r, phieu, kl: xet(phieu, chamTheo.get(phieu.createdBy) ?? []) };
       });
       xetDu.sort((a, b) => Number(b.kl.duoc) - Number(a.kl.duoc) || (a.r.created_at < b.r.created_at ? -1 : a.r.created_at > b.r.created_at ? 1 : a.r.id < b.r.id ? -1 : 1));
       return json({
         phieu: xetDu.slice(0, TRAN_HANG_CHO).map(({ r, phieu, kl }): PhieuChoXacMinhDto => ({
           id: r.id, loai: r.subject_kind, tenHoSo: r.display_name, guiLuc: r.created_at,
-          chuyenToanQuyen: chuyenToanQuyen(phieu, theoId.get(phieu.createdBy) ?? null, dsTk, cham), xacMinhDuoc: kl.duoc, lyDoKhong: lyDoKhongXacMinh(kl.lyDo),
+          chuyenToanQuyen: chuyenToanQuyen(phieu, theoId.get(phieu.createdBy) ?? null, dsTk, chamTheo.get(phieu.createdBy) ?? []), xacMinhDuoc: kl.duoc, lyDoKhong: lyDoKhongXacMinh(kl.lyDo),
         })),
       });
     }),
@@ -958,8 +963,15 @@ export const partiesModule: AppModule = {
       const chuPhieu = dsTk.find((t) => t.id === p.created_by) ?? null;
       const phieu: PhieuXet = { id: p.id, partyId: p.party_id, createdBy: p.created_by ?? "", createdAt: p.created_at };
       const kl = xetNguoiXacMinh({ nguoi: nguoiXetCuaPhien(staff, dsTk), phieu, chuPhieu, cham: p.created_by ? await chamCuaTaiKhoan(env.DB, [p.created_by]) : [] });
-      if (kl.lyDo === "cap_bac") return XM_NOT_FOUND(); // ngoài cấp bậc: như không có phiếu (không lộ)
+      if (anPhieu(kl.lyDo)) return XM_NOT_FOUND(); // ngoài cấp bậc / mất gắn tài khoản (người không phải Toàn quyền): như không có phiếu (không lộ)
       if (p.status !== "CHO_XAC_MINH") return XM_PROCESSED();
+      // I-3: người KHÔNG xác minh được (bị tách nhiệm vụ, phiếu của chính mình) chỉ nhận loại phiếu, tên chủ phiếu và lý do bị chặn — không giá trị khai, không cờ trùng hồ sơ.
+      if (!kl.duoc) {
+        return json({
+          id: p.id, loai: p.subject_kind, tenHoSo: p.display_name, guiLuc: p.created_at, daGop: p.merged === 1, ngaySinh: null, diaChi: null, giayTo: null,
+          xacMinhDuoc: false, lyDoKhong: lyDoKhongXacMinh(kl.lyDo), coAnh: false,
+        } satisfies PhieuXacMinhChiTietDto);
+      }
       const giayTo = p.document_type_code === null ? null : {
         tenLoai: p.type_name ?? p.document_type_code, soChe: cheSo(p.number_key), hang: p.class_name, ngayCap: p.issued_date, noiCap: p.issued_place, hetHan: p.expiry_date,
         coDongHienHanhCungLoai: (await listPersonDocuments(env.DB, p.party_id, true)).some(
@@ -984,7 +996,7 @@ export const partiesModule: AppModule = {
       const chuPhieu = dsTk.find((t) => t.id === p.created_by) ?? null;
       const phieu: PhieuXet = { id: p.id, partyId: p.party_id, createdBy: p.created_by ?? "", createdAt: p.created_at };
       const kl = xetNguoiXacMinh({ nguoi: nguoiXetCuaPhien(staff, dsTk), phieu, chuPhieu, cham: p.created_by ? await chamCuaTaiKhoan(env.DB, [p.created_by]) : [] });
-      if (kl.lyDo === "cap_bac") return XM_NOT_FOUND();
+      if (anPhieu(kl.lyDo)) return XM_NOT_FOUND();
       if (p.status !== "CHO_XAC_MINH") return XM_PROCESSED();
       const so = await soDuCuaPhieuCho(env.DB, p.id);
       if (!so) return XM_NOT_FOUND(); // phiếu ngày sinh / địa chỉ không có số
@@ -1052,7 +1064,7 @@ export const partiesModule: AppModule = {
       try {
         kq = await env.DB.batch([
           quyetPhieuStatement(env.DB, { id: p.id, ketLuan: "TU_CHOI", lyDo: k.value.lyDo, actorId: staff.id, at, laToanQuyen: staff.permissions.includes("SUPER_ADMIN") }),
-          auditStatement(env.DB, { staffId: staff.id, action: "self_submission_rejected", at, targetType: "party", targetId: p.party_id, detail: `phiếu ${p.id} · ${nhanLoaiPhieu(p.subject_kind)} · lý do ${k.value.lyDo}` }, "changes() > 0"),
+          auditStatement(env.DB, { staffId: staff.id, action: "self_submission_rejected", at, targetType: "party", targetId: p.party_id, detail: `phiếu ${p.id} · ${nhanLoaiPhieu(p.subject_kind)} · lý do ${nhanLyDoTuChoi(k.value.lyDo)}` }, "changes() > 0"),
         ]);
       } catch (e) {
         const l = loiLoChapNhan(e);

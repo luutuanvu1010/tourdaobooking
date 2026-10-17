@@ -65,7 +65,7 @@ const dem = (b: Ban, sql: string, ...a: string[]): number => Number((b.sqlite.pr
 const trangThai = (b: Ban, id = "ph"): string => String((b.sqlite.prepare("SELECT status FROM pty_self_submission WHERE id = ?").get(id) as { status: string }).status);
 
 test("(1) lính gác TRONG câu ghi: từng TAO / VINH_VIEN / CUA_SO_30 trong cửa sổ ⇒ 0 dòng; Toàn quyền (laToanQuyen) ⇒ 1 dòng; người khai ⇒ 0 dòng", async () => {
-  for (const [action, at] of [["staff_created", lui(GUI, 3 * NAM)], ["pin_reset", lui(GUI, 400 * 86_400_000)], ["mfa_reset", GUI], ["login_unlocked", lui(GUI, 5 * 86_400_000)]] as const) {
+  for (const [action, at] of [["staff_created", lui(GUI, 3 * NAM)], ["pin_reset", lui(GUI, 400 * 86_400_000)], ["mfa_reset", GUI], ["login_unlocked", lui(GUI, 5 * 86_400_000)], ["staff_reactivated", lui(GUI, 5 * 86_400_000)]] as const) {
     const b = ban();
     nhatKy(b, "n1", "hr", action, at);
     assert.equal(await ketQuaCau(b, "hr", false), 0, `${action}: hr bị chặn`);
@@ -171,6 +171,25 @@ test("(6) chấp nhận GIAY_TO: đã có dòng hiện hành cùng loại ⇒ d�
   co.sqlite.exec(`INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, created_at, updated_at) VALUES ('gt-cu', 'pty-u', 'CCCD', '079000000999', '079000000999', '2020-01-01T00:00:00.000Z', '2020-01-01T00:00:00.000Z')`);
   await co.d1.batch(loChapNhan(co, { actor: "hr", laToanQuyen: false, loai: "GIAY_TO" }));
   assert.equal((co.sqlite.prepare("SELECT previous_id p FROM pty_person_document WHERE id = 'gt-ph'").get() as any).p, "gt-cu");
+});
+
+test("(6b) vòng sửa 1 (I-4): GPLX chọn previous_id CÙNG HẠNG — hồ sơ có GPLX hạng B hiện hành, phiếu hạng D ⇒ previous_id NULL và dòng hạng B không bị thay; phiếu hạng B ⇒ nối dòng hạng B. Phá thử: bỏ điều kiện hạng khỏi câu → đỏ", async () => {
+  const gplx = (b: Ban, hang: string): void => {
+    b.sqlite.exec(`INSERT INTO pty_self_submission (id, party_id, subject_kind, policy_id, document_type_code, document_number, number_key, license_class_code, status, created_at, created_by, updated_at, updated_by)
+      VALUES ('gp', 'pty-u', 'GIAY_TO', 'pol', 'GPLX', '500 000 111', '500000111', '${hang}', 'CHO_XAC_MINH', '${GUI}', 'u', '${GUI}', 'u')`);
+    b.sqlite.exec(`INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, license_class_code, created_at, updated_at)
+      VALUES ('gt-b', 'pty-u', 'GPLX', '400000999', '400000999', 'B', '2020-01-01T00:00:00.000Z', '2020-01-01T00:00:00.000Z')`);
+  };
+  const khac = ban();
+  gplx(khac, "D");
+  await khac.d1.batch(loChapNhan(khac, { id: "gp", actor: "hr", laToanQuyen: false, loai: "GIAY_TO" }));
+  assert.equal(trangThai(khac, "gp"), "DA_CHAP_NHAN");
+  assert.equal((khac.sqlite.prepare("SELECT previous_id p FROM pty_person_document WHERE id = 'gt-gp'").get() as any).p, null, "hạng D không gia hạn dòng hạng B");
+  assert.equal(dem(khac, "SELECT count(*) n FROM pty_person_document WHERE previous_id = 'gt-b'"), 0, "dòng hạng B vẫn hiện hành, không bị nối tiếp");
+  const cung = ban();
+  gplx(cung, "B");
+  await cung.d1.batch(loChapNhan(cung, { id: "gp", actor: "hr", laToanQuyen: false, loai: "GIAY_TO" }));
+  assert.equal((cung.sqlite.prepare("SELECT previous_id p FROM pty_person_document WHERE id = 'gt-gp'").get() as any).p, "gt-b", "cùng hạng B thì gia hạn");
 });
 
 test("(7) chấp nhận DIA_CHI: liên hệ ADDRESS mới, value = địa chỉ trên phiếu; chính = 1 khi chưa có ADDRESS mở, 0 khi đã có", async () => {

@@ -45,7 +45,7 @@ function setup() {
   return w;
 }
 /** Đồng ý chính sách của chủ (trigger 0105 đòi) rồi chèn phiếu CHỜ thẳng vào bảng. loai: NGAY_SINH | DIA_CHI | GIAY_TO. */
-function phieu(w: any, o: { owner: string; loai?: "NGAY_SINH" | "DIA_CHI" | "GIAY_TO"; id?: string; at?: string }): string {
+function phieu(w: any, o: { owner: string; loai?: "NGAY_SINH" | "DIA_CHI" | "GIAY_TO"; id?: string; at?: string; by?: string }): string {
   const id = o.id ?? uid();
   const loai = o.loai ?? "NGAY_SINH";
   const at = o.at ?? GUI;
@@ -55,7 +55,7 @@ function phieu(w: any, o: { owner: string; loai?: "NGAY_SINH" | "DIA_CHI" | "GIA
       status, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, 'pol', ?, ?, ?, ?, ?, ?, ?, ?, 'CHO_XAC_MINH', ?, ?, ?, ?)`).run(
     id, pty(o.owner), loai, loai === "NGAY_SINH" ? "1990-05-06" : null, loai === "DIA_CHI" ? "12 Đường Thử, Nha Trang" : null,
     loai === "GIAY_TO" ? "CCCD" : null, loai === "GIAY_TO" ? SO : null, loai === "GIAY_TO" ? KHOA_SO : null,
-    loai === "GIAY_TO" ? "2021-01-02" : null, loai === "GIAY_TO" ? "Cục thử" : null, loai === "GIAY_TO" ? "2040-01-02" : null, at, o.owner, at, o.owner);
+    loai === "GIAY_TO" ? "2021-01-02" : null, loai === "GIAY_TO" ? "Cục thử" : null, loai === "GIAY_TO" ? "2040-01-02" : null, at, o.by ?? o.owner, at, o.by ?? o.owner);
   return id;
 }
 function nhatKyCham(w: any, actor: string, account: string, action = "staff_created", at = AT): void {
@@ -152,6 +152,20 @@ test("(r4) Review Focus 4: chủ phiếu đổi quyền thành Quản trị sau 
   assert.ok(!(await idsCho(w, ADM)).includes(p));
   assert.equal((await ct(w, HR, p)).status, 404);
   assert.equal((await ct(w, SUP, p)).status, 200);
+});
+
+test("(r4b) vòng sửa 1 (I-2): quyền Quản trị của chủ phiếu bị ĐÓNG (valid_to_at) ⇒ cấp bậc trở lại cấp dưới: Nhân sự thấy lại phiếu, chuyenToanQuyen = false. Phá thử: bỏ valid_to_at IS NULL ở câu tai_khoan_cho_xac_minh → đỏ", async () => {
+  const w = setup();
+  const p = phieu(w, { owner: NV2 });
+  const quyen = uid();
+  w.sqlite.prepare("INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES (?, ?, 'ADMIN', ?, ?, ?)").run(quyen, NV2, AT, AT, AT);
+  assert.ok(!(await idsCho(w, HR)).includes(p), "đang là Quản trị: Nhân sự không thấy");
+  assert.equal((await ct(w, HR, p)).status, 404);
+  assert.equal((await ds(w, SUP)).json.phieu.find((x: any) => x.id === p).chuyenToanQuyen, true);
+  w.sqlite.prepare("UPDATE stf_permission SET valid_to_at = ?, updated_at = ? WHERE id = ?").run(GUI, GUI, quyen);
+  assert.ok((await idsCho(w, HR)).includes(p), "quyền Quản trị đã đóng: Nhân sự thấy lại");
+  assert.equal((await ct(w, HR, p)).status, 200);
+  assert.equal((await ds(w, SUP)).json.phieu.find((x: any) => x.id === p).chuyenToanQuyen, false, "lại có cấp dưới xác minh được");
 });
 
 test("(r5) DTO hàng chờ / chi tiết: tập khoá ĐÚNG như contracts; không có số đủ, SĐT, email, vai; số che = cheSo(number_key); cờ trùng hồ sơ khác / đã có dòng cùng loại", async () => {
@@ -270,6 +284,50 @@ test("(r7) xem đủ số: Nhân sự hợp lệ → 200 { so } và ĐÚNG MỘT
   assert.equal(soDongXem(w), n2, "0 dòng nhật ký cho mọi ca bị chặn");
 });
 
+test("(r7b) vòng sửa 1 (I-3): người KHÔNG xác minh được (bị tách nhiệm vụ / phiếu của chính mình) chỉ nhận loại phiếu, tên chủ phiếu, lý do — KHÔNG nhận ngày sinh, địa chỉ, khối giấy tờ (trùng hồ sơ khác…); người xác minh được vẫn thấy đủ", async () => {
+  const w = setup();
+  nhatKyCham(w, HR, NV);
+  const pNS = phieu(w, { owner: NV, loai: "NGAY_SINH" });
+  const pDC = phieu(w, { owner: NV, loai: "DIA_CHI" });
+  const pGT = phieu(w, { owner: NV, loai: "GIAY_TO" });
+  const pTuKhai = phieu(w, { owner: HR2, loai: "NGAY_SINH" }); // HR2 tự xem phiếu của mình
+  const chiLoai = (c: any, loai: string, ten: string) => {
+    assert.equal(c.status, 200, c.text);
+    assert.equal(c.json.loai, loai);
+    assert.equal(c.json.tenHoSo, ten);
+    assert.equal(c.json.xacMinhDuoc, false);
+    assert.ok(c.json.lyDoKhong, "có lý do bị chặn");
+    assert.equal(c.json.ngaySinh, null);
+    assert.equal(c.json.diaChi, null);
+    assert.equal(c.json.giayTo, null);
+    assert.doesNotMatch(c.text, /1990-05-06|Đường Thử|0111|Cục thử|trungHoSoKhac/, "không giá trị khai nào trong thân trả lời");
+  };
+  chiLoai(await ct(w, HR, pNS), "NGAY_SINH", "Nhân Viên Hai");
+  chiLoai(await ct(w, HR, pDC), "DIA_CHI", "Nhân Viên Hai");
+  chiLoai(await ct(w, HR, pGT), "GIAY_TO", "Nhân Viên Hai");
+  assert.equal((await ct(w, HR, pGT)).json.lyDoKhong, NHAN_LY_DO_CHAN.da_cham);
+  chiLoai(await ct(w, HR2, pTuKhai), "NGAY_SINH", "Nhân Sự Hai");
+  // Người xác minh được vẫn thấy đủ.
+  const du = await ct(w, ADM, pNS);
+  assert.equal(du.json.ngaySinh, "1990-05-06");
+  assert.equal(du.json.xacMinhDuoc, true);
+  assert.equal((await ct(w, SUP, pGT)).json.giayTo.soChe, "••••0111");
+});
+
+test("(r7c) vòng sửa 1 (m-7): phiếu mất gắn tài khoản (tài khoản người gửi không gắn hồ sơ của phiếu) — người không phải Toàn quyền nhận 404 ở hàng chờ, chi tiết, xem số, chấp nhận, từ chối; Toàn quyền vẫn thấy và xác minh được", async () => {
+  const w = setup();
+  const p = phieu(w, { owner: DT, loai: "GIAY_TO", by: NV2 }); // người gửi NV2 không gắn hồ sơ của DT
+  for (const as of [HR, ADM]) {
+    assert.ok(!(await idsCho(w, as)).includes(p), `${as}: không thấy trong hàng chờ`);
+    for (const r of [await ct(w, as, p), await xemSo(w, as, p), await chapNhan(w, as, p), await tuChoi(w, as, p)]) assert.equal(r.status, 404, `${as}: ${r.text}`);
+  }
+  assert.equal(trangThai(w, p), "CHO_XAC_MINH");
+  const s = await ds(w, SUP);
+  assert.equal(s.json.phieu.find((x: any) => x.id === p).xacMinhDuoc, true);
+  assert.equal((await ct(w, SUP, p)).status, 200);
+  assert.equal((await tuChoi(w, SUP, p)).status, 200);
+});
+
 test("(r8) nhật ký TRƯỚC: ghi nhật ký lỗi thì route 500 và KHÔNG trả số", async () => {
   const w = setup();
   const p = phieu(w, { owner: DT, loai: "GIAY_TO" });
@@ -338,7 +396,7 @@ test("(w1b) chấp nhận DIA_CHI ⇒ thêm đúng một liên hệ địa chỉ
   assert.ok(!JSON.stringify(nhatKyQuyet(w)).includes("Đường Thử"));
 });
 
-test("(w2) Quản trị từ chối DIA_CHI với KHONG_KHOP_GIAY_TO ⇒ 200; TU_CHOI + mã lý do; không dòng xác minh, không liên hệ mới; nhật ký có mã lý do, không địa chỉ", async () => {
+test("(w2) Quản trị từ chối DIA_CHI với KHONG_KHOP_GIAY_TO ⇒ 200; TU_CHOI + mã lý do (ở bảng); không dòng xác minh, không liên hệ mới; nhật ký có NHÃN lý do (không mã thô), không địa chỉ", async () => {
   const w = setup();
   const p = phieu(w, { owner: DT, loai: "DIA_CHI" });
   const r = await tuChoi(w, ADM, p, { lyDo: "KHONG_KHOP_GIAY_TO" });
@@ -349,7 +407,8 @@ test("(w2) Quản trị từ chối DIA_CHI với KHONG_KHOP_GIAY_TO ⇒ 200; TU
   const nk = nhatKyQuyet(w);
   assert.equal(nk.length, 1);
   assert.equal(nk[0]!.action, "self_submission_rejected");
-  assert.ok(nk[0]!.detail.includes(p) && nk[0]!.detail.includes("KHONG_KHOP_GIAY_TO") && !nk[0]!.detail.includes("Đường Thử"), nk[0]!.detail);
+  assert.ok(nk[0]!.detail.includes(p) && nk[0]!.detail.includes(nhanLyDoTuChoi("KHONG_KHOP_GIAY_TO")) && !nk[0]!.detail.includes("Đường Thử"), nk[0]!.detail);
+  assert.doesNotMatch(nk[0]!.detail, /KHONG_KHOP_GIAY_TO/, "m-3: nhật ký ghi nhãn tiếng Việt, không ghi mã thô");
 });
 
 test("(w3) từ chối với lý do ngoài danh sách, có khoá ghiChu, thiếu thân ⇒ 400, không ghi", async () => {

@@ -1243,7 +1243,7 @@ const ACCEPT_ADDRESS = defineSql("parties", "accept_self_submission_address",
           CASE WHEN EXISTS (SELECT 1 FROM pty_contact_point c WHERE c.party_id = s.party_id AND c.contact_kind_code = 'ADDRESS' AND c.valid_to_date IS NULL) THEN 0 ELSE 1 END,
           ?6, ?3, ?2, ?3, ?2
    FROM pty_self_submission s WHERE s.id = ?1 AND ${DA_THANG}`);
-// previous_id = dòng giấy tờ hiện hành cùng loại của hồ sơ (chưa huỷ, chưa có dòng gia hạn) — tính TRONG câu ghi nên không lệch giữa lúc đọc và lúc ghi (R14).
+// previous_id = dòng giấy tờ hiện hành cùng loại (GPLX: cùng HẠNG — `IS` coi NULL = NULL cho loại không có hạng; vòng sửa 1, I-4) của hồ sơ (chưa huỷ, chưa có dòng gia hạn) — tính TRONG câu ghi nên không lệch giữa lúc đọc và lúc ghi (R14).
 // DẠNG `INSERT OR IGNORE … VALUES (subselect)` CÓ CHỦ Ý (không `INSERT … SELECT`): chèn nhiều dòng vào pty_person_document làm SQLite đọc bảng con của module khác
 // (vc_trip_departure_check_item, khoá ngoại tới giấy tờ) và bài ranh giới SQL của architecture.test.ts đỏ — dạng VALUES một dòng thì không. Điều kiện thắng nằm ở `party_id`:
 // lô thua ⇒ NULL ⇒ vi phạm NOT NULL ⇒ IGNORE bỏ dòng (0 dòng, không lỗi). IGNORE cũng nuốt vi phạm CHECK / UNIQUE, nhưng câu dòng xác minh liền sau trỏ tới dòng giấy tờ
@@ -1256,6 +1256,7 @@ const ACCEPT_DOCUMENT = defineSql("parties", "accept_self_submission_document",
    VALUES (?4, ${COT_THANG("party_id")}, ${COT_THANG("document_type_code")}, ${COT_THANG("document_number")}, ${COT_THANG("number_key")}, ${COT_THANG("license_class_code")},
      ${COT_THANG("issued_date")}, ${COT_THANG("issued_place")}, ${COT_THANG("expiry_date")},
      (SELECT d.id FROM pty_person_document d WHERE d.party_id = ${COT_THANG("party_id")} AND d.document_type_code = ${COT_THANG("document_type_code")}
+        AND d.license_class_code IS ${COT_THANG("license_class_code")}
         AND d.voided_at IS NULL AND NOT EXISTS (SELECT 1 FROM pty_person_document n WHERE n.previous_id = d.id AND n.voided_at IS NULL)
         ORDER BY d.created_at DESC, d.id DESC LIMIT 1),
      ?3, ?2, ?3, ?2)`);
