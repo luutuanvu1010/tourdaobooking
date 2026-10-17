@@ -45,9 +45,20 @@ assert.ok(JSON.stringify(r.body).includes(`••••${SO.slice(-4)}`));
 assert.ok(!JSON.stringify(r.body).includes(SO), "số đủ ra DTO");
 console.log("✓ Đối tác gửi phiếu giấy tờ + địa chỉ; DTO chỉ số che");
 
+// Vòng sửa 2 (M-9): ĐỐI CHỨNG DƯƠNG — Toàn quyền ghi một địa chỉ thật (đã xác minh) cho hồ sơ này; Quản trị đọc hồ sơ phải THẤY nó. Có vậy câu "không thấy địa chỉ tự
+// khai" bên dưới mới có nghĩa (đổi luật cấp bậc / che trường riêng tư sau này làm Quản trị không thấy địa chỉ nào thì bài đỏ ở đây, không xanh rỗng).
+const DOI_CHUNG = `8${tag} Đường Đối Chứng E2E, Nha Trang`;
+r = await call(TOAN_QUYEN, "POST", `/api/parties/${doiTac.partyId}/contacts`, { kind: "ADDRESS", value: DOI_CHUNG });
+assert.equal(r.status, 201, JSON.stringify(r.body));
 r = await call(ADMIN, "GET", `/api/parties/${doiTac.partyId}`);
 assert.equal(r.status, 200);
+assert.ok(JSON.stringify(r.body).includes(`8${tag}`), "đối chứng: Quản trị phải thấy địa chỉ đã ghi của hồ sơ này");
 assert.ok(!JSON.stringify(r.body).includes(`9${tag}`), "địa chỉ tự khai lên Danh bạ trước khi xác minh");
+// Đọc thẳng CSDL: giá trị khai CHỈ nằm ở phiếu, không ở bảng liên hệ.
+const dongLienHe = await sqlRows(`SELECT count(*) AS n FROM pty_contact_point WHERE party_id = '${doiTac.partyId}' AND value LIKE '%9${tag}%'`);
+assert.equal(Number(dongLienHe[0].n), 0, "địa chỉ tự khai đã vào bảng liên hệ");
+const dongPhieu = await sqlRows(`SELECT count(*) AS n FROM pty_self_submission WHERE party_id = '${doiTac.partyId}' AND address_value LIKE '%9${tag}%' AND status = 'CHO_XAC_MINH'`);
+assert.equal(Number(dongPhieu[0].n), 1, "đối chứng: địa chỉ tự khai có ở phiếu đang chờ");
 r = await call(ADMIN, "GET", `/api/parties/${doiTac.partyId}/documents`);
 assert.equal(r.status, 200);
 assert.equal(r.body.documents.length, 0, "giấy tờ tự khai lên hồ sơ trước khi xác minh");
@@ -61,12 +72,28 @@ console.log("✓ rút phiếu: người khác 404, chính mình 200, lần hai 4
 // Ruling I-2 (vòng sửa 1): GET kể các phiên bản ĐANG đồng ý; rút đồng ý một phiên bản rút luôn phiếu đang chờ khai theo ĐÚNG phiên bản đó, cùng lô.
 r = await call(doiTac.cookie, "GET", "/api/parties/cua-toi");
 assert.deepEqual(r.body.dongYPhienBan, [{ id: cs, phienBan }], "Đối tác dùng một lần chỉ đồng ý đúng phiên bản vừa đăng");
+// Vòng sửa 2 (M-9): phiếu của phiên bản KHÁC không bị đụng — đăng bản mới, Đối tác đồng ý bản mới + khai ngày sinh theo bản mới, rồi rút đồng ý bản CŨ.
+r = await call(TOAN_QUYEN, "POST", "/api/parties/chinh-sach-rieng-tu", { mucDich: `THỬ e2e bản hai ${tag}`, noiDung: `THỬ — toàn văn bản hai ${tag}, không phải văn bản pháp lý.` });
+assert.equal(r.status, 201, JSON.stringify(r.body));
+const phienBan2 = r.body.phienBan;
+r = await call(doiTac.cookie, "GET", "/api/parties/cua-toi");
+const cs2 = r.body.chinhSach.id;
+assert.equal(r.body.chinhSach.phienBan, phienBan2);
+assert.equal(r.body.dongY, false, "chưa đồng ý bản mới");
+assert.equal((await call(doiTac.cookie, "POST", "/api/parties/cua-toi/dong-y", { chinhSachId: cs2, quyetDinh: "DONG_Y" })).status, 200);
+r = await call(doiTac.cookie, "POST", "/api/parties/cua-toi/phieu", { chinhSachId: cs2, loai: "NGAY_SINH", ngaySinh: "1991-02-03" });
+assert.equal(r.status, 201, JSON.stringify(r.body));
+const pidBan2 = r.body.phieuId;
+r = await call(doiTac.cookie, "GET", "/api/parties/cua-toi");
+assert.deepEqual(r.body.dongYPhienBan, [{ id: cs2, phienBan: phienBan2 }, { id: cs, phienBan }], "đang đồng ý cả hai bản (mới trước)");
 r = await call(doiTac.cookie, "POST", "/api/parties/cua-toi/dong-y", { chinhSachId: cs, quyetDinh: "RUT" });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 const conCho = await sqlRows(`SELECT count(*) AS n FROM pty_self_submission WHERE party_id = '${doiTac.partyId}' AND policy_id = '${cs}' AND status = 'CHO_XAC_MINH'`);
 assert.equal(Number(conCho[0].n), 0, "rút đồng ý phải rút phiếu đang chờ khai theo phiên bản đó");
-assert.deepEqual((await call(doiTac.cookie, "GET", "/api/parties/cua-toi")).body.dongYPhienBan, [], "không còn phiên bản nào đang đồng ý");
-console.log("✓ rút đồng ý rút luôn phiếu đang chờ của phiên bản đó; dongYPhienBan rỗng");
+const ban2 = await sqlRows(`SELECT status FROM pty_self_submission WHERE id = '${pidBan2}'`);
+assert.equal(ban2[0].status, "CHO_XAC_MINH", "phiếu khai theo phiên bản KHÁC không được bị rút");
+assert.deepEqual((await call(doiTac.cookie, "GET", "/api/parties/cua-toi")).body.dongYPhienBan, [{ id: cs2, phienBan: phienBan2 }], "chỉ còn đồng ý bản mới");
+console.log("✓ rút đồng ý bản cũ rút đúng phiếu của bản cũ; phiếu theo bản mới vẫn chờ; dongYPhienBan chỉ còn bản mới");
 
 const nk = JSON.stringify(await sqlRows("SELECT action, detail FROM audit_log WHERE action LIKE 'self_submission_%' OR action LIKE 'privacy_%'"));
 assert.ok(!nk.includes(SO) && !nk.includes(`9${tag}`), "nhật ký chứa số / địa chỉ tự khai");

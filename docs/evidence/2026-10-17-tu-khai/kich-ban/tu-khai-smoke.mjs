@@ -5,7 +5,8 @@
 // 3) Đối tác rút phiếu (bước xác nhận trong trang) → "Đã rút".
 // 3b) Vòng sửa 1 (ruling I-2): Toàn quyền đăng bản 2 qua API → Đối tác thấy "vẫn đang đồng ý … phiên bản cũ 1" + hộp đồng ý bản 2; rút đồng ý bản cũ (xác nhận trong
 //     trang) → dòng bản cũ biến mất.
-// 4) Toàn quyền: khung "Đăng chính sách riêng tư mới" hiện; Bán hàng: không có khung đó.
+// 4) Toàn quyền: khung "Đăng chính sách riêng tư mới" hiện; Bán hàng: không có khung đó. Vòng sửa 2 (I-1): bấm "Đăng phiên bản mới" chỉ mở bước xác nhận
+//    ("không gỡ được", "Xác nhận đăng", "Huỷ"); Huỷ → đóng, phiên bản không đổi.
 // Mở theo thứ tự Đối tác → Bán hàng → Toàn quyền (các trang dùng chung kho cookie — tài khoản mở sau cùng là Toàn quyền).
 // Chạy từ GỐC repo, sau `npm run build:web`:
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục ảnh> node docs/evidence/2026-10-17-tu-khai/kich-ban/tu-khai-smoke.mjs
@@ -109,6 +110,18 @@ try {
     const t = await env.as(SUPER, "/account", DESK);
     try {
       await t.waitFor("!!document.querySelector('#hs-dang-chinh-sach')", "khung đăng chính sách", 10000);
+      // Vòng sửa 2 (I-1): bấm "Đăng phiên bản mới" chỉ mở bước xác nhận có câu "không gỡ được"; "Huỷ" đóng lại, KHÔNG đăng phiên bản nào.
+      const banTruoc = JSON.parse((await call(SUPER, "GET", "/api/parties/cua-toi")).text).chinhSach.phienBan;
+      await t.ev("document.querySelector('#hs-dang-chinh-sach').open = true");
+      await t.ev("document.querySelector('#hs-dang-cs button[type=submit]').click()");
+      await t.waitFor("!document.querySelector('#hs-dang-cs-xac-nhan').hidden", "bước xác nhận đăng", 5000);
+      const hop = await t.ev("document.querySelector('#hs-dang-cs-xac-nhan').innerText");
+      assert.ok(hop.includes("không gỡ được") && hop.includes("Xác nhận đăng") && hop.includes("Huỷ"), hop);
+      await shotFull(t, "tu-khai-toan-quyen-xac-nhan-1040.png");
+      await t.ev("[...document.querySelectorAll('#hs-dang-cs-xac-nhan button')].find((b) => b.innerText.trim() === 'Huỷ').click()");
+      await t.waitFor("document.querySelector('#hs-dang-cs-xac-nhan').hidden", "đóng bước xác nhận", 5000);
+      await sleep(500);
+      assert.equal(JSON.parse((await call(SUPER, "GET", "/api/parties/cua-toi")).text).chinhSach.phienBan, banTruoc, "Huỷ mà vẫn đăng phiên bản mới");
       await shotFull(t, "tu-khai-toan-quyen-1040.png");
     } finally {
       t.close();

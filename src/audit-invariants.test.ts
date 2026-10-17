@@ -1125,6 +1125,30 @@ test("R-PTY-13 hai chính sách: đồng ý phiên bản CŨ không cứu phiế
   assert.equal(violations(db, c), 0, "đã đồng ý đúng pol-2");
 });
 
+test("R-PTY-13 + trigger consent_ins (vòng sửa 2, M-4): hai quyết định CÙNG mili-giây — 'mới nhất' phân định bằng rowid (dòng chèn sau thắng), cả hai chiều", () => {
+  const c = one("R-PTY-13");
+  const db = build();
+  NGUOI_T(db, "p-ms");
+  // Chỉ mục pty_consent_party_ix (party_id, created_at) mang sẵn rowid và bị duyệt ngược, nên KHI CÓ nó, hoà mili-giây đã tự ra rowid giảm dần — bỏ vế rowid DESC
+  // không bài nào thấy. Gỡ chỉ mục trong DB thử để thứ tự chỉ còn dựa vào ORDER BY của chính câu (đổi / bỏ chỉ mục sau này không làm lệch "mới nhất").
+  db.exec("DROP INDEX pty_consent_party_ix");
+  const at = "2026-10-17T03:00:00.000Z";
+  db.prepare("INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('pol-ms', 1, 'thử', 'thử', ?, ?, 's', ?, 's')").run(at, at, at);
+  const quyetDinh = (id: string, d: string) => db.prepare("INSERT INTO pty_consent (id, party_id, policy_id, decision, created_at, created_by, updated_at, updated_by) VALUES (?, 'p-ms', 'pol-ms', ?, ?, 's', ?, 's')").run(id, d, at, at);
+  const phieu = (id: string) => db.prepare(`INSERT INTO pty_self_submission (id, party_id, subject_kind, policy_id, birth_date, status, created_at, created_by, updated_at, updated_by)
+    VALUES (?, 'p-ms', 'NGAY_SINH', 'pol-ms', '1990-01-01', 'CHO_XAC_MINH', ?, 's', ?, 's')`).run(id, at, at);
+  quyetDinh("z-dong-y", "DONG_Y"); // mã chữ "z…" lớn hơn "a…" — bài không dựa vào thứ tự mã
+  phieu("ph-ms");
+  assert.equal(violations(db, c), 0);
+  quyetDinh("a-rut", "RUT"); // CÙNG created_at với dòng đồng ý, chèn SAU ⇒ là quyết định mới nhất
+  assert.equal(violations(db, c), 1, "rút cùng mili-giây, chèn sau ⇒ phiếu chờ là vi phạm");
+  db.prepare("UPDATE pty_self_submission SET status = 'RUT', decided_at = ?, decided_by = 's', updated_at = ? WHERE id = 'ph-ms'").run(at, at);
+  assert.throws(() => phieu("ph-ms-2"), /self_submission_no_consent/, "trigger: rút cùng mili-giây, chèn sau ⇒ chặn phiếu mới");
+  quyetDinh("m-dong-y-lai", "DONG_Y"); // đồng ý lại, vẫn cùng mili-giây ⇒ đồng ý thắng
+  phieu("ph-ms-3");
+  assert.equal(violations(db, c), 0, "đồng ý lại cùng mili-giây, chèn sau ⇒ phiếu chờ hợp lệ");
+});
+
 test("R-VC-1 (ADR-0040 D1): biển số không trùng giữa các xe CHƯA NGỪNG — xe đã ngừng giữ biển cũ không tính → 0; hai xe đang dùng cùng biển (chỉ mục bị gỡ) → 1", () => {
   const c = one("R-VC-1");
   assert.equal(c.level, "fail");

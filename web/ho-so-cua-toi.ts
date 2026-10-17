@@ -5,7 +5,7 @@ import { ApiError, api, type Api } from "./api";
 import { can } from "../src/shared/permissions";
 import { ngayVN } from "../src/shared/giay-to-hien-thi";
 import { nhanLoaiPhieu, nhanTrangThaiPhieu } from "../src/shared/tu-khai-hien-thi";
-import { vnDateTimeText } from "../src/shared/vn-date";
+import { vnDateTimeText, vnToday } from "../src/shared/vn-date";
 import { h, replaceChildren } from "./dom";
 
 type Staff = Api.StaffProfile;
@@ -93,8 +93,8 @@ function khoiChinhSach(d: Du, baoLoi: (m: string | null) => void): (HTMLElement 
 function formKhai(d: Du, baoLoi: (m: string | null) => void): HTMLElement {
   const loai = h("select", { id: "hs-loai" },
     h("option", { value: "NGAY_SINH" }, "Ngày sinh"), h("option", { value: "DIA_CHI" }, "Địa chỉ"), h("option", { value: "GIAY_TO" }, "Giấy tờ")) as HTMLSelectElement;
-  const ngaySinh = h("input", { type: "date", id: "hs-ngay-sinh", max: new Date().toISOString().slice(0, 10) }) as HTMLInputElement;
-  const diaChi = h("input", { type: "text", id: "hs-dia-chi", maxlength: 200, autocomplete: "street-address" }) as HTMLInputElement;
+  const ngaySinh = h("input", { type: "date", id: "hs-ngay-sinh", max: vnToday(new Date()) }) as HTMLInputElement;
+  const diaChi = h("input", { type: "text", id: "hs-dia-chi", maxlength: 200, autocomplete: "off" }) as HTMLInputElement;
   const loaiGiay = h("select", { id: "hs-loai-giay" }, ...d.loaiGiayTo.map((t) => h("option", { value: t.ma }, t.ten))) as HTMLSelectElement;
   const so = h("input", { type: "text", id: "hs-so", maxlength: 40, autocomplete: "off" }) as HTMLInputElement;
   const hang = h("select", { id: "hs-hang" }, h("option", { value: "" }, "—"), ...d.hangGplx.map((c) => h("option", { value: c.ma }, c.ten))) as HTMLSelectElement;
@@ -174,14 +174,21 @@ function khoiDangChinhSach(d: Du, baoLoi: (m: string | null) => void): HTMLEleme
     h("p", { class: "muted" }, "Đăng phiên bản mới thì mọi người phải đồng ý lại trước khi gửi thông tin. Chữ chính sách cần chủ dự án và luật sư duyệt trước khi đăng."),
     h("label", null, "Mục đích thu thập", mucDich), h("label", null, "Toàn văn chính sách", noiDung),
     h("button", { class: "btn btn-primary", type: "submit" }, "Đăng phiên bản mới")) as HTMLFormElement;
-  form.addEventListener("submit", async (ev) => {
+  // Vòng sửa 2, I-1: đăng là cửa MỘT CHIỀU (bảng chỉ-thêm, hiệu lực ngay) — bấm "Đăng phiên bản mới" chỉ mở bước xác nhận trong trang; lệnh ghi ở nút "Xác nhận đăng".
+  const xacNhan = h("div", { class: "hs-xac-nhan", id: "hs-dang-cs-xac-nhan", hidden: true },
+    h("p", null, "Đăng là có hiệu lực ngay và không gỡ được: chính sách lưu vĩnh viễn, mọi người phải đồng ý lại và có thể bắt đầu gửi ngày sinh, địa chỉ, số giấy tờ. Chỉ đăng khi chữ đã được luật sư duyệt và đã có cách xoá dữ liệu theo yêu cầu."),
+    h("button", { class: "btn btn-danger", type: "button", onclick: async () => {
+      try {
+        await api<Api.ChinhSachDangResponse>("/api/parties/chinh-sach-rieng-tu", { method: "POST", body: { mucDich: mucDich.value, noiDung: noiDung.value } });
+        tai("da-luu");
+      } catch (e) {
+        baoLoi(cauLoi(e));
+      }
+    } }, "Xác nhận đăng"),
+    h("button", { class: "btn", type: "button", onclick: () => { xacNhan.hidden = true; } }, "Huỷ"));
+  form.addEventListener("submit", (ev) => {
     ev.preventDefault();
-    try {
-      await api<Api.ChinhSachDangResponse>("/api/parties/chinh-sach-rieng-tu", { method: "POST", body: { mucDich: mucDich.value, noiDung: noiDung.value } });
-      tai("da-luu");
-    } catch (e) {
-      baoLoi(cauLoi(e));
-    }
+    xacNhan.hidden = false;
   });
-  return h("details", { id: "hs-dang-chinh-sach" }, h("summary", null, "Đăng chính sách riêng tư mới"), form);
+  return h("details", { id: "hs-dang-chinh-sach" }, h("summary", null, "Đăng chính sách riêng tư mới"), form, xacNhan);
 }

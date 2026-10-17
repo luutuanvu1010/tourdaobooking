@@ -317,6 +317,30 @@ test("lính gác trong câu ghi: đồng ý bị rút trong khe giữa lúc đ�
   assert.equal(dem(w, "pty_self_submission"), 0);
 });
 
+test("M-4 (vòng sửa 2): hai quyết định đồng ý CÙNG mili-giây — 'mới nhất' theo rowid (dòng chèn sau thắng): dongY / dongYPhienBan / gửi phiếu đi đúng cả hai chiều", async () => {
+  const w = setup();
+  assert.equal((await dang(w)).status, 201);
+  const cs = (await cuaToi(w, PARTNER)).chinhSach.id as string;
+  // Chỉ mục pty_consent_party_ix (party_id, created_at) duyệt ngược đã tự cho hoà mili-giây ra rowid giảm dần — gỡ nó trong DB thử để bài ghim ORDER BY của câu.
+  w.sqlite.exec("DROP INDEX pty_consent_party_ix");
+  const T = "2026-10-17T05:00:00.000Z";
+  const quyetDinh = (id: string, d: string) => w.sqlite.prepare("INSERT INTO pty_consent (id, party_id, policy_id, decision, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+    .run(id, pty(PARTNER), cs, d, T, PARTNER, T, PARTNER);
+  quyetDinh("z-dong-y", "DONG_Y"); // mã chữ không theo thứ tự chèn — bài không dựa vào thứ tự mã
+  quyetDinh("a-rut", "RUT"); // cùng mili-giây, chèn SAU ⇒ rút là quyết định mới nhất
+  let d = await cuaToi(w, PARTNER);
+  assert.equal(d.dongY, false, "rút chèn sau phải thắng");
+  assert.deepEqual(d.dongYPhienBan, []);
+  const r = await gui(w, PARTNER, { chinhSachId: cs, loai: "NGAY_SINH", ngaySinh: "1991-02-03" });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "consent_required");
+  quyetDinh("m-dong-y-lai", "DONG_Y"); // đồng ý lại, vẫn cùng mili-giây ⇒ đồng ý thắng
+  d = await cuaToi(w, PARTNER);
+  assert.equal(d.dongY, true, "đồng ý chèn sau phải thắng");
+  assert.deepEqual(d.dongYPhienBan.map((p: any) => p.id), [cs]);
+  assert.equal((await gui(w, PARTNER, { chinhSachId: cs, loai: "NGAY_SINH", ngaySinh: "1991-02-03" })).status, 201);
+});
+
 test("Review Focus 5 (ghi): tài khoản tổ chức / chưa hồ sơ / đã gộp gửi phiếu → 409 đúng mã, không dòng", async () => {
   const w = setup();
   await dang(w);

@@ -167,6 +167,10 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
 
   for (const k of Object.keys(TUYEN)) await TUYEN[k]!();
   await goi("hồ sơ người", "GET", `/api/parties/${P}`, ADM, undefined, 200);
+  // Vòng sửa 2 (M-3, người kiểm cuối lát H-3): "Hồ sơ của tôi" khi hồ sơ ĐÃ có giấy tờ HIỆN HÀNH (CCCD sửa số, GPLX gia hạn) — khối hoSo.giayTo chỉ mang số che.
+  // Lúc ca "GET /api/parties/cua-toi" ở TUYEN chạy, hồ sơ TX chưa có giấy tờ nào nên khối này rỗng; gọi lại ở đây để bài có dữ liệu thật dò.
+  const cuaToiCoGiay = await goi("hồ sơ của tôi có giấy tờ hiện hành", "GET", "/api/parties/cua-toi", TX, undefined, 200);
+  assert.ok(cuaToiCoGiay.json.hoSo.giayTo.length >= 2, "chống bài rỗng: Hồ sơ của tôi CÓ giấy tờ hiện hành");
   // ADR-0048 D1: tài xế đối tác của một nhà xe, giấy tờ có số đánh dấu, sắp hết hạn → lên danh sách "sắp hết hạn" (nhãn nhà xe, KHÔNG số).
   const tkDt = await w.call("POST", "/api/staff", { as: SUP, body: { fullName: "Tài Xế Đối Tác Dò Số", phone: "0900000096", roles: ["DRIVER_EXTERNAL"] } });
   assert.equal(tkDt.status, 201, tkDt.text);
@@ -193,6 +197,7 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
   for (const t of than) for (const s of DAU_SO_NGUOI) assert.ok(!t.text.includes(s), `thân "${t.khoa}" lộ "${s}"`);
   assert.ok(than.some((t) => t.text.includes(NOI)), "chống bài rỗng: nơi cấp CÓ hiện ở danh sách giấy tờ (không phải số)");
   assert.ok(than.some((t) => t.text.includes("••••7665")), "chống bài rỗng: số che có mặt");
+  assert.ok(cuaToiCoGiay.text.includes("••••7665") && cuaToiCoGiay.text.includes("••••7666"), "chống bài rỗng: Hồ sơ của tôi mang số che của CCCD và GPLX hiện hành");
 
   // (4) "xem đủ số" có đúng số.
   assert.ok(lanXemSo.includes(SO_CCCD_MOI), "thân 'xem đủ số' phải có số đầy đủ");
