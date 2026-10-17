@@ -29,15 +29,19 @@ test("(6) số đủ: không console, không indexedDB / cookie / history, khôn
   assert.ok(duong.length >= 4, "chống bài rỗng");
   for (const d of duong) assert.ok(d.startsWith("/api/parties/xac-minh"), `gọi route ngoài khối: ${d}`);
 });
-test("(7) 'Hiện số' là thao tác riêng gọi xem-so (POST); số không nằm trong dữ liệu dựng sẵn của thẻ", () => {
+test("(7) chỉ dò chữ: có nút 'Hiện số', đường xem-so và method POST trong mã (hành vi thật do kịch bản Chrome xac-minh-smoke canh)", () => {
   assert.match(ma, /\/xem-so`/);
   assert.match(ma, /"Hiện số"/);
   assert.match(ma, /method:\s*"POST"/);
 });
-test("(8) người không xác minh được: lý do hiện ra, nút xử lý bị bỏ; phiếu giấy tờ khoá 'Chấp nhận' kèm câu giải thích", () => {
+test("(8) chỉ dò chữ: mã có nhắc xacMinhDuoc, lyDoKhong và câu 'chưa có ảnh' (khoá nút, ẩn nút do kịch bản Chrome xac-minh-smoke canh)", () => {
   assert.match(ma, /xacMinhDuoc/);
   assert.match(ma, /lyDoKhong/);
   assert.match(ma, /chưa có ảnh/);
+});
+test("(8b) đổi tab 'Đang chờ' / 'Đã xử lý' đều đóng khung chi tiết (khung 'Hiện số' tự ẩn)", () => {
+  assert.match(ma, /nutCho\.addEventListener\("click",[^\n]*dongChiTiet\(\)/);
+  assert.match(ma, /nutXong\.addEventListener\("click",[^\n]*dongChiTiet\(\)/);
 });
 test("(9) lỗi hiện câu tiếng Việt của máy chủ (ApiError.message), không mã thô", () => {
   assert.match(ma, /ApiError/);

@@ -1,6 +1,6 @@
 // Xác minh phiếu tự khai (ADR-0125; lát H-4 Gói 2) trên API thật + D1 local tạm. CHẠY LẠI ĐƯỢC: luôn đăng phiên bản chính sách MỚI; Đối tác A / B là tài khoản dùng một lần
 // (tên theo Date.now()); đếm chỉ phiếu của A / B (D1 chung nhóm có thể còn phiếu chờ của kịch bản khác — "tu-khai"). Nhân sự = ACCOUNTS.hr, Quản trị = ACCOUNTS.admin.
-// Đối tác A do SQL gieo (không ai "chạm"); Đối tác B do NHÂN SỰ tạo (người tạo không xác minh được phiếu của B — ADR-0125 đ3, sự thật 20).
+// Đối tác A do SQL gieo (không ai "chạm"); Đối tác B do NHÂN SỰ tạo (người tạo không xác minh được phiếu của B — ADR-0125 đ5 vế (b), sự thật 20).
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, gieoTaiKhoanLai, login, randomPhone, session, sqlRows } from "./lib.mjs";
 

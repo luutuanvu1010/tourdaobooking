@@ -48,7 +48,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Gói 2 hồ sơ riêng tư, lát H-0 + H-1 (Hiến chương 5.20; ADR-0122, ADR-0126 đ1): hạng dữ liệu cá nhân cho mọi cột; migration 0103 thêm ngày sinh, liên hệ địa chỉ,
     // giấy tờ tổ chức, sổ xác minh, chính sách riêng tư + đồng ý (chưa có màn nhập). CÓ migration — cần trien-khai sau day-len.
-    // Số 2.10 là số TẠM (main 2.8; worktree stoic-heisenberg giữ 2.9 — kiểm 2026-10-16): phiên phát hành kiểm lại số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
+    // Số 2.10 là số TẠM (main 2.8; worktree stoic-heisenberg giữ 2.9 — kiểm 2026-10-16): phiên phát hành kiểm lại số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Cập nhật 2026-10-17: main nay 2.9.
     version: "2.10",
     date: "2026-10-16",
     items: [

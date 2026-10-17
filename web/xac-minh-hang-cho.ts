@@ -34,7 +34,7 @@ export function dungHangChoXacMinh(goc: HTMLElement, staff: Staff): void {
     nutCho.setAttribute("aria-pressed", String(trang === "cho"));
     nutXong.setAttribute("aria-pressed", String(trang === "da-xu-ly"));
   };
-  nutCho.addEventListener("click", () => { trang = "cho"; hienLoi(null); hienOk(null); void taiDanhSach(); });
+  nutCho.addEventListener("click", () => { trang = "cho"; hienLoi(null); hienOk(null); dongChiTiet(); void taiDanhSach(); });
   nutXong.addEventListener("click", () => { trang = "da-xu-ly"; hienLoi(null); hienOk(null); dongChiTiet(); void taiDanhSach(); });
 
   async function taiDanhSach(): Promise<void> {

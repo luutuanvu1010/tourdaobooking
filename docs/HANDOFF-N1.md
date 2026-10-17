@@ -969,7 +969,7 @@ npx wrangler r2 bucket list
 
 **Xác minh vô hại khi chưa có chính sách đăng:** hàng chờ là mục trống (chưa ai gửi được phiếu), chấp nhận / từ chối không có phiếu nào để xử lý. Tự khai vẫn CHỈ BẬT khi Toàn quyền đăng chính sách riêng tư (điều kiện Q1 ở mục `0105` ngay trên — luật sư duyệt chữ và lát H-5 có đường xoá; dựa vào kỷ luật). **Chưa có:** ảnh đi kèm phiếu và chấp nhận phiếu giấy tờ (phiếu giấy tờ chỉ từ chối được, 409 `can_anh_giay_to` — ruling Q1 của kế hoạch H-4, chờ lát ảnh). Phiếu ngày sinh và địa chỉ chấp nhận được bình thường.
 
-**Việc của chủ:** (1) duyệt ảnh giao diện `docs/evidence/2026-10-17-xac-minh/anh/` (390 và 1040); (2) trả lời câu Q1–Q5 còn mở (mục "Câu hỏi còn mở" ở báo cáo việc 6 và `docs/BACKLOG.md` mục 39); (3) chạy `day-len` rồi `trien-khai` khi quyết phát hành — nhắc: nhánh phải dựng trên `main` mới nhất.
+**Việc của chủ:** (1) duyệt ảnh giao diện `docs/evidence/2026-10-17-xac-minh/anh/` (390 và 1040); (2) trả lời câu Q1–Q5 còn mở (mục "Câu hỏi còn mở" ở báo cáo việc 6 và `docs/BACKLOG.md` mục 39); (3) chạy `day-len` rồi `trien-khai` khi quyết phát hành — nhắc: nhánh phải dựng trên `main` mới nhất. Lưu ý vận hành: người Nhân sự đã tạo một tài khoản thì không bao giờ xác minh được hồ sơ của tài khoản đó (ADR-0125 đ5 vế b), nên cần ít nhất một Nhân sự hoặc Quản trị khác người đã tạo tài khoản, nếu không phiếu chỉ còn Toàn quyền xử lý.
 
 **Sau deploy:** `node scripts/audit-invariants.mjs --db remote` (trien-khai tự chạy) phải không vi phạm `R-PTY-14`, `R-PTY-15`, `R-PTY-16` (bảng phiếu rỗng ⇒ đạt). Chủ thử bằng tài khoản Nhân sự: trang Quản lý tài khoản có khối "Hàng chờ xác minh" (trống); Bán hàng, Kế toán không thấy khối và `GET /api/parties/xac-minh` trả 403.
 

@@ -326,6 +326,13 @@ test("(r7c) vòng sửa 1 (m-7): phiếu mất gắn tài khoản (tài khoản 
   assert.equal(s.json.phieu.find((x: any) => x.id === p).xacMinhDuoc, true);
   assert.equal((await ct(w, SUP, p)).status, 200);
   assert.equal((await tuChoi(w, SUP, p)).status, 200);
+  // Sau khi đã xử lý: trang "đã xử lý" cũng giấu phiếu mất gắn tài khoản với người không phải Toàn quyền (kiểm M-1).
+  for (const as of [HR, ADM]) {
+    const xong = await ds(w, as, "da-xu-ly");
+    assert.equal(xong.status, 200, xong.text);
+    assert.ok(!xong.json.phieu.some((x: any) => x.id === p), `${as}: phiếu mất gắn không hiện ở đã xử lý`);
+  }
+  assert.ok((await ds(w, SUP, "da-xu-ly")).json.phieu.some((x: any) => x.id === p), "Toàn quyền vẫn thấy ở đã xử lý");
 });
 
 test("(r8) nhật ký TRƯỚC: ghi nhật ký lỗi thì route 500 và KHÔNG trả số", async () => {
