@@ -89,6 +89,8 @@ const CAU: Record<Exclude<LoaiTinDon, "doi_sau_xac_nhan">, { coTen: (ten: string
   xac_nhan: { coTen: (t, m) => `${t} vừa xác nhận đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa được xác nhận` },
   huy: { coTen: (t, m) => `${t} vừa huỷ đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa bị huỷ` },
 };
+/** Tin "giao" đọc bởi chính người đang phụ trách đơn: "cho người khác" dễ làm họ tưởng mình không phải đi (B-01). Chọn theo `d.phuTrach` (người HIỆN TẠI). */
+const CAU_GIAO_CHO_BAN = { coTen: (t: string, m: string) => `${t} vừa giao đơn ${m} cho bạn phụ trách`, khongTen: (m: string) => `Đơn ${m} vừa được giao cho bạn phụ trách` };
 
 /** Chữ của một phần đổi khi GHÉP nhiều dòng cùng lô (câu chung thành cụm cố định — không chữ thô). */
 const chuPhan = (p: PhanDoiTin): string => (p.loai === "cu-the" ? p.phan : p.cau === "so-khach" ? "đổi số khách" : "đổi chặng đưa đón");
@@ -180,7 +182,9 @@ export function locHopThongBao(
     const coTen = d.tenNguoiLam !== null && can(staff, "order.history.view", { ownerId: d.ownerId, assigned: d.phuTrach.staffId === staff.id });
     tat.push({
       id: d.id, loai, maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
-      cau: coTen ? CAU[loai].coTen(d.tenNguoiLam!, d.maDon) : CAU[loai].khongTen(d.maDon),
+      cau: loai === "giao" && d.phuTrach.staffId === staff.id
+        ? (coTen ? CAU_GIAO_CHO_BAN.coTen(d.tenNguoiLam!, d.maDon) : CAU_GIAO_CHO_BAN.khongTen(d.maDon))
+        : coTen ? CAU[loai].coTen(d.tenNguoiLam!, d.maDon) : CAU[loai].khongTen(d.maDon),
       lienKet: isOffice(staff) ? `/order?id=${d.orderId}` : "/account",
       luc: d.luc, cuaToi, chuaDoc: d.luc > vao.docDenLuc, mo: false, // ADR-0045: "chờ nhận" chỉ tồn tại khi đơn ĐANG chưa có người → không còn tin chờ nhận "mờ"
     });

@@ -12,10 +12,20 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa B-01 (rà soát trước launch): tin «giao đơn» gửi tới chính người được giao không còn đọc «cho người khác phụ trách». Chỉ đổi chữ, không migration, không cần
+    // đổi dữ liệu. Số 2.17 là số TẠM (= production 2.16 + 1, kiểm 2026-10-18): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
+    // Ngày là ngày dự kiến.
+    version: "2.17",
+    date: "2026-10-18",
+    items: [
+      { kind: "sua", text: "Khi được giao đơn, bạn đọc «… giao đơn … cho bạn phụ trách» (trên chuông và trên màn hình khoá), không còn đọc «cho người khác phụ trách» như trước." },
+    ],
+  },
+  {
     // Gói 2 hồ sơ riêng tư, lát H-5 (ADR-0126): yêu cầu xoá dữ liệu cá nhân + Quản trị xem trước / thực hiện (ẩn danh hoá) + danh sách ảnh giấy tờ hết lý do giữ + ẩn danh phiên cũ;
-    // migration 0108 (số TẠM — áp sau 0103–0107; kiểm số kế tiếp lúc phát hành). CÓ migration — cần trien-khai sau day-len. Chính sách riêng tư KHÔNG đăng trên production
+    // migration 0108 (đã áp trên production cùng lần 2.16 — d1 migrations list --remote, kiểm 2026-10-18). Chính sách riêng tư KHÔNG đăng trên production
     // cho tới khi luật sư duyệt chữ và chủ nhập số ngày hợp pháp (docs/HANDOFF-N1.md).
-    // Số 2.16 là số TẠM (main đã dùng thật 2.10 và 2.11; không trùng 2.8–2.15): gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
+    // Số 2.16 đã là số CHÍNH THỨC: production chạy 2.16 (GET /api/auth/config, kiểm 2026-10-17). Không đổi số.
     version: "2.16",
     date: "2026-10-17",
     items: [
@@ -25,9 +35,9 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     ],
   },
   {
-    // Gói 2 hồ sơ riêng tư, lát H-4 (ADR-0125): Hàng chờ xác minh ở trang Quản lý tài khoản + luật tách nhiệm vụ; migration 0107 (số TẠM — kiểm số kế tiếp lúc phát hành,
-    // nhánh vé hỗ trợ giữ 0106). CÓ migration — cần trien-khai sau day-len. Tự khai vẫn chỉ bật khi Toàn quyền đăng chính sách; chấp nhận phiếu giấy tờ chưa có (chưa có ảnh).
-    // Số 2.15 là số TẠM (main đã dùng thật 2.10 và 2.11; không trùng 2.8–2.14): gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
+    // Gói 2 hồ sơ riêng tư, lát H-4 (ADR-0125): Hàng chờ xác minh ở trang Quản lý tài khoản + luật tách nhiệm vụ; migration 0107 (đã áp trên production cùng lần 2.16,
+    // kiểm 2026-10-18; nhánh vé hỗ trợ giữ 0106). Tự khai vẫn chỉ bật khi Toàn quyền đăng chính sách; chấp nhận phiếu giấy tờ chưa có (chưa có ảnh).
+    // Số 2.15 đã là số CHÍNH THỨC (lên production cùng lần phát hành chạy 2.16, kiểm 2026-10-17). Không đổi số.
     version: "2.15",
     date: "2026-10-17",
     items: [
@@ -38,7 +48,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Gói 2 hồ sơ riêng tư, lát H-3 (ADR-0124, ADR-0126 đ1): khối "Hồ sơ của tôi" ở trang Tôi, chính sách riêng tư + đồng ý, phiếu tự khai (chưa có xác minh — lát H-4);
     // migration 0105. CÓ migration — cần trien-khai sau day-len. TỰ KHAI CHỈ BẬT KHI TOÀN QUYỀN ĐĂNG CHÍNH SÁCH (không gieo bản nào — ruling Q1).
-    // Số 2.14 là số TẠM (main đã dùng thật 2.10 và 2.11; không trùng 2.8–2.13): gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
+    // Số 2.14 đã là số CHÍNH THỨC (lên production cùng lần phát hành chạy 2.16, kiểm 2026-10-17). Không đổi số.
     version: "2.14",
     date: "2026-10-17",
     items: [
@@ -49,8 +59,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Gói 2 hồ sơ riêng tư, lát H-2 (ADR-0123): kho tệp hồ sơ R2, route tải / mở ảnh giấy tờ chỉ Toàn quyền, hàng chờ xoá, gộp mang ảnh;
     // migration 0104. CÓ migration + CHỦ PHẢI TẠO KHO R2 TRƯỚC (docs/HANDOFF-N1.md; cổng 1e của trien-khai dừng nếu chưa có). Chưa có màn hình.
-    // Số 2.13 là số TẠM (main đã dùng thật 2.10 và 2.11). Cùng nhánh với 2.12 (lát H-0/H-1) nên sẽ lên CÙNG một lần
-    // phát hành — phiên phát hành có thể gộp hai mục thành một số; kiểm lại số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
+    // Số 2.13 đã là số CHÍNH THỨC (lên production cùng 2.12 và các mục sau trong một lần phát hành, kiểm 2026-10-17). Không đổi số.
     version: "2.13",
     date: "2026-10-17",
     items: [
@@ -61,7 +70,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Gói 2 hồ sơ riêng tư, lát H-0 + H-1 (Hiến chương 5.20; ADR-0122, ADR-0126 đ1): hạng dữ liệu cá nhân cho mọi cột; migration 0103 thêm ngày sinh, liên hệ địa chỉ,
     // giấy tờ tổ chức, sổ xác minh, chính sách riêng tư + đồng ý (chưa có màn nhập). CÓ migration — cần trien-khai sau day-len.
-    // Số 2.12 là số TẠM (main đã dùng thật 2.10 và 2.11 — kiểm 2026-10-17): gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
+    // Số 2.12 đã là số CHÍNH THỨC (lên production cùng lần phát hành chạy 2.16, kiểm 2026-10-17). Không đổi số.
     version: "2.12",
     date: "2026-10-17",
     items: [
