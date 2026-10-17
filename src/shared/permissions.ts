@@ -222,6 +222,9 @@ export const MATRIX = {
   "party.self.submit": tuPhucVu(),
   // ADR-0126 đ1: ĐĂNG phiên bản chính sách riêng tư mới — chỉ Toàn quyền (ruling Q4: hiệu lực ngay lúc đăng). Route: POST /api/parties/chinh-sach-rieng-tu (cổng admin).
   "party.privacy.policy": chiToanQuyen(),
+  // ADR-0124 đ4 + ADR-0126 đ2 (lát H-5 Gói 2): GỬI / RÚT yêu cầu xoá dữ liệu của CHÍNH MÌNH — mọi tài khoản (kể cả Tài xế đối tác, Nhân sự — kế hoạch H-5 sự thật 1).
+  // Phạm vi own = staff.partyId của PHIÊN. Không đòi đồng ý chính sách. Route: POST /api/parties/cua-toi/phieu-xoa, POST …/phieu-xoa/:id/rut (cổng staff).
+  "party.erasure.request": tuPhucVu(),
   // ADR-0125 đ1 (accepted 2026-10-16; lát H-4 Gói 2): HÀNG CHỜ XÁC MINH — xem trường khai của phiếu ĐANG CHỜ (số che), chấp nhận nguyên văn / từ chối theo danh sách đóng.
   // Cột ADMIN, HR, SUPER_ADMIN (đảo ADR-0083 đ2, thay ADR-0071 đ1e chỉ trong phạm vi phiếu đang chờ — HR vẫn party.view = none). Còn hỏi cấp bậc canManageAccount
   // và tách nhiệm vụ (đ5 — lính gác trong câu ghi). Route: GET /api/parties/xac-minh*, POST …/:pid/chap-nhan, POST …/:pid/tu-choi (cổng accounts).

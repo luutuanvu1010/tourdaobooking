@@ -123,9 +123,9 @@ test("Review Focus 2: DTO 'Hồ sơ của tôi' đúng DANH SÁCH CHO PHÉP cho 
     VALUES ('doc-drv', ?, 'CCCD', '079 333 444 555', '079333444555', '2035-01-01', ?, ?)`).run(pty(DRV), AT, AT);
   for (const as of [PARTNER, DRVP, HYB, SALES, DRV]) {
     const d = await cuaToi(w, as);
-    assert.deepEqual(Object.keys(d).sort(), ["chinhSach", "coTheGui", "dongY", "dongYPhienBan", "hangGplx", "hoSo", "loaiGiayTo", "lyDoKhongGui", "phieu"], as);
-    assert.deepEqual(Object.keys(d.hoSo).sort(), ["diaChi", "dienThoai", "email", "giayTo", "hoTen", "loai", "ngaySinh"], as);
-    assert.deepEqual(Object.keys(d.chinhSach).sort(), ["hieuLucTu", "id", "mucDich", "noiDung", "phienBan"], as);
+    assert.deepEqual(Object.keys(d).sort(), ["chinhSach", "coTheGui", "coTheGuiXoa", "dongY", "dongYPhienBan", "hangGplx", "hoSo", "loaiGiayTo", "lyDoKhongGui", "lyDoKhongGuiXoa", "phieu", "phieuXoa"], as);
+    assert.deepEqual(Object.keys(d.hoSo).sort(), ["daXoa", "diaChi", "dienThoai", "email", "giayTo", "hoTen", "loai", "ngaySinh"], as);
+    assert.deepEqual(Object.keys(d.chinhSach).sort(), ["hanGiuPhienNgay", "hanXuLyXoaNgay", "hieuLucTu", "id", "mucDich", "noiDung", "phienBan"], as);
     assert.doesNotMatch(JSON.stringify(d), /"(roles|relationships|mergedFrom|mergedInto|accountLinked|editable|createdAt|updatedAt|createdBy|staffId|partyId)"/, as);
   }
   const drv = await cuaToi(w, DRV);
@@ -205,7 +205,7 @@ test("gửi ba loại phiếu: 201; giá trị HIỆN HÀNH không đổi (5.23)
   assert.doesNotMatch(hs.text, /86420|1991-02-03|079111222333/);
   const d = await cuaToi(w, PARTNER);
   assert.deepEqual(d.phieu.map((p: any) => [p.loai, p.trangThai]), [["GIAY_TO", "CHO_XAC_MINH"], ["DIA_CHI", "CHO_XAC_MINH"], ["NGAY_SINH", "CHO_XAC_MINH"]]);
-  for (const p of d.phieu) assert.deepEqual(Object.keys(p).sort(), ["diaChi", "giayTo", "guiLuc", "id", "loai", "ngaySinh", "trangThai", "xuLyLuc"]);
+  for (const p of d.phieu) assert.deepEqual(Object.keys(p).sort(), ["daXoa", "diaChi", "giayTo", "guiLuc", "id", "loai", "ngaySinh", "trangThai", "xuLyLuc"]);
   assert.deepEqual(d.phieu[0].giayTo, { loai: "Căn cước công dân (CCCD)", soChe: "••••2333", ngayCap: "2021-01-01", noiCap: "NOI CAP PHIEU THU", hetHan: "2036-01-01" });
   assert.doesNotMatch(JSON.stringify(d), /079111222333|079 111/);
   const nk = JSON.stringify(w.q("SELECT action, detail FROM audit_log WHERE action LIKE 'self_submission_%'"));

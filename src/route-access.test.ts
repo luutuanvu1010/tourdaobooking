@@ -266,6 +266,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/parties/cua-toi/dong-y", access: "staff" }, // ADR-0124 đ3, 5.21: đồng ý / rút đồng ý — party.self.submit own; rút đồng ý rút phiếu đang chờ cùng lô
   { method: "POST", path: "/api/parties/cua-toi/phieu", access: "staff" }, // ADR-0124 đ1, đ3: gửi phiếu tự khai — party.self.submit own; giá trị khai là đề xuất (5.23)
   { method: "POST", path: "/api/parties/cua-toi/phieu/:pid/rut", access: "staff" }, // rút phiếu ĐANG CHỜ của chính mình — phiếu người khác 404
+  { method: "POST", path: "/api/parties/cua-toi/phieu-xoa", access: "staff" }, // ADR-0126 đ2 (lát H-5): gửi yêu cầu xoá dữ liệu của chính mình — party.erasure.request own; hồ sơ từ phiên
+  { method: "POST", path: "/api/parties/cua-toi/phieu-xoa/:pid/rut", access: "staff" }, // ADR-0126 đ2: rút yêu cầu xoá ĐANG CHỜ của chính mình — phiếu người khác 404
   { method: "GET", path: "/api/parties/xac-minh", access: "accounts" }, // ADR-0125 đ1 (lát H-4): hàng chờ / đã xử lý — party.verify (Quản trị, Toàn quyền, Nhân sự); HR vẫn không vào Danh bạ
   { method: "GET", path: "/api/parties/xac-minh/:pid", access: "accounts" }, // ADR-0125 đ1, đ6: chi tiết phiếu ĐANG CHỜ (số che) — party.verify; ngoài cấp bậc 404
   { method: "POST", path: "/api/parties/xac-minh/:pid/xem-so", access: "accounts" }, // ADR-0125 đ1: xem đủ số của phiếu đang chờ — party.verify.attachment; nhật ký TRƯỚC
@@ -577,6 +579,7 @@ test("mức truy cập của 332 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-17 (ADR-0124 đ1, đ3; lát H-3 Task 4): + POST /api/parties/cua-toi/phieu, POST /api/parties/cua-toi/phieu/:pid/rut (staff; party.self.submit own) = 337.
   // 2026-10-17 (ADR-0125 đ1; lát H-4 việc 3): + GET /api/parties/xac-minh, GET /api/parties/xac-minh/:pid, POST /api/parties/xac-minh/:pid/xem-so (accounts; party.verify / party.verify.attachment) = 340.
   // 2026-10-17 (ADR-0125 đ4, đ6; lát H-4 việc 4): + POST /api/parties/xac-minh/:pid/chap-nhan, POST …/tu-choi (accounts; party.verify) = 342.
-  assert.equal(actual.length, 342, "số route thực tế lệch 342 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 342, "SNAPSHOT phải có đúng 342 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-17 (ADR-0126 đ2; lát H-5 việc 4): + POST /api/parties/cua-toi/phieu-xoa, POST …/phieu-xoa/:pid/rut (staff; party.erasure.request own) = 344.
+  assert.equal(actual.length, 344, "số route thực tế lệch 344 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 344, "SNAPSHOT phải có đúng 344 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

@@ -126,3 +126,22 @@ test("(4) mọi nơi gọi quyetPhieuStatement truyền actorId: staff.id và la
     assert.ok(g.includes('laToanQuyen: staff.permissions.includes("SUPER_ADMIN")'), `laToanQuyen không lấy từ quyền phiên — ${g}`);
   }
 });
+
+// ADR-0126 đ2 (lát H-5 việc 4): hàm rút phiếu tự khai KHI GỬI phiếu xoá chạm bảng phiếu — chỉ được GỌI ở ĐÚNG một route (gửi yêu cầu xoá của chính mình), cùng lô với câu chèn phiếu xoá.
+test("(5) rutPhieuTuKhaiKhiGuiXoaStatement chỉ được gọi ở POST /api/parties/cua-toi/phieu-xoa; tệp parties khác không nhắc", () => {
+  const THU_MUC = join(SRC, "modules/parties");
+  const noi: string[] = [];
+  for (const f of tepTs(THU_MUC).filter((p) => !p.endsWith("/repository.ts"))) {
+    const goc = readFileSync(f, "utf8").replace(/^import[\s\S]*?from\s+"[^"]+";\s*$/gm, "");
+    if (!f.endsWith("/parties/index.ts")) {
+      assert.doesNotMatch(goc, /\brutPhieuTuKhaiKhiGuiXoaStatement\b/, f);
+      continue;
+    }
+    for (const k of goc.split(/(?=\broute\(")/)) {
+      const m = /^route\("([A-Z]+)", "([^"]+)"/.exec(k);
+      if (/\brutPhieuTuKhaiKhiGuiXoaStatement\b/.test(k)) noi.push(m ? `${m[1]} ${m[2]}` : "(ngoài route)");
+      assert.doesNotMatch(k, /\brutPhieuTuKhaiKhiGuiXoaStatement\b(?!\s*\()/, "được nhắc mà không gọi (gán / truyền đi là đường vòng)");
+    }
+  }
+  assert.deepEqual(noi, ["POST /api/parties/cua-toi/phieu-xoa"]);
+});

@@ -195,6 +195,16 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
       await doi();
       await goi("sửa sai số giấy tờ xe", "POST", `/api/van-chuyen/xe/${xe}/giay-to/${did}/sua-sai`, ADM, { reason: "SAI_SO", value: SO_XE_MOI, expectedUpdatedAt: moc(did, "vc_vehicle_document") }, 200);
     },
+    // Lát H-5 (ADR-0126 đ2): hai route yêu cầu xoá của chính mình — chạy CUỐI (gửi xoá rút mọi phiếu tự khai đang chờ của TX và chặn phiếu mới tới khi rút). Phản hồi chỉ mã phiếu, không giá trị nào.
+    "POST /api/parties/cua-toi/phieu-xoa": async () => {
+      const r = await goi("gửi yêu cầu xoá dữ liệu", "POST", "/api/parties/cua-toi/phieu-xoa", TX, { xacNhan: true }, 201);
+      assert.match(r.json.id, /^[0-9a-f-]{36}$/, "chống bài rỗng: có mã phiếu xoá");
+    },
+    "POST /api/parties/cua-toi/phieu-xoa/:pid/rut": async () => {
+      const cho = w.q("SELECT id FROM pty_erasure_request WHERE status = 'CHO_XU_LY'")[0];
+      assert.ok(cho, "chống bài rỗng: có phiếu xoá đang chờ để rút");
+      await goi("rút yêu cầu xoá dữ liệu", "POST", `/api/parties/cua-toi/phieu-xoa/${cho.id}/rut`, TX, undefined, 200);
+    },
   };
 
   // (1) ĐỦ TUYẾN

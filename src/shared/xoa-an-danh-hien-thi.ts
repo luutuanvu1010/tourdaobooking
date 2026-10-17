@@ -23,6 +23,15 @@ export const LY_DO_TU_CHOI_XOA: readonly { ma: "CAN_GIU_THEO_LUAT" | "NGUOI_DUNG
   { ma: "NGUOI_DUNG_HUY_QUA_KENH_KHAC", nhan: "Người dùng đã báo huỷ yêu cầu qua kênh khác" },
 ];
 
+/** Câu tiếng Việt khi KHÔNG gửi được yêu cầu xoá (mã = `LyDoKhongGuiXoa` của máy chủ + `party_merged`). Quyền xoá không phụ thuộc đồng ý chính sách nên không có câu "chưa đồng ý". */
+export const CAU_KHONG_GUI_XOA: Readonly<Record<"khong_ho_so" | "khong_ca_nhan" | "cong_ty_chu" | "dang_cho" | "da_gop", { code: string; message: string }>> = {
+  khong_ho_so: { code: "no_party", message: "Tài khoản này chưa gắn hồ sơ nên chưa gửi được yêu cầu xoá. Hãy báo quản trị viên." },
+  khong_ca_nhan: { code: "erasure_person_only", message: "Yêu cầu xoá hiện chỉ dành cho hồ sơ cá nhân. Hãy báo quản trị viên nếu cần xoá hồ sơ tổ chức." },
+  cong_ty_chu: { code: "owner_company_protected", message: "Hồ sơ công ty chủ không xoá được." },
+  dang_cho: { code: "erasure_pending_exists", message: "Bạn đã có yêu cầu xoá dữ liệu đang chờ xử lý." },
+  da_gop: { code: "party_merged", message: "Hồ sơ của bạn đã được gộp vào hồ sơ khác. Hãy báo quản trị viên." },
+};
+
 export const CAU_CAN_CU_GIU_LAI = "Căn cứ giữ lại: chưa được luật sư hay kế toán xác nhận.";
 
 const TRANG_THAI_PHIEU_XOA: Readonly<Record<string, string>> = {

@@ -92,6 +92,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "party.self.view": ["own", "own", "own", "own", "own", "any", "own", "own", "own", "own"], // ADR-0124 đ4 (lát H-3): hồ sơ của CHÍNH MÌNH — mọi tài khoản; SUPER any (ADR-0014 đ2) nhưng route chỉ phục vụ hồ sơ của phiên
   "party.self.submit": ["own", "own", "own", "own", "own", "any", "own", "own", "own", "own"], // ADR-0124 đ1, đ3, đ4: gửi / rút phiếu tự khai, đồng ý / rút đồng ý chính sách — của chính mình
   "party.privacy.policy": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0126 đ1: đăng chính sách riêng tư — chỉ Toàn quyền
+  "party.erasure.request": ["own", "own", "own", "own", "own", "any", "own", "own", "own", "own"], // ADR-0124 đ4 + ADR-0126 đ2 (lát H-5): gửi / rút yêu cầu xoá dữ liệu của CHÍNH MÌNH — mọi tài khoản (kể cả Tài xế đối tác, Nhân sự)
   "party.verify": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "any"], // ADR-0125 đ1, đ2 (lát H-4): hàng chờ xác minh phiếu tự khai — Quản trị, Toàn quyền, Nhân sự (HR vẫn party.view = none)
   "party.verify.attachment": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "any"], // ADR-0125 đ1: xem đủ số của phiếu ĐANG CHỜ — nhật ký trước, không số trong nhật ký
   "vehicle.manage": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0040 D1: xe, giấy tờ xe, danh sách sắp hết hạn — Quản trị + Toàn quyền (ADR-0038 điều 6)
@@ -285,6 +286,7 @@ const ADMIN_NONE_OPS: readonly OperationCode[] = [
   "party.document.reveal", // ADR-0083 điều 2: xem đủ số giấy tờ chỉ Toàn quyền — Quản trị chỉ thấy số đã che
   "party.attachment.view", // ADR-0124 đ4: mở ảnh giấy tờ chỉ Toàn quyền — Quản trị ghi giấy tờ nhưng không mở ảnh (ruling Q1 kế hoạch H-2 kho tệp)
   "party.self.view", "party.self.submit", // ADR-0124 đ4: ô `own` — Quản trị chỉ hồ sơ của chính mình (ngữ cảnh ownerId người khác → không)
+  "party.erasure.request", // ADR-0124 đ4 + ADR-0126 đ2 (lát H-5): ô `own` — gửi / rút yêu cầu xoá dữ liệu của chính mình
   "party.privacy.policy", // ADR-0126 đ1: đăng chính sách riêng tư chỉ Toàn quyền
   "trip.passenger.add", // ADR-0052 D5b (Đợt 5 A-1b): chỉ tài xế đang lái bổ sung tên — văn phòng nhập tên ở đơn (không route văn phòng)
   "trip.refuse", // ADR-0053 D8.3 (kế hoạch A4 T3): Từ chối chuyến chỉ tài xế đang lái — văn phòng không từ chối thay (đổi người bằng xếp xe; N-TU-CHOI)
@@ -372,6 +374,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "party.document.write": "none", "party.document.reveal": "none", "party.attachment.view": "none", "vehicle.manage": "none",
     "party.self.view": "own", "party.self.submit": "own", // ADR-0124 đ4 (lát H-3): ngoại lệ có tên — hồ sơ của CHÍNH MÌNH, như mọi tài khoản
     "party.privacy.policy": "none", // ADR-0126 đ1
+    "party.erasure.request": "own", // ADR-0124 đ4 + ADR-0126 đ2 (lát H-5): ngoại lệ có tên — yêu cầu xoá dữ liệu của CHÍNH MÌNH, như mọi tài khoản
     "party.verify": "none", "party.verify.attachment": "none", // ADR-0125 đ1
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
@@ -420,6 +423,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "party.document.write": "none", "party.document.reveal": "none", "party.attachment.view": "none", "vehicle.manage": "none",
     "party.self.view": "own", "party.self.submit": "own", // ADR-0124 đ4 (lát H-3): ngoại lệ có tên — hồ sơ của CHÍNH MÌNH, như mọi tài khoản
     "party.privacy.policy": "none", // ADR-0126 đ1
+    "party.erasure.request": "own", // ADR-0124 đ4 + ADR-0126 đ2 (lát H-5): ngoại lệ có tên — yêu cầu xoá dữ liệu của CHÍNH MÌNH, như mọi tài khoản
     "party.verify": "none", "party.verify.attachment": "none", // ADR-0125 đ1
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
@@ -445,9 +449,9 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER_PARTNER])), DRIVER_PARTNER_ROW);
   // NT-1 (kế hoạch A4): đúng 8 ô ≠ none sau T8 — 4 ô cũ (feedback.submit, feedback.view, party.document.view, assistant.ask) + trip.view, trip.progress,
   // trip.refuse (T6) + unavailability.self (T8). Gói A5 (12/10) thêm trip.transfer (nới N4) ⇒ đúng 9 ô. Lát H-3 Gói 2 (ADR-0124 đ4 + Hệ quả — NỚI có chủ ý):
-  // party.self.view, party.self.submit = own (hồ sơ của CHÍNH MÌNH) ⇒ đúng 11 ô.
+  // party.self.view, party.self.submit = own (hồ sơ của CHÍNH MÌNH) ⇒ đúng 11 ô. Lát H-5 (ADR-0124 đ4 + ADR-0126 đ2): party.erasure.request = own ⇒ đúng 12 ô.
   assert.deepEqual(Object.entries(DRIVER_PARTNER_ROW).filter(([, v]) => v !== "none").map(([k]) => k).sort(),
-    ["assistant.ask", "feedback.submit", "feedback.view", "party.document.view", "party.self.submit", "party.self.view", "trip.progress", "trip.refuse", "trip.transfer", "trip.view", "unavailability.self"]);
+    ["assistant.ask", "feedback.submit", "feedback.view", "party.document.view", "party.erasure.request", "party.self.submit", "party.self.view", "trip.progress", "trip.refuse", "trip.transfer", "trip.view", "unavailability.self"]);
 });
 
 // ADR-0071 (accepted 2026-10-01): cột Nhân sự (HR — vai "Hành chính nhân sự") — chỉ ba ô tài khoản (tạo / xem / sửa); MỌI ô nghiệp vụ khác = none: không đơn,
@@ -474,6 +478,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "party.document.write": "none", "party.document.reveal": "none", "party.attachment.view": "none", "vehicle.manage": "none",
     "party.self.view": "own", "party.self.submit": "own", // ADR-0124 đ4 (lát H-3): ngoại lệ có tên — hồ sơ của CHÍNH MÌNH, như mọi tài khoản
     "party.privacy.policy": "none", // ADR-0126 đ1
+    "party.erasure.request": "own", // ADR-0124 đ4 + ADR-0126 đ2 (lát H-5): ngoại lệ có tên — yêu cầu xoá dữ liệu của CHÍNH MÌNH, như mọi tài khoản
     "party.verify": "any", "party.verify.attachment": "any", // ADR-0125 đ1
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
@@ -683,6 +688,22 @@ test("ADR-0124 đ4 (lát H-3): party.self.view / party.self.submit trên cả 10
       assert.equal(can(who, op), coSup, `${op} không ngữ cảnh: ${ten}`);
     }
     assert.equal(can(who, "party.privacy.policy", { ownerId: "u1" }), coSup, `party.privacy.policy: ${ten}`);
+    count++;
+  }
+  assert.equal(count, 1024);
+});
+
+test("ADR-0124 đ4 (lát H-5): party.erasure.request — mọi cột own (kể cả Tài xế đối tác, Nhân sự), Toàn quyền any; trên cả 1024 tập con quyền như party.self.*", () => {
+  assert.deepEqual(MATRIX["party.erasure.request"], { SALES: "own", ACCOUNTING: "own", ADMIN: "own", FIELD: "own", PARTNER: "own", SUPER_ADMIN: "any", INTERN: "own", DRIVER: "own", DRIVER_PARTNER: "own", HR: "own" });
+  let count = 0;
+  for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
+    const permissions = PERMISSION_CODES.filter((_, i) => mask & (1 << i));
+    const who = { id: "u1", permissions };
+    const coSup = permissions.includes("SUPER_ADMIN");
+    const ten = permissions.join("+") || "(không quyền)";
+    assert.equal(can(who, "party.erasure.request", { ownerId: "u1" }), permissions.length > 0, `chính mình: ${ten}`);
+    assert.equal(can(who, "party.erasure.request", { ownerId: "u2" }), coSup, `người khác: ${ten}`);
+    assert.equal(can(who, "party.erasure.request"), coSup, `không ngữ cảnh: ${ten}`);
     count++;
   }
   assert.equal(count, 1024);

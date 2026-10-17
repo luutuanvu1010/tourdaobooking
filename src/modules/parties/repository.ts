@@ -1094,18 +1094,18 @@ export async function listTepChoXoa(db: D1Database, doDangTruoc: string): Promis
 // ---- Chính sách riêng tư + đồng ý + phiếu tự khai (ADR-0124, ADR-0126 đ1; lát H-3 Gói 2) ---------------------------------------------------------------
 // Câu đọc phiếu KHÔNG chọn document_number (số đủ không bao giờ rời CSDL qua đường "của tôi"). Mọi câu chạm pty_self_submission chỉ dùng trong route /api/parties/cua-toi*
 // (rào src/tu-khai-khong-len-nhan.test.ts — Hiến chương 5.23).
-export interface PolicyRow { id: string; version: number; purposes: string; body: string; valid_from_at: string }
+export interface PolicyRow { id: string; version: number; purposes: string; body: string; valid_from_at: string; erasure_days: number | null; session_retention_days: number | null }
 export interface PhieuRow {
   id: string; subject_kind: string; status: string; policy_id: string; birth_date: string | null; address_value: string | null; document_type_code: string | null;
   type_name: string | null; number_key: string | null; license_class_code: string | null; class_name: string | null; issued_date: string | null;
-  issued_place: string | null; expiry_date: string | null; created_at: string; decided_at: string | null;
+  issued_place: string | null; expiry_date: string | null; created_at: string; decided_at: string | null; da_xoa: number;
 }
 const CURRENT_POLICY = defineSql("parties", "current_privacy_policy",
-  "SELECT id, version, purposes, body, valid_from_at FROM pty_privacy_policy WHERE valid_from_at <= ?1 ORDER BY version DESC LIMIT 1");
+  "SELECT id, version, purposes, body, valid_from_at, erasure_days, session_retention_days FROM pty_privacy_policy WHERE valid_from_at <= ?1 ORDER BY version DESC LIMIT 1");
 const MAX_POLICY_VERSION = defineSql("parties", "max_privacy_policy_version", "SELECT COALESCE(MAX(version), 0) AS v FROM pty_privacy_policy");
 const INSERT_POLICY = defineSql("parties", "insert_privacy_policy",
-  `INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by)
-   VALUES (?1, ?2, ?3, ?4, ?5, ?5, ?6, ?5, ?6)`);
+  `INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by, erasure_days, session_retention_days)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?5, ?6, ?5, ?6, ?7, ?8)`);
 // Phiên bản chính sách mà quyết định MỚI NHẤT của hồ sơ là DONG_Y (vòng sửa 1, ruling I-2: rút được mọi phiên bản đang đồng ý, không chỉ bản hiện hành).
 // Cùng khuôn "mới nhất" với trigger 0105 pty_self_submission_consent_ins và bất biến R-PTY-13 (created_at DESC, rowid DESC).
 const CONSENTED_POLICIES = defineSql("parties", "consented_policies_of_party",
@@ -1119,7 +1119,7 @@ const RUT_MOI_PHIEU_CHO = defineSql("parties", "withdraw_pending_self_submission
    WHERE party_id = ?1 AND policy_id = ?4 AND status = 'CHO_XAC_MINH'`);
 const LIST_PHIEU = defineSql("parties", "list_self_submissions_of_party",
   `SELECT s.id, s.subject_kind, s.status, s.policy_id, s.birth_date, s.address_value, s.document_type_code, t.name AS type_name, s.number_key,
-          s.license_class_code, c.name AS class_name, s.issued_date, s.issued_place, s.expiry_date, s.created_at, s.decided_at
+          s.license_class_code, c.name AS class_name, s.issued_date, s.issued_place, s.expiry_date, s.created_at, s.decided_at, (s.erased_at IS NOT NULL) AS da_xoa
    FROM pty_self_submission s
    LEFT JOIN pty_person_document_type t ON t.code = s.document_type_code
    LEFT JOIN pty_license_class c ON c.code = s.license_class_code
@@ -1136,8 +1136,11 @@ export const chinhSachHienHanh =(db: D1Database, nowIso: string): Promise<Policy
 export async function phienBanLonNhat(db: D1Database): Promise<number> {
   return (await db.prepare(MAX_POLICY_VERSION).first<{ v: number }>())?.v ?? 0;
 }
-export const dangChinhSachStatement = (db: D1Database, v: { id: string; version: number; mucDich: string; noiDung: string; at: string; actorId: string }): D1PreparedStatement =>
-  db.prepare(INSERT_POLICY).bind(v.id, v.version, v.mucDich, v.noiDung, v.at, v.actorId);
+/** `hanXuLyXoaNgay` → cột `erasure_days`, `hanGiuPhienNgay` → `session_retention_days` (ADR-0126 đ2, đ8): null = chưa có số; con số do người đăng nhập, mã không gieo. */
+export const dangChinhSachStatement = (
+  db: D1Database,
+  v: { id: string; version: number; mucDich: string; noiDung: string; at: string; actorId: string; hanXuLyXoaNgay: number | null; hanGiuPhienNgay: number | null },
+): D1PreparedStatement => db.prepare(INSERT_POLICY).bind(v.id, v.version, v.mucDich, v.noiDung, v.at, v.actorId, v.hanXuLyXoaNgay, v.hanGiuPhienNgay);
 export async function phienBanDangDongY(db: D1Database, partyId: string): Promise<{ id: string; version: number }[]> {
   return (await db.prepare(CONSENTED_POLICIES).bind(partyId).all<{ id: string; version: number }>()).results;
 }

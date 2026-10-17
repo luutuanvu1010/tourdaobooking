@@ -1014,11 +1014,16 @@ export type LoaiPhieuTuKhai = "NGAY_SINH" | "DIA_CHI" | "GIAY_TO";
 export type TrangThaiPhieuTuKhai = "CHO_XAC_MINH" | "DA_CHAP_NHAN" | "TU_CHOI" | "RUT";
 export interface GiayToCuaToiDto { loai: string; soChe: string | null; hetHan: string | null }
 /** Giá trị HIỆN HÀNH (đã có trong hồ sơ). Hồ sơ tổ chức: ngaySinh null, diaChi [], giayTo []. */
-export interface HoSoCuaToiDto { loai: "PERSON" | "ORGANIZATION"; hoTen: string; ngaySinh: string | null; diaChi: string[]; dienThoai: string[]; email: string[]; giayTo: GiayToCuaToiDto[] }
-export interface ChinhSachRiengTuDto { id: string; phienBan: number; mucDich: string; noiDung: string; hieuLucTu: string }
+/** `daXoa` (ADR-0126, Review Focus 1): hồ sơ đã ẩn danh hoá theo yêu cầu xoá — ngày sinh null, liên hệ / giấy tờ rỗng; giao diện hiện "Đã xoá", không bao giờ hiện dấu ẩn danh như dữ liệu. */
+export interface HoSoCuaToiDto { loai: "PERSON" | "ORGANIZATION"; hoTen: string; ngaySinh: string | null; diaChi: string[]; dienThoai: string[]; email: string[]; giayTo: GiayToCuaToiDto[]; daXoa: boolean }
+/** `hanXuLyXoaNgay` / `hanGiuPhienNgay`: số ngày do chính sách quy định (ADR-0126 đ2, đ8); null = chưa có số (không hạn). */
+export interface ChinhSachRiengTuDto { id: string; phienBan: number; mucDich: string; noiDung: string; hieuLucTu: string; hanXuLyXoaNgay: number | null; hanGiuPhienNgay: number | null }
 export interface PhieuTuKhaiGiayToDto { loai: string; soChe: string | null; ngayCap: string | null; noiCap: string | null; hetHan: string | null }
 /** Giá trị ĐỀ XUẤT của chính người xem (5.23) — chưa dùng ở đâu cho tới khi được xác minh. */
-export interface PhieuTuKhaiDto { id: string; loai: LoaiPhieuTuKhai; trangThai: TrangThaiPhieuTuKhai; guiLuc: string; xuLyLuc: string | null; ngaySinh: string | null; diaChi: string | null; giayTo: PhieuTuKhaiGiayToDto | null }
+export interface PhieuTuKhaiDto { id: string; loai: LoaiPhieuTuKhai; trangThai: TrangThaiPhieuTuKhai; guiLuc: string; xuLyLuc: string | null; ngaySinh: string | null; diaChi: string | null; giayTo: PhieuTuKhaiGiayToDto | null; daXoa: boolean }
+export type TrangThaiPhieuXoa = "CHO_XU_LY" | "DA_THUC_HIEN" | "TU_CHOI" | "RUT";
+/** Phiếu yêu cầu xoá dữ liệu của chính mình (ADR-0126 đ2). `han` null = "Chưa có thời hạn trong chính sách". `phanGiuLai`: mã (giao diện gắn nhãn bằng PHAN_GIU_LAI); rỗng khi chưa thực hiện. */
+export interface PhieuXoaCuaToiDto { id: string; trangThai: TrangThaiPhieuXoa; guiLuc: string; han: string | null; xuLyLuc: string | null; lyDoTuChoi: string | null; phanGiuLai: string[] }
 /** `GET /api/parties/cua-toi`. `hoSo` null = tài khoản chưa gắn hồ sơ. `coTheGui` false thì `lyDoKhongGui` là câu tiếng Việt. `phieu`: 50 phiếu mới nhất. */
 export interface HoSoCuaToiResponse {
   hoSo: HoSoCuaToiDto | null;
@@ -1029,10 +1034,14 @@ export interface HoSoCuaToiResponse {
   coTheGui: boolean;
   lyDoKhongGui: string | null;
   phieu: PhieuTuKhaiDto[];
+  /** ADR-0126 đ2: yêu cầu xoá dữ liệu của chính mình (20 phiếu mới nhất). `coTheGuiXoa` false thì `lyDoKhongGuiXoa` là câu tiếng Việt. Gửi xoá KHÔNG đòi đồng ý chính sách. */
+  phieuXoa: PhieuXoaCuaToiDto[];
+  coTheGuiXoa: boolean;
+  lyDoKhongGuiXoa: string | null;
   loaiGiayTo: { ma: string; ten: string; coHan: boolean }[];
   hangGplx: { ma: string; ten: string }[];
 }
-/** `POST /api/parties/chinh-sach-rieng-tu` (chỉ Toàn quyền) — thân `{ mucDich, noiDung }`. */
+/** `POST /api/parties/chinh-sach-rieng-tu` (chỉ Toàn quyền) — thân `{ mucDich, noiDung, hanXuLyXoaNgay?, hanGiuPhienNgay? }` (hai số ngày: số nguyên ≥ 1 hoặc bỏ trống). */
 export interface ChinhSachDangResponse { phienBan: number }
 /**
  * `POST /api/parties/cua-toi/dong-y` — thân `{ chinhSachId, quyetDinh: "DONG_Y" | "RUT" }`. Đồng ý: chỉ phiên bản hiện hành. Rút: mọi phiên bản đang đồng ý
@@ -1043,6 +1052,9 @@ export interface DongYResponse { dongY: boolean }
 export interface PhieuTuKhaiTaoResponse { phieuId: string }
 /** `POST /api/parties/cua-toi/phieu/:pid/rut`. */
 export interface PhieuTuKhaiRutResponse { phieuId: string; trangThai: "RUT" }
+/** `POST /api/parties/cua-toi/phieu-xoa` (thân `{ xacNhan: true }`) → 201; `POST …/phieu-xoa/:id/rut` → 200. */
+export interface PhieuXoaTaoResponse { id: string }
+export interface PhieuXoaRutResponse { id: string; trangThai: "RUT" }
 
 // ---- Xác minh phiếu tự khai (ADR-0125; lát H-4 Gói 2) — route /api/parties/xac-minh*, cổng accounts, ô party.verify. KHÔNG SĐT, email, vai; số giấy tờ luôn che. ----
 /** Một dòng hàng chờ (`GET /api/parties/xac-minh?trang=cho`; tối đa 50, xác minh được trước, cũ trước). `loai`: NGAY_SINH | DIA_CHI | GIAY_TO. `lyDoKhong`: câu tiếng Việt khi `xacMinhDuoc` false. */
