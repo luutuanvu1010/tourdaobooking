@@ -46,6 +46,16 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     ],
   },
   {
+    // Sửa hiển thị Góp ý ở Trang chủ (chỉ giao diện và cách đếm, KHÔNG đổi cơ sở dữ liệu, không migration).
+    // Số 2.9 là số TẠM (= main 2.8 + 1, kiểm 2026-10-16): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "2.9",
+    date: "2026-10-16",
+    items: [
+      { kind: "sua", text: "Trang chủ của Quản trị: dòng \"góp ý mới chưa trả lời\" chỉ có một phiếu thì bấm vào mở thẳng phiếu đó, không còn mở danh sách chung." },
+      { kind: "sua", text: "Chấm đếm Góp ý (thanh bên và thẻ \"Góp ý chờ xử lý\") không còn đếm phiếu đã xong hoặc đã từ chối; người gửi trả lời lại thì phiếu được đếm lại." },
+    ],
+  },
+  {
     // Dòng giải thích ở trang Tôi → Bảo mật đăng nhập khi không có lựa chọn Email (chủ dự án 2026-10-16: Toàn quyền không thấy Email, tưởng là lỗi). Không migration.
     // Số 2.8 là số TẠM (= main 2.7 + 1, kiểm 2026-10-16: main 476099d3): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
     version: "2.8",
