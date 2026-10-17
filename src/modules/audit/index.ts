@@ -11,6 +11,7 @@ import {
 } from "./repository";
 
 export type { AuditAction, AuditEntry, AuditInput, AuditRecord };
+export { CHAM_TAI_KHOAN, CHI_TIET_DOI_SDT, type LoaiCham } from "./cham-tai-khoan";
 
 /**
  * Câu lệnh ghi nhật ký. `onlyIf` (mệnh đề SQL, ví dụ "changes() > 0") làm dòng chỉ được ghi khi

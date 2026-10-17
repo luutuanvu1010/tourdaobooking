@@ -2,7 +2,7 @@
 // ADR-0071 điều 1b: TẠO tài khoản = ô account.create (HCNS + Toàn quyền, Quản trị KHÔNG); xem / sửa = account.view / account.edit; hỗ trợ đăng nhập (đặt lại PIN,
 // mở khoá, gỡ Face ID) giữ cổng "admin" + admin.manage + account.access.manage. Đồng bộ nhân viên từ Google Sheet đã GỠ HẲN (ADR-0071 điều 2).
 // Quyền trong app (ADR-0005) là tập SALES/ACCOUNTING/ADMIN/FIELD của tài khoản; KHÔNG phải vai trò hồ sơ (HDV, tài xế… — module parties).
-import { auditStatement, type AuditAction } from "../audit";
+import { auditStatement, CHI_TIET_DOI_SDT, type AuditAction } from "../audit";
 import {
   PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, countActivePasskeys, deviceLabel, endAllSessionsIfSuspendedStatement, endAllSessionsStatement,
   demSietTheoTap, docChinhSachPhien, docTapNhieuMay, endOneSessionStatement, laLoiChinhSachCu, luuChinhSachStatements, sietTheoTapStatements, endOtherSessionsStatement, exemptionChangeStatements, getSession, listMySessions, listSessions, toSessionDto, firstUserHandle, insertPasskeyStatement, issuePasskeyChallenge, limitChallenge, listActivePasskeys, lockedPhones, logPasskeyRejected,
@@ -188,7 +188,7 @@ export function patchStaffStatements(
   const onlyIf = needsUpdate ? "changes() > 0" : undefined;
   const log = (action: AuditAction, detail?: string) => adminAudit(db, adminId, action, t.id, detail, onlyIf);
   if (patch.fullName !== undefined || patch.phone !== undefined) {
-    const bits = [patch.fullName !== undefined && `tên "${t.fullName}" → "${patch.fullName}"`, patch.phone !== undefined && "đổi SĐT đăng nhập"].filter(Boolean); // KHÔNG ghi số: nhật ký không chứa SĐT/email/MST (chủ chốt 2026-09-21)
+    const bits = [patch.fullName !== undefined && `tên "${t.fullName}" → "${patch.fullName}"`, patch.phone !== undefined && CHI_TIET_DOI_SDT].filter(Boolean); // KHÔNG ghi số: nhật ký không chứa SĐT/email/MST (chủ chốt 2026-09-21)
     stmts.push(log("staff_updated", bits.join("; ")));
   }
   if (patch.active === false) stmts.push(log("staff_suspended"));

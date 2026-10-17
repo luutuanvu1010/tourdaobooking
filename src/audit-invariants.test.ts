@@ -1149,6 +1149,82 @@ test("R-PTY-13 + trigger consent_ins (vòng sửa 2, M-4): hai quyết định C
   assert.equal(violations(db, c), 0, "đồng ý lại cùng mili-giây, chèn sau ⇒ phiếu chờ hợp lệ");
 });
 
+// ---- R-PTY-14/15/16 (ADR-0125, lát H-4 Gói 2): xác minh hồ sơ. Người khai = tài khoản s-an; người xác minh = s-admin (hai tài khoản có thật vì audit_log.staff_id có khoá ngoại).
+const XM_AT = "2026-10-17T03:00:00.000Z";
+const XM_AT2 = "2026-10-17T03:05:00.000Z";
+/** Hồ sơ + chính sách + đồng ý + MỘT phiếu ngày sinh đang chờ do s-an khai. */
+function phieuCho(db: DatabaseSync, party: string, id: string): void {
+  NGUOI_T(db, party);
+  db.prepare("INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('pol-xm', 1, 'thử', 'thử', ?, ?, 's', ?, 's')").run(XM_AT, XM_AT, XM_AT);
+  db.prepare("INSERT INTO pty_consent (id, party_id, policy_id, decision, created_at, created_by, updated_at, updated_by) VALUES (?, ?, 'pol-xm', 'DONG_Y', ?, 's', ?, 's')").run(`c-${id}`, party, XM_AT, XM_AT);
+  db.prepare(`INSERT INTO pty_self_submission (id, party_id, subject_kind, policy_id, birth_date, status, created_at, created_by, updated_at, updated_by)
+    VALUES (?, ?, 'NGAY_SINH', 'pol-xm', '1990-01-01', 'CHO_XAC_MINH', ?, 's-an', ?, 's-an')`).run(id, party, XM_AT, XM_AT);
+}
+const chapNhan = (db: DatabaseSync, id: string, by: string, at = XM_AT2) =>
+  db.prepare("UPDATE pty_self_submission SET status = 'DA_CHAP_NHAN', decided_at = ?, decided_by = ?, updated_at = ? WHERE id = ?").run(at, by, at, id);
+const xacMinh = (db: DatabaseSync, id: string, party: string, by: string, cham: 0 | 1, at = XM_AT2) =>
+  db.prepare(`INSERT INTO pty_verification (id, party_id, target_kind, attribute_code, outcome, verifier_touched_account, created_at, created_by, updated_at, updated_by)
+    VALUES (?, ?, 'ATTRIBUTE', 'NGAY_SINH', 'DA_XAC_MINH', ?, ?, ?, ?, ?)`).run(id, party, cham, at, by, at, by);
+const nhatKyXm = (db: DatabaseSync, id: string, actor: string, action: string, at: string) =>
+  db.prepare("INSERT INTO audit_log (id, order_id, staff_id, action, target_type, target_id, detail, created_at) VALUES (?, NULL, ?, ?, 'staff', 's-an', NULL, ?)").run(id, actor, action, at);
+
+test("R-PTY-14 (ADR-0125, ruling R3 kế hoạch H-4): phiếu ĐÃ CHẤP NHẬN thiếu dòng xác minh khớp (mã, kết quả, người, lúc) — fail", () => {
+  const c = one("R-PTY-14");
+  assert.equal(c.level, "fail");
+  const db = build();
+  phieuCho(db, "p-14", "ph-14");
+  assert.equal(violations(db, c), 0, "phiếu còn chờ không tính");
+  chapNhan(db, "ph-14", "s-admin");
+  assert.equal(violations(db, c), 1, "chấp nhận mà không ghi dòng xác minh");
+  xacMinh(db, "ph-14", "p-14", "s-admin", 0, "2026-10-17T03:06:00.000Z");
+  assert.equal(violations(db, c), 1, "dòng xác minh lệch lúc");
+  const db2 = build();
+  phieuCho(db2, "p-14", "ph-14");
+  chapNhan(db2, "ph-14", "s-admin");
+  xacMinh(db2, "ph-14", "p-14", "s-admin", 0);
+  assert.equal(violations(db2, c), 0, "khớp mã, người, lúc");
+});
+
+test("R-PTY-15 (ADR-0125 đ5 vế a): phiếu chấp nhận / từ chối bởi CHÍNH người khai — fail (dựng bằng cách gỡ trigger trong DB thử)", () => {
+  const c = one("R-PTY-15");
+  assert.equal(c.level, "fail");
+  const db = build();
+  phieuCho(db, "p-15", "ph-15");
+  assert.equal(violations(db, c), 0);
+  assert.throws(() => chapNhan(db, "ph-15", "s-an"), /self_submission_decider_is_author/, "đường ghi thật bị trigger chặn");
+  db.exec("DROP TRIGGER pty_self_submission_decider_not_author");
+  chapNhan(db, "ph-15", "s-an");
+  assert.equal(violations(db, c), 1);
+});
+
+test("R-PTY-16 (ADR-0125 đ5 vế b, c): dòng xác minh KHÔNG mang cờ mà người xác minh từng tạo / chạm tài khoản người khai — fail; chạm SAU lúc xác minh thì sạch", () => {
+  const c = one("R-PTY-16");
+  assert.equal(c.level, "fail");
+  const dung = (): DatabaseSync => { const d = build(); phieuCho(d, "p-16", "ph-16"); chapNhan(d, "ph-16", "s-admin"); return d; };
+  // sạch: không có sự kiện nào
+  let db = dung(); xacMinh(db, "ph-16", "p-16", "s-admin", 0);
+  assert.equal(violations(db, c), 0, "không chạm tài khoản");
+  // lách: đặt lại PIN TRƯỚC lúc xác minh mà cờ 0
+  db = dung(); nhatKyXm(db, "n1", "s-admin", "pin_reset", XM_AT); xacMinh(db, "ph-16", "p-16", "s-admin", 0);
+  assert.equal(violations(db, c), 1, "đặt lại PIN trước, cờ 0");
+  // đúng cờ 1 thì sạch
+  db = dung(); nhatKyXm(db, "n1", "s-admin", "pin_reset", XM_AT); xacMinh(db, "ph-16", "p-16", "s-admin", 1);
+  assert.equal(violations(db, c), 0, "đã mang cờ");
+  // ca bắt buộc: cùng người đặt lại PIN SAU lúc xác minh ⇒ không đỏ giả
+  db = dung(); xacMinh(db, "ph-16", "p-16", "s-admin", 0); nhatKyXm(db, "n2", "s-admin", "pin_reset", "2026-10-17T04:00:00.000Z");
+  assert.equal(violations(db, c), 0, "đặt lại PIN SAU khi đã xác minh không biến dòng cũ thành lách");
+  // người KHÁC chạm thì không tính
+  db = dung(); nhatKyXm(db, "n3", "s-binh", "pin_reset", XM_AT); xacMinh(db, "ph-16", "p-16", "s-admin", 0);
+  assert.equal(violations(db, c), 0, "người khác chạm");
+  // cửa sổ 30 ngày: chạm trong 30 ngày trước lúc gửi phiếu ⇒ đỏ; chạm cũ hơn 30 ngày ⇒ sạch; tạo tài khoản (vĩnh viễn) cũ vẫn đỏ
+  db = dung(); nhatKyXm(db, "n4", "s-admin", "passkey_removed", "2026-10-01T00:00:00.000Z"); xacMinh(db, "ph-16", "p-16", "s-admin", 0);
+  assert.equal(violations(db, c), 1, "chạm tầng 30 ngày, trong cửa sổ");
+  db = dung(); nhatKyXm(db, "n5", "s-admin", "passkey_removed", "2026-08-01T00:00:00.000Z"); xacMinh(db, "ph-16", "p-16", "s-admin", 0);
+  assert.equal(violations(db, c), 0, "chạm tầng 30 ngày, quá cũ");
+  db = dung(); nhatKyXm(db, "n6", "s-admin", "staff_created", "2026-01-01T00:00:00.000Z"); xacMinh(db, "ph-16", "p-16", "s-admin", 0);
+  assert.equal(violations(db, c), 1, "tạo tài khoản là vĩnh viễn");
+});
+
 test("R-VC-1 (ADR-0040 D1): biển số không trùng giữa các xe CHƯA NGỪNG — xe đã ngừng giữ biển cũ không tính → 0; hai xe đang dùng cùng biển (chỉ mục bị gỡ) → 1", () => {
   const c = one("R-VC-1");
   assert.equal(c.level, "fail");

@@ -684,6 +684,34 @@ export const CHECKS = [
     sql: "SELECT count(*) FROM pty_self_submission s WHERE s.status = 'CHO_XAC_MINH' AND COALESCE((SELECT c.decision FROM pty_consent c WHERE c.party_id = s.party_id AND c.policy_id = s.policy_id ORDER BY c.created_at DESC, c.rowid DESC LIMIT 1), '') <> 'DONG_Y'",
     level: "fail",
   },
+  // R-PTY-14 (ADR-0125, ruling R3 kế hoạch H-4): phiếu ĐÃ CHẤP NHẬN phải có ĐÚNG dòng xác minh cùng mã, DA_XAC_MINH, cùng người, cùng lúc.
+  {
+    code: "R-PTY-14",
+    what: "phiếu tự khai đã chấp nhận mà không có dòng xác minh khớp (cùng mã, đã xác minh, cùng người, cùng lúc)",
+    sql: `SELECT COUNT(*) AS n FROM pty_self_submission s
+      WHERE s.status = 'DA_CHAP_NHAN' AND NOT EXISTS (SELECT 1 FROM pty_verification v
+        WHERE v.id = s.id AND v.outcome = 'DA_XAC_MINH' AND v.created_by = s.decided_by AND v.created_at = s.decided_at)`,
+    level: "fail",
+  },
+  // R-PTY-15 (ADR-0125 đ5 vế a): phiếu chấp nhận / từ chối bởi CHÍNH người khai.
+  {
+    code: "R-PTY-15",
+    what: "phiếu tự khai được chấp nhận hoặc từ chối bởi chính người khai",
+    sql: "SELECT COUNT(*) AS n FROM pty_self_submission WHERE status IN ('DA_CHAP_NHAN', 'TU_CHOI') AND decided_by = created_by",
+    level: "fail",
+  },
+  // R-PTY-16 (ADR-0125 đ5 vế b, c): dòng xác minh KHÔNG mang cờ mà người xác minh từng tạo / chạm (vĩnh viễn) / chạm trong 30 ngày trước lúc gửi — lính gác bị lách.
+  // Chỉ tính sự kiện CÓ TRƯỚC lúc xác minh: đặt lại PIN SAU khi đã xác minh không biến dòng cũ thành "lách".
+  {
+    code: "R-PTY-16",
+    what: "dòng xác minh không mang cờ \"đã chạm tài khoản\" dù người xác minh từng tạo / chạm tài khoản người khai (lính gác bị lách)",
+    sql: `SELECT COUNT(*) AS n FROM pty_verification v JOIN pty_self_submission s ON s.id = v.id
+      WHERE v.outcome = 'DA_XAC_MINH' AND v.verifier_touched_account = 0 AND EXISTS (SELECT 1 FROM v_aud_cham_tai_khoan c
+        WHERE c.account_id = s.created_by AND c.actor_id = v.created_by
+          AND c.at <= v.created_at
+          AND (c.loai IN ('TAO', 'VINH_VIEN') OR (c.loai = 'CUA_SO_30' AND c.at >= strftime('%Y-%m-%dT%H:%M:%fZ', s.created_at, '-30 days'))))`,
+    level: "fail",
+  },
   {
     code: "R-VC-1",
     what: "biển số không trùng giữa các xe chưa ngừng",

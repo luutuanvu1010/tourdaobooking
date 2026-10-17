@@ -944,6 +944,16 @@
       ]
     },
     {
+      "name": "v_aud_cham_tai_khoan",
+      "module": "audit",
+      "columns": [
+        "actor_id",
+        "account_id",
+        "loai",
+        "at"
+      ]
+    },
+    {
       "name": "v_aud_ledger_event",
       "module": "audit",
       "columns": [
@@ -1323,6 +1333,7 @@
     "tl_vai": { "id": "N1", "ma_quyen": "N1", "bat": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "tl_van_nghia": { "khoa": "N1", "mau": "N1", "so_chieu": "N1", "vec": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "v_aud_account_event": { "id": "N1", "account_id": "N1", "staff_id": "N1", "action": "N1", "created_at": "N1" },
+    "v_aud_cham_tai_khoan": { "actor_id": "N1", "account_id": "N1", "loai": "N1", "at": "N1" },
     "v_aud_ledger_event": { "id": "N1", "order_id": "N1", "target_type": "N1", "target_id": "N1", "staff_id": "N1", "action": "N1", "created_at": "N1" },
     "v_aud_order_change": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "detail": "N2", "created_at": "N1", "leg_id": "N1" },
     "v_aud_order_cmd": { "id": "N1", "order_id": "N1", "action": "N1" },

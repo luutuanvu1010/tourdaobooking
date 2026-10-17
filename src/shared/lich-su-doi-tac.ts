@@ -62,7 +62,7 @@ export const LICH_SU_DOI_TAC_AN = [
   // Không gắn đơn: tài khoản, hồ sơ
   "staff_created", "staff_updated", "staff_suspended", "staff_reactivated", "staff_role_changed", "pin_reset", "pin_changed", "passkey_added", "passkey_removed",
   "pin_set_by_passkey", "login_unlocked", "staff_synced", "permission_changed", "account_roles_changed", "session_policy_changed", "session_revoked",
-  "mfa_enabled", "mfa_removed", "mfa_recovery_regenerated", "mfa_reset",
+  "mfa_enabled", "mfa_removed", "mfa_recovery_regenerated", "mfa_reset", "mfa_grace_reopened", "mfa_exception_set",
   "party_created", "party_updated", "party_contact_changed", "party_role_added", "party_role_ended", "party_relationship_changed", "party_merged", "party_document_added",
   "party_document_renewed", "party_document_corrected", "party_document_number_viewed", "party_document_catalog_changed", "party_bank_account_changed",
   "party_attachment_added", "party_attachment_viewed", "party_attachment_purged", "party_attachment_purge_retried", // ADR-0123: ảnh giấy tờ — không gắn đơn

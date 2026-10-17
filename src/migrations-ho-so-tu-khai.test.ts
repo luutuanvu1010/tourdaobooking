@@ -72,9 +72,9 @@ function coBan(): DatabaseSync {
 }
 const trangThai = (db: DatabaseSync, id: string) => rows(db, "SELECT status FROM pty_self_submission WHERE id = ?", id)[0]?.status;
 
-test("(a) đúng MỘT tệp đuôi _ho_so_tu_khai.sql, là tệp mới nhất; chỉ THÊM: không DROP, không ALTER TABLE, không INSERT gieo dữ liệu", () => {
+test("(a) đúng MỘT tệp đuôi _ho_so_tu_khai.sql, đứng sau 0103; chỉ THÊM: không DROP, không ALTER TABLE, không INSERT gieo dữ liệu", () => {
   assert.equal(MATCHES.length, 1, `cần đúng một tệp *_ho_so_tu_khai.sql, thấy ${MATCHES.join(", ")}`);
-  assert.equal(files.at(-1), FILE, "migration tự khai phải là tệp mới nhất của nhánh");
+  assert.ok(files.indexOf(FILE) > files.findIndex((f) => f.startsWith("0103_")), "migration tự khai phải đứng sau 0103");
   const code = sqlOf(FILE).split("\n").filter((d) => !d.trim().startsWith("--")).join("\n");
   assert.doesNotMatch(code, /\bDROP\b/i);
   assert.doesNotMatch(code, /\bALTER\s+TABLE\b/i);

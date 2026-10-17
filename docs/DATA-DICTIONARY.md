@@ -10,6 +10,7 @@
 | `v_aud_order_event` | view công bố | cột: id, order_id, staff_id, action, created_at |
 | `v_aud_trip_event` | view công bố | cột: id, trip_id, staff_id, action, created_at |
 | `v_aud_account_event` | view công bố | cột: id, account_id, staff_id, action, created_at |
+| `v_aud_cham_tai_khoan` | view công bố | cột: actor_id, account_id, loai, at |
 | `v_aud_ledger_event` | view công bố | cột: id, order_id, target_type, target_id, staff_id, action, created_at |
 | `v_aud_order_change` | view công bố | cột: id, order_id, staff_id, action, detail, created_at, leg_id |
 | `v_aud_order_cmd` | view công bố | cột: id, order_id, action |
