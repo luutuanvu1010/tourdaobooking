@@ -87,7 +87,7 @@
 | `fbk_status` | bảng tra cứu |  |
 | `fbk_team` | bảng |  |
 | `fbk_team_member` | bảng |  |
-| `fbk_ticket` | bảng |  |
+| `fbk_ticket` | bảng | phiếu hỗ trợ. 0106 (ADR-0127, đợt 2a): priority = mức ưu tiên NORMAL / HIGH / URGENT (mặc định NORMAL; KHÔNG CHECK liệt kê — giá trị hợp lệ kiểm ở mã src/shared/ve-ho-tro.ts; chỉ người xử lý đặt, người gửi chỉ xem; hàng đợi sắp bằng CASE, không theo chữ). order_id / order_code = đơn liên quan gắn lúc gửi (chỉ đơn do chính người gửi lập; không sửa sau): cùng có hoặc cùng NULL (CHECK); order_code là mã đơn CHỤP lúc gửi để phiếu không phụ thuộc đơn; không ghi vào nhật ký.; tham chiếu logic `order_id` → `orders` qua view `v_ord_order_owner`, không khoá ngoại (kiểm đơn tồn tại và do người gửi lập lúc gửi (máy chủ, view v_ord_order_owner); mã chụp ở order_code — R-P19) |
 | `fbk_ticket_event` | bảng |  |
 | `fbk_ticket_read` | bảng |  |
 

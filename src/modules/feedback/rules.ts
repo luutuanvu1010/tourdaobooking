@@ -1,6 +1,9 @@
 // Luật thuần của Góp ý / Báo lỗi (không I/O). Kiểm đầu vào, lọc `context` (không đáng tin), trần tần suất.
 // Import bằng đuôi .ts để node --test chạy trực tiếp.
 import { isFeedbackKind, isFeedbackStatus, type FeedbackKind, type FeedbackStatus } from "../../shared/feedback-catalog.ts";
+import { isPriority, type Priority } from "../../shared/ve-ho-tro.ts";
+import type { FeedbackPatchRequest } from "../../shared/contracts.ts";
+import { UUID_RE } from "../../shared/http.ts";
 
 export const TITLE_MAX = 120;
 export const BODY_MAX = 4000;
@@ -10,6 +13,23 @@ export const MESSAGE_LIMIT_PER_HOUR = 30;
 export const RATE_WINDOW_MS = 60 * 60 * 1000;
 /** Đầu cửa sổ tần suất (ISO UTC) — so chuỗi với created_at (cũng ISO UTC). */
 export const windowStart = (now: Date): string => new Date(now.getTime() - RATE_WINDOW_MS).toISOString();
+
+/** Tuyến làm mới (ADR-0127 quyết định 1): tối đa bấy nhiêu tin mỗi lần — đủ vì khách chỉ lấy phần chồng 30 giây sau tin cuối đã nhận. */
+export const MESSAGES_SINCE_LIMIT = 100;
+const SINCE_RE = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.\d{1,3})?Z$/;
+/**
+ * Mốc `since` của tuyến làm mới: CHỈ ISO UTC đủ ngày giờ, có `Z` (không múi giờ khác, không chỉ ngày); ngày giờ không có thật (30/2, 24:00) ⇒ null.
+ * Trả chuỗi ĐÃ chuẩn hoá `toISOString()` (luôn 3 chữ số nghìn giây) vì SQL so CHUỖI với `created_at` — «…:05Z» không chuẩn hoá sẽ lớn hơn «…:05.500Z» (Z > .)
+ * và làm mất tin. null ⇒ route trả 400 (không để `new Date(sai).toISOString()` ném lỗi thành 500).
+ */
+export function parseSince(raw: string | null): string | null {
+  const m = raw === null ? null : SINCE_RE.exec(raw);
+  if (!m) return null;
+  const t = Date.parse(raw!);
+  if (Number.isNaN(t)) return null;
+  const iso = new Date(t).toISOString();
+  return iso.slice(0, 19) === m[1] ? iso : null; // ngày giờ bị «tràn» sang ngày khác (30/2 ⇒ 2/3) ⇒ không nhận
+}
 
 export const CLIENT_REQUEST_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -71,8 +91,15 @@ export interface TicketInput {
   context: string;
   /** Nhóm nhận (ADR-0119); vắng = route dùng nhóm Kỹ thuật. Chỉ kiểm hình dạng; có thật/đang dùng do route kiểm. */
   teamId?: string;
+  /** Đơn liên quan (ADR-0127): chỉ kiểm hình dạng ở đây; đơn có thật và do chính người gửi lập do route kiểm (repository: đoạn `DON_CUA_NGUOI`, hàm `getDonCuaToi`). */
+  orderId?: string;
 }
 export const TEAM_ID_RE = /^[a-z0-9-]{1,60}$/;
+/**
+ * MỘT câu cho MỌI cách gắn đơn hỏng (ADR-0127 quyết định 3, Review Focus 3): sai dạng, không tồn tại, không phải của người gửi, tài khoản không có quyền
+ * xem đơn — giống hệt nhau để không dò được đơn của người khác.
+ */
+export const CAU_DON_LIEN_QUAN_SAI = "Không gắn được đơn này: chỉ gắn được đơn do chính bạn lập.";
 
 export function validateTicketInput(raw: Record<string, unknown>): Checked<TicketInput> {
   if (!isFeedbackKind(raw.kind)) return bad("Loại yêu cầu không hợp lệ.");
@@ -82,8 +109,12 @@ export function validateTicketInput(raw: Record<string, unknown>): Checked<Ticke
   if (body.length < 1 || body.length > BODY_MAX) return bad(`Nội dung phải từ 1 đến ${BODY_MAX} ký tự.`);
   if (typeof raw.clientRequestId !== "string" || !CLIENT_REQUEST_ID_RE.test(raw.clientRequestId)) return bad("Mã yêu cầu của thiết bị không hợp lệ.");
   if (raw.teamId !== undefined && (typeof raw.teamId !== "string" || !TEAM_ID_RE.test(raw.teamId))) return bad("Nhóm nhận không hợp lệ.");
+  const coDon = raw.orderId !== undefined && raw.orderId !== null;
+  if (coDon && (typeof raw.orderId !== "string" || !UUID_RE.test(raw.orderId))) return bad(CAU_DON_LIEN_QUAN_SAI);
+  // Dựng giá trị từ trường TƯỜNG MINH (không chép raw): `priority` người gửi kèm theo bị bỏ qua (ADR-0127 quyết định 2).
   const value: TicketInput = { kind: raw.kind, title, body, clientRequestId: raw.clientRequestId, context: sanitizeContext(raw.context) };
   if (typeof raw.teamId === "string") value.teamId = raw.teamId;
+  if (coDon) value.orderId = raw.orderId as string;
   return { ok: true, value };
 }
 
@@ -103,7 +134,14 @@ export interface PatchInput {
   status?: FeedbackStatus;
   assignee?: { value: string | null };
   resolvedIn?: { value: string | null };
+  /** Mức ưu tiên (ADR-0127): route chỉ cho người xử lý được phiếu (quyenPhieu.xuLy) tới đây. */
+  priority?: Priority;
 }
+// Khoá hai chiều: thân PATCH (FeedbackPatchRequest ở contracts.ts, giao diện dùng) và bộ kiểm dưới đây phải cùng bộ trường.
+// Thêm/bớt trường ở MỘT bên mà quên bên kia ⇒ `npm run typecheck` đỏ ở đây.
+type PatchBodyKeys = "status" | "assigneeId" | "resolvedIn" | "priority";
+type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+export const PATCH_BODY_KEYS_KHOP: Same<keyof FeedbackPatchRequest, PatchBodyKeys> = true;
 
 export function validatePatchInput(raw: Record<string, unknown>): Checked<PatchInput> {
   const out: PatchInput = {};
@@ -120,7 +158,11 @@ export function validatePatchInput(raw: Record<string, unknown>): Checked<PatchI
     if (raw.resolvedIn !== null && (typeof raw.resolvedIn !== "string" || !/^[A-Za-z0-9._-]{1,40}$/.test(raw.resolvedIn))) return bad("Mã bản sửa không hợp lệ.");
     out.resolvedIn = { value: raw.resolvedIn };
   }
-  if (out.status === undefined && out.assignee === undefined) return bad("Không có thay đổi nào để lưu.");
+  if (raw.priority !== undefined) {
+    if (!isPriority(raw.priority)) return bad("Mức ưu tiên không hợp lệ.");
+    out.priority = raw.priority;
+  }
+  if (out.status === undefined && out.assignee === undefined && out.priority === undefined) return bad("Không có thay đổi nào để lưu.");
   return { ok: true, value: out };
 }
 

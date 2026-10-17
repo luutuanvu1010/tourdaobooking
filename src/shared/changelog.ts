@@ -12,6 +12,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Vé hỗ trợ đợt 2a (ADR-0127): khung trò chuyện tự làm mới, mức ưu tiên, đơn liên quan, Trưởng nhóm giao việc. Có thay đổi cơ sở dữ liệu (migration 0106 thêm
+    // ba cột ở phiếu) — cần trien-khai sau day-len. Số 2.10 là số TẠM (= main / production 2.9 + 1, kiểm 2026-10-17; đã nhập main có mục 2.9):
+    // phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "2.10",
+    date: "2026-10-17",
+    items: [
+      { kind: "moi", text: "Trong một yêu cầu hỗ trợ, tin trả lời mới tự hiện sau vài giây khi trang đang mở, không cần tải lại; chữ bạn đang gõ vẫn giữ nguyên." },
+      { kind: "moi", text: "Khi gửi yêu cầu, bạn chọn được một đơn do chính mình lập ở ô Đơn liên quan; người xử lý thấy mã đơn; ai có quyền xem đơn đó thì bấm mở được." },
+      { kind: "moi", text: "Người xử lý đặt mức ưu tiên Thường, Cao hoặc Khẩn; hàng đợi nhóm xếp Khẩn lên đầu. Người gửi thấy mức nhưng không đổi được." },
+      { kind: "moi", text: "Trưởng nhóm hỗ trợ có nút Giao cho người khác để chọn thành viên trong nhóm nhận yêu cầu." },
+    ],
+  },
+  {
     // Sửa hiển thị Góp ý ở Trang chủ (chỉ giao diện và cách đếm, KHÔNG đổi cơ sở dữ liệu, không migration).
     // Số 2.9 là số TẠM (= main 2.8 + 1, kiểm 2026-10-16): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
     version: "2.9",

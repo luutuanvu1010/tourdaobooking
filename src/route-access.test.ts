@@ -139,6 +139,9 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/feedback/badge", access: "staff" },
   { method: "GET", path: "/api/feedback/mine", access: "staff" },
   { method: "GET", path: "/api/feedback/teams", access: "staff" },
+  { method: "GET", path: "/api/feedback/my-orders", access: "staff" }, // ADR-0127 Việc 3 — đơn do chính mình lập để gắn vào phiếu (can order.view, ownerId = người gọi)
+  { method: "GET", path: "/api/feedback/teams/:id/members", access: "staff" }, // ADR-0127 Việc 4 — ứng viên giao việc (quyenPhieu giaoViecChoNguoiKhac của nhóm đó; chỉ đọc)
+  { method: "GET", path: "/api/feedback/:id/messages", access: "staff" }, // ADR-0127 Việc 4 — tuyến làm mới khung trò chuyện (quyenPhieu doc như chi tiết; KHÔNG ghi mốc đã xem)
   { method: "GET", path: "/api/feedback/queue", access: "staff" },
   { method: "GET", path: "/api/feedback/admin/teams", access: "staff" },
   { method: "POST", path: "/api/feedback/admin/teams", access: "staff" },
@@ -557,6 +560,9 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-16 (ADR-0074 Phần B Task 6): + POST /api/staff/:id/mfa-reset (admin) và POST /api/auth/mfa/enroll/{start, confirm} (public; cookie chờ "enroll") = 324.
   // 2026-10-16 (ADR-0074 Phần C Task 2): + POST /api/auth/mfa/email (public; cookie chờ "verify", tự gọi maintenanceBlock) = 325.
   // 2026-10-16 (ADR-0074 Phần C Task 3): + POST /api/account/mfa/email/{start, confirm} (staff, tự phục vụ; vai lớn 409 trong thân) = 327.
-  assert.equal(actual.length, 329, "số route thực tế lệch 329 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 329, "SNAPSHOT phải có đúng 329 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-17 (ADR-0127 Vé hỗ trợ đợt 2a, Việc 3): + GET /api/feedback/my-orders (staff, rồi can order.view của chính mình) = 328.
+  // 2026-10-17 (ADR-0127 Việc 4): + GET /api/feedback/teams/:id/members, GET /api/feedback/:id/messages (staff, rồi quyenPhieu; hai tuyến chỉ đọc) = 330.
+  // 2026-10-17 (ADR-0128 Q1): + GET, POST /api/van-chuyen/moc-ra-lenh (office; ô dispatch.policy.lead) = 332.
+  assert.equal(actual.length, 332, "số route thực tế lệch 332 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 332, "SNAPSHOT phải có đúng 332 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

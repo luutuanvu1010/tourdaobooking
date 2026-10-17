@@ -3,8 +3,9 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { FEEDBACK_KINDS, FEEDBACK_KIND_NAME, FEEDBACK_STATUSES, FEEDBACK_STATUS_NAME } from "../../shared/feedback-catalog.ts";
+import { LAM_MOI_TRAN } from "../../shared/ve-ho-tro-hien-thi.ts";
 import {
-  BODY_MAX, TITLE_MAX, parseContext, sanitizeContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch, validateTicketInput, windowStart,
+  BODY_MAX, CAU_DON_LIEN_QUAN_SAI, MESSAGES_SINCE_LIMIT, TITLE_MAX, parseContext, parseSince, sanitizeContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch, validateTicketInput, windowStart,
 } from "./rules.ts";
 
 const REQ = "0b8f6f2e-3c1a-4f6e-9a55-2b6f4d1c7e10";
@@ -102,4 +103,59 @@ test("validateMemberRole: chỉ LEAD hoặc MEMBER", () => {
   assert.deepEqual(validateMemberRole({ role: "LEAD" }), { ok: true, value: "LEAD" });
   assert.deepEqual(validateMemberRole({ role: "MEMBER" }), { ok: true, value: "MEMBER" });
   for (const role of ["BOSS", "lead", undefined, 1]) assert.equal(validateMemberRole({ role }).ok, false, String(role));
+});
+
+// ---- Đợt 2a (ADR-0127 quyết định 2): mức ưu tiên ---------------------------------------------------------------------------
+test("validatePatchInput: thân chỉ có priority hợp lệ là đủ để lưu; giá trị lạ / null / không phải chữ ⇒ từ chối", () => {
+  for (const p of ["NORMAL", "HIGH", "URGENT"]) assert.deepEqual(validatePatchInput({ priority: p }), { ok: true, value: { priority: p } });
+  for (const p of ["LOW", "urgent", "", null, 2, {}]) {
+    const r = validatePatchInput({ priority: p });
+    assert.equal(r.ok, false, `priority=${JSON.stringify(p)}`);
+    if (!r.ok) assert.equal(r.message, "Mức ưu tiên không hợp lệ.");
+  }
+  assert.deepEqual(validatePatchInput({ status: "ACK", priority: "URGENT" }), { ok: true, value: { status: "ACK", priority: "URGENT" } });
+});
+
+test("validateTicketInput: người gửi kèm priority ⇒ bị bỏ qua (không có trong giá trị trả về)", () => {
+  const r = validateTicketInput({ ...ok, priority: "URGENT" });
+  assert.ok(r.ok);
+  assert.equal("priority" in r.value, false);
+});
+
+test("validateTicketInput: orderId tuỳ chọn — vắng / null ⇒ không gắn; UUID ⇒ giữ đúng; sai dạng ⇒ CÙNG câu với đơn không tồn tại / không phải của mình", () => {
+  const vang = validateTicketInput(ok);
+  assert.ok(vang.ok);
+  assert.equal("orderId" in vang.value, false);
+  const rong = validateTicketInput({ ...ok, orderId: null });
+  assert.ok(rong.ok);
+  assert.equal("orderId" in rong.value, false);
+  const id = "d0000000-0000-4000-8000-000000000007";
+  const co = validateTicketInput({ ...ok, orderId: id });
+  assert.ok(co.ok);
+  assert.equal(co.value.orderId, id);
+  for (const x of ["", "abc", 123, true, {}, [], "D0000000-0000-4000-8000-000000000007", `${id} `]) {
+    const r = validateTicketInput({ ...ok, orderId: x });
+    assert.equal(r.ok, false, `orderId=${JSON.stringify(x)}`);
+    if (!r.ok) assert.equal(r.message, CAU_DON_LIEN_QUAN_SAI);
+  }
+  assert.equal(CAU_DON_LIEN_QUAN_SAI, "Không gắn được đơn này: chỉ gắn được đơn do chính bạn lập.");
+  const kem = validateTicketInput({ ...ok, orderId: id, priority: "URGENT" });
+  assert.ok(kem.ok);
+  assert.equal("priority" in kem.value, false, "kèm orderId vẫn bỏ qua priority");
+});
+
+test("parseSince (tuyến làm mới, ADR-0127 quyết định 1): chỉ nhận ISO UTC đủ ngày giờ có Z; chuẩn hoá về toISOString để so chuỗi với created_at", () => {
+  assert.equal(MESSAGES_SINCE_LIMIT, 100);
+  assert.equal(parseSince("2026-10-17T03:04:05.678Z"), "2026-10-17T03:04:05.678Z");
+  // Thiếu phần nghìn giây ⇒ bổ sung «.000»: không chuẩn hoá thì «…:05Z» lớn hơn «…:05.500Z» khi so chuỗi (Z > .) ⇒ mất tin.
+  assert.equal(parseSince("2026-10-17T03:04:05Z"), "2026-10-17T03:04:05.000Z");
+  assert.equal(parseSince("2026-10-17T03:04:05.5Z"), "2026-10-17T03:04:05.500Z");
+  for (const sai of [null, "", "abc", "2026-10-17", "2026-10-17T03:04:05", "2026-10-17T03:04:05+07:00", "2026-10-17 03:04:05Z", "2026-13-01T00:00:00Z",
+    "2026-02-30T00:00:00Z", "2026-10-17T24:00:00Z", "2026-10-17T03:04:05.1234Z", " 2026-10-17T03:04:05Z", "1e12"]) {
+    assert.equal(parseSince(sai), null, String(sai));
+  }
+});
+
+test("trần trang của tuyến làm mới: hằng phía khách (LAM_MOI_TRAN) bằng đúng MESSAGES_SINCE_LIMIT của máy chủ — lệch thì khách không biết khi nào phải gọi tiếp ngay", () => {
+  assert.equal(LAM_MOI_TRAN, MESSAGES_SINCE_LIMIT);
 });
