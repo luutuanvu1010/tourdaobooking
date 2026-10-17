@@ -1475,6 +1475,15 @@ test("R-VC-8 (B1.5): chuyến của nhà xe đang hợp tác, tài xế của nh
   assert.equal(violations(db, c), 1, "tài xế thôi");
   db.exec(`UPDATE pty_party_role SET valid_to_date = '2026-09-20' WHERE id = 'r-nx'`);
   assert.equal(violations(db, c), 2, "nhà xe thôi (+ tài xế không còn của nhà xe)");
+  // ADR-0129 Q4: tài xế công ty (đang mở vai DRIVER_INTERNAL) lái xe nhà xe thuê không bị báo là «tài xế đã thôi».
+  const db2 = tho();
+  db2.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('p-nx', 'ORGANIZATION', 'Nhà xe', 1, '${T1}', '${T1}')`);
+  db2.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-nx', 'p-nx', 'CARRIER', '2026-09-01', '${T1}', '${T1}')`);
+  const t2 = chuyenTho(db2, { carrier: "p-nx" });
+  laiTho(db2, t2, "pty-xa");
+  assert.equal(violations(db2, c), 1, "tài xế không thuộc nhà xe, chưa có vai tài xế công ty");
+  db2.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-ct', 'pty-xa', 'DRIVER_INTERNAL', '2026-09-01', '${T1}', '${T1}')`);
+  assert.equal(violations(db2, c), 0, "tài xế công ty lái xe nhà xe thuê: ca chéo được phép");
 });
 
 test("R-VC-9: chuyến chưa kết thúc chở đúng số chỗ, điểm khác thứ tự → 0; vượt chỗ → 1; hai điểm còn dùng trùng thứ tự → 1; điểm đã bỏ trùng thứ tự không tính (fail)", () => {

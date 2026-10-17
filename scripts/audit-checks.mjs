@@ -674,6 +674,7 @@ export const CHECKS = [
     level: "warn",
     note: "cảnh báo: khách sắp tới giờ đón mà chưa có xe — văn phòng xếp ngay (trong mốc cần Quản trị phá lệ, trừ chặng đặt gấp)",
   },
+  // R-VC-8, nhánh tài xế: bỏ qua tài xế CÔNG TY (đang mở vai DRIVER_INTERNAL) lái xe nhà xe thuê — ca chéo được phép (ADR-0129 Q4), không phải «tài xế đã thôi».
   {
     code: "R-VC-8",
     what: "chuyến chưa kết thúc dùng xe của nhà xe đã thôi hợp tác, hoặc tài xế không còn là tài xế của nhà xe đó (B1.5)",
@@ -683,7 +684,8 @@ export const CHECKS = [
           + (SELECT count(*) FROM vc_trip t JOIN vc_trip_driver dr ON dr.trip_id = t.id AND dr.valid_to_at IS NULL
               WHERE t.status IN ('PLANNED', 'RUNNING')
                 AND EXISTS (SELECT 1 FROM pty_party_role r WHERE r.party_id = t.carrier_party_id AND r.role_type_code = 'CARRIER')
-                AND NOT EXISTS (SELECT 1 FROM v_pty_carrier_driver cd WHERE cd.carrier_party_id = t.carrier_party_id AND cd.driver_party_id = dr.driver_party_id))`,
+                AND NOT EXISTS (SELECT 1 FROM v_pty_carrier_driver cd WHERE cd.carrier_party_id = t.carrier_party_id AND cd.driver_party_id = dr.driver_party_id)
+                AND NOT EXISTS (SELECT 1 FROM pty_party_role rr WHERE rr.party_id = dr.driver_party_id AND rr.role_type_code = 'DRIVER_INTERNAL' AND rr.valid_to_date IS NULL))`,
     level: "warn",
     note: "cảnh báo: nhà xe / tài xế đã thôi sau khi xếp chuyến — văn phòng đổi xe hoặc tài xế",
   },

@@ -103,7 +103,7 @@
     },
     {
       "ma": "B04-XE-NHA-XE-TAI-XE-CONG-TY",
-      "mo_ta": "Xe 45 chỗ của nhà xe Minh Phát với tài xế công ty (bằng D) → cho qua: chéo xe – tài xế được phép khi đủ hạng bằng (ADR-0129 Q4 = a, chủ 2026-10-17); chuyến mang cảnh báo CHEO_XE_TAI_XE ở lịch chung (bài dieu-phoi-lich-chung.test.ts)",
+      "mo_ta": "Xe 45 chỗ của nhà xe Minh Phát với tài xế công ty (bằng D) → cho qua: chéo xe – tài xế được phép khi đủ hạng bằng (ADR-0129 Q4 = a, chủ 2026-10-17); chuyến mang cảnh báo CHEO_XE_TAI_XE ở lịch chung (bài route src/modules/van-chuyen/cheo-xe-tai-xe-cong-ty.test.ts)",
       "ham": "kiemTaoSuaChuyen",
       "dau_vao": { "lenh": "TAO", "chuyen": { "id": null, "batDauMs": "2026-09-30 06:00", "ketThucMs": "2026-09-30 09:00", "xe": "$nen.xe.MP", "taiXe": "$nen.taiXe.D", "nghiPhaLe": false }, "chuyenKhac": [], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "bayGioMs": "2026-09-29 21:10" },
       "dap_an": { "quyet_dinh": "CHO_QUA", "ma_luat": [] }

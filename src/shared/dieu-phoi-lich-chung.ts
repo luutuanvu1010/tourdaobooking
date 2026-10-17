@@ -199,7 +199,7 @@ export function dungLichChung(v: LichChungVao): LichChungRa {
   for (const w of canhBaoGioLai([...v.chuyen.map(khung), ...v.chuyenKhac], csGioLai, v.bayGioMs, new Set(v.chuyen.map((c) => c.id)))) cb(w.loai, null, w.tripId, null);
 
   // ADR-0129 Q4: chuyến chưa kết thúc mà tài xế công ty lái xe nhà xe thuê → cảnh báo cố định (chi tiết chuyến, lịch, bảng việc).
-  for (const c of v.chuyen) if (c.taiXe && laiXeThueBangTaiXeCongTy(c.xe, c.taiXe) && c.trangThai !== "CANCELLED") cb("CHEO_XE_TAI_XE", null, c.id, null);
+  for (const c of v.chuyen) if (c.taiXe && laiXeThueBangTaiXeCongTy(c.xe, c.taiXe) && (c.trangThai === "PLANNED" || c.trangThai === "RUNNING")) cb("CHEO_XE_TAI_XE", null, c.id, null);
 
   const nhapChoDatGap = v.chinhSach ? v.nhap.filter((n) => kiemMocDat(n, v.bayGioMs, v.chinhSach!.minLeadMinutes).duoiMoc) : [];
   for (const n of nhapChoDatGap) cb("NHAP_CHO_DAT_GAP", n.legId, null, n.orderCode);
