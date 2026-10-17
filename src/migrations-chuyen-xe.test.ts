@@ -614,7 +614,8 @@ test("TC-13 LC-13: tài xế nhà xe X lái xe công ty → RAISE; tài xế cô
   loi(() => laiXe(db, tCty, txX), /lc13_cross/, "tài xế nhà xe → xe công ty");
   laiXe(db, tCty, txCty);
   const tX = chuyen(db, { xe: xe(db, x), tu: ms("10:00") });
-  loi(() => laiXe(db, tX, txCty), /lc13_cross/, "tài xế công ty → xe nhà xe");
+  // ADR-0129 Q4 (a) — migration 0109: tài xế CÔNG TY (không thuộc nhà xe nào) lái được xe nhà xe thuê; chiều ngược vẫn RAISE.
+  laiXe(db, chuyen(db, { xe: xe(db, x), tu: ms("18:00") }), txCty);
   loi(() => laiXe(db, tX, txY), /lc13_cross/, "tài xế nhà xe Y → xe nhà xe X");
   laiXe(db, tX, txX);
   // nhà xe CÁ NHÂN tự lái (T = X): hồ sơ người mở vai Nhà xe
@@ -622,7 +623,7 @@ test("TC-13 LC-13: tài xế nhà xe X lái xe công ty → RAISE; tài xế cô
   moVai(db, caNhan, "CARRIER");
   laiXe(db, chuyen(db, { xe: xe(db, caNhan), tu: ms("13:00") }), caNhan);
 });
-test("TC-13 LC-13: chủ xe chụp của chuyến khác chủ hiện tại của xe → RAISE; đổi xe sang xe nhà xe mà tài xế là tài xế công ty → RAISE; đổi chủ xe khi còn chuyến chưa kết thúc → RAISE", () => {
+test("TC-13 LC-13: chủ xe chụp của chuyến khác chủ hiện tại của xe → RAISE; đổi xe sang xe nhà xe: tài xế công ty được (ADR-0129 Q4), đổi chủ xe khi còn chuyến chưa kết thúc → RAISE", () => {
   const db = openDb();
   const x = nhaXe(db);
   const xeX = xe(db, x);
@@ -630,9 +631,15 @@ test("TC-13 LC-13: chủ xe chụp của chuyến khác chủ hiện tại của
      created_at, updated_at) VALUES ('t-sai', 'CX-SAI', ?, ?, ?, ?, ?, ?, 30, ?, ?, ?)`, xeX, congTyChu(db), DAY, ms("07:00"), ms("08:00"), ms("07:00"), randomUUID(), AT, AT), /lc13_carrier/);
   const c = chuyenChuan(db);
   // rented = 1: cờ xe thuê đúng (ADR-0057 C2a, 0073) để chỉ còn LC-13 chặn.
-  loi(() => run(db, "UPDATE vc_trip SET vehicle_id = ?, carrier_party_id = ?, rented = 1 WHERE id = ?", xeX, x, c.id), /lc13_cross/);
-  loi(() => run(db, "UPDATE vc_trip SET vehicle_id = ? WHERE id = ?", xeX, c.id), /lc13_cross/, "chủ chụp không theo xe mới");
-  loi(() => run(db, "UPDATE vc_vehicle SET owner_party_id = ? WHERE id = ?", x, c.xe), /lc13_owner/);
+  // ADR-0129 Q4 (a) — migration 0109: tài xế công ty đổi sang xe nhà xe thuê → được; tài xế NHÀ XE Y đổi sang xe nhà xe X vẫn RAISE (xem TC-13 trên).
+  run(db, "UPDATE vc_trip SET vehicle_id = ?, carrier_party_id = ?, rented = 1 WHERE id = ?", xeX, x, c.id);
+  loi(() => run(db, "UPDATE vc_trip SET vehicle_id = ? WHERE id = ?", c.xe, c.id), /lc13_cross|lc13_carrier/, "chủ chụp không theo xe mới");
+  // Phản chứng: tài xế của nhà xe Y đổi sang xe nhà xe X → vẫn RAISE (chiều bị cấm không được mở theo).
+  const y = nhaXe(db);
+  const tY = chuyen(db, { xe: xe(db, y), tu: ms("20:00") });
+  laiXe(db, tY, taiXeCua(db, y));
+  loi(() => run(db, "UPDATE vc_trip SET vehicle_id = ?, carrier_party_id = ?, rented = 1 WHERE id = ?", xeX, x, tY), /lc13_cross/, "tài xế nhà xe Y → xe nhà xe X");
+  loi(() => run(db, "UPDATE vc_vehicle SET owner_party_id = ? WHERE id = ?", congTyChu(db), xeX), /lc13_owner/); // xeX nay có chuyến chưa kết thúc (c)
 });
 
 // ---- TC-14 LC-11, cổng lô --------------------------------------------------------------------------------------------------------------------------

@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { ChangVao, ChinhSachVao, ChuyenVao, DiemVao, DieuKienVao, HangBangVao, KhungBanVao, KhungChuyen, SuatVao, TaiXeVao, XeVao } from "./dieu-phoi-kieu.ts";
-import { changXetTheoDon, khoaNguoiRanh, kiemKetThuc, lyDoNoiTra, lyDoThieuTen, kiemTaoSuaChuyen, kiemXep, kiemXuatBen, noiLechCuaSuat, suatKhachDaDoi, tenLucXep, trongNgayChay, type KiemTaoSuaChuyenVao, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
+import { changXetTheoDon, khoaNguoiRanh, kiemKetThuc, lyDoNoiTra, lyDoThieuTen, kiemTaoSuaChuyen, kiemXep, kiemXuatBen, laiXeThueBangTaiXeCongTy, noiLechCuaSuat, suatKhachDaDoi, tenLucXep, trongNgayChay, type KiemTaoSuaChuyenVao, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
 import { MA_GIU, NUT_CAP_NHAT_KHACH, type LyDoGiu } from "./ly-do-giu.ts";
 import { MA_LUAT_PHA_LE } from "./dieu-phoi-kieu.ts";
 import { batDauSomNhatSauDoiGio } from "./moc-toi-thieu.ts";
@@ -90,7 +90,12 @@ test("LC-13 không chéo xe – tài xế (lớp máy chủ): xe công ty ↔ t�
   const txX = taiXe("D1", null, { partyId: "tx-x", loai: "NHA_XE", carrierPartyIds: ["nx-x"] });
   const txY = taiXe("D1", null, { partyId: "tx-y", loai: "NHA_XE", carrierPartyIds: ["nx-y"] });
   assert.deepEqual(ai(kiemTaoSuaChuyen(tao({ taiXe: txX })).chan), ["CHEO_XE_TAI_XE:VAN_PHONG"], "tài xế nhà xe lái xe công ty");
-  assert.deepEqual(ma(kiemTaoSuaChuyen(tao({ xe: nhaXeX })).chan), ["CHEO_XE_TAI_XE"], "tài xế công ty lái xe nhà xe");
+  // ADR-0129 Q4 (a): tài xế công ty (không thuộc nhà xe nào) lái được xe nhà xe thuê — kèm cảnh báo ở lịch chung, vẫn qua hạng bằng; chiều ngược vẫn chặn.
+  assert.equal(kiemTaoSuaChuyen(tao({ xe: nhaXeX })).ok, true, "tài xế công ty lái xe nhà xe: nay được");
+  assert.equal(laiXeThueBangTaiXeCongTy(nhaXeX, taiXe("D1", null)), true);
+  assert.equal(laiXeThueBangTaiXeCongTy(xe({}), taiXe("D1", null)), false, "xe công ty: không phải ca chéo");
+  assert.equal(laiXeThueBangTaiXeCongTy(nhaXeX, txX), false, "tài xế của chính nhà xe: không cảnh báo");
+  assert.deepEqual(ma(kiemTaoSuaChuyen(tao({ xe: xe({ id: "xe-x45", chuXePartyId: "nx-x", chuLaCongTy: false, soCho: 45 }) })).chan), ["HANG_BANG_KHONG_DU"], "hạng D1 không đủ xe 45 chỗ — vẫn chặn");
   assert.deepEqual(ma(kiemTaoSuaChuyen(tao({ xe: nhaXeX, taiXe: txY })).chan), ["CHEO_XE_TAI_XE"], "tài xế nhà xe Y lái xe nhà xe X");
   assert.equal(kiemTaoSuaChuyen(tao({ xe: nhaXeX, taiXe: txX })).ok, true);
   // T-2: vừa là tài xế công ty vừa "Tài xế của" nhà xe X → không lái xe công ty (khớp lớp CSDL), lái được xe của X.

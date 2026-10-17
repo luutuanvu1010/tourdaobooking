@@ -1,6 +1,6 @@
 {
   "mo_ta": "Bộ ca mẫu điều phối xe — ví dụ xe A / xe B của chủ dự án ([HĐ] mục 2; [MH] dữ liệu mẫu), PHẦN LƯỢT DUYỆT 1 của ADR-0049: tạo chuyến, xếp, giữ thiếu tên, nhập tên, xuất bến, mốc 6 giờ, vắng, đón muộn, kết thúc gián đoạn, chuyến cứu hộ. Mỗi bước: đầu vào, quyết định mong đợi, danh sách mã luật. Chạy qua luật thuần src/shared/dieu-phoi-kiem.ts, dieu-phoi-trang-thai.ts, gio-xay-ra.ts (src/dieu-phoi-ca-mau.test.ts). Bước B17–B23 thêm theo ADR-0050 (nơi hẹn đổi sau khi xếp, cập nhật điểm theo đơn, văn phòng khai giờ xảy ra, khoảng nghỉ theo giờ xảy ra, giấy tờ xe bắt buộc) — cùng CHỜ CHỦ XÁC NHẬN. Giờ viết dạng 'YYYY-MM-DD HH:MM' GIỜ VIỆT NAM ở mọi khoá tận cùng 'Ms'. '$nen.<đường>' trỏ dữ liệu nền bên dưới. Tên người là tên giả; không số giấy tờ.",
-  "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án — duyệt từng nhóm bước ngay trong chat", "ngay": "2026-10-16", "ghi_chu": "22 trên 24 bước đúng như tệp. Hai bước B04, B06 chủ muốn KHÁC luật hiện hành (xem trang_thai_buoc ở hai bước đó, chạy dạng todo). Mốc ra lệnh ghi 30 phút theo ý chủ 2026-10-16; B09, B10, B10B, B16 viết lại giờ cho khớp mốc 30 và chủ đã xác nhận lại. Hồ sơ: docs/superpowers/specs/2026-10-16-so-vang-van-chuyen-ket-qua-duyet.md." },
+  "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án — duyệt từng nhóm bước ngay trong chat", "ngay": "2026-10-16", "ghi_chu": "22 trên 24 bước đúng như tệp. Hai bước B04, B06 từng chủ muốn khác luật hiện hành; chủ duyệt ADR-0129 ngày 2026-10-17: B04 đổi đáp án thành CHO_QUA (kèm B04B hạng D1 vẫn chặn), B06 giữ CHẶN. Mốc ra lệnh ghi 30 phút theo ý chủ 2026-10-16; B09, B10, B10B, B16 viết lại giờ cho khớp mốc 30 và chủ đã xác nhận lại. Hồ sơ: docs/superpowers/specs/2026-10-16-so-vang-van-chuyen-ket-qua-duyet.md." },
   "nen": {
     "chinhSach": { "id": "cs-goc", "minLeadMinutes": 30, "warnLeadMinutes": 120, "restMinutes": 30, "requireManifest": true, "requireContract": false, "departureWindowMinutes": 720 },
     "hangBang": [
@@ -103,12 +103,17 @@
     },
     {
       "ma": "B04-XE-NHA-XE-TAI-XE-CONG-TY",
-      "mo_ta": "Xe 45 chỗ của nhà xe Minh Phát với tài xế công ty (bằng D) → chặn: chéo xe – tài xế (LC-13)",
+      "mo_ta": "Xe 45 chỗ của nhà xe Minh Phát với tài xế công ty (bằng D) → cho qua: chéo xe – tài xế được phép khi đủ hạng bằng (ADR-0129 Q4 = a, chủ 2026-10-17); chuyến mang cảnh báo CHEO_XE_TAI_XE ở lịch chung (bài dieu-phoi-lich-chung.test.ts)",
       "ham": "kiemTaoSuaChuyen",
       "dau_vao": { "lenh": "TAO", "chuyen": { "id": null, "batDauMs": "2026-09-30 06:00", "ketThucMs": "2026-09-30 09:00", "xe": "$nen.xe.MP", "taiXe": "$nen.taiXe.D", "nghiPhaLe": false }, "chuyenKhac": [], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "bayGioMs": "2026-09-29 21:10" },
-      "dap_an": { "quyet_dinh": "CHAN", "ma_luat": ["CHEO_XE_TAI_XE"] },
-      "trang_thai_buoc": "chu_muon_khac_luat",
-      "dap_an_chu_muon": { "quyet_dinh": "CHO_QUA", "ma_luat": [], "ghi_chu": "Chủ 2026-10-16: cho phép nếu đủ điều kiện về giấy phép lái xe, có cảnh báo (luật hiện hành LC-13 chặn cứng, cả máy chủ lẫn trigger). Cần quyết định riêng trước khi sửa mã." }
+      "dap_an": { "quyet_dinh": "CHO_QUA", "ma_luat": [] }
+    },
+    {
+      "ma": "B04B-XE-NHA-XE-TAI-XE-D1-KHONG-DU-HANG",
+      "mo_ta": "Như B04 nhưng tài xế công ty bằng D1: chéo xe được phép, song hạng bằng không đủ chở 45 chỗ → vẫn chặn (ADR-0129 Q4: điều kiện hạng bằng giữ nguyên)",
+      "ham": "kiemTaoSuaChuyen",
+      "dau_vao": { "lenh": "TAO", "chuyen": { "id": null, "batDauMs": "2026-09-30 06:00", "ketThucMs": "2026-09-30 09:00", "xe": "$nen.xe.MP", "taiXe": "$nen.taiXe.A", "nghiPhaLe": false }, "chuyenKhac": [], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "bayGioMs": "2026-09-29 21:10" },
+      "dap_an": { "quyet_dinh": "CHAN", "ma_luat": ["HANG_BANG_KHONG_DU"] }
     },
     {
       "ma": "B05-XEP-3-CHANG-CX07",
@@ -127,16 +132,14 @@
     },
     {
       "ma": "B06-XEP-THEM-4-VUOT-CHO",
-      "mo_ta": "Xếp thêm một chặng 4 người vào CX-3009-07 đang có 12 → 16/15 → chặn: vượt số chỗ (LC-02)",
+      "mo_ta": "Xếp thêm một chặng 4 người vào CX-3009-07 đang có 12 → 16/15 → chặn: vượt số chỗ (LC-02) — ADR-0129 Q5 = (a), chủ 2026-10-17: GIỮ chặn (giới hạn số người ngồi trên xe, không phá lệ)",
       "ham": "kiemXep",
       "dau_vao": {
         "chuyen": { "id": "cx-3009-07", "ma": "CX-3009-07", "trangThai": "PLANNED", "batDauMs": "2026-09-30 05:50", "batDauSomNhatMs": "2026-09-30 05:50", "soCho": 15, "tai": 12 },
         "them": [{ "chang": "$nen.chang.THEM_4", "soSuatMoi": 4, "personKeys": [], "suatMoCuaChang": [] }],
         "changTrenChuyen": [], "xeId": "xe-a", "camKetPhaLeKhoa": null, "chinhSach": "$nen.chinhSach", "bayGioMs": "2026-09-29 21:20"
       },
-      "dap_an": { "quyet_dinh": "CHAN", "ma_luat": ["VUOT_SO_CHO"] },
-      "trang_thai_buoc": "chu_muon_khac_luat",
-      "dap_an_chu_muon": { "quyet_dinh": "CHO_QUA", "ma_luat": [], "ghi_chu": "Chủ 2026-10-16: vượt số chỗ thì cho qua kèm cảnh báo (luật hiện hành LC-02 chặn). Cần quyết định riêng trước khi sửa mã." }
+      "dap_an": { "quyet_dinh": "CHAN", "ma_luat": ["VUOT_SO_CHO"] }
     },
     {
       "ma": "B07-GIU-THIEU-TEN",

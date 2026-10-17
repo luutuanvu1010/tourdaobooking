@@ -66,9 +66,17 @@ export function kiemLai(taiXe: TaiXeVao, soCho: number, ketThucMs: number, hangB
   return { lyDo: lyDoGiu("GPLX_THIEU_HANG"), gplx: null };
 }
 
-/** LC-13 (lớp máy chủ, I21): xe công ty ⇒ tài xế công ty KHÔNG thuộc nhà xe nào; xe của nhà xe X ⇒ tài xế có quan hệ "Tài xế của" X. */
+/**
+ * LC-13 (lớp máy chủ, I21): xe công ty ⇒ tài xế công ty KHÔNG thuộc nhà xe nào; xe của nhà xe X ⇒ tài xế có quan hệ "Tài xế của" X, HOẶC (ADR-0129 Q4 = (a), chủ duyệt
+ * 2026-10-17) tài xế công ty không thuộc nhà xe nào — kèm cảnh báo `CHEO_XE_TAI_XE` ở lịch chung (xem `laiXeThueBangTaiXeCongTy`) và vẫn qua hạng bằng (`kiemLai`) lẫn
+ * giấy tờ xe (cổng xuất bến). Chiều ngược (tài xế nhà xe lái xe công ty / xe nhà xe khác) vẫn chặn.
+ */
 export const khongCheo = (xe: Pick<XeVao, "chuLaCongTy" | "chuXePartyId">, taiXe: Pick<TaiXeVao, "loai" | "carrierPartyIds">): boolean =>
-  xe.chuLaCongTy ? taiXe.loai === "CONG_TY" && taiXe.carrierPartyIds.length === 0 : taiXe.carrierPartyIds.includes(xe.chuXePartyId);
+  xe.chuLaCongTy ? taiXe.loai === "CONG_TY" && taiXe.carrierPartyIds.length === 0 : taiXe.carrierPartyIds.includes(xe.chuXePartyId) || laiXeThueBangTaiXeCongTy(xe, taiXe);
+
+/** ADR-0129 Q4: tài xế CÔNG TY (không thuộc nhà xe nào) lái xe của NHÀ XE thuê — được, nhưng phải mang cảnh báo «chéo xe – tài xế». */
+export const laiXeThueBangTaiXeCongTy = (xe: Pick<XeVao, "chuLaCongTy">, taiXe: Pick<TaiXeVao, "loai" | "carrierPartyIds">): boolean =>
+  !xe.chuLaCongTy && taiXe.loai === "CONG_TY" && taiXe.carrierPartyIds.length === 0;
 
 // ---- Tạo / sửa chuyến ------------------------------------------------------------------------------------------------------------------------------------
 export interface KiemTaoSuaChuyenVao {
