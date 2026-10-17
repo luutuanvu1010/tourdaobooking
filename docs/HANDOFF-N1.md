@@ -2,7 +2,20 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.2 ĐÃ LÊN PRODUCTION (ADR-0120, đổi từ 0118: khoản chuyển khoản «Công ty thu» không tạo nợ người khai, «đang đối chiếu», chặn Đã giao, nhắc Kế toán sau 3 ngày; Kế toán duyệt chuyển tiền thu trước sang đơn khác; chữ «cọc» → «Thu trước»; 54 ca sổ vàng đã xác nhận) — migration `0099_bil_doi_chieu_khoan_cong_ty_thu` đã áp (2026-10-15 19:28 giờ VN)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.10 ĐÃ LÊN PRODUCTION (Vé hỗ trợ đợt 2a, ADR-0127: khung trò chuyện tự làm mới, mức ưu tiên Thường/Cao/Khẩn, đơn liên quan, Trưởng nhóm «Giao cho người khác») — migration `0106_ve_ho_tro_2a` đã áp (2026-10-17 12:25 giờ VN)
+
+Chủ chạy `day-len` rồi `trien-khai` (lần đầu gõ nhầm thư mục — phải đứng ở thư mục gốc, nhánh `main`); AI kiểm lại bằng lệnh chỉ đọc:
+
+- **Commit:** `99d8cadb` (= `main` = `origin/main` lúc triển khai). Điểm khôi phục Time Travel trước khi áp: `000012ba-00000000-00005107-a11b7cfc7a7477de132b9902dccfa64f`.
+- **Worker:** `f8b6d338-c99c-456a-b4d4-9a0535d0b700`. `d1 migrations list --remote` → "No migrations to apply!"; `GET /` → 200; gói `feedback.js` trên production có đường `my-orders`; `GET /api/feedback/my-orders` khi chưa đăng nhập → 401.
+- **Theo khối `trien-khai`:** e2e đủ bộ xanh, `audit-invariants --db remote` ĐẠT (4 cảnh báo cũ: R-CTL-1 nhóm dịch vụ, R-ORD-T1w đơn cũ chờ chụp bù), cổng phiên bản trước và sau deploy ĐẠT (production đúng bản 2.10).
+- **Kiểm trước phát hành:** `npm test` 5183 bài đạt / 0 đỏ; mỗi việc và cả nhánh có người kiểm độc lập (chỉ đọc), không còn lỗi nặng.
+- **Chưa kiểm:** xem vé thật trên production bằng hai tài khoản (tin mới tự hiện sau vài giây); iPhone thật; trạng thái chế độ bảo trì lúc triển khai (AI không đọc).
+- **Số hiệu:** ADR-0127 ghi dự kiến migration `0104`, số thật là `0106` (ADR đã duyệt, không sửa; lệch ghi ở `docs/superpowers/plans/2026-10-16-ve-ho-tro-dot-2a-thi-cong-nhat-ky.md`). Nhánh hồ sơ riêng tư (`worktree-ho-so-rieng-tu-2fa`) giữ 0104, 0105, 0107.
+- **Việc chờ chủ quyết:** danh sách chọn đơn có cả đơn nháp / đã huỷ; phiếu cũ lỡ giao cho tài khoản bên ngoài (vá `nguoiGiuHopLe`, đụng luật R6); chuyển nhóm có đặt lại mức ưu tiên không — xem `docs/BACKLOG.md` (BL-VE-*).
+- **Hoàn tác:** migration 0106 chỉ THÊM ba cột ở `fbk_ticket`; `wrangler rollback` đưa Worker về bản trước, mã cũ chạy bình thường trên cấu trúc mới.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 2.2 ĐÃ LÊN PRODUCTION (ADR-0120, đổi từ 0118: khoản chuyển khoản «Công ty thu» không tạo nợ người khai, «đang đối chiếu», chặn Đã giao, nhắc Kế toán sau 3 ngày; Kế toán duyệt chuyển tiền thu trước sang đơn khác; chữ «cọc» → «Thu trước»; 54 ca sổ vàng đã xác nhận) — migration `0099_bil_doi_chieu_khoan_cong_ty_thu` đã áp (2026-10-15 19:28 giờ VN)
 
 Chủ chạy `day-len` rồi `trien-khai` (lần đầu dừng vì `main` có commit mới, hai lần dừng ở bài đo giờ của hàng rào do máy bận, lần ba qua); AI kiểm lại bằng lệnh chỉ đọc:
 
