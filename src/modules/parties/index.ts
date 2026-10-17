@@ -8,6 +8,7 @@ import type {
   StaffProfile, TaiKhoanNhanTienResponse, HoSoTepChayLaiResponse, HoSoTepChoXoaResponse, HoSoTepCreatedResponse, HoSoTepListResponse,
   ChinhSachDangResponse, DongYResponse, HoSoCuaToiDto, HoSoCuaToiResponse, PhieuTuKhaiDto, TrangThaiPhieuTuKhai, PhieuTuKhaiTaoResponse, PhieuTuKhaiRutResponse,
   PhieuChoXacMinhDto, PhieuDaXuLyDto, PhieuXacMinhChiTietDto, PhieuXemSoResponse, PhieuXoaCuaToiDto, PhieuXoaRutResponse, PhieuXoaTaoResponse, TrangThaiPhieuXoa,
+  AnhCanXoaDto, AnhCanXoaResponse, AnhCanXoaXoaResponse,
   PhieuXoaChoDto, PhieuXoaChoResponse, PhieuXoaChayLaiResponse, PhieuXoaDaXuLyDto, PhieuXoaThucHienResponse, PhieuXoaTuChoiResponse, PhieuXoaXemTruocDto,
 } from "../../shared/contracts";
 import { LOAI_CO_DINH, MA_LOAI_GIAY_TO_RE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo, soNgayConLai } from "../../shared/giay-to";
@@ -34,7 +35,7 @@ import {
   ghiPhieuStatement, timPhieuCuaHoSo, rutPhieuStatement,
   guiPhieuXoaStatement, listPhieuXoaCuaHoSo, rutPhieuTuKhaiKhiGuiXoaStatement, rutPhieuXoaStatement, timPhieuXoa, type PhieuXoaRow,
   anDanhStatements, coPhieuXoaChoHoacDa, demHoSoGopVao, demXemTruocXoa, listPhieuChuaChepNgoai, listPhieuXoaChoCoTen, listPhieuXoaDaXuLy, quyetPhieuXoaStatement, tepChoXoaCuaPhieu,
-  tepChoXoaLyDoPhieu, timPhieuXoaCoTen, tuChoiPhieuXoaStatement,
+  tepChoXoaLyDoPhieu, timPhieuXoaCoTen, tuChoiPhieuXoaStatement, datChoXoaAnhHetGiuStatement, listAnhHetLyDoGiu, type AnhHetGiuRow,
   canXacMinhLaiStatement, chamCuaTaiKhoan, ghiDiaChiTuPhieuStatement, ghiGiayToTuPhieuStatement, ghiNgaySinhTuPhieuStatement, ghiXacMinhTuPhieuStatement, lamMoiHoSoTuPhieuStatement, quyetPhieuStatement, listPhieuCho, listPhieuDaXuLy, soDuCuaPhieuCho, timPhieuChoXet, trungSoHoSoKhac,
   datHoatDongLoaiDoiTacStatement, hoSoMangNhan, openRoleCodesFor, themLoaiDoiTacStatement, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements, vaiDangMo,
   type BankAccountRow, type BankRow, type GopDocRow, type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
@@ -48,7 +49,7 @@ import { chepBanNgoai, ghiRoiXoaKho, xoaKhoiKho } from "./kho-tep";
 import { CAU_KHONG_GUI, kiemChinhSach, kiemPhieuTuKhai, lyDoKhongGhi, lyDoKhongGui, type LoaiPhieu, type TinhTrangTuKhai } from "./tu-khai";
 import { nhanLoaiPhieu } from "../../shared/tu-khai-hien-thi";
 import { CAU_KHONG_GUI_XOA, LY_DO_TU_CHOI_XOA } from "../../shared/xoa-an-danh-hien-thi";
-import { MA_LOI_XU_LY, NHAN_LY_DO_KHONG_XU_LY, giuTen, phanGiuLai, trangThaiHan, xetGuiPhieuXoa, xetXuLyPhieuXoa, type LyDoKhongGuiXoa, type LyDoKhongXuLy, type ViecDangMo } from "./xoa-an-danh";
+import { LY_DO_XOA_TEP_HET_GIU, MA_LOI_XU_LY, NHAN_LY_DO_KHONG_XU_LY, giuTen, phanGiuLai, thayAnhCuaHoSo, trangThaiHan, xetGuiPhieuXoa, xetXuLyPhieuXoa, type LyDoKhongGuiXoa, type LyDoKhongXuLy, type ViecDangMo } from "./xoa-an-danh";
 import { NHAN_LY_DO_CHAN, nhanLyDoTuChoi } from "../../shared/xac-minh-hien-thi";
 import { chuyenToanQuyen, kiemTuChoi, loiLoChapNhan, lyDoKhongChapNhan, xetNguoiXacMinh, type KetLuanXet, type PhieuXet, type TaiKhoanTom } from "./xac-minh";
 import { MA_HANG_RE, cheSo, chiTietNhatKy, chuanHoaSo, kiemGiaHan, kiemHangMoi, kiemSuaHang, kiemSuaSai, kiemThemGiayTo, type DanhMucGiayTo, type GiayToNhap } from "./giay-to";
@@ -689,6 +690,13 @@ const ERASURE_NOT_PENDING = () => error(409, "erasure_not_pending", "Yêu cầu 
 const ERASURE_PENDING_EXISTS = () => error(409, CAU_KHONG_GUI_XOA.dang_cho.code, CAU_KHONG_GUI_XOA.dang_cho.message);
 const ERASURE_PERSON_ONLY = () => error(409, CAU_KHONG_GUI_XOA.khong_ca_nhan.code, CAU_KHONG_GUI_XOA.khong_ca_nhan.message);
 const ERASURE_FORBIDDEN = () => error(403, "forbidden", "Tài khoản này không xử lý được yêu cầu xoá dữ liệu.");
+const TRAN_ANH_MOT_LO = 50;
+const ANH_SAI_KHUON = () => error(400, "invalid_input", `Hãy chọn từ 1 đến ${TRAN_ANH_MOT_LO} ảnh để xoá.`);
+/** Ảnh hết lý do giữ trong PHẠM VI người bấm (Toàn quyền: hết; Quản trị: hồ sơ không tài khoản hoặc tài khoản quản được). Chỉ ĐỌC. */
+async function anhTrongPham(db: D1Database, staff: StaffProfile, dsTk: readonly TaiKhoanXacMinh[], homNay: string): Promise<AnhHetGiuRow[]> {
+  const nguoi = { permissions: staff.permissions };
+  return (await listAnhHetLyDoGiu(db, homNay)).filter((r) => thayAnhCuaHoSo({ nguoi, chuHoSo: dsTk.find((t) => t.partyId === r.party_id) ?? null }));
+}
 const KHONG_VIEC: ViecDangMo = { doi: 0, phuTrachDon: 0, laiChuyen: 0, toLaiChuyen: 0, chuXeChuyen: 0, soXe: 0 };
 /**
  * Kết luận ĐỦ cho một phiếu xoá (luật thuần `xetXuLyPhieuXoa`): đọc việc đang mở (đơn chưa giao, phụ trách đơn, lái / tổ lái chuyến, chủ xe) và công ty chủ qua gốc lắp ráp.
@@ -1332,6 +1340,38 @@ export const partiesModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "party_erasure_retried", at: new Date().toISOString(), targetType: "system", targetId: "phieu-xoa", detail: `chép ${daChep} · xoá kho ${xoa.daXoa} · còn ${conLoi}` }),
       ]);
       return json({ daChep, daXoaKho: xoa.daXoa, conLoi } satisfies PhieuXoaChayLaiResponse);
+    }),
+
+    // ---- Ảnh HẾT lý do giữ (ADR-0126 đ6; Hiến chương 5.23, 5.24) — khai TRƯỚC /api/parties/:id…; cổng admin: thân hỏi admin.manage RỒI party.erasure.process. Không Cron: người có quyền bấm. ----
+    // GET chỉ ĐỌC (không ghi gì). POST: 1–50 mã; chỉ phần trong phạm vi và VẪN hết lý do giữ lúc bấm mới được quyết (lính gác trong câu); phần còn lại đếm vào boQua.
+    route("GET", "/api/parties/anh-can-xoa", "admin", async ({ env, staff, taiKhoanXacMinh }) => {
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      if (!can(staff, "party.erasure.process")) return ERASURE_FORBIDDEN();
+      const ds = await anhTrongPham(env.DB, staff, await taiKhoanXacMinh(), vnToday(new Date()));
+      return json({
+        anh: ds.map((r): AnhCanXoaDto => ({ id: r.id, tenHoSo: r.ten_ho_so, loaiGiayTo: r.loai_giay_to, lyDo: r.ly_do as AnhCanXoaDto["lyDo"], taiLuc: r.created_at })),
+      } satisfies AnhCanXoaResponse);
+    }),
+
+    route("POST", "/api/parties/anh-can-xoa/xoa", "admin", async ({ request, env, staff, taiKhoanXacMinh }) => {
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      if (!can(staff, "party.erasure.process")) return ERASURE_FORBIDDEN();
+      const ids = (await readJson(request))?.ids;
+      if (!Array.isArray(ids) || ids.length < 1 || ids.length > TRAN_ANH_MOT_LO || !ids.every((x) => typeof x === "string" && UUID_RE.test(x))) return ANH_SAI_KHUON();
+      const mot = [...new Set(ids as string[])];
+      const at = new Date().toISOString();
+      const homNay = vnToday(new Date(at));
+      const trongPham = new Map((await anhTrongPham(env.DB, staff, await taiKhoanXacMinh(), homNay)).map((r) => [r.id, r]));
+      const chon = mot.flatMap((id) => (trongPham.has(id) ? [trongPham.get(id)!] : []));
+      if (chon.length === 0) return json({ daQuyet: 0, boQua: mot.length, conChoXoaKho: 0 } satisfies AnhCanXoaXoaResponse);
+      // MỘT lô: mỗi tệp một cặp (câu quyết có lính gác "vẫn hết lý do giữ" + nhật ký chỉ mã khi câu đổi được dòng). Kho R2 chạy SAU lô (kho-tep.ts).
+      const kq = await env.DB.batch(chon.flatMap((r) =>
+        cauDatChoXoa(env.DB, datChoXoaAnhHetGiuStatement(env.DB, { tepId: r.id, actorId: staff.id, at, homNay }), r, LY_DO_XOA_TEP_HET_GIU, at, staff.id)));
+      const daQuyet = chon.filter((_, i) => (kq[2 * i]?.meta.changes ?? 0) > 0);
+      let conChoXoaKho = daQuyet.length;
+      const kho = env.HO_SO;
+      if (kho && daQuyet.length > 0) conChoXoaKho = (await xoaKhoiKho(env.DB, kho, daQuyet, () => new Date().toISOString())).loi;
+      return json({ daQuyet: daQuyet.length, boQua: mot.length - daQuyet.length, conChoXoaKho } satisfies AnhCanXoaXoaResponse);
     }),
 
     // ---- Hàng "chờ xoá" của kho tệp hồ sơ (ADR-0123 đ6; Hiến chương 5.16; ruling Q4: chỉ Toàn quyền) — khai TRƯỚC GET /api/parties/:id. DTO chỉ mã. -------

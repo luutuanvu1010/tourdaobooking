@@ -232,7 +232,21 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
     "POST /api/parties/phieu-xoa/chay-lai": async () => {
       await goi("chạy lại xoá kho + bản ngoài", "POST", "/api/parties/phieu-xoa/chay-lai", SUP, undefined, 200);
     },
+    // Lát H-5 việc 6 (ADR-0126 đ6): danh sách ảnh HẾT lý do giữ + bấm xoá. Một tệp không nối đâu của hồ sơ `khac`; DTO chỉ tên hồ sơ / loại giấy tờ / mã lý do, không số, không khoá kho.
+    "GET /api/parties/anh-can-xoa": async () => {
+      w.sqlite.prepare(
+        `INSERT INTO pty_attachment (id, party_id, storage_key, content_kind, byte_size, content_hash, stored_at, created_at, created_by, updated_at, updated_by)
+         VALUES (?, ?, ?, 'jpg', 3, ?, ?, ?, 'x', ?, 'x')`,
+      ).run(ANH_XOA, khac, `pty/${ANH_XOA.replace(/-/g, "")}`, "c".repeat(64), "2026-10-01T00:00:00.000Z", "2026-10-01T00:00:00.000Z", "2026-10-01T00:00:00.000Z");
+      const r = await goi("danh sách ảnh hết lý do giữ", "GET", "/api/parties/anh-can-xoa", SUP, undefined, 200);
+      assert.deepEqual(r.json.anh.map((x: { id: string; lyDo: string }) => [x.id, x.lyDo]), [[ANH_XOA, "KHONG_NOI"]], "chống bài rỗng: có tệp hết lý do giữ");
+    },
+    "POST /api/parties/anh-can-xoa/xoa": async () => {
+      const r = await goi("xoá ảnh hết lý do giữ", "POST", "/api/parties/anh-can-xoa/xoa", SUP, { ids: [ANH_XOA] }, 200);
+      assert.equal(r.json.daQuyet, 1, "chống bài rỗng: đã quyết xoá tệp");
+    },
   };
+  const ANH_XOA = "0b1e5c2a-2222-4000-8000-000000000001";
   /** Phiếu xoá đang chờ chèn THẲNG cho hồ sơ không tài khoản (người gửi = TX: hồ sơ này không đăng nhập được để tự gửi); route Thực hiện đọc phiếu như mọi phiếu khác. */
   const guiXoaThang = (partyId: string) => {
     w.sqlite.prepare("INSERT INTO pty_erasure_request (id, party_id, status, created_at, created_by, updated_at, updated_by) VALUES (?, ?, 'CHO_XU_LY', ?, ?, ?, ?)")

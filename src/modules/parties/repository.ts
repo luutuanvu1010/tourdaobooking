@@ -1323,7 +1323,8 @@ export interface PhieuXoaRow {
   id: string; party_id: string; policy_id: string | null; due_at: string | null; status: string; decided_at: string | null; decided_by: string | null;
   reason_code: string | null; name_kept: number | null; retained_codes: string | null; offsite_at: string | null; created_at: string; created_by: string;
 }
-export interface AnhHetGiuRow { id: string; party_id: string; created_at: string; ly_do: string }
+/** `storage_key` chỉ để xoá kho SAU lô quyết xoá — route KHÔNG đưa ra DTO. `loai_giay_to` = tên loại giấy tờ đang nối (null = không nối đâu). */
+export interface AnhHetGiuRow { id: string; party_id: string; storage_key: string; created_at: string; ten_ho_so: string; loai_giay_to: string | null; ly_do: string }
 export interface XemTruocXoa { giayTo: number; phieuTuKhai: number; lienHe: number; coNgaySinh: boolean; tep: number }
 
 /** Tập hồ sơ của một phiếu: hồ sơ chính + hồ sơ đã gộp vào nó (một bước — ADR-0068 Đ3). `n` = số thứ tự tham số mang mã hồ sơ. */
@@ -1472,7 +1473,14 @@ const LY_DO_ANH = `CASE
   WHEN ${DONG_NOI_PHIEU("s.status <> 'CHO_XAC_MINH'")} THEN 'PHIEU_DA_XU_LY'
   ELSE 'KHONG_NOI' END`;
 const LIST_ANH_HET_GIU = defineSql("parties", "list_attachments_without_keep_reason",
-  `SELECT a.id, a.party_id, a.created_at, ${LY_DO_ANH} AS ly_do FROM pty_attachment a
+  `SELECT a.id, a.party_id, a.storage_key, a.created_at, p.display_name AS ten_ho_so,
+     COALESCE(
+       (SELECT t.name FROM pty_attachment_link l JOIN pty_person_document d ON l.target_kind = 'PERSON_DOCUMENT' AND d.id = l.target_id
+          JOIN pty_person_document_type t ON t.code = d.document_type_code WHERE l.attachment_id = a.id ORDER BY l.created_at, l.target_id LIMIT 1),
+       (SELECT t.name FROM pty_attachment_link l JOIN pty_organization_document d ON l.target_kind = 'ORG_DOCUMENT' AND d.id = l.target_id
+          JOIN pty_organization_document_type t ON t.code = d.document_type_code WHERE l.attachment_id = a.id ORDER BY l.created_at, l.target_id LIMIT 1)) AS loai_giay_to,
+     ${LY_DO_ANH} AS ly_do
+   FROM pty_attachment a JOIN pty_party p ON p.id = a.party_id
    WHERE a.purged_at IS NULL AND a.stored_at IS NOT NULL AND NOT (${GIU_ANH(1)})
    ORDER BY a.created_at, a.id LIMIT 500`);
 // Lính gác: đến lúc bấm tệp vẫn hết lý do giữ (đã có lại lý do giữ giữa lúc đọc danh sách và lúc bấm ⇒ 0 dòng). ?1 tệp, ?2 người, ?3 lúc, ?4 hôm nay.

@@ -678,3 +678,181 @@ test("(p12) hồ sơ phụ đã gộp: xem trước hoSoGopVao = 1; thực hiệ
   assert.equal(Q(w, "SELECT birth_date FROM pty_person WHERE party_id = ?", q)[0].birth_date, null);
   assert.equal(batBien(w, "R-PTY-18"), 0);
 });
+
+// ======================================================================================================================================================
+// Việc 6 (lát H-5, ADR-0126 đ6): danh sách ảnh HẾT lý do giữ để người có quyền bấm xoá. Đọc danh sách KHÔNG ghi; bấm xoá = lô (đặt chờ xoá + nhật ký) rồi xoá kho.
+// ======================================================================================================================================================
+const ANH = "/api/parties/anh-can-xoa";
+const KHONG_TK = "pty-khong-tai-khoan";
+const dsAnh = (w: W, as: string) => w.call("GET", ANH, { as });
+const xoaAnh = (w: W, as: string, ids: unknown) => w.call("POST", `${ANH}/xoa`, { as, body: { ids } });
+let boDemAnh = 0;
+const uuidAnh = () => `0b1e5c2a-1111-4000-8000-${(++boDemAnh).toString(16).padStart(12, "0")}`;
+/** Hồ sơ không có tài khoản. */
+function hoSoKhongTaiKhoan(w: W): string {
+  w.sqlite.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('${KHONG_TK}', 'PERSON', 'Khách Không Tài Khoản', 1, '${AT}', '${AT}')`);
+  w.sqlite.exec(`INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES ('${KHONG_TK}', 'Khách Không Tài Khoản', '${AT}', '${AT}')`);
+  return KHONG_TK;
+}
+function vaiMo(w: W, party: string): void {
+  if (Q(w, "SELECT 1 FROM pty_party_role WHERE party_id = ?", party).length > 0) return;
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, valid_to_date, created_at, updated_at) VALUES (?, ?, 'CUSTOMER', NULL, '2026-01-01', NULL, ?, ?)")
+    .run(`vai-${party}`, party, AT, AT);
+}
+/** Một tệp ảnh có đối tượng trong kho giả; `han` khác undefined ⇒ nối vào một giấy tờ sức khoẻ (không số) có ngày hết hạn đó. */
+async function gieoAnh(w: W, party: string, x: { han?: string } = {}): Promise<{ tepId: string; docId: string | null; khoa: string }> {
+  vaiMo(w, party);
+  const tepId = uuidAnh();
+  const khoa = `pty/${tepId.replace(/-/g, "")}`;
+  w.sqlite.prepare(
+    `INSERT INTO pty_attachment (id, party_id, storage_key, content_kind, byte_size, content_hash, stored_at, created_at, created_by, updated_at, updated_by)
+     VALUES (?, ?, ?, 'jpg', 3, ?, ?, ?, 'x', ?, 'x')`,
+  ).run(tepId, party, khoa, "b".repeat(64), AT, AT, AT);
+  await w.r2.put(khoa, new Uint8Array([1, 2, 3]));
+  let docId: string | null = null;
+  if (x.han !== undefined) {
+    docId = uuidAnh();
+    w.sqlite.prepare(
+      `INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, issued_date, issued_place, expiry_date, created_at, created_by, updated_at, updated_by)
+       VALUES (?, ?, 'HEALTH_CHECK', NULL, NULL, '2020-01-01', NULL, ?, ?, 'x', ?, 'x')`,
+    ).run(docId, party, x.han, AT, AT);
+    w.sqlite.prepare("INSERT INTO pty_attachment_link (attachment_id, target_kind, target_id, created_at, created_by, updated_at, updated_by) VALUES (?, 'PERSON_DOCUMENT', ?, ?, 'x', ?, 'x')").run(tepId, docId, AT, AT);
+  }
+  return { tepId, docId, khoa };
+}
+const tepMo = (w: W, as: string, party: string, t: { tepId: string; docId: string | null }) => w.call("GET", `/api/parties/${party}/documents/${t.docId}/tep/${t.tepId}`, { as });
+
+test("(a1) danh sách đúng các ca hết lý do giữ (hết hạn, không nối đâu); ca còn lý do giữ / đã quyết xoá không hiện; DTO đúng khoá, không mã thô; đọc KHÔNG ghi gì", async () => {
+  const w = setup();
+  const het = await gieoAnh(w, pty(PARTNER), { han: "2020-01-01" });
+  const khongNoi = await gieoAnh(w, pty(PARTNER));
+  const con = await gieoAnh(w, pty(PARTNER), { han: "2099-01-01" });
+  const daXoa = await gieoAnh(w, pty(PARTNER), { han: "2020-01-01" });
+  w.sqlite.prepare("UPDATE pty_attachment SET purged_at = ?, purge_reason = 'PHIEU_XOA', content_hash = NULL WHERE id = ?").run(AT, daXoa.tepId);
+  const truoc = JSON.stringify([Q(w, "SELECT * FROM pty_attachment ORDER BY id"), Q(w, "SELECT count(*) n FROM audit_log")]);
+  const r = await dsAnh(w, SUP);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.headers.get("cache-control")?.includes("no-store"), true);
+  assert.deepEqual(khoaHopLe(r.json), ["anh"]);
+  const theoId = new Map(r.json.anh.map((x: { id: string }) => [x.id, x]));
+  assert.deepEqual([...theoId.keys()].sort(), [het.tepId, khongNoi.tepId].sort());
+  assert.ok(!theoId.has(con.tepId) && !theoId.has(daXoa.tepId));
+  const a = theoId.get(het.tepId) as Record<string, unknown>;
+  assert.deepEqual(khoaHopLe(a), ["id", "loaiGiayTo", "lyDo", "taiLuc", "tenHoSo"]);
+  assert.equal(a.lyDo, "HET_HAN");
+  assert.equal(a.tenHoSo, "Đối Tác");
+  assert.equal(typeof a.loaiGiayTo, "string");
+  assert.doesNotMatch(String(a.loaiGiayTo), /^[A-Z_]+$/, "nhãn lời thường, không mã thô");
+  assert.equal(a.taiLuc, AT);
+  const b = theoId.get(khongNoi.tepId) as Record<string, unknown>;
+  assert.equal(b.lyDo, "KHONG_NOI");
+  assert.equal(b.loaiGiayTo, null);
+  assert.ok(!r.text.includes("pty/"), "không lộ khoá kho");
+  assert.equal(JSON.stringify([Q(w, "SELECT * FROM pty_attachment ORDER BY id"), Q(w, "SELECT count(*) n FROM audit_log")]), truoc, "đọc danh sách không ghi gì");
+});
+
+test("(a2) Bán hàng, Kế toán, Nhân sự, Đối tác, Tài xế đối tác: GET và POST → 403, không đổi gì; Quản trị, Toàn quyền → GET 200", async () => {
+  const w = setup();
+  seedStaff(w.sqlite, { id: ACC, phone: "0900000009", name: "Kế Toán", perms: ["ACCOUNTING"] });
+  const t = await gieoAnh(w, pty(PARTNER), { han: "2020-01-01" });
+  for (const as of [SALES, ACC, HR, PARTNER, DRVP]) {
+    assert.equal((await dsAnh(w, as)).status, 403, `GET ${as}`);
+    assert.equal((await xoaAnh(w, as, [t.tepId])).status, 403, `POST ${as}`);
+  }
+  assert.equal(Q(w, "SELECT purged_at FROM pty_attachment WHERE id = ?", t.tepId)[0].purged_at, null);
+  for (const as of [ADM, SUP]) assert.equal((await dsAnh(w, as)).status, 200, as);
+});
+
+test("(a3) Quản trị chỉ thấy tệp của hồ sơ không tài khoản hoặc tài khoản mình quản được; không thấy / không xoá được tệp của Quản trị khác, Nhân sự; Toàn quyền thấy hết", async () => {
+  const w = setup();
+  const cuaDoiTac = await gieoAnh(w, pty(PARTNER), { han: "2020-01-01" });
+  const cuaKhach = await gieoAnh(w, hoSoKhongTaiKhoan(w), { han: "2020-01-01" });
+  const cuaQuanTri2 = await gieoAnh(w, pty(ADM2), { han: "2020-01-01" });
+  const cuaNhanSu = await gieoAnh(w, pty(HR), { han: "2020-01-01" });
+  const quanTri = await dsAnh(w, ADM);
+  assert.deepEqual(quanTri.json.anh.map((x: { id: string }) => x.id).sort(), [cuaDoiTac.tepId, cuaKhach.tepId].sort());
+  const toanQuyen = await dsAnh(w, SUP);
+  assert.deepEqual(toanQuyen.json.anh.map((x: { id: string }) => x.id).sort(), [cuaDoiTac.tepId, cuaKhach.tepId, cuaQuanTri2.tepId, cuaNhanSu.tepId].sort());
+  // Quản trị gửi cả mã ngoài cấp bậc: chỉ phần trong phạm vi được quyết, phần còn lại bị bỏ qua.
+  const r = await xoaAnh(w, ADM, [cuaQuanTri2.tepId, cuaNhanSu.tepId, cuaDoiTac.tepId]);
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json, { daQuyet: 1, boQua: 2, conChoXoaKho: 0 });
+  assert.equal(Q(w, "SELECT purged_at FROM pty_attachment WHERE id = ?", cuaQuanTri2.tepId)[0].purged_at, null);
+  assert.equal(Q(w, "SELECT purged_at FROM pty_attachment WHERE id = ?", cuaNhanSu.tepId)[0].purged_at, null);
+  assert.notEqual(Q(w, "SELECT purged_at FROM pty_attachment WHERE id = ?", cuaDoiTac.tepId)[0].purged_at, null);
+});
+
+test("(a4) xoá 2 tệp hợp lệ + 1 tệp đã có lại lý do giữ ⇒ daQuyet = 2, boQua = 1; đúng 2 dòng nhật ký chỉ mã; tệp bị bỏ qua vẫn mở được; kho đã xoá hai tệp kia", async () => {
+  const w = setup();
+  const t1 = await gieoAnh(w, pty(PARTNER), { han: "2020-01-01" });
+  const t2 = await gieoAnh(w, pty(PARTNER));
+  const t3 = await gieoAnh(w, pty(PARTNER), { han: "2020-01-01" });
+  const ds = await dsAnh(w, ADM);
+  assert.deepEqual(ds.json.anh.map((x: { id: string }) => x.id).sort(), [t1.tepId, t2.tepId, t3.tepId].sort());
+  // giữa lúc xem danh sách và lúc bấm: t3 được nối thêm sang giấy tờ còn hạn
+  const dsau = uuidAnh();
+  w.sqlite.prepare(
+    `INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, issued_date, issued_place, expiry_date, created_at, created_by, updated_at, updated_by)
+     VALUES (?, ?, 'HEALTH_CHECK', NULL, NULL, '2020-01-01', NULL, '2099-01-01', ?, 'x', ?, 'x')`,
+  ).run(dsau, pty(PARTNER), AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_attachment_link (attachment_id, target_kind, target_id, created_at, created_by, updated_at, updated_by) VALUES (?, 'PERSON_DOCUMENT', ?, ?, 'x', ?, 'x')").run(t3.tepId, dsau, AT, AT);
+  const r = await xoaAnh(w, ADM, [t1.tepId, t2.tepId, t3.tepId]);
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json, { daQuyet: 2, boQua: 1, conChoXoaKho: 0 });
+  const nk = Q(w, "SELECT detail, staff_id, target_id, target_type FROM audit_log WHERE action = 'party_attachment_purged' ORDER BY detail");
+  assert.deepEqual(nk, [t1.tepId, t2.tepId].map((id) => `tệp ${id} · HET_LY_DO_GIU`).sort().map((detail) => ({ detail, staff_id: ADM, target_id: pty(PARTNER), target_type: "party" })));
+  for (const t of [t1, t2]) {
+    const d = Q(w, "SELECT purged_at, purge_reason, r2_deleted_at, content_hash FROM pty_attachment WHERE id = ?", t.tepId)[0];
+    assert.deepEqual([d.purge_reason, d.purged_at !== null, d.r2_deleted_at !== null, d.content_hash], ["HET_LY_DO_GIU", true, true, null]);
+    assert.equal(w.r2.co(t.khoa), false, "kho đã xoá");
+  }
+  const giu = Q(w, "SELECT purged_at, purge_reason FROM pty_attachment WHERE id = ?", t3.tepId)[0];
+  assert.deepEqual([giu.purged_at, giu.purge_reason], [null, null]);
+  assert.equal(w.r2.co(t3.khoa), true);
+  assert.equal((await tepMo(w, SUP, pty(PARTNER), t3)).status, 200, "tệp bị bỏ qua vẫn mở được");
+  const tatCa = JSON.stringify(Q(w, "SELECT detail FROM audit_log"));
+  assert.ok(!tatCa.includes("Đối Tác"), "nhật ký không có tên");
+  assert.equal(batBien(w, "R-PTY-12"), 0);
+  // bấm lại hai tệp đã quyết: không đổi, không nhật ký mới
+  const lai = await xoaAnh(w, ADM, [t1.tepId, t2.tepId]);
+  assert.deepEqual(lai.json, { daQuyet: 0, boQua: 2, conChoXoaKho: 0 });
+  assert.equal(dem(w, "audit_log WHERE action = 'party_attachment_purged'"), 2);
+});
+
+test("(a5) ids rỗng / 51 mã / mã sai khuôn / không phải mảng / thiếu thân → 400, không đổi gì", async () => {
+  const w = setup();
+  const t = await gieoAnh(w, pty(PARTNER), { han: "2020-01-01" });
+  const tuoi = (n: number) => Array.from({ length: n }, () => uuidAnh());
+  for (const ids of [[], tuoi(51), ["khong-phai-ma"], [t.tepId, 7], t.tepId, null, { 0: t.tepId }]) {
+    const r = await xoaAnh(w, ADM, ids);
+    assert.equal(r.status, 400, JSON.stringify(ids).slice(0, 60));
+    assert.equal(r.json.error.code, "invalid_input");
+  }
+  assert.equal((await w.call("POST", `${ANH}/xoa`, { as: ADM })).status, 400);
+  assert.equal(Q(w, "SELECT purged_at FROM pty_attachment WHERE id = ?", t.tepId)[0].purged_at, null);
+  assert.equal(dem(w, "audit_log WHERE action = 'party_attachment_purged'"), 0);
+  // đúng 50 mã (lạ) là hợp lệ: chỉ bị bỏ qua
+  const du = await xoaAnh(w, ADM, tuoi(50));
+  assert.deepEqual(du.json, { daQuyet: 0, boQua: 50, conChoXoaKho: 0 });
+});
+
+test("(a6) kho ném lỗi khi xoá ⇒ vẫn 200, conChoXoaKho = 2, hai tệp hiện ở tep-cho-xoa; tải về hai tệp → 404 NGAY; kho hết lỗi rồi chạy lại xoá hết", async () => {
+  const w = setup();
+  const t1 = await gieoAnh(w, pty(PARTNER), { han: "2020-01-01" });
+  const t2 = await gieoAnh(w, pty(PARTNER), { han: "2020-01-01" });
+  w.r2.hong.delete = true;
+  const r = await xoaAnh(w, ADM, [t1.tepId, t2.tepId]);
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json, { daQuyet: 2, boQua: 0, conChoXoaKho: 2 });
+  assert.equal(w.r2.co(t1.khoa) && w.r2.co(t2.khoa), true, "đối tượng còn trong kho");
+  for (const t of [t1, t2]) assert.equal((await tepMo(w, SUP, pty(PARTNER), t)).status, 404, "đã quyết xoá ⇒ 404 ngay dù kho còn");
+  const cho = await w.call("GET", "/api/parties/tep-cho-xoa", { as: SUP });
+  assert.deepEqual(cho.json.tep.map((x: { id: string; lyDo: string }) => [x.id, x.lyDo]).sort(), [[t1.tepId, "HET_LY_DO_GIU"], [t2.tepId, "HET_LY_DO_GIU"]].sort());
+  assert.equal(batBien(w, "R-PTY-12"), 2);
+  w.r2.hong.delete = false;
+  const cl = await chayLai(w, ADM);
+  assert.equal(cl.status, 200, cl.text);
+  assert.deepEqual(cl.json, { daChep: 0, daXoaKho: 2, conLoi: 0 });
+  assert.equal(batBien(w, "R-PTY-12"), 0);
+  assert.equal(w.r2.co(t1.khoa) || w.r2.co(t2.khoa), false);
+});

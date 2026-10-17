@@ -70,6 +70,7 @@ export const LICH_SU_DOI_TAC_AN = [
   "self_submission_accepted", "self_submission_rejected", "self_submission_number_viewed", // ADR-0125: xác minh phiếu — chi tiết chỉ mã phiếu + tên loại, không số
   "party_erasure_requested", "party_erasure_withdrawn", // ADR-0126 đ2: yêu cầu xoá dữ liệu — chi tiết chỉ mã phiếu (+ số phiếu tự khai bị rút), không gắn đơn
   "party_erased", "party_erasure_rejected", "party_erasure_retried", // ADR-0126 đ2, đ3: thực hiện / từ chối / chạy lại — chi tiết chỉ mã phiếu + số đếm hoặc mã lý do, không gắn đơn
+  "sessions_anonymized", // ADR-0126 đ8: ẩn danh IP / thông tin máy của phiên cũ — chỉ số đếm + mốc, không gắn đơn
   // Xe, điều phối
   "vehicle_created", "vehicle_updated", "vehicle_document_added", "vehicle_document_renewed", "vehicle_document_corrected", "vehicle_document_type_changed",
   "expiry_policy_changed", "vehicle_unavailability_added", "vehicle_unavailability_withdrawn",

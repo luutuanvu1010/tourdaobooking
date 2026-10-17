@@ -273,6 +273,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/parties/phieu-xoa/:pid/thuc-hien", access: "admin" }, // ADR-0126 đ3: THỰC HIỆN ẩn danh hoá (cửa một chiều) — quyết là câu đầu của lô, mọi câu ẩn danh mang lính gác
   { method: "POST", path: "/api/parties/phieu-xoa/:pid/tu-choi", access: "admin" }, // ADR-0126 đ2: từ chối theo danh sách đóng — chỉ câu quyết + nhật ký
   { method: "POST", path: "/api/parties/phieu-xoa/chay-lai", access: "admin" }, // ADR-0126 đ7: chạy lại xoá kho + chép bản ngoài D1 (tự lặp an toàn)
+  { method: "GET", path: "/api/parties/anh-can-xoa", access: "admin" }, // ADR-0126 đ6 (lát H-5 việc 6): danh sách ảnh hết lý do giữ — admin.manage rồi party.erasure.process; chỉ ĐỌC; Quản trị chỉ thấy trong cấp bậc
+  { method: "POST", path: "/api/parties/anh-can-xoa/xoa", access: "admin" }, // ADR-0126 đ6: bấm xoá 1–50 ảnh (lính gác "vẫn hết lý do giữ" trong câu) rồi xoá kho
   { method: "GET", path: "/api/parties/xac-minh", access: "accounts" }, // ADR-0125 đ1 (lát H-4): hàng chờ / đã xử lý — party.verify (Quản trị, Toàn quyền, Nhân sự); HR vẫn không vào Danh bạ
   { method: "GET", path: "/api/parties/xac-minh/:pid", access: "accounts" }, // ADR-0125 đ1, đ6: chi tiết phiếu ĐANG CHỜ (số che) — party.verify; ngoài cấp bậc 404
   { method: "POST", path: "/api/parties/xac-minh/:pid/xem-so", access: "accounts" }, // ADR-0125 đ1: xem đủ số của phiếu đang chờ — party.verify.attachment; nhật ký TRƯỚC
@@ -321,6 +323,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/sessions/policy", access: "admin" }, // ADR-0085: chính sách đăng nhập — thân hỏi auth.session.policy (chỉ Toàn quyền)
   { method: "GET", path: "/api/sessions/policy/preview", access: "admin" }, // ADR-0085: xem trước số máy bị đăng xuất — thân hỏi auth.session.policy
   { method: "PUT", path: "/api/sessions/policy", access: "admin" }, // ADR-0085: lưu chính sách (kiểm phiên bản, siết theo tập) — thân hỏi auth.session.policy, nhật ký im lặng session_policy_changed
+  { method: "GET", path: "/api/sessions/an-danh-cu", access: "admin" }, // ADR-0126 đ8: số phiên đã kết thúc quá hạn còn IP / thông tin máy — thân hỏi auth.session.policy (chỉ Toàn quyền); chỉ ĐỌC
+  { method: "POST", path: "/api/sessions/an-danh-cu", access: "admin" }, // ADR-0126 đ8: ẩn danh IP / User-Agent phiên cũ theo thời hạn của chính sách (409 khi chưa có số) — auth.session.policy
   { method: "GET", path: "/api/staff/ho-so-khop", access: "accounts" }, // ADR-0068 Đ9 (C1): hồ sơ khớp khi Thêm tài khoản — account.create (ADR-0071)
   // ADR-0071 điều 2: GET /api/staff/sheet, POST /api/staff/sheet/apply (đồng bộ nhân viên từ Google Sheet) ĐÃ GỠ.
   { method: "GET", path: "/api/account/passkeys", access: "staff" }, // danh sách Face ID của chính mình
@@ -586,6 +590,7 @@ test("mức truy cập của 332 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-17 (ADR-0125 đ4, đ6; lát H-4 việc 4): + POST /api/parties/xac-minh/:pid/chap-nhan, POST …/tu-choi (accounts; party.verify) = 342.
   // 2026-10-17 (ADR-0126 đ2; lát H-5 việc 4): + POST /api/parties/cua-toi/phieu-xoa, POST …/phieu-xoa/:pid/rut (staff; party.erasure.request own) = 344.
   // 2026-10-17 (ADR-0126 đ2, đ3, đ7; lát H-5 việc 5): + GET /api/parties/phieu-xoa, GET …/phieu-xoa/:pid, POST …/:pid/thuc-hien, POST …/:pid/tu-choi, POST /api/parties/phieu-xoa/chay-lai (admin; party.erasure.process) = 349.
-  assert.equal(actual.length, 349, "số route thực tế lệch 349 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 349, "SNAPSHOT phải có đúng 349 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-17 (ADR-0126 đ6, đ8; lát H-5 việc 6): + GET /api/parties/anh-can-xoa, POST …/anh-can-xoa/xoa (admin; party.erasure.process), GET + POST /api/sessions/an-danh-cu (admin; auth.session.policy) = 353.
+  assert.equal(actual.length, 353, "số route thực tế lệch 353 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 353, "SNAPSHOT phải có đúng 353 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

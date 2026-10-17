@@ -11,6 +11,7 @@ import {
   MFA_UNAVAILABLE, allowedFactors, daBatHaiLop, batTotpStatements, boMaDuPhongMoi, goYeuToStatements, isInternal, khopKhoaMoi, kiemMaHienCo, mayTinSong, mfaBanner, moiKhoaTotp,
   quenMayStatement, quenMoiMayStatement, recoveryCountLeft, yeuToSong, lockedMfaStaffIds, factorKindsByStaff, tatHaiLopStatements, trustedRevokeAllIfSuspendedStatement, unlockLoginStatements,
   trustedRevokeOfSessionStatement, trustedRevokeOnEmailLossStatement, trustedRevokeOnPinStatement,
+  anDanhPhienCuStatement, demPhienCanAnDanh,
   EMAIL_VAI_LON, batEmailStatements, factorEndKindStatement, guiMaBatEmail, kiemMaBatEmail, normalizeEmail,
 } from "../auth";
 import {
@@ -21,6 +22,7 @@ import {
 } from "../staff";
 import type {
   AccountMfaResponse, MfaEmailStartResponse, MfaRecoveryCodesResponse, MfaTotpConfirmResponse, MfaTotpStartResponse, PartyMatchResponse, PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, SessionListResponse, SessionPolicyPreviewResponse,
+  PhienCuAnDanhKetQua, PhienCuAnDanhResponse,
   SessionPolicyResponse, SessionPolicyRowDto, SessionPolicySaveResponse, StaffAccountDto, StaffListResponse, StaffResponse, StaffRolesResponse, StaffSessionListResponse, StaffWithPinResponse,
 } from "../../shared/contracts";
 import { toBase64Url } from "../../shared/encoding";
@@ -35,7 +37,7 @@ import {
   TIEN_CHI_TOAN_QUYEN_MESSAGE, chamTaiKhoanTienDuoc, chanTatHaiLop, datLaiPinDuoc as datLaiPinDuocTheoDong, highPermissionProblem, tatHaiLopDuoc, parseRoleAssignment, permissionsLabel, roleAssignmentProblem,
   rolesLabel, taiKhoanLaiProblem, laiNoiBoBenNgoaiProblem, type RoleCode, type RoleProblem,
 } from "../../shared/roles";
-import { vnToday } from "../../shared/vn-date";
+import { vnDateTimeText, vnToday } from "../../shared/vn-date";
 
 const isUniqueViolation = (e: unknown) => e instanceof Error && /UNIQUE constraint failed: staff\.phone/.test(e.message);
 // A-1: trùng khoá passkey là một ràng buộc UNIQUE KHÁC (aut_passkey.credential_id) — isUniqueViolation ở trên KHÔNG khớp, nên phải kiểm riêng.
@@ -55,6 +57,8 @@ const NOT_ACCOUNT_CREATE = () => error(403, "forbidden", "Chỉ Hành chính nh�
 // ADR-0075 điều 7: xem sổ phiên của mọi người / gỡ phiên — chỉ IT/Toàn quyền.
 const NOT_SESSION_ADMIN = () => error(403, "forbidden", "Chỉ IT/Toàn quyền xem và gỡ được phiên đăng nhập.");
 // ADR-0085 Q1 điều 3: chính sách đăng nhập — chỉ Toàn quyền.
+/** Số mili-giây của MỘT ngày (đơn vị đổi ngày → mốc), KHÔNG phải thời hạn giữ: thời hạn chỉ đến từ dòng chính sách riêng tư (ADR-0126 đ8). */
+const MOT_NGAY_MS = 86_400_000;
 const NOT_SESSION_POLICY = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống đặt được chính sách đăng nhập.");
 const POLICY_STALE = () => error(409, "policy_stale", "Chính sách vừa được người khác đổi — tải lại.");
 /** 9 dòng theo QUYEN_DAT_DUOC; quyền chưa có dòng = Một máy, banId null. */
@@ -1068,6 +1072,35 @@ export const accountsModule: AppModule = {
       // sau của tài khoản một máy tắt nó — tat_may_tru_phien).
       ctx.dongBangTin({ staffId: row.staff_id, sessionIds: [row.id], chiPhien: true });
       return json({ ok: true });
+    }),
+
+    // ---- Ẩn danh IP / User-Agent của phiên ĐÃ KẾT THÚC quá hạn (ADR-0126 đ8). Thời hạn = số ngày giữ phiên của chính sách riêng tư HIỆN HÀNH (gốc lắp ráp tiêm `hanGiuPhienNgay`);
+    // chưa có số thì GET trả null và POST trả 409 — mã không tự đặt con số, không Cron. Ô chỉ Toàn quyền (auth.session.policy). Câu ghi do auth cấp; ghi nhật ký trong CÙNG lô. ----
+    route("GET", "/api/sessions/an-danh-cu", "admin", async ({ env, staff, hanGiuPhienNgay }) => {
+      if (!can(staff, "auth.session.policy")) return NOT_SESSION_POLICY();
+      const han = await hanGiuPhienNgay();
+      if (han === null) return json({ hanNgay: null, soPhien: 0 } satisfies PhienCuAnDanhResponse);
+      const soPhien = await demPhienCanAnDanh(env.DB, new Date(Date.now() - han * MOT_NGAY_MS).toISOString());
+      return json({ hanNgay: han, soPhien } satisfies PhienCuAnDanhResponse);
+    }),
+
+    route("POST", "/api/sessions/an-danh-cu", "admin", async ({ env, staff, hanGiuPhienNgay }) => {
+      if (!can(staff, "auth.session.policy")) return NOT_SESSION_POLICY();
+      const han = await hanGiuPhienNgay();
+      if (han === null) return error(409, "chua_co_thoi_han", "Chính sách riêng tư chưa có thời hạn giữ phiên — chưa ẩn danh được.");
+      const db = env.DB;
+      const at = new Date().toISOString();
+      const ketThucTruoc = new Date(Date.parse(at) - han * MOT_NGAY_MS).toISOString(); // MỘT mốc cho câu đếm, câu ghi và nhật ký
+      const soDuKien = await demPhienCanAnDanh(db, ketThucTruoc);
+      if (soDuKien === 0) return json({ daAnDanh: 0 } satisfies PhienCuAnDanhKetQua); // không có việc ⇒ không ghi nhật ký
+      const kq = await db.batch([
+        anDanhPhienCuStatement(db, ketThucTruoc, at, staff.id),
+        // Chỉ số đếm + mốc (giờ VN) — KHÔNG IP, User-Agent, tên.
+        auditStatement(db, { staffId: staff.id, action: "sessions_anonymized", at, targetType: "system", targetId: "phien", detail: `${soDuKien} phiên kết thúc trước ${vnDateTimeText(ketThucTruoc)}` }, "changes() > 0"),
+      ]);
+      const daAnDanh = kq[0]?.meta.changes ?? 0;
+      if (daAnDanh !== soDuKien) console.warn(JSON.stringify({ level: "warn", event: "session_anonymize_count_drift", estimated: soDuKien, actual: daAnDanh }));
+      return json({ daAnDanh } satisfies PhienCuAnDanhKetQua);
     }),
 
     // ---- Chính sách đăng nhập (ADR-0085). Ở module accounts vì lưu ghi nhật ký session_policy_changed trong CÙNG lô (auth không import audit). ----

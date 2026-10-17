@@ -1077,6 +1077,19 @@ export interface PhieuXoaTuChoiResponse { ok: true }
 /** `POST …/phieu-xoa/chay-lai`. */
 export interface PhieuXoaChayLaiResponse { daChep: number; daXoaKho: number; conLoi: number }
 
+// ---- Ảnh hết lý do giữ + ẩn danh phiên cũ (ADR-0126 đ6, đ8; lát H-5 Gói 2, việc 6) — cổng admin, ô party.erasure.process / auth.session.policy. KHÔNG khoá kho, KHÔNG IP / User-Agent. ----
+/** Mã lý do hết giữ ảnh (nhãn tiếng Việt: `nhanLyDoXoaAnh`); khớp `LyDoXoaAnh` của parties. */
+export type LyDoXoaAnhMa = "HET_HAN" | "DA_GIA_HAN" | "DA_HUY" | "DA_AN_DANH" | "HET_QUAN_HE" | "PHIEU_DA_XU_LY" | "KHONG_NOI";
+/** `GET /api/parties/anh-can-xoa` — một tệp ảnh đã hết lý do giữ. `loaiGiayTo`: tên loại giấy tờ đang nối (null = không nối đâu); `taiLuc`: lúc tải lên (ISO). */
+export interface AnhCanXoaDto { id: string; tenHoSo: string; loaiGiayTo: string | null; lyDo: LyDoXoaAnhMa; taiLuc: string }
+export interface AnhCanXoaResponse { anh: AnhCanXoaDto[] }
+/** `POST /api/parties/anh-can-xoa/xoa` (thân `{ ids: string[] }`, 1–50 mã). `boQua`: không trong phạm vi, đã có lại lý do giữ hoặc đã quyết xoá; `conChoXoaKho`: đã quyết xoá mà kho chưa xoá xong. */
+export interface AnhCanXoaXoaResponse { daQuyet: number; boQua: number; conChoXoaKho: number }
+/** `GET /api/sessions/an-danh-cu` — `hanNgay` null = chính sách chưa có thời hạn giữ phiên (không ẩn danh được); `soPhien` = số phiên đã kết thúc quá hạn còn IP / thông tin máy. */
+export interface PhienCuAnDanhResponse { hanNgay: number | null; soPhien: number }
+/** `POST /api/sessions/an-danh-cu` (409 `chua_co_thoi_han` khi chính sách chưa có số ngày). */
+export interface PhienCuAnDanhKetQua { daAnDanh: number }
+
 // ---- Xác minh phiếu tự khai (ADR-0125; lát H-4 Gói 2) — route /api/parties/xac-minh*, cổng accounts, ô party.verify. KHÔNG SĐT, email, vai; số giấy tờ luôn che. ----
 /** Một dòng hàng chờ (`GET /api/parties/xac-minh?trang=cho`; tối đa 50, xác minh được trước, cũ trước). `loai`: NGAY_SINH | DIA_CHI | GIAY_TO. `lyDoKhong`: câu tiếng Việt khi `xacMinhDuoc` false. */
 export interface PhieuChoXacMinhDto { id: string; loai: string; tenHoSo: string; guiLuc: string; chuyenToanQuyen: boolean; xacMinhDuoc: boolean; lyDoKhong: string | null }

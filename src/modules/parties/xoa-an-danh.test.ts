@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import {
   dauSoGiayTo, DAU_DIA_CHI_PHIEU, DAU_LIEN_HE, DAU_NGAY_SINH_PHIEU, DAU_TEN, giuTen, LY_DO_XOA_TEP_HET_GIU, LY_DO_XOA_TEP_PHIEU, lyDoXoaAnh, phanGiuLai,
-  MA_LOI_XU_LY, NHAN_LY_DO_KHONG_XU_LY, trangThaiHan, xetGuiPhieuXoa, xetXuLyPhieuXoa, type LienKetXetAnh,
+  MA_LOI_XU_LY, NHAN_LY_DO_KHONG_XU_LY, thayAnhCuaHoSo, trangThaiHan, xetGuiPhieuXoa, xetXuLyPhieuXoa, type LienKetXetAnh,
 } from "./xoa-an-danh.ts";
 
 const VIEC0 = { doi: 0, phuTrachDon: 0, laiChuyen: 0, toLaiChuyen: 0, chuXeChuyen: 0, soXe: 0 };
@@ -111,4 +111,13 @@ test("mã lỗi và câu tiếng Việt cho mọi lý do không xử lý đượ
     assert.match(NHAN_LY_DO_KHONG_XU_LY[ly], /[à-ỹ]/, ly);
     assert.doesNotMatch(NHAN_LY_DO_KHONG_XU_LY[ly], /[a-z]+_[a-z]+/, ly);
   }
+});
+
+test("thayAnhCuaHoSo: Toàn quyền thấy hết; Quản trị thấy hồ sơ không tài khoản và tài khoản cấp dưới, không thấy Quản trị khác / Nhân sự / Toàn quyền", () => {
+  const quanTri = { permissions: ["ADMIN"] as const };
+  assert.equal(thayAnhCuaHoSo({ nguoi: { permissions: ["SUPER_ADMIN"] }, chuHoSo: { permissions: ["SUPER_ADMIN"] } }), true);
+  assert.equal(thayAnhCuaHoSo({ nguoi: quanTri, chuHoSo: null }), true);
+  assert.equal(thayAnhCuaHoSo({ nguoi: quanTri, chuHoSo: { permissions: ["PARTNER"] } }), true);
+  assert.equal(thayAnhCuaHoSo({ nguoi: quanTri, chuHoSo: { permissions: ["SALES"] } }), true);
+  for (const chu of [["ADMIN"], ["HR"], ["SUPER_ADMIN"]] as const) assert.equal(thayAnhCuaHoSo({ nguoi: quanTri, chuHoSo: { permissions: chu } }), false, chu.join());
 });

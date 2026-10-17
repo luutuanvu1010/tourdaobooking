@@ -95,6 +95,13 @@ function lyDoCuaLienKet(l: LienKetXetAnh, homNay: string): LyDoXoaAnh[] {
   return ds;
 }
 
+/** Người bấm có thấy / quyết xoá được ảnh của một hồ sơ không (danh sách ảnh hết lý do giữ). Toàn quyền: mọi hồ sơ. Người khác: hồ sơ KHÔNG có tài khoản, hoặc tài khoản mình quản được (cấp bậc). */
+export function thayAnhCuaHoSo(v: { nguoi: { permissions: readonly PermissionCode[] }; chuHoSo: { permissions: readonly PermissionCode[] } | null }): boolean {
+  if (v.nguoi.permissions.includes("SUPER_ADMIN")) return true;
+  if (v.chuHoSo === null) return true;
+  return canManageAccount(v.nguoi.permissions, v.chuHoSo.permissions);
+}
+
 /** Còn lý do giữ (một dòng nối đủ giữ) ⇒ null. Hết ⇒ mã lý do ưu tiên đầu tiên trong số các dòng nối; không dòng nối ⇒ KHONG_NOI.
  *  CÙNG bảng ca với hình chiếu SQL `listAnhHetLyDoGiu` (bài xoa-an-danh-lenh.test.ts ca (8)). `homNay` = ngày VN (vnToday), KHÔNG date('now'). */
 export function lyDoXoaAnh(lienKet: readonly LienKetXetAnh[], homNay: string): LyDoXoaAnh | null {
