@@ -81,11 +81,11 @@ test("(a) đúng MỘT tệp đuôi _ho_so_tu_khai.sql, đứng sau 0103; chỉ 
   assert.doesNotMatch(code, /^\s*INSERT\b/im, "không gieo chính sách / phiếu (ADR-0126 đ1, đ2)");
 });
 
-test("(b) cột của pty_self_submission đúng như kế hoạch; không cột thời hạn xoá", () => {
+test("(b) cột của pty_self_submission đúng như kế hoạch; không cột thời hạn xoá (chỉ thêm cột mốc ẩn danh erased_at ở 0108, lát H-5)", () => {
   const db = all();
   assert.deepEqual(cotCua(db, "pty_self_submission"), [
     "id", "party_id", "subject_kind", "policy_id", "birth_date", "address_value", "document_type_code", "document_number", "number_key", "license_class_code",
-    "issued_date", "issued_place", "expiry_date", "status", "decided_at", "decided_by", "reason_code", "created_at", "created_by", "updated_at", "updated_by",
+    "issued_date", "issued_place", "expiry_date", "status", "decided_at", "decided_by", "reason_code", "created_at", "created_by", "updated_at", "updated_by", "erased_at",
   ]);
 });
 

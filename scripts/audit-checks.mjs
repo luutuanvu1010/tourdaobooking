@@ -712,6 +712,47 @@ export const CHECKS = [
           AND (c.loai IN ('TAO', 'VINH_VIEN') OR (c.loai = 'CUA_SO_30' AND c.at >= strftime('%Y-%m-%dT%H:%M:%fZ', s.created_at, '-30 days'))))`,
     level: "fail",
   },
+  // R-PTY-17 (ADR-0126 đ3, Hiến chương 5.24): dòng đã ẩn danh còn số / nơi cấp thật — lớp hai cho trigger *_erase_shape (lát H-5).
+  {
+    code: "R-PTY-17",
+    what: "dòng giấy tờ hoặc phiếu tự khai đã ẩn danh mà số không phải dấu ẩn danh hoặc còn nơi cấp",
+    sql: `SELECT (SELECT COUNT(*) FROM pty_person_document WHERE erased_at IS NOT NULL AND (issued_place IS NOT NULL
+             OR (document_number IS NOT NULL AND document_number <> 'XOA' || upper(replace(id, '-', '')))))
+         + (SELECT COUNT(*) FROM pty_self_submission WHERE erased_at IS NOT NULL AND (issued_place IS NOT NULL
+             OR (document_number IS NOT NULL AND document_number <> 'XOA' || upper(replace(id, '-', '')))
+             OR (birth_date IS NOT NULL AND birth_date <> '1900-01-01') OR (address_value IS NOT NULL AND address_value <> 'Đã xoá')))`,
+    level: "fail",
+  },
+  // R-PTY-18 (ADR-0126 đ3): phiếu ĐÃ THỰC HIỆN mà hồ sơ (và hồ sơ đã gộp vào nó) còn dữ liệu tạo TRƯỚC lúc thực hiện chưa ẩn danh.
+  {
+    code: "R-PTY-18",
+    what: "phiếu yêu cầu xoá đã thực hiện mà còn giấy tờ, phiếu tự khai, liên hệ, ngày sinh hoặc ảnh chưa ẩn danh / chưa quyết xoá",
+    sql: `SELECT COUNT(*) FROM pty_erasure_request r WHERE r.status = 'DA_THUC_HIEN' AND (
+            EXISTS (SELECT 1 FROM pty_person_document d WHERE d.party_id IN (SELECT id FROM pty_party WHERE id = r.party_id OR merged_into_id = r.party_id)
+                      AND d.created_at <= r.decided_at AND d.erased_at IS NULL)
+         OR EXISTS (SELECT 1 FROM pty_self_submission s WHERE s.party_id = r.party_id AND s.created_at <= r.decided_at AND s.erased_at IS NULL)
+         OR EXISTS (SELECT 1 FROM pty_contact_point c WHERE c.party_id IN (SELECT id FROM pty_party WHERE id = r.party_id OR merged_into_id = r.party_id)
+                      AND c.created_at <= r.decided_at AND (c.value <> 'Đã xoá' OR c.value_normalized <> 'XOA' OR c.valid_to_date IS NULL))
+         OR EXISTS (SELECT 1 FROM pty_person p WHERE p.party_id = r.party_id AND p.birth_date IS NOT NULL AND p.updated_at <= r.decided_at)
+         OR EXISTS (SELECT 1 FROM pty_attachment a WHERE a.party_id IN (SELECT id FROM pty_party WHERE id = r.party_id OR merged_into_id = r.party_id)
+                      AND a.created_at <= r.decided_at AND a.purged_at IS NULL))`,
+    level: "fail",
+  },
+  // R-PTY-19 (ADR-0126 đ7; Hiến chương 5.16): bản ngoài D1 của phiếu đã thực hiện chưa chép sau 1 giờ — chạy lại ở POST /api/parties/phieu-xoa/chay-lai.
+  {
+    code: "R-PTY-19",
+    what: "phiếu yêu cầu xoá đã thực hiện quá 1 giờ mà chưa chép bản ngoài D1 (chạy lại ở POST /api/parties/phieu-xoa/chay-lai)",
+    sql: "SELECT COUNT(*) FROM pty_erasure_request WHERE status = 'DA_THUC_HIEN' AND offsite_at IS NULL AND decided_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 hour')",
+    level: "warn",
+  },
+  // R-PTY-20 (ADR-0126 đ8): phiên của tài khoản gắn hồ sơ có phiếu ĐÃ THỰC HIỆN, cấp TRƯỚC lúc thực hiện, còn IP hoặc User-Agent.
+  {
+    code: "R-PTY-20",
+    what: "phiên đăng nhập cấp trước khi thực hiện phiếu xoá mà còn IP hoặc User-Agent",
+    sql: `SELECT COUNT(*) FROM aut_session x JOIN staff st ON st.id = x.staff_id JOIN pty_erasure_request r ON r.party_id = st.party_id
+          WHERE r.status = 'DA_THUC_HIEN' AND x.created_at <= r.decided_at AND (x.ip IS NOT NULL OR x.user_agent IS NOT NULL)`,
+    level: "fail",
+  },
   {
     code: "R-VC-1",
     what: "biển số không trùng giữa các xe chưa ngừng",

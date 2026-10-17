@@ -153,7 +153,7 @@
       "name": "aut_session",
       "module": "auth",
       "kind": "table",
-      "note": "sổ phiên đăng nhập (ADR-0075, migration 0065): mỗi lần cấp phiên là một dòng, KHÔNG xoá (kết thúc = ended_at + end_reason đi cặp). single = 1: tài khoản chịu luật một máy, chỉ mục duy nhất aut_session_one_live chặn hai phiên sống cùng lúc. ip và user_agent là DỮ LIỆU CÁ NHÂN, giữ vô hạn, chỉ IT/Toàn quyền và chính chủ tài khoản xem, KHÔNG vào nhật ký"
+      "note": "sổ phiên đăng nhập (ADR-0075, migration 0065): mỗi lần cấp phiên là một dòng, KHÔNG xoá (kết thúc = ended_at + end_reason đi cặp). single = 1: tài khoản chịu luật một máy, chỉ mục duy nhất aut_session_one_live chặn hai phiên sống cùng lúc. ip và user_agent là DỮ LIỆU CÁ NHÂN, ẩn danh khi thực hiện phiếu xoá và theo thời hạn giữ của chính sách (ADR-0126 đ8), chỉ IT/Toàn quyền và chính chủ tài khoản xem, KHÔNG vào nhật ký"
     },
     {
       "name": "aut_session_policy",
@@ -295,7 +295,8 @@
     {
       "name": "pty_person_document",
       "module": "parties",
-      "kind": "table"
+      "kind": "table",
+      "note": "giấy tờ của NGƯỜI (ADR-0040 D2; migration 0032). erased_at (migration 0108, ADR-0126 đ3): mốc ẩn danh hoá một chiều — số và khoá số thành dấu 'XOA' + mã dòng, nơi cấp xoá; dòng đã ẩn danh đóng băng. Số, khoá số, nơi cấp hạng N3: KHÔNG vào nhật ký"
     },
     {
       "name": "pty_organization_document_type",
@@ -324,13 +325,19 @@
       "name": "pty_self_submission",
       "module": "parties",
       "kind": "table",
-      "note": "phiếu tự khai hồ sơ (ADR-0124; migration 0105): giá trị khai là ĐỀ XUẤT, không ghi đè hiện hành; nội dung bất biến, trạng thái một chiều CHO_XAC_MINH → DA_CHAP_NHAN / TU_CHOI / RUT; ghi kèm phiên bản chính sách đã đồng ý; chỉ hồ sơ cá nhân; không view công bố (5.23)"
+      "note": "phiếu tự khai hồ sơ (ADR-0124; migration 0105): giá trị khai là ĐỀ XUẤT, không ghi đè hiện hành; nội dung bất biến, trạng thái một chiều CHO_XAC_MINH → DA_CHAP_NHAN / TU_CHOI / RUT; ghi kèm phiên bản chính sách đã đồng ý; chỉ hồ sơ cá nhân; không view công bố (5.23). erased_at (migration 0108, ADR-0126 đ3): ẩn danh hoá phiếu đã xử lý / đã rút — giá trị khai thành dấu, dòng đóng băng"
+    },
+    {
+      "name": "pty_erasure_request",
+      "module": "parties",
+      "kind": "table",
+      "note": "phiếu yêu cầu xoá dữ liệu (ADR-0126 đ2; migration 0108): chỉ hồ sơ cá nhân, một phiếu chờ mỗi hồ sơ; trạng thái một chiều CHO_XU_LY → DA_THUC_HIEN / TU_CHOI / RUT; người xử lý khác người gửi, chỉ người gửi được rút; không xoá dòng; due_at chụp từ erasure_days của chính sách lúc gửi (rỗng = chính sách chưa có số); retained_codes chỉ là MÃ loại dữ liệu giữ lại theo luật, offsite_at là mốc chép bản ngoài D1 (chỉ mã)"
     },
     {
       "name": "pty_privacy_policy",
       "module": "parties",
       "kind": "table",
-      "note": "chính sách riêng tư có phiên bản (ADR-0126 đ1; migration 0103), CHỈ-THÊM, phiên bản liên tiếp; không gieo dòng nào; không có thời hạn xoá (chờ luật sư — lát H-5)"
+      "note": "chính sách riêng tư có phiên bản (ADR-0126 đ1; migration 0103), CHỈ-THÊM, phiên bản liên tiếp; không gieo dòng nào. erasure_days (hạn xử lý phiếu xoá) và session_retention_days (thời hạn giữ IP / User-Agent của phiên) thêm ở migration 0108: rỗng được, không DEFAULT — con số chờ luật sư, đi cùng bản đăng mới (ADR-0126 đ2, đ8)"
     },
     {
       "name": "pty_attachment",
@@ -1302,7 +1309,11 @@
     "pty_party_relationship": { "id": "N1", "from_party_id": "N1", "to_party_id": "N1", "relationship_type_code": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_party_role": { "id": "N1", "party_id": "N1", "role_type_code": "N1", "location_id": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_person": { "party_id": "N1", "family_name": "N2", "middle_name": "N2", "given_name": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "gender": "N2", "birth_date": "N2" },
-    "pty_person_document": { "id": "N1", "party_id": "N1", "document_type_code": "N1", "document_number": "N3", "number_key": "N3", "license_class_code": "N1", "issued_date": "N1", "issued_place": "N3", "expiry_date": "N1", "previous_id": "N1", "voided_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "pty_person_document": { "id": "N1", "party_id": "N1", "document_type_code": "N1", "document_number": "N3", "number_key": "N3", "license_class_code": "N1", "issued_date": "N1", "issued_place": "N3", "expiry_date": "N1", "previous_id": "N1", "voided_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "erased_at": "N1" },
+    "pty_erasure_request": {
+      "id": "N1", "party_id": "N1", "policy_id": "N1", "due_at": "N1", "status": "N1", "decided_at": "N1", "decided_by": "N1", "reason_code": "N1", "name_kept": "N1",
+      "retained_codes": "N1", "offsite_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1"
+    },
     "pty_attachment": {
       "id": "N1", "party_id": "N1", "storage_key": "N3", "content_kind": "N1", "byte_size": "N1", "content_hash": "N3", "stored_at": "N1",
       "purged_at": "N1", "purge_reason": "N1", "r2_deleted_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1"
@@ -1313,9 +1324,9 @@
     "pty_consent": { "id": "N1", "party_id": "N1", "policy_id": "N1", "decision": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_organization_document": { "id": "N1", "party_id": "N1", "document_type_code": "N1", "document_number": "N3", "number_key": "N3", "issued_date": "N1", "issued_place": "N3", "expiry_date": "N1", "previous_id": "N1", "voided_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_organization_document_type": { "code": "N1", "name": "N1", "has_expiry": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "pty_privacy_policy": { "id": "N1", "version": "N1", "purposes": "N1", "body": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "pty_privacy_policy": { "id": "N1", "version": "N1", "purposes": "N1", "body": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "erasure_days": "N1", "session_retention_days": "N1" },
     "pty_verification_attribute": { "code": "N1", "name": "N1", "applies_to": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "pty_self_submission": { "id": "N1", "party_id": "N1", "subject_kind": "N1", "policy_id": "N1", "birth_date": "N2", "address_value": "N2", "document_type_code": "N1", "document_number": "N3", "number_key": "N3", "license_class_code": "N1", "issued_date": "N1", "issued_place": "N3", "expiry_date": "N1", "status": "N1", "decided_at": "N1", "decided_by": "N1", "reason_code": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "pty_self_submission": { "id": "N1", "party_id": "N1", "subject_kind": "N1", "policy_id": "N1", "birth_date": "N2", "address_value": "N2", "document_type_code": "N1", "document_number": "N3", "number_key": "N3", "license_class_code": "N1", "issued_date": "N1", "issued_place": "N3", "expiry_date": "N1", "status": "N1", "decided_at": "N1", "decided_by": "N1", "reason_code": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "erased_at": "N1" },
     "pty_verification": { "id": "N1", "party_id": "N1", "target_kind": "N1", "target_id": "N1", "attribute_code": "N1", "outcome": "N1", "reason_code": "N1", "verifier_touched_account": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_person_document_type": { "code": "N1", "name": "N1", "has_expiry": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_relationship_type": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },

@@ -221,7 +221,8 @@ const chinhSach = (db: DatabaseSync, id: string, version: number, by: string | n
 test("(i) chính sách riêng tư: KHÔNG gieo dòng nào; đúng bộ cột (không cột thời hạn xoá); phiên bản liên tiếp từ 1; phải có người đăng; chỉ-thêm", () => {
   const db = all();
   assert.deepEqual(rows(db, "SELECT count(*) AS n FROM pty_privacy_policy"), [{ n: 0 }]);
-  assert.deepEqual(cotCua(db, "pty_privacy_policy"), ["id", "version", "purposes", "body", "valid_from_at", "created_at", "created_by", "updated_at", "updated_by"]);
+  assert.deepEqual(cotCua(db, "pty_privacy_policy"), ["id", "version", "purposes", "body", "valid_from_at", "created_at", "created_by", "updated_at", "updated_by",
+    "erasure_days", "session_retention_days"]); // hai cột số ngày thêm ở 0108 (lát H-5): rỗng được, không DEFAULT — bài migrations-xoa-an-danh.test.ts canh
   assert.throws(() => chinhSach(db, "cs-0", 2), /privacy_policy_version_gap/, "bắt đầu từ 2");
   chinhSach(db, "cs-1", 1);
   assert.throws(() => chinhSach(db, "cs-3", 3), /privacy_policy_version_gap/, "nhảy 1 → 3");

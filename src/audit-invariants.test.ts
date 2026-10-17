@@ -1263,6 +1263,165 @@ test("R-PTY-16 (ADR-0125 đ5 vế b, c): dòng xác minh KHÔNG mang cờ mà ng
   assert.equal(violations(db, c), 1, "kích hoạt lại trong 30 ngày trước lúc gửi, cờ 0");
 });
 
+// ---- R-PTY-17..20 (ADR-0126 đ3, đ7, đ8; lát H-5 Gói 2): xoá / ẩn danh hoá. Dòng vi phạm dựng bằng INSERT thẳng (trigger ẩn danh chỉ chặn UPDATE).
+const XA_AT = "2026-10-17T03:00:00.000Z";
+const XA_QUYET = "2026-10-17T05:00:00.000Z";
+const dauXoa = (id: string) => "XOA" + id.replace(/-/g, "").toUpperCase();
+function giayToXa(db: DatabaseSync, id: string, party: string, x: { so?: string | null; noi?: string | null; erased?: string | null; at?: string } = {}): void {
+  const so = x.so === undefined ? dauXoa(id) : x.so;
+  db.prepare(`INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, issued_place, erased_at, created_at, created_by, updated_at, updated_by)
+    VALUES (?, ?, 'CCCD', ?, ?, ?, ?, ?, 's', ?, 's')`).run(id, party, so, so, x.noi ?? null, x.erased === undefined ? XA_QUYET : x.erased, x.at ?? XA_AT, x.at ?? XA_AT);
+}
+function phieuXoaXong(db: DatabaseSync, id: string, party: string, offsite: string | null = null, quyet = XA_QUYET): void {
+  // Phiếu mới luôn ở CHO_XU_LY (trigger), nên dựng đúng đường: gửi rồi người KHÁC thực hiện.
+  db.prepare(`INSERT INTO pty_erasure_request (id, party_id, status, created_at, created_by, updated_at, updated_by) VALUES (?, ?, 'CHO_XU_LY', ?, 's-an', ?, 's-an')`).run(id, party, XA_AT, XA_AT);
+  db.prepare(`UPDATE pty_erasure_request SET status = 'DA_THUC_HIEN', decided_at = ?, decided_by = 's-admin', name_kept = 0, retained_codes = 'HOA_DON', offsite_at = ?, updated_at = ? WHERE id = ?`)
+    .run(quyet, offsite, quyet, id);
+}
+/** Chính sách + đồng ý để chèn được phiếu tự khai của hồ sơ. */
+function dongYXa(db: DatabaseSync, party: string): void {
+  if (!db.prepare("SELECT 1 FROM pty_privacy_policy WHERE id = 'pol-xa'").get())
+    db.prepare("INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('pol-xa', 1, 'thử', 'thử', ?, ?, 's', ?, 's')").run(XA_AT, XA_AT, XA_AT);
+  db.prepare("INSERT INTO pty_consent (id, party_id, policy_id, decision, created_at, created_by, updated_at, updated_by) VALUES (?, ?, 'pol-xa', 'DONG_Y', ?, 's', ?, 's')").run(`cx-${party}`, party, XA_AT, XA_AT);
+}
+
+test("R-PTY-17 (ADR-0126 đ3, Hiến chương 5.24): dòng đã ẩn danh mà số không phải dấu hoặc còn nơi cấp / ngày sinh / địa chỉ thật — fail", () => {
+  const c = one("R-PTY-17");
+  assert.equal(c.level, "fail");
+  const db = build();
+  NGUOI_T(db, "p-17");
+  assert.equal(violations(db, c), 0, "chưa có dòng");
+  giayToXa(db, "0b1e5c2a-0000-4000-8000-0000000000a1", "p-17");
+  giayToXa(db, "0b1e5c2a-0000-4000-8000-0000000000a2", "p-17", { so: "079000000111", erased: null }); // CHƯA ẩn danh: số thật là bình thường
+  assert.equal(violations(db, c), 0, "dòng đã ẩn danh đúng dạng + dòng chưa ẩn danh");
+  giayToXa(db, "0b1e5c2a-0000-4000-8000-0000000000a3", "p-17", { so: "079000000222" });
+  assert.equal(violations(db, c), 1, "đã ẩn danh mà còn số thật");
+  giayToXa(db, "0b1e5c2a-0000-4000-8000-0000000000a4", "p-17", { noi: "Nơi cấp thật" });
+  assert.equal(violations(db, c), 2, "đã ẩn danh mà còn nơi cấp");
+  giayToXa(db, "0b1e5c2a-0000-4000-8000-0000000000a5", "p-17", { so: dauXoa("0b1e5c2a-0000-4000-8000-0000000000a1") });
+  assert.equal(violations(db, c), 3, "dấu của DÒNG KHÁC không phải dấu của dòng này");
+  // phiếu tự khai
+  const db2 = build();
+  // Phiếu mới luôn ở CHO_XAC_MINH; cột erased_at đặt thẳng lúc chèn (trigger ẩn danh chỉ chặn UPDATE) — R-PTY-17 không xét trạng thái.
+  // Mỗi phiếu một hồ sơ riêng (luật một phiếu chờ mỗi loại).
+  const phieuXa = (id: string, cot: string, giaTri: string, kind: string) => {
+    NGUOI_T(db2, `p-${id}`);
+    dongYXa(db2, `p-${id}`);
+    db2.prepare(`INSERT INTO pty_self_submission (id, party_id, subject_kind, policy_id, ${cot}, status, erased_at, created_at, created_by, updated_at, updated_by)
+      VALUES (?, ?, ?, 'pol-xa', ?, 'CHO_XAC_MINH', ?, ?, 's-an', ?, 's-an')`).run(id, `p-${id}`, kind, giaTri, XA_QUYET, XA_AT, XA_AT);
+  };
+  phieuXa("ph-ok-1", "birth_date", "1900-01-01", "NGAY_SINH");
+  phieuXa("ph-ok-2", "address_value", "Đã xoá", "DIA_CHI");
+  assert.equal(violations(db2, c), 0, "phiếu đã ẩn danh đúng dạng");
+  phieuXa("ph-bad-1", "birth_date", "1990-05-06", "NGAY_SINH");
+  assert.equal(violations(db2, c), 1, "phiếu đã ẩn danh còn ngày sinh thật");
+  phieuXa("ph-bad-2", "address_value", "1 Đường Thật", "DIA_CHI");
+  assert.equal(violations(db2, c), 2, "phiếu đã ẩn danh còn địa chỉ thật");
+});
+
+test("R-PTY-18 (ADR-0126 đ3): phiếu ĐÃ THỰC HIỆN mà hồ sơ (và hồ sơ đã gộp vào nó) còn dữ liệu tạo TRƯỚC lúc thực hiện chưa ẩn danh — fail", () => {
+  const c = one("R-PTY-18");
+  assert.equal(c.level, "fail");
+  const sach = (): DatabaseSync => { const d = build(); NGUOI_T(d, "p-18"); phieuXoaXong(d, "e-18", "p-18"); return d; };
+  let db = sach();
+  assert.equal(violations(db, c), 0, "hồ sơ không còn dữ liệu nào");
+  // phiếu CHƯA thực hiện không tính
+  db = build(); NGUOI_T(db, "p-18");
+  db.prepare("INSERT INTO pty_erasure_request (id, party_id, status, created_at, created_by, updated_at, updated_by) VALUES ('e-cho', 'p-18', 'CHO_XU_LY', ?, 's-an', ?, 's-an')").run(XA_AT, XA_AT);
+  giayToXa(db, "0b1e5c2a-0000-4000-8000-0000000000b1", "p-18", { so: "079000000111", erased: null });
+  assert.equal(violations(db, c), 0, "phiếu đang chờ");
+  // giấy tờ chưa ẩn danh, tạo trước lúc thực hiện
+  db = sach(); giayToXa(db, "0b1e5c2a-0000-4000-8000-0000000000b2", "p-18", { so: "079000000111", erased: null });
+  assert.equal(violations(db, c), 1, "giấy tờ tạo trước, chưa ẩn danh");
+  db = sach(); giayToXa(db, "0b1e5c2a-0000-4000-8000-0000000000b3", "p-18"); // đã ẩn danh
+  assert.equal(violations(db, c), 0, "giấy tờ đã ẩn danh");
+  db = sach(); giayToXa(db, "0b1e5c2a-0000-4000-8000-0000000000b4", "p-18", { so: "079000000111", erased: null, at: "2026-10-17T06:00:00.000Z" });
+  assert.equal(violations(db, c), 0, "giấy tờ khai SAU lúc thực hiện: không tính");
+  // giấy tờ của hồ sơ đã gộp vào hồ sơ có phiếu
+  // Trigger 0108 chặn gộp vào hồ sơ đã có phiếu, nên gộp TRƯỚC khi phiếu được thực hiện (đúng thứ tự thật: phiếu chỉ đến sau khi đã gộp).
+  db = build(); NGUOI_T(db, "p-18"); NGUOI_T(db, "p-phu");
+  giayToXa(db, "0b1e5c2a-0000-4000-8000-0000000000b5", "p-phu", { so: "079000000111", erased: null });
+  phieuXoaXong(db, "e-18", "p-18");
+  assert.equal(violations(db, c), 0, "hồ sơ phụ chưa gộp: không thuộc phiếu");
+  db = build(); NGUOI_T(db, "p-18"); NGUOI_T(db, "p-phu");
+  giayToXa(db, "0b1e5c2a-0000-4000-8000-0000000000b5", "p-phu", { so: "079000000111", erased: null });
+  db.prepare("UPDATE pty_party SET merged_into_id = 'p-18', merged_at = ?, active = 0 WHERE id = 'p-phu'").run(XA_AT);
+  phieuXoaXong(db, "e-18", "p-18");
+  assert.equal(violations(db, c), 1, "hồ sơ phụ đã gộp vào hồ sơ có phiếu mà giấy tờ chưa ẩn danh");
+  // liên hệ
+  db = sach();
+  const lienHe = (v: string, vn: string, den: string | null) =>
+    db.prepare(`INSERT INTO pty_contact_point (id, party_id, contact_kind_code, value, value_normalized, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by)
+      VALUES (?, 'p-18', 'PHONE', ?, ?, '2026-01-01', ?, ?, 's', ?, 's')`).run(`lh-${++n18}`, v, vn, den, XA_AT, XA_AT);
+  lienHe("Đã xoá", "XOA", "2026-10-17");
+  assert.equal(violations(db, c), 0, "liên hệ đã ẩn danh đúng dạng và đã đóng");
+  lienHe("0901000009", "XOA", "2026-10-17");
+  assert.equal(violations(db, c), 1, "liên hệ còn giá trị thật");
+  lienHe("Đã xoá", "0901000009", "2026-10-17");
+  assert.equal(violations(db, c), 1, "một phiếu chỉ đếm một lần dù nhiều dòng sai");
+  db = sach(); lienHe("Đã xoá", "XOA", null);
+  assert.equal(violations(db, c), 1, "liên hệ ẩn danh nhưng còn mở");
+  // ngày sinh
+  db = sach();
+  db.prepare("UPDATE pty_person SET birth_date = '1990-05-06', updated_at = ? WHERE party_id = 'p-18'").run(XA_AT);
+  assert.equal(violations(db, c), 1, "ngày sinh còn, cập nhật trước lúc thực hiện");
+  db.prepare("UPDATE pty_person SET updated_at = ? WHERE party_id = 'p-18'").run("2026-10-17T06:00:00.000Z");
+  assert.equal(violations(db, c), 0, "ngày sinh khai SAU lúc thực hiện: không tính");
+  // ảnh
+  db = sach(); TEP_T(db, "t-18", "p-18", 18, XA_AT);
+  assert.equal(violations(db, c), 1, "ảnh chưa quyết xoá");
+  db.prepare("UPDATE pty_attachment SET purged_at = ?, purge_reason = 'YEU_CAU_XOA', content_hash = NULL, updated_at = ? WHERE id = 't-18'").run(XA_QUYET, XA_QUYET);
+  assert.equal(violations(db, c), 0, "ảnh đã quyết xoá");
+  // phiếu tự khai
+  db = sach();
+  dongYXa(db, "p-18");
+  db.prepare(`INSERT INTO pty_self_submission (id, party_id, subject_kind, policy_id, birth_date, status, created_at, created_by, updated_at, updated_by)
+    VALUES ('ph-18', 'p-18', 'NGAY_SINH', 'pol-xa', '1900-01-01', 'CHO_XAC_MINH', ?, 's-an', ?, 's-an')`).run(XA_AT, XA_AT);
+  assert.equal(violations(db, c), 1, "phiếu tự khai chưa ẩn danh");
+  db.prepare("UPDATE pty_self_submission SET status = 'RUT', decided_at = ?, decided_by = 's-an', updated_at = ? WHERE id = 'ph-18'").run(XA_QUYET, XA_QUYET);
+  assert.equal(violations(db, c), 1, "rút phiếu chưa phải ẩn danh");
+  db.prepare("UPDATE pty_self_submission SET erased_at = ?, updated_at = ? WHERE id = 'ph-18'").run(XA_QUYET, XA_QUYET);
+  assert.equal(violations(db, c), 0, "phiếu tự khai đã ẩn danh");
+});
+let n18 = 0;
+
+test("R-PTY-19 (ADR-0126 đ7; Hiến chương 5.16): phiếu đã thực hiện quá 1 giờ mà chưa chép bản ngoài D1 — cảnh báo, không chặn", () => {
+  const c = one("R-PTY-19");
+  assert.equal(c.level, "warn");
+  const db = build();
+  NGUOI_T(db, "p-19");
+  const gio = (ph: number) => new Date(Date.now() - ph * 3_600_000).toISOString();
+  const them = (id: string, party: string, decided: string, offsite: string | null) => { NGUOI_T(db, party); phieuXoaXong(db, id, party, offsite, decided); };
+  assert.equal(violations(db, c), 0);
+  them("e-moi", "p-19a", gio(0.2), null);
+  assert.equal(violations(db, c), 0, "mới thực hiện, chưa quá 1 giờ");
+  them("e-cu", "p-19b", gio(2), null);
+  assert.equal(violations(db, c), 1, "quá 1 giờ chưa chép bản ngoài");
+  them("e-da", "p-19c", gio(2), gio(1));
+  assert.equal(violations(db, c), 1, "đã chép bản ngoài thì không tính");
+});
+
+test("R-PTY-20 (ADR-0126 đ8): phiên của tài khoản gắn hồ sơ có phiếu ĐÃ THỰC HIỆN, cấp trước lúc thực hiện, còn IP hoặc User-Agent — fail", () => {
+  const c = one("R-PTY-20");
+  assert.equal(c.level, "fail");
+  const db = build();
+  NGUOI_T(db, "p-20");
+  db.prepare("UPDATE staff SET party_id = 'p-20' WHERE id = 's-an'").run();
+  const phien = (id: string, ip: string | null, ua: string | null, at: string) =>
+    db.prepare(`INSERT INTO aut_session (id, staff_id, method, single, device_label, user_agent, ip, created_at, last_seen_at, expires_at, updated_at)
+      VALUES (?, 's-an', 'PIN', 0, 'Máy thử', ?, ?, ?, ?, ?, ?)`).run(id, ua, ip, at, at, "2027-01-01T00:00:00.000Z", at);
+  phien("ss-1", "203.0.113.9", "UA thử", XA_AT);
+  assert.equal(violations(db, c), 0, "chưa có phiếu thực hiện");
+  phieuXoaXong(db, "e-20", "p-20");
+  assert.equal(violations(db, c), 1, "phiên cũ còn IP và UA");
+  db.prepare("UPDATE aut_session SET ip = NULL WHERE id = 'ss-1'").run();
+  assert.equal(violations(db, c), 1, "còn User-Agent là đủ để đỏ");
+  db.prepare("UPDATE aut_session SET user_agent = NULL WHERE id = 'ss-1'").run();
+  assert.equal(violations(db, c), 0, "đã ẩn danh");
+  phien("ss-2", "203.0.113.9", "UA thử", "2026-10-17T06:00:00.000Z");
+  assert.equal(violations(db, c), 0, "phiên cấp SAU lúc thực hiện: không tính");
+});
+
 test("R-VC-1 (ADR-0040 D1): biển số không trùng giữa các xe CHƯA NGỪNG — xe đã ngừng giữ biển cũ không tính → 0; hai xe đang dùng cùng biển (chỉ mục bị gỡ) → 1", () => {
   const c = one("R-VC-1");
   assert.equal(c.level, "fail");
