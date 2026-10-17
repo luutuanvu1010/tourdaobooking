@@ -12,6 +12,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sổ vàng vận chuyển (ADR-0128, ADR-0129): mốc ra lệnh Quản trị tự đặt, xe riêng không ghép khách lẻ, thêm khách thiếu chỗ giữ nguyên xe, tài xế công ty lái xe thuê.
+    // Có thay đổi cơ sở dữ liệu (migration 0109 viết lại hai trigger) — cần trien-khai sau day-len. Số 2.11 = production 2.10 + 1 (kiểm 2026-10-17).
+    version: "2.11",
+    date: "2026-10-17",
+    items: [
+      { kind: "moi", text: "Quản trị tự đặt được mốc ra lệnh và mức cảnh báo sát mốc (tính bằng phút) trong Chính sách điều phối; các cài đặt khác của trang vẫn chỉ Toàn quyền." },
+      { kind: "doi", text: "Xe riêng không bao giờ ghép thêm khách lẻ: bị chặn cả khi điều chỉnh khẩn cấp hay phá lệ. Riêng đơn đòi số chỗ tối thiểu thì Quản trị vẫn phá lệ được như trước." },
+      { kind: "doi", text: "Đơn tăng thêm khách mà xe không đủ chỗ cho cả phần tăng thì máy không thêm ghế nào, giữ nguyên xe và báo người xếp xe; đơn vẫn lưu số khách mới." },
+      { kind: "moi", text: "Tài xế công ty được lái xe nhà xe thuê khi đủ hạng bằng; chuyến hiện cảnh báo «chéo xe – tài xế». Tài xế nhà xe vẫn không lái xe công ty hay xe nhà xe khác." },
+      { kind: "sua", text: "Các hướng dẫn và trợ lý Mai nói «mốc ra lệnh» thay vì ghi cứng 6 giờ, vì mốc nay do Quản trị đặt." },
+    ],
+  },
+  {
     // Vé hỗ trợ đợt 2a (ADR-0127): khung trò chuyện tự làm mới, mức ưu tiên, đơn liên quan, Trưởng nhóm giao việc. Có thay đổi cơ sở dữ liệu (migration 0106 thêm
     // ba cột ở phiếu) — cần trien-khai sau day-len. Số 2.10 là số TẠM (= main / production 2.9 + 1, kiểm 2026-10-17; đã nhập main có mục 2.9):
     // phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
