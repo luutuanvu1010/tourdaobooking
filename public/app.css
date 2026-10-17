@@ -833,6 +833,19 @@ button.xm-the { min-height: var(--tap-min); cursor: pointer; }
 .xm-ly-do { display: flex; align-items: flex-start; gap: var(--s2); padding: var(--s1) 0; }
 .xm-ly-do input { width: auto; margin-top: var(--s1); }
 
+/* ---------- Xoá dữ liệu cá nhân (ADR-0126, lát H-5) — chỉ token ---------- */
+.px-hop { margin-top: var(--s3); padding: var(--s2) var(--s3); border: 1px solid var(--c-input-border); border-radius: var(--radius-sm); }
+.px-hop > summary { min-height: var(--tap-min); display: flex; align-items: center; font-weight: var(--fw-bold); cursor: pointer; }
+.px-qua-han { padding: var(--s1) var(--s2); font-size: var(--fs-old-badge); font-weight: var(--fw-bold); color: var(--c-danger-text); background: var(--c-danger-soft); border: 1px solid var(--c-danger-border); border-radius: var(--radius-pill); }
+.px-giu { margin: var(--s1) 0; padding-left: var(--s5); }
+.px-anh-ds { display: flex; flex-direction: column; gap: var(--s2); margin-bottom: var(--s3); }
+.px-anh-hang { display: flex; align-items: flex-start; gap: var(--s3); min-height: var(--tap-min); padding: var(--s2) 0; border-top: 1px solid var(--c-line); }
+.px-anh-hang input { width: auto; margin-top: var(--s1); }
+.px-anh-chu { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; overflow-wrap: anywhere; }
+.hs-giu-lai { flex-basis: 100%; }
+.hs-giu-lai ul { margin: var(--s1) 0; padding-left: var(--s5); }
+#an-danh-phien .btn { min-height: var(--tap-min); }
+
 /* ---------- app iPhone (PWA) — từ dấu mốc này đến cuối file: KHÔNG viết cứng màu/px, dùng token (tests/e2e/pwa.mjs kiểm) ---------- */
 /* trang "Tôi" */
 .narrow { max-width: var(--w-narrow); } /* thay cho style="max-width:420px" nội tuyến: mỗi style= nuôi thêm 'unsafe-inline' trong CSP (AUDIT-FINDINGS A14) */

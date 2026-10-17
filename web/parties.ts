@@ -14,6 +14,7 @@ import { byId, h, replaceChildren, type Child } from "./dom";
 import { initials } from "./format";
 import { chipEl, loiCua, moFormGiayTo, moXacNhanXemSo, taoBoCheSo, type GiayToDong } from "./giay-to-ui";
 import { icon } from "./icons";
+import { dungKhoiPhieuXoa } from "./phieu-xoa";
 import { initShell, showError } from "./shell";
 
 const errorEl = byId("error");
@@ -600,7 +601,7 @@ async function veGiayTo(sec: HTMLElement, p: Api.PartyDto): Promise<void> {
     b.prepend(icon("eye", size));
     return b;
   };
-  const oSo = (d: Api.PersonDocumentDto): HTMLElement => h("span", { class: "vc-no-val", "data-no-for": d.id, "data-masked": d.maskedNumber ?? "" }, d.maskedNumber ?? "—");
+  const oSo = (d: Api.PersonDocumentDto): HTMLElement => h("span", { class: "vc-no-val", "data-no-for": d.id, "data-masked": d.maskedNumber ?? "" }, d.daXoa ? "Đã xoá" : (d.maskedNumber ?? "—")); // ADR-0126: dòng đã ẩn danh theo yêu cầu xoá hiện "Đã xoá", không hiện dấu giữ chỗ
   const nutLichSu = (d: Api.PersonDocumentDto, n: number, lop: string): HTMLButtonElement => {
     const b = nut(`Lịch sử (${n})`, lop, () => {
       if (moLichSuGiayTo.has(d.id)) moLichSuGiayTo.delete(d.id);
@@ -612,7 +613,7 @@ async function veGiayTo(sec: HTMLElement, p: Api.PartyDto): Promise<void> {
     b.append(icon("chevron-down", 16, 2));
     return b;
   };
-  const dongCu = (o: Api.PersonDocumentDto): string => `${o.maskedNumber ? `${o.maskedNumber} · ` : ""}${o.issuedDate ? ngayVN(o.issuedDate) : "—"} → ${o.expiryDate ? ngayVN(o.expiryDate) : "không hạn"}`;
+  const dongCu = (o: Api.PersonDocumentDto): string => `${o.daXoa ? "Đã xoá · " : o.maskedNumber ? `${o.maskedNumber} · ` : ""}${o.issuedDate ? ngayVN(o.issuedDate) : "—"} → ${o.expiryDate ? ngayVN(o.expiryDate) : "không hạn"}`;
 
   const ve = (): void => {
     boCheSo.che();
@@ -692,7 +693,7 @@ async function veGiayTo(sec: HTMLElement, p: Api.PartyDto): Promise<void> {
                 "div",
                 { class: "vc-pt-grid vc-dt-hist" },
                 h("span", null, `↳ Dòng cũ · cấp ${o.issuedDate ? ngayVN(o.issuedDate) : "—"}`),
-                h("span", null, o.maskedNumber ?? "—"),
+                h("span", null, o.daXoa ? "Đã xoá" : (o.maskedNumber ?? "—")),
                 h("span", null, o.expiryDate ? ngayVN(o.expiryDate) : "Không hạn"),
                 h("span", null, h("span", { class: "vc-pill-old" }, "Đã thay")),
               ),
@@ -797,6 +798,7 @@ admin = can(me, "admin.manage"); // Quản trị hoặc Toàn quyền (như cổ
 const dupBtn = byId<HTMLButtonElement>("dup-btn");
 dupBtn.hidden = !admin;
 dupBtn.addEventListener("click", () => void moNghiTrung());
+if (can(me, "party.erasure.process")) dungKhoiPhieuXoa(byId("phieu-xoa"), me); // ADR-0126: hàng chờ yêu cầu xoá + ảnh hết lý do giữ (mở lười)
 const [m, l] = await Promise.all([act(() => api<Api.PartyMetaResponse>("/api/parties/meta")), act(() => api<Api.LocationListResponse>("/api/locations"))]);
 if (m) meta = m;
 if (l) locations = l.locations;

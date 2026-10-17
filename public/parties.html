@@ -29,6 +29,8 @@
   <div id="list-cards" class="card-list"></div>
   <p id="empty" class="empty" hidden>Không có hồ sơ nào khớp.</p>
   <button id="more" class="btn" type="button" hidden>Xem thêm</button>
+  <!-- web/phieu-xoa.ts dựng khối này chỉ khi có ô party.erasure.process (ADR-0126). -->
+  <section id="phieu-xoa" class="card" aria-labelledby="px-heading" hidden></section>
 </main>
 <script type="module" src="/js/parties.js"></script>
 </body></html>

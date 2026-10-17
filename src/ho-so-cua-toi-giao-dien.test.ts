@@ -43,7 +43,7 @@ test("(8) vòng sửa 2 M-1: giá trị khai không ra lưu trữ trình duyệt
   // tai() chỉ được gọi với chữ cố định có trong THONG_BAO — không bao giờ với giá trị ô.
   const goi = [...src.matchAll(/\btai\(([^)]*)\)/g)].map((m) => m[1]!.trim()).filter((a) => a !== "co: string");
   assert.ok(goi.length >= 3, "chống bài rỗng");
-  for (const a of goi) assert.match(a, /^"(da-gui|da-luu)"$/, `tai() gọi với ${a}`);
+  for (const a of goi) assert.match(a, /^"(da-gui|da-luu|da-xoa|da-rut-xoa)"$/, `tai() gọi với ${a}`);
 });
 
 test("(9) vòng sửa 2 I-1: đăng chính sách có bước xác nhận trong trang (cửa một chiều) — submit chỉ mở hộp xác nhận, lệnh ghi nằm ở nút 'Xác nhận đăng'", () => {

@@ -50,7 +50,46 @@ function hienPinMoi(name: string, phone: string, pin: string): void {
 }
 
 // ADR-0085: mục "Chính sách đăng nhập" hỏi ĐÚNG ô của nó (luật 1.52) — không lồng trong nhánh auth.session.viewAll.
-if (can(staff, "auth.session.policy")) void dungMucChinhSach(byId("policy-card"));
+if (can(staff, "auth.session.policy")) {
+  void dungMucChinhSach(byId("policy-card"));
+  void dungAnDanhPhienCu(byId("an-danh-phien"));
+}
+
+/** Mục "Ẩn danh hoá phiên cũ" (ADR-0126 đ8, chỉ Toàn quyền): số ngày do chính sách quy định; chưa có số thì không làm được, nút tắt. Bấm có bước xác nhận trong trang. */
+async function dungAnDanhPhienCu(goc: HTMLElement): Promise<void> {
+  let d: Api.PhienCuAnDanhResponse;
+  try {
+    d = await api<Api.PhienCuAnDanhResponse>("/api/sessions/an-danh-cu");
+  } catch (err) {
+    showError(errorEl, reasonOf(err));
+    return;
+  }
+  const coHan = d.hanNgay !== null;
+  const nut = h("button", { type: "button", class: "btn btn-danger", id: "adp-nut", disabled: !coHan || d.soPhien === 0 }, "Ẩn danh hoá") as HTMLButtonElement;
+  const xacNhan = h("div", { class: "maint-confirm", id: "adp-xac-nhan", role: "group", "aria-label": "Xác nhận ẩn danh hoá phiên cũ", hidden: true },
+    h("p", null, h("strong", null, `Ẩn danh hoá ${d.soPhien} phiên? Địa chỉ mạng và thông tin máy của các phiên này bị xoá, không hoàn tác được.`)),
+    h("div", { class: "maint-actions" },
+      h("button", { type: "button", class: "btn btn-primary btn-chinh", id: "adp-xac-nhan-nut", onclick: async () => {
+        showError(errorEl, null);
+        try {
+          const r = await api<Api.PhienCuAnDanhKetQua>("/api/sessions/an-danh-cu", { method: "POST" });
+          hienOk(`Đã ẩn danh hoá ${r.daAnDanh} phiên.`);
+          await dungAnDanhPhienCu(goc);
+        } catch (err) {
+          xacNhan.hidden = true;
+          showError(errorEl, reasonOf(err));
+        }
+      } }, "Xác nhận ẩn danh hoá"),
+      h("button", { type: "button", class: "btn", onclick: () => { xacNhan.hidden = true; } }, "Thôi")));
+  nut.addEventListener("click", () => { xacNhan.hidden = false; });
+  replaceChildren(goc,
+    h("h2", { id: "adp-heading" }, "Ẩn danh hoá phiên cũ"),
+    coHan
+      ? h("p", { id: "adp-dong" }, `Ẩn danh IP và thông tin máy của ${d.soPhien} phiên đã kết thúc quá ${d.hanNgay} ngày.`)
+      : h("p", { class: "muted", id: "adp-dong" }, "Chính sách riêng tư chưa có thời hạn giữ phiên, nên chưa ẩn danh hoá được."),
+    nut, xacNhan);
+  goc.hidden = false;
+}
 
 if (!can(staff, "auth.session.viewAll")) {
   showError(errorEl, "Trang Phiên đăng nhập chỉ người phụ trách hệ thống (IT, Toàn quyền) xem được.");
