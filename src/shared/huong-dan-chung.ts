@@ -99,7 +99,7 @@ Mở [[Trợ giúp]] để đọc hướng dẫn và [[Nhật ký thay đổi]] 
 ### Gửi góp ý, báo lỗi
 1. Bấm [[Hỗ trợ]].
 2. Chọn nhóm (nếu có) và loại: [[Báo lỗi]], [[Đề xuất]] hoặc [[Câu hỏi]].
-3. Gõ tiêu đề, mô tả. Lỗi ở đơn nào: chọn ô **Đơn liên quan**. Bấm [[Gửi]].
+3. Gõ tiêu đề, mô tả. Nếu có ô **Đơn liên quan**, chọn đơn. Bấm [[Gửi]].
 4. Xem trả lời ở ngăn [[Yêu cầu của tôi]]; tin mới tự hiện.
 
 Chỉ bạn, nhóm nhận và người phụ trách hệ thống đọc được. Nhóm nhận đặt mức ưu tiên Thường, Cao hoặc Khẩn.
