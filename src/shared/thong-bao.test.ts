@@ -1,7 +1,7 @@
 // Luật thuần của hộp thông báo (ADR-0034, đặc tả 2026-09-27-thong-bao-he-thong-design.md §4–§5). Một hàm lọc cho cả số đỏ lẫn danh sách.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chuanHoaMocGio, kiemTinThuCong, laNoiBo, locHopThongBao, loaiTinDon, nhanNguoiNhan, nhanNhomNhan, nhanThayTinThuCong, type DongDon, type DongThuCong } from "./thong-bao.ts";
+import { chuanHoaMocGio, kiemTinThuCong, laNoiBo, locHopThongBao, loaiTinDon, nhanNguoiNhan, nhanNhomNhan, nhanThayTinThuCong, type DongDieuChinh, type DongDon, type DongThuCong } from "./thong-bao.ts";
 import type { PermissionCode } from "./permissions.ts";
 
 const NOW = "2026-09-27T02:40:00.000Z";
@@ -29,21 +29,47 @@ test("loaiTinDon: map hành động nhật ký → loại tin", () => {
   assert.equal(loaiTinDon(don({ action: "updated" })), null);
 });
 
-test("K1: tên chỉ có khi người xem được xem lịch sử đơn; không lọt ở trường nào", () => {
+test("ADR-0131: tên người làm chỉ cho Toàn quyền không giữ quyền Đối tác; không lọt ở trường nào", () => {
   const d = [don({ ownerId: "hung", phuTrach: { coNguoi: true, staffId: "hung" } })];
-  assert.match(hop(MAI, d).tin[0]!.cau, /^Hùng vừa lập đơn mới TD-20260927-0001$/);   // Kế toán: history any
+  const mai = hop(MAI, d);                                                            // Kế toán: không còn thấy tên
+  assert.equal(mai.tin[0]!.cau, "Có đơn mới TD-20260927-0001");
+  assert.ok(!JSON.stringify(mai).includes("Hùng"), "JSON không được chứa tên");
   const lan = hop(LAN, d);                                                            // Bán hàng, không lập/không phụ trách
   assert.equal(lan.tin[0]!.cau, "Có đơn mới TD-20260927-0001");
   assert.ok(!JSON.stringify(lan).includes("Hùng"), "JSON không được chứa tên");
-  // HDV Tâm đang phụ trách chính đơn này (không chỉ "không thấy tin nào" — phải THẤY tin rồi mới khoá được là tin không mang tên, K4):
-  // order.history.view = assigned cho FIELD (ADR-0030 S23-3) → THẤY tên.
+  // Toàn quyền (có audit.view, không giữ Đối tác) → THẤY tên; Toàn quyền kiêm Đối tác → không tên (holdsPartner thắng).
+  const sup = ai("sup", "SUPER_ADMIN");
+  assert.equal(hop(sup, d).tin[0]!.cau, "Hùng vừa lập đơn mới TD-20260927-0001");
+  const supDoiTac = hop(ai("sup2", "SUPER_ADMIN", "PARTNER"), d);
+  assert.ok(!JSON.stringify(supDoiTac).includes("Hùng"), "Toàn quyền kiêm Đối tác không được thấy tên");
+  // HDV Tâm đang phụ trách chính đơn này (phải THẤY tin rồi mới khoá được là tin không mang tên, K4): trước ADR-0131 thấy tên, nay không.
   const dTam = [don({ action: "confirmed", ownerId: "hung", phuTrach: { coNguoi: true, staffId: "tam" } })];
   const tam = hop(TAM, dTam);
   assert.equal(tam.tin.length, 1, "HDV đang phụ trách phải THẤY tin — nếu rỗng thì khẳng định dưới vô nghĩa");
-  assert.ok(JSON.stringify(tam).includes("Hùng"), "HDV đang phụ trách (history assigned, ADR-0030 S23-3) phải thấy tên");
+  assert.equal(tam.tin[0]!.cau, "Đơn TD-20260927-0001 vừa được xác nhận");
+  assert.ok(!JSON.stringify(tam).includes("Hùng"), "HDV đang phụ trách không còn thấy tên (ADR-0131)");
   const cuaLan = [don({ ownerId: "lan", actorId: "tri", tenNguoiLam: "Trị", action: "confirmed", phuTrach: { coNguoi: true, staffId: "lan" } })];
-  assert.equal(hop(LAN, cuaLan).tin[0]!.cau, "Trị vừa xác nhận đơn TD-20260927-0001");  // đơn của Lan → có tên
+  assert.equal(hop(LAN, cuaLan).tin[0]!.cau, "Đơn TD-20260927-0001 vừa được xác nhận");  // đơn của Lan → cũng không tên
+  assert.equal(hop(sup, cuaLan).tin[0]!.cau, "Trị vừa xác nhận đơn TD-20260927-0001");
   assert.equal(hop(LAN, [don({ actorId: null, tenNguoiLam: null, ownerId: "lan" })]).tin[0]!.cau, "Có đơn mới TD-20260927-0001"); // hệ thống → không tên
+  assert.equal(hop(sup, [don({ actorId: null, tenNguoiLam: null })]).tin[0]!.cau, "Có đơn mới TD-20260927-0001"); // Toàn quyền nhưng dòng không có người làm
+});
+
+test("ADR-0131: tin điều chỉnh công nợ — Kế toán nhận câu không tên; Toàn quyền nhận câu có tên; Toàn quyền kiêm Đối tác không tên", () => {
+  const dc = (o: Partial<DongDieuChinh> = {}): DongDieuChinh => ({ id: "dc" + Math.random(), maDon: "TD-20260927-0001", action: "ledger_adjustment_requested", mucLoai: "ledger", mucId: "yc1",
+    actorId: "hung", tenNguoiLam: "Hùng", luc: "2026-09-27T02:00:00.000Z", ...o });
+  const xem = (staff: ReturnType<typeof ai>, d: DongDieuChinh[]) => locHopThongBao(staff, { don: [], thuCong: [], dieuChinh: d, docDenLuc: "2026-09-26T00:00:00.000Z", now: NOW, ngan: "cua-toi" }).tin.map((t) => t.cau);
+  const sup = ai("sup", "SUPER_ADMIN");
+  assert.deepEqual(xem(MAI, [dc()]), ["Có yêu cầu điều chỉnh công nợ đơn TD-20260927-0001 — chờ bạn duyệt"]);
+  assert.deepEqual(xem(sup, [dc()]), ["Hùng gửi yêu cầu điều chỉnh công nợ đơn TD-20260927-0001 — chờ bạn duyệt"]);
+  assert.deepEqual(xem(sup, [dc({ actorId: null, tenNguoiLam: null })]), ["Có yêu cầu điều chỉnh công nợ đơn TD-20260927-0001 — chờ bạn duyệt"]);
+  assert.deepEqual(xem(MAI, [dc({ action: "ledger_adjustment_withdrawn" })]), ["Yêu cầu điều chỉnh công nợ đơn TD-20260927-0001 đã được rút"]);
+  const rieng = (action: string) => dc({ action, mucLoai: "staff", mucId: "mai" });
+  assert.deepEqual(xem(MAI, [rieng("ledger_adjustment_approved")]), ["Yêu cầu điều chỉnh công nợ đơn TD-20260927-0001 của bạn đã được duyệt"]);
+  assert.deepEqual(xem(MAI, [rieng("ledger_adjustment_rejected")]), ["Yêu cầu điều chỉnh công nợ đơn TD-20260927-0001 của bạn bị từ chối"]);
+  assert.deepEqual(xem(MAI, [rieng("ledger_adjustment_affected")]), ["Số dư của bạn trên đơn TD-20260927-0001 vừa được điều chỉnh"]);
+  // Toàn quyền kiêm Đối tác bị tin điều chỉnh loại bỏ hoặc không tên — kiểm không chứa tên ở bất kỳ trường nào.
+  assert.ok(!JSON.stringify(xem(ai("sup2", "SUPER_ADMIN", "PARTNER"), [dc()])).includes("Hùng"));
 });
 
 test("E3: không thấy tin do chính mình làm hoặc gửi (K6)", () => {

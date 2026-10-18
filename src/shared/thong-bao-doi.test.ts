@@ -16,6 +16,8 @@ const TAM = ai("tam", "FIELD"); // HDV phụ trách
 const QT = ai("qt", "ADMIN"); // người sửa
 const QT2 = ai("qt2", "ADMIN"); // Quản trị khác (không lập, không phụ trách)
 const MAI = ai("mai", "ACCOUNTING");
+const SUP = ai("sup", "SUPER_ADMIN"); // Toàn quyền: người DUY NHẤT thấy tên người làm (ADR-0131)
+const SUP_DOI_TAC = ai("sup2", "SUPER_ADMIN", "PARTNER");
 const BX = ai("bx", "PARTNER");
 const NGAN = ai("ngan", "INTERN");
 const TX = { id: "tx", permissions: ["DRIVER"] as PermissionCode[], partyId: "p-tx" };
@@ -52,7 +54,7 @@ test("NT-B7.1 Bán hàng lập, HDV phụ trách, Quản trị đổi giờ đó
 
 test("NT-B7.2 HDV sửa số khách → người lập có tin (không lộ lý do); HDV (người sửa) không", () => {
   const d = [doi({ action: "order_money_adjusted_by_field", actorId: "tam", tenNguoiLam: "Hướng Dẫn", detail: "số khách: Tour đảo: người lớn 2 → 3 · lý do: Khách báo thêm, gọi 0905 123 456" })];
-  assert.deepEqual(cau(LAN, d), ["Hướng Dẫn đổi đơn TD-1: đổi số khách (Tour đảo: người lớn 2 → 3)"]);
+  assert.deepEqual(cau(LAN, d), ["Đơn TD-1: đổi số khách (Tour đảo: người lớn 2 → 3)"]);
   assert.ok(!JSON.stringify(hop(LAN, d)).includes("lý do") && !JSON.stringify(hop(LAN, d)).includes("0905"));
   assert.deepEqual(hop(TAM, d, "tat-ca").tin, []);
   // Hành động văn phòng khai trước (ADR-0062 Đ1 cách a) đọc cùng một luật.
@@ -74,10 +76,10 @@ test("NT-B7.4 chỉ đổi ghi chú / nơi khách có mặt (kể cả chữ cũ
 });
 
 test("NT-B7.5 câu 3 = A: chỉ đổi giờ khách có mặt (nhật ký mới) hoặc giờ check-in (nhật ký cũ) hoặc giờ khởi hành → có tin, câu dùng chữ mới", () => {
-  assert.deepEqual(cau(TAM, [doi({ detail: "Tour đảo: giờ khách có mặt 14:00 → 15:00" })]), ["Quản Trị đổi đơn TD-1: giờ khách có mặt 14:00 → 15:00"]);
-  assert.deepEqual(cau(TAM, [doi({ detail: "Tour đảo: giờ check-in 14:00 → 15:00" })]), ["Quản Trị đổi đơn TD-1: giờ khách có mặt 14:00 → 15:00"], "nhật ký cũ trên production");
-  assert.deepEqual(cau(TAM, [doi({ detail: "Tour đảo: giờ khởi hành 07:00 → 08:00" })]), ["Quản Trị đổi đơn TD-1: giờ khởi hành 07:00 → 08:00"]);
-  assert.deepEqual(cau(TAM, [doi({ detail: "Tour đảo: ngày khởi hành 2026-10-10 → 2026-10-11" })]), ["Quản Trị đổi đơn TD-1: ngày khởi hành 10/10/2026 → 11/10/2026"]);
+  assert.deepEqual(cau(TAM, [doi({ detail: "Tour đảo: giờ khách có mặt 14:00 → 15:00" })]), ["Đơn TD-1: giờ khách có mặt 14:00 → 15:00"]);
+  assert.deepEqual(cau(TAM, [doi({ detail: "Tour đảo: giờ check-in 14:00 → 15:00" })]), ["Đơn TD-1: giờ khách có mặt 14:00 → 15:00"], "nhật ký cũ trên production");
+  assert.deepEqual(cau(TAM, [doi({ detail: "Tour đảo: giờ khởi hành 07:00 → 08:00" })]), ["Đơn TD-1: giờ khởi hành 07:00 → 08:00"]);
+  assert.deepEqual(cau(TAM, [doi({ detail: "Tour đảo: ngày khởi hành 2026-10-10 → 2026-10-11" })]), ["Đơn TD-1: ngày khởi hành 10/10/2026 → 11/10/2026"]);
 });
 
 test("NT-B7.6 Kế toán (xem mọi đơn) → chỉ ngăn 'Tất cả', không số đỏ", () => {
@@ -118,7 +120,7 @@ test("thay chặng (một lô: bỏ + thêm, cùng mốc): câu luôn 'bỏ ch�
   const them = doi({ id: "r2", action: "order_leg_added", detail: "Chiều đi · Tour đảo: thêm — giờ đón 06:30", legId: null });
   for (const lo of [[bo, them], [them, bo]]) {
     const t = hop(LAN, lo).tin;
-    assert.deepEqual(t.map((x) => x.cau), ["Quản Trị đổi đơn TD-1: bỏ chặng đón; thêm chặng đón"], JSON.stringify(t.map((x) => x.cau)));
+    assert.deepEqual(t.map((x) => x.cau), ["Đơn TD-1: bỏ chặng đón; thêm chặng đón"], JSON.stringify(t.map((x) => x.cau)));
     assert.equal(t[0]!.id, "r1", "id tin = dòng đứng đầu theo thứ tự cố định");
   }
 });
@@ -128,7 +130,7 @@ test("NT-B8 cùng đơn + cùng người + cùng mốc → MỘT tin (nối ph�
   const b = doi({ id: "a2", action: "order_leg_added", detail: "Chiều về · Tour đảo: thêm — ngày đón 2026-10-10" });
   const t = hop(LAN, [a, b]).tin;
   assert.equal(t.length, 1);
-  assert.equal(t[0]!.cau, "Quản Trị đổi đơn TD-1: giờ đón 07:00 → 06:30; thêm chặng đón");
+  assert.equal(t[0]!.cau, "Đơn TD-1: giờ đón 07:00 → 06:30; thêm chặng đón");
   assert.equal(t[0]!.id, "a1", "id tin = id dòng đầu");
   assert.equal(hop(LAN, [a, doi({ id: "a3", luc: "2026-10-08T02:00:00.001Z" })]).tin.length, 2);
   assert.equal(hop(LAN, [doi({ id: "c1", actorId: "qt2" }), doi({ id: "c2" })]).tin.length, 2, "khác người làm → hai tin");
@@ -183,18 +185,23 @@ test("NT-B9 Đối tác / Thực tập: có tin đổi của đơn MÌNH lập; 
 
 // ---- NT-B10: câu ----------------------------------------------------------------------------------------------------------------------------
 
-test("NT-B10 câu: có tên khi xem được lịch sử đơn; không tên 'Đơn <mã>: …'; câu chung không lộ chữ thô", () => {
-  assert.deepEqual(cau(LAN, [doi()]), ["Quản Trị đổi đơn TD-1: giờ đón 07:00 → 06:30"]); // người lập: history ownOrAssigned
+test("NT-B10 câu (ADR-0131): tên chỉ cho Toàn quyền không giữ Đối tác; mọi người khác không tên 'Đơn <mã>: …'; câu chung không lộ chữ thô", () => {
+  assert.deepEqual(cau(LAN, [doi()]), ["Đơn TD-1: giờ đón 07:00 → 06:30"]); // người lập: ADR-0131 cũng không tên
   assert.deepEqual(cau(HUNG, [doi()], "tat-ca"), ["Đơn TD-1: giờ đón 07:00 → 06:30"]); // Bán hàng khác: không tên
+  // Toàn quyền (xem ngăn Tất cả) thấy tên; Toàn quyền kiêm Đối tác thì không.
+  assert.deepEqual(cau(SUP, [doi()], "tat-ca"), ["Quản Trị đổi đơn TD-1: giờ đón 07:00 → 06:30"]);
+  assert.deepEqual(cau(SUP, [doi({ detail: "cập nhật chặng đưa đón" })], "tat-ca"), ["Quản Trị vừa đổi chặng đưa đón của đơn TD-1"]);
+  assert.deepEqual(cau(SUP, [doi({ actorId: null, tenNguoiLam: null })], "tat-ca"), ["Đơn TD-1: giờ đón 07:00 → 06:30"]);
+  assert.ok(!JSON.stringify(hop(SUP_DOI_TAC, [doi()], "tat-ca")).includes("Quản Trị"), "Toàn quyền kiêm Đối tác không tên");
   assert.deepEqual(cau(HUNG, [doi({ detail: "cập nhật chặng đưa đón" })], "tat-ca"), ["Đơn TD-1 vừa đổi chặng đưa đón"]);
-  assert.deepEqual(cau(LAN, [doi({ detail: "cập nhật chặng đưa đón" })]), ["Quản Trị vừa đổi chặng đưa đón của đơn TD-1"]);
+  assert.deepEqual(cau(LAN, [doi({ detail: "cập nhật chặng đưa đón" })]), ["Đơn TD-1 vừa đổi chặng đưa đón"]);
   assert.deepEqual(cau(HUNG, [doi({ action: "order_money_adjusted_by_field", detail: "Khách báo thêm 1 người" })], "tat-ca"), ["Đơn TD-1: đổi số khách"]);
-  assert.deepEqual(cau(LAN, [doi({ action: "order_money_adjusted_by_field", detail: "Khách báo thêm 1 người" })]), ["Quản Trị đổi đơn TD-1: đổi số khách"]);
+  assert.deepEqual(cau(LAN, [doi({ action: "order_money_adjusted_by_field", detail: "Khách báo thêm 1 người" })]), ["Đơn TD-1: đổi số khách"]);
   assert.deepEqual(cau(HUNG, [doi({ actorId: null, tenNguoiLam: null })], "tat-ca"), ["Đơn TD-1: giờ đón 07:00 → 06:30"]);
   // Câu 6: đổi nơi đón không ghi nơi mới (chặng và dịch vụ).
   const noi = cau(LAN, [doi({ action: "order_leg_updated", detail: "Chiều đi · Tour đảo: nơi đón Khách sạn Dò Tìm → 12 Trần Phú •••• ••• •••" })]);
-  assert.deepEqual(noi, ["Quản Trị đổi đơn TD-1: Chiều đi: đổi nơi đón"]);
-  assert.deepEqual(cau(LAN, [doi({ detail: "Tour đảo: đổi điểm đón" })]), ["Quản Trị đổi đơn TD-1: đổi nơi đón"]);
+  assert.deepEqual(noi, ["Đơn TD-1: Chiều đi: đổi nơi đón"]);
+  assert.deepEqual(cau(LAN, [doi({ detail: "Tour đảo: đổi điểm đón" })]), ["Đơn TD-1: đổi nơi đón"]);
   const json = JSON.stringify(hop(LAN, [doi({ action: "order_leg_updated", detail: "Chiều đi · Anh Nam 0901234567: nơi đón A → 12 Trần Phú" })]));
   for (const x of ["Trần Phú", "Anh Nam", "0901234567", "Tour đảo"]) assert.ok(!json.includes(x), x);
 });
@@ -252,7 +259,7 @@ test("MQ-07: người sửa là người lập → người lập không nhận 
 
 test("MQ-07 chỉ khi đổi NGÀY / GIỜ đón (hoặc câu chung): đổi nơi đón chặng đã xếp → tin đơn đổi 'đổi nơi đón', tài xế không nhận", () => {
   const d = [doiChang({ detail: "Chiều đi · Tour đảo: nơi đón A → B" })];
-  assert.deepEqual(hop(LAN, d).tin.map((t) => [t.loai, t.cau]), [["doi_sau_xac_nhan", "Quản Trị đổi đơn TD-1: Chiều đi: đổi nơi đón"]]);
+  assert.deepEqual(hop(LAN, d).tin.map((t) => [t.loai, t.cau]), [["doi_sau_xac_nhan", "Đơn TD-1: Chiều đi: đổi nơi đón"]]);
   assert.deepEqual(hop(TX, d, "tat-ca").tin, []);
   // Câu chung của dòng chặng (không đọc được) vẫn có thể đổi giờ → MQ-07.
   assert.deepEqual(loai(LAN, [doiChang({ detail: "chữ lạ không khuôn" })]), ["chuyen"]);
