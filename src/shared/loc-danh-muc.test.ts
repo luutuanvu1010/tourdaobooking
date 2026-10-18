@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { docNhoDanhMuc, locDanhMuc, NHO_DANH_MUC_TRONG, doiGhim, xepGhimTruoc, locTheoNhom, doiNhom, demTheoNhom, khoaNhoNhom, docNhoNhom, CHUA_PHAN_LOAI, docNhoMotNhom, ghiNhoMotNhom, chamNhom, doiChuTim, chiaMuc, nhomConKetQua, nhanDem, type TrangThaiNhom } from "./loc-danh-muc.ts";
+import { docNhoDanhMuc, locDanhMuc, NHO_DANH_MUC_TRONG, doiGhim, xepGhimTruoc, locTheoNhom, doiNhom, demTheoNhom, khoaNhoNhom, docNhoNhom, CHUA_PHAN_LOAI, docNhoMotNhom, ghiNhoMotNhom, chamNhom, doiChuTim, chiaMuc, nhomConKetQua, nhanDem, tachTenDichVu, type TrangThaiNhom } from "./loc-danh-muc.ts";
 
 const it = (code: string, name: string, unit: string) => ({ code, name, unit });
 const DS = [it("TD101", "Tour 4 đảo", "perPax"), it("TTB03", "Phao chuối", "per5Pax"), it("TTB06", "Motor nước", "perPax"), it("DD01", "Đưa đón", "manual")];
@@ -163,4 +163,17 @@ test("nhomConKetQua: mã nhóm (kể cả Chưa phân loại) còn ít nhất m�
 test("nhanDem: có / không tên nhóm", () => {
   assert.equal(nhanDem(114, null), "114 dịch vụ");
   assert.equal(nhanDem(23, "Thể thao biển"), "23 dịch vụ · Thể thao biển");
+});
+
+test("tachTenDichVu: tách phần trước dấu hai chấm ĐẦU TIÊN (in màu chữ phụ); ghép lại đúng tên gốc, không cắt chữ", () => {
+  assert.deepEqual(tachTenDichVu("Motor nước: Jetski L2 (30 phút) Hòn Tằm"), { dau: "Motor nước:", sau: " Jetski L2 (30 phút) Hòn Tằm" });
+  assert.deepEqual(tachTenDichVu("Vé Hòn Tằm: Cano + tắm bùn: trọn gói"), { dau: "Vé Hòn Tằm:", sau: " Cano + tắm bùn: trọn gói" }, "chỉ tách ở dấu đầu");
+  assert.deepEqual(tachTenDichVu("Phao chuối (5 pax) Hòn Tằm"), { dau: "", sau: "Phao chuối (5 pax) Hòn Tằm" }, "không có dấu hai chấm");
+  assert.deepEqual(tachTenDichVu(":lạ"), { dau: "", sau: ":lạ" }, "dấu ở đầu: không có phần trước");
+  assert.deepEqual(tachTenDichVu("Tour:  "), { dau: "", sau: "Tour:  " }, "sau dấu không còn chữ: giữ nguyên, không làm mờ cả tên");
+  assert.deepEqual(tachTenDichVu(""), { dau: "", sau: "" });
+  for (const ten of ["Tháp Bà: tắm bùn khoáng", "a:b", "Không dấu"]) {
+    const t = tachTenDichVu(ten);
+    assert.equal(t.dau + t.sau, ten, "ghép lại đúng tên gốc");
+  }
 });

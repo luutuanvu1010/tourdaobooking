@@ -1,7 +1,7 @@
-// Lọc dịch vụ trong ô "Chọn từ danh mục" khi lập đơn. Thuần, không I/O.
-// Đợt 1 (13/10/2026, ý chủ dự án: "bỏ hết sự rườm rà, chỉ để lại việc lọc theo nhóm sản phẩm bằng nút xổ xuống + tick chọn"): chỉ còn HAI cách thu hẹp danh sách —
-// ô gõ (tên hoặc mã) và nút xổ xuống "Nhóm dịch vụ" (tick MỘT hay NHIỀU nhóm; không tick = tất cả; VÀ với ô gõ). Các bộ lọc cũ (★ Hay dùng, Theo người, Giá theo nhóm; góp ý YC-0003,
-// ADR-0058 Đ8 dạng hàng chip một nhóm) đã bỏ. Dấu sao ☆/★ ở đầu dòng GIỮ LẠI và có tác dụng: dịch vụ đã gắn sao xếp lên trước (giả định của người thi công, chủ chưa nói).
+// Lọc dịch vụ trong ô chọn dịch vụ khi lập đơn (web/catalog-picker.ts). Thuần, không I/O.
+// Thiết kế lại 18/10/2026 (đặc tả docs/superpowers/specs/2026-10-18-tao-don-thiet-ke-lai/DAC-TA.md mục 3A): HAI cách thu hẹp danh sách — ô gõ (tên hoặc mã, tìm mọi nhóm)
+// và hàng nút nhóm CHỌN MỘT ("" = Tất cả). Trước đó: đợt 1 (13/10) nút xổ xuống tick nhiều nhóm — các hàm `doiNhom` / `demTheoNhom` của bản đó còn lại tới khi dọn;
+// các bộ lọc cũ (★ Hay dùng, Theo người, Giá theo nhóm; YC-0003) đã bỏ. Dấu sao ☆/★ có tác dụng: "Tất cả" gom vào mục "★ Hay dùng", chọn một nhóm thì xếp lên đầu.
 // Hạn chế nhóm theo vai (ADR-0033, ADR-0058) vẫn do máy chủ quyết qua danh mục /api/catalog/for-order; ở đây không lọc thêm theo vai.
 
 const TOI_DA_GHIM = 200;
@@ -137,3 +137,13 @@ export const nhomConKetQua = (ds: readonly { groupCode: string | null }[]): Read
 
 /** Nhãn đếm dưới ô tìm: "114 dịch vụ" hoặc "23 dịch vụ · Thể thao biển". */
 export const nhanDem = (n: number, tenNhom: string | null): string => `${n} dịch vụ${tenNhom ? ` · ${tenNhom}` : ""}`;
+
+/**
+ * Tách tên dịch vụ ở dấu hai chấm ĐẦU TIÊN để dòng danh sách in phần trước dấu ("Tour:", "Vé Hòn Tằm:") bằng màu chữ phụ, phần sau màu chữ chính.
+ * Không có dấu, dấu đứng đầu, hoặc sau dấu không còn chữ → `dau` rỗng (không làm mờ cả tên). Luôn có `dau + sau === ten`: không cắt chữ nào.
+ */
+export function tachTenDichVu(ten: string): { dau: string; sau: string } {
+  const i = ten.indexOf(":");
+  if (i <= 0 || ten.slice(i + 1).trim() === "") return { dau: "", sau: ten };
+  return { dau: ten.slice(0, i + 1), sau: ten.slice(i + 1) };
+}
