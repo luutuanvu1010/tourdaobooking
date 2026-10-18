@@ -42,7 +42,7 @@ assert.deepEqual(r.body.staff.roles, ["SALES_STAFF"]);
 r = await call(ADMIN, "GET", `/api/staff/${K.id}/roles`);
 assert.deepEqual(r.body, { roles: ["SALES_STAFF"], adds: ["ACCOUNTING"], removes: [], reason: "kiêm nhiệm kế toán tạm thời" });
 const [log] = await sqlRows(`SELECT detail FROM audit_log WHERE action = 'account_roles_changed' AND target_id = '${K.id}' ORDER BY created_at DESC LIMIT 1`);
-assert.match(log.detail, /vai: Kế toán → Nhân viên kinh doanh/);
+assert.match(log.detail, /vai trò: Kế toán → Nhân viên kinh doanh/);
 assert.match(log.detail, /lý do: kiêm nhiệm kế toán tạm thời/);
 assert.ok(!log.detail.includes(K.phone), "nhật ký không chứa SĐT");
 console.log("✓ đổi vai + chỉnh tay có lý do; nhật ký ghi trước → sau, không chứa SĐT");
@@ -114,7 +114,7 @@ await sql(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id
 r = await call(SUPER, "POST", "/api/staff", { phone: rnd(), roles: ["SALES_STAFF"], partyId: ktId });
 assert.equal(r.status, 409, JSON.stringify(r.body));
 assert.equal(r.body.error.code, "account_rule");
-assert.equal(r.body.error.message, "Hồ sơ này đang giữ vai Kế toán: chọn cả vai này (hoặc đổi vai sau khi tạo).");
+assert.equal(r.body.error.message, "Hồ sơ này đang giữ vai trò Kế toán: chọn cả vai trò này (hoặc đổi vai trò sau khi tạo).");
 r = await call(SUPER, "POST", "/api/staff", { phone: rnd(), roles: ["SALES_STAFF", "ACCOUNTANT"], partyId: ktId });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.deepEqual(r.body.staff.permissions, ["SALES", "ACCOUNTING"]);

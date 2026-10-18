@@ -60,8 +60,8 @@ try {
     assert.equal(x.status, 400, `${JSON.stringify(body)}: ${JSON.stringify(x.body)}`);
   }
   const nk = await nhatKy("dispatch_policy_changed");
-  assert.match(nk.detail, /mốc tối thiểu \d+ → 240 phút/);
-  assert.match(nk.detail, /cửa sổ xuất bến \d+ → 1440 phút/);
+  assert.match(nk.detail, /hạn chốt trước giờ đón \d+ → 240 phút/);
+  assert.match(nk.detail, /cửa sổ cho xe chạy \d+ → 1440 phút/);
   assert.equal(nk.order_id, null);
   console.log("✓ chính sách: Toàn quyền thêm bản 240 phút, kẹp lùi 90 → 201, hiệu lực ngay; ngày hiệu lực / hợp đồng bật / mốc 0 (không tắt được) / thiếu kẹp lùi / kẹp 1441 / thiếu cửa sổ xuất bến / cửa sổ 59, 2881 → 400; nhật ký trước → sau");
 
@@ -91,7 +91,7 @@ try {
   assert.equal(r.body.rules.find((x) => x.id === dkXe).active, false);
   r = await call(TOAN_QUYEN, "POST", `/api/van-chuyen/dieu-kien/${dkXe}/dong`, {});
   assert.equal(r.status, 409, JSON.stringify(r.body));
-  assert.equal((await nhatKy("departure_rule_closed")).detail, "điều kiện xuất bến: xe từ 16 người — giấy tờ xe Phù hiệu xe hợp đồng");
+  assert.equal((await nhatKy("departure_rule_closed")).detail, "điều kiện cho xe chạy: xe từ 16 người — giấy tờ xe Phù hiệu xe hợp đồng");
   console.log("✓ điều kiện xuất bến: thêm 201; loại giấy tờ lạ → 400 (khoá ngoại D1); đóng 200, lần hai 409");
 
   // --- 5. Danh mục lý do: Quản trị thêm 201; Bán hàng 403 ở cổng admin; ngưng có mốc 200, mốc cũ 409 ---

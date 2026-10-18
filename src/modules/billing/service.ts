@@ -446,7 +446,7 @@ export async function hoanThanh(db: D1Database, input: { orderId: string; info: 
   } catch (e) {
     const k = await loiKhoaKy(db, e, [vnToday(new Date())]);
     if (k) return k;
-    if (loiTrigger(e, "completed_unsettled")) return loi(409, "not_completable", "Còn người giữ tiền của công ty vì đơn này — tải lại màn hình để xem.");
+    if (loiTrigger(e, "completed_unsettled")) return loi(409, "not_completable", "Còn người chưa nộp tiền về công ty vì đơn này — tải lại màn hình để xem.");
     if (loiTrigger(e, "completed_due_mismatch")) return loi(409, "not_completable", "Số đã thu khác phải thu lúc Đã giao — tải lại màn hình để xem.");
     if (loiTrigger(e, "order_completed")) return loi(409, "order_completed", "Đơn đã Hoàn thành.");
     throw e;

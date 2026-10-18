@@ -186,8 +186,8 @@ test("NT-B9 Đối tác / Thực tập: có tin đổi của đơn MÌNH lập; 
 test("NT-B10 câu: có tên khi xem được lịch sử đơn; không tên 'Đơn <mã>: …'; câu chung không lộ chữ thô", () => {
   assert.deepEqual(cau(LAN, [doi()]), ["Quản Trị đổi đơn TD-1: giờ đón 07:00 → 06:30"]); // người lập: history ownOrAssigned
   assert.deepEqual(cau(HUNG, [doi()], "tat-ca"), ["Đơn TD-1: giờ đón 07:00 → 06:30"]); // Bán hàng khác: không tên
-  assert.deepEqual(cau(HUNG, [doi({ detail: "cập nhật lượt đưa đón" })], "tat-ca"), ["Đơn TD-1 vừa đổi lượt đưa đón"]);
-  assert.deepEqual(cau(LAN, [doi({ detail: "cập nhật lượt đưa đón" })]), ["Quản Trị vừa đổi lượt đưa đón của đơn TD-1"]);
+  assert.deepEqual(cau(HUNG, [doi({ detail: "cập nhật chặng đưa đón" })], "tat-ca"), ["Đơn TD-1 vừa đổi lượt đưa đón"]);
+  assert.deepEqual(cau(LAN, [doi({ detail: "cập nhật chặng đưa đón" })]), ["Quản Trị vừa đổi lượt đưa đón của đơn TD-1"]);
   assert.deepEqual(cau(HUNG, [doi({ action: "order_money_adjusted_by_field", detail: "Khách báo thêm 1 người" })], "tat-ca"), ["Đơn TD-1: đổi số khách"]);
   assert.deepEqual(cau(LAN, [doi({ action: "order_money_adjusted_by_field", detail: "Khách báo thêm 1 người" })]), ["Quản Trị đổi đơn TD-1: đổi số khách"]);
   assert.deepEqual(cau(HUNG, [doi({ actorId: null, tenNguoiLam: null })], "tat-ca"), ["Đơn TD-1: giờ đón 07:00 → 06:30"]);
