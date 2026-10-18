@@ -187,7 +187,7 @@ try {
             assert.equal(await p.ev("document.getElementById('dc-cua-toi-rong').textContent"), CAU_RONG_CUA_TOI);
             assert.deepEqual([await the(p, "dc-duyet-ds"), await the(p, "dc-cua-toi-ds")], [[], []]);
           }
-          assert.deepEqual(await p.ev("[...document.querySelectorAll('#dc-loai option')].map((o) => o.textContent)"), ["Tiền đang giữ hộ", "Quyết toán (nộp / trả)", "Hoàn khách"]);
+          assert.deepEqual(await p.ev("[...document.querySelectorAll('#dc-loai option')].map((o) => o.textContent)"), ["Tiền chưa nộp về công ty", "Quyết toán (nộp / trả)", "Hoàn khách"]);
           assert.equal(await p.ev("document.getElementById('dc-da-chon').textContent"), "Chưa chọn đơn · Chưa chọn bên nợ · Chưa chọn bên được nợ");
           await bocucSach(p, `bước 1 ${kho}`);
           await axeKiem(p, `Kế toán mở màn ${kho}`);
@@ -237,7 +237,7 @@ try {
             assert.ok(t.chu.includes(NHAN.cho_duyet), t.chu);
             assert.ok(t.chu.includes(maDon), "thẻ ghi mã đơn");
             assert.ok(t.chu.includes("Tăng nợ"), "thẻ ghi hướng Tăng nợ");
-            assert.ok(t.chu.includes(`${BEN_NO} nợ ${congTyTen} 200.000 ₫ · Tiền đang giữ hộ`), t.chu);
+            assert.ok(t.chu.includes(`${BEN_NO} nợ ${congTyTen} 200.000 ₫ · Tiền chưa nộp về công ty`), t.chu);
             assert.ok(t.chu.includes("khách gửi thêm tiền qua nhân viên"));
             assert.match(t.chu, /Gửi bởi Kế Toán · hạn duyệt/);
           }

@@ -25,9 +25,9 @@ try {
     const v = await p.ev(`[${["mocGio", "satMocGio", "nghiPhut", "khaiLuiPhut"].map((t) => `document.querySelector('${O(t)}').value`).join(",")}]`);
     assert.deepEqual(v, ["6", "2", "30", "180"]);
     const nhan = await p.ev(`[...document.querySelectorAll('#cs-form .vc-field > label')].map((l) => l.textContent)`);
-    assert.deepEqual(nhan, ["Mốc tối thiểu (giờ)", "Cảnh báo sát mốc (giờ)", "Khoảng nghỉ tài xế (phút)", "Khai lùi tối đa (phút)", "Giờ lái tối đa một ngày (giờ)", "Nhắc nghỉ khi chuyến dài hơn (giờ)", "Cửa sổ xuất bến (giờ)", "Hạn từ chối chuyến (giờ)", "Số điện thoại văn phòng", "Chờ tài xế xe nhận trả lời (phút)"]); // + ô chờ trả lời chuyển khách (gói A5, 0093); + hai ô giờ lái (ADR-0055 VK2-B, Đợt 3); + cửa sổ xuất bến (ADR-0096 Đ2.2, gói A1); + hạn từ chối, SĐT văn phòng (A4 T5, ADR-0053 D8)
+    assert.deepEqual(nhan, ["Hạn chốt trước giờ đón (giờ)", "Cảnh báo sắp tới hạn chốt (giờ)", "Khoảng nghỉ tài xế (phút)", "Khai lùi tối đa (phút)", "Giờ lái tối đa một ngày (giờ)", "Nhắc nghỉ khi chuyến dài hơn (giờ)", "Cửa sổ cho xe chạy (giờ)", "Hạn từ chối chuyến (giờ)", "Số điện thoại văn phòng", "Chờ tài xế xe nhận trả lời (phút)"]); // + ô chờ trả lời chuyển khách (gói A5, 0093); + hai ô giờ lái (ADR-0055 VK2-B, Đợt 3); + cửa sổ xuất bến (ADR-0096 Đ2.2, gói A1); + hạn từ chối, SĐT văn phòng (A4 T5, ADR-0053 D8)
     assert.equal(await p.ev(`document.querySelector('${O("cuaSoGio")}').value`), "12", "cửa sổ xuất bến gieo 720 phút = 12 giờ");
-    assert.equal(await p.ev(txt(`#cs-satMocGio-hint`)), "Chặng chưa xếp trong 2 giờ trước mốc hiện nhãn “Sát mốc”.");
+    assert.equal(await p.ev(txt(`#cs-satMocGio-hint`)), "Lượt đưa đón chưa xếp trong 2 giờ trước hạn chốt hiện nhãn “Sắp tới hạn chốt”.");
     assert.equal(await p.ev(txt("#cs-khaiLuiPhut-hint")), "Từ 1 đến 1440, mặc định 180.");
     const sw = await p.ev(`[...document.querySelectorAll('.dp-switch')].map((s) => ({ checked: s.getAttribute('aria-checked'), disabled: s.disabled, label: document.getElementById(s.getAttribute('aria-labelledby')).textContent }))`);
     assert.deepEqual(sw, [{ checked: "true", disabled: false, label: "Phải đủ danh sách khách" }, { checked: "false", disabled: true, label: "Phải có hợp đồng" }, { checked: "true", disabled: false, label: "Tự đồng ý chuyển khách" }]); // + công tắc chuyển khách (gói A5)
@@ -38,7 +38,7 @@ try {
     assert.match(await p.ev(txt(".dp-cs-note")), /hiệu lực ngay khi lưu/);
     assert.equal(await p.ev(`document.body.innerText.includes('Đang soạn')`), false);
     assert.ok(await p.ev(shown("#cs-lich-su")), "cột lịch sử hiện ở máy tính");
-    assert.deepEqual(await p.ev(lichSu), ["Bản 1 Đang dùng Hiệu lực từ 01/09/2026 Mốc 6 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 8 giờ/ngày · nhắc nghỉ chuyến trên 4 giờ · xuất bến sớm nhất 12 giờ trước giờ khởi hành · từ chối chuyến trước 12 giờ · phải đủ danh sách khách · chờ nhận chuyển khách 10 phút · tự đồng ý chuyển khách"]);
+    assert.deepEqual(await p.ev(lichSu), ["Bản 1 Đang dùng Hiệu lực từ 01/09/2026 Hạn chốt 6 giờ · cảnh báo sắp tới hạn chốt 2 giờ · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 8 giờ/ngày · nhắc nghỉ chuyến trên 4 giờ · cho xe chạy sớm nhất 12 giờ trước giờ khởi hành · từ chối chuyến trước 12 giờ · phải đủ danh sách khách · chờ nhận chuyển khách 10 phút · tự đồng ý chuyển khách"]);
     const nav = await p.ev(vcSub);
     assert.deepEqual(nav.items.slice(-3), ["Loại giấy tờ xe", "Chính sách điều phối", "Lý do điều phối"]);
     assert.equal(nav.items[0], "Điều phối xe", "B1 (vòng 3): mục con đầu dưới Vận chuyển");
@@ -54,8 +54,8 @@ try {
     for (const [t, v, cau] of [
       ["khaiLuiPhut", "1441", "Khai lùi tối đa là số phút nguyên từ 1 đến 1440."],
       ["khaiLuiPhut", "0", "Khai lùi tối đa là số phút nguyên từ 1 đến 1440."],
-      ["mocGio", "0", "Mốc tối thiểu là số giờ lớn hơn 0, tối đa 48 — không tắt được; muốn nới thì giảm con số."],
-      ["mocGio", "49", "Mốc tối thiểu là số giờ lớn hơn 0, tối đa 48 — không tắt được; muốn nới thì giảm con số."],
+      ["mocGio", "0", "Hạn chốt trước giờ đón là số giờ lớn hơn 0, tối đa 48 — không tắt được; muốn nới thì giảm con số."],
+      ["mocGio", "49", "Hạn chốt trước giờ đón là số giờ lớn hơn 0, tối đa 48 — không tắt được; muốn nới thì giảm con số."],
     ]) {
       await p.ev(typeInto(O(t), v));
       await p.ev(click(".dp-cs-actions button[type=submit]"));
@@ -92,9 +92,9 @@ try {
     const rows = await p.ev(lichSu);
     assert.equal(rows.length, 2);
     // R-P23: bản vừa lưu có "ai lưu" (tên tài khoản Toàn quyền + lúc lưu); bản gieo (không người lưu) không có dòng đó.
-    assert.match(rows[0], /^Bản 2 Đang dùng Hiệu lực từ \d\d\/\d\d\/\d{4} Mốc 5 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 240 phút · lái tối đa 8 giờ\/ngày · nhắc nghỉ chuyến trên 4 giờ · xuất bến sớm nhất 12 giờ trước giờ khởi hành · từ chối chuyến trước 12 giờ · chờ nhận chuyển khách 10 phút · tự đồng ý chuyển khách Chủ Điều Phối lưu \d\d\/\d\d \d\d:\d\d$/);
+    assert.match(rows[0], /^Bản 2 Đang dùng Hiệu lực từ \d\d\/\d\d\/\d{4} Hạn chốt 5 giờ · cảnh báo sắp tới hạn chốt 2 giờ · nghỉ 30 phút · khai lùi 240 phút · lái tối đa 8 giờ\/ngày · nhắc nghỉ chuyến trên 4 giờ · cho xe chạy sớm nhất 12 giờ trước giờ khởi hành · từ chối chuyến trước 12 giờ · chờ nhận chuyển khách 10 phút · tự đồng ý chuyển khách Chủ Điều Phối lưu \d\d\/\d\d \d\d:\d\d$/);
     assert.equal(await p.ev(`document.querySelectorAll('#cs-lich-su [data-nguoi-luu]').length`), 1, "chỉ bản có người lưu mới có dòng ai lưu");
-    assert.match(rows[1], /^Bản 1 Hết hiệu lực Hiệu lực 01\/09 – \d\d\/\d\d\/\d{4} Mốc 6 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 8 giờ\/ngày · nhắc nghỉ chuyến trên 4 giờ · xuất bến sớm nhất 12 giờ trước giờ khởi hành · từ chối chuyến trước 12 giờ · phải đủ danh sách khách · chờ nhận chuyển khách 10 phút · tự đồng ý chuyển khách$/);
+    assert.match(rows[1], /^Bản 1 Hết hiệu lực Hiệu lực 01\/09 – \d\d\/\d\d\/\d{4} Hạn chốt 6 giờ · cảnh báo sắp tới hạn chốt 2 giờ · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 8 giờ\/ngày · nhắc nghỉ chuyến trên 4 giờ · cho xe chạy sớm nhất 12 giờ trước giờ khởi hành · từ chối chuyến trước 12 giờ · phải đủ danh sách khách · chờ nhận chuyển khách 10 phút · tự đồng ý chuyển khách$/);
     const g = await call(CHU, "GET", "/api/van-chuyen/chinh-sach-dieu-phoi");
     assert.equal(g.json.current.minLeadMinutes, 300);
     assert.equal(g.json.current.proxyBackdateMaxMinutes, 240);
@@ -116,7 +116,7 @@ try {
     await p.ev(typeInto("#dk-co-xe", "9"));
     await p.ev(`(() => { const s = document.querySelector('#dk-loai'); s.value = 'CONTRACT_BADGE'; s.dispatchEvent(new Event('change')); return true; })()`);
     await p.ev(click('[data-action="them-dieu-kien"]'));
-    await p.waitFor(`${txt("#dk-ok")} === 'Đã thêm điều kiện xuất bến — áp ngay từ bây giờ.'`, "báo đã thêm điều kiện");
+    await p.waitFor(`${txt("#dk-ok")} === 'Đã thêm điều kiện cho xe chạy — áp ngay từ bây giờ.'`, "báo đã thêm điều kiện");
     const sau = await p.ev(dong);
     assert.ok(sau.some((t) => t.startsWith("Phù hiệu xe hợp đồng — xe chở từ 9 người") && t.includes("Đang áp")), JSON.stringify(sau));
     await p.ev("window.confirm = () => true; true");
@@ -182,7 +182,7 @@ try {
     assert.equal(await a.ev(`!!document.querySelector('${heThong} [data-action="ngung"]')`), false, "lý do hệ thống không có nút Ngưng");
     assert.equal(await a.ev(txt(`${heThong} [data-he-thong]`)), "Hệ thống tự dùng — không ngưng được");
     assert.equal(await a.ev(`!!document.querySelector('.dp-reason[data-code="BO_QUA_KHAC"] [data-action="ngung"]')`), true, "lý do thường vẫn có Ngưng");
-    assert.equal(await a.ev(`document.body.innerText.includes('Đặt gấp') || document.body.innerText.includes('Bỏ chặng')`), false);
+    assert.equal(await a.ev(`document.body.innerText.includes('Đặt gấp') || document.body.innerText.includes('Bỏ lượt')`), false);
     assert.equal(await a.ev(txt(".dp-head-note")), "Hiện trong các hộp chọn lý do");
     const nav = await a.ev(vcSub);
     assert.ok(nav.items.includes("Lý do điều phối") && !nav.items.includes("Chính sách điều phối"), JSON.stringify(nav));
@@ -253,7 +253,7 @@ try {
     await a.waitFor(`${txt("#error")} === 'Chỉ Toàn quyền xem và đổi được chính sách điều phối.'`, "câu từ chối");
     assert.equal(await a.ev(shown("#cs-form")), false);
     await a.send("Page.navigate", { url: env.base + "/dieu-kien-xuat-ben" });
-    await a.waitFor(`${txt("#error")} === 'Chỉ Toàn quyền xem và đổi được điều kiện xuất bến.'`, "câu từ chối điều kiện");
+    await a.waitFor(`${txt("#error")} === 'Chỉ Toàn quyền xem và đổi được điều kiện cho xe chạy.'`, "câu từ chối điều kiện");
     assert.equal(await a.ev(shown("#dk-dieu-kien")), false);
   });
   a.close();

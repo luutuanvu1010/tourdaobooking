@@ -102,9 +102,9 @@ try {
     await shotFull(f, "m6-form-hai-chieu-1040.png");
   });
 
-  await b.step("2", "M1 (1040): đổi ngày đi → 'Đã dời ngày đón của 2 chặng theo ngày đi mới'; Gõ tự do → ô Địa chỉ đón; Sân bay → ô Số hiệu chuyến bay; thêm chặng thiếu nơi đón → Lưu báo 'Chặng 3: chưa có nơi đón.' và KHÔNG gửi; bỏ chặng", async () => {
+  await b.step("2", "M1 (1040): đổi ngày đi → 'Đã dời ngày đón của 2 lượt đưa đón theo ngày đi mới'; Gõ tự do → ô Địa chỉ đón; Sân bay → ô Số hiệu chuyến bay; thêm chặng thiếu nơi đón → Lưu báo 'Chặng 3: chưa có nơi đón.' và KHÔNG gửi; bỏ chặng", async () => {
     await f.ev(typeInto("#orderDate", vnDate(6)));
-    await f.waitFor(`document.getElementById('orderDate-moved').textContent === 'Đã dời ngày đón của 2 chặng theo ngày đi mới'`, "câu dời ngày");
+    await f.waitFor(`document.getElementById('orderDate-moved').textContent === 'Đã dời ngày đón của 2 lượt đưa đón theo ngày đi mới'`, "câu dời ngày");
     assert.match(await f.ev(`document.querySelector('${chang("OUT")} [data-o$=":ngay"]').closest('label').textContent`), /Bằng ngày đi/, "chặng dời theo ngày đi mới: vẫn 'Bằng ngày đi' (ô ngày có thể đang ẩn)");
     await f.ev(typeInto("#orderDate", NGAY));
     await f.ev(typeInto(`${chang("OUT")} [data-o$=":tra"]`, "tudo"));
@@ -127,7 +127,7 @@ try {
     await f.ev(typeInto("#customerPhone", "0903 222 333"));
     const truoc = apiCalls(f).filter((c) => c.method === "POST" && c.path === "/api/orders").length;
     await f.ev(click("#save"));
-    await f.waitFor(`[...document.querySelectorAll('${card} .dd-chang')][2].innerText.includes('Chặng 3: chưa có nơi đón.')`, "lỗi chặng 3");
+    await f.waitFor(`[...document.querySelectorAll('${card} .dd-chang')][2].innerText.includes('Lượt 3: chưa có nơi đón.')`, "lỗi chặng 3");
     assert.equal(apiCalls(f).filter((c) => c.method === "POST" && c.path === "/api/orders").length, truoc, "không gửi khi còn lỗi");
     await shotFull(f, "m1-form-loi-1040.png");
     await f.ev(`[...document.querySelectorAll('${card} .dd-chang')][2].querySelector('[data-action="bo-chang"]').click(); true`);
@@ -241,9 +241,9 @@ try {
     await m.ev(typeInto(`.sheet .dd-chang[data-chieu="OUT"] [data-o$=":tra"]`, SB));
     await m.ev(click(`.sheet .dd-chang[data-chieu="RETURN"] [data-action="bo-chang"]`));
     await m.waitFor(shown(".sheet .dd-bo"), "hộp lý do bỏ chặng");
-    assert.match(await m.ev(txt(".sheet .dd-bo")), /^Bỏ chặng 2 · Chiều về Lý do \(bắt buộc, chọn một\) Khách không cần đưa đón nữa Nhập nhầm Đổi sang chặng khác Chặng đã bỏ không mất — xem trong lịch sử đơn\. Bỏ chặng Thôi$/);
+    assert.match(await m.ev(txt(".sheet .dd-bo")), /^Bỏ lượt 2 · Chiều về Lý do \(bắt buộc, chọn một\) Khách không cần đưa đón nữa Nhập nhầm Đổi sang lượt đưa đón khác Lượt đã bỏ không mất — xem trong lịch sử đơn\. Bỏ lượt Thôi$/);
     await m.ev(click('.sheet [data-action="xac-nhan-bo"]'));
-    await m.waitFor(`document.querySelector('.sheet .dd-bo').innerText.includes('Chọn lý do bỏ chặng.')`, "bắt chọn lý do");
+    await m.waitFor(`document.querySelector('.sheet .dd-bo').innerText.includes('Chọn lý do bỏ lượt.')`, "bắt chọn lý do");
     await sleep(600); // chờ hết chuyển động mở bảng (độ mờ) rồi mới đo tương phản
     await axe(m, "bảng Sửa đưa đón");
     await shotView(m, "m4-sua-dua-don-ly-do-1040.png");
@@ -284,7 +284,7 @@ try {
     assert.equal(than.leg.pickupLocationId, SB);
     const { order: o, history } = (await fetchTrang(m, "GET", `/api/orders/${o2.id}`)).json;
     assert.deepEqual(o.services[0].legs.map((l) => [l.direction, l.pickupTime, l.pickupLabel]), [["OUT", "09:15", "Sân bay Cam Ranh"]]);
-    assert.ok(history.some((e) => e.action === "order_leg_closed" && /bỏ — Đổi sang chặng khác$/.test(e.detail ?? "")), "lịch sử: bỏ — Đổi sang chặng khác");
+    assert.ok(history.some((e) => e.action === "order_leg_closed" && /bỏ — Đổi sang lượt đưa đón khác$/.test(e.detail ?? "")), "lịch sử: bỏ — Đổi sang chặng khác");
     assert.ok(history.some((e) => e.action === "order_leg_added" && /nơi đón Sân bay Cam Ranh/.test(e.detail ?? "")), "lịch sử: thêm chặng mới");
     await m.waitFor(`document.getElementById('error').innerText.includes('Đã lưu đưa đón.')`, "báo đã lưu");
   });

@@ -76,8 +76,8 @@ try {
     assert.equal(ds.length, 5);
     assert.equal(await p.ev(`document.querySelectorAll('#dp-cot-chua-xep .dp-leg-hang .dp-leg-chon').length`), 5);
     assert.equal(await p.ev(`document.querySelectorAll('#dp-cot-chua-xep .dp-leg .dp-leg-chon').length`), 0, "ô chọn KHÔNG lồng trong nút (nút = xếp một chặng)");
-    assert.match(await p.ev(`document.querySelector('.dp-leg-chon').getAttribute('aria-label')`), /^Chọn chặng .+ để xếp cùng lúc$/);
-    assert.equal(await p.ev(txt("#dp-cot-chua-xep .dp-nhieu-chu")), "Tích ô bên trái thẻ để chọn nhiều chặng rồi xếp một lần.");
+    assert.match(await p.ev(`document.querySelector('.dp-leg-chon').getAttribute('aria-label')`), /^Chọn lượt đưa đón .+ để xếp cùng lúc$/);
+    assert.equal(await p.ev(txt("#dp-cot-chua-xep .dp-nhieu-chu")), "Tích ô bên trái thẻ để chọn nhiều lượt rồi xếp một lần.");
     assert.equal(await p.ev(`document.querySelectorAll('#dp-cot-chua-xep .dp-nhieu .vc-btn').length`), 1, "chưa chọn: chỉ nút 'Chọn hết'");
     assert.ok(await p.ev(noOverflowX));
     await axe(p, "điều phối 1040 cột Chưa xếp có lọc + ô chọn");
@@ -87,14 +87,14 @@ try {
     await p.ev(locDat("dp-loc-ca", "SANG"));
     await p.waitFor(`document.querySelectorAll('#dp-cot-chua-xep .dp-leg').length === 3`, "lọc Sáng");
     assert.equal(await p.ev(`document.activeElement.id`), "dp-loc-ca", "tiêu điểm ở lại ô lọc");
-    assert.equal(await p.ev(txt('#dp-cot-chua-xep [data-action="bo-loc"]')), "Bỏ lọc · đang hiện 3/5 chặng");
+    assert.equal(await p.ev(txt('#dp-cot-chua-xep [data-action="bo-loc"]')), "Bỏ lọc · đang hiện 3/5 lượt");
     assert.equal(await p.ev(tong), "15 khách chưa xếp · 65 ghế trống ở 4 chuyến chưa chạy", "tổng là của cả ngày, không theo lọc");
     await p.ev(locDat("dp-loc-noi-tra", "__chua-chot__"));
     await p.waitFor(`document.querySelectorAll('#dp-cot-chua-xep .dp-leg').length === 1`, "lọc thêm nơi trả chưa chốt");
     assert.deepEqual(await p.ev(hangChang), [d.O5.legId]);
     await p.ev(locDat("dp-loc-chieu", "RETURN"));
     await p.waitFor(`!!document.querySelector('#dp-cot-chua-xep .dp-col-empty')`, "không chặng khớp");
-    assert.equal(await p.ev(txt("#dp-cot-chua-xep .dp-col-empty")), "Không có chặng nào khớp bộ lọc.");
+    assert.equal(await p.ev(txt("#dp-cot-chua-xep .dp-col-empty")), "Không có lượt đưa đón nào khớp bộ lọc.");
     await p.ev(click('#dp-cot-chua-xep [data-action="bo-loc"]'));
     await p.waitFor(`document.querySelectorAll('#dp-cot-chua-xep .dp-leg').length === 5`, "bỏ lọc");
     assert.equal(await p.ev(`document.querySelector('#dp-loc-ca').value + '|' + document.querySelector('#dp-loc-chieu').value + '|' + document.querySelector('#dp-loc-noi-tra').value`), "||");
@@ -108,20 +108,20 @@ try {
 
   await b.step("3", "C34: tích 3 chặng → thanh chọn 'Đã chọn 3 chặng · 8 khách' + nút 'Xếp 3 chặng vào chuyến…'; chọn rồi lọc ẩn bớt → chặng bị ẩn rời lựa chọn; 'Bỏ chọn' xoá hết", async () => {
     for (const x of [DA, DB, DC]) await p.ev(chonO(x.legId));
-    await p.waitFor(`${thanhChon}.startsWith('Đã chọn 3 chặng')`, "thanh chọn 3 chặng");
-    assert.equal(await p.ev(txt("#dp-cot-chua-xep .dp-nhieu-chu")), "Đã chọn 3 chặng · 8 khách");
-    assert.equal(await p.ev(txt('[data-action="xep-nhieu"]')), "Xếp 3 chặng vào chuyến…");
+    await p.waitFor(`${thanhChon}.startsWith('Đã chọn 3 lượt')`, "thanh chọn 3 chặng");
+    assert.equal(await p.ev(txt("#dp-cot-chua-xep .dp-nhieu-chu")), "Đã chọn 3 lượt · 8 khách");
+    assert.equal(await p.ev(txt('[data-action="xep-nhieu"]')), "Xếp 3 lượt vào chuyến…");
     assert.equal(await p.ev(`document.querySelectorAll('#dp-cot-chua-xep .dp-leg-hang.is-chon').length`), 3);
     // Lọc Sáng: DC (13:00) bị ẩn → rời lựa chọn; còn DA, DB.
     await p.ev(locDat("dp-loc-ca", "SANG"));
     await p.waitFor(`document.querySelectorAll('#dp-cot-chua-xep .dp-leg').length === 3`, "lọc Sáng");
-    assert.equal(await p.ev(txt("#dp-cot-chua-xep .dp-nhieu-chu")), "Đã chọn 2 chặng · 5 khách", "chặng bị lọc ẩn rời lựa chọn");
+    assert.equal(await p.ev(txt("#dp-cot-chua-xep .dp-nhieu-chu")), "Đã chọn 2 lượt · 5 khách", "chặng bị lọc ẩn rời lựa chọn");
     await p.ev(click('#dp-cot-chua-xep [data-action="bo-loc"]'));
     await p.waitFor(`document.querySelectorAll('#dp-cot-chua-xep .dp-leg').length === 5`, "bỏ lọc");
     assert.equal(await p.ev(daTich), 2, "DA, DB còn tích sau khi bỏ lọc");
     await p.ev(click('#dp-cot-chua-xep [data-action="bo-chon"]'));
     await p.waitFor(`${daTich} === 0`, "bỏ chọn");
-    assert.equal(await p.ev(txt("#dp-cot-chua-xep .dp-nhieu-chu")), "Tích ô bên trái thẻ để chọn nhiều chặng rồi xếp một lần.");
+    assert.equal(await p.ev(txt("#dp-cot-chua-xep .dp-nhieu-chu")), "Tích ô bên trái thẻ để chọn nhiều lượt rồi xếp một lần.");
   });
 
   await b.step("4", "C36: tin `don-thay-doi` → tải lại lịch, chặng đang tích và bộ lọc GIỮ NGUYÊN; đơn mới tạo từ phiên khác hiện ngay trong cột (không tải lại trang)", async () => {
@@ -147,12 +147,12 @@ try {
 
   await b.step("5", `C32 + C34: chọn O5, DA, DB, DC → hộp 'Xếp vào chuyến': chuyến hợp ${T6.ma} LÊN ĐẦU, các chuyến lệch giờ sau và MỜ kèm chữ lý do; chọn chuyến mờ có nhắc; tóm tắt liệt kê từng chặng; không ô số khách${axeNote()}`, async () => {
     for (const x of [d.O5, DA, DB, DC]) await p.ev(chonO(x.legId));
-    await p.waitFor(`${thanhChon}.startsWith('Đã chọn 4 chặng')`, "4 chặng");
-    assert.equal(await p.ev(txt("#dp-cot-chua-xep .dp-nhieu-chu")), "Đã chọn 4 chặng · 13 khách");
+    await p.waitFor(`${thanhChon}.startsWith('Đã chọn 4 lượt')`, "4 chặng");
+    assert.equal(await p.ev(txt("#dp-cot-chua-xep .dp-nhieu-chu")), "Đã chọn 4 lượt · 13 khách");
     await p.ev(click('[data-action="xep-nhieu"]'));
     await p.waitFor(`!!document.querySelector('[data-action="xep-gui"]')`, "hộp xếp mở");
     await sleep(600);
-    assert.equal(await p.ev(txt(".dp-sheet-xep .dp-sheet-sum-title")), "4 chặng · 13 khách");
+    assert.equal(await p.ev(txt(".dp-sheet-xep .dp-sheet-sum-title")), "4 lượt · 13 khách");
     assert.equal(await p.ev(`document.querySelectorAll('.dp-sheet-xep .dp-xep-ds li').length`), 4);
     assert.equal(await p.ev(`!!document.querySelector('#dp-xep-so')`), false, "nhiều chặng: xếp TRỌN, không ô số khách");
     const ds = await p.ev(hopXep);
@@ -173,7 +173,7 @@ try {
   await b.step("6", `C34: bấm 'Xếp vào chuyến' → MỘT lệnh phan-bo với 4 chặng (soSuat = còn lại) → dải 'Đã xếp 4 chặng (13 khách) vào ${T6.ma}' (+ nhắc O5 thiếu nơi trả); cột Chưa xếp còn đơn tin + DV; khối ${T6.ma} tô mức tải 'gần đầy' 13/15`, async () => {
     const truoc = ghi(p).length;
     await p.ev(click('[data-action="xep-gui"]'));
-    await p.waitFor(`!!document.querySelector('#dp-banner .banner-title') && ${txt("#dp-banner .banner-title")}.startsWith('Đã xếp 4 chặng')`, "dải đã xếp");
+    await p.waitFor(`!!document.querySelector('#dp-banner .banner-title') && ${txt("#dp-banner .banner-title")}.startsWith('Đã xếp 4 lượt')`, "dải đã xếp");
     assert.equal(ghi(p).length - truoc, 1, "đúng MỘT lệnh ghi");
     const body = JSON.parse(ghi(p).at(-1).body);
     const theoLeg = (a, c) => a.legId.localeCompare(c.legId);
@@ -182,8 +182,8 @@ try {
       chang: [d.O5, DA, DB, DC].map((x) => ({ legId: x.legId, soSuat: x === d.O5 ? 5 : x.soKhach })).sort(theoLeg),
     });
     assert.deepEqual(body.chang.map((x) => x.legId), [DA, DB, d.O5, DC].map((x) => x.legId), "thứ tự gửi = thứ tự hiện trong cột (giờ đón)");
-    assert.equal(await p.ev(txt("#dp-banner .banner-title")), `Đã xếp 4 chặng (13 khách) vào ${T6.ma}`);
-    assert.ok((await p.ev(`[...document.querySelectorAll('#dp-banner li')].map((x) => x.innerText.trim())`)).some((x) => x.startsWith(`Chặng chưa có nơi trả: ${d.O5.ma}`)));
+    assert.equal(await p.ev(txt("#dp-banner .banner-title")), `Đã xếp 4 lượt (13 khách) vào ${T6.ma}`);
+    assert.ok((await p.ev(`[...document.querySelectorAll('#dp-banner li')].map((x) => x.innerText.trim())`)).some((x) => x.startsWith(`Lượt đưa đón chưa có nơi trả: ${d.O5.ma}`)));
     assert.deepEqual(await p.ev(hangChang), [TIN.legId, DV.legId]);
     assert.equal(await p.ev(lopKhoi(T6.id)), "is-tai-gan-day");
     assert.match(await p.ev(`document.querySelector('.dp-khoi[data-chuyen="${T6.id}"]').getAttribute('aria-label')`), /tải 13\/15 \(gần đầy\)/);
@@ -307,7 +307,7 @@ try {
     assert.ok(cs.every((x) => x >= 16), `ô lọc ≥ 16px: ${JSON.stringify(cs)}`);
     await pm.ev(chonO(DX.legId));
     await pm.ev(chonO(DY.legId));
-    await pm.waitFor(`${txt("#dp-cot-chua-xep .dp-nhieu-chu")} === 'Đã chọn 2 chặng · 6 khách'`, "thanh chọn");
+    await pm.waitFor(`${txt("#dp-cot-chua-xep .dp-nhieu-chu")} === 'Đã chọn 2 lượt · 6 khách'`, "thanh chọn");
     assert.ok(await pm.ev(noOverflowX));
     await axe(pm, "điều phối 390 có ô chọn");
     await shotFull(pm, "c3-chua-xep-chon-dien-thoai.png");

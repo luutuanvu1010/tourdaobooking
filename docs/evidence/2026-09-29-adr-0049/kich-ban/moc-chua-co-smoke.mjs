@@ -15,7 +15,7 @@ const MAI = vnDate(1);
 const NO_TRIP = { departDate: "", departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
 const base = { customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "" };
 const svc = (ngay, gio) => ({ kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, ...NO_TRIP, departDate: ngay, pickupTime: gio, pickupPlace: "Sheraton Nha Trang" });
-const CAU_503 = "Chưa có chính sách điều phối đang hiệu lực (mốc tối thiểu) — báo người phụ trách hệ thống.";
+const CAU_503 = "Chưa có chính sách điều phối đang hiệu lực (hạn chốt trước giờ đón) — báo người phụ trách hệ thống.";
 const DONG_503 = "Chưa lưu, xác nhận hay sửa chuyến có giờ đón được cho tới khi Toàn quyền đặt chính sách điều phối.";
 
 try {

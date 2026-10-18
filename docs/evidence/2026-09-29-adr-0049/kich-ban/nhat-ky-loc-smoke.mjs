@@ -23,8 +23,8 @@ const NHOM = "Điều phối xe";
 // src/shared/audit-actions.ts (gồm "Máy cập nhật chuyến theo đơn" — trip_order_synced). Thêm / đổi / bỏ nhãn nhóm này ⇒ sửa danh sách cùng commit (bài cố ý cứng).
 const SAU_HANH_DONG = [
   "Đổi chính sách điều phối",
-  "Thêm điều kiện xuất bến",
-  "Đóng điều kiện xuất bến",
+  "Thêm điều kiện cho xe chạy",
+  "Đóng điều kiện cho xe chạy",
   "Đổi số khách theo hạng bằng",
   "Thêm lý do điều phối",
   "Sửa lý do điều phối",
@@ -38,7 +38,7 @@ const SAU_HANH_DONG = [
   "Xếp khách lên xe",
   "Rút khách khỏi xe",
   "Dời khách sang chuyến khác",
-  "Xuất bến",
+  "Cho xe chạy",
   "Xe đã tới điểm",
   "Đã đón khách",
   "Khách vắng",
@@ -51,7 +51,7 @@ const SAU_HANH_DONG = [
   "Văn phòng báo huỷ khách",
   "Tài xế bổ sung tên khách",
   "Văn phòng điều chỉnh kết quả khách",
-  "Văn phòng thu hồi xuất bến",
+  "Văn phòng thu hồi lệnh cho xe chạy",
   "Gửi đề nghị chuyển khách", // gói A5 (ADR-0111): bảy nhãn nhật ký chuyển khách, đúng thứ tự khai ở src/shared/audit-actions.ts
   "Rút đề nghị chuyển khách",
   "Xe nhận không nhận khách",
@@ -103,7 +103,7 @@ try {
     // Chọn "Đổi chính sách điều phối" → danh sách chỉ còn dòng đó, chi tiết đúng câu máy chủ ghi.
     await p.ev(`(() => { const s = document.querySelector('#action'); s.value = 'dispatch_policy_changed'; s.dispatchEvent(new Event('change')); return true; })()`);
     const chon = vp.mobile ? "#list-cards" : "#list";
-    await p.waitFor(`(document.querySelector(${JSON.stringify(chon)})?.textContent ?? '').includes('mốc tối thiểu 360 → 240 phút')`, `${kho}: dòng nhật ký chính sách hiện sau khi lọc`);
+    await p.waitFor(`(document.querySelector(${JSON.stringify(chon)})?.textContent ?? '').includes('hạn chốt trước giờ đón 360 → 240 phút')`, `${kho}: dòng nhật ký chính sách hiện sau khi lọc`);
     const text = await p.ev(`document.querySelector(${JSON.stringify(chon)}).textContent`);
     assert.match(text, /Đổi chính sách điều phối/);
     assert.doesNotMatch(text, /dispatch_policy_changed|trip/, `${kho}: không lộ mã kỹ thuật`);

@@ -201,7 +201,7 @@ try {
         const thay = await p.ev(`[...document.querySelectorAll('#huong-dan > .hd-nhom > h3')].map((e) => e.firstChild.textContent.trim())`);
         assert.deepEqual(thay, nhom, key);
         assert.equal(await p.ev(`${q("#huong-dan > .hd-nhom .hd-nhanh")}.open`), true, `"Bắt đầu nhanh" của nhóm đầu mở sẵn (${key})`);
-        assert.equal(await p.ev(`[...document.querySelectorAll('#huong-dan > details > summary')].some((s) => s.textContent === 'Hướng dẫn các vai khác')`), key === "admin", `"Hướng dẫn các vai khác" chỉ Quản trị (${key})`);
+        assert.equal(await p.ev(`[...document.querySelectorAll('#huong-dan > details > summary')].some((s) => s.textContent === 'Hướng dẫn các vai trò khác')`), key === "admin", `"Hướng dẫn các vai khác" chỉ Quản trị (${key})`);
         assert.ok((await p.ev(`document.querySelectorAll('#huong-dan .hd-nut').length`)) > 0, `có tên nút đóng khung (${key})`);
         if (key === "salesA") {
           await p.ev(`document.querySelectorAll('#huong-dan details').forEach((d) => (d.open = true)), true`);

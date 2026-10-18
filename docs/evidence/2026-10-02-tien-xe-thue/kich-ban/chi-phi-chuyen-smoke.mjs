@@ -62,7 +62,7 @@ const dieuKienChu = `[...document.querySelectorAll('.dp-cond[data-dat]')].map((r
   await cho(p);
   await choCp(p);
   await b.step("2", `1b 1040 thiếu giá: dải cảnh báo + "Nhập giá thoả thuận"; khối cuối cột chính, chip "Chỉ Kế toán · Quản trị"; tóm tắt NHÀ XE / TUYẾN / NGUỒN GIÁ "Chưa có giá" / TỔNG "—"; "Chưa có dòng chi phí nào."; không "Lấy lại giá bảng" khi bảng giá chưa có${axeNote()}`, async () => {
-    assert.equal(await p.ev(txt("#ct-chi-phi .cp-dai-thieu .banner-title")), "Chuyến xe thuê chưa có giá — chưa được xuất bến");
+    assert.equal(await p.ev(txt("#ct-chi-phi .cp-dai-thieu .banner-title")), "Chuyến xe thuê chưa có giá — chưa được cho xe chạy");
     assert.equal(await p.ev(txt("#ct-chi-phi .cp-dai-thieu li")), "Nhập giá thoả thuận với nhà xe, hoặc bổ sung giá vào Bảng giá thuê xe rồi lấy lại giá bảng.");
     assert.equal(await p.ev(`document.querySelector('.dp-ct-main').lastElementChild.id`), "ct-chi-phi", "khối ở cuối cột chính");
     assert.equal(await p.ev(txt("#cp-title")), "Chi phí chuyến");
