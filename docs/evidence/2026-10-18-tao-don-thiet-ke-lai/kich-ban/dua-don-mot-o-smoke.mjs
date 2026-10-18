@@ -15,10 +15,17 @@
 //   5) chạm THẬT nút Lưu khi chặng của thẻ ĐANG GẬP thiếu nơi đón → thẻ mở, câu "Chặng 1: chưa có nơi đón." dưới ô (aria-describedby), ô đỏ (aria-invalid), trong khung nhìn,
 //      danh sách KHÔNG tự bật; tiêu điểm: 1040 (chuột) ở ô, 390 (cảm ứng — vòng sửa 1, M-1) ở đầu chặng ("Chiều đi · Chặng 1"), KHÔNG ở ô gõ nào (bàn phím ảo iPhone không bật)
 //      (luật 14/10: điện thoại chỉ đặt tiêu điểm khi ô nằm trong khối gập vừa mở — ô đang thấy thì cuộn tới dải lỗi);
+//   5c) (vòng sửa 2 — Minor d) sau lần Lưu báo lỗi: gõ ở Nơi đón rồi chạm MÉP DƯỚI ô Nơi trả → cú chạm không bị nuốt (câu lỗi dưới ô đón chỉ ẩn sau cú chạm);
 //   6) lưu thật, mở lại: chặng đủ gập MỘT dòng ("Chiều đi · Đón 07:30 · Khách sạn Biển Xanh → Cảng Cầu Đá"); chạm dòng → chặng mở, ô Nơi đón hiện trong khung nhìn (danh sách không
 //      bật); tiêu điểm: 1040 ở ô Nơi đón, 390 (cảm ứng) ở đầu chặng — không ở ô gõ;
 //   7) "Đón khác ngày": ô Ngày đón ẩn tới khi chạm, chạm thì hiện và nhận tiêu điểm;
-//   8) không tràn ngang ở 390; không lỗi console.
+//   8) không tràn ngang ở 390; không lỗi console;
+//   9) (vòng sửa 2 — người kiểm lại, I-1 còn mở) gõ ở Nơi trả rồi chạm NGAY ô Giờ đón / Ngày đón — cùng chặng (9a, 9b) và CHIỀU VỀ (9d; 9f qua "Đón khác ngày"): ô vừa chạm
+//      KHÔNG bị thay (cùng phần tử DOM, còn trên trang, giữ tiêu điểm); giá trị "chọn" ghi vào ĐÚNG phần tử đó (như bộ chọn của máy — Chrome không đầu KHÔNG có bộ chọn bật lên, nên
+//      hành vi bộ chọn thật trên Android / iPhone CHƯA KIỂM) hiện trong ô, chữ mờ "Chưa chốt giờ" khớp; 9c: thêm chiều về, (390 — Minor c) chạm dòng tóm tắt rồi HUỶ cú chạm, mở
+//      bằng bàn phím → tiêu điểm vào ô Nơi đón (kiểu ấn cảm ứng không kẹt lại); 9e (1040, bàn phím): còn lần dựng lại đang hẹn, Tab rời ô giờ sang nút "Đón khác ngày" → tiêu điểm
+//      ở lại nút; 9g: ô giờ CŨ đã bị gỡ (khối dựng lại vì chọn dòng gợi ý) mà vẫn nhận giá trị → ô mới hiện đúng giá trị đã vào bản nháp; 9h: chạm Lưu → thân PUT mang đúng ngày /
+//      giờ / nơi của cả hai chặng; không lỗi console.
 // Thân gửi lên (legs) giữ nguyên từng byte cho cả hai nhánh chọn nơi: than-gui.mjs CACH=noi (thư mục dua-don-mot-o/).
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, danh mục giả (TD101, TTB06); 8 điểm gieo sẵn
 // (migrations/0010_locations.sql) + hai điểm gieo thêm: "Khách sạn Biển Xanh" (khách sạn), "Sân bay Cam Ranh" (sân bay).
@@ -66,6 +73,22 @@ const moDs = (o) => `(() => { const ds = ${dsCua(o)}; return !!ds && !ds.hidden;
 /** Các dòng của danh sách gợi ý ô `o` đang hiện: chữ, chiều cao, aria-selected. */
 const dongDs = (o) => `(() => { const ds = ${dsCua(o)}; if (!ds || ds.hidden) return null; return [...ds.querySelectorAll('[role=option]')].map((x) => ({ chu: x.textContent.trim(), h: Math.round(x.getBoundingClientRect().height), chon: x.getAttribute('aria-selected') })); })()`;
 const chuDs = (o) => `(${dongDs(o)} ?? []).map((d) => d.chu)`;
+const VINPEARL = "ec67ff94-bb00-4546-842a-aedb5f916b0a"; // "Bến cảng Vinpearl" gieo sẵn (migrations/0010_locations.sql)
+/** Chạm thật ở MÉP DƯỚI phần tử (cách đáy 4px — chỗ người dùng vẫn chạm): bố cục xê dịch giữa lúc ấn và lúc nhả thì cú nhả rơi ra ngoài phần tử và `click` không tới nó. */
+async function chamDay(p, mobile, sel) {
+  await p.ev(`(${sel}).scrollIntoView({ block: 'center' }); true`);
+  await sleep(150);
+  const { x, y } = await p.ev(`(() => { const r = (${sel}).getBoundingClientRect(); return { x: Math.round(r.left + Math.min(r.width / 2, 48)), y: Math.round(r.bottom - 4) }; })()`);
+  if (mobile) {
+    await p.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+    await p.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  } else {
+    await p.send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y });
+    await p.send("Input.dispatchMouseEvent", { type: "mousePressed", x, y, button: "left", clickCount: 1 });
+    await p.send("Input.dispatchMouseEvent", { type: "mouseReleased", x, y, button: "left", clickCount: 1 });
+  }
+  await sleep(250);
+}
 
 try {
   const NGAY = vnDate(4);
@@ -293,9 +316,27 @@ try {
       assert.equal(await p.ev(hien(`document.getElementById(${JSON.stringify(loiId)})`)), true, "câu lỗi đang hiện");
     });
 
+    // Vòng sửa 2 (Minor d): rời ô nơi sau khi gõ thì câu lỗi "chưa có nơi đón" dưới ô chỉ ẩn SAU cú chạm — ẩn ngay lúc ấn thì ô Nơi trả bên dưới (390: một cột) dời lên và cú nhả
+    // ở mép dưới ô rơi ra ngoài.
+    await buoc(`${kho}-5c`, "sau lần Lưu báo lỗi: gõ ở Nơi đón rồi chạm MÉP DƯỚI ô Nơi trả → cú chạm không bị nuốt (tiêu điểm ở ô trả, danh sách mở); câu lỗi ẩn sau đó", async () => {
+      const don = oNoi(1, 0, "don");
+      const tra = oNoi(1, 0, "tra");
+      assert.equal(await p.ev(`(${don}).getAttribute('aria-invalid')`), "true", "ĐẦU: ô Nơi đón đang báo lỗi (câu lỗi hiện dưới ô)");
+      await cham(p, mobile, don);
+      await p.waitFor(moDs(don), "danh sách ô Nơi đón mở");
+      await goChu(p, "15 Trần Phú, Nha Trang");
+      await chamDay(p, mobile, tra);
+      await sleep(200);
+      assert.equal(await p.ev(`(${don}).value`), "15 Trần Phú, Nha Trang", "chữ ô đón được giữ");
+      assert.equal(await p.ev(coTieuDiem(tra)), true, `cú chạm mép dưới ô Nơi trả không bị nuốt: tiêu điểm ở ô trả (đang ở: ${await p.ev("document.activeElement?.outerHTML.slice(0, 90) ?? null")})`);
+      assert.equal(await p.ev(moDs(tra)), true, "cú chạm mép dưới ô Nơi trả không bị nuốt: danh sách ô trả mở");
+      await phim(p, "Escape");
+      assert.equal(await p.ev(`(${don}).getAttribute('aria-invalid')`), "false", "đã có nơi đón → hết báo lỗi");
+    });
+
     let idDon = null;
     await buoc(`${kho}-6`, `lưu thật, mở lại: chặng đủ gập một dòng; chạm dòng → chặng mở, ô Nơi đón trong khung nhìn, danh sách không bật; tiêu điểm ${mobile ? "ở đầu chặng (cảm ứng)" : "ở ô Nơi đón"}`, async () => {
-      await chonNoiMotO(p, mobile, oNoi(1, 0, "don"), { tim: "15 Trần Phú, Nha Trang", dong: "Gõ tự do: " });
+      await chonNoiMotO(p, mobile, oNoi(1, 0, "don"), { tim: "15 Trần Phú, Nha Trang", dong: "Gõ tự do: ", xoaTruoc: true }); // 5c đã gõ chữ này (ô chữ tự do: chọn hết rồi gõ lại)
       await cham(p, mobile, "document.getElementById('save')");
       await p.waitFor("location.pathname === '/order' && !!new URLSearchParams(location.search).get('id')", "lưu xong", 15000);
       idDon = await p.ev("new URLSearchParams(location.search).get('id')");
@@ -330,6 +371,131 @@ try {
 
     await buoc(`${kho}-8`, "không tràn ngang; không lỗi console", async () => {
       assert.ok(await p.ev("document.documentElement.scrollWidth <= innerWidth + 1"), "không tràn ngang");
+      assert.deepEqual(p.consoleErrors.filter((e) => !/favicon/.test(e)), []);
+    });
+
+    // ---- 9) Vòng sửa 2 (người kiểm lại — I-1 còn mở): gõ ở ô nơi rồi chạm NGAY ô Giờ đón / Ngày đón. Lần dựng lại khối đã hẹn từng gỡ đúng ô ngày / giờ vừa nhận cú chạm: bộ chọn
+    // của máy gắn với ô cũ bị đóng (cú chạm mất), hoặc ghi vào ô đã gỡ trong khi ô mới hiện trống. Chrome không đầu không có bộ chọn bật lên: kịch bản ghi giá trị vào ĐÚNG phần tử đã
+    // nhận cú chạm (`window.__dich`) như bộ chọn sẽ làm — hành vi bộ chọn thật trên Android / iPhone vẫn CHƯA KIỂM, chủ cần thử trên điện thoại. Tiếp nối bước 6–8: form sửa đơn,
+    // thẻ TD101 mở, chặng chiều đi mở, ô Ngày đón chiều đi đang hiện (bước 7).
+    const gio = (j) => `${chang(0, j)}.querySelector('[data-o$=":gio"]')`;
+    const ngay = (j) => `${chang(0, j)}.querySelector('[data-o$=":ngay"]')`;
+    const gioMo = (j) => `${chang(0, j)}.querySelector('.dd-gio-mo')`;
+    const traDi = oNoi(0, 0, "tra");
+    const D1 = vnDate(5);
+    const D2 = vnDate(6);
+    const dangO = () => p.ev("document.activeElement?.outerHTML.slice(0, 90) ?? null");
+    /** Gõ `chu` vào ô Nơi trả chiều đi (chọn hết chữ cũ), giữ phần tử `dich` vào `window.__dich`, rồi chạm THẬT `nut` (mặc định chính `dich`) ngay — không chạm dòng gợi ý nào. */
+    const goRoiCham = async (chu, dich, nut = dich) => {
+      await cham(p, mobile, traDi);
+      await p.waitFor(moDs(traDi), "danh sách ô Nơi trả chiều đi mở");
+      await p.ev(`(${traDi}).select(); true`);
+      await goChu(p, chu);
+      await p.ev(`window.__dich = ${dich}; true`);
+      await cham(p, mobile, nut);
+      await sleep(300); // các lượt hẹn sau cú chạm đã chạy xong
+    };
+    const kiemGiu = async (dich, ten) => {
+      const r = await p.ev(`(() => { const d = window.__dich; return { cung: (${dich}) === d, conTrenTrang: d.isConnected, tieuDiem: document.activeElement === d }; })()`);
+      assert.deepEqual(r, { cung: true, conTrenTrang: true, tieuDiem: true }, `${ten}: ô vừa chạm KHÔNG bị thay — cùng phần tử, còn trên trang, giữ tiêu điểm (đang ở: ${await dangO()})`);
+    };
+    /** Như bộ chọn ngày / giờ của máy: ghi giá trị vào ĐÚNG phần tử đã nhận cú chạm, bắn input + change. */
+    const chonNhuMay = (gt) =>
+      p.ev(`(() => { const d = window.__dich; d.value = ${JSON.stringify(gt)}; d.dispatchEvent(new Event('input', { bubbles: true })); d.dispatchEvent(new Event('change', { bubbles: true })); return d.value; })()`);
+    const oGio = (j) => p.ev(`({ gt: (${gio(j)}).value, mo: (${gioMo(j)}).hidden })`);
+
+    await buoc(`${kho}-9a`, "gõ Nơi trả rồi chạm NGAY ô Giờ đón cùng chặng: ô giờ không bị thay; giờ chọn hiện trong ô", async () => {
+      await goRoiCham("Bến Cá, Nha Trang", gio(0));
+      await kiemGiu(gio(0), "Giờ đón chiều đi");
+      assert.equal(await p.ev(`(${traDi}).value`), "Bến Cá, Nha Trang", "chữ ô Nơi trả được giữ");
+      await chonNhuMay("09:45");
+      await sleep(150);
+      assert.deepEqual(await oGio(0), { gt: "09:45", mo: true }, "ô giờ đang thấy hiện đúng giờ vừa chọn; chữ mờ ẩn");
+    });
+
+    await buoc(`${kho}-9b`, "gõ Nơi trả rồi chạm NGAY ô Ngày đón cùng chặng: ô ngày không bị thay; ngày chọn hiện trong ô", async () => {
+      assert.equal(await p.ev(hien(ngay(0))), true, "ĐẦU: ô Ngày đón chiều đi đang hiện (bước 7)");
+      await goRoiCham("Bến Cá Hòn Chồng", ngay(0));
+      await kiemGiu(ngay(0), "Ngày đón chiều đi");
+      await chonNhuMay(D1);
+      await sleep(150);
+      assert.equal(await p.ev(`(${ngay(0)}).value`), D1, "ô ngày đang thấy hiện đúng ngày vừa chọn");
+    });
+
+    // 9c — Minor c của vòng sửa 2: kiểu ấn của dòng tóm tắt chặng (và nút Lưu — cùng một hàm `nhoChamKichHoat`) nhớ từ `pointerdown`; cú chạm bị HUỶ (pointercancel: vuốt cuộn, kéo
+    // ra ngoài) hay một lần bấm phím sau đó phải xoá nó — nếu không, lần mở bằng BÀN PHÍM kế tiếp đặt tiêu điểm vào đầu chặng thay vì ô Nơi đón.
+    await buoc(`${kho}-9c`, `thêm chiều về (gọn một dòng)${mobile ? "; chạm dòng tóm tắt rồi HUỶ cú chạm (pointercancel), sau đó mở bằng BÀN PHÍM → tiêu điểm vào ô Nơi đón, không phải đầu chặng" : ""}`, async () => {
+      await cham(p, mobile, `${the(0)}.querySelector('[data-action="them-chieu-ve"]')`);
+      await p.waitFor(`${the(0)}.querySelectorAll('.dd-chang').length === 2`, "có chiều về");
+      const ttVe = `${chang(0, 1)}.closest('.dd-chang-khung').querySelector('.dd-tom-tat')`;
+      assert.equal(await p.ev(hien(ttVe)), true, "ĐẦU: chiều về (đủ nơi đón) hiện gọn một dòng");
+      if (!mobile) await cham(p, mobile, ttVe);
+      else {
+        await p.ev(`(${ttVe}).scrollIntoView({ block: 'center' }); true`);
+        await sleep(150);
+        const { x, y } = await p.ev(`(() => { const r = (${ttVe}).getBoundingClientRect(); return { x: Math.round(r.left + Math.min(r.width / 2, 48)), y: Math.round(r.top + Math.min(r.height / 2, 20)) }; })()`);
+        await p.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+        await p.send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] });
+        await sleep(150);
+        assert.equal(await p.ev(hien(ttVe)), true, "cú chạm bị huỷ: chặng vẫn gọn");
+        await p.ev(`(${ttVe}).focus(); true`);
+        await phim(p, "Enter");
+        await sleep(200);
+        assert.equal(await p.ev(coTieuDiem(oNoi(0, 1, "don"))), true, `mở bằng bàn phím: tiêu điểm ở ô Nơi đón chiều về (đang ở: ${await dangO()})`);
+      }
+      assert.equal(await p.ev(hien(gio(1))), true, "chiều về mở: ô Giờ đón hiện");
+    });
+
+    await buoc(`${kho}-9d`, "gõ Nơi trả chiều đi rồi chạm NGAY ô Giờ đón CHIỀU VỀ: ô giờ không bị thay; giờ chọn hiện, chữ mờ 'Chưa chốt giờ' ẩn; Nơi đón chiều về theo chữ vừa gõ", async () => {
+      assert.deepEqual(await oGio(1), { gt: "", mo: false }, "ĐẦU: chiều về chưa chốt giờ (chữ mờ hiện)");
+      await goRoiCham("Cảng Cầu Đá, Nha Trang", gio(1));
+      await kiemGiu(gio(1), "Giờ đón chiều về");
+      await chonNhuMay("18:15");
+      await sleep(150);
+      assert.deepEqual(await oGio(1), { gt: "18:15", mo: true }, "ô giờ chiều về hiện đúng giờ vừa chọn; chữ mờ ẩn");
+      assert.equal(await p.ev(`(${oNoi(0, 1, "don")}).value`), "Cảng Cầu Đá, Nha Trang", "Nơi đón chiều về theo chữ vừa gõ ở Nơi trả chiều đi");
+    });
+
+    if (!mobile) await buoc(`${kho}-9e`, "bàn phím: còn lần dựng lại đang hẹn, Tab rời ô Giờ đón chiều về sang nút 'Đón khác ngày' (nút không có khoá trả tiêu điểm) → tiêu điểm ở lại nút, không rơi về trang", async () => {
+      await goRoiCham("Cảng Cầu Đá 2, Nha Trang", gio(1));
+      assert.equal(await p.ev(coTieuDiem(gio(1))), true, `ĐẦU: tiêu điểm ở ô Giờ đón chiều về (đang ở: ${await dangO()})`);
+      for (let k = 0; k < 6 && (await p.ev(coTieuDiem(gio(1)))); k++) await phim(p, "Tab"); // ô giờ của Chrome: Tab đi qua từng phần (giờ, phút, SA/CH) rồi mới rời ô
+      await sleep(300);
+      const r = await p.ev(`(() => { const a = document.activeElement; return { the: a?.tagName ?? null, conTrenTrang: !!a?.isConnected, action: a?.getAttribute('data-action') ?? null, trongChangVe: !!a && (${chang(0, 1)}).contains(a) }; })()`);
+      assert.deepEqual(r, { the: "BUTTON", conTrenTrang: true, action: "don-khac-ngay", trongChangVe: true }, `tiêu điểm ở nút 'Đón khác ngày' chiều về, còn trên trang (đang ở: ${await dangO()})`);
+    });
+
+    await buoc(`${kho}-9f`, "gõ Nơi trả chiều đi rồi chạm NGAY 'Đón khác ngày' CHIỀU VỀ: ô Ngày đón hiện, nhận tiêu điểm và không bị thay; ngày chọn hiện trong ô", async () => {
+      assert.equal(await p.ev(hien(ngay(1))), false, "ĐẦU: ô Ngày đón chiều về đang ẩn");
+      await goRoiCham("Hòn Chồng, Nha Trang", ngay(1), `${chang(0, 1)}.querySelector('[data-action="don-khac-ngay"]')`);
+      assert.equal(await p.ev(hien(ngay(1))), true, "ô Ngày đón chiều về hiện");
+      await kiemGiu(ngay(1), "Ngày đón chiều về (vừa hiện)");
+      await chonNhuMay(D2);
+      await sleep(150);
+      assert.equal(await p.ev(`(${ngay(1)}).value`), D2, "ô ngày chiều về hiện đúng ngày vừa chọn");
+    });
+
+    await buoc(`${kho}-9g`, "ô Giờ đón bị gỡ khi khối dựng lại (chọn dòng gợi ý) mà vẫn nhận giá trị: giờ vào bản nháp VÀ ô giờ mới hiện đúng giờ đó, chữ mờ khớp (khối luôn đồng bộ ô giờ với bản nháp)", async () => {
+      await p.ev(`window.__dich = ${gio(1)}; true`);
+      await chonNoiMotO(p, mobile, oNoi(0, 1, "tra"), { tim: "vinpearl", dong: "Bến cảng Vinpearl" });
+      assert.equal(await p.ev("window.__dich.isConnected"), false, "ĐẦU: chọn dòng gợi ý → khối dựng lại, ô giờ cũ đã bị gỡ");
+      await chonNhuMay("19:05");
+      await sleep(150);
+      assert.deepEqual(await oGio(1), { gt: "19:05", mo: true }, "ô giờ mới hiện giờ đã vào bản nháp; chữ mờ ẩn");
+    });
+
+    await buoc(`${kho}-9h`, "chạm Lưu: thân PUT mang đúng ngày / giờ / nơi đã chọn ở cả hai chặng; không lỗi console", async () => {
+      const truoc = p.requests.length;
+      await cham(p, mobile, "document.getElementById('save')");
+      await p.waitFor("location.pathname === '/order'", "lưu xong", 15000);
+      const than = p.requests.slice(truoc).filter((r) => r.method === "PUT" && /^\/api\/orders\/[^/]+$/.test(new URL(r.url).pathname)).map((r) => r.postData).at(-1);
+      assert.ok(than, "có thân PUT");
+      const legs = JSON.parse(than).services[0].legs;
+      const K = ["direction", "pickupDate", "pickupTime", "pickupLocationId", "pickupPlace", "dropoffLocationId", "dropoffPlace"];
+      const lay = (l) => Object.fromEntries(K.map((k) => [k, l?.[k]]));
+      assert.equal(legs.length, 2, "hai chặng");
+      assert.deepEqual(lay(legs[0]), { direction: "OUT", pickupDate: D1, pickupTime: "09:45", pickupLocationId: KS, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "Hòn Chồng, Nha Trang" }, "chặng chiều đi");
+      assert.deepEqual(lay(legs[1]), { direction: "RETURN", pickupDate: D2, pickupTime: "19:05", pickupLocationId: null, pickupPlace: "Hòn Chồng, Nha Trang", dropoffLocationId: VINPEARL, dropoffPlace: "" }, "chặng chiều về");
       assert.deepEqual(p.consoleErrors.filter((e) => !/favicon/.test(e)), []);
     });
     p.close();

@@ -7,12 +7,13 @@ import {
   TU_DO, canHienNgayDon, changNenGon, chiTietChangCoGiaTri, coOSoHieu, goiYChang, loiChang, nhanNoiChang, suaChang, themChangDi, themChieuVe, tomTatChang, type ChangNhap, type SuaChang,
 } from "../src/shared/chang-form";
 import type { MauChang } from "../src/shared/chang-mac-dinh";
+import { cachDungLaiHen } from "../src/shared/goi-y-noi";
 import { locDiem } from "../src/shared/loc-diem";
 import { h, replaceChildren } from "./dom";
 import { icon } from "./icons";
 import { taoKhoiGap, type KhoiGap } from "./khoi-gap";
 import { khungNhanNoi } from "./o-nhan-noi";
-import { sauThaoTac, taoONoiGoiY } from "./o-noi-goi-y";
+import { nhoChamKichHoat, sauThaoTac, taoONoiGoiY, type ONoiGoiY } from "./o-noi-goi-y";
 
 /**
  * Chỗ đặt tiêu điểm khi người lập dùng CẢM ỨNG (vòng sửa 1 của việc 7, M-1): ô "Nơi đón" / "Nơi trả" bản một ô là ô GÕ CHỮ — đặt tiêu điểm vào nó làm bàn phím ảo iPhone bật lên
@@ -82,20 +83,48 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
   const moChiTiet = new Set<string>();
   const root = h("div", { class: "dd", "data-dua-don": o.ma });
   /** Phần tử cập nhật tại chỗ theo từng chặng. */
-  let refs: { gapChang: KhoiGap | null; gapChiTiet: KhoiGap | null; tomTatEl: HTMLElement | null; ngayEl: HTMLElement | null; nutKhacNgay: HTMLElement | null; gioMo: HTMLElement; hintNgay: HTMLElement; hintGio: HTMLElement; loiDon: HTMLElement; loiDonTuDo: HTMLElement | null; loiSoVe: HTMLElement | null; loiChoToiThieu: HTMLElement; hintChoToiThieu: HTMLElement; hauTo: HTMLElement; don: HTMLInputElement | HTMLSelectElement; donTuDo: HTMLInputElement | null; soVe: HTMLInputElement | null; choToiThieu: HTMLInputElement }[] = [];
+  let refs: { gapChang: KhoiGap | null; gapChiTiet: KhoiGap | null; tomTatEl: HTMLElement | null; ngayEl: HTMLElement | null; nutKhacNgay: HTMLElement | null; ngay: HTMLInputElement; gio: HTMLInputElement; gioMo: HTMLElement; hintNgay: HTMLElement; hintGio: HTMLElement; loiDon: HTMLElement; loiDonTuDo: HTMLElement | null; loiSoVe: HTMLElement | null; loiChoToiThieu: HTMLElement; hintChoToiThieu: HTMLElement; hauTo: HTMLElement; don: HTMLInputElement | HTMLSelectElement; donTuDo: HTMLInputElement | null; soVe: HTMLInputElement | null; choToiThieu: HTMLInputElement; oDon: ONoiGoiY | null; oTra: ONoiGoiY | null }[] = [];
 
   const laSanBay = (id: string) => o.diem().some((d) => d.id === id && d.sanBay);
+  /** Chữ ô nơi (bản một ô) hiện cho giá trị đang lưu của chặng: nhãn điểm / địa chỉ gõ tự do / "". */
+  const hienThiNoi = (l: ChangNhap, loai: "don" | "tra") =>
+    nhanNoiChang(l[loai], loai === "don" ? l.donTuDo : l.traTuDo, loai === "don" ? l.goc?.pickupLabel : l.goc?.dropoffLabel, (x) => o.diem().find((d) => d.id === x)?.nhan ?? null);
   /**
-   * Lần dựng lại đang HẸN (ô nơi lưu chữ gõ khi người lập rời ô bằng cách chạm / bấm chỗ khác — vòng sửa 1 của việc 7): bản nháp đã ghi ngay, khối chỉ dựng lại SAU cú chạm (`sauThaoTac`)
-   * để nút / ô vừa được chạm trong cùng khối không bị thay giữa chừng (cú chạm không mất). `build()` nào chạy trước thì huỷ hẹn; Lưu (`showIssues(true)`) dựng ngay trước khi đặt tiêu điểm.
+   * Lần dựng lại đang HẸN (ô nơi lưu chữ gõ khi người lập rời ô bằng cách chạm / bấm / Tab sang chỗ khác — vòng sửa 1 và 2 của việc 7). Bản nháp đã ghi ngay (`ghiHen`); khối chỉ dựng
+   * lại khi AN TOÀN, xét SAU cú chạm (`sauThaoTac`): tiêu điểm ở ô ngày / giờ / ô gõ chữ trong khối, hay ở phần tử mà lần dựng lại không trả tiêu điểm về được, thì KHÔNG dựng (luật
+   * thuần `cachDungLaiHen`) — chỉ cập nhật tại chỗ (`refresh`) và xét lại khi tiêu điểm rời phần tử đó (`focusout` của khối). Dựng lại gỡ đúng ô vừa nhận cú chạm: bộ chọn ngày / giờ
+   * của máy gắn với ô cũ bị đóng (cú chạm mất) hoặc ghi vào ô đã gỡ (người kiểm lại, I-1 còn mở). `build()` nào chạy trước thì bỏ hẹn; Lưu (`showIssues(true)`) dựng ngay.
    */
-  let huyHen: (() => void) | null = null;
-  const dungLaiSau = () => {
-    huyHen?.();
-    huyHen = sauThaoTac(() => {
-      huyHen = null;
-      build();
-    });
+  let henDung = false;
+  let huyLuot: (() => void) | null = null;
+  const thuDung = () => {
+    huyLuot = null;
+    if (!henDung) return;
+    const a = document.activeElement;
+    const t = a instanceof HTMLElement
+      ? { trongKhoi: root.contains(a), the: a.tagName, kieu: a instanceof HTMLInputElement ? a.type : "", coKhoaTraVe: a.hasAttribute("data-o") || a.hasAttribute("data-gap") }
+      : null;
+    if (cachDungLaiHen(t) === "ngay") build();
+    else refresh();
+  };
+  const xetLaiSau = () => {
+    huyLuot?.();
+    huyLuot = sauThaoTac(thuDung);
+  };
+  // Tiêu điểm rời một phần tử trong khối (sang phần tử khác, hay ra ngoài) khi còn lần dựng lại đang hẹn: xét lại SAU cú chạm / phím đang dở.
+  root.addEventListener("focusout", () => {
+    if (henDung) xetLaiSau();
+  });
+  /**
+   * Rời ô nơi sau khi gõ (vòng sửa 1, `khiRoi`): ghi bản nháp và báo `onChange` NGAY (nút Lưu vừa được chạm thấy bản nháp mới) nhưng KHÔNG vẽ lại gì giữa cú chạm — kể cả `refresh()`
+   * (vòng sửa 2, Minor d: câu lỗi "chưa có nơi đón" ẩn ngay lúc ấn thì ô bên dưới dời lên và cú nhả rơi ra ngoài); việc vẽ đi theo lần dựng lại đã hẹn.
+   */
+  const ghiHen = (i: number, p: SuaChang) => {
+    legs = suaChang(legs, i, p);
+    if (legs.length === 0) taoSan = null;
+    o.onChange(legs, taoSan);
+    henDung = true;
+    xetLaiSau();
   };
   const commit = (next: ChangNhap[], rebuild: boolean) => {
     legs = next;
@@ -152,16 +181,14 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
    * `{ don: id }`, "Chưa chốt" `{ tra: "" }`, gõ tự do `{ don: TU_DO, donTuDo: chữ }` (cũ: chọn "Gõ tự do…" rồi gõ ô địa chỉ — cùng bản nháp, cùng thân gửi). Chọn lại đúng giá trị đang có
    * thì không ghi gì (ô chọn của máy không bắn `change` khi chọn lại — giữ liên kết "theo chiều đi" / chữ "gợi ý theo dịch vụ"). Lỗi "chưa có nơi đón" và "chưa ghi địa chỉ đón" cùng
    * nằm dưới ô này (`loi`). Chữ gõ tự do kèm câu nhắc chỉ ghi địa chỉ (dưới ô khi đang là chữ tự do, và dưới dòng gõ tự do của danh sách).
-   * Rời ô sau khi gõ (`khiRoi`, vòng sửa 1): ghi `{ don: TU_DO, donTuDo: chữ }` NGAY (nút Lưu vừa được chạm thấy bản nháp mới) rồi hẹn dựng lại sau cú chạm (`dungLaiSau`). So "chọn lại
-   * đúng giá trị đang có" với bản nháp HIỆN TẠI (`legs[i]`), không với giá trị lúc dựng ô (có thể đã đổi trong lúc chờ dựng lại).
+   * Rời ô sau khi gõ (`khiRoi`, vòng sửa 1): ghi `{ don: TU_DO, donTuDo: chữ }` NGAY (nút Lưu vừa được chạm thấy bản nháp mới) rồi hẹn dựng lại (`ghiHen`). So "chọn lại đúng giá trị
+   * đang có" với bản nháp HIỆN TẠI (`legs[i]`), không với giá trị lúc dựng ô (có thể đã đổi trong lúc chờ dựng lại).
    */
-  function cotNoiMotO(l: ChangNhap, i: number, loai: "don" | "tra", goiY: string, loi: HTMLElement | null): { o: HTMLInputElement; cot: HTMLElement } {
+  function cotNoiMotO(l: ChangNhap, i: number, loai: "don" | "tra", goiY: string, loi: HTMLElement | null): { w: ONoiGoiY; cot: HTMLElement } {
     const oid = `${o.ma}-${l.key}-${loai}`;
     const ten = loai === "don" ? "Nơi đón" : "Nơi trả";
     const chon = l[loai];
-    const chu = loai === "don" ? l.donTuDo : l.traTuDo;
-    const nhanTheoId = (x: string) => o.diem().find((d) => d.id === x)?.nhan ?? null;
-    const hienThi = nhanNoiChang(chon, chu, loai === "don" ? l.goc?.pickupLabel : l.goc?.dropoffLabel, nhanTheoId);
+    const hienThi = hienThiNoi(l, loai);
     const hintTuDo = chon === TU_DO ? h("span", { class: "hint", id: `${oid}-chi-dia-chi` }, CHI_DIA_CHI) : null;
     const hintGoiY = goiY ? h("span", { class: "hint", id: `${oid}-goi-y` }, goiY) : null;
     if (loi) loi.id = `${oid}-loi`;
@@ -175,16 +202,12 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
         const chuMoi = d.loai === "tu-do" ? d.chu : null;
         if (moi === hienTai[loai] && (chuMoi === null || chuMoi === (loai === "don" ? hienTai.donTuDo : hienTai.traTuDo).trim())) return;
         const p: SuaChang = loai === "don" ? { don: moi, ...(chuMoi !== null ? { donTuDo: chuMoi } : {}) } : { tra: moi, ...(chuMoi !== null ? { traTuDo: chuMoi } : {}) };
-        if (khiRoi) {
-          sua(i, p, false); // bản nháp mới ngay (onChange → Lưu thấy); khối dựng lại sau cú chạm đang dở
-          dungLaiSau();
-          return;
-        }
+        if (khiRoi) return ghiHen(i, p); // bản nháp mới ngay (onChange → Lưu thấy); vẽ lại khi an toàn (sau cú chạm, không gỡ ô đang nhận thao tác)
         sua(i, p, true);
         if (cham && document.activeElement instanceof HTMLElement && root.contains(document.activeElement)) document.activeElement.blur(); // chạm cảm ứng: bàn phím ảo không bật lại sau khi dựng lại
       },
     });
-    return { o: w.o, cot: h("div", { class: "dd-cot" }, h("label", { for: oid, class: "o-noi" }, khungNhanNoi(ten, w.o)), w.ds, w.bao, loi, hintTuDo, hintGoiY) };
+    return { w, cot: h("div", { class: "dd-cot" }, h("label", { for: oid, class: "o-noi" }, khungNhanNoi(ten, w.o)), w.ds, w.bao, loi, hintTuDo, hintGoiY) };
   }
 
   const hint = (text: string) => h("span", { class: "hint" }, text);
@@ -278,11 +301,16 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     let loiDonTuDo: HTMLElement | null = null;
     let cotDon: HTMLElement;
     let cotTra: HTMLElement;
+    let oDon: ONoiGoiY | null = null;
+    let oTra: ONoiGoiY | null = null;
     if (nn) {
       const d = cotNoiMotO(l, i, "don", g.don, loiDon);
-      don = d.o;
+      const t = cotNoiMotO(l, i, "tra", g.tra, null);
+      oDon = d.w;
+      oTra = t.w;
+      don = d.w.o;
       cotDon = d.cot;
-      cotTra = cotNoiMotO(l, i, "tra", g.tra, null).cot;
+      cotTra = t.cot;
     } else {
       const { sel, tim: timDon, timKq: timDonKq } = oChonNoi(l, "don", id("don"));
       sel.addEventListener("change", () => sua(i, { don: sel.value }, true));
@@ -391,7 +419,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       const luoiGap = h("div", { class: "dd-luoi-phu" }, ...phuGap);
       gapChiTiet = taoKhoiGap({ ma: `chi-tiet-${l.key}`, nhan: "Thêm chi tiết (xe riêng, số chỗ)", than: luoiGap, mo: moChiTiet.has(l.key), khiDoi: (mo) => (mo ? moChiTiet.add(l.key) : moChiTiet.delete(l.key)) });
     }
-    refs[i] = { gapChang: null, gapChiTiet, tomTatEl: null, ngayEl: nn ? ngayEl : null, nutKhacNgay, gioMo, hintNgay, hintGio, loiDon, loiDonTuDo, loiSoVe, loiChoToiThieu, hintChoToiThieu, hauTo, don, donTuDo, soVe, choToiThieu };
+    refs[i] = { gapChang: null, gapChiTiet, tomTatEl: null, ngayEl: nn ? ngayEl : null, nutKhacNgay, ngay, gio, gioMo, hintNgay, hintGio, loiDon, loiDonTuDo, loiSoVe, loiChoToiThieu, hintChoToiThieu, hauTo, don, donTuDo, soVe, choToiThieu, oDon, oTra };
 
     const chang = h(
       "div",
@@ -412,12 +440,10 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     const nutTomTat = h("button", { type: "button", class: "dd-tom-tat", "aria-expanded": "false" }, tomTat, icon("chevron-down", 16));
     const gapChang = taoKhoiGap({ ma: `chang-${l.key}`, nhan: "", than: chang, nut: nutTomTat, mo: moChang.has(l.key), khiDoi: (mo) => { if (mo) moChang.add(l.key); nutTomTat.hidden = mo; } });
     // Sau khi `taoKhoiGap` đã mở chặng (nghe click trước): chuột / bàn phím → tiêu điểm vào ô Nơi đón; cảm ứng (vòng sửa 1, M-1) → tiêu điểm vào đầu chặng và cuộn ô Nơi đón vào khung
-    // nhìn (ô gõ nhận focus thì bàn phím ảo iPhone bật). Kiểu ấn nhớ từ `pointerdown` của chính nút (Safari: `click` không mang `pointerType`).
-    let kieuAnTomTat = "";
-    nutTomTat.addEventListener("pointerdown", (e) => { kieuAnTomTat = e.pointerType; });
+    // nhìn (ô gõ nhận focus thì bàn phím ảo iPhone bật). Kiểu ấn nhớ từ `pointerdown` của chính nút (Safari: `click` không mang `pointerType`), xoá khi cú chạm bị huỷ / bấm phím (vòng 2).
+    const laChamTomTat = nhoChamKichHoat(nutTomTat);
     nutTomTat.addEventListener("click", () => {
-      const cham = kieuAnTomTat === "touch" || kieuAnTomTat === "pen";
-      kieuAnTomTat = "";
+      const cham = laChamTomTat();
       const oDon = refs[i]?.don;
       if (!oDon) return;
       if (!cham) return oDon.focus();
@@ -438,8 +464,9 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
   }
 
   function build(): void {
-    huyHen?.(); // dựng ngay → bỏ lần dựng đang hẹn
-    huyHen = null;
+    henDung = false; // dựng ngay → bỏ lần dựng đang hẹn (TRƯỚC khi gỡ phần tử cũ: `focusout` lúc gỡ không hẹn lại)
+    huyLuot?.();
+    huyLuot = null;
     const dang = document.activeElement instanceof HTMLElement && root.contains(document.activeElement) ? document.activeElement : null;
     // Trả focus theo `data-o` (ô) hoặc `data-gap` (nút "Thêm chi tiết") — Tab rời ô nơi sau khi gõ rồi khối dựng lại thì tiêu điểm ở đúng chỗ người lập vừa tới.
     const khoaFocus = dang?.getAttribute("data-o") ? `[data-o="${CSS.escape(dang.getAttribute("data-o")!)}"]` : dang?.getAttribute("data-gap") ? `[data-gap="${CSS.escape(dang.getAttribute("data-gap")!)}"]` : null;
@@ -482,6 +509,12 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       const r = refs[i];
       if (!r) return;
       const g = goiYChang(l, ngayDi);
+      // Ô ngày / giờ LUÔN khớp bản nháp (vòng sửa 2): giá trị có thể tới bản nháp qua một ô đã bị gỡ (bộ chọn của máy còn gắn với ô cũ) — ô đang thấy phải hiện đúng giá trị sẽ gửi đi,
+      // và chữ mờ "Chưa chốt giờ" đi cùng giá trị đó. Ô đang gõ dở (`badInput`) thì không đè.
+      if (r.ngay.value !== l.pickupDate && !r.ngay.validity.badInput) r.ngay.value = l.pickupDate;
+      if (r.gio.value !== l.pickupTime && !r.gio.validity.badInput) r.gio.value = l.pickupTime;
+      r.oDon?.dat(hienThiNoi(l, "don"), l.don === TU_DO);
+      r.oTra?.dat(hienThiNoi(l, "tra"), l.tra === TU_DO);
       r.hintNgay.textContent = g.ngay;
       capNhatNgay(r.ngayEl, r.nutKhacNgay, l);
       r.hintGio.textContent = g.gio;
@@ -506,7 +539,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       build();
     },
     showIssues(show) {
-      if (show && huyHen) build(); // Lưu: dựng ngay lần đang hẹn (ô nơi vừa lưu chữ gõ) để tiêu điểm / ô lỗi trả về là phần tử đang ở trên trang
+      if (show && henDung) build(); // Lưu: dựng ngay lần đang hẹn (ô nơi vừa lưu chữ gõ) để ô lỗi trả về là phần tử của lần dựng mới nhất
       daLuu = show;
       refresh();
       if (!show) return null;

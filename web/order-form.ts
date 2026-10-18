@@ -36,6 +36,7 @@ import { regroupMoney } from "./money-input";
 import { createServiceCard, type ServiceCard } from "./service-card";
 import { khoiCanhBaoMoc, khoiNhanDatGap } from "./dat-gap-ui";
 import { tieuDiemKhiCham, type DiemChon } from "./khoi-dua-don";
+import { nhoChamKichHoat } from "./o-noi-goi-y";
 import { taoKhoiHanhKhach, type KhoiHanhKhach } from "./khoi-hanh-khach";
 import { moKhoiChua, moMoiKhoiGap, taoKhoiGap } from "./khoi-gap";
 import { taoThanhBuoc } from "./thanh-buoc";
@@ -529,17 +530,16 @@ formEl.addEventListener("submit", (e) => {
   e.preventDefault();
   void luu();
 });
-// Lưu bằng CẢM ỨNG (vòng sửa 1 của việc 7, M-1): nhớ kiểu ấn từ `pointerdown` của chính nút Lưu (Safari: `click` / `submit` không mang `pointerType`); `luu()` đọc rồi xoá.
-let luuBangCham = false;
-saveBtn.addEventListener("pointerdown", (e) => { luuBangCham = e.pointerType === "touch" || e.pointerType === "pen"; });
+// Lưu bằng CẢM ỨNG (vòng sửa 1 của việc 7, M-1): nhớ kiểu ấn từ `pointerdown` của chính nút Lưu (Safari: `click` / `submit` không mang `pointerType`); `luu()` đọc rồi xoá. Cú chạm bị
+// huỷ / kéo ra ngoài / bấm phím sau đó thì không còn là "lưu bằng chạm" (vòng sửa 2, Minor c).
+const laLuuBangCham = nhoChamKichHoat(saveBtn);
 
 /**
  * Lưu đơn nháp. `datGap` (ADR-0049 R-P15 — nút "Duyệt đặt gấp" của Quản trị trên thẻ): lưu xong gọi lệnh đặt gấp cho chặng chiều đi của đúng dịch vụ đó (thứ tự
  * dịch vụ trong phản hồi = thứ tự thẻ). Lệnh đặt gấp hỏng thì đơn VẪN đã lưu → vẫn chuyển sang trang đơn, kèm `datgap=loi` để trang đơn báo và cho duyệt lại.
  */
 async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDatGap; ghiChu: string | null } }): Promise<void> {
-  const cham = luuBangCham && !datGap;
-  luuBangCham = false;
+  const cham = laLuuBangCham() && !datGap;
   if (formLocked || saving) return;
   renderBanner(saveErrorEl, null);
   assigneeErrorShown = false;

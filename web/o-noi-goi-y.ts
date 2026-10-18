@@ -33,7 +33,8 @@ export interface ONoiGoiYOptions {
   /**
    * Người lập chọn một dòng (không gọi với dòng gõ tự do còn trống), hoặc rời ô sau khi gõ (`khiRoi` = true, dòng gõ tự do mang chữ đã gõ). `cham` = chọn bằng chạm cảm ứng (nơi gọi
    * bỏ focus để bàn phím ảo khỏi bật lại sau khi dựng lại). `khiRoi`: người lập đang chạm / bấm / Tab sang chỗ KHÁC — nơi gọi ghi bản nháp NGAY nhưng KHÔNG được dựng lại khối ngay
-   * (dựng lại giữa cú chạm thì nút / ô vừa được chạm bị thay và cú chạm mất) — dùng `sauThaoTac`.
+   * (dựng lại giữa cú chạm thì nút / ô vừa được chạm bị thay và cú chạm mất) — dùng `sauThaoTac`, và không dựng lại khi tiêu điểm đang ở ô ngày / giờ / ô gõ chữ (vòng sửa 2 —
+   * `cachDungLaiHen` của src/shared/goi-y-noi.ts).
    */
   chon: (d: DongChon, cham: boolean, khiRoi: boolean) => void;
 }
@@ -44,6 +45,11 @@ export interface ONoiGoiY {
   ds: HTMLElement;
   /** Vùng đọc cho máy đọc màn hình: số điểm khớp. */
   bao: HTMLElement;
+  /**
+   * Giá trị đang lưu đổi từ BÊN NGOÀI mà khối chưa dựng lại (vòng sửa 2: lần dựng lại đang chờ tiêu điểm rời ô ngày / giờ — vd Nơi đón chiều về theo Nơi trả chiều đi): cập nhật chữ
+   * ô tại chỗ. Ô đang mở danh sách thì thôi (không đè chữ người lập đang gõ). Chỉ chữ ô — câu nhắc dưới ô vẫn chờ lần dựng lại.
+   */
+  dat(hienThi: string, laTuDo: boolean): void;
 }
 
 const CHU_MO = "Gõ tên điểm hoặc địa chỉ";
@@ -63,6 +69,38 @@ function caiTheoDoiAn(): void {
   };
   document.addEventListener("pointerup", nha, true);
   document.addEventListener("pointercancel", nha, true);
+}
+
+/** Số lần bấm phím trên trang (một trình nghe cho cả trang, cài một lần): `nhoChamKichHoat` coi mọi lần bấm phím sau cú ấn là kích hoạt bằng bàn phím. */
+let soPhim = 0;
+let daCaiPhim = false;
+
+/**
+ * Nhớ lần kích hoạt `el` sắp tới có phải bằng CẢM ỨNG không (vòng sửa 1 — M-1, sửa ở vòng 2 — Minor c): Safari bắn `click` / `submit` không mang `pointerType`, nên đọc từ `pointerdown`
+ * của chính phần tử. Cờ bị XOÁ khi cú ấn bị huỷ (`pointercancel` — vuốt cuộn), khi nhả tay NGOÀI phần tử (kéo ra ngoài: không có `click`), và khi có lần bấm phím nào sau cú ấn
+ * (Enter / Space trên nút, Enter gửi form) — nếu không, lần kích hoạt bằng bàn phím kế tiếp bị coi là cảm ứng. Trả hàm ĐỌC RỒI XOÁ.
+ */
+export function nhoChamKichHoat(el: HTMLElement): () => boolean {
+  if (!daCaiPhim) {
+    daCaiPhim = true;
+    document.addEventListener("keydown", () => { soPhim++; }, true);
+  }
+  let cham = false;
+  let phimLucAn = 0;
+  el.addEventListener("pointerdown", (e) => {
+    cham = e.pointerType === "touch" || e.pointerType === "pen";
+    phimLucAn = soPhim;
+  });
+  el.addEventListener("pointercancel", () => { cham = false; });
+  el.addEventListener("pointerup", (e) => {
+    const duoi = document.elementFromPoint(e.clientX, e.clientY);
+    if (!duoi || !el.contains(duoi)) cham = false; // cảm ứng giữ `pointerup` ở phần tử đã ấn dù ngón tay đã kéo ra ngoài
+  });
+  return () => {
+    const co = cham && phimLucAn === soPhim;
+    cham = false;
+    return co;
+  };
 }
 
 /**
@@ -255,5 +293,11 @@ export function taoONoiGoiY(op: ONoiGoiYOptions): ONoiGoiY {
   });
   // Rời ô (Tab, chạm ô / nút nhận focus, "Xong" của bàn phím iPhone): giữ chữ đã gõ. Ô đã bị thay khỏi trang thì chỉ bỏ nghe.
   o.addEventListener("blur", () => dong_(o.isConnected ? "roi" : "huy"));
-  return { o, ds, bao };
+  const dat = (moiHienThi: string, moiLaTuDo: boolean) => {
+    if (mo) return;
+    hienThi = moiHienThi;
+    laTuDo = moiLaTuDo;
+    if (o.value !== hienThi) o.value = hienThi;
+  };
+  return { o, ds, bao, dat };
 }
