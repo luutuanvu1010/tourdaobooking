@@ -65,7 +65,7 @@ Nguồn: rà từng khuôn chữ `detail` ngày 2026-10-18 (người rà chỉ �
 | | `order_handler_changed` | giu | "từ <phụ trách cũ> sang <mới>" — tên người phụ trách là dữ liệu đơn; dòng không nói ai bấm |
 | | `order_claimed` | **bo** | khuôn "… sang <tên>" luôn là **chính người bấm** |
 | | `booker_changed` | giu | tên hồ sơ bên đặt cũ → mới |
-| Tiền của đơn trong sổ (lựa chọn phụ của chủ có thể gác cả nhóm bằng `ledger.view` không ngữ cảnh) | `order_terms_captured`, `order_terms_recaptured`, `order_terms_manual` | giu | số dòng có/thiếu mức; mức cũ → mới, tên hồ sơ người bán (không phải người bấm) |
+| Tiền của đơn trong sổ (không gác thêm ô — ADR đ2b) | `order_terms_captured`, `order_terms_recaptured`, `order_terms_manual` | giu | số dòng có/thiếu mức; mức cũ → mới, tên hồ sơ người bán (không phải người bấm) |
 | | `ledger_company_received`, `ledger_refund`, `ledger_adjustment_withdrawn`, `ledger_bank_txn_linked`, `deposit_refund_paid`, `deposit_transferred_out`, `deposit_transferred_in` | giu | không chữ hoặc chữ cố định |
 | | `ledger_adjustment`, `ledger_adjustment_requested`, `ledger_adjustment_approved`, `ledger_adjustment_rejected` | giu | lý do tự gõ (dòng duyệt mang lý do của **người đề nghị**, không tên); số dư trước → sau |
 | | `ledger_adjustment_affected` | giu | câu cố định xưng "bạn" — đọc lạ với người khác, lệch cũ, ngoài phạm vi |
