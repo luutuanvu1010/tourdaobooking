@@ -2,9 +2,10 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **TRẠNG THÁI: CHỜ CHỦ DUYỆT** (bản 2.1, sửa theo người kiểm độc lập vòng 1 và 2). Không thi công trước khi:
-> - chủ duyệt ba quyết định ở `docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/trinh-chu.md`;
-> - ADR-0130 đã vào `docs/adr/`.
+> **TRẠNG THÁI: ĐÃ DUYỆT, SẴN SÀNG THI CÔNG** (bản 2.1). Chủ dự án duyệt ba quyết định ở `docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/trinh-chu.md` ngày 2026-10-18: *«Tôi duyệt cả ba điều theo khuyến nghị: đặc tả + trang ghép, ADR-0130, cho xây đợt 2 trên năm lỗ đang hở, sửa hàng rào giữ hộ theo khuyến nghị; chỉ phát hành sau khi đã diễn tập khôi phục dữ liệu.»*
+> - ADR-0132 (số tạm 0130 trong câu duyệt) đã ở `docs/adr/`, accepted;
+> - lời cho phép xây trên năm lỗ đã ghi ở trường `xay_tren_cho_phep` của `docs/quyen-hoan.json`;
+> - **phát hành chỉ sau diễn tập khôi phục dữ liệu** (HC-5.19). Thi công không chờ điều này; Task 14 ghi nó thành điều kiện số 1 của runbook.
 >
 > Phiên lập kế hoạch không tự thi công (Hiến pháp P15). Người thi công không tự nghiệm thu (N8): mỗi task có người kiểm độc lập chỉ-đọc (vai `nguoi-kiem-doc-lap`).
 
@@ -13,7 +14,7 @@
 **Architecture:**
 - Route «Đã giao» của `billing` hỏi `can()`, gọi hàm công bố `orders.phanThuongMaiCuaDon`, rồi truyền phần thương mại xuống `billing/service.ts`. Ở đó luật thuần sinh dòng thương mại vào cùng lô.
 - Hai lớp CSDL canh: câu ghi của `orders` và trigger của `billing`.
-- Người thu `BOOKER` / `SUPPLIER` mở theo ADR-0130: người không giữ `ledger.write` chỉ khai (dấu `DECLARED`, không tạo nợ); Kế toán xác nhận thì sinh dòng giữ hộ.
+- Người thu `BOOKER` / `SUPPLIER` mở theo ADR-0132: người không giữ `ledger.write` chỉ khai (dấu `DECLARED`, không tạo nợ); Kế toán xác nhận thì sinh dòng giữ hộ.
 - Trần giảm giá trên đơn có người hưởng = tổng hoa hồng, áp cho mọi người.
 
 **Tech Stack:**
@@ -24,7 +25,7 @@
 
 **Spec:**
 - Đặc tả: `docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/README.md`, mục P1–P10.
-- Cùng thư mục: `trang-ghep.md`, `de-xuat-adr-khach-tra-ben-kia.md` (ADR-0130), `phieu-ke-toan.md`.
+- Cùng thư mục: `trang-ghep.md`, `phieu-ke-toan.md`. ADR: `docs/adr/ADR-0132-khach-tra-ben-kia-cho-ke-toan-xac-nhan.md`.
 - ADR gốc: ADR-0078 (B2, điều 5), ADR-0079, ADR-0061 A-14; đã sửa câu bởi ADR-0088, 0092, 0109, 0115, 0120.
 - Lệch nhau thì đặc tả thắng kế hoạch, ADR thắng đặc tả.
 
@@ -96,9 +97,9 @@
 - Modify: `golden/so-cong-no-luot-2.json`
 
 - [ ] **Step 1: Xác nhận điều kiện.** Thiếu một điều thì DỪNG, báo điều phối.
-  - ADR-0130 có ở `docs/adr/`, trạng thái accepted.
+  - ADR-0132 có ở `docs/adr/`, trạng thái accepted.
   - `trinh-chu.md` có lời duyệt của chủ cho ba quyết định.
-  - Trường `xay_tren_cho_phep` của TNV-G1, TNV-G3, TNV-G4, HC-4.2, HC-5.19 trong `docs/quyen-hoan.json` có câu **nhắc «sổ đại lý đợt 2»**. Dòng cho phép cũ của đặc tả QR ngày 8/10 **không tính**.
+  - Trường `xay_tren_cho_phep` của TNV-G1, TNV-G3, TNV-G4, HC-4.2, HC-5.19 trong `docs/quyen-hoan.json` có đoạn bắt đầu «SỔ ĐẠI LÝ ĐỢT 2 — chủ dự án 2026-10-18» (đã ghi lúc duyệt; chỉ kiểm lại). Dòng cho phép cũ của đặc tả QR ngày 8/10 **không tính**.
 - [ ] **Step 2: Soạn câu đếm chỉ-đọc.** Một tệp SQL, mỗi câu một dòng, có chú thích lời thường. Chủ chạy bằng `wrangler d1 execute tourdao-sales-db --remote --command "<câu>"`.
   - (a) đơn đã «Đã giao» có dòng mà điều khoản cung ứng hiện hành có nhà cung cấp;
   - (b1) đơn `confirmed`, chưa giao, không bản chụp nào, bên đặt không mang vai được hưởng / nhóm bên ngoài / loại đối tác, không dòng nhập tay — đếm **số đơn và số dòng dịch vụ**;
@@ -278,7 +279,7 @@ export function sinhPhieuDaGiao(v: { congTyId: string; nguoiHuongPartyId: string
 - [ ] **Step 4: Chạy lại** bài mới, rồi `node --test src/da-giao-khe-hoa-hong.test.ts src/modules/pricing/loai-doi-tac.test.ts src/modules/billing/*.test.ts src/orders-cong-bo.test.ts src/architecture.test.ts`. Sau đó `npm test` + `npm run typecheck` xanh.
 - [ ] **Step 5: Commit** — «Mở Đã giao cho đơn có người hưởng: lô ghi hoa hồng, giảm giá bên đặt chịu, giá vốn; hai lớp chặn thiếu bản chụp».
 
-### Task 5: Người thu bên đặt / nhà cung cấp; khai và «Bên kia đã nhận» (ADR-0130)
+### Task 5: Người thu bên đặt / nhà cung cấp; khai và «Bên kia đã nhận» (ADR-0132)
 
 **Files:**
 - Modify `src/shared/contracts.ts`.
@@ -319,12 +320,12 @@ Route mới: `POST /api/ledger/counterparty-receipts/:receiptId/confirm`. Cổng
 - **Lần thu kèm «Đã giao»:** `"ben_dat"` / `{ nhaCungCapPartyId }` ⇒ 400 «Ghi khoản khách trả cho đại lý / tại quầy trước, chờ Kế toán xác nhận rồi mới Đã giao.».
 
 - [ ] **Step 1: Viết bài đỏ** `ben-kia.test.ts`.
-  - **Khai và xác nhận** (ADR-0130 tiêu chí 1–3):
+  - **Khai và xác nhận** (ADR-0132 tiêu chí 1–3):
     - HDV khai `"ben_dat"` 300.000 ⇒ 201; không `HELD`; có `DECLARED`; `banDangGiu` của HDV không đổi; đơn có trong danh sách «chờ đối chiếu» (`PENDING_COMPANY`) và bộ đếm của Kế toán; «Đã giao» ⇒ 409 `reconciling`, câu nêu «khách trả cho <tên đại lý>».
     - Kế toán xác nhận ⇒ một phiếu `COUNTERPARTY_CONFIRMED`, một `HELD` đại lý → cty 300.000 mang `receipt_id` gốc; đơn rời danh sách chờ; «Đã giao» được.
     - Đảo trước xác nhận ⇒ hết chờ, không dòng sót. Khai lại ⇒ chờ lại (Review Focus 3). Đảo sau xác nhận (đơn chưa giao) ⇒ `HELD` trên đại lý được đảo.
   - **Ghi trực tiếp:**
-    - Đối tác `"toi"` trên đơn mình là bên đặt ⇒ `BOOKER`, `HELD` ngay, không dấu chờ (ADR-0130 tiêu chí 5).
+    - Đối tác `"toi"` trên đơn mình là bên đặt ⇒ `BOOKER`, `HELD` ngay, không dấu chờ (ADR-0132 tiêu chí 5).
     - Kế toán `{ partyId: đại lý }` ⇒ `BOOKER`, `HELD` ngay.
   - **Từ chối:**
     - `"ben_dat"` trên đơn khách lẻ ⇒ 400;
@@ -334,7 +335,7 @@ Route mới: `POST /api/ledger/counterparty-receipts/:receiptId/confirm`. Cổng
     - `SUPPLIER` ⇒ `collected_for_party_id` = NCC;
     - lễ tân `"toi"` + `thuChoNhaCungCapPartyId` = i-resort ⇒ thu cho i-resort;
     - không chọn ⇒ công ty chủ.
-  - **Mã giao dịch:** `BOOKER` chuyển khoản, xác nhận không mã ⇒ được (ADR-0130 tiêu chí 4).
+  - **Mã giao dịch:** `BOOKER` chuyển khoản, xác nhận không mã ⇒ được (ADR-0132 tiêu chí 4).
   - **Kế toán chọn hồ sơ:** hồ sơ khách trên đơn khách lẻ ⇒ không `BOOKER`; NCC vượt phần chưa thu ⇒ 400.
   - **Hai nơi khớp nhau:** bài đối chiếu mã ↔ SQL (khoanMoiDoiChieu ↔ `v_bil_coc_don`) có các mẫu: `BOOKER` / `SUPPLIER` đang `DECLARED` ⇒ đang đối chiếu; đã `CONFIRMED` ⇒ không; Đối tác / Kế toán ghi thẳng (`HELD` ngay, không dấu) ⇒ không. `soDuGiuHo` ↔ trigger `held_once` cùng tập loại dòng.
   - **Danh sách chờ khớp màn đơn:** khoản «Công ty thu» tiền mặt cũ đã «Nộp» đủ ⇒ không có trong `PENDING_COMPANY`, cũng không trong `khoanChoXacNhan`.
@@ -345,7 +346,7 @@ Route mới: `POST /api/ledger/counterparty-receipts/:receiptId/confirm`. Cổng
   - `xacNhanBenKia` theo khuôn `xacNhanCongTyNhan`: một lô gồm dấu `CONFIRMED` → phiếu → `HELD` → nhật ký (hành động mới `ledger_counterparty_confirmed`, nhãn «Bên kia đã nhận»), khoá lạc quan như khuôn cũ.
   - Xoá hằng chết `COLLECTOR_ROLES_GHI_MOI` hoặc cho nó thành cổng thật (Ruling).
 - [ ] **Step 4: Chạy lại** cùng `node --test src/modules/billing/*.test.ts src/audit-invariants.test.ts`, PASS. Sau đó `npm test`, `typecheck` xanh.
-- [ ] **Step 5: Commit** — «Người thu là đại lý / quầy nhà cung cấp; lời khai chờ Kế toán xác nhận, không tạo nợ (ADR-0130)».
+- [ ] **Step 5: Commit** — «Người thu là đại lý / quầy nhà cung cấp; lời khai chờ Kế toán xác nhận, không tạo nợ (ADR-0132)».
 
 ### Task 6: Đơn cũ — chụp bù b1, nút «Chụp bù» (b2), điều chỉnh nhóm a
 
@@ -536,7 +537,7 @@ Mỗi người bán một phần; đơn chỉ một người bán thì có một
   - ghi nợ mới.
 - **Nhật ký thay đổi:** mục 2.18 tạm, lời thường.
 - **`docs/HANDOFF-N1.md`** (mục chuẩn bị phát hành):
-  1. Điều kiện: diễn tập khôi phục (HC-5.19) đã xong, hoặc chủ ghi rõ chấp nhận rủi ro.
+  1. Điều kiện: diễn tập khôi phục (HC-5.19) đã xong — chủ duyệt 18/10 «chỉ phát hành sau khi đã diễn tập khôi phục dữ liệu». Muốn phát hành trước thì chủ phải nói lại bằng lời mới; không suy từ lời cũ.
   2. Trước phát hành: chạy câu đếm Task 0.
   3. Phát hành: `trien-khai` (có migration nên có điểm Time Travel).
   4. Ngay sau đó: câu đếm (sau) phải bằng số dòng dịch vụ của b1; rồi `audit-invariants --db remote`.

@@ -5,7 +5,7 @@
 **Nguồn đã duyệt:** ADR-0080 phần D2 (điều 8–10), ADR-0081 (toàn bộ), C9 = A (ẩn % của chính đại lý). Các câu đã bị ADR sau sửa:
 - ADR-0092: «không vượt» đã có hai lớp; R-BIL-13 ở mức lỗi; «ô mã giao dịch riêng» thay ghi chú.
 - ADR-0115: điều chỉnh có người duyệt; ví dụ D-3 đi qua đường này.
-- ADR-0130: `minhKhaiChoXacNhan` chỉ còn khoản «Công ty thu – chuyển khoản».
+- ADR-0132: `minhKhaiChoXacNhan` chỉ còn khoản «Công ty thu – chuyển khoản».
 - ADR-0117: tài khoản lai có quyền nội bộ không là người hưởng.
 
 **Đo mã 2026-10-18:** route `POST /api/ledger/settlements` có, `ghiQuyetToan` nhận `nop` / `tra`, mỗi phiếu một chiều, tối đa 100 đơn, đã kiểm không vượt. Chưa có: kiểu `bu_tru`, bảng kê tháng, màn «Quyết toán», ô `ledger.partner.view`, route sổ đối tác, DTO `SoDoiTacResponse`, màn «Sổ của tôi» cho Đối tác, view công bố của `orders` liệt kê đơn theo bên đặt / người hưởng.

@@ -1,7 +1,7 @@
 # Đặc tả — Sổ đại lý đợt 2: đơn có người hưởng hoa hồng đi tới «Đã giao – đã thu đủ»
 
-- **Trạng thái:** **chờ chủ duyệt** (lượt duyệt ở `trinh-chu.md`). Soạn 2026-10-18 bởi phiên lập kế hoạch; chưa ai thi công. Bản 2: sửa theo báo cáo người kiểm độc lập vòng 1 (kết luận «chưa đủ», ba mục Chặn C1–C3, mười một mục Quan trọng); thay đổi so với bản 1 ghi ở cuối tệp.
-- **Nguồn đã duyệt (áp dụng, không hỏi lại):** ADR-0078 phần B2 (điều 7, 9, 10) và điều 5 (dòng nhập tay), ADR-0079 (toàn bộ), ADR-0061 A-14, lời chủ C1–C13 = A (`docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/cau-hoi-chu.md`). Các ADR ra sau đã sửa câu của chúng: ADR-0088, 0092, 0109, 0115, 0117, 0120. **Mới:** ADR-0130 (đề xuất, `de-xuat-adr-khach-tra-ben-kia.md`) thay ADR-0078 điều 8 gạch 2 theo lời chủ 18/10.
+- **Trạng thái:** **đã duyệt** — chủ dự án, chat 2026-10-18: *«Tôi duyệt cả ba điều theo khuyến nghị: đặc tả + trang ghép, ADR-0130, cho xây đợt 2 trên năm lỗ đang hở, sửa hàng rào giữ hộ theo khuyến nghị; chỉ phát hành sau khi đã diễn tập khôi phục dữ liệu.»* Bản được duyệt là bản 2.1 (gồm P10). ADR-0130 trong câu duyệt là số tạm, ghi chính thức thành ADR-0132. **Điều kiện phát hành:** chỉ sau khi đã diễn tập khôi phục dữ liệu (HC-5.19). Soạn 2026-10-18 bởi phiên lập kế hoạch; chưa ai thi công. Bản 2: sửa theo báo cáo người kiểm độc lập vòng 1 (kết luận «chưa đủ», ba mục Chặn C1–C3, mười một mục Quan trọng); thay đổi so với bản 1 ghi ở cuối tệp.
+- **Nguồn đã duyệt (áp dụng, không hỏi lại):** ADR-0078 phần B2 (điều 7, 9, 10) và điều 5 (dòng nhập tay), ADR-0079 (toàn bộ), ADR-0061 A-14, lời chủ C1–C13 = A (`docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/cau-hoi-chu.md`). Các ADR ra sau đã sửa câu của chúng: ADR-0088, 0092, 0109, 0115, 0117, 0120. **Mới:** ADR-0132 (**accepted** 2026-10-18, `docs/adr/ADR-0132-khach-tra-ben-kia-cho-ke-toan-xac-nhan.md`; bản đề xuất số tạm 0130 ở `de-xuat-adr-khach-tra-ben-kia.md`) thay ADR-0078 điều 8 gạch 2 theo lời chủ 18/10.
 - **Chia đợt (lời chủ 2026-10-08, không hỏi lại):** đợt 2 = ADR-0078 B2 + ADR-0079 (+ đơn cũ, trần giảm giá). Đợt 3 = ADR-0080 D2 + ADR-0081, khung ở `docs/superpowers/plans/2026-10-18-so-dai-ly-dot-3-khung.md`.
 - **Xây trên lỗ đang hở:** TNV-G1, TNV-G3, TNV-G4, HC-4.2, HC-5.19 (`docs/quyen-hoan.json`). Đợt 2 **chạm** các vùng đó:
   - hàm đọc lần thu `docLanThu` dùng chung với lệnh «Thay lần thu» (`billing/thay-lan-thu.ts`, TNV-G3);
@@ -63,7 +63,7 @@ Mỗi phần nêu: quyết định gốc → hiện trạng → việc phải l�
   - Route «Đã giao» kiểm trước bằng hàm duy nhất. Tổng hoa hồng + giá vốn vượt giá bán, hoặc một dòng vượt thành tiền của chính dòng đó, thì giữ lại với lý do `terms_exceed_price` bằng lời thường. Việc này giải nợ `BL-SDL-GIA-DAI-LY-AM` ở bước «Đã giao».
 - **Sống chung với trigger đang có:** `reversal_match`, `trip_not_yet`, `settlement_no_flip`, `held_once`, `held_no_single_reversal`, `company_received_txn`, `adjustment_match`, `bil_posting_order_required` (phải nhận loại phiếu mới). Mỗi trigger mới có ca chứng tỏ không chặn nhầm đường đảo / điều chỉnh.
 
-### P4. Người thu là bên đặt / nhà cung cấp; khoản «khách trả bên kia» (ADR-0078 điều 7, 9; ADR-0130)
+### P4. Người thu là bên đặt / nhà cung cấp; khoản «khách trả bên kia» (ADR-0078 điều 7, 9; ADR-0132)
 - **Hôm nay:**
   - `bil_collector_role` có `BOOKER` (bật), `SUPPLIER` (tắt). Nhưng cổng thật `docLanThu` (`billing/service.ts`) chỉ cho ra `COMPANY` / `STAFF`; Đối tác ghi «tôi» bị lưu thành `STAFF`.
   - `collected_for_party_id` luôn là công ty chủ.
@@ -76,7 +76,7 @@ Mỗi phần nêu: quyết định gốc → hiện trạng → việc phải l�
 - **Làm:**
   - **Đối tác** ghi «tôi»: nếu hồ sơ của họ là **bên đặt của chính đơn** và đơn có người hưởng ⇒ người thu `BOOKER`, nợ ngay. Còn lại giữ như hôm nay.
   - **Kế toán / Toàn quyền** ghi thẳng `BOOKER` / `SUPPLIER` ⇒ nợ ngay. Chọn một hồ sơ: là bên đặt **của đơn có người hưởng** ⇒ `BOOKER`; là nhà cung cấp của một dòng trên đơn ⇒ `SUPPLIER`, số ≤ phần chưa thu của dòng đó; còn lại ⇒ như hôm nay (`STAFF` / `COMPANY`). Đơn khách lẻ: chọn hồ sơ khách **không** thành `BOOKER`.
-  - **Người khác có `payment.receive`** khai ⇒ dấu `DECLARED`, không nợ, đơn chờ Kế toán (ADR-0130). Kế toán bấm «Bên kia đã nhận» (ô `ledger.write`) ⇒ dấu `CONFIRMED` + phiếu một dòng giữ hộ, trong một lô.
+  - **Người khác có `payment.receive`** khai ⇒ dấu `DECLARED`, không nợ, đơn chờ Kế toán (ADR-0132). Kế toán bấm «Bên kia đã nhận» (ô `ledger.write`) ⇒ dấu `CONFIRMED` + phiếu một dòng giữ hộ, trong một lô.
   - **Mọi chỗ «đang đối chiếu» kể trên** nhận thêm hai vai mới: danh sách, bộ đếm, nhắc quá 3 ngày, view cọc, trigger cọc. Lần thu `BOOKER` / `SUPPLIER` đã `CONFIRMED`, hoặc do Đối tác / Kế toán ghi thẳng (nợ ngay), **không** là đang đối chiếu. Nhánh khoản cũ của `PENDING_COMPANY` kiểm số dư như `khoanChoXacNhan`. Thêm bài đối chiếu hai nơi (mã ↔ SQL) có các mẫu đó.
   - **Bật `SUPPLIER`**; số của nó ≤ phần thành tiền chưa thu của các dòng thuộc nhà cung cấp đó.
   - **«Thu cho ai»:** mặc định Tour Đảo. Người thu `SUPPLIER` ⇒ luôn là nhà cung cấp đó. Người ghi chọn được nhà cung cấp của một dòng trên đơn khi khách trả trước phần đó, bằng ô chọn trên form lần thu, chỉ hiện khi đơn có dòng làm đại lý. Đổi `R-BIL-S9`, thêm `R-BIL-12` theo ADR-0078.
@@ -161,7 +161,7 @@ Mỗi phần nêu: quyết định gốc → hiện trạng → việc phải l�
 8. Đổi bên đặt sau xác nhận bị chặn khi giảm giá vượt hoa hồng mới (P7). Đây là áp C8 = A cho thêm một đường, siết chứ không nới.
 
 ## 4. Tiêu chí nghiệm thu (đỏ trước, xanh sau)
-Gồm tiêu chí 1–8 của ADR-0079, tiêu chí của ADR-0078 B2 (trừ 3b, thay bằng tiêu chí 1–5 của ADR-0130), cộng thêm:
+Gồm tiêu chí 1–8 của ADR-0079, tiêu chí của ADR-0078 B2 (trừ 3b, thay bằng tiêu chí 1–5 của ADR-0132), cộng thêm:
 1. Ví dụ C-1 trên e2e: xác nhận → đại lý tự ghi cọc 3.000.000 → HDV ghi 1.750.000 → «Đã giao» → đại lý nợ 2.750.000, HDV nợ 1.750.000 → nộp / trả từng đơn → «Hoàn thành».
 2. Ca SV-HT-03 trên e2e: HDV khai «khách trả tại quầy i-resort 400.000» ⇒ đơn hiện trong ô «chờ đối chiếu» của Kế toán và bị giữ «đang đối chiếu» ⇒ Kế toán «Bên kia đã nhận» ⇒ «Đã giao» ⇒ Tour Đảo nợ i-resort 80.000.
 3. Đơn khách lẻ thường (bản chụp `NONE`, không dòng nhập tay): «Đã giao» như hôm nay.

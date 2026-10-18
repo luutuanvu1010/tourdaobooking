@@ -1,3 +1,5 @@
+> **Đã duyệt 2026-10-18, bản chính thức:** `docs/adr/ADR-0132-khach-tra-ben-kia-cho-ke-toan-xac-nhan.md` (số 0130 đã bị nhánh khác giữ). Tệp này giữ nguyên làm hồ sơ bản đề xuất.
+
 # ADR-0130 (ĐỀ XUẤT) — Khoản «khách đã trả cho đại lý / tại quầy nhà cung cấp» do người không phải Kế toán khai: đang đối chiếu, chưa tạo nợ; thay ADR-0078 điều 8 gạch 2
 
 - **Trạng thái:** **proposed**. Chủ dự án chưa duyệt văn bản này. Lựa chọn nền đã có lời chủ: chat 2026-10-18, hộp chọn «Khi HDV báo trên Nền tảng rằng khách đã trả tiền cho đại lý (hoặc trả tại quầy nhà cung cấp), máy nên ghi thế nào?» → *«Chờ Kế toán xác nhận (Recommended)»*. Câu trả lời đó chưa phải lời duyệt ADR: văn bản này đi cùng lượt duyệt sổ đại lý đợt 2 (`trinh-chu.md` cùng thư mục). Từ khi duyệt: chuyển tệp vào `docs/adr/`, đổi dòng này thành **accepted** kèm câu duyệt nguyên văn.

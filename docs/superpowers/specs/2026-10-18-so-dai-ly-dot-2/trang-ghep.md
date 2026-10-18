@@ -1,6 +1,8 @@
 # Trang ghép — Sổ đại lý đợt 2 (CLAUDE.md §9, bước ghép khi duyệt)
 
-Đợt 2 cho năm bảng dùng chung nhận thêm loại dữ liệu mới. Lượt duyệt có hai quyết định chạm dữ liệu / quyền (đặc tả đợt 2, ADR-0130) cộng lời cho phép xây trên lỗ đang hở.
+**Đã duyệt** cùng đặc tả, chủ dự án 2026-10-18 (câu duyệt ở `README.md`).
+
+Đợt 2 cho năm bảng dùng chung nhận thêm loại dữ liệu mới. Lượt duyệt có hai quyết định chạm dữ liệu / quyền (đặc tả đợt 2, ADR-0132) cộng lời cho phép xây trên lỗ đang hở.
 
 Trang này trả lời ba câu cho từng bảng:
 1. bảng chứa những loại thực thể nào;
@@ -16,7 +18,7 @@ Giá trị ô đọc từ `src/shared/permissions.ts` ngày 2026-10-18. Thứ t�
 | | Hôm nay | Sau đợt 2 |
 |---|---|---|
 | (1) Thực thể | Lần thu của khách, lần đảo, nửa chuyển cọc. Người thu: Công ty, nhân viên (vai `STAFF`), «chưa rõ». «Thu cho ai» luôn là Tour Đảo | **Thêm** người thu là **bên đặt** (đại lý, HDV độc lập, CTV, lễ tân, taxi, công ty lữ hành, loại đối tác) và **nhà cung cấp** (hồ sơ không tài khoản). «Thu cho ai» = Tour Đảo **hoặc nhà cung cấp của một dòng trên đơn** |
-| (2) Ô chạm bảng | `payment.receive` own · any · any · assigned · own · any · own · none · none · none | Ô không đổi. **Luật sau ô đổi:** ghi người thu `BOOKER` / `SUPPLIER` có hai mức. Người giữ `ledger.write` (Kế toán, Toàn quyền) ghi thẳng, kể cả qua «Thay lần thu»; chọn hồ sơ thành `BOOKER` chỉ trên đơn có người hưởng. Người còn lại chỉ khai (ADR-0130). Đối tác bấm «Tôi thu» thành `BOOKER` **chỉ khi** hồ sơ của họ là bên đặt của một đơn có người hưởng; còn lại như hôm nay |
+| (2) Ô chạm bảng | `payment.receive` own · any · any · assigned · own · any · own · none · none · none | Ô không đổi. **Luật sau ô đổi:** ghi người thu `BOOKER` / `SUPPLIER` có hai mức. Người giữ `ledger.write` (Kế toán, Toàn quyền) ghi thẳng, kể cả qua «Thay lần thu»; chọn hồ sơ thành `BOOKER` chỉ trên đơn có người hưởng. Người còn lại chỉ khai (ADR-0132). Đối tác bấm «Tôi thu» thành `BOOKER` **chỉ khi** hồ sơ của họ là bên đặt của một đơn có người hưởng; còn lại như hôm nay |
 | | `money.view` (đọc) any · any · any · assigned · own · any · own · none · none · none | Không đổi ô. **Đối tác không còn thấy tên người thu khác** (P8 đặc tả) |
 | (3) Cổng | `POST /api/orders/:id/payments` (cổng `orders` + `can(payment.receive)` + `docLanThu`) | Cùng route. Route gọi `phanThuongMaiCuaDon` sau `can(` rồi truyền xuống `docLanThu`. `docLanThu` nhận thêm hai lựa chọn người thu và kiểm: bên đặt của chính đơn (đơn phải có người hưởng); nhà cung cấp của một dòng trên đơn, số ≤ phần chưa thu. Đường «ghi lần thu kèm Đã giao» **từ chối** hai lựa chọn mới |
 | Giao diện | Form ghi lần thu (`web/order.ts`): «Tôi thu» / «Công ty thu»; Kế toán chọn người | Thêm «Khách trả cho đại lý <tên bên đặt>» (chỉ hiện khi đơn có người hưởng), «Khách trả tại quầy <nhà cung cấp>» và ô «Phần tiền này cho» (chỉ khi đơn có dòng làm đại lý). Hai lựa chọn hiện với mọi người có ô ghi tiền; người không có `ledger.write` thấy câu «chờ Kế toán xác nhận» |

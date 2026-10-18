@@ -1,5 +1,7 @@
 # Trình chủ duyệt — Sổ đại lý đợt 2 (18/10/2026, bản 2.1)
 
+> **Kết quả:** chủ dự án duyệt cả ba điều ngày 18/10: *«Tôi duyệt cả ba điều theo khuyến nghị: đặc tả + trang ghép, ADR-0130, cho xây đợt 2 trên năm lỗ đang hở, sửa hàng rào giữ hộ theo khuyến nghị; chỉ phát hành sau khi đã diễn tập khôi phục dữ liệu.»* Số ADR-0130 trong trang này ghi chính thức thành ADR-0132, vì 0130 và 0131 đã bị hai nhánh khác giữ cùng ngày.
+
 **Làm xong đợt 2 thì được gì.** Đơn do đại lý đặt (HDV độc lập, công ty lữ hành, lễ tân, taxi, cộng tác viên) bấm được «Đã giao – đã thu đủ». Hôm nay các đơn này bị chặn hẳn ở bước đó. Lúc bấm, sổ tự ghi ba khoản: Tour Đảo nợ đại lý tiền hoa hồng; đại lý nợ Tour Đảo phần giảm giá họ đã cho khách; Tour Đảo nợ nhà cung cấp tiền vé (ví dụ i-resort). Sau đó đơn «Hoàn thành» được bằng nút nộp / trả từng đơn đã có. Phần quyết toán gộp cả tháng và màn để đại lý tự xem sổ là **đợt 3**, sẽ trình riêng sau khi đợt 2 xong.
 
 Bản này đã sửa theo hai vòng người kiểm độc lập. Vòng 1 chỉ ra ba lỗi lớn ở bản 1: lý do xin xây trên lỗ đang hở nói chưa đúng, cách xử lý đơn cũ lệch chữ quyết định bạn đã duyệt, và danh sách chờ của Kế toán sẽ không thấy khoản mới. Cả ba đã sửa. Vòng 2 xác nhận đã sửa đúng và tìm thêm một hàng rào sẽ chặn nhầm việc sửa sai của Kế toán; chỗ đó cần bạn chọn ở điều 3.
@@ -21,7 +23,7 @@ Bản này đã sửa theo hai vòng người kiểm độc lập. Vòng 1 chỉ
 ## Ba điều cần bạn duyệt
 
 1. **Đặc tả đợt 2 và trang ghép** (`README.md`, `trang-ghep.md` cùng thư mục). Đặc tả áp đúng các quyết định bạn đã duyệt ngày 1/10, chỉ cập nhật theo những quyết định ra sau đó. Sáu chỗ tôi tự quyết, đảo được, nằm ở mục 3 của đặc tả, nên bạn soát mục đó.
-2. **ADR-0130** (`de-xuat-adr-khach-tra-ben-kia.md`): biến lựa chọn «Chờ Kế toán xác nhận» của bạn hôm nay thành quyết định chính thức, thay lựa chọn cũ ngày 1/10.
+2. **ADR-0132** (`de-xuat-adr-khach-tra-ben-kia.md`): biến lựa chọn «Chờ Kế toán xác nhận» của bạn hôm nay thành quyết định chính thức, thay lựa chọn cũ ngày 1/10.
 3. **Cho phép xây đợt 2 trên năm lỗ còn ghi trong sổ hoãn.** Sổ hoãn là danh sách lỗ an toàn đã biết, mỗi lỗ có người chịu trách nhiệm và hạn vá; quá hạn thì bộ kiểm của Nền tảng báo đỏ. Luật dự án không cho duyệt đặc tả chạm vùng đang hở nếu bạn chưa cho phép kèm lý do, và lời cho phép ngày 8/10 chỉ viết cho việc mã QR, không áp cho đợt này.
 
    | Lỗ | Còn hở gì | Đợt 2 chạm ở đâu |
