@@ -12,6 +12,20 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Màn Tạo đơn thiết kế lại (đặc tả docs/superpowers/specs/2026-10-18-tao-don-thiet-ke-lai/DAC-TA.md, việc 1–9). KHÔNG migration, không đổi thân gửi lên máy chủ.
+    // Số 2.19 là số TẠM (main 2.17; nhánh claude/strange-swanson-101ecd và worktree-thu-hep-doc-nhat-ky đã dùng 2.18): gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.19",
+    date: "2026-10-18",
+    items: [
+      { kind: "doi", text: "Màn Tạo đơn mới: chọn dịch vụ bằng hàng nhóm cuộn ngang và khung danh sách luôn mở; chạm một dòng là thêm, dòng hiện ✓ đã thêm." },
+      { kind: "doi", text: "Thẻ dịch vụ gập thành một dòng (tên, số khách, giờ đón, thành tiền), mỗi lúc chỉ mở một thẻ; xoá dịch vụ bằng nút thùng rác." },
+      { kind: "doi", text: "Số khách xếp hai cột, mỗi loại khách ghi giá; dòng tiền ghi rõ, ví dụ 2 người lớn × 1.350.000 = 2.700.000." },
+      { kind: "doi", text: "Đưa đón chỉ còn một ô Nơi đón và một ô Nơi trả: gõ để chọn điểm có sẵn hoặc ghi địa chỉ tự do." },
+      { kind: "doi", text: "Khối khách có công tắc Đơn của (Khách lẻ hoặc Qua đối tác), bảng Đổi khách ở trang đơn cũng vậy; gõ số điện thoại của đối tác sẽ được nhắc." },
+      { kind: "doi", text: "Tổng tiền nằm ở thanh dưới cùng, chạm để xem chi tiết; lỗi khi lưu hiện ngay trên nút Lưu. Hình thức, Người nhận tiền chỉ hiện khi có trả trước." },
+    ],
+  },
+  {
     // Gói 2 hồ sơ riêng tư, lát H-5 (ADR-0126): yêu cầu xoá dữ liệu cá nhân + Quản trị xem trước / thực hiện (ẩn danh hoá) + danh sách ảnh giấy tờ hết lý do giữ + ẩn danh phiên cũ;
     // migration 0108 (số TẠM — áp sau 0103–0107; kiểm số kế tiếp lúc phát hành). CÓ migration — cần trien-khai sau day-len. Chính sách riêng tư KHÔNG đăng trên production
     // cho tới khi luật sư duyệt chữ và chủ nhập số ngày hợp pháp (docs/HANDOFF-N1.md).
