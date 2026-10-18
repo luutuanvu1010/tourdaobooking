@@ -3534,3 +3534,8 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .login-mfa h2 { margin: 0 0 var(--s2); }
 .login-mfa label.check { margin: var(--s2) 0 var(--s3); }
 .login-mfa-links { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s2); margin-top: var(--s2); }
+/* Lớp chặn nhầm "Số này là của đối tác …" (web/canh-bao-doi-tac.ts): khung nền cát ngay dưới ô SĐT khách; cát chỉ làm nền khung, không bao giờ làm nền nút; hai nút là nút phụ (viền) */
+.canh-bao-dt { display: grid; gap: var(--s2); margin: var(--s2) 0 var(--s3); padding: var(--s3); color: var(--c-sand-text); background: var(--c-sand-soft); border: 1px solid var(--c-sand-border); border-radius: var(--radius-sm); }
+.canh-bao-dt-chu { margin: 0; font-size: var(--fs-label); font-weight: var(--fw-semibold); }
+.canh-bao-dt-nut { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.canh-bao-dt-nut .btn { min-height: var(--tap-min); }

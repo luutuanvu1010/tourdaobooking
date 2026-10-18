@@ -25,6 +25,7 @@ import { ApiError, api, vuaLamBoiTabNay, type Api, type OrderInput } from "./api
 import { openAssigneePicker } from "./assignee-picker";
 import { renderBanner } from "./banner";
 import { createBookerPicker } from "./booker-picker";
+import { canhBaoDoiTac } from "./canh-bao-doi-tac";
 import { createCatalogPicker } from "./catalog-picker";
 import { dongBenDatChiDoc, oDatQuaDoiTac, type DatQuaDoiTac } from "./dat-qua-doi-tac";
 import { byId, h, replaceChildren } from "./dom";
@@ -63,8 +64,28 @@ const saveBtn = byId<HTMLButtonElement>("save");
 const field = (id: string) => byId<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(id);
 const num = (id: string) => parseMoney(field(id).value);
 // Hồ sơ khách (N2 lát 1): tra theo SĐT, dùng hồ sơ có sẵn hoặc tạo mới khi lưu; không chọn = lưu không gắn (ADR-0011).
-const bookerPicker = createBookerPicker({ name: field("customerName") as HTMLInputElement, phone: field("customerPhone") as HTMLInputElement });
+// Lớp chặn nhầm (18/10): SĐT khách trùng số của đối tác đang được hưởng hoa hồng → khung nền cát dưới ô SĐT. "Đúng, qua …" làm đúng như chọn đối tác ở công tắc "Đơn của", rồi xoá hai ô khách (số đó là của đối tác, không phải của người đi tour).
+const canhBao = canhBaoDoiTac({
+  onDung: (d) => {
+    const chon: BenDatChon = { partyId: d.partyId, ten: d.ten, loai: d.loai };
+    datQua?.datChon(chon); // cập nhật công tắc (không gọi onDoi)
+    datBenDat(chon);
+    for (const id of ["customerName", "customerPhone"]) {
+      field(id).value = "";
+      field(id).dispatchEvent(new Event("input", { bubbles: true })); // dọn lỗi kiểm + danh sách hồ sơ trùng số
+    }
+    field("customerName").focus();
+  },
+});
+const bookerPicker = createBookerPicker({
+  name: field("customerName") as HTMLInputElement,
+  phone: field("customerPhone") as HTMLInputElement,
+  traDoiTac: async (ten) => (await api<Api.NguoiHuongTimResponse>(`/api/pricing/nguoi-huong?q=${encodeURIComponent(ten)}`)).ketQua,
+  onDoiTacTrung: (d, soDt) => canhBao.hien(d, soDt),
+  khachLe: () => daChonBenDat === null,
+});
 byId("booker-slot").append(bookerPicker.root);
+byId("canh-bao-slot").append(canhBao.root);
 // Bản "bốn bước" (14/10/2026; đặc tả docs/superpowers/specs/2026-10-14-tao-don-bon-buoc/README.md): Email + Ghi chú của khách gập sau "Thêm chi tiết" (tự mở khi có giá trị hoặc khi lỗi);
 // thanh tiến độ dính trên đầu (bốn bước; vai không chọn được người phụ trách và lúc sửa đơn: ba bước).
 const khachThem = byId("khach-them");
@@ -709,6 +730,7 @@ let daChonBenDat: BenDatChon | null = null;
 function datBenDat(chon: BenDatChon | null): void {
   daChonBenDat = chon;
   bookerPicker.root.hidden = chon !== null;
+  if (chon !== null) canhBao.hien(null, ""); // đã chọn đối tác thì hết điều để hỏi
   datNhanKhach(chon !== null);
 }
 /** Nhãn nổi của hai ô khách theo việc đã chọn đối tác (luật chữ ở `src/shared/phan-doi-tac-hien-thi.ts`): đã chọn thì SĐT ghi rõ là của khách, không phải của đối tác. */

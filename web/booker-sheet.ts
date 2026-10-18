@@ -1,8 +1,9 @@
 // Bảng "Đổi khách" (N2 lát 1, ADR-0011 điều 2) — cho đơn ĐÃ XÁC NHẬN (đơn nháp đổi khách trong form). Tên + SĐT trên đơn + khối "Hồ sơ khách";
 // lưu bằng PUT /api/orders/:id/booker (khoá lạc quan theo `updatedAt`). Khuôn modal như web/trip-sheet.ts.
-import { ApiError, api, type Order } from "./api";
+import { ApiError, api, type Api, type Order } from "./api";
 import { renderBanner } from "./banner";
 import { createBookerPicker } from "./booker-picker";
+import { canhBaoDoiTac } from "./canh-bao-doi-tac";
 import { oDatQuaDoiTac } from "./dat-qua-doi-tac";
 import { h } from "./dom";
 import { vnd } from "./format";
@@ -24,7 +25,27 @@ export function openBookerSheet(o: BookerSheetOptions, opener: HTMLElement): voi
   let saving = false;
   const nameInput = h("input", { type: "text", maxLength: 200, autocomplete: "off", value: o.order.customerName });
   const phoneInput = h("input", { type: "tel", inputMode: "tel", maxLength: 30, autocomplete: "off", value: o.order.customerPhone });
-  const picker = createBookerPicker({ name: nameInput, phone: phoneInput, coODatQuaDoiTac: o.coDatQuaDoiTac });
+  // Lớp chặn nhầm (18/10): cùng khung với form Tạo đơn (web/canh-bao-doi-tac.ts). "Đúng, qua …" = chọn đối tác ở ô «Đặt qua đối tác» bên dưới, rồi xoá hai ô khách.
+  const canhBao = canhBaoDoiTac({
+    onDung: (d) => {
+      daChon = { partyId: d.partyId, ten: d.ten, loai: d.loai };
+      datQua?.datChon(daChon);
+      picker.root.hidden = true;
+      for (const el of [nameInput, phoneInput]) {
+        el.value = "";
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      nameInput.focus();
+    },
+  });
+  const picker = createBookerPicker({
+    name: nameInput,
+    phone: phoneInput,
+    coODatQuaDoiTac: o.coDatQuaDoiTac,
+    traDoiTac: async (ten) => (await api<Api.NguoiHuongTimResponse>(`/api/pricing/nguoi-huong?q=${encodeURIComponent(ten)}`)).ketQua,
+    onDoiTacTrung: (d, soDt) => canhBao.hien(d, soDt),
+    khachLe: () => daChon === null,
+  });
   // Bên đặt đang lưu là đối tác (cờ `bookerLaDoiTac` do MÁY CHỦ tính) và người sửa có ô "Đặt qua đối tác" ⇒ nạp vào ô đó, không vào ô tra SĐT (đặc tả §7); đã chọn thì ô tra SĐT ẩn.
   let daChon: BenDatChon | null = null;
   const datQua = o.coDatQuaDoiTac
@@ -33,6 +54,7 @@ export function openBookerSheet(o: BookerSheetOptions, opener: HTMLElement): voi
         onDoi: (c) => {
           daChon = c;
           picker.root.hidden = c !== null;
+          if (c !== null) canhBao.hien(null, "");
         },
       })
     : null;
@@ -58,6 +80,7 @@ export function openBookerSheet(o: BookerSheetOptions, opener: HTMLElement): voi
       bannerEl,
       h("label", null, "Tên khách *", nameInput),
       h("label", null, "Số điện thoại *", phoneInput),
+      canhBao.root,
       datQua,
       picker.root,
     ),

@@ -1,9 +1,13 @@
 // Khối "Hồ sơ khách" (N2 lát 1, ADR-0011) dùng ở form đơn và bảng "Đổi khách": gõ SĐT → hiện MỌI hồ sơ trùng số (ADR-0001 mục 8, bắt buộc) →
 // "Dùng hồ sơ này" (chỉ cá nhân đang hoạt động) hoặc "Tạo hồ sơ mới" (tạo khi bấm Lưu, cùng lúc với đơn); không chọn gì = lưu không gắn.
 // Luật và câu chữ ở src/shared/booker.ts; khối này chỉ dựng DOM và gọi GET /api/parties/lookup (máy chủ vẫn kiểm lại mọi thứ).
-import { NO_BOOKER_TEXT, bookerPayload, canPickMatch, lookupReady, matchNote, type BookerChoice } from "../src/shared/booker";
+import { NO_BOOKER_TEXT, bookerPayload, canPickMatch, doiTacTrungSo, lookupReady, matchNote, type BookerChoice } from "../src/shared/booker";
 import { api, type Api } from "./api";
+import type { DoiTacTrung } from "./canh-bao-doi-tac";
 import { h, replaceChildren } from "./dom";
+
+/** Lớp chặn nhầm tra "có phải đối tác không" cho tối đa bấy nhiêu hồ sơ đầu của cùng một số (mỗi hồ sơ một lời gọi nguoi-huong): cùng một số vài người là đủ; quá thì bỏ qua, không làm chậm gõ. */
+const TOI_DA_TRA_DOI_TAC = 3;
 
 export interface BookerPicker {
   root: HTMLElement;
@@ -17,7 +21,19 @@ export interface BookerPicker {
   datCoODatQuaDoiTac(co: boolean): void;
 }
 
-export function createBookerPicker(o: { name: HTMLInputElement; phone: HTMLInputElement; coODatQuaDoiTac?: boolean }): BookerPicker {
+export interface BookerPickerOptions {
+  name: HTMLInputElement;
+  phone: HTMLInputElement;
+  coODatQuaDoiTac?: boolean;
+  /** Lớp chặn nhầm: tra những người đang được hưởng hoa hồng theo TÊN (GET /api/pricing/nguoi-huong?q=). Lỗi / 403 → coi như không có. Chỉ gọi khi có ô «Đặt qua đối tác» và `khachLe()` không trả false. */
+  traDoiTac?: (ten: string) => Promise<readonly { partyId: string; ten: string }[]>;
+  /** Kết quả lớp chặn nhầm sau mỗi lần tra SĐT: đối tác trùng số, hoặc null (không có / không tra được / không còn áp dụng) → ẩn khung. `soDt` = số đang gõ. */
+  onDoiTacTrung?: (d: DoiTacTrung | null, soDt: string) => void;
+  /** Công tắc «Đơn của» đang ở «Khách lẻ» không (mặc định: có). Đã chọn đối tác thì không hỏi nữa. */
+  khachLe?: () => boolean;
+}
+
+export function createBookerPicker(o: BookerPickerOptions): BookerPicker {
   let choice: BookerChoice = { kind: "none" };
   let coODat = o.coODatQuaDoiTac ?? false;
   let seq = 0; // bỏ kết quả tra cứu cũ về muộn
@@ -57,10 +73,20 @@ export function createBookerPicker(o: { name: HTMLInputElement; phone: HTMLInput
     return b;
   };
 
+  /** Lớp chặn nhầm: trong các hồ sơ trùng số có đối tác đang được hưởng hoa hồng không? Mọi lỗi (403 không đủ quyền, mạng) → null; không bao giờ chặn việc lập đơn. */
+  async function timDoiTacTrung(found: readonly Api.PartyListItemDto[]): Promise<DoiTacTrung | null> {
+    if (!coODat || !o.traDoiTac || !(o.khachLe?.() ?? true)) return null;
+    const tra = o.traDoiTac;
+    const kq = await Promise.all(found.slice(0, TOI_DA_TRA_DOI_TAC).map((m) => tra(m.displayName).then((r) => r, () => [] as { partyId: string; ten: string }[])));
+    const d = doiTacTrungSo(found, kq.flat());
+    return d ? { ...d, loai: found.find((m) => m.id === d.partyId)?.kind ?? "PERSON" } : null;
+  }
+
   async function lookup(): Promise<void> {
     const mine = ++seq;
     if (daTat || !lookupReady(o.phone.value)) {
       replaceChildren(matches);
+      o.onDoiTacTrung?.(null, o.phone.value);
       return;
     }
     let found: Api.PartyListItemDto[];
@@ -68,10 +94,20 @@ export function createBookerPicker(o: { name: HTMLInputElement; phone: HTMLInput
       found = (await api<Api.PartyLookupResponse>(`/api/parties/lookup?phone=${encodeURIComponent(o.phone.value)}`)).matches;
     } catch {
       // Tra lỗi (mạng/máy chủ) vẫn cho tạo hồ sơ mới — không tra được không có nghĩa là không tạo được.
-      if (mine === seq) replaceChildren(matches, h("p", { class: "muted" }, "Không tra được hồ sơ — vẫn lưu đơn được, chỉ chưa gắn khách."), h("div", { class: "booker-match" }, newButton()));
+      if (mine === seq) {
+        o.onDoiTacTrung?.(null, o.phone.value);
+        replaceChildren(matches, h("p", { class: "muted" }, "Không tra được hồ sơ — vẫn lưu đơn được, chỉ chưa gắn khách."), h("div", { class: "booker-match" }, newButton()));
+      }
       return;
     }
     if (mine !== seq) return;
+    if (o.onDoiTacTrung) {
+      const soDt = o.phone.value;
+      o.onDoiTacTrung(null, soDt); // ẩn khung của số cũ ngay; có đối tác trùng thì hiện khi tra xong
+      void timDoiTacTrung(found).then((d) => {
+        if (mine === seq) o.onDoiTacTrung?.(d, soDt);
+      });
+    }
     const rows = found.map((m) => {
       const note = matchNote(m, coODat);
       const use = canPickMatch(m)
