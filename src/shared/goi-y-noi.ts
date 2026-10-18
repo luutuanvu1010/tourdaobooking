@@ -21,10 +21,27 @@ const tach = (nhan: string): { ten: string; loaiDiem: string } => {
  * đầu, như thân gửi vẫn cắt); `chu` rỗng = người lập chưa gõ gì (giao diện không lưu, chỉ nhắc gõ). Không ghim điểm đang chọn (khác ô chọn cũ: ô gõ không cần giữ giá trị trong danh sách).
  */
 export function goiYNoi(ds: readonly { id: string; nhan: string }[], kim: string, o: { coChuaChot: boolean }): DongGoiYNoi[] {
-  const chu = kim.trim();
   return [
     ...(o.coChuaChot ? [{ loai: "chua-chot" as const, nhan: "Chưa chốt" }] : []),
     ...locDiem(ds, kim, "").map((d) => ({ loai: "diem" as const, id: d.id, ...tach(d.nhan), nhan: d.nhan })),
-    { loai: "tu-do" as const, chu, nhan: chu === "" ? NHAN_GO_TU_DO : `Gõ tự do: “${chu}”` },
+    dongTuDo(kim),
   ];
+}
+
+/** Dòng gõ tự do mang chữ `kim` (bỏ khoảng trắng hai đầu); chữ rỗng = "Gõ tự do…" (người lập chưa gõ gì). */
+export function dongTuDo(kim: string): { loai: "tu-do"; chu: string; nhan: string } {
+  const chu = kim.trim();
+  return { loai: "tu-do", chu, nhan: chu === "" ? NHAN_GO_TU_DO : `Gõ tự do: “${chu}”` };
+}
+
+/**
+ * Ô ĐÓNG lại (vòng sửa 1 của việc 7 — người kiểm I-1, chủ chọn phương án A): có lưu chữ đang gõ thành địa chỉ gõ tự do không. `cach`: "huy" = Esc (huỷ có chủ đích, trả ô về giá trị
+ * đang có); "roi" = người lập rời ô (chạm ra ngoài, chạm ô / nút khác, Tab, "Xong" của bàn phím iPhone, Enter khi chưa trỏ dòng nào). `daGo` = đã gõ chữ từ lúc mở danh sách;
+ * `hienThi` = chữ ô đang hiện cho giá trị đang lưu (nhãn điểm / địa chỉ tự do / ""). Trả chữ sẽ lưu (đã cắt hai đầu) hoặc null = giữ giá trị đang có (Esc, chưa gõ, chỉ dấu cách,
+ * trùng chữ đang có). Như ô "Địa chỉ đón" cũ ghi từng phím: chữ đã gõ không bao giờ mất lặng lẽ, và không bao giờ để điểm cũ được lưu thay cho chữ người lập vừa gõ.
+ */
+export function chuLuuKhiDong(o: { cach: "huy" | "roi"; daGo: boolean; chu: string; hienThi: string }): string | null {
+  if (o.cach === "huy" || !o.daGo) return null;
+  const chu = o.chu.trim();
+  return chu === "" || chu === o.hienThi.trim() ? null : chu;
 }
