@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { dungQrThanhToan, kiemSoTienQr } from "./rules.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+import { gieoBanChup } from "../../../tests/audit/gieo-ban-chup.mjs";
 
 test("luật số tiền: Đã giao TRƯỚC còn lại; thiếu ⇒ còn lại; chỉ số nguyên dương viết thường ≤ còn lại", () => {
   assert.deepEqual(kiemSoTienQr({ daGiao: true, conLai: 500, soTienRaw: null }), { ok: false, status: 409, ma: "order_delivered", cau: "Đơn đã giao — không thu thêm." });
@@ -52,6 +53,7 @@ function don(w: any, id: string, ma: string, owner: string): string {
   w.sqlite.prepare(`INSERT INTO order_service (id, order_id, name, unit, pax_adult, depart_date) VALUES (?, ?, 'Vé', 'perPax', 2, '2026-10-20')`).run(`${id}-s`, id);
   w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total) VALUES (?, ?, ?, 'Người lớn', 2, 500000, 1000000)`).run(`${id}-i`, id, `${id}-s`);
   w.sqlite.prepare(`UPDATE orders SET status = 'confirmed', confirmed_at = ?, updated_at = ? WHERE id = ?`).run(AT, AT, id);
+  gieoBanChup(w.sqlite, id); // 0111: máy chủ chụp lúc xác nhận — thiếu bản chụp thì trigger bil_posting_delivered_terms chặn «Đã giao»
   w.sqlite.prepare(`INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, created_by, updated_at, updated_by)
     VALUES (?, ?, 'HANDLE', ?, 'PENDING', ?, ?, NULL, ?, NULL)`).run(`${id}-a`, id, `pty-${HDV}`, AT, AT, AT);
   return id;

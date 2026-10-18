@@ -200,7 +200,7 @@ test("8 — vế «bản chụp HIỆN HÀNH» (NOT EXISTS … supersedes_id): �
   assert.equal((await daGiao(w, id2)).status, 409);
 });
 
-test("9 — vế dự phòng «bên đặt đang mang vai nhóm bên ngoài» (đơn xác nhận TRƯỚC 0090, không có bản chụp): vai còn mở ⇒ 409; GHI NHẬN giới hạn: vai đã đóng ⇒ 200", async () => {
+test("9 — vế dự phòng «bên đặt đang mang vai nhóm bên ngoài» (đơn xác nhận TRƯỚC 0090, không có bản chụp): vai còn mở ⇒ 409; giới hạn cũ ĐÃ ĐÓNG (0111): vai đã đóng ⇒ vẫn không «Đã giao»", async () => {
   const w = setup();
   const id = nhap(w, `pty-${PT}`);
   w.sqlite.prepare("UPDATE orders SET status = 'confirmed', updated_at = ? WHERE id = ?").run(AT, id); // giả đơn cũ: xác nhận thẳng, KHÔNG qua route nên không có bản chụp
@@ -209,7 +209,12 @@ test("9 — vế dự phòng «bên đặt đang mang vai nhóm bên ngoài» (�
   const g = await daGiao(w, id);
   assert.equal(g.status, 409, g.text);
   assert.match(g.text, /not_deliverable/);
-  // GIỚI HẠN ĐÃ BIẾT (không phải mong muốn): đơn trước 0090 chưa có bản chụp thì chỉ còn vai hiện tại để canh; vai đã đóng ⇒ lọt. Khi có việc «chụp bù» (SYSTEM-DESIGN §6) thì đổi dòng này.
+  // Giới hạn cũ (đơn trước 0090 chưa có bản chụp chỉ còn vai hiện tại để canh; vai đã đóng ⇒ lọt) ĐÃ ĐÓNG ở lớp CSDL: migration 0111 (sổ đại lý đợt 2, ADR-0079
+  // điều 5) — trigger `bil_posting_delivered_terms` chặn phiếu «Đã giao» của đơn còn dòng chưa chụp ⇒ cả lô huỷ, đơn không khoá, không phiếu. ĐẢO CÓ CHỦ ĐÍCH (Task 2):
+  // câu trả lời lời thường (409 `terms_missing`, lớp 1 của orders + dịch mã `delivered_terms:`) do Task 4 làm — Task 4 siết dòng `notEqual(…, 200)` thành 409 đúng mã.
   assert.equal((await doiVai(w, ADMIN, ["SALES_STAFF"])).status, 200);
-  assert.equal((await daGiao(w, id)).status, 200);
+  const g2 = await daGiao(w, id);
+  assert.notEqual(g2.status, 200, g2.text);
+  assert.equal(w.q("SELECT delivered_at FROM orders WHERE id = ?", id)[0].delivered_at, null);
+  assert.equal(w.q("SELECT count(*) AS n FROM bil_posting WHERE order_id = ? AND kind_code = 'DELIVERED'", id)[0].n, 0);
 });

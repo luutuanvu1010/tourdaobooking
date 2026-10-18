@@ -610,7 +610,8 @@
     {
       "name": "bil_collector_role",
       "module": "billing",
-      "kind": "lookup"
+      "kind": "lookup",
+      "note": "vai người thu của lần thu (0045): COMPANY, STAFF, BOOKER (bên đặt — người hưởng), SUPPLIER (nhà cung cấp; bật từ 0111 — sổ đại lý đợt 2, ADR-0078 điều 7, 9), UNKNOWN (chỉ cọc cũ chuyển sang)"
     },
     {
       "name": "bil_receipt_kind",
@@ -625,12 +626,14 @@
     {
       "name": "bil_posting_kind",
       "module": "billing",
-      "kind": "lookup"
+      "kind": "lookup",
+      "note": "loại phiếu sổ: RECEIPT, DELIVERED, COMPLETED, COMPANY_RECEIVED, SETTLEMENT, REFUND, ADJUSTMENT, REVERSAL (0045), REPLACEMENT (0083 — Thay lần thu), COUNTERPARTY_CONFIRMED «Bên kia đã nhận» (0111 — ADR-0132: Kế toán xác nhận khoản khách trả cho bên đặt / tại quầy nhà cung cấp; phiếu một đơn)"
     },
     {
       "name": "bil_debt_kind",
       "module": "billing",
-      "kind": "lookup"
+      "kind": "lookup",
+      "note": "loại dòng nợ: HELD «Tiền đang giữ hộ», SETTLEMENT «Quyết toán», REFUND «Hoàn khách» (0045); 0111 (ADR-0079 điều 2, C1 = A): HOA_HONG «Hoa hồng» (Tour Đảo nợ người hưởng, một dòng mỗi dòng dịch vụ), GIAM_GIA_BEN_DAT «Giảm giá bên đặt chịu» (người hưởng nợ Tour Đảo = gross_snapshot − due_snapshot), GIA_VON «Giá vốn nhà cung cấp» (Tour Đảo nợ nhà cung cấp, một dòng mỗi dòng làm đại lý)"
     },
     {
       "name": "bil_payment_receipt",
@@ -642,7 +645,7 @@
       "name": "bil_audit_cutoff",
       "module": "billing",
       "kind": "table",
-      "note": "mốc của kiểm định kỳ sổ tiền (ADR-0092 đ8, khuôn ADR-0088 đ7 / ADR-0079 đ7a; migration 0080), CHỈ-THÊM: code (vd 'R-BIL-13') → cutoff_at = lúc áp migration. Vi phạm có dòng ghi TỪ mốc = LỖI (audit-invariants); cũ hơn mốc = cảnh báo kèm danh sách. Dòng 'R-BIL-13' cũng là mốc của R-ORD-15 (0081 cùng lần phát hành; orders không ghi bảng này). Không tiền, không dữ liệu cá nhân. Dòng 'R-BIL-D6' (0088) là mốc cắt C1 của mã giao dịch ngân hàng."
+      "note": "mốc của kiểm định kỳ sổ tiền (ADR-0092 đ8, khuôn ADR-0088 đ7 / ADR-0079 đ7a; migration 0080), CHỈ-THÊM: code (vd 'R-BIL-13') → cutoff_at = lúc áp migration. Vi phạm có dòng ghi TỪ mốc = LỖI (audit-invariants); cũ hơn mốc = cảnh báo kèm danh sách. Dòng 'R-BIL-13' cũng là mốc của R-ORD-15 (0081 cùng lần phát hành; orders không ghi bảng này). Không tiền, không dữ liệu cá nhân. Dòng 'R-BIL-D6' (0088) là mốc cắt C1 của mã giao dịch ngân hàng. Dòng 'R-BIL-2', 'R-BIL-5', 'R-BIL-12', 'R-BIL-16' (0111) là mốc kiểm của sổ đại lý đợt 2."
     },
     {
       "name": "bil_deposit_approval",
@@ -660,7 +663,7 @@
       "name": "bil_posting",
       "module": "billing",
       "kind": "table",
-      "note": "phiếu sổ (ADR-0026 đ3), CHỈ-THÊM; due_snapshot = phải thu chụp lúc Đã giao (Q4); trigger kiểm tiền trong lô Đã giao / Hoàn thành; request_id (0094, ADR-0115) = yêu cầu điều chỉnh đã duyệt của phiếu ADJUSTMENT — trigger cấm chèn ADJUSTMENT thiếu yêu cầu đã duyệt do người KHÁC tạo (phiếu cũ trước 0094 được miễn), mỗi yêu cầu một phiếu"
+      "note": "phiếu sổ (ADR-0026 đ3), CHỈ-THÊM; due_snapshot = phải thu chụp lúc Đã giao (Q4); trigger kiểm tiền trong lô Đã giao / Hoàn thành; request_id (0094, ADR-0115) = yêu cầu điều chỉnh đã duyệt của phiếu ADJUSTMENT — trigger cấm chèn ADJUSTMENT thiếu yêu cầu đã duyệt do người KHÁC tạo (phiếu cũ trước 0094 được miễn), mỗi yêu cầu một phiếu; 0111 (sổ đại lý đợt 2): gross_snapshot = Σ thành tiền trước giảm chụp lúc Đã giao (ADR-0079 điều 6) — CHECK chỉ phiếu DELIVERED, ≥ 0; NULL ở phiếu Đã giao cũ và KHÔNG có trigger đòi phiếu mới phải có (Ruling R-P8: đường lùi wrangler rollback); trigger bil_posting_delivered_terms chặn phiếu Đã giao khi đơn còn dòng dịch vụ chưa chụp (v_ord_terms_uncaptured) hoặc bản chụp thiếu mức / thiếu người bán (v_ord_terms_missing); loại COUNTERPARTY_CONFIRMED «Bên kia đã nhận» (ADR-0132) là phiếu một đơn"
     },
     {
       "name": "bil_adjustment_request",
@@ -678,13 +681,13 @@
       "name": "bil_debt_line",
       "module": "billing",
       "kind": "table",
-      "note": "dòng nợ hai chân (ADR-0026 đ3), CHỈ-THÊM; nguồn = đơn HOẶC chuyến (ADR-0057 T3 — trip_id cột dự trữ, không khoá ngoại, lượt 1 luôn trống). 0080 (ADR-0092 Đ2, Đ2b): trigger bil_debt_line_settlement_no_flip — dòng quyết toán gốc gắn đơn không làm số dư cặp (bên, công ty chủ) đổi dấu; bil_debt_line_held_once — dòng đảo giữ hộ chỉ khi người giữ hộ còn nợ ≥ số dòng gốc (một dòng giữ hộ tất toán MỘT lần: \"Công ty đã nhận\" HOẶC \"Nộp\")"
+      "note": "dòng nợ hai chân (ADR-0026 đ3), CHỈ-THÊM; nguồn = đơn HOẶC chuyến (ADR-0057 T3 — trip_id cột dự trữ, không khoá ngoại, lượt 1 luôn trống). 0080 (ADR-0092 Đ2, Đ2b): trigger bil_debt_line_settlement_no_flip — dòng quyết toán gốc gắn đơn không làm số dư cặp (bên, công ty chủ) đổi dấu; bil_debt_line_held_once — dòng đảo giữ hộ chỉ khi người giữ hộ còn nợ ≥ số dòng gốc (một dòng giữ hộ tất toán MỘT lần: \"Công ty đã nhận\" HOẶC \"Nộp\"). 0111 (sổ đại lý đợt 2): ba loại HOA_HONG / GIAM_GIA_BEN_DAT / GIA_VON (ADR-0079 điều 2) — order_service_id bắt buộc cho HOA_HONG / GIA_VON gốc của phiếu Đã giao, chỉ mục duy nhất một phần bil_debt_line_one_commercial (phiếu, dòng dịch vụ, loại), trigger bil_debt_line_commercial_service / _direction / _gross / _discount (ADR-0079 điều 6 (i)–(iv); miễn dòng đảo, phiếu điều chỉnh, phiếu Đã giao gross_snapshot NULL); held_once tạo lại chỉ cộng HELD / SETTLEMENT / REFUND của cặp (đặc tả P10)"
     },
     {
       "name": "bil_receipt_recon",
       "module": "billing",
       "kind": "table",
-      "note": "dấu đối chiếu của khoản \"Công ty thu\" bằng CHUYỂN KHOẢN do người không phải Kế toán khai (ADR-0120 Điều 1; migration 0099; tiền mặt giữ luật giữ hộ cũ, không có dấu), CHỈ-THÊM. DECLARED = đang đối chiếu (không có dòng giữ hộ nào), CONFIRMED = Kế toán đã bấm \"Công ty đã nhận\"; đang đối chiếu = có DECLARED chưa có CONFIRMED, lần thu còn hiệu lực. Khoản khai trước ngày áp luật không có dòng ở đây (đi đường dòng giữ hộ cũ). Đơn còn khoản đang đối chiếu chưa Đã giao được (trigger bil_posting_delivered_reconciling)"
+      "note": "dấu đối chiếu của khoản \"Công ty thu\" bằng CHUYỂN KHOẢN do người không phải Kế toán khai (ADR-0120 Điều 1; migration 0099; tiền mặt giữ luật giữ hộ cũ, không có dấu), CHỈ-THÊM. DECLARED = đang đối chiếu (không có dòng giữ hộ nào), CONFIRMED = Kế toán đã bấm \"Công ty đã nhận\"; đang đối chiếu = có DECLARED chưa có CONFIRMED, lần thu còn hiệu lực. Khoản khai trước ngày áp luật không có dòng ở đây (đi đường dòng giữ hộ cũ). Đơn còn khoản đang đối chiếu chưa Đã giao được (trigger bil_posting_delivered_reconciling). 0111 (ADR-0132): DECLARED nhận thêm lần thu người thu BOOKER / SUPPLIER ở mọi hình thức (khách trả cho bên đặt / tại quầy nhà cung cấp, người không giữ ledger.write khai — không sinh dòng giữ hộ); CONFIRMED của loại này = Kế toán bấm «Bên kia đã nhận»; mã giao dịch ngân hàng chỉ đòi cho người thu Công ty; view cọc v_bil_coc_don và trigger đảo cọc coi khoản loại mới chưa CONFIRMED là đang đối chiếu"
     },
     {
       "name": "bil_receipt_bank_txn",
@@ -780,7 +783,7 @@
       "name": "ord_audit_cutoff",
       "module": "orders",
       "kind": "table",
-      "note": "mốc của kiểm định kỳ R-ORD-T1 (đặc tả sổ đại lý đợt 1 §9; khuôn bil_audit_cutoff; migration 0090), CHỈ-THÊM: code → cutoff_at = lúc áp migration. Đơn xác nhận từ mốc + 60 phút mà thiếu bản chụp = LỖI, trước đó = cảnh báo kèm danh sách. Không tiền, không dữ liệu cá nhân"
+      "note": "mốc của kiểm định kỳ R-ORD-T1 (đặc tả sổ đại lý đợt 1 §9; khuôn bil_audit_cutoff; migration 0090), CHỈ-THÊM: code → cutoff_at = lúc áp migration. Đơn xác nhận từ mốc + 60 phút mà thiếu bản chụp = LỖI, trước đó = cảnh báo kèm danh sách. Không tiền, không dữ liệu cá nhân. Dòng 'R-ORD-DC1' (0111, ADR-0079 điều 9): mốc kiểm «đơn có người hưởng xác nhận sau mốc: giảm giá ≤ tổng hoa hồng chụp lúc xác nhận»"
     },
     {
       "name": "ky_period_close",
@@ -1203,6 +1206,14 @@
       ]
     },
     {
+      "name": "v_ord_terms_uncaptured",
+      "module": "orders",
+      "columns": [
+        "order_id",
+        "order_service_id"
+      ]
+    },
+    {
       "name": "v_ky_closed_period",
       "module": "ky-so",
       "columns": [
@@ -1251,7 +1262,7 @@
     "bil_outside_refund": { "id": "N1", "order_id": "N1", "kind_code": "N1", "amount": "N1", "reason": "N2", "target_id": "N1", "occurred_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_payment_method": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
     "bil_payment_receipt": { "id": "N1", "order_id": "N1", "kind_code": "N1", "amount": "N1", "collector_party_id": "N1", "collector_role_code": "N1", "method_code": "N1", "collected_for_party_id": "N1", "stage_code": "N1", "occurred_date": "N1", "reverses_id": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "approval_id": "N1", "transfer_of_id": "N1", "replacement_id": "N1" },
-    "bil_posting": { "id": "N1", "kind_code": "N1", "order_id": "N1", "reason": "N2", "reverses_posting_id": "N1", "occurred_date": "N1", "due_snapshot": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "request_id": "N1" },
+    "bil_posting": { "id": "N1", "kind_code": "N1", "order_id": "N1", "reason": "N2", "reverses_posting_id": "N1", "occurred_date": "N1", "due_snapshot": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "request_id": "N1", "gross_snapshot": "N1" },
     "bil_posting_kind": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
     "bil_receipt_bank_txn": { "id": "N1", "receipt_id": "N1", "txn_code": "N1", "transferred_amount": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_receipt_kind": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
@@ -1372,6 +1383,7 @@
     "v_ord_passenger_key": { "person_key": "N2", "order_id": "N1", "has_current_row": "N1" },
     "v_ord_passenger_row": { "id": "N1", "person_key": "N2", "order_id": "N1", "is_current": "N1" },
     "v_ord_terms_missing": { "order_id": "N1" },
+    "v_ord_terms_uncaptured": { "order_id": "N1", "order_service_id": "N1" },
     "v_prc_beneficiary_role": { "role_type_code": "N1" },
     "v_prc_commission_rule": { "id": "N1", "target_party_id": "N1", "target_role_code": "N1", "scope": "N1", "catalog_code": "N1", "group_code": "N1", "kind": "N1", "rate_bp": "N1", "per_pax_amount": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "target_tier_code": "N1" },
     "v_prc_supply_term": { "id": "N1", "scope": "N1", "catalog_code": "N1", "group_code": "N1", "seller_party_id": "N1", "supplier_party_id": "N1", "cost_rate_bp": "N1", "valid_from_date": "N1", "valid_to_date": "N1" },

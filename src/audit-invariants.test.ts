@@ -14,6 +14,7 @@ import { vnToday } from "./shared/vn-date.ts";
 import { gieoMocXep } from "../tests/audit/gieo-vc.mjs";
 import { gieoLyDoHuy } from "../tests/audit/huy-don.mjs";
 import { gieoDongTienKhop } from "../tests/audit/dong-tien.mjs";
+import { gieoBanChup } from "../tests/audit/gieo-ban-chup.mjs";
 
 interface Check {
   code: string;
@@ -2197,6 +2198,7 @@ function donBil(db: DatabaseSync, id: string): void {
   db.prepare("UPDATE orders SET total = 300000, subtotal = 300000, remaining_amount = 300000 WHERE id = ?").run(id);
   gieoDongTienKhop(db, id); // 0081 (F-03): xác nhận cần tạm tính = Σ dòng tiền
   db.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = ?").run(T1, id);
+  gieoBanChup(db, id); // 0111 (sổ đại lý đợt 2): máy chủ chụp lúc xác nhận — thiếu bản chụp thì trigger bil_posting_delivered_terms chặn phiếu Đã giao
 }
 function lanThuBil(db: DatabaseSync, o: { id: string; order: string; amount: number; at?: string; role?: string; party?: string | null; kind?: string; reverses?: string | null; forParty?: string }): void {
   const role = o.role ?? "STAFF";
