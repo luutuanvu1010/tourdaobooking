@@ -254,6 +254,7 @@ export function taoONoiGoiY(op: ONoiGoiYOptions): ONoiGoiY {
     if (d.loai === "tu-do" && d.chu === "") {
       // "Gõ tự do…" khi chưa gõ gì: không lưu gì, nhắc gõ địa chỉ ngay trong ô
       o.placeholder = CHU_MO_TU_DO;
+      bao.textContent = "Gõ địa chỉ vào ô"; // trình đọc màn hình không thấy chữ mờ đổi: báo qua vùng trạng thái (nợ M-4 của việc 7, Việc 9)
       o.focus();
       return;
     }
@@ -272,6 +273,8 @@ export function taoONoiGoiY(op: ONoiGoiYOptions): ONoiGoiY {
   });
   o.addEventListener("keydown", (e) => {
     kieuAn = "";
+    // Đang ghép chữ bằng bộ gõ (IME — Telex / VNI, bàn phím tiếng Việt của điện thoại): Enter / mũi tên / Esc thuộc về bộ gõ, không chọn dòng, không đóng (nợ M-3 của việc 7, Việc 9).
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "Enter") {
       e.preventDefault(); // ô nằm trong <form> đơn: Enter không bao giờ gửi form
       if (mo && chiSo >= 0) chonDong(chiSo, false);

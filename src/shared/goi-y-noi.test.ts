@@ -32,6 +32,12 @@ test("nhiều điểm khớp giữ thứ tự danh mục; không khớp gì → 
   assert.deepEqual(tom(goiYNoi(ds, "12 Trần Phú, Nha Trang", { coChuaChot: false })), ["tu-do:12 Trần Phú, Nha Trang"]);
 });
 
+test("danh mục điểm RỖNG (chưa tải / chưa có điểm nào — nợ M-5 của việc 7, Việc 9): chỉ còn dòng gõ tự do, kèm 'Chưa chốt' khi ô Nơi trả có giá trị; không ném lỗi", () => {
+  assert.deepEqual(goiYNoi([], "", { coChuaChot: false }), [{ loai: "tu-do", chu: "", nhan: NHAN_GO_TU_DO }]);
+  assert.deepEqual(goiYNoi([], "  hòn chồng ", { coChuaChot: false }), [{ loai: "tu-do", chu: "hòn chồng", nhan: "Gõ tự do: “hòn chồng”" }]);
+  assert.deepEqual(goiYNoi([], "", { coChuaChot: true }).map((d) => d.loai), ["chua-chot", "tu-do"]);
+});
+
 test("chữ gõ tự do: bỏ khoảng trắng hai đầu (thân gửi vẫn cắt như cũ); chỉ dấu cách = chưa gõ", () => {
   const r = goiYNoi(ds, "  15 Trần Phú  ", { coChuaChot: false });
   assert.deepEqual(r.at(-1), { loai: "tu-do", chu: "15 Trần Phú", nhan: "Gõ tự do: “15 Trần Phú”" });

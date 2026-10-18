@@ -114,7 +114,13 @@ byId("buoc-slot").replaceWith(thanhBuoc.root); // KHÔNG bọc thêm thẻ: than
  */
 function ganViTriThongBao(): void {
   const goc = document.documentElement;
-  const doNgay = (): void => goc.style.setProperty("--toast-tren", `${Math.round(thanhBuoc.root.getBoundingClientRect().bottom)}px`);
+  let cu = ""; // chỉ ghi lên gốc trang khi số đo đổi — cuộn trong lúc thanh bước đang dính không ghi lại mỗi khung hình (nợ T8(c), Việc 9)
+  const doNgay = (): void => {
+    const moi = `${Math.round(thanhBuoc.root.getBoundingClientRect().bottom)}px`;
+    if (moi === cu) return;
+    cu = moi;
+    goc.style.setProperty("--toast-tren", moi);
+  };
   let hen = 0;
   const doSau = (): void => {
     cancelAnimationFrame(hen);
@@ -226,7 +232,18 @@ function mount(d: ServiceDraft, moThe: boolean, open?: boolean): Entry {
       entry.draft = next;
       recompute();
     },
-    onRemove: () => unmount(entry),
+    onRemove: () => {
+      // Nợ T5 (Việc 9): bấm thùng rác bằng bàn phím / chuột (tiêu điểm đang ở trong thẻ) → tiêu điểm sang đầu thẻ kế (hoặc thẻ trước), hết thẻ thì sang câu "Chưa có dịch vụ";
+      // không để rơi về <body>. Chạm cảm ứng không đặt tiêu điểm vào nút nên không đổi gì (không bật bàn phím ảo).
+      const coTieuDiem = entry.card.root.contains(document.activeElement);
+      const i = entries.indexOf(entry);
+      const ke = entries[i + 1] ?? entries[i - 1];
+      unmount(entry);
+      if (!coTieuDiem) return;
+      const dich = ke?.card.root.querySelector<HTMLElement>(".svc-mo") ?? emptyEl;
+      if (dich === emptyEl) emptyEl.tabIndex = -1;
+      dich.focus();
+    },
     onRepick: () => {
       unmount(entry);
       picker.focus();

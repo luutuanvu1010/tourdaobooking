@@ -73,6 +73,15 @@ test("chipThieu + dongGapThe: dịch vụ chưa nhập số khách có chip \"Ch
   assert.deepEqual(dongGapThe(td2(), { today: HOM_NAY, nhanTheoId }).chips, [], "có khách → không chip");
 });
 
+test("dongGapThe: chặng đón KHÁC ngày khởi hành → dòng gập ghi cả ngày đón (nợ T5, Việc 9: gập thẻ không được giấu ngày đón khác ngày)", () => {
+  assert.equal(dongGapThe(td2(undefined, [changDu({ pickupDate: "2026-10-21" })]), { today: HOM_NAY, nhanTheoId }).don, "đón 21/10 07:30 KS Biển Xanh");
+  assert.equal(dongGapThe(td2(undefined, [changDu({ pickupDate: NGAY })]), { today: HOM_NAY, nhanTheoId }).don, "đón 07:30 KS Biển Xanh", "cùng ngày đi: không ghi ngày");
+  assert.equal(dongGapThe(td2(undefined, [changDu({ pickupDate: "" })]), { today: HOM_NAY, nhanTheoId }).don, "đón 07:30 KS Biển Xanh", "chưa có ngày đón (máy chủ tự điền ngày đi): không ghi ngày");
+  assert.equal(dongGapThe(td2(undefined, [changDu({ pickupDate: "2026-10-19", pickupTime: "" })]), { today: HOM_NAY, nhanTheoId }).don, "đón 19/10 KS Biển Xanh", "thiếu giờ vẫn ghi ngày");
+  assert.equal(donGon("07:30", "KS Biển Xanh", "21/10"), "đón 21/10 07:30 KS Biển Xanh");
+  assert.equal(donGon(null, null, "21/10"), null, "không giờ, không nơi: dòng gập không in gì (ngày một mình không đủ nghĩa)");
+});
+
 test("chipTuCanhBao: lấy phần trước \" — \" của câu cảnh báo thật (một nguồn chữ), bỏ dấu chấm cuối", () => {
   assert.equal(chipTuCanhBao("Ngày khởi hành đã qua — vẫn lưu được, nhưng chưa thể xác nhận."), "Ngày khởi hành đã qua");
   assert.equal(chipTuCanhBao("Giờ đón sau giờ khởi hành — kiểm tra lại."), "Giờ đón sau giờ khởi hành");

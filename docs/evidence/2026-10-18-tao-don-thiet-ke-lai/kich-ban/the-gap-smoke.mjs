@@ -10,6 +10,9 @@
 //      của thẻ đó mở, khối khách giữ nguyên (thay phần kiemSauSach của docs/evidence/2026-10-14-tao-don-bon-buoc/kich-ban/chup-anh.mjs — sổ hàng rào, dòng "Nối dây khối gập");
 //      (việc 7, 18/10: nơi đón / nơi trả là MỘT ô có gợi ý — chọn bằng chạm thật qua cham-that.mjs; 10b(a) dựng lỗi ở chặng gọn bằng thao tác thật, xem tại bước);
 //      bước 14 (vòng sửa 1): lỗi CẤP THẺ "Nhập số khách." ở thẻ gập, đang ở cuối form → thẻ mở, ô số khách đầu tiên có tiêu điểm + trong khung nhìn; chip "Chưa nhập số khách";
+//   Việc 9 (nợ M-8 của việc 7): bước 10c — ca 1, 2 của kiemSauSach (chup-anh.mjs 14/10, gãy từ việc 7): nháp sạch thì khối email / ghi chú gập, thẻ mở ra có chặng gọn một dòng
+//   (ô Nơi đón ẩn, 'Thêm chi tiết' gập, Thông tin chuyến đóng); chạm dòng tóm tắt → chặng mở, ô Nơi đón hiện; tiêu điểm: chuột → ô Nơi đón, cảm ứng → đầu chặng;
+//   Việc 9 (nợ T5): bước 12 — bỏ thẻ bằng thùng rác khi tiêu điểm đang ở nút (bàn phím / chuột) → tiêu điểm sang đầu thẻ kế / thẻ trước, hết thẻ thì sang câu "Chưa có dịch vụ";
 //   7) nạp lại nháp: nháp sạch → mọi thẻ gập; nháp có giá trị bị giấu (Thông tin chuyến, xe riêng) → các thẻ đó mở sẵn (nhiều thẻ cùng mở được), mở thẻ khác thì chúng gập; `?focus=` mở đúng thẻ.
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, danh mục giả (TD101, TTB03 Phao chuối, TTB06 Motor nước).
 // Chạy từ GỐC repo, sau `npm run build:web`:
@@ -318,6 +321,30 @@ try {
       assert.equal(await p.ev("document.querySelector('button[data-gap=\"khach\"]')?.getAttribute('aria-expanded')"), "false", "câu lỗi nêu dịch vụ nên khối email / ghi chú của khách giữ nguyên");
     });
 
+    await buoc(`${kho}-10c`, "nợ M-8: nháp sạch — khối khách gập, chặng gọn một dòng (ô Nơi đón ẩn, chi tiết gập, Thông tin chuyến đóng); chạm dòng tóm tắt → chặng mở, tiêu điểm đúng kiểu ấn", async () => {
+      await p.send("Page.navigate", { url: `${env.base}/order-form?id=${idDon}` });
+      await p.waitFor(`location.pathname === '/order-form' && ${THE}.length === 3`, "form sửa dựng lại", 15000);
+      await sleep(600);
+      assert.equal(await p.ev("document.querySelector('button[data-gap=\"khach\"]').getAttribute('aria-expanded')"), "false", "nháp sạch: khối email / ghi chú gập");
+      const i = await p.ev(`[...${THE}].findIndex((c) => !!c.querySelector('.dd-tom-tat'))`);
+      assert.ok(i >= 0, "có thẻ mang chặng gọn một dòng");
+      await cham(p, mobile, nut(i));
+      assert.equal(await p.ev(`${nut(i)}.getAttribute('aria-expanded')`), "true", "mở thẻ");
+      const tt = `${the(i)}.querySelector('.dd-tom-tat')`;
+      const oDon = `${the(i)}.querySelector('[data-o$=":don"]')`;
+      const k = await p.ev(`(() => { const c = ${the(i)}, t = ${tt}; return { chu: t.textContent, exp: t.getAttribute('aria-expanded'), hienTt: t.getClientRects().length > 0, don: ${hien(oDon)},
+        chiTiet: [...c.querySelectorAll('.svc-than button[data-gap^="chi-tiet-"]')].map((b) => b.getAttribute('aria-expanded')), trip: c.querySelector('details.trip')?.open ?? null }; })()`);
+      assert.match(k.chu, /^Chiều đi · Đón \d\d:\d\d · ./, `chặng gọn một dòng có chữ tóm tắt: ${JSON.stringify(k)}`);
+      assert.deepEqual([k.exp, k.hienTt, k.don, k.trip], ["false", true, false, false], `chặng gọn, ô Nơi đón ẩn, Thông tin chuyến đóng: ${JSON.stringify(k)}`);
+      assert.ok(k.chiTiet.length >= 1 && k.chiTiet.every((v) => v === "false"), `'Thêm chi tiết' gập: ${JSON.stringify(k)}`);
+      await cham(p, mobile, tt);
+      assert.equal(await p.ev(hien(oDon)), true, "chạm dòng tóm tắt: chặng mở, ô Nơi đón hiện");
+      const dangO = await p.ev("document.activeElement?.className + '|' + (document.activeElement?.getAttribute('data-o') ?? '')");
+      if (mobile) assert.equal(await p.ev(coTieuDiem(`${the(i)}.querySelector('.dd-chang-dau[tabindex]')`)), true, `cảm ứng: tiêu điểm vào đầu chặng (không bật bàn phím ảo) — đang ở ${dangO}`);
+      else assert.equal(await p.ev(coTieuDiem(oDon)), true, `chuột: tiêu điểm vào ô Nơi đón — đang ở ${dangO}`);
+      assert.equal(await p.ev(trongKhung(oDon)), true, "ô Nơi đón nằm trong khung nhìn");
+    });
+
     await buoc(`${kho}-11`, "nạp lại nháp có giá trị bị giấu: các thẻ đó mở sẵn (nhiều thẻ cùng mở), mở thẻ khác thì chúng gập", async () => {
       await p.send("Page.navigate", { url: `${env.base}/order-form?id=${nhapGiau.id}` });
       await p.waitFor(`location.pathname === '/order-form' && ${THE}.length === 3`, "form nháp giấu dựng xong", 15000);
@@ -329,10 +356,22 @@ try {
       assert.deepEqual(await p.ev(moRa), ["false", "false", "true"], "thao tác đầu tiên của người dùng: chỉ một thẻ mở");
     });
 
-    await buoc(`${kho}-12`, "thùng rác bỏ thẻ (hành vi xoá giữ nguyên)", async () => {
-      await p.ev(`${the(2)}.querySelector('.svc-remove').click(); true`);
+    await buoc(`${kho}-12`, "thùng rác bỏ thẻ (hành vi xoá giữ nguyên); tiêu điểm đang ở nút thì sang đầu thẻ còn lại, hết thẻ thì sang câu 'Chưa có dịch vụ' (nợ T5, Việc 9)", async () => {
+      const dangO = "document.activeElement === document.body ? 'body' : (document.activeElement?.className || document.activeElement?.id || document.activeElement?.tagName)";
+      await p.ev(`(() => { const b = ${the(2)}.querySelector('.svc-remove'); b.focus(); b.click(); return true; })()`);
       await p.waitFor(`${THE}.length === 2`, "còn 2 thẻ");
       assert.deepEqual(await p.ev(`[...${THE}].map((c) => c.querySelector('.svc-name').textContent)`), ["Tour 4 đảo Nha Trang", "Motor nước"]);
+      assert.equal(await p.ev(coTieuDiem(nut(1))), true, `bỏ thẻ cuối bằng bàn phím: tiêu điểm sang đầu thẻ trước (đang ở: ${await p.ev(dangO)})`);
+      await p.ev(`${nut(0)}.click(); true`);
+      await p.waitFor(`${nut(0)}.getAttribute('aria-expanded') === 'true'`, "mở thẻ đầu");
+      await p.ev(`(() => { const b = ${the(0)}.querySelector('.svc-remove'); b.focus(); b.click(); return true; })()`);
+      await p.waitFor(`${THE}.length === 1`, "còn 1 thẻ");
+      assert.equal(await p.ev(coTieuDiem(nut(0))), true, `bỏ thẻ đầu: tiêu điểm sang đầu thẻ kế (đang ở: ${await p.ev(dangO)})`);
+      await p.ev(`${nut(0)}.click(); true`);
+      await p.waitFor(`${nut(0)}.getAttribute('aria-expanded') === 'true'`, "mở thẻ còn lại");
+      await p.ev(`(() => { const b = ${the(0)}.querySelector('.svc-remove'); b.focus(); b.click(); return true; })()`);
+      await p.waitFor(`${THE}.length === 0`, "hết thẻ");
+      assert.equal(await p.ev(coTieuDiem("document.getElementById('services-empty')")), true, `bỏ thẻ cuối cùng: tiêu điểm sang câu 'Chưa có dịch vụ' (đang ở: ${await p.ev(dangO)})`);
     });
 
     await buoc(`${kho}-13`, "không lỗi console", async () => {

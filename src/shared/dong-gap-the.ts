@@ -20,13 +20,21 @@ export function soKhachGon(s: { nl: number; te: number; nc: number; eb: number }
 /**
  * Giờ + nơi đón của dòng gập: "đón 07:30 KS Biển Xanh" ("Khách sạn " ở đầu tên rút thành "KS " cho vừa khổ 390). Thiếu giờ → chỉ nơi ("đón KS Biển Xanh"), thiếu nơi → chỉ giờ;
  * KHÔNG ghép chữ "chưa chốt" vào đây (phần thiếu là chip riêng — `chipThieu`). Thiếu cả hai → null (dòng gập không in gì).
+ * `ngayKhac` ("dd/mm", Việc 9 — nợ T5): chặng đón khác ngày khởi hành thì ghi ngày trước giờ ("đón 21/10 07:30 KS Biển Xanh") — gập thẻ không được giấu ngày đón khác ngày.
  */
-export function donGon(gio: string | null, noi: string | null): string | null {
+export function donGon(gio: string | null, noi: string | null, ngayKhac: string | null = null): string | null {
   const g = (gio ?? "").trim();
   const n = (noi ?? "").trim().replace(/^Khách sạn\s+/u, "KS ");
   if (g === "" && n === "") return null;
-  return ["đón", g, n].filter((x) => x !== "").join(" ");
+  return ["đón", ngayKhac ?? "", g, n].filter((x) => x !== "").join(" ");
 }
+
+/** Ngày đón của chặng dạng "dd/mm" khi KHÁC ngày khởi hành (cả hai đã có); cùng ngày / thiếu ngày → null. */
+const ngayDonKhac = (ngayDon: string, ngayDi: string): string | null => {
+  if (ngayDon === "" || ngayDi === "" || ngayDon === ngayDi) return null;
+  const m = /^\d{4}-(\d{2})-(\d{2})$/.exec(ngayDon);
+  return m ? `${m[2]}/${m[1]}` : null;
+};
 
 /** Chip thông tin còn thiếu hiện trên dòng gập: số khách (khi thiếu chặn Lưu — `coKhach`, mặc định có), rồi giờ / nơi đón của chặng. */
 export function chipThieu(v: { coKhach?: boolean; coGioDon: boolean; coNoiDon: boolean }): string[] {
@@ -106,5 +114,5 @@ export function dongGapThe(d: ServiceDraft, o: { today: string; nhanTheoId: (id:
     if (p.ok && p.lines.some((x) => x.deviation !== null)) chips.push("Khác giá danh mục");
   }
   chips.push(...canhBaoChuyenThe(d, o.today).map((w) => chipTuCanhBao(w.message)), ...(o.chipNgoai ?? []));
-  return { khach, don: l ? donGon(l.pickupTime, noi) : null, chips: [...new Set(chips)] };
+  return { khach, don: l ? donGon(l.pickupTime, noi, ngayDonKhac(l.pickupDate, d.trip.departDate)) : null, chips: [...new Set(chips)] };
 }

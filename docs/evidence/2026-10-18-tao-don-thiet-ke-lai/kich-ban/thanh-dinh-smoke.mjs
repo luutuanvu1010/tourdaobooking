@@ -24,6 +24,9 @@
 //     12) Lưu bị từ chối: #save-error kề trên #save, cả hai trong khung 1040×768; tiêu điểm ở ô lỗi đầu tiên;
 //     12b) (M-3) thông báo nổi dưới thanh bước — đang dính và đầu trang;
 //     13) thang nút như bước 4.
+//   Việc 9: 390-7c — Lưu gặp 503 «chưa có chính sách điều phối» (đường 503 khi Lưu không còn kịch bản nào phủ): câu máy chủ + dòng giải thích trong thanh, kề trên #save,
+//     trang không nhảy, form không khoá, Lưu bấm lại được; 375-9c thêm (nợ T8(c)) — cuộn khi thanh bước đang dính không ghi lại --toast-tren; 1040-12c (nợ T8(a)) —
+//     nút trong khung lỗi («Tải lại trang» của 409 client_outdated) giữ cỡ theo chữ, không kéo rộng hết cột phải.
 //   Danh mục thử được GIEO NHÓM ở đầu kịch bản (vòng sửa 1, M-2) để hàng nút nhóm hiện; nút nhóm đang chọn là trạng thái, được miễn khỏi phép "một nút chính" (xem QUET_NUT).
 //   AXE_JS (tuỳ chọn): axe-core ở 390 (bảng chi tiết mở) và 1040 — không vi phạm critical/serious. Thiếu biến thì in rõ "chưa chạy axe".
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, danh mục giả (TD101, TTB03 Phao chuối, TTB06 Motor nước).
@@ -286,6 +289,24 @@ try {
     assert.ok(Math.abs(sau - truoc) <= 2, `trang nhảy từ ${truoc} tới ${sau}`);
   });
 
+  await buoc("390-7c", "Việc 9: Lưu gặp 503 'chưa có chính sách điều phối': câu máy chủ + dòng giải thích trong thanh, kề trên #save; trang không nhảy; form không khoá, Lưu bấm lại được", async () => {
+    await p.ev("window.scrollTo(0, 0); true");
+    await sleep(200);
+    // 503 ở lần POST đầu, thân lỗi đúng dạng máy chủ (src/modules/orders/index.ts MOC_CHUA_CO) — từ đây đường vẽ khung lỗi y như 503 thật (order-errors.ts → banner.ts).
+    await p.ev(`(() => { const f = window.fetch; let mot = true; window.fetch = (u, o) => { if (mot && String(u).endsWith('/api/orders') && o?.method === 'POST') { mot = false;
+      return Promise.resolve(new Response(JSON.stringify({ error: { code: 'moc_toi_thieu_chua_co', message: 'Chưa có chính sách điều phối đang hiệu lực (mốc tối thiểu) — báo người phụ trách hệ thống.' } }), { status: 503, headers: { 'content-type': 'application/json' } })); } return f(u, o); }; return true; })()`);
+    const truoc = await p.ev("Math.round(scrollY)");
+    await cham(p, true, "document.getElementById('save')", false);
+    await p.waitFor("!document.getElementById('save-error').hidden && document.getElementById('save-error').textContent.includes('Chưa có chính sách điều phối')", "khung lỗi 503");
+    await sleep(400);
+    assert.match(await p.ev("document.getElementById('save-error').textContent"), /Chưa lưu, xác nhận hay sửa chuyến có giờ đón được cho tới khi Toàn quyền đặt chính sách điều phối\./);
+    const v = await p.ev(viTriLoi);
+    assert.deepEqual({ trongThanh: v.trongThanh, keTren: v.keTren, trongKhung: v.trongKhung }, { trongThanh: true, keTren: true, trongKhung: true }, JSON.stringify(v));
+    const sau = await p.ev("Math.round(scrollY)");
+    assert.ok(Math.abs(sau - truoc) <= 2, `trang nhảy từ ${truoc} tới ${sau}`);
+    assert.deepEqual(await p.ev("[document.getElementById('save').disabled, document.getElementById('customerName').disabled, location.pathname]"), [false, false, "/order-form"], "form không khoá, chưa rời trang, Lưu bấm lại được");
+  });
+
   await buoc("390-8", "cảnh báo tiền (giảm giá > tạm tính): #sum-warning — chữ của orderSummary — trong thanh, phía trên #save, thấy được khi ở đầu trang", async () => {
     await p.ev(setInput("document.getElementById('discount')", "99000000"));
     await p.ev("window.scrollTo(0, 0); true");
@@ -376,6 +397,15 @@ try {
     await p.ev(setInput("document.getElementById('discount')", "100000"));
     await p.ev("window.scrollTo(0, 700); true");
     await sleep(300);
+    // Nợ T8(c) (Việc 9): thanh bước đang dính (đứng yên) thì cuộn KHÔNG ghi lại --toast-tren mỗi khung hình — chỉ ghi khi số đo đổi. Đếm lời gọi setProperty('--toast-tren').
+    await p.ev("(() => { const st = document.documentElement.style, f = st.setProperty.bind(st); window.__ghiToast = 0; window.__cuon = 0; st.setProperty = (k, v, pr) => { if (k === '--toast-tren') window.__ghiToast++; return f(k, v, pr); }; addEventListener('scroll', () => window.__cuon++, { passive: true }); return true; })()");
+    for (const y of [690, 680, 670, 660, 650, 660, 670, 680, 690, 700]) {
+      await p.ev(`window.scrollTo(0, ${y}); true`);
+      await sleep(60);
+    }
+    const ghi = await p.ev("({ ghi: window.__ghiToast, cuon: window.__cuon })");
+    assert.ok(ghi.cuon >= 5, `tiền đề: trang thật sự cuộn (${JSON.stringify(ghi)})`);
+    assert.equal(ghi.ghi, 0, `thanh bước đứng yên khi cuộn: không ghi lại --toast-tren (${JSON.stringify(ghi)})`);
     assert.equal(await p.ev(themThongBao), true, "có vùng thông báo .toast-vung");
     await sleep(200);
     const dinh = await p.ev(viTriThongBao);
@@ -435,6 +465,24 @@ try {
     const dau = await p.ev(doViTri);
     assert.equal(dau.duoiThanhBuoc, true, `đầu trang: ${JSON.stringify(dau)}`);
     await p.ev("document.querySelectorAll('.toast-vung .toast').forEach((x) => x.remove()); true");
+  });
+
+  await buoc("1040-12c", "nợ T8(a) (Việc 9): ≥ 960px nút trong khung lỗi (409 'Trang đã cũ' → 'Tải lại trang') giữ cỡ theo chữ, không kéo rộng hết cột; Lưu vẫn rộng hết cột", async () => {
+    await p.ev(`(() => { const f = window.fetch; let mot = true; window.__gia409 = 0; window.fetch = (u, o) => { if (mot && String(u).endsWith('/api/orders') && o?.method === 'POST') { mot = false; window.__gia409++;
+      return Promise.resolve(new Response(JSON.stringify({ error: { code: 'client_outdated', message: 'Trang đã cũ.' } }), { status: 409, headers: { 'content-type': 'application/json' } })); } return f(u, o); }; return true; })()`);
+    // Cuộn cho Lưu vào khung nhìn rồi mới bấm: ở đầu trang 1040×768, khung lỗi cũ của bước 12 (vẫn hiện) đẩy Lưu xuống 753–799px — nửa dưới nút ngoài khung, cú bấm giữa nút rơi ra ngoài.
+    await p.ev("document.getElementById('save').scrollIntoView({ block: 'nearest' }); true");
+    await sleep(200);
+    await cham(p, false, "document.getElementById('save')", false);
+    await p.waitFor("[...document.querySelectorAll('#save-error button')].some((b) => b.textContent === 'Tải lại trang')", "khung lỗi 409 client_outdated có nút 'Tải lại trang'").catch(async (e) => {
+      throw new Error(`${e.message} — chẩn đoán: ${JSON.stringify(await p.ev("(() => { const s = document.getElementById('save').getBoundingClientRect(), t = document.elementFromPoint(s.left + s.width / 2, s.top + s.height / 2); return { post: window.__gia409, khung: document.getElementById('save-error').hidden ? '(ẩn)' : document.getElementById('save-error').textContent, tieuDiem: document.activeElement?.id || document.activeElement?.className || '', ten: document.getElementById('customerName').value, luu: [Math.round(s.top), Math.round(s.bottom), innerHeight], diemLuu: t ? (t.id || t.className || t.tagName) : null }; })()"))}`);
+    });
+    const w = await p.ev(`(() => { const b = [...document.querySelectorAll('#save-error button')].find((x) => x.textContent === 'Tải lại trang'), sv = document.getElementById('save'), bar = ${THANH};
+      return { nut: Math.round(b.getBoundingClientRect().width), luu: Math.round(sv.getBoundingClientRect().width), thanh: Math.round(bar.getBoundingClientRect().width), cao: b.getBoundingClientRect().height >= 44 }; })()`);
+    assert.ok(w.nut < w.thanh * 0.8, `nút 'Tải lại trang' không kéo rộng hết cột: ${JSON.stringify(w)}`);
+    assert.ok(Math.abs(w.luu - w.thanh) <= 1, `Lưu vẫn rộng hết cột: ${JSON.stringify(w)}`);
+    assert.equal(w.cao, true, "nút cao ≥ 44px");
+    await p.ev("document.getElementById('save-error').hidden = true; true"); // dọn khung cho bước quét thang nút
   });
 
   await buoc("1040-13", "thang nút ba cấp ở 1040 (như 390-4)", async () => {
