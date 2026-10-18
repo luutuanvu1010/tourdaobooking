@@ -4,6 +4,7 @@ import { mayPickHandlerOnCreate } from "../src/shared/assignee-pick";
 import type { SuKienDon } from "../src/shared/bang-tin";
 import type { AssigneeDto, CatalogServiceDto } from "../src/shared/contracts";
 import { canhBaoChangForm } from "../src/shared/dat-gap-hien-thi";
+import { CHIP_DAT_GAP, theMoKhiNap } from "../src/shared/dong-gap-the";
 import { CHIEU_LABEL, type LyDoDatGap } from "../src/shared/chang-dua-don";
 import { cauDoiNgay, changTaoSan, doiNgayDi, giuDatGapNhap, type ChangNhap } from "../src/shared/chang-form";
 import type { MauChang } from "../src/shared/chang-mac-dinh";
@@ -159,7 +160,8 @@ orderDateEl.addEventListener("input", () => {
 const picker = createCatalogPicker({
   onPick: (item) => {
     const tao = changTaoSan(mauChang.get(item.code) ?? null, orderDate, newKey); // M6: dịch vụ có mẫu Một / Hai chiều → tạo sẵn chặng (sửa / bỏ được)
-    mount({ ...withOrderDate(newCatalogDraft(item, newKey())), legs: tao.legs, taoSan: tao.taoSan });
+    // Thiết kế lại 18/10 (mục 3C): thẻ vừa thêm MỞ (người lập phải điền), thẻ đang mở khác tự gập — trừ thẻ có lỗi chặn Lưu (`mustStayOpen`). Thẻ nằm dưới khung danh sách nên gập không xê dịch khung.
+    chiMoMot(mount({ ...withOrderDate(newCatalogDraft(item, newKey())), legs: tao.legs, taoSan: tao.taoSan }, true));
     // Thiết kế lại 18/10 (đặc tả mục 3A): KHÔNG cuộn trang tới thẻ mới và KHÔNG thông báo nổi — khung danh sách đứng yên để thêm nhiều dịch vụ liền tay;
     // dòng vừa chạm hiện "✓ đã thêm" và vùng aria-live của ô chọn đọc "Đã thêm <tên>" (web/catalog-picker.ts). Thẻ mới nằm ngay dưới khung.
   },
@@ -172,7 +174,11 @@ let retailOnly = false;
 // GET /api/cai-dat/nhap-tay), giao diện không tự tính luật. Đọc TRƯỚC khi dựng thẻ đã lưu (loadOrder); lỗi / 403 → false (ẩn nút, thẻ chỉ xem).
 let duocNhapTay = false;
 
-function mount(d: ServiceDraft, open?: boolean): Entry {
+/**
+ * `moThe` (thiết kế lại 18/10, mục 3C): thẻ MỞ lúc dựng — thẻ vừa thêm; thẻ của nháp nạp lại khi `theMoKhiNap` (có lỗi, hoặc giá trị mà dòng gập không cho thấy); thẻ `?focus=`.
+ * `open` = mở sẵn khối "Thông tin chuyến" (vắng → tự mở khi đã có giá trị).
+ */
+function mount(d: ServiceDraft, moThe: boolean, open?: boolean): Entry {
   const entry = { draft: d, mocEl: h("div", { class: "dg-form-slot" }), canhBao: new Map(), mocKy: "" } as Omit<Entry, "card"> as Entry;
   entry.card = createServiceCard({
     draft: d,
@@ -182,6 +188,9 @@ function mount(d: ServiceDraft, open?: boolean): Entry {
     retailOnly,
     duocNhapTay,
     duaDon: { ngayDi: () => orderDate, mau: () => mauCua(entry.draft), diem: () => diem, suaSoVe, newKey },
+    moThe,
+    onMo: () => chiMoMot(entry, true),
+    cuoiThe: entry.mocEl, // dải đặt gấp nằm TRONG phần gập của thẻ (gập thì thành chip "Cần đặt gấp" trên dòng gập)
     onChange: (next) => {
       entry.draft = next;
       recompute();
@@ -192,7 +201,6 @@ function mount(d: ServiceDraft, open?: boolean): Entry {
       picker.focus();
     },
   });
-  entry.card.root.append(entry.mocEl);
   entries.push(entry);
   servicesEl.append(entry.card.root);
   recompute();
@@ -227,6 +235,7 @@ function capNhatMoc(entry: Entry): void {
     khoi.push({ ky: `${l.key}:moc:${i}`, el: () => h("div", { class: "dg-leg", "data-leg-key": l.key }, dau(), widget.root) });
   });
   for (const k of [...entry.canhBao.keys()]) if (!conKhoa.has(k)) entry.canhBao.delete(k);
+  entry.card.datChipNgoai(conKhoa.size > 0 ? [CHIP_DAT_GAP] : []); // thẻ gập: dải cảnh báo dưới mốc bị ẩn cùng thân thẻ → hiện chip "Cần đặt gấp" trên dòng gập
   const ky = khoi.map((x) => x.ky).join("|");
   if (ky === entry.mocKy) return;
   entry.mocKy = ky;
@@ -239,8 +248,21 @@ function unmount(entry: Entry): void {
   recompute();
 }
 
+/**
+ * Chỉ một thẻ mở (thiết kế lại 18/10, mục 3C): gập mọi thẻ khác `giu` — thẻ có lỗi chặn Lưu đang hiện tự từ chối gập (`setOpen(false)` bỏ qua khi `mustStayOpen`).
+ * `giuViTri` (người dùng vừa chạm mở `giu`): thẻ phía trên gập lại làm `giu` trôi lên — cuộn bù để đầu thẻ vừa chạm đứng yên dưới ngón tay (Safari iPhone không tự neo cuộn).
+ */
+function chiMoMot(giu: Entry, giuViTri = false): void {
+  const truoc = giuViTri ? giu.card.root.getBoundingClientRect().top : 0;
+  for (const e of entries) if (e !== giu) e.card.setOpen(false);
+  if (!giuViTri) return;
+  const lech = giu.card.root.getBoundingClientRect().top - truoc;
+  if (lech !== 0) window.scrollBy(0, lech);
+}
+
 addManualBtn.addEventListener("click", () => {
-  const entry = mount(withOrderDate(newManualDraft(newKey())));
+  const entry = mount(withOrderDate(newManualDraft(newKey())), true);
+  chiMoMot(entry);
   entry.card.root.scrollIntoView({ block: "nearest" });
 });
 
@@ -490,6 +512,7 @@ async function onSaveError(err: unknown): Promise<void> {
       moMoiKhoiGap(formEl);
     }
   }
+  if (failure.focusService !== null) entries[failure.focusService]?.card.setOpen(true); // thẻ gập (18/10) được câu lỗi nêu tên: mở ra cho thấy (không gập thẻ khác)
   const target = failure.focusService === null ? undefined : entries[failure.focusService]?.card.root;
   (wide() ? (target ?? saveErrorEl) : saveErrorEl).scrollIntoView({ block: "center" }); // < 960px: banner (nêu rõ dịch vụ/giá) nằm cuối form nên cuộn tới ĐÓ; ≥ 960px: cuộn tới thẻ (banner ở cột dính, luôn thấy)
 }
@@ -644,9 +667,13 @@ function fill(o: Api.OrderDetailDto): void {
   const ngayDv = new Set(o.services.map((s) => s.departDate ?? ""));
   orderDate = ngayDv.size === 1 ? [...ngayDv][0]! : "";
   orderDateEl.value = orderDate;
+  // Thiết kế lại 18/10 (mục 3C): thẻ của nháp nạp lại GẬP, trừ khi có lỗi hoặc có giá trị mà dòng gập không cho thấy (`theMoKhiNap` — luật tự mở của các khối bên trong) hoặc là thẻ `?focus=`.
+  // Lúc nạp có thể nhiều thẻ cùng mở; "chỉ một thẻ mở" áp từ thao tác đầu tiên của người dùng (thêm dịch vụ / chạm mở thẻ khác).
+  const laSanBay = (id: string): boolean => diem.some((x) => x.id === id && x.sanBay);
   for (const s of o.services) {
-    const entry = mount(draftFromDto(s, live, newKey()), s.id === focusId ? true : undefined);
-    if (s.id === focusId) entry.card.reveal(); // liên kết "Sửa" của banner incomplete_trip: mở khối chuyến và cuộn tới thẻ
+    const d = draftFromDto(s, live, newKey());
+    const entry = mount(d, s.id === focusId || theMoKhiNap(d, orderDate, laSanBay), s.id === focusId ? true : undefined);
+    if (s.id === focusId) entry.card.reveal(); // liên kết "Sửa" của banner incomplete_trip: mở thẻ + khối chuyến và cuộn tới thẻ
   }
   // Đơn cũ (trước ADR-0021) có thể mỗi dịch vụ một ngày: khi đó ô để trống và Lưu báo "chọn một ngày cho cả đơn" (không đoán hộ).
   const dates = new Set(entries.map((e) => e.draft.trip.departDate));

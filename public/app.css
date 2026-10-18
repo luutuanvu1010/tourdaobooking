@@ -1186,7 +1186,23 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .svc-title { flex: 1; min-width: 0; }
 .svc-name { margin: 0; font-family: var(--font-display); font-size: var(--fs-ui); font-weight: var(--fw-bold); line-height: 1.3; color: var(--c-text); text-wrap: pretty; }
 .svc-chips { display: flex; flex-wrap: wrap; gap: var(--s1); margin-top: var(--s1); }
-.svc-remove { min-width: var(--tap-min); min-height: var(--tap-min); }
+/* Thẻ gập (thiết kế lại 18/10/2026, đặc tả mục 3C; bản vẽ khung 4–6): đầu thẻ là MỘT nút trong <h3>. Gập: tên (không cắt, xuống dòng được) · số khách + nơi đón · chip cát, thành tiền bên phải;
+   mở: tên + chip đơn vị / mã, thùng rác bên phải. Thẻ mở viền xanh, thẻ có lỗi chặn Lưu viền đỏ (2px nhìn thấy = viền 1px + bóng 1px, không xê dịch bố cục). */
+.svc-tieu-de { flex: 1; min-width: 0; margin: 0; font: inherit; }
+.svc-mo { display: flex; align-items: flex-start; gap: var(--s3); width: 100%; min-height: var(--tap-min); padding: 0; font: inherit; text-align: left; color: var(--c-text); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
+.svc-mo-chu { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--s1); }
+.svc-mo .svc-name { display: block; }
+.svc-mo .svc-chips { margin-top: 0; }
+.svc-gon-tom-tat { font-size: var(--fs-label); font-weight: var(--fw-medium); line-height: 1.4; color: var(--c-text-muted); overflow-wrap: anywhere; }
+.svc-gon-chips { display: flex; flex-wrap: wrap; gap: var(--s1); }
+.svc-chip-gon { display: inline-block; padding: 0 var(--s2); font-size: var(--fs-badge); font-weight: var(--fw-bold); line-height: 1.5; color: var(--c-sand-text); background: var(--c-sand-soft); border: 1px solid var(--c-sand-border); border-radius: var(--radius-pill); }
+.svc-mo-phai { flex: none; display: flex; align-items: center; gap: var(--s2); min-height: var(--tap-min); margin-top: calc(-1 * var(--s2)); font-family: var(--font-display); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--c-text); }
+.svc-mo-phai svg { flex: none; color: var(--c-text-muted); transition: transform var(--m-fast); }
+.svc-mo[aria-expanded="true"] .svc-mo-phai svg { transform: rotate(180deg); }
+.svc-remove { flex: none; display: inline-flex; align-items: center; justify-content: center; width: var(--tap-min); height: var(--tap-min); margin: calc(-1 * var(--s2)) calc(-1 * var(--s2)) 0 0; padding: 0; color: var(--c-danger); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
+@media (hover: hover) { .svc-remove:hover { color: var(--c-danger-text); background: var(--c-danger-soft); } }
+.svc-the:not(.svc-dang-gap) { border-color: var(--c-primary); box-shadow: 0 0 0 1px var(--c-primary), var(--shadow-card); } /* chỉ thẻ của form (`.svc-the`); thẻ dịch vụ ở trang đơn (`.svc-view`) không gập */
+.svc-the.svc-co-loi { border-color: var(--c-danger); box-shadow: 0 0 0 1px var(--c-danger), var(--shadow-card); }
 .svc-sub { margin-top: var(--s3); font-size: var(--fs-label); font-weight: var(--fw-semibold); color: var(--c-text-muted); }
 .guest-row { display: flex; align-items: center; gap: var(--s3); padding: var(--s2) 0; }
 .guest-info { flex: 1; min-width: 0; }

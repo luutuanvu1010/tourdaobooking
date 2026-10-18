@@ -1,17 +1,23 @@
 // Thẻ dịch vụ của form lập/sửa đơn (đặc tả 5.1). Giữ một ServiceDraft; mọi thay đổi đi qua hàm thuần của src/shared/service-form.ts.
 // KHÔNG dựng lại ô người dùng đang gõ: cấu trúc (bộ đếm, dòng tiền) chỉ dựng lại khi structKey đổi; còn lại refresh() cập nhật tại chỗ
 // và không ghi đè ô đang có focus (gõ tiếng Việt kiểu Telex/VNI không bị ngắt).
+// Thiết kế lại 18/10/2026 (đặc tả docs/superpowers/specs/2026-10-18-tao-don-thiet-ke-lai/DAC-TA.md mục 3C): thẻ GẬP được. Đầu thẻ là MỘT nút (`aria-expanded` + `aria-controls`, trong <h3>):
+// gập → một khối "tên · số khách · giờ và nơi đón · thành tiền" kèm chip nền cát; mở → tên, mã, và nút thùng rác "Xoá dịch vụ <tên>" bên phải. Thân thẻ đăng ký làm khối gập
+// (`taoKhoiGap`) nên chỉ bị ẨN bằng `hidden` — mọi ô vẫn trong cây DOM, thân gửi lên không đổi — và `moKhoiChua` / `moMoiKhoiGap` (Lưu bị từ chối, máy chủ 400) mở được nó.
+// Thẻ có lỗi chặn Lưu đang hiện thì luôn mở (`mustStayOpen`); "chỉ một thẻ mở" do trang quyết (web/order-form.ts). Luật chữ dòng gập: src/shared/dong-gap-the.ts.
 import { PAX_LABEL, thanhTienDong, type PaxCode } from "../src/shared/order-lines";
 import {
   addManualLine, cardCodes, draftIssues, soKhachNhap, draftSubtotal, groupInfo, guestDetail, isFrozenManual, isLocked, previewLines, removeManualLine, setGuests, setManualLine, setPax, setUnitPrice, unitLabel,
   type CatalogDraft, type ManualDraft, type ServiceDraft,
 } from "../src/shared/service-form";
-import { tripSummaryLine, tripWarnings } from "../src/shared/trip-form";
+import { canhBaoChuyenThe, coLoiChanLuuDangHien, dongGapThe } from "../src/shared/dong-gap-the";
+import { tripSummaryLine } from "../src/shared/trip-form";
 import { MAX_LINES_PER_ORDER } from "../src/shared/trip-rules";
 import { counter, type Counter } from "./counter";
 import { h, replaceChildren } from "./dom";
 import { parseMoney, vnd } from "./format";
 import { icon } from "./icons";
+import { taoKhoiGap } from "./khoi-gap";
 import { moneyInput, setMoneyValue } from "./money-input";
 import { tripFields } from "./trip-fields";
 import { taoKhoiDuaDon, type DiemChon } from "./khoi-dua-don";
@@ -36,6 +42,12 @@ export interface CardOptions {
   duocNhapTay?: boolean;
   /** Khối "Đưa đón" (ADR-0047 Phần B, bản vẽ M1/M6): ngày đi của cả đơn, mẫu chặng của dịch vụ, điểm danh mục, ô số người chiều về (văn phòng). */
   duaDon: { ngayDi: () => string; mau: () => MauChang | null; diem: () => readonly DiemChon[]; suaSoVe: boolean; newKey: () => string };
+  /** Thẻ MỞ lúc dựng: thẻ vừa thêm (phải điền), thẻ của nháp nạp lại khi `theMoKhiNap` (có lỗi / giá trị bị giấu), thẻ được trỏ tới bằng `?focus=`. Thẻ có lỗi chặn Lưu đang hiện luôn mở. */
+  moThe: boolean;
+  /** Người dùng vừa MỞ thẻ (chạm dòng gập, Enter / Space): trang gập các thẻ khác — chỉ một thẻ mở. Không gọi khi thẻ tự mở vì lỗi hay do trang mở. */
+  onMo?: () => void;
+  /** Phần tử trang gắn vào CUỐI thân thẻ (dải đặt gấp của từng chặng) — nằm trong phần gập, cùng ẩn / hiện với thân. */
+  cuoiThe?: HTMLElement;
 }
 
 export interface ServiceCard {
@@ -46,9 +58,16 @@ export interface ServiceCard {
   refreshLimits(): void;
   /** Hiện mọi lỗi chặn Lưu trên thẻ (sau lần bấm Lưu đầu). Lỗi "Tối đa 50 khách." luôn hiện. Trả ô lỗi chặng đầu tiên (mở khối gập chứa nó) — xem `KhoiDuaDon.showIssues`. */
   showIssues(show: boolean): { o: HTMLElement; daAn: boolean } | null;
-  /** Mở khối chuyến và cuộn tới thẻ. */
+  /** Mở thẻ, mở khối chuyến và cuộn tới thẻ. */
   reveal(): void;
   hasIssues(): boolean;
+  /** Mở / gập thẻ. Gập bị bỏ qua khi thẻ đang có lỗi chặn Lưu (`mustStayOpen`). */
+  setOpen(open: boolean): void;
+  isOpen(): boolean;
+  /** Thẻ có lỗi chặn Lưu ĐANG HIỆN (vd "Tối đa 50 khách."; sau lần bấm Lưu đầu: mọi lỗi chặn Lưu) → luôn mở, kể cả khi đang có thẻ khác mở. */
+  mustStayOpen(): boolean;
+  /** Chip do trang tính cho dòng gập (vd "Cần đặt gấp" — mốc tối thiểu đọc ở trang). */
+  datChipNgoai(chips: readonly string[]): void;
 }
 
 interface LineRefs {
@@ -81,14 +100,35 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   const man = () => draft as ManualDraft;
 
   // ---- khung cố định của thẻ (dựng một lần) ----
-  const nameEl = h("h3", { class: "svc-name" });
-  const chipsEl = h("div", { class: "svc-chips" });
+  // Đầu thẻ: MỘT nút bật / tắt (chỉ chứa chữ — trong nút chỉ được có phần tử dòng). `.svc-name` chỉ chứa TÊN (kịch bản so đúng chữ). Phần "gập" (số khách + nơi đón, chip, thành tiền)
+  // và phần "mở" (chip đơn vị / mã / trạng thái) cùng nằm trong nút, ẩn / hiện theo trạng thái (`veMo`).
+  const nameEl = h("span", { class: "svc-name" });
+  const chipsEl = h("span", { class: "svc-chips" });
+  const tomTatEl = h("span", { class: "svc-gon-tom-tat" });
+  const chipGonEl = h("span", { class: "svc-gon-chips" });
+  const tienGonEl = h("span", { class: "svc-gon-tien" });
+  const nutMo = h(
+    "button",
+    { type: "button", class: "svc-mo", "data-action": "mo-the" },
+    h("span", { class: "svc-mo-chu" }, nameEl, chipsEl, tomTatEl, chipGonEl),
+    h("span", { class: "svc-mo-phai" }, tienGonEl, icon("chevron-down", 16)),
+  );
   const body = h("div", null);
   const totalEl = h("output", { class: "svc-total-amount" });
   const issuesEl = h("div", { class: "field-errors", role: "alert" });
   const warningsEl = h("div", { class: "svc-warnings" });
-  const remove = h("button", { type: "button", class: "btn btn-link danger svc-remove", "aria-label": "Xoá dịch vụ" }, "Xoá");
+  // Thùng rác thay chữ "Xoá" (bản vẽ khung 4): màu nguy hiểm, vùng chạm 44px; tên cho trình đọc màn hình nêu tên dịch vụ (cập nhật khi tên đổi — `veDongGap`). Hành vi xoá giữ nguyên.
+  const remove = h("button", { type: "button", class: "svc-remove", "aria-label": "Xoá dịch vụ" }, icon("trash", 20));
   remove.addEventListener("click", () => o.onRemove());
+  /** Chip do trang tính (đặt gấp) — `datChipNgoai`. */
+  let chipNgoai: readonly string[] = [];
+  /** Nhãn ngắn của điểm danh mục theo id ("Khách sạn Biển Xanh · khách sạn" → "Khách sạn Biển Xanh"), như dòng tóm tắt chặng gọn của khối Đưa đón. */
+  const nhanTheoId = (id: string): string | null => {
+    const nhan = o.duaDon.diem().find((x) => x.id === id)?.nhan;
+    if (nhan === undefined) return null;
+    const cat = nhan.lastIndexOf(" · ");
+    return cat > 0 ? nhan.slice(0, cat) : nhan;
+  };
 
   const duaDon = taoKhoiDuaDon({
     legs: draft.legs, taoSan: draft.taoSan, che: "form", ma: draft.key, ...o.duaDon, soKhach: () => soKhachNhap(draft),
@@ -100,17 +140,34 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   const tripDetails = h("details", { class: "trip" }, h("summary", null, h("span", { class: "trip-title" }, "Thông tin chuyến"), summaryEl), fields.root);
   tripDetails.open = o.openTrip;
 
-  const root = h(
-    "article",
-    { class: "svc" },
-    h("header", { class: "svc-head" }, h("div", { class: "svc-title" }, nameEl, chipsEl), remove),
+  const than = h(
+    "div",
+    { class: "svc-than" },
     body,
     h("div", { class: "svc-sum" }, h("span", null, "Tổng dịch vụ"), totalEl),
     issuesEl,
     duaDon.root,
     tripDetails,
     warningsEl,
+    o.cuoiThe ?? null,
   );
+  const root = h("article", { class: "svc svc-the" }, h("header", { class: "svc-head" }, h("h3", { class: "svc-tieu-de" }, nutMo), remove), than);
+  /** Lỗi chặn Lưu đang hiện trên thẻ → thẻ luôn mở (`refresh` chốt mở; bấm gập bị trả lại). Trước lần bấm Lưu đầu chỉ tính lỗi hiện ngay (luật ở dong-gap-the.ts). */
+  const mustStayOpen = (): boolean => coLoiChanLuuDangHien(draft, issuesVisible);
+  const veMo = (mo: boolean): void => {
+    root.classList.toggle("svc-dang-gap", !mo);
+    chipsEl.hidden = !mo;
+    tomTatEl.hidden = mo || tomTatEl.textContent === "";
+    chipGonEl.hidden = mo || chipGonEl.childElementCount === 0;
+    tienGonEl.hidden = mo;
+    remove.hidden = !mo;
+  };
+  const gap = taoKhoiGap({ ma: `the-${draft.key}`, nhan: "", than, nut: nutMo, mo: o.moThe, khiDoi: veMo });
+  nutMo.addEventListener("click", () => {
+    // Chạy SAU bộ bật / tắt của `taoKhoiGap` (đăng ký trước): vừa mở → trang gập thẻ khác; vừa gập mà thẻ đang có lỗi chặn Lưu → mở lại (thẻ lỗi không gập được).
+    if (gap.laMo()) o.onMo?.();
+    else if (mustStayOpen()) gap.mo();
+  });
 
   // ---- phần thân theo loại (dựng lại khi structKey đổi) ----
   let counters = new Map<PaxCode, Counter>();
@@ -168,7 +225,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
 
   /**
    * Dịch vụ nhập tay ĐÃ LƯU (DK-T3-01, chủ dự án 2026-09-26: "loại bỏ hoàn toàn dịch vụ nhập tay"): CHỈ XEM tên và dòng tiền — máy chủ chỉ nhận lại
-   * nguyên văn. Số khách (vận hành) vẫn sửa được; thông tin chuyến và nút "Xoá" nằm ở khung cố định của thẻ nên vẫn dùng được.
+   * nguyên văn. Số khách (vận hành) vẫn sửa được; thông tin chuyến và nút thùng rác "Xoá dịch vụ …" nằm ở khung cố định của thẻ nên vẫn dùng được.
    */
   function buildFrozenManualBody(d: ManualDraft): HTMLElement {
     nameInput = null;
@@ -261,9 +318,22 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     if (document.activeElement !== el && el.value !== value) el.value = value;
   };
 
+  /** Dòng gập (số khách + nơi đón, chip nền cát, thành tiền) và tên nút thùng rác — cập nhật tại chỗ; `datChipNgoai` gọi riêng khi chip của trang đổi. */
+  function veDongGap(): void {
+    const d = draft;
+    const ten = d.kind === "catalog" ? d.name : d.name.trim() || "Dịch vụ nhập tay";
+    nameEl.textContent = ten;
+    remove.setAttribute("aria-label", `Xoá dịch vụ ${ten}`);
+    const dg = dongGapThe(d, { today: o.today, nhanTheoId, chipNgoai });
+    tomTatEl.textContent = [dg.khach, dg.don].filter((x) => x).join(" · ");
+    replaceChildren(chipGonEl, ...dg.chips.map((c) => h("span", { class: "svc-chip-gon" }, c))); // lớp riêng (không `.chip`): chip của dòng gập không lẫn với chip của đầu thẻ mở khi kịch bản đếm `.chip`
+    tienGonEl.textContent = vnd(draftSubtotal(d));
+    root.classList.toggle("svc-co-loi", mustStayOpen());
+    veMo(gap.laMo());
+  }
+
   function refresh(): void {
     const d = draft;
-    nameEl.textContent = d.kind === "catalog" ? d.name : d.name.trim() || "Dịch vụ nhập tay";
     replaceChildren(chipsEl, ...chips(d));
     const p = previewLines(d);
     if (d.kind === "catalog") {
@@ -322,10 +392,11 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     const s = tripSummaryLine(d.trip);
     summaryEl.textContent = s.text;
     summaryEl.classList.toggle("warn", s.warn);
-    // "Giờ đón sau giờ khởi hành": giờ đón nay ở chặng — so giờ của chiều đi sớm nhất có giờ.
-    const gioDi = d.legs.filter((l) => l.direction === "OUT" && l.pickupTime !== "").map((l) => l.pickupTime).sort()[0] ?? "";
-    replaceChildren(warningsEl, ...tripWarnings({ ...d.trip, pickupTime: gioDi }, o.today).map((w) => h("p", { class: "svc-warn" }, icon("alert", 16), w.message)));
+    // "Giờ đón sau giờ khởi hành": giờ đón nay ở chặng — so giờ của chiều đi sớm nhất có giờ (cùng hàm với chip của dòng gập).
+    replaceChildren(warningsEl, ...canhBaoChuyenThe(d, o.today).map((w) => h("p", { class: "svc-warn" }, icon("alert", 16), w.message)));
     fields.sync(d.trip);
+    if (mustStayOpen() && !gap.laMo()) gap.mo(); // lỗi chặn Lưu vừa hiện (vd "Tối đa 50 khách.", Lưu bị từ chối): thẻ mở ra và giữ mở tới khi người dùng / trang gập lại sau khi hết lỗi
+    veDongGap();
   }
 
   function commit(next: ServiceDraft): void {
@@ -366,9 +437,21 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       return dau;
     },
     reveal() {
+      gap.mo();
       tripDetails.open = true;
       root.scrollIntoView({ block: "center" });
     },
     hasIssues: () => draftIssues(draft).length > 0,
+    setOpen(open) {
+      if (open) gap.mo();
+      else if (!mustStayOpen()) gap.dong();
+    },
+    isOpen: () => gap.laMo(),
+    mustStayOpen,
+    datChipNgoai(chips) {
+      if (chips.length === chipNgoai.length && chips.every((c, i) => c === chipNgoai[i])) return;
+      chipNgoai = [...chips];
+      veDongGap();
+    },
   };
 }
