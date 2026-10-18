@@ -96,3 +96,19 @@ export function describeBookerChange(before: { id: string | null; name: string |
   if (after.id === null) return `bỏ gắn hồ sơ khách ${q(before.name)}`;
   return `đổi hồ sơ khách ${q(before.name)} → ${q(after.name)}`;
 }
+
+/**
+ * Lớp chặn nhầm (thiết kế lại màn Tạo đơn 18/10, đặc tả §3 B): số điện thoại khách gõ vào trùng số của một đối tác ĐANG được hưởng hoa hồng
+ * ⇒ hỏi lại "đơn này đặt qua đối tác đó?". `matches` = hồ sơ trùng số (`GET /api/parties/lookup`); `nguoiHuong` = kết quả `GET /api/pricing/nguoi-huong` (tra theo tên).
+ * Trả đối tác ĐẦU TIÊN trong `matches` có `id` nằm trong `nguoiHuong` (tên lấy từ `nguoiHuong`); không có thì null. Chỉ gợi ý — không chặn lưu đơn.
+ */
+export function doiTacTrungSo(
+  matches: readonly { id: string; displayName: string }[],
+  nguoiHuong: readonly { partyId: string; ten: string }[],
+): { partyId: string; ten: string } | null {
+  for (const m of matches) {
+    const d = nguoiHuong.find((n) => n.partyId === m.id);
+    if (d) return { partyId: d.partyId, ten: d.ten };
+  }
+  return null;
+}

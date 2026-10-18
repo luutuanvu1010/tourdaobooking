@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NO_BOOKER_TEXT, benDatChoTaiKhoan, benDatDoiTacBiCam, bookerPayload, canPickMatch, describeBookerChange, lookupReady, matchNote, parseBooker } from "./booker.ts";
+import { NO_BOOKER_TEXT, benDatChoTaiKhoan, benDatDoiTacBiCam, bookerPayload, canPickMatch, describeBookerChange, doiTacTrungSo, lookupReady, matchNote, parseBooker } from "./booker.ts";
 
 const U = "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0";
 
@@ -103,4 +103,15 @@ test("benDatDoiTacBiCam: các ngoại lệ — bên đặt đang lưu, chính h�
 
 test("NO_BOOKER_TEXT: dòng xám «chưa liên kết (không bắt buộc)», không còn nhãn vàng «Chưa gắn hồ sơ khách»", () => {
   assert.equal(NO_BOOKER_TEXT, "Hồ sơ khách: chưa liên kết (không bắt buộc)");
+});
+
+test("doiTacTrungSo: trùng số, hai hồ sơ, một hồ sơ là người được hưởng → trả đúng đối tác đó", () => {
+  const matches = [{ id: "pty-a", displayName: "Khách A" }, { id: "pty-b", displayName: "Đại lý B" }];
+  assert.deepEqual(doiTacTrungSo(matches, [{ partyId: "pty-b", ten: "Đại lý B" }]), { partyId: "pty-b", ten: "Đại lý B" });
+});
+
+test("doiTacTrungSo: không hồ sơ nào là người được hưởng → null; matches rỗng → null", () => {
+  assert.equal(doiTacTrungSo([{ id: "pty-a", displayName: "Khách A" }], [{ partyId: "pty-z", ten: "Z" }]), null);
+  assert.equal(doiTacTrungSo([{ id: "pty-a", displayName: "Khách A" }], []), null);
+  assert.equal(doiTacTrungSo([], [{ partyId: "pty-b", ten: "B" }]), null);
 });
