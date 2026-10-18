@@ -50,6 +50,16 @@ export const dsCua = (o) => `document.getElementById((${o}).getAttribute('aria-c
 export const dongCua = (o, dau) => `(() => { const ds = ${dsCua(o)}; if (!ds || ds.hidden) return null; return [...ds.querySelectorAll('[role=option]')].find((x) => x.textContent.trim().startsWith(${JSON.stringify(dau)})) ?? null; })()`;
 
 /**
+ * Biểu thức JS cho kịch bản CŨ chạy bằng sự kiện JS (không qua CDP; chạy được cả khi ô đang nằm trong thẻ / chặng gập, như `setInput`): bấm ô nơi `o` (mở danh sách), gõ `chu`
+ * (rỗng = không gõ), bấm dòng gợi ý có chữ bắt đầu bằng `dau` ("Gõ tự do: " cho chữ tự do, tên điểm cho điểm danh mục, "Chưa chốt"). Trả false nếu không thấy dòng.
+ * Thay `setInput(<ô chọn :don/:tra>, "tudo" | id)` + `setInput(<ô :don-chu/:tra-chu>, chữ)` của bản trước việc 7 (18/10/2026).
+ */
+export const chonNoiJs = (o, chu, dau) =>
+  `(() => { const o = ${o}; if (!o) return false; o.focus(); o.click(); const chu = ${JSON.stringify(chu)}; if (chu !== '') { o.value = chu; o.dispatchEvent(new Event('input', { bubbles: true })); }
+    const ds = document.getElementById(o.getAttribute('aria-controls')); const d = ds && [...ds.querySelectorAll('[role=option]')].find((x) => x.textContent.trim().startsWith(${JSON.stringify(dau)}));
+    if (!d) { o.blur(); return false; } d.click(); return true; })()`;
+
+/**
  * Ô "Nơi đón" / "Nơi trả" bản MỘT ô: chạm ô → gõ `tim` (nếu có) → chờ dòng gợi ý bắt đầu bằng `dong` → chạm dòng đó; chờ danh sách đóng. `xoaTruoc` = chọn hết chữ đang có
  * trong ô trước khi gõ (sửa địa chỉ gõ tự do đã lưu).
  */

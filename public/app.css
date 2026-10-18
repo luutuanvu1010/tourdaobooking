@@ -333,6 +333,7 @@
   --w-dp-khai-gio: 260px;      /* ô "Xảy ra lúc" (06, khung 6d) */
   /* — Riêng: đưa đón / hành khách — trang đơn (ADR-0047 Phần B, bản vẽ docs/design/2026-10-01-dua-don-hanh-khach — mục lục "Kích thước ngoài token"; D9) — */
   --w-dd-noi: 200px;           /* cột tối thiểu ô Nơi đón / Nơi trả (tự xuống một cột ở 390) */
+  --h-goi-y-noi: 264px;        /* Tạo đơn thiết kế lại 18/10/2026 (việc 7): chiều cao tối đa danh sách gợi ý dưới ô Nơi đón / Nơi trả, cuộn bên trong — ~5,5 dòng 44px (dòng thứ sáu lộ một nửa: còn cuộn) */
   --w-dd-phu: 170px;           /* cột tối thiểu ô Số hiệu chuyến bay / Số người chiều về */
   --w-hk-so: 28px;             /* bảng hành khách máy tính: cột # */
   --w-hk-nam: 112px;           /* cột Năm sinh */
@@ -3038,6 +3039,19 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .dd-nut .pill-btn, .dd-trong .pill-btn { white-space: nowrap; }
 .dd-chang [aria-invalid="true"], .hk [aria-invalid="true"] { border-color: var(--c-danger); }
 .dd-chang .field-error[hidden], .hk .field-error[hidden] { display: none; }
+/* Ô Nơi đón / Nơi trả MỘT ô có gợi ý (form Tạo/sửa đơn — Tạo đơn thiết kế lại 18/10/2026, việc 7; web/o-noi-goi-y.ts): danh sách nằm NGAY DƯỚI ô, trong dòng chảy (đẩy phần dưới xuống,
+   không phủ — không bị khung thẻ cắt), cuộn bên trong; mỗi dòng ≥ 44px; dòng đang trỏ bằng phím có viền như :focus-visible (tiêu điểm thật vẫn ở ô gõ — aria-activedescendant). */
+.dd-goi-y-ds { margin: 0; padding: var(--s1) 0; list-style: none; max-height: var(--h-goi-y-noi); overflow-y: auto; overscroll-behavior: contain; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-sm); box-shadow: var(--shadow-card); }
+.dd-goi-y-ds[hidden] { display: none; }
+.dd-goi-y-dong { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--s1); min-height: var(--tap-min); padding: var(--s2) var(--s3); box-sizing: border-box; font-size: var(--fs-ui); color: var(--c-text); overflow-wrap: anywhere; cursor: pointer; }
+.dd-goi-y-dong[aria-selected="true"] { background: var(--c-primary-soft); outline: var(--focus-ring) solid var(--c-primary); outline-offset: calc(-1 * var(--focus-ring)); }
+@media (hover: hover) { .dd-goi-y-dong:hover { background: var(--c-surface-alt); } }
+.dd-goi-y-ten { font-weight: var(--fw-semibold); }
+.dd-goi-y-loai { color: var(--c-text-muted); }
+.dd-goi-y-tu-do { border-top: 1px solid var(--c-border); }
+.dd-goi-y-tu-do .dd-goi-y-ten { color: var(--c-primary); }
+.dd-goi-y-phu { flex-basis: 100%; font-size: var(--fs-label); color: var(--c-text-muted); }
+.dd-goi-y-chua-chot .dd-goi-y-ten { font-weight: var(--fw-regular); color: var(--c-text-muted); }
 /* Hộp "Bỏ chặng" (bảng Sửa đưa đón, M4) — lý do bắt buộc */
 .dd-bo { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s3); background: var(--c-surface-alt); border-radius: var(--radius-sm); }
 .dd-bo-tieu { font-family: var(--font-display); font-weight: var(--fw-bold); color: var(--c-text); }
