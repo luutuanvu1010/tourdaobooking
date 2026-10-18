@@ -194,7 +194,7 @@ Trong khối **Thanh toán**, bấm [[Ghi khoản thu]]: số tiền, hình th�
 
 ### Đối chiếu tiền trên trang đơn
 
-Mọi việc làm ngay trên trang đơn:
+Trên trang đơn:
 - Khoản thu người khác khai là tiền vào công ty: đối chiếu tài khoản, bấm [[Xác nhận đã nhận]] rồi [[Công ty đã nhận]].
 - Sai số tiền, hình thức hay người thu tiền: [[Sửa khoản thu đã ghi]] → [[Lưu khoản thu đúng]] (đơn đã giao chỉ sửa được cách này).
 - Ghi nhầm hẳn, đơn chưa giao: [[Huỷ khoản thu]], ghi lý do → [[Huỷ khoản này]]. Sổ giữ dòng cũ, thêm dòng trừ.
