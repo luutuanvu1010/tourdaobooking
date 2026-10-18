@@ -12,14 +12,28 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // ADR-0130 (rà soát ngôn ngữ giao diện, lượt 1): chỉ đổi chữ hiện cho người dùng + dấu trừ trên dòng huỷ khoản thu; không migration, mã nội bộ giữ nguyên.
-    // Số 2.18 là số TẠM (= production 2.17 + 1, theo bộ nhớ phiên 2026-10-18, chưa kiểm bằng lệnh): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0).
-    version: "2.18",
-    date: "2026-10-18",
+    // ADR-0130 (rà soát ngôn ngữ giao diện, lượt 1 + lượt 2 — hồ sơ docs/superpowers/specs/2026-10-18-ra-soat-ngon-ngu-luot-2.md): đổi chữ hiện cho người dùng,
+    // dấu trừ trên dòng huỷ khoản thu, hai lỗi nút thẻ Thanh toán, ô hạn chốt nhập phút; MỘT migration 0111 (chỉ đổi hai nhãn luật chuyển khách). Số 2.19 là số TẠM
+    // (= 2.18 của main + 1, kiểm 2026-10-19 bằng git): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0). Ngày là ngày dự kiến.
+    version: "2.19",
+    date: "2026-10-19",
     items: [
       { kind: "doi", text: "Trang đơn, khối Thanh toán: «Ghi lần thu» nay là «Ghi khoản thu»; «Thay lần thu» nay là «Sửa khoản thu đã ghi»; nút «Đảo» nay là «Huỷ khoản thu»." },
       { kind: "doi", text: "Khoản thu đã huỷ ghi «(đã huỷ)»; dòng huỷ hiện số có dấu trừ để không bị đọc thành khách trả thêm một lần." },
       { kind: "doi", text: "Chi phí xe thuê: nút «Đảo dòng» nay là «Huỷ dòng». Trong hộp huỷ đơn, nút «Giữ đơn» nay là «Không huỷ»." },
+      { kind: "doi", text: "Đổi tên cho dễ hiểu: «chặng» nay là «lượt đưa đón»; «mốc tối thiểu» nay là «hạn chốt»; «xuất bến» nay là «cho xe chạy»; «vai» nay là «vai trò»; «phiên đăng nhập» nay là «máy đang đăng nhập»." },
+      { kind: "doi", text: "Tiền: ô chọn ai cầm tiền nay thống nhất là «Người thu tiền»; tiền nhân viên đang cầm của công ty nay ghi «chưa nộp về công ty»." },
+      { kind: "sua", text: "Trang đơn, khối Thanh toán: không còn hiện nút «Sửa khoản thu đã ghi» trên khoản đang chờ Kế toán xác nhận; khoản tiền mặt không còn bị hỏi «vào tài khoản?»." },
+      { kind: "doi", text: "Chính sách điều phối: ô hạn chốt và ô cảnh báo của Toàn quyền nay nhập theo phút, giống màn của Quản trị; gợi ý ghi rõ đơn tính trước giờ đón, xếp xe tính trước giờ xe chạy." },
+    ],
+  },
+  {
+    // ADR-0131 (thu hẹp quyền đọc nhật ký): lịch sử đơn và thông báo về đơn bỏ tên người làm với mọi người trừ Toàn quyền. Không migration. Số 2.18 là số TẠM
+    // (= 2.17 + 1, kiểm 2026-10-18): phiên phát hành kiểm lại số ở bước A.0 của docs/HANDOFF-N1.md. Ngày là ngày dự kiến.
+    version: "2.18",
+    date: "2026-10-18",
+    items: [
+      { kind: "doi", text: "Khối Lịch sử của đơn và các thông báo về đơn không còn ghi tên người đã làm; chỉ tài khoản Toàn quyền xem được đầy đủ ai làm gì." },
     ],
   },
   {

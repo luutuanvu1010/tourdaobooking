@@ -40,7 +40,9 @@ const taoDon = async (cookie, handlerStaffId = aId) => {
 const don = await taoDon(A);
 const tatKT = (await call(KT, "GET", "/api/thong-bao?ngan=tat-ca")).body;
 const tin = tatKT.tin.find((t) => t.maDon === don.orderCode);
-assert.ok(tin && tin.cau.startsWith(ACCOUNTS.salesA.name + " vừa lập đơn"), "Kế toán thấy tên người lập");
+assert.ok(tin && tin.cau === `Có đơn mới ${don.orderCode}` && !tin.cau.includes(ACCOUNTS.salesA.name), "Kế toán không thấy tên người lập (ADR-0131: chỉ Toàn quyền)");
+const tinTQ = (await call(TQ, "GET", "/api/thong-bao?ngan=tat-ca")).body.tin.find((t) => t.maDon === don.orderCode);
+assert.ok(tinTQ && tinTQ.cau.startsWith(ACCOUNTS.salesA.name + " vừa lập đơn"), "Toàn quyền thấy tên người lập");
 assert.equal(tin.cuaToi, false);
 const tatB = await call(B, "GET", "/api/thong-bao?ngan=tat-ca");
 const tinB = tatB.body.tin.find((t) => t.maDon === don.orderCode);

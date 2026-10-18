@@ -159,7 +159,8 @@ assert.ok(rows[0].valid_to_at, "dòng cũ đã đóng");
 assert.deepEqual([rows[1].party_id, rows[1].valid_to_at, rows[1].created_by], [b.partyId, null, a.id]);
 assert.equal(rows[0].valid_to_at, rows[1].valid_from_at, "đóng dòng cũ và mở dòng mới CÙNG một thời điểm");
 assert.equal((await openOf(o1.id)).length, 1, "tối đa MỘT người phụ trách đang mở");
-let ch = await changes(A, o1);
+let ch = await changes(SUPER, o1); // ADR-0131: chỉ Toàn quyền thấy tên người làm trong lịch sử đơn
+assert.equal((await changes(A, o1))[0].staffName, "", "ADR-0131: người lập (không phải Toàn quyền) thấy tên người làm rỗng");
 assert.equal(ch.length, 1, "Nhận ghi order_claimed riêng (ADR-0034 §4.3) — order_handler_changed chỉ còn đúng lần đổi người sau đó");
 assert.equal(ch[0].detail, `từ ${a.fullName} sang ${b.fullName}`);
 assert.equal(ch[0].staffName, a.fullName);
@@ -253,12 +254,13 @@ const o2f = await newOrder(A);
 r = await setHandler(FIELD, o2f.id, fld.id);
 assert.equal(r.status, 200, `hướng dẫn viên nhận đơn chưa có người: ${JSON.stringify(r.body)}`);
 assert.deepEqual(r.body, { handler: asDto(fld) });
-assert.deepEqual((await claimEntries(A, o2f)).map((h) => h.detail), [`từ chưa có người phụ trách sang ${fld.fullName}`], "HDV tự nhận ghi order_claimed (ADR-0034 §4.3), không phải order_handler_changed");
+assert.deepEqual((await claimEntries(SUPER, o2f)).map((h) => h.detail), [`từ chưa có người phụ trách sang ${fld.fullName}`], "HDV tự nhận ghi order_claimed (ADR-0034 §4.3), không phải order_handler_changed");
 assert.deepEqual(await changes(A, o2f), [], "tự nhận không để lại dòng order_handler_changed");
+assert.deepEqual((await claimEntries(A, o2f)).map((h) => h.detail), [null], "ADR-0131: người không phải Toàn quyền thấy dòng tự nhận nhưng không thấy chữ có tên người bấm");
 r = await setHandler(B, o2.id, b.id);
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.deepEqual(r.body, { handler: asDto(b) });
-assert.deepEqual((await claimEntries(A, o2)).map((h) => h.detail), [`từ chưa có người phụ trách sang ${b.fullName}`], "tự nhận đơn chưa có người ghi order_claimed (ADR-0034 §4.3), không phải order_handler_changed");
+assert.deepEqual((await claimEntries(SUPER, o2)).map((h) => h.detail), [`từ chưa có người phụ trách sang ${b.fullName}`], "tự nhận đơn chưa có người ghi order_claimed (ADR-0034 §4.3), không phải order_handler_changed");
 assert.deepEqual(await changes(A, o2), [], "tự nhận không để lại dòng order_handler_changed");
 assert.equal((await openOf(o2.id)).length, 1);
 r = await setHandler(C.cookie, o2.id, C.id); // đã có người phụ trách: không còn "nhận" được — thua đua, không phải vượt quyền
@@ -1113,7 +1115,7 @@ try {
   assert.equal(r.status, 200, `HDV A nhận đơn chờ nhận: ${JSON.stringify(r.body)}`);
   assert.deepEqual(r.body, { handler: asDto(fld) });
   assert.deepEqual(await handlerOf(A, q1.id), asDto(fld), "HDV A thành người phụ trách");
-  assert.deepEqual((await claimEntries(A, q1)).map((h) => h.detail), [`từ chưa có người phụ trách sang ${fld.fullName}`]);
+  assert.deepEqual((await claimEntries(SUPER, q1)).map((h) => h.detail), [`từ chưa có người phụ trách sang ${fld.fullName}`]);
   assert.deepEqual(await changes(A, q1), [], "tự nhận không để lại dòng order_handler_changed");
   for (const [label, cookie] of [["HDV A", FIELD], ["HDV B", FIELDB]]) assert.ok(!(await poolIds(cookie)).includes(q1.id), `đơn vừa được nhận rời hàng chờ của ${label}`);
   const mineQ1 = (await mineOf(FIELD)).find((x) => x.orderId === q1.id);

@@ -1273,7 +1273,8 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
 
     // Ở NGOÀI `.order-layout` có chủ đích (điện thoại dưới 900px không có rule riêng cho lưới → các con xếp theo thứ tự DOM;
     // đặt ở đây giữ đúng thứ tự cũ "Thanh toán trước Lịch sử". Máy tính ≥900px: khối này trải hết bề ngang, nằm dưới lưới 2 cột.
-    // D6: SALES không thấy nhật ký đơn của người khác → history rỗng: ẩn cả khối.
+    // D6: SALES không thấy nhật ký đơn của người khác → history rỗng: ẩn cả khối. ADR-0131: chỉ Toàn quyền nhận tên người làm; mọi vai khác nhận `staffName` rỗng
+    // (lớp rút gọn) → bỏ cả đoạn " · tên" thay vì in dấu chấm trơ.
     // Task 8 Đợt E: `detail` (vd lý do hướng dẫn viên ghi khi sửa số khách/tiền — order_money_adjusted_by_field) đã có sẵn trong `history` từ
     // trước (audit/repository.ts:listByOrder chọn cả cột `detail`) nhưng trang này chưa từng dựng ra — hiện thêm ở ĐÂY, bên trong khối "Lịch sử"
     // đã có, không thêm chỗ hiện nào khác trên trang (thẻ đơn, phần xổ, khối tiền): ô quyền order.history.view đã quyết ai thấy KHỐI này, hiện
@@ -1291,7 +1292,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
                 "li",
                 null,
                 h("span", { class: "muted" }, dateTime(e.at)),
-                ` — ${actionLabel(e.action)} · ${e.staffName}`,
+                ` — ${actionLabel(e.action)}${e.staffName ? ` · ${e.staffName}` : ""}`,
                 e.detail ? h("div", { class: "history-detail muted" }, e.detail) : null,
               ),
             ),
