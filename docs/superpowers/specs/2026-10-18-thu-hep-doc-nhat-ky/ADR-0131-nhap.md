@@ -5,7 +5,9 @@
 - **Loại:** việc lớn (quyền). **Hai chiều**: chỉ đổi mã, không đổi dữ liệu, không migration; gỡ bằng một commit. Cần người kiểm độc lập; trang ghép `TRANG-GHEP.md` cùng thư mục.
 - **Quan hệ với ADR cũ:**
   - **thay một phần** ADR-0007 đ1, dòng "nhật ký/lịch sử sửa đơn": phần *nhật ký* của Bán hàng, Kế toán, Quản trị nay là lớp không tên (đ2);
-  - **thay một phần** ADR-0062: tin đổi kèm tên khi `can(order.history.view)` → nay khi `can(audit.view)` (đ3);
+  - **thay một phần** ADR-0034 điều 3: "tin kèm tên người làm chỉ khi `can(người xem, order.history.view, phạm vi đơn)`" → nay khi `can(audit.view)` và không giữ quyền Đối tác (đ3); vế "ai thấy tin" giữ nguyên;
+  - **thay một phần** ADR-0062: tin đổi kèm tên khi `can(order.history.view)` → nay như trên (đ3);
+  - ADR-0115 đ5 (ai nhận tin điều chỉnh công nợ) **không đổi**; tên trong câu của tin này không do ADR nào quy định (chỉ chú thích mã) — nay theo đ3;
   - **mở rộng nghĩa** ô `audit.view` của ADR-0038 đ6: từ "xem trang Nhật ký" thành "đọc nhật ký kiểm toán đầy đủ" (giá trị ô không đổi: chỉ Toàn quyền);
   - **khép** câu bỏ ngỏ của bản vá D-1 (13/10, `src/shared/lich-su-doi-tac.ts`): "có ẩn tên nhân viên với Đối tác hay không là quyết định của chủ" — nay ẩn.
   - **Không đổi:** phạm vi ô `order.history.view` (ADR-0009, ADR-0014, ADR-0023, ADR-0030 S23-3); lịch sử số khách (ADR-0114 D2, không chứa tên); trang Nhật ký (ADR-0038, ADR-0042); danh sách Đối tác của D-1.
@@ -34,7 +36,7 @@ Nhật ký kiểm toán trả lời "**ai** đã làm gì, lúc nào". Lớp ng�
      - **Dấu vết thuần kiểm toán** — xuất ảnh, xuất PDF: **ẩn** (hôm nay không còn chỗ ghi; xếp ẩn để đóng mặc định).
      - Dòng đánh dấu nhập phần mềm kế toán: giữ luật ô `accounting.entry.view` (ADR-0060), không tên.
    - c. **Chữ chi tiết không nêu người bấm.** Đã rà từng khuôn chữ (trang ghép mục 4): không khuôn nào ghi tên người duyệt, người thu hay người đề nghị. Chỉ dòng **"tự nhận phụ trách đơn"** luôn ghi tên chính người bấm → lớp rút gọn **bỏ chữ** của dòng này (giữ dòng). Tên là *dữ liệu của đơn* được giữ: người phụ trách cũ/mới ở dòng "đổi người phụ trách" (dòng không nói ai bấm, dù đôi khi đoán được), tên hồ sơ bên đặt ở dòng lập / sửa / đổi khách (khi người lập là Đối tác, tên này trùng người lập — vốn đã hiện ở đầu trang đơn). Chữ tự gõ (lý do, nơi đón, tên dịch vụ nhập tay) giữ nguyên; tên người chỉ lọt vào đó nếu chính người gõ viết ra.
-3. **Thông báo: tên người làm chỉ cho Toàn quyền.** Tin đơn (lập, xác nhận, huỷ, giao, nhận…), tin "đơn đổi sau xác nhận" và tin điều chỉnh công nợ: câu có tên chỉ khi người nhận qua `audit.view`; người khác nhận câu không tên (tin đơn và tin đổi đã có khuôn không tên; tin điều chỉnh công nợ chưa có — người thi công viết thêm, thay chữ dự phòng "Có người"). Nội dung đổi (giờ cũ → mới…) giữ như ADR-0062. Thông báo đẩy lên điện thoại không mang chữ (máy nhận hỏi lại máy chủ qua cùng hàm chọn tin), nên đổi một chỗ là đủ. Câu "… giao đơn X cho bạn phụ trách" của bản 2.17 sẽ thành câu không tên với người không phải Toàn quyền.
+3. **Thông báo: tên người làm chỉ cho Toàn quyền.** Tin đơn (lập, xác nhận, huỷ, giao, nhận…), tin "đơn đổi sau xác nhận" và tin điều chỉnh công nợ: câu có tên chỉ khi người nhận qua `audit.view` **và** không giữ quyền Đối tác (cùng luật "có quyền Đối tác là áp" như đ1, để tài khoản lai Toàn quyền + Đối tác không thấy tên ở thông báo trong khi lịch sử đơn của họ không tên — AI quyết, ghi lại); người khác nhận câu không tên (tin đơn và tin đổi đã có khuôn không tên; tin điều chỉnh công nợ chưa có — người thi công viết thêm, thay chữ dự phòng "Có người"). Nội dung đổi (giờ cũ → mới…) giữ như ADR-0062. Thông báo đẩy lên điện thoại không mang chữ (máy nhận hỏi lại máy chủ qua cùng hàm chọn tin), nên đổi một chỗ là đủ. Câu "… giao đơn X cho bạn phụ trách" của bản 2.17 sẽ thành câu không tên với người không phải Toàn quyền.
 
 ## Ngoài phạm vi
 - Trang Nhật ký: đã chỉ Toàn quyền.

@@ -22,7 +22,7 @@ View đọc ra ngoài module `audit`: `v_aud_order_event`, `v_aud_order_change` 
 | `admin.manage` | ADMIN, SUPER_ADMIN | cổng thứ nhất của `GET /api/audit` | không đổi |
 | `admin.manage.superadmin` | SUPER_ADMIN | lọc "thao tác im lặng" ở trang Nhật ký | không đổi |
 | `order.history.view` | SALES ownOrAssigned; ACCOUNTING, ADMIN any; FIELD assigned; PARTNER, INTERN own; SUPER_ADMIN any | lịch sử đơn **đầy đủ có tên** + tên người làm trong tin đơn / tin đổi + `lichSuSoKhach` | phạm vi không đổi; nay chỉ mở **lớp rút gọn** (không tên) + `lichSuSoKhach` (không đổi, không có tên) |
-| `holdsPartner` (danh tính, không phải ô) | mọi tài khoản giữ PARTNER, kể cả lai | danh sách Đối tác D-1, có tên | danh sách D-1 không đổi, **bỏ tên**; thắng `audit.view` (tài khoản Toàn quyền + Đối tác vẫn nhận lớp Đối tác ở chi tiết đơn) |
+| `holdsPartner` (danh tính, không phải ô) | mọi tài khoản giữ PARTNER, kể cả lai | danh sách Đối tác D-1, có tên | danh sách D-1 không đổi, **bỏ tên**; thắng `audit.view` (tài khoản Toàn quyền + Đối tác vẫn nhận lớp Đối tác ở chi tiết đơn **và** câu không tên ở thông báo) |
 | `accounting.entry.view` | theo bảng | dòng dấu nhập phần mềm kế toán | luật giữ, bỏ tên |
 | `order.leg.short_notice.view` | theo bảng | rút gọn dòng đặt gấp | không đổi |
 | `order.view` không ngữ cảnh (SALES, ACC, ADMIN, SA) | — | nhãn `tat-ca` → nhận **nội dung** tin đổi | không đổi (nội dung giữ; tên → `audit.view`) |
@@ -36,8 +36,9 @@ View đọc ra ngoài module `audit`: `v_aud_order_event`, `v_aud_order_change` 
 |---|---|---|
 | `GET /api/audit` (`src/modules/audit/index.ts`) | access `admin` → `admin.manage` → `audit.view`; lọc im lặng; lọc thương mại khi `holdsPartner` | không đổi |
 | `GET /api/orders/:id` (`src/modules/orders/index.ts`) | access `orders` → `order.view`, `money.view`, `contact.view` → `order.history.view` (có khối hay `[]`) → `holdsPartner` ? `lichSuChoDoiTac` : lọc dấu nhập kế toán | thêm nhánh: `holdsPartner` → lớp Đối tác không tên; `audit.view` → lớp đầy đủ; còn lại → **lớp nội bộ** (danh sách mới, không tên). `lichSuSoKhach` không đổi |
-| `GET /api/thong-bao`, `/tom-tat`, `/moi-nhat` (`src/modules/thongbao/index.ts` → `locHopThongBao`, `src/shared/thong-bao.ts`) | access `staff` → chọn người nhận (`duocThayTinDon`, `duocThayTinDoi`, `ledger.adjust.approve`) → `coTen` = `can(order.history.view, phạm vi đơn)`; tin điều chỉnh luôn có tên | `coTen` = `can(audit.view)` cho cả ba loại tin; người nhận không đổi |
+| `GET /api/thong-bao`, `/tom-tat`, `/moi-nhat` (`src/modules/thongbao/index.ts` → `locHopThongBao`, `src/shared/thong-bao.ts`) | access `staff` → chọn người nhận (`duocThayTinDon`, `duocThayTinDoi`, `ledger.adjust.approve`) → `coTen` = `can(order.history.view, phạm vi đơn)`; tin điều chỉnh luôn có tên | `coTen` = `can(audit.view) && !holdsPartner` cho cả ba loại tin; người nhận không đổi; tin điều chỉnh cần thêm câu không tên |
 | Thông báo đẩy (web push) | gửi không kèm chữ; service worker gọi `GET /api/thong-bao/moi-nhat` | tự đi theo dòng trên, không sửa riêng |
+| Khung tức thời của Bảng tin (`baoThayDoi` ở `src/index.ts`, `SuKienDon` / `SuKienChuyen` ở `src/shared/bang-tin.ts`) | chỉ mã đơn (hoặc mã chuyến), loại thay đổi, thời điểm — không tên, không mã người làm (ADR-0022 điều 4) | không đổi |
 | `PUT` / `POST` đơn | không trả `history` | không đổi |
 
 ### 3b. Chỗ giao diện ẩn/hiện theo quyền
