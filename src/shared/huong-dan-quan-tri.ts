@@ -233,7 +233,7 @@ Chỉ hiện ở trang Tôi của tài khoản Toàn quyền. Khi bật, mọi t
 3. Bấm [[Gửi thông báo]]. Sau đó: [[Xem ai đã hiểu]], hoặc [[Thu hồi]] (không hoàn tác được).
 
 ### Chính sách điều phối
-Mở [[Chính sách điều phối]], sửa [[Hạn chốt trước giờ đón (giờ)]], [[Cảnh báo sắp tới hạn chốt (giờ)]], [[Khoảng nghỉ tài xế (phút)]], [[Khai lùi tối đa (phút)]], công tắc [[Phải đủ danh sách khách]]. Bấm [[Lưu thành bản mới]], có hiệu lực ngay; bản cũ vào [[Lịch sử bản]]. Liên kết [[Điều kiện theo cỡ xe, hạng bằng ›]] mở trang Điều kiện cho xe chạy.
+Mở [[Chính sách điều phối]], sửa [[Hạn chốt trước giờ đón (phút)]], [[Cảnh báo sắp tới hạn chốt (phút)]], [[Khoảng nghỉ tài xế (phút)]], [[Khai lùi tối đa (phút)]], công tắc [[Phải đủ danh sách khách]]. Bấm [[Lưu thành bản mới]], có hiệu lực ngay; bản cũ vào [[Lịch sử bản]]. Liên kết [[Điều kiện theo cỡ xe, hạng bằng ›]] mở trang Điều kiện cho xe chạy.
 
 ### Máy đang đăng nhập
 Mở [[Máy đang đăng nhập]] (điện thoại: trang **Tôi**) xem ai đăng nhập trên máy nào.

@@ -219,11 +219,11 @@ test("dongXeNhan (V8 2): mã chuyến · tài xế, điểm sắp tới, chỗ t
 test("hopDuyetDeNghi (V10): Leo thang + hộp DUYET_HOAC_BAC → Duyệt và Bác; CHI_BAC → chỉ Bác + câu vì sao; trạng thái khác → không nút; dòng kiểm không đạt / cảnh báo đứng đầu", () => {
   const kiem = [
     { ma: "SUC_CHUA_DICH", nhan: "Xe nhận còn đủ chỗ", tang: "LOI" as const, ketQua: "DAT" as const, giaTri: 12, gioiHan: 16 },
-    { ma: "MOC_TOI_THIEU", nhan: "Còn đủ mốc tối thiểu", tang: "CAU_HINH" as const, ketQua: "KHONG_DAT" as const, giaTri: null, gioiHan: null },
+    { ma: "MOC_TOI_THIEU", nhan: "Còn đủ hạn chốt", tang: "CAU_HINH" as const, ketQua: "KHONG_DAT" as const, giaTri: null, gioiHan: null },
   ];
   const duoc = hopDuyetDeNghi(deNghi({ trangThai: "ESCALATED", hop: "DUYET_HOAC_BAC", kiem }));
   assert.deepEqual([duoc.coDuyet, duoc.coBac, duoc.cauChiBac], [true, true, null]);
-  assert.deepEqual(duoc.kiem.map((k) => [k.nhan, k.tang, k.ketQua]), [["Còn đủ mốc tối thiểu", "Cấu hình", "Không đạt"], ["Xe nhận còn đủ chỗ", "Bắt buộc", "Đạt"]]);
+  assert.deepEqual(duoc.kiem.map((k) => [k.nhan, k.tang, k.ketQua]), [["Còn đủ hạn chốt", "Cấu hình", "Không đạt"], ["Xe nhận còn đủ chỗ", "Bắt buộc", "Đạt"]]);
   const chiBac = hopDuyetDeNghi(deNghi({ trangThai: "ESCALATED", hop: "CHI_BAC", kiem }));
   assert.deepEqual([chiBac.coDuyet, chiBac.coBac], [false, true]);
   assert.match(chiBac.cauChiBac!, /điều kiện bắt buộc/);

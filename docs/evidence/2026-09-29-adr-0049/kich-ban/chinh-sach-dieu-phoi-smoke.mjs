@@ -22,12 +22,12 @@ try {
   await p.waitFor(shown("#cs-form .dp-cs-nums"), "form chính sách dựng xong");
 
   await b.step("1", "8a 1040 Toàn quyền: bốn ô theo bản gieo (6 giờ, 2 giờ, 30 phút, 180 phút), công tắc đủ danh sách BẬT, hợp đồng KHOÁ TẮT, hai điều kiện gieo sẵn, KHÔNG ô ngày, KHÔNG 'Đang soạn'; thanh bên có Chính sách + Lý do dưới Vận chuyển, KHÔNG 'Điều phối xe'", async () => {
-    const v = await p.ev(`[${["mocGio", "satMocGio", "nghiPhut", "khaiLuiPhut"].map((t) => `document.querySelector('${O(t)}').value`).join(",")}]`);
-    assert.deepEqual(v, ["6", "2", "30", "180"]);
+    const v = await p.ev(`[${["mocPhut", "satMocPhut", "nghiPhut", "khaiLuiPhut"].map((t) => `document.querySelector('${O(t)}').value`).join(",")}]`);
+    assert.deepEqual(v, ["360", "120", "30", "180"]); // rà soát ngôn ngữ lượt 2 (18/10): ô hạn chốt nhập PHÚT
     const nhan = await p.ev(`[...document.querySelectorAll('#cs-form .vc-field > label')].map((l) => l.textContent)`);
-    assert.deepEqual(nhan, ["Hạn chốt trước giờ đón (giờ)", "Cảnh báo sắp tới hạn chốt (giờ)", "Khoảng nghỉ tài xế (phút)", "Khai lùi tối đa (phút)", "Giờ lái tối đa một ngày (giờ)", "Nhắc nghỉ khi chuyến dài hơn (giờ)", "Cửa sổ cho xe chạy (giờ)", "Hạn từ chối chuyến (giờ)", "Số điện thoại văn phòng", "Chờ tài xế xe nhận trả lời (phút)"]); // + ô chờ trả lời chuyển khách (gói A5, 0093); + hai ô giờ lái (ADR-0055 VK2-B, Đợt 3); + cửa sổ xuất bến (ADR-0096 Đ2.2, gói A1); + hạn từ chối, SĐT văn phòng (A4 T5, ADR-0053 D8)
+    assert.deepEqual(nhan, ["Hạn chốt trước giờ đón (phút)", "Cảnh báo sắp tới hạn chốt (phút)", "Khoảng nghỉ tài xế (phút)", "Khai lùi tối đa (phút)", "Giờ lái tối đa một ngày (giờ)", "Nhắc nghỉ khi chuyến dài hơn (giờ)", "Cửa sổ cho xe chạy (giờ)", "Hạn từ chối chuyến (giờ)", "Số điện thoại văn phòng", "Chờ tài xế xe nhận trả lời (phút)"]); // + ô chờ trả lời chuyển khách (gói A5, 0093); + hai ô giờ lái (ADR-0055 VK2-B, Đợt 3); + cửa sổ xuất bến (ADR-0096 Đ2.2, gói A1); + hạn từ chối, SĐT văn phòng (A4 T5, ADR-0053 D8)
     assert.equal(await p.ev(`document.querySelector('${O("cuaSoGio")}').value`), "12", "cửa sổ xuất bến gieo 720 phút = 12 giờ");
-    assert.equal(await p.ev(txt(`#cs-satMocGio-hint`)), "Lượt đưa đón chưa xếp trong 2 giờ trước hạn chốt hiện nhãn “Sắp tới hạn chốt”.");
+    assert.equal(await p.ev(txt(`#cs-satMocPhut-hint`)), "Lượt đưa đón chưa xếp trong 2 giờ trước hạn chốt hiện nhãn “Sắp tới hạn chốt”.");
     assert.equal(await p.ev(txt("#cs-khaiLuiPhut-hint")), "Từ 1 đến 1440, mặc định 180.");
     const sw = await p.ev(`[...document.querySelectorAll('.dp-switch')].map((s) => ({ checked: s.getAttribute('aria-checked'), disabled: s.disabled, label: document.getElementById(s.getAttribute('aria-labelledby')).textContent }))`);
     assert.deepEqual(sw, [{ checked: "true", disabled: false, label: "Phải đủ danh sách khách" }, { checked: "false", disabled: true, label: "Phải có hợp đồng" }, { checked: "true", disabled: false, label: "Tự đồng ý chuyển khách" }]); // + công tắc chuyển khách (gói A5)
@@ -54,8 +54,8 @@ try {
     for (const [t, v, cau] of [
       ["khaiLuiPhut", "1441", "Khai lùi tối đa là số phút nguyên từ 1 đến 1440."],
       ["khaiLuiPhut", "0", "Khai lùi tối đa là số phút nguyên từ 1 đến 1440."],
-      ["mocGio", "0", "Hạn chốt trước giờ đón là số giờ lớn hơn 0, tối đa 48 — không tắt được; muốn nới thì giảm con số."],
-      ["mocGio", "49", "Hạn chốt trước giờ đón là số giờ lớn hơn 0, tối đa 48 — không tắt được; muốn nới thì giảm con số."],
+      ["mocPhut", "0", "Hạn chốt trước giờ đón là số phút nguyên lớn hơn 0, tối đa 2880 — không tắt được; muốn nới thì giảm con số."],
+      ["mocPhut", "2881", "Hạn chốt trước giờ đón là số phút nguyên lớn hơn 0, tối đa 2880 — không tắt được; muốn nới thì giảm con số."],
     ]) {
       await p.ev(typeInto(O(t), v));
       await p.ev(click(".dp-cs-actions button[type=submit]"));
@@ -69,8 +69,8 @@ try {
     await sleep(300);
     assert.equal(apiCalls(p).filter((r) => r.method === "POST").length, truoc, "ô sai thì không gửi lệnh lưu");
     // Gõ lại thì câu lỗi của ô đó tắt.
-    await p.ev(typeInto(O("mocGio"), "6"));
-    assert.equal(await p.ev(`document.querySelector('#cs-mocGio-error').hidden`), true);
+    await p.ev(typeInto(O("mocPhut"), "360"));
+    assert.equal(await p.ev(`document.querySelector('#cs-mocPhut-error').hidden`), true);
   });
 
   await b.step("3", "Không đổi gì → không lưu bản giống hệt (câu nhắc, không gửi)", async () => {
@@ -82,7 +82,7 @@ try {
   });
 
   await b.step("4", "Lưu bản mới (mốc 5 giờ, khai lùi 240 phút, tắt đủ danh sách): thân đúng năm khoá theo PHÚT; lịch sử hai bản khác nhau ở ô F; máy chủ lưu đúng", async () => {
-    await p.ev(typeInto(O("mocGio"), "5"));
+    await p.ev(typeInto(O("mocPhut"), "300"));
     await p.ev(typeInto(O("khaiLuiPhut"), "240"));
     await p.ev(click("#cs-du-danh-sach"));
     await p.ev(click(".dp-cs-actions button[type=submit]"));

@@ -5,7 +5,7 @@
 // Ô ngày hiệu lực và dòng "Đang soạn" của bản vẽ: CHỜ CHỦ (câu Q3 — docs/design/van-chuyen-dieu-phoi/DOI-CHIEU-2026-09-29.md mục 2.14) → không dựng.
 // Điện thoại: lịch sử bản mở trong bảng trượt ("Lịch sử bản (N) ›"), nút "Lưu thành bản mới" dính đáy.
 import {
-  docFormChinhSach, dongLichSuChinhSach, formTuChinhSach, nhanDieuKien, nhanThoiLuong, thayDoiChinhSach, type DongLichSu, type FormChinhSach, type TruongChinhSach,
+  GOI_Y_HAN_CHOT, docFormChinhSach, dongLichSuChinhSach, formTuChinhSach, nhanDieuKien, nhanThoiLuong, thayDoiChinhSach, type DongLichSu, type FormChinhSach, type TruongChinhSach,
 } from "../src/shared/chinh-sach-hien-thi";
 import { can } from "../src/shared/permissions";
 import { ApiError, api, type Api } from "./api";
@@ -64,7 +64,7 @@ function taoO(truong: TruongChinhSach, nhan: string, goiY: string, theoGio: bool
   input.addEventListener("input", () => {
     st = { ...st, [truong]: input.value };
     baoLoi({ truong, input, err, hint }, null);
-    if (truong === "satMocGio") capNhatGoiYSatMoc();
+    if (truong === "satMocPhut") capNhatGoiYSatMoc();
   });
   oSo.push({ truong, input, err, hint });
   return h("div", { class: "vc-field" }, h("label", { for: id }, nhan), input, hint, err);
@@ -77,9 +77,9 @@ function baoLoi(o: O, cau: string | null): void {
 }
 /** Gợi ý của ô sát mốc nói đúng con số đang gõ (bản vẽ: "Chặng chưa xếp trong 2 giờ trước mốc hiện nhãn “Sát mốc”"). */
 function capNhatGoiYSatMoc(): void {
-  const o = oSo.find((x) => x.truong === "satMocGio");
+  const o = oSo.find((x) => x.truong === "satMocPhut");
   if (!o) return;
-  const r = docFormChinhSach({ ...st, mocGio: "1", nghiPhut: "0", khaiLuiPhut: "1", gioLaiGio: "8", chuyenDaiGio: "4", cuaSoGio: "1", hanTuChoiGio: "12", sdtVanPhong: "", choNhanPhut: "10" }); // chỉ đọc ô sát mốc
+  const r = docFormChinhSach({ ...st, mocPhut: "1", nghiPhut: "0", khaiLuiPhut: "1", gioLaiGio: "8", chuyenDaiGio: "4", cuaSoGio: "1", hanTuChoiGio: "12", sdtVanPhong: "", choNhanPhut: "10" }); // chỉ đọc ô sát mốc
   const khoang = r.ok ? nhanThoiLuong(r.value.warnLeadMinutes) : "khoảng này";
   o.hint.textContent = `Lượt đưa đón chưa xếp trong ${khoang} trước hạn chốt hiện nhãn “Sắp tới hạn chốt”.`;
 }
@@ -139,8 +139,8 @@ function dung(): void {
   const nums = h(
     "div",
     { class: "dp-cs-nums" },
-    taoO("mocGio", "Hạn chốt trước giờ đón (giờ)", "Trong khoảng này trước giờ xe chạy: khoá xếp khách, đổi xe, đổi tài xế.", true),
-    taoO("satMocGio", "Cảnh báo sắp tới hạn chốt (giờ)", "", true),
+    taoO("mocPhut", "Hạn chốt trước giờ đón (phút)", GOI_Y_HAN_CHOT, false),
+    taoO("satMocPhut", "Cảnh báo sắp tới hạn chốt (phút)", "", false),
     taoO("nghiPhut", "Khoảng nghỉ tài xế (phút)", "Giữa hai chuyến của cùng tài xế.", false),
     taoO("khaiLuiPhut", "Khai lùi tối đa (phút)", "Từ 1 đến 1440, mặc định 180.", false),
     // ADR-0055 VK2-B: hai con số giờ lái — chỉ nhắc, không chặn (khuôn ô có sẵn; không cần bản vẽ).
@@ -269,7 +269,7 @@ async function veMocRieng(): Promise<void> {
       "div",
       { class: "dp-cs-nums" },
       h("div", { class: "vc-field" }, h("label", { for: "cs-moc-phut" }, "Hạn chốt trước giờ đón (phút)"), oMoc,
-        h("div", { id: "cs-moc-phut-hint", class: "vc-hint" }, "Chuyến còn ít hơn số phút này trước giờ xe chạy thì Bán hàng phải dùng «Điều chỉnh khẩn cấp» kèm lý do. Từ 1 đến 2880."), loiMoc),
+        h("div", { id: "cs-moc-phut-hint", class: "vc-hint" }, GOI_Y_HAN_CHOT), loiMoc),
       h("div", { class: "vc-field" }, h("label", { for: "cs-sat-phut" }, "Cảnh báo sắp tới hạn chốt (phút)"), oSat,
         h("div", { id: "cs-sat-phut-hint", class: "vc-hint" }, "Lượt đưa đón chưa xếp trong khoảng này trước hạn chốt hiện nhãn «Sắp tới hạn chốt». Từ 0 đến 1440."), loiSat),
     ),

@@ -13,7 +13,7 @@ const chinhSach = (o: Partial<DispatchPolicyDto> = {}): DispatchPolicyDto => ({
   id: "p1", minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, requireContract: false, proxyBackdateMaxMinutes: 180,
   dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720, refuseLeadMinutes: 720, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer: true, validFrom: "2026-09-01T00:00:00.000Z", current: true, nguoiLuu: null, ...o,
 });
-const form = (o: Partial<Parameters<typeof docFormChinhSach>[0]> = {}) => ({ mocGio: "6", satMocGio: "2", nghiPhut: "30", khaiLuiPhut: "180", gioLaiGio: "8", chuyenDaiGio: "4", cuaSoGio: "12", hanTuChoiGio: "12", sdtVanPhong: "", duDanhSach: true, choNhanPhut: "10", tuDongY: true, ...o });
+const form = (o: Partial<Parameters<typeof docFormChinhSach>[0]> = {}) => ({ mocPhut: "360", satMocPhut: "120", nghiPhut: "30", khaiLuiPhut: "180", gioLaiGio: "8", chuyenDaiGio: "4", cuaSoGio: "12", hanTuChoiGio: "12", sdtVanPhong: "", duDanhSach: true, choNhanPhut: "10", tuDongY: true, ...o });
 
 test("nhanThoiLuong: số phút → lời thường (giờ tròn, giờ + phút, phút)", () => {
   assert.equal(nhanThoiLuong(360), "6 giờ");
@@ -23,18 +23,18 @@ test("nhanThoiLuong: số phút → lời thường (giờ tròn, giờ + phút,
   assert.equal(nhanThoiLuong(60), "1 giờ");
 });
 
-test("gioTuPhut: giá trị ô giờ — tròn thì số nguyên, lẻ thì thập phân đủ để khứ hồi đúng số phút", () => {
+test("gioTuPhut: giá trị ô giờ — tròn thì số nguyên, lẻ thì thập phân; ô hạn chốt nhập thẳng PHÚT (rà soát ngôn ngữ lượt 2, chủ chọn 18/10) — khứ hồi đúng số phút", () => {
   assert.equal(gioTuPhut(360), "6");
   assert.equal(gioTuPhut(90), "1.5");
   for (const phut of [1, 7, 100, 359, 361, 2879, 2880]) {
-    const r = docFormChinhSach(form({ mocGio: gioTuPhut(phut) }));
+    const r = docFormChinhSach(form({ mocPhut: String(phut) }));
     assert.ok(r.ok, `khứ hồi ${phut}`);
     assert.equal(r.value.minLeadMinutes, phut, `khứ hồi ${phut}`);
   }
 });
 
 test("docFormChinhSach: hợp lệ → thân POST đúng tám khoá (không ngày hiệu lực, không hợp đồng; hai con số giờ lái ADR-0055 VK2-B, cửa sổ xuất bến ADR-0096 Đ2 — ô theo GIỜ) và máy chủ nhận", () => {
-  const r = docFormChinhSach(form({ mocGio: "5", satMocGio: "1,5", nghiPhut: "45", khaiLuiPhut: "240", gioLaiGio: "9", chuyenDaiGio: "4,5", duDanhSach: false }));
+  const r = docFormChinhSach(form({ mocPhut: "300", satMocPhut: "90", nghiPhut: "45", khaiLuiPhut: "240", gioLaiGio: "9", chuyenDaiGio: "4,5", duDanhSach: false }));
   assert.ok(r.ok);
   assert.deepEqual(r.value, { minLeadMinutes: 300, warnLeadMinutes: 90, restMinutes: 45, requireManifest: false, proxyBackdateMaxMinutes: 240, dutyDayMaxMinutes: 540, tripNoBreakMaxMinutes: 270, departureWindowMinutes: 720, refuseLeadMinutes: 720, officePhone: null,
     acceptWaitMinutes: 10, autoConfirmTransfer: true });
@@ -48,25 +48,26 @@ test("docFormChinhSach: mỗi ô sai một câu lời thường theo đơn vị 
     assert.equal(r.ok, false);
     return r.ok ? {} : r.loi;
   };
-  assert.match(loi({ mocGio: "" }).mocGio ?? "", /Nhập hạn chốt trước giờ đón/);
-  assert.match(loi({ mocGio: "0" }).mocGio ?? "", /giờ.*không tắt được/);
-  assert.match(loi({ mocGio: "49" }).mocGio ?? "", /tối đa 48/);
-  assert.match(loi({ mocGio: "abc" }).mocGio ?? "", /giờ/);
-  assert.match(loi({ satMocGio: "25" }).satMocGio ?? "", /từ 0 đến 24 giờ/);
-  assert.match(loi({ satMocGio: "-1" }).satMocGio ?? "", /từ 0 đến 24 giờ/);
+  assert.match(loi({ mocPhut: "" }).mocPhut ?? "", /Nhập hạn chốt trước giờ đón \(phút\)/);
+  assert.match(loi({ mocPhut: "0" }).mocPhut ?? "", /phút.*không tắt được/);
+  assert.match(loi({ mocPhut: "2881" }).mocPhut ?? "", /tối đa 2880/);
+  assert.match(loi({ mocPhut: "abc" }).mocPhut ?? "", /phút/);
+  assert.match(loi({ mocPhut: "1,5" }).mocPhut ?? "", /số phút nguyên/);
+  assert.match(loi({ satMocPhut: "1441" }).satMocPhut ?? "", /số phút nguyên từ 0 đến 1440/);
+  assert.match(loi({ satMocPhut: "-1" }).satMocPhut ?? "", /số phút nguyên từ 0 đến 1440/);
   assert.match(loi({ nghiPhut: "30.5" }).nghiPhut ?? "", /số phút nguyên từ 0 đến 480/);
   assert.match(loi({ nghiPhut: "481" }).nghiPhut ?? "", /số phút nguyên từ 0 đến 480/);
   assert.match(loi({ khaiLuiPhut: "0" }).khaiLuiPhut ?? "", /số phút nguyên từ 1 đến 1440/);
   assert.match(loi({ khaiLuiPhut: "1441" }).khaiLuiPhut ?? "", /số phút nguyên từ 1 đến 1440/);
   assert.match(loi({ khaiLuiPhut: "" }).khaiLuiPhut ?? "", /Nhập/);
   // Hai ô cùng sai → cả hai câu (không dừng ở ô đầu).
-  const hai = loi({ mocGio: "0", khaiLuiPhut: "2000" });
-  assert.ok(hai.mocGio && hai.khaiLuiPhut);
+  const hai = loi({ mocPhut: "0", khaiLuiPhut: "2000" });
+  assert.ok(hai.mocPhut && hai.khaiLuiPhut);
   // Biên hợp lệ.
   assert.ok(docFormChinhSach(form({ khaiLuiPhut: "1" })).ok);
   assert.ok(docFormChinhSach(form({ khaiLuiPhut: "1440" })).ok);
-  assert.ok(docFormChinhSach(form({ satMocGio: "0", nghiPhut: "0" })).ok);
-  assert.ok(docFormChinhSach(form({ mocGio: "48" })).ok);
+  assert.ok(docFormChinhSach(form({ satMocPhut: "0", nghiPhut: "0" })).ok);
+  assert.ok(docFormChinhSach(form({ mocPhut: "2880" })).ok);
   // ADR-0055 VK2-B: hai ô giờ lái (đơn vị giờ — K2).
   assert.match(loi({ gioLaiGio: "0,5" }).gioLaiGio ?? "", /Giờ lái tối đa một ngày là số giờ từ 1 đến 24/);
   assert.match(loi({ gioLaiGio: "25" }).gioLaiGio ?? "", /từ 1 đến 24/);
@@ -79,7 +80,7 @@ test("docFormChinhSach: mỗi ô sai một câu lời thường theo đơn vị 
 
 test("formTuChinhSach: điền sẵn từ bản đang dùng; chưa có bản → ô trống, bật đủ danh sách", () => {
   assert.deepEqual(formTuChinhSach(chinhSach()), form());
-  assert.deepEqual(formTuChinhSach(null), { mocGio: "", satMocGio: "", nghiPhut: "", khaiLuiPhut: "", gioLaiGio: "", chuyenDaiGio: "", cuaSoGio: "", hanTuChoiGio: "", sdtVanPhong: "", duDanhSach: true, choNhanPhut: "", tuDongY: true });
+  assert.deepEqual(formTuChinhSach(null), { mocPhut: "", satMocPhut: "", nghiPhut: "", khaiLuiPhut: "", gioLaiGio: "", chuyenDaiGio: "", cuaSoGio: "", hanTuChoiGio: "", sdtVanPhong: "", duDanhSach: true, choNhanPhut: "", tuDongY: true });
 });
 
 test("tomTatChinhSach + thayDoiChinhSach: tóm tắt một bản; liệt kê đúng ô đã đổi so với bản đang dùng", () => {
@@ -89,7 +90,7 @@ test("tomTatChinhSach + thayDoiChinhSach: tóm tắt một bản; liệt kê đ�
   const giu = docFormChinhSach(form());
   assert.ok(giu.ok);
   assert.deepEqual(thayDoiChinhSach(cu, giu.value), []);
-  const doi = docFormChinhSach(form({ khaiLuiPhut: "240", mocGio: "5", duDanhSach: false }));
+  const doi = docFormChinhSach(form({ khaiLuiPhut: "240", mocPhut: "300", duDanhSach: false }));
   assert.ok(doi.ok);
   assert.deepEqual(thayDoiChinhSach(cu, doi.value), ["Hạn chốt trước giờ đón 6 giờ → 5 giờ", "Khai lùi tối đa 180 → 240 phút", "Không bắt đủ danh sách khách"]);
   assert.deepEqual(thayDoiChinhSach(null, doi.value), ["Bản đầu tiên"]);

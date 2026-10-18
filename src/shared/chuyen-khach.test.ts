@@ -1,7 +1,7 @@
 // Bài của luật thuần chuyển khách giữa hai xe (ADR-0052 D4; ADR-0111 Đ1–Đ6; kế hoạch A5 T3). Mười tình huống của chủ chạy ở src/chuyen-khach-ca-mau.test.ts.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import {
   MA_LUAT_CHUYEN, MIEN_DAT_GAP_KHI_CHUYEN, NHAN_LUAT_CHUYEN, TANG_LUAT, chuanNoiGap, daHetHan, deNghiHuyKhi, deNghiTuHuyKhiXacNhan, hetHanLucMs, hopDuyet,
   NHAN_TRANG_THAI_DE_NGHI, TRANG_THAI_DE_NGHI, keHoachDiem, kiemChuyen, kiemGui, quyetDinhSauKiem, suatCuaDeNghi, trangThaiLucDoc, type DeNghiGon, type KiemChuyenVao,
@@ -56,12 +56,18 @@ test("TANG_LUAT, NHAN_LUAT_CHUYEN khớp đúng 12 dòng gieo của migration 00
     return sql.slice(sql.indexOf("INSERT INTO vc_transfer_rule"), sql.indexOf(";", sql.indexOf("INSERT INTO vc_transfer_rule")));
   };
   const khoi = khoiCua("0093_chuyen_khach_giua_xe.sql") + khoiCua("0110_dieu_kien_chuyen_khach_xe_rieng.sql");
+  // Nhãn đổi chữ về sau bằng câu UPDATE (0111 — rà soát ngôn ngữ lượt 2): nhãn hiện hành = nhãn của câu UPDATE cuối cùng.
+  const doiNhan = new Map<string, string>();
+  for (const tep of readdirSync(new URL("../../migrations/", import.meta.url)).filter((f) => f.endsWith(".sql")).sort()) {
+    const sql = readFileSync(new URL(`../../migrations/${tep}`, import.meta.url), "utf8").replace(/--.*$/gm, "");
+    for (const m of sql.matchAll(/UPDATE vc_transfer_rule SET label = '([^']+)' WHERE code = '([A-Z_]+)'/g)) doiNhan.set(m[2]!, m[1]!);
+  }
   const gieo = [...khoi.matchAll(/\('([A-Z_]+)', '([^']+)', '(LOI|CAU_HINH)', (\d+),/g)].map((m) => ({ code: m[1], label: m[2], tier: m[3], sort: Number(m[4]) }));
   assert.equal(gieo.length, 12);
   assert.deepEqual(gieo.map((g) => g.code), [...MA_LUAT_CHUYEN]);
   for (const g of gieo) {
     assert.equal(TANG_LUAT[g.code as keyof typeof TANG_LUAT], g.tier, g.code);
-    assert.equal(NHAN_LUAT_CHUYEN[g.code as keyof typeof NHAN_LUAT_CHUYEN], g.label, g.code);
+    assert.equal(NHAN_LUAT_CHUYEN[g.code as keyof typeof NHAN_LUAT_CHUYEN], doiNhan.get(g.code) ?? g.label, g.code);
   }
 });
 

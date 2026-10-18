@@ -75,12 +75,10 @@ function tepTs(thuMuc: string): string[] {
 const NGOAI_LE = new Set(["src/shared/changelog.ts", "src/shared/bang-tu-giao-dien.ts", "src/shared/bang-su-kien-van-chuyen.ts", "src/shared/lan-gui-no.ts"]);
 // Chuỗi có tên được giữ nguyên văn: câu chào mặc định của Trợ lý Mai PHẢI trùng bản gieo trong migration (đã áp, không sửa được — bài
 // `migrations-pty-person-gender.test.ts`). Đổi câu chào đang dùng = Toàn quyền lưu lời dặn mới ở trang Trợ lý (dữ liệu, không phải mã).
-// Lượt 2 (18/10): hai nhãn luật chuyển khách phải trùng dòng gieo `vc_transfer_rule.label` (migration 0093, 0110 — đổi cần migration mới, chủ quyết);
-// «cập nhật chặng đưa đón» là chữ nhật ký mà hàm đọc tin (`CAP_NHAT_CHANG`, tin-doi-don.ts) so nguyên văn — nhật ký chỉ-thêm, dòng cũ mang chữ này.
+// Lượt 2 (18/10): «cập nhật chặng đưa đón» là chữ nhật ký mà hàm đọc tin (`CAP_NHAT_CHANG`, tin-doi-don.ts) so nguyên văn — nhật ký chỉ-thêm, dòng cũ mang chữ này.
+// (Hai nhãn luật chuyển khách từng ở đây đã đổi bằng migration 0111, chủ chọn 18/10.)
 const CHUOI_GIU_NGUYEN = new Set([
   "Chào {ten}, {xung} là Mai — trợ lý của Tour Đảo. {ten} cần hỏi gì về cách dùng app cứ hỏi {xung} nhé!",
-  "Còn đủ mốc tối thiểu trước giờ xe nhận chạy",
-  "Chặng của khách còn hiệu lực",
   "cập nhật chặng đưa đón",
 ]);
 const TEP = [
