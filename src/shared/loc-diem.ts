@@ -1,4 +1,4 @@
-// Ô tìm điểm ở ô chọn "Nơi đón" / "Nơi trả" của khối Đưa đón (đánh giá ERP 7/10 C10; việc 11 — C4). Khuôn ô tìm "Chọn từ danh mục" (`web/catalog-picker.ts`,
+// Ô tìm điểm ở ô chọn "Nơi đón" / "Nơi trả" của khối Đưa đón (đánh giá ERP 7/10 C10; việc 11 — C4). Khuôn ô tìm dịch vụ "Tìm theo tên hoặc mã dịch vụ" (`web/catalog-picker.ts`,
 // `locDanhMuc`): lọc trên nhãn hiển thị, giữ thứ tự danh mục. Khác: bỏ dấu tiếng Việt (MỘT hàm `normName` của ô chọn người phụ trách) và gộp khoảng trắng,
 // vì tên điểm hay gõ không dấu ("muong thanh"). CHỈ để hiển thị: KHÔNG đụng khoá so sánh nơi (`place_key`, `khoaNoi*` — cửa một chiều). Thuần, không I/O.
 import { normName } from "./assignee-pick.ts";
