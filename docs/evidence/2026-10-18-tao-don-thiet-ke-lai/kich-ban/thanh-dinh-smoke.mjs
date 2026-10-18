@@ -13,12 +13,18 @@
 //     6b) khung lỗi dài (thanh dính cao ≥ 250px), Lưu từ cuối form, lỗi đầu tiên là ô SĐT: ô được cuộn tới sát dưới thanh bước, không bị thanh dính che (cuộn "giữa khung" để nó khuất dưới thanh);
 //     7) mất mạng khi Lưu: câu của src/shared/order-errors.ts (NETWORK_BANNER) hiện trong thanh, kề trên #save; trang KHÔNG nhảy;
 //     8) cảnh báo tiền (giảm giá > tạm tính): #sum-warning — chữ của orderSummary — trong thanh, phía trên #save, thấy được khi đang ở đầu trang;
-//     9) form trống, Lưu: khung lỗi cuộn bên trong (overflow-y auto), thanh dính không cao quá 60% khung nhìn; không có thông báo nổi;
+//     7b) (vòng sửa 1, I-1) sửa đơn, Lưu gặp 409 stale: nút "Tải lại đơn" trong khung lỗi (trong thanh dính) hiện, ≥ 44px, trong khung nhìn, không bị che;
+//     9) form trống, bảng chi tiết ĐÓNG, Lưu: khung lỗi cuộn bên trong (overflow-y auto), thanh dính không cao quá 60% khung nhìn; không có thông báo nổi;
+//   375×667 (iPhone màn nhỏ, vòng sửa 1):
+//     9b) (I-2) bảng chi tiết ĐANG MỞ + khung lỗi dài, Lưu từ cuối form: bảng tự gập, ô SĐT (lỗi đầu tiên) không bị thanh dính che, thanh ≤ 60% khung nhìn;
+//     9c) (M-3) thông báo nổi Bảng tin (chèn một a.toast vào vùng .toast-vung thật) nằm dưới thanh bước và trên thanh dính — thanh bước đang dính và lúc ở đầu trang;
 //   1040×768 (chuột thật):
 //     10) cột phải: Tóm tắt (có dòng Giảm giá) → Người phụ trách → thanh nút [cảnh báo tiền, lỗi lưu, Lưu, Quay lại]; dòng tổng điện thoại không hiện;
 //     11) trả trước ẩn / hiện như bước 3;
 //     12) Lưu bị từ chối: #save-error kề trên #save, cả hai trong khung 1040×768; tiêu điểm ở ô lỗi đầu tiên;
+//     12b) (M-3) thông báo nổi dưới thanh bước — đang dính và đầu trang;
 //     13) thang nút như bước 4.
+//   Danh mục thử được GIEO NHÓM ở đầu kịch bản (vòng sửa 1, M-2) để hàng nút nhóm hiện; nút nhóm đang chọn là trạng thái, được miễn khỏi phép "một nút chính" (xem QUET_NUT).
 //   AXE_JS (tuỳ chọn): axe-core ở 390 (bảng chi tiết mở) và 1040 — không vi phạm critical/serious. Thiếu biến thì in rõ "chưa chạy axe".
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, danh mục giả (TD101, TTB03 Phao chuối, TTB06 Motor nước).
 // Chạy từ GỐC repo, sau `npm run build:web`:
@@ -32,6 +38,7 @@ import { cham, goChu } from "./cham-that.mjs";
 const AXE = process.env.AXE_JS && existsSync(process.env.AXE_JS) ? readFileSync(process.env.AXE_JS, "utf8") : null;
 const MOB = { width: 390, height: 844, mobile: true };
 const DESK = { width: 1040, height: 768, mobile: false };
+const NHO = { width: 375, height: 667, mobile: true }; // iPhone màn nhỏ (SE / 8) — vòng sửa 1
 const NGAY = vnDate(5);
 const env = await startEnv();
 const loi = [];
@@ -71,11 +78,16 @@ const QUET_NUT = `(() => {
   const vis = (e) => e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
   const ten = (e) => (e.id ? '#' + e.id : e.tagName.toLowerCase()) + (e.classList.length ? '.' + [...e.classList].join('.') : '') + ' "' + e.textContent.replace(/\\s+/g, ' ').trim().slice(0, 28) + '"';
   const dangChon = (e) => e.getAttribute('aria-pressed') === 'true' || e.getAttribute('aria-checked') === 'true' || e.getAttribute('aria-selected') === 'true';
-  const out = { chinh: [], btnPrimary: [], vienThuoc: [], nenNhat: [], netDut: [], loiNhoKhongXanh: [], soNut: 0 };
+  // Ruling của điều phối (vòng sửa 1, M-2, 18/10): nút nhóm ĐANG CHỌN của hàng nhóm dịch vụ (radio trong radiogroup "Nhóm dịch vụ", nền xanh đậm) là TRẠNG THÁI của bộ lọc
+  // — cho biết danh sách đang lọc theo nhóm nào — không phải nút hành động, nên KHÔNG tính vào "một nút chính duy nhất". Chỉ miễn đúng phần tử này (lớp + role + aria-checked
+  // + nằm trong radiogroup); nó vẫn được ghi vào trangThaiChon để thấy phép quét đã chạy trên dữ liệu có chip. Kiểu chip không đổi.
+  const laTrangThaiChon = (e) => e.matches('.catalog-nut-nhom[role="radio"][aria-checked="true"]') && !!e.closest('[role="radiogroup"]');
+  const out = { chinh: [], btnPrimary: [], vienThuoc: [], nenNhat: [], netDut: [], loiNhoKhongXanh: [], trangThaiChon: [], soNut: 0, soChip: 0 };
   for (const e of [...document.querySelectorAll('#order-form button, #order-form a.btn, #order-form [role=button]')].filter(vis)) {
     out.soNut++;
+    if (e.matches('.catalog-nut-nhom')) out.soChip++;
     const s = getComputedStyle(e), r = e.getBoundingClientRect();
-    if (s.backgroundColor === DAC) out.chinh.push(ten(e));
+    if (s.backgroundColor === DAC) (laTrangThaiChon(e) ? out.trangThaiChon : out.chinh).push(ten(e));
     if (e.classList.contains('btn-primary')) out.btnPrimary.push(ten(e));
     if ([s.borderTopStyle, s.borderRightStyle, s.borderBottomStyle, s.borderLeftStyle, s.outlineStyle].includes('dashed')) out.netDut.push(ten(e));
     if (r.height >= 20 && r.width > r.height * 1.3 && parseFloat(s.borderTopLeftRadius) >= r.height / 2 - 0.5) out.vienThuoc.push(ten(e));
@@ -86,7 +98,8 @@ const QUET_NUT = `(() => {
   return out; })()`;
 const kiemThangNut = async (p, kho) => {
   const q = await p.ev(QUET_NUT);
-  console.log(`   ${kho}: quét ${q.soNut} nút đang hiện`);
+  console.log(`   ${kho}: quét ${q.soNut} nút đang hiện (${q.soChip} nút nhóm; trạng thái chọn: ${q.trangThaiChon.join(", ")})`);
+  assert.ok(q.soChip >= 3 && q.trangThaiChon.length === 1, `phép quét phải chạy trên dữ liệu CÓ hàng nút nhóm (gieo ở đầu kịch bản) và nhận ra đúng một nút nhóm đang chọn: ${q.soChip} nút nhóm, ${q.trangThaiChon.length} đang chọn; nền xanh đậm khác: ${JSON.stringify(q.chinh)}`);
   assert.deepEqual({ chinh: q.chinh.map((x) => x.split(" ")[0]), btnPrimary: q.btnPrimary.map((x) => x.split(" ")[0]) }, { chinh: ["#save.btn.btn-primary"], btnPrimary: ["#save.btn.btn-primary"] }, `một nút chính duy nhất: ${JSON.stringify({ chinh: q.chinh, btnPrimary: q.btnPrimary })}`);
   assert.deepEqual({ vienThuoc: q.vienThuoc, nenNhat: q.nenNhat, netDut: q.netDut, loiNhoKhongXanh: q.loiNhoKhongXanh }, { vienThuoc: [], nenNhat: [], netDut: [], loiNhoKhongXanh: [] }, "không nút viên thuốc / nền xanh nhạt / nét đứt; lối nhỏ chữ xanh");
 };
@@ -98,6 +111,13 @@ const runAxe = async (p, nhan) => {
 };
 
 try {
+  // M-2 (vòng sửa 1): gieo nhóm cho danh mục thử để hàng nút nhóm HIỆN ("Tất cả", "Tour đảo", "Thể thao biển", …) — phép quét thang nút phải chạy trên dữ liệu có chip.
+  // startEnv() chèn TD101 / TTB03 / TTB06 SAU migration gieo nhóm nên cả ba "Chưa phân loại"; Quản trị gán nhóm qua route thật (như chip-nhom-smoke.mjs). Không đổi giá / thân gửi.
+  const ad = await env.login(ACCOUNTS.admin);
+  for (const [codes, groupCode] of [[["TTB03", "TTB06"], "TTB"], [["TD101"], "TDA"]]) {
+    const r = await fetch(`${env.base}/api/catalog/group-assignments`, { method: "PUT", headers: { "content-type": "application/json", origin: env.base, cookie: `${ad.name}=${ad.value}` }, body: JSON.stringify({ codes, groupCode }) });
+    assert.equal(r.status, 200, `gán nhóm ${groupCode}: ${r.status} ${await r.text()}`);
+  }
   const chon = async (p, tim, soThe) => {
     await p.ev("document.getElementById('catalog-q').focus(); true");
     await p.ev(setInput("document.getElementById('catalog-q')", tim));
@@ -280,6 +300,32 @@ try {
   assert.deepEqual(p.consoleErrors.filter((e) => !/favicon|Failed to fetch/.test(e)), [], "không lỗi console (390, trang 2)");
   p.close();
 
+  // I-1 (vòng sửa 1): khung lỗi lưu nay nằm TRONG thanh nút; luật điện thoại cũ "ẩn nút không phải nút chính của thanh" (Quay lại) từng ẩn luôn nút hành động của khung lỗi.
+  p = await moForm(MOB);
+  await buoc("390-7b", "409 'đơn vừa được người khác sửa' khi sửa đơn ở điện thoại: khung lỗi trong thanh dính có nút 'Tải lại đơn' hiện, ≥ 44px, trong khung nhìn, không bị che", async () => {
+    await donMau(p);
+    await cham(p, true, "document.getElementById('save')", false);
+    await p.waitFor("location.pathname === '/order'", "lưu đơn xong sang trang đơn", 15000);
+    const id = new URLSearchParams(await p.ev("location.search")).get("id");
+    p.close();
+    p = await env.as(ACCOUNTS.salesA, `/order-form?id=${id}`, MOB);
+    await p.waitFor("document.getElementById('customerName').value === 'Khách Thanh Dính' && !document.getElementById('save').disabled", "form sửa đã nạp đơn", 15000);
+    await sleep(600);
+    // 409 `stale` ở lần PUT đầu, thân lỗi đúng dạng máy chủ ({ error: { code, message } }): từ đây đường vẽ khung lỗi y như 409 thật (order-errors.ts → banner.ts).
+    await p.ev(`(() => { const f = window.fetch; let mot = true; window.fetch = (u, o) => { if (mot && /\\/api\\/orders\\/[^/?]+$/.test(String(u)) && o?.method === 'PUT') { mot = false;
+      return Promise.resolve(new Response(JSON.stringify({ error: { code: 'stale', message: 'Đơn đã đổi.' } }), { status: 409, headers: { 'content-type': 'application/json' } })); } return f(u, o); }; return true; })()`);
+    await p.ev("window.scrollTo(0, 0); true");
+    await sleep(200);
+    await cham(p, true, "document.getElementById('save')", false);
+    await p.waitFor("!document.getElementById('save-error').hidden && document.getElementById('save-error').textContent.includes('Đơn vừa được người khác sửa')", "khung lỗi 409 stale");
+    await sleep(300);
+    const n = await p.ev(`(() => { const b = [...document.querySelectorAll('#save-error button')].find((x) => x.textContent === 'Tải lại đơn'); if (!b) return 'không có nút Tải lại đơn';
+      const r = b.getBoundingClientRect(); const t = r.height > 0 ? document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) : null;
+      return { hien: r.height > 0 && getComputedStyle(b).display !== 'none', cao: r.height >= 44, trongKhung: r.top >= 0 && r.bottom <= innerHeight, khongBiChe: !!t && (t === b || b.contains(t)) }; })()`);
+    assert.deepEqual(n, { hien: true, cao: true, trongKhung: true, khongBiChe: true }, "nút 'Tải lại đơn' trong khung lỗi");
+  });
+  p.close();
+
   p = await moForm(MOB);
   await buoc("390-9", "form trống, Lưu: khung lỗi cuộn bên trong (overflow-y auto), thanh dính không cao quá 60% khung nhìn", async () => {
     await cham(p, true, "document.getElementById('save')", false);
@@ -291,6 +337,55 @@ try {
     assert.equal(v.keTren, true);
     assert.equal(await p.ev(khongBiChe("document.getElementById('customerName')")), true, "ô tên (lỗi đầu tiên) không bị thanh dính che");
     assert.equal(await p.ev("document.querySelectorAll('.toast, .toast-bao').length"), 0, "không có thông báo nổi");
+  });
+  p.close();
+
+  // ============================== 375×667 (iPhone màn nhỏ) ==============================
+  p = await moForm(NHO);
+  await buoc("375-9b", "I-2: bảng chi tiết tiền ĐANG MỞ, khung lỗi dài, Lưu từ cuối form ở 375×667: bảng tự gập, ô SĐT (lỗi đầu tiên) không bị thanh dính che, thanh ≤ 60% khung nhìn", async () => {
+    await donMau(p);
+    await p.ev(setInput("document.getElementById('customerPhone')", ""));
+    await p.ev(setInput(demDem(0, "Người lớn"), "0"));
+    await p.ev(setInput(demDem(1, "Người lớn"), "0"));
+    await p.ev(setInput("document.getElementById('discount')", "99000000"));
+    await sleep(150);
+    await cham(p, true, MO, false);
+    assert.equal(await p.ev(`${BANG}.hidden`), false, "ĐẦU: bảng chi tiết đang mở");
+    await p.ev("window.scrollTo(0, document.documentElement.scrollHeight); true");
+    await sleep(200);
+    await cham(p, true, "document.getElementById('save')", false);
+    await p.waitFor("!document.getElementById('save-error').hidden", "khung lỗi lưu");
+    await sleep(400);
+    const v = await p.ev(`({ bangAn: ${BANG}.hidden, exp: ${MO}.getAttribute('aria-expanded'), thanh: Math.round(${THANH}.getBoundingClientRect().height), vh: innerHeight })`);
+    console.log(`   375-9b: thanh dính cao ${v.thanh}px / ${v.vh}px`);
+    assert.deepEqual({ bangAn: v.bangAn, exp: v.exp }, { bangAn: true, exp: "false" }, "Lưu bị từ chối dưới 960px: bảng chi tiết tự gập");
+    assert.equal(await p.ev(khongBiChe("document.getElementById('customerPhone')")), true, "ô SĐT (lỗi đầu tiên) không bị thanh dính che");
+    assert.ok(v.thanh <= v.vh * 0.6, `thanh dính cao ${v.thanh}px / khung ${v.vh}px`);
+  });
+
+  // M-3 (vòng sửa 1): thông báo nổi của Bảng tin không được che thanh bước. Chèn một `a.toast` vào ĐÚNG vùng `.toast-vung` mà web/toast.ts dùng (cùng CSS, cùng chỗ) —
+  // chỉ kiểm vị trí, không kiểm Bảng tin (kết nối WebSocket thật có kịch bản riêng).
+  const themThongBao = "(() => { const v = document.querySelector('.toast-vung'); if (!v) return false; const a = document.createElement('a'); a.className = 'toast'; a.href = '#'; a.textContent = 'Đơn TD20261018 vừa được cập nhật'; v.append(a); return true; })()";
+  const viTriThongBao = `(() => { const t = document.querySelector('.toast-vung .toast:last-child'), b = document.querySelector('.buoc-thanh'), bar = ${THANH}, top = document.getElementById('topbar');
+    const rt = t.getBoundingClientRect(), rb = b.getBoundingClientRect(), rs = bar.getBoundingClientRect();
+    return { duoiThanhBuoc: rt.top >= rb.bottom - 1, trenThanhDinh: rt.bottom <= rs.top + 1, dinh: Math.abs(rb.top - (top?.getBoundingClientRect().bottom ?? 0)) <= 1, toast: [Math.round(rt.top), Math.round(rt.bottom)], buoc: [Math.round(rb.top), Math.round(rb.bottom)], thanhDinh: Math.round(rs.top) }; })()`;
+  await buoc("375-9c", "M-3: thông báo nổi (Bảng tin) ở 375×667 nằm dưới thanh bước, trên thanh dính — khi thanh bước đang dính và khi ở đầu trang (dải nhắc đẩy thanh bước xuống)", async () => {
+    await p.ev(setInput("document.getElementById('customerPhone')", "0912345691"));
+    await p.ev(setInput(demDem(0, "Người lớn"), "2"));
+    await p.ev(setInput(demDem(1, "Người lớn"), "2"));
+    await p.ev(setInput("document.getElementById('discount')", "100000"));
+    await p.ev("window.scrollTo(0, 700); true");
+    await sleep(300);
+    assert.equal(await p.ev(themThongBao), true, "có vùng thông báo .toast-vung");
+    await sleep(200);
+    const dinh = await p.ev(viTriThongBao);
+    assert.equal(dinh.dinh, true, `thanh bước phải đang dính sát dưới thanh đầu trang: ${JSON.stringify(dinh)}`);
+    assert.deepEqual({ duoiThanhBuoc: dinh.duoiThanhBuoc, trenThanhDinh: dinh.trenThanhDinh }, { duoiThanhBuoc: true, trenThanhDinh: true }, `thanh bước đang dính: ${JSON.stringify(dinh)}`);
+    await p.ev("window.scrollTo(0, 0); true");
+    await sleep(300);
+    const dau = await p.ev(viTriThongBao);
+    assert.deepEqual({ duoiThanhBuoc: dau.duoiThanhBuoc, trenThanhDinh: dau.trenThanhDinh }, { duoiThanhBuoc: true, trenThanhDinh: true }, `đầu trang: ${JSON.stringify(dau)}`);
+    await p.ev("document.querySelectorAll('.toast-vung .toast').forEach((x) => x.remove()); true");
   });
   p.close();
 
@@ -324,6 +419,22 @@ try {
     assert.equal(await p.ev("document.activeElement?.id"), "customerName", "tiêu điểm ở ô tên");
     await p.ev(setInput("document.getElementById('customerName')", "Khách Thanh Dính"));
     await runAxe(p, "1040, có lỗi lưu");
+  });
+
+  await buoc("1040-12b", "M-3: thông báo nổi (Bảng tin) ở 1040 nằm dưới thanh bước — khi thanh bước đang dính và khi ở đầu trang", async () => {
+    const doViTri = `(() => { const t = document.querySelector('.toast-vung .toast:last-child'), b = document.querySelector('.buoc-thanh'); const rt = t.getBoundingClientRect(), rb = b.getBoundingClientRect();
+      return { duoiThanhBuoc: rt.top >= rb.bottom - 1, toast: [Math.round(rt.top), Math.round(rt.bottom)], buoc: [Math.round(rb.top), Math.round(rb.bottom)] }; })()`;
+    await p.ev("window.scrollTo(0, 700); true");
+    await sleep(300);
+    assert.equal(await p.ev(themThongBao), true, "có vùng thông báo .toast-vung");
+    await sleep(200);
+    const dinh = await p.ev(doViTri);
+    assert.equal(dinh.duoiThanhBuoc, true, `thanh bước đang dính: ${JSON.stringify(dinh)}`);
+    await p.ev("window.scrollTo(0, 0); true");
+    await sleep(300);
+    const dau = await p.ev(doViTri);
+    assert.equal(dau.duoiThanhBuoc, true, `đầu trang: ${JSON.stringify(dau)}`);
+    await p.ev("document.querySelectorAll('.toast-vung .toast').forEach((x) => x.remove()); true");
   });
 
   await buoc("1040-13", "thang nút ba cấp ở 1040 (như 390-4)", async () => {

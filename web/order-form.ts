@@ -106,6 +106,27 @@ const thanhBuoc = taoThanhBuoc({ phanTu: (ma) => document.querySelector<HTMLElem
 thanhBuoc.an("phu-trach", true); // bật lại khi biết người lập chọn được người phụ trách (`canPickHandler`)
 byId("buoc-slot").replaceWith(thanhBuoc.root); // KHÔNG bọc thêm thẻ: thanh dính chỉ dính trong khung cha của nó (.form-main: dưới 960px là `display: contents` nên khung dính là cả biểu mẫu)
 
+/**
+ * Thông báo nổi của Bảng tin (`.toast-vung` của web/toast.ts) nằm NGAY DƯỚI thanh bước, không che nó (vòng sửa 1 của việc 8, M-3; đề bài "không thông báo nổi che thanh bước").
+ * Thanh bước đứng ở chỗ khác nhau tuỳ lúc (đang dính sát thanh đầu trang; chưa cuộn thì bị dải nhắc `#strips` đẩy xuống) nên đo lúc chạy: `--toast-tren` = đáy thanh bước
+ * (số đo của trình duyệt, không phải giá trị CSS viết cứng); khối Bảng tin của app.css đọc biến này cho trang có thanh bước. Đo lại khi cuộn, đổi khổ và khi có thông báo mới
+ * (dải nhắc có thể vừa chèn sau lúc tải). Gọi SAU `initShell()` — vùng thông báo được tạo ở đó.
+ */
+function ganViTriThongBao(): void {
+  const goc = document.documentElement;
+  const doNgay = (): void => goc.style.setProperty("--toast-tren", `${Math.round(thanhBuoc.root.getBoundingClientRect().bottom)}px`);
+  let hen = 0;
+  const doSau = (): void => {
+    cancelAnimationFrame(hen);
+    hen = requestAnimationFrame(doNgay);
+  };
+  addEventListener("scroll", doSau, { passive: true });
+  addEventListener("resize", doSau);
+  const vung = document.querySelector(".toast-vung");
+  if (vung) new MutationObserver(doNgay).observe(vung, { childList: true }); // đo NGAY (trước khi vẽ) để thông báo mới không loé ở chỗ cũ một khung hình
+  doNgay();
+}
+
 interface Entry {
   draft: ServiceDraft;
   card: ServiceCard;
@@ -358,6 +379,10 @@ for (const el of [nutChiTiet, bangChiTiet]) {
     nutChiTiet.focus();
   });
 }
+/** Lưu bị từ chối dưới 960px: gập bảng chi tiết tiền TRƯỚC khi cuộn tới ô lỗi — bảng mở cộng khung lỗi làm thanh dính cao gần 500px, che ô lỗi ở màn nhỏ 375×667 (vòng sửa 1, I-2). */
+function gapChiTietKhiLoi(): void {
+  if (!wide() && !bangChiTiet.hidden) datMoChiTiet(false);
+}
 
 /**
  * Việc 8: "Hình thức", "Người nhận tiền" và câu ghi sổ chỉ hiện khi đã nhập số trả trước (lúc lưu chỉ đọc hai ô này khi số > 0 — thân gửi không đổi).
@@ -551,6 +576,7 @@ async function onSaveError(err: unknown): Promise<void> {
   if (failure.refreshCatalog) await refreshCatalogAfterConflict();
   if (failure.action === "lock_form") lockForm(failure);
   renderBanner(saveErrorEl, failure, { reloadOrder: () => void loadOrder(), reloadPage: () => location.reload() });
+  gapChiTietKhiLoi();
   // 400 `invalid_assignee`: người được chọn vừa nghỉ/mất quyền giữa lúc điền form — máy chủ KHÔNG tạo đơn; form giữ nguyên (kể cả lựa chọn, để người dùng
   // thấy mình đã chọn ai) và banner nói cách sửa. Đổi/bỏ lựa chọn thì banner này tự gỡ (`setHandlerPick`).
   assigneeErrorShown = err instanceof ApiError && err.code === "invalid_assignee";
@@ -601,6 +627,7 @@ async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDa
   const invalid = validate();
   if (invalid) {
     renderBanner(saveErrorEl, invalid.banner);
+    gapChiTietKhiLoi();
     // Ô lỗi đầu tiên: ô khách thì chính nó; lỗi chặng của một thẻ dịch vụ thì ô lỗi trong chặng (đã đo "đang nằm trong khối đóng" TRƯỚC khi mở); lỗi khác của thẻ thì cả thẻ.
     const loiChang = loiChangCuaThe[entries.findIndex((en) => en.card.root === invalid.focus)] ?? null;
     const dich = loiChang?.o ?? invalid.focus;
@@ -799,6 +826,7 @@ function datViTriKhoiKhach(): void {
 const layDanhMuc = layKhungNho()?.canCreate === true ? goiSom(() => api<Api.CatalogPublicResponse>("/api/catalog/for-order")) : () => api<Api.CatalogPublicResponse>("/api/catalog/for-order");
 const layDon = editId ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(editId)}`)) : null;
 const staff = await initShell();
+ganViTriThongBao();
 // Cờ "không nhận tiền trả trước" bật NGAY khi biết tài khoản (người có quyền ghi sổ): từ đây tới khối ẩn ba ô ở dưới không còn khe nào mà số gõ sớm bị đọc ở `recompute` / `validate` / lúc lưu.
 traTruocAn ||= can(staff, "ledger.write");
 picker.setTaiKhoan(staff.id); // ADR-0058 Đ8: nhóm đã chọn nhớ THEO TÀI KHOẢN trên máy — bộ chọn dựng trước khi biết tài khoản, trước dòng này không đọc / ghi bộ nhớ
