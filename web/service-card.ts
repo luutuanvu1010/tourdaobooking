@@ -56,7 +56,10 @@ export interface ServiceCard {
   update(d: ServiceDraft): void;
   /** Trần dòng tiền tính trên CẢ ĐƠN: khi số dòng của bất kỳ thẻ nào đổi, trang gọi hàm này cho MỌI thẻ để nút "+ Thêm dòng" bật/khoá đúng ngay. */
   refreshLimits(): void;
-  /** Hiện mọi lỗi chặn Lưu trên thẻ (sau lần bấm Lưu đầu). Lỗi "Tối đa 50 khách." luôn hiện. Trả ô lỗi chặng đầu tiên (mở khối gập chứa nó) — xem `KhoiDuaDon.showIssues`. */
+  /**
+   * Hiện mọi lỗi chặn Lưu trên thẻ (sau lần bấm Lưu đầu). Lỗi "Tối đa 50 khách." luôn hiện. Trả ô lỗi chặng đầu tiên (mở khối gập chứa nó) — xem `KhoiDuaDon.showIssues`; thẻ đang GẬP
+   * mà chỉ có lỗi cấp thẻ thì trả ô lỗi đầu tiên của thẻ với `daAn: true` (thẻ vừa mở — trang cuộn tới ô đó và đặt tiêu điểm).
+   */
   showIssues(show: boolean): { o: HTMLElement; daAn: boolean } | null;
   /** Mở thẻ, mở khối chuyến và cuộn tới thẻ. */
   reveal(): void;
@@ -415,6 +418,24 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     addLineBtn.textContent = can ? "+ Thêm dòng" : `Đã đủ ${MAX_LINES_PER_ORDER} dòng tiền — không thêm được nữa`;
   }
 
+  /**
+   * Ô ứng với lỗi CẤP THẺ đầu tiên (lỗi chặng do khối Đưa đón tự trả ô của nó): để trang cuộn tới và đặt tiêu điểm khi thẻ GẬP vừa mở vì Lưu bị từ chối (luật gập an toàn 14/10 §2.4b —
+   * người lập phải thấy ô đỏ vừa hiện, không phải banner cuối form). Không có ô nhận tiêu điểm hợp lệ → null (trang dùng cả thẻ).
+   */
+  function oLoiThe(): HTMLElement | null {
+    const loi = draftIssues(draft).find((i) => i.code !== "leg");
+    if (!loi) return null;
+    let o: HTMLElement | null | undefined;
+    if (loi.code === "no_guests" || loi.code === "no_paying_guests" || loi.code === "too_many_guests") o = draft.kind === "catalog" ? [...counters.values()][0]?.input : guestCounter?.input;
+    else if (loi.code === "name") o = nameInput;
+    else if ((loi.code === "line_description" || loi.code === "line_quantity") && draft.kind === "manual") {
+      const i = draft.lines.findIndex((l) => (loi.code === "line_description" ? l.description.trim() === "" : l.quantity < 1));
+      o = loi.code === "line_description" ? manualRefs[i]?.desc : manualRefs[i]?.qty.input;
+    } else if (loi.code === "preview" || loi.code === "amount") o = body.querySelector<HTMLElement>(".price-field");
+    const dungDuoc = (e: HTMLElement | null | undefined): e is HTMLElement => !!e && !(e as HTMLInputElement).disabled;
+    return dungDuoc(o) ? o : body.querySelector<HTMLElement>("input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])");
+  }
+
   rebuildBody();
   refresh();
 
@@ -431,10 +452,13 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     },
     refreshLimits,
     showIssues(show) {
+      const daGap = !gap.laMo(); // đo TRƯỚC: refresh() bên dưới mở thẻ khi lỗi chặn Lưu vừa hiện
       issuesVisible = show;
       const dau = duaDon.showIssues(show);
       refresh();
-      return dau;
+      if (dau || !show || !daGap) return dau;
+      // Thẻ đang GẬP có lỗi cấp thẻ (vd "Nhập số khách."): chính thẻ không bao giờ "ẩn" (chỉ thân ẩn) nên trang không tự biết — trả ô lỗi đầu tiên, đánh dấu vừa nằm trong khối đóng.
+      return gap.laMo() ? { o: oLoiThe() ?? root, daAn: true } : null;
     },
     reveal() {
       gap.mo();

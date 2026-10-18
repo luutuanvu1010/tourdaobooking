@@ -55,6 +55,12 @@ test("nối dây thẻ dịch vụ gập (18/10/2026): thân thẻ đăng ký kh
   assert.match(orderForm, /entries\[failure\.focusService\]\?\.card\.setOpen\(true\)/, "máy chủ nêu 'Dịch vụ n' mà thẻ gập không mở");
 });
 
+test("nối dây thẻ dịch vụ gập: lỗi CẤP THẺ ở thẻ đang gập ⇒ showIssues trả ô lỗi đầu tiên của thẻ, đánh dấu 'đang ẩn' (trang cuộn + đặt tiêu điểm vào ô, không vào banner)", () => {
+  assert.match(serviceCard, /const daGap = !gap\.laMo\(\);[\s\S]*?const dau = duaDon\.showIssues\(show\);/, "showIssues phải đo thẻ có đang gập TRƯỚC khi hiện lỗi (refresh mở thẻ)");
+  assert.match(serviceCard, /if \(dau \|\| !show \|\| !daGap\) return dau;[\s\S]*?\{ o: oLoiThe\(\) \?\? root, daAn: true \}/,"thẻ gập vừa mở vì lỗi cấp thẻ không còn trả ô lỗi + daAn: true");
+  assert.match(orderForm, /const dangAn = loiChang\?\.daAn \?\?/, "luu() không còn dùng daAn của thẻ để quyết cuộn tới ô lỗi");
+});
+
 test("nối dây khối gập (web/khoi-gap.ts): moKhoiChua và moMoiKhoiGap thật sự gọi mo() của khối đã đăng ký", () => {
   assert.match(khoiGap, /dangKy\.get\(n\)\?\.mo\(\)/, "moKhoiChua / moMoiKhoiGap không còn mở khối");
   assert.ok(dem(khoiGap, /dangKy\.get\(n\)\?\.mo\(\)/) >= 2, "cả hai hàm phải mở khối đã đăng ký");
