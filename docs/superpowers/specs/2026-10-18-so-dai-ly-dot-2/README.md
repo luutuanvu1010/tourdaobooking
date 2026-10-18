@@ -4,12 +4,12 @@
 - **Nguồn đã duyệt (áp dụng, không hỏi lại):** ADR-0078 phần B2 (điều 7, 9, 10) và điều 5 (dòng nhập tay), ADR-0079 (toàn bộ), ADR-0061 A-14, lời chủ C1–C13 = A (`docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/cau-hoi-chu.md`). Các ADR ra sau đã sửa câu của chúng: ADR-0088, 0092, 0109, 0115, 0117, 0120. **Mới:** ADR-0130 (đề xuất, `de-xuat-adr-khach-tra-ben-kia.md`) thay ADR-0078 điều 8 gạch 2 theo lời chủ 18/10.
 - **Chia đợt (lời chủ 2026-10-08, không hỏi lại):** đợt 2 = ADR-0078 B2 + ADR-0079 (+ đơn cũ, trần giảm giá). Đợt 3 = ADR-0080 D2 + ADR-0081, khung ở `docs/superpowers/plans/2026-10-18-so-dai-ly-dot-3-khung.md`.
 - **Xây trên lỗ đang hở:** TNV-G1, TNV-G3, TNV-G4, HC-4.2, HC-5.19 (`docs/quyen-hoan.json`). Đợt 2 **chạm** các vùng đó:
-  - hàm đọc lần thu `docLanThu` dùng chung với lệnh «Thay lần thu» (TNV-G3);
+  - hàm đọc lần thu `docLanThu` dùng chung với lệnh «Thay lần thu» (`billing/thay-lan-thu.ts`, TNV-G3);
   - loại dòng của đường điều chỉnh có người duyệt (TNV-G4, HC-4.2);
   - dấu đối chiếu chuyển khoản và view cọc đơn huỷ (TNV-G1, TNV-G4);
   - một lần ghi một chiều lên dữ liệu thật mà đường lùi duy nhất là điểm khôi phục chưa từng diễn tập (HC-5.19).
 
-  Đợt 2 **không nới** luật nào của các lỗ đó: mọi hàng rào cũ giữ nguyên và có bài kiểm lại. Đặc tả này không được duyệt nếu chủ chưa ghi lời cho phép **nêu rõ đợt 2**, có lý do (`trinh-chu.md`, quyết định 3). Các dòng cho phép đang có ở sổ hoãn chỉ viết cho đặc tả QR ngày 8/10, không áp cho đợt này.
+  Đợt 2 không nới luật nào của các lỗ đó, **trừ một chỗ phải chủ duyệt rõ** (P10): hàng rào «một dòng giữ hộ chỉ tất toán một lần» của TNV-G4 chỉ cộng lại đúng ba loại dòng nó vốn canh, để dòng hoa hồng / giá vốn không làm nó chặn nhầm. Trên mọi dữ liệu hôm nay nó chạy y hệt. Mọi hàng rào cũ khác giữ nguyên và có bài kiểm lại. Đặc tả này không được duyệt nếu chủ chưa ghi lời cho phép **nêu rõ đợt 2**, có lý do (`trinh-chu.md`, quyết định 3). Các dòng cho phép đang có ở sổ hoãn chỉ viết cho đặc tả QR ngày 8/10, không áp cho đợt này.
 - **Bằng chứng đo mã:** hai lượt đo chỉ-đọc ngày 2026-10-18 trên `main` = `cc003e02`, cộng báo cáo người kiểm vòng 1. Tên tệp / hàm ở đây là tên **hôm nay**; số dòng ADR trích (đo 1/10) đã cũ.
 
 ## 1. Mục tiêu và không mục tiêu
@@ -71,17 +71,19 @@ Mỗi phần nêu: quyết định gốc → hiện trạng → việc phải l�
     - câu `PENDING_COMPANY` (`billing/repository.ts`, nguồn danh sách và bộ đếm nhắc);
     - `khoanMoiDoiChieu`, `canDoiChieu` (`billing/rules.ts`);
     - «Công ty đã nhận»;
+    - nhánh khoản cũ của `PENDING_COMPANY` không kiểm số dư ròng như `khoanChoXacNhan`, nên danh sách chờ và màn đơn có thể lệch nhau.
     - `v_bil_coc_don` và trigger `bil_payment_receipt_coc_reversal` (migration 0099).
 - **Làm:**
   - **Đối tác** ghi «tôi»: nếu hồ sơ của họ là **bên đặt của chính đơn** và đơn có người hưởng ⇒ người thu `BOOKER`, nợ ngay. Còn lại giữ như hôm nay.
-  - **Kế toán / Toàn quyền** ghi thẳng `BOOKER` / `SUPPLIER` ⇒ nợ ngay.
+  - **Kế toán / Toàn quyền** ghi thẳng `BOOKER` / `SUPPLIER` ⇒ nợ ngay. Chọn một hồ sơ: là bên đặt **của đơn có người hưởng** ⇒ `BOOKER`; là nhà cung cấp của một dòng trên đơn ⇒ `SUPPLIER`, số ≤ phần chưa thu của dòng đó; còn lại ⇒ như hôm nay (`STAFF` / `COMPANY`). Đơn khách lẻ: chọn hồ sơ khách **không** thành `BOOKER`.
   - **Người khác có `payment.receive`** khai ⇒ dấu `DECLARED`, không nợ, đơn chờ Kế toán (ADR-0130). Kế toán bấm «Bên kia đã nhận» (ô `ledger.write`) ⇒ dấu `CONFIRMED` + phiếu một dòng giữ hộ, trong một lô.
-  - **Mọi chỗ «đang đối chiếu» kể trên** nhận thêm hai vai mới: danh sách, bộ đếm, nhắc quá 3 ngày, view cọc, trigger cọc. Thêm bài đối chiếu hai nơi (mã ↔ SQL) có mẫu `BOOKER` / `SUPPLIER`.
+  - **Mọi chỗ «đang đối chiếu» kể trên** nhận thêm hai vai mới: danh sách, bộ đếm, nhắc quá 3 ngày, view cọc, trigger cọc. Lần thu `BOOKER` / `SUPPLIER` đã `CONFIRMED`, hoặc do Đối tác / Kế toán ghi thẳng (nợ ngay), **không** là đang đối chiếu. Nhánh khoản cũ của `PENDING_COMPANY` kiểm số dư như `khoanChoXacNhan`. Thêm bài đối chiếu hai nơi (mã ↔ SQL) có các mẫu đó.
   - **Bật `SUPPLIER`**; số của nó ≤ phần thành tiền chưa thu của các dòng thuộc nhà cung cấp đó.
   - **«Thu cho ai»:** mặc định Tour Đảo. Người thu `SUPPLIER` ⇒ luôn là nhà cung cấp đó. Người ghi chọn được nhà cung cấp của một dòng trên đơn khi khách trả trước phần đó, bằng ô chọn trên form lần thu, chỉ hiện khi đơn có dòng làm đại lý. Đổi `R-BIL-S9`, thêm `R-BIL-12` theo ADR-0078.
   - **Trigger mã giao dịch ngân hàng (0099)** chỉ áp cho người thu Công ty.
   - **Lần thu kèm «Đã giao»** (một bước) **không** nhận hai lựa chọn mới (400): lời khai cần Kế toán xác nhận trước.
-  - **Câu giữ «đang đối chiếu»** nói đúng khoản đang chờ («khách trả cho <đại lý>» / «tại quầy <nhà cung cấp>»).
+  - **Câu giữ «đang đối chiếu»** nói đúng khoản đang chờ («khách trả cho <đại lý>» / «tại quầy <nhà cung cấp>»). Với Đối tác, câu không nêu tên nhà cung cấp hay người khai.
+  - **«Thay lần thu»** (chỉ Kế toán / Toàn quyền) đọc lần thu mới bằng cùng `docLanThu`, nên route của nó cũng nhận phần thương mại; lựa chọn `BOOKER` / `SUPPLIER` ở đây ghi thẳng, không sinh lời khai.
 
 ### P5. Biên nhận chia phần theo người bán (ADR-0078 điều 10)
 `ReceiptDto` thêm `phan[]`, mỗi người bán một phần. Đơn chỉ có một người bán thì chỉ có một phần. Danh sách trắng giữ nguyên: không a%, giá vốn, hoa hồng, tên người thu, hình thức thu. Ví dụ B-4 và B-5 của ADR-0078 thành bài kiểm. Bài «số lạ» của biên nhận gieo thêm vào giá vốn và hoa hồng.
@@ -98,7 +100,7 @@ Mỗi phần nêu: quyết định gốc → hiện trạng → việc phải l�
   - Đơn trong nhóm này có dịch vụ mà nay Kế toán đã khai do nhà cung cấp bán (gọi là b1x) sẽ nhận người bán Tour Đảo, giống mọi đơn trước 12/10. Câu đếm liệt kê các đơn đó cho Kế toán, để sau «Đã giao» Kế toán bổ sung giá vốn bằng đường (a).
   - `orders.confirmed_at` có thể trống; khi đó lấy ngày tạo đơn. Ngày lấy theo giờ Việt Nam.
   - (b1) = 0 thì bỏ tệp `0112`.
-- **(b2) Đơn có người hưởng hoặc có dòng nhập tay, chưa có bản chụp:** bị giữ `terms_missing`. Kế toán bấm **«Chụp bù»** cho từng đơn hoặc cả danh sách, theo mức hiệu lực ở **ngày xác nhận**; có nhật ký. Ô `order.terms.override`. Dùng **cùng** `chupDon` với lúc Xác nhận.
+- **(b2) Đơn có người hưởng hoặc có dòng nhập tay, chưa có bản chụp:** bị giữ `terms_missing`. Kế toán bấm **«Chụp bù»** cho từng đơn hoặc cả danh sách, theo mức hiệu lực ở **ngày xác nhận**; có nhật ký. Ô `order.terms.override`. Dùng **cùng** `chupDon` với lúc Xác nhận. Nếu một dòng sẽ ra thiếu mức thì **từ chối cả đơn, không ghi gì**, nêu dịch vụ thiếu, vì bản chụp thiếu mức đóng băng và đơn sẽ thành (b3). Dòng nhập tay không có mức để chụp, nên đơn có dòng nhập tay đi đường ghi mức tay.
 - **(b3) Đơn đã có bản chụp mà một dòng thiếu mức** (xác nhận sau 12/10): bản chụp đã đóng băng (ADR-0077 điều 9). **«Chụp bù» không áp**, và cài mức mới cũng không gỡ được. Kế toán **ghi mức tay** cho dòng đó, có lý do. Câu lý do giữ phải nói đúng việc cần làm cho từng trường hợp.
 - **Hệ quả đã duyệt, phải nói với người dùng:** đơn **khách lẻ** có **dịch vụ nhập tay** nay bị giữ ở «Đã giao» cho tới khi Kế toán ghi tay «dòng này Tour Đảo bán» (ADR-0078 điều 5, A-14; ADR ghi rõ «không tự đổi»). Hôm nay các đơn này qua được. Câu đếm ở Task 0 đếm nhóm này.
 - **(c) Đơn nháp / chờ xác nhận:** không cần gì.
@@ -111,6 +113,7 @@ Mỗi phần nêu: quyết định gốc → hiện trạng → việc phải l�
   - Nháp: tính theo bảng hôm nay, dòng thiếu mức tính 0.
   - Xác nhận: tính bản chụp trước, kiểm trần sau.
   - Sau xác nhận, bớt khách làm hoa hồng tụt dưới giảm giá thì không chặn, màn đơn cảnh báo.
+  - **Đổi bên đặt sau xác nhận** (route đổi bên đặt chụp lại mức; giảm giá đã khoá từ migration 0081): nếu bên đặt mới làm đơn có người hưởng mà giảm giá > tổng hoa hồng mới ⇒ từ chối đổi, nói rõ hai số. Không có chặn này thì R-ORD-DC1 (lỗi sau mốc) sẽ báo lỗi vĩnh viễn mà không có đường sửa.
   - Vế giá danh mục vẫn theo người thao tác.
   - Cảnh báo phải đi qua hàm phải thu duy nhất (hàng rào `src/phai-thu-mot-ham.test.ts`).
   - Ví dụ B-5 (giảm 150.000 > hoa hồng 100.000 ⇒ từ chối) và C-5 thành bài kiểm.
@@ -126,7 +129,7 @@ Mỗi phần nêu: quyết định gốc → hiện trạng → việc phải l�
   - Bài «số lạ» phủ cả hai.
 
 ### P9. Kiểm định kỳ, hàng rào, sổ vàng
-- **Bật** `R-BIL-2`, `R-BIL-5` (cảnh báo trước mốc, lỗi sau mốc).
+- **Bật** `R-BIL-2`, `R-BIL-5` (cảnh báo trước mốc, lỗi sau mốc). `R-BIL-5` giữ **nghĩa đã đăng ký** «mỗi dòng dịch vụ của đơn đã giao có người bán» (ADR-0078, `scripts/audit-checks.mjs`); thiếu giá vốn là việc của `R-BIL-2`.
 - **Thêm** kiểm «số dòng giảm giá bên đặt»: ADR gọi R-BIL-14, nhưng mã này đã dùng cho ADR-0115, nên lấy mã trống `R-BIL-16`. Thêm `R-BIL-12`. Thêm `R-ORD-DC1`: cảnh báo trước mốc, **lỗi** sau mốc (ADR-0079 điều 9, C11 = A).
 - **Bảng kiểm trước khoá tháng:** đưa `R-BIL-2` vào.
 - **`R-BIL-13` giữ nguyên** (chỉ cộng giữ hộ + quyết toán). Đổi sang cộng mọi loại thì báo nhầm ở ca hợp lệ, vì Tour Đảo nợ người hưởng là số âm hợp lệ (ADR-0092).
@@ -135,6 +138,18 @@ Mỗi phần nêu: quyết định gốc → hiện trạng → việc phải l�
 - **Gộp hồ sơ có bản chụp** (`BL-SDL-DOT-2` (2)): viết bài chạy thật. Tiền sai thì **dừng, báo chủ, mở việc riêng**.
 - **Mọi hàng rào mới** (trigger, trần giảm giá, bài số lạ biên nhận và đối tác) có bước quan sát chặn thật (sửa cố ý → đỏ → hoàn nguyên).
 
+### P10. Hàng rào «một dòng giữ hộ chỉ tất toán một lần» không đếm dòng thương mại (TNV-G4, ADR-0092 Đ2b — **chủ duyệt ở quyết định 3**)
+- **Hôm nay:** trigger `bil_debt_line_held_once` (migration 0080) chặn đảo một dòng giữ hộ khi người giữ hộ còn nợ công ty trên đơn ít hơn số của dòng đó, để khoản đã «Nộp» không bị tất toán lần hai (ca KT04). Nó cộng **mọi** dòng của cặp. Hàm `soDuCap` dùng trong `khoanChoXacNhan` và «Công ty đã nhận» (`billing/service.ts`) cộng giống vậy. Hôm nay chỉ có ba loại dòng (giữ hộ, quyết toán, hoàn) nên không sao.
+- **Sau đợt 2 sẽ chặn nhầm** (người kiểm vòng 2 tái hiện ở mức trigger): khi cặp có dòng hoa hồng / giảm giá bên đặt / giá vốn, số «còn nợ» bị kéo xuống dù khoản giữ hộ chưa ai nộp.
+  - **Thay lần thu sau «Đã giao»** mà đổi người thu khỏi đại lý (C-1: đại lý giữ 3.000.000, ròng 2.750.000 < 3.000.000) hoặc khỏi quầy nhà cung cấp (SV-HT-03: giữ 400.000, giá vốn 480.000, ròng −80.000) ⇒ cả lô bị từ chối.
+  - **«Công ty đã nhận»** cho khoản tiền mặt «Công ty thu» mà chính tài khoản đại lý khai (luật H3; khoản này không chặn «Đã giao») ⇒ bị chặn sau «Đã giao»; màn đơn còn thôi coi nó là khoản chờ.
+  - Đường vòng duy nhất là hai ba yêu cầu điều chỉnh nối nhau (điều chỉnh không được đổi dấu số dư, nên không đi một bước được), mà lần thu vẫn ghi sai người thu.
+- **Làm (khuyến nghị):** trigger, `khoanChoXacNhan` và kiểm trước của «Công ty đã nhận» chỉ cộng `HELD`, `SETTLEMENT`, `REFUND` — đúng ba loại nó vốn canh. `settlement_no_flip`, đường điều chỉnh và `soDuCap` ở các chỗ khác giữ cộng mọi loại (đó là số nợ ròng thật). Trigger tạo lại cùng tên trong `0111`. Bài kiểm:
+  - KT04 vẫn chặn: giữ hộ 3.000.000 → «Nộp» 3.000.000 → đảo dòng giữ hộ ⇒ bị chặn; cặp có hoa hồng (C-1) → «Nộp» đủ số ròng 2.750.000 → đảo dòng giữ hộ ⇒ vẫn bị chặn;
+  - C-1 và SV-HT-03 đổi người thu bằng «Thay lần thu» sau «Đã giao» ⇒ được; số dư đại lý sau đó −250.000 (Tour Đảo nợ đại lý hoa hồng trừ giảm giá);
+  - bài hai nơi (trigger ↔ hàm TS) cùng một tập loại dòng; bước quan sát chặn thật.
+- **Phương án giữ nguyên trigger:** không đụng hàng rào nào, nhưng với đơn đại lý, Kế toán mất «Thay lần thu» đổi người thu và «Công ty đã nhận» cho khoản đại lý tự khai; sửa bằng nhiều yêu cầu điều chỉnh, lần thu vẫn ghi sai người.
+
 ## 3. Lựa chọn tôi tự quyết (đảo được, ghi để chủ soát)
 1. Đổi tên kiểm «số dòng giảm giá bên đặt» sang `R-BIL-16` vì R-BIL-14 đã dùng.
 2. Lần thu kèm «Đã giao» không nhận hai lựa chọn người thu mới.
@@ -142,6 +157,8 @@ Mỗi phần nêu: quyết định gốc → hiện trạng → việc phải l�
 4. Gộp hồ sơ có bản chụp: chỉ viết bài kiểm, sai thì dừng.
 5. Một lần phát hành cho cả đợt 2. Migration dự kiến `0111` (và `0112` nếu có b1), bản dự kiến `2.18`; cả hai số **tạm** (`0098` đang bị nhánh đưa đón giữ).
 6. Đợt 2 lập kế hoạch đầy đủ; đợt 3 chỉ ở mức việc, chi tiết hoá sau khi đợt 2 vào bản chính.
+7. «Chụp bù» từ chối cả đơn khi còn dòng sẽ ra thiếu mức (P6 b2), thay vì ghi bản thiếu mức rồi đóng băng.
+8. Đổi bên đặt sau xác nhận bị chặn khi giảm giá vượt hoa hồng mới (P7). Đây là áp C8 = A cho thêm một đường, siết chứ không nới.
 
 ## 4. Tiêu chí nghiệm thu (đỏ trước, xanh sau)
 Gồm tiêu chí 1–8 của ADR-0079, tiêu chí của ADR-0078 B2 (trừ 3b, thay bằng tiêu chí 1–5 của ADR-0130), cộng thêm:
@@ -156,18 +173,20 @@ Gồm tiêu chí 1–8 của ADR-0079, tiêu chí của ADR-0078 B2 (trừ 3b, t
 - **Dữ liệu thật:** Nền tảng đã mở cho người dùng (bảo trì tắt 18/10 theo `docs/HANDOFF-N1.md`, chưa kiểm lại bằng lệnh). Đợt 2 ghi một chiều lên đơn thật: bản chụp bù b1 và dòng sổ mới.
 - **Trước khi phát hành, chủ chạy câu đếm chỉ-đọc:** nhóm a; b1 / b1x / b2; đơn có người hưởng chờ «Đã giao»; đơn khách lẻ có dòng nhập tay đang chờ «Đã giao».
 - **Điểm khôi phục:** `trien-khai` lấy điểm Time Travel vì có migration. **Khuyến nghị phát hành chỉ sau khi diễn tập khôi phục xong** (HC-5.19, hạn 5/11).
-- **Sau khi phát hành, chủ chạy câu đếm thứ hai:** số bản chụp `AUTO` vừa chèn phải bằng số b1 đã đếm. Sau đó chạy `audit-invariants --db remote`. Lệch thì dừng, báo.
+- **Sau khi phát hành, chủ chạy câu đếm thứ hai:** số bản chụp mang dấu của `0112` (`created_by = 'he-thong:0112'`; cột chữ tự do, không khoá ngoại) phải bằng số **dòng dịch vụ** của các đơn b1 đã đếm trước. Câu đếm trước phát hành vì vậy đếm cả số đơn lẫn số dòng dịch vụ. Dấu này tách bản chụp bù khỏi bản chụp của các đơn xác nhận bình thường sau giờ phát hành. Sau đó chạy `audit-invariants --db remote`. Lệch thì dừng, báo.
 - **Đường lùi:** lùi Worker về bản trước bằng `wrangler rollback` **không** gỡ trigger của `0111`. Khi đó bản cũ vẫn chặn đơn đại lý như hôm nay, nhưng đơn khách lẻ có dòng nhập tay sẽ gặp lỗi chưa dịch ở «Đã giao». Runbook ghi cách xử lý: hoặc chấp nhận tạm, hoặc thêm migration mới bỏ trigger lớp 2. Không sửa tệp đã áp.
 
 ## 6. Việc của Kế toán / chủ (song song với thi công)
 - Xác nhận các tình huống ở `phieu-ke-toan.md`. Thiếu xác nhận thì mã sổ đợt 2 không được nhận (Hiến chương 5.17).
-- Trước ngày phát hành:
+- Trước ngày phát hành (công cụ ghi mức tay đã có từ đợt 1):
   - cài mức hoa hồng (lùi ngày hiệu lực nếu cần) cho đơn đại lý **chưa có bản chụp**, để «Chụp bù» ra đủ mức;
-  - với đơn đại lý **đã có bản chụp thiếu mức**, ghi mức tay từng dòng.
+  - với đơn đại lý **đã có bản chụp thiếu mức** (b3), ghi mức tay từng dòng;
+  - với đơn khách lẻ có dòng nhập tay đang chờ «Đã giao», ghi tay «dòng này Tour Đảo bán».
+- Sau phát hành: bổ sung giá vốn cho các đơn b1x khi chúng đã «Đã giao» (đường điều chỉnh có duyệt).
 
 ## 7. Điều chưa chắc
 - **Hoa hồng khi hoàn tiền / giảm trừ sau «Đã giao»:** ADR không nói. Phải quyết trước khi thi công ADR-0116 (hoàn sau «Đã giao» hôm nay còn bị chặn).
-- **Lệch ngoài phạm vi (báo chủ một lần):** ADR-0099 (accepted 2026-10-03) đổi ô `payment.receive` của Bán hàng sang `ownOrAssigned`. Bản đồ quyền hôm nay vẫn ghi `own` và không có dòng lệch có chủ ý. Đây là một việc nhỏ riêng.
+- **Ngoài phạm vi, đã có trong việc tồn:** ADR-0099 (accepted 2026-10-03) đổi ô `payment.receive` của Bán hàng sang `ownOrAssigned`; bản đồ quyền hôm nay vẫn ghi `own`. Việc này đã ghi ở `docs/BACKLOG.md` (BL-QUYEN-BH06, «đã duyệt, chưa làm»), không thuộc đợt 2.
 - Chưa kiểm: lịch sử đơn của Đối tác có hiện hai hành động nhật ký mới (chụp bù, bên kia đã nhận) không; kế hoạch giao người thi công kiểm và ẩn theo danh sách hiện có.
 
 ## Thay đổi so với bản 1 (theo người kiểm vòng 1)
@@ -183,3 +202,10 @@ Gồm tiêu chí 1–8 của ADR-0079, tiêu chí của ADR-0078 B2 (trừ 3b, t
 - Q8: R-ORD-DC1 lỗi sau mốc.
 - Q9: nêu điều kiện «tôi» = bên đặt, «thu cho ai», lần thu kèm «Đã giao».
 - Q11: câu đếm sau phát hành và đường lùi.
+
+## Thay đổi bản 2.1 (theo người kiểm vòng 2)
+- I-1: thêm P10 (hàng rào «giữ hộ tất toán một lần» không đếm dòng thương mại), đưa vào quyết định 3; «Thay lần thu» vào phạm vi.
+- I-2: câu đếm sau phát hành đếm theo dòng dịch vụ, bản chụp bù có dấu riêng.
+- I-3: nhánh Kế toán chọn hồ sơ: `BOOKER` chỉ trên đơn có người hưởng; `SUPPLIER` có trần phần chưa thu.
+- I-4: R-BIL-5 giữ nghĩa đã đăng ký; đổi bên đặt sau xác nhận bị chặn khi giảm giá vượt hoa hồng mới.
+- Nhỏ: «Chụp bù» từ chối khi còn thiếu mức; thời điểm ghi mức tay chốt trước phát hành; ADR-0099 trỏ về BL-QUYEN-BH06; câu «đang đối chiếu» không lộ tên với Đối tác.

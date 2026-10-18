@@ -23,6 +23,19 @@ Ngày 1/10 chủ chọn C6 = A với lý do «giống hệt cách đã chọn ch
 4. **Áp cho cả tiền mặt và chuyển khoản.** Ở đây khách đưa tiền cho bên kia, người khai không cầm đồng nào. Cổng «xác nhận chuyển khoản phải có mã giao dịch ngân hàng» (trigger `bil_receipt_recon_confirmed_txn` của migration 0099) **chỉ áp cho người thu Công ty**: tiền vào tài khoản của đại lý / nhà cung cấp nên công ty không có mã. Kế toán đối chiếu với bên kia ngoài Nền tảng.
 5. **Không đổi:** ADR-0078 điều 7, 9, 10; ADR-0120 cho khoản «Công ty thu»; tiền mặt «Công ty thu» vẫn theo H3 (chủ chốt 15/10).
 
+## Câu ADR bị thay
+
+| Nơi | Câu cũ (tóm) | Câu mới |
+|---|---|---|
+| ADR-0078 điều 8 gạch 2 | khuyến nghị C6 (A): người khai mang nợ tới khi Kế toán xác nhận | Quyết định 1–2 ở trên: khai chỉ có dấu `DECLARED`, không nợ; Kế toán xác nhận thì dòng giữ hộ sinh trên bên kia |
+| ADR-0078 bảng dữ liệu, dòng `bil_posting_kind` | `COUNTERPARTY_CONFIRMED` «Bên kia đã xác nhận» nếu C6 = A | Có, nhãn «Bên kia đã nhận», phiếu một đơn |
+| ADR-0078 bảng dữ liệu, dòng `bil_payment_receipt` | C6 = A suy «chờ xác nhận» từ dòng giữ hộ trên người khai | Suy từ dấu `DECLARED` chưa `CONFIRMED` ở `bil_receipt_recon` (ADR-0120, mở phạm vi) |
+| ADR-0078 bảng «Sửa câu nào», dòng ADR-0026 điều 4 gạch 2 (H3) | mở rộng H3 cho người thu bên đặt / nhà cung cấp do người khác khai | Không mở rộng H3; dùng khuôn ADR-0120 |
+| ADR-0078 tiêu chí 3b | HDV khai ⇒ HDV giữ 400.000, «Đã giao» được; xác nhận ⇒ hai dòng đảo | Tiêu chí 1–5 dưới đây |
+| ADR-0081 điều 4 (`minhKhaiChoXacNhan`) | khoản mình khai «vẫn là nợ của mình theo H3» | Sửa ở lượt duyệt đợt 3 (mục Hệ quả) |
+
+Số dư cuối của ví dụ B-1…B-5 (ADR-0078) **không đổi**. Khi lễ tân bên đặt tự ghi (quyết định 3) thì đi y như cũ; khi người khác khai thay thì chỉ thêm bước Kế toán xác nhận trước «Đã giao».
+
 ## Hệ quả
 
 - HDV phải chờ Kế toán thì đơn mới «Đã giao» được, nếu đơn có phần khách trả cho đại lý / tại quầy. Ô «chờ đối chiếu» trên «Việc của bạn» của Kế toán (đã có cho ADR-0120) gộp thêm khoản loại mới. Khoản chờ quá 3 ngày được nhắc theo cùng luật.
