@@ -2,6 +2,7 @@
 //   npm run build:web && CHROME_BIN=<đường dẫn tuyệt đối tới kich-ban/chrome-wrap.sh> node docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-form.mjs
 import assert from "node:assert/strict";
 import { ACCOUNTS, clickText, ok, setInput, sleep, startEnv, vnDate } from "./a2-cdp.mjs";
+import { chonNoiJs } from "../../2026-10-18-tao-don-thiet-ke-lai/kich-ban/cham-that.mjs";
 
 const env = await startEnv();
 try {
@@ -133,9 +134,9 @@ try {
   await p.ev(setInput(`${card(1)}.querySelector('.dd-chang [data-o$=":gio"]')`, "08:00"));
   await p.waitFor(`/Giờ đón sau giờ khởi hành/.test(${card(1)}.querySelector('.svc-warnings').textContent)`, "cảnh báo giờ đón sau giờ khởi hành");
   await p.ev(setInput(`${card(1)}.querySelector('.dd-chang [data-o$=":gio"]')`, "07:00"));
-  await p.ev(setInput(`${card(1)}.querySelector('.dd-chang [data-o$=":don"]')`, "tudo"));
-  await p.waitFor(`!!${card(1)}.querySelector('.dd-chang [data-o$=":don-chu"]')`, "ô Địa chỉ đón");
-  await p.ev(setInput(`${card(1)}.querySelector('.dd-chang [data-o$=":don-chu"]')`, "Khách sạn Sunrise"));
+  // 18/10 (Tạo đơn thiết kế lại, việc 7): MỘT ô "Nơi đón" có gợi ý — bấm ô, gõ, chọn dòng "Gõ tự do: …" (thay ô chọn "tudo" + ô "Địa chỉ đón" riêng).
+  assert.equal(await p.ev(chonNoiJs(`${card(1)}.querySelector('.dd-chang [data-o$=":don"]')`, "Khách sạn Sunrise", "Gõ tự do: ")), true, "ô Nơi đón có dòng 'Gõ tự do: …'");
+  await p.waitFor(`${card(1)}.querySelector('.dd-chang [data-o$=":don"]').value === 'Khách sạn Sunrise'`, "ô Nơi đón mang chữ tự do");
   assert.match(await p.ev(`${card(1)}.querySelector('label:has([data-trip="checkinDate"])').textContent`), /Để trống = cùng ngày khởi hành\./);
   ok("khối chuyến: thu gọn kèm dòng cảnh báo, cảnh báo ngày đã qua / giờ đón, dòng tóm tắt, nhắc 'cùng ngày'");
 

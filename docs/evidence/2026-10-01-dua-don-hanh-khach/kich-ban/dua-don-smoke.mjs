@@ -7,6 +7,7 @@
 import {
   ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungMoiTruong, fetchTrang, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt, typeInto, vnDate,
 } from "../../2026-09-29-adr-0049/kich-ban/dp-lib.mjs";
+import { chonNoiJs } from "../../2026-10-18-tao-don-thiet-ke-lai/kich-ban/cham-that.mjs";
 
 const DOI_TAC = { name: "Đối Tác Đưa Đón", phone: "0900000452", pin: "246452", permissions: ["PARTNER"] };
 const { env, call } = await dungMoiTruong([CHU, DOI_TAC]);
@@ -39,6 +40,16 @@ const card = "#services .svc";
 const chang = (chieu) => `${card} .dd-chang[data-chieu="${chieu}"]`;
 // 14/10 (Tạo đơn bốn bước): chặng đã đủ thông tin gập thành MỘT dòng tóm tắt và ô ít dùng (chuyến bay, xe riêng, số chỗ) nằm trong khối "Thêm chi tiết" — mở hết trước khi thao tác / đọc chữ trong đó.
 const moHetKhoiGap = `document.querySelectorAll('${card} button[data-gap][aria-expanded="false"]').forEach((n) => n.click()); true`;
+// 18/10 (Tạo đơn thiết kế lại, việc 7): ở FORM, nơi đón / nơi trả là MỘT ô gõ có gợi ý (`data-o` giữ `:don` / `:tra`) — giá trị của ô là NHÃN điểm (không còn id của ô chọn), chọn
+// bằng cách bấm ô, gõ, bấm dòng (`chonNoiJs`); không còn ô tìm điểm (`:don-tim`) và ô "Địa chỉ đón / trả" (`:don-chu`). Bảng "Sửa đưa đón" của trang đơn (bước 5+) vẫn là ô chọn.
+const NHAN = { [KS]: "Khách sạn Mường Thanh Luxury Nha Trang · khách sạn", [SB]: "Sân bay Cam Ranh · sân bay", [GA]: "Ga cáp treo Vinpearl · ga cáp treo" };
+const TIM = { [KS]: "muong", [SB]: "cam ranh", [GA]: "cap treo" };
+const chonForm = (pg, sel, id) => pg.ev(chonNoiJs(`document.querySelector('${sel}')`, TIM[id], NHAN[id].split(" · ")[0]));
+const goTuDoForm = (pg, sel, chu) => pg.ev(chonNoiJs(`document.querySelector('${sel}')`, chu, "Gõ tự do: "));
+/** Mở danh sách gợi ý của ô `sel` (bấm ô), gõ `kim` (rỗng = không gõ); trả chữ các dòng (tên + loại, không kèm câu nhắc) rồi đóng (Esc) — ô trở về giá trị đã chọn. */
+const dongGoiY = (pg, sel, kim = "") => pg.ev(`(() => { const o = document.querySelector('${sel}'); o.focus(); o.click(); if (${JSON.stringify(kim)} !== '') { o.value = ${JSON.stringify(kim)}; o.dispatchEvent(new Event('input', { bubbles: true })); }
+  const r = [...document.getElementById(o.getAttribute('aria-controls')).querySelectorAll('[role=option]')].map((x) => x.querySelector('.dd-goi-y-ten').textContent + (x.querySelector('.dd-goi-y-loai')?.textContent ?? ''));
+  o.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return r; })()`);
 
 try {
   // ---- dữ liệu: mẫu chặng TD101 = Hai chiều, giờ về 16:30, nơi trả gợi ý Ga cáp treo (route của Quản trị) -------------------------------------------------
@@ -59,7 +70,7 @@ try {
     assert.equal(await f.ev(txt(`${card} .dd .dd-ghi-tao`)), "Đã tạo sẵn chiều đi và chiều về theo dịch vụ — sửa hoặc bỏ nếu khác.");
     assert.equal(await f.ev(txt(`${chang("OUT")} .chip`)), "Chiều đi");
     assert.equal(await f.ev(txt(`${chang("RETURN")} .chip`)), "Chiều về");
-    assert.equal(await f.ev(`document.querySelector('${chang("OUT")} [data-o$=":tra"]').value`), GA);
+    assert.equal(await f.ev(`document.querySelector('${chang("OUT")} [data-o$=":tra"]').value`), NHAN[GA]);
     assert.match(await f.ev(txt(`${chang("OUT")} .dd-luoi-noi`)), /gợi ý theo dịch vụ/);
     assert.equal(await f.ev(`document.querySelector('${chang("RETURN")} [data-o$=":gio"]').value`), "16:30");
     assert.match(await f.ev(txt(`${chang("RETURN")}`)), /theo nơi trả chiều đi/);
@@ -82,41 +93,38 @@ try {
     assert.match(await f.ev(txt(`${chang("RETURN")}`)), /Khác ngày đi/);
     await f.ev(typeInto(`${chang("RETURN")} [data-o$=":ngay"]`, NGAY));
     assert.equal(await f.ev(shown(`${chang("RETURN")} [data-o$=":ngay"]`)), true, "gõ lại đúng ngày đi: ô không tự ẩn giữa chừng");
-    await f.ev(typeInto(`${chang("OUT")} [data-o$=":don"]`, KS));
-    await f.waitFor(`document.querySelector('${chang("RETURN")} [data-o$=":tra"]').value === '${KS}'`, "chiều về trả tại nơi đón chiều đi");
-    const opts = await f.ev(`[...document.querySelector('${chang("OUT")} [data-o$=":don"]').options].map((o) => o.textContent)`);
-    assert.equal(opts[0], "Chọn nơi đón…");
+    assert.equal(await chonForm(f, `${chang("OUT")} [data-o$=":don"]`, KS), true, "chọn Mường Thanh ở ô Nơi đón");
+    await f.waitFor(`document.querySelector('${chang("RETURN")} [data-o$=":tra"]').value === ${JSON.stringify(NHAN[KS])}`, "chiều về trả tại nơi đón chiều đi");
+    // Danh sách gợi ý (việc 7 thay ô chọn của máy): dòng đầu là điểm danh mục (không còn dòng "Chọn nơi đón…"), dòng cuối "Gõ tự do…"; ô Nơi trả đang có giá trị → dòng đầu "Chưa chốt".
+    const opts = await dongGoiY(f, `${chang("OUT")} [data-o$=":don"]`);
+    assert.notEqual(opts[0], "Chọn nơi đón…");
     assert.equal(opts.at(-1), "Gõ tự do…");
-    assert.ok(opts.includes("Khách sạn Mường Thanh Luxury Nha Trang · khách sạn"), opts.join(" | "));
-    assert.equal(await f.ev(`[...document.querySelector('${chang("OUT")} [data-o$=":tra"]').options][0].textContent`), "Chưa chốt");
-    // Việc 11 — C4 (C10): ô tìm điểm trên ô chọn nơi; gõ không dấu thu hẹp danh sách, xoá trống thì đủ lại, điểm đang chọn giữ (kịch bản riêng: docs/evidence/2026-10-09-c4/).
-    const goTim = (v) => `(() => { const el = document.querySelector('${chang("OUT")} [data-o$=":don-tim"]'); el.value = ${JSON.stringify(v)}; el.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`;
-    const dsDon = `[...document.querySelector('${chang("OUT")} [data-o$=":don"]').options].map((o) => o.textContent)`;
-    await f.ev(goTim("muong"));
-    assert.deepEqual(await f.ev(dsDon), ["Chọn nơi đón…", "Khách sạn Mường Thanh Luxury Nha Trang · khách sạn", "Gõ tự do…"]);
-    await f.ev(goTim(""));
-    assert.deepEqual(await f.ev(dsDon), opts);
-    assert.equal(await f.ev(`document.querySelector('${chang("OUT")} [data-o$=":don"]').value`), KS);
+    assert.ok(opts.includes(NHAN[KS]), opts.join(" | "));
+    assert.equal((await dongGoiY(f, `${chang("OUT")} [data-o$=":tra"]`))[0], "Chưa chốt");
+    // Việc 11 — C4 (C10), nay trong chính ô gõ: gõ không dấu thu hẹp danh sách, Esc trả ô về điểm đang chọn (kịch bản riêng: docs/evidence/2026-10-18-tao-don-thiet-ke-lai/kich-ban/dua-don-mot-o-smoke.mjs).
+    assert.deepEqual(await dongGoiY(f, `${chang("OUT")} [data-o$=":don"]`, "muong"), [NHAN[KS], "Gõ tự do: “muong”"]);
+    assert.deepEqual(await dongGoiY(f, `${chang("OUT")} [data-o$=":don"]`), opts);
+    assert.equal(await f.ev(`document.querySelector('${chang("OUT")} [data-o$=":don"]').value`), NHAN[KS]);
     assert.equal(await f.ev(noCode), "");
     await axe(f, "form M6");
     await shotFull(f, "m6-form-hai-chieu-1040.png");
   });
 
-  await b.step("2", "M1 (1040): đổi ngày đi → 'Đã dời ngày đón của 2 chặng theo ngày đi mới'; Gõ tự do → ô Địa chỉ đón; Sân bay → ô Số hiệu chuyến bay; thêm chặng thiếu nơi đón → Lưu báo 'Chặng 3: chưa có nơi đón.' và KHÔNG gửi; bỏ chặng", async () => {
+  await b.step("2", "M1 (1040): đổi ngày đi → 'Đã dời ngày đón của 2 chặng theo ngày đi mới'; Gõ tự do → chữ trong ô + câu nhắc chỉ ghi địa chỉ; Sân bay → ô Số hiệu chuyến bay; thêm chặng thiếu nơi đón → Lưu báo 'Chặng 3: chưa có nơi đón.' và KHÔNG gửi; bỏ chặng", async () => {
     await f.ev(typeInto("#orderDate", vnDate(6)));
     await f.waitFor(`document.getElementById('orderDate-moved').textContent === 'Đã dời ngày đón của 2 chặng theo ngày đi mới'`, "câu dời ngày");
     assert.match(await f.ev(`document.querySelector('${chang("OUT")} [data-o$=":ngay"]').closest('label').textContent`), /Bằng ngày đi/, "chặng dời theo ngày đi mới: vẫn 'Bằng ngày đi' (ô ngày có thể đang ẩn)");
     await f.ev(typeInto("#orderDate", NGAY));
-    await f.ev(typeInto(`${chang("OUT")} [data-o$=":tra"]`, "tudo"));
-    await f.waitFor(`!!document.querySelector('${chang("OUT")} [data-o$=":tra-chu"]')`, "ô Địa chỉ trả");
-    // ADR-0105 mục 7 (tự áp G18-C): chữ tự do đi tới tài xế và tới bản đồ (nút "Chỉ đường") — dòng nhắc thay câu sai "Chỉ hiện trong trang đơn.".
-    assert.match(await f.ev(txt(`${chang("OUT")}`)), /Địa chỉ trả.*Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách/);
-    await f.ev(typeInto(`${chang("OUT")} [data-o$=":don"]`, "tudo"));
-    await f.waitFor(`!!document.querySelector('${chang("OUT")} [data-o$=":don-chu"]')`, "ô Địa chỉ đón");
-    assert.match(await f.ev(txt(`${chang("OUT")}`)), /Địa chỉ đón.*Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách/);
+    assert.equal(await goTuDoForm(f, `${chang("OUT")} [data-o$=":tra"]`, "12 Trần Phú"), true, "Gõ tự do ở ô Nơi trả");
+    await f.waitFor(`document.querySelector('${chang("OUT")} [data-o$=":tra"]').value === '12 Trần Phú'`, "ô Nơi trả mang chữ tự do");
+    // ADR-0105 mục 7 (tự áp G18-C): chữ tự do đi tới tài xế và tới bản đồ (nút "Chỉ đường") — dòng nhắc thay câu sai "Chỉ hiện trong trang đơn.". Việc 7: dòng nhắc nằm dưới chính ô Nơi trả.
+    assert.match(await f.ev(txt(`${chang("OUT")} .dd-luoi-noi .dd-cot:nth-child(2)`)), /Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách/);
+    assert.equal(await goTuDoForm(f, `${chang("OUT")} [data-o$=":don"]`, "15 Trần Phú"), true, "Gõ tự do ở ô Nơi đón");
+    await f.waitFor(`document.querySelector('${chang("OUT")} [data-o$=":don"]').value === '15 Trần Phú'`, "ô Nơi đón mang chữ tự do");
+    assert.match(await f.ev(txt(`${chang("OUT")} .dd-luoi-noi .dd-cot:nth-child(1)`)), /Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách/);
     assert.doesNotMatch(await f.ev(txt(`${chang("OUT")}`)), /Chỉ hiện trong trang đơn/);
-    await f.ev(typeInto(`${chang("OUT")} [data-o$=":don"]`, KS));
-    await f.ev(typeInto(`${chang("OUT")} [data-o$=":tra"]`, SB));
+    assert.equal(await chonForm(f, `${chang("OUT")} [data-o$=":don"]`, KS), true);
+    assert.equal(await chonForm(f, `${chang("OUT")} [data-o$=":tra"]`, SB), true);
     await f.waitFor(`!!document.querySelector('${chang("OUT")} [data-o$=":bay"]')`, "ô số hiệu chuyến bay khi nơi trả là sân bay");
     await f.ev(moHetKhoiGap); // ô chuyến bay nằm trong "Thêm chi tiết"
     assert.match(await f.ev(txt(`${chang("OUT")}`)), /Số hiệu chuyến bay.*Tài xế tự tra giờ bay/);
@@ -132,7 +140,7 @@ try {
     await shotFull(f, "m1-form-loi-1040.png");
     await f.ev(`[...document.querySelectorAll('${card} .dd-chang')][2].querySelector('[data-action="bo-chang"]').click(); true`);
     await f.waitFor(`document.querySelectorAll('${card} .dd-chang').length === 2`, "bỏ chặng 3");
-    await f.ev(typeInto(`${chang("OUT")} [data-o$=":tra"]`, GA));
+    assert.equal(await chonForm(f, `${chang("OUT")} [data-o$=":tra"]`, GA), true);
   });
 
   await b.step("3", `M2 (1040): khối Hành khách dạng bảng trải ngang dưới hàng 'thẻ dịch vụ | Tóm tắt'; 4 khách; dòng năm sinh sai → 'Dòng 3: năm sinh phải từ 1906 đến 2026.'; 3/4 nhắc vàng; nhập khách thứ 4 → 4/4${axeNote()}`, async () => {
@@ -372,7 +380,7 @@ try {
     await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
     await p.waitFor(`document.querySelectorAll('${card} .dd-chang').length === 1`, "một chặng tạo sẵn");
     assert.equal(await p.ev(txt(`${card} .dd .dd-ghi-tao`)), "Đã tạo sẵn chiều đi theo dịch vụ — sửa hoặc bỏ nếu khác.");
-    assert.equal(await p.ev(`document.querySelector('${chang("OUT")} [data-o$=":tra"]').value`), GA);
+    assert.equal(await p.ev(`document.querySelector('${chang("OUT")} [data-o$=":tra"]').value`), NHAN[GA]);
     assert.ok(await p.ev(noOverflowX), "form 390 không tràn ngang");
     assert.equal(await p.ev(`getComputedStyle(document.querySelector('.form-actions')).position`), "sticky", "thanh lưu dính đáy");
     await axe(p, "form M6 390");

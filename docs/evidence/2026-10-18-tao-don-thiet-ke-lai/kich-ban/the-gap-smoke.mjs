@@ -8,6 +8,7 @@
 //   6) chip cảnh báo trên dòng gập (ngày khởi hành đã qua); Lưu bị từ chối ở máy khách → thẻ gập có lỗi tự mở + tiêu điểm tới ô lỗi; máy chủ 400 nêu "Dịch vụ 1" → thẻ 1 mở;
 //      bước 10b: chặng gọn / "Thêm chi tiết" trong thẻ GẬP có ô lỗi → thẻ + khối mở, ô đỏ, tiêu điểm, trong khung nhìn; 400 nêu "Dịch vụ 1" → mọi khối gập + Thông tin chuyến
 //      của thẻ đó mở, khối khách giữ nguyên (thay phần kiemSauSach của docs/evidence/2026-10-14-tao-don-bon-buoc/kich-ban/chup-anh.mjs — sổ hàng rào, dòng "Nối dây khối gập");
+//      (việc 7, 18/10: nơi đón / nơi trả là MỘT ô có gợi ý — chọn bằng chạm thật qua cham-that.mjs; 10b(a) dựng lỗi ở chặng gọn bằng thao tác thật, xem tại bước);
 //      bước 14 (vòng sửa 1): lỗi CẤP THẺ "Nhập số khách." ở thẻ gập, đang ở cuối form → thẻ mở, ô số khách đầu tiên có tiêu điểm + trong khung nhìn; chip "Chưa nhập số khách";
 //   7) nạp lại nháp: nháp sạch → mọi thẻ gập; nháp có giá trị bị giấu (Thông tin chuyến, xe riêng) → các thẻ đó mở sẵn (nhiều thẻ cùng mở được), mở thẻ khác thì chúng gập; `?focus=` mở đúng thẻ.
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, danh mục giả (TD101, TTB03 Phao chuối, TTB06 Motor nước).
@@ -16,6 +17,7 @@
 // Chưa kiểm axe-core (không nạp AXE_JS). Mỗi bước chạy riêng; cuối cùng in "THE GAP SMOKE OK" hoặc danh sách bước đỏ (thoát 1).
 import assert from "node:assert/strict";
 import { ACCOUNTS, ok, setInput, sleep, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { chonNoiMotO } from "./cham-that.mjs";
 
 const MOB = { width: 390, height: 844, mobile: true };
 const DESK = { width: 1040, height: 900, mobile: false };
@@ -37,6 +39,7 @@ const nut = (i) => `${the(i)}.querySelector('.svc-mo')`;
 const demDem = (i, nhan) => `${the(i)}.querySelector('.counter-field[aria-label=${JSON.stringify(nhan)}]')`;
 const moRa = `[...${THE}].map((c) => c.querySelector('.svc-mo').getAttribute('aria-expanded'))`;
 const hien = (sel) => `(() => { const e = ${sel}; return !!e && e.getClientRects().length > 0; })()`;
+const oNoi = (i, j, loai) => `${the(i)}.querySelectorAll('.dd-chang')[${j}].querySelector('[data-o$=":${loai}"]')`;
 const trongKhung = (sel) => `(() => { const e = ${sel}; if (!e) return false; const r = e.getBoundingClientRect(); return r.height > 0 && r.top >= 0 && r.bottom <= innerHeight; })()`;
 const coTieuDiem = (sel) => `(() => { const e = ${sel}; return !!e && document.activeElement === e; })()`;
 const dongGap = (i) => `(() => { const c = ${the(i)}; const t = (s) => c.querySelector(s); const vis = (e) => !!e && e.getClientRects().length > 0;
@@ -82,12 +85,12 @@ try {
   };
   const themDuaDon = async (p, i) => {
     await p.ev(`${the(i)}.querySelector('[data-action="them-dua-don"]').click(); true`);
-    await p.waitFor(`!!${the(i)}.querySelector('select[data-o$=":don"]')`, `chặng đưa đón thẻ ${i + 1}`);
+    await p.waitFor(`!!${oNoi(i, 0, "don")}`, `chặng đưa đón thẻ ${i + 1}`);
   };
-  const datNoiDon = async (p, i, chu) => {
-    await p.ev(setInput(`${the(i)}.querySelector('select[data-o$=":don"]')`, "tudo"));
-    await p.waitFor(`!!${the(i)}.querySelector('[data-o$=":don-chu"]')`, "ô địa chỉ đón");
-    await p.ev(setInput(`${the(i)}.querySelector('[data-o$=":don-chu"]')`, chu));
+  /** Nơi đón chặng đầu của thẻ i = chữ gõ tự do (việc 7: chạm ô thật, gõ, chạm dòng "Gõ tự do: …"). */
+  const datNoiDon = async (p, mobile, i, chu) => {
+    await chonNoiMotO(p, mobile, oNoi(i, 0, "don"), { tim: chu, dong: "Gõ tự do: " });
+    assert.equal(await p.ev(`(${oNoi(i, 0, "don")}).value`), chu, "ô Nơi đón mang chữ tự do");
   };
 
   // ---- dữ liệu nháp dựng bằng API (bước 7) ----
@@ -121,7 +124,7 @@ try {
       await p.ev(setInput(demDem(0, "Trẻ em"), "1"));
       await p.ev(setInput(demDem(0, "Em bé"), "1"));
       await themDuaDon(p, 0);
-      await datNoiDon(p, 0, "Khách sạn Biển Xanh");
+      await datNoiDon(p, mobile, 0, "Khách sạn Biển Xanh");
       await p.ev(setInput(`${the(0)}.querySelector('[data-o$=":gio"]')`, "07:30"));
       await chon(p, "phao", 2);
       assert.deepEqual(await p.ev(moRa), ["false", "true"]);
@@ -213,10 +216,10 @@ try {
       await p.waitFor("!document.getElementById('save-error').hidden", "banner lỗi lưu");
       await sleep(300);
       assert.equal(await p.ev(`${nut(2)}.getAttribute('aria-expanded')`), "true", "thẻ có lỗi tự mở");
-      assert.equal(await p.ev(`document.activeElement?.matches('select[data-o$=":don"]') && ${the(2)}.contains(document.activeElement)`), true, "tiêu điểm ở ô nơi đón của thẻ lỗi");
+      assert.equal(await p.ev(`document.activeElement?.matches('input[data-o$=":don"]') && ${the(2)}.contains(document.activeElement)`), true, "tiêu điểm ở ô nơi đón của thẻ lỗi");
       await cham(p, mobile, nut(0));
       assert.equal(await p.ev(`${nut(2)}.getAttribute('aria-expanded')`), "true", "thẻ còn lỗi không gập khi mở thẻ khác");
-      await datNoiDon(p, 2, "15 Trần Phú, Nha Trang");
+      await datNoiDon(p, mobile, 2, "15 Trần Phú, Nha Trang");
       await sleep(150);
       await cham(p, mobile, nut(1));
       assert.deepEqual(await p.ev(moRa), ["false", "true", "false"], "hết lỗi thì gập như thường");
@@ -259,20 +262,35 @@ try {
         await sleep(600);
       };
       const gapTrong = (i) => `[...${the(i)}.querySelectorAll('.svc-than button[data-gap]')].map((b) => b.getAttribute('aria-expanded'))`;
-      // (a) chặng GỌN trong thẻ GẬP (thẻ 3: "Gõ tự do" 15 Trần Phú, chưa giờ → gọn một dòng): xoá địa chỉ đón ở ô đang ẩn rồi Lưu → thẻ + chặng mở, ô lỗi hiện, đỏ, có tiêu điểm, trong khung nhìn
+      // (a) chặng GỌN chứa ô lỗi trong thẻ GẬP. Việc 7 (18/10) bỏ ô "Địa chỉ đón" riêng (trước: xoá chữ ở ô đó khi đang ẩn) và ô một ô không lưu chữ rỗng — dựng lỗi bằng THAO TÁC THẬT:
+      //     thẻ 3 (TTB06, chặng đi "Gõ tự do" 15 Trần Phú — gọn): mở thẻ, mở chặng, Nơi trả = điểm "Bến cảng Vinpearl", "+ Thêm chiều về" → chiều về đón tại Vinpearl, đủ → GỌN một dòng ngay
+      //     khi dựng; Nơi trả chiều đi → "Chưa chốt" → chiều về (đi theo chiều đi) mất nơi đón mà vẫn gọn; chạm đầu thẻ 1 → thẻ 3 gập; Lưu → thẻ 3 + chặng chiều về mở, ô Nơi đón
+      //     của chiều về hiện, đỏ, có tiêu điểm, trong khung nhìn.
       await napLai();
       assert.deepEqual(await p.ev(moRa), ["false", "false", "false"], "ĐẦU: mọi thẻ gập");
-      assert.equal(await p.ev(`${the(2)}.querySelector('.dd-tom-tat')?.getAttribute('aria-expanded')`), "false", "ĐẦU: chặng của thẻ 3 đang gọn một dòng");
-      const donChu = `${the(2)}.querySelector('[data-o$=":don-chu"]')`;
-      await p.ev(setInput(donChu, ""));
+      await cham(p, mobile, nut(2));
+      const ttDi = `${the(2)}.querySelectorAll('.dd-tom-tat')[0]`;
+      assert.equal(await p.ev(`${ttDi}?.getAttribute('aria-expanded')`), "false", "ĐẦU: chặng đi của thẻ 3 đang gọn một dòng");
+      await cham(p, mobile, ttDi);
+      await chonNoiMotO(p, mobile, oNoi(2, 0, "tra"), { tim: "vinpearl", dong: "Bến cảng Vinpearl" });
+      await cham(p, mobile, `${the(2)}.querySelector('[data-action="them-chieu-ve"]')`);
+      await p.waitFor(`${the(2)}.querySelectorAll('.dd-chang').length === 2`, "chiều về của thẻ 3");
+      const ttVe = `${the(2)}.querySelectorAll('.dd-tom-tat')[1]`;
+      assert.equal(await p.ev(hien(ttVe)), true, "chiều về đủ thông tin → gọn một dòng");
+      await chonNoiMotO(p, mobile, oNoi(2, 0, "tra"), { dong: "Chưa chốt" });
+      const donVe = oNoi(2, 1, "don");
+      assert.equal(await p.ev(`(${donVe}).value`), "", "chiều về đi theo chiều đi: nơi đón trống");
+      assert.equal(await p.ev(hien(ttVe)) && !(await p.ev(hien(donVe))), true, "ĐẦU: chặng chiều về thiếu nơi đón vẫn gọn (chưa Lưu thì không tự mở)");
+      await cham(p, mobile, nut(0));
+      assert.equal(await p.ev(`${nut(2)}.getAttribute('aria-expanded')`), "false", "ĐẦU: thẻ 3 gập");
       await p.ev("document.getElementById('save').click(); true");
-      await p.waitFor("!document.getElementById('save-error').hidden", "banner lỗi địa chỉ đón");
+      await p.waitFor("!document.getElementById('save-error').hidden", "banner lỗi nơi đón chiều về");
       await sleep(300);
       assert.equal(await p.ev(`${nut(2)}.getAttribute('aria-expanded')`), "true", "thẻ 3 tự mở");
-      assert.equal(await p.ev(hien(donChu)), true, "ô địa chỉ đón hiện ra (chặng gọn tự mở)");
-      assert.equal(await p.ev(`${donChu}.getAttribute('aria-invalid')`), "true", "ô địa chỉ đón đỏ");
-      assert.equal(await p.ev(coTieuDiem(donChu)), true, "tiêu điểm ở ô địa chỉ đón");
-      assert.equal(await p.ev(trongKhung(donChu)), true, "ô địa chỉ đón nằm trong khung nhìn");
+      assert.equal(await p.ev(hien(donVe)), true, "ô Nơi đón chiều về hiện ra (chặng gọn tự mở)");
+      assert.equal(await p.ev(`(${donVe}).getAttribute('aria-invalid')`), "true", "ô Nơi đón chiều về đỏ");
+      assert.equal(await p.ev(coTieuDiem(donVe)), true, "tiêu điểm ở ô Nơi đón chiều về");
+      assert.equal(await p.ev(trongKhung(donVe)), true, "ô Nơi đón chiều về nằm trong khung nhìn");
       // (b) lỗi ô trong "Thêm chi tiết" của chặng (thẻ 1 gập): số chỗ "0" gõ vào ô ẩn → Lưu → thẻ + khối chi tiết mở, ô đỏ, có tiêu điểm, trong khung nhìn
       await napLai();
       const dau = await p.ev(gapTrong(0));

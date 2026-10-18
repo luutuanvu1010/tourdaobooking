@@ -7,6 +7,7 @@
 import {
   ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungMoiTruong, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt, typeInto, vnDate,
 } from "./dp-lib.mjs";
+import { chonNoiJs } from "../../2026-10-18-tao-don-thiet-ke-lai/kich-ban/cham-that.mjs";
 
 const DOI_TAC = { name: "Đối Tác Đặt Gấp", phone: "0900000432", pin: "246432", permissions: ["PARTNER"] };
 const { env, call } = await dungMoiTruong([CHU, DOI_TAC]);
@@ -46,9 +47,9 @@ const themDichVuTrenForm = async (p, gio = "10:00") => {
   // ADR-0047 Phần B (2026-10-01): giờ / nơi đón nhập ở khối "Đưa đón" của thẻ (TD101 không có mẫu chặng → "+ Thêm đưa đón").
   await p.ev(click('#services .svc [data-action="them-dua-don"]'));
   await p.waitFor(`!!document.querySelector('#services .svc .dd-chang [data-o$=":don"]')`, "chặng đưa đón");
-  await p.ev(typeInto(`#services .svc .dd-chang [data-o$=":don"]`, "tudo"));
-  await p.waitFor(`!!document.querySelector('#services .svc .dd-chang [data-o$=":don-chu"]')`, "ô Địa chỉ đón");
-  await p.ev(typeInto(`#services .svc .dd-chang [data-o$=":don-chu"]`, "Sheraton Nha Trang"));
+  // 18/10 (Tạo đơn thiết kế lại, việc 7): MỘT ô "Nơi đón" có gợi ý — bấm ô, gõ, chọn dòng "Gõ tự do: …" (thay ô chọn "tudo" + ô "Địa chỉ đón" riêng).
+  assert.equal(await p.ev(chonNoiJs(`document.querySelector('#services .svc .dd-chang [data-o$=":don"]')`, "Sheraton Nha Trang", "Gõ tự do: ")), true, "ô Nơi đón có dòng 'Gõ tự do: …'");
+  await p.waitFor(`document.querySelector('#services .svc .dd-chang [data-o$=":don"]').value === 'Sheraton Nha Trang'`, "ô Nơi đón mang chữ tự do");
   await p.ev(typeInto(`#services .svc .dd-chang [data-o$=":gio"]`, gio));
   await p.ev(typeInto("#customerName", "Khách Lập Trên Form"));
   await p.ev(typeInto("#customerPhone", "0903 222 333"));
