@@ -3,6 +3,7 @@ import { renderBanner } from "./banner";
 import { openBookerSheet } from "./booker-sheet";
 import { openConfirmationDialog } from "./confirmation-dialog";
 import { byId, h, replaceChildren } from "./dom";
+import { cauXacNhanDaNhan, hienNutSuaKhoanThu } from "../src/shared/nut-khoan-thu";
 import { METHOD_LABEL, actionLabel, dateTime, ngayNganHomNay, parseMoney, trangThaiHienThi, vnd } from "./format";
 import { regroupMoney, setMoneyValue } from "./money-input";
 import { moBangTruot } from "./bang-truot";
@@ -792,10 +793,11 @@ function nutKeToanLanThu(order: Order, t: Api.OrderPaymentsResponse, l: Api.LanT
   if (t.keToan!.choXacNhan.includes(l.id)) {
     const laCK = l.hinhThuc === METHOD_LABEL.BANK_TRANSFER;
     const ma = laCK ? oMaGiaoDich() : null;
+    const hinhThuc = (Object.keys(METHOD_LABEL) as (keyof typeof METHOD_LABEL)[]).find((m) => METHOD_LABEL[m] === l.hinhThuc) ?? "OTHER";
     nut.push(
       hangXacNhan({
         nhan: "Xác nhận đã nhận", action: "xac-nhan-ck", nutGhi: "Công ty đã nhận",
-        cau: `Đã đối chiếu: công ty đã nhận ${vnd(l.soTien)} vào tài khoản?${laCK ? " Nhập mã giao dịch và số tiền thực chuyển đúng như sao kê." : ""}`,
+        cau: cauXacNhanDaNhan({ hinhThuc, soTien: vnd(l.soTien) }),
         o: ma?.o,
         kiem: () => loiCuaMa(ma?.doc() ?? null),
         ghi: async () => {
@@ -812,7 +814,7 @@ function nutKeToanLanThu(order: Order, t: Api.OrderPaymentsResponse, l: Api.LanT
   }
   // ADR-0088 đ2, đ3: "Sửa khoản thu đã ghi" — đường sửa sai của khoản thu (sau Đã giao là đường DUY NHẤT; "Đảo" đơn lẻ bị máy chủ chặn nên ẩn). Một khoản thu cũ → một
   // khoản thu đúng (API nhận N → M; màn này làm ca hay gặp). Đơn huỷ đi qua khối cọc.
-  if (!l.daDao && !l.laDongDao && !l.traLai && order.status !== "cancelled") {
+  if (hienNutSuaKhoanThu(l, { choXacNhan: t.keToan!.choXacNhan, donDaHuy: order.status === "cancelled" })) {
     const so = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", value: String(l.soTien) }) as HTMLInputElement;
     regroupMoney(so);
     so.addEventListener("input", () => regroupMoney(so));
