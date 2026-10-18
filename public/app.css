@@ -334,6 +334,7 @@
   /* — Riêng: đưa đón / hành khách — trang đơn (ADR-0047 Phần B, bản vẽ docs/design/2026-10-01-dua-don-hanh-khach — mục lục "Kích thước ngoài token"; D9) — */
   --w-dd-noi: 200px;           /* cột tối thiểu ô Nơi đón / Nơi trả (tự xuống một cột ở 390) */
   --h-goi-y-noi: 264px;        /* Tạo đơn thiết kế lại 18/10/2026 (việc 7): chiều cao tối đa danh sách gợi ý dưới ô Nơi đón / Nơi trả, cuộn bên trong — ~5,5 dòng 44px (dòng thứ sáu lộ một nửa: còn cuộn) */
+  --h-loi-luu: 168px;          /* Tạo đơn thiết kế lại 18/10/2026 (việc 8): chiều cao tối đa khung lỗi lưu ngay trên nút Lưu (trong thanh dính cuối trang ở điện thoại) — tiêu đề + ~4 dòng lỗi, dài hơn thì cuộn bên trong */
   --w-dd-phu: 170px;           /* cột tối thiểu ô Số hiệu chuyến bay / Số người chiều về */
   --w-hk-so: 28px;             /* bảng hành khách máy tính: cột # */
   --w-hk-nam: 112px;           /* cột Năm sinh */
@@ -1014,12 +1015,8 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
   .form-actions .btn-primary { flex: 1; }
   .form-actions .btn:not(.btn-primary) { display: none; } /* "Quay lại" đã có nút ‹ */
 
-  /* Bước 2 Đợt B: số tiền cạnh nút Lưu ở thanh dính đáy — chỉ điện thoại, máy tính đã có card Tóm tắt riêng */
+  /* Bước 2 Đợt B: số tiền cạnh nút Lưu ở thanh dính đáy. Từ Việc 8 (thiết kế lại 18/10) dòng tổng + bảng chi tiết hiện ở MỌI khổ dưới 960px — luật ở khối "A2: trang lập/sửa đơn" bên dưới */
   .form-actions { flex-direction: column; }
-  .mobile-actions-summary { display: block; margin-bottom: var(--s2); }
-  /* bản 1.39: MỘT dòng "N dịch vụ · Tổng …" (+ "Còn lại …" khi có thanh toán trước); số lớn thì xuống dòng, không cao hơn hai dòng cũ */
-  .mobile-sum-line { flex-wrap: wrap; column-gap: var(--s3); row-gap: 0; }
-  .mobile-actions-summary .mobile-sum-line > span:first-child { flex: 0 1 auto; } /* thắng `.kv > span:first-child { flex: none }` đứng sau trong tệp */
 
   /* Đợt D Task 4 (ADR-0015 điều 3): thanh đầu trang điện thoại giữ NGUYÊN kiểu cũ (logo/back/tiêu đề), chỉ thêm
      avatar chữ cái đầu bên phải (bản mẫu điện thoại có) — thanh bên (sidebar) không hiện ở khổ này. */
@@ -1321,7 +1318,35 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .form-cols { display: contents; } /* dưới 960px: như không có lớp bọc — thanh Lưu vẫn dính đáy theo form */
 .form-side { display: contents; } /* điện thoại: các khối của cột phải nằm xen kẽ trong luồng; thanh Lưu vẫn là con trực tiếp của form để dính đáy */
 .form-actions { background: var(--c-bg); border-top: 1px solid var(--c-line); } /* khổ 641–959px (iPad dọc): thanh dính đáy phải có nền, không chồng chữ lên nội dung */
-/* .mobile-actions-summary mặc định display:none đã khai gần đầu tệp (trước khối @media (max-width: 640px)) — không lặp lại ở đây để tránh nó đứng SAU rule display:block và luôn thắng */
+/* Việc 8 (thiết kế lại 18/10/2026; DAC-TA mục 3D) — thanh nút cuối form: [bảng chi tiết tiền + dòng tổng (dưới 960px)] [cảnh báo tiền] [lỗi lưu] [Lưu] [Quay lại].
+   Cảnh báo tiền và lỗi lưu ngay trên nút Lưu ở mọi khổ (dưới 960px: trong thanh dính, luôn thấy); lỗi dài cuộn bên trong khung, thanh không che hết màn hình. */
+#order-form .form-actions > :is(.alert, .banner) { margin: 0; }
+#order-form #save-error { max-height: var(--h-loi-luu); overflow-y: auto; overscroll-behavior: contain; }
+.mobile-sum-nut { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); width: 100%; min-height: var(--tap-min); padding: 0; font: inherit; text-align: left; color: var(--c-text); background: none; border: 0; cursor: pointer; }
+.mobile-sum-line { display: flex; flex-direction: column; min-width: 0; }
+.mobile-sum-line > span:first-child { font-weight: var(--fw-bold); }
+#mobile-total { font-family: var(--font-display); color: var(--c-accent-strong); white-space: nowrap; }
+#mobile-prepaid-row { font-size: var(--fs-label); color: var(--c-text-muted); }
+.mobile-sum-mo { flex: none; font-size: var(--fs-label); font-weight: var(--fw-bold); color: var(--c-primary); }
+.sum-chi-tiet { display: grid; gap: var(--s1); padding: var(--s2) 0 var(--s3); margin-bottom: var(--s2); border-bottom: 1px solid var(--c-border); font-variant-numeric: tabular-nums; }
+.sum-chi-tiet .kv { padding: 0; }
+.sum-chi-tiet .kv.strong { font-size: inherit; color: var(--c-text); }
+.sum-chi-tiet .kv.strong > span:last-child { font-family: var(--font-display); color: var(--c-accent-strong); }
+.sum-ghi-chu { font-size: var(--fs-badge); }
+.sum-chi-tiet .summary-note { font-size: var(--fs-label); }
+@media (max-width: 959px) { /* form một cột (điện thoại + iPad dọc): bỏ khối Tóm tắt, tiền ở thanh dính cuối trang */
+  .form-page .summary-card { display: none; }
+  .mobile-actions-summary { display: block; }
+  #order-form .form-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s2) var(--s3); } /* Lưu + Quay lại chung hàng cuối (641–959px); mọi khối khác trải hết hàng */
+  #order-form .form-actions > :not(.btn) { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) { #order-form .form-actions { grid-template-columns: minmax(0, 1fr); } } /* điện thoại: "Quay lại" ẩn (đã có nút ‹) — một cột, không chừa khe trống bên phải nút Lưu */
+/* Thang nút ba cấp (Việc 8) chỉ trong form Tạo đơn: nút chính duy nhất là "Lưu, chờ xác nhận"; "+ Thêm …" là nút PHỤ viền 1px (không nền xanh nhạt); "Bỏ chặng" là lối nhỏ chữ xanh;
+   ô "HDV: …" đã chọn ở khối Người phụ trách không nền xanh nhạt. `.pill-btn` ở các trang khác giữ nguyên. Kịch bản kich-ban/thanh-dinh-smoke.mjs quét kiểu đã tính. */
+#order-form .pill-btn { color: var(--c-primary); background: var(--c-surface); border: 1px solid var(--c-primary); }
+@media (hover: hover) { #order-form .pill-btn:not(:disabled):hover { background: var(--c-soft-hover); } }
+#order-form .dd-bo-nut { color: var(--c-primary); }
+#order-form .owner-current { background: var(--c-surface); }
 @media (min-width: 960px) {
   main.form-page { max-width: var(--w-form); }
   #order-form > .form-cols { display: grid; grid-template-columns: minmax(0, 1fr) var(--w-side); gap: var(--s4); align-items: start; } /* ADR-0047 Phần B: lưới 2 cột nằm trong .form-cols để cột Tóm tắt dính (sticky) không trượt đè khối Hành khách trải ngang bên dưới */
@@ -1364,7 +1389,6 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
   .order-layout { display: grid; grid-template-columns: minmax(0, 1fr) var(--w-side); gap: var(--s5); align-items: start; }
   .order-layout .side { position: sticky; top: var(--s4); }
   .order-layout .side .pay-form .grid.two { grid-template-columns: minmax(0, 1fr); } /* hàng Kế toán (Công ty đã nhận / Thay / Ghi lần thu / Ghi bù) nằm trong cột phải hẹp (`--w-side`): `.grid.two` chia theo KHUNG NHÌN nên ô mã bị bóp còn vài ký tự — trong cột hẹp xếp một cột */
-  .mobile-actions-summary { display: none; } /* Bước 2 Đợt B: tường minh — trang Lập đơn đã ẩn mặc định, dòng này chỉ để chắc chắn không hiện lại ở mốc chuyển bố cục chung của app */
 }
 
 /* ---------- A2: bảng trượt "Sửa thông tin chuyến" — chỉ token ---------- */

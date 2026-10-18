@@ -51,11 +51,20 @@ const editId = params.get("id");
 let traTruocAn = Boolean(editId);
 const focusId = params.get("focus");
 const today = vnToday(new Date());
-/** ≥ 960px: form hai cột, banner lỗi nằm ở cột phải dính (luôn thấy). Dưới 960px (điện thoại VÀ iPad dọc 641–959px) form một cột, banner nằm CUỐI form → lỗi phải cuộn tới banner. Đọc LÚC CẦN: xoay iPad đổi khổ. */
+/**
+ * ≥ 960px: form hai cột, khung lỗi lưu nằm ở cột phải dính, ngay trên nút Lưu. Dưới 960px (điện thoại VÀ iPad dọc 641–959px) form một cột; từ Việc 8 (thiết kế lại 18/10) khung lỗi
+ * nằm TRONG thanh dính cuối trang, ngay trên nút Lưu — ở mọi khổ khung lỗi luôn thấy, nên lỗi cuộn tới Ô lỗi; chỉ khác ở chỗ điện thoại không tự đặt tiêu điểm vào ô thấy sẵn (bàn phím ảo
+ * sẽ che thanh dính). Đọc LÚC CẦN: xoay iPad đổi khổ.
+ */
 const wide = (): boolean => window.matchMedia("(min-width: 960px)").matches;
+/**
+ * Cuộn ô / thẻ lỗi vào khung nhìn khi Lưu bị từ chối. ≥ 960px: giữa khung (như trước — nút Lưu ở cột dính, không bị đẩy). Dưới 960px: sát dưới phần dính đầu trang (`scroll-padding-top` /
+ * `scroll-margin-top` của trang lo phần bị thanh bước che) — thanh dính cuối trang mang khung lỗi có thể cao gần nửa màn hình, cuộn "giữa khung" để ô lỗi nằm khuất dưới thanh đó.
+ */
+const cuonToiLoi = (el: HTMLElement): void => el.scrollIntoView({ block: wide() ? "center" : "start" });
 
 const errorEl = byId("error"); // lỗi tải trang / khoá form
-const saveErrorEl = byId("save-error"); // lỗi khi lưu, ngay trên nút Lưu (nút dính đáy trên điện thoại)
+const saveErrorEl = byId("save-error"); // lỗi khi lưu, ngay trên nút Lưu (trong thanh dính cuối trang dưới 960px; cột phải dính ≥ 960px)
 const formEl = byId<HTMLFormElement>("order-form");
 const servicesEl = byId("services");
 const emptyEl = byId("services-empty");
@@ -332,18 +341,59 @@ for (const id of ["customerName", "customerPhone"]) {
   });
 }
 
+// ---- thanh dính cuối trang: dòng tổng mở / đóng bảng chi tiết tiền (Việc 8, thiết kế lại 18/10; dưới 960px thay khối Tóm tắt) ----
+const nutChiTiet = byId<HTMLButtonElement>("sum-mo"); // type="button": nằm trong <form>, không được gửi đơn
+const bangChiTiet = byId("sum-chi-tiet");
+function datMoChiTiet(mo: boolean): void {
+  bangChiTiet.hidden = !mo;
+  nutChiTiet.setAttribute("aria-expanded", String(mo));
+  byId("sum-mo-chu").textContent = mo ? "Thu gọn" : "Chi tiết";
+  byId("sum-mo-dau").textContent = mo ? "▾" : "▴";
+}
+nutChiTiet.addEventListener("click", () => datMoChiTiet(nutChiTiet.getAttribute("aria-expanded") !== "true"));
+for (const el of [nutChiTiet, bangChiTiet]) {
+  el.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || bangChiTiet.hidden) return;
+    datMoChiTiet(false);
+    nutChiTiet.focus();
+  });
+}
+
+/**
+ * Việc 8: "Hình thức", "Người nhận tiền" và câu ghi sổ chỉ hiện khi đã nhập số trả trước (lúc lưu chỉ đọc hai ô này khi số > 0 — thân gửi không đổi).
+ * `traTruocAn` (đang sửa đơn / người có quyền ghi sổ): ba ô đã ẩn hẳn và câu giải thích riêng luôn hiện — không đụng ở đây.
+ */
+function capNhatOTraTruoc(): void {
+  if (traTruocAn) return;
+  const co = num("prepaidAmount") > 0;
+  for (const id of ["prepaid-method-field", "prepaid-collector-field", "prepaid-hint"]) byId(id).hidden = !co;
+}
+
 // ---- tóm tắt tiền và trạng thái nút ----
 function recompute(): void {
   const ds = drafts();
   const s = orderSummary(ds, num("discount"), traTruocAn ? 0 : num("prepaidAmount"));
-  byId("sum-subtotal").textContent = vnd(s.subtotal);
-  byId("sum-total").textContent = vnd(s.total);
+  // MỘT lần tính (`orderSummary`), cùng chuỗi `vnd()` cho Tóm tắt (≥ 960px) và thanh dính cuối trang + bảng chi tiết (dưới 960px) — không tính tiền ở chỗ thứ hai; máy chủ tính lại khi lưu.
+  const tamTinh = vnd(s.subtotal);
+  const giamGia = vnd(s.discount);
+  const tong = vnd(s.total);
   // Sổ tiền lượt 1 (ADR-0026 đ9): KHÔNG tự trừ ra "còn lại" ở trình duyệt — chỉ nhắc lại số trả trước sẽ ghi thành lần thu sau khi lưu.
-  byId("sum-prepaid").textContent = vnd(s.traTruoc);
-  byId("sum-prepaid-row").hidden = s.traTruoc === 0;
-  byId("mobile-total").textContent = vnd(s.total); // thanh dính đáy điện thoại: cùng giá trị đã tính ở trên, hiện lại cạnh nút Lưu (Bước 2 Đợt B)
-  byId("mobile-prepaid").textContent = vnd(s.traTruoc);
-  byId("mobile-prepaid-row").hidden = s.traTruoc === 0;
+  const traTruoc = vnd(s.traTruoc);
+  const khongTraTruoc = s.traTruoc === 0;
+  byId("sum-subtotal").textContent = tamTinh;
+  byId("sum-discount").textContent = giamGia;
+  byId("sum-total").textContent = tong;
+  byId("sum-prepaid").textContent = traTruoc;
+  byId("sum-prepaid-row").hidden = khongTraTruoc;
+  byId("mobile-total").textContent = tong;
+  byId("mobile-prepaid").textContent = traTruoc;
+  byId("mobile-prepaid-row").hidden = khongTraTruoc;
+  byId("ct-tam-tinh").textContent = tamTinh;
+  byId("ct-giam-gia").textContent = giamGia;
+  byId("ct-tong").textContent = tong;
+  byId("ct-tra-truoc").textContent = traTruoc;
+  byId("ct-tra-truoc-dong").hidden = khongTraTruoc;
+  capNhatOTraTruoc();
   // Bản 1.39: đếm dịch vụ ở tiêu đề khối, Tóm tắt và thanh dính đáy (một dòng "N dịch vụ · Tổng …"; sổ tiền lượt 1: "Trả trước" chỉ khi có số trả trước —
   // không tự trừ "còn lại" ở trình duyệt, ADR-0026 đ9).
   const n = entries.length;
@@ -515,7 +565,10 @@ async function onSaveError(err: unknown): Promise<void> {
   }
   if (failure.focusService !== null) entries[failure.focusService]?.card.setOpen(true); // thẻ gập (18/10) được câu lỗi nêu tên: mở ra cho thấy (không gập thẻ khác)
   const target = failure.focusService === null ? undefined : entries[failure.focusService]?.card.root;
-  (wide() ? (target ?? saveErrorEl) : saveErrorEl).scrollIntoView({ block: "center" }); // < 960px: banner (nêu rõ dịch vụ/giá) nằm cuối form nên cuộn tới ĐÓ; ≥ 960px: cuộn tới thẻ (banner ở cột dính, luôn thấy)
+  // Khung lỗi (nêu rõ dịch vụ / giá / mất mạng) ngay trên nút Lưu, luôn thấy ở mọi khổ (Việc 8: dưới 960px nằm trong thanh dính) → cuộn tới thẻ được nêu tên; không có thẻ thì
+  // ≥ 960px vẫn cuộn tới khung như trước, dưới 960px đứng yên (trang không nhảy xuống cuối).
+  if (target) cuonToiLoi(target);
+  else if (wide()) saveErrorEl.scrollIntoView({ block: "center" });
 }
 
 // Ô tìm danh mục nằm TRONG form: Enter (hoặc phím "Tìm" của bàn phím iPhone) sẽ gửi ngầm cả đơn qua nút "Lưu" mặc định. Chỉ chặn ở ô tìm; các ô văn bản khác giữ hành vi form thường.
@@ -554,13 +607,12 @@ async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDa
     const dangAn = loiChang?.daAn ?? (dich !== saveErrorEl && dich.getClientRects().length === 0);
     for (const o of invalid.cacO) moKhoiChua(o);
     moKhoiChua(dich);
-    if (wide() || dangAn) {
-      dich.scrollIntoView({ block: "center" }); // ≥ 960px: banner ở cột dính (luôn thấy) → cuộn tới ô/thẻ lỗi đầu tiên và đặt focus vào đó; điện thoại: CHỈ khi ô nằm trong khối gập vừa được mở (người lập phải thấy ô đỏ vừa hiện ra)
-      // Lưu bằng cảm ứng mà ô lỗi là ô nơi đón / nơi trả (ô gõ chữ — bàn phím ảo iPhone sẽ bật): tiêu điểm vào đầu chặng; ô lỗi vẫn đã được cuộn vào khung nhìn (vòng sửa 1, M-1).
-      (cham ? tieuDiemKhiCham(dich) : dich).focus({ preventScroll: true });
-    } else {
-      saveErrorEl.scrollIntoView({ block: "center" }); // < 960px: banner (liệt kê đủ lỗi) nằm cuối form nên phải cuộn tới ĐÓ
-    }
+    // Khung lỗi (liệt kê đủ lỗi) nằm ngay trên nút Lưu và luôn thấy: ≥ 960px ở cột phải dính, dưới 960px trong thanh dính cuối trang (Việc 8) → cuộn tới ô / thẻ lỗi đầu tiên.
+    // Dưới 960px không cuộn khi không có ô nào để chỉ (vd "Thêm ít nhất một dịch vụ."): `scrollIntoView` của phần tử trong thanh dính kéo trang xuống cuối.
+    if (wide() || dich !== saveErrorEl) cuonToiLoi(dich);
+    // Tiêu điểm: ≥ 960px luôn; điện thoại CHỈ khi ô nằm trong khối gập vừa được mở (người lập phải thấy ô đỏ vừa hiện ra) — ô thấy sẵn thì không, kẻo bàn phím ảo bật lên che thanh dính.
+    // Lưu bằng cảm ứng mà ô lỗi là ô nơi đón / nơi trả (ô gõ chữ — bàn phím ảo iPhone sẽ bật): tiêu điểm vào đầu chặng; ô lỗi vẫn đã được cuộn vào khung nhìn (vòng sửa 1, M-1).
+    if (wide() || dangAn) (cham ? tieuDiemKhiCham(dich) : dich).focus({ preventScroll: true });
     return;
   }
   setSaving(true);
@@ -827,12 +879,14 @@ picker.setNhapTay(duocNhapTay);
 if (editId) {
   for (const f of ["prepaid-amount-field", "prepaid-method-field", "prepaid-collector-field"]) byId(f).hidden = true;
   byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn (mục Thanh toán → Ghi lần thu).";
+  byId("prepaid-hint").hidden = false; // câu giải thích duy nhất của khối khi không nhận trả trước — luôn hiện (`capNhatOTraTruoc` không đụng khi `traTruocAn`)
 }
 // ADR-0092 Đ6 (C1): người có quyền ghi sổ (Toàn quyền) ghi CK – Công ty thu phải kèm mã giao dịch ngân hàng — ô mã chỉ ở trang đơn ⇒ form không nhận tiền trả
 // trước của người này (tránh lần gửi chắc chắn 400 làm rơi tiền trả trước); cùng khuôn với lúc sửa đơn.
 if (!editId && can(staff, "ledger.write")) {
   for (const f of ["prepaid-amount-field", "prepaid-method-field", "prepaid-collector-field"]) byId(f).hidden = true;
   byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn sau khi lưu (mục Thanh toán → Ghi lần thu, kèm mã giao dịch ngân hàng nếu chuyển khoản vào tài khoản công ty).";
+  byId("prepaid-hint").hidden = false;
   // Form dùng được trong lúc tải (initShell, danh mục…): số đã gõ sớm phải bị xoá (cờ `traTruocAn` đã bật ngay sau `initShell()`, nên số đó không còn được đọc), kẻo vẫn gửi lần thu CK – Công ty thu không mã (400) và làm rơi tiền trả trước.
   field("prepaidAmount").value = "";
   recompute();

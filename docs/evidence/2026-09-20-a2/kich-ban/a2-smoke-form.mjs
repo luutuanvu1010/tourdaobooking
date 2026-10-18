@@ -429,7 +429,7 @@ try {
   ok("bố cục theo khổ: 1040 hai cột + nút Lưu trong khung nhìn, lỗi → focus ô lỗi đầu tiên; 800 thanh Lưu có nền, lỗi → banner trong khung nhìn; không tràn ngang");
 
   // ---- 12c) khối tóm tắt số tiền ở thanh dính đáy (Bước 2 Đợt B, Fix round 1 — lỗi thứ tự CSS từng làm nó KHÔNG BAO GIỜ hiện):
-  //       390px (điện thoại) phải hiện với đúng số tiền; 800px (khổ giữa, vd iPad dọc) và 1040px (máy tính) phải ẩn ----
+  //       390px (điện thoại) và 800px (khổ giữa, vd iPad dọc — từ Việc 8 18/10) phải hiện với đúng số tiền; 1040px (máy tính) phải ẩn ----
   p = await env.as(ACCOUNTS.salesA, "/order-form"); // mặc định 390×844 (điện thoại)
   await p.waitFor("document.getElementById('add-manual')", "form mới (khối tóm tắt điện thoại)");
   await p.ev("document.getElementById('add-manual').click(); true");
@@ -440,12 +440,18 @@ try {
   await p.waitFor("document.getElementById('mobile-total').textContent.includes('500.000')", "khối tóm tắt điện thoại cập nhật số tiền");
   const readMobileSummary = () => p.ev(`(() => { const s = getComputedStyle(document.querySelector('.mobile-actions-summary')); return { display: s.display, total: document.getElementById('mobile-total').textContent, prepaid: !document.getElementById('mobile-prepaid-row').hidden }; })()`);
   assert.deepEqual(await readMobileSummary(), { display: "block", total: "500.000 ₫", prepaid: false }, "390px (điện thoại): khối tóm tắt PHẢI hiện, đúng số tiền (sổ tiền lượt 1: không trả trước → không dòng 'Trả trước', không tự trừ 'Còn lại')");
+  // Thiết kế lại 18/10 (Việc 8, sửa CÓ CHỦ ĐÍCH): dưới 960px (form một cột, kể cả iPad dọc 800px) KHÔNG còn khối Tóm tắt — dòng tổng ở thanh dính cuối trang thay nó, nên 800px nay PHẢI hiện
+  // dòng tổng (trước: ẩn, vì khối Tóm tắt còn hiện ở khổ đó). Hành vi đầy đủ của thanh dính: docs/evidence/2026-10-18-tao-don-thiet-ke-lai/kich-ban/thanh-dinh-smoke.mjs.
+  const tomTatHien = () => p.ev("document.querySelector('.summary-card').getClientRects().length > 0");
+  assert.equal(await tomTatHien(), false, "390px: khối Tóm tắt không hiện");
   await p.send("Emulation.setDeviceMetricsOverride", { width: 800, height: 900, deviceScaleFactor: 1, mobile: false });
-  assert.equal((await readMobileSummary()).display, "none", "800px (khổ giữa, vd iPad dọc): khối tóm tắt PHẢI ẩn");
+  assert.equal((await readMobileSummary()).display, "block", "800px (khổ giữa, vd iPad dọc): dòng tổng thanh dính PHẢI hiện (form một cột, không còn khối Tóm tắt)");
+  assert.equal(await tomTatHien(), false, "800px: khối Tóm tắt không hiện");
   await p.send("Emulation.setDeviceMetricsOverride", { width: 1040, height: 800, deviceScaleFactor: 1, mobile: false });
-  assert.equal((await readMobileSummary()).display, "none", "1040px (máy tính): khối tóm tắt PHẢI ẩn");
+  assert.equal((await readMobileSummary()).display, "none", "1040px (máy tính): dòng tổng thanh dính PHẢI ẩn");
+  assert.equal(await tomTatHien(), true, "1040px: khối Tóm tắt hiện ở cột phải");
   p.close();
-  ok("khối tóm tắt số tiền thanh dính đáy: 390px hiện + đúng số tiền, 800px và 1040px ẩn (cascade CSS đúng cả 3 dải khổ)");
+  ok("dòng tổng ở thanh dính đáy: 390px và 800px hiện + đúng số tiền (không khối Tóm tắt), 1040px ẩn (khối Tóm tắt ở cột phải) — cascade CSS đúng cả 3 dải khổ");
 
   // ---- 12) đo: vùng chạm, cỡ chữ ô gõ, không tràn ngang, không lỗi console ----
   p = await env.as(ACCOUNTS.salesA, "/order-form");
