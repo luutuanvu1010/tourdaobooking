@@ -238,7 +238,7 @@ function capNhatMoc(entry: Entry): void {
     let w = entry.canhBao.get(l.key);
     if (w) w.datCau(cau);
     else {
-      w = khoiCanhBaoMoc({ cau, duocDatGap, onDuyet: (than) => luu({ entry, legKey: l.key, than }) });
+      w = khoiCanhBaoMoc({ cau, duocDatGap, onDuyet: (than) => luu({ entry, legKey: l.key, than }), nutDuyetPhu: true }); // thang nút ba cấp: nút chính duy nhất của form là Lưu
       entry.canhBao.set(l.key, w);
     }
     const widget = w;

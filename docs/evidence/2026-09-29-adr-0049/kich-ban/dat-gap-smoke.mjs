@@ -205,7 +205,7 @@ try {
   a.close();
 
   const am = await env.as(ACCOUNTS.admin, "/order-form", MOB);
-  await b.step("9", "7a trên đơn CHƯA lưu (390, Quản trị): nút Đặt gấp trên thẻ; 'Duyệt đặt gấp' = tự LƯU NHÁP rồi gọi lệnh đặt gấp (R-P15) → sang trang đơn thấy nhãn đặt gấp; không tràn ngang", async () => {
+  await b.step("9", "7a trên đơn CHƯA lưu (390, Quản trị): nút Đặt gấp trên thẻ; 'Duyệt đặt gấp' (nút phụ viền — chỉ #save là nút chính của form) = tự LƯU NHÁP rồi gọi lệnh đặt gấp (R-P15) → sang trang đơn thấy nhãn đặt gấp; không tràn ngang", async () => {
     await themDichVuTrenForm(am);
     await am.waitFor(shown('#services [data-action="mo-dat-gap"]'), "nút Đặt gấp trên thẻ");
     await am.ev(click('#services [data-action="mo-dat-gap"]'));
@@ -216,6 +216,13 @@ try {
     const co = await am.ev(`[...document.querySelectorAll('#services .dg-panel input, #services .dg-panel select')].map((i) => parseFloat(getComputedStyle(i).fontSize))`);
     assert.ok(co.every((x) => x >= 16), JSON.stringify(co));
     await axe(am, "biểu mẫu Quản trị 390 khung đặt gấp");
+    // Thang nút ba cấp của form Tạo đơn (thiết kế lại 18/10, việc 8 — đề bài "cho cả màn", chỉ "Lưu, chờ xác nhận" là nút chính): trong form chỉ #save mang .btn-primary;
+    // "Duyệt đặt gấp" là nút phụ viền 1px (nền trắng, viền và chữ xanh). Trang đơn / bảng "Sửa đưa đón" (bước 6–8) giữ nút chính — không ở đây.
+    const thangNut = await am.ev(`(() => { const b = document.querySelector('#services [data-action="duyet-dat-gap"]'); const s = getComputedStyle(b);
+      const mau = (v, p) => { const d = document.createElement('div'); d.style[p] = v; document.body.append(d); const c = getComputedStyle(d)[p]; d.remove(); return c; };
+      return { chinh: [...document.querySelectorAll('#order-form .btn-primary')].map((e) => e.id || e.textContent.trim()), nen: s.backgroundColor === mau('var(--c-surface)', 'backgroundColor'),
+        vien: s.borderTopStyle + ' ' + s.borderTopWidth + ' ' + (s.borderTopColor === mau('var(--c-primary)', 'color')), chu: s.color === mau('var(--c-primary)', 'color') }; })()`);
+    assert.deepEqual(thangNut, { chinh: ["save"], nen: true, vien: "solid 1px true", chu: true }, "thang nút form: 'Duyệt đặt gấp' là nút phụ viền, chỉ #save là nút chính");
     await am.ev(`document.querySelector('#services .dg-panel').scrollIntoView({ block: 'center' }); true`);
     await shotView(am, "b7-bieu-mau-dat-gap-quan-tri-dien-thoai.png");
     await am.ev(click('#services [data-action="duyet-dat-gap"]'));

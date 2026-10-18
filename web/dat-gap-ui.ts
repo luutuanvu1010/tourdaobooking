@@ -30,16 +30,17 @@ export interface KhungDatGap {
 
 /**
  * Khung "Đặt gấp" (khung 7a): ô lý do, ô ghi chú ngắn (đếm /120), "Duyệt đặt gấp", "Đóng". `onDuyet` nhận thân đã kiểm; ném lỗi thì khung giữ nguyên (nơi gọi báo).
- * `nutMo` = nút đã mở khung (trả focus khi đóng).
+ * `nutMo` = nút đã mở khung (trả focus khi đóng). `nutDuyetPhu`: "Duyệt đặt gấp" là nút phụ viền thay vì nút chính — form Tạo đơn, nơi thang nút ba cấp
+ * chỉ cho "Lưu, chờ xác nhận" là nút chính (thiết kế lại 18/10, việc 8); trang đơn và bảng "Sửa đưa đón" giữ nút chính.
  */
-export function taoKhungDatGap(o: { onDuyet: (than: { lyDo: LyDoDatGap; ghiChu: string | null }) => Promise<void>; nutMo?: () => HTMLElement | null }): KhungDatGap {
+export function taoKhungDatGap(o: { onDuyet: (than: { lyDo: LyDoDatGap; ghiChu: string | null }) => Promise<void>; nutMo?: () => HTMLElement | null; nutDuyetPhu?: boolean }): KhungDatGap {
   const id = `dg-${++dem}`;
   const lyDo = h("select", { id: `${id}-ly-do`, class: "vc-input", "data-dg": "ly-do" }, h("option", { value: "" }, "Chọn lý do"), ...LUA_CHON_LY_DO_DAT_GAP.map((x) => h("option", { value: x.value }, x.label)));
   const demEl = h("span", { class: "dp-count-text", "aria-hidden": "true" }, `0/${GHI_CHU_DAT_GAP_TOI_DA}`);
   const ghiChu = h("input", { id: `${id}-ghi-chu`, class: "vc-input", type: "text", maxLength: GHI_CHU_DAT_GAP_TOI_DA, autocomplete: "off", "data-dg": "ghi-chu" });
   ghiChu.addEventListener("input", () => (demEl.textContent = `${ghiChu.value.length}/${GHI_CHU_DAT_GAP_TOI_DA}`));
   const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
-  const duyet = h("button", { type: "button", class: "vc-btn btn btn-primary", "data-action": "duyet-dat-gap" }, "Duyệt đặt gấp");
+  const duyet = h("button", { type: "button", class: o.nutDuyetPhu ? "vc-btn vc-btn-line" : "vc-btn btn btn-primary", "data-action": "duyet-dat-gap" }, "Duyệt đặt gấp");
   const dongNut = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "dong-dat-gap" }, "Đóng");
   const root = h(
     "div",
@@ -96,15 +97,16 @@ export function taoKhungDatGap(o: { onDuyet: (than: { lyDo: LyDoDatGap; ghiChu: 
 /**
  * Dải cảnh báo dưới mốc (khung 7a / 7b) + (người được đặt gấp) nút "Đặt gấp" mở khung. `dongPhu` là dòng dưới tiêu đề: 7a "Xếp xe gấp cần Quản trị duyệt đặt gấp.",
  * 7b "Lưu nháp được. Xác nhận cần Quản trị duyệt đặt gấp.". `datCau` đổi câu mốc tại chỗ (biểu mẫu gõ giờ) — khung đang mở và chữ đã gõ trong khung giữ nguyên.
+ * `nutDuyetPhu`: chuyển cho `taoKhungDatGap` (form Tạo đơn).
  */
-export function khoiCanhBaoMoc(o: { cau: string; duocDatGap: boolean; onDuyet?: (than: { lyDo: LyDoDatGap; ghiChu: string | null }) => Promise<void> }): { root: HTMLElement; datCau(cau: string): void } {
+export function khoiCanhBaoMoc(o: { cau: string; duocDatGap: boolean; onDuyet?: (than: { lyDo: LyDoDatGap; ghiChu: string | null }) => Promise<void>; nutDuyetPhu?: boolean }): { root: HTMLElement; datCau(cau: string): void } {
   const dongPhu = o.duocDatGap ? "Xếp xe gấp cần Quản trị duyệt đặt gấp." : "Lưu nháp được. Xác nhận cần Quản trị duyệt đặt gấp.";
   const tieuDe = h("div", { class: "banner-title" }, o.cau);
   const dai = h("div", { class: "banner banner-warning dg-warn", "data-moc": "duoi" }, tieuDe, h("div", { class: "dg-warn-sub" }, dongPhu));
   const root = h("div", { class: "dg-block" }, dai);
   if (o.duocDatGap && o.onDuyet) {
     const nut = h("button", { type: "button", class: "pill-btn dg-open", "data-action": "mo-dat-gap" }, "Đặt gấp");
-    const khung = taoKhungDatGap({ onDuyet: o.onDuyet, nutMo: () => nut });
+    const khung = taoKhungDatGap({ onDuyet: o.onDuyet, nutMo: () => nut, nutDuyetPhu: o.nutDuyetPhu });
     nut.addEventListener("click", () => (khung.root.hidden ? khung.mo() : khung.dong()));
     dai.append(h("div", { class: "banner-actions" }, nut));
     root.append(khung.root);
