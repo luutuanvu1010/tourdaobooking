@@ -203,13 +203,19 @@ export function changNenGon(l: ChangNhap, so: number, soKhach: number, ngayDi: s
 }
 
 /**
+ * Nhãn MỘT nơi của chặng (đón hoặc trả): chưa chọn → ""; "Gõ tự do" → địa chỉ đã gõ (bỏ khoảng trắng hai đầu); điểm danh mục → nhãn ngắn theo id (`nhanTheoId`), rồi nhãn đã lưu
+ * của chặng, rồi chữ "Điểm đã ngưng". Một nguồn cho dòng tóm tắt chặng gọn (`tomTatChang`) và dòng gập của thẻ dịch vụ (`dong-gap-the.ts`).
+ */
+export const nhanNoiChang = (chon: string, chu: string, nhanLuu: string | null | undefined, nhanTheoId: (id: string) => string | null): string =>
+  chon === "" ? "" : chon === TU_DO ? chu.trim() : (nhanTheoId(chon) ?? nhanLuu ?? "Điểm đã ngưng");
+
+/**
  * Dòng tóm tắt của chặng gọn: "Chiều đi · Đón 07:30 · Khách sạn ABC → Cảng Vinpearl" (chưa chốt giờ: "Chưa chốt giờ"; chưa chọn nơi trả: bỏ phần "→ …"). `nhanTheoId` tra nhãn ngắn của điểm danh mục
  * theo id (null = không biết → dùng nhãn đã lưu của chặng, rồi chữ "Điểm đã ngưng"); nơi "Gõ tự do" lấy địa chỉ đã gõ.
  */
 export function tomTatChang(l: ChangNhap, nhanTheoId: (id: string) => string | null): string {
-  const noi = (chon: string, chu: string, nhanLuu: string | null | undefined): string => (chon === "" ? "" : chon === TU_DO ? chu.trim() : (nhanTheoId(chon) ?? nhanLuu ?? "Điểm đã ngưng"));
-  const don = noi(l.don, l.donTuDo, l.goc?.pickupLabel);
-  const tra = noi(l.tra, l.traTuDo, l.goc?.dropoffLabel);
+  const don = nhanNoiChang(l.don, l.donTuDo, l.goc?.pickupLabel, nhanTheoId);
+  const tra = nhanNoiChang(l.tra, l.traTuDo, l.goc?.dropoffLabel, nhanTheoId);
   const gio = l.pickupTime !== "" ? `Đón ${l.pickupTime}` : "Chưa chốt giờ";
   return [CHIEU_LABEL[l.direction], gio, `${don}${tra !== "" ? ` → ${tra}` : ""}`].join(" · ");
 }
