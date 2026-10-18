@@ -4,7 +4,7 @@
 // cuộn bên trong; thẻ dịch vụ đã chọn nằm bên dưới (ngoài tệp này). Nút "+ Dịch vụ nhập tay" vẫn ở ngay dưới, trong public/order-form.html.
 // Hàng nhóm: "Tất cả" đầu, rồi nhóm theo thứ tự Quản trị, "Chưa phân loại" cuối (nếu còn dịch vụ chưa gán). Chọn MỘT nhóm, chạm là lọc liền, nút không số đếm.
 // Mép phải mờ + "›" khi còn nhóm phía sau; nhóm đang chọn luôn được cuộn vào tầm nhìn (đặt scrollLeft, không scrollIntoView để trang không cuộn theo).
-// Máy tính ≥ 960px: nút ‹ › hiện khi rê chuột / focus vào hàng; phím ← → Home End đi giữa các nhóm (radiogroup, roving tabindex). Nhớ nhóm THEO TÀI KHOẢN
+// Máy tính ≥ 960px: nút ‹ › hiện khi rê chuột / focus vào hàng; phím ← → (và ↑ ↓) Home End đi giữa các nhóm (radiogroup, roving tabindex). Nhớ nhóm THEO TÀI KHOẢN
 // (`khoaNhoNhom`, ghi `ghiNhoMotNhom` — mảng một mã để bản cũ đọc được), mọi đọc / ghi bộ nhớ bọc try/catch (bị chặn = "Tất cả").
 // Khung: đầu khung "N dịch vụ" / "N dịch vụ · <nhóm>" (`nhanDem`, đếm lúc chạy). "Tất cả": dịch vụ gắn sao CHỈ ở mục "★ Hay dùng" đầu khung, rồi mục theo nhóm
 // (`chiaMuc`); chọn một nhóm: dịch vụ có sao lên đầu (`xepGhimTruoc`). Gõ chữ: tìm trong MỌI nhóm, chia mục theo nhóm, hàng nhóm về "Tất cả", nhóm hết kết quả
@@ -18,7 +18,7 @@
 // `recompute()` của form gọi `setSelected` / `setDisabled` ở MỖI lần gõ: hai hàm này chỉ sửa tại chỗ (nhãn, khoá), không dựng lại khung — nếu không, vị trí cuộn
 // trong khung sẽ nhảy về đầu sau mỗi lần thêm dịch vụ.
 import type { CatalogGroupDto, CatalogServiceDto } from "../src/shared/contracts";
-import { CHUA_PHAN_LOAI, chamNhom, chiaMuc, docNhoDanhMuc, docNhoMotNhom, doiChuTim, doiGhim, ghiNhoMotNhom, khoaNhoNhom, locDanhMuc, locTheoNhom, nhanDem, nhomConKetQua, tachTenDichVu, xepGhimTruoc, type MucDanhMuc, type NhoDanhMuc, type TrangThaiNhom } from "../src/shared/loc-danh-muc";
+import { CHUA_PHAN_LOAI, chamNhom, docNhoDanhMuc, docNhoMotNhom, doiChuTim, doiGhim, dungMucDanhMuc, ghiNhoMotNhom, khoaNhoNhom, nhanDem, tachTenDichVu, type NhoDanhMuc, type TrangThaiNhom } from "../src/shared/loc-danh-muc";
 import { parseUnit } from "../src/shared/order-lines";
 import { unitLabel } from "../src/shared/service-form";
 import { h, replaceChildren } from "./dom";
@@ -84,7 +84,8 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
   const notice = h("div", { class: "alert warn", role: "status", hidden: true });
   // Câu lý do khoá: `p.muted` con trực tiếp của `.catalog` (kịch bản a2-smoke-form đọc đúng chỗ này).
   const reasonText = h("span", null);
-  const reason = h("p", { class: "muted catalog-khoa", hidden: true }, icon("lock", 16), reasonText);
+  // tabindex -1: nhận tiêu điểm khi khung thành inert lúc tiêu điểm đang ở trong khung (thêm dịch vụ thứ 20 bằng bàn phím — nợ T2(4), Việc 9).
+  const reason = h("p", { class: "muted catalog-khoa", hidden: true, tabindex: "-1" }, icon("lock", 16), reasonText);
   // Ô tìm giữ type="search": order-form.ts chặn Enter theo đúng kiểu ô này (ô nằm trong <form>).
   const q = h("input", { id: "catalog-q", type: "search", placeholder: "Tìm theo tên hoặc mã dịch vụ", "aria-label": "Tìm theo tên hoặc mã dịch vụ", autocomplete: "off", "aria-controls": "catalog-list" });
   const xoa = h("button", { type: "button", class: "catalog-tim-xoa", "aria-label": "Xoá chữ tìm", hidden: true }, icon("close", 20));
@@ -281,18 +282,8 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
       return;
     }
     const nhom = nhomHieuLuc();
-    let muc: MucDanhMuc<CatalogServiceDto>[];
-    let conKetQua: ReadonlySet<string> | null = null;
-    if (tim) {
-      const khop = locDanhMuc(items, { kim: q.value });
-      conKetQua = nhomConKetQua(khop);
-      const trongNhom = locTheoNhom(khop, ghiNhoMotNhom(nhom)); // "" (Tất cả) → [] → không lọc
-      muc = coHangNhom() ? chiaMuc(trongNhom, groups, null) : [{ khoa: "", tieuDe: "", dong: trongNhom }];
-    } else if (nhom === "" && coHangNhom()) {
-      muc = chiaMuc(items, groups, nho.ghim);
-    } else {
-      muc = [{ khoa: nhom, tieuDe: "", dong: xepGhimTruoc(locTheoNhom(items, ghiNhoMotNhom(nhom)), nho.ghim) }];
-    }
+    // Luật chia mục / xếp sao ở src/shared/loc-danh-muc.ts (có test): đang tìm mà đã thu hẹp một nhóm thì dịch vụ gắn sao cũng lên đầu (nợ T2(1), Việc 9).
+    const { muc, conKetQua } = dungMucDanhMuc(items, { kim: q.value, nhom, ghim: nho.ghim, groups });
     const n = muc.reduce((s, m) => s + m.dong.length, 0);
     dau.textContent = nhanDem(n, tenNhom(nhom));
     replaceChildren(
@@ -342,6 +333,7 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
     setItems(next) {
       items = next;
       daNap = true;
+      khung.hidden = false;
       veHangNhom();
       ve(false);
       duaVaoTam(nhomHieuLuc());
@@ -363,11 +355,15 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
     setNotice(text) {
       notice.textContent = text ?? "";
       notice.hidden = !text;
+      // Danh mục không tải được (chưa từng có setItems): chỉ câu báo, không để khung danh sách trống cao cố định (nợ T2(3), Việc 9).
+      khung.hidden = !daNap && Boolean(text);
     },
     setDisabled(why) {
       if (why === khoa) return; // recompute() gọi ở mỗi lần gõ: không đổi thì không đụng gì
       khoa = why;
       const k = why !== null;
+      const dangO = document.activeElement;
+      const mauTieuDiem = k && dangO !== null && (khung.contains(dangO) || hang.contains(dangO)); // đặt inert sẽ làm tiêu điểm rơi về <body>
       q.disabled = k;
       reasonText.textContent = why ?? "";
       reason.hidden = !k;
@@ -375,6 +371,7 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
       hang.inert = k;
       root.classList.toggle("is-khoa", k);
       xoa.hidden = k || !dangTim();
+      if (mauTieuDiem) reason.focus(); // trình đọc màn hình đọc luôn lý do khoá
     },
     setSelected(codes) {
       const moi = new Set(codes);

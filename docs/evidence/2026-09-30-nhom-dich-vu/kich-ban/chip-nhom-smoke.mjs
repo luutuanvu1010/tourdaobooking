@@ -9,6 +9,8 @@
 //   gõ thêm không nhảy; xoá chữ về nhóm trước khi tìm. "Tất cả": dịch vụ gắn sao chỉ ở mục "★ Hay dùng"; chọn một nhóm: sao lên đầu nhóm.
 //   Nhớ nhóm THEO TÀI KHOẢN (khoá loc-nhom-dv:<id>, mảng MỘT mã; bản nhớ cũ nhiều nhóm / chuỗi đơn / rác đọc an toàn). Đơn đủ 20 dịch vụ: ô và khung khoá.
 //   Máy tính ≥ 960px: nút ‹ › khi rê chuột / focus vào hàng nhóm, phím mũi tên / Home / End đi giữa các nhóm.
+// Việc 9 (18/10, nợ T2): bước 7 — đang tìm rồi thu hẹp một nhóm thì dịch vụ gắn sao lên đầu; bước 8 — thêm dịch vụ thứ 20 bằng bàn phím thì tiêu điểm sang câu lý do
+//   (không rơi về <body> khi khung thành inert); bước 13 — danh mục không tải được: chỉ hiện câu báo, không hiện khung trống.
 // Dùng lại cơ chế CDP của A2 (startEnv()/ACCOUNTS từ ../../2026-09-20-a2/kich-ban/a2-cdp.mjs). startEnv() chèn 3 dịch vụ giả (TD101/TTB03/TTB06) SAU migration
 // gieo nhóm nên cả ba ở "Chưa phân loại": kịch bản chèn thêm dịch vụ giả rồi dùng Quản trị gán nhóm qua PUT /api/catalog/group-assignments:
 //   Thể thao biển (TTB) 23 = TTB03, TTB06 + 21 dịch vụ TTB07…TTB27 (TTB15/16/17 tên có "Hòn Tằm", TTB15 tên có dấu hai chấm);
@@ -276,11 +278,23 @@ try {
   await shot(p, "390-tat-ca-hay-dung.png");
   await p.ev(`${nut("TTB")}.click(); true`);
   assert.equal((await p.ev(MA))[0], "TTB20", "chọn nhóm: dịch vụ có sao lên đầu nhóm");
+  // Nợ T2(1) (Việc 9): đang tìm rồi chạm thu hẹp một nhóm → dịch vụ gắn sao cũng lên đầu nhóm (như khi không tìm).
+  await p.ev(setInput(Q, "trò biển"));
+  await p.waitFor(`${DANG_CHON} === ''`, "gõ 'trò biển': hàng nhóm về Tất cả");
+  await p.ev(`${nut("TTB")}.click(); true`);
+  assert.equal(await p.ev(DANG_CHON), "TTB", "thu hẹp Thể thao biển lúc đang tìm");
+  assert.deepEqual((await p.ev(MA)).slice(0, 2), ["TTB20", "TTB07"], "đang tìm + thu hẹp: dịch vụ có sao (TTB20) lên đầu nhóm, phần còn lại theo danh mục");
+  await p.ev(`${XOA}.click(); true`);
+  await p.waitFor(`${Q}.value === '' && ${DANG_CHON} === 'TTB'`, "✕: về Thể thao biển");
   ok("Sao: bấm đổi ☆/★ tại chỗ (cuộn, thứ tự, focus giữ); Tất cả: TTB20 chỉ ở mục '★ Hay dùng' đầu khung, không lặp; Thể thao biển: TTB20 đứng đầu");
 
   // ---- 8) Đơn đủ 20 dịch vụ: ô tìm và khung khoá, câu "Đơn đã đủ 20 dịch vụ." ----
-  for (let i = 0; i < 20; i++) await p.ev(`${row("TTB15")}.querySelector('.catalog-pick').click(); true`);
+  for (let i = 0; i < 19; i++) await p.ev(`${row("TTB15")}.querySelector('.catalog-pick').click(); true`);
+  await p.waitFor(`${CARDS}.length === 19`, "19 thẻ");
+  // Nợ T2(4) (Việc 9): dịch vụ thứ 20 thêm bằng bàn phím (tiêu điểm đang ở dòng) — khung thành inert thì tiêu điểm phải sang câu lý do, không rơi về <body>.
+  await p.ev(`(() => { const b = ${row("TTB15")}.querySelector('.catalog-pick'); b.focus(); b.click(); return true; })()`);
   await p.waitFor(`${CARDS}.length === 20`, "20 thẻ");
+  assert.equal(await p.ev("document.activeElement === document.querySelector('.catalog > p.muted')"), true, `thêm dịch vụ thứ 20 bằng bàn phím: tiêu điểm sang câu lý do (đang ở ${await p.ev("document.activeElement?.tagName + '.' + document.activeElement?.className")})`);
   await p.waitFor(`${Q}.disabled`, "ô tìm khoá");
   assert.equal(await p.ev("document.querySelector('.catalog > p.muted').textContent"), "Đơn đã đủ 20 dịch vụ.");
   assert.equal(await p.ev(hien("document.querySelector('.catalog > p.muted')")), true);
@@ -409,6 +423,18 @@ try {
   dong(c);
   assert.deepEqual(loiConsole, [], "không lỗi console ở mọi trang");
   ok("Bộ nhớ trình duyệt bị chặn: Tất cả, chạm nhóm vẫn lọc; không lỗi console ở mọi trang của kịch bản");
+
+  // ---- 13) Nợ T2(3) (Việc 9): danh mục không tải được (GET /api/catalog/for-order lỗi 500) → chỉ câu báo, KHÔNG có khung danh sách trống cao 392px ----
+  const e = await env.openPage(MOB);
+  await e.send("Page.addScriptToEvaluateOnNewDocument", { source: "const f0 = window.fetch; window.fetch = (u, o) => String(u).includes('/api/catalog/for-order') ? Promise.resolve(new Response(JSON.stringify({ error: { code: 'internal', message: 'Lỗi giả' } }), { status: 500, headers: { 'content-type': 'application/json' } })) : f0(u, o);" });
+  const ek = await env.login(ACCOUNTS.salesA);
+  await e.send("Network.setCookie", { name: ek.name, value: ek.value, url: env.base, httpOnly: true });
+  await e.send("Page.navigate", { url: `${env.base}/order-form` });
+  await e.waitFor("/Không tải được danh mục dịch vụ/.test(document.querySelector('.catalog .alert')?.textContent ?? '')", "câu báo không tải được danh mục", 10000);
+  assert.deepEqual(await e.ev(`[${hien("document.querySelector('.catalog .alert')")}, ${hien(KHUNG)}, ${hien(HANG)}]`), [true, false, false], "lỗi tải danh mục: câu báo hiện, khung danh sách và hàng nhóm không hiện");
+  await shot(e, "390-danh-muc-loi.png");
+  e.close(); // lỗi mạng giả là cố ý: không gộp vào kiểm console
+  ok("Danh mục không tải được: chỉ câu 'Không tải được danh mục dịch vụ…', không khung trống, không hàng nhóm");
   console.log("CHON DICH VU SMOKE OK");
 } finally {
   await env.stop();

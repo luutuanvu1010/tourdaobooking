@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { docNhoDanhMuc, locDanhMuc, NHO_DANH_MUC_TRONG, doiGhim, xepGhimTruoc, locTheoNhom, doiNhom, demTheoNhom, khoaNhoNhom, docNhoNhom, CHUA_PHAN_LOAI, docNhoMotNhom, ghiNhoMotNhom, chamNhom, doiChuTim, chiaMuc, nhomConKetQua, nhanDem, tachTenDichVu, type TrangThaiNhom } from "./loc-danh-muc.ts";
+import { docNhoDanhMuc, locDanhMuc, NHO_DANH_MUC_TRONG, doiGhim, xepGhimTruoc, locTheoNhom, khoaNhoNhom, docNhoNhom, CHUA_PHAN_LOAI, docNhoMotNhom, ghiNhoMotNhom, chamNhom, doiChuTim, chiaMuc, nhomConKetQua, nhanDem, tachTenDichVu, dungMucDanhMuc, type TrangThaiNhom } from "./loc-danh-muc.ts";
 
 const it = (code: string, name: string, unit: string) => ({ code, name, unit });
 const DS = [it("TD101", "Tour 4 đảo", "perPax"), it("TTB03", "Phao chuối", "per5Pax"), it("TTB06", "Motor nước", "perPax"), it("DD01", "Đưa đón", "manual")];
@@ -75,22 +75,6 @@ test("locTheoNhom kết hợp VÀ với ô tìm", () => {
   assert.deepEqual(sau("motor", [CHUA_PHAN_LOAI]), ["MOI02"]);
   assert.deepEqual(sau("motor", ["TTB", CHUA_PHAN_LOAI]), ["TTB06", "MOI02"]);
   assert.deepEqual(sau("motor", ["TDA"]), []);
-});
-
-test("doiNhom: tick / bỏ tick một nhóm, không trùng, không sửa mảng đầu vào", () => {
-  const a = ["TDA"];
-  assert.deepEqual(doiNhom(a, "TTB"), ["TDA", "TTB"]);
-  assert.deepEqual(doiNhom(["TDA", "TTB"], "TDA"), ["TTB"]);
-  assert.deepEqual(doiNhom([], "KON"), ["KON"]);
-  assert.deepEqual(a, ["TDA"]);
-});
-
-test("demTheoNhom: đếm theo nhóm, dịch vụ không nhóm đếm vào CHUA_PHAN_LOAI", () => {
-  const d = demTheoNhom(DSN);
-  assert.equal(d.get("TTB"), 23);
-  assert.equal(d.get("TDA"), 1);
-  assert.equal(d.get(CHUA_PHAN_LOAI), 2);
-  assert.equal(demTheoNhom(DSN.filter((x) => x.groupCode !== null)).get(CHUA_PHAN_LOAI) ?? 0, 0);
 });
 
 test("khoaNhoNhom: khoá nhớ gồm id tài khoản — hai tài khoản trên cùng máy không nhớ lẫn", () => {
@@ -176,4 +160,26 @@ test("tachTenDichVu: tách phần trước dấu hai chấm ĐẦU TIÊN (in mà
     const t = tachTenDichVu(ten);
     assert.equal(t.dau + t.sau, ten, "ghép lại đúng tên gốc");
   }
+});
+
+test("dungMucDanhMuc: đang tìm rồi thu hẹp MỘT nhóm → dịch vụ gắn sao lên đầu (như khi không tìm), giữ thứ tự danh mục trong từng phần (nợ T2(1))", () => {
+  const r = dungMucDanhMuc(DSN, { kim: "trò 1", nhom: "TTB", ghim: ["TTB12"], groups: GROUPS });
+  assert.deepEqual(r.muc.map((m) => m.khoa), ["TTB"]);
+  assert.deepEqual(ma(r.muc[0].dong), ["TTB12", "TTB01", "TTB10", "TTB11", "TTB13", "TTB14", "TTB15", "TTB16", "TTB17", "TTB18", "TTB19"]);
+  assert.deepEqual([...(r.conKetQua ?? [])], ["TTB"], "nhóm còn kết quả tính trên MỌI nhóm của chữ tìm");
+  const cpl = dungMucDanhMuc(DSN, { kim: "mo", nhom: CHUA_PHAN_LOAI, ghim: ["MOI02"], groups: GROUPS });
+  assert.deepEqual(ma(cpl.muc.flatMap((m) => m.dong)), ["MOI02", "MOI01"], "Chưa phân loại cũng xếp sao lên đầu");
+});
+
+test("dungMucDanhMuc: 'Tất cả' lúc tìm chia mục theo nhóm, KHÔNG có mục Hay dùng; không tìm thì có; không có nhóm → một khối", () => {
+  const tim = dungMucDanhMuc(DSN, { kim: "motor", nhom: "", ghim: ["MOI02"], groups: GROUPS });
+  assert.deepEqual(tim.muc.map((m) => m.khoa), ["TTB", CHUA_PHAN_LOAI]);
+  assert.deepEqual(ma(tim.muc[1].dong), ["MOI02"]);
+  const tatCa = dungMucDanhMuc(DSN, { kim: "", nhom: "", ghim: ["MOI02"], groups: GROUPS });
+  assert.equal(tatCa.muc[0].khoa, "hay-dung");
+  assert.equal(tatCa.conKetQua, null, "không tìm: không làm mờ nhóm nào");
+  const motNhom = dungMucDanhMuc(DSN, { kim: "", nhom: "TTB", ghim: ["TTB23"], groups: GROUPS });
+  assert.deepEqual(ma(motNhom.muc[0].dong).slice(0, 2), ["TTB23", "TTB01"]);
+  const khongNhom = dungMucDanhMuc(DSN, { kim: "motor", nhom: "", ghim: [], groups: [] });
+  assert.deepEqual(khongNhom.muc.map((m) => [m.khoa, ma(m.dong)]), [["", ["TTB06", "MOI02"]]]);
 });

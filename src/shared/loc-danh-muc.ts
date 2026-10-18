@@ -1,7 +1,7 @@
 // Lọc dịch vụ trong ô chọn dịch vụ khi lập đơn (web/catalog-picker.ts). Thuần, không I/O.
 // Thiết kế lại 18/10/2026 (đặc tả docs/superpowers/specs/2026-10-18-tao-don-thiet-ke-lai/DAC-TA.md mục 3A): HAI cách thu hẹp danh sách — ô gõ (tên hoặc mã, tìm mọi nhóm)
-// và hàng nút nhóm CHỌN MỘT ("" = Tất cả). Trước đó: đợt 1 (13/10) nút xổ xuống tick nhiều nhóm — các hàm `doiNhom` / `demTheoNhom` của bản đó còn lại tới khi dọn;
-// các bộ lọc cũ (★ Hay dùng, Theo người, Giá theo nhóm; YC-0003) đã bỏ. Dấu sao ☆/★ có tác dụng: "Tất cả" gom vào mục "★ Hay dùng", chọn một nhóm thì xếp lên đầu.
+// và hàng nút nhóm CHỌN MỘT ("" = Tất cả). Trước đó: đợt 1 (13/10) nút xổ xuống tick nhiều nhóm — hai hàm `doiNhom` / `demTheoNhom` của bản đó đã xoá ở Việc 9;
+// `locTheoNhom` / `docNhoNhom` vẫn nhận mảng để đọc được bản nhớ cũ. Các bộ lọc cũ (★ Hay dùng, Theo người, Giá theo nhóm; YC-0003) đã bỏ. Dấu sao ☆/★ có tác dụng: "Tất cả" gom vào mục "★ Hay dùng", chọn một nhóm thì xếp lên đầu.
 // Hạn chế nhóm theo vai (ADR-0033, ADR-0058) vẫn do máy chủ quyết qua danh mục /api/catalog/for-order; ở đây không lọc thêm theo vai.
 
 const TOI_DA_GHIM = 200;
@@ -53,19 +53,6 @@ export function locTheoNhom<T extends { groupCode: string | null }>(ds: readonly
   return ds.filter((c) => set.has(c.groupCode ?? CHUA_PHAN_LOAI));
 }
 
-/** Tick / bỏ tick một nhóm (không trùng). Không sửa mảng đầu vào. */
-export const doiNhom = (nhom: ChonNhom, ma: string): string[] => (nhom.includes(ma) ? nhom.filter((x) => x !== ma) : [...nhom, ma]);
-
-/** Số dịch vụ theo từng nhóm; dịch vụ không nhóm đếm vào CHUA_PHAN_LOAI (dùng để biết có hiện dòng "Chưa phân loại" không). */
-export function demTheoNhom(ds: readonly { groupCode: string | null }[]): Map<string, number> {
-  const m = new Map<string, number>();
-  for (const c of ds) {
-    const k = c.groupCode ?? CHUA_PHAN_LOAI;
-    m.set(k, (m.get(k) ?? 0) + 1);
-  }
-  return m;
-}
-
 /** Khoá bộ nhớ trình duyệt của các nhóm đã tick — THEO TÀI KHOẢN (hai người dùng chung máy không nhớ lẫn). */
 export const khoaNhoNhom = (staffId: string): string => `loc-nhom-dv:${staffId}`;
 
@@ -92,14 +79,17 @@ export const docNhoMotNhom = (raw: string | null, groups: readonly { code: strin
 /** Ghi nhóm đang chọn vào bản nhớ: giữ dạng mảng để tương thích bản đọc cũ; "" (Tất cả) → mảng rỗng. */
 export const ghiNhoMotNhom = (ma: string): string[] => (ma === "" ? [] : [ma]);
 
-/** Trạng thái hàng nhóm: nhóm đang chọn ("" = Tất cả), nhóm trước khi người dùng gõ tìm (để trả lại khi xoá chữ), và đã tự chạm thu hẹp lúc đang tìm chưa. */
+/**
+ * Trạng thái hàng nhóm: nhóm đang chọn ("" = Tất cả), nhóm trước khi người dùng gõ tìm (để trả lại khi xoá chữ), và đã tự chạm thu hẹp lúc đang tìm chưa.
+ * `daThuHep` chỉ GHI NHẬN — `doiChuTim` không đọc nó: xoá chữ luôn trả nhóm trước khi tìm (đặc tả mục 3A), kể cả khi người dùng đã chạm thu hẹp lúc đang tìm.
+ */
 export interface TrangThaiNhom {
   nhom: string;
   truocKhiTim: string | null;
   daThuHep: boolean;
 }
 
-/** Người dùng chạm một nhóm. Đang có chữ tìm thì đánh dấu là họ tự thu hẹp (xoá chữ sẽ không đè lựa chọn này). Không sửa đối tượng đầu vào. */
+/** Người dùng chạm một nhóm. Đang có chữ tìm thì đánh dấu `daThuHep` (chỉ ghi nhận, xem `TrangThaiNhom`). Không sửa đối tượng đầu vào. */
 export const chamNhom = (tt: TrangThaiNhom, ma: string, dangTim: boolean): TrangThaiNhom => ({ ...tt, nhom: ma, daThuHep: dangTim ? true : tt.daThuHep });
 
 /** Ô tìm đổi chữ. Trống→có chữ: nhớ nhóm hiện tại rồi về "Tất cả"; có→có: giữ nguyên; có→trống: trả nhóm đã nhớ (không có thì giữ nhóm hiện tại). */
@@ -146,4 +136,23 @@ export function tachTenDichVu(ten: string): { dau: string; sau: string } {
   const i = ten.indexOf(":");
   if (i <= 0 || ten.slice(i + 1).trim() === "") return { dau: "", sau: ten };
   return { dau: ten.slice(0, i + 1), sau: ten.slice(i + 1) };
+}
+
+/**
+ * Các mục của khung danh sách (web/catalog-picker.ts) theo chữ tìm, nhóm đang chọn ("" = Tất cả) và mã gắn sao. Có chữ tìm: tìm trong MỌI nhóm (`conKetQua` = nhóm
+ * còn dòng, để làm mờ nhóm hết kết quả), "Tất cả" chia mục theo nhóm không có mục Hay dùng, đã thu hẹp một nhóm thì dịch vụ gắn sao lên đầu. Không tìm: "Tất cả" (có nhóm)
+ * = mục "★ Hay dùng" + mục theo nhóm; một nhóm (hoặc danh mục không có nhóm) = một khối, dịch vụ gắn sao lên đầu.
+ */
+export function dungMucDanhMuc<T extends { code: string; name: string; groupCode: string | null }>(
+  items: readonly T[],
+  o: { kim: string; nhom: string; ghim: readonly string[]; groups: readonly { code: string; name: string }[] },
+): { muc: MucDanhMuc<T>[]; conKetQua: ReadonlySet<string> | null } {
+  const coNhom = o.groups.length > 0;
+  if (o.kim.trim() !== "") {
+    const khop = locDanhMuc(items, { kim: o.kim });
+    const trongNhom = o.nhom === "" ? khop : xepGhimTruoc(locTheoNhom(khop, ghiNhoMotNhom(o.nhom)), o.ghim);
+    return { muc: coNhom ? chiaMuc(trongNhom, o.groups, null) : [{ khoa: "", tieuDe: "", dong: trongNhom }], conKetQua: nhomConKetQua(khop) };
+  }
+  if (o.nhom === "" && coNhom) return { muc: chiaMuc(items, o.groups, o.ghim), conKetQua: null };
+  return { muc: [{ khoa: o.nhom, tieuDe: "", dong: xepGhimTruoc(locTheoNhom(items, ghiNhoMotNhom(o.nhom)), o.ghim) }], conKetQua: null };
 }
