@@ -3,8 +3,8 @@
 - **Trạng thái:** **proposed**. Chủ dự án chưa duyệt văn bản này. Lựa chọn nền đã có lời chủ: chat 2026-10-18, hộp chọn «Khi HDV báo trên Nền tảng rằng khách đã trả tiền cho đại lý (hoặc trả tại quầy nhà cung cấp), máy nên ghi thế nào?» → *«Chờ Kế toán xác nhận (Recommended)»*. Câu trả lời đó chưa phải lời duyệt ADR: văn bản này đi cùng lượt duyệt sổ đại lý đợt 2 (`trinh-chu.md` cùng thư mục). Từ khi duyệt: chuyển tệp vào `docs/adr/`, đổi dòng này thành **accepted** kèm câu duyệt nguyên văn.
 - **Số:** 0130 là số kế tiếp theo mục lục `docs/adr/README.md` (đọc 2026-10-18); kiểm lại lúc duyệt.
 - **Loại:** việc lớn (tiền + dữ liệu). Đường ghi một chiều (dòng sổ chỉ đảo, không xoá); luật đảo được bằng ADR mới.
-- **Sửa:** ADR-0078 điều 8 gạch 2 (khuyến nghị C6 (A), «nợ ở người khai tới khi Kế toán xác nhận»); tiêu chí nghiệm thu 3b của ADR-0078; câu C6 ở `docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/cau-hoi-chu.md` (lời chủ 18/10 thay phương án A cũ). Không sửa thân ADR cũ.
-- **Xây trên lỗ đang hở:** TNV-G3, TNV-G4 (vùng sổ tiền, `docs/quyen-hoan.json`); lý do và điều kiện xin chủ ở `trinh-chu.md`.
+- **Thay:** ADR-0078 điều 8 gạch 2 (khuyến nghị C6 (A), «nợ ở người khai tới khi Kế toán xác nhận») và tiêu chí nghiệm thu 3b của ADR-0078. Lựa chọn C6 = A ghi ở `docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/cau-hoi-chu.md` là hồ sơ có ngày nên **không sửa tệp đó**; lời chủ 18/10 thay nó. Không sửa ADR-0078; như các ADR trước, dòng của ADR-0130 trong mục lục `docs/adr/README.md` ghi «Sửa ADR-0078 điều 8 gạch 2».
+- **Xây trên lỗ đang hở:** ADR này nằm trong đợt 2, nên chịu chung năm lỗ của đợt 2: TNV-G1, TNV-G3, TNV-G4, HC-4.2, HC-5.19 (`docs/quyen-hoan.json`). Lý do, điều kiện và lời cho phép xin chủ ở `trinh-chu.md` quyết định 3.
 
 ## Vì sao phải quyết lại
 
@@ -16,7 +16,7 @@ Ngày 1/10 chủ chọn C6 = A với lý do «giống hệt cách đã chọn ch
 ## Quyết định
 
 1. **Người khai không giữ ô `ledger.write`** (HDV đang phụ trách, Bán hàng, Quản trị, Thực tập… những người có `payment.receive` trên đơn) ghi «khách đã trả cho **bên đặt (đại lý) của đơn**» hoặc «khách trả tại **quầy nhà cung cấp của một dòng làm đại lý** trên đơn» (giới hạn số tiền và người thu như ADR-0078 điều 7). Lần thu được lưu với người thu như lời khai (vai `BOOKER` / `SUPPLIER`), kèm dấu `DECLARED` ở bảng đối chiếu của ADR-0120 (`bil_receipt_recon`, mở rộng phạm vi). **Không sinh dòng giữ hộ cho ai.** Đơn có khoản như vậy thì chưa «Đã giao» được (lý do giữ «đang đối chiếu», nói rõ khoản nào, chờ Kế toán).
-2. **Kế toán hoặc Toàn quyền bấm «Bên kia đã nhận».** Máy ghi dấu `CONFIRMED` cộng một dòng giữ hộ **bên kia → Tour Đảo** đúng số đó trong **một lô**. Lô dùng một loại phiếu mới (tên đề xuất `COUNTERPARTY_CONFIRMED`, chốt ở kế hoạch); dòng mang `receipt_id` của lần thu gốc, để đường đảo lần thu sẵn có đảo đủ dòng. Bên kia **không nhận** thì Kế toán đảo lần thu. Việc đảo làm được vì đơn chưa «Đã giao».
+2. **Kế toán hoặc Toàn quyền bấm «Bên kia đã nhận».** Máy ghi dấu `CONFIRMED` cộng một dòng giữ hộ **bên kia → Tour Đảo** đúng số đó trong **một lô**. Lô dùng một loại phiếu mới `COUNTERPARTY_CONFIRMED` («Bên kia đã nhận», phiếu một đơn); dòng mang `receipt_id` của lần thu gốc, để đường đảo lần thu sẵn có đảo đủ dòng. Bên kia **không nhận** thì Kế toán đảo lần thu. Việc đảo làm được vì đơn chưa «Đã giao».
 3. **Không đổi** hai đường ghi trực tiếp:
    - Tài khoản Đối tác ghi chính mình là người thu (`BOOKER`, ADR-0078 điều 8 gạch 1) ⇒ dòng giữ hộ sinh ngay trên chính họ, vì người ghi chính là người nợ.
    - Kế toán / Toàn quyền ghi thẳng người thu `BOOKER` / `SUPPLIER` ⇒ dòng giữ hộ sinh ngay, vì người ghi chính là người xác nhận (ADR-0026 điều 2).
@@ -26,6 +26,7 @@ Ngày 1/10 chủ chọn C6 = A với lý do «giống hệt cách đã chọn ch
 ## Hệ quả
 
 - HDV phải chờ Kế toán thì đơn mới «Đã giao» được, nếu đơn có phần khách trả cho đại lý / tại quầy. Ô «chờ đối chiếu» trên «Việc của bạn» của Kế toán (đã có cho ADR-0120) gộp thêm khoản loại mới. Khoản chờ quá 3 ngày được nhắc theo cùng luật.
+- Mọi chỗ hôm nay hiểu «đang đối chiếu» là «chỉ người thu Công ty» phải nhận thêm hai vai mới cùng lúc: danh sách chờ và bộ đếm nhắc của Kế toán, luật «khoản mới có phải đối chiếu không», view cọc của đơn và trigger đảo cọc (migration 0099). Sót một chỗ thì đơn bị giữ mà Kế toán không thấy trong danh sách, hoặc tiền cọc tính sai.
 - Ví dụ C-4 và ca vàng SV-HT-03 (khách trả 400.000 tại quầy i-resort) cho cùng số dư cuối khi Kế toán đã xác nhận. Trước lúc xác nhận, không ai mang khoản 400.000 đó.
 - Sổ đối tác (ADR-0081 điều 4, đợt 3): lời ghi «`minhKhaiChoXacNhan` … vẫn là nợ của mình theo H3» không còn đúng cho khoản loại này. Đối tác chỉ tự ghi được chính mình (sinh nợ ngay), nên trường đó chỉ còn chứa khoản «Công ty thu – chuyển khoản» đối tác khai (ADR-0120). Sửa câu này ở lượt duyệt đợt 3.
 

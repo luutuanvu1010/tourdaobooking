@@ -2,38 +2,66 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **TRẠNG THÁI: CHỜ CHỦ DUYỆT.** Không thi công trước khi chủ duyệt `docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/trinh-chu.md` (ba quyết định) và ADR-0130 đã vào `docs/adr/`. Phiên lập kế hoạch không tự thi công (Hiến pháp P15). Người thi công không tự nghiệm thu (N8): mỗi task có người kiểm độc lập chỉ-đọc (vai `nguoi-kiem-doc-lap`).
+> **TRẠNG THÁI: CHỜ CHỦ DUYỆT** (bản 2, sửa theo người kiểm độc lập vòng 1). Không thi công trước khi:
+> - chủ duyệt ba quyết định ở `docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/trinh-chu.md`;
+> - ADR-0130 đã vào `docs/adr/`.
+>
+> Phiên lập kế hoạch không tự thi công (Hiến pháp P15). Người thi công không tự nghiệm thu (N8): mỗi task có người kiểm độc lập chỉ-đọc (vai `nguoi-kiem-doc-lap`).
 
 **Goal:** Đơn có bên đặt là đại lý (người hưởng hoa hồng) đi trọn đường tới «Đã giao – đã thu đủ», và sổ ghi ngay ai nợ ai: hoa hồng, giảm giá bên đặt chịu, giá vốn nhà cung cấp.
 
-**Architecture:** `billing` sinh dòng thương mại trong lô «Đã giao», dùng số do `orders.phanThuongMaiCuaDon` dựng từ bản chụp (một nguồn tính, `src/shared/hoa-hong-dong.ts`). Hai lớp CSDL canh: câu ghi của `orders` và trigger của `billing`. Người thu `BOOKER` / `SUPPLIER` mở theo ADR-0130: người không giữ `ledger.write` chỉ khai (dấu `DECLARED`, không tạo nợ), Kế toán xác nhận thì sinh dòng giữ hộ. Trần giảm giá trên đơn có người hưởng = tổng hoa hồng, áp cho mọi người.
+**Architecture:**
+- Route «Đã giao» của `billing` hỏi `can()`, gọi hàm công bố `orders.phanThuongMaiCuaDon`, rồi truyền phần thương mại xuống `billing/service.ts`. Ở đó luật thuần sinh dòng thương mại vào cùng lô.
+- Hai lớp CSDL canh: câu ghi của `orders` và trigger của `billing`.
+- Người thu `BOOKER` / `SUPPLIER` mở theo ADR-0130: người không giữ `ledger.write` chỉ khai (dấu `DECLARED`, không tạo nợ); Kế toán xác nhận thì sinh dòng giữ hộ.
+- Trần giảm giá trên đơn có người hưởng = tổng hoa hồng, áp cho mọi người.
 
-**Tech Stack:** TypeScript, Cloudflare Worker + D1 (SQLite), esbuild, `node --test` (Node 22, chạy `.ts` trực tiếp), khung thử `tests/audit/harness.mjs` (cả ứng dụng + SQLite đủ migration), e2e `tests/e2e/*.mjs`.
+**Tech Stack:**
+- TypeScript, Cloudflare Worker + D1 (SQLite), esbuild.
+- Chạy kiểm bằng `node --test` (Node 22, chạy `.ts` trực tiếp).
+- Khung thử `tests/audit/harness.mjs` (`world`, `seedStaff`: cả ứng dụng + SQLite đủ migration).
+- E2e `tests/e2e/*.mjs` (đăng nhập qua `login()` / `session()` của `tests/e2e/lib.mjs`).
 
-**Spec:** `docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/README.md` (đặc tả, mục P1–P9), cùng thư mục: `trang-ghep.md`, `de-xuat-adr-khach-tra-ben-kia.md` (ADR-0130), `phieu-ke-toan.md`. ADR gốc: ADR-0078 (B2), ADR-0079, đã sửa câu bởi ADR-0088, 0092, 0109, 0115, 0120. Đọc đặc tả trước kế hoạch; lệch nhau thì đặc tả thắng, rồi tới ADR.
+**Spec:**
+- Đặc tả: `docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/README.md`, mục P1–P9.
+- Cùng thư mục: `trang-ghep.md`, `de-xuat-adr-khach-tra-ben-kia.md` (ADR-0130), `phieu-ke-toan.md`.
+- ADR gốc: ADR-0078 (B2, điều 5), ADR-0079, ADR-0061 A-14; đã sửa câu bởi ADR-0088, 0092, 0109, 0115, 0120.
+- Lệch nhau thì đặc tả thắng kế hoạch, ADR thắng đặc tả.
 
 ## Global Constraints
 
-- Chữ người dùng thấy, lỗi, commit, tài liệu: **tiếng Việt có dấu**. Không lộ mã thô (`HOA_HONG`, `terms_missing`…). Gọi hệ thống là «Nền tảng».
-- Tiền là `INTEGER` VNĐ. Số dẫn xuất **chỉ tính ở máy chủ**. Làm tròn nửa lên theo dòng (`lamTronNuaLen`). **Một nguồn tính**: hoa hồng / giá vốn chỉ qua `hoaHongDong` / `giaVonDong` của `src/shared/hoa-hong-dong.ts` (hàng rào `src/hoa-hong-mot-nguon.test.ts`).
-- Giảm giá bên đặt chịu = **giảm giá hiệu lực** (ADR-0109) = `effectiveMoney` ở `orders/money-adjustment.ts`. Không tự tính `min()` lần hai.
-- Thiếu mức ⇒ giữ đơn. **Không bao giờ tự lấy 0** (Hiến chương 5.7).
-- Không xoá cứng; dòng sổ chỉ đảo. Migration chỉ thêm tệp mới, số dự kiến **`0111`** (tạm; `0098` đang bị nhánh đưa đón chưa gộp giữ). Lúc gộp, kiểm lại bằng `ls migrations` và `git ls-tree --name-only <nhánh> migrations/` cho mọi nhánh chưa gộp.
-- Bản dự kiến **`2.18`** (tạm, kiểm `changelog.ts` ở `main` lúc gộp).
-- Module chỉ import nhau qua `index.ts`; chỉ module chủ ghi bảng của mình; đọc xuyên module chỉ qua view `v_<tiền tố>_*`; `billing` **không có cạnh tới `pricing`** (dùng `src/shared/`).
-- Mọi route ghi hỏi `can()` ở dòng đầu thân. POST cần header `Origin` cùng site. Nhật ký không ghi SĐT / email / MST.
-- Tài khoản giữ quyền Đối tác (kể cả lai — `holdsPartner`) **không bao giờ** thấy: a%, giá vốn, tên người thu, tiền người khác đang giữ, hoa hồng của bên khác.
-- Hàng rào mới phải **thấy chặn thật một lần** (sửa cố ý → đỏ → hoàn nguyên) và có dòng ở `docs/SO-HANG-RAO.md` kèm ngày.
-- Sửa hành vi: bài **đỏ trước, xanh sau**. Chạm API / migration ⇒ chạy cả e2e. Sửa giao diện ⇒ kịch bản Chrome tương ứng (`web/CLAUDE.md`).
-- AI **không** chạy: `git push`, gộp vào `main`, `wrangler deploy`, migration remote, ghi D1 remote. Câu đếm production do chủ chạy.
+- **Ngôn ngữ:** chữ người dùng thấy, lỗi, commit, tài liệu đều **tiếng Việt có dấu**; không lộ mã thô; gọi hệ thống là «Nền tảng».
+- **Tiền:**
+  - Tiền là `INTEGER` VNĐ; số dẫn xuất chỉ tính ở máy chủ; làm tròn nửa lên theo dòng.
+  - Hoa hồng / giá vốn chỉ qua `hoaHongDong` / `giaVonDong` / `tinhDongDoiTac` của `src/shared/hoa-hong-dong.ts` (hàng rào `src/hoa-hong-mot-nguon.test.ts`).
+  - **Giảm giá bên đặt chịu** = Σ thành tiền trước giảm (`gross_snapshot`) − phải thu đã chụp (`due_snapshot`). Công thức này đúng nghĩa «giảm giá hiệu lực» của ADR-0109 mà không tính `min()` lần hai; không import `effectiveMoney` của `orders`, vì hàm này không công bố.
+  - Thiếu mức ⇒ giữ đơn. Không bao giờ tự lấy 0.
+- **Ranh giới module:**
+  - `phanThuongMaiCuaDon` chỉ được gọi trong **thân route** ở `index.ts`, sau `can(` (`src/orders-cong-bo.test.ts`). `billing/service.ts` nhận dữ liệu do route truyền xuống.
+  - `orders` không import `billing`: kiểu mới của `billing` không được nằm trong chữ ký mà `orders` phải dựng.
+  - `billing` không có cạnh tới `pricing`: dùng `src/shared/`.
+- **Dữ liệu:**
+  - Không xoá cứng; dòng sổ chỉ đảo.
+  - Migration chỉ thêm tệp mới, số dự kiến `0111`, `0112` (tạm; `0098` đang bị nhánh đưa đón giữ). Lúc gộp kiểm lại bằng `ls migrations` và `git ls-tree --name-only <nhánh> migrations/` cho mọi nhánh chưa gộp. Bản dự kiến `2.18` (tạm).
+  - Ngày dân sự theo giờ Việt Nam (`vnToday`); dấu thời gian ISO UTC.
+- **Quyền và nhật ký:**
+  - Route ghi hỏi `can()` ở dòng đầu thân. POST cần `Origin` cùng site.
+  - Nhật ký không ghi SĐT / email / MST; hành động mới khai ở `src/shared/audit-actions.ts` có nhãn tiếng Việt.
+  - Tài khoản giữ quyền Đối tác (`holdsPartner`, kể cả lai) không bao giờ thấy: a%, giá vốn, tên người thu khác, tiền người khác giữ, hoa hồng của bên khác.
+  - Người không có `supply.terms.view` không suy ra được giá vốn.
+- **Kiểm:**
+  - Mỗi hàng rào mới: **quan sát chặn thật** (sửa cố ý → đỏ → hoàn nguyên), ghi ngày vào sổ thi công và `docs/SO-HANG-RAO.md`.
+  - Sửa hành vi: đỏ trước, xanh sau.
+  - Chạm API / migration ⇒ chạy e2e. Sửa giao diện ⇒ kịch bản Chrome tương ứng (`web/CLAUDE.md`).
+- **AI không chạy:** `git push`, gộp vào `main`, `wrangler deploy` / `rollback`, migration remote, ghi D1 remote. Câu đếm production do chủ chạy.
 
 ## Review Focus
 
-1. **Đơn khách lẻ cũ xác nhận trước 12/10, chưa có bản chụp** — sau khi bản lên phải «Đã giao» được như hôm nay, nhờ b1 chụp bù trong cùng lần phát hành. Ngoại lệ duy nhất là nhóm b1x (có dịch vụ mang điều khoản SERVICE / GROUP): nhóm này chờ Kế toán «Chụp bù», và số đơn đã được đếm và báo chủ trước khi phát hành. Ca kiểm ở Task 4 và Task 6.
-2. **Đơn có người hưởng mà một dòng là dịch vụ nhập tay** — luôn bị giữ `terms_missing` cho tới khi Kế toán ghi mức tay. Không được lọt vì dòng nhập tay không có `catalog_code`. Ca ở Task 4.
-3. **Lần thu khai «khách trả đại lý» rồi bị đảo, sau đó khai lại** — đơn hết «đang đối chiếu» đúng lúc, không sót dấu chờ, không dòng mồ côi. Ca ở Task 5.
-4. **Giảm số khách sau xác nhận làm hoa hồng < giảm giá** — không chặn; «Đã giao» vẫn ghi `GIAM_GIA_BEN_DAT` = giảm giá hiệu lực, và R-BIL-2 không báo sai. Ca ở Task 3 và Task 7.
-5. **Tài khoản lai Bán hàng + Đối tác xem đơn đại lý của chính mình** — không thấy tên HDV đã thu, không thấy câu «<tên> đang giữ». Ca ở Task 9.
+1. **Đơn khách lẻ cũ xác nhận trước 12/10, chưa có bản chụp:** sau khi bản lên, «Đã giao» được nhờ `0112` (b1, đúng chữ ADR-0079 điều 7b1). Không đơn khách lẻ nào bị giữ thêm, trừ đơn có **dịch vụ nhập tay** (đã duyệt, A-14). Ca ở Task 4, Task 6.
+2. **Đơn đại lý có một dòng nhập tay:** luôn giữ `terms_missing` cho tới khi Kế toán ghi tay; không lọt vì dòng nhập tay không có `catalog_code`. Ca ở Task 4.
+3. **Lời khai «khách trả đại lý» bị đảo rồi khai lại:** dấu chờ và ô «chờ đối chiếu» của Kế toán đúng ở mọi bước; không dòng mồ côi; view cọc khớp mã. Ca ở Task 5.
+4. **Bớt khách sau xác nhận làm hoa hồng < giảm giá:** không chặn. «Đã giao» ghi `GIAM_GIA_BEN_DAT` = gross − due, R-BIL-2 không báo sai. Ca ở Task 3, Task 7.
+5. **Tài khoản lai Bán hàng + Đối tác, và tài khoản Bán hàng thuần:** người lai không thấy tên HDV đã thu và câu «<tên> đang giữ». Bán hàng không thấy số dư nhà cung cấp. Ca ở Task 9.
 
 ---
 
@@ -41,328 +69,459 @@
 
 | Tệp | Việc |
 |---|---|
-| `migrations/0111_so_dai_ly_dot_2.sql` (tạo) | loại dòng, loại phiếu, vai người thu, `gross_snapshot`, trigger lớp 2 và (i)–(iv), mở rộng dấu đối chiếu, mốc kiểm định kỳ, view «chưa chụp» |
-| `migrations/0112_chup_bu_khach_le.sql` (tạo, có điều kiện) | chụp bù b1 một lần. **Bỏ tệp** nếu câu đếm của chủ cho b1 = 0 |
-| `src/modules/billing/rules.ts` | `sinhPhieuDaGiao`, `lyDoChuaGiaoDuoc`, `kiemVuotGiaBan`, `LineDraft.orderServiceId`, kiểu `DebtKind` |
-| `src/modules/billing/service.ts` | `docLanThu` (người thu mới), `cauLanThu` (dấu `DECLARED`), `daGiao` (lô thương mại), `xacNhanBenKia` (mới) |
-| `src/modules/billing/repository.ts` | `LINE_IF_POSTING` mang `order_service_id`; `POSTING_COLS` mang `gross_snapshot`; `RECEIPT_VALUES` mang `collected_for_party_id` |
-| `src/modules/billing/index.ts` | route `POST /api/ledger/counterparty-receipts/:receiptId/confirm`; DTO lần thu hẹp cho Đối tác |
+| `migrations/0111_so_dai_ly_dot_2.sql` (tạo) | loại dòng, loại phiếu, vai người thu, `gross_snapshot`, trigger lớp 2 và (i)–(iv), dấu đối chiếu nhận vai mới, view / trigger cọc tạo lại, `bil_posting_order_required`, mốc kiểm định kỳ, view «chưa chụp» |
+| `migrations/0112_chup_bu_khach_le.sql` (tạo, có điều kiện) | chụp bù b1 một lần; **bỏ tệp** nếu câu đếm b1 = 0 |
+| `src/modules/billing/rules.ts` | `DebtKind`, `LineDraft.orderServiceId`, `DongThuongMai`, `TinhTrangThuongMai`, `tinhTrangThuongMai`, `sinhPhieuDaGiao`, `lyDoChuaGiaoDuoc`, `khoanMoiDoiChieu`, `canDoiChieu`, câu «<bên> đang giữ» |
+| `src/modules/billing/service.ts` | `docLanThu`, `cauLanThu`, `daGiao`, `tienCuaDon`, `xacNhanBenKia` (mới), `lyDoChuaHoanThanh` theo người xem |
+| `src/modules/billing/repository.ts` | `LINE_IF_POSTING` mang `order_service_id`; `POSTING_COLS` mang `gross_snapshot`; `RECEIPT_VALUES` mang `collected_for_party_id`; `PENDING_COMPANY` nhận vai mới |
+| `src/modules/billing/index.ts` | route `POST /api/ledger/counterparty-receipts/:receiptId/confirm`; route `…/delivered`, `…/payments` gọi `phanThuongMaiCuaDon` sau `can(` |
 | `src/modules/billing/dieu-chinh.ts` | `loaiDong` nhận ba loại mới |
-| `src/modules/orders/hoan-tat-repo.ts`, `hoan-tat.ts` | lớp 1 của câu «Đã giao»; `ThongTinGiaoDon.thuongMai` thay `coNguoiHuong` |
-| `src/modules/orders/index.ts`, `thuong-mai.ts` | route chụp bù + danh sách chờ; thứ tự Xác nhận (chụp trước, kiểm trần sau) |
+| `src/modules/orders/hoan-tat-repo.ts` | lớp 1 của câu «Đã giao» |
+| `src/modules/orders/index.ts`, `thuong-mai-repo.ts` | route chụp bù + danh sách chờ; thứ tự Xác nhận (chụp trước, kiểm trần sau) |
 | `src/modules/orders/price-guards.ts` | trần giảm giá theo người hưởng |
-| `src/modules/receipt/rules.ts`, `src/shared/contracts.ts` | `ReceiptDto.phan[]`, `LanThuInput.nguoiThu` mới |
-| `scripts/audit-checks.mjs` | R-BIL-2, R-BIL-5, R-BIL-12, R-BIL-16, R-ORD-DC1, R-BIL-13, R-BIL-S9 |
+| `src/modules/receipt/rules.ts`, `src/shared/contracts.ts` | `ReceiptDto.phan[]`; `LanThuInput.nguoiThu`, `thuChoNhaCungCapPartyId` |
+| `scripts/audit-checks.mjs` | R-BIL-2, R-BIL-5, R-BIL-12, R-BIL-16, R-ORD-DC1, R-BIL-S9 (R-BIL-13 giữ nguyên) |
 | `golden/so-cong-no-luot-2.json` | C-1…C-5 (`cho_xac_nhan`) |
-| `web/order.ts`, `web/order-form.ts`, `web/home.ts` (Việc của bạn), trang mới `web/chup-bu.ts` | giao diện |
+| `web/order.ts`, `web/order-form.ts`, `web/home.ts`, trang mới `web/chup-bu.ts` | giao diện |
 | `tests/e2e/so-dai-ly-dot-2.mjs` (tạo), `tests/e2e/nhap-tay-va-gia-doi-tac.mjs` | e2e |
 
 ---
 
-### Task 0: Kiểm trước khi thi công, mở sổ thi công, câu đếm cho chủ
+### Task 0: Điều kiện, sổ thi công, câu đếm cho chủ, ca vàng
 
 **Files:**
 - Create: `docs/superpowers/plans/2026-10-18-so-dai-ly-dot-2-thi-cong-nhat-ky.md` (Ruling, Quan sát chặn thật, Nợ — khuôn sổ đợt 1)
 - Create: `docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/cau-dem-chi-doc.sql`
-- Modify: `golden/so-cong-no-luot-2.json` (thêm C-1…C-5)
+- Modify: `golden/so-cong-no-luot-2.json`
 
-- [ ] **Step 1: Xác nhận điều kiện.** ADR-0130 có trong `docs/adr/` với trạng thái accepted; `trinh-chu.md` có lời duyệt của chủ cho cả ba quyết định; `docs/quyen-hoan.json` có lời cho phép «xây trên» (trường `xay_tren_cho_phep`) cho TNV-G1, TNV-G3, TNV-G4, HC-4.2 **do chủ ghi**. Thiếu một điều thì DỪNG, báo điều phối.
-- [ ] **Step 2: Soạn bốn câu đếm chỉ-đọc** (một tệp SQL, mỗi câu một dòng, có chú thích lời thường). Chủ chạy bằng `wrangler d1 execute tourdao-sales-db --remote --command "<câu>"`.
-  - (a) Đơn đã «Đã giao» có dòng dịch vụ mà điều khoản cung ứng hiện hành có nhà cung cấp.
-  - (b1) Đơn `confirmed`, chưa giao, không bản chụp nào, bên đặt không mang vai được hưởng / vai nhóm bên ngoài / loại đối tác, không dòng nhập tay.
-  - (b1x) Trong số (b1): đơn có dịch vụ mang dòng điều khoản SERVICE / GROUP.
-  - (b2) Đơn `confirmed`, chưa giao, không bản chụp nào, còn lại.
-  - (d) Đơn có bản chụp người hưởng đang chờ «Đã giao».
-  Ghi kết quả chủ dán vào sổ thi công. **b1 = 0 ⇒ bỏ Task 6 phần b1 và tệp `0112`.**
-- [ ] **Step 3: Thêm C-1…C-5 vào `golden/so-cong-no-luot-2.json`**, đúng khuôn ca B-3: `xac_nhan.trang_thai = "cho_xac_nhan"`. Số lấy nguyên văn từ ADR-0079 «Ví dụ bằng số» và `phieu-ke-toan.md`. Chạy `node --test src/so-vang-so-dai-ly.test.ts`; kỳ vọng: xanh, ca mới hiện là `todo`.
-- [ ] **Step 4: Spike `gross_snapshot` trên SQLite của khung thử.** Thử `ALTER TABLE bil_posting ADD COLUMN gross_snapshot INTEGER CHECK (...)` tham chiếu `kind_code`. Ghi kết quả vào sổ (Ruling R-1): được thì dùng `CHECK`, không được thì dùng trigger `BEFORE INSERT`.
-- [ ] **Step 5: Commit** — `git add docs/ golden/ && git commit -m "Sổ đại lý đợt 2: mở sổ thi công, câu đếm chỉ-đọc, ca vàng C-1…C-5 chờ xác nhận"`.
+- [ ] **Step 1: Xác nhận điều kiện.** Thiếu một điều thì DỪNG, báo điều phối.
+  - ADR-0130 có ở `docs/adr/`, trạng thái accepted.
+  - `trinh-chu.md` có lời duyệt của chủ cho ba quyết định.
+  - Trường `xay_tren_cho_phep` của TNV-G1, TNV-G3, TNV-G4, HC-4.2, HC-5.19 trong `docs/quyen-hoan.json` có câu **nhắc «sổ đại lý đợt 2»**. Dòng cho phép cũ của đặc tả QR ngày 8/10 **không tính**.
+- [ ] **Step 2: Soạn câu đếm chỉ-đọc.** Một tệp SQL, mỗi câu một dòng, có chú thích lời thường. Chủ chạy bằng `wrangler d1 execute tourdao-sales-db --remote --command "<câu>"`.
+  - (a) đơn đã «Đã giao» có dòng mà điều khoản cung ứng hiện hành có nhà cung cấp;
+  - (b1) đơn `confirmed`, chưa giao, không bản chụp nào, bên đặt không mang vai được hưởng / nhóm bên ngoài / loại đối tác, không dòng nhập tay;
+  - (b1x) trong (b1): đơn có dịch vụ đang mang điều khoản SERVICE / GROUP có nhà cung cấp — **danh sách mã đơn** cho Kế toán;
+  - (b2) đơn `confirmed`, chưa giao, không bản chụp, còn lại;
+  - (b3) đơn có bản chụp hiện hành `MISSING`, chưa giao;
+  - (e) đơn khách lẻ `confirmed`, chưa giao, có dòng nhập tay (sẽ bị giữ theo A-14);
+  - (sau) câu đếm sau phát hành: số bản chụp `source = 'AUTO'` có `created_at` ≥ giờ áp `0112`.
+
+  Kết quả chủ dán vào sổ thi công. (b1) = 0 ⇒ bỏ tệp `0112` và phần b1 của Task 6.
+- [ ] **Step 3: Thêm C-1…C-5** vào `golden/so-cong-no-luot-2.json` (khuôn ca B-3, `xac_nhan.trang_thai = "cho_xac_nhan"`; số theo ADR-0079 «Ví dụ bằng số», khớp `phieu-ke-toan.md`). Chạy `node --test src/so-vang-so-dai-ly.test.ts`: xanh, ca mới là `todo`.
+- [ ] **Step 4: Spike `gross_snapshot`** trên SQLite của khung thử: `ALTER TABLE bil_posting ADD COLUMN gross_snapshot INTEGER CHECK (...)` tham chiếu `kind_code`. Ghi Ruling R-1: được thì dùng `CHECK`, không thì dùng trigger `BEFORE INSERT`.
+- [ ] **Step 5: Commit** — «Sổ đại lý đợt 2: mở sổ thi công, câu đếm chỉ-đọc, ca vàng C-1…C-5 chờ xác nhận».
 
 ### Task 1: Hàng rào «một nguồn tính hoa hồng» bắt thêm dạng bọc (BL-VA-RAO-K3)
 
-**Files:**
-- Modify: `src/hoa-hong-mot-nguon.test.ts`
+**Files:** Modify: `src/hoa-hong-mot-nguon.test.ts`
 
-**Interfaces:** Produces: hàng rào chạy trong `npm test`; Task 2–5 phải qua nó.
-
-- [ ] **Step 1: Viết ca đỏ** — trong tệp test, thêm mẫu chuỗi giả: `Number(rateBp) * thanhTien`, `((rateBp)) * x`, `CAST(rate_bp AS INTEGER) * …`, `IFNULL(rate_bp, 0) * …`; khẳng định bộ quét báo cả bốn (`assert.equal(viPham.length, 4)`).
-- [ ] **Step 2: Chạy** `node --test src/hoa-hong-mot-nguon.test.ts` — kỳ vọng FAIL (bộ quét hôm nay bỏ sót).
-- [ ] **Step 3: Mở rộng bộ quét** (regex trên mã TS và chuỗi SQL) cho bốn dạng; cập nhật phần GIỚI HẠN ở đầu tệp.
-- [ ] **Step 4: Chạy lại** — PASS. Quan sát chặn thật: chèn tạm `IFNULL(rate_bp,0)*2` vào một chuỗi SQL bất kỳ trong `src/modules/billing/` → đỏ → hoàn nguyên. Ghi ngày vào `docs/SO-HANG-RAO.md`.
+- [ ] **Step 1: Viết ca đỏ.** Bốn mẫu chuỗi: `Number(rateBp) * thanhTien`, `((rateBp)) * x`, `CAST(rate_bp AS INTEGER) * …`, `IFNULL(rate_bp, 0) * …`. Khẳng định bộ quét báo đủ bốn.
+- [ ] **Step 2: Chạy** `node --test src/hoa-hong-mot-nguon.test.ts`. Kỳ vọng FAIL.
+- [ ] **Step 3: Mở rộng bộ quét** (regex trên mã TS và chuỗi SQL); cập nhật phần GIỚI HẠN ở đầu tệp.
+- [ ] **Step 4: Chạy lại**, PASS. Quan sát chặn thật: chèn tạm `IFNULL(rate_bp,0)*2` vào một chuỗi SQL trong `src/modules/billing/` → đỏ → hoàn nguyên. Ghi ngày.
 - [ ] **Step 5: Commit** — «Hàng rào một nguồn tính hoa hồng: bắt biến bị bọc, CAST và IFNULL (BL-VA-RAO-K3)».
 
 ### Task 2: Migration `0111` và bài kiểm migration
 
-**Files:**
-- Create: `migrations/0111_so_dai_ly_dot_2.sql`
-- Create: `src/migrations-so-dai-ly-dot-2.test.ts`
-- Modify: `docs/data-dictionary.json` rồi `npm run dict`
+**Files:** Create `migrations/0111_so_dai_ly_dot_2.sql`, `src/migrations-so-dai-ly-dot-2.test.ts`. Modify `docs/data-dictionary.json`, rồi `npm run dict`.
 
-**Interfaces:**
-- Produces (tên CSDL các task sau dùng):
-  - `bil_debt_kind`: `HOA_HONG` («Hoa hồng»), `GIAM_GIA_BEN_DAT` («Giảm giá bên đặt chịu»), `GIA_VON` («Giá vốn nhà cung cấp»);
-  - `bil_posting_kind`: `COUNTERPARTY_CONFIRMED` («Bên kia đã nhận»);
-  - `bil_collector_role.SUPPLIER.active = 1`;
-  - `bil_posting.gross_snapshot INTEGER NULL`;
-  - view `v_ord_terms_uncaptured(order_id, order_service_id)` của `orders`: dòng dịch vụ của đơn đã xác nhận không có bản chụp hiện hành nào;
-  - trigger `bil_posting_delivered_terms`;
-  - chỉ mục `bil_debt_line_one_commercial`;
-  - trigger `bil_debt_line_commercial_*` (i)–(iv);
-  - `bil_receipt_recon_declared` (tạo lại, nhận thêm `BOOKER` / `SUPPLIER`);
-  - `bil_receipt_recon_confirmed_txn` (tạo lại, chỉ người thu `COMPANY`);
-  - dòng `bil_audit_cutoff`: `R-BIL-2`, `R-BIL-5`, `R-BIL-12`, `R-BIL-16`; dòng `ord_audit_cutoff`: `R-ORD-DC1`.
+**Interfaces — Produces** (tên CSDL các task sau dùng):
 
-- [ ] **Step 1: Viết bài đỏ** `src/migrations-so-dai-ly-dot-2.test.ts`. Dùng `world()` của khung thử, mỗi trigger một ca, và khẳng định câu `RAISE` có tiền tố mã:
-  - `delivered_terms: còn dòng dịch vụ thiếu bản chụp`: phiếu `DELIVERED` cho đơn có dòng trong `v_ord_terms_uncaptured` hoặc `v_ord_terms_missing` ⇒ `assert.throws(…, /delivered_terms/)`.
-  - `commercial (i)`: dòng `HOA_HONG` gốc không `order_service_id` ⇒ throws; hai dòng `HOA_HONG` cùng (phiếu, dòng dịch vụ) ⇒ throws `UNIQUE`.
-  - `commercial (ii)`: dòng `HOA_HONG` có bên nợ ≠ công ty chủ ⇒ throws.
-  - `commercial (iii)`: Σ `HOA_HONG` + `GIA_VON` gốc > `gross_snapshot` ⇒ throws.
-  - `commercial (iv)`: `GIAM_GIA_BEN_DAT` ≠ `gross_snapshot − due_snapshot` ⇒ throws.
-  - **Miễn đúng chỗ:** dòng đảo của một dòng `HOA_HONG` ⇒ không throws; phiếu `ADJUSTMENT` một dòng `GIA_VON` không `order_service_id` ⇒ không throws; phiếu `DELIVERED` có `gross_snapshot` NULL ⇒ (ii)–(iv) không áp.
-  - `recon_declared`: dấu `DECLARED` cho lần thu vai `BOOKER` tiền mặt ⇒ được; vai `STAFF` ⇒ throws `recon_receipt_invalid`.
-  - `recon_confirmed_txn`: `CONFIRMED` cho lần thu `BOOKER` chuyển khoản không mã ⇒ được; `COMPANY` chuyển khoản không mã sau mốc ⇒ throws `bank_txn_required`.
-  - `delivered_reconciling`: còn dấu `DECLARED` vai `BOOKER` chưa `CONFIRMED` ⇒ phiếu `DELIVERED` throws.
-- [ ] **Step 2: Chạy** `node --test src/migrations-so-dai-ly-dot-2.test.ts` — FAIL (chưa có migration).
-- [ ] **Step 3: Viết migration** theo Interfaces. Mỗi trigger chỉ đọc bảng `bil_` hoặc view công bố (`v_ord_*`, `v_pty_owner_company`). Câu `RAISE` có tiền tố mã. Trigger `_declared` / `_confirmed_txn` tạo lại bằng `DROP TRIGGER` + `CREATE TRIGGER` cùng tên (khuôn 0099). Mốc `cutoff_at` = thời điểm áp migration (`strftime` ISO UTC).
-- [ ] **Step 4: Chạy lại** — PASS; `npm run dict`; `node --test src/architecture.test.ts src/migrations-*.test.ts` — PASS. Quan sát chặn thật cho từng trigger (ghi vào sổ thi công, phần «Quan sát chặn thật»).
-- [ ] **Step 5: Commit** — «Migration 0111 sổ đại lý đợt 2: ba loại dòng thương mại, phiếu Bên kia đã nhận, hai lớp chặn Đã giao thiếu bản chụp».
+*Loại và vai:*
+- `bil_debt_kind`: `HOA_HONG` («Hoa hồng»), `GIAM_GIA_BEN_DAT` («Giảm giá bên đặt chịu»), `GIA_VON` («Giá vốn nhà cung cấp»).
+- `bil_posting_kind`: `COUNTERPARTY_CONFIRMED` («Bên kia đã nhận»). Trigger `bil_posting_order_required` (0045) nhận loại này (phiếu một đơn).
+- `bil_collector_role`: `SUPPLIER.active = 1`.
+- `bil_posting.gross_snapshot INTEGER NULL`.
+
+*View và trigger chặn «Đã giao»:*
+- View `v_ord_terms_uncaptured(order_id, order_service_id)` của `orders`: dòng dịch vụ của đơn đã xác nhận chưa có bản chụp hiện hành.
+- Trigger `bil_posting_delivered_terms`: đọc `v_ord_terms_missing` + `v_ord_terms_uncaptured`.
+
+*Lưới số thương mại:*
+- Chỉ mục duy nhất một phần `bil_debt_line_one_commercial`.
+- Trigger `bil_debt_line_commercial_*` (i)–(iv).
+
+*Đối chiếu và cọc* — tạo lại bằng `DROP` + `CREATE` cùng tên, khuôn 0099:
+- `bil_receipt_recon_declared`: nhận thêm `BOOKER` / `SUPPLIER`, mọi hình thức.
+- `bil_receipt_recon_confirmed_txn`: chỉ người thu `COMPANY`.
+- `v_bil_coc_don` và `bil_payment_receipt_coc_reversal`: «đang đối chiếu» gồm vai mới.
+
+*Mốc kiểm định kỳ:*
+- `bil_audit_cutoff`: `R-BIL-2`, `R-BIL-5`, `R-BIL-12`, `R-BIL-16`.
+- `ord_audit_cutoff`: `R-ORD-DC1`.
+
+- [ ] **Step 1: Viết bài đỏ.** Dùng `world()`, mỗi trigger một ca, khẳng định câu `RAISE` có tiền tố mã.
+  - **Chặn «Đã giao»:**
+    - phiếu `DELIVERED` cho đơn có dòng trong `v_ord_terms_uncaptured` hoặc `v_ord_terms_missing` ⇒ throws `/delivered_terms/`.
+  - **Lưới số thương mại:**
+    - (i) `HOA_HONG` gốc không `order_service_id` ⇒ throws; hai `HOA_HONG` cùng (phiếu, dòng dịch vụ) ⇒ throws `UNIQUE`.
+    - (ii) `HOA_HONG` có bên nợ ≠ công ty chủ ⇒ throws.
+    - (iii) Σ `HOA_HONG` + `GIA_VON` gốc > `gross_snapshot` ⇒ throws.
+    - (iv) `GIAM_GIA_BEN_DAT` ≠ `gross_snapshot − due_snapshot` ⇒ throws.
+  - **Miễn đúng chỗ** (đều không throws):
+    - dòng đảo của một `HOA_HONG`;
+    - phiếu `ADJUSTMENT` một dòng `GIA_VON` không `order_service_id`;
+    - phiếu `DELIVERED` `gross_snapshot` NULL.
+  - **Đối chiếu:**
+    - `DECLARED` cho lần thu `BOOKER` tiền mặt ⇒ được; vai `STAFF` ⇒ throws `recon_receipt_invalid`.
+    - `CONFIRMED` cho `BOOKER` chuyển khoản không mã ⇒ được; `COMPANY` chuyển khoản không mã sau mốc ⇒ throws `bank_txn_required`.
+    - còn `DECLARED` vai `BOOKER` chưa `CONFIRMED` ⇒ phiếu `DELIVERED` throws `delivered_reconciling`.
+  - **Cọc:**
+    - `v_bil_coc_don` của đơn có lần thu `BOOKER` đang chờ ⇒ `dang_doi_chieu` đúng số;
+    - đảo lần thu đó qua trigger cọc ⇒ hành vi như vai `COMPANY` hôm nay.
+  - **Loại phiếu mới:** phiếu `COUNTERPARTY_CONFIRMED` không `order_id` ⇒ throws.
+- [ ] **Step 2: Chạy** `node --test src/migrations-so-dai-ly-dot-2.test.ts`. Kỳ vọng FAIL.
+- [ ] **Step 3: Viết migration** theo Interfaces.
+  - Thân trigger chỉ đọc bảng `bil_` hoặc view công bố (`v_ord_*`, `v_pty_owner_company`).
+  - `cutoff_at` = lúc áp (`strftime('%Y-%m-%dT%H:%M:%fZ','now')`).
+- [ ] **Step 4: Chạy lại**, PASS. Chạy `npm run dict`, rồi `node --test src/architecture.test.ts src/migrations-*.test.ts`, PASS. Quan sát chặn thật từng trigger, ghi sổ.
+- [ ] **Step 5: Commit** — «Migration 0111 sổ đại lý đợt 2: ba loại dòng thương mại, phiếu Bên kia đã nhận, hai lớp chặn Đã giao thiếu bản chụp, đối chiếu và cọc nhận người thu mới».
 
 ### Task 3: Luật thuần của phiếu «Đã giao» và lý do giữ
 
-**Files:**
-- Modify: `src/modules/billing/rules.ts`
-- Test: `src/modules/billing/rules.test.ts`
+**Files:** Modify `src/modules/billing/rules.ts`. Test: `src/modules/billing/rules.test.ts`.
 
-**Interfaces:**
-- Produces:
+**Interfaces — Produces:**
 ```ts
 export type DebtKind = "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON";
 export interface LineDraft { debtorPartyId: string; creditorPartyId: string; amount: number; kind: DebtKind; reversesLineId: string | null; orderServiceId?: string | null }
 export interface DongThuongMai { orderServiceId: string; tenDichVu: string; thanhTien: number; hoaHong: number | null; giaVon: number | null; nhaCungCapPartyId: string | null }
 export type TinhTrangThuongMai =
-  | { trangThai: "KHONG_NGUOI_HUONG" }                        // khách lẻ / nội bộ: như lượt 1
+  | { trangThai: "KHONG_NGUOI_HUONG" }
   | { trangThai: "DU"; nguoiHuongPartyId: string }
-  | { trangThai: "THIEU"; ma: "terms_missing" | "booker_not_beneficiary"; dichVu: readonly string[] }
+  | { trangThai: "THIEU"; ma: "terms_missing" | "booker_not_beneficiary"; dichVu: readonly string[]; canChupBu: boolean }
   | { trangThai: "VUOT"; dichVu: readonly string[] };
-// `chup` là bản chụp hiện hành từng dòng (dòng chưa chụp mang MISSING / NOT_CAPTURED — `chuaCoBanChup` của orders); `BanChup` từ src/shared/hoa-hong-dong.ts.
+// `chup`: bản chụp hiện hành từng dòng; dòng chưa chụp mang MISSING / NOT_CAPTURED (`chuaCoBanChup` của orders). BanChup từ src/shared/hoa-hong-dong.ts.
 export function tinhTrangThuongMai(v: { chup: readonly BanChup[]; dong: readonly DongThuongMai[] }): TinhTrangThuongMai;
-export function sinhPhieuDaGiao(v: { congTyId: string; nguoiHuongPartyId: string | null; giamGiaHieuLuc: number; dong: readonly DongThuongMai[] }): LineDraft[];
-// lyDoChuaGiaoDuoc: tham số `coNguoiHuong: boolean` THAY bằng `thuongMai: TinhTrangThuongMai`
+export function sinhPhieuDaGiao(v: { congTyId: string; nguoiHuongPartyId: string | null; giamGiaBenDat: number; dong: readonly DongThuongMai[] }): LineDraft[];
+// lyDoChuaGiaoDuoc: `coNguoiHuong: boolean` THAY bằng `thuongMai: TinhTrangThuongMai`. MaLyDo bỏ `booker_partner`, thêm `terms_missing`, `booker_not_beneficiary`, `terms_exceed_price`.
 ```
-- `MaLyDo` bỏ `booker_partner`, thêm `terms_missing`, `booker_not_beneficiary`, `terms_exceed_price`.
+`canChupBu = true` khi mọi dòng thiếu đều là `NOT_CAPTURED` (đơn chưa có bản chụp nào).
 
-- [ ] **Step 1: Viết bài đỏ** trong `rules.test.ts`:
-  - `sinhPhieuDaGiao — C-1 (đại lý giữ cọc, giảm 250.000)`: một dòng tour 5.000.000, hoa hồng 500.000, `giamGiaHieuLuc: 250_000` ⇒ đúng hai dòng: `{debtor: cty, creditor: A, amount: 500_000, kind: "HOA_HONG", orderServiceId: "s1"}` và `{debtor: A, creditor: cty, amount: 250_000, kind: "GIAM_GIA_BEN_DAT", orderServiceId: null}`.
-  - `C-4 (đơn trộn lễ tân)`: Hòn Tằm 1.000.000 / hoa hồng 100.000 / giá vốn null; i-resort 600.000 / hoa hồng 100.000 / giá vốn 480.000 / NCC = IR ⇒ ba dòng: `HOA_HONG` 100.000 ×2 (cty → H), `GIA_VON` 480.000 (cty → IR). Tổng hoa hồng 200.000.
-  - `hoa hồng 0 không sinh dòng`; `giảm giá 0 không sinh dòng GIAM_GIA_BEN_DAT`; `không người hưởng ⇒ chỉ GIA_VON`.
-  - `tinhTrangThuongMai`: một dòng `MISSING / NOT_CAPTURED` hoặc `NO_RULE` / `RULE_CONFLICT` / `MANUAL_LINE` ⇒ `THIEU / terms_missing`; một bản `MISSING / BOOKER_NOT_BENEFICIARY` ⇒ `THIEU / booker_not_beneficiary`; hoa hồng + giá vốn của một dòng > thành tiền dòng ⇒ `VUOT` kèm tên dịch vụ; mọi bản `NONE` ⇒ `KHONG_NGUOI_HUONG`.
-  - `lyDoChuaGiaoDuoc — thứ tự`: (đã thu đủ, qua ngày đi) với `THIEU` ⇒ `ma: "terms_missing"`, `aiXuLy: "Kế toán"`; với `VUOT` ⇒ `terms_exceed_price`. Có cả `THIEU` lẫn khoản đối chiếu ⇒ `terms_missing` (đứng trước `reconciling`). `before_departure` vẫn đứng trước `terms_*`.
-  - **Đảo có chủ đích:** bài `:94` «thứ tự lý do cố định» đổi `booker_partner` → `terms_missing`; bài `:85` «`sinhPhieuDaGiao() == []`» đổi sang ca không người hưởng, không giá vốn ⇒ `[]`. Ghi trong commit «đảo có chủ đích».
-- [ ] **Step 2: Chạy** `node --test src/modules/billing/rules.test.ts` — FAIL.
-- [ ] **Step 3: Cài.** Câu lời thường cho ba lý do mới (copy cố định):
-  - `terms_missing`: «Thiếu mức hoa hồng cho <dịch vụ> — Kế toán cài mức, bấm Chụp bù hoặc ghi mức tay.»
-  - `booker_not_beneficiary`: «Bên đặt của đơn không thuộc danh sách được hưởng hoa hồng — Văn phòng sửa bên đặt hoặc Kế toán ghi mức tay.»
-  - `terms_exceed_price`: «Mức hoa hồng / giá vốn cài cho <dịch vụ> vượt giá bán — Kế toán xem lại.»
-- [ ] **Step 4: Chạy lại** — PASS; `npm run typecheck` — các nơi gọi `lyDoChuaGiaoDuoc` sẽ đỏ kiểu ở `service.ts`. Để Task 4 sửa (Task 3 và 4 commit liền nhau nếu typecheck không xanh được riêng — ghi Ruling).
+**Câu lời thường (copy cố định):**
+- `terms_missing`, `canChupBu`: «Đơn xác nhận trước khi có bảng mức, chưa chụp mức — Kế toán cài mức rồi bấm Chụp bù.»
+- `terms_missing`, không `canChupBu`: «Thiếu mức hoa hồng / người bán cho <dịch vụ> — Kế toán ghi mức tay cho dòng này.»
+- `booker_not_beneficiary`: «Bên đặt của đơn không thuộc danh sách được hưởng hoa hồng — Văn phòng sửa bên đặt hoặc Kế toán ghi mức tay.»
+- `terms_exceed_price`: «Mức hoa hồng / giá vốn cài cho <dịch vụ> vượt giá bán — Kế toán xem lại.»
+
+- [ ] **Step 1: Viết bài đỏ.**
+  - **Sinh dòng `sinhPhieuDaGiao`:**
+    - `C-1` — tour 5.000.000, hoa hồng 500.000, `giamGiaBenDat: 250_000`. Đúng hai dòng: `{cty → A, 500_000, HOA_HONG, orderServiceId "s1"}` và `{A → cty, 250_000, GIAM_GIA_BEN_DAT, null}`.
+    - `C-4` — ba dòng: `HOA_HONG` 100.000 × 2 (cty → H) và `GIA_VON` 480.000 (cty → IR).
+    - `B-5` — 600.000, hoa hồng 100.000, giá vốn 480.000, `giamGiaBenDat` 20.000. Ra `HOA_HONG` 100.000, `GIA_VON` 480.000, `GIAM_GIA_BEN_DAT` 20.000.
+    - Hoa hồng 0 ⇒ không dòng; giảm giá 0 ⇒ không dòng giảm giá; không người hưởng ⇒ chỉ `GIA_VON`.
+  - **`tinhTrangThuongMai`:**
+    - mọi dòng `NOT_CAPTURED` ⇒ `THIEU / terms_missing / canChupBu = true`;
+    - một dòng `NO_RULE` / `RULE_CONFLICT` / `MANUAL_LINE` hoặc người bán `MISSING` ⇒ `THIEU / terms_missing / canChupBu = false`;
+    - `BOOKER_NOT_BENEFICIARY` ⇒ `THIEU / booker_not_beneficiary`;
+    - hoa hồng + giá vốn một dòng > thành tiền dòng ⇒ `VUOT` kèm tên;
+    - mọi bản `NONE` + người bán SET ⇒ `KHONG_NGUOI_HUONG`.
+  - **`lyDoChuaGiaoDuoc` — thứ tự:**
+    - `before_departure` trước `terms_*`;
+    - `terms_*` trước `reconciling`;
+    - `aiXuLy` đúng (`terms_missing` → Kế toán).
+  - **Đảo có chủ đích** (ghi trong commit):
+    - bài «thứ tự lý do cố định» (`booker_partner` → `terms_missing`);
+    - bài «`sinhPhieuDaGiao() == []`» → ca không người hưởng, không giá vốn ⇒ `[]`.
+- [ ] **Step 2: Chạy** `node --test src/modules/billing/rules.test.ts`. Kỳ vọng FAIL.
+- [ ] **Step 3: Cài.**
+- [ ] **Step 4: Chạy lại**, PASS. Nơi gọi `lyDoChuaGiaoDuoc` sẽ đỏ kiểu. Task 3 và 4 commit liền nhau nếu `typecheck` không xanh được riêng (ghi Ruling).
 - [ ] **Step 5: Commit** — «Luật phiếu Đã giao sinh dòng hoa hồng, giảm giá bên đặt chịu, giá vốn; ba lý do giữ mới thay booker_partner».
 
 ### Task 4: Lô «Đã giao» ghi dòng thương mại (hai lớp chặn)
 
 **Files:**
-- Modify: `src/modules/orders/hoan-tat-repo.ts` (`CO_NGUOI_HUONG` → điều kiện bản chụp), `src/modules/orders/hoan-tat.ts` (`ThongTinGiaoDon`)
-- Modify: `src/modules/billing/service.ts` (`daGiao`, `tienCuaDon`), `src/modules/billing/repository.ts` (`LINE_IF_POSTING`, `POSTING_COLS`)
-- Test: `src/da-giao-thuong-mai.test.ts` (tạo); đảo `src/da-giao-khe-hoa-hong.test.ts`, `src/modules/pricing/loai-doi-tac.test.ts` (các bài agent đo đã liệt kê ở sổ thi công)
+- Modify: `src/modules/orders/hoan-tat-repo.ts` (lớp 1).
+- Modify: `src/modules/billing/index.ts` (route `…/delivered` và `GET …/payments`: gọi `phanThuongMaiCuaDon` sau `can(`, truyền xuống).
+- Modify: `src/modules/billing/service.ts` (`daGiao`, `tienCuaDon` nhận `phan: PhanThuongMai | null`).
+- Modify: `src/modules/billing/repository.ts` (`LINE_IF_POSTING`, `POSTING_COLS`).
+- Test: tạo `src/da-giao-thuong-mai.test.ts`. Đảo các bài đã liệt kê ở sổ thi công: `src/da-giao-khe-hoa-hong.test.ts`, `src/modules/pricing/loai-doi-tac.test.ts` (N-5, N-5b).
 
 **Interfaces:**
-- Consumes: `tinhTrangThuongMai`, `sinhPhieuDaGiao` (Task 3); `phanThuongMaiCuaDon` (`orders/index.ts`); `effectiveMoney` (`orders/money-adjustment.ts`).
-- Produces: `ThongTinGiaoDon.thuongMai: TinhTrangThuongMai` (thay `coNguoiHuong`); phiếu `DELIVERED` có `gross_snapshot` = Σ `dichVu[].thanhTien`.
+- Consumes: `tinhTrangThuongMai`, `sinhPhieuDaGiao` (Task 3); `phanThuongMaiCuaDon` và kiểu `PhanThuongMai` qua `orders/index.ts`.
+- Produces: phiếu `DELIVERED` có `gross_snapshot` = Σ `phan.dichVu[].thanhTien`. `giamGiaBenDat` = `gross_snapshot − due_snapshot`. Cột `co_nguoi_huong` của `GIAO_STATE` không còn dùng cho quyết định (giữ hoặc bỏ, ghi Ruling).
 
-- [ ] **Step 1: Viết bài đỏ** `src/da-giao-thuong-mai.test.ts` trên khung thử (`world`, `seedStaff`). Gieo đối tác `TRAVEL_AGENCY`, mức 10% mọi dịch vụ, đơn 5.000.000, xác nhận qua route.
-  - `đơn đại lý đủ bản chụp, đã thu đủ ⇒ «Đã giao» 200, sổ có HOA_HONG 500.000 cty → đại lý mang order_service_id`.
-  - `C-1 trọn: đại lý tự ghi cọc 3.000.000 (route payments, tài khoản PARTNER), HDV ghi 1.750.000, giảm giá 250.000 ⇒ số dư đại lý 2.750.000, HDV 1.750.000` (dùng `soDuTheoBen`).
-  - `dòng nhập tay trên đơn đại lý ⇒ 409 not_deliverable, lyDoChuaGiao.ma = "terms_missing"`.
-  - `đơn khách lẻ có bản chụp NONE ⇒ «Đã giao» như cũ, không dòng thương mại`.
-  - `đơn khách lẻ xác nhận trước 0090, đã qua b1 (bản chụp AUTO / NONE) ⇒ «Đã giao» được`; `cùng đơn khi CHƯA có bản chụp nào ⇒ 409 terms_missing` (ADR-0079 điều 5 lớp 1, nguyên chữ).
-  - `câu UPDATE «Đã giao» chạy tay (datGiaoStatement) cho đơn thiếu bản chụp ⇒ 0 dòng đổi` (lớp 1).
-  - `INSERT phiếu DELIVERED chạy tay cho đơn đó ⇒ throws delivered_terms` (lớp 2).
-  - `cố ý hỏng một dòng trong lô (số âm) ⇒ không câu nào lưu, đơn chưa «Đã giao»`.
-- [ ] **Step 2: Chạy** `node --test src/da-giao-thuong-mai.test.ts` — FAIL.
+- [ ] **Step 1: Viết bài đỏ** `src/da-giao-thuong-mai.test.ts` (khung thử). Gieo `TRAVEL_AGENCY`, mức 10% mọi dịch vụ, đơn 5.000.000, xác nhận qua route.
+  - Đơn đại lý đủ bản chụp, đã thu đủ ⇒ «Đã giao» 200; sổ có `HOA_HONG` 500.000 cty → đại lý, mang `order_service_id`.
+  - **C-1 trọn:** đại lý (PARTNER) ghi «toi» 3.000.000, HDV ghi 1.750.000, giảm giá 250.000 ⇒ `soDuTheoBen`: đại lý 2.750.000, HDV 1.750.000.
+  - **Đơn đại lý:**
+    - có dòng nhập tay ⇒ 409, `lyDoChuaGiao.ma = "terms_missing"`, câu «ghi mức tay» (Review Focus 2);
+    - xác nhận trước 0090, chưa chụp ⇒ 409 `terms_missing`, câu «Chụp bù».
+  - **Đơn khách lẻ:**
+    - có bản chụp `NONE` + người bán SET ⇒ «Đã giao» như cũ, không dòng thương mại;
+    - có **dịch vụ nhập tay** ⇒ 409 `terms_missing` (A-14 đã duyệt);
+    - cũ đã qua b1 (bản chụp `AUTO` / `NONE`) ⇒ «Đã giao» được.
+  - **Hai lớp chặn:**
+    - `datGiaoStatement` chạy tay cho đơn thiếu bản chụp ⇒ 0 dòng đổi (lớp 1);
+    - `INSERT` phiếu `DELIVERED` chạy tay ⇒ throws `delivered_terms` (lớp 2).
+  - Cố ý hỏng một dòng trong lô ⇒ không câu nào lưu.
+- [ ] **Step 2: Chạy** `node --test src/da-giao-thuong-mai.test.ts`. Kỳ vọng FAIL.
 - [ ] **Step 3: Cài.**
-  - **Lớp 1:** thay `AND NOT CO_NGUOI_HUONG` bằng `AND NOT EXISTS (… v_ord_terms_missing …) AND NOT EXISTS (… dòng dịch vụ không có bản chụp hiện hành …)`, đọc bảng `ord_service_terms` của chính `orders`.
-  - **Không thêm ngoại lệ** cho đơn không bản chụp: lớp 1 đúng chữ ADR-0079 điều 5 (mọi dòng phải có bản chụp hiện hành). Đơn khách lẻ cũ được b1 (Task 6, migration `0112` chạy cùng lần phát hành) chụp bù trước khi luật mới có hiệu lực. Vì vậy **Task 6 phải gộp cùng bản với Task 4**; không phát hành Task 4 một mình.
-  - **`daGiao`:** gọi `phanThuongMaiCuaDon` **một lần**. Kiểm `thanhTien` của nó là thành tiền **hiện hành sau điều chỉnh số khách** (ADR-0114); nếu `loadOrderView(…, false)` chưa áp điều chỉnh thì dùng đúng hàm mà `due_snapshot` dùng, ghi Ruling. Sau đó dựng `DongThuongMai[]` bằng `tinhDongDoiTac` của `src/shared/hoa-hong-dong.ts`, gọi `tinhTrangThuongMai`, `sinhPhieuDaGiao`, rồi chèn các dòng vào lô sau phiếu `DELIVERED` (thứ tự lô: câu bảo vệ dispatch → `datGiaoStatement` → lần thu → phiếu → các dòng → nhật ký).
-  - **Dịch lỗi:** `delivered_terms` / `commercial_*` của trigger được dịch ra cùng câu lời thường ở Task 3, không trả lỗi SQL thô.
-- [ ] **Step 4: Chạy lại** bài mới + `node --test src/da-giao-khe-hoa-hong.test.ts src/modules/pricing/loai-doi-tac.test.ts src/modules/billing/*.test.ts`. Các bài liệt kê «sẽ phải đảo» đổi kỳ vọng (từ 409 `booker_partner` sang 200 khi có mức); các bài «vẫn xanh» chỉ đổi mã lý do. Sau đó `npm test` + `npm run typecheck` xanh.
+  - **Lớp 1:** thay `AND NOT CO_NGUOI_HUONG` bằng «không dòng nào trong `v_ord_terms_missing`, không dòng nào trong `v_ord_terms_uncaptured`». Câu đọc bảng `ord_service_terms` của chính `orders`.
+  - **Route:** gọi `phanThuongMaiCuaDon` một lần, sau `can(`.
+  - **`daGiao`:**
+    - dựng `DongThuongMai[]` bằng `tinhDongDoiTac`, gọi `tinhTrangThuongMai` rồi `sinhPhieuDaGiao`;
+    - chèn các dòng sau phiếu `DELIVERED`, theo thứ tự lô: câu bảo vệ dispatch → `datGiaoStatement` → lần thu → phiếu → dòng → nhật ký;
+    - dịch lỗi `delivered_terms` / `commercial_*` ra cùng câu lời thường ở Task 3.
+  - **Kèm b1:** Task 6 (`0112`) phải lên **cùng bản** với task này.
+- [ ] **Step 4: Chạy lại** bài mới, rồi `node --test src/da-giao-khe-hoa-hong.test.ts src/modules/pricing/loai-doi-tac.test.ts src/modules/billing/*.test.ts src/orders-cong-bo.test.ts src/architecture.test.ts`. Sau đó `npm test` + `npm run typecheck` xanh.
 - [ ] **Step 5: Commit** — «Mở Đã giao cho đơn có người hưởng: lô ghi hoa hồng, giảm giá bên đặt chịu, giá vốn; hai lớp chặn thiếu bản chụp».
 
 ### Task 5: Người thu bên đặt / nhà cung cấp; khai và «Bên kia đã nhận» (ADR-0130)
 
 **Files:**
-- Modify: `src/shared/contracts.ts` (`LanThuInput.nguoiThu`), `src/modules/billing/service.ts` (`docLanThu`, `cauLanThu`, `khoanChoXacNhan` ở `rules.ts`), `src/modules/billing/repository.ts` (`RECEIPT_VALUES`, `bindReceipt`), `src/modules/billing/index.ts` (route mới)
-- Test: `src/modules/billing/ben-kia.test.ts` (tạo), sửa `src/modules/billing/lo-ghi.test.ts:76` (NT-Q4 / NT-S9 — đảo có chủ đích)
+- Modify `src/shared/contracts.ts`.
+- Modify `src/modules/billing/service.ts`: `docLanThu`, `cauLanThu`, `xacNhanBenKia` (mới), lần thu kèm «Đã giao».
+- Modify `src/modules/billing/rules.ts`: `khoanMoiDoiChieu`, `canDoiChieu`.
+- Modify `src/modules/billing/repository.ts`: `RECEIPT_VALUES`, `bindReceipt`, `PENDING_COMPANY`.
+- Modify `src/modules/billing/index.ts`: route mới.
+- Test: tạo `src/modules/billing/ben-kia.test.ts`. Đảo có chủ đích `src/modules/billing/lo-ghi.test.ts` (NT-Q4 / NT-S9) và bài đối chiếu hai nơi mã ↔ SQL ở `rules.test.ts`.
 
-**Interfaces:**
-- Produces:
+**Interfaces — Produces:**
 ```ts
-// LanThuInput.nguoiThu thêm hai dạng:
+// LanThuInput:
 nguoiThu: "toi" | "cong_ty" | { partyId: string } | "ben_dat" | { nhaCungCapPartyId: string };
-// «Thu cho ai» (ADR-0078 điều 9): mặc định Tour Đảo; người thu SUPPLIER ⇒ luôn nhà cung cấp đó; người ghi chọn được NCC của một dòng trên đơn khi khách trả trước phần đó.
-thuChoNhaCungCapPartyId?: string;
-export interface LanThuHopLe { /* … */ collectorRole: "COMPANY" | "STAFF" | "BOOKER" | "SUPPLIER"; collectorPartyId: string; collectedForPartyId: string; canDoiChieu: boolean }
+thuChoNhaCungCapPartyId?: string; // «Thu cho ai»: mặc định Tour Đảo; SUPPLIER ⇒ luôn NCC đó; người ghi chọn NCC của một dòng trên đơn
+export interface LanThuHopLe { soTien: number; hinhThuc: MethodCode; collectorRole: "COMPANY" | "STAFF" | "BOOKER" | "SUPPLIER"; collectorPartyId: string; collectedForPartyId: string; canDoiChieu: boolean; ngayPhatSinh: string; ghiChu: string | null }
 export async function xacNhanBenKia(db: D1Database, v: { receiptId: string; raw: unknown; ai: NguoiGoi }): Promise<KetQua<{ orderId: string }>>;
 ```
-- Route: `POST /api/ledger/counterparty-receipts/:receiptId/confirm` (cổng `office`, `can(staff, "ledger.write")`, `baoThayDoi({orderId, thayDoi: "tien"})`).
+Route mới: `POST /api/ledger/counterparty-receipts/:receiptId/confirm`. Cổng `office`, `can(staff, "ledger.write")`, cuối route gọi `baoThayDoi({ orderId, thayDoi: "tien" })`.
 
-- [ ] **Step 1: Viết bài đỏ** `ben-kia.test.ts` (khung thử):
-  - `HDV khai "ben_dat" 300.000 trên đơn đại lý ⇒ 201; không dòng HELD nào; có dấu DECLARED; banDangGiu của HDV không đổi; «Đã giao» ⇒ 409 ma "reconciling", câu nêu «khách trả cho <tên đại lý>»` (tiêu chí 1 của ADR-0130).
-  - `Kế toán xác nhận ⇒ một phiếu COUNTERPARTY_CONFIRMED, một dòng HELD đại lý → cty 300.000 mang receipt_id gốc; «Đã giao» được` (tiêu chí 2).
-  - `Kế toán đảo lần thu trước khi xác nhận ⇒ hết đang đối chiếu, không dòng sót; khai lại 300.000 ⇒ lại đang đối chiếu` (tiêu chí 3, Review Focus 3).
-  - `Kế toán đảo sau khi xác nhận (đơn chưa giao) ⇒ dòng HELD trên đại lý được đảo`.
-  - `Đối tác ghi "toi" ⇒ collector_role = "BOOKER" (không còn STAFF), HELD ngay trên chính họ, không dấu chờ` (tiêu chí 5).
-  - `Kế toán ghi { partyId: <đại lý> } ⇒ BOOKER, HELD ngay`.
-  - `"ben_dat" trên đơn khách lẻ ⇒ 400 «Đơn này không có đại lý đặt»`.
-  - `{ nhaCungCapPartyId } không phải NCC của dòng nào trên đơn ⇒ 400; số > phần chưa thu của NCC đó ⇒ 400`.
-  - `lần thu SUPPLIER ⇒ collected_for_party_id = NCC; lần thu khác ⇒ công ty chủ`.
-  - `khai BOOKER chuyển khoản, xác nhận không mã giao dịch ⇒ được` (tiêu chí 4).
-- [ ] **Step 2: Chạy** — FAIL.
-- [ ] **Step 3: Cài** `docLanThu` (nhánh mới; người không `laKeToan` chỉ khai được; `ben_dat` = `orders.booker_party_id` của đơn và đơn phải có người hưởng theo bản chụp), `cauLanThu` (canDoiChieu ⇒ dấu `DECLARED`, không `sinhDongLanThu`), `xacNhanBenKia` (khuôn `xacNhanCongTyNhan`: một lô = dấu `CONFIRMED` → phiếu → dòng HELD → nhật ký; khoá lạc quan như khuôn cũ), `khoanChoXacNhan` gồm cả lần thu `BOOKER` / `SUPPLIER` có dấu chờ, `RECEIPT_VALUES` nhận `collected_for_party_id` từ tham số (bỏ gán cứng). Xoá hằng chết `COLLECTOR_ROLES_GHI_MOI` hoặc cho nó thành cổng thật (Ruling).
-- [ ] **Step 4: Chạy lại** + `node --test src/modules/billing/*.test.ts src/audit-invariants.test.ts` — PASS; `npm test`, `typecheck` xanh.
+**Luật đọc thân** (`docLanThu`; `phan` do route truyền):
+- `"toi"` của tài khoản Đối tác:
+  - hồ sơ là `booker_party_id` của đơn **và** đơn có người hưởng ⇒ `BOOKER`;
+  - còn lại ⇒ như hôm nay.
+- `"ben_dat"`:
+  - đơn có người hưởng ⇒ người thu = bên đặt;
+  - không có ⇒ 400 «Đơn này không có đại lý đặt.».
+- `{ nhaCungCapPartyId }`:
+  - phải là nhà cung cấp của một dòng trên đơn theo `phan.chup`;
+  - số ≤ phần thành tiền chưa thu của dòng NCC đó.
+- `{ partyId }` của Kế toán: là bên đặt ⇒ `BOOKER`; là NCC của một dòng ⇒ `SUPPLIER`; còn lại ⇒ `STAFF` như hôm nay.
+- `canDoiChieu = true` khi vai `BOOKER` / `SUPPLIER` và người ghi không `laKeToan`, trừ trường hợp Đối tác ghi chính mình.
+- **Lần thu kèm «Đã giao»:** `"ben_dat"` / `{ nhaCungCapPartyId }` ⇒ 400 «Ghi khoản khách trả cho đại lý / tại quầy trước, chờ Kế toán xác nhận rồi mới Đã giao.».
+
+- [ ] **Step 1: Viết bài đỏ** `ben-kia.test.ts`.
+  - **Khai và xác nhận** (ADR-0130 tiêu chí 1–3):
+    - HDV khai `"ben_dat"` 300.000 ⇒ 201; không `HELD`; có `DECLARED`; `banDangGiu` của HDV không đổi; đơn có trong danh sách «chờ đối chiếu» (`PENDING_COMPANY`) và bộ đếm của Kế toán; «Đã giao» ⇒ 409 `reconciling`, câu nêu «khách trả cho <tên đại lý>».
+    - Kế toán xác nhận ⇒ một phiếu `COUNTERPARTY_CONFIRMED`, một `HELD` đại lý → cty 300.000 mang `receipt_id` gốc; đơn rời danh sách chờ; «Đã giao» được.
+    - Đảo trước xác nhận ⇒ hết chờ, không dòng sót. Khai lại ⇒ chờ lại (Review Focus 3). Đảo sau xác nhận (đơn chưa giao) ⇒ `HELD` trên đại lý được đảo.
+  - **Ghi trực tiếp:**
+    - Đối tác `"toi"` trên đơn mình là bên đặt ⇒ `BOOKER`, `HELD` ngay, không dấu chờ (ADR-0130 tiêu chí 5).
+    - Kế toán `{ partyId: đại lý }` ⇒ `BOOKER`, `HELD` ngay.
+  - **Từ chối:**
+    - `"ben_dat"` trên đơn khách lẻ ⇒ 400;
+    - `{ nhaCungCapPartyId }` sai NCC ⇒ 400; số vượt phần chưa thu ⇒ 400;
+    - lần thu kèm «Đã giao» với lựa chọn mới ⇒ 400.
+  - **Thu cho ai:**
+    - `SUPPLIER` ⇒ `collected_for_party_id` = NCC;
+    - lễ tân `"toi"` + `thuChoNhaCungCapPartyId` = i-resort ⇒ thu cho i-resort;
+    - không chọn ⇒ công ty chủ.
+  - **Mã giao dịch:** `BOOKER` chuyển khoản, xác nhận không mã ⇒ được (ADR-0130 tiêu chí 4).
+  - **Hai nơi khớp nhau:** bài đối chiếu mã ↔ SQL có mẫu `BOOKER` / `SUPPLIER` (khoanMoiDoiChieu ↔ `v_bil_coc_don`).
+- [ ] **Step 2: Chạy.** Kỳ vọng FAIL.
+- [ ] **Step 3: Cài** theo luật trên.
+  - `xacNhanBenKia` theo khuôn `xacNhanCongTyNhan`: một lô gồm dấu `CONFIRMED` → phiếu → `HELD` → nhật ký (hành động mới `ledger_counterparty_confirmed`, nhãn «Bên kia đã nhận»), khoá lạc quan như khuôn cũ.
+  - Xoá hằng chết `COLLECTOR_ROLES_GHI_MOI` hoặc cho nó thành cổng thật (Ruling).
+- [ ] **Step 4: Chạy lại** cùng `node --test src/modules/billing/*.test.ts src/audit-invariants.test.ts`, PASS. Sau đó `npm test`, `typecheck` xanh.
 - [ ] **Step 5: Commit** — «Người thu là đại lý / quầy nhà cung cấp; lời khai chờ Kế toán xác nhận, không tạo nợ (ADR-0130)».
 
-### Task 6: Đơn cũ: chụp bù b1 (một lần) và nút «Chụp bù» của Kế toán (b2)
+### Task 6: Đơn cũ — chụp bù b1, nút «Chụp bù» (b2), điều chỉnh nhóm a
 
 **Files:**
-- Create (có điều kiện): `migrations/0112_chup_bu_khach_le.sql`
-- Modify: `src/modules/orders/index.ts` (hai route, đặt TRƯỚC `/api/orders/:id`), `src/modules/orders/thuong-mai-repo.ts`
-- Test: `src/modules/orders/chup-bu.test.ts` (tạo)
+- Create (có điều kiện): `migrations/0112_chup_bu_khach_le.sql`.
+- Modify: `src/modules/orders/index.ts` (hai route, đặt **trước** `/api/orders/:id`), `src/modules/orders/thuong-mai-repo.ts`, `src/modules/billing/dieu-chinh.ts` (`loaiDong`).
+- Test: tạo `src/modules/orders/chup-bu.test.ts`; sửa `src/modules/billing/dieu-chinh*.test.ts`.
 
-**Interfaces:**
-- Produces:
-  - `GET /api/orders/cho-chup-bu` (cổng `office`, `can(order.terms.override)`) → `{ don: { orderId, maDon, ngayXacNhan, benDat, lyDo: "co_nguoi_huong" | "nhap_tay" | "khong_xac_dinh" }[] }`.
-  - `POST /api/orders/:id/chup-bu` (cùng ô) → `{ chup: BanChup[] }`; nhật ký hành động mới `ord_terms_backfilled` (khai ở `src/shared/audit-actions.ts`, nhãn «Chụp bù mức hoa hồng»).
+**Interfaces — Produces:**
+- `GET /api/orders/cho-chup-bu` (cổng `office`, `can(order.terms.override)`) → `{ don: { orderId, maDon, ngayXacNhan, benDat, lyDo: "co_nguoi_huong" | "nhap_tay" }[] }`. Chỉ đơn **chưa có bản chụp nào**.
+- `POST /api/orders/:id/chup-bu` (cùng ô) → `{ chup: BanChup[] }`. Nhật ký mới `ord_terms_backfilled`, nhãn «Chụp bù mức hoa hồng».
+- `loaiDong` của yêu cầu điều chỉnh nhận `HOA_HONG`, `GIAM_GIA_BEN_DAT`, `GIA_VON`.
 
-- [ ] **Step 1: Viết bài đỏ**:
-  - `chụp bù dùng mức hiệu lực ở NGÀY XÁC NHẬN, không phải hôm nay`: mức 10% từ 2026-09-01 đến 2026-10-15, 12% từ 2026-10-16; đơn xác nhận 2026-10-10 ⇒ bản chụp `rateBp = 1000`.
-  - `chụp bù đơn đã có bản chụp ⇒ 409`; `đơn đã «Đã giao» ⇒ 409` (trigger `_delivered`); `Bán hàng gọi ⇒ 403`.
-  - `chụp bù khi không còn mức hiệu lực ngày đó ⇒ bản chụp MISSING / NO_RULE, đơn vẫn bị giữ` (không tự lấy 0).
-  - `migration 0112 trên khung thử`: đơn khách lẻ cũ không bản chụp ⇒ có bản chụp `NONE`, người bán = dòng ALL, `source = 'AUTO'`, `captured_date` = ngày xác nhận; đơn có dịch vụ mang điều khoản SERVICE ⇒ **không** được chụp (sang danh sách b2).
-- [ ] **Step 2: Chạy** — FAIL.
-- [ ] **Step 3: Cài.** Route dùng **cùng** `chupDon` + `docBangChoChup` với lúc Xác nhận, `ngay` = ngày giờ VN của `confirmed_at`. Migration `0112` là câu `INSERT … SELECT` một lần, không đụng tiền (hoa hồng `NONE`, người bán từ `prc-st-goc-all`), lọc đúng tập (b1) trừ (b1x) như câu đếm ở Task 0.
-- [ ] **Step 4: Chạy lại** — PASS; `npm test`, `typecheck`.
-- [ ] **Step 5: Commit** — «Chụp bù mức cho đơn xác nhận trước bảng mức: tự động cho khách lẻ, nút Chụp bù cho Kế toán».
+- [ ] **Step 1: Viết bài đỏ.**
+  - **Chụp bù theo ngày xác nhận:** mức 10% (2026-09-01 → 2026-10-15), 12% (từ 2026-10-16); đơn xác nhận 2026-10-10 ⇒ `rateBp = 1000`.
+  - **Từ chối:**
+    - đơn đã có bản chụp (kể cả `MISSING`) ⇒ 409 «Đơn đã có bản chụp — ghi mức tay cho dòng thiếu»;
+    - đơn đã «Đã giao» ⇒ 409;
+    - Bán hàng gọi ⇒ 403.
+  - **Không còn mức ngày đó** ⇒ bản chụp `MISSING / NO_RULE`, đơn vẫn giữ.
+  - **`0112` trên khung thử:**
+    - đơn khách lẻ cũ không bản chụp ⇒ bản chụp `NONE`, người bán = `prc-st-goc-all`, `source = 'AUTO'`, `captured_date` = ngày giờ VN của `confirmed_at`;
+    - `confirmed_at` NULL ⇒ ngày tạo đơn;
+    - đơn có bên đặt mang vai được hưởng / nhóm ngoài / loại đối tác, hoặc dòng nhập tay ⇒ **không** chụp (sang b2).
+  - **Điều chỉnh nhóm a** (ADR-0115):
+    - yêu cầu bổ sung `GIA_VON` cho đơn đã giao ⇒ duyệt ⇒ dòng ghi;
+    - ví dụ D-3 («đại lý → cty 20.000 loại hoa hồng») chạy được;
+    - ca nhà cung cấp đang giữ tiền khách (bổ sung giá vốn làm đổi dấu số dư cặp) ⇒ ghi kết quả thật vào sổ thi công. Nếu bị chặn `adjustment_flips_sign` thì báo điều phối, không tự nới.
+- [ ] **Step 2: Chạy.** Kỳ vọng FAIL.
+- [ ] **Step 3: Cài.**
+  - Route dùng **cùng** `chupDon` + `docBangChoChup` với lúc Xác nhận, `ngay` = ngày VN của `confirmed_at` (rỗng ⇒ `created_at`).
+  - `0112` là một câu `INSERT … SELECT` không đụng tiền, lọc đúng tập (b1) như câu đếm của Task 0, theo chữ ADR-0079 điều 7b1 (không loại b1x).
+- [ ] **Step 4: Chạy lại**, PASS. Sau đó `npm test`, `typecheck`.
+- [ ] **Step 5: Commit** — «Chụp bù mức cho đơn xác nhận trước bảng mức; điều chỉnh có duyệt nhận ba loại dòng mới».
 
 ### Task 7: Trần giảm giá theo người hưởng của đơn
 
 **Files:**
-- Modify: `src/modules/orders/price-guards.ts`, `src/modules/orders/index.ts` (`priceGuard`, đường Xác nhận)
-- Test: `src/modules/orders/price-guards.test.ts`, `tests/e2e/nhap-tay-va-gia-doi-tac.mjs`
+- Modify: `src/modules/orders/price-guards.ts`, `src/modules/orders/index.ts` (`priceGuard`, đường Xác nhận, cảnh báo trên DTO đơn).
+- Test: `src/modules/orders/price-guards.test.ts`, `src/phai-thu-mot-ham.test.ts` (nếu cảnh báo chạm khuôn P1–P3 / danh sách cho phép), `tests/e2e/nhap-tay-va-gia-doi-tac.mjs`.
 
-**Interfaces:**
-- Produces:
+**Interfaces — Produces:**
 ```ts
-export function tranGiamGiaTheoNguoiHuong(v: { coNguoiHuong: boolean; tongHoaHong: number; laThucTap: boolean }): number | null; // null = không trần (đơn không người hưởng, người không phải Thực tập)
+// null = không trần. Đơn KHÔNG người hưởng: giữ đúng luật hôm nay (Đối tác 0, Thực tập 0, còn lại null).
+export function tranGiamGia(v: { coNguoiHuong: boolean; tongHoaHong: number; laDoiTac: boolean; laThucTap: boolean }): number | null;
 ```
-- Câu lỗi (copy cố định): «Giảm tối đa <X> ₫ (bằng hoa hồng của đơn).»
+Câu lỗi (copy cố định): «Giảm tối đa <X> ₫ (bằng hoa hồng của đơn).»
 
-- [ ] **Step 1: Viết bài đỏ**:
-  - `C-5: tổng hoa hồng 790.000, giảm 800.000 ⇒ vi phạm; 790.000 ⇒ được`. Áp cho Bán hàng, Quản trị, Đối tác (ba ca).
-  - `Thực tập trên đơn có người hưởng ⇒ trần 0`.
-  - `nháp: dòng thiếu mức tính 0 vào trần`.
-  - `Xác nhận: trần theo bản chụp tính trong cùng lô — bảng đổi giữa lúc sửa nháp và lúc xác nhận ⇒ dùng bản chụp`.
-  - `sau xác nhận, bớt khách làm hoa hồng < giảm giá ⇒ không chặn; DTO đơn có canhBaoGiamGia = { vuot: X }`.
-  - **Đảo có chủ đích:** `price-guards.test.ts:155`, `:162` (`PARTNER_DISCOUNT_CAP === 0`) và e2e `nhap-tay-va-gia-doi-tac.mjs:236-237` (Bán hàng giảm giá đơn có người hưởng → nay bị trần).
-- [ ] **Step 2: Chạy** — FAIL.
-- [ ] **Step 3: Cài.** Tách vế trần (theo người hưởng của đơn) khỏi vế giá danh mục (giữ theo người thao tác). Đường Xác nhận: tính `chup` **trước** bước kiểm giá, rồi truyền tổng hoa hồng của bản chụp vào kiểm trần.
-- [ ] **Step 4: Chạy lại** — PASS; `npm test`, `typecheck`.
-- [ ] **Step 5: Commit** — «Trần giảm giá đơn có người hưởng bằng tổng hoa hồng, áp cho mọi người sửa đơn (C8 = A)».
+- [ ] **Step 1: Viết bài đỏ.**
+  - **C-5:** tổng hoa hồng 790.000; giảm 800.000 ⇒ vi phạm, 790.000 ⇒ được. Ba ca: Bán hàng, Quản trị, Đối tác.
+  - **B-5:** hoa hồng 100.000; giảm 150.000 ⇒ vi phạm, 20.000 ⇒ được.
+  - **Thực tập** trên đơn có người hưởng ⇒ 0.
+  - **Đơn không người hưởng:**
+    - Đối tác, kể cả tài khoản lai Bán hàng + Đối tác ⇒ trần 0 (giữ vá DK-T3-01);
+    - Bán hàng ⇒ không trần.
+  - **Nháp:** dòng thiếu mức tính 0.
+  - **Xác nhận:** trần theo bản chụp vừa tính trong cùng lô.
+  - **Sau xác nhận:** bớt khách làm hoa hồng < giảm giá ⇒ không chặn; DTO đơn có `canhBaoGiamGia: { vuot: X }`.
+  - **Không đảo nguyên bài** `PARTNER_DISCOUNT_CAP === 0`: hằng giữ cho đơn không người hưởng. Ca e2e `nhap-tay-va-gia-doi-tac.mjs:236-237` dùng đơn khách lẻ thì **giữ nguyên**; kiểm lại trước khi sửa.
+- [ ] **Step 2: Chạy.** Kỳ vọng FAIL.
+- [ ] **Step 3: Cài.** Tách vế trần (theo người hưởng của đơn) khỏi vế giá danh mục (giữ theo người thao tác). Đường Xác nhận: tính `chup` trước, kiểm trần sau.
+- [ ] **Step 4: Chạy lại**, PASS. Quan sát chặn thật: đổi tạm trần thành `tongHoaHong + 1` → bài C-5 đỏ → hoàn nguyên. Sau đó `npm test`, `typecheck`.
+- [ ] **Step 5: Commit** — «Trần giảm giá đơn có người hưởng bằng tổng hoa hồng, áp cho mọi người sửa đơn (C8 = A); đơn khách lẻ giữ luật cũ».
 
 ### Task 8: Biên nhận chia phần theo người bán
 
 **Files:**
-- Modify: `src/shared/contracts.ts` (`ReceiptDto`), `src/modules/receipt/rules.ts` (`dungBienNhan`), `src/modules/receipt/index.ts`, `src/modules/billing/index.ts` (`soTienBienNhan` trả thêm đã trả theo «thu cho ai»)
-- Test: `src/modules/receipt/bien-nhan.test.ts`
+- Modify: `src/shared/contracts.ts` (`ReceiptDto`), `src/modules/receipt/rules.ts` (`dungBienNhan`), `src/modules/receipt/index.ts`, `src/modules/billing/index.ts` (`soTienBienNhan` trả thêm đã trả theo «thu cho ai»).
+- Test: `src/modules/receipt/bien-nhan.test.ts`.
 
-**Interfaces:**
-- Produces: `ReceiptDto.phan: { nguoiBan: string; vaiTourDao: "nguoi_ban" | "doi_tac_dat_ve"; dichVu: string[]; tong: number; daTra: number; conLai: number; traTaiQuay: boolean }[]` (một phần khi chỉ Tour Đảo bán).
+**Interfaces — Produces:**
+```ts
+ReceiptDto.phan: { nguoiBan: string; vaiTourDao: "nguoi_ban" | "doi_tac_dat_ve"; dichVu: string[]; tong: number; daTra: number; conLai: number; traTaiQuay: boolean }[]
+```
+Mỗi người bán một phần; đơn chỉ một người bán thì có một phần.
 
-- [ ] **Step 1: Viết bài đỏ**:
-  - `SV-HT-03 (chỉ vé i-resort) ⇒ một phần: nguoiBan "i-resort", vaiTourDao "doi_tac_dat_ve", tong 600.000, daTra 600.000 (lễ tân 200.000 ghi thuChoNhaCungCapPartyId = i-resort + quầy 400.000), conLai 0, traTaiQuay true`.
-  - `C-4 ⇒ hai phần: Tour Đảo (Hòn Tằm) tong 1.000.000, daTra 1.000.000 (HDV); i-resort tong 600.000, daTra 600.000 (Hương 200.000 thu cho i-resort + quầy 400.000)`.
-  - `lần thu không chọn «thu cho» ⇒ tính vào phần Tour Đảo`.
-  - **Số lạ:** gieo `480017` vào `cost_rate_bp`, `470019` vào giá vốn, `460023` vào hoa hồng ⇒ không chuỗi nào xuất hiện trong JSON biên nhận.
-- [ ] **Step 2–4:** chạy đỏ → cài → xanh (`node --test src/modules/receipt/*.test.ts`), `npm test`, `typecheck`.
+- [ ] **Step 1: Viết bài đỏ.**
+  - **SV-HT-03 (chỉ vé i-resort):** một phần — `nguoiBan` «i-resort», `vaiTourDao: "doi_tac_dat_ve"`, `tong` 600.000, `daTra` 600.000 (lễ tân 200.000 thu cho i-resort + quầy 400.000), `conLai` 0, `traTaiQuay: true`.
+  - **B-4:** hai phần — Tour Đảo 1.000.000 (đã trả 500.000, còn 500.000); i-resort 600.000 (còn 600.000, `traTaiQuay: true`).
+  - **B-5:** «giảm 20.000, còn 580.000 thanh toán tại quầy i-resort».
+  - **Thu cho ai:** lần thu không chọn ⇒ tính vào phần Tour Đảo.
+  - **Số lạ:** gieo `480017` vào `cost_rate_bp`, `470019` vào giá vốn, `460023` vào hoa hồng ⇒ không chuỗi nào trong JSON biên nhận.
+- [ ] **Step 2–4:**
+  - Chạy đỏ → cài → xanh (`node --test src/modules/receipt/*.test.ts`).
+  - Quan sát chặn thật: cho tạm `dungBienNhan` chép `costRateBp` vào DTO → bài số lạ đỏ → hoàn nguyên.
+  - Chạy `npm test`, `typecheck`.
 - [ ] **Step 5: Commit** — «Biên nhận chia phần theo người bán, giữ danh sách trắng».
 
-### Task 9: Bịt chỗ lộ tên người thu với tài khoản Đối tác
+### Task 9: Chặn lộ tên người thu và giá vốn
 
 **Files:**
-- Modify: `src/modules/billing/service.ts` (DTO `GET /api/orders/:id/payments`, `lyDoChuaHoanThanh`), `src/modules/billing/rules.ts` (câu «<tên> đang giữ»)
-- Test: `src/so-la-doi-tac.test.ts`
+- Modify: `src/modules/billing/service.ts` (DTO `GET /api/orders/:id/payments`, `lyDoChuaHoanThanh`), `src/modules/billing/rules.ts` (câu «<bên> đang giữ»).
+- Test: `src/so-la-doi-tac.test.ts`.
 
-- [ ] **Step 1: Viết bài đỏ** — thêm `GET /api/orders/:id/payments` và `POST /api/ledger/balances` vào danh sách bề mặt.
-  - Tài khoản PARTNER và tài khoản lai SALES + PARTNER (Review Focus 5) mở đơn của mình có lần thu do HDV «Nam Số Lạ 4817» ghi.
-  - Khẳng định: JSON không chứa `Nam Số Lạ`; `lanThu[].nguoiThu` của lần thu người khác = «Người thu khác»; câu chưa hoàn thành không chứa tên, không chứa số người khác giữ.
-- [ ] **Step 2–4:** đỏ → cài (rẽ nhánh theo `holdsPartner(staff)`; văn phòng giữ nguyên) → xanh; `npm test`, `typecheck`.
-- [ ] **Step 5: Commit** — «Đối tác không thấy tên người thu và tiền người khác đang giữ (ADR-0081 điều 4)».
+- [ ] **Step 1: Viết bài đỏ.** Thêm `GET /api/orders/:id/payments` và `POST /api/ledger/balances` vào danh sách bề mặt.
+  - **Tài khoản PARTNER và tài khoản lai SALES + PARTNER**, xem đơn của mình có lần thu do HDV «Nam Số Lạ 4817» ghi:
+    - JSON không chứa «Nam Số Lạ»;
+    - `lanThu[].nguoiThu` của người khác = «Người thu khác»;
+    - câu chưa hoàn thành không có tên và số của người khác.
+  - **Tài khoản SALES thuần và FIELD** (không `supply.terms.view`), xem đơn SV-HT-05 sau «Đã giao»:
+    - JSON không chứa `120000` hay «i-resort đang giữ»;
+    - thấy câu «còn khoản giữa công ty và nhà cung cấp — Kế toán xử lý».
+  - **Kế toán:** thấy đủ.
+- [ ] **Step 2–4:**
+  - Chạy đỏ → cài (rẽ nhánh theo `holdsPartner(staff)` và `can(staff, "supply.terms.view")`) → xanh.
+  - Quan sát chặn thật: bỏ tạm nhánh ẩn → đỏ → hoàn nguyên.
+  - Chạy `npm test`, `typecheck`.
+- [ ] **Step 5: Commit** — «Đối tác không thấy tên người thu và tiền người khác giữ; người không xem điều khoản cung ứng không thấy số dư nhà cung cấp».
 
 ### Task 10: Kiểm định kỳ và bảng kiểm khoá tháng
 
 **Files:**
-- Modify: `scripts/audit-checks.mjs`, `src/modules/billing/service.ts` (`kySoResponse` — bảng kiểm trước khoá)
-- Test: `src/audit-invariants.test.ts`
+- Modify: `scripts/audit-checks.mjs`, `src/modules/billing/service.ts` (`kySoResponse`).
+- Test: `src/audit-invariants.test.ts`.
 
-- [ ] **Step 1: Viết bài đỏ** (mỗi mã một ca vi phạm cố ý + một ca sạch):
-  - `R-BIL-2`: dòng `HOA_HONG` lệch 1 đồng so với số tính lại ⇒ thoát 1; đơn «Đã giao» trước mốc ⇒ chỉ `warn`.
-  - `R-BIL-5`: đơn «Đã giao» có dòng làm đại lý mà không `GIA_VON` ⇒ lỗi sau mốc / cảnh báo trước mốc.
-  - `R-BIL-16` (số dòng giảm giá bên đặt; tên ADR gốc R-BIL-14 đã bị ADR-0115 dùng): đơn có người hưởng, giảm giá hiệu lực > 0, không có / có hai dòng `GIAM_GIA_BEN_DAT` ⇒ lỗi.
-  - `R-BIL-12`: `collected_for_party_id` không phải công ty chủ cũng không phải người bán của dòng nào trên đơn ⇒ lỗi. `R-BIL-S9` đổi nghĩa tương ứng (bài `:2329` đảo có chủ đích).
-  - `R-ORD-DC1`: đơn có người hưởng, xác nhận sau mốc, giảm giá > tổng hoa hồng chụp lúc xác nhận ⇒ `warn` (mức theo ADR-0079 điều 9 / C11).
-  - `R-BIL-13`: câu kiểm cộng **mọi** loại dòng như trigger `settlement_no_flip`; ca có `HOA_HONG` không báo sai.
-  - Bỏ `R-BIL-2`, `R-BIL-5` khỏi `GHI_CHU` «chưa áp dụng» (bài `:2235` đảo có chủ đích).
-  - Bảng kiểm khoá tháng: tháng có đơn «Đã giao» thiếu giá vốn ⇒ mục cảnh báo trong `kySoResponse`.
-- [ ] **Step 2–4:** đỏ → cài → xanh; `node scripts/audit-invariants.mjs --db local` trên D1 local sau e2e: thoát 0.
-- [ ] **Step 5: Commit** — «Kiểm định kỳ sổ đại lý đợt 2: R-BIL-2, R-BIL-5, R-BIL-12, R-BIL-16, R-ORD-DC1; R-BIL-13 cộng mọi loại dòng».
+- [ ] **Step 1: Viết bài đỏ.** Mỗi mã: một ca vi phạm cố ý và một ca sạch.
+  - **`R-BIL-2`:** dòng `HOA_HONG` lệch 1 đồng ⇒ thoát 1; đơn trước mốc ⇒ chỉ cảnh báo.
+  - **`R-BIL-5`:** đơn «Đã giao» có dòng làm đại lý mà không `GIA_VON` ⇒ lỗi sau mốc, cảnh báo trước mốc.
+  - **`R-BIL-16`** (số dòng giảm giá bên đặt): đơn có người hưởng, gross − due > 0, không có hoặc có hai dòng `GIAM_GIA_BEN_DAT` ⇒ lỗi.
+  - **`R-BIL-12`, `R-BIL-S9`:**
+    - `collected_for_party_id` không phải công ty chủ cũng không phải người bán của dòng nào ⇒ lỗi (`R-BIL-12`);
+    - `R-BIL-S9` đổi nghĩa tương ứng (đảo bài có chủ đích).
+  - **`R-ORD-DC1`:** giảm giá > tổng hoa hồng chụp lúc xác nhận ⇒ cảnh báo trước mốc, **lỗi** sau mốc.
+  - **`R-BIL-13` giữ nguyên:** ca C-2 (Tour Đảo nợ CTV 150.000, không giữ hộ) và SV-HT-04 ⇒ **không** báo.
+  - **Danh sách «chưa áp dụng»:** bỏ `R-BIL-2`, `R-BIL-5` khỏi `GHI_CHU` (đảo bài có chủ đích).
+  - **Khoá tháng:** tháng có đơn «Đã giao» thiếu giá vốn ⇒ có mục cảnh báo trong `kySoResponse`.
+- [ ] **Step 2–4:** Chạy đỏ → cài → xanh. Sau e2e, `node scripts/audit-invariants.mjs --db local` thoát 0.
+- [ ] **Step 5: Commit** — «Kiểm định kỳ sổ đại lý đợt 2: R-BIL-2, R-BIL-5, R-BIL-12, R-BIL-16, R-ORD-DC1».
 
 ### Task 11: Sổ vàng chạy trên mã sổ; gộp hồ sơ có bản chụp
 
 **Files:**
-- Modify: `src/so-vang.test.ts`, `src/so-vang-so-dai-ly.test.ts`
-- Create: `src/gop-ho-so-ban-chup.test.ts`
-- Create: `docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/de-xuat-luat.md` (diff đề xuất cho câu luật sổ vàng ở `docs/ARCHITECTURE.md` — **không sửa** `ARCHITECTURE.md`)
+- Modify: `src/so-vang.test.ts`, `src/so-vang-so-dai-ly.test.ts`.
+- Create: `src/gop-ho-so-ban-chup.test.ts`, `docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/de-xuat-luat.md` (diff đề xuất cho câu luật sổ vàng ở `docs/ARCHITECTURE.md`; **không sửa** `ARCHITECTURE.md`).
 
-- [ ] **Step 1:** Bỏ bộ lọc `luot1` để SV-HT-01…05 chạy trên mã sổ (`sinhPhieuDaGiao` + `soDuTheoBen`). Luật lớp 1 «tổng thu = giá bán» đổi sang công thức của R-BIL-2: phần Tour Đảo giữ = giá bán lẻ trước giảm − giảm giá Tour Đảo chịu − giá vốn − hoa hồng. Ca `cho_xac_nhan` chạy dưới dạng `todo` (khuôn sẵn có).
-- [ ] **Step 2:** C-1…C-5 thành bài của luật sinh dòng, khớp từng đồng với `phieu-ke-toan.md`.
-- [ ] **Step 3:** `gop-ho-so-ban-chup.test.ts` (ADR-0117 tiêu chí N-11). Gộp hồ sơ đại lý B vào A khi B là người hưởng trên một đơn đã xác nhận chưa giao, rồi «Đã giao». Ghi lại sổ thực ra gì. **Nếu tiền sai: dừng, ghi nợ, báo điều phối — không sửa trong đợt này**; khi đó bài ghi `todo` có lý do.
+- [ ] **Step 1: Cho SV-HT-01…05 chạy trên mã sổ.** Bỏ bộ lọc `luot1`, chạy bằng `sinhPhieuDaGiao` + `soDuTheoBen`. Đổi luật lớp 1 sang công thức R-BIL-2: phần Tour Đảo giữ = giá bán lẻ trước giảm − giảm giá Tour Đảo chịu − giá vốn − hoa hồng. Ca `cho_xac_nhan` chạy dạng `todo`.
+- [ ] **Step 2: C-1…C-5** thành bài của luật sinh dòng, khớp từng đồng `phieu-ke-toan.md`.
+- [ ] **Step 3: Viết `gop-ho-so-ban-chup.test.ts`** (ADR-0117 N-11): gộp hồ sơ đại lý B vào A khi B là người hưởng trên đơn đã xác nhận chưa giao, rồi «Đã giao», và ghi lại sổ thực ra gì. **Tiền sai thì dừng, ghi nợ, báo điều phối**; bài để `todo` có lý do.
 - [ ] **Step 4:** `npm test` xanh.
 - [ ] **Step 5: Commit** — «Sổ vàng chạy trên mã sổ đợt 2; bài gộp hồ sơ có bản chụp».
 
 ### Task 12: Giao diện
 
 **Files:**
-- Modify: `web/order.ts` (form lần thu: «Khách trả cho đại lý <tên>», «Khách trả tại quầy <NCC>», câu «chờ Kế toán xác nhận»; lý do giữ mới; nút «Chụp bù»; cảnh báo giảm giá > hoa hồng), `web/order-form.ts` (câu trần giảm giá), `web/home.ts` (ô «Chờ đối chiếu» đếm loại mới; nút «Bên kia đã nhận» ở chỗ Kế toán đang bấm «Công ty đã nhận»)
-- Create: `web/chup-bu.ts` + khai `PAGES` (`src/shared/sw-policy.ts`), script `build:web`, mục menu Thiết lập (`src/shared/muc-giao-dien.ts`, hiện theo `order.terms.override`), `src/shared/so-do-trang.ts`
+- **`web/order.ts`** (trang đơn):
+  - form lần thu: «Khách trả cho đại lý <tên>», «Khách trả tại quầy <NCC>», ô chọn «Phần tiền này cho» khi đơn có dòng làm đại lý, câu «chờ Kế toán xác nhận»;
+  - lý do giữ mới, nút «Chụp bù», cảnh báo giảm giá > hoa hồng.
+- **`web/order-form.ts`:** câu trần giảm giá.
+- **`web/home.ts`:** ô «Chờ đối chiếu» gồm loại mới; nút «Bên kia đã nhận».
+- **Trang mới `web/chup-bu.ts`**, khai ở:
+  - `PAGES` (`src/shared/sw-policy.ts`) và script `build:web`;
+  - menu Thiết lập (`src/shared/muc-giao-dien.ts`, hiện theo `order.terms.override`);
+  - `src/shared/so-do-trang.ts`.
 
-- [ ] **Step 1:** Dựng bằng `h()`, không `innerHTML`, giá trị CSS qua token, ô gõ 16px. Hai lựa chọn người thu mới **ẩn** ở đơn không có người hưởng / không dòng làm đại lý (máy chủ vẫn từ chối).
-- [ ] **Step 2:** `npm run build:web`; chạy kịch bản Chrome tương ứng ở bảng `web/CLAUDE.md` (có `AXE_JS`). Chụp ảnh thật hai hướng (điện thoại / máy tính) cho: trang đơn đại lý (trước / sau «Đã giao»), form lần thu, «Việc của bạn» của Kế toán, màn «Chụp bù», biên nhận hai phần. Lưu ở `docs/evidence/2026-10-18-so-dai-ly-dot-2/`.
-- [ ] **Step 3:** Trợ giúp theo vai: Kế toán (Chụp bù, Bên kia đã nhận), HDV (khai khách trả đại lý). **Không nới trần chữ**: rút câu cũ nếu cần.
+- [ ] **Step 1: Dựng các màn.** Theo luật giao diện: dùng `h()` (không `innerHTML`), CSS qua token, ô gõ 16px. Hai lựa chọn người thu mới và ô «Phần tiền này cho» **ẩn** khi đơn không đủ điều kiện; máy chủ vẫn từ chối.
+- [ ] **Step 2: Kiểm bằng trình duyệt.** Chạy `npm run build:web`, rồi kịch bản Chrome theo bảng ở `web/CLAUDE.md` (có `AXE_JS`). Chụp ảnh thật hai hướng (điện thoại / máy tính) cho: trang đơn đại lý trước và sau «Đã giao», form lần thu, «Việc của bạn» của Kế toán, màn «Chụp bù», biên nhận hai phần. Lưu ở `docs/evidence/2026-10-18-so-dai-ly-dot-2/`.
+- [ ] **Step 3: Trợ giúp theo vai:**
+  - Kế toán: Chụp bù, ghi mức tay cho đơn đã có bản chụp thiếu mức, Bên kia đã nhận.
+  - HDV: khai khách trả cho đại lý.
+  - **Không nới trần chữ**; cần chỗ thì rút câu cũ.
 - [ ] **Step 4:** `npm test`, `typecheck` xanh.
 - [ ] **Step 5: Commit** — «Giao diện sổ đại lý đợt 2: khai khách trả đại lý / tại quầy, Chụp bù, Bên kia đã nhận».
 
 ### Task 13: Thử đầu–cuối
 
-**Files:**
-- Create: `tests/e2e/so-dai-ly-dot-2.mjs` (đăng nhập qua `login()` / `session()` của `tests/e2e/lib.mjs`)
+**Files:** Create `tests/e2e/so-dai-ly-dot-2.mjs`.
 
-- [ ] **Step 1:** Kịch bản: (1) C-1 trọn đường tới «Hoàn thành» bằng nộp / trả từng đơn (tiêu chí 1 đặc tả §4); (2) SV-HT-03 với khai → giữ «đang đối chiếu» → Kế toán xác nhận → «Đã giao» → Tour Đảo nợ i-resort 80.000 (tiêu chí 2); (3) đơn khách lẻ thường (tiêu chí 3); (4) đơn đại lý thiếu mức → bị giữ → Kế toán cài mức + «Chụp bù» → «Đã giao»; (5) Đối tác mở đơn của mình không thấy tên người thu (tiêu chí 4).
-- [ ] **Step 2:** `npm run test:e2e -- so-dai-ly-dot-2 so-dai-ly so-tien nhap-tay-va-gia-doi-tac khoa-thang` (cần mạng). Cuối cùng `audit-invariants` local thoát 0.
+- [ ] **Step 1: Viết kịch bản.** Năm ca:
+  1. C-1 trọn đường tới «Hoàn thành» bằng nộp / trả từng đơn.
+  2. SV-HT-03 có lời khai: HDV khai → đơn hiện ở ô chờ của Kế toán → giữ «đang đối chiếu» → Kế toán xác nhận → «Đã giao» → Tour Đảo nợ i-resort 80.000.
+  3. Đơn khách lẻ thường.
+  4. Đơn đại lý chưa chụp: bị giữ → Kế toán cài mức + «Chụp bù» → «Đã giao».
+  5. Đối tác và Bán hàng mở đơn: không lộ tên, không lộ số dư nhà cung cấp.
+- [ ] **Step 2: Chạy** `npm run test:e2e -- so-dai-ly-dot-2 so-dai-ly so-tien coc-don-huy nhap-tay-va-gia-doi-tac khoa-thang` (cần mạng). Cuối cùng chạy `audit-invariants` local: thoát 0.
 - [ ] **Step 3: Commit** — «Kịch bản đầu–cuối sổ đại lý đợt 2».
 
-### Task 14: Tài liệu, sổ hàng rào, nhật ký thay đổi, runbook, kiểm độc lập toàn nhánh
+### Task 14: Tài liệu, runbook, kiểm độc lập toàn nhánh
 
 **Files:**
-- Modify: `docs/SYSTEM-DESIGN.md` (§5, §6, §7, §8), `docs/CHANGE-GUIDE.md` (công thức sổ đại lý), `docs/SO-HANG-RAO.md` (mỗi hàng rào mới kèm ngày quan sát chặn thật), `docs/BACKLOG.md` (đóng BL-SDL-DOT-2 (1)(3)(4), BL-VA-RAO-K3, BL-SDL-GIA-DAI-LY-AM nếu đã giải; ghi nợ mới), nhật ký thay đổi (mục 2.18 tạm, lời thường), `docs/HANDOFF-N1.md` (mục chuẩn bị phát hành: câu đếm Task 0 trước, rồi `trien-khai` — có migration nên có điểm Time Travel; sau deploy `audit-invariants --db remote`)
+- **Tài liệu mô tả:** `docs/SYSTEM-DESIGN.md` (§5–§8), `docs/CHANGE-GUIDE.md`, `docs/SO-HANG-RAO.md`.
+- **`docs/BACKLOG.md`:**
+  - đóng: BL-SDL-DOT-2 (1)(3)(4), BL-VA-RAO-K3, BL-SDL-GIA-DAI-LY-AM nếu đã giải;
+  - ghi nợ mới.
+- **Nhật ký thay đổi:** mục 2.18 tạm, lời thường.
+- **`docs/HANDOFF-N1.md`** (mục chuẩn bị phát hành):
+  1. Điều kiện: diễn tập khôi phục (HC-5.19) đã xong, hoặc chủ ghi rõ chấp nhận rủi ro.
+  2. Trước phát hành: chạy câu đếm Task 0.
+  3. Phát hành: `trien-khai` (có migration nên có điểm Time Travel).
+  4. Ngay sau đó: câu đếm (sau) phải bằng số b1; rồi `audit-invariants --db remote`.
+  5. **Đường lùi:** `wrangler rollback` không gỡ trigger `0111`; đơn khách lẻ có dòng nhập tay sẽ gặp lỗi chưa dịch. Xử lý bằng một migration mới bỏ trigger lớp 2, không sửa tệp đã áp.
 
-- [ ] **Step 1:** Cập nhật tài liệu mô tả trong cùng commit với mã nếu chưa (CLAUDE.md §2).
-- [ ] **Step 2:** `npm test`, `npm run typecheck`, e2e (Task 13) xanh; ghi số bài vào sổ thi công.
-- [ ] **Step 3:** Giao người kiểm độc lập chỉ-đọc (vai `nguoi-kiem-doc-lap`) đọc toàn nhánh, chạy lại lệnh, phá thử các hàng rào; chỉ báo «đạt» dựa trên báo cáo đó.
-- [ ] **Step 4:** Báo điều phối: nhánh, commit cuối, lệnh `day-len` / `trien-khai` cho chủ (không tự chạy), việc chủ còn lại (ca vàng, mức cho đơn đang chờ).
+- [ ] **Step 1:** Rà lịch sử đơn của Đối tác: hai hành động nhật ký mới (`ord_terms_backfilled`, `ledger_counterparty_confirmed`) phải nằm trong danh sách ẩn của `src/shared/lich-su-doi-tac.ts`; thêm ca kiểm.
+- [ ] **Step 2:** Cập nhật tài liệu mô tả cùng commit với mã nếu chưa làm.
+- [ ] **Step 3:** `npm test`, `npm run typecheck`, e2e (Task 13) xanh; ghi số bài vào sổ thi công.
+- [ ] **Step 4:** Giao người kiểm độc lập chỉ-đọc đọc toàn nhánh, chạy lại lệnh, phá thử các hàng rào. Chỉ báo «đạt» dựa trên báo cáo đó.
+- [ ] **Step 5:** Báo điều phối:
+  - nhánh, commit cuối;
+  - lệnh `day-len` / `trien-khai` cho chủ (không tự chạy);
+  - việc chủ / Kế toán còn lại: ca vàng, mức cho đơn chưa chụp, ghi tay cho đơn b3, danh sách b1x.
