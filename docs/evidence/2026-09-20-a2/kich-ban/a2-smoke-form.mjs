@@ -23,7 +23,7 @@ try {
   // nằm NGAY SAU thẻ "Dịch vụ" (máy tính: trải ngang sau lưới 2 cột, ngoài .form-main) — danh sách dưới ghim cả vị trí đó ở 390px.
   // Khối đó do mã trang dựng SAU khi khởi động (bước 1 chỉ chờ phần HTML tĩnh) → chờ nó hiện rồi mới đếm (8/10: một lần chạy đếm sớm còn 4 mục).
   await p.waitFor("!document.getElementById('hk-card').hidden", "khối Hành khách dựng xong");
-  assert.deepEqual(await p.ev("[...document.querySelectorAll('.form-main > .card > h2')].map((x) => x.textContent)"), ["Thông tin khách hàng", "Dịch vụ", "Hành khách", "Thanh toán"]); // 14/10: bốn bước — khách lên đầu, ngày khởi hành nằm trong khối khách (không còn thẻ "Chọn ngày")
+  assert.deepEqual(await p.ev("[...document.querySelectorAll('.form-main > .card > h2, .form-main > .card > .khach-dau > h2')].map((x) => x.textContent)"), ["Khách hàng", "Dịch vụ", "Hành khách", "Thanh toán"]); // 14/10: bốn bước — khách lên đầu, ngày khởi hành nằm trong khối khách (không còn thẻ "Chọn ngày")
   assert.equal(await p.ev("document.getElementById('add-manual').hidden"), true, "nút '+ Dịch vụ nhập tay' ẩn khi danh mục tải được");
   assert.equal(await p.ev("document.getElementById('prepaidMethod').value"), "BANK_TRANSFER", "hình thức trả trước mặc định Chuyển khoản (YC-0002, chủ duyệt 30/9)");
   assert.match(await p.ev("document.querySelector('label:has(#prepaidAmount)').textContent"), /^Thanh toán trước/);
@@ -33,7 +33,7 @@ try {
   assert.deepEqual(await p.ev("[document.getElementById('customerName').value, document.getElementById('customerPhone').value, document.getElementById('customerEmail').value]"), [ACCOUNTS.salesA.name, ACCOUNTS.salesA.phone, ""]);
   await p.ev(setInput("document.getElementById('customerName')", ""));
   await p.ev(setInput("document.getElementById('customerPhone')", ""));
-  ok("Tạo đơn: thứ tự Thông tin khách hàng → Dịch vụ → Hành khách → Thanh toán (bốn bước, 14/10); nhập tay ẩn; Chuyển khoản mặc định, tên khách trống; nút 'của tôi' điền tên + SĐT tài khoản");
+  ok("Tạo đơn: thứ tự Khách hàng → Dịch vụ → Hành khách → Thanh toán (bốn bước, 14/10); nhập tay ẩn; Chuyển khoản mặc định, tên khách trống; nút 'của tôi' điền tên + SĐT tài khoản");
 
   // ---- 2) ô chọn danh mục: tìm, kết quả, trạng thái rỗng ----
   await p.ev("document.getElementById('catalog-q').focus(); true");
