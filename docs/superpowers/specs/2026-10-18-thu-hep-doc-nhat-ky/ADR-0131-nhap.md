@@ -1,6 +1,6 @@
 # ADR-0131 — Nhật ký kiểm toán: chỉ Toàn quyền đọc đủ; người khác thấy lịch sử đơn không có tên người làm
 
-- **Trạng thái:** **proposed** — bản nháp, chờ chủ dự án duyệt. Chủ chọn hướng trong chat 2026-10-18: *"ok theo khuyến nghị"* (cách "chia hai lớp" trong ba cách AI trình bày cùng ngày). AI soạn, không tự duyệt (Hiến pháp N3). Duyệt xong mới chuyển tệp vào `docs/adr/` và thêm dòng mục lục. Số 0131 vì 0130 đang được một bản sửa khác giữ (bảng từ giao diện, chưa nhập).
+- **Trạng thái:** **đã duyệt 2026-10-18** (*"duyêt, thực thi kếh oạch"*) — văn bản có hiệu lực là `docs/adr/ADR-0131-nhat-ky-kiem-toan-chi-toan-quyen-doc-du.md`; tệp này là văn bản đề xuất, đóng băng. Lúc trình: proposed, chờ chủ dự án duyệt. Chủ chọn hướng trong chat 2026-10-18: *"ok theo khuyến nghị"* (cách "chia hai lớp" trong ba cách AI trình bày cùng ngày). AI soạn, không tự duyệt (Hiến pháp N3). Duyệt xong mới chuyển tệp vào `docs/adr/` và thêm dòng mục lục. Số 0131 vì 0130 đang được một bản sửa khác giữ (bảng từ giao diện, chưa nhập).
 - **Ngày:** 2026-10-18.
 - **Loại:** việc lớn (quyền). **Hai chiều**: chỉ đổi mã, không đổi dữ liệu, không migration; gỡ bằng một commit. Cần người kiểm độc lập; trang ghép `TRANG-GHEP.md` cùng thư mục.
 - **Quan hệ với ADR cũ:**
