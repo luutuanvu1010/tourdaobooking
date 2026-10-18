@@ -47,6 +47,7 @@ import { soNguoiSauSuaKhach, type ChangSoNguoi } from "./dong-bo-chuyen-don";
 import type { DongBoTheoDon, NoiChuyen } from "../../shared/dong-bo-chuyen";
 import { CAU_X3_THUE_XE, NHOM_THUE_XE } from "../../shared/so-dai-ly-nhan";
 import { lichSuChoDoiTac } from "../../shared/lich-su-doi-tac";
+import { lichSuNoiBo } from "../../shared/lich-su-noi-bo";
 import { apGhiTay, banChupTuDb, cheDoThuongMai, chuaCoBanChup, dongGhiTuChup, dungThuongMai, kiemGhiTayVoiBanChup, kiemThanGhiTay, moTaChup, moTaGhiTay, type PhanThuongMai } from "./thuong-mai";
 import { banChupHienHanh, cauChupChuoi, cauGhiTay, demBanChup, laNhaCungCap, nhomCuaMa, tenHoSo } from "./thuong-mai-repo";
 import { laThanDonCu, laThanTripCu } from "./than-cu";
@@ -957,7 +958,8 @@ export const ordersModule: AppModule = {
       // ADR-0049 I31: kèm mốc tối thiểu đang hiệu lực (biểu mẫu cảnh báo trước khi xác nhận) — đọc không bị chặn khi chưa có mốc (null).
       const [order, assigned, moc] = await Promise.all([loadOrderView(env.DB, params.id!, xemDuDatGap(staff)), isAssigned(params.id!), mocToiThieu()]);
       if (!order) return NOT_FOUND();
-      // ADR-0007/0009: nhật ký/lịch sử sửa đơn — SALES chỉ đơn của mình hoặc đơn mình đang phụ trách; ACCOUNTING và ADMIN mọi đơn.
+      // ADR-0007/0009: ô `order.history.view` quyết ai MỞ khối lịch sử (SALES chỉ đơn của mình hoặc đơn mình đang phụ trách; ACCOUNTING và ADMIN mọi đơn); ADR-0131: người mở được
+      // KHÔNG đọc đủ nhật ký — chỉ người qua `audit.view` (Toàn quyền) thấy đủ, còn lại qua lớp rút gọn không tên (xem khối `history` dưới).
       // `assigned` tính MỘT lần cho cả nhật ký và `canModify`.
       const scope = { ownerId: order.staffId, assigned };
       // ADR-0014 điều 3 (D-01): PARTNER chỉ xem được chi tiết đơn của chính mình — SALES/ACCOUNTING/ADMIN/SUPER_ADMIN (order.view = any) luôn qua.
@@ -972,10 +974,14 @@ export const ordersModule: AppModule = {
       // D-1 (kiểm toán 13/10/2026): người giữ quyền Đối tác — tài khoản lai cũng bị áp ("có quyền Đối tác là áp") — chỉ thấy các hành động trong DANH SÁCH CHO PHÉP
       // (`LICH_SU_DOI_TAC_CHO_PHEP`: chữ chi tiết rút gọn theo từng hành động; riêng dòng nhập kế toán vẫn theo ô `accounting.entry.view` — ADR-0060), KHÔNG còn kiểu "lọc bỏ vài loại" (loại dòng thêm sau sẽ tự lộ). Dấu đặt gấp
       // luôn rút gọn cho Đối tác (R-P21), kể cả tài khoản lai có ô xem đủ. Người nội bộ không đổi (vẫn lọc dòng nhập kế toán theo ô quyền như cũ).
+      // ADR-0131 Quyết định 1–2: người KHÔNG qua `audit.view` (mọi vai nội bộ trừ Toàn quyền) nhận `lichSuNoiBo` — danh sách cho phép, MỌI dòng không tên / không mã người làm
+      // (dòng nhập kế toán vẫn theo ô `accounting.entry.view`). Nhánh `holdsPartner` xét TRƯỚC (tài khoản lai, kể cả Toàn quyền + Đối tác, nhận lớp Đối tác); nhánh đầy đủ giữ nguyên.
       const history = can(staff, "order.history.view", scope)
         ? holdsPartner(staff)
           ? lichSuChoDoiTac(lichSuTheoVai(await getAuditTrail(env.DB, order.id), false), xemNhapKeToan)
-          : lichSuTheoVai(await getAuditTrail(env.DB, order.id), xemDuDatGap(staff)).filter((e) => xemNhapKeToan || !laDongNhapKeToan(e.action))
+          : can(staff, "audit.view")
+            ? lichSuTheoVai(await getAuditTrail(env.DB, order.id), xemDuDatGap(staff)).filter((e) => xemNhapKeToan || !laDongNhapKeToan(e.action))
+            : lichSuNoiBo(lichSuTheoVai(await getAuditTrail(env.DB, order.id), xemDuDatGap(staff)), xemNhapKeToan)
         : [];
       // ADR-0063 D1: dữ liệu bảng "Sửa số khách dịch vụ" — chỉ khi người xem sửa được (cùng hàm ẩn/hiện của giao diện); loại khách sửa được tính từ BẢN CHỤP GỐC
       // (`findOrder`, trước điều chỉnh — loại đã về 0 vẫn còn ô, cùng cách "Việc của tôi").

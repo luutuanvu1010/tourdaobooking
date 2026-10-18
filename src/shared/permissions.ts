@@ -87,7 +87,7 @@ const quanTriNhanSu = (): Row => row("none", "none", "any", "none", "none", "any
 export const MATRIX = {
   "order.view": row("any", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"), // xem đơn — FIELD: chỉ đơn đang phụ trách (ADR-0030 S23-1); chi tiết đơn khác → 404 (seesOnlyAssignedOrders)
   "money.view": row("any", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"), // xem tiền, bảng giá danh mục — FIELD assigned (ADR-0030 S23-5): tiền đơn mình phụ trách, KHÔNG bảng giá (for-order chặn ở order.create)
-  "order.history.view": row("ownOrAssigned", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"), // nhật ký/lịch sử sửa đơn (ADR-0009: cả người phụ trách; ADR-0030 S23-3: FIELD đơn đang phụ trách)
+  "order.history.view": row("ownOrAssigned", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"), // mở khối "Lịch sử" của đơn — lớp RÚT GỌN không tên (ADR-0131); ADR-0009: cả người phụ trách; ADR-0030 S23-3: FIELD đơn đang phụ trách
   "contact.view": row("any", "any", "any", "assigned", "ownOrAssigned", "any", "own", "none", "none", "none"), // tên/SĐT khách, điểm đón, giờ — PARTNER: own (đơn tự lập) + assigned (đơn được duyệt "xin nhận", ADR-0014 điều 10). NGOẠI LỆ CÓ TÊN (ADR-0030 S23-2): nơi đón/giờ đón ở PHẦN HẸP của hàng chờ (order.pool.view) không đòi ô này — nơi đón đã che dãy số. Nay gồm HỌ TÊN + NĂM SINH của từng hành khách (ADR-0047 A2 — GET /api/orders/:id/passengers)
   "order.create": row("any", "none", "any", "none", "any", "any", "any", "none", "none", "none"), // lập đơn (đơn mới luôn là của người lập)
   "order.modify": row("ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none", "none"), // sửa, xác nhận, huỷ đơn (ADR-0009: cả người phụ trách; ADR-0014: PARTNER của mình)
@@ -182,7 +182,7 @@ export const MATRIX = {
   "account.create": row("none", "none", "none", "none", "none", "any", "none", "none", "none", "any"),
   "account.view": quanTriNhanSu(),
   "account.edit": quanTriNhanSu(),
-  "audit.view": chiToanQuyen(), // xem trang Nhật ký toàn hệ thống (GET /api/audit)
+  "audit.view": chiToanQuyen(), // đọc nhật ký kiểm toán ĐẦY ĐỦ: trang Nhật ký (GET /api/audit) và lịch sử đơn đủ tên (ADR-0131: chỉ Toàn quyền)
   "feedback.submit": row("any", "any", "any", "any", "any", "any", "any", "any", "any", "any"), // gửi báo lỗi/đề xuất (mọi tài khoản đăng nhập)
   "feedback.view": row("own", "own", "own", "own", "own", "any", "own", "own", "own", "own"), // xem yêu cầu: chỉ của mình (ownerId = người gửi); đọc mọi yêu cầu chỉ Toàn quyền (ADR-0038)
   "feedback.triage": chiToanQuyen(), // tiếp nhận: đổi trạng thái/người xử lý, ghi chú nội bộ, hàng đợi — chỉ Toàn quyền (ADR-0038)
