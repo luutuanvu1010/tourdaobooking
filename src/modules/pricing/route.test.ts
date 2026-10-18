@@ -217,7 +217,7 @@ test("dịch lỗi trigger: mức theo vai không được hưởng ⇒ 400; ng�
   assert.doesNotMatch(vai.text, /prc_/);
   const banHang = await w.call("POST", "/api/pricing/cung-ung", { as: KT, body: { phamVi: "SERVICE", catalogCode: "IRESORT", nguoiBanPartyId: `pty-${SALES}`, tyLeMuaBp: 8000, tuNgay: "2026-10-01" } });
   assert.equal(banHang.status, 400, banHang.text);
-  assert.match(banHang.json.error.message, /Người bán phải là Tour Đảo hoặc hồ sơ mang vai Nhà cung cấp/);
+  assert.match(banHang.json.error.message, /Người bán phải là Tour Đảo hoặc hồ sơ mang vai trò Nhà cung cấp/);
   assert.doesNotMatch(banHang.text, /prc_/);
   assert.equal(Number(w.q("SELECT count(*) AS n FROM prc_commission_rule")[0].n), 0);
   assert.equal(Number(w.q("SELECT count(*) AS n FROM prc_supply_term")[0].n), 1, "chỉ còn dòng gieo sẵn");

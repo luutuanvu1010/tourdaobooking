@@ -103,5 +103,5 @@ export function lenhChanMoc<T extends { xet: XetMoc }>(ds: readonly T[], mocPhut
 
 /** Câu báo ngay ở bảng (không gửi lệnh nào): "Chặng Chiều đi · Tour đảo dưới mốc 6 giờ — cần Quản trị duyệt đặt gấp; chưa lưu gì." Tên chặng không lặp. */
 export function cauChanMoc(nhan: readonly string[], mocPhut: number): string {
-  return `Chặng ${[...new Set(nhan)].join(", ")} dưới mốc ${nhanThoiLuong(mocPhut)} — cần Quản trị duyệt đặt gấp; chưa lưu gì.`;
+  return `Lượt ${[...new Set(nhan)].join(", ")} quá hạn chốt ${nhanThoiLuong(mocPhut)} — cần Quản trị duyệt đặt gấp; chưa lưu gì.`;
 }

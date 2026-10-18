@@ -62,7 +62,7 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
    - **Tạm tính**, **Giảm giá**, **Tổng cộng**
    - **Đã thu**, rồi **Còn lại** (khách trả dư thì ghi **Khách trả dư**)
    - **Ghi chú thanh toán**
-   - Từng khoản thu: ngày, số tiền, hình thức, người thu
+   - Từng khoản thu: ngày, số tiền, hình thức, người thu tiền
 4. Khối **Lịch sử** ở cuối trang ghi ai đã làm gì với đơn, lúc nào. Ai sửa số khách (hướng dẫn viên, người lập đơn, Kế toán, Quản trị) thì lý do cũng hiện ở đây.
 
 Đơn đã xác nhận có dòng khoá bắt đầu bằng "Đơn đã xác nhận: dịch vụ và đơn giá đã khoá." Số khách vẫn sửa được (mục "Sửa số khách đơn đã xác nhận").`,
@@ -160,10 +160,10 @@ Mức riêng luôn được ưu tiên; khi gắn sẽ hiện khung vàng. Đổi
       noiDung: `Khi một tháng đã qua được đối chiếu xong, bạn khoá sổ tháng đó để không ai ghi thêm tiền vào tháng ấy (khoản thu, hoàn tiền, chi phí xe).
 
 1. Bấm [[Khoá sổ tháng]]. Trang ghi các tháng đã khoá và **Tháng khoá được kế tiếp**.
-2. Xem bảng kiểm: khoản Công ty thu chờ xác nhận, khoản thu chưa rõ người thu, số dư từng bên. Bảng chỉ để xem, không chặn việc khoá.
+2. Xem bảng kiểm: khoản Công ty thu chờ xác nhận, khoản thu chưa rõ người thu tiền, số dư từng bên. Bảng chỉ để xem, không chặn việc khoá.
 3. Bấm **Khoá tháng** kèm tháng cần khoá, đọc câu cảnh báo, ghi chú nếu muốn, rồi bấm nút xác nhận.
 
-> Lưu ý: Khoá từng tháng theo thứ tự, không khoá tháng chưa qua. Tháng đã khoá **không mở lại được**; sửa sau khi khoá chỉ còn cách khôi phục cả cơ sở dữ liệu, nên hãy chắc chắn trước khi bấm.`,
+> Lưu ý: Khoá từng tháng theo thứ tự, không khoá tháng chưa qua. Tháng đã khoá **không mở lại được**; sửa sau khi khoá chỉ còn cách khôi phục cả cơ sở dữ liệu, nên hãy chắc chắn trước.`,
     },
     {
       tieuDe: "Điều chỉnh công nợ (cần người khác duyệt)",
@@ -186,24 +186,24 @@ Cần biết:
       tieuDe: "Tình huống hay gặp",
       noiDung: `### Thấy một đơn sai tiền
 
-Bạn không sửa được. Ghi lại mã đơn rồi báo người lập đơn hoặc người phụ trách đơn. Tên người lập có ở dòng "Lập … bởi …" dưới dải trên cùng. Tên người phụ trách có ở khối **Người phụ trách**. Sai số khách thì xem mục "Sửa số khách đơn đã xác nhận". Tiền của đơn đã xác nhận chỉ tài khoản Toàn quyền sửa được.
+Bạn không sửa được. Ghi lại mã đơn rồi báo người lập hoặc người phụ trách đơn. Tên người lập có ở dòng "Lập … bởi …" dưới dải trên cùng. Tên người phụ trách có ở khối **Người phụ trách**. Sai số khách thì xem mục "Sửa số khách đơn đã xác nhận". Tiền của đơn đã xác nhận chỉ tài khoản Toàn quyền sửa được.
 
 ### Khách đã trả thêm tiền, muốn ghi vào đơn
 
-Trong khối **Thanh toán**, bấm [[Ghi khoản thu]]: số tiền, hình thức, người nhận tiền; riêng Kế toán chọn được **Ngày phát sinh**. Bấm [[Ghi]]. Sau khi đơn **Đã giao – đã thu đủ** thì không ghi thêm khoản thu được.
+Trong khối **Thanh toán**, bấm [[Ghi khoản thu]]: số tiền, hình thức, người thu tiền; riêng Kế toán chọn được **Ngày phát sinh**. Bấm [[Ghi]]. Sau khi đơn **Đã giao – đã thu đủ** thì không ghi thêm khoản thu được.
 
 ### Đối chiếu tiền trên trang đơn
 
 Mọi việc làm ngay trên trang đơn:
 - Khoản thu người khác khai là tiền vào công ty: đối chiếu tài khoản, bấm [[Xác nhận đã nhận]] rồi [[Công ty đã nhận]].
-- Sai số tiền, hình thức hay người thu: [[Sửa khoản thu đã ghi]] → [[Lưu khoản thu đúng]] (đơn đã giao chỉ sửa được cách này).
+- Sai số tiền, hình thức hay người thu tiền: [[Sửa khoản thu đã ghi]] → [[Lưu khoản thu đúng]] (đơn đã giao chỉ sửa được cách này).
 - Ghi nhầm hẳn, đơn chưa giao: [[Huỷ khoản thu]], ghi lý do → [[Huỷ khoản này]]. Sổ giữ dòng cũ, thêm dòng trừ.
-- Khối **Kế toán** ghi ai đang giữ tiền của công ty: nhận tiền rồi bấm [[Đã nộp về công ty]].
+- Khối **Kế toán** ghi ai chưa nộp tiền về công ty: nhận tiền rồi bấm [[Đã nộp về công ty]].
 - Khách trả dư: bấm [[Ghi hoàn cho khách]].
 
 ### Hoàn thành đơn
 
-Khi đơn **Đã giao – đã thu đủ** và không ai còn giữ tiền của công ty, bấm [[Hoàn thành]] rồi đồng ý. **Không mở lại được.** Nút mờ thì dòng **Đang giữ đơn** ghi lý do.
+Khi đơn **Đã giao – đã thu đủ** và mọi người đã nộp tiền về công ty, bấm [[Hoàn thành]] rồi đồng ý. **Không mở lại được.** Nút mờ thì dòng **Đang giữ đơn** ghi lý do.
 
 ### Đánh dấu đã nhập phần mềm kế toán
 

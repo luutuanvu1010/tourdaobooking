@@ -130,7 +130,7 @@ export const mfaGraceOnReactivate = (perms: readonly PermissionCode[], coYeuTo: 
 export const MFA_ENROLL_WINDOW_MS = 24 * 3_600_000;
 
 /** Câu chặn chiều 2 — KHÔNG nêu tên loại hay nhãn (Nhân sự không giữ party.view nhận đúng câu này — ADR-0117 điều 4). */
-export const KHONG_NHAN_VAI_NOI_BO = "Hồ sơ này không nhận thêm vai nội bộ vào lúc này.";
+export const KHONG_NHAN_VAI_NOI_BO = "Hồ sơ này không nhận thêm vai trò nội bộ vào lúc này.";
 
 /**
  * ADR-0117 điều 4, chiều 2: hồ sơ đang mang loại đối tác được hưởng (`nhanDoiTac`) không nhận vai nhóm INTERNAL hay quyền nội bộ. Máy chủ gọi TRƯỚC mọi

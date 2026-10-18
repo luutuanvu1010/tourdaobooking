@@ -117,21 +117,21 @@ export function docXep(body: Record<string, unknown> | null): KetQua<XepThan> {
   if (!rid.ok) return rid;
   const chang: XepThan["chang"] = [];
   if (body.chang !== undefined) {
-    if (!Array.isArray(body.chang) || body.chang.length > TOI_DA_CHANG_MOT_LAN) return fail("Danh sách chặng không hợp lệ."); // C34: một con số với màn (src/shared/dieu-phoi-loc.ts)
+    if (!Array.isArray(body.chang) || body.chang.length > TOI_DA_CHANG_MOT_LAN) return fail("Danh sách lượt đưa đón không hợp lệ."); // C34: một con số với màn (src/shared/dieu-phoi-loc.ts)
     for (const c of body.chang) {
-      if (!c || typeof c !== "object") return fail("Danh sách chặng không hợp lệ.");
+      if (!c || typeof c !== "object") return fail("Danh sách lượt đưa đón không hợp lệ.");
       const x = c as Record<string, unknown>;
-      if (!idHopLe(x.legId)) return fail("Chặng không hợp lệ.");
+      if (!idHopLe(x.legId)) return fail("Lượt đưa đón không hợp lệ.");
       if (typeof x.soSuat !== "number" || !Number.isInteger(x.soSuat) || x.soSuat < 1 || x.soSuat > 100) return fail("Số người xếp là số nguyên từ 1.");
       const pk = x.personKeys === undefined ? [] : x.personKeys;
       if (!Array.isArray(pk) || pk.length > x.soSuat || !pk.every(idHopLe) || new Set(pk).size !== pk.length) return fail("Danh sách khách có tên không hợp lệ.");
       chang.push({ legId: x.legId, soSuat: x.soSuat, personKeys: [...(pk as string[])] });
     }
-    if (new Set(chang.map((c) => c.legId)).size !== chang.length) return fail("Một chặng xuất hiện hai lần.");
+    if (new Set(chang.map((c) => c.legId)).size !== chang.length) return fail("Một lượt đưa đón xuất hiện hai lần.");
   }
   const kem = body.nguoiDiKem === undefined ? [] : body.nguoiDiKem;
   if (!Array.isArray(kem) || kem.length > 10 || !kem.every(idHopLe) || new Set(kem).size !== kem.length) return fail("Danh sách người đi kèm không hợp lệ.");
-  if (chang.length === 0 && kem.length === 0) return fail("Chọn chặng hoặc người đi kèm để xếp.");
+  if (chang.length === 0 && kem.length === 0) return fail("Chọn lượt đưa đón hoặc người đi kèm để xếp.");
   const phaLe = docPhaLe(body.phaLe, "Phá lệ");
   if (!phaLe.ok) return phaLe;
   const camKet = docPhaLe(body.camKetPhaLe, "Phá lệ cam kết");
@@ -186,7 +186,7 @@ export function docThemDiem(body: Record<string, unknown> | null): KetQua<XepTha
   if (body && body.nguoiDiKem !== undefined && !(Array.isArray(body.nguoiDiKem) && body.nguoiDiKem.length === 0)) return fail("Xe đang chạy không thêm người đi kèm.");
   const r = docXep(body);
   if (!r.ok) return r;
-  if (r.value.chang.length === 0) return fail("Chọn chặng để thêm vào xe.");
+  if (r.value.chang.length === 0) return fail("Chọn lượt đưa đón để thêm vào xe.");
   return r;
 }
 /** Đợt 5 D5.2 — văn phòng báo khách huỷ: `lyDo` = mã trong nhóm BAO_HUY_DIEM (route kiểm nhóm — sai nhóm 400). */
@@ -231,7 +231,7 @@ export function docThuHoiXuatBen(body: Record<string, unknown> | null): KetQua<T
   if (!v.ok) return v;
   const rid = docRequestId(body);
   if (!rid.ok) return rid;
-  if (typeof body.lyDo !== "string" || !MA_RE.test(body.lyDo)) return fail("Chọn lý do thu hồi xuất bến.");
+  if (typeof body.lyDo !== "string" || !MA_RE.test(body.lyDo)) return fail("Chọn lý do thu hồi lệnh cho xe chạy.");
   return { ok: true, value: { version: v.value, requestId: rid.value, lyDo: body.lyDo } };
 }
 

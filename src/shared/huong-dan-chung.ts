@@ -89,7 +89,7 @@ Bấm [[Đăng xuất]] ở trang Tôi hoặc dưới cùng menu máy tính. Má
       tieuDe: "Mỗi tài khoản một máy",
       noiDung: `- Tuỳ quyền, đăng nhập máy mới thì máy cũ tự đăng xuất (do Toàn quyền đặt). Máy cũ báo **Tài khoản vừa đăng nhập trên máy khác lúc** kèm giờ.
 - Ứng dụng đã cài và Safari trên cùng một iPhone tính là hai máy.
-- [[Phiên đăng nhập của tôi]] ở trang Tôi ghi các lần đăng nhập gần đây; dòng **Máy này** là máy đang cầm. Thấy lạ thì đổi PIN ngay.`,
+- [[Máy đang đăng nhập của tôi]] ở trang Tôi ghi các lần đăng nhập gần đây; dòng **Máy này** là máy đang cầm. Thấy lạ thì đổi PIN ngay.`,
     },
     {
       tieuDe: "Trợ giúp và Hỗ trợ",
@@ -108,7 +108,7 @@ Chỉ bạn, nhóm nhận và người phụ trách hệ thống đọc được
     },
     {
       tieuDe: "Hỏi trợ lý Hỗ trợ",
-      noiDung: `Nút [[Trợ lý]] nằm ở góc dưới bên phải mọi trang. Khung này tự mở một lần sau mỗi lần đăng nhập. Không thấy nút: trợ lý đang tắt với vai của bạn.
+      noiDung: `Nút [[Trợ lý]] nằm ở góc dưới bên phải mọi trang. Khung này tự mở một lần sau mỗi lần đăng nhập. Không thấy nút: trợ lý đang tắt với vai trò của bạn.
 
 1. Bấm [[Trợ lý]], gõ câu hỏi về cách dùng Nền tảng, bấm [[Gửi]]. Có câu hỏi mẫu thì chạm vào để gửi luôn.
 2. Đọc câu trả lời. Có dòng **Nguồn** thì đó là mục hướng dẫn trợ lý đã dựa vào.

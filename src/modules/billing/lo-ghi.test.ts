@@ -258,7 +258,7 @@ test("NT-Q3 / NT-F8 / NT-S1 (ADR-0120): Hoàn thành — Quản trị → 403; c
   assert.equal((await w.call("POST", `/api/orders/${id}/completed`, { as: ADMIN })).status, 403);
   const chua = await w.call("POST", `/api/orders/${id}/completed`, { as: KT });
   assert.equal(chua.status, 409);
-  assert.match(chua.json.error.message, /Nam HDV đang giữ 1\.000\.000 ₫/);
+  assert.match(chua.json.error.message, /Nam HDV còn 1\.000\.000 ₫ chưa nộp/);
   assert.equal((await w.call("POST", "/api/ledger/settlements", { as: KT, body: { chieu: "nop", partyId: `pty-${HDV}`, phanBo: [{ orderId: id, soTien: 1_000_000 }] } })).status, 201);
   assert.equal(await mine(), 0);
   assert.equal((await w.call("POST", `/api/orders/${id}/completed`, { as: KT })).status, 200);
@@ -444,7 +444,7 @@ test("VP-01 (Đ2, Đ2b) thứ tự 2 (qua API): 'Xác nhận đã nhận' → '�
   const r = await nopVe(w, id, 1_000_000);
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "settlement_exceeds_held");
-  assert.match(r.json.error.message, /vượt số người này đang giữ cho đơn/);
+  assert.match(r.json.error.message, /vượt số người này chưa nộp về công ty của đơn/);
   assert.equal(await soCuaToi(w, HDV), 0);
 });
 

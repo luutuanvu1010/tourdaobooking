@@ -145,18 +145,18 @@ export async function docLanThu(db: D1Database, raw: unknown, ai: NguoiGoi, cong
     collectorRole = "COMPANY";
     collectorPartyId = congTyId;
   } else if (b.nguoiThu === "toi") {
-    if (!ai.partyId) return loi(400, "invalid_input", "Tài khoản chưa có hồ sơ nên không ghi được mình là người thu.");
+    if (!ai.partyId) return loi(400, "invalid_input", "Tài khoản chưa có hồ sơ nên không ghi được mình là người thu tiền.");
     collectorRole = "STAFF";
     collectorPartyId = ai.partyId;
   } else if (b.nguoiThu && typeof b.nguoiThu === "object" && typeof (b.nguoiThu as { partyId?: unknown }).partyId === "string") {
     const pid = (b.nguoiThu as { partyId: string }).partyId;
-    if (!ai.laKeToan && pid !== ai.partyId) return loi(400, "invalid_input", "Chỉ ghi được người thu là chính bạn hoặc Công ty. Kế toán ghi thay người khác.");
-    if (!PARTY_ID_RE.test(pid)) return loi(400, "invalid_input", "Người thu không hợp lệ.");
+    if (!ai.laKeToan && pid !== ai.partyId) return loi(400, "invalid_input", "Chỉ ghi được người thu tiền là chính bạn hoặc Công ty. Kế toán ghi thay người khác.");
+    if (!PARTY_ID_RE.test(pid)) return loi(400, "invalid_input", "Người thu tiền không hợp lệ.");
     if (pid === congTyId) {
       collectorRole = "COMPANY";
     } else {
       const nhan = (await partyLabels(db, [pid])).get(pid);
-      if (!nhan || !nhan.active) return loi(400, "invalid_input", "Không tìm thấy người thu (hồ sơ đang hoạt động).");
+      if (!nhan || !nhan.active) return loi(400, "invalid_input", "Không tìm thấy người thu tiền (hồ sơ đang hoạt động).");
       collectorRole = "STAFF";
     }
     collectorPartyId = pid;
@@ -595,7 +595,7 @@ export async function ghiQuyetToan(db: D1Database, input: { raw: unknown; ai: Ng
     const k = await loiKhoaKy(db, e, [ngay.value]);
     if (k) return k;
     // Người khác vừa ghi nộp / xác nhận giữa lúc đọc và lúc ghi → trigger 0080 huỷ cả lô.
-    if (loiTrigger(e, "settlement_sign_flip")) return loi(409, "stale", "Số tiền người này đang giữ vừa thay đổi — tải lại rồi thử lại.");
+    if (loiTrigger(e, "settlement_sign_flip")) return loi(409, "stale", "Số tiền người này chưa nộp về công ty vừa thay đổi — tải lại rồi thử lại.");
     throw e;
   }
   return { ok: true, value: { orderIds: phanBo.map((p) => p.orderId) } };
@@ -615,7 +615,7 @@ export async function ghiHoanKhach(db: D1Database, input: { raw: unknown; ai: Ng
   else if (b.nguoiTra && typeof b.nguoiTra === "object" && typeof (b.nguoiTra as { partyId?: unknown }).partyId === "string" && PARTY_ID_RE.test((b.nguoiTra as { partyId: string }).partyId)) {
     nguoiTra = (b.nguoiTra as { partyId: string }).partyId;
     if (nguoiTra !== congTyId && !(await partyLabels(db, [nguoiTra])).get(nguoiTra)) return loi(400, "invalid_input", "Không tìm thấy người trả.");
-  } else return loi(400, "invalid_input", "Chọn người trả tiền cho khách (Công ty hoặc người đang giữ tiền).");
+  } else return loi(400, "invalid_input", "Chọn người trả tiền cho khách (Công ty hoặc người chưa nộp tiền về công ty).");
   const [state, receipts] = await Promise.all([orderState(db, b.orderId), receiptsOfOrder(db, b.orderId)]);
   if (!state) return loi(404, "not_found", "Không tìm thấy đơn.");
   // ADR-0089 (H-C7): đơn HUỶ không trả dư tự do — hoàn qua khoản duyệt (lớp CSDL: trigger coc_needs_approval).
@@ -656,7 +656,7 @@ export async function ghiHoanKhach(db: D1Database, input: { raw: unknown; ai: Ng
     // Kiểm độc lập T-3: người khác vừa ghi hoàn / đảo khoản thu giữa lúc đọc và lúc ghi → trigger bil_payment_receipt_refund_within_paid huỷ cả lô.
     if (loiTrigger(e, "refund_exceeds_paid")) return loi(409, "stale", "Không hoàn quá số khách đã trả — số đã thu vừa thay đổi, tải lại rồi thử lại.");
     if (loiTrigger(e, "coc_needs_approval")) return loi(409, "coc_needs_approval", "Đơn huỷ: hoàn qua “Duyệt hoàn thu trước” rồi “Ghi chi hoàn”.");
-    if (loiTrigger(e, "refund_exceeds_held")) return loi(409, "refund_exceeds_held", "Số hoàn vượt số người này đang giữ cho đơn — số vừa thay đổi, tải lại rồi thử lại.");
+    if (loiTrigger(e, "refund_exceeds_held")) return loi(409, "refund_exceeds_held", "Số hoàn vượt số người này chưa nộp về công ty của đơn — số vừa thay đổi, tải lại rồi thử lại.");
     if (loiTrigger(e, "receipt_after_delivered")) return HOAN_SAU_GIAO();
     throw e;
   }
@@ -756,7 +756,7 @@ const HOAN_SAU_GIAO = () => loi(409, "refund_after_delivered", "Đơn đã ở b
 const CHUYEN_KHOA = () =>
   loi(409, "coc_transfer_locked", "Tiền này đã chuyển sang đơn mới — không huỷ riêng một phía của lần chuyển được. Cần sửa thì báo Toàn quyền.");
 const HELD_DON_LE = () =>
-  loi(409, "held_single_reversal", "Không huỷ riêng dòng tiền nhân viên đang giữ khi khoản thu vẫn còn — huỷ khoản thu, hoặc dùng “Xác nhận đã nhận” cho khoản chuyển khoản.");
+  loi(409, "held_single_reversal", "Không huỷ riêng dòng tiền nhân viên chưa nộp về công ty khi khoản thu vẫn còn — huỷ khoản thu, hoặc dùng “Xác nhận đã nhận” cho khoản chuyển khoản.");
 
 const LOAI_DONG: Record<string, string> = {
   RECEIPT: "Khoản thu", DELIVERED: "Đã giao", COMPLETED: "Hoàn thành", COMPANY_RECEIVED: "Công ty đã nhận", SETTLEMENT: "Nộp / trả", REFUND: "Hoàn khách",

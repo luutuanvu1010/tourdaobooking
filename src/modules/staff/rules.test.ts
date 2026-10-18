@@ -149,5 +149,5 @@ test("ADR-0117: moNoiBoChoHoSoCoNhanProblem — hồ sơ mang nhãn không nhậ
   assert.equal(moNoiBoChoHoSoCoNhanProblem({ nhanDoiTac: true, vaiTiep: ["HOTEL_RECEPTION"], quyenTiep: ["PARTNER"] }), null, "đối tác thuần được");
   assert.equal(moNoiBoChoHoSoCoNhanProblem({ nhanDoiTac: true, vaiTiep: ["DRIVER_EXTERNAL"], quyenTiep: ["DRIVER_PARTNER"] }), null);
   assert.equal(moNoiBoChoHoSoCoNhanProblem({ nhanDoiTac: false, vaiTiep: ["SALES_STAFF"], quyenTiep: ["SALES"] }), null, "không nhãn thì không chặn");
-  assert.equal(KHONG_NHAN_VAI_NOI_BO, "Hồ sơ này không nhận thêm vai nội bộ vào lúc này.");
+  assert.equal(KHONG_NHAN_VAI_NOI_BO, "Hồ sơ này không nhận thêm vai trò nội bộ vào lúc này.");
 });

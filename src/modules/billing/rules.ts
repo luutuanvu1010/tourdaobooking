@@ -156,7 +156,7 @@ export const canDoiChieu = (input: { kind: ReceiptKind; collectorRole: Collector
  */
 export function kiemQuyetToan(input: { chieu: "nop" | "tra"; soDu: number; soTien: number; maDon: string }): { ok: true } | { ok: false; ma: string; cau: string } {
   if (input.chieu === "nop" && input.soTien > Math.max(0, input.soDu)) {
-    return { ok: false, ma: "settlement_exceeds_held", cau: `Số tiền nộp vượt số người này đang giữ cho đơn ${input.maDon} (đang giữ ${dong(Math.max(0, input.soDu))}).` };
+    return { ok: false, ma: "settlement_exceeds_held", cau: `Số tiền nộp vượt số người này chưa nộp về công ty của đơn ${input.maDon} (còn ${dong(Math.max(0, input.soDu))} chưa nộp).` };
   }
   if (input.chieu === "tra" && input.soTien > Math.max(0, -input.soDu)) {
     return { ok: false, ma: "settlement_exceeds_owed", cau: `Số tiền trả vượt số công ty đang nợ người này cho đơn ${input.maDon} (đang nợ ${dong(Math.max(0, -input.soDu))}).` };
@@ -182,7 +182,7 @@ export function kiemHoanNguoiGiu(input: { dangGiu: number; soTien: number }): Ke
   if (input.soTien > Math.max(0, input.dangGiu)) {
     return {
       ok: false, ma: "refund_exceeds_held",
-      cau: `Số hoàn vượt số người này đang giữ cho đơn (đang giữ ${dong(Math.max(0, input.dangGiu))}). Nhân viên ứng tiền túi trả khách thì ghi người trả là Công ty.`,
+      cau: `Số hoàn vượt số người này chưa nộp về công ty của đơn (còn ${dong(Math.max(0, input.dangGiu))} chưa nộp). Nhân viên ứng tiền túi trả khách thì ghi người trả là Công ty.`,
     };
   }
   return { ok: true };
@@ -375,7 +375,7 @@ export function kiemChi(input: { conLaiKhoan: number; soTien: number; nguoiChi: 
   if (input.nguoiDuyet !== null && input.nguoiChi === input.nguoiDuyet) return sai("coc_same_person", "Người duyệt không tự chi / chuyển khoản này — cần một người khác (tách nhiệm vụ).");
   if (input.soTien > input.conLaiKhoan) return sai("coc_exceeds_approved", `Vượt phần đã duyệt còn lại (${dong(Math.max(0, input.conLaiKhoan))}).`);
   if (input.nguoiTraDangGiu !== null && input.soTien > input.nguoiTraDangGiu) {
-    return sai("coc_exceeds_held", `Người trả chỉ đang giữ ${dong(Math.max(0, input.nguoiTraDangGiu))} của đơn này.`);
+    return sai("coc_exceeds_held", `Người trả chỉ còn ${dong(Math.max(0, input.nguoiTraDangGiu))} của đơn này chưa nộp về công ty.`);
   }
   return { ok: true };
 }
@@ -526,7 +526,7 @@ export function lyDoChuaGiaoDuoc(input: {
     return { ma: "reconciling", cau: "Còn khoản chuyển khoản “Công ty thu” đang chờ Kế toán đối chiếu — Kế toán bấm “Xác nhận đã nhận” rồi mới bấm Đã giao được.", aiXuLy: "Kế toán" };
   }
   if (input.so.chuaRo > 0) {
-    return { ma: "unknown_collector", cau: "Còn tiền trả trước chưa rõ người thu — Kế toán xác nhận lại người thu trước.", aiXuLy: "Kế toán" };
+    return { ma: "unknown_collector", cau: "Còn tiền trả trước chưa rõ người thu tiền — Kế toán xác nhận lại người thu tiền trước.", aiXuLy: "Kế toán" };
   }
   if (input.so.conLai > 0) {
     return { ma: "underpaid", cau: `Còn thiếu ${dong(input.so.conLai)} — ghi thêm khoản thu hoặc sửa đơn trước.`, aiXuLy: "Hướng dẫn viên" };
@@ -550,8 +550,8 @@ export function lyDoChuaHoanThanh(input: {
   if (input.completedAt) return { ma: "already_completed", cau: "Đơn đã Hoàn thành.", aiXuLy: "Kế toán" };
   const no = [...input.soDu.entries()].filter(([, so]) => so > 0);
   if (no.length > 0) {
-    const ds = no.map(([ben, so]) => `${input.tenBen(ben)} đang giữ ${dong(so)}`).join("; ");
-    return { ma: "unsettled", cau: `Còn người giữ tiền của công ty: ${ds} — ghi nộp tiền / xác nhận công ty đã nhận trước.`, aiXuLy: "Kế toán" };
+    const ds = no.map(([ben, so]) => `${input.tenBen(ben)} còn ${dong(so)} chưa nộp`).join("; ");
+    return { ma: "unsettled", cau: `Còn người chưa nộp tiền về công ty: ${ds} — ghi nộp tiền / xác nhận công ty đã nhận trước.`, aiXuLy: "Kế toán" };
   }
   if (input.phaiThuLucGiao !== null && input.daThu !== input.phaiThuLucGiao) {
     return {

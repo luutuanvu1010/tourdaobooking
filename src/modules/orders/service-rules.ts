@@ -329,7 +329,7 @@ export function validateTripUpdate(
   // ADR-0056 VK3-A: hai ô cam kết (xe riêng, số chỗ tối thiểu) cũng là của TỪNG CHẶNG — cùng khuôn.
   const oPhu = (o: Record<string, unknown>) => "flightCode" in o || "paxOverride" in o || "exclusiveVehicle" in o || "minVehicleSeats" in o;
   if (oPhu(b) || b.services.some((x) => !!x && typeof x === "object" && oPhu(x as Record<string, unknown>))) {
-    return { ok: false, message: "Số hiệu chuyến bay, số người chiều về, xe riêng, số chỗ tối thiểu sửa ở từng chặng đưa đón, không sửa ở đây." };
+    return { ok: false, message: "Số hiệu chuyến bay, số người chiều về, xe riêng, số chỗ tối thiểu sửa ở từng lượt đưa đón, không sửa ở đây." };
   }
   const { from, to } = confirmWindow(today);
   const seen = new Set<string>();
@@ -426,7 +426,7 @@ export function giaiOPhuNhap(
           doiSoNguoi = true;
           const n = tongKhach(sv.pax);
           if (l.paxOverride !== null && l.paxOverride > n && vuot === null) {
-            vuot = `Dịch vụ ${i + 1}, chặng ${j + 1}: số người chiều về (${l.paxOverride}) không được nhiều hơn số khách của dịch vụ (${n}).`;
+            vuot = `Dịch vụ ${i + 1}, lượt ${j + 1}: số người chiều về (${l.paxOverride}) không được nhiều hơn số khách của dịch vụ (${n}).`;
           }
         }
       }

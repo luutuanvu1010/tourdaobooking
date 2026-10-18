@@ -11,7 +11,7 @@ import type { TuChoiThan } from "./dieu-phoi-than";
 import { coSuatChuyenVao, hanTuChoiCuaCap } from "./han-tu-choi-repo";
 import { CAU_CHAN_TU_CHOI_KHACH_CHUYEN_VAO, CAU_QUA_HAN_TU_CHOI } from "./rules";
 
-const KHONG_CON_KE_HOACH = () => error(409, "trip_not_planned", "Chuyến đã xuất bến, kết thúc hoặc bị huỷ.");
+const KHONG_CON_KE_HOACH = () => error(409, "trip_not_planned", "Xe đã chạy, chuyến đã kết thúc hoặc bị huỷ.");
 const QUA_HAN = () => error(409, "refuse_deadline_passed", CAU_QUA_HAN_TU_CHOI);
 const CHAN_KHACH_CHUYEN_VAO = () => error(409, "refuse_blocked_transferred_in", CAU_CHAN_TU_CHOI_KHACH_CHUYEN_VAO); // ADR-0113 Đ2: không chi tiết
 

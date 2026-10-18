@@ -362,10 +362,10 @@ test("ADR-0097 Đ5: thu hồi xuất bến (sau lệnh chuyến không còn gi�
   const d = dong({ action: "trip_departure_revoked", actorId: "adm", luc: T2, xuatBen: null });
   const tx = tinChuyenCho(TX_B, d);
   assert.equal(tx?.loai, "thu_hoi_xuat_ben");
-  assert.equal(tx!.cau, "Văn phòng vừa thu hồi xuất bến chuyến CX-1103-02 ngày 11/03 — chuyến về chưa chạy, bấm Xuất bến lại khi xe thật sự chạy");
+  assert.equal(tx!.cau, "Văn phòng vừa thu hồi lệnh cho xe chạy chuyến CX-1103-02 ngày 11/03 — chuyến về chưa chạy, bấm lại Cho xe chạy khi xe thật sự lăn bánh");
   assert.equal(tx!.lienKet, "/cuoc-chuyen?id=t1");
   assert.equal(tinChuyenCho(TX_A, d), null);
-  assert.equal(tinChuyenCho(nguoi("x", ["SALES"]), d)?.cau, "Chuyến CX-1103-02 ngày 11/03 vừa được thu hồi xuất bến — mở để xem");
+  assert.equal(tinChuyenCho(nguoi("x", ["SALES"]), d)?.cau, "Chuyến CX-1103-02 ngày 11/03 vừa được thu hồi lệnh cho xe chạy — mở để xem");
   assert.equal(tinChuyenCho(nguoi("adm", ["ADMIN"]), d), null, "người bấm");
   assert.equal(tinChuyenCho(nguoi("kt", ["ACCOUNTING"]), d), null);
   assert.equal(thayDoiCuaHanhDongChuyen("trip_departure_revoked", dangChayLucSuKien(d)), "sua");

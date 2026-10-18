@@ -43,7 +43,7 @@ export const O_TRANG_CHU: readonly DinhNghiaO[] = [
   { khoa: "danh-ba", nhan: "Danh bạ", nhom: "Bán hàng", trang: "danhBa" },
   { khoa: "dich-vu", nhan: "Dịch vụ & giá", nhom: "Quản lý", trang: "dichVu" },
   { khoa: "tai-khoan", nhan: "Quản lý tài khoản", nhom: "Quản lý", trang: "taiKhoan" },
-  { khoa: "phien", nhan: "Phiên đăng nhập", nhom: "Quản lý", trang: "phien" },
+  { khoa: "phien", nhan: "Máy đang đăng nhập", nhom: "Quản lý", trang: "phien" },
   { khoa: "dia-diem", nhan: "Địa điểm", nhom: "Quản lý", trang: "diaDiem" },
   { khoa: "giay-to-nguoi", nhan: "Loại giấy tờ cá nhân", nhom: "Quản lý", trang: "loaiGiayToNguoi" },
   { khoa: "nhat-ky", nhan: "Nhật ký", nhom: "Quản lý", trang: "nhatKy" },

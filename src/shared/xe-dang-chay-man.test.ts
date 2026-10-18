@@ -87,7 +87,7 @@ test("theXeDangChay: 'mã · biển số · x/y chỗ' + tài xế, giờ xuất
     xuatBen: { gioXayRa: g("08:05") },
     diem: [{ thuTu: 2, tenNoi: "Bến Cầu Đá", trangThai: "PENDING" }, { thuTu: 1, tenNoi: "Khách sạn A", trangThai: "DONE" }],
   } as unknown as ChuyenTomTatDto;
-  assert.deepEqual(theXeDangChay(c, N), { tieuDe: "CX-01", dong: "79B-123.45 · 7/16 chỗ", phu: "Anh Tư · xuất bến 08:05 · tiếp theo: Bến Cầu Đá" });
+  assert.deepEqual(theXeDangChay(c, N), { tieuDe: "CX-01", dong: "79B-123.45 · 7/16 chỗ", phu: "Anh Tư · xe chạy 08:05 · tiếp theo: Bến Cầu Đá" });
   const het = { ...c, taiXe: null, xuatBen: null, diem: [{ thuTu: 1, tenNoi: "A", trangThai: "DONE" }] } as unknown as ChuyenTomTatDto;
   assert.equal(theXeDangChay(het, N).phu, "Chưa có tài xế · đã tới mọi điểm");
 });

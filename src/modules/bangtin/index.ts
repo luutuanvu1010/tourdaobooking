@@ -21,7 +21,7 @@ export const bangtinModule: AppModule = {
     // `x-bang-tin-*` trình duyệt gửi lên bị bỏ). Trả NGUYÊN phản hồi của trạm (101 kèm đầu `webSocket`): bọc lại/dựng lại Response là mất kết nối.
     // ADR-0075 điều 6a: thêm nhãn `phien:<mã phiên>` (từ ctx.sessionId của máy chủ) — máy bị đăng nhập máy khác thay chỉ đóng ĐÚNG kết nối của phiên đó.
     route("GET", "/api/bang-tin", "staff", async ({ request, env, url, staff, sessionId }) => {
-      if (!sessionId) return error(401, "unauthenticated", "Chưa đăng nhập hoặc phiên đã hết hạn.");
+      if (!sessionId) return error(401, "unauthenticated", "Chưa đăng nhập hoặc đã hết hạn đăng nhập.");
       if (request.headers.get("upgrade")?.toLowerCase() !== "websocket") {
         return json({ error: { code: "upgrade_required", message: "Đường này chỉ dùng để mở kết nối nhận tin tức thì." } }, 426, { upgrade: "websocket" });
       }

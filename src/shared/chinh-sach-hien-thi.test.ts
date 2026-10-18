@@ -48,7 +48,7 @@ test("docFormChinhSach: mỗi ô sai một câu lời thường theo đơn vị 
     assert.equal(r.ok, false);
     return r.ok ? {} : r.loi;
   };
-  assert.match(loi({ mocGio: "" }).mocGio ?? "", /Nhập mốc tối thiểu/);
+  assert.match(loi({ mocGio: "" }).mocGio ?? "", /Nhập hạn chốt trước giờ đón/);
   assert.match(loi({ mocGio: "0" }).mocGio ?? "", /giờ.*không tắt được/);
   assert.match(loi({ mocGio: "49" }).mocGio ?? "", /tối đa 48/);
   assert.match(loi({ mocGio: "abc" }).mocGio ?? "", /giờ/);
@@ -83,15 +83,15 @@ test("formTuChinhSach: điền sẵn từ bản đang dùng; chưa có bản →
 });
 
 test("tomTatChinhSach + thayDoiChinhSach: tóm tắt một bản; liệt kê đúng ô đã đổi so với bản đang dùng", () => {
-  assert.equal(tomTatChinhSach(chinhSach()), "Mốc 6 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 8 giờ/ngày · nhắc nghỉ chuyến trên 4 giờ · xuất bến sớm nhất 12 giờ trước giờ khởi hành · từ chối chuyến trước 12 giờ · phải đủ danh sách khách · chờ nhận chuyển khách 10 phút · tự đồng ý chuyển khách");
-  assert.equal(tomTatChinhSach(chinhSach({ requireManifest: false, warnLeadMinutes: 90, dutyDayMaxMinutes: 540 })), "Mốc 6 giờ · sát mốc 1 giờ 30 phút · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 9 giờ/ngày · nhắc nghỉ chuyến trên 4 giờ · xuất bến sớm nhất 12 giờ trước giờ khởi hành · từ chối chuyến trước 12 giờ · chờ nhận chuyển khách 10 phút · tự đồng ý chuyển khách");
+  assert.equal(tomTatChinhSach(chinhSach()), "Hạn chốt 6 giờ · cảnh báo sắp tới hạn chốt 2 giờ · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 8 giờ/ngày · nhắc nghỉ chuyến trên 4 giờ · cho xe chạy sớm nhất 12 giờ trước giờ khởi hành · từ chối chuyến trước 12 giờ · phải đủ danh sách khách · chờ nhận chuyển khách 10 phút · tự đồng ý chuyển khách");
+  assert.equal(tomTatChinhSach(chinhSach({ requireManifest: false, warnLeadMinutes: 90, dutyDayMaxMinutes: 540 })), "Hạn chốt 6 giờ · cảnh báo sắp tới hạn chốt 1 giờ 30 phút · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 9 giờ/ngày · nhắc nghỉ chuyến trên 4 giờ · cho xe chạy sớm nhất 12 giờ trước giờ khởi hành · từ chối chuyến trước 12 giờ · chờ nhận chuyển khách 10 phút · tự đồng ý chuyển khách");
   const cu = chinhSach();
   const giu = docFormChinhSach(form());
   assert.ok(giu.ok);
   assert.deepEqual(thayDoiChinhSach(cu, giu.value), []);
   const doi = docFormChinhSach(form({ khaiLuiPhut: "240", mocGio: "5", duDanhSach: false }));
   assert.ok(doi.ok);
-  assert.deepEqual(thayDoiChinhSach(cu, doi.value), ["Mốc tối thiểu 6 giờ → 5 giờ", "Khai lùi tối đa 180 → 240 phút", "Không bắt đủ danh sách khách"]);
+  assert.deepEqual(thayDoiChinhSach(cu, doi.value), ["Hạn chốt trước giờ đón 6 giờ → 5 giờ", "Khai lùi tối đa 180 → 240 phút", "Không bắt đủ danh sách khách"]);
   assert.deepEqual(thayDoiChinhSach(null, doi.value), ["Bản đầu tiên"]);
   const gl = docFormChinhSach(form({ gioLaiGio: "9", chuyenDaiGio: "5" }));
   assert.ok(gl.ok);
@@ -110,7 +110,7 @@ test("dongLichSuChinhSach: đánh số từ bản cũ nhất; bản đang dùng 
     ["b", "Bản 2", "Hết hiệu lực", "muted", "Hiệu lực 25/09 – 29/09/2026"],
     ["a", "Bản 1", "Hết hiệu lực", "muted", "Hiệu lực 01/09 – 25/09/2026"],
   ]);
-  assert.equal(dong[2]!.tomTat, "Mốc 4 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 8 giờ/ngày · nhắc nghỉ chuyến trên 4 giờ · xuất bến sớm nhất 12 giờ trước giờ khởi hành · từ chối chuyến trước 12 giờ · phải đủ danh sách khách · chờ nhận chuyển khách 10 phút · tự đồng ý chuyển khách");
+  assert.equal(dong[2]!.tomTat, "Hạn chốt 4 giờ · cảnh báo sắp tới hạn chốt 2 giờ · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 8 giờ/ngày · nhắc nghỉ chuyến trên 4 giờ · cho xe chạy sớm nhất 12 giờ trước giờ khởi hành · từ chối chuyến trước 12 giờ · phải đủ danh sách khách · chờ nhận chuyển khách 10 phút · tự đồng ý chuyển khách");
   // R-P23 (điều phối trả lời Q-B-1): "ai lưu" — "<tên> lưu dd/mm HH:MM" (giờ VN của lúc lưu = lúc hiệu lực); null (bản gieo) → không có dòng.
   assert.deepEqual(dong.map((d) => d.nguoiLuu), [null, null, null]);
   const coTen = dongLichSuChinhSach([chinhSach({ validFrom: "2026-09-24T09:20:00.000Z", nguoiLuu: "Lưu Tuấn Vũ" }), chinhSach({ id: "g", validFrom: "2026-09-01T00:00:00.000Z", current: false })]);
@@ -223,14 +223,14 @@ test("ADR-0096 Đ2.3: ô 'Cửa sổ xuất bến (giờ)' 1–48 giờ → phú
   const ok = docFormChinhSach(form({ cuaSoGio: "24" }));
   assert.ok(ok.ok);
   assert.equal(ok.value.departureWindowMinutes, 1440);
-  for (const [v, re] of [["", /Nhập cửa sổ xuất bến/], ["0,5", /từ 1 đến 48/], ["49", /từ 1 đến 48/], ["abc", /từ 1 đến 48/]] as const) {
+  for (const [v, re] of [["", /Nhập cửa sổ cho xe chạy/], ["0,5", /từ 1 đến 48/], ["49", /từ 1 đến 48/], ["abc", /từ 1 đến 48/]] as const) {
     const r = docFormChinhSach(form({ cuaSoGio: v }));
     assert.equal(r.ok, false, v);
     assert.match(r.ok ? "" : (r.loi.cuaSoGio ?? ""), re, v);
   }
   assert.ok(docFormChinhSach(form({ cuaSoGio: "1" })).ok);
   assert.ok(docFormChinhSach(form({ cuaSoGio: "48" })).ok);
-  assert.deepEqual(thayDoiChinhSach(chinhSach(), ok.value), ["Cửa sổ xuất bến 12 giờ → 24 giờ"]);
+  assert.deepEqual(thayDoiChinhSach(chinhSach(), ok.value), ["Cửa sổ cho xe chạy 12 giờ → 24 giờ"]);
 });
 
 test("ADR-0111 Đ3 (c): ô chờ nhận chuyển khách (phút 1–120) và công tắc tự đồng ý — đọc form, điền từ bản đang dùng, tóm tắt, ô đã đổi", () => {

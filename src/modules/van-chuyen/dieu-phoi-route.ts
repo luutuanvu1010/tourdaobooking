@@ -45,13 +45,13 @@ export const KHONG_CO_CHUYEN = () => error(404, "not_found", "Không tìm thấy
 export const CHUYEN_CU = () => error(409, "stale", "Chuyến vừa được người khác sửa, tải lại.");
 const THONG_BAO_409: Record<string, string> = {
   nguoi_da_o_chuyen_khac: "Khách này đang ở một chuyến khác.",
-  vuot_so_nguoi_chang: "Xếp quá số khách của chặng.",
+  vuot_so_nguoi_chang: "Xếp quá số khách của lượt đưa đón.",
   vuot_so_cho: "Vượt số chỗ của xe.",
   trung_gio_xe: "Xe trùng giờ với chuyến khác.",
   trung_gio_tai_xe: "Tài xế trùng giờ với chuyến khác.",
   khong_du_dieu_kien_lai: "Tài xế chưa đủ điều kiện lái xe này.",
-  chang_khong_hop_le: "Chặng chưa xếp được.",
-  khach_khong_thuoc_don: "Khách không thuộc đơn của chặng.",
+  chang_khong_hop_le: "Lượt đưa đón chưa xếp được.",
+  khach_khong_thuoc_don: "Khách không thuộc đơn của lượt đưa đón.",
   cheo_xe_tai_xe: "Tài xế không thuộc chủ của xe này.",
   chuyen_da_ket_thuc: "Chuyến đã kết thúc hoặc đã huỷ.",
   xe_dang_chay: "Xe đang chạy — không đổi kế hoạch được.",
@@ -62,14 +62,14 @@ const THONG_BAO_409: Record<string, string> = {
   gio_chuyen_khong_hop_le: "Giờ kết thúc phải sau giờ bắt đầu và chuyến không quá 24 giờ.",
   chinh_sach_rong: "Chưa có chính sách điều phối đang hiệu lực — báo người phụ trách hệ thống.",
   // Ba câu dưới là lớp QUAN_TRI ("Phá lệ" — ADR-0104 Đ1); lớp KHAN_CAP dùng `THONG_BAO_KHAN_CAP`. Mã lỗi (code) không đổi theo lớp.
-  can_pha_le: "Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ.",
+  can_pha_le: "Đã qua hạn chốt trước giờ xe chạy — cần Quản trị phá lệ.",
   chua_du_nghi: "Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ.",
   can_pha_le_cam_ket: "Chuyến trái cam kết xe riêng / số chỗ của khách — cần Quản trị phá lệ kèm lý do.", // ADR-0056 VK3-A (kế hoạch Đợt 7 C9)
   con_khach_chua_xong: "Còn khách hoặc điểm chưa xong.",
-  chua_du_dieu_kien_xuat_ben: "Chuyến chưa đủ điều kiện xuất bến.",
+  chua_du_dieu_kien_xuat_ben: "Chuyến chưa đủ điều kiện cho xe chạy.",
   // Lệnh tiến độ (A15)
-  da_xuat_ben: "Chuyến đã xuất bến.",
-  chua_xuat_ben: "Chuyến chưa xuất bến — lệnh này chỉ dùng khi xe đang chạy (đổi thứ tự khi chưa chạy: sửa chuyến).",
+  da_xuat_ben: "Xe của chuyến đã chạy.",
+  chua_xuat_ben: "Xe chưa chạy — lệnh này chỉ dùng khi xe đang chạy (đổi thứ tự khi chưa chạy: sửa chuyến).",
   // C38 (báo cáo ERP 2026-10-07): mã lệnh (requestId) đã thuộc sự kiện của chuyến / loại lệnh / suất / điểm khác.
   request_id_reused: "Mã lệnh đã dùng cho thao tác khác — tải lại trang rồi thử lại.",
   diem_da_toi: "Điểm đã tới hoặc đã bỏ qua.",
@@ -81,19 +81,19 @@ const THONG_BAO_409: Record<string, string> = {
   con_khach_chua_don: "Còn khách chưa đón sẽ xuống ở điểm này — tới điểm đón trước.",
   thu_tu_dao: "Thứ tự này đưa điểm trả lên trước điểm đón của khách chờ lên — chọn thứ tự khác.",
   // Xe đang chạy (Đợt 5 — ADR-0052 D5)
-  chuyen_chua_chay: "Chuyến chưa xuất bến — dùng Xếp khách / Rút khách.",
+  chuyen_chua_chay: "Xe chưa chạy — dùng Xếp khách / Rút khách.",
   da_bao_huy: "Khách này đã được báo huỷ.",
   // ADR-0097 (gói A1, V3-B): điều chỉnh kết quả một khách / thu hồi xuất bến — câu cụ thể của bảng Đ2.4 dựng ở `kiemDieuChinh` (src/shared/dieu-chinh-suat.ts).
   chi_suat_khach: "Chỉ điều chỉnh được kết quả của khách — người đi kèm không có kết quả đón / trả.",
   dieu_chinh_ngoai_bang: "Kết quả này không điều chỉnh được theo cách này.",
   diem_da_xong: "Điểm đã xong nên không đưa khách về trạng thái chờ được.",
-  don_khong_con: "Đơn của khách này đã huỷ hoặc chặng không còn hiệu lực — không điều chỉnh được; xử lý theo luồng huỷ đơn.",
-  da_co_tien_do: "Chuyến đã có tiến độ sau xuất bến nên không thu hồi được — sửa từng khách bằng \"Điều chỉnh…\", hoặc \"Kết thúc gián đoạn\" nếu xe thật sự không chạy tiếp.",
-  qua_gio_thu_hoi: "Đã quá thời gian được thu hồi xuất bến.",
+  don_khong_con: "Đơn của khách này đã huỷ hoặc lượt đưa đón không còn hiệu lực — không điều chỉnh được; xử lý theo luồng huỷ đơn.",
+  da_co_tien_do: "Chuyến đã có tiến độ sau lúc xe chạy nên không thu hồi được — sửa từng khách bằng \"Điều chỉnh…\", hoặc \"Kết thúc gián đoạn\" nếu xe thật sự không chạy tiếp.",
+  qua_gio_thu_hoi: "Đã quá thời gian được thu hồi lệnh cho xe chạy.",
 };
 /** ADR-0104 Đ1: câu 409 khi mọi luật đang thiếu thuộc lớp KHAN_CAP (chuyến dưới mốc) — người xếp xe tự điều chỉnh khẩn cấp kèm lý do. */
 const THONG_BAO_KHAN_CAP: Record<"can_pha_le" | "chua_du_nghi" | "can_pha_le_cam_ket", string> = {
-  can_pha_le: "Trong mốc tối thiểu trước giờ xuất bến — cần điều chỉnh khẩn cấp kèm lý do.",
+  can_pha_le: "Đã qua hạn chốt trước giờ xe chạy — cần điều chỉnh khẩn cấp kèm lý do.",
   chua_du_nghi: "Chưa đủ khoảng nghỉ giữa hai chuyến — cần điều chỉnh khẩn cấp kèm lý do.",
   can_pha_le_cam_ket: "Chuyến trái cam kết xe riêng / số chỗ của khách — cần điều chỉnh khẩn cấp kèm lý do.",
 };
@@ -336,7 +336,7 @@ export const gioNgan = (ms: number, bayGioMs: number): string => {
   const { date, time } = msToVnLocal(ms);
   return `${time} ${ngayNgan(date, msToVnLocal(bayGioMs).date)}`;
 };
-const TEN_LUAT_PHA_LE: Record<MaLuatPhaLe, string> = { MOC_TOI_THIEU: "mốc tối thiểu", KHOANG_NGHI: "khoảng nghỉ", CAM_KET: "cam kết" };
+const TEN_LUAT_PHA_LE: Record<MaLuatPhaLe, string> = { MOC_TOI_THIEU: "hạn chốt", KHOANG_NGHI: "khoảng nghỉ", CAM_KET: "cam kết" };
 /**
  * Đuôi nhật ký của MỘT luật bị vượt (ADR-0104 Đ1 mục 4) — lớp quyết LÚC GHI theo luật (`lopCuaLuat`): `KHAN_CAP` " · điều chỉnh khẩn cấp <luật>: <lý do>",
  * `QUAN_TRI` " · phá lệ <luật>: <lý do>". Số phút còn lại đi riêng, một lần mỗi lô (`gioKhanCapNhatKy`). Chỉ tên luật + nhãn lý do (LC-18).
@@ -350,7 +350,7 @@ export const phaLeNhatKy = (luat: MaLuatPhaLe, nhan: string, v: Pick<VuotLenh, "
 export function gioKhanCapNhatKy(luatDaGhi: readonly (MaLuatPhaLe | null | undefined)[], v: Pick<VuotLenh, "duoiMoc" | "lenhMoc" | "conPhut">): string {
   if (!luatDaGhi.some((l) => l && lopCuaLuat(l, v.duoiMoc, v.lenhMoc) === "KHAN_CAP")) return "";
   if (v.conPhut === null) return " · xe đang chạy";
-  return v.conPhut >= 0 ? ` · còn ${v.conPhut} phút` : ` · quá giờ xuất bến ${-v.conPhut} phút`;
+  return v.conPhut >= 0 ? ` · còn ${v.conPhut} phút` : ` · quá giờ xe chạy ${-v.conPhut} phút`;
 }
 export const maDonGon = (codes: readonly string[]): string => [...new Set(codes)].sort().join(", ");
 

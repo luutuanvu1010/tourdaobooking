@@ -125,7 +125,7 @@ export function luaChonChuyenXep(l: Pick<LichChungResponse, "ngay" | "chuyen">, 
     const ghiChu = [
       ...(x.khoa ? ["đang khoá"] : []),
       ...(day ? [conCho === 0 ? "đầy" : `chỉ còn ${conCho} chỗ`] : []),
-      ...(lech > 0 ? [doi.length > 1 ? `${lech}/${doi.length} chặng có giờ hẹn ngoài khung giờ chuyến` : "giờ hẹn ngoài khung giờ chuyến"] : []),
+      ...(lech > 0 ? [doi.length > 1 ? `${lech}/${doi.length} lượt có giờ hẹn ngoài khung giờ chuyến` : "giờ hẹn ngoài khung giờ chuyến"] : []),
     ];
     return { chuyen: x.chuyen, nhan: x.nhan, khoa: x.khoa, conCho, day, lechGio: lech > 0, mo: day || lech > 0, ghiChu };
   });

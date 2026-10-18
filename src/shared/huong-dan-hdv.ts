@@ -94,7 +94,7 @@ Bấm [[Xem đơn]] để mở trang đầy đủ. Ở đó không sửa hay hu�
 
 **Ghi tiền khách trả:**
 1. Bấm [[Ghi khoản thu]].
-2. Gõ số tiền, chọn hình thức, chọn người nhận tiền: [[Tôi thu]] (tiền mặt bạn cầm) hoặc [[Công ty (vào tài khoản công ty)]].
+2. Gõ số tiền, chọn hình thức, chọn người thu tiền: [[Tôi thu]] (tiền mặt bạn cầm) hoặc [[Công ty (vào tài khoản công ty)]].
 3. Bấm [[Ghi]].
 
 **Xong tour, khách đã trả đủ:** bấm [[Đã giao – đã thu đủ]] rồi đồng ý. Nút chỉ bấm được khi đơn đã xác nhận, từ ngày đi trở đi, và số đã thu **bằng đúng** số phải thu. Nút bị mờ thì dòng **Đang giữ đơn** ghi lý do và ai xử lý.
@@ -125,7 +125,7 @@ Tin quan trọng có nút [[Đã hiểu]]. Đọc xong thì bấm.
 - **Đang sửa thì văn phòng cũng sửa đơn đó:** Nền tảng đóng bảng, hiện dòng báo màu vàng rồi tải lại. Bạn xem lại rồi làm lại.
 - **Mất mạng:** Nền tảng báo chưa tải được đơn. Có mạng thì tải lại trang.
 - **Không thấy khối Đơn chờ nhận:** tài khoản có thêm quyền Đối tác. Hỏi Quản trị.
-- **Không bấm được Đã giao:** đọc dòng **Đang giữ đơn** trên trang đơn. Còn thiếu tiền thì ghi thêm khoản thu; khách trả dư hay khoản thu chưa rõ người thu thì chờ Kế toán.`,
+- **Không bấm được Đã giao:** đọc dòng **Đang giữ đơn** trên trang đơn. Còn thiếu tiền thì ghi thêm khoản thu; khách trả dư hay khoản thu chưa rõ người thu tiền thì chờ Kế toán.`,
     },
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",

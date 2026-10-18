@@ -243,7 +243,7 @@ export function dungLoiNhac(loiNhac: string, perms: readonly PermissionCode[], n
     "",
     dongMai(nguoi),
     DONG_DINH_DANG,
-    `Người hỏi thuộc nhóm vai: ${nhomVai(perms)}. Ưu tiên cách làm của nhóm vai này.`,
+    `Người hỏi thuộc nhóm vai trò: ${nhomVai(perms)}. Ưu tiên cách làm của nhóm vai trò này.`,
     "",
     "TÀI LIỆU:",
     ...(doan.length ? doan.map(dinhDangDoan) : [KHONG_TIM_THAY]),
@@ -382,17 +382,17 @@ export function duocDungTroLy(perms: readonly PermissionCode[], vai: Partial<Rec
   return perms.some((p) => vai[p] === true);
 }
 
-export const CAU_VAI_TAT = "Trợ lý đang tắt với vai của bạn. Xem hướng dẫn ở Trợ giúp hoặc hỏi Quản trị.";
+export const CAU_VAI_TAT = "Trợ lý đang tắt với vai trò của bạn. Xem hướng dẫn ở Trợ giúp hoặc hỏi Quản trị.";
 
 type Kiem<T> = { ok: true; value: T } | { ok: false; message: string };
 
 /** Thân `POST /api/tro-ly/vai`: `{ vai: { <9 mã quyền>: boolean } }` — đủ 9 mã, không mã lạ. */
 export function kiemVai(body: Record<string, unknown> | null): Kiem<Record<PermissionCode, boolean>> {
   const v = body?.vai;
-  if (!v || typeof v !== "object" || Array.isArray(v)) return { ok: false, message: "Thiếu danh sách công tắc theo vai." };
+  if (!v || typeof v !== "object" || Array.isArray(v)) return { ok: false, message: "Thiếu danh sách công tắc theo vai trò." };
   const o = v as Record<string, unknown>;
   if (Object.keys(o).length !== PERMISSION_CODES.length || !PERMISSION_CODES.every((p) => typeof o[p] === "boolean")) {
-    return { ok: false, message: "Công tắc theo vai không hợp lệ — cần đủ 9 vai, mỗi vai bật hoặc tắt." };
+    return { ok: false, message: "Công tắc theo vai trò không hợp lệ — cần đủ 9 vai trò, mỗi vai trò bật hoặc tắt." };
   }
   return { ok: true, value: Object.fromEntries(PERMISSION_CODES.map((p) => [p, o[p] as boolean])) as Record<PermissionCode, boolean> };
 }

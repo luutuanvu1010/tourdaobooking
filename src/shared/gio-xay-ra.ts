@@ -26,8 +26,8 @@ export const NHAN_GIO_XAY_RA: Readonly<Record<MaGioXayRa, string>> = {
   TUONG_LAI: "Giờ khai sau thời điểm bấm",
   LUI_QUA_KEP: "Giờ khai lùi quá khoảng cho phép",
   DAO_THU_TU: "Giờ khai sai thứ tự với các mốc đã ghi của chuyến",
-  CHONG_CHUYEN_TRUOC: "Giờ xuất bến sớm hơn lúc chuyến trước của xe hoặc tài xế kết thúc",
-  TRUOC_SUA_KE_HOACH: "Giờ xuất bến sớm hơn lần sửa kế hoạch cuối của chuyến",
+  CHONG_CHUYEN_TRUOC: "Giờ xe chạy sớm hơn lúc chuyến trước của xe hoặc tài xế kết thúc",
+  TRUOC_SUA_KE_HOACH: "Giờ xe chạy sớm hơn lần sửa kế hoạch cuối của chuyến",
   TRUOC_DOI_THU_TU: "Giờ tới điểm sớm hơn lần đổi thứ tự điểm cuối",
   TRUOC_MO_SUAT: "Giờ khai sớm hơn lúc khách được xếp lên xe",
 };

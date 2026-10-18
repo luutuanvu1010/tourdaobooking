@@ -192,7 +192,7 @@ function khoiDangChinhSach(d: Du, baoLoi: (m: string | null) => void): HTMLEleme
   const form = h("form", { id: "hs-dang-cs" },
     h("p", { class: "muted" }, "Đăng phiên bản mới thì mọi người phải đồng ý lại trước khi gửi thông tin. Chữ chính sách cần chủ dự án và luật sư duyệt trước khi đăng."),
     h("label", null, "Mục đích thu thập", mucDich), h("label", null, "Toàn văn chính sách", noiDung),
-    h("label", null, "Số ngày xử lý yêu cầu xoá", oHanXoa), h("label", null, "Số ngày giữ IP và thông tin máy của phiên đã kết thúc", oHanPhien),
+    h("label", null, "Số ngày xử lý yêu cầu xoá", oHanXoa), h("label", null, "Số ngày giữ IP và thông tin của máy đã đăng xuất", oHanPhien),
     h("p", { class: "muted" }, "Để trống nếu chưa có số được luật sư xác nhận. Nền tảng không tự điền số ngày."),
     h("button", { class: "btn btn-primary", type: "submit" }, "Đăng phiên bản mới")) as HTMLFormElement;
   /** Ô số ngày: trống = chưa có số (null); có chữ thì phải là số nguyên dương. */

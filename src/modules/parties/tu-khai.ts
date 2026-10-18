@@ -55,7 +55,7 @@ export function kiemChinhSach(body: Record<string, unknown> | null): Result<{ mu
   if (noiDung.length < 1 || noiDung.length > 20000) return fail("Toàn văn chính sách cần từ 1 đến 20.000 ký tự.");
   const xoa = kiemSoNgay(body.hanXuLyXoaNgay, "Số ngày xử lý yêu cầu xoá");
   if (!xoa.ok) return xoa;
-  const phien = kiemSoNgay(body.hanGiuPhienNgay, "Số ngày giữ IP và thông tin máy của phiên đã kết thúc");
+  const phien = kiemSoNgay(body.hanGiuPhienNgay, "Số ngày giữ IP và thông tin của máy đã đăng xuất");
   if (!phien.ok) return phien;
   return { ok: true, value: { mucDich, noiDung, hanXuLyXoaNgay: xoa.value, hanGiuPhienNgay: phien.value } };
 }

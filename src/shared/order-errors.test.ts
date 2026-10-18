@@ -89,10 +89,10 @@ test("409 short_notice_required (ADR-0049 D2): banner cát, mỗi chặng dướ
   };
   const b = classifyOrderError(x, { serviceNames: ["Vé cáp treo"], formatMoney: String, tenChang: (id) => (id === "l1" ? "Chiều đi · Vé cáp treo" : null), mocPhut: 360 });
   assert.equal(b.tone, "warning");
-  assert.equal(b.title, "Còn chặng đón dưới mốc tối thiểu — cần Quản trị duyệt đặt gấp trước khi xác nhận.");
-  assert.deepEqual(b.lines.map((l) => l.text), ["Chiều đi · Vé cáp treo: Giờ đón cách bây giờ 4 giờ 10 phút — dưới mốc 6 giờ", "Chặng đưa đón: Giờ đón đã qua — dưới mốc 6 giờ"]);
+  assert.equal(b.title, "Còn lượt đưa đón quá hạn chốt — cần Quản trị duyệt đặt gấp trước khi xác nhận.");
+  assert.deepEqual(b.lines.map((l) => l.text), ["Chiều đi · Vé cáp treo: Giờ đón cách bây giờ 4 giờ 10 phút — quá hạn chốt 6 giờ", "Lượt đưa đón: Giờ đón đã qua — quá hạn chốt 6 giờ"]);
   const khongMoc = classifyOrderError(x, { serviceNames: [], formatMoney: String });
-  assert.deepEqual(khongMoc.lines.map((l) => l.text), ["Chặng đưa đón: giờ đón cách bây giờ 4 giờ 10 phút", "Chặng đưa đón: giờ đón đã qua"]);
+  assert.deepEqual(khongMoc.lines.map((l) => l.text), ["Lượt đưa đón: giờ đón cách bây giờ 4 giờ 10 phút", "Lượt đưa đón: giờ đón đã qua"]);
   // Lệnh sửa chuyến đơn đã xác nhận (I14): 409 cùng mã nhưng KHÔNG có danh sách chặng → tiêu đề là lời máy chủ, không dòng.
   const sua = e(409, "short_notice_required", "Chặng dưới mốc tối thiểu trước giờ đón — chỉ Quản trị hoặc Toàn quyền sửa được, kèm lý do đặt gấp.");
   assert.deepEqual([sua.tone, sua.title, sua.lines], ["warning", "Chặng dưới mốc tối thiểu trước giờ đón — chỉ Quản trị hoặc Toàn quyền sửa được, kèm lý do đặt gấp.", []]);

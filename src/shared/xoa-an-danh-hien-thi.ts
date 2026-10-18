@@ -11,7 +11,7 @@ export const PHAN_GIU_LAI: readonly { ma: string; nhan: string }[] = [
   { ma: "YEU_CAU_HOA_DON", nhan: "Bản chụp yêu cầu xuất hoá đơn" },
   { ma: "HO_TEN_NHAT_KY", nhan: "Họ tên trong nhật ký thao tác" },
   { ma: "NHAT_KY_CU_SDT", nhan: "Nhật ký cũ có số điện thoại" },
-  { ma: "PHIEN_DA_BO_IP", nhan: "Dòng phiên đăng nhập (đã bỏ địa chỉ mạng và thông tin trình duyệt; tên máy vẫn giữ)" },
+  { ma: "PHIEN_DA_BO_IP", nhan: "Dòng ghi máy đã đăng nhập (đã bỏ địa chỉ mạng và thông tin trình duyệt; tên máy vẫn giữ)" },
   { ma: "GIOI_TINH", nhan: "Giới tính trong hồ sơ" },
   { ma: "THU_DIEN_TU_LOP_HAI", nhan: "Địa chỉ thư điện tử dùng cho lớp xác thực thứ hai" },
   { ma: "NHAN_KHOA_NHANH", nhan: "Tên đặt cho khoá đăng nhập nhanh" },

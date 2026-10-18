@@ -22,6 +22,16 @@ export const TU_DA_LOAI: readonly TuDaLoai[] = [
   { cam: /(?<![\p{L}\p{N}_.\-/])[Aa]pp(?![\p{L}\p{N}_]| Store)/u, thay: "Nền tảng", nguon: "chủ 2026-10-02 («dùng từ Nền tảng thay cho App»)" },
   { cam: /Bỏ dấu(?! chọn)/u, thay: "Bỏ đánh dấu", nguon: "2026-10-18 («bỏ dấu» dễ hiểu là bỏ dấu thanh)" },
   { cam: /^Giữ đơn$/u, thay: "Không huỷ (nút trong hộp huỷ đơn)", nguon: "2026-10-18 (trùng chữ «Đang giữ đơn»)" },
+  // Lượt 2 (hồ sơ docs/superpowers/specs/2026-10-18-ra-soat-ngon-ngu-luot-2.md): chủ tự bấm chọn cả bảy tên 18/10. Mẫu chặn hẹp theo ĐÚNG nghĩa đã đổi —
+  // nghĩa khác giữ nguyên («mốc nhắc» giấy tờ, «mốc cập nhật», «phiên bản», «Đang giữ đơn», tiền công ty giữ của khách).
+  { cam: /[Nn]gười nhận tiền|[Nn]gười thu(?! tiền)(?!\p{L})/u, thay: "Người thu tiền", nguon: "chủ 2026-10-18 (lượt 2)" },
+  { cam: /giữ hộ|[Nn]gười đang giữ tiền|đang giữ .{0,40}? của công ty/u, thay: "chưa nộp về công ty (Tiền chưa nộp về công ty)", nguon: "chủ 2026-10-18 (lượt 2)" },
+  { cam: /[Cc]hặng|CHẶNG/u, thay: "lượt đưa đón (gọi tắt «lượt» khi đã rõ)", nguon: "chủ 2026-10-18 (lượt 2)" },
+  { cam: /[Mm]ốc (?:tối thiểu|ra lệnh|6 giờ)|(?:[Dd]ưới|[Ss]át|[Qq]uá|trước) mốc/u, thay: "hạn chốt (Hạn chốt trước giờ đón · Sắp tới hạn chốt · Quá hạn chốt)", nguon: "chủ 2026-10-18 (lượt 2)" },
+  { cam: /[Xx]uất bến|XUẤT BẾN/u, thay: "cho xe chạy / xe chạy", nguon: "chủ 2026-10-18 (lượt 2)" },
+  // «vai» là CHỮ, không phải mã nội bộ (`VAI`, `muc-vai`, `/api/tro-ly/vai`, khoá `vai`, cột SQL `h.vai,`); «đổi vai» (nhập vai) trong lời dặn Trợ lý là nghĩa khác.
+  { cam: /^(?!vai$)[\s\S]*(?<![\p{L}\p{N}_\-/.])(?<!đổi )[Vv]ai(?![\p{L}\p{M}\p{N}_\-,])(?! trò)/u, thay: "vai trò", nguon: "chủ 2026-10-18 (lượt 2)" },
+  { cam: /[Pp]hiên(?! bản)|PHIÊN(?! BẢN)/u, thay: "máy đang đăng nhập (Đăng xuất máy này)", nguon: "chủ 2026-10-18 (lượt 2)" },
 ];
 
 /** Chữ «đảo» là hòn đảo (tên công ty, tên tour) — gỡ khỏi chuỗi trước khi so với dòng «Đảo» ở trên. */

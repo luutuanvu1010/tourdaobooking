@@ -266,7 +266,7 @@ export function nhomCuoc(ds: readonly CuocCuaToiItemDto[], homNay: string, tuy: 
   const chayNgoai = ds
     .filter((c) => c.trangThai === "RUNNING" && !baNgay.includes(c.gioXuatBen.ngay))
     .sort((a, b) => `${a.gioXuatBen.ngay} ${a.gioXuatBen.gio}`.localeCompare(`${b.gioXuatBen.ngay} ${b.gioXuatBen.gio}`))
-    .map((c) => ({ ...the(c), nhanNgay: `Xuất bến ${ngayNgan(c.gioXuatBen.ngay, homNay)}` }));
+    .map((c) => ({ ...the(c), nhanNgay: `Xe chạy ${ngayNgan(c.gioXuatBen.ngay, homNay)}` }));
   return [
     { tieuDe: "Hôm nay", ngay: thuNgayNgan(homNay, homNay), iso: homNay, the: [...chayNgoai, ...theoNgay(homNay)] },
     { tieuDe: "Ngày mai", ngay: thuNgayNgan(mai, homNay), iso: mai, the: theoNgay(mai) },

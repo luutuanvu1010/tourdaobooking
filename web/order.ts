@@ -506,7 +506,7 @@ function tienCard(order: Order): HTMLElement {
               h("span", { class: "muted" }, `${ngayNganHomNay(l.ngayPhatSinh)} · ${l.giaiDoan}`),
               // Dòng huỷ (bút toán ngược, ADR-0130): hiện dấu trừ cho dòng huỷ một khoản thu, để không đọc thành khách trả thêm lần nữa. Dòng huỷ một khoản
               // trả lại khách thì nói bằng chữ (số đã thu tăng lại, không phải trừ).
-              ` — ${l.traLai ? (l.laDongDao ? "Huỷ khoản trả lại khách " : "Trả lại khách ") : l.laDongDao ? "−" : ""}${vnd(l.soTien)} · ${l.hinhThuc} · người thu: ${l.nguoiThu}`,
+              ` — ${l.traLai ? (l.laDongDao ? "Huỷ khoản trả lại khách " : "Trả lại khách ") : l.laDongDao ? "−" : ""}${vnd(l.soTien)} · ${l.hinhThuc} · người thu tiền: ${l.nguoiThu}`,
               l.laDongDao ? h("span", { class: "muted" }, " (dòng huỷ)") : l.daDao ? h("span", { class: "muted" }, " (đã huỷ)") : null,
               l.maGiaoDich ? h("span", { class: "muted" }, ` · mã GD ${l.maGiaoDich} (thực chuyển ${vnd(l.soThucChuyen ?? 0)})`) : null,
               t.keToan && !t.completedAt ? nhacDoiChieuLanThu(t, l) : null,
@@ -650,7 +650,7 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
   if (c.daChuyen > 0) rows.push(kv("Đã chuyển sang đơn mới", vnd(c.daChuyen)));
   if (c.choChi > 0) rows.push(kv("Chờ chi", vnd(c.choChi)));
   rows.push(kv("Công ty còn giữ", vnd(c.conGiu), "strong"));
-  if (c.nguoiGiu?.length) rows.push(kv("Người đang giữ tiền", c.nguoiGiu.map((g) => `${g.ten}: ${vnd(g.soTien)}`).join("; ")));
+  if (c.nguoiGiu?.length) rows.push(kv("Người chưa nộp tiền", c.nguoiGiu.map((g) => `${g.ten}: ${vnd(g.soTien)}`).join("; ")));
 
   const khoan = c.khoanDuyet.map((k) => {
     const nut: HTMLElement[] = [];
@@ -827,7 +827,7 @@ function nutKeToanLanThu(order: Order, t: Api.OrderPaymentsResponse, l: Api.LanT
       "select",
       null,
       h("option", { value: "cong_ty", selected: laCongTy }, "Công ty"),
-      !laCongTy && l.nguoiThuPartyId ? h("option", { value: l.nguoiThuPartyId, selected: true }, `${l.nguoiThu} (người thu cũ)`) : null,
+      !laCongTy && l.nguoiThuPartyId ? h("option", { value: l.nguoiThuPartyId, selected: true }, `${l.nguoiThu} (người thu tiền cũ)`) : null,
       ...nguoiKhac.map((d) => h("option", { value: d.partyId }, d.ten)),
     ) as HTMLSelectElement;
     const lyDoThay = h("input", { type: "text", autocomplete: "off", maxlength: "500", placeholder: "Vì sao sửa (ít nhất 10 ký tự)" }) as HTMLInputElement;
@@ -840,8 +840,8 @@ function nutKeToanLanThu(order: Order, t: Api.OrderPaymentsResponse, l: Api.LanT
     nut.push(
       hangXacNhan({
         nhan: "Sửa khoản thu đã ghi", action: "thay-lan-thu", nutGhi: "Lưu khoản thu đúng",
-        cau: `Sửa khoản ${vnd(l.soTien)} (người thu: ${l.nguoiThu}): khoản cũ được ghi «đã huỷ» và khoản đúng được ghi thay, cùng một lần. Chỉ đổi người thu khi tiền thật sự đang ở người khác (đổi sang Công ty thì người thu cũ không còn phải nộp khoản này).${t.deliveredAt ? " Đơn đã giao: tổng đã thu phải giữ nguyên." : ""}`,
-        o: [h("label", null, "Số tiền đúng (₫)", so), h("label", null, "Hình thức", hinhThuc), h("label", null, "Người thu đúng", nguoiThu), ...maThay.o, h("label", null, "Lý do", lyDoThay)],
+        cau: `Sửa khoản ${vnd(l.soTien)} (người thu tiền: ${l.nguoiThu}): khoản cũ được ghi «đã huỷ» và khoản đúng được ghi thay, cùng một lần. Chỉ đổi người thu tiền khi tiền thật sự đang ở người khác (đổi sang Công ty thì người thu tiền cũ không còn phải nộp khoản này).${t.deliveredAt ? " Đơn đã giao: tổng đã thu phải giữ nguyên." : ""}`,
+        o: [h("label", null, "Số tiền đúng (₫)", so), h("label", null, "Hình thức", hinhThuc), h("label", null, "Người thu tiền đúng", nguoiThu), ...maThay.o, h("label", null, "Lý do", lyDoThay)],
         kiem: () => (parseMoney(so.value) <= 0 ? "Nhập số tiền." : lyDoThay.value.trim().length < 10 ? "Lý do ít nhất 10 ký tự." : loiCuaMa(maThay.doc())),
         ghi: async () => {
           try {
@@ -866,7 +866,7 @@ function nutKeToanLanThu(order: Order, t: Api.OrderPaymentsResponse, l: Api.LanT
     nut.push(
       hangXacNhan({
         nhan: l.traLai ? "Huỷ khoản trả lại" : "Huỷ khoản thu", action: "dao-lan-thu", nutGhi: "Huỷ khoản này",
-        cau: `Huỷ khoản ${l.traLai ? "trả lại khách" : "thu"} ${vnd(l.soTien)} (người thu: ${l.nguoiThu})? Sổ vẫn giữ dòng cũ (ghi «đã huỷ») và thêm một dòng ngược lại. Chỉ dùng khi ghi nhầm hẳn; sai số tiền, hình thức hay người thu thì dùng «Sửa khoản thu đã ghi».`,
+        cau: `Huỷ khoản ${l.traLai ? "trả lại khách" : "thu"} ${vnd(l.soTien)} (người thu tiền: ${l.nguoiThu})? Sổ vẫn giữ dòng cũ (ghi «đã huỷ») và thêm một dòng ngược lại. Chỉ dùng khi ghi nhầm hẳn; sai số tiền, hình thức hay người thu tiền thì dùng «Sửa khoản thu đã ghi».`,
         o: [h("label", null, "Lý do", lyDo)],
         kiem: () => (lyDo.value.trim() ? null : "Nhập lý do huỷ."),
         ghi: () => api("/api/ledger/adjustments", { method: "POST", body: { loai: "dao_lan_thu", receiptId: l.id, lyDo: lyDo.value.trim() } }),
@@ -887,7 +887,7 @@ function khoiKeToan(order: Order, t: Api.OrderPaymentsResponse): HTMLElement | n
     return h(
       "li",
       { "data-khoi": "dang-giu" },
-      `${d.ten} đang giữ ${vnd(d.soTien)} của công ty`,
+      `${d.ten} còn ${vnd(d.soTien)} chưa nộp về công ty`,
       d.choXacNhan > 0 ? ` (gồm ${vnd(d.choXacNhan)} chuyển khoản chờ xác nhận) ` : " ",
       tienMat > 0
         ? hangXacNhan({
@@ -937,7 +937,7 @@ function khoiKeToan(order: Order, t: Api.OrderPaymentsResponse): HTMLElement | n
     bu = hangXacNhan({
       nhan: "Ghi bù khoản thu", action: "ghi-bu-lan-thu", nutGhi: "Ghi bù",
       cau: `Đơn đã ở bước Đã giao nhưng sổ còn thiếu ${vnd(t.conLai)} (dữ liệu cũ). Ghi khoản thu bù để đã thu bằng phải thu:`,
-      o: [h("label", null, "Số tiền (₫)", so), h("label", null, "Hình thức", hinhThuc), h("label", null, "Người thu", nguoiThu), ...maBu.o, h("label", null, "Lý do", lyDo)],
+      o: [h("label", null, "Số tiền (₫)", so), h("label", null, "Hình thức", hinhThuc), h("label", null, "Người thu tiền", nguoiThu), ...maBu.o, h("label", null, "Lý do", lyDo)],
       kiem: () => (parseMoney(so.value) <= 0 ? "Nhập số tiền." : lyDo.value.trim().length < 10 ? "Lý do ít nhất 10 ký tự." : loiCuaMa(maBu.doc())),
       ghi: async () => {
         try {
@@ -971,7 +971,7 @@ function nutChot(order: Order, loai: "delivered" | "completed", t: Api.OrderPaym
   btn.disabled = giao ? !t.coTheGiao : !t.coTheHoanThanh;
   btn.addEventListener("click", async () => {
     const cau = giao
-      ? `Xác nhận Đã giao – đã thu đủ? Từ lúc này đơn bị khoá, không sửa, huỷ hay đổi người phụ trách được nữa.${t.banDangGiu > 0 ? ` Bạn đang giữ ${vnd(t.banDangGiu)} của công ty — nhớ nộp về công ty.` : ""}`
+      ? `Xác nhận Đã giao – đã thu đủ? Từ lúc này đơn bị khoá, không sửa, huỷ hay đổi người phụ trách được nữa.${t.banDangGiu > 0 ? ` Bạn còn ${vnd(t.banDangGiu)} chưa nộp về công ty — nhớ nộp.` : ""}`
       : "Xác nhận Hoàn thành đơn này? Không mở lại được.";
     if (!confirm(cau)) return;
     btn.disabled = true;
@@ -1016,7 +1016,7 @@ function nutGhiThu(order: Order, t: Api.OrderPaymentsResponse): HTMLElement {
         { class: "grid two" },
         h("label", null, "Số tiền (₫)", soTien),
         h("label", null, "Hình thức", hinhThuc),
-        h("label", null, "Người nhận tiền", nguoi),
+        h("label", null, "Người thu tiền", nguoi),
         ngay ? h("label", null, "Ngày phát sinh", ngay) : null,
         ...(ma ? ma.o : []),
       ),
@@ -1505,7 +1505,7 @@ async function load(quiet = false): Promise<void> {
     }
     if (baoDatGapLoi) {
       baoDatGapLoi = false;
-      show(banner("warning", "Đơn đã lưu nhưng chưa duyệt đặt gấp được.", { lines: [{ text: "Bấm “Đặt gấp” ở chặng bên dưới để duyệt lại." }] }));
+      show(banner("warning", "Đơn đã lưu nhưng chưa duyệt đặt gấp được.", { lines: [{ text: "Bấm “Đặt gấp” ở lượt đưa đón bên dưới để duyệt lại." }] }));
     }
     if (autoOpenConfirmation) {
       autoOpenConfirmation = false;

@@ -118,7 +118,7 @@ test("thay chặng (một lô: bỏ + thêm, cùng mốc): câu luôn 'bỏ ch�
   const them = doi({ id: "r2", action: "order_leg_added", detail: "Chiều đi · Tour đảo: thêm — giờ đón 06:30", legId: null });
   for (const lo of [[bo, them], [them, bo]]) {
     const t = hop(LAN, lo).tin;
-    assert.deepEqual(t.map((x) => x.cau), ["Quản Trị đổi đơn TD-1: bỏ chặng đón; thêm chặng đón"], JSON.stringify(t.map((x) => x.cau)));
+    assert.deepEqual(t.map((x) => x.cau), ["Quản Trị đổi đơn TD-1: bỏ lượt đưa đón; thêm lượt đưa đón"], JSON.stringify(t.map((x) => x.cau)));
     assert.equal(t[0]!.id, "r1", "id tin = dòng đứng đầu theo thứ tự cố định");
   }
 });
@@ -128,7 +128,7 @@ test("NT-B8 cùng đơn + cùng người + cùng mốc → MỘT tin (nối ph�
   const b = doi({ id: "a2", action: "order_leg_added", detail: "Chiều về · Tour đảo: thêm — ngày đón 2026-10-10" });
   const t = hop(LAN, [a, b]).tin;
   assert.equal(t.length, 1);
-  assert.equal(t[0]!.cau, "Quản Trị đổi đơn TD-1: giờ đón 07:00 → 06:30; thêm chặng đón");
+  assert.equal(t[0]!.cau, "Quản Trị đổi đơn TD-1: giờ đón 07:00 → 06:30; thêm lượt đưa đón");
   assert.equal(t[0]!.id, "a1", "id tin = id dòng đầu");
   assert.equal(hop(LAN, [a, doi({ id: "a3", luc: "2026-10-08T02:00:00.001Z" })]).tin.length, 2);
   assert.equal(hop(LAN, [doi({ id: "c1", actorId: "qt2" }), doi({ id: "c2" })]).tin.length, 2, "khác người làm → hai tin");
@@ -186,8 +186,8 @@ test("NT-B9 Đối tác / Thực tập: có tin đổi của đơn MÌNH lập; 
 test("NT-B10 câu: có tên khi xem được lịch sử đơn; không tên 'Đơn <mã>: …'; câu chung không lộ chữ thô", () => {
   assert.deepEqual(cau(LAN, [doi()]), ["Quản Trị đổi đơn TD-1: giờ đón 07:00 → 06:30"]); // người lập: history ownOrAssigned
   assert.deepEqual(cau(HUNG, [doi()], "tat-ca"), ["Đơn TD-1: giờ đón 07:00 → 06:30"]); // Bán hàng khác: không tên
-  assert.deepEqual(cau(HUNG, [doi({ detail: "cập nhật chặng đưa đón" })], "tat-ca"), ["Đơn TD-1 vừa đổi chặng đưa đón"]);
-  assert.deepEqual(cau(LAN, [doi({ detail: "cập nhật chặng đưa đón" })]), ["Quản Trị vừa đổi chặng đưa đón của đơn TD-1"]);
+  assert.deepEqual(cau(HUNG, [doi({ detail: "cập nhật lượt đưa đón" })], "tat-ca"), ["Đơn TD-1 vừa đổi lượt đưa đón"]);
+  assert.deepEqual(cau(LAN, [doi({ detail: "cập nhật lượt đưa đón" })]), ["Quản Trị vừa đổi lượt đưa đón của đơn TD-1"]);
   assert.deepEqual(cau(HUNG, [doi({ action: "order_money_adjusted_by_field", detail: "Khách báo thêm 1 người" })], "tat-ca"), ["Đơn TD-1: đổi số khách"]);
   assert.deepEqual(cau(LAN, [doi({ action: "order_money_adjusted_by_field", detail: "Khách báo thêm 1 người" })]), ["Quản Trị đổi đơn TD-1: đổi số khách"]);
   assert.deepEqual(cau(HUNG, [doi({ actorId: null, tenNguoiLam: null })], "tat-ca"), ["Đơn TD-1: giờ đón 07:00 → 06:30"]);

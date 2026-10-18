@@ -36,7 +36,7 @@ test("LY_DO_DONG_CHANG: đúng ba mã R6, nhãn tiếng Việt; mã lạ không 
   assert.deepEqual(Object.keys(LY_DO_DONG_CHANG), ["NOT_NEEDED", "WRONG_ENTRY", "REPLACED"]);
   assert.equal(LY_DO_DONG_CHANG.NOT_NEEDED, "Khách không cần đưa đón nữa");
   assert.equal(LY_DO_DONG_CHANG.WRONG_ENTRY, "Nhập nhầm");
-  assert.equal(LY_DO_DONG_CHANG.REPLACED, "Đổi sang chặng khác");
+  assert.equal(LY_DO_DONG_CHANG.REPLACED, "Đổi sang lượt đưa đón khác");
   assert.equal(isLyDoDongChang("NOT_NEEDED"), true);
   assert.equal(isLyDoDongChang("cancelled"), false);
   assert.equal(isLyDoDongChang(undefined), false);

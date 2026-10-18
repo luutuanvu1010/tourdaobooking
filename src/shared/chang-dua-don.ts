@@ -20,7 +20,7 @@ export const isLegDirection = (v: unknown): v is LegDirection => v === "OUT" || 
 export const LY_DO_DONG_CHANG = {
   NOT_NEEDED: "Khách không cần đưa đón nữa",
   WRONG_ENTRY: "Nhập nhầm",
-  REPLACED: "Đổi sang chặng khác",
+  REPLACED: "Đổi sang lượt đưa đón khác",
 } as const;
 export type LyDoDongChang = keyof typeof LY_DO_DONG_CHANG;
 export const isLyDoDongChang = (v: unknown): v is LyDoDongChang => typeof v === "string" && Object.hasOwn(LY_DO_DONG_CHANG, v);
@@ -157,7 +157,7 @@ function oPhu(r: Record<string, unknown>, direction: LegDirection, at: string): 
 /** Đọc MỘT giá trị số người chiều về (khoá CÓ mặt): `null` / "" → null (xoá); số nguyên ≥ 1; chỉ chặng VỀ. Dùng chung cho `kiemChang` và nhánh nháp của route sửa chặng. */
 export function docSoNguoiVe(p: unknown, direction: LegDirection, at: string): { ok: true; value: number | null } | { ok: false; message: string } {
   if (p === null || p === "") return { ok: true, value: null };
-  if (typeof p !== "number" || !Number.isInteger(p) || p < 1) return { ok: false, message: `${at}: số người chiều về phải là số nguyên từ 1 trở lên (0 người thì bỏ chặng).` };
+  if (typeof p !== "number" || !Number.isInteger(p) || p < 1) return { ok: false, message: `${at}: số người chiều về phải là số nguyên từ 1 trở lên (0 người thì bỏ lượt đưa đón).` };
   if (direction !== "RETURN") return { ok: false, message: `${at}: chỉ chiều về mới có số người chiều về riêng.` };
   return { ok: true, value: p };
 }
@@ -212,7 +212,7 @@ export function kiemChang(raw: unknown, ctx: NguCanhChang): KetQuaChang {
   const r = raw as Record<string, unknown>;
   let id: string | null = null;
   if (r.id !== undefined && r.id !== null && r.id !== "") {
-    if (typeof r.id !== "string" || !UUID_RE.test(r.id)) return { ok: false, message: `${at}: mã chặng không hợp lệ.` };
+    if (typeof r.id !== "string" || !UUID_RE.test(r.id)) return { ok: false, message: `${at}: mã lượt đưa đón không hợp lệ.` };
     id = r.id;
   }
   const direction = ctx.direction ?? r.direction;

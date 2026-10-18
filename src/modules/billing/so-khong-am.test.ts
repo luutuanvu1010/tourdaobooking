@@ -71,7 +71,7 @@ test("Đ3 (KT09): người trả không phải công ty — số hoàn ≤ số 
   const r = await hoan(w, id, 300_000, { partyId: `pty-${HDV}` });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "refund_exceeds_held");
-  assert.match(r.json.error.message, /đang giữ 200\.000/);
+  assert.match(r.json.error.message, /còn 200\.000 ₫ chưa nộp/);
   assert.equal(daThuRong(w, id), 500_000, "không ghi gì");
   assert.equal((await hoan(w, id, 150_000, { partyId: `pty-${HDV}` })).status, 201);
   assert.equal((await hoan(w, id, 100_000, { partyId: `pty-${HDV}` })).json.error.code, "refund_exceeds_held", "còn giữ 50.000");

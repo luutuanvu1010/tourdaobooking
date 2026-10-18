@@ -63,7 +63,7 @@ async function donXeRieng(w: any, cx?: number) {
   return { id: o.id, legId: o.services[0].legs[0].id };
 }
 
-test("NT-4 (ADR-0104 Đ1 mục 5): đổi xe dưới mốc — Bán hàng hay Quản trị → khanCap true ở lịch và chi tiết; chuyến chưa vượt → false; nhật ký 'điều chỉnh khẩn cấp mốc tối thiểu: … · còn 300 phút'", async () => {
+test("NT-4 (ADR-0104 Đ1 mục 5): đổi xe dưới mốc — Bán hàng hay Quản trị → khanCap true ở lịch và chi tiết; chuyến chưa vượt → false; nhật ký 'điều chỉnh khẩn cấp hạn chốt: … · còn 300 phút'", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
@@ -75,14 +75,14 @@ test("NT-4 (ADR-0104 Đ1 mục 5): đổi xe dưới mốc — Bán hàng hay Qu
     assert.equal(r1.status, 200, r1.text);
     assert.equal(r1.json.chuyen.khanCap, true, "phản hồi lệnh = chi tiết chuyến");
     assert.equal(await nhan(w, t1.chuyen.id), true);
-    assert.match(nhatKy(w, "trip_edited", t1.chuyen.id), / · điều chỉnh khẩn cấp mốc tối thiểu: Sự cố vận hành · còn 300 phút/);
+    assert.match(nhatKy(w, "trip_edited", t1.chuyen.id), / · điều chỉnh khẩn cấp hạn chốt: Sự cố vận hành · còn 300 phút/);
     assert.doesNotMatch(nhatKy(w, "trip_edited", t1.chuyen.id), /phá lệ/);
     // Quản trị đổi xe dưới mốc — cùng lớp (lớp theo LUẬT, không theo người).
     assert.equal(await nhan(w, t2.chuyen.id), false);
     const r2 = await goi(w, ADM, "PUT", `/${t2.chuyen.id}`, { version: await phienBan(w, t2.chuyen.id), xeId: xe(w), phaLe: PL });
     assert.equal(r2.status, 200, r2.text);
     assert.equal(await nhan(w, t2.chuyen.id), true);
-    assert.match(nhatKy(w, "trip_edited", t2.chuyen.id), / · điều chỉnh khẩn cấp mốc tối thiểu: Sự cố vận hành · còn 300 phút/);
+    assert.match(nhatKy(w, "trip_edited", t2.chuyen.id), / · điều chỉnh khẩn cấp hạn chốt: Sự cố vận hành · còn 300 phút/);
   } finally {
     tat();
   }
@@ -98,7 +98,7 @@ test("NT-4 (ADR-0104 Đ1 mục 4, 5): Bán hàng xếp chặng thường dưới
     const x = await xep(w, SALES, nguon.chuyen.id, [{ legId: a.legId, soSuat: 2 }], { phaLe: PL });
     assert.equal(x.status, 200, x.text);
     assert.equal(await nhan(w, nguon.chuyen.id), true);
-    assert.match(nhatKy(w, "trip_allocated", nguon.chuyen.id), / · điều chỉnh khẩn cấp mốc tối thiểu: Sự cố vận hành · còn 300 phút$/);
+    assert.match(nhatKy(w, "trip_allocated", nguon.chuyen.id), / · điều chỉnh khẩn cấp hạn chốt: Sự cố vận hành · còn 300 phút$/);
     assert.equal(await nhan(w, dich.chuyen.id), false);
     const d = await goi(w, SALES, "POST", `/${nguon.chuyen.id}/doi`, {
       version: await phienBan(w, nguon.chuyen.id), suatIds: x.json.suat.map((s: any) => s.id), denChuyenId: dich.chuyen.id, denVersion: await phienBan(w, dich.chuyen.id), phaLe: PL,
@@ -106,7 +106,7 @@ test("NT-4 (ADR-0104 Đ1 mục 4, 5): Bán hàng xếp chặng thường dưới
     assert.equal(d.status, 200, d.text);
     assert.deepEqual(luatSuKien(w, "ALLOCATION_MOVED", dich.chuyen.id), ["MOC_TOI_THIEU"]);
     assert.equal(await nhan(w, dich.chuyen.id), true);
-    assert.match(nhatKy(w, "trip_allocation_moved", dich.chuyen.id), / · điều chỉnh khẩn cấp mốc tối thiểu: Sự cố vận hành · còn 300 phút/);
+    assert.match(nhatKy(w, "trip_allocation_moved", dich.chuyen.id), / · điều chỉnh khẩn cấp hạn chốt: Sự cố vận hành · còn 300 phút/);
   } finally {
     tat();
   }
@@ -288,7 +288,7 @@ test("Phiếu hẹp D1 CAO-B (thứ tự mốc > nghỉ): Bán hàng sửa chuy�
     assert.deepEqual(luatSuKien(w, "UPDATED", t.chuyen.id), ["MOC_TOI_THIEU"]);
     assert.equal(await nhan(w, t.chuyen.id), true, "nhãn Điều chỉnh khẩn cấp");
     const nk = nhatKy(w, "trip_edited", t.chuyen.id);
-    assert.match(nk, / · điều chỉnh khẩn cấp mốc tối thiểu: Sự cố vận hành/, nk);
+    assert.match(nk, / · điều chỉnh khẩn cấp hạn chốt: Sự cố vận hành/, nk);
     assert.match(nk, / · điều chỉnh khẩn cấp khoảng nghỉ: Sự cố vận hành/, `luật nghỉ vẫn có trong nhật ký — ${nk}`);
   } finally {
     tat();

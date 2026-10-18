@@ -175,7 +175,7 @@ test("6. updateTrip có exclusiveVehicle / minVehicleSeats (thân hoặc dịch 
       const services = [{ id: o.services[0].id, departDate: D, ...(noi === "dichVu" ? extra : {}) }];
       const bad = await w.call("PUT", `/api/orders/${o.id}/trip`, { as: SALES, body: { expectedUpdatedAt: o.updatedAt, services, ...(noi === "than" ? extra : {}) } });
       assert.equal(bad.status, 400, bad.text);
-      assert.match(bad.json.error.message, /xe riêng, số chỗ tối thiểu sửa ở từng chặng đưa đón/);
+      assert.match(bad.json.error.message, /xe riêng, số chỗ tối thiểu sửa ở từng lượt đưa đón/);
     }
   }
   const l = ve(o);

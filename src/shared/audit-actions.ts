@@ -23,10 +23,10 @@ export const AUDIT_ACTIONS = {
   updated: { label: "Sửa đơn", group: "order" },
   trip_updated: { label: "Sửa thông tin chuyến", group: "order" },
   // ADR-0047 A1: chặng đưa đón sau xác nhận — `detail` "Chiều đi · <tên dịch vụ>: giờ đón 06:30 → 07:00; nơi đón A → B" (chữ tự do che dãy số — moTaChang).
-  order_leg_added: { label: "Thêm chặng đưa đón", group: "order" },
-  order_leg_updated: { label: "Sửa chặng đưa đón", group: "order" },
-  order_leg_closed: { label: "Bỏ chặng đưa đón", group: "order" },
-  order_leg_short_notice: { label: "Đặt gấp chặng đưa đón", group: "order" }, // ADR-0049 D2 — detail: mã đơn + chiều + nhãn lý do (KHÔNG ghi chú)
+  order_leg_added: { label: "Thêm lượt đưa đón", group: "order" },
+  order_leg_updated: { label: "Sửa lượt đưa đón", group: "order" },
+  order_leg_closed: { label: "Bỏ lượt đưa đón", group: "order" },
+  order_leg_short_notice: { label: "Đặt gấp lượt đưa đón", group: "order" }, // ADR-0049 D2 — detail: mã đơn + chiều + nhãn lý do (KHÔNG ghi chú)
   // ADR-0047 A2: `detail` ĐÚNG khuôn "thêm N, sửa N, huỷ N khách" — KHÔNG tên, KHÔNG năm sinh (Hiến chương 5.12; kiểm định kỳ R-ORD-10).
   order_passenger_changed: { label: "Sửa danh sách hành khách", group: "order" },
   confirmed: { label: "Xác nhận đơn", group: "order" },
@@ -114,7 +114,7 @@ export const AUDIT_ACTIONS = {
   login_unlocked: { label: "Mở khoá đăng nhập", group: "staff" },
   staff_synced: { label: "Đồng bộ nhân viên từ Sheet", group: "staff" },
   permission_changed: { label: "Đổi quyền tài khoản", group: "staff" },
-  account_roles_changed: { label: "Đổi vai và quyền tài khoản", group: "staff" },
+  account_roles_changed: { label: "Đổi vai trò và quyền tài khoản", group: "staff" },
   party_created: { label: "Tạo hồ sơ", group: "party" },
   party_updated: { label: "Sửa hồ sơ", group: "party" },
   party_contact_changed: { label: "Đổi thông tin liên hệ", group: "party" },
@@ -147,7 +147,7 @@ export const AUDIT_ACTIONS = {
   party_erased: { label: "Thực hiện yêu cầu xoá dữ liệu", group: "party" },
   party_erasure_rejected: { label: "Từ chối yêu cầu xoá dữ liệu", group: "party" },
   party_erasure_retried: { label: "Chạy lại việc xoá dữ liệu", group: "system" },
-  sessions_anonymized: { label: "Ẩn danh IP và thông tin máy của phiên cũ", group: "system" }, // ADR-0126 đ8: chỉ số phiên + mốc kết thúc, KHÔNG IP / User-Agent
+  sessions_anonymized: { label: "Ẩn danh IP và thông tin máy đã đăng xuất", group: "system" }, // ADR-0126 đ8: chỉ số phiên + mốc kết thúc, KHÔNG IP / User-Agent
   self_submission_number_viewed: { label: "Xem đủ số giấy tờ của phiếu tự khai", group: "party" },
   party_document_catalog_changed: { label: "Sửa danh mục giấy tờ của người", group: "party" },
   // ADR-0108 đ2: cài / đổi tài khoản nhận tiền của công ty chủ — target = hồ sơ công ty; `detail` = "cài|đổi tài khoản nhận tiền" (chữ cố định); KHÔNG chép số tài khoản (5.12).
@@ -169,8 +169,8 @@ export const AUDIT_ACTIONS = {
   // ADR-0049 D2 (lát 1.1): chính sách điều phối, điều kiện xuất bến, hạng bằng (Toàn quyền), danh mục lý do (Quản trị). `detail` chỉ mã, con số, nhãn
   // danh mục; không order_id, không target (khuôn expiry_policy_changed).
   dispatch_policy_changed: { label: "Đổi chính sách điều phối", group: "trip" },
-  departure_rule_added: { label: "Thêm điều kiện xuất bến", group: "trip" },
-  departure_rule_closed: { label: "Đóng điều kiện xuất bến", group: "trip" },
+  departure_rule_added: { label: "Thêm điều kiện cho xe chạy", group: "trip" },
+  departure_rule_closed: { label: "Đóng điều kiện cho xe chạy", group: "trip" },
   license_capacity_changed: { label: "Đổi số khách theo hạng bằng", group: "trip" },
   trip_reason_added: { label: "Thêm lý do điều phối", group: "trip" },
   trip_reason_updated: { label: "Sửa lý do điều phối", group: "trip" },
@@ -191,7 +191,7 @@ export const AUDIT_ACTIONS = {
   trip_allocation_removed: { label: "Rút khách khỏi xe", group: "trip" },
   trip_allocation_moved: { label: "Dời khách sang chuyến khác", group: "trip" },
   // ADR-0049 D1, D3 (Task A15): lệnh TIẾN ĐỘ — tài xế bấm hoặc văn phòng bấm thay (detail ghi "văn phòng bấm thay"; khai giờ: "xảy ra lúc HH:MM").
-  trip_departed: { label: "Xuất bến", group: "trip" },
+  trip_departed: { label: "Cho xe chạy", group: "trip" },
   trip_stop_arrived: { label: "Xe đã tới điểm", group: "trip" },
   trip_passenger_boarded: { label: "Đã đón khách", group: "trip" },
   trip_passenger_no_show: { label: "Khách vắng", group: "trip" },
@@ -208,7 +208,7 @@ export const AUDIT_ACTIONS = {
   // ADR-0097 Đ2, Đ3 (gói A1, V3-B): văn phòng sửa sai bằng sự kiện điều chỉnh có lý do — detail: mã chuyến, mã đơn, "một suất A → B · nhãn lý do" / nhãn lý do
   // thu hồi (không tên khách, không SĐT — Đ2.6).
   trip_allocation_corrected: { label: "Văn phòng điều chỉnh kết quả khách", group: "trip" },
-  trip_departure_revoked: { label: "Văn phòng thu hồi xuất bến", group: "trip" },
+  trip_departure_revoked: { label: "Văn phòng thu hồi lệnh cho xe chạy", group: "trip" },
   // ADR-0111 (gói A5): đề nghị chuyển khách giữa hai xe — target = chuyến ĐÍCH; detail chỉ mã hai chuyến, phạm vi, SỐ khách, nhãn lý do, mã điều kiện không
   // đạt (không tên khách, năm sinh, SĐT, chữ nơi gặp, khoá nơi — LC-18).
   trip_transfer_sent: { label: "Gửi đề nghị chuyển khách", group: "trip" },
@@ -273,7 +273,7 @@ export const AUDIT_ACTIONS = {
   notice_revoked: { label: "Thu hồi thông báo", group: "notice" },
   notice_acknowledged: { label: "Xác nhận đã hiểu thông báo", group: "notice" },
   session_policy_changed: { label: "Đổi chính sách đăng nhập", group: "staff" }, // ADR-0085 điều 9: quyền đổi + giá trị mới + số máy/số người — KHÔNG tên, SĐT, IP
-  session_revoked: { label: "Gỡ phiên đăng nhập", group: "staff" }, // ADR-0075 điều 8: ai gỡ, tài khoản bị gỡ (target), mã phiên (detail) — KHÔNG IP/User-Agent
+  session_revoked: { label: "Đăng xuất một máy đang đăng nhập", group: "staff" }, // ADR-0075 điều 8: ai gỡ, tài khoản bị gỡ (target), mã phiên (detail) — KHÔNG IP/User-Agent
   // ADR-0074 điều 5 (tự phục vụ): detail CHỈ loại yếu tố ("TOTP") — KHÔNG khoá, mã, mã dự phòng, email.
   mfa_enabled: { label: "Bật bảo mật hai lớp", group: "staff" },
   mfa_removed: { label: "Gỡ bảo mật hai lớp", group: "staff" },

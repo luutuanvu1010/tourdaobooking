@@ -45,9 +45,9 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
    - Dịch vụ tính theo nhóm chỉ có một ô [[Số khách]]; số lượt tự tính.
    - Mỗi dịch vụ tối đa 50 khách, phải có ít nhất 1 khách không phải em bé. Cả đơn cần ít nhất một người lớn.
    - Sửa được đơn giá; dòng khác giá danh mục hiện nhãn [[Khác giá danh mục]].
-6. Phần [[Đưa đón]] trên thẻ: mỗi chặng có [[Giờ đón]], [[Nơi đón]], [[Nơi trả]] (chọn điểm có sẵn hoặc [[Gõ tự do…]]); [[Ngày đón]] tự lấy ngày khởi hành (khác ngày: [[Đón khác ngày]]). Dịch vụ có mẫu đưa đón thì Nền tảng tạo sẵn chiều đi (và chiều về) — sửa hoặc bỏ nếu khác; không có thì bấm [[+ Thêm đưa đón]]. Chặng đủ thông tin gập thành một dòng; chạm để sửa. [[Xe riêng]] và [[Xe tối thiểu]] (số chỗ, không kể tài xế) nằm trong [[Thêm chi tiết (xe riêng, số chỗ)]]. Bấm dòng [[Thông tin chuyến]] để điền [[Giờ khởi hành]] và nếu có thì [[Có mặt lúc]], [[Có mặt tại]] (khác ngày: [[Có mặt khác ngày]]), [[Ghi chú dịch vụ]].
+6. Phần [[Đưa đón]] trên thẻ: mỗi lượt đưa đón có [[Giờ đón]], [[Nơi đón]], [[Nơi trả]] (chọn điểm có sẵn hoặc [[Gõ tự do…]]); [[Ngày đón]] tự lấy ngày khởi hành (khác ngày: [[Đón khác ngày]]). Dịch vụ có mẫu đưa đón thì Nền tảng tạo sẵn chiều đi (và chiều về) — sửa hoặc bỏ nếu khác; không có thì bấm [[+ Thêm đưa đón]]. Lượt đủ thông tin gập thành một dòng; chạm để sửa. [[Xe riêng]] và [[Xe tối thiểu]] (số chỗ, không kể tài xế) nằm trong [[Thêm chi tiết (xe riêng, số chỗ)]]. Bấm dòng [[Thông tin chuyến]] để điền [[Giờ khởi hành]] và nếu có thì [[Có mặt lúc]], [[Có mặt tại]] (khác ngày: [[Có mặt khác ngày]]), [[Ghi chú dịch vụ]].
 7. Cần thêm dịch vụ thì lặp lại bước 4 đến 6 (tối đa 20 dịch vụ). Bấm [[Xoá]] trên thẻ để bỏ dịch vụ.
-8. Khối [[Thanh toán]]: [[Giảm giá (₫)]], [[Thanh toán trước (₫)]], [[Hình thức]] ([[Chuyển khoản]] — mặc định, [[Tiền mặt]], [[Khác]]), [[Người nhận tiền]], [[Ghi chú thanh toán]]. Tiền trả trước vào sổ ngay khi lưu đơn.
+8. Khối [[Thanh toán]]: [[Giảm giá (₫)]], [[Thanh toán trước (₫)]], [[Hình thức]] ([[Chuyển khoản]] — mặc định, [[Tiền mặt]], [[Khác]]), [[Người thu tiền]], [[Ghi chú thanh toán]]. Tiền trả trước vào sổ ngay khi lưu đơn.
 9. Khối [[Người phụ trách]]: để trống thì đơn ở trạng thái [[Chờ nhận]] — hướng dẫn viên nào cũng nhận được. Muốn giao luôn thì bấm [[Chọn người phụ trách]], tìm tên, chạm người đó. Đổi ý thì bấm [[Đổi]] hoặc [[Bỏ chọn — để Chờ nhận]].
 10. Xem khối [[Tóm tắt]] rồi bấm [[Lưu, chờ xác nhận]]. Đơn lưu ở [[Chờ xác nhận]], rồi trang đơn mở kèm hộp ảnh biên nhận.
 
@@ -69,7 +69,7 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
 2. Bấm [[Xác nhận đơn]]. Hộp hỏi lại: sau khi xác nhận, dịch vụ và đơn giá bị khoá. Bấm đồng ý.
 3. Đơn chuyển sang [[Đã xác nhận]].
 
-Nền tảng chỉ cho xác nhận khi mỗi dịch vụ có ngày khởi hành, ngày đó chưa qua và không quá 365 ngày tới, mỗi dịch vụ có khách, và không còn chặng đón sát giờ chưa được duyệt (xem "Đơn sát giờ — Đặt gấp"). Thiếu thì Nền tảng báo [[Chưa đủ thông tin chuyến để xác nhận đơn.]] kèm từng dịch vụ và liên kết [[Sửa]].
+Nền tảng chỉ cho xác nhận khi mỗi dịch vụ có ngày khởi hành, ngày đó chưa qua và không quá 365 ngày tới, mỗi dịch vụ có khách, và không còn lượt đưa đón sát giờ chưa được duyệt (xem "Đơn sát giờ — Đặt gấp"). Thiếu thì Nền tảng báo [[Chưa đủ thông tin chuyến để xác nhận đơn.]] kèm từng dịch vụ và liên kết [[Sửa]].
 
 > Lưu ý: giờ đón và nơi đón không bắt buộc để xác nhận, nhưng nên điền trước khi gửi khách.`,
     },
@@ -119,11 +119,11 @@ Nền tảng chỉ cho xác nhận khi mỗi dịch vụ có ngày khởi hành,
     },
     {
       tieuDe: "Điều phối xe",
-      noiDung: `Ở [[Điều phối xe]], chọn ngày; cột **Chưa xếp** có chặng của đơn đã xác nhận. Bấm [[+ Chuyến mới]] (xe, tài xế, giờ) → [[Lưu chuyến]], rồi kéo chặng vào chuyến hoặc bấm [[Xếp vào chuyến]]. Chuyến bị giữ thì [[Mở chuyến]] xem lý do và ai xử lý.
+      noiDung: `Ở [[Điều phối xe]], chọn ngày; cột **Chưa xếp** có các lượt đưa đón của đơn đã xác nhận. Bấm [[+ Chuyến mới]] (xe, tài xế, giờ) → [[Lưu chuyến]], rồi kéo lượt vào chuyến hoặc bấm [[Xếp vào chuyến]]. Chuyến bị giữ thì [[Mở chuyến]] xem lý do và ai xử lý.
 
 Xe đã chạy: mở [[Xe đang chạy]], bấm chuyến. Thêm khách: [[Thêm điểm đón / thêm khách]]. Khách huỷ: [[Báo huỷ]]; ghế giữ tới khi tài xế xác nhận. Đổi nơi đón: [[Cập nhật điểm theo đơn]]. Xe hỏng: [[Gửi đề nghị cứu hộ]] nhờ xe đang chạy (gõ nơi gặp), hoặc [[Cứu hộ]] rồi xếp khách ở khối **Cứu hộ**.
 
-> Lưu ý: xe chỉ chạy được khi đơn đủ họ tên, năm sinh khách và nơi trả. Trong mốc ra lệnh trước xuất bến, xếp, rút khách, đổi xe, tài xế, huỷ chuyến là **điều chỉnh khẩn cấp**: bạn làm kèm lý do.
+> Lưu ý: xe chỉ chạy được khi đơn đủ họ tên, năm sinh khách và nơi trả. Khi đã tới hạn chốt trước giờ xe chạy, xếp, rút khách, đổi xe, tài xế, huỷ chuyến là **điều chỉnh khẩn cấp**: bạn làm kèm lý do.
 
 Mục "Giờ hẹn đổi — gọi báo khách" ở [[Cần xử lý]]: gọi khách rồi bấm [[Đã gọi báo]], chỉ cho đơn bạn lập hoặc phụ trách.`,
     },
@@ -134,12 +134,12 @@ Mục "Giờ hẹn đổi — gọi báo khách" ở [[Cần xử lý]]: gọi k
 > Ví dụ: chị Lan báo đổi đón từ 7:30 sang 8:00.
 
 1. Mở đơn → ở khối [[Đưa đón]] bấm [[Sửa đưa đón]].
-2. Sửa [[Giờ đón]] (hoặc [[Nơi đón]], [[Nơi trả]] của chặng). Ngày khởi hành của cả đơn đổi ở [[Sửa thông tin chuyến]].
+2. Sửa [[Giờ đón]] (hoặc [[Nơi đón]], [[Nơi trả]] của lượt). Ngày khởi hành của cả đơn đổi ở [[Sửa thông tin chuyến]].
 3. Bấm [[Lưu]].
 4. Nền tảng nhắc bản xác nhận đã gửi khách có thể lỗi thời → bấm [[Xem biên nhận]] và gửi lại ảnh mới.
 5. Tự gọi hoặc nhắn hướng dẫn viên phụ trách: họ chưa được tự báo khi giờ hoặc nơi đón đổi.
 
-> Lưu ý: nếu giờ đón mới cách bây giờ dưới mốc ra lệnh, Nền tảng từ chối và chỉ Quản trị sửa được — hãy nhờ Quản trị. Muốn đổi hồ sơ khách của đơn đã xác nhận thì bấm [[Đổi khách]].
+> Lưu ý: nếu giờ đón mới đã qua hạn chốt, Nền tảng từ chối và chỉ Quản trị sửa được — hãy nhờ Quản trị. Muốn đổi hồ sơ khách của đơn đã xác nhận thì bấm [[Đổi khách]].
 
 ### Khách đổi số người hoặc dịch vụ sau khi đã xác nhận
 
@@ -155,17 +155,17 @@ Nền tảng tự tính lại tiền (giảm giá giữ nguyên), ghi vào [[L�
 
 > Ví dụ: 10 giờ sáng khách gọi đặt đưa đón lúc 13 giờ cùng ngày.
 
-1. Lập đơn như thường. Khi giờ đón cách bây giờ dưới mốc ra lệnh, cuối thẻ dịch vụ hiện dải vàng báo còn bao lâu tới giờ đón, kèm dòng [[Lưu nháp được. Xác nhận cần Quản trị duyệt đặt gấp.]]
+1. Lập đơn như thường. Khi giờ đón đã qua hạn chốt, cuối thẻ dịch vụ hiện dải vàng báo còn bao lâu tới giờ đón, kèm dòng [[Lưu nháp được. Xác nhận cần Quản trị duyệt đặt gấp.]]
 2. Bấm [[Lưu, chờ xác nhận]] như thường.
 3. Trên trang đơn, nút [[Xác nhận đơn]] bị khoá, kèm dòng [[Cần Quản trị duyệt đặt gấp]].
 4. Gọi Quản trị, đọc mã đơn. Quản trị mở đơn, bấm [[Đặt gấp]], chọn lý do, bấm [[Duyệt đặt gấp]].
-5. Chặng đó hiện nhãn "Đặt gấp". Lúc này bạn bấm [[Xác nhận đơn]].
+5. Lượt đó hiện nhãn "Đặt gấp". Lúc này bạn bấm [[Xác nhận đơn]].
 
-> Lưu ý: nếu sau khi Quản trị duyệt mà bạn sửa ngày, giờ hoặc nơi đón của chặng đó (khi đơn còn chờ xác nhận), dấu đặt gấp mất — phải nhờ duyệt lại. Bạn không tự bấm Đặt gấp được.
+> Lưu ý: nếu sau khi Quản trị duyệt mà bạn sửa ngày, giờ hoặc nơi đón của lượt đó (khi đơn còn chờ xác nhận), dấu đặt gấp mất — phải nhờ duyệt lại. Bạn không tự bấm Đặt gấp được.
 
 ### Thiếu thông tin chuyến
 
-- Chưa biết giờ đón: vẫn lưu được; chặng ghi "Chưa chốt giờ". Bổ sung sau bằng [[Sửa]] (đơn chờ xác nhận) hoặc [[Sửa đưa đón]] (đơn đã xác nhận).
+- Chưa biết giờ đón: vẫn lưu được; lượt ghi "Chưa chốt giờ". Bổ sung sau bằng [[Sửa]] (đơn chờ xác nhận) hoặc [[Sửa đưa đón]] (đơn đã xác nhận).
 
 ### Khách huỷ
 
@@ -203,7 +203,7 @@ Huỷ được đơn chờ xác nhận lẫn đã xác nhận mà bạn lập ho
 - Thêm, sửa dịch vụ và giá trong danh mục; dịch vụ "chưa có giá" → **Quản trị**.
 - Khách trả thêm: bấm [[Ghi khoản thu]] trên đơn bạn lập. Hoàn tiền, hoá đơn → **Kế toán**.
 - Quên mã PIN, bị khoá đăng nhập → **Quản trị**.
-- Xe thiếu giấy tờ, tài xế thiếu bằng lái, thiếu nghỉ hay trái cam kết xe khi còn hơn mốc ra lệnh → **Quản trị**.
+- Xe thiếu giấy tờ, tài xế thiếu bằng lái, thiếu nghỉ hay trái cam kết xe khi chưa tới hạn chốt → **Quản trị**.
 - Báo lỗi Nền tảng, góp ý → [[Hỗ trợ]].`,
     },
     {
@@ -214,7 +214,7 @@ Chưa. Đơn mới lưu ở trạng thái [[Chờ xác nhận]]. Phải bấm [[
 
 ### Sao tôi không bấm được "Xác nhận đơn"?
 
-Hoặc có chặng đón dưới mốc ra lệnh chưa được Quản trị duyệt (dòng [[Cần Quản trị duyệt đặt gấp]] hiện ngay dưới), hoặc thiếu thông tin chuyến (Nền tảng liệt kê từng dịch vụ kèm liên kết [[Sửa]]).
+Hoặc có lượt đưa đón đã qua hạn chốt chưa được Quản trị duyệt (dòng [[Cần Quản trị duyệt đặt gấp]] hiện ngay dưới), hoặc thiếu thông tin chuyến (Nền tảng liệt kê từng dịch vụ kèm liên kết [[Sửa]]).
 
 ### Sao tôi không thấy nút Sửa, Xác nhận, Huỷ?
 

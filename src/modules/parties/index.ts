@@ -234,7 +234,7 @@ export async function taiXeChoDieuPhoi(db: D1Database, v: { today: string }): Pr
   }));
 }
 
-const ACCOUNT_ROLE = () => error(409, "role_via_account", "Vai này quyết định quyền đăng nhập nên chỉ gán hoặc gỡ ở màn Quản lý tài khoản.");
+const ACCOUNT_ROLE = () => error(409, "role_via_account", "Vai trò này quyết định quyền đăng nhập nên chỉ gán hoặc gỡ ở màn Quản lý tài khoản.");
 // Ruling R6 (điều phối 2026-09-28; ADR-0040 D3): loại công việc đã ngưng dùng (active = 0) không gán mới — áp cho MỌI loại đã ngưng, trừ đổi công ty chủ.
 const ROLE_TYPE_INACTIVE = () => error(409, "role_type_inactive", "Loại công việc này đã ngưng dùng nên không gán mới được. Chọn loại khác trong danh sách.");
 const isAccountGroup = (g: string | null): boolean => g === "INTERNAL" || g === "EXTERNAL";
@@ -286,7 +286,7 @@ function constraintProblem(e: unknown): Response | null {
   // Lớp CSDL của vai "Công ty chủ" (trigger *_keep_last, *_start_today): chỉ tới đây khi lớp route bị vượt — mã riêng để phân biệt với lớp route (P16).
   if (/owner_company_last_open/.test(m)) return error(409, "owner_company_last_open", KHONG_KET_THUC_CONG_TY_CHU);
   if (/owner_company_start_not_today/.test(m)) return error(409, "owner_company_start_not_today", NGAY_BAT_DAU_HOM_NAY);
-  if (/party_role_group_conflict/.test(m)) return error(409, "role_group_conflict", "Một hồ sơ không giữ cùng lúc vai nội bộ và vai bên ngoài.");
+  if (/party_role_group_conflict/.test(m)) return error(409, "role_group_conflict", "Một hồ sơ không giữ cùng lúc vai trò nội bộ và vai trò bên ngoài.");
   // ADR-0117 điều 4: lưới cuối của luật «nội bộ» (trigger *_partner_label_conflict) — cùng mã/câu với lớp route (người gọi ở đây giữ admin.manage).
   if (/partner_label_conflict/.test(m)) return ROLE_PARTNER_LABEL_CONFLICT();
   if (/party_role_overlap|pty_party_role_open_uq/.test(m)) return error(409, "role_overlap", "Hồ sơ này đã có công việc đó ở nơi đó trong khoảng thời gian trùng.");
@@ -1271,7 +1271,7 @@ export const partiesModule: AppModule = {
       if (kl.lyDo !== null) return error(409, MA_LOI_XU_LY[kl.lyDo as keyof typeof MA_LOI_XU_LY], NHAN_LY_DO_KHONG_XU_LY[kl.lyDo]);
       const at = new Date().toISOString();
       const cauPhien = chuPhieu ? cauAnDanhPhien(chuPhieu.id, at, staff.id) : null;
-      if (chuPhieu && !cauPhien) return error(503, "erasure_unavailable", "Chưa thực hiện được: thiếu phần xoá thông tin phiên đăng nhập. Hãy báo quản trị viên.");
+      if (chuPhieu && !cauPhien) return error(503, "erasure_unavailable", "Chưa thực hiện được: thiếu phần xoá thông tin máy đăng nhập. Hãy báo quản trị viên.");
       const giu = giuTen({ permissions: chuPhieu?.permissions ?? [], don: kl.don, soDongNo: kl.soNo });
       const dem = await demXemTruocXoa(env.DB, p.party_id);
       const lo = [

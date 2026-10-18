@@ -98,7 +98,7 @@ export function taoKhoiChiPhi(staff: PermissionHolder, sauGhi: () => Promise<voi
     };
     // Dải cảnh báo thiếu giá (chỉ người có ô cost.view — câu 4.4).
     const daiThieu = thieuGia
-      ? dai("warning", "Chuyến xe thuê chưa có giá — chưa được xuất bến", ["Nhập giá thoả thuận với nhà xe, hoặc bổ sung giá vào Bảng giá thuê xe rồi lấy lại giá bảng."], undefined,
+      ? dai("warning", "Chuyến xe thuê chưa có giá — chưa được cho xe chạy", ["Nhập giá thoả thuận với nhà xe, hoặc bổ sung giá vào Bảng giá thuê xe rồi lấy lại giá bảng."], undefined,
         coSua && c.coTheNhapThoaThuan ? [h("div", { class: "banner-actions" }, nutThoaThuan("btn btn-primary btn-chinh"))] : [])
       : null;
     daiThieu?.classList.add("cp-dai-thieu");

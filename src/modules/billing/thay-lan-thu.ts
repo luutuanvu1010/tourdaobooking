@@ -144,7 +144,7 @@ export async function ghiThayLanThu(db: D1Database, input: { raw: unknown; ai: N
   // Đổi người thu (vd nhân viên → Công ty) xoá khoản người cũ đang giữ — ghi rõ trong nhật ký để Kế toán xem lại (kiểm độc lập vòng 3).
   const nguoiCu = new Set(cuRows.map((r) => r.collector_party_id));
   const doiNguoi = moi.some((m) => !nguoiCu.has(m.lt.collectorPartyId));
-  const chiTiet = `thay ${cuRows.length} khoản thu (${dong(tongCu)}) bằng ${moi.length} khoản thu (${dong(tongMoi)}) · đã thu trước ${dong(daThuTruoc)} → sau ${dong(daThuTruoc - tongCu + tongMoi)}${doiNguoi && cuRows.length > 0 ? " · đổi người thu" : ""} · ${lyDo.value ?? ""}`;
+  const chiTiet = `thay ${cuRows.length} khoản thu (${dong(tongCu)}) bằng ${moi.length} khoản thu (${dong(tongMoi)}) · đã thu trước ${dong(daThuTruoc)} → sau ${dong(daThuTruoc - tongCu + tongMoi)}${doiNguoi && cuRows.length > 0 ? " · đổi người thu tiền" : ""} · ${lyDo.value ?? ""}`;
   stmts.push(auditStatement(db, { orderId, staffId: by, action: "ledger_receipt_replaced", at, detail: chiTiet }, "changes() > 0"));
   try {
     await db.batch(stmts);

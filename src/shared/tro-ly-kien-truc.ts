@@ -11,9 +11,9 @@ export interface DoanKienTruc { readonly tieuDe: string; readonly noiDung: strin
 
 export const KIEN_TRUC: readonly DoanKienTruc[] = [
   {
-    tieuDe: "Vai và quyền: vì sao mỗi người thấy menu khác nhau",
+    tieuDe: "Vai trò và quyền: vì sao mỗi người thấy menu khác nhau",
     noiDung: `Mỗi tài khoản có một hoặc vài quyền: Bán hàng, Kế toán, Quản trị, Toàn quyền, Hướng dẫn viên, Đối tác, Thực tập, Tài xế, Tài xế đối tác. Menu, nút và dữ liệu hiện theo quyền: không thấy một mục nghĩa là tài khoản chưa có quyền đó, không phải lỗi. Dù giao diện có hiện nút, máy chủ vẫn kiểm lại quyền; bị từ chối thì Nền tảng báo "không có quyền".
-Vai nào làm được việc gì, phạm vi tới đâu (của mình, đang được giao hay tất cả): xem các đoạn "Vai … làm được gì" và "Việc: …" của phần Cấu trúc Nền tảng — lấy thẳng từ bảng quyền của Nền tảng nên luôn đúng. Muốn thêm quyền thì hỏi Quản trị.`,
+Vai trò nào làm được việc gì, phạm vi tới đâu (của mình, đang được giao hay tất cả): xem các đoạn "Vai trò … làm được gì" và "Việc: …" của phần Cấu trúc Nền tảng — lấy thẳng từ bảng quyền của Nền tảng nên luôn đúng. Muốn thêm quyền thì hỏi Quản trị.`,
   },
   {
     tieuDe: "Vòng đời một đơn: nháp, xác nhận, huỷ",
@@ -25,8 +25,8 @@ Tiền của đơn (thành tiền, tổng, còn lại) do máy chủ tự tính 
     noiDung: `Người lập đơn có thể chọn người phụ trách ngay khi lập; không chọn thì đơn nằm ở hàng chờ để hướng dẫn viên hoặc nhân viên bấm nhận. Người phụ trách sửa được đơn mình phụ trách như người lập. Hướng dẫn viên chỉ thấy đơn khi đang là người phụ trách; khi được đổi sang người khác thì thôi thấy đơn đó. Hướng dẫn viên huỷ được đơn mình đang phụ trách (đơn đã xác nhận, trước ngày đi), luôn kèm lý do.`,
   },
   {
-    tieuDe: "Mốc ra lệnh và Đặt gấp",
-    noiDung: `Nếu giờ đón cách hiện tại dưới mốc ra lệnh, đơn vẫn lưu nháp được nhưng chưa xác nhận được. Quản trị hoặc Toàn quyền phải bấm Đặt gấp cho chặng đó và chọn lý do; sau đó người lập mới xác nhận được. Mốc này không tắt được. Trên trang đơn, dải cảnh báo "dưới mốc ra lệnh" cho biết chặng nào đang chờ duyệt đặt gấp.`,
+    tieuDe: "Hạn chốt và Đặt gấp",
+    noiDung: `Nếu giờ đón đã qua hạn chốt (quá sát giờ hiện tại), đơn vẫn lưu nháp được nhưng chưa xác nhận được. Quản trị hoặc Toàn quyền phải bấm Đặt gấp cho lượt đưa đón đó và chọn lý do; sau đó người lập mới xác nhận được. Hạn chốt này không tắt được. Trên trang đơn, dải cảnh báo "giờ đón đã qua hạn chốt" cho biết lượt đưa đón nào đang chờ duyệt đặt gấp.`,
   },
   {
     tieuDe: "Thông báo: chuông, dải tin quan trọng, điện thoại",
@@ -34,7 +34,7 @@ Tiền của đơn (thành tiền, tổng, còn lại) do máy chủ tự tính 
   },
   {
     tieuDe: "Điều phối xe: xếp khách lên chuyến, tài xế bấm tiến độ",
-    noiDung: `Phân hệ Vận chuyển gồm xe, giấy tờ xe, tài xế, nhà xe đối tác và bảng Điều phối xe (xếp khách của nhiều đơn lên một chuyến, tài xế bấm tiến độ Xuất bến, Đã đón, Đã trả, Kết thúc). Dùng được cho chuyến thật khi xe có Kiểm định và Bảo hiểm còn hạn, tài xế có bằng lái ghi hạng còn hạn, và đơn đủ nơi trả, họ tên, năm sinh khách (nhập ở khối Hành khách của đơn). Quản trị ghi Lịch xe bận khi xe vào xưởng; trong giờ đó không xếp chuyến cho xe được. Chuyến chỉ xuất bến khi đủ điều kiện (giấy tờ xe còn hạn, bằng lái đúng hạng, đủ tên khách, đủ chỗ, đủ giờ nghỉ); thiếu gì thì màn hình ghi rõ lý do và ai xử lý.`,
+    noiDung: `Phân hệ Vận chuyển gồm xe, giấy tờ xe, tài xế, nhà xe đối tác và bảng Điều phối xe (xếp khách của nhiều đơn lên một chuyến, tài xế bấm tiến độ Cho xe chạy, Đã đón, Đã trả, Kết thúc). Dùng được cho chuyến thật khi xe có Kiểm định và Bảo hiểm còn hạn, tài xế có bằng lái ghi hạng còn hạn, và đơn đủ nơi trả, họ tên, năm sinh khách (nhập ở khối Hành khách của đơn). Quản trị ghi Lịch xe bận khi xe vào xưởng; trong giờ đó không xếp chuyến cho xe được. Chuyến chỉ được cho chạy khi đủ điều kiện (giấy tờ xe còn hạn, bằng lái đúng hạng, đủ tên khách, đủ chỗ, đủ giờ nghỉ); thiếu gì thì màn hình ghi rõ lý do và ai xử lý.`,
   },
   {
     tieuDe: "Giấy tờ của người và của xe",
@@ -47,6 +47,6 @@ Tiền của đơn (thành tiền, tổng, còn lại) do máy chủ tự tính 
   {
     tieuDe: "Trợ lý Hỗ trợ trả lời được gì",
     noiDung: `Trợ lý Hỗ trợ chỉ hướng dẫn cách dùng Nền tảng, dựa trên bộ hướng dẫn trong Trợ giúp, sơ đồ các phần của Nền tảng và danh sách trang, mục, nút của Nền tảng (tự cập nhật mỗi lần Nền tảng được cập nhật). Trợ lý không xem được đơn, khách, tiền hay dữ liệu thật của công ty, không làm thay thao tác nào, và có thể trả lời sai: luôn đối chiếu với màn hình. Việc hướng dẫn chưa nói thì trợ lý nói thật và gợi hỏi Quản trị hoặc gửi Góp ý. Trợ lý nhớ tối đa ba câu vừa hỏi của chính người hỏi trong cùng cuộc trò chuyện, và không bao giờ nêu số tiền.
-Câu hỏi (đã che số điện thoại, email, số giấy tờ) và câu trả lời được lưu để cải thiện trợ lý; chỉ người phụ trách hệ thống đọc được, không ai xoá được. Người phụ trách hệ thống bật hoặc tắt trợ lý theo từng vai, đặt câu chào, câu hỏi mẫu, chọn mẫu AI, sửa lời nhắc và thêm đoạn ngữ cảnh ở trang Trợ lý Hỗ trợ; vai đang tắt thì không thấy nút Hỗ trợ.`,
+Câu hỏi (đã che số điện thoại, email, số giấy tờ) và câu trả lời được lưu để cải thiện trợ lý; chỉ người phụ trách hệ thống đọc được, không ai xoá được. Người phụ trách hệ thống bật hoặc tắt trợ lý theo từng vai trò, đặt câu chào, câu hỏi mẫu, chọn mẫu AI, sửa lời nhắc và thêm đoạn ngữ cảnh ở trang Trợ lý Hỗ trợ; vai trò đang tắt thì không thấy nút Hỗ trợ.`,
   },
 ];

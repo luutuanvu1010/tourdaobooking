@@ -20,29 +20,29 @@ export const NHAN_AI_XU_LY: Readonly<Record<AiXuLy, string>> = { VAN_PHONG: "Vă
 export const MA_GIU = {
   // Tên, suất, chặng, đơn (văn phòng)
   THIEU_TEN: { loiNhan: "Chưa đủ tên khách", aiXuLy: "VAN_PHONG" },
-  THIEU_SUAT: { loiNhan: "Chặng chưa xếp đủ người lên xe", aiXuLy: "VAN_PHONG" },
-  THUA_SUAT: { loiNhan: "Chặng đang xếp nhiều người hơn số khách", aiXuLy: "VAN_PHONG" },
-  VUOT_SO_NGUOI_CHANG: { loiNhan: "Xếp quá số khách của chặng", aiXuLy: "VAN_PHONG" },
+  THIEU_SUAT: { loiNhan: "Lượt đưa đón chưa xếp đủ người lên xe", aiXuLy: "VAN_PHONG" },
+  THUA_SUAT: { loiNhan: "Lượt đưa đón đang xếp nhiều người hơn số khách", aiXuLy: "VAN_PHONG" },
+  VUOT_SO_NGUOI_CHANG: { loiNhan: "Xếp quá số khách của lượt đưa đón", aiXuLy: "VAN_PHONG" },
   NGUOI_DA_O_CHUYEN_KHAC: { loiNhan: "Khách này đang ở một chuyến khác", aiXuLy: "VAN_PHONG" },
-  KHACH_KHONG_THUOC_DON: { loiNhan: "Khách không thuộc đơn của chặng", aiXuLy: "VAN_PHONG" },
-  CHANG_KHONG_HOP_LE: { loiNhan: "Chặng chưa xếp được: đơn chưa xác nhận, đã huỷ hoặc chặng đã bỏ", aiXuLy: "VAN_PHONG" },
+  KHACH_KHONG_THUOC_DON: { loiNhan: "Khách không thuộc đơn của lượt đưa đón", aiXuLy: "VAN_PHONG" },
+  CHANG_KHONG_HOP_LE: { loiNhan: "Lượt đưa đón chưa xếp được: đơn chưa xác nhận, đã huỷ hoặc lượt đã bỏ", aiXuLy: "VAN_PHONG" },
   DON_DA_HUY: { loiNhan: "Có đơn đã huỷ còn khách trên chuyến", aiXuLy: "VAN_PHONG" },
-  CHANG_DA_DONG: { loiNhan: "Có chặng đã bỏ còn khách trên chuyến", aiXuLy: "VAN_PHONG" },
-  CHUA_CO_GIO: { loiNhan: "Chặng chưa chốt giờ đón", aiXuLy: "VAN_PHONG" },
-  CHUA_CO_NOI_TRA: { loiNhan: "Chặng chưa có nơi trả", aiXuLy: "VAN_PHONG" },
+  CHANG_DA_DONG: { loiNhan: "Có lượt đưa đón đã bỏ còn khách trên chuyến", aiXuLy: "VAN_PHONG" },
+  CHUA_CO_GIO: { loiNhan: "Lượt đưa đón chưa chốt giờ đón", aiXuLy: "VAN_PHONG" },
+  CHUA_CO_NOI_TRA: { loiNhan: "Lượt đưa đón chưa có nơi trả", aiXuLy: "VAN_PHONG" },
   // ADR-0050 VK1-B: nơi đón / trả của chặng đổi sau khi xếp (khoá so sánh nơi lệch điểm của suất) → văn phòng bấm "cập nhật điểm theo đơn".
   NOI_HEN_DOI: { loiNhan: "Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm", aiXuLy: "VAN_PHONG" },
   // R-P29 (chủ lần 16, khuôn VK1-B): suất trên xe mang khoá người KHÔNG còn là hành khách hiện hành của đơn (khách bị bỏ / thay sau khi gắn tên) → văn phòng
   // bấm "Cập nhật khách theo đơn". Câu không lộ tên; chi tiết chỉ mã đơn.
   KHACH_DA_DOI: { loiNhan: `Khách trong xe không còn trong đơn — bấm ${NUT_CAP_NHAT_KHACH}`, aiXuLy: "VAN_PHONG" },
   // I38 (R-P9): chặng có suất trên chuyến mà ngày đón đã dời ra ngoài khoảng đọc quanh ngày chạy (không còn thuộc chuyến này).
-  GIO_HEN_NGOAI_CHUYEN: { loiNhan: "Ngày đón của chặng đã đổi ra ngoài ngày chạy của chuyến", aiXuLy: "VAN_PHONG" },
+  GIO_HEN_NGOAI_CHUYEN: { loiNhan: "Ngày đón của lượt đưa đón đã đổi ra ngoài ngày chạy của chuyến", aiXuLy: "VAN_PHONG" },
   // ADR-0096 Đ1 (LC-19): khách CHỜ LÊN có điểm trả đứng trước (hoặc bằng số) điểm đón — văn phòng đổi thứ tự điểm (nút ↑/↓). Chi tiết: mã đơn + số thứ tự
   // điểm (không tên nơi — chọn của người thi công A1, câu ADR có {nơi trả}). Không ai phá lệ (không thuộc MA_LUAT_PHA_LE).
-  TRA_TRUOC_DON: { loiNhan: "Điểm trả đứng trước điểm đón — đổi thứ tự điểm rồi xuất bến", aiXuLy: "VAN_PHONG" },
+  TRA_TRUOC_DON: { loiNhan: "Điểm trả đứng trước điểm đón — đổi thứ tự điểm rồi cho xe chạy", aiXuLy: "VAN_PHONG" },
   // ADR-0096 Đ2 (LC-20): giờ xuất bến sớm hơn giờ khởi hành dự kiến − cửa sổ của chính sách hiệu lực. Chi tiết dựng ở `lyDoNgoaiCuaSo` (dieu-phoi-kiem.ts):
   // giờ + ngày khởi hành, giờ + ngày được xuất bến, đường khắc phục (văn phòng sửa giờ chuyến). Không ai phá lệ.
-  NGOAI_CUA_SO_XUAT_BEN: { loiNhan: "Chưa tới giờ được xuất bến", aiXuLy: "VAN_PHONG" },
+  NGOAI_CUA_SO_XUAT_BEN: { loiNhan: "Chưa tới giờ được cho xe chạy", aiXuLy: "VAN_PHONG" },
   // Chuyến, xe, tài xế (văn phòng)
   CHUYEN_KHONG_CON_LEN_KE_HOACH: { loiNhan: "Chuyến đã chạy, đã kết thúc hoặc đã huỷ", aiXuLy: "VAN_PHONG" },
   GIO_CHUYEN_KHONG_HOP_LE: { loiNhan: "Giờ kết thúc phải sau giờ bắt đầu và chuyến không quá 24 giờ", aiXuLy: "VAN_PHONG" },
@@ -64,7 +64,7 @@ export const MA_GIU = {
   THIEU_GIA: { loiNhan: "Chuyến xe thuê chưa có giá — Quản trị hoặc Kế toán nhập giá bảng hoặc giá thoả thuận", aiXuLy: "QUAN_TRI" },
   // Luật cấu hình — vượt được kèm lý do (ADR-0104 Đ1: mốc = điều chỉnh khẩn cấp của người xếp xe; khoảng nghỉ / cam kết theo mốc — `lyDoTheoMoc`) hoặc giữ vì
   // nghỉ chưa đủ lúc xuất bến
-  MOC_TOI_THIEU: { loiNhan: "Trong mốc tối thiểu trước giờ xuất bến — người xếp xe điều chỉnh khẩn cấp kèm lý do", aiXuLy: "VAN_PHONG" },
+  MOC_TOI_THIEU: { loiNhan: "Đã qua hạn chốt trước giờ xe chạy — người xếp xe điều chỉnh khẩn cấp kèm lý do", aiXuLy: "VAN_PHONG" },
   KHOANG_NGHI: { loiNhan: "Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ", aiXuLy: "QUAN_TRI" },
   NGHI_THIEU: { loiNhan: "Chưa đủ thời gian nghỉ sau chuyến trước", aiXuLy: "QUAN_TRI" },
   // ADR-0056 VK3-A (Đợt 7, C9): chuyến trái cam kết "xe riêng" / "xe tối thiểu N chỗ" của khách — Quản trị / Toàn quyền phá lệ (ô `trip.override`). Chi

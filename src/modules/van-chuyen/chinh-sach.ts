@@ -54,8 +54,8 @@ export function kiemChinhSachMoi(body: Record<string, unknown> | null): Result<C
   if (coNgayHieuLuc(body)) return fail(CAU_HIEU_LUC);
   const { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, requireContract, proxyBackdateMaxMinutes, dutyDayMaxMinutes, tripNoBreakMaxMinutes,
     departureWindowMinutes, refuseLeadMinutes, officePhone, acceptWaitMinutes, autoConfirmTransfer } = body;
-  if (!soNguyen(minLeadMinutes, 1, 2880)) return fail("Mốc tối thiểu là số phút nguyên từ 1 đến 2880 — không tắt được; muốn nới thì giảm con số.");
-  if (!soNguyen(warnLeadMinutes, 0, 1440)) return fail("Cảnh báo sát mốc là số phút nguyên từ 0 đến 1440.");
+  if (!soNguyen(minLeadMinutes, 1, 2880)) return fail("Hạn chốt trước giờ đón là số phút nguyên từ 1 đến 2880 — không tắt được; muốn nới thì giảm con số.");
+  if (!soNguyen(warnLeadMinutes, 0, 1440)) return fail("Cảnh báo sắp tới hạn chốt là số phút nguyên từ 0 đến 1440.");
   if (!soNguyen(restMinutes, 0, NGHI_TOI_DA_PHUT)) return fail(`Khoảng nghỉ giữa hai chuyến là số phút nguyên từ 0 đến ${NGHI_TOI_DA_PHUT}.`);
   if (typeof requireManifest !== "boolean") return fail("Chọn có hay không bắt đủ danh sách hành khách.");
   if (requireContract !== undefined && requireContract !== false) return fail("Chưa bật được yêu cầu hợp đồng vận chuyển — cần một quyết định riêng.");
@@ -65,8 +65,8 @@ export function kiemChinhSachMoi(body: Record<string, unknown> | null): Result<C
   if (!soNguyen(dutyDayMaxMinutes, 60, 1440)) return fail("Giờ lái tối đa một ngày là số phút nguyên từ 60 đến 1440.");
   if (!soNguyen(tripNoBreakMaxMinutes, 30, 720)) return fail("Chuyến dài cần nhắc nghỉ là số phút nguyên từ 30 đến 720.");
   // ADR-0096 Đ2.3 (khuôn I43): thiếu cửa sổ xuất bến → nói rõ, không tự điền.
-  if (departureWindowMinutes === undefined) return fail("Thiếu cửa sổ xuất bến — tải lại trang rồi lưu lại.");
-  if (!soNguyen(departureWindowMinutes, 60, CUA_SO_XUAT_BEN_TOI_DA_PHUT)) return fail(`Cửa sổ xuất bến là số phút nguyên từ 60 đến ${CUA_SO_XUAT_BEN_TOI_DA_PHUT} (1 đến ${CUA_SO_XUAT_BEN_TOI_DA_PHUT / 60} giờ).`);
+  if (departureWindowMinutes === undefined) return fail("Thiếu cửa sổ cho xe chạy — tải lại trang rồi lưu lại.");
+  if (!soNguyen(departureWindowMinutes, 60, CUA_SO_XUAT_BEN_TOI_DA_PHUT)) return fail(`Cửa sổ cho xe chạy là số phút nguyên từ 60 đến ${CUA_SO_XUAT_BEN_TOI_DA_PHUT} (1 đến ${CUA_SO_XUAT_BEN_TOI_DA_PHUT / 60} giờ).`);
   // ADR-0053 D8.1 + lời chủ 6.3 (khuôn I43): màn cũ gửi thiếu → nói rõ, không tự điền.
   if (refuseLeadMinutes === undefined || officePhone === undefined) return fail("Thiếu hạn từ chối / số điện thoại văn phòng — tải lại trang rồi lưu lại.");
   if (!soNguyen(refuseLeadMinutes, 60, HAN_TU_CHOI_TOI_DA_PHUT)) return fail(`Hạn từ chối chuyến là số phút nguyên từ 60 đến ${HAN_TU_CHOI_TOI_DA_PHUT} (1 đến ${HAN_TU_CHOI_TOI_DA_PHUT / 60} giờ).`);
@@ -92,14 +92,14 @@ export function chiTietChinhSach(cu: ChinhSachMoi | null, moi: ChinhSachMoi): st
   const co = (b: boolean) => (b ? "có" : "không");
   const phan = (ten: string, a: string | null, b: string) => (a === null ? `${ten} ${b}` : `${ten} ${a} → ${b}`);
   return `chính sách điều phối: ${[
-    phan("mốc tối thiểu", cu ? `${cu.minLeadMinutes}` : null, `${moi.minLeadMinutes} phút`),
-    phan("cảnh báo sát mốc", cu ? `${cu.warnLeadMinutes}` : null, `${moi.warnLeadMinutes} phút`),
+    phan("hạn chốt trước giờ đón", cu ? `${cu.minLeadMinutes}` : null, `${moi.minLeadMinutes} phút`),
+    phan("cảnh báo sắp tới hạn chốt", cu ? `${cu.warnLeadMinutes}` : null, `${moi.warnLeadMinutes} phút`),
     phan("khoảng nghỉ", cu ? `${cu.restMinutes}` : null, `${moi.restMinutes} phút`),
     phan("bắt đủ danh sách", cu ? co(cu.requireManifest) : null, co(moi.requireManifest)),
     phan("kẹp lùi giờ khai", cu ? `${cu.proxyBackdateMaxMinutes}` : null, `${moi.proxyBackdateMaxMinutes} phút`),
     phan("giờ lái tối đa", cu ? `${cu.dutyDayMaxMinutes}` : null, `${moi.dutyDayMaxMinutes} phút`),
     phan("nhắc nghỉ chuyến trên", cu ? `${cu.tripNoBreakMaxMinutes}` : null, `${moi.tripNoBreakMaxMinutes} phút`),
-    phan("cửa sổ xuất bến", cu ? `${cu.departureWindowMinutes}` : null, `${moi.departureWindowMinutes} phút`),
+    phan("cửa sổ cho xe chạy", cu ? `${cu.departureWindowMinutes}` : null, `${moi.departureWindowMinutes} phút`),
     phan("hạn từ chối", cu ? `${cu.refuseLeadMinutes}` : null, `${moi.refuseLeadMinutes} phút`),
     // G-A4-12: nhật ký KHÔNG ghi chữ số SĐT (CLAUDE.md §7) — chỉ nói có / đổi / bỏ.
     cauSdtVanPhong(cu ? cu.officePhone : undefined, moi.officePhone),
@@ -129,7 +129,7 @@ export function kiemDieuKienMoi(body: Record<string, unknown> | null): Result<Di
   return { ok: true, value: { minCapacity, subject, documentTypeCode } };
 }
 export const chiTietDieuKien = (d: DieuKienMoi, tenLoai: string): string =>
-  `điều kiện xuất bến: xe từ ${d.minCapacity} người — giấy tờ ${d.subject === "VEHICLE" ? "xe" : "tài xế"} ${tenLoai}`;
+  `điều kiện cho xe chạy: xe từ ${d.minCapacity} người — giấy tờ ${d.subject === "VEHICLE" ? "xe" : "tài xế"} ${tenLoai}`;
 
 // ---- Bảng hạng bằng → số khách -----------------------------------------------------------------------------------------------------------------------------
 export interface HangBangMoi {

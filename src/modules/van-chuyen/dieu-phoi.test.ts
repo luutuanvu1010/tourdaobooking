@@ -142,7 +142,7 @@ test("TC-42 (Q2 = (a); ADR-0104 Đ1): Bán hàng TẠO chuyến trong 6 giờ �
   assert.equal(r.json.error.code, "can_pha_le");
   assert.equal(r.json.error.canQuyen, true, "ADR-0104 Đ1: Bán hàng có ô điều chỉnh khẩn cấp");
   assert.equal(r.json.error.lop, "KHAN_CAP");
-  assert.equal(r.json.error.message, "Trong mốc tối thiểu trước giờ xuất bến — cần điều chỉnh khẩn cấp kèm lý do.");
+  assert.equal(r.json.error.message, "Đã qua hạn chốt trước giờ xe chạy — cần điều chỉnh khẩn cấp kèm lý do.");
   assert.deepEqual(r.json.error.lyDo.map((l: any) => l.ma), ["MOC_TOI_THIEU"]);
   assert.equal((await xep(w, ADM, t.json, [{ legId: d.legId, soSuat: 2 }])).json.error.canQuyen, true);
   const ok = await xep(w, SALES, t.json, [{ legId: d.legId, soSuat: 2 }], { phaLe: { lyDo: "PHA_LE_SU_CO" } });
@@ -634,7 +634,7 @@ test("Đợt 7 bài 6 (C6): xếp cần CẢ mốc lẫn cam kết — thiếu c
   assert.equal(camKetCua(w, t.chuyen.id).r, "PHA_LE_KHAC");
   const nk = w.q("SELECT detail FROM audit_log WHERE action = 'trip_allocated' ORDER BY rowid DESC")[0].detail as string;
   // ADR-0104 Đ1 mục 4 (đổi có tên — chữ nhật ký): chuyến DƯỚI mốc (bắt đầu sau 2 giờ) ⇒ cả hai luật lớp KHAN_CAP: "điều chỉnh khẩn cấp …" + MỘT lần "còn N phút".
-  assert.match(nk, / · điều chỉnh khẩn cấp mốc tối thiểu: Sự cố vận hành · điều chỉnh khẩn cấp cam kết: Khác · còn 1[12]\d phút$/);
+  assert.match(nk, / · điều chỉnh khẩn cấp hạn chốt: Sự cố vận hành · điều chỉnh khẩn cấp cam kết: Khác · còn 1[12]\d phút$/);
   assert.doesNotMatch(nk, /phá lệ/);
   // ADR-0128 Q2: cùng thao tác với XE RIÊNG (đơn đặt gấp, xe riêng) — đủ cả hai cờ vẫn 409 chặn cứng, cột phá lệ giữ nguyên, không ghi sự kiện.
   const rr = await don(w, { ngay: inDays(1), gio: "23:00", camKet: { exclusiveVehicle: true } });

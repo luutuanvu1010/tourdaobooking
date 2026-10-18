@@ -208,7 +208,7 @@ export function taoTimDoiTac(o: { choPhep: boolean; id: string }): TimDoiTac {
       const r = await api<Api.NguoiHuongTimResponse>(`/api/pricing/nguoi-huong?q=${encodeURIComponent(o_tim.value.trim())}`);
       if (mine !== stt) return;
       if (r.ketQua.length === 0) {
-        replaceChildren(ketQua, h("p", { class: "muted" }, "Không thấy đối tác nào. Chỉ hồ sơ mang vai được hưởng hoa hồng mới tìm được."));
+        replaceChildren(ketQua, h("p", { class: "muted" }, "Không thấy đối tác nào. Chỉ hồ sơ mang vai trò được hưởng hoa hồng mới tìm được."));
         return;
       }
       replaceChildren(

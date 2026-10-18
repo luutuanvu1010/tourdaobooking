@@ -469,7 +469,7 @@ test("kiemXep cảnh báo: chặng chưa có nơi trả / thiếu tên → XẾP
   assert.equal(khongNoiTra.ok, true);
   assert.deepEqual(khongNoiTra.chan, []);
   assert.deepEqual(khongNoiTra.canPhaLe, []);
-  assert.deepEqual(khongNoiTra.canhBao.map((x) => `${x.ma}:${x.loiNhan}`), ["CHUA_CO_NOI_TRA:Chặng chưa có nơi trả: ĐH-1024"]);
+  assert.deepEqual(khongNoiTra.canhBao.map((x) => `${x.ma}:${x.loiNhan}`), ["CHUA_CO_NOI_TRA:Lượt đưa đón chưa có nơi trả: ĐH-1024"]);
   const thieuTen = xep([{ chang: chang({ nguoiCuaDon: ["p1"] }), soSuatMoi: 4, personKeys: [], suatMoCuaChang: [] }]);
   assert.equal(thieuTen.ok, true);
   assert.deepEqual(thieuTen.canhBao.map((x) => `${x.ma}:${x.loiNhan}`), ["THIEU_TEN:Chưa đủ tên khách: ĐH-1024 thiếu 3 tên"]);
@@ -508,7 +508,7 @@ test("MỘT luật hai nơi: cảnh báo lúc xếp TRÙNG ĐÚNG lý do CHUA_CO
 
 test("lyDoNoiTra / lyDoThieuTen — hai hàm dùng chung của cổng xuất bến và cảnh báo lúc xếp", () => {
   assert.equal(lyDoNoiTra(chang()), null);
-  assert.deepEqual(lyDoNoiTra(chang({ coNoiTra: false })), { ma: "CHUA_CO_NOI_TRA", loiNhan: "Chặng chưa có nơi trả: ĐH-1024", aiXuLy: "VAN_PHONG" });
+  assert.deepEqual(lyDoNoiTra(chang({ coNoiTra: false })), { ma: "CHUA_CO_NOI_TRA", loiNhan: "Lượt đưa đón chưa có nơi trả: ĐH-1024", aiXuLy: "VAN_PHONG" });
   assert.equal(lyDoThieuTen(chang(), true), null);
   assert.equal(lyDoThieuTen(chang({ nguoiCuaDon: [] }), false), null, "chính sách không bắt danh sách");
   assert.equal(lyDoThieuTen(chang({ nguoiCuaDon: ["p1", "p2"] }), true)?.loiNhan, "Chưa đủ tên khách: ĐH-1024 thiếu 2 tên");
@@ -733,7 +733,7 @@ test("ADR-0096 Đ2 kiemXuatBen LC-20: xuất bến 13 giờ trước giờ dự 
   const truoc = (gio: number) => BAT_DAU - gio * 3600e3;
   const r = kiemXuatBen(xb({ bayGioMs: truoc(13), xuatBenMs: truoc(13) }));
   assert.deepEqual(ai(r.lyDo), ["NGOAI_CUA_SO_XUAT_BEN:VAN_PHONG"]);
-  assert.equal(r.lyDo[0]!.loiNhan, "Chưa tới giờ được xuất bến: chuyến khởi hành lúc 05:50 ngày 30/09, được xuất bến từ 17:50 ngày 29/09. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến.");
+  assert.equal(r.lyDo[0]!.loiNhan, "Chưa tới giờ được cho xe chạy: chuyến khởi hành lúc 05:50 ngày 30/09, được cho xe chạy từ 17:50 ngày 29/09. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến.");
   assert.equal(kiemXuatBen(xb({ bayGioMs: truoc(11), xuatBenMs: truoc(11) })).dat, true);
   assert.equal(kiemXuatBen(xb({ bayGioMs: truoc(12), xuatBenMs: truoc(12) })).dat, true, "đúng mốc mở cửa sổ (≥) → được");
   assert.equal(kiemXuatBen(xb({ bayGioMs: truoc(13), xuatBenMs: truoc(13), chinhSach: { ...CS, departureWindowMinutes: 1440 } })).dat, true);
@@ -747,7 +747,7 @@ test("ADR-0096 Đ2.5 kiemXuatBen LC-20: màn đọc (dự phóng giờ xuất b�
   assert.equal(kiemXuatBen(xb({ bayGioMs: bayGio, xuatBenMs: BAT_DAU })).dat, true, "không truyền cuaSoXetMs → xét theo xuatBenMs");
   const namSau = ms("2027-01-01", "06:00");
   const r = kiemXuatBen(xb({ chuyen: chuyenVao({ batDauMs: namSau, ketThucMs: namSau + 2 * 3600e3, ngayChay: "2027-01-01" }), bayGioMs: ms("2026-12-30", "06:00"), xuatBenMs: ms("2026-12-30", "06:00") }));
-  assert.match(r.lyDo.find((x) => x.ma === "NGOAI_CUA_SO_XUAT_BEN")!.loiNhan, /06:00 ngày 01\/01\/2027, được xuất bến từ 18:00 ngày 31\/12\./);
+  assert.match(r.lyDo.find((x) => x.ma === "NGOAI_CUA_SO_XUAT_BEN")!.loiNhan, /06:00 ngày 01\/01\/2027, được cho xe chạy từ 18:00 ngày 31\/12\./);
   const thieu = { ...CS } as Partial<ChinhSachVao>;
   delete thieu.departureWindowMinutes;
   assert.deepEqual(ai(kiemXuatBen(xb({ chinhSach: thieu as ChinhSachVao })).lyDo), ["CHINH_SACH_RONG:TOAN_QUYEN"]);

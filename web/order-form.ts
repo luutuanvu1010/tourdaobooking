@@ -188,7 +188,7 @@ function capNhatMoc(entry: Entry): void {
   const khoi: { ky: string; el: () => HTMLElement }[] = [];
   const conKhoa = new Set<string>();
   d.legs.forEach((l, i) => {
-    const dau = () => h("div", { class: "dg-chang-dau" }, h("span", { class: "chip chip-unit" }, CHIEU_LABEL[l.direction]), h("span", { class: "dd-chang-so" }, `Chặng ${i + 1}`));
+    const dau = () => h("div", { class: "dg-chang-dau" }, h("span", { class: "chip chip-unit" }, CHIEU_LABEL[l.direction]), h("span", { class: "dd-chang-so" }, `Lượt ${i + 1}`));
     if (giuDatGapNhap(l) && l.goc?.datGap) {
       const dg = l.goc.datGap;
       khoi.push({ ky: `${l.key}:giu:${i}`, el: () => h("div", { class: "dg-leg", "data-leg-key": l.key }, dau(), khoiNhanDatGap(dg)) });
@@ -523,7 +523,7 @@ async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDa
     if (datGap) {
       const chang = changDaLuu(order.services[entries.indexOf(datGap.entry)]?.legs ?? [], datGap.entry.draft.legs, datGap.legKey);
       try {
-        if (!chang) throw new Error("không thấy chặng");
+        if (!chang) throw new Error("không thấy lượt đưa đón");
         await api(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(chang.id)}/short-notice`, { method: "POST", body: datGap.than });
       } catch {
         datGapLoi = "&datgap=loi";

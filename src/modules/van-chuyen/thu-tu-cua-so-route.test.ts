@@ -23,7 +23,7 @@ test("ADR-0096 Đ2 LC-20 lệnh xuất bến: chuyến 20:00, bây giờ 06:00 (
       assert.equal(r.status, 409, r.text);
       assert.equal(r.json.error.code, "chua_du_dieu_kien_xuat_ben");
       assert.deepEqual(ma(r), ["NGOAI_CUA_SO_XUAT_BEN"], r.text);
-      assert.match(r.json.error.lyDo[0].loiNhan, /khởi hành lúc 20:00 ngày 11\/03, được xuất bến từ 08:00 ngày 11\/03\. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến\./);
+      assert.match(r.json.error.lyDo[0].loiNhan, /khởi hành lúc 20:00 ngày 11\/03, được cho xe chạy từ 08:00 ngày 11\/03\. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến\./);
       assert.equal(r.json.error.lyDo[0].aiXuLy, "VAN_PHONG");
     }
     assert.equal(trangThai(w, a.id), "PLANNED");
@@ -60,7 +60,7 @@ test("ADR-0096 Đ2.2 LC-20: dòng chính sách áp = dòng hiệu lực TẠI gi
     assert.equal(khai.status, 409, khai.text);
     assert.equal(khai.json.error.code, "chua_du_dieu_kien_xuat_ben", "lớp MÁY CHỦ chặn (không phải trigger) — đọc đúng dòng chính sách tại giờ khai");
     assert.deepEqual(ma(khai), ["NGOAI_CUA_SO_XUAT_BEN"]);
-    assert.match(khai.json.error.lyDo[0].loiNhan, /được xuất bến từ 07:00 ngày 11\/03/);
+    assert.match(khai.json.error.lyDo[0].loiNhan, /được cho xe chạy từ 07:00 ngày 11\/03/);
     assert.equal(soSuKien(w, a.id, "DEPARTED"), 0);
     const bam = await tienDo(w, "van-phong", a.id, "xuat-ben");
     assert.equal(bam.status, 200, bam.text);

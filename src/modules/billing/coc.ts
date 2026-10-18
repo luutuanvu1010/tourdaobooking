@@ -255,7 +255,7 @@ export async function ghiChiHoan(db: D1Database, input: { orderId: string; raw: 
   const goc = d.duyet.find((x) => x.id === b.duyetId && x.voidsId === null);
   if (!goc) return KHOAN_KHONG_CO();
   if (goc.kind !== "REFUND") return loi(409, "invalid_state", "Khoản này là duyệt chuyển — dùng “Chuyển tiền sang đơn mới”.");
-  const tra = await docBen(db, b.nguoiTra, d.congTyId, "Chọn người trả tiền cho khách (Công ty hoặc người đang giữ tiền).");
+  const tra = await docBen(db, b.nguoiTra, d.congTyId, "Chọn người trả tiền cho khách (Công ty hoặc người chưa nộp tiền về công ty).");
   if (!tra.ok) return tra;
   const tc = tuChoi(kiemChi({
     conLaiKhoan: conLaiCuaKhoan(goc.id, d.duyet, d.receipts), soTien: so.value, nguoiChi: input.ai.staffId, nguoiDuyet: goc.createdBy,
@@ -302,7 +302,7 @@ export async function ghiChuyen(db: D1Database, input: { orderId: string; raw: u
   // Kiểm độc lập vòng 2 CAO-1: đơn nhận có thể đã huỷ / Đã giao sau lúc duyệt (lớp CSDL: trigger coc_transfer_target_invalid huỷ cả lô).
   const nhan = await orderState(db, goc.targetOrderId);
   if (!nhan || nhan.status === "cancelled" || nhan.delivered_at !== null) return loi(409, "coc_transfer_target_invalid", CAU_DON_NHAN_HONG);
-  const giu = await docBen(db, b.nguoiGiu, d.congTyId, "Chọn người đang giữ khoản tiền này (Công ty hoặc nhân viên).");
+  const giu = await docBen(db, b.nguoiGiu, d.congTyId, "Chọn ai đang cầm khoản tiền này (Công ty, hoặc nhân viên chưa nộp về công ty).");
   if (!giu.ok) return giu;
   const tc = tuChoi(kiemChi({
     conLaiKhoan: conLaiCuaKhoan(goc.id, d.duyet, d.receipts), soTien: so.value, nguoiChi: input.ai.staffId, nguoiDuyet: goc.createdBy,

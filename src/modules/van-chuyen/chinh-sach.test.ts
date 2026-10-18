@@ -118,11 +118,11 @@ test("bù lệch I43 (0071 thêm cột bằng ADD COLUMN có DEFAULT): câu chè
 test("ADR-0096 Đ2.3 (khuôn I43): thân THIẾU departureWindowMinutes → 400 'tải lại trang'; ngoài 60…2880 phút / không nguyên / chuỗi → 400; biên → ok; nhật ký ghi trước → sau", () => {
   const GOC = { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720, refuseLeadMinutes: 720, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer: true };
   const { departureWindowMinutes: _bo, ...thieu } = GOC;
-  assert.match(loi(kiemChinhSachMoi(thieu)), /cửa sổ xuất bến.*tải lại trang/i);
-  for (const v of [59, 2881, 90.5, "720", null]) assert.match(loi(kiemChinhSachMoi({ ...GOC, departureWindowMinutes: v })), /Cửa sổ xuất bến/, String(v));
+  assert.match(loi(kiemChinhSachMoi(thieu)), /cửa sổ cho xe chạy.*tải lại trang/i);
+  for (const v of [59, 2881, 90.5, "720", null]) assert.match(loi(kiemChinhSachMoi({ ...GOC, departureWindowMinutes: v })), /Cửa sổ cho xe chạy/, String(v));
   assert.equal(kiemChinhSachMoi({ ...GOC, departureWindowMinutes: 60 }).ok, true);
   assert.equal(kiemChinhSachMoi({ ...GOC, departureWindowMinutes: 2880 }).ok, true);
-  assert.match(chiTietChinhSach(GOC, { ...GOC, departureWindowMinutes: 1440 }), /cửa sổ xuất bến 720 → 1440 phút/);
+  assert.match(chiTietChinhSach(GOC, { ...GOC, departureWindowMinutes: 1440 }), /cửa sổ cho xe chạy 720 → 1440 phút/);
 });
 
 test("ADR-0111 Đ3 (c) / ADR-0052 D4.1 (khuôn I43): thân THIẾU acceptWaitMinutes hoặc autoConfirmTransfer → 'tải lại trang'; chờ ngoài 1…120 phút / không nguyên / công tắc không phải đúng-sai → từ chối; biên → ok; nhật ký trước → sau", () => {

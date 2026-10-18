@@ -186,7 +186,7 @@ function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: 
     truong("cx-tai-xe", "Tài xế", selTx, null, loiTx),
     h("div", { class: "dp-cx-gio" }, truong("cx-tu", "Giờ bắt đầu", oTu, null, loiTu), truong("cx-den", "Giờ kết thúc", oDen, hintDen, loiDen)),
     chuyen?.khoaMoc.dangKhoa
-      ? dai("warning", "Chuyến đã vào vùng khoá trước giờ xuất bến", [
+      ? dai("warning", "Chuyến đã vào vùng khoá trước giờ xe chạy", [
         `Đổi xe, đổi tài xế là điều chỉnh khẩn cấp${can(staff, "trip.urgent_adjust") ? " — khi lưu, bạn sẽ chọn lý do" : ", cần người xếp xe làm"}. Đổi giờ không cần điều chỉnh khẩn cấp.`,
       ])
       : null,

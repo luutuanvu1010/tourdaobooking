@@ -81,7 +81,7 @@ function capNhatGoiYSatMoc(): void {
   if (!o) return;
   const r = docFormChinhSach({ ...st, mocGio: "1", nghiPhut: "0", khaiLuiPhut: "1", gioLaiGio: "8", chuyenDaiGio: "4", cuaSoGio: "1", hanTuChoiGio: "12", sdtVanPhong: "", choNhanPhut: "10" }); // chỉ đọc ô sát mốc
   const khoang = r.ok ? nhanThoiLuong(r.value.warnLeadMinutes) : "khoảng này";
-  o.hint.textContent = `Chặng chưa xếp trong ${khoang} trước mốc hiện nhãn “Sát mốc”.`;
+  o.hint.textContent = `Lượt đưa đón chưa xếp trong ${khoang} trước hạn chốt hiện nhãn “Sắp tới hạn chốt”.`;
 }
 
 // ---- công tắc ---------------------------------------------------------------------------------------------------------------------------------------------
@@ -139,15 +139,15 @@ function dung(): void {
   const nums = h(
     "div",
     { class: "dp-cs-nums" },
-    taoO("mocGio", "Mốc tối thiểu (giờ)", "Trong mốc này trước giờ xuất bến: khoá xếp khách, đổi xe, đổi tài xế.", true),
-    taoO("satMocGio", "Cảnh báo sát mốc (giờ)", "", true),
+    taoO("mocGio", "Hạn chốt trước giờ đón (giờ)", "Trong khoảng này trước giờ xe chạy: khoá xếp khách, đổi xe, đổi tài xế.", true),
+    taoO("satMocGio", "Cảnh báo sắp tới hạn chốt (giờ)", "", true),
     taoO("nghiPhut", "Khoảng nghỉ tài xế (phút)", "Giữa hai chuyến của cùng tài xế.", false),
     taoO("khaiLuiPhut", "Khai lùi tối đa (phút)", "Từ 1 đến 1440, mặc định 180.", false),
     // ADR-0055 VK2-B: hai con số giờ lái — chỉ nhắc, không chặn (khuôn ô có sẵn; không cần bản vẽ).
     taoO("gioLaiGio", "Giờ lái tối đa một ngày (giờ)", "Vượt thì chỉ cảnh báo, không chặn. Mặc định 8.", true),
     taoO("chuyenDaiGio", "Nhắc nghỉ khi chuyến dài hơn (giờ)", "Chỉ nhắc. Mặc định 4.", true),
     // ADR-0096 Đ2.3: cửa sổ xuất bến — không ai phá lệ; xe thật sự chạy sớm thì văn phòng sửa giờ chuyến. Gợi ý KHÔNG ghi con số mặc định (con số ở bảng).
-    taoO("cuaSoGio", "Cửa sổ xuất bến (giờ)", "Chỉ xuất bến được từ giờ khởi hành trừ số giờ này, từ 1 đến 48. Không ai phá lệ.", true),
+    taoO("cuaSoGio", "Cửa sổ cho xe chạy (giờ)", "Chỉ cho xe chạy được từ giờ khởi hành trừ số giờ này, từ 1 đến 48. Không ai phá lệ.", true),
     // ADR-0053 D8.1: hạn tài xế nhà xe được từ chối chuyến — chỉ áp cho chuyến xếp lần đầu sau khi lưu. Lời chủ 6.3: số cho nút "Gọi văn phòng" của tài xế.
     taoO("hanTuChoiGio", "Hạn từ chối chuyến (giờ)", "Tài xế nhà xe chỉ từ chối được trước giờ chạy số giờ này, từ 1 đến 48. Chỉ áp cho chuyến xếp sau khi lưu.", true),
     taoO("sdtVanPhong", "Số điện thoại văn phòng", "Tài xế bấm \"Gọi văn phòng\" sẽ gọi số này. Để trống thì không hiện nút.", "tel"),
@@ -158,7 +158,7 @@ function dung(): void {
   const toggles = h(
     "div",
     { class: "dp-toggles" },
-    congTac("cs-du-danh-sach", "Phải đủ danh sách khách", "Thiếu tên thì chưa xuất bến được.", st.duDanhSach, false, (bat) => {
+    congTac("cs-du-danh-sach", "Phải đủ danh sách khách", "Thiếu tên thì chưa cho xe chạy được.", st.duDanhSach, false, (bat) => {
       st = { ...st, duDanhSach: bat };
     }),
     congTac("cs-hop-dong", "Phải có hợp đồng", "Khoá tắt — chưa dùng ở lượt này.", false, true),
@@ -171,7 +171,7 @@ function dung(): void {
   const rules = h(
     "div",
     { class: "dp-cs-rules" },
-    h("span", { id: "cs-rules-label", class: "dp-cs-rules-label" }, "Điều kiện xuất bến có sẵn"),
+    h("span", { id: "cs-rules-label", class: "dp-cs-rules-label" }, "Điều kiện cho xe chạy có sẵn"),
     dangAp.length > 0
       ? h("div", { class: "dp-chips", role: "list", "aria-labelledby": "cs-rules-label" }, ...dangAp.map((r) => h("span", { class: "chip chip-unit", role: "listitem" }, nhanDieuKien(r, (c) => tenGiayToNguoi.get(c)))))
       : h("span", { class: "dp-hist-sub" }, "Chưa có điều kiện nào đang áp."),
@@ -257,7 +257,7 @@ async function veMocRieng(): Promise<void> {
   const oSat = h("input", { id: "cs-sat-phut", class: "vc-input", type: "text", inputmode: "numeric", autocomplete: "off", value: String(hienHanh.warnLeadMinutes), "aria-describedby": "cs-sat-phut-hint" });
   const loiMoc = h("div", { id: "cs-moc-phut-error", class: "vc-field-error", role: "alert", hidden: true });
   const loiSat = h("div", { id: "cs-sat-phut-error", class: "vc-field-error", role: "alert", hidden: true });
-  const nut = h("button", { type: "submit", class: "vc-btn btn btn-primary" }, "Lưu mốc");
+  const nut = h("button", { type: "submit", class: "vc-btn btn btn-primary" }, "Lưu hạn chốt");
   const bao = (el: HTMLElement, cau: string | null): void => {
     replaceChildren(el, ...(cau ? [icon("alert", 16, 2), cau] : []));
     el.hidden = !cau;
@@ -268,10 +268,10 @@ async function veMocRieng(): Promise<void> {
     h(
       "div",
       { class: "dp-cs-nums" },
-      h("div", { class: "vc-field" }, h("label", { for: "cs-moc-phut" }, "Mốc ra lệnh (phút)"), oMoc,
-        h("div", { id: "cs-moc-phut-hint", class: "vc-hint" }, "Chuyến còn ít hơn số phút này trước giờ xuất bến thì Bán hàng phải dùng «Điều chỉnh khẩn cấp» kèm lý do. Từ 1 đến 2880."), loiMoc),
-      h("div", { class: "vc-field" }, h("label", { for: "cs-sat-phut" }, "Cảnh báo sát mốc (phút)"), oSat,
-        h("div", { id: "cs-sat-phut-hint", class: "vc-hint" }, "Chặng chưa xếp trong khoảng này trước mốc hiện nhãn «Sát mốc». Từ 0 đến 1440."), loiSat),
+      h("div", { class: "vc-field" }, h("label", { for: "cs-moc-phut" }, "Hạn chốt trước giờ đón (phút)"), oMoc,
+        h("div", { id: "cs-moc-phut-hint", class: "vc-hint" }, "Chuyến còn ít hơn số phút này trước giờ xe chạy thì Bán hàng phải dùng «Điều chỉnh khẩn cấp» kèm lý do. Từ 1 đến 2880."), loiMoc),
+      h("div", { class: "vc-field" }, h("label", { for: "cs-sat-phut" }, "Cảnh báo sắp tới hạn chốt (phút)"), oSat,
+        h("div", { id: "cs-sat-phut-hint", class: "vc-hint" }, "Lượt đưa đón chưa xếp trong khoảng này trước hạn chốt hiện nhãn «Sắp tới hạn chốt». Từ 0 đến 1440."), loiSat),
     ),
     h("p", { class: "vc-hint dp-cs-note" }, "Bản mới có hiệu lực ngay khi lưu."),
     h("div", { class: "dp-cs-actions" }, nut),
@@ -297,7 +297,7 @@ async function veMocRieng(): Promise<void> {
         hienHanh = await api<Api.MocRaLenhResponse>("/api/van-chuyen/moc-ra-lenh", { method: "POST", body: { minLeadMinutes: moc, warnLeadMinutes: sat } });
         oMoc.value = String(hienHanh.minLeadMinutes);
         oSat.value = String(hienHanh.warnLeadMinutes);
-        showError(okEl, "Đã lưu mốc mới — có hiệu lực từ bây giờ.");
+        showError(okEl, "Đã lưu hạn chốt mới — có hiệu lực từ bây giờ.");
       } catch (err) {
         errorEl.className = "alert";
         showError(errorEl, loiCua(err));

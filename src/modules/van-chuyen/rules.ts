@@ -155,7 +155,7 @@ export const CAU_CHAN_TU_CHOI_KHACH_CHUYEN_VAO = "Chuyến này đang có khách
 /** ADR-0051 (0043): họ lệnh trên mốc giờ hẹn thua đua / chuỗi đổi giữa chừng → MỘT câu "tải lại" (khuôn H10). */
 export const CAU_GIO_HEN_VUA_DOI = "Giờ hẹn vừa đổi hoặc đã có người báo — tải lại.";
 /** ADR-0097 Đ3.2: thu hồi xuất bến khi chuyến đã có tiến độ (lớp CSDL — trigger vc_trip_revoke_no_progress). */
-export const CAU_THU_HOI_DA_CO_TIEN_DO = "Chuyến vừa có tiến độ sau xuất bến nên không thu hồi được — tải lại, rồi sửa từng khách bằng \"Điều chỉnh…\" hoặc \"Kết thúc gián đoạn\".";
+export const CAU_THU_HOI_DA_CO_TIEN_DO = "Chuyến vừa có tiến độ sau lúc xe chạy nên không thu hồi được — tải lại, rồi sửa từng khách bằng \"Điều chỉnh…\" hoặc \"Kết thúc gián đoạn\".";
 export function loiRangBuocChuyen(message: string): { status: number; code: string; message: string } | null {
   // ADR-0096 (0084): trigger cổng xuất bến LC-19 / LC-20 — lớp máy chủ (`kiemXuatBen`) đã kiểm trước; tới đây là dữ liệu đổi giữa lúc đọc và lúc ghi → câu
   // của đúng lý do giữ (không câu chung), đường khắc phục đi kèm.

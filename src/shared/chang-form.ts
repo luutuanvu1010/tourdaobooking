@@ -136,7 +136,7 @@ export function doiNgayDi(legs: readonly ChangNhap[], ngayCu: string, ngayMoi: s
  * Ô LUÔN hiện khi chặng đang có ngày đón khác ngày đi — không giấu một giá trị đang có. Chỉ dùng ở form (`che: "form"`); bảng "Sửa đưa đón" của đơn đã lưu luôn hiện ô. Luật khoảng ngày `khoangNgayDon` không đổi.
  */
 export const canHienNgayDon = (l: Pick<ChangNhap, "pickupDate">, ngayDi: string): boolean => l.pickupDate !== "" && l.pickupDate !== ngayDi;
-export const cauDoiNgay = (n: number): string => `Đã dời ngày đón của ${n} chặng theo ngày đi mới`;
+export const cauDoiNgay = (n: number): string => `Đã dời ngày đón của ${n} lượt đưa đón theo ngày đi mới`;
 
 /** Chữ nhỏ dưới các ô của chặng (bản vẽ). */
 export function goiYChang(l: ChangNhap, ngayDi: string): { ngay: string; gio: string; don: string; tra: string } {
@@ -167,8 +167,8 @@ export const CAU_LOI_CHO_TOI_THIEU = "Số chỗ từ 1 đến 100";
 export function loiChang(l: ChangNhap, so: number, soKhach: number, daLuu: boolean): LoiChang {
   const n = l.soVe === "" ? null : Number(l.soVe);
   return {
-    don: daLuu && l.don === "" ? `Chặng ${so}: chưa có nơi đón.` : null,
-    donTuDo: daLuu && l.don === TU_DO && l.donTuDo.trim() === "" ? `Chặng ${so}: chưa ghi địa chỉ đón.` : null,
+    don: daLuu && l.don === "" ? `Lượt ${so}: chưa có nơi đón.` : null,
+    donTuDo: daLuu && l.don === TU_DO && l.donTuDo.trim() === "" ? `Lượt ${so}: chưa ghi địa chỉ đón.` : null,
     soVe: l.direction === "RETURN" && n !== null && n > soKhach ? `Số người chiều về không được quá ${soKhach}.` : null,
     choToiThieu: l.choToiThieu !== "" && (Number(l.choToiThieu) < CHO_TOI_THIEU_MIN || Number(l.choToiThieu) > CHO_TOI_THIEU_MAX) ? CAU_LOI_CHO_TOI_THIEU : null,
   };
@@ -178,7 +178,7 @@ export function loiChang(l: ChangNhap, so: number, soKhach: number, daLuu: boole
 export function loiDanhSachChang(legs: readonly ChangNhap[], soKhach: number): string[] {
   return legs.flatMap((l, i) => {
     const e = loiChang(l, i + 1, soKhach, true);
-    return [e.don, e.donTuDo, e.soVe, e.choToiThieu === null ? null : `Chặng ${i + 1}: ${CAU_LOI_CHO_TOI_THIEU.charAt(0).toLowerCase()}${CAU_LOI_CHO_TOI_THIEU.slice(1)}.`].filter((x): x is string => x !== null);
+    return [e.don, e.donTuDo, e.soVe, e.choToiThieu === null ? null : `Lượt ${i + 1}: ${CAU_LOI_CHO_TOI_THIEU.charAt(0).toLowerCase()}${CAU_LOI_CHO_TOI_THIEU.slice(1)}.`].filter((x): x is string => x !== null);
   });
 }
 

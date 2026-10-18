@@ -155,7 +155,7 @@ export async function lenhDaoDong(db: D1Database, tripId: string, b: DaoDongThan
 
 /** Điều kiện chung của "lấy lại giá bảng" và "giá thoả thuận" (ADR-0057 C5): chưa xuất bến, xe thuê, chưa có nguồn giá, nhà xe đang hợp tác. */
 async function kiemDatGia(db: D1Database, nc: { trip: TripRow; dong: DongChiPhi[] }, phienBan: number, rowsLen: number): Promise<Response | null> {
-  if (nc.trip.status !== "PLANNED") return error(409, "chuyen_khong_con_ke_hoach", "Chỉ đặt giá khi chuyến chưa xuất bến — sau đó dùng điều chỉnh.");
+  if (nc.trip.status !== "PLANNED") return error(409, "chuyen_khong_con_ke_hoach", "Chỉ đặt giá khi xe của chuyến chưa chạy — sau đó dùng điều chỉnh.");
   if (nc.trip.rented !== 1) return error(409, "khong_phai_xe_thue", "Chuyến này không phải xe thuê — không cần giá.");
   const nguon = nguonGiaConHieuLuc(nc.dong);
   if (nguon?.kind === "SNAPSHOT") return error(409, "da_co_gia", "Chuyến đã có giá bảng — huỷ dòng giá bảng trước nếu muốn dùng giá thoả thuận.");

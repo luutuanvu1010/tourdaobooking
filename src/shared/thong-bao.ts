@@ -94,7 +94,7 @@ const CAU: Record<Exclude<LoaiTinDon, "doi_sau_xac_nhan">, { coTen: (ten: string
 const CAU_GIAO_CHO_BAN = { coTen: (t: string, m: string) => `${t} vừa giao đơn ${m} cho bạn phụ trách`, khongTen: (m: string) => `Đơn ${m} vừa được giao cho bạn phụ trách` };
 
 /** Chữ của một phần đổi khi GHÉP nhiều dòng cùng lô (câu chung thành cụm cố định — không chữ thô). */
-const chuPhan = (p: PhanDoiTin): string => (p.loai === "cu-the" ? p.phan : p.cau === "so-khach" ? "đổi số khách" : "đổi chặng đưa đón");
+const chuPhan = (p: PhanDoiTin): string => (p.loai === "cu-the" ? p.phan : p.cau === "so-khach" ? "đổi số khách" : "đổi lượt đưa đón");
 /**
  * Câu tin "đơn đổi sau xác nhận" (ADR-0062 Đ2): chỉ nhãn cố định + giá trị đã kiểm dạng (phanDoiCuaTin). Một dòng: câu theo loại; nhiều dòng cùng lô: nối phần
  * đổi bằng "; " (bỏ trùng). `ten` = null khi người xem không qua order.history.view.
@@ -104,7 +104,7 @@ const THU_TU_PHAN_DOI: readonly string[] = ["trip_updated", "order_leg_closed", 
 function cauTinDoi(ten: string | null, ma: string, phan: readonly PhanDoiTin[]): string {
   const dau = (x: string) => (ten !== null ? `${ten} đổi đơn ${ma}: ${x}` : `Đơn ${ma}: ${x}`);
   const p = phan[0]!;
-  if (phan.length === 1 && p.loai === "chung" && p.cau === "chang") return ten !== null ? `${ten} vừa đổi chặng đưa đón của đơn ${ma}` : `Đơn ${ma} vừa đổi chặng đưa đón`;
+  if (phan.length === 1 && p.loai === "chung" && p.cau === "chang") return ten !== null ? `${ten} vừa đổi lượt đưa đón của đơn ${ma}` : `Đơn ${ma} vừa đổi lượt đưa đón`;
   return dau([...new Set(phan.map(chuPhan))].join("; "));
 }
 /** Liên kết tin đổi (ADR-0062 Đ2, NT-B11): văn phòng → trang đơn; người lập xem được đơn mình (Đối tác / Thực tập — order.view own) → trang đơn; còn lại → "Việc của tôi". */

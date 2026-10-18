@@ -45,7 +45,7 @@ test("ghepLyDo: lý do LUÔN ở cuối, sau ' · lý do: '", () => {
 
 /** Câu tin "không tên" như thong-bao.ts dựng — để quét chữ cấm trên đúng chuỗi người nhận thấy. */
 const cau = (k: PhanDoiTin | null): string =>
-  k === null ? "" : k.loai === "cu-the" ? `Đơn TD-1: ${k.phan}` : k.cau === "chang" ? "Đơn TD-1 vừa đổi chặng đưa đón" : "Đơn TD-1: đổi số khách";
+  k === null ? "" : k.loai === "cu-the" ? `Đơn TD-1: ${k.phan}` : k.cau === "chang" ? "Đơn TD-1 vừa đổi lượt đưa đón" : "Đơn TD-1: đổi số khách";
 const cuThe = (phan: string, gioHen = false): PhanDoiTin => ({ loai: "cu-the", phan, gioHen });
 const chung = (c: "chang" | "so-khach", gioHen = false): PhanDoiTin => ({ loai: "chung", cau: c, gioHen });
 const CAM = ["0901234567", "Anh Nam", "12 Trần Phú", "01:00", "02:00", "1 → 9", "lý do", "Khách báo"];
@@ -102,7 +102,7 @@ test("đuôi đặt gấp (mọi nhãn lý do) không lọt vào câu tin", () =
 test("đuôi lạ ở cuối (vd đuôi lượt đổi giờ của ADR-0063 — chưa có hàm viết trên nhánh này) → câu chung, không in đuôi", () => {
   const k = phanDoiCuaTin("trip_updated", `${dv("Tour 3 đảo", "giờ đón 07:00 → 06:30")} · tính 1 lượt đổi giờ`);
   assert.deepEqual(k, chung("chang"));
-  assert.ok(!cau(k).includes("lượt"));
+  assert.ok(!cau(k).includes("lượt đổi giờ"));
 });
 
 test("khứ hồi moTaChang: mọi tổ hợp phần đổi → đọc ra đúng phần giữ (ngày/giờ đón, 'đổi nơi đón'); phần phụ (nơi trả, số hiệu, số người về, xe) bỏ", () => {
@@ -151,9 +151,9 @@ test("order_leg_updated chỉ đổi nơi trả / số hiệu / số người v�
 
 test("order_leg_added / order_leg_closed: thêm / bỏ chặng đón — KHÔNG đọc detail (chữ nơi tự do)", () => {
   const them = moTaChang("Anh Nam 0901234567", null, chang({ noiDon: "12 Trần Phú" }))!;
-  assert.deepEqual(phanDoiCuaTin("order_leg_added", them), cuThe("thêm chặng đón"));
-  assert.deepEqual(phanDoiCuaTin("order_leg_added", `${them}${ghiDatGapNhatKy(LY_DO_DAT_GAP.KHAC)}`), cuThe("thêm chặng đón"));
-  assert.deepEqual(phanDoiCuaTin("order_leg_closed", moTaChang("Anh Nam 0901234567", chang(), null, "NOT_NEEDED")!), cuThe("bỏ chặng đón"));
+  assert.deepEqual(phanDoiCuaTin("order_leg_added", them), cuThe("thêm lượt đưa đón"));
+  assert.deepEqual(phanDoiCuaTin("order_leg_added", `${them}${ghiDatGapNhatKy(LY_DO_DAT_GAP.KHAC)}`), cuThe("thêm lượt đưa đón"));
+  assert.deepEqual(phanDoiCuaTin("order_leg_closed", moTaChang("Anh Nam 0901234567", chang(), null, "NOT_NEEDED")!), cuThe("bỏ lượt đưa đón"));
 });
 
 test("hành động ngoài tập nguồn → null (không có câu chung cho dòng không qua bộ lọc)", () => {

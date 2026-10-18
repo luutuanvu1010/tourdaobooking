@@ -118,7 +118,7 @@ test("lyDoChuaHoanThanh: chưa Đã giao; đã Hoàn thành; còn bên nợ côn
   assert.equal(lyDoChuaHoanThanh({ deliveredAt: null, completedAt: null, soDu: new Map(), tenBen: ten })!.ma, "not_delivered");
   assert.equal(lyDoChuaHoanThanh({ deliveredAt: "x", completedAt: "y", soDu: new Map(), tenBen: ten })!.ma, "already_completed");
   const r = lyDoChuaHoanThanh({ deliveredAt: "x", completedAt: null, soDu: new Map([[HDV, 400_000]]), tenBen: ten })!;
-  assert.equal(r.cau, "Còn người giữ tiền của công ty: HDV Nam đang giữ 400.000 ₫ — ghi nộp tiền / xác nhận công ty đã nhận trước.");
+  assert.equal(r.cau, "Còn người chưa nộp tiền về công ty: HDV Nam còn 400.000 ₫ chưa nộp — ghi nộp tiền / xác nhận công ty đã nhận trước.");
   assert.equal(lyDoChuaHoanThanh({ deliveredAt: "x", completedAt: null, soDu: new Map([[HDV, -20_000]]), tenBen: ten }), null);
 });
 

@@ -268,7 +268,7 @@ test("Đ2.11 nút tay gỡ CHANG_DA_DONG: bỏ chặng khi máy không chạy �
     assert.equal(r.json.daCapNhat, 2);
     assert.deepEqual(daDongCua(w, t.chuyen.id).map((x) => x.r), ["REMOVED", "REMOVED"]);
     assert.ok(!(await lyDo(w, t.chuyen.id)).includes("CHANG_DA_DONG"), "hết giữ CHANG_DA_DONG");
-    assert.equal(nhatKyNut(w)[0]!.detail, `${t.chuyen.ma}: cập nhật khách theo đơn — ${d.code} (bỏ chặng): trả 2 ghế`);
+    assert.equal(nhatKyNut(w)[0]!.detail, `${t.chuyen.ma}: cập nhật khách theo đơn — ${d.code} (bỏ lượt đưa đón): trả 2 ghế`);
   } finally {
     tat();
   }

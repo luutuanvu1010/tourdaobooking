@@ -375,7 +375,7 @@ async function maLoiCua(res: Response): Promise<string | null> {
 }
 
 /** `ctx.newOrderHandler` ở route công khai (không ai đăng nhập): không đạt, không truy vấn. */
-const NOT_SIGNED_IN: NewOrderHandler = { ok: false, message: "Chưa đăng nhập hoặc phiên đã hết hạn." };
+const NOT_SIGNED_IN: NewOrderHandler = { ok: false, message: "Chưa đăng nhập hoặc đã hết hạn đăng nhập." };
 
 export function createApp(opts: AppOptions) {
   const routes = opts.modules.flatMap((m) => m.routes);
@@ -406,7 +406,7 @@ export function createApp(opts: AppOptions) {
     let baoTri: unknown;
     if (hit.r.access !== "public") {
       const cur = await opts.currentStaff(request, env, exec);
-      if (!cur) return error(401, "unauthenticated", "Chưa đăng nhập hoặc phiên đã hết hạn.");
+      if (!cur) return error(401, "unauthenticated", "Chưa đăng nhập hoặc đã hết hạn đăng nhập.");
       staff = cur.staff;
       sessionId = cur.sessionId;
       baoTri = cur.baoTri;

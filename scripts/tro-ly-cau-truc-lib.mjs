@@ -167,9 +167,9 @@ export function dungCauTruc(vao) {
     const huyDuoc = phamVi("order.modify", q) !== "none";
     const khong = opHoi.filter((op) => phamVi(op, q) === "none" && !(op === "order.cancel" && huyDuoc)).map(tenOp);
     them(
-      `Vai ${nhanQuyen[q]} làm được gì`,
+      `Vai trò ${nhanQuyen[q]} làm được gì`,
       [q],
-      `Tài khoản có quyền ${nhanQuyen[q]} (một tài khoản có thể giữ vài quyền; làm được việc nếu ít nhất một quyền cho phép).\nLàm được: ${co.join("; ") || "không việc nào"}.\nKhông làm được: ${khong.join("; ") || "không có"}.\nKhông thấy một nút hay mục menu thường vì vai không có quyền việc đó; máy chủ luôn kiểm lại quyền.`,
+      `Tài khoản có quyền ${nhanQuyen[q]} (một tài khoản có thể giữ vài quyền; làm được việc nếu ít nhất một quyền cho phép).\nLàm được: ${co.join("; ") || "không việc nào"}.\nKhông làm được: ${khong.join("; ") || "không có"}.\nKhông thấy một nút hay mục menu thường vì vai trò không có quyền việc đó; máy chủ luôn kiểm lại quyền.`,
     );
   }
 

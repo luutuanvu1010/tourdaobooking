@@ -52,7 +52,7 @@ test("(s1) chính sách chưa có số: GET hanNgay null; POST 409 chua_co_thoi_
   const p = await w.call("POST", DUONG, { as: SUP });
   assert.equal(p.status, 409);
   assert.equal(p.json.error.code, "chua_co_thoi_han");
-  assert.equal(p.json.error.message, "Chính sách riêng tư chưa có thời hạn giữ phiên — chưa ẩn danh được.");
+  assert.equal(p.json.error.message, "Chính sách riêng tư chưa có thời hạn giữ thông tin máy đã đăng xuất — chưa ẩn danh được.");
   assert.deepEqual(dongPhien(w, "p-cu"), { ip: IP_THAT, user_agent: UA_THAT, ended_at: "2000-01-01T00:00:00.000Z", device_label: "Máy thử" });
   assert.equal(Q(w, "SELECT count(*) n FROM audit_log WHERE action = 'sessions_anonymized'")[0].n, 0);
 });
@@ -87,7 +87,7 @@ test("(s2) chính sách 30 ngày: GET đếm đúng; POST làm rỗng IP / User-
   assert.equal(nk.length, 1);
   assert.equal(nk[0].staff_id, SUP);
   assert.equal(nk[0].target_type, "system");
-  assert.match(nk[0].detail, /^3 phiên kết thúc trước \d{2}:\d{2} \d{2}\/\d{2}\/\d{4}$/);
+  assert.match(nk[0].detail, /^3 máy đã đăng xuất trước \d{2}:\d{2} \d{2}\/\d{2}\/\d{4}$/);
   const tatCa = JSON.stringify(Q(w, "SELECT detail FROM audit_log"));
   for (const gt of [IP_THAT, UA_THAT]) assert.ok(!tatCa.includes(gt), `nhật ký lộ "${gt}"`);
   assert.ok(!p.text.includes(IP_THAT) && !g.text.includes(UA_THAT));

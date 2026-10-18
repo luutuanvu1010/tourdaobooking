@@ -81,8 +81,8 @@ const RACED = () => error(409, "invalid_transition", "Đơn vừa được ngư�
 const GIA_DANH_MUC = (cau: string) => error(403, "forbidden", cau);
 /** ADR-0047 Ruling R1: chặng / danh sách khách của ĐƠN NHÁP đi trong thân `POST/PUT /api/orders`; route riêng chỉ nhận đơn đã xác nhận. */
 const USE_ORDER_FORM = () => error(409, "use_order_form", "Đơn nháp: sửa đưa đón và danh sách hành khách ngay trong form đơn.");
-const LEG_NOT_FOUND = () => error(404, "leg_not_found", "Không tìm thấy chặng đưa đón của đơn này.");
-const LEG_CLOSED = (message = "Chặng đưa đón này đã bỏ — không sửa được.") => error(409, "leg_closed", message);
+const LEG_NOT_FOUND = () => error(404, "leg_not_found", "Không tìm thấy lượt đưa đón của đơn này.");
+const LEG_CLOSED = (message = "Lượt đưa đón này đã bỏ — không sửa được.") => error(409, "leg_closed", message);
 const CANNOT_WRITE_PASSENGERS = () => error(403, "forbidden", "Tài khoản này không được nhập danh sách hành khách của đơn này.");
 /** ADR-0054 D10.3 (Q-L4-B "Chỉ văn phòng"): số người chiều về chỉ người qua ô `order.trip.edit` đổi — kể cả khi lập / lưu nháp. */
 const CANNOT_PAX_OVERRIDE = () => error(403, "forbidden", "Chỉ văn phòng đổi được số người chiều về.");
@@ -100,12 +100,12 @@ function oPhuNhap(
   return { ok: true, value: { ...order, services: g.services } };
 }
 /** ADR-0049 D3: đặt gấp chặng dưới mốc — chỉ Quản trị, Toàn quyền (ô `order.leg.short_notice`). */
-const CANNOT_SHORT_NOTICE = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền được đặt gấp chặng đưa đón.");
+const CANNOT_SHORT_NOTICE = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền được đặt gấp lượt đưa đón.");
 /** Mốc tối thiểu chưa có (bảng chính sách rỗng / môi trường không tiêm) — CHẶN lệnh cần mốc, không đoán con số (I25). */
-const MOC_CHUA_CO = () => error(503, "moc_toi_thieu_chua_co", "Chưa có chính sách điều phối đang hiệu lực (mốc tối thiểu) — báo người phụ trách hệ thống.");
+const MOC_CHUA_CO = () => error(503, "moc_toi_thieu_chua_co", "Chưa có chính sách điều phối đang hiệu lực (hạn chốt trước giờ đón) — báo người phụ trách hệ thống.");
 /** I14 (Q3 chủ): sửa / thêm chặng đơn ĐÃ XÁC NHẬN dưới mốc cần Quản trị, Toàn quyền + lý do đặt gấp trong CHÍNH lệnh. */
 const SUA_DUOI_MOC = () =>
-  error(409, "short_notice_required", "Chặng dưới mốc tối thiểu trước giờ đón — chỉ Quản trị hoặc Toàn quyền sửa được, kèm lý do đặt gấp.");
+  error(409, "short_notice_required", "Lượt đưa đón có giờ đón đã qua hạn chốt — chỉ Quản trị hoặc Toàn quyền sửa được, kèm lý do đặt gấp.");
 
 /**
  * Nhánh `datGap` của lệnh sửa / thêm chặng (ADR-0049 I14): thân CÓ khoá `datGap` → phải có ô `order.leg.short_notice` (403) và lý do hợp lệ (400) → dấu MỚI
@@ -814,7 +814,7 @@ export const ordersModule: AppModule = {
     // bảng vc_: qua hàm tiêm `ctx.mocToiThieu` (gốc lắp ráp); thiếu hàm tiêm / chính sách rỗng → 503 như cổng Xác nhận (không đoán con số). PHẢI đứng TRƯỚC
     // "GET /api/orders/:id" (cùng lý do với route dashboard, pool ở trên — ":id" cũng khớp chữ "moc-toi-thieu").
     route("GET", "/api/orders/moc-toi-thieu", "orders", async ({ staff, mocToiThieu }) => {
-      if (!can(staff, "order.create")) return error(403, "forbidden", "Bạn không lập đơn nên không cần mốc tối thiểu.");
+      if (!can(staff, "order.create")) return error(403, "forbidden", "Bạn không lập đơn nên không cần hạn chốt trước giờ đón.");
       const moc = await mocToiThieu();
       if (!moc) return MOC_CHUA_CO();
       return json({ mocToiThieuPhut: moc.phut, canhBaoPhut: moc.canhBaoPhut } satisfies MocToiThieuResponse);
@@ -1456,7 +1456,7 @@ export const ordersModule: AppModule = {
           const duoi = canhBaoMocCua(stored.flatMap((s) => s.legs), daDatGap, nowMs, moc.phut);
           if (duoi.length > 0) {
             const legs = duoi.map((d) => ({ legId: d.legKey, phutConLai: d.phutConLai }));
-            const message = "Có chặng đón dưới mốc tối thiểu — cần Quản trị hoặc Toàn quyền đặt gấp trước khi xác nhận.";
+            const message = "Có lượt đưa đón mà giờ đón đã qua hạn chốt — cần Quản trị hoặc Toàn quyền đặt gấp trước khi xác nhận.";
             return json({ error: { code: "short_notice_required", message, legs } } satisfies ShortNoticeRequiredBody, 409);
           }
           return STALE(); // vừa có người sửa / bổ sung xong (kể cả khoá phiên bản `updated_at` của câu xác nhận) — tải lại rồi bấm lại
@@ -1538,7 +1538,7 @@ export const ordersModule: AppModule = {
       const ktra = kiemGhiTayVoiBanChup(truoc, than.value, cty?.partyId ?? null);
       if (!ktra.ok) return error(ktra.status, ktra.status === 409 ? "khong_nguoi_huong" : "invalid_input", ktra.message);
       const nb = than.value.nguoiBan;
-      if (nb && nb.partyId !== cty?.partyId && !(await laNhaCungCap(env.DB, nb.partyId))) return error(400, "invalid_input", "Người bán phải là Tour Đảo hoặc hồ sơ mang vai Nhà cung cấp.");
+      if (nb && nb.partyId !== cty?.partyId && !(await laNhaCungCap(env.DB, nb.partyId))) return error(400, "invalid_input", "Người bán phải là Tour Đảo hoặc hồ sơ mang vai trò Nhà cung cấp.");
       const sau = apGhiTay(truoc, than.value, cty?.partyId ?? null);
       const [view, ten] = await Promise.all([loadOrderView(env.DB, id, false), tenHoSo(env.DB, [truoc, sau].flatMap((c) => (c.cungUng.status === "SET" ? [c.cungUng.sellerPartyId] : [])))]);
       const dichVu = view?.services.find((s) => s.id === params.serviceId);

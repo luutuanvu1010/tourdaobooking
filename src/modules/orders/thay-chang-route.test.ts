@@ -82,7 +82,7 @@ test("(l) reasonCode: WRONG_ENTRY → đóng lý do 'Nhập nhầm', nhật ký 
     for (const reasonCode of ["NOT_NEEDED", "cancelled", 1]) {
       const x = await thay(w, d.id, d.legId, SALES, { expectedUpdatedAt: truoc.updatedAt, leg: MOI, reasonCode });
       assert.equal(x.status, 400, `${reasonCode}: ${x.text}`);
-      assert.match(x.json.error.message, /Đổi sang chặng khác.*Nhập nhầm/);
+      assert.match(x.json.error.message, /Đổi sang lượt đưa đón khác.*Nhập nhầm/);
     }
     khongGhiGi(w, d, truoc);
     const r = await thay(w, d.id, d.legId, SALES, { expectedUpdatedAt: truoc.updatedAt, leg: MOI, reasonCode: "WRONG_ENTRY" });
@@ -121,7 +121,7 @@ test("(b) Quản trị kèm datGap dưới mốc → 200 { order }; chặng cũ 
     const moi = w.q("SELECT closed_at, short_notice_reason, short_notice_by, created_by FROM ord_transfer_leg WHERE id = ?", legs[0].id)[0];
     assert.deepEqual({ ...moi }, { closed_at: null, short_notice_reason: "KHACH_DOAN_GOI_GAP", short_notice_by: ADM, created_by: ADM });
     assert.equal(soNhatKy(w, d.id), truoc.nhatKy + 2, "đúng hai dòng nhật ký: bỏ + thêm");
-    assert.deepEqual(nhatKy(w, d.id, "order_leg_closed"), ["Chiều đi · Tour đảo: bỏ — Đổi sang chặng khác"]);
+    assert.deepEqual(nhatKy(w, d.id, "order_leg_closed"), ["Chiều đi · Tour đảo: bỏ — Đổi sang lượt đưa đón khác"]);
     const them = nhatKy(w, d.id, "order_leg_added");
     assert.equal(them.length, 1);
     assert.match(them[0]!, /^Chiều đi · Tour đảo: thêm — ngày đón 2027-03-11, giờ đón 13:00, nơi đón Khách sạn Mới, /);

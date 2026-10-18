@@ -6,7 +6,7 @@ import {
   permissionsLabel, roleAssignmentProblem, rolesLabel, taiKhoanLaiProblem, tuDoiQuyenCuaMinh, vaiTaiXeDoiTacXungDot, type RoleAssignment, type RoleCode,
 } from "./roles.ts";
 
-const VAI_QUAN_LY = "Chỉ người phụ trách hệ thống mới gán hoặc gỡ vai Giám đốc, Điều hành chung, Kế toán, IT, Hành chính nhân sự.";
+const VAI_QUAN_LY = "Chỉ người phụ trách hệ thống mới gán hoặc gỡ vai trò Giám đốc, Điều hành chung, Kế toán, IT, Hành chính nhân sự.";
 const TIEN = "Tài khoản giữ tiền — chỉ người phụ trách hệ thống (Toàn quyền) làm việc này."; // ADR-0090 đ1, nguyên văn
 const assignment = (roles: RoleAssignment["roles"], extra: Partial<RoleAssignment> = {}): RoleAssignment => ({ roles, adds: [], removes: [], reason: null, ...extra });
 
@@ -130,7 +130,7 @@ test("roleAssignmentProblem: LC-3, LC-1 (cộng tay), LC-4, còn ít nhất mộ
   const base = { actorIsSuper: false, currentRoles: [] as const, currentPermissions: [] as const, currentAdjustments: { adds: [], removes: [] } as const };
   const mixed = roleAssignmentProblem({ ...base, next: assignment(["SALES_STAFF", "COLLABORATOR"]) });
   assert.equal(mixed?.forbidden, false);
-  assert.match(mixed!.message, /cùng lúc vai nội bộ và vai bên ngoài/);
+  assert.match(mixed!.message, /cùng lúc vai trò nội bộ và vai trò bên ngoài/);
   assert.match(roleAssignmentProblem({ ...base, next: assignment(["COLLABORATOR"], { adds: ["SALES"], reason: "x" }) })!.message, /chỉ giữ quyền bên ngoài \(Đối tác hoặc Tài xế đối tác\)/);
   assert.deepEqual(roleAssignmentProblem({ ...base, next: assignment(["OPERATIONS_MANAGER"]) }), {
     forbidden: true,
@@ -272,7 +272,7 @@ test("roleAssignmentProblem (ADR-0048 B2.2): vai Tài xế đối tác không đ
   const base = { actorIsSuper: false, currentRoles: [] as const, currentPermissions: [] as const, currentAdjustments: { adds: [], removes: [] } as const };
   const haiVai = roleAssignmentProblem({ ...base, next: assignment(["TAXI_DRIVER", "DRIVER_EXTERNAL"]) });
   assert.equal(haiVai?.forbidden, false);
-  assert.equal(haiVai?.message, "Vai Tài xế đối tác không đi cùng vai bên ngoài khác — một người chọn một: đối tác đặt đơn hoặc tài xế đối tác.");
+  assert.equal(haiVai?.message, "Vai trò Tài xế đối tác không đi cùng vai trò bên ngoài khác — một người chọn một: đối tác đặt đơn hoặc tài xế đối tác.");
   const LAI = "Tài khoản Tài xế đối tác không giữ thêm quyền nào khác.";
   assert.deepEqual(roleAssignmentProblem({ ...base, next: assignment(["DRIVER_EXTERNAL"], { adds: ["PARTNER"], reason: "x" }) }), { forbidden: false, message: LAI });
   assert.deepEqual(roleAssignmentProblem({ ...base, next: assignment(["TAXI_DRIVER"], { adds: ["DRIVER_PARTNER"], reason: "x" }) }), { forbidden: false, message: LAI });
@@ -285,7 +285,7 @@ test("roleAssignmentProblem (ADR-0048 B2.2): vai Tài xế đối tác không đ
 
 test("nhãn lời thường", () => {
   assert.equal(rolesLabel(["SALES_STAFF", "ACCOUNTANT"]), "Nhân viên kinh doanh, Kế toán");
-  assert.equal(rolesLabel([]), "chưa gán vai");
+  assert.equal(rolesLabel([]), "chưa gán vai trò");
   assert.equal(permissionsLabel(["SUPER_ADMIN", "INTERN"]), "Toàn quyền, Thực tập");
   assert.equal(permissionsLabel([]), "không có quyền");
 });
