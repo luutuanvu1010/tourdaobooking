@@ -32,7 +32,6 @@ import { grouped, parseMoney, vnd } from "./format";
 import { suKienVeDon } from "./lam-moi-logic";
 import { regroupMoney } from "./money-input";
 import { createServiceCard, type ServiceCard } from "./service-card";
-import { hienBaoNgan } from "./toast";
 import { khoiCanhBaoMoc, khoiNhanDatGap } from "./dat-gap-ui";
 import type { DiemChon } from "./khoi-dua-don";
 import { taoKhoiHanhKhach, type KhoiHanhKhach } from "./khoi-hanh-khach";
@@ -139,9 +138,9 @@ orderDateEl.addEventListener("input", () => {
 const picker = createCatalogPicker({
   onPick: (item) => {
     const tao = changTaoSan(mauChang.get(item.code) ?? null, orderDate, newKey); // M6: dịch vụ có mẫu Một / Hai chiều → tạo sẵn chặng (sửa / bỏ được)
-    const entry = mount({ ...withOrderDate(newCatalogDraft(item, newKey())), legs: tao.legs, taoSan: tao.taoSan });
-    entry.card.root.scrollIntoView({ block: "nearest" });
-    hienBaoNgan(`Đã thêm ${item.name} — đơn có ${entries.length} dịch vụ`); // bản 1.39: sau khi chọn, ô tìm đóng và thẻ mới ở cuối — báo ngắn để biết đã thêm
+    mount({ ...withOrderDate(newCatalogDraft(item, newKey())), legs: tao.legs, taoSan: tao.taoSan });
+    // Thiết kế lại 18/10 (đặc tả mục 3A): KHÔNG cuộn trang tới thẻ mới và KHÔNG thông báo nổi — khung danh sách đứng yên để thêm nhiều dịch vụ liền tay;
+    // dòng vừa chạm hiện "✓ đã thêm" và vùng aria-live của ô chọn đọc "Đã thêm <tên>" (web/catalog-picker.ts). Thẻ mới nằm ngay dưới khung.
   },
 });
 byId("catalog-slot").append(picker.root);
@@ -576,7 +575,7 @@ window.addEventListener("pageshow", (e) => {
 function setCatalog(res: Api.CatalogPublicResponse): void {
   live = new Map(res.items.filter((c) => c.supported).map((c) => [c.code, c]));
   picker.setItems(res.items);
-  picker.setGroups(res.groups); // ADR-0058 Đ8: nút xổ xuống "Nhóm dịch vụ" (ô tick chọn nhiều nhóm)
+  picker.setGroups(res.groups); // ADR-0058 Đ8 (thiết kế lại 18/10): hàng nút nhóm cuộn ngang, chọn MỘT nhóm
 }
 
 async function loadCatalog(): Promise<void> {
@@ -696,7 +695,7 @@ const layDon = editId ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/$
 const staff = await initShell();
 // Cờ "không nhận tiền trả trước" bật NGAY khi biết tài khoản (người có quyền ghi sổ): từ đây tới khối ẩn ba ô ở dưới không còn khe nào mà số gõ sớm bị đọc ở `recompute` / `validate` / lúc lưu.
 traTruocAn ||= can(staff, "ledger.write");
-picker.setTaiKhoan(staff.id); // ADR-0058 Đ8: các nhóm đã đánh dấu nhớ THEO TÀI KHOẢN trên máy — bộ chọn dựng trước khi biết tài khoản, trước dòng này không đọc / ghi bộ nhớ
+picker.setTaiKhoan(staff.id); // ADR-0058 Đ8: nhóm đã chọn nhớ THEO TÀI KHOẢN trên máy — bộ chọn dựng trước khi biết tài khoản, trước dòng này không đọc / ghi bộ nhớ
 retailOnly = chiGiaDanhMuc(staff); // trước loadCatalog/loadOrder: thẻ dịch vụ dựng sau dòng này
 duocDatGap = can(staff, "order.leg.short_notice");
 // ---- bên đặt (sổ đại lý đợt 1, Task 11; đặc tả §7) ----

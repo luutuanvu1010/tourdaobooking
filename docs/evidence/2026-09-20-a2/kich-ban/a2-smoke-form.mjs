@@ -448,32 +448,32 @@ try {
   await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "TD101");
   await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
   await p.waitFor(`${cards}.length === 1`, "thẻ để đo");
-  // ---- 12a) bản 1.39: đếm dịch vụ (tiêu đề khối, Tóm tắt, thanh dính đáy một dòng), báo ngắn sau khi chọn, nhãn "đã chọn" (không chặn chọn trùng) ----
+  // ---- 12a) bản 1.39: đếm dịch vụ (tiêu đề khối, Tóm tắt, thanh dính đáy một dòng); nhãn dịch vụ đã có trong đơn (không chặn chọn trùng) ----
+  // Thiết kế lại 18/10 (DAC-TA mục 3A — sửa CÓ CHỦ ĐÍCH): bỏ thông báo nổi "Đã thêm … — đơn có N dịch vụ", thay bằng vùng aria-live của ô chọn ("Đã thêm <tên>")
+  // và nhãn "✓ đã thêm" ngay trên dòng (trước: "đã chọn"). Hành vi đầy đủ của ô chọn: docs/evidence/2026-09-30-nhom-dich-vu/kich-ban/chip-nhom-smoke.mjs.
   const dem = () => p.ev(`({ title: document.getElementById('services-title').textContent, sum: document.getElementById('sum-count').textContent, mob: document.querySelector('.mobile-sum-line > span:first-child').textContent, due: !document.getElementById('mobile-prepaid-row').hidden, toast: [...document.querySelectorAll('.toast-bao')].map((t) => t.textContent), bar: Math.round(document.querySelector('.form-actions').getBoundingClientRect().height) })`);
   const d1 = await dem();
   assert.equal(d1.title, "Dịch vụ (1)");
   assert.equal(d1.sum, "1 dịch vụ");
   assert.match(d1.mob, /^1 dịch vụ · Tổng /);
   assert.equal(d1.due, false, "chưa có thanh toán trước: không hiện 'Trả trước' (sổ tiền lượt 1 — thay 'Còn lại')");
-  assert.match(d1.toast.at(-1) ?? "", /^Đã thêm .+ — đơn có 1 dịch vụ$/);
-  assert.equal(await p.ev("getComputedStyle(document.querySelector('.toast-bao')).pointerEvents"), "none", "báo ngắn không bấm được");
-  const toastR = await p.ev("(() => { const a = document.querySelector('.toast-bao').getBoundingClientRect(), b = document.getElementById('save').getBoundingClientRect(); return a.bottom <= b.top || a.top >= b.bottom; })()");
-  assert.equal(toastR, true, "báo ngắn không che nút Lưu ở 390px");
+  assert.deepEqual(d1.toast, [], "không còn thông báo nổi sau khi chọn dịch vụ (thiết kế lại 18/10)");
+  await p.waitFor("document.querySelector('.catalog .catalog-bao').textContent === 'Đã thêm Tour 4 đảo Nha Trang'", "vùng aria-live của ô chọn đọc 'Đã thêm <tên>'");
   await p.ev("document.getElementById('catalog-q').focus(); true");
   await p.ev(setInput("document.getElementById('catalog-q')", "TD101"));
   await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "TD101 lần hai");
-  assert.equal(await p.ev("document.querySelector('#catalog-list .catalog-pick .chip-picked')?.textContent"), "đã chọn", "kết quả tìm đã có trong đơn gắn 'đã chọn'");
+  assert.equal(await p.ev("document.querySelector('#catalog-list .catalog-pick .chip-picked')?.textContent"), "✓ đã thêm", "kết quả tìm đã có trong đơn gắn '✓ đã thêm' (thiết kế lại 18/10; trước: 'đã chọn')");
   await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
   await p.waitFor(`${cards}.length === 2`, "chọn trùng vẫn được");
   const d2 = await dem();
   assert.equal(d2.title, "Dịch vụ (2)");
-  assert.match(d2.toast.at(-1) ?? "", /— đơn có 2 dịch vụ$/);
+  assert.deepEqual(d2.toast, [], "chọn trùng: vẫn không thông báo nổi");
   await p.ev(setInput("document.getElementById('prepaidAmount')", "100000"));
   await p.waitFor("!document.getElementById('mobile-prepaid-row').hidden", "có thanh toán trước: hiện 'Trả trước'");
   const d3 = await dem();
   console.log(`   thanh dính đáy 390px: không thanh toán trước ${d2.bar}px, có thanh toán trước ${d3.bar}px`);
   await p.ev(setInput("document.getElementById('prepaidAmount')", ""));
-  ok(`đếm dịch vụ: 'Dịch vụ (N)', Tóm tắt 'N dịch vụ', thanh đáy một dòng (Trả trước chỉ khi có thanh toán trước — sổ tiền lượt 1; ${d2.bar}/${d3.bar}px), báo ngắn không che Lưu, nhãn 'đã chọn' không chặn chọn trùng`);
+  ok(`đếm dịch vụ: 'Dịch vụ (N)', Tóm tắt 'N dịch vụ', thanh đáy một dòng (Trả trước chỉ khi có thanh toán trước — sổ tiền lượt 1; ${d2.bar}/${d3.bar}px), không thông báo nổi (aria-live 'Đã thêm …'), nhãn '✓ đã thêm' không chặn chọn trùng`);
   const m = await p.ev(`(() => {
     const small = [...document.querySelectorAll('.counter-btn, .svc-remove, #save, .catalog-list button, .trip > summary')].filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && (r.height < 43.5 || r.width < 43.5); }).map((el) => el.className + ' ' + Math.round(el.getBoundingClientRect().width) + 'x' + Math.round(el.getBoundingClientRect().height));
     const smallFont = [...document.querySelectorAll('input, select, textarea')].filter((el) => el.getBoundingClientRect().width > 0 && parseFloat(getComputedStyle(el).fontSize) < 16).map((el) => el.id || el.className);
