@@ -65,6 +65,7 @@ try {
     await chon(p, "phao", 2);
     await p.ev(setInput(demDem(1, "Số khách"), "7"));
     await chon(p, "TTB06", 3);
+    if (GIAI_DOAN === "sau") assert.deepEqual(await p.ev("[...document.querySelectorAll('#services .svc .svc-mo')].map((b) => b.getAttribute('aria-expanded'))"), ["false", "false", "true"], "bản sau: thêm dịch vụ thì thẻ trước gập, thẻ mới mở");
     await p.ev(setInput(demDem(2, "Người lớn"), "2"));
     await p.ev(setInput("document.getElementById('customerName')", "Khách Thân Gửi"));
     await p.ev(setInput("document.getElementById('customerPhone')", "0912345670"));
@@ -78,6 +79,11 @@ try {
     than[`PUT-1-${kho}`] = layThan(p, "PUT");
     // PUT-2: mở lại, đổi số khách thẻ 2 (Phao chuối) + bỏ trẻ em của thẻ 1
     await moLai(p, id);
+    if (GIAI_DOAN === "sau") {
+      // Bản sau: nháp "sạch" nạp lại → cả ba thẻ GẬP (thân chỉ ẩn bằng `hidden`); thao tác dưới đây đi vào ô của thẻ đang gập — thân gửi vẫn phải giống bản trước.
+      assert.deepEqual(await p.ev("[...document.querySelectorAll('#services .svc .svc-mo')].map((b) => b.getAttribute('aria-expanded'))"), ["false", "false", "false"], "bản sau: ba thẻ của nháp sạch đang gập");
+      assert.equal(await p.ev(`${demDem(1, "Số khách")}.getClientRects().length`), 0, "ô số khách của thẻ gập đang ẩn (vẫn trong cây DOM)");
+    }
     await p.ev(setInput(demDem(1, "Số khách"), "8"));
     await p.ev(setInput(demDem(0, "Trẻ em"), "0"));
     await sleep(300);
