@@ -35,7 +35,7 @@ import { suKienVeDon } from "./lam-moi-logic";
 import { regroupMoney } from "./money-input";
 import { createServiceCard, type ServiceCard } from "./service-card";
 import { khoiCanhBaoMoc, khoiNhanDatGap } from "./dat-gap-ui";
-import type { DiemChon } from "./khoi-dua-don";
+import { tieuDiemKhiCham, type DiemChon } from "./khoi-dua-don";
 import { taoKhoiHanhKhach, type KhoiHanhKhach } from "./khoi-hanh-khach";
 import { moKhoiChua, moMoiKhoiGap, taoKhoiGap } from "./khoi-gap";
 import { taoThanhBuoc } from "./thanh-buoc";
@@ -529,12 +529,17 @@ formEl.addEventListener("submit", (e) => {
   e.preventDefault();
   void luu();
 });
+// Lưu bằng CẢM ỨNG (vòng sửa 1 của việc 7, M-1): nhớ kiểu ấn từ `pointerdown` của chính nút Lưu (Safari: `click` / `submit` không mang `pointerType`); `luu()` đọc rồi xoá.
+let luuBangCham = false;
+saveBtn.addEventListener("pointerdown", (e) => { luuBangCham = e.pointerType === "touch" || e.pointerType === "pen"; });
 
 /**
  * Lưu đơn nháp. `datGap` (ADR-0049 R-P15 — nút "Duyệt đặt gấp" của Quản trị trên thẻ): lưu xong gọi lệnh đặt gấp cho chặng chiều đi của đúng dịch vụ đó (thứ tự
  * dịch vụ trong phản hồi = thứ tự thẻ). Lệnh đặt gấp hỏng thì đơn VẪN đã lưu → vẫn chuyển sang trang đơn, kèm `datgap=loi` để trang đơn báo và cho duyệt lại.
  */
 async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDatGap; ghiChu: string | null } }): Promise<void> {
+  const cham = luuBangCham && !datGap;
+  luuBangCham = false;
   if (formLocked || saving) return;
   renderBanner(saveErrorEl, null);
   assigneeErrorShown = false;
@@ -551,7 +556,8 @@ async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDa
     moKhoiChua(dich);
     if (wide() || dangAn) {
       dich.scrollIntoView({ block: "center" }); // ≥ 960px: banner ở cột dính (luôn thấy) → cuộn tới ô/thẻ lỗi đầu tiên và đặt focus vào đó; điện thoại: CHỈ khi ô nằm trong khối gập vừa được mở (người lập phải thấy ô đỏ vừa hiện ra)
-      dich.focus({ preventScroll: true });
+      // Lưu bằng cảm ứng mà ô lỗi là ô nơi đón / nơi trả (ô gõ chữ — bàn phím ảo iPhone sẽ bật): tiêu điểm vào đầu chặng; ô lỗi vẫn đã được cuộn vào khung nhìn (vòng sửa 1, M-1).
+      (cham ? tieuDiemKhiCham(dich) : dich).focus({ preventScroll: true });
     } else {
       saveErrorEl.scrollIntoView({ block: "center" }); // < 960px: banner (liệt kê đủ lỗi) nằm cuối form nên phải cuộn tới ĐÓ
     }

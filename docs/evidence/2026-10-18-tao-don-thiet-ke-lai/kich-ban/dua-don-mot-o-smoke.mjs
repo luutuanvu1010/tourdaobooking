@@ -7,11 +7,16 @@
 //   2) gõ "bien xanh" (không dấu) → còn đúng điểm khớp + "Gõ tự do: “bien xanh”"; chạm điểm → ô hiện nhãn điểm, danh sách đóng; nơi trả chọn sân bay → ô số hiệu chuyến bay hiện;
 //   3) gõ tự do ở Nơi trả: dòng "Chưa chốt" đầu danh sách, dòng cuối "Gõ tự do: “…”" kèm câu nhắc chỉ ghi địa chỉ; chạm → ô hiện chữ, câu nhắc dưới ô, ô số hiệu biến mất;
 //      "Gõ tự do…" khi chưa gõ gì không lưu gì (ô vẫn mở, vẫn tiêu điểm); "Chưa chốt" trả ô về trống;
-//   4) bàn phím thật: tiêu điểm vào ô KHÔNG mở danh sách; ↓ mở, ↓ ↑ di chuyển (aria-activedescendant + aria-selected, vòng đầu–cuối), Enter chọn (tiêu điểm ở lại ô), Esc đóng và trả
-//      giá trị cũ, chạm ra ngoài cũng trả giá trị cũ (chữ gõ dở không được lưu); Enter không bao giờ gửi form;
-//   5) Lưu khi chặng của thẻ ĐANG GẬP thiếu nơi đón → thẻ mở, câu "Chặng 1: chưa có nơi đón." dưới ô (aria-describedby), ô đỏ (aria-invalid), tiêu điểm ở ô, trong khung nhìn,
-//      danh sách KHÔNG tự bật (luật 14/10: điện thoại chỉ đặt tiêu điểm khi ô nằm trong khối gập vừa mở — ô đang thấy thì cuộn tới dải lỗi);
-//   6) lưu thật, mở lại: chặng đủ gập MỘT dòng ("Chiều đi · Đón 07:30 · Khách sạn Biển Xanh → Cảng Cầu Đá"); chạm dòng → chặng mở, tiêu điểm ở ô Nơi đón (danh sách không bật);
+//   4) bàn phím thật + rời ô (vòng sửa 1 — người kiểm I-1, chủ chọn phương án A: chữ đã gõ không bao giờ mất lặng lẽ): tiêu điểm vào ô KHÔNG mở danh sách; ↓ mở, ↓ ↑ di chuyển
+//      (aria-activedescendant + aria-selected, vòng đầu–cuối), Enter chọn dòng đang trỏ (tiêu điểm ở lại ô); Esc là HUỶ (trả giá trị cũ); gõ rồi chạm ra ngoài / Enter khi chưa trỏ
+//      dòng nào / Tab → chữ gõ được GIỮ thành địa chỉ gõ tự do (câu nhắc chỉ ghi địa chỉ gắn vào ô); chạm nhãn của ô không đóng danh sách, không mất chữ; gõ ở Nơi đón rồi chạm
+//      ô Nơi trả → chữ ở lại ô đón, ô trả nhận tiêu điểm và mở danh sách (cú chạm không bị nuốt); gõ ở Nơi đón rồi chạm "+ Thêm chiều về" → chiều về được tạo, Nơi trả chiều về = chữ
+//      vừa gõ (cú chạm không bị nuốt khi khối dựng lại); Enter không bao giờ gửi form;
+//   5) chạm THẬT nút Lưu khi chặng của thẻ ĐANG GẬP thiếu nơi đón → thẻ mở, câu "Chặng 1: chưa có nơi đón." dưới ô (aria-describedby), ô đỏ (aria-invalid), trong khung nhìn,
+//      danh sách KHÔNG tự bật; tiêu điểm: 1040 (chuột) ở ô, 390 (cảm ứng — vòng sửa 1, M-1) ở đầu chặng ("Chiều đi · Chặng 1"), KHÔNG ở ô gõ nào (bàn phím ảo iPhone không bật)
+//      (luật 14/10: điện thoại chỉ đặt tiêu điểm khi ô nằm trong khối gập vừa mở — ô đang thấy thì cuộn tới dải lỗi);
+//   6) lưu thật, mở lại: chặng đủ gập MỘT dòng ("Chiều đi · Đón 07:30 · Khách sạn Biển Xanh → Cảng Cầu Đá"); chạm dòng → chặng mở, ô Nơi đón hiện trong khung nhìn (danh sách không
+//      bật); tiêu điểm: 1040 ở ô Nơi đón, 390 (cảm ứng) ở đầu chặng — không ở ô gõ;
 //   7) "Đón khác ngày": ô Ngày đón ẩn tới khi chạm, chạm thì hiện và nhận tiêu điểm;
 //   8) không tràn ngang ở 390; không lỗi console.
 // Thân gửi lên (legs) giữ nguyên từng byte cho cả hai nhánh chọn nơi: than-gui.mjs CACH=noi (thư mục dua-don-mot-o/).
@@ -155,7 +160,7 @@ try {
       assert.equal(await p.ev(`(${tra}).value`), "Cảng Cầu Đá");
     });
 
-    await buoc(`${kho}-4`, "bàn phím: tiêu điểm không mở; ↓ mở, ↓ ↑ di chuyển (vòng), Enter chọn, Esc đóng + trả giá trị cũ, chạm ra ngoài trả giá trị cũ; Enter không gửi form", async () => {
+    await buoc(`${kho}-4`, "bàn phím + rời ô: tiêu điểm không mở; ↓ ↑ vòng, Enter chọn; Esc huỷ; gõ rồi chạm ra ngoài / Enter chưa trỏ dòng / Tab → GIỮ chữ thành gõ tự do; chạm nhãn không đóng; chạm ô trả / '+ Thêm chiều về' không bị nuốt; Enter không gửi form", async () => {
       const don = oNoi(0, 0, "don");
       // Đếm lần form đơn bị GỬI (Enter trong ô gõ của <form> gửi ngầm form qua nút Lưu mặc định — dù dải lỗi chặn lại thì vẫn là gửi nhầm).
       await p.ev("window.__guiForm = 0; document.getElementById('order-form').addEventListener('submit', () => { window.__guiForm++; }, true); true");
@@ -183,25 +188,81 @@ try {
       assert.equal(await p.ev(`(${don}).value`), "Quầy vé 03 · quầy vé", "Enter chọn đúng dòng đang trỏ");
       assert.equal(await p.ev(coTieuDiem(don)), true, "bàn phím: tiêu điểm ở lại ô sau khi chọn");
       assert.equal(await soGui(), 0, "Enter chọn dòng không gửi form");
-      // Esc: chữ gõ dở không được lưu
+      // Esc: HUỶ có chủ đích — chữ gõ dở không được lưu
       await phim(p, "ArrowDown");
       await goChu(p, "abc");
       await phim(p, "Escape");
       assert.equal(await p.ev(moDs(don)), false, "Esc đóng");
       assert.equal(await p.ev(`(${don}).value`), "Quầy vé 03 · quầy vé", "Esc trả ô về giá trị đã chọn");
-      // chạm ra ngoài: như Esc
+      /** Ô đang là chữ gõ tự do ĐÃ LƯU vào bản nháp: sau khi khối dựng lại, câu nhắc "chỉ ghi địa chỉ" gắn vào ô (chỉ có khi giá trị là gõ tự do). */
+      const laTuDo = (o) => p.ev(`(${o}).getAttribute('aria-describedby')?.split(' ').some((id) => document.getElementById(id)?.textContent === ${JSON.stringify(CHI_DIA_CHI)}) ?? false`);
+      // chạm nhãn của ô khi đang gõ: không đóng, không mất chữ
       await cham(p, mobile, don);
-      await goChu(p, "xyz");
+      await goChu(p, "Bến Cá");
+      await cham(p, mobile, `(${don}).closest('label').querySelector('.o-noi-chu')`, false);
+      assert.equal(await p.ev(moDs(don)), true, "chạm nhãn của ô: danh sách vẫn mở");
+      assert.equal(await p.ev(`(${don}).value`), "Bến Cá", "chạm nhãn của ô: chữ đang gõ còn nguyên");
+      // chạm ra ngoài sau khi gõ: GIỮ chữ thành gõ tự do (không trả về điểm cũ)
       await cham(p, mobile, `${chang(0)}.querySelector('.dd-chang-so')`);
+      await sleep(200);
       assert.equal(await p.ev(moDs(don)), false, "chạm ra ngoài → đóng");
-      assert.equal(await p.ev(`(${don}).value`), "Quầy vé 03 · quầy vé", "chạm ra ngoài → trả giá trị đã chọn");
-      assert.equal(await soGui(), 0, "không lần gửi form nào trong lúc thao tác bàn phím");
-      // trả về điểm cho các bước sau
-      await chonNoiMotO(p, mobile, don, { tim: "bien xanh", dong: "Khách sạn Biển Xanh" });
+      assert.equal(await p.ev(`(${don}).value`), "Bến Cá", "chạm ra ngoài sau khi gõ → chữ được giữ");
+      assert.equal(await laTuDo(don), true, "chữ được lưu thành gõ tự do (câu nhắc chỉ ghi địa chỉ gắn vào ô)");
+      // Enter khi chưa trỏ dòng nào: GIỮ chữ
+      await cham(p, mobile, don);
+      assert.equal(await p.ev(`(${don}).value`), "Bến Cá", "mở ô đang là chữ tự do: giữ chữ để sửa");
+      await p.ev(`(${don}).select(); true`);
+      await goChu(p, "Bến Cá Hòn Chồng");
+      assert.equal(await p.ev(`(${don}).getAttribute('aria-activedescendant')`), null, "chưa trỏ dòng nào");
+      await phim(p, "Enter");
+      await sleep(150);
+      assert.equal(await p.ev(moDs(don)), false, "Enter (chưa trỏ dòng) → đóng");
+      assert.equal(await p.ev(`(${don}).value`), "Bến Cá Hòn Chồng", "Enter (chưa trỏ dòng) → chữ được giữ");
+      assert.equal(await p.ev(coTieuDiem(don)), true, "Enter: tiêu điểm ở lại ô");
+      assert.equal(await soGui(), 0, "Enter giữ chữ không gửi form");
+      // Tab sau khi gõ: GIỮ chữ, tiêu điểm sang ô Nơi trả
+      await phim(p, "ArrowDown");
+      await p.ev(`(${don}).select(); true`);
+      await goChu(p, "Hòn Chồng, Nha Trang");
+      await phim(p, "Tab");
+      await sleep(150);
+      assert.equal(await p.ev(`(${don}).value`), "Hòn Chồng, Nha Trang", "Tab sau khi gõ → chữ được giữ");
+      assert.equal(await p.ev(coTieuDiem(oNoi(0, 0, "tra"))), true, "Tab → tiêu điểm sang ô Nơi trả");
+      assert.equal(await p.ev(moDs(oNoi(0, 0, "tra"))), false, "Tab tới ô: danh sách ô trả không tự bật");
+      // gõ ở Nơi đón rồi CHẠM ô Nơi trả (cùng chặng): chữ ở lại ô đón; ô trả nhận tiêu điểm và mở danh sách
+      await cham(p, mobile, don);
+      await p.ev(`(${don}).select(); true`);
+      await goChu(p, "Bãi Tiên, Nha Trang");
+      await cham(p, mobile, oNoi(0, 0, "tra"));
+      assert.equal(await p.ev(`(${don}).value`), "Bãi Tiên, Nha Trang", "chạm ô Nơi trả → chữ ô đón được giữ");
+      assert.equal(await p.ev(coTieuDiem(oNoi(0, 0, "tra"))), true, "cú chạm ô Nơi trả không bị nuốt: tiêu điểm ở ô trả");
+      assert.equal(await p.ev(moDs(oNoi(0, 0, "tra"))), true, "cú chạm ô Nơi trả không bị nuốt: danh sách ô trả mở");
+      await phim(p, "Escape");
+      assert.equal(await p.ev(`(${oNoi(0, 0, "tra")}).value`), "Cảng Cầu Đá", "Esc ở ô trả: giữ giá trị cũ");
+      // gõ ở Nơi đón rồi CHẠM "+ Thêm chiều về": chiều về được tạo, Nơi trả chiều về = chữ vừa gõ (khối dựng lại không nuốt cú chạm)
+      await cham(p, mobile, don);
+      await p.ev(`(${don}).select(); true`);
+      await goChu(p, "Bãi Dương, Nha Trang");
+      await cham(p, mobile, `${the(0)}.querySelector('[data-action="them-chieu-ve"]')`);
+      await sleep(150);
+      assert.equal(await p.ev(`${THE}.length`), 1, `vẫn ở form, một thẻ (đang ở ${await p.ev("location.pathname + location.search")}, gửi form ${await p.ev("window.__guiForm ?? 'mất đếm'")} lần)`);
+      assert.equal(await p.ev(`${the(0)}.querySelectorAll('.dd-chang').length`), 2, "cú chạm '+ Thêm chiều về' không bị nuốt: có chiều về");
+      assert.equal(await p.ev(`(${don}).value`), "Bãi Dương, Nha Trang", "chữ ô đón được giữ");
+      assert.equal(await p.ev(`(${oNoi(0, 1, "tra")}).value`), "Bãi Dương, Nha Trang", "Nơi trả chiều về = chữ vừa gõ ở Nơi đón chiều đi");
+      // bỏ chiều về vừa thêm (trả trạng thái cho các bước sau). Chiều về đủ nơi đón nên hiện GỌN một dòng: chạm dòng tóm tắt để mở rồi mới chạm "Bỏ chặng".
+      const ttVe = `${chang(0, 1)}.closest('.dd-chang-khung').querySelector('.dd-tom-tat')`;
+      if (await p.ev(hien(ttVe))) await cham(p, mobile, ttVe);
+      assert.equal(await p.ev(hien(`${chang(0, 1)}.querySelector('[data-action="bo-chang"]')`)), true, "nút 'Bỏ chặng' của chiều về đang hiện");
+      await cham(p, mobile, `${chang(0, 1)}.querySelector('[data-action="bo-chang"]')`);
+      assert.equal(await p.ev(`${the(0)}.querySelectorAll('.dd-chang').length`), 1, "bỏ chiều về");
+      assert.equal(await soGui(), 0, "không lần gửi form nào trong lúc thao tác");
+      // trả về điểm cho các bước sau (ô đang là chữ tự do: mở ra vẫn giữ chữ → chọn hết rồi gõ tìm)
+      await chonNoiMotO(p, mobile, don, { tim: "bien xanh", dong: "Khách sạn Biển Xanh", xoaTruoc: true });
+      assert.equal(await p.ev(`(${don}).value`), "Khách sạn Biển Xanh · khách sạn");
       await p.ev(setInput(`${chang(0)}.querySelector('[data-o$=":gio"]')`, "07:30"));
     });
 
-    await buoc(`${kho}-5`, "Lưu khi chặng thiếu nơi đón: câu lỗi dưới ô, ô đỏ, tiêu điểm ở ô, trong khung nhìn, danh sách không tự bật", async () => {
+    await buoc(`${kho}-5`, `chạm Lưu khi chặng thiếu nơi đón: câu lỗi dưới ô, ô đỏ, trong khung nhìn, danh sách không tự bật; tiêu điểm ${mobile ? "ở đầu chặng (cảm ứng: không ô gõ nào)" : "ở ô"}`, async () => {
       await chon("TTB06", 2);
       await p.ev(setInput(`${the(1)}.querySelector('.counter-field[aria-label="Người lớn"]')`, "2"));
       await p.ev(`${the(1)}.querySelector('[data-action="them-dua-don"]').click(); true`);
@@ -213,11 +274,16 @@ try {
       await cham(p, mobile, `${the(0)}.querySelector('.svc-mo')`);
       assert.deepEqual(await p.ev(`[...${THE}].map((c) => c.querySelector('.svc-mo').getAttribute('aria-expanded'))`), ["true", "false"], "ĐẦU: thẻ TTB06 (thiếu nơi đón) đang gập");
       await p.ev("window.scrollTo(0, 0); true");
-      await p.ev("document.getElementById('save').click(); true");
+      await cham(p, mobile, "document.getElementById('save')"); // chạm THẬT (cảm ứng ở 390): nhánh "Lưu bằng chạm" của M-1
       await p.waitFor("!document.getElementById('save-error').hidden", "banner lỗi lưu");
       await sleep(400);
       const don = oNoi(1, 0, "don");
-      assert.equal(await p.ev(coTieuDiem(don)), true, `tiêu điểm ở ô Nơi đón của chặng lỗi (đang ở: ${await p.ev("document.activeElement?.outerHTML.slice(0, 90) ?? null")})`);
+      const dangO = await p.ev("document.activeElement?.outerHTML.slice(0, 90) ?? null");
+      if (mobile) {
+        // Vòng sửa 1 (M-1): Lưu bằng chạm — tiêu điểm ở ĐẦU chặng lỗi (không phải ô gõ: bàn phím ảo iPhone không bật), ô lỗi vẫn được cuộn vào khung nhìn.
+        assert.equal(await p.ev(coTieuDiem(`${chang(1)}.querySelector('.dd-chang-dau')`)), true, `cảm ứng: tiêu điểm ở đầu chặng lỗi (đang ở: ${dangO})`);
+        assert.equal(await p.ev("['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)"), false, "cảm ứng: tiêu điểm không ở ô gõ nào");
+      } else assert.equal(await p.ev(coTieuDiem(don)), true, `chuột: tiêu điểm ở ô Nơi đón của chặng lỗi (đang ở: ${dangO})`);
       assert.equal(await p.ev(`(${don}).getAttribute('aria-invalid')`), "true", "ô đỏ");
       assert.equal(await p.ev(trongKhung(don)), true, "ô trong khung nhìn");
       assert.equal(await p.ev(moDs(don)), false, "tiêu điểm do Lưu đặt: danh sách không tự bật");
@@ -228,9 +294,9 @@ try {
     });
 
     let idDon = null;
-    await buoc(`${kho}-6`, "lưu thật, mở lại: chặng đủ gập một dòng; chạm dòng → chặng mở, tiêu điểm ở ô Nơi đón, danh sách không bật", async () => {
+    await buoc(`${kho}-6`, `lưu thật, mở lại: chặng đủ gập một dòng; chạm dòng → chặng mở, ô Nơi đón trong khung nhìn, danh sách không bật; tiêu điểm ${mobile ? "ở đầu chặng (cảm ứng)" : "ở ô Nơi đón"}`, async () => {
       await chonNoiMotO(p, mobile, oNoi(1, 0, "don"), { tim: "15 Trần Phú, Nha Trang", dong: "Gõ tự do: " });
-      await p.ev("document.getElementById('save').click(); true");
+      await cham(p, mobile, "document.getElementById('save')");
       await p.waitFor("location.pathname === '/order' && !!new URLSearchParams(location.search).get('id')", "lưu xong", 15000);
       idDon = await p.ev("new URLSearchParams(location.search).get('id')");
       await p.send("Page.navigate", { url: `${env.base}/order-form?id=${idDon}` });
@@ -243,7 +309,12 @@ try {
       assert.equal(await p.ev(`(${tt}).textContent.trim()`), `Chiều đi · Đón 07:30 · Khách sạn Biển Xanh → Cảng Cầu Đá`);
       await cham(p, mobile, tt);
       assert.equal(await p.ev(hien(oNoi(0, 0, "don"))), true, "chạm dòng → chặng mở");
-      assert.equal(await p.ev(coTieuDiem(oNoi(0, 0, "don"))), true, "tiêu điểm ở ô Nơi đón");
+      assert.equal(await p.ev(trongKhung(oNoi(0, 0, "don"))), true, "ô Nơi đón trong khung nhìn");
+      if (mobile) {
+        // Vòng sửa 1 (M-1): chạm bằng cảm ứng → tiêu điểm ở đầu chặng, không ở ô gõ (bàn phím ảo không bật)
+        assert.equal(await p.ev(coTieuDiem(`${chang(0)}.querySelector('.dd-chang-dau')`)), true, `cảm ứng: tiêu điểm ở đầu chặng (đang ở: ${await p.ev("document.activeElement?.outerHTML.slice(0, 90) ?? null")})`);
+        assert.equal(await p.ev("['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)"), false, "cảm ứng: tiêu điểm không ở ô gõ nào");
+      } else assert.equal(await p.ev(coTieuDiem(oNoi(0, 0, "don"))), true, "chuột: tiêu điểm ở ô Nơi đón");
       assert.equal(await p.ev(moDs(oNoi(0, 0, "don"))), false, "danh sách không tự bật");
       assert.equal(await p.ev(`(${oNoi(0, 0, "don")}).value`), "Khách sạn Biển Xanh · khách sạn");
       assert.equal(await p.ev(`(${oNoi(0, 0, "tra")}).value`), "Cảng Cầu Đá");
