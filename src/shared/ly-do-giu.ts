@@ -73,7 +73,7 @@ export const MA_GIU = {
   // Chính sách (Toàn quyền)
   CHINH_SACH_RONG: { loiNhan: "Chưa có chính sách điều phối đang hiệu lực", aiXuLy: "TOAN_QUYEN" },
   KHONG_CO_HANG_BANG: { loiNhan: "Chưa có quy định số khách cho hạng bằng lái này", aiXuLy: "TOAN_QUYEN" },
-  HOP_DONG: { loiNhan: "Chính sách đòi hợp đồng vận chuyển nhưng app chưa hỗ trợ", aiXuLy: "TOAN_QUYEN" },
+  HOP_DONG: { loiNhan: "Chính sách đòi hợp đồng vận chuyển nhưng Nền tảng chưa hỗ trợ", aiXuLy: "TOAN_QUYEN" },
 } as const satisfies Record<string, { loiNhan: string; aiXuLy: AiXuLy }>;
 
 export type MaGiu = keyof typeof MA_GIU;

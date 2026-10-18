@@ -52,10 +52,10 @@ test("cheCauHoi: bỏ ký tự điều khiển / đảo chiều chữ, gộp kho
 
 // ---- kho + tìm (ADR-0066 điều 3)
 
-test("kho: có đủ ba nguồn (hướng dẫn, cách app vận hành, sơ đồ trang); tên mục không trùng, không chứa ngoặc vuông", () => {
+test("kho: có đủ ba nguồn (hướng dẫn, cách Nền tảng vận hành, sơ đồ trang); tên mục không trùng, không chứa ngoặc vuông", () => {
   const kho = chiaKho();
   assert.ok(kho.some((d) => d.ten.startsWith("Phần chung › ")));
-  assert.ok(kho.some((d) => d.ten.startsWith("Cách app vận hành › ")));
+  assert.ok(kho.some((d) => d.ten.startsWith("Cách Nền tảng vận hành › ")));
   assert.ok(kho.some((d) => d.ten.startsWith("Sơ đồ trang › ")));
   assert.equal(new Set(kho.map((d) => d.ten)).size, kho.length, "tên mục trùng làm dòng Nguồn mơ hồ");
   for (const d of kho) assert.ok(!/[[\]]/.test(d.ten), d.ten);
@@ -68,7 +68,7 @@ test("A3 cho kho: mọi chữ gửi đi (hướng dẫn + kiến trúc + sơ đ�
 });
 
 test("kiến trúc lời thường: không tên bảng / đường dẫn API / tệp mã", () => {
-  for (const d of chiaKho().filter((x) => x.ten.startsWith("Cách app vận hành"))) {
+  for (const d of chiaKho().filter((x) => x.ten.startsWith("Cách Nền tảng vận hành"))) {
     assert.ok(!/\/api\/|\.ts\b|\.sql\b|[a-z]+_[a-z]+\b|SELECT|INSERT/.test(d.chu), `${d.ten}: có chữ kỹ thuật`);
   }
 });

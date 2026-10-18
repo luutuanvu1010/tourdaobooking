@@ -12,6 +12,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0130 (rà soát ngôn ngữ giao diện, lượt 1): chỉ đổi chữ hiện cho người dùng + dấu trừ trên dòng huỷ khoản thu; không migration, mã nội bộ giữ nguyên.
+    // Số 2.18 là số TẠM (= production 2.17 + 1, theo bộ nhớ phiên 2026-10-18, chưa kiểm bằng lệnh): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0).
+    version: "2.18",
+    date: "2026-10-18",
+    items: [
+      { kind: "doi", text: "Trang đơn, khối Thanh toán: «Ghi lần thu» nay là «Ghi khoản thu»; «Thay lần thu» nay là «Sửa khoản thu đã ghi»; nút «Đảo» nay là «Huỷ khoản thu»." },
+      { kind: "doi", text: "Khoản thu đã huỷ ghi «(đã huỷ)»; dòng huỷ hiện số có dấu trừ để không bị đọc thành khách trả thêm một lần." },
+      { kind: "doi", text: "Chi phí xe thuê: nút «Đảo dòng» nay là «Huỷ dòng». Trong hộp huỷ đơn, nút «Giữ đơn» nay là «Không huỷ»." },
+    ],
+  },
+  {
     // Sửa B-01 (rà soát trước launch): tin «giao đơn» gửi tới chính người được giao không còn đọc «cho người khác phụ trách». Chỉ đổi chữ, không migration, không cần
     // đổi dữ liệu. Số 2.17 là số TẠM (= production 2.16 + 1, kiểm 2026-10-18): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
     // Ngày là ngày dự kiến.

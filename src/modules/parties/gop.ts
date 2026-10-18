@@ -56,7 +56,7 @@ const CAU: Record<Exclude<MaChanGop, "merge_source_busy" | "merge_order_invalid"
   merge_owner_company: "Không gộp được hồ sơ công ty chủ.",
   merge_both_accounts: "Cả hai hồ sơ đều có tài khoản — không gộp được.",
   merge_source_has_account: "Hồ sơ phụ có tài khoản: hãy chọn hồ sơ có tài khoản làm hồ sơ chính.",
-  merge_source_account_role: "Hồ sơ phụ đang giữ vai quyết định quyền đăng nhập (nội bộ hoặc bên ngoài) — kết thúc vai đó ở màn Quản lý tài khoản trước.",
+  merge_source_account_role: "Hồ sơ phụ đang giữ vai quyết định quyền đăng nhập (nội bộ hoặc bên ngoài) — bỏ chọn vai đó ở màn Quản lý tài khoản (Sửa → Lưu) trước, rồi gộp lại.",
   merge_role_group_conflict: "Sau khi gộp, hồ sơ chính sẽ vừa giữ vai nội bộ vừa giữ vai bên ngoài — không được.",
   merge_partner_label_internal: "Gộp xong, hồ sơ chính vừa là nhân viên nội bộ vừa mang loại đối tác — không được.",
   merge_source_is_target: "Đã có hồ sơ khác gộp vào hồ sơ phụ này — hãy chọn nó làm hồ sơ chính (không gộp nối tiếp).",

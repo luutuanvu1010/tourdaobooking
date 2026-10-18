@@ -139,8 +139,8 @@ export async function lenhDaoDong(db: D1Database, tripId: string, b: DaoDongThan
     return {
       ok: false,
       res: error(409, "khong_dao_duoc", goc.kind !== "REVERSAL" && nguon && !nc.dong.some((d) => d.reversesId === goc.id)
-        ? "Giá đã chụp không đảo được sau khi xe chạy — dùng điều chỉnh."
-        : "Dòng này đã được đảo hoặc là dòng đảo."),
+        ? "Giá đã chụp không huỷ được sau khi xe chạy — dùng điều chỉnh."
+        : "Dòng này đã bị huỷ hoặc là một dòng huỷ."),
     };
   }
   const truoc = tongChiPhiChuyen(nc.dong);
@@ -158,8 +158,8 @@ async function kiemDatGia(db: D1Database, nc: { trip: TripRow; dong: DongChiPhi[
   if (nc.trip.status !== "PLANNED") return error(409, "chuyen_khong_con_ke_hoach", "Chỉ đặt giá khi chuyến chưa xuất bến — sau đó dùng điều chỉnh.");
   if (nc.trip.rented !== 1) return error(409, "khong_phai_xe_thue", "Chuyến này không phải xe thuê — không cần giá.");
   const nguon = nguonGiaConHieuLuc(nc.dong);
-  if (nguon?.kind === "SNAPSHOT") return error(409, "da_co_gia", "Chuyến đã có giá bảng — đảo giá bảng trước nếu muốn dùng giá thoả thuận.");
-  if (nguon?.kind === "AGREED") return error(409, "da_co_gia", "Chuyến đã có giá thoả thuận — đảo giá cũ trước nếu muốn nhập lại.");
+  if (nguon?.kind === "SNAPSHOT") return error(409, "da_co_gia", "Chuyến đã có giá bảng — huỷ dòng giá bảng trước nếu muốn dùng giá thoả thuận.");
+  if (nguon?.kind === "AGREED") return error(409, "da_co_gia", "Chuyến đã có giá thoả thuận — huỷ dòng giá cũ trước nếu muốn nhập lại.");
   if (phienBan !== rowsLen) return VUA_DOI();
   if (!(await nhaXeDangHopTac(db)).some((c) => c.partyId === nc.trip.carrier_party_id)) return NHA_XE_THOI();
   return null;

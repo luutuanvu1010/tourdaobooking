@@ -210,7 +210,7 @@ const OUTSIDE_DECIDE = defineSql(
 export const outsideDecideStatement = (db: D1Database, o: { id: string; orderId: string; recordId: string; kind: "CONFIRM" | "REJECT"; reason: string | null; occurredDate: string; at: string; by: string }) =>
   db.prepare(OUTSIDE_DECIDE).bind(o.id, o.orderId, o.recordId, o.kind, o.reason, o.occurredDate, o.at, o.by);
 
-/** Nửa thu của lệnh chuyển trỏ tới lần thu `?1` (nửa chi) — rỗng nếu `?1` không phải nửa chi đã ghép đôi (kiểm độc lập vòng 2 CAO-2). */
+/** Nửa thu của lệnh chuyển trỏ tới khoản thu `?1` (nửa chi) — rỗng nếu `?1` không phải nửa chi đã ghép đôi (kiểm độc lập vòng 2 CAO-2). */
 const TRANSFER_IN_OF = defineSql("billing", "coc_transfer_in_of", `SELECT id FROM bil_payment_receipt WHERE transfer_of_id = ?1`);
 export async function transferInOf(db: D1Database, receiptId: string): Promise<string[]> {
   return (await db.prepare(TRANSFER_IN_OF).bind(receiptId).all<{ id: string }>()).results.map((r) => r.id);

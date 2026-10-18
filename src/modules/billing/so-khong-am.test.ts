@@ -54,7 +54,7 @@ test("Đ1 (KT06): thu 300.000 → hoàn 200.000 → đảo lần thu gốc ⇒ 4
   const r = await dieuChinh(w, { loai: "dao_lan_thu", receiptId: lanThu(w, id, "CUSTOMER_PAYMENT"), lyDo: "ghi nhầm lần thu của đơn" });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "net_paid_negative");
-  assert.match(r.json.error.message, /đảo lần hoàn/);
+  assert.match(r.json.error.message, /huỷ khoản trả lại khách trước/);
   assert.equal(daThuRong(w, id), 100_000, "không ghi gì");
   assert.equal((await dieuChinh(w, { loai: "dao_lan_thu", receiptId: lanThu(w, id, "CUSTOMER_REFUND"), lyDo: "hoàn nhầm cho khách" })).status, 201);
   assert.equal((await dieuChinh(w, { loai: "dao_lan_thu", receiptId: lanThu(w, id, "CUSTOMER_PAYMENT"), lyDo: "ghi nhầm lần thu của đơn" })).status, 201);

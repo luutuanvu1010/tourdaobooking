@@ -1,4 +1,4 @@
-// "Thay lần thu" + I1 mọi lúc sau Đã giao (ADR-0088 đ1–đ5, đ8 — TNV-G3 phần thi công được; đ9 phân định trách nhiệm DỪNG chờ chủ) — hành vi qua ROUTE THẬT
+// "Sửa khoản thu đã ghi" + I1 mọi lúc sau Đã giao (ADR-0088 đ1–đ5, đ8 — TNV-G3 phần thi công được; đ9 phân định trách nhiệm DỪNG chờ chủ) — hành vi qua ROUTE THẬT
 // trên khung thử (tests/audit/harness.mjs: cả ứng dụng + SQLite, lô `db.batch()` là một giao dịch). Lớp CSDL (0083) ở src/migrations-thay-lan-thu.test.ts.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -39,7 +39,7 @@ const thay = (w: W, as: string, body: Record<string, unknown>) => w.call("POST",
 const lanThu = (w: W, orderId: string, soTien: number) => String(w.q("SELECT id FROM bil_payment_receipt WHERE order_id = ? AND amount = ? AND reverses_id IS NULL AND kind_code = 'CUSTOMER_PAYMENT' ORDER BY created_at", orderId, soTien)[0].id);
 const tien = async (w: W, orderId: string) => (await w.call("GET", `/api/orders/${orderId}/payments`, { as: KT })).json;
 const dem = (w: W, sql: string, ...a: unknown[]) => Number(w.q(sql, ...a)[0].n);
-/** Đơn đã Đã giao: HDV thu 600.000 (thật ra khách CHUYỂN KHOẢN cho công ty — ghi nhầm người thu) + 400.000 tiền mặt, rồi bấm Đã giao. */
+/** Đơn đã ở bước Đã giao: HDV thu 600.000 (thật ra khách CHUYỂN KHOẢN cho công ty — ghi nhầm người thu) + 400.000 tiền mặt, rồi bấm Đã giao. */
 async function daGiaoGhiNham(w: W): Promise<string> {
   const id = don(w);
   assert.equal((await thu(w, HDV, id, 600_000)).status, 201);
@@ -49,14 +49,14 @@ async function daGiaoGhiNham(w: W): Promise<string> {
   return id;
 }
 
-test("G3 (tình huống 30, KD06): sau Đã giao — 'Đảo' đơn lẻ ⇒ 409 chỉ đường 'Thay lần thu'; Thay 600.000 HDV → 600.000 Công ty thu – CK ⇒ 201, đã thu giữ 1.000.000, HDV còn giữ 400.000, nhật ký số trước / sau", async () => {
+test("G3 (tình huống 30, KD06): sau Đã giao — 'Đảo' đơn lẻ ⇒ 409 chỉ đường 'Sửa khoản thu đã ghi'; Thay 600.000 HDV → 600.000 Công ty thu – CK ⇒ 201, đã thu giữ 1.000.000, HDV còn giữ 400.000, nhật ký số trước / sau", async () => {
   const w = setup();
   const id = await daGiaoGhiNham(w);
   const r600 = lanThu(w, id, 600_000);
   const dao = await w.call("POST", "/api/ledger/adjustments", { as: KT, body: { loai: "dao_lan_thu", receiptId: r600, lyDo: "ghi nhầm người thu" } });
   assert.equal(dao.status, 409, dao.text);
   assert.equal(dao.json.error.code, "receipt_after_delivered");
-  assert.match(dao.json.error.message, /Thay lần thu/);
+  assert.match(dao.json.error.message, /Sửa khoản thu đã ghi/);
   const r = await thay(w, KT, { orderId: id, cu: [r600], moi: [{ soTien: 600_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", maGiaoDich: "FTTH0001", soThucChuyen: 600_000 }], lyDo: "Khách chuyển khoản cho công ty, HDV ghi nhầm" });
   assert.equal(r.status, 201, r.text);
   const t = await tien(w, id);
@@ -65,7 +65,7 @@ test("G3 (tình huống 30, KD06): sau Đã giao — 'Đảo' đơn lẻ ⇒ 409
   assert.equal(dem(w, "SELECT count(*) AS n FROM bil_posting WHERE order_id = ? AND kind_code = 'REPLACEMENT'", id), 1);
   assert.equal(dem(w, "SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = ? AND replacement_id IS NOT NULL", id), 2, "một lần thu mới + một dòng đảo mang dấu nối");
   const nk = String(w.q("SELECT detail FROM audit_log WHERE order_id = ? AND action = 'ledger_receipt_replaced'", id)[0].detail);
-  assert.match(nk, /thay 1 lần thu \(600\.000 ₫\) bằng 1 lần thu \(600\.000 ₫\) · đã thu trước 1\.000\.000 ₫ → sau 1\.000\.000 ₫/);
+  assert.match(nk, /thay 1 khoản thu \(600\.000 ₫\) bằng 1 khoản thu \(600\.000 ₫\) · đã thu trước 1\.000\.000 ₫ → sau 1\.000\.000 ₫/);
 });
 
 test("đ2 + đ1: Thay làm lệch I1 (600.000 → 500.000 sau Đã giao) ⇒ 409 replacement_i1, KHÔNG ghi gì; lý do < 10 ký tự ⇒ 400; ngày phát sinh ngoài tháng đang mở ⇒ 400; Bán hàng ⇒ 403; lần thu đơn khác ⇒ 404", async () => {
@@ -105,7 +105,7 @@ test("đ4 (iv): hoàn cho khách SAU Đã giao ⇒ 409 câu nguyên văn ADR (ch
   const h = await w.call("POST", "/api/ledger/refunds", { as: KT, body: { orderId: id, soTien: 100_000, hinhThuc: "CASH", nguoiTra: "cong_ty" } });
   assert.equal(h.status, 409, h.text);
   assert.equal(h.json.error.code, "refund_after_delivered");
-  assert.equal(h.json.error.message, "Đơn đã Đã giao — hoàn cho khách cần phân định trách nhiệm trước; báo Quản trị.");
+  assert.equal(h.json.error.message, "Đơn đã ở bước Đã giao — hoàn cho khách cần phân định trách nhiệm trước; báo Quản trị.");
   // HDV nộp đủ để chỉ còn điều kiện I1; dữ liệu cũ lệch (SQL tay, gỡ trigger 0083 trong DB thử) ⇒ Hoàn thành bị chặn.
   assert.equal((await w.call("POST", "/api/ledger/settlements", { as: KT, body: { chieu: "nop", partyId: `pty-${HDV}`, phanBo: [{ orderId: id, soTien: 1_000_000 }] } })).status, 201);
   w.sqlite.exec("DROP TRIGGER bil_receipt_after_delivered");
@@ -117,7 +117,7 @@ test("đ4 (iv): hoàn cho khách SAU Đã giao ⇒ 409 câu nguyên văn ADR (ch
   assert.equal(t.lyDoChuaHoanThanh.ma, "due_mismatch");
   const c = await w.call("POST", `/api/orders/${id}/completed`, { as: KT, body: {} });
   assert.equal(c.status, 409, c.text);
-  assert.match(c.json.error.message, /Thay lần thu/);
+  assert.match(c.json.error.message, /Sửa khoản thu đã ghi/);
 });
 
 test("kiểm độc lập vòng 3 (CAO): khoản 'Công ty thu – CK' do HDV khai còn CHỜ XÁC NHẬN ⇒ Thay bị từ chối 409 (ADR-0088 đ4 (i); ADR-0120: khoản đang đối chiếu, không dòng giữ hộ); lần thu tiền mặt HDV giữ: Thay giữ đúng người thu thì HDV vẫn giữ", async () => {

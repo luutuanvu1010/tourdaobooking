@@ -114,7 +114,7 @@ export const MATRIX = {
   "dispatch.assign": row("ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"), // đặt/đổi người phụ trách và nhiệm vụ (ADR-0009: cả người phụ trách hiện tại)
   "dispatch.claim": row("any", "none", "any", "any", "none", "any", "none", "none", "none", "none"), // nhận phụ trách đơn CHƯA có người (ADR-0009; điều kiện "chưa có người" do dịch vụ của dispatch kiểm, không phải ô này) — FIELD any (ADR-0030 S20-6/S20-12); chốt Nhận (đã huỷ/qua ngày đi) + chặn tài khoản có quyền Đối tác ở route PUT /api/orders/:id/handler
   "dispatch.guides.view": row("none", "none", "none", "none", "any", "any", "none", "none", "none", "none"), // danh sách hẹp hướng dẫn viên nội bộ — thao tác MỚI (ADR-0014 điều 9, chưa có route)
-  // Sổ tiền lượt 1 (ADR-0026 điều 10, bảng 9 cột bản làm mới §2 — accepted 2026-09-29): ghi LẦN THU trước "Đã giao" (route POST /api/orders/:id/payments,
+  // Sổ tiền lượt 1 (ADR-0026 điều 10, bảng 9 cột bản làm mới §2 — accepted 2026-09-29): ghi KHOẢN THU trước "Đã giao" (route POST /api/orders/:id/payments,
   // module billing). FIELD assigned (HDV đang phụ trách ghi tiền mình thu trước chuyến), PARTNER own, INTERN own — thay ô cọc trên form đơn của mình.
   // Người thu ∈ {chính mình, Công ty} trừ Kế toán/Toàn quyền (kiểm ở route, không phải ô này).
   "payment.receive": row("own", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"),
@@ -136,7 +136,7 @@ export const MATRIX = {
   "order.complete": row("none", "any", "none", "none", "none", "any", "none", "none", "none", "none"),
   // Xem sổ công nợ (ADR-0026 đ7, đ10): own = "Sổ của tôi" (GET /api/ledger/mine); any = sổ mọi bên (GET /api/ledger). Đối tác none ở lượt 1; tài xế none.
   "ledger.view": row("own", "any", "own", "own", "none", "any", "own", "none", "none", "none"),
-  // Ghi sổ (ADR-0026 đ5, đ8): xác nhận công ty đã nhận, nộp/trả, điều chỉnh, đảo; cũng là "Kế toán" khi ghi lần thu (ghi người thu khác, chọn ngày phát sinh).
+  // Ghi sổ (ADR-0026 đ5, đ8): xác nhận công ty đã nhận, nộp/trả, điều chỉnh, đảo; cũng là "Kế toán" khi ghi khoản thu (ghi người thu khác, chọn ngày phát sinh).
   "ledger.write": row("none", "any", "none", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0115 đợt 1 (điều 2, Q1 = A): DUYỆT hoặc TỪ CHỐI yêu cầu điều chỉnh công nợ — Kế toán, Quản trị, Toàn quyền; phải KHÁC người tạo (kiểm theo tài khoản ở máy chủ + trigger 0094, không ở
   // ô này). Quản trị chỉ thấy danh sách yêu cầu CHỜ DUYỆT, KHÔNG thấy cả sổ (`ledger.view` không đổi). KHÔNG thêm vào `O_GHI_TIEN` (duyệt không phải ghi tiền; Quản trị vẫn không ghi sổ).

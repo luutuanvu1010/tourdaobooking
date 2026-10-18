@@ -7,7 +7,7 @@ export const HD_KE_TOAN: NhomHuongDan = {
   quyen: ["ACCOUNTING"],
   gioiThieu:
     "Bạn là kế toán của công ty. Bạn xem được mọi đơn: khách, dịch vụ, số khách, tiền, lịch sử sửa đơn, và mở được biên nhận để gửi khách. Trên trang đơn, bạn ghi và đối chiếu tiền, bấm Hoàn thành, đánh dấu đã nhập phần mềm kế toán. Bạn không lập, không sửa, không xác nhận, không huỷ đơn; riêng số khách của đơn đã xác nhận thì bạn sửa được.",
-  batDauNhanh: `1. Mở app. App vào thẳng [[Trang chủ]].
+  batDauNhanh: `1. Mở Nền tảng, vào thẳng [[Trang chủ]].
 2. Nhìn khối [[Việc của bạn]]: các thẻ [[Điều chỉnh công nợ chờ duyệt]], [[Đơn còn thiếu tiền]], [[Đơn nháp]]. Thẻ có nhãn **Toàn công ty** là số của cả công ty.
 3. Bấm [[Đơn hàng]] để xem danh sách đơn.
 4. Gõ tên khách, số điện thoại hoặc mã đơn vào ô tìm kiếm của danh sách.
@@ -35,7 +35,7 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
     },
     {
       tieuDe: "Xem tình hình chung ở Trang chủ",
-      noiDung: `1. Mở app. App vào thẳng [[Trang chủ]].
+      noiDung: `1. Mở Nền tảng, vào thẳng [[Trang chủ]].
 2. Máy tính: nhìn khối [[Việc của bạn]] dưới lời chào. Mỗi thẻ có số và một nút bấm:
    - [[Điều chỉnh công nợ chờ duyệt]] (nhãn **Của tôi**): yêu cầu đang chờ chính bạn duyệt.
    - [[Đơn còn thiếu tiền]] (nhãn **Toàn công ty**): tổng tiền khách còn phải trả của các đơn đã xác nhận.
@@ -62,7 +62,7 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
    - **Tạm tính**, **Giảm giá**, **Tổng cộng**
    - **Đã thu**, rồi **Còn lại** (khách trả dư thì ghi **Khách trả dư**)
    - **Ghi chú thanh toán**
-   - Từng lần thu: ngày, số tiền, hình thức, người thu
+   - Từng khoản thu: ngày, số tiền, hình thức, người thu
 4. Khối **Lịch sử** ở cuối trang ghi ai đã làm gì với đơn, lúc nào. Ai sửa số khách (hướng dẫn viên, người lập đơn, Kế toán, Quản trị) thì lý do cũng hiện ở đây.
 
 Đơn đã xác nhận có dòng khoá bắt đầu bằng "Đơn đã xác nhận: dịch vụ và đơn giá đã khoá." Số khách vẫn sửa được (mục "Sửa số khách đơn đã xác nhận").`,
@@ -74,13 +74,13 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
 1. Trên trang đơn, bấm [[Sửa số khách dịch vụ]].
 2. Bấm **+** và **−** để đổi số khách từng loại của từng dịch vụ. Dịch vụ nhập tay chỉ để xem, không sửa ở đây.
 3. Chọn lý do: [[Khách thêm người]], [[Khách bớt người]], [[Đổi dịch vụ]] hoặc [[Khác]].
-4. Bấm [[Lưu số khách]]. Nền tảng tự tính lại tiền theo đơn giá đã chốt của đơn; giảm giá giữ nguyên. Người lập và người phụ trách nhận tin đơn đổi.
+4. Bấm [[Lưu số khách]]. Tiền tự tính lại theo đơn giá đã chốt của đơn; giảm giá giữ nguyên. Người lập và người phụ trách nhận tin đơn đổi.
 
 Bớt khách sau khi khách đã trả: khối **Thanh toán** hiện **Khách trả dư** — hoàn cho khách bằng [[Ghi hoàn cho khách]] như thường lệ.
 
-Nếu giảm giá lớn hơn tiền dịch vụ còn lại, Nền tảng vẫn lưu và tính **Tổng cộng** bằng 0; phần giảm giá vượt không dùng tới. Khối **Thanh toán** hiện câu cảnh báo, và toàn bộ tiền khách đã trả hiện ở **Khách trả dư**. Hoàn bằng [[Ghi hoàn cho khách]] như thường lệ; hoàn xong thì đơn không còn bị giữ **Đã giao** vì khách trả dư.
+Nếu giảm giá lớn hơn tiền dịch vụ còn lại, vẫn lưu và tính **Tổng cộng** bằng 0; phần giảm giá vượt không dùng tới. Khối **Thanh toán** hiện câu cảnh báo, và toàn bộ tiền khách đã trả hiện ở **Khách trả dư**. Hoàn bằng [[Ghi hoàn cho khách]] như thường lệ; hoàn xong thì đơn không còn bị giữ **Đã giao** vì khách trả dư.
 
-Bớt khách mà đơn có giảm giá: khối **Thanh toán** hiện thêm một câu màu đỏ nhắc bạn xem lại khuyến mại. Nền tảng chỉ nhắc, không đổi số tiền và không chặn; câu nhắc còn cho tới khi số khách đủ lại như lúc xác nhận.
+Bớt khách mà đơn có giảm giá: khối **Thanh toán** hiện thêm một câu màu đỏ nhắc bạn xem lại khuyến mại. Chỉ nhắc, không đổi số tiền và không chặn; câu nhắc còn cho tới khi số khách đủ lại như lúc xác nhận.
 
 Khối **Lịch sử** có thêm phần **Số khách qua các lần sửa**: số khách và tạm tính lúc xác nhận, sau từng lần sửa và hiện tại. Phần này chỉ hiện khi đơn đã sửa số khách ít nhất một lần.
 
@@ -90,7 +90,7 @@ Không bớt hết người lớn được: đơn luôn cần ít nhất một n
       tieuDe: "Mở biên nhận để gửi khách",
       noiDung: `1. Mở trang **Chi tiết đơn**.
 2. Bấm [[Xem biên nhận]].
-3. Hộp **Xác nhận đơn để gửi khách** hiện ra. App tự vẽ ảnh xác nhận của đơn.
+3. Hộp **Xác nhận đơn để gửi khách** hiện ra. Ảnh xác nhận được vẽ sẵn.
 4. Bấm [[Tải ảnh PNG]] để lưu ảnh về máy, hoặc bấm [[Chia sẻ]] (có trên điện thoại) để gửi qua Zalo.
 5. Thấy dòng báo lỗi thì bấm [[Thử lại]].`,
     },
@@ -113,7 +113,7 @@ Kế toán có nút [[+ Hồ sơ mới]] và được thêm, sửa hồ sơ khá
     },
     {
       tieuDe: "Đặt mức hoa hồng cho đối tác",
-      noiDung: `Hoa hồng là tiền Công ty trả cho đại lý hoặc cộng tác viên đặt đơn. Khi đơn được xác nhận, app lấy mức đang áp trong bảng, tính hoa hồng một lần rồi giữ nguyên.
+      noiDung: `Hoa hồng là tiền Công ty trả cho đại lý hoặc cộng tác viên đặt đơn. Khi đơn được xác nhận, Nền tảng lấy mức đang áp trong bảng, tính hoa hồng một lần rồi giữ nguyên.
 
 1. Bấm [[Hoa hồng đối tác]] để xem các mức đang áp và sắp áp.
 2. Ở khối [[Thêm mức]], chọn áp cho một loại đối tác, chọn phạm vi (một dịch vụ, một nhóm dịch vụ hoặc mọi dịch vụ), chọn **Phần trăm** hoặc **Số tiền mỗi khách**, nhập ngày bắt đầu rồi bấm [[Thêm mức]].
@@ -143,7 +143,7 @@ Gắn loại cho hồ sơ ở Danh bạ là việc của Quản trị hoặc To�
 2. [[Thêm dòng]]: chọn mức, phạm vi, mức hoa hồng.
 3. [[Gắn mức]]: chọn loại, mức, ngày bắt đầu.
 
-Mức riêng luôn được ưu tiên; khi gắn, Nền tảng báo bằng khung vàng. Đổi mức từ hôm nay: [[Kết thúc gắn]] ngày hôm qua rồi gắn mức mới.`,
+Mức riêng luôn được ưu tiên; khi gắn sẽ hiện khung vàng. Đổi mức từ hôm nay: [[Kết thúc gắn]] ngày hôm qua rồi gắn mức mới.`,
     },
     {
       tieuDe: "Ghi mức tay cho một đơn",
@@ -157,13 +157,13 @@ Mức riêng luôn được ưu tiên; khi gắn, Nền tảng báo bằng khung
     },
     {
       tieuDe: "Khoá sổ tháng",
-      noiDung: `Khi một tháng đã qua được đối chiếu xong, bạn khoá sổ tháng đó để không ai ghi thêm tiền vào tháng ấy (lần thu, hoàn tiền, chi phí xe).
+      noiDung: `Khi một tháng đã qua được đối chiếu xong, bạn khoá sổ tháng đó để không ai ghi thêm tiền vào tháng ấy (khoản thu, hoàn tiền, chi phí xe).
 
 1. Bấm [[Khoá sổ tháng]]. Trang ghi các tháng đã khoá và **Tháng khoá được kế tiếp**.
-2. Xem bảng kiểm: khoản Công ty thu chờ xác nhận, lần thu chưa rõ người thu, số dư từng bên. Bảng chỉ để xem, không chặn việc khoá.
+2. Xem bảng kiểm: khoản Công ty thu chờ xác nhận, khoản thu chưa rõ người thu, số dư từng bên. Bảng chỉ để xem, không chặn việc khoá.
 3. Bấm **Khoá tháng** kèm tháng cần khoá, đọc câu cảnh báo, ghi chú nếu muốn, rồi bấm nút xác nhận.
 
-> Lưu ý: Khoá từng tháng theo thứ tự, không khoá tháng chưa qua. Tháng đã khoá **không mở lại được** trong app; sửa sau khi khoá chỉ còn cách khôi phục cả cơ sở dữ liệu, nên hãy chắc chắn trước khi bấm.`,
+> Lưu ý: Khoá từng tháng theo thứ tự, không khoá tháng chưa qua. Tháng đã khoá **không mở lại được**; sửa sau khi khoá chỉ còn cách khôi phục cả cơ sở dữ liệu, nên hãy chắc chắn trước khi bấm.`,
     },
     {
       tieuDe: "Điều chỉnh công nợ (cần người khác duyệt)",
@@ -180,7 +180,7 @@ Cần biết:
 - Tăng nợ có trần: tổng các lần tăng nợ trên một đơn (đã duyệt cộng đang chờ) không vượt số lớn hơn giữa tiền phải thu và tiền đã thu của đơn. Rút yêu cầu thì phần đó được trả lại. Giảm nợ không được vượt số đang nợ.
 - Máy kiểm lại các giới hạn này lúc duyệt. Số dư đã đổi từ lúc gửi hoặc tháng đã khoá sổ thì không duyệt được: từ chối rồi gửi lại.
 
-> Lưu ý: Chỉ lệnh điều chỉnh cần người khác duyệt. Các việc khác ở trang đơn như [[Đảo]] một lần thu vẫn làm như trước.`,
+> Lưu ý: Chỉ lệnh điều chỉnh cần người khác duyệt. Việc khác như [[Huỷ khoản thu]] vẫn làm như trước.`,
     },
     {
       tieuDe: "Tình huống hay gặp",
@@ -190,13 +190,14 @@ Bạn không sửa được. Ghi lại mã đơn rồi báo người lập đơn
 
 ### Khách đã trả thêm tiền, muốn ghi vào đơn
 
-Trong khối **Thanh toán**, bấm [[Ghi lần thu]]: số tiền, hình thức, người nhận tiền; riêng Kế toán chọn được **Ngày phát sinh**. Bấm [[Ghi]]. Sau khi đơn **Đã giao – đã thu đủ** thì không ghi thêm lần thu được.
+Trong khối **Thanh toán**, bấm [[Ghi khoản thu]]: số tiền, hình thức, người nhận tiền; riêng Kế toán chọn được **Ngày phát sinh**. Bấm [[Ghi]]. Sau khi đơn **Đã giao – đã thu đủ** thì không ghi thêm khoản thu được.
 
 ### Đối chiếu tiền trên trang đơn
 
 Mọi việc làm ngay trên trang đơn:
-- Lần thu người khác khai là tiền vào công ty: đối chiếu tài khoản, bấm [[Xác nhận đã nhận]] rồi [[Công ty đã nhận]].
-- Lần thu ghi sai: bấm [[Đảo]], ghi lý do (bắt buộc). Sổ giữ dòng cũ và thêm một dòng đảo.
+- Khoản thu người khác khai là tiền vào công ty: đối chiếu tài khoản, bấm [[Xác nhận đã nhận]] rồi [[Công ty đã nhận]].
+- Sai số tiền, hình thức hay người thu: [[Sửa khoản thu đã ghi]] → [[Lưu khoản thu đúng]] (đơn đã giao chỉ sửa được cách này).
+- Ghi nhầm hẳn, đơn chưa giao: [[Huỷ khoản thu]], ghi lý do → [[Huỷ khoản này]]. Sổ giữ dòng cũ, thêm dòng trừ.
 - Khối **Kế toán** ghi ai đang giữ tiền của công ty: nhận tiền rồi bấm [[Đã nộp về công ty]].
 - Khách trả dư: bấm [[Ghi hoàn cho khách]].
 
@@ -206,7 +207,7 @@ Khi đơn **Đã giao – đã thu đủ** và không ai còn giữ tiền của
 
 ### Đánh dấu đã nhập phần mềm kế toán
 
-App **không xuất hoá đơn**. Khi đã nhập đơn vào phần mềm kế toán, ở khối **Phần mềm kế toán** bấm [[Đánh dấu đã nhập]], gõ số hoá đơn (không bắt buộc), bấm [[Đánh dấu]]. Chỉ đơn đã xác nhận mới đánh dấu được. Sửa số: [[Sửa số hoá đơn]]. Nhầm: [[Bỏ dấu]], ghi lý do.
+Nền tảng **không xuất hoá đơn**. Khi đã nhập đơn vào phần mềm kế toán, ở khối **Phần mềm kế toán** bấm [[Đánh dấu đã nhập]], gõ số hoá đơn (không bắt buộc), bấm [[Đánh dấu]]. Chỉ đơn đã xác nhận mới đánh dấu được. Sửa số: [[Sửa số hoá đơn]]. Nhầm: [[Bỏ đánh dấu]], ghi lý do.
 
 ### Cần danh sách đơn để làm sổ
 
@@ -224,14 +225,14 @@ Chuông ở thanh trên báo khi có đơn mới, có người nhận đơn, đ�
       tieuDe: "Điều bạn không làm được — hỏi ai",
       noiDung: `- Lập đơn mới: không. Nhờ nhân viên bán hàng.
 - Sửa, xác nhận, huỷ đơn: không. Nhờ người lập đơn, người phụ trách đơn hoặc Quản trị.
-- Thêm dịch vụ, đổi giá sau khi xác nhận: Nền tảng chưa có cách sửa, kể cả tài khoản Toàn quyền — báo Quản trị. Số khách thì bạn sửa được (mục "Sửa số khách đơn đã xác nhận").
+- Thêm dịch vụ, đổi giá sau khi xác nhận: chưa có cách sửa, kể cả tài khoản Toàn quyền — báo Quản trị. Số khách thì bạn sửa được (mục "Sửa số khách đơn đã xác nhận").
 - Nhận phụ trách, giao đơn cho người khác: không. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Duyệt "Đặt gấp": không. Nhờ Quản trị.
 - Tự duyệt yêu cầu điều chỉnh công nợ của chính mình: không. Nhờ Quản trị, Toàn quyền hoặc một Kế toán khác.
 - Đặt mức riêng cho một đối tác, thử tra mức: chưa, vì tài khoản Kế toán không tìm được đối tác theo tên. Nhờ Quản trị hoặc Toàn quyền.
 - Xếp xe, tạo chuyến, bấm tiến độ chuyến: không, bạn chỉ xem. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Bấm **Đã giao – đã thu đủ**: không. Hướng dẫn viên đang phụ trách đơn hoặc Quản trị bấm.
-- Xuất hoá đơn trong app: không có. Xuất ở phần mềm kế toán rồi đánh dấu trên đơn.
+- Xuất hoá đơn: không có. Xuất ở phần mềm kế toán rồi đánh dấu trên đơn.
 - Sửa bảng giá dịch vụ, quản lý tài khoản nhân viên: không. Nhờ Quản trị.`,
     },
     {
@@ -252,7 +253,7 @@ Không. Dòng này giải thích vì sao bạn không có nút sửa.
 
 Máy đã bật Face ID: vào [[Tôi]], bấm [[Quên PIN? Đặt PIN mới bằng Face ID]]. Chưa bật: nhờ Quản trị đặt lại PIN.
 
-### Tôi muốn báo một chỗ sai trong app
+### Tôi muốn báo một chỗ sai
 
 Bấm [[Hỗ trợ]], ghi rõ mã đơn và việc bạn thấy sai.`,
     },

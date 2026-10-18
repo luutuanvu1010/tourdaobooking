@@ -52,7 +52,7 @@ export interface MucGhiNhieuLan {
   readonly duong: string;
   readonly lyDo: string;
 }
-// Đo 2026-10-02 bằng e2e đủ bộ (log `lan_gui_ghi_nhieu_lan`, run.mjs). Không route tiền / đơn nào (lập đơn, lần thu, Đã giao, hoàn, nộp, điều chỉnh) trong
+// Đo 2026-10-02 bằng e2e đủ bộ (log `lan_gui_ghi_nhieu_lan`, run.mjs). Không route tiền / đơn nào (lập đơn, khoản thu, Đã giao, hoàn, nộp, điều chỉnh) trong
 // danh sách. Trả nợ trước bản siết: gộp về một lô, hoặc chuyển phần phụ sang "ngoài vé" có tên.
 export const GHI_NHIEU_LAN: readonly MucGhiNhieuLan[] = [
   { duong: "POST /api/staff/:id/reset-pin", lyDo: "Lô đặt lại PIN (+ gỡ Face ID, kết thúc phiên) rồi mở khoá 'sai PIN quá nhiều' (unlockPhone của auth) ở lần ghi thứ hai. Lần hai hỏng ⇒ gửi lại nhận 'đã ghi' dù chưa mở khoá — Quản trị bấm Mở khoá được." },

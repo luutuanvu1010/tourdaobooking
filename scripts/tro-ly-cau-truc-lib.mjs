@@ -120,9 +120,9 @@ export function dungCauTruc(vao) {
   const phuThuoc = (m) => canh[m].filter((b) => b !== LA_NHAT_KY);
   const duocDuaVao = (m) => nut.filter((a) => a !== m && canh[a].includes(m));
   them(
-    "Các phân hệ của app",
+    "Các phân hệ của Nền tảng",
     [],
-    `App chia thành ${nut.length} phân hệ, mỗi phân hệ lo một phần việc và chỉ nhờ phân hệ khác qua cửa đã định: ${nut.map((m) => tenPH(m)).join(", ")}. Người dùng thấy các phân hệ này qua menu và các trang; menu hiện theo quyền của tài khoản.`,
+    `Nền tảng chia thành ${nut.length} phân hệ, mỗi phân hệ lo một phần việc và chỉ nhờ phân hệ khác qua cửa đã định: ${nut.map((m) => tenPH(m)).join(", ")}. Người dùng thấy các phân hệ này qua menu và các trang; menu hiện theo quyền của tài khoản.`,
   );
   for (const m of nut) {
     const dong = [cau(`Phân hệ ${tenPH(m)}: ${ten.phanHe[m].moTa}`)];

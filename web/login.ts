@@ -249,7 +249,7 @@ function showInvite(staffId: string): void {
   form.hidden = true;
   if (passkeyBlock) passkeyBlock.hidden = true; // (HTML v2 đời đầu trong cache: nút Face ID nằm NGOÀI form, không được đứng trên lời mời)
   if (forgotEl) forgotEl.hidden = true;
-  replaceChildren(box, h("h2", null, "Bật đăng nhập bằng Face ID?"), h("p", null, "Lần sau chỉ cần nhìn vào máy là vào được app, không phải gõ PIN."), flow);
+  replaceChildren(box, h("h2", null, "Bật đăng nhập bằng Face ID?"), h("p", null, "Lần sau chỉ cần nhìn vào máy là vào được Nền tảng, không phải gõ PIN."), flow);
   box.hidden = false;
 }
 

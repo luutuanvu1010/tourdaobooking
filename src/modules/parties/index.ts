@@ -244,7 +244,7 @@ const STALE = () => error(409, "stale", "Hồ sơ vừa được người khác 
 const NOT_OPEN = () => error(409, "not_open", "Dòng này không còn đang hiệu lực (đã đóng hoặc không tồn tại), hoặc ngày kết thúc trước ngày bắt đầu.");
 const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không xem được hồ sơ.");
 const FORBIDDEN_WRITE = () => error(403, "forbidden", "Tài khoản này không được sửa hồ sơ này. Hồ sơ của người có tài khoản chỉ quản trị viên cấp trên sửa.");
-const ACTIVE_BY_ACCOUNT = () => error(409, "account_rule", "Người này có tài khoản: tạm khoá hoặc cho nghỉ việc ở màn Quản lý tài khoản.");
+const ACTIVE_BY_ACCOUNT = () => error(409, "account_rule", "Người này có tài khoản: muốn thôi dùng thì bấm Ngưng ở màn Quản lý tài khoản.");
 // ADR-0024 6.4 + ADR-0038 điều 7: hồ sơ công ty chủ chỉ người giữ ô company.legal.write sửa. Chữ nói "người phụ trách hệ thống", KHÔNG "Toàn quyền"
 // (Toàn quyền là vai ẩn — ADR-0038 điều 8 / ADR-0042; chỉ đạo D5 của nhật ký thi công T2b).
 const OWNER_COMPANY_FORBIDDEN = () =>

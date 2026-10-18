@@ -45,11 +45,11 @@ export const AUDIT_ACTIONS = {
   // Sổ tiền lượt 1 (ADR-0025, ADR-0026) — `detail` không SĐT, không số tiền chi tiết (kế hoạch §3.4).
   order_delivered: { label: "Đã giao – đã thu đủ", group: "order" },
   order_completed: { label: "Hoàn thành", group: "order" },
-  payment_recorded: { label: "Ghi lần thu", group: "order" },
+  payment_recorded: { label: "Ghi khoản thu", group: "order" },
   // ADR-0060: dấu "đã nhập phần mềm kế toán" (bảng chỉ-thêm bil_accounting_entry) — detail = moTaDauNhap (số hoá đơn nguyên văn; lý do đã chặn dãy số dài).
   // Lịch sử đơn BỎ hai hành động này với người không qua ô accounting.entry.view; không vào hộp thông báo (v_aud_order_event là danh sách cho phép).
   order_accounting_entry_marked: { label: "Đánh dấu đã nhập phần mềm kế toán", group: "order" },
-  order_accounting_entry_unmarked: { label: "Bỏ dấu đã nhập phần mềm kế toán", group: "order" },
+  order_accounting_entry_unmarked: { label: "Bỏ đánh dấu đã nhập phần mềm kế toán", group: "order" },
   ledger_company_received: { label: "Xác nhận công ty đã nhận", group: "ledger" },
   ledger_settlement: { label: "Ghi nộp / trả tiền", group: "ledger" },
   ledger_refund: { label: "Ghi hoàn khách", group: "ledger" },
@@ -62,9 +62,9 @@ export const AUDIT_ACTIONS = {
   ledger_adjustment_rejected: { label: "Từ chối yêu cầu điều chỉnh sổ", group: "ledger" },
   ledger_adjustment_withdrawn: { label: "Rút yêu cầu điều chỉnh sổ", group: "ledger" },
   ledger_adjustment_affected: { label: "Điều chỉnh đổi số dư của một nhân viên", group: "ledger" },
-  ledger_receipt_replaced: { label: "Thay lần thu", group: "ledger" },
-  ledger_reversal: { label: "Ghi dòng đảo sổ", group: "ledger" },
-  // ADR-0092 Đ6 (migration 0088): gắn mã giao dịch ngân hàng vào lần thu — target = lần thu (`ledger`, id lần thu); `detail` = "gắn mã giao dịch ngân hàng"
+  ledger_receipt_replaced: { label: "Sửa khoản thu đã ghi", group: "ledger" },
+  ledger_reversal: { label: "Huỷ một dòng sổ tiền", group: "ledger" },
+  // ADR-0092 Đ6 (migration 0088): gắn mã giao dịch ngân hàng vào khoản thu — target = khoản thu (`ledger`, id khoản thu); `detail` = "gắn mã giao dịch ngân hàng"
   // (chữ cố định); KHÔNG chép mã giao dịch, không số tài khoản.
   ledger_bank_txn_linked: { label: "Gắn mã giao dịch ngân hàng", group: "ledger" },
   // ADR-0089 (cọc đơn huỷ — migration 0079): duyệt / huỷ duyệt / chi / chuyển / đã hoàn ngoài hệ thống. Không số tiền trong detail (chỉ lý do).
@@ -226,7 +226,7 @@ export const AUDIT_ACTIONS = {
   // ADR-0057 T1 (kế hoạch Đợt 4 Task 4): bảng giá thuê xe — detail: tên nhà xe, tên tuyến / nhãn cỡ, số tiền, ngày hiệu lực (C10); không SĐT.
   // ADR-0057 T2 C10 (Task 10): Kế toán / Quản trị ghi chi phí chuyến xe thuê — detail: mã chuyến, tên nhà xe, tổng trước → sau, nhãn lý do; KHÔNG ghi chú (chữ tự do).
   trip_cost_adjusted: { label: "Điều chỉnh chi phí xe thuê", group: "trip" },
-  trip_cost_reversed: { label: "Đảo dòng chi phí xe thuê", group: "trip" },
+  trip_cost_reversed: { label: "Huỷ dòng chi phí xe thuê", group: "trip" },
   trip_cost_snapshot: { label: "Lấy lại giá bảng cho chuyến xe thuê", group: "trip" },
   trip_cost_agreed: { label: "Nhập giá thoả thuận chuyến xe thuê", group: "trip" },
   rental_rate_added: { label: "Thêm giá thuê xe", group: "trip" },
@@ -243,7 +243,7 @@ export const AUDIT_ACTIONS = {
   // ADR-0087 điều 6: Toàn quyền đổi giao diện công ty — detail = các ô đổi (nhãn: cũ → mới), không dữ liệu cá nhân. KHÔNG im lặng (ADR-0038).
   giao_dien_changed: { label: "Đổi giao diện", group: "system" },
   // ADR-0047 §6 (Đợt 8): máy còn gửi thân đơn / thông tin chuyến KIỂU CŨ — dòng ĐẾM cho cổng cắt; order_id NULL, detail = nhãn màn hình, không nội dung thân.
-  client_outdated_body: { label: "Máy dùng app bản cũ", group: "system" },
+  client_outdated_body: { label: "Máy dùng Nền tảng bản cũ", group: "system" },
   catalog_synced: { label: "Đồng bộ dịch vụ từ Sheet", group: "catalog" },
   catalog_overridden: { label: "Ghi đè giá dịch vụ", group: "catalog" },
   catalog_override_cleared: { label: "Bỏ ghi đè dịch vụ", group: "catalog" },

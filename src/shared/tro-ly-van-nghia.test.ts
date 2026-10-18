@@ -157,7 +157,7 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
   const kho = chiaKho();
   const vec = kho.map(() => mot(1));
   const dem = (c: string) => khopManh(c, kho, ["SALES"]).filter(Boolean).length;
-  // 2026-10-02 (1.77): bỏ đoạn "Điều phối xe — chưa dùng cho chuyến thật" (Trợ giúp + kho "Cách app vận hành") — đoạn đó lặp chữ "dùng" nên đè điểm cao nhất,
+  // 2026-10-02 (1.77): bỏ đoạn "Điều phối xe — chưa dùng cho chuyến thật" (Trợ giúp + kho "Cách Nền tảng vận hành") — đoạn đó lặp chữ "dùng" nên đè điểm cao nhất,
   // chỉ MÌNH nó vượt 0,7 × max (1 khớp). Bỏ đi ⇒ max thấp xuống ⇒ 15 đoạn có "app" + "dùng" vượt ngưỡng tương đối; luật không đổi. Câu than phiền nay ra
   // đoạn Câu hỏi thường gặp thay vì đoạn Điều phối xe (đúng hơn); trần 12 đoạn cắt bớt.
   // 2026-10-05 (năm lỗi tiền, Đợt 1 ADR-0089): ba ô quyền mới (chọn lý do "Công ty huỷ" / phân loại, duyệt hoàn cọc, ghi đã hoàn ngoài hệ thống) có tên lời
@@ -182,13 +182,24 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
   // 46 khớp mạnh ⇒ RRF + trần 12 đoạn / 6.000 token chọn tiếp (F7: khoá tên cụ thể, không chỉ "có đoạn").
   const lapDon = chonDoanTron("lập đơn mới ra sao", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
   assert.equal(lapDon.length, SO_DOAN_TOI_DA);
-  assert.equal(lapDon[0], "Cấu trúc app › Việc: lập đơn mới");
+  assert.equal(lapDon[0], "Cấu trúc Nền tảng › Việc: lập đơn mới");
   assert.ok(lapDon.includes("Bán hàng › Lập đơn mới"), JSON.stringify(lapDon));
   const doiPin = chonDoanTron("đổi mã PIN thế nào", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
   assert.equal(doiPin.length, 10);
   assert.ok(doiPin.includes("Phần chung › Trang Tôi, đổi PIN, đăng xuất"), JSON.stringify(doiPin));
   assert.deepEqual(chonDoanTron("zzqx wqpv", mot(0), kho, vec, ["SALES"]), []);
   assert.ok(dungLoiNhac("Bạn là trợ lý.", ["SALES"], xungHo(null, null), []).endsWith(`TÀI LIỆU:\n${KHONG_TIM_THAY}`));
+});
+
+test("C4b (ADR-0130): giao diện đổi «app» → «Nền tảng» — câu hỏi gõ «app» hay «nền tảng» đều khớp như nhau và đều ra đoạn Hỏi đáp; cụm «nền tảng» không thành khớp cặp với cả kho", () => {
+  const kho = chiaKho();
+  const vec = kho.map(() => mot(1));
+  const dem = (c: string) => khopManh(c, kho, ["SALES"]).filter(Boolean).length;
+  assert.equal(dem("sao nền tảng khó dùng thế"), dem("sao app khó dùng thế"));
+  assert.ok(dem("sao nền tảng khó dùng thế") <= 20, "cụm «nền tảng» không được khớp mạnh gần cả kho");
+  for (const c of ["sao app khó dùng thế", "sao Nền tảng khó dùng thế"]) {
+    assert.ok(chonDoanTron(c, mot(0), kho, vec, ["SALES"]).some((x) => x.doan.ten === "Phần chung › Câu hỏi thường gặp"), c);
+  }
 });
 
 test("C5: truy vấn = câu hiện tại + câu trước gần nhất — câu nối tiếp không khớp gì vẫn ra đoạn nhờ câu trước", () => {

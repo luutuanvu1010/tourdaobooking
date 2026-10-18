@@ -12,7 +12,7 @@ export const HD_TAI_XE: NhomHuongDan = {
 
 > Lưu ý: tài xế của nhà xe đối tác đọc thêm mục "Tài xế nhà xe đối tác" (từ chối chuyến, báo bận).
 
-1. Mở app. Bạn vào thẳng [[Cuốc của tôi]].
+1. Mở Nền tảng. Bạn vào thẳng [[Cuốc của tôi]].
 2. Xem ba nhóm **Hôm nay**, **Ngày mai**, **Ngày kia**. Vào [[Tôi]] bật thông báo để được báo khi được xếp chuyến.
 3. Bấm [[Trang chủ]] để xem **Giấy tờ của tôi** và hạn từng giấy.
 4. Bấm [[Xem tất cả]] để xem đủ danh sách giấy tờ.
@@ -44,7 +44,7 @@ Trên máy tính, menu bên trái có các mục trên, cùng [[Của tôi]], [[
 2. Tới điểm đón, bấm [[Đã tới]].
 3. Với từng khách, bấm [[Đã đón]], [[Vắng]] hoặc [[Khách đã huỷ]].
 4. Dưới điểm đón có dòng "Liên hệ" kèm số. Bấm vào số là gọi được.
-5. Tới điểm trả, bấm [[Đã trả]]. Chưa bấm Đã tới ở điểm này thì app tự ghi luôn.
+5. Tới điểm trả, bấm [[Đã trả]]. Chưa bấm Đã tới ở điểm này thì Nền tảng tự ghi luôn.
 6. Trả hết khách thì bấm [[Kết thúc chuyến]]. Còn khách chưa xong thì nút chưa bấm được.
 
 > Ví dụ: Anh Tâm tới khách sạn đầu, bấm Đã tới, bấm Đã đón cho 7 khách. Tới cảng Cầu Đá, bấm Đã trả rồi Kết thúc chuyến.`,
@@ -64,7 +64,7 @@ Trên máy tính, menu bên trái có các mục trên, cùng [[Của tôi]], [[
   3. Bấm [[Kết thúc gián đoạn]], chọn lý do, bấm [[Kết thúc gián đoạn]] trong bảng. Văn phòng nhận tin ngay và xếp xe cho khách còn lại.
 - **Không kịp tới một điểm đón:** ở điểm đó bấm [[Nhờ xe khác đón]], chọn xe cùng ngày, bấm [[Gửi đề nghị]]. Chưa ai nhận thì khách vẫn ở xe bạn; không cần nữa thì bấm [[Rút lại]].
 - **Xe khác nhờ bạn đón khách:** thẻ đề nghị hiện trên chuyến của bạn, có đếm ngược giờ chờ. Bấm [[Nhận]] để nhận khách, hoặc [[Không nhận]] rồi chọn lý do. Có lúc Nền tảng cần văn phòng duyệt; kết quả báo sau.
-- **Mất mạng:** dòng chưa gửi ghi **Chưa gửi được** kèm nút [[Bấm lại]]. Có mạng thì bấm lại đúng dòng đó. Máy không tự gửi lại. **Đừng tắt app** trước khi bấm lại. Lỡ tắt thì gọi văn phòng bấm thay.
+- **Mất mạng:** dòng chưa gửi ghi **Chưa gửi được** kèm nút [[Bấm lại]]. Có mạng thì bấm lại đúng dòng đó. Máy không tự gửi lại. **Đừng tắt Nền tảng** trước khi bấm lại. Lỡ tắt thì gọi văn phòng bấm thay.
 - **Chỉ thấy "Khách 1", "Khách 2":** tên, năm sinh và số liên hệ khách chỉ hiện **trong ngày chạy**. Xuất bến từ tối hôm trước cũng không hiện sớm.
 - **Mở lại chuyến đang chạy:** ở [[Cuốc của tôi]], bấm [[Mở chuyến đang chạy]].`,
     },

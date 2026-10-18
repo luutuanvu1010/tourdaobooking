@@ -295,7 +295,7 @@ function recompute(): void {
   const s = orderSummary(ds, num("discount"), traTruocAn ? 0 : num("prepaidAmount"));
   byId("sum-subtotal").textContent = vnd(s.subtotal);
   byId("sum-total").textContent = vnd(s.total);
-  // Sổ tiền lượt 1 (ADR-0026 đ9): KHÔNG tự trừ ra "còn lại" ở trình duyệt — chỉ nhắc lại số trả trước sẽ ghi thành lần thu sau khi lưu.
+  // Sổ tiền lượt 1 (ADR-0026 đ9): KHÔNG tự trừ ra "còn lại" ở trình duyệt — chỉ nhắc lại số trả trước sẽ ghi thành khoản thu sau khi lưu.
   byId("sum-prepaid").textContent = vnd(s.traTruoc);
   byId("sum-prepaid-row").hidden = s.traTruoc === 0;
   byId("mobile-total").textContent = vnd(s.total); // thanh dính đáy điện thoại: cùng giá trị đã tính ở trên, hiện lại cạnh nút Lưu (Bước 2 Đợt B)
@@ -529,7 +529,7 @@ async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDa
         datGapLoi = "&datgap=loi";
       }
     }
-    // BƯỚC HAI (sổ tiền lượt 1 — ADR-0026 đ9, NT-S6): tiền trả trước KHÔNG nằm trong lô tạo đơn; đơn đã lưu xong mới ghi LẦN THU qua billing. Lỗi ở bước này
+    // BƯỚC HAI (sổ tiền lượt 1 — ADR-0026 đ9, NT-S6): tiền trả trước KHÔNG nằm trong lô tạo đơn; đơn đã lưu xong mới ghi KHOẢN THU qua billing. Lỗi ở bước này
     // KHÔNG làm mất đơn: vẫn sang trang đơn, kèm `thutruoc=loi` để trang đơn báo "Đơn đã lưu, chưa ghi được tiền trả trước — thử lại".
     let thuTruocLoi = "";
     const traTruoc = traTruocAn ? 0 : num("prepaidAmount");
@@ -760,17 +760,17 @@ if (can(staff, "order.create")) await loadCatalog(); // trước loadOrder: th�
 duocNhapTay = await layNhapTay;
 addManualBtn.hidden = !duocNhapTay;
 picker.setNhapTay(duocNhapTay);
-// Sửa đơn nháp: tiền trả trước là LẦN THU ở trang đơn (mục Thanh toán), không nhập lại ở form (sổ tiền lượt 1).
+// Sửa đơn nháp: tiền trả trước là KHOẢN THU ở trang đơn (mục Thanh toán), không nhập lại ở form (sổ tiền lượt 1).
 if (editId) {
   for (const f of ["prepaid-amount-field", "prepaid-method-field", "prepaid-collector-field"]) byId(f).hidden = true;
-  byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn (mục Thanh toán → Ghi lần thu).";
+  byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn (mục Thanh toán → Ghi khoản thu).";
 }
 // ADR-0092 Đ6 (C1): người có quyền ghi sổ (Toàn quyền) ghi CK – Công ty thu phải kèm mã giao dịch ngân hàng — ô mã chỉ ở trang đơn ⇒ form không nhận tiền trả
 // trước của người này (tránh lần gửi chắc chắn 400 làm rơi tiền trả trước); cùng khuôn với lúc sửa đơn.
 if (!editId && can(staff, "ledger.write")) {
   for (const f of ["prepaid-amount-field", "prepaid-method-field", "prepaid-collector-field"]) byId(f).hidden = true;
-  byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn sau khi lưu (mục Thanh toán → Ghi lần thu, kèm mã giao dịch ngân hàng nếu chuyển khoản vào tài khoản công ty).";
-  // Form dùng được trong lúc tải (initShell, danh mục…): số đã gõ sớm phải bị xoá (cờ `traTruocAn` đã bật ngay sau `initShell()`, nên số đó không còn được đọc), kẻo vẫn gửi lần thu CK – Công ty thu không mã (400) và làm rơi tiền trả trước.
+  byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn sau khi lưu (mục Thanh toán → Ghi khoản thu, kèm mã giao dịch ngân hàng nếu chuyển khoản vào tài khoản công ty).";
+  // Form dùng được trong lúc tải (initShell, danh mục…): số đã gõ sớm phải bị xoá (cờ `traTruocAn` đã bật ngay sau `initShell()`, nên số đó không còn được đọc), kẻo vẫn gửi khoản thu CK – Công ty thu không mã (400) và làm rơi tiền trả trước.
   field("prepaidAmount").value = "";
   recompute();
 }

@@ -136,7 +136,7 @@ test("ADR-0060 tiêu chí 3 + A-4 + A-7: bỏ dấu không lý do → 400; có l
   const nk = w.q("SELECT action, detail FROM audit_log WHERE order_id = ? AND action LIKE 'order_accounting_entry_%' ORDER BY rowid", id);
   assert.deepEqual(nk.map((r: any) => [r.action, r.detail]), [
     ["order_accounting_entry_marked", "Đã nhập phần mềm kế toán · HD-000123"],
-    ["order_accounting_entry_unmarked", "Bỏ dấu đã nhập phần mềm kế toán — lý do: nhập nhầm đơn"],
+    ["order_accounting_entry_unmarked", "Bỏ đánh dấu đã nhập phần mềm kế toán — lý do: nhập nhầm đơn"],
   ]);
 });
 

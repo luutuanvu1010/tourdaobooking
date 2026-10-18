@@ -7,7 +7,7 @@ export const HD_HDV: NhomHuongDan = {
   tieuDe: "Hướng dẫn viên",
   quyen: ["FIELD"],
   gioiThieu:
-    "Bạn là hướng dẫn viên. Trong app, bạn nhận đơn đang chờ người lo, gọi khách, xem thông tin chuyến và tiền của đơn mình lo, ghi tiền đã thu và bấm Đã giao khi xong; khi cần thì sửa số khách hoặc huỷ đơn, luôn kèm lý do.",
+    "Bạn là hướng dẫn viên. Trong Nền tảng, bạn nhận đơn đang chờ người lo, gọi khách, xem thông tin chuyến và tiền của đơn mình lo, ghi tiền đã thu và bấm Đã giao khi xong; khi cần thì sửa số khách hoặc huỷ đơn, luôn kèm lý do.",
   batDauNhanh: `1. Bấm [[Tôi]] ở thanh dưới đáy.
 2. Kéo tới mục **Việc của tôi**. Có hai ô: **Chờ nhận** và **Đơn của tôi**.
 3. Ở khối **Đơn chờ nhận**, xem ngày đi, giờ đón, số khách.
@@ -21,7 +21,7 @@ export const HD_HDV: NhomHuongDan = {
 
 Trên máy tính, menu bên trái có [[Đơn hàng]] (chỉ đơn bạn đang lo) ở đầu menu; ở chân menu có [[Của tôi]], [[Hỗ trợ]], [[Trợ giúp]]. Đơn tự do đang chờ nhận nằm ở [[Của tôi]], không nằm ở [[Đơn hàng]].
 
-Mở app, bạn thấy trang [[Đơn hàng]]. Trang này chỉ có đơn **bạn đang lo**.
+Mở Nền tảng, bạn thấy trang [[Đơn hàng]]. Trang này chỉ có đơn **bạn đang lo**.
 
 Việc hằng ngày nằm ở trang [[Tôi]], mục **Việc của tôi**:
 - **Chờ nhận**: đơn chưa có ai lo.
@@ -40,7 +40,7 @@ Chuông ở góc trên là nơi xem thông báo.`,
 
 > Ví dụ: Chị Lan thấy một đơn tour đảo, đón 07:30 ở một khách sạn trên đường Trần Phú, 8 khách, đi thứ Tư. Chị bấm Nhận. Đơn chuyển xuống Đơn của tôi, có tên người đặt và nút Gọi.
 
-Người khác bấm nhận trước bạn: app báo "Đơn này vừa có người khác nhận phụ trách". Bạn chọn đơn khác.
+Người khác bấm nhận trước bạn: Nền tảng báo "Đơn này vừa có người khác nhận phụ trách". Bạn chọn đơn khác.
 
 Không nhận được đơn **đã huỷ** hay **đã qua ngày đi**.`,
     },
@@ -71,7 +71,7 @@ Bấm [[Xem đơn]] để mở trang đầy đủ. Ở đó không sửa hay hu�
    - **Không gõ số điện thoại**, máy sẽ từ chối.
 4. Bấm [[Xác nhận]]. Muốn bỏ thì bấm [[Đóng]].
 
-Để trống lý do, app báo "Cần nhập lý do sửa." Lý do có số điện thoại, app báo "Lý do không được chứa số điện thoại hoặc dãy số dài — chỉ ghi văn bản thường."
+Để trống lý do, Nền tảng báo "Cần nhập lý do sửa." Lý do có số điện thoại, Nền tảng báo "Lý do không được chứa số điện thoại hoặc dãy số dài — chỉ ghi văn bản thường."
 
 > Ví dụ: Sáng đi tour, khách báo thêm 2 trẻ em. Chị Lan bấm Sửa số khách, tăng Trẻ em thêm 2, bấm Khách thêm người, rồi bấm Xác nhận.`,
     },
@@ -84,22 +84,22 @@ Bấm [[Xem đơn]] để mở trang đầy đủ. Ở đó không sửa hay hu�
    - [[Không liên hệ được với khách]]
    - [[Khách yêu cầu huỷ]]
    - [[Khác]]: gõ lý do vào ô hiện ra. **Không gõ số điện thoại**, máy sẽ từ chối.
-3. Bấm [[Huỷ đơn]] trong bảng để huỷ. Đổi ý thì bấm [[Giữ đơn]].
+3. Bấm [[Huỷ đơn]] trong bảng để huỷ. Đổi ý thì bấm [[Không huỷ]].
 
 > Ví dụ: Chị Lan gọi đoàn khách ba lần không ai nghe. Chị bấm Huỷ đơn, chọn Không liên hệ được với khách, rồi bấm Huỷ đơn.`,
     },
     {
       tieuDe: "Thu tiền và bấm Đã giao",
-      noiDung: `Làm trên trang đơn (bấm [[Xem đơn]]), khối **Thanh toán**. Khối này ghi **Đã thu**, **Còn lại** và từng lần thu.
+      noiDung: `Làm trên trang đơn (bấm [[Xem đơn]]), khối **Thanh toán**. Khối này ghi **Đã thu**, **Còn lại** và từng khoản thu.
 
 **Ghi tiền khách trả:**
-1. Bấm [[Ghi lần thu]].
+1. Bấm [[Ghi khoản thu]].
 2. Gõ số tiền, chọn hình thức, chọn người nhận tiền: [[Tôi thu]] (tiền mặt bạn cầm) hoặc [[Công ty (vào tài khoản công ty)]].
 3. Bấm [[Ghi]].
 
 **Xong tour, khách đã trả đủ:** bấm [[Đã giao – đã thu đủ]] rồi đồng ý. Nút chỉ bấm được khi đơn đã xác nhận, từ ngày đi trở đi, và số đã thu **bằng đúng** số phải thu. Nút bị mờ thì dòng **Đang giữ đơn** ghi lý do và ai xử lý.
 
-Sau Đã giao, đơn **bị khoá**: không sửa số khách, không huỷ, không ghi thêm lần thu. Thẻ ghi "Đã giao – đã thu đủ: đơn đã khoá." Bạn đang cầm tiền mặt của công ty thì nhớ nộp về; Kế toán ghi đã nộp rồi bấm **Hoàn thành**.`,
+Sau Đã giao, đơn **bị khoá**: không sửa số khách, không huỷ, không ghi thêm khoản thu. Thẻ ghi "Đã giao – đã thu đủ: đơn đã khoá." Bạn đang cầm tiền mặt của công ty thì nhớ nộp về; Kế toán ghi đã nộp rồi bấm **Hoàn thành**.`,
     },
     {
       tieuDe: "Thông báo",
@@ -107,13 +107,13 @@ Sau Đã giao, đơn **bị khoá**: không sửa số khách, không huỷ, kh�
 - [[Của tôi]]: tin công ty gửi bạn, tin về đơn bạn lo, đơn mới đang chờ nhận.
 - [[Tất cả]]: thêm các tin khác.
 
-Khi văn phòng xác nhận một đơn chưa có ai lo, bạn nhận tin "Có đơn mới …, chưa có người phụ trách". Bấm vào tin là app mở trang [[Tôi]].
+Khi văn phòng xác nhận một đơn chưa có ai lo, bạn nhận tin "Có đơn mới …, chưa có người phụ trách". Bấm vào tin là Nền tảng mở trang [[Tôi]].
 
 Tin quan trọng có nút [[Đã hiểu]]. Đọc xong thì bấm.
 
 ### Nhận thông báo trên màn hình khoá (iPhone)
-1. Mở app trong Safari, bấm **Chia sẻ**, chọn **Thêm vào MH chính**.
-2. Mở app từ biểu tượng vừa thêm.
+1. Mở Nền tảng trong Safari, bấm **Chia sẻ**, chọn **Thêm vào MH chính**.
+2. Mở Nền tảng từ biểu tượng vừa thêm.
 3. Vào [[Tôi]], bấm [[Bật thông báo trên điện thoại]] và cho phép.
 4. Muốn tắt: bấm [[Tắt]] ở cùng mục.`,
     },
@@ -122,10 +122,10 @@ Tin quan trọng có nút [[Đã hiểu]]. Đọc xong thì bấm.
       noiDung: `- **Nhận đơn Chờ xác nhận:** vẫn nhận được, nhưng chưa sửa hay huỷ được. Thẻ ghi "Đơn đang chờ xác nhận — chưa thể huỷ hay sửa số khách." Đợi văn phòng xác nhận.
 - **Nhận nhầm, bận không đi được:** chưa có nút trả đơn (chưa có ở bản này). Gọi văn phòng giao cho người khác.
 - **Đơn đã qua ngày đi:** không còn nút [[Huỷ đơn]] và [[Sửa số khách]]. Cần huỷ hay sửa số khách thì nhờ văn phòng (người lập đơn, Kế toán hoặc Quản trị).
-- **Đang sửa thì văn phòng cũng sửa đơn đó:** app đóng bảng, hiện dòng báo màu vàng rồi tải lại. Bạn xem lại rồi làm lại.
-- **Mất mạng:** app báo chưa tải được đơn. Có mạng thì tải lại trang.
+- **Đang sửa thì văn phòng cũng sửa đơn đó:** Nền tảng đóng bảng, hiện dòng báo màu vàng rồi tải lại. Bạn xem lại rồi làm lại.
+- **Mất mạng:** Nền tảng báo chưa tải được đơn. Có mạng thì tải lại trang.
 - **Không thấy khối Đơn chờ nhận:** tài khoản có thêm quyền Đối tác. Hỏi Quản trị.
-- **Không bấm được Đã giao:** đọc dòng **Đang giữ đơn** trên trang đơn. Còn thiếu tiền thì ghi thêm lần thu; khách trả dư hay lần thu chưa rõ người thu thì chờ Kế toán.`,
+- **Không bấm được Đã giao:** đọc dòng **Đang giữ đơn** trên trang đơn. Còn thiếu tiền thì ghi thêm khoản thu; khách trả dư hay khoản thu chưa rõ người thu thì chờ Kế toán.`,
     },
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",

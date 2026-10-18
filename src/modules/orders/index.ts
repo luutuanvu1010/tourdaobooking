@@ -71,7 +71,7 @@ const FORBIDDEN_TERMS = () => error(403, "forbidden", "Chỉ Kế toán, Quản 
 const NOT_EDITABLE = () => error(409, "not_editable", "Chỉ sửa được đơn đang chờ xác nhận. Muốn đổi đơn đã xác nhận, hãy huỷ và tạo đơn mới.");
 const CANCELLED = () => error(409, "not_editable", "Đơn đã huỷ, không sửa được.");
 /** Sổ tiền lượt 1 (ADR-0025 đ5): đơn đã "Đã giao – đã thu đủ" bị khoá — mọi route ghi từ chối SỚM bằng câu tiếng Việt (trigger 0044 là lưới cuối). */
-const DA_GIAO = () => error(409, "order_delivered", "Đơn đã Đã giao – đã thu đủ: không sửa, huỷ hay đổi người phụ trách được nữa. Sai sót thì Kế toán dùng “Thay lần thu”.");
+const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Đã giao – đã thu đủ: không sửa, huỷ hay đổi người phụ trách được nữa. Sai sót thì Kế toán dùng “Sửa khoản thu đã ghi”.");
 const STALE = () => error(409, "stale", "Đơn vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
 /** ADR-0063 D1: văn phòng sửa số khách — ô `order.money.edit` KHÔNG ngữ cảnh "đang phụ trách" (Bán hàng chỉ đơn mình lập; HDV dùng "Việc của tôi"). */
 const MONEY_EDIT_FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn (Bán hàng), Kế toán, Quản trị hoặc Toàn quyền mới sửa được số khách của đơn này.");
@@ -1038,9 +1038,9 @@ export const ordersModule: AppModule = {
       if (coChang && !moc) return MOC_CHUA_CO();
       const datGapNhap = coChang ? chepDatGapNhap(await legDatGapByOrder(env.DB, id), placed.value.services) : new Map<string, DatGapWrite>();
       // Q2 (chủ trả lời 2026-09-30 "Đưa cọc cũ về 0, ghi nhật ký"): nháp CŨ còn cọc ghi trên đơn mà tổng mới < cọc cũ → câu lưu nháp đưa cột cọc về 0 (số tiền
-      // không mất — đã là lần thu "chưa rõ" trong sổ của billing); ghi số cọc cũ vào dòng nhật ký `updated` (không SĐT).
+      // không mất — đã là khoản thu "chưa rõ" trong sổ của billing); ghi số cọc cũ vào dòng nhật ký `updated` (không SĐT).
       const cocCu = await cocCuNhap(env.DB, id);
-      const ghiChuCoc = cocCu > placed.value.total ? `đưa tiền thu trước cũ ${cocCu.toLocaleString("vi-VN")} ₫ ghi trên đơn về 0 (tiền đã nằm ở lần thu "chưa rõ" trong sổ)` : null;
+      const ghiChuCoc = cocCu > placed.value.total ? `đưa tiền thu trước cũ ${cocCu.toLocaleString("vi-VN")} ₫ ghi trên đơn về 0 (tiền đã nằm ở khoản thu "chưa rõ" trong sổ)` : null;
       if (!(await updateDraftOrder(env.DB, id, staff.id, { ...placed.value, expectedUpdatedAt: expected }, booker.write, legMeta, datGapNhap, ghiChuCoc))) {
         const now = await getMeta(env.DB, id);
         return now && now.status !== "draft" ? NOT_EDITABLE() : STALE();

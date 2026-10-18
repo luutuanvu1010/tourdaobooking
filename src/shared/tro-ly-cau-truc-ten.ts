@@ -1,4 +1,4 @@
-// BẢNG TÊN LỜI THƯỜNG cho kho (d) "cấu trúc app" của trợ lý Hỗ trợ (ADR-0070 điều 1). VIẾT TAY — một nơi duy nhất dịch mã kỹ thuật sang lời thường.
+// BẢNG TÊN LỜI THƯỜNG cho kho (d) "cấu trúc Nền tảng" của trợ lý Hỗ trợ (ADR-0070 điều 1). VIẾT TAY — một nơi duy nhất dịch mã kỹ thuật sang lời thường.
 // Bộ sinh `scripts/sinh-so-do-trang.mjs` đọc bảng này cùng `ALLOWED_EDGES` (src/architecture.test.ts), `MATRIX` (src/shared/permissions.ts), `PAGES` và
 // bố cục trang, rồi sinh `src/shared/tro-ly-cau-truc.ts`. Thêm module hoặc ô quyền mà thiếu tên ở đây ⇒ bộ sinh NÉM LỖI ⇒ `npm run build:web` và `npm test` đỏ.
 // Tên thừa (module / ô không còn trong mã) cũng ném lỗi.
@@ -22,7 +22,7 @@ export const TEN_PHAN_HE: Readonly<Record<string, TenLoiThuong>> = {
   audit: { ten: "Nhật ký", moTa: "Ghi dấu vết ai làm gì, lúc nào, cho mọi thay đổi quan trọng của mọi phân hệ. Lịch sử của một đơn lấy từ đây; trang Nhật ký toàn hệ thống chỉ Toàn quyền xem." },
   auth: { ten: "Đăng nhập", moTa: "Đăng nhập bằng số điện thoại và mã PIN hoặc Face ID, giữ phiên đăng nhập, tạm khoá khi nhập sai nhiều lần." },
   bangtin: { ten: "Bảng tin", moTa: "Báo tức thì cho mọi màn hình đang mở khi một đơn vừa đổi, nên danh sách đơn tự cập nhật mà không cần tải lại trang." },
-  billing: { ten: "Sổ tiền", moTa: "Ghi các lần thu tiền của đơn, bấm Đã giao và Hoàn thành, sổ công nợ của từng người và công ty, ghi hoàn tiền cho khách." },
+  billing: { ten: "Sổ tiền", moTa: "Ghi các khoản thu tiền của đơn, bấm Đã giao và Hoàn thành, sổ công nợ của từng người và công ty, ghi hoàn tiền cho khách." },
   catalog: { ten: "Dịch vụ và giá", moTa: "Danh mục dịch vụ tour và bảng giá, đồng bộ từ bảng tính Google của công ty; người lập đơn chọn dịch vụ từ danh mục này." },
   company: { ten: "Thông tin công ty", moTa: "Tên, mã số thuế, địa chỉ, đường dây nóng của Tour Đảo, hiện trên biên nhận gửi khách và trang đăng nhập." },
   dispatch: { ten: "Người phụ trách đơn", moTa: "Giao, nhận, đổi người phụ trách một đơn; hàng chờ nhận cho đơn chưa có ai phụ trách; hướng dẫn viên huỷ hoặc sửa số khách đơn mình phụ trách." },
@@ -31,14 +31,14 @@ export const TEN_PHAN_HE: Readonly<Record<string, TenLoiThuong>> = {
   "ky-so": { ten: "Khoá sổ tháng", moTa: "Các tháng đã khoá sổ và luật ghi lùi ngày." },
   "lan-gui": { ten: "Chống ghi trùng", moTa: "Khi mạng chập chờn mà bấm Lưu lại, Nền tảng nhận ra lần bấm trước đã được ghi nên không ghi thêm lần nữa, và báo \"Lần bấm trước đã được ghi\". Chạy ngầm cho mọi thao tác lưu, không có màn hình riêng." },
   locations: { ten: "Địa điểm", moTa: "Danh sách nơi đón, nơi trả dùng chung khi lập đơn và xếp chuyến; Quản trị thêm, sửa ở trang Địa điểm." },
-  maintenance: { ten: "Chế độ bảo trì", moTa: "Khi bật, chỉ người phụ trách hệ thống còn dùng được app; mọi người khác, kể cả Quản trị, thấy màn hình bảo trì. Chỉ người phụ trách hệ thống bật, tắt." },
-  orders: { ten: "Đơn hàng", moTa: "Lập, sửa, xác nhận, huỷ đơn; dịch vụ của đơn, chặng đưa đón (giờ, nơi đón), danh sách hành khách. Tiền của đơn do app tự tính từ giá danh mục và số khách." },
+  maintenance: { ten: "Chế độ bảo trì", moTa: "Khi bật, chỉ người phụ trách hệ thống còn dùng được Nền tảng; mọi người khác, kể cả Quản trị, thấy màn hình bảo trì. Chỉ người phụ trách hệ thống bật, tắt." },
+  orders: { ten: "Đơn hàng", moTa: "Lập, sửa, xác nhận, huỷ đơn; dịch vụ của đơn, chặng đưa đón (giờ, nơi đón), danh sách hành khách. Tiền của đơn do Nền tảng tự tính từ giá danh mục và số khách." },
   parties: { ten: "Danh bạ", moTa: "Hồ sơ khách, đại lý, nhân viên, hướng dẫn viên, tài xế, nhà xe đối tác và công ty chủ; liên hệ, công việc, giấy tờ của người (số giấy tờ luôn bị che)." },
   pricing: { ten: "Bảng mức hoa hồng và người bán", moTa: "Mức hoa hồng cho đối tác theo dịch vụ, người bán của từng dịch vụ, cách tính hoa hồng và giá đại lý." },
   receipt: { ten: "Biên nhận", moTa: "Dựng ảnh biên nhận gửi khách từ đơn, số tiền đã trả, còn lại và thông tin công ty." },
   staff: { ten: "Tài khoản nhân viên", moTa: "Giữ tài khoản và các quyền của từng người; tên hiển thị lấy từ hồ sơ trong Danh bạ." },
   thongbao: { ten: "Thông báo", moTa: "Hình chuông ở đầu trang, dải tin quan trọng phải bấm Đã hiểu, thông báo trên điện thoại; Toàn quyền gửi thông báo thủ công." },
-  "tro-ly": { ten: "Trợ lý Hỗ trợ", moTa: "Trả lời cách dùng app dựa trên hướng dẫn và sơ đồ app; không xem được dữ liệu thật. Toàn quyền bật, tắt theo vai ở trang Trợ lý Hỗ trợ." },
+  "tro-ly": { ten: "Trợ lý Hỗ trợ", moTa: "Trả lời cách dùng Nền tảng dựa trên hướng dẫn và sơ đồ Nền tảng; không xem được dữ liệu thật. Toàn quyền bật, tắt theo vai ở trang Trợ lý Hỗ trợ." },
   "van-chuyen": { ten: "Vận chuyển", moTa: "Xe, giấy tờ xe, tài xế và bảng Điều phối xe: xếp khách của nhiều đơn lên một chuyến, tài xế bấm tiến độ. Có Lịch xe bận cho xe vào xưởng." },
 };
 
@@ -54,7 +54,7 @@ export const LY_DO_PHU_THUOC: Readonly<Record<string, string>> = {
   "orders>catalog": "đơn chọn dịch vụ và giá từ danh mục",
   "orders>parties": "khách của đơn là một hồ sơ trong Danh bạ",
   "orders>locations": "nơi đón, nơi trả của chặng",
-  "billing>orders": "lần thu tiền gắn với một đơn",
+  "billing>orders": "khoản thu tiền gắn với một đơn",
   "receipt>orders": "biên nhận lấy dịch vụ và khách từ đơn",
   "receipt>billing": "biên nhận lấy số đã trả, còn lại từ sổ tiền",
   "thongbao>orders": "tin báo khi đơn được xác nhận, giao, nhận, huỷ",
@@ -87,12 +87,12 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "dispatch.assign": { ten: "giao, đổi người phụ trách", moTa: "Chọn hoặc đổi người phụ trách một đơn." },
   "dispatch.claim": { ten: "nhận đơn đang chờ", moTa: "Bấm nhận phụ trách một đơn chưa có người phụ trách." },
   "dispatch.guides.view": { ten: "xem danh sách hướng dẫn viên", moTa: "Danh sách hẹp các hướng dẫn viên nội bộ." },
-  "payment.receive": { ten: "ghi lần thu tiền", moTa: "Ghi số tiền khách đã trả cho đơn ở mục Thanh toán của trang đơn." },
+  "payment.receive": { ten: "ghi khoản thu tiền", moTa: "Ghi số tiền khách đã trả cho đơn ở mục Thanh toán của trang đơn." },
   "payment.refund": { ten: "ghi hoàn tiền cho khách", moTa: "Ghi khoản trả lại khách trong sổ." },
   "order.handover": { ten: "bấm Đã giao (đã thu đủ)", moTa: "Báo đơn đã phục vụ xong và đã thu đủ tiền." },
   "order.complete": { ten: "bấm Hoàn thành", moTa: "Kế toán chốt đơn sau khi đối chiếu tiền." },
   "ledger.view": { ten: "xem sổ công nợ", moTa: "Xem sổ của mình, hoặc sổ mọi người và công ty." },
-  "ledger.write": { ten: "ghi sổ công nợ", moTa: "Xác nhận công ty đã nhận tiền, ghi nộp, trả, đảo dòng sổ; gửi yêu cầu điều chỉnh công nợ (số dư chỉ đổi khi người khác duyệt)." },
+  "ledger.write": { ten: "ghi sổ công nợ", moTa: "Xác nhận công ty đã nhận tiền, ghi nộp, trả, huỷ dòng sổ; gửi yêu cầu điều chỉnh công nợ (số dư chỉ đổi khi người khác duyệt)." },
   "ledger.adjust.approve": { ten: "duyệt điều chỉnh công nợ", moTa: "Duyệt hoặc từ chối yêu cầu điều chỉnh công nợ do người khác tạo; không tự duyệt yêu cầu của mình." },
   "ledger.period.close": { ten: "khoá sổ tháng", moTa: "Khoá một tháng đã qua: không ghi thêm tiền có ngày trong tháng đó; không mở lại được." },
   "partner.commission.view": { ten: "xem bảng mức hoa hồng đối tác", moTa: "Xem mức hoa hồng theo loại đối tác, theo đối tác, theo dịch vụ hoặc nhóm dịch vụ." },
@@ -140,7 +140,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "transport.rate.view": { ten: "xem bảng giá thuê xe", moTa: "Xem giá thuê xe theo chuyến của từng nhà xe." },
   "transport.rate.manage": { ten: "nhập bảng giá thuê xe", moTa: "Thêm, kết thúc giá thuê xe; sửa danh mục tuyến và cỡ xe." },
   "transport.cost.view": { ten: "xem chi phí xe thuê", moTa: "Xem chi phí từng chuyến xe thuê và bảng kê chi phí theo nhà xe." },
-  "transport.cost.adjust": { ten: "sửa chi phí xe thuê", moTa: "Nhập giá thoả thuận, lấy lại giá bảng, điều chỉnh hoặc đảo chi phí chuyến xe thuê." },
+  "transport.cost.adjust": { ten: "sửa chi phí xe thuê", moTa: "Nhập giá thoả thuận, lấy lại giá bảng, điều chỉnh hoặc huỷ dòng chi phí chuyến xe thuê." },
   "trip.view": { ten: "xem chuyến xe", moTa: "Xem bảng Điều phối xe và chi tiết chuyến (tài xế: chỉ chuyến mình lái)." },
   "trip.dispatch": { ten: "tạo, xếp, sửa, huỷ chuyến", moTa: "Tạo chuyến, xếp khách lên chuyến, rút, dời, huỷ chuyến." },
   "trip.override": { ten: "phá lệ khi điều xe", moTa: "Bỏ qua khoảng nghỉ giữa hai chuyến hoặc cam kết xe riêng, số chỗ khi chuyến còn ngoài mốc tối thiểu, kèm lý do." },
@@ -151,7 +151,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "trip.transfer": { ten: "tài xế nhờ xe khác đón khách", moTa: "Tài xế nhờ xe khác đón khách của chuyến mình đang lái, hoặc nhận / không nhận lời nhờ gửi tới chuyến mình đang lái." },
   "trip.refuse": { ten: "từ chối chuyến", moTa: "Tài xế nhà xe trả lại chuyến mình đang được xếp, trước hạn từ chối, kèm lý do; trước hạn đó chưa thấy tên khách, mã đơn." },
   "unavailability.self": { ten: "báo bận của tôi", moTa: "Tài xế nhà xe ghi, xem, rút khung giờ mình bận để văn phòng không xếp chuyến vào giờ đó; văn phòng chỉ thấy là bận, không thấy lý do." },
-  "assistant.ask": { ten: "hỏi trợ lý Hỗ trợ", moTa: "Hỏi cách dùng app qua nút Hỗ trợ." },
+  "assistant.ask": { ten: "hỏi trợ lý Hỗ trợ", moTa: "Hỏi cách dùng Nền tảng qua nút Trợ lý." },
   "auth.session.viewAll": { ten: "xem phiên đăng nhập của mọi người", moTa: "Xem ai đang đăng nhập trên máy nào, lúc nào, bằng cách nào." },
   "auth.session.revoke": { ten: "gỡ phiên đăng nhập", moTa: "Đăng xuất ngay một máy đang đăng nhập của tài khoản khác." },
   "auth.session.policy": { ten: "đặt chính sách đăng nhập", moTa: "Chọn quyền nào chỉ đăng nhập một máy, quyền nào được nhiều máy." },
@@ -196,7 +196,7 @@ export const LUONG_CHINH: readonly BuocLuong[] = [
   {
     ten: "Xác nhận đơn",
     moTa: "Trên trang đơn bấm Xác nhận đơn. Sau khi xác nhận, dịch vụ và tiền bị khoá với người lập đơn: còn sửa được thông tin chuyến, và số khách qua nút Sửa số khách dịch vụ (Nền tảng tự tính lại tiền; Kế toán, Quản trị cũng sửa được); riêng hướng dẫn viên đang phụ trách vẫn sửa được số khách tới hết ngày đi.",
-    viSao: "Xác nhận là lúc chốt với khách: từ đây app mới báo cho người liên quan, và chỉ đơn đã xác nhận mới xếp lên chuyến xe. Không xác nhận được thường vì: tài khoản không phải người lập hay người phụ trách đơn (hoặc vai không có quyền sửa đơn); giờ đón cách hiện tại dưới mốc ra lệnh mà Quản trị chưa duyệt Đặt gấp; đơn đã huỷ.",
+    viSao: "Xác nhận là lúc chốt với khách: từ đây Nền tảng mới báo cho người liên quan, và chỉ đơn đã xác nhận mới xếp lên chuyến xe. Không xác nhận được thường vì: tài khoản không phải người lập hay người phụ trách đơn (hoặc vai không có quyền sửa đơn); giờ đón cách hiện tại dưới mốc ra lệnh mà Quản trị chưa duyệt Đặt gấp; đơn đã huỷ.",
     thaoTac: ["order.modify", "order.leg.short_notice"],
     trang: "/order",
   },
@@ -215,7 +215,7 @@ export const LUONG_CHINH: readonly BuocLuong[] = [
   },
   {
     ten: "Thu tiền",
-    moTa: "Tiền của đơn do app tự tính. Mỗi lần khách trả tiền thì ghi một lần thu ở mục Thanh toán của trang đơn; Kế toán ghi sổ công nợ.",
+    moTa: "Tiền của đơn do Nền tảng tự tính. Mỗi lần khách trả tiền thì ghi một khoản thu ở mục Thanh toán của trang đơn; Kế toán ghi sổ công nợ.",
     viSao: "Không ai gõ tay được tổng tiền, để số trên biên nhận luôn khớp giá danh mục và số khách.",
     thaoTac: ["payment.receive", "ledger.write"],
   },

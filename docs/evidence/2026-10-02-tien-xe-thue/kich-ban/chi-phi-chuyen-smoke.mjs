@@ -151,8 +151,8 @@ const dieuKienChu = `[...document.querySelectorAll('.dp-cond[data-dat]')].map((r
     await p.ev(click('[data-action="dao-gui"]'));
     await p.waitFor(`!document.querySelector('.sheet-root') && document.querySelector('#ct-chi-phi .cp-tong')?.dataset.tong === '450000'`, "đã đảo");
     const ds = await p.ev(dongCp);
-    assert.deepEqual(ds[1], { chip: ["Điều chỉnh", "đã đảo"], so: "+ 150.000 ₫", dao: true });
-    assert.deepEqual(ds[2], { chip: ["Đảo"], so: "− 150.000 ₫", dao: false });
+    assert.deepEqual(ds[1], { chip: ["Điều chỉnh", "đã huỷ"], so: "+ 150.000 ₫", dao: true });
+    assert.deepEqual(ds[2], { chip: ["Dòng huỷ"], so: "− 150.000 ₫", dao: false });
   });
 
   await b.step("7", `Hai người cùng phiên bản: mở form, người khác ghi trước → 409 → dải đỏ "Chi phí chuyến vừa thay đổi — tải lại rồi thử lại." + "Tải lại"`, async () => {
@@ -174,7 +174,7 @@ const dieuKienChu = `[...document.querySelectorAll('.dp-cond[data-dat]')].map((r
     await p.waitFor(`document.querySelector('.dp-ct-title')?.textContent === ${JSON.stringify(T_HUY.ma)}`, "chuyến đã huỷ");
     await p.waitFor(`document.querySelector('#ct-chi-phi .cp-tong')?.dataset.tong === '135000'`, "tổng 135.000");
     const ds = await p.ev(dongCp);
-    assert.deepEqual(ds.map((d) => d.chip.join("+")), ["Giá bảng+đã đảo", "Đảo", "Điều chỉnh · phí huỷ"]);
+    assert.deepEqual(ds.map((d) => d.chip.join("+")), ["Giá bảng+đã huỷ", "Dòng huỷ", "Điều chỉnh · phí huỷ"]);
     assert.ok((await p.ev(`[...document.querySelectorAll('#ct-chi-phi .cp-goi-y')].map((x) => x.textContent)`)).includes("Chuyến đã huỷ vẫn ghi được phí huỷ."));
     // L2 (vòng vá 1): chuyến ĐÃ HUỶ — nguồn giá máy chủ trả rỗng → "Chưa có giá" tông trung tính, không cảnh báo.
     assert.equal(await p.ev(txt("#ct-chi-phi .cp-o:nth-child(3) .chip")), "Chưa có giá");

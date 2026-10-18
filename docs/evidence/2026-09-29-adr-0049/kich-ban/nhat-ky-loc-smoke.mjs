@@ -62,7 +62,7 @@ const SAU_HANH_DONG = [
   "Đã gọi báo khách giờ hẹn mới",
   "Bỏ đánh dấu đã gọi báo",
   "Điều chỉnh chi phí xe thuê",
-  "Đảo dòng chi phí xe thuê",
+  "Huỷ dòng chi phí xe thuê",
   "Lấy lại giá bảng cho chuyến xe thuê",
   "Nhập giá thoả thuận chuyến xe thuê",
   "Thêm giá thuê xe",

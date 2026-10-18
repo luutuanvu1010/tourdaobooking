@@ -6,7 +6,7 @@
 export const PHAN_GIU_LAI: readonly { ma: string; nhan: string }[] = [
   { ma: "DON_BAN_CHUP", nhan: "Đơn hàng kèm bản chụp thông tin khách lúc lập đơn" },
   { ma: "HANH_KHACH", nhan: "Danh sách hành khách của chuyến, giữ tối thiểu 3 năm (chưa luật sư xác nhận)" },
-  { ma: "LAN_THU", nhan: "Các lần thu tiền" },
+  { ma: "LAN_THU", nhan: "Các khoản thu tiền" },
   { ma: "SO_TIEN", nhan: "Sổ tiền và công nợ" },
   { ma: "YEU_CAU_HOA_DON", nhan: "Bản chụp yêu cầu xuất hoá đơn" },
   { ma: "HO_TEN_NHAT_KY", nhan: "Họ tên trong nhật ký thao tác" },

@@ -179,7 +179,7 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
   if (discount.value > subtotal) return fail("Giảm giá không được vượt quá tạm tính.");
   const total = subtotal - discount.value;
 
-  // Sổ tiền lượt 1 (ADR-0026 đ9): tiền trả trước KHÔNG còn nằm trong đơn — trình duyệt ghi LẦN THU ở bước hai (billing) sau khi đơn đã lưu. Trang lập
+  // Sổ tiền lượt 1 (ADR-0026 đ9): tiền trả trước KHÔNG còn nằm trong đơn — trình duyệt ghi KHOẢN THU ở bước hai (billing) sau khi đơn đã lưu. Trang lập
   // đơn CŨ (bộ nhớ đệm PWA chưa tải bản mới) còn gửi khoản trả trước trong thân đơn → từ chối rõ ràng thay vì lặng lẽ bỏ mất số tiền đó.
   if (typeof b.depositAmount === "number" && b.depositAmount > 0) {
     return { ok: false, code: "client_outdated", message: "Trang lập đơn đã cũ — tải lại trang rồi nhập tiền trả trước ở mục Thanh toán." };

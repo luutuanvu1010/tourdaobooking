@@ -6,7 +6,7 @@ export const HD_QUAN_TRI: NhomHuongDan = {
   tieuDe: "Quản trị",
   quyen: ["ADMIN", "SUPER_ADMIN"],
   gioiThieu: "Bạn làm mọi việc của văn phòng, cộng thêm: sửa, ngưng, gán vai, hỗ trợ đăng nhập cho tài khoản nhân viên, Danh bạ, danh mục dịch vụ, địa điểm, xe và giấy tờ. Bạn duyệt Đặt gấp cho chặng đón sát giờ và phá lệ khi điều xe.",
-  batDauNhanh: `1. Mở [[Quản lý tài khoản]], xem cột [[Đăng nhập gần nhất]] để biết ai đã vào app.
+  batDauNhanh: `1. Mở [[Quản lý tài khoản]], xem cột [[Đăng nhập gần nhất]] để biết ai đã vào.
 2. Nhân viên mới: Hành chính nhân sự tạo tài khoản; bạn gán vai, đặt lại PIN khi họ cần.
 3. Mở [[Dịch vụ & giá]], xem lần đồng bộ gần nhất với Google Sheet có lỗi không.
 4. Trên Trang chủ, xem khối [[Việc của bạn]] (thẻ [[Cần xem lại]] đứng đầu).
@@ -58,7 +58,7 @@ Bạn không đặt lại PIN của chính mình ở đây; tự đổi ở tran
    - Cá nhân: [[Họ và tên]].
    - Tổ chức: [[Tên gọi]], [[Tên pháp lý]], [[Mã số thuế]], [[Địa chỉ]], [[Email nhận hoá đơn]].
 3. Gõ số điện thoại, email nếu có (không bắt buộc).
-4. Nếu số đã có hồ sơ, app báo và có nút [[Mở hồ sơ này]]. Đúng người thì dùng hồ sơ có sẵn.
+4. Nếu số đã có hồ sơ, sẽ hiện nút [[Mở hồ sơ này]]. Đúng người thì dùng hồ sơ có sẵn.
 5. Bấm [[Tạo hồ sơ]].
 
 Tìm: gõ tên hoặc số điện thoại, lọc theo loại, công việc, nơi làm, bấm [[Tìm]]. Tick [[Gồm cả hồ sơ đã ngưng]] để xem cả hồ sơ cũ.`,
@@ -89,19 +89,19 @@ Tìm: gõ tên hoặc số điện thoại, lọc theo loại, công việc, nơ
     },
     {
       tieuDe: "Dịch vụ & giá (Google Sheet)",
-      noiDung: `Nguồn: Google Sheet; app tự đồng bộ mỗi 15 phút.
+      noiDung: `Nguồn: Google Sheet; tự đồng bộ mỗi 15 phút.
 
 1. [[Dịch vụ & giá]]: đầu trang ghi lần đồng bộ gần nhất và lỗi nếu có.
 2. Lấy ngay: [[Đồng bộ ngay từ Google Sheet]].
-3. App hỏi vì sắp ẩn nhiều dịch vụ: chỉ đồng ý khi chắc Sheet đúng.
+3. Nền tảng hỏi vì sắp ẩn nhiều dịch vụ: chỉ đồng ý khi chắc Sheet đúng.
 
-### Ghi đè giá (chỉ trong app, không ghi vào Sheet)
+### Ghi đè giá (không ghi vào Sheet)
 1. Tìm theo mã hoặc tên, bấm [[Sửa giá]], gõ giá loại khách cần đổi, [[Lưu ghi đè]].
 2. Về giá Sheet: [[Bỏ ghi đè]].
 3. Sheet đổi giá sau khi bạn ghi đè: dòng có cảnh báo; giữ giá của bạn: [[Giữ ghi đè]].
 4. Tạm ngưng bán: [[Ẩn]]. Bán lại: [[Hiện lại]].
 
-### Nhóm dịch vụ (trong app, không lấy từ Sheet)
+### Nhóm dịch vụ (không lấy từ Sheet)
 Khối [[Nhóm dịch vụ]]: [[Thêm nhóm]], [[Lên]], [[Xuống]], [[Tắt]] (nhóm phải trống; dùng lại: [[Bật]]). Chuyển nhóm: tick ô chọn (tối đa 50), chọn nhóm đích; một dịch vụ: [[Sửa giá]] → [[Đổi nhóm]], có lịch sử.
 
 Lọc: [[Đang ghi đè giá]], [[Sheet đã đổi giá (cần xem)]], [[Đã ẩn]], [[Không còn trong Sheet]]. Đơn đã lập luôn giữ giá lúc lập.`,
@@ -121,7 +121,7 @@ Lọc: [[Đang ghi đè giá]], [[Sheet đã đổi giá (cần xem)]], [[Đã �
 3. Chọn lý do: [[Khách đoàn gọi gấp]], [[Chuyến bay đổi giờ]], [[Đơn bù cho khách bị lỡ chuyến]] hoặc [[Lý do khác]]. Gõ [[Ghi chú ngắn]] nếu cần.
 4. Bấm [[Duyệt đặt gấp]]. Sau đó đơn xác nhận được.
 
-Ở màn Tạo đơn, nút Đặt gấp hiện ngay trên thẻ dịch vụ; app lưu nháp rồi mới đặt gấp. Trên Điều phối xe có mục [[Đơn nháp chờ duyệt đặt gấp]].`,
+Ở màn Tạo đơn, nút Đặt gấp hiện ngay trên thẻ dịch vụ; Nền tảng lưu nháp rồi mới đặt gấp. Trên Điều phối xe có mục [[Đơn nháp chờ duyệt đặt gấp]].`,
     },
     {
       tieuDe: "Xe và giấy tờ xe",
@@ -170,13 +170,14 @@ Mở [[Xe & giấy tờ]], chọn [[Giấy tờ sắp hết hạn]] (điện tho
 Mở [[Loại giấy tờ cá nhân]] (có cả [[Hạng giấy phép lái xe]]) hoặc [[Loại giấy tờ xe]]. Thêm: gõ mã, tên, tick [[Có ngày hết hạn]] nếu cần, thứ tự, [[Thêm]]. Sửa: [[Sửa]], [[Lưu]]. Không xoá, chỉ ngưng dùng.
 
 ### Trợ lý Hỗ trợ (chỉ Toàn quyền)
-Mở [[Trợ lý Hỗ trợ]] ở nhóm THIẾT LẬP (điện thoại: trang **Tôi**). Sáu phần, mỗi phần có nút lưu riêng, hiệu lực ngay:
-1. **Tình trạng**: bật / tắt cả công ty, trần chi phí tháng, chi phí, số câu, lượt thử. [[Thử key]] cho biết key còn dùng được, sai hay hết tiền. Đổi key làm ngoài app.
+Mở [[Trợ lý Hỗ trợ]] ở nhóm THIẾT LẬP (điện thoại: trang **Tôi**). Bảy phần, lưu riêng từng phần, hiệu lực ngay:
+1. **Tình trạng**: bật / tắt cả công ty, trần chi phí tháng, chi phí, số câu, lượt thử. [[Thử key]] cho biết key còn dùng được, sai hay hết tiền. Đổi key làm ngoài Nền tảng.
 2. **Ai được dùng**: bật / tắt theo từng vai và số câu mỗi người mỗi ngày, [[Lưu]]. Tài khoản nhiều vai: dùng được khi có một vai đang bật.
 3. **Bộ não**: chọn mẫu AI (có giá ước tính), mức suy nghĩ, độ dài; sửa lời nhắc, [[Lưu bộ não]]. [[Khôi phục mặc định]] chỉ đưa lời nhắc gốc vào ô soạn, phải bấm [[Lưu bộ não]] thì mới có hiệu lực; mở Lịch sử bản, [[Quay lại bản này]]. Thử trước: chọn vai, gõ câu hỏi, [[Thử với cấu hình đang soạn]].
-4. **Lời dặn**: câu chào, câu hỏi mẫu, [[Lưu thành bản mới]].
-5. **Ngữ cảnh bổ sung**: gõ tiêu đề và nội dung, [[Thêm đoạn]]; bỏ tick **Đang dùng** để tắt một đoạn.
-6. **Lịch sử hỏi đáp**: lọc theo ngày, người, vai hoặc tìm chữ, [[Lọc]]. Không xoá được.
+4. **Thử trước khi lưu**: chọn vai, gõ câu hỏi, xem trả lời với cấu hình chưa lưu.
+5. **Lời dặn**: câu chào, câu hỏi mẫu, [[Lưu thành bản mới]].
+6. **Ngữ cảnh bổ sung**: gõ tiêu đề và nội dung, [[Thêm đoạn]]; bỏ tick **Đang dùng** để tắt một đoạn.
+7. **Lịch sử hỏi đáp**: lọc theo ngày, người, vai hoặc tìm chữ, [[Lọc]]. Không xoá được.
 
 Chữ tuỳ chỉnh không được có số điện thoại, email, số tiền. Dù lời nhắc bị sửa, máy vẫn che số điện thoại, ẩn số tiền, giữ trần tiền và quyền xem.
 
@@ -188,11 +189,11 @@ Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]
     },
     {
       tieuDe: "Tình huống hay gặp",
-      noiDung: `- **Nhân viên không vào được app**: xem dòng của họ. Bị khoá thì [[Mở khoá]]; có nhãn [[Ngưng]] thì hỏi lý do trước khi kích hoạt lại; quên PIN thì [[Đặt lại PIN]].
+      noiDung: `- **Nhân viên không vào được Nền tảng**: xem dòng của họ. Bị khoá thì [[Mở khoá]]; có nhãn [[Ngưng]] thì hỏi lý do trước khi kích hoạt lại; quên PIN thì [[Đặt lại PIN]].
 - **Trang chủ báo Sheet đã đổi giá**: bấm vào, xem giá mới; đồng ý thì [[Bỏ ghi đè]], không thì [[Giữ ghi đè]].
-- **Đồng bộ báo lỗi**: app vẫn dùng bản đã lưu. Kiểm tra Sheet, thử lại sau; vẫn lỗi thì báo ở Hỗ trợ.
+- **Đồng bộ báo lỗi**: vẫn dùng bản đã lưu. Kiểm tra Sheet, thử lại sau; vẫn lỗi thì báo ở Hỗ trợ.
 - **Nhân viên không xác nhận được đơn vì giờ đón sát**: duyệt [[Đặt gấp]].
-- **Hai hồ sơ trùng đã có sẵn trong Danh bạ**: gộp hồ sơ (chưa có ở bản này); hỏi người phụ trách hệ thống.`,
+- **Hai hồ sơ trùng trong Danh bạ**: [[Danh bạ]] → [[Hồ sơ nghi trùng]] → [[Gộp]].`,
     },
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",
@@ -222,7 +223,7 @@ Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]
 Chỉ hiện ở trang Tôi của tài khoản Toàn quyền. Khi bật, mọi tài khoản khác (kể cả Quản trị) thấy màn hình bảo trì; tài khoản Toàn quyền vẫn dùng bình thường.
 1. Mục [[Chế độ bảo trì]]: chọn **30 phút**, **60 phút**, **120 phút** hoặc giờ dự kiến hoàn tất.
 2. Bấm [[Bật chế độ bảo trì]], đọc cảnh báo, bấm [[Xác nhận bật]] (hoặc [[Quay lại]]).
-3. Đổi giờ: [[Cập nhật giờ dự kiến]]. Mở lại app: [[Tắt chế độ bảo trì]].
+3. Đổi giờ: [[Cập nhật giờ dự kiến]]. Mở lại: [[Tắt chế độ bảo trì]].
 
 > Lưu ý: chỉ bật khi cột Đăng nhập gần nhất cho thấy mọi người đã dùng bản mới.
 

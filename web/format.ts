@@ -22,7 +22,7 @@ export function parseMoney(text: string): number {
 export const dateTime = (iso: string): string =>
   new Date(iso).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
-/** Hình thức thu của lần thu (sổ tiền lượt 1 — mã của bảng tra cứu `bil_payment_method`). Mặc định trên form: Chuyển khoản (chủ duyệt 30/9, YC-0001/0002). */
+/** Hình thức thu của khoản thu (sổ tiền lượt 1 — mã của bảng tra cứu `bil_payment_method`). Mặc định trên form: Chuyển khoản (chủ duyệt 30/9, YC-0001/0002). */
 export const METHOD_LABEL: Record<"BANK_TRANSFER" | "CASH" | "OTHER", string> = { BANK_TRANSFER: "Chuyển khoản", CASH: "Tiền mặt", OTHER: "Khác" };
 
 /** Nhãn hành động nhật ký — lấy từ nguồn duy nhất src/shared/audit-actions.ts. Hành động lạ (bản mới hơn giao diện) hiện mã thô. */

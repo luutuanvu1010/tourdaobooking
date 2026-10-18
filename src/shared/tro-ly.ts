@@ -104,7 +104,7 @@ export function dongTrang(t: TrangSoDo): string {
 }
 
 /**
- * Chia kho: (a) hướng dẫn theo vai — mỗi mục một đoạn + "Bắt đầu nhanh" của mỗi nhóm; (b) kiến trúc lời thường; (d) cấu trúc app tự sinh (ADR-0070 điều 1);
+ * Chia kho: (a) hướng dẫn theo vai — mỗi mục một đoạn + "Bắt đầu nhanh" của mỗi nhóm; (b) kiến trúc lời thường; (d) cấu trúc Nền tảng tự sinh (ADR-0070 điều 1);
  * (c)+(e) sơ đồ trang và bố cục tự sinh (ADR-0066 điều 3(c), ADR-0070 điều 2) — một đoạn mỗi trang.
  */
 export function chiaKho(): DoanTriThuc[] {
@@ -114,8 +114,8 @@ export function chiaKho(): DoanTriThuc[] {
     out.push({ ten: `${nhom} › Bắt đầu nhanh`, quyen: n.quyen, chu: `${n.gioiThieu}\n${n.batDauNhanh}` });
     for (const m of n.muc) out.push({ ten: `${nhom} › ${tenSach(m.tieuDe)}`, quyen: n.quyen, chu: m.noiDung });
   }
-  for (const k of KIEN_TRUC) out.push({ ten: `Cách app vận hành › ${tenSach(k.tieuDe)}`, quyen: [], chu: k.noiDung });
-  for (const k of CAU_TRUC) out.push({ ten: `Cấu trúc app › ${tenSach(k.tieuDe)}`, quyen: k.quyen, chu: k.noiDung });
+  for (const k of KIEN_TRUC) out.push({ ten: `Cách Nền tảng vận hành › ${tenSach(k.tieuDe)}`, quyen: [], chu: k.noiDung });
+  for (const k of CAU_TRUC) out.push({ ten: `Cấu trúc Nền tảng › ${tenSach(k.tieuDe)}`, quyen: k.quyen, chu: k.noiDung });
   const daCo = new Set<string>();
   for (const t of SO_DO_TRANG) {
     // "/" và "/home" cùng tiêu đề "Trang chủ" (cùng một màn): giữ trang đầu, tên mục không được trùng.
@@ -138,7 +138,9 @@ const TU_DUNG = new Set(
 
 /** Tách từ (âm tiết) + ghép đôi âm tiết liền nhau (bắt cụm như "dat gap", "don hang"). */
 export function tachTu(s: string): string[] {
-  const am = boDau(s).split(/[^a-z0-9]+/).filter(Boolean);
+  // ADR-0130: chữ giao diện «app» đổi thành «Nền tảng», nhưng người hỏi vẫn gõ «app». Gộp cụm «nen tang» và chữ «app» về MỘT âm tiết (ở kho lẫn câu hỏi)
+  // để hai cách gọi khớp nhau và cụm hai âm tiết phổ biến này không thành «khớp cặp» với gần như cả kho.
+  const am = boDau(s).replace(/\bnen tang\b|\bapp\b/g, "nentang").split(/[^a-z0-9]+/).filter(Boolean);
   const don = am.filter((t) => !TU_DUNG.has(t) && (t.length > 1 || /\d/.test(t)));
   const doi: string[] = [];
   for (let i = 0; i + 1 < am.length; i++) if (!(TU_DUNG.has(am[i]!) && TU_DUNG.has(am[i + 1]!))) doi.push(`${am[i]}_${am[i + 1]}`);
@@ -198,7 +200,7 @@ export function timDoan(cauHoi: string, perms: readonly PermissionCode[], kho: r
 
 /**
  * Lấy đoạn theo thứ tự điểm tới khi hết ngân sách (ước token); đoạn không vừa phần còn lại thì bỏ qua, xét đoạn sau. Tối đa `toiDa` đoạn.
- * `toiDa` 8 → 12 (ADR-0070, 1/10): kho thêm các đoạn cấu trúc app ngắn (~70–250 token) nên 8 đoạn chỉ dùng ~2.500 / 6.000 token và đẩy đoạn liên quan
+ * `toiDa` 8 → 12 (ADR-0070, 1/10): kho thêm các đoạn cấu trúc Nền tảng ngắn (~70–250 token) nên 8 đoạn chỉ dùng ~2.500 / 6.000 token và đẩy đoạn liên quan
  * (vd "Mốc 6 giờ và Đặt gấp" cho câu "vì sao không xác nhận được đơn") ra ngoài; ngân sách token vẫn là trần thật.
  * MỘT vòng ngân sách cho cả chonDoan (từ khoá) và chonDoanTron (ADR-0082).
  */

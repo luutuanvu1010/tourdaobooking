@@ -41,7 +41,7 @@ const CAU_TRIGGER: [string, string][] = [
   ["coc_same_person", "Người duyệt không tự chi / chuyển / xác nhận khoản này — cần một người khác (tách nhiệm vụ)."],
   ["coc_transfer_mismatch", "Lệnh chuyển không khớp đơn nhận, số tiền hoặc người giữ tiền."],
   ["coc_transfer_target_invalid", CAU_DON_NHAN_HONG],
-  ["coc_paid_below_approved", "Đơn đã duyệt hoàn thu trước — huỷ duyệt phần chưa chi trước khi đảo lần thu."],
+  ["coc_paid_below_approved", "Đơn đã duyệt hoàn thu trước — huỷ duyệt phần chưa chi trước khi huỷ khoản thu."],
   ["coc_outside_not_legacy", "Chỉ ghi được cho đơn huỷ trước khi có lệnh hoàn thu trước trong Nền tảng."],
   ["coc_outside_once", "Đơn này đã có một dòng đã hoàn ngoài hệ thống đang hiệu lực."],
   ["coc_outside_exceeds", "Vượt số tiền còn giữ của đơn — tải lại rồi thử lại."],

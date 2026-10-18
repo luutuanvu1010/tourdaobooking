@@ -85,7 +85,7 @@ test("NT-F7: sau Đã giao, MỌI route ghi của orders + dispatch (Toàn quy�
     const res = await w.call(r.method, path, { as: SA, body: CA[khoa(r)] });
     assert.equal(res.status, 409, `${khoa(r)} (${r.module}): ${res.text}`);
     assert.equal(res.json?.error?.code, "order_delivered", `${khoa(r)}: ${res.text}`);
-    assert.match(res.json.error.message, /^Đơn đã Đã giao – đã thu đủ/, khoa(r));
+    assert.match(res.json.error.message, /^Đơn đã ở bước Đã giao – đã thu đủ/, khoa(r));
   }
   assert.equal(JSON.stringify(w.q("SELECT * FROM orders WHERE id = ?", id)), truoc, "đơn không đổi");
   const chiTiet = await w.call("GET", `/api/orders/${id}`, { as: SA });
@@ -123,7 +123,7 @@ test("T-1 (kiểm độc lập): ĐUA — route đọc 'chưa Đã giao', ngư�
   assert.equal(daChen, true, "route đi qua db.batch (ca đua thật sự xảy ra)");
   assert.equal(res.status, 409, res.text);
   assert.equal(res.json?.error?.code, "order_delivered", res.text);
-  assert.match(res.json.error.message, /^Đơn đã Đã giao – đã thu đủ/);
+  assert.match(res.json.error.message, /^Đơn đã ở bước Đã giao – đã thu đủ/);
   assert.doesNotMatch(res.text, /SQLITE|D1_ERROR/);
   assert.equal(w.q("SELECT status FROM orders WHERE id = ?", id)[0].status, "confirmed", "lô huỷ: đơn không bị huỷ");
 });

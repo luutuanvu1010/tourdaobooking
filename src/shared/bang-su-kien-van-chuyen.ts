@@ -172,7 +172,7 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
   {
     id: "huy-chuyen", ten: "Huỷ chuyến", loai: "ke_hoach", trangThai: "co_ma",
     routes: [vp("/api/van-chuyen/chuyen/:id/huy", "trip.dispatch", O_DIEU_PHOI, "lenhHuy")], trangThaiChuyen: ["PLANNED"], vuot: ["MOC_TOI_THIEU"],
-    luat: "chuyến còn khách dưới mốc → điều chỉnh khẩn cấp; đóng mọi suất, dòng lái, điểm; đảo chi phí xe thuê",
+    luat: "chuyến còn khách dưới mốc → điều chỉnh khẩn cấp; đóng mọi suất, dòng lái, điểm; huỷ chi phí xe thuê",
     bang: [...LO_CHUNG, "vc_trip_allocation", "vc_trip_driver", "vc_trip_stop", "vc_trip_cost_line"], suKien: "CANCELLED", nhatKy: "trip_cancelled", lo: "loHuy", bao: "route",
     tin: { nhom: "thuong", nhan: [{ ai: TX_LUC, loai: "huy_chuyen" }] }, bangTin: "huy", nguon: "ADR-0049 D1; ADR-0104 Đ1.2; ADR-0052 D6.2",
   },
@@ -240,7 +240,7 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
   },
   {
     id: "doi-thu-tu", ten: "Đổi thứ tự điểm khi đang chạy", loai: "tien_do", trangThai: "co_ma", routes: capTienDo("/thu-tu", "lenhDoiThuTu"), trangThaiChuyen: ["RUNNING"],
-    vuot: [], luat: "chỉ chặn đảo mới (đón trước trả)", bang: [...LO_CHUNG, "vc_trip_stop"], suKien: "STOPS_REORDERED", nhatKy: "trip_stops_reordered", lo: "loDoiThuTu",
+    vuot: [], luat: "chỉ chặn ngược thứ tự mới (đón trước trả)", bang: [...LO_CHUNG, "vc_trip_stop"], suKien: "STOPS_REORDERED", nhatKy: "trip_stops_reordered", lo: "loDoiThuTu",
     bao: "route", tin: null, bangTin: "tien_do", nguon: "ADR-0049 D3; ADR-0110",
   },
   {

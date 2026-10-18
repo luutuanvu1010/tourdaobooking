@@ -485,7 +485,7 @@ test("(6) kiểm hợp lệ: thiếu lý do 400; đơn nháp 409; đã giao 409;
   const g = await ghi(w, id, dv(id), KT, tay15);
   assert.equal(g.status, 409, g.text);
   assert.equal(g.json.error.code, "order_delivered");
-  assert.match(g.json.error.message, /^Đơn đã Đã giao – đã thu đủ/);
+  assert.match(g.json.error.message, /^Đơn đã ở bước Đã giao – đã thu đủ/);
   assert.equal(bangChup(w, id).length, truoc);
 });
 

@@ -58,7 +58,7 @@ function moHopLyDo(opener: HTMLButtonElement, d: DeNghiDto, loai: "duyet" | "bac
             lyDo = c;
             chinh.disabled = false;
           })
-        : h("p", { class: "dp-note" }, "Danh mục chưa có lý do đang dùng cho việc này — nhờ Quản trị thêm ở Danh mục lý do."),
+        : h("p", { class: "dp-note" }, "Danh mục chưa có lý do đang dùng cho việc này — nhờ Quản trị thêm ở trang Lý do điều phối."),
     ],
     foot: [dong, chinh],
     footClass: "vc-foot-2",

@@ -197,7 +197,7 @@ export function cauNhaXeThoi(v: { doiTuyen: boolean; doiNgay: boolean }): string
   if (!v.doiNgay) return CAU_NHA_XE_THOI;
   return CAU_NHA_XE_THOI.replace("giữ tuyến cũ.", v.doiTuyen ? "giữ tuyến và ngày chạy cũ." : "giữ ngày chạy cũ.");
 }
-export const CAU_TONG_AM = "Tổng chi phí chuyến sẽ âm — đảo điều chỉnh giảm trước.";
+export const CAU_TONG_AM = "Tổng chi phí chuyến sẽ âm — huỷ dòng điều chỉnh giảm trước.";
 export const CAU_CHI_PHI_VUA_DOI = "Chi phí chuyến vừa thay đổi — tải lại rồi thử lại.";
 
 // ---- Giấy tờ XE (Task A14) — khuôn giấy tờ của người (parties/giay-to.ts), KHÁC ở ba chỗ: không CCCD / không hạng / không nơi cấp; không che số (giấy tờ xe

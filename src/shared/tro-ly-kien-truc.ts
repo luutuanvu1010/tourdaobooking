@@ -12,8 +12,8 @@ export interface DoanKienTruc { readonly tieuDe: string; readonly noiDung: strin
 export const KIEN_TRUC: readonly DoanKienTruc[] = [
   {
     tieuDe: "Vai và quyền: vì sao mỗi người thấy menu khác nhau",
-    noiDung: `Mỗi tài khoản có một hoặc vài quyền: Bán hàng, Kế toán, Quản trị, Toàn quyền, Hướng dẫn viên, Đối tác, Thực tập, Tài xế, Tài xế đối tác. Menu, nút và dữ liệu hiện theo quyền: không thấy một mục nghĩa là tài khoản chưa có quyền đó, không phải lỗi. Dù giao diện có hiện nút, máy chủ vẫn kiểm lại quyền; bị từ chối thì app báo "không có quyền".
-Vai nào làm được việc gì, phạm vi tới đâu (của mình, đang được giao hay tất cả): xem các đoạn "Vai … làm được gì" và "Việc: …" của phần Cấu trúc app — lấy thẳng từ bảng quyền của app nên luôn đúng. Muốn thêm quyền thì hỏi Quản trị.`,
+    noiDung: `Mỗi tài khoản có một hoặc vài quyền: Bán hàng, Kế toán, Quản trị, Toàn quyền, Hướng dẫn viên, Đối tác, Thực tập, Tài xế, Tài xế đối tác. Menu, nút và dữ liệu hiện theo quyền: không thấy một mục nghĩa là tài khoản chưa có quyền đó, không phải lỗi. Dù giao diện có hiện nút, máy chủ vẫn kiểm lại quyền; bị từ chối thì Nền tảng báo "không có quyền".
+Vai nào làm được việc gì, phạm vi tới đâu (của mình, đang được giao hay tất cả): xem các đoạn "Vai … làm được gì" và "Việc: …" của phần Cấu trúc Nền tảng — lấy thẳng từ bảng quyền của Nền tảng nên luôn đúng. Muốn thêm quyền thì hỏi Quản trị.`,
   },
   {
     tieuDe: "Vòng đời một đơn: nháp, xác nhận, huỷ",
@@ -30,7 +30,7 @@ Tiền của đơn (thành tiền, tổng, còn lại) do máy chủ tự tính 
   },
   {
     tieuDe: "Thông báo: chuông, dải tin quan trọng, điện thoại",
-    noiDung: `App báo tin ở ba nơi: hình chuông ở đầu trang (tin chưa đọc có số đỏ), dải tin quan trọng ở đầu mọi trang (phải bấm Đã hiểu), và thông báo trên điện thoại khi đã bật. Tin về đơn gửi cho người lập, người phụ trách và người đang chờ nhận đơn; lưu nháp không báo ai, xác nhận mới báo. Khi đang mở app, danh sách đơn tự cập nhật không cần tải lại. Đổi PIN hoặc bị ngưng tài khoản thì thông báo điện thoại tự tắt, phải bật lại.`,
+    noiDung: `Nền tảng báo tin ở ba nơi: hình chuông ở đầu trang (tin chưa đọc có số đỏ), dải tin quan trọng ở đầu mọi trang (phải bấm Đã hiểu), và thông báo trên điện thoại khi đã bật. Tin về đơn gửi cho người lập, người phụ trách và người đang chờ nhận đơn; lưu nháp không báo ai, xác nhận mới báo. Khi đang mở Nền tảng, danh sách đơn tự cập nhật không cần tải lại. Đổi PIN hoặc bị ngưng tài khoản thì thông báo điện thoại tự tắt, phải bật lại.`,
   },
   {
     tieuDe: "Điều phối xe: xếp khách lên chuyến, tài xế bấm tiến độ",
@@ -42,11 +42,11 @@ Tiền của đơn (thành tiền, tổng, còn lại) do máy chủ tự tính 
   },
   {
     tieuDe: "Dữ liệu không bị xoá, chỉ ngưng hoặc đóng",
-    noiDung: `App không xoá hẳn dữ liệu nghiệp vụ: xe ngừng dùng, tài khoản bị ngưng, loại giấy tờ bị ngưng, chuyến bị huỷ… đều còn trong hệ thống để tra lại. Vì vậy khi thấy một mục "đã ngưng" thì đó là cách app giữ lịch sử, không phải lỗi. Mọi thay đổi quan trọng đều có dấu vết ai làm, lúc nào.`,
+    noiDung: `Nền tảng không xoá hẳn dữ liệu nghiệp vụ: xe ngừng dùng, tài khoản bị ngưng, loại giấy tờ bị ngưng, chuyến bị huỷ… đều còn trong hệ thống để tra lại. Vì vậy khi thấy một mục "đã ngưng" thì đó là cách Nền tảng giữ lịch sử, không phải lỗi. Mọi thay đổi quan trọng đều có dấu vết ai làm, lúc nào.`,
   },
   {
     tieuDe: "Trợ lý Hỗ trợ trả lời được gì",
-    noiDung: `Trợ lý Hỗ trợ chỉ hướng dẫn cách dùng app, dựa trên bộ hướng dẫn trong Trợ giúp, sơ đồ các phần của app và danh sách trang, mục, nút của app (tự cập nhật mỗi lần app được cập nhật). Trợ lý không xem được đơn, khách, tiền hay dữ liệu thật của công ty, không làm thay thao tác nào, và có thể trả lời sai: luôn đối chiếu với màn hình. Việc hướng dẫn chưa nói thì trợ lý nói thật và gợi hỏi Quản trị hoặc gửi Góp ý. Trợ lý nhớ tối đa ba câu vừa hỏi của chính người hỏi trong cùng cuộc trò chuyện, và không bao giờ nêu số tiền.
+    noiDung: `Trợ lý Hỗ trợ chỉ hướng dẫn cách dùng Nền tảng, dựa trên bộ hướng dẫn trong Trợ giúp, sơ đồ các phần của Nền tảng và danh sách trang, mục, nút của Nền tảng (tự cập nhật mỗi lần Nền tảng được cập nhật). Trợ lý không xem được đơn, khách, tiền hay dữ liệu thật của công ty, không làm thay thao tác nào, và có thể trả lời sai: luôn đối chiếu với màn hình. Việc hướng dẫn chưa nói thì trợ lý nói thật và gợi hỏi Quản trị hoặc gửi Góp ý. Trợ lý nhớ tối đa ba câu vừa hỏi của chính người hỏi trong cùng cuộc trò chuyện, và không bao giờ nêu số tiền.
 Câu hỏi (đã che số điện thoại, email, số giấy tờ) và câu trả lời được lưu để cải thiện trợ lý; chỉ người phụ trách hệ thống đọc được, không ai xoá được. Người phụ trách hệ thống bật hoặc tắt trợ lý theo từng vai, đặt câu chào, câu hỏi mẫu, chọn mẫu AI, sửa lời nhắc và thêm đoạn ngữ cảnh ở trang Trợ lý Hỗ trợ; vai đang tắt thì không thấy nút Hỗ trợ.`,
   },
 ];

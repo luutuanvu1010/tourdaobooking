@@ -51,7 +51,7 @@ test("chipDongChiPhi: loại dòng → nhãn bản vẽ; điều chỉnh lý do 
   assert.deepEqual(chipDongChiPhi({ loai: "AGREED", lyDo: null }), { nhan: "Giá thoả thuận", tone: "ok" });
   assert.deepEqual(chipDongChiPhi({ loai: "ADJUSTMENT", lyDo: { ma: "CPX_CAU_DUONG", nhan: "Phí cầu đường / bến bãi" } }), { nhan: "Điều chỉnh", tone: "unit" });
   assert.deepEqual(chipDongChiPhi({ loai: "ADJUSTMENT", lyDo: { ma: "CPX_HUY_MUON", nhan: "Phí huỷ muộn" } }), { nhan: "Điều chỉnh · phí huỷ", tone: "danger" });
-  assert.deepEqual(chipDongChiPhi({ loai: "REVERSAL", lyDo: null }), { nhan: "Đảo", tone: "muted" });
+  assert.deepEqual(chipDongChiPhi({ loai: "REVERSAL", lyDo: null }), { nhan: "Dòng huỷ", tone: "muted" });
 });
 
 test("NHAN_NHOM_BANG_KE: năm nhóm trạng thái bảng kê → nhãn + tông bản vẽ (không lộ mã)", () => {
@@ -68,7 +68,7 @@ test("tomTatBangKe: số do máy chủ đếm; bỏ vế 'chưa có giá' khi b�
 
 test("dongDieuChinhBangKe: cột ĐIỀU CHỈNH = số tiền máy chủ tính (câu 4.2); '—' khi không có điều chỉnh; dòng phụ số điều chỉnh bị đảo", () => {
   assert.deepEqual(dongDieuChinhBangKe({ tongDieuChinh: 150_000, soDieuChinh: 1, soDieuChinhBiDao: 0 }), { so: "+ 150.000 ₫", am: false, phu: "" });
-  assert.deepEqual(dongDieuChinhBangKe({ tongDieuChinh: -100_000, soDieuChinh: 2, soDieuChinhBiDao: 1 }), { so: "− 100.000 ₫", am: true, phu: "1 điều chỉnh bị đảo do đổi chuyến" });
+  assert.deepEqual(dongDieuChinhBangKe({ tongDieuChinh: -100_000, soDieuChinh: 2, soDieuChinhBiDao: 1 }), { so: "− 100.000 ₫", am: true, phu: "1 điều chỉnh bị huỷ do đổi chuyến" });
   assert.deepEqual(dongDieuChinhBangKe({ tongDieuChinh: 0, soDieuChinh: 0, soDieuChinhBiDao: 0 }), { so: "—", am: false, phu: "" });
 });
 

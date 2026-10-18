@@ -405,7 +405,7 @@ export interface OrderSummary {
   subtotal: number;
   discount: number;
   total: number;
-  /** Số "thanh toán trước" người lập vừa gõ (ghi thành LẦN THU sau khi lưu — sổ tiền lượt 1). KHÔNG có "còn lại": số đó chỉ billing tính (ADR-0026 đ9, NT-R9). */
+  /** Số "thanh toán trước" người lập vừa gõ (ghi thành KHOẢN THU sau khi lưu — sổ tiền lượt 1). KHÔNG có "còn lại": số đó chỉ billing tính (ADR-0026 đ9, NT-R9). */
   traTruoc: number;
   /** Cảnh báo (không chặn): giảm giá lớn hơn tạm tính / trả trước lớn hơn tổng cộng. */
   warning: string | null;

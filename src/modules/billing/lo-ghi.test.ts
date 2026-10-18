@@ -107,7 +107,7 @@ test("NT-F1 / NT-F2 / NT-F3: Đã giao — thiếu → 409 câu tiếng Việt; 
   assert.equal((await thu(w, HDV, id, tienMat(600_000))).status, 201);
   const thieu = await giao(w, HDV, id);
   assert.equal(thieu.status, 409, thieu.text);
-  assert.equal(thieu.json.error.message, "Còn thiếu 400.000 ₫ — ghi thêm lần thu hoặc sửa đơn trước.");
+  assert.equal(thieu.json.error.message, "Còn thiếu 400.000 ₫ — ghi thêm khoản thu hoặc sửa đơn trước.");
   const ok = await giao(w, HDV, id, { lanThu: tienMat(400_000) });
   assert.equal(ok.status, 200, ok.text);
   assert.ok(trangThai(w, id).delivered_at);

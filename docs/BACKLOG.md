@@ -240,7 +240,7 @@
 
 ## 25. Đổi chữ "lần thu" thành "khoản thu" trên toàn Nền tảng (chủ chốt 2026-10-08)
 
-- **Ngày:** 2026-10-08 · **Nêu bởi:** chủ dự án, trong chat phiên QR thanh toán ("'Ghi lần thu' là 1 cụm từ cực kỳ tối nghĩa") · **Trạng thái:** `đã chốt tên, chưa làm`.
+- **Ngày:** 2026-10-08 · **Nêu bởi:** chủ dự án, trong chat phiên QR thanh toán ("'Ghi lần thu' là 1 cụm từ cực kỳ tối nghĩa") · **Trạng thái:** `đã làm 2026-10-18` (ADR-0130, chờ chủ day-len/trien-khai). Xoá mục này khi đã lên production.
 - **Tên mới chủ đã chọn:** "Khoản thu" — "Ghi lần thu" → **"Ghi khoản thu"**; "Thay lần thu" → **"Sửa khoản thu đã ghi"**; "Ghi bù lần thu" → **"Ghi bù khoản thu"**; các câu khác có chữ "lần thu" đổi theo cùng kiểu.
 - **Khi nào:** việc nhỏ riêng, làm NGAY SAU khi nhánh QR thanh toán đã nhập `main` (nhánh đó cũng thêm chữ "lần thu"), dựng trên `main` mới nhất.
 - **Phạm vi phải quét:** nhãn và câu báo ở `web/*.ts` (khoảng 17 tệp có chữ này), `src/shared/` (câu lỗi, Trợ giúp, nhật ký thay đổi chỉ sửa mục MỚI — mục cũ là hồ sơ có ngày, giữ nguyên), kho tri thức Trợ lý Mai sinh từ nhãn (`npm run build:web` sinh lại `src/shared/so-do-trang.ts` và tệp cấu trúc Trợ lý), kịch bản Chrome dò nút theo tên (`docs/evidence/*/kich-ban/`), tài liệu mô tả (`docs/SYSTEM-DESIGN.md`, `docs/CHANGE-GUIDE.md`). Tên cột / mã trong CSDL (`bil_receipt`…) KHÔNG đổi — chỉ chữ người dùng thấy.

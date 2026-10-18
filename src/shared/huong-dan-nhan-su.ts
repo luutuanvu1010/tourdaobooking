@@ -6,8 +6,8 @@ export const HD_NHAN_SU: NhomHuongDan = {
   id: "nhan-su",
   tieuDe: "Hành chính nhân sự",
   quyen: ["HR"],
-  gioiThieu: "Bạn nhập tài khoản cho mọi người dùng app (nhân viên, đối tác, tài xế đối tác), sửa tên, số điện thoại, gán vai và ngưng tài khoản khi nghỉ việc. Bạn không xem đơn, giá hay Danh bạ.",
-  batDauNhanh: `1. Mở [[Quản lý tài khoản]], xem cột [[Đăng nhập gần nhất]] để biết ai đã vào app.
+  gioiThieu: "Bạn nhập tài khoản cho mọi người dùng Nền tảng (nhân viên, đối tác, tài xế đối tác), sửa tên, số điện thoại, gán vai và ngưng tài khoản khi nghỉ việc. Bạn không xem đơn, giá hay Danh bạ.",
+  batDauNhanh: `1. Mở [[Quản lý tài khoản]], xem cột [[Đăng nhập gần nhất]] để biết ai đã vào Nền tảng.
 2. Người mới: gõ ở khung [[Thêm tài khoản]], chọn vai, bấm [[Tạo tài khoản]], gửi riêng PIN cho họ.
 3. Người đổi việc: bấm [[Sửa]] ở dòng của họ, đổi vai, bấm [[Lưu]].`,
   muc: [
@@ -15,22 +15,22 @@ export const HD_NHAN_SU: NhomHuongDan = {
       tieuDe: "Menu của bạn",
       noiDung: `- Máy tính: nhóm **THIẾT LẬP** có [[Quản lý tài khoản]] (nhóm này tự mở sẵn vì bạn chỉ có một nhóm); chân menu có trang Của tôi, Hỗ trợ, Trợ giúp.
 - Điện thoại: tab [[Tài khoản]] và **Tôi** ở đáy màn hình.
-- Mở app là vào thẳng trang Quản lý tài khoản.`,
+- Mở Nền tảng là vào thẳng trang Quản lý tài khoản.`,
     },
     {
       tieuDe: "Tạo tài khoản",
       noiDung: `1. Vào [[Quản lý tài khoản]], khung [[Thêm tài khoản]].
 2. Gõ [[Họ tên]] và [[Số điện thoại (tên đăng nhập)]].
-3. Nếu app hiện hồ sơ khớp (người đã có tài khoản, đối tác, nhân viên), bấm **Dùng hồ sơ này** để không tạo trùng. Nếu app chỉ báo "Số hoặc tên này đã có trong Danh bạ" mà không hiện tên: tick **Vẫn tạo hồ sơ mới**, tạo xong nhờ Quản trị gộp hồ sơ trùng.
+3. Nếu Nền tảng hiện hồ sơ khớp (người đã có tài khoản, đối tác, nhân viên), bấm **Dùng hồ sơ này** để không tạo trùng. Nếu Nền tảng chỉ báo "Số hoặc tên này đã có trong Danh bạ" mà không hiện tên: tick **Vẫn tạo hồ sơ mới**, tạo xong nhờ Quản trị gộp hồ sơ trùng.
 4. Ở [[Vai và quyền]], tick vai. Nhóm **Nội bộ**: [[Hướng dẫn viên nội bộ]], [[Nhân viên kinh doanh]], [[Thực tập sinh]], [[Kế toán]], [[Tài xế công ty]]. Nhóm **Bên ngoài**: [[Công ty lữ hành]], [[Hướng dẫn viên độc lập]], [[Lễ tân khách sạn]], [[Tài xế taxi (giới thiệu khách)]], [[Cộng tác viên]], [[Tài xế đối tác]].
 5. Đọc dòng **Quyền sẽ có** ngay dưới để chắc chắn đúng.
 6. Bấm [[Tạo tài khoản]].
 7. Bảng PIN hiện **một lần duy nhất**. Bấm [[Sao chép danh sách]] hoặc chép tay, gửi riêng cho người đó, không gửi nhóm chung.
 8. Bấm [[Đã ghi lại, ẩn đi]].
 
-App tự chặn: một người vừa vai nội bộ vừa vai bên ngoài; vai Tài xế đối tác đi kèm vai khác. Bạn không thấy các vai quản lý (Giám đốc, Điều hành chung, IT, Hành chính nhân sự).
+Nền tảng tự chặn: một người vừa vai nội bộ vừa vai bên ngoài; vai Tài xế đối tác đi kèm vai khác. Bạn không thấy các vai quản lý (Giám đốc, Điều hành chung, IT, Hành chính nhân sự).
 
-> Ví dụ: Công ty nhận bạn Ngọc làm kinh doanh. Tick Nhân viên kinh doanh, thấy "Quyền sẽ có: Bán hàng", bấm Tạo tài khoản, nhắn riêng PIN và dặn đổi PIN khi vào app.`,
+> Ví dụ: Công ty nhận bạn Ngọc làm kinh doanh. Tick Nhân viên kinh doanh, thấy "Quyền sẽ có: Bán hàng", bấm Tạo tài khoản, nhắn riêng PIN và dặn đổi PIN khi vào Nền tảng.`,
     },
     {
       tieuDe: "Đổi vai, sửa tên hoặc số điện thoại, nghỉ việc",

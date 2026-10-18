@@ -21,8 +21,8 @@ import { DICH, DICH_CAU_TRUC, boCucHtml, dungDauVaoCauTruc, ghiNeuKhac, sinhTep,
 const ROOT = new URL("../../", import.meta.url);
 const doc = (p: string): string => readFileSync(new URL(p, ROOT), "utf8");
 const cauTruc = (ten: string): DoanTriThuc => {
-  const d = chiaKho().find((x) => x.ten === `Cấu trúc app › ${ten}`);
-  assert.ok(d, `thiếu đoạn "Cấu trúc app › ${ten}"`);
+  const d = chiaKho().find((x) => x.ten === `Cấu trúc Nền tảng › ${ten}`);
+  assert.ok(d, `thiếu đoạn "Cấu trúc Nền tảng › ${ten}"`);
   return d;
 };
 
@@ -53,7 +53,7 @@ test("Đ1: bộ sinh NÉM LỖI (câu tiếng Việt nêu đúng mã) khi thiế
 
 test("Đ2 kho (d): có tổng quan phân hệ, mỗi phân hệ một đoạn (dựa vào ai), luồng chính 6 bước, 10 vai, mỗi việc một đoạn", () => {
   const ten = CAU_TRUC.map((d) => d.tieuDe);
-  assert.ok(ten.includes("Các phân hệ của app"));
+  assert.ok(ten.includes("Các phân hệ của Nền tảng"));
   for (const p of Object.values(TEN_PHAN_HE)) assert.ok(ten.includes(`Phân hệ ${p.ten}`), p.ten);
   assert.match(cauTruc("Phân hệ Vận chuyển").chu, /Dựa vào: .*Đơn hàng \(lấy khách và chặng đưa đón từ đơn đã xác nhận\)/);
   assert.ok(!/Dựa vào: [^.]*Nhật ký/.test(cauTruc("Phân hệ Vận chuyển").chu), "cạnh tới Nhật ký bị bỏ");
@@ -221,9 +221,9 @@ test("Đ4 dungLoiNhac luật 2: ĐƯỢC giải thích mức khái niệm; VẪN
   // Ruling điều phối 1/10: câu cách-dùng-app ngoài tài liệu đi luật 5 (mềm), KHÔNG nằm trong danh sách từ chối của luật 2 (luật 2 luôn thắng).
   assert.ok(!luat2.includes("quy trình ngoài tài liệu"), "luật 2 không được từ chối 'quy trình ngoài tài liệu'");
   // Fix vòng 1 (1/10): điều 2 luôn thắng ⇒ phải tự loại trừ câu cách dùng app (câu mẫu "Đổi mã PIN thế nào?" không bị từ chối). Câu này ở CUỐI điều 2.
-  assert.ok(luat2.endsWith(`"${CAU_TU_CHOI}". Danh sách này không gồm câu hỏi cách dùng app, như cách đổi mã PIN của chính mình hay xem bảng giá ở đâu trong app — trả lời theo điều 1 hoặc 5.`), luat2.slice(-200));
+  assert.ok(luat2.endsWith(`"${CAU_TU_CHOI}". Danh sách này không gồm câu hỏi cách dùng Nền tảng, như cách đổi mã PIN của chính mình hay xem bảng giá ở đâu trong Nền tảng — trả lời theo điều 1 hoặc 5.`), luat2.slice(-200));
   assert.ok(luat2.includes(`"${CAU_TU_CHOI}"`));
-  assert.equal(CAU_TU_CHOI, "Mình chỉ hướng dẫn cách dùng app, không trả lời được câu này — hỏi Quản trị nếu cần.");
+  assert.equal(CAU_TU_CHOI, "Mình chỉ hướng dẫn cách dùng Nền tảng, không trả lời được câu này — hỏi Quản trị nếu cần.");
 });
 
 // ---------------------------------------------------------------- Đ6 tìm đoạn
@@ -233,15 +233,15 @@ const tong = (ds: readonly DoanTriThuc[]): number => ds.reduce((a, d) => a + uoc
 test("Đ6: 'Vì sao tôi không xác nhận được đơn?' ⇒ chọn đoạn Mốc ra lệnh và Đặt gấp + bước Xác nhận đơn của luồng chính; trong ngân sách", () => {
   const ds = chonDoan("Vì sao tôi không xác nhận được đơn?", ["SALES"]);
   const ten = ds.map((d) => d.ten);
-  assert.ok(ten.includes("Cách app vận hành › Mốc ra lệnh và Đặt gấp"), ten.join(" | "));
-  assert.ok(ten.includes("Cấu trúc app › Luồng chính, bước 2: Xác nhận đơn"), ten.join(" | "));
+  assert.ok(ten.includes("Cách Nền tảng vận hành › Mốc ra lệnh và Đặt gấp"), ten.join(" | "));
+  assert.ok(ten.includes("Cấu trúc Nền tảng › Luồng chính, bước 2: Xác nhận đơn"), ten.join(" | "));
   assert.ok(tong(ds) <= NGAN_SACH_TOKEN);
 });
 
 test("Đ6: 'Nút Lưu nháp ở đâu?' ⇒ chọn bước Lập đơn (nút thật + thanh nút cuối trang Tạo đơn) và Sơ đồ trang › Tạo đơn", () => {
   const ds = chonDoan("Nút Lưu nháp ở đâu?", ["SALES"]);
   const ten = ds.map((d) => d.ten);
-  const b1 = ds.find((d) => d.ten === "Cấu trúc app › Luồng chính, bước 1: Lập đơn và lưu nháp");
+  const b1 = ds.find((d) => d.ten === "Cấu trúc Nền tảng › Luồng chính, bước 1: Lập đơn và lưu nháp");
   assert.ok(b1, ten.join(" | "));
   assert.match(b1.chu, /Thanh nút cuối trang — nút: Lưu, chờ xác nhận/);
   assert.ok(ten.includes("Sơ đồ trang › Tạo đơn"), ten.join(" | "));
@@ -256,7 +256,7 @@ test("Đ6: 'App dùng cơ sở dữ liệu gì?' ⇒ không đoạn kỹ thuật
 
 test("Đ6: kho có (d) và (e); tổng kho lớn hơn ngân sách nhưng mỗi câu chỉ gửi ≤ 6.000 token", () => {
   const kho = chiaKho();
-  assert.ok(kho.some((d) => d.ten.startsWith("Cấu trúc app › ")));
+  assert.ok(kho.some((d) => d.ten.startsWith("Cấu trúc Nền tảng › ")));
   assert.ok(tong(kho) > NGAN_SACH_TOKEN);
   assert.ok(tong(chonDoan("đơn hàng xác nhận phụ trách xếp xe thu tiền hoàn thành vai quyền", ["ADMIN"])) <= NGAN_SACH_TOKEN);
 });
