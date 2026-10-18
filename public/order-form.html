@@ -10,13 +10,18 @@
     <div class="form-main">
       <div id="buoc-slot"></div>
       <section class="card buoc" data-buoc-khoi="khach" tabindex="-1" aria-labelledby="khach-title">
-        <label class="o-noi"><span class="o-noi-khung o-noi-co-dinh"><span class="o-noi-chu">Ngày khởi hành</span><input id="orderDate" type="date"></span></label>
-        <p class="muted" id="orderDate-hint">Ngày này áp cho mọi dịch vụ trong đơn.</p>
-        <p class="dd-ghi-tao" id="orderDate-moved" role="status" hidden></p>
-        <h2 id="khach-title">Thông tin khách hàng</h2>
-        <button id="use-mine" class="btn" type="button">Sử dụng thông tin của tôi</button>
+        <div class="khach-ngay">
+          <label class="o-noi"><span class="o-noi-khung o-noi-co-dinh"><span class="o-noi-chu">Ngày khởi hành</span><input id="orderDate" type="date"></span></label>
+          <p class="muted" id="orderDate-hint">Áp cho mọi dịch vụ trong đơn</p>
+          <p class="dd-ghi-tao" id="orderDate-moved" role="status" hidden></p>
+        </div>
+        <div class="khach-dau">
+          <h2 id="khach-title">Khách hàng</h2>
+          <button id="use-mine" class="btn btn-link" type="button">Điền thông tin của tôi</button>
+        </div>
+        <div id="don-cua-slot"></div>
         <div class="grid two">
-          <label class="o-noi"><span class="o-noi-khung"><input id="customerName" type="text" maxlength="200" autocomplete="off" placeholder=" " required aria-describedby="customerName-loi"><span class="o-noi-chu">Tên khách *</span></span><span class="field-error" id="customerName-loi" hidden></span></label>
+          <label class="o-noi"><span class="o-noi-khung"><input id="customerName" type="text" maxlength="200" autocomplete="off" placeholder=" " required aria-describedby="customerName-loi"><span class="o-noi-chu">Tên khách đi tour *</span></span><span class="field-error" id="customerName-loi" hidden></span></label>
           <label class="o-noi"><span class="o-noi-khung"><input id="customerPhone" type="tel" inputmode="tel" maxlength="30" autocomplete="off" placeholder=" " required aria-describedby="customerPhone-loi"><span class="o-noi-chu">Số điện thoại *</span></span><span class="field-error" id="customerPhone-loi" hidden></span></label>
         </div>
         <div id="khach-them" class="grid two">

@@ -120,7 +120,7 @@ test("Đ2 kho (e): Tạo đơn — ở đầu menu (nhóm HẰNG NGÀY trong mã
   const t = SO_DO_TRANG.find((x) => x.duongDan === "/order-form")!;
   assert.deepEqual(t.nhomMenu, ["HẰNG NGÀY"]);
   // 14/10/2026 (Tạo đơn bốn bước): khách lên đầu và ô Ngày khởi hành nằm TRONG khối khách — không còn thẻ "Chọn ngày" riêng ⇒ năm mục, không sáu (số mục trong kho sinh ra đổi theo; luật sinh không đổi).
-  assert.deepEqual(t.boCuc.map((m) => m.muc), ["Thông tin khách hàng", "Dịch vụ", "Thanh toán", "Tóm tắt", "Thanh nút cuối trang"]);
+  assert.deepEqual(t.boCuc.map((m) => m.muc), ["Khách hàng", "Dịch vụ", "Thanh toán", "Tóm tắt", "Thanh nút cuối trang"]);
   assert.deepEqual(t.boCuc.at(-1)!.nut, ["Lưu, chờ xác nhận", "Quay lại"]);
   assert.deepEqual(SO_DO_TRANG.find((x) => x.duongDan === "/dieu-phoi")!.nhomMenu, ["VẬN CHUYỂN"]);
   assert.deepEqual(SO_DO_TRANG.find((x) => x.duongDan === "/help")!.nhomMenu, ["CHÂN MENU"]);

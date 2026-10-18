@@ -10,7 +10,7 @@ import type { MauChang } from "../src/shared/chang-mac-dinh";
 import { dongTuDto, loiDanhSachKhach, passengersNhap, type DongKhach } from "../src/shared/hanh-khach-form";
 import { soKhachDoan } from "../src/shared/hanh-khach";
 import { suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
-import { gopBenDat, khoiBenDatForm, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
+import { gopBenDat, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, chiGiaDanhMuc, holdsPartner } from "../src/shared/permissions";
 import {
@@ -68,7 +68,7 @@ byId("booker-slot").append(bookerPicker.root);
 // Bản "bốn bước" (14/10/2026; đặc tả docs/superpowers/specs/2026-10-14-tao-don-bon-buoc/README.md): Email + Ghi chú của khách gập sau "Thêm chi tiết" (tự mở khi có giá trị hoặc khi lỗi);
 // thanh tiến độ dính trên đầu (bốn bước; vai không chọn được người phụ trách và lúc sửa đơn: ba bước).
 const khachThem = byId("khach-them");
-const gapKhach = taoKhoiGap({ ma: "khach", nhan: "Thêm chi tiết (email, ghi chú)", than: khachThem });
+const gapKhach = taoKhoiGap({ ma: "khach", nhan: "Email, ghi chú", than: khachThem });
 khachThem.before(gapKhach.nut);
 const thanhBuoc = taoThanhBuoc({ phanTu: (ma) => document.querySelector<HTMLElement>(`[data-buoc-khoi="${ma}"]`) });
 thanhBuoc.an("phu-trach", true); // bật lại khi biết người lập chọn được người phụ trách (`canPickHandler`)
@@ -709,13 +709,22 @@ let daChonBenDat: BenDatChon | null = null;
 function datBenDat(chon: BenDatChon | null): void {
   daChonBenDat = chon;
   bookerPicker.root.hidden = chon !== null;
+  datNhanKhach(chon !== null);
+}
+/** Nhãn nổi của hai ô khách theo việc đã chọn đối tác (luật chữ ở `src/shared/phan-doi-tac-hien-thi.ts`): đã chọn thì SĐT ghi rõ là của khách, không phải của đối tác. */
+function datNhanKhach(daChonDoiTac: boolean): void {
+  for (const [id, nhan] of [["customerName", nhanTenKhach(daChonDoiTac)], ["customerPhone", nhanSdtKhach(daChonDoiTac)]] as const) {
+    const chu = field(id).parentElement?.querySelector(".o-noi-chu");
+    if (chu) chu.textContent = nhan;
+  }
 }
 if (khoiBenDat.kieu === "chi-doc") {
   bookerPicker.tat();
   bookerPicker.root.replaceWith(dongBenDatChiDoc(khoiBenDat.benDat));
+  datNhanKhach(true); // bên đặt là đối tác (máy chủ ép): hai ô khách là của người đi tour
 } else if (khoiBenDat.kieu === "tra-sdt-va-dat-qua") {
   datQua = oDatQuaDoiTac({ daChon: null, onDoi: datBenDat, gon: true }); // đợt 1: hàng hai lựa chọn "Khách tự đặt | Đặt qua đối tác" thay nút rời + chú thích
-  bookerPicker.root.before(datQua);
+  byId("don-cua-slot").append(datQua); // hàng đầu của khối "Khách hàng"
 }
 // R-P15: mốc cho biểu mẫu chưa lưu — chỉ người được lập đơn (máy chủ hỏi order.create). Lỗi / chưa có chính sách (503) → không cảnh báo; máy chủ vẫn chặn lúc xác nhận.
 const layMoc = can(staff, "order.create")

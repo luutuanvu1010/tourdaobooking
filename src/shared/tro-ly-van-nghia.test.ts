@@ -176,7 +176,9 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
   // 2026-10-18 (thiết kế lại màn Tạo đơn, việc 2 — ô chọn dịch vụ): hướng dẫn Bán hàng/Đối tác đổi chữ theo ô chọn mới (ô «Tìm theo tên hoặc mã dịch vụ», hàng nhóm,
   // «✓ đã thêm»), bỏ «(app nhớ)» và đổi «App ghi …» thành «Nền tảng ghi …» (luật gọi là Nền tảng) ⇒ đo lại bằng chính bài này: 15 / 10 / 46 — câu than phiền bớt
   // ba đoạn sát ngưỡng (trước khi đổi chữ hướng dẫn, cùng nhánh: 18). Số đo, không suy ra từng đoạn. Luật không đổi, trần 12 vẫn cắt; các tên đoạn khoá dưới đây giữ nguyên.
-  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [15, 10, 46]);
+  // 2026-10-18 (thiết kế lại màn Tạo đơn, việc 3 — khối khách và công tắc «Đơn của»): hướng dẫn Bán hàng/Đối tác và sơ đồ trang đổi chữ theo công tắc «Khách lẻ | Qua đối tác»,
+  // «Khách hàng», «Email, ghi chú», «Điền thông tin của tôi» ⇒ đo lại bằng chính bài này: 18 / 10 / 46 — câu than phiền thêm ba đoạn sát ngưỡng (15 → 18). Số đo, không suy ra từng đoạn. Luật không đổi, trần 12 vẫn cắt.
+  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [18, 10, 46]);
   // 2026-10-05 (1.81, Đợt 7): Trợ giúp thêm câu về hai ô "Xe riêng" / "Xe tối thiểu" (Bán hàng, Quản trị) và bỏ vài dòng trùng ý ⇒ hai đoạn nữa vượt ngưỡng tương đối của câu than phiền (15 → 17); luật không đổi, trần 12 vẫn cắt.
   const thanPhien = chonDoanTron("sao app khó dùng thế", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
   assert.equal(thanPhien.length, SO_DOAN_TOI_DA);

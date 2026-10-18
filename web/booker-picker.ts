@@ -41,7 +41,7 @@ export function createBookerPicker(o: { name: HTMLInputElement; phone: HTMLInput
   function renderStatus(): void {
     if (choice.kind === "existing") replaceChildren(status, `Đã gắn hồ sơ: ${choice.name} · `, linkButton("Bỏ gắn", () => choose({ kind: "none" })));
     else if (choice.kind === "new") replaceChildren(status, "Sẽ tạo hồ sơ mới cho khách này khi lưu · ", linkButton("Không tạo nữa", () => choose({ kind: "none" })));
-    else replaceChildren(status, h("span", { class: "chip chip-warn" }, NO_BOOKER_TEXT));
+    else replaceChildren(status, h("span", { class: "muted booker-chua" }, NO_BOOKER_TEXT));
   }
 
   const newButton = (): HTMLButtonElement => {

@@ -34,10 +34,10 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
 
 1. Bấm [[Tạo đơn]]. Trang chia bốn bước; chạm tên bước trên thanh đầu trang để nhảy tới.
 2. Chọn [[Ngày khởi hành]]; ngày này áp cho **mọi dịch vụ** trong đơn.
-3. Khối [[Thông tin khách hàng]]: điền **Tên khách**, [[Số điện thoại]] (bắt buộc). Ghi [[Email]] hoặc [[Ghi chú / yêu cầu đặc biệt]] thì bấm [[Thêm chi tiết (email, ghi chú)]].
+3. Khối [[Khách hàng]]: điền **Tên khách đi tour**, [[Số điện thoại]] (bắt buộc). Ghi [[Email]] hoặc [[Ghi chú / yêu cầu đặc biệt]] thì bấm [[Email, ghi chú]].
    - Gõ xong số điện thoại, app tìm hồ sơ trùng số: đúng người thì bấm [[Dùng hồ sơ này]], khách mới thì [[Tạo hồ sơ mới]]; không chọn vẫn lưu được.
-   - Nút [[Sử dụng thông tin của tôi]] điền tên và số của chính bạn.
-   - Khách đặt qua đại lý hoặc cộng tác viên: bấm [[Đặt qua đối tác]] (cạnh [[Khách tự đặt]]), rồi chọn người đó để tính hoa hồng.
+   - Nút [[Điền thông tin của tôi]] điền tên và số của chính bạn.
+   - Khách đặt qua đại lý hoặc cộng tác viên: ở hàng [[Đơn của]] bấm [[Qua đối tác]] (mặc định [[Khách lẻ]]), rồi chọn người đó để tính hoa hồng.
 4. Ở khối [[Dịch vụ]], gõ vào ô [[Tìm theo tên hoặc mã dịch vụ]] (ví dụ "4 đảo"), rồi chạm dịch vụ đúng: dòng đó hiện "✓ đã thêm" và thẻ dịch vụ hiện ra.
    - Danh mục dài: chạm một nhóm dưới ô tìm ([[Tất cả]] để xem lại). Dịch vụ gắn ☆ nằm ở mục "★ Hay dùng".
    - Dịch vụ mờ, ghi "chưa có giá" hoặc "chưa hỗ trợ", không chọn được — báo Quản trị.

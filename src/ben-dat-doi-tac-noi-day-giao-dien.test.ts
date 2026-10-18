@@ -69,3 +69,29 @@ test("ô tra hồ sơ khách nhận cờ «có ô Đặt qua đối tác» từ 
   assert.match(doc("web/booker-sheet.ts"), /createBookerPicker\(\{[^}]*coODatQuaDoiTac:\s*o\.coDatQuaDoiTac/, "bảng đổi khách: cờ lấy từ coDatQuaDoiTac của nơi gọi (coODatQuaDoiTac(staff))");
   assert.match(doc("web/order-form.ts"), /bookerPicker\.datCoODatQuaDoiTac\(\s*khoiBenDat\.kieu\s*===\s*"tra-sdt-va-dat-qua"\s*\)/, "form lập đơn: có ô đúng khi luật thuần xếp khối «tra-sdt-va-dat-qua»");
 });
+
+// Màn Tạo đơn thiết kế lại (18/10/2026), Task 3: công tắc «Đơn của» — chữ hai nút, nhãn hàng, aria-pressed, các data-action cũ; nhãn tên / SĐT đổi theo việc chọn đối tác.
+test("công tắc «Đơn của»: nhãn hàng, hai nút «Khách lẻ» / «Qua đối tác», aria-pressed, data-action cũ giữ nguyên", () => {
+  const nguon = readFileSync(fileURLToPath(new URL("../web/dat-qua-doi-tac.ts", import.meta.url)), "utf8");
+  const ma = doc("web/dat-qua-doi-tac.ts");
+  assert.match(nguon, /"Khách lẻ"/);
+  assert.match(nguon, /"Qua đối tác"/);
+  assert.match(nguon, /"Đơn của"/);
+  assert.doesNotMatch(ma, /"Khách tự đặt"/, "chữ cũ đã bỏ");
+  assert.match(nguon, /gon \? "Qua đối tác" : "Đặt qua đối tác"/, "chữ nút theo bố cục: công tắc mới; bảng Đổi khách giữ chữ cũ");
+  assert.match(ma, /"data-action":\s*"dat-qua-mo"/);
+  assert.match(ma, /"data-action",\s*"dat-qua-huy"/);
+  assert.match(ma, /"aria-pressed"/);
+});
+
+test("nhãn tên / SĐT khách ở form lập đơn đi qua luật thuần theo việc đã chọn đối tác", () => {
+  const form = doc("web/order-form.ts");
+  assert.match(form, /nhanTenKhach\(/);
+  assert.match(form, /nhanSdtKhach\(/);
+  const html = readFileSync(fileURLToPath(new URL("../public/order-form.html", import.meta.url)), "utf8");
+  assert.match(html, /Tên khách đi tour \*/);
+  assert.match(html, /id="use-mine"[^>]*>Điền thông tin của tôi</);
+  assert.match(html, /Áp cho mọi dịch vụ trong đơn/);
+  assert.match(html, />Khách hàng</);
+  assert.match(html, /Email, ghi chú|id="don-cua-slot"/);
+});

@@ -16,6 +16,8 @@ import { PHONE_IN_TEXT_MESSAGE, hasLongDigitRun } from "./text-guards.ts";
 export interface BenDatChon {
   readonly partyId: string;
   readonly ten: string;
+  /** Loại hồ sơ khi vừa chọn ở ô tìm (hiện «cá nhân» / «tổ chức» trên dòng đã chọn); vắng khi nạp lại đơn đã lưu — máy chủ không trả loại. Không gửi đi đâu. */
+  readonly loai?: "PERSON" | "ORGANIZATION";
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -59,6 +61,11 @@ export function gopBenDat(v: { chiDoc: BenDatChon | null; daChon: BenDatChon | n
 export function noiNapBenDat(v: { coODatQua: boolean; bookerLaDoiTac: boolean; bookerPartyId: string | null }): "dat-qua" | "tra-sdt" {
   return v.coODatQua && v.bookerLaDoiTac && v.bookerPartyId !== null ? "dat-qua" : "tra-sdt";
 }
+
+/** Nhãn ô tên khách ở form lập đơn: luôn là người ĐI TOUR (đã chọn đối tác hay chưa đều vậy — đối tác chỉ là bên đặt). */
+export const nhanTenKhach = (_daChonDoiTac: boolean): string => "Tên khách đi tour *";
+/** Nhãn ô SĐT: đã chọn đối tác thì ghi rõ là SĐT của khách (không phải của đối tác). */
+export const nhanSdtKhach = (daChonDoiTac: boolean): string => (daChonDoiTac ? "Số điện thoại khách *" : "Số điện thoại *");
 
 export const NHAN_BEN_DAT_DOI_TAC = "Bên đặt (đối tác)";
 export const NHAN_HO_SO_KHACH = "Hồ sơ khách";

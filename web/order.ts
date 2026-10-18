@@ -33,7 +33,7 @@ import { nhanTienDaTra as nhanTienLuat } from "../src/shared/nhan-tien";
 import { ngayDayDu } from "../src/shared/vn-date";
 import { cauNhacKhoan, quaHanDoiChieu, soNgayCho } from "../src/shared/doi-chieu-hien-thi";
 import { cauMoc, changDuoiMoc, tomTatChanXacNhan, type ChangCanDatGap } from "../src/shared/dat-gap-hien-thi";
-import { NO_BOOKER_TEXT } from "../src/shared/booker";
+import { NO_BOOKER_VALUE } from "../src/shared/booker";
 import { coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, duocGhiTay, nhanBenDat } from "../src/shared/phan-doi-tac-hien-thi";
 import { initPhanDoiTac } from "./phan-doi-tac";
 import { NO_HANDLER_TEXT, handlerControls, handlerFailure, handlerSaved, hoiDuocNguoiPhuTrach, nguoiPhuTrachTuPhien } from "../src/shared/handler-view";
@@ -1244,7 +1244,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
           kv("Số điện thoại", order.customerPhone),
           kv("Email", order.customerEmail),
           kv("Ghi chú", order.customerNote),
-          kv(nhanBenDat(order.bookerLaDoiTac), order.bookerName ?? NO_BOOKER_TEXT), // "Bên đặt (đối tác)" khi bên đặt là hồ sơ được hưởng hoa hồng (cờ máy chủ), còn lại "Hồ sơ khách"
+          kv(nhanBenDat(order.bookerLaDoiTac), order.bookerName ?? NO_BOOKER_VALUE), // "Bên đặt (đối tác)" khi bên đặt là hồ sơ được hưởng hoa hồng (cờ máy chủ), còn lại "Hồ sơ khách"
           a.editTrip ? bookerButton(order) : null,
         ),
 

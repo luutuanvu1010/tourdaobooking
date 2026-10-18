@@ -3398,8 +3398,18 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 
 /* Đặt qua đối tác + Phần đối tác (web/dat-qua-doi-tac.ts, web/phan-doi-tac.ts; sổ đại lý đợt 1 Task 11): ô chọn bên đặt ở form lập đơn / bảng "Đổi khách", dòng "Bên đặt" chỉ đọc của tài khoản Đối tác, khối hoa hồng ở trang đơn. Chỉ token. */
 .dqdt { display: flex; flex-direction: column; gap: var(--s2); margin: var(--s3) 0; }
-.dqdt-chon-ai { display: flex; gap: var(--s2); } /* hàng "Khách tự đặt | Đặt qua đối tác" của form Tạo đơn (đợt 1): hai nút chia đều, dùng lại .loc-nut (≥ 44px, bật = aria-pressed) */
-.dqdt-chon-ai .loc-nut { flex: 1 1 0; min-width: 0; }
+.dqdt-hang { display: flex; flex-direction: column; gap: var(--s1); }
+.dqdt-nhan { font-size: var(--fs-label); font-weight: var(--fw-bold); color: var(--c-text-muted); }
+.dqdt-chon-ai { display: flex; gap: var(--s2); } /* công tắc "Đơn của: Khách lẻ | Qua đối tác" của form Tạo đơn: hai nút chia đều rộng hết khối, dùng lại .loc-nut (bật = aria-pressed) */
+.dqdt-chon-ai .loc-nut { flex: 1 1 0; min-width: 0; min-height: var(--tap-min); border-radius: var(--radius-sm); }
+.dqdt-chon-xanh { justify-content: space-between; flex-wrap: nowrap; padding: var(--s1) var(--s3); background: var(--c-primary-soft); border-radius: var(--radius-sm); } /* dòng đối tác đã chọn: nền xanh nhạt + liên kết "Đổi" */
+.dqdt-chon-xanh .btn-link { flex: none; color: var(--c-primary); }
+.khach-ngay { padding-bottom: var(--s3); margin-bottom: var(--s3); border-bottom: 1px solid var(--c-border); } /* dòng riêng "Ngày khởi hành", tách khỏi khối "Khách hàng" */
+.khach-ngay p { margin: var(--s1) 0 0; }
+.khach-dau { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
+.khach-dau h2 { margin: 0; }
+.khach-dau .btn-link { color: var(--c-primary); }
+.booker-chua { font-size: var(--fs-label); } /* "Hồ sơ khách: chưa liên kết (không bắt buộc)" — chữ xám, không còn nhãn vàng */
 .dqdt-chon { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin: 0; }
 .dqdt-chon-ten { overflow-wrap: anywhere; }
 .dqdt-ghi { margin: 0; font-size: var(--fs-label); }

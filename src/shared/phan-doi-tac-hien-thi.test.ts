@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 import {
   CAU_CHO_CAI_MUC, MOI_KHACH_TOI_DA, TIEU_DE_DOI_TAC, TIEU_DE_LOI, TIEU_DE_VAN_PHONG, canhBaoThieuMuc, chuHoaHongDoiTac, chuNhaCungCap, chuTongHoaHong, coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, demLyDo, docThanGhiTay,
-  docTienTay, docTyLeTay, duocGhiTay, ghiChuTrangThai, gopBenDat, hienNutGhiTay, khoiBenDatForm, nhanBenDat, nhanNguoiHuong, noiNapBenDat, type FormGhiTay,
+  docTienTay, docTyLeTay, duocGhiTay, ghiChuTrangThai, gopBenDat, hienNutGhiTay, khoiBenDatForm, nhanBenDat, nhanNguoiHuong, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type FormGhiTay,
 } from "./phan-doi-tac-hien-thi.ts";
 
 const staff = (...permissions: PermissionCode[]) => ({ id: "s1", permissions });
@@ -175,4 +175,19 @@ test("tiêu đề khối lỗi trung tính: khác tiêu đề văn phòng và ti
   assert.ok(!/đối tác|của bạn/i.test(TIEU_DE_LOI), "không gán nhầm dạng nào cho người xem");
   assert.equal(TIEU_DE_VAN_PHONG, "Phần đối tác", "tiêu đề khi CÓ dữ liệu không đổi");
   assert.equal(TIEU_DE_DOI_TAC, "Hoa hồng của bạn", "tiêu đề khi CÓ dữ liệu không đổi");
+});
+
+// Màn Tạo đơn thiết kế lại (18/10/2026), Task 3: nhãn tên / SĐT khách theo việc đã chọn đối tác hay chưa.
+test("nhanTenKhach / nhanSdtKhach: nhãn đổi khi đã chọn đối tác (người đặt khác người đi tour)", () => {
+  assert.equal(nhanTenKhach(false), "Tên khách đi tour *");
+  assert.equal(nhanTenKhach(true), "Tên khách đi tour *");
+  assert.equal(nhanSdtKhach(false), "Số điện thoại *");
+  assert.equal(nhanSdtKhach(true), "Số điện thoại khách *");
+});
+
+// Phán quyết đặc tả mục 6 ("Đối tác, Thực tập"): bảng quyền THẬT có cho Thực tập thấy công tắc "Đơn của" không. Chỉ đọc bảng — không đổi quyền nào.
+test("Thực tập (chỉ INTERN) THẤY công tắc «Đơn của» — theo bảng quyền thật, order.create của INTERN là «any» và INTERN không phải Đối tác", () => {
+  assert.equal(coODatQuaDoiTac(staff("INTERN")), true, "tài khoản chỉ giữ INTERN thấy công tắc");
+  assert.deepEqual(khoiBenDatForm(staff("INTERN"), null), { kieu: "tra-sdt-va-dat-qua" });
+  assert.equal(coODatQuaDoiTac(staff("INTERN", "PARTNER")), false, "Thực tập kèm Đối tác (lai) thì không");
 });

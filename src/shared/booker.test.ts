@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { benDatChoTaiKhoan, benDatDoiTacBiCam, bookerPayload, canPickMatch, describeBookerChange, lookupReady, matchNote, parseBooker } from "./booker.ts";
+import { NO_BOOKER_TEXT, benDatChoTaiKhoan, benDatDoiTacBiCam, bookerPayload, canPickMatch, describeBookerChange, lookupReady, matchNote, parseBooker } from "./booker.ts";
 
 const U = "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0";
 
@@ -99,4 +99,8 @@ test("benDatDoiTacBiCam: các ngoại lệ — bên đặt đang lưu, chính h�
   assert.equal(benDatDoiTacBiCam({ ...goc, guiLen: { kind: "none" } }), false);
   assert.equal(benDatDoiTacBiCam({ ...goc, guiLen: { kind: "new", fullName: "A", phone: "0901234567" } }), false);
   assert.equal(benDatDoiTacBiCam({ ...goc, laDoiTac: false }), false, "nhân viên văn phòng không giữ quyền Đối tác chọn tự do");
+});
+
+test("NO_BOOKER_TEXT: dòng xám «chưa liên kết (không bắt buộc)», không còn nhãn vàng «Chưa gắn hồ sơ khách»", () => {
+  assert.equal(NO_BOOKER_TEXT, "Hồ sơ khách: chưa liên kết (không bắt buộc)");
 });

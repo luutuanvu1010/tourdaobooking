@@ -50,8 +50,8 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
     {
       tieuDe: "Lập đơn cho khách",
       noiDung: `1. Bấm [[Tạo đơn]].
-2. Đầu trang: chọn **Ngày khởi hành** (dùng cho mọi dịch vụ trong đơn), rồi ở phần **Thông tin khách hàng** gõ **Tên khách**, **Số điện thoại**. Muốn ghi Email hoặc **Ghi chú / yêu cầu đặc biệt** thì bấm [[Thêm chi tiết (email, ghi chú)]].
-   - Khách liên hệ qua bạn: bấm [[Sử dụng thông tin của tôi]] để tự điền tên và số của bạn.
+2. Đầu trang: chọn **Ngày khởi hành** (dùng cho mọi dịch vụ trong đơn), rồi ở phần **Khách hàng** gõ **Tên khách đi tour**, **Số điện thoại**. Muốn ghi Email hoặc **Ghi chú / yêu cầu đặc biệt** thì bấm [[Email, ghi chú]].
+   - Khách liên hệ qua bạn: bấm [[Điền thông tin của tôi]] để tự điền tên và số của bạn.
 3. Phần **Dịch vụ**: gõ tên hoặc mã vào ô [[Tìm theo tên hoặc mã dịch vụ]] (hoặc chạm một nhóm), rồi bấm vào dịch vụ cần chọn.
    - Dịch vụ có nhãn "chưa có giá" hoặc "chưa hỗ trợ" thì không chọn được.
    - Dịch vụ đã có trong đơn có nhãn "✓ đã thêm".

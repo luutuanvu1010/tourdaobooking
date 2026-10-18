@@ -33,7 +33,9 @@ export function benDatDoiTacBiCam(v: { laDoiTac: boolean; partyId: string | null
   return v.laDoiTac && v.guiLen.kind === "existing" && v.guiLaNguoiHuong && v.guiLen.partyId !== v.partyId && v.guiLen.partyId !== v.benDatDangLuu;
 }
 
-export const NO_BOOKER_TEXT = "Chưa gắn hồ sơ khách";
+export const NO_BOOKER_TEXT = "Hồ sơ khách: chưa liên kết (không bắt buộc)";
+/** Giá trị ngắn của dòng «Hồ sơ khách» ở trang đơn (nhãn đã nằm cạnh): không lặp «Hồ sơ khách:». */
+export const NO_BOOKER_VALUE = "Chưa gắn hồ sơ khách";
 const MAX_NAME = 200;
 
 type Parsed = { ok: true; value: BookerInput } | { ok: false; message: string };
