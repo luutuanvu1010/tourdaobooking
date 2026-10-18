@@ -10,8 +10,8 @@ export const HD_DOI_TAC: NhomHuongDan = {
     "Bạn là đối tác của công ty: đại lý, khách sạn hay nơi gửi khách đi tour. Bạn lập đơn cho khách của mình bằng dịch vụ trong danh mục, theo đúng giá bán lẻ, và chỉ thấy đơn do chính mình lập.",
   batDauNhanh: `1. Mở app, gõ **Số điện thoại** và **Mã PIN 6 số** công ty đã cấp, bấm [[Đăng nhập]].
 2. Vào [[Tôi]], bấm [[Đổi mã PIN]] để đổi sang mã PIN của riêng bạn.
-3. Bấm [[Tạo đơn]], chọn **Ngày khởi hành**, rồi chọn dịch vụ ở ô [[Chọn từ danh mục]].
-   Muốn lọc nhanh, bấm nút [[Nhóm dịch vụ]] rồi đánh dấu nhóm cần xem.
+3. Bấm [[Tạo đơn]], chọn **Ngày khởi hành**, rồi chạm dịch vụ trong danh sách dưới ô [[Tìm theo tên hoặc mã dịch vụ]].
+   Muốn lọc nhanh, chạm một nhóm ở hàng nhóm ngay dưới ô tìm ([[Tất cả]] để xem lại toàn bộ).
 4. Nhập số khách, tên và số điện thoại của khách.
 5. Bấm [[Lưu, chờ xác nhận]]. App mở trang của đơn vừa lập.
 6. Kiểm lại rồi bấm [[Xác nhận đơn]]. Sau đó bấm [[Xem biên nhận]] để gửi ảnh cho khách.`,
@@ -52,16 +52,16 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
       noiDung: `1. Bấm [[Tạo đơn]].
 2. Đầu trang: chọn **Ngày khởi hành** (dùng cho mọi dịch vụ trong đơn), rồi ở phần **Thông tin khách hàng** gõ **Tên khách**, **Số điện thoại**. Muốn ghi Email hoặc **Ghi chú / yêu cầu đặc biệt** thì bấm [[Thêm chi tiết (email, ghi chú)]].
    - Khách liên hệ qua bạn: bấm [[Sử dụng thông tin của tôi]] để tự điền tên và số của bạn.
-3. Phần **Dịch vụ**: bấm vào ô [[Chọn từ danh mục]], gõ tên hoặc mã dịch vụ, rồi bấm vào dịch vụ cần chọn.
+3. Phần **Dịch vụ**: gõ tên hoặc mã vào ô [[Tìm theo tên hoặc mã dịch vụ]] (hoặc chạm một nhóm), rồi bấm vào dịch vụ cần chọn.
    - Dịch vụ có nhãn "chưa có giá" hoặc "chưa hỗ trợ" thì không chọn được.
-   - Dịch vụ đã có trong đơn có nhãn "đã chọn".
+   - Dịch vụ đã có trong đơn có nhãn "✓ đã thêm".
 4. Trong thẻ dịch vụ vừa thêm, nhập **Số khách**: **Người lớn**, **Trẻ em**… tuỳ dịch vụ. Dòng tiền tự hiện. Cả đơn cần ít nhất một người lớn đi cùng; trẻ em và em bé không đi một mình.
 5. Bấm [[Thông tin chuyến]] để mở phần này, ghi **Giờ đón**, **Điểm đón**, giờ và nơi khách có mặt, **Ghi chú dịch vụ**.
 6. Phần **Thanh toán**: khách đã trả trước thì gõ **Thanh toán trước** và chọn **Phương thức thanh toán**.
 7. Xem lại khối **Tóm tắt** (máy tính) hoặc dòng tổng dưới đáy (điện thoại).
 8. Bấm [[Lưu, chờ xác nhận]]. App mở trang của đơn vừa lập.
 
-> Ví dụ: Khách sạn "Biển Xanh" (tên đặt ra) có một gia đình 2 người lớn, 1 trẻ em muốn đi tour 4 đảo ngày 05/10. Chị Hoa (lễ tân) bấm Tạo đơn, chọn ngày 05/10, gõ "4 đảo" vào ô Chọn từ danh mục và chọn dịch vụ. Chị nhập 2 người lớn, 1 trẻ em, ghi giờ đón 7:30 ở sảnh khách sạn, gõ tên và số điện thoại của khách, rồi bấm Lưu, chờ xác nhận.
+> Ví dụ: Khách sạn "Biển Xanh" (tên đặt ra) có một gia đình 2 người lớn, 1 trẻ em muốn đi tour 4 đảo ngày 05/10. Chị Hoa (lễ tân) bấm Tạo đơn, chọn ngày 05/10, gõ "4 đảo" vào ô tìm dịch vụ và chọn dịch vụ. Chị nhập 2 người lớn, 1 trẻ em, ghi giờ đón 7:30 ở sảnh khách sạn, gõ tên và số điện thoại của khách, rồi bấm Lưu, chờ xác nhận.
 
 ### Giá của đối tác
 
@@ -139,7 +139,7 @@ Bạn không nhập được giảm giá. Gọi văn phòng.
 
 ### Tìm không thấy dịch vụ
 
-App ghi "Không tìm thấy dịch vụ." Thử gõ ngắn hơn, ví dụ một từ trong tên. Vẫn không có thì hỏi văn phòng. Tài khoản đối tác chỉ xem danh mục ngay trong ô [[Chọn từ danh mục]] khi lập đơn; không có trang bảng giá riêng.
+Nền tảng ghi "Không tìm thấy dịch vụ nào khớp." Thử gõ ngắn hơn, ví dụ một từ trong tên, hoặc chạm [[Tất cả]] nếu đang ở một nhóm. Vẫn không có thì hỏi văn phòng. Tài khoản đối tác chỉ xem danh mục ngay trong danh sách dịch vụ khi lập đơn; không có trang bảng giá riêng.
 
 ### Khách đi gấp trong vài giờ tới
 

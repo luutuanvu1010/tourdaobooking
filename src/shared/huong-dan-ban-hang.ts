@@ -9,7 +9,7 @@ export const HD_BAN_HANG: NhomHuongDan = {
     "Bạn nhận khách, lập đơn dịch vụ từ danh mục, ghi giờ và nơi đón, rồi xác nhận đơn và gửi ảnh biên nhận cho khách. Bạn xem được mọi đơn của công ty, nhưng chỉ sửa, xác nhận, huỷ được đơn bạn lập hoặc đơn bạn đang phụ trách (Thực tập: chỉ đơn mình lập — xem mục cuối).",
   batDauNhanh: `1. Bấm [[Tạo đơn]].
 2. Ở đầu trang, chọn [[Ngày khởi hành]], rồi điền **Tên khách** và [[Số điện thoại]].
-3. Gõ tên dịch vụ vào ô [[Chọn từ danh mục]], chạm dịch vụ đúng, rồi bấm **+** để nhập số khách.
+3. Gõ tên dịch vụ vào ô [[Tìm theo tên hoặc mã dịch vụ]], chạm dịch vụ đúng, rồi bấm **+** để nhập số khách.
 4. Bấm [[Lưu, chờ xác nhận]].
 5. Trên trang đơn, bấm [[Xác nhận đơn]] và đồng ý.
 6. Bấm [[Xem biên nhận]], rồi [[Chia sẻ]] (gửi qua Zalo) hoặc [[Tải ảnh PNG]].`,
@@ -38,8 +38,8 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
    - Gõ xong số điện thoại, app tìm hồ sơ trùng số: đúng người thì bấm [[Dùng hồ sơ này]], khách mới thì [[Tạo hồ sơ mới]]; không chọn vẫn lưu được.
    - Nút [[Sử dụng thông tin của tôi]] điền tên và số của chính bạn.
    - Khách đặt qua đại lý hoặc cộng tác viên: bấm [[Đặt qua đối tác]] (cạnh [[Khách tự đặt]]), rồi chọn người đó để tính hoa hồng.
-4. Ở khối [[Dịch vụ]], chạm vào ô [[Chọn từ danh mục]] (gõ tên hoặc mã, ví dụ "4 đảo", để thu hẹp), rồi chạm dịch vụ đúng để hiện thẻ dịch vụ.
-   - Danh mục dài: bấm [[Nhóm dịch vụ]], đánh dấu nhóm cần xem (app nhớ); dịch vụ gắn ☆ nằm trên đầu.
+4. Ở khối [[Dịch vụ]], gõ vào ô [[Tìm theo tên hoặc mã dịch vụ]] (ví dụ "4 đảo"), rồi chạm dịch vụ đúng: dòng đó hiện "✓ đã thêm" và thẻ dịch vụ hiện ra.
+   - Danh mục dài: chạm một nhóm dưới ô tìm ([[Tất cả]] để xem lại). Dịch vụ gắn ☆ nằm ở mục "★ Hay dùng".
    - Dịch vụ mờ, ghi "chưa có giá" hoặc "chưa hỗ trợ", không chọn được — báo Quản trị.
 5. Trên thẻ, bấm **+** và **−** để nhập số khách theo từng loại ([[Người lớn]], [[Trẻ em]], [[Người cao tuổi]], [[Em bé]] — tuỳ dịch vụ).
    - Dịch vụ tính theo nhóm chỉ có một ô [[Số khách]]; app tự tính số lượt.
