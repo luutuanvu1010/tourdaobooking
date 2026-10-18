@@ -133,7 +133,7 @@ const dieuKienChu = `[...document.querySelectorAll('.dp-cond[data-dat]')].map((r
     const truoc = apiCalls(p).length;
     await p.ev(click('[data-action="luu-dieu-chinh"]'));
     await p.waitFor(`!document.querySelector('#ct-chi-phi .tx-loi').hidden`, "câu tổng âm");
-    assert.equal(await p.ev(txt("#ct-chi-phi .tx-loi")), "Tổng chi phí chuyến sẽ âm — đảo điều chỉnh giảm trước.");
+    assert.equal(await p.ev(txt("#ct-chi-phi .tx-loi")), "Tổng chi phí chuyến sẽ âm — huỷ dòng điều chỉnh giảm trước.");
     const body = JSON.parse(apiCalls(p).slice(truoc).find((r) => r.method === "POST").body);
     assert.equal(body.soTien, -700_000);
     assert.equal("ngay" in body, false, "không chọn ngày ⇒ không gửi ngay");
