@@ -45,3 +45,20 @@ export function chuLuuKhiDong(o: { cach: "huy" | "roi"; daGo: boolean; chu: stri
   const chu = o.chu.trim();
   return chu === "" || chu === o.hienThi.trim() ? null : chu;
 }
+
+/** Kiểu `<input>` mà thao tác XONG ở cú bấm (không còn bàn phím, con trỏ chữ hay bộ chọn của máy gắn với phần tử sau `click`). */
+const XONG_O_CU_BAM = new Set(["button", "submit", "reset", "checkbox", "radio", "image"]);
+
+/**
+ * Lần dựng lại khối Đưa đón đang HẸN (ô nơi vừa lưu chữ gõ khi người lập rời ô — vòng sửa 1 và 2 của việc 7): đến lượt chạy thì dựng lại NGAY, hay CHỜ tiêu điểm rời phần tử đang có
+ * nó (rồi xét lại). `t` = phần tử đang có tiêu điểm (null = không có): có nằm trong khối không, tên thẻ, `type` (input), có khoá để lần dựng lại trả tiêu điểm về phần tử mới không
+ * (`data-o` / `data-gap`). Chờ khi phần tử trong khối là ô ngày / giờ / ô gõ chữ / ô chọn — dựng lại sẽ gỡ nó khỏi trang: bộ chọn ngày / giờ của máy gắn với phần tử cũ bị đóng (cú chạm
+ * mất) hoặc ghi vào phần tử đã gỡ, bàn phím ảo hạ xuống — hoặc khi lần dựng lại không trả tiêu điểm về được (nút không khoá: tiêu điểm rơi về trang). Thuần, không I/O.
+ */
+export function cachDungLaiHen(t: { trongKhoi: boolean; the: string; kieu: string; coKhoaTraVe: boolean } | null): "ngay" | "cho" {
+  if (!t || !t.trongKhoi) return "ngay";
+  const the = t.the.toUpperCase();
+  if (the === "SELECT" || the === "TEXTAREA") return "cho";
+  if (the === "INPUT" && !XONG_O_CU_BAM.has(t.kieu.toLowerCase())) return "cho";
+  return t.coKhoaTraVe ? "ngay" : "cho";
+}

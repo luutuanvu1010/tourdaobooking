@@ -2,7 +2,7 @@
 // dòng "Chưa chốt" đầu danh sách khi được hỏi (ô Nơi trả đang có giá trị), dòng cuối LUÔN là gõ tự do.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chuLuuKhiDong, dongTuDo, goiYNoi, NHAN_GO_TU_DO } from "./goi-y-noi.ts";
+import { cachDungLaiHen, chuLuuKhiDong, dongTuDo, goiYNoi, NHAN_GO_TU_DO } from "./goi-y-noi.ts";
 
 const ds = [
   { id: "a", nhan: "Khách sạn Mường Thanh Luxury Nha Trang · khách sạn" },
@@ -67,6 +67,32 @@ test("dongTuDo: dòng gõ tự do (cùng dòng cuối của danh sách gợi ý)
   assert.deepEqual(dongTuDo("  Bãi Dài "), { loai: "tu-do", chu: "Bãi Dài", nhan: "Gõ tự do: “Bãi Dài”" });
   assert.deepEqual(dongTuDo(""), { loai: "tu-do", chu: "", nhan: "Gõ tự do…" });
   assert.deepEqual(goiYNoi(ds, "Bãi Dài", { coChuaChot: false }).at(-1), dongTuDo("Bãi Dài"));
+});
+
+// Vòng sửa 2 của việc 7 (người kiểm lại: I-1 còn mở): gõ ở ô nơi rồi chạm NGAY ô Giờ đón / Ngày đón — lần dựng lại khối đã hẹn không được thay phần tử đang nhận thao tác (bộ chọn
+// ngày / giờ của máy gắn với chính phần tử đó; ô gõ chữ đang có bàn phím), cũng không được thay phần tử mà lần dựng lại không trả tiêu điểm về được (không `data-o` / `data-gap`).
+const tieuDiem = (the: string, kieu = "", coKhoaTraVe = true, trongKhoi = true) => ({ trongKhoi, the, kieu, coKhoaTraVe });
+test("cachDungLaiHen: tiêu điểm ngoài khối / không có → dựng lại ngay", () => {
+  assert.equal(cachDungLaiHen(null), "ngay");
+  assert.equal(cachDungLaiHen(tieuDiem("BODY", "", false, false)), "ngay", "rời hẳn khối (chạm vùng trống, ô khách)");
+  assert.equal(cachDungLaiHen(tieuDiem("BUTTON", "submit", false, false)), "ngay", "nút Lưu ngoài khối");
+  assert.equal(cachDungLaiHen(tieuDiem("INPUT", "time", true, false)), "ngay", "ô giờ của thẻ dịch vụ khác (khối khác)");
+});
+test("cachDungLaiHen: ô ngày / giờ / ô gõ chữ / ô chọn trong khối → CHỜ tiêu điểm rời nó (dù có khoá trả tiêu điểm)", () => {
+  for (const kieu of ["time", "date", "text", "search", "number", "tel", "email", "url", "datetime-local", ""]) {
+    assert.equal(cachDungLaiHen(tieuDiem("INPUT", kieu)), "cho", `input type=${kieu || "(trống)"}`);
+  }
+  assert.equal(cachDungLaiHen(tieuDiem("input", "TIME")), "cho", "không phân biệt hoa thường");
+  assert.equal(cachDungLaiHen(tieuDiem("SELECT")), "cho");
+  assert.equal(cachDungLaiHen(tieuDiem("TEXTAREA")), "cho");
+});
+test("cachDungLaiHen: phần tử xong ở cú bấm VÀ lần dựng lại trả tiêu điểm về được → dựng ngay; không trả về được → chờ", () => {
+  assert.equal(cachDungLaiHen(tieuDiem("DIV")), "ngay", "đầu chặng (tabindex -1, data-o …:dau)");
+  assert.equal(cachDungLaiHen(tieuDiem("BUTTON", "button")), "ngay", "nút 'Thêm chi tiết' (data-gap), công tắc Xe riêng (data-o)");
+  for (const kieu of ["checkbox", "radio", "button", "submit", "reset", "image"]) assert.equal(cachDungLaiHen(tieuDiem("INPUT", kieu)), "ngay", `input type=${kieu} có khoá`);
+  assert.equal(cachDungLaiHen(tieuDiem("BUTTON", "button", false)), "cho", "nút 'Đón khác ngày' / dòng tóm tắt / 'Bỏ chặng' (không khoá): dựng lại sẽ làm rơi tiêu điểm");
+  assert.equal(cachDungLaiHen(tieuDiem("INPUT", "radio", false)), "cho");
+  assert.equal(cachDungLaiHen(tieuDiem("DIV", "", false)), "cho");
 });
 
 test("coChuaChot (ô Nơi trả đang có giá trị): dòng 'Chưa chốt' ĐẦU danh sách, kể cả khi đang gõ; dòng cuối vẫn là gõ tự do", () => {
