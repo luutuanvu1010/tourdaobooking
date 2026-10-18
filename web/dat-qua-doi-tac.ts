@@ -16,13 +16,12 @@ const NHAN_LOAI: Record<"PERSON" | "ORGANIZATION", string> = { PERSON: "cá nhâ
 const CHO_GO_MS = 300;
 
 /**
- * `gon` (đợt 1, 13/10; thiết kế lại 18/10 — màn Tạo đơn): thay nút rời "Đặt qua đối tác" + hai dòng chú thích bằng MỘT công tắc "Đơn của: Khách lẻ | Qua đối tác" (hàng nhãn "Đơn của", hai nút rộng hết khối, cao 44px,
- * mặc định "Khách lẻ", `aria-pressed`). `data-action` giữ nguyên: "Qua đối tác" = `dat-qua-mo`, "Khách lẻ" khi đang tìm / đã chọn = `dat-qua-huy`. Chọn xong, ô thu thành MỘT dòng nền xanh nhạt
+ * MỘT công tắc "Đơn của: Khách lẻ | Qua đối tác" (đợt 1, 13/10; thiết kế lại 18/10 — form Tạo đơn, rồi bảng "Đổi khách" ở Việc 9): hàng nhãn "Đơn của", hai nút rộng hết khối, cao 44px,
+ * mặc định "Khách lẻ", `aria-pressed`. `data-action` giữ nguyên: "Qua đối tác" = `dat-qua-mo`, "Khách lẻ" khi đang tìm / đã chọn = `dat-qua-huy`. Chọn xong, ô thu thành MỘT dòng nền xanh nhạt
  * "<tên> · cá nhân|tổ chức · được hưởng hoa hồng" + liên kết "Đổi" (mọi hồ sơ `nguoi-huong` trả về đều được hưởng hoa hồng nên câu này luôn đúng). Ai thấy ô, điều kiện hiện / ẩn, các id: KHÔNG đổi.
- * Mặc định tắt: bảng "Đổi khách" ở trang đơn giữ bố cục cũ (nút "Đặt qua đối tác", dòng "Đặt qua: …").
+ * Bố cục cũ (nút rời "Đặt qua đối tác", "Bỏ chọn", dòng "Đặt qua: …") đã gỡ ở Việc 9 khi bảng "Đổi khách" chuyển sang công tắc — không còn nơi nào dùng.
  */
-export function oDatQuaDoiTac(v: { daChon: BenDatChon | null; onDoi: (chon: BenDatChon | null) => void; gon?: boolean }): DatQuaDoiTac {
-  const gon = v.gon === true;
+export function oDatQuaDoiTac(v: { daChon: BenDatChon | null; onDoi: (chon: BenDatChon | null) => void }): DatQuaDoiTac {
   const id = `dqdt-${++dem}`;
   let chon: BenDatChon | null = v.daChon;
   let dangTim = false;
@@ -31,12 +30,11 @@ export function oDatQuaDoiTac(v: { daChon: BenDatChon | null; onDoi: (chon: BenD
 
   // Gán `datChon` ở cuối hàm (sau khi `ve` đã định nghĩa); trong lúc dựng chưa có nên ép kiểu qua `unknown`.
   const root = h("div", { class: "dqdt", id: "dat-qua-doi-tac" }) as unknown as DatQuaDoiTac;
-  const nutMo = h("button", { type: "button", class: gon ? "loc-nut" : "btn", "data-action": "dat-qua-mo" }, gon ? "Qua đối tác" : "Đặt qua đối tác");
-  const nutTuDat = h("button", { type: "button", class: "loc-nut" }, "Khách lẻ"); // chỉ dùng ở bố cục gọn
+  const nutMo = h("button", { type: "button", class: "loc-nut", "data-action": "dat-qua-mo" }, "Qua đối tác");
+  const nutTuDat = h("button", { type: "button", class: "loc-nut" }, "Khách lẻ");
   const o = h("input", { type: "search", id: `${id}-q`, autocomplete: "off", maxLength: 60, placeholder: "Gõ tên đại lý / cộng tác viên", "aria-controls": `${id}-ds` });
   const ds = h("div", { class: "dqdt-ket-qua", id: `${id}-ds`, "aria-live": "polite" });
-  const huy = h("button", { type: "button", class: "btn btn-link", "data-action": "dat-qua-huy" }, "Không chọn nữa");
-  /** Bố cục gọn: nhãn "Đơn của" + công tắc hai nút; `quaDoiTac` = "Qua đối tác" đang bật (nút "Khách lẻ" khi đó là lối huỷ — mang `data-action="dat-qua-huy"`). */
+  /** Nhãn "Đơn của" + công tắc hai nút; `quaDoiTac` = "Qua đối tác" đang bật (nút "Khách lẻ" khi đó là lối huỷ — mang `data-action="dat-qua-huy"`). */
   const hangChon = (quaDoiTac: boolean): HTMLElement => {
     nutMo.setAttribute("aria-pressed", String(quaDoiTac));
     nutTuDat.setAttribute("aria-pressed", String(!quaDoiTac));
@@ -77,7 +75,7 @@ export function oDatQuaDoiTac(v: { daChon: BenDatChon | null; onDoi: (chon: BenD
         const b = h("button", { type: "button", class: "btn dqdt-dong", "data-party-id": r.partyId }, h("span", { class: "dqdt-ten" }, r.ten), h("span", { class: "muted" }, NHAN_LOAI[r.loai]));
         b.addEventListener("click", () => {
           doi({ partyId: r.partyId, ten: r.ten, loai: r.loai });
-          root.querySelector<HTMLElement>('[data-action="dat-qua-bo"], [data-action="dat-qua-doi"]')?.focus(); // nút vừa bấm bị gỡ — đưa tiêu điểm vào nút "Bỏ chọn" / "Đổi" mới
+          root.querySelector<HTMLElement>('[data-action="dat-qua-doi"]')?.focus(); // nút vừa bấm bị gỡ — đưa tiêu điểm vào liên kết "Đổi" mới
         });
         return b;
       }),
@@ -85,7 +83,7 @@ export function oDatQuaDoiTac(v: { daChon: BenDatChon | null; onDoi: (chon: BenD
   }
 
   function ve(): void {
-    if (chon && gon) {
+    if (chon) {
       const doiBtn = h("button", { type: "button", class: "btn btn-link", "data-action": "dat-qua-doi" }, "Đổi");
       doiBtn.addEventListener("click", () => {
         doi(null); // bỏ chọn cũ (ô tên / SĐT khách trở lại như khi chưa chọn) rồi mở ô tìm ngay như bấm "Qua đối tác"
@@ -93,21 +91,10 @@ export function oDatQuaDoiTac(v: { daChon: BenDatChon | null; onDoi: (chon: BenD
       });
       const loai = chon.loai ? ` · ${NHAN_LOAI[chon.loai]}` : "";
       replaceChildren(root, hangChon(true), h("p", { class: "dqdt-chon dqdt-chon-xanh" }, h("span", { class: "dqdt-chon-chu" }, h("strong", { class: "dqdt-chon-ten" }, chon.ten), `${loai} · được hưởng hoa hồng`), doiBtn));
-    } else if (chon) {
-      const bo = h("button", { type: "button", class: "btn btn-link", "data-action": "dat-qua-bo" }, "Bỏ chọn");
-      bo.addEventListener("click", () => {
-        doi(null);
-        nutMo.focus();
-      });
-      replaceChildren(
-        root,
-        h("p", { class: "dqdt-chon" }, h("span", null, "Đặt qua: "), h("strong", { class: "dqdt-chon-ten" }, chon.ten), bo),
-        h("p", { class: "muted dqdt-ghi" }, "Tên và số điện thoại khách ở trên vẫn là của người đi tour."),
-      );
     } else if (dangTim) {
-      replaceChildren(root, ...(gon ? [hangChon(true)] : []), h("label", { for: `${id}-q` }, "Tìm đối tác theo tên", o), ds, gon ? null : huy);
+      replaceChildren(root, hangChon(true), h("label", { for: `${id}-q` }, "Tìm đối tác theo tên", o), ds);
     } else {
-      replaceChildren(root, ...(gon ? [hangChon(false)] : [nutMo, h("p", { class: "muted dqdt-ghi" }, "Đơn của đại lý hoặc cộng tác viên: chọn ở đây, không nhập vào ô khách.")]));
+      replaceChildren(root, hangChon(false));
     }
   }
 
@@ -120,26 +107,22 @@ export function oDatQuaDoiTac(v: { daChon: BenDatChon | null; onDoi: (chon: BenD
     o.focus();
   };
   nutMo.addEventListener("click", () => {
-    if (gon && (dangTim || chon)) return; // đang ở "Qua đối tác" thì bấm lại không làm gì
+    if (dangTim || chon) return; // đang ở "Qua đối tác" thì bấm lại không làm gì
     moTim();
-  });
-  // Đã chọn xong mà bấm "Khách lẻ": bỏ chọn như "Bỏ chọn" của bố cục cũ.
-  nutTuDat.addEventListener("click", () => {
-    if (chon) {
-      doi(null);
-      nutTuDat.focus();
-    }
   });
   const huyTim = (): void => {
     dangTim = false;
     window.clearTimeout(timer);
     seq++; // kết quả đang bay về bị bỏ
     ve();
-    (gon ? nutTuDat : nutMo).focus();
+    nutTuDat.focus();
   };
-  huy.addEventListener("click", huyTim);
+  // "Khách lẻ": đã chọn đối tác → bỏ chọn; đang tìm → huỷ tìm; đang ở "Khách lẻ" thì bấm lại không làm gì.
   nutTuDat.addEventListener("click", () => {
-    if (dangTim) huyTim(); // đang ở "Khách tự đặt" thì bấm lại không làm gì
+    if (chon) {
+      doi(null);
+      nutTuDat.focus();
+    } else if (dangTim) huyTim();
   });
   o.addEventListener("input", () => {
     window.clearTimeout(timer);

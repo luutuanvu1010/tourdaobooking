@@ -858,7 +858,7 @@ if (khoiBenDat.kieu === "chi-doc") {
   bookerPicker.root.replaceWith(dongBenDatChiDoc(khoiBenDat.benDat));
   datNhanKhach(true); // bên đặt là đối tác (máy chủ ép): hai ô khách là của người đi tour
 } else if (khoiBenDat.kieu === "tra-sdt-va-dat-qua") {
-  datQua = oDatQuaDoiTac({ daChon: null, onDoi: datBenDat, gon: true }); // công tắc "Đơn của: Khách lẻ | Qua đối tác" ở hàng đầu khối Khách hàng
+  datQua = oDatQuaDoiTac({ daChon: null, onDoi: datBenDat }); // công tắc "Đơn của: Khách lẻ | Qua đối tác" ở hàng đầu khối Khách hàng
   byId("don-cua-slot").append(datQua); // hàng đầu của khối "Khách hàng"
 }
 // R-P15: mốc cho biểu mẫu chưa lưu — chỉ người được lập đơn (máy chủ hỏi order.create). Lỗi / chưa có chính sách (503) → không cảnh báo; máy chủ vẫn chặn lúc xác nhận.

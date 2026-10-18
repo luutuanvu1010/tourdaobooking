@@ -6,6 +6,10 @@
 //      (hiện lại khi số đổi rồi quay lại); SĐT khách thường → không khung; nguoi-huong bị giả 403 → không khung và VẪN lưu được đơn;
 //      tài khoản Đối tác thuần và tài khoản lai Bán hàng + Đối tác → không khung, không gọi nguoi-huong lần nào;
 //   3) bảng «Đổi khách» (đơn đã xác nhận, 390): cùng khung, câu cảnh báo bản cũ còn nguyên, «Đúng» / «Không» như ở form.
+// Việc 9 (biến thể theo vai, đặc tả DAC-TA.md mục 3): bước 5 thêm dòng chỉ đọc «Bên đặt» của Đối tác thuần (theo benDatCuaToi của máy chủ); bước 5b: tài khoản CHỈ Thực tập
+//   THẤY công tắc (đúng `coODatQuaDoiTac` — bản vẽ ghi «chỉ đọc», mã không đổi quyền, chỉ ghi nhận); bước 6 thêm: bảng «Đổi khách» có CÙNG công tắc «Đơn của» ở đầu và hai
+//   ô nhãn nổi «Tên khách đi tour *» / «Số điện thoại *» (đã chọn đối tác → «Số điện thoại khách *», cả qua «Đúng, qua …» lẫn qua công tắc); bước 7: lưu thật bảng đó với
+//   đối tác đã chọn → GET đơn: tên / SĐT khách đúng chữ đã gõ, bên đặt = hồ sơ đối tác (thân PUT không đổi nghĩa).
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, không --remote, danh mục giả (không Sheet), KHÔNG chụp ảnh.
 // Quy tắc ADR-0074/0075: một lần đăng nhập MỚI của cùng tài khoản làm phiên của trang đang mở bị thay ⇒ mỗi lúc chỉ một trang mở cho mỗi tài khoản (đóng trang trước khi mở trang kế).
 // Chạy từ GỐC repo, sau `npm run build:web`:
@@ -20,6 +24,7 @@ const MOB = { width: 390, height: 844, mobile: true };
 const DESK = { width: 1040, height: 900, mobile: false };
 const DAI_LY = { name: "Lê Thu Hà", phone: "0900000281" }; // Đối tác THUẦN, hồ sơ cá nhân mang vai «Công ty lữ hành» — tạo qua POST /api/staff (PIN do máy chủ trả)
 const LAI = { name: "Phan Văn Lai", phone: "0900000282", pin: "246882", permissions: ["SALES", "PARTNER"] }; // tài khoản lai — gieo SQL
+const THUC_TAP = { name: "Thực Tập Công Tắc", phone: "0900000283", pin: "246883", permissions: ["INTERN"] }; // tài khoản CHỈ Thực tập — gieo SQL (Việc 9)
 const DOI_TAC = { name: DAI_LY.name, phone: "0900000293" }; // số điện thoại LIÊN HỆ thêm vào hồ sơ của đại lý (hồ sơ đang mang vai được hưởng hoa hồng) — số khách gõ vào ô SĐT sẽ trùng số này (số đăng nhập 0900000281 không phải liên hệ của hồ sơ nên không tra ra)
 const KHACH = { name: "Trần Khách Thường", phone: "0900000291" }; // hồ sơ khách thường (không được hưởng hoa hồng)
 
@@ -51,6 +56,11 @@ try {
   phai(await call(ACCOUNTS.admin, "POST", "/api/parties", { kind: "PERSON", fullName: KHACH.name, contacts: [{ kind: "PHONE", value: KHACH.phone }] }), 201, "Quản trị tạo hồ sơ khách thường");
   const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
   env.sql(await insertStaffSql(LAI));
+  env.sql(await insertStaffSql(THUC_TAP));
+  // Máy chủ quyết dòng chỉ đọc «Bên đặt» (benDatCuaToi của /api/auth/me — giao diện không suy): đọc trước khi mở trang để khẳng định đúng câu trả lời đó.
+  const benDat = {};
+  for (const tk of [DAI_LY, LAI]) benDat[tk.phone] = phai(await call(tk, "GET", "/api/auth/me"), 200, `/api/auth/me của ${tk.name}`).benDatCuaToi ?? null;
+  console.log(`  (benDatCuaToi: Đối tác thuần ${JSON.stringify(benDat[DAI_LY.phone])}, lai ${JSON.stringify(benDat[LAI.phone])})`);
 
   // Giả 403 cho nguoi-huong và đếm số lời gọi: chèn trước mã trang (window.__nh = số lời gọi; window.__nh403 = true thì trả 403).
   const GIA_403 = `window.__nh = 0; window.__nh403 = false; { const f = window.fetch.bind(window);
@@ -190,8 +200,10 @@ try {
     // ================= Đối tác thuần và tài khoản lai: không khung, không gọi nguoi-huong =================
     for (const [nhan, tk] of [["Đối tác thuần", DAI_LY], ["Bán hàng + Đối tác (lai)", LAI]]) {
       p = await moTrang(tk, "/order-form", vp);
-      await buoc(`5-${kho}-${tk.phone}`, `${nhan}: gõ SĐT trùng đối tác → không khung, không gọi nguoi-huong, không có công tắc`, async () => {
+      await buoc(`5-${kho}-${tk.phone}`, `${nhan}: gõ SĐT trùng đối tác → không khung, không gọi nguoi-huong, không có công tắc; dòng chỉ đọc «Bên đặt» đúng theo máy chủ`, async () => {
         assert.equal(await p.ev("!!document.getElementById('dat-qua-doi-tac')"), false, "không có công tắc «Đơn của»");
+        const bd = benDat[tk.phone];
+        assert.equal(await p.ev("document.getElementById('ben-dat-chi-doc')?.textContent ?? null"), bd ? `Bên đặt: ${bd.ten}` : null, `dòng chỉ đọc «Bên đặt» theo benDatCuaToi ${JSON.stringify(bd)}`);
         await goSdt(p, DOI_TAC.phone);
         await sleep(2200);
         assert.equal(await p.ev(hienKhung), false);
@@ -199,6 +211,14 @@ try {
       });
       p.close();
     }
+
+    // ================= Thực tập (CHỈ quyền INTERN): THẤY công tắc — đúng `coODatQuaDoiTac` (lập đơn, không giữ quyền Đối tác); bản vẽ ghi «chỉ đọc», mã không đổi quyền =================
+    p = await moTrang(THUC_TAP, "/order-form", vp);
+    await buoc(`5b-${kho}`, "Thực tập (chỉ INTERN): có công tắc «Đơn của» (Khách lẻ | Qua đối tác), không dòng chỉ đọc «Bên đặt»", async () => {
+      const s = await p.ev(`(() => ({ chu: [...document.querySelectorAll('#dat-qua-doi-tac .dqdt-chon-ai .loc-nut')].map((b) => b.textContent), chiDoc: !!document.getElementById('ben-dat-chi-doc') }))()`);
+      assert.deepEqual(s, { chu: ["Khách lẻ", "Qua đối tác"], chiDoc: false }, JSON.stringify(s));
+    });
+    p.close();
   }
 
   // ================= Bảng «Đổi khách» (đơn đã xác nhận): cùng khung cảnh báo, câu cảnh báo bản cũ giữ nguyên =================
@@ -214,6 +234,17 @@ try {
     await b.waitFor("document.querySelector('#order .badge')?.textContent === 'Đã xác nhận'", "đã xác nhận");
     await b.ev("document.querySelector('[data-action=\"change-booker\"]').click(); true");
     await b.waitFor("!!document.querySelector('.sheet[role=dialog]')", "bảng Đổi khách mở");
+    // Việc 9: cùng khối khách với form — công tắc «Đơn của» ĐẦU thân bảng, rồi hai ô nhãn nổi (giá trị đang lưu nằm trong ô, nhãn thu nhỏ phía trên).
+    const cauTruc = await b.ev(`(() => { const s = document.querySelector('.sheet-body'); const ct = s.querySelector('#dat-qua-doi-tac'); const nhan = [...s.querySelectorAll('.o-noi .o-noi-chu')].map((e) => e.textContent);
+      const oTen = s.querySelector('.o-noi input[type=text]');
+      return { congTac: ct ? [...ct.querySelectorAll('.dqdt-chon-ai .loc-nut')].map((x) => [x.textContent, x.getAttribute('aria-pressed'), Math.round(x.getBoundingClientRect().height)]) : null, nhan,
+        congTacTruoc: !!ct && !!oTen && (ct.compareDocumentPosition(oTen) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0, giaTri: [...s.querySelectorAll('.o-noi input')].map((i) => i.value), coChu16: [...s.querySelectorAll('.o-noi input')].map((i) => getComputedStyle(i).fontSize) }; })()`);
+    assert.deepEqual(cauTruc.congTac?.map((x) => [x[0], x[1]]), [["Khách lẻ", "true"], ["Qua đối tác", "false"]], `công tắc «Đơn của» trong bảng: ${JSON.stringify(cauTruc)}`);
+    assert.ok(cauTruc.congTac.every((x) => x[2] >= 44), `nút công tắc ≥ 44px: ${JSON.stringify(cauTruc.congTac)}`);
+    assert.deepEqual(cauTruc.nhan, ["Tên khách đi tour *", "Số điện thoại *"], `hai ô nhãn nổi: ${JSON.stringify(cauTruc)}`);
+    assert.equal(cauTruc.congTacTruoc, true, "công tắc đứng trước hai ô khách (như form)");
+    assert.deepEqual(cauTruc.giaTri, ["Khách Bảng Đổi", "0903 111 222"], "hai ô mang giá trị đang lưu");
+    assert.deepEqual(cauTruc.coChu16, ["16px", "16px"], "ô gõ 16px");
     const ten = "document.querySelector('.sheet [id=\"canh-bao-doi-tac\"]')";
     const sdt = "[...document.querySelectorAll('.sheet label')].find((l) => l.textContent.startsWith('Số điện thoại')).querySelector('input')";
     await b.ev(setInput(sdt, DOI_TAC.phone));
@@ -234,6 +265,28 @@ try {
     assert.match(r.focus, /^Tên khách/);
     assert.equal(r.khung, false);
     assert.match(r.xanh, new RegExp(DOI_TAC.name));
+    // Việc 9: «Đúng, qua …» bật công tắc «Qua đối tác» (đường `datChon`, không qua `onDoi`) — nhãn SĐT vẫn phải đổi thành của KHÁCH.
+    const nhanSdtBang = "[...document.querySelectorAll('.sheet-body .o-noi .o-noi-chu')].map((e) => e.textContent)";
+    assert.deepEqual(await b.ev(nhanSdtBang), ["Tên khách đi tour *", "Số điện thoại khách *"], "sau «Đúng»: nhãn SĐT của khách");
+    assert.deepEqual(await b.ev("[...document.querySelectorAll('.sheet #dat-qua-doi-tac .dqdt-chon-ai .loc-nut')].map((x) => x.getAttribute('aria-pressed'))"), ["false", "true"], "công tắc ở «Qua đối tác»");
+  });
+
+  await buoc("7", "bảng «Đổi khách»: «Khách lẻ» → nhãn SĐT về «Số điện thoại *»; «Qua đối tác» → chọn đối tác → nhãn khách; gõ tên + SĐT khách, «Lưu khách» → GET đơn: tên / SĐT đúng, bên đặt = hồ sơ đối tác", async () => {
+    await b.ev("document.querySelector('.sheet #dat-qua-doi-tac [data-action=\"dat-qua-huy\"]').click(); true"); // «Khách lẻ»
+    await b.waitFor("!document.querySelector('.sheet #dat-qua-doi-tac .dqdt-chon-xanh')", "bỏ chọn đối tác");
+    assert.deepEqual(await b.ev("[...document.querySelectorAll('.sheet-body .o-noi .o-noi-chu')].map((e) => e.textContent)"), ["Tên khách đi tour *", "Số điện thoại *"], "Khách lẻ: nhãn SĐT trở lại");
+    await b.ev("document.querySelector('.sheet [data-action=\"dat-qua-mo\"]').click(); true");
+    await b.waitFor(`[...document.querySelectorAll('.sheet #dat-qua-doi-tac .dqdt-dong')].some((x) => x.textContent.includes(${JSON.stringify(DAI_LY.name)}))`, "danh sách đối tác trong bảng");
+    await b.ev(`[...document.querySelectorAll('.sheet #dat-qua-doi-tac .dqdt-dong')].find((x) => x.textContent.includes(${JSON.stringify(DAI_LY.name)})).click(); true`);
+    await b.waitFor("!!document.querySelector('.sheet #dat-qua-doi-tac .dqdt-chon-xanh')", "đã chọn đối tác qua công tắc");
+    assert.deepEqual(await b.ev("[...document.querySelectorAll('.sheet-body .o-noi .o-noi-chu')].map((e) => e.textContent)"), ["Tên khách đi tour *", "Số điện thoại khách *"], "chọn qua công tắc: nhãn SĐT của khách");
+    assert.equal(await b.ev("document.querySelector('.sheet .booker').hidden"), true, "đã chọn đối tác: ô tra hồ sơ khách ẩn");
+    await b.ev(setInput("document.querySelector('.sheet-body .o-noi input[type=text]')", "Khách Đi Qua Đại Lý"));
+    await b.ev(setInput("document.querySelector('.sheet-body .o-noi input[type=tel]')", "0903 444 555"));
+    await b.ev("[...document.querySelectorAll('.sheet-foot button')].find((x) => x.textContent === 'Lưu khách').click(); true");
+    await b.waitFor("!document.querySelector('.sheet[role=dialog]')", "lưu xong, bảng đóng", 15000);
+    const don = phai(await call(ACCOUNTS.salesA, "GET", `/api/orders/${donId}`), 200, "đọc lại đơn").order;
+    assert.deepEqual([don.customerName, don.customerPhone, don.bookerPartyId], ["Khách Đi Qua Đại Lý", "0903 444 555", taoDl.staff.partyId], `đơn sau khi đổi khách: ${JSON.stringify({ ten: don.customerName, sdt: don.customerPhone, benDat: don.bookerPartyId, laDoiTac: don.bookerLaDoiTac })}`);
   });
   b.close();
 } finally {

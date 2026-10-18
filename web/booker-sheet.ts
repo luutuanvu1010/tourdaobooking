@@ -1,5 +1,8 @@
 // Bảng "Đổi khách" (N2 lát 1, ADR-0011 điều 2) — cho đơn ĐÃ XÁC NHẬN (đơn nháp đổi khách trong form). Tên + SĐT trên đơn + khối "Hồ sơ khách";
 // lưu bằng PUT /api/orders/:id/booker (khoá lạc quan theo `updatedAt`). Khuôn modal như web/trip-sheet.ts.
+// Thiết kế lại 18/10/2026 (Việc 9; đặc tả docs/superpowers/specs/2026-10-18-tao-don-thiet-ke-lai/DAC-TA.md mục 3 "Biến thể theo vai"): CÙNG khối khách với form Tạo đơn —
+// công tắc "Đơn của: Khách lẻ | Qua đối tác" (người có ô, `coDatQuaDoiTac`) ở đầu, rồi hai ô nhãn nổi "Tên khách đi tour *" / "Số điện thoại *" (đã chọn đối tác: "Số điện thoại khách *"),
+// khung lớp chặn nhầm ngay dưới ô SĐT, rồi ô tra hồ sơ. Thân PUT không đổi (cùng `gopBenDat`).
 import { ApiError, api, type Api, type Order } from "./api";
 import { renderBanner } from "./banner";
 import { createBookerPicker } from "./booker-picker";
@@ -8,8 +11,9 @@ import { oDatQuaDoiTac } from "./dat-qua-doi-tac";
 import { h } from "./dom";
 import { vnd } from "./format";
 import { icon } from "./icons";
+import { oNhanNoi } from "./o-nhan-noi";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
-import { gopBenDat, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
+import { gopBenDat, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
 
 export interface BookerSheetOptions {
   order: Order;
@@ -25,12 +29,23 @@ export function openBookerSheet(o: BookerSheetOptions, opener: HTMLElement): voi
   let saving = false;
   const nameInput = h("input", { type: "text", maxLength: 200, autocomplete: "off", value: o.order.customerName });
   const phoneInput = h("input", { type: "tel", inputMode: "tel", maxLength: 30, autocomplete: "off", value: o.order.customerPhone });
-  // Lớp chặn nhầm (18/10): cùng khung với form Tạo đơn (web/canh-bao-doi-tac.ts). "Đúng, qua …" = chọn đối tác ở ô «Đặt qua đối tác» bên dưới, rồi xoá hai ô khách.
+  // Hai ô khách nhãn nổi như form (web/o-nhan-noi.ts); chữ nhãn từ luật thuần — đã chọn đối tác thì SĐT ghi rõ là của khách, không phải của đối tác.
+  const oTen = oNhanNoi(nhanTenKhach(false), nameInput);
+  const oSdt = oNhanNoi(nhanSdtKhach(false), phoneInput);
+  function datNhanKhach(daChonDoiTac: boolean): void {
+    const ten = oTen.querySelector(".o-noi-chu");
+    const sdt = oSdt.querySelector(".o-noi-chu");
+    if (ten) ten.textContent = nhanTenKhach(daChonDoiTac);
+    if (sdt) sdt.textContent = nhanSdtKhach(daChonDoiTac);
+  }
+  // Lớp chặn nhầm (18/10): cùng khung với form Tạo đơn (web/canh-bao-doi-tac.ts). "Đúng, qua …" = bật công tắc «Qua đối tác» với đối tác đó, rồi xoá hai ô khách.
+  // `datChon` không gọi `onDoi` ⇒ đường này tự đổi nhãn hai ô.
   const canhBao = canhBaoDoiTac({
     onDung: (d) => {
       daChon = { partyId: d.partyId, ten: d.ten, loai: d.loai };
       datQua?.datChon(daChon);
       picker.root.hidden = true;
+      datNhanKhach(true);
       for (const el of [nameInput, phoneInput]) {
         el.value = "";
         el.dispatchEvent(new Event("input", { bubbles: true }));
@@ -46,7 +61,8 @@ export function openBookerSheet(o: BookerSheetOptions, opener: HTMLElement): voi
     onDoiTacTrung: (d, soDt) => canhBao.hien(d, soDt),
     khachLe: () => daChon === null,
   });
-  // Bên đặt đang lưu là đối tác (cờ `bookerLaDoiTac` do MÁY CHỦ tính) và người sửa có ô "Đặt qua đối tác" ⇒ nạp vào ô đó, không vào ô tra SĐT (đặc tả §7); đã chọn thì ô tra SĐT ẩn.
+  // Bên đặt đang lưu là đối tác (cờ `bookerLaDoiTac` do MÁY CHỦ tính) và người sửa có công tắc «Đơn của» ⇒ nạp vào đó (bật «Qua đối tác»), không vào ô tra SĐT (đặc tả §7);
+  // đã chọn thì ô tra SĐT ẩn. Tài khoản lai / không có ô: không công tắc, ô tra SĐT như hôm nay.
   let daChon: BenDatChon | null = null;
   const datQua = o.coDatQuaDoiTac
     ? oDatQuaDoiTac({
@@ -55,6 +71,7 @@ export function openBookerSheet(o: BookerSheetOptions, opener: HTMLElement): voi
           daChon = c;
           picker.root.hidden = c !== null;
           if (c !== null) canhBao.hien(null, "");
+          datNhanKhach(c !== null);
         },
       })
     : null;
@@ -62,6 +79,7 @@ export function openBookerSheet(o: BookerSheetOptions, opener: HTMLElement): voi
     daChon = { partyId: o.order.bookerPartyId, ten: o.order.bookerName ?? "" };
     datQua.datChon(daChon);
     picker.root.hidden = true;
+    datNhanKhach(true);
   } else picker.set(o.order.bookerPartyId, o.order.bookerName);
 
   const bannerEl = h("div", { class: "banner", role: "alert", hidden: true });
@@ -78,10 +96,10 @@ export function openBookerSheet(o: BookerSheetOptions, opener: HTMLElement): voi
       { class: "sheet-body" },
       h("p", { class: "sheet-warn" }, icon("alert", 18), "Bản xác nhận đã gửi khách trước đó có thể lỗi thời — cần gửi lại."),
       bannerEl,
-      h("label", null, "Tên khách *", nameInput),
-      h("label", null, "Số điện thoại *", phoneInput),
-      canhBao.root,
       datQua,
+      oTen,
+      oSdt,
+      canhBao.root,
       picker.root,
     ),
     h("div", { class: "sheet-foot" }, saveBtn),

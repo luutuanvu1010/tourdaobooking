@@ -78,10 +78,26 @@ test("công tắc «Đơn của»: nhãn hàng, hai nút «Khách lẻ» / «Qua
   assert.match(nguon, /"Qua đối tác"/);
   assert.match(nguon, /"Đơn của"/);
   assert.doesNotMatch(ma, /"Khách tự đặt"/, "chữ cũ đã bỏ");
-  assert.match(nguon, /gon \? "Qua đối tác" : "Đặt qua đối tác"/, "chữ nút theo bố cục: công tắc mới; bảng Đổi khách giữ chữ cũ");
+  // Việc 9: bảng «Đổi khách» dùng CÙNG công tắc — bố cục cũ (nút rời "Đặt qua đối tác", "Bỏ chọn", dòng "Đặt qua: …") không còn nơi nào dùng nên đã gỡ.
+  assert.doesNotMatch(ma, /"Đặt qua đối tác"|"Đặt qua: "|"Không chọn nữa"/, "chữ của bố cục cũ đã gỡ");
   assert.match(ma, /"data-action":\s*"dat-qua-mo"/);
   assert.match(ma, /"data-action",\s*"dat-qua-huy"/);
   assert.match(ma, /"aria-pressed"/);
+});
+
+// Việc 9 (thiết kế lại 18/10, đặc tả mục 3 "Biến thể theo vai"): bảng «Đổi khách» cùng khối «Đơn của» và hai ô khách như form — nhãn nổi, nhãn đi qua luật thuần,
+// nhãn đổi cả khi chọn đối tác bằng công tắc lẫn bằng «Đúng, qua …» của lớp chặn nhầm (đường này đặt lựa chọn bằng `datChon`, không qua `onDoi`).
+test("bảng «Đổi khách»: cùng công tắc «Đơn của», hai ô khách nhãn nổi theo luật thuần, nhãn đổi theo lựa chọn đối tác", () => {
+  const bang = doc("web/booker-sheet.ts");
+  assert.match(bang, /oNhanNoi\(\s*nhanTenKhach\(/, "ô tên khách: nhãn nổi, chữ từ luật thuần");
+  assert.match(bang, /oNhanNoi\(\s*nhanSdtKhach\(/, "ô SĐT khách: nhãn nổi, chữ từ luật thuần");
+  assert.doesNotMatch(bang, /"Tên khách \*"|"Số điện thoại \*"/, "không còn nhãn viết cứng kiểu cũ");
+  const soLanDatNhan = (bang.match(/datNhanKhach\(/g) ?? []).length;
+  assert.ok(soLanDatNhan >= 4, `định nghĩa + ba chỗ gọi (công tắc, «Đúng, qua …», nạp đơn đã lưu): ${soLanDatNhan}`);
+  // Thứ tự trong thân bảng như form: công tắc → hai ô khách → khung cảnh báo → ô tra hồ sơ.
+  const than = /h\(\s*"div",\s*\{\s*class:\s*"sheet-body"\s*\},([\s\S]*?)\n\s*\),\n/.exec(bang)?.[1] ?? "";
+  const viTri = ["datQua", "oTen", "oSdt", "canhBao.root", "picker.root"].map((x) => than.indexOf(x));
+  assert.ok(viTri.every((v) => v >= 0) && viTri.every((v, i) => i === 0 || v > (viTri[i - 1] ?? -1)), `thứ tự thân bảng: ${JSON.stringify(viTri)}`);
 });
 
 test("nhãn tên / SĐT khách ở form lập đơn đi qua luật thuần theo việc đã chọn đối tác", () => {
@@ -93,5 +109,8 @@ test("nhãn tên / SĐT khách ở form lập đơn đi qua luật thuần theo 
   assert.match(html, /id="use-mine"[^>]*>Điền thông tin của tôi</);
   assert.match(html, /Áp cho mọi dịch vụ trong đơn/);
   assert.match(html, />Khách hàng</);
-  assert.match(html, /Email, ghi chú|id="don-cua-slot"/);
+  // Việc 9 (nợ T3): trước đây một điều kiện HOẶC (`/Email, ghi chú|id="don-cua-slot"/` trên HTML) gần như luôn đúng — chữ «Email, ghi chú» không hề ở HTML (nút gập dựng trong
+  // web/order-form.ts), nên vế đó chưa bao giờ được kiểm. Tách thành hai khẳng định, mỗi cái đọc đúng tệp chứa nó.
+  assert.match(html, /id="don-cua-slot"/, "chỗ gắn công tắc «Đơn của» ở hàng đầu khối Khách hàng");
+  assert.match(form, /taoKhoiGap\(\{\s*ma:\s*"khach",\s*nhan:\s*"Email, ghi chú"/, "nút gập «Email, ghi chú» của khối khách (dựng trong form)");
 });

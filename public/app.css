@@ -3488,7 +3488,6 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .booker-chua { font-size: var(--fs-label); } /* "Hồ sơ khách: chưa liên kết (không bắt buộc)" — chữ xám, không còn nhãn vàng */
 .dqdt-chon { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin: 0; }
 .dqdt-chon-ten { overflow-wrap: anywhere; }
-.dqdt-ghi { margin: 0; font-size: var(--fs-label); }
 .dqdt-ket-qua { display: flex; flex-direction: column; gap: var(--s2); }
 .dqdt-ket-qua p { margin: 0; }
 .dqdt-dong { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); width: 100%; min-height: var(--row-h); text-align: left; }
