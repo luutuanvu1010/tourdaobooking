@@ -94,19 +94,20 @@ try {
   assert.equal(await p.ev("document.querySelectorAll('#services .svc')[0].querySelector('details.trip').open"), true, "thẻ đã có giá trị chuyến: tự mở (không giấu giá trị)");
   // 2026-09-26 (DK-T3-01): dịch vụ nhập tay ĐÃ LƯU hiện CHỈ XEM — không ô tên/mô tả/đơn giá, không "+ Thêm dòng"/"Xoá dòng"; vẫn có bộ đếm số khách,
   // khối chuyến và nút "Xoá" dịch vụ; có dòng chú thích. Thẻ danh mục cạnh nó không đổi (vẫn có ô đơn giá).
+  // 18/10/2026 (thẻ gập): nút xoá là biểu tượng thùng rác, đọc bằng aria-label "Xoá dịch vụ <tên>"; nút đầu thẻ `.svc-mo` (mở / gập thẻ) không tính.
   const frozen = await p.ev(`(() => { const c = document.querySelectorAll('#services .svc')[1];
     return { inputs: [...c.querySelectorAll('input:not(.counter-field)')].filter((i) => !i.closest('details.trip') && !i.closest('.dd')).length, priceFields: c.querySelectorAll('.price-field').length,
-      buttons: [...c.querySelectorAll('button')].filter((b) => !b.closest('details.trip') && !b.closest('.dd') && !b.closest('.counter')).map((b) => b.textContent.trim()),
+      buttons: [...c.querySelectorAll('button')].filter((b) => !b.closest('details.trip') && !b.closest('.dd') && !b.closest('.counter') && !b.classList.contains('svc-mo')).map((b) => b.getAttribute('aria-label') || b.textContent.trim()),
       counter: !!c.querySelector('.counter-field[aria-label="Số khách (chỉ để vận hành)"]'), note: c.querySelector('.svc-locked')?.textContent ?? null,
       name: c.querySelector('.svc-name').textContent, line: c.querySelector('.mline')?.textContent ?? null, total: c.querySelector('.svc-total-amount').textContent,
       catalogPriceFields: document.querySelectorAll('#services .svc')[0].querySelectorAll('.price-field').length }; })()`);
-  assert.deepEqual([frozen.inputs, frozen.priceFields, frozen.buttons, frozen.counter], [0, 0, ["Xoá"], true], `thẻ nhập tay đã lưu chỉ xem (chỉ còn bộ đếm + Xoá): ${JSON.stringify(frozen)}`);
+  assert.deepEqual([frozen.inputs, frozen.priceFields, frozen.buttons, frozen.counter], [0, 0, ["Xoá dịch vụ Xe đưa đón riêng"], true], `thẻ nhập tay đã lưu chỉ xem (chỉ còn bộ đếm + thùng rác): ${JSON.stringify(frozen)}`);
   assert.equal(frozen.note, "Dịch vụ nhập tay chỉ xem (đang tắt hoặc tài khoản này không được nhập tay); muốn đổi thì xoá và chọn từ danh mục."); // ADR-0061: công tắc TẮT (mặc định)
   assert.deepEqual([frozen.name, frozen.total], ["Xe đưa đón riêng", "800.000 ₫"]);
   assert.match(frozen.line ?? "", /Xe 7 chỗ 2 chiều.*1 × 800\.000 ₫ =.*800\.000 ₫/);
   assert.ok(frozen.catalogPriceFields > 0, "thẻ danh mục vẫn có ô đơn giá");
   p.close();
-  ok("liên kết 'Sửa': form mở đúng thẻ, khối chuyến mở sẵn; thẻ nhập tay đã lưu chỉ xem (không ô tên/giá, còn số khách + Xoá, có chú thích)");
+  ok("liên kết 'Sửa': form mở đúng thẻ, khối chuyến mở sẵn; thẻ nhập tay đã lưu chỉ xem (không ô tên/giá, còn số khách + thùng rác, có chú thích)");
 
   // ---- 3b) (2026-09-26, DK-T3-01) LƯU form sửa đơn nháp CŨ có dịch vụ nhập tay: đổi số khách của thẻ nhập tay rồi Lưu → máy chủ nhận (tên + dòng tiền
   //      gửi lại nguyên văn), dịch vụ vẫn là nhập tay, tiền không đổi, số khách mới được lưu. Đơn RIÊNG (không đụng luồng của đơn 1). ----
