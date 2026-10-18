@@ -108,6 +108,7 @@ test("D-1 (a) tái hiện: Đối tác không thấy lý do nội bộ, tên K�
   // Đơn vẫn đọc được đủ ý: tạo, xác nhận, huỷ có mặt; khối cọc vẫn có số tiền.
   const acts = (ord.json.history as { action: string }[]).map((e) => e.action);
   for (const a of ["created", "confirmed", "cancelled"]) assert.ok(acts.includes(a), `Đối tác mất dòng ${a}`);
+  for (const e of ord.json.history as { action: string; staffId: string | null; staffName: string }[]) assert.deepEqual([e.staffId, e.staffName], [null, ""], `Đối tác thấy người làm ở ${e.action}`); // ADR-0131 đ2
   assert.equal(pay.json.coc.khoanDuyet.length, 1);
   assert.equal(pay.json.coc.khoanDuyet[0].soTien, 100000);
 
@@ -134,11 +135,13 @@ test("D-1 (b) mọi hành động của audit-actions.ts: Đối tác (và tài 
     assert.deepEqual([...new Set(h.map((e) => e.action))].sort(), mongDoi, `${ten}: tập hành động phải đúng danh sách cho phép`);
     assert.equal(h.length, mongDoi.length, `${ten}: mỗi hành động một dòng`);
     for (const e of h) {
+      // ADR-0131 đ2: MỌI dòng trả cho Đối tác không tên, không mã người làm (kể cả dòng nhập kế toán của tài khoản lai và nhãn "Quản trị" của dòng đặt gấp).
+      assert.deepEqual([e.staffId, e.staffName], [null, ""], `${ten}: ${e.action} còn người làm`);
       if (nhapKt.includes(e.action)) { assert.equal(e.detail, chiTietGieo(e.action as AuditAction), `${ten}: ${e.action} phải nguyên văn`); continue; }
       const cach = CHO_PHEP[e.action];
       assert.ok(cach !== undefined, `hành động ngoài danh sách: ${e.action}`);
       assert.ok(!JSON.stringify(e).includes(MAT), `${ten}: ${e.action} lộ chữ nội bộ (${e.detail})`);
-      if (e.action === "order_leg_short_notice") { assert.deepEqual([e.staffId, e.staffName], [null, "Quản trị"]); assert.ok(e.detail?.endsWith(String(cach))); continue; } // R-P21, kể cả tài khoản lai
+      if (e.action === "order_leg_short_notice") { assert.ok(e.detail?.endsWith(String(cach))); continue; } // R-P21, kể cả tài khoản lai
       if (cach === "giu") assert.equal(e.detail, chiTietGieo(e.action as AuditAction), `${ten}: ${e.action} phải giữ chi tiết`);
       else if (cach === null) assert.equal(e.detail, null, `${ten}: ${e.action} phải bỏ chi tiết`);
       else assert.equal(e.detail, cach, `${ten}: ${e.action} chi tiết "${e.detail}"`);

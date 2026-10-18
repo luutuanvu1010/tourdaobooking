@@ -115,11 +115,11 @@ const lichSu = async (w: any, id: string, as: string) => {
   assert.equal(r.status, 200, r.text);
   return r.json.history as { action: string; staffId: string | null; staffName: string; detail: string | null }[];
 };
-function kiemLichSuCo(h: { action: string; staffId: string | null; staffName: string; detail: string | null }[], ai: string) {
+function kiemLichSuCo(h: { action: string; staffId: string | null; staffName: string; detail: string | null }[], ai: string, tenMong = "Quản trị") {
   const dong = h.filter((e) => e.action === "order_leg_short_notice" || /đặt gấp/iu.test(e.detail ?? ""));
   assert.ok(dong.length > 0, `${ai}: chống bài rỗng — phải có dòng đặt gấp`);
   for (const e of dong) {
-    assert.equal(e.staffName, "Quản trị", `${ai}: người làm chỉ là nhãn "Quản trị"`);
+    assert.equal(e.staffName, tenMong, `${ai}: người làm chỉ là nhãn "${tenMong}"`); // Đối tác: nhãn rỗng (ADR-0131 đ2)
     assert.equal(e.staffId, null, `${ai}: không lộ id người duyệt`);
     assert.match(e.detail ?? "", /Đặt gấp — Quản trị đã duyệt/, `${ai}: ${e.detail}`);
   }
@@ -132,7 +132,7 @@ test("R-P21: lịch sử đơn — Đối tác, Thực tập (đơn tự lập),
   for (const as of [PARTNER, INTERN]) {
     const o = await nhap(w, as);
     await datGapChieuDi(w, o);
-    kiemLichSuCo(await lichSu(w, o.id, as), as);
+    kiemLichSuCo(await lichSu(w, o.id, as), as, as === PARTNER ? "" : "Quản trị");
     const vp = await lichSu(w, o.id, ACC);
     const dong = vp.find((e) => e.action === "order_leg_short_notice")!;
     assert.equal(dong.staffName, TEN_DUYET, "văn phòng: tên người duyệt");
