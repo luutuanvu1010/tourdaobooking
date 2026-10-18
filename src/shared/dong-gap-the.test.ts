@@ -59,6 +59,20 @@ test("chipThieu: \"Chưa chốt giờ đón\", \"Chưa có nơi đón\" theo đ�
   assert.deepEqual(chipThieu({ coGioDon: true, coNoiDon: true }), []);
 });
 
+test("chipThieu + dongGapThe: dịch vụ chưa nhập số khách có chip \"Chưa nhập số khách\" (đứng trước chip đón); nhập tay (số khách chỉ để vận hành) thì không", () => {
+  assert.deepEqual(chipThieu({ coKhach: false, coGioDon: true, coNoiDon: true }), ["Chưa nhập số khách"]);
+  assert.deepEqual(chipThieu({ coKhach: false, coGioDon: false, coNoiDon: false }), ["Chưa nhập số khách", "Chưa chốt giờ đón", "Chưa có nơi đón"]);
+  assert.deepEqual(chipThieu({ coKhach: true, coGioDon: true, coNoiDon: true }), []);
+  assert.deepEqual(chipThieu({ coGioDon: true, coNoiDon: true }), [], "không nêu coKhach = đã có khách (giữ chữ ký cũ)");
+  assert.deepEqual(dongGapThe(td2({ adult: 0 }, []), { today: HOM_NAY, nhanTheoId }), { khach: "", don: null, chips: ["Chưa nhập số khách"] }, "thẻ gập không khách: không chỉ còn tên và 0 ₫");
+  assert.deepEqual(dongGapThe(td2({ adult: 0 }, [chang()]), { today: HOM_NAY, nhanTheoId }).chips, ["Chưa nhập số khách", "Chưa chốt giờ đón", "Chưa có nơi đón"]);
+  const nhom = { ...setPax(newCatalogDraft(phao, "k2"), "adult", 0), trip: { ...newCatalogDraft(phao, "k2").trip, departDate: NGAY } };
+  assert.deepEqual(dongGapThe(nhom, { today: HOM_NAY, nhanTheoId }).chips, ["Chưa nhập số khách"], "theo nhóm, 0 khách");
+  const tay = setGuests({ ...newManualDraft("k3"), name: "Xe riêng" }, 0);
+  assert.deepEqual(dongGapThe({ ...tay, trip: { ...tay.trip, departDate: NGAY } }, { today: HOM_NAY, nhanTheoId }).chips, [], "nhập tay 0 khách không chặn Lưu → không chip");
+  assert.deepEqual(dongGapThe(td2(), { today: HOM_NAY, nhanTheoId }).chips, [], "có khách → không chip");
+});
+
 test("chipTuCanhBao: lấy phần trước \" — \" của câu cảnh báo thật (một nguồn chữ), bỏ dấu chấm cuối", () => {
   assert.equal(chipTuCanhBao("Ngày khởi hành đã qua — vẫn lưu được, nhưng chưa thể xác nhận."), "Ngày khởi hành đã qua");
   assert.equal(chipTuCanhBao("Giờ đón sau giờ khởi hành — kiểm tra lại."), "Giờ đón sau giờ khởi hành");

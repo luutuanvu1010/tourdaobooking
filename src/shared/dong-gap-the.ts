@@ -28,9 +28,9 @@ export function donGon(gio: string | null, noi: string | null): string | null {
   return ["đón", g, n].filter((x) => x !== "").join(" ");
 }
 
-/** Chip thông tin còn thiếu của chặng hiện trên dòng gập. */
-export function chipThieu(v: { coGioDon: boolean; coNoiDon: boolean }): string[] {
-  return [...(v.coGioDon ? [] : ["Chưa chốt giờ đón"]), ...(v.coNoiDon ? [] : ["Chưa có nơi đón"])];
+/** Chip thông tin còn thiếu hiện trên dòng gập: số khách (khi thiếu chặn Lưu — `coKhach`, mặc định có), rồi giờ / nơi đón của chặng. */
+export function chipThieu(v: { coKhach?: boolean; coGioDon: boolean; coNoiDon: boolean }): string[] {
+  return [...(v.coKhach === false ? ["Chưa nhập số khách"] : []), ...(v.coGioDon ? [] : ["Chưa chốt giờ đón"]), ...(v.coNoiDon ? [] : ["Chưa có nơi đón"])];
 }
 
 /** Chip của một câu cảnh báo thật (vd "Ngày khởi hành đã qua — vẫn lưu được, …"): phần trước " — ", bỏ dấu chấm cuối. Một nguồn chữ với dải cảnh báo của thẻ mở. */
@@ -96,7 +96,9 @@ export function dongGapThe(d: ServiceDraft, o: { today: string; nhanTheoId: (id:
   } else khach = d.guests > 0 ? `${d.guests} khách` : "";
   const l = changHien(d.legs);
   const noi = l ? nhanNoiChang(l.don, l.donTuDo, l.goc?.pickupLabel, o.nhanTheoId) : "";
-  const chips: string[] = l ? chipThieu({ coGioDon: l.pickupTime !== "", coNoiDon: noi !== "" }) : [];
+  // "Chưa nhập số khách": đúng khi Lưu sẽ báo "Nhập số khách." (dịch vụ danh mục 0 khách); nhập tay không bắt buộc số khách. Chỉ hiện trên dòng gập — thẻ mở đã có ô số khách và câu lỗi.
+  const coKhach = !draftIssues(d).some((i) => i.code === "no_guests");
+  const chips: string[] = chipThieu({ coKhach, coGioDon: !l || l.pickupTime !== "", coNoiDon: !l || noi !== "" });
   if (d.kind === "catalog") {
     if (isLocked(d) || d.catalogStatus === "unavailable") chips.push("Dịch vụ đã ẩn khỏi danh mục");
     else if (d.catalogStatus === "price_changed") chips.push("Giá danh mục đã đổi");
