@@ -53,7 +53,8 @@ const CHUOI_DA_RA: Record<string, { soCho: number; lyDo: string }> = {};
 const GOI_HAM: Record<string, Record<string, number>> = {
   hoaHongDong: { [NGUON]: 1 },
   giaVonDong: { [NGUON]: 1 },
-  tinhDongDoiTac: { "src/modules/orders/thuong-mai.ts": 1 },
+  // Sổ đại lý đợt 2 (Task 3): `dongThuongMaiTu` của billing dựng dòng hoa hồng / giá vốn của phiếu «Đã giao» từ bản chụp — gọi đúng hàm này, không nhân tỷ lệ.
+  tinhDongDoiTac: { "src/modules/orders/thuong-mai.ts": 1, "src/modules/billing/rules.ts": 1 },
 };
 
 function walk(dir: string, out: string[] = []): string[] {

@@ -6,12 +6,14 @@
 // trigger `bil_posting_delivered_paid` (migration 0045) — bài đối chiếu ở rules.test.ts.
 // "Phải thu hiện hành" KHÔNG tính ở đây: `orders` công bố nó (một hàm tính tiền của đơn — `effectiveMoney`), billing nhận số.
 
+import { tinhDongDoiTac, type BanChup } from "../../shared/hoa-hong-dong.ts";
 import { cauKyKhoa, kyCua } from "../../shared/ky-khoa.ts";
 import type { NhomHuy } from "../../shared/ly-do-huy.ts";
 
 export type ReceiptKind = "CUSTOMER_PAYMENT" | "CUSTOMER_REFUND";
 export type CollectorRole = "COMPANY" | "STAFF" | "BOOKER" | "SUPPLIER" | "UNKNOWN";
-export type DebtKind = "HELD" | "SETTLEMENT" | "REFUND";
+/** Loại dòng nợ (`bil_debt_kind`). Ba loại thương mại của phiếu «Đã giao» từ sổ đại lý đợt 2 (ADR-0079 điều 2, migration 0111). */
+export type DebtKind = "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON";
 export type MethodCode = "CASH" | "BANK_TRANSFER" | "OTHER";
 
 export const METHOD_CODES: readonly MethodCode[] = ["CASH", "BANK_TRANSFER", "OTHER"];
@@ -40,13 +42,14 @@ export interface LineRow {
   reversesLineId: string | null;
 }
 
-/** Dòng nợ CẦN GHI (chưa có id) — repository thêm id, phiếu, mốc. */
+/** Dòng nợ CẦN GHI (chưa có id) — repository thêm id, phiếu, mốc. `orderServiceId`: dòng dịch vụ của dòng HOA_HONG / GIA_VON (trigger 0111 (i) bắt buộc); vắng = null. */
 export interface LineDraft {
   debtorPartyId: string;
   creditorPartyId: string;
   amount: number;
   kind: DebtKind;
   reversesLineId: string | null;
+  orderServiceId?: string | null;
 }
 
 /** Lần thu CÒN HIỆU LỰC: không phải dòng đảo và chưa bị đảo (bỏ cặp gốc/đảo). */
@@ -460,9 +463,139 @@ export function sinhDongHoanKhach(input: { nguoiTraPartyId: string; congTyId: st
   return [{ debtorPartyId: input.congTyId, creditorPartyId: input.nguoiTraPartyId, amount: input.so, kind: "REFUND", reversesLineId: null }];
 }
 
-/** Phiếu "Đã giao" lượt 1: KHÔNG có dòng thương mại (đơn khách lẻ, Tour Đảo bán — ADR-0026 điều 4 gạch 3; lượt 2 sinh từ số đã chụp lúc Xác nhận). */
-export function sinhPhieuDaGiao(): LineDraft[] {
-  return [];
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+// Phần thương mại của phiếu «Đã giao» (sổ đại lý đợt 2 — ADR-0079 điều 1–6; ADR-0078 điều 5; đặc tả P1, P2). Số từng dòng CHỈ qua `tinhDongDoiTac` (một công thức,
+// src/shared/hoa-hong-dong.ts — hàng rào src/hoa-hong-mot-nguon.test.ts); ở đây chỉ ghép dòng, không nhân tỷ lệ. Thiếu mức ⇒ giữ đơn, KHÔNG BAO GIỜ tự lấy 0.
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+
+/** Một dòng dịch vụ của đơn lúc «Đã giao»: thành tiền HIỆN HÀNH (đã áp điều chỉnh số khách), hoa hồng / giá vốn tính từ bản chụp hiện hành (null = thiếu / không có). */
+export interface DongThuongMai {
+  orderServiceId: string;
+  tenDichVu: string;
+  /** Thành tiền dòng TRƯỚC giảm giá cấp đơn. */
+  thanhTien: number;
+  /** null = thiếu mức (dòng chưa chụp / bản chụp MISSING); 0 khi đơn không có người hưởng. */
+  hoaHong: number | null;
+  /** Chỉ khi người bán của dòng là nhà cung cấp (Tour Đảo làm đại lý); null = Tour Đảo bán / thiếu người bán. */
+  giaVon: number | null;
+  nhaCungCapPartyId: string | null;
+}
+
+/** Tình trạng phần thương mại của đơn — quyết đơn có «Đã giao» được không và sổ ghi gì (MỘT hàm `tinhTrangThuongMai`). */
+export type TinhTrangThuongMai =
+  | { trangThai: "KHONG_NGUOI_HUONG" }
+  | { trangThai: "DU"; nguoiHuongPartyId: string }
+  | { trangThai: "THIEU"; ma: "terms_missing" | "booker_not_beneficiary"; dichVu: readonly string[]; canChupBu: boolean }
+  | { trangThai: "VUOT"; dichVu: readonly string[] };
+
+/**
+ * Dựng các dòng thương mại từ phần thương mại của đơn (`PhanThuongMai` của orders: `chup` = bản chụp hiện hành, `dichVu` = MỌI dòng dịch vụ hiện hành). Đi theo
+ * `dichVu`, không theo `chup`: dòng không có bản chụp (vắng khỏi `chup`) ra hoa hồng / giá vốn null — không bao giờ lặng lẽ biến mất khỏi kiểm.
+ */
+export function dongThuongMaiTu(v: { chup: readonly BanChup[]; dichVu: readonly { id: string; name: string; thanhTien: number; soKhachTinh: number }[] }): DongThuongMai[] {
+  const theoDichVu = new Map(v.chup.map((c) => [c.serviceId, c] as const));
+  return v.dichVu.map((d) => {
+    const c = theoDichVu.get(d.id);
+    if (!c) return { orderServiceId: d.id, tenDichVu: d.name, thanhTien: d.thanhTien, hoaHong: null, giaVon: null, nhaCungCapPartyId: null };
+    const t = tinhDongDoiTac(c, { thanhTien: d.thanhTien, soKhachTinh: d.soKhachTinh });
+    const nhaCungCapPartyId = c.cungUng.status === "SET" ? c.cungUng.supplierPartyId : null;
+    return { orderServiceId: d.id, tenDichVu: d.name, thanhTien: d.thanhTien, hoaHong: t.hoaHong, giaVon: t.giaVon, nhaCungCapPartyId };
+  });
+}
+
+/**
+ * Tình trạng phần thương mại của đơn (ADR-0079 điều 1, 5, 6; đặc tả P1, P3). `chup` = bản chụp hiện hành từng dòng (dòng chưa chụp mang MISSING / NOT_CAPTURED, hoặc vắng);
+ * `dong` = mọi dòng dịch vụ (`dongThuongMaiTu`). Thứ tự:
+ *  1. THIEU — có dòng chưa chụp, hoa hồng MISSING, người bán MISSING, hoặc hoa hồng tính ra null. `booker_not_beneficiary` đứng trước `terms_missing` (sửa bên đặt
+ *     thì máy chụp lại cả đơn). `canChupBu` = MỌI dòng của đơn đều chưa chụp — «Chụp bù» chỉ nhận đơn chưa có bản chụp nào (Ruling ở sổ thi công).
+ *     Hai người hưởng khác nhau trên một đơn (bản chụp lấy người hưởng của bên đặt nên không thể xảy ra) ⇒ THIEU, không đoán dồn hoa hồng cho ai.
+ *  2. VUOT — hoa hồng + giá vốn của MỘT dòng > thành tiền dòng đó (lưới CSDL (iii) chỉ canh tổng; kiểm trước ở đây — `terms_exceed_price`).
+ *  3. DU (có người hưởng) / KHONG_NGUOI_HUONG.
+ */
+export function tinhTrangThuongMai(v: { chup: readonly BanChup[]; dong: readonly DongThuongMai[] }): TinhTrangThuongMai {
+  const theoDichVu = new Map(v.chup.map((c) => [c.serviceId, c] as const));
+  const ban = (d: DongThuongMai): BanChup | undefined => theoDichVu.get(d.orderServiceId);
+  const chuaChup = (d: DongThuongMai): boolean => {
+    const c = ban(d);
+    return !c || (c.hoaHong.status === "MISSING" && c.hoaHong.reason === "NOT_CAPTURED");
+  };
+  const thieu = v.dong.filter((d) => {
+    const c = ban(d);
+    return !c || c.hoaHong.status === "MISSING" || c.cungUng.status === "MISSING" || d.hoaHong === null;
+  });
+  const ten = (ds: readonly DongThuongMai[]) => ds.map((d) => d.tenDichVu);
+  if (thieu.length > 0) {
+    const khongDuocHuong = thieu.filter((d) => {
+      const h = ban(d)?.hoaHong;
+      return h?.status === "MISSING" && h.reason === "BOOKER_NOT_BENEFICIARY";
+    });
+    if (khongDuocHuong.length > 0) return { trangThai: "THIEU", ma: "booker_not_beneficiary", dichVu: ten(khongDuocHuong), canChupBu: false };
+    return { trangThai: "THIEU", ma: "terms_missing", dichVu: ten(thieu), canChupBu: v.dong.every(chuaChup) };
+  }
+  const nguoiHuong = [...new Set(v.dong.flatMap((d) => {
+    const c = ban(d)!;
+    return c.hoaHong.status === "SET" && c.beneficiaryPartyId !== null ? [c.beneficiaryPartyId] : [];
+  }))];
+  if (nguoiHuong.length > 1) return { trangThai: "THIEU", ma: "terms_missing", dichVu: ten(v.dong), canChupBu: false };
+  const vuot = v.dong.filter((d) => (d.hoaHong ?? 0) + (d.giaVon ?? 0) > d.thanhTien);
+  if (vuot.length > 0) return { trangThai: "VUOT", dichVu: ten(vuot) };
+  return nguoiHuong.length === 1 ? { trangThai: "DU", nguoiHuongPartyId: nguoiHuong[0]! } : { trangThai: "KHONG_NGUOI_HUONG" };
+}
+
+/**
+ * Dòng thương mại của phiếu «Đã giao» (ADR-0079 điều 2, phương án A — C1 = A). Theo từng dòng dịch vụ: HOA_HONG (Tour Đảo → người hưởng, hoa hồng > 0), GIA_VON
+ * (Tour Đảo → nhà cung cấp, giá vốn > 0); cuối cùng GIAM_GIA_BEN_DAT (người hưởng → Tour Đảo) khi đơn có người hưởng và `giamGiaBenDat` > 0. `giamGiaBenDat` = thành
+ * tiền trước giảm (`gross_snapshot`) − phải thu đã chụp (`due_snapshot`) — giảm giá HIỆU LỰC của ADR-0109, không tính `min()` lần hai. Đơn không người hưởng: giảm giá
+ * do Tour Đảo chịu, không dòng. Chỉ gọi khi `tinhTrangThuongMai` là DU / KHONG_NGUOI_HUONG; dữ liệu trái điều đó (thiếu mức khi có người hưởng…) ⇒ NÉM LỖI, không tự lấy 0.
+ */
+export function sinhPhieuDaGiao(v: { congTyId: string; nguoiHuongPartyId: string | null; giamGiaBenDat: number; dong: readonly DongThuongMai[] }): LineDraft[] {
+  const out: LineDraft[] = [];
+  for (const d of v.dong) {
+    if (v.nguoiHuongPartyId !== null) {
+      if (d.hoaHong === null) throw new Error(`sinhPhieuDaGiao: dòng ${d.orderServiceId} thiếu mức hoa hồng — phải giữ đơn (terms_missing), không ghi sổ`);
+      if (d.hoaHong > 0) out.push({ debtorPartyId: v.congTyId, creditorPartyId: v.nguoiHuongPartyId, amount: d.hoaHong, kind: "HOA_HONG", reversesLineId: null, orderServiceId: d.orderServiceId });
+    } else if ((d.hoaHong ?? 0) > 0) {
+      throw new Error(`sinhPhieuDaGiao: dòng ${d.orderServiceId} có hoa hồng mà đơn không có người hưởng`);
+    }
+    if (d.giaVon !== null && d.giaVon > 0) {
+      if (d.nhaCungCapPartyId === null) throw new Error(`sinhPhieuDaGiao: dòng ${d.orderServiceId} có giá vốn mà không có nhà cung cấp`);
+      out.push({ debtorPartyId: v.congTyId, creditorPartyId: d.nhaCungCapPartyId, amount: d.giaVon, kind: "GIA_VON", reversesLineId: null, orderServiceId: d.orderServiceId });
+    }
+  }
+  if (v.nguoiHuongPartyId !== null && v.giamGiaBenDat > 0) {
+    out.push({ debtorPartyId: v.nguoiHuongPartyId, creditorPartyId: v.congTyId, amount: v.giamGiaBenDat, kind: "GIAM_GIA_BEN_DAT", reversesLineId: null, orderServiceId: null });
+  }
+  return out;
+}
+
+const tenDichVu = (ds: readonly string[], neuRong: string): string => (ds.length > 0 ? ds.join(", ") : neuRong);
+/** Lý do giữ «Đã giao» của phần thương mại (câu lời thường cố định — task-3-brief; Hiến chương 5.7: nói rõ ai xử lý). DU / KHONG_NGUOI_HUONG ⇒ null. */
+export function lyDoGiuThuongMai(t: TinhTrangThuongMai): LyDoGiu | null {
+  if (t.trangThai === "THIEU") {
+    if (t.ma === "booker_not_beneficiary") {
+      return { ma: "booker_not_beneficiary", cau: "Bên đặt của đơn không thuộc danh sách được hưởng hoa hồng — Văn phòng sửa bên đặt hoặc Kế toán ghi mức tay.", aiXuLy: "Văn phòng hoặc Kế toán" };
+    }
+    if (t.canChupBu) return { ma: "terms_missing", cau: "Đơn xác nhận trước khi có bảng mức, chưa chụp mức — Kế toán cài mức rồi bấm Chụp bù.", aiXuLy: "Kế toán" };
+    return { ma: "terms_missing", cau: `Thiếu mức hoa hồng / người bán cho ${tenDichVu(t.dichVu, "một dịch vụ của đơn")} — Kế toán ghi mức tay cho dòng này.`, aiXuLy: "Kế toán" };
+  }
+  if (t.trangThai === "VUOT") return { ma: "terms_exceed_price", cau: `Mức hoa hồng / giá vốn cài cho ${tenDichVu(t.dichVu, "đơn này")} vượt giá bán — Kế toán xem lại.`, aiXuLy: "Kế toán" };
+  return null;
+}
+
+/**
+ * Dịch lỗi lớp CSDL của phần thương mại (migration 0111) ra lời thường — cùng câu của `lyDoGiuThuongMai` khi có (Ruling ở sổ thi công). Lớp CSDL chỉ chạy khi lớp 1
+ * (câu «Đã giao» của orders) bị vượt, nên không có tên dịch vụ: `delivered_terms` ⇒ câu `terms_missing` «cho một dịch vụ của đơn»; `commercial_exceeds_gross` ⇒ câu
+ * `terms_exceed_price` «cho đơn này» (đúng chữ ADR-0079 điều 6). Ba lưới còn lại và chỉ mục một-dòng-mỗi-dịch-vụ báo MÃ sinh dòng sai (không phải cấu hình) ⇒ câu
+ * chung, không lộ mã thô. Không phải lỗi thương mại ⇒ null.
+ */
+export function cauLoiCsdlThuongMai(e: unknown): string | null {
+  const m = e instanceof Error ? e.message : String(e);
+  if (/\bdelivered_terms:/.test(m)) return lyDoGiuThuongMai({ trangThai: "THIEU", ma: "terms_missing", dichVu: [], canChupBu: false })!.cau;
+  if (/\bcommercial_exceeds_gross:/.test(m)) return lyDoGiuThuongMai({ trangThai: "VUOT", dichVu: [] })!.cau;
+  if (/\bcommercial_(service_required|wrong_direction|discount_mismatch):/.test(m) || /UNIQUE constraint failed: bil_debt_line\.posting_id, bil_debt_line\.order_service_id/.test(m)) {
+    return "Số hoa hồng / giảm giá bên đặt chịu / giá vốn tính ra không khớp sổ — chưa ghi gì; báo người phụ trách hệ thống.";
+  }
+  return null;
 }
 
 /** Số dư từng bên với công ty chủ: dương = bên đó còn NỢ công ty; âm = công ty còn nợ bên đó (gộp mọi dòng kể cả đảo). */
@@ -481,9 +614,11 @@ export const dong = (n: number): string => `${String(Math.trunc(n)).replace(/\B(
 const ngayVn = (iso: string): string => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 
 /** Ai phải xử lý (Hiến chương 5.7 — giữ đối tượng khi thiếu điều kiện: nói rõ lý do + ai làm tiếp). */
-export type AiXuLy = "Kế toán" | "Hướng dẫn viên" | "Người lập đơn" | "Văn phòng";
+/** «Văn phòng hoặc Kế toán»: lý do `booker_not_beneficiary` — Văn phòng sửa bên đặt, hoặc Kế toán ghi mức tay (ADR-0079 điều 1; đặc tả P1). */
+export type AiXuLy = "Kế toán" | "Hướng dẫn viên" | "Người lập đơn" | "Văn phòng" | "Văn phòng hoặc Kế toán";
 export type MaLyDo =
-  | "not_confirmed" | "cancelled" | "already_delivered" | "missing_date" | "before_departure" | "booker_partner" | "unknown_collector" | "reconciling" | "underpaid" | "overpaid";
+  | "not_confirmed" | "cancelled" | "already_delivered" | "missing_date" | "before_departure" | "terms_missing" | "booker_not_beneficiary" | "terms_exceed_price"
+  | "unknown_collector" | "reconciling" | "underpaid" | "overpaid";
 export interface LyDoGiu {
   ma: MaLyDo;
   cau: string;
@@ -491,8 +626,9 @@ export interface LyDoGiu {
 }
 
 /**
- * Vì sao đơn CHƯA bấm "Đã giao – đã thu đủ" được (ADR-0025 điều 3; M1 = A; NT-F6c) — lý do ĐẦU TIÊN theo thứ tự cố định, hoặc null khi đủ điều kiện.
- * Máy chủ vẫn kiểm lại TRONG lô (câu `orders` + trigger billing) — hàm này để trả câu dễ hiểu và để màn đơn hiện "đang giữ vì…" (NT-F11).
+ * Vì sao đơn CHƯA bấm "Đã giao – đã thu đủ" được (ADR-0025 điều 3; NT-F6c; ADR-0079 điều 1) — lý do ĐẦU TIÊN theo thứ tự cố định, hoặc null khi đủ điều kiện.
+ * Lý do phần thương mại (`terms_missing` / `booker_not_beneficiary` / `terms_exceed_price` — thay `booker_partner` của lượt 1) đứng sau "chưa tới ngày đi", trước
+ * "đang đối chiếu". Máy chủ vẫn kiểm lại TRONG lô (câu `orders` + trigger billing) — hàm này để trả câu dễ hiểu và để màn đơn hiện "đang giữ vì…" (NT-F11).
  */
 export function lyDoChuaGiaoDuoc(input: {
   status: "draft" | "confirmed" | "cancelled";
@@ -502,8 +638,8 @@ export function lyDoChuaGiaoDuoc(input: {
   ngayDi: readonly (string | null)[];
   /** Tên dịch vụ thiếu ngày đi (để câu báo). */
   dichVuThieuNgay: readonly string[];
-  /** Bên đặt mang vai nhóm bên ngoài đang mở (người hưởng — M1 = A: chờ lượt 2). */
-  coNguoiHuong: boolean;
+  /** Phần thương mại của đơn (`tinhTrangThuongMai`) — thiếu bản chụp / thiếu mức / vượt giá bán ⇒ giữ. */
+  thuongMai: TinhTrangThuongMai;
   /** Số khoản "Công ty thu" ĐANG ĐỐI CHIẾU của đơn (ADR-0120 Điều 1.2) — còn khoản thì chưa "Đã giao" được. */
   soKhoanDoiChieu: number;
   so: SoTienDon;
@@ -519,9 +655,8 @@ export function lyDoChuaGiaoDuoc(input: {
   if (input.homNay < muonNhat) {
     return { ma: "before_departure", cau: `Chưa tới ngày đi (${ngayVn(muonNhat)}) — bấm từ ngày đi trở đi.`, aiXuLy: "Hướng dẫn viên" };
   }
-  if (input.coNguoiHuong) {
-    return { ma: "booker_partner", cau: "Đơn của đối tác (có người hưởng hoa hồng) — chưa bấm Đã giao được cho tới bản cập nhật sổ đại lý.", aiXuLy: "Văn phòng" };
-  }
+  const thuongMai = lyDoGiuThuongMai(input.thuongMai);
+  if (thuongMai) return thuongMai;
   if (input.soKhoanDoiChieu > 0) {
     return { ma: "reconciling", cau: "Còn khoản chuyển khoản “Công ty thu” đang chờ Kế toán đối chiếu — Kế toán bấm “Công ty đã nhận” rồi mới bấm Đã giao được.", aiXuLy: "Kế toán" };
   }

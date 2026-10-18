@@ -298,7 +298,7 @@ function chayTrenMa(c: Ca): DapAn | string {
       const hoan = v.buoc_sau.loai === "hoan_roi_giao" ? v.buoc_sau.hoan : 0;
       const sau2: ReceiptRow[] = hoan > 0 ? [...receipts, { id: "h1", kind: "CUSTOMER_REFUND", amount: hoan, collectorRole: "COMPANY", collectorPartyId: "cong-ty", reversesId: null }] : receipts;
       const s = conLai(sau2, pt, "confirmed");
-      const ly = lyDoChuaGiaoDuoc({ status: "confirmed", deliveredAt: null, homNay: "2026-10-08", ngayDi: ["2026-10-08"], dichVuThieuNgay: [], coNguoiHuong: false, so: s });
+      const ly = lyDoChuaGiaoDuoc({ status: "confirmed", deliveredAt: null, homNay: "2026-10-08", ngayDi: ["2026-10-08"], dichVuThieuNgay: [], thuongMai: { trangThai: "KHONG_NGUOI_HUONG" }, soKhoanDoiChieu: 0, so: s });
       dap.buoc_sau = { da_thu: s.daThu, con_lai: s.conLai, du: s.du, giao_duoc: ly === null, due_snapshot: ly === null ? pt : null };
     }
   }
