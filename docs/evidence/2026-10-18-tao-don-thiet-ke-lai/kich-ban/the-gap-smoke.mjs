@@ -5,7 +5,9 @@
 //   3) thẻ có lỗi "Tối đa 50 khách." luôn mở kể cả khi mở thẻ khác, bấm đầu thẻ cũng không gập; hết lỗi thì gập được;
 //   4) bàn phím thật: Enter mở, Space gập; aria-expanded + aria-controls trỏ đúng thân thẻ;
 //   5) thùng rác: chỉ ở thẻ mở, aria-label "Xoá dịch vụ <tên>", ≥ 44px, không còn chữ "Xoá" ở đầu thẻ; bấm thì bỏ thẻ;
-//   6) chip cảnh báo trên dòng gập (ngày khởi hành đã qua); Lưu bị từ chối ở máy khách → thẻ gập có lỗi tự mở + tiêu điểm tới ô lỗi; máy chủ 400 nêu "Dịch vụ 2" → thẻ 2 mở;
+//   6) chip cảnh báo trên dòng gập (ngày khởi hành đã qua); Lưu bị từ chối ở máy khách → thẻ gập có lỗi tự mở + tiêu điểm tới ô lỗi; máy chủ 400 nêu "Dịch vụ 1" → thẻ 1 mở;
+//      bước 10b: lỗi ô trong "Thêm chi tiết" của chặng nằm trong thẻ GẬP → thẻ + khối chi tiết mở, tiêu điểm tới ô; 400 nêu "Dịch vụ 1" → mọi khối gập trong thẻ đó mở
+//      (thay phần kiemSauSach của docs/evidence/2026-10-14-tao-don-bon-buoc/kich-ban/chup-anh.mjs — sổ hàng rào, dòng "Nối dây khối gập");
 //   7) nạp lại nháp: nháp sạch → mọi thẻ gập; nháp có giá trị bị giấu (Thông tin chuyến, xe riêng) → các thẻ đó mở sẵn (nhiều thẻ cùng mở được), mở thẻ khác thì chúng gập; `?focus=` mở đúng thẻ.
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, danh mục giả (TD101, TTB03 Phao chuối, TTB06 Motor nước).
 // Chạy từ GỐC repo, sau `npm run build:web`:
@@ -243,6 +245,36 @@ try {
       await p.waitFor(`${THE}.length === 3`, "form ?focus= dựng xong", 15000);
       await sleep(600);
       assert.deepEqual(await p.ev(moRa), ["false", "true", "false"], "?focus= mở đúng thẻ, thẻ khác gập");
+    });
+
+    // Thay phần kiemSauSach (ca 3, 4) của kịch bản có ngày 2026-10-14 chup-anh.mjs, nay đỏ đúng thiết kế ở dòng 48 vì thẻ của nháp sạch GẬP:
+    // khối gập bên trong một thẻ đang gập (chặng gọn, "Thêm chi tiết") vẫn phải tự mở khi Lưu báo lỗi ở ô của nó hoặc máy chủ 400 nêu thẻ đó.
+    await buoc(`${kho}-10b`, "thẻ gập: lỗi ô trong 'Thêm chi tiết' của chặng → thẻ + khối chi tiết tự mở, tiêu điểm tới ô; 400 nêu 'Dịch vụ 1' → mọi khối gập trong thẻ 1 mở", async () => {
+      const napLai = async () => {
+        await p.send("Page.navigate", { url: `${env.base}/order-form?id=${idDon}` });
+        await p.waitFor(`location.pathname === '/order-form' && ${THE}.length === 3`, "form sửa dựng lại", 15000);
+        await sleep(600);
+      };
+      const gapTrong = (i) => `[...${the(i)}.querySelectorAll('.svc-than button[data-gap]')].map((b) => b.getAttribute('aria-expanded'))`;
+      await napLai();
+      assert.deepEqual(await p.ev(moRa), ["false", "false", "false"], "ĐẦU: mọi thẻ gập");
+      const dau = await p.ev(gapTrong(0));
+      assert.ok(dau.length >= 2 && dau.every((v) => v === "false"), `ĐẦU: chặng gọn + chi tiết của thẻ 1 đều gập: ${JSON.stringify(dau)}`);
+      await p.ev(setInput(`${the(0)}.querySelector('[data-o$=":cho"]')`, "0"));
+      await p.ev("document.getElementById('save').click(); true");
+      await p.waitFor("!document.getElementById('save-error').hidden", "banner lỗi số chỗ");
+      await sleep(300);
+      assert.equal(await p.ev(`${nut(0)}.getAttribute('aria-expanded')`), "true", "thẻ 1 tự mở");
+      assert.equal(await p.ev(hien(`${the(0)}.querySelector('[data-o$=":cho"]')`)), true, "ô số chỗ thấy được (khối chi tiết đã mở)");
+      assert.equal(await p.ev(`document.activeElement?.matches('[data-o$=":cho"]') && ${the(0)}.contains(document.activeElement)`), true, "tiêu điểm ở ô số chỗ");
+      await napLai();
+      await p.ev(`(() => { const f = window.fetch; window.fetch = (u, o) => (String(u).endsWith('/api/orders/${idDon}') && o?.method === 'PUT' ? Promise.resolve(new Response(JSON.stringify({ error: { code: 'invalid', message: 'Dịch vụ 1: số chỗ tối thiểu không hợp lệ.' } }), { status: 400, headers: { 'content-type': 'application/json' } })) : f(u, o)); return true; })()`);
+      await p.ev("document.getElementById('save').click(); true");
+      await p.waitFor("!document.getElementById('save-error').hidden && /số chỗ tối thiểu/.test(document.getElementById('save-error').textContent)", "banner lỗi máy chủ");
+      await sleep(300);
+      assert.deepEqual(await p.ev(moRa), ["true", "false", "false"], "thẻ được nêu tên mở; thẻ khác giữ nguyên");
+      const sau = await p.ev(gapTrong(0));
+      assert.ok(sau.length >= 2 && sau.every((v) => v === "true"), `chặng + chi tiết của thẻ 1 tự mở: ${JSON.stringify(sau)}`);
     });
 
     await buoc(`${kho}-11`, "nạp lại nháp có giá trị bị giấu: các thẻ đó mở sẵn (nhiều thẻ cùng mở), mở thẻ khác thì chúng gập", async () => {
