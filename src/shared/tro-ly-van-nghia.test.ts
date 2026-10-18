@@ -175,6 +175,8 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
   // ⇒ đo lại bằng chính bài này: 18 / 10 / 46 — MỘT đoạn nữa sát ngưỡng ở câu than phiền; luật không đổi, trần 12 vẫn cắt; các tên đoạn khoá dưới đây giữ nguyên.
   // 2026-10-18 (ADR-0131, Task 4): câu về lịch sử đơn trong hướng dẫn Kế toán và trợ lý nay nói «đổi gì, lúc nào; tên người sửa chỉ … xem được» (bỏ «ai sửa») ⇒ MỘT đoạn
   // chứa «lập đơn» rơi khỏi ngưỡng của câu lập đơn; đo lại bằng chính bài này: 18 / 10 / 45. Luật không đổi, trần 12 vẫn cắt; các tên đoạn khoá dưới đây giữ nguyên.
+  // 2026-10-18 (ADR-0131, sửa sau kiểm cuối): mô tả ô `order.history.view` và phân hệ Nhật ký trong kho cấu trúc nói «tên người làm chỉ Toàn quyền xem được» ⇒ đo lại bằng chính bài này: 18 / 10 / 45 (không đổi).
+  // Luật không đổi, trần 12 vẫn cắt; các tên đoạn khoá dưới đây giữ nguyên.
   assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [18, 10, 45]);
   // 2026-10-05 (1.81, Đợt 7): Trợ giúp thêm câu về hai ô "Xe riêng" / "Xe tối thiểu" (Bán hàng, Quản trị) và bỏ vài dòng trùng ý ⇒ hai đoạn nữa vượt ngưỡng tương đối của câu than phiền (15 → 17); luật không đổi, trần 12 vẫn cắt.
   const thanPhien = chonDoanTron("sao app khó dùng thế", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);

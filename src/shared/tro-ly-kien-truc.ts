@@ -42,7 +42,7 @@ Tiền của đơn (thành tiền, tổng, còn lại) do máy chủ tự tính 
   },
   {
     tieuDe: "Dữ liệu không bị xoá, chỉ ngưng hoặc đóng",
-    noiDung: `App không xoá hẳn dữ liệu nghiệp vụ: xe ngừng dùng, tài khoản bị ngưng, loại giấy tờ bị ngưng, chuyến bị huỷ… đều còn trong hệ thống để tra lại. Vì vậy khi thấy một mục "đã ngưng" thì đó là cách app giữ lịch sử, không phải lỗi. Mọi thay đổi quan trọng đều có dấu vết ai làm, lúc nào.`,
+    noiDung: `App không xoá hẳn dữ liệu nghiệp vụ: xe ngừng dùng, tài khoản bị ngưng, loại giấy tờ bị ngưng, chuyến bị huỷ… đều còn trong hệ thống để tra lại. Vì vậy khi thấy một mục "đã ngưng" thì đó là cách app giữ lịch sử, không phải lỗi. Mọi thay đổi quan trọng đều có dấu vết ai làm, lúc nào; tên người làm chỉ Toàn quyền xem được.`,
   },
   {
     tieuDe: "Trợ lý Hỗ trợ trả lời được gì",

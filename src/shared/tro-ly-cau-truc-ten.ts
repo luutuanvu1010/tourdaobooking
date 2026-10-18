@@ -19,7 +19,7 @@ export interface TenLoiThuong {
 /** Mỗi module của `src/modules/*` và mỗi nút của `ALLOWED_EDGES` (kể cả phân hệ đã khai ranh giới mà chưa có thư mục). */
 export const TEN_PHAN_HE: Readonly<Record<string, TenLoiThuong>> = {
   accounts: { ten: "Quản lý tài khoản", moTa: "Tạo tài khoản đăng nhập cho nhân viên, đối tác, tài xế (Hành chính nhân sự hoặc người phụ trách hệ thống); gán vai; ngưng tài khoản khi nghỉ việc; đặt lại PIN, gỡ Face ID, mở khoá (Quản trị). Làm ở trang Quản lý tài khoản." },
-  audit: { ten: "Nhật ký", moTa: "Ghi dấu vết ai làm gì, lúc nào, cho mọi thay đổi quan trọng của mọi phân hệ. Lịch sử của một đơn lấy từ đây; trang Nhật ký toàn hệ thống chỉ Toàn quyền xem." },
+  audit: { ten: "Nhật ký", moTa: "Ghi dấu vết ai làm gì, lúc nào, cho mọi thay đổi quan trọng của mọi phân hệ. Lịch sử của một đơn lấy từ đây nhưng chỉ Toàn quyền thấy tên người làm; trang Nhật ký toàn hệ thống cũng chỉ Toàn quyền xem." },
   auth: { ten: "Đăng nhập", moTa: "Đăng nhập bằng số điện thoại và mã PIN hoặc Face ID, giữ phiên đăng nhập, tạm khoá khi nhập sai nhiều lần." },
   bangtin: { ten: "Bảng tin", moTa: "Báo tức thì cho mọi màn hình đang mở khi một đơn vừa đổi, nên danh sách đơn tự cập nhật mà không cần tải lại trang." },
   billing: { ten: "Sổ tiền", moTa: "Ghi các lần thu tiền của đơn, bấm Đã giao và Hoàn thành, sổ công nợ của từng người và công ty, ghi hoàn tiền cho khách." },
@@ -68,7 +68,7 @@ export const LY_DO_PHU_THUOC: Readonly<Record<string, string>> = {
 export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "order.view": { ten: "xem đơn", moTa: "Mở danh sách đơn và trang chi tiết đơn." },
   "money.view": { ten: "xem tiền của đơn", moTa: "Thấy thành tiền, tổng, đã trả, còn lại của đơn và giá trong danh mục." },
-  "order.history.view": { ten: "xem lịch sử sửa đơn", moTa: "Xem ai đã sửa đơn, lúc nào." },
+  "order.history.view": { ten: "xem lịch sử sửa đơn", moTa: "Xem đơn đã đổi gì, lúc nào. Tên người làm chỉ Toàn quyền xem được." },
   "contact.view": { ten: "xem liên hệ khách", moTa: "Thấy tên, số điện thoại khách, nơi đón, giờ đón và danh sách hành khách của đơn." },
   "order.create": { ten: "lập đơn mới", moTa: "Dùng trang Tạo đơn; đơn mới là của người lập." },
   "order.modify": { ten: "sửa, xác nhận, huỷ đơn", moTa: "Sửa đơn đang chờ xác nhận, bấm Xác nhận đơn, huỷ đơn." },
