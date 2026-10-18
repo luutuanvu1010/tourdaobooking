@@ -83,6 +83,8 @@ export function taoONoiGoiY(op: ONoiGoiYOptions): ONoiGoiY {
   ds.addEventListener("pointerdown", (e) => e.preventDefault());
   ds.addEventListener("mousedown", (e) => e.preventDefault());
 
+  // Chạm / bấm RA NGOÀI ô và danh sách thì đóng (trả giá trị đã chọn). Nghe `click` chứ không `pointerdown`: vuốt cuộn trang không phải là chạm ra ngoài (không có click), và
+  // Safari iPhone không bỏ focus ô gõ khi chạm vùng không nhận focus (không có blur) — nên cần lớp này bên cạnh `blur`.
   const ngoai = (e: Event) => {
     if (e.target instanceof Node && (e.target === o || ds.contains(e.target))) return;
     dong_();
@@ -99,7 +101,7 @@ export function taoONoiGoiY(op: ONoiGoiYOptions): ONoiGoiY {
     ve();
     ds.hidden = false;
     o.setAttribute("aria-expanded", "true");
-    document.addEventListener("pointerdown", ngoai, true);
+    document.addEventListener("click", ngoai, true);
     ds.scrollIntoView({ block: "nearest" });
   }
   /** Đóng danh sách và trả ô về giá trị đang chọn (chữ gõ dở không được lưu). */
@@ -114,7 +116,7 @@ export function taoONoiGoiY(op: ONoiGoiYOptions): ONoiGoiY {
     o.placeholder = CHU_MO;
     bao.textContent = "";
     chiSo = -1;
-    document.removeEventListener("pointerdown", ngoai, true);
+    document.removeEventListener("click", ngoai, true);
   }
   function chonDong(k: number, e: Event): void {
     const d = dong[k];
