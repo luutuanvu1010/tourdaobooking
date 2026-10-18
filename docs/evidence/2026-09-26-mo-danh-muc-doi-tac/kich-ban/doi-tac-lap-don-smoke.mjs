@@ -125,7 +125,9 @@ try {
     await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
     await p.waitFor(`!!(${CARD})`, "thẻ Tour 4 đảo Nha Trang");
     await p.ev(setInput(ADULT, String(PAX)));
-    await p.waitFor(`!(${ADULT_PRICE}).closest('.line').hidden && /2 ×/.test((${ADULT_PRICE}).closest('.line').querySelector('.line-qty').textContent)`, "dòng tiền người lớn 2 × hiện");
+    // Thiết kế lại 18/10/2026 (Task 6): nhãn số lượng của dòng tiền nay nêu loại khách ("2 người lớn ×", trước: "2 ×"); ô đơn giá nằm trong khối gập "Sửa giá"
+    // (Đối tác / Thực tập không có liên kết này — kiểm ở docs/evidence/2026-10-18-tao-don-thiet-ke-lai/kich-ban/luoi-khach-tien-smoke.mjs bước 7).
+    await p.waitFor(`!(${ADULT_PRICE}).closest('.line').hidden && /^2 người lớn ×$/.test((${ADULT_PRICE}).closest('.line').querySelector('.line-qty').textContent)`, "dòng tiền người lớn 2 × hiện");
     await sleep(150);
     return listed;
   };

@@ -5,9 +5,13 @@
 // gập → một khối "tên · số khách · giờ và nơi đón · thành tiền" kèm chip nền cát; mở → tên, mã, và nút thùng rác "Xoá dịch vụ <tên>" bên phải. Thân thẻ đăng ký làm khối gập
 // (`taoKhoiGap`) nên chỉ bị ẨN bằng `hidden` — mọi ô vẫn trong cây DOM, thân gửi lên không đổi — và `moKhoiChua` / `moMoiKhoiGap` (Lưu bị từ chối, máy chủ 400) mở được nó.
 // Thẻ có lỗi chặn Lưu đang hiện thì luôn mở (`mustStayOpen`); "chỉ một thẻ mở" do trang quyết (web/order-form.ts). Luật chữ dòng gập: src/shared/dong-gap-the.ts.
+// Số khách + tiền (Task 6, cùng đặc tả): loại khách có giá xếp LƯỚI hai cột (mỗi ô: tên, "giá · điều kiện", bộ đếm); dịch vụ theo nhóm một ô "Số khách" kèm "7 khách = 2 lượt".
+// Dòng tiền là CHỮ "2 người lớn × 1.350.000 = 2.700.000" ghép từ previewLines (một công thức — không tính lại ở đây); "Thành tiền dịch vụ" chỉ khi từ hai dòng. Ô đơn giá nằm
+// trong khối gập "Sửa giá" (`taoKhoiGap` — chỉ ẩn bằng `hidden`; Lưu bị từ chối / 400 mở được như mọi khối gập); `retailOnly` không có "Sửa giá", dòng lệch giá cũ thì khối tự mở.
 import { PAX_LABEL, thanhTienDong, type PaxCode } from "../src/shared/order-lines";
 import {
-  addManualLine, cardCodes, draftIssues, soKhachNhap, draftSubtotal, groupInfo, guestDetail, isFrozenManual, isLocked, previewLines, removeManualLine, setGuests, setManualLine, setPax, setUnitPrice, unitLabel,
+  addManualLine, cardCodes, chuDongTien, chuLuot, coDongThanhTien, draftIssues, soKhachNhap, draftSubtotal, groupInfo, guestDetail, isFrozenManual, isLocked, nhanSoLuongDong, previewLines,
+  removeManualLine, setGuests, setManualLine, setPax, setUnitPrice, unitLabel,
   type CatalogDraft, type ManualDraft, type ServiceDraft,
 } from "../src/shared/service-form";
 import { canhBaoChuyenThe, coLoiChanLuuDangHien, dongGapThe } from "../src/shared/dong-gap-the";
@@ -15,9 +19,9 @@ import { tripSummaryLine } from "../src/shared/trip-form";
 import { MAX_LINES_PER_ORDER } from "../src/shared/trip-rules";
 import { counter, type Counter } from "./counter";
 import { h, replaceChildren } from "./dom";
-import { parseMoney, vnd } from "./format";
+import { grouped, parseMoney, vnd } from "./format";
 import { icon } from "./icons";
-import { taoKhoiGap } from "./khoi-gap";
+import { taoKhoiGap, type KhoiGap } from "./khoi-gap";
 import { moneyInput, setMoneyValue } from "./money-input";
 import { tripFields } from "./trip-fields";
 import { taoKhoiDuaDon, type DiemChon } from "./khoi-dua-don";
@@ -73,6 +77,7 @@ export interface ServiceCard {
   datChipNgoai(chips: readonly string[]): void;
 }
 
+/** Một loại khách có dòng tiền: dòng CHỮ (`xem`, đang xem) và dòng SỬA (`row` = `.line` có ô đơn giá, trong khối gập "Sửa giá"); cả hai ẩn khi loại đó không có khách. */
 interface LineRefs {
   row: HTMLElement;
   qty: HTMLElement;
@@ -80,6 +85,12 @@ interface LineRefs {
   total: HTMLElement;
   tag: HTMLElement;
   old: HTMLElement;
+  lech: HTMLElement;
+  xem: HTMLElement;
+  chu: HTMLElement;
+  xemTag: HTMLElement;
+  xemOld: HTMLElement;
+  xemLech: HTMLElement;
 }
 interface ManualRefs {
   desc: HTMLInputElement;
@@ -118,6 +129,8 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   );
   const body = h("div", null);
   const totalEl = h("output", { class: "svc-total-amount" });
+  // "Thành tiền dịch vụ": dựng MỘT lần; mỗi lần dựng lại thân thì gắn vào cuối khối tiền (danh mục) / cuối thân (nhập tay). Chỉ HIỆN khi từ hai dòng tiền — số vẫn luôn cập nhật.
+  const sumRow = h("div", { class: "svc-sum" }, h("span", null, "Thành tiền dịch vụ"), totalEl);
   const issuesEl = h("div", { class: "field-errors", role: "alert" });
   const warningsEl = h("div", { class: "svc-warnings" });
   // Thùng rác thay chữ "Xoá" (bản vẽ khung 4): màu nguy hiểm, vùng chạm 44px; tên cho trình đọc màn hình nêu tên dịch vụ (cập nhật khi tên đổi — `veDongGap`). Hành vi xoá giữ nguyên.
@@ -147,7 +160,6 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     "div",
     { class: "svc-than" },
     body,
-    h("div", { class: "svc-sum" }, h("span", null, "Tổng dịch vụ"), totalEl),
     issuesEl,
     duaDon.root,
     tripDetails,
@@ -182,6 +194,10 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   let nameInput: HTMLInputElement | null = null;
   let manualRefs: ManualRefs[] = [];
   let addLineBtn: HTMLButtonElement | null = null;
+  /** Khối gập "Sửa giá" (ô đơn giá từng dòng) và nút của nó; trạng thái mở giữ qua các lần dựng lại thân (`suaGiaMo`). */
+  let gapGia: KhoiGap | null = null;
+  let nutSuaGia: HTMLButtonElement | null = null;
+  let suaGiaMo = false;
 
   function buildCatalogBody(d: CatalogDraft): HTMLElement {
     const group = groupInfo(d);
@@ -194,16 +210,24 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     nameInput = null;
     manualRefs = [];
     addLineBtn = null;
-    const guestRows = codes.map((code) => {
+    groupHint = null;
+    // Lưới số khách: mỗi loại có giá một ô — tên, dòng phụ "giá · điều kiện" (ô số trỏ tới nó bằng aria-describedby), bộ đếm; theo nhóm: một ô "Số khách" + "7 khách = 2 lượt".
+    const cells = codes.map((code) => {
       const label = group ? "Số khách" : PAX_LABEL[code];
-      const detail = h("div", { class: "muted" }, guestDetail(d, code, vnd));
+      const phuId = `${d.key}-phu-${code}`;
+      const detail = h("span", { class: "o-khach-phu", id: phuId }, guestDetail(d, code, grouped));
       guestDetails.set(code, detail);
       const c = counter({ label, value: d.pax[code], onChange: (n) => commit(setPax(cat(), code, n)) });
+      c.input.setAttribute("aria-describedby", phuId);
       c.setDisabled(locked);
       counters.set(code, c);
-      return h("div", { class: "guest-row" }, h("div", { class: "guest-info" }, h("div", { class: "guest-label" }, label), detail), c.root);
+      const cell = h("div", { class: "o-khach" }, h("span", { class: "guest-label" }, label), detail, c.root);
+      if (group && !groupHint) {
+        groupHint = h("p", { class: "svc-group" });
+        cell.append(groupHint);
+      }
+      return cell;
     });
-    groupHint = group ? h("p", { class: "muted svc-group" }) : null;
     let lockedNote: HTMLElement | null = null;
     if (locked) {
       const repick = h("button", { type: "button", class: "btn" }, "Chọn lại từ danh mục");
@@ -211,19 +235,46 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       lockedNote = h("div", { class: "svc-locked" }, h("p", { class: "muted" }, d.repick ? "Dịch vụ này không còn trong danh mục và dòng đã lưu thiếu giá danh mục nên chưa lưu được. Chọn lại từ danh mục, hoặc xoá thẻ này." : "Dịch vụ này không còn trong danh mục nên không đổi được số khách. Vẫn sửa được đơn giá và thông tin chuyến."), repick);
     }
     emptyHint = h("p", { class: "svc-empty" }, "Nhập số khách để xem dòng tiền.");
-    const rows = codes.map((code) => {
-      const name = group ? "Giá mỗi lượt" : PAX_LABEL[code];
+    // Dòng tiền: dòng CHỮ (canh phải) trong `xem`; dòng SỬA `.line` (ô đơn giá — aria-label như cũ, kịch bản và bài kiểm dùng) trong `sua` = khối gập "Sửa giá".
+    const xem = h("div", { class: "svc-tien-xem" });
+    const sua = h("div", { class: "svc-tien-sua" });
+    for (const code of codes) {
+      const chu = h("span", { class: "dong-tien-chu" });
+      const xemTag = h("span", { class: "tag-price" }, "Khác giá danh mục");
+      const xemOld = h("s", { class: "price-old" });
+      const xemLech = h("span", { class: "dong-tien-lech" }, xemOld, xemTag);
+      const xemRow = h("div", { class: "dong-tien" }, chu, xemLech);
       const qty = h("span", { class: "line-qty" });
-      const price = moneyInput({ value: d.unitPrices[code] ?? 0, label: group ? "Đơn giá mỗi lượt" : `Đơn giá ${name.toLowerCase()}`, onChange: (n) => commit(setUnitPrice(cat(), code, n)) });
+      const price = moneyInput({ value: d.unitPrices[code] ?? 0, label: group ? "Đơn giá mỗi lượt" : `Đơn giá ${PAX_LABEL[code].toLowerCase()}`, onChange: (n) => commit(setUnitPrice(cat(), code, n)) });
       price.classList.add("price-field");
       const total = h("output", { class: "line-total" });
       const tag = h("span", { class: "tag-price" }, "Khác giá danh mục");
       const old = h("s", { class: "price-old" });
-      const row = h("div", { class: "line" }, h("div", { class: "line-name" }, name), total, h("div", { class: "line-edit" }, qty, price, h("span", { class: "line-unit" }, "₫"), tag, old));
-      lineRefs.set(code, { row, qty, price, total, tag, old });
-      return row;
+      const lech = h("span", { class: "line-lech" }, old, tag);
+      // "= thành tiền" là một khối không ngắt (điện thoại hẹp: xuống dòng cả khối, không để dấu "=" lơ lửng cuối dòng trên)
+      const row = h("div", { class: "line" }, h("div", { class: "line-edit" }, qty, price, h("span", { class: "line-bang" }, h("span", { class: "line-unit" }, "="), total)), lech);
+      lineRefs.set(code, { row, qty, price, total, tag, old, lech, xem: xemRow, chu, xemTag, xemOld, xemLech });
+      xem.append(xemRow);
+      sua.append(row);
+    }
+    const nut = h("button", { type: "button", class: "btn btn-link svc-sua-gia", "data-action": "sua-gia" }, "Sửa giá");
+    nutSuaGia = nut;
+    gapGia = taoKhoiGap({
+      ma: `gia-${d.key}`, nhan: "Sửa giá", than: sua, nut, mo: suaGiaMo,
+      khiDoi: (mo) => {
+        suaGiaMo = mo;
+        xem.hidden = mo; // đang sửa: dòng chữ nhường chỗ cho dòng có ô đơn giá
+        nut.textContent = mo ? "Xong sửa giá" : "Sửa giá";
+      },
     });
-    return h("div", null, group ? null : h("div", { class: "svc-sub" }, "Số khách"), ...guestRows, groupHint, lockedNote, h("div", { class: "svc-lines" }, emptyHint, ...rows));
+    return h(
+      "div",
+      null,
+      group ? null : h("div", { class: "svc-sub" }, "Số khách"),
+      h("div", { class: cells.length > 1 ? "svc-luoi-khach" : "svc-luoi-khach mot-o" }, ...cells),
+      lockedNote,
+      h("div", { class: "svc-tien" }, emptyHint, xem, sua, sumRow, h("div", { class: "svc-sua-gia-hang" }, nut)),
+    );
   }
 
   /**
@@ -234,6 +285,8 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     nameInput = null;
     manualRefs = [];
     addLineBtn = null;
+    gapGia = null;
+    nutSuaGia = null;
     const guests = counter({ label: "Số khách (chỉ để vận hành)", value: d.guests, onChange: (n) => commit(setGuests(man(), n)) });
     guestCounter = guests;
     const lines = d.lines.map((l) =>
@@ -252,6 +305,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       h("div", { class: "guest-row" }, h("div", { class: "guest-info" }, h("div", { class: "guest-label" }, "Số khách"), h("div", { class: "muted" }, "Chỉ để vận hành, không nhân với tiền")), guests.root),
       h("div", { class: "svc-sub" }, "Dòng tiền"),
       ...lines,
+      sumRow,
     );
   }
 
@@ -261,6 +315,8 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     lineRefs = new Map();
     groupHint = null;
     emptyHint = null;
+    gapGia = null;
+    nutSuaGia = null;
     if (isFrozenManual(d, o.duocNhapTay)) return buildFrozenManualBody(d);
     const name = h("input", { type: "text", maxLength: 300, autocomplete: "off", value: d.name, placeholder: "Vd: Xe đưa đón riêng" });
     name.addEventListener("input", () => commit({ ...man(), name: name.value }));
@@ -299,6 +355,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       h("div", { class: "svc-sub" }, "Dòng tiền"),
       ...lines,
       add,
+      sumRow,
     );
   }
 
@@ -342,28 +399,32 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     if (d.kind === "catalog") {
       const g = groupInfo(d);
       let visible = 0;
+      let coLech = false;
       for (const [code, r] of lineRefs) {
         const line = p.ok ? p.lines.find((l) => l.pax === code) : undefined;
         r.row.hidden = !line;
-        if (!line) {
-          r.tag.hidden = true; // hàng ẩn thì nhãn/giá gạch ngang cũng ẩn (bộ chọn `.tag-price:not([hidden])` không khớp nhầm hàng không có khách)
-          r.old.hidden = true;
-          continue;
-        }
+        r.xem.hidden = !line;
+        const deviated = line !== undefined && line.deviation !== null; // nhãn chỉ có ở dịch vụ danh mục (catalogPrice !== null)
+        // hàng ẩn thì nhãn / giá gạch ngang cũng ẩn (bộ chọn `.tag-price:not([hidden])` không khớp nhầm hàng không có khách)
+        for (const e of [r.tag, r.old, r.lech, r.xemTag, r.xemOld, r.xemLech]) e.hidden = !deviated;
+        if (!line) continue;
         visible++;
-        r.qty.textContent = g ? `${line.quantity} lượt ×` : `${line.quantity} ×`;
+        coLech ||= deviated;
+        r.chu.textContent = chuDongTien(line, g !== null, grouped);
+        r.qty.textContent = `${nhanSoLuongDong(line, g !== null)} ×`;
         if (document.activeElement !== r.price && parseMoney(r.price.value) !== line.unitPrice) setMoneyValue(r.price, line.unitPrice);
-        r.total.textContent = vnd(line.lineTotal);
-        const deviated = line.deviation !== null; // nhãn chỉ có ở dịch vụ danh mục (catalogPrice !== null)
+        r.total.textContent = grouped(line.lineTotal);
         r.price.readOnly = Boolean(o.retailOnly) && !deviated;
-        r.tag.hidden = !deviated;
-        r.old.hidden = !deviated;
-        if (deviated && line.catalogPrice !== null) r.old.textContent = vnd(line.catalogPrice);
+        if (deviated && line.catalogPrice !== null) r.old.textContent = r.xemOld.textContent = grouped(line.catalogPrice);
       }
       if (emptyHint) emptyHint.hidden = visible > 0;
-      if (groupHint) groupHint.textContent = g && g.guests > 0 ? `${g.guests} khách ÷ ${g.size} = ${g.trips} lượt (làm tròn lên)` : "";
+      if (groupHint) groupHint.textContent = chuLuot(g);
+      // "Sửa giá": không có cho Đối tác / Thực tập (giá luôn là giá danh mục) và khi chưa có dòng tiền. Dòng lệch giá CŨ của họ (đơn lập trước đây) thì khối tự mở:
+      // ô đơn giá sửa được để đưa về đúng giá — như trước khi ô nằm sau "Sửa giá" (máy chủ từ chối mọi giá khác).
+      if (nutSuaGia) nutSuaGia.hidden = Boolean(o.retailOnly) || visible === 0;
+      if (o.retailOnly && coLech && gapGia && !gapGia.laMo()) gapGia.mo();
       for (const [code, c] of counters) if (document.activeElement !== c.input) c.set(d.pax[code]);
-      for (const [code, el] of guestDetails) el.textContent = guestDetail(d, code, vnd);
+      for (const [code, el] of guestDetails) el.textContent = guestDetail(d, code, grouped);
     } else {
       if (p.ok) {
         p.lines.forEach((line, i) => {
@@ -383,6 +444,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       });
     }
     totalEl.textContent = vnd(draftSubtotal(d));
+    sumRow.hidden = !coDongThanhTien(p.ok ? p.lines.length : 0);
 
     const issues = draftIssues(d);
     const tooMany = issues.some((i) => i.code === "too_many_guests");
@@ -431,7 +493,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     else if ((loi.code === "line_description" || loi.code === "line_quantity") && draft.kind === "manual") {
       const i = draft.lines.findIndex((l) => (loi.code === "line_description" ? l.description.trim() === "" : l.quantity < 1));
       o = loi.code === "line_description" ? manualRefs[i]?.desc : manualRefs[i]?.qty.input;
-    } else if (loi.code === "preview" || loi.code === "amount") o = body.querySelector<HTMLElement>(".price-field");
+    } else if (loi.code === "preview" || loi.code === "amount") o = body.querySelector<HTMLElement>(".line:not([hidden]) .price-field") ?? body.querySelector<HTMLElement>(".price-field"); // trong khối gập "Sửa giá": trang mở khối (`moKhoiChua`) trước khi đặt tiêu điểm
     const dungDuoc = (e: HTMLElement | null | undefined): e is HTMLElement => !!e && !(e as HTMLInputElement).disabled;
     return dungDuoc(o) ? o : body.querySelector<HTMLElement>("input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])");
   }

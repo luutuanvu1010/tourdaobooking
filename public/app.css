@@ -1221,6 +1221,25 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .mline { display: grid; gap: var(--s2); padding: var(--s3) 0; border-bottom: 1px solid var(--c-border); }
 .mline-nums { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
 .mline .btn-link { min-height: var(--tap-min); } /* `.btn:not(.btn-link)` ở điện thoại bỏ qua nút dạng liên kết → "Xoá dòng" phải tự đủ 44px */
+/* Lưới số khách + dòng tiền của thẻ trong FORM (Task 6, thiết kế lại 18/10/2026; bản vẽ khung 4–6). Chỉ trong `.svc-the` — thẻ ở trang đơn (`.svc-view`, web/order-services.ts) dùng chung
+   `.svc-lines` / `.svc-sum` / `.line-*` nhưng không đổi. Lưới hai cột (một loại có giá → một cột); ô: tên, dòng phụ "giá · điều kiện", bộ đếm dồn đáy để hai ô cùng hàng thẳng nhau dù dòng
+   phụ xuống hai dòng. Dòng tiền là chữ canh phải; ô đơn giá trong khối gập "Sửa giá" (dòng `.line` canh phải như dòng chữ); dòng "Thành tiền dịch vụ" chỉ khi từ hai dòng (thuộc tính hidden). */
+.svc-the .svc-luoi-khach { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3); margin-top: var(--s2); }
+.svc-the .svc-luoi-khach.mot-o { grid-template-columns: minmax(0, 1fr); }
+.svc-the .o-khach { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s1); min-width: 0; }
+.svc-the .o-khach .guest-label { font-weight: var(--fw-bold); line-height: 1.3; }
+.svc-the .o-khach-phu { font-size: var(--fs-badge); line-height: 1.5; color: var(--c-text-muted); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.svc-the .o-khach .counter { margin-top: auto; }
+.svc-the .o-khach .svc-group { margin: 0; font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
+.svc-the .svc-tien { display: flex; flex-direction: column; gap: var(--s1); margin-top: var(--s3); padding-top: var(--s3); border-top: 1px solid var(--c-border); font-variant-numeric: tabular-nums; }
+.svc-the .svc-tien-xem, .svc-the .svc-tien-sua { display: flex; flex-direction: column; gap: var(--s2); }
+.svc-the .dong-tien, .svc-the .svc-tien .line { display: flex; flex-direction: column; align-items: flex-end; gap: var(--s1); padding: 0; text-align: right; border: 0; }
+.svc-the .dong-tien-lech, .svc-the .line-lech { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--s2); }
+.svc-the .svc-tien .line-edit { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--s2); }
+.svc-the .line-bang { display: inline-flex; align-items: center; gap: var(--s2); white-space: nowrap; }
+.svc-the .svc-tien .svc-sum { margin-top: 0; }
+.svc-the .svc-sua-gia-hang { display: flex; justify-content: flex-end; }
+.svc-the .svc-sua-gia { margin-right: calc(-1 * var(--s2)); }
 .field-errors:empty, .svc-warnings:empty { display: none; }
 .field-error { display: flex; align-items: center; gap: var(--s1); margin: var(--s2) 0 0; font-size: var(--fs-label); font-weight: var(--fw-semibold); color: var(--c-danger-text); }
 .field-error svg { flex: none; } /* biểu tượng không bị flex ép nhỏ hơn 16px khi dòng lỗi dài */

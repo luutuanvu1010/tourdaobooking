@@ -6,6 +6,7 @@ import { CAU_THIEU_NGUOI_LON } from "./nguoi-di-kem.ts";
 import {
   addManualLine, canAddService, draftFromDto, draftIssues, draftSubtotal, emptyLine, groupInfo, isFrozenManual, isLocked, newCatalogDraft, newManualDraft, orderIssues, orderSummary,
   cardCodes, guestDetail, paxSummary, previewLines, refreshFromCatalog, removeManualLine, setGuests, setManualLine, setPax, setUnitPrice, snapshotItem, toServiceInput, totalLines, unitLabel,
+  chuDongTien, chuLuot, coDongThanhTien, nhanSoLuongDong,
   type CatalogDraft, type ManualDraft,
 } from "./service-form.ts";
 
@@ -451,13 +452,13 @@ test("cardCodes: bản chụp chỉ nhớ loại đã có dòng tiền nhưng th
   assert.deepEqual(cardCodes({ ...snap, live: null, pax: { ...snap.pax, senior: 2 } }), ["adult", "child", "senior"]); // đang có khách thì luôn hiện để giảm được
 });
 
-test("guestDetail: giá + ghi chú loại khách; theo nhóm 'mỗi lượt'; loại chưa có ở bản chụp lấy giá/ghi chú của danh mục hiện tại; giá 0 vẫn hiện", () => {
+test("guestDetail: giá + ghi chú loại khách; theo nhóm 'giá / nhóm N khách'; loại chưa có ở bản chụp lấy giá/ghi chú của danh mục hiện tại; giá 0 vẫn hiện", () => {
   const f = (n: number) => `${n}đ`;
   const d = newCatalogDraft(tour, "k");
   assert.equal(guestDetail(d, "adult", f), "1350000đ");
   assert.equal(guestDetail(d, "child", f), "950000đ · Trẻ 5–10 tuổi");
   assert.equal(guestDetail(d, "infant", f), "0đ · Dưới 5 tuổi, miễn phí");
-  assert.equal(guestDetail(newCatalogDraft(banana, "g"), "adult", f), "1500000đ mỗi lượt, tối đa 5 khách");
+  assert.equal(guestDetail(newCatalogDraft(banana, "g"), "adult", f), "1500000đ / nhóm 5 khách"); // ô "Số khách" của lưới (thiết kế lại 18/10): giá / cỡ nhóm
   const snap = draftFromDto(savedTour, live, "k") as CatalogDraft;
   assert.equal(guestDetail(snap, "adult", f), "1350000đ"); // giá của BẢN CHỤP
   assert.equal(guestDetail(snap, "senior", f), "1200000đ · Từ 60 tuổi"); // loại mới: giá và ghi chú của danh mục hiện tại
@@ -499,4 +500,46 @@ test("làm tròn và kẹp: setPax cắt phần lẻ; đơn giá kẹp ở trầ
   assert.equal(setPax(tourDraft(1), "adult", 2.9).pax.adult, 2);
   assert.equal(setUnitPrice(tourDraft(1), "adult", 1e15).unitPrices.adult, 100_000_000_000);
   assert.equal(setManualLine(newManualDraft("m"), 0, { unitPrice: 1e15 }).lines[0]!.unitPrice, 100_000_000_000);
+});
+
+// ---- Thẻ dịch vụ thiết kế lại 18/10/2026 (Task 6): lưới số khách + dòng tiền. Các hàm dưới CHỈ trình bày số đã có (previewLines — buildLines + thanhTienDong), không tính tiền. ----
+const nhomNghin = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
+
+test("chuLuot: dịch vụ theo nhóm '7 khách = 2 lượt'; chưa có khách hoặc không phải dịch vụ nhóm → chuỗi rỗng", () => {
+  const d = setPax(newCatalogDraft(banana, "g"), "adult", 7);
+  assert.equal(chuLuot(groupInfo(d)), "7 khách = 2 lượt");
+  assert.equal(chuLuot(groupInfo(setPax(d, "adult", 5))), "5 khách = 1 lượt");
+  assert.equal(chuLuot(groupInfo(setPax(d, "adult", 0))), "");
+  assert.equal(chuLuot(groupInfo(tourDraft(2))), "");
+});
+
+test("nhanSoLuongDong: 'n <loại khách viết thường>' theo người, 'n lượt' theo nhóm, chỉ số với dòng nhập tay", () => {
+  const p = previewLines(setPax(tourDraft(2, 1), "infant", 1));
+  assert.ok(p.ok);
+  assert.deepEqual(p.lines.map((l) => nhanSoLuongDong(l, false)), ["2 người lớn", "1 trẻ em", "1 em bé"]);
+  assert.equal(nhanSoLuongDong({ pax: "senior", quantity: 3 }, false), "3 người cao tuổi");
+  const g = previewLines(setPax(newCatalogDraft(banana, "g"), "adult", 7));
+  assert.ok(g.ok);
+  assert.equal(nhanSoLuongDong(g.lines[0]!, true), "2 lượt");
+  assert.equal(nhanSoLuongDong({ pax: null, quantity: 4 }, false), "4");
+});
+
+test("chuDongTien: '2 người lớn × 1.350.000 = 2.700.000' từ dòng xem trước; em bé 0 có dòng riêng; theo nhóm tính theo lượt; đơn giá đã sửa", () => {
+  const p = previewLines(setPax(tourDraft(2, 1), "infant", 1));
+  assert.ok(p.ok);
+  assert.deepEqual(p.lines.map((l) => chuDongTien(l, false, nhomNghin)), ["2 người lớn × 1.350.000 = 2.700.000", "1 trẻ em × 950.000 = 950.000", "1 em bé × 0 = 0"]);
+  const g = previewLines(setPax(newCatalogDraft(banana, "g"), "adult", 7));
+  assert.ok(g.ok);
+  assert.equal(chuDongTien(g.lines[0]!, true, nhomNghin), "2 lượt × 1.500.000 = 3.000.000");
+  const sua = previewLines(setUnitPrice(tourDraft(2), "adult", 1300000));
+  assert.ok(sua.ok);
+  assert.equal(chuDongTien(sua.lines[0]!, false, nhomNghin), "2 người lớn × 1.300.000 = 2.600.000");
+});
+
+test("chuDongTien chỉ TRÌNH BÀY thành tiền đã tính (lineTotal), không tự nhân lại — một công thức ở thanhTienDong", () => {
+  assert.equal(chuDongTien({ pax: "adult", quantity: 2, unitPrice: 10, lineTotal: 999 }, false, String), "2 người lớn × 10 = 999");
+});
+
+test("coDongThanhTien: dòng 'Thành tiền dịch vụ' chỉ khi thẻ có từ hai dòng tiền", () => {
+  assert.deepEqual([0, 1, 2, 3].map(coDongThanhTien), [false, false, true, true]);
 });

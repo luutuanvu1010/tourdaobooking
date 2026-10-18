@@ -66,10 +66,12 @@ try {
   assert.equal(await p.ev(`${card(0)}.querySelector('.svc-name').textContent`), "Phao chuối");
   assert.equal(await p.ev(`${counter(0, "Số khách")}.value`), "1");
   await p.ev(setInput(counter(0, "Số khách"), "7"));
-  await p.waitFor(`/7 khách ÷ 5 = 2 lượt \\(làm tròn lên\\)/.test(${card(0)}.querySelector('.svc-group').textContent)`, "dòng chữ số lượt");
+  // Thiết kế lại 18/10/2026 (Task 6): chữ số lượt nay là "7 khách = 2 lượt" trong ô "Số khách" của lưới (trước: "7 khách ÷ 5 = 2 lượt (làm tròn lên)"); kiểm sâu ở
+  // docs/evidence/2026-10-18-tao-don-thiet-ke-lai/kich-ban/luoi-khach-tien-smoke.mjs.
+  await p.waitFor(`${card(0)}.querySelector('.svc-group').textContent === '7 khách = 2 lượt'`, "dòng chữ số lượt");
   assert.match(await p.ev(`${card(0)}.querySelector('.line:not([hidden]) .line-total').textContent`), /3\.000\.000/);
   assert.equal(await p.ev(`${card(0)}.querySelector('.line:not([hidden]) .tag-price:not([hidden])') === null`), true, "không lệch giá thì không có nhãn");
-  ok("dịch vụ nhóm: 7 khách → 2 lượt × 1.500.000 = 3.000.000, dòng chữ 'làm tròn lên'");
+  ok("dịch vụ nhóm: 7 khách → 2 lượt × 1.500.000 = 3.000.000, chữ '7 khách = 2 lượt'");
 
   // ---- 4) thêm dịch vụ theo người (Tour 4 đảo): 2 người lớn + 1 trẻ em; đơn giá thương lượng ----
   await p.ev("document.getElementById('catalog-q').focus(); true");
@@ -81,6 +83,9 @@ try {
   await p.ev(setInput(counter(1, "Trẻ em"), "1"));
   await p.waitFor(`document.querySelector('.svc-total-amount') && /3\\.650\\.000/.test(${card(1)}.querySelector('.svc-total-amount').textContent)`, "tổng thẻ 3.650.000");
   assert.match(await p.ev(`${card(1)}.textContent`), /Trẻ 5–10 tuổi/, "ghi chú loại khách hiện cạnh ô nhập");
+  // Task 6: ô đơn giá nằm sau liên kết "Sửa giá" — bấm trước, ô phải hiện rồi mới gõ.
+  await p.ev(`${card(1)}.querySelector('[data-action="sua-gia"]').click(); true`);
+  assert.equal(await p.ev(`${card(1)}.querySelector('.price-field[aria-label="Đơn giá người lớn"]').getClientRects().length > 0`), true, "bấm Sửa giá → ô đơn giá hiện");
   await p.ev(setInput(`${card(1)}.querySelector('.price-field[aria-label="Đơn giá người lớn"]')`, "1300000"));
   await p.waitFor(`${card(1)}.querySelector('.line:not([hidden]) .tag-price:not([hidden])') !== null`, "nhãn Khác giá danh mục");
   assert.match(await p.ev(`${card(1)}.querySelector('.line:not([hidden]) .price-old:not([hidden])').textContent`), /1\.350\.000/);
@@ -182,7 +187,8 @@ try {
   assert.match(await p.ev(`${card(tourIdx)}.querySelector('.price-field[aria-label="Đơn giá người lớn"]').value`), /1\.300\.000/, "bản chụp giữ đơn giá đã thương lượng");
   // bản chụp chỉ lưu loại khách đã có dòng tiền, nhưng thẻ vẫn cho thêm loại khách khác của danh mục hiện tại
   assert.deepEqual(await p.ev(`[...${card(tourIdx)}.querySelectorAll('.guest-label')].map((e) => e.textContent)`), ["Người lớn", "Trẻ em", "Người cao tuổi", "Em bé"]);
-  assert.match(await p.ev(`${card(tourIdx)}.textContent`), /1\.200\.000 ₫ · Từ 60 tuổi/, "loại mới lấy giá và ghi chú của danh mục hiện tại");
+  // Task 6 (18/10): dòng phụ của ô trong lưới số khách bỏ "₫" theo bản vẽ ("1.200.000 · Từ 60 tuổi").
+  assert.ok((await p.ev(`[...${card(tourIdx)}.querySelectorAll('.o-khach-phu')].map((e) => e.textContent)`)).includes("1.200.000 · Từ 60 tuổi"), "loại mới lấy giá và ghi chú của danh mục hiện tại");
   await p.ev(`(() => { const el = ${counter(tourIdx, "Người lớn")}; el.focus(); window.__adult = el; return true; })()`);
   await p.ev(setInput(counter(tourIdx, "Người lớn"), "3"));
   await p.waitFor(`${card(tourIdx)}.querySelector('.line:not([hidden]) .tag-price:not([hidden])') === null`, "đổi số khách → giá danh mục hiện tại, hết nhãn");
