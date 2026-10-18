@@ -134,7 +134,8 @@ r = await call(A, "GET", `/api/orders/${o.id}`);
 console.log("lịch sử:", r.body.history.map((h) => `${h.action}/${h.staffName}`).join(", "));
 // Sổ đại lý đợt 1 (đặc tả §5): lô Xác nhận ghi thêm MỘT dòng `order_terms_captured` ngay sau `confirmed` (cùng mốc giờ, thứ tự chèn) — người xem văn phòng thấy dòng đó.
 assert.deepEqual(r.body.history.map((h) => h.action), ["created", "updated", "updated", "confirmed", "order_terms_captured", "cancelled"]);
-assert.equal(r.body.history.at(-1).staffName, "QTV Test");
+assert.equal(r.body.history.at(-1).staffName, "", "ADR-0131: người lập đơn (không phải Toàn quyền) không thấy tên người làm trong lịch sử");
+assert.equal((await call(TOAN_QUYEN, "GET", `/api/orders/${o.id}`)).body.history.at(-1).staffName, "QTV Test", "Toàn quyền vẫn thấy đúng người huỷ");
 
 // 0017 (P-2 + P-5): trên D1 thật, CSDL chặn đường quay lại của trạng thái đơn và chặn sửa/xoá nhật ký, kể cả SQL chạy tay.
 // Đơn `o` lúc này ĐÃ HUỶ (dòng 84) và có 5 dòng nhật ký (dòng 88), nên mỗi câu dưới đây chắc chắn trúng dòng.
@@ -287,8 +288,9 @@ assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.deepEqual([r.body.order.services[0].pax.adult, r.body.order.subtotal, r.body.order.total], [4, 1300000, 1250000], "dịch vụ, số khách và tiền do máy chủ tính lại");
 assert.equal(lines(r.body.order).length, 2);
 h = r.body.order;
-let last = await lastAction(Bc, h);
+let last = await lastAction(TOAN_QUYEN, h);
 assert.deepEqual([last.action, last.staffName], ["updated", "NV Bán B (test)"], "nhật ký ghi đúng người phụ trách đã sửa");
+assert.equal((await lastAction(Bc, h)).staffName, "", "ADR-0131: người phụ trách (không phải Toàn quyền) không thấy tên người làm");
 // người lập (đã giao lại) VẪN sửa được
 r = await putOrder(A, h, { ...bigger, customerNote: "người lập vẫn sửa được" });
 assert.equal(r.status, 200, JSON.stringify(r.body));
@@ -308,7 +310,8 @@ assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.order.status, "confirmed");
 h = r.body.order;
 // Sổ đại lý đợt 1: dòng cuối là `order_terms_captured` (cùng lô, ngay sau `confirmed`) — so hai dòng cuối, cả hai do người phụ trách ghi.
-assert.deepEqual((await detail(A, h)).history.slice(-2).map((x) => [x.action, x.staffName]), [["confirmed", "NV Bán B (test)"], ["order_terms_captured", "NV Bán B (test)"]]);
+assert.deepEqual((await detail(TOAN_QUYEN, h)).history.slice(-2).map((x) => [x.action, x.staffName]), [["confirmed", "NV Bán B (test)"], ["order_terms_captured", "NV Bán B (test)"]]);
+assert.deepEqual((await detail(A, h)).history.slice(-2).map((x) => x.staffName), ["", ""], "ADR-0131: người lập (không phải Toàn quyền) không thấy tên người làm");
 
 // --- sau xác nhận: sửa THÔNG TIN CHUYẾN được (order.trip.edit); số khách/dịch vụ/tiền vẫn KHOÁ (order.money.edit không mở)
 assert.equal((await putOrder(Bc, h, bigger)).status, 409, "PUT cả đơn sau xác nhận vẫn 409 (như người lập)");
@@ -320,8 +323,9 @@ assert.equal(r.body.order.services[0].pickupPlace, "KS người phụ trách ch�
 assert.deepEqual([r.body.order.services[0].pax.adult, r.body.order.total, r.body.order.discount, r.body.order.services[0].name], [4, h.total, h.discount, h.services[0].name], "số khách/tiền/tên dịch vụ không đổi");
 assert.deepEqual(lines(r.body.order).map((i) => [i.description, i.quantity, i.unitPrice, i.lineTotal]), lines(h).map((i) => [i.description, i.quantity, i.unitPrice, i.lineTotal]));
 h = r.body.order;
-last = await lastAction(Bc, h);
+last = await lastAction(TOAN_QUYEN, h);
 assert.deepEqual([last.action, last.staffName], ["trip_updated", "NV Bán B (test)"]);
+assert.equal((await lastAction(Bc, h)).staffName, "", "ADR-0131: không phải Toàn quyền thì tên người làm bị bỏ");
 r = await putTrip(A, h, { note: "người lập chỉnh sau khi đã giao lại" }); // người lập vẫn sửa được chuyến
 assert.equal(r.status, 200, JSON.stringify(r.body));
 h = r.body.order;
@@ -331,7 +335,8 @@ for (const [label, cookie] of [["SALES khác", Cx], ["kế toán", ACC], ["FIELD
 r = await setStatus(Bc, h, "cancelled");
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.order.status, "cancelled");
-assert.deepEqual((await lastAction(Bc, r.body.order)).staffName, "NV Bán B (test)");
+assert.deepEqual((await lastAction(TOAN_QUYEN, r.body.order)).staffName, "NV Bán B (test)");
+assert.equal((await lastAction(Bc, r.body.order)).staffName, "", "ADR-0131: không phải Toàn quyền thì tên người làm bị bỏ");
 assert.equal((await putTrip(Bc, r.body.order, { note: "sau huỷ" })).status, 409);
 assert.equal((await setStatus(Bc, r.body.order, "confirmed")).status, 409);
 console.log("✓ người phụ trách (khác người lập) sửa nháp đủ, xác nhận, sửa chuyến, huỷ; người lập vẫn được; SALES khác/kế toán/FIELD 403; số khách/dịch vụ/tiền vẫn khoá sau xác nhận");

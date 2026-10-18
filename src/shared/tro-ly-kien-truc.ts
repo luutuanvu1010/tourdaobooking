@@ -18,7 +18,7 @@ Vai nào làm được việc gì, phạm vi tới đâu (của mình, đang đ�
   {
     tieuDe: "Vòng đời một đơn: nháp, xác nhận, huỷ",
     noiDung: `Đơn mới luôn bắt đầu là đơn nháp: lưu được khi chưa đủ thông tin, sửa thoải mái. Khi đủ thông tin thì bấm xác nhận; đơn đã xác nhận không quay lại nháp. Đơn đã xác nhận vẫn sửa được thông tin chuyến (giờ đón, nơi đón, ghi chú) theo quyền. Huỷ đơn là trạng thái cuối, đơn huỷ không bị xoá mà vẫn nằm trong danh sách để tra lại.
-Tiền của đơn (thành tiền, tổng, còn lại) do máy chủ tự tính từ giá danh mục và số khách; không ai gõ tay được tổng tiền. Mỗi lần sửa đơn đều được ghi vào lịch sử của đơn: ai sửa, lúc nào.`,
+Tiền của đơn (thành tiền, tổng, còn lại) do máy chủ tự tính từ giá danh mục và số khách; không ai gõ tay được tổng tiền. Mỗi lần sửa đơn đều được ghi vào lịch sử của đơn: đổi gì, lúc nào; tên người sửa chỉ người phụ trách hệ thống xem được.`,
   },
   {
     tieuDe: "Người phụ trách đơn",

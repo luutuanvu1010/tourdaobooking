@@ -63,7 +63,7 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
    - **Đã thu**, rồi **Còn lại** (khách trả dư thì ghi **Khách trả dư**)
    - **Ghi chú thanh toán**
    - Từng lần thu: ngày, số tiền, hình thức, người thu
-4. Khối **Lịch sử** ở cuối trang ghi ai đã làm gì với đơn, lúc nào. Ai sửa số khách (hướng dẫn viên, người lập đơn, Kế toán, Quản trị) thì lý do cũng hiện ở đây.
+4. Khối **Lịch sử** ở cuối trang ghi đơn đã đổi gì, lúc nào (tên người làm chỉ tài khoản Toàn quyền xem được). Khi số khách được sửa, lý do cũng hiện ở đây.
 
 Đơn đã xác nhận có dòng khoá bắt đầu bằng "Đơn đã xác nhận: dịch vụ và đơn giá đã khoá." Số khách vẫn sửa được (mục "Sửa số khách đơn đã xác nhận").`,
     },
@@ -214,7 +214,7 @@ Nút xuất ra tệp Excel (chưa có ở bản này). Dùng ô tìm kiếm và 
 
 ### Đơn bị huỷ
 
-Bấm nút **Lọc**, chọn **Đã huỷ** rồi bấm [[Áp dụng]] để xem. Khối **Lịch sử** của đơn cho biết ai huỷ, lúc nào.
+Bấm nút **Lọc**, chọn **Đã huỷ** rồi bấm [[Áp dụng]] để xem. Khối **Lịch sử** của đơn cho biết đơn huỷ lúc nào và vì lý do gì.
 
 ### Chuông thông báo
 
