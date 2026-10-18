@@ -62,7 +62,10 @@ export function noiNapBenDat(v: { coODatQua: boolean; bookerLaDoiTac: boolean; b
   return v.coODatQua && v.bookerLaDoiTac && v.bookerPartyId !== null ? "dat-qua" : "tra-sdt";
 }
 
-/** Nhãn ô tên khách ở form lập đơn: luôn là người ĐI TOUR (đã chọn đối tác hay chưa đều vậy — đối tác chỉ là bên đặt). */
+/**
+ * Nhãn ô tên khách ở form lập đơn và bảng «Đổi khách»: luôn là người ĐI TOUR (đã chọn đối tác hay chưa đều vậy — đối tác chỉ là bên đặt).
+ * Tham số cố ý KHÔNG dùng (ghi chú nợ T3, Việc 9): giữ cùng chữ ký với `nhanSdtKhach` để hai nơi gọi lặp chung một vòng, và để đổi luật chữ sau này không phải sửa nơi gọi.
+ */
 export const nhanTenKhach = (_daChonDoiTac: boolean): string => "Tên khách đi tour *";
 /** Nhãn ô SĐT: đã chọn đối tác thì ghi rõ là SĐT của khách (không phải của đối tác). */
 export const nhanSdtKhach = (daChonDoiTac: boolean): string => (daChonDoiTac ? "Số điện thoại khách *" : "Số điện thoại *");

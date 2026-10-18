@@ -10,6 +10,8 @@
 //   THẤY công tắc (đúng `coODatQuaDoiTac` — bản vẽ ghi «chỉ đọc», mã không đổi quyền, chỉ ghi nhận); bước 6 thêm: bảng «Đổi khách» có CÙNG công tắc «Đơn của» ở đầu và hai
 //   ô nhãn nổi «Tên khách đi tour *» / «Số điện thoại *» (đã chọn đối tác → «Số điện thoại khách *», cả qua «Đúng, qua …» lẫn qua công tắc); bước 7: lưu thật bảng đó với
 //   đối tác đã chọn → GET đơn: tên / SĐT khách đúng chữ đã gõ, bên đặt = hồ sơ đối tác (thân PUT không đổi nghĩa).
+// Việc 9 (nợ T4 của việc 4): bước 2d — đổi số thì khung của số cũ ẩn NGAY (không đợi 400 ms + lời tra); chọn đối tác ở công tắc khi lời hỏi nguoi-huong của lần tra
+//   đang bay (giả chậm) → kết quả về muộn KHÔNG làm khung hiện lại; về «Khách lẻ» với số đối tác còn trong ô → hỏi lại, khung hiện.
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, không --remote, danh mục giả (không Sheet), KHÔNG chụp ảnh.
 // Quy tắc ADR-0074/0075: một lần đăng nhập MỚI của cùng tài khoản làm phiên của trang đang mở bị thay ⇒ mỗi lúc chỉ một trang mở cho mỗi tài khoản (đóng trang trước khi mở trang kế).
 // Chạy từ GỐC repo, sau `npm run build:web`:
@@ -63,8 +65,9 @@ try {
   console.log(`  (benDatCuaToi: Đối tác thuần ${JSON.stringify(benDat[DAI_LY.phone])}, lai ${JSON.stringify(benDat[LAI.phone])})`);
 
   // Giả 403 cho nguoi-huong và đếm số lời gọi: chèn trước mã trang (window.__nh = số lời gọi; window.__nh403 = true thì trả 403).
-  const GIA_403 = `window.__nh = 0; window.__nh403 = false; { const f = window.fetch.bind(window);
-    window.fetch = async (u, o) => { if (String(u).includes('/api/pricing/nguoi-huong')) { window.__nh++; if (window.__nh403) return new Response(JSON.stringify({ error: 'forbidden', message: 'Không đủ quyền.' }), { status: 403, headers: { 'content-type': 'application/json' } }); } return f(u, o); }; }`;
+  // window.__nhChamLan > 0: lời gọi kế tiếp chờ thêm window.__nhCham ms rồi mới đi (giả mạng chậm cho bước 2d), mỗi lời gọi trừ một.
+  const GIA_403 = `window.__nh = 0; window.__nh403 = false; window.__nhCham = 0; window.__nhChamLan = 0; { const f = window.fetch.bind(window);
+    window.fetch = async (u, o) => { if (String(u).includes('/api/pricing/nguoi-huong')) { window.__nh++; if (window.__nh403) return new Response(JSON.stringify({ error: 'forbidden', message: 'Không đủ quyền.' }), { status: 403, headers: { 'content-type': 'application/json' } }); if (window.__nhChamLan > 0) { window.__nhChamLan--; await new Promise((r) => setTimeout(r, window.__nhCham)); } } return f(u, o); }; }`;
   const moTrang = async (account, path, vp) => {
     const p = await env.openPage(vp);
     await p.send("Page.addScriptToEvaluateOnNewDocument", { source: GIA_403 });
@@ -169,6 +172,29 @@ try {
       assert.equal(await dem(p), truoc, "đang Qua đối tác thì không tra nguoi-huong");
       await p.ev("document.querySelector('#dat-qua-doi-tac [data-action=\"dat-qua-huy\"]').click(); true");
       await p.ev(setInput("document.getElementById('customerPhone')", ""));
+    });
+
+    await buoc(`2d-${kho}`, "nợ T4: đổi số → khung số cũ ẩn ngay; chọn đối tác khi lời hỏi nguoi-huong đang bay → khung không hiện lại; về «Khách lẻ» → hỏi lại số đang có", async () => {
+      // (3) khung của số cũ ẩn NGAY khi số đổi
+      await goSdt(p, DOI_TAC.phone);
+      await p.waitFor(hienKhung, "khung hiện cho số đối tác", 8000);
+      await goSdt(p, `${DOI_TAC.phone}9`);
+      assert.equal(await p.ev(hienKhung), false, "vừa đổi số: khung của số cũ ẩn ngay, không đợi lời tra");
+      // (1) lời hỏi nguoi-huong của lần tra đang bay (giả chậm 2,5 giây), người lập chọn đối tác ở công tắc → khung không được hiện lại khi kết quả về
+      await p.ev("window.__nhCham = 2500; window.__nhChamLan = 1; true");
+      const truoc = await dem(p);
+      await goSdt(p, DOI_TAC.phone);
+      await p.waitFor(`window.__nh > ${truoc}`, "lời hỏi nguoi-huong của lần tra đã gửi (đang chậm)", 6000);
+      await p.ev("document.querySelector('[data-action=\"dat-qua-mo\"]').click(); true");
+      await p.waitFor(`[...document.querySelectorAll('#dat-qua-doi-tac .dqdt-dong')].some((b) => b.textContent.includes(${JSON.stringify(DAI_LY.name)}))`, "danh sách đối tác");
+      await p.ev(`[...document.querySelectorAll('#dat-qua-doi-tac .dqdt-dong')].find((b) => b.textContent.includes(${JSON.stringify(DAI_LY.name)})).click(); true`);
+      await p.waitFor("!!document.querySelector('#dat-qua-doi-tac .dqdt-chon-xanh')", "đã chọn đối tác");
+      await sleep(3000);
+      assert.equal(await p.ev(hienKhung), false, "kết quả chậm về SAU khi đã chọn đối tác: khung không hiện lại");
+      // (2) về «Khách lẻ» với số đối tác còn trong ô → hỏi lại, khung hiện
+      await p.ev("document.querySelector('#dat-qua-doi-tac [data-action=\"dat-qua-huy\"]').click(); true");
+      await p.waitFor(hienKhung, "về Khách lẻ: hỏi lại số đang có, khung hiện", 8000);
+      await goSdt(p, "");
     });
 
     await buoc(`3-${kho}`, "SĐT khách thường → không khung", async () => {

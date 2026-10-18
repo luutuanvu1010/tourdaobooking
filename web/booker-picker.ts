@@ -19,6 +19,8 @@ export interface BookerPicker {
   tat(): void;
   /** Người đọc CÓ ô «Đặt qua đối tác» không (`coODatQuaDoiTac(staff)`): quyết câu cạnh hồ sơ tổ chức có trỏ tới ô đó không (`matchNote`). Mặc định KHÔNG (câu trung tính); nơi dựng khối trước khi biết tài khoản gọi hàm này sau. */
   datCoODatQuaDoiTac(co: boolean): void;
+  /** Tra lại theo SĐT đang có (nợ T4(2), Việc 9): nơi gọi gọi khi công tắc «Đơn của» vừa bỏ đối tác đã chọn — số đang gõ có thể là của một đối tác mà lúc chọn đối tác không hỏi. */
+  kiemLai(): void;
 }
 
 export interface BookerPickerOptions {
@@ -105,7 +107,8 @@ export function createBookerPicker(o: BookerPickerOptions): BookerPicker {
       const soDt = o.phone.value;
       o.onDoiTacTrung(null, soDt); // ẩn khung của số cũ ngay; có đối tác trùng thì hiện khi tra xong
       void timDoiTacTrung(found).then((d) => {
-        if (mine === seq) o.onDoiTacTrung?.(d, soDt);
+        // Hỏi lại `khachLe()` khi kết quả về (nợ T4(1), Việc 9): người lập có thể đã chọn đối tác trong lúc các lời gọi nguoi-huong đang bay — khi đó khung không được hiện lại.
+        if (mine === seq && (o.khachLe?.() ?? true)) o.onDoiTacTrung?.(d, soDt);
       });
     }
     const rows = found.map((m) => {
@@ -131,6 +134,8 @@ export function createBookerPicker(o: BookerPickerOptions): BookerPicker {
     // SĐT vừa đổi không còn khớp hồ sơ MỚI đã chọn (hồ sơ mới lấy đúng SĐT đang gõ) — bỏ lựa chọn để tránh SĐT không hợp lệ chặn lưu đơn (400).
     // Hồ sơ CÓ SẴN không bị ảnh hưởng: bản chụp tên/SĐT trên đơn vốn được sửa tự do.
     if (choice.kind === "new") choose({ kind: "none" });
+    // Số vừa đổi: khung "Số này là của đối tác …" của số CŨ ẩn ngay, không đợi 400 ms + lời tra (nợ T4(3), Việc 9); số mới trùng đối tác thì hiện lại khi tra xong.
+    if (!daTat) o.onDoiTacTrung?.(null, o.phone.value);
     window.clearTimeout(timer);
     timer = window.setTimeout(() => void lookup(), 400);
   });
@@ -151,6 +156,11 @@ export function createBookerPicker(o: BookerPickerOptions): BookerPicker {
     },
     datCoODatQuaDoiTac(co) {
       coODat = co;
+    },
+    kiemLai() {
+      if (daTat) return;
+      window.clearTimeout(timer);
+      void lookup();
     },
   };
 }

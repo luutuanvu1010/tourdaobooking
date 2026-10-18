@@ -86,7 +86,10 @@ export function oDatQuaDoiTac(v: { daChon: BenDatChon | null; onDoi: (chon: BenD
     if (chon) {
       const doiBtn = h("button", { type: "button", class: "btn btn-link", "data-action": "dat-qua-doi" }, "Đổi");
       doiBtn.addEventListener("click", () => {
-        doi(null); // bỏ chọn cũ (ô tên / SĐT khách trở lại như khi chưa chọn) rồi mở ô tìm ngay như bấm "Qua đối tác"
+        // Bỏ chọn cũ (ô tên / SĐT khách trở lại như khi chưa chọn) rồi mở ô tìm ngay như bấm "Qua đối tác" — vẽ MỘT lần (nợ T3, Việc 9: trước đây `doi(null)` vẽ
+        // công tắc ở "Khách lẻ" rồi `moTim` vẽ lại; cùng một lượt JS nên mắt không thấy, nhưng nút "Đổi" bị gỡ hai lần và tiêu điểm đi qua <body>).
+        chon = null;
+        v.onDoi(null);
         moTim();
       });
       const loai = chon.loai ? ` · ${NHAN_LOAI[chon.loai]}` : "";

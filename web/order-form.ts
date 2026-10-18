@@ -841,9 +841,11 @@ let datQua: DatQuaDoiTac | null = null;
 let daChonBenDat: BenDatChon | null = null;
 /** Đã chọn / bỏ chọn đại lý: ô tra hồ sơ khách theo SĐT ẩn khi đã chọn (tên + SĐT khách đi tour vẫn nhập ở hai ô khách); bỏ chọn thì hiện lại như cũ. */
 function datBenDat(chon: BenDatChon | null): void {
+  const truoc = daChonBenDat;
   daChonBenDat = chon;
   bookerPicker.root.hidden = chon !== null;
   if (chon !== null) canhBao.hien(null, ""); // đã chọn đối tác thì hết điều để hỏi
+  else if (truoc !== null) bookerPicker.kiemLai(); // vừa bỏ đối tác: số khách đang gõ có thể là của một đối tác — hỏi lại (nợ T4(2), Việc 9)
   datNhanKhach(chon !== null);
 }
 /** Nhãn nổi của hai ô khách theo việc đã chọn đối tác (luật chữ ở `src/shared/phan-doi-tac-hien-thi.ts`): đã chọn thì SĐT ghi rõ là của khách, không phải của đối tác. */

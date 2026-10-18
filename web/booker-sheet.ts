@@ -68,6 +68,7 @@ export function openBookerSheet(o: BookerSheetOptions, opener: HTMLElement): voi
     ? oDatQuaDoiTac({
         daChon: null,
         onDoi: (c) => {
+          if (c === null && daChon !== null) picker.kiemLai(); // vừa bỏ đối tác: hỏi lại số khách đang có (nợ T4(2), Việc 9) — daChon đã null trước khi kết quả về
           daChon = c;
           picker.root.hidden = c !== null;
           if (c !== null) canhBao.hien(null, "");
