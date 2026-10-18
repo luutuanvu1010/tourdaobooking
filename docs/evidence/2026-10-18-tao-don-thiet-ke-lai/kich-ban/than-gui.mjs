@@ -36,12 +36,18 @@ import { join } from "node:path";
 import { ACCOUNTS, ok, setInput, sleep, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
 import { cham, chonNoiMotO, dsCua, goChu } from "./cham-that.mjs";
 
+// Việc 8 (thanh dính cuối trang, thanh toán chỉ hiện ô khi có trả trước, 18/10/2026):
+//   - CACH=tratruoc (tệp than-gui-tratruoc-<giai đoạn>.json, đặt THU_MUC=…/thanh-dinh): lập đơn TD101 (2 người lớn) + TTB06 (2 người lớn), giảm giá 100.000, trả trước 2.000.000
+//     rồi mới chọn "Tiền mặt" + "Tôi thu" (bản sau: hai ô chỉ hiện SAU khi có số trả trước — khẳng định ô HIỆN trước khi chọn), chạm Lưu → bắt thân POST /api/orders VÀ thân
+//     POST /api/orders/:id/payments (bước hai ghi lần thu); đọc tổng trên thanh / Tóm tắt TRƯỚC khi lưu và so với `total` máy chủ trả (GET đơn) sau khi lưu; mở lại đơn, Lưu
+//     không đụng gì → PUT-1. Tổng máy chủ ghi vào tệp (khoá TONG-…) để so trước/sau cùng các thân.
 const GIAI_DOAN = process.env.GIAI_DOAN ?? "truoc";
 const LUOI = process.env.CACH === "luoi";
 const NOI = process.env.CACH === "noi";
 const GOLUU = process.env.CACH === "goluu";
+const TRATRUOC = process.env.CACH === "tratruoc";
 const OUT = process.env.THU_MUC ?? "docs/evidence/2026-10-18-tao-don-thiet-ke-lai/the-gap";
-const TEN = LUOI ? "than-gui-luoi" : NOI ? "than-gui-noi" : GOLUU ? "than-gui-goluu" : "than-gui";
+const TEN = LUOI ? "than-gui-luoi" : NOI ? "than-gui-noi" : GOLUU ? "than-gui-goluu" : TRATRUOC ? "than-gui-tratruoc" : "than-gui";
 mkdirSync(OUT, { recursive: true });
 const KHO = [["390", { width: 390, height: 844, mobile: true }], ["1040", { width: 1040, height: 900, mobile: false }]];
 
@@ -280,11 +286,51 @@ try {
     kiemLeg(putA, 0, 0, { pickupLocationId: null, pickupPlace: "15 Trần Phú, Nha Trang" }, "PUT-A");
     than[`PUT-A-${kho}`] = chuanHoa(putA);
   };
+  /** CACH=tratruoc — giảm giá + trả trước + hình thức / người nhận tiền (xem chú thích đầu tệp). */
+  const kichBanTraTruoc = async (p, kho, mobile) => {
+    const so = (t) => Number(String(t).replace(/[^0-9]/g, ""));
+    await chon(p, "TD101", 1);
+    await p.ev(setInput(demDem(0, "Người lớn"), "2"));
+    await chon(p, "TTB06", 2);
+    await p.ev(setInput(demDem(1, "Người lớn"), "2"));
+    await p.ev(setInput("document.getElementById('customerName')", "Khách Trả Trước"));
+    await p.ev(setInput("document.getElementById('customerPhone')", "0912345690"));
+    await p.ev(setInput("document.getElementById('discount')", "100000"));
+    await p.ev(setInput("document.getElementById('prepaidAmount')", "2000000"));
+    await sleep(200);
+    for (const id of ["prepaidMethod", "prepaidCollector"]) assert.equal(await p.ev(hien(`document.getElementById('${id}')`)), true, `ô ${id} đang hiện sau khi nhập số trả trước`);
+    await p.ev(setInput("document.getElementById('prepaidMethod')", "CASH"));
+    await p.ev(setInput("document.getElementById('prepaidCollector')", "toi"));
+    await sleep(200);
+    const truocLuu = await p.ev("({ thanh: document.getElementById('mobile-total').textContent, tomTat: document.getElementById('sum-total').textContent })");
+    assert.equal(truocLuu.thanh, truocLuu.tomTat, `${kho}: tổng thanh dính = tổng Tóm tắt`);
+    await luuCham(p, mobile, "lưu đơn có trả trước");
+    const post = layThanTho(p, "POST");
+    const thanhToan = p.requests.filter((r) => r.method === "POST" && /\/api\/orders\/[^/]+\/payments$/.test(new URL(r.url).pathname)).map((r) => r.postData).at(-1);
+    assert.ok(thanhToan, `${kho}: có gửi lần thu trả trước`);
+    assert.deepEqual(JSON.parse(thanhToan), { soTien: 2000000, hinhThuc: "CASH", nguoiThu: "toi" }, `${kho}: thân lần thu (thô)`);
+    const id = await p.ev("new URLSearchParams(location.search).get('id')");
+    const may = await p.ev(`fetch('/api/orders/${id}').then((r) => r.json()).then((j) => ({ subtotal: j.order.subtotal, discount: j.order.discount, total: j.order.total }))`);
+    assert.equal(may.total, so(truocLuu.thanh), `${kho}: tổng máy chủ (${may.total}) = tổng trên thanh trước khi lưu (${truocLuu.thanh})`);
+    than[`POST-${kho}`] = chuanHoa(post);
+    than[`THANH-TOAN-${kho}`] = chuanHoa(thanhToan);
+    than[`TONG-${kho}`] = JSON.stringify(may);
+    await moLai(p, id, 2);
+    await luuXong(p, "lưu thay đổi (không đụng gì, CACH=tratruoc)");
+    than[`PUT-1-${kho}`] = layThan(p, "PUT");
+  };
   for (const [kho, vp] of KHO) {
     const p = await env.as(ACCOUNTS.salesA, "/order-form", vp);
     await p.waitFor("!!document.getElementById('catalog-q') && !document.getElementById('catalog-q').disabled", "ô tìm danh mục sẵn sàng", 15000);
     await sleep(600);
     await p.ev(setInput("document.getElementById('orderDate')", vnDate(3)));
+    if (TRATRUOC) {
+      await kichBanTraTruoc(p, kho, vp.mobile);
+      assert.deepEqual(p.consoleErrors.filter((e) => !/favicon/.test(e)), [], `lỗi console ${kho}`);
+      p.close();
+      ok(`thân gửi ${kho} (CACH=tratruoc): POST, lần thu trả trước, tổng máy chủ = tổng trên thanh, PUT-1`);
+      continue;
+    }
     if (NOI) {
       await kichBanNoi(p, kho, vp.mobile);
       assert.deepEqual(p.consoleErrors.filter((e) => !/favicon/.test(e)), [], `lỗi console ${kho}`);
