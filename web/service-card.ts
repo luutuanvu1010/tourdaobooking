@@ -7,7 +7,8 @@
 // Thẻ có lỗi chặn Lưu đang hiện thì luôn mở (`mustStayOpen`); "chỉ một thẻ mở" do trang quyết (web/order-form.ts). Luật chữ dòng gập: src/shared/dong-gap-the.ts.
 // Số khách + tiền (Task 6, cùng đặc tả): loại khách có giá xếp LƯỚI hai cột (mỗi ô: tên, "giá · điều kiện", bộ đếm); dịch vụ theo nhóm một ô "Số khách" kèm "7 khách = 2 lượt".
 // Dòng tiền là CHỮ "2 người lớn × 1.350.000 = 2.700.000" ghép từ previewLines (một công thức — không tính lại ở đây); "Thành tiền dịch vụ" chỉ khi từ hai dòng. Ô đơn giá nằm
-// trong khối gập "Sửa giá" (`taoKhoiGap` — chỉ ẩn bằng `hidden`; Lưu bị từ chối / 400 mở được như mọi khối gập); `retailOnly` không có "Sửa giá", dòng lệch giá cũ thì khối tự mở.
+// trong khối gập "Sửa giá" (`taoKhoiGap` — chỉ ẩn bằng `hidden`; Lưu bị từ chối / 400 mở được như mọi khối gập); `retailOnly` không có "Sửa giá": khối chỉ mở khi có dòng lệch
+// giá cũ (để đưa về đúng giá), về đúng giá rồi rời ô thì tự đóng, mọi lối mở khác bị trả lại (họ không có nút đóng).
 import { PAX_LABEL, thanhTienDong, type PaxCode } from "../src/shared/order-lines";
 import {
   addManualLine, cardCodes, chuDongTien, chuLuot, coDongThanhTien, draftIssues, soKhachNhap, draftSubtotal, groupInfo, guestDetail, isFrozenManual, isLocked, nhanSoLuongDong, previewLines,
@@ -131,6 +132,9 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   const totalEl = h("output", { class: "svc-total-amount" });
   // "Thành tiền dịch vụ": dựng MỘT lần; mỗi lần dựng lại thân thì gắn vào cuối khối tiền (danh mục) / cuối thân (nhập tay). Chỉ HIỆN khi từ hai dòng tiền — số vẫn luôn cập nhật.
   const sumRow = h("div", { class: "svc-sum" }, h("span", null, "Thành tiền dịch vụ"), totalEl);
+  // `<output>` của dòng "Thành tiền dịch vụ" là vùng thông báo (role status) — nhưng dòng đó ẩn khi thẻ chỉ có một dòng tiền, nên trình đọc màn hình mất tin tổng thẻ đổi.
+  // Vùng ẩn này đọc thay ĐÚNG lúc đó (một dòng tiền); từ hai dòng thì để trống, `<output>` tự đọc — không đọc hai lần (Việc 9, nợ a11y của Task 6).
+  const tongDoc = h("span", { class: "visually-hidden", "aria-live": "polite" });
   const issuesEl = h("div", { class: "field-errors", role: "alert" });
   const warningsEl = h("div", { class: "svc-warnings" });
   // Thùng rác thay chữ "Xoá" (bản vẽ khung 4): màu nguy hiểm, vùng chạm 44px; tên cho trình đọc màn hình nêu tên dịch vụ (cập nhật khi tên đổi — `veDongGap`). Hành vi xoá giữ nguyên.
@@ -160,6 +164,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     "div",
     { class: "svc-than" },
     body,
+    tongDoc,
     issuesEl,
     duaDon.root,
     tripDetails,
@@ -198,6 +203,9 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   let gapGia: KhoiGap | null = null;
   let nutSuaGia: HTMLButtonElement | null = null;
   let suaGiaMo = false;
+  /** Có dòng đang lệch giá danh mục (lần `refresh` gần nhất). `retailOnly` chỉ được mở khối "Sửa giá" khi có dòng lệch (đưa về đúng giá) — mọi lối mở khác (Lưu bị từ chối, 400) bị trả lại. */
+  let coLechGia = false;
+  const khongDuocMoGia = (): boolean => Boolean(o.retailOnly) && !coLechGia;
 
   function buildCatalogBody(d: CatalogDraft): HTMLElement {
     const group = groupInfo(d);
@@ -242,7 +250,8 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       const chu = h("span", { class: "dong-tien-chu" });
       const xemTag = h("span", { class: "tag-price" }, "Khác giá danh mục");
       const xemOld = h("s", { class: "price-old" });
-      const xemLech = h("span", { class: "dong-tien-lech" }, xemOld, xemTag);
+      // Trình đọc màn hình bỏ qua gạch ngang của <s>: chữ ẩn "Giá danh mục" nói số gạch là số nào (Việc 9, nợ a11y của Task 6). Ẩn / hiện cùng khối lệch giá.
+      const xemLech = h("span", { class: "dong-tien-lech" }, h("span", { class: "visually-hidden" }, "Giá danh mục "), xemOld, xemTag);
       const xemRow = h("div", { class: "dong-tien" }, chu, xemLech);
       const qty = h("span", { class: "line-qty" });
       const price = moneyInput({ value: d.unitPrices[code] ?? 0, label: group ? "Đơn giá mỗi lượt" : `Đơn giá ${PAX_LABEL[code].toLowerCase()}`, onChange: (n) => commit(setUnitPrice(cat(), code, n)) });
@@ -250,7 +259,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       const total = h("output", { class: "line-total" });
       const tag = h("span", { class: "tag-price" }, "Khác giá danh mục");
       const old = h("s", { class: "price-old" });
-      const lech = h("span", { class: "line-lech" }, old, tag);
+      const lech = h("span", { class: "line-lech" }, h("span", { class: "visually-hidden" }, "Giá danh mục "), old, tag);
       // "= thành tiền" là một khối không ngắt (điện thoại hẹp: xuống dòng cả khối, không để dấu "=" lơ lửng cuối dòng trên)
       const row = h("div", { class: "line" }, h("div", { class: "line-edit" }, qty, price, h("span", { class: "line-bang" }, h("span", { class: "line-unit" }, "="), total)), lech);
       lineRefs.set(code, { row, qty, price, total, tag, old, lech, xem: xemRow, chu, xemTag, xemOld, xemLech });
@@ -259,13 +268,24 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     }
     const nut = h("button", { type: "button", class: "btn btn-link svc-sua-gia", "data-action": "sua-gia" }, "Sửa giá");
     nutSuaGia = nut;
-    gapGia = taoKhoiGap({
-      ma: `gia-${d.key}`, nhan: "Sửa giá", than: sua, nut, mo: suaGiaMo,
+    // `retailOnly` (Đối tác, Thực tập — nút "Sửa giá" ẩn): khối chỉ mở khi có dòng lệch giá cũ. Lưu bị từ chối / máy chủ 400 mở MỌI khối gập (`moMoiKhoiGap`) — khối này
+    // trả lại ngay, vì họ không có nút để đóng (trước đây kẹt mở tới khi tải lại trang). Về đúng giá: đóng khi rời ô (không đóng lúc đang gõ — ô biến mất dưới ngón tay).
+    let khoi: KhoiGap | null = null;
+    khoi = taoKhoiGap({
+      ma: `gia-${d.key}`, nhan: "Sửa giá", than: sua, nut, mo: suaGiaMo && !khongDuocMoGia(),
       khiDoi: (mo) => {
+        if (mo && khongDuocMoGia() && khoi) {
+          khoi.dong();
+          return;
+        }
         suaGiaMo = mo;
         xem.hidden = mo; // đang sửa: dòng chữ nhường chỗ cho dòng có ô đơn giá
         nut.textContent = mo ? "Xong sửa giá" : "Sửa giá";
       },
+    });
+    gapGia = khoi;
+    sua.addEventListener("focusout", (e) => {
+      if (khongDuocMoGia() && khoi?.laMo() && !sua.contains(e.relatedTarget as Node | null)) khoi.dong();
     });
     return h(
       "div",
@@ -422,7 +442,11 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       // "Sửa giá": không có cho Đối tác / Thực tập (giá luôn là giá danh mục) và khi chưa có dòng tiền. Dòng lệch giá CŨ của họ (đơn lập trước đây) thì khối tự mở:
       // ô đơn giá sửa được để đưa về đúng giá — như trước khi ô nằm sau "Sửa giá" (máy chủ từ chối mọi giá khác).
       if (nutSuaGia) nutSuaGia.hidden = Boolean(o.retailOnly) || visible === 0;
-      if (o.retailOnly && coLech && gapGia && !gapGia.laMo()) gapGia.mo();
+      coLechGia = coLech;
+      if (o.retailOnly && gapGia) {
+        if (coLech && !gapGia.laMo()) gapGia.mo();
+        else if (!coLech && gapGia.laMo() && !gapGia.than.contains(document.activeElement)) gapGia.dong(); // đang gõ trong ô thì để `focusout` đóng
+      }
       for (const [code, c] of counters) if (document.activeElement !== c.input) c.set(d.pax[code]);
       for (const [code, el] of guestDetails) el.textContent = guestDetail(d, code, grouped);
     } else {
@@ -445,6 +469,8 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     }
     totalEl.textContent = vnd(draftSubtotal(d));
     sumRow.hidden = !coDongThanhTien(p.ok ? p.lines.length : 0);
+    const chuTongDoc = sumRow.hidden && p.ok && p.lines.length === 1 ? `Thành tiền dịch vụ ${vnd(draftSubtotal(d))}` : "";
+    if (tongDoc.textContent !== chuTongDoc) tongDoc.textContent = chuTongDoc;
 
     const issues = draftIssues(d);
     const tooMany = issues.some((i) => i.code === "too_many_guests");
@@ -493,7 +519,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     else if ((loi.code === "line_description" || loi.code === "line_quantity") && draft.kind === "manual") {
       const i = draft.lines.findIndex((l) => (loi.code === "line_description" ? l.description.trim() === "" : l.quantity < 1));
       o = loi.code === "line_description" ? manualRefs[i]?.desc : manualRefs[i]?.qty.input;
-    } else if (loi.code === "preview" || loi.code === "amount") o = body.querySelector<HTMLElement>(".line:not([hidden]) .price-field") ?? body.querySelector<HTMLElement>(".price-field"); // trong khối gập "Sửa giá": trang mở khối (`moKhoiChua`) trước khi đặt tiêu điểm
+    } else if ((loi.code === "preview" || loi.code === "amount") && !khongDuocMoGia()) o = body.querySelector<HTMLElement>(".line:not([hidden]) .price-field") ?? body.querySelector<HTMLElement>(".price-field"); // trong khối gập "Sửa giá": trang mở khối (`moKhoiChua`) trước khi đặt tiêu điểm; `retailOnly` không mở được khối đó → ô đầu tiên của thẻ
     const dungDuoc = (e: HTMLElement | null | undefined): e is HTMLElement => !!e && !(e as HTMLInputElement).disabled;
     return dungDuoc(o) ? o : body.querySelector<HTMLElement>("input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])");
   }

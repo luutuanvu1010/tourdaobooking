@@ -237,7 +237,7 @@ export function refreshFromCatalog(d: CatalogDraft, item: CatalogService): Catal
     const typed = d.unitPrices[c];
     unitPrices[c] = typed !== undefined && old !== null && typed !== old ? typed : price;
   }
-  return { ...d, item, live: item, name: item.name, unit: item.unit, unitPrices }; // tên/đơn vị theo danh mục mới: nhãn chip, bộ đếm "Số khách", dòng "N khách ÷ M = K lượt" đúng nếu Sheet đổi đơn vị
+  return { ...d, item, live: item, name: item.name, unit: item.unit, unitPrices }; // tên/đơn vị theo danh mục mới: nhãn chip, bộ đếm "Số khách", chữ "7 khách = 2 lượt" (chuLuot) và dòng phụ "giá / nhóm N khách" đúng nếu Sheet đổi đơn vị
 }
 
 export const setGuests = (d: ManualDraft, n: number): ManualDraft => ({ ...d, guests: wholeCount(n) });

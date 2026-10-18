@@ -52,22 +52,24 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
       noiDung: `1. Bấm [[Tạo đơn]].
 2. Đầu trang: chọn **Ngày khởi hành** (dùng cho mọi dịch vụ trong đơn), rồi ở phần **Khách hàng** gõ **Tên khách đi tour**, **Số điện thoại**. Muốn ghi Email hoặc **Ghi chú / yêu cầu đặc biệt** thì bấm [[Email, ghi chú]].
    - Khách liên hệ qua bạn: bấm [[Điền thông tin của tôi]] để tự điền tên và số của bạn.
-3. Phần **Dịch vụ**: gõ tên hoặc mã vào ô [[Tìm theo tên hoặc mã dịch vụ]] (hoặc chạm một nhóm), rồi bấm vào dịch vụ cần chọn.
+   - Dòng **Bên đặt** (nếu có) ghi tên của bạn: Nền tảng tự điền, bạn không cần chọn.
+3. Phần **Dịch vụ**: gõ tên hoặc mã vào ô [[Tìm theo tên hoặc mã dịch vụ]] (hoặc chạm một nhóm), rồi chạm dịch vụ cần chọn.
    - Dịch vụ có nhãn "chưa có giá" hoặc "chưa hỗ trợ" thì không chọn được.
-   - Dịch vụ đã có trong đơn có nhãn "✓ đã thêm".
-4. Trong thẻ dịch vụ vừa thêm, nhập **Số khách**: **Người lớn**, **Trẻ em**… tuỳ dịch vụ. Dòng tiền tự hiện. Cả đơn cần ít nhất một người lớn đi cùng; trẻ em và em bé không đi một mình.
-5. Bấm [[Thông tin chuyến]] để mở phần này, ghi **Giờ đón**, **Điểm đón**, giờ và nơi khách có mặt, **Ghi chú dịch vụ**.
-6. Phần **Thanh toán**: khách đã trả trước thì gõ **Thanh toán trước** và chọn **Phương thức thanh toán**.
-7. Xem lại khối **Tóm tắt** (máy tính) hoặc dòng tổng dưới đáy (điện thoại).
-8. Bấm [[Lưu, chờ xác nhận]]. App mở trang của đơn vừa lập.
+   - Dịch vụ vừa chạm hiện "✓ đã thêm" và thẻ dịch vụ hiện bên dưới. Mỗi lúc chỉ một thẻ mở; chạm dòng gập của thẻ để mở lại.
+4. Trong thẻ dịch vụ, nhập **Số khách**: **Người lớn**, **Trẻ em**… tuỳ dịch vụ. Dòng tiền tự hiện, ví dụ "2 người lớn × giá = thành tiền". Cả đơn cần ít nhất một người lớn đi cùng; trẻ em và em bé không đi một mình.
+5. Phần **Đưa đón** trên thẻ: ghi **Giờ đón**, **Nơi đón**, **Nơi trả** (chọn điểm có sẵn hoặc gõ tự do). Bấm [[Thông tin chuyến]] để ghi giờ và nơi khách có mặt, **Ghi chú dịch vụ**.
+6. Phần **Thanh toán**: khách đã trả trước thì gõ **Thanh toán trước (₫)**, rồi chọn **Hình thức** và **Người nhận tiền** (hai ô này chỉ hiện khi đã gõ số).
+7. Xem tổng tiền ở thanh dưới cùng (chạm để xem chi tiết); trên máy tính là khối **Tóm tắt** bên phải.
+8. Bấm [[Lưu, chờ xác nhận]]. Thiếu gì thì khung đỏ hiện ngay trên nút. Lưu xong, Nền tảng mở trang của đơn vừa lập.
 
 > Ví dụ: Khách sạn "Biển Xanh" (tên đặt ra) có một gia đình 2 người lớn, 1 trẻ em muốn đi tour 4 đảo ngày 05/10. Chị Hoa (lễ tân) bấm Tạo đơn, chọn ngày 05/10, gõ "4 đảo" vào ô tìm dịch vụ và chọn dịch vụ. Chị nhập 2 người lớn, 1 trẻ em, ghi giờ đón 7:30 ở sảnh khách sạn, gõ tên và số điện thoại của khách, rồi bấm Lưu, chờ xác nhận.
 
 ### Giá của đối tác
 
-- Ô đơn giá được **khoá sẵn** theo giá bán lẻ của danh mục. Bạn không gõ giá khác được.
-- Ô **Giảm giá** cũng khoá, kèm dòng "Tài khoản đối tác tạm chưa được giảm giá."
-- Muốn giảm giá hay dùng giá khác cho khách thì **nhờ văn phòng**.
+- Đơn giá là giá bán lẻ của danh mục. Thẻ dịch vụ của bạn không có nút **Sửa giá** như của văn phòng.
+- Ô **Giảm giá** khoá, kèm dòng "Tài khoản đối tác tạm chưa được giảm giá."
+- Bạn không thêm được dịch vụ nhập tay (dịch vụ ngoài danh mục).
+- Muốn giảm giá, dùng giá khác hay thêm dịch vụ ngoài danh mục thì **nhờ văn phòng**.
 
 ### Người phụ trách
 
@@ -167,9 +169,9 @@ Tài khoản đối tác không xem tên người phụ trách đơn, nên trang
 
 Trang chủ là màn tổng hợp của văn phòng. Tài khoản đối tác mở app sẽ vào thẳng danh sách đơn của mình.
 
-### Ô đơn giá bị xám, không gõ được
+### Sao thẻ dịch vụ không có nút Sửa giá?
 
-Đúng vậy. Đối tác dùng giá bán lẻ của danh mục.
+Đối tác dùng giá bán lẻ của danh mục nên không sửa đơn giá. Cần giá khác thì nhờ văn phòng.
 
 ### Đơn tôi lưu rồi, ai sẽ lo cho khách?
 

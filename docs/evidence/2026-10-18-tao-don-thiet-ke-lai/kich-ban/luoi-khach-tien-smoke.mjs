@@ -13,7 +13,8 @@
 //   5) Motor nước (chỉ giá người lớn): MỘT ô "Người lớn", một dòng tiền, không dòng tổng;
 //   6) TỔNG: thành tiền từng thẻ (dòng gập + thân thẻ), từng dòng tiền và tạm tính của form BẰNG đúng số máy chủ trả (GET /api/orders/:id) sau khi lưu nháp;
 //   7) Thực tập (`retailOnly` — Đối tác cùng luật, kịch bản doi-tac-lap-don-smoke.mjs): KHÔNG có "Sửa giá", dòng tiền là chữ, ô đơn giá readOnly; nháp CŨ của chính
-//      họ đang lệch giá danh mục (gieo thẳng vào D1 tạm) → ô đơn giá tự hiện và SỬA ĐƯỢC để đưa về đúng giá (hành vi cũ giữ nguyên), về đúng giá thì readOnly.
+//      họ đang lệch giá danh mục (gieo thẳng vào D1 tạm) → ô đơn giá tự hiện và SỬA ĐƯỢC để đưa về đúng giá (hành vi cũ giữ nguyên), về đúng giá thì readOnly;
+//      rời ô thì khối "Sửa giá" tự đóng, dòng chữ hiện lại (Việc 9 — họ không có nút đóng; trường hợp Lưu bị 400 ở doi-tac-lap-don-smoke.mjs bước 2c).
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, danh mục giả (TD101, TTB03, TTB06).
 // Chạy từ GỐC repo, sau `npm run build:web`:
 //   CHROME_BIN=$PWD/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh node docs/evidence/2026-10-18-tao-don-thiet-ke-lai/kich-ban/luoi-khach-tien-smoke.mjs
@@ -170,6 +171,9 @@ try {
       assert.deepEqual(t.oGia, []);
       assert.deepEqual(t.dong, ["2 người lớn × 1.300.000 = 2.600.000", "1 trẻ em × 950.000 = 950.000", "1 em bé × 0 = 0"]);
       assert.deepEqual(t.lech, [["Khác giá danh mục", "1.350.000", "line-through"], null, null], `dòng đã sửa giữ nhãn + giá danh mục gạch ngang: ${JSON.stringify(t.lech)}`);
+      // Việc 9 (nợ a11y Task 6): trình đọc màn hình bỏ qua gạch ngang — chữ ẩn "Giá danh mục" đứng trước số gạch, trong cùng khối lệch giá (tên truy cập đọc thành câu).
+      const docLech = await p.ev(`[...${the(0)}.querySelectorAll('.svc-tien-xem .dong-tien')].filter((d) => d.getClientRects().length > 0).map((d) => { const l = d.querySelector('.dong-tien-lech'); return l && !l.hidden ? l.textContent : null; })`);
+      assert.deepEqual(docLech, ["Giá danh mục 1.350.000Khác giá danh mục", null, null], `chữ đọc của khối lệch giá: ${JSON.stringify(docLech)}`);
       // trả về giá danh mục (mẫu tổng ở bước 6 dùng giá danh mục)
       await cham(p, mobile, suaGia(0));
       await p.ev(setInput(`${the(0)}.querySelector('.price-field[aria-label="Đơn giá người lớn"]')`, "1350000"));
@@ -193,6 +197,9 @@ try {
       assert.equal(t.tongHien, false, "một dòng → không có dòng Thành tiền dịch vụ");
       assert.equal(t.tongNgam, "3.000.000 ₫", "thành tiền của thẻ vẫn được cập nhật (dòng gập, tạm tính)");
       assert.ok(t.sua?.hien, "Bán hàng có Sửa giá");
+      // Việc 9 (nợ a11y Task 6): dòng "Thành tiền dịch vụ" (vùng <output>) ẩn khi một dòng tiền → vùng thông báo ẩn của thẻ đọc thay; thẻ ba dòng (TD101) thì vùng đó trống (<output> tự đọc).
+      const doc = await p.ev(`[1, 0].map((i) => [...${THE}[i].querySelectorAll('.visually-hidden[aria-live="polite"]')].map((e) => e.textContent))`);
+      assert.deepEqual(doc, [["Thành tiền dịch vụ 3.000.000 ₫"], [""]], `vùng thông báo tổng thẻ: ${JSON.stringify(doc)}`);
     });
 
     await buoc(`${kho}-5`, "Motor nước (chỉ giá người lớn): MỘT ô 'Người lớn', một dòng tiền, không dòng tổng", async () => {
@@ -297,6 +304,9 @@ try {
       await sleep(100);
       assert.equal(await p.ev(`${the(0)}.querySelector('.price-field[aria-label="Đơn giá người lớn"]').readOnly`), true, "về đúng giá danh mục → ô readOnly lại");
       assert.equal((await p.ev(dongSua(0)))[0]?.lech ?? null, null, "hết nhãn Khác giá danh mục");
+      // Việc 9 (nợ T6): Thực tập không có nút đóng khối "Sửa giá" — về đúng giá rồi rời ô thì khối tự đóng, dòng tiền chữ hiện lại (trước đây kẹt mở tới khi tải lại trang).
+      t = await p.ev(tien(0));
+      assert.deepEqual([t.oGia, t.dong], [[], ["2 người lớn × 1.350.000 = 2.700.000"]], `về đúng giá + rời ô → khối Sửa giá tự đóng, dòng chữ hiện: ${JSON.stringify(t)}`);
       assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
       p.close();
     });

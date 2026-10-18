@@ -68,7 +68,7 @@ test("previewLines theo người: 2 người lớn + 1 trẻ em → hai dòng, t
   assert.equal(draftSubtotal(d), 3650000);
 });
 
-test("previewLines theo nhóm: 7 khách với nhóm 5 → 2 lượt × 1.500.000 = 3.000.000 ₫; groupInfo cho dòng chữ '7 khách ÷ 5 = 2 lượt'", () => {
+test("previewLines theo nhóm: 7 khách với nhóm 5 → 2 lượt × 1.500.000 = 3.000.000 ₫; groupInfo cho chữ '7 khách = 2 lượt' (chuLuot)", () => {
   const d = setPax(newCatalogDraft(banana, "k2"), "adult", 7);
   const p = previewLines(d);
   assert.ok(p.ok);
