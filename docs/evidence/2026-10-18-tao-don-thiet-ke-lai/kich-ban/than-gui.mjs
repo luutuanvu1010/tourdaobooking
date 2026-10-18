@@ -14,27 +14,48 @@
 //                      đầu thẻ trước), mở "Sửa giá" nếu thẻ có (bản trước Task 6 không có: ô đơn giá luôn hiện) rồi mới gõ đơn giá (khẳng định ô HIỆN). Tệp mang tên
 //                      than-gui-luoi-<giai đoạn>.json. Cùng chuỗi thao tác cho ra cùng bản nháp nên thân phải giống bản `CACH` mặc định từng byte.
 //   vd: THU_MUC=docs/evidence/2026-10-18-tao-don-thiet-ke-lai/luoi-khach-tien CACH=luoi GIAI_DOAN=truoc … (trên 847cd72e), rồi GIAI_DOAN=sau sau khi sửa.
+// Task 7 (đưa đón MỘT ô "Nơi đón" / "Nơi trả", 18/10/2026):
+//   - Bước chặng của hai cách trên nhận ra bản đang chạy: còn ô chọn `select[data-o$=":don"]` (bản trước) → chọn "tudo" + gõ ô địa chỉ như cũ; không còn (bản sau) → chạm ô
+//     "Nơi đón" thật, gõ địa chỉ, chạm dòng "Gõ tự do: …" (cham-that.mjs). Cùng bản nháp nên thân vẫn phải giống tệp đã ghi.
+//   - CACH=noi (tệp than-gui-noi-<giai đoạn>.json, nên đặt THU_MUC=…/dua-don-mot-o): kịch bản RIÊNG cho hai nhánh chọn nơi, cả nơi đón lẫn nơi trả:
+//     TD101 chặng đi: đón = điểm danh mục "Khách sạn Biển Xanh" (gieo vào D1 tạm, đứng CUỐI danh sách — bản sau gõ "bien xanh" để lọc), trả = gõ tự do "Cảng Cầu Đá, Nha Trang",
+//     giờ 07:30, rồi "+ Thêm chiều về" (chiều về tự đảo: đón = chữ tự do, trả = điểm danh mục); TTB06: đón = gõ tự do "12 Trần Phú, Nha Trang", trả = điểm "Bến cảng Vinpearl"
+//     → POST; mở lại, Lưu không đụng gì → PUT-1; mở lại, đổi đón của TD101 sang "Quầy vé 03" và sửa địa chỉ đón TTB06 thành "15 Trần Phú, Nha Trang" → PUT-2.
+//     Bản trước: điền ô chọn / ô địa chỉ bằng JS (ô chọn của máy không bấm được qua CDP). Bản sau: CHẠM THẬT (cảm ứng ở 390, chuột ở 1040) và gõ bằng Input.insertText.
+//     Ngoài so từng byte (đã bỏ UUID), kiểm THÔ từng thân: đúng id điểm đã chọn ở đúng ô, chữ tự do đúng ô — bộ chuẩn hoá thay mọi UUID bằng <id> nên chọn nhầm điểm vẫn "giống".
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ACCOUNTS, ok, setInput, sleep, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { cham, chonNoiMotO } from "./cham-that.mjs";
 
 const GIAI_DOAN = process.env.GIAI_DOAN ?? "truoc";
 const LUOI = process.env.CACH === "luoi";
+const NOI = process.env.CACH === "noi";
 const OUT = process.env.THU_MUC ?? "docs/evidence/2026-10-18-tao-don-thiet-ke-lai/the-gap";
-const TEN = LUOI ? "than-gui-luoi" : "than-gui";
+const TEN = LUOI ? "than-gui-luoi" : NOI ? "than-gui-noi" : "than-gui";
 mkdirSync(OUT, { recursive: true });
 const KHO = [["390", { width: 390, height: 844, mobile: true }], ["1040", { width: 1040, height: 900, mobile: false }]];
 
 const chuanHoa = (txt) =>
   JSON.stringify(JSON.parse(txt), (k, v) => (k === "expectedUpdatedAt" ? "<dau-thoi-gian>" : v)).replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g, "<id>");
-const layThan = (p, method) => p.requests.filter((r) => r.method === method && /\/api\/orders(\/[^/]+)?$/.test(new URL(r.url).pathname)).map((r) => chuanHoa(r.postData)).at(-1);
+const layThanTho = (p, method) => p.requests.filter((r) => r.method === method && /\/api\/orders(\/[^/]+)?$/.test(new URL(r.url).pathname)).map((r) => r.postData).at(-1);
+const layThan = (p, method) => chuanHoa(layThanTho(p, method));
 
 const the = (i) => `document.querySelectorAll('#services .svc')[${i}]`;
 const demDem = (i, nhan) => `${the(i)}.querySelector('.counter-field[aria-label=${JSON.stringify(nhan)}]')`;
 const hien = (sel) => `(() => { const e = ${sel}; return !!e && e.getClientRects().length > 0; })()`;
+const chang = (i, j) => `${the(i)}.querySelectorAll('.dd-chang')[${j}]`;
+const oNoi = (i, j, loai) => `${chang(i, j)}.querySelector('[data-o$=":${loai}"]')`;
+/** Bản trước (Task 7) còn ô chọn của máy cho nơi đón / nơi trả. */
+const banCu = (p) => p.ev(`!!document.querySelector('#services select[data-o$=":don"]')`);
+// CACH=noi: điểm danh mục (id cố định — 8 điểm gieo sẵn ở migrations/0010_locations.sql + một khách sạn gieo thêm, đứng cuối danh sách).
+const KS_BIEN_XANH = "b1e5a000-7a57-4d0a-9c1e-000000000001";
+const BEN_VINPEARL = "ec67ff94-bb00-4546-842a-aedb5f916b0a";
+const QUAY_VE_03 = "2e863e6c-fdb5-4907-be7d-496fac57bf3a";
 
 const env = await startEnv();
+if (NOI) env.sql(`INSERT INTO loc_location (id, code, name, location_type_code, sort_order, created_at, updated_at) VALUES ('${KS_BIEN_XANH}', 'KS_BIEN_XANH', 'Khách sạn Biển Xanh', 'HOTEL', 20, '2026-10-18T00:00:00.000Z', '2026-10-18T00:00:00.000Z')`);
 const than = {};
 try {
   /** CACH=luoi: bấm nút bộ đếm `nut` ("Tăng" | "Giảm") của loại `nhan` ở thẻ i, `lan` lần — nút phải đang hiện (thẻ mở). */
@@ -64,6 +85,33 @@ try {
     }
     await p.ev(setInput(o, chu));
   };
+  /** Ô nơi `loai` ("don" | "tra") của chặng j thẻ i = chữ tự do `chu`. Bản trước: ô chọn → "tudo", gõ ô địa chỉ (đã có thì gõ thẳng). Bản sau: chạm ô, gõ, chạm "Gõ tự do: …". */
+  const goTuDo = async (p, mobile, i, j, loai, chu) => {
+    if (await banCu(p)) {
+      if (!(await p.ev(`!!${chang(i, j)}.querySelector('[data-o$=":${loai}-chu"]')`))) {
+        await p.ev(setInput(oNoi(i, j, loai), "tudo"));
+        await p.waitFor(`!!${chang(i, j)}.querySelector('[data-o$=":${loai}-chu"]')`, `ô địa chỉ ${loai}`);
+      }
+      await p.ev(setInput(`${chang(i, j)}.querySelector('[data-o$=":${loai}-chu"]')`, chu));
+      return;
+    }
+    await chonNoiMotO(p, mobile, oNoi(i, j, loai), { tim: chu, dong: "Gõ tự do: ", xoaTruoc: true });
+    assert.equal(await p.ev(`(${oNoi(i, j, loai)}).value`), chu, `ô ${loai} hiện đúng chữ tự do vừa chọn`);
+  };
+  /** Ô nơi `loai` của chặng j thẻ i = điểm danh mục `id` (bản sau: gõ `tim`, chạm dòng bắt đầu bằng `ten`). */
+  const chonDiem = async (p, mobile, i, j, loai, id, tim, ten) => {
+    if (await banCu(p)) return p.ev(setInput(oNoi(i, j, loai), id));
+    await chonNoiMotO(p, mobile, oNoi(i, j, loai), { tim, dong: ten });
+    assert.match(await p.ev(`(${oNoi(i, j, loai)}).value`), new RegExp(`^${ten}`), `ô ${loai} hiện điểm vừa chọn`);
+  };
+  /** Bản sau: mở thẻ i (chạm đầu thẻ thật) và chặng j nếu đang gọn một dòng (chạm dòng tóm tắt thật) — để chạm được ô nơi. Bản trước: ô luôn trong cây DOM, không cần. */
+  const moChang = async (p, mobile, i, j) => {
+    if (await banCu(p)) return;
+    if ((await p.ev(`${the(i)}.querySelector('.svc-mo')?.getAttribute('aria-expanded')`)) === "false") await cham(p, mobile, `${the(i)}.querySelector('.svc-mo')`);
+    const tt = `${chang(i, j)}.closest('.dd-chang-khung')?.querySelector('.dd-tom-tat')`;
+    if (await p.ev(hien(tt))) await cham(p, mobile, tt);
+    assert.equal(await p.ev(hien(oNoi(i, j, "don"))), true, `ô nơi đón chặng ${j + 1} thẻ ${i + 1} đang hiện`);
+  };
   const chon = async (p, tim, soThe) => {
     await p.ev("document.getElementById('catalog-q').focus(); true");
     await p.ev(setInput("document.getElementById('catalog-q')", tim));
@@ -72,21 +120,80 @@ try {
     await p.waitFor(`document.querySelectorAll('#services .svc').length === ${soThe}`, `thẻ thứ ${soThe}`);
     await sleep(200);
   };
-  const moLai = async (p, id) => {
+  const moLai = async (p, id, soThe = 3) => {
     await p.send("Page.navigate", { url: `${env.base}/order-form?id=${id}` });
     await sleep(500);
-    await p.waitFor("location.pathname === '/order-form' && document.querySelectorAll('#services .svc').length === 3", "form sửa đơn dựng xong", 15000);
+    await p.waitFor(`location.pathname === '/order-form' && document.querySelectorAll('#services .svc').length === ${soThe}`, "form sửa đơn dựng xong", 15000);
     await sleep(600);
   };
   const luuXong = async (p, nhan) => {
     await p.ev("document.getElementById('save').click(); true");
     await p.waitFor("location.pathname === '/order' && !!new URLSearchParams(location.search).get('id')", nhan, 15000);
   };
+  /** CACH=noi — hai nhánh chọn nơi (điểm danh mục, gõ tự do) ở cả ô đón lẫn ô trả; xem chú thích đầu tệp. Kiểm thô từng thân rồi trả bản đã chuẩn hoá. */
+  const kichBanNoi = async (p, kho, mobile) => {
+    const leg = (t, k, j) => JSON.parse(t).services[k].legs[j];
+    const kiemLeg = (t, k, j, mong, ten) => {
+      const l = leg(t, k, j);
+      const co = Object.fromEntries(Object.keys(mong).map((x) => [x, l[x]]));
+      assert.deepEqual(co, mong, `${ten} (${kho}): thân thô dịch vụ ${k + 1} chặng ${j + 1}`);
+    };
+    await chon(p, "TD101", 1);
+    await p.ev(setInput(demDem(0, "Người lớn"), "2"));
+    await p.ev(`${the(0)}.querySelector('[data-action="them-dua-don"]').click(); true`);
+    await p.waitFor(`!!${oNoi(0, 0, "don")}`, "chặng đưa đón TD101");
+    await chonDiem(p, mobile, 0, 0, "don", KS_BIEN_XANH, "bien xanh", "Khách sạn Biển Xanh");
+    await goTuDo(p, mobile, 0, 0, "tra", "Cảng Cầu Đá, Nha Trang");
+    await p.ev(setInput(`${chang(0, 0)}.querySelector('[data-o$=":gio"]')`, "07:30"));
+    await p.ev(`${the(0)}.querySelector('[data-action="them-chieu-ve"]').click(); true`);
+    await p.waitFor(`${the(0)}.querySelectorAll('.dd-chang').length === 2`, "chiều về TD101");
+    await chon(p, "TTB06", 2);
+    await p.ev(setInput(demDem(1, "Người lớn"), "2"));
+    await p.ev(`${the(1)}.querySelector('[data-action="them-dua-don"]').click(); true`);
+    await p.waitFor(`!!${oNoi(1, 0, "don")}`, "chặng đưa đón TTB06");
+    await goTuDo(p, mobile, 1, 0, "don", "12 Trần Phú, Nha Trang");
+    await chonDiem(p, mobile, 1, 0, "tra", BEN_VINPEARL, "vinpearl", "Bến cảng Vinpearl");
+    await p.ev(setInput("document.getElementById('customerName')", "Khách Một Ô Nơi"));
+    await p.ev(setInput("document.getElementById('customerPhone')", "0912345671"));
+    await sleep(300);
+    await luuXong(p, "lưu đơn mới (CACH=noi)");
+    const post = layThanTho(p, "POST");
+    kiemLeg(post, 0, 0, { direction: "OUT", pickupLocationId: KS_BIEN_XANH, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "Cảng Cầu Đá, Nha Trang", pickupTime: "07:30" }, "POST");
+    kiemLeg(post, 0, 1, { direction: "RETURN", pickupLocationId: null, pickupPlace: "Cảng Cầu Đá, Nha Trang", dropoffLocationId: KS_BIEN_XANH, dropoffPlace: "" }, "POST");
+    kiemLeg(post, 1, 0, { direction: "OUT", pickupLocationId: null, pickupPlace: "12 Trần Phú, Nha Trang", dropoffLocationId: BEN_VINPEARL, dropoffPlace: "" }, "POST");
+    than[`POST-${kho}`] = chuanHoa(post);
+    const id = await p.ev("new URLSearchParams(location.search).get('id')");
+    await moLai(p, id, 2);
+    await luuXong(p, "lưu thay đổi (không đụng gì, CACH=noi)");
+    const put1 = layThanTho(p, "PUT");
+    kiemLeg(put1, 0, 0, { pickupLocationId: KS_BIEN_XANH, dropoffPlace: "Cảng Cầu Đá, Nha Trang" }, "PUT-1");
+    kiemLeg(put1, 1, 0, { pickupPlace: "12 Trần Phú, Nha Trang", dropoffLocationId: BEN_VINPEARL }, "PUT-1");
+    than[`PUT-1-${kho}`] = chuanHoa(put1);
+    await moLai(p, id, 2);
+    await moChang(p, mobile, 0, 0);
+    await chonDiem(p, mobile, 0, 0, "don", QUAY_VE_03, "quay ve 03", "Quầy vé 03");
+    await moChang(p, mobile, 1, 0);
+    await goTuDo(p, mobile, 1, 0, "don", "15 Trần Phú, Nha Trang");
+    await sleep(300);
+    await luuXong(p, "lưu thay đổi (đổi nơi đón, CACH=noi)");
+    const put2 = layThanTho(p, "PUT");
+    kiemLeg(put2, 0, 0, { pickupLocationId: QUAY_VE_03, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "Cảng Cầu Đá, Nha Trang" }, "PUT-2");
+    kiemLeg(put2, 0, 1, { pickupPlace: "Cảng Cầu Đá, Nha Trang", dropoffLocationId: KS_BIEN_XANH }, "PUT-2");
+    kiemLeg(put2, 1, 0, { pickupLocationId: null, pickupPlace: "15 Trần Phú, Nha Trang", dropoffLocationId: BEN_VINPEARL }, "PUT-2");
+    than[`PUT-2-${kho}`] = chuanHoa(put2);
+  };
   for (const [kho, vp] of KHO) {
     const p = await env.as(ACCOUNTS.salesA, "/order-form", vp);
     await p.waitFor("!!document.getElementById('catalog-q') && !document.getElementById('catalog-q').disabled", "ô tìm danh mục sẵn sàng", 15000);
     await sleep(600);
     await p.ev(setInput("document.getElementById('orderDate')", vnDate(3)));
+    if (NOI) {
+      await kichBanNoi(p, kho, vp.mobile);
+      assert.deepEqual(p.consoleErrors.filter((e) => !/favicon/.test(e)), [], `lỗi console ${kho}`);
+      p.close();
+      ok(`thân gửi ${kho} (CACH=noi): POST, PUT-1, PUT-2 — kiểm thô id điểm / chữ tự do từng ô đạt`);
+      continue;
+    }
     await chon(p, "TD101", 1);
     if (LUOI) {
       await bamDem(p, 0, "Tăng", "Người lớn", 1); // thẻ mới: 1 người lớn → 2
@@ -98,10 +205,8 @@ try {
     await sleep(200);
     await goDonGia(p, "1.300.000");
     await p.ev(`${the(0)}.querySelector('[data-action="them-dua-don"]').click(); true`);
-    await p.waitFor(`!!${the(0)}.querySelector('select[data-o$=":don"]')`, "chặng đưa đón");
-    await p.ev(setInput(`${the(0)}.querySelector('select[data-o$=":don"]')`, "tudo"));
-    await p.waitFor(`!!${the(0)}.querySelector('[data-o$=":don-chu"]')`, "ô địa chỉ đón");
-    await p.ev(setInput(`${the(0)}.querySelector('[data-o$=":don-chu"]')`, "12 Trần Phú, Nha Trang"));
+    await p.waitFor(`!!${oNoi(0, 0, "don")}`, "chặng đưa đón");
+    await goTuDo(p, vp.mobile, 0, 0, "don", "12 Trần Phú, Nha Trang");
     await p.ev(setInput(`${the(0)}.querySelector('[data-o$=":gio"]')`, "07:30"));
     await chon(p, "phao", 2);
     if (LUOI) await bamDem(p, 1, "Tăng", "Số khách", 6); // 1 → 7
