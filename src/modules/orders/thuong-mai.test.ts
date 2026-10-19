@@ -322,7 +322,7 @@ test("cheDoThuongMai trên cả 1024 tập quyền × {đơn của mình, đơn 
 });
 
 // ===== Sổ đại lý đợt 2, Task 7: tổng hoa hồng cho trần giảm giá / cảnh báo (cùng phép tính dòng `tinhDongDoiTac` với DTO) =====
-import { coNguoiHuongDon, tongHoaHongDon } from "./thuong-mai.ts";
+import { benDatKhongHuongDon, coNguoiHuongDon, nguoiHuongCuaDon, tongHoaHongDon } from "./thuong-mai.ts";
 
 test("Task 7 tongHoaHongDon: cộng hoa hồng các dòng theo bản chụp; dòng thiếu mức ⇒ 0 (trần nháp / xác nhận) hoặc null (cảnh báo); dòng không có bản chụp ⇒ thiếu mức", () => {
   const dv = [{ id: "s1", thanhTien: 7_900_000, soKhachTinh: 10 }, { id: "s2", thanhTien: 300_000, soKhachTinh: 1 }];
@@ -342,4 +342,12 @@ test("Task 7 coNguoiHuongDon: có dòng bản chụp mang người hưởng (k�
   assert.equal(coNguoiHuongDon([thieu]), true);
   assert.equal(coNguoiHuongDon([{ ...set, beneficiaryPartyId: null, hoaHong: { status: "NONE" as const } }]), false);
   assert.equal(coNguoiHuongDon([]), false);
+});
+
+test("Task 7 vòng sửa: nguoiHuongCuaDon / benDatKhongHuongDon đọc từ bản chụp", () => {
+  assert.equal(nguoiHuongCuaDon([set]), "dla");
+  assert.equal(nguoiHuongCuaDon([{ ...set, beneficiaryPartyId: null, hoaHong: { status: "NONE" as const } }]), null);
+  assert.equal(benDatKhongHuongDon([set]), false);
+  assert.equal(benDatKhongHuongDon([{ ...thieu, hoaHong: { status: "MISSING" as const, reason: "BOOKER_NOT_BENEFICIARY" as const } }]), true);
+  assert.equal(benDatKhongHuongDon([thieu]), false, "dòng nhập tay thiếu mức không phải lý do bên đặt");
 });

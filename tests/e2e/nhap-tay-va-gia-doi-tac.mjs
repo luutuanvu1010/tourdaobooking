@@ -185,6 +185,8 @@ console.log("✓ R3: Đối tác (đơn không người hưởng) đúng giá da
 // 4b) Task 7 (ADR-0079 điều 8, 9; C8 = A): đơn CÓ người hưởng ⇒ trần = tổng hoa hồng của đơn, cho MỌI người sửa đơn. Kế toán cài mức RIÊNG 10% cho hồ sơ của P (mức riêng
 // thắng mức theo vai / mức TA ⇒ số tiền xác định trên D1 dùng chung). 2 × ZE1, hoa hồng H = 10% ⇒ giảm H + 1 → 400 `discount_exceeds_commission`; giảm H → 201. Bán hàng gắn bên đặt
 // là hồ sơ của P: cùng trần (C8 = A).
+// M-3 (người kiểm Task 7): mức riêng 10% này Ở LẠI D1 của lần chạy (không đóng) — chỉ gắn hồ sơ P dùng một lần của kịch bản này, nên không chồng lên mức theo
+// vai / mức TA mà kịch bản khác (so-dai-ly, muc-ta) đọc; run.mjs dựng D1 mới mỗi lần.
 const ACC = await session(ACCOUNTS.accountant);
 r = await call(ACC, "POST", "/api/pricing/hoa-hong", { doiTuong: { loai: "DOI_TAC", partyId: P_PARTY }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000, tuNgay: vnDate(0) });
 assert.equal(r.status, 201, `mức riêng 10% cho hồ sơ Cộng tác viên: ${JSON.stringify(r.body)}`);

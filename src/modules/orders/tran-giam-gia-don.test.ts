@@ -192,3 +192,43 @@ test("đổi bên đặt sau Xác nhận: khách lẻ giảm 300.000 → đại 
   assert.equal(ok.status, 200, ok.text);
   assert.equal(w.q("SELECT booker_party_id AS b FROM orders WHERE id = ?", id)[0].b, DLC);
 });
+
+// ---- Vòng sửa theo người kiểm Task 7 (I-1, M-1) ----
+test("I-1: Đối tác không được hưởng / tài khoản lai Bán hàng + Đối tác sửa nháp mà văn phòng đã gắn đại lý KHÁC (DLA) ⇒ 403 câu cũ, không lộ số hoa hồng — lưu nháp và Xác nhận", async () => {
+  const w = await setup();
+  for (const [ten, who] of [["Đối tác không được hưởng", DT0], ["tài khoản lai Bán hàng + Đối tác", LAI]] as const) {
+    const r0 = await lap(w, who, C5);
+    assert.equal(r0.status, 201, `${ten}: ${r0.text}`);
+    const id = r0.json.order.id;
+    // Văn phòng (Quản trị) gắn bên đặt DLA bằng route thật.
+    const gan = await w.call("PUT", `/api/orders/${id}`, {
+      as: ADMIN, body: than([{ ...dv("ZA1", 10), id: r0.json.order.services[0].id }], { bookerPartyId: DLA, expectedUpdatedAt: w.q("SELECT updated_at AS u FROM orders WHERE id = ?", id)[0].u }),
+    });
+    assert.equal(gan.status, 200, `${ten}, Quản trị gắn DLA: ${gan.text}`);
+    assert.equal(w.q("SELECT booker_party_id AS b FROM orders WHERE id = ?", id)[0].b, DLA);
+    const sua = await w.call("PUT", `/api/orders/${id}`, {
+      as: who, body: than([{ ...dv("ZA1", 10), id: gan.json.order.services[0].id }], { discount: 790000, expectedUpdatedAt: gan.json.order.updatedAt }),
+    });
+    cam(sua, CAU_GIAM_DOI_TAC, `${ten}, lưu nháp giảm 790.000`);
+    assert.doesNotMatch(sua.text, /790\.000/, `${ten}: câu không lộ số hoa hồng của đại lý`);
+    assert.equal(w.q("SELECT discount FROM orders WHERE id = ?", id)[0].discount, 0, `${ten}: đơn không đổi`);
+    datGiam(w, id, 790000);
+    const xn = await xacNhan(w, id, who);
+    cam(xn, CAU_GIAM_DOI_TAC, `${ten}, xác nhận`);
+    assert.doesNotMatch(xn.text, /790\.000/);
+    assert.equal(w.q("SELECT status FROM orders WHERE id = ?", id)[0].status, "draft");
+  }
+});
+
+test("M-1: bên đặt mang vai bên ngoài không còn được hưởng (KHONG_HUONG — loại vai được hưởng bị tắt sau khi gắn) ⇒ Xác nhận 400 câu riêng, không «Giảm tối đa 0 ₫»", async () => {
+  const w = await setup();
+  const r0 = await lap(w, SALES, C5, { bookerPartyId: DLB });
+  assert.equal(r0.status, 201, r0.text);
+  datGiam(w, r0.json.order.id, 1);
+  w.sqlite.prepare("UPDATE prc_beneficiary_role SET active = 0 WHERE role_type_code = 'TRAVEL_AGENCY'").run();
+  const xn = await xacNhan(w, r0.json.order.id);
+  assert.equal(xn.status, 400, xn.text);
+  assert.equal(xn.json.error.code, "discount_exceeds_commission");
+  assert.equal(xn.json.error.message, "Chưa giảm giá được: bên đặt không còn được hưởng hoa hồng — nhờ văn phòng sửa bên đặt hoặc Kế toán ghi mức.");
+  assert.equal(w.q("SELECT status FROM orders WHERE id = ?", r0.json.order.id)[0].status, "draft");
+});

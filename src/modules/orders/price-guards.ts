@@ -163,23 +163,37 @@ export const CAU_TRAN_HOA_HONG = (tran: number): string => `Giảm tối đa ${t
  * sửa đơn (C8 = A: giảm giá trên đơn có người hưởng là giảm giá của bên hưởng, bên đó chịu); đơn KHÔNG người hưởng → luật hôm nay: Đối tác (kể cả lai) `PARTNER_DISCOUNT_CAP`, còn lại null.
  * `tongHoaHong`: nháp = theo bảng mức hôm nay, dòng thiếu mức tính 0; lúc Xác nhận = theo bản chụp vừa tính trong cùng lô (ADR-0079 điều 8).
  */
-export function tranGiamGiaDon(v: { coNguoiHuong: boolean; tongHoaHong: number; laDoiTac: boolean; laThucTap: boolean }): number | null {
+export function tranGiamGiaDon(v: { coNguoiHuong: boolean; tongHoaHong: number; laDoiTac: boolean; laThucTap: boolean; nguoiHuongLaMinh: boolean }): number | null {
   if (v.laThucTap) return INTERN_DISCOUNT_CAP;
+  // Vòng sửa Task 7 (I-1): tài khoản giữ quyền Đối tác (kể cả lai) chỉ dùng trần hoa hồng trên đơn mà CHÍNH hồ sơ của mình là người hưởng (ADR-0027 2b);
+  // đơn văn phòng gắn bên đặt là đại lý KHÁC ⇒ luật cũ (DK-T3-01), không bao giờ mượn hoa hồng của bên khác.
+  if (v.laDoiTac && !(v.coNguoiHuong && v.nguoiHuongLaMinh)) return PARTNER_DISCOUNT_CAP;
   if (v.coNguoiHuong) return v.tongHoaHong;
-  return v.laDoiTac ? PARTNER_DISCOUNT_CAP : null;
+  return null;
 }
 
 /** Lỗi trần giảm giá: 403 cho luật theo quyền (Đối tác đơn khách lẻ, Thực tập — câu cũ), 400 `discount_exceeds_commission` cho trần hoa hồng (ADR-0079 tiêu chí 4). */
 export type ViPhamTran = { status: 403; code: "forbidden"; cau: string } | { status: 400; code: "discount_exceeds_commission"; cau: string };
 
-/** Vế trần (R3 + C8 = A) cho lập đơn, sửa nháp, xác nhận. `don` = người hưởng + tổng hoa hồng của ĐƠN (route tính); null = đạt. */
-export function viPhamTranGiamGia(staff: PermissionHolder, discount: number, don: { coNguoiHuong: boolean; tongHoaHong: number }): ViPhamTran | null {
+/** Câu riêng khi bên đặt mang vai bên ngoài mà KHÔNG còn được hưởng (mọi dòng thiếu mức `BOOKER_NOT_BENEFICIARY` ⇒ trần 0) — vòng sửa Task 7, M-1. */
+export const CAU_BEN_DAT_KHONG_HUONG = "Chưa giảm giá được: bên đặt không còn được hưởng hoa hồng — nhờ văn phòng sửa bên đặt hoặc Kế toán ghi mức.";
+
+/** Người hưởng + tổng hoa hồng của ĐƠN do route tính từ bản chụp (dự kiến hoặc vừa chụp). `benDatKhongHuong` = bên đặt mang vai bên ngoài không còn được hưởng. */
+export interface DonChoTran { coNguoiHuong: boolean; tongHoaHong: number; beneficiaryPartyId: string | null; benDatKhongHuong: boolean }
+
+/**
+ * Vế trần (R3 + C8 = A) cho lập đơn, sửa nháp, xác nhận; null = đạt. Tài khoản giữ quyền Đối tác (kể cả lai) mà người hưởng của đơn KHÁC hồ sơ của mình ⇒ 403 câu cũ
+ * `PARTNER_DISCOUNT_MESSAGE` — KHÔNG BAO GIỜ nêu số hoa hồng của bên khác (vòng sửa Task 7, I-1).
+ */
+export function viPhamTranGiamGia(staff: PermissionHolder & { partyId?: string | null }, discount: number, don: DonChoTran): ViPhamTran | null {
   const laDoiTac = holdsPartner(staff);
   const laThucTap = holdsIntern(staff);
-  const tran = tranGiamGiaDon({ ...don, laDoiTac, laThucTap });
+  const nguoiHuongLaMinh = don.beneficiaryPartyId !== null && (staff.partyId ?? null) === don.beneficiaryPartyId;
+  const tran = tranGiamGiaDon({ coNguoiHuong: don.coNguoiHuong, tongHoaHong: don.tongHoaHong, laDoiTac, laThucTap, nguoiHuongLaMinh });
   if (tran === null || discountWithinCap(discount, tran)) return null;
   if (laThucTap) return { status: 403, code: "forbidden", cau: laDoiTac ? PARTNER_DISCOUNT_MESSAGE : INTERN_PRICE_MESSAGE };
-  if (don.coNguoiHuong) return { status: 400, code: "discount_exceeds_commission", cau: CAU_TRAN_HOA_HONG(tran) };
+  if (laDoiTac && !nguoiHuongLaMinh) return { status: 403, code: "forbidden", cau: PARTNER_DISCOUNT_MESSAGE };
+  if (don.coNguoiHuong) return { status: 400, code: "discount_exceeds_commission", cau: don.benDatKhongHuong ? CAU_BEN_DAT_KHONG_HUONG : CAU_TRAN_HOA_HONG(tran) };
   return { status: 403, code: "forbidden", cau: PARTNER_DISCOUNT_MESSAGE };
 }
 

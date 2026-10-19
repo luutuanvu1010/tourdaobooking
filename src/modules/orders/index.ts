@@ -48,7 +48,7 @@ import type { DongBoTheoDon, NoiChuyen } from "../../shared/dong-bo-chuyen";
 import { CAU_X3_THUE_XE, NHOM_THUE_XE } from "../../shared/so-dai-ly-nhan";
 import { lichSuChoDoiTac } from "../../shared/lich-su-doi-tac";
 import { lichSuNoiBo } from "../../shared/lich-su-noi-bo";
-import { apGhiTay, banChupTuDb, cheDoThuongMai, chuaCoBanChup, coNguoiHuongDon, dongGhiTuChup, dungThuongMai, kiemGhiTayVoiBanChup, kiemThanGhiTay, moTaChup, moTaGhiTay, tongHoaHongDon, type PhanThuongMai } from "./thuong-mai";
+import { apGhiTay, banChupTuDb, cheDoThuongMai, chuaCoBanChup, coNguoiHuongDon, donChoTran, dongGhiTuChup, dungThuongMai, kiemGhiTayVoiBanChup, kiemThanGhiTay, moTaChup, moTaGhiTay, tongHoaHongDon, type PhanThuongMai } from "./thuong-mai";
 import { banChupHienHanh, cauChupChuoi, cauDoiMocSauGhiTay, cauGhiTay, cauKhoaChupBu, demBanChup, donChoChupBu, laNhaCungCap, nhomCuaMa, tenHoSo } from "./thuong-mai-repo";
 import { laThanDonCu, laThanTripCu } from "./than-cu";
 import { canhBaoGiamGiaDon, cauDoiBenDatVuotHoaHong, duocNhapTay, holdsPartner, lyDoKhongNhapTay, manualFreezeViolation, viPhamGiaDanhMuc, viPhamTranGiamGia } from "./price-guards";
@@ -277,9 +277,9 @@ const TRAN_GIAM_GIA = (v: NonNullable<ReturnType<typeof viPhamTranGiamGia>>) => 
  * chính mình nên trần không xét được trước bước đó). Đơn có người hưởng ⇒ trần = tổng hoa hồng tính thử theo bảng mức HÔM NAY (cùng `docBangChoChup` + `chupDon` với Xác nhận; dòng
  * thiếu mức tính 0, không lưu gì); đơn không người hưởng ⇒ luật hôm nay (Đối tác kể cả lai 0, Thực tập 0). Giảm giá 0 thì không đọc bảng (0 luôn trong trần). null = đạt.
  */
-async function tranGiamGiaNhap(db: D1Database, staff: PermissionHolder, order: ValidOrder, bookerPartyId: string | null): Promise<Response | null> {
+async function tranGiamGiaNhap(db: D1Database, staff: PermissionHolder & { partyId: string | null }, order: ValidOrder, bookerPartyId: string | null): Promise<Response | null> {
   if (order.discount === 0) return null;
-  let don = { coNguoiHuong: false, tongHoaHong: 0 };
+  let don = { coNguoiHuong: false, tongHoaHong: 0, beneficiaryPartyId: null as string | null, benDatKhongHuong: false };
   if (bookerPartyId !== null) {
     const bang = await docBangChoChup(db, { bookerPartyId, catalogCodes: order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : [])), ngay: vnToday(new Date()) });
     // Dịch vụ chưa lưu không có id: khoá tạm theo thứ tự (chỉ để ghép bản chụp dự kiến với tiền của dòng, không ghi).
@@ -289,7 +289,7 @@ async function tranGiamGiaNhap(db: D1Database, staff: PermissionHolder, order: V
       dong: order.services.map((s, i) => ({ serviceId: khoa(i), catalogCode: s.catalogCode, groupCode: s.catalogCode ? (bang.nhom.get(s.catalogCode) ?? null) : null })),
     });
     const tien = order.services.map((s, i) => ({ id: khoa(i), ...tienChoHoaHong(s) }));
-    don = { coNguoiHuong: coNguoiHuongDon(chup), tongHoaHong: tongHoaHongDon(chup, tien, "tinh0") ?? 0 };
+    don = donChoTran(chup, tien);
   }
   const v = viPhamTranGiamGia(staff, order.discount, don);
   return v ? TRAN_GIAM_GIA(v) : null;
@@ -1575,7 +1575,7 @@ export const ordersModule: AppModule = {
         // không người hưởng: luật hôm nay (Đối tác, Thực tập 0). Giảm giá là số ĐÃ LƯU; tiền dòng đọc từ `order` (đơn nháp: chưa có dòng điều chỉnh).
         if (order) {
           const tien = order.services.map((s) => ({ id: s.id, ...tienChoHoaHong(s) }));
-          const tranLoi = viPhamTranGiamGia(staff, order.discount, { coNguoiHuong: coNguoiHuongDon(chup), tongHoaHong: tongHoaHongDon(chup, tien, "tinh0") ?? 0 });
+          const tranLoi = viPhamTranGiamGia(staff, order.discount, donChoTran(chup, tien)); // I-1: Đối tác trên đơn đại lý KHÁC ⇒ luật cũ, không nêu số
           if (tranLoi) return TRAN_GIAM_GIA(tranLoi);
         }
         const kemChup = (at: string): D1PreparedStatement[] => [
