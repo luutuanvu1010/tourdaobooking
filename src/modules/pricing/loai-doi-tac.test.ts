@@ -75,7 +75,7 @@ function nhap(w: W, booker: string | null, tong = 2_000_000): string {
   w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, booker_party_id, created_at, updated_at)
     VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', ?, ?, ?, ?, ?, ?)`).run(id, `TD-${seq}`, SALES, tong, tong, tong, booker, AT, AT);
   const s = `${id}-s0`;
-  w.sqlite.prepare(`INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, ?, 0, 'HONTAM', 'DV 0', 'perPax', 1, ?)`).run(s, id, vnHomNay());
+  w.sqlite.prepare(`INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, 0, 'HONTAM', 'DV 0', 'perPax', 1, ?)`).run(s, id, vnHomNay());
   w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, 'HONTAM', 'adult', 'Người lớn', 1, ?, ?, ?)`).run(`${s}-i`, id, s, tong, tong, tong);
   return id;
 }
@@ -214,7 +214,7 @@ test("N-3: Quản trị gắn loại mới cho hồ sơ tổ chức ⇒ 201; hi�
   assert.ok((await nguoiHuongTim(w, "Hoa Sen")).includes(ORG), "hồ sơ mang loại mới hiện ở tìm người hưởng");
   const don = await w.call("POST", "/api/orders", { as: SALES, body: {
     customerName: "Khách Thử", customerPhone: "0912345678", bookerPartyId: ORG,
-    services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(3) }],
+    services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(3) }],
   } });
   assert.equal(don.status, 201, don.text);
   assert.equal(don.json.order.bookerPartyId, ORG);

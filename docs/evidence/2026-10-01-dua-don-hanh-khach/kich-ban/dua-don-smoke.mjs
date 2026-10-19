@@ -30,7 +30,7 @@ const goiApi = (ai) => (method, path, body) => call(ai, method, path, body);
 const NO_TRIP = { departDate: NGAY, departTime: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
 const base = { customerEmail: "", customerNote: "", discount: 0, paymentNote: "" };
 const leg = (o) => ({ direction: "OUT", pickupDate: NGAY, pickupTime: "07:30", pickupLocationId: KS, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "", ...o });
-const svc = (adult, legs) => ({ kind: "catalog", catalogCode: "TD101", pax: { adult, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, unitPrices: { adult: 1350000 }, ...NO_TRIP, legs });
+const svc = (adult, legs) => ({ kind: "catalog", catalogCode: "TD101", pax: { adult, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, unitPrices: { adult: 1350000 }, ...NO_TRIP, legs, pickupChoice: legs?.length ? "DON" : "KHONG_DON" });
 const donApi = async (goi, ten, adult, legs, passengers) => {
   const r = await goi("POST", "/api/orders", { ...base, customerName: ten, customerPhone: "0903 111 222", services: [svc(adult, legs)], ...(passengers ? { passengers } : {}) });
   assert.equal(r.status, 201, r.text);

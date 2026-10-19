@@ -58,7 +58,7 @@ try {
     paymentNote: "",
     services: [
       {
-        kind: "catalog",
+        kind: "catalog", pickupChoice: "KHONG_DON",
         catalogCode: "TTB06",
         pax: { adult: 1, child: 0, senior: 0, infant: 0 },
         catalogPriceSeen: { adult: 800000 },

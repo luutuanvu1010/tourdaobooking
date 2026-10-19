@@ -27,7 +27,7 @@ const donMoi = async (as, soKhach, extra = {}) => {
   const r = await call(as, "POST", "/api/orders", {
     customerName: "Khách Xe Đơn", customerPhone: "0903 555 666", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
     services: [{
-      kind: "catalog", catalogCode: "TD101", pax: { adult: soKhach, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
+      kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: soKhach, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
       departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "", departDate: d.NGAY_XA,
       legs: [{ direction: "OUT", pickupDate: d.NGAY_XA, pickupTime: "12:00", pickupLocationId: null, pickupPlace: "InterContinental Nha Trang", dropoffLocationId: "a941dd7d-faab-4098-9ab9-1df7fa6dd551", dropoffPlace: "" }],
     }],

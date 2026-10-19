@@ -59,8 +59,8 @@ try {
     assert.equal(xn.status, 200, JSON.stringify(xn.json));
     return o.id;
   }
-  const td101 = (adult, child = 0) => ({ kind: "catalog", catalogCode: "TD101", pax: pax(adult, child), unitPrices: child ? { adult: 1350000, child: 950000 } : { adult: 1350000 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000, infant: 0 }, departDate: ngay });
-  const ttb06 = { kind: "catalog", catalogCode: "TTB06", pax: pax(1), catalogPriceSeen: { adult: 800000 }, departDate: ngay };
+  const td101 = (adult, child = 0) => ({ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TD101", pax: pax(adult, child), unitPrices: child ? { adult: 1350000, child: 950000 } : { adult: 1350000 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000, infant: 0 }, departDate: ngay });
+  const ttb06 = { kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TTB06", pax: pax(1), catalogPriceSeen: { adult: 800000 }, departDate: ngay };
 
   // Đơn 1: Tour 4 đảo 2 NL × 1.350.000 + 1 TE × 950.000 = 3.650.000; Xe đưa đón riêng (nhập tay) 800.000 → 4.450.000; khách trả trước 500.000.
   const don1 = await donXacNhan({ services: [td101(2, 1), ttb06], daTra: 500000, nhapTay: true });

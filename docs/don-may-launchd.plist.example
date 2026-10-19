@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ĐỀ XUẤT, CHƯA CÀI. Chạy `node scripts/don-may.mjs` mỗi giờ ở chế độ CHỈ IN (không có --yes) để chủ xem nhật ký rồi tự quyết dọn.
+  Không có hàng nào trong tệp này tự tắt tiến trình. Muốn tự dọn thật thì thêm "--yes" vào ProgramArguments — chủ quyết, đừng thêm khi chưa xem kết quả chỉ-in vài ngày.
+  CẢNH BÁO về "--yes" định kỳ: chỉ bật khi bản don-may có bước đối chiếu lại pid ngay trước khi gửi tín hiệu (vòng sửa 1, 19/10) đã được người kiểm độc lập kiểm lại
+  và chủ đã xem kết quả chỉ-in vài ngày; trước đó giữ nguyên chế độ chỉ in. Tệp này không tự cài gì.
+  Cách cài (chủ tự làm, sau khi sửa hai đường dẫn bên dưới):
+    cp docs/don-may-launchd.plist.example ~/Library/LaunchAgents/vn.tourdao.don-may.plist
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/vn.tourdao.don-may.plist
+  Gỡ: launchctl bootout gui/$(id -u)/vn.tourdao.don-may && rm ~/Library/LaunchAgents/vn.tourdao.don-may.plist
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>vn.tourdao.don-may</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/ĐƯỜNG/DẪN/TỚI/node</string>
+    <string>/ĐƯỜNG/DẪN/TỚI/tourdao-sales/scripts/don-may.mjs</string>
+    <string>--tuoi</string>
+    <string>3</string>
+  </array>
+  <key>StartInterval</key><integer>3600</integer>
+  <key>RunAtLoad</key><false/>
+  <key>Nice</key><integer>10</integer>
+  <key>StandardOutPath</key><string>/tmp/tourdao-don-may.log</string>
+  <key>StandardErrorPath</key><string>/tmp/tourdao-don-may.log</string>
+</dict>
+</plist>

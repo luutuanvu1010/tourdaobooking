@@ -29,7 +29,7 @@ for (const typeCode of ["INSPECTION", "TPL_INSURANCE"]) dung(await call(ACCOUNTS
 const o6 = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
   customerName: "Khách Điều Phối 6", customerPhone: "0903 100 306", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
   services: [{
-    kind: "catalog", catalogCode: "TD101", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
+    kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
     departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "", departDate: d.NGAY_KHOA,
     legs: [{ direction: "OUT", pickupDate: d.NGAY_KHOA, pickupTime: "10:20", pickupLocationId: null, pickupPlace: "Vinpearl Beachfront", dropoffLocationId: "a941dd7d-faab-4098-9ab9-1df7fa6dd551", dropoffPlace: "" }],
   }],

@@ -85,6 +85,11 @@ export interface ChangHopLe {
   paxOverride?: number | null;
   exclusiveVehicle?: boolean;
   minVehicleSeats?: number | null;
+  /**
+   * Giờ CUỐI khung đón (ADR-0134 Đ3) — chỉ có khi thân gửi khoá (người lập chọn khung). Vắng / null = "Giờ khác": nơi ghi chèn NULL. Không chép từ chặng
+   * đang lưu (`toGhi`): thân cũ không biết khung, chèn lại không có cuối khung là an toàn (CHECK của 0115 không bao giờ vỡ).
+   */
+  pickupSlotEnd?: string | null;
 }
 
 /** Chặng CÒN HIỆU LỰC đã lưu (đọc từ CSDL): dạng ghi + nhãn đọc (tên điểm danh mục hoặc chữ); hai ô phụ LUÔN có (đọc từ cột). */
@@ -239,6 +244,14 @@ export function kiemChang(raw: unknown, ctx: NguCanhChang): KetQuaChang {
     if (typeof r.pickupTime !== "string" || !isHHMM(r.pickupTime.trim())) return { ok: false, message: `${at}: giờ đón không hợp lệ (định dạng HH:MM).` };
     pickupTime = r.pickupTime.trim();
   }
+  // ADR-0134 Đ3: cuối khung (HH:MM) chỉ đi cùng giờ đón và phải SAU giờ đón — cùng điều kiện CHECK của migration 0115 (báo 400 thay vì 500).
+  let pickupSlotEnd: string | null = null;
+  if (r.pickupSlotEnd !== undefined && r.pickupSlotEnd !== null && r.pickupSlotEnd !== "") {
+    if (typeof r.pickupSlotEnd !== "string" || !isHHMM(r.pickupSlotEnd.trim())) return { ok: false, message: `${at}: giờ cuối khung đón không hợp lệ (định dạng HH:MM).` };
+    pickupSlotEnd = r.pickupSlotEnd.trim();
+    if (pickupTime === null) return { ok: false, message: `${at}: chọn khung giờ đón thì phải có giờ đón (giờ cuối khung đi cùng giờ đầu khung).` };
+    if (pickupSlotEnd <= pickupTime) return { ok: false, message: `${at}: giờ cuối khung đón phải sau giờ đón.` };
+  }
 
   const don = noi(r.pickupLocationId, r.pickupPlace, "nơi đón", at);
   if (!don.ok) return don;
@@ -250,7 +263,10 @@ export function kiemChang(raw: unknown, ctx: NguCanhChang): KetQuaChang {
 
   return {
     ok: true,
-    value: { id, direction, pickupDate, pickupTime, pickupLocationId: don.id, pickupPlace: don.place, dropoffLocationId: tra.id, dropoffPlace: tra.place, ...phu.value },
+    value: {
+      id, direction, pickupDate, pickupTime, pickupLocationId: don.id, pickupPlace: don.place, dropoffLocationId: tra.id, dropoffPlace: tra.place, ...phu.value,
+      ...(pickupSlotEnd !== null ? { pickupSlotEnd } : {}),
+    },
   };
 }
 

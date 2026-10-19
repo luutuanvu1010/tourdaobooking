@@ -134,6 +134,7 @@
   --w-qr: 18rem;            /* QR thanh toán (ADR-0108): bề rộng tối đa ảnh mã trong bảng QR ở trang đơn */
   --w-mfa-qr: 12rem;        /* Bảo mật hai lớp (ADR-0074): bề rộng mã QR ở khối bật ứng dụng xác thực (trang Tôi, bước bật lại khi đăng nhập) */
   --w-o-hep: 12rem;         /* Tạo đơn: bề rộng tối thiểu một ô nhãn nổi ở cột hẹp của form (ba / hai ô cạnh nhau tự xuống hàng) và bề rộng tối đa dòng ghi chú giá trong danh sách dịch vụ */
+  --w-o-chon-mui: 5px;      /* Tạo đơn (vòng sửa 19/10): cạnh mỗi nửa mũi tên tự vẽ của ô chọn một có nhãn nổi — ô tự vẽ (appearance: none) vì Safari / iPhone bỏ đệm trên của ô chọn kiểu máy */
   --w-hh-loc: 14rem;        /* Hoa hồng đối tác / Người bán dịch vụ (sổ đại lý đợt 1 Task 10): bề rộng tối thiểu một ô lọc trên hàng lọc — hẹp hơn thì xuống dòng */
   --tabbar-h: 56px;         /* thanh tab dưới đáy, chưa tính vùng an toàn */
   --h-trang-toi-thieu: calc(100vh + env(safe-area-inset-bottom)); /* trang có thanh tab luôn cao ≥ cả màn hình kể cả vùng vạch vuốt: iPhone (app cài ra màn hình chính) đặt thanh tab cao hơn đúng một vùng an toàn khi trang NGẮN hơn màn hình → thanh nhảy khi dữ liệu về (video của chủ dự án 2026-09-27) */
@@ -3070,6 +3071,13 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .dd-hau-to[hidden] { display: none; }
 .dd-nut { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .dd-nut .pill-btn, .dd-trong .pill-btn { white-space: nowrap; }
+/* ADR-0134: hai nút bắt buộc "Đón" / "Không đón" của thẻ dịch vụ (chia đều, dùng lại .loc-nut — bật = aria-pressed) và hàng khung giờ đón + "Giờ khác"; câu lưu ý màu phụ. Chỉ token. */
+.dd-chon-don { display: flex; gap: var(--s2); }
+.dd-chon-don .loc-nut { flex: 1 1 0; min-width: 0; border-radius: var(--radius-sm); }
+.dd-khung-o { display: flex; flex-direction: column; gap: var(--s2); }
+.dd-khung { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.dd-khung .loc-nut { font-variant-numeric: tabular-nums; }
+.dd-luu-y { margin: 0; font-size: var(--fs-label); color: var(--c-text-muted); }
 .dd-chang [aria-invalid="true"], .hk [aria-invalid="true"] { border-color: var(--c-danger); }
 .dd-chang .field-error[hidden], .hk .field-error[hidden] { display: none; }
 /* Ô Nơi đón / Nơi trả MỘT ô có gợi ý (form Tạo/sửa đơn — Tạo đơn thiết kế lại 18/10/2026, việc 7; web/o-noi-goi-y.ts): danh sách nằm NGAY DƯỚI ô, trong dòng chảy (đẩy phần dưới xuống,
@@ -3540,7 +3548,11 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .o-noi-chu { position: absolute; top: var(--s2); left: calc(var(--s3) + 1px); right: var(--s3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-step-2); font-weight: var(--fw-semibold); line-height: 1.2; color: var(--c-text-muted); pointer-events: none; }
 .o-noi-khung > :is(input, textarea):placeholder-shown:not(:focus) ~ .o-noi-chu { top: calc(var(--h-field) / 2); transform: translateY(-50%); font-size: var(--fs-ui); font-weight: var(--fw-regular); }
 .o-noi-khung > textarea:placeholder-shown:not(:focus) ~ .o-noi-chu { top: var(--s4); transform: none; }
-.o-noi-khung > select { padding-left: var(--s2); } /* chữ chọn trong ô chọn một thụt vào ~4px so với ô gõ: kéo lại cho thẳng hàng với nhãn */
+/* Ô chọn một có nhãn nổi TỰ VẼ (vòng sửa sau production 19/10/2026 — chủ dự án thấy trên Safari: nhãn "Hình thức" / "Người thu tiền" đè chữ "Tiền mặt"). WebKit (Safari máy Mac, mọi
+   trình duyệt trên iPhone) vẽ ô chọn kiểu máy thì BỎ đệm trên + chiều cao tối thiểu ở luật trên (đo: đệm trên 0px, cao 25px) nên nhãn rơi vào dòng chữ; Chrome thì tôn trọng. Bỏ kiểu
+   máy (appearance: none) → hai bộ máy cùng giữ đệm 24px / cao 52px như ô gõ; mũi tên tự vẽ bằng hai tam giác (nằm ngang dòng chữ, dưới nhãn), chừa chỗ phải cho chữ dài. Bỏ kiểu
+   máy cũng bỏ phần thụt ~4px của chữ chọn nên đệm trái trở về như ô gõ (nhãn thẳng mép chữ). Bài: src/o-chon-nhan-noi-safari.test.ts; đo thật: nhan-noi-safari-smoke.mjs. */
+.o-noi-khung > select { -webkit-appearance: none; appearance: none; padding-right: var(--s6); background-image: linear-gradient(45deg, transparent 50%, var(--c-text-muted) 50%), linear-gradient(135deg, var(--c-text-muted) 50%, transparent 50%); background-size: var(--w-o-chon-mui) var(--w-o-chon-mui); background-position: calc(100% - var(--s4) - var(--w-o-chon-mui)) calc(50% + var(--s2)), calc(100% - var(--s4)) calc(50% + var(--s2)); background-repeat: no-repeat; }
 .card > .grid + label.o-noi { margin-top: var(--s3); }
 /* Cột chính của form ở máy tính chỉ ~400px: ba / hai ô cạnh nhau làm nhãn nổi bị cắt ("Thanh toá…") → tự xuống hàng khi mỗi ô hẹp hơn 12rem. */
 #pay-card .grid.three, #order-form .card > .grid.two { grid-template-columns: repeat(auto-fit, minmax(var(--w-o-hep), 1fr)); }

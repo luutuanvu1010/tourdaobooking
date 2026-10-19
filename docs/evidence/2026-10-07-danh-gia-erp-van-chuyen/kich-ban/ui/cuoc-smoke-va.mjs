@@ -52,7 +52,7 @@ const dungChuyenHomNay = async () => {
   const o = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     customerName: LIEN_HE_OH, customerPhone: SDT_OH, customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
     services: [{
-      kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
+      kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
       departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "", departDate: homNay,
       legs: [{ direction: "OUT", pickupDate: homNay, pickupTime: "23:10", pickupLocationId: null, pickupPlace: "InterContinental Nha Trang", dropoffLocationId: LOC_BEN_TAU, dropoffPlace: "" }],
     }],

@@ -42,7 +42,7 @@ const dungDon = async (gio, noiDon, ten, sdt) => {
   const o = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     customerName: `Khách C2 ${noiDon}`, customerPhone: sdt, customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
     services: [{
-      kind: "catalog", catalogCode: "TD101", pax: { adult: ten.length, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
+      kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: ten.length, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
       departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "", departDate: homNay,
       legs: [{ direction: "OUT", pickupDate: homNay, pickupTime: gio, pickupLocationId: null, pickupPlace: noiDon, dropoffLocationId: LOC_BEN_TAU, dropoffPlace: "" }],
     }],

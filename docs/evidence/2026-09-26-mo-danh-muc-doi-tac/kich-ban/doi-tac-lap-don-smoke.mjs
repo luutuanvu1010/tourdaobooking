@@ -343,7 +343,7 @@ try {
   const donDaXacNhan = async (ai, ten) => {
     const r = await call(ai, "POST", "/api/orders", {
       customerName: ten, customerPhone: "0903 555 888", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
-      services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: TD101_ADULT }, departDate: vnDate(3), departTime: "", pickupTime: "07:30", pickupPlace: "Khách sạn Biển Xanh", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" }],
+      services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: TD101_ADULT }, departDate: vnDate(3), departTime: "", pickupTime: "07:30", pickupPlace: "Khách sạn Biển Xanh", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" }],
     });
     assert.equal(r.status, 201, `lập đơn: ${JSON.stringify(r.json)}`);
     const c = await call(ai, "POST", `/api/orders/${r.json.order.id}/status`, { status: "confirmed" });

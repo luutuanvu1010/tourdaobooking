@@ -75,7 +75,7 @@ async function taoDon(w: any, o: { pax?: Pax; discount?: number; nhap?: boolean;
     as: ID.SALES,
     body: {
       customerName: "Khách Thử", customerPhone: "0912345678", discount: o.discount ?? 0,
-      services: [{ kind: "catalog", catalogCode: "ZA1", pax: o.pax ?? P(2), catalogPriceSeen: { adult: 500000, child: 300000, infant: 50000 }, departDate: vnDay(3) }, ...(o.extra ?? [])],
+      services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: o.pax ?? P(2), catalogPriceSeen: { adult: 500000, child: 300000, infant: 50000 }, departDate: vnDay(3) }, ...(o.extra ?? [])],
     },
   });
   assert.equal(r.status, 201, r.text);
@@ -240,7 +240,7 @@ test("TC4: đơn có dịch vụ nhập tay — văn phòng sửa dịch vụ da
   const w = setup();
   assert.equal((await w.call("POST", "/api/cai-dat/nhap-tay", { as: ID.SUPER, body: { batNhapTay: true } })).status, 200);
   const d = await taoDon(w, {
-    pax: P(3), extra: [{ kind: "manual", name: "Phí phát sinh", pax: { adult: 1 }, departDate: vnDay(3), items: [{ description: "Phụ thu", detail: "", quantity: 1, unitPrice: 200000 }] }],
+    pax: P(3), extra: [{ kind: "manual", pickupChoice: "KHONG_DON", name: "Phí phát sinh", pax: { adult: 1 }, departDate: vnDay(3), items: [{ description: "Phụ thu", detail: "", quantity: 1, unitPrice: 200000 }] }],
   });
   const r = await sua(w, ID.ACC, d.id, than(d.svc, P(2), "BOT_NGUOI"));
   assert.equal(r.status, 200, r.text);

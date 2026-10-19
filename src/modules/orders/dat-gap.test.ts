@@ -36,7 +36,7 @@ function setup(tuyChon: Record<string, unknown> = {}) {
 const leg = (date: string, time: string, over: Record<string, unknown> = {}) =>
   ({ direction: "OUT", pickupDate: date, pickupTime: time, pickupLocationId: null, pickupPlace: "Khách sạn Dò Tìm", dropoffLocationId: LOC, dropoffPlace: "", ...over });
 const svc = (departDate: string, legs: unknown[], extra: Record<string, unknown> = {}) =>
-  ({ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate, legs, ...extra });
+  ({ kind: "catalog", pickupChoice: (legs.length > 0 ? "DON" : "KHONG_DON"), catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate, legs, ...extra });
 async function nhap(w: any, as: string, gio: { date: string; time: string }) {
   const r = await w.call("POST", "/api/orders", { as, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc(gio.date, [leg(gio.date, gio.time)])] } });
   assert.equal(r.status, 201, r.text);
@@ -113,7 +113,7 @@ test("route đặt gấp: đơn / chặng lạ → 404; chặng đã đóng → 
   const oid = "00000000-0000-4001-8000-000000000001";
   const lid = "00000000-0000-4001-8000-000000000002";
   k.sqlite.exec(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, created_at, updated_at) VALUES ('${oid}', 'TD-SQL', '${SALES}', 'draft', 'Khách Giả', '0900000009', '${AT}', '${AT}')`);
-  k.sqlite.exec(`INSERT INTO order_service (id, order_id, name, unit, pax_adult, depart_date) VALUES ('sv-sql', '${oid}', 'Tour', 'perPax', 2, '${inDays(3)}')`);
+  k.sqlite.exec(`INSERT INTO order_service (pickup_choice, id, order_id, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', 'sv-sql', '${oid}', 'Tour', 'perPax', 2, '${inDays(3)}')`);
   k.sqlite.exec(`INSERT INTO ord_transfer_leg (id, order_id, order_service_id, direction, pickup_date, pickup_time, pickup_place, created_at, updated_at) VALUES ('${lid}', '${oid}', 'sv-sql', 'OUT', '${inDays(3)}', '06:30', 'Khách sạn A', '${AT}', '${AT}')`);
   const r = await datGap(k, { id: oid }, ADM, { lyDo: "KHAC" }, lid);
   assert.equal(r.status, 503, r.text);

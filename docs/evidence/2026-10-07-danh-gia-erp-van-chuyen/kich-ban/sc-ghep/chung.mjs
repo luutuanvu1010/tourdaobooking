@@ -36,7 +36,7 @@ export async function lapDon(w, v) {
       customerName: "Khách Liên Hệ Dò Tìm", customerPhone: "0912345678", customerNote: "", paymentNote: "",
       ...(v.handler ? { handlerStaffId: v.handler } : {}),
       services: [{
-        kind: "catalog", catalogCode: v.catalog ?? "ZA1", pax, catalogPriceSeen: v.priceSeen ?? { adult: 777000 }, departDate: v.ngay ?? NGAY,
+        kind: "catalog", pickupChoice: "DON", catalogCode: v.catalog ?? "ZA1", pax, catalogPriceSeen: v.priceSeen ?? { adult: 777000 }, departDate: v.ngay ?? NGAY,
         legs: [{ direction: "OUT", pickupDate: v.ngay ?? NGAY, pickupTime: v.gio ?? "07:00", pickupLocationId: null, pickupPlace: v.noiDon ?? "Khách sạn Dò Tìm", dropoffLocationId: LOC, dropoffPlace: "" }],
       }],
       passengers: Array.from({ length: v.ten ?? tong }, (_x, i) => ({

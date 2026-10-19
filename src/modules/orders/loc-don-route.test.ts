@@ -34,7 +34,7 @@ function setup() {
   return w;
 }
 const svc = (code: string, price: number, departDate: string) =>
-  ({ kind: "catalog", catalogCode: code, pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: price }, departDate });
+  ({ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: code, pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: price }, departDate });
 async function donMoi(w: any, as: string, code: "ZA1" | "ZA2", departDate: string, extra: Record<string, unknown> = {}): Promise<string> {
   const r = await w.call("POST", "/api/orders", {
     as, body: { customerName: "Khách Lọc", customerPhone: "0912345678", services: [svc(code, code === "ZA1" ? 500000 : 300000, departDate)], depositAmount: 0, depositMethod: "cash", ...extra },

@@ -460,7 +460,7 @@ const T14 = "'2026-01-01T00:00:00.000Z'";
 await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,price_senior,price_infant,note_child,note_senior,note_infant,sheet_row,in_sheet,first_seen_at,updated_at) VALUES
   ('ZH1','Tour thử (handler-money-edit)','perPax',300000,NULL,NULL,NULL,NULL,NULL,NULL,99,1,${T14},${T14})`);
 try {
-  const catSvc = (extra = {}) => ({ kind: "catalog", catalogCode: "ZH1", pax: { adult: 2 }, catalogPriceSeen: { adult: 300000 }, departDate: vnDate(7), ...extra });
+  const catSvc = (extra = {}) => ({ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZH1", pax: { adult: 2 }, catalogPriceSeen: { adult: 300000 }, departDate: vnDate(7), ...extra });
   const moneyEdit = (cookie, orderId, body) => call(cookie, "POST", `/api/orders/${orderId}/handler-money-edit`, body);
   const orderView = async (cookie, orderId) => (await call(cookie, "GET", `/api/orders/${orderId}`)).body.order;
   const storedPax = async (orderId) => (await sqlRows(`SELECT pax_adult FROM order_service WHERE order_id = '${orderId}'`))[0].pax_adult;
@@ -789,7 +789,7 @@ try {
     ('ZH2','Tour thử (nhiều loại khách)','perPax',300000,150000,NULL,NULL,NULL,NULL,NULL,98,1,${T14},${T14})`);
   try {
     const o17 = (await call(A, "POST", "/api/orders", orderInput({
-      services: [{ kind: "catalog", catalogCode: "ZH2", pax: { adult: 2, child: 1 }, catalogPriceSeen: { adult: 300000, child: 150000 }, departDate: vnDate(7) }],
+      services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZH2", pax: { adult: 2, child: 1 }, catalogPriceSeen: { adult: 300000, child: 150000 }, departDate: vnDate(7) }],
     }))).body.order;
     const svc17 = o17.services[0].id;
     assert.equal((await call(A, "POST", `/api/orders/${o17.id}/status`, { status: "confirmed" })).status, 200);

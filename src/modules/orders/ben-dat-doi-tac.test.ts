@@ -64,8 +64,8 @@ const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).to
 const thanDon = (extra: Record<string, unknown> = {}, nhieuDv = false) => ({
   customerName: "Khách Thử", customerPhone: "0912345678",
   services: [
-    { kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(3) },
-    ...(nhieuDv ? [{ kind: "catalog", catalogCode: "ZA2", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 300000 }, departDate: inDays(3) }] : []),
+    { kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(3) },
+    ...(nhieuDv ? [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA2", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 300000 }, departDate: inDays(3) }] : []),
   ],
   ...extra,
 });
@@ -398,7 +398,7 @@ test("ca 4d (N15): đơn đã xác nhận KHÔNG có bản chụp (xác nhận t
   const id = "99999999-9999-4999-8999-000000000001";
   w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
     VALUES (?, 'TD-N15', ?, 'draft', 'Khách Cũ', '0900000099', 100000, 100000, 100000, ?, ?)`).run(id, SALES, AT, AT);
-  w.sqlite.prepare("INSERT INTO order_service (id, order_id, name, unit, pax_adult, depart_date) VALUES ('sv-n15', ?, 'Vé', 'perPax', 1, ?)").run(id, inDays(3));
+  w.sqlite.prepare("INSERT INTO order_service (pickup_choice, id, order_id, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', 'sv-n15', ?, 'Vé', 'perPax', 1, ?)").run(id, inDays(3));
   gieoDongTienKhop(w.sqlite, id);
   w.sqlite.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = ?").run(AT, id);
   assert.equal(chup(w, id).length, 0);

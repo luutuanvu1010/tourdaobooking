@@ -50,7 +50,7 @@ export async function servicePaxByOrder(db: D1Database, orderId: string): Promis
 const LEG_COLS = `l.id, l.order_id, l.order_service_id, l.direction, l.pickup_date, l.pickup_time, l.pickup_location_id, l.pickup_place,
   COALESCE(pl.name, l.pickup_place) AS pickup_label, l.dropoff_location_id, l.dropoff_place, COALESCE(dl.name, l.dropoff_place) AS dropoff_label,
   l.closed_at, l.created_at, l.created_by, l.updated_at,
-  l.short_notice_reason, l.short_notice_note, l.short_notice_at, sl.label AS short_notice_by_label, l.flight_code, l.pax_override, l.exclusive_vehicle, l.min_vehicle_seats`;
+  l.short_notice_reason, l.short_notice_note, l.short_notice_at, sl.label AS short_notice_by_label, l.flight_code, l.pax_override, l.exclusive_vehicle, l.min_vehicle_seats, l.pickup_slot_end`;
 // Người duyệt đặt gấp: TÊN HIỂN THỊ qua view công bố của staff (không SĐT) — chủ H4 / N-14; lớp route quyết ai thấy tên (ô order.leg.short_notice.view).
 const LEG_JOIN = `FROM ord_transfer_leg l
   LEFT JOIN v_loc_location_label pl ON pl.id = l.pickup_location_id
@@ -92,6 +92,8 @@ export interface LegRow {
   exclusive_vehicle: number;
   /** Cam kết xe tối thiểu N chỗ (0077) — NULL = không cam kết. */
   min_vehicle_seats: number | null;
+  /** Giờ cuối khung đón (0115, ADR-0134 Đ3) — NULL = "Giờ khác" / chưa chọn khung. */
+  pickup_slot_end: string | null;
 }
 
 export async function openLegsByOrders(db: D1Database, orderIds: readonly string[]): Promise<LegRow[]> {
@@ -140,6 +142,8 @@ export interface LegWrite {
   exclusiveVehicle: boolean;
   /** Cam kết xe tối thiểu N chỗ (0077) — giá trị ĐÃ GIẢI ở route (khoá vắng → giá trị đang lưu / NULL). */
   minVehicleSeats: number | null;
+  /** Giờ cuối khung đón (0115, ADR-0134 Đ3) — từ thân (đã qua `kiemChang`); vắng = NULL ("Giờ khác"). */
+  pickupSlotEnd: string | null;
   /**
    * Dấu ĐẶT GẤP (ADR-0049 D2) ghi cùng dòng — CHỈ từ: nhánh `datGap` của lệnh sửa / thêm chặng (Quản trị, Toàn quyền), hoặc dấu CŨ của chính chặng khớp
    * đúng một-một khi lưu lại đơn nháp (Q1 = (a) — giá trị đọc từ CSDL). Không bao giờ từ thân trình duyệt của lập / sửa nháp (I16). null = không dấu.
@@ -149,21 +153,22 @@ export interface LegWrite {
 
 const LEG_INSERT_COLS = `id, order_id, order_service_id, direction, pickup_date, pickup_time, pickup_location_id, pickup_place, dropoff_location_id, dropoff_place,
   closed_at, close_reason_code, created_at, created_by, updated_at, updated_by, flight_code, pax_override, exclusive_vehicle, min_vehicle_seats`;
-/** Chèn chặng KHÔNG lính gác — chỉ dùng khi LẬP đơn (lô mới hoàn toàn, không có câu thắng/thua). */
+/** Chèn chặng KHÔNG lính gác — chỉ dùng khi LẬP đơn (lô mới hoàn toàn, không có câu thắng/thua). ?19 = cuối khung đón (0115) — đứng SAU các cột cũ. */
 const LEG_INSERT = defineSql(
   "orders",
   "leg_insert",
-  `INSERT INTO ord_transfer_leg (${LEG_INSERT_COLS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, NULL, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)`,
+  `INSERT INTO ord_transfer_leg (${LEG_INSERT_COLS}, pickup_slot_end) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, NULL, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)`,
 );
 /**
  * Chèn chặng CÓ lính gác (lưu nháp, route thêm chặng, `PUT /trip` tương thích): chỉ chạy khi dòng nhật ký ?17 của lô này đã được chèn. Thứ tự tham số: 1–16 = cột
- * của `LEG_INSERT_COLS` (15, 16 = hai ô phụ 0057; 17, 18 = hai ô cam kết 0077), ?19 = id nhật ký, ?20–?24 = năm cột đặt gấp.
+ * của `LEG_INSERT_COLS` (15, 16 = hai ô phụ 0057; 17, 18 = hai ô cam kết 0077), ?19 = id nhật ký, ?20–?24 = năm cột đặt gấp, ?25 = cuối khung đón (0115 —
+ * thêm SAU, không đánh số lại tham số cũ).
  */
 const LEG_INSERT_GUARDED = defineSql(
   "orders",
   "leg_insert_guarded",
-  `INSERT INTO ord_transfer_leg (${LEG_INSERT_COLS}, short_notice_reason, short_notice_note, short_notice_by, short_notice_at, short_notice_lead_minutes)
-   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, NULL, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?20, ?21, ?22, ?23, ?24 WHERE EXISTS (SELECT 1 FROM audit_log WHERE id = ?19)`,
+  `INSERT INTO ord_transfer_leg (${LEG_INSERT_COLS}, short_notice_reason, short_notice_note, short_notice_by, short_notice_at, short_notice_lead_minutes, pickup_slot_end)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, NULL, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?20, ?21, ?22, ?23, ?24, ?25 WHERE EXISTS (SELECT 1 FROM audit_log WHERE id = ?19)`,
 );
 /** Năm giá trị cột đặt gấp (null cả năm = không dấu / bỏ dấu). */
 const datGapBinds = (d: DatGapWrite | null | undefined) => (d ? [d.lyDo, d.ghiChu, d.by, d.at, d.phut] : [null, null, null, null, null]);
@@ -171,9 +176,9 @@ const legBinds = (l: LegWrite) => [
   l.id, l.orderId, l.serviceId, l.direction, l.pickupDate, l.pickupTime, l.pickupLocationId, l.pickupPlace, l.dropoffLocationId, l.dropoffPlace,
   l.createdAt, l.createdBy, l.updatedAt, l.updatedBy, l.flightCode, l.paxOverride, l.exclusiveVehicle ? 1 : 0, l.minVehicleSeats,
 ];
-export const legInsert = (db: D1Database, l: LegWrite): D1PreparedStatement => db.prepare(LEG_INSERT).bind(...legBinds(l));
+export const legInsert = (db: D1Database, l: LegWrite): D1PreparedStatement => db.prepare(LEG_INSERT).bind(...legBinds(l), l.pickupSlotEnd);
 export const legInsertGuarded = (db: D1Database, l: LegWrite, auditId: string): D1PreparedStatement =>
-  db.prepare(LEG_INSERT_GUARDED).bind(...legBinds(l), auditId, ...datGapBinds(l.datGap));
+  db.prepare(LEG_INSERT_GUARDED).bind(...legBinds(l), auditId, ...datGapBinds(l.datGap), l.pickupSlotEnd);
 
 /**
  * XOÁ CỨNG chặng của ĐƠN NHÁP — ngoại lệ có tên `XOA_CUNG_NHAP` (ĐÃ DUYỆT 2026-09-29 (lần 5), đề xuất luật mục 2). Lưu nháp xoá–chèn lại chặng cùng lô, TRƯỚC câu xoá
@@ -186,7 +191,12 @@ const LEG_DELETE_DRAFT = defineSql(
 );
 export const legDeleteDraft = (db: D1Database, orderId: string, auditId: string): D1PreparedStatement => db.prepare(LEG_DELETE_DRAFT).bind(orderId, auditId);
 
-const LEG_SET = `pickup_date = ?1, pickup_time = ?2, pickup_location_id = ?3, pickup_place = ?4, dropoff_location_id = ?5, dropoff_place = ?6, updated_at = ?7, updated_by = ?8`;
+/**
+ * Cuối khung đón (0115, ADR-0134 Đ3) trong câu SỬA: không có tham số riêng — GIỮ khi giờ đón không đổi, XOÁ (NULL) khi giờ đón đổi (vế phải của SET đọc giá
+ * trị CŨ của dòng). Nhờ vậy mọi đường sửa (`PUT /trip`, route sửa chặng) không bao giờ vỡ CHECK "cuối khung sau giờ đón" (500) và không giữ khung đã sai.
+ */
+const LEG_SET = `pickup_date = ?1, pickup_time = ?2, pickup_location_id = ?3, pickup_place = ?4, dropoff_location_id = ?5, dropoff_place = ?6, updated_at = ?7, updated_by = ?8,
+  pickup_slot_end = CASE WHEN pickup_time IS ?2 THEN pickup_slot_end ELSE NULL END`;
 /**
  * Nội dung VẬN HÀNH của chặng (ngày, giờ, nơi) đổi thì dấu ĐẶT GẤP cũ không còn duyệt nội dung mới (I16 — "dấu duyệt nội dung cũ"; cùng luật Q1 = (a) của lưu
  * nháp): câu sửa GHI LẠI năm cột đặt gấp — dấu MỚI (nhánh `datGap` của Quản trị / Toàn quyền) hoặc NULL cả năm (bỏ dấu). NGOẠI LỆ (chủ Q-B 1/10 "Giữ dấu đặt
@@ -678,6 +688,39 @@ export async function manualPolicy(db: D1Database, nowIso: string): Promise<Manu
 /** Câu chèn dòng chính sách mới (chưa chạy) — nơi gọi ghép cùng câu nhật ký vào MỘT db.batch. */
 export const manualPolicyInsert = (db: D1Database, id: string, bat: boolean, at: string, actorId: string): D1PreparedStatement =>
   db.prepare(MANUAL_POLICY_INSERT).bind(id, bat ? 1 : 0, at, actorId);
+
+// ---- Chính sách khung giờ đón (ADR-0134 Đ5, Đ6 — bảng ord_pickup_slot_policy, migration 0115; khuôn chính sách nhập tay ở trên) -------------------------
+
+/** Dòng hiệu lực = valid_from_at lớn nhất ≤ ?1 (bây giờ); kèm valid_from_at lớn nhất của MỌI dòng (dòng mới không lùi, không trùng UNIQUE). */
+const SLOT_POLICY_CURRENT = defineSql(
+  "orders",
+  "pickup_slot_policy_current",
+  `SELECT p.slots_json, p.note, (SELECT MAX(valid_from_at) FROM ord_pickup_slot_policy) AS latest_at
+   FROM ord_pickup_slot_policy p WHERE p.valid_from_at <= ?1 ORDER BY p.valid_from_at DESC LIMIT 1`,
+);
+const SLOT_POLICY_LATEST = defineSql("orders", "pickup_slot_policy_latest", `SELECT MAX(valid_from_at) AS latest_at FROM ord_pickup_slot_policy`);
+const SLOT_POLICY_INSERT = defineSql(
+  "orders",
+  "pickup_slot_policy_insert",
+  `INSERT INTO ord_pickup_slot_policy (id, slots_json, note, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?4, ?5, ?4, ?5)`,
+);
+export interface SlotPolicyRow {
+  /** Chuỗi JSON mảng khung đang hiệu lực (nơi gọi kiểm lại bằng `kiemDanhSachKhung`); null = chưa có dòng hiệu lực. */
+  slotsJson: string | null;
+  note: string | null;
+  /** valid_from_at lớn nhất của mọi dòng (dòng mới phải ĐI SAU mốc này). */
+  moiNhat: string | null;
+}
+/** Đọc MỘT lần mỗi request. */
+export async function slotPolicy(db: D1Database, nowIso: string): Promise<SlotPolicyRow> {
+  const r = await db.prepare(SLOT_POLICY_CURRENT).bind(nowIso).first<{ slots_json: string; note: string; latest_at: string | null }>();
+  if (r) return { slotsJson: r.slots_json, note: r.note, moiNhat: r.latest_at };
+  const l = await db.prepare(SLOT_POLICY_LATEST).first<{ latest_at: string | null }>();
+  return { slotsJson: null, note: null, moiNhat: l?.latest_at ?? null };
+}
+/** Câu chèn dòng chính sách khung giờ mới (chưa chạy) — nơi gọi ghép cùng câu nhật ký vào MỘT db.batch. */
+export const slotPolicyInsert = (db: D1Database, id: string, slotsJson: string, note: string, at: string, actorId: string): D1PreparedStatement =>
+  db.prepare(SLOT_POLICY_INSERT).bind(id, slotsJson, note, at, actorId);
 
 // ---- Người đã lập đơn (ADR-0067 — bộ lọc danh sách đơn, ô "Người lập") ------------------------------------------------------------------------------
 // Mọi người đã lập ít nhất một đơn (mọi trạng thái, kể cả nháp / huỷ), gồm người đã nghỉ và tài khoản Đối tác (chủ 30/9: "Hiện, không đánh dấu";

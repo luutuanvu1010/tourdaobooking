@@ -13,7 +13,7 @@ async function donHaiDiem(w) {
     body: {
       customerName: "Khách Liên Hệ Dò Tìm", customerPhone: "0912345678", customerNote: "", paymentNote: "",
       services: [{
-        kind: "catalog", catalogCode: "ZA1", pax: { adult: 5, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY,
+        kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: 5, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY,
         legs: [
           { direction: "OUT", pickupDate: NGAY, pickupTime: "07:00", pickupLocationId: null, pickupPlace: "Khách sạn A Dò Tìm", dropoffLocationId: LOC, dropoffPlace: "" },
           { direction: "OUT", pickupDate: NGAY, pickupTime: "07:15", pickupLocationId: null, pickupPlace: "Khách sạn B Dò Tìm", dropoffLocationId: LOC, dropoffPlace: "" },

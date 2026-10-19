@@ -265,7 +265,7 @@ try {
   // Nháp CŨ của Thực tập đang lệch giá danh mục: lập bằng API đúng giá, rồi sửa thẳng D1 tạm (đơn còn nháp — trigger 0007 / 0081 cho phép) thành 1.300.000.
   const lap = await call(INTERN, "POST", "/api/orders", {
     customerName: "Khách Thực Tập Lệch Giá", customerPhone: "0912345692", customerEmail: "", customerNote: "", discount: 0, paymentNote: "",
-    services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, unitPrices: { adult: 1350000 }, catalogPriceSeen: { adult: 1350000 }, departDate: NGAY, departTime: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "", legs: [] }],
+    services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, unitPrices: { adult: 1350000 }, catalogPriceSeen: { adult: 1350000 }, departDate: NGAY, departTime: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "", legs: [] }],
   });
   assert.equal(lap.status, 201, `Thực tập lập nháp: ${JSON.stringify(lap.json)}`);
   const nhapLech = lap.json.order.id;

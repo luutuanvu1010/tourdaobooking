@@ -62,7 +62,7 @@ const DUNG = { name: "Đỗ Văn Dũng", phone: tkCt.json.staff.phone, pin: tkCt
 const don = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
   customerName: "Khách ADR113", customerPhone: "0903 113 113", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
   services: [{
-    kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
+    kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
     departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "", departDate: ngayMai,
     legs: [{ direction: "OUT", pickupDate: ngayMai, pickupTime: "06:30", pickupLocationId: null, pickupPlace: "Khách sạn Nguồn 113", dropoffLocationId: LOC_BEN_TAU, dropoffPlace: "" }],
   }],

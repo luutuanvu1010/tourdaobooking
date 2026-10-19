@@ -9,6 +9,7 @@ import type { NhomLyDo } from "./dieu-phoi-kieu.ts";
 import type { PermissionCode } from "./permissions.ts";
 import type { RoleCode } from "./roles.ts";
 import type { BanChup } from "./hoa-hong-dong.ts";
+import type { KhungGio, LuaChonDon } from "./khung-gio-don.ts";
 
 export type { AuditAction, AuditTargetType, FeedbackKind, FeedbackStatus, CatalogService, LyDoSuaSai, PaxCode, PaxCounts, PermissionCode, Prices, RoleCode };
 
@@ -218,6 +219,12 @@ export interface GiaoDienLoiBody { error: { code: "invalid_input"; message: stri
 export interface NhapTayResponse { batNhapTay: boolean; duocDung: boolean; doiDuoc: boolean }
 /** Thân `POST /api/cai-dat/nhap-tay` (chỉ Toàn quyền). */
 export interface NhapTayRequest { batNhapTay: boolean }
+
+// ---- Khung giờ đón (ADR-0134 Đ5, Đ6; module `orders`) ----
+/** `GET`/`POST /api/cai-dat/khung-gio-don`: bộ khung đang hiệu lực + câu lưu ý; `doiDuoc` = người gọi đổi được (ô `settings.ops` — chỉ Toàn quyền). */
+export interface KhungGioDonResponse { khung: KhungGio[]; luuY: string; doiDuoc: boolean }
+/** Thân `POST /api/cai-dat/khung-gio-don` (chỉ Toàn quyền): 1–12 khung sắp tăng không chồng, câu lưu ý 1–200 ký tự. */
+export interface KhungGioDonRequest { khung: KhungGio[]; luuY: string }
 /** Thân `PUT /api/maintenance`. `endsAt` bắt buộc khi `on = true`. */
 export interface MaintenanceRequest { on: boolean; endsAt?: string }
 /** Thân `error` của phản hồi 503 `maintenance` (mọi `/api/*` cần đăng nhập với người bị chặn, và `POST /api/auth/login`): `endsAt` để giao diện dựng đồng hồ đếm ngược mà không cần gọi thêm. */
@@ -289,6 +296,8 @@ export interface OrderServiceDto extends TripInfoDto {
   catalogStatus: CatalogStatus | null;
   /** Chặng đưa đón còn hiệu lực (ADR-0047 A1), xếp theo ngày, giờ đón, chiều. Rỗng = không có hẹn đón. */
   legs: LegDto[];
+  /** Lựa chọn đón (ADR-0134 Đ1): "Đón" / "Không đón"; null = chưa chọn hoặc đơn lập trước ADR. Nhãn ở `NHAN_LUA_CHON_DON` — không hiện mã. */
+  pickupChoice: LuaChonDon | null;
 }
 
 export interface OrderDto {
@@ -381,6 +390,11 @@ export type ServiceInput = {
    * `pickupTime`/`pickupPlace` cũ vào chặng chiều đi đầu (tương thích phát hành 1 — R2b; máy chưa tải bản mới).
    */
   legs?: LegInput[];
+  /**
+   * Lựa chọn đón (ADR-0134 Đ1, Đ7): "DON" / "KHONG_DON"; null = chưa chọn (lưu nháp được, xác nhận bị chặn 409 `pickup_choice_required`). Khoá phải có ở
+   * MỌI dịch vụ hoặc không dịch vụ nào (máy chưa tải bản mới — máy chủ giữ giá trị đang lưu của dịch vụ, dịch vụ mới NULL; không lỗi); trộn → 400.
+   */
+  pickupChoice?: LuaChonDon | null;
 } & Omit<TripInput, "pickupTime" | "pickupPlace"> &
   /** Hai khoá CŨ (tương thích phát hành 1): form mới KHÔNG gửi (ADR-0047 Phần B); vắng = không đụng chặng. */
   Partial<Pick<TripInput, "pickupTime" | "pickupPlace">> &
@@ -458,9 +472,14 @@ export interface LegInput {
   exclusiveVehicle?: boolean;
   /** Cam kết "xe tối thiểu N chỗ" KHÔNG kể tài xế (ADR-0056 VK3-A): số nguyên 1..100; `null` hoặc "" = bỏ. VẮNG khoá = GIỮ giá trị đang lưu. */
   minVehicleSeats?: number | null;
+  /**
+   * Giờ CUỐI khung đón (ADR-0134 Đ3; HH:MM, sau `pickupTime`): gửi khi người lập chọn một khung (`pickupTime` = giờ đầu khung); vắng / "" = "Giờ khác". Chỉ
+   * lập đơn, lưu nháp, thêm / thay chặng nhận khoá này; route sửa chặng KHÔNG nhận — đổi giờ đón ở đó thì máy chủ tự xoá cuối khung, giữ giờ thì giữ.
+   */
+  pickupSlotEnd?: string;
 }
-/** `PUT /api/orders/:id/legs/:legId` — sửa trường vận hành của chặng (không đổi chiều, không đổi dịch vụ). */
-export type LegEditInput = Omit<LegInput, "id" | "direction">;
+/** `PUT /api/orders/:id/legs/:legId` — sửa trường vận hành của chặng (không đổi chiều, không đổi dịch vụ; cuối khung theo luật ở `LegInput.pickupSlotEnd`). */
+export type LegEditInput = Omit<LegInput, "id" | "direction" | "pickupSlotEnd">;
 
 /** Một chặng CÒN HIỆU LỰC trả về trong chi tiết đơn. `pickupLabel`/`dropoffLabel` = tên điểm danh mục hoặc chữ tự do (null = nơi trả chưa chốt). */
 export interface LegDto {
@@ -483,6 +502,8 @@ export interface LegDto {
   exclusiveVehicle: boolean;
   /** Cam kết xe tối thiểu N chỗ, không kể tài xế (ADR-0056 VK3-A); null = không cam kết. */
   minVehicleSeats: number | null;
+  /** Giờ cuối khung đón (ADR-0134 Đ3); null = "Giờ khác" hoặc chưa chọn khung. Hiện "07:30–08:00" khi có. */
+  pickupSlotEnd: string | null;
   /**
    * Dấu ĐẶT GẤP của chặng (ADR-0049 D2; chủ H4 / N-14, 29/9): `null` = chặng không đặt gấp. Văn phòng (ô `order.leg.short_notice.view`) nhận ĐỦ
    * (`DatGapDayDuDto`); Đối tác, HDV, Thực tập CHỈ nhận cờ `{ daDuyet: true }` — khoá lý do, người, lúc, ghi chú VẮNG MẶT.

@@ -30,8 +30,8 @@ const opts = (sel) => `[...document.querySelector('${sel}').options].map((o) => 
 const base = { customerEmail: "", customerNote: "", discount: 0, paymentNote: "", customerPhone: "0903 111 444" };
 const NO_TRIP = { departDate: NGAY, departTime: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
 const leg = (o) => ({ direction: "OUT", pickupDate: NGAY, pickupTime: "07:30", pickupLocationId: HAVANA, pickupPlace: "", dropoffLocationId: SB, dropoffPlace: "", exclusiveVehicle: true, minVehicleSeats: null, ...o });
-const td101 = (legs) => ({ kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, unitPrices: { adult: 1350000 }, ...NO_TRIP, legs });
-const ttb03 = { kind: "catalog", catalogCode: "TTB03", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1500000 }, unitPrices: { adult: 1500000 }, ...NO_TRIP, legs: [] };
+const td101 = (legs) => ({ kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, unitPrices: { adult: 1350000 }, ...NO_TRIP, legs, pickupChoice: legs?.length ? "DON" : "KHONG_DON" });
+const ttb03 = { kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TTB03", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1500000 }, unitPrices: { adult: 1500000 }, ...NO_TRIP, legs: [] };
 
 /** Mở form, chọn TD101, thêm một chặng đưa đón. */
 const moForm = async (kho) => {

@@ -52,7 +52,7 @@ try {
   const OUTLEG = { direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: null, pickupPlace: "Khách sạn Dò Tìm A3", dropoffLocationId: LOC, dropoffPlace: "" };
   const tao = await call(A, "POST", "/api/orders", {
     customerName: "Khách Tin Đổi A3", customerPhone: "0903 222 333", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
-    services: [{ kind: "catalog", catalogCode: "ZA3T", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 300000 }, departDate: vnDate(7), departTime: "07:30", legs: [OUTLEG] }],
+    services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "ZA3T", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 300000 }, departDate: vnDate(7), departTime: "07:30", legs: [OUTLEG] }],
   });
   assert.equal(tao.status, 201, JSON.stringify(tao.json));
   const id = tao.json.order.id;

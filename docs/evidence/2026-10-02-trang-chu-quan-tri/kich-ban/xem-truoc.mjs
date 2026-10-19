@@ -13,7 +13,7 @@ const phutVN = () => { const d = new Date(Date.now() + 7 * 3600e3); return d.get
 const hhmm = (m) => { const x = Math.min(Math.max(m, 0), 23 * 60 + 59); return `${String(Math.floor(x / 60)).padStart(2, "0")}:${String(x % 60).padStart(2, "0")}`; };
 
 const dichVu = (pickupTime, pickupPlace, adult = 2) => ({
-  kind: "catalog", catalogCode: "TTB06", pax: { adult, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 800_000 },
+  kind: "catalog", pickupChoice: pickupTime || pickupPlace ? "DON" : "KHONG_DON", catalogCode: "TTB06", pax: { adult, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 800_000 },
   departDate: TODAY, departTime: "", pickupTime, pickupPlace, checkinDate: "", checkinTime: "", checkinPlace: "", note: "",
 });
 const lapVaXacNhan = async (ten, sdt, dv, traDu) => {

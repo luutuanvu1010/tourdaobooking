@@ -45,7 +45,7 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
    - Dịch vụ tính theo nhóm chỉ có một ô [[Số khách]]; số lượt tự tính.
    - Mỗi dịch vụ tối đa 50 khách, phải có ít nhất 1 khách không phải em bé. Cả đơn cần ít nhất một người lớn.
    - [[Sửa giá]] để đổi đơn giá; dòng đã sửa hiện nhãn [[Khác giá danh mục]].
-6. Phần [[Đưa đón]] trên thẻ: mỗi lượt có [[Giờ đón]], [[Nơi đón]], [[Nơi trả]] (chọn điểm có sẵn hoặc [[Gõ tự do…]]); [[Ngày đón]] tự lấy ngày khởi hành (khác ngày: [[Đón khác ngày]]). Dịch vụ có mẫu đưa đón thì có sẵn chiều đi (và chiều về) — sửa hoặc bỏ nếu khác; không có thì bấm [[+ Thêm đưa đón]]. Lượt đủ thông tin gập thành một dòng; chạm để sửa. [[Xe riêng]] và [[Xe tối thiểu]] (số chỗ, không kể tài xế) nằm trong [[Thêm chi tiết (xe riêng, số chỗ)]]. Bấm dòng [[Thông tin chuyến]] để điền [[Giờ khởi hành]] và nếu có thì [[Có mặt lúc]], [[Có mặt tại]] (khác ngày: [[Có mặt khác ngày]]), [[Ghi chú dịch vụ]].
+6. Phần [[Đưa đón]] trên thẻ: mỗi dịch vụ phải chọn [[Đón]] hoặc [[Không đón]] (có mẫu đưa đón thì [[Đón]] chọn sẵn). Mỗi lượt có giờ đón (chạm khung giờ hoặc [[Giờ khác]]), [[Nơi đón]], [[Nơi trả]] (chọn điểm có sẵn hoặc [[Gõ tự do…]]). [[Ngày đón]] tự lấy ngày khởi hành (khác ngày: [[Đón khác ngày]]). Lượt đủ thông tin gập thành một dòng; chạm để sửa. [[Xe riêng]] và [[Xe tối thiểu]] (số chỗ, không kể tài xế) nằm trong [[Thêm chi tiết (xe riêng, số chỗ)]]. Bấm dòng [[Thông tin chuyến]] để điền [[Giờ khởi hành]] và nếu có thì [[Có mặt lúc]], [[Có mặt tại]] (khác ngày: [[Có mặt khác ngày]]), [[Ghi chú dịch vụ]].
 7. Thêm dịch vụ: lặp bước 4–6 (tối đa 20). Mỗi lúc chỉ một thẻ mở; chạm dòng gập để mở, thùng rác để bỏ.
 8. Khối [[Thanh toán]]: [[Giảm giá (₫)]], [[Thanh toán trước (₫)]] (có số thì hiện thêm [[Hình thức]], [[Người thu tiền]]), [[Ghi chú thanh toán]]. Tiền trả trước vào sổ ngay khi lưu đơn.
 9. Khối [[Người phụ trách]]: để trống thì đơn ở [[Chờ nhận]] — hướng dẫn viên nào cũng nhận được. Muốn giao luôn thì bấm [[Chọn người phụ trách]], tìm tên, chạm người đó. Đổi ý thì bấm [[Đổi]] hoặc [[Bỏ chọn — để Chờ nhận]].
@@ -69,9 +69,9 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
 2. Bấm [[Xác nhận đơn]]. Hộp hỏi lại: sau khi xác nhận, dịch vụ và đơn giá bị khoá. Bấm đồng ý.
 3. Đơn chuyển sang [[Đã xác nhận]].
 
-Nền tảng chỉ cho xác nhận khi mỗi dịch vụ có ngày khởi hành, ngày đó chưa qua và không quá 365 ngày tới, mỗi dịch vụ có khách, và không còn lượt đưa đón sát giờ chưa được duyệt (xem "Đơn sát giờ — Đặt gấp"). Thiếu thì Nền tảng báo [[Chưa đủ thông tin chuyến để xác nhận đơn.]] kèm từng dịch vụ và liên kết [[Sửa]].
+Nền tảng chỉ cho xác nhận khi mỗi dịch vụ đã chọn Đón hoặc Không đón, có ngày khởi hành, ngày đó chưa qua và không quá 365 ngày tới, mỗi dịch vụ có khách, và không còn lượt đưa đón sát giờ chưa được duyệt (xem "Đơn sát giờ — Đặt gấp"). Thiếu thì Nền tảng báo [[Chưa đủ thông tin chuyến để xác nhận đơn.]] kèm từng dịch vụ và liên kết [[Sửa]].
 
-> Lưu ý: giờ đón và nơi đón không bắt buộc để xác nhận, nhưng nên điền trước khi gửi khách.`,
+> Lưu ý: giờ đón chưa chốt vẫn xác nhận được, nhưng nên điền trước khi gửi khách.`,
     },
     {
       tieuDe: "Gửi ảnh biên nhận cho khách",

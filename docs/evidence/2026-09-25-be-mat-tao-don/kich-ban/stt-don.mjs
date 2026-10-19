@@ -13,7 +13,7 @@ try {
       method: "POST", headers: { "content-type": "application/json", origin: env.base, cookie: `${owner.name}=${owner.value}` },
       body: JSON.stringify({
         customerName: `Nguyễn Thị Khách Hàng Có Tên Rất Dài Số ${i + 1}`, customerPhone: "0904 444 555", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
-        services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: 12, child: 11, senior: 0, infant: 0 }, unitPrices: { adult: 1350000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departDate: vnDate(3), pickupTime: "07:30", pickupPlace: i % 2 === 0 ? `Khách sạn Có Tên Rất Dài Ở Đường Trần Phú Nha Trang Số ${i + 1}` : "" }],
+        services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 12, child: 11, senior: 0, infant: 0 }, unitPrices: { adult: 1350000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departDate: vnDate(3), pickupTime: "07:30", pickupPlace: i % 2 === 0 ? `Khách sạn Có Tên Rất Dài Ở Đường Trần Phú Nha Trang Số ${i + 1}` : "" }],
       }),
     });
     assert.ok(r.status === 200 || r.status === 201, `tạo đơn ${i + 1}: ${r.status} ${await r.text()}`);

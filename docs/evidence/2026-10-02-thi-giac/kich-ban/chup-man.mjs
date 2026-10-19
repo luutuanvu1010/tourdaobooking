@@ -41,7 +41,7 @@ try {
     return { status: r.status, json: await r.json().catch(() => null) };
   };
   const dichVu = (code, departDate, pickupTime, pickupPlace, adult = 2) => ({
-    kind: "catalog",
+    kind: "catalog", pickupChoice: pickupTime || pickupPlace ? "DON" : "KHONG_DON",
     catalogCode: code,
     pax: { adult, child: 0, senior: 0, infant: 0 },
     catalogPriceSeen: { adult: code === "TD101" ? 1_350_000 : 800_000 },

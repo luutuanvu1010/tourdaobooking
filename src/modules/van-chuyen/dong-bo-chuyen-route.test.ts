@@ -339,7 +339,7 @@ async function donVe(w: W, ve: number) {
     body: {
       customerName: "Khách Liên Hệ Dò Tìm", customerPhone: "0912345678",
       services: [{
-        kind: "catalog", catalogCode: "ZA1", pax: { adult: 4, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY,
+        kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: 4, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY,
         legs: [{ direction: "RETURN", pickupDate: NGAY, pickupTime: "13:00", pickupLocationId: LOC, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "Khách sạn Dò Tìm", paxOverride: ve }],
       }],
       passengers: [{ fullName: "Khách Dò Tìm 1", birthYear: 1990, paxCode: "adult" }, { fullName: "Khách Dò Tìm 2", birthYear: 1991, paxCode: "adult" }],
@@ -402,7 +402,7 @@ test("NT-5 vượt trần 74 câu phần chuyến (huỷ đơn 2 dịch vụ × 
   try {
     const w = setup();
     const dv = (gio: string) => ({
-      kind: "catalog", catalogCode: "ZA1", pax: { adult: 40, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY,
+      kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: 40, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY,
       legs: [{ direction: "OUT", pickupDate: NGAY, pickupTime: gio, pickupLocationId: null, pickupPlace: "Khách sạn Dò Tìm", dropoffLocationId: LOC, dropoffPlace: "" }],
     });
     const tao = await w.call("POST", "/api/orders", { as: SALES, body: { customerName: "Khách Liên Hệ Dò Tìm", customerPhone: "0912345678", services: [dv("13:00"), dv("13:10")], passengers: [] } });
