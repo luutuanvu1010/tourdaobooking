@@ -17,6 +17,8 @@ function setup(): W {
   w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, price_child, price_senior, price_infant, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 500000, 300000, 400000, 50000, 1, '2026-01-01', '2026-01-01')");
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-dla', 'ORGANIZATION', 'Đại lý A', 1, ?, ?)").run(AT, AT);
   w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-dla', 'pty-dla', 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-ncc', 'ORGANIZATION', 'i-resort', 1, ?, ?)").run(AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-ncc', 'pty-ncc', 'SUPPLIER', '2026-01-01', ?, ?)").run(AT, AT);
   return w;
 }
 const muc = (w: W, body: Record<string, unknown>) =>
@@ -79,4 +81,31 @@ test("đơn nháp (tính thử) cũng theo ba số của mức hiện hành", as
   const id = r.json.order.id as string;
   w.sqlite.prepare("UPDATE orders SET booker_party_id = 'pty-dla' WHERE id = ?").run(id);
   assert.equal((await thuongMai(w, id)).hoaHong, 170_000);
+});
+
+const ghiTay = (w: W, id: string, svc: string, body: unknown) => w.call("POST", `/api/orders/${id}/thuong-mai/${svc}`, { as: ID.ACC, body });
+
+test("ghi tay CHỈ đổi người bán ⇒ giữ ba số: bản ghi tay mới có dòng phụ, hoa hồng vẫn 170.000 (lỗi người kiểm 19/10)", async () => {
+  const w = setup();
+  assert.equal((await muc(w, { theoLoai: { treEm: 30_000, nguoiCaoTuoi: 40_000 } })).status, 201);
+  const { id, svc } = await donXacNhan(w, { adult: 2, child: 1, senior: 1, infant: 1 });
+  const r = await ghiTay(w, id, svc, { lyDo: "mua lại từ i-resort theo hợp đồng", nguoiBan: { partyId: "pty-ncc", tyLeMuaBp: 8000 } });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(w.q("SELECT 1 FROM ord_service_terms WHERE order_id = ? AND source = 'MANUAL'", id).length, 1);
+  const phu = w.q("SELECT p.adult_amount, p.child_amount, p.senior_amount FROM ord_service_terms_pax p JOIN ord_service_terms t ON t.id = p.terms_id WHERE t.order_id = ? AND t.source = 'MANUAL'", id);
+  assert.equal(phu.length, 1, "bản ghi tay mang đủ ba số");
+  assert.deepEqual([phu[0].adult_amount, phu[0].child_amount, phu[0].senior_amount], [50_000, 30_000, 40_000]);
+  const d = await thuongMai(w, id);
+  assert.equal(d.hoaHong, 170_000);
+  assert.match(String(d.muc), /trẻ em/);
+});
+
+test("ghi tay ĐỔI MỨC (đ/khách một số) ⇒ bỏ ba số: bản ghi tay không có dòng phụ, hoa hồng theo cách cũ", async () => {
+  const w = setup();
+  assert.equal((await muc(w, { theoLoai: { treEm: 30_000, nguoiCaoTuoi: 40_000 } })).status, 201);
+  const { id, svc } = await donXacNhan(w, { adult: 2, child: 1, senior: 1, infant: 1 });
+  const r = await ghiTay(w, id, svc, { lyDo: "thoả thuận riêng với đại lý", hoaHong: { kieu: "PER_PAX", moiKhach: 60_000 } });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(w.q("SELECT 1 FROM ord_service_terms_pax p JOIN ord_service_terms t ON t.id = p.terms_id WHERE t.order_id = ? AND t.source = 'MANUAL'", id).length, 0);
+  assert.equal((await thuongMai(w, id)).hoaHong, 240_000, "60.000 × (2 người lớn + 1 trẻ em + 1 người cao tuổi)");
 });

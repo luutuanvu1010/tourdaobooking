@@ -35,6 +35,14 @@ export const cauChupChuoi = (db: D1Database, rows: readonly DongGhiChup[]): D1Pr
 ]);
 /** Ghi tay (đơn đã xác nhận, chưa giao): lính gác ngay trong câu, không phụ thuộc câu trước. */
 export const cauGhiTay = (db: D1Database, d: DongGhiChup): D1PreparedStatement => bindDong(db.prepare(GHI_TAY), d);
+/**
+ * Ghi tay kèm ba số theo loại (ADR-0133): ghi tay chỉ đổi người bán thì bản mới GIỮ ba số của bản trước (`apGhiTay` chép `hoaHong`), nên phải có dòng phụ đi cùng — nếu không hoa hồng
+ * lặng lẽ quay về cách tính cũ (lỗi người kiểm 19/10). Câu phụ `WHERE changes() > 0` đứng ngay sau câu ghi tay: lô thua thì không ghi gì. Phần tử đầu LUÔN là câu ghi tay (nơi gọi đọc `kq[0]`).
+ */
+export const cauGhiTayKemPax = (db: D1Database, d: DongGhiChup): D1PreparedStatement[] => [
+  cauGhiTay(db, d),
+  ...(d.theoLoai ? [db.prepare(CHUP_PAX).bind(d.id, d.theoLoai.adult, d.theoLoai.child, d.theoLoai.senior, d.at, d.by)] : []),
+];
 /** Bản chụp HIỆN HÀNH của đơn: dòng chưa bị bản nào thay thế (`supersedes_id` trỏ tới nó). */
 export const banChupHienHanh = async (db: D1Database, orderId: string): Promise<TermRowDb[]> => (await db.prepare(HIEN_HANH).bind(orderId).all<TermRowDb>()).results;
 export const demBanChup = async (db: D1Database, orderId: string): Promise<number> => Number((await db.prepare(DEM).bind(orderId).first<{ n: number }>())?.n ?? 0);
