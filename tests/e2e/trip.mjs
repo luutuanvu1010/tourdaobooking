@@ -16,7 +16,8 @@ await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,pric
   ('ZT2','Phao thử','per5Pax',1000000,NULL,NULL,NULL,NULL,NULL,NULL,3,1,${T},${T}),
   ('ZT3','Motor thử','perPax',800000,NULL,NULL,NULL,NULL,NULL,NULL,4,1,${T},${T})`);
 
-const cat = (extra = {}) => ({ kind: "catalog", catalogCode: "ZT1", pax: { adult: 2, child: 1 }, catalogPriceSeen: { adult: 850000, child: 595000 }, departDate: vnDate(7), ...extra });
+// ADR-0134: dịch vụ gửi lựa chọn đón tường minh (cửa xác nhận đòi) — có giờ/điểm đón khoá cũ (sinh chặng) thì "DON"; ghi đè được qua `extra`.
+const cat = (extra = {}) => ({ kind: "catalog", pickupChoice: extra.pickupTime || extra.pickupPlace ? "DON" : "KHONG_DON", catalogCode: "ZT1", pax: { adult: 2, child: 1 }, catalogPriceSeen: { adult: 850000, child: 595000 }, departDate: vnDate(7), ...extra });
 /** Dịch vụ danh mục ZT3 (một dòng người lớn, 800.000) — thay dịch vụ nhập tay cũ của tệp này (API không nhận dịch vụ nhập tay mới từ 2026-09-26). */
 const motor = (extra = {}) => cat({ catalogCode: "ZT3", pax: { adult: 1 }, catalogPriceSeen: { adult: 800000 }, ...extra });
 const lines = (order) => order.services.flatMap((s) => s.items);
