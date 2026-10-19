@@ -38,9 +38,13 @@ test("canPickMatch / matchNote: chỉ cá nhân đang hoạt động chọn đư
   }
 });
 
-// Task 14, nợ (d) (T11 M3): câu cạnh hồ sơ tổ chức trỏ tới ô «Đặt qua đối tác» CHỈ khi người đọc có ô đó (người lập đơn không giữ quyền Đối tác); Đối tác và tài khoản lai không có ô ⇒ câu trung tính.
-test("matchNote: tổ chức — chỉ trỏ tới ô «Đặt qua đối tác» khi người đọc CÓ ô đó; không thì câu trung tính, không nhắc ô", () => {
-  assert.equal(matchNote({ kind: "ORGANIZATION", active: true }, true), "tổ chức — đại lý thì chọn ở ô “Đặt qua đối tác”");
+// Task 14, nợ (d) (T11 M3): câu cạnh hồ sơ tổ chức trỏ tới ô chọn đối tác CHỈ khi người đọc có ô đó (người lập đơn không giữ quyền Đối tác); Đối tác và tài khoản lai không có ô ⇒ câu trung tính.
+// Từ thiết kế lại màn Tạo đơn (18/10, DAC-TA §4.3) ô đó là công tắc «Đơn của: Khách lẻ | Qua đối tác» ở cả form lẫn bảng «Đổi khách» — câu phải gọi đúng NHÃN đang thấy
+// (vòng sửa cuối 19/10: câu cũ trỏ tới nút «Đặt qua đối tác» đã không còn).
+test("matchNote: tổ chức — chỉ trỏ tới công tắc «Đơn của» khi người đọc CÓ ô chọn đối tác; không thì câu trung tính, không nhắc ô", () => {
+  const coO = matchNote({ kind: "ORGANIZATION", active: true }, true);
+  assert.equal(coO, "tổ chức — đại lý thì bấm “Qua đối tác” ở hàng “Đơn của”");
+  assert.ok(!/Đặt qua đối tác/.test(coO ?? ""), "không nhắc nhãn cũ đã gỡ");
   const trungTinh = matchNote({ kind: "ORGANIZATION", active: true }, false);
   assert.equal(trungTinh, "tổ chức — do văn phòng gắn bên đặt");
   assert.ok(!/ ô /.test(trungTinh ?? ""), "câu trung tính không nhắc ô nào");

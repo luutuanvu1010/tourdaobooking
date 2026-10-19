@@ -74,7 +74,8 @@ export const canPickMatch = (m: MatchLike): boolean => m.kind === "PERSON" && m.
 export function matchNote(m: MatchLike, coODatQuaDoiTac: boolean): string | null {
   if (!m.active) return "đã ngưng";
   // sổ đại lý đợt 1 (Task 11): tổ chức được hưởng gắn vào đơn được, nhưng qua ô riêng (đặc tả §7), không qua ô tra SĐT
-  if (m.kind !== "PERSON") return coODatQuaDoiTac ? "tổ chức — đại lý thì chọn ở ô “Đặt qua đối tác”" : "tổ chức — do văn phòng gắn bên đặt";
+  // Ô đó nay là công tắc «Đơn của: Khách lẻ | Qua đối tác» (thiết kế lại màn Tạo đơn 18/10, ở cả form lẫn bảng «Đổi khách») — câu gọi đúng nhãn đang thấy.
+  if (m.kind !== "PERSON") return coODatQuaDoiTac ? "tổ chức — đại lý thì bấm “Qua đối tác” ở hàng “Đơn của”" : "tổ chức — do văn phòng gắn bên đặt";
   return null;
 }
 
