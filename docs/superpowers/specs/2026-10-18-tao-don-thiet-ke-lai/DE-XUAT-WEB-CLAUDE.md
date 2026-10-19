@@ -32,3 +32,7 @@ Dòng hiện tại (khoảng dòng 76): "Chip nhóm dịch vụ ở ô chọn d�
 
 - `docs/evidence/2026-10-08-so-dai-ly-dot-1/kich-ban/so-dai-ly-smoke.mjs`: khoá chữ cũ của ô "Đặt qua đối tác" (nút rời, "Bỏ chọn", dòng "Đặt qua: …") ở form và bảng "Đổi khách" — từ Việc 3 (form) và Việc 9 (bảng) không còn chữ đó.
 - `docs/evidence/2026-10-14-tao-don-bon-buoc/kich-ban/chup-anh.mjs`: gãy từ Việc 7 (đã ghi ở `docs/CHANGE-GUIDE.md` §3).
+
+## 5. Mục kịch bản Chrome: dọn tiến trình mồ côi (task 13, 19/10; đề xuất, chưa áp)
+
+Thêm một dòng vào đoạn nói về `CHROME_BIN` của `web/CLAUDE.md` (hoặc ngay sau bảng kịch bản): «Chạy kịch bản Chrome với `CHROME_BIN="$PWD/scripts/chrome-tu-dong-dong.sh"` để Chrome tự đóng khi kịch bản chết; Chrome / `wrangler dev` mồ côi còn sót thì `npm run don-may` (chỉ in) rồi `npm run don-may -- --yes`. Chi tiết: `docs/CHANGE-GUIDE.md` công thức o, mục 8.»
