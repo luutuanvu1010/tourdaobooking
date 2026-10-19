@@ -37,7 +37,7 @@ const callWith = (w: any, token: string, method: string, path: string, body?: un
   w.call(method, path, { headers: { cookie: `td_session=${token}` }, ...(body === undefined ? {} : { body }) });
 
 test("ADR-0075 điều 8: session_revoked có nhãn tiếng Việt và thuộc SILENT_AUDIT_ACTIONS (im lặng như pin_reset, passkey_removed)", () => {
-  assert.equal(AUDIT_ACTIONS.session_revoked.label, "Gỡ phiên đăng nhập");
+  assert.equal(AUDIT_ACTIONS.session_revoked.label, "Đăng xuất một máy đang đăng nhập");
   assert.equal(AUDIT_ACTIONS.session_revoked.group, "staff");
   assert.ok((SILENT_AUDIT_ACTIONS as readonly string[]).includes("session_revoked"));
 });

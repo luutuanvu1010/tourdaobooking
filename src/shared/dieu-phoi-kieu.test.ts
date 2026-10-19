@@ -51,7 +51,7 @@ test("LOAI_SU_KIEN_CHUYEN: đủ 17 loại tương ứng các hành động trip
   assert.equal(NHAN_SU_KIEN_CHUYEN.DRIVER_REFUSED, "Tài xế từ chối chuyến");
   assert.equal(NHAN_SU_KIEN_CHUYEN.ALLOCATION_ORDER_SYNCED, "Máy cập nhật chuyến theo đơn");
   assert.equal(NHAN_SU_KIEN_CHUYEN.CORRECTION, "Văn phòng điều chỉnh kết quả khách");
-  assert.equal(NHAN_SU_KIEN_CHUYEN.DEPARTURE_REVOKED, "Văn phòng thu hồi xuất bến");
+  assert.equal(NHAN_SU_KIEN_CHUYEN.DEPARTURE_REVOKED, "Văn phòng thu hồi lệnh cho xe chạy");
   assert.equal(NHAN_SU_KIEN_CHUYEN.ALLOCATION_PASSENGER_CHANGED, "Cập nhật khách theo đơn");
   assert.equal(NHAN_SU_KIEN_CHUYEN.STOP_ADDED_RUNNING, "Văn phòng thêm điểm khi xe đang chạy");
   assert.equal(NHAN_SU_KIEN_CHUYEN.ALLOCATION_OFFICE_CANCELLED, "Văn phòng báo huỷ khách");

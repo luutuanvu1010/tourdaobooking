@@ -60,7 +60,7 @@ export function chipDongChiPhi(d: Pick<DongChiPhiDto, "loai" | "lyDo">): { nhan:
   switch (d.loai) {
     case "SNAPSHOT": return { nhan: "Giá bảng", tone: "ok" };
     case "AGREED": return { nhan: "Giá thoả thuận", tone: "ok" };
-    case "REVERSAL": return { nhan: "Đảo", tone: "muted" };
+    case "REVERSAL": return { nhan: "Dòng huỷ", tone: "muted" };
     default: return d.lyDo?.ma === "CPX_HUY_MUON" ? { nhan: "Điều chỉnh · phí huỷ", tone: "danger" } : { nhan: "Điều chỉnh", tone: "unit" };
   }
 }
@@ -94,8 +94,8 @@ export const NHAN_NHOM_BANG_KE: Readonly<Record<NhomBangKeDto, { nhan: string; t
 export const tomTatBangKe = (r: { soChuyen: number; soNhaXe: number; soThieuGia: number }): string =>
   [`${r.soChuyen} chuyến`, `${r.soNhaXe} nhà xe`, r.soThieuGia > 0 ? `${r.soThieuGia} chuyến chưa có giá` : null].filter(Boolean).join(" · ");
 
-/** Cột ĐIỀU CHỈNH của bảng kê (câu 4.2: SỐ TIỀN máy chủ tính — `tongDieuChinh`) + dòng phụ số điều chỉnh bị đảo do đổi chuyến. */
+/** Cột ĐIỀU CHỈNH của bảng kê (câu 4.2: SỐ TIỀN máy chủ tính — `tongDieuChinh`) + dòng phụ số điều chỉnh bị huỷ do đổi chuyến. */
 export function dongDieuChinhBangKe(d: { tongDieuChinh: number; soDieuChinh: number; soDieuChinhBiDao: number }): { so: string; am: boolean; phu: string } {
   const so = d.soDieuChinh === 0 ? "—" : d.tongDieuChinh === 0 ? vnd(0) : soTienCoDau(d.tongDieuChinh);
-  return { so, am: d.tongDieuChinh < 0, phu: d.soDieuChinhBiDao > 0 ? `${d.soDieuChinhBiDao} điều chỉnh bị đảo do đổi chuyến` : "" };
+  return { so, am: d.tongDieuChinh < 0, phu: d.soDieuChinhBiDao > 0 ? `${d.soDieuChinhBiDao} điều chỉnh bị huỷ do đổi chuyến` : "" };
 }

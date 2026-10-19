@@ -36,7 +36,7 @@ try {
   let p = await mo(ACCOUNTS.salesA, "/account", MOB);
   await p.waitFor("!document.getElementById('my-sessions').hidden", "1. mục Phiên đăng nhập của tôi hiện", 8000);
   const muc = await p.ev(`(() => { const m = document.getElementById('my-sessions'); return { h: m.querySelector('h2').textContent, chu: m.textContent, may: [...m.querySelectorAll('.badge')].map((b) => b.textContent), nut: !!m.querySelector('#my-sessions-logout') }; })()`);
-  assert.equal(muc.h, "Phiên đăng nhập của tôi");
+  assert.equal(muc.h, "Máy đang đăng nhập của tôi");
   assert.ok(muc.chu.includes("Ứng dụng đã cài và Safari trên cùng một iPhone tính là hai máy."), "1. có câu Safari + ứng dụng là hai máy");
   assert.ok(muc.may.includes("Máy này") && muc.may.includes("Đang hiệu lực"), `1. dòng Máy này + Đang hiệu lực: ${JSON.stringify(muc.may)}`);
   assert.ok(muc.nut, "1. có nút Đăng xuất trong mục");
@@ -61,8 +61,8 @@ try {
   const idB = sid(ACCOUNTS.salesB.phone);
   await env.login(ACCOUNTS.salesB); // salesB có một phiên sống (máy Node)
   p = await mo(ACCOUNTS.chu, "/sessions", DESK);
-  assert.ok((await thanhBen(p)).includes("Phiên đăng nhập"), "2. thanh bên có mục Phiên đăng nhập");
-  assert.equal(await p.ev("document.querySelector('#sidebar [aria-current=page] .sidebar-item-label')?.textContent.trim()"), "Phiên đăng nhập", "2. mục đang chọn");
+  assert.ok((await thanhBen(p)).includes("Máy đang đăng nhập"), "2. thanh bên có mục Phiên đăng nhập");
+  assert.equal(await p.ev("document.querySelector('#sidebar [aria-current=page] .sidebar-item-label')?.textContent.trim()"), "Máy đang đăng nhập", "2. mục đang chọn");
   await p.waitFor("document.querySelectorAll('#list tr[data-phien]').length >= 3", "2. bảng có phiên của salesA, salesB, chủ");
   await p.ev("(window.__soConfirm = 0, window.confirm = () => { window.__soConfirm++; return true; }, true)");
   assert.deepEqual(await baoLoi(p), [], "2. không dòng báo lỗi");
@@ -73,13 +73,13 @@ try {
   // Gỡ phiên salesA (lọc theo tên trước)
   await p.ev(setInput("document.getElementById('tim-ten')", "sales mot"));
   await p.waitFor("document.querySelectorAll('#list tr[data-phien]').length === 1 && document.querySelector('#list tr[data-phien]').textContent.includes('Sales Một')", "2. lọc tên không dấu ra đúng salesA");
-  await p.ev("[...document.querySelectorAll('#list tr[data-phien] button')].find((b) => b.textContent === 'Gỡ phiên').click(), true");
+  await p.ev("[...document.querySelectorAll('#list tr[data-phien] button')].find((b) => b.textContent === 'Đăng xuất máy này').click(), true");
   await p.waitFor("!!document.querySelector('#list [data-xac-nhan]')", "2. hộp xác nhận trong trang hiện");
   const cauXN = await p.ev("document.querySelector('#list [data-xac-nhan]').textContent");
-  assert.ok(cauXN.includes("Gỡ phiên của Sales Một") && cauXN.includes("Người có PIN vẫn đăng nhập lại được."), `2. câu xác nhận: ${cauXN}`);
+  assert.ok(cauXN.startsWith("Đăng xuất máy ") && cauXN.includes(" của Sales Một?") && cauXN.includes("Người có PIN vẫn đăng nhập lại được."), `2. câu xác nhận: ${cauXN}`);
   await p.shot(join(ANH, "04-hop-xac-nhan-go-1040.png"));
   await p.ev("[...document.querySelectorAll('#list [data-xac-nhan] button')].find((b) => b.textContent === 'Xác nhận gỡ').click(), true");
-  await p.waitFor("!document.getElementById('ok').hidden && document.getElementById('ok').textContent.startsWith('Đã gỡ phiên của Sales Một')", "2. báo đã gỡ");
+  await p.waitFor("!document.getElementById('ok').hidden && document.getElementById('ok').textContent.startsWith('Đã đăng xuất máy ') && document.getElementById('ok').textContent.includes(' của Sales Một.')", "2. báo đã gỡ");
   await p.waitFor("document.querySelectorAll('#list tr[data-phien]').length === 0", "2. salesA không còn phiên đang hiệu lực");
   const [{ end_reason: lyDoA }] = env.sql(`SELECT end_reason FROM aut_session WHERE staff_id = '${idA}' ORDER BY created_at DESC LIMIT 1`);
   assert.equal(lyDoA, "bi_go", "2. dòng phiên salesA kết thúc bi_go");
@@ -93,11 +93,11 @@ try {
   // Gỡ phiên + đặt lại PIN cho salesB
   await p.ev(setInput("document.getElementById('tim-ten')", "Sales Hai"));
   await p.waitFor("document.querySelectorAll('#list tr[data-phien]').length === 1", "2. lọc ra salesB");
-  await p.ev("[...document.querySelectorAll('#list tr[data-phien] button')].find((b) => b.textContent === 'Gỡ phiên + đặt lại PIN').click(), true");
+  await p.ev("[...document.querySelectorAll('#list tr[data-phien] button')].find((b) => b.textContent === 'Đăng xuất mọi máy + đặt lại PIN').click(), true");
   await p.waitFor("!!document.querySelector('#list [data-xac-nhan]')", "2. hộp xác nhận (đặt lại PIN)");
   await p.ev("[...document.querySelectorAll('#list [data-xac-nhan] button')].find((b) => b.textContent === 'Xác nhận gỡ và đặt lại PIN').click(), true");
   await p.waitFor("!document.getElementById('secret').hidden && /^\\d{6}$/.test(document.querySelector('#secret td.pin')?.textContent ?? '')", "2. PIN mới hiện một lần");
-  assert.ok((await p.ev("document.getElementById('ok').textContent")).startsWith("Đã gỡ phiên và đã đặt lại PIN của Sales Hai"), "2. báo gỡ + đặt lại PIN");
+  assert.ok((await p.ev("document.getElementById('ok').textContent")).startsWith("Đã đăng xuất máy này và đã đặt lại PIN của Sales Hai"), "2. báo gỡ + đặt lại PIN");
   const [{ end_reason: lyDoB }] = env.sql(`SELECT end_reason FROM aut_session WHERE staff_id = '${idB}' ORDER BY created_at DESC LIMIT 1`);
   assert.equal(lyDoB, "bi_go", "2. phiên salesB kết thúc bi_go (gỡ trước, đặt lại PIN sau)");
   await p.shot(join(ANH, "06-go-va-dat-lai-pin-1040.png"));
@@ -121,12 +121,12 @@ try {
   ok("390: thẻ + hộp xác nhận trong thẻ, không cuộn ngang, không lỗi JS");
 
   // ---- 3. Tài khoản thiếu ô auth.session.viewAll
-  const CAU = "Trang Phiên đăng nhập chỉ người phụ trách hệ thống (IT, Toàn quyền) xem được.";
+  const CAU = "Trang Máy đang đăng nhập chỉ người phụ trách hệ thống (IT, Toàn quyền) xem được.";
   for (const [ten, acc] of [["Quản trị", ACCOUNTS.admin], ["Kế toán", ACCOUNTS.accounting]]) {
     p = await mo(acc, "/account", DESK);
-    assert.ok(!(await thanhBen(p)).includes("Phiên đăng nhập"), `3. ${ten}: thanh bên không có mục`);
+    assert.ok(!(await thanhBen(p)).includes("Máy đang đăng nhập"), `3. ${ten}: thanh bên không có mục`);
     await p.waitFor("!document.getElementById('my-sessions').hidden", `3. ${ten}: vẫn có mục Phiên đăng nhập của tôi`, 8000);
-    assert.ok(!(await dongTo(p)).some((t) => t.startsWith("Phiên đăng nhập")), `3. ${ten}: trang Tôi không có dòng Phiên đăng nhập`);
+    assert.ok(!(await dongTo(p)).some((t) => t.startsWith("Máy đang đăng nhập")), `3. ${ten}: trang Tôi không có dòng Phiên đăng nhập`);
     assert.deepEqual(p.consoleErrors, [], `3. ${ten}: trang Tôi không lỗi JS`);
     p.close();
     p = await mo(acc, "/sessions", DESK);

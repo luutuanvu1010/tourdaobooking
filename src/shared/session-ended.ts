@@ -16,11 +16,11 @@ export function parseSessionEnded(value: unknown): SessionEndedNotice | null {
   return { reason, endedAt: typeof endedAt === "string" ? endedAt : null };
 }
 
-/** Câu hiện trên trang đăng nhập. "Bị thay" + có giờ: "Tài khoản vừa đăng nhập trên máy khác lúc HH:MM" (giờ Việt Nam); lý do khác: "Phiên đăng nhập đã kết thúc: <lý do>." */
+/** Câu hiện trên trang đăng nhập. "Bị thay" + có giờ: "Tài khoản vừa đăng nhập trên máy khác lúc HH:MM" (giờ Việt Nam); lý do khác: "Máy này đã bị đăng xuất. Lý do: <lý do>." */
 export function sessionEndedMessage(n: SessionEndedNotice): string {
   if (n.reason === LY_DO_BI_THAY) {
     const gio = n.endedAt !== null && Number.isFinite(Date.parse(n.endedAt)) ? vnDateTimeText(n.endedAt).slice(0, 5) : null;
     return gio ? `Tài khoản vừa đăng nhập trên máy khác lúc ${gio}` : "Tài khoản vừa đăng nhập trên máy khác.";
   }
-  return `Phiên đăng nhập đã kết thúc: ${n.reason}.`;
+  return `Máy này đã bị đăng xuất. Lý do: ${n.reason}.`;
 }

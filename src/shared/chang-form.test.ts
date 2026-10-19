@@ -72,7 +72,7 @@ test("dời ngày đón theo ngày đi mới; câu 'Đã dời ngày đón của
   const r = doiNgayDi(legs, "2026-09-30", "2026-10-02");
   assert.deepEqual(r.legs.map((l) => l.pickupDate), ["2026-10-02", "2026-10-01", ""]);
   assert.equal(r.soDoi, 2);
-  assert.equal(cauDoiNgay(2), "Đã dời ngày đón của 2 chặng theo ngày đi mới");
+  assert.equal(cauDoiNgay(2), "Đã dời ngày đón của 2 lượt đưa đón theo ngày đi mới");
   assert.equal(goiYChang(r.legs[1]!, "2026-10-02").ngay, "Khác ngày đi (02/10)");
   // Chưa có ngày đi → điền ngày mới cho chặng chưa có ngày.
   assert.deepEqual(doiNgayDi([themChangDi(null, "", k())], "", "2026-10-02").legs.map((l) => l.pickupDate), ["2026-10-02"]);
@@ -90,11 +90,11 @@ test("ngưỡng số chỗ tối thiểu của form trùng hằng phía máy ch�
 test("lỗi dòng đúng chữ bản vẽ: nơi đón chỉ sau khi bấm Lưu; số người chiều về quá số khách báo ngay", () => {
   const l = themChangDi(null, "", k());
   assert.deepEqual(loiChang(l, 1, 4, false), { don: null, donTuDo: null, soVe: null, choToiThieu: null });
-  assert.equal(loiChang(l, 1, 4, true).don, "Chặng 1: chưa có nơi đón.");
-  assert.equal(loiChang({ ...l, don: TU_DO }, 1, 4, true).donTuDo, "Chặng 1: chưa ghi địa chỉ đón.");
+  assert.equal(loiChang(l, 1, 4, true).don, "Lượt 1: chưa có nơi đón.");
+  assert.equal(loiChang({ ...l, don: TU_DO }, 1, 4, true).donTuDo, "Lượt 1: chưa ghi địa chỉ đón.");
   const ve = { ...themChieuVe([l], null, "", k()), don: GA, soVe: "5" };
   assert.equal(loiChang(ve, 2, 4, false).soVe, "Số người chiều về không được quá 4.");
-  assert.deepEqual(loiDanhSachChang([l, ve], 4), ["Chặng 1: chưa có nơi đón.", "Số người chiều về không được quá 4."]);
+  assert.deepEqual(loiDanhSachChang([l, ve], 4), ["Lượt 1: chưa có nơi đón.", "Số người chiều về không được quá 4."]);
 });
 
 test("legInput: nơi đón ĐÚNG MỘT (điểm hoặc chữ); nơi trả trống = chưa chốt; paxOverride CHỈ khi được sửa (văn phòng) và chỉ chiều về", () => {
@@ -187,7 +187,7 @@ test("Đợt 7 / 8b: loiChang số chỗ — '0' và '120' báo 'Số chỗ từ
   assert.equal(loi("0"), "Số chỗ từ 1 đến 100");
   assert.equal(loi("120"), "Số chỗ từ 1 đến 100");
   for (const ok of ["", "1", "15", "100"]) assert.equal(loi(ok), null, `"${ok}"`);
-  assert.deepEqual(loiDanhSachChang([{ ...l, don: GA, choToiThieu: "120" }], 4), ["Chặng 1: số chỗ từ 1 đến 100."]);
+  assert.deepEqual(loiDanhSachChang([{ ...l, don: GA, choToiThieu: "120" }], 4), ["Lượt 1: số chỗ từ 1 đến 100."]);
 });
 
 test("Đợt 1 #9: canHienNgayDon — form Tạo đơn ẩn 'Ngày đón' khi chặng cùng ngày đi hoặc chưa có ngày (máy chủ tự điền); LUÔN hiện khi chặng có ngày đón khác ngày đi", () => {

@@ -47,6 +47,7 @@ import { soNguoiSauSuaKhach, type ChangSoNguoi } from "./dong-bo-chuyen-don";
 import type { DongBoTheoDon, NoiChuyen } from "../../shared/dong-bo-chuyen";
 import { CAU_X3_THUE_XE, NHOM_THUE_XE } from "../../shared/so-dai-ly-nhan";
 import { lichSuChoDoiTac } from "../../shared/lich-su-doi-tac";
+import { lichSuNoiBo } from "../../shared/lich-su-noi-bo";
 import { apGhiTay, banChupTuDb, cheDoThuongMai, chuaCoBanChup, dongGhiTuChup, dungThuongMai, kiemGhiTayVoiBanChup, kiemThanGhiTay, moTaChup, moTaGhiTay, type PhanThuongMai } from "./thuong-mai";
 import { banChupHienHanh, cauChupChuoi, cauDoiMocSauGhiTay, cauGhiTay, cauKhoaChupBu, demBanChup, donChoChupBu, laNhaCungCap, nhomCuaMa, tenHoSo } from "./thuong-mai-repo";
 import { laThanDonCu, laThanTripCu } from "./than-cu";
@@ -73,7 +74,7 @@ const FORBIDDEN_CHUP_BU = () => error(403, "forbidden", "Chỉ Kế toán, Quả
 const NOT_EDITABLE = () => error(409, "not_editable", "Chỉ sửa được đơn đang chờ xác nhận. Muốn đổi đơn đã xác nhận, hãy huỷ và tạo đơn mới.");
 const CANCELLED = () => error(409, "not_editable", "Đơn đã huỷ, không sửa được.");
 /** Sổ tiền lượt 1 (ADR-0025 đ5): đơn đã "Đã giao – đã thu đủ" bị khoá — mọi route ghi từ chối SỚM bằng câu tiếng Việt (trigger 0044 là lưới cuối). */
-const DA_GIAO = () => error(409, "order_delivered", "Đơn đã Đã giao – đã thu đủ: không sửa, huỷ hay đổi người phụ trách được nữa. Sai sót thì Kế toán dùng “Thay lần thu”.");
+const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Đã giao – đã thu đủ: không sửa, huỷ hay đổi người phụ trách được nữa. Sai sót thì Kế toán dùng “Sửa khoản thu đã ghi”.");
 const STALE = () => error(409, "stale", "Đơn vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
 /** ADR-0063 D1: văn phòng sửa số khách — ô `order.money.edit` KHÔNG ngữ cảnh "đang phụ trách" (Bán hàng chỉ đơn mình lập; HDV dùng "Việc của tôi"). */
 const MONEY_EDIT_FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn (Bán hàng), Kế toán, Quản trị hoặc Toàn quyền mới sửa được số khách của đơn này.");
@@ -83,8 +84,8 @@ const RACED = () => error(409, "invalid_transition", "Đơn vừa được ngư�
 const GIA_DANH_MUC = (cau: string) => error(403, "forbidden", cau);
 /** ADR-0047 Ruling R1: chặng / danh sách khách của ĐƠN NHÁP đi trong thân `POST/PUT /api/orders`; route riêng chỉ nhận đơn đã xác nhận. */
 const USE_ORDER_FORM = () => error(409, "use_order_form", "Đơn nháp: sửa đưa đón và danh sách hành khách ngay trong form đơn.");
-const LEG_NOT_FOUND = () => error(404, "leg_not_found", "Không tìm thấy chặng đưa đón của đơn này.");
-const LEG_CLOSED = (message = "Chặng đưa đón này đã bỏ — không sửa được.") => error(409, "leg_closed", message);
+const LEG_NOT_FOUND = () => error(404, "leg_not_found", "Không tìm thấy lượt đưa đón của đơn này.");
+const LEG_CLOSED = (message = "Lượt đưa đón này đã bỏ — không sửa được.") => error(409, "leg_closed", message);
 const CANNOT_WRITE_PASSENGERS = () => error(403, "forbidden", "Tài khoản này không được nhập danh sách hành khách của đơn này.");
 /** ADR-0054 D10.3 (Q-L4-B "Chỉ văn phòng"): số người chiều về chỉ người qua ô `order.trip.edit` đổi — kể cả khi lập / lưu nháp. */
 const CANNOT_PAX_OVERRIDE = () => error(403, "forbidden", "Chỉ văn phòng đổi được số người chiều về.");
@@ -102,12 +103,12 @@ function oPhuNhap(
   return { ok: true, value: { ...order, services: g.services } };
 }
 /** ADR-0049 D3: đặt gấp chặng dưới mốc — chỉ Quản trị, Toàn quyền (ô `order.leg.short_notice`). */
-const CANNOT_SHORT_NOTICE = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền được đặt gấp chặng đưa đón.");
+const CANNOT_SHORT_NOTICE = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền được đặt gấp lượt đưa đón.");
 /** Mốc tối thiểu chưa có (bảng chính sách rỗng / môi trường không tiêm) — CHẶN lệnh cần mốc, không đoán con số (I25). */
-const MOC_CHUA_CO = () => error(503, "moc_toi_thieu_chua_co", "Chưa có chính sách điều phối đang hiệu lực (mốc tối thiểu) — báo người phụ trách hệ thống.");
+const MOC_CHUA_CO = () => error(503, "moc_toi_thieu_chua_co", "Chưa có chính sách điều phối đang hiệu lực (hạn chốt trước giờ đón) — báo người phụ trách hệ thống.");
 /** I14 (Q3 chủ): sửa / thêm chặng đơn ĐÃ XÁC NHẬN dưới mốc cần Quản trị, Toàn quyền + lý do đặt gấp trong CHÍNH lệnh. */
 const SUA_DUOI_MOC = () =>
-  error(409, "short_notice_required", "Chặng dưới mốc tối thiểu trước giờ đón — chỉ Quản trị hoặc Toàn quyền sửa được, kèm lý do đặt gấp.");
+  error(409, "short_notice_required", "Lượt đưa đón có giờ đón đã qua hạn chốt — chỉ Quản trị hoặc Toàn quyền sửa được, kèm lý do đặt gấp.");
 
 /**
  * Nhánh `datGap` của lệnh sửa / thêm chặng (ADR-0049 I14): thân CÓ khoá `datGap` → phải có ô `order.leg.short_notice` (403) và lý do hợp lệ (400) → dấu MỚI
@@ -816,7 +817,7 @@ export const ordersModule: AppModule = {
     // bảng vc_: qua hàm tiêm `ctx.mocToiThieu` (gốc lắp ráp); thiếu hàm tiêm / chính sách rỗng → 503 như cổng Xác nhận (không đoán con số). PHẢI đứng TRƯỚC
     // "GET /api/orders/:id" (cùng lý do với route dashboard, pool ở trên — ":id" cũng khớp chữ "moc-toi-thieu").
     route("GET", "/api/orders/moc-toi-thieu", "orders", async ({ staff, mocToiThieu }) => {
-      if (!can(staff, "order.create")) return error(403, "forbidden", "Bạn không lập đơn nên không cần mốc tối thiểu.");
+      if (!can(staff, "order.create")) return error(403, "forbidden", "Bạn không lập đơn nên không cần hạn chốt trước giờ đón.");
       const moc = await mocToiThieu();
       if (!moc) return MOC_CHUA_CO();
       return json({ mocToiThieuPhut: moc.phut, canhBaoPhut: moc.canhBaoPhut } satisfies MocToiThieuResponse);
@@ -1022,7 +1023,8 @@ export const ordersModule: AppModule = {
       // ADR-0049 I31: kèm mốc tối thiểu đang hiệu lực (biểu mẫu cảnh báo trước khi xác nhận) — đọc không bị chặn khi chưa có mốc (null).
       const [order, assigned, moc] = await Promise.all([loadOrderView(env.DB, params.id!, xemDuDatGap(staff)), isAssigned(params.id!), mocToiThieu()]);
       if (!order) return NOT_FOUND();
-      // ADR-0007/0009: nhật ký/lịch sử sửa đơn — SALES chỉ đơn của mình hoặc đơn mình đang phụ trách; ACCOUNTING và ADMIN mọi đơn.
+      // ADR-0007/0009: ô `order.history.view` quyết ai MỞ khối lịch sử (SALES chỉ đơn của mình hoặc đơn mình đang phụ trách; ACCOUNTING và ADMIN mọi đơn); ADR-0131: người mở được
+      // KHÔNG đọc đủ nhật ký — chỉ người qua `audit.view` (Toàn quyền) thấy đủ, còn lại qua lớp rút gọn không tên (xem khối `history` dưới).
       // `assigned` tính MỘT lần cho cả nhật ký và `canModify`.
       const scope = { ownerId: order.staffId, assigned };
       // ADR-0014 điều 3 (D-01): PARTNER chỉ xem được chi tiết đơn của chính mình — SALES/ACCOUNTING/ADMIN/SUPER_ADMIN (order.view = any) luôn qua.
@@ -1037,10 +1039,14 @@ export const ordersModule: AppModule = {
       // D-1 (kiểm toán 13/10/2026): người giữ quyền Đối tác — tài khoản lai cũng bị áp ("có quyền Đối tác là áp") — chỉ thấy các hành động trong DANH SÁCH CHO PHÉP
       // (`LICH_SU_DOI_TAC_CHO_PHEP`: chữ chi tiết rút gọn theo từng hành động; riêng dòng nhập kế toán vẫn theo ô `accounting.entry.view` — ADR-0060), KHÔNG còn kiểu "lọc bỏ vài loại" (loại dòng thêm sau sẽ tự lộ). Dấu đặt gấp
       // luôn rút gọn cho Đối tác (R-P21), kể cả tài khoản lai có ô xem đủ. Người nội bộ không đổi (vẫn lọc dòng nhập kế toán theo ô quyền như cũ).
+      // ADR-0131 Quyết định 1–2: người KHÔNG qua `audit.view` (mọi vai nội bộ trừ Toàn quyền) nhận `lichSuNoiBo` — danh sách cho phép, MỌI dòng không tên / không mã người làm
+      // (dòng nhập kế toán vẫn theo ô `accounting.entry.view`). Nhánh `holdsPartner` xét TRƯỚC (tài khoản lai, kể cả Toàn quyền + Đối tác, nhận lớp Đối tác); nhánh đầy đủ giữ nguyên.
       const history = can(staff, "order.history.view", scope)
         ? holdsPartner(staff)
           ? lichSuChoDoiTac(lichSuTheoVai(await getAuditTrail(env.DB, order.id), false), xemNhapKeToan)
-          : lichSuTheoVai(await getAuditTrail(env.DB, order.id), xemDuDatGap(staff)).filter((e) => xemNhapKeToan || !laDongNhapKeToan(e.action))
+          : can(staff, "audit.view")
+            ? lichSuTheoVai(await getAuditTrail(env.DB, order.id), xemDuDatGap(staff)).filter((e) => xemNhapKeToan || !laDongNhapKeToan(e.action))
+            : lichSuNoiBo(lichSuTheoVai(await getAuditTrail(env.DB, order.id), xemDuDatGap(staff)), xemNhapKeToan)
         : [];
       // ADR-0063 D1: dữ liệu bảng "Sửa số khách dịch vụ" — chỉ khi người xem sửa được (cùng hàm ẩn/hiện của giao diện); loại khách sửa được tính từ BẢN CHỤP GỐC
       // (`findOrder`, trước điều chỉnh — loại đã về 0 vẫn còn ô, cùng cách "Việc của tôi").
@@ -1103,9 +1109,9 @@ export const ordersModule: AppModule = {
       if (coChang && !moc) return MOC_CHUA_CO();
       const datGapNhap = coChang ? chepDatGapNhap(await legDatGapByOrder(env.DB, id), placed.value.services) : new Map<string, DatGapWrite>();
       // Q2 (chủ trả lời 2026-09-30 "Đưa cọc cũ về 0, ghi nhật ký"): nháp CŨ còn cọc ghi trên đơn mà tổng mới < cọc cũ → câu lưu nháp đưa cột cọc về 0 (số tiền
-      // không mất — đã là lần thu "chưa rõ" trong sổ của billing); ghi số cọc cũ vào dòng nhật ký `updated` (không SĐT).
+      // không mất — đã là khoản thu "chưa rõ" trong sổ của billing); ghi số cọc cũ vào dòng nhật ký `updated` (không SĐT).
       const cocCu = await cocCuNhap(env.DB, id);
-      const ghiChuCoc = cocCu > placed.value.total ? `đưa tiền thu trước cũ ${cocCu.toLocaleString("vi-VN")} ₫ ghi trên đơn về 0 (tiền đã nằm ở lần thu "chưa rõ" trong sổ)` : null;
+      const ghiChuCoc = cocCu > placed.value.total ? `đưa tiền thu trước cũ ${cocCu.toLocaleString("vi-VN")} ₫ ghi trên đơn về 0 (tiền đã nằm ở khoản thu "chưa rõ" trong sổ)` : null;
       if (!(await updateDraftOrder(env.DB, id, staff.id, { ...placed.value, expectedUpdatedAt: expected }, booker.write, legMeta, datGapNhap, ghiChuCoc))) {
         const now = await getMeta(env.DB, id);
         return now && now.status !== "draft" ? NOT_EDITABLE() : STALE();
@@ -1521,7 +1527,7 @@ export const ordersModule: AppModule = {
           const duoi = canhBaoMocCua(stored.flatMap((s) => s.legs), daDatGap, nowMs, moc.phut);
           if (duoi.length > 0) {
             const legs = duoi.map((d) => ({ legId: d.legKey, phutConLai: d.phutConLai }));
-            const message = "Có chặng đón dưới mốc tối thiểu — cần Quản trị hoặc Toàn quyền đặt gấp trước khi xác nhận.";
+            const message = "Có lượt đưa đón mà giờ đón đã qua hạn chốt — cần Quản trị hoặc Toàn quyền đặt gấp trước khi xác nhận.";
             return json({ error: { code: "short_notice_required", message, legs } } satisfies ShortNoticeRequiredBody, 409);
           }
           return STALE(); // vừa có người sửa / bổ sung xong (kể cả khoá phiên bản `updated_at` của câu xác nhận) — tải lại rồi bấm lại
@@ -1603,7 +1609,7 @@ export const ordersModule: AppModule = {
       const ktra = kiemGhiTayVoiBanChup(truoc, than.value, cty?.partyId ?? null);
       if (!ktra.ok) return error(ktra.status, ktra.status === 409 ? "khong_nguoi_huong" : "invalid_input", ktra.message);
       const nb = than.value.nguoiBan;
-      if (nb && nb.partyId !== cty?.partyId && !(await laNhaCungCap(env.DB, nb.partyId))) return error(400, "invalid_input", "Người bán phải là Tour Đảo hoặc hồ sơ mang vai Nhà cung cấp.");
+      if (nb && nb.partyId !== cty?.partyId && !(await laNhaCungCap(env.DB, nb.partyId))) return error(400, "invalid_input", "Người bán phải là Tour Đảo hoặc hồ sơ mang vai trò Nhà cung cấp.");
       const sau = apGhiTay(truoc, than.value, cty?.partyId ?? null);
       const [view, ten] = await Promise.all([loadOrderView(env.DB, id, false), tenHoSo(env.DB, [truoc, sau].flatMap((c) => (c.cungUng.status === "SET" ? [c.cungUng.sellerPartyId] : [])))]);
       const dichVu = view?.services.find((s) => s.id === params.serviceId);

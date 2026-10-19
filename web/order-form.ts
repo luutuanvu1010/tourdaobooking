@@ -4,13 +4,14 @@ import { mayPickHandlerOnCreate } from "../src/shared/assignee-pick";
 import type { SuKienDon } from "../src/shared/bang-tin";
 import type { AssigneeDto, CatalogServiceDto } from "../src/shared/contracts";
 import { canhBaoChangForm } from "../src/shared/dat-gap-hien-thi";
+import { CHIP_DAT_GAP, theMoKhiNap } from "../src/shared/dong-gap-the";
 import { CHIEU_LABEL, type LyDoDatGap } from "../src/shared/chang-dua-don";
 import { cauDoiNgay, changTaoSan, doiNgayDi, giuDatGapNhap, type ChangNhap } from "../src/shared/chang-form";
 import type { MauChang } from "../src/shared/chang-mac-dinh";
 import { dongTuDto, loiDanhSachKhach, passengersNhap, type DongKhach } from "../src/shared/hanh-khach-form";
 import { soKhachDoan } from "../src/shared/hanh-khach";
 import { suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
-import { gopBenDat, khoiBenDatForm, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
+import { gopBenDat, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, chiGiaDanhMuc, holdsPartner } from "../src/shared/permissions";
 import {
@@ -25,6 +26,7 @@ import { ApiError, api, vuaLamBoiTabNay, type Api, type OrderInput } from "./api
 import { openAssigneePicker } from "./assignee-picker";
 import { renderBanner } from "./banner";
 import { createBookerPicker } from "./booker-picker";
+import { canhBaoDoiTac } from "./canh-bao-doi-tac";
 import { createCatalogPicker } from "./catalog-picker";
 import { dongBenDatChiDoc, oDatQuaDoiTac, type DatQuaDoiTac } from "./dat-qua-doi-tac";
 import { byId, h, replaceChildren } from "./dom";
@@ -32,9 +34,9 @@ import { grouped, parseMoney, vnd } from "./format";
 import { suKienVeDon } from "./lam-moi-logic";
 import { regroupMoney } from "./money-input";
 import { createServiceCard, type ServiceCard } from "./service-card";
-import { hienBaoNgan } from "./toast";
 import { khoiCanhBaoMoc, khoiNhanDatGap } from "./dat-gap-ui";
-import type { DiemChon } from "./khoi-dua-don";
+import { tieuDiemKhiCham, type DiemChon } from "./khoi-dua-don";
+import { nhoChamKichHoat } from "./o-noi-goi-y";
 import { taoKhoiHanhKhach, type KhoiHanhKhach } from "./khoi-hanh-khach";
 import { moKhoiChua, moMoiKhoiGap, taoKhoiGap } from "./khoi-gap";
 import { taoThanhBuoc } from "./thanh-buoc";
@@ -49,11 +51,20 @@ const editId = params.get("id");
 let traTruocAn = Boolean(editId);
 const focusId = params.get("focus");
 const today = vnToday(new Date());
-/** ≥ 960px: form hai cột, banner lỗi nằm ở cột phải dính (luôn thấy). Dưới 960px (điện thoại VÀ iPad dọc 641–959px) form một cột, banner nằm CUỐI form → lỗi phải cuộn tới banner. Đọc LÚC CẦN: xoay iPad đổi khổ. */
+/**
+ * ≥ 960px: form hai cột, khung lỗi lưu nằm ở cột phải dính, ngay trên nút Lưu. Dưới 960px (điện thoại VÀ iPad dọc 641–959px) form một cột; từ Việc 8 (thiết kế lại 18/10) khung lỗi
+ * nằm TRONG thanh dính cuối trang, ngay trên nút Lưu — ở mọi khổ khung lỗi luôn thấy, nên lỗi cuộn tới Ô lỗi; chỉ khác ở chỗ điện thoại không tự đặt tiêu điểm vào ô thấy sẵn (bàn phím ảo
+ * sẽ che thanh dính). Đọc LÚC CẦN: xoay iPad đổi khổ.
+ */
 const wide = (): boolean => window.matchMedia("(min-width: 960px)").matches;
+/**
+ * Cuộn ô / thẻ lỗi vào khung nhìn khi Lưu bị từ chối. ≥ 960px: giữa khung (như trước — nút Lưu ở cột dính, không bị đẩy). Dưới 960px: sát dưới phần dính đầu trang (`scroll-padding-top` /
+ * `scroll-margin-top` của trang lo phần bị thanh bước che) — thanh dính cuối trang mang khung lỗi có thể cao gần nửa màn hình, cuộn "giữa khung" để ô lỗi nằm khuất dưới thanh đó.
+ */
+const cuonToiLoi = (el: HTMLElement): void => el.scrollIntoView({ block: wide() ? "center" : "start" });
 
 const errorEl = byId("error"); // lỗi tải trang / khoá form
-const saveErrorEl = byId("save-error"); // lỗi khi lưu, ngay trên nút Lưu (nút dính đáy trên điện thoại)
+const saveErrorEl = byId("save-error"); // lỗi khi lưu, ngay trên nút Lưu (trong thanh dính cuối trang dưới 960px; cột phải dính ≥ 960px)
 const formEl = byId<HTMLFormElement>("order-form");
 const servicesEl = byId("services");
 const emptyEl = byId("services-empty");
@@ -64,16 +75,63 @@ const saveBtn = byId<HTMLButtonElement>("save");
 const field = (id: string) => byId<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(id);
 const num = (id: string) => parseMoney(field(id).value);
 // Hồ sơ khách (N2 lát 1): tra theo SĐT, dùng hồ sơ có sẵn hoặc tạo mới khi lưu; không chọn = lưu không gắn (ADR-0011).
-const bookerPicker = createBookerPicker({ name: field("customerName") as HTMLInputElement, phone: field("customerPhone") as HTMLInputElement });
+// Lớp chặn nhầm (18/10): SĐT khách trùng số của đối tác đang được hưởng hoa hồng → khung nền cát dưới ô SĐT. "Đúng, qua …" làm đúng như chọn đối tác ở công tắc "Đơn của", rồi xoá hai ô khách (số đó là của đối tác, không phải của người đi tour).
+const canhBao = canhBaoDoiTac({
+  onDung: (d) => {
+    const chon: BenDatChon = { partyId: d.partyId, ten: d.ten, loai: d.loai };
+    datQua?.datChon(chon); // cập nhật công tắc (không gọi onDoi)
+    datBenDat(chon);
+    for (const id of ["customerName", "customerPhone"]) {
+      field(id).value = "";
+      field(id).dispatchEvent(new Event("input", { bubbles: true })); // dọn lỗi kiểm + danh sách hồ sơ trùng số
+    }
+    field("customerName").focus();
+  },
+});
+const bookerPicker = createBookerPicker({
+  name: field("customerName") as HTMLInputElement,
+  phone: field("customerPhone") as HTMLInputElement,
+  traDoiTac: async (ten) => (await api<Api.NguoiHuongTimResponse>(`/api/pricing/nguoi-huong?q=${encodeURIComponent(ten)}`)).ketQua,
+  onDoiTacTrung: (d, soDt) => canhBao.hien(d, soDt),
+  khachLe: () => daChonBenDat === null,
+});
 byId("booker-slot").append(bookerPicker.root);
+byId("canh-bao-slot").append(canhBao.root);
 // Bản "bốn bước" (14/10/2026; đặc tả docs/superpowers/specs/2026-10-14-tao-don-bon-buoc/README.md): Email + Ghi chú của khách gập sau "Thêm chi tiết" (tự mở khi có giá trị hoặc khi lỗi);
 // thanh tiến độ dính trên đầu (bốn bước; vai không chọn được người phụ trách và lúc sửa đơn: ba bước).
 const khachThem = byId("khach-them");
-const gapKhach = taoKhoiGap({ ma: "khach", nhan: "Thêm chi tiết (email, ghi chú)", than: khachThem });
+const gapKhach = taoKhoiGap({ ma: "khach", nhan: "Email, ghi chú", than: khachThem });
 khachThem.before(gapKhach.nut);
 const thanhBuoc = taoThanhBuoc({ phanTu: (ma) => document.querySelector<HTMLElement>(`[data-buoc-khoi="${ma}"]`) });
 thanhBuoc.an("phu-trach", true); // bật lại khi biết người lập chọn được người phụ trách (`canPickHandler`)
 byId("buoc-slot").replaceWith(thanhBuoc.root); // KHÔNG bọc thêm thẻ: thanh dính chỉ dính trong khung cha của nó (.form-main: dưới 960px là `display: contents` nên khung dính là cả biểu mẫu)
+
+/**
+ * Thông báo nổi của Bảng tin (`.toast-vung` của web/toast.ts) nằm NGAY DƯỚI thanh bước, không che nó (vòng sửa 1 của việc 8, M-3; đề bài "không thông báo nổi che thanh bước").
+ * Thanh bước đứng ở chỗ khác nhau tuỳ lúc (đang dính sát thanh đầu trang; chưa cuộn thì bị dải nhắc `#strips` đẩy xuống) nên đo lúc chạy: `--toast-tren` = đáy thanh bước
+ * (số đo của trình duyệt, không phải giá trị CSS viết cứng); khối Bảng tin của app.css đọc biến này cho trang có thanh bước. Đo lại khi cuộn, đổi khổ và khi có thông báo mới
+ * (dải nhắc có thể vừa chèn sau lúc tải). Gọi SAU `initShell()` — vùng thông báo được tạo ở đó.
+ */
+function ganViTriThongBao(): void {
+  const goc = document.documentElement;
+  let cu = ""; // chỉ ghi lên gốc trang khi số đo đổi — cuộn trong lúc thanh bước đang dính không ghi lại mỗi khung hình (nợ T8(c), Việc 9)
+  const doNgay = (): void => {
+    const moi = `${Math.round(thanhBuoc.root.getBoundingClientRect().bottom)}px`;
+    if (moi === cu) return;
+    cu = moi;
+    goc.style.setProperty("--toast-tren", moi);
+  };
+  let hen = 0;
+  const doSau = (): void => {
+    cancelAnimationFrame(hen);
+    hen = requestAnimationFrame(doNgay);
+  };
+  addEventListener("scroll", doSau, { passive: true });
+  addEventListener("resize", doSau);
+  const vung = document.querySelector(".toast-vung");
+  if (vung) new MutationObserver(doNgay).observe(vung, { childList: true }); // đo NGAY (trước khi vẽ) để thông báo mới không loé ở chỗ cũ một khung hình
+  doNgay();
+}
 
 interface Entry {
   draft: ServiceDraft;
@@ -139,9 +197,10 @@ orderDateEl.addEventListener("input", () => {
 const picker = createCatalogPicker({
   onPick: (item) => {
     const tao = changTaoSan(mauChang.get(item.code) ?? null, orderDate, newKey); // M6: dịch vụ có mẫu Một / Hai chiều → tạo sẵn chặng (sửa / bỏ được)
-    const entry = mount({ ...withOrderDate(newCatalogDraft(item, newKey())), legs: tao.legs, taoSan: tao.taoSan });
-    entry.card.root.scrollIntoView({ block: "nearest" });
-    hienBaoNgan(`Đã thêm ${item.name} — đơn có ${entries.length} dịch vụ`); // bản 1.39: sau khi chọn, ô tìm đóng và thẻ mới ở cuối — báo ngắn để biết đã thêm
+    // Thiết kế lại 18/10 (mục 3C): thẻ vừa thêm MỞ (người lập phải điền), thẻ đang mở khác tự gập — trừ thẻ có lỗi chặn Lưu (`mustStayOpen`). Thẻ nằm dưới khung danh sách nên gập không xê dịch khung.
+    chiMoMot(mount({ ...withOrderDate(newCatalogDraft(item, newKey())), legs: tao.legs, taoSan: tao.taoSan }, true));
+    // Thiết kế lại 18/10 (đặc tả mục 3A): KHÔNG cuộn trang tới thẻ mới và KHÔNG thông báo nổi — khung danh sách đứng yên để thêm nhiều dịch vụ liền tay;
+    // dòng vừa chạm hiện "✓ đã thêm" và vùng aria-live của ô chọn đọc "Đã thêm <tên>" (web/catalog-picker.ts). Thẻ mới nằm ngay dưới khung.
   },
 });
 byId("catalog-slot").append(picker.root);
@@ -152,7 +211,11 @@ let retailOnly = false;
 // GET /api/cai-dat/nhap-tay), giao diện không tự tính luật. Đọc TRƯỚC khi dựng thẻ đã lưu (loadOrder); lỗi / 403 → false (ẩn nút, thẻ chỉ xem).
 let duocNhapTay = false;
 
-function mount(d: ServiceDraft, open?: boolean): Entry {
+/**
+ * `moThe` (thiết kế lại 18/10, mục 3C): thẻ MỞ lúc dựng — thẻ vừa thêm; thẻ của nháp nạp lại khi `theMoKhiNap` (có lỗi, hoặc giá trị mà dòng gập không cho thấy); thẻ `?focus=`.
+ * `open` = mở sẵn khối "Thông tin chuyến" (vắng → tự mở khi đã có giá trị).
+ */
+function mount(d: ServiceDraft, moThe: boolean, open?: boolean): Entry {
   const entry = { draft: d, mocEl: h("div", { class: "dg-form-slot" }), canhBao: new Map(), mocKy: "" } as Omit<Entry, "card"> as Entry;
   entry.card = createServiceCard({
     draft: d,
@@ -162,17 +225,30 @@ function mount(d: ServiceDraft, open?: boolean): Entry {
     retailOnly,
     duocNhapTay,
     duaDon: { ngayDi: () => orderDate, mau: () => mauCua(entry.draft), diem: () => diem, suaSoVe, newKey },
+    moThe,
+    onMo: () => chiMoMot(entry, true),
+    cuoiThe: entry.mocEl, // dải đặt gấp nằm TRONG phần gập của thẻ (gập thì thành chip "Cần đặt gấp" trên dòng gập)
     onChange: (next) => {
       entry.draft = next;
       recompute();
     },
-    onRemove: () => unmount(entry),
+    onRemove: () => {
+      // Nợ T5 (Việc 9): bấm thùng rác bằng bàn phím / chuột (tiêu điểm đang ở trong thẻ) → tiêu điểm sang đầu thẻ kế (hoặc thẻ trước), hết thẻ thì sang câu "Chưa có dịch vụ";
+      // không để rơi về <body>. Chạm cảm ứng không đặt tiêu điểm vào nút nên không đổi gì (không bật bàn phím ảo).
+      const coTieuDiem = entry.card.root.contains(document.activeElement);
+      const i = entries.indexOf(entry);
+      const ke = entries[i + 1] ?? entries[i - 1];
+      unmount(entry);
+      if (!coTieuDiem) return;
+      const dich = ke?.card.root.querySelector<HTMLElement>(".svc-mo") ?? emptyEl;
+      if (dich === emptyEl) emptyEl.tabIndex = -1;
+      dich.focus();
+    },
     onRepick: () => {
       unmount(entry);
       picker.focus();
     },
   });
-  entry.card.root.append(entry.mocEl);
   entries.push(entry);
   servicesEl.append(entry.card.root);
   recompute();
@@ -188,7 +264,7 @@ function capNhatMoc(entry: Entry): void {
   const khoi: { ky: string; el: () => HTMLElement }[] = [];
   const conKhoa = new Set<string>();
   d.legs.forEach((l, i) => {
-    const dau = () => h("div", { class: "dg-chang-dau" }, h("span", { class: "chip chip-unit" }, CHIEU_LABEL[l.direction]), h("span", { class: "dd-chang-so" }, `Chặng ${i + 1}`));
+    const dau = () => h("div", { class: "dg-chang-dau" }, h("span", { class: "chip chip-unit" }, CHIEU_LABEL[l.direction]), h("span", { class: "dd-chang-so" }, `Lượt ${i + 1}`));
     if (giuDatGapNhap(l) && l.goc?.datGap) {
       const dg = l.goc.datGap;
       khoi.push({ ky: `${l.key}:giu:${i}`, el: () => h("div", { class: "dg-leg", "data-leg-key": l.key }, dau(), khoiNhanDatGap(dg)) });
@@ -200,13 +276,14 @@ function capNhatMoc(entry: Entry): void {
     let w = entry.canhBao.get(l.key);
     if (w) w.datCau(cau);
     else {
-      w = khoiCanhBaoMoc({ cau, duocDatGap, onDuyet: (than) => luu({ entry, legKey: l.key, than }) });
+      w = khoiCanhBaoMoc({ cau, duocDatGap, onDuyet: (than) => luu({ entry, legKey: l.key, than }), nutDuyetPhu: true }); // thang nút ba cấp: nút chính duy nhất của form là Lưu
       entry.canhBao.set(l.key, w);
     }
     const widget = w;
     khoi.push({ ky: `${l.key}:moc:${i}`, el: () => h("div", { class: "dg-leg", "data-leg-key": l.key }, dau(), widget.root) });
   });
   for (const k of [...entry.canhBao.keys()]) if (!conKhoa.has(k)) entry.canhBao.delete(k);
+  entry.card.datChipNgoai(conKhoa.size > 0 ? [CHIP_DAT_GAP] : []); // thẻ gập: dải cảnh báo dưới mốc bị ẩn cùng thân thẻ → hiện chip "Cần đặt gấp" trên dòng gập
   const ky = khoi.map((x) => x.ky).join("|");
   if (ky === entry.mocKy) return;
   entry.mocKy = ky;
@@ -219,8 +296,21 @@ function unmount(entry: Entry): void {
   recompute();
 }
 
+/**
+ * Chỉ một thẻ mở (thiết kế lại 18/10, mục 3C): gập mọi thẻ khác `giu` — thẻ có lỗi chặn Lưu đang hiện tự từ chối gập (`setOpen(false)` bỏ qua khi `mustStayOpen`).
+ * `giuViTri` (người dùng vừa chạm mở `giu`): thẻ phía trên gập lại làm `giu` trôi lên — cuộn bù để đầu thẻ vừa chạm đứng yên dưới ngón tay (Safari iPhone không tự neo cuộn).
+ */
+function chiMoMot(giu: Entry, giuViTri = false): void {
+  const truoc = giuViTri ? giu.card.root.getBoundingClientRect().top : 0;
+  for (const e of entries) if (e !== giu) e.card.setOpen(false);
+  if (!giuViTri) return;
+  const lech = giu.card.root.getBoundingClientRect().top - truoc;
+  if (lech !== 0) window.scrollBy(0, lech);
+}
+
 addManualBtn.addEventListener("click", () => {
-  const entry = mount(withOrderDate(newManualDraft(newKey())));
+  const entry = mount(withOrderDate(newManualDraft(newKey())), true);
+  chiMoMot(entry);
   entry.card.root.scrollIntoView({ block: "nearest" });
 });
 
@@ -289,18 +379,63 @@ for (const id of ["customerName", "customerPhone"]) {
   });
 }
 
+// ---- thanh dính cuối trang: dòng tổng mở / đóng bảng chi tiết tiền (Việc 8, thiết kế lại 18/10; dưới 960px thay khối Tóm tắt) ----
+const nutChiTiet = byId<HTMLButtonElement>("sum-mo"); // type="button": nằm trong <form>, không được gửi đơn
+const bangChiTiet = byId("sum-chi-tiet");
+function datMoChiTiet(mo: boolean): void {
+  bangChiTiet.hidden = !mo;
+  nutChiTiet.setAttribute("aria-expanded", String(mo));
+  byId("sum-mo-chu").textContent = mo ? "Thu gọn" : "Chi tiết";
+  byId("sum-mo-dau").textContent = mo ? "▾" : "▴";
+}
+nutChiTiet.addEventListener("click", () => datMoChiTiet(nutChiTiet.getAttribute("aria-expanded") !== "true"));
+for (const el of [nutChiTiet, bangChiTiet]) {
+  el.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || bangChiTiet.hidden) return;
+    datMoChiTiet(false);
+    nutChiTiet.focus();
+  });
+}
+/** Lưu bị từ chối dưới 960px: gập bảng chi tiết tiền TRƯỚC khi cuộn tới ô lỗi — bảng mở cộng khung lỗi làm thanh dính cao gần 500px, che ô lỗi ở màn nhỏ 375×667 (vòng sửa 1, I-2). */
+function gapChiTietKhiLoi(): void {
+  if (!wide() && !bangChiTiet.hidden) datMoChiTiet(false);
+}
+
+/**
+ * Việc 8: "Hình thức", "Người nhận tiền" và câu ghi sổ chỉ hiện khi đã nhập số trả trước (lúc lưu chỉ đọc hai ô này khi số > 0 — thân gửi không đổi).
+ * `traTruocAn` (đang sửa đơn / người có quyền ghi sổ): ba ô đã ẩn hẳn và câu giải thích riêng luôn hiện — không đụng ở đây.
+ */
+function capNhatOTraTruoc(): void {
+  if (traTruocAn) return;
+  const co = num("prepaidAmount") > 0;
+  for (const id of ["prepaid-method-field", "prepaid-collector-field", "prepaid-hint"]) byId(id).hidden = !co;
+}
+
 // ---- tóm tắt tiền và trạng thái nút ----
 function recompute(): void {
   const ds = drafts();
   const s = orderSummary(ds, num("discount"), traTruocAn ? 0 : num("prepaidAmount"));
-  byId("sum-subtotal").textContent = vnd(s.subtotal);
-  byId("sum-total").textContent = vnd(s.total);
-  // Sổ tiền lượt 1 (ADR-0026 đ9): KHÔNG tự trừ ra "còn lại" ở trình duyệt — chỉ nhắc lại số trả trước sẽ ghi thành lần thu sau khi lưu.
-  byId("sum-prepaid").textContent = vnd(s.traTruoc);
-  byId("sum-prepaid-row").hidden = s.traTruoc === 0;
-  byId("mobile-total").textContent = vnd(s.total); // thanh dính đáy điện thoại: cùng giá trị đã tính ở trên, hiện lại cạnh nút Lưu (Bước 2 Đợt B)
-  byId("mobile-prepaid").textContent = vnd(s.traTruoc);
-  byId("mobile-prepaid-row").hidden = s.traTruoc === 0;
+  // MỘT lần tính (`orderSummary`), cùng chuỗi `vnd()` cho Tóm tắt (≥ 960px) và thanh dính cuối trang + bảng chi tiết (dưới 960px) — không tính tiền ở chỗ thứ hai; máy chủ tính lại khi lưu.
+  const tamTinh = vnd(s.subtotal);
+  const giamGia = vnd(s.discount);
+  const tong = vnd(s.total);
+  // Sổ tiền lượt 1 (ADR-0026 đ9): KHÔNG tự trừ ra "còn lại" ở trình duyệt — chỉ nhắc lại số trả trước sẽ ghi thành khoản thu sau khi lưu.
+  const traTruoc = vnd(s.traTruoc);
+  const khongTraTruoc = s.traTruoc === 0;
+  byId("sum-subtotal").textContent = tamTinh;
+  byId("sum-discount").textContent = giamGia;
+  byId("sum-total").textContent = tong;
+  byId("sum-prepaid").textContent = traTruoc;
+  byId("sum-prepaid-row").hidden = khongTraTruoc;
+  byId("mobile-total").textContent = tong;
+  byId("mobile-prepaid").textContent = traTruoc;
+  byId("mobile-prepaid-row").hidden = khongTraTruoc;
+  byId("ct-tam-tinh").textContent = tamTinh;
+  byId("ct-giam-gia").textContent = giamGia;
+  byId("ct-tong").textContent = tong;
+  byId("ct-tra-truoc").textContent = traTruoc;
+  byId("ct-tra-truoc-dong").hidden = khongTraTruoc;
+  capNhatOTraTruoc();
   // Bản 1.39: đếm dịch vụ ở tiêu đề khối, Tóm tắt và thanh dính đáy (một dòng "N dịch vụ · Tổng …"; sổ tiền lượt 1: "Trả trước" chỉ khi có số trả trước —
   // không tự trừ "còn lại" ở trình duyệt, ADR-0026 đ9).
   const n = entries.length;
@@ -458,6 +593,7 @@ async function onSaveError(err: unknown): Promise<void> {
   if (failure.refreshCatalog) await refreshCatalogAfterConflict();
   if (failure.action === "lock_form") lockForm(failure);
   renderBanner(saveErrorEl, failure, { reloadOrder: () => void loadOrder(), reloadPage: () => location.reload() });
+  gapChiTietKhiLoi();
   // 400 `invalid_assignee`: người được chọn vừa nghỉ/mất quyền giữa lúc điền form — máy chủ KHÔNG tạo đơn; form giữ nguyên (kể cả lựa chọn, để người dùng
   // thấy mình đã chọn ai) và banner nói cách sửa. Đổi/bỏ lựa chọn thì banner này tự gỡ (`setHandlerPick`).
   assigneeErrorShown = err instanceof ApiError && err.code === "invalid_assignee";
@@ -470,8 +606,12 @@ async function onSaveError(err: unknown): Promise<void> {
       moMoiKhoiGap(formEl);
     }
   }
+  if (failure.focusService !== null) entries[failure.focusService]?.card.setOpen(true); // thẻ gập (18/10) được câu lỗi nêu tên: mở ra cho thấy (không gập thẻ khác)
   const target = failure.focusService === null ? undefined : entries[failure.focusService]?.card.root;
-  (wide() ? (target ?? saveErrorEl) : saveErrorEl).scrollIntoView({ block: "center" }); // < 960px: banner (nêu rõ dịch vụ/giá) nằm cuối form nên cuộn tới ĐÓ; ≥ 960px: cuộn tới thẻ (banner ở cột dính, luôn thấy)
+  // Khung lỗi (nêu rõ dịch vụ / giá / mất mạng) ngay trên nút Lưu, luôn thấy ở mọi khổ (Việc 8: dưới 960px nằm trong thanh dính) → cuộn tới thẻ được nêu tên; không có thẻ thì
+  // ≥ 960px vẫn cuộn tới khung như trước, dưới 960px đứng yên (trang không nhảy xuống cuối).
+  if (target) cuonToiLoi(target);
+  else if (wide()) saveErrorEl.scrollIntoView({ block: "center" });
 }
 
 // Ô tìm danh mục nằm TRONG form: Enter (hoặc phím "Tìm" của bàn phím iPhone) sẽ gửi ngầm cả đơn qua nút "Lưu" mặc định. Chỉ chặn ở ô tìm; các ô văn bản khác giữ hành vi form thường.
@@ -486,12 +626,16 @@ formEl.addEventListener("submit", (e) => {
   e.preventDefault();
   void luu();
 });
+// Lưu bằng CẢM ỨNG (vòng sửa 1 của việc 7, M-1): nhớ kiểu ấn từ `pointerdown` của chính nút Lưu (Safari: `click` / `submit` không mang `pointerType`); `luu()` đọc rồi xoá. Cú chạm bị
+// huỷ / kéo ra ngoài / bấm phím sau đó thì không còn là "lưu bằng chạm" (vòng sửa 2, Minor c).
+const laLuuBangCham = nhoChamKichHoat(saveBtn);
 
 /**
  * Lưu đơn nháp. `datGap` (ADR-0049 R-P15 — nút "Duyệt đặt gấp" của Quản trị trên thẻ): lưu xong gọi lệnh đặt gấp cho chặng chiều đi của đúng dịch vụ đó (thứ tự
  * dịch vụ trong phản hồi = thứ tự thẻ). Lệnh đặt gấp hỏng thì đơn VẪN đã lưu → vẫn chuyển sang trang đơn, kèm `datgap=loi` để trang đơn báo và cho duyệt lại.
  */
 async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDatGap; ghiChu: string | null } }): Promise<void> {
+  const cham = laLuuBangCham() && !datGap;
   if (formLocked || saving) return;
   renderBanner(saveErrorEl, null);
   assigneeErrorShown = false;
@@ -500,18 +644,19 @@ async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDa
   const invalid = validate();
   if (invalid) {
     renderBanner(saveErrorEl, invalid.banner);
+    gapChiTietKhiLoi();
     // Ô lỗi đầu tiên: ô khách thì chính nó; lỗi chặng của một thẻ dịch vụ thì ô lỗi trong chặng (đã đo "đang nằm trong khối đóng" TRƯỚC khi mở); lỗi khác của thẻ thì cả thẻ.
     const loiChang = loiChangCuaThe[entries.findIndex((en) => en.card.root === invalid.focus)] ?? null;
     const dich = loiChang?.o ?? invalid.focus;
     const dangAn = loiChang?.daAn ?? (dich !== saveErrorEl && dich.getClientRects().length === 0);
     for (const o of invalid.cacO) moKhoiChua(o);
     moKhoiChua(dich);
-    if (wide() || dangAn) {
-      dich.scrollIntoView({ block: "center" }); // ≥ 960px: banner ở cột dính (luôn thấy) → cuộn tới ô/thẻ lỗi đầu tiên và đặt focus vào đó; điện thoại: CHỈ khi ô nằm trong khối gập vừa được mở (người lập phải thấy ô đỏ vừa hiện ra)
-      dich.focus({ preventScroll: true });
-    } else {
-      saveErrorEl.scrollIntoView({ block: "center" }); // < 960px: banner (liệt kê đủ lỗi) nằm cuối form nên phải cuộn tới ĐÓ
-    }
+    // Khung lỗi (liệt kê đủ lỗi) nằm ngay trên nút Lưu và luôn thấy: ≥ 960px ở cột phải dính, dưới 960px trong thanh dính cuối trang (Việc 8) → cuộn tới ô / thẻ lỗi đầu tiên.
+    // Dưới 960px không cuộn khi không có ô nào để chỉ (vd "Thêm ít nhất một dịch vụ."): `scrollIntoView` của phần tử trong thanh dính kéo trang xuống cuối.
+    if (wide() || dich !== saveErrorEl) cuonToiLoi(dich);
+    // Tiêu điểm: ≥ 960px luôn; điện thoại CHỈ khi ô nằm trong khối gập vừa được mở (người lập phải thấy ô đỏ vừa hiện ra) — ô thấy sẵn thì không, kẻo bàn phím ảo bật lên che thanh dính.
+    // Lưu bằng cảm ứng mà ô lỗi là ô nơi đón / nơi trả (ô gõ chữ — bàn phím ảo iPhone sẽ bật): tiêu điểm vào đầu chặng; ô lỗi vẫn đã được cuộn vào khung nhìn (vòng sửa 1, M-1).
+    if (wide() || dangAn) (cham ? tieuDiemKhiCham(dich) : dich).focus({ preventScroll: true });
     return;
   }
   setSaving(true);
@@ -523,13 +668,13 @@ async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDa
     if (datGap) {
       const chang = changDaLuu(order.services[entries.indexOf(datGap.entry)]?.legs ?? [], datGap.entry.draft.legs, datGap.legKey);
       try {
-        if (!chang) throw new Error("không thấy chặng");
+        if (!chang) throw new Error("không thấy lượt đưa đón");
         await api(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(chang.id)}/short-notice`, { method: "POST", body: datGap.than });
       } catch {
         datGapLoi = "&datgap=loi";
       }
     }
-    // BƯỚC HAI (sổ tiền lượt 1 — ADR-0026 đ9, NT-S6): tiền trả trước KHÔNG nằm trong lô tạo đơn; đơn đã lưu xong mới ghi LẦN THU qua billing. Lỗi ở bước này
+    // BƯỚC HAI (sổ tiền lượt 1 — ADR-0026 đ9, NT-S6): tiền trả trước KHÔNG nằm trong lô tạo đơn; đơn đã lưu xong mới ghi KHOẢN THU qua billing. Lỗi ở bước này
     // KHÔNG làm mất đơn: vẫn sang trang đơn, kèm `thutruoc=loi` để trang đơn báo "Đơn đã lưu, chưa ghi được tiền trả trước — thử lại".
     let thuTruocLoi = "";
     const traTruoc = traTruocAn ? 0 : num("prepaidAmount");
@@ -576,7 +721,7 @@ window.addEventListener("pageshow", (e) => {
 function setCatalog(res: Api.CatalogPublicResponse): void {
   live = new Map(res.items.filter((c) => c.supported).map((c) => [c.code, c]));
   picker.setItems(res.items);
-  picker.setGroups(res.groups); // ADR-0058 Đ8: nút xổ xuống "Nhóm dịch vụ" (ô tick chọn nhiều nhóm)
+  picker.setGroups(res.groups); // ADR-0058 Đ8 (thiết kế lại 18/10): hàng nút nhóm cuộn ngang, chọn MỘT nhóm
 }
 
 async function loadCatalog(): Promise<void> {
@@ -624,9 +769,13 @@ function fill(o: Api.OrderDetailDto): void {
   const ngayDv = new Set(o.services.map((s) => s.departDate ?? ""));
   orderDate = ngayDv.size === 1 ? [...ngayDv][0]! : "";
   orderDateEl.value = orderDate;
+  // Thiết kế lại 18/10 (mục 3C): thẻ của nháp nạp lại GẬP, trừ khi có lỗi hoặc có giá trị mà dòng gập không cho thấy (`theMoKhiNap` — luật tự mở của các khối bên trong) hoặc là thẻ `?focus=`.
+  // Lúc nạp có thể nhiều thẻ cùng mở; "chỉ một thẻ mở" áp từ thao tác đầu tiên của người dùng (thêm dịch vụ / chạm mở thẻ khác).
+  const laSanBay = (id: string): boolean => diem.some((x) => x.id === id && x.sanBay);
   for (const s of o.services) {
-    const entry = mount(draftFromDto(s, live, newKey()), s.id === focusId ? true : undefined);
-    if (s.id === focusId) entry.card.reveal(); // liên kết "Sửa" của banner incomplete_trip: mở khối chuyến và cuộn tới thẻ
+    const d = draftFromDto(s, live, newKey());
+    const entry = mount(d, s.id === focusId || theMoKhiNap(d, orderDate, laSanBay), s.id === focusId ? true : undefined);
+    if (s.id === focusId) entry.card.reveal(); // liên kết "Sửa" của banner incomplete_trip: mở thẻ + khối chuyến và cuộn tới thẻ
   }
   // Đơn cũ (trước ADR-0021) có thể mỗi dịch vụ một ngày: khi đó ô để trống và Lưu báo "chọn một ngày cho cả đơn" (không đoán hộ).
   const dates = new Set(entries.map((e) => e.draft.trip.departDate));
@@ -694,9 +843,10 @@ function datViTriKhoiKhach(): void {
 const layDanhMuc = layKhungNho()?.canCreate === true ? goiSom(() => api<Api.CatalogPublicResponse>("/api/catalog/for-order")) : () => api<Api.CatalogPublicResponse>("/api/catalog/for-order");
 const layDon = editId ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(editId)}`)) : null;
 const staff = await initShell();
+ganViTriThongBao();
 // Cờ "không nhận tiền trả trước" bật NGAY khi biết tài khoản (người có quyền ghi sổ): từ đây tới khối ẩn ba ô ở dưới không còn khe nào mà số gõ sớm bị đọc ở `recompute` / `validate` / lúc lưu.
 traTruocAn ||= can(staff, "ledger.write");
-picker.setTaiKhoan(staff.id); // ADR-0058 Đ8: các nhóm đã đánh dấu nhớ THEO TÀI KHOẢN trên máy — bộ chọn dựng trước khi biết tài khoản, trước dòng này không đọc / ghi bộ nhớ
+picker.setTaiKhoan(staff.id); // ADR-0058 Đ8: nhóm đã chọn nhớ THEO TÀI KHOẢN trên máy — bộ chọn dựng trước khi biết tài khoản, trước dòng này không đọc / ghi bộ nhớ
 retailOnly = chiGiaDanhMuc(staff); // trước loadCatalog/loadOrder: thẻ dịch vụ dựng sau dòng này
 duocDatGap = can(staff, "order.leg.short_notice");
 // ---- bên đặt (sổ đại lý đợt 1, Task 11; đặc tả §7) ----
@@ -708,15 +858,27 @@ let datQua: DatQuaDoiTac | null = null;
 let daChonBenDat: BenDatChon | null = null;
 /** Đã chọn / bỏ chọn đại lý: ô tra hồ sơ khách theo SĐT ẩn khi đã chọn (tên + SĐT khách đi tour vẫn nhập ở hai ô khách); bỏ chọn thì hiện lại như cũ. */
 function datBenDat(chon: BenDatChon | null): void {
+  const truoc = daChonBenDat;
   daChonBenDat = chon;
   bookerPicker.root.hidden = chon !== null;
+  if (chon !== null) canhBao.hien(null, ""); // đã chọn đối tác thì hết điều để hỏi
+  else if (truoc !== null) bookerPicker.kiemLai(); // vừa bỏ đối tác: số khách đang gõ có thể là của một đối tác — hỏi lại (nợ T4(2), Việc 9)
+  datNhanKhach(chon !== null);
+}
+/** Nhãn nổi của hai ô khách theo việc đã chọn đối tác (luật chữ ở `src/shared/phan-doi-tac-hien-thi.ts`): đã chọn thì SĐT ghi rõ là của khách, không phải của đối tác. */
+function datNhanKhach(daChonDoiTac: boolean): void {
+  for (const [id, nhan] of [["customerName", nhanTenKhach(daChonDoiTac)], ["customerPhone", nhanSdtKhach(daChonDoiTac)]] as const) {
+    const chu = field(id).parentElement?.querySelector(".o-noi-chu");
+    if (chu) chu.textContent = nhan;
+  }
 }
 if (khoiBenDat.kieu === "chi-doc") {
   bookerPicker.tat();
   bookerPicker.root.replaceWith(dongBenDatChiDoc(khoiBenDat.benDat));
+  datNhanKhach(true); // bên đặt là đối tác (máy chủ ép): hai ô khách là của người đi tour
 } else if (khoiBenDat.kieu === "tra-sdt-va-dat-qua") {
-  datQua = oDatQuaDoiTac({ daChon: null, onDoi: datBenDat, gon: true }); // đợt 1: hàng hai lựa chọn "Khách tự đặt | Đặt qua đối tác" thay nút rời + chú thích
-  bookerPicker.root.before(datQua);
+  datQua = oDatQuaDoiTac({ daChon: null, onDoi: datBenDat }); // công tắc "Đơn của: Khách lẻ | Qua đối tác" ở hàng đầu khối Khách hàng
+  byId("don-cua-slot").append(datQua); // hàng đầu của khối "Khách hàng"
 }
 // R-P15: mốc cho biểu mẫu chưa lưu — chỉ người được lập đơn (máy chủ hỏi order.create). Lỗi / chưa có chính sách (503) → không cảnh báo; máy chủ vẫn chặn lúc xác nhận.
 const layMoc = can(staff, "order.create")
@@ -760,17 +922,19 @@ if (can(staff, "order.create")) await loadCatalog(); // trước loadOrder: th�
 duocNhapTay = await layNhapTay;
 addManualBtn.hidden = !duocNhapTay;
 picker.setNhapTay(duocNhapTay);
-// Sửa đơn nháp: tiền trả trước là LẦN THU ở trang đơn (mục Thanh toán), không nhập lại ở form (sổ tiền lượt 1).
+// Sửa đơn nháp: tiền trả trước là KHOẢN THU ở trang đơn (mục Thanh toán), không nhập lại ở form (sổ tiền lượt 1).
 if (editId) {
   for (const f of ["prepaid-amount-field", "prepaid-method-field", "prepaid-collector-field"]) byId(f).hidden = true;
-  byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn (mục Thanh toán → Ghi lần thu).";
+  byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn (mục Thanh toán → Ghi khoản thu).";
+  byId("prepaid-hint").hidden = false; // câu giải thích duy nhất của khối khi không nhận trả trước — luôn hiện (`capNhatOTraTruoc` không đụng khi `traTruocAn`)
 }
 // ADR-0092 Đ6 (C1): người có quyền ghi sổ (Toàn quyền) ghi CK – Công ty thu phải kèm mã giao dịch ngân hàng — ô mã chỉ ở trang đơn ⇒ form không nhận tiền trả
 // trước của người này (tránh lần gửi chắc chắn 400 làm rơi tiền trả trước); cùng khuôn với lúc sửa đơn.
 if (!editId && can(staff, "ledger.write")) {
   for (const f of ["prepaid-amount-field", "prepaid-method-field", "prepaid-collector-field"]) byId(f).hidden = true;
-  byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn sau khi lưu (mục Thanh toán → Ghi lần thu, kèm mã giao dịch ngân hàng nếu chuyển khoản vào tài khoản công ty).";
-  // Form dùng được trong lúc tải (initShell, danh mục…): số đã gõ sớm phải bị xoá (cờ `traTruocAn` đã bật ngay sau `initShell()`, nên số đó không còn được đọc), kẻo vẫn gửi lần thu CK – Công ty thu không mã (400) và làm rơi tiền trả trước.
+  byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn sau khi lưu (mục Thanh toán → Ghi khoản thu, kèm mã giao dịch ngân hàng nếu chuyển khoản vào tài khoản công ty).";
+  byId("prepaid-hint").hidden = false;
+  // Form dùng được trong lúc tải (initShell, danh mục…): số đã gõ sớm phải bị xoá (cờ `traTruocAn` đã bật ngay sau `initShell()`, nên số đó không còn được đọc), kẻo vẫn gửi khoản thu CK – Công ty thu không mã (400) và làm rơi tiền trả trước.
   field("prepaidAmount").value = "";
   recompute();
 }

@@ -73,7 +73,7 @@ export function theXeDangChay(c: ChuyenTomTatDto, ngayXem: string): { tieuDe: st
   return {
     tieuDe: c.ma,
     dong: `${c.xe.bienSo} · ${c.tai}/${c.xe.soCho} chỗ`,
-    phu: [c.taiXe?.ten ?? "Chưa có tài xế", c.xuatBen ? `xuất bến ${hien(c.xuatBen.gioXayRa, ngayXem)}` : null, tiep ? `tiếp theo: ${tiep.tenNoi}` : "đã tới mọi điểm"].filter(Boolean).join(" · "),
+    phu: [c.taiXe?.ten ?? "Chưa có tài xế", c.xuatBen ? `xe chạy ${hien(c.xuatBen.gioXayRa, ngayXem)}` : null, tiep ? `tiếp theo: ${tiep.tenNoi}` : "đã tới mọi điểm"].filter(Boolean).join(" · "),
   };
 }
 

@@ -32,6 +32,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "esbuild";
 import { ACCOUNTS, clickText, ok, setInput, sleep, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { chonNoiJs } from "../../2026-10-18-tao-don-thiet-ke-lai/kich-ban/cham-that.mjs";
 
 const OUT = process.env.OUT ?? "docs/evidence/2026-09-21-v1-0";
 const ONLY = process.env.ONLY ? process.env.ONLY.split(",") : null;
@@ -334,9 +335,9 @@ function getUi() {
     // ADR-0047 Phần B (2026-10-01): giờ / nơi đón nhập ở khối "Đưa đón" của thẻ (TD101 không có mẫu chặng → "+ Thêm đưa đón", "Gõ tự do…").
     await p.ev(`${card(0)}.querySelector('[data-action="them-dua-don"]').click(); true`);
     await p.waitFor(`!!${card(0)}.querySelector('.dd-chang [data-o$=":don"]')`, "chặng đưa đón");
-    await p.ev(setInput(`${card(0)}.querySelector('.dd-chang [data-o$=":don"]')`, "tudo"));
-    await p.waitFor(`!!${card(0)}.querySelector('.dd-chang [data-o$=":don-chu"]')`, "ô Địa chỉ đón");
-    await p.ev(setInput(`${card(0)}.querySelector('.dd-chang [data-o$=":don-chu"]')`, "Khách sạn Sunrise"));
+    // 18/10 (Tạo đơn thiết kế lại, việc 7): MỘT ô "Nơi đón" có gợi ý — bấm ô, gõ, chọn dòng "Gõ tự do: …" (thay ô chọn "tudo" + ô "Địa chỉ đón" riêng).
+    assert.equal(await p.ev(chonNoiJs(`${card(0)}.querySelector('.dd-chang [data-o$=":don"]')`, "Khách sạn Sunrise", "Gõ tự do: ")), true, "ô Nơi đón có dòng 'Gõ tự do: …'");
+    await p.waitFor(`${card(0)}.querySelector('.dd-chang [data-o$=":don"]').value === 'Khách sạn Sunrise'`, "ô Nơi đón mang chữ tự do");
     await p.ev(setInput(`${card(0)}.querySelector('.dd-chang [data-o$=":gio"]')`, "07:00"));
     // 2026-09-26 (DK-T3-01 R1, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): trước đây dịch vụ thứ hai là thẻ nhập tay (nút ẩn "+ Dịch vụ nhập tay",
     // "Xe đưa đón riêng" 3 khách × 800.000) — máy chủ nay trả 400 khi Lưu, nên dịch vụ thứ hai là thẻ DANH MỤC TTB06, 3 người lớn. Ảnh vẽ dịch vụ nhập

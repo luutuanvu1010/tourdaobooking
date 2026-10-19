@@ -134,8 +134,8 @@ test("C32: luaChonChuyenXep — chỗ còn ít hơn số khách → 'chỉ còn 
   const doi = [{ chang: chang({ legId: "1", gioDon: "08:00" }), soKhach: 2 }, { chang: chang({ legId: "2", gioDon: "11:00" }), soKhach: 2 }];
   const ra = luaChonChuyenXep(L, doi);
   assert.deepEqual(ra.map((v) => v.chuyen.id), ["b", "a"], "B: chặng 1 lệch (08:00 ngoài 10–12) nhưng chỉ lệch giờ; A: vừa đầy (4 > 2) vừa lệch");
-  assert.deepEqual(ra[0]!.ghiChu, ["1/2 chặng có giờ hẹn ngoài khung giờ chuyến"]);
-  assert.deepEqual(ra[1]!.ghiChu, ["chỉ còn 2 chỗ", "1/2 chặng có giờ hẹn ngoài khung giờ chuyến"]);
+  assert.deepEqual(ra[0]!.ghiChu, ["1/2 lượt có giờ hẹn ngoài khung giờ chuyến"]);
+  assert.deepEqual(ra[1]!.ghiChu, ["chỉ còn 2 chỗ", "1/2 lượt có giờ hẹn ngoài khung giờ chuyến"]);
   // Chặng chưa chốt giờ: không lệch (chưa có giờ để so).
   assert.equal(luaChonChuyenXep(L, [{ chang: chang({ gioDon: null }), soKhach: 1 }]).every((v) => !v.lechGio), true);
   // Không chặng nào: chỉ theo giờ xuất bến.

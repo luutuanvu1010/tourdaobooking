@@ -120,7 +120,7 @@ if (!can(staff, "ledger.view")) {
       bangKiemEl,
       h("p", { class: "muted" }, CAU_BANG_KIEM_KHONG_CHAN),
       khoiKhoan(h("h3", null, "Khoản Công ty thu – chuyển khoản chờ xác nhận"), b.choXacNhanCongTy, "cho-xac-nhan"),
-      khoiKhoan(h("h3", null, "Lần thu chưa rõ người thu"), b.chuaRoNguoiThu, "chua-ro"),
+      khoiKhoan(h("h3", null, "Khoản thu chưa rõ người thu tiền"), b.chuaRoNguoiThu, "chua-ro"),
       h(
         "div",
         { class: "ky-khoi", "data-khoi": "so-du" },

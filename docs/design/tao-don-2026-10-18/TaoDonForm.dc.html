@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+<style>body{margin:0}</style>
+</helmet>
+<div style="width:{{ outerW }}px; height:{{ outerH }}px; padding:{{ bezel }}px; background:{{ bezelBg }}; border-radius:{{ outerR }}px; box-sizing:border-box; box-shadow:var(--shadow-overlay); font-family:var(--font); font-size:16px; line-height:1.5; color:var(--c-text);">
+<div style="position:relative; width:100%; height:100%; border-radius:{{ screenR }}px; overflow:hidden; background:var(--c-surface-alt);">
+
+  <sc-if value="{{ isPhone }}" hint-placeholder-val="{{ true }}">
+    <div aria-hidden="true" style="position:absolute; top:0; left:0; right:0; height:44px; display:flex; align-items:center; justify-content:space-between; padding:0 24px 0 32px; background:var(--c-primary); color:#fff; font-family:var(--font-display); font-size:14px; font-weight:700; z-index:5;"><span>9:41</span><span>5G · 82%</span></div>
+  </sc-if>
+
+  <sc-if value="{{ isSheet }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute; top:44px; left:0; right:0; bottom:0;">
+      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.MobileBar" title="Đơn TD-20261020-0003" on-back="{{ noop }}" hint-size="100%,60px"></x-import>
+      <div style="padding:16px; display:flex; flex-direction:column; gap:8px;">
+        <div style="background:#fff; border:1px solid var(--c-border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:4px;">
+          <span style="font-family:var(--font-display); font-weight:700; color:var(--c-primary);">Trần Văn Bình</span>
+          <span style="color:var(--c-text-muted);">0905 000 111 · 20/10/2026</span>
+          <span style="align-self:flex-start; font-size:12px; font-weight:700; color:var(--c-green-text); background:var(--c-green-soft); border:1px solid var(--c-green-border); border-radius:999px; padding:1px 8px;">Đã xác nhận</span>
+        </div>
+      </div>
+      <div style="position:absolute; inset:0; background:var(--c-scrim);"></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute; top:0; left:0; bottom:0; width:236px;">
+      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Sidebar" groups="{{ sideGroups }}" active="new" user="{{ sideUser }}" logo-src="assets/logo-96.png" on-navigate="{{ noop }}" hint-size="236px,100%"></x-import>
+    </div>
+  </sc-if>
+
+  <div style="position:absolute; top:{{ colTop }}px; left:{{ colLeft }}px; right:0; bottom:0; display:flex; flex-direction:column; background:{{ colBg }}; border-radius:{{ colR }}; overflow:hidden;">
+
+    <sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ false }}">
+      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Topbar" title="Đơn hàng › Tạo đơn" on-new="{{ noop }}" hint-size="100%,60px"></x-import>
+    </sc-if>
+
+    <sc-if value="{{ isSheet }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:none; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 8px 8px 16px; border-bottom:1px solid var(--c-border);">
+        <h2 style="margin:0; font-family:var(--font-display); font-size:18px; color:var(--c-primary);">Đổi khách</h2>
+        <button type="button" aria-label="Đóng" onClick="{{ noop }}" style="width:44px; height:44px; border:0; background:none; font:inherit; font-size:20px; color:var(--c-text-muted); cursor:pointer;">✕</button>
+      </div>
+    </sc-if>
+
+    <div ref="{{ scrollRef }}" onScroll="{{ onScroll }}" style="flex:1; min-height:0; overflow-y:auto; position:relative;">
+
+      <sc-if value="{{ showMobileBar }}" hint-placeholder-val="{{ true }}">
+        <div style="position:sticky; top:0; z-index:4;">
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.MobileBar" title="Tạo đơn" on-back="{{ noop }}" user="Sales Một" hint-size="100%,60px"></x-import>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showStepper }}" hint-placeholder-val="{{ true }}">
+        <nav aria-label="Các bước tạo đơn" style="position:sticky; top:{{ stepTop }}px; z-index:3; display:grid; grid-template-columns:repeat({{ stepCount }}, minmax(0,1fr)); padding:8px 8px; background:var(--c-surface-alt); border-bottom:1px solid var(--c-border);">
+          <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+            <button type="button" onClick="{{ s.onClick }}" aria-current="{{ s.current }}" style="min-height:48px; display:flex; flex-direction:column; align-items:center; gap:4px; border:0; background:none; font:inherit; cursor:pointer; padding:0;">
+              <span style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:14px; font-weight:700; background:{{ s.bg }}; color:{{ s.fg }}; border:2px solid {{ s.bd }}; box-sizing:border-box;">{{ s.mark }}</span>
+              <span style="font-size:14px; font-weight:{{ s.fw }}; color:{{ s.labelFg }};">{{ s.label }}</span>
+            </button>
+          </sc-for>
+        </nav>
+      </sc-if>
+
+      <div style="padding:{{ pad }}px; max-width:1120px; box-sizing:border-box;">
+        <sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ false }}">
+          <h1 style="margin:0 0 16px; font-family:var(--font-display); font-size:1.5rem; color:var(--c-primary);">Tạo đơn</h1>
+        </sc-if>
+        <div style="display:grid; grid-template-columns:{{ cols }}; gap:{{ gap }}px; align-items:start;">
+          <div style="display:flex; flex-direction:column; gap:16px; min-width:0;">
+
+            <sc-if value="{{ showDate }}" hint-placeholder-val="{{ true }}">
+              <section data-sec="ngay" style="background:#fff; border:1px solid var(--c-border); border-radius:12px; padding:12px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                <div style="flex:1 1 140px; min-width:0;">
+                  <div style="font-family:var(--font-display); font-weight:700; color:var(--c-primary);">Ngày khởi hành</div>
+                  <div style="font-size:14px; color:var(--c-text-muted);">Áp cho mọi dịch vụ trong đơn</div>
+                </div>
+                <input type="date" aria-label="Ngày khởi hành" value="{{ date }}" onChange="{{ onDate }}" style="flex:none; height:52px; padding:0 12px; border:1px solid var(--c-border); border-radius:8px; font:inherit; font-size:16px; font-weight:700; color:var(--c-text); background:#fff; box-sizing:border-box;">
+              </section>
+            </sc-if>
+
+            <section data-sec="khach" aria-label="Khách hàng" style="background:#fff; border:1px solid {{ custBd }}; border-radius:12px; padding:{{ custPad }}; display:flex; flex-direction:column; gap:12px;">
+              <sc-if value="{{ showCustHead }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin:-8px 0 -4px;">
+                  <h2 style="margin:0; font-family:var(--font-display); font-size:1.1rem; color:var(--c-primary);">Khách hàng</h2>
+                  <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" on-click="{{ fillMine }}" dc-props="{{ lk }}" hint-size="180px,44px">Điền thông tin của tôi</x-import>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ showBookerToggle }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                  <span id="{{ bookerLabelId }}" style="font-size:14px; font-weight:600; color:var(--c-text-muted);">Đơn của</span>
+                  <div role="radiogroup" aria-labelledby="{{ bookerLabelId }}" style="display:grid; grid-template-columns:1fr 1fr; height:44px; border:1px solid var(--c-primary); border-radius:8px; overflow:hidden;">
+                    <button type="button" role="radio" aria-checked="{{ segLe.checked }}" onClick="{{ onLe }}" style="border:0; font:inherit; font-weight:{{ segLe.fw }}; background:{{ segLe.bg }}; color:{{ segLe.fg }}; cursor:pointer;">{{ segLe.text }}</button>
+                    <button type="button" role="radio" aria-checked="{{ segDt.checked }}" onClick="{{ onDt }}" style="border:0; border-left:1px solid var(--c-primary); font:inherit; font-weight:{{ segDt.fw }}; background:{{ segDt.bg }}; color:{{ segDt.fg }}; cursor:pointer;">{{ segDt.text }}</button>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ showBookerReadonly }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                  <span style="font-size:14px; font-weight:600; color:var(--c-text-muted);">Đơn của</span>
+                  <div aria-readonly="true" style="height:52px; display:flex; align-items:center; gap:8px; padding:0 12px; background:var(--c-surface-alt); border:1px solid var(--c-border); border-radius:8px; color:var(--c-text);">
+                    <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="lock" size="16" hint-size="16px,16px"></x-import>
+                    <span style="font-weight:600;">Minh Travel (tài khoản của bạn)</span>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ showPartnerSearch }}" hint-placeholder-val="{{ false }}">
+                <div style="border:1px solid var(--c-primary); border-radius:8px; overflow:hidden;">
+                  <div style="position:relative;">
+                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="position:absolute; left:12px; top:17px; color:var(--c-text-muted);"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg>
+                    <input type="search" aria-label="Tìm đối tác theo tên" placeholder="Tìm đối tác theo tên" value="{{ pq }}" onChange="{{ onPq }}" style="width:100%; height:52px; padding:0 12px 0 40px; border:0; font:inherit; font-size:16px; color:var(--c-text); background:#fff; box-sizing:border-box; outline-offset:-2px;">
+                  </div>
+                  <div role="listbox" aria-label="Kết quả đối tác" style="border-top:1px solid var(--c-border);">
+                    <sc-for list="{{ partnerResults }}" as="p" hint-placeholder-count="2">
+                      <button type="button" role="option" aria-selected="false" onClick="{{ p.onPick }}" style="width:100%; min-height:48px; display:flex; align-items:center; gap:4px; padding:0 12px; border:0; border-bottom:1px solid var(--c-border); background:#fff; font:inherit; text-align:left; color:var(--c-text); cursor:pointer;"><span style="font-weight:700;">{{ p.name }}</span><span style="color:var(--c-text-muted);">· {{ p.kind }}</span></button>
+                    </sc-for>
+                    <sc-if value="{{ partnerEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:12px; color:var(--c-text-muted); font-size:14px;">Không có đối tác nào khớp.</div></sc-if>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ partnerPicked }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; align-items:center; gap:8px; min-height:44px; padding:4px 4px 4px 12px; background:var(--c-primary-soft); border-radius:8px;">
+                  <span style="flex:1; min-width:0;"><b>{{ partnerName }}</b><span style="color:var(--c-text-muted);">{{ partnerRest }}</span></span>
+                  <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" on-click="{{ onPartnerChange }}" dc-props="{{ lk }}" hint-size="48px,44px">Đổi</x-import>
+                </div>
+              </sc-if>
+
+              <input ref="{{ nameRef }}" aria-label="Tên khách đi tour (bắt buộc)" placeholder="Tên khách đi tour *" value="{{ name }}" onChange="{{ onName }}" autocomplete="off" style="width:100%; height:52px; padding:0 12px; border:1px solid var(--c-border); border-radius:8px; font:inherit; font-size:16px; color:var(--c-text); background:#fff; box-sizing:border-box;">
+              <input type="tel" inputmode="tel" aria-label="{{ phoneAria }}" placeholder="{{ phoneLabel }}" value="{{ phone }}" onChange="{{ onPhone }}" autocomplete="off" style="width:100%; height:52px; padding:0 12px; border:1px solid var(--c-border); border-radius:8px; font:inherit; font-size:16px; color:var(--c-text); background:#fff; box-sizing:border-box;">
+
+              <sc-if value="{{ showGuard }}" hint-placeholder-val="{{ false }}">
+                <div role="alert" style="display:flex; flex-direction:column; gap:8px; padding:12px; background:var(--c-sand-soft); border:1px solid var(--c-sand-border); border-radius:8px; color:var(--c-sand-text);">
+                  <div style="display:flex; gap:8px; align-items:flex-start; font-weight:700;">
+                    <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="alert" size="18" style="margin-top:3px;" hint-size="18px,18px"></x-import>
+                    <span>Số này là của đối tác Minh Travel. Đơn này đặt qua đối tác đó?</span>
+                  </div>
+                  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" on-click="{{ guardYes }}" dc-props="{{ sm }}" hint-size="180px,44px">Đúng, qua Minh Travel</x-import>
+                    <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="default" on-click="{{ guardNo }}" dc-props="{{ sm }}" hint-size="80px,44px">Không</x-import>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ showProfiles }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; flex-direction:column; gap:8px; padding:12px; border:1px solid var(--c-border); border-radius:8px; background:var(--c-surface-alt);">
+                  <span style="font-size:14px; font-weight:600; color:var(--c-text-muted);">1 hồ sơ khách dùng số này</span>
+                  <span><b>Trần Văn Bình</b> <span style="color:var(--c-text-muted);">· 0905 000 111 · 2 đơn trước</span></span>
+                  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="default" on-click="{{ useProfile }}" dc-props="{{ sm }}" hint-size="150px,44px">Dùng hồ sơ này</x-import>
+                    <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="default" on-click="{{ newProfile }}" dc-props="{{ sm }}" hint-size="140px,44px">Tạo hồ sơ mới</x-import>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ showExtraLink }}" hint-placeholder-val="{{ true }}">
+                <div style="margin:-8px 0;"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" on-click="{{ openExtra }}" dc-props="{{ lk }}" hint-size="140px,44px">+ Email, ghi chú</x-import></div>
+              </sc-if>
+              <sc-if value="{{ showExtra }}" hint-placeholder-val="{{ false }}">
+                <input type="email" aria-label="Email khách" placeholder="Email khách" style="width:100%; height:52px; padding:0 12px; border:1px solid var(--c-border); border-radius:8px; font:inherit; font-size:16px; background:#fff; box-sizing:border-box;">
+                <textarea aria-label="Ghi chú về khách" placeholder="Ghi chú về khách" rows="2" style="width:100%; padding:12px; border:1px solid var(--c-border); border-radius:8px; font:inherit; font-size:16px; background:#fff; box-sizing:border-box; resize:vertical;"></textarea>
+              </sc-if>
+              <div style="font-size:14px; color:var(--c-text-muted);">{{ profileLine }}</div>
+            </section>
+
+            <sc-if value="{{ isSheet }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; gap:8px; align-items:flex-start; padding:12px; background:var(--c-sand-soft); border:1px solid var(--c-sand-border); border-radius:8px; color:var(--c-sand-text); font-weight:600;">
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="alert" size="18" style="margin-top:3px;" hint-size="18px,18px"></x-import>
+                <span>Bản xác nhận đã gửi khách trước đó có thể lỗi thời — cần gửi lại.</span>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ showServices }}" hint-placeholder-val="{{ true }}">
+              <section data-sec="dichvu" aria-label="Dịch vụ" style="background:#fff; border:1px solid var(--c-border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:12px; position:relative;">
+                <h2 style="margin:0; font-family:var(--font-display); font-size:1.1rem; color:var(--c-primary);">{{ svcTitle }}</h2>
+                <sc-if value="{{ locked }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; gap:8px; align-items:center; padding:8px 12px; background:var(--c-surface-alt); border-radius:8px; font-weight:600;">
+                    <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="lock" size="16" hint-size="16px,16px"></x-import>Đơn đã đủ 20 dịch vụ.
+                  </div>
+                </sc-if>
+                <div style="position:relative;">
+                  <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="position:absolute; left:12px; top:17px; color:var(--c-text-muted);"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg>
+                  <input type="search" aria-label="Tìm theo tên hoặc mã dịch vụ" placeholder="Tìm theo tên hoặc mã dịch vụ" value="{{ query }}" onChange="{{ onQuery }}" disabled="{{ locked }}" style="width:100%; height:52px; padding:0 44px 0 40px; border:1px solid var(--c-border); border-radius:8px; font:inherit; font-size:16px; color:var(--c-text); background:#fff; box-sizing:border-box;">
+                  <sc-if value="{{ hasQuery }}" hint-placeholder-val="{{ false }}">
+                    <button type="button" aria-label="Xoá chữ tìm" onClick="{{ clearQuery }}" style="position:absolute; right:4px; top:4px; width:44px; height:44px; border:0; background:none; font:inherit; font-size:18px; color:var(--c-text-muted); cursor:pointer;">✕</button>
+                  </sc-if>
+                </div>
+
+                <div onMouseEnter="{{ rowEnter }}" onMouseLeave="{{ rowLeave }}" style="position:relative; margin:0 -16px;">
+                  <div ref="{{ groupRef }}" role="radiogroup" aria-label="Nhóm dịch vụ" onKeyDown="{{ onGroupKey }}" onScroll="{{ onGroupScroll }}" style="display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; padding:2px 48px 2px 16px; -webkit-mask-image:{{ mask }}; mask-image:{{ mask }};">
+                    <sc-for list="{{ groups }}" as="g" hint-placeholder-count="5">
+                      <button type="button" role="radio" aria-checked="{{ g.checked }}" aria-disabled="{{ g.dis }}" tabindex="{{ g.tab }}" data-gi="{{ g.idx }}" data-sel="{{ g.sel }}" onClick="{{ g.onClick }}" style="flex:none; height:44px; padding:0 16px; border-radius:8px; border:1px solid {{ g.bd }}; background:{{ g.bg }}; color:{{ g.fg }}; font:inherit; font-size:16px; font-weight:{{ g.fw }}; opacity:{{ g.op }}; white-space:nowrap; cursor:{{ g.cursor }};">{{ g.label }}</button>
+                    </sc-for>
+                  </div>
+                  <sc-if value="{{ moreRight }}" hint-placeholder-val="{{ true }}">
+                    <span aria-hidden="true" style="position:absolute; right:8px; top:0; height:48px; display:flex; align-items:center; font-family:var(--font-display); font-size:24px; font-weight:700; color:var(--c-primary); pointer-events:none;">›</span>
+                  </sc-if>
+                  <sc-if value="{{ showArrows }}" hint-placeholder-val="{{ false }}">
+                    <button type="button" aria-label="Xem nhóm phía trước" tabindex="-1" onClick="{{ scrollLeftBtn }}" style="position:absolute; left:8px; top:2px; width:44px; height:44px; border:1px solid var(--c-border); border-radius:8px; background:#fff; box-shadow:var(--shadow-card); font:inherit; font-size:22px; font-weight:700; color:var(--c-primary); cursor:pointer;">‹</button>
+                    <button type="button" aria-label="Xem nhóm phía sau" tabindex="-1" onClick="{{ scrollRightBtn }}" style="position:absolute; right:8px; top:2px; width:44px; height:44px; border:1px solid var(--c-border); border-radius:8px; background:#fff; box-shadow:var(--shadow-card); font:inherit; font-size:22px; font-weight:700; color:var(--c-primary); cursor:pointer;">›</button>
+                  </sc-if>
+                </div>
+
+                <div style="border:1px solid var(--c-border); border-radius:8px; overflow:hidden; opacity:{{ lockOp }};">
+                  <div style="padding:8px 12px; background:var(--c-surface-alt); border-bottom:1px solid var(--c-border); font-size:14px; font-weight:600; color:var(--c-text-muted);">{{ listHeader }}</div>
+                  <div ref="{{ listRef }}" style="height:{{ listH }}px; overflow-y:auto; overscroll-behavior:contain; position:relative; background:#fff;">
+                    <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="1">
+                      <sc-if value="{{ sec.showTitle }}" hint-placeholder-val="{{ true }}">
+                        <div style="position:sticky; top:0; z-index:1; padding:8px 12px 4px; background:#fff; border-bottom:1px solid var(--c-border); font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--c-text-muted);">{{ sec.title }}</div>
+                      </sc-if>
+                      <sc-for list="{{ sec.rows }}" as="r" hint-placeholder-count="6">
+                        <div style="display:flex; align-items:stretch; border-bottom:1px solid var(--c-border);">
+                          <button type="button" aria-label="{{ r.starLabel }}" aria-pressed="{{ r.starred }}" onClick="{{ r.onStar }}" style="flex:none; width:44px; min-height:52px; border:0; background:none; font:inherit; font-size:20px; line-height:1; color:{{ r.starFg }}; cursor:pointer;">{{ r.star }}</button>
+                          <button type="button" aria-disabled="{{ r.dis }}" aria-label="{{ r.aria }}" onClick="{{ r.onPick }}" style="flex:1; min-width:0; display:flex; align-items:center; gap:12px; padding:8px 12px 8px 0; border:0; background:none; font:inherit; text-align:left; color:var(--c-text); opacity:{{ r.op }}; cursor:{{ r.cursor }};">
+                            <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px;">
+                              <span style="font-weight:700; line-height:1.35; text-wrap:pretty;"><span style="color:var(--c-text-muted); font-weight:600;">{{ r.prefix }}</span>{{ r.rest }}</span>
+                              <span style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-family:var(--font-display); font-size:12px; font-weight:700; color:var(--c-text-muted);">
+                                <span>{{ r.code }}</span>
+                                <sc-if value="{{ r.added }}" hint-placeholder-val="{{ false }}"><span style="padding:0 8px; border-radius:999px; background:var(--c-green-soft); color:var(--c-green-text); font-family:var(--font);">✓ đã thêm</span></sc-if>
+                                <sc-if value="{{ r.dis }}" hint-placeholder-val="{{ false }}"><span style="font-family:var(--font);">· {{ r.disText }}</span></sc-if>
+                              </span>
+                            </span>
+                            <span style="flex:none; min-width:88px; display:flex; flex-direction:column; align-items:flex-end; text-align:right;">
+                              <span style="font-family:var(--font-display); font-weight:700; font-variant-numeric:tabular-nums;">{{ r.price }}</span>
+                              <sc-if value="{{ r.hasUnit }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; color:var(--c-text-muted); white-space:nowrap;">{{ r.unit }}</span></sc-if>
+                            </span>
+                          </button>
+                        </div>
+                      </sc-for>
+                    </sc-for>
+                    <sc-if value="{{ listEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:16px 12px; color:var(--c-text-muted);">Không có dịch vụ nào khớp. Thử gõ mã dịch vụ.</div></sc-if>
+                  </div>
+                </div>
+                <div aria-live="polite" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;">{{ live }}</div>
+
+                <sc-if value="{{ canManual }}" hint-placeholder-val="{{ true }}">
+                  <div><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="default" on-click="{{ noop }}" hint-size="200px,44px">+ Dịch vụ nhập tay</x-import></div>
+                </sc-if>
+
+                <div data-sec="cards" style="display:flex; flex-direction:column; gap:8px;">
+                  <sc-for list="{{ cards }}" as="c" hint-placeholder-count="0">
+                    <article data-sec="{{ c.sec }}" aria-label="{{ c.fullName }}" style="background:#fff; border:{{ c.bdW }} solid {{ c.bd }}; border-radius:12px; box-shadow:var(--shadow-card);">
+                      <sc-if value="{{ c.collapsed }}" hint-placeholder-val="{{ true }}">
+                        <button type="button" aria-expanded="false" onClick="{{ c.onToggle }}" style="width:100%; min-height:56px; display:flex; align-items:flex-start; gap:12px; padding:12px; border:0; background:none; border-radius:12px; font:inherit; text-align:left; color:var(--c-text); cursor:pointer;">
+                          <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:4px;">
+                            <span style="font-weight:700; line-height:1.35;"><span style="color:var(--c-text-muted); font-weight:600;">{{ c.prefix }}</span>{{ c.rest }}</span>
+                            <span style="font-size:14px; color:var(--c-text-muted);">{{ c.summary }}</span>
+                            <sc-if value="{{ c.hasChips }}" hint-placeholder-val="{{ false }}">
+                              <span style="display:flex; flex-wrap:wrap; gap:4px;">
+                                <sc-for list="{{ c.chips }}" as="ch" hint-placeholder-count="1"><span style="font-size:12px; font-weight:700; color:var(--c-sand-text); background:var(--c-sand-soft); border:1px solid var(--c-sand-border); border-radius:999px; padding:1px 8px;">{{ ch }}</span></sc-for>
+                              </span>
+                            </sc-if>
+                          </span>
+                          <span style="flex:none; display:flex; align-items:center; gap:8px; font-family:var(--font-display); font-weight:700; font-variant-numeric:tabular-nums;">{{ c.amount }}<span aria-hidden="true" style="color:var(--c-text-muted); font-size:14px;">▾</span></span>
+                        </button>
+                      </sc-if>
+
+                      <sc-if value="{{ c.open }}" hint-placeholder-val="{{ false }}">
+                        <div style="padding:12px; display:flex; flex-direction:column; gap:12px;">
+                          <div style="display:flex; align-items:flex-start; gap:4px;">
+                            <button type="button" aria-expanded="true" onClick="{{ c.onToggle }}" style="flex:1; min-width:0; min-height:44px; display:flex; flex-direction:column; gap:2px; padding:0; border:0; background:none; font:inherit; text-align:left; color:var(--c-text); cursor:pointer;">
+                              <span style="font-family:var(--font-display); font-weight:700; line-height:1.3;"><span style="color:var(--c-text-muted);">{{ c.prefix }}</span>{{ c.rest }}</span>
+                              <span style="font-family:var(--font-display); font-size:12px; font-weight:700; color:var(--c-text-muted);">{{ c.codeLine }}</span>
+                            </button>
+                            <button type="button" aria-label="{{ c.delLabel }}" onClick="{{ c.onDelete }}" style="flex:none; width:44px; height:44px; margin:-8px -8px 0 0; display:flex; align-items:center; justify-content:center; border:0; border-radius:8px; background:none; color:var(--c-danger); cursor:pointer;">
+                              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"></path></svg>
+                            </button>
+                          </div>
+
+                          <div style="font-size:14px; font-weight:600; color:var(--c-text-muted); margin-bottom:-4px;">Số khách</div>
+                          <div style="display:grid; grid-template-columns:{{ c.gridCols }}; gap:12px;">
+                            <sc-for list="{{ c.cells }}" as="cell" hint-placeholder-count="2">
+                              <div style="display:flex; flex-direction:column; gap:4px; min-width:0;">
+                                <span style="font-weight:700; line-height:1.3;">{{ cell.label }}</span>
+                                <span style="font-size:12px; color:var(--c-text-muted); font-variant-numeric:tabular-nums; min-height:18px;">{{ cell.sub }}</span>
+                                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Counter" value="{{ cell.value }}" on-change="{{ cell.onChange }}" invalid="{{ cell.invalid }}" max="99" hint-size="138px,46px"></x-import>
+                              </div>
+                            </sc-for>
+                          </div>
+                          <sc-if value="{{ c.isGroup }}" hint-placeholder-val="{{ false }}"><div style="font-weight:700;">{{ c.groupNote }}</div></sc-if>
+                          <sc-if value="{{ c.hasError }}" hint-placeholder-val="{{ false }}">
+                            <div role="alert" style="display:flex; gap:8px; align-items:center; padding:8px 12px; background:var(--c-danger-soft); border:1px solid var(--c-danger-border); border-radius:8px; color:var(--c-danger-text); font-weight:700;">
+                              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="alert" size="18" hint-size="18px,18px"></x-import>{{ c.error }}
+                            </div>
+                          </sc-if>
+
+                          <div style="display:flex; flex-direction:column; gap:4px; padding-top:12px; border-top:1px solid var(--c-border); font-variant-numeric:tabular-nums;">
+                            <sc-for list="{{ c.money }}" as="m" hint-placeholder-count="2">
+                              <sc-if value="{{ m.showText }}" hint-placeholder-val="{{ true }}"><div style="text-align:right;">{{ m.text }}</div></sc-if>
+                              <sc-if value="{{ m.showInput }}" hint-placeholder-val="{{ false }}">
+                                <div style="display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:8px; text-align:right;">
+                                  <span>{{ m.qtyText }} ×</span>
+                                  <input inputmode="numeric" aria-label="{{ m.aria }}" value="{{ m.priceStr }}" onChange="{{ m.onPrice }}" style="width:112px; height:44px; padding:0 8px; text-align:right; border:1px solid var(--c-primary); border-radius:8px; font:inherit; font-size:16px; font-weight:700; color:var(--c-text); background:#fff; box-sizing:border-box;">
+                                  <span>= {{ m.sumStr }}</span>
+                                </div>
+                              </sc-if>
+                              <sc-if value="{{ m.edited }}" hint-placeholder-val="{{ false }}">
+                                <div style="display:flex; justify-content:flex-end; align-items:center; gap:8px; font-size:14px;">
+                                  <span style="color:var(--c-text-muted); text-decoration:line-through;">{{ m.catStr }}</span>
+                                  <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.PriceTag" hint-size="140px,22px">Khác giá danh mục</x-import>
+                                </div>
+                              </sc-if>
+                            </sc-for>
+                            <sc-if value="{{ c.showTotal }}" hint-placeholder-val="{{ false }}">
+                              <div style="display:flex; justify-content:space-between; gap:8px; font-weight:700;"><span>Thành tiền dịch vụ</span><span style="font-family:var(--font-display);">{{ c.totalStr }}</span></div>
+                            </sc-if>
+                            <sc-if value="{{ c.canEditPrice }}" hint-placeholder-val="{{ true }}">
+                              <div style="display:flex; justify-content:flex-end; margin:-4px -4px -8px 0;"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" on-click="{{ c.onPriceEdit }}" dc-props="{{ lk }}" hint-size="80px,44px">{{ c.priceEditLabel }}</x-import></div>
+                            </sc-if>
+                          </div>
+
+                          <div style="font-size:14px; font-weight:600; color:var(--c-text-muted); margin-bottom:-4px;">Đưa đón</div>
+                          <sc-for list="{{ c.legs }}" as="lg" hint-placeholder-count="1">
+                            <div style="border:1px solid var(--c-border); border-radius:8px; padding:8px 12px 12px; display:flex; flex-direction:column; gap:8px;">
+                              <sc-if value="{{ lg.collapsed }}" hint-placeholder-val="{{ false }}">
+                                <button type="button" aria-expanded="false" onClick="{{ lg.onExpand }}" style="min-height:44px; display:flex; align-items:center; gap:8px; padding:0; border:0; background:none; font:inherit; text-align:left; color:var(--c-text); cursor:pointer;">
+                                  <span style="flex:none; font-size:12px; font-weight:700; color:var(--c-primary); background:var(--c-primary-soft); border-radius:999px; padding:1px 8px;">{{ lg.dirLabel }}</span>
+                                  <span style="flex:1; min-width:0;">{{ lg.summary }}</span>
+                                  <span aria-hidden="true" style="color:var(--c-text-muted); font-size:14px;">▾</span>
+                                </button>
+                              </sc-if>
+                              <sc-if value="{{ lg.expanded }}" hint-placeholder-val="{{ true }}">
+                                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:44px;">
+                                  <span style="display:flex; align-items:center; gap:8px;"><span style="font-size:12px; font-weight:700; color:var(--c-primary); background:var(--c-primary-soft); border-radius:999px; padding:1px 8px;">{{ lg.dirLabel }}</span><b>{{ lg.title }}</b></span>
+                                  <sc-if value="{{ lg.canRemove }}" hint-placeholder-val="{{ false }}"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" on-click="{{ lg.onRemove }}" dc-props="{{ lk }}" hint-size="80px,44px">Bỏ chặng</x-import></sc-if>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                                  <label style="flex:none; width:136px; height:52px; display:flex; flex-direction:column; justify-content:center; padding:0 12px; border:1px solid var(--c-border); border-radius:8px; background:{{ lg.timeBg }}; box-sizing:border-box;">
+                                    <span style="font-size:12px; color:var(--c-text-muted); line-height:1.2;">Giờ đón</span>
+                                    <input type="time" value="{{ lg.time }}" onChange="{{ lg.onTime }}" disabled="{{ lg.untimed }}" style="border:0; padding:0; font:inherit; font-size:16px; font-weight:700; color:var(--c-text); background:none; width:100%;">
+                                  </label>
+                                  <label style="min-height:44px; display:flex; align-items:center; gap:8px; font-size:16px; cursor:pointer;"><input type="checkbox" checked="{{ lg.untimed }}" onChange="{{ lg.onUntimed }}" style="width:20px; height:20px; margin:0; accent-color:var(--c-primary);">Chưa chốt giờ</label>
+                                </div>
+                                <div style="margin:-8px 0 -4px -4px;"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" on-click="{{ lg.onOtherDate }}" dc-props="{{ lk }}" hint-size="120px,44px">Đón khác ngày</x-import></div>
+                                <sc-if value="{{ lg.otherDate }}" hint-placeholder-val="{{ false }}">
+                                  <label style="height:52px; display:flex; flex-direction:column; justify-content:center; padding:0 12px; border:1px solid var(--c-border); border-radius:8px; box-sizing:border-box;"><span style="font-size:12px; color:var(--c-text-muted); line-height:1.2;">Ngày đón</span><input type="date" value="{{ date }}" style="border:0; padding:0; font:inherit; font-size:16px; font-weight:700; background:none;"></label>
+                                </sc-if>
+                                <sc-for list="{{ lg.places }}" as="pl" hint-placeholder-count="2">
+                                  <sc-if value="{{ pl.closed }}" hint-placeholder-val="{{ true }}">
+                                    <button type="button" aria-haspopup="listbox" onClick="{{ pl.onOpen }}" style="width:100%; min-height:52px; display:flex; align-items:center; gap:8px; padding:4px 12px; border:1px solid var(--c-border); border-radius:8px; background:#fff; font:inherit; text-align:left; color:var(--c-text); cursor:pointer;">
+                                      <span style="flex:none; color:var(--c-text-muted);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="pin" size="16" hint-size="16px,16px"></x-import></span>
+                                      <span style="flex:1; min-width:0; display:flex; flex-direction:column;"><span style="font-size:12px; color:var(--c-text-muted); line-height:1.3;">{{ pl.label }}</span><span style="font-weight:{{ pl.fw }}; color:{{ pl.fg }};">{{ pl.display }}</span></span>
+                                      <span aria-hidden="true" style="color:var(--c-text-muted); font-size:14px;">▾</span>
+                                    </button>
+                                  </sc-if>
+                                  <sc-if value="{{ pl.isOpen }}" hint-placeholder-val="{{ false }}">
+                                    <div style="border:2px solid var(--c-primary); border-radius:8px; overflow:hidden;">
+                                      <label style="display:flex; flex-direction:column; padding:4px 12px;"><span style="font-size:12px; color:var(--c-text-muted); line-height:1.3;">{{ pl.label }}</span><input data-picker="1" aria-label="{{ pl.label }}" aria-autocomplete="list" placeholder="Gõ tên khách sạn, cảng, sân bay…" value="{{ pl.q }}" onChange="{{ pl.onQ }}" style="border:0; outline:none; padding:0; height:28px; font:inherit; font-size:16px; color:var(--c-text); background:none;"></label>
+                                      <div role="listbox" aria-label="{{ pl.listLabel }}" style="border-top:1px solid var(--c-border);">
+                                        <sc-for list="{{ pl.sugs }}" as="sg" hint-placeholder-count="3">
+                                          <button type="button" role="option" aria-selected="false" onClick="{{ sg.onPick }}" style="width:100%; min-height:44px; display:flex; align-items:center; gap:4px; padding:0 12px; border:0; border-bottom:1px solid var(--c-border); background:#fff; font:inherit; text-align:left; color:var(--c-text); cursor:pointer;"><span style="font-weight:600;">{{ sg.name }}</span><span style="color:var(--c-text-muted);">· {{ sg.kind }}</span></button>
+                                        </sc-for>
+                                        <button type="button" role="option" aria-selected="false" onClick="{{ pl.onFree }}" style="width:100%; min-height:44px; display:flex; align-items:center; padding:0 12px; border:0; background:var(--c-surface-alt); font:inherit; text-align:left; color:var(--c-primary); font-weight:600; cursor:pointer;">{{ pl.freeText }}</button>
+                                      </div>
+                                    </div>
+                                  </sc-if>
+                                </sc-for>
+                                <div style="margin:-4px 0 -8px -4px;"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" on-click="{{ lg.onPriv }}" dc-props="{{ lk }}" hint-size="140px,44px">Xe riêng, số chỗ</x-import></div>
+                                <sc-if value="{{ lg.priv }}" hint-placeholder-val="{{ false }}">
+                                  <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                                    <label style="min-height:44px; display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" style="width:20px; height:20px; margin:0; accent-color:var(--c-primary);">Xe riêng</label>
+                                    <input inputmode="numeric" aria-label="Xe tối thiểu (số chỗ)" placeholder="Xe tối thiểu (số chỗ)" style="flex:1 1 160px; height:52px; padding:0 12px; border:1px solid var(--c-border); border-radius:8px; font:inherit; font-size:16px; box-sizing:border-box;">
+                                  </div>
+                                </sc-if>
+                              </sc-if>
+                            </div>
+                          </sc-for>
+                          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <sc-if value="{{ c.canAddReturn }}" hint-placeholder-val="{{ true }}"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="default" on-click="{{ c.onAddReturn }}" hint-size="120px,44px">+ Chiều về</x-import></sc-if>
+                            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="default" on-click="{{ c.onAddLeg }}" hint-size="100px,44px">+ Chặng</x-import>
+                          </div>
+
+                          <div style="border:1px solid var(--c-border); border-radius:8px;">
+                            <button type="button" aria-expanded="{{ c.tripOpen }}" onClick="{{ c.onTrip }}" style="width:100%; min-height:44px; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:0 12px; border:0; background:none; font:inherit; font-weight:600; text-align:left; color:var(--c-text); cursor:pointer;"><span>Thông tin chuyến</span><span aria-hidden="true" style="color:var(--c-text-muted); font-size:14px;">{{ c.tripChevron }}</span></button>
+                            <sc-if value="{{ c.tripOpen }}" hint-placeholder-val="{{ false }}">
+                              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:0 12px 12px;">
+                                <label style="height:52px; display:flex; flex-direction:column; justify-content:center; padding:0 12px; border:1px solid var(--c-border); border-radius:8px; box-sizing:border-box;"><span style="font-size:12px; color:var(--c-text-muted); line-height:1.2;">Giờ khởi hành</span><input type="time" style="border:0; padding:0; font:inherit; font-size:16px; font-weight:700; background:none;"></label>
+                                <label style="height:52px; display:flex; flex-direction:column; justify-content:center; padding:0 12px; border:1px solid var(--c-border); border-radius:8px; box-sizing:border-box;"><span style="font-size:12px; color:var(--c-text-muted); line-height:1.2;">Có mặt lúc</span><input type="time" style="border:0; padding:0; font:inherit; font-size:16px; font-weight:700; background:none;"></label>
+                                <input aria-label="Có mặt tại" placeholder="Có mặt tại — ví dụ: Cảng Vinpearl" style="grid-column:1 / -1; height:52px; padding:0 12px; border:1px solid var(--c-border); border-radius:8px; font:inherit; font-size:16px; box-sizing:border-box;">
+                                <textarea aria-label="Ghi chú dịch vụ" placeholder="Ghi chú dịch vụ" rows="2" style="grid-column:1 / -1; padding:12px; border:1px solid var(--c-border); border-radius:8px; font:inherit; font-size:16px; box-sizing:border-box; resize:vertical;"></textarea>
+                              </div>
+                            </sc-if>
+                          </div>
+
+                          <sc-if value="{{ c.urgent }}" hint-placeholder-val="{{ false }}">
+                            <div data-sec="urgent" style="display:flex; flex-direction:column; gap:8px; padding:12px; background:var(--c-sand-soft); border:1px solid var(--c-sand-border); border-radius:8px; color:var(--c-sand-text);">
+                              <div style="display:flex; gap:8px; align-items:flex-start; font-weight:700;"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="clock" size="18" style="margin-top:3px;" hint-size="18px,18px"></x-import><span>{{ c.urgentText }}</span></div>
+                              <sc-if value="{{ c.urgentPending }}" hint-placeholder-val="{{ true }}"><div><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="default" on-click="{{ c.onApprove }}" dc-props="{{ sm }}" hint-size="140px,44px">Duyệt đặt gấp</x-import></div></sc-if>
+                            </div>
+                          </sc-if>
+                        </div>
+                      </sc-if>
+                    </article>
+                  </sc-for>
+                </div>
+              </section>
+            </sc-if>
+
+            <sc-if value="{{ showPaxInFlow }}" hint-placeholder-val="{{ false }}">
+              <section data-sec="hanhkhach" aria-label="Hành khách" style="background:#fff; border:1px solid var(--c-border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:8px;">
+                <h2 style="margin:0; font-family:var(--font-display); font-size:1.1rem; color:var(--c-primary);">Hành khách</h2>
+                <div style="display:flex; align-items:center; gap:8px; color:var(--c-primary);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="guests" size="18" hint-size="18px,18px"></x-import><b style="font-family:var(--font-display); font-size:20px;">{{ paxNamed }}</b><span style="color:var(--c-text); font-weight:600;">khách đã có tên</span></div>
+                <div style="font-size:14px; color:var(--c-text-muted);">Chưa có hành khách nào.</div>
+                <div><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="default" on-click="{{ noop }}" hint-size="140px,44px">+ Hành khách</x-import></div>
+              </section>
+            </sc-if>
+
+            <sc-if value="{{ showPay }}" hint-placeholder-val="{{ true }}">
+              <section data-sec="thanhtoan" aria-label="Thanh toán" style="background:#fff; border:1px solid var(--c-border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:12px;">
+                <h2 style="margin:0; font-family:var(--font-display); font-size:1.1rem; color:var(--c-primary);">Thanh toán</h2>
+                <label style="height:52px; display:flex; flex-direction:column; justify-content:center; padding:0 12px; border:1px solid var(--c-border); border-radius:8px; background:{{ discBg }}; box-sizing:border-box;">
+                  <span style="font-size:12px; color:var(--c-text-muted); line-height:1.2;">Giảm giá (₫)</span>
+                  <input inputmode="numeric" placeholder="0" value="{{ discountStr }}" onChange="{{ onDiscount }}" disabled="{{ discLocked }}" style="border:0; outline-offset:4px; padding:0; font:inherit; font-size:16px; font-weight:700; color:var(--c-text); background:none; font-variant-numeric:tabular-nums;">
+                </label>
+                <sc-if value="{{ discLocked }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; gap:8px; align-items:center; margin-top:-4px; font-size:14px; color:var(--c-text-muted);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="lock" size="16" hint-size="16px,16px"></x-import>Tài khoản đối tác không nhập giảm giá; cần giảm thì nhắn văn phòng.</div>
+                </sc-if>
+                <label style="height:52px; display:flex; flex-direction:column; justify-content:center; padding:0 12px; border:1px solid var(--c-border); border-radius:8px; background:#fff; box-sizing:border-box;">
+                  <span style="font-size:12px; color:var(--c-text-muted); line-height:1.2;">Thanh toán trước (₫)</span>
+                  <input inputmode="numeric" placeholder="0" value="{{ prepayStr }}" onChange="{{ onPrepay }}" style="border:0; outline-offset:4px; padding:0; font:inherit; font-size:16px; font-weight:700; color:var(--c-text); background:none; font-variant-numeric:tabular-nums;">
+                </label>
+                <sc-if value="{{ hasPrepay }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:grid; grid-template-columns:{{ payCols }}; gap:12px;">
+                    <label style="height:52px; display:flex; flex-direction:column; justify-content:center; padding:0 12px; border:1px solid var(--c-border); border-radius:8px; background:#fff; box-sizing:border-box;"><span style="font-size:12px; color:var(--c-text-muted); line-height:1.2;">Hình thức</span><select value="{{ method }}" onChange="{{ onMethod }}" style="border:0; padding:0; font:inherit; font-size:16px; font-weight:600; color:var(--c-text); background:none;"><option>Chuyển khoản</option><option>Tiền mặt</option></select></label>
+                    <label style="height:52px; display:flex; flex-direction:column; justify-content:center; padding:0 12px; border:1px solid var(--c-border); border-radius:8px; background:#fff; box-sizing:border-box;"><span style="font-size:12px; color:var(--c-text-muted); line-height:1.2;">Người nhận tiền</span><select value="{{ receiver }}" onChange="{{ onReceiver }}" style="border:0; padding:0; font:inherit; font-size:16px; font-weight:600; color:var(--c-text); background:none;"><option>Công ty</option><option>Tôi (người bán)</option></select></label>
+                  </div>
+                  <div style="font-size:14px; color:var(--c-text-muted); margin-top:-4px;">Tiền trả trước được ghi vào sổ ngay sau khi lưu đơn.</div>
+                </sc-if>
+                <textarea aria-label="Ghi chú thanh toán" placeholder="Ghi chú thanh toán" rows="2" style="width:100%; padding:12px; border:1px solid var(--c-border); border-radius:8px; font:inherit; font-size:16px; background:#fff; box-sizing:border-box; resize:vertical;"></textarea>
+              </section>
+            </sc-if>
+
+            <sc-if value="{{ showAssignInFlow }}" hint-placeholder-val="{{ true }}">
+              <section data-sec="phutrach" aria-label="Người phụ trách" style="background:#fff; border:1px solid var(--c-border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:8px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;"><h2 style="margin:0; font-family:var(--font-display); font-size:1.1rem; color:var(--c-primary);">Người phụ trách</h2><span style="font-size:12px; font-weight:700; color:var(--c-sand-text); background:var(--c-sand-soft); border:1px solid var(--c-sand-border); border-radius:999px; padding:1px 8px;">Chờ nhận</span></div>
+                <div style="font-size:14px; color:var(--c-primary); font-weight:600;">Chưa chọn ai — hướng dẫn viên nào cũng bấm Nhận được.</div>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="default" block="{{ true }}" on-click="{{ noop }}" hint-size="100%,44px">Chọn người phụ trách</x-import>
+              </section>
+            </sc-if>
+          </div>
+
+          <sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ false }}">
+            <aside aria-label="Tóm tắt và lưu" style="position:sticky; top:88px; display:flex; flex-direction:column; gap:12px; min-width:0;">
+              <section data-sec="tomtat" style="background:#fff; border:1px solid var(--c-border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:4px; font-variant-numeric:tabular-nums;">
+                <h2 style="margin:0 0 8px; font-family:var(--font-display); font-size:1.1rem; color:var(--c-primary);">Tóm tắt</h2>
+                <div style="display:flex; justify-content:space-between; gap:8px;"><span style="color:var(--c-text-muted);">Dịch vụ</span><span>{{ svcCountText }}</span></div>
+                <div style="display:flex; justify-content:space-between; gap:8px;"><span style="color:var(--c-text-muted);">Tạm tính</span><span>{{ subtotalStr }}</span></div>
+                <div style="display:flex; justify-content:space-between; gap:8px;"><span style="color:var(--c-text-muted);">Giảm giá</span><span>{{ discountFull }}</span></div>
+                <div style="display:flex; justify-content:space-between; gap:8px; font-weight:700; font-size:18px;"><span>Tổng cộng</span><span style="font-family:var(--font-display); color:var(--c-accent-strong);">{{ totalStr }}</span></div>
+                <div style="display:flex; justify-content:space-between; gap:8px;"><span style="color:var(--c-text-muted);">Thanh toán trước <span style="font-size:12px;">(ghi sau khi lưu)</span></span><span>{{ prepayFull }}</span></div>
+                <div style="margin-top:8px; font-size:14px; color:var(--c-text-muted);">Số này chỉ để xem trước; hệ thống tính lại khi lưu.</div>
+              </section>
+              <sc-if value="{{ showAssignSide }}" hint-placeholder-val="{{ true }}">
+                <section data-sec="phutrach" aria-label="Người phụ trách" style="background:#fff; border:1px solid var(--c-border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:8px;">
+                  <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;"><h2 style="margin:0; font-family:var(--font-display); font-size:1.1rem; color:var(--c-primary);">Người phụ trách</h2><span style="font-size:12px; font-weight:700; color:var(--c-sand-text); background:var(--c-sand-soft); border:1px solid var(--c-sand-border); border-radius:999px; padding:1px 8px;">Chờ nhận</span></div>
+                  <div style="font-size:14px; color:var(--c-primary); font-weight:600;">Chưa chọn ai — hướng dẫn viên nào cũng bấm Nhận được.</div>
+                  <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="default" block="{{ true }}" on-click="{{ noop }}" hint-size="100%,44px">Chọn người phụ trách</x-import>
+                </section>
+              </sc-if>
+              <sc-if value="{{ hasWarn }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; gap:8px; align-items:flex-start; padding:8px 12px; background:var(--c-sand-soft); border:1px solid var(--c-sand-border); border-radius:8px; color:var(--c-sand-text); font-size:14px; font-weight:600;"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="alert" size="16" style="margin-top:3px;" hint-size="16px,16px"></x-import><span>{{ warn }}</span></div>
+              </sc-if>
+              <sc-if value="{{ hasErr }}" hint-placeholder-val="{{ false }}">
+                <div role="alert" style="display:flex; gap:8px; align-items:flex-start; padding:8px 12px; background:var(--c-danger-soft); border:1px solid var(--c-danger-border); border-radius:8px; color:var(--c-danger-text); font-size:14px; font-weight:700;"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="alert" size="16" style="margin-top:3px;" hint-size="16px,16px"></x-import><span>{{ err }}</span></div>
+              </sc-if>
+              <sc-if value="{{ saved }}" hint-placeholder-val="{{ false }}"><div role="status" style="padding:8px 12px; background:var(--c-green-soft); border:1px solid var(--c-green-border); border-radius:8px; color:var(--c-green-text); font-size:14px; font-weight:700;">✓ Đã lưu đơn — chờ xác nhận.</div></sc-if>
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" size="lg" block="{{ true }}" on-click="{{ save }}" hint-size="100%,52px">Lưu, chờ xác nhận</x-import>
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="default" block="{{ true }}" on-click="{{ noop }}" hint-size="100%,44px">Quay lại</x-import>
+            </aside>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ showPaxWide }}" hint-placeholder-val="{{ false }}">
+          <section data-sec="hanhkhach" aria-label="Hành khách" style="margin-top:24px; background:#fff; border:1px solid var(--c-border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:8px;">
+            <h2 style="margin:0; font-family:var(--font-display); font-size:1.1rem; color:var(--c-primary);">Hành khách</h2>
+            <div style="display:flex; align-items:center; gap:8px; color:var(--c-primary);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="guests" size="18" hint-size="18px,18px"></x-import><b style="font-family:var(--font-display); font-size:20px;">{{ paxNamed }}</b><span style="color:var(--c-text); font-weight:600;">khách đã có tên</span></div>
+            <div style="font-size:14px; color:var(--c-text-muted);">Chưa có hành khách nào.</div>
+            <div><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="default" on-click="{{ noop }}" hint-size="140px,44px">+ Hành khách</x-import></div>
+          </section>
+        </sc-if>
+      </div>
+    </div>
+
+    <sc-if value="{{ showPhoneBar }}" hint-placeholder-val="{{ true }}">
+      <div style="flex:none; display:flex; flex-direction:column; gap:8px; padding:8px 16px 24px; background:#fff; border-top:1px solid var(--c-border); box-shadow:0 -4px 12px rgba(15,23,42,.06);">
+        <sc-if value="{{ barOpen }}" hint-placeholder-val="{{ false }}">
+          <div id="{{ barPanelId }}" role="region" aria-label="Chi tiết tiền" style="display:flex; flex-direction:column; gap:4px; padding:8px 0 12px; border-bottom:1px solid var(--c-border); font-variant-numeric:tabular-nums;">
+            <div style="display:flex; justify-content:space-between; gap:8px;"><span style="color:var(--c-text-muted);">Tạm tính</span><span>{{ subtotalStr }}</span></div>
+            <div style="display:flex; justify-content:space-between; gap:8px;"><span style="color:var(--c-text-muted);">Giảm giá</span><span>{{ discountFull }}</span></div>
+            <div style="display:flex; justify-content:space-between; gap:8px; font-weight:700;"><span>Tổng cộng</span><span style="font-family:var(--font-display); color:var(--c-accent-strong);">{{ totalStr }}</span></div>
+            <div style="display:flex; justify-content:space-between; gap:8px;"><span style="color:var(--c-text-muted);">Thanh toán trước <span style="font-size:12px;">(ghi sau khi lưu)</span></span><span>{{ prepayFull }}</span></div>
+            <div style="font-size:14px; color:var(--c-text-muted);">Số này chỉ để xem trước; hệ thống tính lại khi lưu.</div>
+          </div>
+        </sc-if>
+        <button type="button" aria-expanded="{{ barOpen }}" aria-controls="{{ barPanelId }}" onClick="{{ toggleBar }}" style="min-height:44px; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:0; border:0; background:none; font:inherit; text-align:left; color:var(--c-text); cursor:pointer;">
+          <span style="display:flex; flex-direction:column;">
+            <span style="font-weight:700;">{{ svcCountText }} · Tổng <span style="font-family:var(--font-display); color:var(--c-accent-strong);">{{ totalStr }}</span></span>
+            <sc-if value="{{ hasPrepay }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px; color:var(--c-text-muted);">Trả trước {{ prepayFull }}</span></sc-if>
+          </span>
+          <span style="flex:none; font-size:14px; font-weight:700; color:var(--c-primary);">{{ barToggleText }}</span>
+        </button>
+        <sc-if value="{{ hasWarn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:8px; align-items:flex-start; padding:8px 12px; background:var(--c-sand-soft); border:1px solid var(--c-sand-border); border-radius:8px; color:var(--c-sand-text); font-size:14px; font-weight:600;"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="alert" size="16" style="margin-top:3px;" hint-size="16px,16px"></x-import><span>{{ warn }}</span></div>
+        </sc-if>
+        <sc-if value="{{ hasErr }}" hint-placeholder-val="{{ false }}">
+          <div role="alert" style="display:flex; gap:8px; align-items:flex-start; padding:8px 12px; background:var(--c-danger-soft); border:1px solid var(--c-danger-border); border-radius:8px; color:var(--c-danger-text); font-size:14px; font-weight:700;"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="alert" size="16" style="margin-top:3px;" hint-size="16px,16px"></x-import><span>{{ err }}</span></div>
+        </sc-if>
+        <sc-if value="{{ saved }}" hint-placeholder-val="{{ false }}"><div role="status" style="padding:8px 12px; background:var(--c-green-soft); border:1px solid var(--c-green-border); border-radius:8px; color:var(--c-green-text); font-size:14px; font-weight:700;">✓ Đã lưu đơn — chờ xác nhận.</div></sc-if>
+        <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" size="lg" block="{{ true }}" on-click="{{ save }}" hint-size="100%,52px">Lưu, chờ xác nhận</x-import>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isSheet }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:none; padding:8px 16px 24px; background:#fff; border-top:1px solid var(--c-border);">
+        <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" size="lg" block="{{ true }}" on-click="{{ noop }}" hint-size="100%,52px">Lưu khách</x-import>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:880},&quot;layout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;phone&quot;,&quot;desktop&quot;],&quot;default&quot;:&quot;phone&quot;,&quot;tsType&quot;:&quot;'phone'|'desktop'&quot;},&quot;preset&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;empty&quot;,&quot;pick&quot;,&quot;search&quot;,&quot;td2&quot;,&quot;three&quot;,&quot;st-price&quot;,&quot;st-error&quot;,&quot;st-urgent&quot;,&quot;kh-search&quot;,&quot;kh-picked&quot;,&quot;kh-guard&quot;,&quot;pay-none&quot;,&quot;pay-prepay&quot;,&quot;bar&quot;,&quot;bar-open&quot;,&quot;bar-warn&quot;,&quot;bar-error&quot;,&quot;role-partner&quot;,&quot;role-hybrid&quot;,&quot;sheet&quot;],&quot;default&quot;:&quot;empty&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;role&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;staff&quot;,&quot;partner&quot;,&quot;hybrid&quot;],&quot;default&quot;:&quot;staff&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;mode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;form&quot;,&quot;sheet&quot;],&quot;default&quot;:&quot;form&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;scrollTo&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;top&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;width&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:390,&quot;tsType&quot;:&quot;number&quot;},&quot;height&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:844,&quot;tsType&quot;:&quot;number&quot;},&quot;remember&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const GROUPS = ['Tour đảo','Long Phú','Hòn Tằm','Harbour','Vinwonders','Du thuyền','Thể thao biển','I Resort','Kong Forest','Trăm trứng','Nhà hát Đó','Tháp Bà','Thuê xe','Buýt City Tour'];
+const RAW = [
+['TD2','Tour 2 đảo: Hòn Mun + Hòn Tằm + buffet trưa',1350000,0,'td2'],
+['TDMCT1','Tour: Hòn Mun + làng Chài + Hòn Tằm',850000,0,'t'],
+['TDTCSH','Tour: Bãi Tranh + làng Chài + Vịnh San Hô',550000,0,'t'],
+['TD3','Tour 3 đảo: Hòn Mun + Hòn Một + Hòn Tằm',950000,0,'t'],
+['TD4','Tour 4 đảo: Hòn Mun + Hòn Một + bãi Tranh + Hòn Tằm',1150000,0,'t'],
+['TDHT','Tour: Hòn Tằm + tắm bùn nửa ngày',690000,0,'t'],
+['TDHTC','Tour: Hòn Tằm + câu cá + lặn ngắm san hô',790000,0,'t'],
+['TDDK','Tour: đảo Khỉ + suối Hoa Lan',650000,0,'t'],
+['TDDY','Tour: đảo Yến + Hòn Nội',890000,0,'t'],
+['TDBB','Tour: Bình Ba + Bình Hưng (2 ngày 1 đêm)',1990000,0,'t'],
+['TDCM','Tour đêm: câu mực trên vịnh Nha Trang',490000,0,'t'],
+['LPCB','Cano + đảo Khỉ + hoa lan + ăn trưa',600000,1,'t'],
+['LPDK','Vé đảo Khỉ: cano khứ hồi',250000,1,'t'],
+['LPHL','Vé suối Hoa Lan: cano khứ hồi',280000,1,'t'],
+['LPXK','Long Phú: xem xiếc thú + cưỡi đà điểu',180000,1,'t'],
+['LPTG','Long Phú: trọn gói 2 đảo + buffet trưa',850000,1,'t'],
+['SM3','Vé Hòn Tằm: Cano + tắm bùn + tắm biển',540000,2,'t'],
+['SD1','Vé Hòn Tằm: Cano + tắm biển + buffet trưa',740000,2,'t'],
+['SD2','Vé Hòn Tằm: Cano + tắm biển',450000,2,'t'],
+['SM5','Vé Hòn Tằm: Cano + tắm bùn + buffet trưa',890000,2,'t'],
+['VHBT','Vé Vinpearl: Harbour + tata show',400000,3],
+['VHB','Vé Vinpearl: Harbour vào cổng',150000,3],
+['VHBA','Vé Vinpearl: Harbour + ăn tối',650000,3],
+['VTC','Vé Vinwonders NT: tiêu chuẩn',1050000,4,'t'],
+['V16','Vé Vinwonders NT: sau 16:00',700000,4,'t'],
+['VBF','Vé Vinwonders NT: kèm buffet trưa',1350000,4,'t'],
+['VSF','Vé Vinwonders NT: kèm vườn thú Safari',1250000,4,'t'],
+['VDP','Vé Vinwonders NT: người địa phương',800000,4,'t'],
+['VKH','Vé Vinwonders NT: kèm cano khứ hồi',1150000,4,'t'],
+['V2N','Vé Vinwonders NT: trọn gói 2 ngày',1650000,4,'t'],
+['DTE2','Tour du thuyền Emperor: ngắm hoàng hôn Nha Trang',2300000,5],
+['DTE1','Tour du thuyền Emperor: ăn tối trên vịnh',1900000,5],
+['DTJ1','Tour du thuyền Jasmine: ngắm hoàng hôn',1200000,5],
+['DTJ2','Tour du thuyền Jasmine: tiệc đêm trên vịnh',1500000,5],
+['DTMN','Tour du thuyền Mini: lặn ngắm san hô',850000,5],
+['DTR4','Du thuyền riêng: 4 tiếng trên vịnh',12000000,5,10],
+['TTBL115','Motor nước: Jetski L1 (15 phút) Hòn Tằm',600000,6],
+['TTBL130','Motor nước: Jetski L1 (30 phút) Hòn Tằm',1100000,6],
+['TTBL215','Motor nước: Jetski L2 (15 phút) Hòn Tằm',800000,6],
+['TTBL230','Motor nước: Jetski L2 (30 phút) Hòn Tằm',1400000,6],
+['TTBL260','Motor nước: Jetski L2 (60 phút) Hòn Tằm',2600000,6],
+['TTBSNO','Lặn với ống thở (snorkeling) Hòn Tằm',400000,6],
+['TTBLB1','Lặn biển bình khí (1 lần) Hòn Tằm',1200000,6],
+['TTBLB2','Lặn biển bình khí (2 lần) Hòn Tằm',1900000,6],
+['TTBDB','Đi bộ dưới đáy biển Hòn Tằm',1000000,6],
+['TTBPC','Phao chuối (5 pax) Hòn Tằm',1300000,6,5],
+['TTBPR','Phao rồng (6 pax) Hòn Tằm',1500000,6,6],
+['TTBPB','Phao bay (2 pax) Hòn Tằm',1000000,6,2],
+['TTBCK','Cano kéo phao (15 phút) Hòn Tằm',500000,6],
+['TTBDK','Dù bay kéo cano Hòn Tằm',700000,6],
+['TTBVK','Ván lướt kéo (15 phút) Hòn Tằm',900000,6],
+['TTBVB','Ván bay phản lực (15 phút) Hòn Tằm',1800000,6],
+['TTBVD','Lướt ván diều (60 phút) Hòn Tằm',2200000,6],
+['TTBSUP','Chèo ván đứng (60 phút) Hòn Tằm',300000,6],
+['TTBKY','Chèo thuyền kayak đôi (60 phút) Hòn Tằm',250000,6],
+['TTBDK2','Tàu đáy kính ngắm san hô Hòn Tằm',350000,6],
+['TTBCC','Câu cá trên bè Hòn Tằm',300000,6],
+['TTBDD2','Dù bay đôi (2 pax)',1300000,6],
+['TTBDD1','Dù bay đơn',800000,6],
+['IRTK','I Resort: tắm khoáng',200000,7],
+['IRTB','I Resort: tắm bùn tập thể',300000,7],
+['IRBR','I Resort: tắm bùn bồn riêng (2 khách)',700000,7,2],
+['IRBV','I Resort: tắm bùn bồn gỗ VIP',450000,7],
+['IRBF','I Resort: tắm bùn + buffet trưa',550000,7],
+['IRMC','I Resort: massage chân 45 phút',250000,7],
+['IRMT','I Resort: massage toàn thân 60 phút',450000,7],
+['IRXH','I Resort: xông hơi + tắm khoáng nóng',280000,7],
+['IRCB','I Resort: combo bùn + khoáng + hồ bơi',490000,7],
+['IRHB','I Resort: hồ bơi khoáng nóng',150000,7],
+['IRTN','I Resort: thác nước + hồ khoáng',180000,7],
+['IRDB','I Resort: đưa đón + tắm bùn',450000,7],
+['IRGD','I Resort: gói gia đình (4 khách)',1400000,7,4],
+['IRND','I Resort: gói nửa ngày thư giãn',650000,7],
+['ZIP','Tour trượt Zipline trong rừng Hòn Bà (90-120 phút)',1500000,8],
+['KFDB','Kong Forest: vé cổng + đi bộ trong rừng',400000,8],
+['KFLV','Kong Forest: leo vách đá + trượt dây',900000,8],
+['KFCB','Kong Forest: Zipline + ăn trưa',1800000,8],
+['TTKPA','Trăm trứng: khám phá + ẩm thực',300000,9],
+['TTRVC','Trăm trứng: vé cổng',150000,9],
+['TTRTB','Trăm trứng: tắm bùn',350000,9],
+['TTRDD','Trăm trứng: đưa đón + vé cổng',450000,9],
+['TTRBF','Trăm trứng: buffet trưa',250000,9],
+['TTRCB','Trăm trứng: combo trọn ngày',650000,9],
+['NHDRMT','Nhà hát Đó: show Rối Mơ - hạng ghế Tiger',450000,10],
+['NHDRMV','Nhà hát Đó: show Rối Mơ - hạng ghế VIP',650000,10],
+['NHDRMS','Nhà hát Đó: show Rối Mơ - hạng ghế thường',300000,10],
+['NHDLTT','Nhà hát Đó: show Làng Tôi - hạng ghế Tiger',450000,10],
+['NHDCB','Nhà hát Đó: show + ăn tối',750000,10],
+['NHDLH','(ví dụ) Nhà hát Đó: show mùa lễ hội',0,10,'x'],
+['TBTB3','Tháp Bà: tắm bùn khoáng (group 3 đến 5 pax)',300000,11],
+['TBTT','Tháp Bà: tắm bùn tập thể',250000,11],
+['TBBR','Tháp Bà: tắm bùn bồn riêng (2 khách)',600000,11],
+['TBKN','Tháp Bà: tắm khoáng nóng',150000,11],
+['TBTD','Tháp Bà: tắm bùn + thảo dược',400000,11],
+['TBMS','Tháp Bà: massage 60 phút',450000,11],
+['TBBF','Tháp Bà: tắm bùn + buffet trưa',550000,11],
+['TBHB','Tháp Bà: hồ bơi khoáng',120000,11],
+['TBXH','Tháp Bà: xông hơi đá muối',100000,11],
+['TBDD','Tháp Bà: đưa đón + tắm bùn',450000,11],
+['TBCB','Tháp Bà: combo nửa ngày',650000,11],
+['TBBG','Tháp Bà: tắm bùn bồn gỗ VIP',800000,11],
+['TBVC','Tháp Bà: vé tham quan tháp Chăm',50000,11],
+['SB7D','Xe 7 chỗ đón sân bay',350000,12],
+['SB4D','Xe 4 chỗ đón sân bay',300000,12],
+['SB16D','Xe 16 chỗ đón sân bay',600000,12],
+['TX4N','Xe 4 chỗ nửa ngày (4 tiếng)',700000,12],
+['TX7N','Xe 7 chỗ theo ngày (10 tiếng)',1400000,12],
+['TX16N','Xe 16 chỗ theo ngày (10 tiếng)',2200000,12],
+['BCT4','Bus city tour 4 tiếng (tour ngày)',150000,13],
+['BCT8','Bus city tour 8 tiếng (tour ngày)',250000,13],
+['BCT24','Bus city tour vé 24 giờ',300000,13],
+['BCTD','Bus city tour đêm (3 tiếng)',200000,13],
+['BCTNH','Bus city tour + Nhà hát Đó',550000,13],
+['BCTTB','Bus city tour + tắm bùn Tháp Bà',500000,13]
+];
+const fmt = (n) => Math.round(n || 0).toLocaleString('vi-VN');
+const vnd = (n) => fmt(n) + ' ₫';
+const norm = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase().trim();
+const digits = (s) => String(s || '').replace(/\D/g, '');
+const CAT = RAW.map(([code, name, price, g, o]) => {
+  const i = name.indexOf(':');
+  const s = { code, name, price, g, prefix: i > 0 ? name.slice(0, i + 1) + ' ' : '', rest: i > 0 ? name.slice(i + 1).trim() : name, n: norm(name + ' ' + code) };
+  if (o === 'x') s.na = 'chưa có giá';
+  if (typeof o === 'number') s.grp = o;
+  s.tiers = [{ k: 'nl', label: 'Người lớn', word: 'người lớn', ab: 'NL', p: price, sub: fmt(price) }];
+  if (o === 'td2') s.tiers.push(
+    { k: 'te', label: 'Trẻ em', word: 'trẻ em', ab: 'TE', p: 1200000, sub: '1.200.000 · cao 1–1,4 m' },
+    { k: 'nct', label: 'Người cao tuổi', word: 'người cao tuổi', ab: 'NCT', p: 1350000, sub: '1.350.000 · từ 60 tuổi' },
+    { k: 'eb', label: 'Em bé', word: 'em bé', ab: 'EB', p: 0, sub: '0 · dưới 1 m, miễn phí' });
+  else if (o === 't') { const te = Math.round(price * 0.8 / 10000) * 10000; s.tiers.push(
+    { k: 'te', label: 'Trẻ em', word: 'trẻ em', ab: 'TE', p: te, sub: fmt(te) + ' · cao 1–1,4 m' },
+    { k: 'eb', label: 'Em bé', word: 'em bé', ab: 'EB', p: 0, sub: '0 · dưới 1 m, miễn phí' }); }
+  return s;
+});
+const BY = Object.fromEntries(CAT.map((s) => [s.code, s]));
+const LOCS = [['Khách sạn Biển Xanh','khách sạn'],['Khách sạn Biển Ngọc','khách sạn'],['Khách sạn Havana Nha Trang','khách sạn'],['Khách sạn Mường Thanh Luxury','khách sạn'],['Sân bay Cam Ranh','sân bay'],['Cảng du lịch Cầu Đá','cảng'],['Cảng Vinpearl','cảng'],['Ga Nha Trang','nhà ga'],['Chợ Đầm','điểm hẹn']];
+const PARTNERS = [{ name: 'Lữ hành Biển Xanh', kind: 'tổ chức', hh: true }, { name: 'Minh Travel', kind: 'tổ chức', hh: true, phone: '0914222333' }, { name: 'Nguyễn Thị Hoa', kind: 'cá nhân', hh: true }];
+const shortLoc = (s) => (s || '').replace(/^Khách sạn /, 'KS ');
+let UID = 1;
+const mkLeg = (o = {}) => ({ id: UID++, dir: 'đi', time: '', untimed: false, pickup: '', drop: '', otherDate: false, priv: false, collapsed: false, ...o });
+const mkLine = (code, o = {}) => { const s = BY[code]; const c = {}; s.tiers.forEach((t) => { c[t.k] = 0; }); c.nl = 2; return { uid: UID++, code, c, pax: s.grp || 0, prices: {}, legs: [mkLeg()], priceEdit: false, tripOpen: false, flags: {}, ...o }; };
+const calc = (l) => {
+  const s = BY[l.code];
+  if (s.grp) { const turns = Math.ceil(l.pax / s.grp) || 0; const p = l.prices.nl ?? s.price; return { total: turns * p, rows: [{ k: 'nl', qty: turns, word: 'lượt', p, cat: s.price }], turns, guests: l.pax }; }
+  const rows = s.tiers.filter((t) => (l.c[t.k] || 0) > 0).map((t) => ({ k: t.k, qty: l.c[t.k], word: t.word, p: l.prices[t.k] ?? t.p, cat: t.p }));
+  return { total: rows.reduce((a, r) => a + r.qty * r.p, 0), rows, guests: s.tiers.reduce((a, t) => a + (l.c[t.k] || 0), 0) };
+};
+const lineErr = (l) => (calc(l).guests > 50 ? 'Tối đa 50 khách.' : null);
+
+function makeState(preset, role) {
+  const st = { role: role || 'staff', date: '2026-10-20', mode: 'le', pq: '', partner: null, name: '', phone: '', extra: false, guardOff: false, profile: null, profileNew: false, group: -1, sgroup: -1, query: '', stars: ['TD2', 'TTBL230', 'SM3', 'VTC'], lines: [], openUid: null, picker: null, live: '', discount: 0, prepay: 0, method: 'Chuyển khoản', receiver: 'Công ty', barOpen: false, warn: null, err: null, saved: false, activeStep: 0, moreRight: true, hover: false, approved: {} };
+  const cust = () => { st.name = 'Trần Văn Bình'; st.phone = '0905 000 111'; st.profile = 'Trần Văn Bình'; };
+  const full = () => mkLeg({ time: '07:30', pickup: 'Khách sạn Biển Xanh', drop: 'Cảng du lịch Cầu Đá', collapsed: true });
+  const td2 = (o = {}) => mkLine('TD2', { c: { nl: 2, te: 1, nct: 0, eb: 1 }, legs: [full()], ...o });
+  const jet = (o = {}) => mkLine('TTBL230', { legs: [mkLeg({ untimed: true, pickup: 'Khách sạn Biển Xanh', drop: 'Cảng du lịch Cầu Đá', collapsed: true })], ...o });
+  const pc = (o = {}) => mkLine('TTBPC', { pax: 7, legs: [full()], ...o });
+  const three = () => { cust(); const a = td2(), b = jet(), c = pc(); st.lines = [a, b, c]; st.openUid = c.uid; st.prepay = 2000000; };
+  switch (preset) {
+    case 'pick': { cust(); st.group = 6; const l = mkLine('TTBL230'); st.lines = [l]; st.openUid = l.uid; break; }
+    case 'search': cust(); st.query = 'hòn tằm'; break;
+    case 'td2': { cust(); const l = mkLine('TD2', { c: { nl: 2, te: 1, nct: 0, eb: 1 }, legs: [mkLeg({ time: '07:30' })] }); st.lines = [l]; st.openUid = l.uid; st.picker = { uid: l.uid, lid: l.legs[0].id, f: 'pickup', q: 'biển' }; break; }
+    case 'three': case 'bar': three(); break;
+    case 'pay-none': three(); st.prepay = 0; break;
+    case 'pay-prepay': three(); break;
+    case 'bar-open': three(); st.barOpen = true; break;
+    case 'bar-warn': three(); st.warn = 'Giá danh mục của Jetski L2 (30 phút) đã đổi từ 1.300.000 lên 1.400.000 — tổng đã tính theo giá mới.'; break;
+    case 'bar-error': three(); st.err = 'Không lưu được đơn. Không có kết nối mạng — kiểm tra Wi-Fi hoặc 4G rồi bấm Lưu lại.'; break;
+    case 'st-price': { cust(); const a = td2({ prices: { nl: 1250000 }, priceEdit: true }); st.lines = [a]; st.openUid = a.uid; break; }
+    case 'st-error': { cust(); const a = td2(), c = pc({ pax: 56 }); st.lines = [a, c]; st.openUid = a.uid; break; }
+    case 'st-urgent': { cust(); st.date = '2026-10-18'; const b = jet({ flags: { priceChanged: true, urgent: true } }), a = td2({ flags: { urgent: true } }); st.lines = [b, a]; st.openUid = a.uid; break; }
+    case 'kh-search': st.mode = 'dt'; break;
+    case 'kh-picked': st.mode = 'dt'; st.partner = 0; st.name = 'Trần Văn Bình'; st.phone = '0905 000 111'; break;
+    case 'kh-guard': st.name = 'Minh'; st.phone = '0914 222 333'; break;
+    case 'role-partner': { cust(); const a = td2(); st.lines = [a]; st.openUid = a.uid; break; }
+    case 'role-hybrid': cust(); break;
+    case 'sheet': cust(); break;
+    default: break;
+  }
+  return st;
+}
+
+class Component extends DCLogic {
+  state = makeState(this.props.preset, this.props.role);
+  scrollRef = React.createRef();
+  groupRef = React.createRef();
+  listRef = React.createRef();
+  nameRef = React.createRef();
+  uid = 'f' + Math.random().toString(36).slice(2, 8);
+
+  componentDidMount() {
+    if (this.props.remember) {
+      try { const g = localStorage.getItem('tdb-nhom-' + this.state.role); if (g !== null && !isNaN(+g)) this.setState({ group: +g }); } catch (e) {}
+    }
+    const go = () => { this.initialScroll(); this.ensureChip(); this.checkMore(); };
+    setTimeout(go, 350); setTimeout(go, 1200);
+  }
+  componentDidUpdate(pp, ps) {
+    if (ps.group !== this.state.group || ps.sgroup !== this.state.sgroup || ps.query !== this.state.query) { this.ensureChip(); this.checkMore(); }
+  }
+  header() { return this.props.layout === 'desktop' ? 72 : 132; }
+  secTop(el) { const sc = this.scrollRef.current; return el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop; }
+  initialScroll() {
+    const sc = this.scrollRef.current; if (!sc) return;
+    const t = this.props.scrollTo;
+    if (!t || t === 'top') return;
+    if (t === 'end') { sc.scrollTop = sc.scrollHeight; return; }
+    const el = sc.querySelector('[data-sec="' + t + '"]');
+    if (el) sc.scrollTop = Math.max(0, this.secTop(el) - this.header() - 8);
+  }
+  jump(sec) {
+    const sc = this.scrollRef.current; if (!sc) return;
+    const el = sc.querySelector('[data-sec="' + sec + '"]');
+    if (el) sc.scrollTo({ top: Math.max(0, this.secTop(el) - this.header() - 8), behavior: 'smooth' });
+  }
+  ensureChip() {
+    const row = this.groupRef.current; if (!row) return;
+    const el = row.querySelector('[data-sel="1"]'); if (!el) return;
+    const l = el.offsetLeft, r = l + el.offsetWidth;
+    if (l < row.scrollLeft + 16) row.scrollLeft = Math.max(0, l - 16);
+    else if (r > row.scrollLeft + row.clientWidth - 48) row.scrollLeft = r - row.clientWidth + 56;
+  }
+  checkMore() {
+    const row = this.groupRef.current; if (!row) return;
+    const more = row.scrollLeft + row.clientWidth < row.scrollWidth - 8;
+    if (more !== this.state.moreRight) this.setState({ moreRight: more });
+  }
+  upLine(uid, fn) { this.setState((s) => ({ lines: s.lines.map((l) => (l.uid === uid ? fn({ ...l }) : l)) })); }
+  upLeg(uid, lid, fn) { this.upLine(uid, (l) => ({ ...l, legs: l.legs.map((g) => (g.id === lid ? fn({ ...g }) : g)) })); }
+  selectGroup(idx, focus) {
+    const st = this.state; const searching = norm(st.query).length > 0;
+    if (searching) this.setState({ sgroup: idx }); else {
+      this.setState({ group: idx });
+      try { localStorage.setItem('tdb-nhom-' + st.role, String(idx)); } catch (e) {}
+    }
+    const lr = this.listRef.current; if (lr) lr.scrollTop = 0;
+    if (focus) setTimeout(() => { const b = this.groupRef.current && this.groupRef.current.querySelector('[data-gi="' + idx + '"]'); if (b) b.focus(); }, 30);
+  }
+
+  renderVals() {
+    const st = this.state;
+    const isDesktop = this.props.layout === 'desktop';
+    const isSheet = this.props.mode === 'sheet';
+    const isPhone = !isDesktop;
+    const role = st.role;
+    const noop = () => {};
+    const h = this.props.height ?? (isDesktop ? 900 : 844);
+    const w = this.props.width ?? (isDesktop ? 1040 : 390);
+    const lk = { style: { minHeight: 44, padding: '0 4px', fontSize: 14 } };
+    const sm = { style: { minHeight: 44, padding: '0 12px', fontSize: 14 } };
+    const partnerRole = role === 'partner';
+
+    // money
+    const sums = st.lines.map(calc);
+    const subtotal = sums.reduce((a, s) => a + s.total, 0);
+    const total = Math.max(0, subtotal - (st.discount || 0));
+    const anyErr = st.lines.some((l) => lineErr(l));
+
+    // steps
+    const custDone = !!(st.date && st.name.trim() && digits(st.phone).length >= 9);
+    const stepDefs = [['Khách', 'khach', custDone], ['Dịch vụ', 'dichvu', st.lines.length > 0 && !anyErr], ['Thanh toán', 'thanhtoan', st.lines.length > 0 && st.prepay <= total && st.discount <= subtotal], ['Phụ trách', 'phutrach', false]].slice(0, partnerRole ? 3 : 4);
+    const steps = stepDefs.map(([label, sec, done], i) => {
+      const act = i === st.activeStep;
+      return { label, mark: done ? '✓' : String(i + 1), current: act ? 'step' : undefined, bg: act ? 'var(--c-primary)' : '#fff', fg: act ? '#fff' : done ? 'var(--c-primary)' : 'var(--c-text-muted)', bd: act || done ? 'var(--c-primary)' : 'var(--c-border)', fw: act ? 800 : 600, labelFg: act ? 'var(--c-primary)' : 'var(--c-text-muted)', onClick: () => { this.setState({ activeStep: i }); this.jump(sec); } };
+    });
+    const onScroll = () => {
+      const sc = this.scrollRef.current; if (!sc) return;
+      let a = 0; stepDefs.forEach(([, sec], i) => { const el = sc.querySelector('[data-sec="' + sec + '"]'); if (el && this.secTop(el) - sc.scrollTop <= this.header() + 60) a = i; });
+      if (sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 4) a = stepDefs.length - 1;
+      if (a !== this.state.activeStep) this.setState({ activeStep: a });
+    };
+
+    // customer
+    const partner = partnerRole ? PARTNERS[1] : (st.partner !== null ? PARTNERS[st.partner] : null);
+    const viaPartner = partnerRole || st.mode === 'dt';
+    const pd = digits(st.phone);
+    const guardHit = !partnerRole && role !== 'hybrid' && st.mode === 'le' && !st.guardOff && pd.length >= 10 && PARTNERS.find((p) => p.phone === pd && p.hh);
+    const showProfiles = !guardHit && pd === '0905000111' && !st.profile && !st.profileNew;
+    const seg = (on, label) => ({ checked: on ? 'true' : 'false', bg: on ? 'var(--c-primary)' : '#fff', fg: on ? '#fff' : 'var(--c-primary)', fw: on ? 800 : 600, text: on ? '✓ ' + label : label });
+    const pqN = norm(st.pq);
+    const partnerResults = PARTNERS.filter((p) => !pqN || norm(p.name).includes(pqN)).map((p) => ({ name: p.name, kind: p.kind, onPick: () => this.setState({ partner: PARTNERS.indexOf(p), pq: '' }) }));
+
+    // catalog
+    const locked = st.lines.length >= 20;
+    const q = norm(st.query); const searching = q.length > 0;
+    const matches = searching ? CAT.filter((s) => s.n.includes(q)) : CAT;
+    const countBy = GROUPS.map((_, i) => matches.filter((s) => s.g === i).length);
+    const activeG = searching ? st.sgroup : st.group;
+    const added = new Set(st.lines.map((l) => l.code));
+    const mkRow = (s) => {
+      const starred = st.stars.includes(s.code);
+      return {
+        prefix: s.prefix, rest: s.rest, code: s.code, price: s.na ? '—' : fmt(s.price), hasUnit: !!s.grp, unit: s.grp ? '/ nhóm ' + s.grp + ' khách' : '',
+        added: added.has(s.code), dis: !!s.na, disText: s.na || '', op: s.na ? 0.5 : 1, cursor: s.na || locked ? 'not-allowed' : 'pointer',
+        aria: s.na ? s.name + ', ' + s.na + ', không chọn được' : 'Thêm ' + s.name + ', ' + fmt(s.price) + ' đồng' + (added.has(s.code) ? ', đã thêm' : ''),
+        star: starred ? '★' : '☆', starred: starred ? 'true' : 'false', starFg: starred ? 'var(--c-sand)' : 'var(--c-text-muted)',
+        starLabel: (starred ? 'Bỏ khỏi Hay dùng: ' : 'Thêm vào Hay dùng: ') + s.name,
+        onStar: () => this.setState((x) => ({ stars: x.stars.includes(s.code) ? x.stars.filter((c) => c !== s.code) : [...x.stars, s.code] })),
+        onPick: () => {
+          if (s.na || this.state.lines.length >= 20) return;
+          const l = mkLine(s.code);
+          this.setState((x) => ({ lines: [...x.lines, l], openUid: l.uid, picker: null, live: 'Đã thêm ' + s.rest, saved: false }));
+        },
+      };
+    };
+    let sections, listHeader;
+    if (searching) {
+      let gs = GROUPS.map((_, i) => i).filter((i) => countBy[i] > 0);
+      if (activeG >= 0) gs = gs.filter((i) => i === activeG);
+      gs.sort((a, b) => ((norm(GROUPS[b]).includes(q) ? 1 : 0) - (norm(GROUPS[a]).includes(q) ? 1 : 0)) || a - b);
+      sections = gs.map((i) => ({ title: GROUPS[i] + ' · ' + countBy[i], showTitle: true, rows: matches.filter((s) => s.g === i).map(mkRow) }));
+      const n = sections.reduce((a, s) => a + s.rows.length, 0);
+      listHeader = n + ' kết quả cho “' + st.query.trim() + '”' + (activeG >= 0 ? ' · ' + GROUPS[activeG] : '');
+    } else if (activeG < 0) {
+      const stars = CAT.filter((s) => st.stars.includes(s.code));
+      sections = [...(stars.length ? [{ title: '★ Hay dùng', showTitle: true, rows: stars.map(mkRow) }] : []), ...GROUPS.map((g, i) => ({ title: g, showTitle: true, rows: CAT.filter((s) => s.g === i).map(mkRow) }))];
+      listHeader = CAT.length + ' dịch vụ';
+    } else {
+      const items = CAT.filter((s) => s.g === activeG);
+      sections = [{ title: '', showTitle: false, rows: items.map(mkRow) }];
+      listHeader = items.length + ' dịch vụ · ' + GROUPS[activeG];
+    }
+    const groups = [{ label: 'Tất cả', idx: -1 }, ...GROUPS.map((g, i) => ({ label: g, idx: i }))].map((g) => {
+      const on = activeG === g.idx; const dim = searching && g.idx >= 0 && countBy[g.idx] === 0;
+      return { label: g.label, idx: String(g.idx), checked: on ? 'true' : 'false', dis: dim ? 'true' : 'false', tab: on ? 0 : -1, sel: on ? '1' : '0', bg: on ? 'var(--c-primary)' : '#fff', fg: on ? '#fff' : 'var(--c-text)', bd: on ? 'var(--c-primary)' : 'var(--c-border)', fw: on ? 800 : 600, op: dim ? 0.4 : 1, cursor: dim ? 'default' : 'pointer', onClick: () => { if (!dim) this.selectGroup(g.idx); } };
+    });
+    const onGroupKey = (e) => {
+      const keys = ['ArrowRight', 'ArrowLeft', 'Home', 'End']; if (!keys.includes(e.key)) return;
+      e.preventDefault();
+      const all = [-1, ...GROUPS.map((_, i) => i)].filter((i) => !(searching && i >= 0 && countBy[i] === 0));
+      let k = all.indexOf(activeG); if (k < 0) k = 0;
+      if (e.key === 'ArrowRight') k = Math.min(all.length - 1, k + 1); else if (e.key === 'ArrowLeft') k = Math.max(0, k - 1); else if (e.key === 'Home') k = 0; else k = all.length - 1;
+      this.selectGroup(all[k], true);
+    };
+    const scrollBy = (d) => { const r = this.groupRef.current; if (r) r.scrollBy({ left: d, behavior: 'smooth' }); setTimeout(() => this.checkMore(), 400); };
+
+    // cards
+    const cards = st.lines.map((l, idx) => {
+      const s = BY[l.code]; const cl = calc(l); const err = lineErr(l);
+      const open = l.uid === st.openUid || !!err;
+      const leg0 = l.legs[0];
+      const chips = [];
+      if (leg0 && (leg0.untimed || !leg0.time)) chips.push('Chưa chốt giờ đón');
+      if (leg0 && !leg0.pickup) chips.push('Chưa có nơi đón');
+      if (l.flags.priceChanged) chips.push('Giá danh mục đã đổi');
+      if (st.date < '2026-10-18') chips.push('Ngày khởi hành đã qua');
+      if (l.flags.urgent && !st.approved[l.uid]) chips.push('Đặt gấp');
+      const guestsTxt = s.grp ? l.pax + ' khách' : s.tiers.filter((t) => l.c[t.k] > 0).map((t) => l.c[t.k] + ' ' + t.ab).join(' · ');
+      const pick = leg0 && leg0.pickup ? 'đón ' + (leg0.time && !leg0.untimed ? leg0.time + ' ' : '') + shortLoc(leg0.pickup) : '';
+      const cells = s.grp
+        ? [{ label: 'Số khách', sub: fmt(l.prices.nl ?? s.price) + ' / nhóm ' + s.grp + ' khách', value: l.pax, invalid: !!err, onChange: (v) => this.upLine(l.uid, (x) => ({ ...x, pax: v })) }]
+        : s.tiers.map((t) => ({ label: t.label, sub: t.sub, value: l.c[t.k] || 0, invalid: !!err, onChange: (v) => this.upLine(l.uid, (x) => ({ ...x, c: { ...x.c, [t.k]: v } })) }));
+      const canEditPrice = !partnerRole;
+      const money = cl.rows.map((r) => {
+        const edited = r.p !== r.cat;
+        const qtyText = r.qty + ' ' + r.word;
+        return { showText: !l.priceEdit, showInput: l.priceEdit, text: qtyText + ' × ' + fmt(r.p) + ' = ' + fmt(r.qty * r.p), qtyText, priceStr: fmt(r.p), sumStr: fmt(r.qty * r.p), aria: 'Đơn giá ' + r.word, edited, catStr: fmt(r.cat),
+          onPrice: (e) => { const v = +digits(e.target.value); this.upLine(l.uid, (x) => ({ ...x, prices: { ...x.prices, [r.k]: v } })); } };
+      });
+      const legs = l.legs.map((g, gi) => {
+        const complete = (g.time || g.untimed) && g.pickup && g.drop;
+        const collapsed = g.collapsed && complete;
+        const dirLabel = g.dir === 'về' ? 'Chiều về' : 'Chiều đi';
+        const places = ['pickup', 'drop'].map((f) => {
+          const label = f === 'pickup' ? 'Nơi đón' : 'Nơi trả';
+          const pk = st.picker; const isOpen = !!pk && pk.uid === l.uid && pk.lid === g.id && pk.f === f;
+          const qq = isOpen ? norm(pk.q) : '';
+          const val = g[f];
+          return {
+            label, closed: !isOpen, isOpen, display: val || (f === 'pickup' ? 'Chọn nơi đón' : 'Chọn nơi trả'), fw: val ? 700 : 500, fg: val ? 'var(--c-text)' : 'var(--c-text-muted)',
+            q: isOpen ? pk.q : '', listLabel: 'Gợi ý ' + label.toLowerCase(), freeText: isOpen && pk.q.trim() ? 'Gõ tự do: “' + pk.q.trim() + '”' : 'Gõ tự do…',
+            onOpen: () => { this.setState({ picker: { uid: l.uid, lid: g.id, f, q: '' } }); setTimeout(() => { const i = this.scrollRef.current && this.scrollRef.current.querySelector('[data-picker="1"]'); if (i) i.focus({ preventScroll: true }); }, 60); },
+            onQ: (e) => this.setState({ picker: { ...this.state.picker, q: e.target.value } }),
+            sugs: LOCS.filter(([n, k]) => !qq || norm(n + ' ' + k).includes(qq)).map(([n, k]) => ({ name: n, kind: k, onPick: () => { this.upLeg(l.uid, g.id, (x) => ({ ...x, [f]: n })); this.setState({ picker: null }); } })),
+            onFree: () => { const t = (this.state.picker && this.state.picker.q || '').trim(); if (t) { this.upLeg(l.uid, g.id, (x) => ({ ...x, [f]: t })); this.setState({ picker: null }); } else { const i = this.scrollRef.current && this.scrollRef.current.querySelector('[data-picker="1"]'); if (i) i.focus({ preventScroll: true }); } },
+          };
+        });
+        return {
+          collapsed: !!collapsed, expanded: !collapsed, dirLabel, title: 'Chặng ' + (gi + 1),
+          summary: 'Đón ' + (g.untimed ? '(chưa chốt giờ)' : g.time) + ' · ' + g.pickup + ' → ' + g.drop,
+          onExpand: () => this.upLeg(l.uid, g.id, (x) => ({ ...x, collapsed: false })),
+          canRemove: l.legs.length > 1, onRemove: () => this.upLine(l.uid, (x) => ({ ...x, legs: x.legs.filter((y) => y.id !== g.id) })),
+          time: g.time, untimed: !!g.untimed, timeBg: g.untimed ? 'var(--c-surface-alt)' : '#fff',
+          onTime: (e) => { const v = e.target.value; this.upLeg(l.uid, g.id, (x) => ({ ...x, time: v })); },
+          onUntimed: (e) => { const v = e.target.checked; this.upLeg(l.uid, g.id, (x) => ({ ...x, untimed: v })); },
+          otherDate: !!g.otherDate, onOtherDate: () => this.upLeg(l.uid, g.id, (x) => ({ ...x, otherDate: !x.otherDate })),
+          priv: !!g.priv, onPriv: () => this.upLeg(l.uid, g.id, (x) => ({ ...x, priv: !x.priv })),
+          places,
+        };
+      });
+      return {
+        sec: idx === st.lines.length - 1 ? 'the-cuoi' : 'the', fullName: s.name, prefix: s.prefix, rest: s.rest, codeLine: s.code + (s.grp ? ' · tính theo nhóm ' + s.grp + ' khách' : ' · tính theo khách'),
+        collapsed: !open, open, bd: err ? 'var(--c-danger)' : open ? 'var(--c-primary)' : 'var(--c-border)', bdW: err || open ? '2px' : '1px',
+        summary: [guestsTxt, pick].filter(Boolean).join(' · '), chips, hasChips: chips.length > 0, amount: fmt(cl.total),
+        onToggle: () => { if (err) return; this.setState((x) => ({ openUid: x.openUid === l.uid ? null : l.uid, picker: null })); },
+        delLabel: 'Xoá dịch vụ ' + s.name,
+        onDelete: () => this.setState((x) => ({ lines: x.lines.filter((y) => y.uid !== l.uid), live: 'Đã xoá ' + s.rest })),
+        cells, gridCols: cells.length > 1 ? '1fr 1fr' : '1fr', isGroup: !!s.grp, groupNote: s.grp ? l.pax + ' khách = ' + cl.turns + ' lượt' : '',
+        hasError: !!err, error: err || '',
+        money, showTotal: cl.rows.length >= 2, totalStr: fmt(cl.total),
+        canEditPrice, priceEditLabel: l.priceEdit ? 'Xong sửa giá' : 'Sửa giá', onPriceEdit: () => this.upLine(l.uid, (x) => ({ ...x, priceEdit: !x.priceEdit })),
+        legs, canAddReturn: !l.legs.some((g) => g.dir === 'về'),
+        onAddReturn: () => this.upLine(l.uid, (x) => ({ ...x, legs: [...x.legs, mkLeg({ dir: 'về' })] })),
+        onAddLeg: () => this.upLine(l.uid, (x) => ({ ...x, legs: [...x.legs, mkLeg()] })),
+        tripOpen: !!l.tripOpen, tripChevron: l.tripOpen ? '▴' : '▾', onTrip: () => this.upLine(l.uid, (x) => ({ ...x, tripOpen: !x.tripOpen })),
+        urgent: !!l.flags.urgent, urgentPending: !st.approved[l.uid],
+        urgentText: st.approved[l.uid] ? 'Đặt gấp — đã duyệt.' : 'Đặt gấp: khởi hành trong vòng 24 giờ, cần duyệt trước khi điều xe.',
+        onApprove: () => this.setState((x) => ({ approved: { ...x.approved, [l.uid]: true } })),
+      };
+    });
+
+    const paxTotal = sums.reduce((a, s) => a + s.guests, 0);
+    const hasLines = st.lines.length > 0;
+    const save = () => {
+      const x = this.state; const errs = [];
+      if (!x.name.trim() || digits(x.phone).length < 9) errs.push('Chưa có tên hoặc số điện thoại khách.');
+      if (!x.lines.length) errs.push('Đơn chưa có dịch vụ.');
+      if (x.lines.some(lineErr)) errs.push('Có dịch vụ đang lỗi — xem thẻ viền đỏ.');
+      if (errs.length) this.setState({ err: 'Không lưu được đơn. ' + errs.join(' '), saved: false });
+      else this.setState({ err: null, saved: true });
+    };
+    const money = (v) => (e) => { const n = +digits(e.target.value); this.setState({ [v]: n, saved: false }); };
+
+    return {
+      noop, lk, sm,
+      isPhone, isDesktop, isSheet,
+      outerW: isDesktop ? w + 2 : w + 24, outerH: isDesktop ? h + 2 : h + 24, bezel: isDesktop ? 1 : 12, bezelBg: isDesktop ? 'var(--c-border)' : 'var(--c-text)', outerR: isDesktop ? 12 : 52, screenR: isDesktop ? 11 : 40,
+      colTop: isSheet ? 200 : isPhone ? 44 : 0, colLeft: isDesktop ? 236 : 0, colBg: isSheet ? '#fff' : 'var(--c-surface-alt)', colR: isSheet ? '18px 18px 0 0' : '0',
+      sideGroups: [{ title: 'Bán hàng', items: [{ id: 'home', label: 'Trang chủ', icon: 'home' }, { id: 'orders', label: 'Đơn hàng', icon: 'orders' }, { id: 'new', label: 'Tạo đơn', icon: 'plus' }, { id: 'contacts', label: 'Danh bạ', icon: 'contact-card' }] }, { title: 'Quản trị', items: [{ id: 'vc', label: 'Vận chuyển', icon: 'pin' }, { id: 'hh', label: 'Hoa hồng đối tác', icon: 'money' }] }, { title: 'Tôi', items: [{ id: 'me', label: 'Của tôi', icon: 'me' }, { id: 'fb', label: 'Góp ý / Báo lỗi', icon: 'chat' }, { id: 'help', label: 'Trợ giúp', icon: 'help' }] }],
+      sideUser: { name: 'Sales Một', role: 'Bán hàng', onLogout: noop },
+      scrollRef: this.scrollRef, groupRef: this.groupRef, listRef: this.listRef, nameRef: this.nameRef, onScroll,
+      showMobileBar: isPhone && !isSheet, showStepper: !isSheet, stepTop: isPhone ? 60 : 0, stepCount: steps.length, steps,
+      pad: isSheet ? 16 : isDesktop ? 24 : 16, cols: isDesktop ? 'minmax(0,1fr) 340px' : 'minmax(0,1fr)', gap: isDesktop ? 24 : 16,
+      showDate: !isSheet, date: st.date, onDate: (e) => this.setState({ date: e.target.value }),
+      custBd: isSheet ? 'transparent' : 'var(--c-border)', custPad: isSheet ? '0' : '16px', showCustHead: !isSheet,
+      fillMine: () => this.setState({ name: 'Sales Một', phone: '0901 234 567', guardOff: false }),
+      showBookerToggle: !partnerRole && role !== 'hybrid', showBookerReadonly: partnerRole, bookerLabelId: this.uid + '-doncua',
+      segLe: seg(st.mode === 'le', 'Khách lẻ'), segDt: seg(st.mode === 'dt', 'Qua đối tác'),
+      onLe: () => this.setState({ mode: 'le', partner: null, pq: '' }), onDt: () => this.setState({ mode: 'dt' }),
+      showPartnerSearch: !partnerRole && st.mode === 'dt' && st.partner === null, pq: st.pq, onPq: (e) => this.setState({ pq: e.target.value }), partnerResults, partnerEmpty: partnerResults.length === 0,
+      partnerPicked: !partnerRole && st.mode === 'dt' && st.partner !== null, partnerName: partner ? partner.name : '', partnerRest: partner ? ' · ' + partner.kind + (partner.hh ? ' · được hưởng hoa hồng' : '') : '',
+      onPartnerChange: () => this.setState({ partner: null }),
+      name: st.name, onName: (e) => this.setState({ name: e.target.value, saved: false }),
+      phone: st.phone, onPhone: (e) => this.setState({ phone: e.target.value, guardOff: false, profile: null, profileNew: false, saved: false }),
+      phoneLabel: viaPartner ? 'Số điện thoại khách *' : 'Số điện thoại *', phoneAria: viaPartner ? 'Số điện thoại khách (bắt buộc)' : 'Số điện thoại (bắt buộc)',
+      showGuard: !!guardHit,
+      guardYes: () => { this.setState({ mode: 'dt', partner: 1, name: '', phone: '', guardOff: false }); setTimeout(() => this.nameRef.current && this.nameRef.current.focus({ preventScroll: true }), 50); },
+      guardNo: () => this.setState({ guardOff: true }),
+      showProfiles, useProfile: () => this.setState({ profile: 'Trần Văn Bình' }), newProfile: () => this.setState({ profileNew: true }),
+      profileLine: st.profile ? 'Hồ sơ khách: ' + st.profile + ' (đã liên kết)' : st.profileNew ? 'Hồ sơ khách: sẽ tạo hồ sơ mới khi lưu' : 'Hồ sơ khách: chưa liên kết (không bắt buộc)',
+      showExtraLink: !st.extra, showExtra: st.extra, openExtra: () => this.setState({ extra: true }),
+      showServices: !isSheet, svcTitle: hasLines ? 'Dịch vụ (' + st.lines.length + ')' : 'Dịch vụ', locked, lockOp: locked ? 0.5 : 1,
+      query: st.query, hasQuery: st.query.length > 0, onQuery: (e) => this.setState({ query: e.target.value, sgroup: -1 }), clearQuery: () => this.setState({ query: '', sgroup: -1 }),
+      groups, onGroupKey, onGroupScroll: () => this.checkMore(), moreRight: st.moreRight,
+      mask: st.moreRight ? 'linear-gradient(to right, #000 calc(100% - 56px), transparent calc(100% - 8px))' : 'none',
+      rowEnter: () => this.setState({ hover: true }), rowLeave: () => this.setState({ hover: false }), showArrows: isDesktop && st.hover,
+      scrollLeftBtn: () => scrollBy(-240), scrollRightBtn: () => scrollBy(240),
+      listHeader, sections, listEmpty: sections.length === 0, listH: isDesktop ? 448 : 392, live: st.live,
+      canManual: !partnerRole && role !== 'hybrid', cards,
+      showPaxInFlow: isPhone && !isSheet && hasLines, showPaxWide: isDesktop && hasLines, paxNamed: '0/' + paxTotal,
+      showPay: !isSheet, discountStr: st.discount ? fmt(st.discount) : '', onDiscount: money('discount'), discLocked: partnerRole, discBg: partnerRole ? 'var(--c-surface-alt)' : '#fff',
+      prepayStr: st.prepay ? fmt(st.prepay) : '', onPrepay: money('prepay'), hasPrepay: st.prepay > 0, payCols: isDesktop ? '1fr 1fr' : '1fr',
+      method: st.method, onMethod: (e) => this.setState({ method: e.target.value }), receiver: st.receiver, onReceiver: (e) => this.setState({ receiver: e.target.value }),
+      showAssignInFlow: isPhone && !isSheet && !partnerRole, showAssignSide: !partnerRole,
+      svcCountText: st.lines.length + ' dịch vụ', subtotalStr: vnd(subtotal), discountFull: st.discount ? '− ' + vnd(st.discount) : '0 ₫', totalStr: vnd(total), prepayFull: vnd(st.prepay),
+      showPhoneBar: isPhone && !isSheet, barOpen: st.barOpen, barPanelId: this.uid + '-chitiet', toggleBar: () => this.setState((x) => ({ barOpen: !x.barOpen })), barToggleText: st.barOpen ? 'Thu gọn ▾' : 'Chi tiết ▴',
+      hasWarn: !!st.warn, warn: st.warn || '', hasErr: !!st.err, err: st.err || '', saved: st.saved, save,
+    };
+  }
+}
+</script>
+</body>
+</html>

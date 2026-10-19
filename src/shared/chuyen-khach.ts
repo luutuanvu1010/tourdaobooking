@@ -35,19 +35,19 @@ export const TANG_LUAT: Readonly<Record<MaLuatChuyen, TangLuat>> = {
   GIAY_TO_DICH: "LOI", KHONG_CHEO: "LOI", DIEM_CHUA_TOI: "LOI", CAM_KET_DICH: "CAU_HINH", CHANG_KHACH_HIEU_LUC: "LOI",
   XE_RIENG_DICH: "LOI",
 };
-/** Nhãn của dòng gieo (`vc_transfer_rule.label`) — chữ chờ chủ duyệt. */
+/** Nhãn hiện hành của danh mục (`vc_transfer_rule.label`): dòng gieo 0093/0110, hai nhãn đổi chữ ở 0111 (rà soát ngôn ngữ lượt 2). */
 export const NHAN_LUAT_CHUYEN: Readonly<Record<MaLuatChuyen, string>> = {
   SUC_CHUA_DICH: "Xe nhận còn đủ chỗ",
   SUC_CHUA_NGUON: "Xe nhờ chỉ bớt khách",
   TRUNG_GIO_DICH: "Xe nhận không trùng giờ chuyến khác",
   KHOANG_NGHI_DICH: "Đủ khoảng nghỉ trước chuyến sau của tài xế xe nhận",
-  MOC_TOI_THIEU: "Còn đủ mốc tối thiểu trước giờ xe nhận chạy",
+  MOC_TOI_THIEU: "Còn đủ hạn chốt trước giờ xe nhận chạy",
   HANG_BANG_DICH: "Bằng lái tài xế xe nhận đủ hạng",
   GIAY_TO_DICH: "Giấy tờ xe và tài xế xe nhận còn hạn",
   KHONG_CHEO: "Tài xế xe nhận đúng chủ xe (không lái chéo)",
   DIEM_CHUA_TOI: "Xe nhờ chưa tới điểm đón",
   CAM_KET_DICH: "Giữ cam kết xe với khách trên xe nhận",
-  CHANG_KHACH_HIEU_LUC: "Chặng của khách còn hiệu lực",
+  CHANG_KHACH_HIEU_LUC: "Lượt đưa đón của khách còn hiệu lực",
   XE_RIENG_DICH: "Xe nhận không chở khách đã đặt xe riêng",
 };
 const laMaLuat = (v: string): v is MaLuatChuyen => (MA_LUAT_CHUYEN as readonly string[]).includes(v);

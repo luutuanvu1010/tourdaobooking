@@ -157,7 +157,7 @@ try {
   // Chuyến HÔM NAY cho phía "có tên" của Q-L3-B — dựng SAU bước 1 (bước 1 kỳ vọng "Hôm nay" trống).
   TH = await dungChuyenHomNay();
 
-  await b.step("2", `6b 390 chuyến bị giữ: CHỈ điều kiện còn thiếu "(văn phòng lo)", không hạn giấy tờ; "Xuất bến" khoá + "Chưa xuất bến được — văn phòng đang lo."`, async () => {
+  await b.step("2", `6b 390 chuyến bị giữ: CHỈ điều kiện còn thiếu "(văn phòng lo)", không hạn giấy tờ; "Xuất bến" khoá + "Chưa cho xe chạy được — văn phòng đang lo."`, async () => {
     await p.ev(click(`.dp-cuoc-the[data-chuyen="${T6.id}"]`));
     await p.waitFor(`location.pathname === '/cuoc-chuyen' && !!document.querySelector('[data-action="xuat-ben"]')`, "màn xuất bến");
     const dk = await p.ev(`[...document.querySelectorAll('.dp-cond')].map((x) => x.innerText.replace(/\\s+/g, ' ').trim())`);
@@ -165,8 +165,8 @@ try {
     assert.ok(dk.some((x) => x.includes("79A-222.22")), JSON.stringify(dk));
     assert.ok(!(await html(p)).match(/hạn \d\d\/\d\d\/\d{4}/), "không hạn giấy tờ ở màn tài xế");
     assert.equal(await p.ev(`document.querySelector('[data-action="xuat-ben"]').disabled`), true);
-    assert.equal(await p.ev(txt(".dp-cc-foot")), "Chưa xuất bến được — văn phòng đang lo.");
-    assert.equal(await p.ev(txt(".bar-title")), `Xuất bến ${T6.ma}`);
+    assert.equal(await p.ev(txt(".dp-cc-foot")), "Chưa cho xe chạy được — văn phòng đang lo.");
+    assert.equal(await p.ev(txt(".bar-title")), `Cho xe chạy ${T6.ma}`);
     assert.equal(await p.ev(khongBiChe("#cc-day .vc-btn")), "ok", "390: nút Xuất bến dính đáy không bị thanh tab che");
     await shotFull(p, "b6-xuat-ben-chua-dat-dien-thoai.png");
   });
@@ -174,7 +174,7 @@ try {
   await b.step("3", `6c → 5a 390, Q-L3-B phía "không tên": chuyến NGÀY MAI (T4) đủ điều kiện ("Đủ điều kiện xuất bến"), trước xuất bến KHÔNG tên khách; bấm "Xuất bến" (không ô giờ, thân không có xayRaLuc) = xuất bến SỚM → đang chạy nhưng màn hiện "Khách N", KHÔNG tên, năm sinh, liên hệ`, async () => {
     await p.send("Page.navigate", { url: `${env.base}/cuoc-chuyen?id=${d.T4.id}` });
     await p.waitFor(`!!document.querySelector('[data-action="xuat-ben"]') && location.search.includes('${d.T4.id}')`, "màn xuất bến T4");
-    assert.deepEqual(await p.ev(`[...document.querySelectorAll('.dp-cond')].map((x) => x.innerText.replace(/\\s+/g, ' ').trim())`), ["✓ Đủ điều kiện xuất bến"]);
+    assert.deepEqual(await p.ev(`[...document.querySelectorAll('.dp-cond')].map((x) => x.innerText.replace(/\\s+/g, ' ').trim())`), ["✓ Đủ điều kiện cho xe chạy"]);
     assert.equal(await p.ev(`document.querySelector('[data-action="xuat-ben"]').disabled`), false);
     assert.match(await p.ev(txt(".dp-cc-foot")), /^Bấm lúc xe lăn bánh — giờ ghi là lúc bấm \(\d\d:\d\d\)\.$/);
     for (const x of TEN_O4) assert.ok(!(await html(p)).includes(x), "trước xuất bến (ngoài ngày chạy) không tên khách");
@@ -206,7 +206,7 @@ try {
     await p.waitFor(`!!document.querySelector('.dp-cc-head')`, "màn đang chạy"); // bản 1.39: .dp-run nay có cả trước xuất bến → chờ đầu trang "Đang chạy"
     const body = JSON.parse(posts(p, "/xuat-ben").at(-1).body);
     assert.deepEqual(Object.keys(body), ["requestId"], "tài xế tự bấm: không xayRaLuc");
-    assert.match(await p.ev(txt(".dp-cc-head")), /^Đang chạy 79A-111\.11 · xuất bến \d\d:\d\d · trên xe 0\/15$/);
+    assert.match(await p.ev(txt(".dp-cc-head")), /^Đang chạy 79A-111\.11 · xe chạy \d\d:\d\d · trên xe 0\/15$/);
     assert.equal(await p.ev(txt(".dp-cc-di-kem")), `Người đi kèm: ${HDV.name}`, "đang chạy: dòng người đi kèm; không SĐT");
     assert.ok(!(await html(p)).includes(HDV.phone.slice(1)));
     assert.equal(await p.ev(`document.querySelectorAll('.dp-khach-ten').length`), 2, "người đi kèm không thành dòng khách");
@@ -243,14 +243,14 @@ try {
     const hTruoc = await html(p);
     for (const x of [...TEN_OH, SDT_OH, SDT_OH.replace(/\s/g, ""), LIEN_HE_OH]) assert.ok(!hTruoc.includes(x), `trước xuất bến (hôm nay): không lộ ${x}`);
     assert.equal(await p.ev("document.querySelectorAll('.dp-cc-diem .dp-khach, .dp-run-lien-he').length"), 0, "trước xuất bến: không khách từng người, không liên hệ");
-    assert.deepEqual(await p.ev(`[...document.querySelectorAll('.dp-cond')].map((x) => x.innerText.replace(/\\s+/g, ' ').trim())`), ["✓ Đủ điều kiện xuất bến"]);
+    assert.deepEqual(await p.ev(`[...document.querySelectorAll('.dp-cond')].map((x) => x.innerText.replace(/\\s+/g, ' ').trim())`), ["✓ Đủ điều kiện cho xe chạy"]);
     await p.ev(click('[data-action="xuat-ben"]'));
     await p.waitFor(`!!document.querySelector('[data-action="xuat-ben-xac-nhan"]')`, "hộp xác nhận xuất bến TH"); // V1.3: cùng ngày → nút "Xuất bến"
-    assert.equal(await p.ev(txt('[data-action="xuat-ben-xac-nhan"]')), "Xuất bến");
+    assert.equal(await p.ev(txt('[data-action="xuat-ben-xac-nhan"]')), "Cho xe chạy");
     await p.ev(click('[data-action="xuat-ben-xac-nhan"]'));
     await p.waitFor(`!!document.querySelector('.dp-cc-head')`, "màn đang chạy TH").catch(async (e) => { throw new Error(`${e.message}\n    trang: ${await p.ev(txt("#cc-trang"))}\n    POST: ${JSON.stringify(apiCalls(p).filter((r) => r.method === "POST").map((r) => r.path))}`); });
     assert.deepEqual(Object.keys(JSON.parse(posts(p, "/xuat-ben").at(-1).body)), ["requestId"], "tài xế tự bấm: không xayRaLuc");
-    assert.match(await p.ev(txt(".dp-cc-head")), /^Đang chạy 79A-444\.44 · xuất bến \d\d:\d\d · trên xe 0\/15$/);
+    assert.match(await p.ev(txt(".dp-cc-head")), /^Đang chạy 79A-444\.44 · xe chạy \d\d:\d\d · trên xe 0\/15$/);
     const k = await p.ev(`[...document.querySelectorAll('.dp-khach-ten')].map((x) => x.innerText)`);
     assert.deepEqual([...k].sort(), TEN_OH, "đang chạy (trong ngày chạy): có tên khách");
     assert.match(await p.ev(txt(".dp-run-lien-he")), new RegExp(`^Liên hệ: ${LIEN_HE_OH} ${SDT_OH}$`));
@@ -351,13 +351,13 @@ try {
   // phút lúc bấm (lần chạy thứ hai đã trùng) — hơn hai phút thì chắc chắn có một phút khai lùi hợp lệ khác lúc bấm.
   await sleep(125_000);
   const s = await env.as(ACCOUNTS.salesA, `/chuyen?id=${T7.id}`, DESK);
-  await b.step("7", `6d 1040 Bán hàng: "Xuất bến thay tài xế" → hộp: "Đạt đủ … điều kiện", "Ghi thay tài xế …", ô "Xảy ra lúc" mặc định lúc bấm + "Sớm nhất" của máy chủ; giờ ngoài khoảng → câu dưới ô; khai đúng "Sớm nhất" → gửi xayRaLuc, mốc xuất bến HAI giờ + "giờ do văn phòng khai"${axeNote()}`, async () => {
+  await b.step("7", `6d 1040 Bán hàng: "Cho xe chạy thay tài xế" → hộp: "Đạt đủ … điều kiện", "Ghi thay tài xế …", ô "Xảy ra lúc" mặc định lúc bấm + "Sớm nhất" của máy chủ; giờ ngoài khoảng → câu dưới ô; khai đúng "Sớm nhất" → gửi xayRaLuc, mốc xuất bến HAI giờ + "giờ do văn phòng khai"${axeNote()}`, async () => {
     await s.waitFor(`!!document.querySelector('.dp-ct-actions [data-action="xuat-ben-thay"]')`, "nút xuất bến thay");
     await s.ev(click('.dp-ct-actions [data-action="xuat-ben-thay"]'));
     await s.waitFor(`!!document.querySelector('[data-action="khai-gio-gui"]')`, "hộp khai giờ");
     await sleep(600);
-    assert.equal(await s.ev(txt(".sheet-title")), `Xuất bến ${T7.ma} — bấm thay tài xế`);
-    assert.match(await s.ev(txt(".dp-sheet-khai-gio .dp-banner-ok")), /^Đạt đủ \d+ điều kiện xuất bến$/);
+    assert.equal(await s.ev(txt(".sheet-title")), `Cho xe chạy ${T7.ma} — bấm thay tài xế`);
+    assert.match(await s.ev(txt(".dp-sheet-khai-gio .dp-banner-ok")), /^Đạt đủ \d+ điều kiện cho xe chạy$/);
     assert.equal(await s.ev(txt(".dp-sheet-khai-gio .dp-sheet-text")), "Ghi thay tài xế Đỗ Văn Dũng. Tên bạn được ghi kèm mốc này.");
     const mac = await s.ev(`document.querySelector('#tdo-gio').value`);
     assert.match(await s.ev(txt("#tdo-gio-hint")), new RegExp(`^Để nguyên là lúc bấm \\(${mac}\\)\\. Sớm nhất: \\d\\d:\\d\\d( \\d\\d/\\d\\d)?\\.$`));
@@ -381,16 +381,16 @@ try {
     const bodies = posts(s, "/xuat-ben").map((r) => JSON.parse(r.body));
     assert.equal(bodies.length, 2);
     assert.ok(bodies.every((x) => typeof x.xayRaLuc === "string" && x.xayRaLuc.endsWith("Z")), "đã đổi giờ → gửi xayRaLuc (ISO có múi giờ)");
-    assert.match(await s.ev(txt(".dp-ct-moc")), new RegExp(`^Xuất bến ${som}( \\d\\d/\\d\\d)? · ghi lúc \\d\\d:\\d\\d( \\d\\d/\\d\\d)? — Sales Một giờ do văn phòng khai$`));
+    assert.match(await s.ev(txt(".dp-ct-moc")), new RegExp(`^Xe chạy ${som}( \\d\\d/\\d\\d)? · ghi lúc \\d\\d:\\d\\d( \\d\\d/\\d\\d)? — Sales Một giờ do văn phòng khai$`));
     assert.equal(await s.ev(`!!document.querySelector('.dp-ct-actions [data-action="thu-hoi-xuat-ben"]')`), true, "ADR-0097 Đ3: vừa xuất bến, chưa có tiến độ → có nút Thu hồi xuất bến");
   });
 
   // Bước 7a (ADR-0097 Đ3, HT-03): T7 vừa xuất bến, chưa có tiến độ → văn phòng thu hồi xuất bến (chuyến về chưa chạy) rồi xuất bến lại.
-  await b.step("7a", `ADR-0097 Đ3 (HT-03) 1040 Bán hàng: vừa xuất bến, chưa có tiến độ → "Thu hồi xuất bến" → hộp: dải "Chuyến về trạng thái chưa chạy", lý do nhóm Điều chỉnh (Bấm nhầm / Khách đổi ý tại điểm / Khác), nút khoá tới khi chọn → POST thân version + lyDo + requestId → dải "Đã thu hồi xuất bến …", hết mốc xuất bến, lại có "Xuất bến thay tài xế"; xuất bến lại → mốc theo lần xuất bến cuối${axeNote()}`, async () => {
+  await b.step("7a", `ADR-0097 Đ3 (HT-03) 1040 Bán hàng: vừa xuất bến, chưa có tiến độ → "Thu hồi xuất bến" → hộp: dải "Chuyến về trạng thái chưa chạy", lý do nhóm Điều chỉnh (Bấm nhầm / Khách đổi ý tại điểm / Khác), nút khoá tới khi chọn → POST thân version + lyDo + requestId → dải "Đã thu hồi xuất bến …", hết mốc xuất bến, lại có "Cho xe chạy thay tài xế"; xuất bến lại → mốc theo lần xuất bến cuối${axeNote()}`, async () => {
     await s.ev(click('.dp-ct-actions [data-action="thu-hoi-xuat-ben"]'));
     await s.waitFor(`!!document.querySelector('[data-action="thu-hoi-gui"]')`, "hộp thu hồi");
     await sleep(400);
-    assert.equal(await s.ev(txt(".sheet-title")), `Thu hồi xuất bến ${T7.ma}`);
+    assert.equal(await s.ev(txt(".sheet-title")), `Thu hồi lệnh cho xe chạy ${T7.ma}`);
     assert.equal(await s.ev(txt(".sheet .banner-warning .banner-title")), "Chuyến về trạng thái chưa chạy");
     assert.deepEqual(await s.ev(`[...document.querySelectorAll('.sheet .vc-reason')].map((x) => x.innerText.trim())`), ["Bấm nhầm", "Khách đổi ý tại điểm", "Khác"]);
     assert.equal(await s.ev(`document.querySelector('[data-action="thu-hoi-gui"]').disabled`), true, "chưa chọn lý do → khoá");
@@ -399,21 +399,21 @@ try {
     await axe(s, "hộp thu hồi xuất bến 1040");
     await shotView(s, "a1-thu-hoi-xuat-ben-may-tinh.png");
     await s.ev(click('[data-action="thu-hoi-gui"]'));
-    await s.waitFor(`/^Đã thu hồi xuất bến/.test(${txt("#ct-trang > .banner .banner-title")} ?? '')`, "dải đã thu hồi");
+    await s.waitFor(`/^Đã thu hồi lệnh cho xe chạy/.test(${txt("#ct-trang > .banner .banner-title")} ?? '')`, "dải đã thu hồi");
     const than = JSON.parse(posts(s, "/thu-hoi-xuat-ben").at(-1).body);
     assert.deepEqual(Object.keys(than).sort(), ["lyDo", "requestId", "version"]);
     assert.equal(than.lyDo, "DIEU_CHINH_BAM_NHAM");
     assert.equal(await s.ev(`!!document.querySelector('.dp-ct-moc')`), false, "chuyến về chưa chạy: hết mốc xuất bến");
     assert.equal(await s.ev(`!!document.querySelector('[data-action="thu-hoi-xuat-ben"]')`), false);
     assert.equal(await s.ev(`document.querySelector('.dp-ct-actions [data-action="xuat-ben-thay"]')?.disabled`), false, "lại xuất bến được");
-    assert.ok((await s.ev(`document.querySelector('main').innerText`)).includes("Văn phòng thu hồi xuất bến"), "nhật ký chuyến có dòng thu hồi");
+    assert.ok((await s.ev(`document.querySelector('main').innerText`)).includes("Văn phòng thu hồi lệnh cho xe chạy"), "nhật ký chuyến có dòng thu hồi");
     assert.equal(await s.ev(noCode), "");
     await s.ev(click('.dp-ct-actions [data-action="xuat-ben-thay"]'));
     await s.waitFor(`!!document.querySelector('[data-action="khai-gio-gui"]')`, "hộp khai giờ (xuất bến lại)");
     await sleep(400);
     await s.ev(click('[data-action="khai-gio-gui"]'));
     await s.waitFor(`${txt(".dp-ct-head .chip")} === 'Đang chạy'`, "xuất bến lại");
-    assert.match(await s.ev(txt(".dp-ct-moc")), /^Xuất bến \d\d:\d\d( \d\d\/\d\d)?$/, "để nguyên giờ → mốc MỘT giờ của lần xuất bến cuối");
+    assert.match(await s.ev(txt(".dp-ct-moc")), /^Xe chạy \d\d:\d\d( \d\d\/\d\d)?$/, "để nguyên giờ → mốc MỘT giờ của lần xuất bến cuối");
   });
 
 

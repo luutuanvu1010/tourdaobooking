@@ -284,7 +284,7 @@ async function openDetail(id: string): Promise<void> {
       ...(person ? [field("Họ và tên (tên = từ cuối)", fullName), field("Giới tính", gender)] : [field("Tên gọi", displayName), field("Tên pháp lý", legalName), field("Mã số thuế", taxCode), field("Địa chỉ", address), field("Email nhận hoá đơn", invoiceEmail)]),
       h("label", { class: "check" }, active, "Đang dùng"),
     ),
-    p.accountLinked ? h("p", { class: "muted" }, "Người này có tài khoản: tạm khoá hoặc cho nghỉ việc ở màn Quản lý tài khoản.") : null,
+    p.accountLinked ? h("p", { class: "muted" }, "Người này có tài khoản: muốn thôi dùng thì bấm Ngưng ở màn Quản lý tài khoản.") : null,
     p.editable ? h("div", { class: "actions" }, saveInfo) : null,
   );
 

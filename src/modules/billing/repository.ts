@@ -111,7 +111,7 @@ export const balancesWithOwner = async (db: D1Database): Promise<{ party_id: str
 /**
  * Số dư mọi bên với công ty chủ TÍNH ĐẾN ngày ?1 (khoá tháng — ADR-0080 D1: bảng kiểm trước khi khoá): cùng phép cộng hai chiều như view `v_bil_party_balance`
  * (dòng nợ + dòng đảo chiều) nhưng chỉ lấy dòng nợ có NGÀY PHÁT SINH của phiếu nguồn `<= ?1`. Cùng quy ước dấu và bộ lọc công ty chủ như `BALANCES_WITH_OWNER`.
- * Không có dòng nào sau ngày ?1 ⇒ trùng `balancesWithOwner` (bài "ca 6b" ở `khoa-thang.test.ts`: lần thu ba người giữ, quyết toán, đảo lần thu, hoàn khách — so từng người, không số cứng).
+ * Không có dòng nào sau ngày ?1 ⇒ trùng `balancesWithOwner` (bài "ca 6b" ở `khoa-thang.test.ts`: khoản thu ba người giữ, quyết toán, đảo khoản thu, hoàn khách — so từng người, không số cứng).
  */
 const BALANCES_AT = defineSql(
   "billing",
@@ -126,7 +126,7 @@ const BALANCES_AT = defineSql(
 export const balancesAt = async (db: D1Database, ngayCuoi: string): Promise<{ party_id: string; label: string | null; balance: number }[]> =>
   (await db.prepare(BALANCES_AT).bind(ngayCuoi).all<{ party_id: string; label: string | null; balance: number }>()).results;
 
-/** Tháng ("YYYY-MM") của dòng sổ tiền sớm nhất (lần thu, phiếu, dòng hoàn ngoài) — lần khoá tháng ĐẦU TIÊN không được bắt đầu SAU tháng này (ADR-0080 D1). */
+/** Tháng ("YYYY-MM") của dòng sổ tiền sớm nhất (khoản thu, phiếu, dòng hoàn ngoài) — lần khoá tháng ĐẦU TIÊN không được bắt đầu SAU tháng này (ADR-0080 D1). */
 const THANG_SO_SOM_NHAT = defineSql(
   "billing",
   "earliest_ledger_month",
@@ -139,7 +139,7 @@ export const earliestLedgerMonth = async (db: D1Database): Promise<string | null
  * Khoản do người không phải Kế toán khai, CHƯA được Kế toán xác nhận — CÙNG định nghĩa với `khoanChoXacNhan` (rules.ts) của màn đơn. Hai đường (ADR-0120):
  * khoản CŨ — tiền mặt «Công ty thu»: dòng giữ hộ trên người khai chưa bị đảo (H3) VÀ người khai còn giữ hộ trên đơn ≥ số của dòng (đã «Nộp» đủ ⇒ hết chờ);
  * số giữ hộ CHỈ cộng `b.kind_code IN (…)` = `LOAI_DONG_GIU_HO` (HAI NƠI với `soDuGiuHo` và trigger `bil_debt_line_held_once` — bài ben-kia.test.ts);
- * khoản MỚI — dấu DECLARED (`bil_receipt_recon`, 0099) chưa có CONFIRMED, lần thu còn hiệu lực: «Công ty thu» chuyển khoản, khách trả cho bên đặt, khách trả tại
+ * khoản MỚI — dấu DECLARED (`bil_receipt_recon`, 0099) chưa có CONFIRMED, khoản thu còn hiệu lực: «Công ty thu» chuyển khoản, khách trả cho bên đặt, khách trả tại
  * quầy nhà cung cấp (ADR-0132). `collector_role_code` để màn Kế toán phân loại; `ben_kia` = tên người thu khi là bên đặt / nhà cung cấp. `ngay_khai` = ngày
  * dân sự khai (gốc tính "quá 3 ngày").
  */
@@ -190,7 +190,7 @@ export const reconOfOrder = async (db: D1Database, orderId: string): Promise<Rec
 const RECON_OF_RECEIPT = defineSql("billing", "recon_of_receipt", `SELECT receipt_id, kind_code, occurred_date FROM bil_receipt_recon WHERE receipt_id = ?1 ORDER BY rowid`);
 export const reconOfReceipt = async (db: D1Database, receiptId: string): Promise<ReconDbRow[]> => (await db.prepare(RECON_OF_RECEIPT).bind(receiptId).all<ReconDbRow>()).results;
 
-/** Dấu DECLARED — chỉ áp khi lần thu ?2 đã được chèn trong lô (lính gác); trigger `bil_receipt_recon_declared` canh loại lần thu. */
+/** Dấu DECLARED — chỉ áp khi khoản thu ?2 đã được chèn trong lô (lính gác); trigger `bil_receipt_recon_declared` canh loại khoản thu. */
 const RECON_INSERT = defineSql(
   "billing",
   "recon_insert",
@@ -200,7 +200,7 @@ const RECON_INSERT = defineSql(
 export const reconInsertStatement = (db: D1Database, v: { id: string; receiptId: string; kind: "DECLARED" | "CONFIRMED"; occurredDate: string; at: string; by: string }) =>
   db.prepare(RECON_INSERT).bind(v.id, v.receiptId, v.kind, v.occurredDate, v.at, v.by);
 
-/** Lần thu người thu CHƯA RÕ còn hiệu lực (cọc cũ chuyển sang — việc của Kế toán, ADR-0026 đ9). */
+/** Khoản thu người thu CHƯA RÕ còn hiệu lực (cọc cũ chuyển sang — việc của Kế toán, ADR-0026 đ9). */
 const UNKNOWN_RECEIPTS = defineSql(
   "billing",
   "unknown_receipts",
@@ -240,14 +240,14 @@ export const orderState = (db: D1Database, id: string) =>
 const RECEIPT_INSERT_COLS = `id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code, occurred_date,
   reverses_id, note, created_at, created_by, updated_at, updated_by`;
 const RECEIPT_VALUES = `?1, ?2, ?3, ?4, ?5, ?6, ?7, COALESCE(?13, (SELECT party_id FROM v_pty_owner_company LIMIT 1)), ?8, ?9, NULL, ?10, ?11, ?12, ?11, ?12`;
-/** Lần thu TRƯỚC "Đã giao" (ADR-0026 đ10 — không thêm điều kiện trạng thái huỷ: đơn huỷ còn tiền phải có chỗ ghi). */
+/** Khoản thu TRƯỚC "Đã giao" (ADR-0026 đ10 — không thêm điều kiện trạng thái huỷ: đơn huỷ còn tiền phải có chỗ ghi). */
 const RECEIPT_BEFORE_DELIVERED = defineSql(
   "billing",
   "receipt_before_delivered",
   `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS}) SELECT ${RECEIPT_VALUES}
    WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?2 AND delivered_at IS NULL)`,
 );
-/** Lần thu nhập ở bước "Đã giao" — chỉ áp khi câu `orders` CỦA CHÍNH LÔ NÀY đã đặt mốc ?14. */
+/** Khoản thu nhập ở bước "Đã giao" — chỉ áp khi câu `orders` CỦA CHÍNH LÔ NÀY đã đặt mốc ?14. */
 const RECEIPT_AT_DELIVERY = defineSql(
   "billing",
   "receipt_at_delivery",
@@ -256,7 +256,7 @@ const RECEIPT_AT_DELIVERY = defineSql(
 );
 /** Trả lại khách (Kế toán ghi hoàn — ADR-0026 đ5, M2): không điều kiện mốc. */
 const RECEIPT_REFUND = defineSql("billing", "receipt_refund", `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS}) SELECT ${RECEIPT_VALUES}`);
-/** Dòng ĐẢO của một lần thu (Kế toán — ADR-0026 đ8): chép gốc, trỏ gốc; trigger `bil_payment_receipt_reversal_match` + UNIQUE canh. */
+/** Dòng ĐẢO của một khoản thu (Kế toán — ADR-0026 đ8): chép gốc, trỏ gốc; trigger `bil_payment_receipt_reversal_match` + UNIQUE canh. */
 const RECEIPT_REVERSAL = defineSql(
   "billing",
   "receipt_reversal",
@@ -305,7 +305,7 @@ export const receiptReversalStatement = (db: D1Database, i: { id: string; occurr
 
 const POSTING_COLS = "id, kind_code, order_id, reason, reverses_posting_id, occurred_date, due_snapshot, created_at, created_by, updated_at, updated_by";
 const POSTING_VALUES = "?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?8, ?9";
-/** Phiếu kèm lần thu ?10 — chỉ áp khi lần thu đó đã được chèn (câu trước có lính gác). */
+/** Phiếu kèm khoản thu ?10 — chỉ áp khi khoản thu đó đã được chèn (câu trước có lính gác). */
 const POSTING_IF_RECEIPT = defineSql("billing", "posting_if_receipt", `INSERT INTO bil_posting (${POSTING_COLS}) SELECT ${POSTING_VALUES} WHERE EXISTS (SELECT 1 FROM bil_payment_receipt WHERE id = ?10)`);
 /**
  * Phiếu "Đã giao" — chỉ áp khi câu `orders` của chính lô đã đặt mốc ?10; trigger `bil_posting_delivered_paid` kiểm tiền, `bil_posting_delivered_terms` kiểm bản chụp
@@ -458,7 +458,7 @@ export async function bankTxnOfOrder(db: D1Database, orderId: string): Promise<M
   const rows = (await db.prepare(BANK_TXN_OF_ORDER).bind(orderId).all<{ receipt_id: string; txn_code: string; transferred_amount: number }>()).results;
   return new Map(rows.map((r) => [r.receipt_id, { ma: r.txn_code, soThucChuyen: r.transferred_amount }]));
 }
-/** Gắn mã — lính gác: lần thu đã chèn (lô ghi lần thu có lính gác mốc Đã giao; không chèn ⇒ changes = 0, không lỗi khoá ngoại). */
+/** Gắn mã — lính gác: khoản thu đã chèn (lô ghi khoản thu có lính gác mốc Đã giao; không chèn ⇒ changes = 0, không lỗi khoá ngoại). */
 const BANK_TXN_INSERT = defineSql(
   "billing",
   "bank_txn_insert",

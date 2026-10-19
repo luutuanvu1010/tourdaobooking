@@ -6,6 +6,7 @@
 import {
   ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungDuLieuDieuPhoi, dungMoiTruong, fetchTrang, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt, typeInto,
 } from "../../2026-09-29-adr-0049/kich-ban/dp-lib.mjs";
+import { chonNoiJs } from "../../2026-10-18-tao-don-thiet-ke-lai/kich-ban/cham-that.mjs";
 
 const DOI_TAC = { name: "Đối Tác Cam Kết", phone: "0900000462", pin: "246462", permissions: ["PARTNER"] };
 const { env, call } = await dungMoiTruong([CHU, DOI_TAC]);
@@ -42,9 +43,9 @@ const moForm = async (account, kho) => {
 const dienKhach = async (f) => {
   await f.ev(typeInto("#customerName", "Khách Cam Kết Form"));
   await f.ev(typeInto("#customerPhone", "0903 444 555"));
-  const don = await f.ev(`[...document.querySelector('${chang("OUT")} [data-o$=":don"]').options].map((o) => o.value)`);
-  await f.ev(typeInto(`${chang("OUT")} [data-o$=":don"]`, don.find((v) => v && v !== "tudo" && v !== SB)));
-  await f.ev(typeInto(`${chang("OUT")} [data-o$=":tra"]`, SB)); // chiều về đón ở nơi trả chiều đi → có nơi đón
+  // 18/10 (Tạo đơn thiết kế lại, việc 7): nơi đón / nơi trả của FORM là MỘT ô có gợi ý — bấm ô, gõ, bấm dòng (thay đặt giá trị ô chọn của máy).
+  assert.equal(await f.ev(chonNoiJs(`document.querySelector('${chang("OUT")} [data-o$=":don"]')`, "tran phu", "Văn phòng Trần Phú")), true, "chọn nơi đón chiều đi");
+  assert.equal(await f.ev(chonNoiJs(`document.querySelector('${chang("OUT")} [data-o$=":tra"]')`, "cam ranh", "Sân bay Cam Ranh")), true, "chọn nơi trả chiều đi"); // chiều về đón ở nơi trả chiều đi → có nơi đón
 };
 const hauTo = (c) => `((el) => !!el && el.getClientRects().length > 0)(document.querySelector('${chang(c)} .dd-hau-to'))`;
 const hintCho = (c) => `((el) => !!el && el.getClientRects().length > 0)([...document.querySelectorAll('${chang(c)} .dd-luoi-phu .hint')].find((x) => x.textContent.startsWith('Không kể tài xế')))`;
@@ -55,10 +56,10 @@ try {
     await b.step(id, `${ten} form đơn: chiều đi chỉ có hai ô cam kết (không sân bay); chiều về có "Số người chiều về" rồi hai ô; sân bay → "Số hiệu chuyến bay" rồi hai ô; mặc định Tắt / trống${axeNote()}`, async () => {
       assert.deepEqual(await f.ev(nhanO("OUT")), ["Xe riêng", "Xe tối thiểu"]);
       assert.deepEqual((await f.ev(nhanO("RETURN"))).map((x) => x.replace(/\s+/g, " ").slice(0, 8)), ["Số người", "Xe riêng", "Xe tối t"]);
-      await f.ev(typeInto(`${chang("OUT")} [data-o$=":tra"]`, SB));
+      assert.equal(await f.ev(chonNoiJs(`document.querySelector('${chang("OUT")} [data-o$=":tra"]')`, "cam ranh", "Sân bay Cam Ranh")), true, "chọn sân bay ở ô Nơi trả (việc 7: một ô có gợi ý)");
       await f.waitFor(`!!document.querySelector('${chang("OUT")} [data-o$=":bay"]')`, "ô số hiệu chuyến bay");
       assert.deepEqual(await f.ev(nhanO("OUT")), ["Số hiệu chuyến bay", "Xe riêng", "Xe tối thiểu"]);
-      await f.ev(typeInto(`${chang("OUT")} [data-o$=":tra"]`, ""));
+      assert.equal(await f.ev(chonNoiJs(`document.querySelector('${chang("OUT")} [data-o$=":tra"]')`, "", "Chưa chốt")), true, "Nơi trả về 'Chưa chốt'");
       assert.equal(await f.ev(`document.querySelector('${X("OUT")}').getAttribute('aria-checked')`), "false");
       assert.equal(await f.ev(txt(`${chang("OUT")} .dd-switch-chu`)), "Tắt");
       assert.equal(await f.ev(`document.querySelector('${O("OUT")}').value`), "");

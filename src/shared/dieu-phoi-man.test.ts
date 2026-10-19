@@ -36,8 +36,8 @@ test("gioHien: 'HH:MM' cùng ngày; khác ngày thêm 'dd/mm'", () => {
 });
 
 test("chipChang: nhãn tiếng Việt theo mã (quá mốc đỏ, sát mốc cát, đặt gấp, xếp một phần), 'Thiếu tên' khi chưa đủ tên — không lộ mã", () => {
-  assert.deepEqual(chipChang(chang({ nhan: ["QUA_MOC", "DAT_GAP"] })), [{ nhan: "Quá mốc", tone: "danger" }, { nhan: "Đặt gấp", tone: "unit" }]);
-  assert.deepEqual(chipChang(chang({ nhan: ["SAT_MOC"], soNguoiCoTen: 1 })), [{ nhan: "Sát mốc", tone: "warn" }, { nhan: "Thiếu tên", tone: "warn" }]);
+  assert.deepEqual(chipChang(chang({ nhan: ["QUA_MOC", "DAT_GAP"] })), [{ nhan: "Quá hạn chốt", tone: "danger" }, { nhan: "Đặt gấp", tone: "unit" }]);
+  assert.deepEqual(chipChang(chang({ nhan: ["SAT_MOC"], soNguoiCoTen: 1 })), [{ nhan: "Sắp tới hạn chốt", tone: "warn" }, { nhan: "Thiếu tên", tone: "warn" }]);
   assert.deepEqual(chipChang(chang({ nhan: ["XEP_MOT_PHAN", "CHUA_CHOT_GIO", "LA_MA"] })), [{ nhan: "Xếp một phần", tone: "warn" }, { nhan: "Chưa chốt giờ", tone: "muted" }]);
 });
 
@@ -75,8 +75,8 @@ test("viecCanXuLy: chuyến bị giữ (lý do + Ai xử lý theo NHAN_AI_XU_LY 
       chuyen({ id: "t4", ma: "CX-3009-02", trangThai: "RUNNING" }),
     ],
     canhBao: [
-      { loai: "CHANG_QUA_MOC", nhan: "Chặng đã quá mốc tối thiểu mà chưa xếp", legId: "l1", tripId: null, maDon: "TD-1" },
-      { loai: "CHANG_QUA_MOC", nhan: "Chặng đã quá mốc tối thiểu mà chưa xếp", legId: "l2", tripId: null, maDon: "TD-2" },
+      { loai: "CHANG_QUA_MOC", nhan: "Lượt đưa đón đã quá hạn chốt mà chưa xếp", legId: "l1", tripId: null, maDon: "TD-1" },
+      { loai: "CHANG_QUA_MOC", nhan: "Lượt đưa đón đã quá hạn chốt mà chưa xếp", legId: "l2", tripId: null, maDon: "TD-2" },
       { loai: "CHANG_SAT_MOC", nhan: "Chặng sát mốc", legId: "l1", tripId: null, maDon: "TD-1" },
       { loai: "CHUYEN_GIU", nhan: "Chuyến đang bị giữ", legId: null, tripId: "t1", maDon: null },
       { loai: "NHAP_CHO_DAT_GAP", nhan: "Đơn nháp…", legId: "n", tripId: null, maDon: "TD-9" },
@@ -88,7 +88,7 @@ test("viecCanXuLy: chuyến bị giữ (lý do + Ai xử lý theo NHAN_AI_XU_LY 
   });
   const v = viecCanXuLy(L, { dieuPhoi: true, khanCap: false, quanLyXe: false });
   assert.deepEqual(v.map((x) => x.loai), [
-    "Chuyến bị giữ", "Chuyến bị giữ", "Chưa có tài xế", "Chặng quá mốc", "Chặng quá mốc", "Nơi đón / trả của đơn khác điểm của xe", "Giờ xe tới muộn hơn giờ hẹn", "Đơn nháp chờ duyệt đặt gấp",
+    "Chuyến bị giữ", "Chuyến bị giữ", "Chưa có tài xế", "Lượt đưa đón quá hạn chốt", "Lượt đưa đón quá hạn chốt", "Nơi đón / trả của đơn khác điểm của xe", "Giờ xe tới muộn hơn giờ hẹn", "Đơn nháp chờ duyệt đặt gấp",
   ]);
   assert.deepEqual([v[0]!.tieuDe, v[0]!.noiDung, v[0]!.aiXuLy], ["CX-3009-07 · 09:00 · 79B-123.45", "Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: TD-8", "Văn phòng"]);
   assert.deepEqual(v[0]!.hanhDong, [{ nhan: "Cập nhật điểm theo đơn", kieu: "cap-nhat-diem", tripId: "t1" }]);
@@ -141,7 +141,7 @@ test("hinhDongThoiGian: khoảng giờ theo dữ liệu (ít nhất 06–21, m�
   assert.deepEqual([r.soCho, r.taiXe], ["15 chỗ", "Nguyễn Văn An"]);
   assert.deepEqual(r.khoi.map((k) => [k.id, k.trai, k.dai]), [["t1", 3, 1.75], ["t9", 16, 2.6667]], "làm tròn 4 chữ số (tránh sai số dấu phẩy động)");
   assert.equal(h.nhom[1]!.hang[0]!.khoi.length, 0);
-  assert.deepEqual([h.bayGio, h.moc], [{ x: 1.8333, nhan: "07:50" }, { x: 7.8333, nhan: "Mốc 6 giờ · 13:50" }]);
+  assert.deepEqual([h.bayGio, h.moc], [{ x: 1.8333, nhan: "07:50" }, { x: 7.8333, nhan: "Hạn chốt 6 giờ · 13:50" }]);
   // Ngày khác hôm nay → không vạch.
   const h2 = hinhDongThoiGian(L, ms("07:50", "2026-09-28"));
   assert.deepEqual([h2.bayGio, h2.moc], [null, null]);
@@ -150,17 +150,17 @@ test("hinhDongThoiGian: khoảng giờ theo dữ liệu (ít nhất 06–21, m�
 });
 
 test("cauKhoaMoc: câu khoá theo ô điều chỉnh khẩn cấp của người xem (ADR-0104 Đ1: vượt mốc luôn là điều chỉnh khẩn cấp / thiếu ô / chỉ xem)", () => {
-  assert.equal(cauKhoaMoc(360, { khanCap: true, dieuPhoi: true }), "Trong 6 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Bạn có thể điều chỉnh khẩn cấp kèm lý do. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần điều chỉnh khẩn cấp."); // vòng 5e
-  assert.equal(cauKhoaMoc(360, { khanCap: false, dieuPhoi: true }), "Trong 6 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Cần người xếp xe điều chỉnh khẩn cấp. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần điều chỉnh khẩn cấp."); // vòng 5e
-  assert.equal(cauKhoaMoc(2880, { khanCap: false, dieuPhoi: false }), "Trong 48 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế.");
-  assert.equal(cauKhoaMoc(null, { khanCap: false, dieuPhoi: false }), "Trong mốc tối thiểu trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế.");
+  assert.equal(cauKhoaMoc(360, { khanCap: true, dieuPhoi: true }), "Trong 6 giờ trước giờ xe chạy — khoá xếp khách, đổi xe, đổi tài xế. Bạn có thể điều chỉnh khẩn cấp kèm lý do. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần điều chỉnh khẩn cấp."); // vòng 5e
+  assert.equal(cauKhoaMoc(360, { khanCap: false, dieuPhoi: true }), "Trong 6 giờ trước giờ xe chạy — khoá xếp khách, đổi xe, đổi tài xế. Cần người xếp xe điều chỉnh khẩn cấp. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần điều chỉnh khẩn cấp."); // vòng 5e
+  assert.equal(cauKhoaMoc(2880, { khanCap: false, dieuPhoi: false }), "Trong 48 giờ trước giờ xe chạy — khoá xếp khách, đổi xe, đổi tài xế.");
+  assert.equal(cauKhoaMoc(null, { khanCap: false, dieuPhoi: false }), "Trong hạn chốt trước giờ xe chạy — khoá xếp khách, đổi xe, đổi tài xế.");
 });
 
 test("dieuKienXuatBen: danh mục cố định, ✕ kèm câu + ai xử lý từ lý do giữ, ✓ không kèm chi tiết (DTO không có chi tiết đạt)", () => {
   const dk = dieuKienXuatBen([ly("THIEU_TEN", "Chưa đủ tên khách: TD-8 thiếu 2 tên"), ly("NOI_HEN_DOI", "Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: TD-8")]);
   assert.deepEqual(dk.map((d) => [d.nhan, d.dat]), [
     ["Giấy tờ xe", true], ["Giấy phép lái xe", true], ["Đủ tên khách", false], ["Không có đơn đã huỷ", true], ["Điểm khớp đơn", false], ["Đủ chỗ", true], ["Đủ giờ nghỉ", true],
-    ["Đón trước trả", true], ["Trong giờ được xuất bến", true],
+    ["Đón trước trả", true], ["Trong giờ được cho xe chạy", true],
   ]);
   assert.equal(dk[2]!.chiTiet, "Chưa đủ tên khách: TD-8 thiếu 2 tên · Ai xử lý: Văn phòng");
   assert.equal(dk[0]!.chiTiet, "");
@@ -189,10 +189,10 @@ test("dongNhatKy: giờ (hai giờ khi văn phòng khai), ai bấm (tên hoặc 
 test("truongLoiChuyen: 409 → câu dưới đúng ô (Xe / Tài xế / Giờ); mốc chỉ ở ô đang đổi; mã khác → dải chung", () => {
   const r = truongLoiChuyen([
     ly("HANG_BANG_KHONG_DU", "Hạng bằng lái không đủ chở số chỗ của xe"), ly("TRUNG_GIO_XE", "Xe trùng giờ với chuyến khác: CX-3009-11"), ly("KHOANG_NGHI", "Chưa đủ khoảng nghỉ…", "QUAN_TRI"),
-    ly("MOC_TOI_THIEU", "Trong mốc tối thiểu trước giờ xuất bến — người xếp xe điều chỉnh khẩn cấp kèm lý do"), ly("CHINH_SACH_RONG", "Chưa có chính sách", "TOAN_QUYEN"),
+    ly("MOC_TOI_THIEU", "Đã qua hạn chốt trước giờ xe chạy — người xếp xe điều chỉnh khẩn cấp kèm lý do"), ly("CHINH_SACH_RONG", "Chưa có chính sách", "TOAN_QUYEN"),
   ], { doiXe: false, doiTaiXe: true });
   assert.deepEqual(r, {
-    xe: [], taiXe: ["Hạng bằng lái không đủ chở số chỗ của xe", "Trong mốc tối thiểu trước giờ xuất bến — người xếp xe điều chỉnh khẩn cấp kèm lý do"],
+    xe: [], taiXe: ["Hạng bằng lái không đủ chở số chỗ của xe", "Đã qua hạn chốt trước giờ xe chạy — người xếp xe điều chỉnh khẩn cấp kèm lý do"],
     gioBatDau: ["Chưa đủ khoảng nghỉ…"], gioKetThuc: ["Xe trùng giờ với chuyến khác: CX-3009-11"], khac: ["Chưa có chính sách"],
   });
   assert.deepEqual(truongLoiChuyen([ly("MOC_TOI_THIEU", "m")], { doiXe: true, doiTaiXe: true }).xe, ["m"]);
@@ -281,11 +281,11 @@ test("viecCanXuLy + nhắc gọi báo: mục 'Giờ hẹn đổi — gọi báo 
     chuyen: [chuyen({ id: "t4", ma: "CX-3009-02", trangThai: "RUNNING" })],
     canhBao: [
       { loai: "GIO_XE_TOI_MUON_HON_HEN", nhan: "Giờ xe tới muộn hơn giờ hẹn", legId: "l1", tripId: "t4", maDon: "TD-1" },
-      { loai: "CHANG_QUA_MOC", nhan: "Chặng đã quá mốc tối thiểu mà chưa xếp", legId: "l2", tripId: null, maDon: "TD-2" },
+      { loai: "CHANG_QUA_MOC", nhan: "Lượt đưa đón đã quá hạn chốt mà chưa xếp", legId: "l2", tripId: null, maDon: "TD-2" },
     ],
   });
   const v = viecCanXuLy(L, { dieuPhoi: true, khanCap: false, quanLyXe: false }, [muc(), muc({ baoDuoc: false, ngayChuyen: "2026-10-02", moi: { ngay: "2026-10-02", gio: null } })]);
-  assert.deepEqual(v.map((x) => x.loai), ["Chặng quá mốc", "Giờ hẹn đổi — gọi báo khách", "Giờ hẹn đổi — gọi báo khách", "Giờ xe tới muộn hơn giờ hẹn"]);
+  assert.deepEqual(v.map((x) => x.loai), ["Lượt đưa đón quá hạn chốt", "Giờ hẹn đổi — gọi báo khách", "Giờ hẹn đổi — gọi báo khách", "Giờ xe tới muộn hơn giờ hẹn"]);
   assert.deepEqual([v[1]!.tieuDe, v[1]!.noiDung, v[1]!.aiXuLy, v[1]!.bieuTuong, v[1]!.tone], ["TD-20260930-0018 · Sheraton Nha Trang", "Giờ hẹn đón đổi 09:00 → 09:15 · CX-3009-07", "Người phụ trách đơn", "handset", "warn"]);
   assert.deepEqual(v[1]!.hanhDong, [{ nhan: "Đã gọi báo", kieu: "goi-bao", legId: "lg1", phienBan: 3, gioMoi: { ngay: NGAY, gio: "09:15" }, maDon: "TD-20260930-0018" }]);
   assert.equal(v[2]!.noiDung, "Giờ hẹn đón đổi 30/09 09:00 → 02/10 chưa chốt giờ · CX-3009-07 · Chuyến 02/10");
@@ -363,10 +363,10 @@ test("ADR-0104 Đ2.11: nút 'Cập nhật khách theo đơn' ở Cần xử lý 
   const L = lich({
     chuyen: [
       chuyen({ lyDoGiu: [ly("DON_DA_HUY", "Có đơn đã huỷ còn khách trên chuyến: TD-8")] }),
-      chuyen({ id: "t2", ma: "CX-3009-04", lyDoGiu: [ly("CHANG_DA_DONG", "Có chặng đã bỏ còn khách trên chuyến: TD-9")] }),
+      chuyen({ id: "t2", ma: "CX-3009-04", lyDoGiu: [ly("CHANG_DA_DONG", "Có lượt đưa đón đã bỏ còn khách trên chuyến: TD-9")] }),
       chuyen({ id: "t3", ma: "CX-3009-05", lyDoGiu: [ly("CHANG_KHONG_HOP_LE", "Chặng chưa xếp được: TD-7")] }),
-      chuyen({ id: "t4", ma: "CX-3009-06", lyDoGiu: [ly("THUA_SUAT", "Chặng đang xếp nhiều người hơn số khách: TD-6 3/2")] }),
-      chuyen({ id: "t5", ma: "CX-3009-08", lyDoGiu: [ly("GIO_HEN_NGOAI_CHUYEN", "Ngày đón của chặng đã đổi ra ngoài ngày chạy của chuyến: TD-5"), ly("THIEU_SUAT", "Chặng chưa xếp đủ người lên xe: TD-5 1/2")] }),
+      chuyen({ id: "t4", ma: "CX-3009-06", lyDoGiu: [ly("THUA_SUAT", "Lượt đưa đón đang xếp nhiều người hơn số khách: TD-6 3/2")] }),
+      chuyen({ id: "t5", ma: "CX-3009-08", lyDoGiu: [ly("GIO_HEN_NGOAI_CHUYEN", "Ngày đón của lượt đưa đón đã đổi ra ngoài ngày chạy của chuyến: TD-5"), ly("THIEU_SUAT", "Lượt đưa đón chưa xếp đủ người lên xe: TD-5 1/2")] }),
     ],
   });
   const v = viecCanXuLy(L, { dieuPhoi: true, khanCap: false, quanLyXe: false });
@@ -422,10 +422,10 @@ test("thanPhaLe (Đợt 7 Task 8a): mỗi mã lý do còn thiếu → đúng kho
 });
 
 test("ADR-0096 (gói A1): TRA_TRUOC_DON → dòng 'Đón trước trả', NGOAI_CUA_SO_XUAT_BEN → dòng 'Trong giờ được xuất bến' (không rơi 'Khác'); kieuChuyen KHÔNG coi 'chưa tới giờ' là bị giữ (chip lên kế hoạch), còn lý do khác thì vẫn giữ", () => {
-  const tra = ly("TRA_TRUOC_DON", "Điểm trả đứng trước điểm đón — đổi thứ tự điểm rồi xuất bến: TD-8 (điểm trả số 1 đứng trước điểm đón số 2)");
-  const cuaSo = ly("NGOAI_CUA_SO_XUAT_BEN", "Chưa tới giờ được xuất bến: chuyến khởi hành lúc 07:00 ngày 12/03, được xuất bến từ 19:00 ngày 11/03. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến.");
+  const tra = ly("TRA_TRUOC_DON", "Điểm trả đứng trước điểm đón — đổi thứ tự điểm rồi cho xe chạy: TD-8 (điểm trả số 1 đứng trước điểm đón số 2)");
+  const cuaSo = ly("NGOAI_CUA_SO_XUAT_BEN", "Chưa tới giờ được cho xe chạy: chuyến khởi hành lúc 07:00 ngày 12/03, được cho xe chạy từ 19:00 ngày 11/03. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến.");
   const dk = dieuKienXuatBen([tra, cuaSo]).filter((d) => !d.dat).map((d) => d.nhan);
-  assert.deepEqual(dk, ["Đón trước trả", "Trong giờ được xuất bến"]);
+  assert.deepEqual(dk, ["Đón trước trả", "Trong giờ được cho xe chạy"]);
   assert.deepEqual(kieuChuyen(chuyen({ lyDoGiu: [cuaSo] })), { kieu: "plan", nhan: "Lên kế hoạch" });
   assert.deepEqual(kieuChuyen(chuyen({ lyDoGiu: [cuaSo, tra] })), { kieu: "held", nhan: "Bị giữ" });
   assert.deepEqual(kieuChuyen(chuyen({ taiXe: null, lyDoGiu: [cuaSo, ly("CHUA_CO_TAI_XE", "x")] })), { kieu: "nodrv", nhan: "Chưa có tài xế" });

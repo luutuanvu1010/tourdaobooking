@@ -49,7 +49,7 @@ test("cauTuChoiKhaiGio: câu từ chối theo mã + mốc gây chặn (bản v�
     cauTuChoiKhaiGio({ maGio: ["TRUOC_MO_SUAT"], somNhat: { ngay: N, gio: "07:00" }, mocChan: { loai: "MO_SUAT", nhan: "Lúc xếp khách lên xe", maChuyen: null, gio: { ngay: N, gio: "07:00" } } }, bay, N),
     "Sớm hơn lúc xếp khách lên xe (07:00) — chọn từ 07:00 trở đi.",
   );
-  assert.equal(cauTuChoiKhaiGio({ maGio: ["TRUOC_SUA_KE_HOACH"], somNhat: null, mocChan: null }, bay, N), "Giờ xuất bến sớm hơn lần sửa kế hoạch cuối của chuyến.");
+  assert.equal(cauTuChoiKhaiGio({ maGio: ["TRUOC_SUA_KE_HOACH"], somNhat: null, mocChan: null }, bay, N), "Giờ xe chạy sớm hơn lần sửa kế hoạch cuối của chuyến.");
   assert.equal(cauTuChoiKhaiGio({ maGio: ["MA_LA"], somNhat: null, mocChan: null }, bay, N), "Giờ khai không hợp lệ.", "mã lạ không lộ ra");
 });
 
@@ -151,14 +151,14 @@ test("nhomCuoc HT-24 (kiểm theo vai 2/10): chuyến ĐANG CHẠY có ngày xu�
   // Tái hiện của báo cáo: CX-0210-03 ngày chạy 02/10 23:40, đang chạy; mở /cuoc lúc 00:01 ngày 03/10.
   const g = nhomCuoc([it("x", "2026-10-02", "23:40", "RUNNING")], "2026-10-03");
   assert.deepEqual(g.map((x) => x.the.map((t) => t.ma)), [["CX-x"], [], []], "trước đây trả [[],[],[]] — chuyến đang chở khách biến mất");
-  assert.deepEqual([g[0]!.the[0]!.moChay, g[0]!.the[0]!.chip.nhan, g[0]!.the[0]!.nhanNgay], [true, "Đang chạy", "Xuất bến 02/10"]);
+  assert.deepEqual([g[0]!.the[0]!.moChay, g[0]!.the[0]!.chip.nhan, g[0]!.the[0]!.nhanNgay], [true, "Đang chạy", "Xe chạy 02/10"]);
   // Đứng đầu nhóm, trước chuyến hôm nay giờ sớm hơn; chuyến đã KẾT THÚC của hôm qua vẫn không hiện.
   const h2 = nhomCuoc([it("sang", "2026-10-03", "05:00"), it("dem", "2026-10-02", "23:40", "RUNNING"), it("cu", "2026-10-02", "20:00", "ENDED")], "2026-10-03");
-  assert.deepEqual(h2[0]!.the.map((t) => [t.ma, t.nhanNgay ?? null]), [["CX-dem", "Xuất bến 02/10"], ["CX-sang", null]]);
+  assert.deepEqual(h2[0]!.the.map((t) => [t.ma, t.nhanNgay ?? null]), [["CX-dem", "Xe chạy 02/10"], ["CX-sang", null]]);
   // Chuyến đang chạy CÙNG ngày không có nhãn ngày (giữ nguyên thẻ cũ).
   assert.equal(nhomCuoc([it("a", "2026-10-03", "06:40", "RUNNING")], "2026-10-03")[0]!.the[0]!.nhanNgay, undefined);
   // Xuất bến sớm chuyến 5 ngày sau (HT-03): vẫn thấy ở 'Hôm nay' để còn bấm tiếp / kết thúc — không trốn khỏi danh sách.
-  assert.deepEqual(nhomCuoc([it("som", "2026-10-08", "07:00", "RUNNING")], "2026-10-03").map((x) => x.the.map((t) => t.nhanNgay)), [["Xuất bến 08/10"], [], []]);
+  assert.deepEqual(nhomCuoc([it("som", "2026-10-08", "07:00", "RUNNING")], "2026-10-03").map((x) => x.the.map((t) => t.nhanNgay)), [["Xe chạy 08/10"], [], []]);
   // Chuyến đang chạy thuộc ngày mai / ngày kia vẫn ở đúng nhóm của nó (không đếm hai lần).
   assert.deepEqual(nhomCuoc([it("m", "2026-10-04", "07:00", "RUNNING")], "2026-10-03").map((x) => x.the.length), [0, 1, 0]);
 });

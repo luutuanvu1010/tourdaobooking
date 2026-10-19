@@ -7,6 +7,7 @@
 import {
   ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungMoiTruong, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt, typeInto, vnDate,
 } from "./dp-lib.mjs";
+import { chonNoiJs } from "../../2026-10-18-tao-don-thiet-ke-lai/kich-ban/cham-that.mjs";
 
 const DOI_TAC = { name: "Đối Tác Đặt Gấp", phone: "0900000432", pin: "246432", permissions: ["PARTNER"] };
 const { env, call } = await dungMoiTruong([CHU, DOI_TAC]);
@@ -27,7 +28,7 @@ const legOf = (o) => o.services[0].legs[0];
 // lời đọc bằng `call` sau khi mở trang của CÙNG tài khoản nhận 401 (bước 3, 7, 8, 10 từng đỏ "Cannot read properties of undefined"). Khi trang của tài
 // khoản đó đang mở, đọc đơn QUA TRANG: cùng phiên, cùng người xem (Đối tác vẫn nhận DTO của Đối tác ở bước 10).
 const donQuaTrang = async (p, id) => (await p.ev(`fetch('/api/orders/' + ${JSON.stringify(id)}).then((r) => r.json())`)).order;
-const CAU_MOC = /^Giờ đón cách bây giờ \d+ giờ( \d+ phút)? — dưới mốc 48 giờ$/;
+const CAU_MOC = /^Giờ đón cách bây giờ \d+ giờ( \d+ phút)? — quá hạn chốt 48 giờ$/;
 const LY_DO = ["Khách đoàn gọi gấp", "Chuyến bay đổi giờ", "Đơn bù cho khách bị lỡ chuyến", "Lý do khác"];
 const card0 = `document.querySelector('#services .svc')`;
 const dongConfirmDialog = async (p) => {
@@ -46,9 +47,9 @@ const themDichVuTrenForm = async (p, gio = "10:00") => {
   // ADR-0047 Phần B (2026-10-01): giờ / nơi đón nhập ở khối "Đưa đón" của thẻ (TD101 không có mẫu chặng → "+ Thêm đưa đón").
   await p.ev(click('#services .svc [data-action="them-dua-don"]'));
   await p.waitFor(`!!document.querySelector('#services .svc .dd-chang [data-o$=":don"]')`, "chặng đưa đón");
-  await p.ev(typeInto(`#services .svc .dd-chang [data-o$=":don"]`, "tudo"));
-  await p.waitFor(`!!document.querySelector('#services .svc .dd-chang [data-o$=":don-chu"]')`, "ô Địa chỉ đón");
-  await p.ev(typeInto(`#services .svc .dd-chang [data-o$=":don-chu"]`, "Sheraton Nha Trang"));
+  // 18/10 (Tạo đơn thiết kế lại, việc 7): MỘT ô "Nơi đón" có gợi ý — bấm ô, gõ, chọn dòng "Gõ tự do: …" (thay ô chọn "tudo" + ô "Địa chỉ đón" riêng).
+  assert.equal(await p.ev(chonNoiJs(`document.querySelector('#services .svc .dd-chang [data-o$=":don"]')`, "Sheraton Nha Trang", "Gõ tự do: ")), true, "ô Nơi đón có dòng 'Gõ tự do: …'");
+  await p.waitFor(`document.querySelector('#services .svc .dd-chang [data-o$=":don"]').value === 'Sheraton Nha Trang'`, "ô Nơi đón mang chữ tự do");
   await p.ev(typeInto(`#services .svc .dd-chang [data-o$=":gio"]`, gio));
   await p.ev(typeInto("#customerName", "Khách Lập Trên Form"));
   await p.ev(typeInto("#customerPhone", "0903 222 333"));
@@ -108,10 +109,10 @@ try {
     await s.waitFor(shown("#order .dg-warn"), "trang đơn O1");
     await s.ev("window.confirm = () => true; true");
     await s.ev(`(() => { const b = [...document.querySelectorAll('#actions button')].find((x) => x.textContent === 'Xác nhận đơn'); b.disabled = false; b.click(); return true; })()`);
-    await s.waitFor(`${txt("#error .banner-title")} === 'Còn chặng đón dưới mốc tối thiểu — cần Quản trị duyệt đặt gấp trước khi xác nhận.'`, "dải 409");
+    await s.waitFor(`${txt("#error .banner-title")} === 'Còn lượt đưa đón quá hạn chốt — cần Quản trị duyệt đặt gấp trước khi xác nhận.'`, "dải 409");
     const dong = await s.ev(`[...document.querySelectorAll('#error .banner-lines li')].map((l) => l.textContent)`);
     assert.equal(dong.length, 1);
-    assert.match(dong[0], /^Chiều đi · Tour 4 đảo Nha Trang: Giờ đón cách bây giờ \d+ giờ( \d+ phút)? — dưới mốc 48 giờ$/);
+    assert.match(dong[0], /^Chiều đi · Tour 4 đảo Nha Trang: Giờ đón cách bây giờ \d+ giờ( \d+ phút)? — quá hạn chốt 48 giờ$/);
     assert.equal((await donQuaTrang(s, o1.id)).status, "draft");
     assert.equal(await s.ev(noCode), "");
   });
@@ -126,7 +127,7 @@ try {
     await s.waitFor(shown('.sheet .dd-chang [data-o$=":gio"]'), "bảng sửa đưa đón");
     await s.ev(typeInto('.sheet .dd-chang [data-o$=":gio"]', "11:00"));
     await s.ev(click('.sheet [data-action="luu-dua-don"]'));
-    await s.waitFor(`${txt(".sheet .banner .banner-title")} === 'Chặng dưới mốc tối thiểu trước giờ đón — chỉ Quản trị hoặc Toàn quyền sửa được, kèm lý do đặt gấp.'`, "câu 409 trong bảng");
+    await s.waitFor(`${txt(".sheet .banner .banner-title")} === 'Lượt đưa đón có giờ đón đã qua hạn chốt — chỉ Quản trị hoặc Toàn quyền sửa được, kèm lý do đặt gấp.'`, "câu 409 trong bảng");
     assert.equal(await s.ev(`!!document.querySelector('.sheet .dg-panel')`), false, "Bán hàng không có khung Đặt gấp");
     await sleep(600); // bảng ở ≥ 641px hiện dần (opacity, --m-base): chờ xong chuyển động rồi mới đo tương phản
     await axe(s, "bảng sửa chuyến Bán hàng 409");
@@ -204,7 +205,7 @@ try {
   a.close();
 
   const am = await env.as(ACCOUNTS.admin, "/order-form", MOB);
-  await b.step("9", "7a trên đơn CHƯA lưu (390, Quản trị): nút Đặt gấp trên thẻ; 'Duyệt đặt gấp' = tự LƯU NHÁP rồi gọi lệnh đặt gấp (R-P15) → sang trang đơn thấy nhãn đặt gấp; không tràn ngang", async () => {
+  await b.step("9", "7a trên đơn CHƯA lưu (390, Quản trị): nút Đặt gấp trên thẻ; 'Duyệt đặt gấp' (nút phụ viền — chỉ #save là nút chính của form) = tự LƯU NHÁP rồi gọi lệnh đặt gấp (R-P15) → sang trang đơn thấy nhãn đặt gấp; không tràn ngang", async () => {
     await themDichVuTrenForm(am);
     await am.waitFor(shown('#services [data-action="mo-dat-gap"]'), "nút Đặt gấp trên thẻ");
     await am.ev(click('#services [data-action="mo-dat-gap"]'));
@@ -215,6 +216,13 @@ try {
     const co = await am.ev(`[...document.querySelectorAll('#services .dg-panel input, #services .dg-panel select')].map((i) => parseFloat(getComputedStyle(i).fontSize))`);
     assert.ok(co.every((x) => x >= 16), JSON.stringify(co));
     await axe(am, "biểu mẫu Quản trị 390 khung đặt gấp");
+    // Thang nút ba cấp của form Tạo đơn (thiết kế lại 18/10, việc 8 — đề bài "cho cả màn", chỉ "Lưu, chờ xác nhận" là nút chính): trong form chỉ #save mang .btn-primary;
+    // "Duyệt đặt gấp" là nút phụ viền 1px (nền trắng, viền và chữ xanh). Trang đơn / bảng "Sửa đưa đón" (bước 6–8) giữ nút chính — không ở đây.
+    const thangNut = await am.ev(`(() => { const b = document.querySelector('#services [data-action="duyet-dat-gap"]'); const s = getComputedStyle(b);
+      const mau = (v, p) => { const d = document.createElement('div'); d.style[p] = v; document.body.append(d); const c = getComputedStyle(d)[p]; d.remove(); return c; };
+      return { chinh: [...document.querySelectorAll('#order-form .btn-primary')].map((e) => e.id || e.textContent.trim()), nen: s.backgroundColor === mau('var(--c-surface)', 'backgroundColor'),
+        vien: s.borderTopStyle + ' ' + s.borderTopWidth + ' ' + (s.borderTopColor === mau('var(--c-primary)', 'color')), chu: s.color === mau('var(--c-primary)', 'color') }; })()`);
+    assert.deepEqual(thangNut, { chinh: ["save"], nen: true, vien: "solid 1px true", chu: true }, "thang nút form: 'Duyệt đặt gấp' là nút phụ viền, chỉ #save là nút chính");
     await am.ev(`document.querySelector('#services .dg-panel').scrollIntoView({ block: 'center' }); true`);
     await shotView(am, "b7-bieu-mau-dat-gap-quan-tri-dien-thoai.png");
     await am.ev(click('#services [data-action="duyet-dat-gap"]'));

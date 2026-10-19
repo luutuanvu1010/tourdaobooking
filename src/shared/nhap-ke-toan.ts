@@ -51,8 +51,8 @@ export function docLenhNhapKeToan(raw: unknown): { ok: true; lenh: NhapKeToanLen
     if (so.value !== null && SO_HOA_DON_DAY_DAI_RE.test(so.value)) return { ok: false, message: "Số hoá đơn có dãy số quá dài — có thể là SĐT/MST dán nhầm." };
     return { ok: true, lenh: { daNhap: true, soHoaDon: so.value, lyDo: null, truocDo } };
   }
-  if (so.value !== null) return { ok: false, message: "Bỏ dấu thì không kèm số hoá đơn." };
-  if (lyDo.value === null) return { ok: false, message: "Bỏ dấu đã nhập phần mềm kế toán phải ghi lý do." };
+  if (so.value !== null) return { ok: false, message: "Bỏ đánh dấu thì không kèm số hoá đơn." };
+  if (lyDo.value === null) return { ok: false, message: "Bỏ đánh dấu đã nhập phần mềm kế toán phải ghi lý do." };
   // Lý do đi vào bảng chỉ-thêm và nhật ký chỉ-thêm ⇒ CHẶN HẲN dãy số dài (khuôn text-guards.ts: che rồi vẫn ghi là không đủ).
   if (hasLongDigitRun(lyDo.value)) return { ok: false, message: PHONE_IN_TEXT_MESSAGE };
   return { ok: true, lenh: { daNhap: false, soHoaDon: null, lyDo: lyDo.value, truocDo } };
@@ -61,7 +61,7 @@ export function docLenhNhapKeToan(raw: unknown): { ok: true; lenh: NhapKeToanLen
 /** Một dòng hiển thị: "Đã nhập phần mềm kế toán · HD-000123" / "Bỏ dấu đã nhập phần mềm kế toán — lý do: …". Dùng cho câu nhật ký VÀ màn chi tiết. */
 export function moTaDauNhap(d: { daNhap: boolean; soHoaDon: string | null; lyDo: string | null }): string {
   if (d.daNhap) return d.soHoaDon ? `${NHAN_DA_NHAP} · ${d.soHoaDon}` : NHAN_DA_NHAP;
-  return `Bỏ dấu đã nhập phần mềm kế toán — lý do: ${d.lyDo ?? ""}`;
+  return `Bỏ đánh dấu đã nhập phần mềm kế toán — lý do: ${d.lyDo ?? ""}`;
 }
 
 /** Trạng thái hiện tại trùng lệnh ⇒ không thêm dòng (200, không đổi gì). `hienTai` null = chưa từng đánh dấu (coi như chưa nhập). */

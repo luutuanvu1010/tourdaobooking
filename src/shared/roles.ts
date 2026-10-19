@@ -121,7 +121,7 @@ const QUYEN_TIEN_RIENG: readonly PermissionCode[] = MA_QUYEN_TIEN.filter((p) => 
 const TIEN_PROBLEM: RoleProblem = { forbidden: true, message: TIEN_CHI_TOAN_QUYEN_MESSAGE };
 
 /** Lời 403 khi gán / gỡ vai chỉ Toàn quyền được gán — liệt kê đúng các vai đó (đọc từ ROLES, không chép tay). */
-const VAI_QUAN_LY_MESSAGE = `Chỉ người phụ trách hệ thống mới gán hoặc gỡ vai ${ROLE_CODES.filter((r) => ROLES[r].superAdminOnly).map((r) => ROLES[r].name).join(", ")}.`;
+const VAI_QUAN_LY_MESSAGE = `Chỉ người phụ trách hệ thống mới gán hoặc gỡ vai trò ${ROLE_CODES.filter((r) => ROLES[r].superAdminOnly).map((r) => ROLES[r].name).join(", ")}.`;
 /** Lời 403 khi cấp / gỡ quyền chỉ Toàn quyền được cấp: nhắc Quản trị khi đụng Quản trị/Toàn quyền, nhắc Nhân sự khi chỉ đụng Nhân sự. */
 const capCaoMessage = (changed: readonly PermissionCode[]): string =>
   `Chỉ người phụ trách hệ thống mới cấp hoặc gỡ quyền ${changed.some((p) => p !== "HR") ? "Quản trị" : PERMISSION_LABEL.HR}.`;
@@ -190,7 +190,7 @@ function listOf<T extends string>(v: unknown, ok: (x: unknown) => x is T, order:
 export function parseRoleAssignment(body: unknown): { ok: true; value: RoleAssignment } | { ok: false; message: string } {
   const b = (body ?? {}) as Record<string, unknown>;
   const roles = listOf(b.roles, isRoleCode, ROLE_CODES);
-  if (!roles || roles.length === 0) return { ok: false, message: "Chọn ít nhất một vai (mỗi vai một lần)." };
+  if (!roles || roles.length === 0) return { ok: false, message: "Chọn ít nhất một vai trò (mỗi vai trò một lần)." };
   const adds = listOf(b.adds, isPermissionCode, PERMISSION_CODES);
   const removes = listOf(b.removes, isPermissionCode, PERMISSION_CODES);
   if (!adds || !removes) return { ok: false, message: "Danh sách quyền cộng/bớt tay không hợp lệ." };
@@ -230,11 +230,11 @@ export function roleAssignmentProblem(a: {
   next: RoleAssignment;
 }): RoleProblem | null {
   const group = groupOf(a.next.roles);
-  if (group === "MIXED") return { forbidden: false, message: "Một tài khoản không giữ cùng lúc vai nội bộ và vai bên ngoài." };
+  if (group === "MIXED") return { forbidden: false, message: "Một tài khoản không giữ cùng lúc vai trò nội bộ và vai trò bên ngoài." };
   // ADR-0048 B2.2 (Q4 = (a)): vai "Tài xế đối tác" không đi cùng vai bên ngoài khác (mọi vai bên ngoài khác sinh PARTNER) — báo câu theo VAI trước khi
   // LC-1b (taiKhoanLaiProblem ở dưới) báo câu chung theo quyền.
   if (vaiTaiXeDoiTacXungDot(a.next.roles)) {
-    return { forbidden: false, message: "Vai Tài xế đối tác không đi cùng vai bên ngoài khác — một người chọn một: đối tác đặt đơn hoặc tài xế đối tác." };
+    return { forbidden: false, message: "Vai trò Tài xế đối tác không đi cùng vai trò bên ngoài khác — một người chọn một: đối tác đặt đơn hoặc tài xế đối tác." };
   }
   if (group === "EXTERNAL" && a.next.adds.some((p) => !isExternalPermission(p))) {
     return { forbidden: false, message: "Tài khoản bên ngoài chỉ giữ quyền bên ngoài (Đối tác hoặc Tài xế đối tác) — bỏ phần cộng tay quyền khác." };
@@ -287,5 +287,5 @@ export function laiNoiBoBenNgoaiProblem(perms: readonly PermissionCode[]): RoleP
 }
 
 /** Nhãn lời thường — dùng cho nhật ký và giao diện. */
-export const rolesLabel = (roles: readonly RoleCode[]): string => (roles.length ? roles.map((r) => ROLES[r].name).join(", ") : "chưa gán vai");
+export const rolesLabel = (roles: readonly RoleCode[]): string => (roles.length ? roles.map((r) => ROLES[r].name).join(", ") : "chưa gán vai trò");
 export const permissionsLabel = (list: readonly PermissionCode[]): string => (list.length ? list.map((p) => PERMISSION_LABEL[p]).join(", ") : "không có quyền");

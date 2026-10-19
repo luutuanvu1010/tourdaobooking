@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { benDatChoTaiKhoan, benDatDoiTacBiCam, bookerPayload, canPickMatch, describeBookerChange, lookupReady, matchNote, parseBooker } from "./booker.ts";
+import { NO_BOOKER_TEXT, benDatChoTaiKhoan, benDatDoiTacBiCam, bookerPayload, canPickMatch, describeBookerChange, doiTacTrungSo, lookupReady, matchNote, parseBooker } from "./booker.ts";
 
 const U = "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0";
 
@@ -38,9 +38,13 @@ test("canPickMatch / matchNote: chỉ cá nhân đang hoạt động chọn đư
   }
 });
 
-// Task 14, nợ (d) (T11 M3): câu cạnh hồ sơ tổ chức trỏ tới ô «Đặt qua đối tác» CHỈ khi người đọc có ô đó (người lập đơn không giữ quyền Đối tác); Đối tác và tài khoản lai không có ô ⇒ câu trung tính.
-test("matchNote: tổ chức — chỉ trỏ tới ô «Đặt qua đối tác» khi người đọc CÓ ô đó; không thì câu trung tính, không nhắc ô", () => {
-  assert.equal(matchNote({ kind: "ORGANIZATION", active: true }, true), "tổ chức — đại lý thì chọn ở ô “Đặt qua đối tác”");
+// Task 14, nợ (d) (T11 M3): câu cạnh hồ sơ tổ chức trỏ tới ô chọn đối tác CHỈ khi người đọc có ô đó (người lập đơn không giữ quyền Đối tác); Đối tác và tài khoản lai không có ô ⇒ câu trung tính.
+// Từ thiết kế lại màn Tạo đơn (18/10, DAC-TA §4.3) ô đó là công tắc «Đơn của: Khách lẻ | Qua đối tác» ở cả form lẫn bảng «Đổi khách» — câu phải gọi đúng NHÃN đang thấy
+// (vòng sửa cuối 19/10: câu cũ trỏ tới nút «Đặt qua đối tác» đã không còn).
+test("matchNote: tổ chức — chỉ trỏ tới công tắc «Đơn của» khi người đọc CÓ ô chọn đối tác; không thì câu trung tính, không nhắc ô", () => {
+  const coO = matchNote({ kind: "ORGANIZATION", active: true }, true);
+  assert.equal(coO, "tổ chức — đại lý thì bấm “Qua đối tác” ở hàng “Đơn của”");
+  assert.ok(!/Đặt qua đối tác/.test(coO ?? ""), "không nhắc nhãn cũ đã gỡ");
   const trungTinh = matchNote({ kind: "ORGANIZATION", active: true }, false);
   assert.equal(trungTinh, "tổ chức — do văn phòng gắn bên đặt");
   assert.ok(!/ ô /.test(trungTinh ?? ""), "câu trung tính không nhắc ô nào");
@@ -99,4 +103,19 @@ test("benDatDoiTacBiCam: các ngoại lệ — bên đặt đang lưu, chính h�
   assert.equal(benDatDoiTacBiCam({ ...goc, guiLen: { kind: "none" } }), false);
   assert.equal(benDatDoiTacBiCam({ ...goc, guiLen: { kind: "new", fullName: "A", phone: "0901234567" } }), false);
   assert.equal(benDatDoiTacBiCam({ ...goc, laDoiTac: false }), false, "nhân viên văn phòng không giữ quyền Đối tác chọn tự do");
+});
+
+test("NO_BOOKER_TEXT: dòng xám «chưa liên kết (không bắt buộc)», không còn nhãn vàng «Chưa gắn hồ sơ khách»", () => {
+  assert.equal(NO_BOOKER_TEXT, "Hồ sơ khách: chưa liên kết (không bắt buộc)");
+});
+
+test("doiTacTrungSo: trùng số, hai hồ sơ, một hồ sơ là người được hưởng → trả đúng đối tác đó", () => {
+  const matches = [{ id: "pty-a", displayName: "Khách A" }, { id: "pty-b", displayName: "Đại lý B" }];
+  assert.deepEqual(doiTacTrungSo(matches, [{ partyId: "pty-b", ten: "Đại lý B" }]), { partyId: "pty-b", ten: "Đại lý B" });
+});
+
+test("doiTacTrungSo: không hồ sơ nào là người được hưởng → null; matches rỗng → null", () => {
+  assert.equal(doiTacTrungSo([{ id: "pty-a", displayName: "Khách A" }], [{ partyId: "pty-z", ten: "Z" }]), null);
+  assert.equal(doiTacTrungSo([{ id: "pty-a", displayName: "Khách A" }], []), null);
+  assert.equal(doiTacTrungSo([], [{ partyId: "pty-b", ten: "B" }]), null);
 });

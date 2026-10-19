@@ -36,7 +36,7 @@ assert.equal(t5.status, 201, `tạo T5: ${t5.text}`);
 const T5 = t5.json.chuyen;
 const cho = (p) => p.waitFor(`!document.getElementById('dp-trang').hidden && !!document.querySelector('#dp-cot-xe .dp-tl-card')`, "bảng điều phối dựng xong");
 const dongCanhBao = "[...document.querySelectorAll('#dp-banner .banner-warning li')].map((x) => x.innerText.trim())";
-const CAU = `Chặng chưa có nơi trả: ${d.O5.ma} — cần bổ sung ở đơn trước khi xe chạy.`;
+const CAU = `Lượt đưa đón chưa có nơi trả: ${d.O5.ma} — cần bổ sung ở đơn trước khi xe chạy.`;
 const xepQuaHop = async (p, so) => {
   await p.waitFor(`!!document.querySelector('[data-action="xep-gui"]')`, "hộp xếp mở");
   await sleep(500);

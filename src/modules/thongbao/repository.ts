@@ -113,7 +113,7 @@ export async function listDoi(db: D1Database, tu: string, mocTinDoi: string): Pr
 }
 /**
  * LÔ dòng đổi mới nhất của `actorId` trên đơn, ghi từ `tuLuc` (= mốc bắt đầu request — chỉ dòng do chính request ghi) — rỗng = lệnh không ghi dòng đổi (vd số
- * khách y nguyên, đặt gấp, ghi lần thu). G17: mọi dòng cùng mốc (sửa chuyến ghi một dòng mỗi chặng đổi).
+ * khách y nguyên, đặt gấp, ghi khoản thu). G17: mọi dòng cùng mốc (sửa chuyến ghi một dòng mỗi chặng đổi).
  */
 export async function doiVuaGhi(db: D1Database, orderId: string, actorId: string, tuLuc: string): Promise<DongDon[]> {
   return (await db.prepare(DOI_VUA_GHI).bind(orderId, actorId, tuLuc).all<DoiRow>()).results.map(dongDoi);

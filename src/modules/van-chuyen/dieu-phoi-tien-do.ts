@@ -121,7 +121,7 @@ export async function lenhXuatBen(
     ...l, tripId: t.id, version: t.version, xayRa: x, policyId: cs.id, ganTen: kq.ganTen,
     chup: { id: crypto.randomUUID(), xeId: c.xeId, bienSo: c.bienSo, soCho: c.soCho, chuXePartyId: c.chuXePartyId, taiXePartyId: c.taiXePartyId as string, nghiDaDung: c.nghiDaDung ?? t.rest_minutes_snapshot },
     muc: c.muc, chot, soKhach, xoaCamKet,
-    detail: `${t.code}: xuất bến · xe ${c.bienSo} · ${soKhach} khách${xoaCamKet ? " · hết vi phạm cam kết — bỏ phá lệ cam kết" : ""}${duoi(nguoi, x)}`,
+    detail: `${t.code}: cho xe chạy · xe ${c.bienSo} · ${soKhach} khách${xoaCamKet ? " · hết vi phạm cam kết — bỏ phá lệ cam kết" : ""}${duoi(nguoi, x)}`,
   });
   const r = await chayLo(db, lo, b.requestId);
   return r.ok ? null : r.res;

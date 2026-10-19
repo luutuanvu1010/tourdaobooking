@@ -115,11 +115,11 @@ const lichSu = async (w: any, id: string, as: string) => {
   assert.equal(r.status, 200, r.text);
   return r.json.history as { action: string; staffId: string | null; staffName: string; detail: string | null }[];
 };
-function kiemLichSuCo(h: { action: string; staffId: string | null; staffName: string; detail: string | null }[], ai: string) {
+function kiemLichSuCo(h: { action: string; staffId: string | null; staffName: string; detail: string | null }[], ai: string, tenMong = "") {
   const dong = h.filter((e) => e.action === "order_leg_short_notice" || /đặt gấp/iu.test(e.detail ?? ""));
   assert.ok(dong.length > 0, `${ai}: chống bài rỗng — phải có dòng đặt gấp`);
   for (const e of dong) {
-    assert.equal(e.staffName, "Quản trị", `${ai}: người làm chỉ là nhãn "Quản trị"`);
+    assert.equal(e.staffName, tenMong, `${ai}: người làm chỉ là nhãn "${tenMong}"`); // ADR-0131 đ2: người không qua `audit.view` (Đối tác, HDV, Thực tập) không thấy tên nào, kể cả nhãn "Quản trị"
     assert.equal(e.staffId, null, `${ai}: không lộ id người duyệt`);
     assert.match(e.detail ?? "", /Đặt gấp — Quản trị đã duyệt/, `${ai}: ${e.detail}`);
   }
@@ -135,13 +135,16 @@ test("R-P21: lịch sử đơn — Đối tác, Thực tập (đơn tự lập),
     kiemLichSuCo(await lichSu(w, o.id, as), as);
     const vp = await lichSu(w, o.id, ACC);
     const dong = vp.find((e) => e.action === "order_leg_short_notice")!;
-    assert.equal(dong.staffName, TEN_DUYET, "văn phòng: tên người duyệt");
+    assert.equal(dong.staffName, "", "văn phòng không qua audit.view: không tên (ADR-0131 đ2)");
     assert.match(dong.detail!, /đặt gấp: Chuyến bay đổi giờ/, "văn phòng: nhãn lý do");
+    const chu = (await lichSu(w, o.id, SUP)).find((e) => e.action === "order_leg_short_notice")!;
+    assert.equal(chu.staffName, TEN_DUYET, "Toàn quyền: tên người duyệt");
   }
   const o = await nhap(w, SALES, { handlerStaffId: FIELD });
   await datGapChieuDi(w, o);
   kiemLichSuCo(await lichSu(w, o.id, FIELD), "HDV");
-  for (const as of [SALES, ADM, SUP]) assert.ok((await lichSu(w, o.id, as)).some((e) => e.staffName === TEN_DUYET && /Chuyến bay đổi giờ/.test(e.detail ?? "")), as);
+  assert.ok((await lichSu(w, o.id, SUP)).some((e) => e.staffName === TEN_DUYET && /Chuyến bay đổi giờ/.test(e.detail ?? "")), "Toàn quyền: tên người duyệt + nhãn lý do");
+  for (const as of [SALES, ADM]) assert.ok((await lichSu(w, o.id, as)).some((e) => e.staffName === "" && /Chuyến bay đổi giờ/.test(e.detail ?? "")), `${as}: nhãn lý do, không tên`);
 });
 
 test("R-P21: lịch sử đơn — dòng SỬA CHẶNG đơn đã xác nhận dưới mốc kèm datGap ('… · đặt gấp: <nhãn>') cũng rút gọn với HDV đang phụ trách", async () => {

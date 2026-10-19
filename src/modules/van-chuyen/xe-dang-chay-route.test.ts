@@ -309,7 +309,7 @@ test("Đợt 7 (THEM_KHI_CHAY — ADR-0056 VK3-A, ruling điều phối): thêm 
     assert.ok(t.k.includes(`${b.legId}:CX:0:16`), t.k);
     const nk = w.q("SELECT detail FROM audit_log WHERE action = 'trip_stop_added_running'")[0].detail as string;
     // ADR-0104 Đ1 mục 4 (đổi có tên — chữ nhật ký): xe đang chạy luôn dưới mốc ⇒ cả hai luật lớp KHAN_CAP; đuôi " · xe đang chạy" một lần.
-    assert.match(nk, / · điều chỉnh khẩn cấp mốc tối thiểu: Sự cố vận hành · điều chỉnh khẩn cấp cam kết: Khác · xe đang chạy$/);
+    assert.match(nk, / · điều chỉnh khẩn cấp hạn chốt: Sự cố vận hành · điều chỉnh khẩn cấp cam kết: Khác · xe đang chạy$/);
     assert.doesNotMatch(nk, /phá lệ|còn \d+ phút/);
     assert.ok(!nk.includes(t.k) && !r.text.includes(t.k), "C4: khoá không ra nhật ký / phản hồi");
     kiemDinhKySach(w);

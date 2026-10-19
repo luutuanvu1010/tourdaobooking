@@ -15,7 +15,7 @@ const MAI = vnDate(1);
 const NO_TRIP = { departDate: "", departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
 const base = { customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "" };
 const svc = (ngay, gio) => ({ kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, ...NO_TRIP, departDate: ngay, pickupTime: gio, pickupPlace: "Sheraton Nha Trang" });
-const CAU_503 = "Chưa có chính sách điều phối đang hiệu lực (mốc tối thiểu) — báo người phụ trách hệ thống.";
+const CAU_503 = "Chưa có chính sách điều phối đang hiệu lực (hạn chốt trước giờ đón) — báo người phụ trách hệ thống.";
 const DONG_503 = "Chưa lưu, xác nhận hay sửa chuyến có giờ đón được cho tới khi Toàn quyền đặt chính sách điều phối.";
 
 try {
@@ -108,9 +108,9 @@ try {
   const c = await env.as(CHU, "/chinh-sach-dieu-phoi", DESK);
   await b.step("5", "Chính sách điều phối khi CHƯA có bản nào: ô trống, lịch sử 'Chưa có bản nào.'; lưu bản đầu (6 giờ, 2 giờ, 30, 180) → 'Bản 1 Đang dùng'; sau đó route mốc 200 và xác nhận được đơn nháp", async () => {
     await c.waitFor(shown("#cs-form .dp-cs-nums"), "form chính sách");
-    assert.deepEqual(await c.ev(`['mocGio','satMocGio','nghiPhut','khaiLuiPhut'].map((t) => document.querySelector('#cs-' + t).value)`), ["", "", "", ""]);
+    assert.deepEqual(await c.ev(`['mocPhut','satMocPhut','nghiPhut','khaiLuiPhut'].map((t) => document.querySelector('#cs-' + t).value)`), ["", "", "", ""]);
     assert.equal(await c.ev(txt("#cs-lich-su .dp-hist-row")), "Chưa có bản nào.");
-    for (const [t, v] of [["mocGio", "6"], ["satMocGio", "2"], ["nghiPhut", "30"], ["khaiLuiPhut", "180"]]) await c.ev(typeInto(`#cs-${t}`, v));
+    for (const [t, v] of [["mocPhut", "360"], ["satMocPhut", "120"], ["nghiPhut", "30"], ["khaiLuiPhut", "180"]]) await c.ev(typeInto(`#cs-${t}`, v));
     await c.ev(click(".dp-cs-actions button[type=submit]"));
     await c.waitFor(`${txt("#cs-ok")} === 'Đã lưu bản mới — có hiệu lực từ bây giờ.'`, "lưu bản đầu");
     assert.match(await c.ev(txt("#cs-lich-su .dp-hist-row")), /^Bản 1 Đang dùng Hiệu lực từ /);

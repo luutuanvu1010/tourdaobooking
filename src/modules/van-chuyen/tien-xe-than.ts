@@ -138,7 +138,7 @@ export function docDaoDong(body: Record<string, unknown> | null): KetQua<DaoDong
   if (!rid.ok) return rid;
   const pb = docPhienBan(body);
   if (!pb.ok) return pb;
-  if (!idHopLe(body.dongId)) return fail("Chọn dòng chi phí cần đảo.");
+  if (!idHopLe(body.dongId)) return fail("Chọn dòng chi phí cần huỷ.");
   const ly = docLyDo(body.lyDo);
   if (!ly.ok) return ly;
   const gc = chuToiDa(body.ghiChu, 300, "Ghi chú");

@@ -66,14 +66,14 @@ async function dungAnDanhPhienCu(goc: HTMLElement): Promise<void> {
   }
   const coHan = d.hanNgay !== null;
   const nut = h("button", { type: "button", class: "btn btn-danger", id: "adp-nut", disabled: !coHan || d.soPhien === 0 }, "Ẩn danh hoá") as HTMLButtonElement;
-  const xacNhan = h("div", { class: "maint-confirm", id: "adp-xac-nhan", role: "group", "aria-label": "Xác nhận ẩn danh hoá phiên cũ", hidden: true },
-    h("p", null, h("strong", null, `Ẩn danh hoá ${d.soPhien} phiên? Địa chỉ mạng và thông tin máy của các phiên này bị xoá, không hoàn tác được.`)),
+  const xacNhan = h("div", { class: "maint-confirm", id: "adp-xac-nhan", role: "group", "aria-label": "Xác nhận ẩn danh hoá máy đã đăng xuất", hidden: true },
+    h("p", null, h("strong", null, `Ẩn danh hoá ${d.soPhien} máy đã đăng xuất? Địa chỉ mạng và thông tin máy của các máy này bị xoá, không hoàn tác được.`)),
     h("div", { class: "maint-actions" },
       h("button", { type: "button", class: "btn btn-primary btn-chinh", id: "adp-xac-nhan-nut", onclick: async () => {
         showError(errorEl, null);
         try {
           const r = await api<Api.PhienCuAnDanhKetQua>("/api/sessions/an-danh-cu", { method: "POST" });
-          hienOk(`Đã ẩn danh hoá ${r.daAnDanh} phiên.`);
+          hienOk(`Đã ẩn danh hoá ${r.daAnDanh} máy đã đăng xuất.`);
           await dungAnDanhPhienCu(goc);
         } catch (err) {
           xacNhan.hidden = true;
@@ -83,16 +83,16 @@ async function dungAnDanhPhienCu(goc: HTMLElement): Promise<void> {
       h("button", { type: "button", class: "btn", onclick: () => { xacNhan.hidden = true; } }, "Thôi")));
   nut.addEventListener("click", () => { xacNhan.hidden = false; });
   replaceChildren(goc,
-    h("h2", { id: "adp-heading" }, "Ẩn danh hoá phiên cũ"),
+    h("h2", { id: "adp-heading" }, "Ẩn danh hoá máy đã đăng xuất"),
     coHan
-      ? h("p", { id: "adp-dong" }, `Ẩn danh IP và thông tin máy của ${d.soPhien} phiên đã kết thúc quá ${d.hanNgay} ngày.`)
-      : h("p", { class: "muted", id: "adp-dong" }, "Chính sách riêng tư chưa có thời hạn giữ phiên, nên chưa ẩn danh hoá được."),
+      ? h("p", { id: "adp-dong" }, `Ẩn danh IP và thông tin máy của ${d.soPhien} máy đã đăng xuất quá ${d.hanNgay} ngày.`)
+      : h("p", { class: "muted", id: "adp-dong" }, "Chính sách riêng tư chưa có thời hạn giữ thông tin máy đã đăng xuất, nên chưa ẩn danh hoá được."),
     nut, xacNhan);
   goc.hidden = false;
 }
 
 if (!can(staff, "auth.session.viewAll")) {
-  showError(errorEl, "Trang Phiên đăng nhập chỉ người phụ trách hệ thống (IT, Toàn quyền) xem được.");
+  showError(errorEl, "Trang Máy đang đăng nhập chỉ người phụ trách hệ thống (IT, Toàn quyền) xem được.");
 } else {
   const goDuoc = can(staff, "auth.session.revoke");
 
@@ -108,7 +108,7 @@ if (!can(staff, "auth.session.viewAll")) {
     xacNhan = null;
     void load();
   });
-  replaceChildren(filtersEl, timEl, h("label", { class: "check" }, chiSong, "Chỉ phiên đang hiệu lực"));
+  replaceChildren(filtersEl, timEl, h("label", { class: "check" }, chiSong, "Chỉ máy đang đăng nhập"));
   filtersEl.hidden = false;
   tableCard.hidden = false;
 
@@ -142,15 +142,15 @@ if (!can(staff, "auth.session.viewAll")) {
         }
       }
       if (!datLaiPin) {
-        hienOk(`Đã gỡ phiên của ${tenNguoi(s)} trên ${s.deviceLabel}. Máy đó đã bị đăng xuất.`);
+        hienOk(`Đã đăng xuất máy ${s.deviceLabel} của ${tenNguoi(s)}.`);
         return;
       }
       try {
         const r = await api<Api.StaffWithPinResponse>(`/api/staff/${encodeURIComponent(s.staffId)}/reset-pin`, { method: "POST" });
-        hienOk(`${daGo ? "Đã gỡ phiên" : "Phiên này đã kết thúc từ trước"} và đã đặt lại PIN của ${tenNguoi(s)}. Mọi máy của tài khoản này đã bị đăng xuất.`);
+        hienOk(`${daGo ? "Đã đăng xuất máy này" : "Máy này đã đăng xuất từ trước"} và đã đặt lại PIN của ${tenNguoi(s)}. Mọi máy của tài khoản này đã bị đăng xuất.`);
         hienPinMoi(r.staff.fullName || tenNguoi(s), r.staff.phone, r.pin);
       } catch (err) {
-        showError(errorEl, `${daGo ? "Đã gỡ phiên" : "Phiên này đã kết thúc từ trước"}, nhưng chưa đặt lại được PIN: ${reasonOf(err)}`);
+        showError(errorEl, `${daGo ? "Đã đăng xuất máy này" : "Máy này đã đăng xuất từ trước"}, nhưng chưa đặt lại được PIN: ${reasonOf(err)}`);
       }
     } finally {
       xacNhan = null;
@@ -169,13 +169,13 @@ if (!can(staff, "auth.session.viewAll")) {
   function nutGo(s: Api.StaffSessionDto, pill: boolean): HTMLElement[] {
     if (!goDuoc || !s.live || s.thisDevice) return [];
     const cls = pill ? "pill-btn pill-btn-danger" : "btn btn-link danger";
-    const out = [nut("Gỡ phiên", () => {
+    const out = [nut("Đăng xuất máy này", () => {
       xacNhan = { id: s.id, datLaiPin: false };
       render();
     }, cls)];
     // Đặt lại PIN: máy chủ tính `datLaiPinDuoc` cho từng dòng bằng CÙNG luật route reset-pin (hai ô, không phải chính mình, cấp bậc) — trang không chép luật.
     if (s.datLaiPinDuoc) {
-      out.push(nut("Gỡ phiên + đặt lại PIN", () => {
+      out.push(nut("Đăng xuất mọi máy + đặt lại PIN", () => {
         xacNhan = { id: s.id, datLaiPin: true };
         render();
       }, cls));
@@ -188,11 +188,11 @@ if (!can(staff, "auth.session.viewAll")) {
     if (xacNhan?.id !== s.id) return null;
     const kemPin = xacNhan.datLaiPin;
     const cau = kemPin
-      ? `Gỡ phiên của ${tenNguoi(s)} trên ${s.deviceLabel} và đặt lại PIN? PIN cũ, Face ID và mọi máy đang đăng nhập của tài khoản này mất hiệu lực. PIN mới hiện một lần ở đầu trang.`
-      : `Gỡ phiên của ${tenNguoi(s)} trên ${s.deviceLabel}? Máy đó bị đăng xuất ngay. Người có PIN vẫn đăng nhập lại được.`;
+      ? `Đăng xuất máy ${s.deviceLabel} của ${tenNguoi(s)} và đặt lại PIN? PIN cũ, Face ID và mọi máy đang đăng nhập của tài khoản này mất hiệu lực. PIN mới hiện một lần ở đầu trang.`
+      : `Đăng xuất máy ${s.deviceLabel} của ${tenNguoi(s)}? Máy đó bị đăng xuất ngay. Người có PIN vẫn đăng nhập lại được.`;
     return h(
       "div",
-      { class: "maint-confirm", role: "group", "aria-label": "Xác nhận gỡ phiên", "data-xac-nhan": s.id },
+      { class: "maint-confirm", role: "group", "aria-label": "Xác nhận đăng xuất máy", "data-xac-nhan": s.id },
       h("p", null, h("strong", null, cau)),
       h(
         "div",
@@ -245,7 +245,7 @@ if (!can(staff, "auth.session.viewAll")) {
     const q = boDau(timEl.value.trim());
     const shown = q ? sessions.filter((s) => boDau(tenNguoi(s)).includes(q)) : sessions;
     if (shown.length === 0) {
-      const trong = q ? "Không có phiên nào khớp tên này." : chiSong.checked ? "Không có phiên nào đang hiệu lực." : "Chưa có phiên nào.";
+      const trong = q ? "Không có máy nào khớp tên này." : chiSong.checked ? "Không có máy nào đang đăng nhập." : "Chưa có máy nào đăng nhập.";
       replaceChildren(listEl, h("tr", null, h("td", { colSpan: 8, class: "muted" }, trong)));
       replaceChildren(cardsEl, h("div", { class: "card muted" }, trong));
       return;

@@ -14,7 +14,7 @@ import { parseUnit } from "./order-lines.ts";
 import { soNguoiChang, tongKhach } from "./so-nguoi-chang.ts";
 
 export const CAU_CAN_NOI_TRA = "Cần nơi trả trước khi xếp xe";
-export const CAU_XE_RIENG_CHUA_GIA_NHOM = "Có chặng Xe riêng nhưng đơn chưa có dịch vụ Giá theo nhóm — kiểm lại tiền xe";
+export const CAU_XE_RIENG_CHUA_GIA_NHOM = "Có lượt đưa đón Xe riêng nhưng đơn chưa có dịch vụ Giá theo nhóm — kiểm lại tiền xe";
 export const cauThieuTen = (n: number): string => `Còn ${n} khách chưa có tên — cần đủ trước khi xe chạy`;
 
 /** Chặng mở chưa có nơi trả — qua `lyDoNoiTra` (nhãn nơi trả null = không điểm, không chữ). */

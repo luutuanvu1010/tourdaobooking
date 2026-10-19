@@ -47,6 +47,28 @@ test("nối dây khối gập (web/khoi-dua-don.ts): chặng gọn / chi tiết 
   assert.match(khoiDuaDon, /r\?\.gapChiTiet\?\.mo\(\)/, "mất lời gọi mở Thêm chi tiết khi ô trong đó có lỗi");
 });
 
+test("nối dây thẻ dịch vụ gập (18/10/2026): thân thẻ đăng ký khối gập; thẻ có lỗi chặn Lưu không gập được; nháp nạp lại / thẻ được câu lỗi nêu tên thì mở", () => {
+  assert.match(serviceCard, /taoKhoiGap\(\{ ma: `the-\$\{draft\.key\}`, nhan: "", than,/, "thân thẻ không còn đăng ký khối gập (moKhoiChua / moMoiKhoiGap không mở được thẻ gập)");
+  assert.match(serviceCard, /else if \(!mustStayOpen\(\)\) gap\.dong\(\)/, "setOpen(false) không còn từ chối gập thẻ có lỗi chặn Lưu");
+  assert.match(serviceCard, /if \(mustStayOpen\(\) && !gap\.laMo\(\)\) gap\.mo\(\)/, "lỗi chặn Lưu vừa hiện mà thẻ gập không tự mở");
+  assert.match(orderForm, /theMoKhiNap\(d, orderDate, laSanBay\)/, "nháp nạp lại không còn hỏi luật mở thẻ (có lỗi / giá trị dòng gập không cho thấy)");
+  assert.match(orderForm, /entries\[failure\.focusService\]\?\.card\.setOpen\(true\)/, "máy chủ nêu 'Dịch vụ n' mà thẻ gập không mở");
+});
+
+test("nối dây 'chỉ một thẻ mở' (nợ T5, Việc 9 — trước đây chỉ kịch bản Chrome canh): thêm dịch vụ danh mục / nhập tay và chạm mở một thẻ ⇒ chiMoMot gập mọi thẻ khác", () => {
+  assert.match(orderForm, /function chiMoMot\(giu: Entry, giuViTri = false\): void \{[\s\S]*?for \(const e of entries\) if \(e !== giu\) e\.card\.setOpen\(false\);/, "chiMoMot không còn gập các thẻ khác");
+  assert.match(orderForm, /onPick: \(item\) => \{[\s\S]*?chiMoMot\(mount\(/, "thêm dịch vụ từ danh mục không còn gọi chiMoMot (thẻ cũ không tự gập)");
+  assert.match(orderForm, /const entry = mount\(withOrderDate\(newManualDraft\(newKey\(\)\)\), true\);\s*chiMoMot\(entry\);/, "thêm dịch vụ nhập tay không còn gọi chiMoMot");
+  assert.match(orderForm, /onMo: \(\) => chiMoMot\(entry, true\)/, "chạm mở thẻ không còn gọi chiMoMot (kèm giữ vị trí đầu thẻ)");
+  assert.match(serviceCard, /nutMo\.addEventListener\("click", \(\) => \{\s*if \(gap\.laMo\(\)\) o\.onMo\?\.\(\);/, "đầu thẻ vừa mở không còn báo onMo cho trang");
+});
+
+test("nối dây thẻ dịch vụ gập: lỗi CẤP THẺ ở thẻ đang gập ⇒ showIssues trả ô lỗi đầu tiên của thẻ, đánh dấu 'đang ẩn' (trang cuộn + đặt tiêu điểm vào ô, không vào banner)", () => {
+  assert.match(serviceCard, /const daGap = !gap\.laMo\(\);[\s\S]*?const dau = duaDon\.showIssues\(show\);/, "showIssues phải đo thẻ có đang gập TRƯỚC khi hiện lỗi (refresh mở thẻ)");
+  assert.match(serviceCard, /if \(dau \|\| !show \|\| !daGap\) return dau;[\s\S]*?\{ o: oLoiThe\(\) \?\? root, daAn: true \}/,"thẻ gập vừa mở vì lỗi cấp thẻ không còn trả ô lỗi + daAn: true");
+  assert.match(orderForm, /const dangAn = loiChang\?\.daAn \?\?/, "luu() không còn dùng daAn của thẻ để quyết cuộn tới ô lỗi");
+});
+
 test("nối dây khối gập (web/khoi-gap.ts): moKhoiChua và moMoiKhoiGap thật sự gọi mo() của khối đã đăng ký", () => {
   assert.match(khoiGap, /dangKy\.get\(n\)\?\.mo\(\)/, "moKhoiChua / moMoiKhoiGap không còn mở khối");
   assert.ok(dem(khoiGap, /dangKy\.get\(n\)\?\.mo\(\)/) >= 2, "cả hai hàm phải mở khối đã đăng ký");

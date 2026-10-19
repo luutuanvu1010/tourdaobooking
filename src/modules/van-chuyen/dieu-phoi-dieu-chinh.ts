@@ -40,7 +40,7 @@ export async function lenhDieuChinhSuat(
   db: D1Database, nen: NenChuyen, hk: readonly ChangChoChuyen[], suatId: string, b: DieuChinhSuatThan, nguoi: NguoiBam, bayGioMs: number,
 ): Promise<Response | null> {
   const t = nen.trip;
-  const chan = dangChayDieuChinh(t, "Chuyến chưa xuất bến — chưa có kết quả nào để điều chỉnh.");
+  const chan = dangChayDieuChinh(t, "Xe chưa chạy — chưa có kết quả nào để điều chỉnh.");
   if (chan) return chan;
   const a = nen.allocs.find((x) => x.id === suatId && x.valid_to_at === null);
   if (!a) return KHONG_CO_SUAT();
@@ -76,7 +76,7 @@ const khoangPhut = (m: number): string => (m % 60 === 0 ? `${m / 60} giờ` : `$
  */
 export async function lenhThuHoiXuatBen(db: D1Database, nen: NenChuyen, b: ThuHoiXuatBenThan, nguoi: NguoiBam, bayGioMs: number): Promise<Response | null> {
   const t = nen.trip;
-  const chan = dangChayDieuChinh(t, "Chuyến chưa xuất bến — không có gì để thu hồi.");
+  const chan = dangChayDieuChinh(t, "Xe chưa chạy — không có gì để thu hồi.");
   if (chan) return chan;
   const lyDo = await lyDoDieuChinh(db, b.lyDo);
   if (!lyDo) return LY_DO_DIEU_CHINH_SAI();
@@ -84,11 +84,11 @@ export async function lenhThuHoiXuatBen(db: D1Database, nen: NenChuyen, b: ThuHo
   const cs = await chinhSachHienHanh(db);
   if (!cs) return CHUA_CO_KEP();
   if (t.departed_ms === null || bayGioMs > t.departed_ms + cs.proxy_backdate_max_minutes * 60_000) {
-    return loi409("qua_gio_thu_hoi", [], {}, `Đã quá ${khoangPhut(cs.proxy_backdate_max_minutes)} từ giờ xuất bến nên không thu hồi được — sửa từng khách bằng "Điều chỉnh…", hoặc "Kết thúc gián đoạn" nếu xe thật sự không chạy tiếp.`);
+    return loi409("qua_gio_thu_hoi", [], {}, `Đã quá ${khoangPhut(cs.proxy_backdate_max_minutes)} từ giờ xe chạy nên không thu hồi được — sửa từng khách bằng "Điều chỉnh…", hoặc "Kết thúc gián đoạn" nếu xe thật sự không chạy tiếp.`);
   }
   const l = lenh(b.requestId, nguoi, bayGioMs);
   const lo = loThuHoiXuatBen(db, {
-    ...l, tripId: t.id, version: b.version, lyDo: lyDo.code, detail: `${t.code}: thu hồi xuất bến — ${lyDo.label}${nguoi.bamThay ? " · văn phòng bấm thay" : ""}`,
+    ...l, tripId: t.id, version: b.version, lyDo: lyDo.code, detail: `${t.code}: thu hồi lệnh cho xe chạy — ${lyDo.label}${nguoi.bamThay ? " · văn phòng bấm thay" : ""}`,
   });
   const r = await chayLo(db, lo, b.requestId);
   return r.ok ? null : r.res;

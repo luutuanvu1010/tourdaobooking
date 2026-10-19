@@ -82,7 +82,7 @@ test("C34: giới hạn chặng một lệnh là TOI_DA_CHANG_MOT_LAN (50) — c
     const lan = (n: number) => Array.from({ length: n }, () => ({ legId: uuid(), soSuat: 1 }));
     const qua = await xepNhieu(w, t.chuyen.id, lan(TOI_DA_CHANG_MOT_LAN + 1));
     assert.equal(qua.status, 400, qua.text);
-    assert.equal(qua.json.error.message, "Danh sách chặng không hợp lệ.");
+    assert.equal(qua.json.error.message, "Danh sách lượt đưa đón không hợp lệ.");
     const vua = await xepNhieu(w, t.chuyen.id, lan(TOI_DA_CHANG_MOT_LAN));
     assert.notEqual(vua.status, 400, vua.text);
     assert.equal(vua.status, 409, vua.text);

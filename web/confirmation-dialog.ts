@@ -29,7 +29,7 @@ const TOTAL_TIMEOUT_MS = 30_000;
 // ---- dữ liệu phụ ----------------------------------------------------------------------------------------------------------------------------------------------------
 /**
  * BIÊN NHẬN do máy chủ dựng theo danh sách trắng (`GET /api/orders/:id/receipt`, module receipt — sổ tiền lượt 1, ADR-0024 đ1 / ADR-0026 đ11): hồ sơ công ty,
- * đơn, đã trả trước / còn lại (billing). Trình duyệt KHÔNG dựng biên nhận từ cả đơn nữa. Không nhớ đệm: tiền đổi theo lần thu.
+ * đơn, đã trả trước / còn lại (billing). Trình duyệt KHÔNG dựng biên nhận từ cả đơn nữa. Không nhớ đệm: tiền đổi theo khoản thu.
  */
 const loadReceipt = (orderId: string): Promise<ReceiptDto> => api<Api.ReceiptResponse>(`/api/orders/${encodeURIComponent(orderId)}/receipt`).then((r) => r.receipt);
 

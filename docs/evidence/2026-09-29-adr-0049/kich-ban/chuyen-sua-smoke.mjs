@@ -160,14 +160,14 @@ try {
     await choForm(p);
     assert.equal(await p.ev(txt("#cx-title")), `Sửa chuyến ${d.T4.ma}`);
     assert.equal(await p.ev(`document.querySelector('#cx-back').getAttribute('href')`), `/chuyen?id=${d.T4.id}`);
-    assert.equal(await p.ev(txt("#cx-form .banner-title")), "Chuyến đã vào vùng khoá trước giờ xuất bến");
+    assert.equal(await p.ev(txt("#cx-form .banner-title")), "Chuyến đã vào vùng khoá trước giờ xe chạy");
     assert.equal(await p.ev(txt("#cx-form .banner-lines")), "Đổi xe, đổi tài xế là điều chỉnh khẩn cấp — khi lưu, bạn sẽ chọn lý do. Đổi giờ không cần điều chỉnh khẩn cấp.");
     assert.equal(await p.ev(txt("#cx-xe-hint")), "15 chỗ · xe công ty · đang có 0 khách xếp");
     await p.ev(typeInto("#cx-tai-xe", d.CUONG.partyId));
     await gui(p);
     await p.waitFor(`!document.getElementById('cx-tai-xe-error').hidden && !!document.querySelector('[data-action="pha-le-gui"]')`, "câu dưới Tài xế + hộp điều chỉnh khẩn cấp");
     await sleep(600);
-    assert.equal(await p.ev(loi("tai-xe")), "Trong mốc tối thiểu trước giờ xuất bến — người xếp xe điều chỉnh khẩn cấp kèm lý do");
+    assert.equal(await p.ev(loi("tai-xe")), "Đã qua hạn chốt trước giờ xe chạy — người xếp xe điều chỉnh khẩn cấp kèm lý do");
     assert.equal(await p.ev(txt(".dp-sheet-pha-le h2, .dp-sheet-pha-le .sheet-title")), "Điều chỉnh khẩn cấp");
     assert.equal(await p.ev(txt('[data-action="pha-le-gui"]')), "Điều chỉnh khẩn cấp và lưu");
     await shotView(p, "b3-khan-cap-ban-hang-may-tinh.png");
@@ -223,8 +223,8 @@ try {
     assert.equal(await qm.ev(txt('[data-action="pha-le-gui"]')), "Điều chỉnh khẩn cấp và lưu");
     assert.deepEqual(await qm.ev(`[...document.querySelectorAll('.dp-sheet-pha-le .vc-reason')].map((x) => x.textContent)`), ["Sự cố vận hành", "Đơn đặt gấp", "Khác"]);
     assert.equal(await qm.ev(`document.querySelector('[data-action="pha-le-gui"]').disabled`), true);
-    assert.match(await qm.ev(txt(".dp-sheet-pha-le .dp-sheet-sum")), new RegExp(`^${d.T4.ma} · .* Trong mốc tối thiểu trước giờ xuất bến — người xếp xe điều chỉnh khẩn cấp kèm lý do$`));
-    assert.equal(await qm.ev(loi("tai-xe")), "Trong mốc tối thiểu trước giờ xuất bến — người xếp xe điều chỉnh khẩn cấp kèm lý do");
+    assert.match(await qm.ev(txt(".dp-sheet-pha-le .dp-sheet-sum")), new RegExp(`^${d.T4.ma} · .* Đã qua hạn chốt trước giờ xe chạy — người xếp xe điều chỉnh khẩn cấp kèm lý do$`));
+    assert.equal(await qm.ev(loi("tai-xe")), "Đã qua hạn chốt trước giờ xe chạy — người xếp xe điều chỉnh khẩn cấp kèm lý do");
     await axe(qm, "hộp phá lệ 390");
     await shotView(qm, "b3-pha-le-dien-thoai.png");
     await qm.ev(click('.dp-sheet-pha-le .vc-reason[data-code="PHA_LE_SU_CO"]'));

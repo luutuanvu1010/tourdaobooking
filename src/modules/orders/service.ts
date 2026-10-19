@@ -162,9 +162,9 @@ export async function planAddLeg(db: D1Database, orderId: string, body: Record<s
   const stored = await getStoredServices(db, orderId);
   const svc = typeof body!.serviceId === "string" ? stored.find((s) => s.id === body!.serviceId) : undefined;
   if (!svc) return { ok: false, code: "invalid_input", message: "Dịch vụ không thuộc đơn này — hãy tải lại trang." };
-  if (svc.legs.length >= MAX_CHANG_MOI_DICH_VU) return { ok: false, code: "invalid_input", message: `Mỗi dịch vụ tối đa ${MAX_CHANG_MOI_DICH_VU} chặng đưa đón.` };
+  if (svc.legs.length >= MAX_CHANG_MOI_DICH_VU) return { ok: false, code: "invalid_input", message: `Mỗi dịch vụ tối đa ${MAX_CHANG_MOI_DICH_VU} lượt đưa đón.` };
   const raw = body!.leg && typeof body!.leg === "object" && !Array.isArray(body!.leg) ? { ...(body!.leg as Record<string, unknown>), id: undefined } : body!.leg;
-  const k = kiemChang(raw, { at: "Chặng đưa đón", departDate: svc.trip.departDate, today });
+  const k = kiemChang(raw, { at: "Lượt đưa đón", departDate: svc.trip.departDate, today });
   if (!k.ok) return { ok: false, code: "invalid_input", message: k.message };
   const named = await tenDiem(db, svc.legs, [k.value.pickupLocationId, k.value.dropoffLocationId], new Set());
   if (!named.ok) return named;
@@ -200,14 +200,14 @@ export interface EditLegPlan {
 /** `PUT /api/orders/:id/legs/:legId` — thân `{ expectedUpdatedAt (của CHẶNG), leg }`; không đổi chiều; điểm mới phải đang dùng; ngày đón đổi không được đã qua. */
 export async function planEditLeg(db: D1Database, orderId: string, legId: string, body: Record<string, unknown> | null, today: string): Promise<{ ok: true; value: EditLegPlan } | Failed> {
   const row = await legById(db, legId, orderId);
-  if (!row) return { ok: false, code: "leg_not_found", message: "Không tìm thấy chặng đưa đón của đơn này." };
-  if (row.closed_at !== null) return { ok: false, code: "leg_closed", message: "Chặng đưa đón này đã bỏ — không sửa được." };
+  if (!row) return { ok: false, code: "leg_not_found", message: "Không tìm thấy lượt đưa đón của đơn này." };
+  if (row.closed_at !== null) return { ok: false, code: "leg_closed", message: "Lượt đưa đón này đã bỏ — không sửa được." };
   const expected = expectedOf(body);
-  if (!expected) return { ok: false, code: "invalid_input", message: "Thiếu expectedUpdatedAt (mốc cập nhật của chặng mà trang đã đọc)." };
+  if (!expected) return { ok: false, code: "invalid_input", message: "Thiếu expectedUpdatedAt (mốc cập nhật của lượt đưa đón mà trang đã đọc)." };
   const svc = (await getStoredServices(db, orderId)).find((s) => s.id === row.order_service_id)!;
   const old = svc.legs.find((l) => l.id === legId)!;
   const raw = body!.leg && typeof body!.leg === "object" && !Array.isArray(body!.leg) ? { ...(body!.leg as Record<string, unknown>), id: undefined } : body!.leg;
-  const k = kiemChang(raw, { at: "Chặng đưa đón", departDate: svc.trip.departDate, direction: old.direction, today, ngayCu: old.pickupDate });
+  const k = kiemChang(raw, { at: "Lượt đưa đón", departDate: svc.trip.departDate, direction: old.direction, today, ngayCu: old.pickupDate });
   if (!k.ok) return { ok: false, code: "invalid_input", message: k.message };
   const keep = new Set([old.pickupLocationId, old.dropoffLocationId].filter((x): x is string => x !== null));
   const named = await tenDiem(db, svc.legs, [k.value.pickupLocationId, k.value.dropoffLocationId], keep);
@@ -249,12 +249,12 @@ export interface PaxNhapPlan { legId: string; serviceId: string; paxOverride: nu
  */
 export async function planPaxOverrideNhap(db: D1Database, orderId: string, legId: string, body: Record<string, unknown>): Promise<{ ok: true; value: PaxNhapPlan } | Failed> {
   const row = await legById(db, legId, orderId);
-  if (!row) return { ok: false, code: "leg_not_found", message: "Không tìm thấy chặng đưa đón của đơn này." };
-  if (row.closed_at !== null) return { ok: false, code: "leg_closed", message: "Chặng đưa đón này đã bỏ — không sửa được." };
+  if (!row) return { ok: false, code: "leg_not_found", message: "Không tìm thấy lượt đưa đón của đơn này." };
+  if (row.closed_at !== null) return { ok: false, code: "leg_closed", message: "Lượt đưa đón này đã bỏ — không sửa được." };
   const expected = expectedOf(body);
-  if (!expected) return { ok: false, code: "invalid_input", message: "Thiếu expectedUpdatedAt (mốc cập nhật của chặng mà trang đã đọc)." };
-  if (row.direction !== "RETURN") return { ok: false, code: "invalid_input", message: "Chặng đưa đón: chỉ chiều về mới có số người chiều về riêng." };
-  const p = docSoNguoiVe(body.paxOverride, "RETURN", "Chặng đưa đón");
+  if (!expected) return { ok: false, code: "invalid_input", message: "Thiếu expectedUpdatedAt (mốc cập nhật của lượt đưa đón mà trang đã đọc)." };
+  if (row.direction !== "RETURN") return { ok: false, code: "invalid_input", message: "Lượt đưa đón: chỉ chiều về mới có số người chiều về riêng." };
+  const p = docSoNguoiVe(body.paxOverride, "RETURN", "Lượt đưa đón");
   if (!p.ok) return { ok: false, code: "invalid_input", message: p.message };
   const svc = (await getStoredServices(db, orderId)).find((s) => s.id === row.order_service_id)!;
   const old = svc.legs.find((l) => l.id === legId)!;
@@ -275,11 +275,11 @@ export interface CloseLegPlan { legId: string; serviceId: string; reason: LyDoDo
 /** `POST /api/orders/:id/legs/:legId/close` — thân `{ expectedUpdatedAt (của CHẶNG), reasonCode }`; lý do thuộc danh sách đóng ở mã (R6). */
 export async function planCloseLeg(db: D1Database, orderId: string, legId: string, body: Record<string, unknown> | null): Promise<{ ok: true; value: CloseLegPlan } | Failed> {
   const row = await legById(db, legId, orderId);
-  if (!row) return { ok: false, code: "leg_not_found", message: "Không tìm thấy chặng đưa đón của đơn này." };
-  if (row.closed_at !== null) return { ok: false, code: "leg_closed", message: "Chặng đưa đón này đã bỏ rồi." };
+  if (!row) return { ok: false, code: "leg_not_found", message: "Không tìm thấy lượt đưa đón của đơn này." };
+  if (row.closed_at !== null) return { ok: false, code: "leg_closed", message: "Lượt đưa đón này đã bỏ rồi." };
   const expected = expectedOf(body);
-  if (!expected) return { ok: false, code: "invalid_input", message: "Thiếu expectedUpdatedAt (mốc cập nhật của chặng mà trang đã đọc)." };
-  if (!isLyDoDongChang(body!.reasonCode)) return { ok: false, code: "invalid_input", message: "Cần chọn lý do bỏ chặng đưa đón." };
+  if (!expected) return { ok: false, code: "invalid_input", message: "Thiếu expectedUpdatedAt (mốc cập nhật của lượt đưa đón mà trang đã đọc)." };
+  if (!isLyDoDongChang(body!.reasonCode)) return { ok: false, code: "invalid_input", message: "Cần chọn lý do bỏ lượt đưa đón." };
   const svc = (await getStoredServices(db, orderId)).find((s) => s.id === row.order_service_id)!;
   const old = svc.legs.find((l) => l.id === legId)!;
   const names = new Map<string, string>();
@@ -315,24 +315,24 @@ export interface ReplaceLegPlan {
  */
 export async function planReplaceLeg(db: D1Database, orderId: string, legId: string, body: Record<string, unknown> | null, today: string): Promise<{ ok: true; value: ReplaceLegPlan } | Failed> {
   const row = await legById(db, legId, orderId);
-  if (!row) return { ok: false, code: "leg_not_found", message: "Không tìm thấy chặng đưa đón của đơn này." };
-  if (row.closed_at !== null) return { ok: false, code: "leg_closed", message: "Chặng đưa đón này đã bỏ rồi." };
+  if (!row) return { ok: false, code: "leg_not_found", message: "Không tìm thấy lượt đưa đón của đơn này." };
+  if (row.closed_at !== null) return { ok: false, code: "leg_closed", message: "Lượt đưa đón này đã bỏ rồi." };
   const expected = expectedOf(body);
   if (!expected) return { ok: false, code: "invalid_input", message: "Thiếu expectedUpdatedAt (mốc cập nhật của đơn mà trang đã đọc)." };
   const lyDoRaw = body!.reasonCode ?? "REPLACED";
   if (!laLyDoThayChang(lyDoRaw)) {
-    return { ok: false, code: "invalid_input", message: `Lý do bỏ chặng khi thay chỉ là “${LY_DO_DONG_CHANG.REPLACED}” hoặc “${LY_DO_DONG_CHANG.WRONG_ENTRY}”.` };
+    return { ok: false, code: "invalid_input", message: `Lý do bỏ lượt đưa đón khi thay chỉ là “${LY_DO_DONG_CHANG.REPLACED}” hoặc “${LY_DO_DONG_CHANG.WRONG_ENTRY}”.` };
   }
   const svc = (await getStoredServices(db, orderId)).find((s) => s.id === row.order_service_id)!;
   // `svc.legs` chỉ có chặng MỞ: chặng vừa bị bỏ ở lệnh khác giữa hai lần đọc → báo "đã bỏ" (409), không đổ lỗi hệ thống.
   const old = svc.legs.find((l) => l.id === legId);
-  if (!old) return { ok: false, code: "leg_closed", message: "Chặng đưa đón này đã bỏ rồi." };
+  if (!old) return { ok: false, code: "leg_closed", message: "Lượt đưa đón này đã bỏ rồi." };
   const conLai = svc.legs.filter((l) => l.id !== legId);
-  if (conLai.length >= MAX_CHANG_MOI_DICH_VU) return { ok: false, code: "invalid_input", message: `Mỗi dịch vụ tối đa ${MAX_CHANG_MOI_DICH_VU} chặng đưa đón.` };
+  if (conLai.length >= MAX_CHANG_MOI_DICH_VU) return { ok: false, code: "invalid_input", message: `Mỗi dịch vụ tối đa ${MAX_CHANG_MOI_DICH_VU} lượt đưa đón.` };
   const raw = body!.leg && typeof body!.leg === "object" && !Array.isArray(body!.leg) ? { ...(body!.leg as Record<string, unknown>), id: undefined } : body!.leg;
-  const k = kiemChang(raw, { at: "Chặng đưa đón", departDate: svc.trip.departDate, today });
+  const k = kiemChang(raw, { at: "Lượt đưa đón", departDate: svc.trip.departDate, today });
   if (!k.ok) return { ok: false, code: "invalid_input", message: k.message };
-  if (k.value.direction !== old.direction) return { ok: false, code: "invalid_input", message: "Chặng thay phải cùng chiều với chặng cũ — đổi chiều thì bỏ chặng cũ rồi thêm chặng mới." };
+  if (k.value.direction !== old.direction) return { ok: false, code: "invalid_input", message: "Lượt thay phải cùng chiều với lượt cũ — đổi chiều thì bỏ lượt cũ rồi thêm lượt mới." };
   const named = await tenDiem(db, svc.legs, [k.value.pickupLocationId, k.value.dropoffLocationId], new Set());
   if (!named.ok) return named;
   if (k.value.paxOverride != null) {

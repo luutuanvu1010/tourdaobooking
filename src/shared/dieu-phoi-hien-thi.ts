@@ -38,7 +38,7 @@ export function nhanMocTienDo(m: MocTienDoVao): { chu: string; vanPhongKhai: boo
  * tờ), mỗi dòng kèm "(văn phòng lo)" — với tài xế, Quản trị / Toàn quyền cũng là văn phòng. Đạt hết → một dòng "Đủ điều kiện xuất bến".
  */
 export function dongDieuKienTaiXe(conThieu: readonly (Pick<LyDoGiu, "loiNhan"> & { readonly ma?: string })[], tuBoSungTen = false): string[] {
-  if (conThieu.length === 0) return ["Đủ điều kiện xuất bến"];
+  if (conThieu.length === 0) return ["Đủ điều kiện cho xe chạy"];
   return conThieu.map((d) => `${d.loiNhan} ${hauToDieuKienTaiXe(d.ma, tuBoSungTen)}`);
 }
 

@@ -65,7 +65,7 @@ export const NHAN_SU_KIEN_CHUYEN: Readonly<Record<LoaiSuKienChuyen, string>> = {
   ALLOCATION_MOVED: "Dời khách sang chuyến khác",
   ALLOCATION_STOP_CHANGED: "Đổi điểm đón / trả theo đơn", // ADR-0050 VK1-B — lệnh "cập nhật điểm theo đơn" (cùng chuyến; khác ALLOCATION_MOVED — Ruling R-K1)
   ALLOCATION_PASSENGER_CHANGED: "Cập nhật khách theo đơn", // R-P29 (chủ lần 16) — lệnh "cập nhật khách theo đơn" (cùng chuyến; chỉ số lượng, không tên)
-  DEPARTED: "Xuất bến",
+  DEPARTED: "Xe chạy",
   STOP_ARRIVED: "Đã tới điểm",
   PASSENGER_BOARDED: "Đã đón",
   PASSENGER_NO_SHOW: "Khách vắng",
@@ -78,7 +78,7 @@ export const NHAN_SU_KIEN_CHUYEN: Readonly<Record<LoaiSuKienChuyen, string>> = {
   ALLOCATION_OFFICE_CANCELLED: "Văn phòng báo huỷ khách",
   PASSENGER_NAMED: "Tài xế bổ sung tên khách",
   CORRECTION: "Văn phòng điều chỉnh kết quả khách",
-  DEPARTURE_REVOKED: "Văn phòng thu hồi xuất bến",
+  DEPARTURE_REVOKED: "Văn phòng thu hồi lệnh cho xe chạy",
   ALLOCATION_ORDER_SYNCED: "Máy cập nhật chuyến theo đơn",
   TRANSFER_SENT: "Gửi đề nghị chuyển khách",
   TRANSFER_WITHDRAWN: "Rút đề nghị chuyển khách",

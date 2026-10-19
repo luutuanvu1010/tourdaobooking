@@ -93,8 +93,8 @@ export function classifyOrderError(e: ErrorInput, ctx: ErrorContext): Banner {
     if (legs.length === 0) return banner("warning", fallback);
     const moc = ctx.mocPhut ?? null;
     const cau = (p: number) => (moc !== null ? cauMoc(p, moc) : p > 0 ? `giờ đón cách bây giờ ${nhanThoiLuong(p)}` : "giờ đón đã qua");
-    return banner("warning", "Còn chặng đón dưới mốc tối thiểu — cần Quản trị duyệt đặt gấp trước khi xác nhận.", {
-      lines: legs.map((l) => ({ text: `${ctx.tenChang?.(l.legId) ?? "Chặng đưa đón"}: ${cau(l.phutConLai)}` })),
+    return banner("warning", "Còn lượt đưa đón quá hạn chốt — cần Quản trị duyệt đặt gấp trước khi xác nhận.", {
+      lines: legs.map((l) => ({ text: `${ctx.tenChang?.(l.legId) ?? "Lượt đưa đón"}: ${cau(l.phutConLai)}` })),
     });
   }
   if (e.status === 503 && e.code === "moc_toi_thieu_chua_co") {

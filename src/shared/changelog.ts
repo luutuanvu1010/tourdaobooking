@@ -12,6 +12,47 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Màn Tạo đơn thiết kế lại (đặc tả docs/superpowers/specs/2026-10-18-tao-don-thiet-ke-lai/DAC-TA.md, việc 1–9). KHÔNG migration, không đổi thân gửi lên máy chủ.
+    // Số 2.20 là số TẠM (main có 2.19 tạm; kiểm 2026-10-19 bằng git trên main, mọi nhánh và mọi worktree: chưa nơi nào dùng 2.20): phiên phát hành kiểm lại
+    // cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "2.20",
+    date: "2026-10-19",
+    items: [
+      { kind: "doi", text: "Màn Tạo đơn mới: chọn dịch vụ bằng hàng nhóm cuộn ngang và khung danh sách luôn mở; chạm một dòng là thêm, dòng hiện ✓ đã thêm." },
+      { kind: "doi", text: "Thẻ dịch vụ gập thành một dòng (tên, số khách, giờ đón, thành tiền), mỗi lúc chỉ mở một thẻ; xoá dịch vụ bằng nút thùng rác." },
+      { kind: "doi", text: "Số khách xếp hai cột, mỗi loại khách ghi giá; dòng tiền ghi rõ, ví dụ 2 người lớn × 1.350.000 = 2.700.000." },
+      { kind: "doi", text: "Đưa đón chỉ còn một ô Nơi đón và một ô Nơi trả: gõ để chọn điểm có sẵn hoặc ghi địa chỉ tự do." },
+      { kind: "doi", text: "Khối khách có công tắc Đơn của (Khách lẻ hoặc Qua đối tác), bảng Đổi khách ở trang đơn cũng vậy; gõ số điện thoại của đối tác sẽ được nhắc." },
+      { kind: "doi", text: "Tổng tiền nằm ở thanh dưới cùng, chạm để xem chi tiết; lỗi khi lưu hiện ngay trên nút Lưu. Hình thức, Người thu tiền chỉ hiện khi có trả trước." },
+    ],
+  },
+  {
+    // ADR-0130 (rà soát ngôn ngữ giao diện, lượt 1 + lượt 2 — hồ sơ docs/superpowers/specs/2026-10-18-ra-soat-ngon-ngu-luot-2.md): đổi chữ hiện cho người dùng,
+    // dấu trừ trên dòng huỷ khoản thu, hai lỗi nút thẻ Thanh toán, ô hạn chốt nhập phút; MỘT migration 0111 (chỉ đổi hai nhãn luật chuyển khách). Số 2.19 là số TẠM
+    // (= 2.18 của main + 1, kiểm 2026-10-19 bằng git): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0). Ngày là ngày dự kiến.
+    version: "2.19",
+    date: "2026-10-19",
+    items: [
+      { kind: "doi", text: "Trang đơn, khối Thanh toán: «Ghi lần thu» nay là «Ghi khoản thu»; «Thay lần thu» nay là «Sửa khoản thu đã ghi»; nút «Đảo» nay là «Huỷ khoản thu»." },
+      { kind: "doi", text: "Khoản thu đã huỷ ghi «(đã huỷ)»; dòng huỷ hiện số có dấu trừ để không bị đọc thành khách trả thêm một lần." },
+      { kind: "doi", text: "Chi phí xe thuê: nút «Đảo dòng» nay là «Huỷ dòng». Trong hộp huỷ đơn, nút «Giữ đơn» nay là «Không huỷ»." },
+      { kind: "doi", text: "Đổi tên cho dễ hiểu: «chặng» thành «lượt đưa đón», «mốc tối thiểu» thành «hạn chốt», «xuất bến» thành «cho xe chạy»." },
+      { kind: "doi", text: "«Vai» nay là «vai trò»; «phiên đăng nhập» nay là «máy đang đăng nhập»." },
+      { kind: "doi", text: "Tiền: ô chọn ai cầm tiền nay thống nhất là «Người thu tiền»; tiền nhân viên đang cầm của công ty nay ghi «chưa nộp về công ty»." },
+      { kind: "sua", text: "Khối Thanh toán: khoản đang chờ Kế toán xác nhận không còn nút «Sửa khoản thu đã ghi»; khoản tiền mặt không còn bị hỏi «vào tài khoản?»." },
+      { kind: "doi", text: "Chính sách điều phối: ô hạn chốt của Toàn quyền nay nhập theo phút như của Quản trị; gợi ý ghi rõ đơn tính trước giờ đón, xếp xe trước giờ xe chạy." },
+    ],
+  },
+  {
+    // ADR-0131 (thu hẹp quyền đọc nhật ký): lịch sử đơn và thông báo về đơn bỏ tên người làm với mọi người trừ Toàn quyền. Không migration. Số 2.18 là số TẠM
+    // (= 2.17 + 1, kiểm 2026-10-18): phiên phát hành kiểm lại số ở bước A.0 của docs/HANDOFF-N1.md. Ngày là ngày dự kiến.
+    version: "2.18",
+    date: "2026-10-18",
+    items: [
+      { kind: "doi", text: "Khối Lịch sử của đơn và các thông báo về đơn không còn ghi tên người đã làm; chỉ tài khoản Toàn quyền xem được đầy đủ ai làm gì." },
+    ],
+  },
+  {
     // Sửa B-01 (rà soát trước launch): tin «giao đơn» gửi tới chính người được giao không còn đọc «cho người khác phụ trách». Chỉ đổi chữ, không migration, không cần
     // đổi dữ liệu. Số 2.17 là số TẠM (= production 2.16 + 1, kiểm 2026-10-18): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
     // Ngày là ngày dự kiến.

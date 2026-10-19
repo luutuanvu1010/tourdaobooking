@@ -135,6 +135,7 @@ try {
       return {
         hidden: el.hidden, shown: el.getClientRects().length > 0,
         prev: el.previousElementSibling?.className ?? null, next: el.nextElementSibling?.id ?? null, inSide: !!el.closest('.form-side'),
+        nextLop: el.nextElementSibling?.className ?? null, loiTrongThanh: !!el.nextElementSibling?.querySelector('#save-error'),
         title: t(el.querySelector('h2')), chip: t(el.querySelector('.chip')), chipClass: el.querySelector('.chip')?.className ?? null,
         text: t(el.querySelector('.owner-text')), name: t(el.querySelector('.owner-name')), role: t(el.querySelector('.owner-role')),
         buttons: [...el.querySelectorAll('button')].map((b) => ({ text: b.innerText.replace(/\\s+/g, " ").trim(), type: b.type, label: b.getAttribute('aria-label') })),
@@ -210,15 +211,18 @@ try {
     assert.equal(s.shown, true);
     assert.equal(s.inSide, true, "khối nằm trong cột phải (.form-side)");
     assert.match(s.prev, /summary-card/, `ngay sau thẻ Tóm tắt — ${s.prev}`);
-    assert.equal(s.next, "save-error", "ngay trước dải lỗi lưu + vùng nút Lưu");
+    // Thiết kế lại 18/10 (Việc 8, sửa CÓ CHỦ ĐÍCH): dải lỗi lưu nay nằm TRONG vùng nút Lưu (ngay trên nút Lưu) — khối đứng ngay trước vùng đó (trước: ngay trước #save-error rồi mới tới vùng nút).
+    assert.match(s.nextLop ?? "", /form-actions/, `ngay trước vùng nút Lưu — ${s.nextLop}`);
+    assert.equal(s.loiTrongThanh, true, "dải lỗi lưu nằm trong vùng nút Lưu");
     assert.equal(s.title, "Người phụ trách");
     assert.equal(s.chip, "Chờ nhận");
     assert.match(s.chipClass, /chip-warn/);
     assert.equal(s.text, "Chưa chọn ai — hướng dẫn viên nào cũng bấm Nhận được.");
     assert.deepEqual(s.buttons.map((b) => [b.text, b.type]), [["Chọn người phụ trách", "button"]]);
     assert.equal(s.border, "2px");
-    const order = await p.ev("(() => { const o = document.getElementById('owner-card').getBoundingClientRect(); const pay = [...document.querySelectorAll('.form-main > .card')].at(-1).getBoundingClientRect(); const sum = document.querySelector('.summary-card').getBoundingClientRect(); return { afterPay: o.top >= pay.bottom, afterSum: o.top >= sum.bottom }; })()");
-    assert.deepEqual(order, { afterPay: true, afterSum: true }, "trên điện thoại: khối đứng sau Thanh toán và Tóm tắt");
+    // Thiết kế lại 18/10 (Việc 8, sửa CÓ CHỦ ĐÍCH): điện thoại không còn khối Tóm tắt (tiền ở thanh dính cuối trang) — kiểm "Tóm tắt không hiện" thay cho "khối đứng sau Tóm tắt".
+    const order = await p.ev("(() => { const o = document.getElementById('owner-card').getBoundingClientRect(); const pay = [...document.querySelectorAll('.form-main > .card')].at(-1).getBoundingClientRect(); return { afterPay: o.top >= pay.bottom, tomTatAn: document.querySelector('.summary-card').getClientRects().length === 0 }; })()");
+    assert.deepEqual(order, { afterPay: true, tomTatAn: true }, "trên điện thoại: khối đứng sau Thanh toán; khối Tóm tắt không hiện");
     assert.equal(assigneeCalls(p), 0, "không gọi danh sách trước khi mở bảng");
     assert.equal(await p.ev("document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1"), true, "không tràn ngang");
     await p.ev("document.getElementById('owner-card').scrollIntoView({ block: 'center' }); true");

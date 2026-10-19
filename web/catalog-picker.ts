@@ -1,37 +1,47 @@
-// Ô "Chọn từ danh mục": MỘT nút xổ xuống "Nhóm dịch vụ" (kèm số nhóm đang tick) NẰM TRÊN ô gõ + danh sách kết quả (tên, mã, đơn vị, giá người lớn). Chạm một kết quả = thêm thẻ (onPick).
-// Đợt 1 (13/10, ý chủ: "bỏ hết sự rườm rà, chỉ để lại việc lọc theo nhóm sản phẩm bằng nút xổ xuống + tick chọn"): hàng chip nhóm, chip "★ Hay dùng", hàng "Lọc sẵn có" đều đã bỏ.
-// Bấm nút → mở bảng nhóm, mỗi dòng một ô tick (vùng bấm ≥ 44px), tick được NHIỀU nhóm, không tick nhóm nào = tất cả; "Bỏ chọn hết"; đóng bằng nút Đóng, Esc hoặc bấm ra ngoài.
-// Chạm hoặc focus vào ô gõ là hiện cả danh sách (kể cả khi ô vẫn đang giữ focus sau lần chọn trước — iPhone không chuyển focus khi chạm nút); dấu ☆/★ ở ĐẦU dòng gắn sao dịch vụ hay dùng
-// và dịch vụ có sao xếp lên trước ở lần dựng danh sách kế tiếp (bấm sao chỉ đổi biểu tượng tại chỗ, không làm dòng nhảy hay cuộn nhảy; giả định của người thi công); thanh nhỏ đầu danh sách có số dịch vụ và nút "Đóng" (Esc cũng đóng). Đây chỉ là cách HIỂN THỊ: dữ liệu tải và luật lọc theo vai (ADR-0033) không đổi.
-// Dịch vụ chưa hỗ trợ đơn vị hoặc chưa có giá hiện mờ, không chạm được (ghi "chưa hỗ trợ" / "chưa có giá"; ADR-0061: người ĐƯỢC nhập tay — `setNhapTay(true)` —
-// thấy "chưa hỗ trợ — dùng nhập tay", gợi ý nút "+ Dịch vụ nhập tay"; người không được nhập tay chỉ thấy "chưa hỗ trợ" như bản 1.40): `aria-disabled` chứ không `disabled`, để vẫn nằm trong cây truy cập (người dùng đọc màn hình biết có mục này). Dịch vụ đã ẩn không có trong /api/catalog/for-order (nguồn của form lập đơn, ADR-0033) nên không hiện.
-// Danh sách là các nút thường (không role listbox/option: listbox đòi tên + mô hình phím mũi tên mà ở đây không có). Mỗi dòng: nút sao ☆/★ (`.catalog-ghim`) + nút chọn (`.catalog-pick`) — anh em, không lồng.
+// Ô chọn dịch vụ của form lập đơn — thiết kế lại 18/10/2026 (đặc tả docs/superpowers/specs/2026-10-18-tao-don-thiet-ke-lai/DAC-TA.md mục 3A, đề bài
+// PROMPT-CLAUDE-DESIGN.md "A. Chọn dịch vụ"; chủ duyệt hàng nhóm CHỌN MỘT ngày 17/10 — bản đề xuất DE-XUAT-ADR-0130.md (số tạm; ADR-0130 trên main là bảng từ giao diện), thay bảng tick nhiều nhóm của đợt 1 ngày 13/10).
+// Thứ tự: ô tìm "Tìm theo tên hoặc mã dịch vụ" (nút ✕ xoá chữ) → MỘT hàng nút nhóm cuộn ngang → khung danh sách LUÔN MỞ, cao cố định (token --h-danh-sach),
+// cuộn bên trong; thẻ dịch vụ đã chọn nằm bên dưới (ngoài tệp này). Nút "+ Dịch vụ nhập tay" vẫn ở ngay dưới, trong public/order-form.html.
+// Hàng nhóm: "Tất cả" đầu, rồi nhóm theo thứ tự Quản trị, "Chưa phân loại" cuối (nếu còn dịch vụ chưa gán). Chọn MỘT nhóm, chạm là lọc liền, nút không số đếm.
+// Mép phải mờ + "›" khi còn nhóm phía sau; nhóm đang chọn luôn được cuộn vào tầm nhìn (đặt scrollLeft, không scrollIntoView để trang không cuộn theo).
+// Máy tính ≥ 960px: nút ‹ › hiện khi rê chuột / focus vào hàng; phím ← → (và ↑ ↓) Home End đi giữa các nhóm (radiogroup, roving tabindex). Nhớ nhóm THEO TÀI KHOẢN
+// (`khoaNhoNhom`, ghi `ghiNhoMotNhom` — mảng một mã để bản cũ đọc được), mọi đọc / ghi bộ nhớ bọc try/catch (bị chặn = "Tất cả").
+// Khung: đầu khung "N dịch vụ" / "N dịch vụ · <nhóm>" (`nhanDem`, đếm lúc chạy). "Tất cả": dịch vụ gắn sao CHỈ ở mục "★ Hay dùng" đầu khung, rồi mục theo nhóm
+// (`chiaMuc`); chọn một nhóm: dịch vụ có sao lên đầu (`xepGhimTruoc`). Gõ chữ: tìm trong MỌI nhóm, chia mục theo nhóm, hàng nhóm về "Tất cả", nhóm hết kết quả
+// mờ + aria-disabled (không số); chạm nhóm còn sáng để thu hẹp, gõ thêm không nhảy; xoá chữ thì về nhóm đã chọn trước khi tìm (`doiChuTim`, `chamNhom`).
+// Dòng: nút sao ☆/★ (`.catalog-ghim`) + nút chọn (`.catalog-pick`) — anh em, không lồng; tên tách ở dấu ":" đầu (phần trước màu chữ phụ), không cắt; mã ở dòng phụ;
+// giá người lớn thẳng cột, không "₫"; chỉ dịch vụ tính theo nhóm ghi đơn vị dưới giá (`unitLabel`). Chạm dòng = thêm dịch vụ (onPick): khung ĐỨNG YÊN (không
+// dựng lại, không xoá chữ tìm), dòng hiện "✓ đã thêm" (không chặn chọn trùng), không thông báo nổi — vùng aria-live đọc "Đã thêm <tên>".
+// Dòng không chọn được ("chưa có giá", "chưa hỗ trợ"; ADR-0061: người được nhập tay thấy "chưa hỗ trợ — dùng nhập tay") mờ, `aria-disabled` chứ không
+// `disabled` để còn trong cây truy cập, chạm không tác dụng. Danh sách là nút thường (không listbox/option). Đơn đủ 20 dịch vụ (`setDisabled`): ô tìm,
+// hàng nhóm và khung khoá (inert), hiện câu lý do. Đây chỉ là cách HIỂN THỊ: dữ liệu tải và luật lọc theo vai (ADR-0033) không đổi.
+// `recompute()` của form gọi `setSelected` / `setDisabled` ở MỖI lần gõ: hai hàm này chỉ sửa tại chỗ (nhãn, khoá), không dựng lại khung — nếu không, vị trí cuộn
+// trong khung sẽ nhảy về đầu sau mỗi lần thêm dịch vụ.
 import type { CatalogGroupDto, CatalogServiceDto } from "../src/shared/contracts";
+import { CHUA_PHAN_LOAI, chamNhom, docNhoDanhMuc, docNhoMotNhom, doiChuTim, doiGhim, dungMucDanhMuc, ghiNhoMotNhom, khoaNhoNhom, nhanDem, tachTenDichVu, type NhoDanhMuc, type TrangThaiNhom } from "../src/shared/loc-danh-muc";
+import { parseUnit } from "../src/shared/order-lines";
 import { unitLabel } from "../src/shared/service-form";
-import { CHUA_PHAN_LOAI, demTheoNhom, docNhoDanhMuc, docNhoNhom, doiGhim, doiNhom, khoaNhoNhom, locDanhMuc, locTheoNhom, xepGhimTruoc, type ChonNhom, type NhoDanhMuc } from "../src/shared/loc-danh-muc";
 import { h, replaceChildren } from "./dom";
-import { vnd } from "./format";
+import { grouped } from "./format";
+import { icon } from "./icons";
 
 export interface CatalogPicker {
   root: HTMLElement;
   setItems(items: readonly CatalogServiceDto[]): void;
   /** Thông báo của danh mục (trống / chưa đồng bộ được / không tải được); null = ẩn. */
   setNotice(text: string | null): void;
-  /** Khoá ô tìm kèm lý do (vd "Đơn đã đủ 20 dịch vụ."); null = mở lại. */
+  /** Khoá ô tìm, hàng nhóm và khung kèm lý do (vd "Đơn đã đủ 20 dịch vụ."); null = mở lại. */
   setDisabled(reason: string | null): void;
-  /** Bản 1.39: mã dịch vụ đang có trong đơn — kết quả tìm trùng mã gắn nhãn "đã chọn" (KHÔNG chặn chọn trùng, chủ quyết). */
+  /** Bản 1.39: mã dịch vụ đang có trong đơn — dòng trùng mã hiện "✓ đã thêm" (KHÔNG chặn chọn trùng, chủ quyết). Sửa tại chỗ, không dựng lại khung. */
   setSelected(codes: Iterable<string>): void;
   /** ADR-0061: người dùng được nhập tay (`duocDung` của máy chủ) — dịch vụ chưa hỗ trợ ghi "chưa hỗ trợ — dùng nhập tay". */
   setNhapTay(duocNhapTay: boolean): void;
   focus(): void;
-  /** ADR-0058 Đ8: nhóm dịch vụ (thứ tự của máy chủ) cho nút xổ xuống "Nhóm dịch vụ"; rỗng (và không có dịch vụ chưa phân loại) = ẩn nút. */
+  /** ADR-0058 Đ8: nhóm dịch vụ (thứ tự của máy chủ) cho hàng nút nhóm; rỗng = ẩn hàng nhóm, khung không chia mục. */
   setGroups(groups: readonly CatalogGroupDto[]): void;
-  /** Id tài khoản đang đăng nhập (gọi ngay sau `initShell()`): đọc các nhóm đã tick của RIÊNG tài khoản này trên máy. Trước khi gọi: không tick nhóm nào (tất cả), không đọc / ghi bộ nhớ. */
+  /** Id tài khoản đang đăng nhập (gọi ngay sau `initShell()`): đọc nhóm đã chọn lần trước của RIÊNG tài khoản này trên máy. Trước khi gọi: "Tất cả", không đọc / ghi bộ nhớ. */
   setTaiKhoan(staffId: string): void;
 }
-
-/** Trần số dòng vẽ trong danh sách (danh mục thật ~109 dịch vụ: vẽ hết để cuộn được; gõ chữ để thu hẹp). */
-const MAX_KET_QUA = 150;
 
 const KHOA_NHO = "td.dmLoc.v1";
 function docBoNho(): string | null {
@@ -48,7 +58,7 @@ function ghiBoNho(v: NhoDanhMuc): void {
     /* bộ nhớ bị chặn: chỉ không nhớ */
   }
 }
-// Nhóm dịch vụ đã tick (ADR-0058 Đ8): nhớ THEO TÀI KHOẢN (`khoaNhoNhom`), mọi đọc / ghi bọc try/catch (khuôn help-seen.ts) — bị chặn thì coi như không tick nhóm nào (tất cả).
+// Nhóm đã chọn: nhớ THEO TÀI KHOẢN (`khoaNhoNhom`), mọi đọc / ghi bọc try/catch (khuôn help-seen.ts) — bị chặn thì coi như "Tất cả".
 function docNhoNhomTho(staffId: string): string | null {
   try {
     return localStorage.getItem(khoaNhoNhom(staffId));
@@ -56,218 +66,323 @@ function docNhoNhomTho(staffId: string): string | null {
     return null;
   }
 }
-function ghiNhoNhom(staffId: string, nhom: ChonNhom): void {
+function ghiNhoNhom(staffId: string, ma: string): void {
   try {
-    if (nhom.length === 0) localStorage.removeItem(khoaNhoNhom(staffId));
-    else localStorage.setItem(khoaNhoNhom(staffId), JSON.stringify(nhom));
+    localStorage.setItem(khoaNhoNhom(staffId), JSON.stringify(ghiNhoMotNhom(ma)));
   } catch {
     /* bộ nhớ bị chặn: chỉ không nhớ */
   }
 }
 
+/** Bề rộng mép mờ (token --mep-mo, px) — để cuộn nhóm đang chọn ra khỏi vùng mờ. Không đọc được thì 0. */
+function beRongMep(el: Element): number {
+  const v = parseFloat(getComputedStyle(el).getPropertyValue("--mep-mo"));
+  return Number.isFinite(v) ? v : 0;
+}
+
 export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => void }): CatalogPicker {
   const notice = h("div", { class: "alert warn", role: "status", hidden: true });
-  // Nhãn "Chọn từ danh mục" ẩn (bảng việc #4): chữ mờ trong ô nói việc cần làm; tên cho trình đọc màn hình ở `aria-label`.
-  const q = h("input", { id: "catalog-q", type: "search", placeholder: "Chọn từ danh mục — gõ tên hoặc mã…", "aria-label": "Chọn từ danh mục", autocomplete: "off", "aria-controls": "catalog-list" });
-  const reason = h("p", { class: "muted", hidden: true });
-  const list = h("div", { id: "catalog-list", class: "catalog-list", hidden: true });
-  // Mã đã gắn sao (☆/★) nhớ TRÊN MÁY này (bộ nhớ trình duyệt; bị chặn → chỉ không nhớ). Bản nhớ cũ còn trường `loc` (bộ lọc "Hay dùng" / "Theo người" / "Giá theo nhóm") thì `docNhoDanhMuc` bỏ qua.
-  let nho: NhoDanhMuc = docNhoDanhMuc(docBoNho());
-  // Nút xổ xuống "Nhóm dịch vụ" (ADR-0058 Đ8; đợt 1): bấm mở bảng nhóm — mỗi dòng một ô tick, tick NHIỀU nhóm, không tick = tất cả, kết hợp VÀ với ô gõ. Bảng nằm trong dòng chảy trang
-  // (không nổi lên che ô gõ). Các dòng ô tick dựng khi có danh mục / nhóm; bấm một ô chỉ đổi `checked` (KHÔNG dựng lại dòng) — xem bộ nghe "bấm ra ngoài" ở dưới.
-  const nhomNutChu = h("span", { class: "catalog-nhom-chu" }, "Nhóm dịch vụ");
-  const nhomNut = h("button", { type: "button", id: "catalog-nhom-nut", class: "catalog-nhom-nut", "aria-expanded": "false", "aria-controls": "catalog-nhom-bang" }, nhomNutChu, h("span", { class: "catalog-nhom-mui", "aria-hidden": "true" }, "▾"));
-  const nhomBo = h("button", { type: "button", class: "btn btn-link catalog-nhom-bo" }, "Bỏ chọn hết");
-  const nhomDong = h("button", { type: "button", class: "btn btn-link catalog-nhom-dong" }, "Đóng");
-  const nhomSo = h("span", { class: "catalog-nhom-so-ket-qua muted", role: "status" });
-  const nhomCacDong = h("div", { class: "catalog-nhom-cac-dong" });
-  const nhomBang = h("div", { id: "catalog-nhom-bang", class: "catalog-nhom-bang", role: "group", "aria-label": "Nhóm dịch vụ", hidden: true }, h("div", { class: "catalog-nhom-dau" }, nhomSo, nhomBo, nhomDong), nhomCacDong);
-  const nhomHang = h("div", { class: "catalog-nhom", "data-cho": "nhom", hidden: true }, nhomNut, nhomBang);
-  const root = h("div", { class: "catalog" }, notice, nhomHang, q, reason, list);
+  // Câu lý do khoá: `p.muted` con trực tiếp của `.catalog` (kịch bản a2-smoke-form đọc đúng chỗ này).
+  const reasonText = h("span", null);
+  // tabindex -1: nhận tiêu điểm khi khung thành inert lúc tiêu điểm đang ở trong khung (thêm dịch vụ thứ 20 bằng bàn phím — nợ T2(4), Việc 9).
+  const reason = h("p", { class: "muted catalog-khoa", hidden: true, tabindex: "-1" }, icon("lock", 16), reasonText);
+  // Ô tìm giữ type="search": order-form.ts chặn Enter theo đúng kiểu ô này (ô nằm trong <form>).
+  const q = h("input", { id: "catalog-q", type: "search", placeholder: "Tìm theo tên hoặc mã dịch vụ", "aria-label": "Tìm theo tên hoặc mã dịch vụ", autocomplete: "off", "aria-controls": "catalog-list" });
+  const xoa = h("button", { type: "button", class: "catalog-tim-xoa", "aria-label": "Xoá chữ tìm", hidden: true }, icon("close", 20));
+  const tim = h("div", { class: "catalog-tim" }, h("span", { class: "catalog-tim-kinh" }, icon("search", 20)), q, xoa);
+  // Hàng nhóm: hàng cuộn là radiogroup (NẰM NGOÀI #catalog-list); "›" và hai nút ‹ › phủ lên mép hàng (aria-hidden / tabindex -1: phím mũi tên đã đủ).
+  const cuon = h("div", { class: "catalog-hang-cuon", role: "radiogroup", "aria-label": "Nhóm dịch vụ" });
+  const con = h("span", { class: "catalog-hang-con", "aria-hidden": "true", hidden: true }, "›");
+  const muiTruoc = h("button", { type: "button", class: "catalog-hang-mui", "data-huong": "truoc", "aria-label": "Xem nhóm phía trước", tabindex: "-1", hidden: true }, "‹");
+  const muiSau = h("button", { type: "button", class: "catalog-hang-mui", "data-huong": "sau", "aria-label": "Xem nhóm phía sau", tabindex: "-1", hidden: true }, "›");
+  const hang = h("div", { class: "catalog-hang", "data-cho": "nhom", hidden: true }, cuon, con, muiTruoc, muiSau);
+  const dau = h("div", { class: "catalog-dau" });
+  const list = h("div", { id: "catalog-list", class: "catalog-list" });
+  const khung = h("div", { class: "catalog-khung" }, dau, list);
+  // Báo cho trình đọc màn hình (thay thông báo nổi): chữ đổi sau một nhịp để đọc lại được cả khi thêm cùng dịch vụ hai lần.
+  const bao = h("div", { class: "visually-hidden catalog-bao", "aria-live": "polite" });
+  const root = h("div", { class: "catalog" }, notice, reason, tim, hang, khung, bao);
+
   let items: readonly CatalogServiceDto[] = [];
-  let selected = new Set<string>();
   let groups: readonly CatalogGroupDto[] = [];
-  let staffId: string | null = null;
-  let nhom: string[] = [];
-  let choDoc: string | null | undefined; // bản nhớ đã đọc của tài khoản, chờ có groups để kiểm (undefined = không có gì chờ)
-  function apDungNho(): void {
-    if (choDoc === undefined || groups.length === 0) return;
-    nhom = docNhoNhom(choDoc, groups); // nhóm không còn trong groups / rác / mã của bộ lọc đã bỏ → bỏ qua; không còn gì = tất cả
-    choDoc = undefined;
-  }
-
-  /** Các nhóm đang tick mà còn dùng được (còn trong `groups`; "Chưa phân loại" chỉ khi còn dịch vụ không nhóm). Không phụ thuộc thứ tự setGroups / setItems / setTaiKhoan. */
-  const coChuaPhanLoai = (): boolean => items.some((c) => c.groupCode === null);
-  const nhomHieuLuc = (): string[] => nhom.filter((x) => (x === CHUA_PHAN_LOAI ? coChuaPhanLoai() : groups.some((gr) => gr.code === x)));
-  const ketQua = (): CatalogServiceDto[] => xepGhimTruoc(locTheoNhom(locDanhMuc(items, { kim: q.value }), nhomHieuLuc()), nho.ghim); // ô gõ VÀ nhóm; dịch vụ có sao lên trước
-  function moBang(mo: boolean): void {
-    nhomBang.hidden = !mo;
-    nhomNut.setAttribute("aria-expanded", String(mo));
-  }
-  /** Nút ghi "Nhóm dịch vụ" hoặc "Nhóm dịch vụ · N"; ô tick khớp trạng thái; "Bỏ chọn hết" tắt khi chưa tick gì; dòng "N dịch vụ" trong bảng. */
-  function capNhatNhom(): void {
-    const dang = nhomHieuLuc();
-    nhomNutChu.textContent = dang.length > 0 ? `Nhóm dịch vụ · ${dang.length}` : "Nhóm dịch vụ";
-    for (const cb of nhomCacDong.querySelectorAll<HTMLInputElement>("input[type=checkbox]")) cb.checked = dang.includes(cb.value);
-    nhomBo.disabled = dang.length === 0;
-    nhomSo.textContent = `${ketQua().length} dịch vụ`;
-  }
-  function chonNhom(ma: string): void {
-    nhom = doiNhom(nhomHieuLuc(), ma);
-    if (staffId !== null) ghiNhoNhom(staffId, nhom);
-    capNhatNhom();
-    if (!list.hidden) render();
-  }
-  nhomNut.addEventListener("click", () => {
-    const mo = nhomNut.getAttribute("aria-expanded") !== "true";
-    moBang(mo);
-    if (mo) {
-      list.hidden = true; // bảng nhóm thay chỗ danh sách trong lúc chọn; đóng bảng thì danh sách hiện lại
-      capNhatNhom();
-    }
-  });
-  nhomBo.addEventListener("click", () => {
-    nhom = [];
-    if (staffId !== null) ghiNhoNhom(staffId, nhom);
-    capNhatNhom();
-  });
-  function dongBang(): void {
-    moBang(false);
-    nhomNut.focus();
-    render(); // chọn nhóm xong = muốn xem dịch vụ của các nhóm đó: danh sách mở
-  }
-  nhomDong.addEventListener("click", dongBang);
-  nhomHang.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && nhomNut.getAttribute("aria-expanded") === "true") {
-      e.preventDefault();
-      e.stopPropagation();
-      dongBang();
-    }
-  });
-  function renderNhom(): void {
-    nhomHang.hidden = groups.length === 0 && !coChuaPhanLoai();
-    const dem = demTheoNhom(items);
-    const dongNhom = (ma: string, ten: string) => {
-      const cb = h("input", { type: "checkbox", value: ma, "data-nhom": ma });
-      cb.addEventListener("change", () => chonNhom(ma));
-      return h("label", { class: "catalog-nhom-hang" }, cb, h("span", { class: "catalog-nhom-ten" }, ten), h("span", { class: "catalog-nhom-so muted" }, String(dem.get(ma) ?? 0)));
-    };
-    replaceChildren(nhomCacDong, ...groups.map((x) => dongNhom(x.code, x.name)), coChuaPhanLoai() ? dongNhom(CHUA_PHAN_LOAI, "Chưa phân loại") : null);
-    capNhatNhom();
-  }
+  let daNap = false; // đã có danh mục (setItems): trước đó khung để trống, không báo "không tìm thấy"
+  let selected = new Set<string>();
   let nhapTay = false;
+  let khoa: string | null = null;
+  let staffId: string | null = null;
+  let choDoc: string | null | undefined; // bản nhớ đã đọc của tài khoản, chờ có groups để kiểm (undefined = không có gì chờ)
+  let daCham = false; // người dùng đã tự chạm nhóm: bản nhớ đến muộn không đè lựa chọn đó
+  let tt: TrangThaiNhom = { nhom: "", truocKhiTim: null, daThuHep: false };
+  let chuCu = "";
+  // Mã đã gắn sao (☆/★) nhớ TRÊN MÁY này (bộ nhớ trình duyệt; bị chặn → chỉ không nhớ). Bản nhớ cũ còn trường `loc` thì `docNhoDanhMuc` bỏ qua.
+  let nho: NhoDanhMuc = docNhoDanhMuc(docBoNho());
+  let nutNhom: HTMLButtonElement[] = [];
+  const dongPhu = new Map<string, HTMLElement[]>(); // mã → các dòng phụ đang vẽ (để gắn / gỡ "✓ đã thêm" tại chỗ)
+  let henBao = 0;
 
-  function dong(): void {
-    list.hidden = true;
+  const coChuaPhanLoai = (): boolean => items.some((c) => c.groupCode === null);
+  const coHangNhom = (): boolean => groups.length > 0;
+  /** Nhóm đang chọn còn dùng được (còn trong groups; "Chưa phân loại" chỉ khi còn dịch vụ không nhóm); không thì "Tất cả". Không phụ thuộc thứ tự gọi các hàm set*. */
+  const nhomHieuLuc = (): string => {
+    const ma = tt.nhom;
+    if (ma === "" || !coHangNhom()) return "";
+    return (ma === CHUA_PHAN_LOAI ? coChuaPhanLoai() : groups.some((g) => g.code === ma)) ? ma : "";
+  };
+  const tenNhom = (ma: string): string | null => (ma === "" ? null : ma === CHUA_PHAN_LOAI ? "Chưa phân loại" : (groups.find((g) => g.code === ma)?.name ?? null));
+  const dangTim = (): boolean => q.value.trim() !== "";
+  const nut = (ma: string): HTMLButtonElement | undefined => nutNhom.find((b) => b.dataset.nhom === ma);
+
+  // ---- hàng nhóm ----
+  function veHangNhom(): void {
+    hang.hidden = !coHangNhom();
+    const ds = [{ ma: "", ten: "Tất cả" }, ...groups.map((g) => ({ ma: g.code, ten: g.name })), ...(coChuaPhanLoai() ? [{ ma: CHUA_PHAN_LOAI, ten: "Chưa phân loại" }] : [])];
+    nutNhom = ds.map(({ ma, ten }) => {
+      const b = h("button", { type: "button", class: "catalog-nut-nhom", role: "radio", "data-nhom": ma }, ten);
+      b.addEventListener("click", () => chamVaoNhom(ma));
+      return b;
+    });
+    replaceChildren(cuon, ...nutNhom);
   }
-  function render(): void {
-    capNhatNhom();
-    const khop = ketQua();
-    const found = khop.slice(0, MAX_KET_QUA);
-    const dongBtn = h("button", { type: "button", class: "btn btn-link catalog-dong" }, "Đóng");
-    dongBtn.addEventListener("click", dong);
-    const dau = h("div", { class: "catalog-dau" }, h("span", { class: "muted" }, khop.length > found.length ? `Hiện ${found.length} / ${khop.length} dịch vụ — gõ để thu hẹp` : `${khop.length} dịch vụ`), dongBtn);
+  /** aria-checked + roving tabindex theo nhóm hiệu lực; `conKetQua` (khi đang tìm) làm mờ nhóm hết kết quả — "Tất cả" không bao giờ mờ. */
+  function capNhatHangNhom(conKetQua: ReadonlySet<string> | null): void {
+    const chon = nhomHieuLuc();
+    for (const b of nutNhom) {
+      const ma = b.dataset.nhom ?? "";
+      b.setAttribute("aria-checked", String(ma === chon));
+      b.tabIndex = ma === chon ? 0 : -1;
+      if (conKetQua !== null && ma !== "" && !conKetQua.has(ma)) b.setAttribute("aria-disabled", "true");
+      else b.removeAttribute("aria-disabled");
+    }
+  }
+  /** Mép mờ + "›" khi còn nhóm phía sau; nút ‹ › chỉ khi còn chỗ cuộn về phía đó (hiện hay không do CSS: rê chuột / focus, ≥ 960px). */
+  function capNhatMep(): void {
+    const max = cuon.scrollWidth - cuon.clientWidth;
+    const conSau = max > 1 && cuon.scrollLeft < max - 1;
+    con.hidden = !conSau;
+    hang.classList.toggle("is-con-sau", conSau);
+    muiSau.hidden = !conSau;
+    muiTruoc.hidden = !(cuon.scrollLeft > 1);
+  }
+  /** Cuộn hàng nhóm (KHÔNG cuộn trang) để nút `ma` nằm trọn trong tầm nhìn, ra khỏi vùng mép mờ bên phải. */
+  function duaVaoTam(ma: string): void {
+    const b = nut(ma);
+    if (!b || hang.hidden || cuon.clientWidth === 0) return;
+    const c = cuon.getBoundingClientRect();
+    const r = b.getBoundingClientRect();
+    const mep = beRongMep(root);
+    if (r.left < c.left) cuon.scrollLeft -= c.left - r.left;
+    else if (r.right > c.right - mep) cuon.scrollLeft += Math.min(r.right - c.right + mep, r.left - c.left);
+    capNhatMep();
+  }
+  function chamVaoNhom(ma: string): void {
+    if (khoa !== null) return;
+    const b = nut(ma);
+    if (!b || b.getAttribute("aria-disabled") === "true" || ma === nhomHieuLuc()) return;
+    daCham = true;
+    const tim = dangTim();
+    tt = chamNhom(tt, ma, tim);
+    if (!tim && staffId !== null) ghiNhoNhom(staffId, ma); // chạm lúc đang tìm chỉ là thu hẹp tạm: không đè nhóm đã nhớ
+    ve(true);
+    duaVaoTam(ma);
+  }
+  cuon.addEventListener("scroll", capNhatMep, { passive: true });
+  window.addEventListener("resize", capNhatMep);
+  void document.fonts?.ready.then(capNhatMep); // phông tải xong thì nút rộng ra: tính lại mép
+  muiTruoc.addEventListener("click", () => cuon.scrollBy({ left: -cuon.clientWidth * 0.8, behavior: "smooth" }));
+  muiSau.addEventListener("click", () => cuon.scrollBy({ left: cuon.clientWidth * 0.8, behavior: "smooth" }));
+  cuon.addEventListener("keydown", (e) => {
+    if (!["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
+    const sang = nutNhom.filter((b) => b.getAttribute("aria-disabled") !== "true");
+    if (sang.length === 0) return;
+    e.preventDefault();
+    const dangO = sang.indexOf(document.activeElement as HTMLButtonElement);
+    let k = dangO >= 0 ? dangO : Math.max(0, sang.findIndex((b) => b.dataset.nhom === nhomHieuLuc()));
+    if (e.key === "Home") k = 0;
+    else if (e.key === "End") k = sang.length - 1;
+    else if (e.key === "ArrowRight" || e.key === "ArrowDown") k = Math.min(sang.length - 1, k + 1);
+    else k = Math.max(0, k - 1);
+    const ma = sang[k]?.dataset.nhom ?? "";
+    chamVaoNhom(ma);
+    nut(ma)?.focus({ preventScroll: true });
+    duaVaoTam(ma);
+  });
+
+  // ---- khung danh sách ----
+  /** Gắn / gỡ nhãn "✓ đã thêm" trong một dòng phụ (tại chỗ). */
+  function nhanDaThem(phu: HTMLElement, co: boolean): void {
+    const cu = phu.querySelector(".chip-picked");
+    if (co && !cu) phu.querySelector(".catalog-ma")?.after(h("span", { class: "chip chip-picked" }, "✓ đã thêm"));
+    else if (!co && cu) cu.remove();
+  }
+  function baoDaThem(ten: string): void {
+    bao.textContent = "";
+    window.clearTimeout(henBao);
+    henBao = window.setTimeout(() => {
+      bao.textContent = `Đã thêm ${ten}`;
+    }, 100);
+  }
+  function dongDichVu(c: CatalogServiceDto): HTMLElement {
+    const coGia = c.prices.adult !== null;
+    const chonDuoc = c.supported && coGia;
+    const ten = tachTenDichVu(c.name);
+    const ghi = !c.supported ? (nhapTay ? "chưa hỗ trợ — dùng nhập tay" : "chưa hỗ trợ") : coGia ? null : "chưa có giá";
+    const phu = h("span", { class: "catalog-phu" }, h("span", { class: "catalog-ma" }, c.code), ghi ? h("span", { class: "catalog-ghi" }, ghi) : null);
+    nhanDaThem(phu, selected.has(c.code));
+    dongPhu.set(c.code, [...(dongPhu.get(c.code) ?? []), phu]);
+    const gia = h(
+      "span",
+      { class: "catalog-gia" },
+      chonDuoc && c.prices.adult !== null ? h("span", { class: "catalog-gia-so" }, grouped(c.prices.adult)) : h("span", { class: "catalog-gia-so", "aria-hidden": "true" }, "—"),
+      chonDuoc && parseUnit(c.unit).kind === "group" ? h("span", { class: "catalog-gia-dv" }, unitLabel(c.unit)) : null,
+    );
+    const pick = h(
+      "button",
+      { type: "button", class: "catalog-pick", "aria-disabled": chonDuoc ? undefined : "true" },
+      h("span", { class: "catalog-name" }, h("span", { class: "catalog-ten" }, ten.dau ? h("span", { class: "catalog-ten-dau" }, ten.dau) : null, ten.sau), phu),
+      gia,
+    );
+    pick.addEventListener("click", () => {
+      if (!chonDuoc || khoa !== null) return; // dòng mờ / đơn đã khoá: không tác dụng
+      o.onPick(c); // form dựng thẻ rồi gọi setSelected → nhãn "✓ đã thêm" gắn tại chỗ; khung không dựng lại, chữ tìm giữ nguyên
+      baoDaThem(c.name);
+    });
+    const ghim = h("button", { type: "button", class: "catalog-ghim", "data-ghim": c.code });
+    // Bấm sao CHỈ đổi biểu tượng + nhớ ngay tại dòng đó — KHÔNG dựng lại khung, nên dòng không nhảy và vị trí cuộn giữ nguyên (người kiểm 13/10).
+    // Mục "★ Hay dùng" / thứ tự sao lên đầu chỉ đổi ở lần dựng khung kế tiếp (đổi nhóm, gõ chữ). Focus vẫn ở chính nút này.
+    const veSao = (): void => {
+      const da = nho.ghim.includes(c.code);
+      ghim.textContent = da ? "★" : "☆";
+      ghim.setAttribute("aria-pressed", String(da));
+      ghim.setAttribute("aria-label", `${da ? "Bỏ khỏi Hay dùng" : "Thêm vào Hay dùng"}: ${c.name}`);
+    };
+    veSao();
+    ghim.addEventListener("click", () => {
+      nho = { ...nho, ghim: doiGhim(nho.ghim, c.code) };
+      ghiBoNho(nho);
+      veSao();
+    });
+    return h("div", { class: "catalog-row", "data-ma": c.code }, ghim, pick);
+  }
+  function cauRong(tim: boolean, nhom: string): string {
+    if (items.length === 0) return "Chưa có dịch vụ để chọn.";
+    if (tim && nhom !== "") return `Không tìm thấy dịch vụ nào khớp trong nhóm ${tenNhom(nhom) ?? ""}. Chạm "Tất cả" để tìm trong mọi nhóm.`;
+    if (tim) return "Không tìm thấy dịch vụ nào khớp. Thử gõ mã dịch vụ.";
+    return "Nhóm này chưa có dịch vụ.";
+  }
+  /** Dựng lại khung theo nhóm + chữ tìm. `veDau` (đổi nhóm / đổi chữ): về đầu khung; còn lại (tải lại danh mục, đổi quyền nhập tay) giữ vị trí cuộn. */
+  function ve(veDau: boolean): void {
+    const giu = list.scrollTop;
+    const tim = dangTim();
+    xoa.hidden = !tim || khoa !== null;
+    dongPhu.clear();
+    if (!daNap) {
+      dau.textContent = "";
+      replaceChildren(list);
+      capNhatHangNhom(null);
+      return;
+    }
+    const nhom = nhomHieuLuc();
+    // Luật chia mục / xếp sao ở src/shared/loc-danh-muc.ts (có test): đang tìm mà đã thu hẹp một nhóm thì dịch vụ gắn sao cũng lên đầu (nợ T2(1), Việc 9).
+    const { muc, conKetQua } = dungMucDanhMuc(items, { kim: q.value, nhom, ghim: nho.ghim, groups });
+    const n = muc.reduce((s, m) => s + m.dong.length, 0);
+    dau.textContent = nhanDem(n, tenNhom(nhom));
     replaceChildren(
       list,
-      dau,
-      ...found.map((c) => {
-        const usable = c.supported && c.prices.adult !== null;
-        // Dòng chọn: tên đứng đầu (xuống dòng tự nhiên), dòng phụ nhỏ "mã · đơn vị · đã chọn"; giá nằm bên phải, không bẻ chữ.
-        const b = h(
-          "button",
-          { type: "button", class: "catalog-pick", "aria-disabled": usable ? false : "true" },
-          h(
-            "span",
-            { class: "catalog-name" },
-            h("span", { class: "catalog-ten" }, c.name),
-            h("span", { class: "catalog-phu" }, h("strong", null, c.code), c.supported ? h("span", { class: "chip chip-unit" }, unitLabel(c.unit)) : null, selected.has(c.code) ? h("span", { class: "chip chip-picked" }, "đã chọn") : null),
-          ),
-          h("span", { class: usable ? "price" : "price price-ghi" }, c.supported ? (c.prices.adult === null ? "chưa có giá" : vnd(c.prices.adult)) : nhapTay ? "chưa hỗ trợ — dùng nhập tay" : "chưa hỗ trợ"),
-        );
-        b.addEventListener("click", () => {
-          if (!usable) return; // mục không chọn được: bỏ qua (danh sách vẫn mở)
-          o.onPick(c);
-          q.value = "";
-          list.hidden = true;
-          capNhatNhom(); // ô gõ vừa xoá: số "N dịch vụ" của bảng nhóm tính lại
-        });
-        const ghim = h("button", { type: "button", class: "catalog-ghim", "data-ghim": c.code });
-        // Bấm sao CHỈ đổi biểu tượng + nhớ ngay tại dòng đó — KHÔNG dựng lại danh sách, nên dòng không nhảy và vị trí cuộn giữ nguyên (người kiểm 13/10: dựng lại làm cuộn nhảy 1200 → 0 / 2122 trên điện thoại).
-        // Dịch vụ có sao xếp lên trước chỉ ở lần dựng danh sách kế tiếp (mở lại ô, gõ chữ, đổi nhóm). Focus vẫn ở chính nút này.
-        const veSao = (): void => {
-          const da = nho.ghim.includes(c.code);
-          ghim.textContent = da ? "★" : "☆";
-          ghim.setAttribute("aria-pressed", String(da));
-          ghim.setAttribute("aria-label", `${da ? "Bỏ sao" : "Gắn sao"} ${c.code}${da ? "" : " — dịch vụ hay dùng, xếp lên đầu danh sách ở lần mở sau"}`);
-        };
-        veSao();
-        ghim.addEventListener("click", () => {
-          nho = { ...nho, ghim: doiGhim(nho.ghim, c.code) };
-          ghiBoNho(nho);
-          veSao();
-        });
-        return h("div", { class: "catalog-row" }, ghim, b); // dấu sao ở ĐẦU dòng (bảng việc #8)
-      }),
-      found.length === 0 && h("div", { class: "catalog-empty", role: "status" }, nhomHieuLuc().length === 0 ? "Không tìm thấy dịch vụ." : q.value.trim() === "" ? "Không có dịch vụ nào trong các nhóm đã đánh dấu." : "Không tìm thấy dịch vụ nào khớp trong các nhóm đã đánh dấu."),
+      ...muc.filter((m) => m.dong.length > 0).map((m) => h("div", { class: "catalog-khoi", "data-khoa": m.khoa }, m.tieuDe ? h("div", { class: "catalog-muc" }, m.tieuDe) : null, ...m.dong.map(dongDichVu))),
+      n === 0 ? h("div", { class: "catalog-empty", role: "status" }, cauRong(tim, nhom)) : null,
     );
-    list.hidden = false;
+    list.scrollTop = veDau ? 0 : giu;
+    capNhatHangNhom(conKetQua);
   }
-  q.addEventListener("focus", () => {
-    moBang(false); // một lúc chỉ mở một thứ: gõ tên thì bảng nhóm gập lại
-    render();
-  });
-  q.addEventListener("click", () => {
-    moBang(false);
-    render(); // ô đang giữ focus (vd sau khi chọn một dịch vụ, nhất là trên iPhone) thì chạm lại không bắn `focus` — vẫn phải mở danh sách
-  });
-  q.addEventListener("input", render);
+
+  // ---- ô tìm ----
+  function doiChu(): void {
+    const moi = q.value;
+    tt = doiChuTim(tt, chuCu, moi);
+    chuCu = moi;
+    ve(true);
+    duaVaoTam(nhomHieuLuc());
+  }
+  q.addEventListener("input", doiChu);
   q.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !list.hidden) {
+    if (e.key === "Escape" && q.value !== "") {
       e.preventDefault();
-      dong();
+      q.value = "";
+      doiChu();
     }
   });
-  // Bấm ra ngoài thì đóng. Dùng `composedPath()` (chụp LÚC bấm) chứ không `root.contains(e.target)`: danh sách có thể được dựng lại giữa lúc bấm, nút bị gỡ khỏi trang trước khi sự kiện nổi tới đây.
-  document.addEventListener("click", (e) => {
-    if (e.composedPath().includes(root)) return;
-    list.hidden = true;
-    moBang(false);
+  xoa.addEventListener("click", () => {
+    q.value = "";
+    doiChu();
+    q.focus();
   });
+
+  function apDungNho(): void {
+    if (choDoc === undefined || groups.length === 0) return;
+    const ma = docNhoMotNhom(choDoc, groups); // nhiều nhóm (bản cũ) → nhóm hợp lệ đầu; nhóm đã xoá / rác → "" (Tất cả)
+    choDoc = undefined;
+    if (daCham) return;
+    tt = dangTim() ? { ...tt, truocKhiTim: ma } : { ...tt, nhom: ma };
+  }
+
+  veHangNhom();
+  ve(true);
 
   return {
     root,
     setItems(next) {
       items = next;
-      renderNhom();
+      daNap = true;
+      khung.hidden = false;
+      veHangNhom();
+      ve(false);
+      duaVaoTam(nhomHieuLuc());
     },
     setGroups(next) {
-      groups = next; // tải lại danh mục (xung đột khi lưu) KHÔNG đọc lại bộ nhớ: giữ các nhóm đang tick, nhomHieuLuc tự bỏ nhóm không còn
+      groups = next; // tải lại danh mục (xung đột khi lưu) KHÔNG đọc lại bộ nhớ: giữ nhóm đang chọn, nhomHieuLuc tự bỏ nhóm không còn
       apDungNho();
-      renderNhom();
+      veHangNhom();
+      ve(false);
+      duaVaoTam(nhomHieuLuc());
     },
     setTaiKhoan(id) {
       staffId = id;
       choDoc = docNhoNhomTho(id); // đọc bộ nhớ MỘT lần; áp khi đã có groups (danh mục tải SAU initShell)
       apDungNho();
-      renderNhom();
+      ve(true);
+      duaVaoTam(nhomHieuLuc());
     },
     setNotice(text) {
       notice.textContent = text ?? "";
       notice.hidden = !text;
+      // Danh mục không tải được (chưa từng có setItems): chỉ câu báo, không để khung danh sách trống cao cố định (nợ T2(3), Việc 9).
+      khung.hidden = !daNap && Boolean(text);
     },
     setDisabled(why) {
-      q.disabled = why !== null;
-      reason.textContent = why ?? "";
-      reason.hidden = why === null;
-      if (why !== null) list.hidden = true;
+      if (why === khoa) return; // recompute() gọi ở mỗi lần gõ: không đổi thì không đụng gì
+      khoa = why;
+      const k = why !== null;
+      const dangO = document.activeElement;
+      const mauTieuDiem = k && dangO !== null && (khung.contains(dangO) || hang.contains(dangO)); // đặt inert sẽ làm tiêu điểm rơi về <body>
+      q.disabled = k;
+      reasonText.textContent = why ?? "";
+      reason.hidden = !k;
+      khung.inert = k;
+      hang.inert = k;
+      root.classList.toggle("is-khoa", k);
+      xoa.hidden = k || !dangTim();
+      if (mauTieuDiem) reason.focus(); // trình đọc màn hình đọc luôn lý do khoá
     },
     setSelected(codes) {
-      selected = new Set(codes);
-      if (!list.hidden) render();
+      const moi = new Set(codes);
+      if (moi.size === selected.size && [...moi].every((c) => selected.has(c))) return;
+      selected = moi;
+      for (const [ma, phus] of dongPhu) for (const phu of phus) nhanDaThem(phu, selected.has(ma));
     },
     setNhapTay(v) {
+      if (v === nhapTay) return;
       nhapTay = v;
-      if (!list.hidden) render();
+      ve(false);
     },
     focus: () => q.focus(),
   };

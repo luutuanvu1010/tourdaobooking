@@ -1,0 +1,16 @@
+/* Radii, shadows, motion */
+:root {
+  --radius-xs: 6px;
+  --radius-sm: 8px;      /* buttons, inputs, banners */
+  --radius-md: 12px;     /* cards, order cards, summary band */
+  --radius-lg: 18px;
+  --radius-pill: 999px;  /* badges, chips, avatars, support phone */
+  --radius-icon: 22.37%; /* iOS app-icon squircle */
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-overlay: 0 12px 32px rgba(15, 23, 42, 0.16);
+  --focus-ring: 2px;
+  --ring-field: 3px;
+  --m-fast: 180ms; /* @kind other */
+  --m-base: 300ms; /* @kind other */
+  --m-spin: 700ms; /* @kind other */
+}

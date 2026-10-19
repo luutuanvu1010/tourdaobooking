@@ -33,7 +33,9 @@ export function benDatDoiTacBiCam(v: { laDoiTac: boolean; partyId: string | null
   return v.laDoiTac && v.guiLen.kind === "existing" && v.guiLaNguoiHuong && v.guiLen.partyId !== v.partyId && v.guiLen.partyId !== v.benDatDangLuu;
 }
 
-export const NO_BOOKER_TEXT = "Chưa gắn hồ sơ khách";
+export const NO_BOOKER_TEXT = "Hồ sơ khách: chưa liên kết (không bắt buộc)";
+/** Giá trị ngắn của dòng «Hồ sơ khách» ở trang đơn (nhãn đã nằm cạnh): không lặp «Hồ sơ khách:». */
+export const NO_BOOKER_VALUE = "Chưa gắn hồ sơ khách";
 const MAX_NAME = 200;
 
 type Parsed = { ok: true; value: BookerInput } | { ok: false; message: string };
@@ -72,7 +74,8 @@ export const canPickMatch = (m: MatchLike): boolean => m.kind === "PERSON" && m.
 export function matchNote(m: MatchLike, coODatQuaDoiTac: boolean): string | null {
   if (!m.active) return "đã ngưng";
   // sổ đại lý đợt 1 (Task 11): tổ chức được hưởng gắn vào đơn được, nhưng qua ô riêng (đặc tả §7), không qua ô tra SĐT
-  if (m.kind !== "PERSON") return coODatQuaDoiTac ? "tổ chức — đại lý thì chọn ở ô “Đặt qua đối tác”" : "tổ chức — do văn phòng gắn bên đặt";
+  // Ô đó nay là công tắc «Đơn của: Khách lẻ | Qua đối tác» (thiết kế lại màn Tạo đơn 18/10, ở cả form lẫn bảng «Đổi khách») — câu gọi đúng nhãn đang thấy.
+  if (m.kind !== "PERSON") return coODatQuaDoiTac ? "tổ chức — đại lý thì bấm “Qua đối tác” ở hàng “Đơn của”" : "tổ chức — do văn phòng gắn bên đặt";
   return null;
 }
 
@@ -93,4 +96,20 @@ export function describeBookerChange(before: { id: string | null; name: string |
   if (before.id === null) return `gắn hồ sơ khách ${q(after.name)}`;
   if (after.id === null) return `bỏ gắn hồ sơ khách ${q(before.name)}`;
   return `đổi hồ sơ khách ${q(before.name)} → ${q(after.name)}`;
+}
+
+/**
+ * Lớp chặn nhầm (thiết kế lại màn Tạo đơn 18/10, đặc tả §3 B): số điện thoại khách gõ vào trùng số của một đối tác ĐANG được hưởng hoa hồng
+ * ⇒ hỏi lại "đơn này đặt qua đối tác đó?". `matches` = hồ sơ trùng số (`GET /api/parties/lookup`); `nguoiHuong` = kết quả `GET /api/pricing/nguoi-huong` (tra theo tên).
+ * Trả đối tác ĐẦU TIÊN trong `matches` có `id` nằm trong `nguoiHuong` (tên lấy từ `nguoiHuong`); không có thì null. Chỉ gợi ý — không chặn lưu đơn.
+ */
+export function doiTacTrungSo(
+  matches: readonly { id: string; displayName: string }[],
+  nguoiHuong: readonly { partyId: string; ten: string }[],
+): { partyId: string; ten: string } | null {
+  for (const m of matches) {
+    const d = nguoiHuong.find((n) => n.partyId === m.id);
+    if (d) return { partyId: d.partyId, ten: d.ten };
+  }
+  return null;
 }

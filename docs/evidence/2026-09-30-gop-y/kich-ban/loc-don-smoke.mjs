@@ -138,36 +138,10 @@ try {
   d.close();
   ok("1040: bộ lọc vẫn nhớ, bảng lọc mở dạng hộp, không tràn ngang; không lỗi console");
 
-  // 6) Ô chọn dịch vụ khi lập đơn (góp ý YC-0003 — chủ duyệt 30/9; ĐỢT 1 13/10, ý chủ "bỏ hết sự rườm rà, chỉ để lại việc lọc theo nhóm bằng nút xổ xuống + tick chọn"): mọi bộ lọc phụ
-  // ("★ Hay dùng", "Theo người", "Giá theo nhóm") đã bỏ; dấu sao ☆/★ giữ lại và có tác dụng — dịch vụ có sao xếp lên trước ở lần mở danh sách kế tiếp (bấm sao chỉ đổi biểu tượng tại chỗ); mã gắn sao nhớ sau tải lại.
-  const f = await env.as(ACCOUNTS.salesA, "/order-form", { width: 390, height: 844, mobile: true });
-  const hang = `[...document.querySelectorAll('#catalog-list .catalog-pick')].map((b) => b.querySelector('strong').textContent)`;
-  await f.waitFor("document.querySelectorAll('#catalog-nhom-nut').length === 1 && !document.querySelector('.catalog-nhom').hidden", "nút Nhóm dịch vụ", 10000);
-  assert.equal(await f.ev("document.querySelectorAll('.catalog .loc-nut, [data-loc], .catalog-loc, .catalog-nhom-chips').length"), 0, "không còn chip Hay dùng / Theo người / Giá theo nhóm");
-  assert.equal(await f.ev("/Hay dùng|Theo người|Giá theo nhóm|Lọc sẵn có/.test(document.querySelector('.catalog').textContent)"), false, "không còn chữ của bộ lọc cũ");
-  await f.ev("document.getElementById('catalog-q').focus(); true");
-  await f.waitFor(`JSON.stringify(${hang}) === '["TD101","TTB03","TTB06"]'`, "3 dịch vụ theo thứ tự danh mục khi chưa gắn sao");
-  await f.ev("document.querySelector('#catalog-list [data-ghim=\"TTB06\"]').click()");
-  assert.equal(await f.ev("document.getElementById('catalog-list').hidden"), false, "bấm sao: danh sách không đóng");
-  assert.deepEqual(await f.ev(hang), ["TD101", "TTB03", "TTB06"], "bấm sao chỉ đổi biểu tượng tại chỗ: dòng chưa nhảy");
-  assert.equal(await f.ev("document.querySelector('#catalog-list [data-ghim=\"TTB06\"]').textContent"), "★");
-  await f.ev("document.getElementById('catalog-q').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
-  await f.ev("document.getElementById('catalog-q').dispatchEvent(new MouseEvent('click', { bubbles: true })); true");
-  await f.waitFor(`JSON.stringify(${hang}) === '["TTB06","TD101","TTB03"]'`, "mở lại danh sách: dịch vụ gắn sao xếp lên trước, phần còn lại giữ thứ tự");
-  await f.send("Page.reload", {});
-  await sleep(300);
-  await f.waitFor("document.querySelectorAll('#catalog-nhom-nut').length === 1", "tải lại: nút nhóm", 10000);
-  await f.ev("document.getElementById('catalog-q').focus(); true");
-  await f.waitFor(`JSON.stringify(${hang}) === '["TTB06","TD101","TTB03"]'`, "tải lại: sao vẫn nhớ, TTB06 vẫn lên đầu");
-  await f.ev("document.querySelector('#catalog-list [data-ghim=\"TTB06\"]').click()");
-  assert.deepEqual(await f.ev(hang), ["TTB06", "TD101", "TTB03"], "bỏ sao: dòng chưa nhảy");
-  await f.ev("document.getElementById('catalog-q').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
-  await f.ev("document.getElementById('catalog-q').dispatchEvent(new MouseEvent('click', { bubbles: true })); true");
-  await f.waitFor(`JSON.stringify(${hang}) === '["TD101","TTB03","TTB06"]'`, "mở lại sau khi bỏ sao → về thứ tự danh mục");
-  assert.ok((await f.ev("document.documentElement.scrollWidth - innerWidth")) <= 0, "form 390: không tràn ngang");
-  assert.deepEqual(f.consoleErrors.filter((e) => !/favicon/.test(e)), [], "form: không lỗi console");
-  f.close();
-  ok("Lập đơn 390: không còn chip / bộ lọc phụ; ghim ☆→★ tại chỗ, lần mở sau đưa dịch vụ lên đầu, nhớ sau tải lại, bỏ sao thì lần mở sau về thứ tự cũ");
+  // 6) (ĐÃ BỎ — Việc 9 màn Tạo đơn thiết kế lại 18/10/2026, ruling của điều phối ở Task 2) Bước này đợi nút xổ "Nhóm dịch vụ" (#catalog-nhom-nut) và kiểm sao ☆/★ theo
+  // ô danh mục của đợt 1 (13/10) — nút xổ và bảng tick đã bỏ (hàng nút nhóm chọn một, khung luôn mở) nên bước đỏ chắc chắn. Hành vi sao nay do
+  // docs/evidence/2026-09-30-nhom-dich-vu/kich-ban/chip-nhom-smoke.mjs phủ: bước 7 (bấm sao đổi ☆/★ tại chỗ; Tất cả: chỉ ở mục "★ Hay dùng"; một nhóm: lên đầu)
+  // và bước 9 (tải lại: sao giữ). Kịch bản này nay chỉ còn bộ lọc đơn ở /orders.
   console.log("LOC DON SMOKE OK");
 } finally {
   await env.stop();

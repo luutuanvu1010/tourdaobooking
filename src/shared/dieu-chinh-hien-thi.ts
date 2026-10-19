@@ -18,7 +18,7 @@ export const LOP_TRANG_THAI: Record<TrangThaiYeuCauDieuChinh, string> = {
   het_han: "badge",
 };
 export const LOAI_DONG_CHON: readonly { ma: "HELD" | "SETTLEMENT" | "REFUND"; nhan: string }[] = [
-  { ma: "HELD", nhan: "Tiền đang giữ hộ" },
+  { ma: "HELD", nhan: "Tiền chưa nộp về công ty" },
   { ma: "SETTLEMENT", nhan: "Quyết toán (nộp / trả)" },
   { ma: "REFUND", nhan: "Hoàn khách" },
 ];

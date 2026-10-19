@@ -226,7 +226,7 @@ test("Ruling R26: hồ sơ có sẵn đang giữ vai Kế toán — chỉ chọn
   const input = (roles: string[]) => ({ fullName: null, phone: "0933333333", existingPartyId: "p-kt", xemDanhBa: true, assignment: { roles: roles as never, adds: [], removes: [], reason: null } });
   assert.deepEqual(await staff.createAccountWithRolesStatements(db, input(["SALES_STAFF"]), "s-adm"), {
     ok: false,
-    message: "Hồ sơ này đang giữ vai Kế toán: chọn cả vai này (hoặc đổi vai sau khi tạo).",
+    message: "Hồ sơ này đang giữ vai trò Kế toán: chọn cả vai trò này (hoặc đổi vai trò sau khi tạo).",
   });
   const made = await staff.createAccountWithRolesStatements(db, input(["SALES_STAFF", "ACCOUNTANT"]), "s-adm");
   assert.ok(made.ok);

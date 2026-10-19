@@ -136,7 +136,7 @@ test("Global Constraints (Task 5): xeRieng không phải boolean hoặc choToiTh
     ["choToiThieu '15'", { choToiThieu: "15" }],
   ];
   for (const [ten, v] of sai) {
-    assert.throws(() => ck([ch("a1", "a", v as Partial<ChangCK>)]), /cam kết.*chặng a1/i, ten);
+    assert.throws(() => ck([ch("a1", "a", v as Partial<ChangCK>)]), /cam kết.*lượt đưa đón a1/i, ten);
   }
   // Giá trị hợp lệ biên: false / null / số nguyên — không ném.
   assert.doesNotThrow(() => ck([ch("a1", "a", { xeRieng: false, choToiThieu: null }), ch("b1", "b", { choToiThieu: 1 })]));

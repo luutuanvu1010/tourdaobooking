@@ -100,13 +100,13 @@ export function cardCodes(d: CatalogDraft): PaxCode[] {
 }
 
 /**
- * Dòng phụ dưới nhãn bộ đếm: "1.350.000 ₫ · Trẻ 5–10 tuổi" (theo người) hoặc "1.500.000 ₫ mỗi lượt, tối đa 5 khách" (theo nhóm).
- * Loại chưa có ở bản chụp lấy giá/ghi chú của danh mục hiện tại (chạm bộ đếm loại đó là chuyển sang giá hiện tại).
+ * Dòng phụ của ô loại khách trong lưới số khách: "950.000 · Trẻ 5–10 tuổi" (theo người — điều kiện là ghi chú của danh mục) hoặc "1.500.000 / nhóm 5 khách" (theo nhóm);
+ * thẻ dùng `formatMoney` nhóm hàng nghìn không kèm "₫" (bản vẽ 18/10). Loại chưa có ở bản chụp lấy giá/ghi chú của danh mục hiện tại (chạm bộ đếm loại đó là chuyển sang giá hiện tại).
  */
 export function guestDetail(d: CatalogDraft, code: PaxCode, formatMoney: (n: number) => string): string {
   const price = d.item.prices[code] ?? d.live?.prices[code] ?? null;
   const g = groupInfo(d);
-  if (g && price !== null) return `${formatMoney(price)} mỗi lượt, tối đa ${g.size} khách`;
+  if (g && price !== null) return `${formatMoney(price)} / nhóm ${g.size} khách`;
   const note = code === "adult" ? null : (d.item.notes[code] ?? d.live?.notes[code] ?? null);
   return [price === null ? null : formatMoney(price), note].filter(Boolean).join(" · ");
 }
@@ -237,7 +237,7 @@ export function refreshFromCatalog(d: CatalogDraft, item: CatalogService): Catal
     const typed = d.unitPrices[c];
     unitPrices[c] = typed !== undefined && old !== null && typed !== old ? typed : price;
   }
-  return { ...d, item, live: item, name: item.name, unit: item.unit, unitPrices }; // tên/đơn vị theo danh mục mới: nhãn chip, bộ đếm "Số khách", dòng "N khách ÷ M = K lượt" đúng nếu Sheet đổi đơn vị
+  return { ...d, item, live: item, name: item.name, unit: item.unit, unitPrices }; // tên/đơn vị theo danh mục mới: nhãn chip, bộ đếm "Số khách", chữ "7 khách = 2 lượt" (chuLuot) và dòng phụ "giá / nhóm N khách" đúng nếu Sheet đổi đơn vị
 }
 
 export const setGuests = (d: ManualDraft, n: number): ManualDraft => ({ ...d, guests: wholeCount(n) });
@@ -299,13 +299,37 @@ export function draftSubtotal(d: ServiceDraft): number {
   return p.ok ? p.lines.reduce((sum, l) => sum + l.lineTotal, 0) : 0;
 }
 
-/** Dịch vụ tính theo nhóm: "7 khách ÷ 5 = 2 lượt (làm tròn lên)". Không phải dịch vụ nhóm → null. */
+/** Dịch vụ tính theo nhóm: số khách, cỡ nhóm và số lượt (làm tròn lên — cùng phép của `buildLines`) cho chữ "7 khách = 2 lượt". Không phải dịch vụ nhóm → null. */
 export function groupInfo(d: CatalogDraft): { size: number; guests: number; trips: number } | null {
   const u = parseUnit(d.unit);
   if (u.kind !== "group") return null;
   const guests = d.pax.adult;
   return { size: u.size, guests, trips: guests > 0 ? Math.ceil(guests / u.size) : 0 };
 }
+
+// ---- chữ của lưới số khách và dòng tiền trên thẻ (thiết kế lại 18/10/2026) — CHỈ trình bày số đã có, không tính tiền ----
+
+/** Chữ trong ô "Số khách" của dịch vụ theo nhóm: "7 khách = 2 lượt"; chưa có khách hoặc không phải dịch vụ nhóm → "". */
+export function chuLuot(g: { guests: number; trips: number } | null): string {
+  return g && g.guests > 0 ? `${g.guests} khách = ${g.trips} lượt` : "";
+}
+
+/** Phần số lượng của dòng tiền: "2 người lớn" / "1 em bé" (theo người), "2 lượt" (theo nhóm); dòng nhập tay chỉ có số. */
+export function nhanSoLuongDong(l: Pick<PreviewLine, "pax" | "quantity">, laNhom: boolean): string {
+  if (laNhom) return `${l.quantity} lượt`;
+  return l.pax === null ? String(l.quantity) : `${l.quantity} ${PAX_LABEL[l.pax].toLowerCase()}`;
+}
+
+/**
+ * Một dòng tiền của thẻ: "2 người lớn × 1.350.000 = 2.700.000". Thành tiền là `lineTotal` ĐÃ TÍNH (previewLines → buildLines + thanhTienDong — một công thức,
+ * máy chủ tính lại khi lưu); hàm này chỉ ghép chữ, không nhân.
+ */
+export function chuDongTien(l: Pick<PreviewLine, "pax" | "quantity" | "unitPrice" | "lineTotal">, laNhom: boolean, formatMoney: (n: number) => string): string {
+  return `${nhanSoLuongDong(l, laNhom)} × ${formatMoney(l.unitPrice)} = ${formatMoney(l.lineTotal)}`;
+}
+
+/** Dòng "Thành tiền dịch vụ" chỉ hiện khi thẻ có từ hai dòng tiền (một dòng thì chính dòng đó đã là thành tiền). */
+export const coDongThanhTien = (soDong: number): boolean => soDong >= 2;
 
 // ---- lỗi chặn Lưu (giảm vòng máy chủ; máy chủ vẫn là nơi quyết định) --------------------------------------------------
 
@@ -405,7 +429,7 @@ export interface OrderSummary {
   subtotal: number;
   discount: number;
   total: number;
-  /** Số "thanh toán trước" người lập vừa gõ (ghi thành LẦN THU sau khi lưu — sổ tiền lượt 1). KHÔNG có "còn lại": số đó chỉ billing tính (ADR-0026 đ9, NT-R9). */
+  /** Số "thanh toán trước" người lập vừa gõ (ghi thành KHOẢN THU sau khi lưu — sổ tiền lượt 1). KHÔNG có "còn lại": số đó chỉ billing tính (ADR-0026 đ9, NT-R9). */
   traTruoc: number;
   /** Cảnh báo (không chặn): giảm giá lớn hơn tạm tính / trả trước lớn hơn tổng cộng. */
   warning: string | null;

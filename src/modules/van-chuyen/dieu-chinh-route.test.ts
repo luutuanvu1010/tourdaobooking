@@ -131,7 +131,7 @@ test("ADR-0097 Đ2.4: ngoài bảng / điểm đã xong → 409 câu tiếng Vi�
     const p = await chuyenSan(w, { taiXe: DRIVER2 }); // tài xế khác: chuyến A dưới cùng giờ
     const chuaChay = await dieuChinh(w, p.id, p.suat[0], "WAITING");
     assert.equal(chuaChay.status, 409, chuaChay.text);
-    assert.match(chuaChay.json.error.message, /Chuyến chưa xuất bến — chưa có kết quả nào để điều chỉnh/);
+    assert.match(chuaChay.json.error.message, /Xe chưa chạy — chưa có kết quả nào để điều chỉnh/);
     const a = await dangDon(w);
     assert.equal((await tienDo(w, "tai-xe", a.id, `phan-bo/${a.suat[0]}/vang`)).status, 200);
     const vangDon = await dieuChinh(w, a.id, a.suat[0], "BOARDED");
@@ -178,12 +178,12 @@ test("ADR-0097 Đ3 (HT-03): thu hồi xuất bến chưa có tiến độ — 20
     assert.equal(w.q("SELECT count(*) n FROM vc_trip_departure_check WHERE trip_id = ?", a.id)[0].n, 1, "bản chụp lúc xuất bến giữ nguyên");
     assert.equal(w.q("SELECT reason_code FROM vc_trip_event WHERE kind = 'DEPARTURE_REVOKED'")[0].reason_code, "DIEU_CHINH_BAM_NHAM");
     const nk = w.q("SELECT detail FROM audit_log WHERE action = 'trip_departure_revoked'");
-    assert.deepEqual(nk.map((x: any) => x.detail), [`${a.ma}: thu hồi xuất bến — Bấm nhầm · văn phòng bấm thay`]);
-    const tx = (await w.call("GET", "/api/thong-bao", { as: DRIVER })).json.tin.filter((x: any) => /thu hồi xuất bến/.test(x.cau));
+    assert.deepEqual(nk.map((x: any) => x.detail), [`${a.ma}: thu hồi lệnh cho xe chạy — Bấm nhầm · văn phòng bấm thay`]);
+    const tx = (await w.call("GET", "/api/thong-bao", { as: DRIVER })).json.tin.filter((x: any) => /thu hồi (xuất bến|lệnh cho xe chạy)/.test(x.cau));
     assert.equal(tx.length, 1);
     assert.equal(tx[0].lienKet, `/cuoc-chuyen?id=${a.id}`);
-    assert.equal((await w.call("GET", "/api/thong-bao", { as: ADM })).json.tin.filter((x: any) => /thu hồi xuất bến/.test(x.cau)).length, 1);
-    assert.equal((await w.call("GET", "/api/thong-bao", { as: SALES })).json.tin.filter((x: any) => /thu hồi xuất bến/.test(x.cau)).length, 0, "người bấm");
+    assert.equal((await w.call("GET", "/api/thong-bao", { as: ADM })).json.tin.filter((x: any) => /thu hồi (xuất bến|lệnh cho xe chạy)/.test(x.cau)).length, 1);
+    assert.equal((await w.call("GET", "/api/thong-bao", { as: SALES })).json.tin.filter((x: any) => /thu hồi (xuất bến|lệnh cho xe chạy)/.test(x.cau)).length, 0, "người bấm");
     denGio("12:55");
     const lai = await tienDo(w, "tai-xe", a.id, "xuat-ben");
     assert.equal(lai.status, 200, lai.text);
@@ -226,7 +226,7 @@ test("ADR-0097 Đ3.2: quá kẹp lùi của chính sách (180 phút) → 409 'Đ
     const qua = await thuHoi(w, b.id);
     assert.equal(qua.status, 409, qua.text);
     assert.equal(qua.json.error.code, "qua_gio_thu_hoi");
-    assert.match(qua.json.error.message, /^Đã quá 3 giờ từ giờ xuất bến nên không thu hồi được — sửa từng khách bằng "Điều chỉnh…", hoặc "Kết thúc gián đoạn"/);
+    assert.match(qua.json.error.message, /^Đã quá 3 giờ từ giờ xe chạy nên không thu hồi được — sửa từng khách bằng "Điều chỉnh…", hoặc "Kết thúc gián đoạn"/);
     assert.equal(w.q("SELECT count(*) n FROM vc_trip_event WHERE kind = 'DEPARTURE_REVOKED'")[0].n, 0);
   } finally {
     tat();

@@ -17,7 +17,7 @@ const dkEl = byId("dk-dieu-kien");
 const hbEl = byId("dk-hang-bang");
 
 const staff = await initShell();
-datCrumb("Vận chuyển › Chính sách điều phối", "Điều kiện xuất bến");
+datCrumb("Vận chuyển › Chính sách điều phối", "Điều kiện cho xe chạy");
 
 let rules: Api.DepartureRuleDto[] = [];
 let capacity: Api.LicenseCapacityResponse = { current: [], history: [] };
@@ -79,7 +79,7 @@ function veDieuKien(): void {
     const nhan = nhanDieuKien(r, tenNguoi);
     const nut = r.active ? h("button", { type: "button", class: "vc-btn vc-btn-text", "data-action": "dong-dieu-kien", "aria-label": `Đóng điều kiện ${nhan}` }, "Đóng") : null;
     nut?.addEventListener("click", () => {
-      if (!confirm(`Đóng điều kiện “${nhan}”? Từ lúc này xe không còn phải có giấy này để xuất bến. Không mở lại được — muốn áp lại thì thêm điều kiện mới.`)) return;
+      if (!confirm(`Đóng điều kiện “${nhan}”? Từ lúc này xe không còn phải có giấy này mới được chạy. Không mở lại được — muốn áp lại thì thêm điều kiện mới.`)) return;
       void ghi(async () => {
         rules = (await api<Api.DepartureRuleListResponse>(`/api/van-chuyen/dieu-kien/${encodeURIComponent(r.id)}/dong`, { method: "POST" })).rules;
         return `Đã đóng điều kiện “${nhan}”.`;
@@ -109,7 +109,7 @@ function veDieuKien(): void {
     if (!r.ok) return bao(null, r.loi);
     void ghi(async () => {
       rules = (await api<Api.DepartureRuleListResponse>("/api/van-chuyen/dieu-kien", { method: "POST", body: r.value })).rules;
-      return "Đã thêm điều kiện xuất bến — áp ngay từ bây giờ.";
+      return "Đã thêm điều kiện cho xe chạy — áp ngay từ bây giờ.";
     });
   });
   const truong = (id: string, nhan: string, el: HTMLElement, goiY?: string): HTMLElement =>
@@ -194,7 +194,7 @@ function ve(): void {
 }
 
 async function main(): Promise<void> {
-  if (!can(staff, "settings.ops")) return showError(errorEl, "Chỉ Toàn quyền xem và đổi được điều kiện xuất bến.");
+  if (!can(staff, "settings.ops")) return showError(errorEl, "Chỉ Toàn quyền xem và đổi được điều kiện cho xe chạy.");
   try {
     await nap();
   } catch (err) {

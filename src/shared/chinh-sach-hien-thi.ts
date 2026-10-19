@@ -21,10 +21,19 @@ export function gioTuPhut(phut: number): string {
   return String(Number((phut / 60).toFixed(4)));
 }
 
+/**
+ * Gợi ý dưới ô hạn chốt (một câu cho cả màn Toàn quyền lẫn Quản trị). Cùng một con số áp hai chỗ (src/shared/moc-toi-thieu.ts): đơn tính trước GIỜ ĐÓN của
+ * lượt đưa đón; xếp xe / đổi xe / đổi tài xế tính trước GIỜ XE CHẠY dự kiến của chuyến (rà soát ngôn ngữ lượt 2, chủ chọn 18/10).
+ */
+export const GOI_Y_HAN_CHOT =
+  "Đơn: tính trước giờ đón khách — qua hạn chốt thì phải Đặt gấp. Xếp xe, đổi xe, đổi tài xế: tính trước giờ xe chạy dự kiến — qua hạn chốt thì dùng «Điều chỉnh khẩn cấp» kèm lý do. Từ 1 đến 2880.";
+
 // ---- form chính sách -----------------------------------------------------------------------------------------------------------------------------------------
 export interface FormChinhSach {
-  mocGio: string;
-  satMocGio: string;
+  /** Hạn chốt trước giờ đón — ô theo PHÚT (rà soát ngôn ngữ lượt 2, chủ chọn 18/10: cùng đơn vị với ô của Quản trị). */
+  mocPhut: string;
+  /** Cảnh báo sắp tới hạn chốt — ô theo PHÚT. */
+  satMocPhut: string;
   nghiPhut: string;
   khaiLuiPhut: string;
   /** ADR-0055 VK2-B: giờ lái tối đa một ngày — ô theo GIỜ (K2), máy chủ lưu phút. */
@@ -43,7 +52,7 @@ export interface FormChinhSach {
   /** ADR-0111 Đ3 (c): tự đồng ý chuyển khách khi đạt mọi điều kiện (công tắc an toàn). */
   tuDongY: boolean;
 }
-export type TruongChinhSach = "mocGio" | "satMocGio" | "nghiPhut" | "khaiLuiPhut" | "gioLaiGio" | "chuyenDaiGio" | "cuaSoGio" | "hanTuChoiGio" | "sdtVanPhong" | "choNhanPhut";
+export type TruongChinhSach = "mocPhut" | "satMocPhut" | "nghiPhut" | "khaiLuiPhut" | "gioLaiGio" | "chuyenDaiGio" | "cuaSoGio" | "hanTuChoiGio" | "sdtVanPhong" | "choNhanPhut";
 export type KetQuaFormChinhSach = { ok: true; value: DispatchPolicyCreateRequest } | { ok: false; loi: Partial<Record<TruongChinhSach, string>> };
 
 /** Chuỗi ô giờ → số phút (chấp nhận "1,5" hay "1.5"); không phải số → null. */
@@ -57,12 +66,12 @@ const soNguyenO = (v: string): number | null => (/^\d+$/.test(v.trim()) ? Number
 /** Đọc form (bốn ô + công tắc) → thân POST, hoặc câu lỗi lời thường cho từng ô sai (cùng lúc, không dừng ở ô đầu). Biên khớp `kiemChinhSachMoi`. */
 export function docFormChinhSach(f: FormChinhSach): KetQuaFormChinhSach {
   const loi: Partial<Record<TruongChinhSach, string>> = {};
-  const moc = phutTuO(f.mocGio);
-  if (f.mocGio.trim() === "") loi.mocGio = "Nhập mốc tối thiểu (giờ).";
-  else if (moc === null || moc < 1 || moc > 2880) loi.mocGio = "Mốc tối thiểu là số giờ lớn hơn 0, tối đa 48 — không tắt được; muốn nới thì giảm con số.";
-  const sat = phutTuO(f.satMocGio);
-  if (f.satMocGio.trim() === "") loi.satMocGio = "Nhập cảnh báo sát mốc (giờ).";
-  else if (sat === null || sat > 1440) loi.satMocGio = "Cảnh báo sát mốc là số từ 0 đến 24 giờ.";
+  const moc = soNguyenO(f.mocPhut);
+  if (f.mocPhut.trim() === "") loi.mocPhut = "Nhập hạn chốt trước giờ đón (phút).";
+  else if (moc === null || moc < 1 || moc > 2880) loi.mocPhut = "Hạn chốt trước giờ đón là số phút nguyên lớn hơn 0, tối đa 2880 — không tắt được; muốn nới thì giảm con số.";
+  const sat = soNguyenO(f.satMocPhut);
+  if (f.satMocPhut.trim() === "") loi.satMocPhut = "Nhập cảnh báo sắp tới hạn chốt (phút).";
+  else if (sat === null || sat > 1440) loi.satMocPhut = "Cảnh báo sắp tới hạn chốt là số phút nguyên từ 0 đến 1440.";
   const nghi = soNguyenO(f.nghiPhut);
   if (f.nghiPhut.trim() === "") loi.nghiPhut = "Nhập khoảng nghỉ (phút).";
   else if (nghi === null || nghi > 480) loi.nghiPhut = "Khoảng nghỉ là số phút nguyên từ 0 đến 480.";
@@ -76,8 +85,8 @@ export function docFormChinhSach(f: FormChinhSach): KetQuaFormChinhSach {
   if (f.chuyenDaiGio.trim() === "") loi.chuyenDaiGio = "Nhập số giờ chuyến dài cần nhắc nghỉ.";
   else if (dai === null || dai < 30 || dai > 720) loi.chuyenDaiGio = "Nhắc nghỉ khi chuyến dài hơn là số giờ từ 0,5 đến 12.";
   const cuaSo = phutTuO(f.cuaSoGio);
-  if (f.cuaSoGio.trim() === "") loi.cuaSoGio = "Nhập cửa sổ xuất bến (giờ).";
-  else if (cuaSo === null || cuaSo < 60 || cuaSo > 2880) loi.cuaSoGio = "Cửa sổ xuất bến là số giờ từ 1 đến 48.";
+  if (f.cuaSoGio.trim() === "") loi.cuaSoGio = "Nhập cửa sổ cho xe chạy (giờ).";
+  else if (cuaSo === null || cuaSo < 60 || cuaSo > 2880) loi.cuaSoGio = "Cửa sổ cho xe chạy là số giờ từ 1 đến 48.";
   const hanTc = phutTuO(f.hanTuChoiGio);
   if (f.hanTuChoiGio.trim() === "") loi.hanTuChoiGio = "Nhập hạn từ chối chuyến (giờ).";
   else if (hanTc === null || hanTc < 60 || hanTc > 2880) loi.hanTuChoiGio = "Hạn từ chối chuyến là số giờ từ 1 đến 48.";
@@ -100,9 +109,9 @@ export function docFormChinhSach(f: FormChinhSach): KetQuaFormChinhSach {
 
 /** Điền form từ bản đang dùng; chưa có bản nào → ô trống (bật "phải đủ danh sách khách" như bản gieo). */
 export function formTuChinhSach(p: DispatchPolicyDto | null): FormChinhSach {
-  if (!p) return { mocGio: "", satMocGio: "", nghiPhut: "", khaiLuiPhut: "", gioLaiGio: "", chuyenDaiGio: "", cuaSoGio: "", hanTuChoiGio: "", sdtVanPhong: "", duDanhSach: true, choNhanPhut: "", tuDongY: true };
+  if (!p) return { mocPhut: "", satMocPhut: "", nghiPhut: "", khaiLuiPhut: "", gioLaiGio: "", chuyenDaiGio: "", cuaSoGio: "", hanTuChoiGio: "", sdtVanPhong: "", duDanhSach: true, choNhanPhut: "", tuDongY: true };
   return {
-    mocGio: gioTuPhut(p.minLeadMinutes), satMocGio: gioTuPhut(p.warnLeadMinutes), nghiPhut: String(p.restMinutes), khaiLuiPhut: String(p.proxyBackdateMaxMinutes),
+    mocPhut: String(p.minLeadMinutes), satMocPhut: String(p.warnLeadMinutes), nghiPhut: String(p.restMinutes), khaiLuiPhut: String(p.proxyBackdateMaxMinutes),
     gioLaiGio: gioTuPhut(p.dutyDayMaxMinutes), chuyenDaiGio: gioTuPhut(p.tripNoBreakMaxMinutes), cuaSoGio: gioTuPhut(p.departureWindowMinutes), duDanhSach: p.requireManifest,
     hanTuChoiGio: gioTuPhut(p.refuseLeadMinutes), sdtVanPhong: p.officePhone ?? "", choNhanPhut: String(p.acceptWaitMinutes), tuDongY: p.autoConfirmTransfer,
   };
@@ -115,13 +124,13 @@ type SoChinhSach = Pick<
 /** Một dòng tóm tắt bản chính sách (lịch sử bản — bản vẽ 8a "Mốc 6 giờ · sát mốc 2 giờ · nghỉ 30 phút"; thêm khai lùi — thành phần F). */
 export function tomTatChinhSach(p: SoChinhSach): string {
   return [
-    `Mốc ${nhanThoiLuong(p.minLeadMinutes)}`,
-    `sát mốc ${nhanThoiLuong(p.warnLeadMinutes)}`,
+    `Hạn chốt ${nhanThoiLuong(p.minLeadMinutes)}`,
+    `cảnh báo sắp tới hạn chốt ${nhanThoiLuong(p.warnLeadMinutes)}`,
     `nghỉ ${p.restMinutes} phút`,
     `khai lùi ${p.proxyBackdateMaxMinutes} phút`,
     `lái tối đa ${nhanThoiLuong(p.dutyDayMaxMinutes)}/ngày`,
     `nhắc nghỉ chuyến trên ${nhanThoiLuong(p.tripNoBreakMaxMinutes)}`,
-    `xuất bến sớm nhất ${nhanThoiLuong(p.departureWindowMinutes)} trước giờ khởi hành`,
+    `cho xe chạy sớm nhất ${nhanThoiLuong(p.departureWindowMinutes)} trước giờ khởi hành`,
     `từ chối chuyến trước ${nhanThoiLuong(p.refuseLeadMinutes)}`,
     p.requireManifest ? "phải đủ danh sách khách" : null,
     `chờ nhận chuyển khách ${p.acceptWaitMinutes} phút`,
@@ -136,13 +145,13 @@ export function tomTatChinhSach(p: SoChinhSach): string {
 export function thayDoiChinhSach(cu: DispatchPolicyDto | null, moi: DispatchPolicyCreateRequest): string[] {
   if (!cu) return ["Bản đầu tiên"];
   const out: string[] = [];
-  if (cu.minLeadMinutes !== moi.minLeadMinutes) out.push(`Mốc tối thiểu ${nhanThoiLuong(cu.minLeadMinutes)} → ${nhanThoiLuong(moi.minLeadMinutes)}`);
-  if (cu.warnLeadMinutes !== moi.warnLeadMinutes) out.push(`Cảnh báo sát mốc ${nhanThoiLuong(cu.warnLeadMinutes)} → ${nhanThoiLuong(moi.warnLeadMinutes)}`);
+  if (cu.minLeadMinutes !== moi.minLeadMinutes) out.push(`Hạn chốt trước giờ đón ${nhanThoiLuong(cu.minLeadMinutes)} → ${nhanThoiLuong(moi.minLeadMinutes)}`);
+  if (cu.warnLeadMinutes !== moi.warnLeadMinutes) out.push(`Cảnh báo sắp tới hạn chốt ${nhanThoiLuong(cu.warnLeadMinutes)} → ${nhanThoiLuong(moi.warnLeadMinutes)}`);
   if (cu.restMinutes !== moi.restMinutes) out.push(`Khoảng nghỉ ${cu.restMinutes} → ${moi.restMinutes} phút`);
   if (cu.proxyBackdateMaxMinutes !== moi.proxyBackdateMaxMinutes) out.push(`Khai lùi tối đa ${cu.proxyBackdateMaxMinutes} → ${moi.proxyBackdateMaxMinutes} phút`);
   if (cu.dutyDayMaxMinutes !== moi.dutyDayMaxMinutes) out.push(`Giờ lái tối đa một ngày ${nhanThoiLuong(cu.dutyDayMaxMinutes)} → ${nhanThoiLuong(moi.dutyDayMaxMinutes)}`);
   if (cu.tripNoBreakMaxMinutes !== moi.tripNoBreakMaxMinutes) out.push(`Nhắc nghỉ chuyến trên ${nhanThoiLuong(cu.tripNoBreakMaxMinutes)} → ${nhanThoiLuong(moi.tripNoBreakMaxMinutes)}`);
-  if (cu.departureWindowMinutes !== moi.departureWindowMinutes) out.push(`Cửa sổ xuất bến ${nhanThoiLuong(cu.departureWindowMinutes)} → ${nhanThoiLuong(moi.departureWindowMinutes)}`);
+  if (cu.departureWindowMinutes !== moi.departureWindowMinutes) out.push(`Cửa sổ cho xe chạy ${nhanThoiLuong(cu.departureWindowMinutes)} → ${nhanThoiLuong(moi.departureWindowMinutes)}`);
   if (cu.refuseLeadMinutes !== moi.refuseLeadMinutes) out.push(`Hạn từ chối chuyến ${nhanThoiLuong(cu.refuseLeadMinutes)} → ${nhanThoiLuong(moi.refuseLeadMinutes)}`);
   if ((cu.officePhone ?? "") !== (moi.officePhone ?? "")) out.push(moi.officePhone ? "Đổi số điện thoại văn phòng" : "Bỏ số điện thoại văn phòng");
   if (cu.requireManifest !== moi.requireManifest) out.push(moi.requireManifest ? "Bắt đủ danh sách khách" : "Không bắt đủ danh sách khách");

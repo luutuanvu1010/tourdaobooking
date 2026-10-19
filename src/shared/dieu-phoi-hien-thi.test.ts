@@ -25,7 +25,7 @@ test("nhanMocTienDo (thành phần B): tài xế tự bấm / văn phòng không
 
 
 test("dongDieuKienTaiXe (V5 / V7 màn tài xế — bản đối chiếu 2.5, H15): chỉ điều kiện CÒN THIẾU kèm '(văn phòng lo)', không hạn, không số; đạt hết → 'Đủ điều kiện'", () => {
-  assert.deepEqual(dongDieuKienTaiXe([]), ["Đủ điều kiện xuất bến"]);
+  assert.deepEqual(dongDieuKienTaiXe([]), ["Đủ điều kiện cho xe chạy"]);
   const thieu = [lyDoGiu("THIEU_TEN", "TD-20260930-0008 thiếu 2 tên"), lyDoGiu("DIEU_KIEN_GIAY_TO_XE", "79B-678.90"), lyDoGiu("CHINH_SACH_RONG")];
   assert.deepEqual(dongDieuKienTaiXe(thieu), [
     "Chưa đủ tên khách: TD-20260930-0008 thiếu 2 tên (văn phòng lo)",
@@ -42,7 +42,7 @@ test("dongDieuKienTaiXe (Đợt 5 A-1b — chủ duyệt 5/10, chỉ tài xế c
   ]);
   assert.deepEqual(dongDieuKienTaiXe(thieu, false), ["Chưa đủ tên khách: TD-1 thiếu 2 tên (văn phòng lo)", "Chưa có chính sách điều phối đang hiệu lực (văn phòng lo)"]);
   assert.deepEqual(dongDieuKienTaiXe(thieu), dongDieuKienTaiXe(thieu, false), "mặc định = không tự bổ sung (tài xế đối tác, ngày khác)");
-  assert.deepEqual(dongDieuKienTaiXe([], true), ["Đủ điều kiện xuất bến"]);
+  assert.deepEqual(dongDieuKienTaiXe([], true), ["Đủ điều kiện cho xe chạy"]);
 });
 
 

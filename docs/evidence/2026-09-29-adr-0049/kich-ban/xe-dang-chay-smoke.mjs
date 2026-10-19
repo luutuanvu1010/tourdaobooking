@@ -43,7 +43,7 @@ try {
   await b.step("1", `11.1 1040 Bán hàng: trang Xe đang chạy — một thẻ T4 "mã · Đang chạy · 79A-111.11 · 2/15 chỗ", tài xế, điểm kế tiếp; mục con "Xe đang chạy" sáng${axeNote()}`, async () => {
     await s.waitFor(`document.querySelectorAll('.xdc-the').length === 1`, "thẻ xe đang chạy", 12000);
     const t = await s.ev(txt(".xdc-the"));
-    assert.match(t, new RegExp(`^${T.ma} Đang chạy 79A-111\\.11 · 2/15 chỗ Nguyễn Văn An · xuất bến \\d\\d:\\d\\d · tiếp theo: Citadines Bayfront$`));
+    assert.match(t, new RegExp(`^${T.ma} Đang chạy 79A-111\\.11 · 2/15 chỗ Nguyễn Văn An · xe chạy \\d\\d:\\d\\d · tiếp theo: Citadines Bayfront$`));
     assert.equal(await s.ev(`document.querySelector('.xdc-the').getAttribute('href')`), `/chuyen?id=${T.id}`);
     const sub = await s.ev(vcSub);
     assert.ok(sub.items.includes("Xe đang chạy"), JSON.stringify(sub));

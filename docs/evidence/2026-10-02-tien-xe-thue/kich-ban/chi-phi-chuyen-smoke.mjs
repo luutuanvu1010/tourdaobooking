@@ -62,7 +62,7 @@ const dieuKienChu = `[...document.querySelectorAll('.dp-cond[data-dat]')].map((r
   await cho(p);
   await choCp(p);
   await b.step("2", `1b 1040 thiếu giá: dải cảnh báo + "Nhập giá thoả thuận"; khối cuối cột chính, chip "Chỉ Kế toán · Quản trị"; tóm tắt NHÀ XE / TUYẾN / NGUỒN GIÁ "Chưa có giá" / TỔNG "—"; "Chưa có dòng chi phí nào."; không "Lấy lại giá bảng" khi bảng giá chưa có${axeNote()}`, async () => {
-    assert.equal(await p.ev(txt("#ct-chi-phi .cp-dai-thieu .banner-title")), "Chuyến xe thuê chưa có giá — chưa được xuất bến");
+    assert.equal(await p.ev(txt("#ct-chi-phi .cp-dai-thieu .banner-title")), "Chuyến xe thuê chưa có giá — chưa được cho xe chạy");
     assert.equal(await p.ev(txt("#ct-chi-phi .cp-dai-thieu li")), "Nhập giá thoả thuận với nhà xe, hoặc bổ sung giá vào Bảng giá thuê xe rồi lấy lại giá bảng.");
     assert.equal(await p.ev(`document.querySelector('.dp-ct-main').lastElementChild.id`), "ct-chi-phi", "khối ở cuối cột chính");
     assert.equal(await p.ev(txt("#cp-title")), "Chi phí chuyến");
@@ -133,7 +133,7 @@ const dieuKienChu = `[...document.querySelectorAll('.dp-cond[data-dat]')].map((r
     const truoc = apiCalls(p).length;
     await p.ev(click('[data-action="luu-dieu-chinh"]'));
     await p.waitFor(`!document.querySelector('#ct-chi-phi .tx-loi').hidden`, "câu tổng âm");
-    assert.equal(await p.ev(txt("#ct-chi-phi .tx-loi")), "Tổng chi phí chuyến sẽ âm — đảo điều chỉnh giảm trước.");
+    assert.equal(await p.ev(txt("#ct-chi-phi .tx-loi")), "Tổng chi phí chuyến sẽ âm — huỷ dòng điều chỉnh giảm trước.");
     const body = JSON.parse(apiCalls(p).slice(truoc).find((r) => r.method === "POST").body);
     assert.equal(body.soTien, -700_000);
     assert.equal("ngay" in body, false, "không chọn ngày ⇒ không gửi ngay");
@@ -151,8 +151,8 @@ const dieuKienChu = `[...document.querySelectorAll('.dp-cond[data-dat]')].map((r
     await p.ev(click('[data-action="dao-gui"]'));
     await p.waitFor(`!document.querySelector('.sheet-root') && document.querySelector('#ct-chi-phi .cp-tong')?.dataset.tong === '450000'`, "đã đảo");
     const ds = await p.ev(dongCp);
-    assert.deepEqual(ds[1], { chip: ["Điều chỉnh", "đã đảo"], so: "+ 150.000 ₫", dao: true });
-    assert.deepEqual(ds[2], { chip: ["Đảo"], so: "− 150.000 ₫", dao: false });
+    assert.deepEqual(ds[1], { chip: ["Điều chỉnh", "đã huỷ"], so: "+ 150.000 ₫", dao: true });
+    assert.deepEqual(ds[2], { chip: ["Dòng huỷ"], so: "− 150.000 ₫", dao: false });
   });
 
   await b.step("7", `Hai người cùng phiên bản: mở form, người khác ghi trước → 409 → dải đỏ "Chi phí chuyến vừa thay đổi — tải lại rồi thử lại." + "Tải lại"`, async () => {
@@ -174,7 +174,7 @@ const dieuKienChu = `[...document.querySelectorAll('.dp-cond[data-dat]')].map((r
     await p.waitFor(`document.querySelector('.dp-ct-title')?.textContent === ${JSON.stringify(T_HUY.ma)}`, "chuyến đã huỷ");
     await p.waitFor(`document.querySelector('#ct-chi-phi .cp-tong')?.dataset.tong === '135000'`, "tổng 135.000");
     const ds = await p.ev(dongCp);
-    assert.deepEqual(ds.map((d) => d.chip.join("+")), ["Giá bảng+đã đảo", "Đảo", "Điều chỉnh · phí huỷ"]);
+    assert.deepEqual(ds.map((d) => d.chip.join("+")), ["Giá bảng+đã huỷ", "Dòng huỷ", "Điều chỉnh · phí huỷ"]);
     assert.ok((await p.ev(`[...document.querySelectorAll('#ct-chi-phi .cp-goi-y')].map((x) => x.textContent)`)).includes("Chuyến đã huỷ vẫn ghi được phí huỷ."));
     // L2 (vòng vá 1): chuyến ĐÃ HUỶ — nguồn giá máy chủ trả rỗng → "Chưa có giá" tông trung tính, không cảnh báo.
     assert.equal(await p.ev(txt("#ct-chi-phi .cp-o:nth-child(3) .chip")), "Chưa có giá");

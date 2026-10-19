@@ -34,7 +34,7 @@ export function canhBaoNgayChay(ngayChay: string, homNay: string): string | null
 export function hopXuatBen(v: VaoXuatBen, homNay: string): HopXuatBen {
   const canhBao = canhBaoNgayChay(v.ngayChay, homNay);
   return {
-    tieuDe: `Xuất bến ${v.ma}?`,
+    tieuDe: `Cho xe chạy ${v.ma}?`,
     dong: [
       ["Mã chuyến", v.ma],
       ["Ngày chạy", canhBao ? ngayCoThu(v.ngayChay) : `${ngayCoThu(v.ngayChay)} (hôm nay)`],
@@ -44,7 +44,7 @@ export function hopXuatBen(v: VaoXuatBen, homNay: string): HopXuatBen {
     ],
     canhBao,
     // Chữ nút ngắn (vừa nửa chân hộp ở khổ 390 — "Vẫn xuất bến chuyến ngày dd/mm" bị cắt, ảnh 2a 3/10); ngày chạy đã nêu ở dải đỏ + dòng "Ngày chạy".
-    nutXacNhan: canhBao ? "Vẫn xuất bến" : "Xuất bến",
+    nutXacNhan: canhBao ? "Vẫn cho xe chạy" : "Cho xe chạy",
     ghiChu: "Bấm lúc xe lăn bánh — giờ ghi là lúc bấm. Bấm nhầm thì báo văn phòng ngay để thu hồi.",
   };
 }

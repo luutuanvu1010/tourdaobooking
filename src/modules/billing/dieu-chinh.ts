@@ -17,7 +17,7 @@ import { PARTY_ID_RE, docLyDo, docNgay, docSoTien, layKyDaKhoa, lineOf, loi, loi
 // Sổ đại lý đợt 2 (Task 6; ADR-0079 7b1, đặc tả P6): điều chỉnh có duyệt nhận thêm ba loại dòng thương mại — Kế toán bổ sung giá vốn / sửa hoa hồng sau «Đã giao»
 // (ví dụ D-3 «đại lý → công ty 20.000 loại hoa hồng»). Cùng mọi giới hạn của `kiemDieuChinh` (không đổi dấu, trần cộng dồn), không nới.
 const LOAI_DONG_NHAN: Record<DebtKind, string> = {
-  HELD: "Tiền đang giữ hộ", SETTLEMENT: "Quyết toán (nộp / trả)", REFUND: "Hoàn khách", HOA_HONG: "Hoa hồng", GIAM_GIA_BEN_DAT: "Giảm giá bên đặt chịu", GIA_VON: "Giá vốn",
+  HELD: "Tiền chưa nộp về công ty", SETTLEMENT: "Quyết toán (nộp / trả)", REFUND: "Hoàn khách", HOA_HONG: "Hoa hồng", GIAM_GIA_BEN_DAT: "Giảm giá bên đặt chịu", GIA_VON: "Giá vốn",
 };
 const laLoaiDong = (x: unknown): x is DebtKind => typeof x === "string" && Object.hasOwn(LOAI_DONG_NHAN, x);
 const TOI_DA_DANH_SACH = 200;

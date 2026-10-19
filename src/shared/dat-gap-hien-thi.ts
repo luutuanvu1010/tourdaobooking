@@ -11,7 +11,7 @@ import { msToVnLocal, ngayNgan } from "./vn-date.ts";
 
 /** "Giờ đón cách bây giờ 4 giờ 10 phút — dưới mốc 6 giờ" (bản vẽ 07); giờ đón đã qua → "Giờ đón đã qua — dưới mốc …". */
 export function cauMoc(phutConLai: number, mocPhut: number): string {
-  const moc = `dưới mốc ${nhanThoiLuong(mocPhut)}`;
+  const moc = `quá hạn chốt ${nhanThoiLuong(mocPhut)}`;
   return phutConLai > 0 ? `Giờ đón cách bây giờ ${nhanThoiLuong(phutConLai)} — ${moc}` : `Giờ đón đã qua — ${moc}`;
 }
 

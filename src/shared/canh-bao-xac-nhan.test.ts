@@ -57,7 +57,7 @@ test("cả hai điều kiện → nơi trả trước, tên sau", () => {
 // C12 (đánh giá ERP 7/10; việc 11 — C4): cờ "Xe riêng" không mang tiền (ADR-0056 §3, ADR-0047 A1) — chỉ NHẮC người xác nhận kiểm lại tiền xe khi đơn chưa có
 // dịch vụ "Giá theo nhóm" (đơn vị perNPax). Xét THEO ĐƠN (xe riêng hay bán thành một dịch vụ giá theo nhóm riêng trong cùng đơn), không theo từng dịch vụ.
 test("C12: câu chữ cảnh báo xe riêng chưa có giá theo nhóm", () => {
-  assert.equal(CAU_XE_RIENG_CHUA_GIA_NHOM, "Có chặng Xe riêng nhưng đơn chưa có dịch vụ Giá theo nhóm — kiểm lại tiền xe");
+  assert.equal(CAU_XE_RIENG_CHUA_GIA_NHOM, "Có lượt đưa đón Xe riêng nhưng đơn chưa có dịch vụ Giá theo nhóm — kiểm lại tiền xe");
 });
 
 test("C12: chặng bật Xe riêng, đơn chỉ có dịch vụ theo người → cảnh báo MỘT lần dù nhiều chặng", () => {

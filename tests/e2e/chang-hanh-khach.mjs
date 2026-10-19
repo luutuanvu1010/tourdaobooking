@@ -202,7 +202,7 @@ console.log("✓ (8) cờ vượt số khách dùng số khách hiệu lực (HD
   assert.deepEqual(await mirror(t.id), [{ pickup_time: "08:15", pickup_place: "Khách sạn Thay E2E" }], "ghi kép = chặng mới");
   const nkMoi = (await nhatKyDon(t.id)).slice(soNhatKyTruoc);
   assert.deepEqual(nkMoi.map((x) => x.action), ["order_leg_closed", "order_leg_added"], "đúng hai dòng nhật ký của lô thay");
-  assert.match(nkMoi[0].detail, /bỏ — Đổi sang chặng khác/);
+  assert.match(nkMoi[0].detail, /bỏ — Đổi sang lượt đưa đón khác/);
 
   const sauThang = await chupDon(t.id);
   r = await call(A, "POST", `/api/orders/${t.id}/legs/${moiLegs[0].id}/replace`, { expectedUpdatedAt: truocThay.updatedAt, leg: { ...MOI, pickupTime: "09:30" } });

@@ -54,7 +54,7 @@ test("Đ1 (KT06): thu 300.000 → hoàn 200.000 → đảo lần thu gốc ⇒ 4
   const r = await dieuChinh(w, { loai: "dao_lan_thu", receiptId: lanThu(w, id, "CUSTOMER_PAYMENT"), lyDo: "ghi nhầm lần thu của đơn" });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "net_paid_negative");
-  assert.match(r.json.error.message, /đảo lần hoàn/);
+  assert.match(r.json.error.message, /huỷ khoản trả lại khách trước/);
   assert.equal(daThuRong(w, id), 100_000, "không ghi gì");
   assert.equal((await dieuChinh(w, { loai: "dao_lan_thu", receiptId: lanThu(w, id, "CUSTOMER_REFUND"), lyDo: "hoàn nhầm cho khách" })).status, 201);
   assert.equal((await dieuChinh(w, { loai: "dao_lan_thu", receiptId: lanThu(w, id, "CUSTOMER_PAYMENT"), lyDo: "ghi nhầm lần thu của đơn" })).status, 201);
@@ -71,7 +71,7 @@ test("Đ3 (KT09): người trả không phải công ty — số hoàn ≤ số 
   const r = await hoan(w, id, 300_000, { partyId: `pty-${HDV}` });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "refund_exceeds_held");
-  assert.match(r.json.error.message, /đang giữ 200\.000/);
+  assert.match(r.json.error.message, /còn 200\.000 ₫ chưa nộp/);
   assert.equal(daThuRong(w, id), 500_000, "không ghi gì");
   assert.equal((await hoan(w, id, 150_000, { partyId: `pty-${HDV}` })).status, 201);
   assert.equal((await hoan(w, id, 100_000, { partyId: `pty-${HDV}` })).json.error.code, "refund_exceeds_held", "còn giữ 50.000");

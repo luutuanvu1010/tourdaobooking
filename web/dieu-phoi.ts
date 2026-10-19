@@ -118,12 +118,12 @@ function ve(): void {
   if (rong && !daiRong) bannerEl.prepend(Object.assign(dai("warning", rong.nhan, ["Chưa lưu, xác nhận hay sửa chuyến có giờ đón được cho tới khi Toàn quyền đặt chính sách điều phối."]), { id: "dp-chinh-sach-rong" }));
   if (!rong) daiRong?.remove();
 
-  const moc = [s.satMoc ? `${s.satMoc} sát mốc` : null, s.quaMoc ? `${s.quaMoc} quá mốc` : null].filter(Boolean).join(" · ");
+  const moc = [s.satMoc ? `${s.satMoc} sắp tới hạn chốt` : null, s.quaMoc ? `${s.quaMoc} quá hạn chốt` : null].filter(Boolean).join(" · ");
   const o = (nhan: string, so: number, phu = "", tone = "") =>
     h("div", { class: "dp-stat" }, h("span", { class: "dp-stat-k" }, nhan), h("span", { class: "dp-stat-v" }, h("span", { class: "dp-stat-n" }, String(so)), phu ? h("span", { class: `dp-stat-sub ${tone}` }, phu) : null));
   replaceChildren(
     soEl,
-    o("CHẶNG", s.chang),
+    o("LƯỢT ĐƯA ĐÓN", s.chang),
     o("ĐÃ XẾP", s.daXep),
     o("CHƯA XẾP", s.chuaXep, moc, "is-danger"),
     o("CHUYẾN", s.chuyen, s.biGiu ? `${s.biGiu} bị giữ` : "", "is-danger"),
@@ -131,8 +131,8 @@ function ve(): void {
     o("ĐƠN NHÁP", s.nhap, s.choDatGap ? "chờ duyệt đặt gấp" : "", "is-sand"),
   );
   const om = (nhan: string, so: number, danger = false) => h("div", { class: "dp-stat-m" }, h("span", { class: danger && so > 0 ? "dp-stat-n is-danger" : "dp-stat-n" }, String(so)), h("span", { class: "dp-stat-k" }, nhan));
-  replaceChildren(soMEl, om("chặng", s.chang), om("đã xếp", s.daXep), om("chưa xếp", s.chuaXep, true), om("chuyến", s.chuyen));
-  soPhuEl.textContent = [s.chuaXep ? `Chưa xếp: ${[s.satMoc ? `${s.satMoc} sát mốc` : null, s.quaMoc ? `${s.quaMoc} quá mốc` : null].filter(Boolean).join(", ") || "chưa tới mốc"}` : null, s.nhap ? `${s.nhap} đơn nháp` : null].filter(Boolean).join(" · ");
+  replaceChildren(soMEl, om("lượt", s.chang), om("đã xếp", s.daXep), om("chưa xếp", s.chuaXep, true), om("chuyến", s.chuyen));
+  soPhuEl.textContent = [s.chuaXep ? `Chưa xếp: ${[s.satMoc ? `${s.satMoc} sắp tới hạn chốt` : null, s.quaMoc ? `${s.quaMoc} quá hạn chốt` : null].filter(Boolean).join(", ") || "chưa tới hạn chốt"}` : null, s.nhap ? `${s.nhap} đơn nháp` : null].filter(Boolean).join(" · ");
 
   veTaiXeBan();
   veTabs(s.chuaXep, s.chuyen, s.canXuLy);
@@ -203,9 +203,9 @@ function veChuaXep(): void {
     cotChua,
     dauCot("Chưa xếp", tatCa.length),
     h("div", { class: "dp-tong", "data-role": "tong" }, cauTongKhachGhe(tongKhachGhe(lich!))),
-    co.dieuPhoi && tatCa.length ? h("div", { class: "dp-col-note dp-chi-may-tinh" }, "Kéo chặng thả vào một chuyến, hoặc bấm chặng để chọn chuyến") : null,
+    co.dieuPhoi && tatCa.length ? h("div", { class: "dp-col-note dp-chi-may-tinh" }, "Kéo lượt đưa đón thả vào một chuyến, hoặc bấm vào lượt để chọn chuyến") : null,
     tatCa.length ? veLoc(tatCa, ds.length) : null,
-    ...(ds.length ? ds.map(({ chang: c, conLai }) => theChang(c, conLai)) : [h("div", { class: "dp-col-empty" }, tatCa.length ? "Không có chặng nào khớp bộ lọc." : "Không còn chặng nào chưa xếp.")]),
+    ...(ds.length ? ds.map(({ chang: c, conLai }) => theChang(c, conLai)) : [h("div", { class: "dp-col-empty" }, tatCa.length ? "Không có lượt đưa đón nào khớp bộ lọc." : "Không còn lượt đưa đón nào chưa xếp.")]),
     thanhChonEl,
   );
   veThanhChon();
@@ -223,13 +223,13 @@ function veLoc(tatCa: { chang: ChangLichDto }[], soHien: number): HTMLElement {
     });
     return h("label", { class: "dp-loc-o" }, nhan, sel);
   };
-  const boLocNut = dangLoc(boLoc) ? h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary dp-loc-bo", "data-action": "bo-loc" }, `Bỏ lọc · đang hiện ${soHien}/${tatCa.length} chặng`) : null;
+  const boLocNut = dangLoc(boLoc) ? h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary dp-loc-bo", "data-action": "bo-loc" }, `Bỏ lọc · đang hiện ${soHien}/${tatCa.length} lượt`) : null;
   boLocNut?.addEventListener("click", () => {
     boLoc = { ...LOC_TRONG };
     veChuaXep();
     document.getElementById("dp-loc-ca")?.focus();
   });
-  return h("div", { class: "dp-loc", role: "group", "aria-label": "Lọc chặng chưa xếp" },
+  return h("div", { class: "dp-loc", role: "group", "aria-label": "Lọc lượt đưa đón chưa xếp" },
     o("dp-loc-ca", "Ca đón", CA_DON, boLoc.ca, (v) => (boLoc = { ...boLoc, ca: v as CaDon | "" })),
     o("dp-loc-chieu", "Chiều", CHIEU_LOC, boLoc.chieu, (v) => (boLoc = { ...boLoc, chieu: v as BoLoc["chieu"] })),
     o("dp-loc-noi-tra", "Nơi trả", noiTraCuaCot(tatCa), boLoc.noiTra, (v) => (boLoc = { ...boLoc, noiTra: v })),
@@ -243,13 +243,13 @@ function veThanhChon(): void {
   const ds = locChangChuaXep(changChuaXep(lich!), boLoc);
   const chon = ds.filter((x) => daChon.has(x.chang.legId));
   const khach = chon.reduce((n, x) => n + x.conLai, 0);
-  const chonHet = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "chon-het" }, `Chọn hết ${Math.min(ds.length, TOI_DA_CHANG_MOT_LAN)} chặng đang hiện`);
+  const chonHet = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "chon-het" }, `Chọn hết ${Math.min(ds.length, TOI_DA_CHANG_MOT_LAN)} lượt đang hiện`);
   chonHet.addEventListener("click", () => {
     daChon = new Set(ds.slice(0, TOI_DA_CHANG_MOT_LAN).map((x) => x.chang.legId));
     capNhatO();
-    if (ds.length > TOI_DA_CHANG_MOT_LAN) baoKetQua(dai("info", `Một lần xếp tối đa ${TOI_DA_CHANG_MOT_LAN} chặng — đã chọn ${TOI_DA_CHANG_MOT_LAN} chặng đầu, xếp xong thì chọn tiếp.`));
+    if (ds.length > TOI_DA_CHANG_MOT_LAN) baoKetQua(dai("info", `Một lần xếp tối đa ${TOI_DA_CHANG_MOT_LAN} lượt — đã chọn ${TOI_DA_CHANG_MOT_LAN} lượt đầu, xếp xong thì chọn tiếp.`));
   });
-  const xep = h("button", { type: "button", class: "vc-btn btn btn-accent", "data-action": "xep-nhieu" }, chon.length > 1 ? `Xếp ${chon.length} chặng vào chuyến…` : "Xếp vào chuyến…");
+  const xep = h("button", { type: "button", class: "vc-btn btn btn-accent", "data-action": "xep-nhieu" }, chon.length > 1 ? `Xếp ${chon.length} lượt vào chuyến…` : "Xếp vào chuyến…");
   xep.addEventListener("click", () => moXep(chon.map((x) => ({ chang: x.chang, conLai: x.conLai })), null, xep));
   const bo = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "bo-chon" }, "Bỏ chọn");
   bo.addEventListener("click", () => {
@@ -258,7 +258,7 @@ function veThanhChon(): void {
   });
   replaceChildren(
     el,
-    h("div", { class: "dp-nhieu-chu", role: "status" }, chon.length ? `Đã chọn ${chon.length} chặng · ${khach} khách` : "Tích ô bên trái thẻ để chọn nhiều chặng rồi xếp một lần."),
+    h("div", { class: "dp-nhieu-chu", role: "status" }, chon.length ? `Đã chọn ${chon.length} lượt · ${khach} khách` : "Tích ô bên trái thẻ để chọn nhiều lượt rồi xếp một lần."),
     chon.length ? xep : null,
     chon.length ? bo : null,
     ds.length > 1 && chon.length < Math.min(ds.length, TOI_DA_CHANG_MOT_LAN) ? chonHet : null,
@@ -285,7 +285,7 @@ function theChang(c: ChangLichDto, conLai: number): HTMLElement {
     h("span", { class: "dp-leg-meta" }, `${c.maDon} · ${conLai < c.soNguoi ? `còn ${conLai}/${c.soNguoi}` : conLai} khách`),
   ];
   if (!co.dieuPhoi) return h("div", { class: "dp-leg", "data-leg": c.legId }, ...noiDung);
-  const b = h("button", { type: "button", class: "dp-leg is-xep", draggable: "true", "data-leg": c.legId, "aria-label": `Xếp chặng ${c.gioDon ?? ""} ${c.noiDon}, ${c.maDon}, ${conLai} khách${c.soHieuChuyenBay ? `, chuyến bay ${c.soHieuChuyenBay}` : ""}${c.xeRieng ? ", xe riêng" : ""}${c.choToiThieu !== null ? `, tối thiểu ${c.choToiThieu} chỗ` : ""} vào chuyến` },
+  const b = h("button", { type: "button", class: "dp-leg is-xep", draggable: "true", "data-leg": c.legId, "aria-label": `Xếp lượt đưa đón ${c.gioDon ?? ""} ${c.noiDon}, ${c.maDon}, ${conLai} khách${c.soHieuChuyenBay ? `, chuyến bay ${c.soHieuChuyenBay}` : ""}${c.xeRieng ? ", xe riêng" : ""}${c.choToiThieu !== null ? `, tối thiểu ${c.choToiThieu} chỗ` : ""} vào chuyến` },
     ...noiDung, h("span", { class: "dp-leg-pill", "aria-hidden": "true" }, "Xếp vào chuyến…"));
   b.addEventListener("click", () => moXep([{ chang: c, conLai }], null, b));
   b.addEventListener("dragstart", (e) => {
@@ -295,12 +295,12 @@ function theChang(c: ChangLichDto, conLai: number): HTMLElement {
   });
   b.addEventListener("dragend", () => b.classList.remove("is-keo"));
   // C34: ô chọn đứng NGANG nút (không lồng trong nút — nút bấm = xếp một chặng); mỗi ô có tên riêng cho trình đọc màn hình.
-  const o = h("input", { type: "checkbox", class: "dp-leg-chon", checked: daChon.has(c.legId), "aria-label": `Chọn chặng ${c.maDon} ${c.gioDon ?? ""} ${c.noiDon} để xếp cùng lúc` });
+  const o = h("input", { type: "checkbox", class: "dp-leg-chon", checked: daChon.has(c.legId), "aria-label": `Chọn lượt đưa đón ${c.maDon} ${c.gioDon ?? ""} ${c.noiDon} để xếp cùng lúc` });
   o.addEventListener("change", () => {
     const r = doiChon(daChon, c.legId);
     if (r.vuotGioiHan) {
       o.checked = false;
-      baoKetQua(dai("warning", `Một lần xếp tối đa ${TOI_DA_CHANG_MOT_LAN} chặng — hãy xếp bớt rồi chọn tiếp.`));
+      baoKetQua(dai("warning", `Một lần xếp tối đa ${TOI_DA_CHANG_MOT_LAN} lượt — hãy xếp bớt rồi chọn tiếp.`));
       return;
     }
     daChon = r.chon;
@@ -340,7 +340,7 @@ function veXe(): void {
   if (hinh.bayGio) append(tl, [viTri(h("div", { class: "dp-tl-bay-gio", "aria-hidden": "true" }, h("span", null, hinh.bayGio.nhan)), hinh.bayGio.x)]);
   if (hinh.moc) append(tl, [viTri(h("div", { class: "dp-tl-moc", "aria-hidden": "true" }, h("span", null, hinh.moc.nhan)), hinh.moc.x)]);
   const cuon = h("div", { class: "dp-tl-cuon", tabindex: 0, role: "region", "aria-label": "Dòng thời gian theo xe — cuộn ngang" }, tl);
-  const mocNhan = l.mocToiThieuPhut === null ? "Mốc" : `Mốc ${nhanThoiLuong(l.mocToiThieuPhut)}`;
+  const mocNhan = l.mocToiThieuPhut === null ? "Hạn chốt" : `Hạn chốt ${nhanThoiLuong(l.mocToiThieuPhut)}`;
   const the = h(
     "section",
     { class: "vc-card dp-tl-card", "aria-labelledby": "dp-tl-title" },
@@ -356,7 +356,7 @@ function veXe(): void {
       ? h("ul", { class: "dp-ban-ds vc-narrow", "aria-label": "Xe bận trong ngày" },
         ...ban.map((b) => h("li", { class: "dp-ban-dong" }, icon("ban", 14, 2), h("strong", null, l.khungBanXe.find((k) => k.xeId === b.xeId)?.bienSo ?? ""), ` · ${b.nhan}`)))
       : null,
-    h("div", { class: "dp-tl-note" }, "Chuyến có ", icon("lock", 12), " đang trong vùng khoá trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. ● điểm đón · ■ điểm trả."),
+    h("div", { class: "dp-tl-note" }, "Chuyến có ", icon("lock", 12), " đang trong vùng khoá trước giờ xe chạy — khoá xếp khách, đổi xe, đổi tài xế. ● điểm đón · ■ điểm trả."),
   );
   // Vẽ lại (bấm khối, sau khi xếp / cập nhật) GIỮ chỗ đang cuộn; chỉ tự cuộn tới chuyến đầu tiên MỘT lần mỗi ngày xem — và chỉ khi khung đang hiện (thẻ "Xe"
   // ở điện thoại có thể đang ẩn: thử lại lúc mở thẻ).
@@ -581,7 +581,7 @@ function moXep(doi: DoiXep[], chuyenId: string | null, opener: HTMLElement): voi
     const x = lua.find((v) => v.chuyen.id === den);
     const khoa = !!x?.khoa && !doi.every((d) => d.chang.datGap);
     ghiChuKhoa.hidden = !khoa;
-    replaceChildren(ghiChuKhoa, ...(khoa ? [icon("lock", 14), co.khanCap ? "Chuyến đã vào vùng khoá trước giờ xuất bến — khi xếp, bạn sẽ chọn lý do điều chỉnh khẩn cấp." : "Chuyến đã vào vùng khoá trước giờ xuất bến — cần người xếp xe điều chỉnh khẩn cấp."] : []));
+    replaceChildren(ghiChuKhoa, ...(khoa ? [icon("lock", 14), co.khanCap ? "Chuyến đã vào vùng khoá trước giờ xe chạy — khi xếp, bạn sẽ chọn lý do điều chỉnh khẩn cấp." : "Chuyến đã vào vùng khoá trước giờ xe chạy — cần người xếp xe điều chỉnh khẩn cấp."] : []));
     const nhac = x && x.mo ? x.ghiChu.filter((g) => g !== "đang khoá") : [];
     ghiChuMo.hidden = nhac.length === 0;
     replaceChildren(ghiChuMo, ...(nhac.length ? [`Lưu ý: ${nhac.join("; ")}. Bạn vẫn chọn được — nếu không xếp được, máy chủ sẽ báo.`] : []));
@@ -603,14 +603,14 @@ function moXep(doi: DoiXep[], chuyenId: string | null, opener: HTMLElement): voi
     ? h("div", { class: "vc-field" }, h("label", { for: "dp-xep-so" }, "Số khách xếp vào chuyến"), oSo, h("div", { id: "dp-xep-so-hint", class: "vc-hint" }, `Ít hơn ${conLai} là tách đoàn — số còn lại ở cột “Chưa xếp”.`))
     : null;
   const dongChang = (d: DoiXep) => `${d.chang.gioDon ?? "Chưa chốt giờ"} · ${d.chang.noiDon} → ${d.chang.noiTra ?? "nơi trả chưa chốt"}`;
-  const tieuDe = nhieu ? `${doi.length} chặng · ${tongKhach} khách` : dongChang(doi[0]!);
+  const tieuDe = nhieu ? `${doi.length} lượt · ${tongKhach} khách` : dongChang(doi[0]!);
   const TOI_DA_DONG = 8;
   const tomTat = nhieu
     ? h("div", { class: "dp-sheet-sum" }, h("div", { class: "dp-sheet-sum-title" }, tieuDe),
-      h("ul", { class: "dp-xep-ds", "aria-label": "Các chặng sẽ xếp" },
+      h("ul", { class: "dp-xep-ds", "aria-label": "Các lượt đưa đón sẽ xếp" },
         ...doi.slice(0, TOI_DA_DONG).map((d) => h("li", null, `${d.chang.maDon} · ${dongChang(d)} · ${d.conLai} khách`)),
-        doi.length > TOI_DA_DONG ? h("li", null, `…và ${doi.length - TOI_DA_DONG} chặng nữa`) : null),
-      h("div", { class: "dp-note" }, "Mỗi chặng được xếp trọn số khách còn lại. Một chặng không xếp được thì cả lệnh không chạy."))
+        doi.length > TOI_DA_DONG ? h("li", null, `…và ${doi.length - TOI_DA_DONG} lượt nữa`) : null),
+      h("div", { class: "dp-note" }, "Mỗi lượt được xếp trọn số khách còn lại. Một lượt không xếp được thì cả lệnh không chạy."))
     : h("div", { class: "dp-sheet-sum" }, h("div", { class: "dp-sheet-sum-title" }, tieuDe), h("div", { class: "dp-note" }, `${c.maDon} · ${conLai} khách chưa xếp`));
   const bang = moBangTruot({
     title: "Xếp vào chuyến",
@@ -649,7 +649,7 @@ function moXep(doi: DoiXep[], chuyenId: string | null, opener: HTMLElement): voi
     const canhBao = (r.canhBaoXep ?? []).map((x) => `${x.loiNhan} — cần bổ sung ở đơn trước khi xe chạy.`);
     // C32: giờ hẹn nằm ngoài khung giờ chuyến — của ĐÚNG các chặng vừa xếp, ngay trong phản hồi (không đợi tải lại).
     const lechGio = canhBaoGioHenSauXep(r.canhBao ?? [], doi.map((d) => d.chang.legId)).map((x) => `${x} — chỉ nhắc, chuyến đã xếp.`);
-    const tieuDeOk = nhieu ? `Đã xếp ${doi.length} chặng (${tongKhach} khách) vào ${r.chuyen.ma}` : `Đã xếp ${so} khách vào ${r.chuyen.ma}`;
+    const tieuDeOk = nhieu ? `Đã xếp ${doi.length} lượt (${tongKhach} khách) vào ${r.chuyen.ma}` : `Đã xếp ${so} khách vào ${r.chuyen.ma}`;
     baoKetQua(dai(canhBao.length + lechGio.length > 0 ? "warning" : "ok", tieuDeOk, [...canhBao, ...lechGio, ...conDong]));
     await nap();
   };
@@ -676,7 +676,7 @@ function moXep(doi: DoiXep[], chuyenId: string | null, opener: HTMLElement): voi
         bang.close(false);
         setTimeout(() => moPhaLe({
           lyDo: lich!.lyDo, opener, nutChinh: NUT_VUOT.xep[l.lop], lop: l.lop,
-          tomTat: [h("div", { class: "dp-sheet-sum-title" }, nhieu ? `Xếp ${doi.length} chặng` : `Xếp chặng ${tieuDe}`), h("div", { class: "dp-note" }, nhieu ? `${tongKhach} khách → vào ${t.ma} (xuất bến ${gioChuyen(t).split("–")[0]})` : `${c.maDon} · ${so} khách → vào ${t.ma} (xuất bến ${gioChuyen(t).split("–")[0]})`), h("div", { class: "dp-note" }, l.lyDo.map((x) => x.loiNhan).join("; "))],
+          tomTat: [h("div", { class: "dp-sheet-sum-title" }, nhieu ? `Xếp ${doi.length} lượt` : `Xếp lượt đưa đón ${tieuDe}`), h("div", { class: "dp-note" }, nhieu ? `${tongKhach} khách → vào ${t.ma} (xe chạy ${gioChuyen(t).split("–")[0]})` : `${c.maDon} · ${so} khách → vào ${t.ma} (xe chạy ${gioChuyen(t).split("–")[0]})`), h("div", { class: "dp-note" }, l.lyDo.map((x) => x.loiNhan).join("; "))],
           onXacNhan: async (code) => {
             const r = await gui(thanPhaLe(l.lyDo.map((x) => x.ma), code, false));
             await xong(r);
@@ -869,7 +869,7 @@ nutMoi.addEventListener("click", (e) => {
     opener: nutMoi,
     onTao: async (r) => {
       chon = r.chuyen.id;
-      baoKetQua(dai("ok", `Đã tạo chuyến ${r.chuyen.ma}`, ["Bấm “Xếp vào chuyến…” ở chặng chưa xếp để xếp khách vào."]));
+      baoKetQua(dai("ok", `Đã tạo chuyến ${r.chuyen.ma}`, ["Bấm “Xếp vào chuyến…” ở lượt đưa đón chưa xếp để xếp khách vào."]));
       await nap();
     },
   });

@@ -328,7 +328,7 @@ test("N-5b (c): PUT roles đổi tài khoản đối tác sang SALES_STAFF — k
   const chan = await w.call("PUT", `/api/staff/${DT}/roles`, { as: ADM, body: { roles: ["SALES_STAFF"] } });
   assert.equal(chan.status, 409, chan.text);
   assert.equal(chan.json.error.code, "account_rule");
-  assert.match(chan.json.error.message, /không nhận thêm vai nội bộ/);
+  assert.match(chan.json.error.message, /không nhận thêm vai trò nội bộ/);
   const rid = w.q("SELECT id FROM pty_party_role WHERE party_id = ? AND role_type_code = ?", `pty-${DT}`, ma)[0].id as string;
   assert.equal((await w.call("POST", `/api/parties/pty-${DT}/roles/${rid}/end`, { as: ADM, body: {} })).status, 200);
   const doi = await w.call("PUT", `/api/staff/${DT}/roles`, { as: ADM, body: { roles: ["SALES_STAFF"] } });
@@ -476,7 +476,7 @@ test("N-9: trigger mức riêng cho hồ sơ — hồ sơ mang loại mới ⇒ 
   assert.equal((await rieng(ORG)).status, 201);
   const khong = await rieng(ORG2);
   assert.equal(khong.status, 400, khong.text);
-  assert.match(khong.json.error.message, /không mang vai được hưởng/);
+  assert.match(khong.json.error.message, /không mang vai trò được hưởng/);
   await ganOk(w, ORG2, ma);
   assert.equal((await tat(w, ma)).status, 200);
   assert.equal((await rieng(ORG2)).status, 400, "loại đã tắt ⇒ không còn là hồ sơ được hưởng");

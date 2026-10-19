@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+<style>body{margin:0;background:#fff} a{color:var(--c-primary)} a:hover{color:var(--c-primary-strong)} html{scroll-behavior:smooth;scroll-padding-top:72px}</style>
+</helmet>
+<div style="font-family:var(--font); color:var(--c-text); font-size:16px; line-height:1.5; background:#fff; min-width:max-content;">
+
+  <header style="padding:32px 48px 16px; display:flex; flex-direction:column; gap:4px;">
+    <h1 style="margin:0; font-family:var(--font-display); font-size:32px; color:var(--c-primary);">Tạo đơn — thiết kế lại</h1>
+    <p style="margin:0; color:var(--c-text-muted); max-width:820px;">Island Booking System · Tour Đảo Booking — Design System · 18/10/2026. Mọi artboard đều bấm được thật: hàng nhóm, chạm thêm dịch vụ, gõ tìm, công tắc "Đơn của", gập mở thẻ, thanh dính.</p>
+  </header>
+
+  <nav aria-label="Mục lục artboard" style="position:sticky; top:0; z-index:10; display:flex; flex-wrap:wrap; gap:4px; padding:8px 48px; background:var(--c-surface-alt); border-top:1px solid var(--c-border); border-bottom:1px solid var(--c-border);">
+    <a href="#ab-01" style="padding:8px 12px; border-radius:8px; font-size:14px; font-weight:700; text-decoration:none;">1 Vừa mở</a>
+    <a href="#ab-02" style="padding:8px 12px; border-radius:8px; font-size:14px; font-weight:700; text-decoration:none;">2 Chọn nhóm</a>
+    <a href="#ab-03" style="padding:8px 12px; border-radius:8px; font-size:14px; font-weight:700; text-decoration:none;">3 Gõ tìm</a>
+    <a href="#ab-04" style="padding:8px 12px; border-radius:8px; font-size:14px; font-weight:700; text-decoration:none;">4 Thẻ TD2</a>
+    <a href="#ab-05" style="padding:8px 12px; border-radius:8px; font-size:14px; font-weight:700; text-decoration:none;">5 Ba dịch vụ</a>
+    <a href="#ab-06" style="padding:8px 12px; border-radius:8px; font-size:14px; font-weight:700; text-decoration:none;">6 Trạng thái thẻ</a>
+    <a href="#ab-07" style="padding:8px 12px; border-radius:8px; font-size:14px; font-weight:700; text-decoration:none;">7 Khối khách</a>
+    <a href="#ab-08" style="padding:8px 12px; border-radius:8px; font-size:14px; font-weight:700; text-decoration:none;">8 Thanh toán</a>
+    <a href="#ab-09" style="padding:8px 12px; border-radius:8px; font-size:14px; font-weight:700; text-decoration:none;">9 Thanh dính</a>
+    <a href="#ab-10" style="padding:8px 12px; border-radius:8px; font-size:14px; font-weight:700; text-decoration:none;">10 Máy tính</a>
+    <a href="#ab-11" style="padding:8px 12px; border-radius:8px; font-size:14px; font-weight:700; text-decoration:none;">11 Theo vai</a>
+    <a href="#ab-12" style="padding:8px 12px; border-radius:8px; font-size:14px; font-weight:700; text-decoration:none;">12 Nút &amp; token</a>
+    <a href="#giai-thich" style="padding:8px 12px; border-radius:8px; font-size:14px; font-weight:700; text-decoration:none;">Giải thích &amp; ghi chú</a>
+    <a href="#hien-trang" style="padding:8px 12px; border-radius:8px; font-size:14px; font-weight:700; text-decoration:none;">Hiện trạng</a>
+  </nav>
+
+  <main style="padding:24px 48px 64px; display:flex; flex-direction:column; gap:64px;">
+
+    <section id="ab-01" data-screen-label="01 Điện thoại · form vừa mở" style="display:flex; flex-direction:column; gap:16px;">
+      <div><h2 style="margin:0; font-family:var(--font-display); font-size:22px; color:var(--c-primary);">1 · Điện thoại · form vừa mở</h2><p style="margin:4px 0 0; color:var(--c-text-muted); max-width:720px;">Chưa có dịch vụ. Khung danh sách đã mở sẵn, "Tất cả" đứng đầu. Máy nhớ nhóm chọn lần trước theo tài khoản (chọn một nhóm rồi tải lại trang).</p></div>
+      <dc-import name="TaoDonForm" preset="empty" remember="{{ true }}" hint-size="414px,868px"></dc-import>
+    </section>
+
+    <section id="ab-02" data-screen-label="02 Điện thoại · chọn dịch vụ" style="display:flex; flex-direction:column; gap:16px;">
+      <div><h2 style="margin:0; font-family:var(--font-display); font-size:22px; color:var(--c-primary);">2 · Điện thoại · chọn dịch vụ</h2><p style="margin:4px 0 0; color:var(--c-text-muted); max-width:720px;">Hàng nhóm đã cuộn tới "Thể thao biển" (nhóm thứ 7). Khung lọc theo nhóm; Jetski L2 30 phút mang nhãn "✓ đã thêm", thẻ mới nằm dưới khung.</p></div>
+      <dc-import name="TaoDonForm" preset="pick" scroll-to="dichvu" hint-size="414px,868px"></dc-import>
+    </section>
+
+    <section id="ab-03" data-screen-label="03 Điện thoại · gõ hòn tằm" style="display:flex; flex-direction:column; gap:16px;">
+      <div><h2 style="margin:0; font-family:var(--font-display); font-size:22px; color:var(--c-primary);">3 · Điện thoại · gõ "hòn tằm"</h2><p style="margin:4px 0 0; color:var(--c-text-muted); max-width:720px;">Tìm trong mọi nhóm, kết quả chia mục Hòn Tằm 4 · Tour đảo 6 · Thể thao biển 21. Hàng nhóm về "Tất cả"; nhóm không có kết quả mờ đi.</p></div>
+      <dc-import name="TaoDonForm" preset="search" scroll-to="dichvu" hint-size="414px,868px"></dc-import>
+    </section>
+
+    <section id="ab-04" data-screen-label="04 Điện thoại · thẻ TD2 đang mở" style="display:flex; flex-direction:column; gap:16px;">
+      <div><h2 style="margin:0; font-family:var(--font-display); font-size:22px; color:var(--c-primary);">4 · Điện thoại · thẻ TD2 đang mở</h2><p style="margin:4px 0 0; color:var(--c-text-muted); max-width:720px;">Lưới số khách 2 cột, dòng tiền canh phải, ô "Nơi đón" đang mở gợi ý (cuộn xuống trong khung để thấy).</p></div>
+      <dc-import name="TaoDonForm" preset="td2" scroll-to="the" hint-size="414px,868px"></dc-import>
+    </section>
+
+    <section id="ab-05" data-screen-label="05 Điện thoại · đơn ba dịch vụ" style="display:flex; flex-direction:column; gap:16px;">
+      <div><h2 style="margin:0; font-family:var(--font-display); font-size:22px; color:var(--c-primary);">5 · Điện thoại · đơn ba dịch vụ</h2><p style="margin:4px 0 0; color:var(--c-text-muted); max-width:720px;">Hai thẻ gập một dòng (Jetski có chip "Chưa chốt giờ đón"), Phao chuối đang mở: một ô "Số khách", "7 khách = 2 lượt".</p></div>
+      <dc-import name="TaoDonForm" preset="three" scroll-to="cards" hint-size="414px,868px"></dc-import>
+    </section>
+
+    <section id="ab-06" data-screen-label="06 Điện thoại · các trạng thái thẻ" style="display:flex; flex-direction:column; gap:16px;">
+      <div><h2 style="margin:0; font-family:var(--font-display); font-size:22px; color:var(--c-primary);">6 · Điện thoại · các trạng thái thẻ</h2><p style="margin:4px 0 0; color:var(--c-text-muted); max-width:720px;">Trái: đang sửa giá. Giữa: lỗi "Tối đa 50 khách." — thẻ bị ép mở dù TD2 cũng đang mở. Phải: dải đặt gấp và chip "Giá danh mục đã đổi".</p></div>
+      <div style="display:flex; gap:32px; flex-wrap:wrap; align-items:flex-start;">
+        <dc-import name="TaoDonForm" preset="st-price" scroll-to="the" hint-size="414px,868px"></dc-import>
+        <dc-import name="TaoDonForm" preset="st-error" scroll-to="the-cuoi" hint-size="414px,868px"></dc-import>
+        <dc-import name="TaoDonForm" preset="st-urgent" scroll-to="cards" hint-size="414px,868px"></dc-import>
+      </div>
+    </section>
+
+    <section id="ab-07" data-screen-label="07 Điện thoại · khối khách" style="display:flex; flex-direction:column; gap:16px;">
+      <div><h2 style="margin:0; font-family:var(--font-display); font-size:22px; color:var(--c-primary);">7 · Điện thoại · khối khách</h2><p style="margin:4px 0 0; color:var(--c-text-muted); max-width:720px;">Mặc định "Khách lẻ" · đang tìm đối tác · đã chọn đối tác · lớp chặn nhầm (bấm "Đúng, qua Minh Travel" để thấy công tắc chuyển và con trỏ về ô tên).</p></div>
+      <div style="display:flex; gap:32px; flex-wrap:wrap; align-items:flex-start;">
+        <dc-import name="TaoDonForm" preset="empty" height="{{ h720 }}" hint-size="414px,744px"></dc-import>
+        <dc-import name="TaoDonForm" preset="kh-search" height="{{ h720 }}" hint-size="414px,744px"></dc-import>
+        <dc-import name="TaoDonForm" preset="kh-picked" height="{{ h720 }}" hint-size="414px,744px"></dc-import>
+        <dc-import name="TaoDonForm" preset="kh-guard" height="{{ h720 }}" hint-size="414px,744px"></dc-import>
+      </div>
+    </section>
+
+    <section id="ab-08" data-screen-label="08 Điện thoại · thanh toán" style="display:flex; flex-direction:column; gap:16px;">
+      <div><h2 style="margin:0; font-family:var(--font-display); font-size:22px; color:var(--c-primary);">8 · Điện thoại · thanh toán</h2><p style="margin:4px 0 0; color:var(--c-text-muted); max-width:720px;">Trái: chưa trả trước, hai ô "Hình thức" và "Người nhận tiền" ẩn. Phải: đã nhập 2.000.000, hai ô hiện kèm câu ghi sổ.</p></div>
+      <div style="display:flex; gap:32px; flex-wrap:wrap; align-items:flex-start;">
+        <dc-import name="TaoDonForm" preset="pay-none" scroll-to="thanhtoan" hint-size="414px,868px"></dc-import>
+        <dc-import name="TaoDonForm" preset="pay-prepay" scroll-to="thanhtoan" hint-size="414px,868px"></dc-import>
+      </div>
+    </section>
+
+    <section id="ab-09" data-screen-label="09 Điện thoại · thanh dính cuối trang" style="display:flex; flex-direction:column; gap:16px;">
+      <div><h2 style="margin:0; font-family:var(--font-display); font-size:22px; color:var(--c-primary);">9 · Điện thoại · thanh dính cuối trang</h2><p style="margin:4px 0 0; color:var(--c-text-muted); max-width:720px;">Thu gọn · mở chi tiết · có cảnh báo tiền · có lỗi khi lưu. Không còn khối Tóm tắt trên điện thoại; chạm dòng tổng để mở chi tiết.</p></div>
+      <div style="display:flex; gap:32px; flex-wrap:wrap; align-items:flex-start;">
+        <dc-import name="TaoDonForm" preset="bar" scroll-to="end" height="{{ h640 }}" hint-size="414px,664px"></dc-import>
+        <dc-import name="TaoDonForm" preset="bar-open" scroll-to="end" height="{{ h640 }}" hint-size="414px,664px"></dc-import>
+        <dc-import name="TaoDonForm" preset="bar-warn" scroll-to="end" height="{{ h640 }}" hint-size="414px,664px"></dc-import>
+        <dc-import name="TaoDonForm" preset="bar-error" scroll-to="end" height="{{ h640 }}" hint-size="414px,664px"></dc-import>
+      </div>
+    </section>
+
+    <section id="ab-10" data-screen-label="10 Máy tính 1040 và 1440" style="display:flex; flex-direction:column; gap:16px;">
+      <div><h2 style="margin:0; font-family:var(--font-display); font-size:22px; color:var(--c-primary);">10 · Máy tính 1040 (và kiểm 1440)</h2><p style="margin:4px 0 0; color:var(--c-text-muted); max-width:720px;">Hai cột; cột phải dính: Tóm tắt, Người phụ trách, Lưu, Quay lại. Hành khách trải ngang dưới hai cột. Rê chuột lên hàng nhóm để hiện ‹ ›; Tab vào hàng nhóm rồi dùng phím mũi tên.</p></div>
+      <dc-import name="TaoDonForm" layout="desktop" preset="three" width="{{ w1040 }}" hint-size="1042px,902px"></dc-import>
+      <div style="font-family:var(--font-display); font-weight:700; color:var(--c-text-muted); margin-top:16px;">Kiểm 1440</div>
+      <dc-import name="TaoDonForm" layout="desktop" preset="three" width="{{ w1440 }}" scroll-to="dichvu" hint-size="1442px,902px"></dc-import>
+    </section>
+
+    <section id="ab-11" data-screen-label="11 Biến thể theo vai" style="display:flex; flex-direction:column; gap:16px;">
+      <div><h2 style="margin:0; font-family:var(--font-display); font-size:22px; color:var(--c-primary);">11 · Biến thể theo vai</h2><p style="margin:4px 0 0; color:var(--c-text-muted); max-width:720px;">Đối tác (đầu form, và phần thẻ + thanh toán: không "Sửa giá", giảm giá khoá, không "+ Dịch vụ nhập tay", ba bước) · Tài khoản lai (không có "Đơn của") · Bảng "Đổi khách" ở trang đơn.</p></div>
+      <div style="display:flex; gap:32px; flex-wrap:wrap; align-items:flex-start;">
+        <div style="display:flex; flex-direction:column; gap:8px;"><b style="font-family:var(--font-display); color:var(--c-primary);">Đối tác · đầu form</b><dc-import name="TaoDonForm" preset="role-partner" role="partner" hint-size="414px,868px"></dc-import></div>
+        <div style="display:flex; flex-direction:column; gap:8px;"><b style="font-family:var(--font-display); color:var(--c-primary);">Đối tác · thẻ và thanh toán</b><dc-import name="TaoDonForm" preset="role-partner" role="partner" scroll-to="thanhtoan" hint-size="414px,868px"></dc-import></div>
+        <div style="display:flex; flex-direction:column; gap:8px;"><b style="font-family:var(--font-display); color:var(--c-primary);">Tài khoản lai</b><dc-import name="TaoDonForm" preset="role-hybrid" role="hybrid" hint-size="414px,868px"></dc-import></div>
+        <div style="display:flex; flex-direction:column; gap:8px;"><b style="font-family:var(--font-display); color:var(--c-primary);">Bảng "Đổi khách"</b><dc-import name="TaoDonForm" preset="sheet" mode="sheet" hint-size="414px,868px"></dc-import></div>
+      </div>
+    </section>
+
+    <section id="ab-12" data-screen-label="12 Thang nút và token" style="display:flex; flex-direction:column; gap:24px;">
+      <div><h2 style="margin:0; font-family:var(--font-display); font-size:22px; color:var(--c-primary);">12 · Thang nút ba cấp và Token đã dùng</h2></div>
+      <div style="display:grid; grid-template-columns:repeat(3, 320px); gap:24px;">
+        <div style="border:1px solid var(--c-border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:12px;">
+          <div style="font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--c-text-muted);">Cấp 1 · Chính</div>
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" size="lg" block="{{ true }}" hint-size="100%,52px">Lưu, chờ xác nhận</x-import>
+          <div style="font-size:14px; color:var(--c-text-muted);">Nền xanh đậm, chữ trắng. Chỉ một nút trên cả màn. Rê chuột: xanh đậm hơn. Button variant="primary".</div>
+        </div>
+        <div style="border:1px solid var(--c-border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:12px;">
+          <div style="font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--c-text-muted);">Cấp 2 · Phụ</div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="default" hint-size="110px,44px">+ Chiều về</x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="default" hint-size="100px,44px">+ Chặng</x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="default" hint-size="140px,44px">+ Hành khách</x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="default" hint-size="190px,44px">+ Dịch vụ nhập tay</x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="default" hint-size="200px,44px">Chọn người phụ trách</x-import>
+          </div>
+          <div style="font-size:14px; color:var(--c-text-muted);">Viền 1px, nền trắng, cao 44px. Button variant="default".</div>
+        </div>
+        <div style="border:1px solid var(--c-border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:12px;">
+          <div style="font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--c-text-muted);">Cấp 3 · Lối nhỏ</div>
+          <div style="display:flex; flex-wrap:wrap; gap:4px;">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" dc-props="{{ lk }}" hint-size="170px,44px">Điền thông tin của tôi</x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" dc-props="{{ lk }}" hint-size="130px,44px">+ Email, ghi chú</x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" dc-props="{{ lk }}" hint-size="70px,44px">Sửa giá</x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" dc-props="{{ lk }}" hint-size="120px,44px">Đón khác ngày</x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" dc-props="{{ lk }}" hint-size="80px,44px">Bỏ chặng</x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" dc-props="{{ lk }}" hint-size="48px,44px">Đổi</x-import>
+          </div>
+          <div style="font-size:14px; color:var(--c-text-muted);">Chữ xanh gạch chân, vùng chạm 44px. Button variant="link".</div>
+        </div>
+      </div>
+      <div style="font-size:14px; color:var(--c-text-muted); max-width:1008px;">Đã bỏ trên màn này: nút viên thuốc, nút nền xanh nhạt, nút nét đứt. Nút san hô "Tạo đơn" chỉ còn ở thanh trên (lối vào màn), không nằm trong form.</div>
+
+      <table style="border-collapse:collapse; width:1008px; font-size:14px;">
+        <thead><tr style="text-align:left; background:var(--c-surface-alt);"><th style="padding:8px 12px; border-bottom:1px solid var(--c-border);">Token</th><th style="padding:8px 12px; border-bottom:1px solid var(--c-border);">Nơi dùng</th><th style="padding:8px 12px; border-bottom:1px solid var(--c-border);">Giá trị</th></tr></thead>
+        <tbody>
+          <sc-for list="{{ tokens }}" as="t" hint-placeholder-count="10">
+            <tr style="background:{{ t.bg }};"><td style="padding:8px 12px; border-bottom:1px solid var(--c-border); font-family:var(--font-display); font-weight:700; white-space:nowrap;">{{ t.name }}<sc-if value="{{ t.isNew }}" hint-placeholder-val="{{ false }}"><span style="margin-left:8px; font-family:var(--font); font-size:12px; color:var(--c-sand-text); background:var(--c-sand-soft); border:1px solid var(--c-sand-border); border-radius:999px; padding:1px 8px;">MỚI</span></sc-if></td><td style="padding:8px 12px; border-bottom:1px solid var(--c-border);">{{ t.use }}</td><td style="padding:8px 12px; border-bottom:1px solid var(--c-border); white-space:nowrap; font-variant-numeric:tabular-nums;">{{ t.value }}</td></tr>
+          </sc-for>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="giai-thich" data-screen-label="Giải thích và ghi chú" style="display:grid; grid-template-columns:480px 480px; gap:48px; align-items:start;">
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <h2 style="margin:0; font-family:var(--font-display); font-size:22px; color:var(--c-primary);">Vì sao chọn dịch vụ nhanh hơn</h2>
+        <ol style="margin:0; padding-left:20px; display:flex; flex-direction:column; gap:8px;">
+          <li>Hàng nhóm nằm sẵn trên màn: một chạm là lọc, không mở bảng, danh sách không biến mất — từ ba chạm còn một.</li>
+          <li>Khung danh sách luôn mở và đứng yên: chạm dòng là thêm, "✓ đã thêm" xác nhận ngay tại chỗ, nên thêm nhiều dịch vụ liền tay mà không mất chỗ đang xem.</li>
+          <li>Phần đầu tên in mờ, giá thẳng cột: mắt chỉ đọc phần khác nhau ("Jetski L2 (30 phút)") và so giá theo một đường dọc.</li>
+          <li>Gõ chữ tìm trong mọi nhóm, kết quả chia mục; nhóm không khớp mờ đi nên biết ngay còn chạm được nhóm nào.</li>
+          <li>Chỉ một thẻ mở, thẻ gập một dòng có chip báo thiếu: đơn ba dịch vụ còn khoảng hai màn thay vì năm, sáu màn tới nút Lưu.</li>
+        </ol>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <h2 style="margin:0; font-family:var(--font-display); font-size:22px; color:var(--c-primary);">Ghi chú riêng (đề xuất, không vẽ lên artboard)</h2>
+        <ul style="margin:0; padding-left:20px; display:flex; flex-direction:column; gap:8px; color:var(--c-text);">
+          <li>Cộng số trong ngoặc của 14 nhóm ra 114, không phải 113. Danh mục mẫu dùng đủ 114 dòng (trong đó Nhà hát Đó có một dòng "(ví dụ) … · chưa có giá"), nên đầu khung ghi "114 dịch vụ".</li>
+          <li>Màu, phông, bóng theo giá trị trong repo như bạn chọn: nền trang #eaf2f8, viền #d3e1ec, bóng một lớp, chữ thân Nunito, tiêu đề và số Be Vietnam Pro 700/800.</li>
+          <li>Thanh bên máy tính và thanh trên điện thoại vẽ theo hệ thiết kế (nền xanh). Ảnh 14/10 cho thấy bản chạy thật đang dùng nền trắng — cần chốt một bên.</li>
+          <li>Ở "Tất cả", dịch vụ gắn sao hiện cả ở mục "★ Hay dùng" lẫn trong nhóm của nó. Nếu thấy lặp, có thể chỉ giữ ở "Hay dùng".</li>
+          <li>Bộ 24 biểu tượng chưa có thùng rác và kính lúp; hai hình này vẽ theo cùng luật (lưới 24, nét 1,8, không tô) và được đánh dấu MỚI.</li>
+          <li>Câu chữ cảnh báo đặt gấp, cảnh báo tiền và lỗi mất mạng là chữ đề xuất; thay bằng câu thật của máy chủ khi làm.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="hien-trang" data-screen-label="Hiện trạng 14/10" style="display:flex; flex-direction:column; gap:16px;">
+      <div><h2 style="margin:0; font-family:var(--font-display); font-size:22px; color:var(--c-primary);">Hiện trạng — ảnh chụp bản chạy thật 14/10/2026</h2><p style="margin:4px 0 0; color:var(--c-text-muted);">Nguồn: docs/evidence/2026-10-14-tao-don-bon-buoc/sau/ (vai Bán hàng). Cuộn trong từng khung.</p></div>
+      <div style="display:flex; gap:32px; flex-wrap:wrap; align-items:flex-start;">
+        <figure style="margin:0; display:flex; flex-direction:column; gap:8px;"><div style="width:390px; height:844px; overflow-y:auto; border:1px solid var(--c-border); border-radius:12px;"><img src="hien-trang/390-vao.png" alt="Màn Tạo đơn hiện tại trên điện thoại, vừa mở" style="width:390px; display:block;"></div><figcaption style="font-size:14px; color:var(--c-text-muted);">390 · vừa mở</figcaption></figure>
+        <figure style="margin:0; display:flex; flex-direction:column; gap:8px;"><div style="width:390px; height:844px; overflow-y:auto; border:1px solid var(--c-border); border-radius:12px;"><img src="hien-trang/390-nhom-mo.png" alt="Bảng tick nhóm dịch vụ đang mở che danh sách" style="width:390px; display:block;"></div><figcaption style="font-size:14px; color:var(--c-text-muted);">390 · bảng tick nhóm mở</figcaption></figure>
+        <figure style="margin:0; display:flex; flex-direction:column; gap:8px;"><div style="width:390px; height:844px; overflow-y:auto; border:1px solid var(--c-border); border-radius:12px;"><img src="hien-trang/390-don-mo.png" alt="Đơn có một dịch vụ, thẻ dịch vụ mở hết" style="width:390px; display:block;"></div><figcaption style="font-size:14px; color:var(--c-text-muted);">390 · thẻ dịch vụ mở</figcaption></figure>
+        <figure style="margin:0; display:flex; flex-direction:column; gap:8px;"><div style="width:520px; height:844px; overflow-y:auto; border:1px solid var(--c-border); border-radius:12px;"><img src="hien-trang/1040-don.png" alt="Màn Tạo đơn hiện tại trên máy tính 1040" style="width:520px; display:block;"></div><figcaption style="font-size:14px; color:var(--c-text-muted);">1040 · một dịch vụ (thu nhỏ một nửa)</figcaption></figure>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const T = (name, use, value, isNew) => ({ name, use, value, isNew: !!isNew });
+    const tokens = [
+      T('--c-primary', 'Nút chính, nhóm đang chọn, công tắc "Đơn của", tiêu đề khối, liên kết, vòng focus 2px', '#0c4a6e'),
+      T('--c-primary-strong', 'Rê chuột nút chính, thanh bên máy tính', '#082f49'),
+      T('--c-primary-soft', 'Dòng đối tác đã chọn, nhãn "Chiều đi / Chiều về"', '#dcebf6'),
+      T('--c-soft-hover', 'Rê chuột nút phụ', '#f0f7fc'),
+      T('--c-accent', 'Nhãn giá "Khác giá danh mục", nút "Tạo đơn" ở thanh trên', '#c0392b'),
+      T('--c-accent-strong', 'Số "Tổng" trên thanh dính và Tóm tắt (tiền)', '#96271a'),
+      T('--c-sand', 'Sao ★ đã gắn, ảnh đại diện', '#f5a623'),
+      T('--c-sand-soft / -text / -border', 'Chip thiếu thông tin, lớp chặn nhầm, dải đặt gấp, cảnh báo tiền, nhãn "Chờ nhận", cảnh báo bảng Đổi khách', '#fbe3b3 / #5a4109 / #e9d3a4'),
+      T('--c-surface-alt', 'Nền trang, thanh bốn bước, đầu khung danh sách, ô chỉ đọc', '#eaf2f8'),
+      T('--c-card / --c-surface', 'Thẻ, khung danh sách, ô gõ', '#ffffff'),
+      T('--c-border', 'Viền thẻ, dòng danh sách, ô gõ, nút nhóm chưa chọn', '#d3e1ec'),
+      T('--c-text', 'Phần sau dấu hai chấm của tên dịch vụ, giá, chữ chính', '#0f172a'),
+      T('--c-text-muted', 'Phần trước dấu hai chấm, mã dịch vụ, tiêu đề mục, dòng "Hồ sơ khách"', '#475569'),
+      T('--c-green-soft / -text', 'Nhãn "✓ đã thêm", báo đã lưu', '#dcfce7 / #166534'),
+      T('--c-danger / -soft / -text / -border', 'Lỗi "Tối đa 50 khách.", viền thẻ lỗi, lỗi khi lưu, biểu tượng thùng rác', '#b01235 / #fde9ee / #8e0e2b / #f1c3cf'),
+      T('--c-scrim', 'Nền mờ sau bảng "Đổi khách"', 'rgba(15,23,42,.45)'),
+      T('--font-display', 'Tiêu đề, giá, mã dịch vụ, số trên thanh bước', 'Be Vietnam Pro 700/800'),
+      T('--font', 'Chữ thân, nhãn, ô gõ', 'Nunito 400–800'),
+      T('--fs-badge / --fs-label / --fs-ui', 'Tiêu đề mục và chip / nhãn ô / chữ thân và ô gõ (≥16px)', '12 / 14 / 16px'),
+      T('--ls-eyebrow', 'Tiêu đề mục viết hoa trong khung danh sách', '.08em'),
+      T('--s1…--s7', 'Mọi khoảng cách', '4 / 8 / 12 / 16 / 24 / 32 / 48px'),
+      T('--radius-sm / -md / -lg', 'Nút, ô, nút nhóm / thẻ / bảng trượt Đổi khách', '8 / 12 / 18px'),
+      T('--shadow-card / --shadow-overlay', 'Thẻ dịch vụ / khung máy, bảng trượt', '0 1px 3px 8% / 0 12px 32px 16%'),
+      T('--tap-min / --counter-btn / --counter-field', 'Vùng chạm, nút − +, ô số', '44 / 44 / 48px'),
+      T('--h-field / --price-field', 'Ô gõ / ô đơn giá khi "Sửa giá"', '52 / 112px'),
+      T('--w-side / --w-sidebar / --bar-h', 'Cột phải dính / thanh bên / thanh trên', '340 / 236 / 60px'),
+      T('--h-catalog', 'Chiều cao cố định khung danh sách: điện thoại khoảng 7 dòng, máy tính khoảng 8 dòng. Hệ chưa có token cho khung cuộn trong.', '392 / 448px', true),
+      T('--fade-edge', 'Mép phải mờ dần của hàng nhóm, báo còn nhóm phía sau. Hệ chưa có hiệu ứng mờ mép.', '56px', true),
+      T('icon: trash', 'Nút "Xoá dịch vụ …" ở đầu thẻ. Bộ 24 biểu tượng chưa có hình này.', 'lưới 24, nét 1,8', true),
+      T('icon: search', 'Ô tìm dịch vụ, ô tìm đối tác. Bộ 24 biểu tượng chưa có hình này.', 'lưới 24, nét 1,8', true),
+    ].map((t, i) => ({ ...t, bg: t.isNew ? 'var(--c-sand-soft)' : i % 2 ? 'var(--c-surface-alt)' : '#fff' }));
+    return { tokens, lk: { style: { minHeight: 44, padding: '0 4px', fontSize: 14 } }, h720: 720, h640: 640, w1040: 1040, w1440: 1440 };
+  }
+}
+</script>
+</body>
+</html>

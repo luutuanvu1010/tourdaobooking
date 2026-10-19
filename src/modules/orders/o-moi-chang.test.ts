@@ -206,7 +206,7 @@ test("TC-F8: PUT /trip dời ngày đi / đổi giờ đón (nháp lẫn đã x�
     for (const extra of [{ flightCode: "VJ123" }, { paxOverride: 1 }]) {
       const bad = await w.call("PUT", `/api/orders/${o.id}/trip`, { as: SALES, body: { expectedUpdatedAt: r.json.order.updatedAt, services: [{ id: c.services[0].id, departDate: inDays(4), ...extra }] } });
       assert.equal(bad.status, 400, bad.text);
-      assert.match(bad.json.error.message, /từng chặng/);
+      assert.match(bad.json.error.message, /từng lượt đưa đón/);
     }
   }
   // Dịch vụ chưa có chiều đi → /trip tạo chiều đi mới (op insert): hai ô NULL; chặng về không đổi.

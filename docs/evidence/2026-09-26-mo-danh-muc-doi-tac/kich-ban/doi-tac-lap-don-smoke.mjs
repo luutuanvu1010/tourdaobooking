@@ -7,6 +7,11 @@
 //     GET /api/dispatch/handlers; thanh tab điện thoại có "Đơn hàng"; thanh bên máy tính có mục "Đơn hàng" không huy hiệu.
 //   - Bước 8–10 (vòng sửa sau nghiệm thu ADR-0100, 12/10): form lập đơn của Thực tập — đứng một mình (1040 + 390) và Thực tập + Bán hàng (1040): ô đơn giá readOnly,
 //     ô "Giảm giá" readOnly, dòng báo "Tài khoản Thực tập không được giảm giá." (không phải câu «tạm» của Đối tác), ô trỏ tới dòng báo; bước 10 axe cho Thực tập + Bán hàng.
+// Thiết kế lại màn Tạo đơn 18/10/2026 (Việc 9, đặc tả docs/superpowers/specs/2026-10-18-tao-don-thiet-ke-lai/DAC-TA.md mục 3 "Biến thể theo vai"): ô đơn giá nay nằm trong
+//   khối gập "Sửa giá" (ẩn bằng `hidden`) nên mọi khẳng định đo ĐANG HIỆN THẬT (getClientRects) — trước đây bước 2/2m/8 khẳng định readOnly trên ô đã vô hình. Thêm: dòng tiền
+//   là CHỮ đang hiện; Đối tác / Thực tập không thấy "Sửa giá", Bán hàng thấy và bấm mở được ô sửa; công tắc nhập tay BẬT (Toàn quyền, route thật) → Bán hàng thấy
+//   "+ Dịch vụ nhập tay", Đối tác không; Đối tác không có công tắc "Đơn của" (dòng chỉ đọc "Bên đặt" khi máy chủ ép bên đặt); bước 2c: máy chủ trả 400 khi Lưu (giả một
+//   lần bằng thay fetch) → khối "Sửa giá" của Đối tác KHÔNG mở ra (trước đây mở và kẹt, không có nút đóng).
 // Sửa 2026-09-26 (bản 1.17): dòng báo từng nằm trong cột hẹp của hàng ba ô Thanh toán → xuống 3 hàng ở máy tính. Kịch bản nay tìm dòng báo theo
 // NỘI DUNG (không theo vị trí), đếm số hàng hiển thị thật (Range.getClientRects) — máy tính phải 1 hàng, điện thoại ≤ 2 — và kiểm ô giảm giá
 // trỏ tới nó bằng aria-describedby.
@@ -33,6 +38,7 @@ const INTERN_NOTE = "Tài khoản Thực tập không được giảm giá."; //
 const CATALOG_ERR = "Không tải được danh mục";
 const TD101_ADULT = 1350000;
 const PAX = 2;
+const DONG_TIEN = "2 người lớn × 1.350.000 = 2.700.000"; // dòng tiền là CHỮ (thiết kế lại 18/10, Task 6)
 const CUSTOMER = "Khách Đối Tác Thử";
 
 let passed = 0;
@@ -110,6 +116,13 @@ try {
   // ADR-0033 (2026-09-27): form lập đơn đọc danh mục qua GET /api/catalog/for-order; GET /api/catalog về cổng office (Đối tác nhận 403 ở đó).
   const catRes = await call(PARTNER, "GET", "/api/catalog/for-order");
   console.log(`  (GET /api/catalog/for-order bằng Đối tác → ${catRes.status}, ${catRes.json?.items?.length ?? "?"} mục)`);
+  // Máy chủ quyết Đối tác có dòng chỉ đọc "Bên đặt" không (trường `benDatCuaToi` của /api/auth/me — giao diện không suy): kịch bản đọc rồi khẳng định theo đúng câu trả lời đó.
+  const me = await call(PARTNER, "GET", "/api/auth/me");
+  const BEN_DAT = me.json?.benDatCuaToi ?? null;
+  console.log(`  (GET /api/auth/me bằng Đối tác → benDatCuaToi = ${JSON.stringify(BEN_DAT)})`);
+  // Công tắc nhập tay BẬT (ADR-0061, Toàn quyền, route thật): chỉ khi bật thì "không có + Dịch vụ nhập tay" của Đối tác mới có nghĩa (Bán hàng phải thấy nút).
+  const nhapTay = await call(ACCOUNTS.chu, "POST", "/api/cai-dat/nhap-tay", { batNhapTay: true });
+  assert.equal(nhapTay.status, 200, `Toàn quyền bật dịch vụ nhập tay: ${nhapTay.status} ${JSON.stringify(nhapTay.json)}`);
 
   // ---- biểu thức dùng chung trên form ----
   const CARD = "[...document.querySelectorAll('#services .svc')].find((c) => c.querySelector('.svc-name')?.textContent === 'Tour 4 đảo Nha Trang')";
@@ -125,25 +138,37 @@ try {
     await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
     await p.waitFor(`!!(${CARD})`, "thẻ Tour 4 đảo Nha Trang");
     await p.ev(setInput(ADULT, String(PAX)));
-    await p.waitFor(`!(${ADULT_PRICE}).closest('.line').hidden && /2 ×/.test((${ADULT_PRICE}).closest('.line').querySelector('.line-qty').textContent)`, "dòng tiền người lớn 2 × hiện");
+    // Thiết kế lại 18/10/2026 (Task 6): dòng tiền là CHỮ "2 người lớn × 1.350.000 = 2.700.000"; ô đơn giá nằm trong khối gập "Sửa giá" (Bán hàng bấm mới hiện).
+    // Đối tác / Thực tập không có liên kết "Sửa giá": kịch bản này khẳng định cho CẢ HAI vai (bước 2, 2m, 2c, 8, 8m, 9); luoi-khach-tien-smoke.mjs bước 7 thêm nháp cũ lệch giá của Thực tập.
+    await p.waitFor(`[...(${CARD}).querySelectorAll('.dong-tien-chu')].some((e) => e.getClientRects().length > 0 && e.textContent === ${JSON.stringify(DONG_TIEN)})`, "dòng tiền chữ người lớn đang hiện");
     await sleep(150);
     return listed;
   };
   /** Trạng thái các ô cần kiểm trên form. `ghiChu`: chữ của dòng báo cần tìm (mặc định câu của Đối tác). */
+  // Mọi phần tử đo ĐANG HIỆN THẬT (`getClientRects().length > 0`): ô đơn giá nằm trong khối gập "Sửa giá" bị ẩn bằng `hidden` ở cha — `.line:not([hidden])` vẫn khớp hàng vô hình.
   const formState = (p, ghiChu = PARTNER_NOTE) =>
     p.ev(`(() => {
+      const hien = (e) => !!e && e.getClientRects().length > 0;
+      const so = (f) => Number((f?.value ?? '').replace(/\\D/g, ''));
       const card = ${CARD};
-      const lines = card ? [...card.querySelectorAll('.line:not([hidden])')] : [];
       const d = document.getElementById('discount');
       const note = [...document.body.querySelectorAll('*')].find((e) => e.children.length === 0 && e.textContent.trim() === ${JSON.stringify(ghiChu)});
       const noteRange = note ? document.createRange() : null;
       if (noteRange) noteRange.selectNodeContents(note);
       const adultPrice = card ? card.querySelector('.price-field[aria-label="Đơn giá người lớn"]') : null;
+      const sua = card ? card.querySelector('.svc-sua-gia') : null;
+      const khoiGia = card ? card.querySelector('[data-gap-than^="gia-"]') : null;
       return {
         card: !!card,
-        visibleLines: lines.map((l) => { const f = l.querySelector('.price-field'); return { name: l.querySelector('.line-name')?.textContent, readOnly: f?.readOnly, value: f?.value, digits: Number((f?.value ?? '').replace(/\\D/g, '')), qty: l.querySelector('.line-qty')?.textContent, total: l.querySelector('.line-total')?.textContent }; }),
-        adultPriceReadOnly: adultPrice ? adultPrice.readOnly : null,
-        tagShown: card ? card.querySelector('.line:not([hidden]) .tag-price:not([hidden])') !== null : null,
+        dongChu: card ? [...card.querySelectorAll('.dong-tien-chu')].filter(hien).map((e) => e.textContent) : [],
+        oGiaHien: card ? [...card.querySelectorAll('.price-field')].filter(hien).map((f) => ({ nhan: f.getAttribute('aria-label'), readOnly: f.readOnly, digits: so(f) })) : [],
+        adultPrice: adultPrice ? { readOnly: adultPrice.readOnly, digits: so(adultPrice), hien: hien(adultPrice) } : null,
+        suaGia: sua ? { hien: hien(sua), chu: sua.textContent } : null,
+        khoiGiaMo: khoiGia ? !khoiGia.hidden : null,
+        nhapTay: hien(document.getElementById('add-manual')),
+        congTac: !!document.getElementById('dat-qua-doi-tac'),
+        chiDoc: document.getElementById('ben-dat-chi-doc')?.textContent ?? null,
+        tagShown: card ? [...card.querySelectorAll('.tag-price')].some(hien) : null,
         discountReadOnly: d.readOnly,
         discountValue: d.value,
         note: note ? { tag: note.tagName, id: note.id, cls: note.className, text: note.textContent.trim(), rows: new Set([...noteRange.getClientRects()].map((r) => Math.round(r.top))).size, visible: note.getClientRects().length > 0 } : null,
@@ -154,22 +179,38 @@ try {
       };
     })()`);
 
+  /** Đối tác / Thực tập (`retailOnly`): dòng tiền là chữ đang hiện; KHÔNG có “Sửa giá”; không ô đơn giá nào hiện; ô (ẩn) vẫn readOnly đúng giá danh mục; không nhãn lệch giá. */
+  const kiemKhongSuaGia = (s, nhan) => {
+    assert.deepEqual(s.dongChu, [DONG_TIEN], `${nhan}: dòng tiền chữ — ${JSON.stringify(s)}`);
+    assert.ok(s.suaGia === null || s.suaGia.hien === false, `${nhan}: KHÔNG có “Sửa giá” — ${JSON.stringify(s.suaGia)}`);
+    assert.deepEqual(s.oGiaHien, [], `${nhan}: không ô đơn giá nào hiện — ${JSON.stringify(s.oGiaHien)}`);
+    assert.deepEqual(s.adultPrice && [s.adultPrice.readOnly, s.adultPrice.digits], [true, TD101_ADULT], `${nhan}: ô đơn giá (ẩn) vẫn readOnly, = giá danh mục — ${JSON.stringify(s.adultPrice)}`);
+    assert.equal(s.tagShown, false, `${nhan}: không có nhãn “Khác giá danh mục” — ${JSON.stringify(s)}`);
+  };
+
   // ==================================================================================================
   // 4) ĐỐI CHỨNG — Bán hàng (mở TRƯỚC, đóng xong mới tới Đối tác: kho cookie chung)
   // ==================================================================================================
-  await step("4", "Đối chứng Bán hàng (máy tính 1040): chọn TD101 + 2 người lớn → ô đơn giá và ô giảm giá KHÔNG readOnly, không có dòng “Tài khoản đối tác…”", async () => {
+  await step("4", "Đối chứng Bán hàng (máy tính 1040): chọn TD101 + 2 người lớn → dòng tiền chữ, liên kết “Sửa giá” HIỆN, bấm thì ô đơn giá hiện và sửa được; ô giảm giá KHÔNG readOnly; có công tắc “Đơn của”, có “+ Dịch vụ nhập tay”; không có dòng “Tài khoản đối tác…”", async () => {
     const p = await openAs(ACCOUNTS.salesA, "/order-form", DESK);
+    await p.waitFor("!document.getElementById('add-manual').hidden", "nút + Dịch vụ nhập tay hiện (công tắc đã bật)", 10000);
     await pickTd101(p);
     const s = await formState(p);
-    assert.equal(s.visibleLines.length, 1, `một dòng tiền (người lớn) — ${JSON.stringify(s)}`);
-    assert.equal(s.visibleLines[0].readOnly, false, `ô đơn giá của Bán hàng KHÔNG readOnly — ${JSON.stringify(s)}`);
-    assert.equal(s.visibleLines[0].digits, TD101_ADULT, `ô đơn giá = giá danh mục — ${JSON.stringify(s)}`);
+    assert.deepEqual(s.dongChu, [DONG_TIEN], `dòng tiền chữ — ${JSON.stringify(s)}`);
+    assert.equal(s.suaGia?.hien, true, `Bán hàng thấy “Sửa giá” — ${JSON.stringify(s.suaGia)}`);
+    assert.deepEqual(s.oGiaHien, [], `khối “Sửa giá” đóng: chưa có ô đơn giá nào hiện — ${JSON.stringify(s.oGiaHien)}`);
+    assert.equal(s.nhapTay, true, "Bán hàng thấy “+ Dịch vụ nhập tay”");
+    assert.equal(s.congTac, true, "Bán hàng có công tắc “Đơn của”");
+    await p.ev(`(${CARD}).querySelector('.svc-sua-gia').click(); true`);
+    await p.waitFor(`(${ADULT_PRICE}).getClientRects().length > 0`, "bấm Sửa giá → ô đơn giá hiện");
+    const s2 = await formState(p);
+    assert.deepEqual(s2.oGiaHien, [{ nhan: "Đơn giá người lớn", readOnly: false, digits: TD101_ADULT }], `ô đơn giá của Bán hàng hiện, KHÔNG readOnly, = giá danh mục — ${JSON.stringify(s2.oGiaHien)}`);
     assert.equal(s.discountReadOnly, false, `ô giảm giá của Bán hàng KHÔNG readOnly — ${JSON.stringify(s)}`);
     assert.equal(s.partnerNoteAnywhere, false, `không có dòng “${PARTNER_NOTE}” — ${JSON.stringify(s)}`);
     assert.equal(s.catalogErrAnywhere, false, `không có “${CATALOG_ERR}” — ${JSON.stringify(s)}`);
     assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
     noteErrorLogs(p, "Bán hàng /order-form máy tính");
-    console.log(`    Bán hàng: đơn giá readOnly=${s.visibleLines[0].readOnly} (“${s.visibleLines[0].value}”), giảm giá readOnly=${s.discountReadOnly}, dòng báo: ${JSON.stringify(s.note)}, aria-describedby=${s.discountDescribedBy}`);
+    console.log(`    Bán hàng: dòng tiền ${JSON.stringify(s.dongChu)}, Sửa giá ${JSON.stringify(s.suaGia)} → ô ${JSON.stringify(s2.oGiaHien)}, giảm giá readOnly=${s.discountReadOnly}, nhập tay=${s.nhapTay}`);
     p.close();
   });
 
@@ -190,17 +231,15 @@ try {
     console.log(`    danh sách: ${JSON.stringify(listed)}`);
   });
 
-  await step("2", `Đối tác (máy tính 1040): chọn TD101, ${PAX} người lớn → ô đơn giá readOnly = true, hiện đúng giá danh mục 1.350.000; ô “Giảm giá” readOnly = true, có dòng “${PARTNER_NOTE}” nằm gọn MỘT hàng, ô trỏ tới nó (aria-describedby)`, async () => {
+  await step("2", `Đối tác (máy tính 1040): chọn TD101, ${PAX} người lớn → dòng tiền chữ, KHÔNG “Sửa giá”, không ô đơn giá nào hiện (ô ẩn vẫn readOnly 1.350.000); không công tắc “Đơn của” (dòng chỉ đọc “Bên đặt” nếu máy chủ ép), không “+ Dịch vụ nhập tay”; ô “Giảm giá” readOnly, có dòng “${PARTNER_NOTE}” nằm gọn MỘT hàng, ô trỏ tới nó (aria-describedby)`, async () => {
     assert.ok(desk, "trang bước 1 chưa mở");
     await pickTd101(desk);
     await desk.waitFor(`(${ADULT_PRICE}).readOnly === true`, "ô đơn giá người lớn readOnly", 5000);
     const s = await formState(desk);
-    assert.equal(s.visibleLines.length, 1, `một dòng tiền (người lớn) — ${JSON.stringify(s)}`);
-    for (const l of s.visibleLines) {
-      assert.equal(l.readOnly, true, `mọi ô đơn giá đang hiện phải readOnly — ${JSON.stringify(l)}`);
-      assert.equal(l.digits, TD101_ADULT, `ô đơn giá = giá danh mục ${TD101_ADULT} — ${JSON.stringify(l)}`);
-    }
-    assert.equal(s.tagShown, false, `không có nhãn “Khác giá danh mục” — ${JSON.stringify(s)}`);
+    kiemKhongSuaGia(s, "Đối tác 1040");
+    assert.equal(s.congTac, false, "Đối tác KHÔNG có công tắc “Đơn của”");
+    assert.equal(s.chiDoc, BEN_DAT ? `Bên đặt: ${BEN_DAT.ten}` : null, `dòng chỉ đọc “Bên đặt” theo đúng benDatCuaToi của máy chủ — ${JSON.stringify(s.chiDoc)}`);
+    assert.equal(s.nhapTay, false, "Đối tác KHÔNG thấy “+ Dịch vụ nhập tay” (công tắc đang bật, Bán hàng thấy ở bước 4)");
     assert.equal(s.discountReadOnly, true, `ô giảm giá readOnly — ${JSON.stringify(s)}`);
     assert.equal(s.note?.visible, true, `có dòng “${PARTNER_NOTE}” đang hiện — ${JSON.stringify(s.note)}`);
     assert.equal(s.note.rows, 1, `dòng báo ở máy tính phải nằm gọn 1 hàng — ${JSON.stringify(s.note)}`);
@@ -209,17 +248,18 @@ try {
     assert.match(s.subtotal ?? "", /2\.700\.000/, `tạm tính 2.700.000 — ${s.subtotal}`);
     assert.deepEqual(desk.consoleErrors, [], `lỗi console: ${desk.consoleErrors}`);
     await desk.shot(join(OUT, "anh", "doi-tac-form-may-tinh.png"));
-    console.log(`    dòng tiền: ${JSON.stringify(s.visibleLines)} · giảm giá readOnly=${s.discountReadOnly} value="${s.discountValue}" · dòng báo: ${JSON.stringify(s.note)} · tạm tính ${s.subtotal}`);
+    console.log(`    dòng tiền: ${JSON.stringify(s.dongChu)} · ô đơn giá (ẩn) ${JSON.stringify(s.adultPrice)} · Sửa giá ${JSON.stringify(s.suaGia)} · bên đặt ${JSON.stringify(s.chiDoc)} · giảm giá readOnly=${s.discountReadOnly} value="${s.discountValue}" · dòng báo: ${JSON.stringify(s.note)} · tạm tính ${s.subtotal}`);
     noteErrorLogs(desk, "Đối tác /order-form máy tính");
     desk.close();
   });
 
   const mob = await openAs(PARTNER, "/order-form", MOB);
-  await step("2m", `Đối tác (điện thoại 390): chọn TD101, ${PAX} người lớn → ô đơn giá readOnly, giá 1.350.000; ô “Giảm giá” readOnly + dòng “${PARTNER_NOTE}”; không có “${CATALOG_ERR}”; không tràn ngang`, async () => {
+  await step("2m", `Đối tác (điện thoại 390): chọn TD101, ${PAX} người lớn → dòng tiền chữ, KHÔNG “Sửa giá”, không ô đơn giá nào hiện (ô ẩn readOnly 1.350.000); ô “Giảm giá” readOnly + dòng “${PARTNER_NOTE}”; không có “${CATALOG_ERR}”; không tràn ngang`, async () => {
     await pickTd101(mob);
     await mob.waitFor(`(${ADULT_PRICE}).readOnly === true`, "ô đơn giá người lớn readOnly", 5000);
     const s = await formState(mob);
-    assert.deepEqual(s.visibleLines.map((l) => [l.readOnly, l.digits]), [[true, TD101_ADULT]], `ô đơn giá — ${JSON.stringify(s)}`);
+    kiemKhongSuaGia(s, "Đối tác 390");
+    assert.equal(s.nhapTay, false, "Đối tác KHÔNG thấy “+ Dịch vụ nhập tay”");
     assert.equal(s.discountReadOnly, true, `ô giảm giá readOnly — ${JSON.stringify(s)}`);
     assert.equal(s.note?.visible, true, `có dòng “${PARTNER_NOTE}” đang hiện — ${JSON.stringify(s.note)}`);
     assert.ok(s.note.rows <= 2, `dòng báo ở điện thoại tối đa 2 hàng — ${JSON.stringify(s.note)}`);
@@ -228,6 +268,24 @@ try {
     assert.ok(overflow <= 1, `không tràn ngang ở 390px — lệch ${overflow}px`);
     assert.deepEqual(mob.consoleErrors, [], `lỗi console: ${mob.consoleErrors}`);
     await mob.shot(join(OUT, "anh", "doi-tac-form-dien-thoai.png"));
+  });
+
+  // 2c (Việc 9, nợ T6): máy chủ từ chối lưu (400 không chỉ ra ô) ⇒ form mở MỌI khối gập (`moMoiKhoiGap`). Khối "Sửa giá" của Đối tác không được mở theo: họ không có nút để đóng
+  // (trước đây kẹt mở, ô đơn giá chỉ đọc lộ ra tới khi tải lại trang). Giả MỘT lần POST /api/orders trả 400 bằng thay fetch (thân lỗi đúng dạng máy chủ); bước 3 lưu thật sau đó.
+  await step("2c", "Đối tác (điện thoại 390): Lưu bị máy chủ từ chối (400 giả một lần) → khung lỗi hiện, khối “Sửa giá” KHÔNG mở, không ô đơn giá nào hiện", async () => {
+    await mob.ev(setInput("document.getElementById('customerName')", CUSTOMER));
+    await mob.ev(setInput("document.getElementById('customerPhone')", "0903 555 777"));
+    await mob.ev(setInput("document.getElementById('orderDate')", vnDate(3)));
+    await sleep(200);
+    await mob.ev(`(() => { const f = window.fetch; let mot = true; window.fetch = (u, o) => { if (mot && String(u).endsWith('/api/orders') && o?.method === 'POST') { mot = false;
+      return Promise.resolve(new Response(JSON.stringify({ error: { code: 'invalid_input', message: 'Dữ liệu đơn chưa hợp lệ.' } }), { status: 400, headers: { 'content-type': 'application/json' } })); } return f(u, o); }; return true; })()`);
+    await mob.ev("document.getElementById('save').click(); true");
+    await mob.waitFor("!document.getElementById('save-error').hidden && document.getElementById('save-error').textContent.includes('Dữ liệu đơn chưa hợp lệ')", "khung lỗi 400 hiện", 10000);
+    await sleep(300);
+    const s = await formState(mob);
+    assert.equal(s.khoiGiaMo, false, `khối “Sửa giá” của Đối tác KHÔNG mở sau 400 — ${JSON.stringify({ khoiGiaMo: s.khoiGiaMo, oGiaHien: s.oGiaHien, suaGia: s.suaGia })}`);
+    kiemKhongSuaGia(s, "Đối tác 390 sau 400");
+    assert.equal(await mob.ev("location.pathname"), "/order-form", "vẫn ở form (400 không lưu)");
   });
 
   await step("3", `Đối tác (điện thoại 390): điền tên/SĐT khách, chọn ngày, bấm Lưu → chuyển sang /order?id=…; đơn (API) tổng = ${PAX} × 1.350.000 = 2.700.000, giảm giá 0, đơn giá = giá danh mục`, async () => {
@@ -382,10 +440,7 @@ try {
     await pickTd101(p);
     await p.waitFor(`(${ADULT_PRICE}).readOnly === true`, `${nhan}: ô đơn giá người lớn readOnly`, 5000);
     const s = await formState(p, INTERN_NOTE);
-    assert.equal(s.visibleLines.length, 1, `${nhan}: một dòng tiền (người lớn) — ${JSON.stringify(s)}`);
-    assert.equal(s.visibleLines[0].readOnly, true, `${nhan}: ô đơn giá readOnly — ${JSON.stringify(s.visibleLines)}`);
-    assert.equal(s.visibleLines[0].digits, TD101_ADULT, `${nhan}: ô đơn giá = giá danh mục ${TD101_ADULT} — ${JSON.stringify(s.visibleLines)}`);
-    assert.equal(s.tagShown, false, `${nhan}: không có nhãn “Khác giá danh mục” — ${JSON.stringify(s)}`);
+    kiemKhongSuaGia(s, nhan);
     assert.equal(s.discountReadOnly, true, `${nhan}: ô “Giảm giá” readOnly — ${JSON.stringify(s)}`);
     assert.equal(s.note?.visible, true, `${nhan}: có dòng “${INTERN_NOTE}” đang hiện — ${JSON.stringify(s.note)}`);
     assert.ok(s.note.rows >= 1 && s.note.rows <= rowsMax, `${nhan}: dòng báo tối đa ${rowsMax} hàng — ${JSON.stringify(s.note)}`);
@@ -395,7 +450,7 @@ try {
     assert.match(s.subtotal ?? "", /2\.700\.000/, `${nhan}: tạm tính 2.700.000 — ${s.subtotal}`);
     assert.deepEqual(p.consoleErrors, [], `${nhan}: lỗi console: ${p.consoleErrors}`);
     noteErrorLogs(p, nhan);
-    console.log(`    ${nhan}: đơn giá readOnly=${s.visibleLines[0].readOnly} (“${s.visibleLines[0].value}”) · giảm giá readOnly=${s.discountReadOnly} value="${s.discountValue}" · dòng báo ${JSON.stringify(s.note)} · tạm tính ${s.subtotal}`);
+    console.log(`    ${nhan}: dòng tiền ${JSON.stringify(s.dongChu)} · ô đơn giá (ẩn) ${JSON.stringify(s.adultPrice)} · Sửa giá ${JSON.stringify(s.suaGia)} · giảm giá readOnly=${s.discountReadOnly} value="${s.discountValue}" · dòng báo ${JSON.stringify(s.note)} · tạm tính ${s.subtotal}`);
     return s;
   };
 

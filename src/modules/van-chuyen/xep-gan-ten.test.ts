@@ -144,7 +144,7 @@ test("I19(a) \"chưa bị chính lô này dùng\": một chặng chỉ được 
       as: SALES, body: { version: c.chuyen.version, requestId: uuid(), chang: [{ legId: d.legId, soSuat: 1 }, { legId: d.legId, soSuat: 1 }] },
     });
     assert.equal(r.status, 400, r.text);
-    assert.match(r.json.error.message, /Một chặng xuất hiện hai lần/);
+    assert.match(r.json.error.message, /Một lượt đưa đón xuất hiện hai lần/);
     assert.equal((await xep(w, t.chuyen.id, d.legId, 3)).status, 200);
     const k = khoaSuat(w, t.chuyen.id, d.legId);
     assert.equal(new Set(k).size, 3, "ba khoá khác nhau");

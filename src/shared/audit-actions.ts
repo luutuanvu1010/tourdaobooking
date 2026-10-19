@@ -23,10 +23,10 @@ export const AUDIT_ACTIONS = {
   updated: { label: "Sửa đơn", group: "order" },
   trip_updated: { label: "Sửa thông tin chuyến", group: "order" },
   // ADR-0047 A1: chặng đưa đón sau xác nhận — `detail` "Chiều đi · <tên dịch vụ>: giờ đón 06:30 → 07:00; nơi đón A → B" (chữ tự do che dãy số — moTaChang).
-  order_leg_added: { label: "Thêm chặng đưa đón", group: "order" },
-  order_leg_updated: { label: "Sửa chặng đưa đón", group: "order" },
-  order_leg_closed: { label: "Bỏ chặng đưa đón", group: "order" },
-  order_leg_short_notice: { label: "Đặt gấp chặng đưa đón", group: "order" }, // ADR-0049 D2 — detail: mã đơn + chiều + nhãn lý do (KHÔNG ghi chú)
+  order_leg_added: { label: "Thêm lượt đưa đón", group: "order" },
+  order_leg_updated: { label: "Sửa lượt đưa đón", group: "order" },
+  order_leg_closed: { label: "Bỏ lượt đưa đón", group: "order" },
+  order_leg_short_notice: { label: "Đặt gấp lượt đưa đón", group: "order" }, // ADR-0049 D2 — detail: mã đơn + chiều + nhãn lý do (KHÔNG ghi chú)
   // ADR-0047 A2: `detail` ĐÚNG khuôn "thêm N, sửa N, huỷ N khách" — KHÔNG tên, KHÔNG năm sinh (Hiến chương 5.12; kiểm định kỳ R-ORD-10).
   order_passenger_changed: { label: "Sửa danh sách hành khách", group: "order" },
   confirmed: { label: "Xác nhận đơn", group: "order" },
@@ -48,11 +48,11 @@ export const AUDIT_ACTIONS = {
   // Sổ tiền lượt 1 (ADR-0025, ADR-0026) — `detail` không SĐT, không số tiền chi tiết (kế hoạch §3.4).
   order_delivered: { label: "Đã giao – đã thu đủ", group: "order" },
   order_completed: { label: "Hoàn thành", group: "order" },
-  payment_recorded: { label: "Ghi lần thu", group: "order" },
+  payment_recorded: { label: "Ghi khoản thu", group: "order" },
   // ADR-0060: dấu "đã nhập phần mềm kế toán" (bảng chỉ-thêm bil_accounting_entry) — detail = moTaDauNhap (số hoá đơn nguyên văn; lý do đã chặn dãy số dài).
   // Lịch sử đơn BỎ hai hành động này với người không qua ô accounting.entry.view; không vào hộp thông báo (v_aud_order_event là danh sách cho phép).
   order_accounting_entry_marked: { label: "Đánh dấu đã nhập phần mềm kế toán", group: "order" },
-  order_accounting_entry_unmarked: { label: "Bỏ dấu đã nhập phần mềm kế toán", group: "order" },
+  order_accounting_entry_unmarked: { label: "Bỏ đánh dấu đã nhập phần mềm kế toán", group: "order" },
   ledger_company_received: { label: "Xác nhận công ty đã nhận", group: "ledger" },
   // Sổ đại lý đợt 2 (ADR-0132 điều 2): Kế toán xác nhận khoản khách trả cho bên đặt / tại quầy nhà cung cấp — không detail (không tên bên kia, không số).
   ledger_counterparty_confirmed: { label: "Xác nhận bên kia đã nhận", group: "ledger" },
@@ -67,9 +67,9 @@ export const AUDIT_ACTIONS = {
   ledger_adjustment_rejected: { label: "Từ chối yêu cầu điều chỉnh sổ", group: "ledger" },
   ledger_adjustment_withdrawn: { label: "Rút yêu cầu điều chỉnh sổ", group: "ledger" },
   ledger_adjustment_affected: { label: "Điều chỉnh đổi số dư của một nhân viên", group: "ledger" },
-  ledger_receipt_replaced: { label: "Thay lần thu", group: "ledger" },
-  ledger_reversal: { label: "Ghi dòng đảo sổ", group: "ledger" },
-  // ADR-0092 Đ6 (migration 0088): gắn mã giao dịch ngân hàng vào lần thu — target = lần thu (`ledger`, id lần thu); `detail` = "gắn mã giao dịch ngân hàng"
+  ledger_receipt_replaced: { label: "Sửa khoản thu đã ghi", group: "ledger" },
+  ledger_reversal: { label: "Huỷ một dòng sổ tiền", group: "ledger" },
+  // ADR-0092 Đ6 (migration 0088): gắn mã giao dịch ngân hàng vào khoản thu — target = khoản thu (`ledger`, id khoản thu); `detail` = "gắn mã giao dịch ngân hàng"
   // (chữ cố định); KHÔNG chép mã giao dịch, không số tài khoản.
   ledger_bank_txn_linked: { label: "Gắn mã giao dịch ngân hàng", group: "ledger" },
   // ADR-0089 (cọc đơn huỷ — migration 0079): duyệt / huỷ duyệt / chi / chuyển / đã hoàn ngoài hệ thống. Không số tiền trong detail (chỉ lý do).
@@ -119,7 +119,7 @@ export const AUDIT_ACTIONS = {
   login_unlocked: { label: "Mở khoá đăng nhập", group: "staff" },
   staff_synced: { label: "Đồng bộ nhân viên từ Sheet", group: "staff" },
   permission_changed: { label: "Đổi quyền tài khoản", group: "staff" },
-  account_roles_changed: { label: "Đổi vai và quyền tài khoản", group: "staff" },
+  account_roles_changed: { label: "Đổi vai trò và quyền tài khoản", group: "staff" },
   party_created: { label: "Tạo hồ sơ", group: "party" },
   party_updated: { label: "Sửa hồ sơ", group: "party" },
   party_contact_changed: { label: "Đổi thông tin liên hệ", group: "party" },
@@ -152,7 +152,7 @@ export const AUDIT_ACTIONS = {
   party_erased: { label: "Thực hiện yêu cầu xoá dữ liệu", group: "party" },
   party_erasure_rejected: { label: "Từ chối yêu cầu xoá dữ liệu", group: "party" },
   party_erasure_retried: { label: "Chạy lại việc xoá dữ liệu", group: "system" },
-  sessions_anonymized: { label: "Ẩn danh IP và thông tin máy của phiên cũ", group: "system" }, // ADR-0126 đ8: chỉ số phiên + mốc kết thúc, KHÔNG IP / User-Agent
+  sessions_anonymized: { label: "Ẩn danh IP và thông tin máy đã đăng xuất", group: "system" }, // ADR-0126 đ8: chỉ số phiên + mốc kết thúc, KHÔNG IP / User-Agent
   self_submission_number_viewed: { label: "Xem đủ số giấy tờ của phiếu tự khai", group: "party" },
   party_document_catalog_changed: { label: "Sửa danh mục giấy tờ của người", group: "party" },
   // ADR-0108 đ2: cài / đổi tài khoản nhận tiền của công ty chủ — target = hồ sơ công ty; `detail` = "cài|đổi tài khoản nhận tiền" (chữ cố định); KHÔNG chép số tài khoản (5.12).
@@ -174,8 +174,8 @@ export const AUDIT_ACTIONS = {
   // ADR-0049 D2 (lát 1.1): chính sách điều phối, điều kiện xuất bến, hạng bằng (Toàn quyền), danh mục lý do (Quản trị). `detail` chỉ mã, con số, nhãn
   // danh mục; không order_id, không target (khuôn expiry_policy_changed).
   dispatch_policy_changed: { label: "Đổi chính sách điều phối", group: "trip" },
-  departure_rule_added: { label: "Thêm điều kiện xuất bến", group: "trip" },
-  departure_rule_closed: { label: "Đóng điều kiện xuất bến", group: "trip" },
+  departure_rule_added: { label: "Thêm điều kiện cho xe chạy", group: "trip" },
+  departure_rule_closed: { label: "Đóng điều kiện cho xe chạy", group: "trip" },
   license_capacity_changed: { label: "Đổi số khách theo hạng bằng", group: "trip" },
   trip_reason_added: { label: "Thêm lý do điều phối", group: "trip" },
   trip_reason_updated: { label: "Sửa lý do điều phối", group: "trip" },
@@ -196,7 +196,7 @@ export const AUDIT_ACTIONS = {
   trip_allocation_removed: { label: "Rút khách khỏi xe", group: "trip" },
   trip_allocation_moved: { label: "Dời khách sang chuyến khác", group: "trip" },
   // ADR-0049 D1, D3 (Task A15): lệnh TIẾN ĐỘ — tài xế bấm hoặc văn phòng bấm thay (detail ghi "văn phòng bấm thay"; khai giờ: "xảy ra lúc HH:MM").
-  trip_departed: { label: "Xuất bến", group: "trip" },
+  trip_departed: { label: "Cho xe chạy", group: "trip" },
   trip_stop_arrived: { label: "Xe đã tới điểm", group: "trip" },
   trip_passenger_boarded: { label: "Đã đón khách", group: "trip" },
   trip_passenger_no_show: { label: "Khách vắng", group: "trip" },
@@ -213,7 +213,7 @@ export const AUDIT_ACTIONS = {
   // ADR-0097 Đ2, Đ3 (gói A1, V3-B): văn phòng sửa sai bằng sự kiện điều chỉnh có lý do — detail: mã chuyến, mã đơn, "một suất A → B · nhãn lý do" / nhãn lý do
   // thu hồi (không tên khách, không SĐT — Đ2.6).
   trip_allocation_corrected: { label: "Văn phòng điều chỉnh kết quả khách", group: "trip" },
-  trip_departure_revoked: { label: "Văn phòng thu hồi xuất bến", group: "trip" },
+  trip_departure_revoked: { label: "Văn phòng thu hồi lệnh cho xe chạy", group: "trip" },
   // ADR-0111 (gói A5): đề nghị chuyển khách giữa hai xe — target = chuyến ĐÍCH; detail chỉ mã hai chuyến, phạm vi, SỐ khách, nhãn lý do, mã điều kiện không
   // đạt (không tên khách, năm sinh, SĐT, chữ nơi gặp, khoá nơi — LC-18).
   trip_transfer_sent: { label: "Gửi đề nghị chuyển khách", group: "trip" },
@@ -231,7 +231,7 @@ export const AUDIT_ACTIONS = {
   // ADR-0057 T1 (kế hoạch Đợt 4 Task 4): bảng giá thuê xe — detail: tên nhà xe, tên tuyến / nhãn cỡ, số tiền, ngày hiệu lực (C10); không SĐT.
   // ADR-0057 T2 C10 (Task 10): Kế toán / Quản trị ghi chi phí chuyến xe thuê — detail: mã chuyến, tên nhà xe, tổng trước → sau, nhãn lý do; KHÔNG ghi chú (chữ tự do).
   trip_cost_adjusted: { label: "Điều chỉnh chi phí xe thuê", group: "trip" },
-  trip_cost_reversed: { label: "Đảo dòng chi phí xe thuê", group: "trip" },
+  trip_cost_reversed: { label: "Huỷ dòng chi phí xe thuê", group: "trip" },
   trip_cost_snapshot: { label: "Lấy lại giá bảng cho chuyến xe thuê", group: "trip" },
   trip_cost_agreed: { label: "Nhập giá thoả thuận chuyến xe thuê", group: "trip" },
   rental_rate_added: { label: "Thêm giá thuê xe", group: "trip" },
@@ -248,7 +248,7 @@ export const AUDIT_ACTIONS = {
   // ADR-0087 điều 6: Toàn quyền đổi giao diện công ty — detail = các ô đổi (nhãn: cũ → mới), không dữ liệu cá nhân. KHÔNG im lặng (ADR-0038).
   giao_dien_changed: { label: "Đổi giao diện", group: "system" },
   // ADR-0047 §6 (Đợt 8): máy còn gửi thân đơn / thông tin chuyến KIỂU CŨ — dòng ĐẾM cho cổng cắt; order_id NULL, detail = nhãn màn hình, không nội dung thân.
-  client_outdated_body: { label: "Máy dùng app bản cũ", group: "system" },
+  client_outdated_body: { label: "Máy dùng Nền tảng bản cũ", group: "system" },
   catalog_synced: { label: "Đồng bộ dịch vụ từ Sheet", group: "catalog" },
   catalog_overridden: { label: "Ghi đè giá dịch vụ", group: "catalog" },
   catalog_override_cleared: { label: "Bỏ ghi đè dịch vụ", group: "catalog" },
@@ -278,7 +278,7 @@ export const AUDIT_ACTIONS = {
   notice_revoked: { label: "Thu hồi thông báo", group: "notice" },
   notice_acknowledged: { label: "Xác nhận đã hiểu thông báo", group: "notice" },
   session_policy_changed: { label: "Đổi chính sách đăng nhập", group: "staff" }, // ADR-0085 điều 9: quyền đổi + giá trị mới + số máy/số người — KHÔNG tên, SĐT, IP
-  session_revoked: { label: "Gỡ phiên đăng nhập", group: "staff" }, // ADR-0075 điều 8: ai gỡ, tài khoản bị gỡ (target), mã phiên (detail) — KHÔNG IP/User-Agent
+  session_revoked: { label: "Đăng xuất một máy đang đăng nhập", group: "staff" }, // ADR-0075 điều 8: ai gỡ, tài khoản bị gỡ (target), mã phiên (detail) — KHÔNG IP/User-Agent
   // ADR-0074 điều 5 (tự phục vụ): detail CHỈ loại yếu tố ("TOTP") — KHÔNG khoá, mã, mã dự phòng, email.
   mfa_enabled: { label: "Bật bảo mật hai lớp", group: "staff" },
   mfa_removed: { label: "Gỡ bảo mật hai lớp", group: "staff" },

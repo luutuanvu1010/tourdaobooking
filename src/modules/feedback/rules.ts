@@ -235,7 +235,7 @@ export function validateTeamPatch(raw: Record<string, unknown>): Checked<TeamPat
 }
 
 export function validateMemberRole(raw: Record<string, unknown>): Checked<"LEAD" | "MEMBER"> {
-  return raw.role === "LEAD" || raw.role === "MEMBER" ? { ok: true, value: raw.role } : bad("Vai trong nhóm phải là Trưởng nhóm hoặc Thành viên.");
+  return raw.role === "LEAD" || raw.role === "MEMBER" ? { ok: true, value: raw.role } : bad("Vai trò trong nhóm phải là Trưởng nhóm hoặc Thành viên.");
 }
 
 /** Chuyển nhóm (ADR-0119 điều 8): nhóm đích (chỉ kiểm hình dạng; có thật/đang dùng do route kiểm) + lý do 1–300 ký tự sau khi gọn khoảng trắng. */

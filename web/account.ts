@@ -317,7 +317,7 @@ async function renderPush(): Promise<void> {
   if (!hoTro) {
     const msg = daCaiDatChuan()
       ? "Trình duyệt này không hỗ trợ thông báo."
-      : "Để nhận thông báo: bấm Chia sẻ → Thêm vào MH chính, rồi mở app từ biểu tượng.";
+      : "Để nhận thông báo: bấm Chia sẻ → Thêm vào MH chính, rồi mở Nền tảng từ biểu tượng.";
     replaceChildren(pushEl, pushHeading(), h("p", { class: "muted" }, msg));
     pushEl.hidden = false;
     return;
@@ -412,9 +412,9 @@ async function renderMySessions(): Promise<void> {
   out.addEventListener("click", () => void logout());
   replaceChildren(
     mySessionsEl,
-    h("h2", { id: "my-sessions-heading" }, "Phiên đăng nhập của tôi"),
+    h("h2", { id: "my-sessions-heading" }, "Máy đang đăng nhập của tôi"),
     h("p", { class: "muted" }, "Tuỳ quyền, tài khoản chỉ đăng nhập trên một máy (do Toàn quyền đặt): đăng nhập máy mới thì máy cũ tự đăng xuất. Ứng dụng đã cài và Safari trên cùng một iPhone tính là hai máy."),
-    list.length === 0 ? h("p", { class: "muted" }, "Chưa có phiên nào.") : h("div", { class: "passkey-list" }, ...list.map(dong)),
+    list.length === 0 ? h("p", { class: "muted" }, "Chưa có máy nào đăng nhập.") : h("div", { class: "passkey-list" }, ...list.map(dong)),
     out,
   );
   mySessionsEl.hidden = false;
@@ -804,7 +804,7 @@ function renderMaintenance(status: Api.MaintenanceResponse): void {
       const panel = h(
         "div",
         { class: "maint-confirm", role: "group", "aria-label": "Xác nhận bật chế độ bảo trì", tabindex: -1 },
-        h("p", null, h("strong", null, "Mọi nhân viên khác sẽ bị chặn ngay, kể cả người đang mở app. Chỉ bạn dùng được.")),
+        h("p", null, h("strong", null, "Mọi nhân viên khác sẽ bị chặn ngay, kể cả người đang mở Nền tảng. Chỉ bạn dùng được.")),
         h("p", null, `Dự kiến hoàn tất lúc ${vnDateTimeText(iso)}.`),
         h("div", { class: "maint-actions" }, button("Xác nhận bật", "btn btn-primary btn-chinh", () => void send({ on: true, endsAt: iso })), back),
       );
@@ -822,7 +822,7 @@ function renderMaintenance(status: Api.MaintenanceResponse): void {
   replaceChildren(
     maintenanceEl,
     h("h2", { id: "maintenance-heading" }, "Chế độ bảo trì"),
-    h("p", { class: "muted" }, "Khi bật, mọi tài khoản không có quyền Toàn quyền bị chặn ngay (kể cả đang mở app, kể cả Quản trị)."),
+    h("p", { class: "muted" }, "Khi bật, mọi tài khoản không có quyền Toàn quyền bị chặn ngay (kể cả đang mở Nền tảng, kể cả Quản trị)."),
     h(
       "p",
       { class: "maint-state" },

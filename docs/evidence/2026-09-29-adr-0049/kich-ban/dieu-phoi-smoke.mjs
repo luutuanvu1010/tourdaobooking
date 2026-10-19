@@ -55,14 +55,14 @@ try {
     assert.match(await p.ev(txt("#dp-ngay-nhan")), /^(Thứ (Hai|Ba|Tư|Năm|Sáu|Bảy)|Chủ nhật)$/);
     assert.equal(await p.ev(`document.querySelector('#dp-moi').getAttribute('href')`), `/chuyen-sua?ngay=${d.NGAY_XA}`);
     assert.ok(await p.ev(shown("#dp-moi")));
-    assert.deepEqual(await p.ev(soLieu), ["CHẶNG 4", "ĐÃ XẾP 3", "CHƯA XẾP 1", "CHUYẾN 4 2 bị giữ", `CẦN XỬ LÝ ${await p.ev(`document.querySelectorAll('#dp-cot-can-xu-ly .dp-cxl').length`)}`, "ĐƠN NHÁP 0"]);
+    assert.deepEqual(await p.ev(soLieu), ["LƯỢT ĐƯA ĐÓN 4", "ĐÃ XẾP 3", "CHƯA XẾP 1", "CHUYẾN 4 2 bị giữ", `CẦN XỬ LÝ ${await p.ev(`document.querySelectorAll('#dp-cot-can-xu-ly .dp-cxl').length`)}`, "ĐƠN NHÁP 0"]);
     assert.equal(await p.ev(shown("#dp-tabs")), false, "máy tính: không thẻ");
     for (const c of ["#dp-cot-chua-xep", "#dp-cot-xe", "#dp-cot-can-xu-ly"]) assert.ok(await p.ev(shown(c)), c);
     const nav = await p.ev(vcSub);
     assert.deepEqual(nav.items, ["Điều phối xe", "Xe đang chạy"], "Bán hàng: nhóm Vận chuyển chỉ có Điều phối xe + Xe đang chạy (Đợt 5)");
     assert.equal(nav.current, "Điều phối xe");
     assert.deepEqual(await p.ev(the), [{ tag: "BUTTON", text: `11:00 Mường Thanh Luxury → nơi trả chưa chốt ${d.O5.ma} · 5 khách` }], "máy tính: không hiện nút viên 'Xếp vào chuyến…'");
-    assert.equal(await p.ev(txt("#dp-cot-chua-xep .dp-col-note")), "Kéo chặng thả vào một chuyến, hoặc bấm chặng để chọn chuyến");
+    assert.equal(await p.ev(txt("#dp-cot-chua-xep .dp-col-note")), "Kéo lượt đưa đón thả vào một chuyến, hoặc bấm vào lượt để chọn chuyến");
     assert.deepEqual(await p.ev(hang), ["79A-111.11 15 chỗ Nguyễn Văn An, Phạm Văn Cường", "79A-222.22 29 chỗ Phạm Văn Cường", "79A-333.33 15 chỗ"]);
     assert.equal(await p.ev(txt(".dp-tl-nhom-t")), "XE CÔNG TY");
     const k = await p.ev(khoi);
@@ -127,7 +127,7 @@ try {
     // Cảnh báo sớm lúc xếp (kế hoạch 2026-10-01 — chỉ nhắc, không chặn): O5 chưa chốt nơi trả → dải VÀNG "Đã xếp…" kèm câu nhắc, không dải xanh.
     await p.waitFor(`${txt("#dp-banner .banner-warning .banner-title")} === 'Đã xếp 3 khách vào ${T5.ma}'`, "dải đã xếp (cảnh báo)");
     assert.deepEqual(await p.ev(`[...document.querySelectorAll('#dp-banner .banner-warning li')].map((x) => x.innerText.trim())`), [
-      `Chặng chưa có nơi trả: ${d.O5.ma} — cần bổ sung ở đơn trước khi xe chạy.`, `Còn 2 khách của ${d.O5.ma} ở cột “Chưa xếp”.`,
+      `Lượt đưa đón chưa có nơi trả: ${d.O5.ma} — cần bổ sung ở đơn trước khi xe chạy.`, `Còn 2 khách của ${d.O5.ma} ở cột “Chưa xếp”.`,
     ]);
     assert.equal(await p.ev(`!!document.querySelector('#dp-banner .dp-banner-ok')`), false, "không dải xanh khi có cảnh báo");
     await shotView(p, "b1-xep-canh-bao-noi-tra-may-tinh.png");
@@ -147,8 +147,8 @@ try {
     assert.equal(await p.ev(`document.querySelector('#dp-xep-so').value`), "2");
     await p.ev(click('[data-action="xep-gui"]'));
     await p.waitFor(`${txt("#dp-banner .banner-warning .banner-title")} === 'Đã xếp 2 khách vào ${T5.ma}'`, "dải đã xếp (cảnh báo)");
-    assert.deepEqual(await p.ev(`[...document.querySelectorAll('#dp-banner .banner-warning li')].map((x) => x.innerText.trim())`), [`Chặng chưa có nơi trả: ${d.O5.ma} — cần bổ sung ở đơn trước khi xe chạy.`]);
-    assert.equal(await p.ev(txt("#dp-cot-chua-xep .dp-col-empty")), "Không còn chặng nào chưa xếp.");
+    assert.deepEqual(await p.ev(`[...document.querySelectorAll('#dp-banner .banner-warning li')].map((x) => x.innerText.trim())`), [`Lượt đưa đón chưa có nơi trả: ${d.O5.ma} — cần bổ sung ở đơn trước khi xe chạy.`]);
+    assert.equal(await p.ev(txt("#dp-cot-chua-xep .dp-col-empty")), "Không còn lượt đưa đón nào chưa xếp.");
     assert.equal((await p.ev(soLieu))[2], "CHƯA XẾP 0");
   });
 
@@ -158,14 +158,14 @@ try {
     await p.ev(typeInto("#dp-ngay", d.NGAY_KHOA));
     await p.waitFor(`location.search === '?ngay=${d.NGAY_KHOA}' && !!document.querySelector('.dp-khoi[data-chuyen="${d.T4.id}"]')`, "sang ngày khoá");
     assert.match(await p.ev(txt("#dp-ngay-nhan")), / · ngày mai$/);
-    assert.match((await p.ev(the))[0].text, /^10:00 Quá mốc Citadines Bayfront → Bến tàu du lịch Nha Trang/);
-    const q = (await p.ev(viec)).find((x) => x.loai === "CHẶNG QUÁ MỐC");
+    assert.match((await p.ev(the))[0].text, /^10:00 Quá hạn chốt Citadines Bayfront → Bến tàu du lịch Nha Trang/);
+    const q = (await p.ev(viec)).find((x) => x.loai === "LƯỢT ĐƯA ĐÓN QUÁ HẠN CHỐT");
     assert.deepEqual([q.tieuDe, q.khoa, q.nut], ["10:00 · Citadines Bayfront → Bến tàu du lịch Nha Trang", null, []]);
     assert.match((await p.ev(khoi)).find((x) => x.id === d.T4.id).label, /đang khoá$/);
     await p.ev(moThe(d.O4.legId));
     await p.waitFor(`!!document.querySelector('[data-action="xep-gui"]')`, "hộp xếp mở");
     await p.ev(click(`.dp-sheet-xep .vc-reason[data-code="${d.T4.id}"]`));
-    assert.equal(await p.ev(txt(".dp-sheet-xep .dg-lock-note")), "Chuyến đã vào vùng khoá trước giờ xuất bến — khi xếp, bạn sẽ chọn lý do điều chỉnh khẩn cấp.");
+    assert.equal(await p.ev(txt(".dp-sheet-xep .dg-lock-note")), "Chuyến đã vào vùng khoá trước giờ xe chạy — khi xếp, bạn sẽ chọn lý do điều chỉnh khẩn cấp.");
     assert.equal(await p.ev(txt(`.dp-sheet-xep .vc-reason[data-code="${d.T4.id}"] .dp-radio-sub`)), "đang khoá");
     await p.ev(click('[data-action="xep-gui"]'));
     await p.waitFor(`!!document.querySelector('[data-action="pha-le-gui"]') && !document.querySelector('[data-action="xep-gui"]')`, "hộp điều chỉnh khẩn cấp thay hộp xếp");
@@ -203,7 +203,7 @@ try {
     assert.equal(await pm.ev(`document.querySelectorAll('#dp-so-m .dp-stat-m').length`), 4);
     assert.equal(await pm.ev(txt(".dp-leg .dp-leg-pill")), "Xếp vào chuyến…", "điện thoại: thẻ chặng có nút viên (bản vẽ 1b)");
     assert.equal(await pm.ev(shown(".dp-chi-may-tinh")), false, "điện thoại: không câu 'Kéo chặng thả…'");
-    assert.equal(await pm.ev(txt("#dp-so-phu")), "Chưa xếp: 1 quá mốc");
+    assert.equal(await pm.ev(txt("#dp-so-phu")), "Chưa xếp: 1 quá hạn chốt");
     assert.ok(await pm.ev(noOverflowX));
     await axe(pm, "điều phối 390 Chưa xếp");
     await shotFull(pm, "b1-dieu-phoi-chua-xep-dien-thoai.png");
@@ -230,18 +230,18 @@ try {
     const nav = await q.ev(vcSub);
     assert.deepEqual(nav.items, ["Điều phối xe", "Xe đang chạy", "Đề nghị chuyển khách", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Lịch xe bận", "Sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối"]); // + "Đề nghị chuyển khách" (gói A5, ô trip.override) + Đợt 4 + "Lịch xe bận" (Đợt 3, 2/10)
     assert.equal(nav.current, "Điều phối xe");
-    const qm = (await q.ev(viec)).find((x) => x.loai === "CHẶNG QUÁ MỐC");
+    const qm = (await q.ev(viec)).find((x) => x.loai === "LƯỢT ĐƯA ĐÓN QUÁ HẠN CHỐT");
     assert.deepEqual([qm.khoa, qm.nut], [null, []]);
     await khongNutCam(q);
     await q.ev(moThe(d.O4.legId));
     await q.waitFor(`!!document.querySelector('[data-action="xep-gui"]')`, "hộp xếp mở");
     await q.ev(click(`.dp-sheet-xep .vc-reason[data-code="${d.T4.id}"]`));
-    assert.equal(await q.ev(txt(".dp-sheet-xep .dg-lock-note")), "Chuyến đã vào vùng khoá trước giờ xuất bến — khi xếp, bạn sẽ chọn lý do điều chỉnh khẩn cấp.");
+    assert.equal(await q.ev(txt(".dp-sheet-xep .dg-lock-note")), "Chuyến đã vào vùng khoá trước giờ xe chạy — khi xếp, bạn sẽ chọn lý do điều chỉnh khẩn cấp.");
     await q.ev(click('[data-action="xep-gui"]'));
     await q.waitFor(`!!document.querySelector('[data-action="pha-le-gui"]') && !document.querySelector('[data-action="xep-gui"]')`, "hộp phá lệ thay hộp xếp");
     await sleep(600);
     assert.equal(await q.ev(txt('[data-action="pha-le-gui"]')), "Điều chỉnh khẩn cấp và xếp");
-    assert.match(await q.ev(txt(".dp-sheet-pha-le .dp-sheet-sum")), new RegExp(`^Xếp chặng 10:00 · Citadines Bayfront → Bến tàu du lịch Nha Trang ${d.O4.ma} · 2 khách → vào ${d.T4.ma} \\(xuất bến 10:00\\)`));
+    assert.match(await q.ev(txt(".dp-sheet-pha-le .dp-sheet-sum")), new RegExp(`^Xếp lượt đưa đón 10:00 · Citadines Bayfront → Bến tàu du lịch Nha Trang ${d.O4.ma} · 2 khách → vào ${d.T4.ma} \\(xe chạy 10:00\\)`));
     await axe(q, "hộp phá lệ xếp 1040");
     await shotView(q, "b1-pha-le-xep-may-tinh.png");
     await q.ev(click('.dp-sheet-pha-le .vc-reason[data-code="PHA_LE_DON_GAP"]'));
@@ -252,7 +252,7 @@ try {
     assert.equal(xep[0].phaLe, undefined);
     assert.deepEqual(xep[1].phaLe, { lyDo: "PHA_LE_DON_GAP" });
     assert.notEqual(xep[0].requestId, xep[1].requestId);
-    assert.equal(await q.ev(txt("#dp-cot-chua-xep .dp-col-empty")), "Không còn chặng nào chưa xếp.");
+    assert.equal(await q.ev(txt("#dp-cot-chua-xep .dp-col-empty")), "Không còn lượt đưa đón nào chưa xếp.");
     await shotFull(q, "b1-dieu-phoi-quan-tri-may-tinh.png");
   });
   await q.close();

@@ -11,6 +11,8 @@ import { AUDIT_ACTIONS, type AuditAction } from "./shared/audit-actions.ts";
 import { DAU_DAT_GAP } from "./shared/chang-dua-don.ts";
 import { can, type PermissionCode } from "./shared/permissions.ts";
 import { HANH_DONG_NHAP_KE_TOAN } from "./shared/nhap-ke-toan.ts";
+import { giuChiTiet } from "./shared/lich-su-doi-tac.ts";
+import { LICH_SU_NOI_BO_CHO_PHEP } from "./shared/lich-su-noi-bo.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { seedStaff } from "../tests/audit/harness.mjs";
 import { ACC, ADM, NGAY, PARTNER, SALES, SUP, setup } from "../tests/audit/dieu-phoi-khung.mjs";
@@ -108,6 +110,7 @@ test("D-1 (a) tái hiện: Đối tác không thấy lý do nội bộ, tên K�
   // Đơn vẫn đọc được đủ ý: tạo, xác nhận, huỷ có mặt; khối cọc vẫn có số tiền.
   const acts = (ord.json.history as { action: string }[]).map((e) => e.action);
   for (const a of ["created", "confirmed", "cancelled"]) assert.ok(acts.includes(a), `Đối tác mất dòng ${a}`);
+  for (const e of ord.json.history as { action: string; staffId: string | null; staffName: string }[]) assert.deepEqual([e.staffId, e.staffName], [null, ""], `Đối tác thấy người làm ở ${e.action}`); // ADR-0131 đ2
   assert.equal(pay.json.coc.khoanDuyet.length, 1);
   assert.equal(pay.json.coc.khoanDuyet[0].soTien, 100000);
 
@@ -134,11 +137,13 @@ test("D-1 (b) mọi hành động của audit-actions.ts: Đối tác (và tài 
     assert.deepEqual([...new Set(h.map((e) => e.action))].sort(), mongDoi, `${ten}: tập hành động phải đúng danh sách cho phép`);
     assert.equal(h.length, mongDoi.length, `${ten}: mỗi hành động một dòng`);
     for (const e of h) {
+      // ADR-0131 đ2: MỌI dòng trả cho Đối tác không tên, không mã người làm (kể cả dòng nhập kế toán của tài khoản lai và nhãn "Quản trị" của dòng đặt gấp).
+      assert.deepEqual([e.staffId, e.staffName], [null, ""], `${ten}: ${e.action} còn người làm`);
       if (nhapKt.includes(e.action)) { assert.equal(e.detail, chiTietGieo(e.action as AuditAction), `${ten}: ${e.action} phải nguyên văn`); continue; }
       const cach = CHO_PHEP[e.action];
       assert.ok(cach !== undefined, `hành động ngoài danh sách: ${e.action}`);
       assert.ok(!JSON.stringify(e).includes(MAT), `${ten}: ${e.action} lộ chữ nội bộ (${e.detail})`);
-      if (e.action === "order_leg_short_notice") { assert.deepEqual([e.staffId, e.staffName], [null, "Quản trị"]); assert.ok(e.detail?.endsWith(String(cach))); continue; } // R-P21, kể cả tài khoản lai
+      if (e.action === "order_leg_short_notice") { assert.ok(e.detail?.endsWith(String(cach))); continue; } // R-P21, kể cả tài khoản lai
       if (cach === "giu") assert.equal(e.detail, chiTietGieo(e.action as AuditAction), `${ten}: ${e.action} phải giữ chi tiết`);
       else if (cach === null) assert.equal(e.detail, null, `${ten}: ${e.action} phải bỏ chi tiết`);
       else assert.equal(e.detail, cach, `${ten}: ${e.action} chi tiết "${e.detail}"`);
@@ -146,7 +151,7 @@ test("D-1 (b) mọi hành động của audit-actions.ts: Đối tác (và tài 
   }
 });
 
-test("D-1 (c) người nội bộ (Kế toán, Quản trị, Toàn quyền, người lập Bán hàng) vẫn thấy ĐỦ mọi hành động; tên và chi tiết nguyên văn", async () => {
+test("D-1 (c) người nội bộ: Toàn quyền thấy ĐỦ, có tên; Kế toán / Quản trị / Bán hàng chỉ thấy danh sách nội bộ, KHÔNG tên (ADR-0131)", async () => {
   const w = dungWorld();
   const tatCa = Object.keys(AUDIT_ACTIONS) as AuditAction[];
   const donCuaBan = nhapDon(w, SALES);
@@ -154,12 +159,25 @@ test("D-1 (c) người nội bộ (Kế toán, Quản trị, Toàn quyền, ngư
   for (const [as, quyen] of [[ACC, ["ACCOUNTING"]], [ADM, ["ADMIN"]], [SUP, ["SUPER_ADMIN"]], [SALES, ["SALES"]]] as [string, PermissionCode[]][]) {
     const h = await lichSu(w, as, donCuaBan);
     const xemNhapKt = can({ id: as, permissions: quyen }, "accounting.entry.view", { ownerId: SALES, assigned: false });
-    const mong = tatCa.filter((a) => xemNhapKt || !(HANH_DONG_NHAP_KE_TOAN as readonly string[]).includes(a));
+    const daDu = can({ id: as, permissions: quyen }, "audit.view");
+    const nhapKe = HANH_DONG_NHAP_KE_TOAN as readonly string[];
+    const mong = daDu
+      ? tatCa.filter((a) => xemNhapKt || !nhapKe.includes(a))
+      : [...Object.keys(LICH_SU_NOI_BO_CHO_PHEP), ...(xemNhapKt ? nhapKe : [])];
     assert.deepEqual(h.map((e) => e.action).sort(), mong.sort(), `${quyen.join("+")}: tập hành động`);
     for (const e of h) {
-      if (e.action === "order_leg_short_notice") continue; // R-P21: dòng đặt gấp rút gọn theo vai (đã có từ trước, bài dat-gap canh)
-      assert.equal(e.detail, chiTietGieo(e.action as AuditAction), `${quyen.join("+")}: ${e.action} mất chi tiết`);
-      assert.equal(e.staffName, "Kế Toán", `${quyen.join("+")}: ${e.action} mất tên người làm`);
+      if (daDu) {
+        if (e.action === "order_leg_short_notice") continue; // R-P21: dòng đặt gấp rút gọn theo vai (đã có từ trước, bài dat-gap canh)
+        assert.equal(e.detail, chiTietGieo(e.action as AuditAction), `${quyen.join("+")}: ${e.action} mất chi tiết`);
+        assert.equal(e.staffName, "Kế Toán", `${quyen.join("+")}: ${e.action} mất tên người làm`);
+        continue;
+      }
+      assert.deepEqual([e.staffId, e.staffName], [null, ""], `${quyen.join("+")}: ${e.action} còn người làm`);
+      if (nhapKe.includes(e.action)) { assert.equal(e.detail, chiTietGieo(e.action as AuditAction), `${quyen.join("+")}: ${e.action} phải nguyên văn`); continue; }
+      if (e.action === "order_leg_short_notice") continue; // đã rút gọn theo vai trước lớp nội bộ
+      const goc = chiTietGieo(e.action as AuditAction);
+      const cach = LICH_SU_NOI_BO_CHO_PHEP[e.action as keyof typeof LICH_SU_NOI_BO_CHO_PHEP];
+      assert.equal(e.detail, giuChiTiet(cach, goc), `${quyen.join("+")}: ${e.action} chi tiết theo cách "${cach}"`);
     }
   }
 });

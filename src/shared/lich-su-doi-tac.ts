@@ -1,8 +1,8 @@
 // LỊCH SỬ ĐƠN CHO ĐỐI TÁC — DANH SÁCH CHO PHÉP (kiểm toán trước sử dụng 13/10/2026, lỗi D-1; chủ chốt cách vá).
 // Người giữ quyền Đối tác (`holdsPartner` — kể cả tài khoản lai, "có quyền Đối tác là áp") chỉ thấy các hành động ở `LICH_SU_DOI_TAC_CHO_PHEP`, mỗi hành động kèm CÁCH
 // giữ chữ `detail`; mọi hành động còn lại ẩn. Đổi chiều so với cách cũ (lọc kiểu CHẶN: mỗi loại dòng nhật ký thêm sau tự lộ cho Đối tác).
-// Tên người làm GIỮ NGUYÊN trên các dòng được phép (như tin "đơn đổi sau xác nhận" — ADR-0062 đã cho Đối tác thấy tên người sửa); có ẩn tên nhân viên hay không là
-// QUYẾT ĐỊNH CỦA CHỦ (xem báo cáo thi công D-1) — chưa làm.
+// Tên và mã người làm BỎ ở MỌI dòng trả cho Đối tác (ADR-0131 Quyết định 2, thay chỗ "giữ nguyên tên" của D-1): `staffId: null`, `staffName: ""` (hàm `anNguoiLam`),
+// kể cả dòng hệ thống và nhãn "Quản trị" của dòng đặt gấp.
 // Ngoại lệ DUY NHẤT ngoài danh sách: dòng nhập phần mềm kế toán (`order_accounting_entry_*`) vẫn hiện cho tài khoản LAI có ô `accounting.entry.view` (ADR-0060 điều 3 (ii):
 // luật theo ô, không theo danh tính "Đối tác"; Đối tác thuần không có ô nên không thấy).
 // HÀNG RÀO MÁY: mọi hành động của `AUDIT_ACTIONS` phải nằm ở MỘT trong hai danh sách (`CHO_PHEP` hoặc `AN`) — thiếu thì `npm run typecheck` đỏ (kiểu `ChuaPhanLoai`
@@ -104,7 +104,7 @@ function nhomHuyCuaChiTiet(detail: string): string | null {
   return null;
 }
 
-function giuChiTiet(cach: CachGiuChiTiet, detail: string | null): string | null {
+export function giuChiTiet(cach: CachGiuChiTiet, detail: string | null): string | null {
   if (detail === null) return null;
   switch (cach) {
     case "giu": return detail;
@@ -118,16 +118,21 @@ function giuChiTiet(cach: CachGiuChiTiet, detail: string | null): string | null 
   }
 }
 
+/** Bỏ người làm khỏi một dòng (ADR-0131 Quyết định 2): nhãn trung tính là chuỗi rỗng, mã là null. Dựng dòng MỚI, không sửa đầu vào. */
+export function anNguoiLam(e: AuditEntryDto): AuditEntryDto {
+  return { ...e, staffId: null, staffName: "" };
+}
+
 /**
- * Lịch sử đơn cho người giữ quyền Đối tác: chỉ hành động trong danh sách cho phép, `detail` theo cách của từng hành động; tên / id người làm giữ nguyên. `xemNhapKeToan` =
- * người xem qua ô `accounting.entry.view` của đơn này (tài khoản lai — ADR-0060): thêm các dòng nhập phần mềm kế toán, nguyên văn. Dựng dòng MỚI, không sửa mảng vào.
- * Gọi SAU `lichSuTheoVai(…, false)` (rút gọn dấu đặt gấp — R-P21, kể cả tài khoản lai có ô xem đủ).
+ * Lịch sử đơn cho người giữ quyền Đối tác: chỉ hành động trong danh sách cho phép, `detail` theo cách của từng hành động; mọi dòng bỏ tên / id người làm (`anNguoiLam`).
+ * `xemNhapKeToan` = người xem qua ô `accounting.entry.view` của đơn này (tài khoản lai — ADR-0060): thêm các dòng nhập phần mềm kế toán, nguyên chữ (vẫn bỏ người làm).
+ * Dựng dòng MỚI, không sửa mảng vào. Gọi SAU `lichSuTheoVai(…, false)` (rút gọn dấu đặt gấp — R-P21, kể cả tài khoản lai có ô xem đủ).
  */
 export function lichSuChoDoiTac(history: readonly AuditEntryDto[], xemNhapKeToan: boolean): AuditEntryDto[] {
   return history.flatMap((e) => {
-    if (xemNhapKeToan && laDongNhapKeToan(e.action)) return [{ ...e }];
+    if (xemNhapKeToan && laDongNhapKeToan(e.action)) return [anNguoiLam(e)];
     if (!Object.hasOwn(LICH_SU_DOI_TAC_CHO_PHEP, e.action)) return [];
     const cach = LICH_SU_DOI_TAC_CHO_PHEP[e.action as keyof typeof LICH_SU_DOI_TAC_CHO_PHEP];
-    return [{ ...e, detail: giuChiTiet(cach, e.detail) }];
+    return [anNguoiLam({ ...e, detail: giuChiTiet(cach, e.detail) })];
   });
 }

@@ -258,7 +258,7 @@ function theNhom(t: Api.FeedbackAdminTeamDto, chonDuoc: Api.StaffListRowDto[]): 
   const coSan = new Set(t.members.map((m) => m.staffId));
   const chonNguoi = h("select", { "aria-label": `Nhân viên thêm vào nhóm ${t.name}` }, h("option", { value: "" }, "Chọn nhân viên…"),
     ...chonDuoc.filter((s) => !coSan.has(s.id)).map((s) => h("option", { value: s.id }, s.fullName)));
-  const chonVai = h("select", { "aria-label": "Vai trong nhóm" }, ...TEAM_ROLES.map((v) => h("option", { value: v, selected: v === "MEMBER" }, TEAM_ROLE_NAME[v])));
+  const chonVai = h("select", { "aria-label": "Vai trò trong nhóm" }, ...TEAM_ROLES.map((v) => h("option", { value: v, selected: v === "MEMBER" }, TEAM_ROLE_NAME[v])));
   const them = h("button", { type: "button", class: "btn" }, "Thêm");
   them.addEventListener("click", async () => {
     if (!chonNguoi.value) return showError(errorEl, "Chọn nhân viên trước khi thêm.");

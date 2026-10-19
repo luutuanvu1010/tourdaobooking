@@ -10,15 +10,21 @@
     <div class="form-main">
       <div id="buoc-slot"></div>
       <section class="card buoc" data-buoc-khoi="khach" tabindex="-1" aria-labelledby="khach-title">
-        <label class="o-noi"><span class="o-noi-khung o-noi-co-dinh"><span class="o-noi-chu">Ngày khởi hành</span><input id="orderDate" type="date"></span></label>
-        <p class="muted" id="orderDate-hint">Ngày này áp cho mọi dịch vụ trong đơn.</p>
-        <p class="dd-ghi-tao" id="orderDate-moved" role="status" hidden></p>
-        <h2 id="khach-title">Thông tin khách hàng</h2>
-        <button id="use-mine" class="btn" type="button">Sử dụng thông tin của tôi</button>
+        <div class="khach-ngay">
+          <label class="o-noi"><span class="o-noi-khung o-noi-co-dinh"><span class="o-noi-chu">Ngày khởi hành</span><input id="orderDate" type="date"></span></label>
+          <p class="muted" id="orderDate-hint">Áp cho mọi dịch vụ trong đơn</p>
+          <p class="dd-ghi-tao" id="orderDate-moved" role="status" hidden></p>
+        </div>
+        <div class="khach-dau">
+          <h2 id="khach-title">Khách hàng</h2>
+          <button id="use-mine" class="btn btn-link" type="button">Điền thông tin của tôi</button>
+        </div>
+        <div id="don-cua-slot"></div>
         <div class="grid two">
-          <label class="o-noi"><span class="o-noi-khung"><input id="customerName" type="text" maxlength="200" autocomplete="off" placeholder=" " required aria-describedby="customerName-loi"><span class="o-noi-chu">Tên khách *</span></span><span class="field-error" id="customerName-loi" hidden></span></label>
+          <label class="o-noi"><span class="o-noi-khung"><input id="customerName" type="text" maxlength="200" autocomplete="off" placeholder=" " required aria-describedby="customerName-loi"><span class="o-noi-chu">Tên khách đi tour *</span></span><span class="field-error" id="customerName-loi" hidden></span></label>
           <label class="o-noi"><span class="o-noi-khung"><input id="customerPhone" type="tel" inputmode="tel" maxlength="30" autocomplete="off" placeholder=" " required aria-describedby="customerPhone-loi"><span class="o-noi-chu">Số điện thoại *</span></span><span class="field-error" id="customerPhone-loi" hidden></span></label>
         </div>
+        <div id="canh-bao-slot"></div>
         <div id="khach-them" class="grid two">
           <label class="o-noi"><span class="o-noi-khung"><input id="customerEmail" type="email" maxlength="200" autocomplete="off" placeholder=" "><span class="o-noi-chu">Email</span></span></label>
           <label class="o-noi"><span class="o-noi-khung"><textarea id="customerNote" maxlength="2000" placeholder=" "></textarea><span class="o-noi-chu">Ghi chú / yêu cầu đặc biệt</span></span></label>
@@ -38,10 +44,10 @@
         <div class="grid three">
           <label class="o-noi"><span class="o-noi-khung"><input id="discount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="o-noi-chu">Giảm giá (₫)</span></span></label>
           <label id="prepaid-amount-field" class="o-noi"><span class="o-noi-khung"><input id="prepaidAmount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="o-noi-chu">Thanh toán trước (₫)</span></span></label>
-          <label id="prepaid-method-field" class="o-noi"><span class="o-noi-khung o-noi-co-dinh"><span class="o-noi-chu">Hình thức</span><select id="prepaidMethod"><option value="BANK_TRANSFER" selected>Chuyển khoản</option><option value="CASH">Tiền mặt</option><option value="OTHER">Khác</option></select></span></label>
+          <label id="prepaid-method-field" class="o-noi" hidden><span class="o-noi-khung o-noi-co-dinh"><span class="o-noi-chu">Hình thức</span><select id="prepaidMethod"><option value="BANK_TRANSFER" selected>Chuyển khoản</option><option value="CASH">Tiền mặt</option><option value="OTHER">Khác</option></select></span></label>
         </div>
-        <label id="prepaid-collector-field" class="o-noi"><span class="o-noi-khung o-noi-co-dinh"><span class="o-noi-chu">Người nhận tiền</span><select id="prepaidCollector"><option value="cong_ty" selected>Công ty (vào tài khoản công ty)</option><option value="toi">Tôi thu</option></select></span></label>
-        <p class="muted" id="prepaid-hint">Tiền trả trước được ghi vào sổ ngay sau khi lưu đơn.</p>
+        <label id="prepaid-collector-field" class="o-noi" hidden><span class="o-noi-khung o-noi-co-dinh"><span class="o-noi-chu">Người thu tiền</span><select id="prepaidCollector"><option value="cong_ty" selected>Công ty (vào tài khoản công ty)</option><option value="toi">Tôi thu</option></select></span></label>
+        <p class="muted" id="prepaid-hint" hidden>Tiền trả trước được ghi vào sổ ngay sau khi lưu đơn.</p>
         <label class="pay-note o-noi"><span class="o-noi-khung"><textarea id="paymentNote" maxlength="1000" placeholder="vd: nội dung chuyển khoản"></textarea><span class="o-noi-chu">Ghi chú thanh toán</span></span></label>
       </section>
     </div>
@@ -51,18 +57,26 @@
         <div class="summary">
           <div class="kv"><span class="muted">Dịch vụ</span><span id="sum-count">0 dịch vụ</span></div>
           <div class="kv"><span class="muted">Tạm tính</span><span id="sum-subtotal">0 ₫</span></div>
+          <div class="kv"><span class="muted">Giảm giá</span><span id="sum-discount">0 ₫</span></div>
           <div class="kv strong"><span>Tổng cộng</span><span id="sum-total">0 ₫</span></div>
           <div class="kv" id="sum-prepaid-row" hidden><span class="muted">Thanh toán trước (ghi sau khi lưu)</span><span id="sum-prepaid">0 ₫</span></div>
-          <div id="sum-warning" class="alert warn" hidden></div>
-          <p class="muted summary-note">Số trên đây chỉ để xem trước; hệ thống tính lại chính thức khi lưu.</p>
+          <p class="muted summary-note">Số này chỉ để xem trước; hệ thống tính lại khi lưu.</p>
         </div>
       </section>
       <section id="owner-card" class="card owner-card buoc" data-buoc-khoi="phu-trach" tabindex="-1" aria-labelledby="owner-title" hidden></section>
-      <div id="save-error" class="banner" role="alert" hidden></div>
       <div class="form-actions thanh-hanh-dong-cuoi">
         <div class="mobile-actions-summary">
-          <div class="kv strong mobile-sum-line"><span><span id="mobile-count">0 dịch vụ</span> · Tổng <span id="mobile-total">0 ₫</span></span><span id="mobile-prepaid-row" hidden>Trả trước <span id="mobile-prepaid">0 ₫</span></span></div>
+          <div id="sum-chi-tiet" class="sum-chi-tiet" role="region" aria-label="Chi tiết tiền" hidden>
+            <div class="kv"><span class="muted">Tạm tính</span><span id="ct-tam-tinh">0 ₫</span></div>
+            <div class="kv"><span class="muted">Giảm giá</span><span id="ct-giam-gia">0 ₫</span></div>
+            <div class="kv strong"><span>Tổng cộng</span><span id="ct-tong">0 ₫</span></div>
+            <div class="kv" id="ct-tra-truoc-dong" hidden><span class="muted">Thanh toán trước <span class="sum-ghi-chu">(ghi sau khi lưu)</span></span><span id="ct-tra-truoc">0 ₫</span></div>
+            <p class="muted summary-note">Số này chỉ để xem trước; hệ thống tính lại khi lưu.</p>
+          </div>
+          <button id="sum-mo" class="mobile-sum-nut" type="button" aria-expanded="false" aria-controls="sum-chi-tiet"><span class="mobile-sum-line"><span><span id="mobile-count">0 dịch vụ</span> · Tổng <span id="mobile-total">0 ₫</span></span><span id="mobile-prepaid-row" hidden>Trả trước <span id="mobile-prepaid">0 ₫</span></span></span><span class="mobile-sum-mo"><span id="sum-mo-chu">Chi tiết</span> <span id="sum-mo-dau" aria-hidden="true">▴</span></span></button>
         </div>
+        <div id="sum-warning" class="alert warn" hidden></div>
+        <div id="save-error" class="banner" role="alert" hidden></div>
         <button id="save" class="btn btn-primary" type="submit">Lưu, chờ xác nhận</button>
         <a class="btn" href="/orders">Quay lại</a>
       </div>

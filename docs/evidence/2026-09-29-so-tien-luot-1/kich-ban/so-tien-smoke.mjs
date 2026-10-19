@@ -60,7 +60,7 @@ try {
   await q.waitFor("[...document.querySelectorAll('[data-khoi=\"thanh-toan\"] .kv')].some((k) => k.children[0].textContent === 'Còn lại' && k.children[1].textContent === '0 ₫')", "Còn lại 0 ₫ sau khi ghi", 10000);
   await q.waitFor("document.querySelector('[data-action=\"da-giao\"]') && !document.querySelector('[data-action=\"da-giao\"]').disabled", "nút Đã giao bật");
   await q.ev("window.confirm = () => true; document.querySelector('[data-action=\"da-giao\"]').click(); true");
-  await q.waitFor("[...document.querySelectorAll('.lock-note')].some((n) => /Đơn đã Đã giao – đã thu đủ/.test(n.textContent))", "câu khoá sau Đã giao", 10000);
+  await q.waitFor("[...document.querySelectorAll('.lock-note')].some((n) => /Đơn đã ở bước Đã giao – đã thu đủ/.test(n.textContent))", "câu khoá sau Đã giao", 10000);
   assert.equal(await q.ev("!!document.querySelector('[data-action=\"da-giao\"]')"), false, "hết nút Đã giao");
   assert.equal(await q.ev("!!document.querySelector('[data-action=\"hoan-thanh\"]')"), false, "Quản trị KHÔNG có nút Hoàn thành (order.complete = none)");
   assert.equal(await q.ev("!!document.querySelector('[data-khoi=\"ke-toan\"], [data-action=\"dao-lan-thu\"]')"), false, "Quản trị KHÔNG thấy thao tác Kế toán (ledger.write = none)");
@@ -95,7 +95,8 @@ try {
   // Đọc bằng tài khoản Toàn quyền (không phải Kế toán): đăng nhập lại Kế toán sẽ thay phiên của trang Kế toán đang mở (ADR-0074, `bi_thay`) và đá trang đó về /login.
   const tien2 = async () => (await call(ACCOUNTS.chu, "GET", `/api/orders/${o2.id}/payments`)).json;
   const t0 = await tien2();
-  assert.deepEqual([t0.du, t0.keToan.choXacNhan.length, t0.keToan.dangGiu.map((d) => d.soTien)], [150000, 1, [1500000]]);
+  // ADR-0120 Điều 1: khoản «Công ty thu – CK» do Bán hàng khai KHÔNG sinh tiền nhân viên chưa nộp, chỉ chờ Kế toán xác nhận ⇒ chỉ còn 1.200.000 tiền mặt.
+  assert.deepEqual([t0.du, t0.keToan.choXacNhan.length, t0.keToan.dangGiu.map((d) => d.soTien)], [150000, 1, [1200000]]);
   const k = await env.as(ACCOUNTS.accounting, `/order?id=${o2.id}`);
   await k.waitFor("!!document.querySelector('[data-khoi=\"ke-toan\"]') && !!document.querySelector('[data-action=\"xac-nhan-ck\"]')", "khối Kế toán + nút xác nhận CK");
   // (a) Xác nhận CK: bấm lần một chỉ mở hàng xác nhận (không gọi máy chủ), bấm "Công ty đã nhận" mới ghi.
@@ -115,7 +116,7 @@ try {
   await k.ev("document.querySelector('[data-action=\"dao-lan-thu\"]').click(); true");
   await k.waitFor("!!document.querySelector('[data-khoi=\"xac-nhan-dao-lan-thu\"]')", "hàng đảo");
   await k.ev("document.querySelector('[data-khoi=\"xac-nhan-dao-lan-thu\"] button[type=\"submit\"]').click(); true");
-  await k.waitFor("/Nhập lý do đảo\\./.test(document.body.textContent)", "báo thiếu lý do");
+  await k.waitFor("/Nhập lý do huỷ\\./.test(document.body.textContent)", "báo thiếu lý do"); // ADR-0130: «Đảo» → «Huỷ khoản thu»
   assert.equal((await tien2()).lanThu.filter((l) => l.daDao).length, 0, "không đảo khi thiếu lý do");
   await k.ev("[...document.querySelectorAll('[data-khoi=\"xac-nhan-dao-lan-thu\"] button')].find((b) => b.textContent === 'Thôi').click(); true");
   // (c) Ghi hoàn cho khách trả dư 150.000 (người trả = Bán hàng đang giữ tiền).

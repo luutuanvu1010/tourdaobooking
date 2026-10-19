@@ -119,8 +119,8 @@ export function cauChiPhi(db: D1Database, l: LenhChung, tripId: string, kh: KeHo
 /** Phần nhật ký của chi phí (C10 — chỉ số tiền trước → sau + số điều chỉnh bị đảo; dòng nhật ký của CHÍNH lệnh chuyến, cùng lô). Rỗng khi không đổi gì. */
 export function chiTietChiPhiNhatKy(kh: KeHoachChiPhi, rented: 0 | 1, laHuy = false, tenNhaXePhiHuy: readonly string[] = []): string {
   if (kh.dao.length === 0 && !kh.chup) return "";
-  const dc = kh.daoDieuChinh > 0 ? ` (đảo ${kh.daoDieuChinh} điều chỉnh)` : "";
+  const dc = kh.daoDieuChinh > 0 ? ` (huỷ ${kh.daoDieuChinh} điều chỉnh)` : "";
   // ADR-0095 Q5b: lô đảo "Phí huỷ muộn" ⇒ ghi rõ nhà xe (tên hồ sơ — `tenNhaXePhiHuy` do nơi gọi tra từ `kh.phiHuyBiDao`), để Kế toán ghi lại nếu vẫn phải trả.
-  const ph = tenNhaXePhiHuy.length > 0 ? ` · đã đảo phí huỷ của nhà xe: ${tenNhaXePhiHuy.join(", ")}` : "";
+  const ph = tenNhaXePhiHuy.length > 0 ? ` · đã huỷ khoản phí huỷ của nhà xe: ${tenNhaXePhiHuy.join(", ")}` : "";
   return ` · chi phí xe thuê ${chuTien(kh.tongTruoc)} → ${kh.chup ? chuTien(kh.tongSau) : rented === 1 && !laHuy ? "chưa có giá" : "0"}${dc}${ph}`;
 }

@@ -52,7 +52,7 @@ export function rolePicker(opts: { initial: RolePickerValue; actorIsSuperAdmin: 
     const eff = effectivePermissions(v.roles, v).permissions;
     const parts = [`Quyền sẽ có: ${permissionsLabel(eff)}.`];
     // Trạng thái xung đột chỉ tới được khi dữ liệu nạp vào đã sai (reset) — báo đúng câu của máy chủ.
-    if (vaiTaiXeDoiTacXungDot(v.roles)) parts.push("Vai Tài xế đối tác không đi cùng vai bên ngoài khác — một người chọn một.");
+    if (vaiTaiXeDoiTacXungDot(v.roles)) parts.push("Vai trò Tài xế đối tác không đi cùng vai trò bên ngoài khác — một người chọn một.");
     const lai = taiKhoanLaiProblem(eff);
     if (lai) parts.push(lai.message);
     if (opts.current) {

@@ -18,7 +18,7 @@ export type HangXacNhan = (opts: {
 }) => HTMLElement;
 
 const dongPhu = (d: Api.NhapKeToanDongDto): string =>
-  `${d.daNhap ? "Đánh dấu" : "Bỏ dấu"} ${dateTime(d.luc)} · ${d.nguoiBam ?? "—"}`;
+  `${d.daNhap ? "Đánh dấu" : "Bỏ đánh dấu"} ${dateTime(d.luc)} · ${d.nguoiBam ?? "—"}`;
 
 export function khoiNhapKeToan(orderId: string, d: Api.NhapKeToanResponse, hang: HangXacNhan): HTMLElement {
   const ht = d.hienTai;
@@ -43,7 +43,7 @@ export function khoiNhapKeToan(orderId: string, d: Api.NhapKeToanResponse, hang:
         nut.push(h("p", { class: "muted" }, "Đánh dấu được khi đơn đã xác nhận."));
       }
     } else {
-      // Sửa số = đánh dấu lại (máy chủ chỉ nhận khi đơn đã xác nhận — A-3): đơn nháp / đã huỷ chỉ còn "Bỏ dấu" (kiểm độc lập 30/9).
+      // Sửa số = đánh dấu lại (máy chủ chỉ nhận khi đơn đã xác nhận — A-3): đơn nháp / đã huỷ chỉ còn "Bỏ đánh dấu" (kiểm độc lập 30/9).
       const so = oSo(ht.soHoaDon ?? "");
       if (d.donDaXacNhan) nut.push(hang({
         nhan: "Sửa số hoá đơn", action: "nhap-kt-sua-so", nutGhi: "Lưu số",
@@ -54,8 +54,8 @@ export function khoiNhapKeToan(orderId: string, d: Api.NhapKeToanResponse, hang:
       }));
       const lyDo = h("input", { type: "text", autocomplete: "off", maxlength: String(LY_DO_TOI_DA), placeholder: "Vì sao bỏ dấu (bắt buộc)" }) as HTMLInputElement;
       nut.push(hang({
-        nhan: "Bỏ dấu", action: "nhap-kt-bo-dau", nutGhi: "Bỏ dấu",
-        cau: "Bỏ dấu đã nhập phần mềm kế toán của đơn này? Lần đánh dấu cũ vẫn được giữ lại.",
+        nhan: "Bỏ đánh dấu", action: "nhap-kt-bo-dau", nutGhi: "Bỏ đánh dấu",
+        cau: "Bỏ đánh dấu đã nhập phần mềm kế toán của đơn này? Lần đánh dấu cũ vẫn được giữ lại.",
         o: [h("label", null, "Lý do", lyDo)],
         kiem: () => (lyDo.value.trim() ? null : "Nhập lý do bỏ dấu."),
         ghi: () => gui({ daNhap: false, lyDo: lyDo.value.trim(), truocDo: ht.id }),

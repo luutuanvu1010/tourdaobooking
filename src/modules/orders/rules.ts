@@ -59,16 +59,16 @@ function withLegs(rawServices: readonly unknown[], services: ValidService[], ctx
     const stored = sv.id !== null ? ctx.storedTrips?.get(sv.id) : undefined;
     const at = `Dịch vụ ${i + 1}`;
     if (legsGiven) {
-      if (!Array.isArray(raw.legs)) return fail(`${at}: danh sách chặng đưa đón không hợp lệ.`);
-      if (raw.legs.length > MAX_CHANG_MOI_DICH_VU) return fail(`${at}: tối đa ${MAX_CHANG_MOI_DICH_VU} chặng đưa đón.`);
+      if (!Array.isArray(raw.legs)) return fail(`${at}: danh sách lượt đưa đón không hợp lệ.`);
+      if (raw.legs.length > MAX_CHANG_MOI_DICH_VU) return fail(`${at}: tối đa ${MAX_CHANG_MOI_DICH_VU} lượt đưa đón.`);
       const legs: ChangHopLe[] = [];
       const seen = new Set<string>();
       for (const [j, l] of raw.legs.entries()) {
-        const k = kiemChang(l, { at: `${at}, chặng ${j + 1}`, departDate: sv.trip.departDate });
+        const k = kiemChang(l, { at: `${at}, lượt ${j + 1}`, departDate: sv.trip.departDate });
         if (!k.ok) return fail(k.message);
         if (k.value.id !== null) {
-          if (!stored?.legs.some((x) => x.id === k.value.id)) return fail(`${at}, chặng ${j + 1}: chặng không thuộc dịch vụ này — hãy tải lại trang rồi thử lại.`);
-          if (seen.has(k.value.id)) return fail(`${at}, chặng ${j + 1}: trùng một chặng khác.`);
+          if (!stored?.legs.some((x) => x.id === k.value.id)) return fail(`${at}, lượt ${j + 1}: lượt đưa đón không thuộc dịch vụ này — hãy tải lại trang rồi thử lại.`);
+          if (seen.has(k.value.id)) return fail(`${at}, lượt ${j + 1}: trùng một lượt đưa đón khác.`);
           seen.add(k.value.id);
         }
         legs.push(k.value);
@@ -179,7 +179,7 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
   if (discount.value > subtotal) return fail("Giảm giá không được vượt quá tạm tính.");
   const total = subtotal - discount.value;
 
-  // Sổ tiền lượt 1 (ADR-0026 đ9): tiền trả trước KHÔNG còn nằm trong đơn — trình duyệt ghi LẦN THU ở bước hai (billing) sau khi đơn đã lưu. Trang lập
+  // Sổ tiền lượt 1 (ADR-0026 đ9): tiền trả trước KHÔNG còn nằm trong đơn — trình duyệt ghi KHOẢN THU ở bước hai (billing) sau khi đơn đã lưu. Trang lập
   // đơn CŨ (bộ nhớ đệm PWA chưa tải bản mới) còn gửi khoản trả trước trong thân đơn → từ chối rõ ràng thay vì lặng lẽ bỏ mất số tiền đó.
   if (typeof b.depositAmount === "number" && b.depositAmount > 0) {
     return { ok: false, code: "client_outdated", message: "Trang lập đơn đã cũ — tải lại trang rồi nhập tiền trả trước ở mục Thanh toán." };

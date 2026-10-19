@@ -306,7 +306,7 @@ test("NT-5 bỏ chặng (văn phòng) → suất của chặng đóng REMOVED c�
     assert.deepEqual(moCua(w, t.chuyen.id, d.legId), []);
     assert.deepEqual(daDong(w, t.chuyen.id).map((x) => x.r), ["REMOVED", "REMOVED"]);
     assert.deepEqual(await lyDo(w, t.chuyen.id), []);
-    assert.match(nhatKyDongBo(w)[0]!.detail, new RegExp(`${d.code} \\(bỏ chặng\\): trả 2 ghế$`));
+    assert.match(nhatKyDongBo(w)[0]!.detail, new RegExp(`${d.code} \\(bỏ lượt đưa đón\\): trả 2 ghế$`));
   } finally {
     tat();
   }

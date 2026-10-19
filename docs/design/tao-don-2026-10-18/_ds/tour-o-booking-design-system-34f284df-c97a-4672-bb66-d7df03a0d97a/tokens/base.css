@@ -1,0 +1,12 @@
+/* Base element styles — from app.css (body sits on --c-surface-alt; cards are white). */
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; font: 16px/1.5 var(--font); color: var(--c-text); background: var(--c-surface-alt); -webkit-tap-highlight-color: transparent; }
+h1, h2 { font-family: var(--font-display); color: var(--c-primary); margin: 0 0 var(--s3); }
+h1 { font-size: var(--fs-h1); } h2 { font-size: var(--fs-h2); }
+h3 { font-size: 1rem; margin: var(--s4) 0 var(--s2); color: var(--c-primary); }
+a { color: var(--c-primary); }
+a:hover { color: var(--c-primary-strong); }
+:where(a, button, input, select, textarea, summary):focus-visible { outline: var(--focus-ring) solid var(--c-primary); outline-offset: var(--focus-ring); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
