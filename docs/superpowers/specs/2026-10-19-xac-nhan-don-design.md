@@ -1,6 +1,7 @@
 # Bước Xác nhận đơn, Đón/không đón theo khung giờ, QR sau xác nhận, Bảng điều khiển Toàn quyền — thiết kế
 
 - Ngày: 2026-10-19. Trạng thái: **bản nháp chờ chủ duyệt**. Vai phiên: lập kế hoạch (không thi công).
+- Bản mô tả luồng công việc thực tế + phân tích rủi ro: `2026-10-19-xac-nhan-don-luong-thuc-te.md`.
 - Nguồn: lời chủ dự án trong phiên 19/10 (hai lượt hỏi–đáp, 14 + 4 câu). Lời chủ ghi là **[chủ]**; điều do người soạn tự đặt ghi là **[người soạn]** — chủ cần đọc kỹ các dòng này.
 - Việc lớn (chạm quyền, dữ liệu, tiền, gửi thư ra ngoài): mỗi phần cần ADR riêng do chủ duyệt + trang ghép (CLAUDE.md §9) + người kiểm độc lập (§3).
 
@@ -25,7 +26,7 @@ Thành công = (a) đơn có dịch vụ "cần xác nhận" không thể thành
 8. **Mốc tối thiểu trước giờ đón [chủ]:** giữ luật hôm nay (đơn có chặng dưới mốc phải được Quản trị/Toàn quyền "Đặt gấp" mới xác nhận được). Luật áp ở lúc **bấm Xác nhận**, không ở lúc gửi. Chủ muốn mặc định **30 phút** thay cho 360 phút hiện nay → chủ tự đổi trên trang Chính sách điều phối (đã có, chỉ thêm dòng, đảo ngược được); không cần mã.
 9. **[người soạn] Trong lúc chờ:** đơn không vào xếp xe/đưa đón, không được ghi lần thu, không thấy QR (Phần C). Người lập không sửa được đơn đang chờ; muốn sửa thì bấm "Rút lại" để về nháp (đồng hồ 15 phút bắt đầu lại khi gửi lần sau).
 10. **[người soạn] Cách lưu "Chờ xác nhận":** KHÔNG thêm giá trị vào `orders.status` (CHECK ba giá trị từ `0003`; thêm giá trị = dựng lại bảng `orders` và trigger, điều `0018` đã cố tình tránh). Đơn chờ vẫn là `draft`; "Chờ xác nhận" = có một dòng yêu cầu xác nhận còn mở trong một bảng riêng chỉ-thêm (gửi lúc, người gửi, kết quả, người xác nhận, tình trạng vé, lý do). Đảo ngược dễ, không chạm các chỗ đang đọc `status`; các chỗ hiển thị đọc thêm cờ "đang chờ".
-11. **[người soạn] Sửa tiền khi xác nhận:** vì đơn chờ vẫn là nháp, người xác nhận sửa thẳng như sửa nháp (không qua luồng điều chỉnh tiền sau xác nhận), máy chủ bắt lý do khi tổng tiền đổi và ghi nhật ký. Không có lần thu nào trước xác nhận nên không chạm TNV-G1.
+11. **[người soạn] Sửa tiền khi xác nhận:** vì đơn chờ vẫn là nháp, người xác nhận sửa thẳng như sửa nháp (không qua luồng điều chỉnh tiền sau xác nhận), máy chủ bắt lý do khi tổng tiền đổi và ghi nhật ký. **Sửa 19/10 sau bản mô tả luồng thực tế:** câu cũ "không có lần thu nào trước xác nhận" SAI — hôm nay Nền tảng cho ghi thu lên đơn nháp, và hàng chờ nhận của HDV có cả đơn nháp. Xử lý ở hai câu hỏi chờ chủ trong `2026-10-19-xac-nhan-don-luong-thuc-te.md` (chặn ghi thu / chặn nhận khi đang chờ); chưa chốt thì Phần A ghi "xây trên lỗ đang hở: TNV-G1".
 12. **[người soạn] HDV chọn sẵn lúc tạo đơn:** giữ nguyên như hôm nay — xác nhận xong, đơn có HDV đã chọn thì giữ người đó; không có thì thành đơn tự do. ("Như cũ" theo lời chủ ở câu 1.)
 13. **[người soạn] Nhật ký:** mỗi lần gửi / xác nhận / huỷ / sửa tiền khi xác nhận ghi một dòng nhật ký có người làm và lý do (không ghi SĐT/email).
 
