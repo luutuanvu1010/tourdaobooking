@@ -122,10 +122,14 @@ test("số lạ: Đối tác A gọi mọi bề mặt có tiền / lịch sử /
     ["GET", `/api/orders/${cuaB}/thuong-mai`],
     ["GET", `/api/orders/${cuaB}/receipt`],
     ["GET", `/api/orders/${cuaB}/qr-thanh-toan`],
+    // Sổ đại lý đợt 2 Task 9 (Step 1 của brief): màn tiền của đơn và tiền nhiều đơn.
+    ["GET", `/api/orders/${cuaA}/payments`],
+    ["GET", `/api/orders/${cuaB}/payments`],
+    ["POST", "/api/ledger/balances"],
   ];
   const trangThai: string[] = [];
   for (const [phuongThuc, duong] of bemat) {
-    const r = await w.call(phuongThuc, duong, { as: DT_A });
+    const r = await w.call(phuongThuc, duong, { as: DT_A, ...(phuongThuc === "POST" ? { body: { orderIds: [cuaA, cuaB] } } : {}) });
     trangThai.push(`${r.status} ${duong}`);
     assert.ok(r.status < 500, `${duong} không được 5xx (bề mặt hỏng thì bài quét vô nghĩa): ${r.status} ${r.text}`);
     assert.deepEqual(soLaTrong(r.text), [], `${duong} (${r.status}) lộ số lạ: ${r.text}`);
@@ -133,6 +137,7 @@ test("số lạ: Đối tác A gọi mọi bề mặt có tiền / lịch sử /
   // các bề mặt chính phải thật sự trả nội dung (không chỉ lỗi)
   assert.ok(trangThai.includes(`200 /api/orders/${cuaA}`) && trangThai.includes(`200 /api/orders/${cuaA}/thuong-mai`) && trangThai.includes("200 /api/orders"), trangThai.join(" | "));
   assert.ok(trangThai.includes(`403 /api/orders/${cuaB}`), "đơn của đại lý khác bị từ chối");
+  assert.ok(trangThai.includes(`200 /api/orders/${cuaA}/payments`) && trangThai.includes("200 /api/ledger/balances"), trangThai.join(" | "));
   assert.ok(trangThai.includes(`404 /api/orders/${cuaB}/thuong-mai`), "phần đối tác của đơn đại lý khác: 404 (Ruling 18 — không dò được)");
 
   // ---- Danh sách trắng: DTO của Đối tác không có khoá nào của tỷ lệ / đ/khách / giá vốn / nguồn.
@@ -168,13 +173,17 @@ test("số lạ: tài khoản lai Bán hàng + Đối tác quét đơn của B v
   };
   // Tài khoản lai mở được CHI TIẾT đơn người khác (Bán hàng xem mọi đơn) nhưng KHÔNG được thấy phần đối tác của chúng: 404, và không bề mặt nào kèm số lạ.
   for (const id of [cuaB, nhapB, cuaA]) { // đơn B trước: nếu rò thì số lạ 480017 hiện ngay ở bề mặt đầu tiên
-    for (const duong of [`/api/orders/${id}`, `/api/orders/${id}/receipt`, `/api/orders/${id}/qr-thanh-toan`]) await quet(duong);
+    for (const duong of [`/api/orders/${id}`, `/api/orders/${id}/receipt`, `/api/orders/${id}/qr-thanh-toan`, `/api/orders/${id}/payments`]) await quet(duong);
     const doc = await quet(`/api/orders/${id}/thuong-mai`);
     assert.equal(doc.status, 404, `phần đối tác của đơn người khác phải 404: ${doc.text}`);
     assert.equal(doc.json.error.code, "not_found");
     const chiTiet = await w.call("GET", `/api/orders/${id}`, { as: LAI_BAN });
     if (chiTiet.status === 200) assert.deepEqual(chiTiet.json.history.filter((e: { action: string }) => e.action.startsWith("order_terms_")), [], "lịch sử đơn người khác cũng lọc order_terms_*");
   }
+  // Sổ đại lý đợt 2 Task 9: tiền nhiều đơn (POST, thân là danh sách đơn) cũng không kèm số lạ.
+  const ds = await w.call("POST", "/api/ledger/balances", { as: LAI_BAN, body: { orderIds: [cuaB, nhapB, cuaA, cuaMinh] } });
+  assert.equal(ds.status, 200, ds.text);
+  assert.deepEqual(soLaTrong(ds.text), [], `/api/ledger/balances lộ số lạ cho tài khoản lai: ${ds.text}`);
   // Đơn của chính tài khoản lai: DTO hẹp, đúng số của mình (mức tay 48,17% × 2.000.000 = 963.400), không số lạ ở bề mặt nào.
   for (const duong of ["/api/orders", `/api/orders/${cuaMinh}`, `/api/orders/${cuaMinh}/receipt`, `/api/orders/${cuaMinh}/qr-thanh-toan`, "/api/thong-bao", "/api/thong-bao/tom-tat", "/api/ledger/mine"]) await quet(duong);
   const chiTiet = await w.call("GET", `/api/orders/${cuaMinh}`, { as: LAI_BAN });
@@ -277,4 +286,197 @@ test("số lạ: nhật ký ghi mức KHÔNG sinh thông báo / tin Bảng tin �
   const rungMay = THAY_DOI.map((t) => hanhDongCuaThayDoi(t)).filter((a): a is string => a !== null);
   assert.deepEqual(rungMay.filter((a) => a.startsWith("order_terms_")), [], "cú gõ cửa màn hình khoá");
   assert.equal(hanhDongCuaThayDoi("tien"), null, "đổi tiền (kể cả ghi mức tay) không gõ cửa máy nào");
+});
+
+// ===================================================================================================================================================
+// Sổ đại lý đợt 2, Task 9 — chặn lộ khi đơn đại lý qua «Đã giao» (đặc tả P8; trang-ghep.md §8; ADR-0081 điều 4; ô `supply.terms.view`):
+//  (1) tài khoản giữ quyền Đối tác (kể cả lai Bán hàng + Đối tác, Kế toán + Đối tác) không thấy tên người thu khác, tiền người khác giữ, tên nhà cung cấp / đại lý khác;
+//  (2) người không có `supply.terms.view` (Bán hàng, HDV, Thực tập, Đối tác) không thấy số dư nhà cung cấp hay câu nói tới giá vốn — chỉ «còn khoản giữa công ty
+//      và nhà cung cấp — Kế toán xử lý». Bề mặt: `GET /api/orders/:id/payments`, `POST /api/ledger/balances`, thân 409 của `POST /api/orders/:id/delivered`.
+// Số / tên lạ: HDV «Nam Số Lạ 4817»; nhà cung cấp «i-resort»; đại lý khác «Đại Lý B». Tên «Người thu tiền khác» (không «Người thu khác» — bảng từ ADR-0130 lượt 2, R-90).
+// ===================================================================================================================================================
+const T9_HDV = "22222222-2222-4222-8222-222222222222";
+const T9_KTP = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1"; // ACCOUNTING + PARTNER (lai)
+const TEN_HDV = "Nam Số Lạ 4817";
+
+/** Khung Task 9: tài khoản của bài số lạ + HDV «Nam Số Lạ 4817» + tài khoản lai Kế toán + Đối tác; đại lý hưởng 10%; i-resort bán IRESORT, a% `tyLeMuaBp`. */
+async function dungT9(tyLeMuaBp = 8000): Promise<W> {
+  const w = setup();
+  seedStaff(w.sqlite, { id: T9_HDV, phone: "0900000002", name: TEN_HDV, perms: ["FIELD"] });
+  seedStaff(w.sqlite, { id: T9_KTP, phone: "0900000013", name: "Kim Lai Kế Toán", perms: ["ACCOUNTING", "PARTNER"] });
+  const m = await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { tuNgay: "2026-01-01", doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000 } });
+  assert.equal(m.status, 201, m.text);
+  w.sqlite.exec(`INSERT INTO catalog_item (code, name, unit, price_adult, price_child, price_senior, price_infant, sheet_row, in_sheet, first_seen_at, updated_at)
+    VALUES ('IRESORT', 'Vé tắm bùn i-resort', 'perPax', 300000, NULL, NULL, NULL, 1, 1, '${AT}', '${AT}')`);
+  const c = await w.call("POST", "/api/pricing/cung-ung", { as: KT, body: { phamVi: "SERVICE", catalogCode: "IRESORT", nguoiBanPartyId: "pty-ncc", tyLeMuaBp, tuNgay: "2026-01-01" } });
+  assert.equal(c.status, 201, c.text);
+  return w;
+}
+const phanCongT9 = (w: W, id: string) => w.sqlite.prepare(`INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, created_by, updated_at, updated_by)
+  VALUES (?, ?, 'HANDLE', ?, 'PENDING', ?, ?, NULL, ?, NULL)`).run(uuid(), id, `pty-${T9_HDV}`, AT, AT, AT);
+const ghiT9 = async (w: W, as: string, id: string, body: Record<string, unknown>) => {
+  const r = await w.call("POST", `/api/orders/${id}/payments`, { as, body: { hinhThuc: "CASH", ...body } });
+  assert.equal(r.status, 201, r.text);
+};
+/**
+ * Đơn của `chu` (bên đặt = hồ sơ của `chu`): Hòn Tằm 1.000.000 + 2 vé i-resort 600.000. HDV «Nam Số Lạ 4817» thu 500.000, chính đại lý thu 300.000, quầy i-resort
+ * (Kế toán ghi) 600.000, công ty 200.000 ⇒ «Đã giao». Sổ: HDV nợ 500.000; đại lý nợ 300.000 − hoa hồng 160.000 = 140.000; i-resort nợ 600.000 − giá vốn 480.000 = 120.000.
+ */
+async function donDaGiaoT9(w: W, chu: string): Promise<string> {
+  const id = await daXacNhan(w, `pty-${chu}`, [["HONTAM", 1_000_000], ["IRESORT", 600_000]], chu);
+  phanCongT9(w, id);
+  await ghiT9(w, T9_HDV, id, { soTien: 500_000, nguoiThu: "toi" });
+  await ghiT9(w, chu, id, { soTien: 300_000, nguoiThu: "toi" });
+  await ghiT9(w, KT, id, { soTien: 600_000, nguoiThu: { partyId: "pty-ncc" } });
+  await ghiT9(w, SUP, id, { soTien: 200_000, nguoiThu: "cong_ty" });
+  const g = await w.call("POST", `/api/orders/${id}/delivered`, { as: SUP, body: {} });
+  assert.equal(g.status, 200, g.text);
+  return id;
+}
+const tienT9 = async (w: W, id: string, as: string) => {
+  const r = await w.call("GET", `/api/orders/${id}/payments`, { as });
+  assert.equal(r.status, 200, `${as}: ${r.text}`);
+  return r;
+};
+const CAU_NCC = "còn khoản giữa công ty và nhà cung cấp — Kế toán xử lý";
+
+test("Task 9 (1): Đối tác, tài khoản lai Bán hàng + Đối tác và Kế toán + Đối tác xem đơn đại lý đã giao ⇒ không tên HDV «Nam Số Lạ», không «i-resort», không số người khác giữ; người thu khác = «Người thu tiền khác»; Kế toán thuần thấy đủ (có răng)", async () => {
+  const w = await dungT9();
+  const cuaA = await donDaGiaoT9(w, DT_A);
+  const cuaLai = await donDaGiaoT9(w, LAI_BAN);
+
+  // Có răng: Kế toán thuần thấy tên HDV, tên nhà cung cấp và ba số dư trong câu chưa hoàn thành.
+  const kt = await tienT9(w, cuaA, KT);
+  assert.match(kt.text, /Nam Số Lạ 4817/);
+  assert.match(kt.json.lyDoChuaHoanThanh.cau, /Nam Số Lạ 4817 còn 500\.000 ₫ chưa nộp/);
+  assert.match(kt.json.lyDoChuaHoanThanh.cau, /i-resort còn 120\.000 ₫ chưa nộp/);
+  assert.match(kt.json.lyDoChuaHoanThanh.cau, /Đại Lý A còn 140\.000 ₫ chưa nộp/);
+  assert.deepEqual(kt.json.lanThu.map((l: { nguoiThu: string }) => l.nguoiThu), [TEN_HDV, "Đại Lý A", "i-resort", "Công ty"]);
+
+  for (const [as, id, tenMinh] of [[DT_A, cuaA, "Đại Lý A"], [LAI_BAN, cuaLai, "Sơn Lai Bán"], [T9_KTP, cuaA, null]] as const) {
+    const r = await tienT9(w, id, as);
+    for (const cam of ["Nam Số Lạ", "4817", "i-resort", "Đại Lý B", "120.000", "120000", "500.000 ₫ chưa nộp"]) assert.ok(!r.text.includes(cam), `${as} thấy «${cam}»: ${r.text}`);
+    if (as !== T9_KTP) assert.ok(!r.text.includes(as === DT_A ? "Sơn Lai Bán" : "Đại Lý A"), `${as} thấy tên đại lý khác`);
+    const nguoiThu = r.json.lanThu.map((l: { nguoiThu: string }) => l.nguoiThu);
+    assert.deepEqual(nguoiThu, ["Người thu tiền khác", tenMinh ?? "Người thu tiền khác", "Người thu tiền khác", "Công ty"], `${as}: ${nguoiThu}`);
+    assert.ok(r.json.lanThu.every((l: { nguoiThuPartyId: string | null }) => l.nguoiThuPartyId === null), `${as}: không id hồ sơ người thu khác`);
+    const cau: string = r.json.lyDoChuaHoanThanh.cau;
+    if (tenMinh) assert.match(cau, new RegExp(`${tenMinh} còn 140\\.000 ₫ chưa nộp`), "số của chính mình vẫn thấy");
+    assert.match(cau, /còn khoản của bên khác — Kế toán xử lý/, cau);
+    if (r.json.keToan) assert.deepEqual(r.json.keToan.dangGiu, [], `${as}: khối Kế toán không liệt kê người khác đang giữ`);
+    const ds = await w.call("POST", "/api/ledger/balances", { as, body: { orderIds: [cuaA, cuaLai] } });
+    assert.equal(ds.status, 200, ds.text);
+    for (const cam of ["Nam Số Lạ", "i-resort", "120000"]) assert.ok(!ds.text.includes(cam), `${as} /api/ledger/balances thấy «${cam}»`);
+  }
+});
+
+test("Task 9 (2): Bán hàng thuần và HDV (không `supply.terms.view`) xem đơn SV-HT-05 sau «Đã giao» ⇒ không 120.000 / «i-resort còn», thấy «còn khoản giữa công ty và nhà cung cấp — Kế toán xử lý»; Đối tác đang đối chiếu «tại quầy i-resort» ⇒ câu giữ không tên quầy, không tên HDV", async () => {
+  const w = await dungT9();
+  // SV-HT-05: chỉ 2 vé i-resort 600.000, khách trả đủ tại quầy (Kế toán ghi người thu i-resort) ⇒ «Đã giao»: i-resort nợ 120.000, Tour Đảo nợ đại lý 60.000.
+  const id = await daXacNhan(w, `pty-${DT_A}`, [["IRESORT", 600_000]], DT_A);
+  phanCongT9(w, id);
+  await ghiT9(w, KT, id, { soTien: 600_000, nguoiThu: { partyId: "pty-ncc" } });
+  const g = await w.call("POST", `/api/orders/${id}/delivered`, { as: T9_HDV, body: {} });
+  assert.equal(g.status, 200, g.text);
+  assert.match((await tienT9(w, id, KT)).json.lyDoChuaHoanThanh.cau, /i-resort còn 120\.000 ₫ chưa nộp/, "có răng: Kế toán thấy số dư nhà cung cấp");
+  for (const as of [SALES, T9_HDV, DT_A]) {
+    const r = await tienT9(w, id, as);
+    for (const cam of ["120000", "120.000", "i-resort còn", "i-resort đang giữ"]) assert.ok(!r.text.includes(cam), `${as} thấy «${cam}»: ${r.text}`);
+    if (as !== DT_A) assert.equal(r.json.lyDoChuaHoanThanh.cau, `Chưa Hoàn thành được: ${CAU_NCC}.`);
+  }
+
+  // Đối tác: đơn đang giữ «đang đối chiếu» vì HDV khai «khách trả tại quầy i-resort».
+  const giu = await daXacNhan(w, `pty-${DT_A}`, [["IRESORT", 600_000]], DT_A);
+  phanCongT9(w, giu);
+  await ghiT9(w, T9_HDV, giu, { soTien: 600_000, nguoiThu: { nhaCungCapPartyId: "pty-ncc" } });
+  assert.match((await tienT9(w, giu, SALES)).json.lyDoChuaGiao.cau, /tại quầy i-resort/, "văn phòng thấy tên quầy (người khai chọn từ danh sách)");
+  for (const as of [DT_A, T9_KTP]) {
+    const r = await tienT9(w, giu, as);
+    assert.equal(r.json.lyDoChuaGiao.ma, "reconciling");
+    for (const cam of ["i-resort", "Nam Số Lạ", "4817"]) assert.ok(!r.text.includes(cam), `${as} thấy «${cam}»: ${r.text}`);
+  }
+});
+
+test("Task 9 (3) — I-1 người kiểm Task 3+4: câu `terms_exceed_price` nói tới giá vốn chỉ cho người có `supply.terms.view` không giữ quyền Đối tác; người khác nhận câu chung ở CẢ GET /payments lẫn thân 409 của «Đã giao» (cả nhánh kiểm trước lẫn nhánh lỗi CSDL)", async () => {
+  const w = await dungT9(9500); // 10% hoa hồng + 95% giá vốn > giá bán
+  const id = await daXacNhan(w, `pty-${DT_A}`, [["IRESORT", 1_000_000]], DT_A);
+  phanCongT9(w, id);
+  await ghiT9(w, SUP, id, { soTien: 1_000_000, nguoiThu: "cong_ty" });
+  const CAU_KT = "Mức hoa hồng / giá vốn cài cho DV 0 vượt giá bán — Kế toán xem lại.";
+  const CAU_CHUNG = "Đơn đang chờ Kế toán xem lại mức của một dịch vụ.";
+  assert.equal((await tienT9(w, id, KT)).json.lyDoChuaGiao.cau, CAU_KT, "có răng: Kế toán thấy câu đủ");
+  assert.equal((await tienT9(w, id, SUP)).json.lyDoChuaGiao.cau, CAU_KT);
+  for (const as of [SALES, T9_HDV, DT_A, T9_KTP]) {
+    const r = await tienT9(w, id, as);
+    assert.deepEqual([r.json.lyDoChuaGiao.ma, r.json.lyDoChuaGiao.cau], ["terms_exceed_price", CAU_CHUNG], `${as}: ${r.text}`);
+    assert.ok(!/giá vốn/.test(r.text), `${as} thấy chữ «giá vốn»`);
+  }
+  const hdv = await w.call("POST", `/api/orders/${id}/delivered`, { as: T9_HDV, body: {} });
+  assert.deepEqual([hdv.status, hdv.json.error.message], [409, CAU_CHUNG], hdv.text);
+  const sup = await w.call("POST", `/api/orders/${id}/delivered`, { as: SUP, body: {} });
+  assert.deepEqual([sup.status, sup.json.error.message], [409, CAU_KT], sup.text);
+  // Nhánh lỗi CSDL (`commercial_exceeds_gross` — lớp kiểm trước bị vượt): đơn đủ mức, lô bị hỏng một dòng hoa hồng trước khi chạy.
+  const w2 = await dungT9();
+  const id2 = await daXacNhan(w2, `pty-${DT_A}`, [["IRESORT", 1_000_000]], DT_A);
+  phanCongT9(w2, id2);
+  await ghiT9(w2, SUP, id2, { soTien: 1_000_000, nguoiThu: "cong_ty" });
+  for (const [as, cau] of [[T9_HDV, CAU_CHUNG], [SUP, "Mức hoa hồng / giá vốn cài cho đơn này vượt giá bán — Kế toán xem lại."]] as const) {
+    w2.chenTruocLo((stmts: { sql: string }[]) => stmts.some((c) => /^UPDATE orders SET delivered_at/.test(c.sql)), (stmts: { sql: string; args: unknown[]; bind: (...a: unknown[]) => unknown }[]) => {
+      const i = stmts.findIndex((c) => /^INSERT INTO bil_debt_line/.test(c.sql) && c.args[5] === "HOA_HONG");
+      const a = [...stmts[i]!.args];
+      a[4] = 1_000_001;
+      stmts[i] = stmts[i]!.bind(...a) as (typeof stmts)[number];
+    });
+    const r = await w2.call("POST", `/api/orders/${id2}/delivered`, { as, body: {} });
+    assert.deepEqual([r.status, r.json.error.message], [409, cau], `${as}: ${r.text}`);
+  }
+});
+
+test("Task 9 (4) — M-5: đơn bị huỷ đúng lúc giữa hai lần đọc của «Đã giao» / màn tiền ⇒ «Đơn vừa thay đổi — tải lại trang rồi thử lại.», không phải câu «thiếu mức»", async () => {
+  const w = await dungT9();
+  const CAU = "Đơn vừa thay đổi — tải lại trang rồi thử lại.";
+  for (const duong of ["delivered", "payments"] as const) {
+    const id = await daXacNhan(w, `pty-${DT_A}`, [["HONTAM", 1_000_000]], DT_A);
+    phanCongT9(w, id);
+    await ghiT9(w, SUP, id, { soTien: 1_000_000, nguoiThu: "cong_ty" });
+    // Lô đọc đơn đầy đủ của `phanThuongMaiCuaDon` (findOrder — sau `thongTinGiaoDon`): huỷ đơn ngay trước lô đó.
+    w.chenTruocLo((stmts: { sql: string }[]) => stmts.length === 5 && stmts.some((c) => /FROM order_service/.test(c.sql)), () => {
+      // Người khác huỷ đơn (trigger 0078 đòi lý do huỷ có trước).
+      w.sqlite.prepare(`INSERT INTO ord_cancel_reason (id, order_id, reason_code, group_code, cancelled_date, created_at, created_by, updated_at, updated_by)
+        VALUES (?, ?, 'KHACH_DOI_Y', 'KHACH_HUY', ?, ?, NULL, ?, NULL)`).run(uuid(), id, vnHomNay(), AT, AT);
+      w.sqlite.prepare("UPDATE orders SET status = 'cancelled' WHERE id = ?").run(id);
+    });
+    if (duong === "delivered") {
+      const r = await w.call("POST", `/api/orders/${id}/delivered`, { as: T9_HDV, body: {} });
+      assert.deepEqual([r.status, r.json.error.code, r.json.error.message], [409, "stale", CAU], r.text);
+    } else {
+      const r = await w.call("GET", `/api/orders/${id}/payments`, { as: SALES });
+      assert.equal(r.status, 200, r.text);
+      assert.deepEqual([r.json.lyDoChuaGiao?.ma, r.json.lyDoChuaGiao?.cau], ["stale", CAU], r.text);
+    }
+  }
+});
+
+test("Task 9 (5) — người kiểm Task 5: «thu cho» của tài khoản Đối tác ⇒ MỘT câu cho hồ sơ không phải nhà cung cấp và cho số vượt phần chưa thu (không dò được ai là nhà cung cấp); HDV vẫn nhận câu riêng; đơn xác nhận chưa chụp mức ⇒ câu «Chụp bù», không «không có đại lý đặt»", async () => {
+  const w = await dungT9();
+  const id = await daXacNhan(w, `pty-${DT_A}`, [["HONTAM", 1_000_000], ["IRESORT", 600_000]], DT_A);
+  phanCongT9(w, id);
+  const thuCho = (as: string, pid: string, soTien: number) => w.call("POST", `/api/orders/${id}/payments`, { as, body: { soTien, hinhThuc: "CASH", nguoiThu: "toi", thuChoNhaCungCapPartyId: pid } });
+  const khongPhai = await thuCho(DT_A, `pty-${SALES}`, 100_000);
+  const vuot = await thuCho(DT_A, "pty-ncc", 600_001);
+  const sai = await thuCho(DT_A, "không hợp lệ!", 100_000);
+  assert.deepEqual([khongPhai.status, vuot.status, sai.status], [400, 400, 400]);
+  assert.equal(khongPhai.json.error.message, vuot.json.error.message, "cùng một câu");
+  assert.equal(sai.json.error.message, vuot.json.error.message);
+  assert.doesNotMatch(vuot.text, /600\.000|nhà cung cấp/, vuot.text);
+  // HDV (không giữ quyền Đối tác) vẫn nhận câu nói rõ.
+  assert.match((await thuCho(T9_HDV, `pty-${SALES}`, 100_000)).json.error.message, /chỉ chọn được nhà cung cấp/);
+  assert.match((await thuCho(T9_HDV, "pty-ncc", 600_001)).json.error.message, /600\.000 ₫/);
+  // Đơn đại lý xác nhận trước khi có bảng mức (chưa chụp): «khách trả cho đại lý» ⇒ câu nói việc cần làm.
+  const cu = nhap(w, SALES, `pty-${DT_A}`, [["HONTAM", 1_000_000]]);
+  w.sqlite.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ?, updated_at = ? WHERE id = ?").run(AT, AT, cu);
+  phanCongT9(w, cu);
+  const k = await w.call("POST", `/api/orders/${cu}/payments`, { as: T9_HDV, body: { soTien: 100_000, hinhThuc: "CASH", nguoiThu: "ben_dat" } });
+  assert.equal(k.status, 400, k.text);
+  assert.equal(k.json.error.message, "Đơn xác nhận trước khi có bảng mức, chưa chụp mức — Kế toán bấm Chụp bù rồi mới ghi được khoản khách trả cho đại lý.");
 });

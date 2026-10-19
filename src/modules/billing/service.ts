@@ -17,8 +17,8 @@ import { transferInOf } from "./coc-repo";
 import { docGiaoDich, kiemMaGiaoDich, type GiaoDich } from "./ma-giao-dich";
 import { phaiThuLucGiao } from "./thay-lan-thu-repo";
 import {
-  CAU_DA_NOP, LY_DO_DIEU_CHINH_TOI_THIEU, METHOD_CODES, benDatHuong, canDoiChieu, cumDoiChieu, nhaCungCapCuaDon, phanChuaThuNhaCungCap, soDuGiuHo, type PhanChoNguoiThu, cauLoiCsdlThuongMai, conLai, dongThuongMaiTu, khoanMoiDoiChieu, sinhPhieuDaGiao, tinhTrangThuongMai, type DoiChieuRow, type DongThuongMai, type TinhTrangThuongMai, dong, khoanChoXacNhan, kiemDaoLanThu, kiemDieuChinh, kiemHoanNguoiGiu, kiemQuyetToan, soDuCap, lyDoChuaGiaoDuoc, lyDoChuaHoanThanh, ngayPhatSinh, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan, sinhDongXacNhanCongTy,
-  soDuTheoBen, type LineDraft, type MethodCode, type ReceiptRow, type SoTienDon,
+  CAU_DA_NOP, LY_DO_DIEU_CHINH_TOI_THIEU, METHOD_CODES, benDatHuong, canDoiChieu, cumDoiChieu, nhaCungCapCuaDon, phanChuaThuNhaCungCap, soDuGiuHo, type PhanChoNguoiThu, cauLoiCsdlThuongMai, conLai, dongThuongMaiTu, khoanMoiDoiChieu, sinhPhieuDaGiao, tinhTrangThuongMai, type DoiChieuRow, type DongThuongMai, type TinhTrangThuongMai, dong, khoanChoXacNhan, kiemDaoLanThu, kiemDieuChinh, kiemHoanNguoiGiu, kiemQuyetToan, soDuCap, lyDoChuaGiaoDuoc, lyDoChuaHoanThanh, nhaCungCapTheoSo, type CheSoDu, ngayPhatSinh, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan, sinhDongXacNhanCongTy,
+  soDuTheoBen, type LineDraft, type LineRow, type MethodCode, type ReceiptRow, type SoTienDon,
 } from "./rules";
 
 export const MAX_SO_TIEN = 10_000_000_000;
@@ -154,14 +154,21 @@ export interface DonCuaLanThu {
 const KEM_GIAO_BEN_KIA = () => loi(400, "invalid_input", "Ghi khoản khách trả cho đại lý / tại quầy trước, chờ Kế toán xác nhận rồi mới Đã giao.");
 /** Ruling R-P12: MỘT câu cho mọi lần Đối tác khai hộ bên kia bị từ chối — không nêu, không phân biệt ai là bên đặt / nhà cung cấp. */
 const DOI_TAC_CHI_TU_GHI = () => loi(400, "invalid_input", "Tài khoản đối tác chỉ ghi được khoản do chính mình thu.");
+// Minor 4 người kiểm Task 5 (Task 9): đơn ĐÃ xác nhận mà chưa có bản chụp (xác nhận trước khi có bảng mức) ⇒ nói việc cần làm, không nói «không có đại lý đặt».
 const KHONG_CO_DAI_LY = (phan: PhanChoNguoiThu | null) =>
   phan?.duKien
     ? loi(400, "invalid_input", "Đơn nháp chưa chốt đại lý đặt — xác nhận đơn trước rồi mới ghi khoản khách trả cho đại lý.")
-    : loi(400, "invalid_input", "Đơn này không có đại lý đặt.");
+    : phan?.chuaChup
+      ? loi(400, "invalid_input", "Đơn xác nhận trước khi có bảng mức, chưa chụp mức — Kế toán bấm Chụp bù rồi mới ghi được khoản khách trả cho đại lý.")
+      : loi(400, "invalid_input", "Đơn này không có đại lý đặt.");
 const KHONG_PHAI_NCC = (phan: PhanChoNguoiThu | null) =>
   phan?.duKien
     ? loi(400, "invalid_input", "Đơn nháp chưa chốt nhà cung cấp — xác nhận đơn trước rồi mới ghi khoản khách trả tại quầy.")
-    : loi(400, "invalid_input", "Nhà cung cấp này không bán dịch vụ nào trên đơn.");
+    : phan?.chuaChup
+      ? loi(400, "invalid_input", "Đơn xác nhận trước khi có bảng mức, chưa chụp mức — Kế toán bấm Chụp bù rồi mới ghi được khoản khách trả tại quầy.")
+      : loi(400, "invalid_input", "Nhà cung cấp này không bán dịch vụ nào trên đơn.");
+/** Task 9 (vòng sửa Task 5): MỘT câu cho mọi «thu cho» bị từ chối của tài khoản Đối tác — hồ sơ không phải nhà cung cấp, sai dạng, hay vượt phần chưa thu — không dò được ai là nhà cung cấp. */
+const DOI_TAC_THU_CHO = () => loi(400, "invalid_input", "Không ghi được «thu cho» này — báo Kế toán ghi giúp.");
 
 /**
  * Kiểm thân khoản thu (ADR-0026 đ2; sổ đại lý đợt 2 Task 5 — ADR-0132, ADR-0078 điều 9, đặc tả P4). Người không phải Kế toán/Toàn quyền chỉ ghi người thu = chính mình,
@@ -235,13 +242,13 @@ export async function docLanThu(db: D1Database, raw: unknown, ai: NguoiGoi, cong
   // «Thu cho» nhà cung cấp (ADR-0078 điều 9; đặc tả P4): chỉ nhà cung cấp của một dòng trên đơn; quầy nhà cung cấp thu thì luôn thu cho chính họ.
   const thuCho = b.thuChoNhaCungCapPartyId;
   if (thuCho !== undefined && thuCho !== null && thuCho !== "") {
-    if (typeof thuCho !== "string" || !PARTY_ID_RE.test(thuCho) || !ncc.has(thuCho)) return loi(400, "invalid_input", "«Thu cho» chỉ chọn được nhà cung cấp của một dịch vụ trên đơn.");
+    if (typeof thuCho !== "string" || !PARTY_ID_RE.test(thuCho) || !ncc.has(thuCho)) return doiTacTuGhi ? DOI_TAC_THU_CHO() : loi(400, "invalid_input", "«Thu cho» chỉ chọn được nhà cung cấp của một dịch vụ trên đơn.");
     if (collectorRole === "SUPPLIER" && thuCho !== collectorPartyId) return loi(400, "invalid_input", "Khách trả tại quầy nhà cung cấp thì tiền thu cho chính nhà cung cấp đó.");
     collectedForPartyId = thuCho;
   }
   if (collectedForPartyId !== null) {
     const con = phanChuaThuNhaCungCap({ tong: ncc.get(collectedForPartyId) ?? 0, ncc: collectedForPartyId, receipts: don.receipts, boQua: don.boQua });
-    if (soTien > con) return loi(400, "invalid_input", `Số tiền vượt phần còn chưa thu cho nhà cung cấp (${dong(Math.max(0, con))}).`);
+    if (soTien > con) return doiTacTuGhi ? DOI_TAC_THU_CHO() : loi(400, "invalid_input", `Số tiền vượt phần còn chưa thu cho nhà cung cấp (${dong(Math.max(0, con))}).`);
   }
   const ngay = ngayPhatSinh({ chon: b.ngayPhatSinh, homNay: vnToday(new Date()), laKeToan: ai.laKeToan, kyDaKhoa: await layKyDaKhoa(db) });
   if (!ngay.ok) return ngay.khoa ? loi(409, "period_closed", ngay.message) : loi(400, "invalid_input", ngay.message);
@@ -314,7 +321,8 @@ export const lineOf = (d: LineDraft, postingId: string, orderId: string, receipt
  * trạng thái đơn (đã giao / huỷ / chưa xác nhận — `lyDoChuaGiaoDuoc`), nên null không đổi câu của các đơn đó.
  */
 export function thuongMaiCuaDon(phan: PhanThuongMai | null): { dong: DongThuongMai[]; tinhTrang: TinhTrangThuongMai; gross: number } {
-  if (!phan) return { dong: [], tinhTrang: { trangThai: "THIEU", ma: "terms_missing", dichVu: [], canChupBu: false }, gross: 0 };
+  // M-5 (Task 9): vẫn đóng an toàn (giữ đơn), nhưng câu là «đơn vừa thay đổi — tải lại», không phải «thiếu mức».
+  if (!phan) return { dong: [], tinhTrang: { trangThai: "KHONG_DOC" }, gross: 0 };
   const dongTm = dongThuongMaiTu({ chup: phan.chup, dichVu: phan.dichVu });
   return { dong: dongTm, tinhTrang: tinhTrangThuongMai({ chup: phan.chup, dong: dongTm }), gross: phan.dichVu.reduce((t, d) => t + d.thanhTien, 0) };
 }
@@ -324,8 +332,11 @@ export function thuongMaiCuaDon(phan: PhanThuongMai | null): { dong: DongThuongM
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 function lanThuDto(
   rows: readonly ReceiptDbRow[], xemNguoiThu: boolean, ma: Map<string, { ma: string; soThucChuyen: number }> | null,
-  /** D-1: người xem giữ quyền Đối tác ⇒ `nguoiGhi` / `ghiChu` chỉ ở khoản thu CHÍNH họ ghi (`created_by` = id người xem); khoản thu của người khác: khoá VẮNG. */
-  doiTac: { staffId: string } | null,
+  /**
+   * D-1: người xem giữ quyền Đối tác ⇒ `nguoiGhi` / `ghiChu` chỉ ở khoản thu CHÍNH họ ghi (`created_by` = id người xem); khoản thu của người khác: khoá VẮNG.
+   * Task 9 (đặc tả P8, ADR-0081 điều 4): tên người thu không phải Công ty / chính hồ sơ người xem ⇒ «Người thu tiền khác»; không id hồ sơ người thu (kể cả lai Kế toán + Đối tác).
+   */
+  doiTac: { staffId: string; partyId: string | null } | null,
 ): LanThuDto[] {
   const biDao = new Set(rows.flatMap((r) => (r.reverses_id ? [r.reverses_id] : [])));
   return rows.map((r) => ({
@@ -333,8 +344,9 @@ function lanThuDto(
     traLai: r.kind_code === "CUSTOMER_REFUND",
     soTien: r.amount,
     hinhThuc: HINH_THUC[r.method_code] ?? "Khác",
-    nguoiThu: r.collector_role_code === "UNKNOWN" ? "Chưa rõ" : r.collector_role_code === "COMPANY" ? "Công ty" : (r.collector_label ?? "—"),
-    nguoiThuPartyId: xemNguoiThu ? r.collector_party_id : null,
+    nguoiThu: r.collector_role_code === "UNKNOWN" ? "Chưa rõ" : r.collector_role_code === "COMPANY" ? "Công ty"
+      : doiTac && r.collector_party_id !== doiTac.partyId ? NGUOI_THU_KHAC : (r.collector_label ?? "—"),
+    nguoiThuPartyId: xemNguoiThu && !doiTac ? r.collector_party_id : null,
     nguoiThuChuaRo: r.collector_role_code === "UNKNOWN",
     giaiDoan: GIAI_DOAN[r.stage_code] ?? "",
     ngayPhatSinh: r.occurred_date,
@@ -349,12 +361,17 @@ function lanThuDto(
   }));
 }
 
+/** Tên người thu khác cho tài khoản giữ quyền Đối tác (Task 9; «Người thu tiền» theo bảng từ ADR-0130 lượt 2 — Ruling R-90). */
+export const NGUOI_THU_KHAC = "Người thu tiền khác";
+
 export interface QuyenXemTien {
   /** Người xem giữ quyền Đối tác (`holdsPartner`, kể cả tài khoản lai) — D-1: bỏ người ghi / ghi chú nội bộ của khoản thu do người khác ghi. */
   laDoiTac: boolean; // BẮT BUỘC (không mặc định): nơi gọi mới phải tự quyết, kẻo Đối tác nhận đủ người ghi / ghi chú nội bộ
   coTheGhiThu: boolean;
   coTheBamGiao: boolean;
   coTheBamHoanThanh: boolean;
+  /** Task 9: không được biết có giá vốn (không `supply.terms.view`, hoặc giữ quyền Đối tác) — câu VUOT chung, số dư nhà cung cấp gộp. BẮT BUỘC như `laDoiTac`. */
+  anGiaVon: boolean;
 }
 
 /**
@@ -370,7 +387,7 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, phan: Ph
   const dangDoiChieu = khoanMoiDoiChieu(receipts.map(toReceiptRow), doiChieu);
   const lyGiao = lyDoChuaGiaoDuoc({
     status: info.status, deliveredAt: info.deliveredAt, homNay: vnToday(new Date()), ngayDi: info.ngayDi, dichVuThieuNgay: info.dichVuThieuNgay, thuongMai: thuongMaiCuaDon(phan).tinhTrang,
-    soKhoanDoiChieu: dangDoiChieu.size, cumDoiChieu: cumCuaKhoan(receipts, dangDoiChieu, quyen.laDoiTac), so,
+    soKhoanDoiChieu: dangDoiChieu.size, cumDoiChieu: cumCuaKhoan(receipts, dangDoiChieu, quyen.laDoiTac), so, anGiaVon: quyen.anGiaVon,
   });
   const soDu = congTyId ? soDuTheoBen(lines.map(toLineRow), congTyId) : new Map<string, number>();
   const ten = await partyLabels(db, [...soDu.keys()]);
@@ -390,6 +407,7 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, phan: Ph
   const lyHoan = lyDoChuaHoanThanh({
     deliveredAt: info.deliveredAt, completedAt: info.completedAt, soDu, tenBen: (id) => ten.get(id)?.label ?? "Một người", daThu: so.daThu,
     phaiThuLucGiao: info.deliveredAt ? await phaiThuLucGiao(db, info.orderId) : null,
+    che: cheSoDu(quyen, ai, lines.map(toLineRow), receipts.map(toReceiptRow)),
   });
   return {
     phaiThu: info.phaiThu,
@@ -397,7 +415,7 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, phan: Ph
     conLai: so.conLai,
     du: so.du,
     chuaRo: so.chuaRo,
-    lanThu: lanThuDto(receipts, ai.laKeToan, maDon, quyen.laDoiTac ? { staffId: ai.staffId } : null),
+    lanThu: lanThuDto(receipts, ai.laKeToan, maDon, quyen.laDoiTac ? { staffId: ai.staffId, partyId: ai.partyId } : null),
     deliveredAt: info.deliveredAt,
     completedAt: info.completedAt,
     lyDoChuaGiao: info.deliveredAt ? null : (lyGiao as LyDoGiuDonDto | null),
@@ -411,13 +429,21 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, phan: Ph
     laKeToan: ai.laKeToan,
     keToan: ai.laKeToan
       ? {
-          dangGiu: [...soDu].filter(([, v]) => v > 0).map(([partyId, soTien]) => ({ partyId, ten: ten.get(partyId)?.label ?? "Một người", soTien, choXacNhan: Math.min(soTien, choCuaNguoi.get(partyId) ?? 0) })),
+          // Task 9: tài khoản lai Kế toán + Đối tác chỉ thấy dòng của chính hồ sơ mình (không tên, không số người khác giữ — ADR-0081 điều 4).
+          dangGiu: [...soDu].filter(([p, v]) => v > 0 && (!quyen.laDoiTac || p === ai.partyId)).map(([partyId, soTien]) => ({ partyId, ten: ten.get(partyId)?.label ?? "Một người", soTien, choXacNhan: Math.min(soTien, choCuaNguoi.get(partyId) ?? 0) })),
           choXacNhan,
           choBenKia,
         }
       : null,
     coc,
   };
+}
+
+/** Người xem câu «còn người chưa nộp» (Task 9): Đối tác (kể cả lai) trước; rồi người không được biết giá vốn; còn lại thấy đủ. */
+function cheSoDu(quyen: Pick<QuyenXemTien, "laDoiTac" | "anGiaVon">, ai: Pick<NguoiGoi, "partyId">, lines: readonly LineRow[], receipts: readonly ReceiptRow[]): CheSoDu {
+  if (quyen.laDoiTac) return { kieu: "doiTac", partyId: ai.partyId };
+  if (quyen.anGiaVon) return { kieu: "anNhaCungCap", nhaCungCap: nhaCungCapTheoSo(lines, receipts) };
+  return { kieu: "du" };
 }
 
 /** Tiền của NHIỀU đơn (danh sách, Trang chủ, "Việc của tôi") — cùng hàm `conLai`. */
@@ -478,7 +504,7 @@ export const loiTrigger = (e: unknown, ma: string): boolean => new RegExp(`\\b${
 export async function daGiao(
   db: D1Database,
   /** `laDoiTac` = người bấm giữ quyền Đối tác (`holdsPartner`) — câu giữ «đang đối chiếu» dùng cụm chung, không tên bên kia (ADR-0132 Hệ quả). */
-  input: { orderId: string; info: ThongTinGiaoDon; phan: PhanThuongMai | null; ai: NguoiGoi; canCauBaoVe: boolean; rawLanThu: unknown; laDoiTac: boolean },
+  input: { orderId: string; info: ThongTinGiaoDon; phan: PhanThuongMai | null; ai: NguoiGoi; canCauBaoVe: boolean; rawLanThu: unknown; laDoiTac: boolean; anGiaVon: boolean },
 ): Promise<KetQua<null>> {
   const { info, ai } = input;
   const congTyId = await ownerCompanyId(db);
@@ -515,9 +541,9 @@ export async function daGiao(
   const homNay = vnToday(new Date());
   const ly = lyDoChuaGiaoDuoc({
     status: info.status, deliveredAt: info.deliveredAt, homNay, ngayDi: info.ngayDi, dichVuThieuNgay: info.dichVuThieuNgay, thuongMai: tm.tinhTrang, soKhoanDoiChieu, cumDoiChieu: cum,
-    so: conLai(receipts, info.phaiThu, info.status),
+    so: conLai(receipts, info.phaiThu, info.status), anGiaVon: input.anGiaVon,
   });
-  if (ly) return loi(409, ly.ma === "already_delivered" ? "order_delivered" : "not_deliverable", ly.cau);
+  if (ly) return loi(409, ly.ma === "already_delivered" ? "order_delivered" : ly.ma === "stale" ? "stale" : "not_deliverable", ly.cau);
   if (input.canCauBaoVe && !ai.partyId) return loi(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn mới bấm được Đã giao.");
   // Dòng thương mại (ADR-0079 điều 2, C1 = A): tới đây tình trạng chỉ còn DU / KHONG_NGUOI_HUONG (THIEU, VUOT đã trả 409 ở trên). Giảm giá bên đặt chịu =
   // thành tiền trước giảm − phải thu lúc giao (giảm giá HIỆU LỰC — ADR-0109; lưới (iv) của 0112 đòi đúng từng đồng). Dữ liệu trái tình trạng ⇒ hàm NÉM (500), không lấy 0.
@@ -545,7 +571,7 @@ export async function daGiao(
     const m = loiMaTrigger(e);
     if (m) return m;
     // Sổ đại lý đợt 2 (0112): lớp 2 thiếu bản chụp (`delivered_terms`) và bốn lưới số thương mại ⇒ cùng câu lời thường của lý do giữ (rules.ts), không lộ mã thô.
-    const tmLoi = cauLoiCsdlThuongMai(e);
+    const tmLoi = cauLoiCsdlThuongMai(e, input.anGiaVon);
     if (tmLoi) return loi(409, "not_deliverable", tmLoi);
     // Trigger 0099 không phân biệt vai người thu (Công ty thu – CK, khách trả bên đặt / quầy nhà cung cấp) ⇒ câu chung (Ruling ở sổ thi công).
     if (loiTrigger(e, "delivered_reconciling")) return loi(409, "not_deliverable", "Còn khoản đang chờ Kế toán đối chiếu / xác nhận — tải lại màn hình rồi thử lại.");
@@ -575,6 +601,8 @@ export async function hoanThanh(db: D1Database, input: { orderId: string; info: 
   const ly = lyDoChuaHoanThanh({
     deliveredAt: info.deliveredAt, completedAt: info.completedAt, soDu, tenBen: (id) => ten.get(id)?.label ?? "Một người",
     daThu: conLai(cacLanThu.map(toReceiptRow), info.phaiThu, info.status).daThu, phaiThuLucGiao: due,
+    // Task 9: người bấm Hoàn thành có `order.complete` (Kế toán, Toàn quyền — đều có `supply.terms.view`); tài khoản lai Đối tác chỉ thấy dòng của mình.
+    che: cheSoDu({ laDoiTac: ai.laDoiTac, anGiaVon: false }, ai, lines, cacLanThu.map(toReceiptRow)),
   });
   if (ly) return loi(409, ly.ma === "already_completed" ? "order_completed" : "not_completable", ly.cau);
   const at = new Date().toISOString();

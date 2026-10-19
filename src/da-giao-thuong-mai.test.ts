@@ -325,7 +325,9 @@ test("cố ý hỏng MỘT dòng trong lô (hoa hồng vượt thành tiền) �
   const g = await daGiao(w, id, { lanThu: { soTien: 1_000_000, hinhThuc: "CASH", nguoiThu: "toi" } }, HDV);
   assert.ok(daHong, "đã hỏng đúng lô Đã giao");
   assert.equal(g.status, 409, g.text);
-  assert.deepEqual([g.json.error.code, g.json.error.message], ["not_deliverable", "Mức hoa hồng / giá vốn cài cho đơn này vượt giá bán — Kế toán xem lại."]);
+  // Sổ đại lý đợt 2 Task 9 (I-1 người kiểm Task 3+4): người bấm là HDV (không `supply.terms.view`) ⇒ câu chung không nói tới giá vốn; câu đủ của Kế toán ở
+  // src/so-la-doi-tac.test.ts «Task 9 (3)».
+  assert.deepEqual([g.json.error.code, g.json.error.message], ["not_deliverable", "Đơn đang chờ Kế toán xem lại mức của một dịch vụ."]);
   chuaGiao(w, id);
   assert.equal(demSo(w, "SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = ?", id), truoc, "lần thu kèm không được lưu");
   assert.equal(demSo(w, "SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = 'payment_recorded'", id), 1, "chỉ nhật ký của lần thu trước");

@@ -54,6 +54,9 @@ const nguoiGoi = (staff: PermissionHolder & { partyId: string | null }): NguoiGo
   laDoiTac: holdsPartner(staff),
 });
 
+/** Task 9 (đặc tả P8): người KHÔNG được biết có giá vốn — không ô `supply.terms.view` (Bán hàng, HDV, Thực tập, Đối tác), hoặc giữ quyền Đối tác (kể cả lai). */
+const anGiaVon = (staff: PermissionHolder): boolean => holdsPartner(staff) || !can(staff, "supply.terms.view");
+
 /** HÀM CÔNG BỐ (ADR-0068 G10) — CHỈ gốc lắp ráp gọi (ctx.gopHoSo): số dòng công nợ còn hiệu lực của một hồ sơ (dòng ở lại hồ sơ phụ khi gộp). */
 export const soDongNoCuaNguoi = (db: D1Database, partyId: string): Promise<number> => soDongNoCuaNguoiRow(db, partyId);
 
@@ -80,7 +83,7 @@ export const billingModule: AppModule = {
           coTheChuyen: can(staff, "ledger.write"),
           coTheGhiHoanNgoai: can(staff, "deposit.outside.record"),
           coTheXacNhanHoanNgoai: can(staff, "deposit.refund.approve"),
-          xemNguoiGiu: can(staff, "ledger.view"),
+          xemNguoiGiu: can(staff, "ledger.view") && !holdsPartner(staff), // Task 9: tài khoản lai Kế toán + Đối tác không thấy tên người giữ tiền
           laDoiTac: holdsPartner(staff), // D-1: Đối tác không thấy lý do tự do / tên người duyệt, người ghi
         })
         : null;
@@ -93,6 +96,8 @@ export const billingModule: AppModule = {
         coTheGhiThu: can(staff, "payment.receive", scope) && (info.status !== "cancelled" || can(staff, "ledger.write")),
         coTheBamGiao: can(staff, "order.handover", { assigned }),
         coTheBamHoanThanh: can(staff, "order.complete"),
+        // Task 9 (đặc tả P8; I-1 người kiểm Task 3+4): chỉ người có `supply.terms.view` và KHÔNG giữ quyền Đối tác được biết có giá vốn / số dư nhà cung cấp.
+        anGiaVon: anGiaVon(staff),
       }, coc);
       return json(body satisfies OrderPaymentsResponse);
     }),
@@ -212,7 +217,9 @@ export const billingModule: AppModule = {
       // `can(` (hàm công bố không tự kiểm quyền — src/orders-cong-bo.test.ts) và SAU `thongTinGiaoDon`: đơn đổi sau lần đọc khoá lạc quan ⇒ lô không áp (stale).
       const phan = await phanThuongMaiCuaDon(env.DB, id);
       // Người được phép CHỈ vì đang phụ trách (ô `assigned`) ⇒ lô kèm câu bảo vệ (đổi người phụ trách giữa lúc đọc và lúc ghi → lô không áp — NT-F4).
-      const kq = await daGiao(env.DB, { orderId: id, info, phan, ai: nguoiGoi(staff), canCauBaoVe: !can(staff, "order.handover"), rawLanThu: lanThu, laDoiTac: holdsPartner(staff) });
+      const kq = await daGiao(env.DB, {
+        orderId: id, info, phan, ai: nguoiGoi(staff), canCauBaoVe: !can(staff, "order.handover"), rawLanThu: lanThu, laDoiTac: holdsPartner(staff), anGiaVon: anGiaVon(staff),
+      });
       if (!kq.ok) return kq.res;
       baoThayDoi({ orderId: id, thayDoi: "chot_giao" });
       return json({ ok: true });

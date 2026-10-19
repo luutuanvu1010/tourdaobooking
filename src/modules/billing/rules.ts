@@ -593,7 +593,9 @@ export type TinhTrangThuongMai =
   | { trangThai: "KHONG_NGUOI_HUONG" }
   | { trangThai: "DU"; nguoiHuongPartyId: string }
   | { trangThai: "THIEU"; ma: "terms_missing" | "booker_not_beneficiary"; dichVu: readonly string[]; canChupBu: boolean }
-  | { trangThai: "VUOT"; dichVu: readonly string[] };
+  | { trangThai: "VUOT"; dichVu: readonly string[] }
+  /** Route không đọc được phần thương mại của đơn đang xác nhận (đơn vừa bị huỷ / vừa biến mất giữa hai lần đọc — M-5 người kiểm Task 3+4): vẫn GIỮ đơn, câu «tải lại». */
+  | { trangThai: "KHONG_DOC" };
 
 /**
  * Dựng các dòng thương mại từ phần thương mại của đơn (`PhanThuongMai` của orders: `chup` = bản chụp hiện hành, `dichVu` = MỌI dòng dịch vụ hiện hành). Đi theo
@@ -676,8 +678,19 @@ export function sinhPhieuDaGiao(v: { congTyId: string; nguoiHuongPartyId: string
 }
 
 const tenDichVu = (ds: readonly string[], neuRong: string): string => (ds.length > 0 ? ds.join(", ") : neuRong);
-/** Lý do giữ «Đã giao» của phần thương mại (câu lời thường cố định — task-3-brief; Hiến chương 5.7: nói rõ ai xử lý). DU / KHONG_NGUOI_HUONG ⇒ null. */
-export function lyDoGiuThuongMai(t: TinhTrangThuongMai): LyDoGiu | null {
+/**
+ * Câu `terms_exceed_price` cho người KHÔNG được biết có giá vốn (sổ đại lý đợt 2 Task 9 — I-1 người kiểm Task 3+4; đặc tả P8): người không có ô `supply.terms.view`
+ * (Bán hàng, HDV, Thực tập, Đối tác) và mọi tài khoản giữ quyền Đối tác (kể cả lai). Không nêu dịch vụ, không nêu «giá vốn».
+ */
+export const CAU_VUOT_CHUNG = "Đơn đang chờ Kế toán xem lại mức của một dịch vụ.";
+/** M-5: đơn đổi (bị huỷ) giữa hai lần đọc của route ⇒ câu «tải lại», không phải câu «thiếu mức». */
+export const CAU_DON_VUA_DOI = "Đơn vừa thay đổi — tải lại trang rồi thử lại.";
+/**
+ * Lý do giữ «Đã giao» của phần thương mại (câu lời thường cố định — task-3-brief; Hiến chương 5.7: nói rõ ai xử lý). DU / KHONG_NGUOI_HUONG ⇒ null.
+ * `anGiaVon` (Task 9) = người xem không được biết có giá vốn ⇒ câu VUOT chung `CAU_VUOT_CHUNG`. Nơi gọi trong máy chủ luôn truyền (vắng chỉ ở bài luật cũ = câu đủ).
+ */
+export function lyDoGiuThuongMai(t: TinhTrangThuongMai, anGiaVon?: boolean): LyDoGiu | null {
+  if (t.trangThai === "KHONG_DOC") return { ma: "stale", cau: CAU_DON_VUA_DOI, aiXuLy: "Văn phòng" };
   if (t.trangThai === "THIEU") {
     if (t.ma === "booker_not_beneficiary") {
       return { ma: "booker_not_beneficiary", cau: "Bên đặt của đơn không thuộc danh sách được hưởng hoa hồng — Văn phòng sửa bên đặt hoặc Kế toán ghi mức tay.", aiXuLy: "Văn phòng hoặc Kế toán" };
@@ -685,7 +698,10 @@ export function lyDoGiuThuongMai(t: TinhTrangThuongMai): LyDoGiu | null {
     if (t.canChupBu) return { ma: "terms_missing", cau: "Đơn xác nhận trước khi có bảng mức, chưa chụp mức — Kế toán cài mức rồi bấm Chụp bù.", aiXuLy: "Kế toán" };
     return { ma: "terms_missing", cau: `Thiếu mức hoa hồng / người bán cho ${tenDichVu(t.dichVu, "một dịch vụ của đơn")} — Kế toán ghi mức tay cho dòng này.`, aiXuLy: "Kế toán" };
   }
-  if (t.trangThai === "VUOT") return { ma: "terms_exceed_price", cau: `Mức hoa hồng / giá vốn cài cho ${tenDichVu(t.dichVu, "đơn này")} vượt giá bán — Kế toán xem lại.`, aiXuLy: "Kế toán" };
+  if (t.trangThai === "VUOT") {
+    if (anGiaVon) return { ma: "terms_exceed_price", cau: CAU_VUOT_CHUNG, aiXuLy: "Kế toán" };
+    return { ma: "terms_exceed_price", cau: `Mức hoa hồng / giá vốn cài cho ${tenDichVu(t.dichVu, "đơn này")} vượt giá bán — Kế toán xem lại.`, aiXuLy: "Kế toán" };
+  }
   return null;
 }
 
@@ -695,10 +711,11 @@ export function lyDoGiuThuongMai(t: TinhTrangThuongMai): LyDoGiu | null {
  * `terms_exceed_price` «cho đơn này» (đúng chữ ADR-0079 điều 6). Ba lưới còn lại và chỉ mục một-dòng-mỗi-dịch-vụ báo MÃ sinh dòng sai (không phải cấu hình) ⇒ câu
  * chung, không lộ mã thô. Không phải lỗi thương mại ⇒ null.
  */
-export function cauLoiCsdlThuongMai(e: unknown): string | null {
+export function cauLoiCsdlThuongMai(e: unknown, anGiaVon?: boolean): string | null {
   const m = e instanceof Error ? e.message : String(e);
   if (/\bdelivered_terms:/.test(m)) return lyDoGiuThuongMai({ trangThai: "THIEU", ma: "terms_missing", dichVu: [], canChupBu: false })!.cau;
-  if (/\bcommercial_exceeds_gross:/.test(m)) return lyDoGiuThuongMai({ trangThai: "VUOT", dichVu: [] })!.cau;
+  // Task 9 (I-1 người kiểm Task 3+4): cùng câu chung với nhánh kiểm trước cho người không được biết có giá vốn — bề mặt thứ hai của câu VUOT.
+  if (/\bcommercial_exceeds_gross:/.test(m)) return lyDoGiuThuongMai({ trangThai: "VUOT", dichVu: [] }, anGiaVon)!.cau;
   if (/\bcommercial_(service_required|wrong_direction|discount_mismatch):/.test(m) || /UNIQUE constraint failed: bil_debt_line\.posting_id, bil_debt_line\.order_service_id/.test(m)) {
     return "Số hoa hồng / giảm giá bên đặt chịu / giá vốn tính ra không khớp sổ — chưa ghi gì; báo người phụ trách hệ thống.";
   }
@@ -725,7 +742,7 @@ const ngayVn = (iso: string): string => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/
 export type AiXuLy = "Kế toán" | "Hướng dẫn viên" | "Người lập đơn" | "Văn phòng" | "Văn phòng hoặc Kế toán";
 export type MaLyDo =
   | "not_confirmed" | "cancelled" | "already_delivered" | "missing_date" | "before_departure" | "terms_missing" | "booker_not_beneficiary" | "terms_exceed_price"
-  | "unknown_collector" | "reconciling" | "underpaid" | "overpaid";
+  | "unknown_collector" | "reconciling" | "underpaid" | "overpaid" | "stale";
 export interface LyDoGiu {
   ma: MaLyDo;
   cau: string;
@@ -747,6 +764,8 @@ export function lyDoChuaGiaoDuoc(input: {
   dichVuThieuNgay: readonly string[];
   /** Phần thương mại của đơn (`tinhTrangThuongMai`) — thiếu bản chụp / thiếu mức / vượt giá bán ⇒ giữ. */
   thuongMai: TinhTrangThuongMai;
+  /** Task 9: người xem / người bấm không được biết có giá vốn (không `supply.terms.view`, hoặc giữ quyền Đối tác) ⇒ câu VUOT chung. */
+  anGiaVon: boolean;
   /** Số khoản ĐANG ĐỐI CHIẾU của đơn (ADR-0120 Điều 1.2; ADR-0132) — còn khoản thì chưa "Đã giao" được. */
   soKhoanDoiChieu: number;
   /** Cụm lời thường của từng khoản đang đối chiếu (`cumDoiChieu`). Vắng, hoặc mọi khoản là «Công ty thu» ⇒ câu cũ của ADR-0120 giữ nguyên chữ. */
@@ -764,7 +783,7 @@ export function lyDoChuaGiaoDuoc(input: {
   if (input.homNay < muonNhat) {
     return { ma: "before_departure", cau: `Chưa tới ngày đi (${ngayVn(muonNhat)}) — bấm từ ngày đi trở đi.`, aiXuLy: "Hướng dẫn viên" };
   }
-  const thuongMai = lyDoGiuThuongMai(input.thuongMai);
+  const thuongMai = lyDoGiuThuongMai(input.thuongMai, input.anGiaVon);
   if (thuongMai) return thuongMai;
   if (input.soKhoanDoiChieu > 0) {
     const cum = [...new Set(input.cumDoiChieu ?? [])];
@@ -784,6 +803,24 @@ export function lyDoChuaGiaoDuoc(input: {
 }
 
 export type MaLyDoHoanThanh = "not_delivered" | "already_completed" | "unsettled" | "due_mismatch";
+/**
+ * Người xem câu «còn người chưa nộp» thấy tới đâu (sổ đại lý đợt 2 Task 9; đặc tả P8; ADR-0081 điều 4):
+ *  - `du` — Kế toán / Toàn quyền / Quản trị (có `supply.terms.view`, không giữ quyền Đối tác): mọi tên, mọi số;
+ *  - `doiTac` — tài khoản giữ quyền Đối tác (kể cả lai): chỉ dòng của CHÍNH hồ sơ mình; bên khác gộp thành «còn khoản của bên khác — Kế toán xử lý» (không tên, không số);
+ *  - `anNhaCungCap` — người không có `supply.terms.view` (Bán hàng, HDV, Thực tập): số dư của nhà cung cấp (suy ra được giá vốn) gộp thành `CAU_NCC_CHUNG`.
+ */
+export type CheSoDu = { kieu: "du" } | { kieu: "doiTac"; partyId: string | null } | { kieu: "anNhaCungCap"; nhaCungCap: ReadonlySet<string> };
+export const CAU_NCC_CHUNG = "còn khoản giữa công ty và nhà cung cấp — Kế toán xử lý";
+export const CAU_BEN_KHAC = "còn khoản của bên khác — Kế toán xử lý";
+/**
+ * Nhà cung cấp của đơn theo SỔ (không cần bản chụp — sau «Đã giao» route không đọc phần thương mại): bên có dòng `GIA_VON` của đơn, hoặc người thu vai `SUPPLIER`.
+ */
+export function nhaCungCapTheoSo(lines: readonly Pick<LineRow, "kind" | "creditorPartyId">[], receipts: readonly Pick<ReceiptRow, "collectorRole" | "collectorPartyId">[]): Set<string> {
+  const out = new Set<string>();
+  for (const l of lines) if (l.kind === "GIA_VON") out.add(l.creditorPartyId);
+  for (const r of receipts) if (r.collectorRole === "SUPPLIER" && r.collectorPartyId) out.add(r.collectorPartyId);
+  return out;
+}
 /** Vì sao chưa "Hoàn thành" được (ADR-0025 điều 7): chưa Đã giao, đã Hoàn thành, hoặc còn bên nợ công ty. `tenBen` đổi id hồ sơ → tên (không SĐT). */
 export function lyDoChuaHoanThanh(input: {
   deliveredAt: string | null;
@@ -793,13 +830,19 @@ export function lyDoChuaHoanThanh(input: {
   /** ADR-0088 đ1, đ5: đã thu ròng hiện tại và phải thu lúc Đã giao (bản chụp phiếu DELIVERED; null = chưa có phiếu). */
   daThu: number;
   phaiThuLucGiao: number | null;
+  /** Task 9: người xem thấy tới đâu. Nơi gọi trong máy chủ luôn truyền (vắng chỉ ở bài luật cũ = thấy đủ). */
+  che?: CheSoDu;
 }): { ma: MaLyDoHoanThanh; cau: string; aiXuLy: AiXuLy } | null {
   if (!input.deliveredAt) return { ma: "not_delivered", cau: "Đơn chưa Đã giao – đã thu đủ.", aiXuLy: "Hướng dẫn viên" };
   if (input.completedAt) return { ma: "already_completed", cau: "Đơn đã Hoàn thành.", aiXuLy: "Kế toán" };
   const no = [...input.soDu.entries()].filter(([, so]) => so > 0);
   if (no.length > 0) {
-    const ds = no.map(([ben, so]) => `${input.tenBen(ben)} còn ${dong(so)} chưa nộp`).join("; ");
-    return { ma: "unsettled", cau: `Còn người chưa nộp tiền về công ty: ${ds} — ghi nộp tiền / xác nhận công ty đã nhận trước.`, aiXuLy: "Kế toán" };
+    const che = input.che ?? { kieu: "du" };
+    const thay = no.filter(([ben]) => (che.kieu === "du" ? true : che.kieu === "doiTac" ? ben === che.partyId : !che.nhaCungCap.has(ben)));
+    const ds = thay.map(([ben, so]) => `${input.tenBen(ben)} còn ${dong(so)} chưa nộp`).join("; ");
+    if (thay.length === no.length) return { ma: "unsettled", cau: `Còn người chưa nộp tiền về công ty: ${ds} — ghi nộp tiền / xác nhận công ty đã nhận trước.`, aiXuLy: "Kế toán" };
+    const duoi = che.kieu === "doiTac" ? CAU_BEN_KHAC : CAU_NCC_CHUNG;
+    return { ma: "unsettled", cau: thay.length > 0 ? `Còn người chưa nộp tiền về công ty: ${ds}; ${duoi}.` : `Chưa Hoàn thành được: ${duoi}.`, aiXuLy: "Kế toán" };
   }
   if (input.phaiThuLucGiao !== null && input.daThu !== input.phaiThuLucGiao) {
     return {

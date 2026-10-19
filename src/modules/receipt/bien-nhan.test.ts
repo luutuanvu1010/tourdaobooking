@@ -330,3 +330,28 @@ test("Task 8 số lạ (route thật): a% 48,17% (4817), giá vốn 470.019, hoa
     assert.deepEqual(r.json.receipt.phan.map((p: { tong: number; daTra: number; conLai: number }) => [p.tong, p.daTra, p.conLai]), [[1_000_000, 1_000_000, 0], [975_750, 975_750, 0]]);
   }
 });
+
+test("Task 8 đơn NHÁP (route thật — «Xem biên nhận» mở ngay sau khi lưu đơn mới): đại lý đặt + dòng i-resort ⇒ hai phần theo bản tính thử; khách lẻ có dòng nhập tay ⇒ dòng nhập tay vào phần Tour Đảo; Σ tong = tổng cộng", async () => {
+  const { w } = await dung();
+  const nhapDon = (booker: string | null, dv: { ten: string; catalog: string | null; donGia: number }[]): string => {
+    const id = uuid();
+    const sub = dv.reduce((t, d) => t + d.donGia, 0);
+    w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, discount, total, remaining_amount, booker_party_id, created_at, updated_at)
+      VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', ?, 0, ?, ?, ?, ?, ?)`).run(id, `TD-BN-${seq}`, R_SALES, sub, sub, sub, booker, R_AT, R_AT);
+    dv.forEach((d, i) => {
+      const s = `${id}-s${i}`;
+      w.sqlite.prepare(`INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, ?, ?, ?, ?, ?, 1, ?)`).run(s, id, i, d.catalog, d.ten, d.catalog ? "perPax" : "manual", vnHomNay());
+      w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, ?, ?, 'Người lớn', 1, ?, ?, ?)`)
+        .run(`${s}-i`, id, s, d.catalog, d.catalog ? "adult" : null, d.donGia, d.catalog ? d.donGia : null, d.donGia);
+    });
+    return id;
+  };
+  const daiLy = nhapDon(`pty-${R_PT}`, [{ ten: "Vé Hòn Tằm", catalog: "HONTAM", donGia: 1_000_000 }, { ten: "Vé tắm bùn i-resort", catalog: "IRESORT", donGia: 300_000 }]);
+  const a = (await bienNhan(w, daiLy)).json.receipt;
+  assert.deepEqual(a.phan.map((p: { nguoiBan: string; tong: number; traTaiQuay: boolean }) => [p.nguoiBan, p.tong, p.traTaiQuay]), [[a.company.name, 1_000_000, false], ["i-resort", 300_000, true]]);
+  assert.equal(a.phan.reduce((t: number, p: { tong: number }) => t + p.tong, 0), a.total);
+  const le = nhapDon(null, [{ ten: "Thuê thuyền riêng", catalog: null, donGia: 700_000 }, { ten: "Vé tắm bùn i-resort", catalog: "IRESORT", donGia: 300_000 }]);
+  const b = (await bienNhan(w, le)).json.receipt;
+  assert.deepEqual(b.phan.map((p: { nguoiBan: string; dichVu: string[]; tong: number }) => [p.nguoiBan, p.dichVu, p.tong]), [[b.company.name, ["Thuê thuyền riêng"], 700_000], ["i-resort", ["Vé tắm bùn i-resort"], 300_000]]);
+  assert.equal(b.phan.reduce((t: number, p: { tong: number }) => t + p.tong, 0), b.total);
+});
