@@ -40,11 +40,15 @@ export const toLineRow = (l: LineDbRow) => ({
   reversesLineId: l.reverses_line_id,
 });
 
-/** Người gọi (đã qua `can()` ở route). `laKeToan` = có ô `ledger.write` (Kế toán, Toàn quyền) — ghi được người thu là người khác, chọn ngày phát sinh. */
+/**
+ * Người gọi (đã qua `can()` ở route). `laKeToan` = có ô `ledger.write` (Kế toán, Toàn quyền) — ghi được người thu là người khác, chọn ngày phát sinh.
+ * `laDoiTac` = giữ quyền Đối tác (`holdsPartner`, kể cả tài khoản lai) — không có `ledger.write` thì chỉ tự ghi được chính mình (ADR-0132 Hệ quả; Ruling R-P12).
+ */
 export interface NguoiGoi {
   staffId: string;
   partyId: string | null;
   laKeToan: boolean;
+  laDoiTac: boolean;
 }
 
 export type KetQua<T> = { ok: true; value: T } | { ok: false; res: Response };
@@ -148,6 +152,8 @@ export interface DonCuaLanThu {
 }
 
 const KEM_GIAO_BEN_KIA = () => loi(400, "invalid_input", "Ghi khoản khách trả cho đại lý / tại quầy trước, chờ Kế toán xác nhận rồi mới Đã giao.");
+/** Ruling R-P12: MỘT câu cho mọi lần Đối tác khai hộ bên kia bị từ chối — không nêu, không phân biệt ai là bên đặt / nhà cung cấp. */
+const DOI_TAC_CHI_TU_GHI = () => loi(400, "invalid_input", "Tài khoản đối tác chỉ ghi được khoản do chính mình thu.");
 const KHONG_CO_DAI_LY = (phan: PhanChoNguoiThu | null) =>
   phan?.duKien
     ? loi(400, "invalid_input", "Đơn nháp chưa chốt đại lý đặt — xác nhận đơn trước rồi mới ghi khoản khách trả cho đại lý.")
@@ -176,6 +182,9 @@ export async function docLanThu(db: D1Database, raw: unknown, ai: NguoiGoi, cong
   let collectedForPartyId: string | null = null;
   const nt = b.nguoiThu;
   const nccChon = nt && typeof nt === "object" ? (nt as { nhaCungCapPartyId?: unknown }).nhaCungCapPartyId : undefined;
+  // ADR-0132 Hệ quả «Đối tác chỉ tự ghi được chính mình (sinh nợ ngay)» (Ruling R-P12, người kiểm Task 5 I-2): tài khoản giữ quyền Đối tác (kể cả lai) không có
+  // `ledger.write` không khai hộ bên kia. Kiểm TRƯỚC mọi kiểm khác của hai lựa chọn mới, MỘT câu cho mọi lần từ chối — 400 không dò được ai là bên đặt / nhà cung cấp.
+  const doiTacTuGhi = ai.laDoiTac && !ai.laKeToan;
   if (nt === "cong_ty") {
     // "Công ty thu" do người không phải Kế toán khai ⇒ giữ hộ trên NGƯỜI KHAI tới khi Kế toán xác nhận (H3) — cần hồ sơ người khai.
     if (!ai.laKeToan && !ai.partyId) return loi(400, "invalid_input", "Tài khoản chưa có hồ sơ nên không khai được khoản công ty thu.");
@@ -186,11 +195,18 @@ export async function docLanThu(db: D1Database, raw: unknown, ai: NguoiGoi, cong
     // Danh tính hồ sơ quyết (không quyền, không vai): người ghi chính là bên đặt được hưởng của đơn ⇒ bên đặt tự thu (ADR-0132 điều 3) — nợ ngay trên chính họ.
     collectorRole = ai.partyId === benDat ? "BOOKER" : "STAFF";
     collectorPartyId = ai.partyId;
+  } else if (nt === "ben_dat" && doiTacTuGhi) {
+    // Bên đặt là CHÍNH hồ sơ người gọi ⇒ y như «tôi» (BOOKER, giữ hộ ngay, không dấu chờ); khác (đại lý khác, khách lẻ, đơn nháp) ⇒ 400 câu chung.
+    if (!ai.partyId || ai.partyId !== benDat) return DOI_TAC_CHI_TU_GHI();
+    collectorRole = "BOOKER";
+    collectorPartyId = ai.partyId;
   } else if (nt === "ben_dat") {
     if (don.kemDaGiao) return KEM_GIAO_BEN_KIA();
     if (!benDat) return KHONG_CO_DAI_LY(don.phan);
     collectorRole = "BOOKER";
     collectorPartyId = benDat;
+  } else if (typeof nccChon === "string" && doiTacTuGhi) {
+    return DOI_TAC_CHI_TU_GHI();
   } else if (typeof nccChon === "string") {
     if (don.kemDaGiao) return KEM_GIAO_BEN_KIA();
     if (!PARTY_ID_RE.test(nccChon) || !ncc.has(nccChon)) return KHONG_PHAI_NCC(don.phan);
@@ -868,16 +884,22 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
     }
     const dongDao = [];
     for (const l of await linesOfReceipt(db, rc.id)) if (l.reverses_line_id === null && !(await lineReversed(db, l.id))) dongDao.push(l);
+    // Người kiểm Task 5 I-1 (ADR-0132): lời khai bên đặt / quầy nhà cung cấp lúc đọc còn chưa «Bên kia đã nhận» thì chưa có dòng giữ hộ nào để đảo; nếu Kế toán
+    // khác xác nhận chen giữa lúc đọc và lúc ghi, lô xác nhận đã sinh MỘT dòng giữ hộ mang receipt_id này ⇒ câu đảo có lính gác «vẫn chưa CONFIRMED», không áp ⇒ 409.
+    const chuaXacNhan = (rc.collector_role_code === "BOOKER" || rc.collector_role_code === "SUPPLIER") && !(await reconOfReceipt(db, rc.id)).some((x) => x.kind_code === "CONFIRMED");
+    const daoId = crypto.randomUUID();
     const stmts = [
-      receiptReversalStatement(db, { id: crypto.randomUUID(), occurredDate: ngay.value, note: lyDo.value, at, by, reversesId: rc.id }),
-      auditStatement(db, { orderId: rc.order_id, staffId: by, action: "ledger_reversal", at, detail: lyDo.value ?? undefined }),
+      receiptReversalStatement(db, { id: daoId, occurredDate: ngay.value, note: lyDo.value, at, by, reversesId: rc.id, chuaXacNhan }),
+      auditStatement(db, { orderId: rc.order_id, staffId: by, action: "ledger_reversal", at, detail: lyDo.value ?? undefined }, "changes() > 0"),
     ];
     if (dongDao.length > 0) {
-      stmts.push(postingPlainStatement(db, { id: postingId, kind: "REVERSAL", orderId: rc.order_id, reason: lyDo.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by }));
+      // Phiếu chỉ áp khi dòng đảo lần thu đã chèn (lính gác cả chuỗi: phiếu → dòng `lineIfPosting`).
+      stmts.push(postingIfReceiptStatement(db, { id: postingId, kind: "REVERSAL", orderId: rc.order_id, reason: lyDo.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by }, daoId));
       for (const l of dongDao) stmts.push(lineIfPostingStatement(db, lineOf(sinhDongDao(toLineRow(l)), postingId, rc.order_id, rc.id, at, by)));
     }
     try {
-      await db.batch(stmts);
+      const kq = await db.batch(stmts);
+      if ((kq[0]!.meta.changes ?? 0) === 0) return loi(409, "stale", "Khoản này vừa được Kế toán xác nhận — tải lại rồi đảo lại.");
     } catch (e) {
       const k = await loiKhoaKy(db, e, [ngay.value]);
       if (k) return k;

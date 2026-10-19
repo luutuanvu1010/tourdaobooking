@@ -39,11 +39,15 @@ const CANNOT_VIEW_REQUESTS = () => error(403, "forbidden", "Chỉ Kế toán, Qu
 const CANNOT_APPROVE_ADJUSTMENT = () => error(403, "forbidden", "Chỉ Kế toán, Quản trị hoặc Toàn quyền mới duyệt được điều chỉnh công nợ.");
 const CANNOT_CLOSE_PERIOD = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới khoá được sổ tháng.");
 
-/** Người gọi cho service: `laKeToan` = có ô `ledger.write` (Kế toán, Toàn quyền — ghi người thu là người khác, chọn ngày phát sinh). */
+/**
+ * Người gọi cho service: `laKeToan` = có ô `ledger.write` (Kế toán, Toàn quyền — ghi người thu là người khác, chọn ngày phát sinh); `laDoiTac` = giữ quyền
+ * Đối tác (`holdsPartner`, kể cả tài khoản lai — "có quyền Đối tác là áp"): không có `ledger.write` thì chỉ tự ghi chính mình (ADR-0132 Hệ quả; Ruling R-P12).
+ */
 const nguoiGoi = (staff: PermissionHolder & { partyId: string | null }): NguoiGoi => ({
   staffId: staff.id,
   partyId: staff.partyId,
   laKeToan: can(staff, "ledger.write"),
+  laDoiTac: holdsPartner(staff),
 });
 
 /** HÀM CÔNG BỐ (ADR-0068 G10) — CHỈ gốc lắp ráp gọi (ctx.gopHoSo): số dòng công nợ còn hiệu lực của một hồ sơ (dòng ở lại hồ sơ phụ khi gộp). */

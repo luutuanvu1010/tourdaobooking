@@ -264,6 +264,20 @@ const RECEIPT_REVERSAL = defineSql(
    SELECT ?1, g.order_id, g.kind_code, g.amount, g.collector_party_id, g.collector_role_code, g.method_code, g.collected_for_party_id, g.stage_code, ?2, g.id, ?3, ?4, ?5, ?4, ?5
    FROM bil_payment_receipt g WHERE g.id = ?6`,
 );
+/**
+ * Dòng ĐẢO của lời khai bên đặt / quầy nhà cung cấp mà lúc route ĐỌC còn chưa CONFIRMED (sổ đại lý đợt 2 Task 5 — người kiểm I-1): chỉ áp khi vẫn chưa có
+ * CONFIRMED. Kế toán khác bấm «Bên kia đã nhận» chen giữa lúc đọc và lúc ghi thì lô đó đã sinh MỘT dòng giữ hộ mang receipt_id gốc mà lô đảo này không biết
+ * để đảo ⇒ không áp (0 dòng) ⇒ route báo 409 `stale`, câu nhật ký kèm `changes() > 0` cũng không áp. Chiều ngược (đảo chen trước xác nhận) do trigger
+ * `bil_receipt_recon_confirmed` (0099) chặn.
+ */
+const RECEIPT_REVERSAL_CHUA_XAC_NHAN = defineSql(
+  "billing",
+  "receipt_reversal_chua_xac_nhan",
+  `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS})
+   SELECT ?1, g.order_id, g.kind_code, g.amount, g.collector_party_id, g.collector_role_code, g.method_code, g.collected_for_party_id, g.stage_code, ?2, g.id, ?3, ?4, ?5, ?4, ?5
+   FROM bil_payment_receipt g WHERE g.id = ?6
+     AND NOT EXISTS (SELECT 1 FROM bil_receipt_recon c WHERE c.receipt_id = g.id AND c.kind_code = 'CONFIRMED')`,
+);
 
 export interface NewReceipt {
   id: string;
@@ -286,8 +300,8 @@ const bindReceipt = (db: D1Database, sql: string, r: NewReceipt, ...extra: strin
 export const receiptBeforeDeliveredStatement = (db: D1Database, r: NewReceipt) => bindReceipt(db, RECEIPT_BEFORE_DELIVERED, r);
 export const receiptAtDeliveryStatement = (db: D1Database, r: NewReceipt, deliveredAt: string) => bindReceipt(db, RECEIPT_AT_DELIVERY, r, deliveredAt);
 export const receiptRefundStatement = (db: D1Database, r: NewReceipt) => bindReceipt(db, RECEIPT_REFUND, r);
-export const receiptReversalStatement = (db: D1Database, i: { id: string; occurredDate: string; note: string | null; at: string; by: string; reversesId: string }) =>
-  db.prepare(RECEIPT_REVERSAL).bind(i.id, i.occurredDate, i.note, i.at, i.by, i.reversesId);
+export const receiptReversalStatement = (db: D1Database, i: { id: string; occurredDate: string; note: string | null; at: string; by: string; reversesId: string; chuaXacNhan?: boolean }) =>
+  db.prepare(i.chuaXacNhan ? RECEIPT_REVERSAL_CHUA_XAC_NHAN : RECEIPT_REVERSAL).bind(i.id, i.occurredDate, i.note, i.at, i.by, i.reversesId);
 
 const POSTING_COLS = "id, kind_code, order_id, reason, reverses_posting_id, occurred_date, due_snapshot, created_at, created_by, updated_at, updated_by";
 const POSTING_VALUES = "?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?8, ?9";

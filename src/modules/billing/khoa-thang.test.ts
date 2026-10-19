@@ -116,6 +116,14 @@ test("ca 3: sau khi khoá 2026-08 — mọi đường ghi tiền có ngày thán
   assert.equal((await thu(w, HDV, hdv, { soTien: 400_000, hinhThuc: "CASH", nguoiThu: "cong_ty" })).status, 201, "HDV khai 'Công ty thu' (tiền mặt) để có khoản chờ xác nhận");
   const choXacNhan = String(w.q("SELECT id FROM bil_payment_receipt WHERE order_id = ? ORDER BY rowid DESC LIMIT 1", hdv)[0].id);
   const lanThu = String(w.q("SELECT id FROM bil_payment_receipt WHERE order_id = ? AND amount = 100000", id)[0].id);
+  // Lời khai «khách trả cho đại lý» đang chờ «Bên kia đã nhận» (ADR-0132) — dựng bằng SQL (đơn của khung này không có bên đặt), ngày hôm nay (tháng mở).
+  const benKiaId = uuid();
+  const ct = String(w.q("SELECT party_id FROM v_pty_owner_company LIMIT 1")[0].party_id);
+  w.sqlite.prepare(`INSERT INTO bil_payment_receipt (id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code, occurred_date,
+    reverses_id, note, created_at, created_by, updated_at, updated_by) VALUES (?, ?, 'CUSTOMER_PAYMENT', 50000, ?, 'BOOKER', 'CASH', ?, 'PREPAID', ?, NULL, NULL, ?, ?, ?, ?)`)
+    .run(benKiaId, hdv, `pty-${SALES}`, ct, vnHomNay(), AT, HDV, AT, HDV);
+  w.sqlite.prepare("INSERT INTO bil_receipt_recon (id, receipt_id, kind_code, occurred_date, created_at, created_by, updated_at, updated_by) VALUES (?, ?, 'DECLARED', ?, ?, ?, ?, ?)")
+    .run(uuid(), benKiaId, vnHomNay(), AT, HDV, AT, HDV);
   assert.equal((await khoa(w, "2026-08")).status, 201);
   const truoc = soDongSo(w);
   const N = "2026-08-20";
@@ -127,6 +135,7 @@ test("ca 3: sau khi khoá 2026-08 — mọi đường ghi tiền có ngày thán
   };
   await bai("lần thu", thu(w, KT, id, { soTien: 50_000, hinhThuc: "CASH", nguoiThu: "cong_ty", ngayPhatSinh: N }));
   await bai("công ty đã nhận", w.call("POST", `/api/ledger/company-receipts/${choXacNhan}/confirm`, { as: KT, body: { ngayPhatSinh: N } }));
+  await bai("bên kia đã nhận", w.call("POST", `/api/ledger/counterparty-receipts/${benKiaId}/confirm`, { as: KT, body: { ngayPhatSinh: N } }));
   await bai("quyết toán", w.call("POST", "/api/ledger/settlements", { as: KT, body: { chieu: "nop", partyId: `pty-${HDV}`, phanBo: [{ orderId: hdv, soTien: 100_000 }], ngayPhatSinh: N } }));
   await bai("hoàn khách", w.call("POST", "/api/ledger/refunds", { as: KT, body: { orderId: id, soTien: 50_000, hinhThuc: "CASH", nguoiTra: "cong_ty", ngayPhatSinh: N } }));
   await bai("điều chỉnh", w.call("POST", "/api/ledger/adjustments", { as: KT, body: { loai: "dao_lan_thu", receiptId: lanThu, lyDo: "Đảo thử vào tháng đã khoá", ngayPhatSinh: N } }));
