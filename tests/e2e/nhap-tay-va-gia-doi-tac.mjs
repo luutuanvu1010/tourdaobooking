@@ -36,16 +36,18 @@ const tripOf = (sv) => ({
   checkinDate: sv.checkinDate ?? "", checkinTime: sv.checkinTime ?? "", checkinPlace: sv.checkinPlace ?? "", note: sv.note ?? "",
 });
 /** Thân gửi lại NGUYÊN một dịch vụ nhập tay đã lưu, đúng như form gửi (`toServiceInput`: chi tiết rỗng = ""), rồi ghi đè `patch`. */
+/** ADR-0134: lựa chọn đón gửi tường minh (dịch vụ gieo bằng SQL chưa có) — tính lại từ lượt đón SAU khi ghi đè (không chép lựa chọn cũ: ghi đè thêm điểm đón thì phải thành "Đón"): còn giờ/điểm đón (khoá cũ sinh chặng) hoặc chặng → "DON". */
+const chonDonCua = (sv, patch) => patch.pickupChoice ?? ((patch.pickupPlace ?? sv.pickupPlace) || (patch.pickupTime ?? sv.pickupTime) || sv.legs?.length ? "DON" : "KHONG_DON");
 const manualAsStored = (sv, patch = {}) => ({
   id: sv.id, kind: "manual", name: sv.name, pax: { adult: sv.pax.adult }, ...tripOf(sv),
   items: sv.items.map((i) => ({ description: i.description, detail: i.detail ?? "", quantity: i.quantity, unitPrice: i.unitPrice })),
-  ...patch,
+  ...patch, pickupChoice: chonDonCua(sv, patch),
 });
 /** Thân gửi lại NGUYÊN một dịch vụ danh mục đã lưu (cùng số khách, cùng đơn giá — giữ bản chụp). */
 const catalogAsStored = (sv, patch = {}) => ({
   id: sv.id, kind: "catalog", catalogCode: sv.catalogCode, pax: { ...sv.pax }, ...tripOf(sv),
   unitPrices: Object.fromEntries(sv.items.map((i) => [i.paxCode, i.unitPrice])), catalogPriceSeen: Object.fromEntries(sv.items.map((i) => [i.paxCode, i.catalogPrice])),
-  ...patch,
+  ...patch, pickupChoice: chonDonCua(sv, patch),
 });
 const FROZEN = /dịch vụ nhập tay đang tắt/; // ADR-0061: câu R1 theo lý do — công tắc TẮT
 const FROZEN_DOI_TAC = /tài khoản có quyền Đối tác không dùng được dịch vụ nhập tay/;
