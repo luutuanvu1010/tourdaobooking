@@ -320,3 +320,26 @@ test("cheDoThuongMai trên cả 1024 tập quyền × {đơn của mình, đơn 
   assert.ok(caKiem > 40_000, `số ca ${caKiem}`);
   assert.deepEqual([...thay].sort(), ["403", "404", "doiTac", "vanPhong"], "bài có đủ bốn kết quả (không kiểm rỗng)");
 });
+
+// ===== Sổ đại lý đợt 2, Task 7: tổng hoa hồng cho trần giảm giá / cảnh báo (cùng phép tính dòng `tinhDongDoiTac` với DTO) =====
+import { coNguoiHuongDon, tongHoaHongDon } from "./thuong-mai.ts";
+
+test("Task 7 tongHoaHongDon: cộng hoa hồng các dòng theo bản chụp; dòng thiếu mức ⇒ 0 (trần nháp / xác nhận) hoặc null (cảnh báo); dòng không có bản chụp ⇒ thiếu mức", () => {
+  const dv = [{ id: "s1", thanhTien: 7_900_000, soKhachTinh: 10 }, { id: "s2", thanhTien: 300_000, soKhachTinh: 1 }];
+  assert.equal(tongHoaHongDon([set], [dv[0]!], "tinh0"), 790_000, "C-5: 10% của 7.900.000");
+  assert.equal(tongHoaHongDon([set, thieu], dv, "tinh0"), 790_000, "dòng nhập tay thiếu mức tính 0");
+  assert.equal(tongHoaHongDon([set, thieu], dv, "null"), null, "cảnh báo: còn dòng thiếu mức thì không đoán");
+  assert.equal(tongHoaHongDon([set], dv, "tinh0"), 790_000, "dòng s2 không có bản chụp ⇒ thiếu mức ⇒ 0");
+  assert.equal(tongHoaHongDon([set], dv, "null"), null);
+  assert.equal(tongHoaHongDon([{ ...set, beneficiaryPartyId: null, hoaHong: { status: "NONE" as const } }], [dv[0]!], "null"), 0, "khách lẻ: hoa hồng 0");
+  // cùng số với DTO phần thương mại (một phép tính dòng)
+  const dto = dungThuongMai({ laDoiTac: false, xemNguoiBan: false, duKien: false, chuaChup: false, chup: [set], dichVu: [{ ...dv[0]!, name: "Tour" }], ten: new Map(), congTyChuId: null });
+  assert.equal(tongHoaHongDon([set], [dv[0]!], "null"), dto.vanPhong!.tong.hoaHong);
+});
+
+test("Task 7 coNguoiHuongDon: có dòng bản chụp mang người hưởng (kể cả bên đặt không còn được hưởng — dòng thiếu mức)", () => {
+  assert.equal(coNguoiHuongDon([set]), true);
+  assert.equal(coNguoiHuongDon([thieu]), true);
+  assert.equal(coNguoiHuongDon([{ ...set, beneficiaryPartyId: null, hoaHong: { status: "NONE" as const } }]), false);
+  assert.equal(coNguoiHuongDon([]), false);
+});

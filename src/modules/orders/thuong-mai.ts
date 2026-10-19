@@ -95,12 +95,30 @@ export const chuaCoBanChup = (serviceId: string): BanChup => ({ serviceId, benef
  * không đ/khách, không giá vốn, không mã nguồn (C9 = A). Hai nhánh dựng đối tượng MỚI bằng chép từng trường (danh sách trắng) — không trải `...` từ kiểu rộng. Tiền từng dòng qua
  * MỘT công thức `tinhDongDoiTac`; tổng hoa hồng / giá đại lý = null khi còn dòng thiếu mức (không cộng nửa vời, không tự lấy 0).
  */
-export function dungThuongMai(v: { laDoiTac: boolean; xemNguoiBan: boolean } & PhanThuongMai): ThuongMaiResponse {
-  const theoDichVu = new Map(v.chup.map((c) => [c.serviceId, c] as const));
-  const dong = v.dichVu.map((dv) => {
+/** Tiền từng dòng theo bản chụp (dòng không có bản chụp ⇒ thiếu mức «chưa chụp»): MỘT chỗ gọi `tinhDongDoiTac` cho DTO lẫn tổng hoa hồng của trần giảm giá (Task 7). */
+function tinhCacDong<D extends { id: string; thanhTien: number; soKhachTinh: number }>(chup: readonly BanChup[], dichVu: readonly D[]) {
+  const theoDichVu = new Map(chup.map((c) => [c.serviceId, c] as const));
+  return dichVu.map((dv) => {
     const c = theoDichVu.get(dv.id) ?? chuaCoBanChup(dv.id);
     return { dv, c, t: tinhDongDoiTac(c, { thanhTien: dv.thanhTien, soKhachTinh: dv.soKhachTinh }) };
   });
+}
+
+/** Đơn có người hưởng (sổ đại lý đợt 2, Task 7): có dòng bản chụp mang người hưởng — kể cả bên đặt mang vai bên ngoài không còn được hưởng (dòng thiếu mức, hoa hồng tính 0 cho trần). */
+export const coNguoiHuongDon = (chup: readonly BanChup[]): boolean => chup.some((c) => c.beneficiaryPartyId !== null);
+
+/**
+ * Tổng hoa hồng của đơn theo bản chụp (Task 7 — trần giảm giá ADR-0079 điều 8, cảnh báo sau Xác nhận). `thieu` = cách đếm dòng thiếu mức: "tinh0" cho TRẦN (nháp / Xác nhận —
+ * thận trọng, trần chỉ thấp hơn), "null" cho CẢNH BÁO (không đoán khi còn dòng thiếu). Cùng phép tính dòng với DTO phần thương mại (`tinhCacDong`).
+ */
+export function tongHoaHongDon(chup: readonly BanChup[], dichVu: readonly { id: string; thanhTien: number; soKhachTinh: number }[], thieu: "tinh0" | "null"): number | null {
+  const dong = tinhCacDong(chup, dichVu);
+  if (thieu === "null" && dong.some((d) => d.t.hoaHong === null)) return null;
+  return dong.reduce((s, d) => s + (d.t.hoaHong ?? 0), 0);
+}
+
+export function dungThuongMai(v: { laDoiTac: boolean; xemNguoiBan: boolean } & PhanThuongMai): ThuongMaiResponse {
+  const dong = tinhCacDong(v.chup, v.dichVu);
   const conThieu = dong.some((d) => d.t.hoaHong === null);
   const tong = {
     thanhTien: dong.reduce((s, d) => s + d.dv.thanhTien, 0),

@@ -220,3 +220,90 @@ test("ADR-0100 Đ1: trần giảm giá của Thực tập luôn 0, KHÔNG đổi
   assert.equal(giaDanhMucViolation(nguoi("PARTNER", "INTERN"), dung, 1, 50000), PARTNER_DISCOUNT_MESSAGE, "có cả hai: số nhỏ hơn (0), câu của Đối tác");
   assert.equal(tranGiamGia(nguoi("SALES"), 50000), Number.POSITIVE_INFINITY, "tài khoản không bị áp: không có trần");
 });
+
+// ---- Sổ đại lý đợt 2, Task 7 (ADR-0079 điều 8, 9; C8 = A; đặc tả P7): trần giảm giá theo NGƯỜI HƯỞNG của đơn -----------------------------------------------
+// Đơn CÓ người hưởng ⇒ trần = tổng hoa hồng của đơn, cho MỌI người sửa đơn (Bán hàng, Quản trị, Đối tác…); Thực tập vẫn 0. Đơn KHÔNG người hưởng ⇒ đúng luật hôm nay
+// (Đối tác kể cả lai 0, Thực tập 0, còn lại không trần). Vế giá danh mục (R2) vẫn theo người thao tác — `viPhamGiaDanhMuc`.
+import { CAU_TRAN_HOA_HONG, canhBaoGiamGiaDon, cauDoiBenDatVuotHoaHong, tranGiamGiaDon, viPhamGiaDanhMuc, viPhamTranGiamGia } from "./price-guards.ts";
+
+const coHuong = (tongHoaHong: number) => ({ coNguoiHuong: true, tongHoaHong });
+const khachLe = { coNguoiHuong: false, tongHoaHong: 0 };
+
+test("Task 7 tranGiamGiaDon: có người hưởng ⇒ tổng hoa hồng (kể cả Đối tác); Thực tập 0; không người hưởng ⇒ Đối tác 0, Thực tập 0, còn lại null", () => {
+  assert.equal(tranGiamGiaDon({ ...coHuong(790000), laDoiTac: false, laThucTap: false }), 790000, "Bán hàng / Quản trị trên đơn đại lý");
+  assert.equal(tranGiamGiaDon({ ...coHuong(790000), laDoiTac: true, laThucTap: false }), 790000, "Đối tác trên đơn của chính mình");
+  assert.equal(tranGiamGiaDon({ ...coHuong(790000), laDoiTac: false, laThucTap: true }), 0, "Thực tập trên đơn có người hưởng vẫn 0");
+  assert.equal(tranGiamGiaDon({ ...coHuong(790000), laDoiTac: true, laThucTap: true }), 0);
+  assert.equal(tranGiamGiaDon({ ...coHuong(0), laDoiTac: false, laThucTap: false }), 0, "đơn có người hưởng mà hoa hồng 0 (thiếu mức tính 0) ⇒ không giảm được");
+  assert.equal(tranGiamGiaDon({ ...khachLe, laDoiTac: true, laThucTap: false }), PARTNER_DISCOUNT_CAP);
+  assert.equal(tranGiamGiaDon({ ...khachLe, laDoiTac: false, laThucTap: true }), INTERN_DISCOUNT_CAP);
+  assert.equal(tranGiamGiaDon({ ...khachLe, laDoiTac: false, laThucTap: false }), null, "Bán hàng trên đơn khách lẻ: không trần");
+});
+
+test("Task 7: đơn KHÔNG người hưởng — tranGiamGiaDon trùng đúng luật hôm nay `tranGiamGia` cho MỌI tập con quyền (giữ vá DK-T3-01)", () => {
+  const n = PERMISSION_CODES.length;
+  for (let m = 0; m < 1 << n; m++) {
+    const tk = nguoi(...PERMISSION_CODES.filter((_, i) => (m >> i) & 1));
+    const cu = tranGiamGia(tk);
+    const moi = tranGiamGiaDon({ ...khachLe, laDoiTac: holdsPartner(tk), laThucTap: tk.permissions.includes("INTERN") });
+    assert.equal(moi, cu === Number.POSITIVE_INFINITY ? null : cu, tk.permissions.join("+") || "(không quyền)");
+  }
+});
+
+test("Task 7 C-5 (ADR-0079): hoa hồng 790.000 — giảm 800.000 ⇒ 400 «Giảm tối đa 790.000 ₫ (bằng hoa hồng của đơn).», giảm 790.000 ⇒ được; Bán hàng, Quản trị, Đối tác", () => {
+  for (const tk of [nguoi("SALES"), nguoi("ADMIN"), nguoi("PARTNER"), nguoi("SALES", "PARTNER")]) {
+    const ten = tk.permissions.join("+");
+    assert.deepEqual(viPhamTranGiamGia(tk, 800000, coHuong(790000)), { status: 400, code: "discount_exceeds_commission", cau: "Giảm tối đa 790.000 ₫ (bằng hoa hồng của đơn)." }, ten);
+    assert.equal(viPhamTranGiamGia(tk, 790000, coHuong(790000)), null, ten);
+    assert.equal(viPhamTranGiamGia(tk, 0, coHuong(790000)), null, ten);
+  }
+  assert.equal(CAU_TRAN_HOA_HONG(790000), "Giảm tối đa 790.000 ₫ (bằng hoa hồng của đơn).");
+});
+
+test("Task 7 B-5: hoa hồng 100.000 — giảm 150.000 ⇒ từ chối, 20.000 ⇒ được", () => {
+  assert.deepEqual(viPhamTranGiamGia(nguoi("SALES"), 150000, coHuong(100000)), { status: 400, code: "discount_exceeds_commission", cau: "Giảm tối đa 100.000 ₫ (bằng hoa hồng của đơn)." });
+  assert.equal(viPhamTranGiamGia(nguoi("SALES"), 20000, coHuong(100000)), null);
+  assert.equal(viPhamTranGiamGia(nguoi("SALES"), 100001, coHuong(100000))?.code, "discount_exceeds_commission", "vượt 1 ₫");
+});
+
+test("Task 7: Thực tập trên đơn có người hưởng ⇒ trần 0, câu của Thực tập (403); kèm Đối tác ⇒ câu của Đối tác", () => {
+  for (const tk of [nguoi("INTERN"), nguoi("INTERN", "SALES"), nguoi("INTERN", "ADMIN")]) {
+    assert.deepEqual(viPhamTranGiamGia(tk, 1, coHuong(790000)), { status: 403, code: "forbidden", cau: INTERN_PRICE_MESSAGE }, tk.permissions.join("+"));
+    assert.equal(viPhamTranGiamGia(tk, 0, coHuong(790000)), null);
+  }
+  assert.deepEqual(viPhamTranGiamGia(nguoi("PARTNER", "INTERN"), 1, coHuong(790000)), { status: 403, code: "forbidden", cau: PARTNER_DISCOUNT_MESSAGE });
+});
+
+test("Task 7: đơn KHÔNG người hưởng giữ luật hôm nay — Đối tác (kể cả lai Bán hàng + Đối tác) 403 câu cũ; Bán hàng, Quản trị không trần", () => {
+  for (const tk of [nguoi("PARTNER"), nguoi("SALES", "PARTNER"), nguoi("ADMIN", "PARTNER"), nguoi("PARTNER", "FIELD")]) {
+    assert.deepEqual(viPhamTranGiamGia(tk, 1, khachLe), { status: 403, code: "forbidden", cau: PARTNER_DISCOUNT_MESSAGE }, tk.permissions.join("+"));
+    assert.equal(viPhamTranGiamGia(tk, 0, khachLe), null);
+  }
+  assert.deepEqual(viPhamTranGiamGia(nguoi("INTERN"), 1, khachLe), { status: 403, code: "forbidden", cau: INTERN_PRICE_MESSAGE });
+  for (const tk of [nguoi("SALES"), nguoi("ADMIN"), nguoi("SUPER_ADMIN"), nguoi("ACCOUNTING")]) assert.equal(viPhamTranGiamGia(tk, 5_000_000, khachLe), null, tk.permissions.join("+"));
+});
+
+test("Task 7: vế giá danh mục tách riêng, vẫn theo NGƯỜI THAO TÁC (không phụ thuộc người hưởng); giaDanhMucViolation cũ không đổi nghĩa", () => {
+  assert.equal(viPhamGiaDanhMuc(nguoi("PARTNER"), lech), RETAIL_PRICE_MESSAGE);
+  assert.equal(viPhamGiaDanhMuc(nguoi("INTERN"), lech), INTERN_PRICE_MESSAGE);
+  assert.equal(viPhamGiaDanhMuc(nguoi("PARTNER"), dung), null);
+  assert.equal(viPhamGiaDanhMuc(nguoi("SALES"), lech), null, "Bán hàng giá thoả thuận được (kể cả trên đơn đại lý)");
+  assert.equal(viPhamGiaDanhMuc(nguoi("SALES"), nhapTay), null);
+});
+
+test("Task 7 sau xác nhận: canhBaoGiamGiaDon — giảm giá hiệu lực > hoa hồng ⇒ { vuot }, không chặn; bằng / nhỏ hơn / khách lẻ / thiếu mức ⇒ null", () => {
+  assert.deepEqual(canhBaoGiamGiaDon({ coNguoiHuong: true, tongHoaHong: 500000, giamGiaHieuLuc: 790000 }), { vuot: 290000 });
+  assert.equal(canhBaoGiamGiaDon({ coNguoiHuong: true, tongHoaHong: 790000, giamGiaHieuLuc: 790000 }), null);
+  assert.equal(canhBaoGiamGiaDon({ coNguoiHuong: true, tongHoaHong: 800000, giamGiaHieuLuc: 790000 }), null);
+  assert.equal(canhBaoGiamGiaDon({ coNguoiHuong: false, tongHoaHong: 0, giamGiaHieuLuc: 790000 }), null, "đơn khách lẻ: không cảnh báo theo hoa hồng");
+  assert.equal(canhBaoGiamGiaDon({ coNguoiHuong: true, tongHoaHong: null, giamGiaHieuLuc: 790000 }), null, "còn dòng thiếu mức: không đoán số vượt (đơn đã bị giữ ở «Đã giao»)");
+});
+
+test("Task 7 đổi bên đặt sau xác nhận: bên đặt mới có người hưởng mà giảm giá > tổng hoa hồng mới ⇒ câu nêu hai số; bằng ⇒ null; khách lẻ ⇒ null", () => {
+  assert.equal(
+    cauDoiBenDatVuotHoaHong({ coNguoiHuong: true, tongHoaHong: 200000, giamGiaHieuLuc: 300000 }),
+    "Đơn đang giảm giá 300.000 ₫, lớn hơn hoa hồng của bên đặt mới (200.000 ₫) — giảm giá trên đơn có người hưởng tối đa bằng hoa hồng của đơn, nên chưa đổi được bên đặt.",
+  );
+  assert.equal(cauDoiBenDatVuotHoaHong({ coNguoiHuong: true, tongHoaHong: 300000, giamGiaHieuLuc: 300000 }), null);
+  assert.equal(cauDoiBenDatVuotHoaHong({ coNguoiHuong: false, tongHoaHong: 0, giamGiaHieuLuc: 300000 }), null);
+});

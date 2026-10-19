@@ -71,3 +71,25 @@ test("ADR-0061 (3): priceGuard hỏi lyDoKhongNhapTay (Đối tác → công t�
   const dong = than.search(/\bmanualFreezeViolation\s*\(/);
   assert.ok(ly !== -1 && dong !== -1 && ly < dong, "priceGuard phải gọi lyDoKhongNhapTay rồi mới manualFreezeViolation");
 });
+
+// Sổ đại lý đợt 2, Task 7 (ADR-0079 điều 8, 9): R3 (trần giảm giá) RỜI `priceGuard` vì trần nay xét theo người hưởng của ĐƠN — cần bên đặt đã giải (`resolveBooker`).
+// Bài này giữ hàng rào cũ: route nào gọi `validateOrder` cũng PHẢI gọi `tranGiamGiaNhap` SAU `resolveBooker`, truyền bên đặt đã giải (`booker.write.partyId`).
+test("Task 7 (4): mọi route của orders gọi validateOrder đều gọi tranGiamGiaNhap SAU resolveBooker, với bên đặt đã giải", () => {
+  const s = masked(INDEX);
+  const moc = [...s.matchAll(/\broute\s*\(/g)].map((m) => m.index!);
+  let soRoute = 0;
+  for (const [i, dau] of moc.entries()) {
+    const than = s.slice(dau, moc[i + 1] ?? s.length);
+    const v = than.search(/\bvalidateOrder\s*\(/);
+    if (v === -1) continue;
+    soRoute++;
+    const tieuDe = than.slice(0, 80).replace(/\s+/g, " ");
+    const r = than.slice(v).search(/\bresolveBooker\s*\(/);
+    assert.notEqual(r, -1, `${tieuDe}: gọi validateOrder mà không giải bên đặt (resolveBooker)`);
+    const t = than.slice(v + r).search(/\btranGiamGiaNhap\s*\(/);
+    assert.notEqual(t, -1, `${tieuDe}: gọi validateOrder mà không gọi tranGiamGiaNhap SAU resolveBooker — trần giảm giá theo người hưởng bị bỏ qua`);
+    const doi = doanNgoac(than, v + r + t + than.slice(v + r + t).indexOf("("));
+    assert.match(doi, /\bbooker\.write\.partyId\b/, `${tieuDe}: tranGiamGiaNhap phải nhận bên đặt đã giải (booker.write.partyId)`);
+  }
+  assert.ok(soRoute >= 2, `POST và PUT /api/orders phải có mặt (thấy ${soRoute})`);
+});

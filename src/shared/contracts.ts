@@ -599,6 +599,12 @@ export interface DongLichSuSoKhachDto {
 export interface OrderDetailResponse {
   order: OrderDetailDto; history: AuditEntryDto[]; canModify: boolean; mocToiThieuPhut: number | null; suaSoKhach: SuaSoKhachDichVuDto[] | null;
   canhBaoKhuyenMai: string | null; lichSuSoKhach: DongLichSuSoKhachDto[] | null;
+  /**
+   * Sổ đại lý đợt 2, Task 7 (ADR-0079 điều 8 gạch 3): đơn đã xác nhận CÓ người hưởng mà giảm giá hiệu lực lớn hơn tổng hoa hồng theo bản chụp hiện hành (thường do bớt khách) ⇒ số tiền
+   * vượt (VNĐ, > 0) — không chặn, màn đơn hiện «Giảm giá đang lớn hơn hoa hồng X ₫ — đại lý chịu phần này». null khi không vượt, khách lẻ, còn dòng thiếu mức, hoặc người xem không được
+   * xem phần thương mại của đơn (luật `cheDoThuongMai`, kể cả tài khoản lai Đối tác).
+   */
+  canhBaoGiamGia: { vuot: number } | null;
 }
 /**
  * `POST /api/orders/:id/money-edit` (ADR-0063 D1): đơn HIỆN HÀNH sau lần sửa; `daGhi` false = số khách y nguyên, không ghi gì; `canhBaoTongAm` (tên khoá GIỮ, nghĩa

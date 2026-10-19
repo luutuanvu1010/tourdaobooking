@@ -139,9 +139,14 @@ r = await call(SUPER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Cộn
 assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.deepEqual(r.body.staff.permissions, ["PARTNER"], "vai Cộng tác viên → chỉ quyền Đối tác");
 const P = (await login(phone, r.body.pin)).cookie;
+const P_PARTY = r.body.staff.partyId; // hồ sơ cá nhân mang vai Cộng tác viên (vai được hưởng) ⇒ đơn của P luôn CÓ người hưởng (sổ đại lý đợt 1, bên đặt bị ép)
+// Sổ đại lý đợt 2, Task 7 (ADR-0079 điều 9, C8 = A): trần giảm giá nay xét theo NGƯỜI HƯỞNG của đơn. Luật R3 «Đối tác không giảm được» chỉ còn cho đơn KHÔNG người hưởng ⇒ các
+// mục R3 dưới (4, 5, 6b) dùng tài khoản Đối tác P0 mà hồ sơ KHÔNG mang vai được hưởng (gieo SQL như mục 8 — vai hồ sơ STAFF), để vẫn canh đúng vá DK-T3-01; mục 4b thử trần
+// hoa hồng trên đơn của P.
+const P0 = (await gieoTaiKhoanLai(`Đối Tác Khách Lẻ ${tag}`, ["PARTNER"])).cookie;
 // KHÔNG gọi GET /api/catalog ở đây: kịch bản này chạy TRƯỚC catalog.mjs trên D1 chưa từng đồng bộ — lời gọi đầu tiên tự kéo Sheet thật
 // (CHANGE-GUIDE §4 mục 23) và ẩn danh mục giả ZE*. Quyền đọc danh mục của Đối tác/Thực tập (ADR-0028) do catalog.mjs kiểm.
-const partnerCount = async (name) => (await call(P, "GET", `/api/orders?q=${encodeURIComponent(name)}`)).body.orders.length;
+const partnerCount = async (name, who = P) => (await call(who, "GET", `/api/orders?q=${encodeURIComponent(name)}`)).body.orders.length;
 
 // 3) POST với đơn giá khác giá danh mục (thấp hơn, cao hơn) → 403, không lưu đơn
 for (const [what, price] of [["thấp hơn", ZE1 - 10000], ["cao hơn", ZE1 + 10000]]) {
@@ -162,35 +167,56 @@ console.log("✓ R2: Đối tác lập đơn với đơn giá khác giá danh m�
 // Cùng MỘT thân yêu cầu (đúng giá, có giảm giá) gửi bằng nhân viên bán hàng ở mục 7 → 201: phân biệt đúng loại tài khoản.
 const discountedBody = (discount) => orderInput({ customerName: `ĐT giảm giá ${discount} ${tag}`, services: [catalogService({ pax: { adult: 2 } })], discount });
 for (const d of [1, 2 * ZE1 - 1000]) {
-  r = await call(P, "POST", "/api/orders", discountedBody(d));
+  r = await call(P0, "POST", "/api/orders", discountedBody(d));
   assert.equal(r.status, 403, `giảm ${d}: ${JSON.stringify(r.body)}`);
   assert.equal(r.body.error.code, "forbidden");
   assert.match(r.body.error.message, NO_DISCOUNT);
-  assert.equal(await partnerCount(`ĐT giảm giá ${d} ${tag}`), 0, `giảm ${d}: không lưu đơn`);
+  assert.equal(await partnerCount(`ĐT giảm giá ${d} ${tag}`, P0), 0, `giảm ${d}: không lưu đơn`);
 }
-r = await call(P, "POST", "/api/orders", orderInput({ customerName: `ĐT không giảm ${tag}`, services: [catalogService({ pax: { adult: 2 } })] }));
+r = await call(P0, "POST", "/api/orders", orderInput({ customerName: `ĐT không giảm ${tag}`, services: [catalogService({ pax: { adult: 2 } })] }));
 assert.equal(r.status, 201, JSON.stringify(r.body));
 let po = r.body.order;
 assert.deepEqual([lines(po)[0].unitPrice, lines(po)[0].catalogPrice, po.subtotal, po.discount, po.total], [ZE1, ZE1, 2 * ZE1, 0, 2 * ZE1]);
 // gửi đơn giá TƯỜNG MINH bằng đúng giá danh mục, giảm giá 0 tường minh, cũng được
-r = await call(P, "POST", "/api/orders", orderInput({ customerName: `ĐT giá tường minh ${tag}`, services: [catalogService({ pax: { adult: 1, child: 1 }, unitPrices: { ...FAKE_CATALOG.ZE1.prices } })], discount: 0 }));
+r = await call(P0, "POST", "/api/orders", orderInput({ customerName: `ĐT giá tường minh ${tag}`, services: [catalogService({ pax: { adult: 1, child: 1 }, unitPrices: { ...FAKE_CATALOG.ZE1.prices } })], discount: 0 }));
 assert.equal(r.status, 201, JSON.stringify(r.body));
-console.log("✓ R3: Đối tác đúng giá danh mục + giảm giá (1₫ / gần hết tiền) → 403, không lưu; không giảm giá → 201");
+console.log("✓ R3: Đối tác (đơn không người hưởng) đúng giá danh mục + giảm giá (1₫ / gần hết tiền) → 403, không lưu; không giảm giá → 201");
+
+// 4b) Task 7 (ADR-0079 điều 8, 9; C8 = A): đơn CÓ người hưởng ⇒ trần = tổng hoa hồng của đơn, cho MỌI người sửa đơn. Kế toán cài mức RIÊNG 10% cho hồ sơ của P (mức riêng
+// thắng mức theo vai / mức TA ⇒ số tiền xác định trên D1 dùng chung). 2 × ZE1, hoa hồng H = 10% ⇒ giảm H + 1 → 400 `discount_exceeds_commission`; giảm H → 201. Bán hàng gắn bên đặt
+// là hồ sơ của P: cùng trần (C8 = A).
+const ACC = await session(ACCOUNTS.accountant);
+r = await call(ACC, "POST", "/api/pricing/hoa-hong", { doiTuong: { loai: "DOI_TAC", partyId: P_PARTY }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000, tuNgay: vnDate(0) });
+assert.equal(r.status, 201, `mức riêng 10% cho hồ sơ Cộng tác viên: ${JSON.stringify(r.body)}`);
+const H = Math.floor((2 * 1000 * 2 * ZE1 + 10000) / 20000); // làm tròn nửa lên của 10% × 2 × ZE1 (viết lại độc lập với src/shared/hoa-hong-dong.ts)
+const CAU_TRAN = `Giảm tối đa ${H.toLocaleString("vi-VN")} ₫ (bằng hoa hồng của đơn).`;
+for (const [ai, who, extra] of [["Đối tác (đơn của mình)", P, {}], ["Bán hàng (bên đặt là Cộng tác viên)", SALES, { bookerPartyId: P_PARTY }]]) {
+  r = await call(who, "POST", "/api/orders", orderInput({ customerName: `Trần HH vượt ${ai} ${tag}`, services: [catalogService({ pax: { adult: 2 } })], discount: H + 1, ...extra }));
+  assert.equal(r.status, 400, `${ai}, giảm H + 1: ${JSON.stringify(r.body)}`);
+  assert.equal(r.body.error.code, "discount_exceeds_commission");
+  assert.equal(r.body.error.message, CAU_TRAN);
+  r = await call(who, "POST", "/api/orders", orderInput({ customerName: `Trần HH bằng ${ai} ${tag}`, services: [catalogService({ pax: { adult: 2 } })], discount: H, ...extra }));
+  assert.equal(r.status, 201, `${ai}, giảm đúng H: ${JSON.stringify(r.body)}`);
+  assert.deepEqual([r.body.order.bookerPartyId, r.body.order.discount], [P_PARTY, H]);
+  const xn = await confirm(who, r.body.order);
+  assert.equal(xn.status, 200, `${ai}: xác nhận (trần theo bản chụp vừa tính = H) → 200: ${JSON.stringify(xn.body)}`);
+}
+console.log(`✓ Task 7: đơn có người hưởng (Cộng tác viên, mức 10%): Đối tác và Bán hàng giảm H + 1 → 400 «${CAU_TRAN}»; giảm đúng H → 201, xác nhận → 200`);
 
 // 5) PUT: hạ đơn giá → 403 (R2); giữ giá nhưng THÊM giảm giá → 403 (R3); cả hai lần đơn không đổi. Giữ giá, không giảm, đổi ghi chú → 200; tự xác nhận → 200
-r = await put(P, po, [catalogAsStored(po.services[0], { unitPrices: { adult: ZE1 - 1 } })], { discount: 0 });
+r = await put(P0, po, [catalogAsStored(po.services[0], { unitPrices: { adult: ZE1 - 1 } })], { discount: 0 });
 assert.equal(r.status, 403, JSON.stringify(r.body));
 assert.match(r.body.error.message, RETAIL);
-r = await put(P, po, [catalogAsStored(po.services[0])], { discount: 1000 });
+r = await put(P0, po, [catalogAsStored(po.services[0])], { discount: 1000 });
 assert.equal(r.status, 403, `R3 ở PUT: ${JSON.stringify(r.body)}`);
 assert.equal(r.body.error.code, "forbidden");
 assert.match(r.body.error.message, NO_DISCOUNT);
-const poNow = await get(P, po.id);
+const poNow = await get(P0, po.id);
 assert.deepEqual([poNow.updatedAt, poNow.discount], [po.updatedAt, 0], "bị từ chối thì đơn không đổi");
-r = await put(P, po, [catalogAsStored(po.services[0])], { discount: 0, customerNote: "Đối tác sửa ghi chú" });
+r = await put(P0, po, [catalogAsStored(po.services[0])], { discount: 0, customerNote: "Đối tác sửa ghi chú" });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 po = r.body.order;
-r = await confirm(P, po);
+r = await confirm(P0, po);
 assert.equal(r.status, 200, `Đối tác tự xác nhận đơn đúng giá danh mục, không giảm giá → 200: ${JSON.stringify(r.body)}`);
 console.log("✓ R2+R3: Đối tác PUT hạ đơn giá → 403; PUT thêm giảm giá → 403 (đơn không đổi); giữ giá + không giảm → 200; tự xác nhận → 200");
 
@@ -216,20 +242,20 @@ console.log("✓ R2: Đối tác xác nhận nháp cũ lệch giá → 403 (vẫ
 
 // 6b) R3 ở XÁC NHẬN: đơn nháp của Đối tác đúng giá nhưng CÓ giảm giá đã lưu (dựng bằng SQL — trước bản vá API từng nhận) → 403, đơn vẫn nháp.
 //     Cách gỡ: Đối tác sửa giảm giá về 0 (PUT → 200) rồi xác nhận → 200.
-r = await call(P, "POST", "/api/orders", orderInput({ customerName: `ĐT nháp cũ có giảm giá ${tag}`, services: [catalogService({ pax: { adult: 2 } })] }));
+r = await call(P0, "POST", "/api/orders", orderInput({ customerName: `ĐT nháp cũ có giảm giá ${tag}`, services: [catalogService({ pax: { adult: 2 } })] }));
 assert.equal(r.status, 201, JSON.stringify(r.body));
 const disc = r.body.order;
 await sql(`UPDATE orders SET discount = 5000, total = subtotal - 5000, remaining_amount = subtotal - 5000 - deposit_amount WHERE id = '${disc.id}'`);
-const discStored = await get(P, disc.id);
+const discStored = await get(P0, disc.id);
 assert.deepEqual([discStored.discount, discStored.total], [5000, 2 * ZE1 - 5000], "đơn nháp cũ dựng đúng");
-r = await confirm(P, discStored);
+r = await confirm(P0, discStored);
 assert.equal(r.status, 403, `R3 ở xác nhận: ${JSON.stringify(r.body)}`);
 assert.equal(r.body.error.code, "forbidden");
 assert.match(r.body.error.message, NO_DISCOUNT);
-assert.equal((await get(P, disc.id)).status, "draft", "đơn vẫn là nháp");
-r = await put(P, discStored, [catalogAsStored(discStored.services[0])], { discount: 0 });
+assert.equal((await get(P0, disc.id)).status, "draft", "đơn vẫn là nháp");
+r = await put(P0, discStored, [catalogAsStored(discStored.services[0])], { discount: 0 });
 assert.equal(r.status, 200, JSON.stringify(r.body));
-r = await confirm(P, r.body.order);
+r = await confirm(P0, r.body.order);
 assert.equal(r.status, 200, JSON.stringify(r.body));
 console.log("✓ R3: Đối tác xác nhận nháp cũ có giảm giá đã lưu → 403 (vẫn nháp); sửa giảm giá về 0 → 200, xác nhận → 200");
 
@@ -439,10 +465,10 @@ biChan(await confirm(INTERN, ttLeg), CAU_THUC_TAP, "Thực tập: xác nhận nh
 r = await put(INTERN, ttLeg, [catalogAsStored(ttLeg.services[0])]);
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal((await confirm(INTERN, r.body.order)).status, 200);
-// 10h) Đối chứng: CÙNG thân yêu cầu bị Thực tập chặn thì Bán hàng thường vẫn 201 (giá thoả thuận / giảm giá); Đối tác vẫn 403 nhưng bằng câu của Đối tác
+// 10h) Đối chứng: CÙNG thân yêu cầu bị Thực tập chặn thì Bán hàng thường vẫn 201 (giá thoả thuận / giảm giá); Đối tác (đơn không người hưởng — P0, Task 7) vẫn 403 nhưng bằng câu của Đối tác
 r = await call(SALES, "POST", "/api/orders", orderInput({ customerName: `TT đối chứng Bán hàng ${tag}`, services: [catalogService({ pax: { adult: 2 }, unitPrices: { adult: ZE1 - 10000 } })], discount: 5000 }));
 assert.equal(r.status, 201, JSON.stringify(r.body));
-r = await call(P, "POST", "/api/orders", orderInput({ customerName: `TT đối chứng Đối tác ${tag}`, services: [catalogService({ pax: { adult: 2 } })], discount: 1 }));
+r = await call(P0, "POST", "/api/orders", orderInput({ customerName: `TT đối chứng Đối tác ${tag}`, services: [catalogService({ pax: { adult: 2 } })], discount: 1 }));
 assert.equal(r.status, 403, JSON.stringify(r.body));
 assert.match(r.body.error.message, NO_DISCOUNT);
 assert.notEqual(r.body.error.message, CAU_THUC_TAP, "Đối tác giữ câu của Đối tác");

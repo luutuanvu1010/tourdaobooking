@@ -48,10 +48,10 @@ import type { DongBoTheoDon, NoiChuyen } from "../../shared/dong-bo-chuyen";
 import { CAU_X3_THUE_XE, NHOM_THUE_XE } from "../../shared/so-dai-ly-nhan";
 import { lichSuChoDoiTac } from "../../shared/lich-su-doi-tac";
 import { lichSuNoiBo } from "../../shared/lich-su-noi-bo";
-import { apGhiTay, banChupTuDb, cheDoThuongMai, chuaCoBanChup, dongGhiTuChup, dungThuongMai, kiemGhiTayVoiBanChup, kiemThanGhiTay, moTaChup, moTaGhiTay, type PhanThuongMai } from "./thuong-mai";
+import { apGhiTay, banChupTuDb, cheDoThuongMai, chuaCoBanChup, coNguoiHuongDon, dongGhiTuChup, dungThuongMai, kiemGhiTayVoiBanChup, kiemThanGhiTay, moTaChup, moTaGhiTay, tongHoaHongDon, type PhanThuongMai } from "./thuong-mai";
 import { banChupHienHanh, cauChupChuoi, cauDoiMocSauGhiTay, cauGhiTay, cauKhoaChupBu, demBanChup, donChoChupBu, laNhaCungCap, nhomCuaMa, tenHoSo } from "./thuong-mai-repo";
 import { laThanDonCu, laThanTripCu } from "./than-cu";
-import { duocNhapTay, giaDanhMucViolation, holdsPartner, lyDoKhongNhapTay, manualFreezeViolation } from "./price-guards";
+import { canhBaoGiamGiaDon, cauDoiBenDatVuotHoaHong, duocNhapTay, holdsPartner, lyDoKhongNhapTay, manualFreezeViolation, viPhamGiaDanhMuc, viPhamTranGiamGia } from "./price-guards";
 import { canTransition, hasHandlerPick, parseHandlerPick, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
 import {
   keHoachChangTrip, loadOrderView, passengerList, planAddLeg, planCloseLeg, planEditLeg, planPassengerChange, planPaxOverrideNhap, planReplaceLeg, resolveBooker, resolveLegPlaces,
@@ -80,7 +80,7 @@ const STALE = () => error(409, "stale", "Đơn vừa được người khác s�
 const MONEY_EDIT_FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn (Bán hàng), Kế toán, Quản trị hoặc Toàn quyền mới sửa được số khách của đơn này.");
 const MONEY_EDIT_DRAFT = () => error(409, "use_order_form", "Đơn nháp: sửa số khách ngay trong form đơn.");
 const RACED = () => error(409, "invalid_transition", "Đơn vừa được người khác đổi trạng thái, hãy tải lại.");
-/** Luật giá R2/R3 (Đối tác ADR-0027, Thực tập ADR-0100): `cau` là câu lỗi của `giaDanhMucViolation` — câu theo quyền (Đối tác / chỉ Thực tập). */
+/** Luật giá R2 (Đối tác ADR-0027, Thực tập ADR-0100): `cau` là câu lỗi của `viPhamGiaDanhMuc` — câu theo quyền (Đối tác / chỉ Thực tập). Trần giảm giá: `tranGiamGiaNhap` / `viPhamTranGiamGia`. */
 const GIA_DANH_MUC = (cau: string) => error(403, "forbidden", cau);
 /** ADR-0047 Ruling R1: chặng / danh sách khách của ĐƠN NHÁP đi trong thân `POST/PUT /api/orders`; route riêng chỉ nhận đơn đã xác nhận. */
 const USE_ORDER_FORM = () => error(409, "use_order_form", "Đơn nháp: sửa đưa đón và danh sách hành khách ngay trong form đơn.");
@@ -257,8 +257,42 @@ function priceGuard(staff: PermissionHolder, order: ValidOrder, ctx: OrderValida
   const lyDo = lyDoKhongNhapTay(staff, batNhapTay);
   const frozen = lyDo === null ? null : manualFreezeViolation(order.services, ctx.stored, lyDo);
   if (frozen) return error(400, "invalid_input", frozen);
-  const giaLoi = giaDanhMucViolation(staff, order.items, order.discount); // R2 + R3 cho tài khoản có quyền Đối tác HOẶC Thực tập (`chiGiaDanhMuc`)
+  const giaLoi = viPhamGiaDanhMuc(staff, order.items); // R2 cho tài khoản có quyền Đối tác HOẶC Thực tập (`chiGiaDanhMuc`) — theo NGƯỜI THAO TÁC
   return giaLoi ? GIA_DANH_MUC(giaLoi) : null;
+}
+
+/**
+ * Thành tiền (Σ thành tiền dòng, trước giảm giá cấp đơn) và số khách tính hoa hồng (`soKhachTinhHoaHong`) của MỘT dịch vụ — MỘT công thức cho phần thương mại (`phanThuongMaiCuaDon`)
+ * và trần giảm giá (Task 7). Đứng ngoài thân route (bài `src/so-khach-mot-luat-tien.test.ts` (4): thân route không tính trên tiền dòng).
+ */
+function tienChoHoaHong(s: { unit: string; pax: PaxCounts; items: readonly { quantity: number; lineTotal: number }[] }): { thanhTien: number; soKhachTinh: number } {
+  return { thanhTien: s.items.reduce((t, i) => t + i.lineTotal, 0), soKhachTinh: soKhachTinhHoaHong({ unit: s.unit, pax: s.pax, items: s.items }) };
+}
+
+/** Phản hồi lỗi trần giảm giá (`viPhamTranGiamGia`): 403 luật theo quyền, 400 `discount_exceeds_commission` trần hoa hồng. */
+const TRAN_GIAM_GIA = (v: NonNullable<ReturnType<typeof viPhamTranGiamGia>>) => error(v.status, v.code, v.cau);
+
+/**
+ * Sổ đại lý đợt 2, Task 7 (ADR-0079 điều 8, 9; C8 = A; đặc tả P7) — R3 ở LẬP ĐƠN / LƯU NHÁP, chạy SAU khi biết bên đặt (`resolveBooker`; Đối tác có hồ sơ được hưởng bị ép bên đặt là
+ * chính mình nên trần không xét được trước bước đó). Đơn có người hưởng ⇒ trần = tổng hoa hồng tính thử theo bảng mức HÔM NAY (cùng `docBangChoChup` + `chupDon` với Xác nhận; dòng
+ * thiếu mức tính 0, không lưu gì); đơn không người hưởng ⇒ luật hôm nay (Đối tác kể cả lai 0, Thực tập 0). Giảm giá 0 thì không đọc bảng (0 luôn trong trần). null = đạt.
+ */
+async function tranGiamGiaNhap(db: D1Database, staff: PermissionHolder, order: ValidOrder, bookerPartyId: string | null): Promise<Response | null> {
+  if (order.discount === 0) return null;
+  let don = { coNguoiHuong: false, tongHoaHong: 0 };
+  if (bookerPartyId !== null) {
+    const bang = await docBangChoChup(db, { bookerPartyId, catalogCodes: order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : [])), ngay: vnToday(new Date()) });
+    // Dịch vụ chưa lưu không có id: khoá tạm theo thứ tự (chỉ để ghép bản chụp dự kiến với tiền của dòng, không ghi).
+    const khoa = (i: number) => `dv-${i}`;
+    const chup = chupDon({
+      nguoiHuong: bang.nguoiHuong, ngay: vnToday(new Date()), muc: bang.muc, gan: bang.gan, dieuKhoan: bang.dieuKhoan,
+      dong: order.services.map((s, i) => ({ serviceId: khoa(i), catalogCode: s.catalogCode, groupCode: s.catalogCode ? (bang.nhom.get(s.catalogCode) ?? null) : null })),
+    });
+    const tien = order.services.map((s, i) => ({ id: khoa(i), ...tienChoHoaHong(s) }));
+    don = { coNguoiHuong: coNguoiHuongDon(chup), tongHoaHong: tongHoaHongDon(chup, tien, "tinh0") ?? 0 };
+  }
+  const v = viPhamTranGiamGia(staff, order.discount, don);
+  return v ? TRAN_GIAM_GIA(v) : null;
 }
 
 /** Lỗi kiểm đầu vào → phản hồi: tab cũ 409, giá danh mục vừa đổi 409 kèm chi tiết, còn lại 400. */
@@ -708,7 +742,7 @@ export async function getMyAssignments(db: D1Database, orderIds: readonly string
 export async function phanThuongMaiCuaDon(db: D1Database, orderId: string): Promise<PhanThuongMai | null> {
   const don = await loadOrderView(db, orderId, false);
   if (!don || don.status === "cancelled") return null;
-  const dichVu = don.services.map((s) => ({ id: s.id, name: s.name, thanhTien: s.items.reduce((t, i) => t + i.lineTotal, 0), soKhachTinh: soKhachTinhHoaHong({ unit: s.unit, pax: s.pax, items: s.items }) }));
+  const dichVu = don.services.map((s) => ({ id: s.id, name: s.name, ...tienChoHoaHong(s) }));
   let chup: BanChup[];
   let duKien = false;
   let chuaChup = false;
@@ -1016,6 +1050,8 @@ export const ordersModule: AppModule = {
       if (!ben.ok) return ben.res;
       const booker = await resolveBooker(env.DB, ben.booker, staff.id, new Date());
       if (!booker.ok) return error(400, "invalid_input", booker.message);
+      const tranLoi = await tranGiamGiaNhap(env.DB, staff, placed.value, booker.write.partyId); // Task 7: trần giảm giá theo người hưởng của đơn
+      if (tranLoi) return tranLoi;
       // ADR-0049 D2 (I25, I27): nháp CÓ chặng cần mốc tối thiểu để cảnh báo (không chặn lưu) — gọi ĐÚNG MỘT lần; chưa có mốc → 503 (không đoán).
       const coChang = placed.value.services.some((s) => s.legs.length > 0);
       const moc = coChang ? await mocToiThieu() : null;
@@ -1067,12 +1103,29 @@ export const ordersModule: AppModule = {
       const suaSoKhach: SuaSoKhachDichVuDto[] | null = duocSuaSoKhachVanPhong(staff, order)
         ? ((await findOrder(env.DB, order.id))?.services ?? []).filter((s) => s.catalogCode !== null).map((s) => ({ serviceId: s.id, loaiKhach: [...editablePaxCodesOf(s)] }))
         : null;
+      // Task 7 (ADR-0079 điều 8 gạch 3): sau Xác nhận, giảm giá hiệu lực > tổng hoa hồng (bớt khách) ⇒ cảnh báo «vượt X», không chặn. Chỉ cho người xem được phần thương mại của
+      // đơn theo đúng luật `cheDoThuongMai` (số vượt suy ra được hoa hồng): tài khoản giữ quyền Đối tác (kể cả lai) chỉ thấy trên đơn của chính mình mà người hưởng là hồ sơ của mình.
+      const canhBaoGiamGiaCuaDon = async (): Promise<{ vuot: number } | null> => {
+        if (order.status === "draft" || order.status === "cancelled" || order.bookerPartyId === null || order.giamGiaHieuLuc <= 0) return null;
+        const dauVao = {
+          laDoiTac: holdsPartner(staff), laDonCuaMinh: order.staffId === staff.id, coXemDon: true, coXemThuongMai: can(staff, "order.terms.view", scope),
+          chiXemDonDuocGiao: seesOnlyAssignedOrders(staff), partyId: staff.partyId,
+        };
+        const truoc = cheDoThuongMai({ ...dauVao, nguoiHuong: [] });
+        if (truoc !== "doiTac" && truoc !== "vanPhong") return null;
+        const phan = await phanThuongMaiCuaDon(env.DB, order.id);
+        if (!phan || phan.duKien || phan.chuaChup) return null;
+        const che = cheDoThuongMai({ ...dauVao, nguoiHuong: phan.chup.map((c) => c.beneficiaryPartyId) });
+        if (che !== "doiTac" && che !== "vanPhong") return null;
+        return canhBaoGiamGiaDon({ coNguoiHuong: coNguoiHuongDon(phan.chup), tongHoaHong: tongHoaHongDon(phan.chup, phan.dichVu, "null"), giamGiaHieuLuc: order.giamGiaHieuLuc });
+      };
       // Đơn đã "Đã giao" bị khoá (ADR-0025 đ5) ⇒ không còn nút sửa (giao diện chỉ ẩn/hiện; máy chủ từ chối ở mọi route ghi).
       return json({
         order, history, canModify: can(staff, "order.modify", scope) && order.deliveredAt === null, mocToiThieuPhut: moc?.phut ?? null, suaSoKhach,
         canhBaoKhuyenMai: await nhacKhuyenMaiCuaDon(env.DB, order), // ADR-0114 D1: người xem đã qua `money.view` ở trên (giảm giá là dữ liệu tiền) — không lộ thêm gì
         // ADR-0114 D2: lịch sử số khách CHỈ cho người qua `order.history.view` với đơn này (cùng điều kiện khối `history` ở trên), còn lại null — không đổi ai được xem gì.
         lichSuSoKhach: can(staff, "order.history.view", scope) ? await lichSuSoKhachCuaDon(env.DB, order) : null,
+        canhBaoGiamGia: await canhBaoGiamGiaCuaDon(),
       } satisfies OrderDetailResponse);
     }),
 
@@ -1115,6 +1168,8 @@ export const ordersModule: AppModule = {
         ? { ok: true as const, write: { partyId: meta.bookerPartyId, before: [], note: null } }
         : await resolveBooker(env.DB, ben.booker, staff.id, new Date(), { id: meta.bookerPartyId, name: meta.bookerName });
       if (!booker.ok) return error(400, "invalid_input", booker.message);
+      const tranLoi = await tranGiamGiaNhap(env.DB, staff, placed.value, booker.write.partyId); // Task 7: trần giảm giá theo người hưởng của đơn
+      if (tranLoi) return tranLoi;
       // ADR-0047: lưu nháp xoá–chèn lại chặng — giữ `created_*` của chặng gửi lại cùng id.
       const legMeta = new Map(ctx.stored.flatMap((s) => s.legs.map((l) => [l.id, { createdAt: l.createdAt, createdBy: l.createdBy }] as const)));
       // ADR-0049 D2: nháp có chặng → mốc (một lần; chưa có → 503). Q1 = (a): chặng khớp ĐÚNG MỘT chặng cũ đã đặt gấp thì mang dấu cũ (đọc từ CSDL).
@@ -1436,6 +1491,13 @@ export const ordersModule: AppModule = {
           nguoiHuong: bang.nguoiHuong, ngay: homNay, muc: bang.muc, gan: bang.gan, dieuKhoan: bang.dieuKhoan,
           dong: order.services.map((s) => ({ serviceId: s.id, catalogCode: s.catalogCode, groupCode: s.catalogCode ? (bang.nhom.get(s.catalogCode) ?? null) : null })),
         });
+        // Task 7 (đặc tả P7): bên đặt mới làm đơn có người hưởng mà giảm giá HIỆU LỰC (số của hàm phải thu `effectiveMoney`) > tổng hoa hồng theo bản chụp mới ⇒ từ chối đổi, nêu hai số.
+        // Tiền dòng HIỆN HÀNH (`loadOrderView`, đã áp dòng điều chỉnh số khách); dòng thiếu mức tính 0 (thận trọng như trần nháp).
+        const hienHanh = await loadOrderView(env.DB, id, false);
+        if (!hienHanh) return NOT_FOUND();
+        const tien = hienHanh.services.map((s) => ({ id: s.id, ...tienChoHoaHong(s) }));
+        const vuotTran = cauDoiBenDatVuotHoaHong({ coNguoiHuong: coNguoiHuongDon(chup), tongHoaHong: tongHoaHongDon(chup, tien, "tinh0") ?? 0, giamGiaHieuLuc: hienHanh.giamGiaHieuLuc });
+        if (vuotTran) return error(409, "discount_exceeds_commission", vuotTran);
         kemChup = (at) => [
           ...cauChupChuoi(env.DB, chup.map((c) => dongGhiTuChup(c, { id: crypto.randomUUID(), orderId: id, ngay: homNay, at, by: staff.id, source: "AUTO", reason: null, supersedesId: cu.get(c.serviceId) ?? null }))),
           auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "order_terms_recaptured", at, detail: moTaChup(chup) }, "changes() > 0"),
@@ -1490,9 +1552,9 @@ export const ordersModule: AppModule = {
       } else {
         const today = vnToday(new Date());
         const order = await findOrder(env.DB, id);
-        // DK-T3-01 R2 + R3: xác nhận là bước phát phiếu gửi khách mang tên/MST công ty → tài khoản có quyền Đối tác HOẶC Thực tập (ADR-0100) chỉ xác nhận được đơn
-        // mà MỌI dòng đúng giá danh mục (bắt cả đơn nháp CŨ lập trước bản vá, và dòng nhập tay cũ — không có giá danh mục) VÀ giảm giá ĐÃ LƯU không vượt trần (hôm nay 0).
-        const giaLoi = order ? giaDanhMucViolation(staff, order.services.flatMap((s) => s.items), order.discount) : null;
+        // DK-T3-01 R2: xác nhận là bước phát phiếu gửi khách mang tên/MST công ty → tài khoản có quyền Đối tác HOẶC Thực tập (ADR-0100) chỉ xác nhận được đơn
+        // mà MỌI dòng đúng giá danh mục (bắt cả đơn nháp CŨ lập trước bản vá, và dòng nhập tay cũ — không có giá danh mục). R3 (trần giảm giá ĐÃ LƯU) kiểm SAU khi tính bản chụp (Task 7).
+        const giaLoi = order ? viPhamGiaDanhMuc(staff, order.services.flatMap((s) => s.items)) : null;
         if (giaLoi) return GIA_DANH_MUC(giaLoi);
         // ADR-0114 D3: cửa xác nhận đọc số khách ĐÃ LƯU (nháp cũ lập trước ADR có thể không có người lớn); lập đơn / lưu nháp đã chặn ở `validateOrder`.
         if (order && donThieuNguoiLon(order.services.map((s) => s.pax))) return error(409, "thieu_nguoi_lon", CAU_THIEU_NGUOI_LON);
@@ -1509,6 +1571,13 @@ export const ordersModule: AppModule = {
           nguoiHuong: bang.nguoiHuong, ngay: today, muc: bang.muc, gan: bang.gan, dieuKhoan: bang.dieuKhoan,
           dong: order.services.map((s) => ({ serviceId: s.id, catalogCode: s.catalogCode, groupCode: s.catalogCode ? (bang.nhom.get(s.catalogCode) ?? null) : null })),
         }) : [];
+        // Task 7 (ADR-0079 điều 8 gạch 2): R3 theo BẢN CHỤP VỪA TÍNH (chính các dòng sẽ chèn trong lô dưới) — đơn có người hưởng: trần = tổng hoa hồng (dòng thiếu mức tính 0);
+        // không người hưởng: luật hôm nay (Đối tác, Thực tập 0). Giảm giá là số ĐÃ LƯU; tiền dòng đọc từ `order` (đơn nháp: chưa có dòng điều chỉnh).
+        if (order) {
+          const tien = order.services.map((s) => ({ id: s.id, ...tienChoHoaHong(s) }));
+          const tranLoi = viPhamTranGiamGia(staff, order.discount, { coNguoiHuong: coNguoiHuongDon(chup), tongHoaHong: tongHoaHongDon(chup, tien, "tinh0") ?? 0 });
+          if (tranLoi) return TRAN_GIAM_GIA(tranLoi);
+        }
         const kemChup = (at: string): D1PreparedStatement[] => [
           ...cauChupChuoi(env.DB, chup.map((c) => dongGhiTuChup(c, { id: crypto.randomUUID(), orderId: id, ngay: today, at, by: staff.id, source: "AUTO", reason: null, supersedesId: null }))),
           auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "order_terms_captured", at, detail: moTaChup(chup) }, "changes() > 0"),
