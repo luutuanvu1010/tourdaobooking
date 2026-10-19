@@ -1,6 +1,6 @@
 # Trang ghép lượt 1 — ADR-0133 + ADR-0134 (CLAUDE.md §9 "Bước ghép khi duyệt")
 
-> Kèm `DE-XUAT-ADR-0133-don-khong-don-khung-gio.md` và `DE-XUAT-ADR-0134-nhap-rieng-tu-khong-thu.md`. Hai quyết định chạm quyền / dữ liệu (≤ 3). Tệp:dòng đúng tại commit `305aae77` (bản sửa riêng `worktree-xac-nhan-don`, 19/10), người soạn đã đọc từng chỗ.
+> Kèm `DE-XUAT-ADR-0133-don-khong-don-khung-gio.md` và `DE-XUAT-ADR-0134-nhap-rieng-tu-khong-thu.md`. Hai quyết định chạm quyền / dữ liệu (≤ 3). Tệp:dòng đúng tại commit `b1ba5dac` (bản sửa riêng `worktree-xac-nhan-don`, 19/10; mã nguồn giống hệt `305aae77`, các lần lưu sau chỉ thêm hồ sơ), người soạn đã đọc từng chỗ.
 
 ## 1. Bảng bị chạm chứa những loại thực thể nào
 
@@ -40,7 +40,10 @@
 | `/api/orders/dashboard` `:784`, `/dem-nhap` `:794` | ba ô không ngữ cảnh; `countDrafts` đếm **cả công ty** `repository.ts:705-708`; `unassignedCount` gồm cả nháp `repository.ts:746-748` | `draftCount` = nháp của người gọi; `unassignedCount` chỉ `confirmed` — **kế hoạch Task 2.1 chưa nêu `unassignedCount`** |
 | `/api/orders/pool` `:805-815` | `order.pool.view` + `!holdsPartner`; nguồn `listPoolSources` lấy `status IN ('draft','confirmed')` `repository.ts:592-598` | chỉ `confirmed` |
 | `PUT /api/orders/:id/handler` `src/modules/dispatch/index.ts:157` | sàng `dispatch.claim`/`dispatch.assign`; Nhận chỉ chặn đơn huỷ `:180` | nháp: Nhận → 409; giao bởi người khác người lập → 404 |
-| Route ghi của orders (`PUT /:id` `:1000-1006`, `/status` `:1386-1394`, `/legs*` `:1105-1183`, `/passengers` POST `:1257`, `/booker` `:1326`) | `can(order.modify, {ownerId, assigned})` | thêm luật nháp: chỉ người lập (Đ2) — **kế hoạch Task 2.1 chỉ nêu route đọc** |
+| Route ghi của orders (`PUT /:id` `:1000-1006`, `PUT /:id/trip` `:1060`, `/legs*` `:1105-1183`, `/passengers` POST `:1257`, `/booker` `:1326`, `/status` `:1386-1394`, `POST /:id/thuong-mai/:serviceId` `:1528`) | `can(order.modify, {ownerId, assigned})` (hoặc ô riêng của từng route) | thêm luật nháp: chỉ người lập (Đ2) — **kế hoạch Task 2.1 chỉ nêu route đọc** |
+| `POST /api/orders/:id/handler-cancel` `src/modules/dispatch/index.ts:218`, `/handler-money-edit` `:249` | ô của HDV | **đã chặn nháp sẵn** bằng `NOT_CONFIRMED` — không cần sửa |
+| `GET /api/van-chuyen/xe-cua-don/:orderId` `src/modules/van-chuyen/index.ts:2358-2365` | `can(trip.view)` + `can(order.view)` **không ngữ cảnh**; `donTonTai` đọc `v_ord_order_label` (`src/modules/van-chuyen/chuyen-repo.ts:1026`) không xét trạng thái ⇒ **200 cho nháp người khác** | nháp của người khác ⇒ 404 (Đ1) — **kế hoạch chưa nêu** |
+| `GET /api/dispatch/mine` `src/modules/dispatch/index.ts:142`; `findHandledOrderIds` `src/modules/dispatch/repository.ts:65` (và câu đếm `:113`) tính mọi HANDLE mở, kể cả trên nháp; tập này cũng là `myHandledOrderIds` dùng chung (nhánh "mình phụ trách" của `GET /api/orders`) | `contact.view`/`money.view` `{assigned:true}` | bỏ đơn nháp khỏi tập "tôi phụ trách" (Đ5) — **kế hoạch chưa nêu** |
 | `POST …/legs/:legId/short-notice` `:1214-1226` | chỉ ô `order.leg.short_notice`, **không** hỏi `order.view` | không đổi mã; vấn đề là Quản trị không còn thấy nháp để bấm (Q1) |
 | `GET /api/orders/:id/receipt` `src/modules/receipt/index.ts:22-28`; `/qr-thanh-toan` `:39-46` | `order.view` → `money.view` (+`contact.view`); QR **không** xét trạng thái | luật nháp → 404 cho người khác; QR: đơn không `confirmed` → 409 `qr_requires_confirmed` (cả người lập) |
 | `GET /api/orders/:id/payments` `src/modules/billing/index.ts:57`; cờ `coTheGhiThu` `:82` | `order.view`; cờ chỉ xét đơn huỷ | luật nháp; cờ thêm `status !== 'draft'` |
@@ -67,7 +70,7 @@
 - **Hàng chờ nhận của HDV** (trang dùng `GET /api/orders/pool`) → không còn nháp.
 - **Ô "ĐƠN NHÁP … chờ duyệt đặt gấp"** bảng điều phối `web/dieu-phoi.ts:131, 135` → chỉ đơn đã gửi xác nhận; nên đổi chữ thành "Chờ xác nhận" ở lượt 2.
 - **Hộp "Xác nhận đơn để gửi khách"** tự bật sau khi lập `web/order.ts:95-107, 1511`: lượt 1 không đổi (ADR-0135 Đ11 đổi).
-- **Khối đưa đón** `web/khoi-dua-don.ts:368` ("Không đưa đón"), ô giờ chặng → hai nút Đón / Không đón + hàng khung (ADR-0133).
+- **Khối đưa đón** `web/khoi-dua-don.ts:489` ("Không đưa đón"), ô giờ chặng → hai nút Đón / Không đón + hàng khung (ADR-0133).
 
 ## 4. Lỗ đang hở (`docs/quyen-hoan.json`, mục `phat_hien`)
 

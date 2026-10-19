@@ -11,6 +11,15 @@
 
 Lượt 2 chỉ trình sau khi lượt 1 đã duyệt; lượt 1 đổi thì trang ghép lượt 2 phải soát lại.
 
+**Cách đếm "≤ 3 quyết định":** mỗi ADR là một quyết định; mỗi lượt có **hai** ADR. Để chủ thấy hết phần chạm quyền / dữ liệu bên trong, các điều khoản đó liệt kê dưới đây:
+
+| ADR | Điều khoản chạm dữ liệu | Điều khoản chạm quyền / tiền |
+|---|---|---|
+| 0133 | Đ1 cột `pickup_choice`; Đ3 cột `pickup_slot_end`; Đ5 bảng chính sách khung giờ | Đ6 đổi khung chỉ Toàn quyền (ô có sẵn) |
+| 0134 | không đổi bảng | Đ1 đọc nháp chỉ người lập; Đ2 ghi nháp chỉ người lập; Đ4 hàng chờ nhận chỉ đơn đã xác nhận; Đ5 người phụ trách chọn sẵn; Đ6 tin; Đ7 nháp không ghi thu (cả chuyển cọc); Đ8 QR chỉ đơn đã xác nhận, bỏ ô Thanh toán trước; Đ9 lịch chung điều phối |
+| 0135 | Đ1 bảng cờ dịch vụ; Đ2 bảng yêu cầu xác nhận; Đ5 bảng công tắc | Đ4 ô mới `order.confirm.review`; Đ5 ai quyết định; Đ6 nới đọc có giới hạn; Đ7 Hết vé tự gán lý do; Đ8 sửa tiền khi chờ; Đ10 tin cho Đối tác / Thực tập |
+| 0136 | không bảng (nếu chọn Đ5 phương án b) | Đ1–Đ3 gửi dữ liệu ra ngoài (email, số tài khoản, số tiền); Đ4 mã bên thứ ba chạy ở máy chủ |
+
 ## Câu hỏi chủ cần trả lời khi duyệt lượt 1
 1. **Đặt gấp cho nháp của người khác** (ADR-0134 Q1): nháp riêng tư làm Quản trị hết đường thấy đơn sát giờ của Bán hàng / Đối tác để bấm Đặt gấp. Khuyến nghị: nháp có chặng dưới mốc cũng phải "Gửi xác nhận", và không phát hành Đợt 2 trước Đợt 3.
 2. **"Chỉ người tạo đọc" có gồm "chỉ người tạo ghi"** (ADR-0134 Q2). Khuyến nghị: có.

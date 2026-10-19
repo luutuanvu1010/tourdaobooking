@@ -8,7 +8,7 @@
 - **Xây trên lỗ đang hở:** không (không chạm tiền, sổ, khôi phục — xem trang ghép mục 4).
 
 ## Bối cảnh
-Chủ dự án 19/10 (đặc tả `2026-10-19-xac-nhan-don-design.md` Phần B, lượt 3): *mỗi dịch vụ bắt buộc chọn "Đón" hoặc "Không đón"; chưa chọn thì không gửi/xác nhận được; mẫu chặng chỉ quyết lựa chọn gợi ý sẵn*; người lập chọn một khung trong danh sách **hoặc "Giờ khác"** để gõ giờ chính xác; khung mặc định 07:30–08:00, 08:00–08:30, 08:30–09:00, 09:00–09:30, 09:30–10:00 (24 giờ), kèm câu *"Giờ đón thực tế có thể điều chỉnh cho phù hợp tình hình hoạt động."* Hôm nay khối đưa đón chỉ tự mở với mẫu một chiều / khứ hồi; dịch vụ khác chỉ có dòng chữ nhỏ "Không đưa đón" (`web/khoi-dua-don.ts:368`), người lập dễ bỏ sót.
+Chủ dự án 19/10 (đặc tả `2026-10-19-xac-nhan-don-design.md` Phần B, lượt 3): *mỗi dịch vụ bắt buộc chọn "Đón" hoặc "Không đón"; chưa chọn thì không gửi/xác nhận được; mẫu chặng chỉ quyết lựa chọn gợi ý sẵn*; người lập chọn một khung trong danh sách **hoặc "Giờ khác"** để gõ giờ chính xác; khung mặc định 07:30–08:00, 08:00–08:30, 08:30–09:00, 09:00–09:30, 09:30–10:00 (24 giờ), kèm câu *"Giờ đón thực tế có thể điều chỉnh cho phù hợp tình hình hoạt động."* Hôm nay khối đưa đón chỉ tự mở với mẫu một chiều / khứ hồi; dịch vụ khác chỉ có dòng chữ nhỏ "Không đưa đón" (`web/khoi-dua-don.ts:489`), người lập dễ bỏ sót.
 
 ## Quyết định
 1. **Đ1 — Lựa chọn đón theo dịch vụ.** Cột mới `order_service.pickup_choice` (mã `DON` | `KHONG_DON`, kiểm ở mã, không `CHECK` liệt kê); NULL = chưa chọn hoặc đơn cũ.
