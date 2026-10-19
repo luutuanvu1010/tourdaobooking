@@ -307,6 +307,22 @@ test("Task 8 «thu cho ai» (route thật): HDV thu 300.000 không chọn ⇒ ph
   assert.deepEqual(r.phan.map((p: { nguoiBan: string; daTra: number; conLai: number }) => [p.vaiTourDao, p.daTra, p.conLai]), [["nguoi_ban", 300_000, 700_000], ["doi_tac_dat_ve", 100_000, 500_000]]);
 });
 
+test("Task 8 «thu cho» rồi Kế toán đảo (route thật — M-1 người kiểm Task 8+9): HDV thu 100.000 «thu cho» i-resort, Kế toán đảo lần thu ⇒ phần i-resort đã trả 0, còn 600.000; khoản thu khác vẫn ở phần Tour Đảo", async () => {
+  const { w } = await dung();
+  const id = await don(w, { booker: null, dichVu: [VE_HT, VE_IR] });
+  await thuR(w, R_HDV, id, { soTien: 300_000, nguoiThu: "toi" });
+  await thuR(w, R_HDV, id, { soTien: 100_000, nguoiThu: "toi", thuChoNhaCungCapPartyId: R_NCC });
+  const truoc = (await bienNhan(w, id)).json.receipt;
+  assert.deepEqual(truoc.phan.map((p: { daTra: number }) => p.daTra), [300_000, 100_000], "có răng: trước khi đảo, khoản «thu cho» nằm ở phần i-resort");
+  const lt = await w.call("GET", `/api/orders/${id}/payments`, { as: R_KT });
+  const rc = lt.json.lanThu.find((l: { soTien: number }) => l.soTien === 100_000)?.id;
+  assert.ok(rc, lt.text);
+  const d = await w.call("POST", "/api/ledger/adjustments", { as: R_KT, body: { loai: "dao_lan_thu", receiptId: rc, lyDo: "ghi nhầm người thu" } });
+  assert.ok(d.status === 200 || d.status === 201, d.text);
+  const r = (await bienNhan(w, id)).json.receipt;
+  assert.deepEqual(r.phan.map((p: { vaiTourDao: string; daTra: number; conLai: number }) => [p.vaiTourDao, p.daTra, p.conLai]), [["nguoi_ban", 300_000, 700_000], ["doi_tac_dat_ve", 0, 600_000]]);
+});
+
 test("Task 8 số lạ (route thật): a% 48,17% (4817), giá vốn 470.019, hoa hồng 460.023/khách, HDV «Nam Số Lạ 4817» thu — sau «Đã giao» biên nhận của Bán hàng, Đối tác, Kế toán không chứa số / tên nào; Kế toán THẤY chúng ở phần thương mại (có răng)", async () => {
   // 975.750 × 48,17% = 470.018,775 ⇒ làm tròn 470.019 (giá vốn); hoa hồng 460.023 đ/khách × 1 khách mỗi dòng. Không số tiền nào khác chứa số lạ.
   const { w } = await dung({ tenHdv: "Nam Số Lạ 4817", tyLeMuaBp: 4817, hoaHong: { kieu: "PER_PAX", moiKhach: 460_023 } });

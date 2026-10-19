@@ -480,3 +480,29 @@ test("Task 9 (5) — người kiểm Task 5: «thu cho» của tài khoản Đ�
   assert.equal(k.status, 400, k.text);
   assert.equal(k.json.error.message, "Đơn xác nhận trước khi có bảng mức, chưa chụp mức — Kế toán bấm Chụp bù rồi mới ghi được khoản khách trả cho đại lý.");
 });
+
+test("Task 9 (6) — I-1 người kiểm Task 8+9: tài khoản lai Kế toán + Đối tác ⇒ thân 409 của «Hoàn thành» không tên / số người khác giữ; khối cọc của đơn huỷ không tên người giữ tiền (Kế toán thuần thấy — có răng)", async () => {
+  const w = await dungT9();
+  // (a) `POST /api/orders/:id/completed` trên đơn đã giao còn người giữ tiền (HDV 500.000, i-resort 120.000, Đại Lý A 140.000).
+  const id = await donDaGiaoT9(w, DT_A);
+  const kt = await w.call("POST", `/api/orders/${id}/completed`, { as: KT, body: {} });
+  assert.equal(kt.status, 409, kt.text);
+  assert.match(kt.json.error.message, /Nam Số Lạ 4817 còn 500\.000 ₫ chưa nộp/, "có răng: Kế toán thuần thấy tên và số");
+  assert.match(kt.json.error.message, /i-resort còn 120\.000 ₫ chưa nộp/);
+  const lai = await w.call("POST", `/api/orders/${id}/completed`, { as: T9_KTP, body: {} });
+  assert.equal(lai.status, 409, lai.text);
+  for (const cam of ["Nam Số Lạ", "4817", "i-resort", "Đại Lý A", "500.000", "120.000", "140.000"]) assert.ok(!lai.text.includes(cam), `lai thấy «${cam}»: ${lai.text}`);
+  assert.match(lai.json.error.message, /còn khoản của bên khác — Kế toán xử lý/, lai.text);
+
+  // (b) Khối cọc của đơn huỷ: HDV «Nam Số Lạ 4817» đang giữ 300.000 tiền khách trả trước.
+  const huy = await daXacNhan(w, `pty-${DT_A}`, [["HONTAM", 1_000_000]], DT_A);
+  phanCongT9(w, huy);
+  await ghiT9(w, T9_HDV, huy, { soTien: 300_000, nguoiThu: "toi" });
+  const c = await w.call("POST", `/api/orders/${huy}/status`, { as: SUP, body: { status: "cancelled", lyDo: "THOI_TIET" } });
+  assert.equal(c.status, 200, c.text);
+  const ktCoc = (await tienT9(w, huy, KT)).json.coc;
+  assert.deepEqual(ktCoc.nguoiGiu, [{ ten: TEN_HDV, soTien: 300_000 }], "có răng: Kế toán thuần thấy người giữ tiền");
+  const r = await tienT9(w, huy, T9_KTP);
+  assert.equal(r.json.coc.nguoiGiu, null, `lai thấy người giữ: ${JSON.stringify(r.json.coc.nguoiGiu)}`);
+  for (const cam of ["Nam Số Lạ", "4817"]) assert.ok(!r.text.includes(cam), `lai thấy «${cam}» ở màn tiền đơn huỷ: ${r.text}`);
+});
