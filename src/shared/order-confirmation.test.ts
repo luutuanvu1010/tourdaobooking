@@ -47,7 +47,7 @@ function one<K extends Kind>(m: ConfirmationModel, kind: K): Extract<Confirmatio
   return all[0]!;
 }
 const build = (o: DonMau, handler: string | null | typeof HANDLER_HIDDEN = "Lê Minh Tuấn", company: CompanyDto = COMPANY): ConfirmationModel =>
-  buildConfirmation(dungBienNhan(o, company, { daTra: o.paid, conLai: o.remaining }), handler);
+  buildConfirmation(dungBienNhan(o, company, { daTra: o.paid, conLai: o.remaining }, null), handler);
 /** Giá trị của dòng nhãn/giá trị có nhãn `label` (undefined = không có dòng đó). */
 const value = (rows: { label: string; value: string }[], label: string): string | undefined => rows.find((r) => r.label === label)?.value;
 const details = (s: OrderServiceDto): { label: string; value: string }[] => one(build(order({ services: [s] })), "service").details;
@@ -332,7 +332,7 @@ test("làm sạch: chuỗi chỉ toàn ký tự điều khiển/bidi coi như r�
 // ---- ADR-0089 đ3, đ9a, đ10 (năm lỗi tiền Đợt 1 Phần C): nhãn tiền, thông báo huỷ, điều khoản huỷ ----
 const HUY = (h: Partial<NonNullable<ReceiptDto["huy"]>> = {}): NonNullable<ReceiptDto["huy"]> => ({ nhom: "KHACH_HUY", daTra: 500_000, dangDoiChieu: 0, daDuyet: 0, daChi: 0, daChuyen: 0, daDuyetChuyen: 0, han: "2027-01-09", ...h });
 const buildHuy = (h: NonNullable<ReceiptDto["huy"]>) =>
-  buildConfirmation(dungBienNhan({ ...order(), status: "cancelled" }, COMPANY, { daTra: h.daTra, conLai: 0, huy: h }), null);
+  buildConfirmation(dungBienNhan({ ...order(), status: "cancelled" }, COMPANY, { daTra: h.daTra, conLai: 0, huy: h }, null), null);
 
 test("NT-V2 (đ9a): đơn huỷ → tiêu đề THÔNG BÁO HUỶ, KHÔNG dòng 'Còn lại', có 'Khách hàng đã trả trước'; khách huỷ chưa duyệt → câu chính sách", () => {
   const m = buildHuy(HUY());
@@ -363,7 +363,7 @@ test("NT-V2 (đ9a): đã duyệt → 'Tour Đảo hoàn Y' (khách huỷ thêm '
 test("NT-V1 + NT-V3 (đ3, đ10): ảnh xác nhận — 'Khách hàng đã trả trước' trước Đã giao, 'Đã thu' sau Đã giao; dòng điều khoản huỷ kèm đường dẫn", () => {
   const truoc = one(build(order()), "summary").rows.map((r) => r.label);
   assert.ok(truoc.includes("Khách hàng đã trả trước") && truoc.includes("Còn lại"));
-  const sau = one(buildConfirmation(dungBienNhan({ ...order(), status: "confirmed", deliveredAt: "2026-10-01T00:00:00.000Z" }, COMPANY, { daTra: 1_000_000, conLai: 0 }), null), "summary").rows.map((r) => r.label);
+  const sau = one(buildConfirmation(dungBienNhan({ ...order(), status: "confirmed", deliveredAt: "2026-10-01T00:00:00.000Z" }, COMPANY, { daTra: 1_000_000, conLai: 0 }, null), null), "summary").rows.map((r) => r.label);
   assert.ok(sau.includes("Đã thu") && !sau.includes("Khách hàng đã trả trước"));
   assert.equal(one(build(order()), "footer").lines[0], "Khi khách huỷ, tiền cọc không được hoàn lại. Xem đầy đủ: tourdao.vn/chinh-sach-thanh-toan");
 });

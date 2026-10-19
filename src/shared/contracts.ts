@@ -2365,6 +2365,28 @@ export interface ReceiptDto {
    * `dangDoiChieu` = khoản khai chuyển khoản chưa xác nhận, `daDuyet` / `daChi` / `daChuyen` theo khoản duyệt, `han` = hạn hoàn cọc (chỉ nhóm khách huỷ hứa ngày).
    */
   huy: { nhom: "KHACH_HUY" | "CONG_TY_HUY" | "LAP_LAI" | "CHUA_KET_LUAN"; daTra: number; dangDoiChieu: number; daDuyet: number; daChi: number; daChuyen: number; daDuyetChuyen: number; han: string } | null;
+  /**
+   * Sổ đại lý đợt 2 (ADR-0078 điều 10; đặc tả P5): các phần của biên nhận, MỖI NGƯỜI BÁN một phần — phần Tour Đảo đứng đầu, rồi nhà cung cấp theo thứ tự dịch vụ.
+   * Đơn chỉ một người bán ⇒ một phần; đơn huỷ ⇒ mảng rỗng (biên nhận huỷ đọc `huy`). Danh sách trắng KHÔNG đổi: không a%, giá vốn, hoa hồng, tên người thu, hình thức.
+   * Luật chia (`chiaPhanBienNhan`, module receipt): xem `ReceiptPhanDto`. Σ `tong` = `total`; Σ `daTra` = `daTra`; Σ `conLai` = `conLai`.
+   */
+  phan: ReceiptPhanDto[];
+}
+/**
+ * Một phần của biên nhận (sổ đại lý đợt 2, Task 8). `nguoiBan` = tên người bán (Tour Đảo: tên pháp lý công ty chủ); `vaiTourDao` = vai của Tour Đảo trong phần này
+ * («nguoi_ban» khi Tour Đảo bán; «doi_tac_dat_ve» khi nhà cung cấp bán, Tour Đảo là đối tác đặt vé); `dichVu` = tên các dịch vụ của phần; `tong` = số khách phải trả
+ * cho phần này SAU giảm giá; `giamGia` = phần giảm giá đã trừ vào phần này (giảm giá trừ vào phần Tour Đảo trước — Ruling R-81 sổ thi công); `daTra` = đã trả cho
+ * phần này theo «thu cho ai» của khoản thu (không chọn ⇒ phần Tour Đảo); `conLai` ≥ 0; `traTaiQuay` = còn lại trả tại quầy người bán (phần nhà cung cấp).
+ */
+export interface ReceiptPhanDto {
+  nguoiBan: string;
+  vaiTourDao: "nguoi_ban" | "doi_tac_dat_ve";
+  dichVu: string[];
+  tong: number;
+  giamGia: number;
+  daTra: number;
+  conLai: number;
+  traTaiQuay: boolean;
 }
 export interface ReceiptResponse { receipt: ReceiptDto }
 

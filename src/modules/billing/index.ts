@@ -16,10 +16,11 @@ import { docGhiChuKy, khoaKyStatements, kiemKhoaKy, thangDaKhoa } from "../ky-so
 import { donDangThuTien, phanThuongMaiCuaDon, thongTinGiaoDon } from "../orders";
 import { danhSachYeuCau, duyetYeuCau, ruYeuCau, taoYeuCau, tuChoiYeuCau } from "./dieu-chinh";
 import { donChoNhapKeToan, docNhapKeToan, ghiNhapKeToan } from "./nhap-ke-toan";
-import { accountingEnteredAmong, earliestLedgerMonth, orderOwners, soDongNoCuaNguoiRow } from "./repository";
+import { accountingEnteredAmong, earliestLedgerMonth, orderOwners, receiptsOfOrder, soDongNoCuaNguoiRow } from "./repository";
+import { daTraTheoThuCho } from "./rules";
 import { cocChoBienNhan, cocCuaDon, danhSachCoc, demCoc, doiChieuCoc, ghiChiHoan, ghiChuyen, ghiDuyet, ghiHoanNgoai, ghiHuyDuyet, xacNhanHoanNgoai } from "./coc";
 import {
-  daGiao, ghiDieuChinh, ghiHoanKhach, ghiLanThu, ghiQuyetToan, hoanThanh, kySoResponse, soCongNo, soCuaToi, tienCuaDon, tienNhieuDon, xacNhanBenKia, xacNhanCongTyNhan, type NguoiGoi,
+  daGiao, ghiDieuChinh, ghiHoanKhach, ghiLanThu, ghiQuyetToan, hoanThanh, kySoResponse, soCongNo, soCuaToi, tienCuaDon, tienNhieuDon, toReceiptRow, xacNhanBenKia, xacNhanCongTyNhan, type NguoiGoi,
 } from "./service";
 import { ghiThayLanThu } from "./thay-lan-thu";
 
@@ -471,10 +472,13 @@ export const billingModule: AppModule = {
   ],
 };
 
-/** API công khai cho module `receipt` (biên nhận — Task 8): đã trả / còn lại của một đơn, cùng hàm `conLai` (một nguồn). KHÔNG tự kiểm quyền. */
-export async function soTienBienNhan(db: D1Database, orderId: string): Promise<{ daTra: number; conLai: number; huy: ReceiptDto["huy"] } | null> {
-  const [t, huy] = await Promise.all([tienNhieuDon(db, [orderId]).then((m) => m.get(orderId)), cocChoBienNhan(db, orderId)]);
-  return t ? { daTra: t.daThu, conLai: t.conLai, huy } : null;
+/**
+ * API công khai cho module `receipt` (biên nhận — Task 8 lượt 1): đã trả / còn lại của một đơn, cùng hàm `conLai` (một nguồn). KHÔNG tự kiểm quyền.
+ * Sổ đại lý đợt 2 Task 8: thêm `theoThuCho` = đã trả ròng theo «thu cho ai» (`daTraTheoThuCho`) để biên nhận chia phần theo người bán — chỉ số tiền khách trả, không người thu.
+ */
+export async function soTienBienNhan(db: D1Database, orderId: string): Promise<{ daTra: number; conLai: number; huy: ReceiptDto["huy"]; theoThuCho: ReadonlyMap<string, number> } | null> {
+  const [t, huy, receipts] = await Promise.all([tienNhieuDon(db, [orderId]).then((m) => m.get(orderId)), cocChoBienNhan(db, orderId), receiptsOfOrder(db, orderId)]);
+  return t ? { daTra: t.daThu, conLai: t.conLai, huy, theoThuCho: daTraTheoThuCho(receipts.map(toReceiptRow)) } : null;
 }
 
 /** API công khai cho `receipt` (QR thanh toán — ADR-0108 đ3): còn lại + đơn đã "Đã giao" chưa, cùng hàm `conLai` (một nguồn). KHÔNG tự kiểm quyền. */

@@ -1,11 +1,116 @@
 // Luật THUẦN của biên nhận (module receipt — ADR-0024 đ1, ADR-0026 đ11; kế hoạch Task 8): dựng `ReceiptDto` theo DANH SÁCH TRẮNG — chép TỪNG trường được
 // phép, KHÔNG BAO GIỜ trải đối tượng nguồn (`...order`), nên thêm một trường bí mật vào đơn/sổ sau này không thể tự lọt ra biên nhận. Không I/O.
-import type { CompanyDto, OrderDetailDto, QrThanhToanDto, ReceiptDto } from "../../shared/contracts.ts";
+import type { CompanyDto, OrderDetailDto, QrThanhToanDto, ReceiptDto, ReceiptPhanDto } from "../../shared/contracts.ts";
+import type { BanChup } from "../../shared/hoa-hong-dong.ts";
 import { noiDungChuyenKhoan } from "../../shared/noi-dung-chuyen-khoan.ts";
 import { trangThaiHienThi } from "../../shared/order-status-label.ts";
 import { payloadVietQr } from "../../shared/vietqr.ts";
 
-export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: { daTra: number; conLai: number; huy?: ReceiptDto["huy"] }): ReceiptDto {
+/**
+ * Người bán của từng dịch vụ, do route đọc (`phanThuongMaiCuaDon` của orders, SAU `can(`) — chỉ ba trường cần để chia phần. `chup` mang cả mức hoa hồng, a% giá vốn,
+ * người hưởng; `ten` mang cả tên người hưởng: hàm dưới CHỈ đọc `cungUng.sellerPartyId` và tên NGƯỜI BÁN, không chép gì khác (bài số lạ ở bien-nhan.test.ts).
+ * null = không đọc được (đơn huỷ / vừa biến mất) ⇒ mọi dịch vụ vào phần Tour Đảo.
+ */
+export interface NguoiBanChoBienNhan {
+  chup: readonly BanChup[];
+  ten: ReadonlyMap<string, string>;
+  congTyChuId: string | null;
+}
+/** Tiền của biên nhận (billing — một hàm `conLai`). `theoThuCho` = đã trả ròng theo «thu cho ai» của khoản thu (id hồ sơ → số); vắng ⇒ mọi khoản thu cho Tour Đảo. */
+export interface TienBienNhan {
+  daTra: number;
+  conLai: number;
+  huy?: ReceiptDto["huy"];
+  theoThuCho?: ReadonlyMap<string, number>;
+}
+
+const TOUR_DAO = "";
+/**
+ * Chia biên nhận theo người bán (ADR-0078 điều 10; đặc tả P5; sổ đại lý đợt 2 Task 8). Luật (Ruling R-80…R-83 sổ thi công):
+ *  - Nhóm: người bán của dòng = `cungUng.sellerPartyId` của bản chụp; người bán là công ty chủ, thiếu người bán (MISSING — dòng nhập tay chưa ghi tay), dòng không có
+ *    bản chụp (đơn xác nhận trước khi có bảng mức) ⇒ phần Tour Đảo (tới nay mọi dịch vụ đều do Tour Đảo đứng tên bán — ADR-0078 điều 3). Phần Tour Đảo đứng đầu,
+ *    rồi nhà cung cấp theo thứ tự dịch vụ trên đơn.
+ *  - Giảm giá hiệu lực của đơn trừ vào phần Tour Đảo trước, phần còn lại trừ lần lượt vào các phần sau (R-81) ⇒ Σ `tong` = tổng cộng của đơn.
+ *  - Đã trả: khoản thu «thu cho» một nhà cung cấp của phần đó tính vào phần đó; mọi khoản khác (không chọn, thu cho công ty, thu cho hồ sơ không còn là người bán
+ *    trên đơn, trả lại khách) tính vào phần Tour Đảo. Phần nào nhận quá số phải trả thì phần dư chuyển sang các phần còn thiếu theo thứ tự; dư nữa (khách trả dư)
+ *    ghi vào phần đầu (R-82) ⇒ Σ `daTra` = đã trả, Σ `conLai` = còn lại của đơn.
+ *  - Đơn huỷ ⇒ không phần nào (biên nhận huỷ đọc `huy`).
+ * Không I/O. Không chép mức, tỷ lệ, người hưởng.
+ */
+export function chiaPhanBienNhan(order: OrderDetailDto, tenCongTy: string, ban: NguoiBanChoBienNhan | null, tien: Pick<TienBienNhan, "daTra" | "theoThuCho">): ReceiptPhanDto[] {
+  if (order.status === "cancelled") return [];
+  const nguoiBanCua = new Map<string, string>();
+  for (const c of ban?.chup ?? []) {
+    if (c.cungUng.status === "SET" && ban!.congTyChuId !== null && c.cungUng.sellerPartyId !== ban!.congTyChuId) nguoiBanCua.set(c.serviceId, c.cungUng.sellerPartyId);
+  }
+  const nhom = new Map<string, { dichVu: string[]; gross: number }>();
+  nhom.set(TOUR_DAO, { dichVu: [], gross: 0 }); // giữ chỗ đầu; bỏ đi nếu không dịch vụ nào của Tour Đảo
+  for (const s of order.services) {
+    const k = nguoiBanCua.get(s.id) ?? TOUR_DAO;
+    const g = nhom.get(k) ?? { dichVu: [], gross: 0 };
+    g.dichVu.push(s.name);
+    g.gross += s.items.reduce((t, it) => t + it.lineTotal, 0);
+    nhom.set(k, g);
+  }
+  if (nhom.get(TOUR_DAO)!.dichVu.length === 0) nhom.delete(TOUR_DAO);
+  const ds = [...nhom].map(([k, g]) => ({ k, dichVu: g.dichVu, gross: g.gross, giam: 0, tong: 0, da: 0 }));
+  if (ds.length === 0) return [];
+  // Giảm giá: Tour Đảo trước (R-81).
+  let giam = Math.max(0, order.giamGiaHieuLuc);
+  for (const p of ds) {
+    p.giam = Math.min(giam, p.gross);
+    giam -= p.giam;
+    p.tong = p.gross - p.giam;
+  }
+  // Đã trả theo «thu cho ai» (R-82).
+  const theo = tien.theoThuCho ?? new Map<string, number>();
+  let tienNcc = 0;
+  for (const p of ds) {
+    if (p.k === TOUR_DAO) continue;
+    p.da = Math.max(0, theo.get(p.k) ?? 0);
+    tienNcc += p.da;
+  }
+  const tourDao = ds.find((p) => p.k === TOUR_DAO);
+  let du = tien.daTra - tienNcc; // phần của Tour Đảo (gồm khoản thu cho hồ sơ không còn bán gì, trả lại khách); không có phần Tour Đảo ⇒ chuyển hết sang phần khác
+  if (tourDao) {
+    tourDao.da = du;
+    du = 0;
+  }
+  for (const p of ds) {
+    if (p.da > p.tong) {
+      du += p.da - p.tong;
+      p.da = p.tong;
+    } else if (p.da < 0) {
+      du += p.da;
+      p.da = 0;
+    }
+  }
+  for (const p of ds) {
+    if (du <= 0) break;
+    const them = Math.min(du, p.tong - p.da);
+    p.da += them;
+    du -= them;
+  }
+  if (du > 0) ds[0]!.da += du; // khách trả dư
+  for (const p of ds) {
+    if (du >= 0) break;
+    const bot = Math.min(-du, p.da);
+    p.da -= bot;
+    du += bot;
+  }
+  return ds.map((p) => ({
+    nguoiBan: p.k === TOUR_DAO ? tenCongTy : (ban?.ten.get(p.k) ?? "Nhà cung cấp"),
+    vaiTourDao: p.k === TOUR_DAO ? "nguoi_ban" : "doi_tac_dat_ve",
+    dichVu: p.dichVu,
+    tong: p.tong,
+    giamGia: p.giam,
+    daTra: p.da,
+    conLai: Math.max(0, p.tong - p.da),
+    traTaiQuay: p.k !== TOUR_DAO,
+  }));
+}
+
+export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: TienBienNhan, ban: NguoiBanChoBienNhan | null): ReceiptDto {
   return {
     company: { name: company.name, taxCode: company.taxCode, address: company.address, hotline: company.hotline, email: company.email },
     orderCode: order.orderCode,
@@ -39,6 +144,7 @@ export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: {
     huy: tien.huy
       ? { nhom: tien.huy.nhom, daTra: tien.huy.daTra, dangDoiChieu: tien.huy.dangDoiChieu, daDuyet: tien.huy.daDuyet, daChi: tien.huy.daChi, daChuyen: tien.huy.daChuyen, daDuyetChuyen: tien.huy.daDuyetChuyen, han: tien.huy.han }
       : null,
+    phan: chiaPhanBienNhan(order, company.name, ban, tien),
   };
 }
 

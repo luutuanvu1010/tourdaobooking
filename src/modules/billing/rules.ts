@@ -64,6 +64,19 @@ export function hieuLuc<T extends Pick<ReceiptRow, "id" | "reversesId">>(receipt
   return receipts.filter((r) => r.reversesId === null && !biDao.has(r.id));
 }
 
+/**
+ * Đã trả ròng theo «thu cho ai» (`collected_for_party_id` — ADR-0078 điều 9): id hồ sơ → Σ khoản thu của khách − trả lại khách, chỉ khoản còn hiệu lực (cùng `hieuLuc`
+ * với `conLai` — một định nghĩa «đã trả»). Chỉ dùng chia «đã trả / còn lại» trên biên nhận (sổ đại lý đợt 2 Task 8); sổ nợ dùng NGƯỜI THU. Dòng không ghi «thu cho» bị bỏ.
+ */
+export function daTraTheoThuCho(receipts: readonly ReceiptRow[]): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const r of hieuLuc(receipts)) {
+    if (!r.collectedForPartyId) continue;
+    out.set(r.collectedForPartyId, (out.get(r.collectedForPartyId) ?? 0) + (r.kind === "CUSTOMER_REFUND" ? -r.amount : r.amount));
+  }
+  return out;
+}
+
 export interface SoTienDon {
   /** Đã thu ròng = thu của khách − trả lại khách (khoản thu còn hiệu lực). */
   daThu: number;
