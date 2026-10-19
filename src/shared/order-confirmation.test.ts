@@ -367,3 +367,32 @@ test("NT-V1 + NT-V3 (đ3, đ10): ảnh xác nhận — 'Khách hàng đã trả 
   assert.ok(sau.includes("Đã thu") && !sau.includes("Khách hàng đã trả trước"));
   assert.equal(one(build(order()), "footer").lines[0], "Khi khách huỷ, tiền cọc không được hoàn lại. Xem đầy đủ: tourdao.vn/chinh-sach-thanh-toan");
 });
+
+// Sổ đại lý đợt 2, Task 12 (ADR-0078 điều 10; đặc tả P5): biên nhận có HAI người bán ⇒ khối tổng kết in từng phần (người bán, tổng, đã trả, còn lại / trả tại quầy);
+// chân trang nói Tour Đảo là đối tác đặt vé của phần nhà cung cấp. Một người bán ⇒ y như cũ (không dòng phần).
+test("biên nhận hai phần: tổng kết in từng phần theo người bán; phần nhà cung cấp «Trả tại quầy»; chân trang nêu vai đối tác đặt vé", () => {
+  const goc = dungBienNhan(order({ status: "confirmed" }), COMPANY, { daTra: 1_000_000, conLai: 2_500_000 }, null);
+  const hai: ReceiptDto = {
+    ...goc,
+    phan: [
+      { nguoiBan: "CÔNG TY TNHH TOUR ĐẢO", vaiTourDao: "nguoi_ban", dichVu: ["Tour 4 đảo Nha Trang"], tong: 2_900_000, giamGia: 100_000, daTra: 1_000_000, conLai: 1_900_000, traTaiQuay: false },
+      { nguoiBan: "i-resort", vaiTourDao: "doi_tac_dat_ve", dichVu: ["Vé tắm bùn"], tong: 600_000, giamGia: 0, daTra: 0, conLai: 600_000, traTaiQuay: true },
+    ],
+  };
+  const m = buildConfirmation(hai, "Lê Minh Tuấn");
+  const rows = one(m, "summary").rows;
+  assert.equal(value(rows, "Phần 1 · CÔNG TY TNHH TOUR ĐẢO"), "2.900.000 ₫");
+  assert.equal(value(rows, "Phần 2 · i-resort"), "600.000 ₫");
+  assert.equal(value(rows, "Trả tại quầy i-resort"), "600.000 ₫");
+  // Tổng của cả đơn vẫn ở đầu, không đổi.
+  assert.equal(value(rows, "Tổng cộng"), "3.500.000 ₫");
+  const chan = one(m, "footer").lines.join("\n");
+  assert.match(chan, /Phần 2 do i-resort bán; Tour Đảo là đối tác đặt vé\./);
+  // Phần nhà cung cấp đã trả đủ ⇒ «Còn lại 0 ₫», không «Trả tại quầy … 0 ₫».
+  const du = one(buildConfirmation({ ...hai, phan: [hai.phan[0]!, { ...hai.phan[1]!, daTra: 600_000, conLai: 0 }] }, "Lê Minh Tuấn"), "summary").rows;
+  assert.equal(value(du, "Trả tại quầy i-resort"), undefined);
+  assert.equal(du.filter((r) => r.label === "Còn lại").at(-1)?.value, "0 ₫");
+  // Một phần ⇒ không dòng «Phần …».
+  const motPhan = one(buildConfirmation({ ...goc, phan: [hai.phan[0]!] }, "Lê Minh Tuấn"), "summary").rows;
+  assert.ok(!motPhan.some((r) => r.label.startsWith("Phần ")));
+});

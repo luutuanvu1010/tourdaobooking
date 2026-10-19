@@ -7,6 +7,7 @@ import {
   CAU_CHO_CAI_MUC, TIEU_DE_DOI_TAC, TIEU_DE_LOI, TIEU_DE_VAN_PHONG, canhBaoThieuMuc, chuHoaHongDoiTac, chuNhaCungCap, chuTongHoaHong, demLyDo, docThanGhiTay, ghiChuTrangThai, hienNutGhiTay, nhanNguoiHuong,
   type FormGhiTay, type LoiGhiTay, type NguoiBanForm, type TruongGhiTay,
 } from "../src/shared/phan-doi-tac-hien-thi";
+import { hienNutChupBu } from "../src/shared/ben-kia-hien-thi";
 import { ApiError, api, type Api } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { h, replaceChildren, type Child } from "./dom";
@@ -18,6 +19,8 @@ export interface PhanDoiTacVao {
   coGhiTay: boolean;
   /** Người xem có ô `supply.terms.view` (`coXemNguoiBan`): mới có khối "Người bán" trong bảng ghi tay và mới gọi GET /api/pricing/cung-ung. */
   xemNguoiBan: boolean;
+  /** Sổ đại lý đợt 2 (Task 12): sau «Chụp bù» thành công, trang đơn tải lại cả đơn (lý do giữ «Đã giao» đổi theo). */
+  daChupBu?: () => void;
 }
 
 type Ket = { kieu: "co"; res: Api.ThuongMaiResponse } | { kieu: "an" } | { kieu: "loi"; message: string };
@@ -93,6 +96,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
       h("h2", null, TIEU_DE_VAN_PHONG),
       h("p", { class: "pdt-nguoi-huong" }, nhanNguoiHuong(d)),
       trangThai ? h("p", { class: "pdt-trang-thai" }, h("span", { class: "chip chip-muted" }, trangThai)) : null,
+      hienNutChupBu(v.coGhiTay, d) ? khoiChupBu() : null,
       h("div", { class: "pdt-ds" }, ...d.dong.map((x) => dongVanPhong(x, coNut))),
       h(
         "dl",
@@ -102,6 +106,32 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
         o("Tổng giá đại lý", d.tong.giaDaiLy === null ? "Chưa đủ mức" : vnd(d.tong.giaDaiLy)),
       ),
     ];
+  }
+
+  // ---- «Chụp bù» (ADR-0079 điều 7 b2; Task 6): đơn xác nhận trước khi có bảng mức — chụp mức của NGÀY XÁC NHẬN, cùng hàm với lúc Xác nhận. Thiếu mức ⇒ 409 nêu dịch vụ, không ghi gì.
+  function khoiChupBu(): HTMLElement {
+    const nut = h("button", { type: "button", class: "btn btn-primary", "data-action": "chup-bu" }, "Chụp bù");
+    const loi = h("p", { class: "alert", role: "alert", hidden: true });
+    nut.addEventListener("click", async () => {
+      nut.disabled = true;
+      loi.hidden = true;
+      try {
+        await api(`/api/orders/${encodeURIComponent(v.orderId)}/chup-bu`, { method: "POST", body: {} });
+        if (v.daChupBu) v.daChupBu();
+        else await napLai();
+      } catch (err) {
+        loi.textContent = err instanceof ApiError ? err.message : "Không chụp bù được — kiểm tra mạng rồi thử lại.";
+        loi.hidden = false;
+        nut.disabled = false;
+      }
+    });
+    return h(
+      "div",
+      { class: "pdt-chup-bu", "data-khoi": "chup-bu" },
+      h("p", { class: "muted" }, "Đơn chưa có bản chụp mức nên chưa Đã giao được. Chụp bù lấy mức đang áp ở ngày xác nhận; dịch vụ nhập tay ghi mức tay sau đó."),
+      nut,
+      loi,
+    );
   }
 
   // ---- dạng Đối tác: chỉ số tiền của mình ----

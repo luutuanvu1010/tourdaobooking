@@ -159,11 +159,11 @@ test("R3 discountWithinCap: giảm giá cấp đơn ≤ trần (trần là THAM 
   assert.equal(discountWithinCap(50001, 50000), false, "trần 50.000: vượt 1₫ thì không đạt");
 });
 
-test("R3: trần hôm nay = 0 (chủ dự án 26/9 chọn \"Tạm không cho giảm\" — app chưa có bảng mức chiết khấu) và câu lỗi tiếng Việt", () => {
+test("R3: trần Đối tác trên đơn không người hưởng = 0; câu lỗi tiếng Việt (Task 12: câu cũ «mức này chưa được thiết lập» không còn đúng từ Task 7)", () => {
   assert.equal(PARTNER_DISCOUNT_CAP, 0);
   assert.equal(
     PARTNER_DISCOUNT_MESSAGE,
-    "Tài khoản đối tác chưa được giảm giá: mức giảm tối đa bằng mức chiết khấu Tour Đảo dành cho đối tác, mà mức này chưa được thiết lập. Muốn giảm cho khách, nhờ văn phòng.",
+    "Tài khoản đối tác không giảm giá được trên đơn này: chỉ đơn mà chính bạn được hưởng hoa hồng mới giảm được, tối đa bằng hoa hồng đó. Muốn giảm cho khách, nhờ văn phòng.",
   );
 });
 

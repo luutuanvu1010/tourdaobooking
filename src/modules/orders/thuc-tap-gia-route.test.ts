@@ -20,7 +20,7 @@ const donBody = (services: unknown[], extra: Record<string, unknown> = {}) => ({
 
 const CAU_THUC_TAP = "Tài khoản Thực tập chỉ dùng giá danh mục, không giảm giá — nhờ nhân viên Bán hàng nếu cần giá khác.";
 const CAU_GIA_DOI_TAC = "Tài khoản đối tác dùng đúng giá bán lẻ theo danh mục; muốn giá khác, nhờ văn phòng.";
-const CAU_GIAM_DOI_TAC = "Tài khoản đối tác chưa được giảm giá: mức giảm tối đa bằng mức chiết khấu Tour Đảo dành cho đối tác, mà mức này chưa được thiết lập. Muốn giảm cho khách, nhờ văn phòng.";
+const CAU_GIAM_DOI_TAC = "Tài khoản đối tác không giảm giá được trên đơn này: chỉ đơn mà chính bạn được hưởng hoa hồng mới giảm được, tối đa bằng hoa hồng đó. Muốn giảm cho khách, nhờ văn phòng.";
 
 function setup() {
   const w = world();

@@ -152,7 +152,7 @@ test("C3: câu không khớp từ khoá nào nhưng gần nghĩa một đoạn �
   assert.deepEqual(tom(chonDoanTron("quên mật khẩu đăng nhập", mot(0), KHO, [mot(1), mot(1), mot(0), mot(1)], ["SALES"])), [["Đổi PIN", true, false]]);
 });
 
-test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ còn đoạn khớp MẠNH — đo 2026-10-19, vai Bán hàng: than phiền 17, đổi PIN 10, lập đơn 45 (trần 12); không còn đoạn ⇒ khối tài liệu 'không tìm thấy'", () => {
+test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ còn đoạn khớp MẠNH — đo 2026-10-19, vai Bán hàng: than phiền 17, đổi PIN 10, lập đơn 44 (trần 12); không còn đoạn ⇒ khối tài liệu 'không tìm thấy'", () => {
   // Hướng dẫn đổi chữ ⇒ con số có thể đổi: đo lại (nhật ký thi công "Số đo luật khớp mạnh"), sửa số ở đây kèm lý do — không nới luật để giữ số.
   const kho = chiaKho();
   const vec = kho.map(() => mot(1));
@@ -185,13 +185,15 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
   // Luật không đổi, trần 12 vẫn cắt; các tên đoạn khoá dưới đây giữ nguyên.
   // 2026-10-19 (gộp main 38e4921c vào nhánh thiết kế lại màn Tạo đơn): nhánh một mình 18 / 10 / 46, main một mình 18 / 10 / 45. Bản gộp giữ chữ của main («lượt», «Người thu tiền»,
   // bỏ «app») và cắt sáu chữ ở hướng dẫn Bán hàng để giữ bài A4 ≤ 30 phút ⇒ đo lại bằng chính bài này: 17 / 10 / 45. Số đo, không suy ra từng đoạn. Luật không đổi, trần 12 vẫn cắt.
-  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [17, 10, 45]);
+  // 2026-10-19 (sổ đại lý đợt 2, Task 12): Trợ giúp Kế toán bỏ ba mục hỏi đáp và rút gọn «Đơn bị huỷ» (giữ trần 30 phút), thêm Chụp bù / Bên kia đã nhận; HDV và Đối tác đổi
+  // câu khoản thu / giảm giá ⇒ đo lại bằng chính bài này: 17 / 10 / 44 — MỘT đoạn chứa «lập đơn» rơi khỏi ngưỡng. Luật không đổi, trần 12 vẫn cắt; các tên đoạn khoá dưới đây giữ nguyên.
+  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [17, 10, 44]);
   // 2026-10-05 (1.81, Đợt 7): Trợ giúp thêm câu về hai ô "Xe riêng" / "Xe tối thiểu" (Bán hàng, Quản trị) và bỏ vài dòng trùng ý ⇒ hai đoạn nữa vượt ngưỡng tương đối của câu than phiền (15 → 17); luật không đổi, trần 12 vẫn cắt.
   const thanPhien = chonDoanTron("sao app khó dùng thế", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
   assert.equal(thanPhien.length, SO_DOAN_TOI_DA);
   assert.ok(thanPhien.includes("Phần chung › Câu hỏi thường gặp"), JSON.stringify(thanPhien));
   assert.ok(!thanPhien.some((t) => t.includes("Điều phối xe")), JSON.stringify(thanPhien));
-  // 45 khớp mạnh ⇒ RRF + trần 12 đoạn / 6.000 token chọn tiếp (F7: khoá tên cụ thể, không chỉ "có đoạn").
+  // 44 khớp mạnh ⇒ RRF + trần 12 đoạn / 6.000 token chọn tiếp (F7: khoá tên cụ thể, không chỉ "có đoạn").
   const lapDon = chonDoanTron("lập đơn mới ra sao", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
   assert.equal(lapDon.length, SO_DOAN_TOI_DA);
   assert.equal(lapDon[0], "Cấu trúc Nền tảng › Việc: lập đơn mới");

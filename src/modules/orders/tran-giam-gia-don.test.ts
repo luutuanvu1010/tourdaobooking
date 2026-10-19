@@ -19,7 +19,7 @@ const DLC = "dda00000-0000-4000-8000-000000000003"; // đại lý C — 15% mọ
 const DLD = "dda00000-0000-4000-8000-000000000004"; // đại lý D — 10% CHỈ cho ZA1 (ZA2 thiếu mức)
 const AT = "2026-10-01T00:00:00.000Z";
 const CAU_THUC_TAP = "Tài khoản Thực tập chỉ dùng giá danh mục, không giảm giá — nhờ nhân viên Bán hàng nếu cần giá khác.";
-const CAU_GIAM_DOI_TAC = "Tài khoản đối tác chưa được giảm giá: mức giảm tối đa bằng mức chiết khấu Tour Đảo dành cho đối tác, mà mức này chưa được thiết lập. Muốn giảm cho khách, nhờ văn phòng.";
+const CAU_GIAM_DOI_TAC = "Tài khoản đối tác không giảm giá được trên đơn này: chỉ đơn mà chính bạn được hưởng hoa hồng mới giảm được, tối đa bằng hoa hồng đó. Muốn giảm cho khách, nhờ văn phòng.";
 
 type W = ReturnType<typeof world>;
 const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);

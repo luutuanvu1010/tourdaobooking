@@ -12,6 +12,21 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sổ đại lý đợt 2 (đặc tả docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/README.md; ADR-0132, ADR-0079, ADR-0078): đơn có người hưởng hoa hồng đi tới «Đã giao»,
+    // khách trả cho đại lý / tại quầy nhà cung cấp chờ Kế toán, Chụp bù mức, biên nhận chia phần, trần giảm giá theo hoa hồng. Hai migration (0112, 0113 — số tạm).
+    // Số 2.22 là số TẠM (main 2.21 tạm, kiểm 2026-10-19 bằng git trên main, mọi nhánh và mọi worktree: chưa nơi nào dùng 2.22) — phiên phát hành kiểm lại cho đúng số kế tiếp
+    // ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "2.22",
+    date: "2026-10-19",
+    items: [
+      { kind: "moi", text: "Đơn đặt qua đại lý nay bấm được Đã giao – đã thu đủ; khi đó Nền tảng tự ghi hoa hồng của đại lý và tiền phải trả nhà cung cấp." },
+      { kind: "moi", text: "Ghi khoản thu: thêm lựa chọn Khách trả cho đại lý và Khách trả tại quầy nhà cung cấp. Khoản này chờ Kế toán bấm Bên kia đã nhận rồi đơn mới Đã giao được." },
+      { kind: "moi", text: "Kế toán: Trang chủ có khối Chờ đối chiếu; trang Chụp bù mức (menu Thiết lập) cho đơn xác nhận trước khi có bảng mức." },
+      { kind: "moi", text: "Biên nhận gửi khách chia phần theo người bán: phần Tour Đảo và phần trả tại quầy nhà cung cấp." },
+      { kind: "doi", text: "Đơn có người hưởng hoa hồng: giảm giá tối đa bằng hoa hồng của đơn. Tài khoản đối tác được hưởng giảm được tới mức hoa hồng của đơn mình." },
+    ],
+  },
+  {
     // Màn Tạo đơn thiết kế lại (đặc tả docs/superpowers/specs/2026-10-18-tao-don-thiet-ke-lai/DAC-TA.md, việc 1–9). KHÔNG migration, không đổi thân gửi lên máy chủ.
     // Số 2.20 là số TẠM (main có 2.19 tạm; kiểm 2026-10-19 bằng git trên main, mọi nhánh và mọi worktree: chưa nơi nào dùng 2.20): phiên phát hành kiểm lại
     // cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.

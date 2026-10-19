@@ -650,10 +650,10 @@ try {
     assert.deepEqual(hop.nhom, [
       ["Bán hàng", ["Tạo đơn", "Đơn hàng", "Danh bạ"]],
       ["Quản lý", ["Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ cá nhân"]],
-      ["Vận chuyển", ["Điều phối xe", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Giấy tờ sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối"]],
+      ["Vận chuyển", ["Điều phối xe", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Giấy tờ sắp hết hạn", "Loại giấy tờ xe", "Chính sách điều phối", "Lý do điều phối"]], // ADR-0128 Q1 (17/10): Quản trị có «Chính sách điều phối» — kịch bản đỏ sẵn ở đây trước Task 12 sổ đại lý đợt 2 (19/10), sửa theo số đo
       ["Của tôi", ["Tôi", "Hỗ trợ", "Trợ giúp"]],
     ], `Hộp Tất cả (máy tính): bốn nhóm đúng quyền Quản trị, có ô Tôi — ${JSON.stringify(hop)}`);
-    assert.equal(hop.phu, "17 chức năng theo quyền Quản trị", `Hộp Tất cả (máy tính): dòng phụ — ${JSON.stringify(hop)}`);
+    assert.equal(hop.phu, "18 chức năng theo quyền Quản trị", `Hộp Tất cả (máy tính): dòng phụ — ${JSON.stringify(hop)}`);
     assert.equal(hop.soDon, "1", `Hộp Tất cả (máy tính): huy hiệu Đơn hàng — ${JSON.stringify(hop)}`);
     assert.equal(hop.cot, 1, `Hộp Tất cả (máy tính): bốn nhóm đứng một hàng (bốn cột) — ${JSON.stringify(hop)}`);
     // Hộp máy tính hiện dần (opacity, --m-base): đo tương phản khi đã hiện hẳn, không giữa lúc mờ dần.
@@ -689,8 +689,8 @@ try {
   const ADMIN_NAV = [
     "Trang chủ", "Đơn hàng", "Danh bạ",
     "Điều phối xe", "Xe đang chạy", "Đề nghị chuyển khách", "Xe & giấy tờ", "Giá & chi phí",
-    "Điều chỉnh công nợ", "Hoa hồng đối tác", "Người bán dịch vụ",
-    "Dịch vụ & giá", "Địa điểm", "Loại giấy tờ cá nhân", "Loại giấy tờ xe", "Lý do điều phối", "Quản lý tài khoản",
+    "Điều chỉnh công nợ", "Hoa hồng đối tác", "Người bán dịch vụ", "Chụp bù mức", // sổ đại lý đợt 2 Task 12 (19/10): + "Chụp bù mức" (ô order.terms.override) ⇒ 21 mục, Thiết lập 9
+    "Dịch vụ & giá", "Địa điểm", "Loại giấy tờ cá nhân", "Loại giấy tờ xe", "Lý do điều phối", "Chính sách điều phối", "Quản lý tài khoản", // ADR-0128 Q1 (17/10): Quản trị có «Chính sách điều phối» — đỏ sẵn trước Task 12, sửa theo số đo 19/10
     "Của tôi", "Hỗ trợ", "Trợ giúp",
   ];
   const navMeasure = await p.ev(`(() => {
@@ -710,12 +710,12 @@ try {
   assert.deepEqual(navMeasure.labels, ADMIN_NAV, `Thanh điều hướng dọc (ADMIN): đúng 25 mục theo thứ tự — ${JSON.stringify(navMeasure.labels)}`);
   // 2/10 (ADR-0055 VK2-A, Vận chuyển Đợt 3): + "Lịch xe bận" (ô vehicle.manage, sau "Xe") ⇒ 18 trên main; gộp main ffed6f1c vào Đợt 4 (5/10): 18 + 2 mục tiền xe thuê ⇒ 20; gộp Đợt 4 vào Đợt 5 (5/10): + "Xe đang chạy" (ô trip.view, sau "Điều phối xe") ⇒ 21.
   // Sổ đại lý đợt 1 (12/10): + "Hoa hồng đối tác", "Người bán dịch vụ" ⇒ 23; gói A5 (ADR-0111): + "Đề nghị chuyển khách" (ô trip.override, sau "Xe đang chạy") ⇒ 24 (ghép main 1c471990 vào gói A+C, 12/10); ADR-0115 (13/10): + "Điều chỉnh công nợ" ⇒ 25 (số đã đo bằng Chrome 13/10 ở dieu-chinh-smoke.mjs).
-  assert.equal(navMeasure.linkCount, 20, `Thanh điều hướng dọc (ADMIN) phải có 20 mục .sidebar-item (+ nút Tạo đơn = 21 theo bảng THANH_BEN; số ĐO bằng Chrome 15/10, menu theo việc) — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
+  assert.equal(navMeasure.linkCount, 22, `Thanh điều hướng dọc (ADMIN) phải có 22 mục .sidebar-item (+ nút Tạo đơn = 21 theo bảng THANH_BEN; số ĐO bằng Chrome 15/10, menu theo việc) — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
   assert.deepEqual(navMeasure.taoDon, ["Tạo đơn"], `Thanh điều hướng dọc (ADMIN): đúng một nút nổi bật "Tạo đơn" — ${JSON.stringify(navMeasure.taoDon)}`);
   assert.deepEqual(navMeasure.tieuDe, ["VẬN CHUYỂN", "TIỀN"], `Thanh điều hướng dọc (ADMIN): hai tiêu đề nhóm (HẰNG NGÀY không tiêu đề; THIẾT LẬP là nút thu gọn) — ${JSON.stringify(navMeasure.tieuDe)}`);
   // Nhóm Thiết lập ĐÓNG mặc định với vai không đứng ở trang thuộc nhóm đó (thietLapMoSan): 8 mục nằm trong DOM nhưng ẩn.
-  assert.deepEqual(navMeasure.thietLap, { dong: true, anTrongNhom: true, dem: "8 · 1 lệch giá" }, `Thanh điều hướng dọc (ADMIN): nhóm Thiết lập đóng mặc định, ẩn thân nhóm, đếm 8 + "1 lệch giá" (dữ liệu T3: TD101 đổi giá) — ${JSON.stringify(navMeasure.thietLap)}`);
-  assert.equal(navMeasure.anCount, 8, `Thanh điều hướng dọc (ADMIN): đúng 8 mục ẩn (cả nhóm Thiết lập) — ${JSON.stringify(navMeasure)}`);
+  assert.deepEqual(navMeasure.thietLap, { dong: true, anTrongNhom: true, dem: "10 · 1 lệch giá" }, `Thanh điều hướng dọc (ADMIN): nhóm Thiết lập đóng mặc định, ẩn thân nhóm, đếm 8 + "1 lệch giá" (dữ liệu T3: TD101 đổi giá) — ${JSON.stringify(navMeasure.thietLap)}`);
+  assert.equal(navMeasure.anCount, 10, `Thanh điều hướng dọc (ADMIN): đúng 10 mục ẩn (cả nhóm Thiết lập) — ${JSON.stringify(navMeasure)}`);
   assert.ok(navMeasure.scrollOverflow <= 1, `Thanh điều hướng máy tính: trang không được tràn ngang — lệch ${navMeasure.scrollOverflow}px`);
   assert.ok(navMeasure.topbarOverflow <= 1, `Thanh điều hướng máy tính: #topbar tự nó không được tràn ngang (flex-wrap phải nhận đủ) — lệch ${navMeasure.topbarOverflow}px`);
   assert.ok(navMeasure.sidebarOverflow <= 1, `Thanh điều hướng dọc: #sidebar tự nó không được tràn ngang — lệch ${navMeasure.sidebarOverflow}px`);
@@ -809,7 +809,7 @@ try {
       [
         ["Bán hàng", ["Tạo đơn", "Đơn hàng", "Danh bạ"]],
         ["Quản lý", ["Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ cá nhân"]],
-        ["Vận chuyển", ["Điều phối xe", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Giấy tờ sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối"]],
+        ["Vận chuyển", ["Điều phối xe", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Giấy tờ sắp hết hạn", "Loại giấy tờ xe", "Chính sách điều phối", "Lý do điều phối"]], // ADR-0128 Q1 — đỏ sẵn trước Task 12, sửa theo số đo 19/10
         ["Của tôi", ["Hỗ trợ", "Trợ giúp"]],
       ],
       `K: bốn nhóm của bảng trượt Quản trị — ${JSON.stringify(sheet.nhom)}`,
@@ -1058,7 +1058,7 @@ try {
   }
   {
     const FRAME_PAGES = [
-      { path: "/staff", label: "/staff", widths: [640, 641, 645, 650, 700, 768, 899, 900, 910, 929, 930, 1040, 1440, 1920], ready: null, mainCap: () => CSS_W_MAIN, account: ACCOUNTS.admin, sidebar: 20 }, // MENU THEO VIỆC 15/10: /staff nằm trong nhóm Thiết lập ⇒ nhóm MỞ ⇒ thấy đủ 20 .sidebar-item của Quản trị (số đếm trong DOM; bảng THANH_BEN: 21 gồm nút Tạo đơn)
+      { path: "/staff", label: "/staff", widths: [640, 641, 645, 650, 700, 768, 899, 900, 910, 929, 930, 1040, 1440, 1920], ready: null, mainCap: () => CSS_W_MAIN, account: ACCOUNTS.admin, sidebar: 22 }, // MENU THEO VIỆC 15/10: /staff nằm trong nhóm Thiết lập ⇒ nhóm MỞ ⇒ thấy đủ 20 .sidebar-item của Quản trị (số đếm trong DOM; bảng THANH_BEN: 21 gồm nút Tạo đơn)
       {
         // PHẢI là đơn NHÁP (R2). Đơn đã xác nhận (R1/R3) bị web/order-form.ts khoá form ("Chỉ sửa được đơn ở trạng
         // thái nháp") và KHÔNG gọi setBarTitle(`Sửa đơn <mã>`) — breadcrumb kẹt ở chữ "Sửa đơn" ngắn, lưới xanh giả.
@@ -1084,7 +1084,7 @@ try {
         ready: `document.querySelector('.toolbar select option[value]:not([value=""])') !== null`,
         mainCap: () => CSS_W_MAIN,
         account: TOAN_QUYEN,
-        sidebar: 27, // MENU THEO VIỆC 15/10: /audit (Nhật ký) nằm trong nhóm Thiết lập ⇒ nhóm MỞ ⇒ thấy đủ 27 `.sidebar-item` của Quản trị + Toàn quyền (bảng THANH_BEN: 28 gồm nút Tạo đơn)
+        sidebar: 28, // Task 12 sổ đại lý đợt 2: + "Chụp bù mức". MENU THEO VIỆC 15/10: /audit (Nhật ký) nằm trong nhóm Thiết lập ⇒ nhóm MỞ ⇒ thấy đủ 27 `.sidebar-item` của Quản trị + Toàn quyền (bảng THANH_BEN: 28 gồm nút Tạo đơn)
       },
     ];
 

@@ -105,6 +105,8 @@ export const TRANG = {
   // Đối tác (kể cả tài khoản lai, Ruling 12) — mục hiện phải chặn CÙNG điều kiện, nếu không tài khoản lai thấy mục mà bấm vào bị 403.
   hoaHong: { duong: "/hoa-hong", goi: "GET /api/pricing/hoa-hong", hien: (s) => can(s, "partner.commission.view") && !holdsPartner(s) },
   nguoiBan: { duong: "/nguoi-ban", goi: "GET /api/pricing/cung-ung", hien: (s) => can(s, "supply.terms.view") && !holdsPartner(s) },
+  // Chụp bù mức (sổ đại lý đợt 2, Task 12; ADR-0079 điều 7 b2): CÙNG cổng route `GET /api/orders/cho-chup-bu` — ô order.terms.override và không giữ quyền Đối tác (kể cả lai).
+  chupBu: { duong: "/chup-bu", goi: "GET /api/orders/cho-chup-bu", hien: (s) => can(s, "order.terms.override") && !holdsPartner(s) },
   nhatKy: { duong: "/audit", goi: "GET /api/audit", hien: (s) => can(s, "audit.view") }, // ADR-0038 điều 6: chỉ Toàn quyền
   guiThongBao: { duong: "/gui-thong-bao", goi: "GET /api/thong-bao/da-gui", hien: (s) => can(s, "notice.send") }, // ADR-0034
   troLy: { duong: "/tro-ly-cai-dat", goi: "GET /api/tro-ly/cai-dat", hien: (s) => can(s, "settings.ops") }, // ADR-0069 điều 1
@@ -178,6 +180,7 @@ export const THANH_BEN = [
   { nhom: "TIỀN", trang: "khoaThang", nhan: "Khoá sổ tháng", bieuTuong: "lock" },
   { nhom: "THIẾT LẬP", trang: "hoaHong", nhan: "Hoa hồng đối tác" },
   { nhom: "THIẾT LẬP", trang: "nguoiBan", nhan: "Người bán dịch vụ" },
+  { nhom: "THIẾT LẬP", trang: "chupBu", nhan: "Chụp bù mức" },
   { nhom: "THIẾT LẬP", trang: "dichVu", nhan: "Dịch vụ & giá" },
   { nhom: "THIẾT LẬP", trang: "diaDiem", nhan: "Địa điểm" },
   { nhom: "THIẾT LẬP", trang: "loaiGiayToNguoi", nhan: "Loại giấy tờ cá nhân" },
@@ -261,6 +264,7 @@ export const TRANG_TOI = [
   { phan: "sau", trang: "dieuChinhCongNo", nhan: "Điều chỉnh công nợ" },
   { phan: "sau", trang: "hoaHong", nhan: "Hoa hồng đối tác" },
   { phan: "sau", trang: "nguoiBan", nhan: "Người bán dịch vụ" },
+  { phan: "sau", trang: "chupBu", nhan: "Chụp bù mức" },
   { phan: "sau", trang: "nhatKy", nhan: "Nhật ký" },
   { phan: "sau", trang: "phien", nhan: "Máy đang đăng nhập" },
   { phan: "sau", trang: "guiThongBao", nhan: "Gửi thông báo" },

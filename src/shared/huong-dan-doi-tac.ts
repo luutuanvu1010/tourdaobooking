@@ -67,7 +67,7 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
 ### Giá của đối tác
 
 - Đơn giá là giá bán lẻ của danh mục. Thẻ dịch vụ của bạn không có nút **Sửa giá** như của văn phòng.
-- Ô **Giảm giá** khoá, kèm dòng "Tài khoản đối tác tạm chưa được giảm giá."
+- Ô **Giảm giá**: đơn bạn được hưởng hoa hồng thì giảm được tới mức hoa hồng của đơn; còn lại ô khoá.
 - Bạn không thêm được dịch vụ nhập tay (dịch vụ ngoài danh mục).
 - Muốn giảm giá, dùng giá khác hay thêm dịch vụ ngoài danh mục thì **nhờ văn phòng**.
 

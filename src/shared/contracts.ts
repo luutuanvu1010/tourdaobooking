@@ -2105,6 +2105,18 @@ export interface OrderPaymentsResponse {
   keToan: { dangGiu: { partyId: string; ten: string; soTien: number; choXacNhan: number }[]; choXacNhan: string[]; choBenKia: string[] } | null;
   /** ADR-0089: tiền cọc của ĐƠN HUỶ (null với đơn không huỷ). */
   coc: CocDonDto | null;
+  /**
+   * Sổ đại lý đợt 2, Task 12 (ADR-0132; đặc tả P4): hai lựa chọn người thu tiền mới của form «Ghi khoản thu» — đại lý được hưởng của đơn và quầy nhà cung cấp của các
+   * dòng làm đại lý, tính bằng CÙNG `benDatHuong` / `nhaCungCapCuaDon` của lệnh ghi. null khi: người xem giữ quyền Đối tác (kể cả tài khoản lai — không tên nhà cung cấp),
+   * người xem không ghi khoản thu được, đơn không còn ghi khoản thu được (nháp, chưa chụp, đã giao, huỷ), hoặc đơn không có bên nào.
+   */
+  benKia: BenKiaLuaChonDto | null;
+}
+
+/** Bên đặt (đại lý được hưởng — chỉ tên; máy chủ tự lấy hồ sơ khi nhận `"ben_dat"`) và các quầy nhà cung cấp (id + tên, cho `{ nhaCungCapPartyId }` và «thu cho»). */
+export interface BenKiaLuaChonDto {
+  benDat: { ten: string } | null;
+  nhaCungCap: { partyId: string; ten: string }[];
 }
 
 /** Một khoản duyệt hoàn cọc (đ4a, đ6) trên trang đơn huỷ. */

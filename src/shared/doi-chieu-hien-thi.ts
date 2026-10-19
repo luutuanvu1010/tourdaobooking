@@ -25,4 +25,5 @@ export function cauNhacKhoan(input: { nguoiKhai: string | null; soTienDaDinhDang
 }
 
 /** Tiêu đề dòng ở khối "Cần xem lại" của Trang chủ Kế toán. */
-export const tieuDeDemDoiChieu = (soKhoan: number): string => `${soKhoan} khoản chuyển khoản đang đối chiếu quá ${NGAY_NHAC_DOI_CHIEU_HIEN_THI} ngày`;
+// Sổ đại lý đợt 2 (Task 12, ADR-0132 Hệ quả): bộ đếm gồm cả khoản khách trả cho đại lý / tại quầy nhà cung cấp — có thể là tiền mặt, nên không nói «chuyển khoản».
+export const tieuDeDemDoiChieu = (soKhoan: number): string => `${soKhoan} khoản đang đối chiếu quá ${NGAY_NHAC_DOI_CHIEU_HIEN_THI} ngày`;

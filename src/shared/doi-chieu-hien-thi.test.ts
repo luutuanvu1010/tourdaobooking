@@ -21,5 +21,5 @@ test("câu nhắc: có tên người khai, số tiền, số ngày; không số 
   assert.equal(cauNhacKhoan({ nguoiKhai: "Nam HDV", soTienDaDinhDang: "100.000 ₫", soNgay: 3 }), "Nam HDV khai 100.000 ₫ — đã chờ 3 ngày.");
   assert.equal(cauNhacKhoan({ nguoiKhai: null, soTienDaDinhDang: "50.000 ₫", soNgay: 0 }), "Khai 50.000 ₫ — mới khai hôm nay.");
   assert.doesNotMatch(cauNhacKhoan({ nguoiKhai: "A", soTienDaDinhDang: "1 ₫", soNgay: 9 }), /\d{8,}/);
-  assert.equal(tieuDeDemDoiChieu(2), "2 khoản chuyển khoản đang đối chiếu quá 3 ngày");
+  assert.equal(tieuDeDemDoiChieu(2), "2 khoản đang đối chiếu quá 3 ngày"); // Task 12: gồm khoản khách trả cho đại lý / tại quầy (có thể tiền mặt) — bỏ chữ «chuyển khoản»
 });

@@ -24,7 +24,9 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Không thêm mã giao diện nào vào gói này.
 // Nới 96.500 → 96.700 (ADR-0128 Q1, 2026-10-17): thêm một dòng bản đồ quyền `dispatch.policy.lead` vào `permissions.ts` (gói nhúng cả bản đồ, +~90 byte); không thêm mã giao diện.
 // Nhận main vào nhánh hồ sơ riêng tư: giữ trần LỚN HƠN của hai bên (96.700); không nới thêm — đo gói thật sau gộp ở báo cáo.
-const TRAN_ORDERS = 96_700;
+// Nới 96.700 → 96.850 (sổ đại lý đợt 2, Task 12, 2026-10-19): menu dùng chung `src/shared/muc-giao-dien.ts` thêm một mục `TRANG.chupBu` + hai dòng menu «Chụp bù mức»
+// (thanh bên, trang Tôi) — đo HEAD 96.578 → 96.817 byte, toàn bộ +239 byte nằm ở `muc-giao-dien.ts`; không thêm mã giao diện nào vào gói này. Chủ có thể bác: cách khác là tách dữ liệu menu khỏi gói.
+const TRAN_ORDERS = 96_850;
 
 function dung(trang: string) {
   const r = buildSync({

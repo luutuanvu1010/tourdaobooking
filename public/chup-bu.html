@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Chụp bù mức — Island Booking System</title></head>
+<body data-title="Chụp bù mức" data-back="/account">
+<header id="topbar"></header>
+<main>
+  <!-- Chụp bù mức (sổ đại lý đợt 2, Task 6 + Task 12; ADR-0079 điều 7 b2). Ô order.terms.override, không tài khoản giữ quyền Đối tác. web/chup-bu.ts dựng nội dung. -->
+  <h1>Chụp bù mức</h1>
+  <p class="muted">Đơn đã xác nhận trước khi có bảng mức nên chưa có bản chụp mức hoa hồng, người bán. Chụp bù lấy mức đang áp ở ngày xác nhận; còn thiếu mức thì Nền tảng không chụp và nêu dịch vụ cần cài mức.</p>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="ok" class="alert ok" role="status" hidden></div>
+  <!-- Ẩn cho tới khi web/chup-bu.ts xác nhận người xem có ô order.terms.override (khỏi hiện tiêu đề trống cho tài khoản không có quyền). -->
+  <section id="cb-noi-dung" class="card" aria-labelledby="cb-tieu-de" hidden>
+    <h2 id="cb-tieu-de">Đơn chờ chụp bù</h2>
+    <div id="cb-ca-danh-sach"></div>
+    <div id="cb-danh-sach"></div>
+  </section>
+</main>
+<script type="module" src="/js/chup-bu.js"></script>
+</body></html>

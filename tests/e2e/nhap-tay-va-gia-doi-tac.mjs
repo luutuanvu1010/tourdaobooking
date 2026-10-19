@@ -51,7 +51,7 @@ const FROZEN = /dịch vụ nhập tay đang tắt/; // ADR-0061: câu R1 theo l
 const FROZEN_DOI_TAC = /tài khoản có quyền Đối tác không dùng được dịch vụ nhập tay/;
 const FROZEN_KHONG_O = /tài khoản này không được dùng dịch vụ nhập tay/;
 const RETAIL = /giá bán lẻ theo danh mục/;
-const NO_DISCOUNT = /^Tài khoản đối tác chưa được giảm giá: mức giảm tối đa bằng mức chiết khấu Tour Đảo dành cho đối tác, mà mức này chưa được thiết lập\. Muốn giảm cho khách, nhờ văn phòng\.$/;
+const NO_DISCOUNT = /^Tài khoản đối tác không giảm giá được trên đơn này: chỉ đơn mà chính bạn được hưởng hoa hồng mới giảm được, tối đa bằng hoa hồng đó\. Muốn giảm cho khách, nhờ văn phòng\.$/;
 let r;
 
 // ============================================ R1 — dịch vụ nhập tay (công tắc TẮT — ADR-0061) ============================================

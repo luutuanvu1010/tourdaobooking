@@ -13,7 +13,9 @@ import { soKhachDoan } from "../src/shared/hanh-khach";
 import { suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
 import { gopBenDat, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
-import { can, chiGiaDanhMuc, holdsPartner } from "../src/shared/permissions";
+import { can, chiGiaDanhMuc, holdsIntern, holdsPartner } from "../src/shared/permissions";
+import { cauTranGiamGiaForm, oGiamGiaChiGiaDanhMuc } from "../src/shared/ben-kia-hien-thi";
+import { coXemPhanDoiTac } from "../src/shared/phan-doi-tac-hien-thi";
 import {
   canAddService, draftFromDto, draftIssues, soKhachNhap, newCatalogDraft, newManualDraft, orderIssues, orderSummary, refreshFromCatalog, toServiceInput, totalLines,
   type ServiceDraft,
@@ -951,15 +953,35 @@ if (editId) {
   if (can(staff, "order.passenger.write", { ownerId: staff.id, assigned: false })) dungKhoiKhach([]);
 }
 mocPhut = await layMoc;
-if (retailOnly) {
-  // Sau loadOrder: đơn cũ đã lưu giảm giá > 0 thì để ô sửa được (đưa về 0), không thì khoá.
-  const discountEl = field("discount") as HTMLInputElement;
-  discountEl.readOnly = num("discount") === 0;
+{
   // Dòng báo nằm DƯỚI cả hàng ba ô Thanh toán (không trong cột hẹp của ô giảm giá — ở máy tính từng xuống 3 hàng), ô trỏ tới nó cho trình đọc màn hình.
-  // Câu theo quyền như máy chủ: có quyền Đối tác (kể cả kèm Thực tập) → câu của Đối tác; chỉ Thực tập → "không được giảm giá" (trần của Thực tập là 0, không phải "tạm").
-  const hint = h("p", { class: "muted", id: "discount-hint" }, holdsPartner(staff) ? "Tài khoản đối tác tạm chưa được giảm giá." : "Tài khoản Thực tập không được giảm giá.");
-  discountEl.setAttribute("aria-describedby", hint.id);
-  (discountEl.closest(".grid") ?? discountEl).after(hint);
+  const discountEl = field("discount") as HTMLInputElement;
+  const datHint = (cau: string): HTMLElement => {
+    const hint = h("p", { class: "muted", id: "discount-hint" }, cau);
+    discountEl.setAttribute("aria-describedby", hint.id);
+    (discountEl.closest(".grid") ?? discountEl).after(hint);
+    return hint;
+  };
+  let hint: HTMLElement | null = null;
+  if (retailOnly) {
+    // Sổ đại lý đợt 2 (Task 7 → Task 12): Đối tác ĐƯỢC HƯỞNG giảm được tới hoa hồng của đơn ⇒ ô mở; Đối tác không hưởng / Thực tập trần 0 ⇒ khoá (đơn cũ đã lưu giảm giá > 0
+    // thì vẫn để sửa được — đưa về 0). Luật chọn ở src/shared/ben-kia-hien-thi.ts; máy chủ kiểm lại khi lưu.
+    const o = oGiamGiaChiGiaDanhMuc({ laDoiTac: holdsPartner(staff), laThucTap: holdsIntern(staff), duocHuong: benDatCuaToi() != null });
+    discountEl.readOnly = o.khoa && num("discount") === 0;
+    hint = datHint(o.cau);
+  }
+  // Sửa đơn đã lưu có người hưởng: câu trần «Giảm tối đa X ₫ (bằng hoa hồng của đơn).» theo tổng hoa hồng máy chủ tính (GET …/thuong-mai — cùng ô order.terms.view của khối
+  // Phần đối tác). Tổng null (còn dịch vụ thiếu mức) ⇒ không đoán số; đơn mới chưa lưu ⇒ không câu — máy chủ báo đúng câu đó khi lưu vượt trần (400).
+  if (editId && !(retailOnly && discountEl.readOnly) && coXemPhanDoiTac(staff, { staffId: staff.id })) {
+    void api<Api.ThuongMaiResponse>(`/api/orders/${encodeURIComponent(editId)}/thuong-mai`).then((r) => {
+      const coHuong = "vanPhong" in r ? r.vanPhong.nguoiHuong !== null : benDatCuaToi() != null;
+      const tong = "vanPhong" in r ? r.vanPhong.tong.hoaHong : r.doiTac.tong.hoaHong;
+      const cau = coHuong ? cauTranGiamGiaForm(tong) : null;
+      if (!cau) return;
+      if (hint) hint.textContent = cau;
+      else datHint(cau);
+    }).catch(() => undefined);
+  }
 }
 recompute();
 

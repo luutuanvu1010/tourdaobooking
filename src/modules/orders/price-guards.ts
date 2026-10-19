@@ -45,8 +45,10 @@ export function lyDoKhongNhapTay(staff: PermissionHolder, chinhSachBat: boolean)
 /** ADR-0061 điều 3: `duocNhapTay = chinhSachBat && can(staff, "order.service.manual") && !holdsPartner(staff)` — đọc CÙNG hàm `lyDoKhongNhapTay`. */
 export const duocNhapTay = (staff: PermissionHolder, chinhSachBat: boolean): boolean => lyDoKhongNhapTay(staff, chinhSachBat) === null;
 export const RETAIL_PRICE_MESSAGE = "Tài khoản đối tác dùng đúng giá bán lẻ theo danh mục; muốn giá khác, nhờ văn phòng.";
+// Sổ đại lý đợt 2, Task 12 (nợ M-2 của Task 7): câu cũ «…mà mức này chưa được thiết lập» không còn đúng — bảng mức đã có, Đối tác được hưởng giảm được tới hoa hồng
+// của chính đơn mình (ADR-0079 điều 9). Câu này nay chỉ ra cho Đối tác trên đơn mà mình KHÔNG phải người hưởng (kể cả khách lẻ) và cho tài khoản Đối tác + Thực tập.
 export const PARTNER_DISCOUNT_MESSAGE =
-  "Tài khoản đối tác chưa được giảm giá: mức giảm tối đa bằng mức chiết khấu Tour Đảo dành cho đối tác, mà mức này chưa được thiết lập. Muốn giảm cho khách, nhờ văn phòng.";
+  "Tài khoản đối tác không giảm giá được trên đơn này: chỉ đơn mà chính bạn được hưởng hoa hồng mới giảm được, tối đa bằng hoa hồng đó. Muốn giảm cho khách, nhờ văn phòng.";
 
 /**
  * R3: trần giảm giá cấp đơn (VNĐ) cho tài khoản có quyền Đối tác HÔM NAY. Chủ dự án 2026-09-26: mức giảm tối đa = mức chiết khấu Tour Đảo dành cho đối tác;
@@ -155,8 +157,9 @@ export function viPhamGiaDanhMuc(staff: PermissionHolder, items: readonly { cata
 // Trần xét theo ĐƠN (có / không người hưởng), không còn theo người thao tác (gỡ lệch 5.8 của ADR-0029); vế giá danh mục giữ theo người thao tác (`viPhamGiaDanhMuc`).
 // `tranGiamGia` + `giaDanhMucViolation` ở trên GIỮ làm định nghĩa luật đơn KHÔNG người hưởng (bài đối chiếu mọi tập con quyền ở price-guards.test.ts ép hai bên trùng nhau).
 
-/** Câu từ chối khi giảm giá vượt trần của đơn có người hưởng (ADR-0079 ví dụ C-5 — chữ cố định). */
-export const CAU_TRAN_HOA_HONG = (tran: number): string => `Giảm tối đa ${tran.toLocaleString("vi-VN")} ₫ (bằng hoa hồng của đơn).`;
+/** Câu từ chối khi giảm giá vượt trần của đơn có người hưởng (ADR-0079 ví dụ C-5 — chữ cố định). MỘT nguồn với form lập / sửa đơn (Task 12): src/shared/ben-kia-hien-thi.ts. */
+export { CAU_TRAN_HOA_HONG } from "../../shared/ben-kia-hien-thi.ts";
+import { CAU_TRAN_HOA_HONG } from "../../shared/ben-kia-hien-thi.ts";
 
 /**
  * Trần giảm giá cấp đơn (VNĐ); null = không trần. Thứ tự cố định: Thực tập → 0 (ADR-0100, cả trên đơn có người hưởng); đơn CÓ người hưởng → tổng hoa hồng của đơn, cho MỌI người

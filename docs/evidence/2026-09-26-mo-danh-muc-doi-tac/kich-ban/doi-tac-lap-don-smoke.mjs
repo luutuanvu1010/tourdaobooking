@@ -33,7 +33,7 @@ mkdirSync(join(OUT, "anh"), { recursive: true });
 const DESK = { width: 1040, height: 800, mobile: false };
 const MOB = { width: 390, height: 844, mobile: true };
 
-const PARTNER_NOTE = "Tài khoản đối tác tạm chưa được giảm giá.";
+const PARTNER_NOTE = "Chỉ giảm được trên đơn bạn hưởng hoa hồng."; // sổ đại lý đợt 2 Task 12 (Ruling R-124): câu cho Đối tác KHÔNG được hưởng (benDatCuaToi null); câu cũ «tạm chưa được giảm giá» đã bỏ
 const INTERN_NOTE = "Tài khoản Thực tập không được giảm giá."; // ADR-0100: trần giảm giá của Thực tập là 0, không phải «tạm» như Đối tác
 const CATALOG_ERR = "Không tải được danh mục";
 const TD101_ADULT = 1350000;

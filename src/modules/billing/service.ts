@@ -436,6 +436,22 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, phan: Ph
         }
       : null,
     coc,
+    benKia: quyen.laDoiTac || !quyen.coTheGhiThu || info.deliveredAt !== null ? null : await luaChonBenKia(db, phan),
+  };
+}
+
+/**
+ * Sổ đại lý đợt 2, Task 12: hai lựa chọn người thu tiền mới của form «Ghi khoản thu» — CÙNG `benDatHuong` / `nhaCungCapCuaDon` mà `docLanThu` dùng khi ghi (giao diện không tự
+ * suy). Chỉ tên hồ sơ (và id nhà cung cấp, để gửi lại `{ nhaCungCapPartyId }` / «thu cho»), không số nào của `phan`. Nơi gọi đã loại người xem giữ quyền Đối tác (R-91, R-P12).
+ */
+async function luaChonBenKia(db: D1Database, phan: PhanThuongMai | null): Promise<OrderPaymentsResponse["benKia"]> {
+  const benDat = benDatHuong(phan);
+  const ncc = [...nhaCungCapCuaDon(phan).keys()];
+  if (!benDat && ncc.length === 0) return null;
+  const ten = await partyLabels(db, benDat ? [benDat, ...ncc] : ncc);
+  return {
+    benDat: benDat ? { ten: ten.get(benDat)?.label ?? "Đại lý của đơn" } : null,
+    nhaCungCap: ncc.map((partyId) => ({ partyId, ten: ten.get(partyId)?.label ?? "Nhà cung cấp" })),
   };
 }
 
