@@ -36,7 +36,7 @@ const vp = (w: W, code: string): number => {
   const c = one(code);
   return AC.demViPham(c, w.sqlite.prepare(c.sql.replace(/\s+/g, " ").trim()).all());
 };
-const MOI = ["R-BIL-2", "R-BIL-2w", "R-BIL-5", "R-BIL-5w", "R-BIL-12", "R-BIL-16", "R-BIL-17", "R-BIL-18", "R-BIL-19", "R-BIL-19w", "R-BIL-S9", "R-ORD-DC1", "R-ORD-DC1w"];
+const MOI = ["R-BIL-2", "R-BIL-2w", "R-BIL-5", "R-BIL-5w", "R-BIL-12", "R-BIL-16", "R-BIL-17", "R-BIL-18", "R-BIL-19", "R-BIL-19w", "R-BIL-20", "R-BIL-S9", "R-ORD-DC1", "R-ORD-DC1w"];
 const tatCaMoi = (w: W) => Object.fromEntries(MOI.map((c) => [c, vp(w, c)]));
 const KHONG = Object.fromEntries(MOI.map((c) => [c, 0]));
 /** Gỡ MỌI trigger trên `bang` (chỉ trong khung thử) để SQL tay đi qua — đúng loại dữ liệu mà kiểm định kỳ phải bắt. */
@@ -122,7 +122,7 @@ function chenDong(w: W, d: { posting: string; orderId: string; no: string; co: s
 }
 
 test("mã và mức: R-BIL-2/5/16/17/18/19, R-ORD-DC1 lỗi; nửa trước mốc (…w) cảnh báo; R-BIL-12 lỗi; danh sách «chưa áp dụng» chỉ còn R-BIL-7 (đảo bài có chủ đích)", () => {
-  for (const c of ["R-BIL-2", "R-BIL-5", "R-BIL-12", "R-BIL-16", "R-BIL-17", "R-BIL-18", "R-BIL-19", "R-BIL-S9", "R-ORD-DC1"]) assert.equal(one(c).level, "fail", c);
+  for (const c of ["R-BIL-2", "R-BIL-5", "R-BIL-12", "R-BIL-16", "R-BIL-17", "R-BIL-18", "R-BIL-19", "R-BIL-20", "R-BIL-S9", "R-ORD-DC1"]) assert.equal(one(c).level, "fail", c);
   for (const c of ["R-BIL-2w", "R-BIL-5w", "R-BIL-19w", "R-ORD-DC1w"]) assert.equal(one(c).level, "warn", c);
   assert.deepEqual(AC.GHI_CHU.map((g) => g.code), ["R-BIL-7"], "R-BIL-2, R-BIL-5 đã chạy thật — không còn «chưa áp dụng»");
 });
@@ -294,6 +294,23 @@ test("R-BIL-18: dòng hoa hồng / giảm giá bên đặt / giá vốn GỐC ch
     .run(khac, a.id, vnHomNay(), new Date().toISOString(), new Date().toISOString());
   chenDong(w, { posting: khac, orderId: a.id, no: ct, co: NCC, so: 10_000, loai: "GIA_VON" });
   assert.equal(vp(w, "R-BIL-18"), 1, "giá vốn trên phiếu quyết toán");
+});
+
+test("R-BIL-20 (BL-SDL2-DAO-DONG-TM, Ruling R-147): dòng huỷ riêng của dòng giá vốn (đường «Huỷ dòng sổ» cũ) ⇒ lỗi; phiếu điều chỉnh có duyệt không dòng huỷ ⇒ sạch", async () => {
+  const { w, ct } = await setup();
+  const a = await donDaGiao(w, { booker: null, dichVu: [HONTAM(1, 300_000)] });
+  const p = chenPhieuDieuChinh(w.sqlite, { id: uuid(), orderId: a.id, reason: "bổ sung giá vốn vé Hòn Tằm theo hợp đồng", occurredDate: vnHomNay(), at: new Date().toISOString(), debtor: ct, creditor: NCC, amount: 10_000, kind: "GIA_VON" });
+  const goc = uuid();
+  const at = new Date().toISOString();
+  w.sqlite.prepare(`INSERT INTO bil_debt_line (id, posting_id, debtor_party_id, creditor_party_id, amount, kind_code, order_id, trip_id, order_service_id, receipt_id, reverses_line_id,
+      created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, 10000, 'GIA_VON', ?, NULL, NULL, NULL, NULL, ?, 'sql-tay', ?, 'sql-tay')`).run(goc, p.postingId, ct, NCC, a.id, at, at);
+  assert.equal(vp(w, "R-BIL-20"), 0, "phiếu điều chỉnh có duyệt, chưa huỷ");
+  const dao = uuid();
+  w.sqlite.prepare("INSERT INTO bil_posting (id, kind_code, order_id, reason, occurred_date, created_at, created_by, updated_at, updated_by) VALUES (?, 'REVERSAL', ?, 'huỷ dòng sổ nhầm', ?, ?, 'sql-tay', ?, 'sql-tay')")
+    .run(dao, a.id, vnHomNay(), at, at);
+  w.sqlite.prepare(`INSERT INTO bil_debt_line (id, posting_id, debtor_party_id, creditor_party_id, amount, kind_code, order_id, trip_id, order_service_id, receipt_id, reverses_line_id,
+      created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, 10000, 'GIA_VON', ?, NULL, NULL, NULL, ?, ?, 'sql-tay', ?, 'sql-tay')`).run(uuid(), dao, NCC, ct, a.id, goc, at, at);
+  assert.equal(vp(w, "R-BIL-20"), 1, "dòng huỷ riêng của giá vốn");
 });
 
 test("R-BIL-19 (người kiểm Task 5, I-1): dòng giữ hộ gốc còn sống của lần thu ĐÃ bị đảo ⇒ lỗi sau mốc, cảnh báo trước mốc; đảo đúng đường (cả dòng giữ hộ) ⇒ sạch", async () => {

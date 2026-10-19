@@ -14,6 +14,11 @@ export type ReceiptKind = "CUSTOMER_PAYMENT" | "CUSTOMER_REFUND";
 export type CollectorRole = "COMPANY" | "STAFF" | "BOOKER" | "SUPPLIER" | "UNKNOWN";
 /** Loại dòng nợ (`bil_debt_kind`). Ba loại thương mại của phiếu «Đã giao» từ sổ đại lý đợt 2 (ADR-0079 điều 2, migration 0112). */
 export type DebtKind = "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON";
+/**
+ * Ba loại dòng THƯƠNG MẠI (sổ đại lý đợt 2, ADR-0079 điều 2). Chỉ thay đổi qua yêu cầu điều chỉnh có người thứ hai duyệt (ADR-0115): chờ «Đã giao» (Ruling R-P15) và
+ * KHÔNG «Huỷ dòng sổ» riêng (`dao_dong` — BL-SDL2-DAO-DONG-TM, chủ chọn «Chặn» 19/10). MỘT nguồn cho cả `dieu-chinh.ts` lẫn `ghiDieuChinh`.
+ */
+export const LOAI_DONG_THUONG_MAI: ReadonlySet<string> = new Set<DebtKind>(["HOA_HONG", "GIAM_GIA_BEN_DAT", "GIA_VON"]);
 export type MethodCode = "CASH" | "BANK_TRANSFER" | "OTHER";
 
 export const METHOD_CODES: readonly MethodCode[] = ["CASH", "BANK_TRANSFER", "OTHER"];

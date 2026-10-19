@@ -3,7 +3,7 @@ import { renderBanner } from "./banner";
 import { openBookerSheet } from "./booker-sheet";
 import { openConfirmationDialog } from "./confirmation-dialog";
 import { byId, h, replaceChildren } from "./dom";
-import { cauXacNhanDaNhan, hienNutSuaKhoanThu } from "../src/shared/nut-khoan-thu";
+import { cauXacNhanDaNhan, duocHuyKhoanSo, hienNutSuaKhoanThu } from "../src/shared/nut-khoan-thu";
 import { METHOD_LABEL, actionLabel, dateTime, ngayNganHomNay, parseMoney, trangThaiHienThi, vnd } from "./format";
 import { regroupMoney, setMoneyValue } from "./money-input";
 import { moBangTruot } from "./bang-truot";
@@ -878,7 +878,8 @@ function nutKeToanLanThu(order: Order, t: Api.OrderPaymentsResponse, l: Api.LanT
       }),
     );
   }
-  if (!l.daDao && !l.laDongDao && !t.deliveredAt) {
+  // BL-SDL2-DAO-DONG-TM (b): tài khoản giữ quyền Đối tác (kể cả lai) không thấy nút — máy chủ chặn cùng luật.
+  if (!l.daDao && !l.laDongDao && !t.deliveredAt && duocHuyKhoanSo(staff!)) {
     const lyDo = h("input", { type: "text", autocomplete: "off", maxlength: "500", placeholder: "Vì sao huỷ (bắt buộc)" }) as HTMLInputElement;
     nut.push(
       hangXacNhan({

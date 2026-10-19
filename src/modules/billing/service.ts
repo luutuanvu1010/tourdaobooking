@@ -18,7 +18,7 @@ import { docGiaoDich, kiemMaGiaoDich, type GiaoDich } from "./ma-giao-dich";
 import { phaiThuLucGiao } from "./thay-lan-thu-repo";
 import {
   CAU_DA_NOP, LY_DO_DIEU_CHINH_TOI_THIEU, METHOD_CODES, benDatHuong, canDoiChieu, cumDoiChieu, nhaCungCapCuaDon, phanChuaThuNhaCungCap, soDuGiuHo, type PhanChoNguoiThu, cauLoiCsdlThuongMai, conLai, dongThuongMaiTu, khoanMoiDoiChieu, sinhPhieuDaGiao, tinhTrangThuongMai, type DoiChieuRow, type DongThuongMai, type TinhTrangThuongMai, dong, khoanChoXacNhan, kiemDaoLanThu, kiemDieuChinh, kiemHoanNguoiGiu, kiemQuyetToan, soDuCap, lyDoChuaGiaoDuoc, lyDoChuaHoanThanh, nhaCungCapTheoSo, type CheSoDu, ngayPhatSinh, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan, sinhDongXacNhanCongTy,
-  soDuTheoBen, type LineDraft, type LineRow, type MethodCode, type ReceiptRow, type SoTienDon,
+  soDuTheoBen, LOAI_DONG_THUONG_MAI, type LineDraft, type LineRow, type MethodCode, type ReceiptRow, type SoTienDon,
 } from "./rules";
 
 export const MAX_SO_TIEN = 10_000_000_000;
@@ -967,6 +967,9 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
     if (!l) return loi(404, "not_found", "Không tìm thấy dòng sổ.");
     if (l.reverses_line_id) return loi(409, "invalid_state", "Không huỷ được một dòng huỷ.");
     if (!l.order_id) return loi(409, "invalid_state", "Dòng không gắn đơn.");
+    // BL-SDL2-DAO-DONG-TM (chủ chọn «Chặn» 19/10): dòng thương mại — gốc của phiếu «Đã giao» hay của phiếu điều chỉnh đã duyệt — không huỷ riêng; lệnh đảo ghi ngay,
+    // không người thứ hai duyệt (ADR-0115 điều 3) nên sẽ là đường vòng qua luật hai người. Sửa bằng yêu cầu điều chỉnh có duyệt. Câu không nêu số, không nêu bên.
+    if (LOAI_DONG_THUONG_MAI.has(l.kind_code)) return DAO_THUONG_MAI();
     // ADR-0092 Đ4: không đảo riêng dòng giữ hộ khi khoản thu sinh ra nó còn hiệu lực (lớp CSDL: trigger bil_held_no_single_reversal, 0082).
     if (l.kind_code === "HELD" && l.receipt_id !== null && !(await receiptsOfOrder(db, l.order_id)).some((r) => r.reverses_id === l.receipt_id)) return HELD_DON_LE();
     const stmts = [
@@ -995,6 +998,8 @@ const DAO_SAU_GIAO = () => loi(409, "receipt_after_delivered", "Đơn đã giao 
 const HOAN_SAU_GIAO = () => loi(409, "refund_after_delivered", "Đơn đã ở bước Đã giao — hoàn cho khách cần phân định trách nhiệm trước; báo Quản trị.");
 const CHUYEN_KHOA = () =>
   loi(409, "coc_transfer_locked", "Tiền này đã chuyển sang đơn mới — không huỷ riêng một phía của lần chuyển được. Cần sửa thì báo Toàn quyền.");
+const DAO_THUONG_MAI = () =>
+  loi(409, "commercial_line_needs_approval", "Dòng hoa hồng, giá vốn hay giảm giá bên đặt chịu không huỷ riêng được — tạo yêu cầu điều chỉnh để người thứ hai duyệt.");
 const HELD_DON_LE = () =>
   loi(409, "held_single_reversal", "Không huỷ riêng dòng tiền nhân viên chưa nộp về công ty khi khoản thu vẫn còn — huỷ khoản thu, hoặc dùng “Xác nhận đã nhận” cho khoản chuyển khoản.");
 

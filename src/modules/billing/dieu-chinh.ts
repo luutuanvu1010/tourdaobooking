@@ -11,7 +11,7 @@ import {
   duyetChenStatement, phieuChenStatement, quyetDinhChenStatement, taiKhoanCuaHoSo, tangDaCo, tangDangCho, yeuCauChenStatement, yeuCauChoDuyet, yeuCauGanDay, yeuCauTheoId, type YeuCauDbRow,
 } from "./dieu-chinh-repo";
 import { lineIfPostingStatement, linesOfOrder, orderOwners, orderState, ownerCompanyId, partyLabels, receiptsOfOrder } from "./repository";
-import { HAN_YEU_CAU_NGAY, LY_DO_DIEU_CHINH_TOI_THIEU, conLai, dong, hetHanYeuCau, kiemDieuChinh, soDuCap, type DebtKind } from "./rules";
+import { HAN_YEU_CAU_NGAY, LOAI_DONG_THUONG_MAI, LY_DO_DIEU_CHINH_TOI_THIEU, conLai, dong, hetHanYeuCau, kiemDieuChinh, soDuCap, type DebtKind } from "./rules";
 import { PARTY_ID_RE, docLyDo, docNgay, docSoTien, layKyDaKhoa, lineOf, loi, loiKhoaKy, loiTrigger, toLineRow, toReceiptRow, type KetQua, type NguoiGoi } from "./service";
 
 // Sổ đại lý đợt 2 (Task 6; ADR-0079 7b1, đặc tả P6): điều chỉnh có duyệt nhận thêm ba loại dòng thương mại — Kế toán bổ sung giá vốn / sửa hoa hồng sau «Đã giao»
@@ -19,7 +19,6 @@ import { PARTY_ID_RE, docLyDo, docNgay, docSoTien, layKyDaKhoa, lineOf, loi, loi
 const LOAI_DONG_NHAN: Record<DebtKind, string> = {
   HELD: "Tiền chưa nộp về công ty", SETTLEMENT: "Quyết toán (nộp / trả)", REFUND: "Hoàn khách", HOA_HONG: "Hoa hồng", GIAM_GIA_BEN_DAT: "Giảm giá bên đặt chịu", GIA_VON: "Giá vốn",
 };
-const LOAI_THUONG_MAI: ReadonlySet<string> = new Set<DebtKind>(["HOA_HONG", "GIAM_GIA_BEN_DAT", "GIA_VON"]);
 const laLoaiDong = (x: unknown): x is DebtKind => typeof x === "string" && Object.hasOwn(LOAI_DONG_NHAN, x);
 const TOI_DA_DANH_SACH = 200;
 const MOT_NGAY_MS = 86_400_000;
@@ -59,7 +58,7 @@ async function kiemTheoSoLieuHienTai(
   ]);
   // Ruling R-P15 (người kiểm Task 6): loại dòng thương mại chỉ cho đơn ĐÃ «Đã giao» — trước đó lô «Đã giao» còn tự sinh dòng gốc, điều chỉnh sớm thành TRÙNG
   // (đơn đại lý: yêu cầu hoa hồng 100.000 duyệt trước rồi «Đã giao» ⇒ Tour Đảo nợ 200.000). Kiểm ở cả lúc tạo lẫn lúc duyệt (cùng hàm này).
-  if (LOAI_THUONG_MAI.has(y.loaiDong) && !(await orderState(db, y.orderId))?.delivered_at) {
+  if (LOAI_DONG_THUONG_MAI.has(y.loaiDong) && !(await orderState(db, y.orderId))?.delivered_at) {
     return loi(409, "commercial_before_delivered", "Đơn chưa Đã giao — chưa bổ sung được khoản này; chờ Đã giao rồi tạo yêu cầu.");
   }
   const dongSo = dongDon.map(toLineRow);

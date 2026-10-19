@@ -9,6 +9,7 @@ import type {
 } from "../../shared/contracts";
 import { UUID_RE, error, json, kemLocation, readJson, trangDon } from "../../shared/http";
 import { docLenhNhapKeToan } from "../../shared/nhap-ke-toan";
+import { duocHuyKhoanSo } from "../../shared/nut-khoan-thu";
 import { can, holdsPartner, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
@@ -34,6 +35,7 @@ const CANNOT_LEDGER = () => error(403, "forbidden", "Chỉ Kế toán hoặc To�
 /** Ruling R-P18 (người kiểm Task 6 I-2): tài khoản giữ quyền Đối tác (kể cả lai Kế toán + Đối tác) không xem / tạo / duyệt / từ chối / rút yêu cầu điều chỉnh công nợ —
  *  yêu cầu có thể là giá vốn / hoa hồng của đối tác khác (khuôn «có quyền Đối tác là áp» của ghi mức tay). */
 const DOI_TAC_KHONG_DIEU_CHINH = () => error(403, "forbidden", "Tài khoản có quyền Đối tác không xem, tạo hay duyệt được yêu cầu điều chỉnh công nợ.");
+const DOI_TAC_KHONG_DAO = () => error(403, "forbidden", "Tài khoản có quyền Đối tác không huỷ được khoản thu hay dòng sổ.");
 const CANNOT_MARK_ENTRY = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới đánh dấu được đã nhập phần mềm kế toán.");
 const CANNOT_APPROVE_TRANSFER = () => error(403, "forbidden", "Chỉ Kế toán, Quản trị hoặc Toàn quyền mới duyệt được chuyển thu trước sang đơn mới.");
 const CANNOT_APPROVE = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền mới duyệt được hoàn thu trước / xác nhận dòng đã hoàn ngoài hệ thống.");
@@ -388,6 +390,9 @@ export const billingModule: AppModule = {
         if (!yc.ok) return yc.res;
         return json({ ok: true, choDuyet: true, yeuCauId: yc.value.yeuCauId } satisfies TaoYeuCauDieuChinhResponse, 201, { location: "/dieu-chinh-cong-no" });
       }
+      // BL-SDL2-DAO-DONG-TM (b): «Huỷ khoản thu» / «Huỷ dòng sổ» ghi ngay, không người duyệt — tài khoản giữ quyền Đối tác (kể cả lai Kế toán + Đối tác) không gọi được,
+      // kẻo tự xoá nợ giảm giá / hoa hồng của chính mình. Cùng cổng với nút ở giao diện (`duocHuyKhoanSo`).
+      if (!duocHuyKhoanSo(staff)) return DOI_TAC_KHONG_DAO();
       const kq = await ghiDieuChinh(env.DB, { raw, ai: nguoiGoi(staff) });
       if (!kq.ok) return kq.res;
       if (kq.value.orderId) baoThayDoi({ orderId: kq.value.orderId, thayDoi: "tien" });

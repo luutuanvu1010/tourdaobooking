@@ -625,3 +625,85 @@ test("Vòng sửa 1 Task 6 (R-P18): tài khoản giữ quyền Đối tác (lai 
   assert.equal((await ds(w, KT2)).status, 200, "Kế toán thường vẫn xem");
   assert.equal((await duyet(w, yc.json.yeuCauId)).status, 201, "Kế toán thường vẫn duyệt");
 });
+
+// ---- Đóng khe «Huỷ dòng sổ» đảo riêng dòng thương mại (BL-SDL2-DAO-DONG-TM — người kiểm toàn nhánh sổ đại lý đợt 2 xếp HIGH; chủ chọn «Chặn rồi mới đẩy» 19/10) ----
+// Lệnh đảo ghi NGAY, không người thứ hai duyệt (ADR-0115 điều 3) ⇒ trước khi chặn, MỘT Kế toán xoá được hoa hồng / giá vốn / giảm giá bên đặt mà luật hai người canh, và kiểm
+// định kỳ R-BIL-2 / 16 / 18 chỉ xét dòng gốc nên không thấy. Ba loại này chỉ sửa bằng yêu cầu điều chỉnh có duyệt; dòng khác (giữ hộ, nộp, trả lại) và «Huỷ khoản thu» giữ nguyên.
+const CAU_DAO_THUONG_MAI = "Dòng hoa hồng, giá vốn hay giảm giá bên đặt chịu không huỷ riêng được — tạo yêu cầu điều chỉnh để người thứ hai duyệt.";
+const CAU_DOI_TAC_DAO = "Tài khoản có quyền Đối tác không huỷ được khoản thu hay dòng sổ.";
+const daoDong = (w: W, lineId: string, as = KT) => w.call("POST", "/api/ledger/adjustments", { as, body: { loai: "dao_dong", lineId, lyDo: "huỷ riêng dòng này thử" } });
+const idDong = (w: W, orderId: string, kind: string, phieu: string) =>
+  String(w.q("SELECT l.id FROM bil_debt_line l JOIN bil_posting p ON p.id = l.posting_id WHERE l.order_id = ? AND l.kind_code = ? AND p.kind_code = ? AND l.reverses_line_id IS NULL", orderId, kind, phieu)[0].id);
+
+/** Đơn đại lý 1.000.000, giảm 250.000, mức 50% ⇒ «Đã giao» ghi HOA_HONG 500.000 (Tour Đảo → đại lý) và GIAM_GIA_BEN_DAT 250.000 (đại lý → Tour Đảo) — kịch bản người kiểm. */
+async function donDaiLyGiam(w: W): Promise<string> {
+  const id = uuid();
+  w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, discount, total, remaining_amount, booker_party_id, created_at, updated_at)
+    VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', 1000000, 250000, 750000, 750000, ?, ?, ?)`).run(id, `TD-${seq}`, SALES, DAI_LY, AT, AT);
+  w.sqlite.prepare("INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, 0, 'IRESORT', 'Vé i-resort', 'perPax', 1, ?)").run(`${id}-s`, id, vnNgay(0));
+  w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total)
+    VALUES (?, ?, ?, 'IRESORT', 'adult', 'Người lớn', 1, 1000000, 1000000, 1000000)`).run(`${id}-i`, id, `${id}-s`);
+  const xn = await w.call("POST", `/api/orders/${id}/status`, { as: SA, body: { status: "confirmed" } });
+  assert.equal(xn.status, 200, xn.text);
+  assert.equal((await thu(w, KT, id, 750_000, "cong_ty")).status, 201);
+  const g = await w.call("POST", `/api/orders/${id}/delivered`, { as: SA, body: {} });
+  assert.equal(g.status, 200, g.text);
+  return id;
+}
+
+test("BL-SDL2-DAO-DONG-TM (a): Kế toán «Huỷ dòng sổ» riêng dòng HOA_HONG 500.000 / GIAM_GIA_BEN_DAT 250.000 của phiếu Đã giao, và dòng GIA_VON của phiếu điều chỉnh đã duyệt ⇒ 409, không ghi gì; dòng giữ hộ của phiếu điều chỉnh vẫn huỷ được", async () => {
+  const w = setup();
+  hoSoThuongMai(w);
+  const ct = congTy(w);
+  assert.equal((await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { tuNgay: "2026-01-01", doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 5000 } })).status, 201);
+  const id = await donDaiLyGiam(w);
+  assert.equal(soDu(w, id, ct, DAI_LY), 250_000, "Tour Đảo nợ đại lý 500.000 hoa hồng − 250.000 giảm giá");
+  const giaVon = await tao(w, { orderId: id, benNo: ct, benDuocNo: NCC, loaiDong: "GIA_VON", soTien: 300_000, lyDo: "bổ sung giá vốn i-resort sau Đã giao" });
+  assert.equal(giaVon.status, 201, giaVon.text);
+  assert.equal((await duyet(w, giaVon.json.yeuCauId)).status, 201);
+  const dongTruoc = dem(w, "SELECT count(*) AS n FROM bil_debt_line WHERE order_id = ?", id);
+  for (const [kind, phieu] of [["HOA_HONG", "DELIVERED"], ["GIAM_GIA_BEN_DAT", "DELIVERED"], ["GIA_VON", "ADJUSTMENT"]] as const) {
+    for (const as of [KT, SA]) {
+      const r = await daoDong(w, idDong(w, id, kind, phieu), as);
+      assert.deepEqual([r.status, r.json?.error?.code, r.json?.error?.message], [409, "commercial_line_needs_approval", CAU_DAO_THUONG_MAI], `${kind} — ${as}: ${r.text}`);
+      assert.ok(!/\d{3}\.\d{3}/.test(r.text), "câu báo không nêu số tiền");
+    }
+  }
+  assert.equal(dem(w, "SELECT count(*) AS n FROM bil_debt_line WHERE order_id = ?", id), dongTruoc, "không dòng đảo nào");
+  assert.equal(dem(w, "SELECT count(*) AS n FROM bil_posting WHERE order_id = ? AND kind_code = 'REVERSAL'", id), 0, "không phiếu đảo");
+  assert.equal(soDu(w, id, ct, DAI_LY), 250_000);
+  assert.equal(soDu(w, id, ct, NCC), 300_000);
+  // Dòng KHÔNG thương mại vẫn đi đường cũ: điều chỉnh giữ hộ đã duyệt rồi «Huỷ dòng sổ» ⇒ 201 (ADR-0115 điều 5 «sửa nhầm bằng đảo dòng»).
+  const giu = await tao(w, { orderId: id, benNo: hdv, benDuocNo: ct, soTien: 50_000 });
+  assert.equal(giu.status, 201, giu.text);
+  assert.equal((await duyet(w, giu.json.yeuCauId)).status, 201);
+  const r = await daoDong(w, idDong(w, id, "HELD", "ADJUSTMENT"));
+  assert.equal(r.status, 201, r.text);
+});
+
+test("BL-SDL2-DAO-DONG-TM (b): tài khoản giữ quyền Đối tác (lai Kế toán + Đối tác, lai Toàn quyền + Đối tác) ⇒ 403 ở «Huỷ khoản thu» và «Huỷ dòng sổ»; Kế toán thường huỷ khoản thu hợp lệ vẫn 201", async () => {
+  const w = setup();
+  seedStaff(w.sqlite, { id: LAI, phone: "0900000011", name: "Khoa Lai Kế", perms: ["ACCOUNTING", "PARTNER"] });
+  seedStaff(w.sqlite, { id: LAI_DUYET, phone: "0900000012", name: "Hà Lai Chủ", perms: ["SUPER_ADMIN", "PARTNER"] });
+  hoSoThuongMai(w);
+  const ct = congTy(w);
+  assert.equal((await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { tuNgay: "2026-01-01", doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 5000 } })).status, 201);
+  const daGiao = await donDaiLyGiam(w);
+  const chuaGiao = don(w);
+  assert.equal((await thu(w, KT, chuaGiao, 300_000, "cong_ty")).status, 201);
+  const rc = String(w.q("SELECT id FROM bil_payment_receipt WHERE order_id = ? AND reverses_id IS NULL", chuaGiao)[0].id);
+  const giu = await tao(w, { orderId: daGiao, benNo: hdv, benDuocNo: ct, soTien: 50_000 });
+  assert.equal((await duyet(w, giu.json.yeuCauId)).status, 201);
+  const dongGiu = idDong(w, daGiao, "HELD", "ADJUSTMENT");
+  for (const as of [LAI, LAI_DUYET]) {
+    const a = await w.call("POST", "/api/ledger/adjustments", { as, body: { loai: "dao_lan_thu", receiptId: rc, lyDo: "huỷ thử bằng tài khoản lai" } });
+    assert.deepEqual([a.status, a.json?.error?.message], [403, CAU_DOI_TAC_DAO], `huỷ khoản thu — ${as}`);
+    for (const lineId of [idDong(w, daGiao, "GIAM_GIA_BEN_DAT", "DELIVERED"), dongGiu]) {
+      const b = await daoDong(w, lineId, as);
+      assert.deepEqual([b.status, b.json?.error?.message], [403, CAU_DOI_TAC_DAO], `huỷ dòng sổ — ${as}`);
+    }
+  }
+  assert.equal(dem(w, "SELECT count(*) AS n FROM bil_payment_receipt WHERE reverses_id IS NOT NULL"), 0, "tài khoản lai không đảo được gì");
+  const ok = await w.call("POST", "/api/ledger/adjustments", { as: KT, body: { loai: "dao_lan_thu", receiptId: rc, lyDo: "ghi nhầm người thu" } });
+  assert.equal(ok.status, 201, ok.text);
+});

@@ -543,6 +543,16 @@ export const CHECKS = [
     level: "fail",
   },
   {
+    // BL-SDL2-DAO-DONG-TM (c), Ruling R-147: dòng HOA_HONG / GIAM_GIA_BEN_DAT / GIA_VON chỉ đổi qua yêu cầu điều chỉnh có duyệt — đường duy nhất sinh dòng ĐẢO của chúng là
+    // «Huỷ dòng sổ» (`dao_dong`, nay bị máy chủ chặn 409 `commercial_line_needs_approval`). R-BIL-2 / R-BIL-16 chỉ đọc dòng GỐC nên một dòng đảo làm lệch số ròng mà không đỏ;
+    // câu này đếm thẳng dòng đảo đó (rẻ hơn so số ròng từng phiếu với bản chụp, và chặt hơn: mọi dòng đảo loại này đều sai). Mọi lúc (loại dòng chỉ có từ 0112, chưa lên
+    // production lúc vá). Mã trống R-BIL-20.
+    code: "R-BIL-20",
+    what: "không có dòng huỷ riêng của dòng hoa hồng / giảm giá bên đặt / giá vốn (chỉ đổi qua yêu cầu điều chỉnh có duyệt)",
+    sql: `SELECT count(*) FROM bil_debt_line l WHERE l.kind_code IN ('HOA_HONG', 'GIAM_GIA_BEN_DAT', 'GIA_VON') AND l.reverses_line_id IS NOT NULL`,
+    level: "fail",
+  },
+  {
     code: "R-BIL-19w",
     what: "khoản thu đã huỷ TRƯỚC lúc áp 0112 còn dòng tiền chưa nộp về công ty chưa huỷ (Kế toán huỷ dòng đó)",
     sql: `SELECT l.order_id, l.id FROM bil_debt_line l JOIN bil_payment_receipt x ON x.reverses_id = l.receipt_id
