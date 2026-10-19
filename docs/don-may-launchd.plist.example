@@ -2,6 +2,8 @@
 <!--
   ĐỀ XUẤT, CHƯA CÀI. Chạy `node scripts/don-may.mjs` mỗi giờ ở chế độ CHỈ IN (không có --yes) để chủ xem nhật ký rồi tự quyết dọn.
   Không có hàng nào trong tệp này tự tắt tiến trình. Muốn tự dọn thật thì thêm "--yes" vào ProgramArguments — chủ quyết, đừng thêm khi chưa xem kết quả chỉ-in vài ngày.
+  CẢNH BÁO về "--yes" định kỳ: chỉ bật khi bản don-may có bước đối chiếu lại pid ngay trước khi gửi tín hiệu (vòng sửa 1, 19/10) đã được người kiểm độc lập kiểm lại
+  và chủ đã xem kết quả chỉ-in vài ngày; trước đó giữ nguyên chế độ chỉ in. Tệp này không tự cài gì.
   Cách cài (chủ tự làm, sau khi sửa hai đường dẫn bên dưới):
     cp docs/don-may-launchd.plist.example ~/Library/LaunchAgents/vn.tourdao.don-may.plist
     launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/vn.tourdao.don-may.plist

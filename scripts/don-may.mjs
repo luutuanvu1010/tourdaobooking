@@ -4,7 +4,9 @@
 //   npm run don-may -- --tuoi 6     đổi ngưỡng tuổi (giờ, mặc định 3)
 // Luật chọn nằm ở scripts/don-may-lib.mjs (hàm thuần, có bài src/don-may.test.ts). Tệp này chỉ đọc `ps` và gửi tín hiệu.
 import { execFileSync } from "node:child_process";
-import { dinhDangTuoi, phanLoai, phanTichEtime, TUOI_MAC_DINH_GIO } from "./don-may-lib.mjs";
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dinhDangTuoi, khopLucChon, phanLoai, phanTichEtime, TUOI_MAC_DINH_GIO } from "./don-may-lib.mjs";
 
 /** Đọc `ps` thành danh sách { pid, ppid, etime (giây), command }. Không có logic quyết định. */
 export function docPs() {
@@ -18,9 +20,13 @@ export function docPs() {
 }
 
 const cho = (ms) => new Promise((r) => setTimeout(r, ms));
-const conSong = (pid) => {
-  try { process.kill(pid, 0); return true; } catch (e) { return e.code === "EPERM"; }
-};
+/** Đọc lại MỘT pid: { command, etime } hoặc null nếu không còn. Không có logic quyết định. */
+function docMotPid(pid) {
+  let ra;
+  try { ra = execFileSync("ps", ["-ww", "-o", "etime=,command=", "-p", String(pid)], { encoding: "utf8" }); } catch { return null; }
+  const m = /^\s*(\S+)\s+(.*)$/m.exec(ra);
+  return m ? { etime: phanTichEtime(m[1]), command: m[2] } : null;
+}
 
 function chonNguong(argv) {
   const i = argv.indexOf("--tuoi");
@@ -47,13 +53,26 @@ async function chinh() {
   if (!chon.length) return;
   if (!tat) { console.log("\nChưa tắt gì. Muốn tắt đúng các tiến trình CHỌN ở trên: npm run don-may -- --yes"); return; }
 
-  const pids = chon.map((p) => p.pid);
-  for (const pid of pids) { try { process.kill(pid, "SIGTERM"); } catch { /* đã thoát */ } }
-  for (let i = 0; i < 10 && pids.some(conSong); i++) await cho(500);
+  // pid có thể bị cấp lại cho tiến trình khác giữa lúc chọn và lúc gửi tín hiệu: ĐỌC LẠI `ps` cho đúng pid trước MỖI lần gửi và chỉ gửi khi khớp lúc chọn.
+  const gui = (p, tinHieu) => {
+    const kq = khopLucChon({ command: p.command, etime: p.tuoi }, docMotPid(p.pid));
+    if (!kq.ok) { if (kq.lyDo !== "không còn") console.log(`  bỏ    pid ${p.pid}: ${kq.lyDo} — KHÔNG gửi ${tinHieu}`); return false; }
+    try { process.kill(p.pid, tinHieu); return true; } catch { return false; }
+  };
+  const conSongDung = (p) => khopLucChon({ command: p.command, etime: p.tuoi }, docMotPid(p.pid)).ok;
+  let moi = 0;
+  for (const p of chon) if (gui(p, "SIGTERM")) moi++;
+  for (let i = 0; i < 10 && chon.some(conSongDung); i++) await cho(500);
   let ep = 0;
-  for (const pid of pids) if (conSong(pid)) { try { process.kill(pid, "SIGKILL"); ep++; } catch { /* đã thoát */ } }
+  for (const p of chon) if (gui(p, "SIGKILL")) ep++;
   await cho(300);
-  console.log(`\nĐã gửi SIGTERM cho ${pids.length} tiến trình, SIGKILL cho ${ep} cái không chịu thoát; còn sống: ${pids.filter(conSong).length}.`);
+  const con = chon.filter(conSongDung).length;
+  console.log(`\nĐã gửi SIGTERM cho ${moi}/${chon.length} tiến trình, SIGKILL cho ${ep} cái không chịu thoát; còn sống: ${con}.`);
+  if (con) process.exitCode = 1;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) await chinh();
+// Chạy khi gọi trực tiếp (so sánh đường đã realpath: liên kết tượng trưng, dấu cách, %-mã hoá đều đúng); import làm thư viện thì không chạy.
+let goiTrucTiep = false;
+try { goiTrucTiep = !!process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url)); } catch { /* không phân giải được ⇒ báo lỗi bên dưới */ }
+if (goiTrucTiep) await chinh();
+else if (process.argv[1] && process.argv[1].endsWith("don-may.mjs")) { console.error("✘ Không phân giải được đường chạy của don-may.mjs — không làm gì."); process.exitCode = 2; }

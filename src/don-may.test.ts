@@ -10,8 +10,9 @@ type Lib = {
     boQua: { pid: number; nhom: string; lyDo: string }[];
   };
   phanTichEtime: (s: string) => number;
+  khopLucChon: (daChon: { command: string; etime: number }, hienTai: { command: string; etime: number } | null) => { ok: boolean; lyDo: string };
 };
-const { phanLoai, phanTichEtime } = (await import(new URL("../scripts/don-may-lib.mjs", import.meta.url).href)) as Lib;
+const { phanLoai, phanTichEtime, khopLucChon } = (await import(new URL("../scripts/don-may-lib.mjs", import.meta.url).href)) as Lib;
 
 const GIO = 3600;
 const NGUONG = 3 * GIO;
@@ -166,4 +167,76 @@ test("etime của macOS: mm:ss, hh:mm:ss, d-hh:mm:ss", () => {
 test("tuổi không đọc được: coi như còn mới, không chọn", () => {
   const r = chay([{ ...chromeKiemThu(371, 1, Number.NaN) }]);
   assert.deepEqual(pidChon(r), []);
+});
+
+// ---- Vòng sửa 1 ----
+
+test("chương trình phải đúng tên: grep/vim/tail mang chữ wrangler/chrome và cờ giống hệt không bị nhận", () => {
+  const r = chay([
+    { pid: 1301, ppid: 1, etime: 30 * GIO, command: `grep -n wrangler dev --persist-to ${TMP}/tourdao-e2e-x` },
+    { pid: 1302, ppid: 1, etime: 30 * GIO, command: `vim /opt/bin/chrome --headless --user-data-dir=${TMP}/tourdao-x` },
+    { pid: 1303, ppid: 1, etime: 30 * GIO, command: `/usr/bin/less /opt/bin/chrome --remote-debugging-port=1 --user-data-dir=${TMP}/tourdao-x` },
+    { pid: 1304, ppid: 1, etime: 30 * GIO, command: `echo npm exec wrangler dev --persist-to ${TMP}/tourdao-x` },
+  ]);
+  assert.deepEqual(pidChon(r), []);
+});
+
+test("hồ sơ phải nằm NGAY DƯỚI thư mục tạm: đường lồng sâu hoặc thư mục khác không được nhận; đúng chỗ thì nhận", () => {
+  const khongNhan = [`${TMP}/a/b/tourdao-x`, "/tmp/a/b/tourdao-x", "/tmp/tourdao-x/sau/hon", "/Users/tuanbao/tourdao-x", "/var/folders/tourdao-x", `${TMP}/khong-phai-tourdao-x`, "/tmp/../Users/tuanbao/tourdao-x"];
+  for (const dir of khongNhan) assert.deepEqual(pidChon(chay([chromeKiemThu(1400, 1, 30 * GIO, dir)])), [], dir);
+  for (const dir of ["/tmp/tourdao-x", "/private/tmp/tourdao-x", `${TMP}/tourdao-x`, `/private${TMP}/tourdao-x`]) assert.deepEqual(pidChon(chay([chromeKiemThu(1401, 1, 30 * GIO, dir)])), [1401], dir);
+});
+
+test("Chrome mang hồ sơ tourdao-* nhưng KHÔNG có cờ debug (không headless, không remote-debugging): không chọn", () => {
+  const r = chay([
+    { pid: 1500, ppid: 1, etime: 30 * GIO, command: `${CHROME} --user-data-dir=${TMP}/tourdao-a2-chrome-AbC123 --no-first-run` },
+    { pid: 1501, ppid: 1, etime: 30 * GIO, command: `/bin/sh /x/scripts/chrome-tu-dong-dong.sh --user-data-dir=${TMP}/tourdao-a2-chrome-AbC123 about:blank` },
+  ]);
+  assert.deepEqual(pidChon(r), []);
+});
+
+test("tổ tiên của chính don-may là tiến trình trông như mồ côi kiểm thử: vẫn không chọn (luật 'cây của chính lệnh này' đứng một mình)", () => {
+  const r = phanLoai({
+    tienTrinh: [
+      { pid: 50, ppid: 1, etime: 30 * GIO, command: `npm exec wrangler dev --persist-to ${TMP}/tourdao-e2e-x` },
+      { pid: 99990, ppid: 50, etime: 30 * GIO, command: "npm run don-may" },
+      { pid: PID_TU_THAN, ppid: 99990, etime: 30 * GIO, command: "node scripts/don-may.mjs" },
+    ],
+    tuoiToiThieuGiay: NGUONG,
+    pidTuThan: PID_TU_THAN,
+  });
+  assert.deepEqual(r.chon, []);
+  assert.equal(r.boQua.find((b) => b.pid === 50)?.nhom, "tu-than");
+});
+
+test("cha vắng mặt trong danh sách (không chứng minh được đã chết): không chọn", () => {
+  const r = chay([chromeKiemThu(1600, 77777, 30 * GIO)]); // 77777 không có trong danh sách
+  assert.deepEqual(pidChon(r), []);
+  assert.equal(r.boQua.find((b) => b.pid === 1600)?.nhom, "cha-song");
+});
+
+test("vòng cha A <-> B (hoặc cây quá sâu) không chạm launchd: không chắc nên GIỮ, không chọn", () => {
+  const vong = phanLoai({
+    tienTrinh: [zsh, ...tuThan, chromeKiemThu(1700, 1701, 30 * GIO), chromeKiemThu(1701, 1700, 30 * GIO)],
+    tuoiToiThieuGiay: NGUONG,
+    pidTuThan: PID_TU_THAN,
+  });
+  assert.deepEqual(vong.chon.map((c) => c.pid), []);
+  // chuỗi 80 tiến trình Chrome nối nhau, đầu chuỗi mồ côi: sâu hơn giới hạn 64 bước ⇒ giữ phần đuôi
+  const chuoi: Ps[] = [];
+  for (let i = 0; i < 80; i++) chuoi.push(chromeKiemThu(2000 + i, i === 0 ? 1 : 1999 + i, 30 * GIO));
+  const sau = phanLoai({ tienTrinh: [zsh, ...tuThan, ...chuoi], tuoiToiThieuGiay: NGUONG, pidTuThan: PID_TU_THAN });
+  assert.ok(!sau.chon.some((c) => c.pid === 2079), "đuôi chuỗi sâu hơn 64 bước không được chọn");
+  assert.ok(sau.chon.some((c) => c.pid === 2000), "đầu chuỗi (mồ côi thật) vẫn được chọn");
+});
+
+test("khopLucChon: chỉ gửi tín hiệu khi dòng lệnh giống hệt và tuổi không nhỏ hơn lúc chọn (chống pid bị cấp lại)", () => {
+  const luc = { command: `${CHROME} --headless=new --user-data-dir=${TMP}/tourdao-a2-chrome-x`, etime: 30 * GIO };
+  assert.equal(khopLucChon(luc, { ...luc, etime: 30 * GIO + 5 }).ok, true);
+  assert.equal(khopLucChon(luc, { ...luc, etime: 30 * GIO - 1 }).ok, true); // dung sai làm tròn
+  assert.equal(khopLucChon(luc, null).ok, false);
+  assert.equal(khopLucChon(luc, { command: "node scripts/trien-khai.mjs", etime: 3 }).ok, false); // pid cấp lại cho tiến trình khác
+  assert.equal(khopLucChon(luc, { command: "node scripts/trien-khai.mjs", etime: 31 * GIO }).ok, false); // khác lệnh dù tuổi lớn: vẫn không gửi
+  assert.equal(khopLucChon(luc, { ...luc, etime: 4 }).ok, false); // cùng dòng lệnh nhưng mới tinh: là tiến trình khác
+  assert.equal(khopLucChon(luc, { ...luc, etime: Number.NaN }).ok, false);
 });

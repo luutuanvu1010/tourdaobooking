@@ -10,8 +10,12 @@
 
 export const TUOI_MAC_DINH_GIO = 3;
 
-const THU_MUC_TAM = ["/var/folders/", "/private/var/folders/", "/tmp/", "/private/tmp/"];
-const TEN_CHROME = /^(Google Chrome( for Testing)?|Chromium|chromium|chrome|chrome-headless-shell)( Helper( \([A-Za-z ]+\))?)?$/;
+// Thư mục tạm của hệ thống, và hồ sơ `tourdao-*` NGAY DƯỚI nó (mkdtemp của các kịch bản): /var/folders/xx/yyyy/T/tourdao-…, /tmp/tourdao-… (kể cả /private/…).
+const HO_SO_TAM = [/^(?:\/private)?\/var\/folders\/[^/]+\/[^/]+\/T\/tourdao-[^/]+\/?$/, /^(?:\/private)?\/tmp\/tourdao-[^/]+\/?$/];
+// Chương trình Chrome: đường dẫn tuyệt đối ĐẦU dòng lệnh, kết thúc đúng tên tệp thực thi của Chrome/Chromium (macOS: …app/Contents/MacOS/<tên>; Linux: …/chrome).
+const CHUONG_TRINH_CHROME = /^(?:\/(?:[^\n]*?\/)?[^/\n]*\.app\/Contents\/MacOS\/(?:Google Chrome(?: for Testing)?|Chromium)(?: Helper(?: \([A-Za-z ]+\))?)?|\/(?:\S*\/)?(?:chrome|chromium|chrome-headless-shell))(?=\s|$)/;
+// wrangler dev: `npm exec|npx wrangler dev …` hoặc `node [cờ] …/wrangler|…/cli.js dev …`.
+const CHUONG_TRINH_WRANGLER = /^(?:(?:\S*\/)?(?:npm exec|npx)\s+wrangler\s+dev|(?:\S*\/)?node(?:\s+--?\S+)*\s+\S*(?:\/wrangler|\/cli\.js)\s+dev)(?=\s|$)/;
 const LENH_NPM_SONG = /\bnpm(?:\s+run)?\s+(trien-khai|day-len|test:e2e|test)\b/;
 
 /** `ps etime` macOS/Linux: `mm:ss`, `hh:mm:ss`, `d-hh:mm:ss` → số giây. Sai định dạng → NaN. */
@@ -28,7 +32,7 @@ export function dinhDangTuoi(giay) {
   return g >= 24 ? `${Math.floor(g / 24)} ngày ${g % 24} giờ` : g >= 1 ? `${g} giờ ${p} phút` : `${p} phút`;
 }
 
-/** Phần chương trình (argv0) của dòng lệnh: từ đầu tới chỗ bắt đầu cờ đầu tiên (đường dẫn có thể chứa dấu cách). */
+/** Phần đầu dòng lệnh tới chỗ bắt đầu cờ đầu tiên — chỉ để HIỂN THỊ tên cha; không dùng để quyết định nhận dạng. */
 function chuongTrinh(command) {
   const i = command.search(/\s--?[A-Za-z]/);
   return (i < 0 ? command : command.slice(0, i)).trim();
@@ -43,31 +47,28 @@ function giaTriCo(command, ten) {
   return m ? m[1].trim() : null;
 }
 
-/** Thư mục `tourdao-*` nằm ngay dưới thư mục tạm của hệ thống (mkdtemp của các kịch bản kiểm thử). Không cho `..`. */
-function laThuMucTamCuaDuAn(duongDan, goc = THU_MUC_TAM) {
-  if (!duongDan || duongDan.split("/").includes("..")) return false;
-  if (!goc.some((g) => duongDan.startsWith(g))) return false;
-  return tenTep(duongDan.replace(/\/+$/, "")).startsWith("tourdao-");
+/** Hồ sơ `tourdao-*` nằm NGAY DƯỚI thư mục tạm của hệ thống (đường lồng sâu hơn, `..`, thư mục khác tên: không nhận). */
+function laThuMucTamCuaDuAn(duongDan) {
+  return !!duongDan && HO_SO_TAM.some((re) => re.test(duongDan));
 }
 
 /** Nhận dạng một dòng lệnh: trả { loai } hoặc null. Không xét tuổi hay cha. */
-export function nhanDang(command, goc = THU_MUC_TAM) {
+export function nhanDang(command) {
   const cmd = String(command);
-  const ct = chuongTrinh(cmd);
   // Chrome / Chromium (kể cả tiến trình phụ Helper mang cùng cờ).
-  if (TEN_CHROME.test(tenTep(ct))) {
+  if (CHUONG_TRINH_CHROME.test(cmd)) {
     const debug = /(?:^|\s)--headless(?:=\S+)?(?=\s|$)/.test(cmd) || /(?:^|\s)--remote-debugging-(?:port|pipe)(?:=|\s|$)/.test(cmd);
-    if (debug && laThuMucTamCuaDuAn(giaTriCo(cmd, "user-data-dir"), goc)) return { loai: "Chrome kiểm thử" };
+    if (debug && laThuMucTamCuaDuAn(giaTriCo(cmd, "user-data-dir"))) return { loai: "Chrome kiểm thử" };
     return null;
   }
   // Bộ canh scripts/chrome-tu-dong-dong.sh: sh/bash <đường dẫn>/chrome-tu-dong-dong.sh <cờ Chrome>.
   const bocanh = /^(?:\S*\/)?(?:sh|bash|zsh)\s+(\S*chrome-tu-dong-dong\.sh)(?:\s|$)/.exec(cmd);
   if (bocanh) {
     const debug = /(?:^|\s)--headless(?:=\S+)?(?=\s|$)/.test(cmd) || /(?:^|\s)--remote-debugging-(?:port|pipe)(?:=|\s|$)/.test(cmd);
-    return debug && laThuMucTamCuaDuAn(giaTriCo(cmd, "user-data-dir"), goc) ? { loai: "Bộ canh Chrome" } : null;
+    return debug && laThuMucTamCuaDuAn(giaTriCo(cmd, "user-data-dir")) ? { loai: "Bộ canh Chrome" } : null;
   }
   // wrangler dev (npm exec wrangler / .bin/wrangler / wrangler-dist/cli.js) với --persist-to là thư mục tạm của dự án.
-  if (/(?:wrangler|cli\.js)\s+dev(?:\s|$)/.test(cmd) && laThuMucTamCuaDuAn(giaTriCo(cmd, "persist-to"), goc)) return { loai: "wrangler dev kiểm thử" };
+  if (CHUONG_TRINH_WRANGLER.test(cmd) && laThuMucTamCuaDuAn(giaTriCo(cmd, "persist-to"))) return { loai: "wrangler dev kiểm thử" };
   return null;
 }
 
@@ -79,11 +80,10 @@ function laCon(command) {
 const WORKERD_CUA_DU_AN = /\/tourdao-sales\/(?:.*\/)?node_modules\/@cloudflare\/workerd[^/]*\/bin\/workerd(?:\s|$)/;
 
 /**
- * @param {{ tienTrinh: {pid:number, ppid:number, etime:number, command:string}[], tuoiToiThieuGiay: number, pidTuThan: number, thuMucTam?: string[] }} vao
- * @returns {{ chon: {pid:number, tuoi:number, loai:string, lyDo:string}[], boQua: {pid:number, tuoi:number, loai:string, lyDo:string, nhom:"tre"|"cha-song"|"lenh-dang-chay"|"tu-than"}[] }}
+ * @param {{ tienTrinh: {pid:number, ppid:number, etime:number, command:string}[], tuoiToiThieuGiay: number, pidTuThan: number }} vao
+ * @returns {{ chon: {pid:number, tuoi:number, loai:string, command:string, lyDo:string}[], boQua: {pid:number, tuoi:number, loai:string, lyDo:string, nhom:"tre"|"cha-song"|"lenh-dang-chay"|"tu-than"}[] }}
  */
-export function phanLoai({ tienTrinh, tuoiToiThieuGiay, pidTuThan, thuMucTam }) {
-  const goc = thuMucTam ?? THU_MUC_TAM;
+export function phanLoai({ tienTrinh, tuoiToiThieuGiay, pidTuThan }) {
   const theoPid = new Map(tienTrinh.map((p) => [p.pid, p]));
   const cha = (p) => theoPid.get(p.ppid);
 
@@ -98,7 +98,7 @@ export function phanLoai({ tienTrinh, tuoiToiThieuGiay, pidTuThan, thuMucTam }) 
   // Vòng 1: nhận dạng theo dòng lệnh. Vòng 2: workerd/esbuild con của một tiến trình đã nhận dạng là wrangler (hoặc workerd mồ côi của dự án).
   const loaiCua = new Map();
   for (const p of tienTrinh) {
-    const nd = nhanDang(p.command, goc);
+    const nd = nhanDang(p.command);
     if (nd) loaiCua.set(p.pid, nd.loai);
   }
   const coTo = (p) => {
@@ -127,13 +127,15 @@ export function phanLoai({ tienTrinh, tuoiToiThieuGiay, pidTuThan, thuMucTam }) 
     // Đi ngược cây cha: chỉ được đi qua tiến trình cùng nhà (đã nhận dạng) để tới launchd.
     let chan = null;
     let a = p;
-    for (let dem = 0; dem < 64; dem++) {
+    let dem = 0;
+    for (; dem < 64; dem++) {
       if (a.ppid <= 1) break;
       const c = cha(a);
       if (!c) { chan = { pid: a.ppid, command: "(không thấy trong danh sách — coi như còn sống)" }; break; }
       if (!loaiCua.has(c.pid)) { chan = c; break; }
       a = c;
     }
+    if (dem >= 64) chan = { pid: a.ppid, command: "(cây cha quá sâu hoặc vòng — không chắc, giữ)" }; // không chạm launchd sau 64 bước ⇒ không chắc ⇒ GIỮ
     if (chan) {
       // Cha sống đầu tiên chưa chắc là `npm run …` (thường là node của kịch bản): đi tiếp lên mọi tổ tiên để nhận ra lệnh gốc.
       let lenh = null;
@@ -143,7 +145,19 @@ export function phanLoai({ tienTrinh, tuoiToiThieuGiay, pidTuThan, thuMucTam }) 
       else bo("cha-song", `cha còn sống: pid ${chan.pid} (${tenTep(chuongTrinh(chan.command)) || "?"})`);
       continue;
     }
-    chon.push({ pid: p.pid, tuoi, loai, lyDo: `mồ côi (cha là launchd), tuổi ${dinhDangTuoi(tuoi)} ≥ ${dinhDangTuoi(tuoiToiThieuGiay)}` });
+    chon.push({ pid: p.pid, tuoi, loai, command: p.command, lyDo: `mồ côi (cha là launchd), tuổi ${dinhDangTuoi(tuoi)} ≥ ${dinhDangTuoi(tuoiToiThieuGiay)}` });
   }
   return { chon, boQua };
+}
+
+/**
+ * Đối chiếu LẠI một tiến trình ngay trước khi gửi tín hiệu (pid có thể đã bị cấp lại cho tiến trình khác sau lúc chọn).
+ * daChon = { command, etime } lúc chọn; hienTai = { command, etime } vừa đọc lại bằng `ps -p <pid>` (null nếu pid không còn).
+ * Chỉ ok khi dòng lệnh GIỐNG HỆT và tuổi không nhỏ hơn lúc chọn (tuổi của cùng một tiến trình chỉ tăng; dung sai 2 giây cho làm tròn).
+ */
+export function khopLucChon(daChon, hienTai) {
+  if (!hienTai) return { ok: false, lyDo: "không còn" };
+  if (hienTai.command !== daChon.command) return { ok: false, lyDo: "pid đã được cấp lại (dòng lệnh khác lúc chọn)" };
+  if (!Number.isFinite(hienTai.etime) || !Number.isFinite(daChon.etime) || hienTai.etime < daChon.etime - 2) return { ok: false, lyDo: "pid đã được cấp lại (tuổi nhỏ hơn lúc chọn)" };
+  return { ok: true, lyDo: "" };
 }

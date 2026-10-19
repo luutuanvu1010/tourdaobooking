@@ -26,3 +26,13 @@ A: kill -9 node cha -> bộ bọc, Chrome giả, tiến trình phụ biến mấ
 ## Kiểm
 `npm run typecheck` 0 lỗi; `node --test src/don-may.test.ts src/architecture.test.ts` 69/69 xanh. `npm test` đầy đủ CHƯA chạy: tải máy 354 (máy còn bận).
 Chưa có người kiểm độc lập (việc không chạm dữ liệu/quyền/tiền/triển khai; nhưng là công cụ TẮT tiến trình nên nên có một lượt đọc).
+
+## Vòng sửa 1 (19/10, theo người kiểm độc lập)
+- I-1: `don-may.mjs --yes` đọc lại `ps -p <pid>` trước MỖI lần SIGTERM và SIGKILL, chỉ gửi khi `khopLucChon` (hàm thuần, có bài) thấy dòng lệnh giống hệt và tuổi không nhỏ hơn lúc chọn (dung sai 2 giây); khác thì bỏ qua và báo. Thử bằng `ps` giả: pid "bị cấp lại" không nhận tín hiệu, pid thật bị tắt. Thoát mã 1 nếu sau `--yes` còn tiến trình đã chọn. Bộ bọc `chrome-tu-dong-dong.sh`: ghi chữ ký (giờ khởi chạy + dòng lệnh) của Chrome và mọi hậu duệ, chỉ kill khi chữ ký còn khớp; `ps` lỗi làm PP rỗng thì bỏ qua vòng, bộ bọc chết thật (`kill -0` hỏng) mới dọn. Chưa mô phỏng được pid bị cấp lại ở bộ bọc (dựa vào đọc mã); ca kill -9 cha / thoát mã 7 / SIGTERM vẫn đạt.
+- a/b: nhận dạng chương trình theo đường dẫn tuyệt đối ĐẦU dòng lệnh (`…app/Contents/MacOS/Google Chrome|Chromium[ Helper…]`, hoặc `/…/chrome|chromium|chrome-headless-shell`; wrangler: `npm exec|npx wrangler dev` hoặc `node … wrangler|cli.js dev`). `grep … wrangler dev`, `vim /opt/bin/chrome …` không còn bị nhận.
+- c: đi ngược cây cha chạm 64 bước mà chưa tới launchd => BỎ QUA (kể cả vòng A<->B).
+- d: hồ sơ phải NGAY DƯỚI thư mục tạm (`/var/folders/xx/yyyy/T/tourdao-*`, `/tmp/tourdao-*`, kể cả `/private`); bỏ kiểm `..` vì regex chặt đã loại (kiểm `..` cũ thành thừa).
+- e: chỉ chạy khi `realpath(argv[1])` == `realpath(tệp này)` (liên kết tượng trưng, dấu cách chạy được; đã thử qua liên kết trong đường có dấu cách); gọi tên `don-may.mjs` mà không phân giải được => báo lỗi, thoát 2.
+- f: 7 bài mới (20 bài); 10 đột biến, mỗi cái đỏ ít nhất một bài (đột biến "bỏ so dòng lệnh" của `khopLucChon` lúc đầu vẫn xanh vì bị che bởi so tuổi => thêm ca khác lệnh nhưng tuổi lớn, giờ đỏ). Ghi vào SO-HANG-RAO.
+- g: cảnh báo trong mẫu launchd.
+`--yes` chỉ chạy trên tiến trình giả tự tạo (đã dọn).
