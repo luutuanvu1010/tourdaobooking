@@ -382,3 +382,40 @@ test("P10 SV-HT-03: quầy i-resort giữ 400.000, giá vốn 480.000 → «Thay
   thayLanThu(w, ct, { order: o.id, cu: rQuay, dongGiuHoCu: gQuay, soTien: 400_000, nguoiCu: IRESORT, moi: { order: o.id, amount: 400_000, role: "STAFF", collector: pHDV } });
   assert.equal(soDu(w, o.id, IRESORT, ct), -480_000);
 });
+
+// Người kiểm Task 2, Minor 5 (sửa ở Task 14): vế `r.reverses_id IS NULL AND r.transfer_of_id IS NULL` của `bil_receipt_recon_declared` (tạo lại ở migration sổ đại lý
+// đợt 2) chưa có bài canh. Mỗi ca chỉ vi phạm MỘT vế; cùng bài có đối chứng dương (lần thu gốc cùng vai thì đánh dấu được).
+test("đối chiếu: dòng ĐẢO một lần thu bên đặt / nhà cung cấp không mang dấu DECLARED (vế reverses_id IS NULL) — lần thu gốc thì được", () => {
+  const { w, ct } = khung();
+  const o = don(w, [{ gia: 2_000_000 }]);
+  for (const [role, collector] of [["BOOKER", DAI_LY], ["SUPPLIER", IRESORT]] as const) {
+    const goc = thu(w, ct, { order: o.id, amount: 300_000, role, collector });
+    dau(w, goc, "DECLARED"); // đối chứng dương: lần thu gốc cùng vai
+    const daoLai = thu(w, ct, { order: o.id, amount: 300_000, role, collector, reverses: goc });
+    assert.throws(() => dau(w, daoLai, "DECLARED"), /recon_receipt_invalid:/, `${role}: dòng đảo không được đánh dấu đối chiếu`);
+  }
+});
+
+test("đối chiếu: nửa THU của lệnh chuyển cọc (transfer_of_id) không mang dấu DECLARED dù là chuyển khoản – Công ty thu (vế transfer_of_id IS NULL)", () => {
+  const { w, ct } = khung();
+  const a = don(w, [{ gia: 1_000_000 }]); // đơn sẽ huỷ, còn tiền
+  const nhan = don(w, [{ gia: 1_000_000 }]); // đơn nhận, còn hiệu lực
+  const ghi = (o: { order: string; amount: number; kind: "CUSTOMER_PAYMENT" | "CUSTOMER_REFUND"; approval?: string; transferOf?: string }): string => {
+    const id = ma("lt");
+    const luc = new Date().toISOString();
+    run(w, `INSERT INTO bil_payment_receipt (id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code,
+        occurred_date, reverses_id, note, created_at, created_by, updated_at, updated_by, approval_id, transfer_of_id)
+      VALUES (?, ?, ?, ?, ?, 'COMPANY', 'BANK_TRANSFER', ?, 'PREPAID', ?, NULL, NULL, ?, ?, ?, ?, ?, ?)`,
+      id, o.order, o.kind, o.amount, ct, ct, NGAY, luc, KT, luc, KT, o.approval ?? null, o.transferOf ?? null);
+    return id;
+  };
+  ghi({ order: a.id, amount: 300_000, kind: "CUSTOMER_PAYMENT" });
+  huy(w, a.id);
+  const d = ma("duyet");
+  run(w, `INSERT INTO bil_deposit_approval (id, order_id, kind_code, amount, target_order_id, reason, approved_date, voids_id, created_at, created_by, updated_at, updated_by)
+    VALUES (?, ?, 'TRANSFER', 100000, ?, 'Chuyển cọc sang đơn mới', ?, NULL, ?, 'qt', ?, 'qt')`, d, a.id, nhan.id, NGAY, AT, AT);
+  const chi = ghi({ order: a.id, amount: 100_000, kind: "CUSTOMER_REFUND", approval: d });
+  const nuaThu = ghi({ order: nhan.id, amount: 100_000, kind: "CUSTOMER_PAYMENT", transferOf: chi });
+  assert.throws(() => dau(w, nuaThu, "DECLARED"), /recon_receipt_invalid:/);
+  dau(w, ghi({ order: nhan.id, amount: 100_000, kind: "CUSTOMER_PAYMENT" }), "DECLARED"); // đối chứng dương: lần thu thường cùng đơn, cùng hình thức
+});

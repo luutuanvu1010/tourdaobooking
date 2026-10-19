@@ -15,7 +15,8 @@
 //  - Viết lại tay phép làm tròn nửa lên: `Math.floor((2 * tu + mau) / (2 * mau))`, `(2 * x * bp + 10000) / 20000`.
 //  - Biến tỷ lệ tên trần `bp` hoặc tên không theo quy ước `…Bp` / `…_bp` (`bp * tien`, `tyLe * tien`); truy cập bằng khoá chuỗi (`r["rate_bp"] * x`, `row[col] * x`).
 //  - Biến tỷ lệ bị bọc quá tay mẫu (BL-VA-RAO-K3, 2026-10-19, đã mở rộng): BẮT `Number(rateBp) * x`, `((rateBp)) * x`, `(rateBp as number) * x`, `x * Number(rateBp)`, và trong SQL `CAST(rate_bp AS INTEGER) * x`,
-//    `IFNULL(rate_bp, 0) * x`, `x * COALESCE(cost_rate_bp, 0)`, `CAST(IFNULL(rate_bp, 0) AS INTEGER) * x` (tên bọc bằng ngoặc nhiều lớp, ép kiểu `as`/`AS`, MỘT đối số thứ hai đơn giản, ở cả hai vế). VẪN KHÔNG thấy:
+//    `IFNULL(rate_bp, 0) * x`, `x * COALESCE(cost_rate_bp, 0)`, `CAST(IFNULL(rate_bp, 0) AS INTEGER) * x` (tên bọc bằng ngoặc nhiều lớp, ép kiểu `as`/`AS`, MỘT đối số thứ hai đơn giản rồi `)`, ở cả hai vế);
+//    từ 2026-10-19 (Task 14) bắt thêm `(rateBp || 0) * x`, `IFNULL(rate_bp, -1) * x`, và KHÔNG còn báo nhầm `rate_bp, due_snapshot * x`. VẪN KHÔNG thấy:
 //    đối số phức (`IFNULL(rate_bp + 0, 0) * x`, `Number(a ? rateBp : 0) * x`), tên không đứng đầu đối số ở vế phải (`x * fn(0, rateBp)`), khuôn `${tyLeBp}` / `/ ${10000}`, và qua biến trung gian (`const r = Number(rateBp); r * x`).
 //    (Nếu công thức có `/ 10000` viết liền thì vẫn bị bắt ở mẫu 10000.)
 //  - SQL ghép từ nhiều mảnh chuỗi: chỉ bị bắt khi phép tính và con số 10000 còn nằm trong CÙNG một mảnh.
@@ -75,13 +76,13 @@ const PHEP_PHAN_VAN = /(?:[*/]=?\s*\(?\s*10_?000n?\b|(?<![\w.])10_?000n?\s*[*/])
 /**
  * Phép nhân/chia với biến tỷ lệ phần vạn có tên tận cùng `Bp` / `BP` (sau chữ thường hay số) hoặc `_bp` / `_BP`: `rateBp * x`, `x * costRateBp`, `rate_bp / 10000`, `v.rateBp! * x`,
  * `(v.rateBp ?? 0) * x`, `x * row.tyLeBp`. CHỈ cấm khi nằm cạnh một phép `*` / `/` — tên đứng một mình (cột, tham số, DTO) là hợp lệ. Tên trần `bp` KHÔNG khớp (xem GIỚI HẠN).
- * BỌC (BL-VA-RAO-K3): tên có thể bị bọc mà vẫn là phép nhân/chia với tỷ lệ, nên vế trái chấp nhận sau tên: `!`, `?? mặc-định`, MỘT đối số thứ hai đơn giản (`IFNULL(rate_bp, 0)`, `Math.round(rateBp, 0)`),
+ * BỌC (BL-VA-RAO-K3): tên có thể bị bọc mà vẫn là phép nhân/chia với tỷ lệ, nên vế trái chấp nhận sau tên: `!`, `?? mặc-định` / `|| mặc-định` (mặc định có thể âm), MỘT đối số thứ hai đơn giản (có thể âm) CÓ `)` đóng ngay sau (`IFNULL(rate_bp, 0)`, `IFNULL(rate_bp, -1)`, `Math.round(rateBp, 0)` — sửa ở Task 14 sổ đại lý đợt 2: không có `)` thì «tên, cột * x» là phép nhân của cột khác, trước đây báo nhầm),
  * rồi bất kỳ số lần đóng ngoặc `)` hoặc ép kiểu `AS kiểu` / `as kiểu` (`CAST(rate_bp AS INTEGER)`, `((rateBp))`, `(rateBp as number)`, `CAST(IFNULL(rate_bp, 0) AS INTEGER)`); vế phải chấp nhận trước tên
  * bất kỳ số lần mở ngoặc hoặc gọi hàm (`x * Number(rateBp)`, `x / IFNULL(rate_bp, 0)`, `x * ((rateBp))`). Dấu phẩy rồi tới phép nhân của việc khác (`IFNULL(rate_bp, 0), due * 2`) và bí danh (`… AS r, due * 2`) không khớp.
  */
 const TEN_BP = "[A-Za-z_$][\\w$]*(?:[a-z0-9]B[pP]|_[bB][pP])";
 const PHEP_BP = new RegExp(
-  `(?:(?<![\\w$])${TEN_BP}\\b\\s*(?:!|\\?\\?\\s*[\\w$.]+)?(?:\\s*,\\s*[\\w$.']+)?(?:\\s*\\)|\\s+[Aa][Ss]\\s+\\w+)*\\s*[*/]` +
+  `(?:(?<![\\w$])${TEN_BP}\\b\\s*(?:!|(?:\\?\\?|\\|\\|)\\s*-?[\\w$.]+)?(?:\\s*,\\s*-?[\\w$.']+\\s*\\))?(?:\\s*\\)|\\s+[Aa][Ss]\\s+\\w+)*\\s*[*/]` +
     `|[*/]=?\\s*(?:[\\w$.]+\\s*\\(\\s*|\\(\\s*)*(?:[\\w$]+[?!]?\\.)*${TEN_BP}\\b)`,
   "g",
 );
@@ -243,6 +244,12 @@ test("bộ quét K-A-3 (BL-VA-RAO-K3): biến tỷ lệ bị BỌC (Number, ngo�
   assert.equal(chuoiBp(sql("SELECT * FROM bil_x WHERE rate_bp > 0")), 0, "SELECT * và so sánh");
   assert.equal(chuoiBp(sql("SELECT rate_bp, cost_rate_bp FROM bil_x")), 0, "cột đứng một mình");
   assert.equal(ma('const m = "Number(rateBp) * thanhTien";'), 0, "bản quét MÃ không thấy chuỗi");
+  // Người kiểm Task 0+1 (sổ đại lý đợt 2; sửa ở Task 14): nhánh «, đối số» chỉ hợp lệ khi có `)` đóng hàm bọc theo sau — trước đây «tên, cột * x» báo NHẦM;
+  // hai khe lọt cũ nay bị bắt: mặc định bằng `||`, và đối số thứ hai âm.
+  assert.equal(chuoiBp(sql("SELECT rate_bp, due_snapshot * 2 FROM bil_x")), 0, "báo nhầm cũ: tên tỷ lệ, dấu phẩy, rồi phép nhân của cột khác");
+  assert.equal(ma("const t = foo(rateBp, x) * 2;"), 1, "hàm bọc có đối số thứ hai đơn giản rồi `)` vẫn bị bắt");
+  assert.equal(ma("const t = (rateBp || 0) * x;"), 1, "khe cũ: mặc định bằng ||");
+  assert.equal(chuoiBp(sql("SELECT IFNULL(rate_bp, -1) * due_snapshot FROM bil_x")), 1, "khe cũ: đối số thứ hai âm");
   // GIỚI HẠN còn lại, ghim bằng bài để phần GIỚI HẠN ở đầu tệp không nói sai: những dạng này VẪN lọt (chưa bắt).
   assert.equal(chuoiBp(sql("SELECT IFNULL(rate_bp + 0, 0) * due_snapshot FROM bil_x")), 0, "GIỚI HẠN: đối số phức");
   assert.equal(ma("const t = Number(a ? rateBp : 0) * x;"), 0, "GIỚI HẠN: đối số phức (biểu thức điều kiện)");

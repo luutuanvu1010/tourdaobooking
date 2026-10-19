@@ -13,6 +13,7 @@ import { can, type PermissionCode } from "./shared/permissions.ts";
 import { HANH_DONG_NHAP_KE_TOAN } from "./shared/nhap-ke-toan.ts";
 import { giuChiTiet } from "./shared/lich-su-doi-tac.ts";
 import { LICH_SU_NOI_BO_CHO_PHEP } from "./shared/lich-su-noi-bo.ts";
+import type { AuditEntryDto } from "./shared/contracts.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { seedStaff } from "../tests/audit/harness.mjs";
 import { ACC, ADM, NGAY, PARTNER, SALES, SUP, setup } from "../tests/audit/dieu-phoi-khung.mjs";
@@ -254,5 +255,21 @@ test("D-1 (f) dòng sửa số khách KIỂU CŨ (chữ lý do tự gõ, không 
     const h = await lichSu(w, as, don);
     assert.equal(h.filter((e) => e.action.startsWith("order_money_adjusted")).length, 2, "dòng vẫn hiện (chỉ chữ chi tiết bị bỏ)");
     assert.ok(!JSON.stringify(h).includes(CHU_TU_DO), `${as}: chữ lý do tự gõ kiểu cũ lộ cho Đối tác`);
+  }
+});
+
+test("Sổ đại lý đợt 2 (Task 14 Step 1, Ruling R-P4): hai hành động mới `ord_terms_backfilled` (Chụp bù) và `ledger_counterparty_confirmed` (Bên kia đã nhận) ẨN với Đối tác — kể cả tài khoản lai có ô xem nhập kế toán", async () => {
+  const m = await import("./shared/lich-su-doi-tac.ts");
+  const moi = [["ord_terms_backfilled", "Chụp bù mức hoa hồng", "order"], ["ledger_counterparty_confirmed", "Xác nhận bên kia đã nhận", "ledger"]] as const;
+  for (const [a, nhan, nhom] of moi) {
+    assert.deepEqual({ ...(AUDIT_ACTIONS as Record<string, { label: string; group: string }>)[a] }, { label: nhan, group: nhom }, `${a}: nhãn / nhóm ở audit-actions.ts`);
+    assert.ok((m.LICH_SU_DOI_TAC_AN as readonly string[]).includes(a), `${a} phải nằm ở LICH_SU_DOI_TAC_AN`);
+    assert.ok(!Object.hasOwn(m.LICH_SU_DOI_TAC_CHO_PHEP, a), `${a} không được nằm ở danh sách cho phép`);
+  }
+  // Hàm lọc thật: hai dòng mới biến mất, dòng đối chứng `confirmed` (cho phép) vẫn còn — với Đối tác thuần và với tài khoản lai có ô `accounting.entry.view`.
+  const dong = (action: AuditAction): AuditEntryDto => ({ action, staffId: ACC, staffName: "Lan Kế Toán", at: AT, detail: "chi tiết nội bộ" });
+  for (const xemNhapKt of [false, true]) {
+    const kq = m.lichSuChoDoiTac([dong("ord_terms_backfilled"), dong("ledger_counterparty_confirmed"), dong("confirmed")], xemNhapKt);
+    assert.deepEqual(kq.map((e) => e.action), ["confirmed"], `xemNhapKeToan = ${xemNhapKt}`);
   }
 });
