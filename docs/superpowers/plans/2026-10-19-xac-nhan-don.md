@@ -134,6 +134,8 @@ Bốn đề xuất, chia **hai lượt duyệt** (mỗi lượt ≤ 3 quyết đ
 
 ## Đợt 2 — Nháp riêng tư, nháp không thu tiền, bỏ ô Trả trước (ADR-0134)
 
+> **Phát hành chung với Đợt 3** (chủ chọn A, đặc tả 5f.1): nháp riêng tư lên một mình thì Quản trị không mở được nháp sát giờ để Đặt gấp. Thi công Đợt 2 trước được, nhưng không `day-len`/`trien-khai` riêng; Đợt 1 phát hành riêng được.
+
 ### Task 2.1: Luật thuần "ai đọc được đơn" + áp ở mọi đường đọc
 
 **Files:**
@@ -181,12 +183,12 @@ Bốn đề xuất, chia **hai lượt duyệt** (mỗi lượt ≤ 3 quyết đ
 - Create: `src/shared/xac-nhan-don.ts`, `src/shared/xac-nhan-don.test.ts`
 
 **Interfaces — Produces:**
-- `export function canXacNhan(maDichVu: readonly string[], maCanXacNhan: ReadonlySet<string>): boolean`
+- `export function canXacNhan(i: { maDichVu: readonly string[]; maCanXacNhan: ReadonlySet<string>; coChangDuoiMocChuaDatGap: boolean }): { can: boolean; vi: ("DICH_VU" | "DAT_GAP")[] }` — chủ chọn A (đặc tả 5f.1): chặng dưới mốc chưa đặt gấp cũng buộc gửi; `vi` để danh sách chờ gắn nhãn "Cần Quản trị đặt gấp". `coChangDuoiMocChuaDatGap` do route tính bằng đúng ngưỡng `nguongMocVn` mà cổng xác nhận đang dùng (`src/shared/moc-toi-thieu.ts`).
 - `export function hanXacNhan(guiLucIso: string): string` — ISO UTC; 15 phút làm việc, bỏ 22:00–06:00 giờ VN (dùng các hàm giờ VN có sẵn trong `src/shared/`, không `Date` cục bộ).
 - `export type KetQuaXacNhan = "CON_VE" | "HET_VE" | "HUY"`
 - `export function duocQuyetDinh(i: { laNguoiLap: boolean; laNoiBo: boolean; coQuyenXetDuyet: boolean; choTuXacNhan: boolean }): boolean` — `coQuyenXetDuyet && (!laNguoiLap || (laNoiBo && choTuXacNhan))`.
 
-- [ ] **Step 1: Bài đỏ** (giờ VN): gửi 10:00 → 10:15; 21:50 → 06:05 hôm sau; 21:55 → 06:10 hôm sau; 23:00 → 06:15; 05:59 → 06:15; 06:00 → 06:15. `canXacNhan(["A","B"], {"B"})` → true; `([],…)` → false. `duocQuyetDinh` đủ bảng chân trị.
+- [ ] **Step 1: Bài đỏ** (giờ VN): gửi 10:00 → 10:15; 21:50 → 06:05 hôm sau; 21:55 → 06:10 hôm sau; 23:00 → 06:15; 05:59 → 06:15; 06:00 → 06:15. `canXacNhan` với dịch vụ có cờ → `{can:true, vi:["DICH_VU"]}`; không cờ + chặng dưới mốc → `{can:true, vi:["DAT_GAP"]}`; cả hai → hai lý do; không gì → `{can:false, vi:[]}`. `duocQuyetDinh` đủ bảng chân trị.
 - [ ] **Step 2:** FAIL. **Step 3:** Cài đặt. **Step 4:** PASS. **Step 5:** Commit `Luật thuần bước xác nhận: cần xác nhận, hạn 15 phút trừ giờ đêm, ai được quyết định`.
 
 ### Task 3.2: Migration 0113 + ô quyền + chính sách
@@ -221,7 +223,7 @@ Bốn đề xuất, chia **hai lượt duyệt** (mỗi lượt ≤ 3 quyết đ
 - Khoá khi chờ: `PUT /api/orders/:id` của NGƯỜI LẬP khi đơn có yêu cầu mở → 409 `confirm_pending_locked` ("Đơn đang chờ xác nhận, hãy Rút lại trước khi sửa.") — đặc tả Phần A mục 9.
 - Sửa tiền khi đang chờ: `PUT /api/orders/:id` cho phép người không phải người lập NẾU đơn đang chờ VÀ `can(staff,"order.money.edit",{ownerId,assigned})`; tổng đổi mà thiếu `lyDoSuaTien` (≤300 ký tự) → 400; nhật ký `updated` kèm lý do.
 
-- [ ] **Step 1: Bài đỏ** `xac-nhan-don.mjs`: (a) Toàn quyền đánh dấu mã X cần xác nhận; Đối tác lập đơn X → `/status` confirmed 409 `confirm_request_required`; gửi → 201; Đối tác tự quyết định → 403. (b) Kế toán xem `cho-xac-nhan` thấy đơn, không có SĐT; HDV thấy; HCNS 403. (c) Kế toán `CON_VE` đổi giờ 08:30 → đơn `confirmed`, chặng 08:30, yêu cầu khép. (d) Đơn khác: `HET_VE` → `cancelled`, lý do `HET_CHO`. (e) Đua: hai lời quyết định song song → đúng một 200, một 409, đúng một dòng quyết định (Review Focus 3). (f) Bán hàng nội bộ tự quyết định đơn mình: công tắc bật → 200; Toàn quyền tắt → 403. (g) Bỏ cờ X khi đơn đang chờ → vẫn quyết định được (Review Focus 4). (h) Sửa tiền khi chờ không lý do → 400; có lý do → 200. (i) Chặng dưới mốc → `CON_VE` 409 `short_notice_required` như hôm nay. (j) Đơn trộn dịch vụ thường + X → phải gửi (Review Focus 1). (k) HDV chưa phụ trách GET chi tiết đơn đang chờ → 200, không SĐT/email, tiền chỉ đọc (Review Focus 8). (l) Người lập PUT khi đang chờ → 409 `confirm_pending_locked`; rút lại → PUT 200 (Review Focus 9).
+- [ ] **Step 1: Bài đỏ** `xac-nhan-don.mjs`: (a) Toàn quyền đánh dấu mã X cần xác nhận; Đối tác lập đơn X → `/status` confirmed 409 `confirm_request_required`; gửi → 201; Đối tác tự quyết định → 403. (b) Kế toán xem `cho-xac-nhan` thấy đơn, không có SĐT; HDV thấy; HCNS 403. (c) Kế toán `CON_VE` đổi giờ 08:30 → đơn `confirmed`, chặng 08:30, yêu cầu khép. (d) Đơn khác: `HET_VE` → `cancelled`, lý do `HET_CHO`. (e) Đua: hai lời quyết định song song → đúng một 200, một 409, đúng một dòng quyết định (Review Focus 3). (f) Bán hàng nội bộ tự quyết định đơn mình: công tắc bật → 200; Toàn quyền tắt → 403. (g) Bỏ cờ X khi đơn đang chờ → vẫn quyết định được (Review Focus 4). (h) Sửa tiền khi chờ không lý do → 400; có lý do → 200. (i) Chặng dưới mốc → `CON_VE` 409 `short_notice_required` như hôm nay. (j) Đơn trộn dịch vụ thường + X → phải gửi (Review Focus 1). (m) Bán hàng lập đơn KHÔNG có dịch vụ cờ, chặng đón cách 1 giờ (dưới mốc) → `/status` confirmed 409 `confirm_request_required`; gửi → 201; Kế toán thấy đơn trong danh sách chờ với nhãn "Cần Quản trị đặt gấp", `CON_VE` → 409 `short_notice_required`; Quản trị đặt gấp rồi `CON_VE` → 200 (đặc tả 5f.1). (k) HDV chưa phụ trách GET chi tiết đơn đang chờ → 200, không SĐT/email, tiền chỉ đọc (Review Focus 8). (l) Người lập PUT khi đang chờ → 409 `confirm_pending_locked`; rút lại → PUT 200 (Review Focus 9).
 - [ ] **Step 2:** FAIL. **Step 3:** Cài đặt. **Step 4:** `npm test && npm run typecheck && npm run test:e2e -- xac-nhan-don orders permissions chong-ghi-trung dong-bo-chuyen` → PASS (route mới vào `route-write-guard`, `permission-enforcement` xanh).
 - [ ] **Step 5:** Commit `Route gửi, rút lại, quyết định xác nhận đơn; danh sách chờ xác nhận; cài đặt dịch vụ cần xác nhận`.
 
