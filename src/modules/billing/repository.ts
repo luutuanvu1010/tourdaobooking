@@ -68,7 +68,7 @@ export interface LineDbRow {
   debtor_party_id: string;
   creditor_party_id: string;
   amount: number;
-  kind_code: "HELD" | "SETTLEMENT" | "REFUND";
+  kind_code: "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON";
   order_id: string | null;
   receipt_id: string | null;
   reverses_line_id: string | null;
@@ -274,11 +274,14 @@ const POSTING_COLS = "id, kind_code, order_id, reason, reverses_posting_id, occu
 const POSTING_VALUES = "?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?8, ?9";
 /** Phiếu kèm lần thu ?10 — chỉ áp khi lần thu đó đã được chèn (câu trước có lính gác). */
 const POSTING_IF_RECEIPT = defineSql("billing", "posting_if_receipt", `INSERT INTO bil_posting (${POSTING_COLS}) SELECT ${POSTING_VALUES} WHERE EXISTS (SELECT 1 FROM bil_payment_receipt WHERE id = ?10)`);
-/** Phiếu "Đã giao" — chỉ áp khi câu `orders` của chính lô đã đặt mốc ?10; trigger `bil_posting_delivered_paid` kiểm tiền (RAISE ⇒ cả lô huỷ). */
+/**
+ * Phiếu "Đã giao" — chỉ áp khi câu `orders` của chính lô đã đặt mốc ?10; trigger `bil_posting_delivered_paid` kiểm tiền, `bil_posting_delivered_terms` kiểm bản chụp
+ * (RAISE ⇒ cả lô huỷ). ?11 = `gross_snapshot` (thành tiền trước giảm của đơn lúc giao — sổ đại lý đợt 2, Ruling R-P8: MỌI phiếu Đã giao mới đều mang, kể cả đơn khách lẻ).
+ */
 const POSTING_IF_DELIVERED_AT = defineSql(
   "billing",
   "posting_if_delivered_at",
-  `INSERT INTO bil_posting (${POSTING_COLS}) SELECT ${POSTING_VALUES} WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?3 AND delivered_at = ?10)`,
+  `INSERT INTO bil_posting (${POSTING_COLS}, gross_snapshot) SELECT ${POSTING_VALUES}, ?11 WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?3 AND delivered_at = ?10)`,
 );
 /** Phiếu "Hoàn thành" — chỉ áp khi câu `orders` của chính lô đã đặt mốc ?10; trigger `bil_posting_completed_settled` kiểm còn ai nợ công ty. */
 const POSTING_IF_COMPLETED_AT = defineSql(
@@ -303,17 +306,22 @@ export interface NewPosting {
 const bindPosting = (db: D1Database, sql: string, p: NewPosting, ...extra: string[]) =>
   db.prepare(sql).bind(p.id, p.kind, p.orderId, p.reason, p.reversesPostingId, p.occurredDate, p.dueSnapshot, p.at, p.by, ...extra);
 export const postingIfReceiptStatement = (db: D1Database, p: NewPosting, receiptId: string) => bindPosting(db, POSTING_IF_RECEIPT, p, receiptId);
-export const postingIfDeliveredAtStatement = (db: D1Database, p: NewPosting, deliveredAt: string) => bindPosting(db, POSTING_IF_DELIVERED_AT, p, deliveredAt);
+/** Phiếu "Đã giao": `grossSnapshot` BẮT BUỘC (kiểu, không mặc định) — CSDL không đòi cột này (giữ đường lùi), nên chính chữ ký là chỗ không quên được (R-P8). */
+export const postingIfDeliveredAtStatement = (db: D1Database, p: NewPosting & { kind: "DELIVERED"; dueSnapshot: number; grossSnapshot: number }, deliveredAt: string) =>
+  db.prepare(POSTING_IF_DELIVERED_AT).bind(p.id, p.kind, p.orderId, p.reason, p.reversesPostingId, p.occurredDate, p.dueSnapshot, p.at, p.by, deliveredAt, p.grossSnapshot);
 export const postingIfCompletedAtStatement = (db: D1Database, p: NewPosting, completedAt: string) => bindPosting(db, POSTING_IF_COMPLETED_AT, p, completedAt);
 export const postingPlainStatement = (db: D1Database, p: NewPosting) => bindPosting(db, POSTING_PLAIN, p);
 
-/** Dòng nợ — chỉ áp khi phiếu ?2 đã được chèn trong lô (lính gác), nên phiếu thua ⇒ không dòng nào. */
+/**
+ * Dòng nợ — chỉ áp khi phiếu ?2 đã được chèn trong lô (lính gác), nên phiếu thua ⇒ không dòng nào. ?12 = `order_service_id` (dòng HOA_HONG / GIA_VON của phiếu
+ * Đã giao gắn dòng dịch vụ — trigger `bil_debt_line_commercial_service` của 0111; dòng khác: NULL). Số tham số cũ giữ nguyên vị trí (?1–?11).
+ */
 const LINE_IF_POSTING = defineSql(
   "billing",
   "line_if_posting",
   `INSERT INTO bil_debt_line (id, posting_id, debtor_party_id, creditor_party_id, amount, kind_code, order_id, trip_id, order_service_id, receipt_id, reverses_line_id,
      created_at, created_by, updated_at, updated_by)
-   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, NULL, NULL, ?8, ?9, ?10, ?11, ?10, ?11 WHERE EXISTS (SELECT 1 FROM bil_posting WHERE id = ?2)`,
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, NULL, ?12, ?8, ?9, ?10, ?11, ?10, ?11 WHERE EXISTS (SELECT 1 FROM bil_posting WHERE id = ?2)`,
 );
 export interface NewLine {
   id: string;
@@ -321,15 +329,17 @@ export interface NewLine {
   debtorPartyId: string;
   creditorPartyId: string;
   amount: number;
-  kind: "HELD" | "SETTLEMENT" | "REFUND";
+  kind: "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON";
   orderId: string;
+  /** Dòng dịch vụ của đơn (chỉ HOA_HONG / GIA_VON của phiếu Đã giao); null = dòng không gắn dòng dịch vụ. */
+  orderServiceId: string | null;
   receiptId: string | null;
   reversesLineId: string | null;
   at: string;
   by: string;
 }
 export const lineIfPostingStatement = (db: D1Database, l: NewLine) =>
-  db.prepare(LINE_IF_POSTING).bind(l.id, l.postingId, l.debtorPartyId, l.creditorPartyId, l.amount, l.kind, l.orderId, l.receiptId, l.reversesLineId, l.at, l.by);
+  db.prepare(LINE_IF_POSTING).bind(l.id, l.postingId, l.debtorPartyId, l.creditorPartyId, l.amount, l.kind, l.orderId, l.receiptId, l.reversesLineId, l.at, l.by, l.orderServiceId);
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 // Dấu "đã nhập phần mềm kế toán" (ADR-0060, migration *_billing_nhap_ke_toan.sql) — CHỈ-THÊM; trạng thái hiện tại = dòng rowid LỚN NHẤT của đơn.

@@ -25,7 +25,6 @@ export interface ThongTinGiaoDon {
   completedAt: string | null;
   /** Số thứ tự dòng điều chỉnh mới nhất (0 = chưa có) — khoá lạc quan của câu "Đã giao" (R3). */
   adjSeq: number;
-  coNguoiHuong: boolean;
   ngayDi: (string | null)[];
   dichVuThieuNgay: string[];
   phaiThu: number;
@@ -44,7 +43,6 @@ export async function thongTinGiaoDon(db: D1Database, orderId: string): Promise<
     deliveredAt: row.delivered_at,
     completedAt: row.completed_at,
     adjSeq: row.adj_seq,
-    coNguoiHuong: row.co_nguoi_huong === 1,
     ngayDi: dates.map((d) => d.depart_date),
     dichVuThieuNgay: dates.filter((d) => d.depart_date === null).map((d) => d.name),
     phaiThu,

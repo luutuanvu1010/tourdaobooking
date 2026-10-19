@@ -13,7 +13,7 @@ import { can, holdsPartner, seesOnlyAssignedOrders, type PermissionHolder } from
 import { route, type AppModule } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import { docGhiChuKy, khoaKyStatements, kiemKhoaKy, thangDaKhoa } from "../ky-so";
-import { donDangThuTien, thongTinGiaoDon } from "../orders";
+import { donDangThuTien, phanThuongMaiCuaDon, thongTinGiaoDon } from "../orders";
 import { danhSachYeuCau, duyetYeuCau, ruYeuCau, taoYeuCau, tuChoiYeuCau } from "./dieu-chinh";
 import { donChoNhapKeToan, docNhapKeToan, ghiNhapKeToan } from "./nhap-ke-toan";
 import { accountingEnteredAmong, earliestLedgerMonth, orderOwners, soDongNoCuaNguoiRow } from "./repository";
@@ -76,7 +76,10 @@ export const billingModule: AppModule = {
           laDoiTac: holdsPartner(staff), // D-1: Đối tác không thấy lý do tự do / tên người duyệt, người ghi
         })
         : null;
-      const body = await tienCuaDon(env.DB, info, nguoiGoi(staff), {
+      // Sổ đại lý đợt 2 (ADR-0079 điều 1): phần thương mại quyết lý do giữ «Đã giao» — chỉ đọc khi đơn còn bấm được (xác nhận, chưa giao); hàm công bố của orders
+      // KHÔNG tự kiểm quyền nên chỉ gọi ở đây, SAU `can(` (src/orders-cong-bo.test.ts). Chỉ dùng để chọn câu lý do — không số nào của nó ra DTO này.
+      const phan = info.status === "confirmed" && info.deliveredAt === null ? await phanThuongMaiCuaDon(env.DB, id) : null;
+      const body = await tienCuaDon(env.DB, info, phan, nguoiGoi(staff), {
         laDoiTac: holdsPartner(staff),
         // Cờ theo ĐÚNG luật của route ghi (đ13): đơn huỷ thì thêm ô `ledger.write`.
         coTheGhiThu: can(staff, "payment.receive", scope) && (info.status !== "cancelled" || can(staff, "ledger.write")),
@@ -194,8 +197,11 @@ export const billingModule: AppModule = {
       const body = await readJson(request);
       const lanThu = body && typeof body === "object" ? (body as Record<string, unknown>).lanThu : undefined;
       if (lanThu !== undefined && lanThu !== null && !can(staff, "payment.receive", { ownerId: info.ownerId, assigned })) return CANNOT_RECEIVE();
+      // Sổ đại lý đợt 2 (ADR-0079 điều 1–6): phần thương mại (bản chụp + thành tiền hiện hành) cho dòng hoa hồng / giảm giá bên đặt chịu / giá vốn của lô — đọc SAU
+      // `can(` (hàm công bố không tự kiểm quyền — src/orders-cong-bo.test.ts) và SAU `thongTinGiaoDon`: đơn đổi sau lần đọc khoá lạc quan ⇒ lô không áp (stale).
+      const phan = await phanThuongMaiCuaDon(env.DB, id);
       // Người được phép CHỈ vì đang phụ trách (ô `assigned`) ⇒ lô kèm câu bảo vệ (đổi người phụ trách giữa lúc đọc và lúc ghi → lô không áp — NT-F4).
-      const kq = await daGiao(env.DB, { orderId: id, info, ai: nguoiGoi(staff), canCauBaoVe: !can(staff, "order.handover"), rawLanThu: lanThu });
+      const kq = await daGiao(env.DB, { orderId: id, info, phan, ai: nguoiGoi(staff), canCauBaoVe: !can(staff, "order.handover"), rawLanThu: lanThu });
       if (!kq.ok) return kq.res;
       baoThayDoi({ orderId: id, thayDoi: "chot_giao" });
       return json({ ok: true });

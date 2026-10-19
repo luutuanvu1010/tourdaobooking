@@ -151,7 +151,7 @@ test("NT-Q2: Đã giao — HDV không phụ trách → 403; Bán hàng ĐANG ph�
   assert.equal((await giao(w, SA, id)).status, 200);
 });
 
-test("NT-F1: trước ngày đi muộn nhất → 409; bên đặt mang vai nhóm bên ngoài (M1 = A) → 409; còn lần thu chưa rõ → 409 (Kế toán xử lý)", async () => {
+test("NT-F1: trước ngày đi muộn nhất → 409; bên đặt là cộng tác viên mà bản chụp thiếu mức (terms_missing) → 409; còn lần thu chưa rõ → 409 (Kế toán xử lý)", async () => {
   const w = setup();
   const som = donDaXacNhan(w, { depart: vnNgay(2) });
   await thu(w, HDV, som, tienMat(1_000_000));
@@ -160,11 +160,16 @@ test("NT-F1: trước ngày đi muộn nhất → 409; bên đặt mang vai nhó
   assert.match(r1.json.error.message, /^Chưa tới ngày đi/);
   w.sqlite.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-ctv', 'PERSON', 'Cộng Tác Viên', 1, '${AT}', '${AT}')`);
   w.sqlite.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-ctv', 'pty-ctv', 'COLLABORATOR', '2026-01-01', '${AT}', '${AT}')`);
+  // ĐẢO CÓ CHỦ ĐÍCH (sổ đại lý đợt 2, Task 4 — ADR-0079 điều 1): lý do cũ «Đơn của đối tác» (M1 = A, theo vai HIỆN TẠI của bên đặt) đã bỏ — «Đã giao» nay theo BẢN
+  // CHỤP của đơn. Đơn cộng tác viên chưa có mức: bản chụp hiện hành mang người hưởng nhưng thiếu mức (thay bản gieo sẵn) ⇒ vẫn 409, câu «ghi mức tay».
   const dt = donDaXacNhan(w, { booker: "pty-ctv" });
+  w.sqlite.prepare(`INSERT INTO ord_service_terms (id, order_id, order_service_id, beneficiary_party_id, commission_status, missing_reason, supply_status, seller_party_id, supply_term_id,
+    source, supersedes_id, captured_date, created_at, updated_at) VALUES (?, ?, ?, 'pty-ctv', 'MISSING', 'NO_RULE', 'SET', (SELECT party_id FROM v_pty_owner_company), 'prc-st-goc-all',
+    'AUTO', ?, '2026-09-01', ?, ?)`).run(uuid(), dt, `${dt}-s`, `chup-${dt}-s-tay`, AT, AT); // bản hiện hành của gieoBanChup (dòng nhập tay ⇒ bản ghi tay `-tay`)
   await thu(w, HDV, dt, tienMat(1_000_000));
   const r2 = await giao(w, HDV, dt);
   assert.equal(r2.status, 409);
-  assert.match(r2.json.error.message, /^Đơn của đối tác/);
+  assert.equal(r2.json.error.message, "Thiếu mức hoa hồng / người bán cho Vé Hòn Tằm — Kế toán ghi mức tay cho dòng này.");
   const cu = donDaXacNhan(w);
   w.sqlite.prepare(`INSERT INTO bil_payment_receipt (id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code,
     occurred_date, created_at, created_by, updated_at, updated_by) VALUES (?, ?, 'CUSTOMER_PAYMENT', 1000000, NULL, 'UNKNOWN', 'OTHER', (SELECT party_id FROM v_pty_owner_company), 'PREPAID', '2026-09-01', ?, 'he-thong', ?, 'he-thong')`)
