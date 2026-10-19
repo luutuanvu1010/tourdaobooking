@@ -56,6 +56,15 @@ Thành công = (a) đơn có dịch vụ "cần xác nhận" không thể thành
    Trang hiện có giữ nguyên địa chỉ; Bảng điều khiển là cửa vào chung. Ảnh thật hai hướng (điện thoại + máy tính) trình chủ trước khi thi công giao diện.
 3. Mọi cài đặt mới theo kiểu mẫu chặng: lưu trong D1, **chỉ thêm dòng** (có lịch sử ai đổi, lúc nào), đồng bộ Sheet không đụng tới.
 
+## 5b. Chốt của chủ lượt 4 (19/10, sau bản mô tả luồng thực tế) — thắng mọi dòng [người soạn] ở trên nếu lệch
+
+1. **[chủ] Đơn nháp chỉ người tạo đơn đọc được**; nháp chưa vào luồng đơn chung; **danh sách đơn chờ nhận không tính đơn nháp.** Hôm nay mã làm khác (hàng chờ nhận của HDV có cả đơn nháp; Quản trị/Toàn quyền xem được nháp của người khác) → đây là **luật mới phải thi công**, chạm bản đồ quyền xem đơn (ADR + trang ghép). **[người soạn]** Đơn "Chờ xác nhận" không còn là nháp riêng: người lập + mọi người xác nhận thấy được (theo quy tắc thấy/sửa ở Phần A mục 5), nhưng vẫn KHÔNG vào hàng chờ nhận của HDV; chỉ đơn đã xác nhận mới vào.
+2. **[chủ] Đơn nháp không ghi thu tiền được.** Hôm nay mã cho ghi thu lên nháp → luật mới phải thi công; áp cả cho đơn "Chờ xác nhận". Nhờ vậy đơn huỷ vì hết vé không bao giờ giữ tiền khách (không xây trên lỗ TNV-G1). Mục 11 Phần A giữ đúng nhờ luật này.
+3. **[chủ] Khoảng 22:00–06:00 (giờ Việt Nam) không tính vào 15 phút chờ.** Ví dụ gửi lúc 21:55 → còn 10 phút, tính tiếp từ 06:00 → quá hạn lúc 06:10.
+4. **[chủ, người soạn hiểu]** Ảnh "XÁC NHẬN ĐƠN DỊCH VỤ" gửi khách chỉ tự bật cho đơn **không** cần bước xác nhận; đơn cần xác nhận thì chỉ có ảnh sau khi đã xác nhận xong.
+5. **[chủ] Đơn bị huỷ (trạng thái đổi sang huỷ): thông báo trong Nền tảng VÀ email tới những người liên quan.** **[người soạn hiểu]** Áp cho MỌI lần huỷ, không riêng huỷ ở bước xác nhận. Người liên quan = người đặt của đơn (email), nhân viên lập đơn kể cả Đối tác/Thực tập (trong Nền tảng + email), người xác nhận và HDV đang phụ trách nếu có (trong Nền tảng). Thư nêu lý do huỷ theo nhãn, không kèm tên người huỷ. Dòng "không gửi email cho khách khi huỷ" ở Phần C mục 4 **bị thay** bởi mục này.
+6. **[người soạn] Báo khi có đơn gửi xác nhận** (chủ chưa chốt): tin trong Nền tảng tới mọi người xác nhận được, ngay lúc gửi; nhắc thêm một lần khi quá hạn 15 phút (tính theo mục 3). Rung ban đêm hay không: theo giờ yên lặng hiện có (không rung 22:00–06:00), hợp với mục 3.
+
 ## 6. Thứ tự làm đề xuất
 
 B (đón/khung giờ, ít rủi ro nhất) → A (xác nhận, lõi) → C (QR + email, cần A) → D (Bảng điều khiển; phần cài đặt của A/B/C thi công cùng phần đó, trang tổng hợp làm cuối). Mỗi phần một ADR; tối đa 3 quyết định chạm quyền/dữ liệu mỗi lượt duyệt.
