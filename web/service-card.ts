@@ -12,9 +12,10 @@
 import { PAX_LABEL, thanhTienDong, type PaxCode } from "../src/shared/order-lines";
 import {
   addManualLine, cardCodes, chuDongTien, chuLuot, coDongThanhTien, draftIssues, soKhachNhap, draftSubtotal, groupInfo, guestDetail, isFrozenManual, isLocked, nhanSoLuongDong, previewLines,
-  removeManualLine, setGuests, setManualLine, setPax, setUnitPrice, unitLabel,
+  removeManualLine, setGuests, setManualLine, setPax, setUnitPrice, unitLabel, chonDonSauDoiChang, datChonDon,
   type CatalogDraft, type ManualDraft, type ServiceDraft,
 } from "../src/shared/service-form";
+import type { KhungGio } from "../src/shared/khung-gio-don";
 import { canhBaoChuyenThe, coLoiChanLuuDangHien, dongGapThe } from "../src/shared/dong-gap-the";
 import { tripSummaryLine } from "../src/shared/trip-form";
 import { MAX_LINES_PER_ORDER } from "../src/shared/trip-rules";
@@ -46,7 +47,11 @@ export interface CardOptions {
   /** ADR-0061: người dùng ĐƯỢC nhập tay (`duocDung` của máy chủ) — thẻ nhập tay đã lưu sửa được tên/giá; vắng/false = chỉ xem (máy chủ vẫn kiểm lại). */
   duocNhapTay?: boolean;
   /** Khối "Đưa đón" (ADR-0047 Phần B, bản vẽ M1/M6): ngày đi của cả đơn, mẫu chặng của dịch vụ, điểm danh mục, ô số người chiều về (văn phòng). */
-  duaDon: { ngayDi: () => string; mau: () => MauChang | null; diem: () => readonly DiemChon[]; suaSoVe: boolean; newKey: () => string };
+  duaDon: {
+    ngayDi: () => string; mau: () => MauChang | null; diem: () => readonly DiemChon[]; suaSoVe: boolean; newKey: () => string;
+    /** ADR-0134 Đ5: bộ khung giờ đón + câu lưu ý của trang; vắng = chỉ ô giờ. */
+    khungGio?: () => { khung: readonly KhungGio[]; luuY: string } | null;
+  };
   /** Thẻ MỞ lúc dựng: thẻ vừa thêm (phải điền), thẻ của nháp nạp lại khi `theMoKhiNap` (có lỗi / giá trị bị giấu), thẻ được trỏ tới bằng `?focus=`. Thẻ có lỗi chặn Lưu đang hiện luôn mở. */
   moThe: boolean;
   /** Người dùng vừa MỞ thẻ (chạm dòng gập, Enter / Space): trang gập các thẻ khác — chỉ một thẻ mở. Không gọi khi thẻ tự mở vì lỗi hay do trang mở. */
@@ -152,7 +157,16 @@ export function createServiceCard(o: CardOptions): ServiceCard {
 
   const duaDon = taoKhoiDuaDon({
     legs: draft.legs, taoSan: draft.taoSan, che: "form", ma: draft.key, ...o.duaDon, soKhach: () => soKhachNhap(draft),
-    onChange: (legs, taoSan) => commit({ ...draft, legs, taoSan }),
+    // ADR-0134: còn lượt → "Đón"; bỏ lượt cuối khi đang "Đón" → về chưa chọn (`chonDonSauDoiChang`).
+    onChange: (legs, taoSan) => commit({ ...draft, legs, taoSan, pickupChoice: chonDonSauDoiChang(draft.pickupChoice, legs.length) }),
+    chonDon: {
+      lay: () => draft.pickupChoice,
+      dat: (v) => {
+        const next = datChonDon(draft, v, o.duaDon.mau(), o.duaDon.newKey);
+        commit(next);
+        duaDon.update(next.legs, next.taoSan);
+      },
+    },
   });
 
   const summaryEl = h("span", { class: "trip-summary" });
@@ -531,7 +545,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     root,
     update(d) {
       const before = structKey(draft, o.duocNhapTay === true);
-      const legsDoi = d.legs !== draft.legs || d.taoSan !== draft.taoSan;
+      const legsDoi = d.legs !== draft.legs || d.taoSan !== draft.taoSan || d.pickupChoice !== draft.pickupChoice;
       draft = d;
       if (structKey(d, o.duocNhapTay === true) !== before) rebuildBody();
       if (legsDoi) duaDon.update(d.legs, d.taoSan);

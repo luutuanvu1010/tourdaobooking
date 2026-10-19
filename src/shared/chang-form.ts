@@ -4,6 +4,7 @@
 import { CHIEU_LABEL, CHO_TOI_THIEU_MAX, CHO_TOI_THIEU_MIN, doiNgayChang, NOI_DON_CHUA_GHI } from "./chang-dua-don.ts";
 import { changMacDinh, type MauChang } from "./chang-mac-dinh.ts";
 import type { LegDirection, LegDto, LegInput } from "./contracts.ts";
+import type { KhungGio } from "./khung-gio-don.ts";
 import { ngayNgan } from "./vn-date.ts";
 
 /** Giá trị ô chọn nơi: "" = chưa chọn (nơi đón) / chưa chốt (nơi trả); `TU_DO` = "Gõ tự do…"; còn lại = id điểm danh mục. */
@@ -17,8 +18,10 @@ export interface ChangNhap {
   direction: LegDirection;
   /** "YYYY-MM-DD" hoặc "" (máy chủ điền ngày đi — R4b). */
   pickupDate: string;
-  /** "HH:MM" hoặc "" = chưa chốt giờ. */
+  /** "HH:MM" hoặc "" = chưa chốt giờ. Chọn khung thì = giờ ĐẦU khung (giờ hẹn — ADR-0134 Đ4). */
   pickupTime: string;
+  /** Giờ CUỐI khung đón đang chọn (ADR-0134 Đ3); "" = "Giờ khác" hoặc chưa chọn khung. */
+  pickupSlotEnd: string;
   don: string;
   donTuDo: string;
   tra: string;
@@ -41,7 +44,7 @@ export interface ChangNhap {
 }
 
 const rong = (key: string, direction: LegDirection, pickupDate: string): ChangNhap => ({
-  key, id: null, direction, pickupDate, pickupTime: "", don: "", donTuDo: "", tra: "", traTuDo: "", flightCode: "", soVe: "", xeRieng: false, choToiThieu: "",
+  key, id: null, direction, pickupDate, pickupTime: "", pickupSlotEnd: "", don: "", donTuDo: "", tra: "", traTuDo: "", flightCode: "", soVe: "", xeRieng: false, choToiThieu: "",
   goiYGio: false, goiYTra: false, theoDon: false, theoTra: false, goc: null,
 });
 
@@ -49,7 +52,7 @@ const rong = (key: string, direction: LegDirection, pickupDate: string): ChangNh
 export function changTuDto(l: LegDto, key: string): ChangNhap {
   const tamDon = l.pickupLocationId === null && l.pickupPlace === NOI_DON_CHUA_GHI;
   return {
-    key, id: l.id, direction: l.direction, pickupDate: l.pickupDate ?? "", pickupTime: l.pickupTime ?? "",
+    key, id: l.id, direction: l.direction, pickupDate: l.pickupDate ?? "", pickupTime: l.pickupTime ?? "", pickupSlotEnd: l.pickupSlotEnd ?? "",
     don: l.pickupLocationId ?? (l.pickupPlace && !tamDon ? TU_DO : ""), donTuDo: tamDon ? "" : (l.pickupPlace ?? ""),
     tra: l.dropoffLocationId ?? (l.dropoffPlace ? TU_DO : ""), traTuDo: l.dropoffPlace ?? "",
     flightCode: l.flightCode ?? "", soVe: l.paxOverride === null ? "" : String(l.paxOverride),
@@ -92,7 +95,7 @@ export function themChieuVe(legs: readonly ChangNhap[], mau: MauChang | null, ng
   };
 }
 
-export type SuaChang = Partial<Pick<ChangNhap, "pickupDate" | "pickupTime" | "don" | "donTuDo" | "tra" | "traTuDo" | "flightCode" | "soVe" | "xeRieng" | "choToiThieu">>;
+export type SuaChang = Partial<Pick<ChangNhap, "pickupDate" | "pickupTime" | "pickupSlotEnd" | "don" | "donTuDo" | "tra" | "traTuDo" | "flightCode" | "soVe" | "xeRieng" | "choToiThieu">>;
 
 /**
  * Sửa ô của chặng thứ `i` (trả mảng MỚI). Sửa ô nào thì bỏ chữ gợi ý / liên kết của ô đó. Sửa nơi đón / nơi trả của CHIỀU ĐI ĐẦU → chiều về còn đi theo
@@ -104,6 +107,8 @@ export function suaChang(legs: readonly ChangNhap[], i: number, p: SuaChang): Ch
   if (!cu) return out;
   const moi: ChangNhap = { ...cu, ...p };
   if ("pickupTime" in p) moi.goiYGio = false;
+  // ADR-0134: gõ giờ ("Giờ khác") mà không chọn khung → bỏ cuối khung (khung chỉ đặt qua `chonKhung`).
+  if ("pickupTime" in p && !("pickupSlotEnd" in p)) moi.pickupSlotEnd = "";
   if ("don" in p || "donTuDo" in p) moi.theoDon = false;
   if ("tra" in p || "traTuDo" in p) {
     moi.theoTra = false;
@@ -122,6 +127,19 @@ export function suaChang(legs: readonly ChangNhap[], i: number, p: SuaChang): Ch
     }
   }
   return out;
+}
+
+/** Chọn một khung giờ đón cho chặng thứ `i` (ADR-0134 Đ3): giờ đón = giờ đầu khung (giờ hẹn), cuối khung = giờ cuối khung. */
+export const chonKhung = (legs: readonly ChangNhap[], i: number, k: KhungGio): ChangNhap[] => suaChang(legs, i, { pickupTime: k.tu, pickupSlotEnd: k.den });
+
+/**
+ * Ô khung nào đang chọn: chỉ số khung trong bộ hiện hành; `"khac"` = có giờ nhưng không khớp khung nào (Giờ khác, hoặc khung đã lưu nay Toàn quyền đã đổi —
+ * giữ giờ đã lưu, không mất dữ liệu); `null` = chưa có giờ.
+ */
+export function khungDangChon(l: Pick<ChangNhap, "pickupTime" | "pickupSlotEnd">, khung: readonly KhungGio[]): number | "khac" | null {
+  if (l.pickupTime === "") return null;
+  const i = khung.findIndex((k) => k.tu === l.pickupTime && k.den === l.pickupSlotEnd);
+  return i >= 0 ? i : "khac";
 }
 
 /** Đổi ngày đi của cả đơn → dời ngày đón mọi chặng cùng số ngày (`doiNgayChang`). `soDoi` = số chặng có ngày đổi (câu "Đã dời ngày đón của N chặng…"). */
@@ -241,6 +259,8 @@ export function legInput(l: ChangNhap, guiSoVe: boolean): LegInput {
     // Cam kết với khách (ADR-0056 VK3-A): LUÔN gửi — Đối tác / Thực tập có `order.modify` nên sửa được trên nháp; không phụ thuộc `guiSoVe`.
     exclusiveVehicle: l.xeRieng, minVehicleSeats: l.choToiThieu === "" ? null : Number(l.choToiThieu),
     ...(guiSoVe && l.direction === "RETURN" ? { paxOverride: l.soVe === "" ? null : Number(l.soVe) } : {}),
+    // ADR-0134 Đ3: chỉ gửi cuối khung khi đang chọn một khung (có giờ đầu); "Giờ khác" → vắng.
+    ...(l.pickupSlotEnd !== "" && l.pickupTime !== "" ? { pickupSlotEnd: l.pickupSlotEnd } : {}),
   };
 }
 

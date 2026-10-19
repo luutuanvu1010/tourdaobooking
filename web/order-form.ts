@@ -15,9 +15,10 @@ import { gopBenDat, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, ty
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, chiGiaDanhMuc, holdsPartner } from "../src/shared/permissions";
 import {
-  canAddService, draftFromDto, draftIssues, soKhachNhap, newCatalogDraft, newManualDraft, orderIssues, orderSummary, refreshFromCatalog, toServiceInput, totalLines,
+  canAddService, chonDonGoiY, draftFromDto, draftIssues, soKhachNhap, newCatalogDraft, newManualDraft, orderIssues, orderSummary, refreshFromCatalog, toServiceInput, totalLines,
   type ServiceDraft,
 } from "../src/shared/service-form";
+import { CAU_LUU_Y_MAC_DINH, KHUNG_MAC_DINH, type KhungGio } from "../src/shared/khung-gio-don";
 import { MAX_LINES_PER_ORDER, MAX_SERVICES } from "../src/shared/trip-rules";
 import { coGiaTriChuyen } from "../src/shared/trip-form";
 import { buocXong } from "../src/shared/buoc-tao-don";
@@ -162,6 +163,8 @@ let diem: DiemChon[] = [];
 let mauChang = new Map<string, MauChang>();
 /** Văn phòng (ô `order.trip.edit`) sửa / gửi "Số người chiều về"; Đối tác, Thực tập chỉ xem (gửi khoá này sẽ bị 403). Đặt trước khi dựng thẻ. */
 let suaSoVe = false;
+/** ADR-0134 Đ5: bộ khung giờ đón + câu lưu ý (GET /api/cai-dat/khung-gio-don — người lập đơn). Lỗi → bộ mặc định (cùng bộ gieo ở migration). */
+let khungGio: { khung: readonly KhungGio[]; luuY: string } = { khung: KHUNG_MAC_DINH, luuY: CAU_LUU_Y_MAC_DINH };
 const newKey = () => `k${++seq}`;
 const mauCua = (d: ServiceDraft): MauChang | null => (d.kind === "catalog" ? (mauChang.get(d.code) ?? null) : null);
 const hkCard = byId("hk-card");
@@ -198,7 +201,8 @@ const picker = createCatalogPicker({
   onPick: (item) => {
     const tao = changTaoSan(mauChang.get(item.code) ?? null, orderDate, newKey); // M6: dịch vụ có mẫu Một / Hai chiều → tạo sẵn chặng (sửa / bỏ được)
     // Thiết kế lại 18/10 (mục 3C): thẻ vừa thêm MỞ (người lập phải điền), thẻ đang mở khác tự gập — trừ thẻ có lỗi chặn Lưu (`mustStayOpen`). Thẻ nằm dưới khung danh sách nên gập không xê dịch khung.
-    chiMoMot(mount({ ...withOrderDate(newCatalogDraft(item, newKey())), legs: tao.legs, taoSan: tao.taoSan }, true));
+    // ADR-0134 Đ7: mẫu một chiều / khứ hồi (đã tạo sẵn chặng) → gợi ý "Đón" (đổi được); không mẫu → CHƯA chọn (không mặc định "Không đón").
+    chiMoMot(mount({ ...withOrderDate(newCatalogDraft(item, newKey())), legs: tao.legs, taoSan: tao.taoSan, pickupChoice: chonDonGoiY(tao.legs.length) }, true));
     // Thiết kế lại 18/10 (đặc tả mục 3A): KHÔNG cuộn trang tới thẻ mới và KHÔNG thông báo nổi — khung danh sách đứng yên để thêm nhiều dịch vụ liền tay;
     // dòng vừa chạm hiện "✓ đã thêm" và vùng aria-live của ô chọn đọc "Đã thêm <tên>" (web/catalog-picker.ts). Thẻ mới nằm ngay dưới khung.
   },
@@ -224,7 +228,7 @@ function mount(d: ServiceDraft, moThe: boolean, open?: boolean): Entry {
     canAddLine: () => totalLines(drafts()) < MAX_LINES_PER_ORDER,
     retailOnly,
     duocNhapTay,
-    duaDon: { ngayDi: () => orderDate, mau: () => mauCua(entry.draft), diem: () => diem, suaSoVe, newKey },
+    duaDon: { ngayDi: () => orderDate, mau: () => mauCua(entry.draft), diem: () => diem, suaSoVe, newKey, khungGio: () => khungGio },
     moThe,
     onMo: () => chiMoMot(entry, true),
     cuoiThe: entry.mocEl, // dải đặt gấp nằm TRONG phần gập của thẻ (gập thì thành chip "Cần đặt gấp" trên dòng gập)
@@ -917,7 +921,11 @@ const layNhapTay = can(staff, "order.create")
 // (gọi thì hiện thêm "Không tải được danh mục dịch vụ — tải lại trang…", lời khuyên sai vì tải lại không giúp gì). Hôm nay mọi mã có `order.modify`
 // đều có `order.create`; ai sửa đơn mà không được lập đơn thì thẻ đã lưu hiện ở dạng khoá như khi mất danh mục (xem `loadCatalog`).
 // Điểm + mẫu chặng TRƯỚC khi danh mục hiện ra ô chọn: chọn dịch vụ sớm mà mẫu chưa về thì mất chặng tạo sẵn (M6) — kịch bản 9b bắt được.
-[diem, mauChang] = await Promise.all([layDiem, layMau]);
+// ADR-0134 Đ5: bộ khung giờ đón (chỉ người lập đơn — máy chủ hỏi order.create). Lỗi → giữ bộ mặc định.
+const layKhung = can(staff, "order.create")
+  ? api<Api.KhungGioDonResponse>("/api/cai-dat/khung-gio-don").then((r) => ({ khung: r.khung, luuY: r.luuY }), () => khungGio)
+  : Promise.resolve(khungGio);
+[diem, mauChang, khungGio] = await Promise.all([layDiem, layMau, layKhung]);
 if (can(staff, "order.create")) await loadCatalog(); // trước loadOrder: thẻ đã lưu cần danh mục hiện tại để biết còn đổi số khách được không
 duocNhapTay = await layNhapTay;
 addManualBtn.hidden = !duocNhapTay;

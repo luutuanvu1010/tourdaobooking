@@ -3070,6 +3070,13 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .dd-hau-to[hidden] { display: none; }
 .dd-nut { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .dd-nut .pill-btn, .dd-trong .pill-btn { white-space: nowrap; }
+/* ADR-0134: hai nút bắt buộc "Đón" / "Không đón" của thẻ dịch vụ (chia đều, dùng lại .loc-nut — bật = aria-pressed) và hàng khung giờ đón + "Giờ khác"; câu lưu ý màu phụ. Chỉ token. */
+.dd-chon-don { display: flex; gap: var(--s2); }
+.dd-chon-don .loc-nut { flex: 1 1 0; min-width: 0; border-radius: var(--radius-sm); }
+.dd-khung-o { display: flex; flex-direction: column; gap: var(--s2); }
+.dd-khung { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.dd-khung .loc-nut { font-variant-numeric: tabular-nums; }
+.dd-luu-y { margin: 0; font-size: var(--fs-label); color: var(--c-text-muted); }
 .dd-chang [aria-invalid="true"], .hk [aria-invalid="true"] { border-color: var(--c-danger); }
 .dd-chang .field-error[hidden], .hk .field-error[hidden] { display: none; }
 /* Ô Nơi đón / Nơi trả MỘT ô có gợi ý (form Tạo/sửa đơn — Tạo đơn thiết kế lại 18/10/2026, việc 7; web/o-noi-goi-y.ts): danh sách nằm NGAY DƯỚI ô, trong dòng chảy (đẩy phần dưới xuống,
