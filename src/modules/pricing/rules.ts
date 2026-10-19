@@ -2,14 +2,14 @@
 // Không I/O, không import module khác. MỘT hàm chọn mức (`chonMuc`), MỘT hàm chọn điều khoản (`chonDieuKhoan`), MỘT cách làm tròn (`lamTronNuaLen`).
 // Tỷ lệ tính bằng phần vạn (1250 = 12,5%). Thành tiền / số khách là số HIỆN HÀNH của dòng; mức là mức ĐÃ CHỤP (A-2).
 import { parseUnit, payingGuests, type PaxCounts } from "../../shared/order-lines.ts";
-import { giaVonDong, hoaHongDong, lamTronNuaLen, tinhDongDoiTac, type BanChup, type DongPhanDoiTac, type KieuMuc, type LyDoThieu } from "../../shared/hoa-hong-dong.ts";
+import { giaVonDong, hoaHongDong, lamTronNuaLen, tinhDongDoiTac, type BanChup, type DongPhanDoiTac, type KieuMuc, type LyDoThieu, type MucTheoLoai } from "../../shared/hoa-hong-dong.ts";
 import { nhanMuc } from "../../shared/so-dai-ly-nhan.ts";
 import { MOI_KHACH_TOI_DA } from "../../shared/so-dai-ly-nhap.ts"; // trần «Số tiền mỗi khách»: MỘT hằng cho giao diện và máy chủ (Task 14, nợ (a))
 import { khoaTen } from "../../shared/khoa-ten.ts";
 
 // Phép tính tiền MỘT dòng (làm tròn nửa lên, hoa hồng, giá vốn, `tinhDongDoiTac`) và kiểu bản chụp nằm ở src/shared/hoa-hong-dong.ts để `orders/thuong-mai.ts` (DTO) chạy được bằng node trực tiếp
 // mà không nhập index.ts của module khác; ở đây chỉ tái xuất — vẫn MỘT định nghĩa (Task 5, Ruling ở sổ thi công).
-export { giaVonDong, hoaHongDong, lamTronNuaLen, tinhDongDoiTac, type BanChup, type DongPhanDoiTac, type KieuMuc, type LyDoThieu };
+export { giaVonDong, hoaHongDong, lamTronNuaLen, tinhDongDoiTac, type BanChup, type DongPhanDoiTac, type KieuMuc, type LyDoThieu, type MucTheoLoai };
 
 export type PhamVi = "SERVICE" | "GROUP" | "ALL";
 
@@ -25,6 +25,8 @@ export interface DongMuc {
   kind: KieuMuc;
   rateBp: number | null;
   perPaxAmount: number | null;
+  /** ADR-0133: ba số tiền theo loại khách của dòng đ/khách (người lớn = perPaxAmount). null/thiếu = không khai theo loại, tính như cũ. */
+  theoLoai?: MucTheoLoai | null;
   validFrom: string;
   validTo: string | null;
 }
@@ -73,7 +75,9 @@ function khop(d: { scope: PhamVi; catalogCode: string | null; groupCode: string 
   if (pv === "GROUP") return groupCode !== null && d.groupCode === groupCode;
   return true;
 }
-const cungMuc = (a: DongMuc, b: DongMuc): boolean => a.kind === b.kind && a.rateBp === b.rateBp && a.perPaxAmount === b.perPaxAmount;
+const cungTheoLoai = (a: MucTheoLoai | null | undefined, b: MucTheoLoai | null | undefined): boolean =>
+  !a || !b ? !a && !b : a.adult === b.adult && a.child === b.child && a.senior === b.senior;
+const cungMuc = (a: DongMuc, b: DongMuc): boolean => a.kind === b.kind && a.rateBp === b.rateBp && a.perPaxAmount === b.perPaxAmount && cungTheoLoai(a.theoLoai, b.theoLoai);
 const theoThuTu = (a: DongMuc, b: DongMuc): number => (a.targetRoleCode ?? "").localeCompare(b.targetRoleCode ?? "") || a.id.localeCompare(b.id);
 
 /**
@@ -144,7 +148,7 @@ export function chupDon(v: { nguoiHuong: NguoiHuong; ngay: string; dong: readonl
     const m: KetQuaMuc = laNhaCungCap ? { trangThai: "MISSING", lyDo: "RULE_CONFLICT" } : chonMuc({ nguoiHuong: v.nguoiHuong, catalogCode: d.catalogCode, groupCode: d.groupCode, ngay: v.ngay, dong: v.muc, gan: v.gan });
     const hoaHong: BanChup["hoaHong"] = m.trangThai === "NONE" ? { status: "NONE" }
       : m.trangThai === "MISSING" ? { status: "MISSING", reason: m.lyDo }
-      : { status: "SET", kind: m.dong.kind, rateBp: m.dong.rateBp, perPax: m.dong.perPaxAmount, ruleId: m.dong.id };
+      : { status: "SET", kind: m.dong.kind, rateBp: m.dong.rateBp, perPax: m.dong.perPaxAmount, ruleId: m.dong.id, theoLoai: m.dong.theoLoai ?? null };
     return { serviceId: d.serviceId, beneficiaryPartyId, hoaHong, cungUng };
   });
 }
@@ -177,7 +181,21 @@ function docKhoangNgay(b: Record<string, unknown>): Ket<{ validFrom: string; val
 }
 
 export type ThanMuc = Omit<DongMuc, "id" | "validFrom" | "validTo"> & { validFrom: string; validTo: string | null; note: string | null };
-type PhanMuc = Pick<ThanMuc, "scope" | "catalogCode" | "groupCode" | "kind" | "rateBp" | "perPaxAmount" | "validFrom" | "validTo" | "note">;
+type PhanMuc = Pick<ThanMuc, "scope" | "catalogCode" | "groupCode" | "kind" | "rateBp" | "perPaxAmount" | "theoLoai" | "validFrom" | "validTo" | "note">;
+/**
+ * ADR-0133: `theoLoai` = { treEm?, nguoiCaoTuoi? } chỉ đi với kiểu đ/khách; người lớn LUÔN là `moiKhach`. Ô thiếu / null / "" = 0 (điều 2). Mỗi số là số nguyên 0…trần «mỗi khách».
+ * Không khai (undefined / null) ⇒ null: dòng tính như cũ.
+ */
+function docTheoLoai(raw: unknown, kind: KieuMuc, nguoiLon: number | null): Ket<MucTheoLoai | null> {
+  if (raw === undefined || raw === null) return { ok: true, value: null };
+  if (kind !== "PER_PAX" || nguoiLon === null) return { ok: false, message: "Số tiền theo loại khách chỉ dùng cho mức tính theo số tiền mỗi khách." };
+  if (typeof raw !== "object" || Array.isArray(raw)) return { ok: false, message: "Số tiền theo loại khách không hợp lệ." };
+  const o = raw as Record<string, unknown>;
+  const doc = (v: unknown): number | null => (v === undefined || v === null || v === "" ? 0 : typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= MOI_KHACH_TOI_DA ? v : null);
+  const child = doc(o.treEm), senior = doc(o.nguoiCaoTuoi);
+  if (child === null || senior === null) return { ok: false, message: "Số tiền mỗi khách theo loại (trẻ em, người cao tuổi) phải là số nguyên không âm, không quá mức tối đa." };
+  return { ok: true, value: { adult: nguoiLon, child, senior } };
+}
 /** Phần chung của thân một dòng mức (phạm vi, mức, khoảng ngày, ghi chú) — dùng cho dòng theo loại / đối tác và dòng của mức TA. */
 function docPhanMuc(b: Record<string, unknown>): Ket<PhanMuc> {
   const pv = docPhamVi(b);
@@ -188,11 +206,13 @@ function docPhanMuc(b: Record<string, unknown>): Ket<PhanMuc> {
   if (b.kieu === "RATE" && laPhanVan(b.tyLeBp)) { kind = "RATE"; rateBp = b.tyLeBp; }
   else if (b.kieu === "PER_PAX" && typeof b.moiKhach === "number" && Number.isInteger(b.moiKhach) && b.moiKhach >= 0 && b.moiKhach <= MOI_KHACH_TOI_DA) { kind = "PER_PAX"; perPaxAmount = b.moiKhach; }
   else return { ok: false, message: "Mức phải là tỷ lệ từ 0% tới 100% (tối đa hai chữ số thập phân) hoặc số tiền mỗi khách không âm." };
+  const tl = docTheoLoai(b.theoLoai, kind, perPaxAmount);
+  if (!tl.ok) return tl;
   const kn = docKhoangNgay(b);
   if (!kn.ok) return kn;
   const gc = docGhiChu(b.ghiChu);
   if (!gc.ok) return gc;
-  return { ok: true, value: { ...pv.value, kind, rateBp, perPaxAmount, ...kn.value, note: gc.value } };
+  return { ok: true, value: { ...pv.value, kind, rateBp, perPaxAmount, theoLoai: tl.value, ...kn.value, note: gc.value } };
 }
 /** Thân `POST /api/pricing/hoa-hong`: { doiTuong: { loai: "VAI", code } | { loai: "DOI_TAC", partyId }, phamVi, catalogCode?, groupCode?, kieu, tyLeBp? | moiKhach?, tuNgay, denNgay?, ghiChu? }. */
 export function kiemThanMuc(raw: unknown): Ket<ThanMuc> {
@@ -269,7 +289,7 @@ export function kiemNgayDong(raw: unknown, tuNgay: string): Ket<string> {
 }
 
 /** Mô tả một dòng mức cho nhật ký: "<đối tượng> · <phạm vi> · <mức>". Không SĐT, không tiền khách. Nhãn mức đi qua MỘT nguồn `nhanMuc` (src/shared/so-dai-ly-nhan.ts). */
-export function moTaMuc(v: { doiTuong: string; scope: PhamVi; catalogCode: string | null; groupCode: string | null; kind: KieuMuc; rateBp: number | null; perPaxAmount: number | null }): string {
+export function moTaMuc(v: { doiTuong: string; scope: PhamVi; catalogCode: string | null; groupCode: string | null; kind: KieuMuc; rateBp: number | null; perPaxAmount: number | null; theoLoai?: MucTheoLoai | null }): string {
   const pv = v.scope === "ALL" ? "mọi dịch vụ" : v.scope === "GROUP" ? `nhóm ${v.groupCode}` : `dịch vụ ${v.catalogCode}`;
-  return `${v.doiTuong} · ${pv} · ${nhanMuc({ kind: v.kind, rateBp: v.rateBp, perPax: v.perPaxAmount })}`;
+  return `${v.doiTuong} · ${pv} · ${nhanMuc({ kind: v.kind, rateBp: v.rateBp, perPax: v.perPaxAmount, theoLoai: v.theoLoai })}`;
 }

@@ -2563,7 +2563,10 @@ export interface BangKeResponse {
 export type DoiTuongMucDto = { loai: "VAI"; code: string; ten: string } | { loai: "DOI_TAC"; partyId: string; ten: string } | { loai: "MUC"; code: string; ten: string };
 export interface CommissionRuleDto {
   id: string; doiTuong: DoiTuongMucDto; phamVi: "SERVICE" | "GROUP" | "ALL"; catalogCode: string | null; groupCode: string | null;
-  kieu: "RATE" | "PER_PAX"; tyLeBp: number | null; moiKhach: number | null; tuNgay: string; denNgay: string | null; ghiChu: string | null; conHieuLuc: boolean;
+  kieu: "RATE" | "PER_PAX"; tyLeBp: number | null; moiKhach: number | null;
+  /** ADR-0133: ba số tiền «mỗi khách» theo loại (người lớn = moiKhach); null = dòng không khai theo loại. Chỉ văn phòng thấy (cùng tỷ lệ, không vào DTO Đối tác). */
+  theoLoai: { nguoiLon: number; treEm: number; nguoiCaoTuoi: number } | null;
+  tuNgay: string; denNgay: string | null; ghiChu: string | null; conHieuLuc: boolean;
 }
 export interface CommissionRuleListResponse { homNay: string; dong: CommissionRuleDto[]; vai: { code: string; ten: string }[] }
 export interface SupplyTermDto {

@@ -38,7 +38,7 @@ export interface BanChup {
   beneficiaryPartyId: string | null;
   hoaHong:
     | { status: "NONE" }
-    | { status: "SET"; kind: KieuMuc; rateBp: number | null; perPax: number | null; ruleId: string | null }
+    | { status: "SET"; kind: KieuMuc; rateBp: number | null; perPax: number | null; ruleId: string | null; theoLoai?: MucTheoLoai | null }
     | { status: "MISSING"; reason: LyDoThieu };
   cungUng: { status: "SET"; termId: string | null; sellerPartyId: string; supplierPartyId: string | null; costRateBp: number | null } | { status: "MISSING" };
 }

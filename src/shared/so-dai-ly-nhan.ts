@@ -18,6 +18,9 @@ export const nhanTyLeBp = (bp: number): string => {
   const le = String(bp % 100).padStart(2, "0").replace(/0+$/, "");
   return le ? `${nguyen},${le}%` : `${nguyen}%`;
 };
-export const nhanMuc = (m: { kind: "RATE" | "PER_PAX"; rateBp: number | null; perPax: number | null }): string =>
-  m.kind === "RATE" ? nhanTyLeBp(m.rateBp ?? 0) : `${nhanDong(m.perPax ?? 0)}đ/khách`;
+/** `theoLoai` (ADR-0133): mức đ/khách tách theo loại — nêu đủ ba số, ô trống hiện «0đ» rõ ràng (điều 2). */
+export const nhanMuc = (m: { kind: "RATE" | "PER_PAX"; rateBp: number | null; perPax: number | null; theoLoai?: { adult: number; child: number; senior: number } | null }): string =>
+  m.kind === "RATE" ? nhanTyLeBp(m.rateBp ?? 0)
+    : m.theoLoai ? `người lớn ${nhanDong(m.theoLoai.adult)}đ · trẻ em ${nhanDong(m.theoLoai.child)}đ · người cao tuổi ${nhanDong(m.theoLoai.senior)}đ/khách`
+    : `${nhanDong(m.perPax ?? 0)}đ/khách`;
 export const laDongThuongMai = (action: string): boolean => action.startsWith("order_terms_");

@@ -11,15 +11,18 @@ import { route, type AppModule } from "../../shared/router";
 import { CAU_X3_THUE_XE, NHAN_LY_DO_THIEU } from "../../shared/so-dai-ly-nhan";
 import { vnToday } from "../../shared/vn-date";
 import { allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRoleTierStatement, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, huongCuaHoSo, insertBeneficiaryStatement,
-  insertRateTierStatement, insertRoleTierStatement, insertRuleStatement, insertTermStatement, isBeneficiary, openRolesOf, rateTierByCode, rateTiers, roleRulesForTierLink, roleTierById, roleTiersAll,
+  insertRateTierStatement, insertRoleTierStatement, insertRulePaxStatement, insertRuleStatement, insertTermStatement, isBeneficiary, openRolesOf, rateTierByCode, rateTiers, roleRulesForTierLink, roleTierById, roleTiersAll,
   roleTiersOn, ruleById, rulesOn, setBeneficiaryActiveStatement, setRateTierActiveStatement, suppliers, termById, termsOn, type RoleTierRow, type RuleRow, type TermRow, type TierRow } from "./repository";
 import { MA_RE, MUC_TA_RE, PARTY_RE, chonMuc, hieuLuc, kiemNgayDong, kiemThanDieuKhoan, kiemThanDongMucTa, kiemThanGan, kiemThanMuc, kiemTenMucTa, laNgay, maMucTa, moTaMuc, nguoiHuongCua,
-  type DongDieuKhoan, type DongMuc, type GanLoaiMuc, type NguoiHuong } from "./rules";
+  type DongDieuKhoan, type DongMuc, type GanLoaiMuc, type MucTheoLoai, type NguoiHuong } from "./rules";
 
 export { chupDon, soKhachTinhHoaHong, tinhDongDoiTac, type BanChup, type DongPhanDoiTac, type KieuMuc, type LyDoThieu, type NguoiHuong } from "./rules";
 
+/** ADR-0133: ba số tiền của dòng phụ; người lớn = per_pax_amount. null khi dòng không khai theo loại (không có dòng phụ). */
+const theoLoaiCua = (r: RuleRow): MucTheoLoai | null =>
+  r.pax_child === null || r.pax_senior === null || r.per_pax_amount === null ? null : { adult: r.per_pax_amount, child: r.pax_child, senior: r.pax_senior };
 const dongMuc = (r: RuleRow): DongMuc => ({ id: r.id, targetPartyId: r.target_party_id, targetRoleCode: r.target_role_code, targetTierCode: r.target_tier_code, scope: r.scope,
-  catalogCode: r.catalog_code, groupCode: r.group_code, kind: r.kind, rateBp: r.rate_bp, perPaxAmount: r.per_pax_amount, validFrom: r.valid_from_date, validTo: r.valid_to_date });
+  catalogCode: r.catalog_code, groupCode: r.group_code, kind: r.kind, rateBp: r.rate_bp, perPaxAmount: r.per_pax_amount, theoLoai: theoLoaiCua(r), validFrom: r.valid_from_date, validTo: r.valid_to_date });
 const dongGan = (r: RoleTierRow): GanLoaiMuc => ({ roleTypeCode: r.role_type_code, tierCode: r.tier_code, validFrom: r.valid_from_date, validTo: r.valid_to_date });
 const dongDk = (r: TermRow): DongDieuKhoan => ({ id: r.id, scope: r.scope, catalogCode: r.catalog_code, groupCode: r.group_code, sellerPartyId: r.seller_party_id,
   supplierPartyId: r.supplier_party_id, costRateBp: r.cost_rate_bp, validFrom: r.valid_from_date, validTo: r.valid_to_date });
@@ -73,6 +76,7 @@ async function chayLo(db: D1Database, lo: D1PreparedStatement[]): Promise<D1Resu
 const FORBIDDEN = () => error(403, "forbidden", "Bạn không có quyền với bảng mức này.");
 const dongDaDong = (res: D1Result[]): boolean => (res[0]?.meta.changes ?? 0) === 0;
 
+const dtoTheoLoai = (t: MucTheoLoai | null) => (t ? { nguoiLon: t.adult, treEm: t.child, nguoiCaoTuoi: t.senior } : null);
 const dtoMuc = (r: RuleRow, tenVai: ReadonlyMap<string, string>, homNay: string): CommissionRuleDto => ({
   id: r.id,
   doiTuong: r.target_role_code !== null
@@ -80,7 +84,7 @@ const dtoMuc = (r: RuleRow, tenVai: ReadonlyMap<string, string>, homNay: string)
     : r.target_tier_code !== null
       ? { loai: "MUC", code: r.target_tier_code, ten: r.tier_name ?? r.target_tier_code }
       : { loai: "DOI_TAC", partyId: r.target_party_id ?? "", ten: r.target_name ?? "Hồ sơ không còn" },
-  phamVi: r.scope, catalogCode: r.catalog_code, groupCode: r.group_code, kieu: r.kind, tyLeBp: r.rate_bp, moiKhach: r.per_pax_amount,
+  phamVi: r.scope, catalogCode: r.catalog_code, groupCode: r.group_code, kieu: r.kind, tyLeBp: r.rate_bp, moiKhach: r.per_pax_amount, theoLoai: dtoTheoLoai(theoLoaiCua(r)),
   tuNgay: r.valid_from_date, denNgay: r.valid_to_date, ghiChu: r.note, conHieuLuc: hieuLuc({ validFrom: r.valid_from_date, validTo: r.valid_to_date }, homNay),
 });
 const dtoDk = (r: TermRow, congTyId: string | null, homNay: string): SupplyTermDto => ({
@@ -183,6 +187,7 @@ export const pricingModule: AppModule = {
       const id = crypto.randomUUID();
       const res = await chayLo(env.DB, [
         insertRuleStatement(env.DB, id, v, at, staff.id),
+        ...(v.theoLoai ? [insertRulePaxStatement(env.DB, id, v.theoLoai, at, staff.id)] : []),
         auditStatement(env.DB, { staffId: staff.id, action: "prc_commission_rule_added", at, detail: moTaMuc({ doiTuong: tenDoiTuongNhatKy({ target_role_code: v.targetRoleCode, target_party_id: v.targetPartyId }, tenVai), ...v }) }),
       ]);
       if (res instanceof Response) return res;
@@ -201,7 +206,7 @@ export const pricingModule: AppModule = {
       const res = await chayLo(env.DB, [
         closeRuleStatement(env.DB, id, den.value, at, staff.id),
         auditStatement(env.DB, { staffId: staff.id, action: "prc_commission_rule_closed", at,
-          detail: `${moTaMuc({ doiTuong: tenDoiTuongNhatKy(row, tenVai), scope: row.scope, catalogCode: row.catalog_code, groupCode: row.group_code, kind: row.kind, rateBp: row.rate_bp, perPaxAmount: row.per_pax_amount })} · đến ${den.value}` }, "changes() > 0"),
+          detail: `${moTaMuc({ doiTuong: tenDoiTuongNhatKy(row, tenVai), scope: row.scope, catalogCode: row.catalog_code, groupCode: row.group_code, kind: row.kind, rateBp: row.rate_bp, perPaxAmount: row.per_pax_amount, theoLoai: theoLoaiCua(row) })} · đến ${den.value}` }, "changes() > 0"),
       ]);
       if (res instanceof Response) return res;
       if (dongDaDong(res)) return error(409, "stale", "Dòng mức vừa được đóng — tải lại.");
@@ -321,6 +326,7 @@ export const pricingModule: AppModule = {
       const id = crypto.randomUUID();
       const res = await chayLo(env.DB, [
         insertRuleStatement(env.DB, id, v, at, staff.id),
+        ...(v.theoLoai ? [insertRulePaxStatement(env.DB, id, v.theoLoai, at, staff.id)] : []),
         auditStatement(env.DB, { staffId: staff.id, action: "prc_commission_rule_added", at, detail: moTaMuc({ doiTuong: `mức TA ${muc.name}`, ...v }) }),
       ]);
       if (res instanceof Response) return res;

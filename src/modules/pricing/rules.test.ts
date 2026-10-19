@@ -317,7 +317,7 @@ test("kiemThanMuc: đúng một đối tượng, phạm vi khớp mã, tỷ lệ
   const ok = kiemThanMuc(goc);
   assert.ok(ok.ok);
   assert.deepEqual(ok.ok && ok.value, { targetPartyId: null, targetRoleCode: "TRAVEL_AGENCY", scope: "GROUP", catalogCode: null, groupCode: "DTH", kind: "RATE", rateBp: 1500, perPaxAmount: null,
-    validFrom: "2026-10-10", validTo: null, note: null });
+    theoLoai: null, validFrom: "2026-10-10", validTo: null, note: null }); // theoLoai: ADR-0133 — không khai ⇒ null
   assert.equal(kiemThanMuc({ ...goc, tyLeBp: 10001 }).ok, false);
   assert.equal(kiemThanMuc({ ...goc, tyLeBp: 12.5 }).ok, false, "phần vạn phải là số nguyên");
   assert.equal(kiemThanMuc({ ...goc, phamVi: "SERVICE" }).ok, false, "phạm vi dịch vụ mà không có mã");

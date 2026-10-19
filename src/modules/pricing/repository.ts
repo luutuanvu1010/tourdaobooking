@@ -7,6 +7,8 @@ export interface RuleRow {
   kind: "RATE" | "PER_PAX"; rate_bp: number | null; per_pax_amount: number | null; valid_from_date: string; valid_to_date: string | null; note: string | null; target_name: string | null;
   /** Đích thứ ba (ADR-0117 lần 2, migration 0097): mã mức TA; `tier_name` = tên mức (cùng module, JOIN được) — null ở câu `rules_on` (chọn mức không cần tên). */
   target_tier_code: string | null; tier_name: string | null;
+  /** ADR-0133: số tiền trẻ em / người cao tuổi của dòng phụ `prc_commission_rule_pax` (người lớn = per_pax_amount). Cả hai null = dòng không khai theo loại. */
+  pax_child: number | null; pax_senior: number | null;
 }
 export interface TierRow { code: string; name: string; active: number }
 export interface RoleTierRow { id: string; role_type_code: string; tier_code: string; valid_from_date: string; valid_to_date: string | null }
@@ -14,19 +16,21 @@ export interface TermRow {
   id: string; scope: "SERVICE" | "GROUP" | "ALL"; catalog_code: string | null; group_code: string | null; seller_party_id: string; supplier_party_id: string | null;
   cost_rate_bp: number | null; valid_from_date: string; valid_to_date: string | null; note: string | null; seller_name: string | null;
 }
-const COT_MUC = `r.id, r.target_party_id, r.target_role_code, r.scope, r.catalog_code, r.group_code, r.kind, r.rate_bp, r.per_pax_amount, r.valid_from_date, r.valid_to_date, r.note, r.target_tier_code`;
+const COT_MUC = `r.id, r.target_party_id, r.target_role_code, r.scope, r.catalog_code, r.group_code, r.kind, r.rate_bp, r.per_pax_amount, r.valid_from_date, r.valid_to_date, r.note, r.target_tier_code, p.child_amount AS pax_child, p.senior_amount AS pax_senior`;
 const COT_DK = `t.id, t.scope, t.catalog_code, t.group_code, t.seller_party_id, t.supplier_party_id, t.cost_rate_bp, t.valid_from_date, t.valid_to_date, t.note`;
 const MUC_TAT_CA = defineSql("pricing", "rules_all",
-  `SELECT ${COT_MUC}, l.display_name AS target_name, mt.name AS tier_name FROM prc_commission_rule r LEFT JOIN v_pty_party_label l ON l.id = r.target_party_id
+  `SELECT ${COT_MUC}, l.display_name AS target_name, mt.name AS tier_name FROM prc_commission_rule r LEFT JOIN prc_commission_rule_pax p ON p.rule_id = r.id LEFT JOIN v_pty_party_label l ON l.id = r.target_party_id
      LEFT JOIN prc_rate_tier mt ON mt.code = r.target_tier_code
    ORDER BY (r.valid_to_date IS NOT NULL), r.valid_from_date DESC, r.id`);
 const MUC_NGAY = defineSql("pricing", "rules_on",
-  `SELECT ${COT_MUC}, NULL AS target_name, NULL AS tier_name FROM prc_commission_rule r WHERE r.valid_from_date <= ?1 AND (r.valid_to_date IS NULL OR r.valid_to_date >= ?1)`);
-const MUC_ID = defineSql("pricing", "rule_by_id", `SELECT ${COT_MUC}, l.display_name AS target_name, mt.name AS tier_name FROM prc_commission_rule r LEFT JOIN v_pty_party_label l ON l.id = r.target_party_id
+  `SELECT ${COT_MUC}, NULL AS target_name, NULL AS tier_name FROM prc_commission_rule r LEFT JOIN prc_commission_rule_pax p ON p.rule_id = r.id WHERE r.valid_from_date <= ?1 AND (r.valid_to_date IS NULL OR r.valid_to_date >= ?1)`);
+const MUC_ID = defineSql("pricing", "rule_by_id", `SELECT ${COT_MUC}, l.display_name AS target_name, mt.name AS tier_name FROM prc_commission_rule r LEFT JOIN prc_commission_rule_pax p ON p.rule_id = r.id LEFT JOIN v_pty_party_label l ON l.id = r.target_party_id
    LEFT JOIN prc_rate_tier mt ON mt.code = r.target_tier_code WHERE r.id = ?1`);
 const MUC_THEM = defineSql("pricing", "rule_insert",
   `INSERT INTO prc_commission_rule (id, target_party_id, target_role_code, scope, catalog_code, group_code, kind, rate_bp, per_pax_amount, valid_from_date, valid_to_date, note,
      created_at, created_by, updated_at, updated_by, target_tier_code) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?13, ?14, ?15)`);
+const MUC_PAX_THEM = defineSql("pricing", "rule_pax_insert",
+  `INSERT INTO prc_commission_rule_pax (rule_id, adult_amount, child_amount, senior_amount, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6)`);
 const MUC_DONG = defineSql("pricing", "rule_close",
   `UPDATE prc_commission_rule SET valid_to_date = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND valid_to_date IS NULL`);
 const DK_TAT_CA = defineSql("pricing", "terms_all",
@@ -84,7 +88,7 @@ const GAN_DONG = defineSql("pricing", "role_tier_close",
 // Cảnh báo N-17 (Ruling điều phối): dòng riêng theo LOẠI (bậc 4–6, thắng TA) còn hiệu lực trong khoảng [?2, ?3 | mãi], của loại ?1 VÀ của mọi loại mà một hồ sơ đang mang loại ?1
 // cũng đang mang (đọc qua view công bố v_pty_open_role) — với hồ sơ ấy, dòng riêng của loại kia vẫn thắng dòng TA.
 const DONG_RIENG_CHO_GAN = defineSql("pricing", "role_rules_for_tier_link",
-  `SELECT ${COT_MUC}, NULL AS target_name, NULL AS tier_name FROM prc_commission_rule r
+  `SELECT ${COT_MUC}, NULL AS target_name, NULL AS tier_name FROM prc_commission_rule r LEFT JOIN prc_commission_rule_pax p ON p.rule_id = r.id
    WHERE r.target_role_code IS NOT NULL
      AND (r.target_role_code = ?1 OR r.target_role_code IN (SELECT o2.role_type_code FROM v_pty_open_role o1 JOIN v_pty_open_role o2 ON o2.party_id = o1.party_id WHERE o1.role_type_code = ?1))
      AND r.valid_from_date <= COALESCE(?3, '9999-12-31') AND COALESCE(r.valid_to_date, '9999-12-31') >= ?2
@@ -99,6 +103,9 @@ export const ruleById = (db: D1Database, id: string) => db.prepare(MUC_ID).bind(
 export const insertRuleStatement = (db: D1Database, id: string, v: { targetPartyId: string | null; targetRoleCode: string | null; targetTierCode?: string | null; scope: string; catalogCode: string | null;
   groupCode: string | null; kind: string; rateBp: number | null; perPaxAmount: number | null; validFrom: string; validTo: string | null; note: string | null }, at: string, by: string) =>
   db.prepare(MUC_THEM).bind(id, v.targetPartyId, v.targetRoleCode, v.scope, v.catalogCode, v.groupCode, v.kind, v.rateBp, v.perPaxAmount, v.validFrom, v.validTo, v.note, at, by, v.targetTierCode ?? null);
+/** Số tiền theo loại của dòng mức (ADR-0133), chèn SAU `insertRuleStatement` trong cùng lô: trigger bắt buộc người lớn = per_pax_amount của dòng. */
+export const insertRulePaxStatement = (db: D1Database, ruleId: string, t: { adult: number; child: number; senior: number }, at: string, by: string) =>
+  db.prepare(MUC_PAX_THEM).bind(ruleId, t.adult, t.child, t.senior, at, by);
 export const closeRuleStatement = (db: D1Database, id: string, den: string, at: string, by: string) => db.prepare(MUC_DONG).bind(id, den, at, by);
 export const allTerms = async (db: D1Database) => (await db.prepare(DK_TAT_CA).all<TermRow>()).results;
 export const termsOn = async (db: D1Database, ngay: string) => (await db.prepare(DK_NGAY).bind(ngay).all<TermRow>()).results;
