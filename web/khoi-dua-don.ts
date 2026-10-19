@@ -7,6 +7,7 @@ import {
   TU_DO, canHienNgayDon, changNenGon, chiTietChangCoGiaTri, coOSoHieu, goiYChang, loiChang, nhanNoiChang, suaChang, themChangDi, themChieuVe, tomTatChang, type ChangNhap, type SuaChang,
 } from "../src/shared/chang-form";
 import type { MauChang } from "../src/shared/chang-mac-dinh";
+import { KHONG_DUA_DON } from "../src/shared/dong-gap-the";
 import { cachDungLaiHen } from "../src/shared/goi-y-noi";
 import { locDiem } from "../src/shared/loc-diem";
 import { h, replaceChildren } from "./dom";
@@ -486,7 +487,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     if (legs.length === 0) {
       const them = h("button", { type: "button", class: "pill-btn", "data-action": "them-dua-don" }, "+ Thêm đưa đón");
       them.addEventListener("click", () => commit([themChangDi(o.mau(), o.ngayDi(), o.newKey())], true));
-      items.push(h("div", { class: "dd-trong" }, h("span", null, "Không đưa đón"), them));
+      items.push(h("div", { class: "dd-trong" }, h("span", null, KHONG_DUA_DON), them)); // cùng chữ với dòng gập của thẻ (dong-gap-the.ts)
     }
     legs.forEach((l, i) => items.push(changEl(l, i)));
     if (legs.length > 0) {

@@ -27,6 +27,8 @@
 //   Việc 9: 390-7c — Lưu gặp 503 «chưa có chính sách điều phối» (đường 503 khi Lưu không còn kịch bản nào phủ): câu máy chủ + dòng giải thích trong thanh, kề trên #save,
 //     trang không nhảy, form không khoá, Lưu bấm lại được; 375-9c thêm (nợ T8(c)) — cuộn khi thanh bước đang dính không ghi lại --toast-tren; 1040-12c (nợ T8(a)) —
 //     nút trong khung lỗi («Tải lại trang» của 409 client_outdated) giữ cỡ theo chữ, không kéo rộng hết cột phải.
+//   Việc 12 (vòng sửa sau production 19/10): 390-3b, 1040-11b — trả trước đã nhập, nhãn nổi của mọi ô "luôn thu nhỏ" đang hiện (Hình thức, Người thu tiền, Ngày khởi hành…) không
+//     đè chữ, hai ô chọn cao ≥ ô "Thanh toán trước". Chrome KHÔNG tái hiện lỗi gốc (chỉ WebKit — nhan-noi-safari-smoke.mjs); bước này bắt hồi quy phía Chrome.
 //   Danh mục thử được GIEO NHÓM ở đầu kịch bản (vòng sửa 1, M-2) để hàng nút nhóm hiện; nút nhóm đang chọn là trạng thái, được miễn khỏi phép "một nút chính" (xem QUET_NUT).
 //   AXE_JS (tuỳ chọn): axe-core ở 390 (bảng chi tiết mở) và 1040 — không vi phạm critical/serious. Thiếu biến thì in rõ "chưa chạy axe".
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, danh mục giả (TD101, TTB03 Phao chuối, TTB06 Motor nước).
@@ -148,6 +150,27 @@ try {
     await sleep(200);
   };
   const traTruocAn = `['prepaid-method-field', 'prepaid-collector-field', 'prepaid-hint'].map((id) => document.getElementById(id).getClientRects().length === 0)`;
+  /**
+   * Việc 12 (vòng sửa sau production 19/10): nhãn nổi ĐÈ chữ giá trị của ô chọn một ("Hình thức", "Người thu tiền") — chủ dự án thấy trên Safari. Bước này đo trong CHROME: đáy hộp
+   * nhãn ≤ đỉnh vùng chữ của ô (đỉnh ô + viền + đệm trên), ô cao ≥ --h-field, hai ô chọn cao ≥ ô "Thanh toán trước". GIỚI HẠN: Chrome vốn tôn trọng đệm trên của ô chọn nên bước
+   * này KHÔNG tái hiện được lỗi gốc (chỉ WebKit — nhan-noi-safari-smoke.mjs); nó bắt hồi quy phía Chrome (vd luật CSS mới bỏ đệm trên), đã thấy đỏ khi phá cố ý (sổ hàng rào).
+   */
+  const kiemKhongChong = async (p) => {
+    await p.ev(setInput("document.getElementById('prepaidAmount')", "1000000"));
+    await sleep(150);
+    const r = await p.ev(`(() => { const hField = (() => { const d = document.createElement('div'); d.style.height = 'var(--h-field)'; document.body.append(d); const v = d.getBoundingClientRect().height; d.remove(); return v; })();
+      const ds = [...document.querySelectorAll('#order-form .o-noi-khung.o-noi-co-dinh > :is(input, select)')].filter((e) => e.getClientRects().length > 0).map((e) => {
+        const b = e.getBoundingClientRect(), s = getComputedStyle(e), n = e.parentElement.querySelector('.o-noi-chu').getBoundingClientRect();
+        return { o: e.id || e.getAttribute('data-trip') || e.type, day: n.bottom, dinh: b.top + parseFloat(s.borderTopWidth) + parseFloat(s.paddingTop), cao: b.height }; });
+      return { hField, caoTien: document.getElementById('prepaidAmount').getBoundingClientRect().height, ds }; })()`);
+    await p.ev(setInput("document.getElementById('prepaidAmount')", ""));
+    await sleep(150);
+    const ten = r.ds.map((x) => x.o);
+    assert.ok(ten.includes("prepaidMethod") && ten.includes("prepaidCollector"), `hai ô chọn của trả trước phải được đo: ${ten.join(", ")}`);
+    const hong = r.ds.filter((x) => x.day > x.dinh + 0.5 || x.cao < r.hField - 1 || (x.o.startsWith("prepaid") && x.cao < r.caoTien - 1))
+      .map((x) => `${x.o}: đáy nhãn ${Math.round(x.day)} / đỉnh chữ ${Math.round(x.dinh)}, cao ${Math.round(x.cao)} (--h-field ${r.hField}, ô tiền ${Math.round(r.caoTien)})`);
+    assert.deepEqual(hong, [], "nhãn nổi đè chữ / ô thấp");
+  };
   const kiemTraTruoc = async (p, mobile) => {
     assert.deepEqual(await p.ev(traTruocAn), [true, true, true], "chưa nhập trả trước: Hình thức, Người thu tiền, câu ghi sổ ẩn");
     await cham(p, mobile, "document.getElementById('prepaidAmount')");
@@ -201,6 +224,10 @@ try {
     await sleep(150);
     assert.deepEqual(await p.ev(traTruocAn), [true, true, true], "xoá số trả trước: ẩn lại");
     assert.equal(await p.ev("document.getElementById('mobile-prepaid-row').hidden"), true);
+  });
+
+  await buoc("390-3b", "(Việc 12) trả trước đã nhập: nhãn nổi «Hình thức», «Người thu tiền» (và mọi ô nhãn nổi luôn thu nhỏ đang hiện) không đè chữ; hai ô chọn cao ≥ ô «Thanh toán trước»", async () => {
+    await kiemKhongChong(p);
   });
 
   await buoc("390-4", "thang nút ba cấp: đúng một nút chính (#save); không nút viên thuốc / nền xanh nhạt / nét đứt (thẻ mở, chặng đưa đón, khối 'Email, ghi chú' mở, trả trước đã nhập)", async () => {
@@ -436,6 +463,10 @@ try {
 
   await buoc("1040-11", "trả trước ẩn / hiện như ở 390", async () => {
     await kiemTraTruoc(p, false);
+  });
+
+  await buoc("1040-11b", "(Việc 12) trả trước đã nhập: nhãn nổi «Hình thức», «Người thu tiền» (và mọi ô nhãn nổi luôn thu nhỏ đang hiện) không đè chữ; hai ô chọn cao ≥ ô «Thanh toán trước»", async () => {
+    await kiemKhongChong(p);
   });
 
   await buoc("1040-12", "Lưu bị từ chối: #save-error kề trên #save, cả hai trong khung 1040×768; tiêu điểm ở ô lỗi đầu tiên", async () => {

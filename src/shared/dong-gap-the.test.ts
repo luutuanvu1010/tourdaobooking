@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { TU_DO, themChangDi, themChieuVe, type ChangNhap } from "./chang-form.ts";
 import {
-  CHIP_DAT_GAP, canhBaoChuyenThe, chipThieu, chipTuCanhBao, coLoiChanLuuDangHien, donGon, dongGapThe, soKhachGon, theMoKhiNap,
+  CHIP_DAT_GAP, KHONG_DUA_DON, canhBaoChuyenThe, chipThieu, chipTuCanhBao, coLoiChanLuuDangHien, donGon, dongGapThe, soKhachGon, theMoKhiNap,
 } from "./dong-gap-the.ts";
 import type { CatalogService } from "./order-lines.ts";
 import { newCatalogDraft, newManualDraft, setGuests, setPax, setUnitPrice, type CatalogDraft } from "./service-form.ts";
@@ -64,7 +64,7 @@ test("chipThieu + dongGapThe: dịch vụ chưa nhập số khách có chip \"Ch
   assert.deepEqual(chipThieu({ coKhach: false, coGioDon: false, coNoiDon: false }), ["Chưa nhập số khách", "Chưa chốt giờ đón", "Chưa có nơi đón"]);
   assert.deepEqual(chipThieu({ coKhach: true, coGioDon: true, coNoiDon: true }), []);
   assert.deepEqual(chipThieu({ coGioDon: true, coNoiDon: true }), [], "không nêu coKhach = đã có khách (giữ chữ ký cũ)");
-  assert.deepEqual(dongGapThe(td2({ adult: 0 }, []), { today: HOM_NAY, nhanTheoId }), { khach: "", don: null, chips: ["Chưa nhập số khách"] }, "thẻ gập không khách: không chỉ còn tên và 0 ₫");
+  assert.deepEqual(dongGapThe(td2({ adult: 0 }, []), { today: HOM_NAY, nhanTheoId }), { khach: "", don: KHONG_DUA_DON, chips: ["Chưa nhập số khách"] }, "thẻ gập không khách: không chỉ còn tên và 0 ₫");
   assert.deepEqual(dongGapThe(td2({ adult: 0 }, [chang()]), { today: HOM_NAY, nhanTheoId }).chips, ["Chưa nhập số khách", "Chưa chốt giờ đón", "Chưa có nơi đón"]);
   const nhom = { ...setPax(newCatalogDraft(phao, "k2"), "adult", 0), trip: { ...newCatalogDraft(phao, "k2").trip, departDate: NGAY } };
   assert.deepEqual(dongGapThe(nhom, { today: HOM_NAY, nhanTheoId }).chips, ["Chưa nhập số khách"], "theo nhóm, 0 khách");
@@ -130,7 +130,10 @@ test("dongGapThe: tên · số khách · giờ và nơi đón · chip thiếu (�
   assert.deepEqual(thieu, { khach: "2 NL", don: null, chips: ["Chưa chốt giờ đón", "Chưa có nơi đón"] });
   const tuDoRong = dongGapThe(td2({ adult: 2 }, [chang({ don: TU_DO, donTuDo: "  ", pickupTime: "08:00" })]), { today: HOM_NAY, nhanTheoId });
   assert.deepEqual(tuDoRong.chips, ["Chưa có nơi đón"], "chọn Gõ tự do mà chưa gõ địa chỉ = chưa có nơi đón");
-  assert.deepEqual(dongGapThe(td2({ adult: 2 }, []), { today: HOM_NAY, nhanTheoId }), { khach: "2 NL", don: null, chips: [] }, "không đưa đón: không chip thiếu");
+  // Vòng sửa sau production 19/10 (chủ dự án: "không nhìn thấy phần thông tin đưa đón"): thẻ gập của dịch vụ KHÔNG có chặng từng chỉ còn "2 NL" — không nói gì về đưa đón,
+  // người lập không biết đưa đón đang trống hay bị giấu. Nay dòng gập luôn nêu tình trạng đưa đón: "Không đưa đón" (chữ thường, không phải chip thiếu — không đưa đón là hợp lệ).
+  assert.deepEqual(dongGapThe(td2({ adult: 2 }, []), { today: HOM_NAY, nhanTheoId }), { khach: "2 NL", don: "Không đưa đón", chips: [] }, "không đưa đón: nêu rõ, không chip thiếu");
+  assert.equal(KHONG_DUA_DON, "Không đưa đón", "cùng chữ với khối Đưa đón của thẻ mở (khoi-dua-don.ts)");
   const ngung = dongGapThe(td2({ adult: 2 }, [changDu({ don: "99999999-9999-4999-8999-999999999999" })]), { today: HOM_NAY, nhanTheoId });
   assert.equal(ngung.don, "đón 07:30 Điểm đã ngưng", "điểm đã ngưng, không nhãn đã lưu: như dòng tóm tắt chặng");
 });

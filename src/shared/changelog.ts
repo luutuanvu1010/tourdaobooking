@@ -12,6 +12,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Vòng sửa sau khi màn Tạo đơn mới lên production (Việc 12, chủ dự án báo 19/10 bằng tài khoản Đối tác trên Safari): nhãn nổi đè chữ ở hai ô chọn của khối Thanh toán
+    // (lỗi riêng của Safari / iPhone, có từ khi có nhãn nổi 13/10); thẻ gập của dịch vụ không có chặng nêu "Không đưa đón". KHÔNG migration, không đổi thân gửi lên máy chủ.
+    // Số 2.21 là số TẠM (production báo 2.20 qua GET /api/auth/config ngày 19/10; kiểm git trên main, mọi nhánh và mọi worktree: chưa nơi nào dùng 2.21) — phiên phát hành
+    // kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "2.21",
+    date: "2026-10-19",
+    items: [
+      { kind: "sua", text: "Màn Tạo đơn trên Safari và iPhone: tên ô Hình thức, Người thu tiền không còn đè lên chữ đã chọn; hai ô cao bằng ô bên cạnh." },
+      { kind: "sua", text: "Thẻ dịch vụ gập lại nay ghi rõ Không đưa đón khi dịch vụ chưa có chặng đưa đón, để biết là chưa nhập chứ không bị ẩn." },
+    ],
+  },
+  {
     // Màn Tạo đơn thiết kế lại (đặc tả docs/superpowers/specs/2026-10-18-tao-don-thiet-ke-lai/DAC-TA.md, việc 1–9). KHÔNG migration, không đổi thân gửi lên máy chủ.
     // Số 2.20 là số TẠM (main có 2.19 tạm; kiểm 2026-10-19 bằng git trên main, mọi nhánh và mọi worktree: chưa nơi nào dùng 2.20): phiên phát hành kiểm lại
     // cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.

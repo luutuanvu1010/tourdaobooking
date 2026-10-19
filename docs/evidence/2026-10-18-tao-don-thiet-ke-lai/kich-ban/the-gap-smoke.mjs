@@ -13,6 +13,7 @@
 //   Việc 9 (nợ M-8 của việc 7): bước 10c — ca 1, 2 của kiemSauSach (chup-anh.mjs 14/10, gãy từ việc 7): nháp sạch thì khối email / ghi chú gập, thẻ mở ra có chặng gọn một dòng
 //   (ô Nơi đón ẩn, 'Thêm chi tiết' gập, Thông tin chuyến đóng); chạm dòng tóm tắt → chặng mở, ô Nơi đón hiện; tiêu điểm: chuột → ô Nơi đón, cảm ứng → đầu chặng;
 //   Việc 9 (nợ T5): bước 12 — bỏ thẻ bằng thùng rác khi tiêu điểm đang ở nút (bàn phím / chuột) → tiêu điểm sang đầu thẻ kế / thẻ trước, hết thẻ thì sang câu "Chưa có dịch vụ";
+//   Việc 12 (vòng sửa sau production 19/10): bước 1 — thẻ gập của dịch vụ không có chặng ghi «Không đưa đón» sau số khách (trước: dòng gập không nói gì về đưa đón).
 //   7) nạp lại nháp: nháp sạch → mọi thẻ gập; nháp có giá trị bị giấu (Thông tin chuyến, xe riêng) → các thẻ đó mở sẵn (nhiều thẻ cùng mở được), mở thẻ khác thì chúng gập; `?focus=` mở đúng thẻ.
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, danh mục giả (TD101, TTB03 Phao chuối, TTB06 Motor nước).
 // Chạy từ GỐC repo, sau `npm run build:web`:
@@ -142,7 +143,8 @@ try {
 
     await buoc(`${kho}-2`, "dòng gập: tên không cắt · số khách gọn · giờ và nơi đón · thành tiền; chip thiếu", async () => {
       assert.deepEqual(await p.ev(dongGap(0)), { ten: "Tour 4 đảo Nha Trang", tomTat: "2 NL · 1 TE · 1 EB · đón 07:30 KS Biển Xanh", tien: "3.650.000 ₫", chips: [] });
-      assert.deepEqual(await p.ev(dongGap(1)), { ten: "Phao chuối", tomTat: "7 khách", tien: "3.000.000 ₫", chips: [] });
+      // Việc 12 (vòng sửa sau production 19/10, chủ dự án "không nhìn thấy phần thông tin đưa đón"): thẻ gập của dịch vụ không có chặng nêu rõ "Không đưa đón" (trước: chỉ "7 khách").
+      assert.deepEqual(await p.ev(dongGap(1)), { ten: "Phao chuối", tomTat: "7 khách · Không đưa đón", tien: "3.000.000 ₫", chips: [] });
       assert.equal(await p.ev(hien(`${the(0)}.querySelector('.svc-chips')`)), false, "thẻ gập không hiện chip đơn vị / mã");
       assert.equal(await p.ev(hien(`${the(0)}.querySelector('.svc-remove')`)), false, "thẻ gập không có thùng rác");
       const n = await p.ev(`(() => { const e = ${the(0)}.querySelector('.svc-name'); const s = getComputedStyle(e); return { cat: s.textOverflow === 'ellipsis' || e.scrollWidth > e.clientWidth + 1, h: Math.round(${nut(0)}.getBoundingClientRect().height) }; })()`);

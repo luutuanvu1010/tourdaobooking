@@ -9,6 +9,12 @@ import { coGiaTriChuyen, tripWarnings, type TripWarning } from "./trip-form.ts";
 /** Chip "đặt gấp" trên dòng gập: chặng có giờ đón dưới mốc tối thiểu mà chưa được duyệt đặt gấp (cùng điều kiện dải cảnh báo cuối thẻ — `canhBaoChangForm`). */
 export const CHIP_DAT_GAP = "Cần đặt gấp";
 
+/**
+ * Tình trạng đưa đón của dịch vụ không có chặng — MỘT chữ cho dòng gập (`dongGapThe`) và khối Đưa đón của thẻ mở (web/khoi-dua-don.ts). Vòng sửa sau production 19/10/2026 (chủ dự án
+ * "không nhìn thấy phần thông tin đưa đón"): thẻ gập của dịch vụ không chặng từng chỉ còn số khách — người lập không biết đưa đón đang trống hay bị giấu.
+ */
+export const KHONG_DUA_DON = "Không đưa đón";
+
 /** Số khách gọn của dòng gập: chỉ loại có người, theo thứ tự Người lớn, Trẻ em, Người cao tuổi, Em bé — "2 NL · 1 TE · 1 EB". Không khách → "". */
 export function soKhachGon(s: { nl: number; te: number; nc: number; eb: number }): string {
   return ([[s.nl, "NL"], [s.te, "TE"], [s.nc, "NCT"], [s.eb, "EB"]] as const)
@@ -86,7 +92,7 @@ const changHien = (legs: readonly ChangNhap[]): ChangNhap | null => legs.find((l
 export interface DongGap {
   /** "2 NL · 1 TE · 1 EB" (theo khách) hoặc "7 khách" (theo nhóm, nhập tay); "" = chưa có khách. */
   khach: string;
-  /** "đón 07:30 KS Biển Xanh"; null = không đưa đón / chưa có giờ lẫn nơi. */
+  /** "đón 07:30 KS Biển Xanh"; "Không đưa đón" (`KHONG_DUA_DON`) = dịch vụ không có chặng; null = có chặng nhưng chưa có giờ lẫn nơi (phần thiếu là chip). */
   don: string | null;
   /** Chip nền cát: thiếu thông tin trước, cảnh báo sau, không lặp. */
   chips: string[];
@@ -114,5 +120,5 @@ export function dongGapThe(d: ServiceDraft, o: { today: string; nhanTheoId: (id:
     if (p.ok && p.lines.some((x) => x.deviation !== null)) chips.push("Khác giá danh mục");
   }
   chips.push(...canhBaoChuyenThe(d, o.today).map((w) => chipTuCanhBao(w.message)), ...(o.chipNgoai ?? []));
-  return { khach, don: l ? donGon(l.pickupTime, noi, ngayDonKhac(l.pickupDate, d.trip.departDate)) : null, chips: [...new Set(chips)] };
+  return { khach, don: l ? donGon(l.pickupTime, noi, ngayDonKhac(l.pickupDate, d.trip.departDate)) : KHONG_DUA_DON, chips: [...new Set(chips)] };
 }
