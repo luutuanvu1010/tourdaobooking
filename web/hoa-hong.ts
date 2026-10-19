@@ -453,7 +453,7 @@ async function main(): Promise<void> {
       const tyLe = h("input", { id: "mucta-ty-le", type: "text", inputMode: "decimal", maxLength: 7, placeholder: "15", autocomplete: "off" });
       const moiKhach = h("input", { id: "mucta-moi-khach", type: "text", inputMode: "numeric", maxLength: 12, placeholder: "50.000", autocomplete: "off" });
       const khuTyLe = h("label", null, "Phần trăm (%)", tyLe);
-      const khuMoiKhach = h("label", null, "Số tiền mỗi khách (đồng)", moiKhach);
+      const khuMoiKhach = h("label", null, "Số tiền mỗi khách (đồng). Dịch vụ tính theo lượt (phao chuối, dù bay): số tiền mỗi lượt", moiKhach);
       const theoLoai = taoTheoLoai("mucta");
       const veKieu = (): void => {
         khuTyLe.hidden = kieu.value !== "RATE";
@@ -591,7 +591,7 @@ async function main(): Promise<void> {
     const tyLe = h("input", { id: "muc-ty-le", type: "text", inputMode: "decimal", maxLength: 7, placeholder: "12,5", autocomplete: "off" });
     const moiKhach = h("input", { id: "muc-moi-khach", type: "text", inputMode: "numeric", maxLength: 12, placeholder: "50.000", autocomplete: "off" });
     const khuTyLe = h("label", null, "Phần trăm (%)", tyLe);
-    const khuMoiKhach = h("label", null, "Số tiền mỗi khách (đồng)", moiKhach);
+    const khuMoiKhach = h("label", null, "Số tiền mỗi khách (đồng). Dịch vụ tính theo lượt (phao chuối, dù bay): số tiền mỗi lượt", moiKhach);
     const theoLoai = taoTheoLoai("muc");
     const veKieu = (): void => {
       khuTyLe.hidden = kieu.value !== "RATE";

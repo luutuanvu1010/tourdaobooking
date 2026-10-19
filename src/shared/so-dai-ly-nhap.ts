@@ -74,12 +74,15 @@ function docPhamViNgay(f: FormPhamViNgay, loi: LoiO[]): PhamViNgayBody {
 type MucGui = { kieu: "RATE"; tyLeBp: number } | { kieu: "PER_PAX"; moiKhach: number; theoLoai?: { treEm: number; nguoiCaoTuoi: number } };
 /** Ba ô tuỳ chọn «tách theo loại khách» (ADR-0133): công tắc + hai ô tiền; người lớn dùng ô «Số tiền mỗi khách». */
 interface FormTheoLoai { theoLoai?: boolean; treEm?: string; nguoiCaoTuoi?: string }
-/** Một ô tiền theo loại: để trống = 0 (điều 2), còn lại cùng luật với ô «Số tiền mỗi khách». */
+/** Một ô tiền theo loại (ADR-0133 điều 2, sửa 2026-10-19): BẮT BUỘC điền — bỏ trống là lỗi, không tự lấy 0 (không trả thì gõ 0); còn lại cùng luật với ô «Số tiền mỗi khách». */
 function docOTheoLoai(raw: string | undefined, ten: string, loi: LoiO[]): number | null {
-  if ((raw ?? "").trim() === "") return 0;
+  if ((raw ?? "").trim() === "") {
+    loi.push({ truong: "muc", message: `Nhập số tiền mỗi khách của ${ten}. Không trả thì gõ 0.` });
+    return null;
+  }
   const r = docTienMoiKhach(raw!);
   if (r.ok) return r.dong;
-  loi.push({ truong: "muc", message: `Số tiền ${ten} là số nguyên đồng, không âm, không quá ${nhanDong(MOI_KHACH_TOI_DA)}đ (vd 30.000). Để trống thì tính 0 đ.` });
+  loi.push({ truong: "muc", message: `Số tiền ${ten} là số nguyên đồng, không âm, không quá ${nhanDong(MOI_KHACH_TOI_DA)}đ (vd 30.000). Không trả thì gõ 0.` });
   return null;
 }
 /** Ô «Kiểu mức» + «Phần trăm» / «Số tiền mỗi khách» — dùng chung cho dòng theo loại / đối tác và dòng của mức TA. */

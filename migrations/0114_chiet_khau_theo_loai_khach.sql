@@ -1,6 +1,6 @@
 -- Migration 0114 — ADR-0133 (chiết khấu «mỗi khách» tách theo loại khách), Task 2: hai bảng phụ, CHỈ THÊM. Không động tới bảng cũ; dòng PER_PAX / RATE cũ và mọi bản chụp cũ giữ nguyên nghĩa.
 -- Số 0114 là SỐ TẠM: nhánh sổ đại lý đợt 2 (chưa gộp) đang giữ 0112, 0113. Ai gộp sau tự đổi số theo main lúc gộp (CLAUDE.md §10).
--- Quy ước: dòng PER_PAX có dòng phụ ⇒ tính theo ba số (người lớn, trẻ em, người cao tuổi; em bé luôn 0); không có dòng phụ ⇒ tính như cũ (một số × số khách). Ô bỏ trống = 0 (điều 2).
+-- Quy ước: dòng PER_PAX có dòng phụ ⇒ tính theo ba số (người lớn, trẻ em, người cao tuổi; em bé luôn 0); không có dòng phụ ⇒ tính như cũ (một số × số khách). Trẻ em và người cao tuổi bắt buộc điền ở máy chủ và giao diện (gõ 0 nếu không trả; điều 2, sửa 19/10).
 -- LƯU Ý cho migration sau: bảng phụ ở đây trỏ prc_commission_rule / ord_service_terms. Ai dựng lại hai bảng đó (như 0097) phải gỡ rồi tạo lại trigger + view của hai bảng phụ này.
 -- Số «người lớn» của dòng phụ LUÔN bằng per_pax_amount của dòng mức (bất biến, trigger) để nơi đọc cũ vẫn ra đúng phần người lớn.
 

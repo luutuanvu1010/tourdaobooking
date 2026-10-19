@@ -19,18 +19,26 @@ test("kiểm thân: không khai theo loại ⇒ theoLoai null (đúng như cũ)"
   assert.equal(r.value.theoLoai, null);
 });
 
-test("kiểm thân: khai theo loại — người lớn = moiKhach; ô trống = 0 (ADR-0133 điều 2)", () => {
-  const r = kiemThanMuc(than({ kieu: "PER_PAX", moiKhach: 50_000, theoLoai: { treEm: 30_000 } }));
+test("kiểm thân: khai theo loại — người lớn = moiKhach; trẻ em và người cao tuổi BẮT BUỘC điền, gõ 0 thì là 0 (ADR-0133 điều 2, sửa 19/10)", () => {
+  const r = kiemThanMuc(than({ kieu: "PER_PAX", moiKhach: 50_000, theoLoai: { treEm: 30_000, nguoiCaoTuoi: 40_000 } }));
   assert.ok(r.ok);
-  assert.deepEqual(r.value.theoLoai, { adult: 50_000, child: 30_000, senior: 0 });
-  const r2 = kiemThanMuc(than({ kieu: "PER_PAX", moiKhach: 50_000, theoLoai: { treEm: "", nguoiCaoTuoi: null } }));
-  assert.ok(r2.ok);
+  assert.deepEqual(r.value.theoLoai, { adult: 50_000, child: 30_000, senior: 40_000 });
+  const r2 = kiemThanMuc(than({ kieu: "PER_PAX", moiKhach: 50_000, theoLoai: { treEm: 0, nguoiCaoTuoi: 0 } }));
+  assert.ok(r2.ok, "gõ 0 rõ ràng thì được");
   assert.deepEqual(r2.value.theoLoai, { adult: 50_000, child: 0, senior: 0 });
 });
 
+test("kiểm thân: bỏ trống / thiếu ô trẻ em hoặc người cao tuổi ⇒ lỗi, không tự lấy 0 (đại lý khỏi mất hoa hồng trẻ em âm thầm)", () => {
+  for (const theoLoai of [{ treEm: 30_000 }, { nguoiCaoTuoi: 40_000 }, { treEm: "", nguoiCaoTuoi: 40_000 }, { treEm: 30_000, nguoiCaoTuoi: null }, {}]) {
+    const r = kiemThanMuc(than({ kieu: "PER_PAX", moiKhach: 50_000, theoLoai }));
+    assert.equal(r.ok, false, JSON.stringify(theoLoai));
+    if (!r.ok) assert.match(r.message, /trẻ em|người cao tuổi/);
+  }
+});
+
 test("kiểm thân: theo loại chỉ với kiểu đ/khách; số phải nguyên, không âm, không quá trần", () => {
-  for (const bad of [{ kieu: "RATE", tyLeBp: 1000, theoLoai: { treEm: 1 } }, { kieu: "PER_PAX", moiKhach: 50_000, theoLoai: { treEm: -1 } }, { kieu: "PER_PAX", moiKhach: 50_000, theoLoai: { nguoiCaoTuoi: 1.5 } },
-    { kieu: "PER_PAX", moiKhach: 50_000, theoLoai: { treEm: 100_000_001 } }, { kieu: "PER_PAX", moiKhach: 50_000, theoLoai: "abc" }, { kieu: "PER_PAX", moiKhach: 50_000, theoLoai: { treEm: "30000" } }]) {
+  for (const bad of [{ kieu: "RATE", tyLeBp: 1000, theoLoai: { treEm: 1, nguoiCaoTuoi: 1 } }, { kieu: "PER_PAX", moiKhach: 50_000, theoLoai: { treEm: -1, nguoiCaoTuoi: 0 } }, { kieu: "PER_PAX", moiKhach: 50_000, theoLoai: { treEm: 0, nguoiCaoTuoi: 1.5 } },
+    { kieu: "PER_PAX", moiKhach: 50_000, theoLoai: { treEm: 100_000_001, nguoiCaoTuoi: 0 } }, { kieu: "PER_PAX", moiKhach: 50_000, theoLoai: "abc" }, { kieu: "PER_PAX", moiKhach: 50_000, theoLoai: { treEm: "30000", nguoiCaoTuoi: 0 } }]) {
     const r = kiemThanMuc(than(bad));
     assert.equal(r.ok, false, JSON.stringify(bad));
     if (!r.ok) assert.match(r.message, /[À-ỹ]/, "câu báo lỗi tiếng Việt có dấu");

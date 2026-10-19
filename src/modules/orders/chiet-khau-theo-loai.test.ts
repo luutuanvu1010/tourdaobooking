@@ -109,3 +109,34 @@ test("ghi tay ĐỔI MỨC (đ/khách một số) ⇒ bỏ ba số: bản ghi ta
   assert.equal(w.q("SELECT 1 FROM ord_service_terms_pax p JOIN ord_service_terms t ON t.id = p.terms_id WHERE t.order_id = ? AND t.source = 'MANUAL'", id).length, 0);
   assert.equal((await thuongMai(w, id)).hoaHong, 240_000, "60.000 × (2 người lớn + 1 trẻ em + 1 người cao tuổi)");
 });
+
+// ---- Dịch vụ «một cấp» tính theo nhóm/lượt (Phao chuối, dù bay): chiết khấu theo LƯỢT (chủ, 19/10) ----
+async function donPhaoChuoi(w: W, soNguoi: number): Promise<string> {
+  const r = await w.call("POST", "/api/orders", { as: ID.SALES, body: { customerName: "Khách Thử", customerPhone: "0912345678", discount: 0,
+    services: [{ kind: "catalog", catalogCode: "PHAO", pax: { adult: soNguoi, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 300000 }, departDate: vnDay(3) }] } });
+  assert.equal(r.status, 201, r.text);
+  const id = r.json.order.id as string;
+  w.sqlite.prepare("UPDATE orders SET booker_party_id = 'pty-dla' WHERE id = ?").run(id);
+  assert.equal((await w.call("POST", `/api/orders/${id}/status`, { as: ID.SALES, body: { status: "confirmed" } })).status, 200);
+  return id;
+}
+const muaPhao = (w: W, body: Record<string, unknown>) => {
+  w.sqlite.exec("INSERT OR IGNORE INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('PHAO', 'Phao chuối', 'per5Pax', 300000, 1, '2026-01-01', '2026-01-01')");
+  return muc(w, { phamVi: "SERVICE", catalogCode: "PHAO", ...body });
+};
+
+test("dịch vụ theo nhóm (Phao chuối, 5 người/lượt), mức «một cấp» 20.000/lượt: 1 người đi cũng một lượt = 20.000; 6 người = 2 lượt = 40.000", async () => {
+  const w = setup();
+  assert.equal((await muaPhao(w, { moiKhach: 20_000 })).status, 201);
+  const mot = await donPhaoChuoi(w, 1);
+  assert.equal((await thuongMai(w, mot)).hoaHong, 20_000);
+  const sau = await donPhaoChuoi(w, 6);
+  assert.equal((await thuongMai(w, sau)).hoaHong, 40_000);
+});
+
+test("dịch vụ theo nhóm với mức có ba số theo loại: mỗi lượt lấy số tiền người lớn (không dùng số trẻ em, người cao tuổi)", async () => {
+  const w = setup();
+  assert.equal((await muaPhao(w, { moiKhach: 20_000, theoLoai: { treEm: 10_000, nguoiCaoTuoi: 15_000 } })).status, 201);
+  const mot = await donPhaoChuoi(w, 1);
+  assert.equal((await thuongMai(w, mot)).hoaHong, 20_000);
+});

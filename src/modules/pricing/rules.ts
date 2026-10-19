@@ -183,17 +183,18 @@ function docKhoangNgay(b: Record<string, unknown>): Ket<{ validFrom: string; val
 export type ThanMuc = Omit<DongMuc, "id" | "validFrom" | "validTo"> & { validFrom: string; validTo: string | null; note: string | null };
 type PhanMuc = Pick<ThanMuc, "scope" | "catalogCode" | "groupCode" | "kind" | "rateBp" | "perPaxAmount" | "theoLoai" | "validFrom" | "validTo" | "note">;
 /**
- * ADR-0133: `theoLoai` = { treEm?, nguoiCaoTuoi? } chỉ đi với kiểu đ/khách; người lớn LUÔN là `moiKhach`. Ô thiếu / null / "" = 0 (điều 2). Mỗi số là số nguyên 0…trần «mỗi khách».
- * Không khai (undefined / null) ⇒ null: dòng tính như cũ.
+ * ADR-0133 (điều 2, sửa 2026-10-19): `theoLoai` = { treEm, nguoiCaoTuoi } chỉ đi với kiểu đ/khách; người lớn LUÔN là `moiKhach`. Cả hai ô BẮT BUỘC có số nguyên 0…trần «mỗi khách» —
+ * KHÔNG tự lấy 0 khi thiếu / null / "" (trẻ em là khách trả tiền, bỏ trống lặng lẽ sẽ làm đại lý mất hoa hồng); không trả thì gõ 0. Em bé không có ô. Không khai (undefined / null) ⇒ null:
+ * dòng tính như cũ.
  */
 function docTheoLoai(raw: unknown, kind: KieuMuc, nguoiLon: number | null): Ket<MucTheoLoai | null> {
   if (raw === undefined || raw === null) return { ok: true, value: null };
   if (kind !== "PER_PAX" || nguoiLon === null) return { ok: false, message: "Số tiền theo loại khách chỉ dùng cho mức tính theo số tiền mỗi khách." };
   if (typeof raw !== "object" || Array.isArray(raw)) return { ok: false, message: "Số tiền theo loại khách không hợp lệ." };
   const o = raw as Record<string, unknown>;
-  const doc = (v: unknown): number | null => (v === undefined || v === null || v === "" ? 0 : typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= MOI_KHACH_TOI_DA ? v : null);
+  const doc = (v: unknown): number | null => (typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= MOI_KHACH_TOI_DA ? v : null);
   const child = doc(o.treEm), senior = doc(o.nguoiCaoTuoi);
-  if (child === null || senior === null) return { ok: false, message: "Số tiền mỗi khách theo loại (trẻ em, người cao tuổi) phải là số nguyên không âm, không quá mức tối đa." };
+  if (child === null || senior === null) return { ok: false, message: "Nhập số tiền mỗi khách của trẻ em và của người cao tuổi (không để trống; không trả thì gõ 0). Mỗi số là số nguyên đồng, không âm, không quá mức tối đa." };
   return { ok: true, value: { adult: nguoiLon, child, senior } };
 }
 /** Phần chung của thân một dòng mức (phạm vi, mức, khoảng ngày, ghi chú) — dùng cho dòng theo loại / đối tác và dòng của mức TA. */

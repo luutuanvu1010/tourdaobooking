@@ -10,10 +10,13 @@ Hôm nay một dòng mức chỉ có phần trăm trên thành tiền, hoặc m�
 
 ## Quyết định
 1. **Thêm cách khai "mỗi khách theo loại"** (Q1 = A): một dòng mức khai ba số tiền riêng — người lớn, trẻ em, người cao tuổi. Em bé luôn 0. Kiểu phần trăm và kiểu một-số-tiền cũ không đổi, đơn cũ tính y như trước.
-2. **Loại bỏ trống = 0 đồng** (Q2 = A), không tự lấy theo người lớn. Giao diện khai mức phải hiện "0 đ" rõ ràng cho ô bỏ trống để Kế toán không nhầm.
+2. **Trẻ em và người cao tuổi BẮT BUỘC điền, không có «ô trống = 0»** *(sửa đổi 2026-10-19 — xem cuối văn bản; bản đầu của điều này là «ô bỏ trống = 0 đồng»)*. Máy chủ từ chối (400) khi thiếu hoặc để trống một trong hai ô; giao diện báo lỗi ngay dưới ô và nói «không trả thì gõ 0». Gõ 0 thì là 0 đồng. Không tự lấy theo người lớn. Em bé không có ô: luôn 0.
 3. **Chụp cả ba số tiền lúc Xác nhận** (Q3 = A, theo H5). Đổi mức về sau chỉ áp đơn mới. Văn phòng sửa số khách sau xác nhận (ADR-0063) thì tính lại **theo ba số đã chụp**, không đọc mức hiện hành.
 4. **Công thức:** hoa hồng dòng = (số người lớn × tiền người lớn) + (số trẻ em × tiền trẻ em) + (số người cao tuổi × tiền người cao tuổi). Dịch vụ tính theo nhóm/lượt (không tách loại khách) dùng số tiền **người lớn** cho mỗi lượt — điểm này suy từ H7 "đếm theo lượt", **chủ xem lại khi nghiệm thu sổ vàng**.
 5. **Sổ vàng:** thêm ca mẫu cho luật này, đáp án đúng đến đồng, Kế toán xác nhận trước khi phát hành (Hiến chương 5.17).
+
+## Sửa đổi 2026-10-19 — điều 2 (chủ dự án, trong chat)
+Khi duyệt sổ vàng ca 3, chủ dự án nói: *"em bé được miễn phí khi đi cùng người lớn, trẻ em là khách hàng tính theo chiều cao (thường như vậy) hoặc theo tuổi. Trẻ em có giá riêng (khoảng 70% giá vé người lớn, tùy dịch vụ), em bé mới là miễn phí"*. Trẻ em là khách trả tiền nên đại lý có hoa hồng cho trẻ em; quy tắc «ô trống = 0» ở bản đầu (duyệt khi AI còn hiểu trẻ em là miễn phí) có thể làm đại lý mất hoa hồng lặng lẽ. Chủ chọn **«Bắt buộc điền: ô trẻ em và ô người cao tuổi không được bỏ trống, muốn 0 thì gõ 0»** (nguyên văn). Điều 2 ở trên là bản đã sửa. Không đổi điều 1, 3, 4, 5; ca sổ vàng 03 làm lại theo điều 2 mới; ca 01, 02 vẫn đúng (em bé vốn không tính). Ghi chú: giá trẻ em ≈ 70% giá người lớn là về GIÁ VÉ; số tiền hoa hồng cho trẻ em vẫn do Kế toán khai từng mức.
 
 ## Điều giữ nguyên
 Tiền là số nguyên VNĐ, tính ở máy chủ (`hoaHongDong`); không tin số từ trình duyệt; mức đã chụp không đổi theo cài đặt mới.

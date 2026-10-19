@@ -15,23 +15,34 @@ test("không bật «tách theo loại» ⇒ thân như cũ, không có theoLoai
   assert.equal("theoLoai" in r2.body, false, "ô trẻ em còn chữ nhưng công tắc tắt ⇒ bỏ qua");
 });
 
-test("bật «tách theo loại»: hai ô điền thì gửi đúng số; ô trống = 0 (ADR-0133 điều 2)", () => {
+test("bật «tách theo loại»: hai ô điền thì gửi đúng số; gõ 0 thì là 0", () => {
   const r = docThanMuc({ ...goc, theoLoai: true, treEm: "30.000", nguoiCaoTuoi: "40000" });
   assert.ok(r.ok);
   assert.deepEqual((r.body as { theoLoai?: unknown }).theoLoai, { treEm: 30_000, nguoiCaoTuoi: 40_000 });
-  const r2 = docThanMuc({ ...goc, theoLoai: true, treEm: "", nguoiCaoTuoi: "  " });
+  const r2 = docThanMuc({ ...goc, theoLoai: true, treEm: "0", nguoiCaoTuoi: " 0 " });
   assert.ok(r2.ok);
   assert.deepEqual((r2.body as { theoLoai?: unknown }).theoLoai, { treEm: 0, nguoiCaoTuoi: 0 });
 });
 
+test("bật «tách theo loại»: ô trẻ em hoặc người cao tuổi BỎ TRỐNG ⇒ lỗi ở ô «muc», nói rõ «gõ 0» (ADR-0133 điều 2, sửa 19/10)", () => {
+  for (const [treEm, nguoiCaoTuoi] of [["", "40.000"], ["30.000", ""], ["  ", "0"], [undefined, undefined]] as const) {
+    const r = docThanMuc({ ...goc, theoLoai: true, treEm, nguoiCaoTuoi });
+    assert.equal(r.ok, false, `${treEm}|${nguoiCaoTuoi}`);
+    if (!r.ok) {
+      assert.equal(r.loi[0]!.truong, "muc");
+      assert.match(r.loi[0]!.message, /gõ 0/);
+    }
+  }
+});
+
 test("bật «tách theo loại»: số sai ⇒ lỗi tiếng Việt ở ô «muc»; kiểu phần trăm thì công tắc không có nghĩa", () => {
-  const r = docThanMuc({ ...goc, theoLoai: true, treEm: "abc", nguoiCaoTuoi: "" });
+  const r = docThanMuc({ ...goc, theoLoai: true, treEm: "abc", nguoiCaoTuoi: "0" });
   assert.equal(r.ok, false);
   if (!r.ok) {
     assert.equal(r.loi[0]!.truong, "muc");
     assert.match(r.loi[0]!.message, /[À-ỹ]/);
   }
-  const qua = docThanMuc({ ...goc, theoLoai: true, treEm: "100.000.001", nguoiCaoTuoi: "" });
+  const qua = docThanMuc({ ...goc, theoLoai: true, treEm: "100.000.001", nguoiCaoTuoi: "0" });
   assert.equal(qua.ok, false);
   const rate = docThanMuc({ ...goc, kieu: "RATE", tyLe: "12,5", moiKhach: "", theoLoai: true, treEm: "30.000" });
   assert.ok(rate.ok);
@@ -39,10 +50,11 @@ test("bật «tách theo loại»: số sai ⇒ lỗi tiếng Việt ở ô «mu
 });
 
 test("dòng của mức TA cũng nhận «tách theo loại»", () => {
-  const f: FormDongMucTa = { phamVi: "ALL", catalogCode: "", groupCode: "", tuNgay: "2026-10-19", denNgay: "", ghiChu: "", kieu: "PER_PAX", tyLe: "", moiKhach: "50.000", theoLoai: true, treEm: "30.000", nguoiCaoTuoi: "" };
+  const f: FormDongMucTa = { phamVi: "ALL", catalogCode: "", groupCode: "", tuNgay: "2026-10-19", denNgay: "", ghiChu: "", kieu: "PER_PAX", tyLe: "", moiKhach: "50.000", theoLoai: true, treEm: "30.000", nguoiCaoTuoi: "0" };
   const r = docThanDongMucTa(f);
   assert.ok(r.ok);
   assert.deepEqual((r.body as { theoLoai?: unknown }).theoLoai, { treEm: 30_000, nguoiCaoTuoi: 0 });
+  assert.equal(docThanDongMucTa({ ...f, nguoiCaoTuoi: "" }).ok, false, "mức TA cũng bắt buộc điền"); 
 });
 
 test("nhãn mức: có ba số thì nêu đủ, ô trống hiện «0đ»; không có thì như cũ", () => {

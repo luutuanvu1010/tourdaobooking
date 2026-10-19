@@ -42,7 +42,7 @@ export function nhanPhamVi(d: { phamVi: "SERVICE" | "GROUP" | "ALL"; catalogCode
 
 /**
  * Mức của một dòng, từ DTO (`kieu/tyLeBp/moiKhach`) sang khuôn của `nhanMuc` (`kind/rateBp/perPax`): «12,5%» / «50.000đ/khách». Có `theoLoai` (ADR-0133) thì nêu đủ ba số,
- * ô trống hiện «0đ»: «người lớn 50.000đ · trẻ em 30.000đ · người cao tuổi 0đ/khách».
+ * ô khai 0 hiện «0đ»: «người lớn 50.000đ · trẻ em 30.000đ · người cao tuổi 0đ/khách».
  */
 export const nhanMucDto = (m: { kieu: "RATE" | "PER_PAX"; tyLeBp: number | null; moiKhach: number | null; theoLoai?: { nguoiLon: number; treEm: number; nguoiCaoTuoi: number } | null }): string =>
   nhanMuc({ kind: m.kieu, rateBp: m.tyLeBp, perPax: m.moiKhach, theoLoai: m.theoLoai ? { adult: m.theoLoai.nguoiLon, child: m.theoLoai.treEm, senior: m.theoLoai.nguoiCaoTuoi } : null });

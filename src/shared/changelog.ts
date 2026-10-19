@@ -17,7 +17,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     version: "2.21",
     date: "2026-10-19",
     items: [
-      { kind: "moi", text: "Hoa hồng đối tác: mức tính theo số tiền mỗi khách có thể khai riêng cho người lớn, trẻ em và người cao tuổi; ô để trống tính 0 đ, em bé không tính." },
+      { kind: "moi", text: "Hoa hồng đối tác: khai số tiền mỗi khách riêng cho người lớn, trẻ em, người cao tuổi (phải điền, không trả thì gõ 0); em bé không tính." },
       { kind: "doi", text: "Đơn đã xác nhận giữ nguyên mức đã chụp lúc xác nhận; sửa số khách sau đó thì hoa hồng tính lại theo đúng mức ấy." },
     ],
   },

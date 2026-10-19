@@ -9,7 +9,7 @@ test("2 người lớn + 1 trẻ em + 1 người cao tuổi + 1 em bé ⇒ 170.0
   assert.equal(hoaHongTheoLoai(MUC, { adult: 2, child: 1, senior: 1, infant: 1 }), 170_000);
 });
 
-test("ô trẻ em bỏ trống = 0 đồng, không lấy theo người lớn (ADR-0133 điều 2)", () => {
+test("trẻ em gõ 0 ⇒ 0 đồng cho trẻ em, không lấy theo người lớn (ADR-0133 điều 2)", () => {
   assert.equal(hoaHongTheoLoai({ adult: 50_000, child: 0, senior: 40_000 }, { adult: 2, child: 3, senior: 1 }), 140_000);
 });
 

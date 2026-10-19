@@ -11,7 +11,7 @@ export const lamTronNuaLen = (tu: number, mau: number): number => Math.floor((2 
 export function hoaHongDong(v: { kind: KieuMuc; rateBp: number | null; perPaxAmount: number | null; thanhTien: number; soKhachTinh: number }): number {
   return v.kind === "RATE" ? lamTronNuaLen(v.rateBp! * v.thanhTien, 10_000) : v.perPaxAmount! * v.soKhachTinh;
 }
-/** Ba số tiền "mỗi khách" theo loại (ADR-0133). Em bé không có ô: luôn 0. Ô bỏ trống phải được người gọi đổi thành 0 trước khi vào đây. */
+/** Ba số tiền "mỗi khách" theo loại (ADR-0133). Em bé không có ô: luôn 0. Trẻ em và người cao tuổi phải được điền rõ (gõ 0 nếu không trả) — không có «ô trống» ở tầng này. */
 export interface MucTheoLoai { adult: number; child: number; senior: number }
 const laSoNguyenKhongAm = (n: number): boolean => Number.isInteger(n) && n >= 0;
 /** Hoa hồng "mỗi khách theo loại" của MỘT dòng: Σ (số người loại đó × số tiền loại đó); em bé không tính. Số tiền hoặc số khách không phải số nguyên ≥ 0 thì ném lỗi (không âm thầm ra số lạ). */

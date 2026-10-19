@@ -12,7 +12,7 @@ export const truong = (nhan: string, ...noiDung: HTMLElement[]): HTMLElement => 
 
 /**
  * Khối «Tách theo loại khách» (ADR-0133) của form khai mức: công tắc + hai ô tiền Trẻ em / Người cao tuổi; ô «Số tiền mỗi khách» ở trên là của người lớn. Chỉ hiện khi kiểu là «Số tiền mỗi
- * khách» (`capNhat`). Ô để trống = 0 đ — nói thẳng ngay dưới ô. Em bé không có ô: không tính hoa hồng. Luật đọc ô ở `docThanMuc` (src/shared/so-dai-ly-nhap.ts).
+ * khách» (`capNhat`). Hai ô tiền BẮT BUỘC điền (trẻ em là khách trả tiền; không trả thì gõ 0) — nói thẳng ngay dưới ô. Em bé không có ô: không tính hoa hồng. Luật đọc ô ở `docThanMuc` (src/shared/so-dai-ly-nhap.ts).
  */
 export interface TheoLoaiForm {
   readonly root: HTMLElement;
@@ -24,13 +24,13 @@ export interface TheoLoaiForm {
 }
 export function taoTheoLoai(idTienTo: string): TheoLoaiForm {
   const bat = h("input", { id: `${idTienTo}-theo-loai`, type: "checkbox" });
-  const treEm = h("input", { id: `${idTienTo}-tre-em`, type: "text", inputMode: "numeric", maxLength: 12, placeholder: "0", autocomplete: "off" });
-  const nguoiCaoTuoi = h("input", { id: `${idTienTo}-nguoi-cao-tuoi`, type: "text", inputMode: "numeric", maxLength: 12, placeholder: "0", autocomplete: "off" });
+  const treEm = h("input", { id: `${idTienTo}-tre-em`, type: "text", inputMode: "numeric", maxLength: 12, placeholder: "Bắt buộc", autocomplete: "off" });
+  const nguoiCaoTuoi = h("input", { id: `${idTienTo}-nguoi-cao-tuoi`, type: "text", inputMode: "numeric", maxLength: 12, placeholder: "Bắt buộc", autocomplete: "off" });
   const haiO = h(
     "div",
     null,
     h("div", { class: "grid two" }, h("label", null, "Trẻ em (đồng)", treEm), h("label", null, "Người cao tuổi (đồng)", nguoiCaoTuoi)),
-    h("p", { class: "hint" }, "Ô «Số tiền mỗi khách» ở trên là của người lớn. Ô để trống tính 0 đ. Em bé không tính hoa hồng."),
+    h("p", { class: "hint" }, "Ô «Số tiền mỗi khách» ở trên là của người lớn. Hai ô này phải điền; không trả thì gõ 0. Em bé không tính hoa hồng."),
   );
   const root = h("div", null, h("label", { class: "check" }, bat, "Tách theo loại khách (trẻ em, người cao tuổi)"), haiO);
   const ve = (): void => { haiO.hidden = !bat.checked; };
