@@ -22,7 +22,7 @@ const T = d.T4;
 const o6 = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
   customerName: "Khách Xe Chạy", customerPhone: "0903 100 296", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
   services: [{
-    kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
+    kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
     departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "", departDate: d.NGAY_KHOA,
     legs: [{ direction: "OUT", pickupDate: d.NGAY_KHOA, pickupTime: "10:40", pickupLocationId: null, pickupPlace: "Vinpearl Condotel", dropoffLocationId: LOC_BEN_TAU, dropoffPlace: "" }],
   }],

@@ -106,8 +106,8 @@ try {
   // Dịch vụ danh mục thử "500.000 / người lớn" (ví dụ của chủ, ca SV-SK-12), chèn thẳng vào D1 tạm; catalog_sync đã đánh dấu đã đồng bộ nên /api/catalog không tự đồng bộ từ Sheet.
   const T = "'2026-01-01T00:00:00.000Z'";
   env.sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,price_senior,price_infant,note_child,note_senior,note_infant,sheet_row,in_sheet,first_seen_at,updated_at) VALUES ('TD500','Tour thử 500.000','perPax',500000,NULL,NULL,NULL,NULL,NULL,NULL,5,1,${T},${T})`);
-  const td500 = (adult) => ({ kind: "catalog", catalogCode: "TD500", pax: pax(adult), catalogPriceSeen: { adult: 500000 }, departDate: ngay });
-  const td101 = (adult, child = 0) => ({ kind: "catalog", catalogCode: "TD101", pax: pax(adult, child), unitPrices: child ? { adult: 1350000, child: 950000 } : { adult: 1350000 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000, infant: 0 }, departDate: ngay });
+  const td500 = (adult) => ({ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TD500", pax: pax(adult), catalogPriceSeen: { adult: 500000 }, departDate: ngay });
+  const td101 = (adult, child = 0) => ({ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TD101", pax: pax(adult, child), unitPrices: child ? { adult: 1350000, child: 950000 } : { adult: 1350000 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000, infant: 0 }, departDate: ngay });
   /** Lập (Bán hàng A) rồi, nếu `xacNhan`, xác nhận. Trả { id, svc }. */
   async function don({ services, discount = 0, xacNhan = true }) {
     const r = await call(ACCOUNTS.salesA, "POST", "/api/orders", { ...base, discount, services });

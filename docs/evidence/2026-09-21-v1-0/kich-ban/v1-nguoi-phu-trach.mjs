@@ -186,7 +186,7 @@ const pax = (adult) => ({ adult, child: 0, senior: 0, infant: 0 });
 const createOrder = async (account, customer) => {
   const r = await call(account, "POST", "/api/orders", {
     customerName: customer, customerPhone: "0903 111 222", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
-    services: [{ kind: "catalog", catalogCode: "TTB06", pax: pax(3), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(7), departTime: "07:30" }],
+    services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TTB06", pax: pax(3), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(7), departTime: "07:30" }],
   });
   assert.equal(r.status, 201, `dựng đơn: ${r.status} ${JSON.stringify(r.json)}`);
   await assignVia(account, r.json.order.id, account);
@@ -953,7 +953,7 @@ try {
     env.sql(`INSERT OR IGNORE INTO catalog_item (code,name,unit,price_adult,price_child,price_senior,price_infant,note_child,note_senior,note_infant,sheet_row,in_sheet,first_seen_at,updated_at) VALUES ('ZLD1','Tour thử lý do nhiều dòng','perPax',300000,NULL,NULL,NULL,NULL,NULL,NULL,97,1,'2026-01-01T00:00:00.000Z','2026-01-01T00:00:00.000Z')`);
     const created = await call(A, "POST", "/api/orders", {
       customerName: "Khách Lý Do Nhiều Dòng", customerPhone: "0903 111 222", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
-      services: [{ kind: "catalog", catalogCode: "ZLD1", pax: pax(2), catalogPriceSeen: { adult: 300000 }, ...NO_TRIP, departDate: vnDate(7), departTime: "07:30" }],
+      services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZLD1", pax: pax(2), catalogPriceSeen: { adult: 300000 }, ...NO_TRIP, departDate: vnDate(7), departTime: "07:30" }],
     });
     assert.equal(created.status, 201, `dựng đơn danh mục: ${created.status} ${JSON.stringify(created.json)}`);
     const o = created.json.order;

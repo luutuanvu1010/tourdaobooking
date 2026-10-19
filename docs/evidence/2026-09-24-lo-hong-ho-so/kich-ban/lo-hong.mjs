@@ -17,7 +17,7 @@ w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet
 const inDays = (n) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
 const orderBody = (extra = {}) => ({
   customerName: "Khách Một", customerPhone: "0912345678",
-  services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(3) }],
+  services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(3) }],
   // sổ tiền lượt 1 (ADR-0026 đ9): không gửi cọc trong thân đơn (máy chủ 409 client_outdated); các ca H* không phụ thuộc tiền trả trước.
   ...extra,
 });

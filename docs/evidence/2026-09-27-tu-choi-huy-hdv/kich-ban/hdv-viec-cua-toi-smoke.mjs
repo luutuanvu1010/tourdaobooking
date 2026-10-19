@@ -94,8 +94,8 @@ try {
   const [hdv] = env.sql(`SELECT id, party_id FROM staff WHERE phone = '${HDV.phone}'`);
   const [hdv2] = env.sql(`SELECT id, party_id FROM staff WHERE phone = '${HDV2.phone}'`);
   const NO_TRIP = { departDate: "", departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
-  const td101 = (pax, trip) => ({ kind: "catalog", catalogCode: "TD101", pax: { adult: 0, child: 0, senior: 0, infant: 0, ...pax }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000, infant: 0 }, ...NO_TRIP, ...trip });
-  const ttb06 = (adult, trip) => ({ kind: "catalog", catalogCode: "TTB06", pax: { adult, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, ...trip });
+  const td101 = (pax, trip) => ({ kind: "catalog", catalogCode: "TD101", pax: { adult: 0, child: 0, senior: 0, infant: 0, ...pax }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000, infant: 0 }, ...NO_TRIP, ...trip, pickupChoice: trip?.pickupTime || trip?.pickupPlace || trip?.legs?.length ? "DON" : "KHONG_DON" });
+  const ttb06 = (adult, trip) => ({ kind: "catalog", catalogCode: "TTB06", pax: { adult, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, ...trip, pickupChoice: trip?.pickupTime || trip?.pickupPlace || trip?.legs?.length ? "DON" : "KHONG_DON" });
   const newOrder = async (customerName, services, extra = {}) => {
     const r = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
       customerName, customerPhone: POOL_PHONE, customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "", services, ...extra,

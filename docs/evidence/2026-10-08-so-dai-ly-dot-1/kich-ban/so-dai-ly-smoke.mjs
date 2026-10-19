@@ -560,7 +560,7 @@ try {
   // + một đơn riêng cho nhánh 409 của bảng (Quản trị huỷ đơn giữa chừng — tài khoản khác, gọi từ Node, không đụng phiên Kế toán).
   const donMoi = async () => {
     const r = phai(await call(ACCOUNTS.salesA, "POST", "/api/orders", { customerName: "Khách Nhánh 409", customerPhone: "0900 111 409", customerEmail: "", customerNote: "", discount: 0, paymentNote: "", bookerPartyId: DL_ID,
-      services: [{ kind: "catalog", catalogCode: "DTH01", pax: { adult: 1 }, catalogPriceSeen: GIA.DTH01, departDate: NGAY_DI }] }), 201, "lập đơn cho nhánh 409");
+      services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "DTH01", pax: { adult: 1 }, catalogPriceSeen: GIA.DTH01, departDate: NGAY_DI }] }), 201, "lập đơn cho nhánh 409");
     phai(await call(ACCOUNTS.salesA, "POST", `/api/orders/${r.order.id}/status`, { status: "confirmed" }), 200, "xác nhận đơn cho nhánh 409");
     return r.order.id;
   };
@@ -681,7 +681,7 @@ try {
   // Dữ liệu (API, chưa có trang LAI nào mở): đơn khách lẻ của chính tài khoản lai (đã xác nhận).
   const donLai = await (async () => {
     const r = phai(await call(LAI, "POST", "/api/orders", { customerName: "Khách Của Lai", customerPhone: "0900 111 282", customerEmail: "", customerNote: "", discount: 0, paymentNote: "",
-      services: [{ kind: "catalog", catalogCode: "DTH01", pax: { adult: 1 }, catalogPriceSeen: GIA.DTH01, departDate: NGAY_DI }] }), 201, "tài khoản lai lập đơn");
+      services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "DTH01", pax: { adult: 1 }, catalogPriceSeen: GIA.DTH01, departDate: NGAY_DI }] }), 201, "tài khoản lai lập đơn");
     phai(await call(LAI, "POST", `/api/orders/${r.order.id}/status`, { status: "confirmed" }), 200, "tài khoản lai xác nhận");
     return r.order.id;
   })().catch((e) => { loi.push(`33) dựng đơn của tài khoản lai: ${String(e?.message ?? e).split("\n")[0]}`); return null; });
@@ -788,7 +788,7 @@ try {
     assert.deepEqual(me.benDatCuaToi, { partyId: DL_ID, ten: DAI_LY.name });
     // Đối tác ĐƯỢC HƯỞNG gửi bên đặt khác: máy chủ ÉP bên đặt = chính mình (benDatCuaTaiKhoan chạy trước luật K1) ⇒ 201, không 403 — ghi lại đúng hành vi.
     const r = phai(await call(DAI_LY, "POST", "/api/orders", { customerName: "Khách Của Đại Lý", customerPhone: "0900 111 281", customerEmail: "", customerNote: "", discount: 0, paymentNote: "", bookerPartyId: ncc.party.id,
-      services: [{ kind: "catalog", catalogCode: "DTH01", pax: { adult: 2 }, catalogPriceSeen: GIA.DTH01, departDate: NGAY_DI }] }), 201, "đại lý lập đơn (gửi bên đặt khác)");
+      services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "DTH01", pax: { adult: 2 }, catalogPriceSeen: GIA.DTH01, departDate: NGAY_DI }] }), 201, "đại lý lập đơn (gửi bên đặt khác)");
     ghiQuanSat(`7) đại lý gửi bookerPartyId = hồ sơ nhà cung cấp ⇒ ${r.order.bookerPartyId === DL_ID ? "201, bên đặt bị ÉP về chính đại lý" : `201, bên đặt = ${r.order.bookerPartyId}`}`);
     assert.equal(r.order.bookerPartyId, DL_ID);
     phai(await call(DAI_LY, "POST", `/api/orders/${r.order.id}/status`, { status: "confirmed" }), 200, "đại lý xác nhận đơn của mình");

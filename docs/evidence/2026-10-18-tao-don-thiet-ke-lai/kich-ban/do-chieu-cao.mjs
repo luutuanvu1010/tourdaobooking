@@ -59,7 +59,7 @@ try {
     const NGAY = vnDate(3);
     const KHONG = { departTime: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
     const chang = { direction: "OUT", pickupDate: NGAY, pickupTime: "07:30", pickupLocationId: null, pickupPlace: "12 Trần Phú, Nha Trang", dropoffLocationId: null, dropoffPlace: "", flightCode: "", exclusiveVehicle: false, minVehicleSeats: null };
-    const dv = (code, gia, legs = []) => ({ kind: "catalog", catalogCode: code, pax: { adult: 2, child: 0, senior: 0, infant: 0 }, unitPrices: { adult: gia }, catalogPriceSeen: { adult: gia }, departDate: NGAY, ...KHONG, legs });
+    const dv = (code, gia, legs = []) => ({ kind: "catalog", catalogCode: code, pax: { adult: 2, child: 0, senior: 0, infant: 0 }, unitPrices: { adult: gia }, catalogPriceSeen: { adult: gia }, departDate: NGAY, ...KHONG, legs, pickupChoice: legs.length > 0 ? "DON" : "KHONG_DON" });
     const r = await call(ACCOUNTS.salesA, "POST", "/api/orders", { customerName: "Khách Đo Chiều Cao", customerPhone: "0903 555 999", customerEmail: "", customerNote: "", discount: 0, paymentNote: "", services: [dv("TD101", 1350000, [chang]), dv("TTB03", 1500000), dv("TTB06", 800000)] });
     if (r.status !== 201) throw new Error(`dựng nháp: ${r.status} ${JSON.stringify(r.json)}`);
     const p = await env.as(ACCOUNTS.salesA, `/order-form?id=${r.json.order.id}`, MOB);

@@ -21,7 +21,7 @@ dung(await call(CHU, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMi
 const o = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
   customerName: "Khách Bổ Sung", customerPhone: "0903 100 297", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
   services: [{
-    kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
+    kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
     departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "", departDate: HOM_NAY,
     legs: [{ direction: "OUT", pickupDate: HOM_NAY, pickupTime: vnGioSau(180), pickupLocationId: null, pickupPlace: "Sheraton Nha Trang", dropoffLocationId: LOC_BEN_TAU, dropoffPlace: "" }],
   }],

@@ -332,7 +332,7 @@ try {
     const NO_TRIP = { departDate: "", departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
     const tao = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
       customerName: "Khách Bảng Trượt", customerPhone: "0904 111 222", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
-      services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 1, senior: 0, infant: 0 }, unitPrices: { adult: 1350000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departDate: vnDate(10), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá", checkinTime: "09:00", checkinPlace: "Cảng Vinpearl", note: "Mang theo đồ bơi" }],
+      services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 2, child: 1, senior: 0, infant: 0 }, unitPrices: { adult: 1350000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departDate: vnDate(10), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá", checkinTime: "09:00", checkinPlace: "Cảng Vinpearl", note: "Mang theo đồ bơi" }],
     });
     assert.equal(tao.status, 201, JSON.stringify(tao.json));
     assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${tao.json.order.id}/status`, { status: "confirmed" })).status, 200);
@@ -354,7 +354,7 @@ try {
     if (GIAI_DOAN === "sau") {
       const tao2 = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
         customerName: "Khách Ngày Có Mặt", customerPhone: "0904 333 444", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
-        services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, unitPrices: { adult: 1350000 }, catalogPriceSeen: { adult: 1350000 }, ...NO_TRIP, departDate: vnDate(10), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá", checkinDate: vnDate(9), checkinTime: "21:00", checkinPlace: "Cảng Vinpearl" }],
+        services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, unitPrices: { adult: 1350000 }, catalogPriceSeen: { adult: 1350000 }, ...NO_TRIP, departDate: vnDate(10), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá", checkinDate: vnDate(9), checkinTime: "21:00", checkinPlace: "Cảng Vinpearl" }],
       });
       assert.equal(tao2.status, 201, JSON.stringify(tao2.json));
       assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${tao2.json.order.id}/status`, { status: "confirmed" })).status, 200);

@@ -153,11 +153,13 @@ try {
   ok("A) form: trống, tìm, 3 dịch vụ (theo người/nhóm/nhập tay), chuyến thu gọn/mở + cảnh báo, lỗi 50 khách, banner kiểm, đang lưu");
 
   // ================= B) trang đơn: nháp → thiếu chuyến → đã xác nhận → bảng sửa =================
-  const svcTour = (o = {}) => ({ kind: "catalog", catalogCode: "TD101", pax: pax(2, 1), unitPrices: { adult: 1300000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departDate: vnDate(10), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise", checkinTime: "09:00", note: "Đón sớm", ...o });
-  const svcBanana = (o = {}) => ({ kind: "catalog", catalogCode: "TTB03", pax: pax(7), unitPrices: { adult: 1500000 }, catalogPriceSeen: { adult: 1500000 }, ...NO_TRIP, departDate: vnDate(10), departTime: "10:00", ...o });
+  // ADR-0134: mỗi dịch vụ gửi lựa chọn đón TƯỜNG MINH — có chặng (`legs`) hoặc giờ/điểm đón kiểu cũ (máy chủ sinh chặng) ⇒ "DON", còn lại "KHONG_DON".
+  const chonDon = (s) => ({ ...s, pickupChoice: (s.legs !== undefined ? s.legs.length > 0 : Boolean(s.pickupTime || s.pickupPlace)) ? "DON" : "KHONG_DON" });
+  const svcTour = (o = {}) => chonDon({ kind: "catalog", catalogCode: "TD101", pax: pax(2, 1), unitPrices: { adult: 1300000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departDate: vnDate(10), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise", checkinTime: "09:00", note: "Đón sớm", ...o });
+  const svcBanana = (o = {}) => chonDon({ kind: "catalog", catalogCode: "TTB03", pax: pax(7), unitPrices: { adult: 1500000 }, catalogPriceSeen: { adult: 1500000 }, ...NO_TRIP, departDate: vnDate(10), departTime: "10:00", ...o });
   // 2026-09-26 (DK-T3-01 R1, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): API không nhận dịch vụ nhập tay MỚI (400) → gửi dịch vụ danh mục giữ chỗ
   // TTB06 (cùng 3 khách), `create` đổi nó thành ĐÚNG dịch vụ nhập tay cũ "Xe đưa đón riêng" bằng SQL khi đơn còn nháp (`env.legacyManual`).
-  const svcCar = (o = {}) => ({ kind: "catalog", catalogCode: "TTB06", pax: pax(3), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, ...o,
+  const svcCar = (o = {}) => chonDon({ kind: "catalog", catalogCode: "TTB06", pax: pax(3), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, ...o,
     _legacy: { name: "Xe đưa đón riêng", adult: 3, items: [{ description: "Xe 7 chỗ 2 chiều", detail: "", quantity: 1, unitPrice: 800000 }] } });
   const base = { customerName: "Trần Văn Bình", customerPhone: "0901 234 567", customerEmail: "", customerNote: "", discount: 100000, paymentNote: "", traTruoc: 500000 }; // traTruoc: KHÔNG gửi trong thân đơn — `create` ghi thành lần thu (sổ tiền lượt 1)
   const create = async ({ traTruoc = 0, ...body }) => {

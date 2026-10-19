@@ -20,7 +20,7 @@ const donCamKet = async (gio, noiDon, camKet) => {
   const r = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     customerName: `Khách Cam Kết ${++soDon}`, customerPhone: `0903 200 ${String(300 + soDon)}`, customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
     services: [{
-      kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, ...NO_TRIP, departDate: d.NGAY_XA,
+      kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, ...NO_TRIP, departDate: d.NGAY_XA,
       legs: [{ direction: "OUT", pickupDate: d.NGAY_XA, pickupTime: gio, pickupLocationId: null, pickupPlace: noiDon, dropoffLocationId: LOC_BEN_TAU, dropoffPlace: "" }],
     }],
     passengers: [0, 1].map((i) => ({ fullName: `Hành Khách Cam Kết ${soDon}-${i + 1}`, birthYear: 1985 + i, paxCode: null })),

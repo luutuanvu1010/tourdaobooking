@@ -248,7 +248,7 @@ try {
     method: "POST", headers: { "content-type": "application/json", origin: env.base, cookie: `${owner.name}=${owner.value}` },
     body: JSON.stringify({
       customerName: "Khách Quay Về", customerPhone: "0904 444 555", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
-      services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 1, senior: 0, infant: 0 }, unitPrices: { adult: 1300000, child: 950000 }, catalogPriceSeen: { adult: 1400000, child: 950000 }, ...NO_TRIP, departDate: vnDate(9) }],
+      services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TD101", pax: { adult: 2, child: 1, senior: 0, infant: 0 }, unitPrices: { adult: 1300000, child: 950000 }, catalogPriceSeen: { adult: 1400000, child: 950000 }, ...NO_TRIP, departDate: vnDate(9) }],
     }),
   });
   assert.equal(created.status, 201, `dựng đơn đã lưu: ${created.status}`);

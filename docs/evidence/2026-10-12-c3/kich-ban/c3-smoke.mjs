@@ -21,7 +21,7 @@ const NO_TRIP = { departTime: "", pickupTime: "", pickupPlace: "", checkinDate: 
 let soDon = 100;
 const taoDon = (body) => ({
   customerName: `Khách C3 ${++soDon}`, customerPhone: `0903 200 ${String(soDon)}`, customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
-  services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: body.soKhach, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, ...NO_TRIP, departDate: NGAY, legs: [body.leg] }],
+  services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: body.soKhach, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, ...NO_TRIP, departDate: NGAY, legs: [body.leg] }],
   passengers: Array.from({ length: body.soKhach }, (_, i) => ({ fullName: `Hành Khách C3 ${soDon}-${i + 1}`, birthYear: 1980 + i, paxCode: null })),
 });
 const legOut = (gio, noiDon, noiTra) => ({ direction: "OUT", pickupDate: NGAY, pickupTime: gio, pickupLocationId: null, pickupPlace: noiDon, dropoffLocationId: noiTra === undefined ? LOC_BEN_TAU : noiTra, dropoffPlace: "" });

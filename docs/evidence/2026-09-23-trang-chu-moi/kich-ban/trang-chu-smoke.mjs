@@ -91,7 +91,7 @@ try {
 
   /** Dịch vụ danh mục TTB06 (1 người lớn × giá bán lẻ 800.000) — đủ để xác nhận được. */
   const catalogService = ({ departDate, pickupTime, pickupPlace }) => ({
-    kind: "catalog",
+    kind: "catalog", pickupChoice: pickupTime || pickupPlace ? "DON" : "KHONG_DON",
     catalogCode: "TTB06",
     pax: { adult: 1, child: 0, senior: 0, infant: 0 },
     catalogPriceSeen: { adult: 800_000 },

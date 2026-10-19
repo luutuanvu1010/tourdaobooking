@@ -103,7 +103,7 @@ try {
   const NGAY = vnDate(3);
   const KHONG_CHUYEN = { departTime: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
   const chang = (p = {}) => ({ direction: "OUT", pickupDate: NGAY, pickupTime: "07:30", pickupLocationId: null, pickupPlace: "12 Trần Phú, Nha Trang", dropoffLocationId: null, dropoffPlace: "", flightCode: "", exclusiveVehicle: false, minVehicleSeats: null, ...p });
-  const dv = (code, pax, gia, p = {}) => ({ kind: "catalog", catalogCode: code, pax: { adult: 0, child: 0, senior: 0, infant: 0, ...pax }, unitPrices: gia, catalogPriceSeen: gia, departDate: NGAY, ...KHONG_CHUYEN, legs: [], ...p });
+  const dv = (code, pax, gia, p = {}) => ({ kind: "catalog", catalogCode: code, pax: { adult: 0, child: 0, senior: 0, infant: 0, ...pax }, unitPrices: gia, catalogPriceSeen: gia, departDate: NGAY, ...KHONG_CHUYEN, legs: [], ...p, pickupChoice: p.legs?.length ? "DON" : "KHONG_DON" });
   const taoNhap = async (ten, sdt, services) => {
     const r = await call(ACCOUNTS.salesA, "POST", "/api/orders", { customerName: ten, customerPhone: sdt, customerEmail: "", customerNote: "", discount: 0, paymentNote: "", services });
     assert.equal(r.status, 201, JSON.stringify(r.json));

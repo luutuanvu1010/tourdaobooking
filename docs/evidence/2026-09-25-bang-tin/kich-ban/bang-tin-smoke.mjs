@@ -161,7 +161,7 @@ let soDon = 0;
 /** Thân yêu cầu lập đơn hợp lệ (đủ điểm đón để xác nhận được). */
 const thanDon = (ten) => ({
   customerName: `${ten} ${++soDon}`, customerPhone: "0904 111 222", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
-  services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, unitPrices: { adult: 1350000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departDate: vnDate(5), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá" }],
+  services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, unitPrices: { adult: 1350000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departDate: vnDate(5), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá" }],
 });
 /** Gọi API TRONG trang (cùng nguồn → trình duyệt tự gửi cookie + Origin, đúng như người dùng thật). */
 const goiApi = (p, method, path, body) =>

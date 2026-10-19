@@ -115,7 +115,7 @@ try {
   await step("e", "công tắc BẬT: sửa đơn nháp có dịch vụ nhập tay — thẻ sửa được (có ô tên, không dòng 'chỉ xem')", async () => {
     const r = await api(ACCOUNTS.salesA, "POST", "/api/orders", {
       customerName: "Khách Nhập Tay", customerPhone: "0912345678",
-      services: [{ kind: "manual", name: "Xe đưa đón riêng", pax: { adult: 2 }, departDate: vnDate(5), items: [{ description: "Xe 7 chỗ", detail: "2 chiều", quantity: 2, unitPrice: 400000 }] }],
+      services: [{ kind: "manual", pickupChoice: "KHONG_DON", name: "Xe đưa đón riêng", pax: { adult: 2 }, departDate: vnDate(5), items: [{ description: "Xe 7 chỗ", detail: "2 chiều", quantity: 2, unitPrice: 400000 }] }],
     });
     assert.equal(r.status, 201, JSON.stringify(r.json));
     donId = r.json.order.id;

@@ -42,7 +42,7 @@ const don = async (gio) => {
   const r = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     customerName: "Khách Tin Chuyến", customerPhone: SDT_KHACH, customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
     services: [{
-      kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
+      kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
       departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "", departDate: NGAY,
       legs: [{ direction: "OUT", pickupDate: NGAY, pickupTime: gio, pickupLocationId: null, pickupPlace: "Khách sạn Tin Chuyến", dropoffLocationId: LOC_BEN_TAU, dropoffPlace: "" }],
     }],
