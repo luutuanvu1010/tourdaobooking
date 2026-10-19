@@ -1,6 +1,6 @@
 # Trang ghép lượt 2 — ADR-0135 + ADR-0136 (CLAUDE.md §9 "Bước ghép khi duyệt")
 
-> Kèm `DE-XUAT-ADR-0135-buoc-xac-nhan-don.md` và `DE-XUAT-ADR-0136-thu-xac-nhan-va-qr-may-chu.md`. Hai quyết định chạm quyền / dữ liệu (≤ 3). Giả định lượt 1 (ADR-0133, ADR-0134) đã duyệt nguyên văn; lượt 1 đổi thì trang này phải soát lại. Tệp:dòng đúng tại commit `305aae77`.
+> Kèm `DE-XUAT-ADR-0135-buoc-xac-nhan-don.md` và `DE-XUAT-ADR-0136-thu-xac-nhan-va-qr-may-chu.md`. Hai quyết định chạm quyền / dữ liệu (≤ 3). Giả định lượt 1 (ADR-0133, ADR-0134) đã duyệt nguyên văn; lượt 1 đổi thì trang này phải soát lại. Tệp:dòng đúng tại commit `b1ba5dac` (mã nguồn giống hệt `305aae77`).
 
 ## 1. Bảng bị chạm chứa những loại thực thể nào
 
