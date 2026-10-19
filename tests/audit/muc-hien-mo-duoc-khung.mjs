@@ -44,6 +44,8 @@ import { chiTaiXe, coCuocCuaToi, homeRedirect } from "../../src/shared/start-pag
 import { PAGES } from "../../src/shared/sw-policy.ts";
 import { KHOA_TRANG, THANH_BEN, THANH_TAB, THANH_TREN, TRANG, TRANG_TOI, coKhungNho, moTrang, sangTai, thanhBen, thanhTab, thanhTren, trangToi } from "../../src/shared/muc-giao-dien.ts";
 import { O_TOI, O_TRANG_CHU, nhomMayTinh } from "../../src/shared/trang-chu-o.ts";
+// Đường gọi chính tách khỏi TRANG (Ruling R-P27, sổ đại lý đợt 2 Task 12): cùng giá trị, chỉ đổi nguồn.
+import { GOI_CHINH } from "../../src/shared/muc-giao-dien-goi.ts";
 
 export const SO_PHAN = 3;
 const SO_TAP = 1 << PERMISSION_CODES.length;
@@ -160,9 +162,9 @@ const tepTrang = (k) => TEP_TRANG[k] ?? `web/${TRANG[k].duong.slice(1)}.ts`;
 // Chia đường gọi chính thành SO_PHAN phần.
 
 /** Mọi đường gọi chính (khử trùng), theo thứ tự chữ. */
-export const GOI_TAT_CA = [...new Set(KHOA_TRANG.map((k) => TRANG[k].goi).filter((g) => typeof g === "string"))].sort();
+export const GOI_TAT_CA = [...new Set(KHOA_TRANG.map((k) => GOI_CHINH[k]).filter((g) => typeof g === "string"))].sort();
 export const goiCuaPhan = (phan) => GOI_TAT_CA.filter((_, i) => i % SO_PHAN === phan);
-const goiCua = (k) => (typeof TRANG[k].goi === "string" ? TRANG[k].goi : null);
+const goiCua = (k) => (typeof GOI_CHINH[k] === "string" ? GOI_CHINH[k] : null);
 
 /**
  * Nối dây (vòng sửa 2, I-3): tệp mỏng src/muc-hien-mo-duoc-<n>.test.ts nào gọi `kiemPhan(<số>)` nào. Trả danh sách lỗi (rỗng = đúng): đúng SO_PHAN tệp; tệp thứ
@@ -317,11 +319,11 @@ function kiemTinh() {
   });
 
   test("[tĩnh] (3) mọi trang có đường gọi chính dạng `GET /api/…` — hoặc nằm ở MIEN kèm lý do; MIEN không thừa", () => {
-    const chuaKhai = KHOA_TRANG.filter((k) => TRANG[k].goi == null && !MIEN[k]);
+    const chuaKhai = KHOA_TRANG.filter((k) => GOI_CHINH[k] == null && !MIEN[k]);
     assert.deepEqual(chuaKhai, [], "trang chưa khai đường gọi chính (`goi` ở TRANG, src/shared/muc-giao-dien.ts) — khai một lời gọi ĐỌC mà trang cần; không khai được thì thêm vào MIEN kèm lý do");
-    const sai = KHOA_TRANG.filter((k) => typeof TRANG[k].goi === "string" && !/^GET \/api\/[^\s]+$/.test(TRANG[k].goi));
+    const sai = KHOA_TRANG.filter((k) => typeof GOI_CHINH[k] === "string" && !/^GET \/api\/[^\s]+$/.test(GOI_CHINH[k]));
     assert.deepEqual(sai, [], "đường gọi chính phải là `GET /api/…` (lời gọi đọc)");
-    const thua = Object.keys(MIEN).filter((k) => TRANG[k]?.goi != null);
+    const thua = Object.keys(MIEN).filter((k) => GOI_CHINH[k] != null);
     assert.deepEqual(thua, [], "MIEN thừa: trang đã có đường gọi chính");
   });
 
