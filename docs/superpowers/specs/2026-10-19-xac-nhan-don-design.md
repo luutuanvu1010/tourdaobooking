@@ -65,6 +65,13 @@ Thành công = (a) đơn có dịch vụ "cần xác nhận" không thể thành
 5. **[chủ] Đơn bị huỷ (trạng thái đổi sang huỷ): thông báo trong Nền tảng VÀ email tới những người liên quan.** **[người soạn hiểu]** Áp cho MỌI lần huỷ, không riêng huỷ ở bước xác nhận. Người liên quan = người đặt của đơn (email), nhân viên lập đơn kể cả Đối tác/Thực tập (trong Nền tảng + email), người xác nhận và HDV đang phụ trách nếu có (trong Nền tảng). Thư nêu lý do huỷ theo nhãn, không kèm tên người huỷ. Dòng "không gửi email cho khách khi huỷ" ở Phần C mục 4 **bị thay** bởi mục này.
 6. **[người soạn] Báo khi có đơn gửi xác nhận** (chủ chưa chốt): tin trong Nền tảng tới mọi người xác nhận được, ngay lúc gửi; nhắc thêm một lần khi quá hạn 15 phút (tính theo mục 3). Rung ban đêm hay không: theo giờ yên lặng hiện có (không rung 22:00–06:00), hợp với mục 3.
 
+## 5c. Chốt lượt 5 (19/10, khi lập kế hoạch) — thắng các dòng ở trên nếu lệch
+
+1. **[chủ] Bỏ ô "Trả trước" khỏi màn Tạo đơn**; tiền chỉ ghi được sau khi đơn đã xác nhận (trang đơn hoặc QR). Lý do: màn Tạo đơn hôm nay ghi khoản thu ngay sau khi lưu nháp, trái luật "nháp không ghi thu".
+2. **[người soạn, sửa lại lựa chọn sai của chính mình]** Nền tảng KHÔNG có khái niệm "cọc phải thu" (cột `deposit_amount` đã chết; "cọc" trong mã là cọc của đơn huỷ — ADR-0089). Dòng "đơn có cọc thì QR ghi số cọc" ở Phần C mục 2 **bỏ**; QR luôn ghi **đủ số tiền còn phải thu**, đúng lời gốc của chủ.
+3. **[người soạn]** "Nháp chỉ người tạo đọc" áp đúng chữ: hôm nay Bán hàng, Kế toán, Quản trị, Toàn quyền xem được nháp người khác và thẻ "Đơn nháp" trên Trang chủ đếm nháp cả công ty; sau thay đổi mỗi người chỉ thấy nháp của mình (đơn "Chờ xác nhận" thì người xác nhận thấy theo Phần A mục 5).
+4. **[người soạn]** Bỏ "nhắc thêm một lần khi quá hạn" ở mục 5b.6 (cần bộ hẹn giờ mới); quá hạn chỉ hiện trên Trang chủ như lời chủ ở câu 6.
+
 ## 6. Thứ tự làm đề xuất
 
 B (đón/khung giờ, ít rủi ro nhất) → A (xác nhận, lõi) → C (QR + email, cần A) → D (Bảng điều khiển; phần cài đặt của A/B/C thi công cùng phần đó, trang tổng hợp làm cuối). Mỗi phần một ADR; tối đa 3 quyết định chạm quyền/dữ liệu mỗi lượt duyệt.
