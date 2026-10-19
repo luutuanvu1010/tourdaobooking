@@ -64,6 +64,14 @@ Nợ kỹ thuật của lát này: `docs/BACKLOG.md` mục 40 (mã `BL-XOA-…`)
 - **Điều Worker lùi KHÔNG lấy lại được:** dữ liệu đã bị «Thực hiện» ẩn danh (giấy tờ, phiếu tự khai, thông tin phiên). Chỉ khôi phục Time Travel về trước lần «Thực hiện» mới lấy lại — và mất mọi ghi sau điểm đó. Đó là lý do việc 5 và 6 phải xong TRƯỚC lần «Thực hiện» đầu tiên.
 - **Khôi phục Time Travel** lùi cả dữ liệu lẫn bảng `d1_migrations`, nên phải lùi Worker về 2.11 cùng lúc; lệnh và điểm của bản 2.16 ở mục «Phiên bản 2.16» bên dưới. Muốn lùi sau này thì lấy điểm MỚI bằng `wrangler d1 time-travel info` trước, đừng dùng điểm của 17/10.
 
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.26 ĐÃ LÊN PRODUCTION (vá 2.25: «Đã giao», màn tiền và kiểm định kỳ truyền số khách theo loại — ADR-0133; không migration) — triển khai 2026-10-19 22:26 giờ VN
+
+Ghi 19/10/2026 từ khối tóm tắt cuối của `npm run trien-khai`, kiểm lại bằng lệnh chỉ đọc (`GET /api/auth/config` = 2.26; `d1 migrations list --remote` = không còn gì chờ; `audit-invariants --db remote` ĐẠT, 5 cảnh báo cũ).
+- Commit: `d685117f`. Worker Version ID: `ef05296a-8ff9-4863-9d1a-d970ced9a4a8`. Không migration.
+- **Lỗi đã vá:** bản 2.25 để đơn đại lý dùng mức «theo loại khách» ném lỗi 500 khi bấm «Đã giao» / mở màn tiền (`dongThuongMaiTu` của billing bỏ rơi `pax`), và kiểm định kỳ R-BIL-2 báo lệch giả (script không đọc ba số). Người kiểm độc lập lượt hai tìm ra, lượt ba ĐẠT. Bài khoá: `src/da-giao-theo-loai.test.ts`. Chưa có đơn nào dùng mức theo loại trước khi vá nên không có dữ liệu hỏng.
+- **e2e lúc triển khai:** `trien-khai` báo đỏ ở kịch bản `xe-dang-chay` (chủ chọn đi tiếp); chạy riêng ngay sau đó 4/4 xanh, và cả bộ 71/71 xanh trước đó — rớt thoáng qua, không do bản này.
+- **Còn lại (chủ/Kế toán):** xem form «Hoa hồng đối tác» bằng mắt; khai thử một mức «theo loại» bằng tài khoản Kế toán thật rồi thử «Đã giao» một đơn đại lý (ca vàng SV-LK-01: 170.000 đ).
+
 ## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.25 ĐÃ LÊN PRODUCTION (chiết khấu «mỗi khách» theo loại khách — ADR-0133: người lớn / trẻ em / người cao tuổi, em bé luôn 0, trẻ em và người cao tuổi bắt buộc điền) — migration `0116_chiet_khau_theo_loai_khach` đã áp — triển khai 2026-10-19 21:12 giờ VN
 
 Ghi 19/10/2026 từ khối tóm tắt cuối của `npm run trien-khai` (chủ chạy trong Terminal), kiểm lại `GET /api/auth/config` ngay sau đó (`version` = 2.25).
