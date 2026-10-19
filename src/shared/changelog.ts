@@ -12,6 +12,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Bước Xác nhận đơn — Đợt 1 (ADR-0134, migration 0115; nhánh worktree-xac-nhan-don): mỗi dịch vụ bắt buộc chọn Đón / Không đón trước khi xác nhận (máy chủ 409
+    // pickup_choice_required), khung giờ đón chọn sẵn hoặc Giờ khác, câu lưu ý giờ đón thực tế. CÓ migration ⇒ cần npm run trien-khai sau day-len.
+    // Số 2.23 là số TẠM (đầu mảng hiện tại 2.22 tạm) — phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "2.23",
+    date: "2026-10-19",
+    items: [
+      { kind: "doi", text: "Lập đơn: mỗi dịch vụ phải chọn Đón hoặc Không đón. Đơn nháp chưa chọn vẫn lưu được, nhưng phải chọn xong cho mọi dịch vụ thì mới xác nhận được đơn." },
+      { kind: "moi", text: "Khi chọn Đón, chọn nhanh một khung giờ đón có sẵn (ví dụ 07:30 – 08:00), hoặc bấm Giờ khác để tự nhập giờ đón." },
+      { kind: "moi", text: "Dưới hàng khung giờ có câu lưu ý: giờ đón thực tế có thể điều chỉnh cho phù hợp tình hình hoạt động." },
+    ],
+  },
+  {
     // Nợ nhỏ cuối của màn Tạo đơn thiết kế lại (Việc 14, 19/10): dòng gập của thẻ ghi «Đã duyệt đặt gấp» khi chặng đã được duyệt. KHÔNG migration, không đổi thân gửi.
     // Cùng đợt có công cụ dọn máy `npm run don-may` và bộ bọc Chrome tự đóng — công cụ của nhà phát triển, không hiện cho người dùng nên không ghi ở đây.
     // Số 2.22 là số TẠM (production báo 2.21; kiểm main ngày 19/10: chưa dùng 2.22) — phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
