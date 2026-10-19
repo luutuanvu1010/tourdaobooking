@@ -9,6 +9,14 @@ import { coGiaTriChuyen, tripWarnings, type TripWarning } from "./trip-form.ts";
 /** Chip "đặt gấp" trên dòng gập: chặng có giờ đón dưới mốc tối thiểu mà chưa được duyệt đặt gấp (cùng điều kiện dải cảnh báo cuối thẻ — `canhBaoChangForm`). */
 export const CHIP_DAT_GAP = "Cần đặt gấp";
 
+/** Chip trạng thái trên dòng gập khi chặng dưới mốc ĐÃ được duyệt đặt gấp (nhãn đã duyệt của thẻ mở bị ẩn khi gập). Không bao giờ cùng hiện với `CHIP_DAT_GAP`. */
+export const CHIP_DA_DUYET_DAT_GAP = "Đã duyệt đặt gấp";
+
+/** Chip đặt gấp của MỘT thẻ: còn chặng dưới mốc chưa duyệt → «Cần đặt gấp» (thắng); mọi chặng dưới mốc đã duyệt → «Đã duyệt đặt gấp»; không có → không chip. */
+export function chipDatGap(v: { conCho: number; daDuyet: number }): string[] {
+  return v.conCho > 0 ? [CHIP_DAT_GAP] : v.daDuyet > 0 ? [CHIP_DA_DUYET_DAT_GAP] : [];
+}
+
 /**
  * Tình trạng đưa đón của dịch vụ không có chặng — MỘT chữ cho dòng gập (`dongGapThe`) và khối Đưa đón của thẻ mở (web/khoi-dua-don.ts). Vòng sửa sau production 19/10/2026 (chủ dự án
  * "không nhìn thấy phần thông tin đưa đón"): thẻ gập của dịch vụ không chặng từng chỉ còn số khách — người lập không biết đưa đón đang trống hay bị giấu.

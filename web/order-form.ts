@@ -4,7 +4,7 @@ import { mayPickHandlerOnCreate } from "../src/shared/assignee-pick";
 import type { SuKienDon } from "../src/shared/bang-tin";
 import type { AssigneeDto, CatalogServiceDto } from "../src/shared/contracts";
 import { canhBaoChangForm } from "../src/shared/dat-gap-hien-thi";
-import { CHIP_DAT_GAP, theMoKhiNap } from "../src/shared/dong-gap-the";
+import { chipDatGap, theMoKhiNap } from "../src/shared/dong-gap-the";
 import { CHIEU_LABEL, type LyDoDatGap } from "../src/shared/chang-dua-don";
 import { cauDoiNgay, changTaoSan, doiNgayDi, giuDatGapNhap, type ChangNhap } from "../src/shared/chang-form";
 import type { MauChang } from "../src/shared/chang-mac-dinh";
@@ -263,10 +263,12 @@ function capNhatMoc(entry: Entry): void {
   const d = entry.draft;
   const khoi: { ky: string; el: () => HTMLElement }[] = [];
   const conKhoa = new Set<string>();
+  let daDuyet = 0;
   d.legs.forEach((l, i) => {
     const dau = () => h("div", { class: "dg-chang-dau" }, h("span", { class: "chip chip-unit" }, CHIEU_LABEL[l.direction]), h("span", { class: "dd-chang-so" }, `Lượt ${i + 1}`));
     if (giuDatGapNhap(l) && l.goc?.datGap) {
       const dg = l.goc.datGap;
+      daDuyet++;
       khoi.push({ ky: `${l.key}:giu:${i}`, el: () => h("div", { class: "dg-leg", "data-leg-key": l.key }, dau(), khoiNhanDatGap(dg)) });
       return;
     }
@@ -283,7 +285,7 @@ function capNhatMoc(entry: Entry): void {
     khoi.push({ ky: `${l.key}:moc:${i}`, el: () => h("div", { class: "dg-leg", "data-leg-key": l.key }, dau(), widget.root) });
   });
   for (const k of [...entry.canhBao.keys()]) if (!conKhoa.has(k)) entry.canhBao.delete(k);
-  entry.card.datChipNgoai(conKhoa.size > 0 ? [CHIP_DAT_GAP] : []); // thẻ gập: dải cảnh báo dưới mốc bị ẩn cùng thân thẻ → hiện chip "Cần đặt gấp" trên dòng gập
+  entry.card.datChipNgoai(chipDatGap({ conCho: conKhoa.size, daDuyet })); // thẻ gập: dải cảnh báo và nhãn đã duyệt bị ẩn cùng thân thẻ → chip «Cần đặt gấp» / «Đã duyệt đặt gấp» trên dòng gập
   const ky = khoi.map((x) => x.ky).join("|");
   if (ky === entry.mocKy) return;
   entry.mocKy = ky;

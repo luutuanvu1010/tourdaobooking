@@ -68,7 +68,7 @@ Câu 1 thành phương án (a): soạn đề xuất ADR-0130 ở `DE-XUAT-ADR-01
 
 ## 6. Nợ còn lại (từ báo cáo Việc 9)
 
-- Chưa làm: T8(b) tự mở lại bảng chi tiết khi đang có khung lỗi (chưa đo 405px); nhãn "đặt gấp đã duyệt" trên dòng gập (cần chủ chọn chữ).
+- Chưa làm: T8(b) tự mở lại bảng chi tiết khi đang có khung lỗi (chưa đo 405px). (Nhãn "đặt gấp đã duyệt" trên dòng gập: ĐÃ LÀM ở Việc 14, mục 10.)
 - Chưa làm ở T7: `blur()` sau chọn cảm ứng (đánh đổi với bàn phím ảo iOS), tên truy cập dòng "Gõ tự do", Home/End; "khớp đúng tên vẫn hiện dòng tự do" (đặc tả chốt dòng tự do luôn ở cuối — đổi là chủ quyết); hai Minor vòng 2 (câu nhắc / ô số hiệu chuyến bay lúc chờ dựng lại; `nhoChamKichHoat` coi mọi phím là bàn phím).
 - M-6: bản chuẩn thân gửi phụ thuộc ngày (so lại bằng cách bỏ ngày: 12/12 giống từng byte).
 - Đường `kiemLai` của bảng "Đổi khách" không có kịch bản riêng (dựa vào kỷ luật).
@@ -101,3 +101,10 @@ Người thi công vòng sửa cuối; KHÔNG phải kiểm độc lập. Năm l
 - **Trước lần lưu cuối** (một lần, 19/10): `npm run typecheck` 0 lỗi; `npm test` bước 1 5665 bài (5664 đạt, 0 đỏ, 1 todo), bước 2 bài đo giờ 1/1 — thoát 0 (`tu-khai-route.test.ts` không đỏ lần này).
 - **Không làm (theo giao việc)**: `so-dai-ly-smoke` bước 36 và `chup-anh.mjs` ca 1–2 vẫn lệch như mục 6; không sửa tệp luật.
 - **CHƯA kiểm**: bàn phím ảo / iPhone thật (khi bàn phím bật, thanh dính có thể nằm sau bàn phím); khổ 641–959px không có bước riêng; e2e không chạy lại ở vòng này (không đổi API / migration / thân gửi); toàn nhánh vẫn CẦN người kiểm độc lập.
+
+## 10. Việc 14 — chip «Đã duyệt đặt gấp» trên dòng gập (19/10/2026)
+
+Người thi công; KHÔNG phải kiểm độc lập. Chủ chốt chữ «Đã duyệt đặt gấp». Luật thuần `chipDatGap` + hằng `CHIP_DA_DUYET_DAT_GAP` ở `src/shared/dong-gap-the.ts`: còn chặng dưới mốc chưa duyệt thì chỉ «Cần đặt gấp», mọi chặng dưới mốc đã duyệt thì chỉ «Đã duyệt đặt gấp», hai chip không cùng hiện. `web/order-form.ts` (`capNhatMoc`) đếm chặng đã duyệt và chờ duyệt rồi gọi `chipDatGap`. Không đổi API, thân gửi, quyền, tiền, hướng dẫn (hướng dẫn không có đoạn nói về dòng gập; số từ không đổi).
+- Đỏ trước: bài thuần mới (chip hiện đúng, loại trừ nhau) đỏ vì thiếu hằng; kịch bản `the-gap-smoke.mjs` bước 15 (Quản trị, mốc 48 giờ) đỏ trên mã cũ ở khẳng định «chip đã duyệt» (đang có: []), xanh sau sửa (390 + 1040, 15/15 bước mỗi khổ). Phá cố ý (cho phép hai chip cùng hiện): bài thuần đỏ, hoàn nguyên xanh 15/15.
+- Chạy: typecheck 0 lỗi; `dong-gap-the` 15/15; `huong-dan`, `khoi-gap-noi-day`, `migrations-tro-ly-van-nghia` và 4 bài nối dây giao diện xanh; Chrome: the-gap-smoke, thanh-dinh-smoke (có axe), a2-smoke-form (có axe) OK.
+- CHƯA chạy: `npm test` đầy đủ (máy tải ~210); `than-gui.mjs` (không chạm thân gửi); e2e; người kiểm độc lập.

@@ -14,6 +14,8 @@
 //   (ô Nơi đón ẩn, 'Thêm chi tiết' gập, Thông tin chuyến đóng); chạm dòng tóm tắt → chặng mở, ô Nơi đón hiện; tiêu điểm: chuột → ô Nơi đón, cảm ứng → đầu chặng;
 //   Việc 9 (nợ T5): bước 12 — bỏ thẻ bằng thùng rác khi tiêu điểm đang ở nút (bàn phím / chuột) → tiêu điểm sang đầu thẻ kế / thẻ trước, hết thẻ thì sang câu "Chưa có dịch vụ";
 //   Việc 12 (vòng sửa sau production 19/10): bước 1 — thẻ gập của dịch vụ không có chặng ghi «Không đưa đón» sau số khách (trước: dòng gập không nói gì về đưa đón).
+//   Việc 14 (nợ chip đã duyệt): bước 15 — Quản trị, chặng đón NGÀY MAI dưới mốc 48 giờ (đặt bằng route chính sách): thẻ gập mang chip «Cần đặt gấp»; bấm «Duyệt đặt gấp» (lưu nháp + đặt gấp) rồi mở lại nháp →
+//   thẻ gập mang chip «Đã duyệt đặt gấp» và KHÔNG còn «Cần đặt gấp» (hai chip không cùng hiện). Chính sách mốc 48 giờ đặt một lần trước vòng lặp (các bước khác dùng ngày +3 nên không bị ảnh hưởng).
 //   7) nạp lại nháp: nháp sạch → mọi thẻ gập; nháp có giá trị bị giấu (Thông tin chuyến, xe riêng) → các thẻ đó mở sẵn (nhiều thẻ cùng mở được), mở thẻ khác thì chúng gập; `?focus=` mở đúng thẻ.
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, danh mục giả (TD101, TTB03 Phao chuối, TTB06 Motor nước).
 // Chạy từ GỐC repo, sau `npm run build:web`:
@@ -113,6 +115,15 @@ try {
     dv("TTB06", { adult: 2 }, { adult: 800000 }, { legs: [chang({ exclusiveVehicle: true })] }),
     dv("TTB03", { adult: 7 }, { adult: 1500000 }),
   ]);
+
+  // Bước 15: mốc 48 giờ để chặng đón ngày mai luôn dưới mốc; mỗi khổ một nháp riêng (đặt gấp là vĩnh viễn trên nháp). Dựng bằng API TRƯỚC khi mở trang (đăng nhập lại làm phiên cũ của cùng tài khoản hết hiệu lực).
+  const cs = await call(ACCOUNTS.chu, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 2880, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 2880, refuseLeadMinutes: 720, officePhone: null, acceptWaitMinutes: 10, autoConfirmTransfer: true });
+  assert.equal(cs.status, 201, JSON.stringify(cs.json));
+  const MAI = vnDate(1);
+  const nhapGap = {};
+  for (const [kho, sdt] of [["390", "0912345691"], ["1040", "0912345692"]]) {
+    nhapGap[kho] = (await taoNhap(`Khách Đặt Gấp ${kho}`, sdt, [dv("TD101", { adult: 2 }, { adult: 1350000 }, { departDate: MAI, legs: [chang({ pickupDate: MAI, pickupTime: "10:00" })] })])).id;
+  }
 
   for (const [kho, vp] of [["390", MOB], ["1040", DESK]]) {
     const mobile = vp.mobile;
@@ -405,6 +416,29 @@ try {
       assert.equal(await p.ev(coTieuDiem(oKhach)), true, `tiêu điểm ở ô số khách đầu tiên của thẻ vừa mở (đang ở: ${await p.ev("document.activeElement?.outerHTML.slice(0, 80) ?? null")})`);
       assert.equal(await p.ev(trongKhung(oKhach)), true, "ô số khách nằm trong khung nhìn");
       assert.deepEqual(p.consoleErrors.filter((e) => !/favicon/.test(e)), [], "không lỗi console (trang mới)");
+    });
+
+    await buoc(`${kho}-15`, "Quản trị: thẻ gập dưới mốc có chip «Cần đặt gấp»; sau «Duyệt đặt gấp» và mở lại nháp thì thẻ gập có chip «Đã duyệt đặt gấp», không còn «Cần đặt gấp»", async () => {
+      p.close();
+      p = await env.as(ACCOUNTS.admin, `/order-form?id=${nhapGap[kho]}`, vp);
+      await p.waitFor(`${THE}.length === 1`, "form sửa nháp dựng xong", 15000);
+      await sleep(800);
+      assert.deepEqual(await p.ev(moRa), ["false"], "nháp sạch: thẻ gập");
+      assert.deepEqual((await p.ev(dongGap(0))).chips, ["Cần đặt gấp"], "chưa duyệt: chỉ «Cần đặt gấp»");
+      await cham(p, mobile, nut(0));
+      assert.equal(await p.ev(`${nut(0)}.getAttribute('aria-expanded')`), "true");
+      await p.ev(`${the(0)}.querySelector('[data-action="mo-dat-gap"]').click(); true`);
+      await p.waitFor(hien(`${the(0)}.querySelector('.dg-panel')`), "khung Đặt gấp");
+      await p.ev(`(() => { const s = ${the(0)}.querySelector('.dg-panel [data-dg="ly-do"]'); s.value = 'DON_BU_LO_CHUYEN'; s.dispatchEvent(new Event('change')); return true; })()`);
+      await p.ev(`${the(0)}.querySelector('[data-action="duyet-dat-gap"]').click(); true`);
+      await p.waitFor("location.pathname === '/order'", "lưu nháp + đặt gấp xong sang trang đơn", 20000);
+      await p.send("Page.navigate", { url: `${env.base}/order-form?id=${nhapGap[kho]}` });
+      await p.waitFor(`location.pathname === '/order-form' && ${THE}.length === 1`, "mở lại nháp", 15000);
+      await sleep(800);
+      assert.deepEqual(await p.ev(moRa), ["false"], "nháp mở lại: thẻ gập");
+      const chips = (await p.ev(dongGap(0))).chips;
+      assert.ok(chips.includes("Đã duyệt đặt gấp"), `chip đã duyệt trên dòng gập (đang có: ${JSON.stringify(chips)})`);
+      assert.ok(!chips.includes("Cần đặt gấp"), "hai chip không cùng hiện");
     });
     p.close();
   }

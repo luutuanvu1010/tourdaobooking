@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { TU_DO, themChangDi, themChieuVe, type ChangNhap } from "./chang-form.ts";
 import {
-  CHIP_DAT_GAP, KHONG_DUA_DON, canhBaoChuyenThe, chipThieu, chipTuCanhBao, coLoiChanLuuDangHien, donGon, dongGapThe, soKhachGon, theMoKhiNap,
+  CHIP_DA_DUYET_DAT_GAP, CHIP_DAT_GAP, KHONG_DUA_DON, canhBaoChuyenThe, chipThieu, chipTuCanhBao, chipDatGap, coLoiChanLuuDangHien, donGon, dongGapThe, soKhachGon, theMoKhiNap,
 } from "./dong-gap-the.ts";
 import type { CatalogService } from "./order-lines.ts";
 import { newCatalogDraft, newManualDraft, setGuests, setPax, setUnitPrice, type CatalogDraft } from "./service-form.ts";
@@ -166,4 +166,14 @@ test("canhBaoChuyenThe: giờ đón so với giờ khởi hành lấy giờ củ
   const d = td2({ adult: 2 }, [changDu({ pickupTime: "09:00" }), changDu({ pickupTime: "08:15" })]);
   assert.deepEqual(canhBaoChuyenThe({ ...d, trip: { ...d.trip, departTime: "08:00" } }, HOM_NAY).map((w) => w.code), ["pickup_after_depart"]);
   assert.deepEqual(canhBaoChuyenThe({ ...d, trip: { ...d.trip, departTime: "08:30" } }, HOM_NAY), []);
+});
+
+test("chipDatGap: «Đã duyệt đặt gấp» khi mọi chặng dưới mốc đã duyệt; «Cần đặt gấp» khi còn chặng chưa duyệt; không bao giờ cùng hiện", () => {
+  assert.equal(CHIP_DA_DUYET_DAT_GAP, "Đã duyệt đặt gấp");
+  assert.deepEqual(chipDatGap({ conCho: 0, daDuyet: 1 }), [CHIP_DA_DUYET_DAT_GAP]);
+  assert.deepEqual(chipDatGap({ conCho: 1, daDuyet: 0 }), [CHIP_DAT_GAP]);
+  assert.deepEqual(chipDatGap({ conCho: 1, daDuyet: 1 }), [CHIP_DAT_GAP], "còn một chặng chờ duyệt thì chỉ hiện «Cần đặt gấp»");
+  assert.deepEqual(chipDatGap({ conCho: 0, daDuyet: 0 }), []);
+  const dg = dongGapThe(td2(), { today: HOM_NAY, nhanTheoId, chipNgoai: chipDatGap({ conCho: 0, daDuyet: 2 }) });
+  assert.deepEqual(dg.chips, [CHIP_DA_DUYET_DAT_GAP]);
 });
