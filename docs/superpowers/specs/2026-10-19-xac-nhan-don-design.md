@@ -86,3 +86,7 @@ B (đón/khung giờ, ít rủi ro nhất) → A (xác nhận, lõi) → C (QR +
 ## 8. Để người thi công tự quyết
 
 Tên mã trạng thái/ô quyền/bảng; cách dựng ảnh QR phía máy chủ; cách hiện đồng hồ 15 phút; chữ trên nút (giữ từ quen thuộc, đưa chủ chọn nếu lưỡng lự).
+
+## 5d. Chốt lượt 6 (19/10, lúc chọn cách thi công)
+
+1. **[chủ]** Trả lời nguyên văn "theo khuyến nghị của bạn" (lệnh `/superpowers:executing-plans`, 19/10) cho hai khuyến nghị đang treo trong báo cáo kế hoạch: (a) lịch chung điều phối xe **chỉ hiện chặng của đơn nháp đã gửi xác nhận**, bỏ nháp chưa gửi; (b) cách thi công: mỗi đợt một trợ lý làm hết, cuối đợt có người kiểm độc lập.
