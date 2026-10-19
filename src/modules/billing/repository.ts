@@ -343,7 +343,9 @@ export const postingIfReceiptStatement = (db: D1Database, p: NewPosting, receipt
 export const postingIfDeliveredAtStatement = (db: D1Database, p: NewPosting & { kind: "DELIVERED"; dueSnapshot: number; grossSnapshot: number }, deliveredAt: string) =>
   db.prepare(POSTING_IF_DELIVERED_AT).bind(p.id, p.kind, p.orderId, p.reason, p.reversesPostingId, p.occurredDate, p.dueSnapshot, p.at, p.by, deliveredAt, p.grossSnapshot);
 export const postingIfCompletedAtStatement = (db: D1Database, p: NewPosting, completedAt: string) => bindPosting(db, POSTING_IF_COMPLETED_AT, p, completedAt);
-export const postingPlainStatement = (db: D1Database, p: NewPosting) => bindPosting(db, POSTING_PLAIN, p);
+/** Phiếu không điều kiện mốc. KHÔNG nhận loại «Đã giao» (kiểu — M-1 của người kiểm Task 3+4): phiếu đó chỉ ghi qua `postingIfDeliveredAtStatement`, nơi `grossSnapshot` bắt
+ * buộc (R-P8 không có lớp CSDL đòi cột này; kiểm định kỳ R-BIL-17 là lưới cuối). */
+export const postingPlainStatement = (db: D1Database, p: NewPosting & { kind: Exclude<NewPosting["kind"], "DELIVERED"> }) => bindPosting(db, POSTING_PLAIN, p);
 
 /**
  * Dòng nợ — chỉ áp khi phiếu ?2 đã được chèn trong lô (lính gác), nên phiếu thua ⇒ không dòng nào. ?12 = `order_service_id` (dòng HOA_HONG / GIA_VON của phiếu

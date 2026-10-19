@@ -6,6 +6,11 @@
 //   level 'warn-unless-strict' cảnh báo, ĐỎ khi chạy --strict (khoảng giữa hai lần phát hành N1; dùng --strict sau lần phát hành 2);
 //   level 'warn'               cảnh báo VĨNH VIỄN, không bao giờ đỏ kể cả --strict (tình trạng nghiệp vụ hợp lệ, cần người rà soát).
 //   note                       (tuỳ chọn) chữ giải thích khi vi phạm ở mức cảnh báo; thiếu thì dùng chữ mặc định của mức đó.
+//   dem                        (tuỳ chọn, sổ đại lý đợt 2) hàm `(dòng kết quả) => số vi phạm` cho kiểm cần SỐ TÍNH LẠI (hoa hồng, giá vốn, trần giảm giá): câu SQL chỉ đọc
+//                              dữ liệu thô, phép tính đi qua chính hàm thuần của máy chủ (scripts/audit-thuong-mai.mjs — viết công thức trong SQL là đường tính thứ hai,
+//                              Hiến chương 5.4). Script và bài kiểm đếm bằng CÙNG một hàm `demViPham` dưới đây.
+
+import { demRBil2, dsRBil2w, dsRORDDC1 } from "./audit-thuong-mai.mjs";
 
 const OPEN_ADMIN = `SELECT s.id FROM staff s JOIN stf_permission p ON p.staff_id = s.id AND p.permission_type_code = 'ADMIN' AND p.valid_to_at IS NULL WHERE s.active = 1`;
 const overlap = (table, keyCols, from) =>
@@ -93,6 +98,53 @@ const LUC_XAC_NHAN = (o) => `julianday(COALESCE(${o}.confirmed_at, ${o}.created_
 /** Số bản chụp HIỆN HÀNH của dòng dịch vụ alias `s`: bản chưa bị bản nào khác trỏ `supersedes_id` tới. Alias nội bộ: t, n. */
 const SO_BAN_CHUP_HIEN_HANH = (s) =>
   `(SELECT count(*) FROM ord_service_terms t WHERE t.order_service_id = ${s}.id AND NOT EXISTS (SELECT 1 FROM ord_service_terms n WHERE n.supersedes_id = t.id))`;
+/** Bản chụp HIỆN HÀNH (chưa bị bản nào trỏ `supersedes_id` tới) — vị từ trên alias `t` của ord_service_terms. Alias nội bộ: n. */
+const CHUP_HIEN_HANH = (t) => `NOT EXISTS (SELECT 1 FROM ord_service_terms n WHERE n.supersedes_id = ${t}.id)`;
+/** Mốc của một kiểm định kỳ sổ tiền (`bil_audit_cutoff`, khuôn 0080). Các mốc của 0112 cùng một lúc áp: R-BIL-2, R-BIL-5, R-BIL-12, R-BIL-16. */
+const MOC_BIL = (code) => `(SELECT cutoff_at FROM bil_audit_cutoff WHERE code = '${code}')`;
+/** Phiếu `p` còn hiệu lực (không bị phiếu nào đảo). Alias nội bộ: xp. */
+const PHIEU_HIEU_LUC = (p) => `NOT EXISTS (SELECT 1 FROM bil_posting xp WHERE xp.reverses_posting_id = ${p}.id)`;
+/**
+ * Cột DỮ LIỆU THÔ của một dòng dịch vụ alias `s` cho hàm đếm ở scripts/audit-thuong-mai.mjs (`tienDichVu`, `banChupCua`): khoá, tên, đơn vị, số khách đã lưu, dòng tiền
+ * đã lưu (JSON), `after_json` của dòng điều chỉnh số khách GẦN NHẤT của đơn (cùng chọn như `getLatestAdjustment`), bản chụp hiện hành (JSON đúng tên cột của
+ * `TermRowDb`). Không phép tính tiền nào ở đây. Alias nội bộ: i, a, t, n.
+ */
+const COT_DICH_VU = (s) => `${s}.id AS dv, ${s}.name AS ten, ${s}.unit AS unit, ${s}.catalog_code AS catalog_code,
+       json_object('adult', ${s}.pax_adult, 'child', ${s}.pax_child, 'senior', ${s}.pax_senior, 'infant', ${s}.pax_infant) AS pax,
+       (SELECT json_group_array(json_object('paxCode', i.pax_code, 'catalogPrice', i.catalog_price, 'unitPrice', i.unit_price, 'lineTotal', i.line_total, 'quantity', i.quantity))
+          FROM order_item i WHERE i.service_id = ${s}.id) AS items,
+       (SELECT a.after_json FROM order_money_adjustment a WHERE a.order_id = ${s}.order_id ORDER BY a.seq DESC LIMIT 1) AS after_json,
+       (SELECT json_object('id', t.id, 'order_service_id', t.order_service_id, 'beneficiary_party_id', t.beneficiary_party_id, 'commission_status', t.commission_status,
+               'missing_reason', t.missing_reason, 'commission_kind', t.commission_kind, 'commission_rate_bp', t.commission_rate_bp, 'commission_per_pax', t.commission_per_pax,
+               'commission_rule_id', t.commission_rule_id, 'supply_status', t.supply_status, 'seller_party_id', t.seller_party_id, 'supplier_party_id', t.supplier_party_id,
+               'cost_rate_bp', t.cost_rate_bp, 'supply_term_id', t.supply_term_id, 'source', t.source, 'captured_date', t.captured_date)
+          FROM ord_service_terms t WHERE t.order_service_id = ${s}.id AND ${CHUP_HIEN_HANH("t")}) AS chup`;
+/**
+ * Dữ liệu cho R-BIL-2 / R-BIL-2w: một dòng mỗi (phiếu «Đã giao» còn hiệu lực, dòng dịch vụ của đơn). `vung` = điều kiện so mốc R-BIL-2 trên `p.created_at` (cùng mốc chia
+ * hai nửa). `chu` = mọi hồ sơ từng là công ty chủ (như R-BIL-S9); `dong_phieu` = dòng HOA_HONG / GIA_VON GỐC của phiếu; `dong_don` = MỌI dòng HOA_HONG / GIA_VON của đơn
+ * (mọi phiếu, cả dòng đảo — nửa trước mốc cộng cả phiếu điều chỉnh, M1 = A). Alias nội bộ: p, o, s, l, r.
+ */
+const DU_LIEU_R_BIL_2 = (vung) => `SELECT p.id AS phieu, o.order_code AS ma_don, CASE WHEN p.created_at >= ${MOC_BIL("R-BIL-2")} THEN 1 ELSE 0 END AS sau_moc,
+       (SELECT json_group_array(r.party_id) FROM pty_party_role r WHERE r.role_type_code = 'OWNER_COMPANY') AS chu,
+       (SELECT json_group_array(json_object('kind', l.kind_code, 'dv', l.order_service_id, 'no', l.debtor_party_id, 'co', l.creditor_party_id, 'so', l.amount))
+          FROM bil_debt_line l WHERE l.posting_id = p.id AND l.reverses_line_id IS NULL AND l.kind_code IN ('HOA_HONG', 'GIA_VON')) AS dong_phieu,
+       (SELECT json_group_array(json_object('kind', l.kind_code, 'no', l.debtor_party_id, 'co', l.creditor_party_id, 'so', l.amount))
+          FROM bil_debt_line l WHERE l.order_id = p.order_id AND l.kind_code IN ('HOA_HONG', 'GIA_VON')) AS dong_don,
+       ${COT_DICH_VU("s")}
+     FROM bil_posting p JOIN orders o ON o.id = p.order_id JOIN order_service s ON s.order_id = p.order_id
+     WHERE p.kind_code = 'DELIVERED' AND ${PHIEU_HIEU_LUC("p")} AND p.created_at ${vung} ${MOC_BIL("R-BIL-2")}
+     ORDER BY p.id, s.sort_order, s.id`;
+/**
+ * Dữ liệu cho R-ORD-DC1 / R-ORD-DC1w: một dòng mỗi dòng dịch vụ của đơn ĐÃ XÁC NHẬN (chưa huỷ), có bản chụp hiện hành mang người hưởng — không lọc «có giảm giá» trong SQL (phải thu / giảm giá chỉ so bằng hàm thuần, bài
+ * `src/phai-thu-mot-ham.test.ts` H1; giảm giá đã lưu 0 thì cách đọc lúc Xác nhận không vượt nên hàm đếm tự bỏ qua). `vung` so lúc xác
+ * nhận (`LUC_XAC_NHAN`) với mốc `ord_audit_cutoff` 'R-ORD-DC1' (0112). Alias nội bộ: o, s, t, n.
+ */
+const DU_LIEU_R_ORD_DC1 = (vung) => `SELECT o.id AS don, o.order_code AS ma_don, o.discount AS giam_gia, ${COT_DICH_VU("s")}
+     FROM orders o JOIN order_service s ON s.order_id = o.id
+     WHERE o.status = 'confirmed'
+       AND EXISTS (SELECT 1 FROM ord_service_terms t WHERE t.order_id = o.id AND t.beneficiary_party_id IS NOT NULL AND ${CHUP_HIEN_HANH("t")})
+       AND ${LUC_XAC_NHAN("o")} ${vung} julianday((SELECT cutoff_at FROM ord_audit_cutoff WHERE code = 'R-ORD-DC1'))
+     ORDER BY o.id, s.sort_order, s.id`;
 /** Số dòng của bảng tiền `bang` thuộc tháng ĐÃ KHOÁ mà ghi (created_at) SAU lúc khoá tháng đó (closed_at). So giờ bằng `julianday` hai vế. Alias nội bộ: x, k. */
 const GHI_SAU_KHOA = (bang) =>
   `(SELECT count(*) FROM ${bang} x JOIN ky_period_close k ON k.period = substr(x.occurred_date, 1, 7) WHERE julianday(x.created_at) > julianday(k.closed_at))`;
@@ -124,7 +176,7 @@ const DO_COT_N3 = Object.entries(COT_N3_NHAT_KY)
     return `EXISTS (SELECT 1 FROM ${bang} x WHERE x.${ten} IS NOT NULL AND length(x.${ten}) >= 8 AND instr(${v.chuanHoa ? DETAIL_CHUAN : "a.detail"}, x.${ten}) > 0)`;
   });
 
-/** @type {{ code: string, what: string, sql: string, level: 'fail' | 'warn-unless-strict' | 'warn', mode?: 'rows', note?: string }[]} */
+/** @type {{ code: string, what: string, sql: string, level: 'fail' | 'warn-unless-strict' | 'warn', mode?: 'rows', note?: string, dem?: (rows: object[]) => number }[]} */
 export const CHECKS = [
   { code: "R-N1-1", what: "mọi tài khoản có party_id", sql: "SELECT count(*) FROM staff WHERE party_id IS NULL", level: "warn-unless-strict" },
   { code: "R-N1-1", what: "một hồ sơ tối đa một tài khoản", sql: "SELECT count(*) FROM (SELECT party_id FROM staff WHERE party_id IS NOT NULL GROUP BY party_id HAVING count(*) > 1)", level: "fail" },
@@ -351,10 +403,30 @@ export const CHECKS = [
   {
     // NT-S9: lượt 1 mọi lần thu "thu cho" công ty chủ. So với MỌI hồ sơ từng giữ vai công ty chủ (đổi công ty chủ — ADR-0024 6.5 — không làm lần thu cũ
     // thành vi phạm). Giới hạn: không bắt "thu cho công ty chủ CŨ sau ngày đổi" — lượt 1 route không nhận giá trị này (máy chủ luôn dùng công ty chủ hiện hành).
+    // ĐỔI NGHĨA ở sổ đại lý đợt 2 (Task 10, đảo bài có chủ đích; ADR-0078 điều 9): từ 0112, "thu cho" được là NGƯỜI BÁN của phần tiền (nhà cung cấp) — luật đó là R-BIL-12
+    // (dưới). R-BIL-S9 chỉ còn canh lần thu ghi TRƯỚC mốc 0112 (mốc R-BIL-12): khi đó route chưa nhận giá trị nào khác công ty chủ. Không đếm một lần thu ở cả hai mã.
     code: "R-BIL-S9",
-    what: "mọi lần thu ghi 'thu cho' công ty chủ (lượt 1)",
+    what: "mọi lần thu ghi trước mốc 0112 'thu cho' công ty chủ (lượt 1)",
     sql: `SELECT count(*) FROM bil_payment_receipt r
-     WHERE r.collected_for_party_id NOT IN (SELECT party_id FROM pty_party_role WHERE role_type_code = 'OWNER_COMPANY')`,
+     WHERE r.created_at < ${MOC_BIL("R-BIL-12")}
+       AND r.collected_for_party_id NOT IN (SELECT party_id FROM pty_party_role WHERE role_type_code = 'OWNER_COMPANY')`,
+    level: "fail",
+  },
+  {
+    // ADR-0078 "Bất biến" R-BIL-12 (đặc tả P9; sổ đại lý đợt 2): lần thu GỐC ghi TỪ mốc 0112 — (a) "thu cho" ∈ {mọi hồ sơ từng là công ty chủ, người bán của một dòng
+    // dịch vụ của đơn theo bản chụp hiện hành}; (b) người thu vai "nhà cung cấp" (SUPPLIER) là nhà cung cấp của một dòng của đơn VÀ thu cho chính mình (ADR-0078 điều 9;
+    // Ruling R-32 của sổ thi công). Dòng đảo chép nguyên dòng gốc (R-BIL-3a canh) nên không đếm lại. Lưới cho SQL chạy tay — máy chủ (`ghiLanThu`, R-33) là đường chặn.
+    code: "R-BIL-12",
+    what: "lần thu ghi từ mốc 0112: 'thu cho' là công ty chủ hoặc người bán của đơn; người thu là nhà cung cấp thì là nhà cung cấp của đơn, thu cho chính mình",
+    sql: `SELECT count(*) FROM bil_payment_receipt r
+     WHERE r.reverses_id IS NULL AND r.created_at >= ${MOC_BIL("R-BIL-12")}
+       AND ((r.collected_for_party_id NOT IN (SELECT party_id FROM pty_party_role WHERE role_type_code = 'OWNER_COMPANY')
+             AND r.collected_for_party_id NOT IN (SELECT t.seller_party_id FROM ord_service_terms t
+                                                  WHERE t.order_id = r.order_id AND t.seller_party_id IS NOT NULL AND ${CHUP_HIEN_HANH("t")}))
+         OR (r.collector_role_code = 'SUPPLIER'
+             AND (r.collected_for_party_id IS NOT r.collector_party_id
+                  OR r.collector_party_id NOT IN (SELECT t.supplier_party_id FROM ord_service_terms t
+                                                  WHERE t.order_id = r.order_id AND t.supplier_party_id IS NOT NULL AND ${CHUP_HIEN_HANH("t")}))))`,
     level: "fail",
   },
   {
@@ -370,6 +442,123 @@ export const CHECKS = [
     what: "đơn Đã giao vẫn ở trạng thái đã xác nhận",
     sql: "SELECT count(*) FROM orders WHERE delivered_at IS NOT NULL AND status <> 'confirmed'",
     level: "fail",
+  },
+
+  // ---- Sổ đại lý đợt 2 (ADR-0079 «Bất biến», điều 6, 7a, 9; ADR-0078 R-BIL-5, R-BIL-12; đặc tả 2026-10-18-so-dai-ly-dot-2 P9; ghi chú điều phối Task 10; Ruling R-P22…R-P25
+  // của sổ thi công). Mốc = lúc áp 0112 (bil_audit_cutoff 'R-BIL-2' / 'R-BIL-5' / 'R-BIL-12' / 'R-BIL-16', ord_audit_cutoff 'R-ORD-DC1'): ghi TỪ mốc lệch ⇒ LỖI; cũ hơn mốc ⇒
+  // cảnh báo kèm danh sách (hậu tố w) — để `audit-invariants --db remote` ngay sau triển khai không thoát 1 vì dữ liệu lượt 1 (ADR-0079 điều 7a). LƯỚI THỨ HAI sau mã + trigger 0112.
+  {
+    // R-BIL-2 (I2) vế từng dòng (chủ duyệt 19/10, I-2 người kiểm Task 3+4): mỗi dòng HOA_HONG / GIA_VON GỐC của phiếu «Đã giao» ghi từ mốc = đúng dòng lô «Đã giao» sinh
+    // khi tính lại từ bản chụp hiện hành (đóng băng sau «Đã giao») + tiền dòng hiện hành, qua CHÍNH hàm của máy chủ (scripts/audit-thuong-mai.mjs `demRBil2`). Phiếu điều chỉnh
+    // không cộng vào (D-3 của ADR-0080 là sửa có duyệt — R-BIL-14/15 canh). Vế cân đối «phần Tour Đảo giữ = Σ giá lẻ trước giảm − giảm giá Tour Đảo chịu − giá vốn − hoa hồng»
+    // không có câu riêng: nó suy ra từ R-BIL-1 (đã thu = phải thu), vế từng dòng này và R-BIL-16 (giảm giá bên đặt = trước giảm − phải thu) — Ruling R-P22. Dòng dịch vụ
+    // chưa có bản chụp mang người bán ⇒ việc của R-BIL-5 (không đếm hai lần). Đếm PHIẾU lệch (gồm phiếu không tính lại được: thiếu mức, vượt giá bán).
+    code: "R-BIL-2",
+    what: "phiếu Đã giao ghi từ mốc 0112: dòng hoa hồng / giá vốn đúng số tính lại từ bản chụp (từng dòng dịch vụ)",
+    sql: DU_LIEU_R_BIL_2(">="),
+    dem: demRBil2,
+    level: "fail",
+  },
+  {
+    // R-BIL-2 nửa trước mốc (ADR-0079 điều 7a, M1 = A): đơn «Đã giao» ở lượt 1 có dịch vụ làm đại lý mà số giá vốn / hoa hồng RÒNG của đơn (cộng phiếu điều chỉnh) chưa
+    // bằng số tính lại ⇒ Kế toán bổ sung bằng yêu cầu điều chỉnh có duyệt (đặc tả P6 a). Liệt kê mã đơn.
+    code: "R-BIL-2w",
+    what: "đơn Đã giao trước mốc 0112 thiếu / lệch giá vốn hoặc hoa hồng so với bản chụp (Kế toán bổ sung bằng điều chỉnh có duyệt)",
+    sql: DU_LIEU_R_BIL_2("<"),
+    dem: (rows) => dsRBil2w(rows).length,
+    level: "warn",
+  },
+  {
+    // R-BIL-5 (I5 — ADR-0078 «Bất biến», nghĩa ĐÃ ĐĂNG KÝ): mỗi dòng dịch vụ của đơn đã «Đã giao» có bản chụp hiện hành với người bán. Thiếu giá vốn là việc của R-BIL-2.
+    // Phiếu «Đã giao» ghi từ mốc ⇒ lỗi (lớp 1 + trigger `bil_posting_delivered_terms` lẽ ra đã chặn); trước mốc ⇒ R-BIL-5w. Đếm ĐƠN.
+    code: "R-BIL-5",
+    what: "đơn Đã giao (phiếu ghi từ mốc 0112): mọi dòng dịch vụ có bản chụp hiện hành với người bán",
+    sql: `SELECT count(DISTINCT p.order_id) FROM bil_posting p JOIN order_service s ON s.order_id = p.order_id
+     WHERE p.kind_code = 'DELIVERED' AND ${PHIEU_HIEU_LUC("p")} AND p.created_at >= ${MOC_BIL("R-BIL-5")}
+       AND NOT EXISTS (SELECT 1 FROM ord_service_terms t WHERE t.order_service_id = s.id AND t.supply_status = 'SET' AND ${CHUP_HIEN_HANH("t")})`,
+    level: "fail",
+  },
+  {
+    code: "R-BIL-5w",
+    what: "đơn Đã giao TRƯỚC mốc 0112 có dòng dịch vụ chưa có bản chụp người bán (đơn giao ở lượt 1 — chỉ ghi nhận)",
+    sql: `SELECT o.order_code, count(*) AS so_dong FROM bil_posting p JOIN orders o ON o.id = p.order_id JOIN order_service s ON s.order_id = p.order_id
+     WHERE p.kind_code = 'DELIVERED' AND ${PHIEU_HIEU_LUC("p")} AND p.created_at < ${MOC_BIL("R-BIL-5")}
+       AND NOT EXISTS (SELECT 1 FROM ord_service_terms t WHERE t.order_service_id = s.id AND t.supply_status = 'SET' AND ${CHUP_HIEN_HANH("t")})
+     GROUP BY o.id`,
+    mode: "rows",
+    level: "warn",
+  },
+  {
+    // R-BIL-16 (số dòng giảm giá bên đặt — ADR-0079 gọi R-BIL-14, mã đó đã dùng cho ADR-0115; đặc tả P9): phiếu «Đã giao» có `gross_snapshot` (ghi từ mốc): đơn có người hưởng
+    // (bản chụp hiện hành mang `beneficiary_party_id` — R-71) và trước giảm − phải thu > 0 ⇒ ĐÚNG MỘT dòng GIAM_GIA_BEN_DAT gốc, đúng số đó; còn lại ⇒ KHÔNG dòng nào. Trước
+    // giảm < phải thu (dữ liệu lệch — Ruling R-27; M-4 của người kiểm Task 3+4) cũng là lỗi. Phiếu thiếu `gross_snapshot` sau mốc: R-BIL-17.
+    code: "R-BIL-16",
+    what: "phiếu Đã giao (từ mốc 0112): đơn có người hưởng giảm giá > 0 có đúng một dòng giảm giá bên đặt đúng số; đơn khác không có dòng; trước giảm không nhỏ hơn phải thu",
+    sql: `SELECT count(*) FROM (SELECT p.gross_snapshot - p.due_snapshot AS giam,
+              EXISTS (SELECT 1 FROM ord_service_terms t WHERE t.order_id = p.order_id AND t.beneficiary_party_id IS NOT NULL AND ${CHUP_HIEN_HANH("t")}) AS co_huong,
+              (SELECT count(*) FROM bil_debt_line l WHERE l.posting_id = p.id AND l.kind_code = 'GIAM_GIA_BEN_DAT' AND l.reverses_line_id IS NULL) AS so_dong,
+              (SELECT COALESCE(SUM(l.amount), 0) FROM bil_debt_line l WHERE l.posting_id = p.id AND l.kind_code = 'GIAM_GIA_BEN_DAT' AND l.reverses_line_id IS NULL) AS tong
+       FROM bil_posting p
+       WHERE p.kind_code = 'DELIVERED' AND ${PHIEU_HIEU_LUC("p")} AND p.gross_snapshot IS NOT NULL AND p.created_at >= ${MOC_BIL("R-BIL-16")}) x
+     WHERE x.giam < 0
+        OR (x.co_huong AND x.giam > 0 AND (x.so_dong <> 1 OR x.tong <> x.giam))
+        OR (NOT (x.co_huong AND x.giam > 0) AND x.so_dong > 0)`,
+    level: "fail",
+  },
+  {
+    // Ruling R-P8 (điều phối, giữa Task 2): KHÔNG có lớp CSDL đòi phiếu «Đã giao» MỚI mang `gross_snapshot` (sau `wrangler rollback`, Worker cũ ghi phiếu không cột này) ⇒
+    // kiểm định kỳ: phiếu «Đã giao» ghi TỪ mốc 0112 mà `gross_snapshot` NULL ⇒ lỗi (lưới (ii)–(iv) của 0112 bỏ qua phiếu đó). Trước mốc ⇒ không báo (phiếu lượt 1). Mã trống R-BIL-17.
+    code: "R-BIL-17",
+    what: "phiếu Đã giao ghi từ mốc 0112 có thành tiền trước giảm đã chụp",
+    sql: `SELECT count(*) FROM bil_posting p WHERE p.kind_code = 'DELIVERED' AND p.gross_snapshot IS NULL AND p.created_at >= ${MOC_BIL("R-BIL-2")}`,
+    level: "fail",
+  },
+  {
+    // Người kiểm Task 2 (ghi chú điều phối Task 10, điểm 2): dòng loại thương mại (HOA_HONG / GIAM_GIA_BEN_DAT / GIA_VON) GỐC chỉ nằm trên phiếu «Đã giao» hoặc phiếu điều chỉnh
+    // — trigger 0112 chỉ canh phiếu «Đã giao» (đúng phạm vi ADR), R-BIL-2 chỉ đọc hai loại phiếu đó nên dòng nằm chỗ khác sẽ lọt. Dòng đảo ở phiếu nào cũng được (R-BIL-3b canh).
+    // Mọi lúc (không mốc: loại dòng chỉ có từ 0112). Mã trống R-BIL-18.
+    code: "R-BIL-18",
+    what: "dòng hoa hồng / giảm giá bên đặt / giá vốn gốc chỉ nằm trên phiếu Đã giao hoặc phiếu điều chỉnh",
+    sql: `SELECT count(*) FROM bil_debt_line l JOIN bil_posting p ON p.id = l.posting_id
+     WHERE l.kind_code IN ('HOA_HONG', 'GIAM_GIA_BEN_DAT', 'GIA_VON') AND l.reverses_line_id IS NULL AND p.kind_code NOT IN ('DELIVERED', 'ADJUSTMENT')`,
+    level: "fail",
+  },
+  {
+    // Người kiểm Task 5, I-1 (ghi chú điều phối Task 10, điểm 6): dòng giữ hộ GỐC còn sống (chưa bị đảo) mà lần thu mang `receipt_id` của nó đã bị đảo — lưới cho chỗ đua
+    // «Bên kia đã nhận» × «đảo lần thu» (vá ở lô bằng lính gác R-42) và mọi đường ghi khác. Lần đảo ghi TỪ mốc 0112 ⇒ lỗi; cũ hơn ⇒ R-BIL-19w (dữ liệu trước vá). Mã trống R-BIL-19.
+    code: "R-BIL-19",
+    what: "lần thu đã bị đảo (đảo ghi từ mốc 0112) không còn dòng giữ hộ gốc chưa đảo",
+    sql: `SELECT count(*) FROM bil_debt_line l JOIN bil_payment_receipt x ON x.reverses_id = l.receipt_id
+     WHERE l.kind_code = 'HELD' AND l.reverses_line_id IS NULL AND NOT EXISTS (SELECT 1 FROM bil_debt_line d WHERE d.reverses_line_id = l.id)
+       AND x.created_at >= ${MOC_BIL("R-BIL-2")}`,
+    level: "fail",
+  },
+  {
+    code: "R-BIL-19w",
+    what: "lần thu đã bị đảo TRƯỚC mốc 0112 còn dòng giữ hộ gốc chưa đảo (Kế toán đảo dòng giữ hộ đó)",
+    sql: `SELECT l.order_id, l.id FROM bil_debt_line l JOIN bil_payment_receipt x ON x.reverses_id = l.receipt_id
+     WHERE l.kind_code = 'HELD' AND l.reverses_line_id IS NULL AND NOT EXISTS (SELECT 1 FROM bil_debt_line d WHERE d.reverses_line_id = l.id)
+       AND x.created_at < ${MOC_BIL("R-BIL-2")}`,
+    mode: "rows",
+    level: "warn",
+  },
+  {
+    // R-ORD-DC1 (ADR-0079 điều 9, C11 = A: cảnh báo trước mốc, LỖI sau mốc; đặc tả P7, P9): đơn có người hưởng, xác nhận từ mốc 0112, giảm giá > tổng hoa hồng — CÙNG hai số
+    // với trần của Task 7 (`tongHoaHongDon(…, "tinh0")`, `discountWithinCap`, «có người hưởng» = `coNguoiHuongDon`; Ruling R-73). Vi phạm khi vượt ở CẢ cách đọc lúc Xác nhận
+    // (giảm giá đã lưu / tiền dòng đã lưu) LẪN cách đọc hiện hành (giảm giá hiệu lực / tiền dòng sau điều chỉnh số khách) — bớt khách sau Xác nhận (không chặn — P7) chỉ vượt
+    // cách đọc thứ hai; thêm khách rồi đổi bên đặt chỉ vượt cách đọc thứ nhất (Ruling R-P23). Đếm ĐƠN.
+    code: "R-ORD-DC1",
+    what: "đơn có người hưởng xác nhận từ mốc 0112: giảm giá không vượt tổng hoa hồng",
+    sql: DU_LIEU_R_ORD_DC1(">="),
+    dem: (rows) => dsRORDDC1(rows).length,
+    level: "fail",
+  },
+  {
+    code: "R-ORD-DC1w",
+    what: "đơn có người hưởng xác nhận TRƯỚC mốc 0112 có giảm giá vượt tổng hoa hồng (rà tay theo mã đơn)",
+    sql: DU_LIEU_R_ORD_DC1("<"),
+    dem: (rows) => dsRORDDC1(rows).length,
+    level: "warn",
   },
 
   // ---- Đơn huỷ và cọc (ADR-0089; migration 0078 lý do huỷ, 0079 cọc đơn huỷ — năm lỗi tiền Đợt 1). LƯỚI THỨ HAI sau trigger (bắt trigger bị gỡ nhầm / SQL gõ
@@ -1761,12 +1950,22 @@ export const CHECKS = [
 ];
 
 /**
- * Bất biến CÓ TÊN nhưng KHÔNG phải câu kiểm (in ra để người đọc biết, KHÔNG in "đạt"): R-BIL-2, R-BIL-5 chạy từ lượt 2 của sổ tiền (ADR-0026 điều 7);
- * R-BIL-7 (đúng một hồ sơ công ty chủ) chính là R-PTY-1 ở trên — không kiểm trùng.
+ * Bất biến CÓ TÊN nhưng KHÔNG phải câu kiểm (in ra để người đọc biết, KHÔNG in "đạt"): R-BIL-7 (đúng một hồ sơ công ty chủ) chính là R-PTY-1 ở trên — không kiểm
+ * trùng. (R-BIL-2, R-BIL-5 từng ở đây với chữ «chưa áp dụng»; sổ đại lý đợt 2 Task 10 bật chúng thành câu kiểm thật — đảo bài có chủ đích.)
  * @type {{ code: string, text: string }[]}
  */
 export const GHI_CHU = [
-  { code: "R-BIL-2", text: "chưa áp dụng (lượt 2 sổ tiền: phần Tour Đảo = giá bán − giá vốn − hoa hồng theo số đã lưu)" },
-  { code: "R-BIL-5", text: "chưa áp dụng (lượt 2 sổ tiền: mỗi dòng dịch vụ của đơn đã chụp có người bán)" },
   { code: "R-BIL-7", text: "đúng một hồ sơ công ty chủ — dùng lại R-PTY-1 (không kiểm trùng)" },
 ];
+
+/**
+ * Số vi phạm của MỘT kiểm từ dòng kết quả câu SQL của nó — MỘT hàm cho scripts/audit-invariants.mjs (trên D1) và bài kiểm (trên node:sqlite), để hai nơi không đếm khác
+ * nhau: có `dem` ⇒ hàm đó; mode 'rows' ⇒ số dòng; còn lại ⇒ giá trị cột đầu của dòng đầu (câu `count(*)`).
+ * @param {{ mode?: 'rows', dem?: (rows: object[]) => number }} check
+ * @param {object[]} rows
+ */
+export function demViPham(check, rows) {
+  if (typeof check.dem === "function") return check.dem(rows);
+  if (check.mode === "rows") return rows.length;
+  return Number(Object.values(rows[0] ?? { n: 0 })[0]);
+}

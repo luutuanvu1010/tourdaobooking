@@ -3,10 +3,18 @@
 //   --strict: coi tài khoản chưa có hồ sơ (R-N1-1) và các kiểm mức 'warn-unless-strict' là VI PHẠM. Không có --strict, chúng chỉ là CẢNH BÁO (khoảng giữa hai lần phát hành N1).
 //   Kiểm mức "warn" (R-DSP-2b) là cảnh báo VĨNH VIỄN: không bao giờ làm hỏng kiểm, kể cả --strict (một tình trạng nghiệp vụ hợp lệ, vd người phụ trách đã nghỉ).
 // Danh sách kiểm (câu SQL, mức) nằm ở scripts/audit-checks.mjs — tệp thuần để `src/audit-invariants.test.ts` chạy đúng các câu đó trên SQLite thật.
-// Mỗi kiểm = một câu SQL trả SỐ dòng vi phạm (0 = đạt). Thoát mã 1 nếu có vi phạm. Một lần gọi wrangler cho mọi kiểm.
+// Mỗi kiểm = một câu SQL trả SỐ dòng vi phạm (0 = đạt), hoặc dòng thô cho hàm đếm `dem` (sổ đại lý đợt 2). Thoát mã 1 nếu có vi phạm. Một lần gọi wrangler cho mọi kiểm.
 // Thoát mã 2 = không chạy được (D1 chưa áp đủ migration — vd chưa có bảng dsp_* của 0014 —, mất mạng, sai --db): KHÔNG có nghĩa là dữ liệu sạch.
 import { execFileSync } from "node:child_process";
-import { CHECKS, GHI_CHU } from "./audit-checks.mjs";
+// Nạp ĐỘNG (không `import` tĩnh): audit-checks.mjs nạp hàm thuần của máy chủ (src/**/*.ts — sổ đại lý đợt 2); nạp hỏng thì node thoát mã 1 = «vi phạm» sai nghĩa.
+// Bắt lỗi ⇒ thoát 2 (không chạy được), đúng quy ước của script.
+let CHECKS, GHI_CHU, demViPham;
+try {
+  ({ CHECKS, GHI_CHU, demViPham } = await import("./audit-checks.mjs"));
+} catch (e) {
+  console.error(`Không nạp được danh sách kiểm (scripts/audit-checks.mjs): ${String(e?.message ?? e).slice(0, 600)}`);
+  process.exit(2);
+}
 
 const args = process.argv.slice(2);
 const opt = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
@@ -35,8 +43,8 @@ if (!Array.isArray(results) || results.length !== CHECKS.length) {
 
 let failed = 0;
 let warned = 0;
-CHECKS.forEach(({ code, what, level, mode, note }, i) => {
-  const n = mode === "rows" ? results[i].results.length : Number(Object.values(results[i].results[0] ?? { n: 0 })[0]);
+CHECKS.forEach(({ code, what, level, note }, i) => {
+  const n = demViPham(CHECKS[i], results[i].results ?? []); // MỘT hàm đếm với bài kiểm (kiểm có `dem` đếm bằng hàm thuần của máy chủ — sổ đại lý đợt 2)
   const bad = n > 0;
   const isFail = bad && (level === "fail" || (strict && level === "warn-unless-strict"));
   if (isFail) failed++;
