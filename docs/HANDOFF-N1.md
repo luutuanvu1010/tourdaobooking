@@ -23,7 +23,7 @@ Dán kết quả vào bảng «Kết quả câu đếm của chủ» của sổ 
 - **(b1) = 0** ⇒ có thể bỏ `0113` lúc gộp (Ruling R-P5) — khuyến nghị GIỮ (câu `INSERT … SELECT` rỗng vô hại; bỏ tệp phải sửa cùng lúc các bài B1–B5 của `src/chup-bu.test.ts`). Ghi lại số dòng dịch vụ của (b1) cho bước 4.
 - **(a), (b1x), (b2), (b3), (e)** là việc của Kế toán sau phát hành (mục 5), không chặn.
 
-**1b. Nhánh `claude/pricing-discounts-customer-types-edb51c` (`0114`, chiết khấu theo loại khách) gộp SAU nhánh này:** lúc gộp nó, chạy lại kiểm định kỳ `R-BIL-2` (bài `src/kiem-dinh-ky-so-dai-ly.test.ts` và `node scripts/audit-invariants.mjs --db local` trên D1 của e2e), sổ vàng (`golden/so-cong-no-luot-2.json` qua bộ kiểm chính) và `src/hoa-hong-mot-nguon.test.ts` — vì nhánh đó đổi cách tính giá / giảm giá mà dòng hoa hồng, giảm giá bên đặt chịu của nhánh này đọc lại (CHƯA đọc nội dung nhánh đó, chỉ biết tên migration).
+**1b. (Đã xong 19/10)** Nhánh chiết khấu theo loại khách (ADR-0133) đã gộp sau nhánh này, đổi migration `0114` thành `0116` và lên production bản 2.25 — xem mục «Phiên bản 2.25» bên dưới. Việc kiểm lại `R-BIL-2`, sổ vàng và `src/hoa-hong-mot-nguon.test.ts` đã nằm trong bộ kiểm chính xanh của lần phát hành đó.
 
 **2b. Nhánh đang SAU `main`** (kiểm 18:25: `main` có thêm ~29 commit, gồm nhật ký 2.22, 2.23 và `0115`): điều phối gộp `main` vào nhánh TRƯỚC `day-len` — chắc chắn xung đột ở `src/shared/changelog.ts` (hai bên cùng thêm mục đầu; mục nhánh này giữ số 2.24 nếu `main` vẫn dừng ở 2.23) và `src/shared/app-info.test.ts`; sau khi gộp chạy lại `npm test`, `npm run typecheck` và kiểm lại số migration như bước 1.
 
@@ -63,6 +63,14 @@ Nợ kỹ thuật của lát này: `docs/BACKLOG.md` mục 40 (mã `BL-XOA-…`)
 - `pty_party_merge_erasure` (dòng 148–151) chặn gộp hồ sơ đang có phiếu `CHO_XU_LY` / `DA_THUC_HIEN`. Câu gộp của mã 2.11 (`src/modules/parties/repository.ts:822` tại `01695a3c`) sẽ gặp lỗi ABORT nếu có phiếu như vậy. **CHƯA kiểm** production có phiếu nào chưa; SUY LUẬN là chưa vì chính sách riêng tư chưa được đăng (điều kiện Q1, dựa vào kỷ luật).
 - **Điều Worker lùi KHÔNG lấy lại được:** dữ liệu đã bị «Thực hiện» ẩn danh (giấy tờ, phiếu tự khai, thông tin phiên). Chỉ khôi phục Time Travel về trước lần «Thực hiện» mới lấy lại — và mất mọi ghi sau điểm đó. Đó là lý do việc 5 và 6 phải xong TRƯỚC lần «Thực hiện» đầu tiên.
 - **Khôi phục Time Travel** lùi cả dữ liệu lẫn bảng `d1_migrations`, nên phải lùi Worker về 2.11 cùng lúc; lệnh và điểm của bản 2.16 ở mục «Phiên bản 2.16» bên dưới. Muốn lùi sau này thì lấy điểm MỚI bằng `wrangler d1 time-travel info` trước, đừng dùng điểm của 17/10.
+
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.25 ĐÃ LÊN PRODUCTION (chiết khấu «mỗi khách» theo loại khách — ADR-0133: người lớn / trẻ em / người cao tuổi, em bé luôn 0, trẻ em và người cao tuổi bắt buộc điền) — migration `0116_chiet_khau_theo_loai_khach` đã áp — triển khai 2026-10-19 21:12 giờ VN
+
+Ghi 19/10/2026 từ khối tóm tắt cuối của `npm run trien-khai` (chủ chạy trong Terminal), kiểm lại `GET /api/auth/config` ngay sau đó (`version` = 2.25).
+- Commit: `06654831`. e2e: xanh (đủ 69 kịch bản). Kiểm dữ liệu `audit-invariants --db remote`: ĐẠT (5 cảnh báo cũ, không do bản này: R-ORD-9 một đơn, R-CTL-1 năm dịch vụ chưa phân nhóm). Cổng phiên bản trước và sau deploy: ĐẠT.
+- Điểm khôi phục Time Travel trước khi áp: `000014b1-00000002-00005109-a4c05d58d1ee6ed9bb1deaa098aaece5`. Worker Version ID: `6a48bc3d-03fb-4193-a201-985a68c71f94`.
+- **Hoàn tác:** `0116` chỉ THÊM hai bảng phụ (`prc_commission_rule_pax`, `ord_service_terms_pax`) và hai view/trigger đi kèm, không đổi bảng cũ; đơn và mức cũ không có dòng phụ nên tính y như trước. Lùi Worker về 2.24 an toàn khi chưa có mức «theo loại» nào được khai; đã có mức theo loại rồi mà lùi Worker thì mã cũ bỏ qua dòng phụ và tính một số chung cho mọi khách (sai tiền) — khi đó phải lùi cả dữ liệu bằng Time Travel hoặc đóng các mức theo loại trước.
+- **Chưa làm (chủ/Kế toán):** Kế toán ký sổ vàng (bảy ca SV-LK-01…07 chủ đã duyệt từng ca 19/10, chưa phải chữ ký Kế toán); khai thử một mức «theo loại» trên màn Hoa hồng đối tác bằng tài khoản Kế toán thật; xem form trên trình duyệt (chưa mở bằng mắt).
 
 ## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.19 ĐÃ LÊN PRODUCTION (rà soát ngôn ngữ giao diện lượt 1 + lượt 2 — ADR-0130: bảng từ giao diện, bảy tên chủ chọn 18/10, hai lỗi nút thẻ Thanh toán, ô hạn chốt của Toàn quyền nhập phút; kèm ADR-0131 đã có trên main) — migration `0111_ten_luat_chuyen_khach` đã áp — triển khai 2026-10-19 08:55 giờ VN
 
