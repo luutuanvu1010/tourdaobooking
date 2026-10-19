@@ -882,11 +882,13 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
       const rong = kiemDaoLanThu({ daThu: conLai(cacLanThu.map(toReceiptRow), 0, st.status).daThu, goc: toReceiptRow(rc) });
       if (!rong.ok) return loi(409, rong.ma, rong.cau);
     }
-    const dongDao = [];
-    for (const l of await linesOfReceipt(db, rc.id)) if (l.reverses_line_id === null && !(await lineReversed(db, l.id))) dongDao.push(l);
     // Người kiểm Task 5 I-1 (ADR-0132): lời khai bên đặt / quầy nhà cung cấp lúc đọc còn chưa «Bên kia đã nhận» thì chưa có dòng giữ hộ nào để đảo; nếu Kế toán
     // khác xác nhận chen giữa lúc đọc và lúc ghi, lô xác nhận đã sinh MỘT dòng giữ hộ mang receipt_id này ⇒ câu đảo có lính gác «vẫn chưa CONFIRMED», không áp ⇒ 409.
+    // Vòng 2: đọc DẤU TRƯỚC, dòng giữ hộ SAU (khuôn thay-lan-thu.ts) — xác nhận chen giữa hai lần đọc thì hoặc đã thấy CONFIRMED (dòng đọc sau thấy dòng giữ hộ,
+    // đảo đủ), hoặc chưa thấy (câu có lính gác, không áp ⇒ 409). Đọc ngược lại để hở một khe: dòng rỗng mà dấu đã CONFIRMED ⇒ câu đảo không lính gác, dòng mồ côi.
     const chuaXacNhan = (rc.collector_role_code === "BOOKER" || rc.collector_role_code === "SUPPLIER") && !(await reconOfReceipt(db, rc.id)).some((x) => x.kind_code === "CONFIRMED");
+    const dongDao = [];
+    for (const l of await linesOfReceipt(db, rc.id)) if (l.reverses_line_id === null && !(await lineReversed(db, l.id))) dongDao.push(l);
     const daoId = crypto.randomUUID();
     const stmts = [
       receiptReversalStatement(db, { id: daoId, occurredDate: ngay.value, note: lyDo.value, at, by, reversesId: rc.id, chuaXacNhan }),

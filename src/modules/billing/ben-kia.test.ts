@@ -106,6 +106,20 @@ function chenTruocLo(w: W, re: RegExp, truoc: () => Promise<void>): void {
     return goc(stmts);
   };
 }
+/**
+ * Chạy `truoc()` đúng một lần ngay trước câu ĐỌC đầu tiên có SQL khớp `re` (móc `prepare`: lần `.all()` / `.first()` của câu đó chờ `truoc()` xong mới chạy) —
+ * ghim khe GIỮA hai lần đọc của một route (người kiểm Task 5 vòng 2). Chỉ dùng cho câu đọc (câu bọc không vào được `batch` của D1 giả nghiêm).
+ */
+function chenTruocDoc(w: W, re: RegExp, truoc: () => Promise<void>): void {
+  const goc = w.env.DB.prepare;
+  w.env.DB.prepare = (sql: string) => {
+    const s = goc(sql);
+    if (!re.test(sql)) return s;
+    w.env.DB.prepare = goc;
+    const cho = <T>(f: () => Promise<T>) => async () => { await truoc(); return f(); };
+    return { ...s, bind: (...a: unknown[]) => { const b = s.bind(...a); return { ...b, all: cho(b.all), first: cho(b.first) }; } };
+  };
+}
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 // Khai và xác nhận (ADR-0132 tiêu chí 1–3)
@@ -207,6 +221,61 @@ test("đua (người kiểm Task 5 I-1): «đảo lần thu» đọc lời khai 
   assert.equal(soDu(w, id, ct).get(`pty-${PT}`) ?? 0, 0, "không dòng giữ hộ nào cho khoản đã đảo");
 });
 
+test("đua giữa HAI lần đọc của «đảo lần thu» (người kiểm Task 5 vòng 2): xác nhận chen ngay trước câu đọc dấu ⇒ đảo đủ cả dòng giữ hộ (201, đại lý 0); chen ngay trước câu đọc dòng giữ hộ ⇒ 409 stale, không ghi gì, đại lý giữ 300.000 — không ngả nào để lại dòng mồ côi", async () => {
+  const { w, ct } = await setup();
+  const RECON = /FROM bil_receipt_recon WHERE receipt_id = \?1/;
+  const DONG = /WHERE l\.receipt_id = \?1 ORDER BY l\.rowid/;
+  const kich = async (re: RegExp) => {
+    const { id } = await donXacNhan(w);
+    assert.equal((await thu(w, HDV, id, mat(300_000, "ben_dat"))).status, 201);
+    const r = cuoi(w, id);
+    chenTruocDoc(w, re, async () => {
+      const x = await benKia(w, r);
+      assert.equal(x.status, 200, x.text);
+    });
+    return { id, r, d: await daoLanThu(w, r) };
+  };
+  const a = await kich(RECON);
+  assert.equal(a.d.status, 201, a.d.text);
+  assert.equal(n(w, "SELECT count(*) AS n FROM bil_payment_receipt WHERE reverses_id = ?", a.r), 1);
+  assert.equal(soDu(w, a.id, ct).get(`pty-${PT}`) ?? 0, 0, "xác nhận xong TRƯỚC khi đọc dấu ⇒ đọc dòng sau đó thấy dòng giữ hộ ⇒ đảo cả nó (không mồ côi)");
+  assert.equal((await tien(w, a.id)).daThu, 0);
+  const b = await kich(DONG);
+  assert.equal(b.d.status, 409, b.d.text);
+  assert.equal(b.d.json.error.code, "stale");
+  assert.equal(n(w, "SELECT count(*) AS n FROM bil_payment_receipt WHERE reverses_id = ?", b.r), 0, "lần thu không bị đảo");
+  assert.equal(n(w, "SELECT count(*) AS n FROM bil_posting WHERE order_id = ? AND kind_code = 'REVERSAL'", b.id), 0);
+  assert.equal(n(w, "SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = 'ledger_reversal'", b.id), 0);
+  assert.equal(soDu(w, b.id, ct).get(`pty-${PT}`), 300_000, "dòng giữ hộ khớp lần thu còn hiệu lực");
+  assert.equal((await tien(w, b.id)).daThu, 300_000);
+});
+
+test("KIEM-C (người kiểm Task 5 vòng 2): lần thu BOOKER Kế toán ghi thẳng (có dòng giữ hộ, không dấu) + DECLARED/CONFIRMED chèn bằng SQL ngay trước lô đảo ⇒ 409, phiếu REVERSAL +0, dòng đảo +0, nhật ký +0 (phiếu đảo bám dòng đảo lần thu)", async () => {
+  const { w, ct } = await setup();
+  const { id } = await donXacNhan(w);
+  assert.equal((await thu(w, KT, id, mat(300_000, "ben_dat"))).status, 201);
+  const r = cuoi(w, id);
+  assert.equal(n(w, "SELECT count(*) AS n FROM bil_receipt_recon WHERE receipt_id = ?", r), 0, "ghi thẳng: không dấu");
+  assert.equal(soDu(w, id, ct).get(`pty-${PT}`), 300_000);
+  const dem = () => [
+    n(w, "SELECT count(*) AS n FROM bil_posting WHERE order_id = ? AND kind_code = 'REVERSAL'", id),
+    n(w, "SELECT count(*) AS n FROM bil_debt_line WHERE order_id = ? AND reverses_line_id IS NOT NULL", id),
+    n(w, "SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = 'ledger_reversal'", id),
+    n(w, "SELECT count(*) AS n FROM bil_payment_receipt WHERE reverses_id = ?", r),
+  ];
+  const truoc = dem();
+  chenTruocLo(w, /INSERT INTO bil_payment_receipt[\s\S]*FROM bil_payment_receipt g WHERE g\.id = \?6/, async () => {
+    const chen = w.sqlite.prepare("INSERT INTO bil_receipt_recon (id, receipt_id, kind_code, occurred_date, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    chen.run(uuid(), r, "DECLARED", vnHomNay(), AT, KT, AT, KT);
+    chen.run(uuid(), r, "CONFIRMED", vnHomNay(), AT, KT, AT, KT);
+  });
+  const d = await daoLanThu(w, r);
+  assert.equal(d.status, 409, d.text);
+  assert.equal(d.json.error.code, "stale");
+  assert.deepEqual(dem(), truoc, "phiếu REVERSAL, dòng đảo, nhật ký, dòng đảo lần thu: không thêm gì");
+  assert.equal(soDu(w, id, ct).get(`pty-${PT}`), 300_000);
+});
+
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 // Ghi trực tiếp (ADR-0132 quyết định 3, tiêu chí 5)
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
@@ -295,6 +364,20 @@ test("Đối tác chỉ tự ghi chính mình (người kiểm Task 5 I-2; Rulin
   await tuChoi(LAI, lai.id, "ben_dat", "tài khoản lai, bên đặt là Đại Lý A");
   assert.equal(n(w, "SELECT count(*) AS n FROM bil_receipt_recon"), 0, "không lời khai nào của tài khoản giữ quyền Đối tác");
   assert.equal((await thu(w, HDV, lai.id, mat(100_000, "ben_dat"))).status, 201, "HDV vẫn khai được như cũ");
+  // Miễn `!laKeToan` (người kiểm vòng 2 (b)): tài khoản Kế toán + Đối tác giữ `ledger.write` ⇒ ghi thẳng như Kế toán (201, không DECLARED, nợ ngay).
+  const KTDT = "99999999-9999-4999-8999-999999999999";
+  seedStaff(w.sqlite, { id: KTDT, phone: "0900000013", name: "Hà Kế Toán Lai", perms: ["ACCOUNTING", "PARTNER"] });
+  const kd = await donXacNhan(w, { dichVu: hai });
+  const kb = await thu(w, KTDT, kd.id, mat(100_000, "ben_dat"));
+  assert.equal(kb.status, 201, kb.text);
+  const rkb = cuoi(w, kd.id);
+  assert.deepEqual(lanThu(w, rkb), { vai: "BOOKER", nguoi: `pty-${PT}`, cho: ct });
+  const kn = await thu(w, KTDT, kd.id, mat(200_000, { nhaCungCapPartyId: NCC }));
+  assert.equal(kn.status, 201, kn.text);
+  const rkn = cuoi(w, kd.id);
+  assert.deepEqual(lanThu(w, rkn), { vai: "SUPPLIER", nguoi: NCC, cho: NCC });
+  assert.equal(n(w, "SELECT count(*) AS n FROM bil_receipt_recon WHERE receipt_id IN (?, ?)", rkb, rkn), 0, "ghi thẳng, không lời khai");
+  assert.deepEqual([soDu(w, kd.id, ct).get(`pty-${PT}`), soDu(w, kd.id, ct).get(NCC)], [100_000, 200_000], "nợ giữ hộ sinh ngay");
 });
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
