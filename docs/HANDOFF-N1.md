@@ -8,12 +8,12 @@
 
 **0. Điều kiện — CHƯA ĐỦ hôm nay.** Chủ dự án duyệt 18/10 (nguyên văn ở `docs/quyen-hoan.json`, mục HC-5.19, trường `xay_tren_cho_phep`): «… chỉ phát hành sau khi đã diễn tập khôi phục dữ liệu.» Diễn tập theo `docs/superpowers/specs/2026-09-22-dien-tap-khoi-phuc.md` (khôi phục vào chỗ KHÔNG phải D1 thật, đếm bảng, chạy `audit-invariants` trên bản khôi phục, ghi kết quả vào `docs/SO-HANG-RAO.md` và tệp này; hạn HC-5.19: 2026-11-05). Tới lúc ghi chưa có bằng chứng nào đã diễn tập. **Muốn phát hành trước diễn tập thì chủ phải nói lại bằng lời mới** (ghi nguyên văn vào đây); không suy từ lời cũ.
 
-**1. Số migration lúc gộp** (kiểm 2026-10-19 17:50 giờ VN bằng `git ls-tree --name-only <nhánh> migrations/` cho mọi nhánh chưa gộp và `ls migrations` của mọi worktree; KHÔNG `git fetch`): `main` dừng ở `0111_ten_luat_chuyen_khach`; nhánh này `0112_so_dai_ly_dot_2`, `0113_chup_bu_khach_le`; nhánh `claude/pricing-discounts-customer-types-edb51c` (worktree `optimistic-wu-2c3796`) giữ `0114_chiet_khau_theo_loai_khach`; nhánh `worktree-xac-nhan-don` (và `origin/worktree-xac-nhan-don-2`) giữ `0115_chon_don_khung_gio`. Không trùng. Kiểm lại ngay trước `day-len`; nhánh khác gộp trước mà đụng `0112`/`0113` thì đổi số nhánh này (bài `src/migrations-so-dai-ly-dot-2.test.ts` tìm theo đuôi `_so_dai_ly_dot_2.sql`; đổi `0113` thì đổi cả dấu `he-thong:0113` ở migration, câu đếm (sau) và `src/chup-bu.test.ts` — khuôn R-P11). Số nhật ký 2.24: `main` đã dùng 2.22, `worktree-xac-nhan-don` giữ 2.23 — kiểm lại ở bước A.0.
+**1. Số migration lúc gộp** (kiểm 2026-10-19 17:50 giờ VN bằng `git ls-tree --name-only <nhánh> migrations/` cho mọi nhánh chưa gộp và `ls migrations` của mọi worktree; KHÔNG `git fetch`): `main` có tới `0111_ten_luat_chuyen_khach` và — gộp trong lúc viết, kiểm lại 18:25 — `0115_chon_don_khung_gio`; nhánh này `0112_so_dai_ly_dot_2`, `0113_chup_bu_khach_le`; nhánh `claude/pricing-discounts-customer-types-edb51c` (worktree `optimistic-wu-2c3796`) giữ `0114_chiet_khau_theo_loai_khach`. Không trùng. Nếu `0115` lên production trước, `0112`/`0113` áp sau vẫn được (wrangler theo dõi theo TÊN, khuôn hai tệp `0016_*`) — hai bên không chung đối tượng (đã đọc tên tệp, CHƯA đọc nội dung `0115`). Kiểm lại ngay trước `day-len`; nhánh khác gộp trước mà đụng `0112`/`0113` thì đổi số nhánh này (bài `src/migrations-so-dai-ly-dot-2.test.ts` tìm theo đuôi `_so_dai_ly_dot_2.sql`; đổi `0113` thì đổi cả dấu `he-thong:0113` ở migration, câu đếm (sau) và `src/chup-bu.test.ts` — khuôn R-P11). Số nhật ký 2.24: `main` đã dùng 2.22, `worktree-xac-nhan-don` giữ 2.23 — kiểm lại ở bước A.0.
 
 **2. Trước phát hành — chủ chạy câu đếm chỉ đọc** (`docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/cau-dem-chi-doc.sql`, mười câu; AI không chạy `--remote`). Đứng ở thư mục gốc của dự án, chạy cả tệp một lần (mỗi câu một dòng `SELECT`; câu (sau) chạy lúc này ra 0 là đúng):
 
 ```
-grep -v '^--' docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/cau-dem-chi-doc.sql | grep -v '^$' | while read -r c; do echo "== $c" | cut -c1-90; CI=1 npx wrangler d1 execute tourdao-sales-db --remote --command "$c"; done
+grep -v '^--' docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/cau-dem-chi-doc.sql | grep -v '^$' | while read -r c; do echo "== $c" | cut -c1-90; CI=1 npx wrangler d1 execute tourdao-sales-db --remote --command "$c" </dev/null; done
 ```
 
 Dán kết quả vào bảng «Kết quả câu đếm của chủ» của sổ thi công. Đọc kết quả:
@@ -22,6 +22,8 @@ Dán kết quả vào bảng «Kết quả câu đếm của chủ» của sổ 
 - **(b1 xác nhận trước điều khoản ALL sớm nhất) nên bằng 0.** Khác 0 ⇒ báo, không chặn: bản chụp bù ghi ngày chụp = ngày bắt đầu điều khoản (Ruling R-50), người bán và hoa hồng không đổi.
 - **(b1) = 0** ⇒ có thể bỏ `0113` lúc gộp (Ruling R-P5) — khuyến nghị GIỮ (câu `INSERT … SELECT` rỗng vô hại; bỏ tệp phải sửa cùng lúc các bài B1–B5 của `src/chup-bu.test.ts`). Ghi lại số dòng dịch vụ của (b1) cho bước 4.
 - **(a), (b1x), (b2), (b3), (e)** là việc của Kế toán sau phát hành (mục 5), không chặn.
+
+**2b. Nhánh đang SAU `main`** (kiểm 18:25: `main` có thêm ~29 commit, gồm nhật ký 2.22, 2.23 và `0115`): điều phối gộp `main` vào nhánh TRƯỚC `day-len` — chắc chắn xung đột ở `src/shared/changelog.ts` (hai bên cùng thêm mục đầu; mục nhánh này giữ số 2.24 nếu `main` vẫn dừng ở 2.23) và `src/shared/app-info.test.ts`; sau khi gộp chạy lại `npm test`, `npm run typecheck` và kiểm lại số migration như bước 1.
 
 **3. Phát hành:** `npm run day-len -- claude/objective-euclid-1c8113` rồi `npm run trien-khai` (có migration ⇒ trien-khai tự lấy điểm Time Travel TRƯỚC khi áp — chép lại lệnh khôi phục nó in ra; e2e đủ bộ chạy trước). Theo `docs/QUY-TRINH-PHAT-HANH.md`; gặp lỗi Cloudflare 7403 thì xem mục cùng tên ở đó.
 
