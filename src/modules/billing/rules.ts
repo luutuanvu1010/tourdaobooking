@@ -606,12 +606,13 @@ export type TinhTrangThuongMai =
  * Dựng các dòng thương mại từ phần thương mại của đơn (`PhanThuongMai` của orders: `chup` = bản chụp hiện hành, `dichVu` = MỌI dòng dịch vụ hiện hành). Đi theo
  * `dichVu`, không theo `chup`: dòng không có bản chụp (vắng khỏi `chup`) ra hoa hồng / giá vốn null — không bao giờ lặng lẽ biến mất khỏi kiểm.
  */
-export function dongThuongMaiTu(v: { chup: readonly BanChup[]; dichVu: readonly { id: string; name: string; thanhTien: number; soKhachTinh: number }[] }): DongThuongMai[] {
+/** `pax` = số khách hiện hành theo loại (ADR-0133) — BẮT BUỘC có khi bản chụp mang ba số theo loại (thiếu thì `tinhDongDoiTac` ném lỗi, không đoán); null = dịch vụ tính theo nhóm/lượt. */
+export function dongThuongMaiTu(v: { chup: readonly BanChup[]; dichVu: readonly { id: string; name: string; thanhTien: number; soKhachTinh: number; pax?: { adult?: number; child?: number; senior?: number } | null }[] }): DongThuongMai[] {
   const theoDichVu = new Map(v.chup.map((c) => [c.serviceId, c] as const));
   return v.dichVu.map((d) => {
     const c = theoDichVu.get(d.id);
     if (!c) return { orderServiceId: d.id, tenDichVu: d.name, thanhTien: d.thanhTien, hoaHong: null, giaVon: null, nhaCungCapPartyId: null };
-    const t = tinhDongDoiTac(c, { thanhTien: d.thanhTien, soKhachTinh: d.soKhachTinh });
+    const t = tinhDongDoiTac(c, { thanhTien: d.thanhTien, soKhachTinh: d.soKhachTinh, pax: d.pax });
     const nhaCungCapPartyId = c.cungUng.status === "SET" ? c.cungUng.supplierPartyId : null;
     return { orderServiceId: d.id, tenDichVu: d.name, thanhTien: d.thanhTien, hoaHong: t.hoaHong, giaVon: t.giaVon, nhaCungCapPartyId };
   });

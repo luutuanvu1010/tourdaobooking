@@ -777,7 +777,7 @@
       "name": "prc_commission_rule_pax",
       "module": "pricing",
       "kind": "table",
-      "note": "ba số tiền «mỗi khách» theo loại khách (người lớn, trẻ em, người cao tuổi; em bé luôn 0) của MỘT dòng mức kiểu đ/khách (ADR-0133; migration 0116 — số tạm), CHỈ-THÊM. Dòng PER_PAX có dòng phụ ⇒ tính theo ba số; không có ⇒ tính như cũ. Số người lớn luôn bằng per_pax_amount của dòng mức (trigger prc_pax_rule_mismatch); trẻ em và người cao tuổi bắt buộc điền (gõ 0 nếu không trả), không có «ô trống = 0». Không sửa, không xoá: đổi mức thì đóng dòng mức, thêm dòng mới. Số tiền KHÔNG vào DTO của Đối tác (C9 = A)"
+      "note": "ba số tiền «mỗi khách» theo loại khách (người lớn, trẻ em, người cao tuổi; em bé luôn 0) của MỘT dòng mức kiểu đ/khách (ADR-0133; migration 0116), CHỈ-THÊM. Dòng PER_PAX có dòng phụ ⇒ tính theo ba số; không có ⇒ tính như cũ. Số người lớn luôn bằng per_pax_amount của dòng mức (trigger prc_pax_rule_mismatch); trẻ em và người cao tuổi bắt buộc điền (gõ 0 nếu không trả), không có «ô trống = 0». Không sửa, không xoá: đổi mức thì đóng dòng mức, thêm dòng mới. Số tiền KHÔNG vào DTO của Đối tác (C9 = A)"
     },
     {
       "name": "prc_supply_term",
@@ -795,7 +795,7 @@
       "name": "ord_service_terms_pax",
       "module": "orders",
       "kind": "table",
-      "note": "bản chụp ba số tiền «mỗi khách» theo loại cùng bản chụp điều khoản (ADR-0133; migration 0116 — số tạm), CHỈ-THÊM: chỉ gắn vào bản chụp hoa hồng SET kiểu PER_PAX còn là bản hiện hành của đơn chưa Đã giao; số người lớn bằng commission_per_pax; bản AUTO phải khớp dòng phụ của mức nguồn (trigger terms_pax_rule_stale). Không sửa, không xoá. Số tiền KHÔNG vào DTO của Đối tác"
+      "note": "bản chụp ba số tiền «mỗi khách» theo loại cùng bản chụp điều khoản (ADR-0133; migration 0116), CHỈ-THÊM: chỉ gắn vào bản chụp hoa hồng SET kiểu PER_PAX còn là bản hiện hành của đơn chưa Đã giao; số người lớn bằng commission_per_pax; bản AUTO phải khớp dòng phụ của mức nguồn (trigger terms_pax_rule_stale). Không sửa, không xoá. Số tiền KHÔNG vào DTO của Đối tác"
     },
     {
       "name": "ord_audit_cutoff",

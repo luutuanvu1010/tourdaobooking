@@ -109,7 +109,9 @@ const CHUP_JSON = (t) => `json_object('id', ${t}.id, 'order_service_id', ${t}.or
                'commission_status', ${t}.commission_status, 'missing_reason', ${t}.missing_reason, 'commission_kind', ${t}.commission_kind,
                'commission_rate_bp', ${t}.commission_rate_bp, 'commission_per_pax', ${t}.commission_per_pax, 'commission_rule_id', ${t}.commission_rule_id,
                'supply_status', ${t}.supply_status, 'seller_party_id', ${t}.seller_party_id, 'supplier_party_id', ${t}.supplier_party_id, 'cost_rate_bp', ${t}.cost_rate_bp,
-               'supply_term_id', ${t}.supply_term_id, 'source', ${t}.source, 'captured_date', ${t}.captured_date, 'supersedes_id', ${t}.supersedes_id)`;
+               'supply_term_id', ${t}.supply_term_id, 'source', ${t}.source, 'captured_date', ${t}.captured_date, 'supersedes_id', ${t}.supersedes_id,
+               'pax_adult', (SELECT px.adult_amount FROM ord_service_terms_pax px WHERE px.terms_id = ${t}.id), 'pax_child', (SELECT px.child_amount FROM ord_service_terms_pax px WHERE px.terms_id = ${t}.id),
+               'pax_senior', (SELECT px.senior_amount FROM ord_service_terms_pax px WHERE px.terms_id = ${t}.id))`; // ba số theo loại của ADR-0133 (null = bản chụp không có) — `banChupTuDb` đọc cùng tên cột
 /**
  * Cột DỮ LIỆU THÔ của một dòng dịch vụ alias `s` cho hàm đếm ở scripts/audit-thuong-mai.mjs (`tienDichVu`, `banChupCua`): khoá, tên, đơn vị, số khách đã lưu, dòng tiền
  * đã lưu (JSON), `after_json` của dòng điều chỉnh số khách GẦN NHẤT của đơn (cùng chọn như `getLatestAdjustment`), bản chụp hiện hành (JSON đúng tên cột của

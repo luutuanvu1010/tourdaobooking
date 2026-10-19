@@ -15,7 +15,7 @@ import { banChupTuDb, chuaCoBanChup, coNguoiHuongDon, tongHoaHongDon } from "../
 import { discountWithinCap } from "../src/modules/orders/price-guards.ts";
 import { soKhachTinhHoaHong } from "../src/modules/pricing/rules.ts";
 import { dongThuongMaiTu, sinhPhieuDaGiao, tinhTrangThuongMai } from "../src/modules/billing/rules.ts";
-import { thanhTienDong } from "../src/shared/order-lines.ts";
+import { parseUnit, thanhTienDong } from "../src/shared/order-lines.ts";
 
 const docJson = (s, macDinh) => {
   if (s === null || s === undefined) return macDinh;
@@ -49,7 +49,9 @@ function tienDichVu(r, apDieuChinh) {
   const eff = effectiveService(vao, moi);
   const dong = eff.recomputed ? eff.recomputed.lines.map((l) => ({ quantity: l.quantity, lineTotal: thanhTienDong(l) })) : items.map((i) => ({ quantity: i.quantity, lineTotal: i.lineTotal }));
   const pax = eff.recomputed ? eff.recomputed.pax : paxLuu;
-  return { id: r.dv, name: r.ten, thanhTien: dong.reduce((t, i) => t + i.lineTotal, 0), soKhachTinh: soKhachTinhHoaHong({ unit: r.unit, pax, items: dong }) };
+  // ADR-0133: số khách theo loại cho mức «mỗi khách theo loại» (khuôn `tienChoHoaHong`); dịch vụ nhóm/lượt không tách loại ⇒ null.
+  return { id: r.dv, name: r.ten, thanhTien: dong.reduce((t, i) => t + i.lineTotal, 0), soKhachTinh: soKhachTinhHoaHong({ unit: r.unit, pax, items: dong }),
+    pax: parseUnit(r.unit).kind === "group" ? null : { adult: pax.adult ?? 0, child: pax.child ?? 0, senior: pax.senior ?? 0 } };
 }
 const banChupCua = (r) => {
   const t = docJson(r.chup, null);

@@ -12,8 +12,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Vá bản 2.25 (người kiểm độc lập 19/10): đường «Đã giao» / màn tiền của đơn và kiểm định kỳ bỏ rơi số khách theo loại nên đơn đại lý dùng mức theo loại khách sẽ lỗi. KHÔNG migration.
+    // Số 2.26 là số TẠM (main đang ở 2.25) — phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "2.26",
+    date: "2026-10-19",
+    items: [
+      { kind: "sua", text: "Đơn đại lý tính hoa hồng theo mức riêng từng loại khách (người lớn, trẻ em, người cao tuổi) nay bấm Đã giao và mở màn tiền được bình thường." },
+    ],
+  },
+  {
     // ADR-0133 chiết khấu «mỗi khách» tách theo loại khách (migration 0116). CÓ migration ⇒ cần npm run trien-khai sau day-len.
-    // Số 2.25 là số TẠM (main đang ở 2.24, kiểm 2026-10-19) — phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    // Bản 2.25 đã lên production 2026-10-19 21:12 giờ VN.
     version: "2.25",
     date: "2026-10-19",
     items: [
