@@ -135,7 +135,7 @@ for (const c of chot) assert.equal(c.person_key, c.passenger_key, "bản chốt 
 assert.equal((await sqlRows(`SELECT count(*) AS n FROM vc_trip_allocation WHERE trip_id = '${tripId}' AND valid_to_at IS NULL AND passenger_key IS NULL`))[0].n, 0, "I19b: mọi suất đã gắn tên");
 const [nk] = await sqlRows(`SELECT order_id, detail FROM audit_log WHERE action = 'trip_departed' AND target_id = '${tripId}'`);
 assert.equal(nk.order_id, null);
-assert.match(nk.detail, /xuất bến · xe .* · 4 khách · văn phòng bấm thay/);
+assert.match(nk.detail, /cho xe chạy · xe .* · 4 khách · văn phòng bấm thay/);
 console.log("✓ (3) TC-29: bấm thay xuất bến 200; bản chụp ĐẠT (dấu lệnh), bản chốt 4 dòng trỏ đúng người, suất đã gắn tên; nhật ký 'văn phòng bấm thay'");
 
 // --- (4) TC-47 trên D1: khai giờ "đã tới" ---

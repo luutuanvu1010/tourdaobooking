@@ -34,7 +34,7 @@ export { CAU_CAP_NHAT_TAY, CAU_NHAC_XE_DANG_CHAY } from "./dong-bo-chuyen-cau.ts
 export const NGUYEN_NHAN_DONG_BO = ["DON_HUY", "DON_KHONG_XAC_NHAN", "BO_CHANG", "DOI_NGUOI", "BOT_KHACH", "THEM_KHACH"] as const;
 export type NguyenNhanDongBo = (typeof NGUYEN_NHAN_DONG_BO)[number];
 export const NHAN_NGUYEN_NHAN: Readonly<Record<NguyenNhanDongBo, string>> = {
-  DON_HUY: "đơn huỷ", DON_KHONG_XAC_NHAN: "đơn không còn xác nhận", BO_CHANG: "bỏ chặng", DOI_NGUOI: "đổi người", BOT_KHACH: "bớt khách", THEM_KHACH: "thêm khách",
+  DON_HUY: "đơn huỷ", DON_KHONG_XAC_NHAN: "đơn không còn xác nhận", BO_CHANG: "bỏ lượt đưa đón", DOI_NGUOI: "đổi người", BOT_KHACH: "bớt khách", THEM_KHACH: "thêm khách",
 };
 /** Lý do làm luật (i) đóng hết suất của chặng. */
 export type LyDoDongChang = "DON_HUY" | "DON_KHONG_XAC_NHAN" | "BO_CHANG";

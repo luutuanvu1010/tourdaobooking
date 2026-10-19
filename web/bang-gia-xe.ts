@@ -125,7 +125,7 @@ function vePanelGia(panel: HTMLElement, nx: NhaXeBangGiaDto | null, themDuoc: bo
   const r = duLieu!;
   const formHost = h("div", { class: "tx-form-host", hidden: true });
   if (!nx) {
-    replaceChildren(panel, trong("Chưa có nhà xe đối tác", "Thêm hồ sơ nhà xe ở Danh bạ (vai Nhà xe đối tác) để nhập giá thuê."));
+    replaceChildren(panel, trong("Chưa có nhà xe đối tác", "Thêm hồ sơ nhà xe ở Danh bạ (vai trò Nhà xe đối tác) để nhập giá thuê."));
     return;
   }
   if (r.dong.length === 0) {

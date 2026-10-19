@@ -306,8 +306,8 @@ export function phanDoiCuaTin(action: string, detail: string | null, doiSoKhach 
 }
 
 function doc(action: string, detail: string | null, doiSoKhach: boolean): PhanDoiTin | null {
-  if (action === "order_leg_added") return { loai: "cu-the", phan: "thêm chặng đón", gioHen: false }; // không đọc detail (chữ nơi tự do)
-  if (action === "order_leg_closed") return { loai: "cu-the", phan: "bỏ chặng đón", gioHen: false };
+  if (action === "order_leg_added") return { loai: "cu-the", phan: "thêm lượt đưa đón", gioHen: false }; // không đọc detail (chữ nơi tự do)
+  if (action === "order_leg_closed") return { loai: "cu-the", phan: "bỏ lượt đưa đón", gioHen: false };
   const d = detail ?? "";
   if (doiSoKhach) {
     const cat = d.indexOf(DAU_LY_DO);

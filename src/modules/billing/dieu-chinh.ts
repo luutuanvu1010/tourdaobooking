@@ -14,7 +14,7 @@ import { lineIfPostingStatement, linesOfOrder, orderOwners, ownerCompanyId, part
 import { HAN_YEU_CAU_NGAY, LY_DO_DIEU_CHINH_TOI_THIEU, conLai, dong, hetHanYeuCau, kiemDieuChinh, soDuCap } from "./rules";
 import { PARTY_ID_RE, docLyDo, docNgay, docSoTien, layKyDaKhoa, lineOf, loi, loiKhoaKy, loiTrigger, toLineRow, toReceiptRow, type KetQua, type NguoiGoi } from "./service";
 
-const LOAI_DONG_NHAN: Record<string, string> = { HELD: "Tiền đang giữ hộ", SETTLEMENT: "Quyết toán (nộp / trả)", REFUND: "Hoàn khách" };
+const LOAI_DONG_NHAN: Record<string, string> = { HELD: "Tiền chưa nộp về công ty", SETTLEMENT: "Quyết toán (nộp / trả)", REFUND: "Hoàn khách" };
 const TOI_DA_DANH_SACH = 200;
 const MOT_NGAY_MS = 86_400_000;
 

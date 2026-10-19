@@ -297,7 +297,7 @@ test("T1 + T5: ô thử chạy đúng đường ống thật với cấu hình C
   assert.equal(r.status, 200, r.text);
   assert.equal(goi[0]!.body.model, "gpt-5-mini");
   assert.ok(String(goi[0]!.body.instructions).startsWith("Lời nhắc ĐANG SOẠN."));
-  assert.match(String(goi[0]!.body.instructions), /Người hỏi thuộc nhóm vai: Kế toán\./);
+  assert.match(String(goi[0]!.body.instructions), /Người hỏi thuộc nhóm vai trò: Kế toán\./);
   assert.equal(goi[0]!.body.input, "khách [đã che] hỏi đổi mã PIN thế nào", "che như hỏi thật");
   assert.deepEqual(
     { ...r.json, traLoi: "-", nguon: "-", doanDaChon: "-" },

@@ -85,7 +85,7 @@ export async function dungMucChinhSach(el: HTMLElement): Promise<void> {
       h("table", { class: "items" },
         h("thead", null, h("tr", null, h("th", null, "Quyền"), h("th", { colSpan: 2 }, "Số máy được đăng nhập cùng lúc"))),
         h("tbody", null, ...rows.map(dong),
-          h("tr", { "data-quyen": "SUPER_ADMIN" }, h("td", null, "Toàn quyền"), h("td", { colSpan: 2, class: "muted" }, "Luôn nhiều máy · Vai IT luôn được nhiều máy")))),
+          h("tr", { "data-quyen": "SUPER_ADMIN" }, h("td", null, "Toàn quyền"), h("td", { colSpan: 2, class: "muted" }, "Luôn nhiều máy · Vai trò IT luôn được nhiều máy")))),
       canCanhBaoBenNgoai(chon) && h("p", { class: "alert warn", "data-canh-bao": "ben-ngoai" }, CANH_BAO_NHIEU_MAY_BEN_NGOAI),
       h("div", { class: "maint-actions" },
         nut("Tất cả một máy", () => { for (const c of QUYEN_DAT_DUOC) chon.set(c, false); xemTruoc = null; render(); }, "btn"),

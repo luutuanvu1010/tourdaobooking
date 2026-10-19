@@ -98,7 +98,7 @@ export function taoKhoiChiPhi(staff: PermissionHolder, sauGhi: () => Promise<voi
     };
     // Dải cảnh báo thiếu giá (chỉ người có ô cost.view — câu 4.4).
     const daiThieu = thieuGia
-      ? dai("warning", "Chuyến xe thuê chưa có giá — chưa được xuất bến", ["Nhập giá thoả thuận với nhà xe, hoặc bổ sung giá vào Bảng giá thuê xe rồi lấy lại giá bảng."], undefined,
+      ? dai("warning", "Chuyến xe thuê chưa có giá — chưa được cho xe chạy", ["Nhập giá thoả thuận với nhà xe, hoặc bổ sung giá vào Bảng giá thuê xe rồi lấy lại giá bảng."], undefined,
         coSua && c.coTheNhapThoaThuan ? [h("div", { class: "banner-actions" }, nutThoaThuan("btn btn-primary btn-chinh"))] : [])
       : null;
     daiThieu?.classList.add("cp-dai-thieu");
@@ -128,7 +128,7 @@ export function taoKhoiChiPhi(staff: PermissionHolder, sauGhi: () => Promise<voi
         const b = h("button", { type: "button", class: `vc-btn ${nut.length ? "vc-btn-ghost-primary" : "btn btn-primary btn-chinh"}`, "data-action": "dieu-chinh" }, "Điều chỉnh");
         b.addEventListener("click", () => moDieuChinh(b));
         nut.push(b);
-        goiY.push("Điều chỉnh cộng hoặc trừ vào tổng; ghi sai thì “Đảo dòng”.");
+        goiY.push("Điều chỉnh cộng hoặc trừ vào tổng; ghi sai thì “Huỷ dòng”.");
         if (c.trangThai === "CANCELLED") goiY.push("Chuyến đã huỷ vẫn ghi được phí huỷ.");
       }
     }
@@ -159,7 +159,7 @@ export function taoKhoiChiPhi(staff: PermissionHolder, sauGhi: () => Promise<voi
 
   function dongEl(d: DongChiPhiDto): HTMLElement {
     const loai = chipDongChiPhi(d);
-    const daoNut = coSua && d.daoDuoc ? h("button", { type: "button", class: "vc-btn vc-btn-text cp-dao", "data-action": "dao-dong" }, "Đảo dòng") : null;
+    const daoNut = coSua && d.daoDuoc ? h("button", { type: "button", class: "vc-btn vc-btn-text cp-dao", "data-action": "dao-dong" }, "Huỷ dòng") : null;
     daoNut?.addEventListener("click", () => moDao(d, daoNut));
     return h(
       "div",
@@ -167,7 +167,7 @@ export function taoKhoiChiPhi(staff: PermissionHolder, sauGhi: () => Promise<voi
       h(
         "div",
         { class: "cp-dong-dau" },
-        h("span", { class: "cp-chips" }, chipTx(loai.nhan, loai.tone), d.daDao ? h("span", { class: "chip cp-chip-vien" }, "đã đảo") : null, d.daoDoDoiChuyen ? chipTx("đảo do đổi chuyến", "warn") : null),
+        h("span", { class: "cp-chips" }, chipTx(loai.nhan, loai.tone), d.daDao ? h("span", { class: "chip cp-chip-vien" }, "đã huỷ") : null, d.daoDoDoiChuyen ? chipTx("huỷ do đổi chuyến", "warn") : null),
         h("span", { class: `cp-so${d.soTien < 0 ? " is-am" : ""}` }, soTienCoDau(d.soTien)),
       ),
       d.lyDo ? h("div", { class: "cp-ly-do" }, d.lyDo.nhan) : null,
@@ -240,17 +240,17 @@ export function taoKhoiChiPhi(staff: PermissionHolder, sauGhi: () => Promise<voi
     ], "Lưu điều chỉnh", "luu-dieu-chinh", "dieu-chinh", () => loiSoTien(tien.value, { coDau: true }) ?? ({ soTien: docSoTien(tien.value, { coDau: true }), lyDo: lyDo.value, ghiChu: ghi.value.trim() || null, ...(ngay.value ? { ngay: ngay.value } : {}) }), opener);
   }
 
-  /** Hộp "Đảo dòng" (bản vẽ thiếu): lý do + ghi chú; không ô ngày (dòng đảo mang ngày của dòng gốc — ADR-0095 Q2). */
+  /** Hộp "Huỷ dòng" (bản vẽ thiếu): lý do + ghi chú; không ô ngày (dòng đảo mang ngày của dòng gốc — ADR-0095 Q2). */
   function moDao(d: DongChiPhiDto, opener: HTMLElement): void {
     const lenh = taoLenh();
     const loi = daiLoi();
     const lyDo = chonLyDo();
     const ghi = h("input", { class: "vc-input", type: "text", maxLength: 300 });
-    const nut = nutGui("Đảo dòng", "vc-btn-danger", "dao-gui");
+    const nut = nutGui("Huỷ dòng", "vc-btn-danger", "dao-gui");
     const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Đóng");
     const loai = chipDongChiPhi(d);
     const bang = moBangTruot({
-      title: "Đảo dòng chi phí",
+      title: "Huỷ dòng chi phí",
       body: [h("p", { class: "dp-sheet-text" }, `${loai.nhan} ${soTienCoDau(d.soTien)}${d.lyDo ? ` · ${d.lyDo.nhan}` : ""}`), o("cp-dao-ly-do", "Lý do", lyDo, { batBuoc: true }), o("cp-dao-ghi", "Ghi chú", ghi), loi.el],
       foot: [dong, nut],
       footClass: "vc-foot-2",

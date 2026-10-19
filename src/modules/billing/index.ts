@@ -1,5 +1,5 @@
 // Module billing — sổ công nợ lượt 1 (ADR-0024 điều 1–2, ADR-0025, ADR-0026; kế hoạch docs/superpowers/plans/2026-09-29-so-tien-luot-1-ke-hoach.md §3.3–3.4).
-// Giữ lần thu, phiếu sổ, dòng nợ; hai bước chốt đơn "Đã giao – đã thu đủ" và "Hoàn thành" (lô ghi gộp câu CHƯA CHẠY của orders / dispatch — ADR-0024 đ4).
+// Giữ khoản thu, phiếu sổ, dòng nợ; hai bước chốt đơn "Đã giao – đã thu đủ" và "Hoàn thành" (lô ghi gộp câu CHƯA CHẠY của orders / dispatch — ADR-0024 đ4).
 // Chiều phụ thuộc: billing → orders, parties, staff, dispatch, audit. `orders` KHÔNG đọc bảng bil_; số "đã thu / còn lại" của mọi màn lấy qua route ở đây.
 // Mỗi route hỏi `can()` với ô của MATRIX TRƯỚC khi đọc thân / ghi (cổng router chỉ lọc thô — ADR-0019). Bảng tin (ADR-0022, ADR-0025 đ8): route ghi dưới
 // /api/orders/* báo `baoThayDoi` ĐÚNG MỘT lần, chỉ ở nhánh thành công, sau khi lô ghi xong (hàng rào src/bang-tin-guard.test.ts phủ tệp này).
@@ -26,7 +26,7 @@ import { ghiThayLanThu } from "./thay-lan-thu";
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
 const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không được xem thông tin này.");
 const CANNOT_RECEIVE = () => error(403, "forbidden", "Tài khoản này không được ghi tiền cho đơn này.");
-const CANNOT_RECEIVE_CANCELLED = () => error(403, "forbidden", "Đơn đã huỷ — chỉ Kế toán hoặc Toàn quyền ghi được lần thu (khách chuyển khoản muộn).");
+const CANNOT_RECEIVE_CANCELLED = () => error(403, "forbidden", "Đơn đã huỷ — chỉ Kế toán hoặc Toàn quyền ghi được khoản thu (khách chuyển khoản muộn).");
 const CANNOT_HANDOVER = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn, Quản trị hoặc Toàn quyền mới bấm được Đã giao – đã thu đủ.");
 const CANNOT_COMPLETE = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới bấm được Hoàn thành.");
 const CANNOT_LEDGER = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới ghi được sổ công nợ.");
@@ -52,7 +52,7 @@ export const soDongNoCuaNguoi = (db: D1Database, partyId: string): Promise<numbe
 export const billingModule: AppModule = {
   name: "billing",
   routes: [
-    // Tiền của MỘT đơn (NT-F11): đã thu / còn lại / dư chờ hoàn, lần thu, lý do đang giữ + ai xử lý, nút nào hiện. Khuôn quyền = chi tiết đơn (ADR-0019 đ2):
+    // Tiền của MỘT đơn (NT-F11): đã thu / còn lại / dư chờ hoàn, khoản thu, lý do đang giữ + ai xử lý, nút nào hiện. Khuôn quyền = chi tiết đơn (ADR-0019 đ2):
     // `order.view` phạm vi đơn (chỉ-FIELD không phụ trách → 404), rồi `money.view`.
     route("GET", "/api/orders/:id/payments", "orders", async ({ env, params, staff, isAssigned }) => {
       const id = params.id!;
@@ -86,7 +86,7 @@ export const billingModule: AppModule = {
       return json(body satisfies OrderPaymentsResponse);
     }),
 
-    // Ghi một lần thu TRƯỚC "Đã giao" (ADR-0026 đ2, đ10): ô `payment.receive` { ownerId, assigned } — Đối tác chỉ đơn mình, HDV chỉ đơn đang phụ trách.
+    // Ghi một khoản thu TRƯỚC "Đã giao" (ADR-0026 đ2, đ10): ô `payment.receive` { ownerId, assigned } — Đối tác chỉ đơn mình, HDV chỉ đơn đang phụ trách.
     // Người không phải Kế toán/Toàn quyền chỉ ghi người thu = mình hoặc Công ty (400). Sau "Đã giao" → 409 (NT-S3).
     route("POST", "/api/orders/:id/payments", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
       const id = params.id!;
@@ -94,7 +94,7 @@ export const billingModule: AppModule = {
       const [info, assigned] = await Promise.all([thongTinGiaoDon(env.DB, id), isAssigned(id)]);
       if (!info) return NOT_FOUND();
       if (!can(staff, "payment.receive", { ownerId: info.ownerId, assigned })) return CANNOT_RECEIVE();
-      // ADR-0089 đ13 (NT-H10, H-C9): lần thu lên ĐƠN ĐÃ HUỶ (khách chuyển khoản muộn) chỉ Kế toán, Toàn quyền.
+      // ADR-0089 đ13 (NT-H10, H-C9): khoản thu lên ĐƠN ĐÃ HUỶ (khách chuyển khoản muộn) chỉ Kế toán, Toàn quyền.
       if (info.status === "cancelled" && !can(staff, "ledger.write")) return CANNOT_RECEIVE_CANCELLED();
       const kq = await ghiLanThu(env.DB, { orderId: id, deliveredAt: info.deliveredAt, raw: await readJson(request), ai: nguoiGoi(staff) });
       if (!kq.ok) return kq.res;
@@ -183,7 +183,7 @@ export const billingModule: AppModule = {
     }),
 
     // "ĐÃ GIAO – ĐÃ THU ĐỦ" (ADR-0025 điều 2–5): ô `order.handover` { assigned } — HDV đang phụ trách, Quản trị, Toàn quyền. MỘT lô ghi: [câu bảo vệ người phụ
-    // trách của dispatch — chỉ khi người gọi được phép NHỜ đang phụ trách] → câu orders đặt mốc → [lần thu nhập ở bước này] → phiếu Đã giao (trigger kiểm
+    // trách của dispatch — chỉ khi người gọi được phép NHỜ đang phụ trách] → câu orders đặt mốc → [khoản thu nhập ở bước này] → phiếu Đã giao (trigger kiểm
     // đã thu = phải thu) → nhật ký. Thân tuỳ chọn { lanThu }.
     route("POST", "/api/orders/:id/delivered", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
       const id = params.id!;
@@ -316,7 +316,7 @@ export const billingModule: AppModule = {
     // Kế toán bấm "Công ty đã nhận" (H3): khoản "Công ty thu" do người khác khai hết tính vào nợ người khai. Ô `ledger.write`.
     route("POST", "/api/ledger/company-receipts/:receiptId/confirm", "office", async ({ env, request, params, staff, baoThayDoi }) => {
       if (!can(staff, "ledger.write")) return CANNOT_LEDGER();
-      if (!UUID_RE.test(params.receiptId!)) return error(404, "not_found", "Không tìm thấy lần thu.");
+      if (!UUID_RE.test(params.receiptId!)) return error(404, "not_found", "Không tìm thấy khoản thu.");
       const kq = await xacNhanCongTyNhan(env.DB, { receiptId: params.receiptId!, raw: await readJson(request), ai: nguoiGoi(staff) });
       if (!kq.ok) return kq.res;
       baoThayDoi({ orderId: kq.value.orderId, thayDoi: "tien" });
@@ -389,8 +389,8 @@ export const billingModule: AppModule = {
       return json({ ok: true }, 201, { location: "/dieu-chinh-cong-no" });
     }),
 
-    // "Thay lần thu" (ADR-0088 đ2): N lần thu cũ → M lần thu mới, MỘT lô; ô `ledger.write` (Kế toán, Toàn quyền — không thêm mã quyền). Đường sửa sai DUY NHẤT
-    // của lần thu sau Đã giao (đảo đơn lẻ bị chặn — đ3).
+    // "Sửa khoản thu đã ghi" (ADR-0088 đ2): N khoản thu cũ → M khoản thu mới, MỘT lô; ô `ledger.write` (Kế toán, Toàn quyền — không thêm mã quyền). Đường sửa sai DUY NHẤT
+    // của khoản thu sau Đã giao (đảo đơn lẻ bị chặn — đ3).
     route("POST", "/api/ledger/receipt-replacements", "office", async ({ env, request, staff, baoThayDoi }) => {
       if (!can(staff, "ledger.write")) return CANNOT_LEDGER();
       const kq = await ghiThayLanThu(env.DB, { raw: await readJson(request), ai: nguoiGoi(staff) });

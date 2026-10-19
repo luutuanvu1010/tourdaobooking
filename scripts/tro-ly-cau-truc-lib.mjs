@@ -120,9 +120,9 @@ export function dungCauTruc(vao) {
   const phuThuoc = (m) => canh[m].filter((b) => b !== LA_NHAT_KY);
   const duocDuaVao = (m) => nut.filter((a) => a !== m && canh[a].includes(m));
   them(
-    "Các phân hệ của app",
+    "Các phân hệ của Nền tảng",
     [],
-    `App chia thành ${nut.length} phân hệ, mỗi phân hệ lo một phần việc và chỉ nhờ phân hệ khác qua cửa đã định: ${nut.map((m) => tenPH(m)).join(", ")}. Người dùng thấy các phân hệ này qua menu và các trang; menu hiện theo quyền của tài khoản.`,
+    `Nền tảng chia thành ${nut.length} phân hệ, mỗi phân hệ lo một phần việc và chỉ nhờ phân hệ khác qua cửa đã định: ${nut.map((m) => tenPH(m)).join(", ")}. Người dùng thấy các phân hệ này qua menu và các trang; menu hiện theo quyền của tài khoản.`,
   );
   for (const m of nut) {
     const dong = [cau(`Phân hệ ${tenPH(m)}: ${ten.phanHe[m].moTa}`)];
@@ -167,9 +167,9 @@ export function dungCauTruc(vao) {
     const huyDuoc = phamVi("order.modify", q) !== "none";
     const khong = opHoi.filter((op) => phamVi(op, q) === "none" && !(op === "order.cancel" && huyDuoc)).map(tenOp);
     them(
-      `Vai ${nhanQuyen[q]} làm được gì`,
+      `Vai trò ${nhanQuyen[q]} làm được gì`,
       [q],
-      `Tài khoản có quyền ${nhanQuyen[q]} (một tài khoản có thể giữ vài quyền; làm được việc nếu ít nhất một quyền cho phép).\nLàm được: ${co.join("; ") || "không việc nào"}.\nKhông làm được: ${khong.join("; ") || "không có"}.\nKhông thấy một nút hay mục menu thường vì vai không có quyền việc đó; máy chủ luôn kiểm lại quyền.`,
+      `Tài khoản có quyền ${nhanQuyen[q]} (một tài khoản có thể giữ vài quyền; làm được việc nếu ít nhất một quyền cho phép).\nLàm được: ${co.join("; ") || "không việc nào"}.\nKhông làm được: ${khong.join("; ") || "không có"}.\nKhông thấy một nút hay mục menu thường vì vai trò không có quyền việc đó; máy chủ luôn kiểm lại quyền.`,
     );
   }
 

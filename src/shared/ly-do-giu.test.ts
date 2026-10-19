@@ -25,7 +25,7 @@ test("ai xử lý đúng vai: giấy tờ → Quản trị; chính sách / bản
     assert.equal(ai(m), "VAN_PHONG", m);
   }
   // NỚI có tên (ADR-0104 Đ1 mục 9 ★, 2026-10-08): vượt mốc luôn là điều chỉnh khẩn cấp của người xếp xe → văn phòng.
-  assert.deepEqual({ ...MA_GIU.MOC_TOI_THIEU }, { loiNhan: "Trong mốc tối thiểu trước giờ xuất bến — người xếp xe điều chỉnh khẩn cấp kèm lý do", aiXuLy: "VAN_PHONG" });
+  assert.deepEqual({ ...MA_GIU.MOC_TOI_THIEU }, { loiNhan: "Đã qua hạn chốt trước giờ xe chạy — người xếp xe điều chỉnh khẩn cấp kèm lý do", aiXuLy: "VAN_PHONG" });
   for (const m of ["KHOANG_NGHI", "NGHI_THIEU"] as const) assert.equal(ai(m), "QUAN_TRI", m);
 });
 

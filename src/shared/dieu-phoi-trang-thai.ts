@@ -20,7 +20,7 @@ export const NHAN_TRANG_THAI_CHANG: Readonly<Record<TrangThaiChang, string>> = {
   DA_DON: "Đã đón",
   DA_TRA: "Đã trả",
   XONG: "Xong",
-  GIU: "Giữ: đơn huỷ hoặc chặng đã bỏ còn khách trên xe",
+  GIU: "Giữ: đơn huỷ hoặc lượt đưa đón đã bỏ còn khách trên xe",
   DA_BO: "Đã bỏ",
 };
 export const NHAN_CHANG = ["QUA_MOC", "SAT_MOC", "DAT_GAP", "CHUA_CHOT_GIO", "XEP_MOT_PHAN", "THUA_SUAT", "VANG", "KHACH_HUY"] as const;

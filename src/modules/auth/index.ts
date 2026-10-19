@@ -672,7 +672,7 @@ export const authModule: AppModule = {
       if (!reservation.allowed) return tooMany(reservation.retryAfterSeconds);
       const moi = await khopKhoaMoi(env, profile.id, body?.setupToken, code, now);
       if (moi.kq === "unavailable") return MFA_UNAVAILABLE();
-      if (moi.kq === "expired") return error(400, "setup_expired", "Phiên bật đã hết hạn (10 phút). Bấm “Bật ứng dụng xác thực” lại để lấy khoá mới.");
+      if (moi.kq === "expired") return error(400, "setup_expired", "Lượt bật đã hết hạn (10 phút). Bấm “Bật ứng dụng xác thực” lại để lấy khoá mới.");
       if (moi.kq !== "ok") return error(401, "invalid_code", "Mã không đúng. Nhập mã 6 số mới nhất trên ứng dụng xác thực (kiểm giờ tự động trên điện thoại nếu sai nhiều lần).");
       await clearAttempts(env.DB, mfaKey(profile.id), reservation.ids);
       const ma = await boMaDuPhongMoi(env.DB, profile.id, nowIso);

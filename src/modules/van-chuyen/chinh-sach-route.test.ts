@@ -92,7 +92,7 @@ test("TC-2 route 9–10: Toàn quyền xem (bản gieo 360/120/30) và thêm b�
   const nk = nhatKyCuoi(w, "dispatch_policy_changed");
   assert.deepEqual(nk, {
     staff_id: SUP, order_id: null, target_type: null, target_id: null,
-    detail: "chính sách điều phối: mốc tối thiểu 360 → 240 phút; cảnh báo sát mốc 120 → 60 phút; khoảng nghỉ 30 → 45 phút; bắt đủ danh sách có → có; kẹp lùi giờ khai 180 → 90 phút; giờ lái tối đa 480 → 600 phút; nhắc nghỉ chuyến trên 240 → 300 phút; cửa sổ xuất bến 720 → 1440 phút; hạn từ chối 720 → 720 phút; chưa có số điện thoại văn phòng; chờ nhận chuyển khách 10 → 10 phút; tự đồng ý chuyển khách có → có",
+    detail: "chính sách điều phối: hạn chốt trước giờ đón 360 → 240 phút; cảnh báo sắp tới hạn chốt 120 → 60 phút; khoảng nghỉ 30 → 45 phút; bắt đủ danh sách có → có; kẹp lùi giờ khai 180 → 90 phút; giờ lái tối đa 480 → 600 phút; nhắc nghỉ chuyến trên 240 → 300 phút; cửa sổ cho xe chạy 720 → 1440 phút; hạn từ chối 720 → 720 phút; chưa có số điện thoại văn phòng; chờ nhận chuyển khách 10 → 10 phút; tự đồng ý chuyển khách có → có",
   });
 });
 
@@ -210,7 +210,7 @@ test("route 11–13 điều kiện xuất bến: thêm (xe / tài xế) → 201;
   const w = setup();
   let r = await w.call("POST", "/api/van-chuyen/dieu-kien", { as: SUP, body: { minCapacity: 16, subject: "VEHICLE", documentTypeCode: "CONTRACT_BADGE" } });
   assert.equal(r.status, 201, r.text);
-  assert.equal(nhatKyCuoi(w, "departure_rule_added").detail, "điều kiện xuất bến: xe từ 16 người — giấy tờ xe Phù hiệu xe hợp đồng");
+  assert.equal(nhatKyCuoi(w, "departure_rule_added").detail, "điều kiện cho xe chạy: xe từ 16 người — giấy tờ xe Phù hiệu xe hợp đồng");
   r = await w.call("POST", "/api/van-chuyen/dieu-kien", { as: SUP, body: { minCapacity: 10, subject: "DRIVER", documentTypeCode: "HEALTH_CHECK" } });
   assert.equal(r.status, 201, r.text);
   assert.deepEqual(r.json.rules.map((x: any) => [x.minCapacity, x.subject, x.documentTypeCode, x.documentTypeName, x.active]), [
@@ -231,7 +231,7 @@ test("route 11–13 điều kiện xuất bến: thêm (xe / tài xế) → 201;
   const dong = r.json.rules.find((x: any) => x.id === id);
   assert.equal(dong.active, false);
   assert.ok(dong.validTo);
-  assert.equal(nhatKyCuoi(w, "departure_rule_closed").detail, "điều kiện xuất bến: xe từ 16 người — giấy tờ xe Phù hiệu xe hợp đồng");
+  assert.equal(nhatKyCuoi(w, "departure_rule_closed").detail, "điều kiện cho xe chạy: xe từ 16 người — giấy tờ xe Phù hiệu xe hợp đồng");
   assert.equal(w.q("SELECT closed_by FROM vc_departure_rule WHERE id = ?", id)[0].closed_by, SUP);
   const hai = await w.call("POST", `/api/van-chuyen/dieu-kien/${id}/dong`, { as: SUP, body: {} });
   assert.equal(hai.status, 409, hai.text);

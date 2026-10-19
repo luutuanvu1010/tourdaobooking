@@ -18,11 +18,11 @@ const permissionsLabel = (list: readonly PermissionCode[]): string => (list.leng
 const sameSet = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((x) => b.includes(x));
 
 /** Tài khoản đã gán vai → tên vai; chưa gán → quyền cũ kèm ghi chú (chờ chuyển sang cách mới, đặc tả §14). */
-const accessLabel = (s: StaffAccount): string => (s.roles.length ? rolesLabel(s.roles) : `${permissionsLabel(s.permissions)} (chưa gán vai)`);
+const accessLabel = (s: StaffAccount): string => (s.roles.length ? rolesLabel(s.roles) : `${permissionsLabel(s.permissions)} (chưa gán vai trò)`);
 const EMPTY: RolePickerValue = { roles: [], adds: [], removes: [], reason: "" };
-const TU_DOI_QUYEN = "Vai vừa chọn làm đổi quyền của chính bạn — không ai tự đổi quyền của mình được (chống tự khoá). Hãy nhờ người quản trị khác. Chưa lưu gì.";
+const TU_DOI_QUYEN = "Vai trò vừa chọn làm đổi quyền của chính bạn — không ai tự đổi quyền của mình được (chống tự khoá). Hãy nhờ người quản trị khác. Chưa lưu gì.";
 const TU_DOI_QUYEN_TOAN_QUYEN =
-  "Vai vừa chọn làm đổi quyền của chính bạn — không ai tự đổi quyền của mình được (chống tự khoá). Toàn quyền đã làm được mọi việc của mọi vai, nên không cần tự gán thêm. Chưa lưu gì.";
+  "Vai trò vừa chọn làm đổi quyền của chính bạn — không ai tự đổi quyền của mình được (chống tự khoá). Toàn quyền đã làm được mọi việc của mọi vai trò, nên không cần tự gán thêm. Chưa lưu gì.";
 const sameAssignment = (a: RolePickerValue, b: RolePickerValue): boolean => sameSet(a.roles, b.roles) && sameSet(a.adds, b.adds) && sameSet(a.removes, b.removes);
 let meSuper = false;
 // ADR-0042 + ADR-0071 điều 1e: đặt lại PIN, gỡ Face ID, mở khoá — Quản trị + Toàn quyền (ô account.access.manage); HCNS không thấy nút (máy chủ vẫn chặn 403).
@@ -146,7 +146,7 @@ function row(s: Api.StaffListRowDto): HTMLElement {
       // tài khoản có quyền tiền chỉ Toàn quyền. Trang không tự tính.
       s.datLaiPinDuoc &&
         btn("Đặt lại PIN", async () => {
-          if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
+          if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi máy đang đăng nhập sẽ mất hiệu lực.`)) return;
           const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
           if (r) {
             showSecrets("PIN mới", [{ name: s.fullName, phone: s.phone, pin: r.pin }]);
@@ -163,7 +163,7 @@ function row(s: Api.StaffListRowDto): HTMLElement {
         !isMe &&
         s.passkeyCount > 0 &&
         btn(`Gỡ Face ID (${s.passkeyCount})`, async () => {
-          if (!confirm(`Gỡ Face ID của ${s.fullName} trên mọi máy? Mọi phiên đang đăng nhập của tài khoản này sẽ bị đăng xuất.`)) return;
+          if (!confirm(`Gỡ Face ID của ${s.fullName} trên mọi máy? Mọi máy đang đăng nhập của tài khoản này sẽ bị đăng xuất.`)) return;
           if (await act(() => api(`/api/staff/${s.id}/passkeys/remove-all`, { method: "POST" }))) await load();
         }),
       quanDuoc(s) &&
@@ -204,7 +204,7 @@ function card(s: Api.StaffListRowDto): HTMLElement {
       // tài khoản có quyền tiền chỉ Toàn quyền. Trang không tự tính.
       s.datLaiPinDuoc &&
         btn("Đặt lại PIN", async () => {
-          if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
+          if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi máy đang đăng nhập sẽ mất hiệu lực.`)) return;
           const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
           if (r) {
             showSecrets("PIN mới", [{ name: s.fullName, phone: s.phone, pin: r.pin }]);
@@ -220,7 +220,7 @@ function card(s: Api.StaffListRowDto): HTMLElement {
         !isMe &&
         s.passkeyCount > 0 &&
         btn(`Gỡ Face ID (${s.passkeyCount})`, async () => {
-          if (!confirm(`Gỡ Face ID của ${s.fullName} trên mọi máy? Mọi phiên đang đăng nhập của tài khoản này sẽ bị đăng xuất.`)) return;
+          if (!confirm(`Gỡ Face ID của ${s.fullName} trên mọi máy? Mọi máy đang đăng nhập của tài khoản này sẽ bị đăng xuất.`)) return;
           if (await act(() => api(`/api/staff/${s.id}/passkeys/remove-all`, { method: "POST" }))) await load();
         }),
       quanDuoc(s) &&
@@ -263,8 +263,8 @@ async function openEdit(s: StaffAccount): Promise<void> {
   save.addEventListener("click", async () => {
     const chosen = picker.value();
     const legacyPerms = PERMISSION_CODES.filter((code) => boxes.get(code)!.checked);
-    if (!legacy && chosen.roles.length === 0) return showError(errorEl, "Chọn ít nhất một vai.");
-    if (quyenCu && chosen.roles.length === 0 && !isMe && legacyPerms.length === 0) return showError(errorEl, "Chọn ít nhất một vai (hoặc một quyền cũ).");
+    if (!legacy && chosen.roles.length === 0) return showError(errorEl, "Chọn ít nhất một vai trò.");
+    if (quyenCu && chosen.roles.length === 0 && !isMe && legacyPerms.length === 0) return showError(errorEl, "Chọn ít nhất một vai trò (hoặc một quyền cũ).");
     // Chủ dự án 2026-10-01: báo TRƯỚC khi lưu (không lưu nửa chừng) khi vai vừa chọn làm đổi quyền của chính mình.
     if (isMe && chosen.roles.length > 0 && !sameAssignment(chosen, saved) && tuDoiQuyenCuaMinh(s.permissions, chosen)) {
       return showError(errorEl, meSuper ? TU_DOI_QUYEN_TOAN_QUYEN : TU_DOI_QUYEN);
@@ -282,7 +282,7 @@ async function openEdit(s: StaffAccount): Promise<void> {
     } catch (err) {
       // Tên/số điện thoại đã lưu ở lời gọi trên. load() xoá thông báo lỗi (act mở đầu bằng showError(null)), nên nạp lại TRƯỚC rồi mới hiện lý do.
       await load();
-      return showError(errorEl, doiTenSo ? `Đã lưu tên/số điện thoại nhưng chưa đổi được vai/quyền: ${reasonOf(err)}` : `Chưa đổi được vai/quyền: ${reasonOf(err)}`);
+      return showError(errorEl, doiTenSo ? `Đã lưu tên/số điện thoại nhưng chưa đổi được vai trò/quyền: ${reasonOf(err)}` : `Chưa đổi được vai trò/quyền: ${reasonOf(err)}`);
     }
     editEl.hidden = true;
     await load();
@@ -291,12 +291,12 @@ async function openEdit(s: StaffAccount): Promise<void> {
     editEl,
     h("h2", null, `Sửa: ${s.fullName}`),
     h("div", { class: "grid two" }, h("label", null, "Họ tên", name), h("label", null, "Số điện thoại đăng nhập", phone)),
-    h("h3", null, "Vai và quyền"),
-    legacy && h("p", { class: "alert warn" }, `Tài khoản này chưa gán vai, đang dùng quyền cũ: ${permissionsLabel(s.permissions)}. Chọn vai để chuyển sang cách mới — xem dòng "Sẽ mất" trước khi lưu.`),
-    isMe && h("p", { class: "muted" }, meSuper ? "Bạn chỉ đổi được vai của chính mình khi quyền không đổi. Toàn quyền đã làm được mọi việc của mọi vai — không cần tự gán thêm vai." : "Bạn chỉ đổi được vai của chính mình khi quyền không đổi (xem dòng xem trước)."),
+    h("h3", null, "Vai trò và quyền"),
+    legacy && h("p", { class: "alert warn" }, `Tài khoản này chưa gán vai trò, đang dùng quyền cũ: ${permissionsLabel(s.permissions)}. Chọn vai trò để chuyển sang cách mới — xem dòng "Sẽ mất" trước khi lưu.`),
+    isMe && h("p", { class: "muted" }, meSuper ? "Bạn chỉ đổi được vai trò của chính mình khi quyền không đổi. Toàn quyền đã làm được mọi việc của mọi vai trò — không cần tự gán thêm vai trò." : "Bạn chỉ đổi được vai trò của chính mình khi quyền không đổi (xem dòng xem trước)."),
     picker.el,
-    quyenCu && h("details", null, h("summary", null, "Quyền cũ (chỉ dùng khi chưa gán vai)"), ...permissionBoxes),
-    h("p", { class: "muted" }, "Đổi số điện thoại sẽ đổi tên đăng nhập của người này. Phiên đang đăng nhập vẫn giữ nguyên."),
+    quyenCu && h("details", null, h("summary", null, "Quyền cũ (chỉ dùng khi chưa gán vai trò)"), ...permissionBoxes),
+    h("p", { class: "muted" }, "Đổi số điện thoại sẽ đổi tên đăng nhập của người này. Các máy đang đăng nhập vẫn giữ nguyên."),
     h("div", { class: "actions" }, save, cancel),
   );
   editEl.hidden = false;
@@ -421,7 +421,7 @@ byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
   showError(errorEl, null);
   if (!addPicker) return;
   const v = addPicker.value();
-  if (v.roles.length === 0) return showError(errorEl, "Chọn ít nhất một vai.");
+  if (v.roles.length === 0) return showError(errorEl, "Chọn ít nhất một vai trò.");
   const who = existingPartyId ? { partyId: existingPartyId } : { fullName: addName.value, ...(taoMoi.checked ? { taoHoSoMoi: true } : {}) };
   const body = { phone: addPhone.value, roles: v.roles, adds: v.adds, removes: v.removes, reason: v.reason, ...who };
   let r: Api.StaffWithPinResponse;

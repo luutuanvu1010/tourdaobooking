@@ -52,7 +52,7 @@ export function loiTuChoi(e: { status: number; code: string; message: string }):
   if (e.status === 409 && e.code === "stale") return { cau: "Văn phòng vừa sửa chuyến này — đã tải lại, xem lại rồi quyết.", hanhDong: "doc_lai" };
   if (e.status === 409 && e.code === "refuse_deadline_passed") return { cau: "Đã quá hạn từ chối — không chạy được thì gọi văn phòng.", hanhDong: "doc_lai" };
   if (e.status === 409 && e.code === "refuse_blocked_transferred_in") return { cau: "Chuyến này có khách được chuyển từ xe khác sang nên chưa từ chối được — đã tải lại, hãy gọi văn phòng.", hanhDong: "doc_lai" };
-  if (e.status === 409 && e.code === "trip_not_planned") return { cau: "Chuyến đã xuất bến, kết thúc hoặc bị huỷ — đã tải lại.", hanhDong: "doc_lai" };
+  if (e.status === 409 && e.code === "trip_not_planned") return { cau: "Xe đã chạy, chuyến đã kết thúc hoặc bị huỷ — đã tải lại.", hanhDong: "doc_lai" };
   if (e.status === 404) return { cau: "Chuyến này không còn giao cho bạn.", hanhDong: "ve_cuoc" };
   return { cau: e.message, hanhDong: "giu" };
 }

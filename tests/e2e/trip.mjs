@@ -8,6 +8,7 @@ await ensureFakeCatalog(); // orderInput() mặc định dùng danh mục giả 
 const A = await session(ACCOUNTS.salesA);
 const Bc = await session(ACCOUNTS.salesB);
 const ADMIN = await session(ACCOUNTS.admin);
+const TOAN_QUYEN = await session(ACCOUNTS.superAdmin); // ADR-0131: chỉ Toàn quyền thấy tên người làm trong lịch sử đơn
 
 const T = "'2026-01-01T00:00:00.000Z'";
 await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,price_senior,price_infant,note_child,note_senior,note_infant,sheet_row,in_sheet,first_seen_at,updated_at) VALUES
@@ -276,8 +277,9 @@ try {
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.deepEqual([r.body.order.status, r.body.order.services[0].pickupTime, r.body.order.services[0].pickupPlace], ["confirmed", "05:45", "Cảng Cầu Đá (người phụ trách)"]);
   c = r.body.order;
-  const byHandler = (await get(Bc, c)).history.findLast((h) => h.action === "trip_updated"); // người phụ trách xem được nhật ký (G17: dòng chặng đứng sau)
+  const byHandler = (await get(TOAN_QUYEN, c)).history.findLast((h) => h.action === "trip_updated"); // Toàn quyền đọc để kiểm "ghi đúng người" (G17: dòng chặng đứng sau)
   assert.deepEqual([byHandler.action, byHandler.staffName], ["trip_updated", "NV Bán B (test)"], "nhật ký ghi đúng người phụ trách");
+  assert.equal((await get(Bc, c)).history.findLast((h) => h.action === "trip_updated").staffName, "", "ADR-0131: người phụ trách (không phải Toàn quyền) không thấy tên người làm");
   assert.ok(!(byHandler.detail ?? "").includes("Cầu Đá"), "nhật ký không chứa nội dung điểm đón");
   r = await trip(c, { note: "người lập sửa sau khi đã giao lại" }, A);
   assert.equal(r.status, 200, JSON.stringify(r.body));

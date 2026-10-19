@@ -15,7 +15,7 @@ const TGT = "99999999-9999-4999-8999-999999999999";
 const AT = "2026-09-01T00:00:00.000Z";
 const NHAN = "LE_TAN_SPA_HOA_SEN";
 const TEN_NHAN = "Lễ tân spa Hoa Sen";
-const CAU = "Hồ sơ này không nhận thêm vai nội bộ vào lúc này.";
+const CAU = "Hồ sơ này không nhận thêm vai trò nội bộ vào lúc này.";
 
 function nen() {
   const w = world();

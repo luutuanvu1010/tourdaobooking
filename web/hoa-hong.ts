@@ -697,7 +697,7 @@ async function main(): Promise<void> {
         replaceChildren(
           ketQuaEl,
           h("p", { class: thuTraThieuMuc(r) ? "hh-ket-qua is-thieu" : "hh-ket-qua" }, cauThuTra(r)),
-          r.nguoiHuong.loai === "HUONG" && r.nguoiHuong.vai.length > 0 && h("p", { class: "muted" }, `Vai của đối tác: ${r.nguoiHuong.vai.join(", ")}`),
+          r.nguoiHuong.loai === "HUONG" && r.nguoiHuong.vai.length > 0 && h("p", { class: "muted" }, `Vai trò của đối tác: ${r.nguoiHuong.vai.join(", ")}`),
           h("p", { class: "muted" }, `Tra theo bảng mức ngày ${ngayDayDu(r.ngay)}.`),
         );
       } catch (err) {

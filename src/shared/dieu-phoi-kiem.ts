@@ -381,7 +381,7 @@ export function lyDoNgoaiCuaSo(batDauMs: number, cuaSoPhut: number | undefined, 
   const mo = msToVnLocal(moMs);
   return lyDoGiu(
     "NGOAI_CUA_SO_XUAT_BEN",
-    `chuyến khởi hành lúc ${kh.time} ngày ${ngayNgan(kh.date, homNay)}, được xuất bến từ ${mo.time} ngày ${ngayNgan(mo.date, homNay)}. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến.`,
+    `chuyến khởi hành lúc ${kh.time} ngày ${ngayNgan(kh.date, homNay)}, được cho xe chạy từ ${mo.time} ngày ${ngayNgan(mo.date, homNay)}. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến.`,
   );
 }
 

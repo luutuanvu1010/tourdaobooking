@@ -1,7 +1,7 @@
 // THÔNG BÁO HỆ THỐNG (ADR-0034) — luật thuần dùng chung server ↔ web/: tin về đơn là HÌNH CHIẾU của audit_log; một hàm lọc cho cả số đỏ
 // lẫn danh sách. Không I/O. Luật quyền chỉ qua can()/hasPermission/isOffice và các hàm của bang-tin.ts — không viết tay luật mới.
 import { duocThayTinDoi, duocThayTinDon, nhanKetNoi, nhanSuKien, type TrangThaiPhuTrach } from "./bang-tin.ts";
-import { can, coQuyenTien, hasPermission, isExternalPermission, isOffice, PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode, type PermissionHolder } from "./permissions.ts";
+import { can, coQuyenTien, hasPermission, holdsPartner, isExternalPermission, isOffice, PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode, type PermissionHolder } from "./permissions.ts";
 import type { GuiThongBaoRequest, HopThongBaoResponse, LoaiTin, NguoiNhanTin, TinDto } from "./contracts.ts";
 import { tinChuyenCho, tinGioHenCho, type ChuyenCuaChang, type DongChuyen, type NguoiNhanChuyen } from "./tin-chuyen.ts";
 import { HANH_DONG_DOI_SO_KHACH } from "./audit-actions.ts";
@@ -55,12 +55,17 @@ export interface DongTaiKhoan {
 export interface DongDieuChinh {
   id: string; maDon: string; action: string; mucLoai: string; mucId: string; actorId: string | null; tenNguoiLam: string | null; luc: string;
 }
-const CAU_DIEU_CHINH: Record<string, (ten: string, ma: string) => string> = {
-  ledger_adjustment_requested: (t, m) => `${t} gửi yêu cầu điều chỉnh công nợ đơn ${m} — chờ bạn duyệt`,
-  ledger_adjustment_withdrawn: (t, m) => `${t} đã rút yêu cầu điều chỉnh công nợ đơn ${m}`,
-  ledger_adjustment_approved: (t, m) => `${t} đã duyệt yêu cầu điều chỉnh công nợ đơn ${m} của bạn`,
-  ledger_adjustment_rejected: (t, m) => `${t} đã từ chối yêu cầu điều chỉnh công nợ đơn ${m} của bạn`,
-  ledger_adjustment_affected: (_t, m) => `Số dư của bạn trên đơn ${m} vừa được điều chỉnh`,
+/**
+ * ADR-0131 đ3: tên người làm trong tin về đơn chỉ hiện cho người có `audit.view` (chỉ Toàn quyền) và KHÔNG giữ quyền Đối tác — cùng luật với lịch sử đơn.
+ * MỘT hàm cho mọi tin có tên (tin đơn, tin đổi, tin điều chỉnh); hộp thư và câu màn hình khoá (đẩy) đều đi qua locHopThongBao nên không lệch nhau.
+ */
+const xemTenNguoiLam = (staff: PermissionHolder): boolean => can(staff, "audit.view") && !holdsPartner(staff);
+const CAU_DIEU_CHINH: Record<string, { coTen: (ten: string, ma: string) => string; khongTen: (ma: string) => string }> = {
+  ledger_adjustment_requested: { coTen: (t, m) => `${t} gửi yêu cầu điều chỉnh công nợ đơn ${m} — chờ bạn duyệt`, khongTen: (m) => `Có yêu cầu điều chỉnh công nợ đơn ${m} — chờ bạn duyệt` },
+  ledger_adjustment_withdrawn: { coTen: (t, m) => `${t} đã rút yêu cầu điều chỉnh công nợ đơn ${m}`, khongTen: (m) => `Yêu cầu điều chỉnh công nợ đơn ${m} đã được rút` },
+  ledger_adjustment_approved: { coTen: (t, m) => `${t} đã duyệt yêu cầu điều chỉnh công nợ đơn ${m} của bạn`, khongTen: (m) => `Yêu cầu điều chỉnh công nợ đơn ${m} của bạn đã được duyệt` },
+  ledger_adjustment_rejected: { coTen: (t, m) => `${t} đã từ chối yêu cầu điều chỉnh công nợ đơn ${m} của bạn`, khongTen: (m) => `Yêu cầu điều chỉnh công nợ đơn ${m} của bạn bị từ chối` },
+  ledger_adjustment_affected: { coTen: (_t, m) => `Số dư của bạn trên đơn ${m} vừa được điều chỉnh`, khongTen: (m) => `Số dư của bạn trên đơn ${m} vừa được điều chỉnh` },
 };
 type LoaiTinDon = Exclude<LoaiTin, "thu_cong" | "chuyen" | "tai_khoan" | "dieu_chinh">;
 /** Phần đổi của một dòng đổi (ADR-0062 Đ2) — null = dòng không thành tin (không qua bộ lọc nguồn / không có đoạn nhận ra). */
@@ -89,19 +94,22 @@ const CAU: Record<Exclude<LoaiTinDon, "doi_sau_xac_nhan">, { coTen: (ten: string
   xac_nhan: { coTen: (t, m) => `${t} vừa xác nhận đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa được xác nhận` },
   huy: { coTen: (t, m) => `${t} vừa huỷ đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa bị huỷ` },
 };
+/** Tin "giao" đọc bởi chính người đang phụ trách đơn: "cho người khác" dễ làm họ tưởng mình không phải đi (B-01). Chọn theo `d.phuTrach` (người HIỆN TẠI —
+ * nhật ký chỉ ghi tên) VÀ dòng phải là lần đổi người MỚI NHẤT của đơn (giao / tự nhận; kiểm độc lập F-1): dòng giao cũ hơn đã có người khác nhận sau. */
+const CAU_GIAO_CHO_BAN = { coTen: (t: string, m: string) => `${t} vừa giao đơn ${m} cho bạn phụ trách`, khongTen: (m: string) => `Đơn ${m} vừa được giao cho bạn phụ trách` };
 
 /** Chữ của một phần đổi khi GHÉP nhiều dòng cùng lô (câu chung thành cụm cố định — không chữ thô). */
-const chuPhan = (p: PhanDoiTin): string => (p.loai === "cu-the" ? p.phan : p.cau === "so-khach" ? "đổi số khách" : "đổi chặng đưa đón");
+const chuPhan = (p: PhanDoiTin): string => (p.loai === "cu-the" ? p.phan : p.cau === "so-khach" ? "đổi số khách" : "đổi lượt đưa đón");
 /**
  * Câu tin "đơn đổi sau xác nhận" (ADR-0062 Đ2): chỉ nhãn cố định + giá trị đã kiểm dạng (phanDoiCuaTin). Một dòng: câu theo loại; nhiều dòng cùng lô: nối phần
- * đổi bằng "; " (bỏ trùng). `ten` = null khi người xem không qua order.history.view.
+ * đổi bằng "; " (bỏ trùng). `ten` = null khi người xem không qua xemTenNguoiLam (ADR-0131).
  */
 /** Thứ tự phần đổi trong MỘT lô (cùng đơn + người làm + mốc): bỏ chặng đứng trước thêm chặng (lô thay chặng đọc như người làm đã làm). */
 const THU_TU_PHAN_DOI: readonly string[] = ["trip_updated", "order_leg_closed", "order_leg_updated", "order_leg_added", "order_money_adjusted_by_field", "order_money_adjusted"];
 function cauTinDoi(ten: string | null, ma: string, phan: readonly PhanDoiTin[]): string {
   const dau = (x: string) => (ten !== null ? `${ten} đổi đơn ${ma}: ${x}` : `Đơn ${ma}: ${x}`);
   const p = phan[0]!;
-  if (phan.length === 1 && p.loai === "chung" && p.cau === "chang") return ten !== null ? `${ten} vừa đổi chặng đưa đón của đơn ${ma}` : `Đơn ${ma} vừa đổi chặng đưa đón`;
+  if (phan.length === 1 && p.loai === "chung" && p.cau === "chang") return ten !== null ? `${ten} vừa đổi lượt đưa đón của đơn ${ma}` : `Đơn ${ma} vừa đổi lượt đưa đón`;
   return dau([...new Set(phan.map(chuPhan))].join("; "));
 }
 /** Liên kết tin đổi (ADR-0062 Đ2, NT-B11): văn phòng → trang đơn; người lập xem được đơn mình (Đối tác / Thực tập — order.view own) → trang đơn; còn lại → "Việc của tôi". */
@@ -151,6 +159,13 @@ export function locHopThongBao(
   const tat: TinDto[] = [];
   /** Dòng đổi đủ điều kiện nguồn, gom theo LÔ (cùng đơn + cùng người làm + cùng mốc — ADR-0062 Đ1 "cùng lô = một tin"). */
   const loDoi = new Map<string, { d: DongDon; p: PhanDoiTin }[]>();
+  /** Mốc đổi người phụ trách mới nhất của từng đơn (CAU_GIAO_CHO_BAN) — xét MỌI dòng, kể cả dòng do chính người xem làm (tự nhận). */
+  const doiNguoiCuoi = new Map<string, string>();
+  for (const d of vao.don) {
+    if (d.action !== "order_handler_changed" && d.action !== "order_claimed") continue;
+    const truoc = doiNguoiCuoi.get(d.orderId);
+    if (truoc === undefined || d.luc > truoc) doiNguoiCuoi.set(d.orderId, d.luc);
+  }
   for (const d of vao.don) {
     if (d.luc < moc || d.actorId === staff.id) continue;
     if (laHanhDongTinDoi(d.action)) {
@@ -177,10 +192,12 @@ export function locHopThongBao(
     const chung = nhan.filter((t) => ketNoi.has(t));
     if (!chung.length) continue;
     const cuaToi = chung.some((t) => t !== "tat-ca");
-    const coTen = d.tenNguoiLam !== null && can(staff, "order.history.view", { ownerId: d.ownerId, assigned: d.phuTrach.staffId === staff.id });
+    const coTen = d.tenNguoiLam !== null && xemTenNguoiLam(staff);
     tat.push({
       id: d.id, loai, maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
-      cau: coTen ? CAU[loai].coTen(d.tenNguoiLam!, d.maDon) : CAU[loai].khongTen(d.maDon),
+      cau: loai === "giao" && d.phuTrach.staffId === staff.id && doiNguoiCuoi.get(d.orderId) === d.luc
+        ? (coTen ? CAU_GIAO_CHO_BAN.coTen(d.tenNguoiLam!, d.maDon) : CAU_GIAO_CHO_BAN.khongTen(d.maDon))
+        : coTen ? CAU[loai].coTen(d.tenNguoiLam!, d.maDon) : CAU[loai].khongTen(d.maDon),
       lienKet: isOffice(staff) ? `/order?id=${d.orderId}` : "/account",
       luc: d.luc, cuaToi, chuaDoc: d.luc > vao.docDenLuc, mo: false, // ADR-0045: "chờ nhận" chỉ tồn tại khi đơn ĐANG chưa có người → không còn tin chờ nhận "mờ"
     });
@@ -211,7 +228,7 @@ export function locHopThongBao(
     // Người lập + người phụ trách HIỆN TẠI (handlerTruoc "không biết") + tat-ca; bỏ cho-nhan (đơn đã xác nhận — tin đổi không phải việc hàng chờ).
     const chung = nhanSuKien({ ownerId: d.ownerId, handlerTruoc: null, handlerSau: d.phuTrach }).filter((t) => t !== "cho-nhan" && ketNoi.has(t));
     if (!chung.length) continue;
-    const coTen = d.tenNguoiLam !== null && can(staff, "order.history.view", { ownerId: d.ownerId, assigned: d.phuTrach.staffId === staff.id });
+    const coTen = d.tenNguoiLam !== null && xemTenNguoiLam(staff);
     tat.push({
       id: d.id, loai: "doi_sau_xac_nhan", maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
       cau: cauTinDoi(coTen ? d.tenNguoiLam : null, d.maDon, lo.map((x) => x.p)), lienKet: lienKetTinDoi(staff, d),
@@ -240,7 +257,7 @@ export function locHopThongBao(
     }
   }
   // ADR-0115: tin về yêu cầu điều chỉnh công nợ — MỘT nơi chọn người nhận. Yêu cầu mới / rút: mọi người có ô `ledger.adjust.approve` TRỪ người làm; đã duyệt /
-  // từ chối / số dư của bạn đổi: đúng tài khoản trỏ ở khoá. Luôn vào "Của tôi"; câu không chứa số tiền, lý do hay tên bên nợ (chỉ tên người làm + mã đơn).
+  // từ chối / số dư của bạn đổi: đúng tài khoản trỏ ở khoá. Luôn vào "Của tôi"; câu không chứa số tiền, lý do hay tên bên nợ; tên người làm chỉ hiện cho Toàn quyền không giữ quyền Đối tác (ADR-0131 — xemTenNguoiLam), còn lại là câu không tên + mã đơn.
   const duyetDuoc = can(staff, "ledger.adjust.approve");
   for (const d of vao.dieuChinh ?? []) {
     if (d.luc < moc || d.actorId === staff.id) continue;
@@ -251,7 +268,7 @@ export function locHopThongBao(
     const cau = CAU_DIEU_CHINH[d.action];
     if (!cau || !(cho ? duyetDuoc : rieng)) continue;
     tat.push({
-      id: d.id, loai: "dieu_chinh", cau: cau(d.tenNguoiLam ?? "Có người", d.maDon), maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
+      id: d.id, loai: "dieu_chinh", cau: d.tenNguoiLam !== null && xemTenNguoiLam(staff) ? cau.coTen(d.tenNguoiLam, d.maDon) : cau.khongTen(d.maDon), maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
       lienKet: cho || can(staff, "ledger.write") ? "/dieu-chinh-cong-no" : isOffice(staff) ? "/order" : "/account", luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
     });
   }

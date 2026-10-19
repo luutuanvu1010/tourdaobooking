@@ -49,20 +49,20 @@ export interface LineDraft {
   reversesLineId: string | null;
 }
 
-/** Lần thu CÒN HIỆU LỰC: không phải dòng đảo và chưa bị đảo (bỏ cặp gốc/đảo). */
+/** Khoản thu CÒN HIỆU LỰC: không phải dòng đảo và chưa bị đảo (bỏ cặp gốc/đảo). */
 export function hieuLuc<T extends Pick<ReceiptRow, "id" | "reversesId">>(receipts: readonly T[]): T[] {
   const biDao = new Set(receipts.flatMap((r) => (r.reversesId ? [r.reversesId] : [])));
   return receipts.filter((r) => r.reversesId === null && !biDao.has(r.id));
 }
 
 export interface SoTienDon {
-  /** Đã thu ròng = thu của khách − trả lại khách (lần thu còn hiệu lực). */
+  /** Đã thu ròng = thu của khách − trả lại khách (khoản thu còn hiệu lực). */
   daThu: number;
   /** Còn phải thu (≥ 0). */
   conLai: number;
   /** Khách đã trả dư, chờ Kế toán hoàn (≥ 0) — M2 (chủ 29/9 "Không chặn, chờ hoàn"). ≤ đã thu, vì phải thu do `orders` công bố không bao giờ âm (ADR-0109). */
   du: number;
-  /** Số lần thu còn hiệu lực có người thu "chưa rõ" (cọc cũ). */
+  /** Số khoản thu còn hiệu lực có người thu "chưa rõ" (cọc cũ). */
   chuaRo: number;
 }
 
@@ -98,7 +98,7 @@ export function soDuCap(lines: readonly Pick<LineRow, "debtorPartyId" | "credito
   return so;
 }
 
-/** Dấu đối chiếu của một lần thu (bảng `bil_receipt_recon`, migration 0099 — ADR-0120 Điều 1): DECLARED = người không phải Kế toán khai "Công ty thu"; CONFIRMED = Kế toán đã bấm "Công ty đã nhận". */
+/** Dấu đối chiếu của một khoản thu (bảng `bil_receipt_recon`, migration 0099 — ADR-0120 Điều 1): DECLARED = người không phải Kế toán khai "Công ty thu"; CONFIRMED = Kế toán đã bấm "Công ty đã nhận". */
 export interface DoiChieuRow {
   receiptId: string;
   kind: "DECLARED" | "CONFIRMED";
@@ -107,12 +107,12 @@ export interface DoiChieuRow {
 }
 
 /**
- * Lần thu "Công ty thu" CHỜ XÁC NHẬN / ĐANG ĐỐI CHIẾU (MỘT định nghĩa — dùng cho `choXacNhan` của màn đơn, cho "đang đối chiếu" của đơn huỷ và cho chặn "Đã giao"; view
+ * Khoản thu "Công ty thu" CHỜ XÁC NHẬN / ĐANG ĐỐI CHIẾU (MỘT định nghĩa — dùng cho `choXacNhan` của màn đơn, cho "đang đối chiếu" của đơn huỷ và cho chặn "Đã giao"; view
  * `v_bil_coc_don` và trigger đảo của 0079/0099 theo đúng định nghĩa này). Hai đường:
- *  - khoản CŨ (khai trước ngày áp ADR-0120): lần thu vai COMPANY còn dòng giữ hộ (HELD, dòng gốc) chưa bị đảo, VÀ người khai còn nợ công ty trên đơn ≥ số của
+ *  - khoản CŨ (khai trước ngày áp ADR-0120): khoản thu vai COMPANY còn dòng giữ hộ (HELD, dòng gốc) chưa bị đảo, VÀ người khai còn nợ công ty trên đơn ≥ số của
  *    dòng giữ hộ (ADR-0092 Đ2b — khoản đã được tất toán bằng "Nộp" không còn chờ; một dòng giữ hộ chỉ tất toán MỘT lần);
  *  - khoản MỚI (ADR-0120 Điều 1): có dấu DECLARED mà chưa có dấu CONFIRMED — không có dòng nợ nào.
- * `lines` = dòng của MỘT đơn. Trả tập id lần thu. `doiChieu` mặc định rỗng (đơn không có khoản mới).
+ * `lines` = dòng của MỘT đơn. Trả tập id khoản thu. `doiChieu` mặc định rỗng (đơn không có khoản mới).
  */
 export function khoanChoXacNhan(
   receipts: readonly (Pick<ReceiptRow, "id" | "collectorRole"> & { reversesId?: string | null })[],
@@ -128,7 +128,7 @@ export function khoanChoXacNhan(
   return new Set([...cu, ...khoanMoiDoiChieu(receipts, doiChieu)]);
 }
 
-/** Khoản MỚI đang đối chiếu (ADR-0120): lần thu Công ty còn hiệu lực (chưa bị đảo) có dấu DECLARED mà chưa có CONFIRMED. Khoản cũ (dòng giữ hộ) KHÔNG nằm ở đây. */
+/** Khoản MỚI đang đối chiếu (ADR-0120): khoản thu Công ty còn hiệu lực (chưa bị đảo) có dấu DECLARED mà chưa có CONFIRMED. Khoản cũ (dòng giữ hộ) KHÔNG nằm ở đây. */
 export function khoanMoiDoiChieu(receipts: readonly (Pick<ReceiptRow, "id" | "collectorRole"> & { reversesId?: string | null })[], doiChieu: readonly DoiChieuRow[]): Set<string> {
   const daNhan = new Set(doiChieu.filter((d) => d.kind === "CONFIRMED").map((d) => d.receiptId));
   const biDao = new Set(receipts.flatMap((r) => (r.reversesId ? [r.reversesId] : [])));
@@ -143,7 +143,7 @@ export const SO_NGAY_NHAC_DOI_CHIEU = 3;
 export const nhacDoiChieu = (input: { homNay: string; ngayKhai: string }): boolean => input.ngayKhai < congNgay(input.homNay, -SO_NGAY_NHAC_DOI_CHIEU);
 
 /**
- * Lần thu này có phải KHOẢN MỚI ĐANG ĐỐI CHIẾU ngay khi ghi không (ADR-0120 Điều 1.1; chủ chốt 2026-10-15: CHỈ chuyển khoản): lần thu của khách, người thu = Công ty,
+ * Khoản thu này có phải KHOẢN MỚI ĐANG ĐỐI CHIẾU ngay khi ghi không (ADR-0120 Điều 1.1; chủ chốt 2026-10-15: CHỈ chuyển khoản): khoản thu của khách, người thu = Công ty,
  * hình thức CHUYỂN KHOẢN, mà người GHI không phải Kế toán/Toàn quyền (và không phải hồ sơ công ty). Khi đúng: máy chủ ghi dấu DECLARED, KHÔNG sinh dòng giữ hộ.
  * Tiền mặt (hoặc hình thức khác) ghi "Công ty thu" giữ luật H3 cũ: dòng giữ hộ trên người khai — người cầm tiền thật vẫn chịu nợ.
  */
@@ -156,7 +156,7 @@ export const canDoiChieu = (input: { kind: ReceiptKind; collectorRole: Collector
  */
 export function kiemQuyetToan(input: { chieu: "nop" | "tra"; soDu: number; soTien: number; maDon: string }): { ok: true } | { ok: false; ma: string; cau: string } {
   if (input.chieu === "nop" && input.soTien > Math.max(0, input.soDu)) {
-    return { ok: false, ma: "settlement_exceeds_held", cau: `Số tiền nộp vượt số người này đang giữ cho đơn ${input.maDon} (đang giữ ${dong(Math.max(0, input.soDu))}).` };
+    return { ok: false, ma: "settlement_exceeds_held", cau: `Số tiền nộp vượt số người này chưa nộp về công ty của đơn ${input.maDon} (còn ${dong(Math.max(0, input.soDu))} chưa nộp).` };
   }
   if (input.chieu === "tra" && input.soTien > Math.max(0, -input.soDu)) {
     return { ok: false, ma: "settlement_exceeds_owed", cau: `Số tiền trả vượt số công ty đang nợ người này cho đơn ${input.maDon} (đang nợ ${dong(Math.max(0, -input.soDu))}).` };
@@ -167,12 +167,12 @@ export function kiemQuyetToan(input: { chieu: "nop" | "tra"; soDu: number; soTie
 type KetQuaKiem = { ok: true } | { ok: false; ma: string; cau: string };
 
 /**
- * ADR-0092 Đ1 (A-B16): đảo một lần thu không được làm đã thu RÒNG của đơn < 0. `daThu` = `conLai(...).daThu` hiện tại (thu cộng, trả lại khách trừ — cùng
+ * ADR-0092 Đ1 (A-B16): đảo một khoản thu không được làm đã thu RÒNG của đơn < 0. `daThu` = `conLai(...).daThu` hiện tại (thu cộng, trả lại khách trừ — cùng
  * công thức trigger 0045 / 0082). Đảo một lần TRẢ LẠI KHÁCH làm đã thu tăng — luôn qua.
  */
 export function kiemDaoLanThu(input: { daThu: number; goc: Pick<ReceiptRow, "kind" | "amount"> }): KetQuaKiem {
   if (input.goc.kind !== "CUSTOMER_REFUND" && input.goc.amount > input.daThu) {
-    return { ok: false, ma: "net_paid_negative", cau: `Đảo lần thu này làm số đã thu của đơn âm (đang thu ${dong(Math.max(0, input.daThu))}) — đảo lần hoàn khách trước rồi đảo lần thu.` };
+    return { ok: false, ma: "net_paid_negative", cau: `Huỷ khoản thu này làm số đã thu của đơn bị âm (đang thu ${dong(Math.max(0, input.daThu))}) — huỷ khoản trả lại khách trước, rồi mới huỷ khoản thu.` };
   }
   return { ok: true };
 }
@@ -182,7 +182,7 @@ export function kiemHoanNguoiGiu(input: { dangGiu: number; soTien: number }): Ke
   if (input.soTien > Math.max(0, input.dangGiu)) {
     return {
       ok: false, ma: "refund_exceeds_held",
-      cau: `Số hoàn vượt số người này đang giữ cho đơn (đang giữ ${dong(Math.max(0, input.dangGiu))}). Nhân viên ứng tiền túi trả khách thì ghi người trả là Công ty.`,
+      cau: `Số hoàn vượt số người này chưa nộp về công ty của đơn (còn ${dong(Math.max(0, input.dangGiu))} chưa nộp). Nhân viên ứng tiền túi trả khách thì ghi người trả là Công ty.`,
     };
   }
   return { ok: true };
@@ -235,7 +235,7 @@ export function kiemDieuChinh(input: {
 }
 
 /** Câu chỉ đường khi "Công ty đã nhận" bị từ chối vì khoản đã được ghi nộp (ADR-0092 Đ2b — nguyên văn ví dụ của ADR). */
-export const CAU_DA_NOP = "Khoản này đã được ghi nộp — nếu tiền cũng đã về tài khoản công ty thì đảo lần nộp trước rồi xác nhận.";
+export const CAU_DA_NOP = "Khoản này đã được ghi nộp — nếu tiền cũng đã về tài khoản công ty thì huỷ lần ghi nộp trước rồi xác nhận.";
 
 export type LoaiDuyet = "REFUND" | "TRANSFER";
 /** Một dòng của sổ khoản duyệt (`bil_deposit_approval`): dòng gốc (`voidsId` null) hoặc dòng huỷ duyệt (trỏ gốc, `amount` = phần huỷ). */
@@ -259,7 +259,7 @@ export interface HoanNgoaiRow {
 export type { NhomHuy };
 
 export interface SoTienCoc {
-  /** Đã trả = Σ lần thu của khách còn hiệu lực, ĐÃ XÁC NHẬN (bỏ khoản "Công ty thu – CK" chờ xác nhận — đ2). */
+  /** Đã trả = Σ khoản thu của khách còn hiệu lực, ĐÃ XÁC NHẬN (bỏ khoản "Công ty thu – CK" chờ xác nhận — đ2). */
   daTra: number;
   /** Phần khách khai chuyển khoản chưa xác nhận (chưa tính vào đã trả). */
   dangDoiChieu: number;
@@ -350,12 +350,12 @@ export function kiemDuyet(input: { coc: SoTienCoc; nhom: NhomHuy; han: string; h
 }
 
 /**
- * Bất biến đ15 — đúng MỌI LÚC (kể cả sau đảo lần thu / "Thay lần thu"): chi + chuyển ≤ duyệt ≤ tiền còn giữ lúc huỷ. Trả lỗi khi số SAU một lệnh vỡ bất
- * biến (máy chủ kiểm trước khi ghi; trigger lần thu là lớp CSDL — `coc_paid_below_approved`).
+ * Bất biến đ15 — đúng MỌI LÚC (kể cả sau đảo khoản thu / "Sửa khoản thu đã ghi"): chi + chuyển ≤ duyệt ≤ tiền còn giữ lúc huỷ. Trả lỗi khi số SAU một lệnh vỡ bất
+ * biến (máy chủ kiểm trước khi ghi; trigger khoản thu là lớp CSDL — `coc_paid_below_approved`).
  */
 export function kiemBatBien(sau: SoTienCoc): KiemCoc {
   if (sau.daDuyet > sau.conGiuLucHuy) {
-    return sai("coc_paid_below_approved", `Đơn đã duyệt hoàn ${dong(sau.daDuyet)} — huỷ duyệt phần chưa chi trước khi đảo lần thu.`);
+    return sai("coc_paid_below_approved", `Đơn đã duyệt hoàn ${dong(sau.daDuyet)} — huỷ duyệt phần chưa chi trước khi huỷ khoản thu.`);
   }
   if (sau.daChi + sau.daChuyen > sau.daDuyet) return sai("coc_exceeds_approved", "Số đã chi / đã chuyển vượt số đã duyệt.");
   return { ok: true };
@@ -375,7 +375,7 @@ export function kiemChi(input: { conLaiKhoan: number; soTien: number; nguoiChi: 
   if (input.nguoiDuyet !== null && input.nguoiChi === input.nguoiDuyet) return sai("coc_same_person", "Người duyệt không tự chi / chuyển khoản này — cần một người khác (tách nhiệm vụ).");
   if (input.soTien > input.conLaiKhoan) return sai("coc_exceeds_approved", `Vượt phần đã duyệt còn lại (${dong(Math.max(0, input.conLaiKhoan))}).`);
   if (input.nguoiTraDangGiu !== null && input.soTien > input.nguoiTraDangGiu) {
-    return sai("coc_exceeds_held", `Người trả chỉ đang giữ ${dong(Math.max(0, input.nguoiTraDangGiu))} của đơn này.`);
+    return sai("coc_exceeds_held", `Người trả chỉ còn ${dong(Math.max(0, input.nguoiTraDangGiu))} của đơn này chưa nộp về công ty.`);
   }
   return { ok: true };
 }
@@ -410,7 +410,7 @@ export function nhacCoc(input: { nhom: NhomHuy; han: string; homNay: string; coc
 }
 
 /**
- * Dòng nợ sinh NGAY khi ghi một lần thu của khách (ADR-0026 điều 4 gạch 1–2; ADR-0120 Điều 1 chỉ thay gạch 2 cho CHUYỂN KHOẢN):
+ * Dòng nợ sinh NGAY khi ghi một khoản thu của khách (ADR-0026 điều 4 gạch 1–2; ADR-0120 Điều 1 chỉ thay gạch 2 cho CHUYỂN KHOẢN):
  *  - người thu không phải Công ty (nhân viên, bên đặt) ⇒ *tiền đang giữ hộ*: người thu nợ công ty đúng số đó;
  *  - người thu = Công ty, người GHI là Kế toán/Toàn quyền ⇒ không dòng (tiền đã về công ty);
  *  - người thu = Công ty, người khác khai, hình thức CHUYỂN KHOẢN ⇒ KHÔNG dòng nào — khoản ĐANG ĐỐI CHIẾU (dấu DECLARED, `canDoiChieu`) tới khi Kế toán bấm
@@ -452,7 +452,7 @@ export function sinhDongQuyetToan(input: { nguoiNopPartyId: string; congTyId: st
 }
 
 /**
- * "Đã hoàn khách Y (người trả: X)" (ADR-0026 điều 5, M2): lần thu loại *trả lại khách* (giảm đã thu ròng) + nếu người trả KHÔNG phải công ty (trả bằng tiền mình
+ * "Đã hoàn khách Y (người trả: X)" (ADR-0026 điều 5, M2): khoản thu loại *trả lại khách* (giảm đã thu ròng) + nếu người trả KHÔNG phải công ty (trả bằng tiền mình
  * đang giữ) thì dòng *hoàn khách* công ty → X bù phần giữ hộ đó. Công ty tự trả ⇒ không dòng.
  */
 export function sinhDongHoanKhach(input: { nguoiTraPartyId: string; congTyId: string; so: number }): LineDraft[] {
@@ -508,7 +508,7 @@ export function lyDoChuaGiaoDuoc(input: {
   soKhoanDoiChieu: number;
   so: SoTienDon;
 }): LyDoGiu | null {
-  if (input.deliveredAt) return { ma: "already_delivered", cau: "Đơn đã Đã giao – đã thu đủ.", aiXuLy: "Văn phòng" };
+  if (input.deliveredAt) return { ma: "already_delivered", cau: "Đơn đã ở bước Đã giao – đã thu đủ.", aiXuLy: "Văn phòng" };
   if (input.status === "cancelled") return { ma: "cancelled", cau: "Đơn đã huỷ.", aiXuLy: "Văn phòng" };
   if (input.status !== "confirmed") return { ma: "not_confirmed", cau: "Đơn chưa xác nhận — xác nhận đơn trước.", aiXuLy: "Người lập đơn" };
   if (input.dichVuThieuNgay.length > 0 || input.ngayDi.length === 0 || input.ngayDi.some((d) => d === null)) {
@@ -523,13 +523,13 @@ export function lyDoChuaGiaoDuoc(input: {
     return { ma: "booker_partner", cau: "Đơn của đối tác (có người hưởng hoa hồng) — chưa bấm Đã giao được cho tới bản cập nhật sổ đại lý.", aiXuLy: "Văn phòng" };
   }
   if (input.soKhoanDoiChieu > 0) {
-    return { ma: "reconciling", cau: "Còn khoản chuyển khoản “Công ty thu” đang chờ Kế toán đối chiếu — Kế toán bấm “Công ty đã nhận” rồi mới bấm Đã giao được.", aiXuLy: "Kế toán" };
+    return { ma: "reconciling", cau: "Còn khoản chuyển khoản “Công ty thu” đang chờ Kế toán đối chiếu — Kế toán bấm “Xác nhận đã nhận” rồi mới bấm Đã giao được.", aiXuLy: "Kế toán" };
   }
   if (input.so.chuaRo > 0) {
-    return { ma: "unknown_collector", cau: "Còn tiền trả trước chưa rõ người thu — Kế toán xác nhận lại người thu trước.", aiXuLy: "Kế toán" };
+    return { ma: "unknown_collector", cau: "Còn tiền trả trước chưa rõ người thu tiền — Kế toán xác nhận lại người thu tiền trước.", aiXuLy: "Kế toán" };
   }
   if (input.so.conLai > 0) {
-    return { ma: "underpaid", cau: `Còn thiếu ${dong(input.so.conLai)} — ghi thêm lần thu hoặc sửa đơn trước.`, aiXuLy: "Hướng dẫn viên" };
+    return { ma: "underpaid", cau: `Còn thiếu ${dong(input.so.conLai)} — ghi thêm khoản thu hoặc sửa đơn trước.`, aiXuLy: "Hướng dẫn viên" };
   }
   if (input.so.du > 0) return { ma: "overpaid", cau: `Khách đã trả dư ${dong(input.so.du)} — chờ Kế toán hoàn.`, aiXuLy: "Kế toán" };
   return null;
@@ -550,13 +550,13 @@ export function lyDoChuaHoanThanh(input: {
   if (input.completedAt) return { ma: "already_completed", cau: "Đơn đã Hoàn thành.", aiXuLy: "Kế toán" };
   const no = [...input.soDu.entries()].filter(([, so]) => so > 0);
   if (no.length > 0) {
-    const ds = no.map(([ben, so]) => `${input.tenBen(ben)} đang giữ ${dong(so)}`).join("; ");
-    return { ma: "unsettled", cau: `Còn người giữ tiền của công ty: ${ds} — ghi nộp tiền / xác nhận công ty đã nhận trước.`, aiXuLy: "Kế toán" };
+    const ds = no.map(([ben, so]) => `${input.tenBen(ben)} còn ${dong(so)} chưa nộp`).join("; ");
+    return { ma: "unsettled", cau: `Còn người chưa nộp tiền về công ty: ${ds} — ghi nộp tiền / xác nhận công ty đã nhận trước.`, aiXuLy: "Kế toán" };
   }
   if (input.phaiThuLucGiao !== null && input.daThu !== input.phaiThuLucGiao) {
     return {
       ma: "due_mismatch", aiXuLy: "Kế toán",
-      cau: `Số đã thu (${dong(input.daThu)}) khác phải thu lúc Đã giao (${dong(input.phaiThuLucGiao)}) — Kế toán dùng “Thay lần thu” trước khi Hoàn thành.`,
+      cau: `Số đã thu (${dong(input.daThu)}) khác phải thu lúc Đã giao (${dong(input.phaiThuLucGiao)}) — Kế toán dùng “Sửa khoản thu đã ghi” trước khi Hoàn thành.`,
     };
   }
   return null;

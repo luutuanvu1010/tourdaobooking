@@ -164,7 +164,10 @@ try {
   assert.equal(after.order.status, "confirmed");
   assert.deepEqual([after.order.total, after.order.subtotal, s0.pax.adult, s1.items[0].unitPrice], [before.total, before.subtotal, 2, 800000], "tiền và số khách không đổi");
   assert.notEqual(after.order.updatedAt, before.updatedAt);
-  assert.equal(after.history.at(-1).action, "trip_updated");
+  // G17 (ADR-0052 D6.2): sau dòng trip_updated, mỗi chặng đổi ngày / giờ đón có thêm một dòng order_leg_updated ngay sau.
+  const iTrip = after.history.map((x) => x.action).lastIndexOf("trip_updated");
+  assert.ok(iTrip >= 0, "có dòng trip_updated");
+  assert.deepEqual([...new Set(after.history.slice(iTrip + 1).map((x) => x.action))].filter((a) => a !== "order_leg_updated"), [], "sau trip_updated chỉ có order_leg_updated");
   ok("lưu thành công: một ngày cho cả đơn áp cho mọi dịch vụ; banner 'Đã lưu…', focus về nút, PUT đủ mọi dịch vụ ('' xoá điểm đón), phần khác/tiền/số khách nguyên vẹn, nhật ký trip_updated");
 
   // ---- 6) đơn đã đổi ở nơi khác → stale: bản đang gõ nói rõ sẽ mất, nút tải lại ----

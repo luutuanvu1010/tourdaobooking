@@ -66,7 +66,7 @@ try {
       try {
         await p.waitFor("!document.querySelector('#an-danh-phien').hidden", "khối ẩn danh phiên cũ", 15000);
         const s = await vung(p, "#an-danh-phien");
-        assert.ok(s.chu.includes("Ẩn danh hoá phiên cũ") && s.chu.includes("Chính sách riêng tư chưa có thời hạn giữ phiên"), s.chu);
+        assert.ok(s.chu.includes("Ẩn danh hoá máy đã đăng xuất") && s.chu.includes("Chính sách riêng tư chưa có thời hạn giữ thông tin máy đã đăng xuất"), s.chu);
         assert.ok(s.nutHien.some((b) => b.chu === "Ẩn danh hoá" && b.tat === true), "nút phải tắt khi chưa có thời hạn");
         await axe(p, `phien-chua-co-han ${ten}`);
         await shotFull(p, `phien-chua-co-han-${ten}.png`);
@@ -331,7 +331,7 @@ try {
     try {
       await p.waitFor("!document.querySelector('#an-danh-phien').hidden", "khối ẩn danh phiên cũ", 15000);
       let s = await vung(p, "#an-danh-phien");
-      assert.ok(s.chu.includes("Ẩn danh IP và thông tin máy của 2 phiên đã kết thúc quá 1 ngày."), s.chu);
+      assert.ok(s.chu.includes("Ẩn danh IP và thông tin máy của 2 máy đã đăng xuất quá 1 ngày."), s.chu);
       assert.ok(s.nutHien.find((b) => b.chu === "Ẩn danh hoá")?.tat === false);
       await bam(p, "#an-danh-phien", "Ẩn danh hoá");
       s = await vung(p, "#adp-xac-nhan");
@@ -350,8 +350,8 @@ try {
       await p.waitFor("!document.querySelector('#an-danh-phien').hidden && document.querySelector('#adp-nut') && !document.querySelector('#adp-nut').disabled", "nút ẩn danh hoá", 15000);
       await bam(p, "#an-danh-phien", "Ẩn danh hoá");
       await bam(p, "#adp-xac-nhan", "Xác nhận ẩn danh hoá");
-      await p.waitFor(`(${txt("#ok")}) && ${txt("#ok")}.includes('Đã ẩn danh hoá 2 phiên.')`, "thông báo", 20000);
-      await p.waitFor("document.querySelector('#adp-dong') && document.querySelector('#adp-dong').innerText.includes('của 0 phiên')", "khối về 0 phiên", 15000);
+      await p.waitFor(`(${txt("#ok")}) && ${txt("#ok")}.includes('Đã ẩn danh hoá 2 máy đã đăng xuất.')`, "thông báo", 20000);
+      await p.waitFor("document.querySelector('#adp-dong') && document.querySelector('#adp-dong').innerText.includes('của 0 máy đã đăng xuất')", "khối về 0 phiên", 15000);
       const con = env.sql(`SELECT count(*) AS n FROM aut_session WHERE staff_id = '${staffSales}' AND (ip IS NOT NULL OR user_agent IS NOT NULL)`)[0].n;
       assert.equal(con, 0, "phiên cũ còn IP / thông tin máy");
       await axe(p, "phien-sau-an-danh 1040");

@@ -224,9 +224,9 @@ export function tinChuyenCho(n: NguoiNhanChuyen, d: DongChuyen): { loai: LoaiTin
     case "de_nghi_toi": return { loai, cau: `Có đề nghị chuyển khách tới ${c} — mở để Nhận hoặc Không nhận`, lienKet: `/cuoc-chuyen?id=${id}` };
     case "de_nghi_ket_qua": return { loai, cau: (CAU_XE_NHAN[d.action] ?? ((x: string) => `Đề nghị chuyển khách tới ${x} vừa đổi trạng thái`))(c), lienKet: `/cuoc-chuyen?id=${id}` };
     case "de_nghi_can_duyet": return { loai, cau: `Đề nghị chuyển khách tới ${c} cần văn phòng duyệt`, lienKet: "/de-nghi" };
-    case "thu_hoi_xuat_ben": return { loai, cau: `Văn phòng vừa thu hồi xuất bến ${c} — chuyến về chưa chạy, bấm Xuất bến lại khi xe thật sự chạy`, lienKet: `/cuoc-chuyen?id=${id}` };
+    case "thu_hoi_xuat_ben": return { loai, cau: `Văn phòng vừa thu hồi lệnh cho xe chạy ${c} — chuyến về chưa chạy, bấm lại Cho xe chạy khi xe thật sự lăn bánh`, lienKet: `/cuoc-chuyen?id=${id}` };
     case "dieu_chinh": {
-      const cau = d.action === "trip_departure_revoked" ? `${hoa(c)} vừa được thu hồi xuất bến — mở để xem` : `${hoa(c)}: văn phòng vừa điều chỉnh kết quả một khách — mở để xem`;
+      const cau = d.action === "trip_departure_revoked" ? `${hoa(c)} vừa được thu hồi lệnh cho xe chạy — mở để xem` : `${hoa(c)}: văn phòng vừa điều chỉnh kết quả một khách — mở để xem`;
       return { loai, cau, lienKet: `/chuyen?id=${id}` };
     }
     case "tu_choi": return { loai, cau: `Tài xế đã từ chối ${c} — cần xếp người khác`, lienKet: `/chuyen?id=${id}` };

@@ -234,7 +234,7 @@ export async function taiXeChoDieuPhoi(db: D1Database, v: { today: string }): Pr
   }));
 }
 
-const ACCOUNT_ROLE = () => error(409, "role_via_account", "Vai này quyết định quyền đăng nhập nên chỉ gán hoặc gỡ ở màn Quản lý tài khoản.");
+const ACCOUNT_ROLE = () => error(409, "role_via_account", "Vai trò này quyết định quyền đăng nhập nên chỉ gán hoặc gỡ ở màn Quản lý tài khoản.");
 // Ruling R6 (điều phối 2026-09-28; ADR-0040 D3): loại công việc đã ngưng dùng (active = 0) không gán mới — áp cho MỌI loại đã ngưng, trừ đổi công ty chủ.
 const ROLE_TYPE_INACTIVE = () => error(409, "role_type_inactive", "Loại công việc này đã ngưng dùng nên không gán mới được. Chọn loại khác trong danh sách.");
 const isAccountGroup = (g: string | null): boolean => g === "INTERNAL" || g === "EXTERNAL";
@@ -244,7 +244,7 @@ const STALE = () => error(409, "stale", "Hồ sơ vừa được người khác 
 const NOT_OPEN = () => error(409, "not_open", "Dòng này không còn đang hiệu lực (đã đóng hoặc không tồn tại), hoặc ngày kết thúc trước ngày bắt đầu.");
 const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không xem được hồ sơ.");
 const FORBIDDEN_WRITE = () => error(403, "forbidden", "Tài khoản này không được sửa hồ sơ này. Hồ sơ của người có tài khoản chỉ quản trị viên cấp trên sửa.");
-const ACTIVE_BY_ACCOUNT = () => error(409, "account_rule", "Người này có tài khoản: tạm khoá hoặc cho nghỉ việc ở màn Quản lý tài khoản.");
+const ACTIVE_BY_ACCOUNT = () => error(409, "account_rule", "Người này có tài khoản: muốn thôi dùng thì bấm Ngưng ở màn Quản lý tài khoản.");
 // ADR-0024 6.4 + ADR-0038 điều 7: hồ sơ công ty chủ chỉ người giữ ô company.legal.write sửa. Chữ nói "người phụ trách hệ thống", KHÔNG "Toàn quyền"
 // (Toàn quyền là vai ẩn — ADR-0038 điều 8 / ADR-0042; chỉ đạo D5 của nhật ký thi công T2b).
 const OWNER_COMPANY_FORBIDDEN = () =>
@@ -286,7 +286,7 @@ function constraintProblem(e: unknown): Response | null {
   // Lớp CSDL của vai "Công ty chủ" (trigger *_keep_last, *_start_today): chỉ tới đây khi lớp route bị vượt — mã riêng để phân biệt với lớp route (P16).
   if (/owner_company_last_open/.test(m)) return error(409, "owner_company_last_open", KHONG_KET_THUC_CONG_TY_CHU);
   if (/owner_company_start_not_today/.test(m)) return error(409, "owner_company_start_not_today", NGAY_BAT_DAU_HOM_NAY);
-  if (/party_role_group_conflict/.test(m)) return error(409, "role_group_conflict", "Một hồ sơ không giữ cùng lúc vai nội bộ và vai bên ngoài.");
+  if (/party_role_group_conflict/.test(m)) return error(409, "role_group_conflict", "Một hồ sơ không giữ cùng lúc vai trò nội bộ và vai trò bên ngoài.");
   // ADR-0117 điều 4: lưới cuối của luật «nội bộ» (trigger *_partner_label_conflict) — cùng mã/câu với lớp route (người gọi ở đây giữ admin.manage).
   if (/partner_label_conflict/.test(m)) return ROLE_PARTNER_LABEL_CONFLICT();
   if (/party_role_overlap|pty_party_role_open_uq/.test(m)) return error(409, "role_overlap", "Hồ sơ này đã có công việc đó ở nơi đó trong khoảng thời gian trùng.");
@@ -1271,7 +1271,7 @@ export const partiesModule: AppModule = {
       if (kl.lyDo !== null) return error(409, MA_LOI_XU_LY[kl.lyDo as keyof typeof MA_LOI_XU_LY], NHAN_LY_DO_KHONG_XU_LY[kl.lyDo]);
       const at = new Date().toISOString();
       const cauPhien = chuPhieu ? cauAnDanhPhien(chuPhieu.id, at, staff.id) : null;
-      if (chuPhieu && !cauPhien) return error(503, "erasure_unavailable", "Chưa thực hiện được: thiếu phần xoá thông tin phiên đăng nhập. Hãy báo quản trị viên.");
+      if (chuPhieu && !cauPhien) return error(503, "erasure_unavailable", "Chưa thực hiện được: thiếu phần xoá thông tin máy đăng nhập. Hãy báo quản trị viên.");
       const giu = giuTen({ permissions: chuPhieu?.permissions ?? [], don: kl.don, soDongNo: kl.soNo });
       const dem = await demXemTruocXoa(env.DB, p.party_id);
       const lo = [

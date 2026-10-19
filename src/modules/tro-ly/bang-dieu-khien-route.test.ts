@@ -93,7 +93,7 @@ test("HÀNG RÀO vai tắt: tắt Đối tác ⇒ tài khoản chỉ-Đối tác
   r = await hoi(w, DOITAC, "đổi mã PIN thế nào");
   assert.equal(r.status, 403, r.text);
   assert.equal(r.json.error.code, "tro_ly_vai_tat");
-  assert.match(r.json.error.message, /^Trợ lý đang tắt với vai của bạn/);
+  assert.match(r.json.error.message, /^Trợ lý đang tắt với vai trò của bạn/);
   assert.equal(goi.length, 0);
   assert.equal(w.q("SELECT count(*) AS n FROM tl_luot_hoi")[0]!.n, 0);
   assert.equal(w.q("SELECT count(*) AS n FROM tl_hoi_dap")[0]!.n, 0);
@@ -115,7 +115,7 @@ test("vai tắt được chặn TRƯỚC trần: tắt vai + đã chạm trần 
   assert.equal(w.q("SELECT count(*) AS n FROM tl_luot_hoi")[0]!.n, 0);
 });
 
-test("POST /api/tro-ly/vai: thiếu mã / mã lạ ⇒ 400; chỉ ghi bản mới cho mã ĐỔI; một dòng nhật ký 'công tắc theo vai' không nội dung", async () => {
+test("POST /api/tro-ly/vai: thiếu mã / mã lạ ⇒ 400; chỉ ghi bản mới cho mã ĐỔI; một dòng nhật ký 'công tắc theo vai trò' không nội dung", async () => {
   const w = setup();
   assert.equal((await w.call("POST", "/api/tro-ly/vai", { as: SUP, body: { vai: { SALES: true } } })).status, 400);
   const truoc = w.q("SELECT count(*) AS n FROM tl_vai")[0]!.n;
@@ -127,7 +127,7 @@ test("POST /api/tro-ly/vai: thiếu mã / mã lạ ⇒ 400; chỉ ghi bản mớ
   assert.equal((await datVai(w, { ...tatCa(true), DRIVER: false, INTERN: false })).status, 200);
   assert.equal(w.q("SELECT count(*) AS n FROM tl_vai")[0]!.n, truoc + 2, "không đổi gì ⇒ không thêm bản");
   const nk = w.q("SELECT staff_id, detail, target_type, target_id FROM audit_log WHERE action = 'tro_ly_settings_changed'");
-  assert.deepEqual(nk.map((x) => ({ ...x })), [{ staff_id: SUP, detail: "công tắc theo vai", target_type: "system", target_id: "tro-ly" }]);
+  assert.deepEqual(nk.map((x) => ({ ...x })), [{ staff_id: SUP, detail: "công tắc theo vai trò", target_type: "system", target_id: "tro-ly" }]);
 });
 
 test("lời dặn: lưu bản mới (chỉ thêm) → khung hiện câu chào + câu hỏi mẫu mới; SĐT / email / số tiền ⇒ 400 không ghi; quay lại = lưu lại bản cũ", async () => {
@@ -164,7 +164,7 @@ test("B5: chưa có bản bộ não ⇒ lời nhắc gửi đi = bản mặc đ�
   assert.equal((await w.call("POST", "/api/tro-ly/loi-dan", { as: SUP, body: LOI_DAN })).status, 200);
   assert.equal((await hoi(w, SALES, "đổi mã PIN thế nào")).status, 200);
   const ins = String(goi[0]!.body.instructions);
-  assert.ok(ins.startsWith(`${LOI_NHAC_MAC_DINH}\n\nGiọng: ngắn, thân thiện\nLời dặn: Gọi người dùng là bạn.\n\n${dongMai(xungHo("An", null))}\n${DONG_DINH_DANG}\nNgười hỏi thuộc nhóm vai: Bán hàng.`), ins.slice(0, 80));
+  assert.ok(ins.startsWith(`${LOI_NHAC_MAC_DINH}\n\nGiọng: ngắn, thân thiện\nLời dặn: Gọi người dùng là bạn.\n\n${dongMai(xungHo("An", null))}\n${DONG_DINH_DANG}\nNgười hỏi thuộc nhóm vai trò: Bán hàng.`), ins.slice(0, 80));
   assert.ok(ins.lastIndexOf("TÀI LIỆU:") > ins.indexOf("Lời dặn: Gọi người dùng là bạn."));
   assert.equal(ins.split("TÀI LIỆU:").length, 2, "đúng MỘT khối tài liệu");
   assert.equal(goi[0]!.body.input, "đổi mã PIN thế nào");

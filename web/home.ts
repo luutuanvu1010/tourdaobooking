@@ -317,7 +317,7 @@ function renderReview(alerts: ReviewAlerts | null): void {
     rows.push(reviewRow("dash-review-icon-sand", "truck", "/giay-to-sap-het-han", `${alerts.expiringDocs.count} giấy tờ sắp hết hạn`, "Vận chuyển · Giấy tờ sắp hết hạn"));
   }
   if (alerts.doiChieu) {
-    rows.push(reviewRow("dash-review-icon-sand", "money", "/orders", tieuDeDemDoiChieu(alerts.doiChieu.count), "Mở đơn, đối chiếu rồi bấm “Công ty đã nhận” hoặc đảo lần thu"));
+    rows.push(reviewRow("dash-review-icon-sand", "money", "/orders", tieuDeDemDoiChieu(alerts.doiChieu.count), "Mở đơn, đối chiếu rồi bấm “Xác nhận đã nhận” hoặc huỷ khoản thu"));
   }
   if (alerts.feedbackQueue) {
     const f = alerts.feedbackQueue;

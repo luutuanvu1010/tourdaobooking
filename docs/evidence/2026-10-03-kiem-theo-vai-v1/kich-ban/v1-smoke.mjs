@@ -61,7 +61,7 @@ try {
     assert.equal(rows[0][1], d.T4.ma);
     assert.match(rows[1][1], new RegExp(`${dm(d.NGAY_KHOA)}/\\d{4}$`));
     assert.deepEqual(rows.slice(2).map((r) => r[1]), ["10:00", "79A-111.11", "2 khách"]);
-    assert.equal(await p.ev(txt('[data-action="xuat-ben-xac-nhan"]')), "Vẫn xuất bến");
+    assert.equal(await p.ev(txt('[data-action="xuat-ben-xac-nhan"]')), "Vẫn cho xe chạy");
     // Chữ nút trong hai nửa chân hộp không bị cắt (lần chạy đầu 3/10: "Vẫn xuất bến chuyến ngày 04/10" tràn khỏi nút ở 390).
     assert.equal(await p.ev(`[...document.querySelectorAll('.sheet-foot .vc-btn')].every((b) => b.scrollWidth <= b.clientWidth + 1)`), true, "chữ nút chân hộp không tràn");
     assert.ok(await p.ev(`!!document.querySelector('.sheet .banner-danger')`), "dải đỏ trong hộp");
@@ -91,7 +91,7 @@ try {
     const homNay = await pg.ev(`(() => { const s = document.querySelector('.dp-cuoc-day'); return { t: s.querySelector('.dp-cuoc-day-title').innerText, ngay: s.querySelector('.dp-cuoc-date').innerText, the: [...s.querySelectorAll('.dp-cuoc-the')].map((x) => ({ ma: x.querySelector('.dp-cuoc-ma').innerText, ngay: x.querySelector('.dp-cuoc-xb-ngay')?.innerText ?? null, chay: x.classList.contains('is-chay') })) }; })()`);
     assert.equal(homNay.t, "Hôm nay");
     assert.match(homNay.ngay, new RegExp(`${dm(vnDate(2))}$`), "trang thật sự đang ở ngày giả");
-    assert.deepEqual(homNay.the[0], { ma: d.T4.ma, ngay: `Xuất bến ${dm(d.NGAY_KHOA)}`, chay: true }, JSON.stringify(homNay));
+    assert.deepEqual(homNay.the[0], { ma: d.T4.ma, ngay: `Xe chạy ${dm(d.NGAY_KHOA)}`, chay: true }, JSON.stringify(homNay));
     assert.ok(apiCalls(pg).some((r) => r.path === "/api/van-chuyen/cuoc-cua-toi"), "gọi route danh sách");
     await shotFull(pg, "3-cuoc-qua-nua-dem-dien-thoai.png");
     pg.close();

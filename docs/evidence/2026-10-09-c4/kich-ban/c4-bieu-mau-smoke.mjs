@@ -21,7 +21,7 @@ env.sql(`INSERT INTO loc_location (id, code, name, location_type_code, sort_orde
   ('${HAVANA}', 'KS_HAVANA', 'Khách sạn Havana Nha Trang', 'HOTEL', 20, ${T}, ${T}),
   ('${MUONG}', 'KS_MUONG_THANH', 'Khách sạn Mường Thanh Luxury Nha Trang', 'HOTEL', 21, ${T}, ${T}),
   ('${SB}', 'SB_CAM_RANH', 'Sân bay Cam Ranh', 'AIRPORT', 22, ${T}, ${T});`);
-const CAU_XR = "Có chặng Xe riêng nhưng đơn chưa có dịch vụ Giá theo nhóm — kiểm lại tiền xe";
+const CAU_XR = "Có lượt đưa đón Xe riêng nhưng đơn chưa có dịch vụ Giá theo nhóm — kiểm lại tiền xe";
 const card = "#services .svc";
 const chang = `${card} .dd-chang[data-chieu="OUT"]`;
 const DON = `${chang} [data-o$=":don"]`;

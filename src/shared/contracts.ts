@@ -2042,7 +2042,7 @@ export interface LyDoGiuDonDto {
   aiXuLy: string;
 }
 
-/** Một lần thu trên màn đơn (nội bộ). Nhãn đã là tiếng Việt; mã thô không lộ ra. */
+/** Một khoản thu trên màn đơn (nội bộ). Nhãn đã là tiếng Việt; mã thô không lộ ra. */
 export interface LanThuDto {
   id: string;
   /** true = trả lại khách (hoàn). */
@@ -2051,14 +2051,14 @@ export interface LanThuDto {
   hinhThuc: string;
   /** "Công ty", tên người thu, hoặc "Chưa rõ". */
   nguoiThu: string;
-  /** Hồ sơ người thu — CHỈ cho người xem là Kế toán / Toàn quyền (null với người khác): để "Thay lần thu" mặc định đúng người thu cũ (kiểm độc lập vòng 3). */
+  /** Hồ sơ người thu — CHỈ cho người xem là Kế toán / Toàn quyền (null với người khác): để "Sửa khoản thu đã ghi" mặc định đúng người thu cũ (kiểm độc lập vòng 3). */
   nguoiThuPartyId: string | null;
   nguoiThuChuaRo: boolean;
   giaiDoan: string;
   ngayPhatSinh: string;
   daDao: boolean;
   laDongDao: boolean;
-  /** Người ghi + ghi chú của lần thu: với người giữ quyền Đối tác (D-1) KHOÁ VẮNG ở lần thu do người khác ghi (chỉ giữ ở lần thu chính họ ghi). */
+  /** Người ghi + ghi chú của khoản thu: với người giữ quyền Đối tác (D-1) KHOÁ VẮNG ở khoản thu do người khác ghi (chỉ giữ ở khoản thu chính họ ghi). */
   nguoiGhi?: string | null;
   ghiChu?: string | null;
   ghiLuc: string;
@@ -2077,7 +2077,7 @@ export interface OrderPaymentsResponse {
   lanThu: LanThuDto[];
   deliveredAt: string | null;
   completedAt: string | null;
-  /** null = đủ điều kiện "Đã giao" (hoặc đã Đã giao — xem deliveredAt). */
+  /** null = đủ điều kiện "Đã giao" (hoặc đã ở bước Đã giao — xem deliveredAt). */
   lyDoChuaGiao: LyDoGiuDonDto | null;
   lyDoChuaHoanThanh: LyDoGiuDonDto | null;
   /** Số tiền của công ty người đang xem còn giữ vì đơn này (hộp xác nhận "Bạn đang giữ X ₫ của công ty"). */
@@ -2092,7 +2092,7 @@ export interface OrderPaymentsResponse {
   laKeToan: boolean;
   /**
    * Thao tác Kế toán đặt TẠM trên trang đơn (điều phối 30/9 — hai màn sổ riêng chờ chủ vẽ lại): CHỈ có khi `laKeToan`, còn lại `null`.
-   * `dangGiu` = ai đang giữ tiền của công ty VÌ ĐƠN NÀY (số dư dương của sổ, theo đơn); `choXacNhan` = id lần thu "Công ty thu – CK" chưa được xác nhận.
+   * `dangGiu` = ai đang giữ tiền của công ty VÌ ĐƠN NÀY (số dư dương của sổ, theo đơn); `choXacNhan` = id khoản thu "Công ty thu – CK" chưa được xác nhận.
    */
   keToan: { dangGiu: { partyId: string; ten: string; soTien: number; choXacNhan: number }[]; choXacNhan: string[] } | null;
   /** ADR-0089: tiền cọc của ĐƠN HUỶ (null với đơn không huỷ). */
@@ -2187,7 +2187,7 @@ export interface CocDemResponse {
   doiChieuQua3Ngay: number;
 }
 
-/** Thân ghi một lần thu (`POST /api/orders/:id/payments`, và `lanThu` tuỳ chọn của `POST /api/orders/:id/delivered`). */
+/** Thân ghi một khoản thu (`POST /api/orders/:id/payments`, và `lanThu` tuỳ chọn của `POST /api/orders/:id/delivered`). */
 export interface LanThuInput {
   soTien: number;
   hinhThuc: "CASH" | "BANK_TRANSFER" | "OTHER";
@@ -2226,7 +2226,7 @@ export interface SoCuaToiResponse {
   dong: SoCuaToiDongDto[];
 }
 
-/** `GET /api/ledger` (Kế toán, Toàn quyền): số dư từng bên với công ty, khoản "Công ty thu" chờ xác nhận, lần thu chưa rõ người thu. */
+/** `GET /api/ledger` (Kế toán, Toàn quyền): số dư từng bên với công ty, khoản "Công ty thu" chờ xác nhận, khoản thu chưa rõ người thu. */
 export interface SoCongNoResponse {
   soDu: { partyId: string; ten: string; dangGiu: number }[];
   choXacNhan: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string; nguoiKhai: string }[];
@@ -2281,7 +2281,7 @@ export interface TaoYeuCauDieuChinhResponse {
 
 /**
  * `GET /api/ledger/ky` và thân `201` của `POST /api/ledger/ky/:period/khoa` (khoá sổ tháng — ADR-0080 D1; Kế toán, Toàn quyền). `keTiep` = tháng khoá được kế tiếp (null = hết
- * tháng đã qua để khoá); `bangKiem` = bảng kiểm của tháng đó trước khi bấm khoá (null khi `keTiep` null): khoản "Công ty thu" còn chờ xác nhận, lần thu chưa rõ người thu
+ * tháng đã qua để khoá); `bangKiem` = bảng kiểm của tháng đó trước khi bấm khoá (null khi `keTiep` null): khoản "Công ty thu" còn chờ xác nhận, khoản thu chưa rõ người thu
  * (chỉ mã đơn, số tiền, ngày — không SĐT, không mã giao dịch) và số dư mỗi bên với công ty tính đến cuối tháng. `coTheKhoa` = người xem có ô khoá VÀ còn tháng để khoá.
  */
 export interface KySoResponse {

@@ -81,14 +81,14 @@ function veTinhTrang(daLuu = false): void {
     h("h2", { id: "tl-tinh-trang-h" }, "Tình trạng"),
     h("p", null, s.bat ? "Đang bật." : "Đang tắt — không ai hỏi được."),
     h("p", null, s.coKhoa ? `Key: đã đặt${s.khoaCuoi ? ` (kết thúc bằng …${s.khoaCuoi})` : ""}.` : "Key: chưa đặt — trợ lý báo “chưa bật” tới khi có key."),
-    h("p", { class: "muted" }, "Đổi key làm trên Cloudflare, không nhập trong app."),
+    h("p", { class: "muted" }, "Đổi key làm trên Cloudflare, không nhập trong Nền tảng."),
     h("div", { class: "tl-cd-hang" }, thu),
     baoThu.el,
     h("p", null, `Tháng ${thang}/${nam}: đã dùng ${usd(s.chiPhiThangUsd)} trên trần ${usd(s.tranThangUsd)} · ${s.soCauThang} câu. Hôm nay: ${s.soCauHomNay} câu.`),
     h("p", { id: "tl-luot-thu" }, `Lượt thử tháng này: ${s.soLuotThuThang} lượt thử (Thử key và ô thử) — tiền tháng ở trên đã gồm cả lượt thử.`),
     s.theoVai.length
       ? h("ul", { class: "tl-cd-ds" }, ...s.theoVai.map((v) => h("li", null, `${PERMISSION_LABEL[v.vai]}: ${v.soCau} câu · ${usd(v.chiPhiUsd)}`)))
-      : h("p", { class: "muted" }, "Tháng này chưa có câu hỏi nào theo vai."),
+      : h("p", { class: "muted" }, "Tháng này chưa có câu hỏi nào theo vai trò."),
     form,
   );
 }
@@ -107,8 +107,8 @@ function veAiDung(daLuu = false): void {
   const form = h(
     "form",
     { class: "tl-cd-form" },
-    h("fieldset", { class: "tl-cd-vai" }, h("legend", null, "Vai được dùng trợ lý"), ...dong),
-    h("p", { class: "muted" }, "Tài khoản có nhiều vai được dùng khi ít nhất một vai đang bật. Vai tắt không thấy nút Hỗ trợ."),
+    h("fieldset", { class: "tl-cd-vai" }, h("legend", null, "Vai trò được dùng trợ lý"), ...dong),
+    h("p", { class: "muted" }, "Tài khoản có nhiều vai trò được dùng khi ít nhất một vai trò đang bật. Vai trò tắt không thấy nút Trợ lý."),
     h("label", null, "Số câu mỗi người mỗi ngày", ngay),
     luu,
     bao.el,
@@ -344,7 +344,7 @@ function dungBoNao(): void {
     vungCauHinh,
     h("h3", { class: "tl-cd-tieu-de" }, "Thử trước khi lưu"),
     h("p", { class: "muted" }, "Chạy câu hỏi với cấu hình đang soạn ở trên (chưa cần lưu). Lượt thử tính vào trần tiền tháng, không tính vào số câu mỗi ngày."),
-    h("label", null, "Vai giả định", vaiThu),
+    h("label", null, "Vai trò giả định", vaiThu),
     h("label", null, "Câu hỏi thử", cauThu),
     h("div", { class: "tl-cd-hang" }, nutThu),
     baoThu.el,
@@ -489,7 +489,7 @@ function veLichSu(): void {
   const tu = h("input", { type: "date", id: "tl-ls-tu" });
   const den = h("input", { type: "date", id: "tl-ls-den" });
   const nguoi = h("select", { id: "tl-ls-nguoi" }, h("option", { value: "" }, "Mọi người"));
-  const vai = h("select", { id: "tl-ls-vai" }, h("option", { value: "" }, "Mọi vai"), ...PERMISSION_CODES.map((p) => h("option", { value: p }, PERMISSION_LABEL[p])));
+  const vai = h("select", { id: "tl-ls-vai" }, h("option", { value: "" }, "Mọi vai trò"), ...PERMISSION_CODES.map((p) => h("option", { value: p }, PERMISSION_LABEL[p])));
   const q = h("input", { type: "search", id: "tl-ls-q", maxlength: 100, placeholder: "Tìm trong câu hỏi, câu trả lời" });
   const loc = h("button", { class: "btn btn-primary", type: "submit" }, "Lọc");
   const ds = h("ol", { class: "tl-cd-ds tl-ls-ds", "aria-live": "polite" });
@@ -539,7 +539,7 @@ function veLichSu(): void {
     h("label", null, "Từ ngày", tu),
     h("label", null, "Đến ngày", den),
     h("label", null, "Người hỏi", nguoi),
-    h("label", null, "Vai", vai),
+    h("label", null, "Vai trò", vai),
     h("label", { class: "tl-cd-loc-tim" }, "Tìm chữ", q),
     loc,
   );

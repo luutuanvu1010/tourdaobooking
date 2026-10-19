@@ -240,7 +240,7 @@
 
 ## 25. Đổi chữ "lần thu" thành "khoản thu" trên toàn Nền tảng (chủ chốt 2026-10-08)
 
-- **Ngày:** 2026-10-08 · **Nêu bởi:** chủ dự án, trong chat phiên QR thanh toán ("'Ghi lần thu' là 1 cụm từ cực kỳ tối nghĩa") · **Trạng thái:** `đã chốt tên, chưa làm`.
+- **Ngày:** 2026-10-08 · **Nêu bởi:** chủ dự án, trong chat phiên QR thanh toán ("'Ghi lần thu' là 1 cụm từ cực kỳ tối nghĩa") · **Trạng thái:** `đã làm 2026-10-18` (ADR-0130, chờ chủ day-len/trien-khai). Xoá mục này khi đã lên production.
 - **Tên mới chủ đã chọn:** "Khoản thu" — "Ghi lần thu" → **"Ghi khoản thu"**; "Thay lần thu" → **"Sửa khoản thu đã ghi"**; "Ghi bù lần thu" → **"Ghi bù khoản thu"**; các câu khác có chữ "lần thu" đổi theo cùng kiểu.
 - **Khi nào:** việc nhỏ riêng, làm NGAY SAU khi nhánh QR thanh toán đã nhập `main` (nhánh đó cũng thêm chữ "lần thu"), dựng trên `main` mới nhất.
 - **Phạm vi phải quét:** nhãn và câu báo ở `web/*.ts` (khoảng 17 tệp có chữ này), `src/shared/` (câu lỗi, Trợ giúp, nhật ký thay đổi chỉ sửa mục MỚI — mục cũ là hồ sơ có ngày, giữ nguyên), kho tri thức Trợ lý Mai sinh từ nhãn (`npm run build:web` sinh lại `src/shared/so-do-trang.ts` và tệp cấu trúc Trợ lý), kịch bản Chrome dò nút theo tên (`docs/evidence/*/kich-ban/`), tài liệu mô tả (`docs/SYSTEM-DESIGN.md`, `docs/CHANGE-GUIDE.md`). Tên cột / mã trong CSDL (`bil_receipt`…) KHÔNG đổi — chỉ chữ người dùng thấy.
@@ -477,3 +477,9 @@ Các việc khác từ cùng buổi xác nhận (đang chờ chủ quyết, chư
 - **Trạng thái:** `chưa làm` · Ý của chủ 17/10/2026: gom luật nghiệp vụ thành sổ tay cho nhân viên.
 - **Nguồn đã có để soạn:** `docs/VAN-CHUYEN.md` mục 0 (luật vận chuyển hiện hành từ bản 2.11, kèm nghĩa từng ô của Chính sách điều phối); Trợ giúp theo vai trong Nền tảng; nhật ký thay đổi (`src/shared/changelog.ts`); sổ vàng `golden/` (các ca đã chủ xác nhận).
 - **Việc khi làm:** chủ chọn phạm vi (theo vai hay theo luồng việc) và nơi đặt (trong Trợ giúp hay tài liệu riêng); rà lại các mục 1–5 của `docs/VAN-CHUYEN.md` (còn theo bản 1.38).
+
+## 42. Nút «Huỷ khoản thu» trên dòng trả lại khách và trên đơn đã huỷ (mã `BL-HUY-KHOAN-TRA-LAI`)
+
+- **Trạng thái:** `chờ chủ quyết` · Thấy ở rà soát ngôn ngữ 18/10 (`docs/superpowers/specs/2026-10-18-ra-soat-ngon-ngu-giao-dien.md` §5). Chủ chọn 18/10: «Chưa đổi, để tôi duyệt sau».
+- **Hiện trạng:** nút hiện trên dòng trả lại khách (chữ «Huỷ khoản trả lại») và trên khoản thu của đơn đã huỷ; máy chủ (`ghiDieuChinh`, loại `dao_lan_thu`) VẪN cho làm — chỉ chặn sau Đã giao, dòng huỷ, lệnh chuyển giữa hai đơn và các bất biến cọc. Bỏ nút là đổi luật tiền.
+- **Hai phương án đã đưa:** (a) ẩn ở đơn huỷ, giữ ở dòng trả lại — tiền đơn huỷ chỉ qua khối «Tiền của đơn huỷ», máy chủ chặn theo; (b) ẩn và chặn cả hai — nhưng ghi trả lại nhầm thì chưa có cách sửa khác. Lưu ý: khoản thu «chưa rõ» từ cọc cũ hiện dùng nút này để huỷ.

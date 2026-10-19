@@ -28,7 +28,7 @@ const legOf = (o) => o.services[0].legs[0];
 // lời đọc bằng `call` sau khi mở trang của CÙNG tài khoản nhận 401 (bước 3, 7, 8, 10 từng đỏ "Cannot read properties of undefined"). Khi trang của tài
 // khoản đó đang mở, đọc đơn QUA TRANG: cùng phiên, cùng người xem (Đối tác vẫn nhận DTO của Đối tác ở bước 10).
 const donQuaTrang = async (p, id) => (await p.ev(`fetch('/api/orders/' + ${JSON.stringify(id)}).then((r) => r.json())`)).order;
-const CAU_MOC = /^Giờ đón cách bây giờ \d+ giờ( \d+ phút)? — dưới mốc 48 giờ$/;
+const CAU_MOC = /^Giờ đón cách bây giờ \d+ giờ( \d+ phút)? — quá hạn chốt 48 giờ$/;
 const LY_DO = ["Khách đoàn gọi gấp", "Chuyến bay đổi giờ", "Đơn bù cho khách bị lỡ chuyến", "Lý do khác"];
 const card0 = `document.querySelector('#services .svc')`;
 const dongConfirmDialog = async (p) => {
@@ -109,10 +109,10 @@ try {
     await s.waitFor(shown("#order .dg-warn"), "trang đơn O1");
     await s.ev("window.confirm = () => true; true");
     await s.ev(`(() => { const b = [...document.querySelectorAll('#actions button')].find((x) => x.textContent === 'Xác nhận đơn'); b.disabled = false; b.click(); return true; })()`);
-    await s.waitFor(`${txt("#error .banner-title")} === 'Còn chặng đón dưới mốc tối thiểu — cần Quản trị duyệt đặt gấp trước khi xác nhận.'`, "dải 409");
+    await s.waitFor(`${txt("#error .banner-title")} === 'Còn lượt đưa đón quá hạn chốt — cần Quản trị duyệt đặt gấp trước khi xác nhận.'`, "dải 409");
     const dong = await s.ev(`[...document.querySelectorAll('#error .banner-lines li')].map((l) => l.textContent)`);
     assert.equal(dong.length, 1);
-    assert.match(dong[0], /^Chiều đi · Tour 4 đảo Nha Trang: Giờ đón cách bây giờ \d+ giờ( \d+ phút)? — dưới mốc 48 giờ$/);
+    assert.match(dong[0], /^Chiều đi · Tour 4 đảo Nha Trang: Giờ đón cách bây giờ \d+ giờ( \d+ phút)? — quá hạn chốt 48 giờ$/);
     assert.equal((await donQuaTrang(s, o1.id)).status, "draft");
     assert.equal(await s.ev(noCode), "");
   });
@@ -127,7 +127,7 @@ try {
     await s.waitFor(shown('.sheet .dd-chang [data-o$=":gio"]'), "bảng sửa đưa đón");
     await s.ev(typeInto('.sheet .dd-chang [data-o$=":gio"]', "11:00"));
     await s.ev(click('.sheet [data-action="luu-dua-don"]'));
-    await s.waitFor(`${txt(".sheet .banner .banner-title")} === 'Chặng dưới mốc tối thiểu trước giờ đón — chỉ Quản trị hoặc Toàn quyền sửa được, kèm lý do đặt gấp.'`, "câu 409 trong bảng");
+    await s.waitFor(`${txt(".sheet .banner .banner-title")} === 'Lượt đưa đón có giờ đón đã qua hạn chốt — chỉ Quản trị hoặc Toàn quyền sửa được, kèm lý do đặt gấp.'`, "câu 409 trong bảng");
     assert.equal(await s.ev(`!!document.querySelector('.sheet .dg-panel')`), false, "Bán hàng không có khung Đặt gấp");
     await sleep(600); // bảng ở ≥ 641px hiện dần (opacity, --m-base): chờ xong chuyển động rồi mới đo tương phản
     await axe(s, "bảng sửa chuyến Bán hàng 409");

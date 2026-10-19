@@ -191,7 +191,7 @@ async function khungCuaNguoiGoi(db: D1Database, nen: NenChuyen, staff: StaffProf
 const nguoiBamVanPhong = (staff: StaffProfile, nen: NenChuyen): NguoiBam => ({ id: staff.id, bamThay: !dangLai(nen, staff) });
 // ADR-0051 (Task A-GB): nhắc "gọi báo khách" khi giờ hẹn đổi — mốc giờ hẹn của chặng, họ lệnh "Đã gọi báo" / "Bỏ đánh dấu", danh sách nhắc.
 const CAN_GOI_BAO = () => error(403, "forbidden", "Chỉ người lập đơn, người phụ trách đơn, Quản trị, Toàn quyền ghi được \"đã gọi báo\".");
-const KHONG_CO_CHANG = () => error(404, "not_found", "Không tìm thấy chặng.");
+const KHONG_CO_CHANG = () => error(404, "not_found", "Không tìm thấy lượt đưa đón.");
 /**
  * Quyền bấm "Đã gọi báo" / "Bỏ đánh dấu" trên chặng của đơn `orderId` — ĐÚNG lời gọi của route ghi (GB2): ô `trip.call_ack` với người lập (`ownerId`) và người
  * phụ trách ĐƠN (`ctx.isAssigned` — khác `assigned` của tài xế). Dùng cho `baoDuoc` / `boDuoc` của DTO (màn chỉ ẩn / hiện nút; máy chủ luôn kiểm lại).
@@ -270,7 +270,7 @@ const chinhSachTuDong = (cu: NonNullable<Awaited<ReturnType<typeof currentDispat
   departureWindowMinutes: cu.departure_window_minutes, refuseLeadMinutes: cu.refuse_lead_minutes, officePhone: cu.office_phone, acceptWaitMinutes: cu.accept_wait_minutes,
   autoConfirmTransfer: cu.auto_confirm_transfer === 1,
 });
-const CHI_QUAN_TRI_MOC = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền đặt được mốc ra lệnh.");
+const CHI_QUAN_TRI_MOC = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền đặt được hạn chốt trước giờ đón.");
 const CHI_TOAN_QUYEN = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống xem và đổi được chính sách điều phối xe.");
 const LOI_KHOA_NGOAI = /FOREIGN KEY constraint failed/;
 const toPolicyDto = (r: DispatchPolicyRow, currentId: string | null, nhan: ReadonlyMap<string, string> | null): DispatchPolicyDto => ({
@@ -798,7 +798,7 @@ export const vanChuyenModule: AppModule = {
       const body = await readJson(request);
       const khoaDuocPhep = new Set(["minLeadMinutes", "warnLeadMinutes"]);
       if (!body || Object.keys(body).some((k) => !khoaDuocPhep.has(k)) || body.minLeadMinutes === undefined || body.warnLeadMinutes === undefined) {
-        return error(400, "invalid_input", "Chỉ gửi mốc tối thiểu và cảnh báo sát mốc (cả hai số phút).");
+        return error(400, "invalid_input", "Chỉ gửi hạn chốt trước giờ đón và cảnh báo sắp tới hạn chốt (cả hai số phút).");
       }
       const at = new Date().toISOString();
       const cu = await currentDispatchPolicy(env.DB, at);
@@ -849,7 +849,7 @@ export const vanChuyenModule: AppModule = {
       if (!can(staff, "settings.ops")) return CHI_TOAN_QUYEN();
       const id = params.id ?? "";
       const r = UUID_RE.test(id) ? await findDepartureRule(env.DB, id) : null;
-      if (!r) return error(404, "not_found", "Không tìm thấy điều kiện xuất bến.");
+      if (!r) return error(404, "not_found", "Không tìm thấy điều kiện cho xe chạy.");
       const DA_DONG = () => error(409, "rule_closed", "Điều kiện này đã đóng rồi — tải lại.");
       if (r.valid_to_at !== null) return DA_DONG();
       const at = new Date().toISOString();

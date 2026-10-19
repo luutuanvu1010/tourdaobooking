@@ -217,7 +217,7 @@ test("HT-01 TRA_TRUOC_DON: suất CHỜ ĐÓN có điểm xuống đứng trư�
   const r = ca("PLANNED");
   assert.deepEqual(r.canhBao.filter((c) => c.loai === "TRA_TRUOC_DON"), [{ loai: "TRA_TRUOC_DON", legId: "b", tripId: "07", orderCode: "ĐH-b" }]);
   assert.deepEqual(r.chuyen[0]!.lyDoGiu.map((l) => [l.ma, l.aiXuLy, l.loiNhan]), [
-    ["TRA_TRUOC_DON", "VAN_PHONG", "Điểm trả đứng trước điểm đón — đổi thứ tự điểm rồi xuất bến: ĐH-b (điểm trả số 2 đứng trước điểm đón số 3)"],
+    ["TRA_TRUOC_DON", "VAN_PHONG", "Điểm trả đứng trước điểm đón — đổi thứ tự điểm rồi cho xe chạy: ĐH-b (điểm trả số 2 đứng trước điểm đón số 3)"],
   ], "ADR-0096 Đ1.2: thành lý do giữ (cổng xuất bến, MỘT luật với lệnh xuất bến)");
   assert.equal(r.canhBao.filter((c) => c.loai === "CHUYEN_GIU").length, 1);
   assert.equal(ca("RUNNING").canhBao.filter((c) => c.loai === "TRA_TRUOC_DON").length, 1, "đang chạy: vẫn báo để văn phòng gọi tài xế");

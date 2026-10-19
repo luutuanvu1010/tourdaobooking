@@ -55,7 +55,7 @@ const NOT_ADMIN = () => error(403, "forbidden", "Chỉ quản trị viên đư�
 const NOT_ACCOUNT_VIEW = () => error(403, "forbidden", "Tài khoản này không quản lý được tài khoản.");
 const NOT_ACCOUNT_CREATE = () => error(403, "forbidden", "Chỉ Hành chính nhân sự hoặc người phụ trách hệ thống được thêm tài khoản.");
 // ADR-0075 điều 7: xem sổ phiên của mọi người / gỡ phiên — chỉ IT/Toàn quyền.
-const NOT_SESSION_ADMIN = () => error(403, "forbidden", "Chỉ IT/Toàn quyền xem và gỡ được phiên đăng nhập.");
+const NOT_SESSION_ADMIN = () => error(403, "forbidden", "Chỉ IT/Toàn quyền xem và đăng xuất được máy đang đăng nhập.");
 // ADR-0085 Q1 điều 3: chính sách đăng nhập — chỉ Toàn quyền.
 /** Số mili-giây của MỘT ngày (đơn vị đổi ngày → mốc), KHÔNG phải thời hạn giữ: thời hạn chỉ đến từ dòng chính sách riêng tư (ADR-0126 đ8). */
 const MOT_NGAY_MS = 86_400_000;
@@ -72,7 +72,7 @@ const NOT_MANAGER = () => error(403, "forbidden", "Chỉ quản lý được tà
 // DK-T3-02: đặt lại PIN ở đây KHÔNG hỏi PIN cũ — áp lên chính mình thì một phiên bỏ quên đủ để chiếm hẳn tài khoản (vượt ADR-0016 điều 2a).
 const SELF_RESET_PIN = () => error(403, "forbidden", "Không tự đặt lại PIN của chính mình ở đây. Để đổi PIN, vào trang Tôi, mục “Đổi mã PIN”, rồi nhập PIN hiện tại.");
 const NO_PARTY = () => error(409, "no_party", "Tài khoản này chưa có hồ sơ (đang di trú dữ liệu). Thử lại sau ít phút.");
-const ROLE_MANAGED = () => error(409, "role_managed", "Tài khoản đã gán vai — đổi quyền bằng cách chọn vai hoặc chỉnh riêng ở mục Vai và quyền.");
+const ROLE_MANAGED = () => error(409, "role_managed", "Tài khoản đã gán vai trò — đổi quyền bằng cách chọn vai trò hoặc chỉnh riêng ở mục Vai trò và quyền.");
 // ADR-0068 Đ9 (C2): chặn tạo hồ sơ trùng ở MÁY CHỦ — không đặt trong createAccountWithRolesStatements (đường tạo DUY NHẤT từ khi gỡ đồng bộ Sheet — ADR-0071).
 // ADR-0071 điều 3b: chỉ có hồ sơ trùng người gọi không được thấy (cờ, `khop` rỗng) → câu riêng, không nhắc "Dùng hồ sơ này".
 const MATCH_EXISTS = (kq: PartyMatchResponse) =>
@@ -90,7 +90,7 @@ const problemResponse = (p: RoleProblem): Response => error(p.forbidden ? 403 : 
 /** Lỗi trigger luật cứng / ràng buộc duy nhất → phản hồi rõ nghĩa (lưới cuối — kiểm thuần đã chặn trước). */
 function ruleViolation(e: unknown): Response | null {
   const m = e instanceof Error ? e.message : "";
-  if (/party_role_group_conflict/.test(m)) return error(409, "account_rule", "Một hồ sơ không giữ cùng lúc vai nội bộ và vai bên ngoài.");
+  if (/party_role_group_conflict/.test(m)) return error(409, "account_rule", "Một hồ sơ không giữ cùng lúc vai trò nội bộ và vai trò bên ngoài.");
   if (/lc1_external_account_permission/.test(m)) return error(409, "account_rule", "Tài khoản bên ngoài chỉ giữ quyền bên ngoài (Đối tác hoặc Tài xế đối tác).");
   // LC-1b (ADR-0048 B2.2): lớp CSDL — chỉ tới đây khi lời kiểm máy chủ (taiKhoanLaiProblem / roleAssignmentProblem, 400 invalid_input) bị vượt.
   if (/lc1b_driver_partner_alone/.test(m)) return error(409, "account_rule", "Tài khoản Tài xế đối tác không giữ thêm quyền nào khác.");
@@ -249,7 +249,7 @@ async function haiLopSauDoiQuyen(
         adminAudit(db, adminId, "mfa_removed", t.id, "EMAIL — quyền mới chỉ dùng ứng dụng xác thực", "changes() > 0"),
         trustedRevokeOnEmailLossStatement(db, t.id, at, adminId),
         endAllSessionsStatement(db, t.id, "bi_go", at, adminId),
-        adminAudit(db, adminId, "session_revoked", t.id, "mọi phiên và máy được tin — quyền mới không dùng được email", "changes() > 0"),
+        adminAudit(db, adminId, "session_revoked", t.id, "mọi máy đang đăng nhập và máy được tin — quyền mới không dùng được email", "changes() > 0"),
         ...anHan,
       ],
       ketThucPhien: true,
@@ -260,14 +260,14 @@ async function haiLopSauDoiQuyen(
   return {
     statements: [
       endAllSessionsStatement(db, t.id, "bi_go", at, adminId),
-      adminAudit(db, adminId, "session_revoked", t.id, "mọi phiên — lên quyền nội bộ khi chưa bật bảo mật hai lớp và đã hết ân hạn", "changes() > 0"),
+      adminAudit(db, adminId, "session_revoked", t.id, "mọi máy đang đăng nhập — lên quyền nội bộ khi chưa bật bảo mật hai lớp và đã hết ân hạn", "changes() > 0"),
     ],
     ketThucPhien: true,
   };
 }
 
 /** Route "staff" luôn có mã phiên (router đọc từ sổ phiên — ADR-0075); thiếu là bất thường → coi như chưa đăng nhập, không cấp lại cookie. */
-const NO_SESSION = () => error(401, "unauthenticated", "Chưa đăng nhập hoặc phiên đã hết hạn.");
+const NO_SESSION = () => error(401, "unauthenticated", "Chưa đăng nhập hoặc đã hết hạn đăng nhập.");
 
 export const accountsModule: AppModule = {
   name: "accounts",
@@ -497,7 +497,7 @@ export const accountsModule: AppModule = {
         const created = await createAccountWithRolesStatements(db, { fullName: name.value ?? null, phone, assignment: parsed.value, existingPartyId, xemDanhBa }, admin.id);
         if (!created.ok) return error(409, created.code ?? "account_rule", created.message);
         const detail = [
-          `vai: ${rolesLabel(parsed.value.roles)}`,
+          `vai trò: ${rolesLabel(parsed.value.roles)}`,
           `quyền: ${permissionsLabel(created.permissions)}`,
           existingPartyId ? "dùng hồ sơ có sẵn" : "",
           parsed.value.reason ? `lý do: ${parsed.value.reason}` : "",
@@ -614,7 +614,7 @@ export const accountsModule: AppModule = {
       if (!can(admin, "account.edit")) return NOT_ACCOUNT_VIEW();
       // ADR-0083 điều 1a: đường gán quyền kiểu cũ (tài khoản chưa gán vai) chỉ Toàn quyền — Quản trị, HCNS đổi quyền bằng cách gán vai. Câu không lộ chữ
       // "Toàn quyền" (ADR-0042: vai ẩn).
-      if (!can(admin, "admin.manage.superadmin")) return error(403, "forbidden", "Chỉ người phụ trách hệ thống mới đổi quyền theo cách cũ. Hãy gán vai cho tài khoản này.");
+      if (!can(admin, "admin.manage.superadmin")) return error(403, "forbidden", "Chỉ người phụ trách hệ thống mới đổi quyền theo cách cũ. Hãy gán vai trò cho tài khoản này.");
       const actorIsSuper = can(admin, "admin.manage.superadmin"); // luôn true sau dòng trên; LC-4 bên dưới giữ làm lưới phòng thủ
       const db = env.DB;
       const t = await target(ctx);
@@ -709,7 +709,7 @@ export const accountsModule: AppModule = {
       if (accountProblem) return error(409, "account_rule", accountProblem);
       if (!change.changed) return json({ staff: await one(db, t.id) } satisfies StaffResponse);
       const detail = [
-        `vai: ${rolesLabel(state.roles)} → ${rolesLabel(parsed.value.roles)}`,
+        `vai trò: ${rolesLabel(state.roles)} → ${rolesLabel(parsed.value.roles)}`,
         `quyền: ${permissionsLabel(t.permissions)} → ${permissionsLabel(change.next)}`,
         change.dropped.length ? `luật cứng gạt: ${permissionsLabel(change.dropped)}` : "",
         parsed.value.reason ? `lý do: ${parsed.value.reason}` : "",
@@ -895,7 +895,7 @@ export const accountsModule: AppModule = {
       const at = new Date(now).toISOString();
       const moi = await khopKhoaMoi(env, staff.id, body?.setupToken, code, now);
       if (moi.kq === "unavailable") return MFA_UNAVAILABLE();
-      if (moi.kq === "expired") return error(400, "setup_expired", "Phiên bật đã hết hạn (10 phút). Bấm “Bật ứng dụng xác thực” lại để lấy khoá mới.");
+      if (moi.kq === "expired") return error(400, "setup_expired", "Lượt bật đã hết hạn (10 phút). Bấm “Bật ứng dụng xác thực” lại để lấy khoá mới.");
       if (moi.kq !== "ok") return error(401, "invalid_code", "Mã không đúng. Nhập mã 6 số mới nhất trên ứng dụng xác thực (kiểm giờ tự động trên điện thoại nếu sai nhiều lần).");
       const song = await yeuToSong(env.DB, staff.id);
       if (song.length > 0) {
@@ -1052,21 +1052,21 @@ export const accountsModule: AppModule = {
       if (!can(ctx.staff, "auth.session.revoke")) return NOT_SESSION_ADMIN();
       const db = ctx.env.DB;
       const row = await getSession(db, ctx.params.id!);
-      if (!row) return error(404, "not_found", "Không tìm thấy phiên.");
-      if (row.id === ctx.sessionId) return error(409, "self_session", "Đây là phiên của chính bạn — dùng nút Đăng xuất.");
+      if (!row) return error(404, "not_found", "Không tìm thấy máy đăng nhập này.");
+      if (row.id === ctx.sessionId) return error(409, "self_session", "Đây là máy bạn đang dùng — dùng nút Đăng xuất.");
       const at = new Date().toISOString(); // MỘT mốc giờ cho dòng phiên, dòng nhật ký và phép tính "còn sống"
       // Phiên đã chết mà dòng chưa kết thúc (hết hạn; chết theo lưới credentials_changed_at) → 409 như phiên đã kết thúc: không ghi đè lịch sử bằng 'bi_go',
       // không nhật ký, không tắt thông báo mọi máy của tài khoản. Cùng phép tính với màn sổ phiên (toSessionDto: dòng → hạn → lưới của CHỦ phiên).
       const chu = (await chuPhienTheoId(db, [row.staff_id])).get(row.staff_id);
-      if (!toSessionDto(row, chu?.credentialsChangedAt ?? null, at, null).live) return error(409, "already_ended", "Phiên này đã kết thúc.");
+      if (!toSessionDto(row, chu?.credentialsChangedAt ?? null, at, null).live) return error(409, "already_ended", "Máy này đã đăng xuất.");
       const res = await db.batch([
         endOneSessionStatement(db, row.id, "bi_go", at, ctx.staff.id),
         // ADR-0075 điều 8: ai gỡ (staff_id), tài khoản bị gỡ (target), mã phiên (detail) — KHÔNG IP/User-Agent. Chỉ ghi khi câu trên thật sự kết thúc phiên.
-        auditStatement(db, { staffId: ctx.staff.id, action: "session_revoked", at, targetType: "staff", targetId: row.staff_id, detail: `phiên ${row.id}` }, "changes() > 0"),
+        auditStatement(db, { staffId: ctx.staff.id, action: "session_revoked", at, targetType: "staff", targetId: row.staff_id, detail: `máy đăng nhập ${row.id}` }, "changes() > 0"),
         // ADR-0075 điều 6c: bỏ máy được tin gắn với phiên này (lần sau phải nhập mã) — chỉ khi câu đầu lô thật sự kết thúc phiên; nhật ký không mang mã máy.
         trustedRevokeOfSessionStatement(db, row.id, at, ctx.staff.id),
       ]);
-      if ((res[0]?.meta.changes ?? 0) === 0) return error(409, "already_ended", "Phiên này đã kết thúc.");
+      if ((res[0]?.meta.changes ?? 0) === 0) return error(409, "already_ended", "Máy này đã đăng xuất.");
       // ADR-0075 điều 6(a)(b): đóng Bảng tin và tắt thông báo màn hình khoá CHỈ của đúng máy bị gỡ (đăng ký mang mã phiên này, lý do bi-go) — máy khác của
       // tài khoản (Toàn quyền nhiều máy) không đụng. Đăng ký cũ session_id NULL (trước phát hành) không biết thuộc máy nào → không tắt ở đây (lần đăng nhập
       // sau của tài khoản một máy tắt nó — tat_may_tru_phien).
@@ -1087,7 +1087,7 @@ export const accountsModule: AppModule = {
     route("POST", "/api/sessions/an-danh-cu", "admin", async ({ env, staff, hanGiuPhienNgay }) => {
       if (!can(staff, "auth.session.policy")) return NOT_SESSION_POLICY();
       const han = await hanGiuPhienNgay();
-      if (han === null) return error(409, "chua_co_thoi_han", "Chính sách riêng tư chưa có thời hạn giữ phiên — chưa ẩn danh được.");
+      if (han === null) return error(409, "chua_co_thoi_han", "Chính sách riêng tư chưa có thời hạn giữ thông tin máy đã đăng xuất — chưa ẩn danh được.");
       const db = env.DB;
       const at = new Date().toISOString();
       const ketThucTruoc = new Date(Date.parse(at) - han * MOT_NGAY_MS).toISOString(); // MỘT mốc cho câu đếm, câu ghi và nhật ký
@@ -1096,7 +1096,7 @@ export const accountsModule: AppModule = {
       const kq = await db.batch([
         anDanhPhienCuStatement(db, ketThucTruoc, at, staff.id),
         // Chỉ số đếm + mốc (giờ VN) — KHÔNG IP, User-Agent, tên.
-        auditStatement(db, { staffId: staff.id, action: "sessions_anonymized", at, targetType: "system", targetId: "phien", detail: `${soDuKien} phiên kết thúc trước ${vnDateTimeText(ketThucTruoc)}` }, "changes() > 0"),
+        auditStatement(db, { staffId: staff.id, action: "sessions_anonymized", at, targetType: "system", targetId: "phien", detail: `${soDuKien} máy đã đăng xuất trước ${vnDateTimeText(ketThucTruoc)}` }, "changes() > 0"),
       ]);
       const daAnDanh = kq[0]?.meta.changes ?? 0;
       if (daAnDanh !== soDuKien) console.warn(JSON.stringify({ level: "warn", event: "session_anonymize_count_drift", estimated: soDuKien, actual: daAnDanh }));

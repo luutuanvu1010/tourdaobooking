@@ -195,7 +195,7 @@ test("ADR-0047 Phần B: toServiceInput LUÔN có khoá legs (kể cả []) và 
   assert.equal(toServiceInput(d, false).legs![0]!.minVehicleSeats, 15);
   assert.deepEqual(toServiceInput(newCatalogDraft(tour, "k2")).legs, []);
   const loi = { ...d, legs: [{ ...d.legs[0]!, don: "" }] };
-  assert.deepEqual(draftIssues(loi).map((i) => [i.code, i.message]), [["leg", "Chặng 1: chưa có nơi đón."]]);
+  assert.deepEqual(draftIssues(loi).map((i) => [i.code, i.message]), [["leg", "Lượt 1: chưa có nơi đón."]]);
 });
 
 test("toServiceInput (nhập tay): số khách vận hành ở adult, dòng tiền đã cắt khoảng trắng; dịch vụ đã lưu mang id", () => {

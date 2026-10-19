@@ -8,12 +8,12 @@ export const HD_DOI_TAC: NhomHuongDan = {
   quyen: ["PARTNER"],
   gioiThieu:
     "Bạn là đối tác của công ty: đại lý, khách sạn hay nơi gửi khách đi tour. Bạn lập đơn cho khách của mình bằng dịch vụ trong danh mục, theo đúng giá bán lẻ, và chỉ thấy đơn do chính mình lập.",
-  batDauNhanh: `1. Mở app, gõ **Số điện thoại** và **Mã PIN 6 số** công ty đã cấp, bấm [[Đăng nhập]].
+  batDauNhanh: `1. Mở Nền tảng, gõ **Số điện thoại** và **Mã PIN 6 số** công ty đã cấp, bấm [[Đăng nhập]].
 2. Vào [[Tôi]], bấm [[Đổi mã PIN]] để đổi sang mã PIN của riêng bạn.
 3. Bấm [[Tạo đơn]], chọn **Ngày khởi hành**, rồi chạm dịch vụ trong danh sách dưới ô [[Tìm theo tên hoặc mã dịch vụ]].
    Muốn lọc nhanh, chạm một nhóm ở hàng nhóm ngay dưới ô tìm ([[Tất cả]] để xem lại toàn bộ).
 4. Nhập số khách, tên và số điện thoại của khách.
-5. Bấm [[Lưu, chờ xác nhận]]. App mở trang của đơn vừa lập.
+5. Bấm [[Lưu, chờ xác nhận]]. Nền tảng mở trang của đơn vừa lập.
 6. Kiểm lại rồi bấm [[Xác nhận đơn]]. Sau đó bấm [[Xem biên nhận]] để gửi ảnh cho khách.`,
   muc: [
     {
@@ -30,11 +30,11 @@ Thanh tab dưới đáy có [[Đơn hàng]], [[Tạo đơn]] và [[Tôi]].
 
 ### Mở danh sách đơn của bạn
 
-Bấm [[Đơn hàng]] trên menu (máy tính) hoặc thanh tab (điện thoại). Trang này chỉ có các đơn bạn đã lập. Mở app cũng tự vào trang này.`,
+Bấm [[Đơn hàng]] trên menu (máy tính) hoặc thanh tab (điện thoại). Trang này chỉ có các đơn bạn đã lập. Mở Nền tảng cũng tự vào trang này.`,
     },
     {
       tieuDe: "Đăng nhập và đổi mã PIN",
-      noiDung: `1. Mở app **Island Booking System**. Trên iPhone, biểu tượng có thể vẫn mang tên cũ "Tour Đảo Booking".
+      noiDung: `1. Mở Nền tảng **Island Booking System**. Trên iPhone, biểu tượng có thể vẫn mang tên cũ "Tour Đảo Booking".
 2. Gõ **Số điện thoại** và **Mã PIN 6 số** công ty đã cấp.
 3. Bấm [[Đăng nhập]].
 
@@ -58,7 +58,7 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
    - Dịch vụ vừa chạm hiện "✓ đã thêm" và thẻ dịch vụ hiện bên dưới. Mỗi lúc chỉ một thẻ mở; chạm dòng gập của thẻ để mở lại.
 4. Trong thẻ dịch vụ, nhập **Số khách**: **Người lớn**, **Trẻ em**… tuỳ dịch vụ. Dòng tiền tự hiện, ví dụ "2 người lớn × giá = thành tiền". Cả đơn cần ít nhất một người lớn đi cùng; trẻ em và em bé không đi một mình.
 5. Phần **Đưa đón** trên thẻ: ghi **Giờ đón**, **Nơi đón**, **Nơi trả** (chọn điểm có sẵn hoặc gõ tự do). Bấm [[Thông tin chuyến]] để ghi giờ và nơi khách có mặt, **Ghi chú dịch vụ**.
-6. Phần **Thanh toán**: khách đã trả trước thì gõ **Thanh toán trước (₫)**, rồi chọn **Hình thức** và **Người nhận tiền** (hai ô này chỉ hiện khi đã gõ số).
+6. Phần **Thanh toán**: khách đã trả trước thì gõ **Thanh toán trước (₫)**, rồi chọn **Hình thức** và **Người thu tiền** (hai ô này chỉ hiện khi đã gõ số).
 7. Xem tổng tiền ở thanh dưới cùng (chạm để xem chi tiết); trên máy tính là khối **Tóm tắt** bên phải.
 8. Bấm [[Lưu, chờ xác nhận]]. Thiếu gì thì khung đỏ hiện ngay trên nút. Lưu xong, Nền tảng mở trang của đơn vừa lập.
 
@@ -85,14 +85,14 @@ Tài khoản đối tác không chọn được hướng dẫn viên khi lập �
       tieuDe: "Xác nhận đơn",
       noiDung: `1. Mở đơn đang **Chờ xác nhận**.
 2. Kiểm lại ngày, số khách, giờ đón.
-3. Bấm [[Xác nhận đơn]]. App hỏi lại một lần. Đồng ý thì đơn chuyển sang **Đã xác nhận**.
+3. Bấm [[Xác nhận đơn]]. Nền tảng hỏi lại một lần. Đồng ý thì đơn chuyển sang **Đã xác nhận**.
 
 Sau khi xác nhận, dịch vụ, số khách và tiền **bị khoá**.
 
-App **không cho xác nhận** khi:
-- Thiếu thông tin chuyến. App báo "Chưa đủ thông tin chuyến để xác nhận đơn." và chỉ rõ dịch vụ còn thiếu. Bấm [[Sửa]] để bổ sung.
+Nền tảng **không cho xác nhận** khi:
+- Thiếu thông tin chuyến. Nền tảng báo "Chưa đủ thông tin chuyến để xác nhận đơn." và chỉ rõ dịch vụ còn thiếu. Bấm [[Sửa]] để bổ sung.
 - Giờ đón quá gần. Dưới nút có dòng "Cần Quản trị duyệt đặt gấp". Gọi văn phòng để Quản trị duyệt. Khi đã duyệt, đơn có nhãn "Đặt gấp — Quản trị đã duyệt" và bạn xác nhận được.
-- Đơn có giá khác giá bán lẻ hoặc có giảm giá. App báo "Tài khoản đối tác dùng đúng giá bán lẻ theo danh mục; muốn giá khác, nhờ văn phòng."`,
+- Đơn có giá khác giá bán lẻ hoặc có giảm giá. Nền tảng báo "Tài khoản đối tác dùng đúng giá bán lẻ theo danh mục; muốn giá khác, nhờ văn phòng."`,
     },
     {
       tieuDe: "Gửi biên nhận cho khách",
@@ -106,7 +106,7 @@ App **không cho xác nhận** khi:
     {
       tieuDe: "Huỷ đơn",
       noiDung: `1. Mở đơn của bạn.
-2. Bấm [[Huỷ đơn]]. App hỏi: "Huỷ đơn này? Việc huỷ không thể hoàn tác."
+2. Bấm [[Huỷ đơn]]. Nền tảng hỏi: "Huỷ đơn này? Việc huỷ không thể hoàn tác."
 3. Đồng ý thì đơn chuyển sang **Đã huỷ**.
 
 > Lưu ý: Đơn đã huỷ không mở lại được. Khách muốn đi lại thì phải lập đơn mới.`,
@@ -167,7 +167,7 @@ Tài khoản đối tác không xem tên người phụ trách đơn, nên trang
 
 ### Sao tôi không thấy Trang chủ?
 
-Trang chủ là màn tổng hợp của văn phòng. Tài khoản đối tác mở app sẽ vào thẳng danh sách đơn của mình.
+Trang chủ là màn tổng hợp của văn phòng. Tài khoản đối tác mở Nền tảng sẽ vào thẳng danh sách đơn của mình.
 
 ### Sao thẻ dịch vụ không có nút Sửa giá?
 
@@ -181,7 +181,7 @@ Trang chủ là màn tổng hợp của văn phòng. Tài khoản đối tác m�
 
 Máy đã bật Face ID: vào [[Tôi]], bấm [[Quên PIN? Đặt PIN mới bằng Face ID]]. Chưa bật: gọi văn phòng để đặt lại.
 
-### Tôi muốn góp ý về app
+### Tôi muốn góp ý về Nền tảng
 
 Bấm [[Hỗ trợ]]. Bạn xem lại được các góp ý mình đã gửi.`,
     },

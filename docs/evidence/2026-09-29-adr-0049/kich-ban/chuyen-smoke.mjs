@@ -53,7 +53,7 @@ const kv = `[...document.querySelectorAll('.dp-kv')].map((k) => k.innerText.repl
 const diem = `[...document.querySelectorAll('.dp-stop[data-diem]')].map((r) => ({ so: r.querySelector('.dp-stop-so').innerText.trim(), noi: r.querySelector('.dp-stop-noi strong').innerText.replace(/\\s+/g, ' ').trim(), tt: r.querySelector('.dp-stop-tt').innerText.trim(), lech: r.classList.contains('is-lech'), note: r.querySelector('.dp-stop-note')?.innerText ?? '' }))`;
 const dieuKien = `[...document.querySelectorAll('.dp-cond[data-dat]')].map((r) => ({ dat: r.dataset.dat === 'true', nhan: r.querySelector('.dp-cond-nhan').innerText, sub: r.querySelector('.dp-cond-sub')?.innerText ?? '' }))`;
 const nhatKy = `[...document.querySelectorAll('.dp-log')].map((r) => ({ ai: r.querySelector('.dp-log-who').innerText, may: r.querySelector('.dp-log-who').classList.contains('is-may'), text: r.lastElementChild.innerText }))`;
-const KHONG_CO = ["Kết thúc gián đoạn", "Mở màn Xuất bến ›"];
+const KHONG_CO = ["Kết thúc gián đoạn", "Mở màn Cho xe chạy ›"];
 // Nhật ký giao diện 13.7: nút KHOÁ đặt thẳng trên nền trang phải trông rõ là nút bị khoá — nền khác nền trang (không lẫn thành chữ thường) và mờ theo khuôn nút
 // khoá của bộ thiết kế (Button disabled = opacity .5).
 const nutKhoaRo = async (pg, sel) => {
@@ -68,13 +68,13 @@ try {
   const p = await env.as(ACCOUNTS.salesA, `/chuyen?id=${d.T3.id}`, DESK);
   await cho(p);
 
-  await b.step("1", `2a 1040 Bán hàng ${d.T3.ma} bị giữ "nơi đón / trả đã đổi": đầu trang, dải + nút "Cập nhật điểm theo đơn", dải bốn ô, điểm "Lệch đơn", điều kiện xuất bến, nhật ký; "Xuất bến thay tài xế" khoá vì bị giữ (2.7)${axeNote()}`, async () => {
+  await b.step("1", `2a 1040 Bán hàng ${d.T3.ma} bị giữ "nơi đón / trả đã đổi": đầu trang, dải + nút "Cập nhật điểm theo đơn", dải bốn ô, điểm "Lệch đơn", điều kiện xuất bến, nhật ký; "Cho xe chạy thay tài xế" khoá vì bị giữ (2.7)${axeNote()}`, async () => {
     assert.equal(await p.ev(txt(".dp-ct-title")), d.T3.ma);
     assert.equal(await p.ev(txt(".dp-ct-head .chip")), "Bị giữ");
     assert.match(await p.ev(txt(".dp-ct-when")), new RegExp(`^(Thứ (Hai|Ba|Tư|Năm|Sáu|Bảy)|Chủ nhật) ${d.NGAY_XA.slice(8, 10)}/${d.NGAY_XA.slice(5, 7)} · 14:30–16:30$`));
     assert.equal(await p.ev(`document.querySelector('#ct-back').getAttribute('href')`), `/dieu-phoi?ngay=${d.NGAY_XA}`);
     assert.equal(await p.ev(`document.querySelector('.dp-ct-actions [data-action="sua-chuyen"]').getAttribute('href')`), `/chuyen-sua?id=${d.T3.id}`);
-    assert.deepEqual(await p.ev(nut), ["Sửa chuyến", "Xuất bến thay tài xế", "Huỷ chuyến", "Cập nhật điểm theo đơn", "↑", "↓", "↑", "↓", "Thêm người đi kèm", "Rút khỏi xe", "Chuyển sang xe khác"], "vòng 5b: thẻ Khách trong chuyến có hai nút (rut-doi-smoke kiểm hành vi); gói A1: ↑ ↓ ở hai điểm của chuyến kế hoạch");
+    assert.deepEqual(await p.ev(nut), ["Sửa chuyến", "Cho xe chạy thay tài xế", "Huỷ chuyến", "Cập nhật điểm theo đơn", "↑", "↓", "↑", "↓", "Thêm người đi kèm", "Rút khỏi xe", "Chuyển sang xe khác"], "vòng 5b: thẻ Khách trong chuyến có hai nút (rut-doi-smoke kiểm hành vi); gói A1: ↑ ↓ ở hai điểm của chuyến kế hoạch");
     // C30 (ADR-0096 Đ1.3c): đón · trả — ↑ điểm đầu / ↓ điểm cuối khoá (đầu, cuối); ↓ điểm đón và ↑ điểm trả khoá vì đưa điểm trả lên trước điểm đón (có lời giải thích).
     assert.deepEqual(await p.ev(`[...document.querySelectorAll('.dp-stop-thu-tu .dp-thu-tu')].map((x) => [x.disabled, x.getAttribute('title')])`), [[true, null], [true, CAU_DAO], [true, CAU_DAO], [true, null]]);
     assert.equal(await p.ev(`document.querySelector('.dp-ct-actions [data-action="xuat-ben-thay"]').disabled`), true, "bị giữ → khoá xuất bến thay (2.7)");
@@ -82,18 +82,18 @@ try {
     assert.equal(await p.ev(`!!document.querySelector('.dp-ct-lock')`), false, "chưa vào vùng khoá → không dòng khoá");
     assert.equal(await p.ev(txt("#ct-trang > .banner-danger .banner-title")), "Chuyến bị giữ: Nơi đón / trả đã đổi — cập nhật điểm");
     assert.deepEqual(await p.ev(`[...document.querySelectorAll('#ct-trang > .banner-danger li')].map((x) => x.innerText)`), [
-      `Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: ${d.O3.ma}`, "Ai xử lý: Văn phòng. Không cần điều chỉnh khẩn cấp hay phá lệ, kể cả trong vùng khoá trước giờ xuất bến.",
+      `Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: ${d.O3.ma}`, "Ai xử lý: Văn phòng. Không cần điều chỉnh khẩn cấp hay phá lệ, kể cả trong vùng khoá trước giờ xe chạy.",
     ]);
-    assert.deepEqual(await p.ev(kv), ["XE 79A-111.11 15 chỗ · xe công ty", "TÀI XẾ Nguyễn Văn An Tài xế công ty", "GIỜ 14:30–16:30 Xuất bến dự kiến 14:30", "TẢI 4/15 Còn 11 chỗ"]);
+    assert.deepEqual(await p.ev(kv), ["XE 79A-111.11 15 chỗ · xe công ty", "TÀI XẾ Nguyễn Văn An Tài xế công ty", "GIỜ 14:30–16:30 Xe chạy dự kiến 14:30", "TẢI 4/15 Còn 11 chỗ"]);
     const ds = await p.ev(diem);
     assert.deepEqual(ds[0], { so: "1", noi: "Novotel Nha Trang", tt: "Lệch đơn", lech: true, note: "Nơi của đơn đã đổi — cần cập nhật điểm theo đơn" });
     assert.equal(ds.at(-1).noi, "Bến tàu du lịch Nha Trang");
     const dk = await p.ev(dieuKien);
     // + "Đón trước trả", "Trong giờ được xuất bến" (ADR-0096 Đ1, Đ2 — gói A1). Chuyến NGAY_XA (5 ngày sau) ngoài cửa sổ 48 giờ của dp-lib ⇒ dòng cửa sổ chưa
     // đạt (đúng luật: chip "Đạt hết" không hiện trước giờ mở cửa sổ); dải "Chuyến bị giữ" không kể lý do này (chưa tới giờ, không phải bị giữ).
-    assert.deepEqual(dk.map((x) => x.nhan), ["Giấy tờ xe", "Giấy phép lái xe", "Đủ tên khách", "Không có đơn đã huỷ", "Điểm khớp đơn", "Đủ chỗ", "Đủ giờ nghỉ", "Đón trước trả", "Trong giờ được xuất bến"]);
-    assert.deepEqual(dk.filter((x) => !x.dat && x.nhan !== "Trong giờ được xuất bến"), [{ dat: false, nhan: "Điểm khớp đơn", sub: `Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: ${d.O3.ma} · Ai xử lý: Văn phòng` }]);
-    assert.match(dk.find((x) => x.nhan === "Trong giờ được xuất bến").sub, /^Chưa tới giờ được xuất bến: chuyến khởi hành lúc 14:30 ngày \d\d\/\d\d, được xuất bến từ 14:30 ngày \d\d\/\d\d\. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến\. · Ai xử lý: Văn phòng$/);
+    assert.deepEqual(dk.map((x) => x.nhan), ["Giấy tờ xe", "Giấy phép lái xe", "Đủ tên khách", "Không có đơn đã huỷ", "Điểm khớp đơn", "Đủ chỗ", "Đủ giờ nghỉ", "Đón trước trả", "Trong giờ được cho xe chạy"]);
+    assert.deepEqual(dk.filter((x) => !x.dat && x.nhan !== "Trong giờ được cho xe chạy"), [{ dat: false, nhan: "Điểm khớp đơn", sub: `Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: ${d.O3.ma} · Ai xử lý: Văn phòng` }]);
+    assert.match(dk.find((x) => x.nhan === "Trong giờ được cho xe chạy").sub, /^Chưa tới giờ được cho xe chạy: chuyến khởi hành lúc 14:30 ngày \d\d\/\d\d, được cho xe chạy từ 14:30 ngày \d\d\/\d\d\. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến\. · Ai xử lý: Văn phòng$/);
     assert.equal(await p.ev(txt(".dp-side-card .dp-card-head .chip")), "2 chưa đạt");
     const nk = await p.ev(nhatKy);
     assert.ok(nk.length >= 2, JSON.stringify(nk));
@@ -214,7 +214,7 @@ try {
     await p.ev(`document.body.dataset.cu = '1'`);
     await p.send("Page.navigate", { url: `${env.base}/chuyen?id=${d.T4.id}` });
     await p.waitFor(`!document.body.dataset.cu && !!document.querySelector('.dp-ct-title')`, "mở T4");
-    assert.equal(await p.ev(txt(".dp-ct-lock")), "Trong 48 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Bạn có thể điều chỉnh khẩn cấp kèm lý do. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần điều chỉnh khẩn cấp.") /* vòng 5e: câu khoá nói cả lệnh mới; ADR-0104 Đ1 */;
+    assert.equal(await p.ev(txt(".dp-ct-lock")), "Trong 48 giờ trước giờ xe chạy — khoá xếp khách, đổi xe, đổi tài xế. Bạn có thể điều chỉnh khẩn cấp kèm lý do. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần điều chỉnh khẩn cấp.") /* vòng 5e: câu khoá nói cả lệnh mới; ADR-0104 Đ1 */;
     await p.ev(click('.dp-ct-actions [data-action="huy-chuyen"]'));
     await p.waitFor(`!!document.querySelector('[data-action="huy-gui"]')`, "hộp huỷ mở");
     await p.ev(click('.sheet .vc-reason[data-code="HUY_KHONG_CON_KHACH"]'));
@@ -243,13 +243,13 @@ try {
     assert.equal(await pm.ev(shown(".dp-stop-th")), false);
     assert.match(await pm.ev(txt(".dp-stop[data-diem] .dp-stop-tom")), /^Hẹn \d\d:\d\d · xe tới \d\d:\d\d · 2 khách$/);
     assert.equal(await pm.ev(txt(".dp-stop[data-diem] .dp-stop-noi strong")), "Đón · Amiana Resort");
-    const dk = (await pm.ev(dieuKien)).filter((x) => !x.dat && x.nhan !== "Trong giờ được xuất bến"); // NGAY_XA ngoài cửa sổ xuất bến (ADR-0096 Đ2) — bước 1 kiểm câu
+    const dk = (await pm.ev(dieuKien)).filter((x) => !x.dat && x.nhan !== "Trong giờ được cho xe chạy"); // NGAY_XA ngoài cửa sổ xuất bến (ADR-0096 Đ2) — bước 1 kiểm câu
     assert.deepEqual(dk, [
       { dat: false, nhan: "Giấy tờ xe", sub: "Xe thiếu hoặc hết hạn giấy tờ bắt buộc: 79A-222.22 · Ai xử lý: Quản trị" },
       { dat: false, nhan: "Đủ tên khách", sub: `Chưa đủ tên khách: ${d.O2.ma} thiếu 1 tên · Ai xử lý: Văn phòng` },
     ]);
     assert.equal(await pm.ev(shown(".dp-ct-actions")), false);
-    assert.deepEqual(await pm.ev(`[...document.querySelectorAll('#ct-bottom .vc-btn')].map((x) => x.textContent)`), ["Sửa chuyến", "Xuất bến thay tài xế", "Huỷ chuyến"]);
+    assert.deepEqual(await pm.ev(`[...document.querySelectorAll('#ct-bottom .vc-btn')].map((x) => x.textContent)`), ["Sửa chuyến", "Cho xe chạy thay tài xế", "Huỷ chuyến"]);
     assert.ok(await pm.ev(noOverflowX));
     assert.equal(await pm.ev(noCode), "");
     await nutKhoaRo(pm, '#ct-bottom [data-action="xuat-ben-thay"]');
@@ -290,7 +290,7 @@ try {
   const q = await env.as(ACCOUNTS.admin, `/chuyen?id=${d.T4.id}`, DESK);
   await cho(q);
   await b.step("6", `H17 1040 Quản trị: dòng khoá "Bạn có thể điều chỉnh khẩn cấp"; huỷ ${d.T4.ma} → hộp huỷ đóng, hộp "Điều chỉnh khẩn cấp" mở → "Điều chỉnh khẩn cấp và huỷ" gửi lại huỷ kèm lý do → đã huỷ, chip "Điều chỉnh khẩn cấp" (ADR-0104 Đ1)`, async () => {
-    assert.equal(await q.ev(txt(".dp-ct-lock")), "Trong 48 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Bạn có thể điều chỉnh khẩn cấp kèm lý do. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần điều chỉnh khẩn cấp.") /* vòng 5e: câu khoá nói cả lệnh mới; ADR-0104 Đ1 */;
+    assert.equal(await q.ev(txt(".dp-ct-lock")), "Trong 48 giờ trước giờ xe chạy — khoá xếp khách, đổi xe, đổi tài xế. Bạn có thể điều chỉnh khẩn cấp kèm lý do. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần điều chỉnh khẩn cấp.") /* vòng 5e: câu khoá nói cả lệnh mới; ADR-0104 Đ1 */;
     await q.ev(click('.dp-ct-actions [data-action="huy-chuyen"]'));
     await q.waitFor(`!!document.querySelector('[data-action="huy-gui"]')`, "hộp huỷ mở");
     await q.ev(click('.sheet .vc-reason[data-code="HUY_KHONG_CON_KHACH"]'));

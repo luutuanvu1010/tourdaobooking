@@ -17,7 +17,7 @@ import { nhoChamKichHoat, sauThaoTac, taoONoiGoiY, type ONoiGoiY } from "./o-noi
 
 /**
  * Chỗ đặt tiêu điểm khi người lập dùng CẢM ỨNG (vòng sửa 1 của việc 7, M-1): ô "Nơi đón" / "Nơi trả" bản một ô là ô GÕ CHỮ — đặt tiêu điểm vào nó làm bàn phím ảo iPhone bật lên
- * (ô chọn cũ thì không). Nên với cảm ứng, tiêu điểm vào ĐẦU chặng chứa ô (`tabindex="-1"`, đọc "Chiều đi · Chặng N"); nơi gọi vẫn cuộn ô vào khung nhìn. Phần tử khác: chính nó.
+ * (ô chọn cũ thì không). Nên với cảm ứng, tiêu điểm vào ĐẦU chặng chứa ô (`tabindex="-1"`, đọc "Chiều đi · Lượt N"); nơi gọi vẫn cuộn ô vào khung nhìn. Phần tử khác: chính nó.
  */
 export function tieuDiemKhiCham(el: HTMLElement): HTMLElement {
   if (!(el instanceof HTMLInputElement) || el.getAttribute("role") !== "combobox") return el;
@@ -230,7 +230,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       });
       return h("label", { class: st.lyDo === ma ? "dd-radio dd-radio-chon" : "dd-radio" }, r, h("span", { class: "dd-radio-vong", "aria-hidden": "true" }), h("span", null, nhan));
     });
-    const bo = h("button", { type: "button", class: "btn btn-danger", "data-action": "xac-nhan-bo" }, "Bỏ chặng");
+    const bo = h("button", { type: "button", class: "btn btn-danger", "data-action": "xac-nhan-bo" }, "Bỏ lượt");
     bo.addEventListener("click", () => {
       if (st.lyDo === "") {
         boMo.set(l.key, { lyDo: "", loi: true });
@@ -247,12 +247,12 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     });
     return h(
       "div",
-      { class: "dd-bo", role: "group", "aria-label": `Bỏ chặng ${i + 1}` },
-      h("span", { class: "dd-bo-tieu" }, `Bỏ chặng ${i + 1} · ${CHIEU_LABEL[l.direction]}`),
+      { class: "dd-bo", role: "group", "aria-label": `Bỏ lượt ${i + 1}` },
+      h("span", { class: "dd-bo-tieu" }, `Bỏ lượt ${i + 1} · ${CHIEU_LABEL[l.direction]}`),
       h("span", { class: "dd-nhan" }, "Lý do (bắt buộc, chọn một)"),
       h("div", { class: "dd-radio-ds" }, ...lua),
-      st.loi ? h("p", { class: "field-error", role: "alert" }, icon("alert", 16), "Chọn lý do bỏ chặng.") : null,
-      h("span", { class: "hint" }, "Chặng đã bỏ không mất — xem trong lịch sử đơn."),
+      st.loi ? h("p", { class: "field-error", role: "alert" }, icon("alert", 16), "Chọn lý do bỏ lượt.") : null,
+      h("span", { class: "hint" }, "Lượt đã bỏ không mất — xem trong lịch sử đơn."),
       h("div", { class: "dd-nut" }, bo, thoi),
     );
   }
@@ -271,7 +271,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     const nn = o.che === "form";
     const id = (f: string) => `${o.ma}-${l.key}-${f}`;
     const g = goiYChang(l, o.ngayDi());
-    const boBtn = h("button", { type: "button", class: "btn-link dd-bo-nut", "data-action": "bo-chang" }, "Bỏ chặng");
+    const boBtn = h("button", { type: "button", class: "btn-link dd-bo-nut", "data-action": "bo-chang" }, "Bỏ lượt");
     boBtn.addEventListener("click", () => {
       if (o.che === "bang" && l.id !== null) {
         boMo.set(l.key, { lyDo: "", loi: false });
@@ -425,7 +425,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       "div",
       { class: "dd-chang", "data-leg-key": l.key, "data-chieu": l.direction },
       // Form: đầu chặng nhận được tiêu điểm bằng mã (`tabindex="-1"`) — chỗ đặt tiêu điểm khi người lập dùng cảm ứng (`tieuDiemKhiCham`); `data-o` để khối dựng lại trả focus về đúng chỗ.
-      h("div", { class: "dd-chang-dau", ...(nn ? { tabindex: "-1", "data-o": `${l.key}:dau` } : {}) }, h("span", { class: "chip chip-unit" }, CHIEU_LABEL[l.direction]), h("span", { class: "dd-chang-so" }, `Chặng ${so}`), boBtn),
+      h("div", { class: "dd-chang-dau", ...(nn ? { tabindex: "-1", "data-o": `${l.key}:dau` } : {}) }, h("span", { class: "chip chip-unit" }, CHIEU_LABEL[l.direction]), h("span", { class: "dd-chang-so" }, `Lượt ${so}`), boBtn),
       h("div", { class: "dd-luoi2" }, ngayEl, gioEl, nutKhacNgay),
       h("div", { class: "dd-luoi-noi" }, cotDon, cotTra),
       phu.length ? h("div", { class: "dd-luoi-phu" }, ...phu) : null,
@@ -492,7 +492,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     if (legs.length > 0) {
       const ve = h("button", { type: "button", class: "pill-btn", "data-action": "them-chieu-ve" }, "+ Thêm chiều về");
       ve.addEventListener("click", () => commit([...legs, themChieuVe(legs, o.mau(), o.ngayDi(), o.newKey())], true));
-      const them = h("button", { type: "button", class: "pill-btn", "data-action": "them-chang" }, "+ Thêm chặng");
+      const them = h("button", { type: "button", class: "pill-btn", "data-action": "them-chang" }, "+ Thêm lượt");
       them.addEventListener("click", () => commit([...legs, themChangDi(o.mau(), o.ngayDi(), o.newKey())], true));
       items.push(h("div", { class: "dd-nut" }, ve, them));
     }

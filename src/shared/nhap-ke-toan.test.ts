@@ -45,7 +45,7 @@ test("docLenhNhapKeToan (kiểm độc lập, Hiến chương 5.12): số hoá �
 test("moTaDauNhap / lenhKhongDoi / laDongNhapKeToan / soNgayKhoang", () => {
   assert.equal(moTaDauNhap({ daNhap: true, soHoaDon: "HD-000123", lyDo: null }), "Đã nhập phần mềm kế toán · HD-000123");
   assert.equal(moTaDauNhap({ daNhap: true, soHoaDon: null, lyDo: null }), "Đã nhập phần mềm kế toán");
-  assert.equal(moTaDauNhap({ daNhap: false, soHoaDon: null, lyDo: "huỷ" }), "Bỏ dấu đã nhập phần mềm kế toán — lý do: huỷ");
+  assert.equal(moTaDauNhap({ daNhap: false, soHoaDon: null, lyDo: "huỷ" }), "Bỏ đánh dấu đã nhập phần mềm kế toán — lý do: huỷ");
   const l = (daNhap: boolean, soHoaDon: string | null) => ({ daNhap, soHoaDon, lyDo: daNhap ? null : "x", truocDo: null });
   assert.equal(lenhKhongDoi(null, l(false, null)), true);
   assert.equal(lenhKhongDoi(null, l(true, null)), false);

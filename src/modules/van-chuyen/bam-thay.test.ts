@@ -146,7 +146,7 @@ test("TC-47 + R-P14: giờ khai ngoài khoảng → 409 gio_xay_ra_ngoai_khoang 
     assert.equal(ct.gioSomNhatKhai.xuatBen, null);
     const som = await tienDo(w, "van-phong", a.id, `diem/${a.diemDon}/da-toi`, { xayRaLuc: `${NGAY}T12:10:00+07:00` });
     assert.deepEqual([som.status, som.json.error.maGio], [409, ["DAO_THU_TU"]]);
-    assert.deepEqual([som.json.error.somNhat, som.json.error.mocChan.loai, som.json.error.mocChan.nhan], [{ ngay: NGAY, gio: "12:20" }, "SU_KIEN", "Xuất bến"]);
+    assert.deepEqual([som.json.error.somNhat, som.json.error.mocChan.loai, som.json.error.mocChan.nhan], [{ ngay: NGAY, gio: "12:20" }, "SU_KIEN", "Xe chạy"]);
   } finally {
     tat();
   }

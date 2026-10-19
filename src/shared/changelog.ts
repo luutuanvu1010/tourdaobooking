@@ -13,23 +13,60 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Màn Tạo đơn thiết kế lại (đặc tả docs/superpowers/specs/2026-10-18-tao-don-thiet-ke-lai/DAC-TA.md, việc 1–9). KHÔNG migration, không đổi thân gửi lên máy chủ.
-    // Số 2.19 là số TẠM (main 2.17; nhánh claude/strange-swanson-101ecd và worktree-thu-hep-doc-nhat-ky đã dùng 2.18): gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
-    version: "2.19",
-    date: "2026-10-18",
+    // Số 2.20 là số TẠM (main có 2.19 tạm; kiểm 2026-10-19 bằng git trên main, mọi nhánh và mọi worktree: chưa nơi nào dùng 2.20): phiên phát hành kiểm lại
+    // cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "2.20",
+    date: "2026-10-19",
     items: [
       { kind: "doi", text: "Màn Tạo đơn mới: chọn dịch vụ bằng hàng nhóm cuộn ngang và khung danh sách luôn mở; chạm một dòng là thêm, dòng hiện ✓ đã thêm." },
       { kind: "doi", text: "Thẻ dịch vụ gập thành một dòng (tên, số khách, giờ đón, thành tiền), mỗi lúc chỉ mở một thẻ; xoá dịch vụ bằng nút thùng rác." },
       { kind: "doi", text: "Số khách xếp hai cột, mỗi loại khách ghi giá; dòng tiền ghi rõ, ví dụ 2 người lớn × 1.350.000 = 2.700.000." },
       { kind: "doi", text: "Đưa đón chỉ còn một ô Nơi đón và một ô Nơi trả: gõ để chọn điểm có sẵn hoặc ghi địa chỉ tự do." },
       { kind: "doi", text: "Khối khách có công tắc Đơn của (Khách lẻ hoặc Qua đối tác), bảng Đổi khách ở trang đơn cũng vậy; gõ số điện thoại của đối tác sẽ được nhắc." },
-      { kind: "doi", text: "Tổng tiền nằm ở thanh dưới cùng, chạm để xem chi tiết; lỗi khi lưu hiện ngay trên nút Lưu. Hình thức, Người nhận tiền chỉ hiện khi có trả trước." },
+      { kind: "doi", text: "Tổng tiền nằm ở thanh dưới cùng, chạm để xem chi tiết; lỗi khi lưu hiện ngay trên nút Lưu. Hình thức, Người thu tiền chỉ hiện khi có trả trước." },
+    ],
+  },
+  {
+    // ADR-0130 (rà soát ngôn ngữ giao diện, lượt 1 + lượt 2 — hồ sơ docs/superpowers/specs/2026-10-18-ra-soat-ngon-ngu-luot-2.md): đổi chữ hiện cho người dùng,
+    // dấu trừ trên dòng huỷ khoản thu, hai lỗi nút thẻ Thanh toán, ô hạn chốt nhập phút; MỘT migration 0111 (chỉ đổi hai nhãn luật chuyển khách). Số 2.19 là số TẠM
+    // (= 2.18 của main + 1, kiểm 2026-10-19 bằng git): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0). Ngày là ngày dự kiến.
+    version: "2.19",
+    date: "2026-10-19",
+    items: [
+      { kind: "doi", text: "Trang đơn, khối Thanh toán: «Ghi lần thu» nay là «Ghi khoản thu»; «Thay lần thu» nay là «Sửa khoản thu đã ghi»; nút «Đảo» nay là «Huỷ khoản thu»." },
+      { kind: "doi", text: "Khoản thu đã huỷ ghi «(đã huỷ)»; dòng huỷ hiện số có dấu trừ để không bị đọc thành khách trả thêm một lần." },
+      { kind: "doi", text: "Chi phí xe thuê: nút «Đảo dòng» nay là «Huỷ dòng». Trong hộp huỷ đơn, nút «Giữ đơn» nay là «Không huỷ»." },
+      { kind: "doi", text: "Đổi tên cho dễ hiểu: «chặng» thành «lượt đưa đón», «mốc tối thiểu» thành «hạn chốt», «xuất bến» thành «cho xe chạy»." },
+      { kind: "doi", text: "«Vai» nay là «vai trò»; «phiên đăng nhập» nay là «máy đang đăng nhập»." },
+      { kind: "doi", text: "Tiền: ô chọn ai cầm tiền nay thống nhất là «Người thu tiền»; tiền nhân viên đang cầm của công ty nay ghi «chưa nộp về công ty»." },
+      { kind: "sua", text: "Khối Thanh toán: khoản đang chờ Kế toán xác nhận không còn nút «Sửa khoản thu đã ghi»; khoản tiền mặt không còn bị hỏi «vào tài khoản?»." },
+      { kind: "doi", text: "Chính sách điều phối: ô hạn chốt của Toàn quyền nay nhập theo phút như của Quản trị; gợi ý ghi rõ đơn tính trước giờ đón, xếp xe trước giờ xe chạy." },
+    ],
+  },
+  {
+    // ADR-0131 (thu hẹp quyền đọc nhật ký): lịch sử đơn và thông báo về đơn bỏ tên người làm với mọi người trừ Toàn quyền. Không migration. Số 2.18 là số TẠM
+    // (= 2.17 + 1, kiểm 2026-10-18): phiên phát hành kiểm lại số ở bước A.0 của docs/HANDOFF-N1.md. Ngày là ngày dự kiến.
+    version: "2.18",
+    date: "2026-10-18",
+    items: [
+      { kind: "doi", text: "Khối Lịch sử của đơn và các thông báo về đơn không còn ghi tên người đã làm; chỉ tài khoản Toàn quyền xem được đầy đủ ai làm gì." },
+    ],
+  },
+  {
+    // Sửa B-01 (rà soát trước launch): tin «giao đơn» gửi tới chính người được giao không còn đọc «cho người khác phụ trách». Chỉ đổi chữ, không migration, không cần
+    // đổi dữ liệu. Số 2.17 là số TẠM (= production 2.16 + 1, kiểm 2026-10-18): phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
+    // Ngày là ngày dự kiến.
+    version: "2.17",
+    date: "2026-10-18",
+    items: [
+      { kind: "sua", text: "Khi được giao đơn, bạn đọc «… giao đơn … cho bạn phụ trách» (trên chuông và trên màn hình khoá), không còn đọc «cho người khác phụ trách» như trước." },
     ],
   },
   {
     // Gói 2 hồ sơ riêng tư, lát H-5 (ADR-0126): yêu cầu xoá dữ liệu cá nhân + Quản trị xem trước / thực hiện (ẩn danh hoá) + danh sách ảnh giấy tờ hết lý do giữ + ẩn danh phiên cũ;
-    // migration 0108 (số TẠM — áp sau 0103–0107; kiểm số kế tiếp lúc phát hành). CÓ migration — cần trien-khai sau day-len. Chính sách riêng tư KHÔNG đăng trên production
+    // migration 0108 (đã áp trên production cùng lần 2.16 — d1 migrations list --remote, kiểm 2026-10-18). Chính sách riêng tư KHÔNG đăng trên production
     // cho tới khi luật sư duyệt chữ và chủ nhập số ngày hợp pháp (docs/HANDOFF-N1.md).
-    // Số 2.16 là số TẠM (main đã dùng thật 2.10 và 2.11; không trùng 2.8–2.15): gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
+    // Số 2.16 đã là số CHÍNH THỨC: production chạy 2.16 (GET /api/auth/config, kiểm 2026-10-17). Không đổi số.
     version: "2.16",
     date: "2026-10-17",
     items: [
@@ -39,9 +76,9 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     ],
   },
   {
-    // Gói 2 hồ sơ riêng tư, lát H-4 (ADR-0125): Hàng chờ xác minh ở trang Quản lý tài khoản + luật tách nhiệm vụ; migration 0107 (số TẠM — kiểm số kế tiếp lúc phát hành,
-    // nhánh vé hỗ trợ giữ 0106). CÓ migration — cần trien-khai sau day-len. Tự khai vẫn chỉ bật khi Toàn quyền đăng chính sách; chấp nhận phiếu giấy tờ chưa có (chưa có ảnh).
-    // Số 2.15 là số TẠM (main đã dùng thật 2.10 và 2.11; không trùng 2.8–2.14): gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
+    // Gói 2 hồ sơ riêng tư, lát H-4 (ADR-0125): Hàng chờ xác minh ở trang Quản lý tài khoản + luật tách nhiệm vụ; migration 0107 (đã áp trên production cùng lần 2.16,
+    // kiểm 2026-10-18; nhánh vé hỗ trợ giữ 0106). Tự khai vẫn chỉ bật khi Toàn quyền đăng chính sách; chấp nhận phiếu giấy tờ chưa có (chưa có ảnh).
+    // Số 2.15 đã là số CHÍNH THỨC (lên production cùng lần phát hành chạy 2.16, kiểm 2026-10-17). Không đổi số.
     version: "2.15",
     date: "2026-10-17",
     items: [
@@ -52,7 +89,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Gói 2 hồ sơ riêng tư, lát H-3 (ADR-0124, ADR-0126 đ1): khối "Hồ sơ của tôi" ở trang Tôi, chính sách riêng tư + đồng ý, phiếu tự khai (chưa có xác minh — lát H-4);
     // migration 0105. CÓ migration — cần trien-khai sau day-len. TỰ KHAI CHỈ BẬT KHI TOÀN QUYỀN ĐĂNG CHÍNH SÁCH (không gieo bản nào — ruling Q1).
-    // Số 2.14 là số TẠM (main đã dùng thật 2.10 và 2.11; không trùng 2.8–2.13): gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
+    // Số 2.14 đã là số CHÍNH THỨC (lên production cùng lần phát hành chạy 2.16, kiểm 2026-10-17). Không đổi số.
     version: "2.14",
     date: "2026-10-17",
     items: [
@@ -63,8 +100,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Gói 2 hồ sơ riêng tư, lát H-2 (ADR-0123): kho tệp hồ sơ R2, route tải / mở ảnh giấy tờ chỉ Toàn quyền, hàng chờ xoá, gộp mang ảnh;
     // migration 0104. CÓ migration + CHỦ PHẢI TẠO KHO R2 TRƯỚC (docs/HANDOFF-N1.md; cổng 1e của trien-khai dừng nếu chưa có). Chưa có màn hình.
-    // Số 2.13 là số TẠM (main đã dùng thật 2.10 và 2.11). Cùng nhánh với 2.12 (lát H-0/H-1) nên sẽ lên CÙNG một lần
-    // phát hành — phiên phát hành có thể gộp hai mục thành một số; kiểm lại số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
+    // Số 2.13 đã là số CHÍNH THỨC (lên production cùng 2.12 và các mục sau trong một lần phát hành, kiểm 2026-10-17). Không đổi số.
     version: "2.13",
     date: "2026-10-17",
     items: [
@@ -75,7 +111,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Gói 2 hồ sơ riêng tư, lát H-0 + H-1 (Hiến chương 5.20; ADR-0122, ADR-0126 đ1): hạng dữ liệu cá nhân cho mọi cột; migration 0103 thêm ngày sinh, liên hệ địa chỉ,
     // giấy tờ tổ chức, sổ xác minh, chính sách riêng tư + đồng ý (chưa có màn nhập). CÓ migration — cần trien-khai sau day-len.
-    // Số 2.12 là số TẠM (main đã dùng thật 2.10 và 2.11 — kiểm 2026-10-17): gộp / đánh số lại ở bước A.0 của docs/HANDOFF-N1.md.
+    // Số 2.12 đã là số CHÍNH THỨC (lên production cùng lần phát hành chạy 2.16, kiểm 2026-10-17). Không đổi số.
     version: "2.12",
     date: "2026-10-17",
     items: [

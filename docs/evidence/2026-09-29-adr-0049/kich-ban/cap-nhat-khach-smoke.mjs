@@ -50,7 +50,7 @@ const tenCua = async (p, legId) => (await p.ev(nhom)).find((x) => x.khoa === leg
 const daiGiu = `[...document.querySelectorAll('#ct-trang > .banner-danger .banner-title')].map((x) => x.innerText.trim())`;
 // Gói A1 (ADR-0096 Đ2, LC-20): chuyến 13/10 nằm ngoài cửa sổ xuất bến 48 giờ của bản gieo nên màn CHI TIẾT hiện thêm dòng "Trong giờ được xuất bến" ✕
 // (không tô "Bị giữ" — `kieuChuyen`). Kịch bản này chỉ kiểm khách đổi / thiếu tên nên bỏ dòng đó ra; dòng cửa sổ có kiểm riêng ở chuyen-smoke và cuoc-smoke.
-const dieuKien = `[...document.querySelectorAll('.dp-cond[data-dat]')].filter((r) => r.dataset.dat !== 'true' && r.querySelector('.dp-cond-nhan').innerText !== 'Trong giờ được xuất bến').map((r) => ({ nhan: r.querySelector('.dp-cond-nhan').innerText, sub: r.querySelector('.dp-cond-sub')?.innerText ?? '' }))`;
+const dieuKien = `[...document.querySelectorAll('.dp-cond[data-dat]')].filter((r) => r.dataset.dat !== 'true' && r.querySelector('.dp-cond-nhan').innerText !== 'Trong giờ được cho xe chạy').map((r) => ({ nhan: r.querySelector('.dp-cond-nhan').innerText, sub: r.querySelector('.dp-cond-sub')?.innerText ?? '' }))`;
 const viec = `[...document.querySelectorAll('#dp-cot-can-xu-ly .dp-cxl')].map((x) => ({ tieuDe: x.querySelector('.dp-cxl-tieu-de').innerText.trim(), text: x.querySelector('.dp-cxl-text')?.innerText.trim() ?? '', ai: x.querySelector('.dp-cxl-ai').innerText.trim(), nut: [...x.querySelectorAll('.dp-cxl-actions .vc-btn')].map((n) => n.innerText.trim()) }))`;
 const ghi = (p) => apiCalls(p).filter((r) => r.method === "POST" && r.path.endsWith("/cap-nhat-khach")).map((r) => JSON.parse(r.body));
 const cho = (p) => p.waitFor(`!!document.querySelector('.dp-ct-title')`, "trang chi tiết dựng xong");
@@ -82,7 +82,7 @@ try {
   await cho(p);
   await b.step("2", `1040 Bán hàng ${d.T1.ma}: dải "${TIEU_DE_GIU}" + nút; "Đủ tên khách" ✕ kèm câu; bấm (không hộp xác nhận) → CÙNG trang: tên mới hiện (đọc lại GET), hết giữ${axeNote()}`, async () => {
     assert.deepEqual(await p.ev(daiGiu), [TIEU_DE_GIU]);
-    assert.equal(await p.ev(txt("#ct-trang > .banner-danger .banner-lines")), `${CAU(d.O1.ma)} Ai xử lý: Văn phòng. Không cần điều chỉnh khẩn cấp hay phá lệ, kể cả trong vùng khoá trước giờ xuất bến.`);
+    assert.equal(await p.ev(txt("#ct-trang > .banner-danger .banner-lines")), `${CAU(d.O1.ma)} Ai xử lý: Văn phòng. Không cần điều chỉnh khẩn cấp hay phá lệ, kể cả trong vùng khoá trước giờ xe chạy.`);
     assert.deepEqual(await p.ev(dieuKien), [{ nhan: "Đủ tên khách", sub: `${CAU(d.O1.ma)} · Ai xử lý: Văn phòng` }]);
     assert.equal(await p.ev(txt(".dp-ct-head .chip")), "Bị giữ");
     assert.equal(await p.ev(`document.querySelector('main').innerText.includes('Khách Mới Thay')`), false, "trước khi bấm: xe chưa có khách mới");
@@ -162,7 +162,7 @@ try {
   // ADR-0104 Đ1 (2026-10-08): câu khoá theo ô điều chỉnh khẩn cấp (Bán hàng có ô) — "cập nhật khách theo đơn không cần điều chỉnh khẩn cấp"; thẻ khách
   // không còn dòng khoá cho Bán hàng (rút / chuyển trong vùng khoá là điều chỉnh khẩn cấp), nên chỉ còn MỘT ổ khoá (đầu trang) để đo.
   await b.step("4", `390 Bán hàng ${d.T4.ma} (trong vùng khoá): câu khoá nói "cập nhật khách theo đơn không cần điều chỉnh khẩn cấp"; dải + nút; bấm → không hộp xác nhận, tên mới hiện, hết giữ${axeNote()}`, async () => {
-    assert.equal(await pm.ev(txt(".dp-ct-lock")), "Trong 48 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Bạn có thể điều chỉnh khẩn cấp kèm lý do. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần điều chỉnh khẩn cấp.");
+    assert.equal(await pm.ev(txt(".dp-ct-lock")), "Trong 48 giờ trước giờ xe chạy — khoá xếp khách, đổi xe, đổi tài xế. Bạn có thể điều chỉnh khẩn cấp kèm lý do. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần điều chỉnh khẩn cấp.");
     assert.deepEqual(await pm.ev(daiGiu), [TIEU_DE_GIU]);
     // Vòng 5f (nhật ký 13.11): ổ khoá của dòng khoá không bị flex ép nhỏ khi câu dài xuống nhiều dòng — cỡ vẽ = cỡ khai của biểu tượng (16 ở đầu trang,
     // 14 ở thẻ khách — khớp chữ 14 của dòng).

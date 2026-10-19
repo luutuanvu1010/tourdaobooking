@@ -98,7 +98,7 @@ export function openSheetSoKhach(o: SheetSoKhachOptions, opener: HTMLElement): v
     } catch (err) {
       setBusy(false);
       const b = err instanceof ApiError ? classifyOrderError({ status: err.status, code: err.code, message: err.message, details: err.details }, { serviceNames: [], formatMoney: vnd }) : NETWORK_BANNER;
-      // Đơn vừa đổi / đã Đã giao / không còn quyền: màn hình đã cũ → nút "Tải lại đơn" (đóng bảng, tải lại trang đơn).
+      // Đơn vừa đổi / đã ở bước Đã giao / không còn quyền: màn hình đã cũ → nút "Tải lại đơn" (đóng bảng, tải lại trang đơn).
       // Trừ 409 thieu_nguoi_lon (ADR-0114 D3, `LOI_409_KHONG_CU`): màn hình không cũ — hiện đúng câu máy chủ gửi, giữ bảng và số đang gõ để người dùng sửa tại chỗ.
       const cu = err instanceof ApiError && (err.status === 403 || err.status === 404 || (err.status === 409 && !LOI_409_KHONG_CU.has(err.code)));
       renderBanner(bannerEl, cu || b.action === "lock_form" ? { ...b, action: "reload_order" } : b, {

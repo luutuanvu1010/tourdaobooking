@@ -471,7 +471,7 @@ function ve(): void {
   const r = duLieu!;
   const c = r.chuyen;
   document.title = `${c.ma} — Island Booking System`;
-  setBarTitle(c.trangThai === "PLANNED" ? `Xuất bến ${c.ma}` : c.ma);
+  setBarTitle(c.trangThai === "PLANNED" ? `Cho xe chạy ${c.ma}` : c.ma);
   const ngay = c.gioBatDau.ngay;
   const mang = daiMatMang({ duLieuLuc: duLieuCu?.luc ?? null, matMang: duLieuCu?.matMang ?? true, soChoGui: choGui.size });
   const dauMang = mang ? dai("warning", mang.tieuDe, mang.dong, mang.taiLai ? () => void lamMoi.yeuCau() : undefined) : null;
@@ -483,7 +483,7 @@ function ve(): void {
     "div",
     { class: "dp-cc-head" },
     chip(c.trangThaiNhan, c.trangThai === "RUNNING" ? "unit" : c.trangThai === "ENDED" ? "ok" : "muted"),
-    h("span", null, h("strong", null, c.bienSo), c.xuatBen ? ` · xuất bến ${c.xuatBen.gioXayRa.gio}` : "", " · trên xe ", h("strong", null, `${trenXe}/${c.soCho}`)),
+    h("span", null, h("strong", null, c.bienSo), c.xuatBen ? ` · xe chạy ${c.xuatBen.gioXayRa.gio}` : "", " · trên xe ", h("strong", null, `${trenXe}/${c.soCho}`)),
   );
   const chayDuoc = c.trangThai === "RUNNING";
   const phuDiem = (b: BuocDiem) => ({ ben: nutThuTu(b), duoi: [...bayCua(b, r.suat), ...lienHeCua(b), ...chiDuongCua(b, r), ...nutNhoDon(b)] });
@@ -898,17 +898,17 @@ function veXuatBen(dauMang: HTMLElement | null): void {
     h(
       "section",
       { class: "vc-card dp-side-card", "aria-labelledby": "cc-dk-title" },
-      h("div", { class: "dp-card-head" }, h("h2", { id: "cc-dk-title", class: "dp-card-title" }, "Điều kiện xuất bến"), thieu.length ? chip(`${thieu.length} chưa đạt`, "danger") : chip("Đạt hết", "ok")),
+      h("div", { class: "dp-card-head" }, h("h2", { id: "cc-dk-title", class: "dp-card-title" }, "Điều kiện cho xe chạy"), thieu.length ? chip(`${thieu.length} chưa đạt`, "danger") : chip("Đạt hết", "ok")),
       ...(thieu.length
         ? thieu.map((x) => h("div", { class: "dp-cond", "data-dat": "false" }, h("span", { class: "dp-cond-mark is-chua", "aria-label": "Chưa đạt" }, "✕"),
             h("span", { class: "dp-cond-text" }, h("span", { class: "dp-cond-nhan" }, `${x.loiNhan} ${hauToDieuKienTaiXe(x.ma, coBoSungTen && r.trongNgayChay)}`))))
-        : [h("div", { class: "dp-cond", "data-dat": "true" }, h("span", { class: "dp-cond-mark is-dat", "aria-label": "Đạt" }, "✓"), h("span", { class: "dp-cond-text" }, h("span", { class: "dp-cond-nhan" }, "Đủ điều kiện xuất bến")))]),
+        : [h("div", { class: "dp-cond", "data-dat": "true" }, h("span", { class: "dp-cond-mark is-dat", "aria-label": "Đạt" }, "✓"), h("span", { class: "dp-cond-text" }, h("span", { class: "dp-cond-nhan" }, "Đủ điều kiện cho xe chạy")))]),
     ),
   );
-  const nut = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: thieu.length > 0, "data-action": "xuat-ben" }, "Xuất bến");
+  const nut = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: thieu.length > 0, "data-action": "xuat-ben" }, "Cho xe chạy");
   // HT-03: một chạm chỉ MỞ hộp xác nhận; lệnh chỉ gửi khi bấm nút trong hộp. Mất mạng lúc gửi: hộp đóng, "Bấm lại" ở dải đầu trang như cũ (`chay`).
   nut.addEventListener("click", () => moXacNhanXuatBen(nut));
-  replaceChildren(dayEl, nut, h("span", { class: "dp-note dp-cc-foot" }, thieu.length ? (chiThieuTenTuLam(thieu, coBoSungTen && r.trongNgayChay) ? "Chưa xuất bến được — bổ sung tên khách ở trên trước." : "Chưa xuất bến được — văn phòng đang lo.") : `Bấm lúc xe lăn bánh — giờ ghi là lúc bấm (${msToVnLocal(Date.now()).time}).`));
+  replaceChildren(dayEl, nut, h("span", { class: "dp-note dp-cc-foot" }, thieu.length ? (chiThieuTenTuLam(thieu, coBoSungTen && r.trongNgayChay) ? "Chưa cho xe chạy được — bổ sung tên khách ở trên trước." : "Chưa cho xe chạy được — văn phòng đang lo.") : `Bấm lúc xe lăn bánh — giờ ghi là lúc bấm (${msToVnLocal(Date.now()).time}).`));
   dayEl.hidden = false;
 }
 

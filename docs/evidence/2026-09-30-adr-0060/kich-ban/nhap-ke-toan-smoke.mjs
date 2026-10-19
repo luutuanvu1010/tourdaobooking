@@ -89,7 +89,8 @@ try {
   // ---- 4) Đối tác một mình (tài khoản dùng một lần)
   {
     const phone = `09${String(Math.floor(Math.random() * 1e8)).padStart(8, "0")}`;
-    const t = await call(ACCOUNTS.admin, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Đối Tác Kế Toán", phone, permissions: ["PARTNER"] });
+    // ADR-0071/0072: chỉ Nhân sự hoặc Toàn quyền tạo tài khoản — dùng tài khoản chủ thử (Toàn quyền), không nới quyền Quản trị.
+    const t = await call(ACCOUNTS.chu, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Đối Tác Kế Toán", phone, permissions: ["PARTNER"] });
     assert.equal(t.status, 201, JSON.stringify(t.json));
     const DT = { phone, pin: t.json.pin };
     const donDT = await donMoi(DT);

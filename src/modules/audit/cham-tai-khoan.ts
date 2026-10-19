@@ -20,7 +20,7 @@ export const CHAM_TAI_KHOAN = {
     pin_set_by_passkey: "Chính chủ đặt PIN mới bằng Face ID của mình.",
     staff_synced: "Đồng bộ Sheet do hệ thống làm, không có người làm.",
     session_policy_changed: "Chính sách chung, không nhắm một tài khoản.",
-    session_revoked: "Gỡ phiên chỉ lấy mất quyền đăng nhập.",
+    session_revoked: "Đăng xuất máy chỉ lấy mất quyền đăng nhập.",
     mfa_enabled: "Chính chủ tự bật lớp hai.",
     mfa_removed: "Chính chủ tự gỡ lớp hai của mình.",
     mfa_recovery_regenerated: "Chính chủ tự tạo mã dự phòng.",

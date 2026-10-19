@@ -274,7 +274,7 @@ test("TC5: nhật ký order_money_adjusted (nhãn 'Sửa số khách (văn phòn
     assert.equal(t.status, 200, t.text);
     return (t.json.tin as { loai: string; cau: string }[]).filter((x) => x.loai === "doi_sau_xac_nhan").map((x) => x.cau);
   };
-  const cau = `${TEN.ACC} đổi đơn ${d.code}: đổi số khách (Tour đảo: người lớn 2 → 3)`;
+  const cau = `Đơn ${d.code}: đổi số khách (Tour đảo: người lớn 2 → 3)`;
   assert.deepEqual(await tinDoi(ID.SALES), [cau], "người lập nhận câu cụ thể");
   assert.deepEqual(await tinDoi(ID.FIELD), [cau], "hướng dẫn viên phụ trách nhận câu cụ thể");
   assert.deepEqual(await tinDoi(ID.ACC), [], "người sửa không nhận tin của chính mình");

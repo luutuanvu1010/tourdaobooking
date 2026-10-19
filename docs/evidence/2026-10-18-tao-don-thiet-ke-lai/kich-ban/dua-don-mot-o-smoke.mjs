@@ -12,8 +12,8 @@
 //      dòng nào / Tab → chữ gõ được GIỮ thành địa chỉ gõ tự do (câu nhắc chỉ ghi địa chỉ gắn vào ô); chạm nhãn của ô không đóng danh sách, không mất chữ; gõ ở Nơi đón rồi chạm
 //      ô Nơi trả → chữ ở lại ô đón, ô trả nhận tiêu điểm và mở danh sách (cú chạm không bị nuốt); gõ ở Nơi đón rồi chạm "+ Thêm chiều về" → chiều về được tạo, Nơi trả chiều về = chữ
 //      vừa gõ (cú chạm không bị nuốt khi khối dựng lại); Enter không bao giờ gửi form;
-//   5) chạm THẬT nút Lưu khi chặng của thẻ ĐANG GẬP thiếu nơi đón → thẻ mở, câu "Chặng 1: chưa có nơi đón." dưới ô (aria-describedby), ô đỏ (aria-invalid), trong khung nhìn,
-//      danh sách KHÔNG tự bật; tiêu điểm: 1040 (chuột) ở ô, 390 (cảm ứng — vòng sửa 1, M-1) ở đầu chặng ("Chiều đi · Chặng 1"), KHÔNG ở ô gõ nào (bàn phím ảo iPhone không bật)
+//   5) chạm THẬT nút Lưu khi chặng của thẻ ĐANG GẬP thiếu nơi đón → thẻ mở, câu "Lượt 1: chưa có nơi đón." dưới ô (aria-describedby), ô đỏ (aria-invalid), trong khung nhìn,
+//      danh sách KHÔNG tự bật; tiêu điểm: 1040 (chuột) ở ô, 390 (cảm ứng — vòng sửa 1, M-1) ở đầu chặng ("Chiều đi · Lượt 1"), KHÔNG ở ô gõ nào (bàn phím ảo iPhone không bật)
 //      (luật 14/10: điện thoại chỉ đặt tiêu điểm khi ô nằm trong khối gập vừa mở — ô đang thấy thì cuộn tới dải lỗi);
 //   5c) (vòng sửa 2 — Minor d) sau lần Lưu báo lỗi: gõ ở Nơi đón rồi chạm MÉP DƯỚI ô Nơi trả → cú chạm không bị nuốt (câu lỗi dưới ô đón chỉ ẩn sau cú chạm);
 //   6) lưu thật, mở lại: chặng đủ gập MỘT dòng ("Chiều đi · Đón 07:30 · Khách sạn Biển Xanh → Cảng Cầu Đá"); chạm dòng → chặng mở, ô Nơi đón hiện trong khung nhìn (danh sách không
@@ -275,7 +275,7 @@ try {
       // bỏ chiều về vừa thêm (trả trạng thái cho các bước sau). Chiều về đủ nơi đón nên hiện GỌN một dòng: chạm dòng tóm tắt để mở rồi mới chạm "Bỏ chặng".
       const ttVe = `${chang(0, 1)}.closest('.dd-chang-khung').querySelector('.dd-tom-tat')`;
       if (await p.ev(hien(ttVe))) await cham(p, mobile, ttVe);
-      assert.equal(await p.ev(hien(`${chang(0, 1)}.querySelector('[data-action="bo-chang"]')`)), true, "nút 'Bỏ chặng' của chiều về đang hiện");
+      assert.equal(await p.ev(hien(`${chang(0, 1)}.querySelector('[data-action="bo-chang"]')`)), true, "nút 'Bỏ lượt' của chiều về đang hiện");
       await cham(p, mobile, `${chang(0, 1)}.querySelector('[data-action="bo-chang"]')`);
       assert.equal(await p.ev(`${the(0)}.querySelectorAll('.dd-chang').length`), 1, "bỏ chiều về");
       assert.equal(await soGui(), 0, "không lần gửi form nào trong lúc thao tác");
@@ -312,7 +312,7 @@ try {
       assert.equal(await p.ev(moDs(don)), false, "tiêu điểm do Lưu đặt: danh sách không tự bật");
       const loiId = await p.ev(`(${don}).getAttribute('aria-describedby')?.split(' ').find((id) => document.getElementById(id)?.classList.contains('field-error'))`);
       assert.ok(loiId, "câu lỗi gắn vào ô bằng aria-describedby");
-      assert.equal(await p.ev(`document.getElementById(${JSON.stringify(loiId)}).textContent.trim()`), "Chặng 1: chưa có nơi đón.");
+      assert.equal(await p.ev(`document.getElementById(${JSON.stringify(loiId)}).textContent.trim()`), "Lượt 1: chưa có nơi đón.");
       assert.equal(await p.ev(hien(`document.getElementById(${JSON.stringify(loiId)})`)), true, "câu lỗi đang hiện");
     });
 

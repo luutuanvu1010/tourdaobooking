@@ -5,7 +5,7 @@
 //   390×844 (chạm thật bằng cảm ứng):
 //     1) không thấy khối Tóm tắt; dòng "N dịch vụ · Tổng X ₫" ở thanh dính là một NÚT (type=button, ≥ 44px, aria-expanded/aria-controls), bảng chi tiết đang ẩn;
 //     2) chạm dòng tổng → bảng chi tiết trên thanh: Tạm tính, Giảm giá, Tổng cộng (= #sum-total = #mobile-total), câu "Số này chỉ để xem trước; hệ thống tính lại khi lưu."; chạm lại → đóng;
-//     3) trả trước: chưa nhập → "Hình thức", "Người nhận tiền" và câu ghi sổ ẩn; gõ 2.000.000 → hiện, thanh có "Trả trước 2.000.000 ₫", bảng chi tiết có "Thanh toán trước (ghi sau khi lưu)"; xoá số → ẩn;
+//     3) trả trước: chưa nhập → "Hình thức", "Người thu tiền" và câu ghi sổ ẩn; gõ 2.000.000 → hiện, thanh có "Trả trước 2.000.000 ₫", bảng chi tiết có "Thanh toán trước (ghi sau khi lưu)"; xoá số → ẩn;
 //     4) thang nút ba cấp: quét KIỂU ĐÃ TÍNH của mọi nút đang hiện trong form (thẻ mở, chặng đưa đón, khối gập mở, trả trước đã nhập): đúng một nút chính (#save), không nút
 //        viên thuốc / nền xanh nhạt / nét đứt (nút đang được chọn — aria-pressed / aria-checked — không tính là "nền xanh nhạt");
 //     5) Lưu bị từ chối (thiếu tên khách) khi đang ở đầu trang: #save-error nằm TRONG thanh dính, kề ngay trên #save, trong khung nhìn; ô lỗi nằm giữa thanh bước và thanh dính (không bị che);
@@ -149,7 +149,7 @@ try {
   };
   const traTruocAn = `['prepaid-method-field', 'prepaid-collector-field', 'prepaid-hint'].map((id) => document.getElementById(id).getClientRects().length === 0)`;
   const kiemTraTruoc = async (p, mobile) => {
-    assert.deepEqual(await p.ev(traTruocAn), [true, true, true], "chưa nhập trả trước: Hình thức, Người nhận tiền, câu ghi sổ ẩn");
+    assert.deepEqual(await p.ev(traTruocAn), [true, true, true], "chưa nhập trả trước: Hình thức, Người thu tiền, câu ghi sổ ẩn");
     await cham(p, mobile, "document.getElementById('prepaidAmount')");
     await goChu(p, "2000000");
     await sleep(150);
@@ -188,7 +188,7 @@ try {
   });
 
   await buoc("390-3", "trả trước: chưa nhập → hai ô + câu ghi sổ ẩn; gõ 2.000.000 → hiện, thanh 'Trả trước 2.000.000 ₫', bảng chi tiết có 'Thanh toán trước (ghi sau khi lưu)'; xoá số → ẩn", async () => {
-    assert.deepEqual(await p.ev(traTruocAn), [true, true, true], "chưa nhập trả trước: Hình thức, Người nhận tiền, câu ghi sổ ẩn");
+    assert.deepEqual(await p.ev(traTruocAn), [true, true, true], "chưa nhập trả trước: Hình thức, Người thu tiền, câu ghi sổ ẩn");
     await cham(p, true, "document.getElementById('prepaidAmount')");
     await goChu(p, "2000000");
     await sleep(150);

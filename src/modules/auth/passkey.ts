@@ -14,7 +14,7 @@ export const CHALLENGE_IP_LIMIT = 120;
 
 export const PASSKEY_ERRORS = {
   off: () => error(503, "passkey_unavailable", "Đăng nhập bằng Face ID chưa được bật."),
-  expired: () => error(400, "passkey_expired", "Phiên xác nhận Face ID đã hết hạn. Hãy bấm lại."),
+  expired: () => error(400, "passkey_expired", "Lượt xác nhận Face ID đã hết hạn. Hãy bấm lại."),
   unknown: () => error(401, "passkey_unknown", "Face ID này đã bị gỡ hoặc không thuộc tài khoản nào. Hãy đăng nhập bằng số điện thoại và PIN."),
   invalid: () => error(401, "passkey_invalid", "Không xác nhận được Face ID. Hãy thử lại hoặc đăng nhập bằng PIN."),
   registerInvalid: () => error(400, "passkey_invalid", "Không bật được Face ID. Hãy thử lại."),

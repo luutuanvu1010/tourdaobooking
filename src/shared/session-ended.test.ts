@@ -14,5 +14,5 @@ test("sessionEndedMessage: 'bị thay' có giờ Việt Nam; lý do khác có ch
   assert.equal(sessionEndedMessage({ reason: LY_DO_BI_THAY, endedAt: "2026-10-01T03:05:00.000Z" }), "Tài khoản vừa đăng nhập trên máy khác lúc 10:05");
   assert.equal(sessionEndedMessage({ reason: LY_DO_BI_THAY, endedAt: "2026-10-01T18:30:00.000Z" }), "Tài khoản vừa đăng nhập trên máy khác lúc 01:30", "qua nửa đêm theo giờ VN");
   assert.equal(sessionEndedMessage({ reason: LY_DO_BI_THAY, endedAt: null }), "Tài khoản vừa đăng nhập trên máy khác.");
-  assert.equal(sessionEndedMessage({ reason: "Bị đặt lại PIN", endedAt: "2026-10-01T03:05:00.000Z" }), "Phiên đăng nhập đã kết thúc: Bị đặt lại PIN.");
+  assert.equal(sessionEndedMessage({ reason: "Bị đặt lại PIN", endedAt: "2026-10-01T03:05:00.000Z" }), "Máy này đã bị đăng xuất. Lý do: Bị đặt lại PIN.");
 });

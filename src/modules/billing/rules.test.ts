@@ -107,7 +107,7 @@ test("lyDoChuaGiaoDuoc (NT-F1, NT-F6c, M1 = A): thứ tự lý do cố định, 
   const chuaRo = lyDoChuaGiaoDuoc({ ...base, so: du(1_000_000, 1_000_000, 1) })!;
   assert.deepEqual([chuaRo.ma, chuaRo.aiXuLy], ["unknown_collector", "Kế toán"]);
   const thieu = lyDoChuaGiaoDuoc({ ...base, so: du(600_000, 1_000_000) })!;
-  assert.deepEqual([thieu.ma, thieu.cau, thieu.aiXuLy], ["underpaid", "Còn thiếu 400.000 ₫ — ghi thêm lần thu hoặc sửa đơn trước.", "Hướng dẫn viên"]);
+  assert.deepEqual([thieu.ma, thieu.cau, thieu.aiXuLy], ["underpaid", "Còn thiếu 400.000 ₫ — ghi thêm khoản thu hoặc sửa đơn trước.", "Hướng dẫn viên"]);
   const thua = lyDoChuaGiaoDuoc({ ...base, so: du(1_050_000, 1_000_000) })!;
   assert.deepEqual([thua.ma, thua.cau, thua.aiXuLy], ["overpaid", "Khách đã trả dư 50.000 ₫ — chờ Kế toán hoàn.", "Kế toán"]);
   assert.equal(lyDoChuaGiaoDuoc({ ...base, ngayDi: [], so: du(0, 0) })!.ma, "missing_date", "đơn không dịch vụ nào");
@@ -118,7 +118,7 @@ test("lyDoChuaHoanThanh: chưa Đã giao; đã Hoàn thành; còn bên nợ côn
   assert.equal(lyDoChuaHoanThanh({ deliveredAt: null, completedAt: null, soDu: new Map(), tenBen: ten })!.ma, "not_delivered");
   assert.equal(lyDoChuaHoanThanh({ deliveredAt: "x", completedAt: "y", soDu: new Map(), tenBen: ten })!.ma, "already_completed");
   const r = lyDoChuaHoanThanh({ deliveredAt: "x", completedAt: null, soDu: new Map([[HDV, 400_000]]), tenBen: ten })!;
-  assert.equal(r.cau, "Còn người giữ tiền của công ty: HDV Nam đang giữ 400.000 ₫ — ghi nộp tiền / xác nhận công ty đã nhận trước.");
+  assert.equal(r.cau, "Còn người chưa nộp tiền về công ty: HDV Nam còn 400.000 ₫ chưa nộp — ghi nộp tiền / xác nhận công ty đã nhận trước.");
   assert.equal(lyDoChuaHoanThanh({ deliveredAt: "x", completedAt: null, soDu: new Map([[HDV, -20_000]]), tenBen: ten }), null);
 });
 

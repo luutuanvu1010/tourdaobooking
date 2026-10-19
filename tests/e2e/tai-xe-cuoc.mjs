@@ -90,7 +90,7 @@ const xa = await chuyen(TX2, "X", vnDate(3));
 r = await call(TX2.cookie, "POST", `/api/van-chuyen/cuoc-cua-toi/${xa.chuyen.id}/xuat-ben`, { requestId: uuid() });
 assert.equal(r.status, 409, JSON.stringify(r.body));
 assert.deepEqual([r.body.error.code, r.body.error.lyDo.map((l) => l.ma)], ["chua_du_dieu_kien_xuat_ben", ["NGOAI_CUA_SO_XUAT_BEN"]], JSON.stringify(r.body));
-assert.match(r.body.error.lyDo[0].loiNhan, /được xuất bến từ 09:30 ngày \d{2}\/\d{2}\. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến\./);
+assert.match(r.body.error.lyDo[0].loiNhan, /được cho xe chạy từ 09:30 ngày \d{2}\/\d{2}\. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến\./);
 assert.equal(r.body.error.lyDo[0].aiXuLy, "VAN_PHONG");
 assert.equal((await sqlRows(`SELECT count(*) AS n FROM vc_trip_event WHERE trip_id = '${xa.chuyen.id}' AND kind = 'DEPARTED'`))[0].n, 0, "không ghi");
 assert.equal((await sqlRows(`SELECT status FROM vc_trip WHERE id = '${xa.chuyen.id}'`))[0].status, "PLANNED");

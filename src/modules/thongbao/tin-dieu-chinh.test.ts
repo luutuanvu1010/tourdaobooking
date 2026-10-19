@@ -59,7 +59,10 @@ test("yêu cầu mới → Kế toán khác và Toàn quyền có tin «chờ b�
   for (const ai of [KT2, SA, QT]) {
     const ds = await dieuChinh(w, ai);
     assert.equal(ds.length, 1, `${ai}: ${JSON.stringify(ds)}`);
-    assert.match(ds[0]!.cau, /^Lan Kế Toán gửi yêu cầu điều chỉnh công nợ đơn TB-\d+ — chờ bạn duyệt$/);
+    // ADR-0131 đ3: chỉ Toàn quyền thấy tên người gửi; Kế toán / Quản trị đọc câu không tên.
+    if (ai === SA) assert.match(ds[0]!.cau, /^Lan Kế Toán gửi yêu cầu điều chỉnh công nợ đơn TB-\d+ — chờ bạn duyệt$/);
+    else assert.match(ds[0]!.cau, /^Có yêu cầu điều chỉnh công nợ đơn TB-\d+ — chờ bạn duyệt$/);
+    if (ai !== SA) assert.doesNotMatch(ds[0]!.cau, /Lan/, "người không phải Toàn quyền không thấy tên");
     assert.equal(ds[0]!.lienKet, "/dieu-chinh-cong-no");
     assert.equal(ds[0]!.cuaToi, true);
     assert.doesNotMatch(ds[0]!.cau, /100\.000|HDV|bù trừ/, "câu không chứa số tiền, lý do, tên bên nợ");
@@ -69,7 +72,8 @@ test("yêu cầu mới → Kế toán khác và Toàn quyền có tin «chờ b�
   assert.equal((await w.call("POST", `/api/ledger/adjustment-requests/${y.json.yeuCauId}/withdraw`, { as: KT })).status, 201);
   const sau = await dieuChinh(w, KT2);
   assert.equal(sau.length, 2);
-  assert.ok(sau.some((t) => /đã rút yêu cầu điều chỉnh công nợ đơn/.test(t.cau)));
+  assert.ok(sau.some((t) => /^Yêu cầu điều chỉnh công nợ đơn TB-\d+ đã được rút$/.test(t.cau)), JSON.stringify(sau));
+  assert.ok((await dieuChinh(w, SA)).some((t) => /^Lan Kế Toán đã rút yêu cầu điều chỉnh công nợ đơn/.test(t.cau)), "Toàn quyền thấy tên");
   assert.deepEqual(await dieuChinh(w, KT), []);
 });
 
@@ -82,7 +86,7 @@ test("duyệt → người gửi nhận «đã duyệt», nhân viên bị đổ
   assert.equal((await w.call("POST", `/api/ledger/adjustment-requests/${y}/approve`, { as: KT2 })).status, 201);
   const gui = await dieuChinh(w, KT);
   assert.equal(gui.length, 1);
-  assert.match(gui[0]!.cau, /^Mai Kế Toán đã duyệt yêu cầu điều chỉnh công nợ đơn TB-\d+ của bạn$/);
+  assert.match(gui[0]!.cau, /^Yêu cầu điều chỉnh công nợ đơn TB-\d+ của bạn đã được duyệt$/);
   const hdv = await dieuChinh(w, HDV);
   assert.equal(hdv.length, 1);
   assert.match(hdv[0]!.cau, /^Số dư của bạn trên đơn TB-\d+ vừa được điều chỉnh$/);
@@ -100,7 +104,7 @@ test("từ chối → người gửi nhận «đã từ chối» (không lộ l�
   assert.equal((await w.call("POST", `/api/ledger/adjustment-requests/${y}/reject`, { as: SA, body: { lyDo: "số tiền chưa khớp biên nhận" } })).status, 201);
   const gui = await dieuChinh(w, KT);
   assert.equal(gui.length, 1);
-  assert.match(gui[0]!.cau, /^Toàn Quyền đã từ chối yêu cầu điều chỉnh công nợ đơn TB-\d+ của bạn$/);
+  assert.match(gui[0]!.cau, /^Yêu cầu điều chỉnh công nợ đơn TB-\d+ của bạn bị từ chối$/);
   assert.doesNotMatch(gui[0]!.cau, /khớp biên nhận/);
   assert.deepEqual(await dieuChinh(w, HDV), [], "từ chối không đổi số dư ⇒ HDV không có tin");
   // Nhật ký không chứa SĐT / email / MST / giấy tờ: kiểm trên mọi dòng ledger_adjustment*.

@@ -86,6 +86,6 @@ test("lenhChanMoc: chỉ lệnh máy chủ CHẮC CHẮN chặn — thêm dướ
 });
 
 test("cauChanMoc: một câu tiếng Việt, tên chặng không lặp, số giờ theo mốc thật", () => {
-  assert.equal(cauChanMoc(["Chiều đi · Tour đảo"], 360), "Chặng Chiều đi · Tour đảo dưới mốc 6 giờ — cần Quản trị duyệt đặt gấp; chưa lưu gì.");
-  assert.equal(cauChanMoc(["Chiều đi · Tour đảo", "Chiều đi · Tour đảo", "Chiều về · Tour đảo"], 390), "Chặng Chiều đi · Tour đảo, Chiều về · Tour đảo dưới mốc 6 giờ 30 phút — cần Quản trị duyệt đặt gấp; chưa lưu gì.");
+  assert.equal(cauChanMoc(["Chiều đi · Tour đảo"], 360), "Lượt Chiều đi · Tour đảo đã qua hạn chốt (6 giờ trước giờ đón) — cần Quản trị duyệt đặt gấp; chưa lưu gì.");
+  assert.equal(cauChanMoc(["Chiều đi · Tour đảo", "Chiều đi · Tour đảo", "Chiều về · Tour đảo"], 390), "Lượt Chiều đi · Tour đảo, Chiều về · Tour đảo đã qua hạn chốt (6 giờ 30 phút trước giờ đón) — cần Quản trị duyệt đặt gấp; chưa lưu gì.");
 });

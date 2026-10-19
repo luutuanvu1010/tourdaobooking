@@ -87,7 +87,7 @@ const quanTriNhanSu = (): Row => row("none", "none", "any", "none", "none", "any
 export const MATRIX = {
   "order.view": row("any", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"), // xem đơn — FIELD: chỉ đơn đang phụ trách (ADR-0030 S23-1); chi tiết đơn khác → 404 (seesOnlyAssignedOrders)
   "money.view": row("any", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"), // xem tiền, bảng giá danh mục — FIELD assigned (ADR-0030 S23-5): tiền đơn mình phụ trách, KHÔNG bảng giá (for-order chặn ở order.create)
-  "order.history.view": row("ownOrAssigned", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"), // nhật ký/lịch sử sửa đơn (ADR-0009: cả người phụ trách; ADR-0030 S23-3: FIELD đơn đang phụ trách)
+  "order.history.view": row("ownOrAssigned", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"), // mở khối "Lịch sử" của đơn — lớp RÚT GỌN không tên (ADR-0131); ADR-0009: cả người phụ trách; ADR-0030 S23-3: FIELD đơn đang phụ trách
   "contact.view": row("any", "any", "any", "assigned", "ownOrAssigned", "any", "own", "none", "none", "none"), // tên/SĐT khách, điểm đón, giờ — PARTNER: own (đơn tự lập) + assigned (đơn được duyệt "xin nhận", ADR-0014 điều 10). NGOẠI LỆ CÓ TÊN (ADR-0030 S23-2): nơi đón/giờ đón ở PHẦN HẸP của hàng chờ (order.pool.view) không đòi ô này — nơi đón đã che dãy số. Nay gồm HỌ TÊN + NĂM SINH của từng hành khách (ADR-0047 A2 — GET /api/orders/:id/passengers)
   "order.create": row("any", "none", "any", "none", "any", "any", "any", "none", "none", "none"), // lập đơn (đơn mới luôn là của người lập)
   "order.modify": row("ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none", "none"), // sửa, xác nhận, huỷ đơn (ADR-0009: cả người phụ trách; ADR-0014: PARTNER của mình)
@@ -114,7 +114,7 @@ export const MATRIX = {
   "dispatch.assign": row("ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"), // đặt/đổi người phụ trách và nhiệm vụ (ADR-0009: cả người phụ trách hiện tại)
   "dispatch.claim": row("any", "none", "any", "any", "none", "any", "none", "none", "none", "none"), // nhận phụ trách đơn CHƯA có người (ADR-0009; điều kiện "chưa có người" do dịch vụ của dispatch kiểm, không phải ô này) — FIELD any (ADR-0030 S20-6/S20-12); chốt Nhận (đã huỷ/qua ngày đi) + chặn tài khoản có quyền Đối tác ở route PUT /api/orders/:id/handler
   "dispatch.guides.view": row("none", "none", "none", "none", "any", "any", "none", "none", "none", "none"), // danh sách hẹp hướng dẫn viên nội bộ — thao tác MỚI (ADR-0014 điều 9, chưa có route)
-  // Sổ tiền lượt 1 (ADR-0026 điều 10, bảng 9 cột bản làm mới §2 — accepted 2026-09-29): ghi LẦN THU trước "Đã giao" (route POST /api/orders/:id/payments,
+  // Sổ tiền lượt 1 (ADR-0026 điều 10, bảng 9 cột bản làm mới §2 — accepted 2026-09-29): ghi KHOẢN THU trước "Đã giao" (route POST /api/orders/:id/payments,
   // module billing). FIELD assigned (HDV đang phụ trách ghi tiền mình thu trước chuyến), PARTNER own, INTERN own — thay ô cọc trên form đơn của mình.
   // Người thu ∈ {chính mình, Công ty} trừ Kế toán/Toàn quyền (kiểm ở route, không phải ô này).
   "payment.receive": row("own", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"),
@@ -136,7 +136,7 @@ export const MATRIX = {
   "order.complete": row("none", "any", "none", "none", "none", "any", "none", "none", "none", "none"),
   // Xem sổ công nợ (ADR-0026 đ7, đ10): own = "Sổ của tôi" (GET /api/ledger/mine); any = sổ mọi bên (GET /api/ledger). Đối tác none ở lượt 1; tài xế none.
   "ledger.view": row("own", "any", "own", "own", "none", "any", "own", "none", "none", "none"),
-  // Ghi sổ (ADR-0026 đ5, đ8): xác nhận công ty đã nhận, nộp/trả, điều chỉnh, đảo; cũng là "Kế toán" khi ghi lần thu (ghi người thu khác, chọn ngày phát sinh).
+  // Ghi sổ (ADR-0026 đ5, đ8): xác nhận công ty đã nhận, nộp/trả, điều chỉnh, đảo; cũng là "Kế toán" khi ghi khoản thu (ghi người thu khác, chọn ngày phát sinh).
   "ledger.write": row("none", "any", "none", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0115 đợt 1 (điều 2, Q1 = A): DUYỆT hoặc TỪ CHỐI yêu cầu điều chỉnh công nợ — Kế toán, Quản trị, Toàn quyền; phải KHÁC người tạo (kiểm theo tài khoản ở máy chủ + trigger 0094, không ở
   // ô này). Quản trị chỉ thấy danh sách yêu cầu CHỜ DUYỆT, KHÔNG thấy cả sổ (`ledger.view` không đổi). KHÔNG thêm vào `O_GHI_TIEN` (duyệt không phải ghi tiền; Quản trị vẫn không ghi sổ).
@@ -182,7 +182,7 @@ export const MATRIX = {
   "account.create": row("none", "none", "none", "none", "none", "any", "none", "none", "none", "any"),
   "account.view": quanTriNhanSu(),
   "account.edit": quanTriNhanSu(),
-  "audit.view": chiToanQuyen(), // xem trang Nhật ký toàn hệ thống (GET /api/audit)
+  "audit.view": chiToanQuyen(), // đọc nhật ký kiểm toán ĐẦY ĐỦ: trang Nhật ký (GET /api/audit) và lịch sử đơn đủ tên (ADR-0131: chỉ Toàn quyền)
   "feedback.submit": row("any", "any", "any", "any", "any", "any", "any", "any", "any", "any"), // gửi báo lỗi/đề xuất (mọi tài khoản đăng nhập)
   "feedback.view": row("own", "own", "own", "own", "own", "any", "own", "own", "own", "own"), // xem yêu cầu: chỉ của mình (ownerId = người gửi); đọc mọi yêu cầu chỉ Toàn quyền (ADR-0038)
   "feedback.triage": chiToanQuyen(), // tiếp nhận: đổi trạng thái/người xử lý, ghi chú nội bộ, hàng đợi — chỉ Toàn quyền (ADR-0038)

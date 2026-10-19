@@ -385,14 +385,14 @@ export async function createAccountWithRolesStatements(
     if (!party.active) return { ok: false, message: "Hồ sơ đã chọn đang ngưng hoạt động." };
     if (await accountIdOfParty(db, input.existingPartyId)) return { ok: false, message: "Hồ sơ này đã có tài khoản." };
     const open = (await accountRolesOf(db, input.existingPartyId, today)).filter((r) => r.validTo === null).map((r) => r.roleTypeCode).filter(isRoleCode);
-    if (groupOf([...open, ...assignment.roles]) === "MIXED") return { ok: false, message: "Hồ sơ này đang giữ vai khác nhóm (nội bộ/bên ngoài) — đóng vai đó trước." };
+    if (groupOf([...open, ...assignment.roles]) === "MIXED") return { ok: false, message: "Hồ sơ này đang giữ vai trò khác nhóm (nội bộ/bên ngoài) — đóng vai trò đó trước." };
     // ADR-0117 điều 4, chiều 2: hồ sơ đang mang loại đối tác được hưởng không nhận vai / quyền nội bộ. Câu không nêu tên loại (người gọi có thể là Nhân sự).
     const nhan = await hoSoMangNhanDoiTac(db, [input.existingPartyId]);
     const noiBo = moNoiBoChoHoSoCoNhanProblem({ nhanDoiTac: nhan.has(input.existingPartyId), vaiTiep: assignment.roles, quyenTiep: permissions });
     if (noiBo) return { ok: false, message: noiBo };
     // Ruling R26: quyền chỉ tính từ vai được chọn — hồ sơ còn giữ vai tài khoản nào KHÔNG được chọn thì quyền sẽ lệch vai. Chặn (an toàn), bắt chọn cả vai đó.
     const kept = ROLE_CODES.filter((c) => open.includes(c) && !assignment.roles.includes(c));
-    if (kept.length) return { ok: false, message: `Hồ sơ này đang giữ vai ${kept.map((c) => ROLES[c].name).join(", ")}: chọn cả vai này (hoặc đổi vai sau khi tạo).` };
+    if (kept.length) return { ok: false, message: `Hồ sơ này đang giữ vai trò ${kept.map((c) => ROLES[c].name).join(", ")}: chọn cả vai trò này (hoặc đổi vai trò sau khi tạo).` };
     partyId = input.existingPartyId;
     statements.push(...assignment.roles.filter((c) => !open.includes(c)).map((c) => openAccountRoleStatement(db, partyId, c, today, actorId, at)));
   } else {

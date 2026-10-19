@@ -1012,7 +1012,7 @@ export async function updateDraftOrder(
     db
       .prepare(
         // Ba cột cọc cũ (ADR-0026 đ9): GIỮ cột cọc của nháp cũ, chỉ tính lại phần dư để thoả trigger 0007; Q2 (chủ 30/9 "Đưa cọc cũ về 0, ghi nhật ký"):
-        // CHỈ khi tổng mới < cọc cũ thì đưa cọc về 0 / NULL (số tiền không mất — đã là lần thu "chưa rõ" trong sổ). Vế phải của SET đọc giá trị CŨ của dòng.
+        // CHỈ khi tổng mới < cọc cũ thì đưa cọc về 0 / NULL (số tiền không mất — đã là khoản thu "chưa rõ" trong sổ). Vế phải của SET đọc giá trị CŨ của dòng.
         `UPDATE orders SET customer_name = ?, customer_phone = ?, customer_email = ?, customer_note = ?,
            subtotal = ?, discount = ?, total = ?,
            deposit_amount = CASE WHEN ? < deposit_amount THEN 0 ELSE deposit_amount END,
@@ -1261,7 +1261,7 @@ export async function computeEffectiveMoney(
 
 /**
  * Q2 (ADR-0026 đ9, chủ trả lời 2026-09-30 "Đưa cọc cũ về 0, ghi nhật ký"): số cọc cũ còn ghi trên đơn NHÁP — CHỈ để route lưu nháp ghi một dòng nhật ký khi
- * tổng mới < cọc cũ (câu UPDATE đưa cột về 0). Không bề mặt nào hiển thị số này (tiền trả trước là lần thu của billing).
+ * tổng mới < cọc cũ (câu UPDATE đưa cột về 0). Không bề mặt nào hiển thị số này (tiền trả trước là khoản thu của billing).
  */
 export async function cocCuNhap(db: D1Database, id: string): Promise<number> {
   return (await db.prepare("SELECT deposit_amount FROM orders WHERE id = ? AND status = 'draft'").bind(id).first<{ deposit_amount: number }>())?.deposit_amount ?? 0;

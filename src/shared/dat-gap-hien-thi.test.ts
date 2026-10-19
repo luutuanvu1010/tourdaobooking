@@ -16,10 +16,10 @@ const don = (status: OrderDetailDto["status"], services: { id: string; name: str
   ({ status, services }) as unknown as Pick<OrderDetailDto, "status" | "services">;
 
 test("cauMoc: câu của bản vẽ 07 ('Giờ đón cách bây giờ 4 giờ 10 phút — dưới mốc 6 giờ'); giờ đã qua nói rõ", () => {
-  assert.equal(cauMoc(250, 360), "Giờ đón cách bây giờ 4 giờ 10 phút — dưới mốc 6 giờ");
-  assert.equal(cauMoc(45, 360), "Giờ đón cách bây giờ 45 phút — dưới mốc 6 giờ");
-  assert.equal(cauMoc(0, 360), "Giờ đón đã qua — dưới mốc 6 giờ");
-  assert.equal(cauMoc(-41, 90), "Giờ đón đã qua — dưới mốc 1 giờ 30 phút");
+  assert.equal(cauMoc(250, 360), "Giờ đón cách bây giờ 4 giờ 10 phút — quá hạn chốt 6 giờ");
+  assert.equal(cauMoc(45, 360), "Giờ đón cách bây giờ 45 phút — quá hạn chốt 6 giờ");
+  assert.equal(cauMoc(0, 360), "Giờ đón đã qua — quá hạn chốt 6 giờ");
+  assert.equal(cauMoc(-41, 90), "Giờ đón đã qua — quá hạn chốt 1 giờ 30 phút");
 });
 
 test("nhanDatGap: văn phòng (khoá đủ) → 'Đặt gấp — lý do — người duyệt HH:MM' + ghi chú; chỉ cờ → 'Đặt gấp — Quản trị đã duyệt'; không tự lọc theo vai", () => {
@@ -55,7 +55,7 @@ test("tomTatChanXacNhan: khoá nút Xác nhận khi còn chặng cần đặt g�
 });
 
 test("canhBaoChangForm + datGapGiuTrenForm: cảnh báo trên đơn CHƯA lưu (R-P15) — chặng giữ nguyên ngày / giờ / nơi của chặng đã đặt gấp thì không cảnh báo", () => {
-  assert.equal(canhBaoChangForm({ ngayDon: "2026-09-30", gioDon: "12:00", datGap: false }, 360, BAY_GIO), "Giờ đón cách bây giờ 4 giờ 10 phút — dưới mốc 6 giờ");
+  assert.equal(canhBaoChangForm({ ngayDon: "2026-09-30", gioDon: "12:00", datGap: false }, 360, BAY_GIO), "Giờ đón cách bây giờ 4 giờ 10 phút — quá hạn chốt 6 giờ");
   assert.equal(canhBaoChangForm({ ngayDon: "2026-09-30", gioDon: "12:00", datGap: true }, 360, BAY_GIO), null);
   assert.equal(canhBaoChangForm({ ngayDon: "2026-09-30", gioDon: "", datGap: false }, 360, BAY_GIO), null);
   assert.equal(canhBaoChangForm({ ngayDon: "", gioDon: "12:00", datGap: false }, 360, BAY_GIO), null);

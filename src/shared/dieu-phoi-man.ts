@@ -41,8 +41,8 @@ export function nhanNgayXem(ngay: string, homNay: string): string {
 // ---- chặng ---------------------------------------------------------------------------------------------------------------------------------------------------
 export type Tone = "danger" | "warn" | "unit" | "muted" | "ok";
 const NHAN_CHANG: Readonly<Record<string, { nhan: string; tone: Tone }>> = {
-  QUA_MOC: { nhan: "Quá mốc", tone: "danger" },
-  SAT_MOC: { nhan: "Sát mốc", tone: "warn" },
+  QUA_MOC: { nhan: "Quá hạn chốt", tone: "danger" },
+  SAT_MOC: { nhan: "Sắp tới hạn chốt", tone: "warn" },
   DAT_GAP: { nhan: "Đặt gấp", tone: "unit" },
   XEP_MOT_PHAN: { nhan: "Xếp một phần", tone: "warn" },
   THUA_SUAT: { nhan: "Xếp thừa", tone: "danger" },
@@ -119,7 +119,7 @@ export function chuyenXepDuoc(l: Pick<LichChungResponse, "ngay" | "chuyen">): { 
  * `trip.urgent_adjust` (Bán hàng, Quản trị, Toàn quyền).
  */
 export function cauKhoaMoc(mocPhut: number | null, co: { khanCap: boolean; dieuPhoi: boolean }): string {
-  const dau = `Trong ${mocPhut === null ? "mốc tối thiểu" : nhanThoiLuong(mocPhut)} trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế.`;
+  const dau = `Trong ${mocPhut === null ? "hạn chốt" : nhanThoiLuong(mocPhut)} trước giờ xe chạy — khoá xếp khách, đổi xe, đổi tài xế.`;
   if (!co.dieuPhoi) return dau;
   // Vòng 5e (R-P29): "Cập nhật khách theo đơn" cũng KHÔNG khoá theo mốc (máy chủ `DOI_KHACH_THEO_DON` ngoài LENH_KHOA_THEO_MOC).
   return `${dau} ${co.khanCap ? "Bạn có thể điều chỉnh khẩn cấp kèm lý do." : HOP_VUOT.KHAN_CAP.canNguoi} Cập nhật điểm theo đơn và ${NUT_CAP_NHAT_KHACH.toLowerCase()} không cần điều chỉnh khẩn cấp.`;
@@ -238,14 +238,14 @@ function viecTuCanhBao(w: CanhBaoLichDto, ngay: string, c: ChangLichDto | undefi
   if (w.loai === "CHANG_QUA_MOC" && c) {
     const conLai = Math.max(0, c.soNguoi - c.soDaXep);
     return {
-      loai: "Chặng quá mốc", tone, bieuTuong, tieuDe: `${c.gioDon ?? "Chưa chốt giờ"} · ${tuyen(c)}`, href: `/order?id=${encodeURIComponent(c.orderId)}`,
+      loai: "Lượt đưa đón quá hạn chốt", tone, bieuTuong, tieuDe: `${c.gioDon ?? "Chưa chốt giờ"} · ${tuyen(c)}`, href: `/order?id=${encodeURIComponent(c.orderId)}`,
       noiDung: `Chưa xếp chuyến. ${c.maDon} · ${conLai} khách${c.datGap ? " · đã duyệt đặt gấp" : ""}`, aiXuLy: "Văn phòng",
       // ADR-0104 Đ1: xếp chặng quá mốc chưa đặt gấp = vượt mốc = điều chỉnh khẩn cấp (ô trip.urgent_adjust).
       khoa: !c.datGap && co.dieuPhoi && !co.khanCap ? "Cần người xếp xe điều chỉnh khẩn cấp" : null, hanhDong: [],
     };
   }
   const tieuDe = t ? `${t.ma} · ${w.maDon ?? ""}`.replace(/ · $/, "") : c ? `${c.gioDon ?? "Chưa chốt giờ"} · ${c.maDon}` : (w.maDon ?? "");
-  const noiDung = c ? `Chặng ${c.gioDon ?? "chưa chốt giờ"}${c.ngayDon !== ngay ? ` ${ngayNgan(c.ngayDon, ngay)}` : ""} · ${tuyen(c)}` : "";
+  const noiDung = c ? `Lượt đưa đón ${c.gioDon ?? "chưa chốt giờ"}${c.ngayDon !== ngay ? ` ${ngayNgan(c.ngayDon, ngay)}` : ""} · ${tuyen(c)}` : "";
   return { loai: w.nhan, tone, bieuTuong, tieuDe, href: t ? `/chuyen?id=${encodeURIComponent(t.id)}` : c ? `/order?id=${encodeURIComponent(c.orderId)}` : null, noiDung, aiXuLy: "Văn phòng", khoa: null, hanhDong: [] };
 }
 
@@ -291,7 +291,7 @@ export function hinhDongThoiGian(l: Pick<LichChungResponse, "ngay" | "chuyen" | 
   const x = (t: number) => r4((t - dau) / GIO - gioDau);
   const bayGio = trongKhung(bayGioMs) ? { x: x(bayGioMs), nhan: msToVnLocal(bayGioMs).time } : null;
   const mocMs = l.mocToiThieuPhut === null ? null : bayGioMs + l.mocToiThieuPhut * PHUT;
-  const moc = bayGio && mocMs !== null && trongKhung(mocMs) ? { x: x(mocMs), nhan: `Mốc ${nhanThoiLuong(l.mocToiThieuPhut!)} · ${msToVnLocal(mocMs).time}` } : null;
+  const moc = bayGio && mocMs !== null && trongKhung(mocMs) ? { x: x(mocMs), nhan: `Hạn chốt ${nhanThoiLuong(l.mocToiThieuPhut!)} · ${msToVnLocal(mocMs).time}` } : null;
 
   const xe = new Map(l.xe.map((v) => [v.id, { id: v.id, bienSo: v.bienSo, soCho: v.soCho, chuXe: v.chuXe, chuLaCongTy: v.chuLaCongTy }]));
   for (const c of song) if (!xe.has(c.xe.id)) xe.set(c.xe.id, c.xe);
@@ -328,7 +328,7 @@ const NHOM_DIEU_KIEN: readonly { nhan: string; ma: readonly string[] }[] = [
   { nhan: "Đủ giờ nghỉ", ma: ["NGHI_THIEU", "KHOANG_NGHI", "TRUNG_GIO_XE", "TRUNG_GIO_TAI_XE"] },
   // ADR-0096 Đ1 (LC-19), Đ2 (LC-20) — gói A1.
   { nhan: "Đón trước trả", ma: ["TRA_TRUOC_DON"] },
-  { nhan: "Trong giờ được xuất bến", ma: ["NGOAI_CUA_SO_XUAT_BEN"] },
+  { nhan: "Trong giờ được cho xe chạy", ma: ["NGOAI_CUA_SO_XUAT_BEN"] },
 ];
 const chiTietLoi = (ds: readonly LyDoGiuDto[]): string => `${ds.map((d) => d.loiNhan).join("; ")} · Ai xử lý: ${[...new Set(ds.map((d) => d.aiXuLyNhan))].join(", ")}`;
 /** "Điều kiện xuất bến" của chi tiết chuyến (bản vẽ 02): danh mục cố định; chưa đạt = có lý do giữ thuộc nhóm (câu + ai xử lý); đạt không kèm chi tiết. */
@@ -454,7 +454,7 @@ export function dongGoiBao(g: GoiBaoChangDto): { chu: string; nut: { kieu: "da-g
 }
 
 // ---- Bản chụp lúc xuất bến (chi tiết chuyến sau khi xuất bến) --------------------------------------------------------------------------------------------------
-const NHAN_MUC_BAN_CHUP: Readonly<Record<string, string>> = { GPLX: "Giấy phép lái xe", GIAY_TO_XE: "Giấy tờ xe", GIAY_TO_NGUOI: "Giấy tờ của tài xế", DIEU_KIEN: "Điều kiện xuất bến" };
+const NHAN_MUC_BAN_CHUP: Readonly<Record<string, string>> = { GPLX: "Giấy phép lái xe", GIAY_TO_XE: "Giấy tờ xe", GIAY_TO_NGUOI: "Giấy tờ của tài xế", DIEU_KIEN: "Điều kiện cho xe chạy" };
 /**
  * Một dòng của "Bản chụp lúc xuất bến": nhãn theo loại (KHÔNG BAO GIỜ hiện mã); hạng, hạn "dd/mm/yyyy". DTO chỉ có MÃ loại giấy tờ (không tên) nên chưa nêu tên
  * giấy — câu hỏi Q-B-16 ở nhật ký giao diện.

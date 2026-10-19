@@ -264,7 +264,7 @@ function capNhatMoc(entry: Entry): void {
   const khoi: { ky: string; el: () => HTMLElement }[] = [];
   const conKhoa = new Set<string>();
   d.legs.forEach((l, i) => {
-    const dau = () => h("div", { class: "dg-chang-dau" }, h("span", { class: "chip chip-unit" }, CHIEU_LABEL[l.direction]), h("span", { class: "dd-chang-so" }, `Chặng ${i + 1}`));
+    const dau = () => h("div", { class: "dg-chang-dau" }, h("span", { class: "chip chip-unit" }, CHIEU_LABEL[l.direction]), h("span", { class: "dd-chang-so" }, `Lượt ${i + 1}`));
     if (giuDatGapNhap(l) && l.goc?.datGap) {
       const dg = l.goc.datGap;
       khoi.push({ ky: `${l.key}:giu:${i}`, el: () => h("div", { class: "dg-leg", "data-leg-key": l.key }, dau(), khoiNhanDatGap(dg)) });
@@ -419,7 +419,7 @@ function recompute(): void {
   const tamTinh = vnd(s.subtotal);
   const giamGia = vnd(s.discount);
   const tong = vnd(s.total);
-  // Sổ tiền lượt 1 (ADR-0026 đ9): KHÔNG tự trừ ra "còn lại" ở trình duyệt — chỉ nhắc lại số trả trước sẽ ghi thành lần thu sau khi lưu.
+  // Sổ tiền lượt 1 (ADR-0026 đ9): KHÔNG tự trừ ra "còn lại" ở trình duyệt — chỉ nhắc lại số trả trước sẽ ghi thành khoản thu sau khi lưu.
   const traTruoc = vnd(s.traTruoc);
   const khongTraTruoc = s.traTruoc === 0;
   byId("sum-subtotal").textContent = tamTinh;
@@ -668,13 +668,13 @@ async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDa
     if (datGap) {
       const chang = changDaLuu(order.services[entries.indexOf(datGap.entry)]?.legs ?? [], datGap.entry.draft.legs, datGap.legKey);
       try {
-        if (!chang) throw new Error("không thấy chặng");
+        if (!chang) throw new Error("không thấy lượt đưa đón");
         await api(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(chang.id)}/short-notice`, { method: "POST", body: datGap.than });
       } catch {
         datGapLoi = "&datgap=loi";
       }
     }
-    // BƯỚC HAI (sổ tiền lượt 1 — ADR-0026 đ9, NT-S6): tiền trả trước KHÔNG nằm trong lô tạo đơn; đơn đã lưu xong mới ghi LẦN THU qua billing. Lỗi ở bước này
+    // BƯỚC HAI (sổ tiền lượt 1 — ADR-0026 đ9, NT-S6): tiền trả trước KHÔNG nằm trong lô tạo đơn; đơn đã lưu xong mới ghi KHOẢN THU qua billing. Lỗi ở bước này
     // KHÔNG làm mất đơn: vẫn sang trang đơn, kèm `thutruoc=loi` để trang đơn báo "Đơn đã lưu, chưa ghi được tiền trả trước — thử lại".
     let thuTruocLoi = "";
     const traTruoc = traTruocAn ? 0 : num("prepaidAmount");
@@ -922,19 +922,19 @@ if (can(staff, "order.create")) await loadCatalog(); // trước loadOrder: th�
 duocNhapTay = await layNhapTay;
 addManualBtn.hidden = !duocNhapTay;
 picker.setNhapTay(duocNhapTay);
-// Sửa đơn nháp: tiền trả trước là LẦN THU ở trang đơn (mục Thanh toán), không nhập lại ở form (sổ tiền lượt 1).
+// Sửa đơn nháp: tiền trả trước là KHOẢN THU ở trang đơn (mục Thanh toán), không nhập lại ở form (sổ tiền lượt 1).
 if (editId) {
   for (const f of ["prepaid-amount-field", "prepaid-method-field", "prepaid-collector-field"]) byId(f).hidden = true;
-  byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn (mục Thanh toán → Ghi lần thu).";
+  byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn (mục Thanh toán → Ghi khoản thu).";
   byId("prepaid-hint").hidden = false; // câu giải thích duy nhất của khối khi không nhận trả trước — luôn hiện (`capNhatOTraTruoc` không đụng khi `traTruocAn`)
 }
 // ADR-0092 Đ6 (C1): người có quyền ghi sổ (Toàn quyền) ghi CK – Công ty thu phải kèm mã giao dịch ngân hàng — ô mã chỉ ở trang đơn ⇒ form không nhận tiền trả
 // trước của người này (tránh lần gửi chắc chắn 400 làm rơi tiền trả trước); cùng khuôn với lúc sửa đơn.
 if (!editId && can(staff, "ledger.write")) {
   for (const f of ["prepaid-amount-field", "prepaid-method-field", "prepaid-collector-field"]) byId(f).hidden = true;
-  byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn sau khi lưu (mục Thanh toán → Ghi lần thu, kèm mã giao dịch ngân hàng nếu chuyển khoản vào tài khoản công ty).";
+  byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn sau khi lưu (mục Thanh toán → Ghi khoản thu, kèm mã giao dịch ngân hàng nếu chuyển khoản vào tài khoản công ty).";
   byId("prepaid-hint").hidden = false;
-  // Form dùng được trong lúc tải (initShell, danh mục…): số đã gõ sớm phải bị xoá (cờ `traTruocAn` đã bật ngay sau `initShell()`, nên số đó không còn được đọc), kẻo vẫn gửi lần thu CK – Công ty thu không mã (400) và làm rơi tiền trả trước.
+  // Form dùng được trong lúc tải (initShell, danh mục…): số đã gõ sớm phải bị xoá (cờ `traTruocAn` đã bật ngay sau `initShell()`, nên số đó không còn được đọc), kẻo vẫn gửi khoản thu CK – Công ty thu không mã (400) và làm rơi tiền trả trước.
   field("prepaidAmount").value = "";
   recompute();
 }

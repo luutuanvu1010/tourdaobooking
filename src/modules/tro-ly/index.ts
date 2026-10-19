@@ -273,7 +273,7 @@ export const troLyModule: AppModule = {
       const cu = await docVai(db);
       const at = new Date().toISOString();
       const doi = PERMISSION_CODES.filter((p) => cu[p] !== input.value[p]);
-      if (doi.length) await db.batch([...doi.map((p) => vaiStatement(db, p, input.value[p], at, staff.id)), nhatKy(db, staff.id, at, "công tắc theo vai")]);
+      if (doi.length) await db.batch([...doi.map((p) => vaiStatement(db, p, input.value[p], at, staff.id)), nhatKy(db, staff.id, at, "công tắc theo vai trò")]);
       return json(await trangThaiCaiDat(env) satisfies TroLyCaiDatResponse);
     }),
 
@@ -385,7 +385,7 @@ export const troLyModule: AppModule = {
       if (typeof raw !== "string" || !raw.trim()) return error(400, "invalid_input", "Gõ câu hỏi thử trước khi bấm.");
       if (raw.length > CAU_HOI_THO_TOI_DA) return error(400, "invalid_input", CAU_QUA_DAI);
       const vaiThu = body?.vai;
-      if (typeof vaiThu !== "string" || !(PERMISSION_CODES as readonly string[]).includes(vaiThu)) return error(400, "invalid_input", "Chọn một vai giả định để thử.");
+      if (typeof vaiThu !== "string" || !(PERMISSION_CODES as readonly string[]).includes(vaiThu)) return error(400, "invalid_input", "Chọn một vai trò giả định để thử.");
       const khoa = khoaCua(env);
       // T4: thiếu khoá ⇒ 503 như hỏi thường; trợ lý tắt KHÔNG chặn ô thử.
       if (!khoa) return error(503, "tro_ly_chua_bat", CAU_CHUA_BAT);
@@ -446,7 +446,7 @@ export const troLyModule: AppModule = {
       const nguoi = sp.get("nguoi")?.trim() || null;
       if (nguoi !== null && !UUID_RE.test(nguoi)) return error(400, "invalid_input", "Người lọc không hợp lệ.");
       const vai = sp.get("vai")?.trim() || null;
-      if (vai !== null && !(PERMISSION_CODES as readonly string[]).includes(vai)) return error(400, "invalid_input", "Vai lọc không hợp lệ.");
+      if (vai !== null && !(PERMISSION_CODES as readonly string[]).includes(vai)) return error(400, "invalid_input", "Vai trò lọc không hợp lệ.");
       const q = (sp.get("q") ?? "").trim().slice(0, 100);
       const trang = intParam(sp.get("trang"), 1, 1, 10_000);
       const db = env.DB;
@@ -454,7 +454,7 @@ export const troLyModule: AppModule = {
         lichSu(db, { tu, den, nguoi, vai, mauTim: q ? mauLikeChua(q) : null, gioiHan: TRANG_LICH_SU + 1, boQua: (trang - 1) * TRANG_LICH_SU }),
         nguoiDaHoi(db),
       ]);
-      const nhan = (v: string): string => ((PERMISSION_CODES as readonly string[]).includes(v) ? PERMISSION_LABEL[v as PermissionCode] : "Vai cũ");
+      const nhan = (v: string): string => ((PERMISSION_CODES as readonly string[]).includes(v) ? PERMISSION_LABEL[v as PermissionCode] : "Vai trò cũ");
       return json({
         dong: dong.slice(0, TRANG_LICH_SU).map((d) => ({
           id: d.id, nguoi: d.nguoi ?? "Tài khoản không còn", vai: d.vai.map(nhan), cauHoi: d.cauHoi, traLoi: d.traLoi, nguon: d.nguon,

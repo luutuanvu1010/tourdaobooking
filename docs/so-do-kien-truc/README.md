@@ -2,7 +2,8 @@
 
 > **Loại tài liệu:** mô tả (không phải luật). Khi mâu thuẫn: Hiến pháp → Hiến chương và luật ở [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md) → ADR ([`docs/adr/`](../adr/README.md)) → mã → tài liệu này. Thấy lệch với mã thì sửa tài liệu này trong cùng commit.
 > **Chuẩn trình bày:** mô hình C4 (mức 1 Bối cảnh → mức 2 Khối triển khai → mức 3 Thành phần) và khung arc42 rút gọn (bối cảnh, khối xây dựng, luồng chạy, triển khai, khía cạnh xuyên suốt, quyết định).
-> **Hiện trạng:** production chạy bản **1.87** (ngày 12/10/2026), gồm sổ đại lý đợt 1 (hoa hồng đối tác, khoá sổ tháng) và, từ 1.86, QR thanh toán. Số bản lấy từ mục đầu của `src/shared/changelog.ts`; trạng thái triển khai ghi ở `docs/HANDOFF-N1.md` (đầu tệp). Tài liệu này không tự kiểm production.
+> **Hiện trạng:** tài liệu này không ghi số bản và không tự kiểm production. Số bản của mã lấy từ mục đầu của `src/shared/changelog.ts`; bản đang chạy trên production lấy ở mục «TRẠNG THÁI TRIỂN KHAI» đầu `docs/HANDOFF-N1.md` và kiểm bằng `GET /api/auth/config`.
+> **Bản máy đọc:** [`kien-truc.json`](kien-truc.json) — mục đích, đối tượng dùng và giới hạn của từng phần máy chủ, kèm các khối ngoài. Bài `src/so-do-kien-truc.test.ts` ép tệp này khớp mã (đủ phần, đúng tiền tố bảng, đúng mã quyền, tệp trỏ tới có thật). Mối nối và tầng không chép vào đó: lấy ở `ALLOWED_EDGES`.
 > **Bản trực quan** (mở bằng trình duyệt): [`tong-the.html`](tong-the.html) — toàn hệ thống; [`van-chuyen.html`](van-chuyen.html) — phân hệ Vận chuyển. Cả hai là ảnh chụp theo bản 1.38 (30/9/2026), chưa vẽ lại; con số và trạng thái hiện hành lấy ở tệp này.
 
 ## Mục lục
@@ -49,13 +50,13 @@ Ngoài ra có quản trị danh bạ, danh mục dịch vụ, tài khoản và q
 
 | Lớp của sản phẩm | Trong Tour Đảo Booking |
 |---|---|
-| Trải nghiệm | Ứng dụng web cài lên iPhone như một ứng dụng ("Tour Đảo Booking"), giao diện tiếng Việt, 41 trang |
-| Ứng dụng | Một máy chủ Cloudflare Worker, chia 22 phần (module) có ranh giới được máy kiểm; 19 phần có đường API, 3 phần là thư viện |
-| Dữ liệu | Một cơ sở dữ liệu D1 (SQLite): 106 bảng và 35 view công bố |
+| Trải nghiệm | Ứng dụng web cài lên iPhone như một ứng dụng ("Tour Đảo Booking"), giao diện tiếng Việt |
+| Ứng dụng | Một máy chủ Cloudflare Worker, chia thành nhiều phần (module) có ranh giới được máy kiểm; phần lớn có đường API, vài phần là thư viện |
+| Dữ liệu | Một cơ sở dữ liệu D1 (SQLite) gồm bảng và view công bố; kèm một kho tệp R2 cho ảnh giấy tờ |
 | Tích hợp | Google Sheet danh mục dịch vụ (chỉ đọc), Cloudflare Turnstile, thông báo đẩy Web Push, email, OpenAI (trợ lý Hỗ trợ) |
 | Vận hành | Lịch chạy 15 phút, Bảng tin thời gian thực, chế độ bảo trì, lớp chống ghi trùng, nhật ký thao tác, quy trình phát hành có cổng kiểm |
 
-Cách đếm (đổi thì đếm lại): trang = `PAGES` trong `src/shared/sw-policy.ts`; phần = thư mục con của `src/modules/`, trong đó phần có đường API là các phần ở mảng `modules` của `src/index.ts`; bảng và view = `tables`, `views` trong `docs/data-dictionary.json`.
+Cách đếm (không ghi số ở đây vì đổi liên tục): trang = `PAGES` trong `src/shared/sw-policy.ts`; phần = thư mục con của `src/modules/`, trong đó phần có đường API là các phần ở mảng `modules` của `src/index.ts`; bảng và view = `tables`, `views` trong `docs/data-dictionary.json`. Mục đích của từng phần: [`kien-truc.json`](kien-truc.json).
 
 **Mô hình khách thuê: một doanh nghiệp, một bản cài riêng** (single-tenant, kiểu "silo").
 - Mỗi doanh nghiệp có một Worker, một D1 và một tên miền riêng. Bản đang chạy: `tourdao-sales`, `tourdao-sales-db`, `booking.tourdao.vn`.
@@ -87,7 +88,8 @@ flowchart LR
   GS["Google Sheet<br/>danh mục dịch vụ"]
   TS["Cloudflare Turnstile<br/>chống máy dò mã PIN"]
   WP["Dịch vụ thông báo đẩy<br/>của trình duyệt, điện thoại"]
-  EM["Email Cloudflare<br/>báo góp ý, báo lỗi"]
+  EM["Email Cloudflare<br/>báo góp ý, mã đăng nhập hai lớp"]
+  KT["Kho tệp R2<br/>ảnh giấy tờ"]
   AI["OpenAI<br/>trợ lý Hỗ trợ trả lời cách dùng"]
   VP --> TDB
   HT --> TDB
@@ -96,6 +98,7 @@ flowchart LR
   TDB -->|"xác minh lúc đăng nhập"| TS
   TDB -->|"gửi thông báo"| WP
   TDB -->|"gửi thư"| EM
+  TDB -->|"ghi, đọc, xoá ảnh"| KT
   TDB -->|"gửi câu hỏi đã che số"| AI
 ```
 
@@ -104,7 +107,8 @@ flowchart LR
 | Google Sheet dịch vụ | Kéo danh mục, bảng giá dịch vụ | chỉ đọc | Lịch 15 phút + nút đồng bộ có xem trước; phần `catalog`. Sheet nhân viên đã bỏ (ADR-0071 điều 2): tài khoản chỉ tạo trong Nền tảng |
 | Cloudflare Turnstile | Chặn máy dò mã PIN ở đăng nhập | máy chủ gọi | Bật khi có khoá bí mật; phần `auth` |
 | Web Push | Thông báo tới điện thoại, máy tính | máy chủ gọi | Khoá VAPID; phần `thongbao` |
-| Email (binding `send_email`) | Báo góp ý, báo lỗi cho chủ dự án | máy chủ gọi | Phần `feedback` |
+| Email (binding `send_email`) | Báo góp ý, báo lỗi cho người xử lý; gửi mã đăng nhập hai lớp bằng email | máy chủ gọi | Phần `feedback` (`notify.ts`) và phần `auth` (`mfa-email.ts`); thiếu địa chỉ cấu hình thì phần báo góp ý tự tắt |
+| Kho tệp R2 (binding `HO_SO`) | Ảnh giấy tờ của người; dấu vết phiếu xoá | máy chủ ghi, đọc, xoá | Chỉ phần `parties` (`kho-tep.ts`); xem §4 |
 | OpenAI | Trợ lý Hỗ trợ trả lời cách dùng Nền tảng | máy chủ gọi | Khoá `OPENAI_API_KEY` (bí mật); câu hỏi bị che dãy số trước khi gửi; không đọc đơn, khách, tiền; phần `tro-ly` (ADR-0066, ADR-0069) |
 
 Mã QR thanh toán (VietQR) không gọi dịch vụ ngoài: máy chủ dựng chuỗi từ tài khoản nhận tiền của công ty (`src/shared/vietqr.ts`), trình duyệt chỉ vẽ ảnh.
@@ -121,10 +125,11 @@ flowchart LR
   end
   subgraph CF["Cloudflare · booking.tourdao.vn"]
     AS["Workers Assets<br/>trang tĩnh public/"]
-    WK["Worker tourdao-sales<br/>src/index.ts · bộ định tuyến + 22 phần"]
+    WK["Worker tourdao-sales<br/>src/index.ts · bộ định tuyến + các phần máy chủ"]
     BT["Durable Object BangTin<br/>WebSocket, không lưu tin"]
     CR["Cron */15 * * * *"]
     DB[("D1 tourdao-sales-db<br/>SQLite")]
+    R2[("Kho tệp R2 HO_SO<br/>ảnh giấy tờ")]
   end
   UI --> SW
   SW -->|"trang, tệp tĩnh"| AS
@@ -133,6 +138,7 @@ flowchart LR
   WK -->|"phát tin, đóng kết nối"| BT
   CR --> WK
   WK --> DB
+  WK -->|"ghi, đọc, xoá ảnh giấy tờ"| R2
 ```
 
 | Khối | Công nghệ | Trách nhiệm | Mã |
@@ -144,6 +150,7 @@ flowchart LR
 | Bảng tin | Durable Object `BangTin`, một thực thể `cong-ty` | Báo tức thì "đơn vừa đổi" tới màn hình đang mở | `src/modules/bangtin/tram.ts` |
 | Lịch | Cloudflare Cron | Kéo danh mục dịch vụ 15 phút một lần | `scheduled()` trong `src/index.ts` |
 | Cơ sở dữ liệu | Cloudflare D1 (SQLite) | Nguồn sự thật; trigger giữ luật lõi | `migrations/*.sql` |
+| Kho tệp | Cloudflare R2, binding `HO_SO` (bucket `tourdao-sales-ho-so`) | Giữ ảnh giấy tờ của người (căn cước, bằng lái…) và dấu vết ngoài D1 của phiếu xoá (chỉ mã và thời điểm, không tên, không số); chỉ phần `parties` chạm kho (bài `src/kho-tep-ho-so.test.ts`); không công khai, đọc qua đường API của `parties` | `src/modules/parties/kho-tep.ts` |
 
 - Một tên miền duy nhất. `run_worker_first: ["/api/*", "/giao-dien.css"]` đưa mọi `/api` và tệp màu giao diện công ty (máy chủ dựng từ D1) vào máy chủ trước.
 - Địa chỉ `workers.dev` tắt có chủ ý.
@@ -155,7 +162,7 @@ Chi tiết: [`docs/SYSTEM-DESIGN.md`](../SYSTEM-DESIGN.md) §2.
 
 ## 5. Mức 3 — Các phần máy chủ
 
-Máy chủ chia 22 phần (thư mục con của `src/modules/`). Mỗi phần sở hữu đường API, bảng và luật của mình, trừ ba phần là thư viện không có đường API: `staff` (đường API của nó nằm ở `accounts`), `ky-so` (đường API nằm ở `billing`) và `lan-gui` (router dùng qua gốc lắp ráp). Phần khác chỉ gọi qua `index.ts` của nó và chỉ đọc dữ liệu qua cửa đọc công bố (view `v_<tiền tố>_*`).
+Máy chủ chia thành các phần (thư mục con của `src/modules/`; mục đích từng phần ở [`kien-truc.json`](kien-truc.json)). Mỗi phần sở hữu đường API, bảng và luật của mình, trừ ba phần là thư viện không có đường API: `staff` (đường API của nó nằm ở `accounts`), `ky-so` (đường API nằm ở `billing`) và `lan-gui` (router dùng qua gốc lắp ráp). Phần khác chỉ gọi qua `index.ts` của nó và chỉ đọc dữ liệu qua cửa đọc công bố (view `v_<tiền tố>_*`).
 
 Danh sách mối nối được phép nằm ở hằng `ALLOWED_EDGES` trong [`src/architecture.test.ts`](../../src/architecture.test.ts). Bài kiểm đỏ khi có mối nối lạ, và không có vòng. Tầng dưới đây tính từ `ALLOWED_EDGES` (tầng của một phần = 1 + tầng cao nhất trong các phần nó được gọi).
 
@@ -171,12 +178,12 @@ flowchart TB
   subgraph T5["Tầng 5"]
     vanchuyen["Vận chuyển<br/>van-chuyen"]
     dispatch["Phân công<br/>dispatch"]
+    feedback["Góp ý, vé hỗ trợ<br/>feedback"]
     accounts["Quản lý tài khoản<br/>accounts · cũ"]
   end
   subgraph T4["Tầng 4"]
     orders["Đơn hàng<br/>orders · cũ"]
-    auth["Đăng nhập<br/>auth"]
-    feedback["Góp ý<br/>feedback"]
+    auth["Đăng nhập, hai lớp<br/>auth"]
     troly["Trợ lý Hỗ trợ<br/>tro-ly"]
   end
   subgraph T3["Tầng 3"]
@@ -210,18 +217,18 @@ Mối nối cụ thể của từng phần:
 |---|---|---|---|---|
 | Biên nhận, QR | `receipt` | không bảng | Biên nhận gửi khách theo danh sách trắng; QR thanh toán (không bảng, không câu SQL) | `orders`, `billing`, `parties`, `company` |
 | Thông báo | `thongbao` | nghiêm | Tin nội bộ, thông báo đẩy, tin chuyến | `audit`, `orders`, `dispatch`, `staff` |
-| Sổ tiền | `billing` | nghiêm (2 tệp ngoài bài EXPLAIN, xem dưới) | Lần thu, cọc, "Đã giao" / "Hoàn thành", nhập phần mềm kế toán, khoá sổ tháng (đường API) | `orders`, `parties`, `staff`, `dispatch`, `audit`, `ky-so` |
+| Sổ tiền | `billing` | nghiêm | Lần thu, cọc, "Đã giao" / "Hoàn thành", nhập phần mềm kế toán, khoá sổ tháng (đường API) | `orders`, `parties`, `staff`, `dispatch`, `audit`, `ky-so` |
 | Vận chuyển | `van-chuyen` | nghiêm | Xe, giấy tờ xe, chuyến, điều phối, tài xế, tiền xe thuê | `parties`, `audit`, `orders`, `locations`, `ky-so` |
 | Phân công | `dispatch` | nghiêm | Người phụ trách đơn, hướng dẫn viên nhận việc | `orders`, `parties`, `locations`, `staff`, `audit` |
 | Quản lý tài khoản | `accounts` | cũ | Tạo tài khoản, cấp quyền, đổi PIN, sổ phiên đăng nhập | `staff`, `auth`, `audit` |
 | Đơn hàng | `orders` | cũ, có tệp nửa nghiêm | Đơn, dịch vụ, thông tin chuyến, xác nhận, chặng đưa đón, hành khách, bản chụp mức hoa hồng lúc xác nhận | `audit`, `catalog`, `staff`, `parties`, `locations`, `pricing` |
-| Đăng nhập | `auth` | nghiêm | PIN, Face ID (passkey), phiên, Turnstile | `staff`, `maintenance`, `parties` |
-| Góp ý | `feedback` | nghiêm | Phiếu góp ý / báo lỗi, email | `staff`, `audit` |
+| Đăng nhập | `auth` | nghiêm | PIN, Face ID (passkey), bảo mật hai lớp (ứng dụng mã, email, mã dự phòng, máy tin cậy), phiên, Turnstile | `staff`, `maintenance`, `parties` |
+| Góp ý, vé hỗ trợ | `feedback` | nghiêm | Phiếu góp ý / báo lỗi và vé hỗ trợ: nhóm xử lý, nhận việc, chuyển nhóm, trao đổi, gắn đơn của chính người gửi; email báo | `staff`, `audit`, `orders` (chỉ ba view công bố) |
 | Trợ lý Hỗ trợ | `tro-ly` | nghiêm | Trợ lý AI trả lời cách dùng Nền tảng; bảng điều khiển của Toàn quyền | `audit`, `staff` |
 | Nhân viên | `staff` | nghiêm | Tài khoản và quyền của từng người (thư viện, không có đường API) | `parties`, `audit` |
 | Công ty | `company` | nghiêm | Logo; định danh lấy từ hồ sơ công ty chủ (danh sách trắng năm trường) | `parties` |
 | Hoa hồng, điều khoản bán | `pricing` | nghiêm | Mức hoa hồng đối tác theo dịch vụ hoặc nhóm dịch vụ; ai bán dịch vụ nào | `parties`, `catalog`, `audit` |
-| Danh bạ | `parties` | nghiêm | Mọi "Bên": khách, đại lý, đối tác, nhân viên, nhà xe, công ty chủ; vai, quan hệ, liên hệ, giấy tờ người, tài khoản nhận tiền | `locations`, `audit` |
+| Danh bạ | `parties` | nghiêm | Mọi "Bên": khách, đại lý, đối tác, nhân viên, nhà xe, công ty chủ; vai, quan hệ, liên hệ, giấy tờ người và ảnh giấy tờ (kho tệp), tài khoản nhận tiền; hồ sơ riêng tư: chính sách và đồng ý, tự khai, hàng chờ xác minh, xoá và ẩn danh hoá | `locations`, `audit` |
 | Địa điểm | `locations` | nghiêm | Khách sạn, bến tàu, điểm tham quan | `audit` |
 | Danh mục dịch vụ | `catalog` | cũ, có một tệp nửa nghiêm | Dịch vụ, bảng giá, nhóm dịch vụ, đồng bộ Sheet | `audit` |
 | Bảo trì | `maintenance` | nghiêm | Bật / tắt chế độ bảo trì (chỉ Toàn quyền) | `audit` |
@@ -236,9 +243,8 @@ Mối nối cụ thể của từng phần:
 - **Cũ:** ngoại lệ có hạn (`LEGACY`), gỡ khi được chạm. Tệp "nửa nghiêm" (`NUA_NGHIEM`) của phần cũ đã theo luật nghiêm.
 - **Không bảng** (`KHONG_BANG`): không bảng, không câu SQL; chỉ chuyển tay cầm cơ sở dữ liệu cho hàm công bố của phần mình được gọi. **Lá, không DB** (`KHONG_DB`): không đụng cơ sở dữ liệu.
 
-**Ghi nhận hiện trạng, chưa có máy canh.**
+**Ghi nhận hiện trạng, chưa có máy canh.** (Các tệp SQL tiền của `billing` đã vào `STRICT`, không còn ngoại lệ.)
 - `audit` khai là lá (không mối nối nào ở `ALLOWED_EDGES`) nhưng câu SQL của nó đọc view của `staff`, `orders`, `parties`, `locations` để lấy nhãn; vì `audit` còn ở hạng cũ nên không bài nào bắt chỗ này.
-- Hai tệp `billing/coc-repo.ts` và `billing/thay-lan-thu-repo.ts` (17 câu SQL tiền) dùng `defineSql` nhưng không nằm trong `STRICT` nên bài `EXPLAIN` không nạp tới (bài chỉ nạp các tệp ở `STRICT` và `NUA_NGHIEM`). Chưa có máy canh hai tệp này.
 
 **Hai lớp không thuộc phần nào.**
 - **Gốc lắp ráp** `src/index.ts`: nơi duy nhất nối chéo.
@@ -253,6 +259,13 @@ Mối nối cụ thể của từng phần:
 - **QR thanh toán (bản 1.86, migration 0087–0088):** `receipt` trả `GET /api/orders/:id/qr-thanh-toan`; chuỗi VietQR dựng ở máy chủ từ tài khoản nhận tiền của công ty chủ (`pty_bank_account` ở `parties`, danh sách ngân hàng `pty_bank`). Kế toán xác nhận tiền chuyển khoản về công ty phải nhập mã giao dịch ngân hàng, một mã không ghi hai lần (`bil_receipt_bank_txn`).
 - **Sổ đại lý đợt 1 (bản 1.87, migration 0090):** `pricing` giữ mức hoa hồng đối tác theo dịch vụ hoặc nhóm dịch vụ và điều khoản người bán (`prc_*`, đường API `/api/pricing/*`, trang `/hoa-hong`, `/nguoi-ban`). Lúc Xác nhận, `orders` chụp mức vào `ord_service_terms` (qua `docBangChoChup` của `pricing`). Với tài khoản Đối tác, bên đặt do máy chủ ép (`benDatCuaToi`). Khoá tháng: `GET|POST /api/ledger/ky…` ở `billing`, bảng `ky_period_close` của `ky-so`, trang `/khoa-thang`; từ khi khoá, trigger `*_period_closed` chặn ghi thêm tiền vào tháng đó (cả `vc_trip_cost_line`), tháng khoá không mở lại.
 - Ai thấy mức hoa hồng, giá đại lý, tỷ lệ mua lại, ai khoá được tháng: các ô `partner.commission.*`, `supply.terms.*`, `order.terms.*`, `ledger.period.close` trong `MATRIX`; chi tiết ở `docs/SYSTEM-DESIGN.md`.
+
+### Năng lực đã lên production, theo phần chủ
+
+- **Hồ sơ riêng tư (`parties`, kho tệp R2 `HO_SO`).** Mục đích: giữ giấy tờ và thông tin cá nhân của người một cách có kiểm soát. Có: chính sách riêng tư và việc đồng ý (`/api/parties/chinh-sach-rieng-tu`, `…/cua-toi/dong-y`); phiếu tự khai của chính người dùng (`…/cua-toi/phieu`); hàng chờ xác minh cho Quản trị / Nhân sự, người tạo tài khoản không tự xác minh phiếu của người đó (`…/xac-minh*`); phiếu xoá dữ liệu cá nhân và việc thực hiện ẩn danh hoá (`…/cua-toi/phieu-xoa`, `…/phieu-xoa*`); ảnh giấy tờ đã hết lý do giữ (`…/anh-can-xoa`) và tệp đang chờ xoá khỏi kho (`…/tep-cho-xoa`). Ảnh giấy tờ nằm ở R2; D1 chỉ giữ dòng tệp và khoá kho.
+- **Bảo mật hai lớp (`auth`).** Sau PIN có thể đòi yếu tố thứ hai: ứng dụng mã, email hoặc mã dự phòng, kèm máy tin cậy (`/api/auth/mfa/*`, bảng `aut_mfa_*`, `aut_trusted_device`).
+- **Vé hỗ trợ (`feedback`).** Phiếu góp ý nâng thành vé có nhóm xử lý, nhận việc, chuyển nhóm, trao đổi hai chiều và gắn đơn của chính người gửi (`/api/feedback/*`, bảng `fbk_team*`, `fbk_ticket*`); đọc đơn chỉ qua ba view công bố của `orders`.
+- **Sổ vàng vận chuyển (`van-chuyen`).** Luật nghiệp vụ hiện hành về mốc ra lệnh do Quản trị đặt, xe riêng không ghép khách, thêm khách khi thiếu chỗ, tài xế công ty lái xe thuê, giới hạn số chỗ: [`docs/VAN-CHUYEN.md`](../VAN-CHUYEN.md) mục 0.
 
 ---
 
@@ -278,7 +291,7 @@ Sơ đồ tuần tự: [`docs/SYSTEM-DESIGN.md`](../SYSTEM-DESIGN.md) §3.
 
 ```mermaid
 flowchart LR
-  A["Lập đơn nháp<br/>Bán hàng / Đối tác"] --> B["Xác nhận đơn<br/>mốc 6 giờ, Đặt gấp"]
+  A["Lập đơn nháp<br/>Bán hàng / Đối tác"] --> B["Xác nhận đơn<br/>mốc ra lệnh, Đặt gấp"]
   B --> C["Phân công người phụ trách<br/>hướng dẫn viên nhận / từ chối"]
   B --> D["Lịch chung các chặng đón"]
   D --> E["Xếp khách lên xe"]
@@ -297,30 +310,31 @@ Luồng nghiệp vụ từng bước: [`docs/SYSTEM-DESIGN.md`](../SYSTEM-DESIGN
 
 Chỉ phần chủ được ghi vào bảng của mình. Tiền tố tên bảng cho biết chủ.
 
-| Chủ | Tiền tố / bảng | Số bảng | Nội dung |
-|---|---|---|---|
-| Vận chuyển | `vc_` | 23 | Xe, giấy tờ xe, loại giấy tờ, ngưỡng nhắc hạn, chính sách điều phối, điều kiện xuất bến, hạng bằng, lý do, tuyến, cỡ xe, bảng giá thuê, chi phí chuyến, lịch xe bận, mẫu chặng, chuyến, ai lái, điểm dừng, suất, sự kiện, bản chụp xuất bến, bản chốt danh sách, dấu "đã gọi báo" |
-| Danh bạ | `pty_` | 14 | Bên, người, tổ chức, vai, quan hệ, liên hệ, giấy tờ người, hạng bằng, ngân hàng, tài khoản nhận tiền |
-| Sổ tiền | `bil_` | 14 | Lần thu, duyệt cọc, hoàn ngoài hệ thống, phiếu sổ, dòng nợ, nhập phần mềm kế toán, mã giao dịch ngân hàng, mốc áp luật kiểm; sáu bảng tra (hình thức, người nhận, loại thu, giai đoạn, loại phiếu, loại nợ) |
-| Đơn hàng | `orders`, `order_*`, `ord_` | 10 | Đơn, dịch vụ, dòng giá, điều chỉnh tiền, chặng đưa đón, hành khách, lý do huỷ, chính sách dịch vụ nhập tay, điều khoản thương mại chụp lúc xác nhận, mốc áp luật kiểm |
-| Trợ lý Hỗ trợ | `tl_` | 8 | Lượt hỏi (chỉ đếm), cài đặt, vai, lời dặn, ngữ cảnh, lịch sử hỏi đáp, bộ não tuỳ biến, chỉ mục tìm theo nghĩa |
-| Danh mục dịch vụ | `catalog_*`, `ctl_` | 5 | Mục dịch vụ, sửa tay, lần đồng bộ, nhóm dịch vụ |
-| Thông báo | `ntf_` | 5 | Tin, người nhận, đã đọc, đã xác nhận, đăng ký thông báo đẩy |
-| Nhân viên | `staff`, `stf_` | 4 | Tài khoản, quyền, loại quyền, điều chỉnh quyền |
-| Đăng nhập | `aut_`, `login_attempt` | 4 | Khoá Face ID, phiên đăng nhập, chính sách phiên, lần thử PIN |
-| Góp ý | `fbk_` | 4 | Phiếu, tin trao đổi, loại, trạng thái |
-| Phân công | `dsp_` | 3 | Giao việc, trạng thái, loại việc |
-| Hoa hồng, điều khoản bán | `prc_` | 3 | Vai được hưởng, mức hoa hồng, điều khoản người bán |
-| Địa điểm | `loc_` | 2 | Địa điểm, loại |
-| Chống ghi trùng | `lg_` | 2 | Vé mỗi lần gửi, thời hạn giữ vé |
-| Nhật ký | `audit_log` | 1 | Mọi thao tác quan trọng |
-| Bảo trì | `mnt_setting` | 1 | Cài đặt bảo trì |
-| Công ty | `company_profile` | 1 | Logo (các cột pháp lý cũ đã thôi được đọc) |
-| Giao diện công ty | `gd_` | 1 | Màu, phông giao diện công ty |
-| Khoá sổ tháng | `ky_` | 1 | Tháng đã khoá sổ |
-| **Tổng** | | **106** | Trong đó 20 bảng tra cứu; thêm 35 view công bố (`v_<tiền tố>_*`) |
+| Chủ | Tiền tố / bảng | Nội dung |
+|---|---|---|
+| Vận chuyển | `vc_` | Xe, giấy tờ xe, chính sách điều phối, tuyến, cỡ xe, bảng giá thuê, chi phí chuyến, lịch xe bận, chuyến, ai lái, điểm dừng, suất, sự kiện, bản chụp xuất bến, bản chốt danh sách, yêu cầu chuyển khách |
+| Danh bạ | `pty_` | Bên, người, tổ chức, vai, quan hệ, liên hệ, giấy tờ người và tổ chức, ảnh giấy tờ và liên kết, chính sách riêng tư, đồng ý, phiếu tự khai, xác minh, phiếu xoá, ngân hàng, tài khoản nhận tiền |
+| Sổ tiền | `bil_` | Lần thu, duyệt cọc, hoàn ngoài hệ thống, phiếu sổ, dòng nợ, điều chỉnh cần duyệt, nhập phần mềm kế toán, mã giao dịch ngân hàng, mốc áp luật kiểm; các bảng tra |
+| Đơn hàng | `orders`, `order_*`, `ord_` | Đơn, dịch vụ, dòng giá, điều chỉnh tiền, chặng đưa đón, hành khách, lý do huỷ, chính sách dịch vụ nhập tay, điều khoản thương mại chụp lúc xác nhận, mốc áp luật kiểm |
+| Trợ lý Hỗ trợ | `tl_` | Lượt hỏi (chỉ đếm), cài đặt, vai, lời dặn, ngữ cảnh, lịch sử hỏi đáp, bộ não tuỳ biến, chỉ mục tìm theo nghĩa |
+| Danh mục dịch vụ | `catalog_*`, `ctl_` | Mục dịch vụ, sửa tay, lần đồng bộ, nhóm dịch vụ |
+| Thông báo | `ntf_` | Tin, người nhận, đã đọc, đã xác nhận, đăng ký thông báo đẩy |
+| Nhân viên | `staff`, `stf_` | Tài khoản, quyền, loại quyền, điều chỉnh quyền |
+| Đăng nhập | `aut_`, `login_attempt` | Khoá Face ID, phiên đăng nhập, chính sách phiên, yếu tố hai lớp, mã email, mã dự phòng, máy tin cậy, lần thử PIN |
+| Góp ý | `fbk_` | Phiếu / vé, tin trao đổi, sự kiện vé, nhóm xử lý và thành viên, mốc đã đọc, loại, trạng thái |
+| Phân công | `dsp_` | Giao việc, trạng thái, loại việc |
+| Hoa hồng, điều khoản bán | `prc_` | Vai được hưởng, bậc, mức hoa hồng, điều khoản người bán |
+| Địa điểm | `loc_` | Địa điểm, loại |
+| Chống ghi trùng | `lg_` | Vé mỗi lần gửi, thời hạn giữ vé |
+| Nhật ký | `audit_log` | Mọi thao tác quan trọng |
+| Bảo trì | `mnt_setting` | Cài đặt bảo trì |
+| Công ty | `company_profile` | Logo (các cột pháp lý cũ đã thôi được đọc) |
+| Giao diện công ty | `gd_` | Màu, phông giao diện công ty |
+| Khoá sổ tháng | `ky_` | Tháng đã khoá sổ |
 
-Cách đếm (đổi thì đếm lại): các phần tử `tables` và `views` của `docs/data-dictionary.json`, nhóm theo `module`. Bài `src/architecture.test.ts` ép sổ này khớp đúng lược đồ dựng từ các tệp migration, nên không phải đếm lệnh tạo bảng. Mười một bảng tên cũ không tiền tố (`audit_log`, `catalog_*`, `company_profile`, `login_attempt`, `order_*`, `orders`, `staff`) bị khoá danh sách ở `LEGACY_TABLES`.
+Các phần `accounts`, `receipt`, `bangtin` không sở hữu bảng.
+
+Cách đếm (không ghi số ở đây vì đổi liên tục): các phần tử `tables` và `views` của `docs/data-dictionary.json`, nhóm theo `module`; ví dụ `node -e 'const d=require("./docs/data-dictionary.json");const c={};for(const t of d.tables)c[t.module]=(c[t.module]||0)+1;console.log(c)'`. Bài `src/architecture.test.ts` ép sổ này khớp đúng lược đồ dựng từ các tệp migration, và bài `src/so-do-kien-truc.test.ts` ép tiền tố ở [`kien-truc.json`](kien-truc.json) khớp sổ này. Bảng tên cũ không tiền tố bị khoá danh sách ở `LEGACY_TABLES`.
 
 Luật dữ liệu:
 - **Tiền** là `INTEGER` đồng, chỉ máy chủ tính (`buildLines`).
@@ -334,7 +348,7 @@ Danh sách bảng, view công bố và cột của view: [`docs/DATA-DICTIONARY.
 
 ## 8. Người dùng, vai và cổng
 
-Mười mã quyền (`PERMISSION_CODES` trong `src/shared/permissions.ts`); một tài khoản giữ được nhiều quyền (trừ Tài xế đối tác đứng một mình).
+Các mã quyền (`PERMISSION_CODES` trong `src/shared/permissions.ts`); một tài khoản giữ được nhiều quyền (trừ Tài xế đối tác đứng một mình).
 
 | Nhóm | Vai (mã) |
 |---|---|
@@ -413,6 +427,7 @@ Hướng dẫn lời thường (làm gì, ai dùng thế nào, checklist trướ
   - tiền xe thuê: bảng giá thuê, chi phí chuyến (ADR-0057 T1–T2);
   - xe đang chạy: thêm khách, báo huỷ, tài xế bổ sung tên khách (ADR-0052 D5, D5b, D5c).
 - **1.81 (Đợt 7, đã chạy):** cam kết xe riêng, số chỗ tối thiểu trên chặng (ADR-0056, migration 0077).
+- **Sổ vàng vận chuyển (bản 2.11, đã chạy; ADR-0128, ADR-0129):** mốc ra lệnh do Quản trị / Toàn quyền đặt (không còn cố định 6 giờ; không tắt được), xe riêng không ghép khách lẻ, thêm khách khi xe thiếu chỗ thì không thêm ghế nào, tài xế công ty lái được xe nhà xe thuê (kèm cảnh báo), số khách không vượt số chỗ. Luật hiện hành đầy đủ: [`docs/VAN-CHUYEN.md`](../VAN-CHUYEN.md) mục 0; nó thắng mọi chữ «6 giờ» ở các bản cũ trong mục này.
 
 **Vòng đời một chuyến.** Đơn có chặng đón → lịch chung (dựng lúc đọc) → xếp khách lên xe (mỗi khách một suất) → kiểm điều kiện xuất bến → xuất bến (chụp điều kiện, chốt danh sách hành khách) → tiến độ → kết thúc.
 - Màn hình và nút xuất bến dùng chung một hàm kiểm: `kiemXuatBen`.
@@ -461,11 +476,13 @@ Tài liệu này mô tả, nên thua mã. Khi đổi các thứ dưới đây, s
 | Đổi | Sửa mục | Nguồn số liệu |
 |---|---|---|
 | Thêm / bỏ một phần máy chủ, đổi mối nối | §5 | `ALLOWED_EDGES`, `STRICT`, `LEGACY`, `NUA_NGHIEM`, `KHONG_DB`, `KHONG_BANG` trong `src/architecture.test.ts`; khối `injected` và mảng `modules` trong `src/index.ts` |
-| Thêm bảng, thêm tiền tố | §7 (và §2 nếu đổi tổng) | `docs/data-dictionary.json` (`tables`, `views`); bài `src/architecture.test.ts` ép khớp migration |
-| Thêm trang | §2 | `PAGES` trong `src/shared/sw-policy.ts` |
+| Thêm bảng, thêm tiền tố | §7 và `tien_to_bang` trong `kien-truc.json` | `docs/data-dictionary.json` (`tables`, `views`); bài `src/architecture.test.ts` ép khớp migration |
+| Thêm / bỏ một phần máy chủ, đổi mục đích hoặc giới hạn của nó | `kien-truc.json` (bài `src/so-do-kien-truc.test.ts` đỏ nếu thiếu / thừa phần, sai tiền tố bảng, sai mã quyền, tệp trỏ tới không có) | `src/modules/`, `docs/data-dictionary.json`, `PERMISSION_CODES` |
+| Thêm kho tệp, binding mới | §3, §4 và khối `khoi_ngoai` của `kien-truc.json` | `wrangler.jsonc` |
+| Thêm trang | §2 (cách đếm, không ghi số) | `PAGES` trong `src/shared/sw-policy.ts` |
 | Thêm dịch vụ ngoài, binding, lịch, khoá bí mật | §3, §4 | `wrangler.jsonc`, `.dev.vars.example` |
 | Thêm mã quyền, đổi cổng | §8 | `src/shared/permissions.ts`, `src/shared/router.ts` |
 | Đổi bước kiểm của một yêu cầu `/api` | §6.1 | `src/shared/router.ts` (hàm `dispatch`) |
-| Phát hành bản mới | dòng "Hiện trạng" ở đầu, và §11 nếu là bản của Vận chuyển | `src/shared/changelog.ts`, đầu `docs/HANDOFF-N1.md` |
+| Phát hành bản mới | không phải sửa dòng "Hiện trạng" (không ghi số bản); §11 nếu là bản của Vận chuyển | `src/shared/changelog.ts`, đầu `docs/HANDOFF-N1.md` |
 
 Hai bản trực quan `tong-the.html`, `van-chuyen.html` là ảnh chụp ngày 30/9/2026 theo mã nhánh phát hành 1.38 và chưa được vẽ lại; phần mối nối, số phần, số bảng, quyền, lộ trình của chúng đã cũ. Khi lệch, tệp Markdown này là bản đúng.

@@ -47,7 +47,7 @@ test("#1 POST /api/staff có vai: 'Tài xế taxi' + 'Tài xế đối tác' →
   const r = await w.call("POST", "/api/staff", { as: SUP, body: { fullName: "Người Lai", phone: "0911000301", roles: ["TAXI_DRIVER", "DRIVER_EXTERNAL"] } });
   assert.equal(r.status, 400, r.text);
   assert.equal(r.json.error.code, "invalid_input");
-  assert.equal(r.json.error.message, "Vai Tài xế đối tác không đi cùng vai bên ngoài khác — một người chọn một: đối tác đặt đơn hoặc tài xế đối tác.");
+  assert.equal(r.json.error.message, "Vai trò Tài xế đối tác không đi cùng vai trò bên ngoài khác — một người chọn một: đối tác đặt đơn hoặc tài xế đối tác.");
   assert.equal(staffByPhone(w, "0911000301"), 0);
   assert.equal(permRows(w), perms);
   assert.equal(logRows(w), logs);

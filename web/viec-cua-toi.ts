@@ -237,7 +237,7 @@ function openEditSheet(a: Api.MyAssignmentDto, opener: HTMLElement, done: (r: Sh
 function openCancelSheet(a: Api.MyAssignmentDto, departDate: string | null, opener: HTMLElement, done: (r: SheetOutcome) => void, onClosed: () => void): void {
   let chosen: string | null = null;
   const errorBox = h("div", { class: "alert", role: "alert", hidden: true });
-  const keepBtn = h("button", { type: "button", class: "btn" }, "Giữ đơn");
+  const keepBtn = h("button", { type: "button", class: "btn" }, "Không huỷ");
   const confirmBtn = h("button", { type: "button", class: "btn btn-primary", disabled: true }, "Huỷ đơn");
   // Ô chữ của lý do "Khác" (ADR-0030 điều 2 "Sửa đổi sau khi duyệt") — chỉ hiện khi đã chọn "Khác"; máy chủ (không phải ở đây) chặn số điện thoại.
   const otherInput = h("input", {

@@ -376,12 +376,12 @@ try {
     assert.equal(await mob.ev("document.querySelector('.sheet-title .hdv-nowrap').getClientRects().length"), 1, "mã đơn trong tiêu đề không bị ngắt dòng");
     assert.ok(sh.text.startsWith("Đơn của Phạm Quốc Bảo, đi ") && sh.text.endsWith("Thao tác này không hoàn tác được."), sh.text);
     assert.deepEqual(sh.reasons, ["Không liên hệ được với khách", "Khách yêu cầu huỷ", "Khác"]);
-    assert.deepEqual(sh.foot, [["Giữ đơn", false], ["Huỷ đơn", true]], "“Huỷ đơn” khoá tới khi chọn lý do");
+    assert.deepEqual(sh.foot, [["Không huỷ", false], ["Huỷ đơn", true]], "“Huỷ đơn” khoá tới khi chọn lý do");
     await shotView(mob, "hdv-huy-don-390.png");
     await axe(mob, "bảng huỷ đơn điện thoại");
-    assert.ok(await mob.ev("(() => { [...document.querySelectorAll('.sheet-foot button')].find((x) => x.textContent === 'Giữ đơn').click(); return true; })()"));
-    await mob.waitFor("!document.querySelector('.sheet-root')", "“Giữ đơn” đóng bảng");
-    assert.equal(mob.requests.filter((x) => x.method === "POST" && x.url.includes("handler-cancel")).length, 0, "“Giữ đơn” không gửi gì");
+    assert.ok(await mob.ev("(() => { [...document.querySelectorAll('.sheet-foot button')].find((x) => x.textContent === 'Không huỷ').click(); return true; })()"));
+    await mob.waitFor("!document.querySelector('.sheet-root')", "“Không huỷ” đóng bảng");
+    assert.equal(mob.requests.filter((x) => x.method === "POST" && x.url.includes("handler-cancel")).length, 0, "“Không huỷ” không gửi gì");
     assert.equal((await detail(M4)).status, "confirmed");
     assert.ok(await openCancel());
     await mob.waitFor("!!document.querySelector('.sheet-root.open .sheet[role=dialog]')", "bảng huỷ mở lại");

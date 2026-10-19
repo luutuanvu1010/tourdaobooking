@@ -306,7 +306,7 @@ export interface AppOptions {
     /** BẢNG TIN (ADR-0022). BẮT BUỘC: router gọi cho MỌI route có đăng nhập gọi `ctx.baoThayDoi`. Bản thật ở `src/index.ts` (trạm `BangTin` đã có); chỉ là no-op khi môi trường không có binding `BANG_TIN` (khung thử). */
     /**
      * `batDau` (ADR-0062 Đ4): mốc ISO router chụp TRƯỚC khi chạy handler của request này — gốc lắp ráp chỉ gõ cửa theo dòng đổi ghi từ mốc đó (dòng do CHÍNH
-     * request này ghi), nên lệnh báo "chuyen" / "tien" mà không ghi dòng đổi (ghi lần thu, đặt gấp…) không gõ cửa lại dòng đổi cũ. Không vào sự kiện Bảng tin.
+     * request này ghi), nên lệnh báo "chuyen" / "tien" mà không ghi dòng đổi (ghi khoản thu, đặt gấp…) không gõ cửa lại dòng đổi cũ. Không vào sự kiện Bảng tin.
      */
     baoThayDoi: (env: Env, actor: StaffProfile, e: { orderId: string; thayDoi: ThayDoiDon; handlerTruoc?: TrangThaiPhuTrach }, batDau: string) => Promise<void>;
     /** TIN CHUYẾN (ADR-0052 D6.3, D6.4). BẮT BUỘC trong mã chạy thật (`src/index.ts`): phát Bảng tin chuyến + gõ cửa tin chuyến; thiếu (khung thử cũ) → no-op. */
@@ -375,7 +375,7 @@ async function maLoiCua(res: Response): Promise<string | null> {
 }
 
 /** `ctx.newOrderHandler` ở route công khai (không ai đăng nhập): không đạt, không truy vấn. */
-const NOT_SIGNED_IN: NewOrderHandler = { ok: false, message: "Chưa đăng nhập hoặc phiên đã hết hạn." };
+const NOT_SIGNED_IN: NewOrderHandler = { ok: false, message: "Chưa đăng nhập hoặc đã hết hạn đăng nhập." };
 
 export function createApp(opts: AppOptions) {
   const routes = opts.modules.flatMap((m) => m.routes);
@@ -406,7 +406,7 @@ export function createApp(opts: AppOptions) {
     let baoTri: unknown;
     if (hit.r.access !== "public") {
       const cur = await opts.currentStaff(request, env, exec);
-      if (!cur) return error(401, "unauthenticated", "Chưa đăng nhập hoặc phiên đã hết hạn.");
+      if (!cur) return error(401, "unauthenticated", "Chưa đăng nhập hoặc đã hết hạn đăng nhập.");
       staff = cur.staff;
       sessionId = cur.sessionId;
       baoTri = cur.baoTri;
@@ -574,7 +574,7 @@ export function createApp(opts: AppOptions) {
         const msg = e instanceof Error ? e.message : String(e);
         if (/\border_(delivered|completed):/.test(msg)) {
           console.warn(JSON.stringify({ level: "warn", event: "order_delivered_race", requestId, method: request.method, path: new URL(request.url).pathname }));
-          return json({ error: { code: "order_delivered", message: "Đơn đã Đã giao – đã thu đủ (vừa có người bấm) — không sửa được nữa. Tải lại để xem đơn mới nhất." } }, 409);
+          return json({ error: { code: "order_delivered", message: "Đơn đã ở bước Đã giao – đã thu đủ (vừa có người bấm) — không sửa được nữa. Tải lại để xem đơn mới nhất." } }, 409);
         }
         const err = e instanceof Error ? { name: e.name, message: e.message, stack: e.stack } : { message: String(e) };
         console.error(JSON.stringify({ level: "error", event: "unhandled", requestId, method: request.method, path: new URL(request.url).pathname, error: err }));

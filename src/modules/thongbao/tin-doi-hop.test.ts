@@ -54,7 +54,7 @@ test("Bán hàng (người phụ trách) đổi giờ chặng đơn đã xác nh
     denGio("06:10");
     await suaChang(w, SALES, d.id, { pickupTime: "14:00" });
     const t = await doiCua(w, PARTNER);
-    assert.deepEqual(t.map((x) => [x.cau, x.lienKet, x.cuaToi]), [[`An đổi đơn ${d.code}: Chiều đi: giờ đón 13:00 → 14:00`, `/order?id=${d.id}`, true]]);
+    assert.deepEqual(t.map((x) => [x.cau, x.lienKet, x.cuaToi]), [[`Đơn ${d.code}: Chiều đi: giờ đón 13:00 → 14:00`, `/order?id=${d.id}`, true]]);
     assert.equal((await w.call("GET", "/api/thong-bao/tom-tat", { as: PARTNER })).json.soChuaDoc >= 1, true, "tính số đỏ");
     assert.equal((await w.call("GET", `/api/orders/${d.id}`, { as: PARTNER })).status, 200, "Đối tác mở được trang đơn mình lập (liên kết của tin)");
     assert.deepEqual(await doiCua(w, SALES, "tat-ca"), [], "người sửa không nhận tin của chính mình");
@@ -73,7 +73,7 @@ test("đổi nơi đón chặng → tin 'đổi nơi đón', KHÔNG ghi nơi m�
     denGio("06:10");
     await suaChang(w, SALES, d.id, { pickupPlace: "12 Trần Phú gọi 0901234567" });
     const t = await doiCua(w, PARTNER);
-    assert.deepEqual(t.map((x) => x.cau), [`An đổi đơn ${d.code}: Chiều đi: đổi nơi đón`]);
+    assert.deepEqual(t.map((x) => x.cau), [`Đơn ${d.code}: Chiều đi: đổi nơi đón`]);
     const moi = await w.call("GET", "/api/thong-bao/moi-nhat", { as: PARTNER });
     assert.equal(moi.status, 200, moi.text);
     for (const json of [JSON.stringify(await hopCua(w, PARTNER, "tat-ca")), moi.text]) {
@@ -110,9 +110,9 @@ test("MQ-07: chặng ĐÃ XẾP đổi giờ hẹn → tài xế đang lái nh�
       assert.deepEqual(cuaBan.map((x) => [x.loai, x.cau, x.lienKet]), [["chuyen", `Đơn ${a.don.code}: giờ hẹn đổi ở chuyến ${a.ma} ngày 11/03 — gọi báo khách`, `/chuyen?id=${a.id}`]], ngan);
     }
     assert.deepEqual(await gioHenCua(w, FIELD, "tat-ca"), [], "HDV: không trip.view");
-    assert.deepEqual((await doiCua(w, FIELD)).map((x) => x.cau), [`Quản Trị đổi đơn ${a.don.code}: Chiều đi: giờ đón 13:00 → 13:30`]);
+    assert.deepEqual((await doiCua(w, FIELD)).map((x) => x.cau), [`Đơn ${a.don.code}: Chiều đi: giờ đón 13:00 → 13:30`]);
     assert.deepEqual(await gioHenCua(w, PARTNER, "tat-ca"), [], "Đối tác: không trip.view");
-    assert.deepEqual((await doiCua(w, PARTNER)).map((x) => x.cau), [`Quản Trị đổi đơn ${p.code}: Chiều đi: giờ đón 13:00 → 13:30`]);
+    assert.deepEqual((await doiCua(w, PARTNER)).map((x) => x.cau), [`Đơn ${p.code}: Chiều đi: giờ đón 13:00 → 13:30`]);
     assert.deepEqual([...(await gioHenCua(w, ADM, "tat-ca")), ...(await doiCua(w, ADM, "tat-ca"))], [], "người sửa không nhận");
     // Không tên khách / SĐT / nơi trong mọi tin vừa sinh.
     for (const as of [DRIVER, SALES, FIELD, PARTNER]) assert.ok(!/Khách|Dò Tìm|0912345678/.test(JSON.stringify(await hopCua(w, as, "tat-ca"))), as);
@@ -146,7 +146,7 @@ test("sửa giờ lúc đơn còn NHÁP rồi mới xác nhận → không tin �
     assert.deepEqual(await doiCua(w, FIELD, "tat-ca"), [], "dòng sửa lúc nháp không thành tin");
     denGio("06:20");
     await trip(ADM, "09:00");
-    assert.deepEqual((await doiCua(w, FIELD)).map((x) => x.cau), [`Quản Trị đổi đơn ${r.json.order.orderCode}: giờ khởi hành 08:00 → 09:00`]);
+    assert.deepEqual((await doiCua(w, FIELD)).map((x) => x.cau), [`Đơn ${r.json.order.orderCode}: giờ khởi hành 08:00 → 09:00`]);
   } finally {
     tat();
   }
@@ -167,7 +167,7 @@ test("đơn xác nhận HƠN 30 ngày trước, hôm nay đổi giờ → vẫn 
     const o = await donXem(w, id);
     const x = await w.call("PUT", `/api/orders/${id}/trip`, { as: ADM, body: { expectedUpdatedAt: o.updatedAt, services: [{ id: o.services[0].id, departDate: "2027-05-20", departTime: "07:30", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" }] } });
     assert.equal(x.status, 200, x.text);
-    assert.deepEqual((await doiCua(w, FIELD)).map((t) => t.cau), [`Quản Trị đổi đơn ${r.json.order.orderCode}: giờ khởi hành 07:00 → 07:30`]);
+    assert.deepEqual((await doiCua(w, FIELD)).map((t) => t.cau), [`Đơn ${r.json.order.orderCode}: giờ khởi hành 07:00 → 07:30`]);
     assert.equal((await doiCua(w, SALES)).length, 1);
   } finally {
     tat();

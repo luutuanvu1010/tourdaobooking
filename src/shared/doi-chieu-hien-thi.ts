@@ -1,5 +1,5 @@
 // Chữ nhắc cho Kế toán về khoản "Công ty thu" đang đối chiếu (ADR-0120 Điều 1 mục 3) — hàm THUẦN dùng ở Trang chủ và trang đơn của `web/`.
-// Số ngày nhắc: MỘT nguồn ở máy chủ (`SO_NGAY_NHAC_DOI_CHIEU`, billing/rules.ts); bản ở đây chỉ để giao diện tự tính "chờ mấy ngày" từ giờ ghi lần thu, và
+// Số ngày nhắc: MỘT nguồn ở máy chủ (`SO_NGAY_NHAC_DOI_CHIEU`, billing/rules.ts); bản ở đây chỉ để giao diện tự tính "chờ mấy ngày" từ giờ ghi khoản thu, và
 // bài `doi-chieu-hien-thi.test.ts` khoá hai nơi bằng nhau. Câu nhắc KHÔNG chứa số điện thoại, số tài khoản hay mã giao dịch: chỉ tên người khai, số tiền, số ngày.
 import { vnToday } from "./vn-date.ts";
 
@@ -7,7 +7,7 @@ export const NGAY_NHAC_DOI_CHIEU_HIEN_THI = 3;
 
 const MOT_NGAY = 86_400_000;
 
-/** Số ngày dân sự (giờ VN) từ ngày khai tới hôm nay; ghiLuc là dấu thời gian ISO UTC của lần thu. Không âm. */
+/** Số ngày dân sự (giờ VN) từ ngày khai tới hôm nay; ghiLuc là dấu thời gian ISO UTC của khoản thu. Không âm. */
 export function soNgayCho(ghiLuc: string, bayGio: Date): number {
   const khai = Date.parse(`${vnToday(new Date(ghiLuc))}T00:00:00Z`);
   const nay = Date.parse(`${vnToday(bayGio)}T00:00:00Z`);

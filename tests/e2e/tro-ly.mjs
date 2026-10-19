@@ -266,7 +266,7 @@ try {
   r = await hoi(SALES, "đổi PIN thế nào");
   assert.equal(r.status, 403, JSON.stringify(r.body));
   assert.equal(r.body.error.code, "tro_ly_vai_tat");
-  assert.match(r.body.error.message, /^Trợ lý đang tắt với vai của bạn/);
+  assert.match(r.body.error.message, /^Trợ lý đang tắt với vai trò của bạn/);
   assert.equal(nhan.length, n, "vai tắt không được gọi OpenAI");
   assert.equal((await call(SALES, "GET", "/api/tro-ly/khung")).body.duocDung, false);
   assert.equal((await hoi(laiCookie, "đổi PIN thế nào")).status, 200, "ít nhất một vai bật là được");
@@ -380,7 +380,7 @@ try {
   assert.equal(r.body.mau, "gpt-5");
   assert.ok(r.body.chiPhiMicroUsd > 0);
   assert.equal(nhan.at(-1).body.model, "gpt-5");
-  assert.match(String(nhan.at(-1).body.instructions), /Người hỏi thuộc nhóm vai: Kế toán\./);
+  assert.match(String(nhan.at(-1).body.instructions), /Người hỏi thuộc nhóm vai trò: Kế toán\./);
   assert.equal((await sqlRows(`SELECT t.la_thu FROM tl_luot_hoi t JOIN staff s ON s.id = t.staff_id WHERE s.phone = '${ACCOUNTS.superAdmin.phone}' AND t.mau = 'gpt-5' ORDER BY t.created_at DESC, t.rowid DESC LIMIT 1`))[0].la_thu, 1);
   assert.ok(String(nhan.at(-1).body.instructions).startsWith("Lời nhắc đang soạn e2e."), "ô thử dùng lời nhắc chưa lưu");
   assert.equal((await sqlRows("SELECT count(*) AS n FROM tl_hoi_dap"))[0].n, soHoiDap, "thử không ghi lịch sử");
