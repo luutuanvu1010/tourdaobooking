@@ -219,7 +219,7 @@ test("8 — «bản chụp HIỆN HÀNH»: đổi bên đặt sang khách lẻ (
   assert.deepEqual(dongHoaHong(w, id2), [["HOA_HONG", `pty-${PT}`, 200_000]]);
 });
 
-test("9 — đơn xác nhận TRƯỚC 0090, không có bản chụp: vai còn mở ⇒ 409 «Chụp bù»; vai đã đóng ⇒ VẪN 409 cùng câu (giới hạn cũ ĐÃ ĐÓNG — 0111 + lớp 1 Task 4)", async () => {
+test("9 — đơn xác nhận TRƯỚC 0090, không có bản chụp: vai còn mở ⇒ 409 «Chụp bù»; vai đã đóng ⇒ VẪN 409 cùng câu (giới hạn cũ ĐÃ ĐÓNG — 0112 + lớp 1 Task 4)", async () => {
   const w = setup();
   const id = nhap(w, `pty-${PT}`);
   w.sqlite.prepare("UPDATE orders SET status = 'confirmed', updated_at = ? WHERE id = ?").run(AT, id); // giả đơn cũ: xác nhận thẳng, KHÔNG qua route nên không có bản chụp
@@ -229,7 +229,7 @@ test("9 — đơn xác nhận TRƯỚC 0090, không có bản chụp: vai còn m
   const g = await daGiao(w, id);
   assert.equal(g.status, 409, g.text);
   assert.deepEqual([g.json.error.code, g.json.error.message], ["not_deliverable", CHUP_BU]);
-  // Giới hạn cũ (đơn trước 0090 chưa có bản chụp chỉ còn vai hiện tại để canh; vai đã đóng ⇒ lọt) ĐÃ ĐÓNG ở lớp CSDL: migration 0111 (sổ đại lý đợt 2, ADR-0079
+  // Giới hạn cũ (đơn trước 0090 chưa có bản chụp chỉ còn vai hiện tại để canh; vai đã đóng ⇒ lọt) ĐÃ ĐÓNG ở lớp CSDL: migration 0112 (sổ đại lý đợt 2, ADR-0079
   // điều 5) — trigger `bil_posting_delivered_terms` chặn phiếu «Đã giao» của đơn còn dòng chưa chụp ⇒ cả lô huỷ, đơn không khoá, không phiếu. ĐẢO CÓ CHỦ ĐÍCH (Task 2):
   // câu trả lời lời thường (409 `terms_missing`, lớp 1 của orders + dịch mã `delivered_terms:`) do Task 4 làm — Task 4 đã siết dòng `notEqual(…, 200)` thành 409 đúng câu.
   assert.equal((await doiVai(w, ADMIN, ["SALES_STAFF"])).status, 200);

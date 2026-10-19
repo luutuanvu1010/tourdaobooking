@@ -1,5 +1,5 @@
 // HÀM GIEO DÙNG CHUNG cho mọi chỗ dựng THẲNG bằng SQL một đơn ĐÃ XÁC NHẬN rồi đi tới «Đã giao» (bài migration, khung thử route) — sổ đại lý đợt 2, migration
-// 0111: trigger lớp 2 `bil_posting_delivered_terms` chặn phiếu «Đã giao» khi đơn còn dòng dịch vụ CHƯA có bản chụp thương mại (view `v_ord_terms_uncaptured`)
+// 0112: trigger lớp 2 `bil_posting_delivered_terms` chặn phiếu «Đã giao» khi đơn còn dòng dịch vụ CHƯA có bản chụp thương mại (view `v_ord_terms_uncaptured`)
 // hoặc bản chụp hiện hành thiếu mức / thiếu người bán (`v_ord_terms_missing`). Mã chạy thật chụp lúc Xác nhận (`chupDon` của orders, cùng lô với câu xác nhận);
 // khung thử đổi đơn sang 'confirmed' bằng SQL thì gọi `gieoBanChup` SAU câu đổi trạng thái và TRƯỚC «Đã giao» — MỘT chỗ, không chép tay câu INSERT bản chụp ở
 // từng tệp (khuôn `gieoMocXep` của gieo-vc.mjs).

@@ -1,5 +1,5 @@
 // Sổ đại lý đợt 2, Task 4 (ADR-0079 điều 1–6; ADR-0078 điều 5 / A-14; đặc tả P1, P2, P3, P6; Ruling R-P8 của sổ thi công): lô «Đã giao» ghi dòng thương mại
-// (HOA_HONG, GIAM_GIA_BEN_DAT, GIA_VON) và hai lớp chặn đơn thiếu bản chụp (lớp 1 = câu «Đã giao» của orders; lớp 2 = trigger `bil_posting_delivered_terms` của 0111).
+// (HOA_HONG, GIAM_GIA_BEN_DAT, GIA_VON) và hai lớp chặn đơn thiếu bản chụp (lớp 1 = câu «Đã giao» của orders; lớp 2 = trigger `bil_posting_delivered_terms` của 0112).
 // Chạy CẢ ứng dụng trên khung thử thật (tests/audit/harness.mjs: SQLite với đủ migration; lô `db.batch()` là một giao dịch như D1). Không mạng, không D1.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -118,7 +118,7 @@ test("C-1 trọn (ADR-0079): đại lý tự ghi 3.000.000, HDV ghi 1.750.000, g
   assert.deepEqual([so.get(`pty-${PT}`), so.get(`pty-${HDV}`)], [2_750_000, 1_750_000]);
 });
 
-test("Review Focus 4: bớt khách sau xác nhận làm hoa hồng < giảm giá ⇒ KHÔNG chặn; GIAM_GIA_BEN_DAT = gross − due đúng từng đồng (lưới (iv) của 0111 nhận)", async () => {
+test("Review Focus 4: bớt khách sau xác nhận làm hoa hồng < giảm giá ⇒ KHÔNG chặn; GIAM_GIA_BEN_DAT = gross − due đúng từng đồng (lưới (iv) của 0112 nhận)", async () => {
   const { w, ct } = await setup();
   const { id, svc } = nhap(w, { dichVu: [{ ten: "Vé Hòn Tằm", catalog: "HONTAM", khach: 2, donGia: 1_000_000 }], giam: 150_000 });
   await xacNhan(w, id);
@@ -218,7 +218,7 @@ test("đơn KHÁCH LẺ: bản chụp NONE + người bán SET ⇒ «Đã giao»
   assert.equal((await daGiao(w, moi.id)).status, 200);
   assert.deepEqual(dongThuongMai(w, moi.id), [], "giảm giá đơn khách lẻ do Tour Đảo chịu — không dòng");
   assert.deepEqual(phieuGiao(w, moi.id), [{ gross_snapshot: 5_000_000, due_snapshot: 4_900_000 }]);
-  // Đơn cũ đã qua b1 (0112 chụp bù: NONE + người bán công ty chủ, AUTO) — dùng hàm gieo chung (cùng hình bản chụp b1).
+  // Đơn cũ đã qua b1 (0113 chụp bù: NONE + người bán công ty chủ, AUTO) — dùng hàm gieo chung (cùng hình bản chụp b1).
   const cu = nhap(w, { booker: null });
   xacNhanCu(w, cu.id);
   gieoBanChup(w.sqlite, cu.id);

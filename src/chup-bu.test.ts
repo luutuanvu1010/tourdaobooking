@@ -2,7 +2,7 @@
 // đơn ĐÃ XÁC NHẬN TRƯỚC khi có bảng mức (trước 0090) chưa có bản chụp thương mại nào.
 //   (A) «Chụp bù» của Kế toán — `POST /api/orders/:id/chup-bu` + danh sách `GET /api/orders/cho-chup-bu` (cổng `office`, ô `order.terms.override`): chụp theo mức hiệu lực ở NGÀY
 //       XÁC NHẬN, dùng CÙNG `chupDon` + `docBangChoChup` với lúc Xác nhận; còn dòng sẽ ra thiếu mức ⇒ 409, không ghi gì.
-//   (B) migration `*_chup_bu_khach_le.sql` (0112 tạm): chụp bù MỘT LẦN cho đơn khách lẻ (b1) — dựng CSDL tới ngay trước tệp đó, gieo, rồi chạy tệp (khung `world()` áp mọi
+//   (B) migration `*_chup_bu_khach_le.sql` (0113 tạm): chụp bù MỘT LẦN cho đơn khách lẻ (b1) — dựng CSDL tới ngay trước tệp đó, gieo, rồi chạy tệp (khung `world()` áp mọi
 //       migration lên CSDL rỗng nên chạy ở đó là xanh rỗng).
 //   (C) chạy đua ghi mức tay ↔ «Đã giao» (chủ duyệt 19/10, I-2 người kiểm Task 3+4): ghi tay và chụp bù đổi `orders.updated_at` trong CÙNG lô ⇒ lô «Đã giao» đang chạy dở thua.
 // Chạy CẢ ứng dụng trên khung thử thật (tests/audit/harness.mjs) — không mạng, không D1. Tên người / hồ sơ ở đây là GIẢ.
@@ -279,7 +279,7 @@ test("(A8) Ruling R-P13: đơn ĐẠI LÝ có dòng nhập tay — Chụp bù 20
   assert.equal(tongHoaHong(w, id), 245_000, "10% × 2.000.000 + 5% × 900.000");
 });
 
-test("(A8b) Ruling R-P13: đơn KHÁCH LẺ có dòng nhập tay (không lọt 0112) — Chụp bù 200; ghi tay «Tour Đảo bán» ⇒ «Đã giao» 200, không dòng thương mại", async () => {
+test("(A8b) Ruling R-P13: đơn KHÁCH LẺ có dòng nhập tay (không lọt 0113) — Chụp bù 200; ghi tay «Tour Đảo bán» ⇒ «Đã giao» 200, không dòng thương mại", async () => {
   const w = setup();
   const { id, svc } = donCu(w, { booker: null, dichVu: [{ ten: "Ca nô riêng", catalog: null, gia: 900_000 }] });
   const r = await chupBu(w, id);
@@ -315,7 +315,7 @@ test("(A9) danh sách chờ chụp bù: chỉ đơn đã xác nhận, chưa «Đ
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-kh-le', 'ORGANIZATION', 'Khách đoàn X', 1, ?, ?)").run(AT, AT);
   const daiLy = donCu(w, { xacNhanLuc: "2026-10-09T18:30:00.000Z" }); // 01:30 ngày 10/10 giờ VN
   const nhapTay = donCu(w, { booker: null, dichVu: [{ ten: "Ca nô", catalog: null, gia: 900_000 }], xacNhanLuc: null, taoLuc: "2026-10-03T02:00:00.000Z" });
-  const khachLe = donCu(w, { booker: "pty-kh-le" }); // đơn khách lẻ lọt 0112 (vd bên đặt đổi vai sau bản lên) — vẫn hiện, không giấu
+  const khachLe = donCu(w, { booker: "pty-kh-le" }); // đơn khách lẻ lọt 0113 (vd bên đặt đổi vai sau bản lên) — vẫn hiện, không giấu
   const coChup = donCu(w);
   gieoBanChup(w.sqlite, coChup.id);
   const giao = donCu(w);
@@ -393,36 +393,36 @@ test("(A12) nhật ký mới `ord_terms_backfilled` («Chụp bù mức hoa hồ
 });
 
 // =====================================================================================================================================================
-// (B) migration 0112 — chụp bù MỘT LẦN đơn khách lẻ cũ (b1)
+// (B) migration 0113 — chụp bù MỘT LẦN đơn khách lẻ cũ (b1)
 // =====================================================================================================================================================
 const MIG = new URL("../migrations/", import.meta.url);
 const FILES = readdirSync(MIG).filter((f) => f.endsWith(".sql")).sort();
-const F0112 = FILES.find((f) => f.endsWith("_chup_bu_khach_le.sql"));
-const SQL_0112 = (): string => {
-  assert.ok(F0112, "thiếu migrations/*_chup_bu_khach_le.sql");
-  return readFileSync(new URL(F0112, MIG), "utf8");
+const F0113 = FILES.find((f) => f.endsWith("_chup_bu_khach_le.sql"));
+const SQL_0113 = (): string => {
+  assert.ok(F0113, "thiếu migrations/*_chup_bu_khach_le.sql");
+  return readFileSync(new URL(F0113, MIG), "utf8");
 };
 /** CSDL thử áp mọi migration ĐỨNG TRƯỚC tệp chụp bù (khoá ngoại bật) — dữ liệu gieo sau đó giống production lúc chủ áp migration. */
-function dbTruoc0112(): DatabaseSync {
-  assert.ok(F0112, "thiếu migrations/*_chup_bu_khach_le.sql");
+function dbTruoc0113(): DatabaseSync {
+  assert.ok(F0113, "thiếu migrations/*_chup_bu_khach_le.sql");
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = ON");
   for (const f of FILES) {
-    if (f === F0112) break;
+    if (f === F0113) break;
     db.exec(readFileSync(new URL(f, MIG), "utf8"));
   }
   return db;
 }
-/** Một câu của tệp câu đếm chỉ-đọc (dòng ngay dưới dòng chú thích bắt đầu bằng `-- (<nhãn>)`) — bài «hai nơi»: 0112 lọc ĐÚNG tập (b1) mà chủ đếm. */
+/** Một câu của tệp câu đếm chỉ-đọc (dòng ngay dưới dòng chú thích bắt đầu bằng `-- (<nhãn>)`) — bài «hai nơi»: 0113 lọc ĐÚNG tập (b1) mà chủ đếm. */
 function cauDem(nhan: string): string {
   const dong = readFileSync(new URL("../docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/cau-dem-chi-doc.sql", import.meta.url), "utf8").split("\n");
   const i = dong.findIndex((l, k) => l.startsWith(`-- (${nhan}) `) && (dong[k + 1] ?? "").startsWith("SELECT"));
   assert.ok(i >= 0 && dong[i + 1]!.startsWith("SELECT"), `không thấy câu đếm (${nhan})`);
   return dong[i + 1]!;
 }
-interface Khung0112 { db: DatabaseSync; ct: string; don: (o: { booker?: string | null; dv?: (string | null)[]; xacNhanLuc?: string | null; taoLuc?: string; status?: string; delivered?: boolean }) => string }
-function khung0112(): Khung0112 {
-  const db = dbTruoc0112();
+interface Khung0113 { db: DatabaseSync; ct: string; don: (o: { booker?: string | null; dv?: (string | null)[]; xacNhanLuc?: string | null; taoLuc?: string; status?: string; delivered?: boolean }) => string }
+function khung0113(): Khung0113 {
+  const db = dbTruoc0113();
   seedStaff(db, { id: SALES, phone: "0900000001", name: "An Bán", perms: ["SALES"] });
   const ct = String((db.prepare("SELECT party_id FROM v_pty_owner_company").get() as { party_id: string }).party_id);
   const hoSo = (id: string, ten: string, vai: string | null, dong: string | null = null) => {
@@ -440,10 +440,10 @@ function khung0112(): Khung0112 {
     VALUES ('st-ncc', 'SERVICE', 'IRESORT', 'pty-ncc', 'pty-ncc', 8000, '2026-01-01', ?, ?)`).run(AT, AT);
   let n = 0;
   const don = (o: { booker?: string | null; dv?: (string | null)[]; xacNhanLuc?: string | null; taoLuc?: string; status?: string; delivered?: boolean }): string => {
-    const id = `don-0112-${++n}`;
+    const id = `don-0113-${++n}`;
     const tao = o.taoLuc ?? AT;
     db.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, booker_party_id, created_at, updated_at)
-      VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', 0, 0, 0, ?, ?, ?)`).run(id, `TD-0112-${n}`, SALES, o.booker ?? null, tao, tao);
+      VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', 0, 0, 0, ?, ?, ?)`).run(id, `TD-0113-${n}`, SALES, o.booker ?? null, tao, tao);
     (o.dv ?? ["HONTAM"]).forEach((code, i) => {
       db.prepare("INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, ?, ?, ?, ?, ?, 1, '2026-10-20')")
         .run(`${id}-s${i}`, id, i, code, code ?? "Dịch vụ nhập tay", code ? "perPax" : "manual");
@@ -456,75 +456,75 @@ function khung0112(): Khung0112 {
   };
   return { db, ct, don };
 }
-const chup0112 = (db: DatabaseSync, orderId: string) =>
+const chup0113 = (db: DatabaseSync, orderId: string) =>
   db.prepare("SELECT * FROM ord_service_terms WHERE order_id = ? ORDER BY order_service_id").all(orderId).map((r) => ({ ...(r as Record<string, V>) }));
 
-test("(B1) 0112: đơn khách lẻ cũ không bản chụp ⇒ mỗi dòng một bản NONE, người bán = công ty chủ theo điều khoản ALL (prc-st-goc-all), AUTO, he-thong:0112, captured_date = ngày giờ VN của confirmed_at (trống ⇒ created_at)", () => {
-  const { db, ct, don } = khung0112();
+test("(B1) 0113: đơn khách lẻ cũ không bản chụp ⇒ mỗi dòng một bản NONE, người bán = công ty chủ theo điều khoản ALL (prc-st-goc-all), AUTO, he-thong:0113, captured_date = ngày giờ VN của confirmed_at (trống ⇒ created_at)", () => {
+  const { db, ct, don } = khung0113();
   const o1 = don({ dv: ["HONTAM", "ZA1"], xacNhanLuc: "2026-10-09T18:30:00.000Z" }); // 01:30 ngày 10/10 giờ VN
   const o2 = don({ booker: ct, xacNhanLuc: "2026-10-05T03:00:00.000Z" });
   const o3 = don({ booker: "pty-kh" });
   const o4 = don({ xacNhanLuc: null, taoLuc: "2026-09-30T20:00:00.000Z" }); // 03:00 ngày 01/10 giờ VN
   const o5 = don({ dv: ["IRESORT"] }); // b1x: điều khoản HÔM NAY của mã có nhà cung cấp — vẫn nhận người bán Tour Đảo (đúng chữ 7b1, không loại b1x)
   const o6 = don({ booker: "pty-dl-cu" });
-  db.exec(SQL_0112());
+  db.exec(SQL_0113());
   for (const [id, ngay, soDong] of [[o1, "2026-10-10", 2], [o2, "2026-10-05", 1], [o3, "2026-10-10", 1], [o4, "2026-10-01", 1], [o5, "2026-10-10", 1], [o6, "2026-10-10", 1]] as const) {
-    const ds = chup0112(db, id);
+    const ds = chup0113(db, id);
     assert.equal(ds.length, soDong, `${id}: số bản chụp = số dòng dịch vụ`);
     for (const t of ds) {
       assert.deepEqual(
         [t.beneficiary_party_id, t.commission_status, t.missing_reason, t.commission_rule_id, t.supply_status, t.seller_party_id, t.supplier_party_id, t.cost_rate_bp, t.supply_term_id, t.source, t.reason, t.supersedes_id, t.captured_date, t.created_by, t.updated_by],
-        [null, "NONE", null, null, "SET", ct, null, null, "prc-st-goc-all", "AUTO", null, null, ngay, "he-thong:0112", "he-thong:0112"], `${id}`);
+        [null, "NONE", null, null, "SET", ct, null, null, "prc-st-goc-all", "AUTO", null, null, ngay, "he-thong:0113", "he-thong:0113"], `${id}`);
     }
   }
   assert.equal(Number((db.prepare("SELECT count(*) AS n FROM v_ord_terms_uncaptured WHERE order_id IN (?, ?, ?, ?, ?, ?)").get(o1, o2, o3, o4, o5, o6) as { n: number }).n), 0, "lớp 1 / lớp 2 không còn giữ các đơn này");
   assert.equal(Number((db.prepare("SELECT count(*) AS n FROM v_ord_terms_missing WHERE order_id IN (?, ?, ?, ?, ?, ?)").get(o1, o2, o3, o4, o5, o6) as { n: number }).n), 0);
 });
 
-test("(B2) 0112 KHÔNG chụp (sang b2): bên đặt mang vai được hưởng / vai bên ngoài / loại đối tác, đơn có dòng nhập tay; không đụng đơn nháp, huỷ, đã giao, đơn đã có bản chụp", () => {
-  const { db, ct, don } = khung0112();
+test("(B2) 0113 KHÔNG chụp (sang b2): bên đặt mang vai được hưởng / vai bên ngoài / loại đối tác, đơn có dòng nhập tay; không đụng đơn nháp, huỷ, đã giao, đơn đã có bản chụp", () => {
+  const { db, ct, don } = khung0113();
   const loai = [
     don({ booker: "pty-dl" }), don({ booker: "pty-txn" }), don({ booker: "pty-ld" }), don({ dv: ["HONTAM", null] }), don({ dv: [null] }),
     don({ status: "draft" }), don({ status: "cancelled" }), don({ delivered: true }),
   ];
   const daChup = don({});
   gieoBanChup(db, daChup, { boi: "he-thong:khung-thu" });
-  const truoc = chup0112(db, daChup);
-  db.exec(SQL_0112());
-  for (const id of loai) assert.equal(chup0112(db, id).length, 0, `${id} không được chụp bù tự động`);
-  assert.deepEqual(chup0112(db, daChup), truoc, "đơn đã có bản chụp giữ nguyên");
-  assert.equal(Number((db.prepare("SELECT count(*) AS n FROM ord_service_terms WHERE created_by = 'he-thong:0112'").get() as { n: number }).n), 0);
+  const truoc = chup0113(db, daChup);
+  db.exec(SQL_0113());
+  for (const id of loai) assert.equal(chup0113(db, id).length, 0, `${id} không được chụp bù tự động`);
+  assert.deepEqual(chup0113(db, daChup), truoc, "đơn đã có bản chụp giữ nguyên");
+  assert.equal(Number((db.prepare("SELECT count(*) AS n FROM ord_service_terms WHERE created_by = 'he-thong:0113'").get() as { n: number }).n), 0);
   void ct;
 });
 
-test("(B3) «hai nơi»: số bản chụp 0112 tạo (câu đếm «sau») = số dòng dịch vụ của câu đếm (b1) chạy TRƯỚC 0112; (b1) + (b2) = mọi đơn xác nhận chưa giao chưa chụp", () => {
-  const { db, ct, don } = khung0112();
+test("(B3) «hai nơi»: số bản chụp 0113 tạo (câu đếm «sau») = số dòng dịch vụ của câu đếm (b1) chạy TRƯỚC 0113; (b1) + (b2) = mọi đơn xác nhận chưa giao chưa chụp", () => {
+  const { db, ct, don } = khung0113();
   don({ dv: ["HONTAM", "ZA1"] }); don({ booker: ct }); don({ booker: "pty-kh" }); don({ xacNhanLuc: null }); don({ dv: ["IRESORT"] }); don({ booker: "pty-dl-cu" });
   don({ booker: "pty-dl" }); don({ booker: "pty-txn" }); don({ booker: "pty-ld" }); don({ dv: ["HONTAM", null] });
   don({ status: "draft" }); don({ status: "cancelled" }); don({ delivered: true });
   const b1 = db.prepare(cauDem("b1")).get() as { so_don: number; so_dong_dich_vu: number };
   const b2 = db.prepare(cauDem("b2")).get() as { so_don: number; so_dong_dich_vu: number };
   assert.deepEqual([b1.so_don, b1.so_dong_dich_vu, b2.so_don], [6, 7, 4], "khung gieo đúng như dự tính");
-  db.exec(SQL_0112());
+  db.exec(SQL_0113());
   const sau = db.prepare(cauDem("sau")).get() as { so_ban_chup_bu: number };
   assert.equal(sau.so_ban_chup_bu, b1.so_dong_dich_vu, "(sau) = số dòng dịch vụ của (b1)");
-  assert.deepEqual({ ...(db.prepare(cauDem("b1")).get() as object) }, { so_don: 0, so_dong_dich_vu: 0 }, "sau 0112, (b1) rỗng");
+  assert.deepEqual({ ...(db.prepare(cauDem("b1")).get() as object) }, { so_don: 0, so_dong_dich_vu: 0 }, "sau 0113, (b1) rỗng");
   assert.equal((db.prepare(cauDem("b2")).get() as { so_don: number }).so_don, 4, "(b2) không đổi");
 });
 
-test("(B4) 0112: đơn xác nhận TRƯỚC ngày bắt đầu của điều khoản ALL (2025-01-01) ⇒ migration KHÔNG hỏng (trigger term_valid), chụp với captured_date = ngày bắt đầu điều khoản (Ruling); CSDL không có đơn b1 ⇒ không làm gì", () => {
-  const { db, ct, don } = khung0112();
+test("(B4) 0113: đơn xác nhận TRƯỚC ngày bắt đầu của điều khoản ALL (2025-01-01) ⇒ migration KHÔNG hỏng (trigger term_valid), chụp với captured_date = ngày bắt đầu điều khoản (Ruling); CSDL không có đơn b1 ⇒ không làm gì", () => {
+  const { db, ct, don } = khung0113();
   const cu = don({ xacNhanLuc: "2024-12-20T03:00:00.000Z" });
-  db.exec(SQL_0112());
-  const [t] = chup0112(db, cu);
+  db.exec(SQL_0113());
+  const [t] = chup0113(db, cu);
   assert.deepEqual([t!.captured_date, t!.supply_term_id, t!.seller_party_id], ["2025-01-01", "prc-st-goc-all", ct]);
-  const rong = dbTruoc0112();
-  rong.exec(SQL_0112());
+  const rong = dbTruoc0113();
+  rong.exec(SQL_0113());
   assert.equal(Number((rong.prepare("SELECT count(*) AS n FROM ord_service_terms").get() as { n: number }).n), 0);
 });
 
-test("(B5) tệp 0112 chỉ có MỘT câu ghi: INSERT INTO ord_service_terms … SELECT (không đụng tiền, không UPDATE / DELETE, không CASE … END) — dán được qua wrangler", () => {
-  const sql = SQL_0112().split("\n").filter((l) => !/^\s*--/.test(l)).join("\n");
+test("(B5) tệp 0113 chỉ có MỘT câu ghi: INSERT INTO ord_service_terms … SELECT (không đụng tiền, không UPDATE / DELETE, không CASE … END) — dán được qua wrangler", () => {
+  const sql = SQL_0113().split("\n").filter((l) => !/^\s*--/.test(l)).join("\n");
   assert.equal((sql.match(/;/g) ?? []).length, 1, "đúng một câu");
   assert.match(sql, /^\s*INSERT INTO ord_service_terms\b/);
   assert.doesNotMatch(sql, /\b(UPDATE|DELETE|REPLACE|DROP|ALTER)\b|\bbil_|\bEND\s*\)/i);

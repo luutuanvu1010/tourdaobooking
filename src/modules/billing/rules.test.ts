@@ -236,7 +236,7 @@ test("lyDoGiuThuongMai: bốn câu lời thường cố định (task-3-brief) +
   assert.equal(lyDoGiuThuongMai({ trangThai: "KHONG_NGUOI_HUONG" }), null);
 });
 
-test("cauLoiCsdlThuongMai: dịch lỗi lớp CSDL (0111) ra lời thường — không lộ mã thô; lỗi khác ⇒ null", () => {
+test("cauLoiCsdlThuongMai: dịch lỗi lớp CSDL (0112) ra lời thường — không lộ mã thô; lỗi khác ⇒ null", () => {
   assert.equal(cauLoiCsdlThuongMai(new Error("D1_ERROR: delivered_terms: đơn còn dịch vụ chưa chụp mức hoặc thiếu mức hoa hồng / người bán — Kế toán xử lý: SQLITE_CONSTRAINT")),
     "Thiếu mức hoa hồng / người bán cho một dịch vụ của đơn — Kế toán ghi mức tay cho dòng này.");
   assert.equal(cauLoiCsdlThuongMai(new Error("commercial_exceeds_gross: tổng hoa hồng và giá vốn vượt thành tiền trước giảm của đơn")),

@@ -1,10 +1,10 @@
--- Migration 0111 — SỔ ĐẠI LÝ ĐỢT 2, lớp CSDL (ADR-0079 điều 2, 5, 6; ADR-0078 điều 7, 9; ADR-0132; đặc tả docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/
+-- Migration 0112 — SỔ ĐẠI LÝ ĐỢT 2, lớp CSDL (ADR-0079 điều 2, 5, 6; ADR-0078 điều 7, 9; ADR-0132; đặc tả docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/
 -- README.md P1, P3, P4, P10 và trang-ghep.md). Module `billing` (tiền tố bil_) cộng MỘT view công bố của `orders`. Chỉ THÊM dòng tra cứu, một cột, một chỉ mục, view,
 -- trigger và mốc kiểm; SÁU đối tượng cũ được TẠO LẠI cùng tên (DROP + CREATE, khuôn 0099) — mỗi cái chép nguyên định nghĩa của migration SỐ LỚN NHẤT đang tạo nó
 -- và chỉ đổi đúng phần ghi ở chú thích ngay trên (Ruling R-P2 của sổ thi công). Không đổi dữ liệu cũ.
 -- Thân trigger chỉ đọc bảng bil_ và view công bố (v_ord_terms_missing, v_ord_terms_uncaptured, v_pty_owner_company) — ADR-0024 điều 5. Câu báo lỗi có tiền tố mã
 -- (`delivered_terms:`, `commercial_*:`…) — máy chủ dịch sang lời thường (`loiTrigger`), không lộ mã thô.
--- Số 0111 là số TẠM: lúc gộp kiểm `ls migrations` và `git ls-tree --name-only <nhánh> migrations/` của mọi nhánh chưa gộp.
+-- Số 0112 (trước là 0111 tạm — đổi lúc gộp main 19/10 vì main đã dùng 0111_ten_luat_chuyen_khach, Ruling R-P11 của sổ thi công): lúc gộp kiểm `ls migrations` và `git ls-tree --name-only <nhánh> migrations/` của mọi nhánh chưa gộp.
 
 -- ===== (1) Bảng tra cứu (tập mở — ADR-0003 điều 3) =====================================================================================================
 -- Ba loại dòng thương mại của phiếu «Đã giao» (ADR-0079 điều 2, phương án A — C1 = A): Tour Đảo nợ người hưởng (hoa hồng); người hưởng nợ Tour Đảo (giảm giá

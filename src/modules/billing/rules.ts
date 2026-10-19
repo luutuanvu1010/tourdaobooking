@@ -12,14 +12,14 @@ import type { NhomHuy } from "../../shared/ly-do-huy.ts";
 
 export type ReceiptKind = "CUSTOMER_PAYMENT" | "CUSTOMER_REFUND";
 export type CollectorRole = "COMPANY" | "STAFF" | "BOOKER" | "SUPPLIER" | "UNKNOWN";
-/** Loại dòng nợ (`bil_debt_kind`). Ba loại thương mại của phiếu «Đã giao» từ sổ đại lý đợt 2 (ADR-0079 điều 2, migration 0111). */
+/** Loại dòng nợ (`bil_debt_kind`). Ba loại thương mại của phiếu «Đã giao» từ sổ đại lý đợt 2 (ADR-0079 điều 2, migration 0112). */
 export type DebtKind = "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON";
 export type MethodCode = "CASH" | "BANK_TRANSFER" | "OTHER";
 
 export const METHOD_CODES: readonly MethodCode[] = ["CASH", "BANK_TRANSFER", "OTHER"];
 /**
  * Vai người thu của lần thu có thể ĐANG ĐỐI CHIẾU (dấu DECLARED chưa CONFIRMED — ADR-0120 Điều 1; ADR-0132 điều 1: khách trả cho bên đặt / tại quầy nhà cung cấp).
- * HAI NƠI: vế «khoản MỚI» của view `v_bil_coc_don` và trigger `bil_payment_receipt_coc_reversal` (migration mới nhất tạo chúng — 0111) liệt kê ĐÚNG tập này
+ * HAI NƠI: vế «khoản MỚI» của view `v_bil_coc_don` và trigger `bil_payment_receipt_coc_reversal` (migration mới nhất tạo chúng — 0112) liệt kê ĐÚNG tập này
  * (bài «hai nơi» ở ben-kia.test.ts). Sửa một nơi thì sửa cả nơi kia bằng migration mới.
  */
 export const VAI_DOI_CHIEU: readonly CollectorRole[] = ["COMPANY", "BOOKER", "SUPPLIER"];
@@ -48,7 +48,7 @@ export interface LineRow {
   reversesLineId: string | null;
 }
 
-/** Dòng nợ CẦN GHI (chưa có id) — repository thêm id, phiếu, mốc. `orderServiceId`: dòng dịch vụ của dòng HOA_HONG / GIA_VON (trigger 0111 (i) bắt buộc); vắng = null. */
+/** Dòng nợ CẦN GHI (chưa có id) — repository thêm id, phiếu, mốc. `orderServiceId`: dòng dịch vụ của dòng HOA_HONG / GIA_VON (trigger 0112 (i) bắt buộc); vắng = null. */
 export interface LineDraft {
   debtorPartyId: string;
   creditorPartyId: string;
@@ -108,7 +108,7 @@ export function soDuCap(lines: readonly Pick<LineRow, "debtorPartyId" | "credito
 }
 
 /**
- * Loại dòng mà hàng rào giữ hộ cộng khi hỏi «dòng giữ hộ này đã được tất toán chưa» (trigger `bil_debt_line_held_once`, migration mới nhất tạo nó — 0111): giữ hộ,
+ * Loại dòng mà hàng rào giữ hộ cộng khi hỏi «dòng giữ hộ này đã được tất toán chưa» (trigger `bil_debt_line_held_once`, migration mới nhất tạo nó — 0112): giữ hộ,
  * quyết toán, hoàn khách (kể cả dòng đảo của chúng — dòng đảo mang cùng loại). Dòng thương mại của phiếu «Đã giao» (HOA_HONG / GIAM_GIA_BEN_DAT / GIA_VON) KHÔNG
  * kéo số này xuống (đặc tả sổ đại lý đợt 2 P10). HAI NƠI: trigger đó và nhánh khoản cũ của câu PENDING_COMPANY (repository.ts) — bài «hai nơi» ở ben-kia.test.ts.
  */
@@ -129,7 +129,7 @@ export interface DoiChieuRow {
 
 /**
  * Khoản thu CHỜ XÁC NHẬN / ĐANG ĐỐI CHIẾU (MỘT định nghĩa — dùng cho màn đơn, cho "đang đối chiếu" của đơn huỷ và cho chặn "Đã giao"; view `v_bil_coc_don` và
- * trigger đảo của 0079/0099/0111 theo đúng định nghĩa này). Hai đường:
+ * trigger đảo của 0079/0099/0112 theo đúng định nghĩa này). Hai đường:
  *  - khoản CŨ (tiền mặt «Công ty thu» do người khác khai — H3, khai trước ngày áp ADR-0120): khoản thu vai COMPANY còn dòng giữ hộ (HELD, dòng gốc) chưa bị đảo, VÀ
  *    người khai còn nợ công ty trên đơn ≥ số của dòng giữ hộ (ADR-0092 Đ2b — khoản đã được tất toán bằng "Nộp" không còn chờ; một dòng giữ hộ chỉ tất toán MỘT lần).
  *    Số đó CHỈ cộng `LOAI_DONG_GIU_HO` (`soDuGiuHo` — P10: dòng hoa hồng / giảm giá / giá vốn không làm khoản hết chờ);
@@ -677,7 +677,7 @@ export function lyDoGiuThuongMai(t: TinhTrangThuongMai): LyDoGiu | null {
 }
 
 /**
- * Dịch lỗi lớp CSDL của phần thương mại (migration 0111) ra lời thường — cùng câu của `lyDoGiuThuongMai` khi có (Ruling ở sổ thi công). Lớp CSDL chỉ chạy khi lớp 1
+ * Dịch lỗi lớp CSDL của phần thương mại (migration 0112) ra lời thường — cùng câu của `lyDoGiuThuongMai` khi có (Ruling ở sổ thi công). Lớp CSDL chỉ chạy khi lớp 1
  * (câu «Đã giao» của orders) bị vượt, nên không có tên dịch vụ: `delivered_terms` ⇒ câu `terms_missing` «cho một dịch vụ của đơn»; `commercial_exceeds_gross` ⇒ câu
  * `terms_exceed_price` «cho đơn này» (đúng chữ ADR-0079 điều 6). Ba lưới còn lại và chỉ mục một-dòng-mỗi-dịch-vụ báo MÃ sinh dòng sai (không phải cấu hình) ⇒ câu
  * chung, không lộ mã thô. Không phải lỗi thương mại ⇒ null.

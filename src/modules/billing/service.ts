@@ -520,7 +520,7 @@ export async function daGiao(
   if (ly) return loi(409, ly.ma === "already_delivered" ? "order_delivered" : "not_deliverable", ly.cau);
   if (input.canCauBaoVe && !ai.partyId) return loi(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn mới bấm được Đã giao.");
   // Dòng thương mại (ADR-0079 điều 2, C1 = A): tới đây tình trạng chỉ còn DU / KHONG_NGUOI_HUONG (THIEU, VUOT đã trả 409 ở trên). Giảm giá bên đặt chịu =
-  // thành tiền trước giảm − phải thu lúc giao (giảm giá HIỆU LỰC — ADR-0109; lưới (iv) của 0111 đòi đúng từng đồng). Dữ liệu trái tình trạng ⇒ hàm NÉM (500), không lấy 0.
+  // thành tiền trước giảm − phải thu lúc giao (giảm giá HIỆU LỰC — ADR-0109; lưới (iv) của 0112 đòi đúng từng đồng). Dữ liệu trái tình trạng ⇒ hàm NÉM (500), không lấy 0.
   const nguoiHuong = tm.tinhTrang.trangThai === "DU" ? tm.tinhTrang.nguoiHuongPartyId : null;
   const dongTm = sinhPhieuDaGiao({ congTyId, nguoiHuongPartyId: nguoiHuong, giamGiaBenDat: Math.max(0, tm.gross - info.phaiThu), dong: tm.dong });
 
@@ -544,7 +544,7 @@ export async function daGiao(
     if (k) return k;
     const m = loiMaTrigger(e);
     if (m) return m;
-    // Sổ đại lý đợt 2 (0111): lớp 2 thiếu bản chụp (`delivered_terms`) và bốn lưới số thương mại ⇒ cùng câu lời thường của lý do giữ (rules.ts), không lộ mã thô.
+    // Sổ đại lý đợt 2 (0112): lớp 2 thiếu bản chụp (`delivered_terms`) và bốn lưới số thương mại ⇒ cùng câu lời thường của lý do giữ (rules.ts), không lộ mã thô.
     const tmLoi = cauLoiCsdlThuongMai(e);
     if (tmLoi) return loi(409, "not_deliverable", tmLoi);
     // Trigger 0099 không phân biệt vai người thu (Công ty thu – CK, khách trả bên đặt / quầy nhà cung cấp) ⇒ câu chung (Ruling ở sổ thi công).
@@ -638,7 +638,7 @@ export async function xacNhanCongTyNhan(db: D1Database, input: { receiptId: stri
   if (!laKhoanMoi) {
     // ADR-0092 Đ2b (TNV-VP01): một dòng giữ hộ tất toán MỘT lần — "Công ty đã nhận" chỉ khi người khai còn giữ hộ trên đơn ≥ số dòng giữ hộ (chưa bị "Nộp").
     // Số giữ hộ chỉ cộng HELD / SETTLEMENT / REFUND (`soDuGiuHo` — P10: dòng hoa hồng / giảm giá / giá vốn của «Đã giao» không làm khoản «đã tất toán»), đúng tập
-    // của trigger `bil_debt_line_held_once` (0111) — lớp 2 của chính lệnh này.
+    // của trigger `bil_debt_line_held_once` (0112) — lớp 2 của chính lệnh này.
     const conNo = soDuGiuHo(dongDon, cho[0]!.debtor_party_id, cho[0]!.creditor_party_id);
     if (conNo < cho.reduce((t, l) => t + l.amount, 0)) return loi(409, "held_already_settled", CAU_DA_NOP);
   }

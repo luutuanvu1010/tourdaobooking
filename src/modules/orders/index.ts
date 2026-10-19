@@ -835,13 +835,13 @@ export const ordersModule: AppModule = {
     }),
 
     // «CHỤP BÙ» (sổ đại lý đợt 2, Task 6 — ADR-0079 điều 7 (b2), đặc tả P6, C4 = A): đơn đã xác nhận TRƯỚC khi có bảng mức, chưa có bản chụp nào, không thuộc tập
-    // chụp bù tự động (b1) của migration 0112. Cổng `office`, ô `order.terms.override` (Kế toán, Quản trị, Toàn quyền); không bao giờ cho tài khoản giữ quyền Đối tác
+    // chụp bù tự động (b1) của migration 0113. Cổng `office`, ô `order.terms.override` (Kế toán, Quản trị, Toàn quyền); không bao giờ cho tài khoản giữ quyền Đối tác
     // (kể cả lai — phản hồi là bản chụp văn phòng có tỷ lệ và giá vốn). Hai route PHẢI đứng TRƯỚC "/api/orders/:id" (":id" khớp chữ "cho-chup-bu").
     // Danh sách: chỉ khoá + nhãn (mã đơn, ngày xác nhận giờ VN, tên bên đặt, lý do) — không tên / SĐT khách, không tiền. Chỉ đọc — không nhật ký.
     route("GET", "/api/orders/cho-chup-bu", "office", async ({ env, staff }) => {
       if (!can(staff, "order.terms.override") || holdsPartner(staff)) return FORBIDDEN_CHUP_BU();
       const rows = await donChoChupBu(env.DB);
-      // Lý do (Ruling R-52): có dòng nhập tay đứng trước (chụp bù chụp cả đơn, rồi Kế toán ghi mức tay dòng đó — R-P13); rồi bên đặt được hưởng; còn lại là đơn khách lẻ 0112 chưa chụp.
+      // Lý do (Ruling R-52): có dòng nhập tay đứng trước (chụp bù chụp cả đơn, rồi Kế toán ghi mức tay dòng đó — R-P13); rồi bên đặt được hưởng; còn lại là đơn khách lẻ 0113 chưa chụp.
       const don = rows.map((r) => ({
         orderId: r.id, maDon: r.order_code, ngayXacNhan: vnToday(new Date(r.confirmed_at ?? r.created_at)), benDat: r.ben_dat,
         lyDo: r.co_nhap_tay ? "nhap_tay" as const : r.ben_dat_doi_tac ? "co_nguoi_huong" as const : "khach_le" as const,

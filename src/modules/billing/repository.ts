@@ -347,7 +347,7 @@ export const postingPlainStatement = (db: D1Database, p: NewPosting) => bindPost
 
 /**
  * Dòng nợ — chỉ áp khi phiếu ?2 đã được chèn trong lô (lính gác), nên phiếu thua ⇒ không dòng nào. ?12 = `order_service_id` (dòng HOA_HONG / GIA_VON của phiếu
- * Đã giao gắn dòng dịch vụ — trigger `bil_debt_line_commercial_service` của 0111; dòng khác: NULL). Số tham số cũ giữ nguyên vị trí (?1–?11).
+ * Đã giao gắn dòng dịch vụ — trigger `bil_debt_line_commercial_service` của 0112; dòng khác: NULL). Số tham số cũ giữ nguyên vị trí (?1–?11).
  */
 const LINE_IF_POSTING = defineSql(
   "billing",

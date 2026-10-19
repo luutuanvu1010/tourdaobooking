@@ -7,7 +7,7 @@ import { defineSql } from "../../shared/sql-registry.ts";
 /**
  * «Đơn còn thiếu bản chụp thương mại» — vế của câu «Đã giao» (lớp 1; ADR-0079 điều 5, đặc tả P1). Sổ đại lý đợt 2 MỞ «Đã giao» cho đơn có người hưởng hoa hồng
  * (billing ghi dòng hoa hồng / giảm giá bên đặt chịu / giá vốn trong cùng lô), nên vế cũ «không có người hưởng» (`CO_NGUOI_HUONG`, BL-HH-DA-GIAO-KHE) được THAY bằng:
- * không dòng dịch vụ nào chưa có bản chụp (`v_ord_terms_uncaptured`, 0111) và bản chụp hiện hành không dòng nào thiếu mức hoa hồng / thiếu người bán
+ * không dòng dịch vụ nào chưa có bản chụp (`v_ord_terms_uncaptured`, 0112) và bản chụp hiện hành không dòng nào thiếu mức hoa hồng / thiếu người bán
  * (`v_ord_terms_missing`, 0090 — gồm dòng nhập tay chưa ghi tay người bán, A-14). Lớp 2 là trigger `bil_posting_delivered_terms` của billing đọc ĐÚNG hai view này.
  * `o` = bí danh bảng orders trong câu gọi. Hai view là view công bố của CHÍNH orders (đọc `order_service`, `ord_service_terms`) — không phải bil_ (ADR-0024 điều 4).
  */
