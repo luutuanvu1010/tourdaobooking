@@ -1,15 +1,15 @@
-# Đề xuất ADR-0135 — Bước Xác nhận đơn cho dịch vụ "cần xác nhận": Gửi / Rút lại / Còn vé – Hết vé, ô quyền `order.confirm.review`
+# Đề xuất ADR-0136 — Bước Xác nhận đơn cho dịch vụ "cần xác nhận": Gửi / Rút lại / Còn vé – Hết vé, ô quyền `order.confirm.review`
 
 **Trạng thái: đề xuất, chờ chủ duyệt.** AI soạn, không tự duyệt (N3). Số 0135 đã kiểm còn trống ngày 19/10.
 
-- **Ngày:** 2026-10-19. **Lượt duyệt:** 2 (cùng ADR-0136; trang ghép `TRANG-GHEP-LUOT-2.md`). Chỉ trình sau khi lượt 1 (ADR-0133, ADR-0134) đã duyệt — ADR này dựa trên "nháp chỉ người tạo thấy" và "nháp không ghi thu". Mở Đợt 3 của kế hoạch.
+- **Ngày:** 2026-10-19. **Lượt duyệt:** 2 (cùng ADR-0137; trang ghép `TRANG-GHEP-LUOT-2.md`). Chỉ trình sau khi lượt 1 (ADR-0134, ADR-0135) đã duyệt — ADR này dựa trên "nháp chỉ người tạo thấy" và "nháp không ghi thu". Mở Đợt 3 của kế hoạch.
 - **Loại:** việc lớn (quyền, dữ liệu, tiền). **Cửa:** dữ liệu một chiều mềm (ba bảng chỉ thêm, ở lại); hành vi tắt được bằng cách bỏ mọi cờ "cần xác nhận".
 - **Quan hệ với ADR cũ:**
   - **ngoại lệ có tên** của ADR-0019 đ2 ("sai thì 403, không cắt bớt trường"): người xét duyệt nhận chi tiết đơn đang chờ **đã bỏ** SĐT, email, liên hệ người đặt (Đ6);
   - **thay một phần** ADR-0023 đ1 và ADR-0030 S23-1, S23-4: Hướng dẫn viên đọc được đơn **đang chờ** dù chưa phụ trách (Đ6);
   - **ngoại lệ có tên** của ADR-0089 đ8: chọn "Hết vé" thì máy chủ tự gán lý do `HET_CHO` (nhóm Công ty huỷ), không cần ô `order.cancel.classify` (Đ7);
   - **thay một phần** ADR-0022 (Q-C) và ADR-0014 đ12: Đối tác, Thực tập nhận tin xác nhận / huỷ **của đơn mình lập** (Đ10); tên người làm vẫn theo ADR-0131 đ3;
-  - **mở rộng** ADR-0134 Đ1, Đ6: thêm nhánh đọc cho người xét duyệt và nhãn tin `xet-duyet`;
+  - **mở rộng** ADR-0135 Đ1, Đ6: thêm nhánh đọc cho người xét duyệt và nhãn tin `xet-duyet`;
   - ADR-0007 / ADR-0009 (`order.modify` gồm xác nhận) **giữ** cho đơn không cần xác nhận; ADR-0049 Đ5 (đặt gấp) **giữ**, áp lúc bấm Còn vé.
 - **Xây trên lỗ đang hở:** không, cùng điều kiện TNV-G1 như lượt 1 (trang ghép lượt 2 mục 4).
 
@@ -19,7 +19,7 @@ Chủ dự án 19/10 (đặc tả Phần A mục 1–8; lượt 3; lượt 4 m�
 ## Quyết định
 1. **Đ1 — Cờ theo dịch vụ.** Bảng chỉ thêm `ord_service_confirm_flag` (mã dịch vụ danh mục, bật/tắt, hiệu lực). Chỉ ô `settings.ops` đổi. Đơn có ≥ 1 dịch vụ đang bật cờ (đọc lúc bấm) **HOẶC có chặng đón mở dưới mốc tối thiểu chưa đặt gấp** (chủ chọn A 19/10, đặc tả mục 5f.1) phải qua bước; còn lại giữ luồng hôm nay. Đơn đi vào bước chỉ vì chặng dưới mốc: danh sách chờ gắn nhãn "Cần Quản trị đặt gấp"; người xét duyệt không giữ ô Đặt gấp thấy đơn nhưng nút Xác nhận báo cần Quản trị; Quản trị / Toàn quyền đặt gấp và xác nhận ngay trong bảng xác nhận.
 2. **Đ2 — "Chờ xác nhận" không phải trạng thái mới.** Đơn vẫn `draft`; "chờ" = có một dòng `ord_confirm_request` còn mở. Một dòng mở mỗi đơn (chỉ mục duy nhất có điều kiện); dòng chỉ khép được một lần, không xoá. Kết quả: `XAC_NHAN` | `HUY` | `RUT_LAI`. [người soạn]
-3. **Đ3 — Gửi, rút lại, khoá.** Chỉ người lập gửi (đơn nháp, cần xác nhận, đã chọn đón theo ADR-0133 Đ2, chưa có yêu cầu mở) và rút lại. Đang chờ thì người lập không sửa được (409 `confirm_pending_locked`). Đơn cần xác nhận mà bấm "Xác nhận" cũ ⇒ 409 `confirm_request_required`. [người soạn: khoá khi chờ, Rút lại]
+3. **Đ3 — Gửi, rút lại, khoá.** Chỉ người lập gửi (đơn nháp, cần xác nhận, đã chọn đón theo ADR-0134 Đ2, chưa có yêu cầu mở) và rút lại. Đang chờ thì người lập không sửa được (409 `confirm_pending_locked`). Đơn cần xác nhận mà bấm "Xác nhận" cũ ⇒ 409 `confirm_request_required`. [người soạn: khoá khi chờ, Rút lại]
 4. **Đ4 — Ô quyền mới `order.confirm.review`:** SALES, ACCOUNTING, ADMIN, FIELD, SUPER_ADMIN = `any`; PARTNER, INTERN, DRIVER, DRIVER_PARTNER, HR = `none`. [người soạn: năm vai "không" — chủ không nhắc tới]
 5. **Đ5 — Ai quyết định.** Người giữ ô VÀ (không phải người lập, HOẶC người lập là nội bộ — không giữ PARTNER/INTERN — và công tắc tự xác nhận đang bật). Công tắc ở bảng chỉ thêm `ord_confirm_policy`, chỉ `settings.ops` đổi, **mặc định BẬT**. [người soạn: mặc định]
 6. **Đ6 — Nới đọc có giới hạn.** Người giữ ô đọc được danh sách chờ và chi tiết đơn **đang chờ** của bất kỳ ai, kể cả HDV chưa phụ trách: dịch vụ, ngày, số khách, giờ đón, tiền (chỉ đọc nếu không có quyền sửa tiền). Máy chủ **không gửi** SĐT, email khách và liên hệ người đặt cho người xét duyệt không phải người lập. Danh sách chờ không có tên khách.
@@ -37,10 +37,10 @@ Chủ dự án 19/10 (đặc tả Phần A mục 1–8; lượt 3; lượt 4 m�
 - **Cho người xét duyệt đọc đủ (kể cả SĐT):** chủ nói không thấy SĐT/email.
 
 ## Hệ quả
-Migration mới (số tạm 0113): ba bảng + trigger. Ô mới ở `MATRIX`, bài ghim hàng DRIVER/DRIVER_PARTNER/HR, `TEN_THAO_TAC`, `tests/e2e/permissions.mjs`. Route mới: gửi, rút lại, quyết định, danh sách chờ, cài đặt cờ / công tắc. Route đổi: `/status`, `PUT /:id`, mọi route đọc của ADR-0134 Đ1. Hành động nhật ký mới (gửi, rút lại, đổi cờ, đổi công tắc). Giao diện: nút Gửi xác nhận / Rút lại / bảng Xác nhận đơn, thẻ chờ trên Trang chủ, trang danh sách chờ.
+Migration mới (số tạm 0115): ba bảng + trigger. Ô mới ở `MATRIX`, bài ghim hàng DRIVER/DRIVER_PARTNER/HR, `TEN_THAO_TAC`, `tests/e2e/permissions.mjs`. Route mới: gửi, rút lại, quyết định, danh sách chờ, cài đặt cờ / công tắc. Route đổi: `/status`, `PUT /:id`, mọi route đọc của ADR-0135 Đ1. Hành động nhật ký mới (gửi, rút lại, đổi cờ, đổi công tắc). Giao diện: nút Gửi xác nhận / Rút lại / bảng Xác nhận đơn, thẻ chờ trên Trang chủ, trang danh sách chờ.
 
 ## Điều chưa chắc — câu hỏi cho chủ
 - **Đơn đã có khoản thu từ thời nháp** (trước ngày phát hành lượt 1) mà gửi xác nhận rồi Hết vé ⇒ đơn huỷ còn tiền = TNV-G1. Khuyến nghị: chặn gửi khi đơn đã có khoản thu. Cách làm cần một hàm do gốc lắp ráp tiêm vào, vì `orders` không đọc bảng `bil_` (ADR-0024 đ4); kế hoạch Task 3.3 chưa có điều kiện này.
 - **Giá danh mục:** hôm nay Đối tác / Thực tập chỉ tự xác nhận được đơn đúng giá danh mục (`src/modules/orders/index.ts:1416`). Khi người nội bộ bấm Còn vé cho đơn của Đối tác, luật này (đang xét người bấm) không còn chặn. Khuyến nghị: xét theo **người lập**, giữ chặn. [người soạn]
 - Dịch vụ nhập tay không có mã nên không gắn cờ được. [người soạn]
-- Chủ đã chọn phương án A cho câu Q1 của ADR-0134 (19/10): đã đưa vào Đ1.
+- Chủ đã chọn phương án A cho câu Q1 của ADR-0135 (19/10): đã đưa vào Đ1.
