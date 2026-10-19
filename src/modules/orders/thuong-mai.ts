@@ -1,7 +1,7 @@
 // Ánh xạ bản chụp thương mại ↔ dòng bảng ord_service_terms (đặc tả §5), dựng HAI DTO của phần thương mại (văn phòng / Đối tác), kiểm thân ghi mức tay (§6). Thuần — câu SQL ở thuong-mai-repo.ts.
 // Không nhập `../pricing` bằng giá trị (index.ts của nó kéo `../audit` không đuôi — node không giải được): phép tính tiền dòng ở src/shared/hoa-hong-dong.ts (pricing tái xuất).
 import type { ThuongMaiDongVanPhong, ThuongMaiResponse } from "../../shared/contracts.ts";
-import { tinhDongDoiTac, type BanChup, type LyDoThieu } from "../../shared/hoa-hong-dong.ts";
+import { tinhDongDoiTac, type BanChup, type LyDoThieu, type MucTheoLoai } from "../../shared/hoa-hong-dong.ts";
 import { NHAN_LY_DO_THIEU, nhanDong, nhanMuc, nhanTyLeBp } from "../../shared/so-dai-ly-nhan.ts";
 import { MOI_KHACH_TOI_DA } from "../../shared/so-dai-ly-nhap.ts"; // trần «Số tiền mỗi khách»: MỘT hằng cho giao diện và máy chủ (Task 14, nợ (a))
 import { hasLongDigitRun, maskLongDigits, PHONE_IN_TEXT_MESSAGE } from "../../shared/text-guards.ts";
@@ -11,6 +11,8 @@ export interface DongGhiChup {
   commissionStatus: "NONE" | "SET" | "MISSING"; missingReason: LyDoThieu | null; commissionKind: "RATE" | "PER_PAX" | null; rateBp: number | null; perPax: number | null; ruleId: string | null;
   supplyStatus: "SET" | "MISSING"; sellerPartyId: string | null; supplierPartyId: string | null; costRateBp: number | null; termId: string | null;
   source: "AUTO" | "MANUAL"; reason: string | null; supersedesId: string | null; capturedDate: string; at: string; by: string;
+  /** ADR-0133: ba số tiền theo loại cần chụp cùng bản chụp (bảng phụ `ord_service_terms_pax`); null = không có. */
+  theoLoai: MucTheoLoai | null;
 }
 export function dongGhiTuChup(c: BanChup, v: { id: string; orderId: string; ngay: string; at: string; by: string; source: "AUTO" | "MANUAL"; reason: string | null; supersedesId: string | null }): DongGhiChup {
   const h = c.hoaHong;
@@ -22,6 +24,7 @@ export function dongGhiTuChup(c: BanChup, v: { id: string; orderId: string; ngay
     supplyStatus: cu.status, sellerPartyId: cu.status === "SET" ? cu.sellerPartyId : null, supplierPartyId: cu.status === "SET" ? cu.supplierPartyId : null,
     costRateBp: cu.status === "SET" ? cu.costRateBp : null, termId: cu.status === "SET" ? cu.termId : null,
     source: v.source, reason: v.reason, supersedesId: v.supersedesId, capturedDate: v.ngay, at: v.at, by: v.by,
+    theoLoai: h.status === "SET" && h.kind === "PER_PAX" ? (h.theoLoai ?? null) : null,
   };
 }
 export interface TermRowDb {
@@ -29,12 +32,15 @@ export interface TermRowDb {
   commission_kind: "RATE" | "PER_PAX" | null; commission_rate_bp: number | null; commission_per_pax: number | null; commission_rule_id: string | null;
   supply_status: "SET" | "MISSING"; seller_party_id: string | null; supplier_party_id: string | null; cost_rate_bp: number | null; supply_term_id: string | null;
   source: "AUTO" | "MANUAL"; captured_date: string;
+  /** ADR-0133: nối từ `ord_service_terms_pax`; cả ba null = bản chụp không có số theo loại. Thiếu thuộc tính (nơi dựng cũ) coi như null. */
+  pax_adult?: number | null; pax_child?: number | null; pax_senior?: number | null;
 }
 export function banChupTuDb(r: TermRowDb): BanChup {
   return {
     serviceId: r.order_service_id, beneficiaryPartyId: r.beneficiary_party_id,
     hoaHong: r.commission_status === "NONE" ? { status: "NONE" } : r.commission_status === "MISSING" ? { status: "MISSING", reason: r.missing_reason! }
-      : { status: "SET", kind: r.commission_kind!, rateBp: r.commission_rate_bp, perPax: r.commission_per_pax, ruleId: r.commission_rule_id },
+      : { status: "SET", kind: r.commission_kind!, rateBp: r.commission_rate_bp, perPax: r.commission_per_pax, ruleId: r.commission_rule_id,
+          theoLoai: r.pax_adult == null || r.pax_child == null || r.pax_senior == null ? null : { adult: r.pax_adult, child: r.pax_child, senior: r.pax_senior } },
     cungUng: r.supply_status === "SET" ? { status: "SET", termId: r.supply_term_id, sellerPartyId: r.seller_party_id!, supplierPartyId: r.supplier_party_id, costRateBp: r.cost_rate_bp } : { status: "MISSING" },
   };
 }
@@ -57,7 +63,8 @@ export interface PhanThuongMai {
   /** Đơn đã xác nhận mà chưa có bản chụp nào (xác nhận trước đợt 1) — mọi dòng "Đơn xác nhận trước khi có bảng mức". */
   chuaChup: boolean;
   chup: readonly BanChup[];
-  dichVu: readonly { id: string; name: string; thanhTien: number; soKhachTinh: number }[];
+  /** `pax` = số khách HIỆN HÀNH theo loại (ADR-0133); null = dịch vụ tính theo nhóm/lượt (soKhachTinh là số lượt). */
+  dichVu: readonly { id: string; name: string; thanhTien: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[];
   ten: ReadonlyMap<string, string>;
   congTyChuId: string | null;
   /** Mã dịch vụ mà bản chụp hiện hành là bản GHI TAY (cột `source = 'MANUAL'`); vắng = không dòng nào. */
@@ -99,7 +106,7 @@ export function dungThuongMai(v: { laDoiTac: boolean; xemNguoiBan: boolean } & P
   const theoDichVu = new Map(v.chup.map((c) => [c.serviceId, c] as const));
   const dong = v.dichVu.map((dv) => {
     const c = theoDichVu.get(dv.id) ?? chuaCoBanChup(dv.id);
-    return { dv, c, t: tinhDongDoiTac(c, { thanhTien: dv.thanhTien, soKhachTinh: dv.soKhachTinh }) };
+    return { dv, c, t: tinhDongDoiTac(c, { thanhTien: dv.thanhTien, soKhachTinh: dv.soKhachTinh, pax: dv.pax }) };
   });
   const conThieu = dong.some((d) => d.t.hoaHong === null);
   const tong = {
@@ -128,7 +135,7 @@ export function dungThuongMai(v: { laDoiTac: boolean; xemNguoiBan: boolean } & P
         const cu = c.cungUng;
         const d: ThuongMaiDongVanPhong = {
           serviceId: dv.id, ten: dv.name, thanhTien: dv.thanhTien, soKhachTinh: dv.soKhachTinh,
-          muc: h.status === "SET" ? nhanMuc({ kind: h.kind, rateBp: h.rateBp, perPax: h.perPax }) : null,
+          muc: h.status === "SET" ? nhanMuc({ kind: h.kind, rateBp: h.rateBp, perPax: h.perPax, theoLoai: h.theoLoai }) : null,
           hoaHong: t.hoaHong, giaDaiLy: t.giaDaiLy, ghiTay: v.ghiTay?.has(dv.id) ?? false,
           thieu: h.status === "MISSING" ? NHAN_LY_DO_THIEU[h.reason] : null,
           nguoiBan: cu.status === "SET" ? { ten: v.ten.get(cu.sellerPartyId) ?? HO_SO_KHONG_CON, laCongTy: v.congTyChuId !== null && cu.sellerPartyId === v.congTyChuId } : null,

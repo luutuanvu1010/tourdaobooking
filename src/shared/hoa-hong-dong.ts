@@ -54,9 +54,16 @@ export interface DongPhanDoiTac {
   /** Chỉ khi người bán là nhà cung cấp. */
   giaVon: number | null;
 }
-export function tinhDongDoiTac(c: BanChup, tien: { thanhTien: number; soKhachTinh: number }): DongPhanDoiTac {
+/**
+ * `tien.pax` (ADR-0133): số khách HIỆN HÀNH theo loại của dòng; `null` = dịch vụ tính theo nhóm/lượt (khi đó `soKhachTinh` là số lượt). Chỉ cần khi bản chụp mang ba số theo loại:
+ * có ba số mà thiếu `pax` (undefined) ⇒ ném lỗi, không đoán. Không có ba số ⇒ như cũ.
+ */
+export function tinhDongDoiTac(c: BanChup, tien: { thanhTien: number; soKhachTinh: number; pax?: { adult?: number; child?: number; senior?: number } | null }): DongPhanDoiTac {
   const h = c.hoaHong;
+  const theoLoai = h.status === "SET" && h.kind === "PER_PAX" ? (h.theoLoai ?? null) : null;
+  if (theoLoai && tien.pax === undefined) throw new Error("tinhDongDoiTac: bản chụp có số tiền theo loại nhưng thiếu số khách theo loại (pax)");
   const hoaHong = h.status === "NONE" ? 0 : h.status === "MISSING" ? null
+    : theoLoai ? (tien.pax ? hoaHongTheoLoai(theoLoai, tien.pax) : hoaHongTheoLuot(theoLoai, tien.soKhachTinh))
     : hoaHongDong({ kind: h.kind, rateBp: h.rateBp, perPaxAmount: h.perPax, thanhTien: tien.thanhTien, soKhachTinh: tien.soKhachTinh });
   const cu = c.cungUng;
   const giaVon = cu.status === "SET" && cu.supplierPartyId !== null && cu.costRateBp !== null ? giaVonDong({ costRateBp: cu.costRateBp, thanhTien: tien.thanhTien }) : null;

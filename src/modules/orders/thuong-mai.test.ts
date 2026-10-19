@@ -9,12 +9,18 @@ const thieu = { serviceId: "s2", beneficiaryPartyId: "dla", hoaHong: { status: "
 
 test("dongGhiTuChup ↔ banChupTuDb: đi rồi về giữ nguyên bản chụp", () => {
   const v = { id: "t1", orderId: "o1", ngay: "2026-10-10", at: "2026-10-10T01:00:00.000Z", by: "kt", source: "AUTO" as const, reason: null, supersedesId: null };
-  for (const c of [set, thieu]) {
+  // ADR-0133: bản chụp có ba số theo loại đi rồi về vẫn đủ ba số (qua cột nối từ ord_service_terms_pax); bản không có ba số về `theoLoai: null`.
+  const baSo = { adult: 50_000, child: 30_000, senior: 40_000 };
+  const setBaSo = { ...set, hoaHong: { status: "SET" as const, kind: "PER_PAX" as const, rateBp: null, perPax: 50_000, ruleId: "m9", theoLoai: baSo } };
+  for (const c of [set, thieu, setBaSo]) {
     const d = dongGhiTuChup(c, v);
-    const db = { id: d.id, order_service_id: d.serviceId, beneficiary_party_id: d.beneficiaryPartyId, commission_status: d.commissionStatus, missing_reason: d.missingReason,
+    assert.deepEqual(d.theoLoai, c.hoaHong.status === "SET" ? (("theoLoai" in c.hoaHong ? c.hoaHong.theoLoai : null) ?? null) : null);
+    const db = { pax_adult: d.theoLoai?.adult ?? null, pax_child: d.theoLoai?.child ?? null, pax_senior: d.theoLoai?.senior ?? null, id: d.id, order_service_id: d.serviceId, beneficiary_party_id: d.beneficiaryPartyId, commission_status: d.commissionStatus, missing_reason: d.missingReason,
       commission_kind: d.commissionKind, commission_rate_bp: d.rateBp, commission_per_pax: d.perPax, commission_rule_id: d.ruleId, supply_status: d.supplyStatus,
       seller_party_id: d.sellerPartyId, supplier_party_id: d.supplierPartyId, cost_rate_bp: d.costRateBp, supply_term_id: d.termId, source: d.source, captured_date: d.capturedDate };
-    assert.deepEqual(banChupTuDb(db), c);
+    const ve = banChupTuDb(db);
+    const mong = c.hoaHong.status === "SET" ? { ...c, hoaHong: { ...c.hoaHong, theoLoai: ("theoLoai" in c.hoaHong ? c.hoaHong.theoLoai : null) ?? null } } : c;
+    assert.deepEqual(ve, mong);
   }
 });
 

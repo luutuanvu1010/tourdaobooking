@@ -32,3 +32,16 @@ test("kiểu cũ PER_PAX không đổi: một số tiền × số khách tính",
   assert.equal(hoaHongDong({ kind: "PER_PAX", rateBp: null, perPaxAmount: 50_000, thanhTien: 0, soKhachTinh: 4 }), 200_000);
   assert.equal(hoaHongDong({ kind: "RATE", rateBp: 1250, perPaxAmount: null, thanhTien: 1_000_000, soKhachTinh: 4 }), 125_000);
 });
+
+import { tinhDongDoiTac, type BanChup } from "./hoa-hong-dong.ts";
+const chup = (theoLoai: { adult: number; child: number; senior: number } | null): BanChup => ({ serviceId: "s", beneficiaryPartyId: "p",
+  hoaHong: { status: "SET", kind: "PER_PAX", rateBp: null, perPax: 50_000, ruleId: "r", theoLoai }, cungUng: { status: "MISSING" } });
+
+test("tinhDongDoiTac: có ba số ⇒ theo từng loại; dịch vụ theo nhóm (pax null) ⇒ số người lớn × lượt; không có ba số ⇒ như cũ", () => {
+  const ba = { adult: 50_000, child: 30_000, senior: 40_000 };
+  assert.equal(tinhDongDoiTac(chup(ba), { thanhTien: 1_000_000, soKhachTinh: 4, pax: { adult: 2, child: 1, senior: 1 } }).hoaHong, 170_000);
+  assert.equal(tinhDongDoiTac(chup(ba), { thanhTien: 1_000_000, soKhachTinh: 3, pax: null }).hoaHong, 150_000);
+  assert.equal(tinhDongDoiTac(chup(null), { thanhTien: 1_000_000, soKhachTinh: 4, pax: { adult: 2, child: 1, senior: 1 } }).hoaHong, 200_000);
+  assert.equal(tinhDongDoiTac(chup(null), { thanhTien: 1_000_000, soKhachTinh: 4 }).hoaHong, 200_000, "nơi gọi cũ chưa truyền pax vẫn chạy khi không có ba số");
+  assert.throws(() => tinhDongDoiTac(chup(ba), { thanhTien: 1_000_000, soKhachTinh: 4 }), /số khách theo loại/, "có ba số mà thiếu pax ⇒ ném lỗi, không đoán");
+});

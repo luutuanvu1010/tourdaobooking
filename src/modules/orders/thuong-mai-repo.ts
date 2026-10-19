@@ -7,13 +7,17 @@ const COT = `id, order_id, order_service_id, beneficiary_party_id, commission_st
   supply_status, seller_party_id, supplier_party_id, cost_rate_bp, supply_term_id, source, reason, supersedes_id, captured_date, created_at, created_by, updated_at, updated_by`;
 const CHUP_CHUOI = defineSql("orders", "terms_insert_chain",
   `INSERT INTO ord_service_terms (${COT}) SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?20, ?21 WHERE changes() > 0`);
+// ADR-0133: ba số tiền theo loại, ngay SAU câu chụp của dòng đó trong cùng chuỗi `changes() > 0` (câu chụp thua ⇒ 0 dòng ⇒ câu này cũng không ghi, và câu chụp kế tiếp cũng vậy).
+const CHUP_PAX = defineSql("orders", "terms_pax_insert_chain",
+  `INSERT INTO ord_service_terms_pax (terms_id, adult_amount, child_amount, senior_amount, created_at, created_by, updated_at, updated_by) SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6 WHERE changes() > 0`);
 const GHI_TAY = defineSql("orders", "terms_insert_manual",
   `INSERT INTO ord_service_terms (${COT}) SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?20, ?21
    WHERE EXISTS (SELECT 1 FROM orders o WHERE o.id = ?2 AND o.status = 'confirmed' AND o.delivered_at IS NULL)`);
 const HIEN_HANH = defineSql("orders", "terms_current",
   `SELECT t.id, t.order_service_id, t.beneficiary_party_id, t.commission_status, t.missing_reason, t.commission_kind, t.commission_rate_bp, t.commission_per_pax, t.commission_rule_id,
-     t.supply_status, t.seller_party_id, t.supplier_party_id, t.cost_rate_bp, t.supply_term_id, t.source, t.captured_date
-   FROM ord_service_terms t WHERE t.order_id = ?1 AND NOT EXISTS (SELECT 1 FROM ord_service_terms n WHERE n.supersedes_id = t.id)`);
+     t.supply_status, t.seller_party_id, t.supplier_party_id, t.cost_rate_bp, t.supply_term_id, t.source, t.captured_date,
+     x.adult_amount AS pax_adult, x.child_amount AS pax_child, x.senior_amount AS pax_senior
+   FROM ord_service_terms t LEFT JOIN ord_service_terms_pax x ON x.terms_id = t.id WHERE t.order_id = ?1 AND NOT EXISTS (SELECT 1 FROM ord_service_terms n WHERE n.supersedes_id = t.id)`);
 const DEM = defineSql("orders", "terms_count", "SELECT count(*) AS n FROM ord_service_terms WHERE order_id = ?1");
 // Tên hồ sơ (người hưởng, người bán) cho DTO văn phòng: view công bố của parties, chỉ khoá + nhãn. Hồ sơ không còn trong view ⇒ DTO ghi "Hồ sơ không còn".
 const NHAN_HO_SO = defineSql("orders", "party_labels", "SELECT id, display_name FROM v_pty_party_label WHERE id IN (SELECT value FROM json_each(?1))");
@@ -25,7 +29,10 @@ const NHOM_CUA_MA = defineSql("orders", "service_group_of", "SELECT group_code F
 const bindDong =(st: D1PreparedStatement, d: DongGhiChup) => st.bind(d.id, d.orderId, d.serviceId, d.beneficiaryPartyId, d.commissionStatus, d.missingReason, d.commissionKind, d.rateBp, d.perPax,
   d.ruleId, d.supplyStatus, d.sellerPartyId, d.supplierPartyId, d.costRateBp, d.termId, d.source, d.reason, d.supersedesId, d.capturedDate, d.at, d.by);
 /** Mỗi dòng một câu `INSERT … SELECT … WHERE changes() > 0`: đặt SAU câu nhật ký `confirmed` (chính nó `changes() > 0`) thì chuỗi nối từ câu `UPDATE orders` — lệnh thua không ghi gì. */
-export const cauChupChuoi = (db: D1Database, rows: readonly DongGhiChup[]): D1PreparedStatement[] => rows.map((d) => bindDong(db.prepare(CHUP_CHUOI), d));
+export const cauChupChuoi = (db: D1Database, rows: readonly DongGhiChup[]): D1PreparedStatement[] => rows.flatMap((d) => [
+  bindDong(db.prepare(CHUP_CHUOI), d),
+  ...(d.theoLoai ? [db.prepare(CHUP_PAX).bind(d.id, d.theoLoai.adult, d.theoLoai.child, d.theoLoai.senior, d.at, d.by)] : []),
+]);
 /** Ghi tay (đơn đã xác nhận, chưa giao): lính gác ngay trong câu, không phụ thuộc câu trước. */
 export const cauGhiTay = (db: D1Database, d: DongGhiChup): D1PreparedStatement => bindDong(db.prepare(GHI_TAY), d);
 /** Bản chụp HIỆN HÀNH của đơn: dòng chưa bị bản nào thay thế (`supersedes_id` trỏ tới nó). */
