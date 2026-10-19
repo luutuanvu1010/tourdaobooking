@@ -45,13 +45,16 @@
 | `GET /api/orders/:id/receipt` `src/modules/receipt/index.ts:22-28`; `/qr-thanh-toan` `:39-46` | `order.view` → `money.view` (+`contact.view`); QR **không** xét trạng thái | luật nháp → 404 cho người khác; QR: đơn không `confirmed` → 409 `qr_requires_confirmed` (cả người lập) |
 | `GET /api/orders/:id/payments` `src/modules/billing/index.ts:57`; cờ `coTheGhiThu` `:82` | `order.view`; cờ chỉ xét đơn huỷ | luật nháp; cờ thêm `status !== 'draft'` |
 | `POST /api/orders/:id/payments` `:91-98` | `payment.receive`; chỉ chặn đơn huỷ | nháp → 409 `order_draft_no_payment` |
-| Route cọc `:109-174` | chỉ cho đơn đã huỷ | không cần cổng nháp (đơn nháp không có cọc) — kế hoạch Task 2.2 nêu thừa |
+| Route cọc `:109-174` (dịch vụ `src/modules/billing/coc.ts`) | đơn **nguồn** phải đã huỷ (`coc.ts:165`); đơn **nhận** của lệnh chuyển cọc (`POST …/coc/chuyen`, và nhánh chuyển ở `coc.ts:196`) chỉ chặn đơn huỷ / đã giao (`coc.ts:196, 304`) — **nhận được đơn nháp** | đơn nhận là nháp ⇒ 409 (chuyển cọc tạo khoản thu trên đơn nhận). Chỉ cần cổng ở đơn nhận, không ở đơn nguồn |
+| `donCuaNguoiDat` `src/modules/orders/nguoi-dat-gop-repo.ts:14, 29` (tiêm ở `src/index.ts:199`, dùng khi gộp hồ sơ người đặt) | trả mã đơn mọi trạng thái của một người đặt | chỉ đếm nháp, không trả mã đơn nháp của người khác (kế hoạch Task 2.1 đã nêu) |
 | `GET /:id/nhap-ke-toan` `:220-226`, `POST /api/ledger/balances` `:251` | `order.view` theo phạm vi | luật nháp |
 | `lichChungChang` `src/modules/orders/index.ts:438-476`; nguồn `legLichChungNhapRows` `chang-hanh-khach-repo.ts:615-631` (mọi chặng mở của nháp); dùng ở `src/modules/van-chuyen/dieu-phoi-lenh.ts:750` | sau `can(trip.view)` | chỉ nháp có yêu cầu xác nhận mở (ADR-0134 Đ9) |
 | Bảng tin `nhanSuKien` `src/shared/bang-tin.ts:96-106` | luôn `tat-ca` + người lập + người phụ trách trước/sau | nháp: chỉ `nguoi:<người lập>` |
 | Hộp thông báo `HANH_DONG_TIN_DON` `src/shared/thong-bao.ts:10`; `duocThayTinDon` `bang-tin.ts:152-156` | văn phòng + HDV thấy tin `created`, `order_handler_changed`… | tin của nháp chỉ người lập |
 | `POST /api/orders/:id/status` nhánh xác nhận `index.ts:1411-1420` | giá danh mục, thiếu người lớn, mốc | + cổng `pickup_choice_required` (ADR-0133 Đ2) |
 | `GET/POST /api/cai-dat/khung-gio-don` (mới) | khuôn `/api/cai-dat/nhap-tay` `index.ts:744-760` | đọc `order.create`; ghi cổng `admin` + `settings.ops` |
+
+**Đã rà:** mọi câu SQL `FROM orders` / `JOIN orders` trong `src/` (19/10). Danh sách "chuyến hôm nay" của Trang chủ (`repository.ts:667`) và nguồn lịch chung đã xác nhận (`chang-hanh-khach-repo.ts:580`) vốn chỉ lấy `confirmed`. **Chưa rà:** các nơi module khác đọc đơn qua view công bố (`v_ord_order_label`, `v_ord_order_state`, `v_ord_order_owner`… — sổ tiền, Vận chuyển, Góp ý) có trả mã đơn nháp cho người khác không; người thi công Task 2.1 phải rà trước khi viết mã.
 
 ### 3b. Chỗ giao diện ẩn/hiện bị đổi nghĩa
 
