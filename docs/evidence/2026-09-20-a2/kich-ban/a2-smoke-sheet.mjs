@@ -23,8 +23,8 @@ try {
   const created = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     customerName: "Khách Bảng Trượt", customerPhone: "0904 111 222", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
     services: [
-      { kind: "catalog", catalogCode: "TD101", pax: pax(2, 1), unitPrices: { adult: 1350000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departDate: vnDate(10), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá", checkinTime: "09:00", note: "Đón sớm" },
-      { kind: "catalog", catalogCode: "TTB06", pax: pax(1), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(10), pickupPlace: "Khách sạn Sunrise" },
+      { kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: pax(2, 1), unitPrices: { adult: 1350000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departDate: vnDate(10), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá", checkinTime: "09:00", note: "Đón sớm" },
+      { kind: "catalog", pickupChoice: "DON", catalogCode: "TTB06", pax: pax(1), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(10), pickupPlace: "Khách sạn Sunrise" },
     ],
   });
   assert.equal(created.status, 201, JSON.stringify(created.json));
@@ -248,7 +248,7 @@ try {
   // ---- 10) đơn nháp/huỷ/người khác KHÔNG có nút ----
   const draft = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     customerName: "Khách Nháp", customerPhone: "0905 111 222", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
-    services: [{ kind: "catalog", catalogCode: "TTB06", pax: pax(1), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP }], // 2026-09-26: trước là dịch vụ nhập tay (API nay không nhận mới)
+    services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TTB06", pax: pax(1), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP }], // 2026-09-26: trước là dịch vụ nhập tay (API nay không nhận mới)
   });
   p = await env.as(ACCOUNTS.salesA, `/order?id=${draft.json.order.id}`);
   await p.waitFor("document.querySelectorAll('#order .svc-view').length === 1", "đơn nháp");
