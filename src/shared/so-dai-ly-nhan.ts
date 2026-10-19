@@ -23,4 +23,4 @@ export const nhanMuc = (m: { kind: "RATE" | "PER_PAX"; rateBp: number | null; pe
   m.kind === "RATE" ? nhanTyLeBp(m.rateBp ?? 0)
     : m.theoLoai ? `người lớn ${nhanDong(m.theoLoai.adult)}đ · trẻ em ${nhanDong(m.theoLoai.child)}đ · người cao tuổi ${nhanDong(m.theoLoai.senior)}đ/khách`
     : `${nhanDong(m.perPax ?? 0)}đ/khách`;
-export const laDongThuongMai = (action: string): boolean => action.startsWith("order_terms_");
+export const laDongThuongMai = (action: string): boolean => action.startsWith("order_terms_") || action.startsWith("ord_terms_");

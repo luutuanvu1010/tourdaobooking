@@ -47,7 +47,7 @@ async function donXacNhan(w: any, booker: string): Promise<string> {
   w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, booker_party_id, created_at, updated_at)
     VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', 2000000, 2000000, 2000000, ?, ?, ?)`).run(id, `TD-G${seq}`, SALES, booker, AT, AT);
   const s = `${id}-s0`;
-  w.sqlite.prepare("INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, ?, 0, 'HONTAM', 'DV 0', 'perPax', 1, ?)").run(s, id, homNay());
+  w.sqlite.prepare("INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, 0, 'HONTAM', 'DV 0', 'perPax', 1, ?)").run(s, id, homNay());
   w.sqlite.prepare("INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, 'HONTAM', 'adult', 'Người lớn', 1, 2000000, 2000000, 2000000)").run(`${s}-i`, id, s);
   const xn = await w.call("POST", `/api/orders/${id}/status`, { as: SALES, body: { status: "confirmed" } });
   assert.equal(xn.status, 200, xn.text);

@@ -24,7 +24,7 @@ try {
   const don = async (gio, noi, so, xeRieng) => {
     const r = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
       customerName: `Khách Xe Riêng ${++n}`, customerPhone: `0903 300 ${400 + n}`, customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
-      services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: so, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "", departDate: NGAY,
+      services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: so, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "", departDate: NGAY,
         legs: [{ direction: "OUT", pickupDate: NGAY, pickupTime: gio, pickupLocationId: null, pickupPlace: noi, dropoffLocationId: LOC_BEN_TAU, dropoffPlace: "", exclusiveVehicle: xeRieng, minVehicleSeats: null }] }],
       passengers: Array.from({ length: so }, (_, j) => ({ fullName: `Khách XR ${n}-${j + 1}`, birthYear: 1990, paxCode: null })),
     });

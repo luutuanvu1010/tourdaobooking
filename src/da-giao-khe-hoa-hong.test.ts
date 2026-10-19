@@ -1,7 +1,10 @@
 // Bài canh khe «Đã giao không có hoa hồng» (BACKLOG mục 29, mã BL-HH-DA-GIAO-KHE; chủ quyết vá riêng 2026-10-13).
 // Lỗi cũ: điều kiện câu «Đã giao» chỉ chặn khi bên đặt ĐANG mang vai nhóm bên ngoài. Đối tác đặt đơn → đơn xác nhận, bản chụp có người hưởng; sau đó vai bên ngoài
 // của tài khoản đó bị kết thúc (đổi sang vai nhân viên bằng PUT /api/staff/:id/roles) → «Đã giao» lọt, sổ KHÔNG có dòng hoa hồng, rồi tiền đơn bị khoá.
-// Cách vá: điều kiện chặn còn ghim vào BẢN CHỤP của chính đơn (bản hiện hành mang người hưởng) — vai đổi sau đó không gỡ được chỗ chặn.
+// Cách vá (lượt 1, 2026-10-13): điều kiện chặn còn ghim vào BẢN CHỤP của chính đơn (bản hiện hành mang người hưởng) — vai đổi sau đó không gỡ được chỗ chặn.
+// ĐẢO CÓ CHỦ ĐÍCH (sổ đại lý đợt 2, Task 4 — ADR-0079 điều 1–2, đặc tả P1): «Đã giao» nay MỞ cho đơn có người hưởng, và lô «Đã giao» GHI dòng hoa hồng cho người
+// hưởng của BẢN CHỤP (không phải vai hiện tại của bên đặt). Khe cũ («Đã giao» mà sổ không có dòng hoa hồng) vẫn đóng, theo nghĩa mới: đơn có người hưởng đã «Đã giao»
+// ⇒ sổ CÓ dòng HOA_HONG cho đúng người hưởng đã chụp; đơn thiếu mức / chưa chụp ⇒ vẫn 409 (`terms_missing`). Bài 0, 1, 2, 4, 7, 8 (nửa sau), 9 đổi kỳ vọng theo đó.
 // Chạy trên khung thử thật (tests/audit/harness.mjs: cả ứng dụng + SQLite với đủ migration), không mạng, không đụng D1.
 // Ghi nhận ĐÃ BIẾT, KHÔNG thuộc bài này (ADR-0077 điều 9): đổi bên đặt sang khách lẻ bằng PUT /booker làm máy chụp lại bản «không người hưởng» → «Đã giao» qua — thiết kế.
 import { test } from "node:test";
@@ -38,7 +41,7 @@ function nhap(w: W, booker: string | null, tong = 2_000_000): string {
   w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, booker_party_id, created_at, updated_at)
     VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', ?, ?, ?, ?, ?, ?)`).run(id, `TD-${seq}`, SALES, tong, tong, tong, booker, AT, AT);
   const s = `${id}-s0`;
-  w.sqlite.prepare(`INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, ?, 0, 'HONTAM', 'DV 0', 'perPax', 1, ?)`).run(s, id, vnHomNay());
+  w.sqlite.prepare(`INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, 0, 'HONTAM', 'DV 0', 'perPax', 1, ?)`).run(s, id, vnHomNay());
   w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, 'HONTAM', 'adult', 'Người lớn', 1, ?, ?, ?)`).run(`${s}-i`, id, s, tong, tong, tong);
   return id;
 }
@@ -65,19 +68,23 @@ const daGiao = (w: W, id: string) => w.call("POST", `/api/orders/${id}/delivered
 const chup = (w: W, id: string): { commission_status: string; beneficiary_party_id: string | null }[] =>
   w.q("SELECT commission_status, beneficiary_party_id FROM ord_service_terms WHERE order_id = ?", id);
 const doiVai = (w: W, actor: string, roles: string[]) => w.call("PUT", `/api/staff/${PT}/roles`, { as: actor, body: { roles } });
+/** Dòng thương mại của phiếu «Đã giao» (kind, bên được nợ, số) — hoa hồng 10% × 2.000.000 = 200.000. */
+const dongHoaHong = (w: W, id: string): [string, string, number][] =>
+  w.q("SELECT l.kind_code, l.creditor_party_id, l.amount FROM bil_debt_line l JOIN bil_posting p ON p.id = l.posting_id WHERE l.order_id = ? AND p.kind_code = 'DELIVERED' ORDER BY l.rowid", id)
+    .map((x: { kind_code: string; creditor_party_id: string; amount: number }) => [x.kind_code, x.creditor_party_id, x.amount]);
 
-test("0 — đối chứng: vai bên ngoài còn mở ⇒ «Đã giao» bị chặn (409 not_deliverable); bản chụp có người hưởng", async () => {
+test("0 — đối chứng: vai bên ngoài còn mở, bản chụp có người hưởng đủ mức ⇒ «Đã giao» 200 và sổ có HOA_HONG cho người hưởng (ĐẢO CÓ CHỦ ĐÍCH — Task 4: trước là 409)", async () => {
   const w = setup();
   const id = await donDoiTacDaXacNhan(w);
   assert.equal(chup(w, id)[0]!.commission_status, "SET");
   await thuDu(w, id);
   const g = await daGiao(w, id);
-  assert.equal(g.status, 409, g.text);
-  assert.match(g.text, /not_deliverable/);
+  assert.equal(g.status, 200, g.text);
+  assert.deepEqual(dongHoaHong(w, id), [["HOA_HONG", `pty-${PT}`, 200_000]]);
 });
 
 for (const [ten, actor] of [["Quản trị", ADMIN], ["Toàn quyền", SUPER], ["Nhân sự", HR]] as const) {
-  test(`1 — ${ten} đổi tài khoản đối tác sang vai nhân viên bán hàng sau khi đơn đã chụp ⇒ «Đã giao» vẫn 409, đơn không có mốc giao`, async () => {
+  test(`1 — ${ten} đổi tài khoản đối tác sang vai nhân viên bán hàng sau khi đơn đã chụp ⇒ «Đã giao» 200, hoa hồng vẫn về người hưởng ĐÃ CHỤP (ĐẢO CÓ CHỦ ĐÍCH — Task 4)`, async () => {
     const w = setup();
     const id = await donDoiTacDaXacNhan(w);
     const r = await doiVai(w, actor, ["SALES_STAFF"]);
@@ -85,20 +92,20 @@ for (const [ten, actor] of [["Quản trị", ADMIN], ["Toàn quyền", SUPER], [
     assert.deepEqual(w.q("SELECT role_type_code FROM pty_party_role WHERE party_id = ? AND valid_to_date IS NULL", `pty-${PT}`).map((x: { role_type_code: string }) => x.role_type_code), ["SALES_STAFF"]);
     await thuDu(w, id);
     const g = await daGiao(w, id);
-    assert.equal(g.status, 409, `KHE: «Đã giao» lọt dù bản chụp có người hưởng hoa hồng (${g.text})`);
-    assert.match(g.text, /not_deliverable/);
-    assert.equal(w.q("SELECT delivered_at FROM orders WHERE id = ?", id)[0].delivered_at, null);
-    assert.equal(w.q("SELECT count(*) AS n FROM bil_posting WHERE order_id = ?", id)[0].n, 0, "không được có phiếu «Đã giao»");
+    assert.equal(g.status, 200, g.text);
+    // Khe cũ (BL-HH-DA-GIAO-KHE) đóng theo nghĩa mới: «Đã giao» ⇒ sổ CÓ dòng hoa hồng; đổi vai sau khi chụp không đổi người hưởng (ghim ở bản chụp).
+    assert.deepEqual(dongHoaHong(w, id), [["HOA_HONG", `pty-${PT}`, 200_000]], `KHE: «Đã giao» mà sổ không có dòng hoa hồng cho người hưởng đã chụp (${g.text})`);
   });
 }
 
-test("2 — đổi vai bên ngoài sang vai bên ngoài khác (đại lý → hướng dẫn viên tự do): vẫn 409", async () => {
+test("2 — đổi vai bên ngoài sang vai bên ngoài khác (đại lý → hướng dẫn viên tự do) ⇒ «Đã giao» 200, hoa hồng theo bản chụp (ĐẢO CÓ CHỦ ĐÍCH — Task 4: trước là 409)", async () => {
   const w = setup();
   const id = await donDoiTacDaXacNhan(w);
   const r = await doiVai(w, ADMIN, ["GUIDE_FREELANCE"]);
   assert.equal(r.status, 200, r.text);
   await thuDu(w, id);
-  assert.equal((await daGiao(w, id)).status, 409);
+  assert.equal((await daGiao(w, id)).status, 200);
+  assert.deepEqual(dongHoaHong(w, id), [["HOA_HONG", `pty-${PT}`, 200_000]]);
 });
 
 test("3 — đối tác CHƯA có mức hoa hồng (bản chụp «thiếu mức» nhưng vẫn có người hưởng), vai đã đổi ⇒ vẫn 409 (không để lọt sổ thiếu dòng hoa hồng)", async () => {
@@ -107,10 +114,13 @@ test("3 — đối tác CHƯA có mức hoa hồng (bản chụp «thiếu mức
   assert.equal(chup(w, id)[0]!.commission_status, "MISSING");
   assert.equal((await doiVai(w, ADMIN, ["SALES_STAFF"])).status, 200);
   await thuDu(w, id);
-  assert.equal((await daGiao(w, id)).status, 409);
+  const g = await daGiao(w, id);
+  assert.equal(g.status, 409);
+  assert.equal(g.json.error.message, "Thiếu mức hoa hồng / người bán cho DV 0 — Kế toán ghi mức tay cho dòng này.", "Task 4: câu lời thường của lý do terms_missing");
+  assert.equal(w.q("SELECT count(*) AS n FROM bil_posting WHERE order_id = ? AND kind_code = 'DELIVERED'", id)[0].n, 0);
 });
 
-test("4 — loại đối tác nhóm OTHER (tương lai) có người hưởng: bản chụp SET ⇒ «Đã giao» 409 dù không thuộc nhóm bên ngoài", async () => {
+test("4 — loại đối tác nhóm OTHER (tương lai) có người hưởng: bản chụp SET ⇒ «Đã giao» 200 và HOA_HONG cho người hưởng đó dù không thuộc nhóm bên ngoài (ĐẢO CÓ CHỦ ĐÍCH — Task 4)", async () => {
   const w = setup();
   w.sqlite.exec(`INSERT INTO pty_role_type (code, name, sort_order, role_group, is_partner_label) VALUES ('NHAN_VIEN_SPA','Nhân viên spa',99,'OTHER',1)`);
   w.sqlite.exec(`INSERT INTO prc_beneficiary_role (role_type_code, active, created_at, updated_at) VALUES ('NHAN_VIEN_SPA',1,'${AT}','${AT}')`);
@@ -121,7 +131,8 @@ test("4 — loại đối tác nhóm OTHER (tương lai) có người hưởng: 
   assert.equal(chup(w, id)[0]!.commission_status, "SET");
   await thuDu(w, id);
   const g = await daGiao(w, id);
-  assert.equal(g.status, 409, `KHE loại OTHER: ${g.text}`);
+  assert.equal(g.status, 200, g.text);
+  assert.deepEqual(dongHoaHong(w, id), [["HOA_HONG", `pty-${SALES}`, 200_000]], "KHE loại OTHER: sổ phải có dòng hoa hồng");
 });
 
 test("5 — không chặn quá tay: đơn KHÁCH LẺ (bản chụp «không người hưởng») đủ điều kiện ⇒ «Đã giao» 200", async () => {
@@ -148,8 +159,8 @@ test("6 — đơn nội bộ bình thường (bên đặt là nhân viên bán h
   assert.equal(h.status, 200, h.text);
 });
 
-// Lớp SQL của chính câu «Đã giao» (không qua bước kiểm trước của route): nếu ai đó bỏ vế bản chụp khỏi `DAT_GIAO_DIEU_KIEN` mà chỉ còn cờ `co_nguoi_huong`, bài 1–4 vẫn xanh
-// (route 409 từ cờ) — bài này canh riêng câu UPDATE: đơn đã chụp có người hưởng ⇒ không dòng nào đổi (changes = 0), đơn khách lẻ ⇒ 1 dòng.
+// Lớp SQL của chính câu «Đã giao» (không qua bước kiểm trước của route). ĐẢO CÓ CHỦ ĐÍCH (Task 4): vế cũ «có người hưởng» (`CO_NGUOI_HUONG`) được thay bằng «không thiếu
+// bản chụp» (`THIEU_BAN_CHUP`: v_ord_terms_missing + v_ord_terms_uncaptured) — đơn có người hưởng ĐỦ mức ⇒ 1 dòng đổi; đơn thiếu mức ⇒ 0; đơn khách lẻ ⇒ 1.
 async function chayCauDaGiao(w: W, id: string): Promise<number> {
   const o = w.q("SELECT updated_at FROM orders WHERE id = ?", id)[0] as { updated_at: string };
   const kq = await datGiaoStatement(fakeD1(w.sqlite) as unknown as D1Database, {
@@ -157,18 +168,24 @@ async function chayCauDaGiao(w: W, id: string): Promise<number> {
   }).run();
   return (kq.meta as { changes: number }).changes;
 }
-test("7 — lớp SQL của câu «Đã giao»: đơn có bản chụp người hưởng, vai đã đổi ⇒ câu UPDATE không đổi dòng nào; đơn khách lẻ ⇒ đổi 1 dòng", async () => {
+test("7 — lớp SQL của câu «Đã giao»: đơn có bản chụp người hưởng THIẾU mức ⇒ câu UPDATE không đổi dòng nào; đủ mức (vai đã đổi) ⇒ 1 dòng; khách lẻ ⇒ 1 dòng (ĐẢO CÓ CHỦ ĐÍCH — Task 4)", async () => {
   const w = setup();
-  const id = await donDoiTacDaXacNhan(w);
+  const thieu = await donDoiTacDaXacNhan(w, false);
+  assert.equal(chup(w, thieu)[0]!.commission_status, "MISSING");
+  assert.equal(await chayCauDaGiao(w, thieu), 0, "câu UPDATE lọt: thiếu vế «không thiếu bản chụp» trong DAT_GIAO_DIEU_KIEN");
+  assert.equal(w.q("SELECT delivered_at FROM orders WHERE id = ?", thieu)[0].delivered_at, null);
+  await datMuc(w, { loai: "VAI", code: "TRAVEL_AGENCY" });
+  const id = nhap(w, `pty-${PT}`);
+  await xacNhan(w, id);
   assert.equal((await doiVai(w, ADMIN, ["SALES_STAFF"])).status, 200);
-  assert.equal(await chayCauDaGiao(w, id), 0, "câu UPDATE lọt: thiếu vế «bản chụp có người hưởng» trong DAT_GIAO_DIEU_KIEN");
-  assert.equal(w.q("SELECT delivered_at FROM orders WHERE id = ?", id)[0].delivered_at, null);
+  assert.equal(await chayCauDaGiao(w, id), 1, "đơn đủ mức: lớp 1 không còn chặn đơn có người hưởng (đợt 2)");
   const le = nhap(w, null);
   await xacNhan(w, le);
   assert.equal(await chayCauDaGiao(w, le), 1);
 });
 
-// ---- Hai vế còn lại của `CO_NGUOI_HUONG` (bổ sung sau lượt kiểm độc lập 2026-10-13: bài 0–7 KHÔNG bắt được đột biến bỏ từng vế này) ----
+// ---- Hai vế cũ của `CO_NGUOI_HUONG` (bổ sung sau lượt kiểm độc lập 2026-10-13). Task 4 thay cả hai: «bản chụp HIỆN HÀNH» nay ở `v_ord_terms_missing` và ở
+// `phanThuongMaiCuaDon` (chỉ đọc bản hiện hành); vế dự phòng «vai bên ngoài» thay bằng `v_ord_terms_uncaptured` (đơn chưa chụp bị giữ bất kể vai) ----
 function themKhachLe(w: W): string {
   const K = "dda00000-0000-4000-8000-000000000004";
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'PERSON', 'Khách lẻ', 1, ?, ?)").run(K, AT, AT);
@@ -177,7 +194,7 @@ function themKhachLe(w: W): string {
   return K;
 }
 
-test("8 — vế «bản chụp HIỆN HÀNH» (NOT EXISTS … supersedes_id): đổi bên đặt sang khách lẻ (PUT /booker) làm máy chụp lại bản NONE ⇒ «Đã giao» 200 (ADR-0077 điều 9, thiết kế); đơn khác khôi phục vai ngoài ⇒ vẫn 409", async () => {
+test("8 — «bản chụp HIỆN HÀNH»: đổi bên đặt sang khách lẻ (PUT /booker) làm máy chụp lại bản NONE ⇒ «Đã giao» 200, KHÔNG dòng hoa hồng từ bản cũ đã bị thay (ADR-0077 điều 9); đơn khác khôi phục vai ngoài ⇒ 200 + HOA_HONG (ĐẢO CÓ CHỦ ĐÍCH — Task 4: trước là 409)", async () => {
   const w = setup();
   const K = themKhachLe(w);
   const id = await donDoiTacDaXacNhan(w);
@@ -190,26 +207,35 @@ test("8 — vế «bản chụp HIỆN HÀNH» (NOT EXISTS … supersedes_id): �
   await thuDu(w, id);
   const g = await daGiao(w, id);
   assert.equal(g.status, 200, `bản chụp hiện hành là NONE; bản cũ (SET) đã bị thay phải KHÔNG được tính: ${g.text}`);
-  // đối chiếu: đơn khác, vai ngoài đổi rồi KHÔI PHỤC — bản chụp vẫn là SET hiện hành ⇒ vẫn 409
+  assert.deepEqual(dongHoaHong(w, id), [], "bản chụp SET đã bị thay không sinh dòng hoa hồng");
+  // đối chiếu: đơn khác, vai ngoài đổi rồi KHÔI PHỤC — bản chụp vẫn là SET hiện hành ⇒ «Đã giao» ghi hoa hồng cho người hưởng đã chụp
   const id2 = nhap(w, `pty-${PT}`); // bảng mức đã đặt ở trên (một lần)
   await xacNhan(w, id2);
   assert.equal(chup(w, id2)[0]!.commission_status, "SET");
   assert.equal((await doiVai(w, ADMIN, ["SALES_STAFF"])).status, 200);
   assert.equal((await doiVai(w, ADMIN, ["TRAVEL_AGENCY"])).status, 200);
   await thuDu(w, id2);
-  assert.equal((await daGiao(w, id2)).status, 409);
+  assert.equal((await daGiao(w, id2)).status, 200);
+  assert.deepEqual(dongHoaHong(w, id2), [["HOA_HONG", `pty-${PT}`, 200_000]]);
 });
 
-test("9 — vế dự phòng «bên đặt đang mang vai nhóm bên ngoài» (đơn xác nhận TRƯỚC 0090, không có bản chụp): vai còn mở ⇒ 409; GHI NHẬN giới hạn: vai đã đóng ⇒ 200", async () => {
+test("9 — đơn xác nhận TRƯỚC 0090, không có bản chụp: vai còn mở ⇒ 409 «Chụp bù»; vai đã đóng ⇒ VẪN 409 cùng câu (giới hạn cũ ĐÃ ĐÓNG — 0112 + lớp 1 Task 4)", async () => {
   const w = setup();
   const id = nhap(w, `pty-${PT}`);
   w.sqlite.prepare("UPDATE orders SET status = 'confirmed', updated_at = ? WHERE id = ?").run(AT, id); // giả đơn cũ: xác nhận thẳng, KHÔNG qua route nên không có bản chụp
   assert.equal(chup(w, id).length, 0);
   await thuDu(w, id);
+  const CHUP_BU = "Đơn xác nhận trước khi có bảng mức, chưa chụp mức — Kế toán cài mức rồi bấm Chụp bù.";
   const g = await daGiao(w, id);
   assert.equal(g.status, 409, g.text);
-  assert.match(g.text, /not_deliverable/);
-  // GIỚI HẠN ĐÃ BIẾT (không phải mong muốn): đơn trước 0090 chưa có bản chụp thì chỉ còn vai hiện tại để canh; vai đã đóng ⇒ lọt. Khi có việc «chụp bù» (SYSTEM-DESIGN §6) thì đổi dòng này.
+  assert.deepEqual([g.json.error.code, g.json.error.message], ["not_deliverable", CHUP_BU]);
+  // Giới hạn cũ (đơn trước 0090 chưa có bản chụp chỉ còn vai hiện tại để canh; vai đã đóng ⇒ lọt) ĐÃ ĐÓNG ở lớp CSDL: migration 0112 (sổ đại lý đợt 2, ADR-0079
+  // điều 5) — trigger `bil_posting_delivered_terms` chặn phiếu «Đã giao» của đơn còn dòng chưa chụp ⇒ cả lô huỷ, đơn không khoá, không phiếu. ĐẢO CÓ CHỦ ĐÍCH (Task 2):
+  // câu trả lời lời thường (409 `terms_missing`, lớp 1 của orders + dịch mã `delivered_terms:`) do Task 4 làm — Task 4 đã siết dòng `notEqual(…, 200)` thành 409 đúng câu.
   assert.equal((await doiVai(w, ADMIN, ["SALES_STAFF"])).status, 200);
-  assert.equal((await daGiao(w, id)).status, 200);
+  const g2 = await daGiao(w, id);
+  assert.equal(g2.status, 409, g2.text);
+  assert.deepEqual([g2.json.error.code, g2.json.error.message], ["not_deliverable", CHUP_BU]);
+  assert.equal(w.q("SELECT delivered_at FROM orders WHERE id = ?", id)[0].delivered_at, null);
+  assert.equal(w.q("SELECT count(*) AS n FROM bil_posting WHERE order_id = ? AND kind_code = 'DELIVERED'", id)[0].n, 0);
 });

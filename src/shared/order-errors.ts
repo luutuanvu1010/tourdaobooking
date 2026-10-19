@@ -48,10 +48,11 @@ export const banner = (tone: BannerTone, title: string, extra: Partial<Omit<Bann
 });
 
 /**
- * 409 mà MÀN HÌNH KHÔNG CŨ: lỗi nghiệp vụ người dùng sửa ngay tại chỗ (ADR-0114 D3: "thieu_nguoi_lon" — thêm người lớn rồi lưu lại). Nơi gọi thường đổi mọi 409 thành
+ * 409 mà MÀN HÌNH KHÔNG CŨ: lỗi nghiệp vụ người dùng sửa ngay tại chỗ (ADR-0114 D3: "thieu_nguoi_lon" — thêm người lớn rồi lưu lại; ADR-0134 Đ2:
+ * "pickup_choice_required" — chọn Đón / Không đón cho dịch vụ được nêu rồi lưu lại). Nơi gọi thường đổi mọi 409 thành
  * nút "Tải lại đơn" (đơn vừa đổi ở nơi khác); với mã trong tập này thì KHÔNG: tải lại sẽ xoá số khách vừa nhập, và câu máy chủ gửi đã nói đủ việc cần làm.
  */
-export const LOI_409_KHONG_CU: ReadonlySet<string> = new Set(["thieu_nguoi_lon"]);
+export const LOI_409_KHONG_CU: ReadonlySet<string> = new Set(["thieu_nguoi_lon", "pickup_choice_required"]);
 
 export const NETWORK_BANNER: Banner = banner("danger", "Không kết nối được máy chủ.", { lines: [{ text: "Dữ liệu bạn đã nhập vẫn còn — kiểm tra kết nối rồi bấm Lưu lại." }] });
 
@@ -96,6 +97,11 @@ export function classifyOrderError(e: ErrorInput, ctx: ErrorContext): Banner {
     return banner("warning", "Còn lượt đưa đón quá hạn chốt — cần Quản trị duyệt đặt gấp trước khi xác nhận.", {
       lines: legs.map((l) => ({ text: `${ctx.tenChang?.(l.legId) ?? "Lượt đưa đón"}: ${cau(l.phutConLai)}` })),
     });
+  }
+  // ADR-0134 Đ2: dịch vụ chưa chọn Đón / Không đón (hoặc chọn không khớp lượt đưa đón) — câu máy chủ nêu "Dịch vụ thứ n"; cuộn tới đúng thẻ.
+  if (e.status === 409 && e.code === "pickup_choice_required") {
+    const m = /^Dịch vụ thứ (\d+)\b/.exec(e.message);
+    return banner("warning", fallback, { lines: [{ text: "Mở dịch vụ đó, chọn Đón hoặc Không đón, lưu rồi xác nhận lại." }], focusService: m ? Number(m[1]) - 1 : null });
   }
   if (e.status === 503 && e.code === "moc_toi_thieu_chua_co") {
     return banner("danger", fallback, { lines: [{ text: "Chưa lưu, xác nhận hay sửa chuyến có giờ đón được cho tới khi Toàn quyền đặt chính sách điều phối." }] });

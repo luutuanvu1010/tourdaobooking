@@ -8,6 +8,8 @@ const TRANG_THANH_BEN_CU: readonly KhoaTrang[] = [
   "trangChu", "donHang", "taoDon", "danhBa", "dichVu", "taiKhoan", "phien", "diaDiem", "loaiGiayToNguoi", "dieuPhoi", "xeDangChay", "deNghi",
   "bangGiaXe", "bangKeXe", "xe", "lichXeBan", "sapHetHan", "loaiGiayToXe", "chinhSachDieuPhoi", "lyDoDieuPhoi", "khoaThang", "dieuChinhCongNo",
   "hoaHong", "nguoiBan", "nhatKy", "guiThongBao", "troLy", "giaoDien", "trangTaiXe", "cuoc", "ban", "toi", "gopY", "troGiup",
+  // Thêm sau ảnh chụp 14/10 (trang mới, có chủ đích): sổ đại lý đợt 2 Task 12 — «Chụp bù mức» (ô order.terms.override, không Đối tác).
+  "chupBu",
 ];
 const holder = (permissions: readonly PermissionCode[]) => ({ id: "x", permissions });
 
@@ -52,9 +54,9 @@ test("hướng dẫn viên: có Đơn hàng + chân menu, không có nhóm khác
   assert.deepEqual(g[0].muc.map((m) => m.nhan), ["Đơn hàng"]);
 });
 
-test("Kế toán: Hoa hồng đối tác và Người bán dịch vụ nằm trong Thiết lập (chủ duyệt 14/10)", () => {
+test("Kế toán: Hoa hồng đối tác, Người bán dịch vụ (chủ duyệt 14/10) và Chụp bù mức (sổ đại lý đợt 2) nằm trong Thiết lập", () => {
   const tl = thanhBen({ staff: holder(["ACCOUNTING"]) }, "/").find((x) => x.nhom === "THIẾT LẬP");
-  assert.deepEqual(tl?.muc.map((m) => m.nhan), ["Hoa hồng đối tác", "Người bán dịch vụ"]);
+  assert.deepEqual(tl?.muc.map((m) => m.nhan), ["Hoa hồng đối tác", "Người bán dịch vụ", "Chụp bù mức"]);
 });
 
 test("Quản trị chưa có Phiên đăng nhập, Nhật ký (chỉ Toàn quyền); có Chính sách điều phối để đặt mốc (ADR-0128 Q1)", () => {

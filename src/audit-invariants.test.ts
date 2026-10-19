@@ -14,6 +14,7 @@ import { vnToday } from "./shared/vn-date.ts";
 import { gieoMocXep } from "../tests/audit/gieo-vc.mjs";
 import { gieoLyDoHuy } from "../tests/audit/huy-don.mjs";
 import { gieoDongTienKhop } from "../tests/audit/dong-tien.mjs";
+import { gieoBanChup } from "../tests/audit/gieo-ban-chup.mjs";
 
 interface Check {
   code: string;
@@ -22,10 +23,12 @@ interface Check {
   level: "fail" | "warn-unless-strict" | "warn";
   mode?: "rows";
   note?: string;
+  dem?: (rows: unknown[]) => number;
 }
-const { CHECKS, COT_N3_NHAT_KY } = (await import(new URL("../scripts/audit-checks.mjs", import.meta.url).href)) as {
+const { CHECKS, COT_N3_NHAT_KY, demViPham } = (await import(new URL("../scripts/audit-checks.mjs", import.meta.url).href)) as {
   CHECKS: Check[];
   COT_N3_NHAT_KY: Record<string, { kiem: string; chuanHoa?: boolean }>;
+  demViPham: (c: Check, rows: unknown[]) => number;
 };
 
 const DIR = new URL("../migrations/", import.meta.url);
@@ -43,10 +46,9 @@ const one = (code: string): Check => {
   assert.equal(found.length, 1, `phải có đúng một kiểm ${code}`);
   return found[0]!;
 };
-/** Số vi phạm của một kiểm — đúng cách scripts/audit-invariants.mjs đọc kết quả. */
+/** Số vi phạm của một kiểm — CÙNG hàm `demViPham` mà scripts/audit-invariants.mjs dùng (sổ đại lý đợt 2: kiểm có hàm đếm `dem`). */
 function violations(db: DatabaseSync, check: Check): number {
-  const rows = db.prepare(check.sql.replace(/\s+/g, " ").trim()).all();
-  return check.mode === "rows" ? rows.length : Number(Object.values(rows[0] ?? { n: 0 })[0]);
+  return demViPham(check, db.prepare(check.sql.replace(/\s+/g, " ").trim()).all());
 }
 
 /**
@@ -108,7 +110,8 @@ function withHandler(db: DatabaseSync, party: string, order = "o-1"): void {
 // ---------------------------------------------------------------------------------------------------------------------
 test("danh sách kiểm: một nguồn duy nhất (script import scripts/audit-checks.mjs); R-DSP-2 tách 2a/2b; mức đúng như đã chốt", () => {
   const script = readFileSync(new URL("../scripts/audit-invariants.mjs", import.meta.url), "utf8");
-  assert.match(script, /from "\.\/audit-checks\.mjs"/, "script phải lấy danh sách kiểm từ audit-checks.mjs");
+  // Sổ đại lý đợt 2: script nạp ĐỘNG (`await import("./audit-checks.mjs")`, nạp hỏng ⇒ thoát 2) — vẫn một nguồn.
+  assert.match(script, /(from |import\()"\.\/audit-checks\.mjs"/, "script phải lấy danh sách kiểm từ audit-checks.mjs");
   assert.doesNotMatch(script, /FROM dsp_assignment|FROM staff/i, "không được chép câu SQL vào script (test sẽ không kiểm đúng cái script chạy)");
 
   assert.deepEqual(
@@ -2197,6 +2200,7 @@ function donBil(db: DatabaseSync, id: string): void {
   db.prepare("UPDATE orders SET total = 300000, subtotal = 300000, remaining_amount = 300000 WHERE id = ?").run(id);
   gieoDongTienKhop(db, id); // 0081 (F-03): xác nhận cần tạm tính = Σ dòng tiền
   db.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = ?").run(T1, id);
+  gieoBanChup(db, id); // 0112 (sổ đại lý đợt 2): máy chủ chụp lúc xác nhận — thiếu bản chụp thì trigger bil_posting_delivered_terms chặn phiếu Đã giao
 }
 function lanThuBil(db: DatabaseSync, o: { id: string; order: string; amount: number; at?: string; role?: string; party?: string | null; kind?: string; reverses?: string | null; forParty?: string }): void {
   const role = o.role ?? "STAFF";
@@ -2232,14 +2236,15 @@ function donDaGiao(db: DatabaseSync, id = "o-bil"): string {
 }
 const bil = (code: string) => one(code);
 
-test("R-BIL-*: đủ kiểm lượt 1, mức fail; R-BIL-2/5 'chưa áp dụng' và R-BIL-7 = R-PTY-1 ở danh sách ghi chú (không kiểm trùng, không in 'đạt')", async () => {
-  for (const c of ["R-BIL-1", "R-BIL-3a", "R-BIL-3b", "R-BIL-4a", "R-BIL-4b", "R-BIL-6", "R-BIL-S9", "R-BIL-M1", "R-BIL-M2"]) assert.equal(bil(c).level, "fail", c);
-  assert.equal(CHECKS.filter((c) => /^R-BIL-(2|5|7)\b/.test(c.code)).length, 0, "R-BIL-2/5/7 không phải câu kiểm");
+// ĐẢO BÀI CÓ CHỦ ĐÍCH (sổ đại lý đợt 2, Task 10; ADR-0079 «Bất biến», đặc tả P9): R-BIL-2, R-BIL-5 nay là câu kiểm thật (bài riêng ở src/kiem-dinh-ky-so-dai-ly.test.ts),
+// không còn ở danh sách «chưa áp dụng»; chỉ R-BIL-7 (= R-PTY-1) còn là ghi chú.
+test("R-BIL-*: đủ kiểm lượt 1, mức fail; R-BIL-2/5 là câu kiểm thật (đợt 2); chỉ R-BIL-7 = R-PTY-1 ở danh sách ghi chú (không kiểm trùng, không in 'đạt')", async () => {
+  for (const c of ["R-BIL-1", "R-BIL-3a", "R-BIL-3b", "R-BIL-4a", "R-BIL-4b", "R-BIL-6", "R-BIL-S9", "R-BIL-M1", "R-BIL-M2", "R-BIL-2", "R-BIL-5"]) assert.equal(bil(c).level, "fail", c);
+  assert.equal(CHECKS.filter((c) => /^R-BIL-7\b/.test(c.code)).length, 0, "R-BIL-7 không phải câu kiểm");
   const { GHI_CHU } = (await import(new URL("../scripts/audit-checks.mjs", import.meta.url).href)) as { GHI_CHU: { code: string; text: string }[] };
-  assert.deepEqual(GHI_CHU.map((g) => g.code), ["R-BIL-2", "R-BIL-5", "R-BIL-7"]);
-  assert.match(GHI_CHU[0]!.text, /chưa áp dụng/);
-  assert.match(GHI_CHU[1]!.text, /chưa áp dụng/);
-  assert.match(GHI_CHU[2]!.text, /R-PTY-1/);
+  assert.deepEqual(GHI_CHU.map((g) => g.code), ["R-BIL-7"]);
+  assert.doesNotMatch(GHI_CHU.map((g) => g.text).join(" "), /chưa áp dụng/);
+  assert.match(GHI_CHU[0]!.text, /R-PTY-1/);
   const script = readFileSync(new URL("../scripts/audit-invariants.mjs", import.meta.url), "utf8");
   assert.match(script, /GHI_CHU/, "script in danh sách ghi chú");
 });
@@ -2326,13 +2331,17 @@ test("R-BIL-6: đơn Đã giao còn lần thu người thu chưa rõ → vi ph�
   assert.equal(violations(db, bil("R-BIL-6")), 1);
 });
 
-test("R-BIL-S9 (NT-S9): lần thu 'thu cho' KHÔNG phải công ty chủ → vi phạm", () => {
+test("R-BIL-S9 (NT-S9): lần thu ghi TRƯỚC mốc 0112 'thu cho' KHÔNG phải công ty chủ → vi phạm; lần thu ghi TỪ mốc không thuộc R-BIL-S9 nữa (đảo có chủ đích — R-BIL-12)", () => {
   const db = build();
   donBil(db, "o-s");
   lanThuBil(db, { id: "rs9", order: "o-s", amount: 1000 });
   assert.equal(violations(db, bil("R-BIL-S9")), 0);
   lanThuBil(db, { id: "rs9b", order: "o-s", amount: 1000, forParty: "pty-s-an" });
   assert.equal(violations(db, bil("R-BIL-S9")), 1);
+  // Sổ đại lý đợt 2 (ADR-0078 điều 9): từ 0112 "thu cho" được là người bán của phần tiền — cùng lần thu ghi SAU mốc không còn là vi phạm R-BIL-S9; nó là vi phạm
+  // R-BIL-12 vì hồ sơ này không bán dòng nào của đơn (không đếm hai mã).
+  lanThuBil(db, { id: "rs9c", order: "o-s", amount: 1000, forParty: "pty-s-an", at: new Date().toISOString() });
+  assert.deepEqual([violations(db, bil("R-BIL-S9")), violations(db, bil("R-BIL-12"))], [1, 1]);
 });
 
 test("R-BIL-M1/M2 (ADR-0025 NT 8): Hoàn thành mà chưa Đã giao; Đã giao mà trạng thái không phải 'confirmed' → vi phạm (gỡ trigger 0044)", () => {

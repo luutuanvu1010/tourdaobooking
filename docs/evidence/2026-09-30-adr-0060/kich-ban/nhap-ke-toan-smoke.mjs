@@ -20,7 +20,7 @@ try {
   const donMoi = async (account) => {
     const r = await call(account, "POST", "/api/orders", {
       customerName: "Khách Kế Toán", customerPhone: "0903 111 222",
-      services: [{ kind: "catalog", catalogCode: "TTB06", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 800000 }, departDate: NGAY }],
+      services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TTB06", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 800000 }, departDate: NGAY }],
     });
     assert.equal(r.status, 201, JSON.stringify(r.json));
     assert.equal((await call(account, "POST", `/api/orders/${r.json.order.id}/status`, { status: "confirmed" })).status, 200);

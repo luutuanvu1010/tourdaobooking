@@ -102,12 +102,38 @@ export const chuaCoBanChup = (serviceId: string): BanChup => ({ serviceId, benef
  * không đ/khách, không giá vốn, không mã nguồn (C9 = A). Hai nhánh dựng đối tượng MỚI bằng chép từng trường (danh sách trắng) — không trải `...` từ kiểu rộng. Tiền từng dòng qua
  * MỘT công thức `tinhDongDoiTac`; tổng hoa hồng / giá đại lý = null khi còn dòng thiếu mức (không cộng nửa vời, không tự lấy 0).
  */
-export function dungThuongMai(v: { laDoiTac: boolean; xemNguoiBan: boolean } & PhanThuongMai): ThuongMaiResponse {
-  const theoDichVu = new Map(v.chup.map((c) => [c.serviceId, c] as const));
-  const dong = v.dichVu.map((dv) => {
+/** Tiền từng dòng theo bản chụp (dòng không có bản chụp ⇒ thiếu mức «chưa chụp»): MỘT chỗ gọi `tinhDongDoiTac` cho DTO lẫn tổng hoa hồng của trần giảm giá (Task 7). */
+function tinhCacDong<D extends { id: string; thanhTien: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }>(chup: readonly BanChup[], dichVu: readonly D[]) {
+  const theoDichVu = new Map(chup.map((c) => [c.serviceId, c] as const));
+  return dichVu.map((dv) => {
     const c = theoDichVu.get(dv.id) ?? chuaCoBanChup(dv.id);
     return { dv, c, t: tinhDongDoiTac(c, { thanhTien: dv.thanhTien, soKhachTinh: dv.soKhachTinh, pax: dv.pax }) };
   });
+}
+
+/** Đơn có người hưởng (sổ đại lý đợt 2, Task 7): có dòng bản chụp mang người hưởng — kể cả bên đặt mang vai bên ngoài không còn được hưởng (dòng thiếu mức, hoa hồng tính 0 cho trần). */
+export const coNguoiHuongDon = (chup: readonly BanChup[]): boolean => chup.some((c) => c.beneficiaryPartyId !== null);
+/** Người hưởng của đơn theo bản chụp (mọi dòng cùng bên đặt) — null = khách lẻ. Vòng sửa Task 7 (I-1): so với hồ sơ của tài khoản Đối tác. */
+export const nguoiHuongCuaDon = (chup: readonly BanChup[]): string | null => chup.find((c) => c.beneficiaryPartyId !== null)?.beneficiaryPartyId ?? null;
+/** Bên đặt mang vai bên ngoài không còn được hưởng (dòng thiếu mức `BOOKER_NOT_BENEFICIARY`) — vòng sửa Task 7 (M-1), chọn câu báo riêng. */
+export const benDatKhongHuongDon = (chup: readonly BanChup[]): boolean => chup.some((c) => c.hoaHong.status === "MISSING" && c.hoaHong.reason === "BOOKER_NOT_BENEFICIARY");
+/** Dữ liệu trần giảm giá của đơn từ bản chụp + tiền dòng (dòng thiếu mức tính 0 — ADR-0079 điều 8). */
+export const donChoTran = (chup: readonly BanChup[], dichVu: readonly { id: string; thanhTien: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[]) => ({
+  coNguoiHuong: coNguoiHuongDon(chup), tongHoaHong: tongHoaHongDon(chup, dichVu, "tinh0") ?? 0, beneficiaryPartyId: nguoiHuongCuaDon(chup), benDatKhongHuong: benDatKhongHuongDon(chup),
+});
+
+/**
+ * Tổng hoa hồng của đơn theo bản chụp (Task 7 — trần giảm giá ADR-0079 điều 8, cảnh báo sau Xác nhận). `thieu` = cách đếm dòng thiếu mức: "tinh0" cho TRẦN (nháp / Xác nhận —
+ * thận trọng, trần chỉ thấp hơn), "null" cho CẢNH BÁO (không đoán khi còn dòng thiếu). Cùng phép tính dòng với DTO phần thương mại (`tinhCacDong`).
+ */
+export function tongHoaHongDon(chup: readonly BanChup[], dichVu: readonly { id: string; thanhTien: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[], thieu: "tinh0" | "null"): number | null {
+  const dong = tinhCacDong(chup, dichVu);
+  if (thieu === "null" && dong.some((d) => d.t.hoaHong === null)) return null;
+  return dong.reduce((s, d) => s + (d.t.hoaHong ?? 0), 0);
+}
+
+export function dungThuongMai(v: { laDoiTac: boolean; xemNguoiBan: boolean } & PhanThuongMai): ThuongMaiResponse {
+  const dong = tinhCacDong(v.chup, v.dichVu);
   const conThieu = dong.some((d) => d.t.hoaHong === null);
   const tong = {
     thanhTien: dong.reduce((s, d) => s + d.dv.thanhTien, 0),

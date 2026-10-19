@@ -1,5 +1,23 @@
 // Nút trên từng khoản thu ở thẻ Thanh toán của trang đơn — luật THUẦN (giao diện chỉ ẩn/hiện; máy chủ vẫn kiểm lại khi bấm).
 // Rà soát ngôn ngữ 18/10 §5 (docs/superpowers/specs/2026-10-18-ra-soat-ngon-ngu-giao-dien.md).
+import { can, holdsPartner, type OperationCode, type PermissionHolder } from "./permissions.ts";
+
+/**
+ * Lệnh ghi sổ công nợ ghi NGAY, không người thứ hai duyệt — «Huỷ khoản thu» / «Huỷ dòng sổ», «Sửa khoản thu đã ghi», «Đã nộp về công ty» / «công ty trả», «Ghi hoàn
+ * cho khách»: cần ô của lệnh VÀ không giữ quyền Đối tác (kể cả tài khoản lai — kẻo tự làm mất khoản mình đang giữ / nợ; BL-SDL2-DAO-DONG-TM và người kiểm I-1, 19/10).
+ * Route của các lệnh đó và nút ở trang đơn cùng gọi hàm này.
+ */
+export function ghiSoNoiBo(staff: PermissionHolder, op: OperationCode): boolean {
+  return can(staff, op) && !holdsPartner(staff);
+}
+
+/**
+ * «Huỷ khoản thu» / «Huỷ dòng sổ» (`POST /api/ledger/adjustments`, `dao_lan_thu` / `dao_dong`): ô `ledger.write` VÀ không giữ quyền Đối tác (kể cả tài khoản lai —
+ * BL-SDL2-DAO-DONG-TM, 19/10). Lệnh đảo ghi ngay, không người thứ hai duyệt. Route và nút ở trang đơn cùng gọi hàm này.
+ */
+export function duocHuyKhoanSo(staff: PermissionHolder): boolean {
+  return ghiSoNoiBo(staff, "ledger.write");
+}
 
 /**
  * "Sửa khoản thu đã ghi" (ADR-0088). Không hiện trên khoản «Công ty thu – CK» còn chờ Kế toán xác nhận: máy chủ luôn từ chối

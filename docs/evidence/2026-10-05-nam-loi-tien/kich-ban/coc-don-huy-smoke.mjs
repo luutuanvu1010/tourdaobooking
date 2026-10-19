@@ -21,7 +21,7 @@ try {
   };
   const created = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     customerName: "Khách Huỷ Cọc", customerPhone: "0903 444 555", customerEmail: "", customerNote: "", discount: 0, paymentNote: "",
-    services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000, infant: 0 },
+    services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000, infant: 0 },
       departDate: vnDate(10), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" }],
   });
   assert.equal(created.status, 201, JSON.stringify(created.json));

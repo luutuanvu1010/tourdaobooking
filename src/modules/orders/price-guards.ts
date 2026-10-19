@@ -45,8 +45,10 @@ export function lyDoKhongNhapTay(staff: PermissionHolder, chinhSachBat: boolean)
 /** ADR-0061 điều 3: `duocNhapTay = chinhSachBat && can(staff, "order.service.manual") && !holdsPartner(staff)` — đọc CÙNG hàm `lyDoKhongNhapTay`. */
 export const duocNhapTay = (staff: PermissionHolder, chinhSachBat: boolean): boolean => lyDoKhongNhapTay(staff, chinhSachBat) === null;
 export const RETAIL_PRICE_MESSAGE = "Tài khoản đối tác dùng đúng giá bán lẻ theo danh mục; muốn giá khác, nhờ văn phòng.";
+// Sổ đại lý đợt 2, Task 12 (nợ M-2 của Task 7): câu cũ «…mà mức này chưa được thiết lập» không còn đúng — bảng mức đã có, Đối tác được hưởng giảm được tới hoa hồng
+// của chính đơn mình (ADR-0079 điều 9). Câu này nay chỉ ra cho Đối tác trên đơn mà mình KHÔNG phải người hưởng (kể cả khách lẻ) và cho tài khoản Đối tác + Thực tập.
 export const PARTNER_DISCOUNT_MESSAGE =
-  "Tài khoản đối tác chưa được giảm giá: mức giảm tối đa bằng mức chiết khấu Tour Đảo dành cho đối tác, mà mức này chưa được thiết lập. Muốn giảm cho khách, nhờ văn phòng.";
+  "Tài khoản đối tác không giảm giá được trên đơn này: chỉ đơn mà chính bạn được hưởng hoa hồng mới giảm được, tối đa bằng hoa hồng đó. Muốn giảm cho khách, nhờ văn phòng.";
 
 /**
  * R3: trần giảm giá cấp đơn (VNĐ) cho tài khoản có quyền Đối tác HÔM NAY. Chủ dự án 2026-09-26: mức giảm tối đa = mức chiết khấu Tour Đảo dành cho đối tác;
@@ -136,9 +138,83 @@ export function tranGiamGia(staff: PermissionHolder, tranDoiTac: number = PARTNE
  * (kể cả khi kèm Thực tập); chỉ Thực tập → `INTERN_PRICE_MESSAGE` cho cả lỗi giá lẫn giảm giá. Xác nhận truyền giá + giảm giá ĐÃ LƯU (bắt cả đơn nháp cũ).
  */
 export function giaDanhMucViolation(staff: PermissionHolder, items: readonly { catalogPrice: number | null; unitPrice: number }[], discount: number, tranDoiTac: number = PARTNER_DISCOUNT_CAP): string | null {
-  if (!chiGiaDanhMuc(staff)) return null;
-  const chiThucTap = !holdsPartner(staff);
-  if (!retailPricesOnly(items)) return chiThucTap ? INTERN_PRICE_MESSAGE : RETAIL_PRICE_MESSAGE;
-  if (!discountWithinCap(discount, tranGiamGia(staff, tranDoiTac))) return chiThucTap ? INTERN_PRICE_MESSAGE : PARTNER_DISCOUNT_MESSAGE;
+  const giaLoi = viPhamGiaDanhMuc(staff, items);
+  if (giaLoi) return giaLoi;
+  if (chiGiaDanhMuc(staff) && !discountWithinCap(discount, tranGiamGia(staff, tranDoiTac))) return holdsPartner(staff) ? PARTNER_DISCOUNT_MESSAGE : INTERN_PRICE_MESSAGE;
   return null;
+}
+
+/**
+ * R2 MỘT MÌNH (vế giá danh mục — ADR-0027 điều 2a, ADR-0100): theo NGƯỜI THAO TÁC (`chiGiaDanhMuc`), không phụ thuộc người hưởng của đơn (ADR-0079 điều 9 gạch 1). Câu theo quyền như
+ * `giaDanhMucViolation`. Ba cổng (lập đơn, sửa nháp, xác nhận) gọi hàm này; vế trần giảm giá đi riêng qua `viPhamTranGiamGia` (cần người hưởng của đơn).
+ */
+export function viPhamGiaDanhMuc(staff: PermissionHolder, items: readonly { catalogPrice: number | null; unitPrice: number }[]): string | null {
+  if (!chiGiaDanhMuc(staff) || retailPricesOnly(items)) return null;
+  return holdsPartner(staff) ? RETAIL_PRICE_MESSAGE : INTERN_PRICE_MESSAGE;
+}
+
+// ---- Sổ đại lý đợt 2, Task 7 (ADR-0079 điều 8, 9; C8 = A, C11 = A; đặc tả P7): trần giảm giá theo NGƯỜI HƯỞNG của đơn ---------------------------------------------
+// Trần xét theo ĐƠN (có / không người hưởng), không còn theo người thao tác (gỡ lệch 5.8 của ADR-0029); vế giá danh mục giữ theo người thao tác (`viPhamGiaDanhMuc`).
+// `tranGiamGia` + `giaDanhMucViolation` ở trên GIỮ làm định nghĩa luật đơn KHÔNG người hưởng (bài đối chiếu mọi tập con quyền ở price-guards.test.ts ép hai bên trùng nhau).
+
+/** Câu từ chối khi giảm giá vượt trần của đơn có người hưởng (ADR-0079 ví dụ C-5 — chữ cố định). MỘT nguồn với form lập / sửa đơn (Task 12): src/shared/ben-kia-hien-thi.ts. */
+export { CAU_TRAN_HOA_HONG } from "../../shared/ben-kia-hien-thi.ts";
+import { CAU_TRAN_HOA_HONG } from "../../shared/ben-kia-hien-thi.ts";
+
+/**
+ * Trần giảm giá cấp đơn (VNĐ); null = không trần. Thứ tự cố định: Thực tập → 0 (ADR-0100, cả trên đơn có người hưởng); đơn CÓ người hưởng → tổng hoa hồng của đơn, cho MỌI người
+ * sửa đơn (C8 = A: giảm giá trên đơn có người hưởng là giảm giá của bên hưởng, bên đó chịu); đơn KHÔNG người hưởng → luật hôm nay: Đối tác (kể cả lai) `PARTNER_DISCOUNT_CAP`, còn lại null.
+ * `tongHoaHong`: nháp = theo bảng mức hôm nay, dòng thiếu mức tính 0; lúc Xác nhận = theo bản chụp vừa tính trong cùng lô (ADR-0079 điều 8).
+ */
+export function tranGiamGiaDon(v: { coNguoiHuong: boolean; tongHoaHong: number; laDoiTac: boolean; laThucTap: boolean; nguoiHuongLaMinh: boolean }): number | null {
+  if (v.laThucTap) return INTERN_DISCOUNT_CAP;
+  // Vòng sửa Task 7 (I-1): tài khoản giữ quyền Đối tác (kể cả lai) chỉ dùng trần hoa hồng trên đơn mà CHÍNH hồ sơ của mình là người hưởng (ADR-0027 2b);
+  // đơn văn phòng gắn bên đặt là đại lý KHÁC ⇒ luật cũ (DK-T3-01), không bao giờ mượn hoa hồng của bên khác.
+  if (v.laDoiTac && !(v.coNguoiHuong && v.nguoiHuongLaMinh)) return PARTNER_DISCOUNT_CAP;
+  if (v.coNguoiHuong) return v.tongHoaHong;
+  return null;
+}
+
+/** Lỗi trần giảm giá: 403 cho luật theo quyền (Đối tác đơn khách lẻ, Thực tập — câu cũ), 400 `discount_exceeds_commission` cho trần hoa hồng (ADR-0079 tiêu chí 4). */
+export type ViPhamTran = { status: 403; code: "forbidden"; cau: string } | { status: 400; code: "discount_exceeds_commission"; cau: string };
+
+/** Câu riêng khi bên đặt mang vai bên ngoài mà KHÔNG còn được hưởng (mọi dòng thiếu mức `BOOKER_NOT_BENEFICIARY` ⇒ trần 0) — vòng sửa Task 7, M-1. */
+export const CAU_BEN_DAT_KHONG_HUONG = "Chưa giảm giá được: bên đặt không còn được hưởng hoa hồng — nhờ văn phòng sửa bên đặt hoặc Kế toán ghi mức.";
+
+/** Người hưởng + tổng hoa hồng của ĐƠN do route tính từ bản chụp (dự kiến hoặc vừa chụp). `benDatKhongHuong` = bên đặt mang vai bên ngoài không còn được hưởng. */
+export interface DonChoTran { coNguoiHuong: boolean; tongHoaHong: number; beneficiaryPartyId: string | null; benDatKhongHuong: boolean }
+
+/**
+ * Vế trần (R3 + C8 = A) cho lập đơn, sửa nháp, xác nhận; null = đạt. Tài khoản giữ quyền Đối tác (kể cả lai) mà người hưởng của đơn KHÁC hồ sơ của mình ⇒ 403 câu cũ
+ * `PARTNER_DISCOUNT_MESSAGE` — KHÔNG BAO GIỜ nêu số hoa hồng của bên khác (vòng sửa Task 7, I-1).
+ */
+export function viPhamTranGiamGia(staff: PermissionHolder & { partyId?: string | null }, discount: number, don: DonChoTran): ViPhamTran | null {
+  const laDoiTac = holdsPartner(staff);
+  const laThucTap = holdsIntern(staff);
+  const nguoiHuongLaMinh = don.beneficiaryPartyId !== null && (staff.partyId ?? null) === don.beneficiaryPartyId;
+  const tran = tranGiamGiaDon({ coNguoiHuong: don.coNguoiHuong, tongHoaHong: don.tongHoaHong, laDoiTac, laThucTap, nguoiHuongLaMinh });
+  if (tran === null || discountWithinCap(discount, tran)) return null;
+  if (laThucTap) return { status: 403, code: "forbidden", cau: laDoiTac ? PARTNER_DISCOUNT_MESSAGE : INTERN_PRICE_MESSAGE };
+  if (laDoiTac && !nguoiHuongLaMinh) return { status: 403, code: "forbidden", cau: PARTNER_DISCOUNT_MESSAGE };
+  if (don.coNguoiHuong) return { status: 400, code: "discount_exceeds_commission", cau: don.benDatKhongHuong ? CAU_BEN_DAT_KHONG_HUONG : CAU_TRAN_HOA_HONG(tran) };
+  return { status: 403, code: "forbidden", cau: PARTNER_DISCOUNT_MESSAGE };
+}
+
+/**
+ * Sau Xác nhận, bớt khách làm hoa hồng tụt dưới giảm giá: KHÔNG chặn (ADR-0079 điều 8 gạch 3), chỉ cảnh báo trên màn đơn. `giamGiaHieuLuc` = số do hàm phải thu duy nhất
+ * `effectiveMoney` trả (`OrderDto.giamGiaHieuLuc`) — đúng số «Đã giao» ghi `GIAM_GIA_BEN_DAT` (gross − phải thu); hàm này không tự tính phải thu. `tongHoaHong` null (còn dòng thiếu
+ * mức) ⇒ không đoán số vượt (đơn đó bị giữ ở «Đã giao» cho Kế toán xử lý).
+ */
+export function canhBaoGiamGiaDon(v: { coNguoiHuong: boolean; tongHoaHong: number | null; giamGiaHieuLuc: number }): { vuot: number } | null {
+  if (!v.coNguoiHuong || v.tongHoaHong === null || discountWithinCap(v.giamGiaHieuLuc, v.tongHoaHong)) return null;
+  return { vuot: v.giamGiaHieuLuc - v.tongHoaHong };
+}
+
+/**
+ * Đổi bên đặt sau Xác nhận (đặc tả P7; giảm giá đã khoá từ migration 0081): bên đặt MỚI làm đơn có người hưởng mà giảm giá hiệu lực > tổng hoa hồng theo bản chụp mới ⇒ câu từ chối nêu
+ * hai số (409 `discount_exceeds_commission`); null = đổi được. Không có chặn này, kiểm định kỳ R-ORD-DC1 sẽ báo lỗi vĩnh viễn mà không có đường sửa.
+ */
+export function cauDoiBenDatVuotHoaHong(v: { coNguoiHuong: boolean; tongHoaHong: number; giamGiaHieuLuc: number }): string | null {
+  if (!v.coNguoiHuong || discountWithinCap(v.giamGiaHieuLuc, v.tongHoaHong)) return null;
+  return `Đơn đang giảm giá ${v.giamGiaHieuLuc.toLocaleString("vi-VN")} ₫, lớn hơn hoa hồng của bên đặt mới (${v.tongHoaHong.toLocaleString("vi-VN")} ₫) — giảm giá trên đơn có người hưởng tối đa bằng hoa hồng của đơn, nên chưa đổi được bên đặt.`;
 }

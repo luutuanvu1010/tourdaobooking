@@ -18,7 +18,7 @@ function setup() {
 test("F-03: xác nhận đơn nháp lệch tiền (tạm tính ≠ Σ dòng) → 409 order_subtotal_mismatch, câu tiếng Việt; đơn vẫn nháp; Lưu nháp lại rồi xác nhận → 200", async () => {
   const w = setup();
   const ngay = inDays(20);
-  const svc = { kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: ngay, legs: [] };
+  const svc = { kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: ngay, legs: [] };
   const r = await w.call("POST", "/api/orders", { as: SALES, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc] } });
   assert.equal(r.status, 201, r.text);
   const o = r.json.order;

@@ -11,7 +11,8 @@ import { feedbackBadge, initShell } from "./shell";
 import { demSapHetHan, layDanhSachSapHet } from "./vc-dem";
 import { canSeeReviewAlerts, reviewAlerts, type ReviewAlerts } from "../src/shared/dashboard-review";
 import { tieuDeDemDoiChieu } from "../src/shared/doi-chieu-hien-thi";
-import { PERMISSION_LABEL, can } from "../src/shared/permissions";
+import { coKhoiChoDoiChieu, nhanKhoanDoiChieu, nutXacNhanDoiChieu } from "../src/shared/ben-kia-hien-thi";
+import { PERMISSION_LABEL, can, holdsPartner } from "../src/shared/permissions";
 import { homeRedirect } from "../src/shared/start-page";
 import { conLai, dongThoiGian, loiChao, phutVN, type DongThoiGian, type LoaiChuyen } from "../src/shared/trang-chu-may-tinh";
 import { loiTatMayTinh, luoiDienThoai, mauO, nhomMayTinh, type KhoaO, type LuoiTrangChu, type OChucNang } from "../src/shared/trang-chu-o";
@@ -296,6 +297,57 @@ function reviewRow(iconClass: string, iconName: IconName, href: string, title: s
   );
 }
 
+// ---- «Chờ đối chiếu» (sổ đại lý đợt 2, Task 12; ADR-0120 Điều 1.3, ADR-0132 Hệ quả: «ô chờ đối chiếu gộp thêm khoản loại mới») ------------------------------------
+// Nguồn: `GET /api/ledger/coc` → `doiChieu[]` (cùng định nghĩa với màn đơn và bộ đếm quá 3 ngày). Khoản bên kia có nút «Bên kia đã nhận» ngay đây; khoản Công ty thu –
+// chuyển khoản cần mã giao dịch ngân hàng ⇒ chỉ có liên kết mở đơn. Cổng: ô ledger.write (cùng ô route xác nhận) và không giữ quyền Đối tác (R-91 — không tên bên kia).
+let staffDangXem: Staff | null = null;
+const coKhoiDoiChieu = (s: Staff | null): boolean => coKhoiChoDoiChieu(s); // luật một nơi: src/shared/ben-kia-hien-thi.ts
+const DOI_CHIEU_TOI_DA = 8;
+
+async function taiDoiChieu(staff: Staff): Promise<void> {
+  const khoi = byId("dash-doi-chieu");
+  if (!coKhoiDoiChieu(staff)) {
+    khoi.hidden = true;
+    return;
+  }
+  let ds: Api.CocListResponse["doiChieu"];
+  try {
+    ds = (await api<Api.CocListResponse>("/api/ledger/coc")).doiChieu;
+  } catch {
+    return; // lỗi mạng: giữ nguyên khối đang hiện (lần làm mới sau thử lại); dòng «Cần xem lại» vẫn đếm khoản quá hạn
+  }
+  if (ds.length === 0) {
+    khoi.hidden = true;
+    return;
+  }
+  const dong = ds.slice(0, DOI_CHIEU_TOI_DA).map((k) => {
+    const nutNhan = nutXacNhanDoiChieu(k.loai);
+    const nut = nutNhan ? h("button", { type: "button", class: "btn btn-link", "data-action": "ben-kia-da-nhan", "data-receipt-id": k.receiptId }, nutNhan) : null;
+    nut?.addEventListener("click", async () => {
+      if (!confirm(`${nhanKhoanDoiChieu(k)}: đã đối chiếu, bên nhận tiền xác nhận đã nhận ${vnd(k.soTien)} (đơn ${k.maDon})?`)) return;
+      nut.disabled = true;
+      try {
+        await api(`/api/ledger/counterparty-receipts/${encodeURIComponent(k.receiptId)}/confirm`, { method: "POST", body: {} });
+      } catch (err) {
+        alert(err instanceof ApiError ? err.message : "Không ghi được — kiểm tra mạng rồi thử lại.");
+      }
+      await taiDoiChieu(staff);
+    });
+    return h(
+      "li",
+      { "data-receipt-id": k.receiptId, "data-loai": k.loai },
+      h("a", { href: `/order?id=${encodeURIComponent(k.orderId)}` }, k.maDon),
+      ` · ${nhanKhoanDoiChieu(k)} · ${vnd(k.soTien)} · khai ${ngayNganHomNay(k.ngayKhai)}`,
+      k.qua3Ngay ? h("span", { class: "dd-canh-xn is-do" }, " · quá 3 ngày") : null,
+      nut ? " " : null,
+      nut,
+    );
+  });
+  const them = ds.length > DOI_CHIEU_TOI_DA ? h("p", { class: "muted" }, `Còn ${ds.length - DOI_CHIEU_TOI_DA} khoản nữa — mở từng đơn ở Đơn hàng.`) : null;
+  replaceChildren(byId("dash-doi-chieu-list"), h("ul", { class: "pay-list" }, ...dong), them);
+  khoi.hidden = false;
+}
+
 /** Số dòng "Cần xem lại" đang hiện — dòng tóm tắt dưới lời chào máy tính ("N việc cần xem lại", bản vẽ 1.73). */
 let soViecXemLai = 0;
 
@@ -317,7 +369,8 @@ function renderReview(alerts: ReviewAlerts | null): void {
     rows.push(reviewRow("dash-review-icon-sand", "truck", "/giay-to-sap-het-han", `${alerts.expiringDocs.count} giấy tờ sắp hết hạn`, "Vận chuyển · Giấy tờ sắp hết hạn"));
   }
   if (alerts.doiChieu) {
-    rows.push(reviewRow("dash-review-icon-sand", "money", "/orders", tieuDeDemDoiChieu(alerts.doiChieu.count), "Mở đơn, đối chiếu rồi bấm “Xác nhận đã nhận” hoặc huỷ khoản thu"));
+    // Task 12: dòng trỏ xuống khối «Chờ đối chiếu» của chính Trang chủ khi người xem có khối đó (ledger.write, không Đối tác); còn lại mở danh sách đơn như cũ.
+    rows.push(reviewRow("dash-review-icon-sand", "money", coKhoiDoiChieu(staffDangXem) ? "#dash-doi-chieu" : "/orders", tieuDeDemDoiChieu(alerts.doiChieu.count), "Đối chiếu rồi bấm “Xác nhận đã nhận”, “Bên kia đã nhận” hoặc huỷ khoản thu"));
   }
   if (alerts.feedbackQueue) {
     const f = alerts.feedbackQueue;
@@ -750,6 +803,8 @@ async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promi
     // Nguồn số của "Việc của bạn": CHỈ gọi route mà nguonCanTai(staff) đòi (không gọi route chỉ-quản-trị cho người không phải quản trị); lỗi mạng một nguồn → null cho khoá đó.
     const canTai = nguonCanTai(staff);
     const lay = !ngoaiDaTai && khoiHien();
+    staffDangXem = staff;
+    void taiDoiChieu(staff);
     const [data, review, unpaid, ngoai] = await Promise.all([
       layDashboard(),
       lamMoi ? undefined : loadReview(staff, taiMoi || soXemLaiGanNhat === null),

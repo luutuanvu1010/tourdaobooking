@@ -250,7 +250,7 @@ try {
   // ================= Bảng «Đổi khách» (đơn đã xác nhận): cùng khung cảnh báo, câu cảnh báo bản cũ giữ nguyên =================
   const NO_TRIP = { departDate: vnDate(10), departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
   const tao = await call(ACCOUNTS.salesA, "POST", "/api/orders", { customerName: "Khách Bảng Đổi", customerPhone: "0903 111 222", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
-    services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, ...NO_TRIP }] });
+    services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, ...NO_TRIP }] });
   const donId = phai(tao, 201, "Bán hàng lập đơn để đổi khách").order.id;
   let b = await env.as(ACCOUNTS.salesA, `/order?id=${donId}`, MOB);
   await buoc("6", "bảng «Đổi khách»: SĐT đối tác → khung cảnh báo hiện trong bảng, câu cảnh báo cũ còn nguyên; «Đúng» chọn đối tác ở ô «Đặt qua đối tác», xoá hai ô; «Không» ẩn", async () => {

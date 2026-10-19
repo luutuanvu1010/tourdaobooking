@@ -16,7 +16,7 @@ async function donX(w, v) {
     body: {
       customerName: v.lienHe ?? "Liên Hệ Dò Tìm", customerPhone: v.sdt ?? "0911000100", customerNote: "", paymentNote: "",
       services: [{
-        kind: "catalog", catalogCode: "ZA1", pax: { adult: v.soNguoi, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY,
+        kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: v.soNguoi, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY,
         legs: [{ direction: "OUT", pickupDate: NGAY, pickupTime: v.gio, pickupLocationId: v.diemDon ?? null, pickupPlace: v.diemDon ? "" : v.noiDon, dropoffLocationId: LOC, dropoffPlace: "" }],
       }],
       passengers: Array.from({ length: v.soNguoi }, (_x, i) => ({ fullName: `${v.ten ?? "Khách"} ${i + 1}`, birthYear: 1980 + i, paxCode: "adult" })),

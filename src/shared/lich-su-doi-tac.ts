@@ -50,10 +50,10 @@ export const LICH_SU_DOI_TAC_CHO_PHEP = {
  */
 export const LICH_SU_DOI_TAC_AN = [
   // Nhóm đơn
-  "order_cancel_reason_classified", "order_terms_captured", "order_terms_recaptured", "order_terms_manual", "order_accounting_entry_marked", "order_accounting_entry_unmarked",
+  "order_cancel_reason_classified", "order_terms_captured", "order_terms_recaptured", "order_terms_manual", "ord_terms_backfilled", "order_accounting_entry_marked", "order_accounting_entry_unmarked",
   "order_handler_changed", "order_claimed", "booker_changed", "exported_png", "exported_pdf",
   // Sổ tiền, cọc đơn huỷ, đối soát
-  "ledger_company_received", "ledger_settlement", "ledger_refund", "ledger_adjustment", "ledger_adjustment_requested", "ledger_adjustment_approved", "ledger_adjustment_rejected", "ledger_adjustment_withdrawn", "ledger_adjustment_affected",
+  "ledger_company_received", "ledger_counterparty_confirmed", "ledger_settlement", "ledger_refund", "ledger_adjustment", "ledger_adjustment_requested", "ledger_adjustment_approved", "ledger_adjustment_rejected", "ledger_adjustment_withdrawn", "ledger_adjustment_affected",
   "ledger_receipt_replaced", "ledger_reversal", "ledger_bank_txn_linked",
   "deposit_refund_approved", "deposit_transfer_approved", "deposit_approval_voided", "deposit_refund_paid", "deposit_transferred_out", "deposit_transferred_in",
   "deposit_outside_recorded", "deposit_outside_confirmed", "deposit_outside_rejected", "prc_commission_rule_added", "prc_commission_rule_closed", "prc_supply_term_added",
@@ -83,7 +83,7 @@ export const LICH_SU_DOI_TAC_AN = [
   "trip_driver_refused", "trip_appt_called", "trip_appt_call_undone", "trip_cost_adjusted", "trip_cost_reversed", "trip_cost_snapshot", "trip_cost_agreed",
   "rental_rate_added", "rental_rate_closed", "route_saved", "vehicle_size_saved",
   // Địa điểm, danh mục, hệ thống, góp ý, thông báo
-  "location_created", "location_updated", "maintenance_changed", "manual_service_policy_changed", "tro_ly_settings_changed", "giao_dien_changed", "client_outdated_body",
+  "location_created", "location_updated", "maintenance_changed", "manual_service_policy_changed", "pickup_slot_policy_changed", "tro_ly_settings_changed", "giao_dien_changed", "client_outdated_body",
   "catalog_synced", "catalog_overridden", "catalog_override_cleared", "catalog_hidden", "catalog_unhidden", "catalog_group_created", "catalog_group_updated",
   "catalog_group_assigned", "catalog_groups_seeded", "feedback_created", "feedback_replied", "feedback_status_changed", "feedback_assigned",
   "feedback_claimed", "feedback_team_changed", "feedback_priority_changed", "feedback_team_created", "feedback_team_updated", "feedback_team_member_changed", "notice_sent", "notice_revoked",

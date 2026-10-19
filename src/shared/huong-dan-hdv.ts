@@ -97,6 +97,8 @@ Bấm [[Xem đơn]] để mở trang đầy đủ. Ở đó không sửa hay hu�
 2. Gõ số tiền, chọn hình thức, chọn người thu tiền: [[Tôi thu]] (tiền mặt bạn cầm) hoặc [[Công ty (vào tài khoản công ty)]].
 3. Bấm [[Ghi]].
 
+**Khách trả cho đại lý hoặc trả tại quầy nhà cung cấp** (bạn không cầm tiền): ở ô người thu tiền chọn "Khách trả cho đại lý …" hoặc "Khách trả tại quầy …"; đơn có dịch vụ của nhà cung cấp thì chọn thêm **Phần tiền này cho**. Khoản này chờ Kế toán xác nhận với bên kia; trong lúc chờ, đơn chưa Đã giao được.
+
 **Xong tour, khách đã trả đủ:** bấm [[Đã giao – đã thu đủ]] rồi đồng ý. Nút chỉ bấm được khi đơn đã xác nhận, từ ngày đi trở đi, và số đã thu **bằng đúng** số phải thu. Nút bị mờ thì dòng **Đang giữ đơn** ghi lý do và ai xử lý.
 
 Sau Đã giao, đơn **bị khoá**: không sửa số khách, không huỷ, không ghi thêm khoản thu. Thẻ ghi "Đã giao – đã thu đủ: đơn đã khoá." Bạn đang cầm tiền mặt của công ty thì nhớ nộp về; Kế toán ghi đã nộp rồi bấm **Hoàn thành**.`,

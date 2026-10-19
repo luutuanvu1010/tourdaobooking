@@ -28,7 +28,7 @@ function nhap(w: W, booker: string | null, dv: [string | null, number][]): strin
     VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', ?, ?, ?, ?, ?, ?)`).run(id, `TD-${seq}`, SALES, tong, tong, tong, booker, AT, AT);
   dv.forEach(([code, t], i) => {
     const s = `${id}-s${i}`;
-    w.sqlite.prepare(`INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, ?, ?, ?, ?, ?, 1, ?)`).run(s, id, i, code, `DV ${i}`, code ? "perPax" : "manual", vnHomNay());
+    w.sqlite.prepare(`INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, ?, ?, ?, ?, 1, ?)`).run(s, id, i, code, `DV ${i}`, code ? "perPax" : "manual", vnHomNay());
     w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, ?, ?, 'Người lớn', 1, ?, ?, ?)`)
       .run(`${s}-i`, id, s, code, code ? "adult" : null, t, code ? t : null, t);
   });
@@ -199,7 +199,7 @@ test("người khác lưu nháp giữa lúc đọc và lúc ghi (dịch vụ xo�
     // Việc lưu nháp làm: xoá dòng tiền + dịch vụ cũ, chèn lại với mã dịch vụ mới (`serviceInserts`).
     w.sqlite.prepare("DELETE FROM order_item WHERE order_id = ?").run(id);
     w.sqlite.prepare("DELETE FROM order_service WHERE order_id = ?").run(id);
-    w.sqlite.prepare("INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, ?, 0, 'HONTAM', 'DV 0', 'perPax', 1, ?)").run(`${id}-moi`, id, vnHomNay());
+    w.sqlite.prepare("INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, 0, 'HONTAM', 'DV 0', 'perPax', 1, ?)").run(`${id}-moi`, id, vnHomNay());
     w.sqlite.prepare("INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, 'HONTAM', 'adult', 'Người lớn', 1, 1000000, 1000000, 1000000)").run(`${id}-moi-i`, id, `${id}-moi`);
   });
   const r = await xacNhan(w, id);

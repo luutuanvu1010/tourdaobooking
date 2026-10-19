@@ -26,8 +26,8 @@ test("ADR-0061 điều 7: đơn danh mục + nhập tay — biên nhận, còn l
     body: {
       customerName: "Khách Thử", customerPhone: "0912345678", discount: 100000,
       services: [
-        { kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: homNay() },
-        { kind: "manual", name: "Xe đưa đón riêng", pax: { adult: 2 }, departDate: homNay(), items: [{ description: "Xe 7 chỗ", detail: "2 chiều", quantity: 2, unitPrice: 400000 }] },
+        { kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: homNay() },
+        { kind: "manual", pickupChoice: "KHONG_DON", name: "Xe đưa đón riêng", pax: { adult: 2 }, departDate: homNay(), items: [{ description: "Xe 7 chỗ", detail: "2 chiều", quantity: 2, unitPrice: 400000 }] },
       ],
     },
   });
@@ -36,6 +36,11 @@ test("ADR-0061 điều 7: đơn danh mục + nhập tay — biên nhận, còn l
   assert.deepEqual([lap.json.order.subtotal, lap.json.order.total], [1_800_000, 1_700_000]);
   assert.equal((await w.call("POST", `/api/orders/${id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
   assert.equal((await w.call("PUT", `/api/orders/${id}/handler`, { as: SALES, body: { staffId: HDV } })).status, 200);
+  // A-14 (ADR-0078 điều 5; sổ đại lý đợt 2 — migration 0112, lớp 2 `bil_posting_delivered_terms`): dòng nhập tay không có người bán ⇒ đơn bị giữ ở «Đã giao» tới
+  // khi người giữ ô order.terms.override ghi tay «dòng này Tour Đảo bán» — đi đúng route ghi mức tay của orders.
+  const ct = String(w.q("SELECT party_id FROM v_pty_owner_company LIMIT 1")[0].party_id);
+  const ghiTay = await w.call("POST", `/api/orders/${id}/thuong-mai/${lap.json.order.services[1].id}`, { as: SUPER, body: { lyDo: "Dòng nhập tay do Tour Đảo bán", nguoiBan: { partyId: ct } } });
+  assert.equal(ghiTay.status, 200, ghiTay.text);
 
   // Biên nhận: dòng nhập tay có mặt, tổng / đã trả / còn lại từ billing.
   const bn = async () => {

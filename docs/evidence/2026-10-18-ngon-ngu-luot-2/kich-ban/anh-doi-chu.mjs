@@ -23,7 +23,7 @@ try {
   const NGAY = vnDate(5);
   const created = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     customerName: "Khách Thử Chữ", customerPhone: "0903 222 666", customerEmail: "", customerNote: "", discount: 0, paymentNote: "",
-    services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, unitPrices: { adult: 1350000 },
+    services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, unitPrices: { adult: 1350000 },
       departDate: NGAY, departTime: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "",
       legs: [{ direction: "OUT", pickupDate: NGAY, pickupTime: "07:30", pickupLocationId: null, pickupPlace: "Khách sạn Sunrise", dropoffLocationId: null, dropoffPlace: "Cảng Cầu Đá" }] }],
   });

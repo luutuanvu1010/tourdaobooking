@@ -216,6 +216,176 @@
           "dap_an": {"trang_thai": "MISSING", "hoa_hong": null, "gia_dai_ly": null, "gia_von": null}
         }
       ]
+    },
+    {
+      "ma": "C-1",
+      "mo_ta": "Đại lý giữ cọc và tự giảm giá cho khách (ADR-0079 ví dụ C-1, ví dụ của chủ dự án Q17; phiếu Kế toán tình huống 1). Đại lý A (công ty lữ hành, hoa hồng 10%) đặt tour đảo 5.000.000, giảm cho khách 250.000 nên khách trả 4.750.000. Đại lý thu cọc 3.000.000 (người thu BOOKER, dòng giữ hộ nằm trên đại lý); HDV Nam thu 1.750.000 tại cảng (dòng giữ hộ nằm trên HDV). Lúc «Đã giao»: hoa hồng Tour Đảo → đại lý 10% × 5.000.000 = 500.000 (tính trên giá TRƯỚC giảm); giảm giá bên đặt chịu đại lý → Tour Đảo 250.000. Số dư: đại lý nợ 3.000.000 + 250.000 − 500.000 = 2.750.000; HDV nợ 1.750.000; Tour Đảo thu về 4.500.000.",
+      "nguon": "ADR-0079, ví dụ C-1 (bảng dòng, số dư, «Tour Đảo thu về 4.500.000»); phieu-ke-toan.md tình huống 1. Mọi số lấy nguyên từ ADR; giá đại lý 4.500.000 là «Tour Đảo thu về» của ADR. Soạn bởi AI 2026-10-19 (sổ đại lý đợt 2, Task 0); chờ chủ / Kế toán xác nhận, AI không tự đánh dấu (Hiến pháp N8).",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dong": [
+        {
+          "nhan": "Tour đảo 5.000.000 — đại lý A, mức 10%",
+          "dau_vao": { "thanh_tien": 5000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1000, "moi_khach": null, "ty_le_mua_bp": null },
+          "dap_an": { "hoa_hong": 500000, "gia_dai_ly": 4500000, "gia_von": null }
+        }
+      ],
+      "so_cai": {
+        "ghi_chu": "Số dòng sổ và số dư của đơn, mọi số là số nguyên đồng không âm; chiều ghi bằng chữ. Tên loại dòng theo ADR-0079 / kế hoạch Task 2–3: HELD (tiền đang giữ hộ), HOA_HONG, GIAM_GIA_BEN_DAT, GIA_VON.",
+        "khach_tra": 4750000,
+        "giam_gia_ben_dat": 250000,
+        "giu_ho": [
+          { "loai": "HELD", "ben": "dai_ly_A", "nguoi_thu": "BOOKER", "so_tien": 3000000 },
+          { "loai": "HELD", "ben": "hdv_nam", "nguoi_thu": "HDV", "so_tien": 1750000 }
+        ],
+        "dong_da_giao": [
+          { "loai": "HOA_HONG", "tu": "cong_ty", "den": "dai_ly_A", "so_tien": 500000 },
+          { "loai": "GIAM_GIA_BEN_DAT", "tu": "dai_ly_A", "den": "cong_ty", "so_tien": 250000 }
+        ],
+        "so_du": [
+          { "ben": "dai_ly_A", "chieu": "no_cong_ty", "so_tien": 2750000 },
+          { "ben": "hdv_nam", "chieu": "no_cong_ty", "so_tien": 1750000 }
+        ],
+        "cong_ty_thu_ve": 4500000
+      }
+    },
+    {
+      "ma": "C-2",
+      "mo_ta": "Khách chuyển khoản thẳng cho công ty, rồi công ty trả hoa hồng (ADR-0079 ví dụ C-2; phiếu Kế toán tình huống 2). Cộng tác viên Lan (15%) đặt 2 vé Hòn Tằm × 500.000 = 1.000.000; khách chuyển khoản vào tài khoản công ty, Kế toán ghi nhận (người thu là Công ty ⇒ không có dòng giữ hộ). Lúc «Đã giao»: hoa hồng Tour Đảo → CTV Lan 15% × 1.000.000 = 150.000. «Hoàn thành» KHÔNG bị chặn vì khoản công ty phải trả không chặn (H2' b); cuối tháng Kế toán trả CTV 150.000.",
+      "nguon": "ADR-0079, ví dụ C-2; phieu-ke-toan.md tình huống 2. ADR không nêu giá đại lý ⇒ gia_dai_ly để null — chờ Kế toán. Soạn bởi AI 2026-10-19 (sổ đại lý đợt 2, Task 0); chờ chủ / Kế toán xác nhận, AI không tự đánh dấu (Hiến pháp N8).",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dong": [
+        {
+          "nhan": "2 vé Hòn Tằm × 500.000 — CTV Lan, mức 15%",
+          "dau_vao": { "thanh_tien": 1000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1500, "moi_khach": null, "ty_le_mua_bp": null },
+          "dap_an": { "hoa_hong": 150000, "gia_dai_ly": null, "gia_von": null }
+        }
+      ],
+      "so_cai": {
+        "ghi_chu": "Mọi số là số nguyên đồng không âm; chiều ghi bằng chữ. Khoản «cong_ty_no» là khoản công ty phải trả (không chặn «Hoàn thành»).",
+        "khach_tra": 1000000,
+        "giam_gia_ben_dat": 0,
+        "giu_ho": [],
+        "dong_da_giao": [
+          { "loai": "HOA_HONG", "tu": "cong_ty", "den": "ctv_lan", "so_tien": 150000 }
+        ],
+        "so_du": [
+          { "ben": "ctv_lan", "chieu": "cong_ty_no", "so_tien": 150000 }
+        ],
+        "chan_hoan_thanh": false
+      }
+    },
+    {
+      "ma": "C-3",
+      "mo_ta": "Cộng tác viên giữ cọc, HDV thu phần còn lại (ADR-0079 ví dụ C-3, cũng là ca SV-HT-02; phiếu Kế toán tình huống 3). CTV A (15%), đơn 1.000.000. CTV thu cọc 300.000 (người thu BOOKER), HDV Nam thu 700.000. Dòng giữ hộ: CTV → Tour Đảo 300.000; HDV → Tour Đảo 700.000. Lúc «Đã giao»: hoa hồng Tour Đảo → CTV 150.000. Số dư: CTV nợ 300.000 − 150.000 = 150.000; HDV nợ 700.000; Tour Đảo giữ 850.000.",
+      "nguon": "ADR-0079, ví dụ C-3 (khớp SV-HT-02); phieu-ke-toan.md tình huống 3. Mọi số lấy nguyên từ ADR; giá đại lý 850.000 là «Tour Đảo giữ 850.000» của ADR (= thành tiền − hoa hồng). Soạn bởi AI 2026-10-19 (sổ đại lý đợt 2, Task 0); chờ chủ / Kế toán xác nhận, AI không tự đánh dấu (Hiến pháp N8).",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dong": [
+        {
+          "nhan": "Dịch vụ 1.000.000 — CTV A, mức 15%",
+          "dau_vao": { "thanh_tien": 1000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1500, "moi_khach": null, "ty_le_mua_bp": null },
+          "dap_an": { "hoa_hong": 150000, "gia_dai_ly": 850000, "gia_von": null }
+        }
+      ],
+      "so_cai": {
+        "ghi_chu": "Mọi số là số nguyên đồng không âm; chiều ghi bằng chữ.",
+        "khach_tra": 1000000,
+        "giam_gia_ben_dat": 0,
+        "giu_ho": [
+          { "loai": "HELD", "ben": "ctv_A", "nguoi_thu": "BOOKER", "so_tien": 300000 },
+          { "loai": "HELD", "ben": "hdv_nam", "nguoi_thu": "HDV", "so_tien": 700000 }
+        ],
+        "dong_da_giao": [
+          { "loai": "HOA_HONG", "tu": "cong_ty", "den": "ctv_A", "so_tien": 150000 }
+        ],
+        "so_du": [
+          { "ben": "ctv_A", "chieu": "no_cong_ty", "so_tien": 150000 },
+          { "ben": "hdv_nam", "chieu": "no_cong_ty", "so_tien": 700000 }
+        ],
+        "cong_ty_giu": 850000
+      }
+    },
+    {
+      "ma": "C-4",
+      "mo_ta": "Đơn trộn của lễ tân: vé Hòn Tằm cộng vé i-resort (ADR-0079 ví dụ C-4, nối SV-HT-03; phiếu Kế toán tình huống 5). Lễ tân Hương: vé Hòn Tằm 1.000.000 (Tour Đảo bán, mức lễ tân 10%) cộng 2 vé i-resort 600.000 (i-resort bán, Tour Đảo mua lại a = 80%, lễ tân hưởng 50.000 mỗi khách × 2). Hương thu trước 200.000; HDV thu 1.000.000; quầy i-resort thu 400.000 (dòng giữ hộ đều trỏ về Tour Đảo). Lúc «Đã giao»: Tour Đảo → Hương 100.000 + 100.000 = 200.000; Tour Đảo → i-resort giá vốn 480.000. Số dư: Hương 0; HDV nợ 1.000.000; Tour Đảo nợ i-resort 80.000; Tour Đảo giữ 920.000 = 1.600.000 − 480.000 − 200.000.",
+      "nguon": "ADR-0079, ví dụ C-4; phieu-ke-toan.md tình huống 5 (tình huống 4 của phiếu là SV-HT-03, không phải ca C). ADR không nêu giá đại lý của từng dòng ⇒ gia_dai_ly để null — chờ Kế toán; không có «tong» vì vậy. Soạn bởi AI 2026-10-19 (sổ đại lý đợt 2, Task 0); chờ chủ / Kế toán xác nhận, AI không tự đánh dấu (Hiến pháp N8).",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dong": [
+        {
+          "nhan": "Vé Hòn Tằm 1.000.000 — lễ tân Hương, mức 10%",
+          "dau_vao": { "thanh_tien": 1000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1000, "moi_khach": null, "ty_le_mua_bp": null },
+          "dap_an": { "hoa_hong": 100000, "gia_dai_ly": null, "gia_von": null }
+        },
+        {
+          "nhan": "2 vé i-resort 600.000 — i-resort bán, a = 80%; lễ tân 50.000/khách × 2",
+          "dau_vao": { "thanh_tien": 600000, "khach_tinh": 2, "kieu": "PER_PAX", "ty_le_bp": null, "moi_khach": 50000, "ty_le_mua_bp": 8000 },
+          "dap_an": { "hoa_hong": 100000, "gia_dai_ly": null, "gia_von": 480000 }
+        }
+      ],
+      "so_cai": {
+        "ghi_chu": "Mọi số là số nguyên đồng không âm; chiều ghi bằng chữ. Tổng thành tiền 1.600.000.",
+        "khach_tra": 1600000,
+        "giam_gia_ben_dat": 0,
+        "giu_ho": [
+          { "loai": "HELD", "ben": "huong", "nguoi_thu": "BOOKER", "so_tien": 200000 },
+          { "loai": "HELD", "ben": "hdv", "nguoi_thu": "HDV", "so_tien": 1000000 },
+          { "loai": "HELD", "ben": "i_resort", "nguoi_thu": "SUPPLIER", "so_tien": 400000 }
+        ],
+        "dong_da_giao": [
+          { "loai": "HOA_HONG", "tu": "cong_ty", "den": "huong", "so_tien": 100000 },
+          { "loai": "HOA_HONG", "tu": "cong_ty", "den": "huong", "so_tien": 100000 },
+          { "loai": "GIA_VON", "tu": "cong_ty", "den": "i_resort", "so_tien": 480000 }
+        ],
+        "so_du": [
+          { "ben": "huong", "chieu": "no_cong_ty", "so_tien": 0 },
+          { "ben": "hdv", "chieu": "no_cong_ty", "so_tien": 1000000 },
+          { "ben": "i_resort", "chieu": "cong_ty_no", "so_tien": 80000 }
+        ],
+        "cong_ty_giu": 920000
+      }
+    },
+    {
+      "ma": "C-5",
+      "mo_ta": "Trần giảm giá của đại lý (ADR-0079 ví dụ C-5; phiếu Kế toán tình huống 6). Đơn ví dụ A-1 của đại lý A: ba dịch vụ, tổng 6.000.000, tổng hoa hồng 790.000. Nhập giảm giá 800.000 (ai nhập cũng vậy, kể cả nhân viên Bán hàng) ⇒ máy từ chối «Giảm tối đa 790.000 ₫ (bằng hoa hồng của đơn)»; giảm đúng 790.000 ⇒ được. Lúc «Đã giao»: hoa hồng 790.000 − giảm giá 790.000 ⇒ đại lý nhận 0 từ phần hoa hồng; nếu đại lý thu hết tiền khách (6.000.000 − 790.000 = 5.210.000) thì nộp Tour Đảo đúng 5.210.000 (giá cố định, ADR-0027).",
+      "nguon": "ADR-0079, ví dụ C-5 (đơn ví dụ A-1 của ADR-0077; ba dòng và tổng chép từ ca A-1 của sổ này); phieu-ke-toan.md tình huống 6. Mọi số lấy nguyên từ ADR. Soạn bởi AI 2026-10-19 (sổ đại lý đợt 2, Task 0); chờ chủ / Kế toán xác nhận, AI không tự đánh dấu (Hiến pháp N8).",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dong": [
+        {
+          "nhan": "Vé Hòn Tằm — bậc 1 (đối tác + dịch vụ)",
+          "dau_vao": { "thanh_tien": 2000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1200, "moi_khach": null, "ty_le_mua_bp": null },
+          "dap_an": { "hoa_hong": 240000, "gia_dai_ly": 1760000, "gia_von": null }
+        },
+        {
+          "nhan": "Du thuyền — bậc 5 (vai + nhóm)",
+          "dau_vao": { "thanh_tien": 3000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1500, "moi_khach": null, "ty_le_mua_bp": null },
+          "dap_an": { "hoa_hong": 450000, "gia_dai_ly": 2550000, "gia_von": null }
+        },
+        {
+          "nhan": "Tour đảo — bậc 6 (vai + mọi dịch vụ)",
+          "dau_vao": { "thanh_tien": 1000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1000, "moi_khach": null, "ty_le_mua_bp": null },
+          "dap_an": { "hoa_hong": 100000, "gia_dai_ly": 900000, "gia_von": null }
+        }
+      ],
+      "tong": { "thanh_tien": 6000000, "hoa_hong": 790000, "gia_dai_ly": 5210000 },
+      "so_cai": {
+        "ghi_chu": "Mọi số là số nguyên đồng không âm; chiều ghi bằng chữ. Trần giảm giá của đơn = tổng hoa hồng (ADR-0079 điều 8).",
+        "tran_giam_gia": 790000,
+        "thu_nhap_giam_gia": [
+          { "giam_gia": 800000, "ket_qua": "tu_choi", "thong_bao": "Giảm tối đa 790.000 ₫ (bằng hoa hồng của đơn)" },
+          { "giam_gia": 790000, "ket_qua": "duoc", "thong_bao": null }
+        ],
+        "giam_gia_ben_dat": 790000,
+        "khach_tra": 5210000,
+        "giu_ho": [
+          { "loai": "HELD", "ben": "dai_ly_A", "nguoi_thu": "BOOKER", "so_tien": 5210000 }
+        ],
+        "dong_da_giao": [
+          { "loai": "HOA_HONG", "tu": "cong_ty", "den": "dai_ly_A", "so_tien": 790000 },
+          { "loai": "GIAM_GIA_BEN_DAT", "tu": "dai_ly_A", "den": "cong_ty", "so_tien": 790000 }
+        ],
+        "so_du": [
+          { "ben": "dai_ly_A", "chieu": "no_cong_ty", "so_tien": 5210000 }
+        ]
+      }
     }
   ]
 }

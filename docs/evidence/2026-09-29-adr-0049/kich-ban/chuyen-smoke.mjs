@@ -25,7 +25,7 @@ const donT5 = async (gio, noiDon, ten, sdt) => {
   const r = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     customerName: `Khách Thứ Tự ${noiDon}`, customerPhone: sdt, customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
     services: [{
-      kind: "catalog", catalogCode: "TD101", pax: { adult: ten.length, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
+      kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: ten.length, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
       departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "", departDate: d.NGAY_XA,
       legs: [{ direction: "OUT", pickupDate: d.NGAY_XA, pickupTime: gio, pickupLocationId: null, pickupPlace: noiDon, dropoffLocationId: LOC_BEN_TAU, dropoffPlace: "" }],
     }],

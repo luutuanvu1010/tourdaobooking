@@ -71,7 +71,18 @@ const NOI: Record<string, (s: PermissionHolder) => string[]> = {
  * Mục "hiện mà bị máy chủ từ chối" đã ẨN ở bước K-c (bước 4 của đề bài: siết). Dạng: "<nơi>|<chuỗi>" → các tập (m) nay không còn thấy.
  * Rỗng: bài rào không tìm thấy mục nào hiện mà bị từ chối trên 1024 tập — không ẩn gì.
  */
-const AN_DI: Record<string, readonly number[]> = {};
+/** Các tập giữ quyền Đối tác (kể cả lai) mà ảnh chụp từng thấy chuỗi `<nơi>|<chuỗi>` — dùng cho mục máy chủ nay chặn tài khoản Đối tác. */
+const tapDoiTacTungThay = (khoa: string): number[] => {
+  const [noi, ...phan] = khoa.split("|");
+  const { muc, tap } = ANH.noi[noi!]!;
+  const i = muc.indexOf(phan.join("|"));
+  return i < 0 ? [] : TAP.filter((m) => nguoi(m).permissions.includes("PARTNER") && co(tap[i]!, m));
+};
+const AN_DI: Record<string, readonly number[]> = Object.fromEntries(
+  // Ruling R-P18 (sổ đại lý đợt 2, vòng sửa 1 Task 6): route yêu cầu điều chỉnh công nợ chặn tài khoản giữ quyền Đối tác (yêu cầu có thể là giá vốn / hoa hồng của
+  // đối tác khác) ⇒ mục «Điều chỉnh công nợ» ẩn với mọi tập có PARTNER mà mã cũ từng hiện (bài src/muc-hien-mo-duoc-*.test.ts: hiện ⇒ đường gọi chính không bị từ chối).
+  ["thanh-ben|TIỀN||Điều chỉnh công nợ|/dieu-chinh-cong-no", "trang-toi|links|Điều chỉnh công nợ|/dieu-chinh-cong-no"].map((k) => [k, tapDoiTacTungThay(k)]),
+);
 
 test("ảnh chụp đủ 1024 tập, đúng thứ tự mã quyền, đủ tám nơi", () => {
   assert.deepEqual(ANH.maQuyen, [...PERMISSION_CODES], "thứ tự mã quyền đổi ⇒ mặt nạ của ảnh chụp sai nghĩa — chụp lại");

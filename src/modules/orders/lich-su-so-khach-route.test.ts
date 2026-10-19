@@ -37,7 +37,7 @@ async function taoDon(w: W, o: { pax: Pax; discount?: number; extra?: unknown[] 
     as: ID.SALES,
     body: {
       customerName: "Khách Thử", customerPhone: "0912345678", discount: o.discount ?? 0,
-      services: [{ kind: "catalog", catalogCode: "ZA1", pax: o.pax, catalogPriceSeen: { adult: 500000, child: 300000, infant: 50000 }, departDate: vnDay(3) }, ...(o.extra ?? [])],
+      services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: o.pax, catalogPriceSeen: { adult: 500000, child: 300000, infant: 50000 }, departDate: vnDay(3) }, ...(o.extra ?? [])],
     },
   });
   assert.equal(r.status, 201, r.text);
@@ -84,7 +84,7 @@ test("D2 dịch vụ nhập tay hiện bằng nhãn 'dịch vụ nhập tay' (kh
   const w = await setup(true);
   const d = await taoDon(w, {
     pax: P(3),
-    extra: [{ kind: "manual", name: "Xe riêng của anh Nam", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, departDate: vnDay(3), items: [{ description: "Xe 7 chỗ", quantity: 1, unitPrice: 200000 }] }],
+    extra: [{ kind: "manual", pickupChoice: "KHONG_DON", name: "Xe riêng của anh Nam", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, departDate: vnDay(3), items: [{ description: "Xe 7 chỗ", quantity: 1, unitPrice: 200000 }] }],
   });
   assert.equal((await sua(w, d.id, d.svc, P(2))).status, 200);
   const g = await chiTiet(w, d.id);

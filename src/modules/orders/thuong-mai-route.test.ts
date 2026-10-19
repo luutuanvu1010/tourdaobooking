@@ -59,7 +59,7 @@ function nhap(w: W, chu: string, booker: string | null, dv: [string | null, numb
     VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', ?, ?, ?, ?, ?, ?)`).run(id, `TD-${seq}`, chu, tong, tong, tong, booker, AT, AT);
   dv.forEach(([code, t], i) => {
     const s = `${id}-s${i}`;
-    w.sqlite.prepare(`INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, ?, ?, ?, ?, ?, 1, ?)`).run(s, id, i, code, `DV ${i}`, code ? "perPax" : "manual", vnHomNay());
+    w.sqlite.prepare(`INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, ?, ?, ?, ?, 1, ?)`).run(s, id, i, code, `DV ${i}`, code ? "perPax" : "manual", vnHomNay());
     w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, ?, ?, 'Người lớn', 1, ?, ?, ?)`)
       .run(`${s}-i`, id, s, code, code ? "adult" : null, t, code ? t : null, t);
   });
@@ -471,7 +471,8 @@ test("(6) kiểm hợp lệ: thiếu lý do 400; đơn nháp 409; đã giao 409;
   const c = await ghi(w, cu, dv(cu), KT, tay15);
   assert.equal(c.status, 409, c.text);
   assert.equal(c.json.error.code, "chua_chup");
-  assert.equal(c.json.error.message, "Đơn xác nhận trước khi có bảng mức — chờ chụp bù ở bản sau");
+  // Đợt 2 (Task 6): «Chụp bù» đã có ⇒ câu chỉ đúng nút cần bấm trước (không còn «chờ bản sau»).
+  assert.equal(c.json.error.message, "Đơn xác nhận trước khi có bảng mức, chưa chụp mức — Kế toán bấm Chụp bù trước, rồi ghi mức tay cho dòng còn thiếu.");
   assert.equal(Number(w.q("SELECT count(*) AS n FROM ord_service_terms WHERE order_id = ?", cu)[0].n), 0);
   const xemCu = await xem(w, cu, KT);
   assert.equal(xemCu.status, 200, xemCu.text);
@@ -668,7 +669,7 @@ test("(8) A-2: mức 50.000đ/khách, 2 người lớn + 1 trẻ em + 1 em bé �
     as: SALES,
     body: {
       customerName: "Khách Thử", customerPhone: "0912345678",
-      services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 1, senior: 0, infant: 1 }, catalogPriceSeen: { adult: 500000, child: 300000, infant: 0 }, departDate: vnDay(3) }],
+      services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 1, senior: 0, infant: 1 }, catalogPriceSeen: { adult: 500000, child: 300000, infant: 0 }, departDate: vnDay(3) }],
     },
   });
   assert.equal(tao.status, 201, tao.text);

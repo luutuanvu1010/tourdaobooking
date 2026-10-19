@@ -91,11 +91,14 @@ export const LICH_SU_NOI_BO_AN = [
   "trip_transfer_expired", "trip_transfer_escalated", "trip_transfer_confirmed", "trip_transfer_rejected", "trip_driver_refused", "trip_appt_called",
   "trip_appt_call_undone", "trip_cost_adjusted", "trip_cost_reversed", "trip_cost_snapshot", "trip_cost_agreed", "rental_rate_added",
   "rental_rate_closed", "route_saved", "vehicle_size_saved", "location_created", "location_updated", "maintenance_changed",
-  "manual_service_policy_changed", "tro_ly_settings_changed", "giao_dien_changed", "client_outdated_body", "catalog_synced", "catalog_overridden",
+  "manual_service_policy_changed", "pickup_slot_policy_changed", "tro_ly_settings_changed", "giao_dien_changed", "client_outdated_body", "catalog_synced", "catalog_overridden",
   "catalog_override_cleared", "catalog_hidden", "catalog_unhidden", "catalog_group_created", "catalog_group_updated", "catalog_group_assigned",
   "catalog_groups_seeded", "feedback_created", "feedback_replied", "feedback_status_changed", "feedback_assigned", "feedback_claimed",
   "feedback_team_changed", "feedback_priority_changed", "feedback_team_created", "feedback_team_updated", "feedback_team_member_changed", "notice_sent",
   "notice_revoked", "notice_acknowledged",
+  // Sổ đại lý đợt 2 (chụp bù — ADR-0079 điều 7 b2; «Bên kia đã nhận» — ADR-0132 điều 2): loại dòng MỚI nên mặc định ẩn cho tới khi chủ dự án xếp loại (ADR-0131
+  // «Nói thẳng hệ quả»). Chuyển sang `LICH_SU_NOI_BO_CHO_PHEP` = đổi bản chủ duyệt trong `lich-su-noi-bo.test.ts` cùng lúc.
+  "ord_terms_backfilled", "ledger_counterparty_confirmed",
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nội bộ nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */

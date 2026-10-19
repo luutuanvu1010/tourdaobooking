@@ -9,12 +9,21 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { giaVonDong, hoaHongDong, type KieuMuc } from "./shared/hoa-hong-dong.ts";
+// tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
+import { world, seedStaff } from "../tests/audit/harness.mjs";
+import { sinhDongLanThu, sinhPhieuDaGiao, soDuTheoBen, type CollectorRole, type LineDraft } from "./modules/billing/rules.ts";
 
 interface DauVao { thanh_tien: number | null; khach_tinh: number | null; kieu: KieuMuc | null; ty_le_bp: number | null; moi_khach: number | null; ty_le_mua_bp: number | null }
 interface DapAn { trang_thai?: string; hoa_hong: number | null; gia_dai_ly: number | null; gia_von: number | null; ty_le_bp_ap_dung?: number }
 interface Dong { nhan: string; dau_vao: DauVao; dap_an: DapAn; bo_sung?: { giam_gia: number; khach_tra: number; cong_ty_giu: number } }
+interface SoCai {
+  khach_tra?: number; giam_gia_ben_dat?: number;
+  giu_ho?: { loai: "HELD"; ben: string; nguoi_thu: "BOOKER" | "HDV" | "SUPPLIER"; so_tien: number }[];
+  dong_da_giao?: { loai: "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON"; tu: string; den: string; so_tien: number }[];
+  so_du?: { ben: string; chieu: "no_cong_ty" | "cong_ty_no"; so_tien: number }[];
+}
 interface Ca {
-  ma: string; mo_ta: string; nguon: string;
+  ma: string; mo_ta: string; nguon: string; so_cai?: SoCai;
   xac_nhan: { trang_thai: "cho_xac_nhan" | "da_xac_nhan"; nguoi: string | null; ngay: string | null };
   dong: Dong[];
   tong?: { thanh_tien: number; hoa_hong: number; gia_dai_ly: number };
@@ -23,7 +32,8 @@ const TEP = JSON.parse(readFileSync(new URL("../golden/so-cong-no-luot-2.json", 
 const DA_XAC_NHAN = TEP.cac_ca.filter((c) => c.xac_nhan.trang_thai === "da_xac_nhan");
 const CHO = TEP.cac_ca.filter((c) => c.xac_nhan.trang_thai !== "da_xac_nhan");
 // SV-TA-*: ca vàng mức TA (ADR-0117 lần 2, N-18) — bảy dòng, 04 tách a / b; thêm 2026-10-15 ở trạng thái chờ xác nhận, không được lặng lẽ rơi khỏi sổ.
-const MA_BAT_BUOC = ["A-1", "A-2", "A-3", "A-4", "A-5", "B-3", "SV-TA-01", "SV-TA-02", "SV-TA-03", "SV-TA-04a", "SV-TA-04b", "SV-TA-05", "SV-TA-06"];
+// C-1…C-5: ca sổ cái của ADR-0079 (sổ đại lý đợt 2, Task 0) — thêm 2026-10-19 (Task 11) để một ca C bị xoá khỏi JSON làm bài đỏ.
+const MA_BAT_BUOC = ["A-1", "A-2", "A-3", "A-4", "A-5", "B-3", "SV-TA-01", "SV-TA-02", "SV-TA-03", "SV-TA-04a", "SV-TA-04b", "SV-TA-05", "SV-TA-06", "C-1", "C-2", "C-3", "C-4", "C-5"];
 
 const laTienNguyen = (n: unknown): boolean => n === null || (typeof n === "number" && Number.isSafeInteger(n) && n >= 0);
 const so = (...x: (number | null)[]): x is number[] => x.every((v) => v !== null);
@@ -130,5 +140,157 @@ test("sổ vàng sổ đại lý — chạy thử ca chờ xác nhận (chẩn �
   for (const c of CHO) {
     const { lech, phep } = soCa(c);
     t.diagnostic(`${c.ma}: chưa áp dụng (chờ xác nhận) — ${phep === 0 ? "không đủ số để chạy mã (ADR không nêu thành tiền / mức)" : `mã hiện tại ${lech.length === 0 ? "KHỚP" : `LỆCH: ${lech.join("; ")}`} đáp án đề xuất (${phep} phép)`}`);
+  }
+});
+
+// ---- Sổ cái C-1…C-5 và B-5 trên MÃ SỔ THẬT (sổ đại lý đợt 2, Task 11) ------------------------------------------------------------------------------
+// Ca C-1…C-5 (khối `so_cai`) và ADR-0078 ví dụ B-5 chạy qua CHÍNH luật sinh dòng của `src/modules/billing/rules.ts`: giữ hộ (`sinhDongLanThu`, người thu tự ghi; quầy
+// nhà cung cấp do Kế toán ghi), phiếu «Đã giao» (`sinhPhieuDaGiao`, hoa hồng / giá vốn do `hoaHongDong` / `giaVonDong` tính từ đầu vào của dòng — không lấy đáp án),
+// rồi số dư `soDuTheoBen`. Ruling R-106 (sửa theo người kiểm Task 10+11): số của các ca này lấy từ ADR-0078 / ADR-0079 ĐÃ DUYỆT (và `phieu-ke-toan.md` chép lại); bài
+// chạy và đỏ khi mã lệch số ADR, nhưng KHÔNG phải «ca vàng đạt» — ca vẫn chờ Kế toán xác nhận (ADR-0079 mục «Sổ vàng / bài kiểm»; AI không tự xác nhận ca vàng —
+// Hiến pháp N8; C-3 trùng SV-HT-02, bên src/so-vang.test.ts vẫn là `todo`). Mã sổ cho số sai ⇒ DỪNG ca đó, `todo` có lý do (không đổi luật tiền).
+const CONG_TY = "cong_ty";
+interface DongSo { dv: string; hoaHong: number | null; giaVon: number | null; ncc: string | null; thanhTien: number }
+interface DauVaoSo { thu: { role: CollectorRole; ben: string; so: number }[]; nguoiHuong: string | null; giamGiaBenDat: number; dong: DongSo[] }
+
+/** Chạy một đơn qua mã sổ thật ⇒ dòng phiếu «Đã giao» + số dư từng bên (dương = bên đó nợ công ty; âm = công ty nợ bên đó). */
+function chaySo(v: DauVaoSo): { phieu: LineDraft[]; soDu: Map<string, number> } {
+  const dong: LineDraft[] = [];
+  for (const t of v.thu) {
+    // Người thu tự ghi chính mình; quầy nhà cung cấp do Kế toán ghi (đường «Bên kia đã nhận» cho cùng một dòng giữ hộ — ADR-0132 điều 1, 3).
+    const keToan = t.role === "SUPPLIER" || t.role === "COMPANY";
+    dong.push(...sinhDongLanThu({ kind: "CUSTOMER_PAYMENT", amount: t.so, collectorRole: t.role, collectorPartyId: t.role === "COMPANY" ? CONG_TY : t.ben, method: "CASH", nguoiGhiPartyId: keToan ? "ke_toan" : t.ben, nguoiGhiLaKeToan: keToan, congTyId: CONG_TY }));
+  }
+  const phieu = sinhPhieuDaGiao({
+    congTyId: CONG_TY, nguoiHuongPartyId: v.nguoiHuong, giamGiaBenDat: v.giamGiaBenDat,
+    dong: v.dong.map((d) => ({ orderServiceId: d.dv, tenDichVu: d.dv, thanhTien: d.thanhTien, hoaHong: d.hoaHong, giaVon: d.giaVon, nhaCungCapPartyId: d.ncc })),
+  });
+  return { phieu, soDu: soDuTheoBen([...dong, ...phieu], CONG_TY) };
+}
+const ROLE_GIU_HO: Record<string, CollectorRole> = { BOOKER: "BOOKER", HDV: "STAFF", SUPPLIER: "SUPPLIER" };
+// So theo TỔNG mỗi (loại, từ, đến): mã ghi MỘT dòng HOA_HONG / GIA_VON mỗi dịch vụ (R-BIL-2), còn sổ có ca gộp ba dịch vụ thành một dòng (C-5: 790.000 = 240.000 + 450.000 +
+// 100.000) và có ca tách từng dịch vụ (C-4) — cách viết của sổ, không phải số tiền. Số dòng mỗi dịch vụ do R-BIL-2 của kiểm định kỳ canh.
+const chuoiDong = (ds: readonly { loai: string; tu: string; den: string; so_tien: number }[]) => {
+  const m = new Map<string, number>();
+  for (const d of ds) m.set(`${d.loai} ${d.tu}→${d.den}`, (m.get(`${d.loai} ${d.tu}→${d.den}`) ?? 0) + d.so_tien);
+  return [...m].map(([k, v]) => `${k} ${v}`).sort();
+};
+
+/** Dựng đầu vào mã sổ từ một ca C: hoa hồng / giá vốn TÍNH bằng hàm thật từ `dau_vao` (đáp án chỉ để so); người hưởng = bên nhận dòng HOA_HONG; nhà cung cấp = người thu SUPPLIER. */
+function dauVaoTuCa(c: Ca): DauVaoSo {
+  const sc = c.so_cai!;
+  const nguoiHuong = sc.dong_da_giao?.find((d) => d.loai === "HOA_HONG")?.den ?? null;
+  const ncc = sc.dong_da_giao?.find((d) => d.loai === "GIA_VON")?.den ?? null;
+  return {
+    thu: (sc.giu_ho ?? []).map((g) => ({ role: ROLE_GIU_HO[g.nguoi_thu]!, ben: g.ben, so: g.so_tien })),
+    nguoiHuong,
+    giamGiaBenDat: sc.giam_gia_ben_dat ?? 0,
+    dong: c.dong.map((d, i) => {
+      const v = d.dau_vao;
+      const hoaHong = v.kieu === null ? 0 : hoaHongDong({ kind: v.kieu, rateBp: v.ty_le_bp, perPaxAmount: v.moi_khach, thanhTien: v.thanh_tien ?? 0, soKhachTinh: v.khach_tinh ?? 0 });
+      const giaVon = v.ty_le_mua_bp === null ? null : giaVonDong({ costRateBp: v.ty_le_mua_bp, thanhTien: v.thanh_tien! });
+      return { dv: `dv${i + 1}`, thanhTien: v.thanh_tien!, hoaHong, giaVon, ncc: giaVon === null ? null : ncc };
+    }),
+  };
+}
+
+const CA_SO_CAI = TEP.cac_ca.filter((c) => c.so_cai?.dong_da_giao);
+test("sổ vàng sổ đại lý — LỚP 1 sổ cái C-1…C-5: khối so_cai tự cân (khách trả = Σ thành tiền − giảm giá bên đặt; dòng «Đã giao» = Σ hoa hồng / giá vốn của dòng + giảm giá; số dư = giữ hộ + dòng)", () => {
+  assert.deepEqual(CA_SO_CAI.map((c) => c.ma), ["C-1", "C-2", "C-3", "C-4", "C-5"], "đủ năm ca có sổ cái");
+  for (const c of CA_SO_CAI) {
+    const sc = c.so_cai!;
+    const tong = c.dong.reduce((s, d) => s + d.dau_vao.thanh_tien!, 0);
+    assert.equal(sc.khach_tra, tong - (sc.giam_gia_ben_dat ?? 0), `${c.ma}: khách trả = Σ thành tiền − giảm giá bên đặt`);
+    const cong = (loai: string) => sc.dong_da_giao!.filter((d) => d.loai === loai).reduce((s, d) => s + d.so_tien, 0);
+    assert.equal(cong("HOA_HONG"), c.dong.reduce((s, d) => s + (d.dap_an.hoa_hong ?? 0), 0), `${c.ma}: Σ HOA_HONG = Σ hoa hồng của dòng`);
+    assert.equal(cong("GIA_VON"), c.dong.reduce((s, d) => s + (d.dap_an.gia_von ?? 0), 0), `${c.ma}: Σ GIA_VON = Σ giá vốn của dòng`);
+    assert.equal(cong("GIAM_GIA_BEN_DAT"), sc.giam_gia_ben_dat ?? 0, `${c.ma}: GIAM_GIA_BEN_DAT = giảm giá bên đặt`);
+    const du = new Map<string, number>();
+    const them = (b: string, x: number) => b !== CONG_TY && du.set(b, (du.get(b) ?? 0) + x);
+    for (const g of sc.giu_ho ?? []) them(g.ben, g.so_tien);
+    for (const d of sc.dong_da_giao!) { them(d.tu, d.so_tien); them(d.den, -d.so_tien); }
+    for (const s of sc.so_du ?? []) assert.equal(du.get(s.ben) ?? 0, s.chieu === "no_cong_ty" ? s.so_tien : -s.so_tien, `${c.ma}/${s.ben}: số dư = giữ hộ + dòng`);
+  }
+});
+
+for (const c of CA_SO_CAI) {
+  test(`sổ vàng sổ đại lý — sổ cái ${c.ma} tính bằng mã sổ thật, so với số của ADR-0079 / phieu-ke-toan.md (ca CHỜ Kế toán xác nhận — chưa tính là ca vàng đạt)`, () => {
+    const sc = c.so_cai!;
+    const kq = chaySo(dauVaoTuCa(c));
+    const ten = (id: string) => (id === CONG_TY ? "cong_ty" : id);
+    assert.deepEqual(chuoiDong(kq.phieu.map((l) => ({ loai: l.kind, tu: ten(l.debtorPartyId), den: ten(l.creditorPartyId), so_tien: l.amount }))), chuoiDong(sc.dong_da_giao!), `${c.ma}: dòng phiếu «Đã giao»`);
+    for (const s of sc.so_du ?? []) assert.equal(kq.soDu.get(s.ben) ?? 0, s.chieu === "no_cong_ty" ? s.so_tien : -s.so_tien, `${c.ma}/${s.ben}: số dư (mã thật)`);
+  });
+}
+
+// ADR-0078 ví dụ B-5 (chủ hỏi 2026-10-01, «Phải thành test khi thi công»): 2 vé i-resort 600.000, i-resort bán, a = 80% ⇒ giá vốn 480.000 (trước giảm, H8 = A); lễ tân Hương
+// hưởng 100.000 (trước giảm); Hương tự giảm 20.000 ⇒ khách trả 580.000.
+const B5 = (thu: DauVaoSo["thu"]): DauVaoSo => ({
+  thu, nguoiHuong: "huong", giamGiaBenDat: 20_000,
+  dong: [{ dv: "ve_i_resort", thanhTien: 600_000, hoaHong: hoaHongDong({ kind: "PER_PAX", rateBp: null, perPaxAmount: 50_000, thanhTien: 600_000, soKhachTinh: 2 }), giaVon: giaVonDong({ costRateBp: 8000, thanhTien: 600_000 }), ncc: "i_resort" }],
+});
+test("sổ vàng — ADR-0078 B-5 (a): khách trả đủ 580.000 TẠI QUẦY i-resort ⇒ i-resort nợ Tour Đảo 100.000; Tour Đảo nợ Hương 80.000; Tour Đảo giữ 20.000", () => {
+  const kq = chaySo(B5([{ role: "SUPPLIER", ben: "i_resort", so: 580_000 }]));
+  assert.deepEqual([kq.soDu.get("i_resort"), kq.soDu.get("huong")], [100_000, -80_000]);
+  assert.equal([...kq.soDu.values()].reduce((s, x) => s + x, 0), 20_000, "Tour Đảo giữ = tổng số dư các bên");
+});
+test("sổ vàng — ADR-0078 B-5 (b): Hương thu trước 200.000, quầy thu 380.000 ⇒ Hương nợ Tour Đảo 120.000; Tour Đảo nợ i-resort 100.000; Tour Đảo giữ 20.000", () => {
+  const kq = chaySo(B5([{ role: "BOOKER", ben: "huong", so: 200_000 }, { role: "SUPPLIER", ben: "i_resort", so: 380_000 }]));
+  assert.deepEqual([kq.soDu.get("huong"), kq.soDu.get("i_resort")], [120_000, -100_000]);
+  assert.equal([...kq.soDu.values()].reduce((s, x) => s + x, 0), 20_000, "Tour Đảo giữ = tổng số dư các bên");
+});
+
+// ---- SV-SK-04 bản đại lý trên CẢ ứng dụng (khung thử tests/audit/harness.mjs; kế hoạch Task 11 Step 2) ------------------------------------------------------------
+// Số theo golden/sua-so-khach-van-phong.json SV-SK-04: 4 người lớn × 500.000 = 2.000.000, khuyến mại giảm 1.000.000; khách bớt còn 1 người lớn ⇒ tạm tính 500.000, phải thu 0
+// (ADR-0109: giảm giá chỉ dùng tới tiền dịch vụ còn lại). Bản đại lý: bên đặt là đại lý mức 50% ⇒ hoa hồng lúc Xác nhận 1.000.000 = giảm giá (qua trần, ADR-0079 điều 8).
+// Lúc «Đã giao»: GIAM_GIA_BEN_DAT = trước giảm 500.000 − phải thu 0 = 500.000 (KHÔNG phải 1.000.000 ghi trên đơn); hoa hồng 50% × 500.000 = 250.000 (bản chụp đóng
+// băng mức, tiền dòng sau sửa). Đại lý nợ Tour Đảo 500.000 − 250.000 = 250.000. Tiền khách đã trả / hoàn (SV-SK-08) không đổi hai dòng này nên bài bỏ qua phần thu.
+// Rồi kiểm định kỳ R-BIL-2, R-BIL-16, R-ORD-DC1 trên chính dữ liệu đó phải 0 (Review Focus 4: bớt khách làm hoa hồng < giảm giá không phải vi phạm).
+interface KiemDK { code: string; sql: string }
+const AC = (await import(new URL("../scripts/audit-checks.mjs", import.meta.url).href)) as { CHECKS: KiemDK[]; demViPham: (c: KiemDK, rows: unknown[]) => number };
+
+test("sổ vàng — SV-SK-04 bản đại lý (mã thật): bớt khách sau Xác nhận ⇒ GIAM_GIA_BEN_DAT 500.000 (trước giảm − phải thu), hoa hồng 250.000; kiểm định kỳ R-BIL-2 / R-BIL-16 / R-ORD-DC1 = 0", async () => {
+  const w = world();
+  const SUPER = "33333333-3333-4333-8333-333333333333";
+  const HDV = "22222222-2222-4222-8222-222222222222";
+  const KT = "44444444-4444-4444-8444-444444444444";
+  const DL = "66666666-6666-4666-8666-666666666666";
+  const SALES = "11111111-1111-4111-8111-111111111111";
+  const AT = "2026-10-01T00:00:00.000Z";
+  for (const [id, phone, name, perms] of [[SALES, "0900000001", "An Bán", ["SALES"]], [HDV, "0900000002", "Nam HDV", ["FIELD"]], [SUPER, "0900000003", "Chủ", ["SUPER_ADMIN"]], [KT, "0900000005", "Lan Kế Toán", ["ACCOUNTING"]], [DL, "0900000008", "Đại Lý A", ["PARTNER"]]] as const) {
+    seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
+  }
+  const dl = `pty-${DL}`;
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('ptr-sk04', ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(dl, AT, AT);
+  const muc = await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { tuNgay: "2026-01-01", doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 5000 } });
+  assert.equal(muc.status, 201, muc.text);
+  const id = "97979797-9797-4979-8979-5c5c5c5c5c04";
+  const sv = `${id}-s0`;
+  const homNay = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
+  w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, discount, total, remaining_amount, booker_party_id, created_at, updated_at)
+    VALUES (?, 'TD-SK04', ?, 'draft', 'Khách Giả', '0900000099', 2000000, 1000000, 1000000, 1000000, ?, ?, ?)`).run(id, SALES, dl, AT, AT);
+  w.sqlite.prepare("INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, 0, 'HONTAM', 'Tour đảo', 'perPax', 4, ?)").run(sv, id, homNay);
+  w.sqlite.prepare("INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, 'HONTAM', 'adult', 'Người lớn', 4, 500000, 500000, 2000000)").run(`${sv}-i`, id, sv);
+  const xn = await w.call("POST", `/api/orders/${id}/status`, { as: SUPER, body: { status: "confirmed" } });
+  assert.equal(xn.status, 200, `hoa hồng 1.000.000 = giảm giá ⇒ qua trần lúc Xác nhận: ${xn.text}`);
+  w.sqlite.prepare(`INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, created_by, updated_at, updated_by)
+    VALUES ('97979797-9797-4979-8979-5c5c5c5c5c05', ?, 'HANDLE', ?, 'PENDING', ?, ?, NULL, ?, NULL)`).run(id, `pty-${HDV}`, AT, AT, AT);
+  const sua = await w.call("POST", `/api/orders/${id}/handler-money-edit`, { as: HDV, body: { reason: "Khách bớt người", services: [{ id: sv, pax: { adult: 1, child: 0, senior: 0, infant: 0 } }] } });
+  assert.equal(sua.status, 200, sua.text);
+  const tien = await w.call("GET", `/api/orders/${id}/payments`, { as: KT });
+  assert.equal(Number(tien.json.phaiThu), 0, "phải thu 0 (ADR-0109)");
+  const g = await w.call("POST", `/api/orders/${id}/delivered`, { as: SUPER, body: {} });
+  assert.equal(g.status, 200, g.text);
+  const ct = String(w.q("SELECT party_id FROM v_pty_owner_company LIMIT 1")[0].party_id);
+  const p = w.q("SELECT gross_snapshot g, due_snapshot d FROM bil_posting WHERE order_id = ? AND kind_code = 'DELIVERED'", id)[0];
+  assert.deepEqual([Number(p.g), Number(p.d)], [500_000, 0], "phiếu «Đã giao»: trước giảm 500.000, phải thu 0");
+  const dong = w.q("SELECT kind_code k, debtor_party_id no, creditor_party_id co, amount so FROM bil_debt_line WHERE order_id = ? AND kind_code IN ('HOA_HONG', 'GIAM_GIA_BEN_DAT', 'GIA_VON') ORDER BY kind_code", id)
+    .map((r: Record<string, unknown>) => `${String(r.k)} ${r.no === ct ? "cong_ty" : r.no === dl ? "dai_ly" : String(r.no)}→${r.co === ct ? "cong_ty" : r.co === dl ? "dai_ly" : String(r.co)} ${Number(r.so)}`);
+  assert.deepEqual(dong, ["GIAM_GIA_BEN_DAT dai_ly→cong_ty 500000", "HOA_HONG cong_ty→dai_ly 250000"]);
+  const du = w.q("SELECT COALESCE(SUM(CASE WHEN debtor_party_id = ? THEN amount WHEN creditor_party_id = ? THEN -amount END), 0) s FROM bil_debt_line WHERE order_id = ?", dl, dl, id)[0];
+  assert.equal(Number(du.s), 250_000, "đại lý nợ Tour Đảo 500.000 − 250.000");
+  for (const code of ["R-BIL-2", "R-BIL-16", "R-ORD-DC1"]) {
+    const c = AC.CHECKS.find((x) => x.code === code)!;
+    assert.equal(AC.demViPham(c, w.sqlite.prepare(c.sql.replace(/\s+/g, " ").trim()).all()), 0, `${code} trên dữ liệu SV-SK-04 bản đại lý`);
   }
 });

@@ -103,7 +103,7 @@ test("DK-T2-01 applyAdjustmentToOrder: gửi lại y nguyên → số hiển th�
 test("DK-T2-01 phiếu xác nhận gửi khách (dựng từ đơn đã áp điều chỉnh): in đơn giá thoả thuận và tổng đúng", () => {
   const company = { name: "CÔNG TY TNHH TOUR ĐẢO", taxCode: "0", address: "", hotline: "", email: "", website: "" } as unknown as CompanyDto;
   // Sổ tiền lượt 1 (Task 8): phiếu dựng từ BIÊN NHẬN máy chủ (`dungBienNhan` — danh sách trắng), không từ cả đơn.
-  const receipt = dungBienNhan(applyAdjustmentToOrder(order(), [{ serviceId: "svc-1", pax: { ...ZERO, adult: 3 } }]), company, { daTra: 1_000_000, conLai: 2_000_000 });
+  const receipt = dungBienNhan(applyAdjustmentToOrder(order(), [{ serviceId: "svc-1", pax: { ...ZERO, adult: 3 } }]), company, { daTra: 1_000_000, conLai: 2_000_000 }, null);
   const model = buildConfirmation(receipt, null);
   const text = JSON.stringify(model);
   assert.match(text, /1\.000\.000/, "đơn giá thoả thuận phải có trên phiếu");

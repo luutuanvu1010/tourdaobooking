@@ -234,8 +234,29 @@ function summaryBlock(order: ReceiptDto): SummaryBlock {
   const daGiao = order.status.khoa === "delivered" || order.status.khoa === "completed";
   return {
     kind: "summary",
-    rows: [...dau, { label: daGiao ? "Đã thu" : "Khách hàng đã trả trước", value: money(order.daTra), emphasis: false }, { label: "Còn lại", value: money(order.conLai), emphasis: true }],
+    rows: [...dau, { label: daGiao ? "Đã thu" : "Khách hàng đã trả trước", value: money(order.daTra), emphasis: false }, { label: "Còn lại", value: money(order.conLai), emphasis: true }, ...dongPhan(order)],
   };
+}
+
+/**
+ * Sổ đại lý đợt 2, Task 12 (ADR-0078 điều 10; đặc tả P5): đơn có HAI người bán trở lên ⇒ sau tổng của cả đơn, in từng phần (người bán, tổng phần, đã trả nếu có,
+ * còn lại — phần nhà cung cấp ghi «Trả tại quầy <người bán>»). Một người bán ⇒ không thêm dòng. Số do máy chủ chia (`chiaPhanBienNhan`), không tính lại ở đây.
+ */
+function dongPhan(order: ReceiptDto): { label: string; value: string; emphasis: boolean }[] {
+  if (order.phan.length < 2) return [];
+  return order.phan.flatMap((p, i) => {
+    const ten = clean(p.nguoiBan);
+    const rows = [{ label: `Phần ${i + 1} · ${ten}`, value: money(p.tong), emphasis: false }];
+    if (p.daTra > 0) rows.push({ label: "Đã trả", value: money(p.daTra), emphasis: false });
+    rows.push({ label: p.traTaiQuay && p.conLai > 0 ? `Trả tại quầy ${ten}` : "Còn lại", value: money(p.conLai), emphasis: false }); // đã trả đủ ⇒ «Còn lại 0 ₫», không «Trả tại quầy … 0 ₫»
+    return rows;
+  });
+}
+
+/** Câu chân trang cho phần nhà cung cấp bán (Tour Đảo là đối tác đặt vé — ADR-0078 điều 10). */
+function cauVaiPhan(order: ReceiptDto): string[] {
+  if (order.phan.length < 2) return [];
+  return order.phan.flatMap((p, i) => (p.vaiTourDao === "doi_tac_dat_ve" ? [`Phần ${i + 1} do ${clean(p.nguoiBan)} bán; Tour Đảo là đối tác đặt vé.`] : []));
 }
 
 /** ADR-0089 đ10 (chủ chốt chữ — bản nháp theo ví dụ của ADR, Q5): một dòng điều khoản huỷ IN LUÔN đường dẫn (Đ-5). */
@@ -254,7 +275,7 @@ function footerBlock(company: CompanyDto, order: ReceiptDto): FooterBlock {
   const contact = clean(company.hotline) === "" ? "" : `Cần hỗ trợ, quý khách vui lòng liên hệ hotline ${clean(company.hotline)}.`;
   // ADR-0089: thông báo huỷ in câu chính sách (đ9a); ảnh xác nhận (đơn không huỷ) in điều khoản huỷ kèm đường dẫn (đ10).
   const dau = order.status.khoa === "cancelled" ? cauHuy(order) : DIEU_KHOAN_HUY;
-  return { kind: "footer", lines: [dau ?? "", "Cảm ơn quý khách đã tin tưởng và lựa chọn dịch vụ của chúng tôi.", contact].filter((l) => l !== "") };
+  return { kind: "footer", lines: [dau ?? "", ...cauVaiPhan(order), "Cảm ơn quý khách đã tin tưởng và lựa chọn dịch vụ của chúng tôi.", contact].filter((l) => l !== "") };
 }
 
 /** "xac-nhan-<mã đơn>.png"; ký tự ngoài chữ/số/gạch → gạch (gộp, bỏ ở hai đầu); mã trống → "xac-nhan.png". */

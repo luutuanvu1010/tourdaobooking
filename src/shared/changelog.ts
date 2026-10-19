@@ -12,13 +12,62 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // ADR-0133 chiết khấu «mỗi khách» tách theo loại khách (migration 0114, số tạm). Số 2.21 là số TẠM (xếp sau 2.20 tạm của màn Tạo đơn trên cùng nhánh): phiên phát hành
-    // kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
-    version: "2.21",
+    // ADR-0133 chiết khấu «mỗi khách» tách theo loại khách (migration 0116). CÓ migration ⇒ cần npm run trien-khai sau day-len.
+    // Số 2.25 là số TẠM (main đang ở 2.24, kiểm 2026-10-19) — phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "2.25",
     date: "2026-10-19",
     items: [
       { kind: "moi", text: "Hoa hồng đối tác: khai số tiền mỗi khách riêng cho người lớn, trẻ em, người cao tuổi (phải điền, không trả thì gõ 0); em bé không tính." },
       { kind: "doi", text: "Đơn đã xác nhận giữ nguyên mức đã chụp lúc xác nhận; sửa số khách sau đó thì hoa hồng tính lại theo đúng mức ấy." },
+    ],
+  },
+  {
+    // Sổ đại lý đợt 2 (đặc tả docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/README.md; ADR-0132, ADR-0079, ADR-0078): đơn có người hưởng hoa hồng đi tới «Đã giao»,
+    // khách trả cho đại lý / tại quầy nhà cung cấp chờ Kế toán, Chụp bù mức, biên nhận chia phần, trần giảm giá theo hoa hồng. Hai migration (0112, 0113 — số tạm).
+    // Số 2.24 là số TẠM (kiểm lại 2026-10-19 17:50 ở Task 14: main đã dùng 2.22 — commit 01e46f33, thẻ gập «Đã duyệt đặt gấp» —, nhánh worktree-xac-nhan-don
+    // giữ 2.23 — đã lên main 7dfd642a, gộp vào nhánh này 2026-10-19 nên 2.24 vẫn là số kế tiếp; trước đó nhánh này ghi 2.22, Ruling R-127) — phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "2.24",
+    date: "2026-10-19",
+    items: [
+      { kind: "moi", text: "Đơn đặt qua đại lý nay bấm được Đã giao – đã thu đủ; khi đó Nền tảng tự ghi hoa hồng của đại lý và tiền phải trả nhà cung cấp." },
+      { kind: "moi", text: "Ghi khoản thu: thêm lựa chọn Khách trả cho đại lý và Khách trả tại quầy nhà cung cấp. Khoản này chờ Kế toán bấm Bên kia đã nhận rồi đơn mới Đã giao được." },
+      { kind: "moi", text: "Kế toán: Trang chủ có khối Chờ đối chiếu; trang Chụp bù mức (menu Thiết lập) cho đơn xác nhận trước khi có bảng mức." },
+      { kind: "moi", text: "Biên nhận gửi khách chia phần theo người bán: phần Tour Đảo và phần trả tại quầy nhà cung cấp." },
+      { kind: "doi", text: "Đơn có người hưởng hoa hồng: giảm giá tối đa bằng hoa hồng của đơn. Tài khoản đối tác được hưởng giảm được tới mức hoa hồng của đơn mình." },
+    ],
+  },
+  {
+    // Bước Xác nhận đơn — Đợt 1 (ADR-0134, migration 0115; nhánh worktree-xac-nhan-don): mỗi dịch vụ bắt buộc chọn Đón / Không đón trước khi xác nhận (máy chủ 409
+    // pickup_choice_required), khung giờ đón chọn sẵn hoặc Giờ khác, câu lưu ý giờ đón thực tế. CÓ migration ⇒ cần npm run trien-khai sau day-len.
+    // Số 2.23 là số TẠM (đầu mảng hiện tại 2.22 tạm) — phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "2.23",
+    date: "2026-10-19",
+    items: [
+      { kind: "doi", text: "Lập đơn: mỗi dịch vụ phải chọn Đón hoặc Không đón. Đơn nháp chưa chọn vẫn lưu được, nhưng phải chọn xong cho mọi dịch vụ thì mới xác nhận được đơn." },
+      { kind: "moi", text: "Khi chọn Đón, chọn nhanh một khung giờ đón có sẵn (ví dụ 07:30 – 08:00), hoặc bấm Giờ khác để tự nhập giờ đón." },
+      { kind: "moi", text: "Dưới hàng khung giờ có câu lưu ý: giờ đón thực tế có thể điều chỉnh cho phù hợp tình hình hoạt động." },
+    ],
+  },
+  {
+    // Nợ nhỏ cuối của màn Tạo đơn thiết kế lại (Việc 14, 19/10): dòng gập của thẻ ghi «Đã duyệt đặt gấp» khi chặng đã được duyệt. KHÔNG migration, không đổi thân gửi.
+    // Cùng đợt có công cụ dọn máy `npm run don-may` và bộ bọc Chrome tự đóng — công cụ của nhà phát triển, không hiện cho người dùng nên không ghi ở đây.
+    // Số 2.22 là số TẠM (production báo 2.21; kiểm main ngày 19/10: chưa dùng 2.22) — phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
+    version: "2.22",
+    date: "2026-10-19",
+    items: [
+      { kind: "moi", text: "Màn Tạo đơn: thẻ dịch vụ đã gập nay ghi rõ Đã duyệt đặt gấp khi chặng đưa đón đã được duyệt, nên không cần mở thẻ ra mới biết." },
+    ],
+  },
+  {
+    // Vòng sửa sau khi màn Tạo đơn mới lên production (Việc 12, chủ dự án báo 19/10 bằng tài khoản Đối tác trên Safari): nhãn nổi đè chữ ở hai ô chọn của khối Thanh toán
+    // (lỗi riêng của Safari / iPhone, có từ khi có nhãn nổi 13/10); thẻ gập của dịch vụ không có chặng nêu "Không đưa đón". KHÔNG migration, không đổi thân gửi lên máy chủ.
+    // Số 2.21 là số TẠM (production báo 2.20 qua GET /api/auth/config ngày 19/10; kiểm git trên main, mọi nhánh và mọi worktree: chưa nơi nào dùng 2.21) — phiên phát hành
+    // kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "2.21",
+    date: "2026-10-19",
+    items: [
+      { kind: "sua", text: "Màn Tạo đơn trên Safari và iPhone: tên ô Hình thức, Người thu tiền không còn đè lên chữ đã chọn; hai ô cao bằng ô bên cạnh." },
+      { kind: "sua", text: "Thẻ dịch vụ gập lại nay ghi rõ Không đưa đón khi dịch vụ chưa có chặng đưa đón, để biết là chưa nhập chứ không bị ẩn." },
     ],
   },
   {

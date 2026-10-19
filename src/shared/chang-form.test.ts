@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  TU_DO, canHienNgayDon, cauDoiNgay, chiTietChangCoGiaTri, giuDatGapNhap, changDaDoi, changNenGon, changTaoSan, changTuDto, coOSoHieu, doiNgayDi, goiYChang, legInput, loiChang, loiDanhSachChang, suaChang, themChangDi, themChieuVe, tomTatChang,
+  TU_DO, canHienNgayDon, cauDoiNgay, chiTietChangCoGiaTri, chonKhung, giuDatGapNhap, changDaDoi, changNenGon, changTaoSan, changTuDto, coOSoHieu, doiNgayDi, goiYChang, khungDangChon, legInput, loiChang, loiDanhSachChang, suaChang, themChangDi, themChieuVe, tomTatChang,
 } from "./chang-form.ts";
 import { CHO_TOI_THIEU_MAX, CHO_TOI_THIEU_MIN, NOI_DON_CHUA_GHI } from "./chang-dua-don.ts";
 import type { MauChang } from "./chang-mac-dinh.ts";
@@ -15,7 +15,7 @@ let n = 0;
 const k = () => `c${++n}`;
 const dto = (o: Partial<LegDto> = {}): LegDto => ({
   id: "33333333-3333-4333-8333-333333333333", direction: "OUT", pickupDate: "2026-09-30", pickupTime: "07:30", pickupLocationId: KS, pickupPlace: null, pickupLabel: "KS",
-  dropoffLocationId: GA, dropoffPlace: null, dropoffLabel: "Ga", updatedAt: "t1", flightCode: null, paxOverride: null, exclusiveVehicle: false, minVehicleSeats: null, datGap: null, ...o,
+  dropoffLocationId: GA, dropoffPlace: null, dropoffLabel: "Ga", updatedAt: "t1", flightCode: null, paxOverride: null, exclusiveVehicle: false, minVehicleSeats: null, datGap: null, pickupSlotEnd: null, ...o,
 });
 
 test("M6: mẫu Hai chiều tạo sẵn chiều đi + chiều về; nơi trả gợi ý; chiều về đi theo chiều đi; câu ghi chú đúng bản vẽ", () => {
@@ -241,4 +241,34 @@ test("bốn bước: tomTatChang — 'Chiều đi · Đón 07:30 · Khách sạn
   assert.equal(tomTatChang({ ...chang(), pickupTime: "", tra: "" }, tra), "Chiều đi · Chưa chốt giờ · Khách sạn ABC");
   assert.equal(tomTatChang({ ...chang({ direction: "RETURN" }), don: TU_DO, donTuDo: " 12 Trần Phú ", tra: TU_DO, traTuDo: "Sân bay Cam Ranh" }, tra), "Chiều về · Đón 07:30 · 12 Trần Phú → Sân bay Cam Ranh");
   assert.equal(tomTatChang(chang({ pickupLabel: "KS cũ" }), () => null), "Chiều đi · Đón 07:30 · KS cũ → Ga", "điểm không còn trong danh mục: nhãn đã lưu của chặng");
+});
+
+test("ADR-0134 Đ3: chọn khung 08:00–08:30 → legInput gửi pickupTime 08:00 + pickupSlotEnd 08:30; Giờ khác 14:15 → không gửi pickupSlotEnd", () => {
+  const l = themChangDi(null, "2026-09-30", k());
+  const coKhung = chonKhung([l], 0, { tu: "08:00", den: "08:30" });
+  assert.equal(coKhung[0]!.pickupTime, "08:00");
+  assert.equal(coKhung[0]!.pickupSlotEnd, "08:30");
+  const x = legInput({ ...coKhung[0]!, don: KS }, true);
+  assert.equal(x.pickupTime, "08:00");
+  assert.equal(x.pickupSlotEnd, "08:30");
+  // Giờ khác: sửa ô giờ → bỏ cuối khung; thân không có khoá pickupSlotEnd.
+  const khac = suaChang(coKhung, 0, { pickupTime: "14:15" });
+  assert.equal(khac[0]!.pickupSlotEnd, "");
+  const y = legInput({ ...khac[0]!, don: KS }, true);
+  assert.equal(y.pickupTime, "14:15");
+  assert.equal("pickupSlotEnd" in y, false);
+  // Chặng mới chưa chọn gì: cuối khung rỗng, không gửi.
+  assert.equal(l.pickupSlotEnd, "");
+  assert.equal("pickupSlotEnd" in legInput({ ...l, don: KS }, true), false);
+});
+
+test("ADR-0134: changTuDto đọc cuối khung; khungDangChon nhận ra khung đang chọn / Giờ khác / chưa chọn", () => {
+  const KHUNG = [{ tu: "07:30", den: "08:00" }, { tu: "08:00", den: "08:30" }];
+  const a = changTuDto(dto({ pickupTime: "08:00", pickupSlotEnd: "08:30" }), k());
+  assert.equal(a.pickupSlotEnd, "08:30");
+  assert.equal(khungDangChon(a, KHUNG), 1);
+  assert.equal(khungDangChon(changTuDto(dto({ pickupTime: "14:15", pickupSlotEnd: null }), k()), KHUNG), "khac");
+  assert.equal(khungDangChon(themChangDi(null, "2026-09-30", k()), KHUNG), null, "chưa có giờ → chưa chọn");
+  // Khung đã lưu không còn trong bộ hiện hành (Toàn quyền đổi khung) → coi như Giờ khác (giữ giờ đã lưu, không mất dữ liệu).
+  assert.equal(khungDangChon(changTuDto(dto({ pickupTime: "06:00", pickupSlotEnd: "06:30" }), k()), KHUNG), "khac");
 });

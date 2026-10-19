@@ -47,7 +47,7 @@ function one<K extends Kind>(m: ConfirmationModel, kind: K): Extract<Confirmatio
   return all[0]!;
 }
 const build = (o: DonMau, handler: string | null | typeof HANDLER_HIDDEN = "Lê Minh Tuấn", company: CompanyDto = COMPANY): ConfirmationModel =>
-  buildConfirmation(dungBienNhan(o, company, { daTra: o.paid, conLai: o.remaining }), handler);
+  buildConfirmation(dungBienNhan(o, company, { daTra: o.paid, conLai: o.remaining }, null), handler);
 /** Giá trị của dòng nhãn/giá trị có nhãn `label` (undefined = không có dòng đó). */
 const value = (rows: { label: string; value: string }[], label: string): string | undefined => rows.find((r) => r.label === label)?.value;
 const details = (s: OrderServiceDto): { label: string; value: string }[] => one(build(order({ services: [s] })), "service").details;
@@ -332,7 +332,7 @@ test("làm sạch: chuỗi chỉ toàn ký tự điều khiển/bidi coi như r�
 // ---- ADR-0089 đ3, đ9a, đ10 (năm lỗi tiền Đợt 1 Phần C): nhãn tiền, thông báo huỷ, điều khoản huỷ ----
 const HUY = (h: Partial<NonNullable<ReceiptDto["huy"]>> = {}): NonNullable<ReceiptDto["huy"]> => ({ nhom: "KHACH_HUY", daTra: 500_000, dangDoiChieu: 0, daDuyet: 0, daChi: 0, daChuyen: 0, daDuyetChuyen: 0, han: "2027-01-09", ...h });
 const buildHuy = (h: NonNullable<ReceiptDto["huy"]>) =>
-  buildConfirmation(dungBienNhan({ ...order(), status: "cancelled" }, COMPANY, { daTra: h.daTra, conLai: 0, huy: h }), null);
+  buildConfirmation(dungBienNhan({ ...order(), status: "cancelled" }, COMPANY, { daTra: h.daTra, conLai: 0, huy: h }, null), null);
 
 test("NT-V2 (đ9a): đơn huỷ → tiêu đề THÔNG BÁO HUỶ, KHÔNG dòng 'Còn lại', có 'Khách hàng đã trả trước'; khách huỷ chưa duyệt → câu chính sách", () => {
   const m = buildHuy(HUY());
@@ -363,7 +363,36 @@ test("NT-V2 (đ9a): đã duyệt → 'Tour Đảo hoàn Y' (khách huỷ thêm '
 test("NT-V1 + NT-V3 (đ3, đ10): ảnh xác nhận — 'Khách hàng đã trả trước' trước Đã giao, 'Đã thu' sau Đã giao; dòng điều khoản huỷ kèm đường dẫn", () => {
   const truoc = one(build(order()), "summary").rows.map((r) => r.label);
   assert.ok(truoc.includes("Khách hàng đã trả trước") && truoc.includes("Còn lại"));
-  const sau = one(buildConfirmation(dungBienNhan({ ...order(), status: "confirmed", deliveredAt: "2026-10-01T00:00:00.000Z" }, COMPANY, { daTra: 1_000_000, conLai: 0 }), null), "summary").rows.map((r) => r.label);
+  const sau = one(buildConfirmation(dungBienNhan({ ...order(), status: "confirmed", deliveredAt: "2026-10-01T00:00:00.000Z" }, COMPANY, { daTra: 1_000_000, conLai: 0 }, null), null), "summary").rows.map((r) => r.label);
   assert.ok(sau.includes("Đã thu") && !sau.includes("Khách hàng đã trả trước"));
   assert.equal(one(build(order()), "footer").lines[0], "Khi khách huỷ, tiền cọc không được hoàn lại. Xem đầy đủ: tourdao.vn/chinh-sach-thanh-toan");
+});
+
+// Sổ đại lý đợt 2, Task 12 (ADR-0078 điều 10; đặc tả P5): biên nhận có HAI người bán ⇒ khối tổng kết in từng phần (người bán, tổng, đã trả, còn lại / trả tại quầy);
+// chân trang nói Tour Đảo là đối tác đặt vé của phần nhà cung cấp. Một người bán ⇒ y như cũ (không dòng phần).
+test("biên nhận hai phần: tổng kết in từng phần theo người bán; phần nhà cung cấp «Trả tại quầy»; chân trang nêu vai đối tác đặt vé", () => {
+  const goc = dungBienNhan(order({ status: "confirmed" }), COMPANY, { daTra: 1_000_000, conLai: 2_500_000 }, null);
+  const hai: ReceiptDto = {
+    ...goc,
+    phan: [
+      { nguoiBan: "CÔNG TY TNHH TOUR ĐẢO", vaiTourDao: "nguoi_ban", dichVu: ["Tour 4 đảo Nha Trang"], tong: 2_900_000, giamGia: 100_000, daTra: 1_000_000, conLai: 1_900_000, traTaiQuay: false },
+      { nguoiBan: "i-resort", vaiTourDao: "doi_tac_dat_ve", dichVu: ["Vé tắm bùn"], tong: 600_000, giamGia: 0, daTra: 0, conLai: 600_000, traTaiQuay: true },
+    ],
+  };
+  const m = buildConfirmation(hai, "Lê Minh Tuấn");
+  const rows = one(m, "summary").rows;
+  assert.equal(value(rows, "Phần 1 · CÔNG TY TNHH TOUR ĐẢO"), "2.900.000 ₫");
+  assert.equal(value(rows, "Phần 2 · i-resort"), "600.000 ₫");
+  assert.equal(value(rows, "Trả tại quầy i-resort"), "600.000 ₫");
+  // Tổng của cả đơn vẫn ở đầu, không đổi.
+  assert.equal(value(rows, "Tổng cộng"), "3.500.000 ₫");
+  const chan = one(m, "footer").lines.join("\n");
+  assert.match(chan, /Phần 2 do i-resort bán; Tour Đảo là đối tác đặt vé\./);
+  // Phần nhà cung cấp đã trả đủ ⇒ «Còn lại 0 ₫», không «Trả tại quầy … 0 ₫».
+  const du = one(buildConfirmation({ ...hai, phan: [hai.phan[0]!, { ...hai.phan[1]!, daTra: 600_000, conLai: 0 }] }, "Lê Minh Tuấn"), "summary").rows;
+  assert.equal(value(du, "Trả tại quầy i-resort"), undefined);
+  assert.equal(du.filter((r) => r.label === "Còn lại").at(-1)?.value, "0 ₫");
+  // Một phần ⇒ không dòng «Phần …».
+  const motPhan = one(buildConfirmation({ ...goc, phan: [hai.phan[0]!] }, "Lê Minh Tuấn"), "summary").rows;
+  assert.ok(!motPhan.some((r) => r.label.startsWith("Phần ")));
 });

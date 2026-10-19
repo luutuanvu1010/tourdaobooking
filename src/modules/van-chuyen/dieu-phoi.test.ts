@@ -75,7 +75,7 @@ async function don(w: any, v: { ngay: string; gio: string; soNguoi?: number; ten
     as: SALES,
     body: {
       customerName: "Khách Thử", customerPhone: "0912345678", ...(v.handler ? { handlerStaffId: v.handler } : {}),
-      services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: soNguoi, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: v.ngay, legs: [{ ...leg(v.ngay, v.gio, v.noiDon), ...(v.camKet ?? {}) }] }],
+      services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: soNguoi, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: v.ngay, legs: [{ ...leg(v.ngay, v.gio, v.noiDon), ...(v.camKet ?? {}) }] }],
       passengers: Array.from({ length: v.ten ?? soNguoi }, (_x, i) => ({ fullName: `Khách Dò Tìm ${i + 1}`, birthYear: 1990 + i, paxCode: "adult" })),
     },
   });

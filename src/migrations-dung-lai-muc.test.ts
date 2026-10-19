@@ -29,7 +29,7 @@ function dungTruoc(): DatabaseSync {
   assert.ok(FILE, "thiếu migrations/*_dung_lai_muc_hoa_hong.sql");
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = OFF");
-  // Trừ 0114 (ADR-0133): bảng phụ của nó trỏ `prc_commission_rule`, mà trên production luôn áp SAU 0097 — áp trước 0097 thì DROP bảng cha làm trigger của nó hỏng.
+  // Trừ 0116 (ADR-0133): bảng phụ của nó trỏ `prc_commission_rule`, mà trên production luôn áp SAU 0097 — áp trước 0097 thì DROP bảng cha làm trigger của nó hỏng.
   for (const f of files.filter((x) => x !== FILE && !x.endsWith("_chiet_khau_theo_loai_khach.sql"))) db.exec(readFileSync(new URL(f, DIR), "utf8"));
   db.exec("PRAGMA foreign_keys = ON");
   gieo(db);

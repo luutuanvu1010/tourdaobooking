@@ -269,7 +269,7 @@ export function locHopThongBao(
     if (!cau || !(cho ? duyetDuoc : rieng)) continue;
     tat.push({
       id: d.id, loai: "dieu_chinh", cau: d.tenNguoiLam !== null && xemTenNguoiLam(staff) ? cau.coTen(d.tenNguoiLam, d.maDon) : cau.khongTen(d.maDon), maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
-      lienKet: cho || can(staff, "ledger.write") ? "/dieu-chinh-cong-no" : isOffice(staff) ? "/order" : "/account", luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
+      lienKet: (cho || can(staff, "ledger.write")) && !holdsPartner(staff) ? "/dieu-chinh-cong-no" : isOffice(staff) ? "/order" : "/account", luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
     });
   }
   for (const t of vao.thuCong) {

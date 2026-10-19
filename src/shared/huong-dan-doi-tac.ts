@@ -57,7 +57,7 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
    - Dịch vụ có nhãn "chưa có giá" hoặc "chưa hỗ trợ" thì không chọn được.
    - Dịch vụ vừa chạm hiện "✓ đã thêm" và thẻ dịch vụ hiện bên dưới. Mỗi lúc chỉ một thẻ mở; chạm dòng gập của thẻ để mở lại.
 4. Trong thẻ dịch vụ, nhập **Số khách**: **Người lớn**, **Trẻ em**… tuỳ dịch vụ. Dòng tiền tự hiện, ví dụ "2 người lớn × giá = thành tiền". Cả đơn cần ít nhất một người lớn đi cùng; trẻ em và em bé không đi một mình.
-5. Phần **Đưa đón** trên thẻ: ghi **Giờ đón**, **Nơi đón**, **Nơi trả** (chọn điểm có sẵn hoặc gõ tự do). Bấm [[Thông tin chuyến]] để ghi giờ và nơi khách có mặt, **Ghi chú dịch vụ**.
+5. Phần **Đưa đón** trên thẻ: chọn **Đón** hoặc **Không đón** (bắt buộc trước khi xác nhận). Chọn **Đón** thì ghi giờ đón (chạm một khung giờ có sẵn, hoặc **Giờ khác** để tự gõ), **Nơi đón**, **Nơi trả** (chọn điểm có sẵn hoặc gõ tự do). Giờ đón thực tế có thể được điều chỉnh cho phù hợp tình hình hoạt động. Bấm [[Thông tin chuyến]] để ghi giờ và nơi khách có mặt, **Ghi chú dịch vụ**.
 6. Phần **Thanh toán**: khách đã trả trước thì gõ **Thanh toán trước (₫)**, rồi chọn **Hình thức** và **Người thu tiền** (hai ô này chỉ hiện khi đã gõ số).
 7. Xem tổng tiền ở thanh dưới cùng (chạm để xem chi tiết); trên máy tính là khối **Tóm tắt** bên phải.
 8. Bấm [[Lưu, chờ xác nhận]]. Thiếu gì thì khung đỏ hiện ngay trên nút. Lưu xong, Nền tảng mở trang của đơn vừa lập.
@@ -67,7 +67,7 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
 ### Giá của đối tác
 
 - Đơn giá là giá bán lẻ của danh mục. Thẻ dịch vụ của bạn không có nút **Sửa giá** như của văn phòng.
-- Ô **Giảm giá** khoá, kèm dòng "Tài khoản đối tác tạm chưa được giảm giá."
+- Ô **Giảm giá**: đơn bạn được hưởng hoa hồng thì giảm được tới mức hoa hồng của đơn; còn lại ô khoá.
 - Bạn không thêm được dịch vụ nhập tay (dịch vụ ngoài danh mục).
 - Muốn giảm giá, dùng giá khác hay thêm dịch vụ ngoài danh mục thì **nhờ văn phòng**.
 
@@ -90,6 +90,7 @@ Tài khoản đối tác không chọn được hướng dẫn viên khi lập �
 Sau khi xác nhận, dịch vụ, số khách và tiền **bị khoá**.
 
 Nền tảng **không cho xác nhận** khi:
+- Có dịch vụ chưa chọn Đón hay Không đón. Nền tảng báo dịch vụ thứ mấy còn thiếu. Bấm [[Sửa]] để chọn.
 - Thiếu thông tin chuyến. Nền tảng báo "Chưa đủ thông tin chuyến để xác nhận đơn." và chỉ rõ dịch vụ còn thiếu. Bấm [[Sửa]] để bổ sung.
 - Giờ đón quá gần. Dưới nút có dòng "Cần Quản trị duyệt đặt gấp". Gọi văn phòng để Quản trị duyệt. Khi đã duyệt, đơn có nhãn "Đặt gấp — Quản trị đã duyệt" và bạn xác nhận được.
 - Đơn có giá khác giá bán lẻ hoặc có giảm giá. Nền tảng báo "Tài khoản đối tác dùng đúng giá bán lẻ theo danh mục; muốn giá khác, nhờ văn phòng."`,

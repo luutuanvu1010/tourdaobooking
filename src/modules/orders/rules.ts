@@ -154,6 +154,10 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
   // ADR-0114 D3: mỗi đơn có ít nhất một người lớn đi cùng, tính trên CẢ ĐƠN (người cao tuổi là người đi kèm; dịch vụ nhập tay / theo nhóm: ô số khách ở `adult`).
   // Lập đơn VÀ lưu nháp cùng đi qua đây; cửa chuyển sang xác nhận (index.ts) và sửa số khách (money-adjustment.ts `planMoneyEdit`) là hai cửa còn lại.
   if (donThieuNguoiLon(services.map((s) => s.pax))) return fail(CAU_THIEU_NGUOI_LON);
+  // ADR-0134 Đ7 (khuôn `withLegs`): khoá `pickupChoice` có ở MỌI dịch vụ hoặc không dịch vụ nào — không có = máy chưa tải bản mới (giữ giá trị đang lưu của dịch vụ, dịch vụ mới NULL — không lỗi);
+  // trộn = thân hỏng giữa chừng → 400. Bắt buộc chọn chỉ ở cửa xác nhận (`thieuChonDon`, index.ts), không ở đây.
+  const coKhoaChonDon = b.services.map((raw) => !!raw && typeof raw === "object" && "pickupChoice" in (raw as object));
+  if (coKhoaChonDon.some(Boolean) && !coKhoaChonDon.every(Boolean)) return fail("Dữ liệu chọn đưa đón không đồng nhất giữa các dịch vụ — hãy tải lại trang rồi thử lại.");
   const withLegsResult = withLegs(b.services, services, ctx);
   if (!withLegsResult.ok) return withLegsResult;
   services.splice(0, services.length, ...withLegsResult.services);

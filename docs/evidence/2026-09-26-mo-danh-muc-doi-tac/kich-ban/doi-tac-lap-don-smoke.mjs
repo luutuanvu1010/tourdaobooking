@@ -33,7 +33,7 @@ mkdirSync(join(OUT, "anh"), { recursive: true });
 const DESK = { width: 1040, height: 800, mobile: false };
 const MOB = { width: 390, height: 844, mobile: true };
 
-const PARTNER_NOTE = "Tài khoản đối tác tạm chưa được giảm giá.";
+const PARTNER_NOTE = "Chỉ giảm được trên đơn bạn hưởng hoa hồng."; // sổ đại lý đợt 2 Task 12 (Ruling R-124): câu cho Đối tác KHÔNG được hưởng (benDatCuaToi null); câu cũ «tạm chưa được giảm giá» đã bỏ
 const INTERN_NOTE = "Tài khoản Thực tập không được giảm giá."; // ADR-0100: trần giảm giá của Thực tập là 0, không phải «tạm» như Đối tác
 const CATALOG_ERR = "Không tải được danh mục";
 const TD101_ADULT = 1350000;
@@ -343,7 +343,7 @@ try {
   const donDaXacNhan = async (ai, ten) => {
     const r = await call(ai, "POST", "/api/orders", {
       customerName: ten, customerPhone: "0903 555 888", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
-      services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: TD101_ADULT }, departDate: vnDate(3), departTime: "", pickupTime: "07:30", pickupPlace: "Khách sạn Biển Xanh", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" }],
+      services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: TD101_ADULT }, departDate: vnDate(3), departTime: "", pickupTime: "07:30", pickupPlace: "Khách sạn Biển Xanh", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" }],
     });
     assert.equal(r.status, 201, `lập đơn: ${JSON.stringify(r.json)}`);
     const c = await call(ai, "POST", `/api/orders/${r.json.order.id}/status`, { status: "confirmed" });

@@ -8,6 +8,8 @@ import type { LyDoSuaSai } from "./giay-to.ts";
 import type { NhomLyDo } from "./dieu-phoi-kieu.ts";
 import type { PermissionCode } from "./permissions.ts";
 import type { RoleCode } from "./roles.ts";
+import type { BanChup } from "./hoa-hong-dong.ts";
+import type { KhungGio, LuaChonDon } from "./khung-gio-don.ts";
 
 export type { AuditAction, AuditTargetType, FeedbackKind, FeedbackStatus, CatalogService, LyDoSuaSai, PaxCode, PaxCounts, PermissionCode, Prices, RoleCode };
 
@@ -217,6 +219,12 @@ export interface GiaoDienLoiBody { error: { code: "invalid_input"; message: stri
 export interface NhapTayResponse { batNhapTay: boolean; duocDung: boolean; doiDuoc: boolean }
 /** Thân `POST /api/cai-dat/nhap-tay` (chỉ Toàn quyền). */
 export interface NhapTayRequest { batNhapTay: boolean }
+
+// ---- Khung giờ đón (ADR-0134 Đ5, Đ6; module `orders`) ----
+/** `GET`/`POST /api/cai-dat/khung-gio-don`: bộ khung đang hiệu lực + câu lưu ý; `doiDuoc` = người gọi đổi được (ô `settings.ops` — chỉ Toàn quyền). */
+export interface KhungGioDonResponse { khung: KhungGio[]; luuY: string; doiDuoc: boolean }
+/** Thân `POST /api/cai-dat/khung-gio-don` (chỉ Toàn quyền): 1–12 khung sắp tăng không chồng, câu lưu ý 1–200 ký tự. */
+export interface KhungGioDonRequest { khung: KhungGio[]; luuY: string }
 /** Thân `PUT /api/maintenance`. `endsAt` bắt buộc khi `on = true`. */
 export interface MaintenanceRequest { on: boolean; endsAt?: string }
 /** Thân `error` của phản hồi 503 `maintenance` (mọi `/api/*` cần đăng nhập với người bị chặn, và `POST /api/auth/login`): `endsAt` để giao diện dựng đồng hồ đếm ngược mà không cần gọi thêm. */
@@ -288,6 +296,8 @@ export interface OrderServiceDto extends TripInfoDto {
   catalogStatus: CatalogStatus | null;
   /** Chặng đưa đón còn hiệu lực (ADR-0047 A1), xếp theo ngày, giờ đón, chiều. Rỗng = không có hẹn đón. */
   legs: LegDto[];
+  /** Lựa chọn đón (ADR-0134 Đ1): "Đón" / "Không đón"; null = chưa chọn hoặc đơn lập trước ADR. Nhãn ở `NHAN_LUA_CHON_DON` — không hiện mã. */
+  pickupChoice: LuaChonDon | null;
 }
 
 export interface OrderDto {
@@ -380,6 +390,11 @@ export type ServiceInput = {
    * `pickupTime`/`pickupPlace` cũ vào chặng chiều đi đầu (tương thích phát hành 1 — R2b; máy chưa tải bản mới).
    */
   legs?: LegInput[];
+  /**
+   * Lựa chọn đón (ADR-0134 Đ1, Đ7): "DON" / "KHONG_DON"; null = chưa chọn (lưu nháp được, xác nhận bị chặn 409 `pickup_choice_required`). Khoá phải có ở
+   * MỌI dịch vụ hoặc không dịch vụ nào (máy chưa tải bản mới — máy chủ giữ giá trị đang lưu của dịch vụ, dịch vụ mới NULL; không lỗi); trộn → 400.
+   */
+  pickupChoice?: LuaChonDon | null;
 } & Omit<TripInput, "pickupTime" | "pickupPlace"> &
   /** Hai khoá CŨ (tương thích phát hành 1): form mới KHÔNG gửi (ADR-0047 Phần B); vắng = không đụng chặng. */
   Partial<Pick<TripInput, "pickupTime" | "pickupPlace">> &
@@ -457,9 +472,14 @@ export interface LegInput {
   exclusiveVehicle?: boolean;
   /** Cam kết "xe tối thiểu N chỗ" KHÔNG kể tài xế (ADR-0056 VK3-A): số nguyên 1..100; `null` hoặc "" = bỏ. VẮNG khoá = GIỮ giá trị đang lưu. */
   minVehicleSeats?: number | null;
+  /**
+   * Giờ CUỐI khung đón (ADR-0134 Đ3; HH:MM, sau `pickupTime`): gửi khi người lập chọn một khung (`pickupTime` = giờ đầu khung); vắng / "" = "Giờ khác". Chỉ
+   * lập đơn, lưu nháp, thêm / thay chặng nhận khoá này; route sửa chặng KHÔNG nhận — đổi giờ đón ở đó thì máy chủ tự xoá cuối khung, giữ giờ thì giữ.
+   */
+  pickupSlotEnd?: string;
 }
-/** `PUT /api/orders/:id/legs/:legId` — sửa trường vận hành của chặng (không đổi chiều, không đổi dịch vụ). */
-export type LegEditInput = Omit<LegInput, "id" | "direction">;
+/** `PUT /api/orders/:id/legs/:legId` — sửa trường vận hành của chặng (không đổi chiều, không đổi dịch vụ; cuối khung theo luật ở `LegInput.pickupSlotEnd`). */
+export type LegEditInput = Omit<LegInput, "id" | "direction" | "pickupSlotEnd">;
 
 /** Một chặng CÒN HIỆU LỰC trả về trong chi tiết đơn. `pickupLabel`/`dropoffLabel` = tên điểm danh mục hoặc chữ tự do (null = nơi trả chưa chốt). */
 export interface LegDto {
@@ -482,6 +502,8 @@ export interface LegDto {
   exclusiveVehicle: boolean;
   /** Cam kết xe tối thiểu N chỗ, không kể tài xế (ADR-0056 VK3-A); null = không cam kết. */
   minVehicleSeats: number | null;
+  /** Giờ cuối khung đón (ADR-0134 Đ3); null = "Giờ khác" hoặc chưa chọn khung. Hiện "07:30–08:00" khi có. */
+  pickupSlotEnd: string | null;
   /**
    * Dấu ĐẶT GẤP của chặng (ADR-0049 D2; chủ H4 / N-14, 29/9): `null` = chặng không đặt gấp. Văn phòng (ô `order.leg.short_notice.view`) nhận ĐỦ
    * (`DatGapDayDuDto`); Đối tác, HDV, Thực tập CHỈ nhận cờ `{ daDuyet: true }` — khoá lý do, người, lúc, ghi chú VẮNG MẶT.
@@ -598,6 +620,12 @@ export interface DongLichSuSoKhachDto {
 export interface OrderDetailResponse {
   order: OrderDetailDto; history: AuditEntryDto[]; canModify: boolean; mocToiThieuPhut: number | null; suaSoKhach: SuaSoKhachDichVuDto[] | null;
   canhBaoKhuyenMai: string | null; lichSuSoKhach: DongLichSuSoKhachDto[] | null;
+  /**
+   * Sổ đại lý đợt 2, Task 7 (ADR-0079 điều 8 gạch 3): đơn đã xác nhận CÓ người hưởng mà giảm giá hiệu lực lớn hơn tổng hoa hồng theo bản chụp hiện hành (thường do bớt khách) ⇒ số tiền
+   * vượt (VNĐ, > 0) — không chặn, màn đơn hiện «Giảm giá đang lớn hơn hoa hồng X ₫ — đại lý chịu phần này». null khi không vượt, khách lẻ, còn dòng thiếu mức, hoặc người xem không được
+   * xem phần thương mại của đơn (luật `cheDoThuongMai`, kể cả tài khoản lai Đối tác).
+   */
+  canhBaoGiamGia: { vuot: number } | null;
 }
 /**
  * `POST /api/orders/:id/money-edit` (ADR-0063 D1): đơn HIỆN HÀNH sau lần sửa; `daGhi` false = số khách y nguyên, không ghi gì; `canhBaoTongAm` (tên khoá GIỮ, nghĩa
@@ -2092,11 +2120,24 @@ export interface OrderPaymentsResponse {
   laKeToan: boolean;
   /**
    * Thao tác Kế toán đặt TẠM trên trang đơn (điều phối 30/9 — hai màn sổ riêng chờ chủ vẽ lại): CHỈ có khi `laKeToan`, còn lại `null`.
-   * `dangGiu` = ai đang giữ tiền của công ty VÌ ĐƠN NÀY (số dư dương của sổ, theo đơn); `choXacNhan` = id khoản thu "Công ty thu – CK" chưa được xác nhận.
+   * `dangGiu` = ai đang giữ tiền của công ty VÌ ĐƠN NÀY (số dư dương của sổ, theo đơn); `choXacNhan` = id khoản thu "Công ty thu" chưa được xác nhận (nút
+   * «Công ty đã nhận»); `choBenKia` = id khoản thu khách trả cho bên đặt / tại quầy nhà cung cấp chờ «Bên kia đã nhận» (ADR-0132).
    */
-  keToan: { dangGiu: { partyId: string; ten: string; soTien: number; choXacNhan: number }[]; choXacNhan: string[] } | null;
+  keToan: { dangGiu: { partyId: string; ten: string; soTien: number; choXacNhan: number }[]; choXacNhan: string[]; choBenKia: string[] } | null;
   /** ADR-0089: tiền cọc của ĐƠN HUỶ (null với đơn không huỷ). */
   coc: CocDonDto | null;
+  /**
+   * Sổ đại lý đợt 2, Task 12 (ADR-0132; đặc tả P4): hai lựa chọn người thu tiền mới của form «Ghi khoản thu» — đại lý được hưởng của đơn và quầy nhà cung cấp của các
+   * dòng làm đại lý, tính bằng CÙNG `benDatHuong` / `nhaCungCapCuaDon` của lệnh ghi. null khi: người xem giữ quyền Đối tác (kể cả tài khoản lai — không tên nhà cung cấp),
+   * người xem không ghi khoản thu được, đơn không còn ghi khoản thu được (nháp, chưa chụp, đã giao, huỷ), hoặc đơn không có bên nào.
+   */
+  benKia: BenKiaLuaChonDto | null;
+}
+
+/** Bên đặt (đại lý được hưởng — chỉ tên; máy chủ tự lấy hồ sơ khi nhận `"ben_dat"`) và các quầy nhà cung cấp (id + tên, cho `{ nhaCungCapPartyId }` và «thu cho»). */
+export interface BenKiaLuaChonDto {
+  benDat: { ten: string } | null;
+  nhaCungCap: { partyId: string; ten: string }[];
 }
 
 /** Một khoản duyệt hoàn cọc (đ4a, đ6) trên trang đơn huỷ. */
@@ -2170,8 +2211,11 @@ export interface CocListResponse {
   donHuyGiuCoc: { orderId: string; maDon: string; nhom: string; nhomNhan: string; conGiu: number; han: string; sapHetHan: boolean; legacy: boolean }[];
   /** Đơn huỷ còn người giữ tiền mặt của công ty (đ11). */
   conNguoiGiu: { orderId: string; maDon: string; nguoi: string; soTien: number }[];
-  /** Khoản "Công ty thu" chờ Kế toán đối chiếu (ADR-0120 Điều 1.3): `qua3Ngay` = khai quá 3 ngày ⇒ nhắc. `ngayKhai` ngày dân sự giờ VN. */
-  doiChieu: { receiptId: string; orderId: string; maDon: string; soTien: number; ngayKhai: string; qua3Ngay: boolean }[];
+  /**
+   * Khoản chờ Kế toán đối chiếu (ADR-0120 Điều 1.3; ADR-0132): `qua3Ngay` = khai quá 3 ngày ⇒ nhắc. `ngayKhai` ngày dân sự giờ VN. `loai` = nút xác nhận nó
+   * («Công ty đã nhận» cho "cong_ty"; «Bên kia đã nhận» cho "ben_dat" / "nha_cung_cap"); `benKia` = tên bên đặt / nhà cung cấp, null với Công ty thu.
+   */
+  doiChieu: { receiptId: string; orderId: string; maDon: string; soTien: number; ngayKhai: string; qua3Ngay: boolean; loai: "cong_ty" | "ben_dat" | "nha_cung_cap"; benKia: string | null }[];
 }
 /** `GET /api/ledger/coc/doi-chieu` — đơn huỷ CŨ còn giữ tiền để đối chiếu "đã hoàn ngoài hệ thống" (đ16). */
 export interface CocDoiChieuResponse {
@@ -2191,8 +2235,14 @@ export interface CocDemResponse {
 export interface LanThuInput {
   soTien: number;
   hinhThuc: "CASH" | "BANK_TRANSFER" | "OTHER";
-  /** "toi" = chính người ghi; "cong_ty" = Công ty thu (chuyển khoản vào tài khoản công ty…); { partyId } = người khác — CHỈ Kế toán / Toàn quyền. */
-  nguoiThu: "toi" | "cong_ty" | { partyId: string };
+  /**
+   * "toi" = chính người ghi; "cong_ty" = Công ty thu (chuyển khoản vào tài khoản công ty…); { partyId } = người khác — CHỈ Kế toán / Toàn quyền.
+   * Sổ đại lý đợt 2 (ADR-0132): "ben_dat" = khách trả cho đại lý đặt đơn; { nhaCungCapPartyId } = khách trả tại quầy nhà cung cấp của một dịch vụ trên đơn —
+   * người không phải Kế toán chọn thì là LỜI KHAI chờ Kế toán «Bên kia đã nhận» (không ai nợ tới lúc đó); không đi kèm «Đã giao» (400).
+   */
+  nguoiThu: "toi" | "cong_ty" | "ben_dat" | { partyId: string } | { nhaCungCapPartyId: string };
+  /** «Thu cho» nhà cung cấp của một dịch vụ trên đơn (ADR-0078 điều 9); vắng = Tour Đảo. Trần: phần còn chưa thu cho nhà cung cấp đó. */
+  thuChoNhaCungCapPartyId?: string;
   ngayPhatSinh?: string;
   ghiChu?: string;
   /** ADR-0092 Đ6 (C1): BẮT BUỘC khi hình thức chuyển khoản + Công ty thu + người ghi là Kế toán / Toàn quyền; người khác gửi ⇒ 400. */
@@ -2229,7 +2279,8 @@ export interface SoCuaToiResponse {
 /** `GET /api/ledger` (Kế toán, Toàn quyền): số dư từng bên với công ty, khoản "Công ty thu" chờ xác nhận, khoản thu chưa rõ người thu. */
 export interface SoCongNoResponse {
   soDu: { partyId: string; ten: string; dangGiu: number }[];
-  choXacNhan: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string; nguoiKhai: string }[];
+  /** Khoản chờ xác nhận — `loai` / `benKia` như `CocListResponse.doiChieu` (ADR-0132). */
+  choXacNhan: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string; nguoiKhai: string; loai: "cong_ty" | "ben_dat" | "nha_cung_cap"; benKia: string | null }[];
   chuaRo: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string }[];
 }
 
@@ -2246,7 +2297,8 @@ export interface YeuCauDieuChinhDto {
   benNo: string;
   benDuocNo: string;
   soTien: number;
-  loaiDong: "HELD" | "SETTLEMENT" | "REFUND";
+  /** Sổ đại lý đợt 2 (Task 6): thêm ba loại dòng thương mại — điều chỉnh cho đơn đã «Đã giao» (bổ sung giá vốn, ví dụ D-3). */
+  loaiDong: "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON";
   loaiDongNhan: string;
   ngayPhatSinh: string;
   lyDo: string;
@@ -2346,6 +2398,28 @@ export interface ReceiptDto {
    * `dangDoiChieu` = khoản khai chuyển khoản chưa xác nhận, `daDuyet` / `daChi` / `daChuyen` theo khoản duyệt, `han` = hạn hoàn cọc (chỉ nhóm khách huỷ hứa ngày).
    */
   huy: { nhom: "KHACH_HUY" | "CONG_TY_HUY" | "LAP_LAI" | "CHUA_KET_LUAN"; daTra: number; dangDoiChieu: number; daDuyet: number; daChi: number; daChuyen: number; daDuyetChuyen: number; han: string } | null;
+  /**
+   * Sổ đại lý đợt 2 (ADR-0078 điều 10; đặc tả P5): các phần của biên nhận, MỖI NGƯỜI BÁN một phần — phần Tour Đảo đứng đầu, rồi nhà cung cấp theo thứ tự dịch vụ.
+   * Đơn chỉ một người bán ⇒ một phần; đơn huỷ ⇒ mảng rỗng (biên nhận huỷ đọc `huy`). Danh sách trắng KHÔNG đổi: không a%, giá vốn, hoa hồng, tên người thu, hình thức.
+   * Luật chia (`chiaPhanBienNhan`, module receipt): xem `ReceiptPhanDto`. Σ `tong` = `total`; Σ `daTra` = `daTra`; Σ `conLai` = `conLai`.
+   */
+  phan: ReceiptPhanDto[];
+}
+/**
+ * Một phần của biên nhận (sổ đại lý đợt 2, Task 8). `nguoiBan` = tên người bán (Tour Đảo: tên pháp lý công ty chủ); `vaiTourDao` = vai của Tour Đảo trong phần này
+ * («nguoi_ban» khi Tour Đảo bán; «doi_tac_dat_ve» khi nhà cung cấp bán, Tour Đảo là đối tác đặt vé); `dichVu` = tên các dịch vụ của phần; `tong` = số khách phải trả
+ * cho phần này SAU giảm giá; `giamGia` = phần giảm giá đã trừ vào phần này (giảm giá trừ vào phần Tour Đảo trước — Ruling R-81 sổ thi công); `daTra` = đã trả cho
+ * phần này theo «thu cho ai» của khoản thu (không chọn ⇒ phần Tour Đảo); `conLai` ≥ 0; `traTaiQuay` = còn lại trả tại quầy người bán (phần nhà cung cấp).
+ */
+export interface ReceiptPhanDto {
+  nguoiBan: string;
+  vaiTourDao: "nguoi_ban" | "doi_tac_dat_ve";
+  dichVu: string[];
+  tong: number;
+  giamGia: number;
+  daTra: number;
+  conLai: number;
+  traTaiQuay: boolean;
 }
 export interface ReceiptResponse { receipt: ReceiptDto }
 
@@ -2621,3 +2695,21 @@ export interface ThuongMaiDoiTacDto {
   tong: { thanhTien: number; hoaHong: number | null; giaDaiLy: number | null };
 }
 export type ThuongMaiResponse = { vanPhong: ThuongMaiVanPhongDto } | { doiTac: ThuongMaiDoiTacDto };
+/**
+ * Sổ đại lý đợt 2, Task 6 (ADR-0079 điều 7 b2, C4 = A): `GET /api/orders/cho-chup-bu` — đơn ĐÃ XÁC NHẬN, chưa «Đã giao», CHƯA có bản chụp nào (xác nhận trước khi có bảng
+ * mức), chờ Kế toán bấm «Chụp bù» (ô `order.terms.override`; tài khoản giữ quyền Đối tác không gọi được). `ngayXacNhan` = ngày giờ Việt Nam của lúc xác nhận (trống ⇒ lúc tạo
+ * đơn) — chính là ngày «Chụp bù» lấy mức. `benDat` = tên hồ sơ bên đặt (null = khách lẻ không ghi bên đặt). `lyDo`: `nhap_tay` = đơn có dòng dịch vụ nhập tay («Chụp bù» chụp cả
+ * đơn, dòng nhập tay ra thiếu mức rồi Kế toán ghi mức tay — Ruling R-P13); `co_nguoi_huong` = bên đặt mang vai được hưởng / vai bên ngoài / loại đối tác; `khach_le` = còn lại
+ * (đơn khách lẻ mà migration chụp bù tự động không chụp — Ruling sổ thi công Task 6).
+ * Không tên / SĐT khách, không số tiền.
+ */
+export interface ChoChupBuDto {
+  orderId: string;
+  maDon: string;
+  ngayXacNhan: string;
+  benDat: string | null;
+  lyDo: "co_nguoi_huong" | "nhap_tay" | "khach_le";
+}
+export interface ChoChupBuResponse { don: ChoChupBuDto[] }
+/** `POST /api/orders/:id/chup-bu` — bản chụp vừa ghi (mức của ngày xác nhận), mỗi dòng dịch vụ một bản. Chỉ người giữ `order.terms.override` (luôn có `supply.terms.view`). */
+export interface ChupBuResponse { chup: BanChup[] }

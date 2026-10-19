@@ -20,7 +20,7 @@ try {
   };
   const created = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     customerName: "Khách Sổ Tiền", customerPhone: "0903 222 333", customerEmail: "", customerNote: "", discount: 0, paymentNote: "",
-    services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000, infant: 0 },
+    services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000, infant: 0 },
       departDate: vnDate(3), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" }],
   });
   assert.equal(created.status, 201, JSON.stringify(created.json));
@@ -85,7 +85,7 @@ try {
   // ---- 4) Kế toán (390): thao tác đặt TẠM trên trang đơn (điều phối 30/9) — xác nhận CK, ghi hoàn khách trả dư, ghi đã nộp; Đảo đòi lý do ----
   const c2 = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     customerName: "Khách Kế Toán", customerPhone: "0903 444 555", customerEmail: "", customerNote: "", discount: 0, paymentNote: "",
-    services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000, infant: 0 },
+    services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000, infant: 0 },
       departDate: vnDate(3), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" }],
   });
   assert.equal(c2.status, 201, JSON.stringify(c2.json));

@@ -13,14 +13,14 @@ const SALES = U(1), ADMIN = U(2), SUPER = U(3), PARTNER = U(4), INTERN = U(5), I
 const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
 const GIA = 500000; // giá danh mục người lớn của ZA1
 const catalogSvc = (unitPrice?: number) => ({
-  kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: GIA }, departDate: inDays(3),
+  kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: GIA }, departDate: inDays(3),
   ...(unitPrice === undefined ? {} : { unitPrices: { adult: unitPrice } }),
 });
 const donBody = (services: unknown[], extra: Record<string, unknown> = {}) => ({ customerName: "Khách Thử", customerPhone: "0912345678", services, ...extra });
 
 const CAU_THUC_TAP = "Tài khoản Thực tập chỉ dùng giá danh mục, không giảm giá — nhờ nhân viên Bán hàng nếu cần giá khác.";
 const CAU_GIA_DOI_TAC = "Tài khoản đối tác dùng đúng giá bán lẻ theo danh mục; muốn giá khác, nhờ văn phòng.";
-const CAU_GIAM_DOI_TAC = "Tài khoản đối tác chưa được giảm giá: mức giảm tối đa bằng mức chiết khấu Tour Đảo dành cho đối tác, mà mức này chưa được thiết lập. Muốn giảm cho khách, nhờ văn phòng.";
+const CAU_GIAM_DOI_TAC = "Tài khoản đối tác không giảm giá được trên đơn này: chỉ đơn mà chính bạn được hưởng hoa hồng mới giảm được, tối đa bằng hoa hồng đó. Muốn giảm cho khách, nhờ văn phòng.";
 
 function setup() {
   const w = world();

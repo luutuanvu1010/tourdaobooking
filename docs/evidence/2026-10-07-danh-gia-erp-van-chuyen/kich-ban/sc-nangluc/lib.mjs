@@ -32,7 +32,7 @@ export async function donTuy(w, v) {
       customerName: "Khách Liên Hệ Dò Tìm", customerPhone: v.sdt ?? "0912345678", customerNote: "Ghi chú Dò Tìm", paymentNote: "Thanh toán Dò Tìm",
       services: [{
         kind: "catalog", catalogCode: "ZA1", pax: { adult: soNguoi, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: v.ngay ?? NGAY,
-        legs: v.legs,
+        legs: v.legs, pickupChoice: v.legs?.length ? "DON" : "KHONG_DON",
       }],
       passengers: Array.from({ length: v.ten ?? soNguoi }, (_x, i) => ({ fullName: `${v.tenGoc ?? "Khách Dò Tìm"} ${i + 1}`, birthYear: 1990 + i, paxCode: "adult" })),
     },

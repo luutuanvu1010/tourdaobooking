@@ -18,7 +18,7 @@ const base = { customerName: "Khách Đặt Gấp", customerPhone: "0903 000 111
 const donMoi = async (ai, ten) => {
   const r = await call(ai, "POST", "/api/orders", {
     ...base, customerName: ten,
-    services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, ...NO_TRIP, departDate: MAI, pickupTime: "10:00", pickupPlace: "Sheraton Nha Trang" }],
+    services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, ...NO_TRIP, departDate: MAI, pickupTime: "10:00", pickupPlace: "Sheraton Nha Trang" }],
   });
   assert.equal(r.status, 201, r.text);
   return r.json.order;

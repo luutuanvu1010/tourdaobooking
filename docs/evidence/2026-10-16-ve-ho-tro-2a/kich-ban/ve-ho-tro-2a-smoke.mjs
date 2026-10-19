@@ -72,7 +72,7 @@ try {
   }
   const don = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     customerName: "Khách Kiểm Hỗ Trợ", customerPhone: "0909 000 222", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
-    services: [{ kind: "catalog", catalogCode: "TTB06", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 800000 }, departDate: "", departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" }],
+    services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TTB06", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 800000 }, departDate: "", departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" }],
   });
   assert.equal(don.status, 201, `0. lập đơn: ${JSON.stringify(don.json)}`);
   const donId = don.json.order?.id ?? don.json.id;

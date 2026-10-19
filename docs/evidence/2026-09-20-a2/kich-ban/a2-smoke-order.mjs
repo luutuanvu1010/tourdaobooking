@@ -28,8 +28,8 @@ try {
   const created = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     ...base, discount: 100000,
     services: [
-      { kind: "catalog", catalogCode: "TD101", pax: pax(2, 1), unitPrices: { adult: 1300000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá", checkinTime: "09:00" },
-      { kind: "catalog", catalogCode: "TTB06", pax: pax(1), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP },
+      { kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: pax(2, 1), unitPrices: { adult: 1300000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá", checkinTime: "09:00" },
+      { kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TTB06", pax: pax(1), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP },
     ],
   });
   assert.equal(created.status, 201, JSON.stringify(created.json));
@@ -112,7 +112,7 @@ try {
   // ---- 3b) (2026-09-26, DK-T3-01) LƯU form sửa đơn nháp CŨ có dịch vụ nhập tay: đổi số khách của thẻ nhập tay rồi Lưu → máy chủ nhận (tên + dòng tiền
   //      gửi lại nguyên văn), dịch vụ vẫn là nhập tay, tiền không đổi, số khách mới được lưu. Đơn RIÊNG (không đụng luồng của đơn 1). ----
   {
-    const c3 = await call(ACCOUNTS.salesA, "POST", "/api/orders", { ...base, customerName: "Khách Nhập Tay Cũ", services: [{ kind: "catalog", catalogCode: "TTB06", pax: pax(1), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(9) }] });
+    const c3 = await call(ACCOUNTS.salesA, "POST", "/api/orders", { ...base, customerName: "Khách Nhập Tay Cũ", services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TTB06", pax: pax(1), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(9) }] });
     assert.equal(c3.status, 201, JSON.stringify(c3.json));
     const sid = c3.json.order.services[0].id;
     env.sql(`UPDATE order_service SET catalog_code = NULL, unit = 'manual', name = 'Xe đưa đón riêng', pax_adult = 3 WHERE id = '${sid}'`);
@@ -158,8 +158,8 @@ try {
   const second = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     ...base, customerName: "Khách Nhãn Danh Mục",
     services: [
-      { kind: "catalog", catalogCode: "TD101", pax: pax(1), unitPrices: { adult: 1350000 }, catalogPriceSeen: { adult: 1350000 }, ...NO_TRIP, departDate: vnDate(8) },
-      { kind: "catalog", catalogCode: "TTB03", pax: pax(5), unitPrices: { adult: 1500000 }, catalogPriceSeen: { adult: 1500000 }, ...NO_TRIP, departDate: vnDate(8) },
+      { kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TD101", pax: pax(1), unitPrices: { adult: 1350000 }, catalogPriceSeen: { adult: 1350000 }, ...NO_TRIP, departDate: vnDate(8) },
+      { kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TTB03", pax: pax(5), unitPrices: { adult: 1500000 }, catalogPriceSeen: { adult: 1500000 }, ...NO_TRIP, departDate: vnDate(8) },
     ],
   });
   assert.equal(second.status, 201, JSON.stringify(second.json));
@@ -189,7 +189,7 @@ try {
   ok("nhãn 'Giá danh mục đã đổi' / 'Dịch vụ đã ẩn khỏi danh mục' chỉ ở đơn nháp; đơn huỷ: huy hiệu xám, không nút, không nhãn");
 
   // ---- 5b) đổi trạng thái THÀNH CÔNG nhưng tải lại đơn lỗi (I4): banner "Không tải được đơn." PHẢI có nút "Tải lại đơn" (PWA standalone không có tải lại của trình duyệt) ----
-  const quick = { ...base, services: [{ kind: "catalog", catalogCode: "TTB06", pax: pax(1), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP }] }; // 2026-09-26: trước là dịch vụ nhập tay (API nay không nhận mới)
+  const quick = { ...base, services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TTB06", pax: pax(1), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP }] }; // 2026-09-26: trước là dịch vụ nhập tay (API nay không nhận mới)
   const third = await call(ACCOUNTS.salesA, "POST", "/api/orders", { ...quick, customerName: "Khách Tải Lại" });
   assert.equal(third.status, 201, JSON.stringify(third.json));
   p = await env.as(ACCOUNTS.salesA, `/order?id=${third.json.order.id}`);

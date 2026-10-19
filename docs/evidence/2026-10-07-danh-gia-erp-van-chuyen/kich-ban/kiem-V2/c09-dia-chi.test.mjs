@@ -17,7 +17,7 @@ test("C09: điểm danh mục có địa chỉ → tài xế chỉ thấy tên",
     const locId = loc.json.location.id;
     const r = await w.call("POST", "/api/orders", { as: SALES, body: {
       customerName: "Khách Liên Hệ Dò Tìm", customerPhone: "0912345678", customerNote: "", paymentNote: "",
-      services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY,
+      services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY,
         legs: [{ direction: "OUT", pickupDate: NGAY, pickupTime: "13:00", pickupLocationId: locId, pickupPlace: null, dropoffLocationId: LOC, dropoffPlace: "" }] }],
       passengers: [{ fullName: "Khách Dò Tìm 1", birthYear: 1990, paxCode: "adult" }, { fullName: "Khách Dò Tìm 2", birthYear: 1991, paxCode: "adult" }],
     } });

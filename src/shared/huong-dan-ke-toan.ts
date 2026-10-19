@@ -22,7 +22,7 @@ Thanh menu dọc bên trái có:
 - Đầu menu: [[Trang chủ]], [[Đơn hàng]], [[Danh bạ]]. Cạnh [[Đơn hàng]] có số nhỏ, là số đơn chưa xác nhận.
 - Nhóm VẬN CHUYỂN: [[Điều phối xe]], [[Xe đang chạy]], [[Giá & chi phí]].
 - Nhóm TIỀN: [[Điều chỉnh công nợ]], [[Khoá sổ tháng]].
-- Nhóm THIẾT LẬP (bấm để mở, thu gọn): [[Hoa hồng đối tác]], [[Người bán dịch vụ]].
+- Nhóm THIẾT LẬP (bấm để mở, thu gọn): [[Hoa hồng đối tác]], [[Người bán dịch vụ]], [[Chụp bù mức]].
 - Chân menu: [[Của tôi]], [[Hỗ trợ]], [[Trợ giúp]].
 
 Ô tìm kiếm trên đầu trang: gõ mã đơn, tên khách hoặc số điện thoại rồi bấm Enter.
@@ -42,6 +42,7 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
    - [[Đơn nháp]] (nhãn **Toàn công ty**): đơn đã lưu nhưng chưa chốt; bạn chỉ xem.
    - [[Chuyến hôm nay]]: số chuyến đi hôm nay.
    Điện thoại: các ô số **Còn thiếu tiền**, **Chờ xác nhận**, **Chưa phụ trách** (cả công ty).
+   Khối **Chờ đối chiếu** liệt kê khoản đang chờ bạn đối chiếu (mục "Đối chiếu tiền trên trang đơn").
 3. Xem thẻ **Chuyến đón**: các đơn đã xác nhận có giờ đón hôm nay (bấm Ngày mai, Ngày kia để xem tiếp).
 
 > Lưu ý: Ô **Doanh thu của tôi** chỉ tính đơn do chính bạn lập. Kế toán không lập đơn nên ô này luôn bằng không. Không phải lỗi.`,
@@ -146,14 +147,16 @@ Gắn loại cho hồ sơ ở Danh bạ là việc của Quản trị hoặc To�
 Mức riêng luôn được ưu tiên; khi gắn sẽ hiện khung vàng. Đổi mức từ hôm nay: [[Kết thúc gắn]] ngày hôm qua rồi gắn mức mới.`,
     },
     {
-      tieuDe: "Ghi mức tay cho một đơn",
-      noiDung: `Đơn đặt qua đại lý có khối **Phần đối tác**: người hưởng hoa hồng, và với từng dịch vụ là mức, hoa hồng, giá đại lý. Dòng chưa có mức, hoặc có hai mức khác nhau cùng áp, ghi "Thiếu mức — Kế toán xử lý".
+      tieuDe: "Chụp bù, ghi mức tay cho một đơn",
+      noiDung: `Đơn đặt qua đại lý có khối **Phần đối tác**: người hưởng hoa hồng, và với từng dịch vụ là mức, hoa hồng, giá đại lý. Đơn thiếu mức thì chưa **Đã giao** được.
 
-1. Mở đơn đã xác nhận và chưa **Đã giao**.
-2. Ở dòng thiếu mức, bấm [[Ghi mức tay]].
-3. Chọn phần trăm hoặc số tiền mỗi khách, chọn người bán nếu cần, ghi lý do (bắt buộc, ít nhất 10 ký tự), rồi bấm [[Ghi mức]].
+**Đơn xác nhận trước khi có bảng mức** (chưa có bản chụp mức):
+1. Bấm [[Chụp bù mức]] (điện thoại: trang [[Tôi]]) để xem các đơn chờ, hoặc mở đơn rồi bấm [[Chụp bù]] ở khối **Phần đối tác**.
+2. Nền tảng lấy mức đang áp ở ngày xác nhận. Còn thiếu mức thì Nền tảng không chụp và nêu dịch vụ: cài mức rồi bấm lại.
 
-> Đơn đã **Đã giao** thì không ghi tay được.`,
+**Đơn đã có bản chụp mà một dòng thiếu mức** (kể cả dịch vụ nhập tay): cài mức mới không gỡ được. Ở dòng đó bấm [[Ghi mức tay]], chọn mức và người bán, ghi lý do (ít nhất 10 ký tự), bấm [[Ghi mức]].
+
+> Đơn đã **Đã giao** thì không chụp bù, không ghi tay được.`,
     },
     {
       tieuDe: "Khoá sổ tháng",
@@ -196,6 +199,7 @@ Trong khối **Thanh toán**, bấm [[Ghi khoản thu]]: số tiền, hình th�
 
 Trên trang đơn:
 - Khoản thu người khác khai là tiền vào công ty: đối chiếu tài khoản, bấm [[Xác nhận đã nhận]] rồi [[Công ty đã nhận]].
+- Khách trả cho đại lý hoặc tại quầy nhà cung cấp (người khác khai): hỏi bên kia, bấm [[Bên kia đã nhận]]. Bên kia báo không nhận thì [[Huỷ khoản thu]].
 - Sai số tiền, hình thức hay người thu tiền: [[Sửa khoản thu đã ghi]] → [[Lưu khoản thu đúng]] (đơn đã giao chỉ sửa được cách này).
 - Ghi nhầm hẳn, đơn chưa giao: [[Huỷ khoản thu]], ghi lý do → [[Huỷ khoản này]]. Sổ giữ dòng cũ, thêm dòng trừ.
 - Khối **Kế toán** ghi ai chưa nộp tiền về công ty: nhận tiền rồi bấm [[Đã nộp về công ty]].
@@ -209,17 +213,9 @@ Khi đơn **Đã giao – đã thu đủ** và mọi người đã nộp tiền 
 
 Nền tảng **không xuất hoá đơn**. Khi đã nhập đơn vào phần mềm kế toán, ở khối **Phần mềm kế toán** bấm [[Đánh dấu đã nhập]], gõ số hoá đơn (không bắt buộc), bấm [[Đánh dấu]]. Chỉ đơn đã xác nhận mới đánh dấu được. Sửa số: [[Sửa số hoá đơn]]. Nhầm: [[Bỏ đánh dấu]], ghi lý do.
 
-### Cần danh sách đơn để làm sổ
-
-Nút xuất ra tệp Excel (chưa có ở bản này). Dùng ô tìm kiếm và nút **Lọc** để lọc, rồi xem từng đơn.
-
 ### Đơn bị huỷ
 
-Bấm nút **Lọc**, chọn **Đã huỷ** rồi bấm [[Áp dụng]] để xem. Khối **Lịch sử** của đơn cho biết đơn huỷ lúc nào và vì lý do gì.
-
-### Chuông thông báo
-
-Chuông ở thanh trên báo khi có đơn mới, có người nhận đơn, đơn được xác nhận hay bị huỷ. Bấm vào một tin để mở đúng đơn. Muốn nhận thông báo trên màn hình khoá điện thoại: vào [[Tôi]], bật mục **Thông báo trên điện thoại**.`,
+Bấm nút **Lọc**, chọn **Đã huỷ** rồi bấm [[Áp dụng]]. Khối **Lịch sử** cho biết đơn huỷ lúc nào, vì sao.`,
     },
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",
@@ -244,10 +240,6 @@ Vì Kế toán không lập đơn. Đây là cài đặt đúng.
 ### Trang đơn ghi "Chỉ … (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này." Có phải lỗi không?
 
 Không. Dòng này giải thích vì sao bạn không có nút sửa.
-
-### Ô Doanh thu của tôi luôn trống?
-
-Đúng vậy, vì ô này chỉ đếm đơn do bạn lập. Xem tiền cả công ty ở thẻ [[Đơn còn thiếu tiền]] (điện thoại: ô **Còn thiếu tiền**) và trong [[Đơn hàng]].
 
 ### Tôi quên mã PIN thì sao?
 

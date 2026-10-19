@@ -35,3 +35,25 @@ test("Câu xác nhận đã nhận: tiền mặt / hình thức khác KHÔNG nó
   }
   assert.match(cauXacNhanDaNhan({ hinhThuc: "CASH", soTien: "1 ₫" }), /tiền mặt/);
 });
+
+test("duocHuyKhoanSo (BL-SDL2-DAO-DONG-TM): nút «Huỷ khoản thu» chỉ cho người ghi sổ KHÔNG giữ quyền Đối tác — cùng cổng với route POST /api/ledger/adjustments", async () => {
+  const { duocHuyKhoanSo } = await import("./nut-khoan-thu.ts");
+  const ai = (perms: string[]) => ({ id: "x", permissions: perms }) as never;
+  assert.equal(duocHuyKhoanSo(ai(["ACCOUNTING"])), true);
+  assert.equal(duocHuyKhoanSo(ai(["SUPER_ADMIN"])), true);
+  assert.equal(duocHuyKhoanSo(ai(["ACCOUNTING", "PARTNER"])), false, "lai Kế toán + Đối tác");
+  assert.equal(duocHuyKhoanSo(ai(["SUPER_ADMIN", "PARTNER"])), false, "lai Toàn quyền + Đối tác");
+  assert.equal(duocHuyKhoanSo(ai(["SALES"])), false);
+});
+
+test("ghiSoNoiBo (người kiểm I-1): «Sửa khoản thu», «Đã nộp», «Ghi hoàn» chỉ cho người có ô lệnh KHÔNG giữ quyền Đối tác — cùng cổng với ba route", async () => {
+  const { ghiSoNoiBo } = await import("./nut-khoan-thu.ts");
+  const ai = (perms: string[]) => ({ id: "x", permissions: perms }) as never;
+  for (const op of ["ledger.write", "payment.refund"] as const) {
+    assert.equal(ghiSoNoiBo(ai(["ACCOUNTING"]), op), true, op);
+    assert.equal(ghiSoNoiBo(ai(["SUPER_ADMIN"]), op), true, op);
+    assert.equal(ghiSoNoiBo(ai(["ACCOUNTING", "PARTNER"]), op), false, `lai Kế toán + Đối tác — ${op}`);
+    assert.equal(ghiSoNoiBo(ai(["SUPER_ADMIN", "PARTNER"]), op), false, `lai Toàn quyền + Đối tác — ${op}`);
+    assert.equal(ghiSoNoiBo(ai(["ADMIN"]), op), false, `Quản trị — ${op}`);
+  }
+});

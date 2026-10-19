@@ -15,7 +15,7 @@ try {
     const r = await fetch(`${env.base}/api/orders`, {
       method: "POST", headers: { "content-type": "application/json", origin: env.base, cookie: `${c.name}=${c.value}` },
       body: JSON.stringify({ customerName: name, customerPhone: "0904 444 555", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
-        services: [{ kind: "catalog", catalogCode: code, pax: { adult: 2, child: 0, senior: 0, infant: 0 }, unitPrices: { adult: price }, catalogPriceSeen: { adult: price }, ...NO_TRIP, departDate: vnDate(days) }] }),
+        services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: code, pax: { adult: 2, child: 0, senior: 0, infant: 0 }, unitPrices: { adult: price }, catalogPriceSeen: { adult: price }, ...NO_TRIP, departDate: vnDate(days) }] }),
     });
     const text = await r.text();
     assert.equal(r.status, 201, `tạo đơn ${name}: ${r.status} ${text}`);

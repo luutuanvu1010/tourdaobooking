@@ -75,7 +75,7 @@ function nhap(w: W, booker: string | null, tong = 2_000_000): string {
   w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, booker_party_id, created_at, updated_at)
     VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', ?, ?, ?, ?, ?, ?)`).run(id, `TD-${seq}`, SALES, tong, tong, tong, booker, AT, AT);
   const s = `${id}-s0`;
-  w.sqlite.prepare(`INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, ?, 0, 'HONTAM', 'DV 0', 'perPax', 1, ?)`).run(s, id, vnHomNay());
+  w.sqlite.prepare(`INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, 0, 'HONTAM', 'DV 0', 'perPax', 1, ?)`).run(s, id, vnHomNay());
   w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, 'HONTAM', 'adult', 'Người lớn', 1, ?, ?, ?)`).run(`${s}-i`, id, s, tong, tong, tong);
   return id;
 }
@@ -214,7 +214,7 @@ test("N-3: Quản trị gắn loại mới cho hồ sơ tổ chức ⇒ 201; hi�
   assert.ok((await nguoiHuongTim(w, "Hoa Sen")).includes(ORG), "hồ sơ mang loại mới hiện ở tìm người hưởng");
   const don = await w.call("POST", "/api/orders", { as: SALES, body: {
     customerName: "Khách Thử", customerPhone: "0912345678", bookerPartyId: ORG,
-    services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(3) }],
+    services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(3) }],
   } });
   assert.equal(don.status, 201, don.text);
   assert.equal(don.json.order.bookerPartyId, ORG);
@@ -260,7 +260,8 @@ test("N-4: chưa có mức theo loại ⇒ bản chụp MISSING / NO_RULE, khôn
 });
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
-// N-5, N-5b — «Đã giao» (HỒI QUY trên mã đã vá ở 1.92; không sửa hoan-tat-repo.ts hay billing)
+// N-5, N-5b — «Đã giao» (HỒI QUY trên mã đã vá ở 1.92). ĐẢO CÓ CHỦ ĐÍCH (sổ đại lý đợt 2, Task 4 — ADR-0079 điều 1–2): đơn có người hưởng ĐỦ mức nay «Đã giao»
+// được và lô ghi HOA_HONG cho người hưởng của BẢN CHỤP — tắt loại / kết thúc loại / đổi vai SAU khi chụp không đổi người hưởng. Đơn thiếu mức vẫn bị giữ.
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 /** Đơn ĐÃ xác nhận của tài khoản Đối tác DT, hồ sơ chỉ mang loại mới; đã thu đủ. */
 async function donCuaLoaiMoi(w: W, coMuc = true): Promise<{ id: string; ma: string }> {
@@ -272,15 +273,32 @@ async function donCuaLoaiMoi(w: W, coMuc = true): Promise<{ id: string; ma: stri
   await thuDu(w, id);
   return { id, ma };
 }
+/** «Đã giao» 200 (người bấm `as`) và sổ có ĐÚNG một dòng HOA_HONG 15% × 2.000.000 = 300.000 cho người hưởng đã chụp (hồ sơ DT). */
+async function giaoVaGhiHoaHong(w: W, id: string, as = SA): Promise<void> {
+  const g = await daGiao(w, id, as);
+  assert.equal(g.status, 200, g.text);
+  assert.notEqual(w.q("SELECT delivered_at AS d FROM orders WHERE id = ?", id)[0].d, null);
+  const dong = w.q("SELECT l.kind_code AS k, l.creditor_party_id AS c, l.amount AS a FROM bil_debt_line l JOIN bil_posting p ON p.id = l.posting_id WHERE l.order_id = ? AND p.kind_code = 'DELIVERED'", id);
+  assert.deepEqual(dong.map((x: { k: string; c: string; a: number }) => [x.k, x.c, x.a]), [["HOA_HONG", `pty-${DT}`, 300_000]]);
+}
 
-test("N-5: đơn có bên đặt chỉ mang loại mới KHÔNG bấm được «Đã giao» — câu ghi của orders và cờ billing (booker_partner), kể cả Quản trị / Toàn quyền bấm", async () => {
+test("N-5: đơn có bên đặt chỉ mang loại mới, đủ mức ⇒ «Đã giao» được (Quản trị bấm), sổ có HOA_HONG cho người hưởng; màn đơn không còn lý do giữ (ĐẢO CÓ CHỦ ĐÍCH — Task 4: trước là 409 booker_partner)", async () => {
   const w = setup();
   const { id } = await donCuaLoaiMoi(w);
   assert.equal(chup(w, id)[0].commission_status, "SET");
-  await conBiGiu(w, id);
   const tien = await w.call("GET", `/api/orders/${id}/payments`, { as: SA });
   assert.equal(tien.status, 200, tien.text);
-  assert.equal(tien.json.lyDoChuaGiao.ma, "booker_partner", "cờ billing");
+  assert.equal(tien.json.lyDoChuaGiao, null, "cờ billing: đơn có người hưởng đủ mức không còn bị giữ");
+  await giaoVaGhiHoaHong(w, id, ADM);
+});
+
+test("N-5: chưa có mức (bản chụp MISSING nhưng vẫn có người hưởng) ⇒ vẫn bị giữ, lý do terms_missing; câu ghi «Đã giao» của orders không đổi dòng nào (lớp 1)", async () => {
+  const w = setup();
+  const { id } = await donCuaLoaiMoi(w, false);
+  assert.equal(chup(w, id)[0].commission_status, "MISSING");
+  await conBiGiu(w, id);
+  const tien = await w.call("GET", `/api/orders/${id}/payments`, { as: SA });
+  assert.equal(tien.json.lyDoChuaGiao.ma, "terms_missing", "cờ billing");
   // Lớp SQL của chính câu «Đã giao» (không qua bước kiểm trước của route): không dòng nào đổi.
   const o = w.q("SELECT updated_at FROM orders WHERE id = ?", id)[0] as { updated_at: string };
   const kq = await datGiaoStatement(fakeD1(w.sqlite) as unknown as D1Database, {
@@ -289,41 +307,33 @@ test("N-5: đơn có bên đặt chỉ mang loại mới KHÔNG bấm được �
   assert.equal((kq.meta as { changes: number }).changes, 0, "câu UPDATE «Đã giao» phải không đổi dòng nào");
 });
 
-test("N-5: chưa có mức (bản chụp MISSING nhưng vẫn có người hưởng) ⇒ cũng bị giữ", async () => {
-  const w = setup();
-  const { id } = await donCuaLoaiMoi(w, false);
-  assert.equal(chup(w, id)[0].commission_status, "MISSING");
-  await conBiGiu(w, id);
-});
-
-test("N-5b (a): Kế toán TẮT loại sau khi đơn đã chụp ⇒ đơn vẫn bị giữ", async () => {
+test("N-5b (a): Kế toán TẮT loại sau khi đơn đã chụp ⇒ «Đã giao» được, hoa hồng vẫn về người hưởng đã chụp (ĐẢO CÓ CHỦ ĐÍCH — Task 4)", async () => {
   const w = setup();
   const { id, ma } = await donCuaLoaiMoi(w);
   assert.equal((await tat(w, ma)).status, 200);
-  await conBiGiu(w, id);
+  await giaoVaGhiHoaHong(w, id);
 });
 
-test("N-5b (b): Quản trị KẾT THÚC loại của hồ sơ sau khi đơn đã chụp ⇒ đơn vẫn bị giữ", async () => {
+test("N-5b (b): Quản trị KẾT THÚC loại của hồ sơ sau khi đơn đã chụp ⇒ «Đã giao» được, hoa hồng vẫn về người hưởng đã chụp (ĐẢO CÓ CHỦ ĐÍCH — Task 4)", async () => {
   const w = setup();
   const { id, ma } = await donCuaLoaiMoi(w);
   const rid = w.q("SELECT id FROM pty_party_role WHERE party_id = ? AND role_type_code = ?", `pty-${DT}`, ma)[0].id as string;
   assert.equal((await w.call("POST", `/api/parties/pty-${DT}/roles/${rid}/end`, { as: ADM, body: {} })).status, 200);
-  await conBiGiu(w, id);
+  await giaoVaGhiHoaHong(w, id);
 });
 
-test("N-5b (c): PUT roles đổi tài khoản đối tác sang SALES_STAFF — khi hồ sơ còn mang loại ⇒ 409 (luật «nội bộ», mã account_rule), khi đã kết thúc loại ⇒ 200; cả hai trường hợp đơn vẫn bị giữ", async () => {
+test("N-5b (c): PUT roles đổi tài khoản đối tác sang SALES_STAFF — khi hồ sơ còn mang loại ⇒ 409 (luật «nội bộ», mã account_rule), khi đã kết thúc loại ⇒ 200; sau đó «Đã giao» được với hoa hồng cho người hưởng đã chụp (ĐẢO CÓ CHỦ ĐÍCH — Task 4)", async () => {
   const w = setup();
   const { id, ma } = await donCuaLoaiMoi(w);
   const chan = await w.call("PUT", `/api/staff/${DT}/roles`, { as: ADM, body: { roles: ["SALES_STAFF"] } });
   assert.equal(chan.status, 409, chan.text);
   assert.equal(chan.json.error.code, "account_rule");
   assert.match(chan.json.error.message, /không nhận thêm vai trò nội bộ/);
-  await conBiGiu(w, id);
   const rid = w.q("SELECT id FROM pty_party_role WHERE party_id = ? AND role_type_code = ?", `pty-${DT}`, ma)[0].id as string;
   assert.equal((await w.call("POST", `/api/parties/pty-${DT}/roles/${rid}/end`, { as: ADM, body: {} })).status, 200);
   const doi = await w.call("PUT", `/api/staff/${DT}/roles`, { as: ADM, body: { roles: ["SALES_STAFF"] } });
   assert.equal(doi.status, 200, doi.text);
-  await conBiGiu(w, id);
+  await giaoVaGhiHoaHong(w, id);
 });
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------

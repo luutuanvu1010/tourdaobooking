@@ -137,6 +137,7 @@ export async function don(w, v) {
       ...(v.handler ? { handlerStaffId: v.handler } : {}),
       services: [{
         kind: "catalog", catalogCode: "ZA1", pax: { adult: soNguoi, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: v.ngay ?? NGAY,
+        pickupChoice: "DON", // ADR-0134 Đ2: có lượt đón → chọn Đón (cửa xác nhận đòi)
         legs: [{ direction: "OUT", pickupDate: v.ngay ?? NGAY, pickupTime: v.gio ?? "13:00", pickupLocationId: null, pickupPlace: v.noiDon ?? "Khách sạn Dò Tìm", dropoffLocationId: LOC, dropoffPlace: "" }],
       }],
       passengers: Array.from({ length: v.ten ?? soNguoi }, (_x, i) => ({ fullName: `Khách Dò Tìm ${i + 1}`, birthYear: (v.namSinh ?? 1990) + i, paxCode: "adult" })),

@@ -37,7 +37,7 @@ export async function dungMoiTruong() {
 }
 
 const dichVu = ({ departDate, pickupTime, pickupPlace }) => ({
-  kind: "catalog", catalogCode: "TTB06", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 800_000 },
+  kind: "catalog", pickupChoice: pickupTime || pickupPlace ? "DON" : "KHONG_DON", catalogCode: "TTB06", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 800_000 },
   departDate, departTime: "", pickupTime, pickupPlace, checkinDate: "", checkinTime: "", checkinPlace: "", note: "",
 });
 const donMau = (customerName, customerPhone, services) => ({ customerName, customerPhone, customerEmail: "", customerNote: "", services, discount: 0, paymentNote: "" });

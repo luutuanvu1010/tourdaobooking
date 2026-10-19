@@ -35,7 +35,7 @@ async function don(w: any, o: { confirm?: boolean; pax?: number; ten?: number } 
     as: SALES,
     body: {
       customerName: "Khách Chủ Đơn", customerPhone: "0912345678", customerEmail: "", customerNote: "", paymentNote: "",
-      services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: pax, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D,
+      services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: pax, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D,
         legs: [{ direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: null, pickupPlace: "Khách sạn A", dropoffLocationId: LOC, dropoffPlace: "" }] }],
       passengers: Array.from({ length: o.ten ?? 1 }, (_, i) => ({ fullName: `Khách Văn Phòng ${i + 1}`, birthYear: 1980 + i, paxCode: "adult" })),
     },

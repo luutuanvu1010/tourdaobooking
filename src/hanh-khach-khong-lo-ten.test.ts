@@ -48,7 +48,7 @@ test("họ tên, năm sinh hành khách chỉ rời máy chủ ở GET/POST /pas
   seedStaff(w.sqlite, { id: FIELD, phone: "0900000004", name: "Hướng Dẫn", perms: ["FIELD"] });
   seedStaff(w.sqlite, { id: SUP, phone: "0900000007", name: "Chủ", perms: ["SUPER_ADMIN"] });
   w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 500000, 1, '2026-01-01', '2026-01-01')");
-  const svc = (extra: Record<string, unknown> = {}) => ({ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D, ...extra });
+  const svc = (extra: Record<string, unknown> = {}) => ({ kind: "catalog", pickupChoice: Array.isArray(extra.legs) && extra.legs.length > 0 ? "DON" : "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D, ...extra });
   const OUT = { direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: null, pickupPlace: `Nhà riêng gọi ${SDT}`, dropoffLocationId: LOC, dropoffPlace: "" };
   const passengers = [{ fullName: TEN[0], birthYear: 1911, paxCode: "adult" }, { fullName: TEN[1], birthYear: 1922, paxCode: null }];
 

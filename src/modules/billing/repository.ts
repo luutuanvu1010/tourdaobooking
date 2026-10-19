@@ -11,7 +11,7 @@ import { defineSql } from "../../shared/sql-registry.ts";
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 // Đọc
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
-const RECEIPT_COLS = `r.id, r.order_id, r.kind_code, r.amount, r.collector_party_id, r.collector_role_code, r.method_code, r.stage_code, r.occurred_date,
+const RECEIPT_COLS = `r.id, r.order_id, r.kind_code, r.amount, r.collector_party_id, r.collector_role_code, r.method_code, r.collected_for_party_id, r.stage_code, r.occurred_date,
   r.reverses_id, r.note, r.created_at, r.created_by, r.approval_id, r.transfer_of_id, pl.display_name AS collector_label, sl.label AS created_by_label`;
 const RECEIPT_JOIN = `FROM bil_payment_receipt r LEFT JOIN v_pty_party_label pl ON pl.id = r.collector_party_id LEFT JOIN v_stf_staff_label sl ON sl.id = r.created_by`;
 
@@ -32,6 +32,8 @@ export interface ReceiptDbRow {
   collector_party_id: string | null;
   collector_role_code: "COMPANY" | "STAFF" | "BOOKER" | "SUPPLIER" | "UNKNOWN";
   method_code: string;
+  /** «Thu cho ai» (ADR-0078 điều 9): công ty chủ, hoặc nhà cung cấp của đơn (sổ đại lý đợt 2 Task 5). */
+  collected_for_party_id: string;
   stage_code: string;
   occurred_date: string;
   reverses_id: string | null;
@@ -68,7 +70,7 @@ export interface LineDbRow {
   debtor_party_id: string;
   creditor_party_id: string;
   amount: number;
-  kind_code: "HELD" | "SETTLEMENT" | "REFUND";
+  kind_code: "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON";
   order_id: string | null;
   receipt_id: string | null;
   reverses_line_id: string | null;
@@ -134,30 +136,44 @@ const THANG_SO_SOM_NHAT = defineSql(
 export const earliestLedgerMonth = async (db: D1Database): Promise<string | null> => (await db.prepare(THANG_SO_SOM_NHAT).first<{ thang: string | null }>())?.thang ?? null;
 
 /**
- * Khoản "Công ty thu" do người không phải Kế toán khai, CHƯA được Kế toán xác nhận. Hai đường (ADR-0120): khoản CŨ — dòng giữ hộ trên người khai chưa bị đảo (H3);
- * khoản MỚI — dấu DECLARED (`bil_receipt_recon`, 0099) chưa có CONFIRMED, khoản thu còn hiệu lực. `ngay_khai` = ngày dân sự khai (gốc tính "quá 3 ngày").
+ * Khoản do người không phải Kế toán khai, CHƯA được Kế toán xác nhận — CÙNG định nghĩa với `khoanChoXacNhan` (rules.ts) của màn đơn. Hai đường (ADR-0120):
+ * khoản CŨ — tiền mặt «Công ty thu»: dòng giữ hộ trên người khai chưa bị đảo (H3) VÀ người khai còn giữ hộ trên đơn ≥ số của dòng (đã «Nộp» đủ ⇒ hết chờ);
+ * số giữ hộ CHỈ cộng `b.kind_code IN (…)` = `LOAI_DONG_GIU_HO` (HAI NƠI với `soDuGiuHo` và trigger `bil_debt_line_held_once` — bài ben-kia.test.ts);
+ * khoản MỚI — dấu DECLARED (`bil_receipt_recon`, 0099) chưa có CONFIRMED, khoản thu còn hiệu lực: «Công ty thu» chuyển khoản, khách trả cho bên đặt, khách trả tại
+ * quầy nhà cung cấp (ADR-0132). `collector_role_code` để màn Kế toán phân loại; `ben_kia` = tên người thu khi là bên đặt / nhà cung cấp. `ngay_khai` = ngày
+ * dân sự khai (gốc tính "quá 3 ngày").
  */
 const PENDING_COMPANY = defineSql(
   "billing",
   "pending_company",
-  `SELECT t.receipt_id, t.order_id, t.order_code, t.amount, t.occurred_date, t.nguoi_khai, t.ngay_khai FROM (
-     SELECT r.rowid AS ord, r.id AS receipt_id, r.order_id, ol.order_code, r.amount, r.occurred_date, pl.display_name AS nguoi_khai, r.occurred_date AS ngay_khai
+  `SELECT t.receipt_id, t.order_id, t.order_code, t.amount, t.occurred_date, t.nguoi_khai, t.ngay_khai, t.collector_role_code, t.ben_kia FROM (
+     SELECT r.rowid AS ord, r.id AS receipt_id, r.order_id, ol.order_code, r.amount, r.occurred_date, pl.display_name AS nguoi_khai, r.occurred_date AS ngay_khai,
+       r.collector_role_code, NULL AS ben_kia
      FROM bil_payment_receipt r JOIN bil_debt_line l ON l.receipt_id = r.id AND l.kind_code = 'HELD' AND l.reverses_line_id IS NULL
      LEFT JOIN v_ord_order_label ol ON ol.id = r.order_id LEFT JOIN v_pty_party_label pl ON pl.id = l.debtor_party_id
      WHERE r.collector_role_code = 'COMPANY' AND r.reverses_id IS NULL
        AND NOT EXISTS (SELECT 1 FROM bil_debt_line x WHERE x.reverses_line_id = l.id)
        AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt y WHERE y.reverses_id = r.id)
+       AND (SELECT COALESCE(SUM(CASE WHEN b.debtor_party_id = l.debtor_party_id THEN b.amount ELSE -b.amount END), 0) FROM bil_debt_line b
+            WHERE b.order_id = l.order_id AND b.kind_code IN ('HELD', 'SETTLEMENT', 'REFUND')
+              AND ((b.debtor_party_id = l.debtor_party_id AND b.creditor_party_id = l.creditor_party_id)
+                OR (b.debtor_party_id = l.creditor_party_id AND b.creditor_party_id = l.debtor_party_id))) >= l.amount
      UNION ALL
-     SELECT r.rowid, r.id, r.order_id, ol.order_code, r.amount, r.occurred_date, sl.label, d.occurred_date
+     SELECT r.rowid, r.id, r.order_id, ol.order_code, r.amount, r.occurred_date, sl.label, d.occurred_date, r.collector_role_code,
+       CASE WHEN r.collector_role_code IN ('BOOKER', 'SUPPLIER') THEN pl.display_name END
      FROM bil_payment_receipt r JOIN bil_receipt_recon d ON d.receipt_id = r.id AND d.kind_code = 'DECLARED'
      LEFT JOIN v_ord_order_label ol ON ol.id = r.order_id LEFT JOIN v_stf_staff_label sl ON sl.id = r.created_by
+     LEFT JOIN v_pty_party_label pl ON pl.id = r.collector_party_id
      WHERE r.reverses_id IS NULL
        AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt y WHERE y.reverses_id = r.id)
        AND NOT EXISTS (SELECT 1 FROM bil_receipt_recon c WHERE c.receipt_id = r.id AND c.kind_code = 'CONFIRMED')
    ) t ORDER BY t.ord`,
 );
 export const pendingCompany = async (db: D1Database) =>
-  (await db.prepare(PENDING_COMPANY).all<{ receipt_id: string; order_id: string; order_code: string | null; amount: number; occurred_date: string; nguoi_khai: string | null; ngay_khai: string }>()).results;
+  (await db.prepare(PENDING_COMPANY).all<{
+    receipt_id: string; order_id: string; order_code: string | null; amount: number; occurred_date: string; nguoi_khai: string | null; ngay_khai: string;
+    collector_role_code: "COMPANY" | "BOOKER" | "SUPPLIER"; ben_kia: string | null;
+  }>()).results;
 
 // ---- Dấu đối chiếu của khoản "Công ty thu" MỚI (ADR-0120 Điều 1; bảng `bil_receipt_recon`, 0099) — chỉ-thêm ----
 const RECON_OF_ORDER = defineSql(
@@ -218,11 +234,12 @@ export const orderState = (db: D1Database, id: string) =>
   db.prepare(ORDER_STATE).bind(id).first<{ id: string; status: "draft" | "confirmed" | "cancelled"; delivered_at: string | null; completed_at: string | null }>();
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
-// Ghi (chỉ thêm). `collected_for_party_id` LUÔN = công ty chủ đọc TRONG câu (NT-S9: route không nhận giá trị khác từ trình duyệt).
+// Ghi (chỉ thêm). `collected_for_party_id` (?13) = nhà cung cấp do máy chủ đã kiểm (sổ đại lý đợt 2 Task 5 — phải là nhà cung cấp của đơn theo bản chụp, có trần),
+// vắng ⇒ công ty chủ đọc TRONG câu (NT-S9: không bao giờ lấy giá trị thô từ trình duyệt).
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 const RECEIPT_INSERT_COLS = `id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code, occurred_date,
   reverses_id, note, created_at, created_by, updated_at, updated_by`;
-const RECEIPT_VALUES = `?1, ?2, ?3, ?4, ?5, ?6, ?7, (SELECT party_id FROM v_pty_owner_company LIMIT 1), ?8, ?9, NULL, ?10, ?11, ?12, ?11, ?12`;
+const RECEIPT_VALUES = `?1, ?2, ?3, ?4, ?5, ?6, ?7, COALESCE(?13, (SELECT party_id FROM v_pty_owner_company LIMIT 1)), ?8, ?9, NULL, ?10, ?11, ?12, ?11, ?12`;
 /** Khoản thu TRƯỚC "Đã giao" (ADR-0026 đ10 — không thêm điều kiện trạng thái huỷ: đơn huỷ còn tiền phải có chỗ ghi). */
 const RECEIPT_BEFORE_DELIVERED = defineSql(
   "billing",
@@ -230,12 +247,12 @@ const RECEIPT_BEFORE_DELIVERED = defineSql(
   `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS}) SELECT ${RECEIPT_VALUES}
    WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?2 AND delivered_at IS NULL)`,
 );
-/** Khoản thu nhập ở bước "Đã giao" — chỉ áp khi câu `orders` CỦA CHÍNH LÔ NÀY đã đặt mốc ?13. */
+/** Khoản thu nhập ở bước "Đã giao" — chỉ áp khi câu `orders` CỦA CHÍNH LÔ NÀY đã đặt mốc ?14. */
 const RECEIPT_AT_DELIVERY = defineSql(
   "billing",
   "receipt_at_delivery",
   `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS}) SELECT ${RECEIPT_VALUES}
-   WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?2 AND delivered_at = ?13)`,
+   WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?2 AND delivered_at = ?14)`,
 );
 /** Trả lại khách (Kế toán ghi hoàn — ADR-0026 đ5, M2): không điều kiện mốc. */
 const RECEIPT_REFUND = defineSql("billing", "receipt_refund", `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS}) SELECT ${RECEIPT_VALUES}`);
@@ -247,6 +264,20 @@ const RECEIPT_REVERSAL = defineSql(
    SELECT ?1, g.order_id, g.kind_code, g.amount, g.collector_party_id, g.collector_role_code, g.method_code, g.collected_for_party_id, g.stage_code, ?2, g.id, ?3, ?4, ?5, ?4, ?5
    FROM bil_payment_receipt g WHERE g.id = ?6`,
 );
+/**
+ * Dòng ĐẢO của lời khai bên đặt / quầy nhà cung cấp mà lúc route ĐỌC còn chưa CONFIRMED (sổ đại lý đợt 2 Task 5 — người kiểm I-1): chỉ áp khi vẫn chưa có
+ * CONFIRMED. Kế toán khác bấm «Bên kia đã nhận» chen giữa lúc đọc và lúc ghi thì lô đó đã sinh MỘT dòng giữ hộ mang receipt_id gốc mà lô đảo này không biết
+ * để đảo ⇒ không áp (0 dòng) ⇒ route báo 409 `stale`, câu nhật ký kèm `changes() > 0` cũng không áp. Chiều ngược (đảo chen trước xác nhận) do trigger
+ * `bil_receipt_recon_confirmed` (0099) chặn.
+ */
+const RECEIPT_REVERSAL_CHUA_XAC_NHAN = defineSql(
+  "billing",
+  "receipt_reversal_chua_xac_nhan",
+  `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS})
+   SELECT ?1, g.order_id, g.kind_code, g.amount, g.collector_party_id, g.collector_role_code, g.method_code, g.collected_for_party_id, g.stage_code, ?2, g.id, ?3, ?4, ?5, ?4, ?5
+   FROM bil_payment_receipt g WHERE g.id = ?6
+     AND NOT EXISTS (SELECT 1 FROM bil_receipt_recon c WHERE c.receipt_id = g.id AND c.kind_code = 'CONFIRMED')`,
+);
 
 export interface NewReceipt {
   id: string;
@@ -254,31 +285,36 @@ export interface NewReceipt {
   kind: "CUSTOMER_PAYMENT" | "CUSTOMER_REFUND";
   amount: number;
   collectorPartyId: string | null;
-  collectorRole: "COMPANY" | "STAFF";
+  collectorRole: "COMPANY" | "STAFF" | "BOOKER" | "SUPPLIER";
   method: string;
   stage: "PREPAID" | "AT_DELIVERY";
   occurredDate: string;
   note: string | null;
   at: string;
   by: string;
+  /** «Thu cho» nhà cung cấp (đã kiểm ở máy chủ); vắng / null ⇒ công ty chủ. */
+  collectedForPartyId?: string | null;
 }
 const bindReceipt = (db: D1Database, sql: string, r: NewReceipt, ...extra: string[]) =>
-  db.prepare(sql).bind(r.id, r.orderId, r.kind, r.amount, r.collectorPartyId, r.collectorRole, r.method, r.stage, r.occurredDate, r.note, r.at, r.by, ...extra);
+  db.prepare(sql).bind(r.id, r.orderId, r.kind, r.amount, r.collectorPartyId, r.collectorRole, r.method, r.stage, r.occurredDate, r.note, r.at, r.by, r.collectedForPartyId ?? null, ...extra);
 export const receiptBeforeDeliveredStatement = (db: D1Database, r: NewReceipt) => bindReceipt(db, RECEIPT_BEFORE_DELIVERED, r);
 export const receiptAtDeliveryStatement = (db: D1Database, r: NewReceipt, deliveredAt: string) => bindReceipt(db, RECEIPT_AT_DELIVERY, r, deliveredAt);
 export const receiptRefundStatement = (db: D1Database, r: NewReceipt) => bindReceipt(db, RECEIPT_REFUND, r);
-export const receiptReversalStatement = (db: D1Database, i: { id: string; occurredDate: string; note: string | null; at: string; by: string; reversesId: string }) =>
-  db.prepare(RECEIPT_REVERSAL).bind(i.id, i.occurredDate, i.note, i.at, i.by, i.reversesId);
+export const receiptReversalStatement = (db: D1Database, i: { id: string; occurredDate: string; note: string | null; at: string; by: string; reversesId: string; chuaXacNhan?: boolean }) =>
+  db.prepare(i.chuaXacNhan ? RECEIPT_REVERSAL_CHUA_XAC_NHAN : RECEIPT_REVERSAL).bind(i.id, i.occurredDate, i.note, i.at, i.by, i.reversesId);
 
 const POSTING_COLS = "id, kind_code, order_id, reason, reverses_posting_id, occurred_date, due_snapshot, created_at, created_by, updated_at, updated_by";
 const POSTING_VALUES = "?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?8, ?9";
 /** Phiếu kèm khoản thu ?10 — chỉ áp khi khoản thu đó đã được chèn (câu trước có lính gác). */
 const POSTING_IF_RECEIPT = defineSql("billing", "posting_if_receipt", `INSERT INTO bil_posting (${POSTING_COLS}) SELECT ${POSTING_VALUES} WHERE EXISTS (SELECT 1 FROM bil_payment_receipt WHERE id = ?10)`);
-/** Phiếu "Đã giao" — chỉ áp khi câu `orders` của chính lô đã đặt mốc ?10; trigger `bil_posting_delivered_paid` kiểm tiền (RAISE ⇒ cả lô huỷ). */
+/**
+ * Phiếu "Đã giao" — chỉ áp khi câu `orders` của chính lô đã đặt mốc ?10; trigger `bil_posting_delivered_paid` kiểm tiền, `bil_posting_delivered_terms` kiểm bản chụp
+ * (RAISE ⇒ cả lô huỷ). ?11 = `gross_snapshot` (thành tiền trước giảm của đơn lúc giao — sổ đại lý đợt 2, Ruling R-P8: MỌI phiếu Đã giao mới đều mang, kể cả đơn khách lẻ).
+ */
 const POSTING_IF_DELIVERED_AT = defineSql(
   "billing",
   "posting_if_delivered_at",
-  `INSERT INTO bil_posting (${POSTING_COLS}) SELECT ${POSTING_VALUES} WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?3 AND delivered_at = ?10)`,
+  `INSERT INTO bil_posting (${POSTING_COLS}, gross_snapshot) SELECT ${POSTING_VALUES}, ?11 WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?3 AND delivered_at = ?10)`,
 );
 /** Phiếu "Hoàn thành" — chỉ áp khi câu `orders` của chính lô đã đặt mốc ?10; trigger `bil_posting_completed_settled` kiểm còn ai nợ công ty. */
 const POSTING_IF_COMPLETED_AT = defineSql(
@@ -291,7 +327,7 @@ const POSTING_PLAIN = defineSql("billing", "posting_plain", `INSERT INTO bil_pos
 
 export interface NewPosting {
   id: string;
-  kind: "RECEIPT" | "DELIVERED" | "COMPLETED" | "COMPANY_RECEIVED" | "SETTLEMENT" | "REFUND" | "ADJUSTMENT" | "REVERSAL" | "REPLACEMENT";
+  kind: "RECEIPT" | "DELIVERED" | "COMPLETED" | "COMPANY_RECEIVED" | "COUNTERPARTY_CONFIRMED" | "SETTLEMENT" | "REFUND" | "ADJUSTMENT" | "REVERSAL" | "REPLACEMENT";
   orderId: string | null;
   reason: string | null;
   reversesPostingId: string | null;
@@ -303,17 +339,24 @@ export interface NewPosting {
 const bindPosting = (db: D1Database, sql: string, p: NewPosting, ...extra: string[]) =>
   db.prepare(sql).bind(p.id, p.kind, p.orderId, p.reason, p.reversesPostingId, p.occurredDate, p.dueSnapshot, p.at, p.by, ...extra);
 export const postingIfReceiptStatement = (db: D1Database, p: NewPosting, receiptId: string) => bindPosting(db, POSTING_IF_RECEIPT, p, receiptId);
-export const postingIfDeliveredAtStatement = (db: D1Database, p: NewPosting, deliveredAt: string) => bindPosting(db, POSTING_IF_DELIVERED_AT, p, deliveredAt);
+/** Phiếu "Đã giao": `grossSnapshot` BẮT BUỘC (kiểu, không mặc định) — CSDL không đòi cột này (giữ đường lùi), nên chính chữ ký là chỗ không quên được (R-P8). */
+export const postingIfDeliveredAtStatement = (db: D1Database, p: NewPosting & { kind: "DELIVERED"; dueSnapshot: number; grossSnapshot: number }, deliveredAt: string) =>
+  db.prepare(POSTING_IF_DELIVERED_AT).bind(p.id, p.kind, p.orderId, p.reason, p.reversesPostingId, p.occurredDate, p.dueSnapshot, p.at, p.by, deliveredAt, p.grossSnapshot);
 export const postingIfCompletedAtStatement = (db: D1Database, p: NewPosting, completedAt: string) => bindPosting(db, POSTING_IF_COMPLETED_AT, p, completedAt);
-export const postingPlainStatement = (db: D1Database, p: NewPosting) => bindPosting(db, POSTING_PLAIN, p);
+/** Phiếu không điều kiện mốc. KHÔNG nhận loại «Đã giao» (kiểu — M-1 của người kiểm Task 3+4): phiếu đó chỉ ghi qua `postingIfDeliveredAtStatement`, nơi `grossSnapshot` bắt
+ * buộc (R-P8 không có lớp CSDL đòi cột này; kiểm định kỳ R-BIL-17 là lưới cuối). */
+export const postingPlainStatement = (db: D1Database, p: NewPosting & { kind: Exclude<NewPosting["kind"], "DELIVERED"> }) => bindPosting(db, POSTING_PLAIN, p);
 
-/** Dòng nợ — chỉ áp khi phiếu ?2 đã được chèn trong lô (lính gác), nên phiếu thua ⇒ không dòng nào. */
+/**
+ * Dòng nợ — chỉ áp khi phiếu ?2 đã được chèn trong lô (lính gác), nên phiếu thua ⇒ không dòng nào. ?12 = `order_service_id` (dòng HOA_HONG / GIA_VON của phiếu
+ * Đã giao gắn dòng dịch vụ — trigger `bil_debt_line_commercial_service` của 0112; dòng khác: NULL). Số tham số cũ giữ nguyên vị trí (?1–?11).
+ */
 const LINE_IF_POSTING = defineSql(
   "billing",
   "line_if_posting",
   `INSERT INTO bil_debt_line (id, posting_id, debtor_party_id, creditor_party_id, amount, kind_code, order_id, trip_id, order_service_id, receipt_id, reverses_line_id,
      created_at, created_by, updated_at, updated_by)
-   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, NULL, NULL, ?8, ?9, ?10, ?11, ?10, ?11 WHERE EXISTS (SELECT 1 FROM bil_posting WHERE id = ?2)`,
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, NULL, ?12, ?8, ?9, ?10, ?11, ?10, ?11 WHERE EXISTS (SELECT 1 FROM bil_posting WHERE id = ?2)`,
 );
 export interface NewLine {
   id: string;
@@ -321,15 +364,17 @@ export interface NewLine {
   debtorPartyId: string;
   creditorPartyId: string;
   amount: number;
-  kind: "HELD" | "SETTLEMENT" | "REFUND";
+  kind: "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON";
   orderId: string;
+  /** Dòng dịch vụ của đơn (chỉ HOA_HONG / GIA_VON của phiếu Đã giao); null = dòng không gắn dòng dịch vụ. */
+  orderServiceId: string | null;
   receiptId: string | null;
   reversesLineId: string | null;
   at: string;
   by: string;
 }
 export const lineIfPostingStatement = (db: D1Database, l: NewLine) =>
-  db.prepare(LINE_IF_POSTING).bind(l.id, l.postingId, l.debtorPartyId, l.creditorPartyId, l.amount, l.kind, l.orderId, l.receiptId, l.reversesLineId, l.at, l.by);
+  db.prepare(LINE_IF_POSTING).bind(l.id, l.postingId, l.debtorPartyId, l.creditorPartyId, l.amount, l.kind, l.orderId, l.receiptId, l.reversesLineId, l.at, l.by, l.orderServiceId);
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 // Dấu "đã nhập phần mềm kế toán" (ADR-0060, migration *_billing_nhap_ke_toan.sql) — CHỈ-THÊM; trạng thái hiện tại = dòng rowid LỚN NHẤT của đơn.

@@ -25,7 +25,7 @@ const RET = { direction: "RETURN", pickupDate: inDays(4), pickupTime: "16:00", p
 async function order(w: any, confirm: boolean) {
   const r = await w.call("POST", "/api/orders", {
     as: SALES,
-    body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D, legs: [OUT, RET] }] },
+    body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D, legs: [OUT, RET] }] },
   });
   assert.equal(r.status, 201, r.text);
   if (confirm) assert.equal((await w.call("POST", `/api/orders/${r.json.order.id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
@@ -80,7 +80,7 @@ for (const confirmed of [false, true]) {
       const cur = (await w.call("GET", `/api/orders/${o.id}`, { as: SALES })).json.order;
       const put = await w.call("PUT", `/api/orders/${o.id}`, {
         as: SALES,
-        body: { customerName: "Khách Thử", customerPhone: "0912345678", expectedUpdatedAt: cur.updatedAt, services: [{ id: cur.services[0].id, kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D, pickupTime: "", pickupPlace: "" }] },
+        body: { customerName: "Khách Thử", customerPhone: "0912345678", expectedUpdatedAt: cur.updatedAt, services: [{ id: cur.services[0].id, kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D, pickupTime: "", pickupPlace: "" }] },
       });
       assert.equal(put.status, 200, put.text);
       assert.deepEqual(legs(w, o.id).filter((l: any) => l.closed_at === null).map((l: any) => l.direction), ["RETURN"]);
@@ -100,7 +100,7 @@ test("đơn đã xác nhận: chưa có chiều đi, gửi giờ + nơi → TẠ
   const w = setup();
   const r0 = await w.call("POST", "/api/orders", {
     as: SALES,
-    body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D, legs: [RET] }] },
+    body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D, legs: [RET] }] },
   });
   assert.equal((await w.call("POST", `/api/orders/${r0.json.order.id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
   const o = (await w.call("GET", `/api/orders/${r0.json.order.id}`, { as: SALES })).json.order;

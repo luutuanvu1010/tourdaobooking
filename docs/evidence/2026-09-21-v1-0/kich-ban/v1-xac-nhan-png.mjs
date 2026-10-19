@@ -241,16 +241,18 @@ const call = async (account, method, path, body) => {
   return { status: r.status, json: await r.json().catch(() => null) };
 };
 const NO_TRIP = { departDate: "", departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
+// ADR-0134: mỗi dịch vụ gửi lựa chọn đón TƯỜNG MINH — có chặng (thân mới `legs`) hoặc giờ/điểm đón kiểu cũ (máy chủ sinh chặng) ⇒ "DON", còn lại "KHONG_DON".
+const chonDon = (s) => ({ ...s, pickupChoice: (s.legs !== undefined ? s.legs.length > 0 : Boolean(s.pickupTime || s.pickupPlace)) ? "DON" : "KHONG_DON" });
 const pax = (adult, child = 0, senior = 0, infant = 0) => ({ adult, child, senior, infant });
 const cust = (name, o = {}) => ({ customerName: name, customerPhone: "0903 111 222", customerEmail: "", customerNote: "", discount: 0, paymentNote: "", ...o });
 // Sổ tiền lượt 1 (ADR-0026 đ9): máy chủ từ chối cọc trong thân đơn (409 client_outdated) — dữ liệu mẫu mang `traTruoc`, `create` ghi thành LẦN THU sau khi lập đơn.
-const tour = (o = {}) => ({ kind: "catalog", catalogCode: "TD101", pax: pax(2, 1), unitPrices: { adult: 1350000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departDate: vnDate(7), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise, 12 Trần Phú", checkinTime: "06:45", checkinPlace: "Bến Cầu Đá", ...o });
+const tour = (o = {}) => chonDon({ kind: "catalog", catalogCode: "TD101", pax: pax(2, 1), unitPrices: { adult: 1350000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departDate: vnDate(7), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise, 12 Trần Phú", checkinTime: "06:45", checkinPlace: "Bến Cầu Đá", ...o });
 // Dịch vụ nhập tay (ảnh xác nhận phải vẽ đúng chúng: dữ liệu CŨ vẫn có). 2026-09-26 (DK-T3-01 R1, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): API không
 // nhận dịch vụ nhập tay MỚI (400) → gửi dịch vụ danh mục giữ chỗ TTB06 (cùng số khách), `create` đổi nó thành ĐÚNG dịch vụ nhập tay này (tên, các dòng tiền,
 // số khách) bằng SQL khi đơn còn nháp (`env.legacyManual`) — dữ liệu y như trước, nên mọi khẳng định về ảnh không đổi.
 const manual = (name, items, o = {}) => {
   const { pax: guests = pax(3), ...trip } = o;
-  return { kind: "catalog", catalogCode: "TTB06", pax: pax(guests.adult), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(7), ...trip, _legacy: { name, adult: guests.adult, items } }; // ADR-0021: cả đơn một ngày — mọi dịch vụ dựng sẵn cùng vnDate(7)
+  return chonDon({ kind: "catalog", catalogCode: "TTB06", pax: pax(guests.adult), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(7), ...trip, _legacy: { name, adult: guests.adult, items } }); // ADR-0021: cả đơn một ngày — mọi dịch vụ dựng sẵn cùng vnDate(7)
 };
 const create = async (account, { traTruoc = 0, traTruocHinhThuc = "OTHER", ...body }) => {
   const r = await call(account, "POST", "/api/orders", { ...body, services: body.services.map(({ _legacy, ...s }) => s) });
@@ -277,8 +279,8 @@ async function fx() {
       ...cust("Lê Thị Hoa", { customerEmail: "hoa.le@example.com", customerNote: "Đón sớm 06:30.\nCó hai cháu nhỏ, cần ghế trẻ em.", discount: 200000, traTruoc: 2000000, traTruocHinhThuc: "CASH" }),
       services: [
         tour({ pax: pax(2, 1, 1), unitPrices: { adult: 1300000, child: 950000, senior: 1200000 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000 } }),
-        { kind: "catalog", catalogCode: "TTB03", pax: pax(7), unitPrices: { adult: 1500000 }, catalogPriceSeen: { adult: 1500000 }, ...NO_TRIP, departDate: vnDate(7), departTime: "10:00" },
-        { kind: "catalog", catalogCode: "TTB06", pax: pax(3), unitPrices: { adult: 800000 }, catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(7), pickupPlace: "Bến du thuyền Cam Ranh" },
+        { kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TTB03", pax: pax(7), unitPrices: { adult: 1500000 }, catalogPriceSeen: { adult: 1500000 }, ...NO_TRIP, departDate: vnDate(7), departTime: "10:00" },
+        { kind: "catalog", pickupChoice: "DON", catalogCode: "TTB06", pax: pax(3), unitPrices: { adult: 800000 }, catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(7), pickupPlace: "Bến du thuyền Cam Ranh" },
         manual("Xe đưa đón riêng", [{ description: "Xe 7 chỗ 2 chiều", detail: "Sân bay Cam Ranh – khách sạn", quantity: 1, unitPrice: 800000 }, { description: "Nước suối và khăn lạnh", detail: "", quantity: 6, unitPrice: 10000 }, { description: "Phí chờ ngoài giờ", detail: "Sau 22:00", quantity: 1, unitPrice: 150000 }], { departDate: vnDate(7), departTime: "05:30" }),
       ],
     });
@@ -292,8 +294,8 @@ async function fx() {
       services: [
         tour({ pax: pax(10, 2, 2), unitPrices: { adult: 1350000, child: 950000, senior: 1200000 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000 } }),
         tour({ pax: pax(12, 1, 1), departDate: vnDate(7), unitPrices: { adult: 1300000, child: 950000, senior: 1200000 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000 } }),
-        { kind: "catalog", catalogCode: "TTB03", pax: pax(23), unitPrices: { adult: 1500000 }, catalogPriceSeen: { adult: 1500000 }, ...NO_TRIP, departDate: vnDate(7) },
-        { kind: "catalog", catalogCode: "TTB06", pax: pax(9), unitPrices: { adult: 800000 }, catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(7), departTime: "14:00" },
+        { kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TTB03", pax: pax(23), unitPrices: { adult: 1500000 }, catalogPriceSeen: { adult: 1500000 }, ...NO_TRIP, departDate: vnDate(7) },
+        { kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TTB06", pax: pax(9), unitPrices: { adult: 800000 }, catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(7), departTime: "14:00" },
         ...Array.from({ length: 4 }, (_, i) =>
           manual(i % 3 === 0 ? `${LONG_WORD}-${i + 1}` : `Dịch vụ nhập tay số ${i + 1}: xe limousine đưa đón đoàn từ sân bay Cam Ranh về khách sạn ở trung tâm Nha Trang`, longItems(3 + (i % 2), 4500000 + i * 250000), { pax: pax(32), departDate: vnDate(7), departTime: "06:00", pickupPlace: `Khách sạn ${LONG_WORD}, số 12 đường Trần Phú, phường Lộc Thọ, thành phố Nha Trang, tỉnh Khánh Hoà` }),
         ),

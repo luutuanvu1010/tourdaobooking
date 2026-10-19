@@ -10,7 +10,7 @@ export async function donRieng(w, v) {
     body: {
       customerName: v.lienHe, customerPhone: v.sdt, customerNote: "Ghi chú đơn Dò Tìm", paymentNote: "Thanh toán Dò Tìm",
       services: [{
-        kind: "catalog", catalogCode: "ZA1", pax: { adult: v.soNguoi, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: v.ngay ?? NGAY,
+        kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: v.soNguoi, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: v.ngay ?? NGAY,
         legs: [{ direction: "OUT", pickupDate: v.ngay ?? NGAY, pickupTime: v.gio, pickupLocationId: null, pickupPlace: v.noiDon, dropoffLocationId: LOC, dropoffPlace: "" }],
       }],
       passengers: Array.from({ length: v.soNguoi }, (_x, i) => ({ fullName: `${v.tenKhach} ${i + 1}`, birthYear: (v.namSinh ?? 1980) + i, paxCode: "adult" })),

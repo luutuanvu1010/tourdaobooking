@@ -156,7 +156,7 @@ export async function dungDuLieuDieuPhoi(env, call) {
     const r = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
       customerName: `Khách Điều Phối ${++soDon}`, customerPhone: `0903 100 ${String(200 + soDon)}`, customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
       services: [{
-        kind: "catalog", catalogCode: "TD101", pax: { adult: soKhach, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, ...NO_TRIP, departDate: ngay,
+        kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: soKhach, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, ...NO_TRIP, departDate: ngay,
         legs: [{ direction: "OUT", pickupDate: ngay, pickupTime: gio, pickupLocationId: null, pickupPlace: noiDon, dropoffLocationId: noiTra, dropoffPlace: "" }],
       }],
       passengers: Array.from({ length: soTen }, (_, i) => ({ fullName: `Hành Khách Thử ${soDon}-${i + 1}`, birthYear: 1980 + i, paxCode: null })),

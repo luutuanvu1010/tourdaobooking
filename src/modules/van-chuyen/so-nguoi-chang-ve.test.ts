@@ -13,7 +13,7 @@ async function donVe(w: any) {
     body: {
       customerName: "Khách Liên Hệ Dò Tìm", customerPhone: "0912345678",
       services: [{
-        kind: "catalog", catalogCode: "ZA1", pax: { adult: 4, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY,
+        kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: 4, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY,
         legs: [{ direction: "RETURN", pickupDate: NGAY, pickupTime: "13:00", pickupLocationId: LOC, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "Khách sạn Dò Tìm", paxOverride: 2 }],
       }],
       passengers: [{ fullName: "Khách Dò Tìm 1", birthYear: 1990, paxCode: "adult" }, { fullName: "Khách Dò Tìm 2", birthYear: 1991, paxCode: "adult" }],

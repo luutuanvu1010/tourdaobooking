@@ -51,7 +51,7 @@ async function donXeRieng(w: any, cx?: number) {
     body: {
       customerName: "Khách Riêng", customerPhone: "0912345678",
       services: [{
-        kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY,
+        kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY,
         legs: [{ direction: "OUT", pickupDate: NGAY, pickupTime: "13:00", pickupLocationId: null, pickupPlace: "Khách sạn Riêng", dropoffLocationId: LOC, dropoffPlace: "", ...(cx ? { minVehicleSeats: cx } : { exclusiveVehicle: true }) }],
       }],
       passengers: [{ fullName: "Khách Riêng Một", birthYear: 1980, paxCode: "adult" }, { fullName: "Khách Riêng Hai", birthYear: 1981, paxCode: "adult" }],

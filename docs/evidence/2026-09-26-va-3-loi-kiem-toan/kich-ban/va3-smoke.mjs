@@ -112,7 +112,7 @@ try {
   const NO_TRIP = { departDate: "", departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" }; // bước 6 dùng lại
   const created = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     customerName: CUSTOMER, customerPhone: "0903 222 333", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
-    services: [{ kind: "catalog", catalogCode: "ZVA3", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 300000 }, ...NO_TRIP, departDate: vnDate(3), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá" }],
+    services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "ZVA3", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 300000 }, ...NO_TRIP, departDate: vnDate(3), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá" }],
   });
   assert.equal(created.status, 201, `dựng đơn danh mục: ${created.status} ${JSON.stringify(created.json)}`);
   const order = created.json.order;

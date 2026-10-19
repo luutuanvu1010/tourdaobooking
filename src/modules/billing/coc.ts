@@ -16,7 +16,7 @@ import {
   conLaiCuaKhoan, hoanNgoaiTrangThai, kiemChi, kiemDuyet, kiemGhiHoanNgoai, kiemHuyDuyet, kiemXacNhanHoanNgoai, METHOD_CODES, nhacCoc, nhacDoiChieu, sinhDongHoanKhach, sinhDongLanThu,
   soDuTheoBen, soTienCoc, type DuyetRow, type HoanNgoaiRow, type KiemCoc, type SoTienCoc,
 } from "./rules";
-import { CHUA_CO_CONG_TY, PARTY_ID_RE, docLyDo, docNgay, docSoTien, layKyDaKhoa, lineOf, loi, loiKhoaKy, toDoiChieuRow, toLineRow, toReceiptRow, type KetQua, type NguoiGoi } from "./service";
+import { CHUA_CO_CONG_TY, PARTY_ID_RE, loaiCho, docLyDo, docNgay, docSoTien, layKyDaKhoa, lineOf, loi, loiKhoaKy, toDoiChieuRow, toLineRow, toReceiptRow, type KetQua, type NguoiGoi } from "./service";
 
 /** Kiểm độc lập vòng 2 CAO-1: đơn nhận đổi trạng thái giữa lúc duyệt chuyển và lúc chuyển. */
 const CAU_DON_NHAN_HONG = "Đơn nhận đã huỷ hoặc đã giao — huỷ khoản duyệt chuyển rồi duyệt lại sang đơn khác.";
@@ -410,7 +410,10 @@ async function tongHop(db: D1Database): Promise<CocListResponse> {
       };
     }),
     conNguoiGiu: giu.map((g) => ({ orderId: g.order_id, maDon: maDon.get(g.order_id) ?? "—", nguoi: ten.get(g.party_id)?.label ?? "Một người", soTien: g.balance })),
-    doiChieu: doiChieu.map((x) => ({ receiptId: x.receipt_id, orderId: x.order_id, maDon: x.order_code ?? "—", soTien: x.amount, ngayKhai: x.ngay_khai, qua3Ngay: nhacDoiChieu({ homNay, ngayKhai: x.ngay_khai }) })),
+    doiChieu: doiChieu.map((x) => ({
+      receiptId: x.receipt_id, orderId: x.order_id, maDon: x.order_code ?? "—", soTien: x.amount, ngayKhai: x.ngay_khai, qua3Ngay: nhacDoiChieu({ homNay, ngayKhai: x.ngay_khai }),
+      loai: loaiCho(x.collector_role_code), benKia: x.ben_kia,
+    })),
   };
 }
 export const danhSachCoc = (db: D1Database): Promise<CocListResponse> => tongHop(db);

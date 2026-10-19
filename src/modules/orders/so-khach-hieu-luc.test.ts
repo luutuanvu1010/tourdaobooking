@@ -36,8 +36,8 @@ async function confirmedOrder(w: any): Promise<{ orderId: string; a: string; b: 
     body: {
       customerName: "Khách Thử", customerPhone: "0912345678",
       services: [
-        { kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 1, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000, child: 300000 }, departDate },
-        { kind: "catalog", catalogCode: "ZB2", pax: { adult: 3, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 200000 }, departDate },
+        { kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 1, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000, child: 300000 }, departDate },
+        { kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZB2", pax: { adult: 3, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 200000 }, departDate },
       ],
     },
   });

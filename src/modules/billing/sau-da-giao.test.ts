@@ -25,6 +25,7 @@ const MIEN: { route: string; lyDo: string }[] = [
   { route: "POST /api/orders", lyDo: "tạo đơn MỚI — không có đơn đã Đã giao nào để khoá" },
   // ADR-0061 điều 6 (miễn trừ có tên, chủ duyệt kèm ADR): bảng ord_manual_service_policy thuộc orders nên route nằm ở orders (chỉ module chủ ghi bảng).
   { route: "POST /api/cai-dat/nhap-tay", lyDo: "đổi chính sách nhập tay toàn hệ thống, không ghi đơn nào, không có đơn để khoá" },
+  { route: "POST /api/cai-dat/khung-gio-don", lyDo: "đổi khung giờ đón toàn hệ thống (ADR-0134 Đ6), không ghi đơn nào, không có đơn để khoá" },
   // ADR-0089 đ8: phân loại lý do huỷ chỉ chạy trên ĐƠN ĐÃ HUỶ; đơn đã Đã giao không huỷ được (ADR-0025 đ1) ⇒ route trả 409 invalid_state "đơn chưa huỷ".
   { route: "POST /api/orders/:id/cancel-reason", lyDo: "chỉ đơn đã huỷ — đơn đã Đã giao không bao giờ huỷ được (ADR-0025 đ1), route trả 409 invalid_state" },
 ];
@@ -49,6 +50,8 @@ const CA: Record<string, unknown> = {
   "POST /api/orders/:id/money-edit": {}, // ADR-0063 D1 (văn phòng sửa số khách) — 409 TRƯỚC khi đọc thân
   // Sổ đại lý đợt 1 (Task 5): ghi mức hoa hồng tay — thân HỢP LỆ (route kiểm thân trước đơn); đơn Đã giao ⇒ 409 order_delivered trước cả bước tìm bản chụp.
   "POST /api/orders/:id/thuong-mai/:serviceId": { lyDo: "thoả thuận miệng với CTV Lan", hoaHong: { kieu: "RATE", tyLeBp: 1500 } },
+  // Sổ đại lý đợt 2 (Task 6): «Chụp bù» — không thân; đơn Đã giao ⇒ 409 order_delivered trước bước đếm bản chụp.
+  "POST /api/orders/:id/chup-bu": {},
 };
 const khoa = (r: { method: string; path: string }) => `${r.method} ${r.path}`;
 
@@ -71,7 +74,7 @@ test("NT-F7: sau Đã giao, MỌI route ghi của orders + dispatch (Toàn quy�
   const homNay = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
   w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
     VALUES (?, 'TD-KHOA', ?, 'draft', 'Khách Giả', '0900000099', 100000, 100000, 100000, ?, ?)`).run(id, SA, AT, AT);
-  w.sqlite.prepare(`INSERT INTO order_service (id, order_id, name, unit, pax_adult, depart_date) VALUES ('svc-khoa', ?, 'Vé', 'perPax', 1, ?)`).run(id, homNay);
+  w.sqlite.prepare(`INSERT INTO order_service (pickup_choice, id, order_id, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', 'svc-khoa', ?, 'Vé', 'perPax', 1, ?)`).run(id, homNay);
   w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total) VALUES ('it-khoa', ?, 'svc-khoa', 'Người lớn', 1, 100000, 100000)`).run(id);
   w.sqlite.prepare(`INSERT INTO ord_transfer_leg (id, order_id, order_service_id, direction, pickup_date, pickup_place, created_at, updated_at) VALUES (?, ?, 'svc-khoa', 'OUT', ?, 'Khách sạn', ?, ?)`)
     .run(legId, id, homNay, AT, AT);
@@ -100,7 +103,7 @@ test("T-1 (kiểm độc lập): ĐUA — route đọc 'chưa Đã giao', ngư�
   const homNay = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
   w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
     VALUES (?, 'TD-DUA', ?, 'draft', 'Khách Giả', '0900000099', 100000, 100000, 100000, ?, ?)`).run(id, SA, AT, AT);
-  w.sqlite.prepare(`INSERT INTO order_service (id, order_id, name, unit, pax_adult, depart_date) VALUES ('svc-dua', ?, 'Vé', 'perPax', 1, ?)`).run(id, homNay);
+  w.sqlite.prepare(`INSERT INTO order_service (pickup_choice, id, order_id, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', 'svc-dua', ?, 'Vé', 'perPax', 1, ?)`).run(id, homNay);
   w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total) VALUES ('it-dua', ?, 'svc-dua', 'Người lớn', 1, 100000, 100000)`).run(id);
   w.sqlite.prepare(`UPDATE orders SET status = 'confirmed', confirmed_at = ?, updated_at = ? WHERE id = ?`).run(AT, AT, id);
   // Bọc lô ghi KẾ TIẾP: "người khác" bấm Đã giao ngay trước lô (tất định — khuôn chenTruocLo của lo-ghi.test.ts).

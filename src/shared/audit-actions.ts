@@ -42,6 +42,9 @@ export const AUDIT_ACTIONS = {
   order_terms_captured: { label: "Chụp mức hoa hồng lúc xác nhận", group: "order" },
   order_terms_recaptured: { label: "Chụp lại mức khi đổi bên đặt", group: "order" },
   order_terms_manual: { label: "Ghi mức hoa hồng tay", group: "order" }, // Task 5: Kế toán / Quản trị / Toàn quyền ghi mức hoặc người bán cho một dịch vụ; detail "<dịch vụ>: mức trước → sau" (không tiền khách, không a%, không lý do); lịch sử đơn lọc bỏ khi người xem giữ quyền Đối tác
+  // Sổ đại lý đợt 2, Task 6 (ADR-0079 điều 7 b2, C4 = A): Kế toán bấm «Chụp bù» cho đơn xác nhận trước khi có bảng mức — `detail` chỉ ngày chụp + đếm dòng (khuôn `moTaChup`:
+  // không tỷ lệ, không tiền, không tên đối tác). Tiền tố `ord_terms_` thuộc nhóm hành động thương mại (`laHanhDongThuongMai`); ẩn khỏi lịch sử đơn của Đối tác.
+  ord_terms_backfilled: { label: "Chụp bù mức hoa hồng", group: "order" },
   // Sổ tiền lượt 1 (ADR-0025, ADR-0026) — `detail` không SĐT, không số tiền chi tiết (kế hoạch §3.4).
   order_delivered: { label: "Đã giao – đã thu đủ", group: "order" },
   order_completed: { label: "Hoàn thành", group: "order" },
@@ -51,6 +54,8 @@ export const AUDIT_ACTIONS = {
   order_accounting_entry_marked: { label: "Đánh dấu đã nhập phần mềm kế toán", group: "order" },
   order_accounting_entry_unmarked: { label: "Bỏ đánh dấu đã nhập phần mềm kế toán", group: "order" },
   ledger_company_received: { label: "Xác nhận công ty đã nhận", group: "ledger" },
+  // Sổ đại lý đợt 2 (ADR-0132 điều 2): Kế toán xác nhận khoản khách trả cho bên đặt / tại quầy nhà cung cấp — không detail (không tên bên kia, không số).
+  ledger_counterparty_confirmed: { label: "Xác nhận bên kia đã nhận", group: "ledger" },
   ledger_settlement: { label: "Ghi nộp / trả tiền", group: "ledger" },
   ledger_refund: { label: "Ghi hoàn khách", group: "ledger" },
   ledger_adjustment: { label: "Ghi điều chỉnh sổ", group: "ledger" },
@@ -238,6 +243,7 @@ export const AUDIT_ACTIONS = {
   maintenance_changed: { label: "Đổi chế độ bảo trì", group: "system" },
   // ADR-0061 điều 6: Toàn quyền bật / tắt "Dịch vụ nhập tay" (POST /api/cai-dat/nhap-tay) — không gắn đơn (orderId NULL); detail "Bật" / "Tắt".
   manual_service_policy_changed: { label: "Đổi công tắc dịch vụ nhập tay", group: "system" },
+  pickup_slot_policy_changed: { label: "Đổi khung giờ đón", group: "system" },
   // ADR-0069 điều 5 + Hiến chương 5.12: ai đổi cài đặt trợ lý Hỗ trợ lúc nào — detail chỉ nêu PHẦN đã đổi, KHÔNG nội dung lời dặn / ngữ cảnh.
   tro_ly_settings_changed: { label: "Đổi cài đặt trợ lý Hỗ trợ", group: "system" },
   // ADR-0087 điều 6: Toàn quyền đổi giao diện công ty — detail = các ô đổi (nhãn: cũ → mới), không dữ liệu cá nhân. KHÔNG im lặng (ADR-0038).
@@ -318,10 +324,10 @@ export const SILENT_AUDIT_ACTIONS = [
 /**
  * Sổ đại lý đợt 1, bước K-a (luật "ai thấy tiền của ai" — Hiến chương K4; đặc tả đợt 1: "có quyền Đối tác là áp"): hành động mà `detail` chở MỨC thương mại (tỷ lệ,
  * đ/khách, người bán). Trang Nhật ký (`GET /api/audit`) bỏ các dòng này khi người xem giữ quyền Đối tác — kể cả tài khoản lai Toàn quyền + Đối tác — như lịch sử đơn
- * lọc `order_terms_*` (`laDongThuongMai`). Theo tiền tố: hành động mới cùng tiền tố tự vào. Danh sách dựng ở máy chủ (`audit/repository.ts`) — tính ở đầu tệp dùng chung
+ * lọc `order_terms_*` (`laDongThuongMai`). Theo tiền tố (`order_terms_`, `ord_terms_` — chụp bù của sổ đại lý đợt 2 —, `prc_`): hành động mới cùng tiền tố tự vào. Danh sách dựng ở máy chủ (`audit/repository.ts`) — tính ở đầu tệp dùng chung
  * này kéo cả bảng nhãn vào gói giao diện (bài `src/goi-trang-nhe.test.ts`). Bài canh: `src/so-la-thuong-mai-toan-nen-tang.test.ts`.
  */
-export const laHanhDongThuongMai = (a: string): boolean => a.startsWith("order_terms_") || a.startsWith("prc_");
+export const laHanhDongThuongMai = (a: string): boolean => a.startsWith("order_terms_") || a.startsWith("ord_terms_") || a.startsWith("prc_");
 
 export const isAuditAction = (v: unknown): v is AuditAction => typeof v === "string" && Object.hasOwn(AUDIT_ACTIONS, v);
 

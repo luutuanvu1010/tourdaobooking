@@ -3,6 +3,7 @@
 // CHỈ-THÊM. Mỗi câu ghi có LÍNH GÁC trong câu để câu sau trong lô chỉ áp khi câu trước đã áp; điều kiện nhiệm vụ nằm ở trigger 0094 (RAISE ⇒ cả lô huỷ).
 // Import kèm đuôi .ts.
 import { defineSql } from "../../shared/sql-registry.ts";
+import type { DebtKind } from "./rules.ts";
 
 export type KetQuaQuyet = "APPROVE" | "REJECT" | "WITHDRAW";
 export type HuongDb = "INCREASE" | "DECREASE";
@@ -15,7 +16,7 @@ export interface YeuCauDbRow {
   debtor_label: string | null;
   creditor_label: string | null;
   amount: number;
-  line_kind_code: "HELD" | "SETTLEMENT" | "REFUND";
+  line_kind_code: DebtKind;
   occurred_date: string;
   direction: HuongDb;
   reason: string;
@@ -108,7 +109,7 @@ export interface YeuCauMoi {
   debtorPartyId: string;
   creditorPartyId: string;
   amount: number;
-  lineKind: "HELD" | "SETTLEMENT" | "REFUND";
+  lineKind: DebtKind;
   occurredDate: string;
   direction: HuongDb;
   reason: string;
