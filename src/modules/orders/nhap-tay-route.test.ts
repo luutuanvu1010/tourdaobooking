@@ -9,9 +9,9 @@ import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 const U = (n: number) => `${String(n).repeat(8)}-${String(n).repeat(4)}-4${String(n).repeat(3)}-8${String(n).repeat(3)}-${String(n).repeat(12)}`;
 const SALES = U(1), ADMIN = U(2), SUPER = U(3), FIELD = U(4), INTERN = U(5), PARTNER = U(6), LAI_SALES = U(7), LAI_FIELD = U(8), KE_TOAN = U(9);
 const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
-const catalogSvc = () => ({ kind: "catalog", catalogCode: "ZA1", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(3) });
+const catalogSvc = () => ({ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(3) });
 const manualSvc = (unitPrice = 400000, extra: Record<string, unknown> = {}) =>
-  ({ kind: "manual", name: "Xe đưa đón riêng", pax: { adult: 2 }, departDate: inDays(3), items: [{ description: "Xe 7 chỗ", detail: "2 chiều", quantity: 2, unitPrice }], ...extra });
+  ({ kind: "manual", pickupChoice: "KHONG_DON", name: "Xe đưa đón riêng", pax: { adult: 2 }, departDate: inDays(3), items: [{ description: "Xe 7 chỗ", detail: "2 chiều", quantity: 2, unitPrice }], ...extra });
 const donBody = (services: unknown[], extra: Record<string, unknown> = {}) => ({ customerName: "Khách Thử", customerPhone: "0912345678", services, ...extra });
 
 function setup() {

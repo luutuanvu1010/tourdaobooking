@@ -51,7 +51,7 @@ test("NT-B1 (route thật): GET /api/orders/:id/receipt — số lạ ở ô bí
   const AT = "2026-09-01T00:00:00.000Z";
   w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, payment_note, created_at, updated_at)
     VALUES (?, 'TD-BN-1', ?, 'draft', 'Khách Giả', '0900000099', 1000000, 1000000, 1000000, ?, ?, ?)`).run(id, SALES, `nội bộ ${LA}`, AT, AT);
-  w.sqlite.prepare(`INSERT INTO order_service (id, order_id, name, unit, pax_adult, depart_date, note) VALUES ('svc-bn', ?, 'Vé', 'perPax', 2, '2026-10-01', ?)`).run(id, `vận hành ${LA}`);
+  w.sqlite.prepare(`INSERT INTO order_service (pickup_choice, id, order_id, name, unit, pax_adult, depart_date, note) VALUES ('KHONG_DON', 'svc-bn', ?, 'Vé', 'perPax', 2, '2026-10-01', ?)`).run(id, `vận hành ${LA}`);
   w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total, catalog_code, catalog_price, pax_code)
     VALUES ('it-bn', ?, 'svc-bn', 'Người lớn', 2, 500000, 1000000, 'ZX1', ?, 'adult')`).run(id, Number(LA));
   w.sqlite.prepare(`UPDATE orders SET status = 'confirmed', confirmed_at = ?, updated_at = ? WHERE id = ?`).run(AT, AT, id);
@@ -97,7 +97,7 @@ test("ADR-0109 (route thật): bớt khách tới giảm giá > tạm tính → 
   const P = (adult: number) => ({ adult, child: 0, senior: 0, infant: 0 });
   const tao = await w.call("POST", "/api/orders", {
     as: SALES,
-    body: { customerName: "Khách Thử", customerPhone: "0912345678", discount: 800000, services: [{ kind: "catalog", catalogCode: "ZA1", pax: P(2), catalogPriceSeen: { adult: 500000, child: 300000, infant: 50000 }, departDate: ngay }] },
+    body: { customerName: "Khách Thử", customerPhone: "0912345678", discount: 800000, services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: P(2), catalogPriceSeen: { adult: 500000, child: 300000, infant: 50000 }, departDate: ngay }] },
   });
   assert.equal(tao.status, 201, tao.text);
   const id = tao.json.order.id as string;

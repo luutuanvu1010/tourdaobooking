@@ -34,7 +34,7 @@ async function donDoiTac(w: any) {
     body: {
       customerName: "Khách Liên Hệ Dò Tìm", customerPhone: "0912345678",
       services: [{
-        kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY,
+        kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY,
         legs: [{ direction: "OUT", pickupDate: NGAY, pickupTime: "13:00", pickupLocationId: null, pickupPlace: "Khách sạn Dò Tìm", dropoffLocationId: LOC, dropoffPlace: "" }],
       }],
     },
@@ -129,7 +129,7 @@ test("sửa giờ lúc đơn còn NHÁP rồi mới xác nhận → không tin �
       as: SALES,
       body: {
         customerName: "Khách Dò Tìm", customerPhone: "0912345678", handlerStaffId: FIELD,
-        services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY, departTime: "07:00" }],
+        services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY, departTime: "07:00" }],
       },
     });
     assert.equal(r.status, 201, r.text);
@@ -158,7 +158,7 @@ test("đơn xác nhận HƠN 30 ngày trước, hôm nay đổi giờ → vẫn 
     const w = setup();
     const r = await w.call("POST", "/api/orders", {
       as: SALES,
-      body: { customerName: "Khách Dò Tìm", customerPhone: "0912345678", handlerStaffId: FIELD, services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: "2027-05-20", departTime: "07:00" }] },
+      body: { customerName: "Khách Dò Tìm", customerPhone: "0912345678", handlerStaffId: FIELD, services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: "2027-05-20", departTime: "07:00" }] },
     });
     assert.equal(r.status, 201, r.text);
     const id = r.json.order.id;
@@ -197,7 +197,7 @@ test("màn hình khoá (gõ cửa THẬT qua gốc lắp ráp, fetch giả): s�
     await xepHet(w, { chuyen: { id: a.id } }, p, 2);
     const nhap = await w.call("POST", "/api/orders", {
       as: SALES,
-      body: { customerName: "Khách Dò Tìm", customerPhone: "0912345678", handlerStaffId: FIELD, services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY, departTime: "07:00" }] },
+      body: { customerName: "Khách Dò Tìm", customerPhone: "0912345678", handlerStaffId: FIELD, services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY, departTime: "07:00" }] },
     });
     assert.equal(nhap.status, 201, nhap.text);
     await w.choNen();

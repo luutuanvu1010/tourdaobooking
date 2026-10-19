@@ -9,6 +9,7 @@ import {
 import { MAX_LINES_PER_ORDER, MAX_SERVICES, ONE_DATE_MESSAGE, confirmWindow, tripUpdateKeepsOneDate } from "../../shared/trip-rules.ts";
 import { cleanText, dateField, int, text, timeField } from "./fields.ts";
 import { tongKhach } from "../../shared/so-nguoi-chang.ts";
+import { laLuaChonDon, type LuaChonDon } from "../../shared/khung-gio-don.ts";
 import { NHAN_TRUONG_THOI_GIAN } from "../../shared/truong-thoi-gian.ts";
 
 export type { CatalogChangeDto as CatalogChange, CatalogStatus, MissingReason, TripGapDto as TripGap };
@@ -50,6 +51,8 @@ export interface ValidService {
    * (`validateService` đơn lẻ) để rỗng. `trip.pickupTime/pickupPlace` được đặt lại = dẫn xuất (`chieuDiDau`) sau khi biết tên điểm (ghi kép R3).
    */
   legs: ChangHopLe[];
+  /** Lựa chọn đón (ADR-0134 Đ1): đã kiểm mã; null = chưa chọn hoặc thân không có khoá (máy chưa tải bản mới — `validateOrder` kiểm đồng nhất). */
+  pickupChoice: LuaChonDon | null;
 }
 
 /** Dịch vụ đã lưu của đơn đang sửa (từ D1), đủ để dựng lại "bản chụp". */
@@ -61,6 +64,8 @@ export interface StoredService {
   pax: PaxCounts;
   /** `unitPrice` = đơn giá ĐÃ THOẢ THUẬN của dòng (`order_item.unit_price`); `catalogPrice` = giá niêm yết lúc lập (chỉ để truy vết lệch giá). */
   items: { paxCode: PaxCode | null; detail: string | null; catalogPrice: number | null; unitPrice: number }[];
+  /** Lựa chọn đón đang lưu (ADR-0134) — có khi đọc từ CSDL (`getStoredServices`); vắng = không biết (coi như chưa chọn). */
+  pickupChoice?: LuaChonDon | null;
 }
 
 export interface ServiceContext {
@@ -225,7 +230,7 @@ function catalogService(s: Record<string, unknown>, at: string, index: number, p
     if (lineTotal > MAX_AMOUNT_VND) return fail(`${at}: thành tiền vượt giới hạn.`);
     items.push({ catalogCode: code, paxCode: l.pax, description: l.description, detail: l.detail || null, quantity: l.quantity, unitPrice: l.unitPrice, catalogPrice: l.catalogPrice, lineTotal });
   }
-  return { ok: true, value: { id: stored?.id ?? null, kind: "catalog", catalogCode: code, name: source.name, unit: source.unit, pax, trip, items, legs: [] } };
+  return { ok: true, value: { id: stored?.id ?? null, kind: "catalog", catalogCode: code, name: source.name, unit: source.unit, pax, trip, items, legs: [], pickupChoice: null } };
 }
 
 // ---- Dịch vụ nhập tay --------------------------------------------------------------------------------------------
@@ -253,7 +258,7 @@ function manualService(s: Record<string, unknown>, at: string, pax: PaxCounts, t
     items.push({ catalogCode: null, paxCode: null, description: description.value!, detail: detail.value, quantity: quantity.value, unitPrice: unitPrice.value, catalogPrice: null, lineTotal });
   }
   const stored = typeof s.id === "string" ? ctx.stored.find((x) => x.id === s.id) : undefined;
-  return { ok: true, value: { id: stored?.id ?? null, kind: "manual", catalogCode: null, name: name.value!, unit: "manual", pax, trip, items, legs: [] } };
+  return { ok: true, value: { id: stored?.id ?? null, kind: "manual", catalogCode: null, name: name.value!, unit: "manual", pax, trip, items, legs: [], pickupChoice: null } };
 }
 
 export function validateService(raw: unknown, index: number, ctx: ServiceContext): ServiceResult {
@@ -265,7 +270,13 @@ export function validateService(raw: unknown, index: number, ctx: ServiceContext
   if (!trip.ok) return trip;
   const pax = validatePax(s.pax, at);
   if (!pax.ok) return pax;
-  return s.kind === "catalog" ? catalogService(s, at, index, pax.value, trip.value, ctx) : manualService(s, at, pax.value, trip.value, ctx);
+  // ADR-0134 Đ1, Đ7: null = chưa chọn; có thì phải đúng mã (không CHECK liệt kê ở CSDL — kiểm ở đây). Khoá VẮNG (máy chưa tải bản mới) = GIỮ giá trị
+  // đang lưu của chính dịch vụ (khuôn "khoá vắng = giữ" của ô phụ chặng), dịch vụ mới thì NULL — lưu lại nháp từ máy cũ không xoá mất lựa chọn đã có.
+  const daLuu = typeof s.id === "string" ? ctx.stored.find((x) => x.id === s.id)?.pickupChoice : undefined;
+  const pickupChoice = s.pickupChoice === undefined ? (daLuu ?? null) : s.pickupChoice;
+  if (pickupChoice !== null && !laLuaChonDon(pickupChoice)) return fail(`${at}: lựa chọn đưa đón không hợp lệ (chọn Đón hoặc Không đón).`);
+  const r = s.kind === "catalog" ? catalogService(s, at, index, pax.value, trip.value, ctx) : manualService(s, at, pax.value, trip.value, ctx);
+  return r.ok ? { ok: true, value: { ...r.value, pickupChoice } } : r;
 }
 
 // ---- Xác nhận đơn (Q4 + Q12) -------------------------------------------------------------------------------------

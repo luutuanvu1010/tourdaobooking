@@ -59,7 +59,7 @@ function nhapDon(w: W, chu: string): string {
   const id = uuid();
   w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
     VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', 1000000, 1000000, 1000000, ?, ?)`).run(id, `TD-LS-${seq}`, chu, AT, AT);
-  w.sqlite.prepare(`INSERT INTO order_service (id, order_id, sort_order, name, unit, pax_adult, depart_date) VALUES (?, ?, 0, 'DV', 'manual', 1, ?)`).run(`${id}-s`, id, NGAY);
+  w.sqlite.prepare(`INSERT INTO order_service (pickup_choice, id, order_id, sort_order, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, 0, 'DV', 'manual', 1, ?)`).run(`${id}-s`, id, NGAY);
   w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total) VALUES (?, ?, ?, 'Người lớn', 1, 1000000, 1000000)`).run(`${id}-i`, id, `${id}-s`);
   return id;
 }
@@ -85,7 +85,7 @@ test("D-1 (a) tái hiện: Đối tác không thấy lý do nội bộ, tên K�
   const w = dungWorld();
   const pr = await w.call("POST", "/api/orders", {
     as: PARTNER,
-    body: { customerName: "Khách Đối Tác", customerPhone: "0933333333", services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY, legs: [] }] },
+    body: { customerName: "Khách Đối Tác", customerPhone: "0933333333", services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY, legs: [] }] },
   });
   assert.equal(pr.status, 201, pr.text);
   const id = pr.json.order.id;
@@ -187,7 +187,7 @@ test("D-1 (d) khối cọc và lần thu của Đối tác bỏ lyDo / nguoiDuye
   const moi = async () => {
     const r = await w.call("POST", "/api/orders", {
       as: PARTNER,
-      body: { customerName: "Khách Đối Tác", customerPhone: "0933333333", services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY, legs: [] }] },
+      body: { customerName: "Khách Đối Tác", customerPhone: "0933333333", services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY, legs: [] }] },
     });
     assert.equal(r.status, 201, r.text);
     assert.equal((await w.call("POST", `/api/orders/${r.json.order.id}/status`, { as: PARTNER, body: { status: "confirmed" } })).status, 200);

@@ -39,7 +39,7 @@ async function donXeRieng(w: any, v: { ngay?: string; gio: string; soNguoi?: num
     body: {
       customerName: "Khách Riêng", customerPhone: "0912345678",
       services: [{
-        kind: "catalog", catalogCode: "ZA1", pax: { adult: soNguoi, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: v.ngay ?? NGAY,
+        kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: soNguoi, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: v.ngay ?? NGAY,
         legs: [{ direction: "OUT", pickupDate: v.ngay ?? NGAY, pickupTime: v.gio, pickupLocationId: null, pickupPlace: "Khách sạn Riêng", dropoffLocationId: LOC, dropoffPlace: "", ...(v.cx ? { minVehicleSeats: v.cx } : { exclusiveVehicle: true }) }],
       }],
       passengers: Array.from({ length: soNguoi }, (_x, i) => ({ fullName: `Khách Riêng ${i + 1}`, birthYear: 1980 + i, paxCode: "adult" })),

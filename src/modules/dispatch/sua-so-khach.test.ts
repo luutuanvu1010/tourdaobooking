@@ -27,7 +27,7 @@ function setup() {
 const vnDay = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
 const orderBody = () => ({
   customerName: "Khách Thử", customerPhone: "0912345678",
-  services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: vnDay(3) }],
+  services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: vnDay(3) }],
 });
 async function confirmedForField(w: any): Promise<string> {
   const created = await w.call("POST", "/api/orders", { as: SALES, body: orderBody() });

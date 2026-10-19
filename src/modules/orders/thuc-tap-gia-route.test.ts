@@ -13,7 +13,7 @@ const SALES = U(1), ADMIN = U(2), SUPER = U(3), PARTNER = U(4), INTERN = U(5), I
 const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
 const GIA = 500000; // giá danh mục người lớn của ZA1
 const catalogSvc = (unitPrice?: number) => ({
-  kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: GIA }, departDate: inDays(3),
+  kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: GIA }, departDate: inDays(3),
   ...(unitPrice === undefined ? {} : { unitPrices: { adult: unitPrice } }),
 });
 const donBody = (services: unknown[], extra: Record<string, unknown> = {}) => ({ customerName: "Khách Thử", customerPhone: "0912345678", services, ...extra });

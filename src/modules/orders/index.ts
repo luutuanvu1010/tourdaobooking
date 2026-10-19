@@ -5,7 +5,7 @@ import { auditStatement, getAuditTrail } from "../audit";
 import { chupDon, docBangChoChup, laNguoiHuong, soKhachTinhHoaHong, type BanChup } from "../pricing";
 import { ownerCompany } from "../parties";
 import type {
-  CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, DongBoChuyenDto, DongLichSuSoKhachDto, DraftCountResponse, IncompleteTripBody, MoneyEditResponse, MyAssignmentDto, NhapTayResponse, OrderDetailDto,
+  CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, DongBoChuyenDto, DongLichSuSoKhachDto, DraftCountResponse, IncompleteTripBody, KhungGioDonResponse, MoneyEditResponse, MyAssignmentDto, NhapTayResponse, OrderDetailDto,
   OrderDetailResponse, OrderListResponse, MocToiThieuResponse, NguoiLapResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
   SuaSoKhachDichVuDto, StaffProfile, ThuongMaiResponse,
 } from "../../shared/contracts";
@@ -24,7 +24,7 @@ import {
   chayLoSuaSoKhach, demThanCu, getServicesForSubtotal, getStoredPax, getStoredServices, insertMoneyAdjustment, listAdjustments, listOrderIds, listOrders, listPoolSources, updateDraftOrder, updateTrip,
 } from "./repository";
 import {
-  legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, manualPolicy, manualPolicyInsert, openLegsByOrders, orderContactRows, passengerRowsByOrders,
+  legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, manualPolicy, manualPolicyInsert, slotPolicy, slotPolicyInsert, openLegsByOrders, orderContactRows, passengerRowsByOrders,
   servicePaxByIds, servicePaxByOrder, passengerInsertDriver, nguoiDaLapDon, type DatGapWrite,
 } from "./chang-hanh-khach-repo";
 import { khoaNoi } from "../../shared/khoa-noi";
@@ -39,6 +39,8 @@ import { maskLongDigits } from "../../shared/text-guards";
 import { doanSoKhach, ghepLyDo } from "../../shared/tin-doi-don";
 import type { HanhDongDoiSoKhach } from "../../shared/audit-actions";
 import { CAU_THIEU_NGUOI_LON, donThieuNguoiLon } from "../../shared/nguoi-di-kem";
+import { CAU_LUU_Y_MAC_DINH, KHUNG_MAC_DINH, kiemCauLuuY, kiemDanhSachKhung } from "../../shared/khung-gio-don";
+import { cauThieuChonDon, thieuChonDon } from "../../shared/cong-chon-don";
 import { canhBaoGiamGiaVuot, canhBaoKhuyenMai, docThanSuaSoKhach, duocSuaSoKhachVanPhong, soKhachTraTien } from "../../shared/so-khach-van-phong";
 import { docLyDoHuy, docPhanLoai, nhanNhomHuy, type LyDoHuy } from "../../shared/ly-do-huy";
 import { lyDoHienHanh, phanLoaiStatement } from "./huy-don-repo";
@@ -774,6 +776,50 @@ export const ordersModule: AppModule = {
       return json({ batNhapTay: muon, duocDung: duocNhapTay(staff, muon), doiDuoc: true } satisfies NhapTayResponse);
     }),
 
+    // ADR-0134 Đ5, Đ6: bộ khung giờ đón dùng chung + câu lưu ý (bảng ord_pickup_slot_policy). Khuôn đúng hai route công tắc nhập tay ở trên (cùng lý do không
+    // nằm dưới /api/orders). ĐỌC (cổng orders): người lập đơn — ô order.create (chỉ-HDV, Kế toán không lập đơn → 403). Dòng đọc được kiểm lại bằng luật thuần;
+    // hỏng (không thể xảy ra qua route ghi) → trả bộ mặc định thay vì 500, form vẫn dùng được.
+    route("GET", "/api/cai-dat/khung-gio-don", "orders", async ({ env, staff }) => {
+      if (!can(staff, "order.create")) return error(403, "forbidden", "Tài khoản này không lập đơn nên không dùng khung giờ đón.");
+      const p = await slotPolicy(env.DB, new Date().toISOString());
+      let tho: unknown = null;
+      try {
+        tho = p.slotsJson === null ? null : (JSON.parse(p.slotsJson) as unknown);
+      } catch {
+        tho = null; // dòng hỏng (không thể xảy ra qua route ghi) → bộ mặc định, không 500
+      }
+      const k = kiemDanhSachKhung(tho);
+      const luuY = p.note === null ? null : kiemCauLuuY(p.note);
+      return json({
+        khung: k.ok ? k.khung : [...KHUNG_MAC_DINH], luuY: luuY?.ok ? luuY.cau : CAU_LUU_Y_MAC_DINH, doiDuoc: can(staff, "settings.ops"),
+      } satisfies KhungGioDonResponse);
+    }),
+    // GHI (cổng admin): chỉ ô settings.ops (hôm nay chỉ Toàn quyền). Chèn dòng mới, valid_from_at = max(lúc ghi, mới nhất + 1 ms), MỘT lô kèm nhật ký không
+    // gắn đơn (`pickup_slot_policy_changed`, chỉ ghi số khung — không chép chữ người gõ); va UNIQUE (hai lệnh cùng mốc) → 409 `stale`, lô không áp.
+    // Không ghi đơn nào (như công tắc nhập tay — miễn trừ NT-F7).
+    route("POST", "/api/cai-dat/khung-gio-don", "admin", async ({ env, request, staff }) => {
+      if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền đổi được khung giờ đón.");
+      const body = (await readJson(request)) as { khung?: unknown; luuY?: unknown } | null;
+      if (!body || typeof body !== "object") return error(400, "invalid_input", "Dữ liệu khung giờ đón không hợp lệ.");
+      const k = kiemDanhSachKhung(body.khung);
+      if (!k.ok) return error(400, "invalid_input", k.loi);
+      const luuY = kiemCauLuuY(body.luuY);
+      if (!luuY.ok) return error(400, "invalid_input", luuY.loi);
+      const now = new Date();
+      const hienTai = await slotPolicy(env.DB, now.toISOString());
+      const at = (hienTai.moiNhat && Date.parse(hienTai.moiNhat) >= now.getTime() ? new Date(Date.parse(hienTai.moiNhat) + 1) : now).toISOString();
+      try {
+        await env.DB.batch([
+          slotPolicyInsert(env.DB, crypto.randomUUID(), JSON.stringify(k.khung), luuY.cau, at, staff.id),
+          auditStatement(env.DB, { staffId: staff.id, action: "pickup_slot_policy_changed", at, targetType: "system", detail: `Đặt ${k.khung.length} khung giờ đón` }),
+        ]);
+      } catch (e) {
+        if (/UNIQUE/i.test(String((e as Error)?.message ?? e))) return error(409, "stale", "Khung giờ đón vừa được đổi — tải lại rồi thử lại.");
+        throw e;
+      }
+      return json({ khung: k.khung, luuY: luuY.cau, doiDuoc: true } satisfies KhungGioDonResponse);
+    }),
+
     // Trang chủ (docs/superpowers/sdd/2026-09-23-trang-chu-moi): số liệu TOÀN CÔNG TY + "Chuyến đón hôm nay" (`OrderSummaryDto[]` có tên/SĐT khách, tiền).
     // ADR-0019 điều 1–2: cổng "orders" chỉ lọc thô; thân hỏi ba ô KHÔNG ngữ cảnh (= xem được MỌI đơn, mọi tiền, mọi liên hệ) TRƯỚC mọi truy vấn —
     // Đối tác/Thực tập (`own`) → 403. Nếu sau này `money.view`/`contact.view` của một mã bị thu hẹp (vd `assigned`), Trang chủ của mã đó 403 chứ
@@ -1417,6 +1463,10 @@ export const ordersModule: AppModule = {
         if (giaLoi) return GIA_DANH_MUC(giaLoi);
         // ADR-0114 D3: cửa xác nhận đọc số khách ĐÃ LƯU (nháp cũ lập trước ADR có thể không có người lớn); lập đơn / lưu nháp đã chặn ở `validateOrder`.
         if (order && donThieuNguoiLon(order.services.map((s) => s.pax))) return error(409, "thieu_nguoi_lon", CAU_THIEU_NGUOI_LON);
+        // ADR-0134 Đ2: mỗi dịch vụ phải chọn Đón (có chặng mở) hoặc Không đón (không chặng mở). Chỉ nhánh xác nhận (đơn đang nháp — `canTransition` đã lọc);
+        // huỷ và mọi lệnh trên đơn đã xác nhận không đi qua đây (Review Focus 6). Đọc từ `order` đã nạp (dịch vụ + chặng CÒN HIỆU LỰC).
+        const thieuDon = order ? thieuChonDon(order.services.map((s) => ({ pickupChoice: s.pickupChoice, soChangMo: s.legs.length }))) : [];
+        if (thieuDon.length > 0) return error(409, "pickup_choice_required", cauThieuChonDon(thieuDon[0]!));
         const detail = order ? summarizeDeviations(order.services.flatMap((s) => s.items)) : undefined;
         // ADR-0049 D2 (I15, I25): điều kiện mốc nằm TRONG câu xác nhận — ngưỡng chuỗi giờ VN tính bằng `nguongMocVn` (MỘT luật với `kiemMocDat`). Mốc chưa
         // có → 503, không đoán. MỘT mốc giờ (`nowMs`) cho câu ghi và cho việc đọc lại lý do.

@@ -3,6 +3,7 @@ import type { HanhDongDoiSoKhach } from "../../shared/audit-actions";
 import { LY_DO_DAT_GAP, chieuDiDau, isLyDoDatGap, xepChang, type ChangDaLuu, type ChangHopLe, type LyDoDongChang } from "../../shared/chang-dua-don";
 import type { LegDto, OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto, OrderSummaryTripDto } from "../../shared/contracts";
 import { mauLikeChua } from "../../shared/http";
+import { laLuaChonDon, type LuaChonDon } from "../../shared/khung-gio-don";
 import { dbNgoaiVe } from "../../shared/lan-gui-boc";
 import { moTaDanhSachNhap, type HanhKhachHopLe } from "../../shared/hanh-khach";
 import {
@@ -60,6 +61,8 @@ interface ServiceRow {
   checkin_time: string | null;
   checkin_place: string | null;
   note: string | null;
+  /** Lựa chọn đón (0115, ADR-0134 Đ1) — mã đã kiểm ở mã khi ghi; NULL = chưa chọn / đơn cũ. */
+  pickup_choice: string | null;
 }
 
 interface ItemRow {
@@ -80,7 +83,7 @@ const ORDER_SELECT = `SELECT o.*, s.label AS staff_name, b.display_name AS booke
 // ADR-0047 (Ruling R2a): KHÔNG đọc `pickup_time`/`pickup_place` của order_service nữa — hai khoá đó dẫn xuất từ chặng (`chieuDiDau`); cột cũ chỉ còn
 // được GHI KÉP ở phát hành 1 (R3).
 const SERVICE_SELECT = `SELECT id, catalog_code, name, unit, pax_adult, pax_child, pax_senior, pax_infant, depart_date, depart_time,
-  checkin_date, checkin_time, checkin_place, note FROM order_service WHERE order_id = ? ORDER BY sort_order`;
+  checkin_date, checkin_time, checkin_place, note, pickup_choice FROM order_service WHERE order_id = ? ORDER BY sort_order`;
 // Sổ đại lý đợt 1: bên đặt có đang mang một vai được hưởng hoa hồng không (cờ `bookerLaDoiTac` của chi tiết đơn). Chỉ đọc view công bố của `parties` + `pricing`;
 // không đơn / không bên đặt ⇒ 0.
 const BOOKER_LA_DOI_TAC = `SELECT EXISTS (SELECT 1 FROM v_pty_open_role r JOIN v_prc_beneficiary_role b ON b.role_type_code = r.role_type_code
@@ -188,6 +191,8 @@ function toDto(r: OrderRow): OrderDto {
   };
 }
 
+/** Mã lựa chọn đón đã lưu → kiểu (giá trị lạ — không thể xảy ra qua mã — coi như chưa chọn, cổng xác nhận sẽ chặn). */
+const luaChonDonDaLuu = (v: string | null): LuaChonDon | null => (laLuaChonDon(v) ? v : null);
 const paxOf = (s: ServiceRow): PaxCounts => ({ adult: s.pax_adult, child: s.pax_child, senior: s.pax_senior, infant: s.pax_infant });
 /** Thông tin chuyến của một dịch vụ; `pickupTime`/`pickupPlace` = DẪN XUẤT từ chặng còn hiệu lực của dịch vụ (`chieuDiDau` — ADR-0047 R2a). */
 const tripOf = (s: ServiceRow, legs: readonly StoredLeg[]): ValidTrip => ({
@@ -203,7 +208,8 @@ const tripOf = (s: ServiceRow, legs: readonly StoredLeg[]): ValidTrip => ({
 /** Chặng CÒN HIỆU LỰC đã lưu (ADR-0047): dạng luật cần (`ChangDaLuu`) + dịch vụ, dấu vết (giữ `created_*` khi lưu nháp xoá–chèn lại), mốc khoá lạc quan. */
 /** Dấu đặt gấp đã lưu của chặng (0040) — ĐỦ; lớp route rút gọn theo vai trước khi trả (`xemDuDatGap`, chủ H4 / N-14). */
 export interface DatGapDaLuu { lyDo: string; ghiChu: string | null; luc: string; nguoiDuyet: string | null }
-export type StoredLeg = ChangDaLuu & { serviceId: string; createdAt: string; createdBy: string | null; updatedAt: string; datGap: DatGapDaLuu | null };
+/** `pickupSlotEnd` (0115) KHÔNG nằm trong `ChangDaLuu`: đường trộn thân cũ (`toGhi`) không chép cuối khung — chỉ DTO đọc. */
+export type StoredLeg = ChangDaLuu & { serviceId: string; createdAt: string; createdBy: string | null; updatedAt: string; datGap: DatGapDaLuu | null; pickupSlotEnd: string | null };
 
 export const toStoredLeg = (r: LegRow): StoredLeg => ({
   id: r.id,
@@ -220,6 +226,7 @@ export const toStoredLeg = (r: LegRow): StoredLeg => ({
   paxOverride: r.pax_override,
   exclusiveVehicle: r.exclusive_vehicle === 1,
   minVehicleSeats: r.min_vehicle_seats,
+  pickupSlotEnd: r.pickup_slot_end,
   serviceId: r.order_service_id,
   createdAt: r.created_at,
   createdBy: r.created_by,
@@ -246,6 +253,7 @@ const toLegDto = (l: StoredLeg): LegDto => ({
   paxOverride: l.paxOverride,
   exclusiveVehicle: l.exclusiveVehicle,
   minVehicleSeats: l.minVehicleSeats,
+  pickupSlotEnd: l.pickupSlotEnd,
   datGap: l.datGap
     ? {
         daDuyet: true,
@@ -321,6 +329,7 @@ export async function findOrder(db: D1Database, id: string): Promise<OrderDetail
       items: (items.get(s.id) ?? []).map(toItemDto),
       catalogStatus: null,
       legs: own.map(toLegDto),
+      pickupChoice: luaChonDonDaLuu(s.pickup_choice),
     };
   });
   return { ...toDto(row), services, bookerLaDoiTac: Number((laDoiTacRes!.results as { la: number }[])[0]?.la ?? 0) === 1 };
@@ -330,7 +339,7 @@ export async function findOrder(db: D1Database, id: string): Promise<OrderDetail
  * `lines` = nội dung dòng tiền đã lưu theo thứ tự (mô tả, chi tiết, số lượng, đơn giá) — cho kiểm "dịch vụ nhập tay đóng băng" (DK-T3-01, `price-guards.ts`).
  * `legs` = chặng CÒN HIỆU LỰC của dịch vụ (ADR-0047) — cho trộn thân cũ (`tronChangCu`), dời ngày (`doiNgayChang`), giữ id chặng khi lưu nháp.
  */
-export type StoredServiceRow = StoredService & { trip: ValidTrip; lines: FrozenLine[]; legs: StoredLeg[] };
+export type StoredServiceRow = StoredService & { trip: ValidTrip; lines: FrozenLine[]; legs: StoredLeg[]; pickupChoice: LuaChonDon | null };
 
 /** Dịch vụ đã lưu của đơn ở dạng luật cần: đủ để dựng "bản chụp" (Q11), so sánh thay đổi chuyến (Q9) và so "giữ nguyên" dịch vụ nhập tay (DK-T3-01). */
 export async function getStoredServices(db: D1Database, orderId: string): Promise<StoredServiceRow[]> {
@@ -347,6 +356,7 @@ export async function getStoredServices(db: D1Database, orderId: string): Promis
     items: (items.get(s.id) ?? []).map((i) => ({ paxCode: i.pax_code, detail: i.detail, catalogPrice: i.catalog_price, unitPrice: i.unit_price })),
     lines: (items.get(s.id) ?? []).map((i) => ({ description: i.description, detail: i.detail, quantity: i.quantity, unitPrice: i.unit_price })),
     legs: legs.get(s.id) ?? [],
+    pickupChoice: luaChonDonDaLuu(s.pickup_choice),
   }));
 }
 
@@ -839,7 +849,7 @@ function insertRow(db: D1Database, table: WriteTable, cols: string[], values: (s
 
 const SERVICE_COLS = [
   "id", "order_id", "sort_order", "catalog_code", "name", "unit", "pax_adult", "pax_child", "pax_senior", "pax_infant",
-  "depart_date", "depart_time", "pickup_time", "pickup_place", "checkin_date", "checkin_time", "checkin_place", "note",
+  "depart_date", "depart_time", "pickup_time", "pickup_place", "checkin_date", "checkin_time", "checkin_place", "note", "pickup_choice",
 ];
 const ITEM_COLS = ["id", "order_id", "service_id", "catalog_code", "pax_code", "description", "detail", "quantity", "unit_price", "catalog_price", "line_total", "sort_order"];
 
@@ -857,7 +867,7 @@ function serviceInserts(db: D1Database, orderId: string, services: ValidService[
       insertRow(
         db, "order_service", SERVICE_COLS,
         [ids[i]!, orderId, i, s.catalogCode, s.name, s.unit, s.pax.adult, s.pax.child, s.pax.senior, s.pax.infant,
-          t.departDate, t.departTime, t.pickupTime, t.pickupPlace, t.checkinDate, t.checkinTime, t.checkinPlace, t.note],
+          t.departDate, t.departTime, t.pickupTime, t.pickupPlace, t.checkinDate, t.checkinTime, t.checkinPlace, t.note, s.pickupChoice],
         guard,
       ),
     );
@@ -900,6 +910,8 @@ function legWriteOf(
     flightCode: l.flightCode ?? null, paxOverride: l.paxOverride ?? null,
     // Cam kết (0077): cùng khuôn — route đã giải khoá vắng; ở đây vắng = không cam kết.
     exclusiveVehicle: l.exclusiveVehicle ?? false, minVehicleSeats: l.minVehicleSeats ?? null,
+    // Cuối khung đón (0115): chỉ từ thân đã kiểm (`kiemChang`); vắng = NULL ("Giờ khác").
+    pickupSlotEnd: l.pickupSlotEnd ?? null,
     createdAt: m?.createdAt ?? at, createdBy: m ? m.createdBy : staffId, updatedAt: at, updatedBy: staffId, datGap,
   };
 }

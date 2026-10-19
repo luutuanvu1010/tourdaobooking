@@ -40,7 +40,7 @@ async function order(w: any, confirm: boolean, legs: unknown[], extra: Record<st
     as: SALES,
     body: {
       customerName: "Khách Dò Tìm Chủ Đơn", customerPhone: "0912345678", customerEmail: "do.tim@example.com", customerNote: "Ghi chú kín", paymentNote: "Tiền mặt",
-      services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D, legs }],
+      services: [{ kind: "catalog", pickupChoice: (legs.length > 0 ? "DON" : "KHONG_DON"), catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D, legs }],
       passengers: [{ fullName: "Khách Dò Tìm Một", birthYear: 1911, paxCode: "adult" }], ...extra,
     },
   });
@@ -156,7 +156,7 @@ test("kế hoạch ô mới TC-F7 + TC-P8: lichChungChang có `soHieuChuyenBay`;
     as: SALES,
     body: {
       customerName: "Khách Thử", customerPhone: "0912345678",
-      services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 4, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D,
+      services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: 4, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D,
         legs: [{ ...OUT("Sân bay Cam Ranh"), flightCode: "VN1553" }, { ...RET, paxOverride: 2, flightCode: "VJ123" }] }],
     },
   });
@@ -183,7 +183,7 @@ test("Đợt 7 (ADR-0056 VK3-A): lichChungChang + hanhKhachChoChuyen trả `xeRi
     as: SALES,
     body: {
       customerName: "Khách Thử", customerPhone: "0912345678",
-      services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 4, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D,
+      services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: 4, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D,
         legs: [{ ...OUT("Sân bay Cam Ranh"), exclusiveVehicle: true, minVehicleSeats: 15 }, RET] }],
     },
   });

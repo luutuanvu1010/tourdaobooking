@@ -26,8 +26,8 @@ test("ADR-0061 điều 7: đơn danh mục + nhập tay — biên nhận, còn l
     body: {
       customerName: "Khách Thử", customerPhone: "0912345678", discount: 100000,
       services: [
-        { kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: homNay() },
-        { kind: "manual", name: "Xe đưa đón riêng", pax: { adult: 2 }, departDate: homNay(), items: [{ description: "Xe 7 chỗ", detail: "2 chiều", quantity: 2, unitPrice: 400000 }] },
+        { kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: homNay() },
+        { kind: "manual", pickupChoice: "KHONG_DON", name: "Xe đưa đón riêng", pax: { adult: 2 }, departDate: homNay(), items: [{ description: "Xe 7 chỗ", detail: "2 chiều", quantity: 2, unitPrice: 400000 }] },
       ],
     },
   });

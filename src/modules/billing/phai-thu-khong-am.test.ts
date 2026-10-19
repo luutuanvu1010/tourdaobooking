@@ -30,7 +30,7 @@ async function donTongAm(w: any, daTra: number): Promise<string> {
     as: SALES,
     body: {
       customerName: "Khách Thử", customerPhone: "0912345678", discount: 800000,
-      services: [{ kind: "catalog", catalogCode: "ZA1", pax: P(2), catalogPriceSeen: { adult: 500000, child: 300000, infant: 50000 }, departDate: vnDay(3) }],
+      services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: P(2), catalogPriceSeen: { adult: 500000, child: 300000, infant: 50000 }, departDate: vnDay(3) }],
     },
   });
   assert.equal(r.status, 201, r.text);

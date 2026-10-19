@@ -45,7 +45,7 @@ function setup() {
 const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
 const orderBody = (extra: Record<string, unknown> = {}, departDate = inDays(3)) => ({
   customerName: "Khách Thử", customerPhone: "0912345678",
-  services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate }],
+  services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate }],
   ...extra,
 });
 async function newOrder(w: any, as: string, extra: Record<string, unknown> = {}, departDate?: string): Promise<string> {
@@ -209,7 +209,7 @@ async function poolWorld() {
   const w = setup();
   const moi = await newOrder(w, SALES, {
     customerEmail: "khach@example.com", customerNote: "Khách dặn gọi 0987654321",
-    services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(3), pickupPlace: "Đón ở 0905 123.456 cổng sau", pickupTime: "06:45" }],
+    services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(3), pickupPlace: "Đón ở 0905 123.456 cổng sau", pickupTime: "06:45" }],
   });
   const coNguoi = await orderHandledBy(w, FIELD);
   const daHuy = await newOrder(w, SALES);
@@ -217,7 +217,7 @@ async function poolWorld() {
   const quaNgay = await newOrder(w, PARTNER, {}, inDays(-1));
   const chuaCoNgay = await newOrder(w, PARTNER, {}, "");
   const lech = await newOrder(w, SALES, {
-    services: [1, 2].map(() => ({ kind: "catalog", catalogCode: "ZA1", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(4) })),
+    services: [1, 2].map(() => ({ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(4) })),
   });
   const [first] = w.q("SELECT id FROM order_service WHERE order_id = ? ORDER BY sort_order LIMIT 1", lech);
   w.sqlite.prepare("UPDATE order_service SET depart_date = ? WHERE id = ?").run(inDays(-1), first.id);
