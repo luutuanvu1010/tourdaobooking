@@ -95,3 +95,7 @@ Tên mã trạng thái/ô quyền/bảng; cách dựng ảnh QR phía máy chủ
 
 1. **[chủ]** "Chỉ người tạo đọc" kèm **"chỉ người tạo sửa"**: mọi đường ghi lên đơn nháp (kể cả sửa thông tin chuyến, sửa thương mại theo dịch vụ) chỉ người lập. Nguyên văn: "câu 2- đồng ý".
 2. Câu "đặt gấp cho nháp sát giờ": chủ yêu cầu ví dụ cụ thể và phân tích trước khi quyết (chưa chốt).
+
+## 5f. Chốt lượt 8 (19/10, sau ví dụ đặt gấp)
+
+1. **[chủ]** Chọn **A** (nguyên văn "a"): nháp có chặng đón dưới mốc tối thiểu chưa đặt gấp cũng phải "Gửi xác nhận", kể cả khi không có dịch vụ "cần xác nhận"; Quản trị / Toàn quyền đặt gấp và xác nhận ngay ở bước xác nhận. Hệ quả: **Đợt 2 (nháp riêng tư) không phát hành trước Đợt 3 (bước xác nhận)** — hai đợt lên cùng một lần phát hành.

@@ -21,8 +21,8 @@ Lượt 2 chỉ trình sau khi lượt 1 đã duyệt; lượt 1 đổi thì tra
 | 0136 | không bảng (nếu chọn Đ5 phương án b) | Đ1–Đ3 gửi dữ liệu ra ngoài (email, số tài khoản, số tiền); Đ4 mã bên thứ ba chạy ở máy chủ |
 
 ## Câu hỏi chủ cần trả lời khi duyệt lượt 1
-1. **Đặt gấp cho nháp của người khác** (ADR-0134 Q1): nháp riêng tư làm Quản trị hết đường thấy đơn sát giờ của Bán hàng / Đối tác để bấm Đặt gấp. Khuyến nghị: nháp có chặng dưới mốc cũng phải "Gửi xác nhận", và không phát hành Đợt 2 trước Đợt 3.
-2. **"Chỉ người tạo đọc" có gồm "chỉ người tạo ghi"** (ADR-0134 Q2). Khuyến nghị: có.
+1. **ĐÃ CHỐT — chủ chọn A (19/10).** **Đặt gấp cho nháp của người khác** (ADR-0134 Q1): nháp riêng tư làm Quản trị hết đường thấy đơn sát giờ của Bán hàng / Đối tác để bấm Đặt gấp. Khuyến nghị: nháp có chặng dưới mốc cũng phải "Gửi xác nhận", và không phát hành Đợt 2 trước Đợt 3.
+2. **ĐÃ CHỐT — chủ đồng ý (19/10).** **"Chỉ người tạo đọc" có gồm "chỉ người tạo ghi"** (ADR-0134 Q2).
 3. **Nháp cũ đã có khoản thu**: chủ đếm bằng lệnh ở Task 2.2 Step 0 của kế hoạch trước khi phát hành (lỗ TNV-G1).
 
 ## Số hiệu
