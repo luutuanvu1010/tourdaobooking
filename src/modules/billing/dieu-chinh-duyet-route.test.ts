@@ -37,7 +37,7 @@ function don(w: W, tong = 500_000): string {
   const id = uuid();
   w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
     VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', ?, ?, ?, ?, ?)`).run(id, `TD-${seq}`, SALES, tong, tong, tong, AT, AT);
-  w.sqlite.prepare(`INSERT INTO order_service (id, order_id, name, unit, pax_adult, depart_date) VALUES (?, ?, 'Vé Hòn Tằm', 'perPax', 1, ?)`).run(`${id}-s`, id, vnNgay(10));
+  w.sqlite.prepare(`INSERT INTO order_service (pickup_choice, id, order_id, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, 'Vé Hòn Tằm', 'perPax', 1, ?)`).run(`${id}-s`, id, vnNgay(10));
   w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total) VALUES (?, ?, ?, 'Người lớn', 1, ?, ?)`).run(`${id}-i`, id, `${id}-s`, tong, tong);
   w.sqlite.prepare(`UPDATE orders SET status = 'confirmed', confirmed_at = ?, updated_at = ? WHERE id = ?`).run(AT, AT, id);
   w.sqlite.prepare(`INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, created_by, updated_at, updated_by)
@@ -475,7 +475,7 @@ async function donDaGiao(w: W, lanThu: [number, unknown][], booker: string | nul
   const id = uuid();
   w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, booker_party_id, created_at, updated_at)
     VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', 1000000, 1000000, 1000000, ?, ?, ?)`).run(id, `TD-${seq}`, SALES, booker, AT, AT);
-  w.sqlite.prepare("INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, ?, 0, 'IRESORT', 'Vé i-resort', 'perPax', 1, ?)").run(`${id}-s`, id, vnNgay(0));
+  w.sqlite.prepare("INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, 0, 'IRESORT', 'Vé i-resort', 'perPax', 1, ?)").run(`${id}-s`, id, vnNgay(0));
   w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total)
     VALUES (?, ?, ?, 'IRESORT', 'adult', 'Người lớn', 1, 1000000, 1000000, 1000000)`).run(`${id}-i`, id, `${id}-s`);
   if (booker === null) {

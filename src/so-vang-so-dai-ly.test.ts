@@ -269,7 +269,7 @@ test("sổ vàng — SV-SK-04 bản đại lý (mã thật): bớt khách sau X�
   const homNay = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
   w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, discount, total, remaining_amount, booker_party_id, created_at, updated_at)
     VALUES (?, 'TD-SK04', ?, 'draft', 'Khách Giả', '0900000099', 2000000, 1000000, 1000000, 1000000, ?, ?, ?)`).run(id, SALES, dl, AT, AT);
-  w.sqlite.prepare("INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, ?, 0, 'HONTAM', 'Tour đảo', 'perPax', 4, ?)").run(sv, id, homNay);
+  w.sqlite.prepare("INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, 0, 'HONTAM', 'Tour đảo', 'perPax', 4, ?)").run(sv, id, homNay);
   w.sqlite.prepare("INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, 'HONTAM', 'adult', 'Người lớn', 4, 500000, 500000, 2000000)").run(`${sv}-i`, id, sv);
   const xn = await w.call("POST", `/api/orders/${id}/status`, { as: SUPER, body: { status: "confirmed" } });
   assert.equal(xn.status, 200, `hoa hồng 1.000.000 = giảm giá ⇒ qua trần lúc Xác nhận: ${xn.text}`);

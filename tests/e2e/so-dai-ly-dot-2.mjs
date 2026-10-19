@@ -47,7 +47,7 @@ await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,pric
   ('ZSD2T','Tour đảo đợt hai','perPax',5000000,NULL,NULL,NULL,NULL,NULL,NULL,96,1,${AT0},${AT0}),
   ('ZSD2I','Vé tắm bùn đợt hai','perPax',300000,NULL,NULL,NULL,NULL,NULL,NULL,97,1,${AT0},${AT0})
   ON CONFLICT(code) DO UPDATE SET name = excluded.name, unit = excluded.unit, price_adult = excluded.price_adult, price_child = excluded.price_child, in_sheet = 1`);
-const dv = (code, nguoiLon, extra = {}) => ({ kind: "catalog", catalogCode: code, pax: { adult: nguoiLon }, catalogPriceSeen: { adult: code === "ZSD2T" ? 5000000 : 300000 }, departDate: HOM_NAY, ...extra });
+const dv = (code, nguoiLon, extra = {}) => ({ kind: "catalog", catalogCode: code, pax: { adult: nguoiLon }, catalogPriceSeen: { adult: code === "ZSD2T" ? 5000000 : 300000 }, departDate: HOM_NAY, pickupChoice: "KHONG_DON", ...extra });
 
 // ---- Tiện ích
 /** Tài khoản Đối tác theo vai (Toàn quyền tạo — ADR-0071), đăng nhập thật. Trả { cookie, partyId, ten }. */

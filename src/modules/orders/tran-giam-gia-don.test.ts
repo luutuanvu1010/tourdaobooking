@@ -56,7 +56,7 @@ async function setup(): Promise<W> {
   return w;
 }
 const dv = (code: "ZA1" | "ZA2", adult: number) => ({
-  kind: "catalog", catalogCode: code, pax: { adult, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: code === "ZA1" ? 790000 : 500000 }, departDate: inDays(3),
+  kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: code, pax: { adult, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: code === "ZA1" ? 790000 : 500000 }, departDate: inDays(3),
 });
 const than = (services: unknown[], extra: Record<string, unknown> = {}) => ({ customerName: "Khách Thử", customerPhone: "0912345678", services, ...extra });
 /** C-5: 10 người lớn × 790.000 = 7.900.000; 10% ⇒ hoa hồng 790.000. */
