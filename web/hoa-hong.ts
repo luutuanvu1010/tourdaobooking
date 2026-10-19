@@ -37,7 +37,7 @@ import { ngayDayDu } from "../src/shared/vn-date";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { initShell, showError } from "./shell";
-import { lyDoLoi, taiDanhMuc, taoBangLoi, taoChonDichVu, taoChonPhamVi, taoTimDoiTac, truong, veHopDong, type DanhMuc } from "./so-dai-ly-ui";
+import { lyDoLoi, taiDanhMuc, taoBangLoi, taoChonDichVu, taoChonPhamVi, taoTheoLoai, taoTimDoiTac, truong, veHopDong, type DanhMuc } from "./so-dai-ly-ui";
 
 const errorEl = byId("error");
 const okEl = byId("ok");
@@ -454,9 +454,11 @@ async function main(): Promise<void> {
       const moiKhach = h("input", { id: "mucta-moi-khach", type: "text", inputMode: "numeric", maxLength: 12, placeholder: "50.000", autocomplete: "off" });
       const khuTyLe = h("label", null, "Phần trăm (%)", tyLe);
       const khuMoiKhach = h("label", null, "Số tiền mỗi khách (đồng)", moiKhach);
+      const theoLoai = taoTheoLoai("mucta");
       const veKieu = (): void => {
         khuTyLe.hidden = kieu.value !== "RATE";
         khuMoiKhach.hidden = kieu.value !== "PER_PAX";
+        theoLoai.capNhat(kieu.value === "PER_PAX");
       };
       kieu.addEventListener("change", veKieu);
       veKieu();
@@ -470,6 +472,7 @@ async function main(): Promise<void> {
         h("div", null, h("label", null, "Mức TA", oMucDong), loi.dong("mucTa")),
         phamVi.root,
         h("div", { class: "grid two" }, h("label", null, "Kiểu mức", kieu), h("div", null, khuTyLe, khuMoiKhach, loi.dong("muc"))),
+        theoLoai.root,
         h("div", { class: "grid two" }, h("div", null, h("label", null, "Từ ngày", tuNgay), loi.dong("tuNgay")), h("div", null, h("label", null, "Đến ngày (không bắt buộc)", denNgay), loi.dong("denNgay"))),
         h("div", null, h("label", null, "Ghi chú (không bắt buộc)", ghiChu), loi.dong("ghiChu")),
         h("div", { class: "actions" }, them),
@@ -478,7 +481,7 @@ async function main(): Promise<void> {
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
         if (them.disabled) return;
-        const kq = docThanDongMucTa({ ...phamVi.doc(), kieu: kieu.value === "PER_PAX" ? "PER_PAX" : "RATE", tyLe: tyLe.value, moiKhach: moiKhach.value, tuNgay: tuNgay.value, denNgay: denNgay.value, ghiChu: ghiChu.value });
+        const kq = docThanDongMucTa({ ...phamVi.doc(), kieu: kieu.value === "PER_PAX" ? "PER_PAX" : "RATE", tyLe: tyLe.value, moiKhach: moiKhach.value, ...theoLoai.doc(), tuNgay: tuNgay.value, denNgay: denNgay.value, ghiChu: ghiChu.value });
         const loiO = [...(oMucDong.value === "" ? [{ truong: "mucTa" as const, message: "Chọn một mức TA." }] : []), ...(kq.ok ? [] : kq.loi)];
         if (loiO.length > 0 || !kq.ok) {
           loi.hien(loiO);
@@ -490,6 +493,7 @@ async function main(): Promise<void> {
         try {
           await lenhMt(`/api/pricing/muc-ta/${encodeURIComponent(oMucDong.value)}/dong`, kq.body);
           phamVi.datLai();
+          theoLoai.datLai();
           for (const o of [tyLe, moiKhach, denNgay, ghiChu]) o.value = "";
           await taiMucTa();
           hienOk(`Đã thêm dòng cho mức TA «${tenMuc}».`);
@@ -588,9 +592,11 @@ async function main(): Promise<void> {
     const moiKhach = h("input", { id: "muc-moi-khach", type: "text", inputMode: "numeric", maxLength: 12, placeholder: "50.000", autocomplete: "off" });
     const khuTyLe = h("label", null, "Phần trăm (%)", tyLe);
     const khuMoiKhach = h("label", null, "Số tiền mỗi khách (đồng)", moiKhach);
+    const theoLoai = taoTheoLoai("muc");
     const veKieu = (): void => {
       khuTyLe.hidden = kieu.value !== "RATE";
       khuMoiKhach.hidden = kieu.value !== "PER_PAX";
+      theoLoai.capNhat(kieu.value === "PER_PAX");
     };
     kieu.addEventListener("change", veKieu);
     veKieu();
@@ -612,6 +618,7 @@ async function main(): Promise<void> {
       ),
       phamVi.root,
       h("div", { class: "grid two" }, h("label", null, "Kiểu mức", kieu), h("div", null, khuTyLe, khuMoiKhach, loi.dong("muc"))),
+      theoLoai.root,
       h("div", { class: "grid two" }, h("div", null, h("label", null, "Từ ngày", tuNgay), loi.dong("tuNgay")), h("div", null, h("label", null, "Đến ngày (không bắt buộc)", denNgay), loi.dong("denNgay"))),
       h("div", null, h("label", null, "Ghi chú (không bắt buộc)", ghiChu), loi.dong("ghiChu")),
       h("div", { class: "actions" }, them),
@@ -630,6 +637,7 @@ async function main(): Promise<void> {
         kieu: kieu.value === "PER_PAX" ? "PER_PAX" : "RATE",
         tyLe: tyLe.value,
         moiKhach: moiKhach.value,
+        ...theoLoai.doc(),
         tuNgay: tuNgay.value,
         denNgay: denNgay.value,
         ghiChu: ghiChu.value,
@@ -645,6 +653,7 @@ async function main(): Promise<void> {
         await api("/api/pricing/hoa-hong", { method: "POST", body: kq.body });
         timDoiTac.datLai();
         phamVi.datLai();
+        theoLoai.datLai();
         for (const o of [tyLe, moiKhach, denNgay, ghiChu]) o.value = "";
         vai.value = "";
         await tai();

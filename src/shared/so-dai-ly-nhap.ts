@@ -70,9 +70,20 @@ function docPhamViNgay(f: FormPhamViNgay, loi: LoiO[]): PhamViNgayBody {
   return body;
 }
 
-type MucGui = { kieu: "RATE"; tyLeBp: number } | { kieu: "PER_PAX"; moiKhach: number };
+/** `theoLoai` (ADR-0133): số tiền trẻ em / người cao tuổi; người lớn là `moiKhach`. Chỉ có khi người dùng bật «tách theo loại khách». */
+type MucGui = { kieu: "RATE"; tyLeBp: number } | { kieu: "PER_PAX"; moiKhach: number; theoLoai?: { treEm: number; nguoiCaoTuoi: number } };
+/** Ba ô tuỳ chọn «tách theo loại khách» (ADR-0133): công tắc + hai ô tiền; người lớn dùng ô «Số tiền mỗi khách». */
+interface FormTheoLoai { theoLoai?: boolean; treEm?: string; nguoiCaoTuoi?: string }
+/** Một ô tiền theo loại: để trống = 0 (điều 2), còn lại cùng luật với ô «Số tiền mỗi khách». */
+function docOTheoLoai(raw: string | undefined, ten: string, loi: LoiO[]): number | null {
+  if ((raw ?? "").trim() === "") return 0;
+  const r = docTienMoiKhach(raw!);
+  if (r.ok) return r.dong;
+  loi.push({ truong: "muc", message: `Số tiền ${ten} là số nguyên đồng, không âm, không quá ${nhanDong(MOI_KHACH_TOI_DA)}đ (vd 30.000). Để trống thì tính 0 đ.` });
+  return null;
+}
 /** Ô «Kiểu mức» + «Phần trăm» / «Số tiền mỗi khách» — dùng chung cho dòng theo loại / đối tác và dòng của mức TA. */
-function docMucForm(f: { kieu: "RATE" | "PER_PAX"; tyLe: string; moiKhach: string }, loi: LoiO[]): MucGui | null {
+function docMucForm(f: { kieu: "RATE" | "PER_PAX"; tyLe: string; moiKhach: string } & FormTheoLoai, loi: LoiO[]): MucGui | null {
   if (f.kieu === "RATE") {
     const r = docTyLePhanTram(f.tyLe);
     if (r.ok) return { kieu: "RATE", tyLeBp: r.bp };
@@ -80,12 +91,16 @@ function docMucForm(f: { kieu: "RATE" | "PER_PAX"; tyLe: string; moiKhach: strin
     return null;
   }
   const r = docTienMoiKhach(f.moiKhach);
-  if (r.ok) return { kieu: "PER_PAX", moiKhach: r.dong };
-  loi.push({ truong: "muc", message: r.message });
-  return null;
+  if (!r.ok) {
+    loi.push({ truong: "muc", message: r.message });
+    return null;
+  }
+  if (!f.theoLoai) return { kieu: "PER_PAX", moiKhach: r.dong };
+  const treEm = docOTheoLoai(f.treEm, "trẻ em", loi), nguoiCaoTuoi = docOTheoLoai(f.nguoiCaoTuoi, "người cao tuổi", loi);
+  return treEm === null || nguoiCaoTuoi === null ? null : { kieu: "PER_PAX", moiKhach: r.dong, theoLoai: { treEm, nguoiCaoTuoi } };
 }
 
-export interface FormMuc extends FormPhamViNgay {
+export interface FormMuc extends FormPhamViNgay, FormTheoLoai {
   /** Áp cho một loại đối tác (mã vai) hoặc một đối tác cụ thể (mã hồ sơ); `null` = chưa chọn. */
   doiTuong: { loai: "VAI"; code: string } | { loai: "DOI_TAC"; partyId: string } | null;
   kieu: "RATE" | "PER_PAX";
@@ -111,7 +126,7 @@ export function docThanMuc(f: FormMuc): KetDocForm<ThanMucGui> {
 
 // ---- Mức TA (ADR-0117 lần 2) ----
 /** Ô của form «Thêm dòng» cho một mức TA: như «Thêm mức» nhưng không có «Áp cho» — đích là chính mức (mã mức đi trên đường dẫn). */
-export interface FormDongMucTa extends FormPhamViNgay {
+export interface FormDongMucTa extends FormPhamViNgay, FormTheoLoai {
   kieu: "RATE" | "PER_PAX";
   tyLe: string;
   moiKhach: string;

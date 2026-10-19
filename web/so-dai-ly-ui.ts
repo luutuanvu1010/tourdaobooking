@@ -10,6 +10,40 @@ export const lyDoLoi = (err: unknown): string => (err instanceof ApiError ? err.
 /** Nhãn + khối nhiều thành phần (ô lọc kèm danh sách, ô tìm kèm kết quả): không bọc bằng `<label>` vì bên trong có nhiều nút/ô, mỗi ô tự có nhãn đọc màn hình (`aria-label`). */
 export const truong = (nhan: string, ...noiDung: HTMLElement[]): HTMLElement => h("div", { class: "hh-truong" }, h("span", { class: "hh-truong-nhan" }, nhan), ...noiDung);
 
+/**
+ * Khối «Tách theo loại khách» (ADR-0133) của form khai mức: công tắc + hai ô tiền Trẻ em / Người cao tuổi; ô «Số tiền mỗi khách» ở trên là của người lớn. Chỉ hiện khi kiểu là «Số tiền mỗi
+ * khách» (`capNhat`). Ô để trống = 0 đ — nói thẳng ngay dưới ô. Em bé không có ô: không tính hoa hồng. Luật đọc ô ở `docThanMuc` (src/shared/so-dai-ly-nhap.ts).
+ */
+export interface TheoLoaiForm {
+  readonly root: HTMLElement;
+  /** Gọi mỗi khi kiểu mức đổi: ẩn cả khối khi không phải «Số tiền mỗi khách». */
+  capNhat(laTienMoiKhach: boolean): void;
+  /** Ba trường để trải vào `FormMuc` / `FormDongMucTa`. */
+  doc(): { theoLoai: boolean; treEm: string; nguoiCaoTuoi: string };
+  datLai(): void;
+}
+export function taoTheoLoai(idTienTo: string): TheoLoaiForm {
+  const bat = h("input", { id: `${idTienTo}-theo-loai`, type: "checkbox" });
+  const treEm = h("input", { id: `${idTienTo}-tre-em`, type: "text", inputMode: "numeric", maxLength: 12, placeholder: "0", autocomplete: "off" });
+  const nguoiCaoTuoi = h("input", { id: `${idTienTo}-nguoi-cao-tuoi`, type: "text", inputMode: "numeric", maxLength: 12, placeholder: "0", autocomplete: "off" });
+  const haiO = h(
+    "div",
+    null,
+    h("div", { class: "grid two" }, h("label", null, "Trẻ em (đồng)", treEm), h("label", null, "Người cao tuổi (đồng)", nguoiCaoTuoi)),
+    h("p", { class: "hint" }, "Ô «Số tiền mỗi khách» ở trên là của người lớn. Ô để trống tính 0 đ. Em bé không tính hoa hồng."),
+  );
+  const root = h("div", null, h("label", { class: "check" }, bat, "Tách theo loại khách (trẻ em, người cao tuổi)"), haiO);
+  const ve = (): void => { haiO.hidden = !bat.checked; };
+  bat.addEventListener("change", ve);
+  ve();
+  return {
+    root,
+    capNhat: (laTienMoiKhach) => { root.hidden = !laTienMoiKhach; },
+    doc: () => ({ theoLoai: bat.checked, treEm: treEm.value, nguoiCaoTuoi: nguoiCaoTuoi.value }),
+    datLai: () => { bat.checked = false; treEm.value = ""; nguoiCaoTuoi.value = ""; ve(); },
+  };
+}
+
 /** Enter trong ô tìm không được gửi cả form (khuôn «Enter trong ô tìm danh mục bị chặn», web/CLAUDE.md). */
 const chanEnter = (o: HTMLInputElement): void => o.addEventListener("keydown", (e) => { if (e.key === "Enter") e.preventDefault(); });
 
