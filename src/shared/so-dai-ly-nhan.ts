@@ -20,4 +20,4 @@ export const nhanTyLeBp = (bp: number): string => {
 };
 export const nhanMuc = (m: { kind: "RATE" | "PER_PAX"; rateBp: number | null; perPax: number | null }): string =>
   m.kind === "RATE" ? nhanTyLeBp(m.rateBp ?? 0) : `${nhanDong(m.perPax ?? 0)}đ/khách`;
-export const laDongThuongMai = (action: string): boolean => action.startsWith("order_terms_");
+export const laDongThuongMai = (action: string): boolean => action.startsWith("order_terms_") || action.startsWith("ord_terms_");

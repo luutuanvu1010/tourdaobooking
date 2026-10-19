@@ -471,7 +471,8 @@ test("(6) kiểm hợp lệ: thiếu lý do 400; đơn nháp 409; đã giao 409;
   const c = await ghi(w, cu, dv(cu), KT, tay15);
   assert.equal(c.status, 409, c.text);
   assert.equal(c.json.error.code, "chua_chup");
-  assert.equal(c.json.error.message, "Đơn xác nhận trước khi có bảng mức — chờ chụp bù ở bản sau");
+  // Đợt 2 (Task 6): «Chụp bù» đã có ⇒ câu chỉ đúng nút cần bấm trước (không còn «chờ bản sau»).
+  assert.equal(c.json.error.message, "Đơn xác nhận trước khi có bảng mức, chưa chụp mức — Kế toán bấm Chụp bù trước, rồi ghi mức tay cho dòng còn thiếu.");
   assert.equal(Number(w.q("SELECT count(*) AS n FROM ord_service_terms WHERE order_id = ?", cu)[0].n), 0);
   const xemCu = await xem(w, cu, KT);
   assert.equal(xemCu.status, 200, xemCu.text);

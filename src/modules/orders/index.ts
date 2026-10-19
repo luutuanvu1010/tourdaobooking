@@ -5,7 +5,7 @@ import { auditStatement, getAuditTrail } from "../audit";
 import { chupDon, docBangChoChup, laNguoiHuong, soKhachTinhHoaHong, type BanChup } from "../pricing";
 import { ownerCompany } from "../parties";
 import type {
-  CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, DongBoChuyenDto, DongLichSuSoKhachDto, DraftCountResponse, IncompleteTripBody, MoneyEditResponse, MyAssignmentDto, NhapTayResponse, OrderDetailDto,
+  CanhBaoMocDto, CatalogChangeDto, ChoChupBuResponse, ChupBuResponse, CatalogChangedBody, DashboardResponse, DongBoChuyenDto, DongLichSuSoKhachDto, DraftCountResponse, IncompleteTripBody, MoneyEditResponse, MyAssignmentDto, NhapTayResponse, OrderDetailDto,
   OrderDetailResponse, OrderListResponse, MocToiThieuResponse, NguoiLapResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
   SuaSoKhachDichVuDto, StaffProfile, ThuongMaiResponse,
 } from "../../shared/contracts";
@@ -48,7 +48,7 @@ import type { DongBoTheoDon, NoiChuyen } from "../../shared/dong-bo-chuyen";
 import { CAU_X3_THUE_XE, NHOM_THUE_XE } from "../../shared/so-dai-ly-nhan";
 import { lichSuChoDoiTac } from "../../shared/lich-su-doi-tac";
 import { apGhiTay, banChupTuDb, cheDoThuongMai, chuaCoBanChup, dongGhiTuChup, dungThuongMai, kiemGhiTayVoiBanChup, kiemThanGhiTay, moTaChup, moTaGhiTay, type PhanThuongMai } from "./thuong-mai";
-import { banChupHienHanh, cauChupChuoi, cauGhiTay, demBanChup, laNhaCungCap, nhomCuaMa, tenHoSo } from "./thuong-mai-repo";
+import { banChupHienHanh, cauChupChuoi, cauDoiMocSauGhiTay, cauGhiTay, cauKhoaChupBu, demBanChup, donChoChupBu, laNhaCungCap, nhomCuaMa, tenHoSo } from "./thuong-mai-repo";
 import { laThanDonCu, laThanTripCu } from "./than-cu";
 import { duocNhapTay, giaDanhMucViolation, holdsPartner, lyDoKhongNhapTay, manualFreezeViolation } from "./price-guards";
 import { canTransition, hasHandlerPick, parseHandlerPick, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
@@ -68,6 +68,8 @@ const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không �
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
 /** Ghi mức hoa hồng tay (sổ đại lý đợt 1): chỉ Kế toán, Quản trị, Toàn quyền; không bao giờ cho tài khoản có quyền Đối tác. */
 const FORBIDDEN_TERMS = () => error(403, "forbidden", "Chỉ Kế toán, Quản trị hoặc Toàn quyền mới ghi được mức hoa hồng tay.");
+/** «Chụp bù» (sổ đại lý đợt 2): cùng ô `order.terms.override` và cùng luật không cho tài khoản có quyền Đối tác với ghi mức tay. */
+const FORBIDDEN_CHUP_BU = () => error(403, "forbidden", "Chỉ Kế toán, Quản trị hoặc Toàn quyền mới chụp bù được mức hoa hồng.");
 const NOT_EDITABLE = () => error(409, "not_editable", "Chỉ sửa được đơn đang chờ xác nhận. Muốn đổi đơn đã xác nhận, hãy huỷ và tạo đơn mới.");
 const CANCELLED = () => error(409, "not_editable", "Đơn đã huỷ, không sửa được.");
 /** Sổ tiền lượt 1 (ADR-0025 đ5): đơn đã "Đã giao – đã thu đủ" bị khoá — mọi route ghi từ chối SỚM bằng câu tiếng Việt (trigger 0044 là lưới cuối). */
@@ -831,6 +833,69 @@ export const ordersModule: AppModule = {
       return json({ nguoiLap: rows.map((r) => ({ id: r.id, ten: r.ten, ganNhat: vnToday(new Date(r.gan_nhat)) })) } satisfies NguoiLapResponse);
     }),
 
+    // «CHỤP BÙ» (sổ đại lý đợt 2, Task 6 — ADR-0079 điều 7 (b2), đặc tả P6, C4 = A): đơn đã xác nhận TRƯỚC khi có bảng mức, chưa có bản chụp nào, không thuộc tập
+    // chụp bù tự động (b1) của migration 0112. Cổng `office`, ô `order.terms.override` (Kế toán, Quản trị, Toàn quyền); không bao giờ cho tài khoản giữ quyền Đối tác
+    // (kể cả lai — phản hồi là bản chụp văn phòng có tỷ lệ và giá vốn). Hai route PHẢI đứng TRƯỚC "/api/orders/:id" (":id" khớp chữ "cho-chup-bu").
+    // Danh sách: chỉ khoá + nhãn (mã đơn, ngày xác nhận giờ VN, tên bên đặt, lý do) — không tên / SĐT khách, không tiền. Chỉ đọc — không nhật ký.
+    route("GET", "/api/orders/cho-chup-bu", "office", async ({ env, staff }) => {
+      if (!can(staff, "order.terms.override") || holdsPartner(staff)) return FORBIDDEN_CHUP_BU();
+      const rows = await donChoChupBu(env.DB);
+      // Lý do (Ruling R-52): có dòng nhập tay đứng trước (chụp bù chụp cả đơn, rồi Kế toán ghi mức tay dòng đó — R-P13); rồi bên đặt được hưởng; còn lại là đơn khách lẻ 0112 chưa chụp.
+      const don = rows.map((r) => ({
+        orderId: r.id, maDon: r.order_code, ngayXacNhan: vnToday(new Date(r.confirmed_at ?? r.created_at)), benDat: r.ben_dat,
+        lyDo: r.co_nhap_tay ? "nhap_tay" as const : r.ben_dat_doi_tac ? "co_nguoi_huong" as const : "khach_le" as const,
+      }));
+      return json({ don } satisfies ChoChupBuResponse);
+    }),
+
+    // Chụp bù MỘT đơn: CÙNG `docBangChoChup` + `chupDon` với lệnh Xác nhận, `ngay` = ngày giờ VN của `confirmed_at` (trống ⇒ `created_at`). Ruling R-P13 (điều phối 19/10):
+    // một dòng DANH MỤC ra thiếu vì chưa có mức ngày đó / mức xung đột (NO_RULE, RULE_CONFLICT) hoặc thiếu người bán ⇒ 409 `chup_bu_thieu_muc`, KHÔNG ghi gì — Kế toán cài
+    // mức rồi bấm lại được, đừng đóng băng một chỗ thiếu sửa được (đặc tả P6 b2). Dòng NHẬP TAY ra thiếu (MANUAL_LINE / người bán) và dòng bên đặt không được hưởng
+    // (BOOKER_NOT_BENEFICIARY) KHÔNG chặn: chụp cả đơn như lệnh Xác nhận, rồi dòng đó đi đường ghi mức tay / sửa bên đặt đã có (A-14, ADR-0078 điều 5). Một lô: CỔNG (khoá lạc quan
+    // `updated_at` + «chưa có bản chụp nào», đổi `updated_at` để lô «Đã giao» đang chạy dở thua — chủ duyệt 19/10) → các câu chụp (`changes() > 0`) → nhật ký
+    // `ord_terms_backfilled` (chỉ đếm dòng, không tỷ lệ / tiền). «Bấm cả danh sách» ở giao diện = gọi route này lần lượt từng đơn.
+    route("POST", "/api/orders/:id/chup-bu", "office", async ({ env, params, staff, baoThayDoi }) => {
+      if (!can(staff, "order.terms.override") || holdsPartner(staff)) return FORBIDDEN_CHUP_BU();
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const meta = await getMeta(env.DB, id);
+      if (!meta) return NOT_FOUND();
+      if (meta.status !== "confirmed") return error(409, "not_confirmed", "Chỉ chụp bù cho đơn đã xác nhận.");
+      if (meta.deliveredAt) return DA_GIAO();
+      if ((await demBanChup(env.DB, id)) > 0) return error(409, "da_co_ban_chup", "Đơn đã có bản chụp — ghi mức tay cho dòng thiếu");
+      const order = await findOrder(env.DB, id);
+      if (!order) return NOT_FOUND();
+      const ngay = vnToday(new Date(order.confirmedAt ?? order.createdAt));
+      const bang = await docBangChoChup(env.DB, { bookerPartyId: order.bookerPartyId, catalogCodes: order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : [])), ngay });
+      const chup = chupDon({
+        nguoiHuong: bang.nguoiHuong, ngay, muc: bang.muc, gan: bang.gan, dieuKhoan: bang.dieuKhoan,
+        dong: order.services.map((s) => ({ serviceId: s.id, catalogCode: s.catalogCode, groupCode: s.catalogCode ? (bang.nhom.get(s.catalogCode) ?? null) : null })),
+      });
+      const thieu = order.services.filter((s) => s.catalogCode !== null && chup.some((c) => c.serviceId === s.id
+        && (c.cungUng.status === "MISSING" || (c.hoaHong.status === "MISSING" && (c.hoaHong.reason === "NO_RULE" || c.hoaHong.reason === "RULE_CONFLICT")))));
+      if (thieu.length > 0) return error(409, "chup_bu_thieu_muc", `Còn thiếu mức cho ${thieu.map((s) => s.name).join(", ")} — cài mức rồi bấm lại`);
+      const at = new Date().toISOString();
+      let kq: D1Result[];
+      try {
+        kq = await env.DB.batch([
+          cauKhoaChupBu(env.DB, { orderId: id, at, expectedUpdatedAt: meta.updatedAt }),
+          ...cauChupChuoi(env.DB, chup.map((c) => dongGhiTuChup(c, { id: crypto.randomUUID(), orderId: id, ngay, at, by: staff.id, source: "AUTO", reason: null, supersedesId: null }))),
+          auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "ord_terms_backfilled", at, detail: `theo ngày xác nhận ${ngay}: ${moTaChup(chup)}` }, "changes() > 0"),
+        ]);
+      } catch (e) {
+        const loi = e instanceof Error ? e.message : String(e);
+        // Bảng mức / điều khoản đổi giữa lúc đọc và lúc ghi (cùng trigger với lệnh Xác nhận): cả lô rơi — bấm lại là chụp theo bảng mới.
+        if (/\bterms_(rule|term)_stale:/.test(loi)) return error(409, "bang_muc_doi", "Bảng mức vừa đổi — thử lại");
+        if (/\bterms_order_delivered:/.test(loi)) return DA_GIAO();
+        if (/\bterms_(one_current|service_mismatch):|UNIQUE constraint failed: ord_service_terms/.test(loi)) return STALE();
+        throw e;
+      }
+      // Cổng 0 dòng: người khác vừa sửa đơn / chụp / «Đã giao» / huỷ giữa lúc đọc và lúc ghi — cả lô không áp.
+      if ((kq[0]!.meta.changes ?? 0) === 0) return STALE();
+      baoThayDoi({ orderId: id, thayDoi: "tien" });
+      return json({ chup } satisfies ChupBuResponse);
+    }),
+
     route("GET", "/api/orders", "orders", async ({ env, url, staff, myHandledOrderIds, nhapKeToanCuaDon }) => {
       // BA NHÁNH LỌC (ADR-0030 S23-4, Review Focus 1), mỗi nhánh hỏi bảng quyền với ĐÚNG ngữ cảnh của tập đơn nó trả:
       //  (1) `can(order.view)` KHÔNG ngữ cảnh ("any" — SALES/ACCOUNTING/ADMIN/SUPER_ADMIN) → mọi đơn, không lọc;
@@ -1517,7 +1582,7 @@ export const ordersModule: AppModule = {
     }),
 
     // GHI MỨC TAY (cổng `office`, ô `order.terms.override`; không bao giờ cho tài khoản giữ quyền Đối tác — kể cả lai, vì phản hồi là DTO văn phòng có tỷ lệ): chỉ đơn ĐÃ XÁC NHẬN, chưa "Đã giao", dòng
-    // dịch vụ đã có bản chụp hiện hành. Một lô: câu chèn bản MANUAL (trỏ `supersedes_id` bản hiện hành; lính gác trạng thái ngay trong câu) → nhật ký `order_terms_manual` (`changes() > 0`). Hai người ghi
+    // dịch vụ đã có bản chụp hiện hành. Một lô: câu chèn bản MANUAL (trỏ `supersedes_id` bản hiện hành; lính gác trạng thái ngay trong câu) → đổi `orders.updated_at` → nhật ký `order_terms_manual` (`changes() > 0`). Hai người ghi
     // cùng lúc: `supersedes_id UNIQUE` chặn người sau ⇒ 409 (cả lô rơi — không dòng thừa, không nhật ký).
     route("POST", "/api/orders/:id/thuong-mai/:serviceId", "office", async ({ env, request, params, staff, baoThayDoi }) => {
       if (!can(staff, "order.terms.override") || holdsPartner(staff)) return FORBIDDEN_TERMS();
@@ -1530,7 +1595,7 @@ export const ordersModule: AppModule = {
       if (meta.status !== "confirmed") return error(409, "not_confirmed", "Chỉ ghi mức tay cho đơn đã xác nhận.");
       if (meta.deliveredAt) return DA_GIAO();
       const hienHanh = await banChupHienHanh(env.DB, id);
-      if (hienHanh.length === 0) return error(409, "chua_chup", "Đơn xác nhận trước khi có bảng mức — chờ chụp bù ở bản sau");
+      if (hienHanh.length === 0) return error(409, "chua_chup", "Đơn xác nhận trước khi có bảng mức, chưa chụp mức — Kế toán bấm Chụp bù trước, rồi ghi mức tay cho dòng còn thiếu.");
       const dong = hienHanh.find((r) => r.order_service_id === params.serviceId);
       if (!dong) return error(404, "not_found", "Không tìm thấy dịch vụ này trong đơn.");
       const truoc = banChupTuDb(dong);
@@ -1552,7 +1617,11 @@ export const ordersModule: AppModule = {
       const moi = dongGhiTuChup(sau, { id: crypto.randomUUID(), orderId: id, ngay: vnToday(new Date()), at, by: staff.id, source: "MANUAL", reason: than.value.lyDo, supersedesId: dong.id });
       let kq: D1Result[];
       try {
-        kq = await env.DB.batch([cauGhiTay(env.DB, moi), auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "order_terms_manual", at, detail: moTaGhiTay(truoc, sau, tenDv, ten) }, "changes() > 0")]);
+        // Câu thứ hai đổi `orders.updated_at` (chỉ khi bản MANUAL đã chèn): lô «Đã giao» đang chạy dở với `updated_at` cũ thua ⇒ 409 (chủ duyệt 19/10, I-2). `kq[0]` vẫn là câu chèn.
+        kq = await env.DB.batch([
+          cauGhiTay(env.DB, moi), cauDoiMocSauGhiTay(env.DB, id, at),
+          auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "order_terms_manual", at, detail: moTaGhiTay(truoc, sau, tenDv, ten) }, "changes() > 0"),
+        ]);
       } catch (e) {
         const loi = e instanceof Error ? e.message : String(e);
         // Người khác ghi tay (hoặc chụp lại) cùng dòng giữa lúc đọc và lúc ghi: bản hiện hành đã có người thay ⇒ UNIQUE supersedes_id / trigger terms_one_current.

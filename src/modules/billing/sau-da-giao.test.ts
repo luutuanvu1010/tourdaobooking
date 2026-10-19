@@ -49,6 +49,8 @@ const CA: Record<string, unknown> = {
   "POST /api/orders/:id/money-edit": {}, // ADR-0063 D1 (văn phòng sửa số khách) — 409 TRƯỚC khi đọc thân
   // Sổ đại lý đợt 1 (Task 5): ghi mức hoa hồng tay — thân HỢP LỆ (route kiểm thân trước đơn); đơn Đã giao ⇒ 409 order_delivered trước cả bước tìm bản chụp.
   "POST /api/orders/:id/thuong-mai/:serviceId": { lyDo: "thoả thuận miệng với CTV Lan", hoaHong: { kieu: "RATE", tyLeBp: 1500 } },
+  // Sổ đại lý đợt 2 (Task 6): «Chụp bù» — không thân; đơn Đã giao ⇒ 409 order_delivered trước bước đếm bản chụp.
+  "POST /api/orders/:id/chup-bu": {},
 };
 const khoa = (r: { method: string; path: string }) => `${r.method} ${r.path}`;
 

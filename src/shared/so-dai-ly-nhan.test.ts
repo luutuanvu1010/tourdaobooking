@@ -14,8 +14,8 @@ test("nhãn tiếng Việt, không lộ mã thô", () => {
   assert.equal(CAU_THIEU_MUC, "cần cài mức (cấp) thì mới tính được hoa hồng");
 });
 
-test("laDongThuongMai: ba hành động order_terms_*", () => {
-  for (const a of ["order_terms_captured", "order_terms_recaptured", "order_terms_manual"]) assert.ok(laDongThuongMai(a));
+test("laDongThuongMai: ba hành động order_terms_* và chụp bù ord_terms_backfilled (sổ đại lý đợt 2, Task 6)", () => {
+  for (const a of ["order_terms_captured", "order_terms_recaptured", "order_terms_manual", "ord_terms_backfilled"]) assert.ok(laDongThuongMai(a));
   assert.equal(laDongThuongMai("confirmed"), false);
 });
 

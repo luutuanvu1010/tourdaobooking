@@ -8,6 +8,7 @@ import type { LyDoSuaSai } from "./giay-to.ts";
 import type { NhomLyDo } from "./dieu-phoi-kieu.ts";
 import type { PermissionCode } from "./permissions.ts";
 import type { RoleCode } from "./roles.ts";
+import type { BanChup } from "./hoa-hong-dong.ts";
 
 export type { AuditAction, AuditTargetType, FeedbackKind, FeedbackStatus, CatalogService, LyDoSuaSai, PaxCode, PaxCounts, PermissionCode, Prices, RoleCode };
 
@@ -2257,7 +2258,8 @@ export interface YeuCauDieuChinhDto {
   benNo: string;
   benDuocNo: string;
   soTien: number;
-  loaiDong: "HELD" | "SETTLEMENT" | "REFUND";
+  /** Sổ đại lý đợt 2 (Task 6): thêm ba loại dòng thương mại — điều chỉnh cho đơn đã «Đã giao» (bổ sung giá vốn, ví dụ D-3). */
+  loaiDong: "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON";
   loaiDongNhan: string;
   ngayPhatSinh: string;
   lyDo: string;
@@ -2629,3 +2631,21 @@ export interface ThuongMaiDoiTacDto {
   tong: { thanhTien: number; hoaHong: number | null; giaDaiLy: number | null };
 }
 export type ThuongMaiResponse = { vanPhong: ThuongMaiVanPhongDto } | { doiTac: ThuongMaiDoiTacDto };
+/**
+ * Sổ đại lý đợt 2, Task 6 (ADR-0079 điều 7 b2, C4 = A): `GET /api/orders/cho-chup-bu` — đơn ĐÃ XÁC NHẬN, chưa «Đã giao», CHƯA có bản chụp nào (xác nhận trước khi có bảng
+ * mức), chờ Kế toán bấm «Chụp bù» (ô `order.terms.override`; tài khoản giữ quyền Đối tác không gọi được). `ngayXacNhan` = ngày giờ Việt Nam của lúc xác nhận (trống ⇒ lúc tạo
+ * đơn) — chính là ngày «Chụp bù» lấy mức. `benDat` = tên hồ sơ bên đặt (null = khách lẻ không ghi bên đặt). `lyDo`: `nhap_tay` = đơn có dòng dịch vụ nhập tay («Chụp bù» chụp cả
+ * đơn, dòng nhập tay ra thiếu mức rồi Kế toán ghi mức tay — Ruling R-P13); `co_nguoi_huong` = bên đặt mang vai được hưởng / vai bên ngoài / loại đối tác; `khach_le` = còn lại
+ * (đơn khách lẻ mà migration chụp bù tự động không chụp — Ruling sổ thi công Task 6).
+ * Không tên / SĐT khách, không số tiền.
+ */
+export interface ChoChupBuDto {
+  orderId: string;
+  maDon: string;
+  ngayXacNhan: string;
+  benDat: string | null;
+  lyDo: "co_nguoi_huong" | "nhap_tay" | "khach_le";
+}
+export interface ChoChupBuResponse { don: ChoChupBuDto[] }
+/** `POST /api/orders/:id/chup-bu` — bản chụp vừa ghi (mức của ngày xác nhận), mỗi dòng dịch vụ một bản. Chỉ người giữ `order.terms.override` (luôn có `supply.terms.view`). */
+export interface ChupBuResponse { chup: BanChup[] }
