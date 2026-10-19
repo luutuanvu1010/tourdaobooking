@@ -12,6 +12,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Nợ nhỏ cuối của màn Tạo đơn thiết kế lại (Việc 14, 19/10): dòng gập của thẻ ghi «Đã duyệt đặt gấp» khi chặng đã được duyệt. KHÔNG migration, không đổi thân gửi.
+    // Cùng đợt có công cụ dọn máy `npm run don-may` và bộ bọc Chrome tự đóng — công cụ của nhà phát triển, không hiện cho người dùng nên không ghi ở đây.
+    // Số 2.22 là số TẠM (production báo 2.21; kiểm main ngày 19/10: chưa dùng 2.22) — phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md).
+    version: "2.22",
+    date: "2026-10-19",
+    items: [
+      { kind: "moi", text: "Màn Tạo đơn: thẻ dịch vụ đã gập nay ghi rõ Đã duyệt đặt gấp khi chặng đưa đón đã được duyệt, nên không cần mở thẻ ra mới biết." },
+    ],
+  },
+  {
     // Vòng sửa sau khi màn Tạo đơn mới lên production (Việc 12, chủ dự án báo 19/10 bằng tài khoản Đối tác trên Safari): nhãn nổi đè chữ ở hai ô chọn của khối Thanh toán
     // (lỗi riêng của Safari / iPhone, có từ khi có nhãn nổi 13/10); thẻ gập của dịch vụ không có chặng nêu "Không đưa đón". KHÔNG migration, không đổi thân gửi lên máy chủ.
     // Số 2.21 là số TẠM (production báo 2.20 qua GET /api/auth/config ngày 19/10; kiểm git trên main, mọi nhánh và mọi worktree: chưa nơi nào dùng 2.21) — phiên phát hành
