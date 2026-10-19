@@ -1,7 +1,7 @@
 // Kịch bản Chrome (bằng chứng giao diện) cho ô chọn dịch vụ của form lập đơn — bản thiết kế lại 18/10/2026 (đặc tả
 // docs/superpowers/specs/2026-10-18-tao-don-thiet-ke-lai/DAC-TA.md mục 3A; đề bài PROMPT-CLAUDE-DESIGN.md mục "A. Chọn dịch vụ").
 // LỊCH SỬ: 30/9 (ADR-0058 Đ8, Task A6) là hàng chip một nhóm; 13/10 (đợt 1) đổi thành nút xổ xuống + bảng tick NHIỀU nhóm; 18/10 VIẾT LẠI CÓ CHỦ ĐÍCH
-// (chủ duyệt 17/10, đề xuất ADR-0130): bỏ nút xổ, bảng tick, "Đóng", "Bỏ chọn hết"; thay bằng
+// (chủ duyệt 17/10, bản đề xuất DE-XUAT-ADR-0130.md — số tạm, khác ADR-0130 bảng từ trên main): bỏ nút xổ, bảng tick, "Đóng", "Bỏ chọn hết"; thay bằng
 //   ô tìm "Tìm theo tên hoặc mã dịch vụ" (nút ✕ xoá chữ) → MỘT hàng nút nhóm cuộn ngang (CHỌN MỘT, "Tất cả" đầu, không số đếm, mép phải mờ + "›",
 //   nhóm đang chọn luôn trong tầm nhìn) → khung danh sách LUÔN MỞ, cao cố định (token --h-danh-sach), đầu khung "N dịch vụ" / "N dịch vụ · <nhóm>".
 //   Chạm dòng = thêm dịch vụ: khung đứng yên (không cuộn nhảy, trang không cuộn), dòng hiện "✓ đã thêm", không thông báo nổi, vùng aria-live đọc

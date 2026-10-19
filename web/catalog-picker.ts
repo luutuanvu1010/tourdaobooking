@@ -1,5 +1,5 @@
 // Ô chọn dịch vụ của form lập đơn — thiết kế lại 18/10/2026 (đặc tả docs/superpowers/specs/2026-10-18-tao-don-thiet-ke-lai/DAC-TA.md mục 3A, đề bài
-// PROMPT-CLAUDE-DESIGN.md "A. Chọn dịch vụ"; chủ duyệt hàng nhóm CHỌN MỘT ngày 17/10 — đề xuất ADR-0130, thay bảng tick nhiều nhóm của đợt 1 ngày 13/10).
+// PROMPT-CLAUDE-DESIGN.md "A. Chọn dịch vụ"; chủ duyệt hàng nhóm CHỌN MỘT ngày 17/10 — bản đề xuất DE-XUAT-ADR-0130.md (số tạm; ADR-0130 trên main là bảng từ giao diện), thay bảng tick nhiều nhóm của đợt 1 ngày 13/10).
 // Thứ tự: ô tìm "Tìm theo tên hoặc mã dịch vụ" (nút ✕ xoá chữ) → MỘT hàng nút nhóm cuộn ngang → khung danh sách LUÔN MỞ, cao cố định (token --h-danh-sach),
 // cuộn bên trong; thẻ dịch vụ đã chọn nằm bên dưới (ngoài tệp này). Nút "+ Dịch vụ nhập tay" vẫn ở ngay dưới, trong public/order-form.html.
 // Hàng nhóm: "Tất cả" đầu, rồi nhóm theo thứ tự Quản trị, "Chưa phân loại" cuối (nếu còn dịch vụ chưa gán). Chọn MỘT nhóm, chạm là lọc liền, nút không số đếm.
