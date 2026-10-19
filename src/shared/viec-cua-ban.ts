@@ -4,7 +4,7 @@
 // dùng GET /api/ledger/coc để làm đích cho nút (nợ ở docs/BACKLOG.md). Không vẽ số giả: số lấy từ nguồn đã có.
 import { vndShort } from "./money.ts";
 import type { PHAM_VI_O_TRANG_CHU } from "./pham-vi-so.ts";
-import { can, seesAllOrders } from "./permissions.ts";
+import { can, holdsPartner, seesAllOrders } from "./permissions.ts";
 import type { PermissionHolder } from "./permissions.ts";
 
 export type KhoaThe = "xemLai" | "dieuChinh" | "nhap" | "conThieu" | "chuaPhuTrach" | "chuyenHomNay" | "gopY";
@@ -61,7 +61,7 @@ const khong = (): boolean => false;
 const THE: readonly MoTa[] = [
   { khoa: "xemLai", uuTien: () => 1, hien: quanTri, nhan: "Cần xem lại", nut: () => "Xem lại", href: "#dash-review", tone: "cat", chot: khong,
     phu: () => "Những điều Nền tảng đang nhắc Quản trị" },
-  { khoa: "dieuChinh", uuTien: (w) => (quanTri(w) ? 8 : 2), hien: (w) => can(w, "ledger.adjust.approve"), nhan: "Điều chỉnh công nợ chờ duyệt", nut: () => "Duyệt",
+  { khoa: "dieuChinh", uuTien: (w) => (quanTri(w) ? 8 : 2), hien: (w) => can(w, "ledger.adjust.approve") && !holdsPartner(w), nhan: "Điều chỉnh công nợ chờ duyệt", nut: () => "Duyệt",
     href: "/dieu-chinh-cong-no", tone: "xanh", chot: khong, phu: () => "Yêu cầu đang chờ bạn duyệt" },
   // Số đơn nháp là của CẢ công ty: nút chốt (san hô) "Xác nhận đơn" chỉ cho Quản trị (xác nhận được mọi đơn); vai khác chỉ "Xem đơn nháp".
   { khoa: "nhap", uuTien: () => 3, hien: xemDon, nhan: "Đơn nháp", nut: (w) => (xacNhanDuocMoiDon(w) ? "Xác nhận đơn" : "Xem đơn nháp"), href: "/orders", tone: "xanh", chot: xacNhanDuocMoiDon,

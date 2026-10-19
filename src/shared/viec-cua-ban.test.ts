@@ -141,3 +141,18 @@ test("nhãn phạm vi: mỗi khoá thẻ có phạm vi trong bảng chung (đi�
     [["xemLai", "TOAN_CONG_TY"], ["dieuChinh", "CUA_TOI"], ["nhap", "TOAN_CONG_TY"], ["conThieu", "TOAN_CONG_TY"], ["chuaPhuTrach", "TOAN_CONG_TY"], ["chuyenHomNay", "TOAN_CONG_TY"], ["gopY", "TOAN_CONG_TY"]],
   );
 });
+
+// Ruling R-P18 (sổ đại lý đợt 2, vòng sửa 1 Task 6): máy chủ chặn tài khoản giữ quyền Đối tác ở mọi route yêu cầu điều chỉnh ⇒ thẻ «Điều chỉnh công nợ chờ duyệt» không hiện,
+// và trang chủ không tải số đó (tải sẽ bị 403) — mọi tập con quyền có PARTNER.
+test("R-P18: mọi tập quyền có PARTNER (kể cả lai Kế toán / Toàn quyền) ⇒ không thẻ dieuChinh, không tải nguồn dieuChinh", () => {
+  let soTap = 0;
+  for (let m = 0; m < 1 << PERMISSION_CODES.length; m++) {
+    const p = PERMISSION_CODES.filter((_, i) => (m >> i) & 1) as PermissionCode[];
+    if (!p.includes("PARTNER")) continue;
+    soTap++;
+    assert.ok(!viecCuaBan(who(...p), day).the.concat(viecCuaBan(who(...p), day).conLaiThe).some((t) => t.khoa === "dieuChinh"), p.join("+"));
+    assert.ok(!nguonCanTai(who(...p)).includes("dieuChinh"), p.join("+"));
+  }
+  assert.equal(soTap, 512);
+  assert.ok(viecCuaBan(who("ACCOUNTING"), day).the.some((t) => t.khoa === "dieuChinh"), "Kế toán thường vẫn có thẻ");
+});

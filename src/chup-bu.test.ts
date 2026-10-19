@@ -248,7 +248,7 @@ test("(A7) Ruling R-P13: dòng DANH MỤC thiếu mức vẫn chặn cả đơn 
   const khachLe = donCu(w, { booker: null, xacNhanLuc: "2024-12-20T03:00:00.000Z" });
   const k = await chupBu(w, khachLe.id);
   assert.equal(k.status, 409, k.text);
-  assert.deepEqual([k.json.error.code, k.json.error.message], ["chup_bu_thieu_muc", "Còn thiếu mức cho Tour đảo — cài mức rồi bấm lại"]);
+  assert.deepEqual([k.json.error.code, k.json.error.message], ["chup_bu_thieu_muc", "Còn thiếu người bán cho Tour đảo — cài người bán (điều khoản người bán) rồi bấm lại"], "thiếu NGƯỜI BÁN nói «cài người bán» (người kiểm m-6)");
   assert.equal(banChup(w, daiLy.id).length + banChup(w, khachLe.id).length, 0, "không ghi bản chụp nào");
   assert.equal(dem(w, "SELECT count(*) AS n FROM audit_log WHERE action = 'ord_terms_backfilled'"), 0);
 });
@@ -558,19 +558,23 @@ test("(C1) Kế toán ghi mức tay CHEN giữa lúc «Đã giao» đọc bản 
   assert.deepEqual(dongThuongMai(w, id), [{ kind_code: "HOA_HONG", debtor_party_id: congTy(w), creditor_party_id: DAI_LY, amount: 300_000 }], "15% của 2.000.000 — mức ghi tay");
 });
 
-test("(C2) ghi mức tay đổi orders.updated_at trong CÙNG lô (chỉ khi bản MANUAL đã chèn); ghi tay thua (đơn đã giao) không đổi gì", async () => {
+test("(C2) ghi mức tay đổi orders.updated_at trong CÙNG lô (chỉ khi bản MANUAL đã chèn), mốc mới LUÔN lớn hơn mốc cũ — kể cả khi mốc cũ ở «tương lai» (đồng hồ lệch / cùng mili-giây, người kiểm I-1); ghi tay thua (đơn đã giao) không đổi gì", async () => {
   const w = setup();
   await muc(w, 1000, "2026-01-01");
   const { id, svc } = donCu(w);
   assert.equal((await chupBu(w, id)).status, 200, "bản chụp có người hưởng (đại lý C) để ghi tay mức hoa hồng");
-  const truoc = capNhatLuc(w, id);
+  // (1) mốc cũ đã biết, cũ hơn giờ thật ⇒ mốc mới = giờ ghi của chính lô (cùng `at` với bản MANUAL)
+  w.sqlite.prepare("UPDATE orders SET updated_at = '2026-10-03T00:00:00.000Z' WHERE id = ?").run(id);
   const t = await ghiTay(w, id, svc[0]!, 1500);
   assert.equal(t.status, 200, t.text);
   const sau = capNhatLuc(w, id);
-  assert.notEqual(sau, truoc);
-  assert.ok(sau > truoc && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(sau), "mốc ISO UTC mới");
+  assert.ok(sau > "2026-10-03T00:00:00.000Z" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(sau), `mốc ISO UTC mới: ${sau}`);
   const cuoi = w.q("SELECT created_at FROM ord_service_terms WHERE order_id = ? AND source = 'MANUAL'", id)[0].created_at;
   assert.equal(sau, cuoi, "cùng một mốc giờ với bản ghi tay (một lô)");
+  // (2) mốc cũ ở TƯƠNG LAI (giờ máy chủ «lùi» so với lần ghi trước) ⇒ mốc cũ + 1 ms, vẫn tăng chặt — khoá lạc quan của lô khác không lẫn
+  w.sqlite.prepare("UPDATE orders SET updated_at = '2099-01-01T00:00:00.000Z' WHERE id = ?").run(id);
+  assert.equal((await ghiTay(w, id, svc[0]!, 1600)).status, 200);
+  assert.equal(capNhatLuc(w, id), "2099-01-01T00:00:00.001Z");
   // Ghi tay THUA (đơn vừa «Đã giao» giữa lúc đọc và lúc ghi): câu chèn bản MANUAL không chèn ⇒ câu đổi updated_at cũng không áp, không nhật ký.
   const moc = "2026-10-02T00:00:00.000Z";
   w.chenTruocLo((stmts: Cau[]) => stmts.some((c) => /INSERT INTO ord_service_terms/.test(c.sql)), () => {
@@ -579,8 +583,35 @@ test("(C2) ghi mức tay đổi orders.updated_at trong CÙNG lô (chỉ khi b�
   const thua = await ghiTay(w, id, svc[0]!, 1800);
   assert.equal(thua.status, 409, thua.text);
   assert.equal(capNhatLuc(w, id), moc, "updated_at giữ nguyên khi ghi tay thua");
-  assert.equal(dem(w, "SELECT count(*) AS n FROM ord_service_terms WHERE order_id = ? AND source = 'MANUAL'", id), 1);
-  assert.equal(dem(w, "SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = 'order_terms_manual'", id), 1);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM ord_service_terms WHERE order_id = ? AND source = 'MANUAL'", id), 2);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = 'order_terms_manual'", id), 2);
+});
+
+test("(C3) «Chụp bù»: câu cổng đổi updated_at LUÔN tăng chặt — mốc cũ ở tương lai ⇒ mốc cũ + 1 ms (người kiểm I-1)", async () => {
+  const w = setup();
+  await muc(w, 1000, "2026-01-01");
+  const { id } = donCu(w);
+  w.sqlite.prepare("UPDATE orders SET updated_at = '2099-01-01T00:00:00.999Z' WHERE id = ?").run(id);
+  const r = await chupBu(w, id);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(capNhatLuc(w, id), "2099-01-01T00:00:01.000Z");
+});
+
+test("(A15) Ruling R-P17 (người kiểm m-1): bên đặt CHÍNH LÀ nhà cung cấp của một dòng (RULE_CONFLICT nhánh nhà cung cấp) không chặn Chụp bù — chụp cả đơn; dòng đó đi đường ghi mức tay", async () => {
+  const w = setup();
+  await muc(w, 1000, "2026-01-01");
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-dlc-ncc', ?, 'SUPPLIER', '2026-01-01', ?, ?)").run(DAI_LY, AT, AT);
+  w.sqlite.prepare(`INSERT INTO prc_supply_term (id, scope, catalog_code, seller_party_id, supplier_party_id, cost_rate_bp, valid_from_date, created_at, updated_at)
+    VALUES ('st-dlc', 'SERVICE', 'LANBIEN', ?, ?, 8000, '2026-01-01', ?, ?)`).run(DAI_LY, DAI_LY, AT, AT);
+  const { id, svc } = donCu(w, { dichVu: [{ ten: "Tour đảo", catalog: "HONTAM", gia: 2_000_000 }, { ten: "Lặn biển", catalog: "LANBIEN", gia: 1_000_000 }] });
+  const r = await chupBu(w, id);
+  assert.equal(r.status, 200, r.text);
+  const [a, b] = banChup(w, id);
+  assert.deepEqual([a!.order_service_id, a!.commission_status, a!.commission_rate_bp], [svc[0], "SET", 1000]);
+  assert.deepEqual([b!.order_service_id, b!.commission_status, b!.missing_reason, b!.supply_status, b!.supplier_party_id], [svc[1], "MISSING", "RULE_CONFLICT", "SET", DAI_LY]);
+  const t = await ghiTay(w, id, svc[1]!, 0);
+  assert.equal(t.status, 200, t.text);
+  assert.equal(banChup(w, id).filter((x) => x.source === "MANUAL").length, 1, "dòng nhà cung cấp = bên đặt đã ghi mức tay");
 });
 
 test("(A14) M-7 đơn «lai» (một dòng đã chụp, một dòng chưa — chỉ dựng được bằng SQL tay): GHIM HIỆN TRẠNG, CHƯA có lối thoát (Ruling R-59, Nợ) — Chụp bù 409 da_co_ban_chup; ghi tay dòng chưa chụp 404", async () => {

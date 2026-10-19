@@ -605,5 +605,5 @@ test("mức truy cập của 361 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-19 (sổ đại lý đợt 2 Task 5, ADR-0132 điều 2): + POST /api/ledger/counterparty-receipts/:receiptId/confirm (office; ledger.write) = 359.
   // 2026-10-19 (sổ đại lý đợt 2 Task 6, ADR-0079 điều 7 b2): + GET /api/orders/cho-chup-bu, POST /api/orders/:id/chup-bu (office; order.terms.override, không Đối tác) = 361.
   assert.equal(actual.length, 361, "số route thực tế lệch 361 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 361, "SNAPSHOT phải có đúng 359 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(SNAPSHOT.length, 361, "SNAPSHOT phải có đúng 361 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

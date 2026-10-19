@@ -12,12 +12,15 @@ const GHI_TAY = defineSql("orders", "terms_insert_manual",
    WHERE EXISTS (SELECT 1 FROM orders o WHERE o.id = ?2 AND o.status = 'confirmed' AND o.delivered_at IS NULL)`);
 // Chạy đua ghi tay ↔ «Đã giao» (chủ duyệt 19/10, I-2 người kiểm Task 3+4): lô ghi tay đổi `orders.updated_at` NGAY SAU câu chèn bản MANUAL (chỉ khi câu đó đã chèn — `changes() > 0`),
 // để lô «Đã giao» đang chạy dở (đọc bản chụp rồi `db.batch` với khoá lạc quan `updated_at`) thua và trả 409, không ghi sổ theo mức cũ.
+// Mốc mới LUÔN LỚN HƠN mốc cũ (cùng ý `nextStamp` của repository.ts, tính NGAY TRONG câu — người kiểm Task 6 I-1): đồng hồ máy chủ lùi / cùng mili-giây với lần ghi
+// trước thì lấy mốc cũ + 1 ms, để khoá lạc quan `updated_at = ?` của lô khác luôn phân biệt «đã có người ghi».
+const MOC_TANG = "CASE WHEN ?1 > updated_at THEN ?1 ELSE strftime('%Y-%m-%dT%H:%M:%fZ', updated_at, '+0.001 seconds') END";
 const DOI_MOC_SAU_GHI_TAY = defineSql("orders", "terms_manual_touch_order",
-  "UPDATE orders SET updated_at = ?1 WHERE id = ?2 AND status = 'confirmed' AND delivered_at IS NULL AND changes() > 0");
+  `UPDATE orders SET updated_at = ${MOC_TANG} WHERE id = ?2 AND status = 'confirmed' AND delivered_at IS NULL AND changes() > 0`);
 // «Chụp bù» (sổ đại lý đợt 2, Task 6 — ADR-0079 điều 7 b2, C4 = A): CỔNG đầu lô. Đơn còn y như lúc route đọc (khoá lạc quan `updated_at`), đã xác nhận, chưa «Đã giao», CHƯA có bản
 // chụp nào ⇒ đổi `updated_at` (cùng lý do với ghi tay) và mở chuỗi `changes() > 0` cho các câu chụp sau. Người khác vừa chụp / sửa đơn ⇒ 0 dòng, cả lô không áp.
 const KHOA_CHUP_BU = defineSql("orders", "terms_backfill_gate",
-  `UPDATE orders SET updated_at = ?1 WHERE id = ?2 AND status = 'confirmed' AND delivered_at IS NULL AND updated_at = ?3
+  `UPDATE orders SET updated_at = ${MOC_TANG} WHERE id = ?2 AND status = 'confirmed' AND delivered_at IS NULL AND updated_at = ?3
      AND NOT EXISTS (SELECT 1 FROM ord_service_terms t WHERE t.order_id = ?2)`);
 // Danh sách chờ chụp bù: đơn đã xác nhận, chưa «Đã giao», CHƯA có bản chụp nào. Hai cờ để route chọn lý do: có dòng nhập tay; bên đặt «đặc biệt» — ĐÚNG phần bù của điều kiện bên
 // đặt (b1) ở migration chụp bù tự động và câu đếm chỉ-đọc (vai đang mở được hưởng / nhóm bên ngoài / loại đối tác; không phải công ty chủ). Chỉ khoá + nhãn, không tên / SĐT khách.

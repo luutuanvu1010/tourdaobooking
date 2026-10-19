@@ -852,7 +852,7 @@ export const ordersModule: AppModule = {
     // Chụp bù MỘT đơn: CÙNG `docBangChoChup` + `chupDon` với lệnh Xác nhận, `ngay` = ngày giờ VN của `confirmed_at` (trống ⇒ `created_at`). Ruling R-P13 (điều phối 19/10):
     // một dòng DANH MỤC ra thiếu vì chưa có mức ngày đó / mức xung đột (NO_RULE, RULE_CONFLICT) hoặc thiếu người bán ⇒ 409 `chup_bu_thieu_muc`, KHÔNG ghi gì — Kế toán cài
     // mức rồi bấm lại được, đừng đóng băng một chỗ thiếu sửa được (đặc tả P6 b2). Dòng NHẬP TAY ra thiếu (MANUAL_LINE / người bán) và dòng bên đặt không được hưởng
-    // (BOOKER_NOT_BENEFICIARY) KHÔNG chặn: chụp cả đơn như lệnh Xác nhận, rồi dòng đó đi đường ghi mức tay / sửa bên đặt đã có (A-14, ADR-0078 điều 5). Một lô: CỔNG (khoá lạc quan
+    // (BOOKER_NOT_BENEFICIARY), dòng bên đặt chính là nhà cung cấp (RULE_CONFLICT của nhánh nhà cung cấp — R-P17) KHÔNG chặn: chụp cả đơn như lệnh Xác nhận, rồi dòng đó đi đường ghi mức tay / sửa bên đặt đã có (A-14, ADR-0078 điều 5). Một lô: CỔNG (khoá lạc quan
     // `updated_at` + «chưa có bản chụp nào», đổi `updated_at` để lô «Đã giao» đang chạy dở thua — chủ duyệt 19/10) → các câu chụp (`changes() > 0`) → nhật ký
     // `ord_terms_backfilled` (chỉ đếm dòng, không tỷ lệ / tiền). «Bấm cả danh sách» ở giao diện = gọi route này lần lượt từng đơn.
     route("POST", "/api/orders/:id/chup-bu", "office", async ({ env, params, staff, baoThayDoi }) => {
@@ -872,9 +872,23 @@ export const ordersModule: AppModule = {
         nguoiHuong: bang.nguoiHuong, ngay, muc: bang.muc, gan: bang.gan, dieuKhoan: bang.dieuKhoan,
         dong: order.services.map((s) => ({ serviceId: s.id, catalogCode: s.catalogCode, groupCode: s.catalogCode ? (bang.nhom.get(s.catalogCode) ?? null) : null })),
       });
-      const thieu = order.services.filter((s) => s.catalogCode !== null && chup.some((c) => c.serviceId === s.id
-        && (c.cungUng.status === "MISSING" || (c.hoaHong.status === "MISSING" && (c.hoaHong.reason === "NO_RULE" || c.hoaHong.reason === "RULE_CONFLICT")))));
-      if (thieu.length > 0) return error(409, "chup_bu_thieu_muc", `Còn thiếu mức cho ${thieu.map((s) => s.name).join(", ")} — cài mức rồi bấm lại`);
+      // Ruling R-P17 (người kiểm Task 6 m-1): bên đặt CHÍNH LÀ nhà cung cấp bán dòng đó ⇒ `chupDon` ra RULE_CONFLICT (nhánh `laNhaCungCap` của pricing) — cài mức không gỡ được,
+      // nên KHÔNG chặn (như dòng nhập tay, R-P13): chụp cả đơn, dòng đó đi đường ghi mức tay. Câu báo tách «mức» với «người bán» (m-6).
+      const laBenDatBan = (c: BanChup): boolean => c.cungUng.status === "SET" && c.beneficiaryPartyId !== null && c.cungUng.supplierPartyId === c.beneficiaryPartyId;
+      const banChupCua = (sid: string): BanChup | undefined => chup.find((c) => c.serviceId === sid);
+      const danhMuc = order.services.filter((s) => s.catalogCode !== null);
+      const thieuMuc = danhMuc.filter((s) => {
+        const c = banChupCua(s.id);
+        return !!c && c.hoaHong.status === "MISSING" && (c.hoaHong.reason === "NO_RULE" || (c.hoaHong.reason === "RULE_CONFLICT" && !laBenDatBan(c)));
+      });
+      const thieuNguoiBan = danhMuc.filter((s) => banChupCua(s.id)?.cungUng.status === "MISSING");
+      if (thieuMuc.length > 0 || thieuNguoiBan.length > 0) {
+        const cau = [
+          ...(thieuMuc.length > 0 ? [`Còn thiếu mức cho ${thieuMuc.map((s) => s.name).join(", ")} — cài mức rồi bấm lại`] : []),
+          ...(thieuNguoiBan.length > 0 ? [`Còn thiếu người bán cho ${thieuNguoiBan.map((s) => s.name).join(", ")} — cài người bán (điều khoản người bán) rồi bấm lại`] : []),
+        ].join("; ");
+        return error(409, "chup_bu_thieu_muc", cau);
+      }
       const at = new Date().toISOString();
       let kq: D1Result[];
       try {

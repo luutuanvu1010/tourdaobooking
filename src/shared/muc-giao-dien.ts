@@ -100,7 +100,7 @@ export const TRANG = {
   // Khoá sổ tháng (sổ đại lý đợt 1 Task 12): ô ledger.view không ngữ cảnh — Kế toán, Toàn quyền.
   khoaThang: { duong: "/khoa-thang", goi: "GET /api/ledger/ky", hien: (s) => can(s, "ledger.view") },
   // Điều chỉnh công nợ cần người thứ hai duyệt (ADR-0115 đợt 1): xem danh sách = ô gửi (`ledger.write`) HOẶC ô duyệt (`ledger.adjust.approve`; Quản trị chỉ thấy yêu cầu chờ duyệt).
-  dieuChinhCongNo: { duong: "/dieu-chinh-cong-no", goi: "GET /api/ledger/adjustment-requests", hien: (s) => can(s, "ledger.write") || can(s, "ledger.adjust.approve") },
+  dieuChinhCongNo: { duong: "/dieu-chinh-cong-no", goi: "GET /api/ledger/adjustment-requests", hien: (s) => (can(s, "ledger.write") || can(s, "ledger.adjust.approve")) && !holdsPartner(s) }, // R-P18: máy chủ chặn tài khoản giữ quyền Đối tác
   // Bảng mức hoa hồng và điều khoản người bán (sổ đại lý đợt 1 Task 10): ô partner.commission.view / supply.terms.view không ngữ cảnh. Bảy route `pricing` chặn THÊM tài khoản giữ quyền
   // Đối tác (kể cả tài khoản lai, Ruling 12) — mục hiện phải chặn CÙNG điều kiện, nếu không tài khoản lai thấy mục mà bấm vào bị 403.
   hoaHong: { duong: "/hoa-hong", goi: "GET /api/pricing/hoa-hong", hien: (s) => can(s, "partner.commission.view") && !holdsPartner(s) },

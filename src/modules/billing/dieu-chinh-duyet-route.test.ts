@@ -471,7 +471,7 @@ function hoSoThuongMai(w: W): void {
  * Đơn ĐÃ «Đã giao» 1.000.000 (ngày đi hôm nay): `booker` null = khách lẻ (bản chụp gieo như đơn b1 — người bán Tour Đảo, hoa hồng NONE: đúng ca b1x «nay nhà cung cấp
  * bán»); `booker` = đại lý ⇒ xác nhận qua ROUTE (máy chụp mức 10% có sẵn). `lanThu` = các lần Kế toán ghi trước «Đã giao» ([số tiền, người thu]).
  */
-async function donDaGiao(w: W, lanThu: [number, unknown][], booker: string | null = null): Promise<string> {
+async function donDaGiao(w: W, lanThu: [number, unknown][], booker: string | null = null, giao = true): Promise<string> {
   const id = uuid();
   w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, booker_party_id, created_at, updated_at)
     VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', 1000000, 1000000, 1000000, ?, ?, ?)`).run(id, `TD-${seq}`, SALES, booker, AT, AT);
@@ -486,6 +486,7 @@ async function donDaGiao(w: W, lanThu: [number, unknown][], booker: string | nul
     assert.equal(xn.status, 200, xn.text);
   }
   for (const [soTien, nguoiThu] of lanThu) assert.equal((await thu(w, KT, id, soTien, nguoiThu)).status, 201);
+  if (!giao) return id; // `giao = false`: đơn đã xác nhận, CHƯA «Đã giao» (Ruling R-P15)
   const g = await w.call("POST", `/api/orders/${id}/delivered`, { as: SA, body: {} });
   assert.equal(g.status, 200, g.text);
   return id;
@@ -557,4 +558,70 @@ test("Task 6 (P6 a — kết quả ghi ở sổ thi công): nhà cung cấp đan
   assert.equal(y3.status, 201, y3.text);
   assert.equal((await duyet(w, y3.json.yeuCauId)).status, 201);
   assert.equal(soDu(w, b, NCC, ct), 200_000);
+});
+
+// ---- Vòng sửa 1 Task 6 (người kiểm): R-P15 — loại dòng thương mại chỉ cho đơn ĐÃ «Đã giao»; R-P18 — tài khoản giữ quyền Đối tác không chạm yêu cầu điều chỉnh ----
+const CAU_CHUA_GIAO = "Đơn chưa Đã giao — chưa bổ sung được khoản này; chờ Đã giao rồi tạo yêu cầu.";
+/** Dòng REQUEST chờ duyệt chèn thẳng (giả yêu cầu tạo TRƯỚC khi có luật R-P15) — để thử vế kiểm lúc DUYỆT. */
+function yeuCauCho(w: W, orderId: string, v: { benNo: string; benDuocNo: string; loai: string; soTien: number }): string {
+  const id = uuid();
+  const luc = new Date().toISOString();
+  w.sqlite.prepare(`INSERT INTO bil_adjustment_request (id, kind_code, order_id, debtor_party_id, creditor_party_id, amount, line_kind_code, occurred_date, direction, reason,
+    created_at, created_by, updated_at, updated_by) VALUES (?, 'REQUEST', ?, ?, ?, ?, ?, ?, 'INCREASE', 'yêu cầu cũ trước luật R-P15', ?, ?, ?, ?)`)
+    .run(id, orderId, v.benNo, v.benDuocNo, v.soTien, v.loai, vnNgay(0), luc, KT, luc, KT);
+  return id;
+}
+
+test("Vòng sửa 1 Task 6 (R-P15): đơn đại lý ĐÃ xác nhận, CHƯA «Đã giao» — yêu cầu HOA_HONG / GIAM_GIA_BEN_DAT / GIA_VON ⇒ 409 lúc tạo; yêu cầu cũ chờ duyệt ⇒ 409 lúc duyệt; sau «Đã giao» chỉ MỘT dòng hoa hồng gốc", async () => {
+  const w = setup();
+  hoSoThuongMai(w);
+  const ct = congTy(w);
+  assert.equal((await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { tuNgay: "2026-01-01", doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000 } })).status, 201);
+  const id = await donDaGiao(w, [[1_000_000, "cong_ty"]], DAI_LY, false);
+  for (const [loaiDong, benNo, benDuocNo] of [["HOA_HONG", ct, DAI_LY], ["GIAM_GIA_BEN_DAT", DAI_LY, ct], ["GIA_VON", ct, NCC]] as const) {
+    const r = await tao(w, { orderId: id, benNo, benDuocNo, loaiDong, soTien: 100_000, lyDo: "bổ sung khoản thương mại trước khi giao" });
+    assert.equal(r.status, 409, `${loaiDong}: ${r.text}`);
+    assert.deepEqual([r.json.error.code, r.json.error.message], ["commercial_before_delivered", CAU_CHUA_GIAO], loaiDong);
+  }
+  assert.equal(dem(w, "SELECT count(*) AS n FROM bil_adjustment_request WHERE order_id = ?", id), 0, "không dòng yêu cầu nào");
+  // loại giữ hộ cũ vẫn tạo được trên đơn chưa giao (không đổi luật cũ)
+  assert.equal((await tao(w, { orderId: id, benNo: hdv, benDuocNo: ct, soTien: 50_000 })).status, 201);
+  // vế DUYỆT: yêu cầu hoa hồng cũ còn chờ ⇒ 409, không phiếu, không dòng
+  const cu = yeuCauCho(w, id, { benNo: ct, benDuocNo: DAI_LY, loai: "HOA_HONG", soTien: 100_000 });
+  const d = await duyet(w, cu);
+  assert.equal(d.status, 409, d.text);
+  assert.equal(d.json.error.code, "commercial_before_delivered");
+  assert.equal(soPhieuDieuChinh(w, id), 0);
+  // Ca người kiểm tái hiện: «Đã giao» sau đó ⇒ đúng MỘT dòng HOA_HONG 100.000 (không 200.000)
+  assert.equal((await w.call("POST", `/api/orders/${id}/delivered`, { as: SA, body: {} })).status, 200);
+  assert.deepEqual(dongLoai(w, id, "HOA_HONG").map((x) => [x.benNo, x.benDuocNo, x.amount, x.phieu]), [[ct, DAI_LY, 100_000, "DELIVERED"]]);
+  assert.equal(soDu(w, id, ct, DAI_LY), 100_000);
+  // sau «Đã giao» yêu cầu cũ duyệt được (số đúng theo sổ lúc duyệt)
+  assert.equal((await duyet(w, cu)).status, 201);
+});
+
+const LAI = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"; // Kế toán + Đối tác (tài khoản lai)
+const LAI_DUYET = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"; // Toàn quyền + Đối tác (lai, có ô duyệt)
+test("Vòng sửa 1 Task 6 (R-P18): tài khoản giữ quyền Đối tác (lai Kế toán + Đối tác, lai Toàn quyền + Đối tác) ⇒ 403 ở danh sách, tạo, duyệt, từ chối, rút yêu cầu điều chỉnh; Kế toán thường không đổi", async () => {
+  const w = setup();
+  seedStaff(w.sqlite, { id: LAI, phone: "0900000011", name: "Khoa Lai Kế", perms: ["ACCOUNTING", "PARTNER"] });
+  seedStaff(w.sqlite, { id: LAI_DUYET, phone: "0900000012", name: "Hà Lai Chủ", perms: ["SUPER_ADMIN", "PARTNER"] });
+  hoSoThuongMai(w);
+  const ct = congTy(w);
+  const id = await donDaGiao(w, [[1_000_000, "cong_ty"]]);
+  const cau = "Tài khoản có quyền Đối tác không xem, tạo hay duyệt được yêu cầu điều chỉnh công nợ.";
+  const yc = await tao(w, { orderId: id, benNo: ct, benDuocNo: NCC, loaiDong: "GIA_VON", soTien: 800_000, lyDo: "bổ sung giá vốn i-resort bán 80%" });
+  assert.equal(yc.status, 201, yc.text);
+  for (const as of [LAI, LAI_DUYET]) {
+    const l = await ds(w, as);
+    assert.deepEqual([l.status, l.json?.error?.message], [403, cau], `danh sách — ${as}`);
+    const t = await tao(w, { orderId: id, benNo: ct, benDuocNo: NCC, loaiDong: "GIA_VON", soTien: 1_000, lyDo: "thử tạo bằng tài khoản lai" }, as);
+    assert.deepEqual([t.status, t.json?.error?.message], [403, cau], `tạo — ${as}`);
+    assert.equal((await duyet(w, yc.json.yeuCauId, as)).status, 403, `duyệt — ${as}`);
+    assert.equal((await tuChoi(w, yc.json.yeuCauId, { lyDo: "không đồng ý khoản này" }, as)).status, 403, `từ chối — ${as}`);
+    assert.equal((await rut(w, yc.json.yeuCauId, as)).status, 403, `rút — ${as}`);
+  }
+  assert.equal(dem(w, "SELECT count(*) AS n FROM bil_adjustment_request WHERE order_id = ?", id), 1, "chỉ yêu cầu của Kế toán thường");
+  assert.equal((await ds(w, KT2)).status, 200, "Kế toán thường vẫn xem");
+  assert.equal((await duyet(w, yc.json.yeuCauId)).status, 201, "Kế toán thường vẫn duyệt");
 });

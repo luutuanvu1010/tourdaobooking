@@ -30,6 +30,9 @@ const CANNOT_RECEIVE_CANCELLED = () => error(403, "forbidden", "Đơn đã huỷ
 const CANNOT_HANDOVER = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn, Quản trị hoặc Toàn quyền mới bấm được Đã giao – đã thu đủ.");
 const CANNOT_COMPLETE = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới bấm được Hoàn thành.");
 const CANNOT_LEDGER = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới ghi được sổ công nợ.");
+/** Ruling R-P18 (người kiểm Task 6 I-2): tài khoản giữ quyền Đối tác (kể cả lai Kế toán + Đối tác) không xem / tạo / duyệt / từ chối / rút yêu cầu điều chỉnh công nợ —
+ *  yêu cầu có thể là giá vốn / hoa hồng của đối tác khác (khuôn «có quyền Đối tác là áp» của ghi mức tay). */
+const DOI_TAC_KHONG_DIEU_CHINH = () => error(403, "forbidden", "Tài khoản có quyền Đối tác không xem, tạo hay duyệt được yêu cầu điều chỉnh công nợ.");
 const CANNOT_MARK_ENTRY = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới đánh dấu được đã nhập phần mềm kế toán.");
 const CANNOT_APPROVE_TRANSFER = () => error(403, "forbidden", "Chỉ Kế toán, Quản trị hoặc Toàn quyền mới duyệt được chuyển thu trước sang đơn mới.");
 const CANNOT_APPROVE = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền mới duyệt được hoàn thu trước / xác nhận dòng đã hoàn ngoài hệ thống.");
@@ -372,6 +375,7 @@ export const billingModule: AppModule = {
       if (!can(staff, "ledger.write")) return CANNOT_LEDGER();
       const raw = await readJson(request);
       if (raw && typeof raw === "object" && (raw as Record<string, unknown>).loai === "dieu_chinh") {
+        if (holdsPartner(staff)) return DOI_TAC_KHONG_DIEU_CHINH();
         const yc = await taoYeuCau(env.DB, { raw, ai: nguoiGoi(staff) });
         if (!yc.ok) return yc.res;
         return json({ ok: true, choDuyet: true, yeuCauId: yc.value.yeuCauId } satisfies TaoYeuCauDieuChinhResponse, 201, { location: "/dieu-chinh-cong-no" });
@@ -388,11 +392,13 @@ export const billingModule: AppModule = {
       const coTheTaoO = can(staff, "ledger.write");
       const coTheDuyetO = can(staff, "ledger.adjust.approve");
       if (!coTheTaoO && !coTheDuyetO) return CANNOT_VIEW_REQUESTS();
+      if (holdsPartner(staff)) return DOI_TAC_KHONG_DIEU_CHINH();
       return json((await danhSachYeuCau(env.DB, { staffId: staff.id, xemDayDu: can(staff, "ledger.view"), coTheDuyetO, coTheTaoO })) satisfies YeuCauDieuChinhListResponse);
     }),
     // Duyệt: ô `ledger.adjust.approve`; người duyệt ≠ người tạo (so theo tài khoản — máy chủ + trigger 0094). MỘT lô: dòng quyết định → nhật ký → phiếu ADJUSTMENT → dòng nợ.
     route("POST", "/api/ledger/adjustment-requests/:requestId/approve", "office", async ({ env, params, staff, baoThayDoi }) => {
       if (!can(staff, "ledger.adjust.approve")) return CANNOT_APPROVE_ADJUSTMENT();
+      if (holdsPartner(staff)) return DOI_TAC_KHONG_DIEU_CHINH();
       const kq = await duyetYeuCau(env.DB, { yeuCauId: params.requestId!, ai: nguoiGoi(staff) });
       if (!kq.ok) return kq.res;
       baoThayDoi({ orderId: kq.value.orderId, thayDoi: "tien" });
@@ -401,6 +407,7 @@ export const billingModule: AppModule = {
     // Từ chối: ô `ledger.adjust.approve`; thân { lyDo } BẮT BUỘC. Số dư không đổi, không tin bảng tin (không `baoThayDoi`).
     route("POST", "/api/ledger/adjustment-requests/:requestId/reject", "office", async ({ env, request, params, staff }) => {
       if (!can(staff, "ledger.adjust.approve")) return CANNOT_APPROVE_ADJUSTMENT();
+      if (holdsPartner(staff)) return DOI_TAC_KHONG_DIEU_CHINH();
       const kq = await tuChoiYeuCau(env.DB, { yeuCauId: params.requestId!, raw: await readJson(request), ai: nguoiGoi(staff) });
       if (!kq.ok) return kq.res;
       return json({ ok: true }, 201, { location: "/dieu-chinh-cong-no" });
@@ -408,6 +415,7 @@ export const billingModule: AppModule = {
     // Rút: chỉ NGƯỜI TẠO (ô `ledger.write` + đúng tài khoản tạo — kiểm ở service), khi chưa ai quyết.
     route("POST", "/api/ledger/adjustment-requests/:requestId/withdraw", "office", async ({ env, params, staff }) => {
       if (!can(staff, "ledger.write")) return CANNOT_LEDGER();
+      if (holdsPartner(staff)) return DOI_TAC_KHONG_DIEU_CHINH();
       const kq = await ruYeuCau(env.DB, { yeuCauId: params.requestId!, ai: nguoiGoi(staff) });
       if (!kq.ok) return kq.res;
       return json({ ok: true }, 201, { location: "/dieu-chinh-cong-no" });
