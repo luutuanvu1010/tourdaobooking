@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Giao diện, lỗi, tài liệu, commit: tiếng Việt CÓ DẤU; gọi hệ thống là "Nền tảng"; không lộ mã thô (`draft`, `PICKUP`…) ra người dùng.
-- Migration kế tiếp: **0112** (kiểm lại `ls migrations` + `git branch -r --no-merged origin/main` ngay trước khi tạo tệp). ADR kế tiếp: **0133** (tạm; kiểm lại `git log --all` mọi nhánh trước khi cấp).
+- Migration kế tiếp: **0112** (kiểm lại `ls migrations` + `git branch -r --no-merged origin/main` VÀ nhánh cục bộ `git branch --no-merged origin/main` / `git worktree list`, ngay trước khi tạo tệp). ADR kế tiếp: **0133** (tạm; kiểm lại `git log --all` mọi nhánh trước khi cấp).
 - Bảng mới tiền tố `ord_`, chỉ-thêm (trigger `RAISE(ABORT,'ord_policy_append_only: …')` chặn UPDATE/DELETE, trừ chỗ ghi rõ), danh sách giá trị kiểm ở MÃ không `CHECK` liệt kê; thêm vào `docs/data-dictionary.json` + `npm run dict`.
 - SQL mới của `orders` chỉ ở tệp nửa nghiêm (`defineSql`), tệp mới phải vào `NUA_NGHIEM` (`src/architecture.test.ts:159`).
 - Ô quyền mới: khai ở `src/shared/permissions.ts` `MATRIX`, cập nhật bảng `ADR` trong `src/shared/permissions.test.ts`, ba bài ghim hàng DRIVER/DRIVER_PARTNER/HR, `TEN_THAO_TAC` (`src/shared/tro-ly-cau-truc-ten.ts`), ca trong `tests/e2e/permissions.mjs`; máy chủ phải gọi `can(…, "<ô>")` viết thẳng.
@@ -33,6 +33,9 @@
 4. Toàn quyền bỏ cờ "cần xác nhận" khi đơn đang chờ → yêu cầu đang mở vẫn quyết định được; đơn nháp mới của dịch vụ đó không còn phải gửi. (Task 3.3.)
 5. Khách không có email / gửi thư hỏng → việc xác nhận vẫn thắng, thư hỏng chỉ ghi log `event:"order_mail_failed"` không có địa chỉ. (Task 4.2.)
 6. Đơn đã xác nhận TRƯỚC ngày áp dụng (cột chọn đón NULL) → không bị đòi chọn lại khi sửa chuyến/huỷ. (Task 1.2.)
+7. HDV được người lập chọn sẵn lúc tạo đơn → khi đơn còn nháp/đang chờ: HDV đó KHÔNG mở được đơn (404), KHÔNG nhận tin `order_handler_changed`; khi đơn được xác nhận: HDV nhận tin xác nhận và mở được đơn. (Task 2.1.)
+8. HDV chưa phụ trách mở đơn ĐANG CHỜ để xác nhận → 200, thấy tiền chỉ đọc, KHÔNG thấy SĐT/email khách. (Task 3.3.)
+9. Người lập sửa đơn khi đang chờ → 409, phải "Rút lại" trước. (Task 3.3.)
 
 ---
 
@@ -41,19 +44,24 @@
 ### Task 0.1: Ba đề xuất ADR + trang ghép
 
 **Files:**
-- Create: `docs/superpowers/specs/2026-10-19-xac-nhan-don/DE-XUAT-ADR-0133-buoc-xac-nhan-don.md` (trạng thái "chờ yêu cầu" giữ `draft`; ô quyền `order.confirm.review`; nháp chỉ người tạo đọc; nháp không ghi thu; bỏ ô Trả trước)
-- Create: `…/DE-XUAT-ADR-0134-don-khong-don-khung-gio.md` (cột chọn đón theo dịch vụ, khung giờ trên chặng, giờ đầu khung = `pickup_time`)
-- Create: `…/DE-XUAT-ADR-0135-thu-xac-nhan-va-qr-may-chu.md` (gửi email ra ngoài cho người đặt + nhân viên lập; dựng ảnh QR phía máy chủ → nới `src/vendor-qr.test.ts` thêm MỘT tệp được nhắc `vendor/qrcode`; thay ADR-0108 đ3 C3 phần "chỉ `web/qr-ve.ts`")
-- Create: `…/TRANG-GHEP.md` theo CLAUDE.md §9: (1) bảng `orders`/`ord_confirm_request` chứa loại gì; (2) từng ô quyền chạm (`order.view` cho nháp, `order.confirm.review`, `payment.receive` khi nháp, `order.pool.view`); (3) cổng canh cửa, gồm chỗ giao diện ẩn/hiện bị đổi nghĩa (nút QR, ô Trả trước, thẻ "Đơn nháp" Trang chủ, hàng chờ nhận HDV, nút Xác nhận/Gửi xác nhận).
-- Rà `docs/quyen-hoan.json`: ghi "không xây trên lỗ đang hở" kèm lý do (TNV-G1 bị né nhờ "nháp không ghi thu").
+Bốn đề xuất, chia **hai lượt duyệt** (mỗi lượt ≤ 3 quyết định chạm quyền/dữ liệu, CLAUDE.md §9):
+- **Lượt 1** (mở Đợt 1–2):
+  - `docs/superpowers/specs/2026-10-19-xac-nhan-don/DE-XUAT-ADR-0133-don-khong-don-khung-gio.md` (cột chọn đón theo dịch vụ, khung giờ trên chặng, giờ đầu khung = `pickup_time`)
+  - `…/DE-XUAT-ADR-0134-nhap-rieng-tu-khong-thu.md` (nháp chỉ người tạo đọc; nháp không ghi thu; bỏ ô Trả trước; hàng chờ nhận chỉ đơn đã xác nhận; HDV chọn sẵn không thấy nháp)
+- **Lượt 2** (mở Đợt 3–4):
+  - `…/DE-XUAT-ADR-0135-buoc-xac-nhan-don.md` (trạng thái "chờ yêu cầu" giữ `draft`; ô quyền `order.confirm.review`; nới đọc có giới hạn cho người xét duyệt; tự xác nhận theo công tắc)
+  - `…/DE-XUAT-ADR-0136-thu-xac-nhan-va-qr-may-chu.md` (gửi email ra ngoài cho người đặt + nhân viên lập; thư huỷ; dựng ảnh QR phía máy chủ → nới `src/vendor-qr.test.ts` thêm MỘT tệp được nhắc `vendor/qrcode`; thay ADR-0108 đ3 C3 phần "chỉ `web/qr-ve.ts`")
+- Mỗi lượt kèm một `TRANG-GHEP-LUOT-<n>.md` theo CLAUDE.md §9: (1) bảng `orders`/`ord_confirm_request` chứa loại gì; (2) từng ô quyền chạm (`order.view` cho nháp, `order.confirm.review`, `payment.receive` khi nháp, `order.pool.view`); (3) cổng canh cửa, gồm chỗ giao diện ẩn/hiện bị đổi nghĩa (nút QR, ô Trả trước, thẻ "Đơn nháp" Trang chủ, hàng chờ nhận HDV, nút Xác nhận/Gửi xác nhận).
+- Rà `docs/quyen-hoan.json`: ghi "không xây trên lỗ đang hở" kèm lý do (TNV-G1 bị né nhờ "nháp không ghi thu") — trừ nháp CŨ đã có khoản thu (xem Task 2.2 Step 0).
+- **Câu hỏi kèm lượt 1 (đụng phân hệ Vận chuyển đã đóng sổ):** lịch chung điều phối (`lichChungChang` → `dieu-phoi-lenh.ts:747`, trường `nhap`, `soNhap`) hôm nay hiện chặng của đơn nháp (mã đơn, giờ đón, đặt gấp) để điều phối nhìn trước. Khuyến nghị: chỉ hiện chặng của đơn **đã gửi xác nhận**, bỏ nháp chưa gửi. Chưa có câu trả lời thì Task 2.1 KHÔNG đụng `lichChungChang`.
 
 - [ ] **Step 1:** Viết bốn tệp, mỗi ADR ≤ 1 trang, nêu phương án bị bác. Không đặt vào `docs/adr/` (AI không tự duyệt).
-- [ ] **Step 2:** `npm test` (bài sổ/ADR không đỏ). Commit: `Đề xuất ADR-0133/0134/0135 và trang ghép cho bước Xác nhận đơn (chờ chủ duyệt)`.
-- [ ] **Step 3:** DỪNG Đợt 2–4 tới khi chủ duyệt. Đợt 1 (Task 1.x, chỉ phụ thuộc ADR-0134) cũng chờ duyệt ADR-0134.
+- [ ] **Step 2:** `npm test` (bài sổ/ADR không đỏ). Commit: `Đề xuất ADR-0133…0136 và trang ghép hai lượt cho bước Xác nhận đơn (chờ chủ duyệt)`.
+- [ ] **Step 3:** DỪNG: Đợt 1–2 chờ duyệt lượt 1; Đợt 3–4 chờ duyệt lượt 2. Soạn lượt 2 trong lúc thi công Đợt 1–2 được.
 
 ---
 
-## Đợt 1 — Đón/Không đón và khung giờ (ADR-0134)
+## Đợt 1 — Đón/Không đón và khung giờ (ADR-0133)
 
 ### Task 1.1: Migration 0112 + luật thuần khung giờ
 
@@ -124,22 +132,24 @@
 
 ---
 
-## Đợt 2 — Nháp riêng tư, nháp không thu tiền, bỏ ô Trả trước (ADR-0133 phần 1)
+## Đợt 2 — Nháp riêng tư, nháp không thu tiền, bỏ ô Trả trước (ADR-0134)
 
 ### Task 2.1: Luật thuần "ai đọc được đơn" + áp ở mọi đường đọc
 
 **Files:**
 - Create: `src/shared/xem-don-nhap.ts`, `src/shared/xem-don-nhap.test.ts`
-- Modify (mỗi chỗ gọi `xemDuocDon` SAU `can(order.view)` hiện có): `src/modules/orders/index.ts` — `GET /api/orders` (:835, lọc ở `dieuKienDanhSach` repository.ts:505: nháp chỉ `o.staff_id = ?` của người gọi, trừ đơn đang chờ khi người gọi có `order.confirm.review` — nhánh này bật ở Task 3.3), `GET /api/orders/:id` (:956), `/passengers` (:1244), `/thuong-mai` (:1504), `/api/orders/dashboard` (:784: `draftCount` = nháp của chính người gọi), `/api/orders/dem-nhap` (:794); `src/modules/receipt/index.ts` (:22, :39); `src/modules/billing/index.ts` (`GET /payments` :57, `nhap-ke-toan` :220, `POST /api/ledger/balances` :251 bỏ đơn nháp người khác); `lichChungChang` (`orders/index.ts:438`: bỏ `legLichChungNhapRows` của nháp người khác); `donCuaNguoiDat` (`nguoi-dat-gop-repo.ts`) chỉ đếm, không trả mã đơn nháp người khác.
+- Modify (mỗi chỗ gọi `xemDuocDon` SAU `can(order.view)` hiện có): `src/modules/orders/index.ts` — `GET /api/orders` (:835, lọc ở `dieuKienDanhSach` repository.ts:505: nháp chỉ `o.staff_id = ?` của người gọi, trừ đơn đang chờ khi người gọi có `order.confirm.review` — nhánh này bật ở Task 3.3), `GET /api/orders/:id` (:956), `/passengers` (:1244), `/thuong-mai` (:1504), `/api/orders/dashboard` (:784: `draftCount` = nháp của chính người gọi), `/api/orders/dem-nhap` (:794); `src/modules/receipt/index.ts` (:22, :39); `src/modules/billing/index.ts` (`GET /payments` :57, `nhap-ke-toan` :220, `POST /api/ledger/balances` :251 bỏ đơn nháp người khác); `lichChungChang` (`orders/index.ts:438`) CHỈ sửa theo câu trả lời của chủ ở Đợt 0 (khuyến nghị: `legLichChungNhapRows` chỉ lấy nháp có yêu cầu mở); `donCuaNguoiDat` (`nguoi-dat-gop-repo.ts`) chỉ đếm, không trả mã đơn nháp người khác.
 - Modify: `src/modules/orders/repository.ts:592` `listPoolSources` → chỉ `status = 'confirmed'`; `src/modules/dispatch/index.ts:157` nhận đơn: đơn `draft` → 409 `order_not_confirmed` (câu: "Đơn chưa xác nhận, chưa nhận được.").
 - Modify: Bảng tin `src/shared/bang-tin.ts` `nhanSuKien` (:96): sự kiện của đơn nháp chỉ gửi người lập (bỏ nhãn `tat-ca`); `src/shared/thong-bao.ts` tin `lap` của nháp chỉ người lập.
 - Test: `src/shared/xem-don-nhap.test.ts`, `tests/e2e/nhap-rieng-tu.mjs`
 
 **Interfaces — Produces:**
-- `export function xemDuocDon(i: { status: OrderStatus; laNguoiLap: boolean; dangCho: boolean; xetDuyetDuoc: boolean }): boolean` — `confirmed`/`cancelled` → true (quyền đã kiểm ở `can`); `draft` → `laNguoiLap || (dangCho && xetDuyetDuoc)`.
+- `export function xemDuocDon(i: { coQuyenXem: boolean; status: OrderStatus; laNguoiLap: boolean; dangCho: boolean; xetDuyetDuoc: boolean }): boolean` — `coQuyenXem` = kết quả `can(staff,"order.view",{ownerId,assigned})` route tính sẵn; `xetDuyetDuoc` = `can(staff,"order.confirm.review")` (Task 3.2; trước đó truyền `false`). `confirmed`/`cancelled` → `coQuyenXem`; `draft` → `(laNguoiLap && coQuyenXem) || (dangCho && xetDuyetDuoc)`. Đây là **thay** cho `if (!can(order.view)) 404` ở các route đọc đơn, không phải lớp thêm sau nó (nếu không, HDV chưa phụ trách bị 404 trước khi tới nhánh xét duyệt — Review Focus 8). Cùng luật cho tiền chỉ đọc: `money.view` HOẶC (`dangCho && xetDuyetDuoc`).
+- Người phụ trách chọn sẵn trên đơn nháp: không xem được với tư cách người phụ trách; tin `order_handler_changed` của đơn nháp chỉ tới người lập; khi đơn chuyển `confirmed`, tin `xac_nhan` tới người phụ trách như hôm nay (Review Focus 7).
+- Bảng tin / hộp thư: `nhanSuKien` (`bang-tin.ts:96`) với đơn `draft` chỉ trả nhãn người lập, TRỪ hành động `order_confirm_requested` (Task 3.4) trả thêm nhãn mới `"xet-duyet"`; `nhanKetNoi` của người giữ `order.confirm.review` có nhãn `"xet-duyet"`. Bài kiểm Task 2.1 phải khẳng định nhãn này đi qua bộ lọc nháp.
 - 404 (không 403) khi không xem được, để không lộ đơn tồn tại.
 
-- [ ] **Step 1: Bài đỏ** bảng chân trị đủ 2×2×2 cho `draft` + hai ca `confirmed/cancelled`. e2e `nhap-rieng-tu.mjs`: Bán hàng A lập nháp; Bán hàng B, Kế toán, Quản trị, Toàn quyền: danh sách không có, GET chi tiết 404, tìm theo mã 0 kết quả, `dashboard.draftCount` = 0; HDV: hàng chờ nhận không có, PUT handler → 409; A thấy đủ.
+- [ ] **Step 1: Bài đỏ** bảng chân trị đủ 2×2×2 cho `draft` + hai ca `confirmed/cancelled`. Bài thuần `bang-tin.test.ts`: sự kiện `created` của nháp → chỉ nhãn người lập; `order_confirm_requested` của nháp → có `"xet-duyet"`; `order_handler_changed` của nháp → không tới người phụ trách. e2e `nhap-rieng-tu.mjs`: Bán hàng A lập nháp chọn sẵn HDV H; H: GET 404, không có tin; Bán hàng B, Kế toán, Quản trị, Toàn quyền: danh sách không có, GET chi tiết 404, tìm theo mã 0 kết quả, `dashboard.draftCount` = 0; HDV: hàng chờ nhận không có, PUT handler → 409; A thấy đủ.
 - [ ] **Step 2:** FAIL. **Step 3:** Cài đặt. **Step 4:** `npm test && npm run typecheck && npm run test:e2e -- nhap-rieng-tu orders dispatch bangtin thongbao gop-ho-so permissions` → PASS.
 - [ ] **Step 5:** Commit `Đơn nháp chỉ người tạo đọc được; hàng chờ nhận chỉ đơn đã xác nhận`.
 
@@ -151,6 +161,11 @@
 - Modify: `web/order-form.ts` — bỏ ô "Trả trước", "Hình thức", "Người nhận tiền" và lời gọi ghi thu sau lưu (:678–689); thanh dính cuối trang bỏ dòng "trả trước". `src/shared/huong-dan-*.ts` sửa câu nhắc trả trước.
 - Test: `tests/e2e/so-tien.mjs`, `tests/e2e/qr-thanh-toan.mjs` (thêm ca), kịch bản `a2-smoke-form`.
 
+- [ ] **Step 0 (trước phát hành, chủ chạy — AI không chạy lệnh remote):** đếm đơn nháp CŨ đã có khoản thu (sinh ra từ ô Trả trước). Chạy ở thư mục `tourdao-sales`:
+  ```
+  npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT COUNT(DISTINCT o.id) AS so_don FROM orders o JOIN bil_payment_receipt r ON r.order_id = o.id WHERE o.status = 'draft'"
+  ```
+  Kết quả > 0 thì chủ quyết cách xử lý những đơn đó (huỷ chúng sẽ rơi vào lỗ TNV-G1) trước khi phát hành Đợt 2. Ghi kết quả vào nhật ký thi công.
 - [ ] **Step 1: Bài đỏ** e2e: ghi thu lên nháp → 409 `order_draft_no_payment`; ghi thu sau xác nhận → 201; QR của nháp → 409; QR sau xác nhận → 200. Bài thuần: thân POST tạo đơn không còn khoá trả trước (sửa bài khoá thân trong `src/shared/service-form.test.ts` có chủ đích).
 - [ ] **Step 2:** FAIL. **Step 3:** Cài đặt. **Step 4:** `npm test && npm run typecheck && npm run test:e2e -- so-tien qr-thanh-toan coc-don-huy orders` + `a2-smoke-form` 390/1040 → PASS.
 - [ ] **Step 5:** Commit `Nháp không ghi thu được, QR chỉ cho đơn đã xác nhận, bỏ ô Trả trước khỏi màn Tạo đơn`.
@@ -158,7 +173,7 @@
 
 ---
 
-## Đợt 3 — Bước Xác nhận đơn (ADR-0133 phần 2)
+## Đợt 3 — Bước Xác nhận đơn (ADR-0135)
 
 ### Task 3.1: Luật thuần — cần xác nhận, hạn 15 phút trừ giờ đêm, ai quyết định được
 
@@ -203,9 +218,10 @@
 - `GET /api/orders/cho-xac-nhan` (cổng `orders`, `can(staff,"order.confirm.review")`) → `{ don: DonChoXacNhanDto[] }` (mã đơn, dịch vụ, ngày, số khách, giờ đón, tổng tiền, `hanLuc`, `quaHan`) — KHÔNG có tên/SĐT/email khách.
 - `GET|POST /api/cai-dat/xac-nhan-don` (cổng `admin`, `settings.ops`): danh sách mã cần xác nhận + công tắc tự xác nhận; POST một thay đổi một lần theo khuôn nhập tay.
 - `xemDuocDon` (Task 2.1) nay nhận `dangCho` thật; DTO chi tiết đơn cho người xét duyệt không phải người lập: che `customerPhone`, `customerEmail`, liên hệ người đặt.
+- Khoá khi chờ: `PUT /api/orders/:id` của NGƯỜI LẬP khi đơn có yêu cầu mở → 409 `confirm_pending_locked` ("Đơn đang chờ xác nhận, hãy Rút lại trước khi sửa.") — đặc tả Phần A mục 9.
 - Sửa tiền khi đang chờ: `PUT /api/orders/:id` cho phép người không phải người lập NẾU đơn đang chờ VÀ `can(staff,"order.money.edit",{ownerId,assigned})`; tổng đổi mà thiếu `lyDoSuaTien` (≤300 ký tự) → 400; nhật ký `updated` kèm lý do.
 
-- [ ] **Step 1: Bài đỏ** `xac-nhan-don.mjs`: (a) Toàn quyền đánh dấu mã X cần xác nhận; Đối tác lập đơn X → `/status` confirmed 409 `confirm_request_required`; gửi → 201; Đối tác tự quyết định → 403. (b) Kế toán xem `cho-xac-nhan` thấy đơn, không có SĐT; HDV thấy; HCNS 403. (c) Kế toán `CON_VE` đổi giờ 08:30 → đơn `confirmed`, chặng 08:30, yêu cầu khép. (d) Đơn khác: `HET_VE` → `cancelled`, lý do `HET_CHO`. (e) Đua: hai lời quyết định song song → đúng một 200, một 409, đúng một dòng quyết định (Review Focus 3). (f) Bán hàng nội bộ tự quyết định đơn mình: công tắc bật → 200; Toàn quyền tắt → 403. (g) Bỏ cờ X khi đơn đang chờ → vẫn quyết định được (Review Focus 4). (h) Sửa tiền khi chờ không lý do → 400; có lý do → 200. (i) Chặng dưới mốc → `CON_VE` 409 `short_notice_required` như hôm nay. (j) Đơn trộn dịch vụ thường + X → phải gửi (Review Focus 1).
+- [ ] **Step 1: Bài đỏ** `xac-nhan-don.mjs`: (a) Toàn quyền đánh dấu mã X cần xác nhận; Đối tác lập đơn X → `/status` confirmed 409 `confirm_request_required`; gửi → 201; Đối tác tự quyết định → 403. (b) Kế toán xem `cho-xac-nhan` thấy đơn, không có SĐT; HDV thấy; HCNS 403. (c) Kế toán `CON_VE` đổi giờ 08:30 → đơn `confirmed`, chặng 08:30, yêu cầu khép. (d) Đơn khác: `HET_VE` → `cancelled`, lý do `HET_CHO`. (e) Đua: hai lời quyết định song song → đúng một 200, một 409, đúng một dòng quyết định (Review Focus 3). (f) Bán hàng nội bộ tự quyết định đơn mình: công tắc bật → 200; Toàn quyền tắt → 403. (g) Bỏ cờ X khi đơn đang chờ → vẫn quyết định được (Review Focus 4). (h) Sửa tiền khi chờ không lý do → 400; có lý do → 200. (i) Chặng dưới mốc → `CON_VE` 409 `short_notice_required` như hôm nay. (j) Đơn trộn dịch vụ thường + X → phải gửi (Review Focus 1). (k) HDV chưa phụ trách GET chi tiết đơn đang chờ → 200, không SĐT/email, tiền chỉ đọc (Review Focus 8). (l) Người lập PUT khi đang chờ → 409 `confirm_pending_locked`; rút lại → PUT 200 (Review Focus 9).
 - [ ] **Step 2:** FAIL. **Step 3:** Cài đặt. **Step 4:** `npm test && npm run typecheck && npm run test:e2e -- xac-nhan-don orders permissions chong-ghi-trung dong-bo-chuyen` → PASS (route mới vào `route-write-guard`, `permission-enforcement` xanh).
 - [ ] **Step 5:** Commit `Route gửi, rút lại, quyết định xác nhận đơn; danh sách chờ xác nhận; cài đặt dịch vụ cần xác nhận`.
 
@@ -226,7 +242,7 @@
 
 ---
 
-## Đợt 4 — Email kèm QR khi xác nhận, email + tin khi huỷ (ADR-0135)
+## Đợt 4 — Email kèm QR khi xác nhận, email + tin khi huỷ (ADR-0136)
 
 ### Task 4.1: Đọc email người nhận + dựng ảnh QR phía máy chủ
 
@@ -236,7 +252,7 @@
 - Create: `src/modules/receipt/qr-anh.ts` — `export function anhQrGif(payload: string): Uint8Array` dùng `web/vendor/qrcode.js` (mức "M", lề 4, như `web/qr-ve.ts`); sửa `src/vendor-qr.test.ts` cho phép đúng HAI tệp nhắc `vendor/qrcode` (`web/qr-ve.ts`, `src/modules/receipt/qr-anh.ts`), hash thân giữ nguyên.
 - Test: `src/modules/receipt/qr-anh.test.ts`, `tests/e2e/parties.mjs` (ca email chính)
 
-- [ ] **Step 1: Kiểm khả năng** trước khi viết mã: đọc tài liệu Cloudflare Email Service (`developers.cloudflare.com/email-service`) xem `send()` có nhận `attachments` (kèm `contentId` để hiện trong thân) không. Ghi kết luận vào nhật ký thi công. Nếu KHÔNG có đính kèm: thư không có ảnh QR, chỉ ghi số tài khoản, ngân hàng, số tiền, nội dung chuyển khoản; báo chủ trước khi đi tiếp (không tự thay bằng dịch vụ ảnh bên ngoài — lộ số tài khoản + số tiền).
+- [ ] **Step 1: Kiểm khả năng** trước khi viết mã: đọc tài liệu Cloudflare Email Service (`developers.cloudflare.com/email-service`) xem `send()` có nhận `attachments` (kèm `contentId` để hiện trong thân) không; có gửi được tới địa chỉ BẤT KỲ bên ngoài (Gmail của khách) không hay chỉ địa chỉ đã xác minh; hạn mức gửi mỗi ngày. Hai nơi gửi hiện nay chỉ tới địa chỉ nhân viên/quản trị nên không chứng minh được gửi cho khách. Ghi kết luận vào nhật ký thi công. Nếu KHÔNG có đính kèm: thư không có ảnh QR, chỉ ghi số tài khoản, ngân hàng, số tiền, nội dung chuyển khoản; báo chủ trước khi đi tiếp (không tự thay bằng dịch vụ ảnh bên ngoài — lộ số tài khoản + số tiền).
 - [ ] **Step 2: Bài đỏ** `qr-anh.test.ts`: payload mẫu từ `src/shared/vietqr.test.ts` → mảng byte bắt đầu bằng `GIF89a`/`GIF87a`, độ dài > 0; `vendor-qr.test.ts` vẫn chặn tệp thứ ba.
 - [ ] **Step 3:** FAIL → cài đặt → PASS (`node --test src/modules/receipt/qr-anh.test.ts src/vendor-qr.test.ts && npm test`).
 - [ ] **Step 4:** Commit `Đọc email chính của hồ sơ; dựng ảnh QR phía máy chủ cho thư xác nhận`.
@@ -247,10 +263,10 @@
 - Create: `src/modules/receipt/thu-don.ts` — `export async function guiThuDon(env: Env, i: { orderId: string; loai: "XAC_NHAN" | "HUY" }): Promise<void>` (không ném; mỗi người nhận một `guiThu`; hỏng → `console.error(JSON.stringify({level:"error",event:"order_mail_failed",message:lyDo}))`, không địa chỉ).
 - Create: `src/shared/thu-don-noi-dung.ts`, `src/shared/thu-don-noi-dung.test.ts` — `export function noiDungThuXacNhan(d: ThuDonDuLieu): { subject: string; text: string; html: string }`, `noiDungThuHuy(...)`; escape HTML; nội dung: mã đơn, dịch vụ, ngày đi, khung giờ đón + câu lưu ý, tổng tiền, còn phải thu, ngân hàng/số tài khoản/chủ tài khoản, nội dung chuyển khoản, ảnh QR (theo kết luận Task 4.1); thư huỷ: mã đơn, dịch vụ, ngày, nhãn lý do — KHÔNG tên người huỷ.
 - Modify: `src/shared/router.ts` (khai `guiThuDon` trong ctx), `src/index.ts` (tiêm, bọc `waitUntil`), `src/modules/orders/xac-nhan-route.ts` (sau thắng `CON_VE`/`HET_VE`/`HUY`), `src/modules/orders/index.ts` `/status` nhánh huỷ, `cancelOrderByHandler` (:497).
-- Người nhận: email chính hồ sơ người đặt (`booker_party_id`); nếu không có hồ sơ → `orders.customer_email`; đơn qua đại lý → đại lý (người đặt), không gửi khách lẻ; + email chính hồ sơ nhân viên lập. Trùng địa chỉ → một thư. Thư xác nhận chỉ cho đơn đã qua bước xác nhận (có yêu cầu `XAC_NHAN`); thư huỷ cho mọi lần huỷ.
+- Người nhận: email chính hồ sơ người đặt (`booker_party_id`); nếu không có hồ sơ → `orders.customer_email`; đơn qua đại lý → đại lý (người đặt), không gửi khách lẻ; + email chính hồ sơ nhân viên lập. Trùng địa chỉ → một thư. Thư xác nhận chỉ cho đơn đã qua bước xác nhận (có yêu cầu `XAC_NHAN`). Thư huỷ: nhân viên lập nhận cho mọi lần huỷ; **người đặt chỉ nhận khi đơn đã `confirmed` trước khi huỷ hoặc đã từng gửi xác nhận** [người soạn] — nháp riêng tư bị huỷ (lập lại, trùng đơn) không gửi khách vì khách chưa từng nhận gì về đơn đó.
 - Test: `src/shared/thu-don-noi-dung.test.ts`, `tests/e2e/xac-nhan-don.mjs` (dùng bộ gửi giả ghi lại thư qua bộ mô phỏng `wrangler dev`)
 
-- [ ] **Step 1: Bài đỏ:** nội dung có "07:30–08:00" + câu lưu ý nguyên văn, có số tiền định dạng VNĐ, không có SĐT khách, `<script>` trong tên dịch vụ bị escape; thư huỷ không chứa tên người huỷ. e2e: xác nhận Còn vé → 2 thư (người đặt + nhân viên lập); khách không email → 1 thư và đơn vẫn `confirmed` (Review Focus 5); huỷ đơn thường (không cần xác nhận) → thư huỷ.
+- [ ] **Step 1: Bài đỏ:** nội dung có "07:30–08:00" + câu lưu ý nguyên văn, có số tiền định dạng VNĐ, không có SĐT khách, `<script>` trong tên dịch vụ bị escape; thư huỷ không chứa tên người huỷ. e2e: xác nhận Còn vé → 2 thư (người đặt + nhân viên lập); khách không email → 1 thư và đơn vẫn `confirmed` (Review Focus 5); huỷ đơn thường đã xác nhận → thư huỷ tới người đặt + nhân viên lập; huỷ nháp chưa gửi → chỉ thư nhân viên lập, không thư khách.
 - [ ] **Step 2:** FAIL. **Step 3:** Cài đặt. **Step 4:** `npm test && npm run typecheck && npm run test:e2e -- xac-nhan-don orders dispatch hai-lop-email` → PASS.
 - [ ] **Step 5:** Commit `Thư xác nhận kèm QR cho đơn cần xác nhận; thư và tin báo huỷ cho người liên quan`.
 - [ ] **Step 6:** `nguoi-kiem-doc-lap` cho Đợt 4 (gửi dữ liệu ra ngoài + tiền).
