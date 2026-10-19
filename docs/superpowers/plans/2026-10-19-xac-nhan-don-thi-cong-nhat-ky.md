@@ -19,6 +19,13 @@ Sổ điều phối (P19: trạng thái sống ở đây, không trong trí nh�
 - Lịch chung điều phối: chỉ hiện chặng của nháp có yêu cầu xác nhận mở (chủ "theo khuyến nghị của bạn", đặc tả 5d).
 - Đợt 2 không phát hành trước Đợt 3 (chủ chọn A, đặc tả 5f).
 
+## Báo cáo trợ lý thi công Đợt 1 (19/10, tự khai — CHƯA kiểm độc lập)
+
+- Commit: 416a8388, cb318faa, dafd1d06, 4bc6a1e6, debe67da (hai kịch bản Chrome a2 gieo đơn có lựa chọn đón).
+- Kiểm: `npm test` 5692 đạt / 0 đỏ; typecheck 0 lỗi; build:web OK; e2e 9 bộ xanh (chon-don, orders, chang-hanh-khach, dua-don-dau-cuoi, mau-chang, trip, dispatch, nhap-tay-va-gia-doi-tac, catalog) sau khi sửa dữ liệu gieo của trip/dispatch/nhap-tay; Chrome a2-smoke-form/order/sheet OK 390 + 1040.
+- Ruling của trợ lý: (1) migration **0115** vì 0114 đã bị nhánh chiết khấu (pricing) giữ; (2) POST khung giờ trả 200 (luật H7: 201 phải có Location); (3) mọi dịch vụ vắng `pickupChoice` ⇒ giữ giá trị đã lưu, vắng lẫn có ⇒ 400; (4) sửa chặng đổi giờ ⇒ xoá cuối khung; (5) một câu lỗi chung cho ba ca; (6) nút Đón giữ `data-action="them-dua-don"`; (7) dữ liệu gieo kiểm thử gửi lựa chọn tường minh; (8) nháp cũ lưu được, chưa xác nhận được tới khi chọn; (9) cổng chọn đón chạy trước `incomplete_trip`.
+- **Còn treo:** chưa chạy trọn ~65 bộ e2e; ~53 kịch bản Chrome khác trong `docs/evidence` gieo đơn rồi xác nhận mà chưa gửi lựa chọn đón — nhiều khả năng đỏ 409 `pickup_choice_required` (vd `dat-gap-smoke`), phải rà và sửa dữ liệu gieo trước khi phát hành; chưa viết `chon-don-smoke.mjs`; commit cb318faa chưa typecheck riêng (chỉ HEAD).
+
 ## Việc kế tiếp (phiên mới, theo thứ tự)
 
 1. Đọc `.superpowers/sdd/2026-10-19-xac-nhan-don/progress.md` (sổ cục bộ, không trong git) và nhật ký này; `git log --oneline origin/main..HEAD`.
