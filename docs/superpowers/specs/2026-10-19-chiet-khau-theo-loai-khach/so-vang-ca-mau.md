@@ -4,7 +4,7 @@ Trạng thái: **chủ dự án đang duyệt lần lượt từng ca trong chat
 
 | Ca | Số khách | Đáp án (đ) | Kế toán |
 |---|---|---|---|
-| SV-LK-01 | 2 người lớn, 1 trẻ em, 1 người cao tuổi, 1 em bé | 170.000 | chờ chủ duyệt |
+| SV-LK-01 | 2 người lớn, 1 trẻ em, 1 người cao tuổi, 1 em bé | 170.000 | chủ đã duyệt 19/10 |
 | SV-LK-02 | 1 người lớn | 50.000 | chờ chủ duyệt |
 | SV-LK-03 | 3 trẻ em đi cùng người lớn (ở dịch vụ khác của đơn), ô trẻ em để trống = 0 | 0 | chờ chủ duyệt |
 | SV-LK-04 | 0 khách | 0 | chờ chủ duyệt |
