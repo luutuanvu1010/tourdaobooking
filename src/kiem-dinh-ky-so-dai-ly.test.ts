@@ -207,6 +207,17 @@ test("R-BIL-16: đơn có người hưởng, thành tiền trước giảm − p
   assert.equal(vp(w, "R-BIL-16"), 1, "thiếu dòng");
   chenDong(w, { posting: phieuGiao(w, a.id), orderId: a.id, no: `pty-${PT}`, co: ct, so: 250_000, loai: "GIAM_GIA_BEN_DAT" });
   assert.equal(vp(w, "R-BIL-16"), 0, "đủ một dòng đúng số");
+  // I-3 (người kiểm Task 10+11): MỘT dòng, lệch 1 đồng ⇒ lỗi (vế «tổng ≠ giảm» — phép đột biến B).
+  w.sqlite.prepare("UPDATE bil_debt_line SET amount = 249999 WHERE order_id = ? AND kind_code = 'GIAM_GIA_BEN_DAT'").run(a.id);
+  assert.equal(vp(w, "R-BIL-16"), 1, "một dòng lệch 1 đồng");
+  w.sqlite.prepare("UPDATE bil_debt_line SET amount = 250000 WHERE order_id = ? AND kind_code = 'GIAM_GIA_BEN_DAT'").run(a.id);
+  // I-2 (người kiểm Task 10+11; Ruling R-110): dòng đúng số mà ghi sai BÊN NỢ (hồ sơ nhân viên thay người hưởng của bản chụp) ⇒ lỗi; bên có không phải công ty chủ ⇒ lỗi.
+  w.sqlite.prepare("UPDATE bil_debt_line SET debtor_party_id = ? WHERE order_id = ? AND kind_code = 'GIAM_GIA_BEN_DAT'").run(`pty-${SALES}`, a.id);
+  assert.equal(vp(w, "R-BIL-16"), 1, "bên nợ là hồ sơ nhân viên, không phải người hưởng");
+  w.sqlite.prepare("UPDATE bil_debt_line SET debtor_party_id = ?, creditor_party_id = ? WHERE order_id = ? AND kind_code = 'GIAM_GIA_BEN_DAT'").run(`pty-${PT}`, `pty-${SALES}`, a.id);
+  assert.equal(vp(w, "R-BIL-16"), 1, "bên có không phải công ty chủ");
+  w.sqlite.prepare("UPDATE bil_debt_line SET creditor_party_id = ? WHERE order_id = ? AND kind_code = 'GIAM_GIA_BEN_DAT'").run(ct, a.id);
+  assert.equal(vp(w, "R-BIL-16"), 0, "trả về đúng hai bên");
   chenDong(w, { posting: phieuGiao(w, a.id), orderId: a.id, no: `pty-${PT}`, co: ct, so: 250_000, loai: "GIAM_GIA_BEN_DAT" });
   assert.equal(vp(w, "R-BIL-16"), 1, "hai dòng");
   const b = await donDaGiao(w, { booker: null, dichVu: [HONTAM(1, 300_000)], giam: 50_000 });
@@ -244,6 +255,21 @@ test("R-ORD-DC1: đơn có người hưởng giảm giá > tổng hoa hồng (c�
   assert.deepEqual([vp(w, "R-ORD-DC1"), vp(w, "R-ORD-DC1w")], [1, 0], "hoa hồng 99.900 < giảm 100.000");
   lui(w, "orders", "confirmed_at", "id = ?", a.id);
   assert.deepEqual([vp(w, "R-ORD-DC1"), vp(w, "R-ORD-DC1w")], [0, 1], "xác nhận trước mốc ⇒ chỉ cảnh báo");
+});
+
+test("R-ORD-DC1 (I-1 người kiểm Task 10+11; Ruling R-P25): Kế toán hạ mức tay SAU Xác nhận (ví dụ D-3) ⇒ không báo — so với bản chụp tự động gần nhất, không với bản ghi tay; vượt thật vẫn bắt", async () => {
+  const { w } = await setup();
+  const a = nhap(w, { dichVu: [HONTAM(1, 1_000_000)], giam: 100_000 });
+  await xacNhan(w, a.id);
+  assert.deepEqual([vp(w, "R-ORD-DC1"), vp(w, "R-ORD-DC1w")], [0, 0], "giảm 100.000 = hoa hồng 10% lúc Xác nhận");
+  const tay = await w.call("POST", `/api/orders/${a.id}/thuong-mai/${a.svc[0]}`, { as: KT, body: { lyDo: "mức đúng theo hợp đồng là 5%", hoaHong: { kieu: "RATE", tyLeBp: 500 } } });
+  assert.equal(tay.status, 200, tay.text);
+  assert.equal(w.q("SELECT count(*) n FROM ord_service_terms WHERE order_service_id = ? AND source = 'MANUAL'", a.svc[0])[0].n, 1, "đã có bản ghi tay 5%");
+  assert.deepEqual([vp(w, "R-ORD-DC1"), vp(w, "R-ORD-DC1w")], [0, 0], "ghi tay sau Xác nhận không biến đơn thành vi phạm vĩnh viễn");
+  // Vượt thật: bản chụp tự động (gốc) bị sửa bằng SQL tay xuống 9,99% ⇒ vẫn bắt, dù bản hiện hành là bản ghi tay.
+  goTrigger(w, "ord_service_terms");
+  w.sqlite.prepare("UPDATE ord_service_terms SET commission_rate_bp = 999 WHERE order_service_id = ? AND source = 'AUTO'").run(a.svc[0]);
+  assert.deepEqual([vp(w, "R-ORD-DC1"), vp(w, "R-ORD-DC1w")], [1, 0], "giảm vượt hoa hồng của bản chụp tự động");
 });
 
 test("R-BIL-17 (Ruling R-P8): phiếu «Đã giao» ghi sau mốc mà thiếu thành tiền trước giảm ⇒ lỗi; phiếu trước mốc ⇒ không báo", async () => {

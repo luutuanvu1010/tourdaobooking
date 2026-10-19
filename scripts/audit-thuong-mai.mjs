@@ -141,18 +141,32 @@ export function dsRBil2w(rows) {
 }
 
 /**
- * R-ORD-DC1 (ADR-0079 điều 9, C11 = A; Ruling R-P23): đơn ĐÃ XÁC NHẬN (chưa huỷ) có người hưởng (bản chụp hiện hành mang `beneficiary_party_id` — `coNguoiHuongDon`, như trần
+ * R-ORD-DC1 (ADR-0079 điều 9, C11 = A; Ruling R-P23, R-P25): đơn ĐÃ XÁC NHẬN (chưa huỷ) có người hưởng (bản chụp TỰ ĐỘNG gần nhất mang `beneficiary_party_id` — `coNguoiHuongDon`, như trần
  * giảm giá của Task 7) mà giảm giá VƯỢT tổng hoa hồng (dòng thiếu mức tính 0 — `tongHoaHongDon(…, "tinh0")`) theo CẢ HAI cách đọc mà máy chủ từng chặn:
  *  (a) lúc Xác nhận: giảm giá đã lưu so với hoa hồng trên tiền dòng ĐÃ LƯU (chưa áp điều chỉnh số khách) — `tranGiamGiaDon` ở lô Xác nhận;
  *  (b) lúc đổi bên đặt: giảm giá HIỆU LỰC (`effectiveMoney`) so với hoa hồng trên tiền dòng HIỆN HÀNH — `cauDoiBenDatVuotHoaHong`.
  * Chỉ lệch MỘT cách đọc là ca hợp lệ: bớt khách sau Xác nhận (SV-SK-04 bản đại lý — đặc tả P7 «không chặn, chỉ cảnh báo») chỉ làm (b) vượt; thêm khách rồi đổi bên đặt chỉ
  * làm (a) vượt. Trả mã đơn vi phạm. Đơn chưa có bản chụp nào (xác nhận trước 0090) không có số để so — bỏ qua (R-74 của sổ thi công). Cột: don, ma_don, giam_gia + cột tiền.
  */
+/**
+ * Bản chụp TỰ ĐỘNG gần nhất của một dòng dịch vụ (Ruling R-P25, I-1 người kiểm Task 10+11): đi ngược chuỗi `supersedes_id` từ bản hiện hành tới bản `source = 'AUTO'`
+ * đầu tiên gặp — bản lô Xác nhận (hoặc chụp lại khi đổi bên đặt) đã dùng để chặn trần. Bản ghi tay (`MANUAL`, Kế toán sửa mức sau Xác nhận — ví dụ D-3) KHÔNG đổi con số
+ * trần đã chặn, nên không được biến đơn thành vi phạm. Thiếu cột `chuoi` / chuỗi hỏng ⇒ dùng bản hiện hành (như trước).
+ */
+const banChupTuDongCua = (r) => {
+  const chuoi = docJson(r.chuoi, []);
+  const theoId = new Map(chuoi.map((t) => [t.id, t]));
+  const daThay = new Set(chuoi.map((t) => t.supersedes_id).filter((x) => x));
+  let t = chuoi.find((x) => !daThay.has(x.id)) ?? null;
+  for (let buoc = 0; t && t.source !== "AUTO" && buoc < chuoi.length; buoc++) t = t.supersedes_id ? theoId.get(t.supersedes_id) ?? null : null;
+  return t && t.source === "AUTO" ? banChupTuDb(t) : banChupCua(r);
+};
+
 export function dsRORDDC1(rows) {
   const vp = [];
   for (const dongDon of nhom(rows, "don").values()) {
     if (!dongDon.some((r) => docJson(r.chup, null) !== null)) continue;
-    const chup = dongDon.map(banChupCua);
+    const chup = dongDon.map(banChupTuDongCua);
     if (!coNguoiHuongDon(chup)) continue;
     const giam = Number(dongDon[0].giam_gia);
     const luu = dongDon.map((r) => tienDichVu(r, false));

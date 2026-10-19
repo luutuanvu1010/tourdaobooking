@@ -146,8 +146,9 @@ test("sổ vàng sổ đại lý — chạy thử ca chờ xác nhận (chẩn �
 // ---- Sổ cái C-1…C-5 và B-5 trên MÃ SỔ THẬT (sổ đại lý đợt 2, Task 11) ------------------------------------------------------------------------------
 // Ca C-1…C-5 (khối `so_cai`) và ADR-0078 ví dụ B-5 chạy qua CHÍNH luật sinh dòng của `src/modules/billing/rules.ts`: giữ hộ (`sinhDongLanThu`, người thu tự ghi; quầy
 // nhà cung cấp do Kế toán ghi), phiếu «Đã giao» (`sinhPhieuDaGiao`, hoa hồng / giá vốn do `hoaHongDong` / `giaVonDong` tính từ đầu vào của dòng — không lấy đáp án),
-// rồi số dư `soDuTheoBen`. Ruling R-106: số của các ca này do ADR-0078 / ADR-0079 ĐÃ DUYỆT quyết (và `phieu-ke-toan.md` chép lại) — bài khẳng định theo số ADR dù khối JSON
-// còn chờ Kế toán đánh dấu; AI không đổi trạng thái ca. Mã sổ cho số sai ⇒ DỪNG ca đó, `todo` có lý do (không đổi luật tiền).
+// rồi số dư `soDuTheoBen`. Ruling R-106 (sửa theo người kiểm Task 10+11): số của các ca này lấy từ ADR-0078 / ADR-0079 ĐÃ DUYỆT (và `phieu-ke-toan.md` chép lại); bài
+// chạy và đỏ khi mã lệch số ADR, nhưng KHÔNG phải «ca vàng đạt» — ca vẫn chờ Kế toán xác nhận (ADR-0079 mục «Sổ vàng / bài kiểm»; AI không tự xác nhận ca vàng —
+// Hiến pháp N8; C-3 trùng SV-HT-02, bên src/so-vang.test.ts vẫn là `todo`). Mã sổ cho số sai ⇒ DỪNG ca đó, `todo` có lý do (không đổi luật tiền).
 const CONG_TY = "cong_ty";
 interface DongSo { dv: string; hoaHong: number | null; giaVon: number | null; ncc: string | null; thanhTien: number }
 interface DauVaoSo { thu: { role: CollectorRole; ben: string; so: number }[]; nguoiHuong: string | null; giamGiaBenDat: number; dong: DongSo[] }
@@ -213,7 +214,7 @@ test("sổ vàng sổ đại lý — LỚP 1 sổ cái C-1…C-5: khối so_cai 
 });
 
 for (const c of CA_SO_CAI) {
-  test(`sổ vàng sổ đại lý — LỚP 2 sổ cái ${c.ma} trên mã sổ thật (ADR-0079; phieu-ke-toan.md): dòng «Đã giao» và số dư khớp từng đồng`, () => {
+  test(`sổ vàng sổ đại lý — sổ cái ${c.ma} tính bằng mã sổ thật, so với số của ADR-0079 / phieu-ke-toan.md (ca CHỜ Kế toán xác nhận — chưa tính là ca vàng đạt)`, () => {
     const sc = c.so_cai!;
     const kq = chaySo(dauVaoTuCa(c));
     const ten = (id: string) => (id === CONG_TY ? "cong_ty" : id);
