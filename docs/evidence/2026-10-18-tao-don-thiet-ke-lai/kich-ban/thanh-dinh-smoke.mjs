@@ -470,7 +470,8 @@ try {
   await buoc("1040-12c", "nợ T8(a) (Việc 9): ≥ 960px nút trong khung lỗi (409 'Trang đã cũ' → 'Tải lại trang') giữ cỡ theo chữ, không kéo rộng hết cột; Lưu vẫn rộng hết cột", async () => {
     await p.ev(`(() => { const f = window.fetch; let mot = true; window.__gia409 = 0; window.fetch = (u, o) => { if (mot && String(u).endsWith('/api/orders') && o?.method === 'POST') { mot = false; window.__gia409++;
       return Promise.resolve(new Response(JSON.stringify({ error: { code: 'client_outdated', message: 'Trang đã cũ.' } }), { status: 409, headers: { 'content-type': 'application/json' } })); } return f(u, o); }; return true; })()`);
-    // Cuộn cho Lưu vào khung nhìn rồi mới bấm: ở đầu trang 1040×768, khung lỗi cũ của bước 12 (vẫn hiện) đẩy Lưu xuống 753–799px — nửa dưới nút ngoài khung, cú bấm giữa nút rơi ra ngoài.
+    // Cuộn cho Lưu vào khung nhìn rồi mới bấm: trước vòng sửa cuối 19/10, ở đầu trang 1040×768 khung lỗi cũ của bước 12 (vẫn hiện) đẩy Lưu xuống 753–799px — nửa dưới nút ngoài
+    // khung, cú bấm giữa nút rơi ra ngoài. Nay vị trí ĐẦU TRANG do khong-cuon-truoc-smoke.mjs bước E-1040-loi canh (không cuộn); bước này giữ cú cuộn để chỉ kiểm cỡ nút.
     await p.ev("document.getElementById('save').scrollIntoView({ block: 'nearest' }); true");
     await sleep(200);
     await cham(p, false, "document.getElementById('save')", false);

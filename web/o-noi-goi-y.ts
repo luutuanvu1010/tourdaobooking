@@ -195,6 +195,22 @@ export function taoONoiGoiY(op: ONoiGoiYOptions): ONoiGoiY {
   const giuNhan = (e: Event) => {
     if (e.target !== o && trongO(e.target) && !ds.contains(e.target as Node)) e.preventDefault();
   };
+  /**
+   * Thanh Lưu dính đáy form (`.form-actions`, sticky dưới 960px) che phần dưới khung nhìn, mà `scrollIntoView({ block: "nearest" })` coi cả khung nhìn là chỗ thấy được: ô nằm sát
+   * thanh thì danh sách mở ra nằm DƯỚI thanh (rà soát toàn nhánh 19/10, ≤ 640px). Đo phần bị che rồi cuộn thêm đúng chừng đó (+ khe `--s2`), nhưng không bao giờ đẩy ô gõ lên dưới
+   * các thanh dính phía trên (`scroll-padding-top` của trang ở điện thoại, `scroll-margin-top` của ô từ 641px) — thanh cao (khung lỗi dài) thì giữ ô gõ, danh sách lộ phần trên và
+   * tự cuộn bên trong. Thanh không dính (≥ 960px nằm ở cột phải) hoặc không che: không làm gì. Canh: kich-ban/khong-cuon-truoc-smoke.mjs (bước D-…, chạm mà không cuộn trước).
+   */
+  const tranhThanhDay = () => {
+    const thanh = o.closest("form")?.querySelector<HTMLElement>(".form-actions");
+    if (!thanh || getComputedStyle(thanh).position !== "sticky") return;
+    const che = ds.getBoundingClientRect().bottom - thanh.getBoundingClientRect().top;
+    if (che <= 0) return;
+    const goc = getComputedStyle(document.documentElement);
+    const tren = (parseFloat(goc.scrollPaddingTop) || 0) + (parseFloat(getComputedStyle(o).scrollMarginTop) || 0);
+    const keo = Math.min(che + (parseFloat(goc.getPropertyValue("--s2")) || 0), o.getBoundingClientRect().top - tren);
+    if (keo > 0) window.scrollBy(0, keo);
+  };
   function moRa(): void {
     if (mo) return;
     mo = true;
@@ -212,6 +228,7 @@ export function taoONoiGoiY(op: ONoiGoiYOptions): ONoiGoiY {
     document.addEventListener("click", ngoai, true);
     document.addEventListener("mousedown", giuNhan, true);
     ds.scrollIntoView({ block: "nearest" });
+    tranhThanhDay();
   }
   /**
    * Đóng danh sách. `cach`: "huy" (Esc — trả ô về giá trị đang lưu), "chon" (đã chọn một dòng — nơi gọi lo phần còn lại), "roi" (rời ô: chữ đã gõ được LƯU thành gõ tự do theo

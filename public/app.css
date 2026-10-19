@@ -1355,6 +1355,11 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
   .form-side .form-actions .btn-primary { flex: 1; }
   .form-side .form-actions { flex-direction: column; gap: var(--s3); }
   .form-side .form-actions > .btn { width: 100%; } /* CHỈ Lưu / Quay lại: nút "Tải lại đơn" của khung lỗi (trong thanh từ Việc 8) giữ cỡ theo chữ (nợ T8(a), Việc 9) */
+  /* Vòng sửa cuối 19/10: Việc 8 thêm dòng "Giảm giá" vào khối Tóm tắt (+40px) làm nút Lưu cột phải tụt từ 619px (bản gốc 0780d014) xuống 659px ở 1040×768 — có khung lỗi một dòng
+     thì Lưu 753–799px, nửa dưới ngoài khung. Khối Tóm tắt dùng nhịp dòng của bảng chi tiết tiền ở điện thoại (`.sum-chi-tiet`: dòng không đệm, cách nhau --s1): cùng nội dung,
+     Lưu lên lại 611px (lỗi một dòng: 705–751px, đo 19/10). Canh: kich-ban/khong-cuon-truoc-smoke.mjs bước E-1040-loi (đo ở đầu trang, không cuộn). */
+  .form-side .summary-card .summary { gap: var(--s1); }
+  .form-side .summary-card .kv { padding: 0; }
 }
 
 /* ---------- A2: trang đơn (khối dịch vụ chỉ-đọc, nhắc khoá) — chỉ token ---------- */
