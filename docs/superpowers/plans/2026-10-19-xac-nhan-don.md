@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Giao diện, lỗi, tài liệu, commit: tiếng Việt CÓ DẤU; gọi hệ thống là "Nền tảng"; không lộ mã thô (`draft`, `PICKUP`…) ra người dùng.
-- Migration kế tiếp: **0112** (kiểm lại `ls migrations` + `git branch -r --no-merged origin/main` VÀ nhánh cục bộ `git branch --no-merged origin/main` / `git worktree list`, ngay trước khi tạo tệp). ADR kế tiếp: **0133** (tạm; kiểm lại `git log --all` mọi nhánh trước khi cấp).
+- Migration kế tiếp: **0114** (kiểm lại `ls migrations` + `git branch -r --no-merged origin/main` VÀ nhánh cục bộ `git branch --no-merged origin/main` / `git worktree list`, ngay trước khi tạo tệp). ADR kế tiếp: **0133** (tạm; kiểm lại `git log --all` mọi nhánh trước khi cấp).
 - Bảng mới tiền tố `ord_`, chỉ-thêm (trigger `RAISE(ABORT,'ord_policy_append_only: …')` chặn UPDATE/DELETE, trừ chỗ ghi rõ), danh sách giá trị kiểm ở MÃ không `CHECK` liệt kê; thêm vào `docs/data-dictionary.json` + `npm run dict`.
 - SQL mới của `orders` chỉ ở tệp nửa nghiêm (`defineSql`), tệp mới phải vào `NUA_NGHIEM` (`src/architecture.test.ts:159`).
 - Ô quyền mới: khai ở `src/shared/permissions.ts` `MATRIX`, cập nhật bảng `ADR` trong `src/shared/permissions.test.ts`, ba bài ghim hàng DRIVER/DRIVER_PARTNER/HR, `TEN_THAO_TAC` (`src/shared/tro-ly-cau-truc-ten.ts`), ca trong `tests/e2e/permissions.mjs`; máy chủ phải gọi `can(…, "<ô>")` viết thẳng.
@@ -46,27 +46,27 @@
 **Files:**
 Bốn đề xuất, chia **hai lượt duyệt** (mỗi lượt ≤ 3 quyết định chạm quyền/dữ liệu, CLAUDE.md §9):
 - **Lượt 1** (mở Đợt 1–2):
-  - `docs/superpowers/specs/2026-10-19-xac-nhan-don/DE-XUAT-ADR-0133-don-khong-don-khung-gio.md` (cột chọn đón theo dịch vụ, khung giờ trên chặng, giờ đầu khung = `pickup_time`)
-  - `…/DE-XUAT-ADR-0134-nhap-rieng-tu-khong-thu.md` (nháp chỉ người tạo đọc; nháp không ghi thu; bỏ ô Trả trước; hàng chờ nhận chỉ đơn đã xác nhận; HDV chọn sẵn không thấy nháp)
+  - `docs/superpowers/specs/2026-10-19-xac-nhan-don/DE-XUAT-ADR-0134-don-khong-don-khung-gio.md` (cột chọn đón theo dịch vụ, khung giờ trên chặng, giờ đầu khung = `pickup_time`)
+  - `…/DE-XUAT-ADR-0135-nhap-rieng-tu-khong-thu.md` (nháp chỉ người tạo đọc; nháp không ghi thu; bỏ ô Trả trước; hàng chờ nhận chỉ đơn đã xác nhận; HDV chọn sẵn không thấy nháp)
 - **Lượt 2** (mở Đợt 3–4):
-  - `…/DE-XUAT-ADR-0135-buoc-xac-nhan-don.md` (trạng thái "chờ yêu cầu" giữ `draft`; ô quyền `order.confirm.review`; nới đọc có giới hạn cho người xét duyệt; tự xác nhận theo công tắc)
-  - `…/DE-XUAT-ADR-0136-thu-xac-nhan-va-qr-may-chu.md` (gửi email ra ngoài cho người đặt + nhân viên lập; thư huỷ; dựng ảnh QR phía máy chủ → nới `src/vendor-qr.test.ts` thêm MỘT tệp được nhắc `vendor/qrcode`; thay ADR-0108 đ3 C3 phần "chỉ `web/qr-ve.ts`")
+  - `…/DE-XUAT-ADR-0136-buoc-xac-nhan-don.md` (trạng thái "chờ yêu cầu" giữ `draft`; ô quyền `order.confirm.review`; nới đọc có giới hạn cho người xét duyệt; tự xác nhận theo công tắc)
+  - `…/DE-XUAT-ADR-0137-thu-xac-nhan-va-qr-may-chu.md` (gửi email ra ngoài cho người đặt + nhân viên lập; thư huỷ; dựng ảnh QR phía máy chủ → nới `src/vendor-qr.test.ts` thêm MỘT tệp được nhắc `vendor/qrcode`; thay ADR-0108 đ3 C3 phần "chỉ `web/qr-ve.ts`")
 - Mỗi lượt kèm một `TRANG-GHEP-LUOT-<n>.md` theo CLAUDE.md §9: (1) bảng `orders`/`ord_confirm_request` chứa loại gì; (2) từng ô quyền chạm (`order.view` cho nháp, `order.confirm.review`, `payment.receive` khi nháp, `order.pool.view`); (3) cổng canh cửa, gồm chỗ giao diện ẩn/hiện bị đổi nghĩa (nút QR, ô Trả trước, thẻ "Đơn nháp" Trang chủ, hàng chờ nhận HDV, nút Xác nhận/Gửi xác nhận).
 - Rà `docs/quyen-hoan.json`: ghi "không xây trên lỗ đang hở" kèm lý do (TNV-G1 bị né nhờ "nháp không ghi thu") — trừ nháp CŨ đã có khoản thu (xem Task 2.2 Step 0).
 - **Câu hỏi kèm lượt 1 (đụng phân hệ Vận chuyển đã đóng sổ):** lịch chung điều phối (`lichChungChang` → `dieu-phoi-lenh.ts:747`, trường `nhap`, `soNhap`) hôm nay hiện chặng của đơn nháp (mã đơn, giờ đón, đặt gấp) để điều phối nhìn trước. Khuyến nghị: chỉ hiện chặng của đơn **đã gửi xác nhận**, bỏ nháp chưa gửi. Chưa có câu trả lời thì Task 2.1 KHÔNG đụng `lichChungChang`.
 
 - [ ] **Step 1:** Viết bốn tệp, mỗi ADR ≤ 1 trang, nêu phương án bị bác. Không đặt vào `docs/adr/` (AI không tự duyệt).
-- [ ] **Step 2:** `npm test` (bài sổ/ADR không đỏ). Commit: `Đề xuất ADR-0133…0136 và trang ghép hai lượt cho bước Xác nhận đơn (chờ chủ duyệt)`.
+- [ ] **Step 2:** `npm test` (bài sổ/ADR không đỏ). Commit: `Đề xuất ADR-0134…0136 và trang ghép hai lượt cho bước Xác nhận đơn (chờ chủ duyệt)`.
 - [ ] **Step 3:** DỪNG: Đợt 1–2 chờ duyệt lượt 1; Đợt 3–4 chờ duyệt lượt 2. Soạn lượt 2 trong lúc thi công Đợt 1–2 được.
 
 ---
 
-## Đợt 1 — Đón/Không đón và khung giờ (ADR-0133)
+## Đợt 1 — Đón/Không đón và khung giờ (ADR-0134)
 
-### Task 1.1: Migration 0112 + luật thuần khung giờ
+### Task 1.1: Migration 0114 + luật thuần khung giờ
 
 **Files:**
-- Create: `migrations/0112_chon_don_khung_gio.sql`
+- Create: `migrations/0114_chon_don_khung_gio.sql`
 - Create: `src/shared/khung-gio-don.ts`, `src/shared/khung-gio-don.test.ts`
 - Create: `src/migrations-chon-don.test.ts`
 - Modify: `docs/data-dictionary.json`, chạy `npm run dict`
@@ -91,7 +91,7 @@ Bốn đề xuất, chia **hai lượt duyệt** (mỗi lượt ≤ 3 quyết đ
 - [ ] **Step 2:** `node --test src/shared/khung-gio-don.test.ts src/migrations-chon-don.test.ts` → FAIL (chưa có tệp).
 - [ ] **Step 3:** Viết migration + `khung-gio-don.ts`; cập nhật data-dictionary (hạng dữ liệu từng cột) + `npm run dict`.
 - [ ] **Step 4:** Chạy lại hai bài → PASS; `npm run db:migrate:local` không lỗi.
-- [ ] **Step 5:** Commit `Migration 0112: chọn đón theo dịch vụ, khung giờ trên chặng, chính sách khung giờ`.
+- [ ] **Step 5:** Commit `Migration 0114: chọn đón theo dịch vụ, khung giờ trên chặng, chính sách khung giờ`.
 
 ### Task 1.2: Máy chủ — lưu, đọc, cổng "phải chọn đón"
 
@@ -132,7 +132,7 @@ Bốn đề xuất, chia **hai lượt duyệt** (mỗi lượt ≤ 3 quyết đ
 
 ---
 
-## Đợt 2 — Nháp riêng tư, nháp không thu tiền, bỏ ô Trả trước (ADR-0134)
+## Đợt 2 — Nháp riêng tư, nháp không thu tiền, bỏ ô Trả trước (ADR-0135)
 
 > **Phát hành chung với Đợt 3** (chủ chọn A, đặc tả 5f.1): nháp riêng tư lên một mình thì Quản trị không mở được nháp sát giờ để Đặt gấp. Thi công Đợt 2 trước được, nhưng không `day-len`/`trien-khai` riêng; Đợt 1 phát hành riêng được.
 
@@ -175,7 +175,7 @@ Bốn đề xuất, chia **hai lượt duyệt** (mỗi lượt ≤ 3 quyết đ
 
 ---
 
-## Đợt 3 — Bước Xác nhận đơn (ADR-0135)
+## Đợt 3 — Bước Xác nhận đơn (ADR-0136)
 
 ### Task 3.1: Luật thuần — cần xác nhận, hạn 15 phút trừ giờ đêm, ai quyết định được
 
@@ -191,10 +191,10 @@ Bốn đề xuất, chia **hai lượt duyệt** (mỗi lượt ≤ 3 quyết đ
 - [ ] **Step 1: Bài đỏ** (giờ VN): gửi 10:00 → 10:15; 21:50 → 06:05 hôm sau; 21:55 → 06:10 hôm sau; 23:00 → 06:15; 05:59 → 06:15; 06:00 → 06:15. `canXacNhan` với dịch vụ có cờ → `{can:true, vi:["DICH_VU"]}`; không cờ + chặng dưới mốc → `{can:true, vi:["DAT_GAP"]}`; cả hai → hai lý do; không gì → `{can:false, vi:[]}`. `duocQuyetDinh` đủ bảng chân trị.
 - [ ] **Step 2:** FAIL. **Step 3:** Cài đặt. **Step 4:** PASS. **Step 5:** Commit `Luật thuần bước xác nhận: cần xác nhận, hạn 15 phút trừ giờ đêm, ai được quyết định`.
 
-### Task 3.2: Migration 0113 + ô quyền + chính sách
+### Task 3.2: Migration 0115 + ô quyền + chính sách
 
 **Files:**
-- Create: `migrations/0113_yeu_cau_xac_nhan.sql`, `src/migrations-xac-nhan.test.ts`
+- Create: `migrations/0115_yeu_cau_xac_nhan.sql`, `src/migrations-xac-nhan.test.ts`
 - Modify: `src/shared/permissions.ts` (ô `"order.confirm.review": row(any, any, any, any, none, any, none, none, none, none)`), các bài ghim liệt kê ở Global Constraints, `docs/data-dictionary.json` + `npm run dict`
 
 **Interfaces — Produces:**
@@ -203,7 +203,7 @@ Bốn đề xuất, chia **hai lượt duyệt** (mỗi lượt ≤ 3 quyết đ
 - `ord_confirm_policy(id, self_confirm_internal INTEGER CHECK IN (0,1), valid_from_at UNIQUE, …)` chỉ-thêm; gieo `self_confirm_internal = 1`.
 
 - [ ] **Step 1: Bài đỏ** `migrations-xac-nhan.test.ts`: hai yêu cầu mở cùng đơn → UNIQUE chặn; quyết định lần hai → trigger chặn; DELETE → chặn; policy gieo `1`. `permissions.test.ts`: hàng `order.confirm.review` đúng bảng trên.
-- [ ] **Step 2:** FAIL. **Step 3:** Cài đặt. **Step 4:** `npm test && npm run typecheck` PASS. **Step 5:** Commit `Migration 0113: yêu cầu xác nhận, cờ dịch vụ cần xác nhận, công tắc tự xác nhận; ô quyền order.confirm.review`.
+- [ ] **Step 2:** FAIL. **Step 3:** Cài đặt. **Step 4:** `npm test && npm run typecheck` PASS. **Step 5:** Commit `Migration 0115: yêu cầu xác nhận, cờ dịch vụ cần xác nhận, công tắc tự xác nhận; ô quyền order.confirm.review`.
 
 ### Task 3.3: Route gửi / rút lại / quyết định
 
@@ -244,7 +244,7 @@ Bốn đề xuất, chia **hai lượt duyệt** (mỗi lượt ≤ 3 quyết đ
 
 ---
 
-## Đợt 4 — Email kèm QR khi xác nhận, email + tin khi huỷ (ADR-0136)
+## Đợt 4 — Email kèm QR khi xác nhận, email + tin khi huỷ (ADR-0137)
 
 ### Task 4.1: Đọc email người nhận + dựng ảnh QR phía máy chủ
 
@@ -297,4 +297,4 @@ Bốn đề xuất, chia **hai lượt duyệt** (mỗi lượt ≤ 3 quyết đ
 
 - [ ] **Step 1:** Viết; `npm run dict`; `npm test && npm run typecheck && npm run test:e2e` (toàn bộ) → PASS; `node scripts/audit-invariants.mjs --db local` thoát 0.
 - [ ] **Step 2:** Commit `Tài liệu, hướng dẫn, nhật ký thay đổi và sổ hàng rào cho bước Xác nhận đơn`.
-- [ ] **Step 3:** `nguoi-kiem-doc-lap` toàn nhánh; báo chủ lệnh `npm run day-len`, ghi rõ "cần `npm run trien-khai`, có migration 0112, 0113".
+- [ ] **Step 3:** `nguoi-kiem-doc-lap` toàn nhánh; báo chủ lệnh `npm run day-len`, ghi rõ "cần `npm run trien-khai`, có migration 0114, 0115".
