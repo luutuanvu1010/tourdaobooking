@@ -11,6 +11,24 @@ export const lamTronNuaLen = (tu: number, mau: number): number => Math.floor((2 
 export function hoaHongDong(v: { kind: KieuMuc; rateBp: number | null; perPaxAmount: number | null; thanhTien: number; soKhachTinh: number }): number {
   return v.kind === "RATE" ? lamTronNuaLen(v.rateBp! * v.thanhTien, 10_000) : v.perPaxAmount! * v.soKhachTinh;
 }
+/** Ba số tiền "mỗi khách" theo loại (ADR-0133). Em bé không có ô: luôn 0. Ô bỏ trống phải được người gọi đổi thành 0 trước khi vào đây. */
+export interface MucTheoLoai { adult: number; child: number; senior: number }
+const laSoNguyenKhongAm = (n: number): boolean => Number.isInteger(n) && n >= 0;
+/** Hoa hồng "mỗi khách theo loại" của MỘT dòng: Σ (số người loại đó × số tiền loại đó); em bé không tính. Số tiền hoặc số khách không phải số nguyên ≥ 0 thì ném lỗi (không âm thầm ra số lạ). */
+export function hoaHongTheoLoai(muc: MucTheoLoai, soKhach: { adult?: number; child?: number; senior?: number; infant?: number }): number {
+  let tong = 0;
+  for (const loai of ["adult", "child", "senior"] as const) {
+    const tien = muc[loai], nguoi = soKhach[loai] ?? 0;
+    if (!laSoNguyenKhongAm(tien) || !laSoNguyenKhongAm(nguoi)) throw new Error(`hoaHongTheoLoai: số tiền/số khách không hợp lệ (${loai})`);
+    tong += tien * nguoi;
+  }
+  return tong;
+}
+/** Dịch vụ tính theo nhóm/lượt (không tách loại khách): mỗi lượt lấy số tiền người lớn (ADR-0133 điều 4). */
+export function hoaHongTheoLuot(muc: MucTheoLoai, soLuot: number): number {
+  if (!laSoNguyenKhongAm(muc.adult) || !laSoNguyenKhongAm(soLuot)) throw new Error("hoaHongTheoLuot: số tiền/số lượt không hợp lệ");
+  return muc.adult * soLuot;
+}
 /** Giá vốn trên thành tiền TRƯỚC giảm giá cấp đơn (H8 = A), cùng cách làm tròn. */
 export const giaVonDong = (v: { costRateBp: number; thanhTien: number }): number => lamTronNuaLen(v.costRateBp * v.thanhTien, 10_000);
 
