@@ -192,7 +192,18 @@ export async function moCuaSoXuatBen48Gio() {
  * Dịch vụ nhập tay (thân gửi API). TỪ 2026-09-26 máy chủ KHÔNG nhận dịch vụ nhập tay MỚI (chủ dự án: "loại bỏ hoàn toàn dịch vụ nhập tay" — DK-T3-01):
  * chỉ dùng để thử chính luật đó, hoặc gửi lại NGUYÊN dịch vụ nhập tay cũ (kèm `id`) của một đơn dựng bằng `makeLegacyManual`. Đơn thường dùng `catalogService`.
  */
-export const manualService = (items, extra = {}) => ({ kind: "manual", name: "Dịch vụ thử", pax: { adult: 1 }, departDate: vnDate(7), items, ...extra });
+export const manualService = (items, extra = {}) => ({ kind: "manual", name: "Dịch vụ thử", pax: { adult: 1 }, departDate: vnDate(7), items, pickupChoice: chonDonMacDinh(extra), ...extra });
+
+/**
+ * Lựa chọn đón MẶC ĐỊNH của dịch vụ dựng sẵn (ADR-0134 Đ2 — cửa xác nhận đòi mỗi dịch vụ chọn Đón / Không đón khớp với lượt đưa đón): có `legs` không rỗng
+ * (hoặc thân cũ có `pickupTime` / `pickupPlace`) → "DON", còn lại → "KHONG_DON". `extra.pickupChoice` ghi đè (kể cả `null` = chưa chọn). Kịch bản thêm chặng SAU khi lập nháp mà không gửi lại `legs`
+ * thì tự gửi `pickupChoice: "DON"`.
+ */
+function chonDonMacDinh(extra) {
+  if (Array.isArray(extra.legs)) return extra.legs.length > 0 ? "DON" : "KHONG_DON";
+  // Thân cũ (không khoá `legs`): hai khoá cũ `pickupTime` / `pickupPlace` có giá trị → máy chủ dựng chặng chiều đi → "DON".
+  return extra.pickupTime || extra.pickupPlace ? "DON" : "KHONG_DON";
+}
 
 /**
  * Danh mục GIẢ dùng chung (mã `ZE*`, "e2e") — thay dịch vụ nhập tay mặc định của các kịch bản. Tránh `ZT*` (trip.mjs xoá khi dọn), `ZZ*` (catalog.mjs),
@@ -220,7 +231,7 @@ export async function ensureFakeCatalog() {
 }
 
 /** Dịch vụ DANH MỤC giả ZE1 (theo người): mặc định 1 người lớn × 100.000₫, đủ ngày khởi hành để xác nhận được. `extra` ghi đè (vd `pax`, `unitPrices`, `catalogCode`). */
-export const catalogService = (extra = {}) => ({ kind: "catalog", catalogCode: "ZE1", pax: { adult: 1 }, catalogPriceSeen: { ...FAKE_CATALOG.ZE1.prices }, departDate: vnDate(7), ...extra });
+export const catalogService = (extra = {}) => ({ kind: "catalog", catalogCode: "ZE1", pax: { adult: 1 }, catalogPriceSeen: { ...FAKE_CATALOG.ZE1.prices }, departDate: vnDate(7), pickupChoice: chonDonMacDinh(extra), ...extra });
 
 /**
  * Dựng dịch vụ NHẬP TAY "CŨ" bằng SQL trên D1 local tạm (API không nhận dịch vụ nhập tay mới từ 2026-09-26, nhưng đơn cũ vẫn có trong dữ liệu thật và

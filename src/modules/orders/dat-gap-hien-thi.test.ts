@@ -38,7 +38,7 @@ const than = (extra: Record<string, unknown> = {}) => {
   const d = inDays(2);
   return {
     customerName: "Khách Thử", customerPhone: "0912345678",
-    services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: d, legs: [leg(d, "05:00"), { ...leg(d, "18:00"), direction: "RETURN" }] }],
+    services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: d, legs: [leg(d, "05:00"), { ...leg(d, "18:00"), direction: "RETURN" }] }],
     ...extra,
   };
 };
@@ -153,7 +153,7 @@ test("R-P21: lịch sử đơn — dòng SỬA CHẶNG đơn đã xác nhận d�
   const mai = inDays(1);
   const tao = await w.call("POST", "/api/orders", {
     as: SALES,
-    body: { ...than({ handlerStaffId: FIELD }), services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: mai, legs: [leg(mai, "23:00")] }] },
+    body: { ...than({ handlerStaffId: FIELD }), services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: mai, legs: [leg(mai, "23:00")] }] },
   });
   assert.equal(tao.status, 201, tao.text);
   const o = tao.json.order;

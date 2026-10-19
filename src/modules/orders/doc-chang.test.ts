@@ -30,7 +30,7 @@ async function orderWithLeg(w: any, extra: Record<string, unknown> = {}, leg: { 
     as: SALES,
     body: {
       customerName: "Khách Thử", customerPhone: "0912345678",
-      services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: today }],
+      services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: today }], // chặng gieo bằng SQL ngay sau
       ...extra,
     },
   });

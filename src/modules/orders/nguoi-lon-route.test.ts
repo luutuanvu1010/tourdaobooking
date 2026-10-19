@@ -37,8 +37,8 @@ async function setup(batNhapTay = false): Promise<W> {
   if (batNhapTay) assert.equal((await w.call("POST", "/api/cai-dat/nhap-tay", { as: ID.SUPER, body: { batNhapTay: true } })).status, 200);
   return w;
 }
-const dichVu = (pax: Pax, over: Record<string, unknown> = {}) => ({ kind: "catalog", catalogCode: "ZA1", pax, catalogPriceSeen: SEEN, departDate: vnDay(3), ...over });
-const nhapTay = (adult: number) => ({ kind: "manual", name: "Xe đưa đón", pax: P(adult), items: [{ description: "Xe 7 chỗ", quantity: 1, unitPrice: 200000 }], departDate: vnDay(3) });
+const dichVu = (pax: Pax, over: Record<string, unknown> = {}) => ({ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax, catalogPriceSeen: SEEN, departDate: vnDay(3), ...over });
+const nhapTay = (adult: number) => ({ kind: "manual", pickupChoice: "KHONG_DON", name: "Xe đưa đón", pax: P(adult), items: [{ description: "Xe 7 chỗ", quantity: 1, unitPrice: 200000 }], departDate: vnDay(3) });
 const lap = (w: W, services: unknown[], nhap = false) =>
   w.call("POST", "/api/orders", { as: ID.SALES, body: { customerName: "Khách Thử", customerPhone: "0912345678", discount: 0, services } }).then(async (r: any) => {
     if (r.status === 201 && !nhap) assert.equal((await w.call("POST", `/api/orders/${r.json.order.id}/status`, { as: ID.SALES, body: { status: "confirmed" } })).status, 200);
@@ -58,7 +58,7 @@ function donCu(w: W, pax: Pax, xacNhanSan: boolean): string {
   const gia = pax.adult * 500000 + pax.child * 300000 + pax.senior * 400000;
   w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
     VALUES (?, ?, ?, 'draft', 'Khách Cũ', '0900000099', ?, ?, ?, ?, ?)`).run(id, `TD-NL-${seq}`, ID.SALES, gia, gia, gia, AT, AT);
-  w.sqlite.prepare("INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, pax_child, pax_senior, pax_infant, depart_date) VALUES (?, ?, 0, 'ZA1', 'Tour đảo', 'perPax', ?, ?, ?, ?, ?)")
+  w.sqlite.prepare("INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, pax_child, pax_senior, pax_infant, depart_date) VALUES ('KHONG_DON', ?, ?, 0, 'ZA1', 'Tour đảo', 'perPax', ?, ?, ?, ?, ?)")
     .run(`${id}-s0`, id, pax.adult, pax.child, pax.senior, pax.infant, vnDay(3));
   const dong: [string, number, number][] = [["adult", pax.adult, 500000], ["child", pax.child, 300000], ["senior", pax.senior, 400000]];
   for (const [ma, n, don] of dong) {

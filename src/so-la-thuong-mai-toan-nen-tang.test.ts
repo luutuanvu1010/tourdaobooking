@@ -206,7 +206,7 @@ function nhap(w: W, chu: string, booker: string | null, dv: [string, number][]):
     VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', ?, ?, ?, ?, ?, ?)`).run(id, `TD-SL-${id.slice(0, 4)}`, chu, tong, tong, tong, booker, AT, AT);
   dv.forEach(([code, t], i) => {
     const s = `${id}-s${i}`;
-    w.sqlite.prepare("INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, ?, ?, ?, ?, 'perPax', 1, ?)").run(s, id, i, code, `Dịch vụ ${code}`, ngay);
+    w.sqlite.prepare("INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, ?, ?, ?, 'perPax', 1, ?)").run(s, id, i, code, `Dịch vụ ${code}`, ngay);
     w.sqlite.prepare("INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, ?, 'adult', 'Người lớn', 1, ?, ?, ?)")
       .run(`${s}-i`, id, s, code, t, t, t);
   });

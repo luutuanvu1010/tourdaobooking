@@ -37,7 +37,7 @@ async function taoDon(w: W, o: { pax: Pax; discount?: number; extra?: unknown[] 
     as: ID.SALES,
     body: {
       customerName: "Khách Thử", customerPhone: "0912345678", discount: o.discount ?? 0,
-      services: [{ kind: "catalog", catalogCode: "ZA1", pax: o.pax, catalogPriceSeen: { adult: 500000, child: 300000, infant: 50000 }, departDate: vnDay(3) }, ...(o.extra ?? [])],
+      services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: o.pax, catalogPriceSeen: { adult: 500000, child: 300000, infant: 50000 }, departDate: vnDay(3) }, ...(o.extra ?? [])],
     },
   });
   assert.equal(r.status, 201, r.text);

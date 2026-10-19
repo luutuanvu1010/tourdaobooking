@@ -35,7 +35,7 @@ function setup() {
 const P = (n: number, year = 1911) => ({ fullName: `Khách Dò Tìm ${n}`, birthYear: year, paxCode: null });
 const body = (extra: Record<string, unknown> = {}) => ({
   customerName: "Khách Thử", customerPhone: "0912345678",
-  services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D }], ...extra,
+  services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D }], ...extra,
 });
 async function draft(w: any, as = SALES, extra: Record<string, unknown> = {}) {
   const r = await w.call("POST", "/api/orders", { as, body: body(extra) });

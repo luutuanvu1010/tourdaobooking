@@ -246,6 +246,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/orders/moc-toi-thieu", access: "orders" }, // ruling R-P15 (ADR-0049 I31 cách a): thân hỏi can(order.create) trước mọi đọc; mốc qua ctx.mocToiThieu
   { method: "GET", path: "/api/cai-dat/nhap-tay", access: "orders" }, // ADR-0061 điều 6: công tắc nhập tay (module orders) — thân hỏi can(order.create); trả duocNhapTay của người gọi
   { method: "POST", path: "/api/cai-dat/nhap-tay", access: "admin" }, // ADR-0061 điều 6: bật / tắt — thân hỏi can(settings.ops) (chỉ Toàn quyền)
+  { method: "GET", path: "/api/cai-dat/khung-gio-don", access: "orders" }, // ADR-0134 Đ6: bộ khung giờ đón — thân hỏi can(order.create)
+  { method: "POST", path: "/api/cai-dat/khung-gio-don", access: "admin" }, // ADR-0134 Đ6: đổi khung / câu lưu ý — thân hỏi can(settings.ops) (chỉ Toàn quyền)
   { method: "GET", path: "/api/parties", access: "office" },
   { method: "POST", path: "/api/parties", access: "office" },
   { method: "GET", path: "/api/parties/:id", access: "office" },
@@ -598,6 +600,7 @@ test("mức truy cập của 332 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-17 (ADR-0126 đ6, đ8; lát H-5 việc 6): + GET /api/parties/anh-can-xoa, POST …/anh-can-xoa/xoa (admin; party.erasure.process), GET + POST /api/sessions/an-danh-cu (admin; auth.session.policy) = 353.
   // Nhận main (bản 2.11) vào nhánh hồ sơ riêng tư: main thêm 5 route so với tổ tiên (327 → 332: vé hỗ trợ đợt 2a +3 — GET /api/feedback/my-orders, GET /api/feedback/teams/:id/members,
   // GET /api/feedback/:id/messages; ADR-0128 Q1 +2 — GET, POST /api/van-chuyen/moc-ra-lenh, office, ô dispatch.policy.lead); nhánh này thêm 26 (327 → 353) => 327 + 26 + 5 = 358.
-  assert.equal(actual.length, 358, "số route thực tế lệch 358 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 358, "SNAPSHOT phải có đúng 358 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-19 (ADR-0134 Đ6): + GET /api/cai-dat/khung-gio-don (orders), POST /api/cai-dat/khung-gio-don (admin) = 360.
+  assert.equal(actual.length, 360, "số route thực tế lệch 360 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 360, "SNAPSHOT phải có đúng 360 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

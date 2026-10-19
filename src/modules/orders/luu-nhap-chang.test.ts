@@ -26,7 +26,7 @@ const OUT = { direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocat
 const RET = { direction: "RETURN", pickupDate: inDays(4), pickupTime: "16:00", pickupLocationId: LOC, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "Khách sạn Dò Tìm" };
 const P1 = { fullName: "Khách Dò Tìm Một", birthYear: 1911, paxCode: "adult" };
 const P2 = { fullName: "Khách Dò Tìm Hai", birthYear: 1922, paxCode: null };
-const svc = (extra: Record<string, unknown> = {}) => ({ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D, ...extra });
+const svc = (extra: Record<string, unknown> = {}) => ({ kind: "catalog", pickupChoice: Array.isArray(extra.legs) && extra.legs.length > 0 ? "DON" : "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D, ...extra });
 const body = (extra: Record<string, unknown> = {}) => ({ customerName: "Khách Thử", customerPhone: "0912345678", services: [svc()], ...extra });
 
 async function create(w: any, b: Record<string, unknown>) {

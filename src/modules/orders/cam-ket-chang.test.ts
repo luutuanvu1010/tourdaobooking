@@ -37,7 +37,7 @@ const OUT = { direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocat
 const RET = { direction: "RETURN", pickupDate: inDays(4), pickupTime: "16:00", pickupLocationId: LOC, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "Khách sạn Dò Tìm" };
 const CK = { exclusiveVehicle: true, minVehicleSeats: 15 };
 const svc = (legs: unknown[], extra: Record<string, unknown> = {}) =>
-  ({ kind: "catalog", catalogCode: "ZA1", pax: { adult: 4, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D, legs, ...extra });
+  ({ kind: "catalog", pickupChoice: (legs.length > 0 ? "DON" : "KHONG_DON"), catalogCode: "ZA1", pax: { adult: 4, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D, legs, ...extra });
 const body = (services: unknown[], extra: Record<string, unknown> = {}) => ({ customerName: "Khách Thử", customerPhone: "0912345678", services, ...extra });
 
 async function lap(w: any, as: string, legs: unknown[] = [OUT, RET], extra: Record<string, unknown> = {}) {

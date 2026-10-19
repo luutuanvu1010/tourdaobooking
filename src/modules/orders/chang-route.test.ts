@@ -35,7 +35,7 @@ const RET = { direction: "RETURN", pickupDate: inDays(4), pickupTime: "16:00", p
 async function order(w: any, as = SALES, confirm = true, extra: Record<string, unknown> = {}) {
   const r = await w.call("POST", "/api/orders", {
     as,
-    body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D, legs: [OUT] }], ...extra },
+    body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D, legs: [OUT] }], ...extra },
   });
   assert.equal(r.status, 201, r.text);
   if (confirm) assert.equal((await w.call("POST", `/api/orders/${r.json.order.id}/status`, { as, body: { status: "confirmed" } })).status, 200);
