@@ -1,6 +1,6 @@
 # Sổ vàng — ca mẫu chiết khấu "mỗi khách" theo loại (ADR-0133)
 
-Trạng thái: **chủ dự án đang duyệt lần lượt từng ca trong chat** (chưa ca nào được duyệt; cột bên phải ghi "chờ chủ duyệt" cho tới khi chủ nói duyệt từng ca). Chữ ký của Kế toán là bước riêng, chưa có. Mức dùng trong mọi ca: người lớn 50.000 đ, trẻ em 30.000 đ, người cao tuổi 40.000 đ, em bé không có ô (luôn 0).
+Trạng thái: **chủ dự án đã duyệt cả bảy ca (từng ca, trong chat 19/10) và báo Kế toán đã ký sổ vàng (chủ nói trong chat 19/10: «ok đã ký sổ vàng»; bản ký của Kế toán do chủ giữ, không nằm trong kho mã).** Mức dùng trong mọi ca: người lớn 50.000 đ, trẻ em 30.000 đ, người cao tuổi 40.000 đ, em bé không có ô (luôn 0).
 
 | Ca | Số khách | Đáp án (đ) | Kế toán |
 |---|---|---|---|

@@ -70,7 +70,8 @@ Ghi 19/10/2026 từ khối tóm tắt cuối của `npm run trien-khai` (chủ c
 - Commit: `06654831`. e2e: xanh (đủ 69 kịch bản). Kiểm dữ liệu `audit-invariants --db remote`: ĐẠT (5 cảnh báo cũ, không do bản này: R-ORD-9 một đơn, R-CTL-1 năm dịch vụ chưa phân nhóm). Cổng phiên bản trước và sau deploy: ĐẠT.
 - Điểm khôi phục Time Travel trước khi áp: `000014b1-00000002-00005109-a4c05d58d1ee6ed9bb1deaa098aaece5`. Worker Version ID: `6a48bc3d-03fb-4193-a201-985a68c71f94`.
 - **Hoàn tác:** `0116` chỉ THÊM hai bảng phụ (`prc_commission_rule_pax`, `ord_service_terms_pax`) và hai view/trigger đi kèm, không đổi bảng cũ; đơn và mức cũ không có dòng phụ nên tính y như trước. Lùi Worker về 2.24 an toàn khi chưa có mức «theo loại» nào được khai; đã có mức theo loại rồi mà lùi Worker thì mã cũ bỏ qua dòng phụ và tính một số chung cho mọi khách (sai tiền) — khi đó phải lùi cả dữ liệu bằng Time Travel hoặc đóng các mức theo loại trước.
-- **Chưa làm (chủ/Kế toán):** Kế toán ký sổ vàng (bảy ca SV-LK-01…07 chủ đã duyệt từng ca 19/10, chưa phải chữ ký Kế toán); khai thử một mức «theo loại» trên màn Hoa hồng đối tác bằng tài khoản Kế toán thật; xem form trên trình duyệt (chưa mở bằng mắt).
+- **Sổ vàng:** bảy ca SV-LK-01…07 chủ duyệt từng ca 19/10; chủ báo Kế toán đã ký (19/10).
+- **Chưa làm (chủ/Kế toán):** khai thử một mức «theo loại» trên màn Hoa hồng đối tác bằng tài khoản Kế toán thật; xem form trên trình duyệt (chưa mở bằng mắt).
 
 ## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.19 ĐÃ LÊN PRODUCTION (rà soát ngôn ngữ giao diện lượt 1 + lượt 2 — ADR-0130: bảng từ giao diện, bảy tên chủ chọn 18/10, hai lỗi nút thẻ Thanh toán, ô hạn chốt của Toàn quyền nhập phút; kèm ADR-0131 đã có trên main) — migration `0111_ten_luat_chuyen_khach` đã áp — triển khai 2026-10-19 08:55 giờ VN
 
