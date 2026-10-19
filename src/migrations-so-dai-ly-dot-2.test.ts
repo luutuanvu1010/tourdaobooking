@@ -10,6 +10,7 @@ import { readdirSync } from "node:fs";
 import { world, seedStaff } from "../tests/audit/harness.mjs";
 import { gieoBanChup } from "../tests/audit/gieo-ban-chup.mjs";
 import { chenPhieuDieuChinh } from "../tests/audit/dieu-chinh-lib.mjs";
+import { soTienCoc, type DebtKind, type ReceiptRow } from "./modules/billing/rules.ts";
 
 const FILES = readdirSync(new URL("../migrations/", import.meta.url)).filter((f) => f.endsWith(".sql")).sort();
 const FILE = FILES.find((f) => f.endsWith("_so_dai_ly_dot_2.sql"));
@@ -227,6 +228,36 @@ test("miễn đúng chỗ: dòng đảo một HOA_HONG; phiếu điều chỉnh 
   dong(w, { posting: cu.p, debtor: DAI_LY, creditor: ct, amount: 9_000_000, kind: "HOA_HONG", order: cu.id, service: cu.dv[0] });
   dong(w, { posting: cu.p, debtor: ct, creditor: DAI_LY, amount: 7, kind: "GIAM_GIA_BEN_DAT", order: cu.id });
   assert.throws(() => dong(w, { posting: cu.p, debtor: ct, creditor: IRESORT, amount: 1, kind: "GIA_VON", order: cu.id }), /commercial_service_required:/);
+});
+
+test("chống thoái lui (ii), (iii) — ghi chú điều phối 10(c): dòng đảo một HOA_HONG nằm NGAY trên phiếu Đã giao vẫn chèn được; (iii) không cộng dòng đảo", () => {
+  const { w, ct } = khung();
+  const g = daGiao(w, ct, [{ gia: 1_000_000 }]);
+  const hh = dong(w, { posting: g.p, debtor: ct, creditor: DAI_LY, amount: 400_000, kind: "HOA_HONG", order: g.id, service: g.dv[0] });
+  // (ii): dòng đảo đổi chỗ hai bên (bên nợ = đại lý) — vế `NEW.reverses_line_id IS NULL` của bil_debt_line_commercial_direction miễn nó.
+  dong(w, { posting: g.p, debtor: DAI_LY, creditor: ct, amount: 400_000, kind: "HOA_HONG", order: g.id, service: g.dv[0], reverses: hh });
+  // (iii): cộng dồn chỉ dòng GỐC (vế `l.reverses_line_id IS NULL`): 400.000 + 600.000 = gross ⇒ được (tính cả dòng đảo thì 1.400.000 > gross).
+  dong(w, { posting: g.p, debtor: ct, creditor: IRESORT, amount: 600_000, kind: "GIA_VON", order: g.id, service: g.dv[0] });
+});
+
+test("cọc, vế khoản cũ (ghi chú điều phối 10(b)): lần thu bên đặt ghi thẳng có dòng giữ hộ, không dấu ⇒ KHÔNG đang đối chiếu; khoản bên đặt CONFIRMED + dòng giữ hộ của «Bên kia đã nhận» ⇒ đã trả; view = soTienCoc", () => {
+  const { w, ct } = khung();
+  const o = don(w, [{ gia: 1_000_000 }]);
+  thuGiuHo(w, ct, { order: o.id, amount: 300_000, role: "BOOKER", collector: DAI_LY }); // Đối tác / Kế toán ghi thẳng: nợ ngay, không dấu
+  const bk = thu(w, ct, { order: o.id, amount: 200_000, role: "BOOKER", collector: DAI_LY });
+  dau(w, bk, "DECLARED");
+  dau(w, bk, "CONFIRMED");
+  dong(w, { posting: phieu(w, { kind: "COUNTERPARTY_CONFIRMED", order: o.id }), debtor: DAI_LY, creditor: ct, amount: 200_000, kind: "HELD", order: o.id, receipt: bk });
+  assert.deepEqual({ ...w.q("SELECT da_tra, dang_doi_chieu FROM v_bil_coc_don WHERE order_id = ?", o.id)[0] }, { da_tra: 500_000, dang_doi_chieu: 0 });
+  const receipts: ReceiptRow[] = w.q("SELECT id, kind_code, amount, collector_role_code, collector_party_id, reverses_id FROM bil_payment_receipt WHERE order_id = ?", o.id)
+    .map((r: { id: string; kind_code: ReceiptRow["kind"]; amount: number; collector_role_code: ReceiptRow["collectorRole"]; collector_party_id: string; reverses_id: string | null }) =>
+      ({ id: r.id, kind: r.kind_code, amount: r.amount, collectorRole: r.collector_role_code, collectorPartyId: r.collector_party_id, reversesId: r.reverses_id }));
+  const lines = w.q("SELECT id, kind_code, receipt_id, reverses_line_id, debtor_party_id, creditor_party_id, amount FROM bil_debt_line WHERE order_id = ?", o.id)
+    .map((l: { id: string; kind_code: DebtKind; receipt_id: string | null; reverses_line_id: string | null; debtor_party_id: string; creditor_party_id: string; amount: number }) =>
+      ({ id: l.id, kind: l.kind_code, receiptId: l.receipt_id, reversesLineId: l.reverses_line_id, debtorPartyId: l.debtor_party_id, creditorPartyId: l.creditor_party_id, amount: l.amount }));
+  const doiChieu = w.q("SELECT receipt_id, kind_code FROM bil_receipt_recon WHERE receipt_id = ?", bk).map((d: { receipt_id: string; kind_code: "DECLARED" | "CONFIRMED" }) => ({ receiptId: d.receipt_id, kind: d.kind_code }));
+  const tinh = soTienCoc({ receipts, lines, duyet: [], hoanNgoai: [], doiChieu });
+  assert.deepEqual([tinh.daTra, tinh.dangDoiChieu], [500_000, 0], "hàm TS cùng số với view");
 });
 
 test("đối chiếu (ADR-0132 điều 1, 4): DECLARED nhận người thu bên đặt / nhà cung cấp mọi hình thức; mã giao dịch chỉ đòi cho người thu Công ty", () => {

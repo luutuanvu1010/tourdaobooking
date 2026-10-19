@@ -2092,9 +2092,10 @@ export interface OrderPaymentsResponse {
   laKeToan: boolean;
   /**
    * Thao tác Kế toán đặt TẠM trên trang đơn (điều phối 30/9 — hai màn sổ riêng chờ chủ vẽ lại): CHỈ có khi `laKeToan`, còn lại `null`.
-   * `dangGiu` = ai đang giữ tiền của công ty VÌ ĐƠN NÀY (số dư dương của sổ, theo đơn); `choXacNhan` = id lần thu "Công ty thu – CK" chưa được xác nhận.
+   * `dangGiu` = ai đang giữ tiền của công ty VÌ ĐƠN NÀY (số dư dương của sổ, theo đơn); `choXacNhan` = id lần thu "Công ty thu" chưa được xác nhận (nút
+   * «Công ty đã nhận»); `choBenKia` = id lần thu khách trả cho bên đặt / tại quầy nhà cung cấp chờ «Bên kia đã nhận» (ADR-0132).
    */
-  keToan: { dangGiu: { partyId: string; ten: string; soTien: number; choXacNhan: number }[]; choXacNhan: string[] } | null;
+  keToan: { dangGiu: { partyId: string; ten: string; soTien: number; choXacNhan: number }[]; choXacNhan: string[]; choBenKia: string[] } | null;
   /** ADR-0089: tiền cọc của ĐƠN HUỶ (null với đơn không huỷ). */
   coc: CocDonDto | null;
 }
@@ -2170,8 +2171,11 @@ export interface CocListResponse {
   donHuyGiuCoc: { orderId: string; maDon: string; nhom: string; nhomNhan: string; conGiu: number; han: string; sapHetHan: boolean; legacy: boolean }[];
   /** Đơn huỷ còn người giữ tiền mặt của công ty (đ11). */
   conNguoiGiu: { orderId: string; maDon: string; nguoi: string; soTien: number }[];
-  /** Khoản "Công ty thu" chờ Kế toán đối chiếu (ADR-0120 Điều 1.3): `qua3Ngay` = khai quá 3 ngày ⇒ nhắc. `ngayKhai` ngày dân sự giờ VN. */
-  doiChieu: { receiptId: string; orderId: string; maDon: string; soTien: number; ngayKhai: string; qua3Ngay: boolean }[];
+  /**
+   * Khoản chờ Kế toán đối chiếu (ADR-0120 Điều 1.3; ADR-0132): `qua3Ngay` = khai quá 3 ngày ⇒ nhắc. `ngayKhai` ngày dân sự giờ VN. `loai` = nút xác nhận nó
+   * («Công ty đã nhận» cho "cong_ty"; «Bên kia đã nhận» cho "ben_dat" / "nha_cung_cap"); `benKia` = tên bên đặt / nhà cung cấp, null với Công ty thu.
+   */
+  doiChieu: { receiptId: string; orderId: string; maDon: string; soTien: number; ngayKhai: string; qua3Ngay: boolean; loai: "cong_ty" | "ben_dat" | "nha_cung_cap"; benKia: string | null }[];
 }
 /** `GET /api/ledger/coc/doi-chieu` — đơn huỷ CŨ còn giữ tiền để đối chiếu "đã hoàn ngoài hệ thống" (đ16). */
 export interface CocDoiChieuResponse {
@@ -2191,8 +2195,14 @@ export interface CocDemResponse {
 export interface LanThuInput {
   soTien: number;
   hinhThuc: "CASH" | "BANK_TRANSFER" | "OTHER";
-  /** "toi" = chính người ghi; "cong_ty" = Công ty thu (chuyển khoản vào tài khoản công ty…); { partyId } = người khác — CHỈ Kế toán / Toàn quyền. */
-  nguoiThu: "toi" | "cong_ty" | { partyId: string };
+  /**
+   * "toi" = chính người ghi; "cong_ty" = Công ty thu (chuyển khoản vào tài khoản công ty…); { partyId } = người khác — CHỈ Kế toán / Toàn quyền.
+   * Sổ đại lý đợt 2 (ADR-0132): "ben_dat" = khách trả cho đại lý đặt đơn; { nhaCungCapPartyId } = khách trả tại quầy nhà cung cấp của một dịch vụ trên đơn —
+   * người không phải Kế toán chọn thì là LỜI KHAI chờ Kế toán «Bên kia đã nhận» (không ai nợ tới lúc đó); không đi kèm «Đã giao» (400).
+   */
+  nguoiThu: "toi" | "cong_ty" | "ben_dat" | { partyId: string } | { nhaCungCapPartyId: string };
+  /** «Thu cho» nhà cung cấp của một dịch vụ trên đơn (ADR-0078 điều 9); vắng = Tour Đảo. Trần: phần còn chưa thu cho nhà cung cấp đó. */
+  thuChoNhaCungCapPartyId?: string;
   ngayPhatSinh?: string;
   ghiChu?: string;
   /** ADR-0092 Đ6 (C1): BẮT BUỘC khi hình thức chuyển khoản + Công ty thu + người ghi là Kế toán / Toàn quyền; người khác gửi ⇒ 400. */
@@ -2229,7 +2239,8 @@ export interface SoCuaToiResponse {
 /** `GET /api/ledger` (Kế toán, Toàn quyền): số dư từng bên với công ty, khoản "Công ty thu" chờ xác nhận, lần thu chưa rõ người thu. */
 export interface SoCongNoResponse {
   soDu: { partyId: string; ten: string; dangGiu: number }[];
-  choXacNhan: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string; nguoiKhai: string }[];
+  /** Khoản chờ xác nhận — `loai` / `benKia` như `CocListResponse.doiChieu` (ADR-0132). */
+  choXacNhan: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string; nguoiKhai: string; loai: "cong_ty" | "ben_dat" | "nha_cung_cap"; benKia: string | null }[];
   chuaRo: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string }[];
 }
 

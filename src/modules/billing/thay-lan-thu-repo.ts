@@ -13,17 +13,23 @@ export async function phaiThuLucGiao(db: D1Database, orderId: string): Promise<n
 const COLS = `id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code, occurred_date,
   reverses_id, note, created_at, created_by, updated_at, updated_by, replacement_id`;
 
-/** Lần thu MỚI của lô Thay (luôn "lần thu của khách"), mang dấu nối ?13. Không lính gác mốc: trigger 0083 chặn nếu thiếu dấu sau Đã giao. */
+/**
+ * Lần thu MỚI của lô Thay (luôn "lần thu của khách"), mang dấu nối ?12. «Thu cho» = ?13 (nhà cung cấp đã kiểm ở máy chủ — sổ đại lý đợt 2 Task 5), vắng ⇒ công ty
+ * chủ đọc trong câu. Không lính gác mốc: trigger 0083 chặn nếu thiếu dấu sau Đã giao.
+ */
 const RECEIPT_THAY_MOI = defineSql(
   "billing",
   "thay_receipt_moi",
   `INSERT INTO bil_payment_receipt (${COLS})
-   SELECT ?1, ?2, 'CUSTOMER_PAYMENT', ?3, ?4, ?5, ?6, (SELECT party_id FROM v_pty_owner_company LIMIT 1), ?7, ?8, NULL, ?9, ?10, ?11, ?10, ?11, ?12`,
+   SELECT ?1, ?2, 'CUSTOMER_PAYMENT', ?3, ?4, ?5, ?6, COALESCE(?13, (SELECT party_id FROM v_pty_owner_company LIMIT 1)), ?7, ?8, NULL, ?9, ?10, ?11, ?10, ?11, ?12`,
 );
 export const receiptThayMoiStatement = (
   db: D1Database,
-  r: { id: string; orderId: string; amount: number; collectorPartyId: string; collectorRole: "COMPANY" | "STAFF"; method: string; stage: "PREPAID" | "AT_DELIVERY"; occurredDate: string; note: string | null; at: string; by: string; replacementId: string },
-) => db.prepare(RECEIPT_THAY_MOI).bind(r.id, r.orderId, r.amount, r.collectorPartyId, r.collectorRole, r.method, r.stage, r.occurredDate, r.note, r.at, r.by, r.replacementId);
+  r: {
+    id: string; orderId: string; amount: number; collectorPartyId: string; collectorRole: "COMPANY" | "STAFF" | "BOOKER" | "SUPPLIER"; method: string; stage: "PREPAID" | "AT_DELIVERY";
+    occurredDate: string; note: string | null; at: string; by: string; replacementId: string; collectedForPartyId: string | null;
+  },
+) => db.prepare(RECEIPT_THAY_MOI).bind(r.id, r.orderId, r.amount, r.collectorPartyId, r.collectorRole, r.method, r.stage, r.occurredDate, r.note, r.at, r.by, r.replacementId, r.collectedForPartyId);
 
 /** Dòng ĐẢO của một lần thu cũ trong lô Thay: chép gốc ?6, trỏ gốc, mang dấu nối ?7 — trigger `bil_payment_receipt_reversal_match` + UNIQUE canh như đảo thường. */
 const RECEIPT_THAY_DAO = defineSql(

@@ -53,7 +53,7 @@ export const LICH_SU_DOI_TAC_AN = [
   "order_cancel_reason_classified", "order_terms_captured", "order_terms_recaptured", "order_terms_manual", "order_accounting_entry_marked", "order_accounting_entry_unmarked",
   "order_handler_changed", "order_claimed", "booker_changed", "exported_png", "exported_pdf",
   // Sổ tiền, cọc đơn huỷ, đối soát
-  "ledger_company_received", "ledger_settlement", "ledger_refund", "ledger_adjustment", "ledger_adjustment_requested", "ledger_adjustment_approved", "ledger_adjustment_rejected", "ledger_adjustment_withdrawn", "ledger_adjustment_affected",
+  "ledger_company_received", "ledger_counterparty_confirmed", "ledger_settlement", "ledger_refund", "ledger_adjustment", "ledger_adjustment_requested", "ledger_adjustment_approved", "ledger_adjustment_rejected", "ledger_adjustment_withdrawn", "ledger_adjustment_affected",
   "ledger_receipt_replaced", "ledger_reversal", "ledger_bank_txn_linked",
   "deposit_refund_approved", "deposit_transfer_approved", "deposit_approval_voided", "deposit_refund_paid", "deposit_transferred_out", "deposit_transferred_in",
   "deposit_outside_recorded", "deposit_outside_confirmed", "deposit_outside_rejected", "prc_commission_rule_added", "prc_commission_rule_closed", "prc_supply_term_added",

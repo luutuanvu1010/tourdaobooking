@@ -19,7 +19,7 @@ import { donChoNhapKeToan, docNhapKeToan, ghiNhapKeToan } from "./nhap-ke-toan";
 import { accountingEnteredAmong, earliestLedgerMonth, orderOwners, soDongNoCuaNguoiRow } from "./repository";
 import { cocChoBienNhan, cocCuaDon, danhSachCoc, demCoc, doiChieuCoc, ghiChiHoan, ghiChuyen, ghiDuyet, ghiHoanNgoai, ghiHuyDuyet, xacNhanHoanNgoai } from "./coc";
 import {
-  daGiao, ghiDieuChinh, ghiHoanKhach, ghiLanThu, ghiQuyetToan, hoanThanh, kySoResponse, soCongNo, soCuaToi, tienCuaDon, tienNhieuDon, xacNhanCongTyNhan, type NguoiGoi,
+  daGiao, ghiDieuChinh, ghiHoanKhach, ghiLanThu, ghiQuyetToan, hoanThanh, kySoResponse, soCongNo, soCuaToi, tienCuaDon, tienNhieuDon, xacNhanBenKia, xacNhanCongTyNhan, type NguoiGoi,
 } from "./service";
 import { ghiThayLanThu } from "./thay-lan-thu";
 
@@ -90,7 +90,8 @@ export const billingModule: AppModule = {
     }),
 
     // Ghi một lần thu TRƯỚC "Đã giao" (ADR-0026 đ2, đ10): ô `payment.receive` { ownerId, assigned } — Đối tác chỉ đơn mình, HDV chỉ đơn đang phụ trách.
-    // Người không phải Kế toán/Toàn quyền chỉ ghi người thu = mình hoặc Công ty (400). Sau "Đã giao" → 409 (NT-S3).
+    // Người không phải Kế toán/Toàn quyền chỉ ghi người thu = mình, Công ty, hoặc LỜI KHAI «khách trả cho đại lý / tại quầy nhà cung cấp» (ADR-0132 — 400 khác đi).
+    // Sau "Đã giao" → 409 (NT-S3).
     route("POST", "/api/orders/:id/payments", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
@@ -99,7 +100,9 @@ export const billingModule: AppModule = {
       if (!can(staff, "payment.receive", { ownerId: info.ownerId, assigned })) return CANNOT_RECEIVE();
       // ADR-0089 đ13 (NT-H10, H-C9): lần thu lên ĐƠN ĐÃ HUỶ (khách chuyển khoản muộn) chỉ Kế toán, Toàn quyền.
       if (info.status === "cancelled" && !can(staff, "ledger.write")) return CANNOT_RECEIVE_CANCELLED();
-      const kq = await ghiLanThu(env.DB, { orderId: id, deliveredAt: info.deliveredAt, raw: await readJson(request), ai: nguoiGoi(staff) });
+      // Sổ đại lý đợt 2 Task 5 (Ruling R-22): bản chụp quyết bên đặt / nhà cung cấp của lần thu — hàm công bố của orders KHÔNG tự kiểm quyền nên chỉ gọi ở đây, SAU `can(`.
+      const phan = await phanThuongMaiCuaDon(env.DB, id);
+      const kq = await ghiLanThu(env.DB, { orderId: id, deliveredAt: info.deliveredAt, phan, raw: await readJson(request), ai: nguoiGoi(staff) });
       if (!kq.ok) return kq.res;
       baoThayDoi({ orderId: id, thayDoi: "tien" });
       return json({ ok: true }, 201, { location: trangDon(id) });
@@ -201,7 +204,7 @@ export const billingModule: AppModule = {
       // `can(` (hàm công bố không tự kiểm quyền — src/orders-cong-bo.test.ts) và SAU `thongTinGiaoDon`: đơn đổi sau lần đọc khoá lạc quan ⇒ lô không áp (stale).
       const phan = await phanThuongMaiCuaDon(env.DB, id);
       // Người được phép CHỈ vì đang phụ trách (ô `assigned`) ⇒ lô kèm câu bảo vệ (đổi người phụ trách giữa lúc đọc và lúc ghi → lô không áp — NT-F4).
-      const kq = await daGiao(env.DB, { orderId: id, info, phan, ai: nguoiGoi(staff), canCauBaoVe: !can(staff, "order.handover"), rawLanThu: lanThu });
+      const kq = await daGiao(env.DB, { orderId: id, info, phan, ai: nguoiGoi(staff), canCauBaoVe: !can(staff, "order.handover"), rawLanThu: lanThu, laDoiTac: holdsPartner(staff) });
       if (!kq.ok) return kq.res;
       baoThayDoi({ orderId: id, thayDoi: "chot_giao" });
       return json({ ok: true });
@@ -329,6 +332,17 @@ export const billingModule: AppModule = {
       return json({ ok: true });
     }),
 
+    // Kế toán bấm "Bên kia đã nhận" (ADR-0132 điều 2): khoản khách trả cho bên đặt / tại quầy nhà cung cấp do người khác khai thành nợ giữ hộ của bên kia (một phiếu,
+    // một dòng). Ô `ledger.write` (Kế toán, Toàn quyền). Không mã giao dịch (điều 4).
+    route("POST", "/api/ledger/counterparty-receipts/:receiptId/confirm", "office", async ({ env, request, params, staff, baoThayDoi }) => {
+      if (!can(staff, "ledger.write")) return CANNOT_LEDGER();
+      if (!UUID_RE.test(params.receiptId!)) return error(404, "not_found", "Không tìm thấy lần thu.");
+      const kq = await xacNhanBenKia(env.DB, { receiptId: params.receiptId!, raw: await readJson(request), ai: nguoiGoi(staff) });
+      if (!kq.ok) return kq.res;
+      baoThayDoi({ orderId: kq.value.orderId, thayDoi: "tien" });
+      return json({ ok: true });
+    }),
+
     // Nộp về công ty / công ty trả (ADR-0026 đ5), phân bổ theo đơn. Ô `ledger.write`.
     route("POST", "/api/ledger/settlements", "office", async ({ env, request, staff, baoThayDoi }) => {
       if (!can(staff, "ledger.write")) return CANNOT_LEDGER();
@@ -399,7 +413,12 @@ export const billingModule: AppModule = {
     // của lần thu sau Đã giao (đảo đơn lẻ bị chặn — đ3).
     route("POST", "/api/ledger/receipt-replacements", "office", async ({ env, request, staff, baoThayDoi }) => {
       if (!can(staff, "ledger.write")) return CANNOT_LEDGER();
-      const kq = await ghiThayLanThu(env.DB, { raw: await readJson(request), ai: nguoiGoi(staff) });
+      const raw = await readJson(request);
+      const orderId = raw && typeof raw === "object" ? (raw as Record<string, unknown>).orderId : undefined;
+      if (typeof orderId !== "string" || !UUID_RE.test(orderId)) return error(400, "invalid_input", "Mã đơn không hợp lệ.");
+      // Sổ đại lý đợt 2 Task 5 (Ruling R-22): bản chụp quyết bên đặt / nhà cung cấp của lần thu mới — đọc SAU `can(` (src/orders-cong-bo.test.ts).
+      const phan = await phanThuongMaiCuaDon(env.DB, orderId);
+      const kq = await ghiThayLanThu(env.DB, { orderId, phan, raw, ai: nguoiGoi(staff) });
       if (!kq.ok) return kq.res;
       baoThayDoi({ orderId: kq.value.orderId, thayDoi: "tien" });
       return json({ ok: true }, 201, { location: trangDon(kq.value.orderId) });

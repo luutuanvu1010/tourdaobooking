@@ -51,6 +51,8 @@ export const AUDIT_ACTIONS = {
   order_accounting_entry_marked: { label: "Đánh dấu đã nhập phần mềm kế toán", group: "order" },
   order_accounting_entry_unmarked: { label: "Bỏ dấu đã nhập phần mềm kế toán", group: "order" },
   ledger_company_received: { label: "Xác nhận công ty đã nhận", group: "ledger" },
+  // Sổ đại lý đợt 2 (ADR-0132 điều 2): Kế toán xác nhận khoản khách trả cho bên đặt / tại quầy nhà cung cấp — không detail (không tên bên kia, không số).
+  ledger_counterparty_confirmed: { label: "Xác nhận bên kia đã nhận", group: "ledger" },
   ledger_settlement: { label: "Ghi nộp / trả tiền", group: "ledger" },
   ledger_refund: { label: "Ghi hoàn khách", group: "ledger" },
   ledger_adjustment: { label: "Ghi điều chỉnh sổ", group: "ledger" },

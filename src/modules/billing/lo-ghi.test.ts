@@ -76,7 +76,9 @@ test("GET /api/orders/:id/payments: HDV đang phụ trách xem được (còn th
   assert.equal((await w.call("GET", `/api/orders/${id}/payments`, { as: DT })).status, 403);
 });
 
-test("NT-Q4 / NT-S9: ghi lần thu — người thu = mình hoặc Công ty; người khác → 400 (trừ Kế toán); Đối tác đơn người khác → 403; thu cho luôn là công ty chủ", async () => {
+// ĐẢO CÓ CHỦ ĐÍCH (sổ đại lý đợt 2 Task 5, ADR-0078 điều 9): «thu cho» KHÔNG còn luôn là công ty chủ — lần thu chọn được «thu cho» nhà cung cấp của một dịch vụ trên
+// đơn (có trần; bài ở ben-kia.test.ts). Đơn không nhà cung cấp ⇒ vẫn luôn công ty chủ, và trình duyệt không bao giờ đặt được giá trị thô (cột / hồ sơ lạ ⇒ bỏ qua / 400).
+test("NT-Q4 / NT-S9: ghi lần thu — người thu = mình hoặc Công ty; người khác → 400 (trừ Kế toán); Đối tác đơn người khác → 403; thu cho mặc định công ty chủ, không lấy giá trị thô", async () => {
   const w = setup();
   const id = donDaXacNhan(w);
   assert.equal((await thu(w, HDV, id, tienMat(100_000, { partyId: `pty-${HDV2}` }))).status, 400);
@@ -86,6 +88,7 @@ test("NT-Q4 / NT-S9: ghi lần thu — người thu = mình hoặc Công ty; ng�
   assert.equal((await thu(w, HDV, id, { soTien: 5, hinhThuc: "BITCOIN", nguoiThu: "toi" })).status, 400);
   assert.equal((await thu(w, HDV, id, tienMat(300_000))).status, 201);
   assert.equal((await thu(w, KT, id, tienMat(200_000, { partyId: `pty-${HDV2}` }))).status, 201, "Kế toán ghi thay người khác");
+  assert.equal((await thu(w, KT, id, { ...tienMat(1, "cong_ty"), thuChoNhaCungCapPartyId: `pty-${HDV2}` })).status, 400, "«thu cho» chỉ nhà cung cấp của đơn");
   const cho = w.q("SELECT DISTINCT collected_for_party_id AS p FROM bil_payment_receipt WHERE order_id = ?", id) as { p: string }[];
   const congTy = one(w, "SELECT party_id FROM v_pty_owner_company")!.party_id;
   assert.deepEqual(cho.map((x) => x.p), [congTy]);
