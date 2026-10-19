@@ -707,3 +707,44 @@ test("BL-SDL2-DAO-DONG-TM (b): tài khoản giữ quyền Đối tác (lai Kế 
   const ok = await w.call("POST", "/api/ledger/adjustments", { as: KT, body: { loai: "dao_lan_thu", receiptId: rc, lyDo: "ghi nhầm người thu" } });
   assert.equal(ok.status, 201, ok.text);
 });
+
+// ---- Siết thêm cổng Đối tác (người kiểm lại a401c14a, Important I-1; chủ chọn nguyên tắc «chặn»): «Sửa khoản thu đã ghi», «Đã nộp về công ty» / «công ty trả» và «Ghi hoàn
+// cho khách» cũng ghi NGAY, không người duyệt ⇒ tài khoản giữ quyền Đối tác (kể cả lai) tự làm mất khoản mình đang giữ của công ty. Kế toán thường vẫn dùng được cả ba.
+const CAU_DOI_TAC_GHI_SO = "Tài khoản có quyền Đối tác không sửa khoản thu, ghi nộp tiền hay hoàn tiền khách được.";
+test("Cổng Đối tác (I-1): tài khoản lai tự giữ 300.000 rồi «Sửa khoản thu» sang Công ty / ghi «Đã nộp» / «Ghi hoàn» do mình trả ⇒ 403, câu không số, số dư không đổi; Kế toán thường cả ba 201", async () => {
+  const w = setup();
+  seedStaff(w.sqlite, { id: LAI, phone: "0900000011", name: "Khoa Lai Kế", perms: ["ACCOUNTING", "PARTNER"] });
+  seedStaff(w.sqlite, { id: LAI_DUYET, phone: "0900000012", name: "Hà Lai Chủ", perms: ["SUPER_ADMIN", "PARTNER"] });
+  const ct = congTy(w);
+  const lai = `pty-${LAI}`;
+  const id = don(w);
+  assert.equal((await thu(w, KT, id, 300_000, { partyId: lai })).status, 201);
+  const rc = String(w.q("SELECT id FROM bil_payment_receipt WHERE order_id = ? AND reverses_id IS NULL", id)[0].id);
+  assert.equal(soDu(w, id, lai, ct), 300_000, "tài khoản lai đang giữ 300.000 của công ty");
+  const dongTruoc = dem(w, "SELECT count(*) AS n FROM bil_debt_line");
+  for (const as of [LAI, LAI_DUYET]) {
+    const loi = [
+      await w.call("POST", "/api/ledger/receipt-replacements", { as, body: { orderId: id, cu: [rc], moi: [{ soTien: 300_000, hinhThuc: "CASH", nguoiThu: "cong_ty" }], lyDo: "đổi người thu sang công ty" } }),
+      await w.call("POST", "/api/ledger/settlements", { as, body: { chieu: "nop", partyId: lai, phanBo: [{ orderId: id, soTien: 300_000 }] } }),
+      await w.call("POST", "/api/ledger/settlements", { as, body: { chieu: "tra", partyId: lai, phanBo: [{ orderId: id, soTien: 100_000 }] } }),
+      await w.call("POST", "/api/ledger/refunds", { as, body: { orderId: id, soTien: 100_000, hinhThuc: "CASH", nguoiTra: { partyId: lai } } }),
+    ];
+    for (const [i, r] of loi.entries()) {
+      assert.deepEqual([r.status, r.json?.error?.message], [403, CAU_DOI_TAC_GHI_SO], `lệnh ${i} — ${as}`);
+      assert.doesNotMatch(r.text, /300[.,]?000|100[.,]?000/, "câu không lộ số");
+    }
+  }
+  assert.equal(dem(w, "SELECT count(*) AS n FROM bil_debt_line"), dongTruoc, "không thêm dòng nào");
+  assert.equal(soDu(w, id, lai, ct), 300_000, "khoản giữ không mất");
+  // Kế toán thường: cả ba lệnh vẫn ghi được.
+  const h = await w.call("POST", "/api/ledger/refunds", { as: KT, body: { orderId: id, soTien: 100_000, hinhThuc: "CASH", nguoiTra: { partyId: lai } } });
+  assert.equal(h.status, 201, h.text);
+  const n = await w.call("POST", "/api/ledger/settlements", { as: KT, body: { chieu: "nop", partyId: lai, phanBo: [{ orderId: id, soTien: 200_000 }] } });
+  assert.equal(n.status, 201, n.text);
+  assert.equal(soDu(w, id, lai, ct), 0);
+  const id2 = don(w);
+  assert.equal((await thu(w, KT, id2, 300_000, { partyId: lai })).status, 201);
+  const rc2 = String(w.q("SELECT id FROM bil_payment_receipt WHERE order_id = ? AND reverses_id IS NULL", id2)[0].id);
+  const s = await w.call("POST", "/api/ledger/receipt-replacements", { as: KT, body: { orderId: id2, cu: [rc2], moi: [{ soTien: 300_000, hinhThuc: "CASH", nguoiThu: "cong_ty" }], lyDo: "khách chuyển khoản cho công ty" } });
+  assert.equal(s.status, 201, s.text);
+});

@@ -3,7 +3,7 @@ import { renderBanner } from "./banner";
 import { openBookerSheet } from "./booker-sheet";
 import { openConfirmationDialog } from "./confirmation-dialog";
 import { byId, h, replaceChildren } from "./dom";
-import { cauXacNhanDaNhan, duocHuyKhoanSo, hienNutSuaKhoanThu } from "../src/shared/nut-khoan-thu";
+import { cauXacNhanDaNhan, duocHuyKhoanSo, ghiSoNoiBo, hienNutSuaKhoanThu } from "../src/shared/nut-khoan-thu";
 import { METHOD_LABEL, actionLabel, dateTime, ngayNganHomNay, parseMoney, trangThaiHienThi, vnd } from "./format";
 import { regroupMoney, setMoneyValue } from "./money-input";
 import { moBangTruot } from "./bang-truot";
@@ -831,7 +831,8 @@ function nutKeToanLanThu(order: Order, t: Api.OrderPaymentsResponse, l: Api.LanT
   }
   // ADR-0088 đ2, đ3: "Sửa khoản thu đã ghi" — đường sửa sai của khoản thu (sau Đã giao là đường DUY NHẤT; "Đảo" đơn lẻ bị máy chủ chặn nên ẩn). Một khoản thu cũ → một
   // khoản thu đúng (API nhận N → M; màn này làm ca hay gặp). Đơn huỷ đi qua khối cọc.
-  if (hienNutSuaKhoanThu(l, { choXacNhan: t.keToan!.choXacNhan, donDaHuy: order.status === "cancelled" })) {
+  // Người kiểm I-1 (19/10): tài khoản giữ quyền Đối tác không thấy «Sửa khoản thu» — máy chủ chặn cùng luật (`ghiSoNoiBo`).
+  if (ghiSoNoiBo(staff!, "ledger.write") && hienNutSuaKhoanThu(l, { choXacNhan: t.keToan!.choXacNhan, donDaHuy: order.status === "cancelled" })) {
     const so = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", value: String(l.soTien) }) as HTMLInputElement;
     regroupMoney(so);
     so.addEventListener("input", () => regroupMoney(so));
@@ -907,7 +908,7 @@ function khoiKeToan(order: Order, t: Api.OrderPaymentsResponse): HTMLElement | n
       { "data-khoi": "dang-giu" },
       `${d.ten} còn ${vnd(d.soTien)} chưa nộp về công ty`,
       d.choXacNhan > 0 ? ` (gồm ${vnd(d.choXacNhan)} chuyển khoản chờ xác nhận) ` : " ",
-      tienMat > 0
+      tienMat > 0 && ghiSoNoiBo(staff!, "ledger.write") // người kiểm I-1: tài khoản giữ quyền Đối tác không ghi «Đã nộp» (máy chủ chặn cùng luật)
         ? hangXacNhan({
           nhan: "Đã nộp về công ty", action: "da-nop", nutGhi: "Ghi đã nộp",
           cau: `Ghi ${d.ten} đã nộp ${vnd(tienMat)} của đơn này về công ty?`,
@@ -918,7 +919,7 @@ function khoiKeToan(order: Order, t: Api.OrderPaymentsResponse): HTMLElement | n
     );
   });
   let hoan: HTMLElement | null = null;
-  if (t.du > 0) {
+  if (t.du > 0 && ghiSoNoiBo(staff!, "payment.refund")) {
     const soTien = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", value: String(t.du) }) as HTMLInputElement;
     regroupMoney(soTien);
     soTien.addEventListener("input", () => regroupMoney(soTien));
@@ -939,7 +940,7 @@ function khoiKeToan(order: Order, t: Api.OrderPaymentsResponse): HTMLElement | n
   }
   // ADR-0088 đ2 + kiểm độc lập vòng 3: đơn đã ở bước Đã giao mà đã thu < phải thu (dữ liệu lệch từ trước bản vá) — ghi bù bằng lệnh sửa khoản thu KHÔNG khoản thu cũ.
   let bu: HTMLElement | null = null;
-  if (t.deliveredAt && t.conLai > 0 && order.status !== "cancelled") {
+  if (t.deliveredAt && t.conLai > 0 && order.status !== "cancelled" && ghiSoNoiBo(staff!, "ledger.write")) {
     const so = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", value: String(t.conLai) }) as HTMLInputElement;
     regroupMoney(so);
     so.addEventListener("input", () => regroupMoney(so));

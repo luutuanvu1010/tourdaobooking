@@ -9,7 +9,7 @@ import type {
 } from "../../shared/contracts";
 import { UUID_RE, error, json, kemLocation, readJson, trangDon } from "../../shared/http";
 import { docLenhNhapKeToan } from "../../shared/nhap-ke-toan";
-import { duocHuyKhoanSo } from "../../shared/nut-khoan-thu";
+import { duocHuyKhoanSo, ghiSoNoiBo } from "../../shared/nut-khoan-thu";
 import { can, holdsPartner, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
@@ -36,6 +36,7 @@ const CANNOT_LEDGER = () => error(403, "forbidden", "Chỉ Kế toán hoặc To�
  *  yêu cầu có thể là giá vốn / hoa hồng của đối tác khác (khuôn «có quyền Đối tác là áp» của ghi mức tay). */
 const DOI_TAC_KHONG_DIEU_CHINH = () => error(403, "forbidden", "Tài khoản có quyền Đối tác không xem, tạo hay duyệt được yêu cầu điều chỉnh công nợ.");
 const DOI_TAC_KHONG_DAO = () => error(403, "forbidden", "Tài khoản có quyền Đối tác không huỷ được khoản thu hay dòng sổ.");
+const DOI_TAC_KHONG_GHI_SO = () => error(403, "forbidden", "Tài khoản có quyền Đối tác không sửa khoản thu, ghi nộp tiền hay hoàn tiền khách được.");
 const CANNOT_MARK_ENTRY = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới đánh dấu được đã nhập phần mềm kế toán.");
 const CANNOT_APPROVE_TRANSFER = () => error(403, "forbidden", "Chỉ Kế toán, Quản trị hoặc Toàn quyền mới duyệt được chuyển thu trước sang đơn mới.");
 const CANNOT_APPROVE = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền mới duyệt được hoàn thu trước / xác nhận dòng đã hoàn ngoài hệ thống.");
@@ -363,6 +364,8 @@ export const billingModule: AppModule = {
     // Nộp về công ty / công ty trả (ADR-0026 đ5), phân bổ theo đơn. Ô `ledger.write`.
     route("POST", "/api/ledger/settlements", "office", async ({ env, request, staff, baoThayDoi }) => {
       if (!can(staff, "ledger.write")) return CANNOT_LEDGER();
+      // Người kiểm I-1 (19/10, probe route thật: lai Kế toán + Đối tác ghi chính mình «đã nộp» 300.000 ⇒ 201 trước vá): tài khoản giữ quyền Đối tác không ghi nộp / công ty trả.
+      if (!ghiSoNoiBo(staff, "ledger.write")) return DOI_TAC_KHONG_GHI_SO();
       const kq = await ghiQuyetToan(env.DB, { raw: await readJson(request), ai: nguoiGoi(staff) });
       if (!kq.ok) return kq.res;
       for (const orderId of kq.value.orderIds) baoThayDoi({ orderId, thayDoi: "tien" });
@@ -372,6 +375,8 @@ export const billingModule: AppModule = {
     // Hoàn khách (ADR-0026 đ5, M2): ô `payment.refund` — Kế toán, Toàn quyền (Quản trị không — H4).
     route("POST", "/api/ledger/refunds", "office", async ({ env, request, staff, baoThayDoi }) => {
       if (!can(staff, "payment.refund")) return CANNOT_REFUND();
+      // Người kiểm I-1 (19/10, probe route thật: lai ghi chính mình đã hoàn khách 100.000 từ tiền đang giữ ⇒ 201 trước vá, khoản giữ giảm): tài khoản giữ quyền Đối tác không ghi hoàn.
+      if (!ghiSoNoiBo(staff, "payment.refund")) return DOI_TAC_KHONG_GHI_SO();
       const kq = await ghiHoanKhach(env.DB, { raw: await readJson(request), ai: nguoiGoi(staff) });
       if (!kq.ok) return kq.res;
       baoThayDoi({ orderId: kq.value.orderId, thayDoi: "tien" });
@@ -380,7 +385,8 @@ export const billingModule: AppModule = {
 
     // Điều chỉnh / đảo, lý do bắt buộc (ADR-0026 đ8). Ô `ledger.write`.
     // ADR-0115: lệnh `dieu_chinh` KHÔNG đổi số dư ngay — tạo một YÊU CẦU CHỜ DUYỆT (201 `TaoYeuCauDieuChinhResponse`, không `baoThayDoi` vì tiền chưa đổi); người thứ hai có ô
-    // `ledger.adjust.approve` duyệt ở route bên dưới. `dao_lan_thu` / `dao_dong` vẫn ghi ngay (đảo một dòng gốc — dựa vào kỷ luật, ADR-0115 điều 3).
+    // `ledger.adjust.approve` duyệt ở route bên dưới. `dao_lan_thu` / `dao_dong` vẫn ghi ngay (đảo một dòng gốc, ADR-0115 điều 3) nhưng có hai cổng (BL-SDL2-DAO-DONG-TM, 19/10):
+    // tài khoản giữ quyền Đối tác ⇒ 403 cả hai lệnh (`duocHuyKhoanSo`); `dao_dong` trên dòng hoa hồng / giá vốn / giảm giá bên đặt ⇒ 409 (`ghiDieuChinh`, service.ts).
     route("POST", "/api/ledger/adjustments", "office", async ({ env, request, staff, baoThayDoi }) => {
       if (!can(staff, "ledger.write")) return CANNOT_LEDGER();
       const raw = await readJson(request);
@@ -438,6 +444,8 @@ export const billingModule: AppModule = {
     // của khoản thu sau Đã giao (đảo đơn lẻ bị chặn — đ3).
     route("POST", "/api/ledger/receipt-replacements", "office", async ({ env, request, staff, baoThayDoi }) => {
       if (!can(staff, "ledger.write")) return CANNOT_LEDGER();
+      // Người kiểm I-1 (19/10): tài khoản giữ quyền Đối tác (kể cả lai) không sửa khoản thu — kẻo đổi người thu khoản mình đang giữ sang Công ty, không ai duyệt.
+      if (!ghiSoNoiBo(staff, "ledger.write")) return DOI_TAC_KHONG_GHI_SO();
       const raw = await readJson(request);
       const orderId = raw && typeof raw === "object" ? (raw as Record<string, unknown>).orderId : undefined;
       if (typeof orderId !== "string" || !UUID_RE.test(orderId)) return error(400, "invalid_input", "Mã đơn không hợp lệ.");
