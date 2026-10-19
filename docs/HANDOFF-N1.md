@@ -29,6 +29,17 @@ Nợ kỹ thuật của lát này: `docs/BACKLOG.md` mục 40 (mã `BL-XOA-…`)
 - **Điều Worker lùi KHÔNG lấy lại được:** dữ liệu đã bị «Thực hiện» ẩn danh (giấy tờ, phiếu tự khai, thông tin phiên). Chỉ khôi phục Time Travel về trước lần «Thực hiện» mới lấy lại — và mất mọi ghi sau điểm đó. Đó là lý do việc 5 và 6 phải xong TRƯỚC lần «Thực hiện» đầu tiên.
 - **Khôi phục Time Travel** lùi cả dữ liệu lẫn bảng `d1_migrations`, nên phải lùi Worker về 2.11 cùng lúc; lệnh và điểm của bản 2.16 ở mục «Phiên bản 2.16» bên dưới. Muốn lùi sau này thì lấy điểm MỚI bằng `wrangler d1 time-travel info` trước, đừng dùng điểm của 17/10.
 
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.19 ĐÃ LÊN PRODUCTION (rà soát ngôn ngữ giao diện lượt 1 + lượt 2 — ADR-0130: bảng từ giao diện, bảy tên chủ chọn 18/10, hai lỗi nút thẻ Thanh toán, ô hạn chốt của Toàn quyền nhập phút; kèm ADR-0131 đã có trên main) — migration `0111_ten_luat_chuyen_khach` đã áp — triển khai 2026-10-19 08:55 giờ VN
+
+Ghi 19/10/2026 từ khối tóm tắt cuối của `npm run trien-khai` (chủ chạy trong Terminal), kiểm lại bằng lệnh chỉ đọc ngay sau đó.
+
+- **Commit:** `38e4921c` (nhánh `claude/optimistic-wu-2c3796`, gộp bằng `day-len`).
+- **Worker:** `411bf191-e5d9-49bd-807f-27a94b6be276` (tạo 2026-10-19T01:55:34Z; `wrangler deployments list`). Bản ngay trước: `bb8ed840-a13e-4d80-a367-e67789eea3f4` (tạo 2026-10-18T22:20:57Z — SUY LUẬN là bản 2.18 ADR-0131, chưa có mục trạng thái riêng trong tệp này).
+- **Migration:** `0111_ten_luat_chuyen_khach.sql` (chỉ đổi cột `label` hai dòng `vc_transfer_rule`); `d1 migrations list --remote` → "No migrations to apply!". Điểm khôi phục Time Travel trước khi áp: `00001450-00000000-00005109-8f03a8fdb63f8c5d790a5ac414b42448`.
+- **Kiểm:** e2e xanh; `audit-invariants --db remote` ĐẠT (5 cảnh báo không chặn: R-ORD-9 1, R-CTL-1 5, R-ORD-T1w 42…); cổng phiên bản trước và sau deploy ĐẠT; `kiem-phien-ban.mjs --sau-deploy` chạy lại 19/10 → ĐẠT 2.19. Người kiểm độc lập (chỉ đọc) ĐẠT cho `0111`, ô hạn chốt phút và lần nhập main.
+- **Hoàn tác:** `0111` chỉ đổi chữ nhãn (mã luật không đổi, `vc_transfer_check` lưu mã, không lưu chữ) — lùi Worker về `bb8ed840` không cần lùi dữ liệu; nhãn mới vẫn hiển thị đúng ở mã cũ. Muốn lấy lại chữ cũ: migration mới đổi ngược (chữ cũ ghi ở đầu tệp `0111`).
+- **Còn treo:** BACKLOG §42 (nút huỷ khoản thu trên dòng trả lại / đơn huỷ — chủ duyệt sau). Kịch bản Chrome `chinh-sach-dieu-phoi-smoke` và `moc-chua-co-smoke` đỏ sẵn (menu 15/10, ô mới chưa điền), không do lần này.
+
 ## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.17 ĐÃ LÊN PRODUCTION (tin «giao đơn» gửi người đang phụ trách đọc «… cho bạn phụ trách», cả chuông lẫn màn hình khoá — B-01 của đợt rà soát trước launch 17/10; không migration) — triển khai 2026-10-18 08:45 giờ VN
 
 Ghi 18/10/2026 bằng lệnh CHỈ ĐỌC sau khi chủ chạy `day-len` rồi `trien-khai` trong Terminal. Khối tóm tắt cuối của `trien-khai` chưa được dán, nên dòng nào không kiểm lại được bằng lệnh thì ghi «chưa biết». Đừng khẳng định trạng thái production từ mục này — kiểm bằng lệnh.
