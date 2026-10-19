@@ -2,6 +2,37 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
+## Lần phát hành kế tiếp: Sổ đại lý đợt 2 (ADR-0079, ADR-0078 điều 7–10, ADR-0132; migration `0112`, `0113` — số tạm; nhật ký thay đổi 2.24 — số tạm) — CHƯA PHÁT HÀNH — RUNBOOK
+
+**Trạng thái (ghi 2026-10-19, Task 14):** nhánh `claude/objective-euclid-1c8113`, CHƯA gộp `main`, CHƯA lên production. Đặc tả `docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/README.md` §5 (phát hành, hoàn tác); sổ thi công `docs/superpowers/plans/2026-10-18-so-dai-ly-dot-2-thi-cong-nhat-ky.md`. Đổi số 19/10 (Ruling R-P11): chữ «0111» của hồ sơ cũ nay là `0112`, «0112» (chụp bù) nay là `0113`, «2.18» / «2.22» nay là 2.24.
+
+**0. Điều kiện — CHƯA ĐỦ hôm nay.** Chủ dự án duyệt 18/10 (nguyên văn ở `docs/quyen-hoan.json`, mục HC-5.19, trường `xay_tren_cho_phep`): «… chỉ phát hành sau khi đã diễn tập khôi phục dữ liệu.» Diễn tập theo `docs/superpowers/specs/2026-09-22-dien-tap-khoi-phuc.md` (khôi phục vào chỗ KHÔNG phải D1 thật, đếm bảng, chạy `audit-invariants` trên bản khôi phục, ghi kết quả vào `docs/SO-HANG-RAO.md` và tệp này; hạn HC-5.19: 2026-11-05). Tới lúc ghi chưa có bằng chứng nào đã diễn tập. **Muốn phát hành trước diễn tập thì chủ phải nói lại bằng lời mới** (ghi nguyên văn vào đây); không suy từ lời cũ.
+
+**1. Số migration lúc gộp** (kiểm 2026-10-19 17:50 giờ VN bằng `git ls-tree --name-only <nhánh> migrations/` cho mọi nhánh chưa gộp và `ls migrations` của mọi worktree; KHÔNG `git fetch`): `main` dừng ở `0111_ten_luat_chuyen_khach`; nhánh này `0112_so_dai_ly_dot_2`, `0113_chup_bu_khach_le`; nhánh `claude/pricing-discounts-customer-types-edb51c` (worktree `optimistic-wu-2c3796`) giữ `0114_chiet_khau_theo_loai_khach`; nhánh `worktree-xac-nhan-don` (và `origin/worktree-xac-nhan-don-2`) giữ `0115_chon_don_khung_gio`. Không trùng. Kiểm lại ngay trước `day-len`; nhánh khác gộp trước mà đụng `0112`/`0113` thì đổi số nhánh này (bài `src/migrations-so-dai-ly-dot-2.test.ts` tìm theo đuôi `_so_dai_ly_dot_2.sql`; đổi `0113` thì đổi cả dấu `he-thong:0113` ở migration, câu đếm (sau) và `src/chup-bu.test.ts` — khuôn R-P11). Số nhật ký 2.24: `main` đã dùng 2.22, `worktree-xac-nhan-don` giữ 2.23 — kiểm lại ở bước A.0.
+
+**2. Trước phát hành — chủ chạy câu đếm chỉ đọc** (`docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/cau-dem-chi-doc.sql`, mười câu; AI không chạy `--remote`). Đứng ở thư mục gốc của dự án, chạy cả tệp một lần (mỗi câu một dòng `SELECT`; câu (sau) chạy lúc này ra 0 là đúng):
+
+```
+grep -v '^--' docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/cau-dem-chi-doc.sql | grep -v '^$' | while read -r c; do echo "== $c" | cut -c1-90; CI=1 npx wrangler d1 execute tourdao-sales-db --remote --command "$c"; done
+```
+
+Dán kết quả vào bảng «Kết quả câu đếm của chủ» của sổ thi công. Đọc kết quả:
+- **(lai) phải bằng 0.** Khác 0 ⇒ DỪNG, báo: «Chụp bù» không phủ đơn lai, đơn sẽ kẹt «Đã giao» (`BL-SDL2-DON-LAI`).
+- **(b1 không có điều khoản ALL phủ ngày xác nhận) phải bằng 0.** Khác 0 ⇒ DỪNG, báo: `0113` bỏ IM LẶNG các đơn đó nên sau phát hành câu (sau) sẽ nhỏ hơn (b1). Cách gỡ: thêm dòng điều khoản «mọi dịch vụ» của công ty chủ phủ ngày xác nhận của các đơn đó (màn «Người bán dịch vụ»; chưa kiểm màn có nhận ngày bắt đầu trong quá khứ không), đếm lại; hoặc sau phát hành Kế toán bấm «Chụp bù» từng đơn (cũng cần điều khoản phủ ngày đó, không thì 409 thiếu người bán).
+- **(b1 xác nhận trước điều khoản ALL sớm nhất) nên bằng 0.** Khác 0 ⇒ báo, không chặn: bản chụp bù ghi ngày chụp = ngày bắt đầu điều khoản (Ruling R-50), người bán và hoa hồng không đổi.
+- **(b1) = 0** ⇒ có thể bỏ `0113` lúc gộp (Ruling R-P5) — khuyến nghị GIỮ (câu `INSERT … SELECT` rỗng vô hại; bỏ tệp phải sửa cùng lúc các bài B1–B5 của `src/chup-bu.test.ts`). Ghi lại số dòng dịch vụ của (b1) cho bước 4.
+- **(a), (b1x), (b2), (b3), (e)** là việc của Kế toán sau phát hành (mục 5), không chặn.
+
+**3. Phát hành:** `npm run day-len -- claude/objective-euclid-1c8113` rồi `npm run trien-khai` (có migration ⇒ trien-khai tự lấy điểm Time Travel TRƯỚC khi áp — chép lại lệnh khôi phục nó in ra; e2e đủ bộ chạy trước). Theo `docs/QUY-TRINH-PHAT-HANH.md`; gặp lỗi Cloudflare 7403 thì xem mục cùng tên ở đó.
+
+**4. Ngay sau `wrangler deploy`:**
+1. Chạy câu (sau) (dòng cuối của tệp câu đếm): số bản chụp `he-thong:0113` PHẢI bằng số dòng dịch vụ của (b1) ở bước 2. Lệch ⇒ dừng, báo (đọc lại (b1 không có điều khoản ALL …)).
+2. `node scripts/audit-invariants.mjs --db remote` (trien-khai đã chạy một lần; chạy lại SAU câu (sau)). Thoát 0 = sạch, 1 = vi phạm, **2 = không chạy được** (không phải sạch). Cảnh báo dự kiến, không chặn: `R-BIL-5w` (gần như mọi đơn «Đã giao» lượt 1 — `BL-SDL2-R-BIL-5W-ON`), `R-BIL-2w`, `R-ORD-DC1w`, `R-BIL-19w`. Lỗi (từ mốc `0112`) phải bằng 0.
+
+**5. Việc của Kế toán sau phát hành** (danh sách từ câu đếm): (b2) cài mức rồi bấm «Chụp bù» (trang «Chụp bù mức», menu Thiết lập); (b3) ghi mức tay từng dòng thiếu; (e) đơn khách lẻ có dòng nhập tay — ghi tay «Tour Đảo bán» cho dòng đó (đã duyệt, A-14); (b1x) danh sách mã đơn + mã dịch vụ — sau khi đơn «Đã giao», bổ sung giá vốn bằng điều chỉnh có duyệt (loại «Giá vốn nhà cung cấp»); (a) đơn đã giao có dòng nhà cung cấp — bổ sung giá vốn tương tự (`R-BIL-2w` liệt kê). Ca vàng C-1…C-5 còn chờ Kế toán xác nhận (`golden/so-cong-no-luot-2.json`).
+
+**6. Đường lùi.** `wrangler rollback` chỉ lùi Worker, **KHÔNG gỡ trigger của `0112`** (và không gỡ bản chụp `0113` đã ghi — vô hại với bản cũ). Khi `0112` đã áp mà Worker chạy bản cũ (sau rollback, hoặc vài giây giữa migration và deploy): «Đã giao» trả **500 chưa dịch** (lỗi `delivered_terms:`) cho (i) đơn có dòng nhập tay chưa ai ghi tay người bán (A-14) và (ii) đơn xác nhận trước `0090` chưa có bản chụp mà `0113` không chụp bù; dữ liệu không hỏng (cả lô huỷ) — nợ đường lùi của Task 2 (sổ thi công, Nợ Task 2). Phiếu «Đã giao» Worker cũ ghi không có `gross_snapshot` ⇒ kiểm định kỳ `R-BIL-17` báo LỖI cho các phiếu đó (đúng nghĩa, ghi lại mã đơn). Gỡ: một **migration MỚI** `DROP TRIGGER bil_posting_delivered_terms;` (số kế tiếp trên mọi nhánh), chủ áp bằng `wrangler d1 migrations apply --remote`; **không sửa tệp `0112` đã áp**. Khôi phục Time Travel về điểm của bước 3 lùi cả dữ liệu lẫn bảng `d1_migrations` và MẤT mọi ghi sau điểm đó — chỉ khi dữ liệu hỏng, và lùi Worker cùng lúc.
+
 ## Lần phát hành có xoá dữ liệu (ADR-0126 — Gói 2 lát H-5; migration `0108`) — ĐÃ áp trên production (bản 2.16) — RUNBOOK
 
 **Trạng thái: migration `0108` ĐÃ áp trên production** (kiểm `d1 migrations list --remote` ngày 18/10/2026 → "No migrations to apply!"; cùng lần phát hành bản 2.16 với `0103`–`0105`, `0107` — xem mục «TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.16» ngay dưới). **Việc 5 và việc 6 bên dưới CHƯA làm (chưa có bằng chứng nào đã làm) và PHẢI làm trước lần bấm «Thực hiện» xoá dữ liệu đầu tiên trên production.** Đừng khẳng định trạng thái production từ mục này — kiểm bằng `wrangler d1 migrations list … --remote` và `GET /api/auth/config`.

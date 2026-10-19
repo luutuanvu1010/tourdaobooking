@@ -17,7 +17,7 @@
 //  - Biến tỷ lệ bị bọc quá tay mẫu (BL-VA-RAO-K3, 2026-10-19, đã mở rộng): BẮT `Number(rateBp) * x`, `((rateBp)) * x`, `(rateBp as number) * x`, `x * Number(rateBp)`, và trong SQL `CAST(rate_bp AS INTEGER) * x`,
 //    `IFNULL(rate_bp, 0) * x`, `x * COALESCE(cost_rate_bp, 0)`, `CAST(IFNULL(rate_bp, 0) AS INTEGER) * x` (tên bọc bằng ngoặc nhiều lớp, ép kiểu `as`/`AS`, MỘT đối số thứ hai đơn giản rồi `)`, ở cả hai vế);
 //    từ 2026-10-19 (Task 14) bắt thêm `(rateBp || 0) * x`, `IFNULL(rate_bp, -1) * x`, và KHÔNG còn báo nhầm `rate_bp, due_snapshot * x`. VẪN KHÔNG thấy:
-//    đối số phức (`IFNULL(rate_bp + 0, 0) * x`, `Number(a ? rateBp : 0) * x`), tên không đứng đầu đối số ở vế phải (`x * fn(0, rateBp)`), khuôn `${tyLeBp}` / `/ ${10000}`, và qua biến trung gian (`const r = Number(rateBp); r * x`).
+//    đối số phức (`IFNULL(rate_bp + 0, 0) * x`, `Number(a ? rateBp : 0) * x`), tên không đứng đầu đối số ở vế phải (`x * fn(0, rateBp)`), khuôn `${tyLeBp}` / `/ ${10000}`, qua biến trung gian (`const r = Number(rateBp); r * x`), và hàm bọc có từ ba đối số (`fn(rateBp, a, b) * x`).
 //    (Nếu công thức có `/ 10000` viết liền thì vẫn bị bắt ở mẫu 10000.)
 //  - SQL ghép từ nhiều mảnh chuỗi: chỉ bị bắt khi phép tính và con số 10000 còn nằm trong CÙNG một mảnh.
 //  - Ngược chiều (báo NHẦM, đỏ to): viết `rateBp / 100` để HIỂN THỊ phần trăm cũng làm bài đỏ — đưa việc đó vào một hàm ở tệp nguồn, hoặc thêm vào `PHAN_VAN_DA_RA` kèm lý do.
@@ -255,6 +255,7 @@ test("bộ quét K-A-3 (BL-VA-RAO-K3): biến tỷ lệ bị BỌC (Number, ngo�
   assert.equal(ma("const t = Number(a ? rateBp : 0) * x;"), 0, "GIỚI HẠN: đối số phức (biểu thức điều kiện)");
   assert.equal(ma("const t = x * fn(0, rateBp);"), 0, "GIỚI HẠN: ở vế phải, tên không đứng đầu đối số");
   assert.equal(ma("const r = Number(rateBp); const t = r * x;"), 0, "GIỚI HẠN: qua biến trung gian");
+  assert.equal(ma("const t = fn(rateBp, a, b) * x;"), 0, "GIỚI HẠN: hàm bọc có từ ba đối số");
 });
 
 test("K-A-3 (1): phép nhân/chia với 10000, biến `…Bp` nhân/chia và lời gọi lamTronNuaLen chỉ ở tệp nguồn — chỗ khác phải nằm trong PHAN_VAN_DA_RA kèm lý do", () => {
