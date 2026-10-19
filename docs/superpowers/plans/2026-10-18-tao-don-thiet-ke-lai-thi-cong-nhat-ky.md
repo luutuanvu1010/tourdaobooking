@@ -78,7 +78,7 @@ Câu 1 thành phương án (a): soạn đề xuất ADR-0130 ở `DE-XUAT-ADR-01
 
 ## 7. Điều CHƯA kiểm
 
-Bộ chọn ngày/giờ gốc của iOS/Android; bàn phím ảo iPhone/Android; bộ gõ tiếng Việt thật (Telex/VNI, `isComposing`); iPhone thật; chủ chưa xem ảnh. Bộ ảnh ở `docs/evidence/2026-10-18-tao-don-thiet-ke-lai/anh/`: 4 vai x 2 khổ x 3 ảnh (vừa mở; ba dịch vụ trong khung; ba dịch vụ cả trang) cùng `so-do-trang.json`, dựng bằng dữ liệu thử, không dữ liệu khách thật; ảnh còn hiện danh sách tìm đang mở vì chụp ngay sau thao tác chọn. Ảnh nghiệm thu không chạy axe riêng (axe chỉ trong các kịch bản có sẵn).
+Bộ chọn ngày/giờ gốc của iOS/Android; bàn phím ảo iPhone/Android; bộ gõ tiếng Việt thật (Telex/VNI, `isComposing`); iPhone thật; chủ chưa xem ảnh. Bộ ảnh ở `docs/evidence/2026-10-18-tao-don-thiet-ke-lai/anh/`: 4 vai x 2 khổ x 3 ảnh (vừa mở; ba dịch vụ trong khung; ba dịch vụ cả trang) cùng `so-do-trang.json`, dựng bằng dữ liệu thử, không dữ liệu khách thật; **chụp lại 19/10 trên HEAD `26c0773f`** (sau gộp main và các vòng sửa; kịch bản thêm bước xoá chữ tìm + chờ 0,5 giây trước khi chụp, nên không còn chữ tìm dở; khung danh mục 3 dịch vụ vẫn hiện vì đó là khung cố định của thiết kế, không phải danh sách đang mở). Ảnh bản trước (chụp ở `f56f9ef9`) đã cũ. Ảnh nghiệm thu không chạy axe riêng (axe chỉ trong các kịch bản có sẵn).
 
 ## 8. Quan sát cần ghi
 

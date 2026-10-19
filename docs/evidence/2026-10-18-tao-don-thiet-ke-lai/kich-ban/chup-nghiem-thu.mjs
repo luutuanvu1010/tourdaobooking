@@ -60,6 +60,9 @@ try {
       await sleep(300);
       await chon(p, "phao", 2);
       await chon(p, "TTB06", 3);
+      // Đóng danh sách tìm còn mở sau thao tác chọn cuối: Escape ở ô tìm xoá chữ tìm, bỏ tiêu điểm, chờ ổn định.
+      await p.ev("(() => { const q = document.getElementById('catalog-q'); q.focus(); q.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); q.blur(); return true; })()");
+      await sleep(500);
       await p.ev(setInput("document.getElementById('customerName')", "Khách Chụp Ảnh"));
       await p.ev(setInput("document.getElementById('customerPhone')", "0912345678"));
       await p.ev("window.scrollTo(0, 0); true");
