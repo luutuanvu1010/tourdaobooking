@@ -5,7 +5,7 @@
 // Ẩn/hiện hỏi bảng quyền: ô `order.terms.override` VÀ không giữ quyền Đối tác (cùng cổng route). Máy chủ vẫn kiểm lại. Nhãn lý do ở src/shared/ben-kia-hien-thi.ts (có bài).
 import { ApiError, api, type Api } from "./api";
 import { can, holdsPartner } from "../src/shared/permissions";
-import { nhanLyDoChupBu } from "../src/shared/ben-kia-hien-thi";
+import { cauKetQuaChupBu, donChupBuConLai, nhanLyDoChupBu } from "../src/shared/ben-kia-hien-thi";
 import { ngayDayDu } from "../src/shared/vn-date";
 import { byId, h, replaceChildren } from "./dom";
 import { initShell, showError } from "./shell";
@@ -40,7 +40,8 @@ if (!can(staff, "order.terms.override") || holdsPartner(staff)) {
     }
   };
 
-  const dongDon = (d: Api.ChoChupBuDto): { li: HTMLElement; chay: () => Promise<boolean> } => {
+  const dongDon = (d: Api.ChoChupBuDto): { li: HTMLElement; chay: () => Promise<boolean>; daChup: () => boolean } => {
+    let daChup = false;
     const nut = h("button", { type: "button", class: "btn", "data-action": "chup-bu-don", "data-order-id": d.orderId }, "Chụp bù");
     const trangThai = h("p", { class: "muted", role: "status", hidden: true });
     const li = h(
@@ -60,6 +61,7 @@ if (!can(staff, "order.terms.override") || holdsPartner(staff)) {
         trangThai.className = "muted";
         trangThai.textContent = d.lyDo === "nhap_tay" ? "Đã chụp bù. Mở đơn để ghi mức tay cho dịch vụ nhập tay." : "Đã chụp bù.";
         nut.remove();
+        daChup = true;
         return true;
       }
       trangThai.className = "alert";
@@ -68,7 +70,7 @@ if (!can(staff, "order.terms.override") || holdsPartner(staff)) {
       return false;
     };
     nut.addEventListener("click", () => void chay());
-    return { li, chay };
+    return { li, chay, daChup: () => daChup };
   };
 
   async function tai(): Promise<void> {
@@ -90,10 +92,13 @@ if (!can(staff, "order.terms.override") || holdsPartner(staff)) {
     caDs.addEventListener("click", async () => {
       caDs.disabled = true;
       hienOk(null);
+      // Bấm lại chỉ gửi đơn CHƯA chụp xong (kể cả đơn đã chụp bằng nút riêng) — vòng sửa người kiểm Task 12, Minor 2.
+      const tatCa = dong.map((x, i) => ({ orderId: res.don[i]!.orderId, x }));
+      const luot = donChupBuConLai(tatCa, new Set(tatCa.filter((t) => t.x.daChup()).map((t) => t.orderId)));
       let xong = 0;
-      for (const d of dong) if (await d.chay()) xong++;
-      const con = dong.length - xong;
-      hienOk(con === 0 ? `Đã chụp bù ${xong} đơn.` : `Đã chụp bù ${xong} đơn; ${con} đơn còn thiếu mức — xem câu dưới từng đơn.`);
+      for (const { x } of luot) if (await x.chay()) xong++;
+      const con = luot.length - xong;
+      hienOk(cauKetQuaChupBu(xong, con));
       caDs.disabled = con === 0;
     });
     replaceChildren(caDsEl, h("div", { class: "handler-actions" }, caDs));

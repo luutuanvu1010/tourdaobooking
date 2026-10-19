@@ -33,7 +33,7 @@ import { GHI_CHU_HUY_TOI_DA, NHOM_HUY_NHAN, luaChonLyDo, nhanNhomHuy } from "../
 import { nhanTienDaTra as nhanTienLuat } from "../src/shared/nhan-tien";
 import { ngayDayDu } from "../src/shared/vn-date";
 import { cauNhacKhoan, quaHanDoiChieu, soNgayCho } from "../src/shared/doi-chieu-hien-thi";
-import { NHAN_O_THU_CHO, cauCanhBaoGiamGia, cauChoKeToan, laBenKia, luaChonNguoiThu, luaChonThuCho, lyDoCanTaiLai, nguoiThuTuGiaTri, oThuCho } from "../src/shared/ben-kia-hien-thi";
+import { NHAN_O_THU_CHO, cauBenKiaDaNhan, cauCanhBaoGiamGia, cauChoKeToan, laBenKia, luaChonNguoiThu, luaChonThuCho, lyDoCanTaiLai, nguoiThuTuGiaTri, oThuCho } from "../src/shared/ben-kia-hien-thi";
 import { cauMoc, changDuoiMoc, tomTatChanXacNhan, type ChangCanDatGap } from "../src/shared/dat-gap-hien-thi";
 import { NO_BOOKER_VALUE } from "../src/shared/booker";
 import { coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, duocGhiTay, nhanBenDat } from "../src/shared/phan-doi-tac-hien-thi";
@@ -823,7 +823,7 @@ function nutKeToanLanThu(order: Order, t: Api.OrderPaymentsResponse, l: Api.LanT
     nut.push(
       hangXacNhan({
         nhan: "Bên kia đã nhận", action: "ben-kia-da-nhan", nutGhi: "Bên kia đã nhận",
-        cau: `Đã đối chiếu với bên nhận tiền: ${l.nguoiThu} xác nhận đã nhận ${vnd(l.soTien)} của khách? Từ lúc này khoản này là nợ của ${l.nguoiThu} với Tour Đảo. Bên kia báo không nhận thì dùng «Huỷ khoản thu».`,
+        cau: cauBenKiaDaNhan(l.nguoiThu, vnd(l.soTien)),
         ghi: () => api(`/api/ledger/counterparty-receipts/${encodeURIComponent(l.id)}/confirm`, { method: "POST", body: {} }),
         bao: `Đã ghi bên kia nhận ${vnd(l.soTien)}.`,
       }),

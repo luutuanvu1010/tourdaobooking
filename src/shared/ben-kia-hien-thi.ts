@@ -4,6 +4,7 @@
 // Nguồn dữ liệu: `OrderPaymentsResponse.benKia` (máy chủ tính bằng CÙNG `benDatHuong` / `nhaCungCapCuaDon` mà lệnh ghi khoản thu dùng; null với tài khoản giữ
 // quyền Đối tác, đơn nháp, đơn chưa chụp, đơn đã giao) — giao diện KHÔNG tự suy đơn có đại lý / quầy nhà cung cấp hay không.
 import type { BenKiaLuaChonDto, ChoChupBuDto, LanThuInput, ThuongMaiVanPhongDto } from "./contracts.ts";
+import { can, holdsPartner, type PermissionHolder } from "./permissions.ts";
 
 export interface LuaChon {
   readonly value: string;
@@ -97,3 +98,24 @@ export function oGiamGiaChiGiaDanhMuc(v: { laDoiTac: boolean; laThucTap: boolean
 /** Câu trần dưới ô giảm giá khi SỬA đơn đã lưu có người hưởng (số từ `GET …/thuong-mai`): `tongHoaHong` null = còn dịch vụ thiếu mức ⇒ không đoán số (máy chủ báo khi lưu). */
 export const cauTranGiamGiaForm = (tongHoaHong: number | null): string | null =>
   tongHoaHong === null ? null : `${CAU_TRAN_HOA_HONG(tongHoaHong)} Số này theo đơn đã lưu; đổi dịch vụ hay số khách thì Nền tảng tính lại khi lưu.`;
+
+/**
+ * Khối «Chờ đối chiếu» ở Trang chủ (vòng sửa người kiểm Task 12, Minor 1): người ghi sổ (`ledger.write`) KHÔNG giữ quyền Đối tác — tài khoản lai Kế toán + Đối tác
+ * không thấy (R-91: luật Đối tác thắng khi XEM). Lưu ý: route `GET /api/ledger/coc` vẫn trả `doiChieu[].benKia` cho tài khoản lai (nợ, chủ quyết).
+ */
+export const coKhoiChoDoiChieu = (s: PermissionHolder | null): boolean => !!s && can(s, "ledger.write") && !holdsPartner(s);
+
+/** «Chụp bù cả danh sách» (Minor 2): bấm lại chỉ gửi đơn CHƯA chụp xong ở lượt trước (đơn đã xong gửi lại sẽ nhận 409 và đè câu thành công). */
+export const donChupBuConLai = <T extends { orderId: string }>(ds: readonly T[], xong: ReadonlySet<string>): T[] => ds.filter((d) => !xong.has(d.orderId));
+
+/** Câu kết quả một lượt «Chụp bù cả danh sách». */
+export const cauKetQuaChupBu = (xong: number, con: number): string =>
+  con === 0 ? `Đã chụp bù ${xong} đơn.` : `Đã chụp bù ${xong} đơn; ${con} đơn còn thiếu mức — xem câu dưới từng đơn.`;
+
+/** Chữ máy chủ thay cho tên người thu mà người xem không được biết (`NGUOI_THU_KHAC` của billing — Task 9, R-91). */
+const NGUOI_THU_KHAC = "Người thu tiền khác";
+/** Câu hỏi lại của nút «Bên kia đã nhận» (Minor 4): không ghép chữ thay thế vào câu như một cái tên — nói «bên nhận tiền». */
+export function cauBenKiaDaNhan(nguoiThu: string, soTien: string): string {
+  const ten = nguoiThu === NGUOI_THU_KHAC ? "bên nhận tiền" : nguoiThu;
+  return `Đã đối chiếu: ${ten} xác nhận đã nhận ${soTien} của khách? Từ lúc này khoản này là nợ của ${ten} với Tour Đảo. Bên kia báo không nhận thì dùng «Huỷ khoản thu».`;
+}

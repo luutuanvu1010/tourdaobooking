@@ -152,7 +152,7 @@ Mức riêng luôn được ưu tiên; khi gắn sẽ hiện khung vàng. Đổi
 
 **Đơn xác nhận trước khi có bảng mức** (chưa có bản chụp mức):
 1. Bấm [[Chụp bù mức]] (điện thoại: trang [[Tôi]]) để xem các đơn chờ, hoặc mở đơn rồi bấm [[Chụp bù]] ở khối **Phần đối tác**.
-2. Máy lấy mức đang áp ở ngày xác nhận. Còn thiếu mức thì máy không chụp và nêu dịch vụ: cài mức rồi bấm lại.
+2. Nền tảng lấy mức đang áp ở ngày xác nhận. Còn thiếu mức thì Nền tảng không chụp và nêu dịch vụ: cài mức rồi bấm lại.
 
 **Đơn đã có bản chụp mà một dòng thiếu mức** (kể cả dịch vụ nhập tay): cài mức mới không gỡ được. Ở dòng đó bấm [[Ghi mức tay]], chọn mức và người bán, ghi lý do (ít nhất 10 ký tự), bấm [[Ghi mức]].
 

@@ -110,3 +110,28 @@ test("form sửa đơn — câu trần theo đơn đã lưu: chỉ khi có ngư�
   assert.equal(B.cauTranGiamGiaForm(null), null);
   assert.match(B.cauTranGiamGiaForm(100_000) ?? "", /^Giảm tối đa 100\.000 ₫ \(bằng hoa hồng của đơn\)\./);
 });
+
+// Vòng sửa theo người kiểm Task 12 (Minor 1, 2, 4).
+test("khối «Chờ đối chiếu» ở Trang chủ: chỉ người ghi sổ (ledger.write) KHÔNG giữ quyền Đối tác — tài khoản lai Kế toán + Đối tác không thấy", () => {
+  const ai = (permissions: string[]) => ({ id: "x", permissions }) as unknown as Parameters<typeof B.coKhoiChoDoiChieu>[0];
+  assert.equal(B.coKhoiChoDoiChieu(ai(["ACCOUNTING"])), true);
+  assert.equal(B.coKhoiChoDoiChieu(ai(["SUPER_ADMIN"])), true);
+  assert.equal(B.coKhoiChoDoiChieu(ai(["ACCOUNTING", "PARTNER"])), false, "lai Kế toán + Đối tác");
+  assert.equal(B.coKhoiChoDoiChieu(ai(["SALES"])), false);
+  assert.equal(B.coKhoiChoDoiChieu(null), false);
+});
+
+test("«Chụp bù cả danh sách» bấm lại: chỉ gửi đơn CHƯA xong; câu kết quả đếm theo lượt này", () => {
+  const ds = [{ orderId: "a" }, { orderId: "b" }, { orderId: "c" }];
+  assert.deepEqual(B.donChupBuConLai(ds, new Set(["a"])).map((d) => d.orderId), ["b", "c"]);
+  assert.deepEqual(B.donChupBuConLai(ds, new Set(["a", "b", "c"])), []);
+  assert.equal(B.cauKetQuaChupBu(2, 0), "Đã chụp bù 2 đơn.");
+  assert.equal(B.cauKetQuaChupBu(1, 1), "Đã chụp bù 1 đơn; 1 đơn còn thiếu mức — xem câu dưới từng đơn.");
+});
+
+test("câu «Bên kia đã nhận»: người xem không được biết tên người thu (tài khoản lai — «Người thu tiền khác») ⇒ nói «bên nhận tiền», không ghép tên giả", () => {
+  const c = B.cauBenKiaDaNhan("Người thu tiền khác", "500.000 ₫");
+  assert.ok(!c.includes("Người thu tiền khác"), c);
+  assert.match(c, /bên nhận tiền xác nhận đã nhận 500\.000 ₫ của khách\?/);
+  assert.match(B.cauBenKiaDaNhan("Lê Thu Hà", "500.000 ₫"), /Lê Thu Hà xác nhận đã nhận 500\.000 ₫ của khách\? Từ lúc này khoản này là nợ của Lê Thu Hà với Tour Đảo\./);
+});

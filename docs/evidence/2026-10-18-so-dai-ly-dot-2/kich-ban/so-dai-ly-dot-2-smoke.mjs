@@ -235,6 +235,14 @@ try {
           ghi(`3-1040) kết quả: ${JSON.stringify(cau)}`);
           await chup(p, "3-chup-bu-sau-ca-danh-sach-1040", { ca: true });
         });
+        await buoc("3-1040c", "bấm lại «Chụp bù cả danh sách» ⇒ chỉ gửi đơn còn thiếu mức (người kiểm Minor 2), câu đếm theo lượt này", async () => {
+          const truoc = p.requests.filter((r) => r.method === "POST" && r.url.includes("/chup-bu")).length;
+          await p.ev("document.getElementById('ok').hidden = true, document.querySelector('[data-action=\"chup-bu-ca-danh-sach\"]').click(), true");
+          await cho(p, "!document.getElementById('ok').hidden", "câu kết quả lượt hai", 30000);
+          const sau = p.requests.filter((r) => r.method === "POST" && r.url.includes("/chup-bu")).length;
+          assert.equal(sau - truoc, 1, "lượt hai chỉ gửi MỘT đơn (đơn còn thiếu mức)");
+          assert.equal(await p.ev("document.getElementById('ok').textContent"), "Đã chụp bù 0 đơn; 1 đơn còn thiếu mức — xem câu dưới từng đơn.");
+        });
       }
       await buoc(`3-${kho}-axe`, `axe /chup-bu (${kho})`, () => axeKiem(p, `/chup-bu ${kho}`));
     } catch (e) {

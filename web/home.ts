@@ -11,7 +11,7 @@ import { feedbackBadge, initShell } from "./shell";
 import { demSapHetHan, layDanhSachSapHet } from "./vc-dem";
 import { canSeeReviewAlerts, reviewAlerts, type ReviewAlerts } from "../src/shared/dashboard-review";
 import { tieuDeDemDoiChieu } from "../src/shared/doi-chieu-hien-thi";
-import { nhanKhoanDoiChieu, nutXacNhanDoiChieu } from "../src/shared/ben-kia-hien-thi";
+import { coKhoiChoDoiChieu, nhanKhoanDoiChieu, nutXacNhanDoiChieu } from "../src/shared/ben-kia-hien-thi";
 import { PERMISSION_LABEL, can, holdsPartner } from "../src/shared/permissions";
 import { homeRedirect } from "../src/shared/start-page";
 import { conLai, dongThoiGian, loiChao, phutVN, type DongThoiGian, type LoaiChuyen } from "../src/shared/trang-chu-may-tinh";
@@ -301,7 +301,7 @@ function reviewRow(iconClass: string, iconName: IconName, href: string, title: s
 // Nguồn: `GET /api/ledger/coc` → `doiChieu[]` (cùng định nghĩa với màn đơn và bộ đếm quá 3 ngày). Khoản bên kia có nút «Bên kia đã nhận» ngay đây; khoản Công ty thu –
 // chuyển khoản cần mã giao dịch ngân hàng ⇒ chỉ có liên kết mở đơn. Cổng: ô ledger.write (cùng ô route xác nhận) và không giữ quyền Đối tác (R-91 — không tên bên kia).
 let staffDangXem: Staff | null = null;
-const coKhoiDoiChieu = (s: Staff | null): boolean => !!s && can(s, "ledger.write") && !holdsPartner(s);
+const coKhoiDoiChieu = (s: Staff | null): boolean => coKhoiChoDoiChieu(s); // luật một nơi: src/shared/ben-kia-hien-thi.ts
 const DOI_CHIEU_TOI_DA = 8;
 
 async function taiDoiChieu(staff: Staff): Promise<void> {
