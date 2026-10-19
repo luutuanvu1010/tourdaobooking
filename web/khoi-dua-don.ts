@@ -4,8 +4,10 @@
 // Nơi đón / nơi trả: form dùng MỘT ô có gợi ý mỗi nơi (web/o-noi-goi-y.ts — Tạo đơn thiết kế lại 18/10/2026, việc 7); bảng "Sửa đưa đón" giữ ô tìm + ô chọn + ô địa chỉ (`oChonNoi`).
 import { CHIEU_LABEL, LY_DO_DONG_CHANG, khoangNgayDon, type LyDoDongChang } from "../src/shared/chang-dua-don";
 import {
-  TU_DO, canHienNgayDon, changNenGon, chiTietChangCoGiaTri, coOSoHieu, goiYChang, loiChang, nhanNoiChang, suaChang, themChangDi, themChieuVe, tomTatChang, type ChangNhap, type SuaChang,
+  TU_DO, canHienNgayDon, changNenGon, chiTietChangCoGiaTri, chonKhung, coOSoHieu, goiYChang, khungDangChon, loiChang, nhanNoiChang, suaChang, themChangDi, themChieuVe, tomTatChang,
+  type ChangNhap, type SuaChang,
 } from "../src/shared/chang-form";
+import { NHAN_LUA_CHON_DON, nhanKhung, type KhungGio, type LuaChonDon } from "../src/shared/khung-gio-don";
 import type { MauChang } from "../src/shared/chang-mac-dinh";
 import { KHONG_DUA_DON } from "../src/shared/dong-gap-the";
 import { cachDungLaiHen } from "../src/shared/goi-y-noi";
@@ -47,6 +49,13 @@ export interface KhoiDuaDonOptions {
   onChange: (legs: ChangNhap[], taoSan: string | null) => void;
   /** Tiền tố id/nhãn duy nhất của khối (nhiều thẻ dịch vụ trên một trang). */
   ma: string;
+  /**
+   * CHỈ form (ADR-0134 Đ1, Đ7): lựa chọn Đón / Không đón của dịch vụ — `lay` đọc bản nháp của thẻ, `dat` để thẻ đổi bản nháp (`datChonDon`) rồi gọi `update`. Vắng (bảng
+   * "Sửa đưa đón") = khối như cũ.
+   */
+  chonDon?: { lay: () => LuaChonDon | null; dat: (v: LuaChonDon) => void };
+  /** CHỈ form (ADR-0134 Đ3, Đ5): bộ khung giờ đón + câu lưu ý (trang đọc một lần); null / vắng = chỉ ô giờ như cũ. */
+  khungGio?: () => { khung: readonly KhungGio[]; luuY: string } | null;
 }
 
 export interface KhoiDuaDon {
@@ -80,6 +89,8 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
    * ẩn bằng `hidden` (vẫn trong cây DOM): không ô nào mất, thân gửi lên không đổi.
    */
   const daThay = new Set<string>();
+  /** ADR-0134: chặng người lập vừa bấm "Giờ khác" (hiện ô giờ dù chưa gõ). Chặng có giờ không khớp khung nào cũng hiện ô giờ (`khungDangChon` = "khac"). */
+  const moGioKhac = new Set<string>();
   const moChang = new Set<string>();
   const moChiTiet = new Set<string>();
   const root = h("div", { class: "dd", "data-dua-don": o.ma });
@@ -268,6 +279,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
 
   function changEl(l: ChangNhap, i: number): HTMLElement {
     const so = i + 1;
+    const kg = o.che === "form" ? (o.khungGio?.() ?? null) : null;
     // Form Tạo/sửa đơn (`che: "form"`) dùng nhãn nổi trong ô (đợt 1, bảng việc 13/10 #4); bảng "Sửa đưa đón" của trang đơn giữ nhãn phía trên ô như cũ.
     const nn = o.che === "form";
     const id = (f: string) => `${o.ma}-${l.key}-${f}`;
@@ -345,7 +357,35 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     }
 
     const ngayEl = nn ? h("label", { for: ngay.id, class: "o-noi" }, khungNhanNoi("Ngày đón", ngay), hintNgay) : h("label", { for: ngay.id }, "Ngày đón", ngay, hintNgay);
-    const gioEl = nn ? h("label", { for: gio.id, class: "o-noi" }, khungNhanNoi("Giờ đón", gio, { khungClass: "dd-gio", giua: [gioMo] }), hintGio) : h("label", { for: gio.id }, "Giờ đón", h("span", { class: "dd-gio" }, gio, gioMo), hintGio);
+    const gioEl = nn ? h("label", { for: gio.id, class: "o-noi" }, khungNhanNoi(kg ? "Giờ đón (giờ khác)" : "Giờ đón", gio, { khungClass: "dd-gio", giua: [gioMo] }), hintGio) : h("label", { for: gio.id }, "Giờ đón", h("span", { class: "dd-gio" }, gio, gioMo), hintGio);
+    // ADR-0134 Đ3: form có bộ khung → hàng nút khung + "Giờ khác"; ô giờ chỉ hiện khi chọn "Giờ khác" (hoặc giờ đã lưu không khớp khung nào — giữ nguyên, không mất).
+    let hangKhung: HTMLElement | null = null;
+    if (kg) {
+      const dang = khungDangChon(l, kg.khung);
+      const khac = dang === "khac" || moGioKhac.has(l.key);
+      gioEl.hidden = !khac;
+      const nutKhung = kg.khung.map((k, j) => {
+        const b = h("button", { type: "button", class: "loc-nut", "aria-pressed": String(dang === j && !moGioKhac.has(l.key)), "data-o": `${l.key}:khung-${j}` }, nhanKhung(k));
+        b.addEventListener("click", () => {
+          moGioKhac.delete(l.key);
+          commit(chonKhung(legs, i, k), true);
+        });
+        return b;
+      });
+      const nutKhac = h("button", { type: "button", class: "loc-nut", "aria-pressed": String(khac), "data-o": `${l.key}:gio-khac` }, "Giờ khác");
+      nutKhac.addEventListener("click", () => {
+        moGioKhac.add(l.key);
+        sua(i, { pickupSlotEnd: "" }, true); // giữ giờ đang có (giờ đầu khung) để người lập sửa tiếp; bỏ cuối khung
+        root.querySelector<HTMLInputElement>(`[data-o="${CSS.escape(`${l.key}:gio`)}"]`)?.focus();
+      });
+      hangKhung = h(
+        "div",
+        { class: "dd-khung-o" },
+        h("span", { class: "dd-nhan", id: id("khung-nhan") }, "Giờ đón"),
+        h("div", { class: "dd-khung", role: "group", "aria-labelledby": id("khung-nhan") }, ...nutKhung, nutKhac),
+        h("p", { class: "dd-luu-y" }, kg.luuY),
+      );
+    }
     // Form Tạo đơn: "Ngày đón" ẩn khi chặng cùng ngày đi (máy chủ tự điền khi trống); lối nhỏ "Đón khác ngày" nằm cạnh ô giờ để mở ô.
     const nutKhacNgay = nn ? h("button", { type: "button", class: "btn btn-link dd-khac-ngay", "data-action": "don-khac-ngay" }, "Đón khác ngày") : null;
     nutKhacNgay?.addEventListener("click", () => {
@@ -427,6 +467,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       { class: "dd-chang", "data-leg-key": l.key, "data-chieu": l.direction },
       // Form: đầu chặng nhận được tiêu điểm bằng mã (`tabindex="-1"`) — chỗ đặt tiêu điểm khi người lập dùng cảm ứng (`tieuDiemKhiCham`); `data-o` để khối dựng lại trả focus về đúng chỗ.
       h("div", { class: "dd-chang-dau", ...(nn ? { tabindex: "-1", "data-o": `${l.key}:dau` } : {}) }, h("span", { class: "chip chip-unit" }, CHIEU_LABEL[l.direction]), h("span", { class: "dd-chang-so" }, `Lượt ${so}`), boBtn),
+      hangKhung,
       h("div", { class: "dd-luoi2" }, ngayEl, gioEl, nutKhacNgay),
       h("div", { class: "dd-luoi-noi" }, cotDon, cotTra),
       phu.length ? h("div", { class: "dd-luoi-phu" }, ...phu) : null,
@@ -482,9 +523,24 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
         if (chiTietChangCoGiaTri(l)) moChiTiet.add(l.key);
       });
     }
-    const items: HTMLElement[] = [h("div", { class: "dd-nhan" }, "Đưa đón")];
+    const items: HTMLElement[] = [h("div", { class: "dd-nhan", id: `${o.ma}-dd-nhan` }, "Đưa đón")];
+    // ADR-0134 Đ1, Đ7 (CHỈ form): hai nút bắt buộc chọn "Đón" / "Không đón" — chưa chọn thì không nút nào sáng (không mặc định "Không đón"); "Không đón" thì khối gọn.
+    const cd = o.che === "form" ? o.chonDon : undefined;
+    if (cd) {
+      const chon = cd.lay();
+      const nut = (v: LuaChonDon) => {
+        const b = h("button", { type: "button", class: "loc-nut", "aria-pressed": String(chon === v), "data-action": v === "DON" ? "them-dua-don" : "chon-khong-don", /* "Đón" tạo lượt đầu = việc cũ của nút "+ Thêm đưa đón" — giữ tên hành động cho kịch bản Chrome cũ */ "data-o": `${o.ma}:chon-${v}` }, NHAN_LUA_CHON_DON[v]);
+        b.addEventListener("click", () => cd.dat(v));
+        return b;
+      };
+      items.push(h("div", { class: "dd-chon-don", role: "group", "aria-labelledby": `${o.ma}-dd-nhan` }, nut("DON"), nut("KHONG_DON")));
+    }
     if (taoSan && legs.length > 0) items.push(h("p", { class: "dd-ghi-tao" }, taoSan));
-    if (legs.length === 0) {
+    if (cd && legs.length === 0) {
+      // Form: không lượt → bấm "Đón" tạo lượt đầu (không còn nút "+ Thêm đưa đón"). Đã chọn "Không đón" → giữ dòng «Không đưa đón» (CÙNG chữ với dòng gập của thẻ — b1b2abe4);
+      // chưa chọn → không dòng nào (dòng gập có chip «Chưa chọn đón»).
+      if (cd.lay() === "KHONG_DON") items.push(h("div", { class: "dd-trong" }, h("span", null, KHONG_DUA_DON)));
+    } else if (legs.length === 0) {
       const them = h("button", { type: "button", class: "pill-btn", "data-action": "them-dua-don" }, "+ Thêm đưa đón");
       them.addEventListener("click", () => commit([themChangDi(o.mau(), o.ngayDi(), o.newKey())], true));
       items.push(h("div", { class: "dd-trong" }, h("span", null, KHONG_DUA_DON), them)); // cùng chữ với dòng gập của thẻ (dong-gap-the.ts)

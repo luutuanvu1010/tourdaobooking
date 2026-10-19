@@ -23,6 +23,9 @@ export function chipDatGap(v: { conCho: number; daDuyet: number }): string[] {
  */
 export const KHONG_DUA_DON = "Không đưa đón";
 
+/** Chip dòng gập khi dịch vụ CHƯA chọn Đón / Không đón (ADR-0134 Đ1, Đ2 — xác nhận sẽ bị chặn tới khi chọn). Thẻ chưa chọn KHÔNG ghi «Không đưa đón». */
+export const CHIP_CHUA_CHON_DON = "Chưa chọn đón";
+
 /** Số khách gọn của dòng gập: chỉ loại có người, theo thứ tự Người lớn, Trẻ em, Người cao tuổi, Em bé — "2 NL · 1 TE · 1 EB". Không khách → "". */
 export function soKhachGon(s: { nl: number; te: number; nc: number; eb: number }): string {
   return ([[s.nl, "NL"], [s.te, "TE"], [s.nc, "NCT"], [s.eb, "EB"]] as const)
@@ -100,7 +103,10 @@ const changHien = (legs: readonly ChangNhap[]): ChangNhap | null => legs.find((l
 export interface DongGap {
   /** "2 NL · 1 TE · 1 EB" (theo khách) hoặc "7 khách" (theo nhóm, nhập tay); "" = chưa có khách. */
   khach: string;
-  /** "đón 07:30 KS Biển Xanh"; "Không đưa đón" (`KHONG_DUA_DON`) = dịch vụ không có chặng; null = có chặng nhưng chưa có giờ lẫn nơi (phần thiếu là chip). */
+  /**
+   * "đón 07:30 KS Biển Xanh"; "Không đưa đón" (`KHONG_DUA_DON`) = dịch vụ đã chọn Không đón (không chặng); null = có chặng nhưng chưa có giờ lẫn nơi, hoặc chưa
+   * chọn Đón / Không đón (phần thiếu là chip).
+   */
   don: string | null;
   /** Chip nền cát: thiếu thông tin trước, cảnh báo sau, không lặp. */
   chips: string[];
@@ -121,6 +127,9 @@ export function dongGapThe(d: ServiceDraft, o: { today: string; nhanTheoId: (id:
   // "Chưa nhập số khách": đúng khi Lưu sẽ báo "Nhập số khách." (dịch vụ danh mục 0 khách); nhập tay không bắt buộc số khách. Chỉ hiện trên dòng gập — thẻ mở đã có ô số khách và câu lỗi.
   const coKhach = !draftIssues(d).some((i) => i.code === "no_guests");
   const chips: string[] = chipThieu({ coKhach, coGioDon: !l || l.pickupTime !== "", coNoiDon: !l || noi !== "" });
+  // ADR-0134: không chặng mà chưa chọn "Không đón" → chưa chọn (ô chọn của thẻ mở đang trống) — không được ghi «Không đưa đón».
+  const chuaChonDon = !l && d.pickupChoice !== "KHONG_DON";
+  if (chuaChonDon) chips.push(CHIP_CHUA_CHON_DON);
   if (d.kind === "catalog") {
     if (isLocked(d) || d.catalogStatus === "unavailable") chips.push("Dịch vụ đã ẩn khỏi danh mục");
     else if (d.catalogStatus === "price_changed") chips.push("Giá danh mục đã đổi");
@@ -128,5 +137,5 @@ export function dongGapThe(d: ServiceDraft, o: { today: string; nhanTheoId: (id:
     if (p.ok && p.lines.some((x) => x.deviation !== null)) chips.push("Khác giá danh mục");
   }
   chips.push(...canhBaoChuyenThe(d, o.today).map((w) => chipTuCanhBao(w.message)), ...(o.chipNgoai ?? []));
-  return { khach, don: l ? donGon(l.pickupTime, noi, ngayDonKhac(l.pickupDate, d.trip.departDate)) : KHONG_DUA_DON, chips: [...new Set(chips)] };
+  return { khach, don: l ? donGon(l.pickupTime, noi, ngayDonKhac(l.pickupDate, d.trip.departDate)) : chuaChonDon ? null : KHONG_DUA_DON, chips: [...new Set(chips)] };
 }

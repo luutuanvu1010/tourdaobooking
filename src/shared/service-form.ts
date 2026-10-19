@@ -7,7 +7,9 @@ import {
 } from "./order-lines.ts";
 import { MAX_LINES_PER_ORDER, MAX_SERVICES } from "./trip-rules.ts";
 import { emptyTrip, tripFromDto } from "./trip-form.ts";
-import { changTuDto, legInput, loiDanhSachChang, type ChangNhap } from "./chang-form.ts";
+import { changTuDto, legInput, loiDanhSachChang, themChangDi, type ChangNhap } from "./chang-form.ts";
+import type { MauChang } from "./chang-mac-dinh.ts";
+import type { LuaChonDon } from "./khung-gio-don.ts";
 import { tongKhach } from "./so-nguoi-chang.ts";
 import { CAU_THIEU_NGUOI_LON, donThieuNguoiLon } from "./nguoi-di-kem.ts";
 
@@ -28,6 +30,8 @@ interface DraftBase {
   legs: ChangNhap[];
   /** Câu "Đã tạo sẵn … theo dịch vụ" khi chặng vừa được tạo theo mẫu (M6); null = không. */
   taoSan: string | null;
+  /** Lựa chọn đón (ADR-0134 Đ1): "DON" / "KHONG_DON"; null = chưa chọn (lưu nháp được; xác nhận bị máy chủ chặn). LUÔN gửi khoá này. */
+  pickupChoice: LuaChonDon | null;
 }
 
 export interface CatalogDraft extends DraftBase {
@@ -125,11 +129,11 @@ export function paxSummary(pax: PaxCounts, unit: string): string {
 export function newCatalogDraft(item: CatalogService, key: string): CatalogDraft {
   const pax = zeroPax();
   pax.adult = 1;
-  return { kind: "catalog", key, id: null, trip: emptyTrip(), legs: [], taoSan: null, code: item.code, name: item.name, unit: item.unit, source: "live", item, live: item, pax, unitPrices: defaultPrices(item), catalogStatus: null, repick: false, saved: null };
+  return { kind: "catalog", key, id: null, trip: emptyTrip(), legs: [], taoSan: null, pickupChoice: null, code: item.code, name: item.name, unit: item.unit, source: "live", item, live: item, pax, unitPrices: defaultPrices(item), catalogStatus: null, repick: false, saved: null };
 }
 
 export function newManualDraft(key: string): ManualDraft {
-  return { kind: "manual", key, id: null, trip: emptyTrip(), legs: [], taoSan: null, name: "", guests: 0, lines: [emptyLine()] };
+  return { kind: "manual", key, id: null, trip: emptyTrip(), legs: [], taoSan: null, pickupChoice: null, name: "", guests: 0, lines: [emptyLine()] };
 }
 
 /** Dựng lại bảng giá từ dòng đã lưu (giống `snapshotService` của máy chủ); thiếu loại khách/giá danh mục → null. */
@@ -150,7 +154,7 @@ export function snapshotItem(dto: Pick<OrderServiceDto, "catalogCode" | "name" |
  * Có bản chụp → giữ giá đã lưu (nhãn theo `catalogStatus`); danh mục không còn → thẻ khoá (`isLocked`).
  */
 export function draftFromDto(dto: OrderServiceDto, live: ReadonlyMap<string, CatalogService>, key: string): ServiceDraft {
-  const base = { key, id: dto.id, trip: tripFromDto(dto), legs: dto.legs.map((l, i) => changTuDto(l, `${key}-l${i}`)), taoSan: null };
+  const base = { key, id: dto.id, trip: tripFromDto(dto), legs: dto.legs.map((l, i) => changTuDto(l, `${key}-l${i}`)), taoSan: null, pickupChoice: dto.pickupChoice ?? null };
   if (dto.kind === "manual" || dto.catalogCode === null) {
     return {
       ...base, kind: "manual", name: dto.name, guests: paxTotal(dto.pax),
@@ -395,6 +399,23 @@ export function orderIssues(drafts: readonly ServiceDraft[]): string[] {
   return out;
 }
 
+// ---- Đón / Không đón (ADR-0134) ------------------------------------------------------------------------------------------
+
+/** Gợi ý lúc thêm dịch vụ (Đ7): mẫu một chiều / khứ hồi đã tạo sẵn chặng → "Đón" (người lập đổi được); không chặng → CHƯA chọn (không mặc định "Không đón"). */
+export const chonDonGoiY = (soChang: number): LuaChonDon | null => (soChang > 0 ? "DON" : null);
+
+/** Lựa chọn sau khi danh sách lượt đổi: còn lượt → "Đón"; bỏ lượt cuối khi đang "Đón" → về chưa chọn (người lập phải chọn lại); còn lại giữ nguyên. */
+export function chonDonSauDoiChang(cu: LuaChonDon | null, soChang: number): LuaChonDon | null {
+  if (soChang > 0) return "DON";
+  return cu === "DON" ? null : cu;
+}
+
+/** Bấm "Đón": có sẵn lượt thì giữ, chưa có thì tạo một lượt chiều đi (theo mẫu nếu có). Bấm "Không đón": bỏ mọi lượt. */
+export function datChonDon<D extends ServiceDraft>(d: D, v: LuaChonDon, mau: MauChang | null, newKey: () => string): D {
+  if (v === "KHONG_DON") return { ...d, pickupChoice: v, legs: [], taoSan: null };
+  return { ...d, pickupChoice: v, legs: d.legs.length > 0 ? d.legs : [themChangDi(mau, d.trip.departDate, newKey())] };
+}
+
 // ---- thân gửi lên máy chủ ----------------------------------------------------------------------------------------------
 
 /**
@@ -404,7 +425,8 @@ export function orderIssues(drafts: readonly ServiceDraft[]): string[] {
  */
 export function toServiceInput(d: ServiceDraft, guiSoVe = false): ServiceInput {
   const { pickupTime: _gio, pickupPlace: _noi, ...chuyen } = d.trip;
-  const id = { ...(d.id === null ? {} : { id: d.id }), legs: d.legs.map((l) => legInput(l, guiSoVe)) };
+  // ADR-0134 Đ7: LUÔN gửi khoá `pickupChoice` (kể cả null) — máy chủ đòi mọi dịch vụ cùng có khoá; vắng chỉ là máy chưa tải bản mới.
+  const id = { ...(d.id === null ? {} : { id: d.id }), legs: d.legs.map((l) => legInput(l, guiSoVe)), pickupChoice: d.pickupChoice };
   if (d.kind === "manual") {
     return {
       ...id, kind: "manual", name: d.name.trim(), pax: { ...zeroPax(), adult: d.guests },

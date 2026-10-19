@@ -6,7 +6,7 @@ import { CAU_THIEU_NGUOI_LON } from "./nguoi-di-kem.ts";
 import {
   addManualLine, canAddService, draftFromDto, draftIssues, draftSubtotal, emptyLine, groupInfo, isFrozenManual, isLocked, newCatalogDraft, newManualDraft, orderIssues, orderSummary,
   cardCodes, guestDetail, paxSummary, previewLines, refreshFromCatalog, removeManualLine, setGuests, setManualLine, setPax, setUnitPrice, snapshotItem, toServiceInput, totalLines, unitLabel,
-  chuDongTien, chuLuot, coDongThanhTien, nhanSoLuongDong,
+  chuDongTien, chuLuot, coDongThanhTien, nhanSoLuongDong, chonDonGoiY, chonDonSauDoiChang, datChonDon,
   type CatalogDraft, type ManualDraft,
 } from "./service-form.ts";
 
@@ -177,10 +177,10 @@ test("toServiceInput (danh mục): KHÔNG có items/quantity; unitPrices và cat
   assert.equal(input.kind, "catalog");
   assert.ok(!("items" in input) && !("quantity" in input) && !("id" in input));
   assert.deepEqual(input, {
-    legs: [], kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 1, senior: 0, infant: 0 },
+    legs: [], pickupChoice: null, kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 1, senior: 0, infant: 0 },
     unitPrices: { adult: 1300000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 },
     departDate: "2026-09-20", departTime: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "",
-  });
+  }); // ADR-0134 Đ7: thân LUÔN có khoá pickupChoice (thẻ mới = null — chưa chọn)
 });
 
 test("ADR-0047 Phần B: toServiceInput LUÔN có khoá legs (kể cả []) và KHÔNG có pickupTime/pickupPlace; chặng đã lưu giữ id; lỗi chặng chặn Lưu", () => {
@@ -201,7 +201,7 @@ test("ADR-0047 Phần B: toServiceInput LUÔN có khoá legs (kể cả []) và 
 test("toServiceInput (nhập tay): số khách vận hành ở adult, dòng tiền đã cắt khoảng trắng; dịch vụ đã lưu mang id", () => {
   const d = setManualLine({ ...newManualDraft("k3"), id: "svc-3", name: "  Xe đưa đón riêng ", guests: 3 }, 0, { description: " Xe 7 chỗ 2 chiều ", detail: " ", quantity: 1, unitPrice: 800000 });
   assert.deepEqual(toServiceInput(d), {
-    id: "svc-3", legs: [], kind: "manual", name: "Xe đưa đón riêng", pax: { adult: 3, child: 0, senior: 0, infant: 0 },
+    id: "svc-3", legs: [], pickupChoice: null, kind: "manual", name: "Xe đưa đón riêng", pax: { adult: 3, child: 0, senior: 0, infant: 0 },
     items: [{ description: "Xe 7 chỗ 2 chiều", detail: "", quantity: 1, unitPrice: 800000 }],
     departDate: "", departTime: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "",
   });
@@ -228,7 +228,7 @@ test("draftFromDto (danh mục): giữ bản chụp — đơn giá thương lư�
   assert.ok(p.ok);
   assert.deepEqual(p.lines.map((l) => [l.quantity, l.unitPrice, l.catalogPrice, l.deviation]), [[2, 1300000, 1350000, -50000], [1, 950000, 950000, null]]);
   assert.deepEqual(toServiceInput(d), {
-    id: "svc-1", legs: [], kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 1, senior: 0, infant: 0 },
+    id: "svc-1", legs: [], pickupChoice: null, kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 1, senior: 0, infant: 0 },
     unitPrices: { adult: 1300000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 },
     departDate: "2026-09-20", departTime: "07:30", checkinDate: "", checkinTime: "07:15", checkinPlace: "Cảng Cầu Đá", note: "",
   });
@@ -542,4 +542,42 @@ test("chuDongTien chỉ TRÌNH BÀY thành tiền đã tính (lineTotal), không
 
 test("coDongThanhTien: dòng 'Thành tiền dịch vụ' chỉ khi thẻ có từ hai dòng tiền", () => {
   assert.deepEqual([0, 1, 2, 3].map(coDongThanhTien), [false, false, true, true]);
+});
+
+test("ADR-0134 Đ1, Đ7: thẻ mới CHƯA chọn đón; toServiceInput LUÔN gửi khoá pickupChoice (kể cả null); draftFromDto mang lựa chọn đã lưu", () => {
+  const moi = newCatalogDraft(tour, "k1");
+  assert.equal(moi.pickupChoice, null);
+  assert.equal(newManualDraft("k2").pickupChoice, null);
+  const i = toServiceInput(moi);
+  assert.equal("pickupChoice" in i, true);
+  assert.equal(i.pickupChoice, null);
+  assert.equal(toServiceInput({ ...moi, pickupChoice: "KHONG_DON" }).pickupChoice, "KHONG_DON");
+  assert.equal(draftFromDto({ ...savedTour, pickupChoice: "KHONG_DON" }, live, "k3").pickupChoice, "KHONG_DON");
+  assert.equal(draftFromDto({ ...savedManual, pickupChoice: null }, live, "k4").pickupChoice, null);
+});
+
+test("ADR-0134 Đ7: gợi ý theo mẫu chặng — có chặng tạo sẵn (một chiều / khứ hồi) → Đón; không chặng → CHƯA chọn (không mặc định Không đón)", () => {
+  assert.equal(chonDonGoiY(1), "DON");
+  assert.equal(chonDonGoiY(2), "DON");
+  assert.equal(chonDonGoiY(0), null);
+});
+
+test("ADR-0134: bấm Đón → có ít nhất một lượt (tạo lượt chiều đi trống nếu chưa có); bấm Không đón → bỏ hết lượt; bỏ lượt cuối khi đang Đón → về chưa chọn", () => {
+  let n = 0;
+  const key = () => `x${++n}`;
+  const d = { ...newCatalogDraft(tour, "k1"), trip: { ...newCatalogDraft(tour, "k1").trip, departDate: "2026-09-20" } };
+  const don = datChonDon(d, "DON", null, key);
+  assert.equal(don.pickupChoice, "DON");
+  assert.equal(don.legs.length, 1);
+  assert.equal(don.legs[0]!.direction, "OUT");
+  assert.equal(datChonDon(don, "DON", null, key).legs.length, 1, "bấm lại Đón không thêm lượt");
+  const khong = datChonDon(don, "KHONG_DON", null, key);
+  assert.equal(khong.pickupChoice, "KHONG_DON");
+  assert.deepEqual(khong.legs, []);
+  assert.equal(khong.taoSan, null);
+  assert.equal(chonDonSauDoiChang("DON", 0), null, "bỏ lượt cuối khi đang Đón → chưa chọn (phải chọn lại)");
+  assert.equal(chonDonSauDoiChang(null, 1), "DON", "thêm lượt → Đón");
+  assert.equal(chonDonSauDoiChang("KHONG_DON", 1), "DON");
+  assert.equal(chonDonSauDoiChang("KHONG_DON", 0), "KHONG_DON");
+  assert.equal(chonDonSauDoiChang(null, 0), null);
 });
