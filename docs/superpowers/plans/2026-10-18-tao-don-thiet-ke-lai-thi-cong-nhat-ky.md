@@ -1,6 +1,6 @@
 # Nhật ký thi công — Tạo đơn thiết kế lại (18–19/10/2026)
 
-Nhánh `worktree-tao-don-thiet-ke-lai`, HEAD khi nghiệm thu `f4b00bdc` (cộng kịch bản đo/chụp của Việc 10). Hồ sơ có ngày: viết xong là đóng băng. Số phiên bản nhật ký thay đổi **2.19 TẠM** (main 2.17; hai nhánh khác đã dùng 2.18), đánh số lại ở bước A.0. Không migration; cần `npm run trien-khai`; ADR-0130 (đề xuất) chờ chủ duyệt.
+Nhánh `worktree-tao-don-thiet-ke-lai`, HEAD khi nghiệm thu `f4b00bdc` (cộng kịch bản đo/chụp của Việc 10). Hồ sơ có ngày: viết xong là đóng băng. Số phiên bản nhật ký thay đổi **2.19 TẠM** (main 2.17; hai nhánh khác đã dùng 2.18), đánh số lại ở bước A.0. Không migration; cần `npm run trien-khai`; ADR-0130 (đề xuất) chờ chủ duyệt. **Sau gộp main 19/10 (mục 9):** số tạm nay là **2.20** (main đã có 2.19 tạm); số 0130 trên main đã là ADR bảng từ giao diện nên bản đề xuất `DE-XUAT-ADR-0130.md` cần số mới khi duyệt.
 
 ## 1. Kết quả chạy lại (Việc 10, 19/10/2026)
 
@@ -82,6 +82,22 @@ Bộ chọn ngày/giờ gốc của iOS/Android; bàn phím ảo iPhone/Android;
 
 ## 8. Quan sát cần ghi
 
-- Lỗi cũ (có từ trước Việc 9, không do nhánh này): 1040x768, đầu trang, khi khung lỗi của lần Lưu trước còn hiện, nút Lưu nằm 753–799 px — nửa dưới ra ngoài khung cho tới khi cuộn nhẹ; trái câu SYSTEM-DESIGN §9 "luôn thấy". Đề nghị tách thành việc riêng.
+- ~~Lỗi cũ (có từ trước Việc 9, không do nhánh này)~~ **Sửa 19/10 (câu trên sai sự thật):** đây là HỒI QUY MỘT PHẦN của nhánh này. Đo cùng một cách ở 1040x768, đầu trang, không cuộn: bản gốc `0780d014` nút Lưu ở 619 px khi form trống, có khung lỗi một dòng 717–763 px (trọn khung); `f56f9ef9` 659 px và 753–799 px (nửa dưới ra ngoài khung, trái câu SYSTEM-DESIGN §9 "luôn thấy"). Nguyên nhân: Việc 8 thêm dòng "Giảm giá" vào khối Tóm tắt (+40 px). Đã sửa ở Việc 11 (mục 9): nay 611 px và 705–751 px.
 - wrangler dev mồ côi: phiên Việc 10 chỉ chạy tiến trình do kịch bản tự dựng và tự tắt; khi kết thúc không còn tiến trình nào của worktree này (các wrangler/workerd còn thấy thuộc worktree `optimistic-wu-2c3796` của phiên khác, không đụng). Ruling cũ về cổng 62212/64831 nay không còn tiến trình tương ứng.
 - Sổ hàng rào: Việc 10 không có hàng rào mới quan sát chặn thật, nên không sửa `docs/SO-HANG-RAO.md`.
+
+## 9. Việc 11 — vòng sửa cuối (19/10/2026)
+
+Người thi công vòng sửa cuối; KHÔNG phải kiểm độc lập. Năm lần lưu: `016f4243` (gộp main), `e41144d3` (B), `98a6b17b` (C), `58c5e41a` (D + E), lần lưu nhật ký này.
+
+- **A. Gộp main `38e4921c`** bằng `git merge` (không rebase, không viết lại lịch sử, không đẩy lên). Xung đột gỡ theo nguyên tắc: bố cục / hành vi của nhánh giữ, CHỮ theo main ("Lượt N" thay "Chặng N" ở đầu lượt đưa đón, "Người thu tiền" thay "Người nhận tiền", "Ghi khoản thu" thay "Ghi lần thu", bỏ chữ "app"). Chi tiết từng tệp ở thân lần lưu `016f4243`. Nhật ký thay đổi của nhánh: số TẠM **2.20**, ngày 19/10 (main đã có 2.19 tạm; kiểm main, mọi nhánh và mọi worktree ngày 19/10: chưa nơi nào dùng 2.20). Hướng dẫn Bán hàng cắt sáu chữ để A4 còn xanh (3149/3150). Bài C4 trợ lý đo lại 17 / 10 / 45 (lý do ghi trong bài). Sơ đồ trang sinh lại.
+- **Trùng số ADR-0130**: main đã có ADR-0130 ĐÃ DUYỆT (bảng từ giao diện), 0131 và 0132 cũng đã dùng; bản đề xuất `DE-XUAT-ADR-0130.md` của nhánh này giữ tên tệp (hồ sơ đề xuất, không đổi tên) nhưng các chỗ nhắc đã ghi rõ "số tạm, trùng"; số trống gần nhất lúc kiểm 19/10 là 0133 — chủ đặt số khi duyệt. Không đụng `docs/adr/`.
+- **B.** `src/shared/booker.ts`: câu gợi ý khi chọn hồ sơ tổ chức nay gọi đúng công tắc "Đơn của: … Qua đối tác" (câu cũ "Đặt qua đối tác" không còn trên giao diện). Đỏ trước: `booker.test.ts` sửa kỳ vọng → đỏ trên mã cũ → sửa mã → xanh.
+- **C.** `docs/SYSTEM-DESIGN.md` §16: thêm dòng LỆCH CÓ CHỦ Ý với ADR-0058 Đ8 (không còn "Đang lọc … Bỏ lọc"; tìm xuyên mọi nhóm), trỏ `DE-XUAT-ADR-0130.md`. ADR không sửa.
+- **D. Danh sách gợi ý Nơi đón / Nơi trả ở khổ ≤ 640px**: thêm `tranhThanhDay` ở `web/o-noi-goi-y.ts` (khi thanh Lưu đang dính và che danh sách thì cuộn trang lên vừa đủ, không đẩy ô gõ lên quá đỉnh vùng an toàn). Đo sau sửa: 375×667 danh sách 272–536, thanh từ 544; 390×844 danh sách 449–713, thanh từ 721; thanh cao (khung lỗi dài) ô 140–194, danh sách 202–466, thanh từ 382.
+- **E. Nút Lưu ở 1040×768**: thu nhịp dòng khối Tóm tắt ở cột phải (`public/app.css`, hai dòng token). Số đo đầu trang, không cuộn — bản gốc `0780d014`: 619 px / lỗi một dòng 717–763; trước sửa `f56f9ef9`/`98a6b17b`: 659 / 753–799 (tràn đáy 768); sau sửa: **611 / 705–751**. Dòng ~85 mục 8 đã sửa câu sai ("lỗi cũ, không do nhánh này").
+- **Hàng rào mới** `kich-ban/khong-cuon-truoc-smoke.mjs` (ngoài `npm test`): quan sát chặn thật 19/10 (5 bước đỏ trên mã cũ; phá cố ý 6 bước đỏ; sau sửa 8/8) — dòng mới ở `docs/SO-HANG-RAO.md`. `docs/CHANGE-GUIDE.md` và `DE-XUAT-WEB-CLAUDE.md` thêm tên kịch bản.
+- **Chạy lại Chrome trên `58c5e41a`** (đã build, D1 tạm, có AXE_JS ở `thanh-dinh-smoke`): a2-smoke-form, a2-smoke-order, thanh-dinh-smoke, dua-don-mot-o, cong-tac-va-canh-bao, the-gap, dua-don-smoke (16 bước), help-smoke, khong-cuon-truoc — đều OK. `than-gui.mjs` hai cách (có trả trước 8 thân, mặc định 6 thân): sau khi bỏ ngày, thân gửi lên GIỐNG HỆT bản trước gộp (chỉ khác ngày 21/10 ↔ 22/10). "Tổng máy chủ = tổng trên thanh" đạt ở 390 và 1040 (tạm tính 4.300.000, giảm 100.000, tổng 4.200.000). Không bài nào đỏ nên không cần so trên main sạch. Ảnh / JSON có ngày bị kịch bản ghi đè đã `git checkout --` về bản cũ.
+- **Trước lần lưu cuối** (một lần, 19/10): `npm run typecheck` 0 lỗi; `npm test` bước 1 5665 bài (5664 đạt, 0 đỏ, 1 todo), bước 2 bài đo giờ 1/1 — thoát 0 (`tu-khai-route.test.ts` không đỏ lần này).
+- **Không làm (theo giao việc)**: `so-dai-ly-smoke` bước 36 và `chup-anh.mjs` ca 1–2 vẫn lệch như mục 6; không sửa tệp luật.
+- **CHƯA kiểm**: bàn phím ảo / iPhone thật (khi bàn phím bật, thanh dính có thể nằm sau bàn phím); khổ 641–959px không có bước riêng; e2e không chạy lại ở vòng này (không đổi API / migration / thân gửi); toàn nhánh vẫn CẦN người kiểm độc lập.
