@@ -697,9 +697,9 @@ export async function xacNhanCongTyNhan(db: D1Database, input: { receiptId: stri
  */
 export async function xacNhanBenKia(db: D1Database, input: { receiptId: string; raw: unknown; ai: NguoiGoi }): Promise<KetQua<{ orderId: string }>> {
   const rc = await receiptById(db, input.receiptId);
-  if (!rc) return loi(404, "not_found", "Không tìm thấy lần thu.");
+  if (!rc) return loi(404, "not_found", "Không tìm thấy khoản thu.");
   if ((rc.collector_role_code !== "BOOKER" && rc.collector_role_code !== "SUPPLIER") || !rc.collector_party_id || rc.kind_code !== "CUSTOMER_PAYMENT") {
-    return loi(409, "invalid_state", "Lần thu này không phải khoản khách trả cho đại lý / tại quầy nhà cung cấp.");
+    return loi(409, "invalid_state", "Khoản thu này không phải khoản khách trả cho đại lý / tại quầy nhà cung cấp.");
   }
   const congTyId = await ownerCompanyId(db);
   if (!congTyId) return CHUA_CO_CONG_TY();
@@ -901,7 +901,7 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
     }
     try {
       const kq = await db.batch(stmts);
-      if ((kq[0]!.meta.changes ?? 0) === 0) return loi(409, "stale", "Khoản này vừa được Kế toán xác nhận — tải lại rồi đảo lại.");
+      if ((kq[0]!.meta.changes ?? 0) === 0) return loi(409, "stale", "Khoản này vừa được Kế toán xác nhận — tải lại rồi huỷ khoản thu lại.");
     } catch (e) {
       const k = await loiKhoaKy(db, e, [ngay.value]);
       if (k) return k;

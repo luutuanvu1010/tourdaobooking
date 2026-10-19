@@ -340,7 +340,7 @@ export const billingModule: AppModule = {
     // một dòng). Ô `ledger.write` (Kế toán, Toàn quyền). Không mã giao dịch (điều 4).
     route("POST", "/api/ledger/counterparty-receipts/:receiptId/confirm", "office", async ({ env, request, params, staff, baoThayDoi }) => {
       if (!can(staff, "ledger.write")) return CANNOT_LEDGER();
-      if (!UUID_RE.test(params.receiptId!)) return error(404, "not_found", "Không tìm thấy lần thu.");
+      if (!UUID_RE.test(params.receiptId!)) return error(404, "not_found", "Không tìm thấy khoản thu.");
       const kq = await xacNhanBenKia(env.DB, { receiptId: params.receiptId!, raw: await readJson(request), ai: nguoiGoi(staff) });
       if (!kq.ok) return kq.res;
       baoThayDoi({ orderId: kq.value.orderId, thayDoi: "tien" });

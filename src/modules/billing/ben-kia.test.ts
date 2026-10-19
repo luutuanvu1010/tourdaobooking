@@ -200,7 +200,7 @@ test("đua (người kiểm Task 5 I-1): «đảo lần thu» đọc lời khai 
   const d = await daoLanThu(w, r);
   assert.equal(d.status, 409, d.text);
   assert.equal(d.json.error.code, "stale");
-  assert.equal(d.json.error.message, "Khoản này vừa được Kế toán xác nhận — tải lại rồi đảo lại.");
+  assert.equal(d.json.error.message, "Khoản này vừa được Kế toán xác nhận — tải lại rồi huỷ khoản thu lại.");
   assert.equal(n(w, "SELECT count(*) AS n FROM bil_payment_receipt WHERE reverses_id = ?", r), 0, "lần thu không bị đảo");
   assert.equal(n(w, "SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = 'ledger_reversal'", id), 0, "lệnh không áp thì không nhật ký");
   assert.equal(soDu(w, id, ct).get(`pty-${PT}`), 300_000, "đại lý giữ 300.000 — khớp lần thu còn hiệu lực");
