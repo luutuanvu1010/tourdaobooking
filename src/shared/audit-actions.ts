@@ -103,6 +103,8 @@ export const AUDIT_ACTIONS = {
   ledger_period_closed: { label: "Khoá sổ tháng", group: "ledger" },
   order_handler_changed: { label: "Đổi người phụ trách", group: "order" },
   order_claimed: { label: "Tự nhận phụ trách đơn", group: "order" },
+  // ADR-0030 điều 1 (nút Từ chối): người phụ trách tự trả đơn. `detail` = CHỈ nhãn lý do (danh sách đóng `ly-do-tu-choi.ts`) — không tên (Q2 (a), chủ 2026-10-23).
+  order_handler_refused: { label: "Trả đơn (Từ chối)", group: "order" },
   booker_changed: { label: "Đổi khách", group: "order" },
   exported_png: { label: "Xuất PNG", group: "order" },
   exported_pdf: { label: "Xuất PDF", group: "order" },

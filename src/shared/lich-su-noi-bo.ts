@@ -35,6 +35,7 @@ export const LICH_SU_NOI_BO_CHO_PHEP = {
   order_completed: "giu",
   order_handler_changed: "giu", // "từ <phụ trách cũ> sang <mới>" — dữ liệu của đơn, dòng không nói ai bấm
   order_claimed: "bo", // khuôn "… sang <tên>" luôn là CHÍNH người bấm: giữ dòng, bỏ chữ
+  order_handler_refused: "giu", // chữ CHỈ là nhãn lý do (danh sách đóng) — không tên; Q2 (a) chủ 2026-10-23
   booker_changed: "giu",
   // Tiền của đơn trong sổ (không gác thêm ô — ADR-0131 đ2b)
   order_terms_captured: "giu",

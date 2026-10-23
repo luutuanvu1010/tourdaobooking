@@ -51,7 +51,7 @@ export const LICH_SU_DOI_TAC_CHO_PHEP = {
 export const LICH_SU_DOI_TAC_AN = [
   // Nhóm đơn
   "order_cancel_reason_classified", "order_terms_captured", "order_terms_recaptured", "order_terms_manual", "ord_terms_backfilled", "order_accounting_entry_marked", "order_accounting_entry_unmarked",
-  "order_handler_changed", "order_claimed", "booker_changed", "exported_png", "exported_pdf",
+  "order_handler_changed", "order_claimed", "order_handler_refused", "booker_changed", "exported_png", "exported_pdf",
   // Sổ tiền, cọc đơn huỷ, đối soát
   "ledger_company_received", "ledger_counterparty_confirmed", "ledger_settlement", "ledger_refund", "ledger_adjustment", "ledger_adjustment_requested", "ledger_adjustment_approved", "ledger_adjustment_rejected", "ledger_adjustment_withdrawn", "ledger_adjustment_affected",
   "ledger_receipt_replaced", "ledger_reversal", "ledger_bank_txn_linked",
