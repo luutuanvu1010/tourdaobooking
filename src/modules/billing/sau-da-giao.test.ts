@@ -52,7 +52,12 @@ const CA: Record<string, unknown> = {
   "POST /api/orders/:id/thuong-mai/:serviceId": { lyDo: "thoả thuận miệng với CTV Lan", hoaHong: { kieu: "RATE", tyLeBp: 1500 } },
   // Sổ đại lý đợt 2 (Task 6): «Chụp bù» — không thân; đơn Đã giao ⇒ 409 order_delivered trước bước đếm bản chụp.
   "POST /api/orders/:id/chup-bu": {},
+  // ADR-0030 điều 1 (nút Từ chối): chỉ CHÍNH người phụ trách qua được chốt đúng người (Toàn quyền không phụ trách → 403 có chủ ý) ⇒ dòng này gọi bằng người phụ
+  // trách của đơn khoá (HDV, xem NGUOI_GOI) — vẫn phải 409 order_delivered.
+  "POST /api/orders/:id/handler-refuse": { lyDo: "BAN_LICH" },
 };
+/** Route mà Toàn quyền KHÔNG qua được chốt riêng của route (không phải ô quyền) — gọi bằng người duy nhất qua được chốt; kỳ vọng vẫn là 409 order_delivered. */
+const NGUOI_GOI: Record<string, string> = { "POST /api/orders/:id/handler-refuse": HDV };
 const khoa = (r: { method: string; path: string }) => `${r.method} ${r.path}`;
 
 test("NT-F7: danh sách route ghi của orders + dispatch (sinh từ module thật) = bảng CA ∪ MIEN; không mục thừa", () => {
@@ -85,7 +90,7 @@ test("NT-F7: sau Đã giao, MỌI route ghi của orders + dispatch (Toàn quy�
   const truoc = JSON.stringify(w.q("SELECT * FROM orders WHERE id = ?", id));
   for (const r of ROUTES.filter((x) => !MIEN.some((m) => m.route === khoa(x)))) {
     const path = r.path.replace(":id", id).replace(":legId", legId);
-    const res = await w.call(r.method, path, { as: SA, body: CA[khoa(r)] });
+    const res = await w.call(r.method, path, { as: NGUOI_GOI[khoa(r)] ?? SA, body: CA[khoa(r)] });
     assert.equal(res.status, 409, `${khoa(r)} (${r.module}): ${res.text}`);
     assert.equal(res.json?.error?.code, "order_delivered", `${khoa(r)}: ${res.text}`);
     assert.match(res.json.error.message, /^Đơn đã ở bước Đã giao – đã thu đủ/, khoa(r));

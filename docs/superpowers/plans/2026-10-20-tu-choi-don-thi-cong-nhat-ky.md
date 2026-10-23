@@ -45,6 +45,8 @@ Chủ dự án, chat 2026-10-23: «1, duyệt hết» — duyệt mọi khuyến
 - **R-7 (`tro-ly-cau-truc-ten.ts`):** thêm tên lời thường cho ô `dispatch.refuse` (kiểu `Record<OperationCode,…>` bắt buộc) và đưa ô vào khái niệm «Người phụ trách»; sinh lại `tro-ly-cau-truc.ts` bằng `node scripts/sinh-so-do-trang.mjs`.
 - **R-8 (giao diện HDV sau khi trả ở trang đơn):** người chỉ xem đơn mình phụ trách (HDV) trả đơn từ trang đơn → chuyển về `/account` (đơn đã 404 với họ); người xem mọi đơn → tải lại tại chỗ.
 
+- **R-9 (bài đổi kỳ vọng ngoài bảng 5b của kế hoạch — `npm test` đầy đủ bắt được):** `src/dong-bo-chuyen-guard.test.ts` (route vào `KHONG_CAN`), `src/lan-gui-phu-route.test.ts` (số route ghi 221 → 222), `src/modules/orders/xem-don-theo-quyen.test.ts` (khoá `traLai` của hàng chờ; ô `dispatch.refuse` = none ở dòng Đối tác), `src/shared/app-info.test.ts` (dòng phiên bản 2.27), `src/shared/tro-ly-van-nghia.test.ts` C4 (đo lại 17 / 10 / 45 — chữ hướng dẫn mới), `src/modules/billing/sau-da-giao.test.ts` NT-F7. Riêng NT-F7: bài gọi MỌI route ghi bằng Toàn quyền, nhưng route Từ chối chặn Toàn quyền không phụ trách bằng 403 CÓ CHỦ Ý (ADR-0030 điều 1) — đã thêm bảng `NGUOI_GOI` để route này được gọi bằng chính người phụ trách của đơn khoá; kỳ vọng 409 `order_delivered` giữ nguyên (không nới). Đã thấy chặn thật: bỏ câu hỏi `orderDelivered` trong route → NT-F7 đỏ («handler-refuse: … too_late») → hoàn nguyên. **Người kiểm xét lại cách sửa bài này.**
+
 ## e2e
 
 - `npm run test:e2e -- dispatch bangtin` (chính thức) **KHÔNG chạy được** trên máy này: proxy chặn `challenges.cloudflare.com` và `docs.google.com` (CONNECT 403) → đăng nhập 503 `turnstile_unavailable`; dòng tổng «E2E: 2/5 kịch bản LỖI» (hai kịch bản đỏ vì đăng nhập, ba bước kiểm cuối xanh).

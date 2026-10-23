@@ -187,7 +187,10 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
   // bỏ «app») và cắt sáu chữ ở hướng dẫn Bán hàng để giữ bài A4 ≤ 30 phút ⇒ đo lại bằng chính bài này: 17 / 10 / 45. Số đo, không suy ra từng đoạn. Luật không đổi, trần 12 vẫn cắt.
   // 2026-10-19 (sổ đại lý đợt 2, Task 12): Trợ giúp Kế toán bỏ ba mục hỏi đáp và rút gọn «Đơn bị huỷ» (giữ trần 30 phút), thêm Chụp bù / Bên kia đã nhận; HDV và Đối tác đổi
   // câu khoản thu / giảm giá ⇒ đo lại bằng chính bài này: 17 / 10 / 44 — MỘT đoạn chứa «lập đơn» rơi khỏi ngưỡng. Luật không đổi, trần 12 vẫn cắt; các tên đoạn khoá dưới đây giữ nguyên.
-  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [17, 10, 44]);
+  // 2026-10-23 (ADR-0030 điều 1, nút Từ chối): hướng dẫn HDV / Bán hàng / Quản trị thêm chữ «Từ chối đơn», «người lập đơn», bảng tên kho cấu trúc thêm ô `dispatch.refuse`
+  // ⇒ đo lại bằng chính bài này: 17 / 10 / 45 — MỘT đoạn chứa «lập đơn» vượt ngưỡng (mục «Trả đơn (Từ chối)» của HDV: «báo người lập đơn đổi người phụ trách»). Luật không đổi,
+  // trần 12 vẫn cắt; các tên đoạn khoá dưới đây giữ nguyên.
+  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [17, 10, 45]);
   // 2026-10-05 (1.81, Đợt 7): Trợ giúp thêm câu về hai ô "Xe riêng" / "Xe tối thiểu" (Bán hàng, Quản trị) và bỏ vài dòng trùng ý ⇒ hai đoạn nữa vượt ngưỡng tương đối của câu than phiền (15 → 17); luật không đổi, trần 12 vẫn cắt.
   const thanPhien = chonDoanTron("sao app khó dùng thế", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
   assert.equal(thanPhien.length, SO_DOAN_TOI_DA);
