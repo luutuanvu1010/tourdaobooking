@@ -12,13 +12,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Nút «Từ chối đơn» (ADR-0030 điều 1, kế hoạch docs/superpowers/plans/2026-10-20-tu-choi-don-thi-cong.md). KHÔNG migration ⇒ vẫn chạy npm run trien-khai
+    // Nút «Từ chối đơn» (ADR-0030 điều 1, kế hoạch docs/superpowers/plans/2026-10-20-tu-choi-don-thi-cong.md) + hạn mức Từ chối (ADR-0032, kế hoạch
+    // docs/superpowers/plans/2026-10-23-han-muc-tu-choi-thi-cong.md — phát hành CHUNG theo khuyến nghị Q-PH; CÓ migration *_han_muc_tu_choi.sql). Chạy npm run trien-khai
     // sau day-len (mã mới). Số 2.27 là số TẠM (main đang ở 2.26) — phiên phát hành kiểm lại số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
     version: "2.27",
     date: "2026-10-23",
     items: [
       { kind: "moi", text: "Người đang lo một đơn bấm «Từ chối đơn» để trả đơn, chọn lý do; đơn quay về Chờ nhận, có chữ «được trả lại» để người khác nhận." },
       { kind: "doi", text: "Đơn đi hôm nay hoặc ngày mai thì không trả được nữa: gọi văn phòng để đổi người." },
+      { kind: "moi", text: "Đếm số lần hướng dẫn viên từ chối: tối đa 2 đơn liên tiếp, 15 lần mỗi tuần (đang chỉ đo, chưa chặn). Toàn quyền chỉnh ở Chính sách điều phối." },
+      { kind: "moi", text: "Khi giao lại đơn, bảng chọn người ghi rõ ai đã từ chối chính đơn đó, lúc nào, lý do gì." },
     ],
   },
   {

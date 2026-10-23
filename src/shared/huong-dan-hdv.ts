@@ -100,6 +100,7 @@ Thẻ đơn biến khỏi Đơn của tôi; người khác thấy đơn ở Đơ
 
 - Chỉ trả được đơn **Đã xác nhận**. Đơn chờ xác nhận: báo người lập đơn đổi người phụ trách.
 - Đơn đi **hôm nay hoặc ngày mai** thì không còn nút này: **gọi văn phòng** để đổi người.
+- **Có giới hạn số lần:** tối đa **2 đơn liên tiếp** và **15 lần mỗi tuần** (thứ Hai – Chủ nhật). Nhận hoặc được giao một đơn khác và giữ đơn đó thì đếm "liên tiếp" lại từ đầu. Huỷ đơn không tính. Khi đang chặn, hộp Từ chối ghi sẵn "Bạn còn được từ chối … đơn liên tiếp, … lần trong tuần này". Hết lượt thì bấm sẽ hiện **"Hãy gọi văn phòng"** — gọi văn phòng để đổi người.
 
 > Ví dụ: Anh Tâm nhận đơn đi thứ Sáu rồi bị ốm. Thứ Tư anh bấm Từ chối đơn, chọn Ốm / việc riêng, bấm Xác nhận từ chối. Đơn về Chờ nhận cho người khác.`,
     },
