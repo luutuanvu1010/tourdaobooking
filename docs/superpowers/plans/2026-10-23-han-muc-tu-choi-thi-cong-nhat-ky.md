@@ -45,6 +45,16 @@
 | H11 | 3cc3de3a | `tests/e2e/han-muc-tu-choi.mjs` + `run.mjs`. Chạy BỔ SUNG (không phải e2e chính thức — Turnstile tắt, proxy chặn Sheet/siteverify): `han-muc-tu-choi` ✔, `dispatch` ✔, `audit-invariants --strict` thoát 0. |
 | H12 | f107d43b | SYSTEM-DESIGN, CHANGE-GUIDE z26, SO-HANG-RAO (6 dòng), HANDOFF-N1 runbook, changelog 2.27 (ghi chung), hướng dẫn HDV. |
 
+| (vá sau npm test đủ bộ) | 3cc… xem `git log` «Bài toàn Nền tảng nhận năm route…» | npm test đủ bộ đỏ 5 bài kế hoạch 5c CHƯA liệt kê: `lan-gui-phu-route` (222 → 224), `audit/cham-tai-khoan` (`refuse_counter_reset` → KHONG_CHAM), `billing/sau-da-giao` NT-F7 ×2 (hai POST cấu hình vào MIEN), `so-la-thuong-mai-toan-nen-tang` (hai GET vào bảng điền; «còn N lần» miễn 200). Sau vá: xanh. |
+
+## Kết quả cuối (2026-10-23, HEAD sau commit vá)
+
+- `npm run typecheck` thoát 0; `npm run build:web` thoát 0.
+- `npm test` thoát 0: bước 1 `# tests 6062`, `# pass 6053`, `# fail 0`; bước 2 (đo giờ) `# pass 1`.
+- e2e BỔ SUNG (KHÔNG phải e2e chính thức — kịch bản `chay.mjs` của scratchpad: wrangler dev + D1 tạm, Turnstile tắt): `han-muc-tu-choi`, `dispatch`, `bangtin`, `permissions`, `dong-bo-chuyen`, `sua-so-khach`, `chinh-sach-dieu-phoi` đều ✔; `audit-invariants --strict` thoát 0.
+- Chrome: `han-muc-tu-choi-smoke.mjs` 4/4 (axe); `tu-choi-smoke.mjs` 6/6; `hdv-viec-cua-toi-smoke.mjs` 10/10; `v1-nguoi-phu-trach.mjs` đỏ a, j, l — ĐỎ SẴN trên a8dc7433 (log của người thi công trước: a, j, q, l); `chinh-sach-dieu-phoi-smoke.mjs` đỏ bước 1, 5, 8, 10, 11, 12 — chạy lại trên bản a8dc7433 (git archive vào scratchpad) đỏ ĐÚNG sáu bước đó ⇒ đỏ sẵn (kịch bản cũ hơn ADR-0128 Q1 / thanh bên), không do việc này.
+- Sự cố trong phiên: một lần chạy `pkill -f "wrangler dev"` để dọn máy chủ mồ côi của chính phiên này (lần Chrome không lên) — cùng tài khoản máy với người kiểm; không loại trừ được nó đã tắt một `wrangler dev` của phiên khác nếu có lúc đó.
+
 ## Ruling / lệch so với kế hoạch (người thi công — ghi để người kiểm xét)
 
 - **R-H1 (cột `updated_*`):** `src/architecture.test.ts` (ADR-0003) đòi `updated_at NOT NULL` + `updated_by TEXT NULL` ở mọi bảng không phải tra cứu ⇒ thêm hai cột vào `dsp_release_event` và `dsp_refuse_policy`, luôn bằng `created_*` (kế hoạch 2b ghi chú cuối đã dự liệu).
