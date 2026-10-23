@@ -96,7 +96,8 @@ export interface Ctx<A extends Access = Access> {
    * Người phụ trách do người lập CHỌN ngay lúc lập đơn (ADR-0030 S20-4, ADR-0020 điều 1, Q-C) — đơn mới KHÔNG BAO GIỜ tự gắn người lập; không chọn thì
    * route không gọi hàm này và đơn "chờ nhận". `dispatch` đọc tài khoản `staffId` và xét bằng CHÍNH luật người được giao (`checkAssignee`: đang hoạt
    * động, có hồ sơ, không phải tài khoản có quyền Đối tác, đủ cấp); đạt thì trả hàm dựng câu lệnh để gộp vào CÙNG `db.batch()` tạo đơn (xem
-   * `NewOrderHandler`). Quyền CHỌN của người gọi (`dispatch.assign`) route tự hỏi TRƯỚC khi gọi. Do gốc lắp ráp tiêm; mỗi lần gọi là một truy vấn D1.
+   * `NewOrderHandler` — mảng câu gồm dòng phụ trách, nhật ký và dòng sự kiện ASSIGN của ADR-0032; `orders` chỉ trải mảng, không đọc chỉ số). Quyền CHỌN
+   * của người gọi (`dispatch.assign`) route tự hỏi TRƯỚC khi gọi. Do gốc lắp ráp tiêm; mỗi lần gọi là một truy vấn D1.
    * Chưa đăng nhập → không đạt, không truy vấn.
    */
   newOrderHandler: (staffId: string) => Promise<NewOrderHandler>;

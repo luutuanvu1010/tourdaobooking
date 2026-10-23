@@ -3,6 +3,7 @@
 import { auditStatement } from "../audit";
 import { closeHandlerStatement, insertHandlerAfterCloseStatement, insertHandlerIfNoneStatement, insertHandlerStatement } from "./repository";
 import { describeHandlerChange } from "./rules";
+import { chenSuKienSauStatement } from "./han-muc-repo";
 import { nhanLyDoTuChoi, type MaLyDoTuChoi } from "../../shared/ly-do-tu-choi";
 
 export interface HandlerChange {
@@ -22,28 +23,40 @@ export interface HandlerChange {
 /**
  * Các câu của một lần đặt/đổi người phụ trách, để chạy trong MỘT `db.batch()`. `results[0].meta.changes > 0` ⇔ lần này THẮNG; thua (người phụ trách đã
  * đổi, hoặc đã có người nhận) thì không dòng nào thay đổi và không có dòng nhật ký.
- *  - đổi người:   [đóng dòng cũ (chốt), mở dòng mới nếu chốt thắng, nhật ký nếu dòng mới đã chèn];
- *  - nhận đơn chưa có người: [mở dòng mới nếu vẫn chưa có (chốt), nhật ký nếu đã chèn].
+ *  - đổi người:   [đóng dòng cũ (chốt), mở dòng mới nếu chốt thắng, nhật ký nếu dòng mới đã chèn, sự kiện ASSIGN nếu nhật ký đã chèn (ADR-0032)];
+ *  - nhận đơn chưa có người: [mở dòng mới nếu vẫn chưa có (chốt), nhật ký nếu đã chèn, sự kiện CLAIM/ASSIGN nếu nhật ký đã chèn].
  * Thứ tự là hợp đồng: `changes() > 0` luôn nói về câu NGAY TRƯỚC nó (docs/CHANGE-GUIDE.md công thức f, bẫy).
  */
 export function handlerChangeStatements(db: D1Database, c: HandlerChange): D1PreparedStatement[] {
   const row = newRow(c);
   const audit = handlerAudit(db, c);
-  return c.from ? [closeHandlerStatement(db, c.orderId, c.from.partyId, c.at, c.actorId), insertHandlerAfterCloseStatement(db, row), audit] : [insertHandlerIfNoneStatement(db, row), audit];
+  const suKien = suKienMo(db, c);
+  return c.from
+    ? [closeHandlerStatement(db, c.orderId, c.from.partyId, c.at, c.actorId), insertHandlerAfterCloseStatement(db, row), audit, suKien]
+    : [insertHandlerIfNoneStatement(db, row), audit, suKien];
 }
 
 /**
  * Các câu mở người phụ trách do người lập CHỌN cho đơn MỚI (ADR-0030 S20-4, ADR-0020 điều 1, Q-C), gộp vào `db.batch()` tạo đơn NGAY SAU câu INSERT đơn
  * và dòng nhật ký `created` (`orders/repository.ts` `createOrder`): [mở dòng `HANDLE` (INSERT thường — đơn vừa tạo trong CHÍNH lô này nên chưa thể có
- * dòng nào), nhật ký `order_handler_changed` "từ chưa có người phụ trách sang <tên>" (chỉ khi câu ngay trước đã chèn — `changes() > 0`)].
+ * dòng nào), nhật ký `order_handler_changed` "từ chưa có người phụ trách sang <tên>" (chỉ khi câu ngay trước đã chèn — `changes() > 0`), sự kiện ASSIGN
+ * của ADR-0032 (chỉ khi nhật ký đã chèn)].
  * `at` là mốc của CHÍNH lần thử của lô, do `createOrder` đưa vào — hàm này KHÔNG đọc đồng hồ: `valid_from_at` của dòng HANDLE, `created_at` của dòng
  * nhật ký này và `created_at` của dòng `created` BẰNG NHAU tuyệt đối (hệ thống Thông báo so hai mốc đó để biết đơn có người ngay lúc lập hay không).
  * Id dòng sinh MỖI LẦN GỌI (createOrder gọi lại với id đơn + mốc mới khi thử lại vì trùng mã).
  */
 export function newOrderHandlerStatements(db: D1Database, c: Omit<HandlerChange, "from">): D1PreparedStatement[] {
   const change: HandlerChange = { ...c, from: null };
-  return [insertHandlerStatement(db, newRow(change)), handlerAudit(db, change)];
+  return [insertHandlerStatement(db, newRow(change)), handlerAudit(db, change), suKienMo(db, change)];
 }
+
+/**
+ * Sự kiện phân công của MỘT lần mở dòng phụ trách (ADR-0032 điều 1; kế hoạch 2026-10-23 mục 1, 4a–4b): CLAIM khi người gọi tự nhận đơn chưa có người
+ * (`tuNhan`), ASSIGN cho mọi đường khác (giao, đổi người, chọn lúc lập đơn — kể cả chọn chính mình). Người bị GỠ (đổi người) không có sự kiện. Câu đứng
+ * CUỐI lô, ngay sau câu nhật ký `changes() > 0` ⇒ chỉ chèn khi lô thắng; mốc = `c.at` = `valid_from_at` của dòng vừa mở (kiểm R-DSP-6 dựa vào đẳng thức này).
+ */
+const suKienMo = (db: D1Database, c: HandlerChange): D1PreparedStatement =>
+  chenSuKienSauStatement(db, { id: crypto.randomUUID(), partyId: c.to.partyId, orderId: c.orderId, loai: c.tuNhan ? "CLAIM" : "ASSIGN", at: c.at, actorId: c.actorId });
 
 const newRow = (c: HandlerChange) => ({ id: crypto.randomUUID(), orderId: c.orderId, partyId: c.to.partyId, at: c.at, actorId: c.actorId });
 

@@ -27,7 +27,7 @@ async function loadModule(): Promise<Mod> {
   const code = Buffer.from(built.outputFiles[0]!.text).toString("base64");
   return (await import(`data:text/javascript;base64,${code}`)) as Mod;
 }
-const { handlerChangeStatements, insertHandlerStatement, findHandlerOf, findHandlersOf, isHandler, refuseStatements, tuChoiThang } = await loadModule();
+const { handlerChangeStatements, newOrderHandlerStatements, insertHandlerStatement, findHandlerOf, findHandlersOf, isHandler, refuseStatements, tuChoiThang } = await loadModule();
 
 /** D1 giả: `prepare().bind()` ghi lại câu + tham số (chạy được `first()`/`all()` lẻ); `batch()` chạy tuần tự trong MỘT giao dịch như D1. */
 interface FakeStatement {
@@ -309,4 +309,43 @@ test("khuôn cho ADR-0032: câu đầu lô có điều kiện + câu đóng 'AND
     assert.equal(refusals(sqlite).length, conLuot ? 1 : 0);
     assert.equal(rows(sqlite, "SELECT 1 FROM tam_su_kien").length, conLuot ? 1 : 0);
   }
+});
+
+// ---- ADR-0032 (kế hoạch 2026-10-23 mục 1, 4b, HM-13): mọi đường MỞ dòng phụ trách ghi sự kiện CLAIM/ASSIGN cùng lô, câu CUỐI lô, mốc = valid_from_at ----
+const suKien = (sqlite: DatabaseSync) => rows(sqlite, "SELECT party_id, order_id, kind_code, reason_code, occurred_at, created_by FROM dsp_release_event ORDER BY seq");
+
+test("HM-13: đổi người A→B thắng → đúng MỘT ASSIGN cho B (mốc = valid_from_at dòng mới), KHÔNG dòng nào cho A; câu sự kiện ở cuối lô", async () => {
+  const { sqlite, db } = await withHandlerA();
+  const cau = handlerChangeStatements(db, { orderId: "o-1", from: A, to: B, actorId: "s-c", at: T2, tuNhan: false });
+  assert.equal(cau.length, 4, "[đóng (chốt), mở, nhật ký, sự kiện]");
+  const kq = await db.batch(cau);
+  assert.equal(kq[0]!.meta.changes, 1, "câu chốt vẫn là câu đầu");
+  assert.deepEqual(suKien(sqlite), [{ party_id: "pty-s-b", order_id: "o-1", kind_code: "ASSIGN", reason_code: null, occurred_at: T2, created_by: "s-c" }]);
+  assert.equal(assignments(sqlite).find((r) => r.party_id === "pty-s-b")!.valid_from_at, T2);
+});
+
+test("HM-13: đơn chưa có người — tự Nhận (tuNhan) → CLAIM; giao cho người khác → ASSIGN; bên thua đua → 0 sự kiện", async () => {
+  const sqlite = seed();
+  const db = fakeD1(sqlite);
+  await db.batch(handlerChangeStatements(db, { orderId: "o-2", from: null, to: B, actorId: "s-b", at: T2, tuNhan: true }));
+  await db.batch(handlerChangeStatements(db, { orderId: "o-2", from: null, to: C, actorId: "s-c", at: T3, tuNhan: true })); // thua: đã có người
+  assert.deepEqual(suKien(sqlite).map((e) => [e.party_id, e.kind_code, e.occurred_at]), [["pty-s-b", "CLAIM", T2]]);
+  await db.batch(handlerChangeStatements(db, { orderId: "o-1", from: null, to: C, actorId: "s-a", at: T3, tuNhan: false }));
+  assert.deepEqual(suKien(sqlite).map((e) => [e.party_id, e.order_id, e.kind_code]), [["pty-s-b", "o-2", "CLAIM"], ["pty-s-c", "o-1", "ASSIGN"]]);
+});
+
+test("HM-13: đổi người THUA (người phụ trách đã đổi) → 0 sự kiện", async () => {
+  const { sqlite, db } = await withHandlerA();
+  await db.batch(handlerChangeStatements(db, { orderId: "o-1", from: A, to: B, actorId: "s-a", at: T2, tuNhan: false }));
+  await db.batch(handlerChangeStatements(db, { orderId: "o-1", from: A, to: C, actorId: "s-b", at: T3, tuNhan: false }));
+  assert.deepEqual(suKien(sqlite).map((e) => e.party_id), ["pty-s-b"]);
+});
+
+test("HM-13: lập đơn có chọn người phụ trách (newOrderHandlerStatements) → ASSIGN cùng mốc, câu cuối của phần mảng", async () => {
+  const sqlite = seed();
+  const db = fakeD1(sqlite);
+  const cau = newOrderHandlerStatements(db, { orderId: "o-2", to: A, actorId: "s-a", at: T2, tuNhan: false });
+  assert.equal(cau.length, 3, "[mở, nhật ký, sự kiện]");
+  await db.batch(cau);
+  assert.deepEqual(suKien(sqlite), [{ party_id: "pty-s-a", order_id: "o-2", kind_code: "ASSIGN", reason_code: null, occurred_at: T2, created_by: "s-a" }]);
 });

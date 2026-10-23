@@ -90,7 +90,8 @@ export async function handlerOf(db: D1Database, orderId: string): Promise<TrangT
  * `ctx.newOrderHandler(staffId)`; route `POST /api/orders` chỉ gọi khi thân có `handlerStaffId`, SAU khi tự hỏi quyền chọn của người gọi (`dispatch.assign`
  * với đơn của chính mình). Đọc tài khoản ĐÍCH từ D1 (`getStaffAccount`: đang hoạt động? hồ sơ? quyền?) rồi xét bằng CHÍNH luật người được giao
  * `checkAssignee` (không chép luật: đổi luật người được giao — vd chặn tài khoản lai, ADR-0030 S20-5 — thì đường này đổi theo). Không đạt → lời báo; route
- * trả 400 `invalid_assignee` và không tạo đơn. Đạt → hàm dựng câu lệnh (`newOrderHandlerStatements`) mà `createOrder` gọi với id đơn + mốc `at` của TỪNG
+ * trả 400 `invalid_assignee` và không tạo đơn. Đạt → hàm dựng câu lệnh (`newOrderHandlerStatements`: dòng HANDLE, nhật ký, sự kiện ASSIGN của ADR-0032)
+ * mà `createOrder` gọi với id đơn + mốc `at` của TỪNG
  * lần thử — hàm này KHÔNG đọc đồng hồ (dòng `HANDLE` và nhật ký cùng mốc với dòng `created`).
  */
 export async function newOrderHandler(db: D1Database, actorId: string, staffId: string): Promise<NewOrderHandler> {
