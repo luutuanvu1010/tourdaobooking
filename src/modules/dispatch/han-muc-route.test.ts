@@ -72,3 +72,35 @@ test("HM-13: lập đơn có chọn HDV → 1 ASSIGN; tự Nhận → 1 CLAIM; g
     WHERE e.party_id = a.party_id AND e.order_id = a.order_id AND e.kind_code IN ('CLAIM', 'ASSIGN') AND e.occurred_at = a.valid_from_at)`)[0].n;
   assert.equal(thieu, 0);
 });
+
+// ---- HM-8: HDV tự huỷ → ABORT (chỉ thống kê) ----
+const huy = (w: any, id: string, as: string) => w.call("POST", `/api/orders/${id}/handler-cancel`, { as, body: { reason: "customer_requested" } });
+
+test("HM-8: HDV huỷ đơn đang phụ trách (handler-cancel) → 200 + đúng MỘT ABORT (người = HDV, đơn đúng, giờ máy chủ); Toàn quyền KHÔNG phụ trách huỷ hộ → 200, 0 ABORT", async () => {
+  const w = setup();
+  const d1 = await donCho(w);
+  assert.equal((await nhan(w, d1, FIELD)).status, 200);
+  const r = await huy(w, d1, FIELD);
+  assert.equal(r.status, 200, r.text);
+  const ab = suKien(w, "order_id = ? AND kind_code = 'ABORT'", d1);
+  assert.deepEqual(ab.map((e: any) => [e.party_id, e.created_by]), [[`pty-${FIELD}`, FIELD]]);
+  assert.ok(Math.abs(Date.parse(ab[0].occurred_at) - Date.now()) < 60_000 && ab[0].occurred_at.endsWith("Z"), "giờ máy chủ, ISO UTC");
+
+  const d2 = await donCho(w);
+  assert.equal((await giao(w, d2, ADM, FIELD2)).status, 200);
+  const r2 = await huy(w, d2, SUP);
+  assert.equal(r2.status, 200, r2.text);
+  assert.equal(suKien(w, "order_id = ? AND kind_code = 'ABORT'", d2).length, 0, "Toàn quyền huỷ hộ không phải «người phụ trách tự huỷ»");
+});
+
+test("HM-8: lô huỷ THUA khoá lạc quan (đơn vừa bị sửa giữa lúc đọc và ghi) → 409, 0 ABORT", async () => {
+  const w = setup();
+  const d = await donCho(w);
+  assert.equal((await nhan(w, d, FIELD)).status, 200);
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /dsp_release_event/.test(s.sql) && /ABORT/.test(s.sql)), () => {
+    w.sqlite.prepare("UPDATE orders SET updated_at = ? WHERE id = ?").run(new Date(Date.now() + 1000).toISOString(), d);
+  });
+  const r = await huy(w, d, FIELD);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(suKien(w, "kind_code = 'ABORT'").length, 0);
+});

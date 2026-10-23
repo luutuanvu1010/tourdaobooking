@@ -27,6 +27,7 @@ import {
   CANCEL_REASON_LABEL, checkAssignee, handlerChangeVerdict, isDeliveredLock, isOpenHandlerCollision, parseCancelReason, parseOrderIds, parseSetHandler,
 } from "./rules";
 import { handlerChangeStatements, newOrderHandlerStatements, refuseStatements, tuChoiThang } from "./service";
+import { chenAbortSauStatement } from "./han-muc-repo";
 
 const toDto = (r: HandlerRow): HandlerDto => ({ partyId: r.party_id, staffId: r.staff_id, name: r.label });
 
@@ -244,7 +245,10 @@ export const dispatchModule: AppModule = {
       const label = input.reason === "other" ? input.note! : CANCEL_REASON_LABEL[input.reason];
       // ADR-0089 đ8 + lời chủ (a): lý do HDV ánh xạ nhóm ("không liên hệ được khách" = khách huỷ) — lưu cùng lô huỷ.
       // ADR-0104 Đ2 (điểm gọi 2): máy đồng bộ chuyến nối khúc chuyến vào CHÍNH lô huỷ (HDV không có trip.view — phản hồi chỉ câu cố định + cờ, Đ2.13).
-      const r = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, lyDoHuyCuaHdv(input.reason, input.note), label, (x) => dongBoChuyen(x));
+      // ADR-0032 điều 1 (Q-P2 — chỉ thống kê): sự kiện ABORT chỉ khi người gọi ĐANG là người phụ trách (Toàn quyền huỷ hộ qua route này thì không); câu còn tự
+      // hỏi lại dòng phụ trách mở lúc GHI (đổi người giữa lúc đọc và lúc ghi).
+      const cauSauHuy = assigned && staff.partyId ? [chenAbortSauStatement(env.DB, { id: crypto.randomUUID(), partyId: staff.partyId, orderId, at: new Date().toISOString(), actorId: staff.id })] : [];
+      const r = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, lyDoHuyCuaHdv(input.reason, input.note), label, cauSauHuy, (x) => dongBoChuyen(x));
       if (r.kq === "loi") return r.res;
       if (r.kq === "thua") {
         const now = await findOrderOwner(env.DB, orderId);

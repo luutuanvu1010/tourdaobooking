@@ -540,12 +540,16 @@ export async function lienHeChoTaiXe(db: D1Database, orderIds: readonly string[]
  * ràng buộc `from: "confirmed"` cho chắc.
  */
 export async function cancelOrderByHandler(
-  db: D1Database, id: string, staffId: string, prevUpdatedAt: string, lyDo: LyDoHuy, reasonLabel: string, noiChuyen: NoiChuyen,
+  db: D1Database, id: string, staffId: string, prevUpdatedAt: string, lyDo: LyDoHuy, reasonLabel: string, cauSauHuy: readonly D1PreparedStatement[], noiChuyen: NoiChuyen,
 ): Promise<KetQuaLenhDon> {
   // ADR-0104 Đ2 (điểm gọi 2): route dispatch truyền `noiChuyen` = ctx.dongBoChuyen (orders không xuất hàm soạn, không import van-chuyen). MỘT lô: câu huỷ đứng
   // đầu, khúc chuyến sau.
+  // ADR-0032 điều 1 (kế hoạch 2026-10-23 mục 4c): `cauSauHuy` = câu CHƯA CHẠY do route của dispatch dựng (sự kiện ABORT, `changes() > 0` sau câu nhật ký huỷ) —
+  // nối NGAY sau câu nhật ký, TRƯỚC khúc chuyến; `orders` không đọc chỉ số của chúng (`daHuy` vẫn đọc kq[1]). Tham số đứng TRƯỚC `noiChuyen` (bài NT-6 bóc thân hàm
+  // theo `noiChuyen: NoiChuyen` rồi dấu `)` kế tiếp).
   const huy = soanHuyDon(db, id, staffId, "confirmed", prevUpdatedAt, lyDo, { action: "order_cancelled_by_field", detail: reasonLabel });
-  const dong = await noiChuyen({ orderId: id, auditIdDon: huy.auditId, bayGioMs: Date.now(), sau: { trangThai: "cancelled" }, cauDon: huy.cau });
+  const cauDon = [...huy.cau, ...cauSauHuy];
+  const dong = await noiChuyen({ orderId: id, auditIdDon: huy.auditId, bayGioMs: Date.now(), sau: { trangThai: "cancelled" }, cauDon });
   return chayLoNoiChuyen(db, dong, daHuy);
 }
 
