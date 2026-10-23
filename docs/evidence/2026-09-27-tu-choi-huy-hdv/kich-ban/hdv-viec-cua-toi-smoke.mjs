@@ -188,7 +188,7 @@ try {
     assert.equal(m3.code, `${M3.orderCode} · Đã đi 2 ngày trước`);
     assert.equal(m1.note, "Đơn đang chờ xác nhận — chưa thể huỷ hay sửa số khách.");
     assert.deepEqual(m1.buttons, [], "đơn chờ xác nhận: KHÔNG nút nào");
-    assert.deepEqual(m2.buttons, ["Sửa số khách", "Huỷ đơn"]);
+    assert.deepEqual(m2.buttons, ["Sửa số khách", "Huỷ đơn", "Từ chối đơn"]); // ADR-0030 điều 1 (2026-10-23): đơn đã xác nhận đi sau ngày mai có thêm «Từ chối đơn»
     assert.deepEqual(m3.buttons, [], "đã đi tour: không “Huỷ đơn”, không “Sửa số khách” (chủ duyệt 2026-09-30: chỉ sửa tới hết ngày đi)");
     assert.equal(m2.note, null);
     for (const [c, o] of [[m1, M1], [m2, M2], [m4, M4], [m3, M3]]) {

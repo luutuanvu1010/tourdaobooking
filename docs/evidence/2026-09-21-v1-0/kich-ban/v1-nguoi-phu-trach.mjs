@@ -1046,7 +1046,8 @@ try {
       await p.waitFor(CARD_READY, "khối người phụ trách dựng xong", 10000);
       const the = await p.ev("({ ten: document.querySelector('.handler-card .handler-name')?.textContent ?? null, chuaTai: document.querySelector('.handler-card .handler-unknown')?.textContent ?? null })");
       assert.deepEqual(the, { ten: HDV_P.name, chuaTai: null }, `trang đơn ${status} (${vp.width}px): khối “Người phụ trách” phải là tên HDV — trước vòng sửa là “Chưa tải được người phụ trách.”: ${JSON.stringify(the)}`);
-      assert.deepEqual(await p.ev(CARD_BUTTONS), [], "HDV không có nút đổi/nhận/thử lại ở khối người phụ trách");
+      // ADR-0030 điều 1 (2026-10-23): đơn ĐÃ XÁC NHẬN đi sau ngày mai có thêm «Từ chối đơn» cho chính người phụ trách; vẫn không nút đổi/nhận/thử lại.
+      assert.deepEqual(await p.ev(CARD_BUTTONS), status === "confirmed" ? ["Từ chối đơn"] : [], "HDV không có nút đổi/nhận/thử lại ở khối người phụ trách");
       assert.deepEqual(await p.ev(ACTION_BUTTONS), [], "HDV không có Sửa/Xác nhận/Huỷ (order.modify FIELD = none)");
       const note = await p.ev("document.querySelector('#actions p.muted')?.textContent ?? null");
       assert.equal(note, ghiChu[status], `câu giải thích cho HDV (${status}) không được nói “người phụ trách đơn … mới được sửa”`);

@@ -16,13 +16,47 @@ Chủ dự án, chat 2026-10-23: «1, duyệt hết» — duyệt mọi khuyến
 ## T0 — Chuẩn bị (2026-10-23)
 
 - `git log HEAD..origin/main` rỗng: `main` vẫn ở e309acf3 → mọi số dòng của kế hoạch còn đúng lúc bắt đầu.
-- Mốc: `npm run typecheck` thoát 0; `npm test` — xem dòng mốc ở dưới.
+- Mốc trên e309acf3+2 commit kế hoạch: `npm run typecheck` thoát 0; `npm test` thoát 0 (`# tests 5963`, `# pass 5954`, `# fail 0` ở bước 1; bước đo giờ `# pass 1`).
 - Nhánh chưa gộp chạm `src/modules/dispatch`, `permissions.ts`, `bang-tin.ts`, `audit-actions.ts`, `route-access.test.ts`: chỉ `origin/worktree-xac-nhan-don-2` (commit cuối 2026-10-19). Gốc chung với `main` là b1b2abe4 (cũ); phần Đợt 1 của nhánh đó đã lên `main` theo đường gộp khác (migration 0115 có trên `main`), nên `git diff main...nhánh` hiện cả phần đã gộp — va chạm thật chỉ tính theo kế hoạch mục 7.
 
-## Ruling / lệch so với kế hoạch
+## Tiến độ theo task
 
-(ghi dần theo task)
+| Task | Commit | Ghi chú |
+|---|---|---|
+| T1 | fc1ee7cf | `ly-do-tu-choi.ts` (4 mã = hợp đồng ADR-0032), `tuChoiQuaMuon`. Đột biến `≤ ngày mai` → `< hôm nay`: hai ca đỏ → hoàn nguyên. |
+| T2 | e9957a0b | `order_handler_refused` «Trả đơn (Từ chối)»; Q2 (a): nội bộ `giu`, Đối tác ẩn. Typecheck đỏ ở `_phanLoaiDay`/`_phanLoaiNoiBoDay` trước khi xếp loại (đã thấy chặn). |
+| T3 | (commit «Điều phối: lô ghi Từ chối…») | `refuseStatements` [đóng, nhật ký], `tuChoiThang`; bài «khuôn cho ADR-0032» trên SQLite thật. |
+| T4 | c6673149 | Ô + route + Bảng tin `tu_choi` cùng commit. Bốn đột biến của kế hoạch đều đỏ → hoàn nguyên (chi tiết `docs/SO-HANG-RAO.md`). |
+| T5 | (commit «Cờ «được trả lại»…») | `donDuocTraLai` (audit) → `PoolOrderDto.traLai`, `HandlersResponse.traLai`; `nhanChoNhan`. |
+| T6 | (commit «Bất biến R-DSP-4…») | `R-DSP-4` `warn-unless-strict`; đột biến so `valid_to_at` → ca đồng hồ lệch đỏ. |
+| T7 | 9cd4daf9 + commit tài liệu | `web/tu-choi-sheet.ts` (khuôn `moBangTruot`), nút ở thẻ Đơn của tôi và khối Người phụ trách; kịch bản `docs/evidence/2026-10-23-tu-choi-don/kich-ban/tu-choi-smoke.mjs` 6/6 bước đạt, 9 ảnh 390 + 1040. |
+| T8 | 386d987b | Hướng dẫn HDV / Bán hàng / Quản trị. |
+| T9 | commit e2e | `tests/e2e/dispatch.mjs` mục 16, `tests/e2e/bangtin.mjs` ca 11c. |
+| T10 | commit tài liệu | `SYSTEM-DESIGN` §6 j, §7, §8, §16; `CHANGE-GUIDE` z25 + dòng bảng §1; `changelog.ts` 2.27 (số tạm); `SO-HANG-RAO` 9 dòng. |
 
-## Nợ
+## Ruling / lệch so với kế hoạch (người thi công — bề mặt, đảo ngược được; ghi để người kiểm xét)
 
-(ghi dần theo task)
+- **R-1 (thứ tự route):** kế hoạch T4 đặt 409 nháp (bước 4) TRƯỚC 403 «không đúng người phụ trách» (bước 5). Đã đảo: 403 trước, 409 nháp sau — để người ngoài (vd HDV khác, Bán hàng không liên quan) không dò được đơn là nháp (ADR-0135 «nháp riêng tư»). Mọi tiêu chí TC-3/TC-4 vẫn đúng (người phụ trách chọn sẵn của đơn nháp vẫn nhận 409 `order_not_confirmed`).
+- **R-2 (thư mục ảnh):** kế hoạch T7 ghi `docs/evidence/2026-10-20-tu-choi-don/`; điều phối giao `2026-10-23-…` — dùng thư mục của điều phối.
+- **R-3 (kịch bản Chrome):** thay vì thêm bước vào `hdv-viec-cua-toi-smoke.mjs`, viết kịch bản riêng `tu-choi-smoke.mjs` (6 bước, 390 + 1040, hai HDV, Bảng tin ≤ 5 giây, ca 409 `too_late` trong hộp, trang đơn văn phòng). Không có axe-core trên máy (chưa chạy axe).
+- **R-4 (TC-4 «đơn chưa có ngày nào → 200» ở mức route):** không dựng được — CSDL chặn đơn đã xác nhận thiếu ngày (`incomplete_trip`). Ca này chỉ kiểm ở luật thuần `tuChoiQuaMuon([null], …) === false`.
+- **R-5 (TC-6 (a) «mỗi vòng đúng một bên 200»):** không khẳng định được — hai lệnh có thể chạy nối tiếp hợp lệ (Từ chối trước → đổi người sau vẫn 200 vì đơn chưa có ai; đổi người trước → Từ chối 403). Bài kiểm khẳng định bất biến (tối đa một dòng mở; nhật ký khớp đúng lệnh 200; bên thua đua thật chỉ 409 `stale`). Thua đua mức câu SQL: `service.test.ts`. Lần chạy e2e bổ sung 23/10: 0/10 vòng gặp `stale` thật.
+- **R-6 (hướng dẫn):** nhóm Bán hàng và Quản trị đã chạm trần đọc 30 phút (bài A4) — để thêm chữ Từ chối phải bớt ba cụm thừa có sẵn: «— hãy nhờ Quản trị» (Bán hàng, mục đổi giờ đón), «(số trong ngoặc là số máy đã bật)» và «Việc nhiều nên làm trên máy tính.» (Quản trị), và câu nhắc lại «Sau khi có tài khoản, bạn vẫn…» (Quản trị). Không nới bài A4.
+- **R-7 (`tro-ly-cau-truc-ten.ts`):** thêm tên lời thường cho ô `dispatch.refuse` (kiểu `Record<OperationCode,…>` bắt buộc) và đưa ô vào khái niệm «Người phụ trách»; sinh lại `tro-ly-cau-truc.ts` bằng `node scripts/sinh-so-do-trang.mjs`.
+- **R-8 (giao diện HDV sau khi trả ở trang đơn):** người chỉ xem đơn mình phụ trách (HDV) trả đơn từ trang đơn → chuyển về `/account` (đơn đã 404 với họ); người xem mọi đơn → tải lại tại chỗ.
+
+## e2e
+
+- `npm run test:e2e -- dispatch bangtin` (chính thức) **KHÔNG chạy được** trên máy này: proxy chặn `challenges.cloudflare.com` và `docs.google.com` (CONNECT 403) → đăng nhập 503 `turnstile_unavailable`; dòng tổng «E2E: 2/5 kịch bản LỖI» (hai kịch bản đỏ vì đăng nhập, ba bước kiểm cuối xanh).
+- Chạy BỔ SUNG (không thay e2e chính thức): cùng hai kịch bản trên máy chủ `wrangler dev` + D1 local tạm dựng y như `tests/e2e/run.mjs` nhưng TẮT Turnstile → `✔ dispatch`, `✔ bangtin`, `audit-invariants --strict` thoát 0 (R-DSP-1…4 ✓). Đột biến TC-9 trên D1 đó: chèn dòng HANDLE đóng không Từ chối → `--strict` thoát 1 nêu R-DSP-4; không `--strict` thoát 0; xoá → 0.
+- Đủ bộ `npm run test:e2e` và hai kịch bản trên với Turnstile bật: **chưa chạy** — cần máy có mạng (điều phối / người kiểm).
+
+## Nợ / việc còn treo
+
+- Đủ bộ e2e có mạng (xem trên).
+- Kịch bản Chrome (2026-10-23, Chromium 1194 headless, axe-core 4.10.2 lấy bằng `npm pack` ngoài repo):
+  - `tu-choi-smoke.mjs` (mới): 6/6 bước đạt, đã chạy axe (bỏ đúng `meta-viewport` đã duyệt — khuôn v1-nguoi-phu-trach); đơn tới hàng chờ HDV khác sau 1,4 giây.
+  - `a2-smoke-order.mjs`, `a2-smoke-form.mjs`, `a2-smoke-sheet.mjs`: thoát 0.
+  - `hdv-viec-cua-toi-smoke.mjs`: bước 1 đổi kỳ vọng (thêm «Từ chối đơn» ở đơn đã xác nhận đi sau ngày mai — hành vi mới). Có AXE: 6 bước đỏ CHỈ vì `meta-viewport` (kịch bản cũ chưa có ngoại lệ đã duyệt 30/9 — nợ CÓ SẴN, không do việc này); không AXE (lượt đầu): mọi bước khác xanh.
+  - `v1-nguoi-phu-trach.mjs`: bước q đổi kỳ vọng (HDV thấy «Từ chối đơn» ở đơn đã xác nhận) → `ONLY=q` xanh. Đủ bộ: 13 ✓ / 4 ✗ — q (đã sửa), a (dòng 2 thẻ danh sách 1040 xuống hàng, `web/orders.ts`), j (axe `region` ở `#strips` trang danh sách), l (401 ở `/orders` của Sales Một): ba bước a/j/l ở trang danh sách đơn mà việc này không chạm — **suy luận là nợ có sẵn, CHƯA đối chứng trên bản gốc**.
+- Gộp `origin/main` trước khi trình kiểm (kế hoạch mục 7): va chạm dự kiến với `origin/worktree-xac-nhan-don-2` ở `bang-tin.ts` (`THAY_DOI`), `permissions.ts`, `route-access.test.ts` (đếm route), `audit-actions.ts`/`lich-su-*.ts`, `contracts.ts`, `changelog.ts` (số bản).
