@@ -17,8 +17,8 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     version: "2.27",
     date: "2026-10-24",
     items: [
-      { kind: "sua", text: "Đơn có giảm giá: số tiền ghi khách trả tại quầy nhà cung cấp nay tính sau giảm giá, khớp đúng biên nhận (không còn báo khách trả dư)." },
-      { kind: "doi", text: "Tài khoản đối tác không chọn «Thu cho» nhà cung cấp nữa; cần ghi phần đó thì báo Kế toán ghi giúp." },
+      { kind: "sua", text: "Đơn có giảm giá: số tiền tối đa ghi được cho phần khách trả tại quầy nhà cung cấp nay tính sau giảm giá, bằng phần của quầy in trên biên nhận." },
+      { kind: "doi", text: "Tài khoản đối tác vốn không thấy ô «Phần tiền này cho»; nay Nền tảng cũng từ chối khoản thu gửi kèm ô này. Cần thì báo Kế toán ghi giúp." },
       { kind: "moi", text: "Ghi mức hoa hồng tay: nếu mức mới làm tổng hoa hồng nhỏ hơn giảm giá của đơn, Nền tảng báo trước số đại lý sẽ phải trả thêm (vẫn lưu được)." },
     ],
   },

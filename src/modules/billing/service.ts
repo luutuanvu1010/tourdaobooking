@@ -172,7 +172,7 @@ const KHONG_PHAI_NCC = (phan: PhanChoNguoiThu | null) =>
  * của `ghiSoNoiBo`) không gửi «thu cho» — 403 MỘT câu, kiểm TRƯỚC mọi kiểm dạng / nhà cung cấp / trần, nên không phân biệt được nhà cung cấp thật, hồ sơ khác hay mã sai
  * (đóng khe M-3 của R-96: một «thu cho» hợp lệ số nhỏ từng ra 201). Cần thì báo Kế toán ghi giúp.
  */
-const DOI_TAC_KHONG_THU_CHO = () => loi(403, "forbidden", "Tài khoản có quyền Đối tác không ghi được «thu cho» — báo Kế toán ghi giúp.");
+const DOI_TAC_KHONG_THU_CHO = () => loi(403, "forbidden", "Tài khoản có quyền Đối tác không chọn được «Phần tiền này cho» — báo Kế toán ghi giúp.");
 /** Task 9 (vòng sửa Task 5): MỘT câu cho mọi «thu cho» bị từ chối của tài khoản Đối tác — hồ sơ không phải nhà cung cấp, sai dạng, hay vượt phần chưa thu — không dò được ai là nhà cung cấp. */
 const DOI_TAC_THU_CHO = () => loi(400, "invalid_input", "Không ghi được «thu cho» này — báo Kế toán ghi giúp.");
 
@@ -250,12 +250,14 @@ export async function docLanThu(db: D1Database, raw: unknown, ai: NguoiGoi, cong
   }
   // «Thu cho» nhà cung cấp (ADR-0078 điều 9; đặc tả P4): chỉ nhà cung cấp của một dòng trên đơn; quầy nhà cung cấp thu thì luôn thu cho chính họ.
   if (coThuCho) {
-    if (typeof thuCho !== "string" || !PARTY_ID_RE.test(thuCho) || !ncc.has(thuCho)) return doiTacTuGhi ? DOI_TAC_THU_CHO() : loi(400, "invalid_input", "«Thu cho» chỉ chọn được nhà cung cấp của một dịch vụ trên đơn.");
+    // Tài khoản giữ quyền Đối tác không tới được đây (403 `DOI_TAC_KHONG_THU_CHO` ở đầu hàm — R-155), nên không còn nhánh câu chung của Đối tác.
+    if (typeof thuCho !== "string" || !PARTY_ID_RE.test(thuCho) || !ncc.has(thuCho)) return loi(400, "invalid_input", "«Thu cho» chỉ chọn được nhà cung cấp của một dịch vụ trên đơn.");
     if (collectorRole === "SUPPLIER" && thuCho !== collectorPartyId) return loi(400, "invalid_input", "Khách trả tại quầy nhà cung cấp thì tiền thu cho chính nhà cung cấp đó.");
     collectedForPartyId = thuCho;
   }
   if (collectedForPartyId !== null) {
     const con = phanChuaThuNhaCungCap({ tong: ncc.get(collectedForPartyId) ?? 0, ncc: collectedForPartyId, receipts: don.receipts, boQua: don.boQua });
+    // Lớp phụ: vẫn tới được khi hồ sơ CỦA CHÍNH Đối tác là nhà cung cấp của đơn và họ ghi người thu = mình (`{ partyId }` / «tôi» ⇒ SUPPLIER, thu cho chính họ) — giữ câu chung.
     if (soTien > con) return doiTacTuGhi ? DOI_TAC_THU_CHO() : loi(400, "invalid_input", `Số tiền vượt phần còn chưa thu cho nhà cung cấp (${dong(Math.max(0, con))}).`);
   }
   const ngay = ngayPhatSinh({ chon: b.ngayPhatSinh, homNay: vnToday(new Date()), laKeToan: ai.laKeToan, kyDaKhoa: await layKyDaKhoa(db) });

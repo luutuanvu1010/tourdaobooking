@@ -459,7 +459,7 @@ test("Sửa 3 sau rà soát (Ruling R-155): tài khoản giữ quyền Đối t�
   const KTDT = "99999999-9999-4999-8999-999999999999";
   seedStaff(w.sqlite, { id: KTDT, phone: "0900000013", name: "Hà Kế Toán Lai", perms: ["ACCOUNTING", "PARTNER"] });
   const { id } = await donXacNhan(w, { owner: PT, dichVu: [VE_HT, VE_IR] });
-  const CAU = "Tài khoản có quyền Đối tác không ghi được «thu cho» — báo Kế toán ghi giúp.";
+  const CAU = "Tài khoản có quyền Đối tác không chọn được «Phần tiền này cho» — báo Kế toán ghi giúp.";
   const tuChoi = async (as: string, nguoiThu: unknown, thuCho: unknown, ten: string) => {
     const truoc = n(w, "SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = ?", id);
     const r = await thu(w, as, id, mat(1_000, nguoiThu, { thuChoNhaCungCapPartyId: thuCho }));
@@ -518,6 +518,9 @@ test("B-5 (a) ADR-0078: đơn chỉ vé i-resort 600.000 giảm 20.000 ⇒ quầ
   assert.deepEqual([bn.daTra, bn.conLai], [580_000, 0], "không trả dư");
 });
 
+// GHIM HIỆN TRẠNG (người kiểm sau rà soát 24/10, I-1 — CHỜ CHỦ QUYẾT, Nợ ở sổ thi công): trần R-154 là trần CỦA RIÊNG QUẦY, chỉ trừ khoản «thu cho» chính quầy; biên nhận (R-82)
+// chuyển phần Tour Đảo thu dư sang quầy. Sau lễ tân 200.000 + quầy 380.000, Kế toán vẫn ghi được thêm 200.000 người thu là quầy (201) và biên nhận in trả dư 200.000.
+// Chủ quyết cho trần trừ cả phần Tour Đảo thu dư thì đổi assert «200.001 ⇒ 400» dưới đây.
 test("B-5 (b) ADR-0078: bên đặt tự thu trước 200.000 (thu cho Tour Đảo) ⇒ quầy vẫn còn trần 580.000; 380.000 được", async () => {
   const { w } = await setup();
   const { id } = await donXacNhan(w, { owner: PT, dichVu: [VE_IR], giam: 20_000 });
