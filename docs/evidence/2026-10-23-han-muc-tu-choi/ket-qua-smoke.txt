@@ -1,0 +1,7 @@
+  (dữ liệu: TD-20261023-0001, TD-20261023-0002, TD-20261023-0003 của HDV A; TD-20261023-0004 chưa ai phụ trách)
+✓ 1) Quản trị (1040 + 390): thẻ «Hạn mức Từ chối của hướng dẫn viên» có bảng số lần, KHÔNG có ô cài đặt / nút Đặt lại
+✓ 2) 390 HDV A (Chặn 2/15): hộp hiện «còn 2 … 15 …»; đơn 3 «còn 0 …», bấm → «… Hãy gọi văn phòng.», hộp còn mở
+✓ 3) 1040 Bán hàng (người lập) — bảng đổi người phụ trách của đơn 1: «Đã từ chối đơn này lúc … — Bận lịch khác» dưới tên HDV A; đơn 4 không có dòng
+✓ 4) Toàn quyền (mở SAU CÙNG): thẻ đủ ô + nút; số HDV A đúng; Đặt lại HDV A → liên tiếp 0; đổi «Chỉ đo» → tóm tắt đổi; 1040 + 390
+
+4 bước đạt, 0 bước hỏng — đã chạy axe
