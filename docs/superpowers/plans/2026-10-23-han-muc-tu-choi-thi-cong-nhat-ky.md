@@ -55,6 +55,15 @@
 - Chrome: `han-muc-tu-choi-smoke.mjs` 4/4 (axe); `tu-choi-smoke.mjs` 6/6; `hdv-viec-cua-toi-smoke.mjs` 10/10; `v1-nguoi-phu-trach.mjs` đỏ a, j, l — ĐỎ SẴN trên a8dc7433 (log của người thi công trước: a, j, q, l); `chinh-sach-dieu-phoi-smoke.mjs` đỏ bước 1, 5, 8, 10, 11, 12 — chạy lại trên bản a8dc7433 (git archive vào scratchpad) đỏ ĐÚNG sáu bước đó ⇒ đỏ sẵn (kịch bản cũ hơn ADR-0128 Q1 / thanh bên), không do việc này.
 - Sự cố trong phiên: một lần chạy `pkill -f "wrangler dev"` để dọn máy chủ mồ côi của chính phiên này (lần Chrome không lên) — cùng tài khoản máy với người kiểm; không loại trừ được nó đã tắt một `wrangler dev` của phiên khác nếu có lúc đó.
 
+## Vá sau kiểm độc lập (ĐẠT CÓ ĐIỀU KIỆN, hai mục NÊN SỬA — 2026-10-23)
+
+| Mục | Commit | Ghi chú |
+|---|---|---|
+| (1) Lỗi ghi `refuse_limit_hit` làm hỏng phản hồi | 5b388d4f | `ghiChamHanMuc` (`src/modules/dispatch/index.ts`) nay bắt lỗi, ghi `console.error` khuôn `{ level, event: "refuse_limit_log_failed", message }` — không ném. Bài mới ở `han-muc-route.test.ts`: «vá kiểm độc lập (1): «Chỉ đo» …» và «… «Chặn» …» — giả D1 hỏng đúng lô một câu nhật ký (`chenTruocLo` khớp `args` chứa `refuse_limit_hit`). ĐỎ trước: cả hai trả 500 `internal`; sau vá: 200 `{ok:true}` / 409 `refuse_limit`. `baoThayDoi` được gọi: suy từ cấu trúc (lời gọi đứng ngay sau nhánh «Chỉ đo», nay không còn đường ném) + `src/bang-tin-guard.test.ts` xanh — khung thử không cho ghi đè `baoThayDoi` để quan sát trực tiếp (`GHI_DE_DUOC_PHEP`), không nới hàng rào đó. |
+| (2) Dòng «còn lượt» dính nhãn lý do | 9019bbde | `.tu-choi-con-lai { margin: 0 0 var(--s3) }` (token có sẵn). Kịch bản `han-muc-tu-choi-smoke.mjs` bước 2 thêm đo khe ≥ `--s3`: ĐỎ trước (CSS cũ: `{"khe":0,"s3":12}`), XANH sau; chạy lại 4/4 có axe, chụp lại 6 ảnh (gồm `390-2a`, `390-2b`); `tu-choi-smoke.mjs` 6/6 có axe. |
+
+Sau hai vá: `npm run typecheck` thoát 0; `npm run build:web` thoát 0; `npm test` thoát 0 — bước 1 `# tests 6064`, `# pass 6055`, `# fail 0`; bước 2 `# pass 1`, `# fail 0`.
+
 ## Ruling / lệch so với kế hoạch (người thi công — ghi để người kiểm xét)
 
 - **R-H1 (cột `updated_*`):** `src/architecture.test.ts` (ADR-0003) đòi `updated_at NOT NULL` + `updated_by TEXT NULL` ở mọi bảng không phải tra cứu ⇒ thêm hai cột vào `dsp_release_event` và `dsp_refuse_policy`, luôn bằng `created_*` (kế hoạch 2b ghi chú cuối đã dự liệu).
