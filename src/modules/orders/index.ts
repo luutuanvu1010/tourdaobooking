@@ -1,7 +1,7 @@
 // Module orders — sổ đơn hàng (spec §2.1 order/order_service/order_item, §2.3 bất biến). Route: /api/orders*.
 // Mọi nhân viên đang hoạt động xem được mọi đơn (§2.4-4); chỉ người lập đơn, người phụ trách đang mở của đơn (ADR-0009) hoặc admin được sửa/xác nhận/huỷ.
 // "Người phụ trách" do module `dispatch` giữ: `orders` KHÔNG import `dispatch` mà hỏi qua `ctx.isAssigned(orderId)` (gốc lắp ráp tiêm — ADR-0007 điều 4(b)).
-import { auditStatement, getAuditTrail } from "../audit";
+import { auditStatement, donDuocTraLai, getAuditTrail } from "../audit";
 import { chupDon, docBangChoChup, laNguoiHuong, soKhachTinhHoaHong, type BanChup } from "../pricing";
 import { ownerCompany } from "../parties";
 import type {
@@ -890,8 +890,9 @@ export const ordersModule: AppModule = {
       if (!can(staff, "order.pool.view") || holdsPartner(staff)) return FORBIDDEN_VIEW();
       const today = vnToday(new Date());
       const sources = await listPoolSources(env.DB, today);
-      const withHandler = await ordersWithHandler(sources.map((o) => o.id));
-      return json({ orders: toPoolOrders(sources, withHandler, today) } satisfies PoolResponse);
+      const ids = sources.map((o) => o.id);
+      const [withHandler, traLai] = await Promise.all([ordersWithHandler(ids), donDuocTraLai(env.DB, ids)]);
+      return json({ orders: toPoolOrders(sources, withHandler, today, traLai) } satisfies PoolResponse);
     }),
 
     // Mốc tối thiểu cho biểu mẫu đơn CHƯA lưu (ruling R-P15 của điều phối, 29/9 — kế hoạch I31 cách (a)): người LẬP đơn đọc con số mốc + cảnh báo sát mốc

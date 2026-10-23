@@ -40,6 +40,24 @@ export function insertStatement(db: D1Database, e: AuditInput, onlyIf?: string):
 
 export const SYSTEM_ACTOR_NAME = "Hệ thống (tự động)";
 
+/**
+ * Cờ «được trả lại» (ADR-0030 điều 3): trong các đơn `orderIds`, đơn nào có dòng MỚI NHẤT (theo `created_at`, hoà thì `rowid`) trong ba hành động đổi người
+ * phụ trách là `order_handler_refused`. Dựng theo MÃ hành động, không đọc `detail`; chỉ trả id. Một tham số JSON (`json_each`) — câu tĩnh dù số id đổi.
+ */
+export async function listReturnedOrders(db: D1Database, orderIds: readonly string[]): Promise<string[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT a.order_id FROM audit_log a
+       WHERE a.order_id IN (SELECT value FROM json_each(?1)) AND a.action = 'order_handler_refused'
+         AND a.rowid = (SELECT b.rowid FROM audit_log b
+                        WHERE b.order_id = a.order_id AND b.action IN ('order_claimed', 'order_handler_changed', 'order_handler_refused')
+                        ORDER BY b.created_at DESC, b.rowid DESC LIMIT 1)`,
+    )
+    .bind(JSON.stringify(orderIds))
+    .all<{ order_id: string }>();
+  return results.map((r) => r.order_id);
+}
+
 /** Bước K-a (sổ đại lý đợt 1): hành động chở mức thương mại — trang Nhật ký bỏ khi người xem giữ quyền Đối tác. SUY từ bảng hành động (`laHanhDongThuongMai`). */
 const THUONG_MAI_AUDIT_ACTIONS: readonly AuditAction[] = (Object.keys(AUDIT_ACTIONS) as AuditAction[]).filter(laHanhDongThuongMai);
 

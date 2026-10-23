@@ -111,11 +111,11 @@ assert.equal((await setHandler(ADMIN, oAdmin.id, adm.id)).status, 200, "quản t
 // --- 2) GET /api/dispatch/handlers: tra nhiều đơn, id lạ, giới hạn 100, quyền
 r = await call(A, "GET", `/api/dispatch/handlers?orderIds=${o1.id},${oAdmin.id},00000000-0000-4000-8000-000000000000`);
 assert.equal(r.status, 200);
-assert.deepEqual(r.body, { handlers: { [o1.id]: asDto(a), [oAdmin.id]: asDto(adm), "00000000-0000-4000-8000-000000000000": null } }, "đơn không có người phụ trách (hoặc không có đơn) → null");
+assert.deepEqual(r.body, { handlers: { [o1.id]: asDto(a), [oAdmin.id]: asDto(adm), "00000000-0000-4000-8000-000000000000": null }, traLai: [] }, "đơn không có người phụ trách (hoặc không có đơn) → null");
 assert.deepEqual(Object.keys(r.body.handlers[o1.id]).sort(), ["name", "partyId", "staffId"], "chỉ tên + id, không SĐT");
 assert.doesNotMatch(JSON.stringify(r.body), /(?<![0-9a-f-])09\d{8}(?!\d)/, "không lộ SĐT");
-assert.deepEqual((await call(A, "GET", "/api/dispatch/handlers")).body, { handlers: {} }, "thiếu orderIds = danh sách rỗng");
-assert.deepEqual((await call(A, "GET", "/api/dispatch/handlers?orderIds=")).body, { handlers: {} });
+assert.deepEqual((await call(A, "GET", "/api/dispatch/handlers")).body, { handlers: {}, traLai: [] }, "thiếu orderIds = danh sách rỗng");
+assert.deepEqual((await call(A, "GET", "/api/dispatch/handlers?orderIds=")).body, { handlers: {}, traLai: [] });
 const fake = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 r = await call(A, "GET", `/api/dispatch/handlers?orderIds=${Array.from({ length: 100 }, (_, i) => fake(i + 1)).join(",")}`);
 assert.equal(r.status, 200);
@@ -1216,7 +1216,7 @@ try {
   );
   for (const id of poolAIds) assert.ok(candidates.has(id), `mọi đơn ở hàng chờ phải chưa huỷ và không có người phụ trách đang mở: ${id}`);
   for (const o of poolA) {
-    assert.deepEqual(Object.keys(o).sort(), ["departDate", "orderCode", "orderId", "services"], `phần hẹp: đúng bốn khoá của đơn ${o.orderCode}`);
+    assert.deepEqual(Object.keys(o).sort(), ["departDate", "orderCode", "orderId", "services", "traLai"], `phần hẹp: đúng năm khoá (thêm cờ traLai — ADR-0030 điều 3) của đơn ${o.orderCode}`);
     for (const sv of o.services) assert.deepEqual(Object.keys(sv).sort(), ["name", "pax", "pickupPlace", "pickupTime"], `phần hẹp: đúng bốn khoá của dịch vụ (${o.orderCode})`);
   }
   const poolJson = JSON.stringify(poolA);

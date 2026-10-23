@@ -656,6 +656,8 @@ export interface PoolOrderDto {
   orderCode: string;
   departDate: string | null;
   services: PoolServiceDto[];
+  /** ADR-0030 điều 3: lần thay đổi người phụ trách gần nhất là Từ chối → chip «được trả lại». Chỉ cờ — không tên, không lý do. */
+  traLai: boolean;
 }
 /** Đơn chờ nhận: chưa có người phụ trách đang mở, chưa huỷ, chưa qua ngày đi — xếp ngày đi gần nhất trước, chưa có ngày xuống cuối. */
 export interface PoolResponse { orders: PoolOrderDto[] }
@@ -792,7 +794,12 @@ export interface HandlerDto {
 }
 
 /** `GET /api/dispatch/handlers?orderIds=a,b,c` (tối đa 100 id): mọi id gửi lên đều có mặt; `null` = đơn chưa có người phụ trách (hoặc không có đơn đó). */
-export interface HandlersResponse { handlers: Record<string, HandlerDto | null> }
+export interface HandlersResponse {
+  handlers: Record<string, HandlerDto | null>;
+  /** ADR-0030 điều 3 (chỉ thêm — bản giao diện cũ bỏ qua): id các đơn CHƯA có người mà lần thay đổi phụ trách gần nhất là Từ chối → «Chờ nhận · được trả lại».
+   * Chỉ id — không tên người trả, không lý do (ADR-0131). */
+  traLai: string[];
+}
 
 /**
  * Nhân sự có thể được giao phụ trách (`checkAssignee` của dispatch): đang hoạt động, có hồ sơ, không mang quyền Đối tác, và có quyền Bán hàng, Quản trị

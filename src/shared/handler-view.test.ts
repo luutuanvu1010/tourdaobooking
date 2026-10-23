@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { HandlerDto } from "./contracts.ts";
-import { handlerControls, handlerFailure, handlerSaved, handlerText, hoiDuocNguoiPhuTrach, myJobActions, NO_HANDLER_TEXT, nguoiPhuTrachTuPhien } from "./handler-view.ts";
+import { handlerControls, handlerFailure, handlerSaved, handlerText, hoiDuocNguoiPhuTrach, myJobActions, NO_HANDLER_TEXT, nguoiPhuTrachTuPhien, nhanChoNhan } from "./handler-view.ts";
 import { can, PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 
 // Ba nhân viên bán hàng (A lập đơn, B được giao, C người ngoài), quản trị, kế toán, nhân viên hiện trường.
@@ -158,4 +158,10 @@ test("hoiDuocNguoiPhuTrach: chỉ người xem được mọi đơn (văn phòng
     const w = { id: "x", permissions: PERMISSION_CODES.filter((_, i) => mask & (1 << i)) };
     assert.equal(hoiDuocNguoiPhuTrach(w), can(w, "order.view"));
   }
+});
+
+test("nhanChoNhan (ADR-0030 điều 3): lần thay đổi phụ trách gần nhất là Từ chối → «Chờ nhận · được trả lại»; còn lại «Chờ nhận»", () => {
+  assert.equal(nhanChoNhan(true), "Chờ nhận · được trả lại");
+  assert.equal(nhanChoNhan(false), "Chờ nhận");
+  assert.equal(nhanChoNhan(false), NO_HANDLER_TEXT);
 });

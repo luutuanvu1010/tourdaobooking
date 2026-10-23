@@ -86,12 +86,17 @@ test("TC-2: sau Từ chối — HDV mở chi tiết → 404, đơn ở hàng ch�
   assert.equal((await w.call("GET", `/api/orders/${id}`, { as: FIELD })).status, 404);
   const pool = await w.call("GET", "/api/orders/pool", { as: FIELD2 });
   assert.equal(pool.status, 200, pool.text);
-  assert.ok(pool.json.orders.some((o: any) => o.orderId === id), "đơn phải về hàng chờ");
+  assert.equal(pool.json.orders.find((o: any) => o.orderId === id)?.traLai, true, "đơn phải về hàng chờ, kèm cờ «được trả lại» (TC-8)");
+  const hs = await w.call("GET", `/api/dispatch/handlers?orderIds=${id}`, { as: SALES });
+  assert.equal(hs.status, 200, hs.text);
+  assert.deepEqual(hs.json, { handlers: { [id]: null }, traLai: [id] }, "trang đơn văn phòng: chỉ thêm trường traLai, không tên, không lý do");
   const mine = await w.call("GET", "/api/dispatch/mine", { as: FIELD });
   assert.equal(mine.status, 200, mine.text);
   assert.ok(!mine.json.assignments.some((a: any) => a.orderId === id));
   const lai = await w.call("PUT", `/api/orders/${id}/handler`, { as: ADM, body: { staffId: FIELD } });
   assert.equal(lai.status, 200, lai.text);
+  const hs2 = await w.call("GET", `/api/dispatch/handlers?orderIds=${id}`, { as: SALES });
+  assert.deepEqual(hs2.json.traLai, [], "đã có người lại thì không còn «được trả lại»");
 
   const id2 = await donDaXacNhan(w, SALES);
   assert.equal((await tuChoi(w, id2, SALES)).status, 200);

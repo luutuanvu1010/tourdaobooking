@@ -7,6 +7,9 @@ import { can, seesOnlyAssignedOrders, type PermissionHolder } from "./permission
 /** Chip ở danh sách đơn và ở khối "Người phụ trách" khi đơn chưa có người (ADR-0030 điều 3, Q-A2: "Chờ nhận" thay
  * "Chưa có người phụ trách" — đơn mới không tự gắn người lập, HDV cần thấy ngay đây là đơn đang chờ ai đó bấm Nhận). */
 export const NO_HANDLER_TEXT = "Chờ nhận";
+/** Chip «Chờ nhận» kèm dấu «được trả lại» khi lần thay đổi phụ trách gần nhất là Từ chối (ADR-0030 điều 3) — chỉ ở trang đơn văn phòng và thẻ hàng chờ
+ * của HDV; danh sách đơn văn phòng giữ «Chờ nhận». `traLai` do máy chủ trả (cờ, không tên, không lý do). */
+export const nhanChoNhan = (traLai: boolean): string => (traLai ? `${NO_HANDLER_TEXT} · được trả lại` : NO_HANDLER_TEXT);
 /** Dòng ở danh sách đơn (ADR-0030 điều 3, Q-A2: "HDV: <tên>" thay "Phụ trách: <tên>"). */
 export const handlerText = (name: string): string => `HDV: ${name}`;
 

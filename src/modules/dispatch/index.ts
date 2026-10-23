@@ -8,6 +8,7 @@
 // `src/architecture.test.ts` canh): gốc lắp ráp (src/index.ts) tiêm `isOrderHandler`, `newOrderHandler`, `ordersWithHandler` và `handledOrderIdsOf`
 // vào ctx (ADR-0007 điều 4(b)). Ghi nhật ký và đổi dữ liệu trong cùng một db.batch() (`handlerChangeStatements`, `newOrderHandlerStatements`).
 import { cancelOrderByHandler, editMoneyAsHandler, findOrderDepartDates, findOrderOwner, getMyAssignments } from "../orders";
+import { donDuocTraLai } from "../audit";
 import { getStaffAccount, listStaffAccounts } from "../staff";
 import type {
   AssigneeDto, AssigneesResponse, HandlerCancelResponse, HandlerDto, HandlerMoneyEditResponse, HandlerRefuseResponse, HandlersResponse, MyAssignmentsResponse, SetHandlerResponse,
@@ -125,7 +126,10 @@ export const dispatchModule: AppModule = {
         const row = byOrder.get(id);
         handlers[id] = row ? toDto(row) : null;
       }
-      return json({ handlers } satisfies HandlersResponse);
+      // ADR-0030 điều 3: cờ «được trả lại» chỉ cho đơn CHƯA có người — đọc qua hàm công bố của audit (dispatch không đọc audit_log trực tiếp).
+      const choNhan = parsed.ids.filter((id) => handlers[id] === null);
+      const traLai = [...(await donDuocTraLai(env.DB, choNhan))].filter((id) => choNhan.includes(id));
+      return json({ handlers, traLai } satisfies HandlersResponse);
     }),
 
     // Nhân sự có thể được giao: đang hoạt động, có hồ sơ, không mang quyền Đối tác, có quyền Bán hàng/Quản trị/Toàn quyền hoặc Hướng dẫn viên (luật
