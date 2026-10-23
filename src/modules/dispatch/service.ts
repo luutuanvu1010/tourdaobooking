@@ -1,9 +1,9 @@
 // Điều phối của module dispatch: dựng các câu lệnh (chưa chạy) của MỘT lần đặt/đổi người phụ trách. Tách khỏi route để bài kiểm chạy đúng các câu
 // này trên SQLite thật (service.test.ts) — chỗ tranh chấp song song nằm ở đây, không ở HTTP.
 import { auditStatement } from "../audit";
-import { closeHandlerStatement, insertHandlerAfterCloseStatement, insertHandlerIfNoneStatement, insertHandlerStatement } from "./repository";
+import { closeHandlerSauChotStatement, closeHandlerStatement, insertHandlerAfterCloseStatement, insertHandlerIfNoneStatement, insertHandlerStatement } from "./repository";
 import { describeHandlerChange } from "./rules";
-import { chenSuKienSauStatement } from "./han-muc-repo";
+import { chenSuKienSauStatement, chenTuChoiStatement } from "./han-muc-repo";
 import { nhanLyDoTuChoi, type MaLyDoTuChoi } from "../../shared/ly-do-tu-choi";
 
 export interface HandlerChange {
@@ -72,29 +72,33 @@ const handlerAudit = (db: D1Database, c: HandlerChange): D1PreparedStatement =>
 export interface Refusal {
   orderId: string;
   partyId: string;
-  /** Người bấm (tài khoản) — cột WHO của dòng đóng và `staff_id` của nhật ký. */
+  /** Người bấm (tài khoản) — cột WHO của dòng đóng, của sự kiện và `staff_id` của nhật ký. */
   actorId: string;
-  /** Mốc của lệnh (UTC): `valid_to_at` của dòng đóng = `created_at` của nhật ký. */
+  /** Mốc của lệnh (UTC): `valid_to_at` của dòng đóng = `created_at` của nhật ký = `occurred_at` của sự kiện REFUSE. */
   at: string;
-  /** Mã lý do (danh sách đóng `ly-do-tu-choi.ts` — hợp đồng với ADR-0032). Nhật ký chỉ ghi NHÃN (Q2 (a)). */
+  /** Mã lý do (danh sách đóng `ly-do-tu-choi.ts` — hợp đồng với `dsp_release_event.reason_code`). Nhật ký chỉ ghi NHÃN (Q2 (a)). */
   lyDo: MaLyDoTuChoi;
+  /** Đầu tuần dân sự VN (ISO UTC) của lúc lệnh — vế «mỗi tuần» của hạn mức (ADR-0032 điều 4). */
+  dauTuan: string;
+  /** Người gọi thuộc nhóm bị hạn mức chặn (ADR-0032 điều 2 — `biGioiHanTuChoi` trên bộ quyền của phiên). */
+  biGioiHan: boolean;
 }
 
 /**
- * Các câu của một lần Từ chối, để chạy trong MỘT `db.batch()` (kế hoạch 2026-10-20 mục 3a):
- *  [0] đóng dòng `HANDLE` đang mở MANG `party_id` của người gọi (`CLOSE_HANDLER` — câu chốt; 0 dòng ⇔ người gọi không còn phụ trách: thua đua);
- *  [1] nhật ký `order_handler_refused` (chỉ nhãn lý do) khi câu ngay trước đã đóng được (`changes() > 0`).
+ * Các câu của một lần Từ chối, để chạy trong MỘT `db.batch()` (ADR-0032 điều 5; kế hoạch 2026-10-23 mục 4d):
+ *  [0] CHÈN sự kiện REFUSE — CÂU CHỐT: chỉ chèn khi người gọi ĐANG có dòng phụ trách mở của đơn VÀ hạn mức không chặn (chế độ Chặn + người bị giới hạn +
+ *      chuỗi/tuần đã đủ ⇒ không chèn). Không chèn ⇒ cả lô không đổi gì (không có lần Từ chối «ma»);
+ *  [1] đóng dòng `HANDLE` đang mở MANG `party_id` của người gọi khi câu ngay trước đã chèn (`close_handler_sau_chot` — `… AND changes() > 0`);
+ *  [2] nhật ký `order_handler_refused` (chỉ nhãn lý do) khi câu ngay trước đã đóng được.
  * KHÔNG có câu mở dòng mới: đơn về «Chờ nhận».
- * CHỪA CHỖ CHO ADR-0032 (điều 5): câu chèn sự kiện `REFUSE` có điều kiện sẽ đứng ĐẦU mảng, câu đóng đổi sang biến thể `… AND changes() > 0` (defineSql MỚI,
- * không sửa `CLOSE_HANDLER` — `handlerChangeStatements` dùng nó làm câu chốt), nhật ký giữ nguyên. Khi đó chỉ sửa hàm này và `tuChoiThang`; route không đổi.
- * Khuôn đã chứng minh trên SQLite thật ở `service.test.ts` (bài "khuôn cho ADR-0032").
  */
 export function refuseStatements(db: D1Database, r: Refusal): D1PreparedStatement[] {
   return [
-    closeHandlerStatement(db, r.orderId, r.partyId, r.at, r.actorId),
+    chenTuChoiStatement(db, { id: crypto.randomUUID(), partyId: r.partyId, orderId: r.orderId, dauTuan: r.dauTuan, at: r.at, lyDo: r.lyDo, actorId: r.actorId, biGioiHan: r.biGioiHan }),
+    closeHandlerSauChotStatement(db, r.orderId, r.partyId, r.at, r.actorId),
     auditStatement(db, { staffId: r.actorId, action: "order_handler_refused", at: r.at, orderId: r.orderId, detail: nhanLyDoTuChoi(r.lyDo) }, "changes() > 0"),
   ];
 }
 
-/** Lô Từ chối đã THẮNG chưa — route chỉ hỏi hàm này, không đọc thẳng chỉ số (khuôn `daHuy`). Hôm nay câu chốt là `kq[0]`; ADR-0032 đổi thành `kq[1]`. */
-export const tuChoiThang = (kq: readonly D1Result[]): boolean => (kq[0]?.meta.changes ?? 0) > 0;
+/** Lô Từ chối đã THẮNG chưa — route chỉ hỏi hàm này, không đọc thẳng chỉ số (khuôn `daHuy`): câu đóng dòng (thứ 2) đổi một dòng. */
+export const tuChoiThang = (kq: readonly D1Result[]): boolean => (kq[1]?.meta.changes ?? 0) > 0;

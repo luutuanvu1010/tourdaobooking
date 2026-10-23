@@ -104,3 +104,163 @@ test("HM-8: lô huỷ THUA khoá lạc quan (đơn vừa bị sửa giữa lúc 
   assert.equal(r.status, 409, r.text);
   assert.equal(suKien(w, "kind_code = 'ABORT'").length, 0);
 });
+
+// ---- H6: câu đầu lô Từ chối + hạn mức ở route ----
+/** Đặt cài đặt thẳng vào bảng (bài route cài đặt ở dưới, HM-7) — dòng mới hiệu lực ngay, sau dòng gieo. */
+function datCaiDat(w: any, mode: "OFF" | "MEASURE" | "BLOCK", mc = 2, mw = 15): void {
+  const moc = w.q("SELECT max(valid_from_at) m FROM dsp_refuse_policy")[0].m;
+  const at = new Date(Math.max(Date.now() - 1000, Date.parse(moc) + 1)).toISOString();
+  w.sqlite.prepare("INSERT INTO dsp_refuse_policy (id, mode, max_consecutive, max_per_week, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, NULL)")
+    .run(crypto.randomUUID(), mode, mc, mw, at, at, at);
+}
+const tuChoi = (w: any, id: string, as: string, lyDo = "BAN_LICH") => w.call("POST", `/api/orders/${id}/handler-refuse`, { as, body: { lyDo } });
+const moDong = (w: any, id: string) => w.q("SELECT party_id FROM dsp_assignment WHERE order_id = ? AND task_kind_code = 'HANDLE' AND valid_to_at IS NULL", id).map((r: any) => r.party_id);
+const soRefuse = (w: any, staffId: string) => w.q("SELECT count(*) n FROM dsp_release_event WHERE party_id = ? AND kind_code = 'REFUSE'", `pty-${staffId}`)[0].n;
+const cham = (w: any) => w.q("SELECT order_id, staff_id, detail FROM audit_log WHERE action = 'refuse_limit_hit' ORDER BY rowid").map((r: any) => ({ ...r }));
+/** Nhận (hoặc được giao) một đơn mới rồi Từ chối → trả mã HTTP. */
+async function nhanVaTuChoi(w: any, as: string, giaoBoi?: string): Promise<{ id: string; r: any }> {
+  const id = await donCho(w);
+  const g = giaoBoi ? await giao(w, id, giaoBoi, as) : await nhan(w, id, as);
+  assert.equal(g.status, 200, g.text);
+  return { id, r: await tuChoi(w, id, as) };
+}
+const CAU_HET = "Bạn đã từ chối đủ số lần cho phép. Hãy gọi văn phòng.";
+
+test("HM-1: Chặn 2/15 — HDV nhận–từ chối A, B → 200; đơn C → 409 refuse_limit đúng câu ADR; dòng phụ trách C vẫn mở, vẫn 2 REFUSE, đúng 1 refuse_limit_hit sạch", async () => {
+  const w = setup();
+  datCaiDat(w, "BLOCK");
+  for (let i = 0; i < 2; i++) assert.equal((await nhanVaTuChoi(w, FIELD)).r.status, 200);
+  const { id, r } = await nhanVaTuChoi(w, FIELD);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "refuse_limit");
+  assert.equal(r.json.error.message, CAU_HET);
+  assert.deepEqual(moDong(w, id), [`pty-${FIELD}`], "dòng phụ trách VẪN mở");
+  assert.equal(soRefuse(w, FIELD), 2, "không có REFUSE mới");
+  const c = cham(w);
+  assert.equal(c.length, 1);
+  assert.deepEqual([c[0].order_id, c[0].staff_id], [id, FIELD]);
+  assert.equal(c[0].detail, "Liên tiếp 2/2 · tuần 2/15 · Chặn");
+  assert.ok(!/\d{8,}/.test(c[0].detail) && !c[0].detail.includes("@") && !c[0].detail.includes("Hướng Dẫn"));
+  assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE order_id = ? AND action = 'order_handler_refused'", id)[0].n, 0);
+});
+
+test("HM-2: giữa B và C, HDV nhận K và giữ (hoặc văn phòng Giao K) → từ chối C → 200, có REFUSE thứ 3", async () => {
+  for (const giaoBoi of [undefined, ADM]) {
+    const w = setup();
+    datCaiDat(w, "BLOCK");
+    for (let i = 0; i < 2; i++) assert.equal((await nhanVaTuChoi(w, FIELD)).r.status, 200);
+    const k = await donCho(w);
+    assert.equal((giaoBoi ? await giao(w, k, giaoBoi, FIELD) : await nhan(w, k, FIELD)).status, 200);
+    const { r } = await nhanVaTuChoi(w, FIELD);
+    assert.equal(r.status, 200, `${giaoBoi ? "được giao" : "tự nhận"} K: ${r.text}`);
+    assert.equal(soRefuse(w, FIELD), 3);
+  }
+});
+
+test("HM-3: (a) từ chối 2, văn phòng Giao Y rồi HDV từ chối CHÍNH Y → 409; (b) đệm K bị HDV huỷ (ABORT) mất tư cách mốc → 409", async () => {
+  const w = setup();
+  datCaiDat(w, "BLOCK");
+  for (let i = 0; i < 2; i++) assert.equal((await nhanVaTuChoi(w, FIELD)).r.status, 200);
+  const a = await nhanVaTuChoi(w, FIELD, ADM);
+  assert.equal(a.r.status, 409, a.r.text);
+  assert.equal(a.r.json.error.code, "refuse_limit");
+
+  const w2 = setup();
+  datCaiDat(w2, "BLOCK");
+  assert.equal((await nhanVaTuChoi(w2, FIELD)).r.status, 200);
+  const k = await donCho(w2);
+  assert.equal((await nhan(w2, k, FIELD)).status, 200);
+  assert.equal((await huy(w2, k, FIELD)).status, 200);
+  assert.equal((await nhanVaTuChoi(w2, FIELD)).r.status, 200);
+  const b = await nhanVaTuChoi(w2, FIELD);
+  assert.equal(b.r.status, 409, b.r.text);
+});
+
+test("HM-5: «Chỉ đo» — lần 3 vẫn 200, dòng đóng, có REFUSE thứ 3, 1 refuse_limit_hit chữ «Chỉ đo»; «Tắt» — lần 3 → 200, 0 refuse_limit_hit; sự kiện vẫn ghi", async () => {
+  const w = setup(); // dòng gieo của migration = Chỉ đo 2/15
+  for (let i = 0; i < 2; i++) assert.equal((await nhanVaTuChoi(w, FIELD)).r.status, 200);
+  const { id, r } = await nhanVaTuChoi(w, FIELD);
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(moDong(w, id), []);
+  assert.equal(soRefuse(w, FIELD), 3);
+  const c = cham(w);
+  assert.deepEqual(c.map((x: any) => [x.order_id, x.detail]), [[id, "Liên tiếp 2/2 · tuần 2/15 · Chỉ đo (không chặn)"]]);
+
+  const w2 = setup();
+  datCaiDat(w2, "OFF");
+  for (let i = 0; i < 3; i++) assert.equal((await nhanVaTuChoi(w2, FIELD)).r.status, 200);
+  assert.equal(soRefuse(w2, FIELD), 3);
+  assert.equal(cham(w2).length, 0);
+});
+
+test("HM-6: SALES, ADMIN, SUPER_ADMIN, ACCOUNTING+FIELD, SALES+FIELD đang phụ trách — Chặn 2/15, từ chối lần 3, 4 → 200; REFUSE vẫn ghi; Kế toán thuần → 403", async () => {
+  const w = setup();
+  datCaiDat(w, "BLOCK");
+  for (const nguoi of [SALES, ADM, SUP, ACC_FIELD, SALES_FIELD]) {
+    for (let i = 0; i < 4; i++) {
+      const { r } = await nhanVaTuChoi(w, nguoi, ADM);
+      assert.equal(r.status, 200, `${nguoi} lần ${i + 1}: ${r.text}`);
+    }
+    assert.equal(soRefuse(w, nguoi), 4, nguoi);
+  }
+  assert.equal(cham(w).length, 0, "người không bị giới hạn không chạm hạn mức");
+  const id = await donCho(w);
+  assert.equal((await tuChoi(w, id, ACC)).status, 403);
+});
+
+test("HM-12 (b): một REFUSE khác của HDV chen vào NGAY TRƯỚC lô (chuỗi 1 → 2) → câu đầu không chèn → 409 refuse_limit, dòng phụ trách vẫn mở, không REFUSE ma", async () => {
+  const w = setup();
+  datCaiDat(w, "BLOCK");
+  assert.equal((await nhanVaTuChoi(w, FIELD)).r.status, 200);
+  const id = await donCho(w);
+  assert.equal((await nhan(w, id, FIELD)).status, 200);
+  const khac = await donCho(w);
+  w.chenTruocLo((stmts: any[]) => /INSERT INTO dsp_release_event[\s\S]*'REFUSE'/.test(stmts[0]?.sql ?? ""), () => {
+    const s = w.q("SELECT coalesce(max(seq), 0) + 1 s FROM dsp_release_event")[0].s;
+    const at = new Date().toISOString();
+    w.sqlite.prepare("INSERT INTO dsp_release_event (id, seq, party_id, order_id, kind_code, reason_code, occurred_at, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, 'REFUSE', 'OTHER', ?, ?, NULL, ?, NULL)")
+      .run(crypto.randomUUID(), s, `pty-${FIELD}`, khac, at, at, at);
+  });
+  const r = await tuChoi(w, id, FIELD);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "refuse_limit");
+  assert.deepEqual(moDong(w, id), [`pty-${FIELD}`]);
+  assert.equal(w.q("SELECT count(*) n FROM dsp_release_event WHERE order_id = ? AND kind_code = 'REFUSE'", id)[0].n, 0, "không REFUSE ma");
+  assert.equal(cham(w).length, 1);
+});
+
+test("HM-12 (c): văn phòng đổi người đúng lúc HDV Từ chối (chen trước lô) → 409 stale, KHÔNG dòng REFUSE", async () => {
+  const w = setup();
+  datCaiDat(w, "BLOCK");
+  const id = await donCho(w);
+  assert.equal((await nhan(w, id, FIELD)).status, 200);
+  w.chenTruocLo((stmts: any[]) => /INSERT INTO dsp_release_event[\s\S]*'REFUSE'/.test(stmts[0]?.sql ?? ""), () => {
+    const at = new Date().toISOString();
+    w.sqlite.prepare("UPDATE dsp_assignment SET valid_to_at = ?, updated_at = ? WHERE order_id = ? AND task_kind_code = 'HANDLE' AND valid_to_at IS NULL").run(at, at, id);
+    w.sqlite.prepare("INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, updated_at) VALUES (?, ?, 'HANDLE', ?, 'PENDING', ?, ?, ?)")
+      .run(crypto.randomUUID(), id, `pty-${FIELD2}`, at, at, at);
+  });
+  const r = await tuChoi(w, id, FIELD);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "stale");
+  assert.equal(soRefuse(w, FIELD), 0);
+  assert.deepEqual(moDong(w, id), [`pty-${FIELD2}`]);
+});
+
+test("HM-12 (a): Chặn 2/15, chuỗi = 1 — HDV gửi ĐỒNG THỜI Từ chối hai đơn (5 vòng, đặt lại giữa vòng) → mỗi vòng đúng một 200 và một 409 refuse_limit; REFUSE +1/vòng", async () => {
+  const w = setup();
+  datCaiDat(w, "BLOCK");
+  for (let vong = 0; vong < 5; vong++) {
+    w.sqlite.prepare("INSERT INTO dsp_release_event (id, seq, party_id, order_id, kind_code, reason_code, occurred_at, created_at, created_by, updated_at, updated_by) SELECT ?, coalesce(max(seq), 0) + 1, ?, NULL, 'RESET', NULL, ?, ?, NULL, ?, NULL FROM dsp_release_event")
+      .run(crypto.randomUUID(), `pty-${FIELD}`, new Date().toISOString(), new Date().toISOString(), new Date().toISOString());
+    assert.equal((await nhanVaTuChoi(w, FIELD)).r.status, 200);
+    const a = await donCho(w), b = await donCho(w);
+    assert.equal((await nhan(w, a, FIELD)).status, 200);
+    assert.equal((await nhan(w, b, FIELD)).status, 200);
+    const truoc = soRefuse(w, FIELD);
+    const kq = await Promise.all([tuChoi(w, a, FIELD), tuChoi(w, b, FIELD)]);
+    assert.deepEqual(kq.map((r) => r.status).sort(), [200, 409], `vòng ${vong}: ${kq.map((r) => r.text).join(" | ")}`);
+    assert.equal(kq.find((r) => r.status === 409)!.json.error.code, "refuse_limit");
+    assert.equal(soRefuse(w, FIELD), truoc + 1);
+  }
+});

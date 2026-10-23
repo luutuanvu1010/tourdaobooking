@@ -100,6 +100,9 @@ export const LICH_SU_NOI_BO_AN = [
   // Sổ đại lý đợt 2 (chụp bù — ADR-0079 điều 7 b2; «Bên kia đã nhận» — ADR-0132 điều 2): loại dòng MỚI nên mặc định ẩn cho tới khi chủ dự án xếp loại (ADR-0131
   // «Nói thẳng hệ quả»). Chuyển sang `LICH_SU_NOI_BO_CHO_PHEP` = đổi bản chủ duyệt trong `lich-su-noi-bo.test.ts` cùng lúc.
   "ord_terms_backfilled", "ledger_counterparty_confirmed",
+  // ADR-0032 (hạn mức Từ chối — G3 kế hoạch 2026-10-23): chạm hạn mức không đổi đơn và luôn nói về chính người bấm («tên người bấm chỉ Toàn quyền thấy»);
+  // đổi cài đặt / đặt lại không gắn đơn. Toàn quyền đọc ở trang Nhật ký.
+  "refuse_limit_hit", "refuse_policy_changed", "refuse_counter_reset",
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nội bộ nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */

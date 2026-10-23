@@ -8,7 +8,7 @@
 // `src/architecture.test.ts` canh): gốc lắp ráp (src/index.ts) tiêm `isOrderHandler`, `newOrderHandler`, `ordersWithHandler` và `handledOrderIdsOf`
 // vào ctx (ADR-0007 điều 4(b)). Ghi nhật ký và đổi dữ liệu trong cùng một db.batch() (`handlerChangeStatements`, `newOrderHandlerStatements`).
 import { cancelOrderByHandler, editMoneyAsHandler, findOrderDepartDates, findOrderOwner, getMyAssignments } from "../orders";
-import { donDuocTraLai } from "../audit";
+import { auditStatement, donDuocTraLai } from "../audit";
 import { getStaffAccount, listStaffAccounts } from "../staff";
 import type {
   AssigneeDto, AssigneesResponse, HandlerCancelResponse, HandlerDto, HandlerMoneyEditResponse, HandlerRefuseResponse, HandlersResponse, MyAssignmentsResponse, SetHandlerResponse,
@@ -27,7 +27,8 @@ import {
   CANCEL_REASON_LABEL, checkAssignee, handlerChangeVerdict, isDeliveredLock, isOpenHandlerCollision, parseCancelReason, parseOrderIds, parseSetHandler,
 } from "./rules";
 import { handlerChangeStatements, newOrderHandlerStatements, refuseStatements, tuChoiThang } from "./service";
-import { chenAbortSauStatement } from "./han-muc-repo";
+import { chenAbortSauStatement, demTuChoiCua } from "./han-muc-repo";
+import { CAU_HET_LUOT, biGioiHanTuChoi, dauTuanIso, moTaChamHanMuc, quyetDinhHanMuc, type CaiDatHanMuc } from "../../shared/han-muc-tu-choi";
 
 const toDto = (r: HandlerRow): HandlerDto => ({ partyId: r.party_id, staffId: r.staff_id, name: r.label });
 
@@ -56,7 +57,16 @@ const REFUSE_FORBIDDEN = () => error(403, "forbidden", "Chỉ người đang ph�
 const REFUSE_NOT_CONFIRMED = () => error(409, "order_not_confirmed", "Đơn chưa xác nhận — báo người lập đơn đổi người phụ trách.");
 const REFUSE_CANCELLED = () => error(409, "cancelled", "Đơn đã huỷ, không cần trả đơn.");
 const REFUSE_TOO_LATE = () => error(409, "too_late", "Đơn đi hôm nay hoặc ngày mai — không trả được nữa. Gọi văn phòng để đổi người.");
+/** ADR-0032 điều 5: hết lượt Từ chối — câu nguyên văn ADR. */
+const REFUSE_LIMIT = () => error(409, "refuse_limit", CAU_HET_LUOT);
+/** ADR-0032 (G6): không có dòng cài đặt hạn mức hiệu lực — không đoán con số (khuôn mốc 6 giờ). Thực tế không xảy ra (dòng gieo + trigger cấm xoá + R-DSP-7). */
+const REFUSE_POLICY_MISSING = () => error(503, "refuse_policy_missing", "Chưa có cài đặt hạn mức Từ chối — báo Toàn quyền.");
 const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Đã giao – đã thu đủ: không sửa, huỷ hay đổi người phụ trách được nữa. Sai sót thì Kế toán dùng “Sửa khoản thu đã ghi”.");
+
+/** Nhật ký `refuse_limit_hit` (ADR-0032 điều 5, 6) — LÔ RIÊNG một câu, sau khi đã biết lý do. `detail` chỉ số + chế độ (không tên, không SĐT). */
+async function ghiChamHanMuc(db: D1Database, staffId: string, orderId: string, at: string, d: { cs: CaiDatHanMuc; dem: { chuoi: number; tuan: number } }): Promise<void> {
+  await db.batch([auditStatement(db, { staffId, action: "refuse_limit_hit", at, orderId, detail: moTaChamHanMuc(d.cs, d.dem) })]);
+}
 
 /** Người dùng `staffId` có phải người phụ trách ĐANG MỞ của đơn `orderId` không. Gốc lắp ráp tiêm vào `ctx.isAssigned` (ADR-0007 điều 4(b)). */
 export const isOrderHandler = (db: D1Database, staffId: string, orderId: string): Promise<boolean> => isHandler(db, staffId, orderId);
@@ -295,8 +305,9 @@ export const dispatchModule: AppModule = {
     // áp CẢ Toàn quyền: NGOẠI LỆ có chủ ý so với handler-money-edit; đặt TRƯỚC 409 nháp để không lộ trạng thái đơn cho người ngoài) → 409 order_not_confirmed
     // (nháp — Q1 (a), chủ 2026-10-23) → 409 cancelled → 409 order_delivered → 409 too_late (ngày đi ≤ ngày mai — Q-E) → 400 (lý do, không ô chữ) → ghi
     // (409 stale nếu thua đua). Luật (a)(b)(c) chỉ ở mã máy chủ, không trigger: LỆCH CÓ CHỦ Ý 5.1 (ADR-0030 điều 4, `docs/SYSTEM-DESIGN.md` §16).
-    // Không đồng bộ chuyến (người phụ trách không ở trong chuyến — `NGOAI_PHAM_VI_ROUTE`). Lô ở `refuseStatements`; thắng/thua chỉ hỏi `tuChoiThang`
-    // (ADR-0032 sẽ chèn câu REFUSE đầu lô mà route không đổi).
+    // Không đồng bộ chuyến (người phụ trách không ở trong chuyến — `NGOAI_PHAM_VI_ROUTE`). Lô ở `refuseStatements`; thắng/thua chỉ hỏi `tuChoiThang`.
+    // ADR-0032: sau 400 lý do → đọc hạn mức (503 thiếu cài đặt; 409 refuse_limit + nhật ký khi chặn) → lô [REFUSE có điều kiện, đóng, nhật ký] → không
+    // thắng: đọc lại — còn phụ trách và nay bị chặn → 409 refuse_limit, còn lại 409 stale → «Chỉ đo» lẽ ra bị chặn: nhật ký → baoThayDoi.
     route("POST", "/api/orders/:id/handler-refuse", "orders", async ({ env, request, params, staff, baoThayDoi }) => {
       if (!can(staff, "dispatch.refuse", { assigned: true })) return REFUSE_FORBIDDEN();
       const orderId = params.id!;
@@ -310,14 +321,37 @@ export const dispatchModule: AppModule = {
       if (tuChoiQuaMuon(await findOrderDepartDates(env.DB, orderId), vnToday(new Date()))) return REFUSE_TOO_LATE();
       const lyDo = docLyDoTuChoi(await readJson(request));
       if (!lyDo.ok) return error(400, "invalid_input", lyDo.message);
+      // ADR-0032 (bước 9b, kế hoạch 2026-10-23 mục 5a): đọc số đếm + cài đặt — thiếu cài đặt → 503 (không đoán); «chặn» → nhật ký lô riêng + 409.
+      const luc = new Date();
+      const at = luc.toISOString();
+      const dauTuan = dauTuanIso(luc);
+      const biGioiHan = biGioiHanTuChoi(staff.permissions); // điều 2: bộ quyền của phiên (đang hiệu lực lúc bấm)
+      const doc = () => demTuChoiCua(env.DB, { partyId: current.party_id, orderId, dauTuan, luc: at });
+      const dem = await doc();
+      if (!dem) return REFUSE_POLICY_MISSING();
+      const quyetDinh = quyetDinhHanMuc(dem.cs, dem.dem, biGioiHan);
+      if (quyetDinh === "chan") {
+        await ghiChamHanMuc(env.DB, staff.id, orderId, at, dem);
+        return REFUSE_LIMIT();
+      }
       let kq: D1Result[];
       try {
-        kq = await env.DB.batch(refuseStatements(env.DB, { orderId, partyId: current.party_id, actorId: staff.id, at: new Date().toISOString(), lyDo: lyDo.ma }));
+        kq = await env.DB.batch(refuseStatements(env.DB, { orderId, partyId: current.party_id, actorId: staff.id, at, lyDo: lyDo.ma, dauTuan, biGioiHan }));
       } catch (e) {
         if (isDeliveredLock(e)) return DA_GIAO(); // trigger 0044: đơn vừa Đã giao giữa lúc đọc và lúc ghi (cả lô đã quay lại)
         throw e;
       }
-      if (!tuChoiThang(kq)) return STALE();
+      if (!tuChoiThang(kq)) {
+        // Câu đầu lô không chèn: hoặc đã hết lượt giữa lúc đọc và lúc ghi (vd hai lần Từ chối song song ở ngưỡng), hoặc thua đua đổi người.
+        const [sau, dem2] = await Promise.all([findHandlerOf(env.DB, orderId), doc()]);
+        if (sau?.staff_id === staff.id && dem2 && quyetDinhHanMuc(dem2.cs, dem2.dem, biGioiHan) === "chan") {
+          await ghiChamHanMuc(env.DB, staff.id, orderId, at, dem2);
+          return REFUSE_LIMIT();
+        }
+        return STALE();
+      }
+      // «Chỉ đo» (ADR-0032 điều 6, G7): lẽ ra bị chặn ⇒ ghi nhật ký (lô riêng, theo số đã đọc trước lô), KHÔNG chặn.
+      if (quyetDinh === "do_vuot") await ghiChamHanMuc(env.DB, staff.id, orderId, at, dem);
       baoThayDoi({ orderId, thayDoi: "tu_choi", handlerTruoc: { coNguoi: true, staffId: staff.id } });
       return json({ ok: true } satisfies HandlerRefuseResponse);
     }),

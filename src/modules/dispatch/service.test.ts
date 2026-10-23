@@ -74,6 +74,9 @@ function seed(): DatabaseSync {
     ('s-b', 'Trần Thị Bình', '0901000002', 'x', 'sales', 1, '2026-09-19T05:00:00.000Z'),
     ('s-c', 'Lê Cẩm Cửu', '0901000003', 'x', 'sales', 1, '2026-09-19T05:00:00.000Z')`);
   for (const f of FILES.filter((x) => x.slice(0, 4) > "0011")) sqlite.exec(readFileSync(new URL(f, DIR), "utf8"));
+  // ADR-0032: cài đặt hạn mức hiệu lực từ đầu năm (dòng gieo của migration mang mốc LÚC ÁP — sau các mốc T1…T3 của bài) — «Chỉ đo» không chặn.
+  sqlite.exec(`INSERT INTO dsp_refuse_policy (id, mode, max_consecutive, max_per_week, valid_from_at, created_at, updated_at) VALUES
+    ('bai-do', 'MEASURE', 2, 15, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')`);
   for (const id of ["o-1", "o-2"]) {
     sqlite.exec(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, created_at, updated_at)
                  VALUES ('${id}', 'TD-${id}', 's-a', 'draft', 'K', '0900000009', '2026-09-20T03:00:00.000Z', '2026-09-20T03:00:00.000Z')`);
@@ -235,11 +238,12 @@ test("đổi người: người thao tác ghi ở cột WHO, hồ sơ nhận là
 });
 
 // ---- Từ chối (ADR-0030 điều 1; kế hoạch 2026-10-20 mục 3a): [đóng dòng của CHÍNH người gọi (chốt), nhật ký changes() > 0]; không mở dòng mới ----
+const DT = "2026-09-20T17:00:00.000Z"; // đầu tuần VN chứa T1…T3
 const refusals = (sqlite: DatabaseSync) => rows(sqlite, "SELECT action, staff_id, order_id, detail, created_at FROM audit_log WHERE action = 'order_handler_refused' ORDER BY rowid");
 
 test("Từ chối thắng: đóng đúng dòng của người gọi (valid_to_at = mốc lệnh, updated_by = người gọi), KHÔNG mở dòng mới, đúng MỘT nhật ký chỉ nhãn lý do", async () => {
   const { sqlite, db } = await withHandlerA();
-  const kq = await db.batch(refuseStatements(db, { orderId: "o-1", partyId: A.partyId, actorId: "s-a", at: T2, lyDo: "BAN_LICH" }));
+  const kq = await db.batch(refuseStatements(db, { orderId: "o-1", partyId: A.partyId, actorId: "s-a", at: T2, lyDo: "BAN_LICH", dauTuan: DT, biGioiHan: true }));
   assert.equal(tuChoiThang(kq), true);
   assert.deepEqual(assignments(sqlite), [{ party_id: "pty-s-a", valid_from_at: T1, valid_to_at: T2, created_by: "s-a", updated_by: "s-a" }]);
   assert.deepEqual(openParties(sqlite), [], "không ai phụ trách sau Từ chối");
@@ -251,7 +255,7 @@ test("Từ chối THUA (người phụ trách đã là người khác lúc ghi):
   const { sqlite, db } = await withHandlerA();
   await db.batch(handlerChangeStatements(db, { orderId: "o-1", from: A, to: B, actorId: "s-c", at: T2, tuNhan: false }));
   const truoc = assignments(sqlite);
-  const kq = await db.batch(refuseStatements(db, { orderId: "o-1", partyId: A.partyId, actorId: "s-a", at: T3, lyDo: "OTHER" }));
+  const kq = await db.batch(refuseStatements(db, { orderId: "o-1", partyId: A.partyId, actorId: "s-a", at: T3, lyDo: "OTHER", dauTuan: DT, biGioiHan: true }));
   assert.equal(tuChoiThang(kq), false);
   assert.deepEqual(assignments(sqlite), truoc);
   assert.deepEqual(openParties(sqlite), ["pty-s-b"]);
@@ -261,7 +265,7 @@ test("Từ chối THUA (người phụ trách đã là người khác lúc ghi):
 test("Từ chối của A và đổi người A→B (cùng đọc 'A phụ trách') theo CẢ hai thứ tự: đúng một bên thắng, tối đa một dòng mở, nhật ký khớp bên thắng", async () => {
   for (const tuChoiTruoc of [true, false]) {
     const { sqlite, db } = await withHandlerA();
-    const tuChoi = () => db.batch(refuseStatements(db, { orderId: "o-1", partyId: A.partyId, actorId: "s-a", at: T2, lyDo: "KHONG_PHU_HOP" }));
+    const tuChoi = () => db.batch(refuseStatements(db, { orderId: "o-1", partyId: A.partyId, actorId: "s-a", at: T2, lyDo: "KHONG_PHU_HOP", dauTuan: DT, biGioiHan: true }));
     const doi = () => db.batch(handlerChangeStatements(db, { orderId: "o-1", from: A, to: B, actorId: "s-c", at: T3, tuNhan: false }));
     let kqTc: D1Result[], kqDoi: D1Result[];
     if (tuChoiTruoc) { kqTc = await tuChoi(); kqDoi = await doi(); } else { kqDoi = await doi(); kqTc = await tuChoi(); }
@@ -280,35 +284,61 @@ test("Từ chối không đụng việc khác (PICKUP…) đang mở của chín
   await db.batch([insertHandlerStatement(db, { id: "h-o-2", orderId: "o-2", partyId: A.partyId, at: T1, actorId: "s-a" })]);
   sqlite.exec(`INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, updated_at)
                SELECT 'pk-1', 'o-1', code, 'pty-s-a', 'PENDING', '${T1}', '${T1}', '${T1}' FROM dsp_task_kind WHERE code <> 'HANDLE' LIMIT 1`);
-  const kq = await db.batch(refuseStatements(db, { orderId: "o-1", partyId: A.partyId, actorId: "s-a", at: T2, lyDo: "OM_VIEC_RIENG" }));
+  const kq = await db.batch(refuseStatements(db, { orderId: "o-1", partyId: A.partyId, actorId: "s-a", at: T2, lyDo: "OM_VIEC_RIENG", dauTuan: DT, biGioiHan: true }));
   assert.equal(tuChoiThang(kq), true);
   assert.deepEqual(openParties(sqlite, "o-2"), ["pty-s-a"], "đơn khác giữ nguyên");
   assert.equal(rows(sqlite, "SELECT 1 FROM dsp_assignment WHERE id = 'pk-1' AND valid_to_at IS NULL").length, 1, "việc khác vẫn mở");
 });
 
-// KHUÔN CHO ADR-0032 (kế hoạch 2026-10-20 mục 3b, ADR-0032 điều 5): câu chèn sự kiện REFUSE có điều kiện đứng ĐẦU lô, câu đóng thành biến thể có
-// `AND changes() > 0`, câu nhật ký giữ nguyên. Bảng tạm và hai câu SQL dưới đây CHỈ sống trong bài này (không đăng ký `sql-registry`) — để chứng minh
-// hình dạng lô hôm nay chèn được câu đầu mà không phá khuôn changes(): câu đầu không chèn → không đóng → không nhật ký; câu đầu chèn → đủ ba câu.
-test("khuôn cho ADR-0032: câu đầu lô có điều kiện + câu đóng 'AND changes() > 0' + nhật ký của refuseStatements", async () => {
-  for (const conLuot of [false, true]) {
-    const { sqlite, db } = await withHandlerA();
-    sqlite.exec("CREATE TABLE tam_su_kien (order_id TEXT, party_id TEXT, ly_do TEXT)");
-    const dau = db.prepare(
-      `INSERT INTO tam_su_kien (order_id, party_id, ly_do) SELECT ?1, ?2, ?3 WHERE ?4 = 1
-       AND EXISTS (SELECT 1 FROM dsp_assignment WHERE order_id = ?1 AND task_kind_code = 'HANDLE' AND valid_to_at IS NULL AND party_id = ?2)`,
-    ).bind("o-1", A.partyId, "BAN_LICH", conLuot ? 1 : 0);
-    const dongSauChot = db.prepare(
-      `UPDATE dsp_assignment SET valid_to_at = max(?3, valid_from_at), updated_at = ?3, updated_by = ?4
-       WHERE order_id = ?1 AND task_kind_code = 'HANDLE' AND valid_to_at IS NULL AND party_id = ?2 AND changes() > 0`,
-    ).bind("o-1", A.partyId, T2, "s-a");
-    const homNay = refuseStatements(db, { orderId: "o-1", partyId: A.partyId, actorId: "s-a", at: T2, lyDo: "BAN_LICH" });
-    assert.equal(homNay.length, 2, "lô hôm nay đúng hai câu: [đóng, nhật ký]");
-    const kq = await db.batch([dau, dongSauChot, homNay[1]!]);
-    assert.deepEqual(kq.map((r) => r.meta.changes), conLuot ? [1, 1, 1] : [0, 0, 0]);
-    assert.deepEqual(openParties(sqlite), conLuot ? [] : ["pty-s-a"]);
-    assert.equal(refusals(sqlite).length, conLuot ? 1 : 0);
-    assert.equal(rows(sqlite, "SELECT 1 FROM tam_su_kien").length, conLuot ? 1 : 0);
+// ADR-0032 điều 5 (kế hoạch 2026-10-23 mục 4d — thay bài «khuôn cho ADR-0032» của nhánh Từ chối): lô = [REFUSE có điều kiện (chốt), đóng `AND changes() > 0`,
+// nhật ký]. Câu đầu không chèn → không đóng → không nhật ký → không sự kiện (không lần Từ chối «ma»).
+const suKienTuChoi = (sqlite: DatabaseSync) => rows(sqlite, "SELECT party_id, order_id, kind_code, reason_code, occurred_at, created_by FROM dsp_release_event WHERE kind_code = 'REFUSE' ORDER BY seq");
+/** Chặn 2/15 hiệu lực từ T1; gieo `soLan` REFUSE cũ của An (mỗi lần một đơn đệm mới, không giữ) để chuỗi = soLan. */
+function chanVaGieo(sqlite: DatabaseSync, soLan: number): void {
+  sqlite.exec(`INSERT INTO dsp_refuse_policy (id, mode, max_consecutive, max_per_week, valid_from_at, created_at, updated_at) VALUES ('bai-chan', 'BLOCK', 2, 15, '${T1}', '${T1}', '${T1}')`);
+  for (let i = 0; i < soLan; i++) {
+    sqlite.exec(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, created_at, updated_at) VALUES ('d-${i}', 'TD-d${i}', 's-a', 'confirmed', 'K', '0900000009', '${T1}', '${T1}')`);
+    for (const [k, loai] of [[0, "CLAIM"], [1, "REFUSE"]] as const) {
+      sqlite.exec(`INSERT INTO dsp_release_event (id, seq, party_id, order_id, kind_code, reason_code, occurred_at, created_at, updated_at)
+        SELECT 'g-${i}-${k}', coalesce(max(seq), 0) + 1, 'pty-s-a', 'd-${i}', '${loai}', ${loai === "REFUSE" ? "'OTHER'" : "NULL"}, '${T1}', '${T1}', '${T1}' FROM dsp_release_event`);
+    }
   }
+}
+
+test("ADR-0032 lô Từ chối: đúng BA câu theo thứ tự [REFUSE, đóng sau chốt, nhật ký]; thắng → [1,1,1], một REFUSE đúng người/đơn/mã/mốc", async () => {
+  const { sqlite, db } = await withHandlerA();
+  const cau = refuseStatements(db, { orderId: "o-1", partyId: A.partyId, actorId: "s-a", at: T2, lyDo: "KHONG_PHU_HOP", dauTuan: DT, biGioiHan: true });
+  assert.equal(cau.length, 3);
+  assert.match((cau[0] as unknown as FakeStatement).sql, /INSERT INTO dsp_release_event[\s\S]*'REFUSE'/, "câu ĐẦU là chèn REFUSE");
+  assert.match((cau[1] as unknown as FakeStatement).sql, /UPDATE dsp_assignment[\s\S]*AND changes\(\) > 0/, "câu đóng chỉ chạy sau chốt");
+  const kq = await db.batch(cau);
+  assert.deepEqual(kq.map((r) => r.meta.changes), [1, 1, 1]);
+  assert.equal(tuChoiThang(kq), true);
+  assert.deepEqual(suKienTuChoi(sqlite), [{ party_id: "pty-s-a", order_id: "o-1", kind_code: "REFUSE", reason_code: "KHONG_PHU_HOP", occurred_at: T2, created_by: "s-a" }]);
+});
+
+test("ADR-0032 lô Từ chối: Chặn 2/15 + người bị giới hạn + chuỗi = 2 → [0,0,0]: dòng phụ trách VẪN mở, không nhật ký, không REFUSE mới; người KHÔNG bị giới hạn → thắng", async () => {
+  for (const biGioiHan of [true, false]) {
+    const { sqlite, db } = await withHandlerA();
+    chanVaGieo(sqlite, 2);
+    const kq = await db.batch(refuseStatements(db, { orderId: "o-1", partyId: A.partyId, actorId: "s-a", at: T2, lyDo: "BAN_LICH", dauTuan: DT, biGioiHan }));
+    assert.deepEqual(kq.map((r) => r.meta.changes), biGioiHan ? [0, 0, 0] : [1, 1, 1]);
+    assert.equal(tuChoiThang(kq), !biGioiHan);
+    assert.deepEqual(openParties(sqlite), biGioiHan ? ["pty-s-a"] : []);
+    assert.equal(refusals(sqlite).length, biGioiHan ? 0 : 1);
+    assert.equal(suKienTuChoi(sqlite).length, biGioiHan ? 2 : 3);
+  }
+});
+
+test("ADR-0032 lô Từ chối: chuỗi = 1 (< 2) → thắng; thua đua (người phụ trách đã đổi) → không REFUSE «ma»", async () => {
+  const { sqlite, db } = await withHandlerA();
+  chanVaGieo(sqlite, 1);
+  assert.equal(tuChoiThang(await db.batch(refuseStatements(db, { orderId: "o-1", partyId: A.partyId, actorId: "s-a", at: T2, lyDo: "BAN_LICH", dauTuan: DT, biGioiHan: true }))), true);
+  const w2 = await withHandlerA();
+  await w2.db.batch(handlerChangeStatements(w2.db, { orderId: "o-1", from: A, to: B, actorId: "s-c", at: T2, tuNhan: false }));
+  const kq = await w2.db.batch(refuseStatements(w2.db, { orderId: "o-1", partyId: A.partyId, actorId: "s-a", at: T3, lyDo: "BAN_LICH", dauTuan: DT, biGioiHan: false }));
+  assert.deepEqual(kq.map((r) => r.meta.changes), [0, 0, 0]);
+  assert.equal(suKienTuChoi(w2.sqlite).length, 0);
 });
 
 // ---- ADR-0032 (kế hoạch 2026-10-23 mục 1, 4b, HM-13): mọi đường MỞ dòng phụ trách ghi sự kiện CLAIM/ASSIGN cùng lô, câu CUỐI lô, mốc = valid_from_at ----
