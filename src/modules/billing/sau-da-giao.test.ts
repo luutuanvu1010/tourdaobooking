@@ -27,6 +27,9 @@ const MIEN: { route: string; lyDo: string }[] = [
   { route: "POST /api/cai-dat/nhap-tay", lyDo: "đổi chính sách nhập tay toàn hệ thống, không ghi đơn nào, không có đơn để khoá" },
   { route: "POST /api/cai-dat/khung-gio-don", lyDo: "đổi khung giờ đón toàn hệ thống (ADR-0134 Đ6), không ghi đơn nào, không có đơn để khoá" },
   // ADR-0089 đ8: phân loại lý do huỷ chỉ chạy trên ĐƠN ĐÃ HUỶ; đơn đã Đã giao không huỷ được (ADR-0025 đ1) ⇒ route trả 409 invalid_state "đơn chưa huỷ".
+  // ADR-0032: hai route cài đặt / đặt lại hạn mức Từ chối của dispatch — không ghi đơn nào (sổ sự kiện + cài đặt), không có đơn để khoá.
+  { route: "POST /api/dispatch/han-muc-tu-choi/chinh-sach", lyDo: "đổi cài đặt hạn mức Từ chối toàn hệ thống (ADR-0032 điều 7), không ghi đơn nào" },
+  { route: "POST /api/dispatch/han-muc-tu-choi/dat-lai", lyDo: "đặt lại số lần Từ chối của hướng dẫn viên (ADR-0032 điều 7) — dòng RESET không gắn đơn" },
   { route: "POST /api/orders/:id/cancel-reason", lyDo: "chỉ đơn đã huỷ — đơn đã Đã giao không bao giờ huỷ được (ADR-0025 đ1), route trả 409 invalid_state" },
 ];
 

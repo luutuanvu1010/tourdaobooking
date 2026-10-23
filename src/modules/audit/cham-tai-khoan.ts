@@ -24,6 +24,7 @@ export const CHAM_TAI_KHOAN = {
     mfa_enabled: "Chính chủ tự bật lớp hai.",
     mfa_removed: "Chính chủ tự gỡ lớp hai của mình.",
     mfa_recovery_regenerated: "Chính chủ tự tạo mã dự phòng.",
+    refuse_counter_reset: "Đặt lại số lần Từ chối (ADR-0032) chỉ đổi bộ đếm hạn mức, không trao hay lấy quyền đăng nhập.",
   },
 } as const satisfies {
   TAO: readonly AuditAction[]; VINH_VIEN: readonly AuditAction[]; CUA_SO_30: readonly AuditAction[];

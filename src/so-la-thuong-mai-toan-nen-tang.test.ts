@@ -100,6 +100,7 @@ const ROUTE_GET: string[] = [...new Set(readdirSync(MODULES).flatMap((m) => {
  * Không bao giờ dùng danh sách này để che một chỗ lộ số: chỗ lộ đi danh sách (b).
  */
 const MIEN_200: Record<string, string> = {
+  "/api/orders/:id/han-muc-tu-choi": "ADR-0032 điều 9: «còn N lần» chỉ trả 200 cho người ĐANG phụ trách chính đơn (kể cả Toàn quyền phải đúng người) — bài này không giao đơn của B cho tài khoản nào; DTO chỉ hai số đếm { lienTiep, tuan } hoặc null, không chở tiền",
   "/api/bang-tin": "bắt tay WebSocket: khung thử không có trạm Bảng tin (426/503); sự kiện phát đi chỉ 5 khoá (ADR-0022 điều 4), không chở tiền",
   "/api/van-chuyen/chuyen/:id/xe-nhan": "gói A5 (ADR-0111): chỉ 200 khi chuyến ĐANG CHẠY có tài xế (409 nếu không) — khung thử không dựng chuyến chạy cho bài này; phản hồi chỉ chở năm khoá XeNhanDto (mã chuyến, tên tài xế, chỗ trống, điểm sắp tới; không biển số, không khách, không tiền, không hoa hồng); thân 4xx vẫn được quét",
   "/api/van-chuyen/cuoc-cua-toi/:id/xe-nhan": "gói A5 (ADR-0111): như dòng trên, và chỉ tài xế đang lái chuyến mới gọi được (404 với người khác)",
@@ -140,6 +141,9 @@ function bangDien(g: Gieo): Record<string, string[]> {
     "/api/orders/:id/nhap-ke-toan": donB.map((id) => `/api/orders/${id}/nhap-ke-toan`),
     "/api/orders/:id/receipt": donB.map((id) => `/api/orders/${id}/receipt`),
     "/api/orders/:id/qr-thanh-toan": donB.map((id) => `/api/orders/${id}/qr-thanh-toan`),
+    // ADR-0032: «còn N lần» (chỉ người ĐANG phụ trách chính đơn — xem MIEN_200) và bảng chọn người (lần Từ chối của đơn — Toàn quyền nhận 200).
+    "/api/orders/:id/han-muc-tu-choi": donB.map((id) => `/api/orders/${id}/han-muc-tu-choi`),
+    "/api/orders/:id/tu-choi-truoc": donB.map((id) => `/api/orders/${id}/tu-choi-truoc`),
     "/api/staff/:id/roles": [`/api/staff/${DT_B}/roles`],
     "/api/feedback/:id": [`/api/feedback/${g.gopY}`],
     // ADR-0119 Việc 5b: hàng đợi MỘT nhóm (cần ?team) — nhóm Kỹ thuật giữ góp ý thử của B; Toàn quyền nhận 200.
