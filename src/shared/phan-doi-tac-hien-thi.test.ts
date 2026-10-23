@@ -191,3 +191,25 @@ test("Thực tập (chỉ INTERN) THẤY công tắc «Đơn của» — theo b�
   assert.deepEqual(khoiBenDatForm(staff("INTERN"), null), { kieu: "tra-sdt-va-dat-qua" });
   assert.equal(coODatQuaDoiTac(staff("INTERN", "PARTNER")), false, "Thực tập kèm Đối tác (lai) thì không");
 });
+
+// Sửa 5 sau rà soát (Ruling R-156): cảnh báo khi hạ mức tay làm tổng hoa hồng nhỏ hơn giảm giá đã áp — không chặn, chỉ báo trước khi lưu.
+test("canhBaoHaMucTay: đơn 1.000.000, hoa hồng 10% = 100.000, giảm 100.000; hạ xuống 5% ⇒ báo chênh 50.000; giữ 10% / tăng / Không đổi / ô sai / không người hưởng ⇒ không báo", async () => {
+  const { canhBaoHaMucTay } = await import("./phan-doi-tac-hien-thi.ts");
+  const vnd = (n: number) => `${n.toLocaleString("vi-VN")} ₫`;
+  const dto = { nguoiHuong: { ten: "Đại Lý A" }, dong: [{ serviceId: "s1", thanhTien: 1_000_000, soKhachTinh: 1, hoaHong: 100_000 }] };
+  const f = (p: Partial<FormGhiTay>): FormGhiTay => ({ kieu: "RATE", tyLe: "", moiKhach: "", nguoiBan: { loai: "KHONG_DOI" }, lyDo: "", ...p });
+  const cau = canhBaoHaMucTay({ dto, serviceId: "s1", form: f({ tyLe: "5" }), giamGiaHieuLuc: 100_000, dinhDang: vnd });
+  assert.ok(cau);
+  assert.match(cau, /nhỏ hơn giảm giá đã áp cho đơn/);
+  assert.match(cau, /đại lý sẽ phải trả thêm cho công ty phần chênh/);
+  assert.ok(cau.includes(vnd(50_000)), cau);
+  assert.equal(canhBaoHaMucTay({ dto, serviceId: "s1", form: f({ tyLe: "10" }), giamGiaHieuLuc: 100_000, dinhDang: vnd }), null, "bằng giảm giá: không vượt");
+  assert.equal(canhBaoHaMucTay({ dto, serviceId: "s1", form: f({ tyLe: "12" }), giamGiaHieuLuc: 100_000, dinhDang: vnd }), null);
+  assert.equal(canhBaoHaMucTay({ dto, serviceId: "s1", form: f({ kieu: "KHONG_DOI" }), giamGiaHieuLuc: 100_000, dinhDang: vnd }), null);
+  assert.equal(canhBaoHaMucTay({ dto, serviceId: "s1", form: f({ tyLe: "abc" }), giamGiaHieuLuc: 100_000, dinhDang: vnd }), null, "ô sai: lỗi ô tự nói, không cảnh báo");
+  assert.equal(canhBaoHaMucTay({ dto: { ...dto, nguoiHuong: null }, serviceId: "s1", form: f({ tyLe: "5" }), giamGiaHieuLuc: 100_000, dinhDang: vnd }), null);
+  assert.ok(canhBaoHaMucTay({ dto, serviceId: "s1", form: f({ kieu: "PER_PAX", moiKhach: "40.000" }), giamGiaHieuLuc: 100_000, dinhDang: vnd })?.includes(vnd(60_000)), "mỗi khách × số khách tính");
+  // Dòng khác thiếu mức tính 0 (R-73, như kiểm định kỳ R-ORD-DC1).
+  const hai = { ...dto, dong: [...dto.dong, { serviceId: "s2", thanhTien: 500_000, soKhachTinh: 1, hoaHong: null }] };
+  assert.ok(canhBaoHaMucTay({ dto: hai, serviceId: "s1", form: f({ tyLe: "5" }), giamGiaHieuLuc: 100_000, dinhDang: vnd })?.includes(vnd(50_000)));
+});

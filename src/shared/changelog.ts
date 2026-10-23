@@ -12,6 +12,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Ba sửa nhỏ sau rà soát «Sổ đại lý đợt 2» (chủ duyệt 24/10; Ruling R-154…R-157 ở docs/superpowers/plans/2026-10-18-so-dai-ly-dot-2-thi-cong-nhat-ky.md). KHÔNG migration.
+    // Số 2.27 là số TẠM (main đang ở 2.26) — phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "2.27",
+    date: "2026-10-24",
+    items: [
+      { kind: "sua", text: "Đơn có giảm giá: số tiền ghi khách trả tại quầy nhà cung cấp nay tính sau giảm giá, khớp đúng biên nhận (không còn báo khách trả dư)." },
+      { kind: "doi", text: "Tài khoản đối tác không chọn «Thu cho» nhà cung cấp nữa; cần ghi phần đó thì báo Kế toán ghi giúp." },
+      { kind: "moi", text: "Ghi mức hoa hồng tay: nếu mức mới làm tổng hoa hồng nhỏ hơn giảm giá của đơn, Nền tảng báo trước số đại lý sẽ phải trả thêm (vẫn lưu được)." },
+    ],
+  },
+  {
     // Vá bản 2.25 (người kiểm độc lập 19/10): đường «Đã giao» / màn tiền của đơn và kiểm định kỳ bỏ rơi số khách theo loại nên đơn đại lý dùng mức theo loại khách sẽ lỗi. KHÔNG migration.
     // Số 2.26 là số TẠM (main đang ở 2.25) — phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
     version: "2.26",

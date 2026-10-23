@@ -6,6 +6,7 @@
 // trigger `bil_posting_delivered_paid` (migration 0045) — bài đối chiếu ở rules.test.ts.
 // "Phải thu hiện hành" KHÔNG tính ở đây: `orders` công bố nó (một hàm tính tiền của đơn — `effectiveMoney`), billing nhận số.
 
+import { chiaPhanNguoiBan, nguoiBanCuaDong } from "../../shared/chia-phan-nguoi-ban.ts";
 import { tinhDongDoiTac, type BanChup } from "../../shared/hoa-hong-dong.ts";
 import { cauKyKhoa, kyCua } from "../../shared/ky-khoa.ts";
 import type { NhomHuy } from "../../shared/ly-do-huy.ts";
@@ -507,6 +508,10 @@ export interface PhanChoNguoiThu {
   chuaChup: boolean;
   chup: readonly BanChup[];
   dichVu: readonly { id: string; thanhTien: number }[];
+  /** Công ty chủ — người bán nào khác hồ sơ này là nhà cung cấp (cùng luật nhóm của biên nhận, `nguoiBanCuaDong`). */
+  congTyChuId: string | null;
+  /** Giảm giá hiệu lực của đơn — trần phần của quầy tính SAU giảm (Ruling R-154). */
+  giamGiaHieuLuc: number;
 }
 
 /**
@@ -520,20 +525,23 @@ export function benDatHuong(phan: PhanChoNguoiThu | null): string | null {
   return ids.size === 1 ? [...ids][0]! : null;
 }
 
-/** Nhà cung cấp của đơn theo bản chụp (dòng có điều khoản người bán SET với nhà cung cấp — không phải công ty): id hồ sơ → Σ thành tiền hiện hành các dòng họ bán. Nháp / chưa chụp ⇒ rỗng. */
+/**
+ * Nhà cung cấp của đơn theo bản chụp → phần khách phải trả cho họ SAU giảm giá (sửa sau rà soát 24/10, Ruling R-154; ADR-0078 ví dụ B-5): CÙNG hàm chia của biên nhận
+ * (`chiaPhanNguoiBan` — giảm giá trừ vào phần Tour Đảo trước, vượt mới trừ phần nhà cung cấp, R-81), nên trần «thu cho» / người thu là quầy luôn bằng số biên nhận in.
+ * Nhà cung cấp mà giảm giá ăn hết phần vẫn có mặt (số 0 ⇒ không ghi thêm được). Nháp / chưa chụp ⇒ rỗng.
+ */
 export function nhaCungCapCuaDon(phan: PhanChoNguoiThu | null): Map<string, number> {
   const out = new Map<string, number>();
   if (!phan || phan.duKien || phan.chuaChup) return out;
-  const tien = new Map(phan.dichVu.map((d) => [d.id, d.thanhTien]));
-  for (const c of phan.chup) {
-    if (c.cungUng.status !== "SET" || c.cungUng.supplierPartyId === null) continue;
-    out.set(c.cungUng.supplierPartyId, (out.get(c.cungUng.supplierPartyId) ?? 0) + (tien.get(c.serviceId) ?? 0));
+  const chupCua = new Map(phan.chup.map((c) => [c.serviceId, c]));
+  for (const p of chiaPhanNguoiBan(phan.dichVu, (d) => nguoiBanCuaDong(chupCua.get(d.id), phan.congTyChuId), (d) => d.thanhTien, phan.giamGiaHieuLuc)) {
+    if (p.nguoiBan !== null) out.set(p.nguoiBan, p.tong);
   }
   return out;
 }
 
 /**
- * Phần CÒN CHƯA THU cho nhà cung cấp `ncc` (trần của «thu cho» nhà cung cấp — đặc tả P4): Σ thành tiền các dòng họ bán (`tong`) − Σ lần thu của khách còn hiệu lực
+ * Phần CÒN CHƯA THU cho nhà cung cấp `ncc` (trần của «thu cho» nhà cung cấp — đặc tả P4): phần của họ SAU giảm giá (`tong`, từ `nhaCungCapCuaDon`) − Σ lần thu của khách còn hiệu lực
  * có «thu cho» = `ncc` (lời khai đang chờ cũng tính là đã thu — không khai trùng). `boQua` = lần thu đang bị thay (Thay lần thu), không tính. Có thể âm (dữ liệu cũ).
  */
 export function phanChuaThuNhaCungCap(input: { tong: number; ncc: string; receipts: readonly ReceiptRow[]; boQua?: ReadonlySet<string> }): number {

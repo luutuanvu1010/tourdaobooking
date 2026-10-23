@@ -4,7 +4,7 @@
 // 404 ⇒ ẩn khối LẶNG LẼ (Đối tác không có phần ở đơn này, hoặc đơn không có phần đối tác — Ruling 18); lỗi khác ⇒ dòng lỗi trong khối kèm nút tải lại.
 // Quyết định ẩn/hiện, chữ và dựng thân ghi tay ở src/shared/phan-doi-tac-hien-thi.ts (có bài, và bài nối với route thật); tệp này chỉ dựng DOM. Không innerHTML.
 import {
-  CAU_CHO_CAI_MUC, TIEU_DE_DOI_TAC, TIEU_DE_LOI, TIEU_DE_VAN_PHONG, canhBaoThieuMuc, chuHoaHongDoiTac, chuNhaCungCap, chuTongHoaHong, demLyDo, docThanGhiTay, ghiChuTrangThai, hienNutGhiTay, nhanNguoiHuong,
+  CAU_CHO_CAI_MUC, TIEU_DE_DOI_TAC, TIEU_DE_LOI, TIEU_DE_VAN_PHONG, canhBaoHaMucTay, canhBaoThieuMuc, chuHoaHongDoiTac, chuNhaCungCap, chuTongHoaHong, demLyDo, docThanGhiTay, ghiChuTrangThai, hienNutGhiTay, nhanNguoiHuong,
   type FormGhiTay, type LoiGhiTay, type NguoiBanForm, type TruongGhiTay,
 } from "../src/shared/phan-doi-tac-hien-thi";
 import { hienNutChupBu } from "../src/shared/ben-kia-hien-thi";
@@ -19,6 +19,8 @@ export interface PhanDoiTacVao {
   coGhiTay: boolean;
   /** Người xem có ô `supply.terms.view` (`coXemNguoiBan`): mới có khối "Người bán" trong bảng ghi tay và mới gọi GET /api/pricing/cung-ung. */
   xemNguoiBan: boolean;
+  /** Giảm giá hiệu lực của đơn đang mở (`OrderDto.giamGiaHieuLuc`) — cho câu cảnh báo hạ mức tay dưới giảm giá (Ruling R-156; không chặn). */
+  giamGiaHieuLuc: number;
   /** Sổ đại lý đợt 2 (Task 12): sau «Chụp bù» thành công, trang đơn tải lại cả đơn (lý do giữ «Đã giao» đổi theo). */
   daChupBu?: () => void;
 }
@@ -89,7 +91,10 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
     );
   }
 
+  /** DTO văn phòng đang vẽ — bảng ghi tay đọc để tính câu cảnh báo hạ mức (Ruling R-156). */
+  let vanPhongHienTai: Api.ThuongMaiVanPhongDto | null = null;
   function veVanPhong(d: Api.ThuongMaiVanPhongDto): Child[] {
+    vanPhongHienTai = d;
     const trangThai = ghiChuTrangThai(d);
     const coNut = hienNutGhiTay(v.coGhiTay, d);
     return [
@@ -189,10 +194,20 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
     const khoiTyLe = h("label", null, "Tỷ lệ hoa hồng (%)", tyLe);
     const khoiMoiKhach = h("label", null, "Số tiền mỗi khách (₫)", moiKhach);
     const khoiNcc = h("div", { class: "pdt-ncc-o" }, h("label", null, "Nhà cung cấp", chonNcc), h("label", null, "Tỷ lệ mua lại (%)", tyLeMua), loi.tyLeMua);
+    // Ruling R-156: cảnh báo (không chặn) khi mức đang gõ làm tổng hoa hồng nhỏ hơn giảm giá đã áp — tính bằng hàm dùng chung, cập nhật theo từng lần gõ.
+    const canhBao = h("p", { class: "pdt-canh", id: "ghi-tay-canh-bao", role: "status", "aria-live": "polite", hidden: true });
+    const capNhatCanhBao = (): void => {
+      const cau = vanPhongHienTai ? canhBaoHaMucTay({ dto: vanPhongHienTai, serviceId: d.serviceId, form: { kieu, tyLe: tyLe.value, moiKhach: moiKhach.value }, giamGiaHieuLuc: v.giamGiaHieuLuc, dinhDang: vnd }) : null;
+      canhBao.textContent = cau ?? "";
+      canhBao.hidden = cau === null;
+    };
+    tyLe.addEventListener("input", capNhatCanhBao);
+    moiKhach.addEventListener("input", capNhatCanhBao);
     const capNhatHienThi = (): void => {
       khoiTyLe.hidden = kieu !== "RATE";
       khoiMoiKhach.hidden = kieu !== "PER_PAX";
       khoiNcc.hidden = loaiNguoiBan !== "NHA_CUNG_CAP";
+      capNhatCanhBao();
     };
     const radio = (name: string, value: string, nhan: string, checked: boolean, onChange: () => void): HTMLElement => {
       const r = h("input", { type: "radio", name, value, checked });
@@ -253,7 +268,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
         loi.lyDo,
         loi.chung,
       ],
-      foot: [nutGui],
+      foot: [canhBao, nutGui],
     });
     if (!bang) return;
     bang.dialog.id = "ghi-tay-sheet";

@@ -264,7 +264,8 @@ const VE_HT: Dv = { ten: "Vé Hòn Tằm", catalog: "HONTAM", khach: 1, donGia: 
 test("Task 8 SV-HT-03 (route thật): chỉ vé i-resort — lễ tân (bên đặt) thu 200.000 «thu cho» i-resort + HDV khai quầy 400.000, Kế toán «Bên kia đã nhận» ⇒ một phần i-resort 600.000, đã trả 600.000, còn 0, trả tại quầy", async () => {
   const { w } = await dung();
   const id = await don(w, { owner: R_PT, dichVu: [VE_IR] });
-  await thuR(w, R_PT, id, { soTien: 200_000, nguoiThu: "toi", thuChoNhaCungCapPartyId: R_NCC });
+  // Ruling R-155: tài khoản Đối tác không gửi «thu cho» ⇒ Kế toán ghi giúp khoản lễ tân thu (người thu = hồ sơ lễ tân, thu cho i-resort).
+  await thuR(w, R_KT, id, { soTien: 200_000, nguoiThu: { partyId: `pty-${R_PT}` }, thuChoNhaCungCapPartyId: R_NCC });
   await thuR(w, R_HDV, id, { soTien: 400_000, nguoiThu: { nhaCungCapPartyId: R_NCC } });
   const rid = String(w.q("SELECT id FROM bil_payment_receipt WHERE order_id = ? ORDER BY rowid DESC LIMIT 1", id)[0].id);
   const bk = await w.call("POST", `/api/ledger/counterparty-receipts/${rid}/confirm`, { as: R_KT, body: {} });
