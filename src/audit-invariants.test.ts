@@ -116,7 +116,7 @@ test("danh sách kiểm: một nguồn duy nhất (script import scripts/audit-c
 
   assert.deepEqual(
     CHECKS.filter((c) => c.code.startsWith("R-DSP")).map((c) => [c.code, c.level]),
-    [["R-DSP-1", "fail"], ["R-DSP-2a", "warn-unless-strict"], ["R-DSP-2b", "warn"], ["R-DSP-3", "fail"], ["R-DSP-4", "warn-unless-strict"]],
+    [["R-DSP-1", "fail"], ["R-DSP-2a", "warn-unless-strict"], ["R-DSP-2b", "warn"], ["R-DSP-3", "fail"], ["R-DSP-4", "warn-unless-strict"], ["R-DSP-5", "fail"], ["R-DSP-6", "warn-unless-strict"], ["R-DSP-7", "fail"]],
     "2a (không tài khoản/mất quyền) đỏ khi --strict; 2b (tài khoản đã ngưng) chỉ cảnh báo; R-DSP-3 (chồng lấn) là vi phạm thật; R-DSP-4 (LC-8 mới) cảnh báo trước",
   );
   for (const c of CHECKS) {
@@ -3958,4 +3958,63 @@ test("R-DSP-4: (c) đơn chưa từng có HANDLE → 0; (d) đơn đang có dòn
   assert.equal(lc8(() => {}), 0);
   assert.equal(lc8((db) => { addRow(db, { id: "h1", order: "o-1", party: "pty-s-an", from: T1, to: T2 }); addRow(db, { id: "h2", order: "o-1", party: "pty-s-admin", from: T2, to: null }); }), 0);
   assert.equal(lc8((db) => { addRow(db, { id: "p1", order: "o-1", party: "pty-s-an", from: T1, to: null, kind: "PICKUP" }); dongLuc(db, "p1", T2); }), 0);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// R-DSP-5/6/7 (ADR-0032; kế hoạch 2026-10-23 mục 7): sổ sự kiện phân công. MỐC PHÁT HÀNH = created_at của dòng gieo `gieo-han-muc` (lúc áp migration —
+// trong bài là lúc chạy bài). Mốc «sau phát hành» dùng năm 2099, «trước» dùng T1 (2026-09-21).
+// ---------------------------------------------------------------------------------------------------------------------
+const SAU = "2099-01-01T01:00:00.000Z";
+const SAU2 = "2099-01-01T02:00:00.000Z";
+function suKienDsp(db: DatabaseSync, x: { party: string; order: string | null; kind: string; at: string }): void {
+  db.prepare(`INSERT INTO dsp_release_event (id, seq, party_id, order_id, kind_code, reason_code, occurred_at, created_at, created_by, updated_at, updated_by)
+    SELECT ?, coalesce(max(seq), 0) + 1, ?, ?, ?, ?, ?, ?, NULL, ?, NULL FROM dsp_release_event`).run(crypto.randomUUID(), x.party, x.order, x.kind, x.kind === "REFUSE" ? "BAN_LICH" : null, x.at, x.at, x.at);
+}
+function dsp(dung: (db: DatabaseSync) => void): { r5: number; r6: number; r7: number } {
+  const db = build();
+  addOrder(db, "o-1");
+  dung(db);
+  return { r5: violations(db, one("R-DSP-5")), r6: violations(db, one("R-DSP-6")), r7: violations(db, one("R-DSP-7")) };
+}
+
+test("R-DSP-5: (a) REFUSE không có CLAIM/ASSIGN trước, dòng phụ trách mở SAU mốc → 1; (b) có CLAIM trước → 0; (c) dòng phụ trách mở TRƯỚC mốc → 0 (miễn trừ); (d) CLAIM có seq LỚN hơn REFUSE → 1", () => {
+  assert.equal(dsp((db) => { addRow(db, { id: "h", order: "o-1", party: "pty-s-an", from: SAU, to: SAU2 }); suKienDsp(db, { party: "pty-s-an", order: "o-1", kind: "REFUSE", at: SAU2 }); }).r5, 1);
+  assert.equal(dsp((db) => {
+    addRow(db, { id: "h", order: "o-1", party: "pty-s-an", from: SAU, to: SAU2 });
+    suKienDsp(db, { party: "pty-s-an", order: "o-1", kind: "CLAIM", at: SAU });
+    suKienDsp(db, { party: "pty-s-an", order: "o-1", kind: "REFUSE", at: SAU2 });
+  }).r5, 0);
+  assert.equal(dsp((db) => { addRow(db, { id: "h", order: "o-1", party: "pty-s-an", from: T1, to: SAU2 }); suKienDsp(db, { party: "pty-s-an", order: "o-1", kind: "REFUSE", at: SAU2 }); }).r5, 0);
+  assert.equal(dsp((db) => {
+    addRow(db, { id: "h", order: "o-1", party: "pty-s-an", from: SAU, to: SAU2 });
+    suKienDsp(db, { party: "pty-s-an", order: "o-1", kind: "REFUSE", at: SAU2 });
+    suKienDsp(db, { party: "pty-s-an", order: "o-1", kind: "CLAIM", at: SAU });
+  }).r5, 1);
+  // CLAIM của NGƯỜI KHÁC / ĐƠN KHÁC không tính.
+  assert.equal(dsp((db) => {
+    addOrder(db, "o-2");
+    addRow(db, { id: "h", order: "o-1", party: "pty-s-an", from: SAU, to: SAU2 });
+    suKienDsp(db, { party: "pty-s-admin", order: "o-1", kind: "CLAIM", at: SAU });
+    suKienDsp(db, { party: "pty-s-an", order: "o-2", kind: "CLAIM", at: SAU });
+    suKienDsp(db, { party: "pty-s-an", order: "o-1", kind: "REFUSE", at: SAU2 });
+  }).r5, 1);
+});
+
+test("R-DSP-6: (a) dòng phụ trách mở sau mốc không có sự kiện → 1; (b) có ASSIGN cùng người, cùng đơn, cùng mốc → 0; (c) dòng mở TRƯỚC mốc → 0; sự kiện lệch mốc / lệch người → 1", () => {
+  assert.equal(dsp((db) => addRow(db, { id: "h", order: "o-1", party: "pty-s-an", from: SAU, to: null })).r6, 1);
+  assert.equal(dsp((db) => { addRow(db, { id: "h", order: "o-1", party: "pty-s-an", from: SAU, to: null }); suKienDsp(db, { party: "pty-s-an", order: "o-1", kind: "ASSIGN", at: SAU }); }).r6, 0);
+  assert.equal(dsp((db) => { addRow(db, { id: "h", order: "o-1", party: "pty-s-an", from: SAU, to: null }); suKienDsp(db, { party: "pty-s-an", order: "o-1", kind: "CLAIM", at: SAU }); }).r6, 0);
+  assert.equal(dsp((db) => addRow(db, { id: "h", order: "o-1", party: "pty-s-an", from: T1, to: null })).r6, 0);
+  assert.equal(dsp((db) => { addRow(db, { id: "h", order: "o-1", party: "pty-s-an", from: SAU, to: null }); suKienDsp(db, { party: "pty-s-an", order: "o-1", kind: "ASSIGN", at: SAU2 }); }).r6, 1);
+  assert.equal(dsp((db) => { addRow(db, { id: "h", order: "o-1", party: "pty-s-an", from: SAU, to: null }); suKienDsp(db, { party: "pty-s-admin", order: "o-1", kind: "ASSIGN", at: SAU }); }).r6, 1);
+  assert.equal(dsp((db) => addRow(db, { id: "p", order: "o-1", party: "pty-s-an", from: SAU, to: null, kind: "PICKUP" })).r6, 0, "việc khác HANDLE không tính");
+});
+
+test("R-DSP-7: dòng gieo `gieo-han-muc` còn → 0; mất (gỡ trigger chỉ-thêm trong bài để xoá) → 1, và R-DSP-5/6 không lặng lẽ ra 0 nhờ mốc NULL bị bỏ qua", () => {
+  assert.equal(dsp(() => {}).r7, 0);
+  const r = dsp((db) => {
+    db.exec("DROP TRIGGER dsp_refuse_policy_no_delete");
+    db.exec("DELETE FROM dsp_refuse_policy WHERE id = 'gieo-han-muc'");
+  });
+  assert.equal(r.r7, 1);
 });
