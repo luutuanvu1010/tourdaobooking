@@ -3,6 +3,7 @@
 import { auditStatement } from "../audit";
 import { closeHandlerStatement, insertHandlerAfterCloseStatement, insertHandlerIfNoneStatement, insertHandlerStatement } from "./repository";
 import { describeHandlerChange } from "./rules";
+import { nhanLyDoTuChoi, type MaLyDoTuChoi } from "../../shared/ly-do-tu-choi";
 
 export interface HandlerChange {
   orderId: string;
@@ -53,3 +54,34 @@ const handlerAudit = (db: D1Database, c: HandlerChange): D1PreparedStatement =>
     { staffId: c.actorId, action: c.tuNhan ? "order_claimed" : "order_handler_changed", at: c.at, orderId: c.orderId, detail: describeHandlerChange(c.from?.name ?? null, c.to.name) },
     "changes() > 0",
   );
+
+/** Một lần «Từ chối» (ADR-0030 điều 1): người phụ trách `partyId` (= hồ sơ của CHÍNH người gọi) tự trả đơn. */
+export interface Refusal {
+  orderId: string;
+  partyId: string;
+  /** Người bấm (tài khoản) — cột WHO của dòng đóng và `staff_id` của nhật ký. */
+  actorId: string;
+  /** Mốc của lệnh (UTC): `valid_to_at` của dòng đóng = `created_at` của nhật ký. */
+  at: string;
+  /** Mã lý do (danh sách đóng `ly-do-tu-choi.ts` — hợp đồng với ADR-0032). Nhật ký chỉ ghi NHÃN (Q2 (a)). */
+  lyDo: MaLyDoTuChoi;
+}
+
+/**
+ * Các câu của một lần Từ chối, để chạy trong MỘT `db.batch()` (kế hoạch 2026-10-20 mục 3a):
+ *  [0] đóng dòng `HANDLE` đang mở MANG `party_id` của người gọi (`CLOSE_HANDLER` — câu chốt; 0 dòng ⇔ người gọi không còn phụ trách: thua đua);
+ *  [1] nhật ký `order_handler_refused` (chỉ nhãn lý do) khi câu ngay trước đã đóng được (`changes() > 0`).
+ * KHÔNG có câu mở dòng mới: đơn về «Chờ nhận».
+ * CHỪA CHỖ CHO ADR-0032 (điều 5): câu chèn sự kiện `REFUSE` có điều kiện sẽ đứng ĐẦU mảng, câu đóng đổi sang biến thể `… AND changes() > 0` (defineSql MỚI,
+ * không sửa `CLOSE_HANDLER` — `handlerChangeStatements` dùng nó làm câu chốt), nhật ký giữ nguyên. Khi đó chỉ sửa hàm này và `tuChoiThang`; route không đổi.
+ * Khuôn đã chứng minh trên SQLite thật ở `service.test.ts` (bài "khuôn cho ADR-0032").
+ */
+export function refuseStatements(db: D1Database, r: Refusal): D1PreparedStatement[] {
+  return [
+    closeHandlerStatement(db, r.orderId, r.partyId, r.at, r.actorId),
+    auditStatement(db, { staffId: r.actorId, action: "order_handler_refused", at: r.at, orderId: r.orderId, detail: nhanLyDoTuChoi(r.lyDo) }, "changes() > 0"),
+  ];
+}
+
+/** Lô Từ chối đã THẮNG chưa — route chỉ hỏi hàm này, không đọc thẳng chỉ số (khuôn `daHuy`). Hôm nay câu chốt là `kq[0]`; ADR-0032 đổi thành `kq[1]`. */
+export const tuChoiThang = (kq: readonly D1Result[]): boolean => (kq[0]?.meta.changes ?? 0) > 0;
