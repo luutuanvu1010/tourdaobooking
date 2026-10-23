@@ -11,7 +11,8 @@ import { cancelOrderByHandler, editMoneyAsHandler, findOrderDepartDates, findOrd
 import { auditStatement, donDuocTraLai } from "../audit";
 import { getStaffAccount, listStaffAccounts } from "../staff";
 import type {
-  AssigneeDto, AssigneesResponse, HandlerCancelResponse, HandlerDto, HandlerMoneyEditResponse, HandlerRefuseResponse, HandlersResponse, MyAssignmentsResponse, SetHandlerResponse,
+  AssigneeDto, AssigneesResponse, ConLaiTuChoiResponse, HandlerCancelResponse, HandlerDto, HandlerMoneyEditResponse, HandlerRefuseResponse, HandlersResponse,
+  HanMucCaiDatResponse, HanMucDatLaiResponse, HanMucTuChoiNguoiDto, HanMucTuChoiResponse, MyAssignmentsResponse, SetHandlerResponse, StaffAccount, TuChoiTruocResponse,
 } from "../../shared/contracts";
 import { assigneeRoleLabel } from "../../shared/assignee-pick";
 import { thayDoiCuaHandler, type TrangThaiPhuTrach } from "../../shared/bang-tin";
@@ -27,8 +28,13 @@ import {
   CANCEL_REASON_LABEL, checkAssignee, handlerChangeVerdict, isDeliveredLock, isOpenHandlerCollision, parseCancelReason, parseOrderIds, parseSetHandler,
 } from "./rules";
 import { handlerChangeStatements, newOrderHandlerStatements, refuseStatements, tuChoiThang } from "./service";
-import { chenAbortSauStatement, demTuChoiCua } from "./han-muc-repo";
-import { CAU_HET_LUOT, biGioiHanTuChoi, dauTuanIso, moTaChamHanMuc, quyetDinhHanMuc, type CaiDatHanMuc } from "../../shared/han-muc-tu-choi";
+import {
+  caiDatHienHanh, chenAbortSauStatement, chenCaiDatStatement, chenResetStatement, demTheoNguoi, demTuChoiCua, mocCaiDatMoiNhat, tuChoiCuaDon,
+} from "./han-muc-repo";
+import {
+  CAU_HET_LUOT, biGioiHanTuChoi, conLai, dauTuanIso, docCaiDat, moTaChamHanMuc, moTaDatLai, moTaDoiCaiDat, quyetDinhHanMuc, type CaiDatHanMuc,
+} from "../../shared/han-muc-tu-choi";
+import type { MaLyDoTuChoi } from "../../shared/ly-do-tu-choi";
 
 const toDto = (r: HandlerRow): HandlerDto => ({ partyId: r.party_id, staffId: r.staff_id, name: r.label });
 
@@ -67,6 +73,21 @@ const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Đã
 async function ghiChamHanMuc(db: D1Database, staffId: string, orderId: string, at: string, d: { cs: CaiDatHanMuc; dem: { chuoi: number; tuan: number } }): Promise<void> {
   await db.batch([auditStatement(db, { staffId, action: "refuse_limit_hit", at, orderId, detail: moTaChamHanMuc(d.cs, d.dem) })]);
 }
+
+/**
+ * Danh sách người của bảng hạn mức / «Đặt lại» (ADR-0032 điều 7, 8; G4): tài khoản ĐANG HOẠT ĐỘNG có quyền Hướng dẫn viên và có hồ sơ (kể cả tài khoản lai —
+ * hiện «không áp hạn mức»), theo thứ tự tên của module staff, mỗi hồ sơ một dòng. Câu hỏi DANH TÍNH (có quyền FIELD), không phải ô MATRIX.
+ */
+async function nguoiHanMuc(db: D1Database): Promise<(StaffAccount & { partyId: string })[]> {
+  const thay = new Set<string>();
+  return (await listStaffAccounts(db)).filter((a): a is StaffAccount & { partyId: string } => {
+    if (!a.active || !a.partyId || !a.permissions.includes("FIELD") || thay.has(a.partyId)) return false;
+    thay.add(a.partyId);
+    return true;
+  });
+}
+const HDV_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy hướng dẫn viên.");
+const HAN_MUC_FORBIDDEN = () => error(403, "forbidden", "Chỉ Toàn quyền đổi được hạn mức Từ chối.");
 
 /** Người dùng `staffId` có phải người phụ trách ĐANG MỞ của đơn `orderId` không. Gốc lắp ráp tiêm vào `ctx.isAssigned` (ADR-0007 điều 4(b)). */
 export const isOrderHandler = (db: D1Database, staffId: string, orderId: string): Promise<boolean> => isHandler(db, staffId, orderId);
@@ -354,6 +375,96 @@ export const dispatchModule: AppModule = {
       if (quyetDinh === "do_vuot") await ghiChamHanMuc(env.DB, staff.id, orderId, at, dem);
       baoThayDoi({ orderId, thayDoi: "tu_choi", handlerTruoc: { coNguoi: true, staffId: staff.id } });
       return json({ ok: true } satisfies HandlerRefuseResponse);
+    }),
+
+    // ---- Hạn mức «Từ chối» (ADR-0032, kế hoạch 2026-10-23 mục 5a) — không ô quyền mới: admin.manage (xem), settings.ops (đổi/đặt lại), dispatch.refuse
+    // («còn N lần»), dispatch.assign (bảng chọn người). Không SĐT, không tên khách, không mã đơn trong phản hồi.
+
+    // Bảng số lần (điều 8): mỗi hướng dẫn viên một dòng — tên, Từ chối / Huỷ tuần này, chuỗi hiện tại, lần Từ chối gần nhất. Kèm cài đặt và cờ «đổi được».
+    route("GET", "/api/dispatch/han-muc-tu-choi", "admin", async ({ env, staff }) => {
+      if (!can(staff, "admin.manage")) return VIEW_FORBIDDEN();
+      const luc = new Date();
+      const at = luc.toISOString();
+      const ds = await nguoiHanMuc(env.DB);
+      const [cs, dem] = await Promise.all([caiDatHienHanh(env.DB, at), demTheoNguoi(env.DB, ds.map((a) => a.partyId), dauTuanIso(luc))]);
+      const theoNguoi = new Map(dem.map((d) => [d.party_id, d]));
+      const nguoi = ds.map((a): HanMucTuChoiNguoiDto => {
+        const d = theoNguoi.get(a.partyId);
+        return {
+          partyId: a.partyId, ten: a.fullName, biGioiHan: biGioiHanTuChoi(a.permissions),
+          tuChoiTuan: d?.tuan ?? 0, huyTuan: d?.huy_tuan ?? 0, chuoi: d?.chuoi ?? 0,
+          tuChoiCuoi: d?.cuoi_luc ? { luc: d.cuoi_luc, lyDo: d.cuoi_ly_do as MaLyDoTuChoi } : null,
+        };
+      });
+      return json({ caiDat: cs, doiDuoc: can(staff, "settings.ops"), nguoi } satisfies HanMucTuChoiResponse);
+    }),
+
+    // Đổi cài đặt (điều 6, 7): chèn dòng mới (chỉ thêm), hiệu lực ngay; mốc đi SAU dòng mới nhất (UNIQUE). Nhật ký trước → sau cùng lô.
+    route("POST", "/api/dispatch/han-muc-tu-choi/chinh-sach", "admin", async ({ env, request, staff }) => {
+      if (!can(staff, "settings.ops")) return HAN_MUC_FORBIDDEN();
+      const vao = docCaiDat(await readJson(request));
+      if (!vao.ok) return error(400, "invalid_input", vao.loi);
+      const at = new Date().toISOString();
+      const [truoc, moiNhat] = await Promise.all([caiDatHienHanh(env.DB, at), mocCaiDatMoiNhat(env.DB)]);
+      const tuLuc = moiNhat !== null && moiNhat >= at ? new Date(Date.parse(moiNhat) + 1).toISOString() : at;
+      try {
+        await env.DB.batch([
+          chenCaiDatStatement(env.DB, { id: crypto.randomUUID(), cs: vao.cs, tuLuc, at, actorId: staff.id }),
+          auditStatement(env.DB, { staffId: staff.id, action: "refuse_policy_changed", at, targetType: "system", detail: moTaDoiCaiDat(truoc, vao.cs) }),
+        ]);
+      } catch (e) {
+        // Hai lệnh đổi cùng lúc cùng mốc: lệnh sau va UNIQUE valid_from_at ⇒ cả lô không áp — báo tải lại.
+        if (/UNIQUE/i.test(String((e as Error)?.message ?? e))) return error(409, "stale", "Hạn mức vừa được đổi — tải lại rồi thử lại.");
+        throw e;
+      }
+      return json({ caiDat: { ...vao.cs, tuLuc } } satisfies HanMucCaiDatResponse);
+    }),
+
+    // Đặt lại (điều 7): đúng MỘT trong { partyId } / { tatCa: true }. Mỗi người một dòng RESET, một nhật ký, MỘT lô. Không xoá dòng nào.
+    route("POST", "/api/dispatch/han-muc-tu-choi/dat-lai", "admin", async ({ env, request, staff }) => {
+      if (!can(staff, "settings.ops")) return HAN_MUC_FORBIDDEN();
+      const body = await readJson(request);
+      const khoa = body && typeof body === "object" && !Array.isArray(body) ? Object.keys(body) : null;
+      const motNguoi = khoa?.length === 1 && khoa[0] === "partyId" && typeof body!.partyId === "string";
+      const tatCa = khoa?.length === 1 && khoa[0] === "tatCa" && body!.tatCa === true;
+      if (!motNguoi && !tatCa) return error(400, "invalid_input", "Chọn một hướng dẫn viên hoặc «Đặt lại tất cả».");
+      const ds = await nguoiHanMuc(env.DB);
+      const dich = tatCa ? ds.map((a) => a.partyId) : ds.some((a) => a.partyId === body!.partyId) ? [body!.partyId as string] : [];
+      if (motNguoi && dich.length === 0) return HDV_NOT_FOUND();
+      const at = new Date().toISOString();
+      await env.DB.batch([
+        ...dich.map((partyId) => chenResetStatement(env.DB, { id: crypto.randomUUID(), partyId, at, actorId: staff.id })),
+        auditStatement(env.DB, {
+          staffId: staff.id, action: "refuse_counter_reset", at, detail: moTaDatLai(tatCa ? dich.length : null), ...(motNguoi ? { targetType: "party", targetId: dich[0]! } : {}),
+        }),
+      ]);
+      return json({ soNguoi: dich.length } satisfies HanMucDatLaiResponse);
+    }),
+
+    // «Còn N lần» trong hộp Từ chối (điều 9): chỉ người ĐANG phụ trách chính đơn này (cùng chốt của route Từ chối). null khi chế độ ≠ Chặn hoặc người gọi không
+    // bị giới hạn. Thứ tự: 403 sàng sớm (không có ô dispatch.refuse) → 404 → 403 (không phụ trách) → đọc.
+    route("GET", "/api/orders/:id/han-muc-tu-choi", "orders", async ({ env, params, staff }) => {
+      if (!can(staff, "dispatch.refuse", { assigned: true })) return REFUSE_FORBIDDEN();
+      const orderId = params.id!;
+      if (!UUID_RE.test(orderId)) return NOT_FOUND();
+      const current = await findHandlerOf(env.DB, orderId);
+      if (current === null || current.staff_id !== staff.id) return REFUSE_FORBIDDEN();
+      const luc = new Date();
+      const d = await demTuChoiCua(env.DB, { partyId: current.party_id, orderId, dauTuan: dauTuanIso(luc), luc: luc.toISOString() });
+      return json({ conLai: d ? conLai(d.cs, d.dem, biGioiHanTuChoi(staff.permissions)) : null } satisfies ConLaiTuChoiResponse);
+    }),
+
+    // Bảng chọn người khi văn phòng giao đơn (điều 10): lần Từ chối MỚI NHẤT của CHÍNH đơn này, mỗi người một mục. Nguồn = sổ sự kiện (không nhật ký — ADR-0131).
+    // Ai gọi được = ai mở được bảng chọn người của đơn (`dispatch.assign` với người lập + đang phụ trách — đúng `handlerControls`).
+    route("GET", "/api/orders/:id/tu-choi-truoc", "orders", async ({ env, params, staff, isAssigned }) => {
+      const orderId = params.id!;
+      if (!UUID_RE.test(orderId)) return NOT_FOUND();
+      const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
+      if (!order) return NOT_FOUND();
+      if (!can(staff, "dispatch.assign", { ownerId: order.staffId, assigned })) return FORBIDDEN();
+      const tuChoi: TuChoiTruocResponse["tuChoi"] = {};
+      for (const r of await tuChoiCuaDon(env.DB, orderId)) tuChoi[r.party_id] ??= { luc: r.occurred_at, lyDo: r.reason_code as MaLyDoTuChoi };
+      return json({ tuChoi } satisfies TuChoiTruocResponse);
     }),
   ],
 };

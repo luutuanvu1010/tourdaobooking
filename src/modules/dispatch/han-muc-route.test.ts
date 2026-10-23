@@ -264,3 +264,178 @@ test("HM-12 (a): Chặn 2/15, chuỗi = 1 — HDV gửi ĐỒNG THỜI Từ ch�
     assert.equal(soRefuse(w, FIELD), truoc + 1);
   }
 });
+
+// ---- H7: route quản trị — xem / cài đặt / đặt lại (HM-7) ----
+const BASE = "/api/dispatch/han-muc-tu-choi";
+const caiDatRoute = (w: any, as: string, body: unknown) => w.call("POST", `${BASE}/chinh-sach`, { as, body });
+const datLai = (w: any, as: string, body: unknown) => w.call("POST", `${BASE}/dat-lai`, { as, body });
+/** Đẩy HDV tới hết lượt (Chặn 2/15): hai lần nhận–từ chối, lần ba bị chặn — trả đơn thứ ba (HDV VẪN giữ; đơn đó là mốc cho đơn KHÁC, không cho chính nó). */
+async function hetLuot(w: any, as: string): Promise<string> {
+  for (let i = 0; i < 2; i++) assert.equal((await nhanVaTuChoi(w, as)).r.status, 200);
+  const { id, r } = await nhanVaTuChoi(w, as);
+  assert.equal(r.status, 409);
+  return id;
+}
+
+test("HM-7 (a)(b): Toàn quyền đặt lại MỘT người → người đó Từ chối được ngay, người khác vẫn 409; «tất cả» → mỗi tài khoản FIELD đang hoạt động một RESET, một nhật ký", async () => {
+  const w = setup();
+  assert.equal((await caiDatRoute(w, SUP, { cheDo: "BLOCK", lienTiep: 2, moiTuan: 15 })).status, 200);
+  const c1 = await hetLuot(w, FIELD);
+  const c2 = await hetLuot(w, FIELD2);
+  const r = await datLai(w, SUP, { partyId: `pty-${FIELD}` });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json, { soNguoi: 1 });
+  assert.equal((await tuChoi(w, c1, FIELD)).status, 200, "HDV vừa được đặt lại: Từ chối được ngay chính đơn vừa bị chặn");
+  assert.equal((await tuChoi(w, c2, FIELD2)).status, 409, "HDV khác không đổi");
+  const nk1 = w.q("SELECT staff_id, target_type, target_id, detail, order_id FROM audit_log WHERE action = 'refuse_counter_reset'").map((x: any) => ({ ...x }));
+  assert.deepEqual(nk1, [{ staff_id: SUP, target_type: "party", target_id: `pty-${FIELD}`, detail: "Đặt lại cho một hướng dẫn viên", order_id: null }]);
+
+  const all = await datLai(w, SUP, { tatCa: true });
+  assert.equal(all.status, 200, all.text);
+  const soField = w.q("SELECT count(DISTINCT s.id) n FROM staff s JOIN stf_permission p ON p.staff_id = s.id WHERE s.active = 1 AND p.permission_type_code = 'FIELD' AND p.valid_to_at IS NULL")[0].n;
+  assert.equal(all.json.soNguoi, soField);
+  assert.equal(soField, 4, "HDV A, HDV B, Kế Toán Kiêm, Bán Hàng Kiêm");
+  assert.equal(w.q("SELECT count(*) n FROM dsp_release_event WHERE kind_code = 'RESET'")[0].n, 1 + soField);
+  assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'refuse_counter_reset'")[0].n, 2);
+  assert.equal(w.q("SELECT detail FROM audit_log WHERE action = 'refuse_counter_reset' ORDER BY rowid DESC LIMIT 1")[0].detail, `Đặt lại cho tất cả (${soField} người)`);
+  assert.equal((await tuChoi(w, c2, FIELD2)).status, 200, "sau đặt lại tất cả");
+});
+
+test("HM-7 (c)(d): Quản trị đổi cài đặt / đặt lại → 403; Bán hàng, Kế toán, HDV → 403 ở cổng admin; xem số lần: Bán hàng/Kế toán/HDV 403, Quản trị 200 doiDuoc false, Toàn quyền 200 doiDuoc true", async () => {
+  const w = setup();
+  for (const as of [ADM, SALES, ACC, FIELD]) {
+    assert.equal((await caiDatRoute(w, as, { cheDo: "BLOCK", lienTiep: 2, moiTuan: 15 })).status, 403, `chinh-sach ${as}`);
+    assert.equal((await datLai(w, as, { tatCa: true })).status, 403, `dat-lai ${as}`);
+  }
+  for (const as of [SALES, ACC, FIELD, PARTNER]) assert.equal((await w.call("GET", BASE, { as })).status, 403, `xem ${as}`);
+  const qt = await w.call("GET", BASE, { as: ADM });
+  assert.equal(qt.status, 200, qt.text);
+  assert.equal(qt.json.doiDuoc, false);
+  const tq = await w.call("GET", BASE, { as: SUP });
+  assert.equal(tq.status, 200);
+  assert.equal(tq.json.doiDuoc, true);
+  assert.deepEqual(tq.json.caiDat && { cheDo: tq.json.caiDat.cheDo, lienTiep: tq.json.caiDat.lienTiep, moiTuan: tq.json.caiDat.moiTuan }, { cheDo: "MEASURE", lienTiep: 2, moiTuan: 15 }, "dòng gieo");
+  assert.deepEqual(tq.json.nguoi.map((n: any) => [n.ten, n.biGioiHan]), [["Bán Hàng Kiêm", false], ["Hướng Dẫn A", true], ["Hướng Dẫn B", true], ["Kế Toán Kiêm", false]]);
+  assert.equal(w.q("SELECT count(*) n FROM dsp_refuse_policy")[0].n, 1, "403 không ghi gì");
+});
+
+test("HM-7 (e)(f): thân sai → 400; partyId không phải FIELD đang hoạt động → 404; đổi cài đặt ghi đúng 1 refuse_policy_changed «trước → sau»; bảng số lần đúng số", async () => {
+  const w = setup();
+  for (const body of [{ cheDo: "ON", lienTiep: 2, moiTuan: 15 }, { cheDo: "BLOCK", lienTiep: 0, moiTuan: 15 }, { cheDo: "BLOCK", lienTiep: 2, moiTuan: 15, la: 1 }, null]) {
+    const r = await caiDatRoute(w, SUP, body);
+    assert.equal(r.status, 400, `${JSON.stringify(body)}: ${r.text}`);
+    assert.equal(r.json.error.code, "invalid_input");
+  }
+  for (const body of [{ partyId: `pty-${FIELD}`, tatCa: true }, {}, { tatCa: false }, { partyId: 3 }, { partyId: `pty-${FIELD}`, la: 1 }]) assert.equal((await datLai(w, SUP, body)).status, 400, JSON.stringify(body));
+  for (const p of [`pty-${SALES}`, `pty-${ADM}`, "pty-khong-co"]) {
+    const r = await datLai(w, SUP, { partyId: p });
+    assert.equal(r.status, 404, `${p}: ${r.text}`);
+    assert.equal(r.json.error.message, "Không tìm thấy hướng dẫn viên.");
+  }
+  w.sqlite.prepare("UPDATE staff SET active = 0 WHERE id = ?").run(FIELD2);
+  assert.equal((await datLai(w, SUP, { partyId: `pty-${FIELD2}` })).status, 404, "đã ngưng");
+  assert.equal(w.q("SELECT count(*) n FROM dsp_release_event WHERE kind_code = 'RESET'")[0].n, 0);
+
+  const ok = await caiDatRoute(w, SUP, { cheDo: "BLOCK", lienTiep: 3, moiTuan: 15 });
+  assert.equal(ok.status, 200, ok.text);
+  assert.deepEqual({ ...ok.json.caiDat, tuLuc: undefined }, { cheDo: "BLOCK", lienTiep: 3, moiTuan: 15, tuLuc: undefined });
+  const nk = w.q("SELECT staff_id, order_id, target_type, detail FROM audit_log WHERE action = 'refuse_policy_changed'").map((x: any) => ({ ...x }));
+  assert.deepEqual(nk, [{ staff_id: SUP, order_id: null, target_type: "system", detail: "Chế độ: Chỉ đo → Chặn; liên tiếp 2 → 3; mỗi tuần 15 → 15" }]);
+  // Hai lần lưu liền nhau vẫn tách mốc (valid_from_at duy nhất).
+  assert.equal((await caiDatRoute(w, SUP, { cheDo: "BLOCK", lienTiep: 2, moiTuan: 3 })).status, 200);
+  assert.equal(w.q("SELECT count(*) n FROM dsp_refuse_policy")[0].n, 3);
+
+  // Bảng số lần: HDV A từ chối 1, huỷ 1.
+  assert.equal((await nhanVaTuChoi(w, FIELD)).r.status, 200);
+  const k = await donCho(w);
+  assert.equal((await nhan(w, k, FIELD)).status, 200);
+  assert.equal((await huy(w, k, FIELD)).status, 200);
+  const bang = await w.call("GET", BASE, { as: ADM });
+  const a = bang.json.nguoi.find((n: any) => n.partyId === `pty-${FIELD}`);
+  assert.deepEqual({ ...a, tuChoiCuoi: { ...a.tuChoiCuoi, luc: undefined } }, {
+    partyId: `pty-${FIELD}`, ten: "Hướng Dẫn A", biGioiHan: true, tuChoiTuan: 1, huyTuan: 1, chuoi: 1, tuChoiCuoi: { luc: undefined, lyDo: "BAN_LICH" },
+  });
+  const txt = bang.text;
+  assert.ok(!/09000000\d\d|0912345678|Khách Thử/.test(txt), "không SĐT, không tên khách");
+});
+
+test("HM-4: Chặn 2/3 bằng route — ba lần Từ chối trong tuần (xen đơn giữ) → lần thứ 4 → 409; REFUSE gieo ở tuần trước không tính", async () => {
+  const w = setup();
+  assert.equal((await caiDatRoute(w, SUP, { cheDo: "BLOCK", lienTiep: 2, moiTuan: 3 })).status, 200);
+  // 15 REFUSE ở TUẦN TRƯỚC (đầu tuần này − 1 ms) — không tính vào tuần này.
+  const { dauTuanIso } = await import("../../shared/han-muc-tu-choi.ts");
+  const cu = new Date(Date.parse(dauTuanIso(new Date())) - 1).toISOString();
+  const giuCu = await donCho(w);
+  for (let i = 0; i < 15; i++) {
+    w.sqlite.prepare("INSERT INTO dsp_release_event (id, seq, party_id, order_id, kind_code, reason_code, occurred_at, created_at, created_by, updated_at, updated_by) SELECT ?, coalesce(max(seq), 0) + 1, ?, ?, 'REFUSE', 'OTHER', ?, ?, NULL, ?, NULL FROM dsp_release_event")
+      .run(crypto.randomUUID(), `pty-${FIELD}`, giuCu, cu, cu, cu);
+  }
+  for (let i = 0; i < 3; i++) {
+    const k = await donCho(w);
+    assert.equal((await nhan(w, k, FIELD)).status, 200, "đơn giữ xen giữa");
+    assert.equal((await nhanVaTuChoi(w, FIELD)).r.status, 200, `lần ${i + 1}`);
+  }
+  const k = await donCho(w);
+  assert.equal((await nhan(w, k, FIELD)).status, 200);
+  const r = (await nhanVaTuChoi(w, FIELD)).r;
+  assert.equal(r.status, 409, r.text);
+  assert.equal(cham(w)[0].detail, "Liên tiếp 0/2 · tuần 3/3 · Chặn");
+});
+
+test("HM-9: HDV đã hết lượt (Chặn) — văn phòng giao đơn cho HDV → 200, đơn thuộc HDV, có ASSIGN", async () => {
+  const w = setup();
+  datCaiDat(w, "BLOCK");
+  await hetLuot(w, FIELD);
+  const id = await donCho(w);
+  const r = await giao(w, id, ADM, FIELD);
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(moDong(w, id), [`pty-${FIELD}`]);
+  assert.deepEqual(suKien(w, "order_id = ?", id).map((e: any) => e.kind_code), ["ASSIGN"]);
+});
+
+// ---- H8: «còn N lần» (HM-14) + bảng chọn người (HM-10) ----
+const conLaiRoute = (w: any, id: string, as: string) => w.call("GET", `/api/orders/${id}/han-muc-tu-choi`, { as });
+const tuChoiTruoc = (w: any, id: string, as: string) => w.call("GET", `/api/orders/${id}/tu-choi-truoc`, { as });
+
+test("HM-14: Chặn 2/15, HDV vừa từ chối 1 → «còn» trên đơn đang giữ = {1, 14}; Chỉ đo → null; Bán hàng đang phụ trách → null; HDV không phụ trách → 403; Kế toán → 403", async () => {
+  const w = setup();
+  datCaiDat(w, "BLOCK");
+  assert.equal((await nhanVaTuChoi(w, FIELD)).r.status, 200);
+  const id = await donCho(w);
+  assert.equal((await nhan(w, id, FIELD)).status, 200);
+  const r = await conLaiRoute(w, id, FIELD);
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json, { conLai: { lienTiep: 1, tuan: 14 } });
+  assert.equal((await conLaiRoute(w, id, FIELD2)).status, 403, "HDV không phụ trách đơn này");
+  assert.equal((await conLaiRoute(w, id, ACC)).status, 403);
+  assert.equal((await conLaiRoute(w, "khong-phai-uuid", ACC)).status, 403, "sàng sớm trước 404");
+  assert.equal((await conLaiRoute(w, "khong-phai-uuid", FIELD)).status, 404);
+  const s = await donCho(w);
+  assert.equal((await giao(w, s, ADM, SALES)).status, 200);
+  assert.deepEqual((await conLaiRoute(w, s, SALES)).json, { conLai: null }, "không bị giới hạn");
+  datCaiDat(w, "MEASURE");
+  assert.deepEqual((await conLaiRoute(w, id, FIELD)).json, { conLai: null });
+});
+
+test("HM-10: Bán hàng (người lập) mở bảng chọn người của đơn D → thấy lần Từ chối của HDV (BAN_LICH, lúc); đơn E rỗng; HDV, Kế toán → 403; nguồn KHÔNG phải audit_log", async () => {
+  const w = setup();
+  const { id: d } = await nhanVaTuChoi(w, FIELD);
+  const e = await donCho(w);
+  const r = await tuChoiTruoc(w, d, SALES);
+  assert.equal(r.status, 200, r.text);
+  const luc = w.q("SELECT occurred_at FROM dsp_release_event WHERE order_id = ? AND kind_code = 'REFUSE'", d)[0].occurred_at;
+  assert.deepEqual(r.json, { tuChoi: { [`pty-${FIELD}`]: { luc, lyDo: "BAN_LICH" } } });
+  assert.deepEqual((await tuChoiTruoc(w, e, SALES)).json, { tuChoi: {} });
+  assert.equal((await tuChoiTruoc(w, d, FIELD)).status, 403, "HDV không có dispatch.assign");
+  assert.equal((await tuChoiTruoc(w, d, ACC)).status, 403);
+  assert.equal((await tuChoiTruoc(w, d, ADM)).status, 200);
+  // Khoá nguồn: xoá MỌI dòng nhật ký của đơn D (tắt trigger chỉ-thêm của audit_log nếu có) → kết quả không đổi.
+  const trig = w.q("SELECT name, sql FROM sqlite_master WHERE type = 'trigger' AND tbl_name = 'audit_log'");
+  for (const t of trig) w.sqlite.exec(`DROP TRIGGER ${t.name}`);
+  w.sqlite.prepare("DELETE FROM audit_log WHERE order_id = ?").run(d);
+  assert.deepEqual((await tuChoiTruoc(w, d, SALES)).json, { tuChoi: { [`pty-${FIELD}`]: { luc, lyDo: "BAN_LICH" } } });
+  // Từ chối lại lần hai (được giao lại rồi Từ chối, lý do khác) → hiện lần MỚI NHẤT.
+  assert.equal((await giao(w, d, ADM, FIELD)).status, 200);
+  assert.equal((await tuChoi(w, d, FIELD, "OM_VIEC_RIENG")).status, 200);
+  assert.equal((await tuChoiTruoc(w, d, SALES)).json.tuChoi[`pty-${FIELD}`].lyDo, "OM_VIEC_RIENG");
+});

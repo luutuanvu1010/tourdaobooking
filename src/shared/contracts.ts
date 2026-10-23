@@ -10,6 +10,8 @@ import type { PermissionCode } from "./permissions.ts";
 import type { RoleCode } from "./roles.ts";
 import type { BanChup } from "./hoa-hong-dong.ts";
 import type { KhungGio, LuaChonDon } from "./khung-gio-don.ts";
+import type { CaiDatHanMuc } from "./han-muc-tu-choi.ts";
+import type { MaLyDoTuChoi } from "./ly-do-tu-choi.ts";
 
 export type { AuditAction, AuditTargetType, FeedbackKind, FeedbackStatus, CatalogService, LyDoSuaSai, PaxCode, PaxCounts, PermissionCode, Prices, RoleCode };
 
@@ -824,6 +826,30 @@ export interface SetHandlerResponse { handler: HandlerDto }
 export interface HandlerCancelResponse { ok: true; dongBoChuyen?: DongBoChuyenDto }
 /** `POST /api/orders/:id/handler-refuse` (ADR-0030 điều 1): chỉ cờ — không dữ liệu đơn (người vừa trả không còn xem được đơn). */
 export interface HandlerRefuseResponse { ok: true }
+
+// ---- Hạn mức «Từ chối» (ADR-0032). Không SĐT, không tên khách, không mã đơn. ----
+/** Một hướng dẫn viên trên bảng số lần (điều 8). `biGioiHan` false = tài khoản lai có quyền văn phòng — «không áp hạn mức». */
+export interface HanMucTuChoiNguoiDto {
+  partyId: string;
+  ten: string;
+  biGioiHan: boolean;
+  tuChoiTuan: number;
+  huyTuan: number;
+  chuoi: number;
+  tuChoiCuoi: { luc: string; lyDo: MaLyDoTuChoi } | null;
+}
+export interface HanMucTuChoiResponse {
+  caiDat: (CaiDatHanMuc & { tuLuc: string }) | null;
+  /** Người xem đổi được cài đặt / đặt lại (ô `settings.ops`). */
+  doiDuoc: boolean;
+  nguoi: HanMucTuChoiNguoiDto[];
+}
+export interface HanMucCaiDatResponse { caiDat: CaiDatHanMuc & { tuLuc: string } }
+export interface HanMucDatLaiResponse { soNguoi: number }
+/** «Còn N lần» trong hộp Từ chối (điều 9); null = không hiện dòng. */
+export interface ConLaiTuChoiResponse { conLai: { lienTiep: number; tuan: number } | null }
+/** Bảng chọn người (điều 10): lần Từ chối mới nhất của CHÍNH đơn này, theo hồ sơ. */
+export interface TuChoiTruocResponse { tuChoi: Record<string, { luc: string; lyDo: MaLyDoTuChoi }> }
 export interface HandlerMoneyEditResponse { ok: true; dongBoChuyen?: DongBoChuyenDto }
 
 /**
