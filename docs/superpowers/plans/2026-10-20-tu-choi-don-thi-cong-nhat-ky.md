@@ -53,6 +53,18 @@ Chủ dự án, chat 2026-10-23: «1, duyệt hết» — duyệt mọi khuyến
 - Chạy BỔ SUNG (không thay e2e chính thức): cùng hai kịch bản trên máy chủ `wrangler dev` + D1 local tạm dựng y như `tests/e2e/run.mjs` nhưng TẮT Turnstile → `✔ dispatch`, `✔ bangtin`, `audit-invariants --strict` thoát 0 (R-DSP-1…4 ✓). Đột biến TC-9 trên D1 đó: chèn dòng HANDLE đóng không Từ chối → `--strict` thoát 1 nêu R-DSP-4; không `--strict` thoát 0; xoá → 0.
 - Đủ bộ `npm run test:e2e` và hai kịch bản trên với Turnstile bật: **chưa chạy** — cần máy có mạng (điều phối / người kiểm).
 
+## Quyết định của chủ sau kiểm độc lập (2026-10-23, chat, nguyên văn qua điều phối)
+
+> «duyệt, đổi thứ tự nút; phát hành chung; 3b; 4 để sau»
+
+Nghĩa (điều phối đã trình):
+1. **Duyệt giao diện** cả nút Từ chối lẫn hạn mức, KÈM **đổi thứ tự nút** ở thẻ «Đơn của tôi» của hướng dẫn viên: «Từ chối đơn» lên trên, «Huỷ đơn» xuống CUỐI cùng (sau «Xem đơn») để HDV khỏi bấm nhầm Huỷ. Trước: [Sửa số khách][Huỷ đơn] / [Từ chối đơn] / [Xem đơn]; nay: [Sửa số khách][Từ chối đơn] / [Xem đơn] / [Huỷ đơn] (`web/viec-cua-toi.ts`; kỳ vọng ở `hdv-viec-cua-toi-smoke.mjs` bước 1 và `han-muc-tu-choi-smoke.mjs` bước 2; ảnh một thẻ `docs/evidence/2026-10-23-han-muc-tu-choi/anh/390-5-thu-tu-nut.png`; hướng dẫn HDV ghi đúng thứ tự).
+2. **Phát hành chung** một lần (Q-PH = chung; nhật ký thay đổi mục 2.27 chung).
+3. **N-1 = (b):** để thẻ hạn mức tự giải thích (mỗi chế độ một câu giải thích), KHÔNG thêm mục vào hướng dẫn Quản trị.
+4. **N-2 để sau** (giữ nợ — xem mục Nợ của sổ hạn mức).
+
+N-1, N-2 là nợ của sổ hạn mức (`docs/superpowers/plans/2026-10-23-han-muc-tu-choi-thi-cong-nhat-ky.md`). Dòng đề xuất N-2 cho `web/CLAUDE.md` (nguyên văn, CHƯA sửa — tệp luật, chủ duyệt sau): `| Thẻ hạn mức Từ chối, dòng «còn N lần», dòng phụ bảng chọn người (ADR-0032): web/han-muc-tu-choi-the.ts, khối #hm-the của public/chinh-sach-dieu-phoi.html, phần han-muc-tu-choi của web/tu-choi-sheet.ts, dòng phụ của web/handler-sheet.ts, khối .hm-* / .tu-choi-con-lai / .assignee-tu-choi của public/app.css | han-muc-tu-choi-smoke.mjs ở docs/evidence/2026-10-23-han-muc-tu-choi/kich-ban/ (4 bước, 390 + 1040) + chinh-sach-dieu-phoi-smoke.mjs + v1-nguoi-phu-trach.mjs + tu-choi-smoke.mjs |`.
+
 ## Nợ / việc còn treo
 
 - Đủ bộ e2e có mạng (xem trên).

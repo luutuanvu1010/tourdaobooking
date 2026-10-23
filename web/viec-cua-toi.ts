@@ -529,11 +529,6 @@ export async function initViecCuaToi(el: HTMLElement, staff: Staff): Promise<voi
       b.addEventListener("click", () => openEditSheet(a, b, afterSheet, onSheetClosed));
       buttons.push(b);
     }
-    if (actions.cancel) {
-      const b = h("button", { type: "button", class: "btn hdv-act hdv-act-cancel" }, "Huỷ đơn");
-      b.addEventListener("click", () => openCancelSheet(a, departDate, b, afterSheet, onSheetClosed));
-      buttons.push(b);
-    }
     if (refuse) {
       const b = h("button", { type: "button", class: "btn hdv-act", "data-action": "tu-choi" }, "Từ chối đơn");
       b.addEventListener("click", () => {
@@ -551,6 +546,13 @@ export async function initViecCuaToi(el: HTMLElement, staff: Staff): Promise<voi
         if (mo) openSheets++;
       });
       buttons.push(b);
+    }
+    // Chủ dự án 2026-10-23 («duyệt, đổi thứ tự nút»): «Huỷ đơn» đứng CUỐI, sau «Xem đơn» — HDV muốn trả đơn thì gặp «Từ chối đơn» trước, khỏi bấm nhầm Huỷ.
+    let huyDon: HTMLElement | null = null;
+    if (actions.cancel) {
+      huyDon = h("button", { type: "button", class: "btn hdv-act hdv-act-cancel" }, "Huỷ đơn");
+      const b = huyDon;
+      b.addEventListener("click", () => openCancelSheet(a, departDate, b, afterSheet, onSheetClosed));
     }
     return h(
       "article",
@@ -576,7 +578,7 @@ export async function initViecCuaToi(el: HTMLElement, staff: Staff): Promise<voi
       a.status === "draft" ? h("p", { class: "hdv-note" }, "Đơn đang chờ xác nhận — chưa thể huỷ hay sửa số khách.") : null,
       // bản 1.39: "Xem đơn" mở trang đơn (hướng dẫn viên xem được đơn mình đang phụ trách — máy chủ quyết). Ghi tiền đã thu / bấm "Đã giao – đã thu đủ"
       // làm ở đó (mục Thanh toán — sổ tiền lượt 1).
-      h("div", { class: "hdv-actions" }, ...buttons, h("a", { class: "btn hdv-act hdv-xem", href: `/order?id=${encodeURIComponent(a.orderId)}` }, "Xem đơn")),
+      h("div", { class: "hdv-actions" }, ...buttons, h("a", { class: "btn hdv-act hdv-xem", href: `/order?id=${encodeURIComponent(a.orderId)}` }, "Xem đơn"), huyDon),
     );
   }
   async function loadMine(): Promise<boolean> {

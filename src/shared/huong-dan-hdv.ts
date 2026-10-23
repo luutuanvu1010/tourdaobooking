@@ -52,7 +52,7 @@ Không nhận được đơn **đã huỷ** hay **đã qua ngày đi**.`,
 - Tên khách, số điện thoại và nút [[Gọi]]. Bấm là điện thoại quay số.
 - Từng dịch vụ: giờ đón, số khách, nơi đón, giờ khởi hành, khách có mặt, ghi chú.
 - Ba ô tiền: **Tổng tiền**, **Đã thu**, **Còn lại**.
-- Các nút [[Sửa số khách]], [[Huỷ đơn]], [[Xem đơn]] (tuỳ trạng thái đơn).
+- Các nút [[Sửa số khách]], [[Từ chối đơn]], [[Xem đơn]] và cuối cùng [[Huỷ đơn]] (tuỳ trạng thái đơn).
 
 Đơn sắp đi ở trên. Đơn đã đi tour ở dưới cùng, sau dòng **Đã đi tour**.
 

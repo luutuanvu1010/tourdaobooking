@@ -64,6 +64,16 @@
 
 Sau hai vá: `npm run typecheck` thoát 0; `npm run build:web` thoát 0; `npm test` thoát 0 — bước 1 `# tests 6064`, `# pass 6055`, `# fail 0`; bước 2 `# pass 1`, `# fail 0`.
 
+## Quyết định của chủ sau kiểm độc lập (2026-10-23, chat, nguyên văn qua điều phối)
+
+> «duyệt, đổi thứ tự nút; phát hành chung; 3b; 4 để sau»
+
+Nghĩa (điều phối đã trình):
+1. **Duyệt giao diện** cả nút Từ chối lẫn hạn mức, KÈM **đổi thứ tự nút** ở thẻ «Đơn của tôi» của hướng dẫn viên: «Từ chối đơn» lên trên, «Huỷ đơn» xuống CUỐI cùng (sau «Xem đơn») để HDV khỏi bấm nhầm Huỷ. Trước: [Sửa số khách][Huỷ đơn] / [Từ chối đơn] / [Xem đơn]; nay: [Sửa số khách][Từ chối đơn] / [Xem đơn] / [Huỷ đơn] (`web/viec-cua-toi.ts`; kỳ vọng ở `hdv-viec-cua-toi-smoke.mjs` bước 1 và `han-muc-tu-choi-smoke.mjs` bước 2; ảnh một thẻ `docs/evidence/2026-10-23-han-muc-tu-choi/anh/390-5-thu-tu-nut.png`; hướng dẫn HDV ghi đúng thứ tự).
+2. **Phát hành chung** một lần (Q-PH = chung; nhật ký thay đổi mục 2.27 chung).
+3. **N-1 = (b):** để thẻ hạn mức tự giải thích (mỗi chế độ một câu giải thích), KHÔNG thêm mục vào hướng dẫn Quản trị.
+4. **N-2 để sau** (giữ nợ — xem mục Nợ của sổ hạn mức).
+
 ## Ruling / lệch so với kế hoạch (người thi công — ghi để người kiểm xét)
 
 - **R-H1 (cột `updated_*`):** `src/architecture.test.ts` (ADR-0003) đòi `updated_at NOT NULL` + `updated_by TEXT NULL` ở mọi bảng không phải tra cứu ⇒ thêm hai cột vào `dsp_release_event` và `dsp_refuse_policy`, luôn bằng `created_*` (kế hoạch 2b ghi chú cuối đã dự liệu).
@@ -78,6 +88,6 @@ Sau hai vá: `npm run typecheck` thoát 0; `npm run build:web` thoát 0; `npm te
 
 ## Nợ / việc để lại
 
-- **N-1 (cần chủ chọn — bề mặt):** hướng dẫn Quản trị chưa có mục «Hạn mức Từ chối» (trần đọc 30 phút). Phương án: (a) cắt bớt chữ ở mục khác của hướng dẫn Quản trị; (b) để thẻ tự giải thích (mỗi chế độ có một câu giải thích) — đang làm (b); (c) nới trần A4 (nới hàng rào — chủ duyệt).
-- **N-2:** `web/CLAUDE.md` (tệp luật, N9) cần dòng mới ở bảng «Sửa tệp nào thì chạy lại kịch bản Chrome nào» — ĐỀ XUẤT (chủ duyệt mới sửa): `| Thẻ hạn mức Từ chối, dòng «còn N lần», dòng phụ bảng chọn người (ADR-0032): web/han-muc-tu-choi-the.ts, khối #hm-the của public/chinh-sach-dieu-phoi.html, phần han-muc-tu-choi của web/tu-choi-sheet.ts, dòng phụ của web/handler-sheet.ts, khối .hm-* / .tu-choi-con-lai / .assignee-tu-choi của public/app.css | han-muc-tu-choi-smoke.mjs ở docs/evidence/2026-10-23-han-muc-tu-choi/kich-ban/ (4 bước, 390 + 1040) + chinh-sach-dieu-phoi-smoke.mjs + v1-nguoi-phu-trach.mjs + tu-choi-smoke.mjs |`.
+- **N-1 — ĐÃ ĐÓNG theo (b)** (chủ 2026-10-23 «3b»): không thêm mục hướng dẫn Quản trị; thẻ tự giải thích. Nội dung cũ của mục: hướng dẫn Quản trị chưa có mục «Hạn mức Từ chối» (trần đọc 30 phút). Phương án: (a) cắt bớt chữ ở mục khác của hướng dẫn Quản trị; (b) để thẻ tự giải thích (mỗi chế độ có một câu giải thích) — đang làm (b); (c) nới trần A4 (nới hàng rào — chủ duyệt).
+- **N-2 — GIỮ NỢ «để sau»** (chủ 2026-10-23 «4 để sau»): `web/CLAUDE.md` (tệp luật, N9) cần dòng mới ở bảng «Sửa tệp nào thì chạy lại kịch bản Chrome nào» — ĐỀ XUẤT (chủ duyệt mới sửa): `| Thẻ hạn mức Từ chối, dòng «còn N lần», dòng phụ bảng chọn người (ADR-0032): web/han-muc-tu-choi-the.ts, khối #hm-the của public/chinh-sach-dieu-phoi.html, phần han-muc-tu-choi của web/tu-choi-sheet.ts, dòng phụ của web/handler-sheet.ts, khối .hm-* / .tu-choi-con-lai / .assignee-tu-choi của public/app.css | han-muc-tu-choi-smoke.mjs ở docs/evidence/2026-10-23-han-muc-tu-choi/kich-ban/ (4 bước, 390 + 1040) + chinh-sach-dieu-phoi-smoke.mjs + v1-nguoi-phu-trach.mjs + tu-choi-smoke.mjs |`.
 - **N-3:** e2e CHÍNH THỨC (`npm run test:e2e`) chưa chạy được ở máy này (proxy chặn `challenges.cloudflare.com`, `docs.google.com`) — người kiểm / phiên phát hành chạy.

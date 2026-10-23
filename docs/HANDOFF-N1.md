@@ -4,7 +4,7 @@
 
 ## Nút «Từ chối» + hạn mức Từ chối (ADR-0030 điều 1, ADR-0032; migration `0117_han_muc_tu_choi.sql` — số tạm; nhật ký thay đổi 2.27 — số tạm) — CHƯA PHÁT HÀNH — RUNBOOK (AI chuẩn bị, chủ chạy)
 
-**Trạng thái (ghi 2026-10-23, người thi công hạn mức):** nhánh `han-muc-ke-hoach` (chứa cả mã nút Từ chối của nhánh `tu-choi-han-muc`), CHƯA gộp `main`, CHƯA kiểm độc lập (H13). Kế hoạch `docs/superpowers/plans/2026-10-23-han-muc-tu-choi-thi-cong.md`, sổ `…-thi-cong-nhat-ky.md`. Khuyến nghị Q-PH: phát hành CHUNG hai việc một lần (chủ chưa trả lời — không chặn thi công).
+**Trạng thái (ghi 2026-10-23, người thi công hạn mức):** nhánh `han-muc-ke-hoach` (chứa cả mã nút Từ chối của nhánh `tu-choi-han-muc`), CHƯA gộp `main`, CHƯA kiểm độc lập (H13). Kế hoạch `docs/superpowers/plans/2026-10-23-han-muc-tu-choi-thi-cong.md`, sổ `…-thi-cong-nhat-ky.md`. Q-PH: chủ chốt phát hành CHUNG hai việc một lần (chat 2026-10-23 «… phát hành chung …»); kiểm độc lập ĐẠT CÓ ĐIỀU KIỆN, hai mục NÊN SỬA đã vá; chủ đã duyệt giao diện kèm đổi thứ tự nút thẻ «Đơn của tôi».
 
 1. **Số migration lúc gộp:** ngay trước `day-len`, `ls migrations` trên `main` mới nhất và `git ls-tree --name-only <nhánh> migrations/` cho mọi nhánh chưa gộp; `0117` đã bị dùng ⇒ đổi tên tệp sang số kế tiếp (bài kiểm tìm theo đuôi `_han_muc_tu_choi.sql`, dòng gieo không mang số — không phải sửa gì khác ngoài dòng `0117` ở `docs/SYSTEM-DESIGN.md` §5 Migration). Số nhật ký thay đổi: mục đầu của `main` + 1.
 2. **Phát hành:** `npm run day-len -- han-muc-ke-hoach` rồi `npm run trien-khai` (có migration ⇒ trien-khai lấy điểm Time Travel TRƯỚC khi áp và deploy NGAY sau migration). Lần đầu chạy ở chế độ **«Chỉ đo» 2/15** (dòng gieo) — không ai bị chặn.

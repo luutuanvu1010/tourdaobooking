@@ -4,6 +4,7 @@
 //   2  (390) HDV A, chế độ «Chặn» 2/15: mở hộp Từ chối → dòng «Bạn còn được từ chối 2 đơn liên tiếp, 15 lần trong tuần này.»; từ chối đơn 1, đơn 2
 //      («còn 1 … 14 …»); đơn 3: hộp hiện «còn 0 …», bấm vẫn được → câu «Bạn đã từ chối đủ số lần cho phép. Hãy gọi văn phòng.», hộp còn mở; không mã thô;
 //   3  (1040) Bán hàng (người lập) mở «Đổi người phụ trách» của đơn 1 → dưới tên HDV A có «Đã từ chối đơn này lúc … — Bận lịch khác»; đơn chưa ai từ chối → không có dòng;
+//   2  cũng kiểm thứ tự nút của thẻ «Đơn của tôi» (chủ 2026-10-23: Sửa số khách, Từ chối đơn, Xem đơn, Huỷ đơn — Huỷ CUỐI) và chụp 390-5-thu-tu-nut.png;
 //   4  (1040 + 390) Toàn quyền (mở SAU CÙNG — kho cookie chung): thẻ có ba chế độ, hai ô số, nút «Đặt lại» từng người + «Đặt lại tất cả»; số của HDV A đúng;
 //      «Đặt lại» HDV A → liên tiếp về 0; đổi sang «Chỉ đo» → dòng tóm tắt đổi; không lộ OFF/MEASURE/BLOCK/REFUSE.
 // Dùng lại startEnv()/ACCOUNTS của ../../2026-09-20-a2/kich-ban/a2-cdp.mjs. Không cần mạng ngoài (D1 tạm, danh mục giả).
@@ -104,6 +105,14 @@ try {
     const pa = await env.as(HDV_A, "/account", MOB);
     pages.push(pa);
     await pa.waitFor(`document.querySelector('#cua-toi .hdv-card[data-order-id="${D1.id}"] [data-action="tu-choi"]')`, "thẻ đơn 1", 15000);
+    // Chủ dự án 2026-10-23 («duyệt, đổi thứ tự nút»): thẻ «Đơn của tôi» — «Từ chối đơn» lên trên, «Huỷ đơn» xuống CUỐI (sau «Xem đơn»). Ảnh MỘT thẻ.
+    const the1 = `document.querySelector('#cua-toi .hdv-card[data-order-id="${D1.id}"]')`;
+    assert.deepEqual(await pa.ev(`[...${the1}.querySelectorAll('.hdv-actions > *')].map((x) => x.textContent.trim())`), ["Sửa số khách", "Từ chối đơn", "Xem đơn", "Huỷ đơn"]);
+    await pa.ev(`${the1}.scrollIntoView({ block: "start" })`);
+    await sleep(400);
+    const khung = await pa.ev(`(() => { const r = ${the1}.getBoundingClientRect(); return { x: r.left + scrollX, y: r.top + scrollY, width: r.width, height: r.height }; })()`); // clip của CDP tính theo TOẠ ĐỘ TRANG, không theo khung nhìn
+    const anhThe = await pa.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true, clip: { ...khung, scale: 1 } });
+    writeFileSync(join(OUT, "anh", "390-5-thu-tu-nut.png"), Buffer.from(anhThe.result.data, "base64"));
     await pa.ev(`document.querySelector('#cua-toi .hdv-card[data-order-id="${D1.id}"] [data-action="tu-choi"]').click()`);
     await pa.waitFor("document.querySelector('.sheet-root.open') && !document.querySelector('[data-con-lai]').hidden", "hộp mở + dòng còn lượt", 8000);
     assert.equal(await pa.ev(t("document.querySelector('[data-con-lai]')")), "Bạn còn được từ chối 2 đơn liên tiếp, 15 lần trong tuần này.");

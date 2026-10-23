@@ -143,7 +143,7 @@ try {
           id: c.dataset.orderId, date: t(c.querySelector('.hdv-date')), code: t(c.querySelector('.hdv-code')), chip: t(c.querySelector('.hdv-chip')), chipClass: c.querySelector('.hdv-chip')?.className ?? null,
           customer: t(c.querySelector('.hdv-customer')), tel: c.querySelector('.hdv-call')?.getAttribute('href') ?? null, me: t(c.querySelector('.hdv-me')), xem: c.querySelector('a.hdv-xem')?.getAttribute('href') ?? null, xemH: Math.round(c.querySelector('a.hdv-xem')?.getBoundingClientRect().height ?? 0),
           money: [...c.querySelectorAll('.hdv-money > div')].map((d) => [t(d.querySelector('dt')), t(d.querySelector('dd'))]),
-          note: t(c.querySelector('.hdv-note')), buttons: [...c.querySelectorAll('button')].map(t), svcs: [...c.querySelectorAll('.hdv-svc')].map(t),
+          note: t(c.querySelector('.hdv-note')), buttons: [...c.querySelectorAll('button')].map(t), actions: [...c.querySelectorAll('.hdv-actions > *')].map(t), svcs: [...c.querySelectorAll('.hdv-svc')].map(t),
         })),
         toasts: document.querySelectorAll('.toast').length,
         mineOrder: [...document.querySelectorAll('#cua-toi .hdv-mine-list > *')].map((el) => el.matches('.hdv-nhom') ? '# ' + t(el) : el.dataset.orderId),
@@ -188,7 +188,9 @@ try {
     assert.equal(m3.code, `${M3.orderCode} · Đã đi 2 ngày trước`);
     assert.equal(m1.note, "Đơn đang chờ xác nhận — chưa thể huỷ hay sửa số khách.");
     assert.deepEqual(m1.buttons, [], "đơn chờ xác nhận: KHÔNG nút nào");
-    assert.deepEqual(m2.buttons, ["Sửa số khách", "Huỷ đơn", "Từ chối đơn"]); // ADR-0030 điều 1 (2026-10-23): đơn đã xác nhận đi sau ngày mai có thêm «Từ chối đơn»
+    assert.deepEqual(m2.buttons, ["Sửa số khách", "Từ chối đơn", "Huỷ đơn"]); // ADR-0030 điều 1 (2026-10-23): đơn đã xác nhận đi sau ngày mai có thêm «Từ chối đơn»
+    // Chủ dự án 2026-10-23 («duyệt, đổi thứ tự nút»): «Từ chối đơn» lên trên, «Huỷ đơn» xuống CUỐI (sau «Xem đơn») để khỏi bấm nhầm Huỷ.
+    assert.deepEqual(m2.actions, ["Sửa số khách", "Từ chối đơn", "Xem đơn", "Huỷ đơn"]);
     assert.deepEqual(m3.buttons, [], "đã đi tour: không “Huỷ đơn”, không “Sửa số khách” (chủ duyệt 2026-09-30: chỉ sửa tới hết ngày đi)");
     assert.equal(m2.note, null);
     for (const [c, o] of [[m1, M1], [m2, M2], [m4, M4], [m3, M3]]) {
