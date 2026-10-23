@@ -89,6 +89,21 @@ Bấm [[Xem đơn]] để mở trang đầy đủ. Ở đó không sửa hay hu�
 > Ví dụ: Chị Lan gọi đoàn khách ba lần không ai nghe. Chị bấm Huỷ đơn, chọn Không liên hệ được với khách, rồi bấm Huỷ đơn.`,
     },
     {
+      tieuDe: "Trả đơn (Từ chối)",
+      noiDung: `Nhận nhầm, hoặc bận không đi được: trả đơn để người khác nhận. Đơn **không bị huỷ**, chỉ quay về danh sách Chờ nhận.
+
+1. Ở thẻ đơn, bấm [[Từ chối đơn]].
+2. Chọn một lý do: Bận lịch khác, Ốm / việc riêng, Không phù hợp tuyến/dịch vụ, hoặc Khác. Không có ô gõ chữ.
+3. Bấm [[Xác nhận từ chối]]. Đổi ý thì bấm [[Không từ chối]].
+
+Thẻ đơn biến khỏi Đơn của tôi; người khác thấy đơn ở Đơn chờ nhận, có chữ "được trả lại". Bạn không mở được đơn đó nữa.
+
+- Chỉ trả được đơn **Đã xác nhận**. Đơn chờ xác nhận: báo người lập đơn đổi người phụ trách.
+- Đơn đi **hôm nay hoặc ngày mai** thì không còn nút này: **gọi văn phòng** để đổi người.
+
+> Ví dụ: Anh Tâm nhận đơn đi thứ Sáu rồi bị ốm. Thứ Tư anh bấm Từ chối đơn, chọn Ốm / việc riêng, bấm Xác nhận từ chối. Đơn về Chờ nhận cho người khác.`,
+    },
+    {
       tieuDe: "Thu tiền và bấm Đã giao",
       noiDung: `Làm trên trang đơn (bấm [[Xem đơn]]), khối **Thanh toán**. Khối này ghi **Đã thu**, **Còn lại** và từng khoản thu.
 
@@ -122,7 +137,7 @@ Tin quan trọng có nút [[Đã hiểu]]. Đọc xong thì bấm.
     {
       tieuDe: "Tình huống hay gặp",
       noiDung: `- **Nhận đơn Chờ xác nhận:** vẫn nhận được, nhưng chưa sửa hay huỷ được. Thẻ ghi "Đơn đang chờ xác nhận — chưa thể huỷ hay sửa số khách." Đợi văn phòng xác nhận.
-- **Nhận nhầm, bận không đi được:** chưa có nút trả đơn (chưa có ở bản này). Gọi văn phòng giao cho người khác.
+- **Nhận nhầm, bận không đi được:** bấm [[Từ chối đơn]] ở thẻ đơn (xem mục Trả đơn). Đơn đi hôm nay hoặc ngày mai thì gọi văn phòng giao cho người khác.
 - **Đơn đã qua ngày đi:** không còn nút [[Huỷ đơn]] và [[Sửa số khách]]. Cần huỷ hay sửa số khách thì nhờ văn phòng (người lập đơn, Kế toán hoặc Quản trị).
 - **Đang sửa thì văn phòng cũng sửa đơn đó:** Nền tảng đóng bảng, hiện dòng báo màu vàng rồi tải lại. Bạn xem lại rồi làm lại.
 - **Mất mạng:** Nền tảng báo chưa tải được đơn. Có mạng thì tải lại trang.
