@@ -1249,4 +1249,116 @@ try {
   console.log("✓ L1-3 tách ba đường: danh sách = đúng đơn mình phụ trách (có tiền/SĐT); hàng chờ = chỉ đơn chưa ai nhận, chưa huỷ, chưa qua ngày đi, phần hẹp, SĐT ở nơi đón bị che; chi tiết đơn người khác/đơn chờ nhận → 404; đơn mình → 200 đủ tiền/SĐT/lịch sử");
 }
 
+// --- 16) «TỪ CHỐI» (ADR-0030 điều 1 — kế hoạch docs/superpowers/plans/2026-10-20-tu-choi-don-thi-cong.md TC-1…TC-6 trên máy chủ thật + D1 local):
+// POST /api/orders/:id/handler-refuse — người ĐANG phụ trách tự trả đơn; đóng dòng HANDLE của chính mình, không mở dòng mới, nhật ký chỉ nhãn lý do.
+{
+  const refuse = (cookie, orderId, body = { lyDo: "BAN_LICH" }) => call(cookie, "POST", `/api/orders/${orderId}/handler-refuse`, body);
+  const H2 = await makeStaff(`Hà Hai HDV ${tag}`, true, ["FIELD"]);
+  const INTERN = await makeStaff(`Thực Tập ${tag}`, true, ["INTERN"]);
+  /** Đơn đã xác nhận, ngày đi `ngay`, người phụ trách = `who` (Quản trị giao). */
+  const donChoNguoi = async (who, ngay = vnDate(3)) => {
+    const o = (await call(A, "POST", "/api/orders", orderInput({ services: [catalogService({ departDate: ngay })] }))).body.order;
+    assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" })).status, 200);
+    assert.equal((await setHandler(ADMIN, o.id, who.id)).status, 200);
+    return o;
+  };
+  const refused = async (orderId) => sqlRows(`SELECT staff_id, detail, created_at FROM audit_log WHERE order_id = '${orderId}' AND action = 'order_handler_refused'`);
+
+  // TC-1 + TC-2
+  const t1 = await donChoNguoi(fld);
+  r = await refuse(FIELD, t1.id);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.deepEqual(r.body, { ok: true });
+  assert.deepEqual(await openOf(t1.id), [], "không còn ai phụ trách, không dòng mới");
+  const nk = await refused(t1.id);
+  assert.equal(nk.length, 1);
+  assert.equal(nk[0].staff_id, fld.id);
+  assert.equal(nk[0].detail, "Bận lịch khác");
+  const dong = (await rowsOf(t1.id)).at(-1);
+  assert.equal(dong.updated_by, fld.id);
+  assert.equal(dong.valid_to_at, nk[0].created_at);
+  assert.equal((await call(FIELD, "GET", `/api/orders/${t1.id}`)).status, 404, "HDV vừa trả không mở được chi tiết");
+  const pool = (await call(H2.cookie, "GET", "/api/orders/pool")).body.orders;
+  assert.equal(pool.find((o) => o.orderId === t1.id)?.traLai, true, "đơn về hàng chờ, cờ được trả lại");
+  assert.ok(!(await call(FIELD, "GET", "/api/dispatch/mine")).body.assignments.some((x) => x.orderId === t1.id));
+  assert.deepEqual((await call(A, "GET", `/api/dispatch/handlers?orderIds=${t1.id}`)).body, { handlers: { [t1.id]: null }, traLai: [t1.id] });
+  assert.equal((await setHandler(ADMIN, t1.id, fld.id)).status, 200, "văn phòng giao lại cho chính người vừa trả");
+  const t1b = await donChoNguoi(b);
+  assert.equal((await refuse(B, t1b.id)).status, 200);
+  assert.equal((await call(B, "GET", `/api/orders/${t1b.id}`)).status, 200, "Bán hàng vừa trả vẫn xem được (order.view any)");
+  console.log("✓ Từ chối: 200, dòng của người gọi đóng đúng mốc, không dòng mới, một nhật ký chỉ nhãn lý do; HDV vừa trả → 404, đơn ở hàng chờ (traLai), giao lại được");
+
+  // TC-3
+  const t3 = await donChoNguoi(fld);
+  for (const [ten, cookie] of [["Toàn quyền", SUPER], ["Bán hàng người lập", A], ["Quản trị", ADMIN], ["HDV khác", H2.cookie]]) {
+    r = await refuse(cookie, t3.id);
+    assert.equal(r.status, 403, `${ten}: ${JSON.stringify(r.body)}`);
+  }
+  for (const [ten, cookie] of [["Kế toán", ACC], ["Thực tập", INTERN.cookie], ["Đối tác", P.cookie]]) {
+    assert.equal((await refuse(cookie, t3.id)).status, 403, ten);
+    assert.equal((await refuse(cookie, "khong-phai-uuid")).status, 403, `${ten}: sàng sớm trước 404`);
+  }
+  assert.equal((await openOf(t3.id)).length, 1);
+  assert.equal((await refused(t3.id)).length, 0);
+  const sup = await me(SUPER);
+  for (const [cookie, who] of [[SUPER, sup], [ADMIN, adm]]) {
+    const o = await donChoNguoi(who);
+    assert.equal((await refuse(cookie, o.id)).status, 200, `đang phụ trách: ${who.id}`);
+  }
+  console.log("✓ Từ chối: không phải người đang phụ trách → 403 (kể cả Toàn quyền); Kế toán/Thực tập/Đối tác 403 sàng sớm; Toàn quyền, Quản trị đang phụ trách → 200");
+
+  // TC-4
+  const huy = await donChoNguoi(fld);
+  assert.equal((await call(ADMIN, "POST", `/api/orders/${huy.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 200);
+  r = await refuse(FIELD, huy.id);
+  assert.deepEqual([r.status, r.body.error?.code], [409, "cancelled"]);
+  const nhap = (await call(A, "POST", "/api/orders", orderInput({ handlerStaffId: fld.id }))).body.order;
+  r = await refuse(FIELD, nhap.id);
+  assert.deepEqual([r.status, r.body.error?.code], [409, "order_not_confirmed"]);
+  for (const [ten, ngay] of [["hôm nay", vnDate(0)], ["ngày mai", vnDate(1)]]) {
+    const o = await donChoNguoi(fld, ngay);
+    r = await refuse(FIELD, o.id);
+    assert.deepEqual([r.status, r.body.error?.code], [409, "too_late"], ten);
+    assert.match(r.body.error.message, /Gọi văn phòng để đổi người\.$/);
+  }
+  const quaKhu = await donChoNguoi(fld, vnDate(2));
+  await sql(`UPDATE order_service SET depart_date = '${vnDate(-1)}' WHERE order_id = '${quaKhu.id}'`);
+  r = await refuse(FIELD, quaKhu.id);
+  assert.deepEqual([r.status, r.body.error?.code], [409, "too_late"], "đã qua ngày đi");
+  assert.equal((await refuse(FIELD, (await donChoNguoi(fld, vnDate(2))).id)).status, 200, "ngày kia → được");
+  console.log("✓ Từ chối: đơn huỷ 409 cancelled, nháp 409 order_not_confirmed, hôm nay/ngày mai/đã qua 409 too_late «…Gọi văn phòng để đổi người.», ngày kia 200");
+
+  // TC-5
+  const t5 = await donChoNguoi(fld);
+  for (const body of [{}, { lyDo: "KHAC" }, { lyDo: 1 }, { lyDo: "OTHER", ghiChu: "bận" }, { lyDo: "BAN_LICH", note: "x" }]) {
+    r = await refuse(FIELD, t5.id, body);
+    assert.deepEqual([r.status, r.body.error?.code], [400, "invalid_input"], JSON.stringify(body));
+    for (const nhan of ["Bận lịch khác", "Ốm / việc riêng", "Không phù hợp tuyến/dịch vụ", "Khác"]) assert.ok(r.body.error.message.includes(nhan));
+  }
+  assert.equal((await openOf(t5.id)).length, 1, "400 không đổi gì");
+  console.log("✓ Từ chối: thân sai / có ô chữ → 400 tiếng Việt liệt kê bốn lý do, không đổi gì");
+
+  // TC-6 (a): văn phòng đổi A→B đúng lúc A Từ chối — 10 vòng song song. Hai lệnh có thể chạy nối tiếp (cả hai 200 khi Từ chối trước; Từ chối 403 khi đổi người
+  // trước) — bất biến: tối đa một dòng mở, nhật ký khớp đúng các lệnh 200, bên thua đua thật chỉ là 409 stale.
+  let staleTc = 0;
+  for (let round = 0; round < 10; round++) {
+    const o = await donChoNguoi(fld);
+    const [tc, doi] = await Promise.all([refuse(FIELD, o.id), setHandler(ADMIN, o.id, H2.id)]);
+    assert.ok([200, 403, 409].includes(tc.status), JSON.stringify(tc.body));
+    if (tc.status === 409) { assert.equal(tc.body.error.code, "stale"); staleTc++; }
+    assert.ok([200, 409].includes(doi.status), JSON.stringify(doi.body));
+    assert.ok((await openOf(o.id)).length <= 1);
+    assert.equal((await refused(o.id)).length, tc.status === 200 ? 1 : 0);
+    assert.equal((await changes(SUPER, o)).filter((c) => c.detail?.endsWith(H2.name)).length, doi.status === 200 ? 1 : 0);
+  }
+  // TC-6 (b): HDV khác bấm Nhận khi A còn phụ trách → 409 stale; A Từ chối 200; Nhận sau đó 200.
+  const t6 = await donChoNguoi(fld);
+  r = await setHandler(H2.cookie, t6.id, H2.id);
+  assert.deepEqual([r.status, r.body.error?.code], [409, "stale"]);
+  assert.equal((await refuse(FIELD, t6.id)).status, 200);
+  assert.equal((await setHandler(H2.cookie, t6.id, H2.id)).status, 200);
+  assert.deepEqual((await openOf(t6.id)).map((x) => x.party_id), [H2.partyId]);
+  console.log(`✓ Từ chối đua với đổi người (10 vòng, ${staleTc} lần 409 stale thật) và với Nhận: tối đa một dòng mở, nhật ký khớp lệnh thắng`);
+}
+
 console.log("E2E DISPATCH OK");

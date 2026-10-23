@@ -547,6 +547,31 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
     }
   }
   console.log("✓ ca 11b: đơn vừa rời hàng chờ (được Nhận) → HDV khác nhận đúng một tin 'nhan' qua cho-nhan; tài khoản lai không nhận (S20-8, S20-9)");
+
+  // --- Phần 3 (ADR-0030 điều 1, nút Từ chối — kế hoạch 2026-10-20 TC-7/T9): HDV B (field) trả đơn đang phụ trách → đơn VÀO hàng chờ: HDV A (fieldB) nhận
+  // đúng một tin 'tu_choi' qua cho-nhan, kế toán (tat-ca) nhận; tài khoản lai Đối tác+HDV KHÔNG nhận (S20-8). Không gõ cửa màn hình khoá (Q4 (a)). ---
+  {
+    const oT = (await call(salesACookie, "POST", "/api/orders", orderInput({ handlerStaffId: fieldId }))).body.order;
+    assert.equal((await call(salesACookie, "POST", `/api/orders/${oT.id}/status`, { status: "confirmed" })).status, 200);
+    const [pFieldB, pLai, pKeToan] = await moiPhien(fieldBCookie, lai.cookie, accountantCookie);
+    try {
+      const r = await call(fieldCookie, "POST", `/api/orders/${oT.id}/handler-refuse`, { lyDo: "OM_VIEC_RIENG" });
+      assert.equal(r.status, 200, JSON.stringify(r.body));
+      assert.ok(await pFieldB.cho((tin) => tin.some((t) => t.orderId === oT.id && t.thayDoi === "tu_choi")), "ca 11c: HDV khác phải nhận tin 'tu_choi' trong 2 giây (đơn vào hàng chờ)");
+      assert.ok(await pKeToan.cho((tin) => tin.some((t) => t.orderId === oT.id && t.thayDoi === "tu_choi")), "ca 11c: kế toán (tat-ca) nhận tin 'tu_choi'");
+      await yen(ON_DINH_MS);
+      assert.equal(pFieldB.tin.filter((t) => t.orderId === oT.id).length, 1, "ca 11c: HDV khác đúng MỘT tin");
+      assert.equal(pLai.tin.filter((t) => t.orderId === oT.id).length, 0, "ca 11c: tài khoản lai KHÔNG nhận tin hàng chờ (S20-8)");
+      // 403 (HDV khác không phụ trách) → không tin nào
+      const truoc = pFieldB.tin.length;
+      assert.equal((await call(fieldBCookie, "POST", `/api/orders/${oT.id}/handler-refuse`, { lyDo: "BAN_LICH" })).status, 403);
+      await yen(ON_DINH_MS);
+      assert.equal(pFieldB.tin.length, truoc, "ca 11c: lệnh 403 không phát tin");
+    } finally {
+      dongHet(pFieldB, pLai, pKeToan);
+    }
+  }
+  console.log("✓ ca 11c: HDV trả đơn (Từ chối) → HDV khác và kế toán nhận đúng một tin 'tu_choi'; tài khoản lai không nhận; lệnh 403 không phát tin");
 }
 
 // === CA 12 (ADR-0075 điều 6a): tài khoản một máy (dùng một lần) đăng nhập máy 2 → kết nối của máy 1 đóng 4003 lý do "dang-nhap-may-khac" trong 2 giây
