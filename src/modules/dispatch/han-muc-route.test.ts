@@ -439,3 +439,38 @@ test("HM-10: Bán hàng (người lập) mở bảng chọn người của đơn
   assert.equal((await tuChoi(w, d, FIELD, "OM_VIEC_RIENG")).status, 200);
   assert.equal((await tuChoiTruoc(w, d, SALES)).json.tuChoi[`pty-${FIELD}`].lyDo, "OM_VIEC_RIENG");
 });
+
+// ---- Vá sau kiểm độc lập: lỗi ghi nhật ký refuse_limit_hit không làm hỏng phản hồi ----
+/** Lô một câu nhật ký chạm hạn mức ném lỗi (giả D1 hỏng đúng lần ghi đó). */
+const hongNhatKyCham = (w: any) =>
+  w.chenTruocLo((stmts: any[]) => stmts.length === 1 && (stmts[0]?.args ?? []).includes("refuse_limit_hit"), () => {
+    throw new Error("D1_ERROR: giả lập hỏng lúc ghi nhật ký chạm hạn mức");
+  });
+
+test("vá kiểm độc lập (1): «Chỉ đo» — lô Từ chối ĐÃ thắng mà ghi refuse_limit_hit ném lỗi → vẫn 200 {ok:true}, đơn đã trả, REFUSE có, không nhật ký chạm", async () => {
+  const w = setup(); // dòng gieo = Chỉ đo 2/15
+  for (let i = 0; i < 2; i++) assert.equal((await nhanVaTuChoi(w, FIELD)).r.status, 200);
+  const id = await donCho(w);
+  assert.equal((await nhan(w, id, FIELD)).status, 200);
+  hongNhatKyCham(w);
+  const r = await tuChoi(w, id, FIELD);
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json, { ok: true });
+  assert.deepEqual(moDong(w, id), [], "đơn đã trả");
+  assert.equal(soRefuse(w, FIELD), 3);
+  assert.equal(cham(w).length, 0, "lần ghi nhật ký hỏng thật");
+});
+
+test("vá kiểm độc lập (1): «Chặn» — ghi refuse_limit_hit ném lỗi → vẫn 409 refuse_limit đúng câu (không 500), dòng phụ trách còn mở", async () => {
+  const w = setup();
+  datCaiDat(w, "BLOCK");
+  for (let i = 0; i < 2; i++) assert.equal((await nhanVaTuChoi(w, FIELD)).r.status, 200);
+  const id = await donCho(w);
+  assert.equal((await nhan(w, id, FIELD)).status, 200);
+  hongNhatKyCham(w);
+  const r = await tuChoi(w, id, FIELD);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "refuse_limit");
+  assert.equal(r.json.error.message, CAU_HET);
+  assert.deepEqual(moDong(w, id), [`pty-${FIELD}`]);
+});

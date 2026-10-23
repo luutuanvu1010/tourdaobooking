@@ -69,9 +69,17 @@ const REFUSE_LIMIT = () => error(409, "refuse_limit", CAU_HET_LUOT);
 const REFUSE_POLICY_MISSING = () => error(503, "refuse_policy_missing", "Chưa có cài đặt hạn mức Từ chối — báo Toàn quyền.");
 const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Đã giao – đã thu đủ: không sửa, huỷ hay đổi người phụ trách được nữa. Sai sót thì Kế toán dùng “Sửa khoản thu đã ghi”.");
 
-/** Nhật ký `refuse_limit_hit` (ADR-0032 điều 5, 6) — LÔ RIÊNG một câu, sau khi đã biết lý do. `detail` chỉ số + chế độ (không tên, không SĐT). */
+/**
+ * Nhật ký `refuse_limit_hit` (ADR-0032 điều 5, 6) — LÔ RIÊNG một câu, sau khi đã biết lý do. `detail` chỉ số + chế độ (không tên, không SĐT).
+ * KHÔNG BAO GIỜ NÉM (vá sau kiểm độc lập 2026-10-23): nhánh «Chỉ đo» gọi SAU khi lô Từ chối đã thắng — lỗi ở đây mà ném thì người dùng nhận 500 dù đơn đã trả và
+ * Bảng tin không phát; nhánh «Chặn» vẫn phải trả 409 `refuse_limit`. Lỗi chỉ ghi ra console theo khuôn có sẵn (mã sự kiện + thông điệp lỗi, không số liệu người).
+ */
 async function ghiChamHanMuc(db: D1Database, staffId: string, orderId: string, at: string, d: { cs: CaiDatHanMuc; dem: { chuoi: number; tuan: number } }): Promise<void> {
-  await db.batch([auditStatement(db, { staffId, action: "refuse_limit_hit", at, orderId, detail: moTaChamHanMuc(d.cs, d.dem) })]);
+  try {
+    await db.batch([auditStatement(db, { staffId, action: "refuse_limit_hit", at, orderId, detail: moTaChamHanMuc(d.cs, d.dem) })]);
+  } catch (e) {
+    console.error(JSON.stringify({ level: "error", event: "refuse_limit_log_failed", message: e instanceof Error ? e.message : String(e) }));
+  }
 }
 
 /**
