@@ -116,8 +116,8 @@ test("danh sách kiểm: một nguồn duy nhất (script import scripts/audit-c
 
   assert.deepEqual(
     CHECKS.filter((c) => c.code.startsWith("R-DSP")).map((c) => [c.code, c.level]),
-    [["R-DSP-1", "fail"], ["R-DSP-2a", "warn-unless-strict"], ["R-DSP-2b", "warn"], ["R-DSP-3", "fail"]],
-    "2a (không tài khoản/mất quyền) đỏ khi --strict; 2b (tài khoản đã ngưng) chỉ cảnh báo; R-DSP-3 (chồng lấn) là vi phạm thật",
+    [["R-DSP-1", "fail"], ["R-DSP-2a", "warn-unless-strict"], ["R-DSP-2b", "warn"], ["R-DSP-3", "fail"], ["R-DSP-4", "warn-unless-strict"]],
+    "2a (không tài khoản/mất quyền) đỏ khi --strict; 2b (tài khoản đã ngưng) chỉ cảnh báo; R-DSP-3 (chồng lấn) là vi phạm thật; R-DSP-4 (LC-8 mới) cảnh báo trước",
   );
   for (const c of CHECKS) {
     assert.ok(c.code && c.what && c.sql.trim(), `kiểm thiếu trường: ${JSON.stringify(c.code)}`);
@@ -3924,4 +3924,38 @@ test("tách câu của wrangler: chuỗi `--command` mà script gửi tách ra �
     assert.fail(`wrangler tách ${cau.length} câu, phải đúng ${CHECKS.length} (một câu kiểm một kết quả); lệch đầu tiên ở kiểm ${CHECKS[lech]?.code ?? "?"} — kiểm tra ' CASE ' / ' BEGIN ' mà phần đóng là 'END)' (viết 'END )' hoặc bỏ CASE)`);
   }
   CHECKS.forEach((c, i) => assert.equal(cau[i], c.sql.replace(/\s+/g, " ").trim(), `câu tách thứ ${i} (${c.code}) phải là nguyên câu kiểm`));
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// R-DSP-4 (LC-8 mới, ADR-0030 điều 1 + điều 4): đơn từng có người phụ trách mà nay không có ai phải do chính người phụ trách Từ chối — dòng HANDLE đóng
+// cuối cùng (theo `updated_at` = mốc lệnh, KHÔNG `valid_to_at` vì `max(at, valid_from_at)`) có dòng nhật ký `order_handler_refused` CÙNG mốc.
+// ---------------------------------------------------------------------------------------------------------------------
+function lc8(dung: (db: DatabaseSync) => void): number {
+  const db = build();
+  addOrder(db, "o-1");
+  dung(db);
+  return violations(db, one("R-DSP-4"));
+}
+const dongLuc = (db: DatabaseSync, id: string, at: string) => db.prepare("UPDATE dsp_assignment SET valid_to_at = max(?, valid_from_at), updated_at = ? WHERE id = ?").run(at, at, id);
+const nhatKyTuChoi = (db: DatabaseSync, at: string, order = "o-1") =>
+  db.prepare("INSERT INTO audit_log (id, order_id, staff_id, action, target_type, target_id, detail, created_at) VALUES (?, ?, 's-an', 'order_handler_refused', 'order', ?, 'Bận lịch khác', ?)").run(`l-${order}-${at}`, order, order, at);
+
+test("R-DSP-4: (a) đơn có dòng HANDLE đã đóng, không dòng mở, không có Từ chối ở lần đóng cuối → 1 (đóng ngoài đường Từ chối)", () => {
+  assert.equal(lc8((db) => { addRow(db, { id: "h1", order: "o-1", party: "pty-s-an", from: T1, to: null }); dongLuc(db, "h1", T2); }), 1);
+  // Từ chối ở lần đóng TRƯỚC, rồi được giao lại và lần đóng CUỐI không phải Từ chối → vẫn 1.
+  assert.equal(lc8((db) => {
+    addRow(db, { id: "h1", order: "o-1", party: "pty-s-an", from: T1, to: null }); dongLuc(db, "h1", T2); nhatKyTuChoi(db, T2);
+    addRow(db, { id: "h2", order: "o-1", party: "pty-s-admin", from: T3, to: null }); dongLuc(db, "h2", T4);
+  }), 1);
+});
+
+test("R-DSP-4: (b) Từ chối cùng mốc lần đóng cuối → 0 (kể cả khi đồng hồ lệch làm valid_to_at = valid_from_at > mốc lệnh)", () => {
+  assert.equal(lc8((db) => { addRow(db, { id: "h1", order: "o-1", party: "pty-s-an", from: T1, to: null }); dongLuc(db, "h1", T2); nhatKyTuChoi(db, T2); }), 0);
+  assert.equal(lc8((db) => { addRow(db, { id: "h1", order: "o-1", party: "pty-s-an", from: T3, to: null }); dongLuc(db, "h1", T2); nhatKyTuChoi(db, T2); }), 0, "đồng hồ lệch");
+});
+
+test("R-DSP-4: (c) đơn chưa từng có HANDLE → 0; (d) đơn đang có dòng mở → 0; việc khác (PICKUP) đóng không tính", () => {
+  assert.equal(lc8(() => {}), 0);
+  assert.equal(lc8((db) => { addRow(db, { id: "h1", order: "o-1", party: "pty-s-an", from: T1, to: T2 }); addRow(db, { id: "h2", order: "o-1", party: "pty-s-admin", from: T2, to: null }); }), 0);
+  assert.equal(lc8((db) => { addRow(db, { id: "p1", order: "o-1", party: "pty-s-an", from: T1, to: null, kind: "PICKUP" }); dongLuc(db, "p1", T2); }), 0);
 });

@@ -1519,6 +1519,23 @@ export const CHECKS = [
        AND a.valid_from_at < COALESCE(b.valid_to_at, '9999-12-31T23:59:59.999Z') AND b.valid_from_at < COALESCE(a.valid_to_at, '9999-12-31T23:59:59.999Z')`,
     level: "fail",
   },
+  // R-DSP-4 (LC-8 mới, ADR-0030 điều 1 + Hệ quả): đơn TỪNG có người phụ trách (có dòng HANDLE) mà nay KHÔNG có dòng mở thì lần đóng CUỐI phải là Từ chối của chính
+  // người phụ trách — nhật ký `order_handler_refused` cùng mốc với `updated_at` của dòng đóng cuối (= mốc lệnh `at`). KHÔNG so với `valid_to_at`: câu đóng ghi
+  // `max(at, valid_from_at)` nên khi đồng hồ hai máy chủ lệch, valid_to_at có thể lớn hơn mốc nhật ký. Đường hợp lệ khác để mất người phụ trách hôm nay: không có
+  // (đổi người luôn mở dòng mới cùng lô). Mức cảnh báo trước: dữ liệu cũ (vd `dropHandler` của e2e trước kia) có thể còn đơn như vậy.
+  {
+    code: "R-DSP-4",
+    what: "đơn từng có người phụ trách mà nay không có ai phải do chính người phụ trách Từ chối (LC-8 mới, ADR-0030 điều 1)",
+    sql: `SELECT count(*) FROM (
+      SELECT a.order_id, max(a.updated_at) AS dong_cuoi FROM dsp_assignment a
+      WHERE a.task_kind_code = 'HANDLE'
+      GROUP BY a.order_id
+      HAVING sum(a.valid_to_at IS NULL) = 0
+    ) d
+    WHERE NOT EXISTS (SELECT 1 FROM audit_log l WHERE l.order_id = d.order_id AND l.action = 'order_handler_refused' AND l.created_at = d.dong_cuoi)`,
+    level: "warn-unless-strict",
+    note: "cảnh báo — nâng lên vi phạm chỉ sau khi chủ dự án chạy truy vấn chỉ đọc trên hệ thống thật (ADR-0030 Hệ quả)",
+  },
   // R-ORD-4: seq của order_money_adjustment liên tục từ 1, không trùng, không nhảy cóc theo từng đơn — lưới thứ hai cho khoá lạc quan ở
   // insertMoneyAdjustment (P21: mọi kiểm soát trọng yếu có ≥ 2 lớp). Chỉ mục duy nhất idx_order_money_adjustment_seq là lưới thứ nhất (chặn ngay
   // lúc ghi); kiểm này phát hiện nếu có lỗ trong logic ghi (vd một đường code khác lỡ chèn thẳng, bỏ qua insertMoneyAdjustment).
