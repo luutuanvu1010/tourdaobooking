@@ -11,12 +11,12 @@
 // Bảng tin (`don-thay-doi`, `can-tai-lai`): tải lại CẢ hai khối — đây là cách hàng chờ tự cập nhật lặng lẽ khi người khác Nhận (chủ dự án chọn: không
 // thông báo nổi cho người không liên quan). Không dựng lại dưới tay người đang dùng: hoãn khi bảng sửa/huỷ đang mở hoặc đang Nhận, thử lại khi xong.
 import { APP_NAME } from "./phien-ban";
-import { handlerFailure, myJobActions } from "../src/shared/handler-view";
+import { handlerFailure, myJobActions, nhanChoNhan } from "../src/shared/handler-view";
 import { PAX_LABEL, type PaxCode } from "../src/shared/order-lines";
 import { LOI_409_KHONG_CU, banner, type Banner } from "../src/shared/order-errors";
 import { cauDongBoChuyen } from "../src/shared/dong-bo-chuyen-cau";
 import { can, holdsPartner } from "../src/shared/permissions";
-import { tripDeparted } from "../src/shared/trip-rules";
+import { tripDeparted, tuChoiQuaMuon } from "../src/shared/trip-rules";
 import { ngayNgan, vnToday } from "../src/shared/vn-date";
 import { nhanTienDaTra } from "../src/shared/nhan-tien";
 import {
@@ -30,6 +30,7 @@ import { vnd } from "./format";
 import { icon } from "./icons";
 import { nenHoanLamMoi, taoBoLamMoi } from "./lam-moi-logic";
 import { showError } from "./shell";
+import { moHopTuChoi } from "./tu-choi-sheet";
 
 /**
  * Lý do huỷ của hướng dẫn viên — bản chép tay của danh sách ĐÓNG ở máy chủ (`src/modules/dispatch/rules.ts` `CANCEL_REASONS`, ADR-0014 điều 11; ADR-0030
@@ -439,7 +440,8 @@ export async function initViecCuaToi(el: HTMLElement, staff: Staff): Promise<voi
     const btn = h("button", { type: "button", class: "btn btn-accent hdv-claim", disabled: claiming }, "Nhận");
     claimButtons.add(btn);
     btn.addEventListener("click", () => void claim(o, btn));
-    const card = h("article", { class: "hdv-card" }, cardTop(o.departDate, o.orderCode, today, { label: "Chờ nhận", className: "chip chip-warn hdv-chip" }), serviceRows(o.services), btn);
+    // ADR-0030 điều 3: đơn vừa được người phụ trách trước trả lại → «Chờ nhận · được trả lại» (cờ của máy chủ — không tên, không lý do).
+    const card = h("article", { class: "hdv-card" }, cardTop(o.departDate, o.orderCode, today, { label: nhanChoNhan(o.traLai === true), className: "chip chip-warn hdv-chip" }), serviceRows(o.services), btn);
     return h("div", { class: "hdv-collapse", "data-order-id": o.orderId }, h("div", { class: "hdv-collapse-inner" }, card));
   }
   function renderPool(orders: Api.PoolOrderDto[]): void {
@@ -516,7 +518,9 @@ export async function initViecCuaToi(el: HTMLElement, staff: Staff): Promise<voi
     const departed = tripDeparted(dates, today);
     const chip = myJobChip(a.status, departed);
     // Đơn đã "Đã giao – đã thu đủ" bị khoá (ADR-0025 đ5): không còn nút sửa số khách / huỷ (máy chủ cũng từ chối).
-    const actions = tien?.daGiao ? { editPax: false, cancel: false } : myJobActions({ status: a.status, departed });
+    const actions = tien?.daGiao ? { editPax: false, cancel: false, refuse: false } : myJobActions({ status: a.status, departed, quaMuon: tuChoiQuaMuon(dates, today) });
+    // «Từ chối đơn» (ADR-0030 điều 1): đơn ở đây là đơn người xem ĐANG phụ trách → hỏi bảng quyền với `assigned: true` (máy chủ kiểm lại đúng người).
+    const refuse = actions.refuse && can(staff, "dispatch.refuse", { assigned: true });
     // "Sửa số khách" chỉ khi có ít nhất một dịch vụ sửa được (dịch vụ nhập tay / thiếu giá đã chụp thì bảng chỉ để xem — không mở bảng rỗng).
     const canEdit = actions.editPax && a.services.some((s) => s.catalogCode !== null && s.editablePaxCodes.length > 0);
     const buttons: HTMLElement[] = [];
@@ -528,6 +532,24 @@ export async function initViecCuaToi(el: HTMLElement, staff: Staff): Promise<voi
     if (actions.cancel) {
       const b = h("button", { type: "button", class: "btn hdv-act hdv-act-cancel" }, "Huỷ đơn");
       b.addEventListener("click", () => openCancelSheet(a, departDate, b, afterSheet, onSheetClosed));
+      buttons.push(b);
+    }
+    if (refuse) {
+      const b = h("button", { type: "button", class: "btn hdv-act", "data-action": "tu-choi" }, "Từ chối đơn");
+      b.addEventListener("click", () => {
+        const mo = moHopTuChoi({
+          orderId: a.orderId,
+          orderCode: a.orderCode,
+          moTa: `Đơn của ${a.customerName}, đi ${departLabel(departDate)}.`,
+          opener: b,
+          done: (kq) => afterSheet(kq.ok ? { said: `Đã trả đơn ${a.orderCode}.`, banner: banner("info", `Đã trả đơn ${a.orderCode}. Đơn quay về danh sách Chờ nhận.`) } : { banner: kq.banner }),
+          onClosed: () => {
+            openSheets--;
+            onSheetClosed();
+          },
+        });
+        if (mo) openSheets++;
+      });
       buttons.push(b);
     }
     return h(
