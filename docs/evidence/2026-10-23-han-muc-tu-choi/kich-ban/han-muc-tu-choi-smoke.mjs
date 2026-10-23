@@ -107,6 +107,11 @@ try {
     await pa.ev(`document.querySelector('#cua-toi .hdv-card[data-order-id="${D1.id}"] [data-action="tu-choi"]').click()`);
     await pa.waitFor("document.querySelector('.sheet-root.open') && !document.querySelector('[data-con-lai]').hidden", "hộp mở + dòng còn lượt", 8000);
     assert.equal(await pa.ev(t("document.querySelector('[data-con-lai]')")), "Bạn còn được từ chối 2 đơn liên tiếp, 15 lần trong tuần này.");
+    // Vá sau kiểm độc lập: dòng «còn lượt» không dính sát chữ «Chọn lý do từ chối» — khoảng cách ≥ token --s3.
+    const khe = await pa.ev(`(() => { const a = document.querySelector('[data-con-lai]').getBoundingClientRect(); const b = document.querySelector('.sheet .pick-legend').getBoundingClientRect();
+      const s3 = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--s3')) * (getComputedStyle(document.documentElement).getPropertyValue('--s3').includes('rem') ? parseFloat(getComputedStyle(document.documentElement).fontSize) : 1);
+      return { khe: b.top - a.bottom, s3 }; })()`);
+    assert.ok(khe.khe >= khe.s3 - 1, `dòng còn lượt dính sát nhãn lý do: ${JSON.stringify(khe)}`);
     await shotView(pa, "390-2a-hop-con-luot.png");
     await axe(pa, "hộp Từ chối có dòng còn lượt");
     await pa.ev("document.querySelector('.sheet input[value=\"BAN_LICH\"]').click()");

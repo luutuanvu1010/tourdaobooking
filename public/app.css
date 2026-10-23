@@ -3658,5 +3658,5 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
   .hm-ten, .hm-cuoi, .hm-hanh-dong { grid-column: auto; }
 }
 /* Dòng «còn N lần» trong hộp Từ chối (ADR-0032 điều 9) và dòng phụ «đã từ chối đơn này lúc …» ở bảng chọn người (điều 10). */
-.tu-choi-con-lai { margin: 0; color: var(--c-text-muted); font-size: var(--fs-label); }
+.tu-choi-con-lai { margin: 0 0 var(--s3); color: var(--c-text-muted); font-size: var(--fs-label); }
 .assignee-tu-choi { display: block; color: var(--c-sand-text); font-size: var(--fs-label); }
