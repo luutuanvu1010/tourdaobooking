@@ -63,6 +63,7 @@ const HANH_DONG_CUA_THAY_DOI: Record<ThayDoiDon, string | null> = {
   tien: null,
   chot_giao: null, // ADR-0025 điều 8 + ADR-0045: "Đã giao" / "Hoàn thành" không gõ cửa màn hình khoá (bản làm mới §3.14)
   hoan_thanh: null,
+  tu_choi: null, // ADR-0030 điều 1 + Q4 (a) chủ 2026-10-23: chỉ thông báo nổi Bảng tin — hộp thông báo / màn hình khoá không có tin "được trả lại"
 };
 export function hanhDongCuaThayDoi(t: ThayDoiDon): string | null {
   return HANH_DONG_CUA_THAY_DOI[t];

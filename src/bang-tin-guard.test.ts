@@ -203,7 +203,7 @@ test("hàng rào bảng tin: mọi đường ghi đơn (POST|PUT|PATCH|DELETE /a
   assert.deepEqual(bad, []);
 });
 
-test("hàng rào bảng tin: bộ bóc route nhìn thấy 8 route ghi đơn đã biết (chống bài kiểm rỗng)", () => {
+test("hàng rào bảng tin: bộ bóc route nhìn thấy 9 route ghi đơn đã biết (chống bài kiểm rỗng)", () => {
   const expected = [
     "POST /api/orders",
     "PUT /api/orders/:id",
@@ -213,6 +213,7 @@ test("hàng rào bảng tin: bộ bóc route nhìn thấy 8 route ghi đơn đã
     "PUT /api/orders/:id/handler",
     "POST /api/orders/:id/handler-cancel",
     "POST /api/orders/:id/handler-money-edit",
+    "POST /api/orders/:id/handler-refuse", // ADR-0030 điều 1: nút Từ chối (thêm tay — hệ quả của ADR)
   ];
   for (const k of expected) assert.ok(knownKeys.has(k), `không bóc được ${k} — bộ bóc route hỏng?`);
 });

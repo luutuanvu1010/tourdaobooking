@@ -165,6 +165,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "PUT", path: "/api/orders/:id/handler", access: "orders" }, // module dispatch, không phải orders; ADR-0019 điều 1: màn đơn, thân hỏi dispatch.claim/dispatch.assign trước mọi thứ
   { method: "POST", path: "/api/orders/:id/handler-cancel", access: "staff" }, // module dispatch, ADR-0014 điều 11 — FIELD đang phụ trách, tự kiểm can() bên trong
   { method: "POST", path: "/api/orders/:id/handler-money-edit", access: "staff" }, // module dispatch, ADR-0014 điều 6 — FIELD đang phụ trách, tự kiểm can() bên trong
+  { method: "POST", path: "/api/orders/:id/handler-refuse", access: "orders" }, // module dispatch, ADR-0030 điều 1 — người ĐANG phụ trách tự trả đơn (dispatch.refuse + chốt đúng người)
   // Sổ tiền lượt 1 (module billing — ADR-0024/0025/0026, kế hoạch §3.4): 12 route; mỗi route tự hỏi can() với ô của MATRIX.
   { method: "GET", path: "/api/orders/:id/payments", access: "orders" }, // order.view + money.view phạm vi đơn
   { method: "POST", path: "/api/orders/:id/payments", access: "orders" }, // payment.receive { ownerId, assigned }
@@ -497,7 +498,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 363 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 364 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -608,6 +609,7 @@ test("mức truy cập của 363 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-19 (sổ đại lý đợt 2 Task 6, ADR-0079 điều 7 b2): + GET /api/orders/cho-chup-bu, POST /api/orders/:id/chup-bu (office; order.terms.override, không Đối tác) = 361.
   // 2026-10-19 (ADR-0134 Đ6): + GET /api/cai-dat/khung-gio-don (orders), POST /api/cai-dat/khung-gio-don (admin) = 360.
   // Gộp main 7dfd642a vào nhánh sổ đại lý đợt 2 (2026-10-19): nhánh 361 + main thêm 2 (ADR-0134 Đ6) = 363.
-  assert.equal(actual.length, 363, "số route thực tế lệch 363 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 363, "SNAPSHOT phải có đúng 363 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-23 (ADR-0030 điều 1, nút Từ chối): + POST /api/orders/:id/handler-refuse (orders; dispatch.refuse) = 364.
+  assert.equal(actual.length, 364, "số route thực tế lệch 364 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 364, "SNAPSHOT phải có đúng 364 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

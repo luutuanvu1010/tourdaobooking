@@ -815,6 +815,8 @@ export interface SetHandlerInput { staffId: string }
 export interface SetHandlerResponse { handler: HandlerDto }
 /** Đường HDV huỷ đơn / sửa số khách: `dongBoChuyen` = phần "chuyến" (ADR-0104 Đ2) — chỉ câu cố định + cờ, không dữ liệu chuyến (HDV không có trip.view). */
 export interface HandlerCancelResponse { ok: true; dongBoChuyen?: DongBoChuyenDto }
+/** `POST /api/orders/:id/handler-refuse` (ADR-0030 điều 1): chỉ cờ — không dữ liệu đơn (người vừa trả không còn xem được đơn). */
+export interface HandlerRefuseResponse { ok: true }
 export interface HandlerMoneyEditResponse { ok: true; dongBoChuyen?: DongBoChuyenDto }
 
 /**

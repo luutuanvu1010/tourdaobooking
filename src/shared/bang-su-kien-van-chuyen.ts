@@ -455,6 +455,7 @@ export const NGOAI_PHAM_VI_ROUTE: Readonly<Record<string, string>> = {
   "POST /api/van-chuyen/chuyen/:id/chi-phi/chup-lai": "chi phí xe thuê",
   "POST /api/van-chuyen/chuyen/:id/chi-phi/gia-thoa-thuan": "chi phí xe thuê",
   "PUT /api/orders/:id/handler": "đổi người phụ trách đơn (dispatch)",
+  "POST /api/orders/:id/handler-refuse": "trả đơn — không đổi khách / chặng; người phụ trách không ở trong chuyến",
   // Route đơn GHI chặng / hành khách mà không đổi chuyến (ADR-0104 Đ2.4 "Không cần hook" — đã đối chiếu mọi route ghi của orders, dispatch).
   "POST /api/orders": "lập đơn — chặng mới chưa có suất",
   "PUT /api/orders/:id": "chỉ đơn nháp — đơn nháp không có suất (lc09)",

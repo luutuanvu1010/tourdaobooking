@@ -49,6 +49,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "dispatch.assign": ["ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"],
   "dispatch.claim": ["any", "none", "any", "any", "none", "any", "none", "none", "none", "none"], // ADR-0009 điều 2: nhận phụ trách đơn chưa có người (điều kiện do dịch vụ của dispatch kiểm, không phải ô ma trận); ADR-0030 S20-6/S20-12: FIELD any
   "dispatch.guides.view": ["none", "none", "none", "none", "any", "any", "none", "none", "none", "none"], // ADR-0014 điều 9: thao tác MỚI
+  "dispatch.refuse": ["assigned", "none", "assigned", "assigned", "none", "any", "none", "none", "none", "none"], // ADR-0030 điều 1: tự trả đơn đang phụ trách; route còn chốt ĐÚNG người phụ trách (cả Toàn quyền)
   // Sổ tiền lượt 1 (ADR-0026 điều 10 + bảng 9 cột của bản làm mới §2, accepted 2026-09-29): FIELD none → assigned, PARTNER none → own, INTERN none → own
   // (giữ năng lực ghi tiền trả trước hôm nay); hoàn khách: ADMIN any → none (H4 "Kế toán ghi"). DRIVER, DRIVER_PARTNER none.
   "payment.receive": ["own", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"],
@@ -293,6 +294,7 @@ const ADMIN_NONE_OPS: readonly OperationCode[] = [
   "trip.passenger.add", // ADR-0052 D5b (Đợt 5 A-1b): chỉ tài xế đang lái bổ sung tên — văn phòng nhập tên ở đơn (không route văn phòng)
   "trip.refuse", // ADR-0053 D8.3 (kế hoạch A4 T3): Từ chối chuyến chỉ tài xế đang lái — văn phòng không từ chối thay (đổi người bằng xếp xe; N-TU-CHOI)
   "unavailability.self", // ADR-0053 D9 (kế hoạch A4 T8): báo bận của CHÍNH tài xế — văn phòng không ghi thay (xem dải "Tài xế bận" qua trip.dispatch)
+  "dispatch.refuse", // ADR-0030 điều 1: Quản trị "assigned" — chỉ đơn mình đang phụ trách (ngữ cảnh không phụ trách → không)
   "trip.transfer", // ADR-0052 D4 :84 + ADR-0111: chỉ tài xế đang lái gửi / nhận đề nghị chuyển khách — Quản trị duyệt / bác qua trip.override
 ];
 
@@ -364,7 +366,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "order.leg.short_notice": "none", // ADR-0049 D3: đặt gấp chỉ Quản trị, Toàn quyền
     "order.leg.short_notice.view": "none", // chủ H4/N-14: tài xế không xem chi tiết đơn (không đổi)
     "order.service.manual": "none", // ADR-0061 điều 2: tài xế không nhập tay
-    "dispatch.guides.view": "none", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
+    "dispatch.guides.view": "none", "dispatch.refuse": "none", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
     "accounting.entry.mark": "none", "accounting.entry.view": "none", // ADR-0060: tài xế không xem đơn, không ghi dấu kế toán
     "party.view": "none", "party.write": "none", "party.staff.write": "none",
     "party.personal.view": "none", // ADR-0122 đ5
@@ -414,7 +416,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "order.leg.short_notice": "none", // ADR-0049 D3 × ADR-0048 D2
     "order.leg.short_notice.view": "none", // chủ H4/N-14 × ADR-0048 D2
     "order.service.manual": "none", // ADR-0061 điều 2 × ADR-0048 D2
-    "dispatch.guides.view": "none", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
+    "dispatch.guides.view": "none", "dispatch.refuse": "none", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
     "accounting.entry.mark": "none", "accounting.entry.view": "none", // ADR-0060: tài xế không xem đơn, không ghi dấu kế toán
     "party.view": "none", "party.write": "none", "party.staff.write": "none",
     "party.personal.view": "none", // ADR-0122 đ5
@@ -466,7 +468,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
   const HR_ROW: Record<string, Scope> = {
     "order.view": "none", "money.view": "none", "order.history.view": "none", "contact.view": "none", "order.create": "none", "order.modify": "none",
     "order.trip.edit": "none", "order.leg.short_notice": "none", "order.leg.short_notice.view": "none", "order.passenger.write": "none", "order.service.manual": "none",
-    "task.progress": "none", "order.money.edit": "none", "order.cancel": "none", "order.cancel.classify": "none", "deposit.refund.approve": "none", "deposit.transfer.approve": "none", "deposit.outside.record": "none", "dispatch.assign": "none", "dispatch.claim": "none", "dispatch.guides.view": "none",
+    "task.progress": "none", "order.money.edit": "none", "order.cancel": "none", "order.cancel.classify": "none", "deposit.refund.approve": "none", "deposit.transfer.approve": "none", "deposit.outside.record": "none", "dispatch.assign": "none", "dispatch.claim": "none", "dispatch.guides.view": "none", "dispatch.refuse": "none",
     "payment.receive": "none", "payment.refund": "none", "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none",
     "ledger.period.close": "none", // khoá sổ tháng (ADR-0080 D1): Nhân sự chỉ ba ô tài khoản
     "ledger.adjust.approve": "none", // ADR-0115: duyệt điều chỉnh công nợ chỉ Kế toán, Quản trị, Toàn quyền

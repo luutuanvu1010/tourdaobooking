@@ -9,20 +9,23 @@
 // vào ctx (ADR-0007 điều 4(b)). Ghi nhật ký và đổi dữ liệu trong cùng một db.batch() (`handlerChangeStatements`, `newOrderHandlerStatements`).
 import { cancelOrderByHandler, editMoneyAsHandler, findOrderDepartDates, findOrderOwner, getMyAssignments } from "../orders";
 import { getStaffAccount, listStaffAccounts } from "../staff";
-import type { AssigneeDto, AssigneesResponse, HandlerCancelResponse, HandlerDto, HandlerMoneyEditResponse, HandlersResponse, MyAssignmentsResponse, SetHandlerResponse } from "../../shared/contracts";
+import type {
+  AssigneeDto, AssigneesResponse, HandlerCancelResponse, HandlerDto, HandlerMoneyEditResponse, HandlerRefuseResponse, HandlersResponse, MyAssignmentsResponse, SetHandlerResponse,
+} from "../../shared/contracts";
 import { assigneeRoleLabel } from "../../shared/assignee-pick";
 import { thayDoiCuaHandler, type TrangThaiPhuTrach } from "../../shared/bang-tin";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { can, hasPermission, holdsPartner, MATRIX } from "../../shared/permissions";
 import { lyDoHuyCuaHdv } from "../../shared/ly-do-huy";
+import { docLyDoTuChoi } from "../../shared/ly-do-tu-choi";
 import { route, type AppModule, type NewOrderHandler } from "../../shared/router";
-import { tripDeparted } from "../../shared/trip-rules";
+import { tripDeparted, tuChoiQuaMuon } from "../../shared/trip-rules";
 import { vnToday } from "../../shared/vn-date";
 import { findHandledOrderIds, findHandlerOf, findHandlersOf, guardHandlerStatement, isHandler, orderDelivered, soDonDangPhuTrach, type HandlerRow } from "./repository";
 import {
-  CANCEL_REASON_LABEL, checkAssignee, handlerChangeVerdict, isOpenHandlerCollision, parseCancelReason, parseOrderIds, parseSetHandler,
+  CANCEL_REASON_LABEL, checkAssignee, handlerChangeVerdict, isDeliveredLock, isOpenHandlerCollision, parseCancelReason, parseOrderIds, parseSetHandler,
 } from "./rules";
-import { handlerChangeStatements, newOrderHandlerStatements } from "./service";
+import { handlerChangeStatements, newOrderHandlerStatements, refuseStatements, tuChoiThang } from "./service";
 
 const toDto = (r: HandlerRow): HandlerDto => ({ partyId: r.party_id, staffId: r.staff_id, name: r.label });
 
@@ -46,6 +49,11 @@ const MONEY_EDIT_FORBIDDEN = () => error(403, "forbidden", "Chỉ hướng dẫn
 const MONEY_EDIT_NOT_CONFIRMED = () => error(409, "not_editable", "Chỉ sửa được số khách của đơn đã xác nhận qua đường này.");
 const MONEY_EDIT_STALE = () => error(409, "stale", "Đơn vừa được sửa bởi người khác, hãy tải lại rồi thử lại.");
 /** Sổ tiền lượt 1 (ADR-0025 đ5, bản làm mới §3 mục 12): đơn đã "Đã giao – đã thu đủ" — không đổi / nhận người phụ trách, không huỷ, không sửa số khách. */
+/** Nút «Từ chối» (ADR-0030 điều 1). */
+const REFUSE_FORBIDDEN = () => error(403, "forbidden", "Chỉ người đang phụ trách đơn mới trả được đơn này.");
+const REFUSE_NOT_CONFIRMED = () => error(409, "order_not_confirmed", "Đơn chưa xác nhận — báo người lập đơn đổi người phụ trách.");
+const REFUSE_CANCELLED = () => error(409, "cancelled", "Đơn đã huỷ, không cần trả đơn.");
+const REFUSE_TOO_LATE = () => error(409, "too_late", "Đơn đi hôm nay hoặc ngày mai — không trả được nữa. Gọi văn phòng để đổi người.");
 const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Đã giao – đã thu đủ: không sửa, huỷ hay đổi người phụ trách được nữa. Sai sót thì Kế toán dùng “Sửa khoản thu đã ghi”.");
 
 /** Người dùng `staffId` có phải người phụ trách ĐANG MỞ của đơn `orderId` không. Gốc lắp ráp tiêm vào `ctx.isAssigned` (ADR-0007 điều 4(b)). */
@@ -271,6 +279,38 @@ export const dispatchModule: AppModule = {
       }
       baoThayDoi({ orderId, thayDoi: "tien" });
       return json({ ok: true, ...(result.dongBoChuyen ? { dongBoChuyen: result.dongBoChuyen } : {}) } satisfies HandlerMoneyEditResponse);
+    }),
+
+    // «Từ chối» (ADR-0030 điều 1): người ĐANG phụ trách tự trả đơn — đóng dòng HANDLE của chính mình, KHÔNG mở dòng mới, đơn về hàng chờ. Thứ tự:
+    // 403 sàng sớm (không có ô dispatch.refuse nào — Kế toán, Thực tập, Đối tác; trước mọi đọc) → 404 → 403 (người gọi KHÔNG phải người phụ trách đang mở —
+    // áp CẢ Toàn quyền: NGOẠI LỆ có chủ ý so với handler-money-edit; đặt TRƯỚC 409 nháp để không lộ trạng thái đơn cho người ngoài) → 409 order_not_confirmed
+    // (nháp — Q1 (a), chủ 2026-10-23) → 409 cancelled → 409 order_delivered → 409 too_late (ngày đi ≤ ngày mai — Q-E) → 400 (lý do, không ô chữ) → ghi
+    // (409 stale nếu thua đua). Luật (a)(b)(c) chỉ ở mã máy chủ, không trigger: LỆCH CÓ CHỦ Ý 5.1 (ADR-0030 điều 4, `docs/SYSTEM-DESIGN.md` §16).
+    // Không đồng bộ chuyến (người phụ trách không ở trong chuyến — `NGOAI_PHAM_VI_ROUTE`). Lô ở `refuseStatements`; thắng/thua chỉ hỏi `tuChoiThang`
+    // (ADR-0032 sẽ chèn câu REFUSE đầu lô mà route không đổi).
+    route("POST", "/api/orders/:id/handler-refuse", "orders", async ({ env, request, params, staff, baoThayDoi }) => {
+      if (!can(staff, "dispatch.refuse", { assigned: true })) return REFUSE_FORBIDDEN();
+      const orderId = params.id!;
+      if (!UUID_RE.test(orderId)) return NOT_FOUND();
+      const [order, current] = await Promise.all([findOrderOwner(env.DB, orderId), findHandlerOf(env.DB, orderId)]);
+      if (!order) return NOT_FOUND();
+      if (current === null || current.staff_id !== staff.id) return REFUSE_FORBIDDEN();
+      if (order.status === "draft") return REFUSE_NOT_CONFIRMED();
+      if (order.status === "cancelled") return REFUSE_CANCELLED();
+      if (await orderDelivered(env.DB, orderId)) return DA_GIAO();
+      if (tuChoiQuaMuon(await findOrderDepartDates(env.DB, orderId), vnToday(new Date()))) return REFUSE_TOO_LATE();
+      const lyDo = docLyDoTuChoi(await readJson(request));
+      if (!lyDo.ok) return error(400, "invalid_input", lyDo.message);
+      let kq: D1Result[];
+      try {
+        kq = await env.DB.batch(refuseStatements(env.DB, { orderId, partyId: current.party_id, actorId: staff.id, at: new Date().toISOString(), lyDo: lyDo.ma }));
+      } catch (e) {
+        if (isDeliveredLock(e)) return DA_GIAO(); // trigger 0044: đơn vừa Đã giao giữa lúc đọc và lúc ghi (cả lô đã quay lại)
+        throw e;
+      }
+      if (!tuChoiThang(kq)) return STALE();
+      baoThayDoi({ orderId, thayDoi: "tu_choi", handlerTruoc: { coNguoi: true, staffId: staff.id } });
+      return json({ ok: true } satisfies HandlerRefuseResponse);
     }),
   ],
 };

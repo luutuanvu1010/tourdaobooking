@@ -127,6 +127,9 @@ export function handlerChangeVerdict(who: PermissionHolder, order: { ownerId: st
  * Lỗi "đã có người phụ trách đang mở" của chính CSDL (chỉ mục duy nhất `dsp_assignment_handler_open_uq`). Các câu của `service.ts` đã có điều kiện nên đường thường
  * KHÔNG đến được đây; đây là lưới cuối: route đổi nó thành 409 `stale` thay vì để thành 500.
  */
+/** Lỗi trigger khoá đơn "Đã giao" (`migrations/0044` — `dsp_assignment_delivered_lock_upd`): lưới cuối khi đơn vừa Đã giao giữa lúc đọc và lúc ghi → 409, không 500. */
+export const isDeliveredLock = (e: unknown): boolean => e instanceof Error && /order_delivered:/.test(e.message);
+
 export const isOpenHandlerCollision = (e: unknown): boolean => e instanceof Error && /UNIQUE constraint failed: dsp_assignment\.order_id/.test(e.message);
 
 /** Dòng nhật ký `order_handler_changed`: CHỈ TÊN (không SĐT). */

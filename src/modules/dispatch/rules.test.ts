@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { assigneeRoleLabel } from "../../shared/assignee-pick.ts";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions.ts";
 import {
-  MAX_HANDLER_LOOKUP, checkAssignee, describeHandlerChange, handlerChangeVerdict, isOpenHandlerCollision, mayChangeHandler,
+  MAX_HANDLER_LOOKUP, checkAssignee, describeHandlerChange, handlerChangeVerdict, isDeliveredLock, isOpenHandlerCollision, mayChangeHandler,
   parseCancelReason, parseOrderIds, parseSetHandler,
 } from "./rules.ts";
 
@@ -223,4 +223,11 @@ test("lỗi 'đã có người phụ trách đang mở' của CSDL được nh�
 test("nhật ký đổi người: chỉ tên (từ A sang B); chưa có người thì nói rõ", () => {
   assert.equal(describeHandlerChange("Nguyễn Văn An", "Trần Thị Bình"), "từ Nguyễn Văn An sang Trần Thị Bình");
   assert.equal(describeHandlerChange(null, "Trần Thị Bình"), "từ chưa có người phụ trách sang Trần Thị Bình");
+});
+
+test("isDeliveredLock: chỉ nhận lỗi trigger 'order_delivered:' (khoá Đã giao, migration 0044) — lỗi khác và giá trị không phải Error → false", () => {
+  assert.equal(isDeliveredLock(new Error("order_delivered: đơn đã Đã giao – không đổi / nhận người phụ trách")), true);
+  assert.equal(isDeliveredLock(new Error("D1_ERROR: order_delivered: đơn đã Đã giao")), true);
+  assert.equal(isDeliveredLock(new Error("UNIQUE constraint failed: dsp_assignment.order_id")), false);
+  assert.equal(isDeliveredLock("order_delivered:"), false);
 });

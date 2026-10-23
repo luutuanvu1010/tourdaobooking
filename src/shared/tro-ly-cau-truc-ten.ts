@@ -86,6 +86,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "order.cancel": { ten: "huỷ đơn mình phụ trách theo quyền hướng dẫn viên (kèm lý do)", moTa: "Hướng dẫn viên huỷ đơn mình đang phụ trách (đơn đã xác nhận, trước ngày đi), luôn kèm lý do. Người lập đơn huỷ đơn bằng việc sửa, xác nhận, huỷ đơn." },
   "dispatch.assign": { ten: "giao, đổi người phụ trách", moTa: "Chọn hoặc đổi người phụ trách một đơn." },
   "dispatch.claim": { ten: "nhận đơn đang chờ", moTa: "Bấm nhận phụ trách một đơn chưa có người phụ trách." },
+  "dispatch.refuse": { ten: "trả đơn mình đang phụ trách (Từ chối)", moTa: "Người đang phụ trách bấm Từ chối đơn, chọn lý do; đơn về hàng chờ. Không trả được khi đơn đi hôm nay hoặc ngày mai — gọi văn phòng để đổi người." },
   "dispatch.guides.view": { ten: "xem danh sách hướng dẫn viên", moTa: "Danh sách hẹp các hướng dẫn viên nội bộ." },
   "payment.receive": { ten: "ghi khoản thu tiền", moTa: "Ghi số tiền khách đã trả cho đơn ở mục Thanh toán của trang đơn." },
   "payment.refund": { ten: "ghi hoàn tiền cho khách", moTa: "Ghi khoản trả lại khách trong sổ." },
@@ -204,7 +205,7 @@ export const LUONG_CHINH: readonly BuocLuong[] = [
     ten: "Người phụ trách",
     moTa: "Mỗi đơn có một người phụ trách lo đơn tới ngày đi. Người lập chọn ngay khi lập, hoặc đơn nằm ở hàng chờ để hướng dẫn viên, nhân viên bấm nhận.",
     viSao: "Có người phụ trách thì đơn có người lo; hướng dẫn viên chỉ thấy đơn khi đang là người phụ trách.",
-    thaoTac: ["dispatch.assign", "dispatch.claim"],
+    thaoTac: ["dispatch.assign", "dispatch.claim", "dispatch.refuse"],
   },
   {
     ten: "Xếp xe",

@@ -7,10 +7,11 @@
 import { can, hasPermission, holdsPartner, isOffice, type PermissionHolder } from "./permissions.ts";
 
 /**
- * 11 loại thay đổi một đơn có thể phát (điều 4 + điều 7). Sổ tiền lượt 1 (ADR-0025 điều 8): `chot_giao` ("Đã giao – đã thu đủ" — KHÔNG dùng `giao`, vốn là
+ * 12 loại thay đổi một đơn có thể phát (điều 4 + điều 7). Sổ tiền lượt 1 (ADR-0025 điều 8): `chot_giao` ("Đã giao – đã thu đủ" — KHÔNG dùng `giao`, vốn là
  * giao người phụ trách) và `hoan_thanh` — CHỈ làm mới màn hình (không thông báo nổi, không gõ cửa màn hình khoá — ADR-0045; giả định bề mặt đảo được).
+ * `tu_choi` (ADR-0030 điều 1): người phụ trách tự trả đơn — đơn về hàng chờ; thông báo nổi, không gõ cửa màn hình khoá (Q4 (a), chủ 2026-10-23).
  */
-export const THAY_DOI = ["tao", "tao_cho_nhan", "nhan", "giao", "xac_nhan", "huy", "sua", "chuyen", "tien", "chot_giao", "hoan_thanh"] as const;
+export const THAY_DOI = ["tao", "tao_cho_nhan", "nhan", "giao", "xac_nhan", "huy", "sua", "chuyen", "tien", "chot_giao", "hoan_thanh", "tu_choi"] as const;
 export type ThayDoiDon = (typeof THAY_DOI)[number];
 
 /** Sự kiện phát cho mọi màn hình đang mở — ĐÚNG 5 khoá, không hơn (điều 4). `maDon` = `orders.order_code`. */
@@ -137,12 +138,13 @@ export interface ThongBaoNoi {
   lienKet: string;
 }
 
-/** Chỉ 4 loại thay đổi hiện thông báo nổi (TD-4) — `tao`, `tao_cho_nhan` (ADR-0045: lưu nháp không báo), `sua`, `chuyen`, `tien` chỉ làm mới màn hình, không nổi. */
+/** Chỉ 5 loại thay đổi hiện thông báo nổi (TD-4 + `tu_choi` của ADR-0030 điều 1) — `tao`, `tao_cho_nhan` (ADR-0045: lưu nháp không báo), `sua`, `chuyen`, `tien` chỉ làm mới màn hình, không nổi. */
 const CAU_THONG_BAO: { [K in ThayDoiDon]?: (maDon: string) => string } = {
   nhan: (maDon) => `Đơn ${maDon} vừa có người nhận`,
   giao: (maDon) => `Đơn ${maDon} vừa đổi người phụ trách`,
   xac_nhan: (maDon) => `Đơn ${maDon} đã được xác nhận`,
   huy: (maDon) => `Đơn ${maDon} đã bị huỷ`,
+  tu_choi: (maDon) => `Đơn ${maDon} vừa được trả lại, đang chờ người nhận`,
 };
 
 /**
@@ -181,6 +183,8 @@ export function thongBaoNoi(staff: PermissionHolder, suKien: SuKienDon): ThongBa
   if (!duocThayTinDon(staff, suKien.thayDoi === "tao_cho_nhan")) return null;
   // Vòng sửa 1 sau kiểm độc lập lượt 1 ADR-0030 (phát hiện I-3, chủ quyết 2026-09-27): "nhan" KHÔNG hiện cho kết nối có nhãn `cho-nhan` mà KHÔNG có
   // `tat-ca` — tính bằng CHÍNH `nhanKetNoi` (một nguồn, không viết lại luật lai). Xem chú thích đầy đủ ở trên hàm này.
+  // ADR-0030 điều 1 (TC-6 của ADR): tài khoản mang quyền Đối tác (kể cả lai) không thấy tin "được trả lại" — giống hàng chờ (S20-8).
+  if (suKien.thayDoi === "tu_choi" && holdsPartner(staff)) return null;
   if (suKien.thayDoi === "nhan") {
     const nhan = nhanKetNoi(staff);
     if (nhan.includes("cho-nhan") && !nhan.includes("tat-ca")) return null;
