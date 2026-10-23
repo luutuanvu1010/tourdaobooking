@@ -3,6 +3,8 @@
 import type { HandlerDto, OrderStatus, StaffProfile } from "./contracts.ts";
 import { banner, type Banner, type ErrorInput } from "./order-errors.ts";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "./permissions.ts";
+import { LY_DO_TU_CHOI } from "./ly-do-tu-choi.ts";
+import { vnDateTimeText } from "./vn-date.ts";
 
 /** Chip ở danh sách đơn và ở khối "Người phụ trách" khi đơn chưa có người (ADR-0030 điều 3, Q-A2: "Chờ nhận" thay
  * "Chưa có người phụ trách" — đơn mới không tự gắn người lập, HDV cần thấy ngay đây là đơn đang chờ ai đó bấm Nhận). */
@@ -82,6 +84,8 @@ export function handlerFailure(e: ErrorInput | null, kind: "assign" | "claim" | 
   if (e === null) return { banner: banner("danger", "Không kết nối được máy chủ.", { lines: [{ text: "Kiểm tra kết nối mạng rồi thử lại." }] }), reload: false };
   // Từ chối (ADR-0030 điều 1): 409 hạn / đã huỷ / nháp / Đã giao là câu máy chủ nói rõ việc phải làm ("Gọi văn phòng để đổi người") — giữ nguyên, không tải lại.
   if (kind === "refuse" && e.status === 403) return { banner: banner("warning", "Bạn không còn phụ trách đơn này. Đã tải lại."), reload: true };
+  // ADR-0032 điều 5, 9: hết lượt Từ chối — hiện NGUYÊN câu máy chủ («… Hãy gọi văn phòng.»), hộp không đóng, không tải lại.
+  if (kind === "refuse" && e.status === 409 && e.code === "refuse_limit") return { banner: banner("warning", e.message), reload: false };
   if (e.status === 409 && e.code === "stale") {
     const title = kind === "claim" ? "Đơn này vừa có người khác nhận phụ trách. Đã tải lại đơn." : "Người phụ trách của đơn vừa được đổi ở nơi khác. Đã tải lại — hãy xem người phụ trách hiện tại rồi thử lại nếu cần.";
     return { banner: banner("warning", title), reload: true };
@@ -117,4 +121,13 @@ export interface MyJobActions {
 export function myJobActions({ status, departed, quaMuon }: { status: OrderStatus; departed: boolean; quaMuon: boolean }): MyJobActions {
   if (status !== "confirmed") return { cancel: false, editPax: false, refuse: false };
   return { cancel: !departed, editPax: !departed, refuse: !quaMuon };
+}
+
+/**
+ * Dòng phụ dưới tên người ở bảng chọn người phụ trách (ADR-0032 điều 10): người đó từng Từ chối CHÍNH đơn đang giao. Nhãn lý do từ danh sách đóng (không
+ * lộ mã). Không có mục → null (không hiện dòng).
+ */
+export function dongTuChoiTruoc(muc: { luc: string; lyDo: string } | undefined): string | null {
+  if (!muc) return null;
+  return `Đã từ chối đơn này lúc ${vnDateTimeText(muc.luc)} — ${LY_DO_TU_CHOI.find((l) => l.ma === muc.lyDo)?.nhan ?? "Khác"}`;
 }

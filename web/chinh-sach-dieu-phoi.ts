@@ -11,6 +11,7 @@ import { can } from "../src/shared/permissions";
 import { ApiError, api, type Api } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { byId, h, replaceChildren } from "./dom";
+import { veTheHanMuc } from "./han-muc-tu-choi-the";
 import { datCrumb, loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
 import { initShell, showError } from "./shell";
@@ -311,6 +312,8 @@ async function veMocRieng(): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  // ADR-0032 điều 8: thẻ hạn mức Từ chối — tự ẩn khi thiếu admin.manage; độc lập với phần chính sách (lỗi của nó không chặn thẻ kia).
+  void veTheHanMuc(byId("hm-the"), staff);
   if (!can(staff, "settings.ops") && can(staff, "dispatch.policy.lead")) {
     try {
       return await veMocRieng();

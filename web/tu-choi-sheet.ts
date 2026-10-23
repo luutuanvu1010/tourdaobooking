@@ -2,10 +2,12 @@
 // chỉ bật khi đã chọn). Dùng chung cho thẻ «Đơn của tôi» của hướng dẫn viên (web/viec-cua-toi.ts) và khối «Người phụ trách» của trang đơn (web/order.ts).
 // Danh sách lý do là luật thuần chung với máy chủ (`src/shared/ly-do-tu-choi.ts`) — KHÔNG ô chữ, kể cả «Khác». Máy chủ kiểm lại mọi điều kiện.
 // Kết quả trả về nơi gọi: thành công, hoặc lỗi của máy chủ đã phân loại bằng `handlerFailure(…, "refuse")`: lỗi «màn hình đã cũ» (403, 409 stale, 404)
-// → đóng hộp, nơi gọi tải lại; lỗi còn lại (409 hạn hôm nay / ngày mai, đơn huỷ, nháp, Đã giao; 400) → hiện đúng câu máy chủ ngay trong hộp.
+// → đóng hộp, nơi gọi tải lại; lỗi còn lại (409 hạn hôm nay / ngày mai, đơn huỷ, nháp, Đã giao, hết lượt Từ chối — ADR-0032; 400) → hiện đúng câu máy chủ
+// ngay trong hộp.
 import { handlerFailure } from "../src/shared/handler-view";
 import type { Banner } from "../src/shared/order-errors";
 import { LY_DO_TU_CHOI, type MaLyDoTuChoi } from "../src/shared/ly-do-tu-choi";
+import { cauConLai } from "../src/shared/han-muc-tu-choi";
 import { ApiError, api, type Api } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { h } from "./dom";
@@ -38,9 +40,20 @@ export function moHopTuChoi(o: {
     return h("label", { class: "pick" }, input, h("span", { class: "pick-mark", "aria-hidden": "true" }), h("span", { class: "pick-name" }, l.nhan));
   });
   const fieldset = h("fieldset", { class: "pick-list" }, h("legend", { class: "pick-legend" }, "Chọn lý do từ chối"), ...radios);
+  // ADR-0032 điều 9: «Bạn còn được từ chối N đơn liên tiếp, M lần trong tuần này» — chỉ khi máy chủ trả số (chế độ Chặn, người bị giới hạn). Lỗi mạng → không
+  // hiện dòng, không chặn bấm; hết lượt vẫn bấm được — máy chủ trả câu «Hãy gọi văn phòng».
+  const conLaiEl = h("p", { class: "tu-choi-con-lai", "data-con-lai": "1", hidden: true });
+  void api<Api.ConLaiTuChoiResponse>(`/api/orders/${encodeURIComponent(o.orderId)}/han-muc-tu-choi`)
+    .then((r) => {
+      if (r.conLai) {
+        conLaiEl.textContent = cauConLai(r.conLai.lienTiep, r.conLai.tuan);
+        conLaiEl.hidden = false;
+      }
+    })
+    .catch(() => undefined);
   const bang = moBangTruot({
     title: `Từ chối đơn ${o.orderCode}?`,
-    body: [h("p", { class: "hdv-cancel-text" }, `${o.moTa} Đơn sẽ quay về danh sách Chờ nhận để người khác nhận.`), fieldset, errorBox],
+    body: [h("p", { class: "hdv-cancel-text" }, `${o.moTa} Đơn sẽ quay về danh sách Chờ nhận để người khác nhận.`), conLaiEl, fieldset, errorBox],
     foot: [giuBtn, xacNhanBtn],
     footClass: "hdv-sheet-foot",
     opener: o.opener,

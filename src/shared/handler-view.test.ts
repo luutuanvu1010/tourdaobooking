@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { HandlerDto } from "./contracts.ts";
-import { handlerControls, handlerFailure, handlerSaved, handlerText, hoiDuocNguoiPhuTrach, myJobActions, NO_HANDLER_TEXT, nguoiPhuTrachTuPhien, nhanChoNhan } from "./handler-view.ts";
+import { dongTuChoiTruoc, handlerControls, handlerFailure, handlerSaved, handlerText, hoiDuocNguoiPhuTrach, myJobActions, NO_HANDLER_TEXT, nguoiPhuTrachTuPhien, nhanChoNhan } from "./handler-view.ts";
 import { can, PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 
 // Ba nhân viên bán hàng (A lập đơn, B được giao, C người ngoài), quản trị, kế toán, nhân viên hiện trường.
@@ -232,4 +232,17 @@ test("handlerFailure 'refuse': 409 too_late / cancelled / order_not_confirmed / 
 
 test("handlerSaved 'refuse': câu báo sau khi trả đơn", () => {
   assert.equal(handlerSaved("refuse", "", true), "Đã trả đơn. Đơn quay về danh sách Chờ nhận.");
+});
+
+// ---- ADR-0032 (hạn mức Từ chối) ----
+test("handlerFailure refuse: 409 refuse_limit → câu máy chủ nguyên văn, KHÔNG tải lại (hộp còn mở)", () => {
+  const f = handlerFailure({ status: 409, code: "refuse_limit", message: "Bạn đã từ chối đủ số lần cho phép. Hãy gọi văn phòng." }, "refuse");
+  assert.equal(f.reload, false);
+  assert.equal(f.banner.title, "Bạn đã từ chối đủ số lần cho phép. Hãy gọi văn phòng.");
+});
+
+test("dongTuChoiTruoc: «Đã từ chối đơn này lúc HH:MM DD/MM/YYYY — <nhãn lý do>»; không có mục → null; không lộ mã lý do", () => {
+  assert.equal(dongTuChoiTruoc({ luc: "2026-10-23T03:05:00.000Z", lyDo: "BAN_LICH" }), "Đã từ chối đơn này lúc 10:05 23/10/2026 — Bận lịch khác");
+  assert.equal(dongTuChoiTruoc({ luc: "2026-10-23T03:05:00.000Z", lyDo: "OTHER" }), "Đã từ chối đơn này lúc 10:05 23/10/2026 — Khác");
+  assert.equal(dongTuChoiTruoc(undefined), null);
 });

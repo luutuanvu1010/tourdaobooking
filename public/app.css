@@ -3632,3 +3632,31 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .canh-bao-dt-chu { margin: 0; font-size: var(--fs-label); font-weight: var(--fw-semibold); }
 .canh-bao-dt-nut { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .canh-bao-dt-nut .btn { min-height: var(--tap-min); }
+
+/* Thẻ «Hạn mức Từ chối của hướng dẫn viên» ở trang Chính sách điều phối (ADR-0032 điều 8; web/han-muc-tu-choi-the.ts). Điện thoại: mỗi người một thẻ xếp dọc;
+   máy tính (≥ 900px): mỗi người một hàng sáu cột. Chỉ token. */
+.hm-card { display: grid; gap: var(--s3); margin-top: var(--s4); padding: var(--s4); }
+.hm-title { margin: 0; font-size: var(--fs-h2); }
+.hm-tom-tat { margin: 0; color: var(--c-text-muted); font-size: var(--fs-label); }
+.hm-phu { display: block; color: var(--c-text-muted); font-size: var(--fs-label); font-weight: var(--fw-regular); }
+.hm-form { display: grid; gap: var(--s3); }
+.hm-o-so { display: grid; gap: var(--s3); }
+.hm-tat-ca { display: flex; justify-content: flex-end; }
+.hm-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.hm-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2) var(--s3); padding: var(--s3) 0; border-bottom: 1px solid var(--c-border); }
+.hm-row:last-child { border-bottom: 0; }
+.hm-ten { grid-column: 1 / -1; }
+.hm-so { display: grid; gap: var(--s1); }
+.hm-cuoi { grid-column: 1 / -1; }
+.hm-nhan { color: var(--c-text-muted); font-size: var(--fs-label); }
+.hm-gia-tri { font-weight: var(--fw-semibold); }
+.hm-hanh-dong { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
+.hm-nut { min-height: var(--tap-min); }
+@media (min-width: 900px) {
+  .hm-o-so { grid-template-columns: 1fr 1fr; }
+  .hm-row { grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)) minmax(0, 2fr) auto; align-items: center; }
+  .hm-ten, .hm-cuoi, .hm-hanh-dong { grid-column: auto; }
+}
+/* Dòng «còn N lần» trong hộp Từ chối (ADR-0032 điều 9) và dòng phụ «đã từ chối đơn này lúc …» ở bảng chọn người (điều 10). */
+.tu-choi-con-lai { margin: 0; color: var(--c-text-muted); font-size: var(--fs-label); }
+.assignee-tu-choi { display: block; color: var(--c-sand-text); font-size: var(--fs-label); }
