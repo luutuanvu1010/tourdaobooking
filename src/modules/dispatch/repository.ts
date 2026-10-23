@@ -50,6 +50,17 @@ const CLOSE_HANDLER = defineSql(
    WHERE order_id = ?1 AND task_kind_code = 'HANDLE' AND valid_to_at IS NULL AND party_id = ?2`,
 );
 
+/**
+ * Biến thể «sau chốt» của câu đóng (ADR-0032 điều 5, kế hoạch 2026-10-23 mục 4d): câu thứ HAI của lô Từ chối — chỉ đóng khi câu NGAY TRƯỚC (chèn sự kiện
+ * REFUSE có điều kiện hạn mức) đã chèn. KHÔNG sửa `CLOSE_HANDLER` (câu chốt của đổi người).
+ */
+const CLOSE_HANDLER_SAU_CHOT = defineSql(
+  "dispatch",
+  "close_handler_sau_chot",
+  `UPDATE dsp_assignment SET valid_to_at = max(?3, valid_from_at), updated_at = ?3, updated_by = ?4
+   WHERE order_id = ?1 AND task_kind_code = 'HANDLE' AND valid_to_at IS NULL AND party_id = ?2 AND changes() > 0`,
+);
+
 export async function findHandlersOf(db: D1Database, orderIds: readonly string[]): Promise<HandlerRow[]> {
   return (await db.prepare(HANDLERS_OF_ORDERS).bind(JSON.stringify(orderIds)).all<HandlerRow>()).results;
 }
@@ -85,6 +96,10 @@ export const insertHandlerIfNoneStatement = (db: D1Database, h: NewHandler): D1P
 /** Câu chốt: đóng dòng đang mở của `partyId` (người phụ trách route đã đọc). `meta.changes` = 0 ⇒ người phụ trách đã đổi giữa lúc đọc và ghi. */
 export const closeHandlerStatement = (db: D1Database, orderId: string, partyId: string, at: string, actorId: string): D1PreparedStatement =>
   db.prepare(CLOSE_HANDLER).bind(orderId, partyId, at, actorId);
+
+/** Câu đóng thứ hai của lô Từ chối: như `closeHandlerStatement` nhưng chỉ áp khi câu ngay trước (sự kiện REFUSE) đã chèn. */
+export const closeHandlerSauChotStatement = (db: D1Database, orderId: string, partyId: string, at: string, actorId: string): D1PreparedStatement =>
+  db.prepare(CLOSE_HANDLER_SAU_CHOT).bind(orderId, partyId, at, actorId);
 
 // ---- Sổ tiền lượt 1 (ADR-0024 điều 2, ADR-0025 điều 3c/5) ------------------------------------------------------------------------------------------
 /**

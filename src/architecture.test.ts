@@ -85,6 +85,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "billing", file: "modules/billing/dieu-chinh-repo.ts" }, // ADR-0115 đợt 1 (điều chỉnh công nợ cần duyệt, migration 0094) — nghiêm từ ngày đầu: SQL tiền đi qua defineSql + EXPLAIN
   { module: "company", file: "modules/company/repository.ts" },
   { module: "dispatch", file: "modules/dispatch/repository.ts" },
+  { module: "dispatch", file: "modules/dispatch/han-muc-repo.ts" }, // ADR-0032 (kế hoạch 2026-10-23 mục 3c): sổ sự kiện phân công + cài đặt hạn mức Từ chối — EXPLAIN từng câu
   { module: "feedback", file: "modules/feedback/repository.ts" },
   { module: "giao-dien", file: "modules/giao-dien/repository.ts" },
   { module: "ky-so", file: "modules/ky-so/repository.ts" }, // ADR-0080 D1 (sổ đại lý đợt 1): khoá tháng — nghiêm từ ngày đầu. NỚI hàng rào đã duyệt (Điều 9.4) — chủ duyệt C12 2026-10-01, xem docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/de-xuat-luat.md.
