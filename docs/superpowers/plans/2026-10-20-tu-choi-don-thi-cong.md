@@ -302,6 +302,14 @@ AI: chạy lại đủ lệnh, đưa nguyên lệnh `npm run day-len -- <nhánh>
 
 > Viết lời thường để điều phối chuyển nguyên cho chủ. Không hỏi lại điều ADR-0030 đã chốt (ai được trả, hạn hôm nay/ngày mai, bốn lý do, không ô chữ, đơn về Chờ nhận, không đếm ở lượt này).
 
+> **ĐÃ TRẢ LỜI — chủ dự án, chat 2026-10-23, nguyên văn: «1, duyệt hết»** (chữ «1» trả lời câu khác — để tạm, chưa đẩy nhánh; «duyệt hết» = duyệt mọi khuyến nghị điều phối trình cùng lượt). Điều phối trình theo thứ tự: (1) ADR-0032, (2) Q1, (3) Q2, (4) Q3, (5) Q4, (6) Q5. Kết quả áp dụng:
+> - **Q1 = (a):** Từ chối chỉ đơn đã xác nhận; đơn nháp → 409 `order_not_confirmed`. «HDV huỷ đơn chưa chốt» (Q-G, 27/9) coi như đã bị ADR-0135 thay — không làm.
+> - **Q2 = (a):** nhật ký ghi chỉ nhãn lý do; lớp rút gọn GIỮ dòng, không tên; Toàn quyền thấy tên.
+> - **Q3 = (a):** dòng «đã từ chối lúc … — lý do» ở bảng chọn người làm cùng ADR-0032, đọc `dsp_release_event`, không đọc nhật ký.
+> - **Q4 = (a):** chỉ thông báo nổi Bảng tin; không migration hộp thông báo.
+> - **Q5 = (a):** dùng lại khuôn hộp «Huỷ đơn này»; ảnh chụp điện thoại + máy tính trình chủ trước phát hành.
+> - **ADR-0032:** accepted cùng lượt (`docs/adr/ADR-0032-han-muc-tu-choi.md`).
+
 **Q1. Trả đơn chưa xác nhận (nháp).** Quyết định "nháp riêng tư" ngày 19/10 nói đơn nháp chỉ người lập được đụng vào, và hàng chờ chỉ có đơn đã xác nhận. Nút Từ chối nên:
 - (a) **chỉ dùng cho đơn đã xác nhận**; đơn nháp thì người lập tự đổi người phụ trách — *khuyến nghị*: khớp quyết định 19/10, đơn trả về luôn vào được hàng chờ.
 - (b) dùng cho cả nháp như văn bản 27/9 — đơn nháp bị trả sẽ "lơ lửng" vì không vào được hàng chờ.

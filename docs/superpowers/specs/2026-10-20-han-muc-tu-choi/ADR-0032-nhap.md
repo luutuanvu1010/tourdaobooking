@@ -1,6 +1,6 @@
 # ADR-0032 (bản nháp) — Bộ đếm và hạn mức số lần «Từ chối» đơn của hướng dẫn viên; cài đặt và đặt lại do Toàn quyền
 
-- **Trạng thái:** **proposed** — AI soạn 2026-10-20 (vai điều phối / lập kế hoạch), chờ chủ dự án duyệt. AI không tự duyệt (Hiến pháp N3, Điều 7.2). Duyệt xong mới chép sang `docs/adr/ADR-0032-han-muc-tu-choi.md` và thêm dòng mục lục.
+- **Trạng thái:** **ĐÃ DUYỆT 2026-10-23** (chủ, «1, duyệt hết») — bản chính thức: `docs/adr/ADR-0032-han-muc-tu-choi.md` (có thêm điều 10 theo Q3). Bản nháp giữ làm nơi chứa trang ghép. AI soạn 2026-10-20 (vai điều phối / lập kế hoạch). AI không tự duyệt (Hiến pháp N3, Điều 7.2). Duyệt xong mới chép sang `docs/adr/ADR-0032-han-muc-tu-choi.md` và thêm dòng mục lục.
 - **Số 0032:** đã được ADR-0030 (accepted) giữ đích danh cho việc này (ADR-0030 điều 5, dòng 165–168); chưa nhánh nào dùng số này (đã kiểm `origin/*` 2026-10-20). Không lấy số kế tiếp 0136 (đang dành cho nhánh Xác nhận đơn).
 - **Loại:** việc lớn (quyền, dữ liệu). **Phần dữ liệu một chiều** (thêm ba bảng, chỉ-thêm); **hành vi hai chiều** (tắt hạn mức bằng một dòng cài đặt, không cần mã).
 - **Phụ thuộc:** nút «Từ chối» của ADR-0030 lượt 2 (điều 1) — **chưa thi công**, làm trước, kế hoạch `docs/superpowers/plans/2026-10-20-tu-choi-don-thi-cong.md`. Hai việc có thể chung một lần phát hành.
