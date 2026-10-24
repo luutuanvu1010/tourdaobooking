@@ -92,6 +92,12 @@ Sau vá: `npm run typecheck` thoát 0; `npm run build:web` thoát 0; `npm test` 
 
 **DỪNG — chờ chủ (nhánh thua đua):** giữ ghi một lần ở nhánh này buộc lệch ADR-0032 điều 5. Phương án: (A) gộp nhật ký thua đua vào CHÍNH lô Từ chối, điều kiện SQL «REFUSE của lệnh này không chèn VÀ người gọi vẫn đang phụ trách» (⇔ chỉ còn lý do hạn mức) — một lần ghi, lệch chữ «lô riêng», `detail` không có số chính xác lúc ghi (dùng số đọc trước lô + ghi «vượt lúc ghi») — khuyến nghị; (B) bỏ nhật ký ở nhánh thua đua (hiếm — hai lần Từ chối song song) — mất dấu vết lần chạm đó; (C) thêm route vào `GHI_NHIEU_LAN` có hạn — nới danh sách nợ, chủ duyệt.
 
+**Chủ chọn (A)** (chat 2026-10-24, nguyên văn «a»); điều phối ghi «Sửa đổi 2026-10-24 — điều 5» vào ADR-0032 (commit 187faa89). Thi công f188cee9: lô Từ chối của người bị giới hạn thêm câu CUỐI `refuse_limit_hit` «<số đọc trước lô> · Chặn · vượt lúc ghi», điều kiện `dieuKienVuotLucGhi` (`han-muc-repo.ts`: REFUSE của lệnh này không có VÀ người gọi vẫn có dòng phụ trách mở); route hỏi `ketQuaTuChoi(kq, coVuotLucGhi)` (`service.ts`) → `thang` / `han_muc` (409 `refuse_limit`) / `thua` (409 `stale`, không nhật ký); bỏ đọc lại + lô ghi thứ hai. Chặn ở bước đọc giữ nguyên (một lô một câu nhật ký).
+- Bài «H5: thua đua …» bỏ `todo`: ĐỎ trước (`duong: 'POST /api/orders/:id/handler-refuse', so: 2`) → XANH, kèm `detail` = «Liên tiếp 1/2 · tuần 1/15 · Chặn · vượt lúc ghi». Bài mới «H5: thua đua vì bị ĐỔI NGƯỜI …» (409 `stale`, một lần ghi, 0 nhật ký hạn mức); HM-12 (c) thêm kiểm 0 nhật ký hạn mức. Đột biến: bỏ vế «vẫn đang phụ trách» của điều kiện ⇒ `not ok … HM-12 (c)` + `not ok … H5: thua đua vì bị ĐỔI NGƯỜI` → hoàn nguyên → xanh.
+
+- e2e bổ sung có H5 (`chay-h5.mjs`) sau f188cee9: `han-muc-tu-choi dispatch chong-ghi-trung` → ba ✔, `ℹ H5: 1494 dòng log; 0 lệnh ghi nhiều lần ở []`, `✔ H5`, `audit-invariants --strict` thoát 0. Mối lo «1500 dòng»: chạy thêm `… bangtin permissions` → `1981 dòng log`, `✔ H5` ⇒ Local Explorer KHÔNG cắt ở 1500 (con số 1500 trước đó là trùng hợp); trần khác (nếu có) chưa thấy.
+- Sau vá: `npm run typecheck` thoát 0; `npm run build:web` thoát 0; `npm test` thoát 0 — bước 1 `# tests 6069`, `# pass 6060`, `# fail 0`, `# todo 9`; bước 2 `# pass 1`.
+
 ## Ruling / lệch so với kế hoạch (người thi công — ghi để người kiểm xét)
 
 - **R-H1 (cột `updated_*`):** `src/architecture.test.ts` (ADR-0003) đòi `updated_at NOT NULL` + `updated_by TEXT NULL` ở mọi bảng không phải tra cứu ⇒ thêm hai cột vào `dsp_release_event` và `dsp_refuse_policy`, luôn bằng `created_*` (kế hoạch 2b ghi chú cuối đã dự liệu).
