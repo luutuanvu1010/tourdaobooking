@@ -131,3 +131,15 @@ test("Phần C: mục «Nhận mã đăng nhập qua email» có ở nhóm Hư�
   for (const id of ["hdv", "tai-xe", "nhan-su", "doi-tac"]) assert.ok(co(id), id);
   for (const id of ["ke-toan", "quan-tri"]) assert.ok(!co(id), id);
 });
+
+test("ADR-0030 điều 1 (nút Từ chối): nhóm Hướng dẫn viên, Bán hàng, Quản trị dạy [[Từ chối đơn]]; không còn câu «chưa có nút trả đơn» / «HDV từ chối đơn: chưa có nút này»", () => {
+  for (const id of ["hdv", "ban-hang", "quan-tri"]) {
+    const n = HUONG_DAN.find((x) => x.id === id);
+    assert.ok(n, `không có nhóm ${id}`);
+    assert.ok(nutCuaNhom(n).includes("Từ chối đơn"), `${id}: thiếu [[Từ chối đơn]]`);
+  }
+  const moi = HUONG_DAN.flatMap((n) => [n.gioiThieu, n.batDauNhanh, ...n.muc.map((m) => m.noiDung)]).join("\n");
+  assert.ok(!moi.includes("chưa có nút trả đơn"), "câu cũ ở hướng dẫn HDV");
+  assert.ok(!moi.includes("HDV từ chối đơn**: chưa có nút này"), "câu cũ ở hướng dẫn Bán hàng");
+  assert.ok(moi.includes("được trả lại"), "phải giải thích chip «được trả lại»");
+});

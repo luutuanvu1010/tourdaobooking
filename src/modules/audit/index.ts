@@ -6,7 +6,7 @@ import { error, intParam, json } from "../../shared/http";
 import { can, holdsPartner } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import {
-  insertStatement, isAuditAction, listAll, listByOrder,
+  insertStatement, isAuditAction, listAll, listByOrder, listReturnedOrders,
   type AuditAction, type AuditEntry, type AuditInput, type AuditRecord,
 } from "./repository";
 
@@ -19,6 +19,15 @@ export { CHAM_TAI_KHOAN, CHI_TIET_DOI_SDT, type LoaiCham } from "./cham-tai-khoa
  */
 export function auditStatement(db: D1Database, entry: AuditInput, onlyIf?: string): D1PreparedStatement {
   return insertStatement(db, entry, onlyIf);
+}
+
+/**
+ * Hàm công bố cho `orders` (hàng chờ) và `dispatch` (trang đơn văn phòng): tập đơn «được trả lại» — lần thay đổi người phụ trách gần nhất là Từ chối (ADR-0030
+ * điều 3). Chỉ cờ, không tên người trả, không lý do (ADR-0131). Mảng rỗng → tập rỗng, không truy vấn.
+ */
+export async function donDuocTraLai(db: D1Database, orderIds: readonly string[]): Promise<Set<string>> {
+  if (orderIds.length === 0) return new Set();
+  return new Set(await listReturnedOrders(db, orderIds));
 }
 
 export function getAuditTrail(db: D1Database, orderId: string): Promise<AuditEntry[]> {

@@ -10,7 +10,7 @@ const TODAY = "2026-09-27";
 
 // Danh sách trường được phép — CHÉP TAY từ ADR-0030 S23-2 / ADR-0023 điều 1 gạch 1 (mã đơn, ngày đi; theo từng dịch vụ: tên, số khách, nơi đón, giờ
 // đón). KHÔNG suy từ `PoolOrderDto` hay từ mã nguồn: đổi danh sách = sửa ở đây, người rà thấy ngay.
-const ORDER_KEYS = ["departDate", "orderCode", "orderId", "services"];
+const ORDER_KEYS = ["departDate", "orderCode", "orderId", "services", "traLai"];
 const SERVICE_KEYS = ["name", "pax", "pickupPlace", "pickupTime"];
 const PAX_KEYS = ["adult", "child", "infant", "senior"];
 
@@ -63,7 +63,7 @@ function fullOrder(over: Partial<OrderDetailDto> = {}): OrderDetailDto & { statu
 }
 
 test("phần hẹp: đơn điền ĐỦ MỌI TRƯỜNG → đơn, dịch vụ và số khách chỉ có đúng các khoá được phép (không tên/SĐT/email khách, không tiền, không ghi chú, không người lập)", () => {
-  const out = toPoolOrders([fullOrder()], new Set(), TODAY);
+  const out = toPoolOrders([fullOrder()], new Set(), TODAY, new Set());
   assert.equal(out.length, 1);
   const [o] = out;
   assert.deepEqual(Object.keys(o!).sort(), ORDER_KEYS, "khoá của đơn");
@@ -76,6 +76,7 @@ test("phần hẹp: đơn điền ĐỦ MỌI TRƯỜNG → đơn, dịch vụ v
     orderId: "o-du-truong",
     orderCode: "TD-20260927-0007",
     departDate: "2026-09-30",
+    traLai: false,
     services: [{ name: "Tour 4 đảo", pax: { adult: 2, child: 1, senior: 0, infant: 1 }, pickupPlace: "Đón ở •••• •••.••• cổng sau", pickupTime: "06:45" }],
   });
   // Lưới thứ hai: không một GIÁ TRỊ nhạy cảm nào của nguồn lọt ra dưới bất kỳ khoá nào.
@@ -88,7 +89,7 @@ test("phần hẹp: đơn điền ĐỦ MỌI TRƯỜNG → đơn, dịch vụ v
 test("phần hẹp: số khách chép TỪNG KHOÁ — khoá lạ gắn vào đối tượng số khách của nguồn không lọt ra", () => {
   const src = fullOrder();
   (src.services[0]!.pax as Record<string, unknown>).giaMotNguoi = 500000;
-  const [o] = toPoolOrders([src], new Set(), TODAY);
+  const [o] = toPoolOrders([src], new Set(), TODAY, new Set());
   assert.deepEqual(Object.keys(o!.services[0]!.pax).sort(), PAX_KEYS);
 });
 
@@ -108,6 +109,7 @@ test("hàng chờ chỉ gồm đơn CHƯA có người phụ trách, CHƯA huỷ
     ],
     new Set(["co-nguoi"]),
     TODAY,
+    new Set(),
   );
   assert.deepEqual(out.map((o) => o.orderId), ["hom-nay", "ngay-mai", "lech-ngay", "chua-co-ngay", "khong-dich-vu"], "xếp theo ngày đi tăng dần, chưa có ngày xuống cuối (rồi theo mã đơn)");
   assert.deepEqual(out.map((o) => o.departDate), ["2026-09-27", "2026-09-28", "2026-09-29", null, null]);
@@ -151,6 +153,17 @@ test("maskLongDigits: che cả dãy dài lẫn trong chữ, giữ nguyên phần
 test("phần hẹp: tên dịch vụ (dịch vụ nhập tay là chữ tự do) cũng che dãy từ 8 chữ số (Ruling người thi công, chặt hơn S23-2)", () => {
   const src = fullOrder();
   src.services[0]!.name = "Xe đón anh Tuấn 0905123456";
-  const [o] = toPoolOrders([src], new Set(), TODAY);
+  const [o] = toPoolOrders([src], new Set(), TODAY, new Set());
   assert.equal(o!.services[0]!.name, "Xe đón anh Tuấn ••••••••••");
+});
+
+test("ADR-0030 điều 3 (nút Từ chối): cờ traLai = đơn có trong tập «được trả lại» do audit trả lời — chỉ cờ, không tên, không lý do", () => {
+  const svc = { name: "Tour", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, departDate: "2026-09-30", pickupTime: null, pickupPlace: null };
+  const out = toPoolOrders(
+    [{ id: "a", orderCode: "TD-a", status: "confirmed", services: [svc] }, { id: "b", orderCode: "TD-b", status: "confirmed", services: [svc] }],
+    new Set(),
+    TODAY,
+    new Set(["b", "khong-co"]),
+  );
+  assert.deepEqual(out.map((o) => [o.orderId, o.traLai]), [["a", false], ["b", true]]);
 });

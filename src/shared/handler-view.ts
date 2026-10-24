@@ -3,10 +3,15 @@
 import type { HandlerDto, OrderStatus, StaffProfile } from "./contracts.ts";
 import { banner, type Banner, type ErrorInput } from "./order-errors.ts";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "./permissions.ts";
+import { LY_DO_TU_CHOI } from "./ly-do-tu-choi.ts";
+import { vnDateTimeText } from "./vn-date.ts";
 
 /** Chip ở danh sách đơn và ở khối "Người phụ trách" khi đơn chưa có người (ADR-0030 điều 3, Q-A2: "Chờ nhận" thay
  * "Chưa có người phụ trách" — đơn mới không tự gắn người lập, HDV cần thấy ngay đây là đơn đang chờ ai đó bấm Nhận). */
 export const NO_HANDLER_TEXT = "Chờ nhận";
+/** Chip «Chờ nhận» kèm dấu «được trả lại» khi lần thay đổi phụ trách gần nhất là Từ chối (ADR-0030 điều 3) — chỉ ở trang đơn văn phòng và thẻ hàng chờ
+ * của HDV; danh sách đơn văn phòng giữ «Chờ nhận». `traLai` do máy chủ trả (cờ, không tên, không lý do). */
+export const nhanChoNhan = (traLai: boolean): string => (traLai ? `${NO_HANDLER_TEXT} · được trả lại` : NO_HANDLER_TEXT);
 /** Dòng ở danh sách đơn (ADR-0030 điều 3, Q-A2: "HDV: <tên>" thay "Phụ trách: <tên>"). */
 export const handlerText = (name: string): string => `HDV: ${name}`;
 
@@ -40,16 +45,29 @@ export interface HandlerControls {
   assignLabel: string;
   /** Nút "Nhận phụ trách" (nhận cho chính mình) — chỉ khi đơn chưa có người. */
   claim: boolean;
+  /** Nút "Từ chối đơn" (ADR-0030 điều 1) — chỉ người ĐANG phụ trách, đơn đã xác nhận, chưa Đã giao, ngày đi còn sau ngày mai. */
+  refuse: boolean;
+}
+
+/** Trạng thái đơn mà nút "Từ chối đơn" cần (trang đơn tính `quaMuon` bằng `tuChoiQuaMuon`, `daGiao` từ `deliveredAt`). Thiếu `status` → ẩn nút (không đoán). */
+export interface DonChoNutPhuTrach {
+  staffId: string;
+  status?: OrderStatus;
+  daGiao?: boolean;
+  quaMuon?: boolean;
 }
 
 /**
  * Nút nào hiện ở trang đơn. `handler`: người phụ trách đang mở; `null` = CHƯA có; `undefined` = CHƯA BIẾT (lời gọi lỗi/chưa xong) → KHÔNG nút nào: nói "chưa có người" rồi mời nhận là khẳng định điều
  * chưa biết, còn ẩn nút đổi thì chỉ tạm thiếu một đường (tải lại là có).
  */
-export function handlerControls(staff: PermissionHolder, order: { staffId: string }, handler: HandlerDto | null | undefined): HandlerControls {
-  if (handler === undefined) return { assign: false, assignLabel: "", claim: false };
-  const assign = can(staff, "dispatch.assign", { ownerId: order.staffId, assigned: handler !== null && handler.staffId === staff.id });
-  return { assign, assignLabel: handler === null ? "Chọn người phụ trách" : "Đổi người phụ trách", claim: handler === null && can(staff, "dispatch.claim") };
+export function handlerControls(staff: PermissionHolder, order: DonChoNutPhuTrach, handler: HandlerDto | null | undefined): HandlerControls {
+  if (handler === undefined) return { assign: false, assignLabel: "", claim: false, refuse: false };
+  const dangPhuTrach = handler !== null && handler.staffId === staff.id;
+  const assign = can(staff, "dispatch.assign", { ownerId: order.staffId, assigned: dangPhuTrach });
+  // Từ chối (ADR-0030 điều 1): hỏi bảng quyền với `assigned` = đang phụ trách thật — máy chủ còn chốt đúng người (cả Toàn quyền), nên KHÔNG hỏi không ngữ cảnh.
+  const refuse = dangPhuTrach && can(staff, "dispatch.refuse", { assigned: true }) && order.status === "confirmed" && order.daGiao !== true && order.quaMuon === false;
+  return { assign, assignLabel: handler === null ? "Chọn người phụ trách" : "Đổi người phụ trách", claim: handler === null && can(staff, "dispatch.claim"), refuse };
 }
 
 export interface HandlerFailure {
@@ -62,8 +80,12 @@ export interface HandlerFailure {
  * Máy chủ từ chối đổi/nhận người phụ trách → một banner tiếng Việt (không lộ mã lỗi). `e` = null khi không tới được máy chủ. 409 stale/no_change và 403 đều nghĩa là màn hình đã cũ → tải lại.
  * (Không dùng `classifyOrderError`: câu "Đơn vừa được người khác sửa" của nó nói về sửa nội dung đơn.)
  */
-export function handlerFailure(e: ErrorInput | null, kind: "assign" | "claim"): HandlerFailure {
+export function handlerFailure(e: ErrorInput | null, kind: "assign" | "claim" | "refuse"): HandlerFailure {
   if (e === null) return { banner: banner("danger", "Không kết nối được máy chủ.", { lines: [{ text: "Kiểm tra kết nối mạng rồi thử lại." }] }), reload: false };
+  // Từ chối (ADR-0030 điều 1): 409 hạn / đã huỷ / nháp / Đã giao là câu máy chủ nói rõ việc phải làm ("Gọi văn phòng để đổi người") — giữ nguyên, không tải lại.
+  if (kind === "refuse" && e.status === 403) return { banner: banner("warning", "Bạn không còn phụ trách đơn này. Đã tải lại."), reload: true };
+  // ADR-0032 điều 5, 9: hết lượt Từ chối — hiện NGUYÊN câu máy chủ («… Hãy gọi văn phòng.»), hộp không đóng, không tải lại.
+  if (kind === "refuse" && e.status === 409 && e.code === "refuse_limit") return { banner: banner("warning", e.message), reload: false };
   if (e.status === 409 && e.code === "stale") {
     const title = kind === "claim" ? "Đơn này vừa có người khác nhận phụ trách. Đã tải lại đơn." : "Người phụ trách của đơn vừa được đổi ở nơi khác. Đã tải lại — hãy xem người phụ trách hiện tại rồi thử lại nếu cần.";
     return { banner: banner("warning", title), reload: true };
@@ -74,8 +96,9 @@ export function handlerFailure(e: ErrorInput | null, kind: "assign" | "claim"): 
 }
 
 /** Câu báo (banner thông tin) sau khi lưu thành công. `hadHandler`: trước đó đơn đã có người phụ trách. */
-export function handlerSaved(kind: "assign" | "claim", name: string, hadHandler: boolean): string {
+export function handlerSaved(kind: "assign" | "claim" | "refuse", name: string, hadHandler: boolean): string {
   if (kind === "claim") return "Bạn đã nhận phụ trách đơn này.";
+  if (kind === "refuse") return "Đã trả đơn. Đơn quay về danh sách Chờ nhận.";
   return hadHandler ? `Đã đổi người phụ trách sang ${name}.` : `Đã giao đơn cho ${name} phụ trách.`;
 }
 
@@ -84,6 +107,8 @@ export interface MyJobActions {
   cancel: boolean;
   /** Ô sửa số khách của từng dịch vụ trong đơn (còn cần `editablePaxCodes` của TỪNG dịch vụ mới thật sự hiện — gate này chỉ ở mức đơn). */
   editPax: boolean;
+  /** Nút "Từ chối đơn" (ADR-0030 điều 1): đơn đã xác nhận, ngày đi còn sau ngày mai (`quaMuon` = `tuChoiQuaMuon`). Nơi gọi còn hỏi `can(dispatch.refuse)`. */
+  refuse: boolean;
 }
 
 /**
@@ -93,7 +118,16 @@ export interface MyJobActions {
  * đủ cả hai. Đã xác nhận, qua ngày đi: ẩn huỷ (DK-T4-02 — nhờ văn phòng) VÀ ẩn sửa số khách (chủ dự án duyệt 2026-09-30 "Cho sửa đến hết ngày
  * đi" — máy chủ `handler-money-edit` chặn 409 `departed` với cùng `tripDeparted`, trừ Toàn quyền). Trong ngày đi vẫn đủ cả hai.
  */
-export function myJobActions({ status, departed }: { status: OrderStatus; departed: boolean }): MyJobActions {
-  if (status !== "confirmed") return { cancel: false, editPax: false };
-  return { cancel: !departed, editPax: !departed };
+export function myJobActions({ status, departed, quaMuon }: { status: OrderStatus; departed: boolean; quaMuon: boolean }): MyJobActions {
+  if (status !== "confirmed") return { cancel: false, editPax: false, refuse: false };
+  return { cancel: !departed, editPax: !departed, refuse: !quaMuon };
+}
+
+/**
+ * Dòng phụ dưới tên người ở bảng chọn người phụ trách (ADR-0032 điều 10): người đó từng Từ chối CHÍNH đơn đang giao. Nhãn lý do từ danh sách đóng (không
+ * lộ mã). Không có mục → null (không hiện dòng).
+ */
+export function dongTuChoiTruoc(muc: { luc: string; lyDo: string } | undefined): string | null {
+  if (!muc) return null;
+  return `Đã từ chối đơn này lúc ${vnDateTimeText(muc.luc)} — ${LY_DO_TU_CHOI.find((l) => l.ma === muc.lyDo)?.nhan ?? "Khác"}`;
 }

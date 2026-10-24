@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { HandlerDto } from "./contracts.ts";
-import { handlerControls, handlerFailure, handlerSaved, handlerText, hoiDuocNguoiPhuTrach, myJobActions, NO_HANDLER_TEXT, nguoiPhuTrachTuPhien } from "./handler-view.ts";
+import { dongTuChoiTruoc, handlerControls, handlerFailure, handlerSaved, handlerText, hoiDuocNguoiPhuTrach, myJobActions, NO_HANDLER_TEXT, nguoiPhuTrachTuPhien, nhanChoNhan } from "./handler-view.ts";
 import { can, PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 
 // Ba nhân viên bán hàng (A lập đơn, B được giao, C người ngoài), quản trị, kế toán, nhân viên hiện trường.
@@ -98,10 +98,19 @@ test("handlerSaved: câu báo sau khi lưu — nhận, đổi người, giao l�
 });
 
 test("myJobActions (ADR-0030 S23-8, lượt 1; chủ duyệt 2026-09-30 \"Cho sửa đến hết ngày đi\"): nháp → ẩn cả hai; đã xác nhận còn ngày đi → đủ cả hai; đã xác nhận qua ngày đi → ẩn cả hai", () => {
-  assert.deepEqual(myJobActions({ status: "draft", departed: false }), { cancel: false, editPax: false }, "nháp chưa đi thì cũng ẩn cả hai (route đều 409)");
-  assert.deepEqual(myJobActions({ status: "draft", departed: true }), { cancel: false, editPax: false }, "nháp đã qua ngày đi vẫn ẩn cả hai — trạng thái thắng, không xét departed");
-  assert.deepEqual(myJobActions({ status: "confirmed", departed: false }), { cancel: true, editPax: true });
-  assert.deepEqual(myJobActions({ status: "confirmed", departed: true }), { cancel: false, editPax: false }, "qua ngày đi: ẩn huỷ (DK-T4-02) và ẩn sửa số khách (chủ duyệt 2026-09-30) — máy chủ cũng chặn cả hai");
+  const a = (status: "draft" | "confirmed", departed: boolean) => { const r = myJobActions({ status, departed, quaMuon: departed }); return { cancel: r.cancel, editPax: r.editPax }; };
+  assert.deepEqual(a("draft", false), { cancel: false, editPax: false }, "nháp chưa đi thì cũng ẩn cả hai (route đều 409)");
+  assert.deepEqual(a("draft", true), { cancel: false, editPax: false }, "nháp đã qua ngày đi vẫn ẩn cả hai — trạng thái thắng, không xét departed");
+  assert.deepEqual(a("confirmed", false), { cancel: true, editPax: true });
+  assert.deepEqual(a("confirmed", true), { cancel: false, editPax: false }, "qua ngày đi: ẩn huỷ (DK-T4-02) và ẩn sửa số khách (chủ duyệt 2026-09-30) — máy chủ cũng chặn cả hai");
+});
+
+test("myJobActions.refuse (ADR-0030 điều 1, TC-11): chỉ đơn đã xác nhận và ngày đi còn sau ngày mai — nháp (Q1 (a)) và hạn Q-E đóng thì ẩn", () => {
+  assert.equal(myJobActions({ status: "confirmed", departed: false, quaMuon: false }).refuse, true);
+  assert.equal(myJobActions({ status: "confirmed", departed: false, quaMuon: true }).refuse, false, "đi hôm nay / ngày mai");
+  assert.equal(myJobActions({ status: "confirmed", departed: true, quaMuon: true }).refuse, false, "đã qua ngày đi");
+  assert.equal(myJobActions({ status: "draft", departed: false, quaMuon: false }).refuse, false, "nháp");
+  assert.equal(myJobActions({ status: "cancelled", departed: false, quaMuon: false }).refuse, false, "đã huỷ");
 });
 
 // Vòng sửa 1 sau kiểm độc lập lượt 1 ADR-0030 (phát hiện I-2): trang Đơn hàng, trang đơn và biên nhận gọi GET /api/dispatch/handlers (403 với HDV — route
@@ -158,4 +167,82 @@ test("hoiDuocNguoiPhuTrach: chỉ người xem được mọi đơn (văn phòng
     const w = { id: "x", permissions: PERMISSION_CODES.filter((_, i) => mask & (1 << i)) };
     assert.equal(hoiDuocNguoiPhuTrach(w), can(w, "order.view"));
   }
+});
+
+test("nhanChoNhan (ADR-0030 điều 3): lần thay đổi phụ trách gần nhất là Từ chối → «Chờ nhận · được trả lại»; còn lại «Chờ nhận»", () => {
+  assert.equal(nhanChoNhan(true), "Chờ nhận · được trả lại");
+  assert.equal(nhanChoNhan(false), "Chờ nhận");
+  assert.equal(nhanChoNhan(false), NO_HANDLER_TEXT);
+});
+
+// ---- Nút «Từ chối đơn» ở khối Người phụ trách (ADR-0030 điều 1, kế hoạch TC-11) ----
+const DON_XN = { staffId: "a", status: "confirmed" as const, daGiao: false, quaMuon: false };
+test("handlerControls.refuse: chỉ người ĐANG phụ trách thấy nút (Bán hàng, Quản trị, HDV); người lập, người khác, Kế toán thì không", () => {
+  assert.equal(handlerControls(B, DON_XN, handler("b")).refuse, true, "Bán hàng đang phụ trách");
+  assert.equal(handlerControls(A, DON_XN, handler("b")).refuse, false, "người lập không phụ trách");
+  assert.equal(handlerControls(ADMIN, DON_XN, handler("b")).refuse, false, "Quản trị không phụ trách");
+  assert.equal(handlerControls(ADMIN, DON_XN, handler("adm")).refuse, true, "Quản trị đang phụ trách");
+  assert.equal(handlerControls(FIELD, DON_XN, handler("fld")).refuse, true);
+  assert.equal(handlerControls(ACC, DON_XN, handler("b")).refuse, false);
+  assert.equal(handlerControls(B, DON_XN, null).refuse, false, "chưa có người");
+  assert.equal(handlerControls(B, DON_XN, undefined).refuse, false, "chưa biết người phụ trách");
+});
+
+test("handlerControls.refuse: ẩn khi đơn nháp (Q1 (a)), đã huỷ, Đã giao, hạn Q-E đóng; thiếu trạng thái đơn → ẩn (không đoán)", () => {
+  const b = handler("b");
+  assert.equal(handlerControls(B, { ...DON_XN, status: "draft" }, b).refuse, false);
+  assert.equal(handlerControls(B, { ...DON_XN, status: "cancelled" }, b).refuse, false);
+  assert.equal(handlerControls(B, { ...DON_XN, daGiao: true }, b).refuse, false);
+  assert.equal(handlerControls(B, { ...DON_XN, quaMuon: true }, b).refuse, false);
+  assert.equal(handlerControls(B, ORDER, b).refuse, false);
+});
+
+test("handlerControls.refuse: 1024 tập con quyền — không ai ngoài người đang phụ trách thấy nút; người đang phụ trách thấy ⇔ can(dispatch.refuse, {assigned:true})", () => {
+  const moiTapCon = <T,>(mang: readonly T[]): T[][] => (mang.length === 0 ? [[]] : ((con) => [...con, ...con.map((t) => [mang[0] as T, ...t])])(moiTapCon(mang.slice(1))));
+  const tapCon = moiTapCon(PERMISSION_CODES as readonly PermissionCode[]);
+  assert.equal(tapCon.length, 1024);
+  let coNut = 0;
+  for (const permissions of tapCon) {
+    const s = { id: "x", permissions };
+    assert.equal(handlerControls(s, DON_XN, handler("khac")).refuse, false, `người ngoài ${JSON.stringify(permissions)}`);
+    const tu = handlerControls(s, DON_XN, handler("x")).refuse;
+    assert.equal(tu, can(s, "dispatch.refuse", { assigned: true }), JSON.stringify(permissions));
+    if (tu) coNut++;
+  }
+  assert.ok(coNut > 0);
+});
+
+test("handlerFailure 'refuse': 409 too_late / cancelled / order_not_confirmed / order_delivered và 400 giữ câu máy chủ, không tải lại; 409 stale và 403 → tải lại; không lộ mã thô", () => {
+  for (const code of ["too_late", "cancelled", "order_not_confirmed", "order_delivered"]) {
+    const f = handlerFailure({ status: 409, code, message: "Câu của máy chủ." }, "refuse");
+    assert.deepEqual([f.reload, f.banner.title], [false, "Câu của máy chủ."], code);
+  }
+  assert.deepEqual(handlerFailure({ status: 400, code: "invalid_input", message: "Hãy chọn một lý do." }, "refuse").reload, false);
+  const stale = handlerFailure({ status: 409, code: "stale", message: "x" }, "refuse");
+  assert.equal(stale.reload, true);
+  assert.match(stale.banner.title, /^Người phụ trách của đơn vừa được đổi ở nơi khác/);
+  const cam = handlerFailure({ status: 403, code: "forbidden", message: "x" }, "refuse");
+  assert.equal(cam.reload, true);
+  assert.match(cam.banner.title, /^Bạn không còn phụ trách đơn này/);
+  for (const c of [{ status: 409, code: "stale", message: "" }, { status: 403, code: "forbidden", message: "" }]) {
+    const b = handlerFailure(c, "refuse").banner;
+    assert.doesNotMatch(b.title, /stale|forbidden|too_late/i);
+  }
+});
+
+test("handlerSaved 'refuse': câu báo sau khi trả đơn", () => {
+  assert.equal(handlerSaved("refuse", "", true), "Đã trả đơn. Đơn quay về danh sách Chờ nhận.");
+});
+
+// ---- ADR-0032 (hạn mức Từ chối) ----
+test("handlerFailure refuse: 409 refuse_limit → câu máy chủ nguyên văn, KHÔNG tải lại (hộp còn mở)", () => {
+  const f = handlerFailure({ status: 409, code: "refuse_limit", message: "Bạn đã từ chối đủ số lần cho phép. Hãy gọi văn phòng." }, "refuse");
+  assert.equal(f.reload, false);
+  assert.equal(f.banner.title, "Bạn đã từ chối đủ số lần cho phép. Hãy gọi văn phòng.");
+});
+
+test("dongTuChoiTruoc: «Đã từ chối đơn này lúc HH:MM DD/MM/YYYY — <nhãn lý do>»; không có mục → null; không lộ mã lý do", () => {
+  assert.equal(dongTuChoiTruoc({ luc: "2026-10-23T03:05:00.000Z", lyDo: "BAN_LICH" }), "Đã từ chối đơn này lúc 10:05 23/10/2026 — Bận lịch khác");
+  assert.equal(dongTuChoiTruoc({ luc: "2026-10-23T03:05:00.000Z", lyDo: "OTHER" }), "Đã từ chối đơn này lúc 10:05 23/10/2026 — Khác");
+  assert.equal(dongTuChoiTruoc(undefined), null);
 });

@@ -74,6 +74,9 @@
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
 | `dsp_assignment` | bảng |  |
+| `dsp_refuse_policy` | bảng | ADR-0032 điều 6–7: cài đặt hạn mức «Từ chối» của hướng dẫn viên, CHỈ THÊM (trigger cấm sửa/xoá), có hiệu lực (dòng đang dùng = valid_from_at lớn nhất ≤ lúc hỏi). mode OFF (Tắt) / MEASURE (Chỉ đo) / BLOCK (Chặn) — danh sách đóng, CHECK; max_consecutive 1–10, max_per_week 1–100. Toàn quyền đổi (ô settings.ops). Dòng gieo id 'gieo-han-muc' (Chỉ đo 2/15): created_at của nó là MỐC PHÁT HÀNH mà kiểm R-DSP-5/6 dùng để miễn trừ dòng phụ trách mở trước đó (R-DSP-7 canh dòng gieo còn). updated_* luôn bằng created_* (bảng chỉ thêm) |
+| `dsp_release_event` | bảng | ADR-0032 điều 1: sổ sự kiện phân công, CHỈ THÊM (trigger cấm sửa/xoá). Mỗi dòng = một người (party_id), một đơn (NULL chỉ ở RESET), một loại (CLAIM tự nhận, ASSIGN được giao / được chọn lúc lập đơn, REFUSE Từ chối, ABORT người phụ trách tự huỷ đơn, RESET Toàn quyền đặt lại), lúc xảy ra (ISO UTC), người ghi, mã lý do (chỉ REFUSE — mã của src/shared/ly-do-tu-choi.ts). seq = thứ tự chèn toàn bảng do câu chèn cấp (max + 1, UNIQUE) — luật «sau dòng đó» so theo seq. Ghi CÙNG LÔ với lệnh sinh ra nó; câu REFUSE là câu đầu lô Từ chối, mang điều kiện hạn mức. Không SĐT / tên khách. Bộ đếm bắt đầu từ 0 ở ngày phát hành (không chép dữ liệu cũ). updated_* luôn bằng created_* |
+| `dsp_release_kind` | bảng tra cứu | ADR-0032 điều 1: loại sự kiện phân công — CLAIM, ASSIGN, REFUSE, ABORT, RESET |
 | `dsp_assignment_status` | bảng tra cứu |  |
 | `dsp_task_kind` | bảng tra cứu |  |
 | `v_dsp_order_handler` | view công bố | cột: order_id, party_id, staff_id, label, since |

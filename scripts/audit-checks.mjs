@@ -1519,6 +1519,59 @@ export const CHECKS = [
        AND a.valid_from_at < COALESCE(b.valid_to_at, '9999-12-31T23:59:59.999Z') AND b.valid_from_at < COALESCE(a.valid_to_at, '9999-12-31T23:59:59.999Z')`,
     level: "fail",
   },
+  // R-DSP-4 (LC-8 mới, ADR-0030 điều 1 + Hệ quả): đơn TỪNG có người phụ trách (có dòng HANDLE) mà nay KHÔNG có dòng mở thì lần đóng CUỐI phải là Từ chối của chính
+  // người phụ trách — nhật ký `order_handler_refused` cùng mốc với `updated_at` của dòng đóng cuối (= mốc lệnh `at`). KHÔNG so với `valid_to_at`: câu đóng ghi
+  // `max(at, valid_from_at)` nên khi đồng hồ hai máy chủ lệch, valid_to_at có thể lớn hơn mốc nhật ký. Đường hợp lệ khác để mất người phụ trách hôm nay: không có
+  // (đổi người luôn mở dòng mới cùng lô). Mức cảnh báo trước: dữ liệu cũ (vd `dropHandler` của e2e trước kia) có thể còn đơn như vậy.
+  {
+    code: "R-DSP-4",
+    what: "đơn từng có người phụ trách mà nay không có ai phải do chính người phụ trách Từ chối (LC-8 mới, ADR-0030 điều 1)",
+    sql: `SELECT count(*) FROM (
+      SELECT a.order_id, max(a.updated_at) AS dong_cuoi FROM dsp_assignment a
+      WHERE a.task_kind_code = 'HANDLE'
+      GROUP BY a.order_id
+      HAVING sum(a.valid_to_at IS NULL) = 0
+    ) d
+    WHERE NOT EXISTS (SELECT 1 FROM audit_log l WHERE l.order_id = d.order_id AND l.action = 'order_handler_refused' AND l.created_at = d.dong_cuoi)`,
+    level: "warn-unless-strict",
+    note: "cảnh báo — nâng lên vi phạm chỉ sau khi chủ dự án chạy truy vấn chỉ đọc trên hệ thống thật (ADR-0030 Hệ quả)",
+  },
+  // ---- Sổ sự kiện phân công (ADR-0032; kế hoạch 2026-10-23 mục 7). MỐC PHÁT HÀNH = created_at của dòng gieo `gieo-han-muc` (migration chèn lúc áp — mốc nằm sẵn
+  // trong CSDL, không phụ thuộc số migration). Thiếu dòng gieo → R-DSP-7 đỏ (hai kiểm dưới so với NULL sẽ lặng lẽ ra 0).
+  // R-DSP-5 (ADR-0032 «Hệ quả»): REFUSE chỉ có khi TRƯỚC đó (seq nhỏ hơn) có CLAIM/ASSIGN cùng người, cùng đơn — miễn trừ đơn mà người đó phụ trách từ TRƯỚC
+  // mốc phát hành (dòng mở trước mốc không có sự kiện vì bộ đếm bắt đầu từ 0). Sau mốc, mọi đường mở đều ghi sự kiện cùng lô ⇒ vi phạm thật.
+  {
+    code: "R-DSP-5",
+    what: "lần Từ chối (REFUSE) nào cũng có lần nhận / được giao (CLAIM/ASSIGN) trước đó cùng người, cùng đơn (ADR-0032)",
+    sql: `SELECT count(*) FROM dsp_release_event r
+    WHERE r.kind_code = 'REFUSE'
+      AND NOT EXISTS (SELECT 1 FROM dsp_release_event c WHERE c.party_id = r.party_id AND c.order_id = r.order_id
+                      AND c.kind_code IN ('CLAIM', 'ASSIGN') AND c.seq < r.seq)
+      AND NOT EXISTS (SELECT 1 FROM dsp_assignment a WHERE a.order_id = r.order_id AND a.party_id = r.party_id AND a.task_kind_code = 'HANDLE'
+                      AND a.valid_from_at < (SELECT created_at FROM dsp_refuse_policy WHERE id = 'gieo-han-muc')
+                      AND a.valid_from_at <= r.occurred_at)`,
+    level: "fail",
+  },
+  // R-DSP-6 (lưới lúc chạy của bài khoá src/han-muc-duong-handle.test.ts): dòng HANDLE mở TỪ mốc phát hành phải có CLAIM/ASSIGN cùng người, cùng đơn, cùng mốc
+  // (occurred_at = valid_from_at — đẳng thức do câu sự kiện dùng CHÍNH mốc `at` của lô).
+  {
+    code: "R-DSP-6",
+    what: "mọi dòng người phụ trách mở sau ngày phát hành hạn mức có sự kiện nhận / được giao cùng mốc (ADR-0032)",
+    sql: `SELECT count(*) FROM dsp_assignment a
+    WHERE a.task_kind_code = 'HANDLE' AND a.order_id IS NOT NULL
+      AND a.valid_from_at >= (SELECT created_at FROM dsp_refuse_policy WHERE id = 'gieo-han-muc')
+      AND NOT EXISTS (SELECT 1 FROM dsp_release_event e WHERE e.party_id = a.party_id AND e.order_id = a.order_id
+                      AND e.kind_code IN ('CLAIM', 'ASSIGN') AND e.occurred_at = a.valid_from_at)`,
+    level: "warn-unless-strict",
+    note: "khe giữa lúc áp migration và lúc wrangler deploy bản mới: mã cũ có thể mở dòng phụ trách không ghi sự kiện — rà tay các dòng báo ra trong khe đó; ngoài khe là lỗi mã",
+  },
+  // R-DSP-7: dòng gieo của cài đặt hạn mức còn (mốc phát hành của R-DSP-5/6; trigger cấm xoá là lớp một).
+  {
+    code: "R-DSP-7",
+    what: "dòng gieo cài đặt hạn mức Từ chối (gieo-han-muc) còn nguyên",
+    sql: "SELECT CASE WHEN EXISTS (SELECT 1 FROM dsp_refuse_policy WHERE id = 'gieo-han-muc') THEN 0 ELSE 1 END",
+    level: "fail",
+  },
   // R-ORD-4: seq của order_money_adjustment liên tục từ 1, không trùng, không nhảy cóc theo từng đơn — lưới thứ hai cho khoá lạc quan ở
   // insertMoneyAdjustment (P21: mọi kiểm soát trọng yếu có ≥ 2 lớp). Chỉ mục duy nhất idx_order_money_adjustment_seq là lưới thứ nhất (chặn ngay
   // lúc ghi); kiểm này phát hiện nếu có lỗ trong logic ghi (vd một đường code khác lỡ chèn thẳng, bỏ qua insertMoneyAdjustment).

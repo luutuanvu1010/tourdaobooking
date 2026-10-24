@@ -27,6 +27,9 @@ const MIEN: { route: string; lyDo: string }[] = [
   { route: "POST /api/cai-dat/nhap-tay", lyDo: "đổi chính sách nhập tay toàn hệ thống, không ghi đơn nào, không có đơn để khoá" },
   { route: "POST /api/cai-dat/khung-gio-don", lyDo: "đổi khung giờ đón toàn hệ thống (ADR-0134 Đ6), không ghi đơn nào, không có đơn để khoá" },
   // ADR-0089 đ8: phân loại lý do huỷ chỉ chạy trên ĐƠN ĐÃ HUỶ; đơn đã Đã giao không huỷ được (ADR-0025 đ1) ⇒ route trả 409 invalid_state "đơn chưa huỷ".
+  // ADR-0032: hai route cài đặt / đặt lại hạn mức Từ chối của dispatch — không ghi đơn nào (sổ sự kiện + cài đặt), không có đơn để khoá.
+  { route: "POST /api/dispatch/han-muc-tu-choi/chinh-sach", lyDo: "đổi cài đặt hạn mức Từ chối toàn hệ thống (ADR-0032 điều 7), không ghi đơn nào" },
+  { route: "POST /api/dispatch/han-muc-tu-choi/dat-lai", lyDo: "đặt lại số lần Từ chối của hướng dẫn viên (ADR-0032 điều 7) — dòng RESET không gắn đơn" },
   { route: "POST /api/orders/:id/cancel-reason", lyDo: "chỉ đơn đã huỷ — đơn đã Đã giao không bao giờ huỷ được (ADR-0025 đ1), route trả 409 invalid_state" },
 ];
 
@@ -52,7 +55,12 @@ const CA: Record<string, unknown> = {
   "POST /api/orders/:id/thuong-mai/:serviceId": { lyDo: "thoả thuận miệng với CTV Lan", hoaHong: { kieu: "RATE", tyLeBp: 1500 } },
   // Sổ đại lý đợt 2 (Task 6): «Chụp bù» — không thân; đơn Đã giao ⇒ 409 order_delivered trước bước đếm bản chụp.
   "POST /api/orders/:id/chup-bu": {},
+  // ADR-0030 điều 1 (nút Từ chối): chỉ CHÍNH người phụ trách qua được chốt đúng người (Toàn quyền không phụ trách → 403 có chủ ý) ⇒ dòng này gọi bằng người phụ
+  // trách của đơn khoá (HDV, xem NGUOI_GOI) — vẫn phải 409 order_delivered.
+  "POST /api/orders/:id/handler-refuse": { lyDo: "BAN_LICH" },
 };
+/** Route mà Toàn quyền KHÔNG qua được chốt riêng của route (không phải ô quyền) — gọi bằng người duy nhất qua được chốt; kỳ vọng vẫn là 409 order_delivered. */
+const NGUOI_GOI: Record<string, string> = { "POST /api/orders/:id/handler-refuse": HDV };
 const khoa = (r: { method: string; path: string }) => `${r.method} ${r.path}`;
 
 test("NT-F7: danh sách route ghi của orders + dispatch (sinh từ module thật) = bảng CA ∪ MIEN; không mục thừa", () => {
@@ -85,7 +93,7 @@ test("NT-F7: sau Đã giao, MỌI route ghi của orders + dispatch (Toàn quy�
   const truoc = JSON.stringify(w.q("SELECT * FROM orders WHERE id = ?", id));
   for (const r of ROUTES.filter((x) => !MIEN.some((m) => m.route === khoa(x)))) {
     const path = r.path.replace(":id", id).replace(":legId", legId);
-    const res = await w.call(r.method, path, { as: SA, body: CA[khoa(r)] });
+    const res = await w.call(r.method, path, { as: NGUOI_GOI[khoa(r)] ?? SA, body: CA[khoa(r)] });
     assert.equal(res.status, 409, `${khoa(r)} (${r.module}): ${res.text}`);
     assert.equal(res.json?.error?.code, "order_delivered", `${khoa(r)}: ${res.text}`);
     assert.match(res.json.error.message, /^Đơn đã ở bước Đã giao – đã thu đủ/, khoa(r));

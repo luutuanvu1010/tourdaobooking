@@ -38,7 +38,10 @@ import { cauMoc, changDuoiMoc, tomTatChanXacNhan, type ChangCanDatGap } from "..
 import { NO_BOOKER_VALUE } from "../src/shared/booker";
 import { coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, duocGhiTay, nhanBenDat } from "../src/shared/phan-doi-tac-hien-thi";
 import { initPhanDoiTac } from "./phan-doi-tac";
-import { NO_HANDLER_TEXT, handlerControls, handlerFailure, handlerSaved, hoiDuocNguoiPhuTrach, nguoiPhuTrachTuPhien } from "../src/shared/handler-view";
+import { handlerControls, handlerFailure, handlerSaved, hoiDuocNguoiPhuTrach, nguoiPhuTrachTuPhien, nhanChoNhan } from "../src/shared/handler-view";
+import { tuChoiQuaMuon } from "../src/shared/trip-rules";
+import { vnToday } from "../src/shared/vn-date";
+import { moHopTuChoi } from "./tu-choi-sheet";
 import { HANDLER_HIDDEN } from "../src/shared/order-confirmation";
 import { type PaxCounts } from "../src/shared/order-lines";
 import { LOI_409_KHONG_CU, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
@@ -343,9 +346,13 @@ type Handler = Api.HandlerDto | null | undefined | typeof HANDLER_HIDDEN;
  * Người phụ trách đang mở của đơn. KHÔNG bao giờ ném lỗi: lời gọi hỏng thì đơn vẫn hiển thị, khối người phụ trách báo "chưa tải được" (không đoán "chưa có người" rồi mời nhận).
  * Phản hồi thiếu khoá hoặc sai dạng cũng coi là chưa biết (dữ liệu từ ngoài trang).
  */
+/** Cờ «được trả lại» của đơn đang xem (ADR-0030 điều 3) — `traLai` của `GET /api/dispatch/handlers`; bản máy chủ cũ không có trường → false. */
+let donTraLai = false;
 async function loadHandler(orderId: string): Promise<Handler> {
   try {
-    const found = (await api<Api.HandlersResponse>(`/api/dispatch/handlers?orderIds=${encodeURIComponent(orderId)}`)).handlers[orderId];
+    const r = await api<Api.HandlersResponse>(`/api/dispatch/handlers?orderIds=${encodeURIComponent(orderId)}`);
+    donTraLai = Array.isArray(r.traLai) && r.traLai.includes(orderId);
+    const found = r.handlers[orderId];
     if (found === null) return null;
     return found && typeof found.name === "string" && found.name.trim() !== "" ? found : undefined;
   } catch {
@@ -401,12 +408,38 @@ function claimButton(order: Order): HTMLButtonElement {
 }
 
 /**
+ * «Từ chối đơn» (ADR-0030 điều 1): người ĐANG phụ trách tự trả đơn (hộp chọn lý do — web/tu-choi-sheet.ts). Thành công: người chỉ xem đơn mình phụ trách
+ * (hướng dẫn viên) không còn xem được đơn này (máy chủ 404) → về trang Tôi; người xem được mọi đơn (Bán hàng, Quản trị, Toàn quyền) → tải lại tại chỗ.
+ */
+function refuseButton(order: Order): HTMLButtonElement {
+  const btn = h("button", { type: "button", class: "btn", "data-action": "refuse-handler" }, "Từ chối đơn");
+  btn.addEventListener("click", () => {
+    moHopTuChoi({
+      orderId: order.id,
+      orderCode: order.orderCode,
+      moTa: `Đơn của ${order.customerName}.`,
+      opener: btn,
+      done: (kq) => {
+        if (!kq.ok) return void reloadWith(kq.banner);
+        if (nguoiPhuTrachTuPhien(staff!)) location.replace("/account");
+        else void reloadWith(banner("info", handlerSaved("refuse", "", true)));
+      },
+    });
+  });
+  return btn;
+}
+
+/**
  * Khối "Người phụ trách": tên (hoặc chip "Chưa có người phụ trách") + nút đổi/nhận theo `can()` (src/shared/handler-view.ts). Chưa biết người phụ trách → chữ báo + "Thử lại", không nút nào khác.
  * Người xem không được biết (`HANDLER_HIDDEN` — Đối tác, Thực tập; lỗi báo 30/9, L2) → không dựng khối (như ảnh biên nhận: không dòng, không câu chờ).
  */
 function handlerCard(order: Order, handler: Handler): HTMLElement | null {
   if (handler === HANDLER_HIDDEN) return null;
-  const controls = handlerControls(staff!, order, handler);
+  const controls = handlerControls(
+    staff!,
+    { staffId: order.staffId, status: order.status, daGiao: Boolean(order.deliveredAt), quaMuon: tuChoiQuaMuon(order.services.map((s) => s.departDate), vnToday(new Date())) },
+    handler,
+  );
   const buttons: HTMLElement[] = [];
   let summary: HTMLElement;
   if (handler === undefined) {
@@ -415,10 +448,11 @@ function handlerCard(order: Order, handler: Handler): HTMLElement | null {
     retry.addEventListener("click", () => void load().then(focusHandlerControl));
     buttons.push(retry);
   } else {
-    summary = h("p", { class: "handler-name" }, handler === null ? h("span", { class: "chip chip-warn" }, NO_HANDLER_TEXT) : handler.name);
+    summary = h("p", { class: "handler-name" }, handler === null ? h("span", { class: "chip chip-warn" }, nhanChoNhan(donTraLai)) : handler.name);
     // Sổ tiền lượt 1 (ADR-0025 đ4): sau "Đã giao" máy chủ từ chối đổi / nhận người phụ trách (409 order_delivered) — không hiện nút.
     if (controls.assign && !order.deliveredAt) buttons.push(changeButton(order, handler, controls.assignLabel));
     if (controls.claim && !order.deliveredAt) buttons.push(claimButton(order));
+    if (controls.refuse) buttons.push(refuseButton(order)); // handlerControls đã xét Đã giao, nháp, đơn huỷ, hạn hôm nay / ngày mai
   }
   return h(
     "section",

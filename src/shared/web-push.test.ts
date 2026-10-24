@@ -85,11 +85,12 @@ test("imLang (ADR-0039): tin thường im lặng trong giờ yên lặng, tin qu
   assert.equal(imLang(true, new Date("2026-09-27T15:30:00Z")), false); // 22:30 VN, tin quan trọng → không bao giờ im lặng
 });
 
-test("hanhDongCuaThayDoi: đủ 11 giá trị THAY_DOI, năm giá trị (sua/chuyen/tien/chot_giao/hoan_thanh) trả null", () => {
+test("hanhDongCuaThayDoi: đủ 12 giá trị THAY_DOI, sáu giá trị (sua/chuyen/tien/chot_giao/hoan_thanh/tu_choi) trả null", () => {
   const kyVong: Record<string, string | null> = {
     tao: "created", tao_cho_nhan: "created", nhan: "order_claimed", giao: "order_handler_changed",
     xac_nhan: "confirmed", huy: "cancelled", sua: null, chuyen: null, tien: null,
     chot_giao: null, hoan_thanh: null, // sổ tiền lượt 1 — không gõ cửa màn hình khoá (ADR-0045, bản làm mới §3.14)
+    tu_choi: null, // ADR-0030 điều 1 + Q4 (a) chủ 2026-10-23: chỉ thông báo nổi Bảng tin, không gõ cửa màn hình khoá
   };
   assert.deepEqual([...THAY_DOI].sort(), Object.keys(kyVong).sort());
   for (const t of THAY_DOI) assert.equal(hanhDongCuaThayDoi(t), kyVong[t], t);

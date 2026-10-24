@@ -46,3 +46,7 @@ test("ADR-0117 lần 2: năm hành động mức TA (thêm, tắt, bật lại, 
   assert.deepEqual({ ...AUDIT_ACTIONS.prc_role_tier_closed }, { label: "Kết thúc gắn loại đối tác với mức TA", group: "ledger" });
   for (const a of ["prc_rate_tier_added", "prc_rate_tier_off", "prc_rate_tier_on", "prc_role_tier_set", "prc_role_tier_closed"]) assert.equal(laHanhDongThuongMai(a), true, a);
 });
+
+test("ADR-0030 điều 1 (nút Từ chối): hành động 'order_handler_refused' nhóm 'order', nhãn «Trả đơn (Từ chối)»", () => {
+  assert.deepEqual({ ...AUDIT_ACTIONS.order_handler_refused }, { label: "Trả đơn (Từ chối)", group: "order" });
+});

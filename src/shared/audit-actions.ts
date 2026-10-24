@@ -103,6 +103,11 @@ export const AUDIT_ACTIONS = {
   ledger_period_closed: { label: "Khoá sổ tháng", group: "ledger" },
   order_handler_changed: { label: "Đổi người phụ trách", group: "order" },
   order_claimed: { label: "Tự nhận phụ trách đơn", group: "order" },
+  // ADR-0030 điều 1 (nút Từ chối): người phụ trách tự trả đơn. `detail` = CHỈ nhãn lý do (danh sách đóng `ly-do-tu-choi.ts`) — không tên (Q2 (a), chủ 2026-10-23).
+  order_handler_refused: { label: "Trả đơn (Từ chối)", group: "order" },
+  // ADR-0032 (hạn mức Từ chối): `detail` CHỈ là số (chuỗi / tuần / mức / chế độ) — không tên, không SĐT. Ẩn ở cả hai lớp lịch sử rút gọn (G3 kế hoạch
+  // 2026-10-23): Toàn quyền đọc ở trang Nhật ký. `refuse_limit_hit` gắn đơn đang Từ chối; hai hành động sau không gắn đơn.
+  refuse_limit_hit: { label: "Chạm hạn mức Từ chối", group: "order" },
   booker_changed: { label: "Đổi khách", group: "order" },
   exported_png: { label: "Xuất PNG", group: "order" },
   exported_pdf: { label: "Xuất PDF", group: "order" },
@@ -111,6 +116,7 @@ export const AUDIT_ACTIONS = {
   staff_suspended: { label: "Ngưng tài khoản", group: "staff" },
   staff_reactivated: { label: "Kích hoạt lại tài khoản", group: "staff" },
   staff_role_changed: { label: "Đổi vai trò", group: "staff" },
+  refuse_counter_reset: { label: "Đặt lại số lần Từ chối", group: "staff" }, // ADR-0032 điều 7: đích = hồ sơ (một người) hoặc không đích (tất cả); không tên trong detail
   pin_reset: { label: "Đặt lại PIN", group: "staff" },
   pin_changed: { label: "Đổi PIN", group: "staff" },
   passkey_added: { label: "Bật đăng nhập Face ID", group: "staff" },
@@ -241,6 +247,7 @@ export const AUDIT_ACTIONS = {
   location_created: { label: "Thêm địa điểm", group: "location" },
   location_updated: { label: "Sửa địa điểm", group: "location" },
   maintenance_changed: { label: "Đổi chế độ bảo trì", group: "system" },
+  refuse_policy_changed: { label: "Đổi hạn mức Từ chối", group: "system" }, // ADR-0032 điều 7: «Chế độ: … → …; liên tiếp … → …; mỗi tuần … → …»
   // ADR-0061 điều 6: Toàn quyền bật / tắt "Dịch vụ nhập tay" (POST /api/cai-dat/nhap-tay) — không gắn đơn (orderId NULL); detail "Bật" / "Tắt".
   manual_service_policy_changed: { label: "Đổi công tắc dịch vụ nhập tay", group: "system" },
   pickup_slot_policy_changed: { label: "Đổi khung giờ đón", group: "system" },

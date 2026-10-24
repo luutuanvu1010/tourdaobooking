@@ -1,7 +1,7 @@
 // Module orders — sổ đơn hàng (spec §2.1 order/order_service/order_item, §2.3 bất biến). Route: /api/orders*.
 // Mọi nhân viên đang hoạt động xem được mọi đơn (§2.4-4); chỉ người lập đơn, người phụ trách đang mở của đơn (ADR-0009) hoặc admin được sửa/xác nhận/huỷ.
 // "Người phụ trách" do module `dispatch` giữ: `orders` KHÔNG import `dispatch` mà hỏi qua `ctx.isAssigned(orderId)` (gốc lắp ráp tiêm — ADR-0007 điều 4(b)).
-import { auditStatement, getAuditTrail } from "../audit";
+import { auditStatement, donDuocTraLai, getAuditTrail } from "../audit";
 import { chupDon, docBangChoChup, laNguoiHuong, soKhachTinhHoaHong, type BanChup } from "../pricing";
 import { ownerCompany } from "../parties";
 import type {
@@ -540,12 +540,16 @@ export async function lienHeChoTaiXe(db: D1Database, orderIds: readonly string[]
  * ràng buộc `from: "confirmed"` cho chắc.
  */
 export async function cancelOrderByHandler(
-  db: D1Database, id: string, staffId: string, prevUpdatedAt: string, lyDo: LyDoHuy, reasonLabel: string, noiChuyen: NoiChuyen,
+  db: D1Database, id: string, staffId: string, prevUpdatedAt: string, lyDo: LyDoHuy, reasonLabel: string, cauSauHuy: readonly D1PreparedStatement[], noiChuyen: NoiChuyen,
 ): Promise<KetQuaLenhDon> {
   // ADR-0104 Đ2 (điểm gọi 2): route dispatch truyền `noiChuyen` = ctx.dongBoChuyen (orders không xuất hàm soạn, không import van-chuyen). MỘT lô: câu huỷ đứng
   // đầu, khúc chuyến sau.
+  // ADR-0032 điều 1 (kế hoạch 2026-10-23 mục 4c): `cauSauHuy` = câu CHƯA CHẠY do route của dispatch dựng (sự kiện ABORT, `changes() > 0` sau câu nhật ký huỷ) —
+  // nối NGAY sau câu nhật ký, TRƯỚC khúc chuyến; `orders` không đọc chỉ số của chúng (`daHuy` vẫn đọc kq[1]). Tham số đứng TRƯỚC `noiChuyen` (bài NT-6 bóc thân hàm
+  // theo `noiChuyen: NoiChuyen` rồi dấu `)` kế tiếp).
   const huy = soanHuyDon(db, id, staffId, "confirmed", prevUpdatedAt, lyDo, { action: "order_cancelled_by_field", detail: reasonLabel });
-  const dong = await noiChuyen({ orderId: id, auditIdDon: huy.auditId, bayGioMs: Date.now(), sau: { trangThai: "cancelled" }, cauDon: huy.cau });
+  const cauDon = [...huy.cau, ...cauSauHuy];
+  const dong = await noiChuyen({ orderId: id, auditIdDon: huy.auditId, bayGioMs: Date.now(), sau: { trangThai: "cancelled" }, cauDon });
   return chayLoNoiChuyen(db, dong, daHuy);
 }
 
@@ -890,8 +894,9 @@ export const ordersModule: AppModule = {
       if (!can(staff, "order.pool.view") || holdsPartner(staff)) return FORBIDDEN_VIEW();
       const today = vnToday(new Date());
       const sources = await listPoolSources(env.DB, today);
-      const withHandler = await ordersWithHandler(sources.map((o) => o.id));
-      return json({ orders: toPoolOrders(sources, withHandler, today) } satisfies PoolResponse);
+      const ids = sources.map((o) => o.id);
+      const [withHandler, traLai] = await Promise.all([ordersWithHandler(ids), donDuocTraLai(env.DB, ids)]);
+      return json({ orders: toPoolOrders(sources, withHandler, today, traLai) } satisfies PoolResponse);
     }),
 
     // Mốc tối thiểu cho biểu mẫu đơn CHƯA lưu (ruling R-P15 của điều phối, 29/9 — kế hoạch I31 cách (a)): người LẬP đơn đọc con số mốc + cảnh báo sát mốc

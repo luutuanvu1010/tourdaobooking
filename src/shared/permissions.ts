@@ -113,6 +113,10 @@ export const MATRIX = {
   "order.cancel.classify": quanTri(),
   "dispatch.assign": row("ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"), // đặt/đổi người phụ trách và nhiệm vụ (ADR-0009: cả người phụ trách hiện tại)
   "dispatch.claim": row("any", "none", "any", "any", "none", "any", "none", "none", "none", "none"), // nhận phụ trách đơn CHƯA có người (ADR-0009; điều kiện "chưa có người" do dịch vụ của dispatch kiểm, không phải ô này) — FIELD any (ADR-0030 S20-6/S20-12); chốt Nhận (đã huỷ/qua ngày đi) + chặn tài khoản có quyền Đối tác ở route PUT /api/orders/:id/handler
+  // ADR-0030 điều 1 (nút «Từ chối»): người ĐANG phụ trách tự trả đơn — ô `assigned` cho Bán hàng / Quản trị / Hướng dẫn viên, `any` cho Toàn quyền, NHƯNG route
+  // POST /api/orders/:id/handler-refuse còn chốt "người gọi đúng là người đang phụ trách" áp CẢ Toàn quyền (không ai trả đơn hộ người khác; văn phòng đổi
+  // người bằng PUT …/handler). Ô chỉ là sàng sớm + câu hỏi ẩn/hiện nút ở giao diện.
+  "dispatch.refuse": row("assigned", "none", "assigned", "assigned", "none", "any", "none", "none", "none", "none"),
   "dispatch.guides.view": row("none", "none", "none", "none", "any", "any", "none", "none", "none", "none"), // danh sách hẹp hướng dẫn viên nội bộ — thao tác MỚI (ADR-0014 điều 9, chưa có route)
   // Sổ tiền lượt 1 (ADR-0026 điều 10, bảng 9 cột bản làm mới §2 — accepted 2026-09-29): ghi KHOẢN THU trước "Đã giao" (route POST /api/orders/:id/payments,
   // module billing). FIELD assigned (HDV đang phụ trách ghi tiền mình thu trước chuyến), PARTNER own, INTERN own — thay ô cọc trên form đơn của mình.

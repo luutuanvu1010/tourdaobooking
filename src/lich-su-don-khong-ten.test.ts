@@ -115,3 +115,23 @@ test("ADR-0131 Review Focus 1–2: tài khoản lai SALES+PARTNER và SUPER_ADMI
     assert.ok(!acts.includes("order_claimed") && !acts.includes("exported_png"), `${lai}: không phải lớp Đối tác`);
   }
 });
+
+test("ADR-0030 điều 1 + Q2 (a): dòng order_handler_refused — nội bộ thấy dòng + nhãn lý do, không tên; Đối tác / lai không thấy; Toàn quyền thấy tên", async () => {
+  const w = dungWorld();
+  const ghi = w.sqlite.prepare("INSERT INTO audit_log (id, order_id, staff_id, action, target_type, target_id, detail, created_at) VALUES (?, ?, ?, 'order_handler_refused', 'order', ?, 'Bận lịch khác', ?)");
+  const chung = nhapDon(w, SALES, FIELD), lai = nhapDon(w, LAI_SB);
+  for (const d of [chung, lai]) ghi.run(uuid(), d, NGUOI, d, "2026-10-02T00:00:09.000Z");
+  for (const as of [SALES, ACC, ADM, FIELD]) {
+    const { r, h } = await lichSu(w, as, chung);
+    const tc = h.find((e) => e.action === "order_handler_refused");
+    assert.ok(tc, `${as}: mất dòng Từ chối`);
+    assert.equal(tc.detail, "Bận lịch khác", `${as}: chữ lý do`);
+    assert.deepEqual([tc.staffId, tc.staffName], [null, ""], `${as}: lộ người làm`);
+    assert.ok(!r.text.includes(TEN) && !r.text.includes(NGUOI), `${as}: lộ người làm ở đâu đó`);
+  }
+  const { h: hSup } = await lichSu(w, SUP, chung);
+  const tcSup = hSup.find((e) => e.action === "order_handler_refused");
+  assert.equal(tcSup?.staffName, TEN, "Toàn quyền phải thấy tên");
+  const { h: hLai } = await lichSu(w, LAI_SB, lai);
+  assert.ok(!hLai.some((e) => e.action === "order_handler_refused"), "tài khoản lai (lớp Đối tác) thấy dòng Từ chối");
+});

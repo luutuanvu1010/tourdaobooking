@@ -41,6 +41,17 @@ export function tripDeparted(dates: readonly (string | null)[], today: string): 
   return last !== null && last < today;
 }
 
+/**
+ * Hạn «Từ chối» đơn (ADR-0030 điều 1, Q-E): người phụ trách KHÔNG trả đơn được khi ngày đi ≤ ngày mai (kể cả đã qua) — phải gọi văn phòng để đổi người.
+ * Ngày đi = ngày khởi hành LỚN NHẤT (cùng định nghĩa với `tripDeparted`); không dịch vụ nào có ngày → false (không chặn). `today` = `vnToday(new Date())`.
+ * Dùng chung: máy chủ chặn `POST /api/orders/:id/handler-refuse` (409 `too_late`), giao diện ẩn nút "Từ chối đơn".
+ */
+export function tuChoiQuaMuon(dates: readonly (string | null)[], today: string): boolean {
+  let last: string | null = null;
+  for (const d of dates) if (d && (last === null || d > last)) last = d;
+  return last !== null && last <= addDays(today, 1);
+}
+
 /** Khoảng ngày khởi hành cho phép khi xác nhận (bao gồm hai đầu). Repository bind hai giá trị này vào câu UPDATE xác nhận. */
 export const confirmWindow = (today: string): { from: string; to: string } => ({ from: today, to: addDays(today, MAX_DAYS_AHEAD) });
 

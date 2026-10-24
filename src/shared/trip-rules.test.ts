@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MAX_DAYS_AHEAD, MAX_LINES_PER_ORDER, MAX_SERVICES, MISSING_LABEL, confirmWindow, tripDeparted } from "./trip-rules.ts";
+import { MAX_DAYS_AHEAD, MAX_LINES_PER_ORDER, MAX_SERVICES, MISSING_LABEL, confirmWindow, tripDeparted, tuChoiQuaMuon } from "./trip-rules.ts";
 
 test("hằng trần đúng đặc tả (Q9): 20 dịch vụ, 50 dòng tiền, 365 ngày", () => {
   assert.equal(MAX_SERVICES, 20);
@@ -43,4 +43,23 @@ test("tripDeparted: dịch vụ không có ngày bị bỏ qua; KHÔNG dịch v�
   assert.equal(tripDeparted(["", null], "2026-09-26"), false, "chuỗi rỗng coi như chưa có ngày (cùng quy ước sameDepartDate)");
   assert.equal(tripDeparted([null, "2026-09-25"], "2026-09-26"), true, "bỏ qua dịch vụ không ngày, dịch vụ còn lại đã qua");
   assert.equal(tripDeparted([null, "2026-09-26"], "2026-09-26"), false);
+});
+
+// ---- Hạn Từ chối đơn (ADR-0030 điều 1, Q-E): ngày đi (lớn nhất) ≤ ngày mai → không trả được nữa, gọi văn phòng ----
+test("tuChoiQuaMuon: hôm nay / ngày mai / hôm qua → quá muộn; ngày kia → còn trả được", () => {
+  const today = "2026-10-23";
+  assert.equal(tuChoiQuaMuon(["2026-10-23"], today), true, "hôm nay");
+  assert.equal(tuChoiQuaMuon(["2026-10-24"], today), true, "ngày mai");
+  assert.equal(tuChoiQuaMuon(["2026-10-25"], today), false, "ngày kia");
+  assert.equal(tuChoiQuaMuon(["2026-10-22"], today), true, "hôm qua");
+});
+
+test("tuChoiQuaMuon: lấy ngày LỚN NHẤT; không ngày nào → không chặn; qua tháng/năm đúng lịch", () => {
+  assert.equal(tuChoiQuaMuon(["2026-10-23", "2026-10-25"], "2026-10-23"), false);
+  assert.equal(tuChoiQuaMuon(["2026-10-25", "2026-10-23"], "2026-10-23"), false, "không phụ thuộc thứ tự");
+  assert.equal(tuChoiQuaMuon([], "2026-10-23"), false);
+  assert.equal(tuChoiQuaMuon([null], "2026-10-23"), false);
+  assert.equal(tuChoiQuaMuon([null, ""], "2026-10-23"), false);
+  assert.equal(tuChoiQuaMuon(["2027-01-01"], "2026-12-31"), true, "ngày mai qua năm");
+  assert.equal(tuChoiQuaMuon(["2027-01-02"], "2026-12-31"), false, "ngày kia qua năm");
 });

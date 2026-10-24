@@ -15,7 +15,7 @@ const DUYET = {
   created: "giu", updated: "giu", trip_updated: "giu", order_leg_added: "giu", order_leg_updated: "giu", order_leg_closed: "giu", order_leg_short_notice: "giu",
   order_passenger_changed: "giu", confirmed: "giu", cancelled: "giu", order_cancelled_by_field: "giu", order_cancel_reason_classified: "giu",
   order_money_adjusted: "giu", order_money_adjusted_by_field: "giu", payment_recorded: "giu", order_delivered: "giu", order_completed: "giu",
-  order_handler_changed: "giu", order_claimed: "bo", booker_changed: "giu",
+  order_handler_changed: "giu", order_claimed: "bo", order_handler_refused: "giu", booker_changed: "giu",
   order_terms_captured: "giu", order_terms_recaptured: "giu", order_terms_manual: "giu",
   ledger_company_received: "giu", ledger_refund: "giu", ledger_adjustment_withdrawn: "giu", ledger_bank_txn_linked: "giu", deposit_refund_paid: "giu",
   deposit_transferred_out: "giu", deposit_transferred_in: "giu",
@@ -59,6 +59,13 @@ test("order_claimed giữ dòng, bỏ chữ", () => {
   const ra = lichSuNoiBo([dong("order_claimed", `từ chưa có người phụ trách sang ${TEN}`)], false);
   assert.equal(ra.length, 1);
   assert.equal(ra[0].detail, null);
+});
+
+test("order_handler_refused (Q2 (a), chủ 2026-10-23): giữ dòng VÀ chữ — chữ chỉ là nhãn lý do; không tên, không mã người làm", () => {
+  const ra = lichSuNoiBo([dong("order_handler_refused", "Bận lịch khác")], false);
+  assert.equal(ra.length, 1);
+  assert.equal(ra[0].detail, "Bận lịch khác");
+  assert.deepEqual([ra[0].staffId, ra[0].staffName], [null, ""]);
 });
 
 test("exported_png bị ẩn; dòng nhập kế toán chỉ khi có ô", () => {

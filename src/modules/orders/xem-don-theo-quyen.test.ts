@@ -195,7 +195,7 @@ test("'Việc của tôi' có Tổng tiền = đúng số của chi tiết đơn
 // ============================================================================================================================================
 
 // Danh sách trường được phép của phần hẹp — CHÉP TAY từ ADR-0030 S23-2 (cùng danh sách với src/modules/orders/pool.test.ts; không suy từ mã).
-const POOL_ORDER_KEYS = ["departDate", "orderCode", "orderId", "services"];
+const POOL_ORDER_KEYS = ["departDate", "orderCode", "orderId", "services", "traLai"]; // traLai: cờ «được trả lại» (ADR-0030 điều 3) — chỉ boolean
 const POOL_SERVICE_KEYS = ["name", "pax", "pickupPlace", "pickupTime"];
 /** Một dãy từ 8 chữ số trở lên (đếm sau khi bỏ dấu ngăn) — chỉ áp cho chữ tự do (nơi đón), KHÔNG cho mã đơn/ngày (vốn có 8 chữ số). */
 const EIGHT_DIGITS = /\d(?:[\s.()+\-–—]*\d){7,}/;
@@ -277,7 +277,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
   const PARTNER_ROW: Record<string, string> = {
     "order.view": "own", "money.view": "own", "order.history.view": "own", "contact.view": "ownOrAssigned", "order.create": "any", "order.modify": "own",
     "order.trip.edit": "none", "task.progress": "assigned", "order.money.edit": "none", "order.cancel": "none", "order.cancel.classify": "none", "deposit.refund.approve": "none", "deposit.transfer.approve": "none", "deposit.outside.record": "none", "dispatch.assign": "none", "dispatch.claim": "none",
-    "dispatch.guides.view": "any", "payment.receive": "own" /* ADR-0026 đ10: thay ô cọc trên form đơn của mình */, "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
+    "dispatch.guides.view": "any", "dispatch.refuse": "none" /* ADR-0030 điều 1 */, "payment.receive": "own" /* ADR-0026 đ10: thay ô cọc trên form đơn của mình */, "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
     "accounting.entry.mark": "none", "accounting.entry.view": "none" /* ADR-0060 Q-2 "Không": Đối tác không thấy dấu kế toán / số hoá đơn */, "party.view": "none",
     "party.write": "none", "party.staff.write": "none",
     "party.personal.view": "none", // ADR-0122 đ5: Đối tác không xem ngày sinh / địa chỉ người khác

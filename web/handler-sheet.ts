@@ -8,7 +8,7 @@
 // và danh sách được tải lại. Không có test tự động cho tệp này (như trip-sheet.ts): bằng chứng là docs/evidence/2026-09-21-v1-0/kich-ban/v1-nguoi-phu-trach.mjs. Luật thuần (câu báo lỗi) ở src/shared/handler-view.ts.
 import type { AssigneeDto, HandlerDto } from "../src/shared/contracts";
 import type { Banner } from "../src/shared/order-errors";
-import { handlerFailure } from "../src/shared/handler-view";
+import { dongTuChoiTruoc, handlerFailure } from "../src/shared/handler-view";
 import { ApiError, api, type Api, type Order } from "./api";
 import { renderBanner } from "./banner";
 import { h, replaceChildren } from "./dom";
@@ -78,7 +78,12 @@ export function openHandlerSheet(o: HandlerSheetOptions, opener: HTMLElement): v
     else if (!saveBtn.disabled) saveBtn.focus();
   }
 
+  /** ADR-0032 điều 10: «Đã từ chối đơn này lúc … — <lý do>» — nguồn sổ sự kiện (route tu-choi-truoc); không ẩn ai. */
+  let tuChoi: Api.TuChoiTruocResponse["tuChoi"] = {};
+  const dongPhu = (a: AssigneeDto): string | null => dongTuChoiTruoc(tuChoi[a.partyId]);
+
   function renderRow(a: AssigneeDto): HTMLElement {
+    const phu = dongPhu(a);
     const isCurrent = o.current !== null && o.current.partyId === a.partyId; // máy chủ so theo hồ sơ (party): cùng người = 409 no_change
     const input = h("input", { type: "radio", name: "assignee", value: a.staffId, disabled: isCurrent });
     input.addEventListener("change", () => {
@@ -91,7 +96,7 @@ export function openHandlerSheet(o: HandlerSheetOptions, opener: HTMLElement): v
       { class: isCurrent ? "pick is-current" : "pick" },
       input,
       h("span", { class: "pick-mark", "aria-hidden": "true" }),
-      h("span", { class: "pick-name" }, a.name),
+      h("span", { class: "pick-name" }, a.name, phu ? h("span", { class: "assignee-tu-choi" }, phu) : null),
       isCurrent ? h("span", { class: "chip chip-unit pick-current" }, "Đang phụ trách") : null,
     );
   }
@@ -133,8 +138,13 @@ export function openHandlerSheet(o: HandlerSheetOptions, opener: HTMLElement): v
     replaceChildren(listSlot, h("p", { class: "pick-status", role: "status" }, "Đang tải danh sách nhân viên…"));
     if (focusWasThere) dialog.focus();
     try {
-      const { assignees } = await api<Api.AssigneesResponse>("/api/dispatch/assignees");
+      // Dòng phụ «đã từ chối đơn này» gọi song song; lỗi thì bỏ qua (danh sách vẫn hiện).
+      const [{ assignees }, truoc] = await Promise.all([
+        api<Api.AssigneesResponse>("/api/dispatch/assignees"),
+        api<Api.TuChoiTruocResponse>(`/api/orders/${encodeURIComponent(o.order.id)}/tu-choi-truoc`).catch(() => null),
+      ]);
       if (closed || mine !== loadSeq) return;
+      tuChoi = truoc?.tuChoi ?? {};
       showList(assignees);
     } catch {
       if (closed || mine !== loadSeq) return;

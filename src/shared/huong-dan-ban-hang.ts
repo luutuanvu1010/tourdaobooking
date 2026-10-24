@@ -139,7 +139,7 @@ Mục "Giờ hẹn đổi — gọi báo khách" ở [[Cần xử lý]]: gọi k
 4. Nền tảng nhắc bản xác nhận đã gửi khách có thể lỗi thời → bấm [[Xem biên nhận]] và gửi lại ảnh mới.
 5. Tự gọi hoặc nhắn hướng dẫn viên phụ trách: họ chưa được tự báo khi giờ hoặc nơi đón đổi.
 
-> Lưu ý: nếu giờ đón mới đã qua hạn chốt, Nền tảng từ chối và chỉ Quản trị sửa được — hãy nhờ Quản trị. Muốn đổi hồ sơ khách của đơn đã xác nhận thì bấm [[Đổi khách]].
+> Lưu ý: nếu giờ đón mới đã qua hạn chốt, Nền tảng từ chối và chỉ Quản trị sửa được. Muốn đổi hồ sơ khách của đơn đã xác nhận thì bấm [[Đổi khách]].
 
 ### Khách đổi số người hoặc dịch vụ sau khi đã xác nhận
 
@@ -180,7 +180,7 @@ Huỷ được đơn chờ xác nhận lẫn đã xác nhận mà bạn lập ho
 - **HDV bấm Nhận**: thẻ đơn đổi từ [[Chờ nhận]] sang "HDV: tên"; bạn nhận tin nếu đơn liên quan tới bạn.
 - **HDV huỷ đơn** (họ phải chọn lý do): đơn thành [[Đã huỷ]], bạn nhận tin huỷ; khối [[Lịch sử]] của trang đơn có dòng huỷ đơn kèm lý do.
 - **HDV sửa số khách**: bạn nhận tin đơn đổi; khối [[Lịch sử]] có dòng sửa kèm lý do.
-- **HDV từ chối đơn**: chưa có nút này.`,
+- **HDV, bạn bấm [[Từ chối đơn]]**: đơn về Chờ nhận ("được trả lại").`,
     },
     {
       tieuDe: "Thực tập — khác Bán hàng ở đâu",

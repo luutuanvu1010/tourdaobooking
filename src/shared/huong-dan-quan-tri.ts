@@ -24,11 +24,11 @@ export const HD_QUAN_TRI: NhomHuongDan = {
 ### Trên điện thoại
 - Tab ở đáy: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Dịch vụ]], [[Tài khoản]], **Tôi**.
 - Các trang khác mở từ trang Tôi: [[Danh bạ]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], [[Điều chỉnh công nợ]], nhóm VẬN CHUYỂN ([[Điều phối xe]], [[Xe]], [[Giấy tờ sắp hết hạn]], [[Loại giấy tờ xe]], [[Lý do điều phối]]).
-- Bảng ở trang quản trị có thể phải kéo ngang. Việc nhiều nên làm trên máy tính.`,
+- Bảng ở trang quản trị có thể phải kéo ngang.`,
     },
     {
       tieuDe: "Tài khoản cho nhân viên mới",
-      noiDung: `Tài khoản mới do **Hành chính nhân sự** (hoặc người phụ trách hệ thống) tạo ở khung **Thêm tài khoản**; Quản trị không còn khung này. Sau khi có tài khoản, bạn vẫn đổi vai trò, sửa tên, ngưng và hỗ trợ đăng nhập như dưới đây.
+      noiDung: `Tài khoản mới do **Hành chính nhân sự** (hoặc người phụ trách hệ thống) tạo ở khung **Thêm tài khoản**; Quản trị không còn khung này.
 
 Bạn không thấy các vai trò quản lý (Giám đốc, Điều hành chung, IT, Hành chính nhân sự).`,
     },
@@ -46,7 +46,7 @@ Bạn không thấy các vai trò quản lý (Giám đốc, Điều hành chung,
 
 - **Quên PIN**: bấm [[Đặt lại PIN]], xác nhận. PIN cũ, Face ID mất hiệu lực; mọi máy của họ bị đăng xuất. Gửi riêng PIN mới rồi bấm [[Đã ghi lại, ẩn đi]].
 - **Bị khoá vì gõ sai nhiều lần**: dòng có nhãn [[Bị khoá đăng nhập]]. Bấm [[Mở khoá]].
-- **Mất điện thoại**: bấm nút **Gỡ Face ID** (số trong ngoặc là số máy đã bật), rồi [[Đặt lại PIN]].
+- **Mất điện thoại**: bấm nút **Gỡ Face ID**, rồi [[Đặt lại PIN]].
 - **Nghỉ việc**: bấm [[Ngưng]], xác nhận. Họ bị đăng xuất ngay. Quay lại làm thì bấm [[Kích hoạt lại]]. Tài khoản không bao giờ bị xoá.
 
 Bạn không đặt lại PIN của chính mình ở đây; tự đổi ở trang Tôi. Bạn chỉ quản lý được tài khoản **không có quyền Quản trị hoặc Nhân sự**; trên dòng của Quản trị khác và của Hành chính nhân sự các nút bị ẩn.`,
@@ -108,9 +108,10 @@ Lọc: [[Đang ghi đè giá]], [[Sheet đã đổi giá (cần xem)]], [[Đã �
     },
     {
       tieuDe: "Người phụ trách đơn",
-      noiDung: `1. Mở đơn từ [[Đơn hàng]], tìm khối [[Người phụ trách]].
-2. Đơn chưa có ai hiện [[Chờ nhận]]. Bấm [[Chọn người phụ trách]] (hoặc [[Đổi người phụ trách]]).
-3. Chọn người, bấm [[Lưu người phụ trách]].`,
+      noiDung: `1. Mở đơn, tìm khối [[Người phụ trách]]. Đơn chưa có ai hiện [[Chờ nhận]].
+2. Bấm [[Chọn người phụ trách]] hoặc [[Đổi người phụ trách]], chọn người, bấm [[Lưu người phụ trách]].
+
+Người đang lo đơn tự trả bằng [[Từ chối đơn]]: đơn về Chờ nhận, chữ "được trả lại". Đơn đi hôm nay, ngày mai thì họ gọi bạn đổi người. Người đi kèm chuyến xe không tự đổi theo.`,
     },
     {
       tieuDe: "Đặt gấp (giờ đón đã qua hạn chốt)",

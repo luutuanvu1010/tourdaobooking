@@ -44,11 +44,12 @@ function departDateOf(services: readonly PoolSourceService[]): string | null {
 }
 
 /** Dựng phần hẹp của MỘT đơn — danh sách trường được phép, từng khoá tường minh (kể cả số khách: chép từng loại, không giữ tham chiếu đối tượng nguồn). */
-function toPoolOrder(o: PoolSourceOrder): PoolOrderDto {
+function toPoolOrder(o: PoolSourceOrder, traLai: boolean): PoolOrderDto {
   return {
     orderId: o.id,
     orderCode: o.orderCode,
     departDate: departDateOf(o.services),
+    traLai,
     services: o.services.map((s) => ({
       // Tên dịch vụ nhập tay cũng là chữ tự do (người lập gõ) — Ruling người thi công (Task 1.5, chặt hơn S23-2 vốn chỉ nêu nơi đón): che cả tên.
       name: maskLongDigits(s.name),
@@ -73,10 +74,11 @@ function byDepartDate(a: PoolOrderDto, b: PoolOrderDto): number {
  * Hàng chờ nhận (ADR-0030 S23-2): trong các đơn nguồn, giữ đơn CHƯA huỷ, KHÔNG có người phụ trách đang mở (`withHandler` — tập do `dispatch` trả lời qua
  * `ctx.ordersWithHandler`, S20-13; `orders` không tự đọc dữ liệu phân công), CHƯA qua ngày đi (`tripDeparted`, giờ VN `today`; đơn chưa có ngày nào vẫn
  * giữ) — rồi dựng phần hẹp. Đây là NGUỒN QUYẾT ĐỊNH của ba điều kiện đó; câu SQL của repository chỉ lọc thô trước (tập cha) cho đỡ đọc.
+ * `traLai` (ADR-0030 điều 3): tập đơn «được trả lại» do `audit` trả lời (`donDuocTraLai`) — chỉ thành cờ boolean của từng đơn.
  */
-export function toPoolOrders(sources: readonly PoolSourceOrder[], withHandler: ReadonlySet<string>, today: string): PoolOrderDto[] {
+export function toPoolOrders(sources: readonly PoolSourceOrder[], withHandler: ReadonlySet<string>, today: string, traLai: ReadonlySet<string>): PoolOrderDto[] {
   return sources
     .filter((o) => o.status !== "cancelled" && !withHandler.has(o.id) && !tripDeparted(o.services.map((s) => s.departDate), today))
-    .map(toPoolOrder)
+    .map((o) => toPoolOrder(o, traLai.has(o.id)))
     .sort(byDepartDate);
 }

@@ -42,6 +42,7 @@ const KHONG_CAN: Readonly<Record<string, string>> = {
   "PUT /api/orders/:id/booker": "đổi người đặt — không đổi hành khách",
   "POST /api/orders/:id/cancel-reason": "phân loại lý do huỷ — đơn đã huỷ từ trước",
   "PUT /api/orders/:id/handler": "đổi người phụ trách",
+  "POST /api/orders/:id/handler-refuse": "trả đơn (ADR-0030 điều 1) — không đổi khách / chặng; người phụ trách không ở trong chuyến",
   "POST /api/orders/:id/payments": "billing — tiền, không đổi người / chặng",
   "POST /api/orders/:id/coc/duyet": "billing — cọc",
   "POST /api/orders/:id/coc/duyet/:duyetId/huy": "billing — cọc",

@@ -2,6 +2,16 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
+## Nút «Từ chối» + hạn mức Từ chối (ADR-0030 điều 1, ADR-0032; migration `0117_han_muc_tu_choi.sql` — số tạm; nhật ký thay đổi 2.27 — số tạm) — CHƯA PHÁT HÀNH — RUNBOOK (AI chuẩn bị, chủ chạy)
+
+**Trạng thái (ghi 2026-10-23, người thi công hạn mức):** nhánh `han-muc-ke-hoach` (chứa cả mã nút Từ chối của nhánh `tu-choi-han-muc`), CHƯA gộp `main`, CHƯA kiểm độc lập (H13). Kế hoạch `docs/superpowers/plans/2026-10-23-han-muc-tu-choi-thi-cong.md`, sổ `…-thi-cong-nhat-ky.md`. Q-PH: chủ chốt phát hành CHUNG hai việc một lần (chat 2026-10-23 «… phát hành chung …»); kiểm độc lập ĐẠT CÓ ĐIỀU KIỆN, hai mục NÊN SỬA đã vá; chủ đã duyệt giao diện kèm đổi thứ tự nút thẻ «Đơn của tôi».
+
+1. **Số migration lúc gộp:** ngay trước `day-len`, `ls migrations` trên `main` mới nhất và `git ls-tree --name-only <nhánh> migrations/` cho mọi nhánh chưa gộp; `0117` đã bị dùng ⇒ đổi tên tệp sang số kế tiếp (bài kiểm tìm theo đuôi `_han_muc_tu_choi.sql`, dòng gieo không mang số — không phải sửa gì khác ngoài dòng `0117` ở `docs/SYSTEM-DESIGN.md` §5 Migration). Số nhật ký thay đổi: mục đầu của `main` + 1.
+2. **Phát hành:** `npm run day-len -- han-muc-ke-hoach` rồi `npm run trien-khai` (có migration ⇒ trien-khai lấy điểm Time Travel TRƯỚC khi áp và deploy NGAY sau migration). Lần đầu chạy ở chế độ **«Chỉ đo» 2/15** (dòng gieo) — không ai bị chặn.
+3. **Ngay sau deploy:** `node scripts/audit-invariants.mjs --db remote` — `R-DSP-6` có thể cảnh báo vài dòng mở trong KHE giữa lúc áp migration và lúc deploy (mã cũ chưa ghi sự kiện): rà tay đúng các dòng có `valid_from_at` trong khe; ngoài khe là lỗi mã. `R-DSP-5`, `R-DSP-7` phải 0.
+4. **Sau 1–2 tuần:** Toàn quyền mở Chính sách điều phối → thẻ «Hạn mức Từ chối của hướng dẫn viên», xem số lần; thấy hợp lý thì chọn «Chặn» và bấm Lưu cài đặt (không cần phát hành mã).
+5. **Đường lùi:** `wrangler rollback` chỉ lùi Worker; ba bảng mới ở lại (chỉ thêm, bản cũ không đọc) — vô hại. Bản cũ chạy trên CSDL mới thì Nhận / Giao không ghi sự kiện ⇒ `R-DSP-6` báo các dòng đó (cảnh báo).
+
 ## Lần phát hành kế tiếp: Sổ đại lý đợt 2 (ADR-0079, ADR-0078 điều 7–10, ADR-0132; migration `0112`, `0113` — số tạm; nhật ký thay đổi 2.24 — số tạm) — CHƯA PHÁT HÀNH — RUNBOOK
 
 **Trạng thái (ghi 2026-10-19, Task 14):** nhánh `claude/objective-euclid-1c8113`, CHƯA gộp `main`, CHƯA lên production. Đặc tả `docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/README.md` §5 (phát hành, hoàn tác); sổ thi công `docs/superpowers/plans/2026-10-18-so-dai-ly-dot-2-thi-cong-nhat-ky.md`. Đổi số 19/10 (Ruling R-P11): chữ «0111» của hồ sơ cũ nay là `0112`, «0112» (chụp bù) nay là `0113`, «2.18» / «2.22» nay là 2.24.

@@ -21,8 +21,8 @@ import {
   type TrangThaiPhuTrach,
 } from "./bang-tin.ts";
 
-test("THAY_DOI đúng 11 giá trị (điều 4 + điều 7 ADR-0022; + chot_giao, hoan_thanh — ADR-0025 điều 8)", () => {
-  assert.deepEqual([...THAY_DOI], ["tao", "tao_cho_nhan", "nhan", "giao", "xac_nhan", "huy", "sua", "chuyen", "tien", "chot_giao", "hoan_thanh"]);
+test("THAY_DOI đúng 12 giá trị (điều 4 + điều 7 ADR-0022; + chot_giao, hoan_thanh — ADR-0025 điều 8; + tu_choi — ADR-0030 điều 1)", () => {
+  assert.deepEqual([...THAY_DOI], ["tao", "tao_cho_nhan", "nhan", "giao", "xac_nhan", "huy", "sua", "chuyen", "tien", "chot_giao", "hoan_thanh", "tu_choi"]);
 });
 
 // 512 tập con của 9 mã quyền (ADR-0040 D3 thêm DRIVER, ADR-0048 D2 thêm DRIVER_PARTNER) — suy kỳ vọng từ MATRIX/can(), không chép tay (P16: bài kiểm không được tự khoá giá trị đọc nhầm là luật).
@@ -434,4 +434,23 @@ test("duocThayTinDoi: văn phòng + HDV như duocThayTinDon; Đối tác / Thự
   for (const p of ["PARTNER", "INTERN"] as const) {
     for (const thayDoi of THAY_DOI) assert.equal(thongBaoNoi(ai("x", p), { loai: "don", orderId: "o1", maDon: "TD1", thayDoi, luc: "2026-10-08T00:00:00.000Z" }), null, `${p} ${thayDoi}`);
   }
+});
+
+// ---- ADR-0030 điều 1 (nút Từ chối), kế hoạch 2026-10-20 TC-7 ----
+test("tu_choi: nhãn sự kiện — trước có A, sau không ai → cho-nhan + nguoi:A + nguoi:<người lập> + tat-ca", () => {
+  assert.deepEqual(
+    nhanSuKien({ ownerId: "lap", handlerTruoc: { coNguoi: true, staffId: "A" }, handlerSau: { coNguoi: false, staffId: null } }),
+    ["cho-nhan", "nguoi:A", "nguoi:lap", "tat-ca"],
+  );
+});
+
+test("tu_choi: thông báo nổi «Đơn … vừa được trả lại, đang chờ người nhận» cho HDV khác và Kế toán; KHÔNG cho tài khoản lai có quyền Đối tác, Đối tác, Thực tập", () => {
+  assert.deepEqual(thongBaoNoi(huongDanVien, suKien("tu_choi")), { cau: "Đơn TD1 vừa được trả lại, đang chờ người nhận", lienKet: "/account" });
+  assert.deepEqual(thongBaoNoi(ketToan, suKien("tu_choi")), { cau: "Đơn TD1 vừa được trả lại, đang chờ người nhận", lienKet: "/order?id=order1" });
+  assert.deepEqual(thongBaoNoi(vanPhong, suKien("tu_choi")), { cau: "Đơn TD1 vừa được trả lại, đang chờ người nhận", lienKet: "/order?id=order1" });
+  assert.equal(thongBaoNoi({ id: "l1", permissions: ["PARTNER", "SALES"] as const }, suKien("tu_choi")), null);
+  assert.equal(thongBaoNoi({ id: "l2", permissions: ["PARTNER", "FIELD"] as const }, suKien("tu_choi")), null);
+  assert.equal(thongBaoNoi(doiTac, suKien("tu_choi")), null);
+  assert.equal(thongBaoNoi(thucTap, suKien("tu_choi")), null);
+  assert.ok(laSuKienHopLe(suKien("tu_choi")));
 });

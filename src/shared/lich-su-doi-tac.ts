@@ -51,7 +51,7 @@ export const LICH_SU_DOI_TAC_CHO_PHEP = {
 export const LICH_SU_DOI_TAC_AN = [
   // Nhóm đơn
   "order_cancel_reason_classified", "order_terms_captured", "order_terms_recaptured", "order_terms_manual", "ord_terms_backfilled", "order_accounting_entry_marked", "order_accounting_entry_unmarked",
-  "order_handler_changed", "order_claimed", "booker_changed", "exported_png", "exported_pdf",
+  "order_handler_changed", "order_claimed", "order_handler_refused", "booker_changed", "exported_png", "exported_pdf",
   // Sổ tiền, cọc đơn huỷ, đối soát
   "ledger_company_received", "ledger_counterparty_confirmed", "ledger_settlement", "ledger_refund", "ledger_adjustment", "ledger_adjustment_requested", "ledger_adjustment_approved", "ledger_adjustment_rejected", "ledger_adjustment_withdrawn", "ledger_adjustment_affected",
   "ledger_receipt_replaced", "ledger_reversal", "ledger_bank_txn_linked",
@@ -88,6 +88,8 @@ export const LICH_SU_DOI_TAC_AN = [
   "catalog_group_assigned", "catalog_groups_seeded", "feedback_created", "feedback_replied", "feedback_status_changed", "feedback_assigned",
   "feedback_claimed", "feedback_team_changed", "feedback_priority_changed", "feedback_team_created", "feedback_team_updated", "feedback_team_member_changed", "notice_sent", "notice_revoked",
   "notice_acknowledged",
+  // ADR-0032 (hạn mức Từ chối — G3 kế hoạch 2026-10-23): ẩn như lớp nội bộ.
+  "refuse_limit_hit", "refuse_policy_changed", "refuse_counter_reset",
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */
