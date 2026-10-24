@@ -3,7 +3,7 @@
 import { auditStatement } from "../audit";
 import { getEffectiveServices } from "../catalog";
 import { datHoatDongLoaiDoiTacStatement, kiemTenLoaiDoiTac, loaiVaiChiTiet, maLoaiDoiTac, ownerCompany, tenLoaiVai, themLoaiDoiTacStatement } from "../parties";
-import type { CommissionRuleDto, CommissionRuleListResponse, GanLoaiMucDto, GanLoaiMucResponse, LoaiDoiTacDto, LoaiDoiTacListResponse, LoaiDoiTacResponse, MucTaDto, MucTaListResponse, MucTaResponse,
+import type { CommissionRuleDto, HoaHongHoSoResponse, CommissionRuleListResponse, GanLoaiMucDto, GanLoaiMucResponse, LoaiDoiTacDto, LoaiDoiTacListResponse, LoaiDoiTacResponse, MucTaDto, MucTaListResponse, MucTaResponse,
   NguoiHuongTimResponse, SupplyTermDto, SupplyTermListResponse, ThuTraResponse } from "../../shared/contracts";
 import { error, json, mauLikeChua, kemLocation, readJson } from "../../shared/http";
 import { can, holdsPartner } from "../../shared/permissions";
@@ -13,7 +13,7 @@ import { vnToday } from "../../shared/vn-date";
 import { allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRoleTierStatement, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, huongCuaHoSo, insertBeneficiaryStatement,
   insertRateTierStatement, insertRoleTierStatement, insertRulePaxStatement, insertRuleStatement, insertTermStatement, isBeneficiary, openRolesOf, rateTierByCode, rateTiers, roleRulesForTierLink, roleTierById, roleTiersAll,
   roleTiersOn, ruleById, rulesOn, setBeneficiaryActiveStatement, setRateTierActiveStatement, suppliers, termById, termsOn, type RoleTierRow, type RuleRow, type TermRow, type TierRow } from "./repository";
-import { MA_RE, MUC_TA_RE, PARTY_RE, chonMuc, hieuLuc, kiemNgayDong, kiemThanDieuKhoan, kiemThanDongMucTa, kiemThanGan, kiemThanMuc, kiemTenMucTa, laNgay, maMucTa, moTaMuc, nguoiHuongCua,
+import { MA_RE, MUC_TA_RE, PARTY_RE, chonMuc, hieuLuc, tomTatHoaHongHoSo, kiemNgayDong, kiemThanDieuKhoan, kiemThanDongMucTa, kiemThanGan, kiemThanMuc, kiemTenMucTa, laNgay, maMucTa, moTaMuc, nguoiHuongCua,
   type DongDieuKhoan, type DongMuc, type GanLoaiMuc, type MucTheoLoai, type NguoiHuong } from "./rules";
 
 export { chupDon, soKhachTinhHoaHong, tinhDongDoiTac, type BanChup, type DongPhanDoiTac, type KieuMuc, type LyDoThieu, type NguoiHuong } from "./rules";
@@ -331,6 +331,23 @@ export const pricingModule: AppModule = {
       ]);
       if (res instanceof Response) return res;
       return kemLocation(json({ dong: dtoMuc((await ruleById(env.DB, id))!, await tenLoaiVai(env.DB), vnToday(new Date())) }, 201), "/hoa-hong");
+    }),
+    // Góp ý YC-0020: khối «Hoa hồng hiện hành» trên hồ sơ đại lý — loại hồ sơ đang mang, mức TA mỗi loại gắn hôm nay, có dòng riêng đè lên không, có xung đột mức không. Chỉ đọc, cùng quyền «Thử tra».
+    route("GET", "/api/pricing/ho-so/:id/hoa-hong", "office", async ({ env, params, staff }) => {
+      if (!can(staff, "partner.commission.view") || holdsPartner(staff)) return FORBIDDEN();
+      const id = params.id!;
+      if (!PARTY_RE.test(id)) return error(400, "invalid_input", "Mã hồ sơ không hợp lệ.");
+      const homNay = vnToday(new Date());
+      const [vaiMo, duocHuong, gan, muc, tenMuc, tenVai] = await Promise.all([openRolesOf(env.DB, id), beneficiaryRoles(env.DB), roleTiersOn(env.DB, homNay), rulesOn(env.DB, homNay), rateTiers(env.DB), tenLoaiVai(env.DB)]);
+      const t = tomTatHoaHongHoSo({ partyId: id, vaiMo: vaiMo.map((r) => r.role_type_code), vaiDuocHuong: new Set(duocHuong), gan: gan.map(dongGan), muc: muc.map(dongMuc), ngay: homNay });
+      const tenCuaMuc = new Map(tenMuc.map((m) => [m.code, m]));
+      return json({
+        homNay, laNguoiHuong: t.laNguoiHuong, xungDot: t.xungDot, dongRiengLoai: t.dongRiengLoai, dongRiengDoiTac: t.dongRiengDoiTac,
+        vai: t.vai.map((x) => {
+          const m = x.mucCode ? tenCuaMuc.get(x.mucCode) : undefined;
+          return { loai: { code: x.loaiCode, ten: tenVai.get(x.loaiCode) ?? x.loaiCode }, muc: m ? { code: m.code, ten: m.name, dangBat: m.active === 1 } : null, tuNgay: x.tuNgay };
+        }),
+      } satisfies HoaHongHoSoResponse);
     }),
     // "Thử tra" cho văn phòng: một đối tác + một dịch vụ + một ngày ⇒ mức nào thắng (cùng hàm `chonMuc` với lúc Xác nhận đơn, cùng `gan` của `docBangChoChup`). Chỉ đọc.
     route("GET", "/api/pricing/thu-tra", "office", async ({ env, url, staff }) => {

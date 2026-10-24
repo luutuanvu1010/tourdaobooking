@@ -177,6 +177,7 @@ function bangDien(g: Gieo): Record<string, string[]> {
     // chuỗi truy vấn. Nhật ký toàn hệ thống: trang đầu (100 dòng) + lọc đúng các hành động chở mức — thế giới lớn dần thì dòng cũ không rơi khỏi phép quét.
     "/api/audit": ["/api/audit?limit=100", "/api/audit?action=prc_commission_rule_added", "/api/audit?action=prc_supply_term_added", "/api/audit?action=order_terms_manual", "/api/audit?q=SL"],
     "/api/pricing/thu-tra": [`/api/pricing/thu-tra?doiTac=${PTY_B}&dichVu=SLX&ngay=${NGAY}`, `/api/pricing/thu-tra?doiTac=${PTY_B}&dichVu=SLY&ngay=${NGAY}`],
+    "/api/pricing/ho-so/:id/hoa-hong": [`/api/pricing/ho-so/${PTY_B}/hoa-hong`], // YC-0020: chỉ mã, tên mức, số đếm — văn phòng 200, Đối tác / tài khoản lai 403
     "/api/pricing/nguoi-huong": ["/api/pricing/nguoi-huong?q=Đại"],
     "/api/parties/lookup": ["/api/parties/lookup?phone=0913000001"],
     "/api/sessions/policy/preview": ["/api/sessions/policy/preview?nhieuMay="],

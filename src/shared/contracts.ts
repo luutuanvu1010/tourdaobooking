@@ -2706,6 +2706,15 @@ export interface MucTaListResponse { homNay: string; muc: MucTaDto[]; loai: { co
 export interface MucTaResponse { muc: MucTaDto }
 /** Gắn loại↔mức: 201 kèm `dongRieng` = dòng riêng theo loại (bậc 4–6) còn hiệu lực trong khoảng gắn, của loại này VÀ của mọi loại mà hồ sơ mang loại này đang mang — các dòng đó thắng TA (cảnh báo, không chặn — N-17). */
 export interface GanLoaiMucResponse { gan: GanLoaiMucDto; dongRieng: CommissionRuleDto[] }
+/** Góp ý YC-0020: «Hoa hồng hiện hành» của một hồ sơ (chỉ đọc). `muc` = mức TA loại đó đang gắn (null = chưa gắn). Chỉ mã, tên, số đếm — không tỷ lệ, không số liệu hồ sơ. */
+export interface HoaHongHoSoResponse {
+  homNay: string;
+  laNguoiHuong: boolean;
+  vai: { loai: { code: string; ten: string }; muc: { code: string; ten: string; dangBat: boolean } | null; tuNgay: string | null }[];
+  xungDot: boolean;
+  dongRiengLoai: number;
+  dongRiengDoiTac: number;
+}
 export interface NguoiHuongTimResponse { ketQua: { partyId: string; ten: string; loai: "PERSON" | "ORGANIZATION" }[] }
 
 // ===== Phần thương mại của đơn (sổ đại lý đợt 1 — ADR-0077 điều 10–11; đặc tả §6). HAI DTO danh sách trắng: văn phòng thấy mức, hoa hồng, giá đại lý, cờ thiếu mức;

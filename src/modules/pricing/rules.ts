@@ -294,3 +294,31 @@ export function moTaMuc(v: { doiTuong: string; scope: PhamVi; catalogCode: strin
   const pv = v.scope === "ALL" ? "mọi dịch vụ" : v.scope === "GROUP" ? `nhóm ${v.groupCode}` : `dịch vụ ${v.catalogCode}`;
   return `${v.doiTuong} · ${pv} · ${nhanMuc({ kind: v.kind, rateBp: v.rateBp, perPax: v.perPaxAmount, theoLoai: v.theoLoai })}`;
 }
+
+// ===== Góp ý YC-0020: tóm tắt «Hoa hồng hiện hành» của MỘT hồ sơ (chỉ đọc; không đổi cách tính — cách tính vẫn là `chonMuc`). =====
+export interface TomTatHoaHongHoSo {
+  /** Hồ sơ đang mang ít nhất một loại đối tác được hưởng. */
+  laNguoiHuong: boolean;
+  /** Mỗi loại được hưởng hồ sơ đang mang: mức TA loại đó gắn ở `ngay` (null = chưa gắn). */
+  vai: { loaiCode: string; mucCode: string | null; tuNgay: string | null }[];
+  /** Hai loại gắn hai mức KHÁC MÃ. Chỉ là dấu hiệu: `chonMuc` mới quyết theo từng dịch vụ (so giá trị dòng khớp, theo bậc) nên có thể vẫn ra mức — chữ ở giao diện phải nói «có thể». */
+  xungDot: boolean;
+  /** Dòng riêng của các loại hồ sơ mang (bậc 4–6): thắng mức TA (bậc 7–9). */
+  dongRiengLoai: number;
+  /** Dòng riêng của chính hồ sơ (bậc 1–3): thắng tất cả. */
+  dongRiengDoiTac: number;
+}
+export function tomTatHoaHongHoSo(v: { partyId: string; vaiMo: readonly string[]; vaiDuocHuong: ReadonlySet<string>; gan: readonly GanLoaiMuc[]; muc: readonly DongMuc[]; ngay: string }): TomTatHoaHongHoSo {
+  const loai = [...new Set(v.vaiMo)].filter((c) => v.vaiDuocHuong.has(c)).sort();
+  const vai = loai.map((loaiCode) => {
+    const g = v.gan.find((x) => x.roleTypeCode === loaiCode && hieuLuc(x, v.ngay));
+    return { loaiCode, mucCode: g?.tierCode ?? null, tuNgay: g?.validFrom ?? null };
+  });
+  const mucKhacNhau = new Set(vai.map((x) => x.mucCode).filter((c): c is string => c !== null));
+  const dongCon = v.muc.filter((d) => hieuLuc(d, v.ngay));
+  return {
+    laNguoiHuong: loai.length > 0, vai, xungDot: mucKhacNhau.size > 1,
+    dongRiengLoai: dongCon.filter((d) => d.targetRoleCode !== null && loai.includes(d.targetRoleCode)).length,
+    dongRiengDoiTac: dongCon.filter((d) => d.targetPartyId === v.partyId).length,
+  };
+}

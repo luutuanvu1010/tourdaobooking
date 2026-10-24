@@ -361,6 +361,9 @@ async function openDetail(id: string): Promise<void> {
   const laChu = p.roles.some((x) => x.roleTypeCode === OWNER_COMPANY_ROLE && x.validTo === null);
   const taiKhoan = can(me, "company.legal.write") && laChu ? h("section", { id: "tai-khoan-nhan-tien", "aria-labelledby": "tknt-title" }) : null;
   if (taiKhoan) void veTaiKhoanNhanTien(taiKhoan, p);
+  // Mục «Hoa hồng hiện hành» (góp ý YC-0020): chỉ ĐỌC, người giữ ô partner.commission.view. Hồ sơ không mang loại được hưởng thì mục tự ẩn; máy chủ từ chối (tài khoản lai…) cũng ẩn.
+  const hoaHong = can(me, "partner.commission.view") && !p.mergedInto ? h("section", { id: "hoa-hong-hien-hanh", "aria-labelledby": "hhhh-title", hidden: true }) : null;
+  if (hoaHong) void veHoaHongHienHanh(hoaHong, p);
 
   // -- gộp hồ sơ (ADR-0068; đặc tả §5)
   const khoiGop: Child[] = [];
@@ -395,6 +398,7 @@ async function openDetail(id: string): Promise<void> {
     ...mucDaGop,
     giayTo,
     taiKhoan,
+    hoaHong,
     h("div", { class: "actions", style: "margin-top:12px" }, nutGop, button("Đóng", () => { boCheSo.che(); detailEl.hidden = true; mergeEl.hidden = true; openId = null; }, "btn")),
   );
   detailEl.hidden = false;
@@ -731,6 +735,35 @@ const TIN_TKNT_DA_CU = "Có người vừa đổi tài khoản nhận tiền nê
  * mục tự gọi máy chủ, không đi qua `act()` của trang. `tin` có nghĩa là mục vừa vẽ lại SAU một lần lưu: hiện dòng báo và đưa tiêu điểm về tiêu đề (lần vẽ đầu thì không).
  * `daLuu` = phản hồi PUT (cùng dạng GET) để khỏi đọc lại.
  */
+/**
+ * Mục «Hoa hồng hiện hành» của hồ sơ (YC-0020): loại đối tác hồ sơ đang mang và mức TA mỗi loại gắn hôm nay. Chỉ đọc — gán mức ở trang «Hoa hồng đối tác». Có ba tình huống cần
+ * nói rõ vì nhân viên hay hỏi «sao đại lý này lấy khác»: chưa gắn mức, hai loại gắn hai mức khác nhau (đơn bị giữ), dòng riêng đè lên mức (dòng riêng luôn thắng mức TA).
+ */
+async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto): Promise<void> {
+  let r: Api.HoaHongHoSoResponse;
+  try {
+    r = await api<Api.HoaHongHoSoResponse>(`/api/pricing/ho-so/${encodeURIComponent(p.id)}/hoa-hong`);
+  } catch {
+    return; // không đọc được (không đủ quyền, mạng): ẩn mục, không làm hỏng trang hồ sơ
+  }
+  if (!r.laNguoiHuong) return;
+  const dong = r.vai.map((v) =>
+    h("tr", null, h("td", null, v.loai.ten),
+      h("td", null, v.muc ? h("span", null, v.muc.ten, v.muc.dangBat ? "" : h("span", { class: "muted" }, " (mức đã tắt)")) : h("span", { class: "muted" }, "Chưa gắn mức")),
+      h("td", { class: "muted" }, v.tuNgay ? `từ ${ngayVN(v.tuNgay)}` : "")));
+  const nhac: Child[] = [];
+  if (r.xungDot) nhac.push(h("p", { class: "alert warn", role: "status" }, "Hồ sơ mang hai loại gắn hai mức TA khác nhau — với dịch vụ mà hai mức cho hai kết quả khác nhau, đơn có thể bị giữ cho tới khi gỡ bớt một loại hoặc gắn cùng một mức. Dùng «Thử tra» ở trang Hoa hồng đối tác để xem từng dịch vụ."));
+  if (r.vai.some((v) => v.muc === null)) nhac.push(h("p", { class: "muted" }, "Loại chưa gắn mức thì đơn chưa có hoa hồng cho tới khi gắn mức hoặc có dòng riêng."));
+  if (r.dongRiengDoiTac > 0) nhac.push(h("p", { class: "muted" }, `Đại lý này có ${r.dongRiengDoiTac} dòng riêng — dòng riêng luôn thắng mức TA.`));
+  if (r.dongRiengLoai > 0) nhac.push(h("p", { class: "muted" }, `Loại đối tác của hồ sơ có ${r.dongRiengLoai} dòng riêng — dòng riêng của loại thắng mức TA.`));
+  replaceChildren(sec,
+    h("h3", { id: "hhhh-title" }, "Hoa hồng hiện hành"),
+    h("table", { class: "items" }, h("tbody", null, ...dong)),
+    ...nhac,
+    h("p", null, h("a", { href: "/hoa-hong" }, "Xem hoặc đổi mức ở trang Hoa hồng đối tác")));
+  sec.hidden = false;
+}
+
 async function veTaiKhoanNhanTien(sec: HTMLElement, p: Api.PartyDto, tin?: TinTaiKhoan, daLuu?: Api.TaiKhoanNhanTienResponse): Promise<void> {
   const url = `/api/parties/${encodeURIComponent(p.id)}/tai-khoan-nhan-tien`;
   const tieuDe = h("h3", { id: "tknt-title", tabindex: -1 }, "Tài khoản nhận tiền");
