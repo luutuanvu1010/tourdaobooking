@@ -25,6 +25,25 @@ Ba lượt **độc lập**: không chung bảng, không chung ô quyền, khôn
 3. **Cổng:** máy chủ — route ghi mới trong `pricing` (`can` + `holdsPartner`); `chonMuc` thêm bậc, `ThuTraResponse.bac` mở rộng. CSDL — trigger chống chồng / người hưởng / mức bật. Giao diện — khối «Hoa hồng hiện hành» trên hồ sơ (đã có, chỉ đọc) **đổi nghĩa**: có nút ghi cho người giữ ô write. Kiểm định kỳ mới `R-PRC-…`.
 4. **Xây cạnh lỗ đang hở:** HC-4.2, TNV-G4 (gần vùng tiền, không cùng đường ghi).
 
+## Lượt 3 — 0140 (bổ sung 24/10, theo bản tách `2026-10-24-de-xuat-adr-0140-ban-tach.md`)
+
+1. **Bảng chạm tới:** bảng thành viên MỚI (tài khoản ↔ hồ sơ tổ chức, chỉ một loại: «nhân viên của đại lý»). Bảng `orders`: cột bên đặt nay chứa thêm **hồ sơ tổ chức đại lý** cho đơn do Đối tác lập (hôm nay chỉ hồ sơ cá nhân của chính tài khoản) — đây là câu «bảng này nay chứa ai» của bài học F-01. Bảng hoa hồng / công nợ: người hưởng nay có thể là tổ chức (0140a D2).
+2. **Từng ô của cột `PARTNER` chạm bảng `orders`** (đọc `src/shared/permissions.ts` 24/10):
+
+| Ô | Hôm nay | Đề xuất 0140b | Ghi chú |
+|---|---|---|---|
+| `order.view` | own | own hoặc org | chỉ xem |
+| `order.history.view` | own | own hoặc org | chạy lại bài D-1 với hai tài khoản cùng tổ chức |
+| `contact.view` | ownOrAssigned | ownOrAssigned hoặc org | vế `assigned` (xin nhận, ADR-0014 điều 10) giữ nguyên |
+| `money.view` | own | own hoặc org | giá đơn, không phải hoa hồng |
+| `order.terms.view` | own | **giữ own** | hoa hồng — nhân viên không thấy hoa hồng của tổ chức |
+| `order.modify`, `order.passenger.write`, `payment.receive` | own | **giữ own** | sửa / huỷ / khách / thu tiền chỉ đơn mình lập |
+| `order.create` | any | any | bên đặt bị ép = tổ chức khi là thành viên (0140a D2) |
+| `task.progress` | assigned | không đổi | |
+
+3. **Cổng canh cửa nào:** máy chủ — câu SQL lọc danh sách và từng route `GET /api/orders/:id*` hỏi phạm vi `org` (thành viên đang hiệu lực + tổ chức đã bật); route ghi vẫn `own`. CSDL — trigger bảng thành viên (không chồng, không tài khoản lai). **Giao diện, chỗ ẩn/hiện bị đổi nghĩa** (chưa đọc mã từng chỗ): danh sách đơn của Đối tác (thêm đơn đồng nghiệp — cần nhãn «người lập»); trang đơn (nút sửa / huỷ / thêm khách / thu tiền phải ẩn với đơn không phải mình lập, dù trang mở được); khối thương mại trên trang đơn (hoa hồng ẩn với đơn đồng nghiệp); form lập đơn (ô bên đặt khoá = tổ chức); Trang chủ Đối tác (số đếm đơn). Bài «số lạ»: hai tổ chức, mỗi bên hai tài khoản.
+4. **Số quyết định:** 0140a = 3, 0140b = 3 ⇒ hai lượt duyệt riêng. Thứ tự: ADR-0081 → 0140a → 0140b.
+
 ## Câu chủ cần trả lời
 
 - **Lượt 1:** (a) SĐT của người **đi kèm chuyến** (khuyến nghị) hay **người phụ trách đơn**? (b) chỉ **tài xế công ty** (khuyến nghị) hay cả đối tác?
