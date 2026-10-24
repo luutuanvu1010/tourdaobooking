@@ -165,3 +165,14 @@ export async function mocCaiDatMoiNhat(db: D1Database): Promise<string | null> {
 }
 export const chenCaiDatStatement = (db: D1Database, c: { id: string; cs: CaiDatHanMuc; tuLuc: string; at: string; actorId: string }): D1PreparedStatement =>
   db.prepare(CHEN_CAI_DAT).bind(c.id, c.cs.cheDo, c.cs.lienTiep, c.cs.moiTuan, c.tuLuc, c.at, c.actorId);
+
+const chu = (v: string): string => `'${v.replaceAll("'", "''")}'`;
+/**
+ * ADR-0032 «Sửa đổi 2026-10-24 — điều 5» (chủ chọn (A)): ĐIỀU KIỆN của câu nhật ký `refuse_limit_hit` thua đua — câu CUỐI của chính lô Từ chối: lần Từ chối
+ * này (`refuseId` = id câu chèn đầu lô) KHÔNG được ghi VÀ người gọi VẪN đang có dòng phụ trách mở của đơn. Hai vế cùng đúng ⇔ câu đầu bị chặn vì hạn mức
+ * (cài đặt luôn có — dòng gieo + trigger cấm xoá; người đã bị đổi thì vế hai sai ⇒ không nhật ký, route trả `stale`). Đưa vào `auditStatement(…, onlyIf)`
+ * như khuôn `EXISTS (…)` của feedback / thongbao: giá trị là mã do máy chủ sinh / đã kiểm dạng, vẫn thoát dấu nháy.
+ */
+export const dieuKienVuotLucGhi = (refuseId: string, orderId: string, partyId: string): string =>
+  `NOT EXISTS (SELECT 1 FROM dsp_release_event WHERE id = ${chu(refuseId)})
+   AND EXISTS (SELECT 1 FROM dsp_assignment WHERE order_id = ${chu(orderId)} AND task_kind_code = 'HANDLE' AND valid_to_at IS NULL AND party_id = ${chu(partyId)})`;

@@ -27,7 +27,7 @@ import { findHandledOrderIds, findHandlerOf, findHandlersOf, guardHandlerStateme
 import {
   CANCEL_REASON_LABEL, checkAssignee, handlerChangeVerdict, isDeliveredLock, isOpenHandlerCollision, parseCancelReason, parseOrderIds, parseSetHandler,
 } from "./rules";
-import { handlerChangeStatements, newOrderHandlerStatements, refuseStatements, tuChoiThang } from "./service";
+import { handlerChangeStatements, ketQuaTuChoi, newOrderHandlerStatements, refuseStatements } from "./service";
 import {
   caiDatHienHanh, chenAbortSauStatement, chenCaiDatStatement, chenResetStatement, demTheoNguoi, demTuChoiCua, mocCaiDatMoiNhat, tuChoiCuaDon,
 } from "./han-muc-repo";
@@ -335,8 +335,9 @@ export const dispatchModule: AppModule = {
     // (nháp — Q1 (a), chủ 2026-10-23) → 409 cancelled → 409 order_delivered → 409 too_late (ngày đi ≤ ngày mai — Q-E) → 400 (lý do, không ô chữ) → ghi
     // (409 stale nếu thua đua). Luật (a)(b)(c) chỉ ở mã máy chủ, không trigger: LỆCH CÓ CHỦ Ý 5.1 (ADR-0030 điều 4, `docs/SYSTEM-DESIGN.md` §16).
     // Không đồng bộ chuyến (người phụ trách không ở trong chuyến — `NGOAI_PHAM_VI_ROUTE`). Lô ở `refuseStatements`; thắng/thua chỉ hỏi `tuChoiThang`.
-    // ADR-0032: sau 400 lý do → đọc hạn mức (503 thiếu cài đặt; 409 refuse_limit + nhật ký khi chặn) → lô [REFUSE có điều kiện, đóng, nhật ký] → không
-    // thắng: đọc lại — còn phụ trách và nay bị chặn → 409 refuse_limit, còn lại 409 stale → «Chỉ đo» lẽ ra bị chặn: nhật ký → baoThayDoi.
+    // ADR-0032 (sửa đổi 2026-10-24 điều 5): sau 400 lý do → đọc hạn mức (503 thiếu cài đặt; chặn → nhật ký là lần ghi DUY NHẤT + 409 refuse_limit) → MỘT lô
+    // [REFUSE có điều kiện, đóng, nhật ký Từ chối, (nhật ký «chỉ đo»), (nhật ký «vượt lúc ghi»)] → `ketQuaTuChoi`: thắng → baoThayDoi; hết lượt lúc ghi → 409
+    // refuse_limit; bị đổi người → 409 stale. Mỗi lệnh ghi tối đa MỘT lần (ADR-0094 đ3, H5); không đọc lại sau lô.
     route("POST", "/api/orders/:id/handler-refuse", "orders", async ({ env, request, params, staff, baoThayDoi }) => {
       if (!can(staff, "dispatch.refuse", { assigned: true })) return REFUSE_FORBIDDEN();
       const orderId = params.id!;
@@ -355,8 +356,7 @@ export const dispatchModule: AppModule = {
       const at = luc.toISOString();
       const dauTuan = dauTuanIso(luc);
       const biGioiHan = biGioiHanTuChoi(staff.permissions); // điều 2: bộ quyền của phiên (đang hiệu lực lúc bấm)
-      const doc = () => demTuChoiCua(env.DB, { partyId: current.party_id, orderId, dauTuan, luc: at });
-      const dem = await doc();
+      const dem = await demTuChoiCua(env.DB, { partyId: current.party_id, orderId, dauTuan, luc: at });
       if (!dem) return REFUSE_POLICY_MISSING();
       const quyetDinh = quyetDinhHanMuc(dem.cs, dem.dem, biGioiHan);
       if (quyetDinh === "chan") {
@@ -364,23 +364,20 @@ export const dispatchModule: AppModule = {
         return REFUSE_LIMIT();
       }
       let kq: D1Result[];
+      // ADR-0032 «Sửa đổi 2026-10-24 — điều 5» (chủ chọn (A)): mọi nhật ký chạm hạn mức của lệnh đã chạy lô nằm TRONG CHÍNH lô Từ chối — mỗi lệnh ghi tối đa
+      // MỘT lần (ADR-0094 đ3, H5). «Chỉ đo» lẽ ra bị chặn: câu sau nhật ký Từ chối (chỉ khi thắng). Người bị giới hạn: câu «vượt lúc ghi» (chỉ khi lần Từ chối
+      // này không được ghi mà người gọi vẫn đang phụ trách), số đọc trước lô.
+      const chiDo = quyetDinh === "do_vuot" ? moTaChamHanMuc(dem.cs, dem.dem) : null;
+      const vuotLucGhi = biGioiHan ? `${moTaChamHanMuc({ ...dem.cs, cheDo: "BLOCK" }, dem.dem)} · vượt lúc ghi` : null;
       try {
-        // «Chỉ đo» lẽ ra bị chặn (ADR-0032 điều 6, G7): nhật ký đi CUỐI CHÍNH lô Từ chối (chỉ chèn khi lô thắng) — mỗi lệnh ghi MỘT lần (ADR-0094 đ3, H5).
-        const chiDo = quyetDinh === "do_vuot" ? moTaChamHanMuc(dem.cs, dem.dem) : null;
-        kq = await env.DB.batch(refuseStatements(env.DB, { orderId, partyId: current.party_id, actorId: staff.id, at, lyDo: lyDo.ma, dauTuan, biGioiHan, chiDo }));
+        kq = await env.DB.batch(refuseStatements(env.DB, { orderId, partyId: current.party_id, actorId: staff.id, at, lyDo: lyDo.ma, dauTuan, biGioiHan, chiDo, vuotLucGhi }));
       } catch (e) {
         if (isDeliveredLock(e)) return DA_GIAO(); // trigger 0044: đơn vừa Đã giao giữa lúc đọc và lúc ghi (cả lô đã quay lại)
         throw e;
       }
-      if (!tuChoiThang(kq)) {
-        // Câu đầu lô không chèn: hoặc đã hết lượt giữa lúc đọc và lúc ghi (vd hai lần Từ chối song song ở ngưỡng), hoặc thua đua đổi người.
-        const [sau, dem2] = await Promise.all([findHandlerOf(env.DB, orderId), doc()]);
-        if (sau?.staff_id === staff.id && dem2 && quyetDinhHanMuc(dem2.cs, dem2.dem, biGioiHan) === "chan") {
-          await ghiChamHanMuc(env.DB, staff.id, orderId, at, dem2);
-          return REFUSE_LIMIT();
-        }
-        return STALE();
-      }
+      const ketQua = ketQuaTuChoi(kq, vuotLucGhi !== null);
+      if (ketQua === "han_muc") return REFUSE_LIMIT(); // hết lượt giữa lúc đọc và lúc ghi (vd hai lần Từ chối song song) — nhật ký đã ở trong lô
+      if (ketQua === "thua") return STALE(); // bị đổi người giữa lúc đọc và lúc ghi — không nhật ký hạn mức
       baoThayDoi({ orderId, thayDoi: "tu_choi", handlerTruoc: { coNguoi: true, staffId: staff.id } });
       return json({ ok: true } satisfies HandlerRefuseResponse);
     }),

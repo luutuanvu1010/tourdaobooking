@@ -245,6 +245,7 @@ test("HM-12 (c): văn phòng đổi người đúng lúc HDV Từ chối (chen t
   assert.equal(r.json.error.code, "stale");
   assert.equal(soRefuse(w, FIELD), 0);
   assert.deepEqual(moDong(w, id), [`pty-${FIELD2}`]);
+  assert.equal(cham(w).length, 0, "thua vì đổi người: không nhật ký hạn mức");
 });
 
 test("HM-12 (a): Chặn 2/15, chuỗi = 1 — HDV gửi ĐỒNG THỜI Từ chối hai đơn (5 vòng, đặt lại giữa vòng) → mỗi vòng đúng một 200 và một 409 refuse_limit; REFUSE +1/vòng", async () => {
@@ -528,10 +529,9 @@ test("H5: «Chặn» vượt mức ở bước đọc — 409 refuse_limit ghi �
   assert.equal(cham(w).length, 1);
 });
 
-// CHỜ CHỦ (2026-10-24): nhánh thua đua hiện ghi HAI lần (lô Từ chối 0 dòng — lớp vé vẫn đếm — rồi lô riêng nhật ký, đúng chữ ADR-0032 điều 5 «ghi ở lô
-// riêng sau khi xác định lý do 409»). Giữ ghi một lần cần lệch ADR (gộp nhật ký vào lô có điều kiện, hoặc bỏ nhật ký ở nhánh này) — DỪNG, hỏi chủ. Bài để
-// `todo` (chạy, in kết quả, không làm đỏ npm test) tới khi chủ quyết; quyết xong thì bỏ `todo`.
-test("H5: thua đua (hết lượt giữa lúc đọc và lúc ghi) — 409 refuse_limit ghi ĐÚNG MỘT lần, vẫn có MỘT refuse_limit_hit", { todo: "chờ chủ quyết lệch ADR-0032 điều 5 ở nhánh thua đua" }, async () => {
+// Chủ dự án 2026-10-24 chọn (A) — ADR-0032 «Sửa đổi 2026-10-24 — điều 5»: nhật ký thua đua là câu cuối CỦA CHÍNH lô Từ chối (điều kiện: lần Từ chối này không
+// được ghi VÀ người gọi vẫn đang phụ trách), số đọc trước lô kèm «vượt lúc ghi».
+test("H5: thua đua (hết lượt giữa lúc đọc và lúc ghi) — 409 refuse_limit ghi ĐÚNG MỘT lần, vẫn có MỘT refuse_limit_hit", async () => {
   const w = setup();
   datCaiDat(w, "BLOCK");
   assert.equal((await nhanVaTuChoi(w, FIELD)).r.status, 200);
@@ -548,5 +548,25 @@ test("H5: thua đua (hết lượt giữa lúc đọc và lúc ghi) — 409 refu
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "refuse_limit");
   assert.deepEqual(nhieuLan, [], "thua đua mà vẫn ghi hai lần");
-  assert.equal(cham(w).length, 1);
+  assert.deepEqual(cham(w).map((x: any) => [x.order_id, x.detail]), [[id, "Liên tiếp 1/2 · tuần 1/15 · Chặn · vượt lúc ghi"]], "số đọc trước lô kèm dấu «vượt lúc ghi»");
+  assert.deepEqual(moDong(w, id), [`pty-${FIELD}`]);
+});
+
+test("H5: thua đua vì bị ĐỔI NGƯỜI (không còn phụ trách) — 409 stale, ghi MỘT lần, KHÔNG nhật ký hạn mức", async () => {
+  const w = setup();
+  datCaiDat(w, "BLOCK");
+  assert.equal((await nhanVaTuChoi(w, FIELD)).r.status, 200);
+  const id = await donCho(w);
+  assert.equal((await nhan(w, id, FIELD)).status, 200);
+  w.chenTruocLo((stmts: any[]) => /INSERT INTO dsp_release_event[\s\S]*'REFUSE'/.test(stmts[0]?.sql ?? ""), () => {
+    const at = new Date().toISOString();
+    w.sqlite.prepare("UPDATE dsp_assignment SET valid_to_at = ?, updated_at = ? WHERE order_id = ? AND task_kind_code = 'HANDLE' AND valid_to_at IS NULL").run(at, at, id);
+    w.sqlite.prepare("INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, updated_at) VALUES (?, ?, 'HANDLE', ?, 'PENDING', ?, ?, ?)")
+      .run(crypto.randomUUID(), id, `pty-${FIELD2}`, at, at, at);
+  });
+  const { r, nhieuLan } = await soLanGhiCuaLenh(() => tuChoiCoVe(w, id, FIELD));
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "stale");
+  assert.deepEqual(nhieuLan, []);
+  assert.equal(cham(w).length, 0, "không nhật ký hạn mức khi thua vì đổi người");
 });

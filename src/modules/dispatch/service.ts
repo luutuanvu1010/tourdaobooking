@@ -3,7 +3,7 @@
 import { auditStatement } from "../audit";
 import { closeHandlerSauChotStatement, closeHandlerStatement, insertHandlerAfterCloseStatement, insertHandlerIfNoneStatement, insertHandlerStatement } from "./repository";
 import { describeHandlerChange } from "./rules";
-import { chenSuKienSauStatement, chenTuChoiStatement } from "./han-muc-repo";
+import { chenSuKienSauStatement, chenTuChoiStatement, dieuKienVuotLucGhi } from "./han-muc-repo";
 import { nhanLyDoTuChoi, type MaLyDoTuChoi } from "../../shared/ly-do-tu-choi";
 
 export interface HandlerChange {
@@ -87,6 +87,11 @@ export interface Refusal {
    * lô này (`changes() > 0` sau nhật ký Từ chối) để mỗi lệnh chỉ ghi MỘT lần (ADR-0094 đ3, H5; Hiến chương 1.2). Không có ⇒ null.
    */
   chiDo?: string | null;
+  /**
+   * ADR-0032 «Sửa đổi 2026-10-24 — điều 5»: `detail` của nhật ký `refuse_limit_hit` khi lô THUA vì hết lượt giữa lúc đọc và lúc ghi (số đọc trước lô + «vượt lúc
+   * ghi»). Có ⇔ người gọi bị giới hạn; câu đó đứng CUỐI lô, chỉ chèn khi lần Từ chối này không được ghi VÀ người gọi vẫn đang phụ trách.
+   */
+  vuotLucGhi?: string | null;
 }
 
 /**
@@ -95,16 +100,31 @@ export interface Refusal {
  *      chuỗi/tuần đã đủ ⇒ không chèn). Không chèn ⇒ cả lô không đổi gì (không có lần Từ chối «ma»);
  *  [1] đóng dòng `HANDLE` đang mở MANG `party_id` của người gọi khi câu ngay trước đã chèn (`close_handler_sau_chot` — `… AND changes() > 0`);
  *  [2] nhật ký `order_handler_refused` (chỉ nhãn lý do) khi câu ngay trước đã đóng được;
- *  [3] (chỉ khi `chiDo`) nhật ký `refuse_limit_hit` «Chỉ đo (không chặn)» khi câu ngay trước đã chèn — cùng lô, để lệnh ghi đúng MỘT lần (H5).
+ *  [3] (chỉ khi `chiDo`) nhật ký `refuse_limit_hit` «Chỉ đo (không chặn)» khi câu ngay trước đã chèn — cùng lô, để lệnh ghi đúng MỘT lần (H5);
+ *  [cuối] (chỉ khi `vuotLucGhi`) nhật ký `refuse_limit_hit` «… · vượt lúc ghi» khi lần Từ chối này KHÔNG được ghi VÀ người gọi vẫn đang phụ trách (ADR-0032
+ *      sửa đổi 2026-10-24 điều 5). Mỗi lệnh Từ chối ghi tối đa MỘT lần.
  * KHÔNG có câu mở dòng mới: đơn về «Chờ nhận».
  */
 export function refuseStatements(db: D1Database, r: Refusal): D1PreparedStatement[] {
+  const refuseId = crypto.randomUUID();
   return [
-    chenTuChoiStatement(db, { id: crypto.randomUUID(), partyId: r.partyId, orderId: r.orderId, dauTuan: r.dauTuan, at: r.at, lyDo: r.lyDo, actorId: r.actorId, biGioiHan: r.biGioiHan }),
+    chenTuChoiStatement(db, { id: refuseId, partyId: r.partyId, orderId: r.orderId, dauTuan: r.dauTuan, at: r.at, lyDo: r.lyDo, actorId: r.actorId, biGioiHan: r.biGioiHan }),
     closeHandlerSauChotStatement(db, r.orderId, r.partyId, r.at, r.actorId),
     auditStatement(db, { staffId: r.actorId, action: "order_handler_refused", at: r.at, orderId: r.orderId, detail: nhanLyDoTuChoi(r.lyDo) }, "changes() > 0"),
     ...(r.chiDo ? [auditStatement(db, { staffId: r.actorId, action: "refuse_limit_hit", at: r.at, orderId: r.orderId, detail: r.chiDo }, "changes() > 0")] : []),
+    ...(r.vuotLucGhi
+      ? [auditStatement(db, { staffId: r.actorId, action: "refuse_limit_hit", at: r.at, orderId: r.orderId, detail: r.vuotLucGhi }, dieuKienVuotLucGhi(refuseId, r.orderId, r.partyId))]
+      : []),
   ];
+}
+
+/**
+ * Kết quả lô Từ chối — route chỉ hỏi hàm này, không đọc chỉ số rời: «thang» ⇔ câu đóng dòng (thứ 2) đổi một dòng; «han_muc» ⇔ thua VÀ câu nhật ký «vượt lúc
+ * ghi» (luôn đứng CUỐI khi có — `coVuotLucGhi`) đã chèn; còn lại «thua» (bị đổi người ⇒ 409 stale).
+ */
+export function ketQuaTuChoi(kq: readonly D1Result[], coVuotLucGhi: boolean): "thang" | "han_muc" | "thua" {
+  if (tuChoiThang(kq)) return "thang";
+  return coVuotLucGhi && (kq.at(-1)?.meta.changes ?? 0) > 0 ? "han_muc" : "thua";
 }
 
 /** Lô Từ chối đã THẮNG chưa — route chỉ hỏi hàm này, không đọc thẳng chỉ số (khuôn `daHuy`): câu đóng dòng (thứ 2) đổi một dòng. */
