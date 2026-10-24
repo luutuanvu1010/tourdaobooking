@@ -108,3 +108,24 @@ Chưa chạy giao diện; chưa kiểm production; các dòng «chưa kiểm» �
 - **Lượt A:** A1 (3 bộ lọc nhanh; «còn công nợ» đọc qua view `billing` đã công bố ⇒ không cần hợp đồng mới), A2 (nhãn «Đã nhập kế toán» nổi bật hơn — YC-0018), A3 (nhắc «chưa chọn ngày» ở đơn nháp — YC-0016), **A4 (mới, YC-0020):** khối chỉ-đọc «Hoa hồng hiện hành» + liên kết trong hồ sơ đại lý, và đường vào ở bảng điều khiển Admin; kèm sửa chữ `SO-HANG-RAO.md`.
 - **Lượt B (ADR, tối đa 3 quyết định):** B1 lớp giá đưa đón + (nếu chủ chọn) gán mức riêng từng đại lý; B2 đại lý tổ chức nhiều nhân viên; B3 SĐT HDV cho tài xế. **Việc đã duyệt chưa dựng đưa vào hàng chờ thi công, không cần duyệt lại:** màn Sổ công nợ cho Kế toán, ADR-0081 đối tác xem sổ, ADR-0116 hoàn tiền sau giao — thứ tự gợi ý: màn Sổ công nợ → ADR-0081 → ADR-0116 (đều chạm tiền ⇒ có người kiểm độc lập).
 - **Câu mới Q6 (YC-0020):** Cần gán mức **riêng cho từng đại lý** (ví dụ cùng là lữ hành nhưng đại lý A mức TA1, đại lý B mức TA2), hay gán theo loại là đủ? Khuyến nghị: theo loại là đủ giai đoạn này; đại lý đặc biệt dùng «dòng riêng của một đối tác» đã có. Chủ trả lời 24/10 «gán ngay trong hồ sơ đại lý» có thể hiểu là xem+vào nhanh (làm ngay ở A4) hoặc gán riêng (cần ADR) — cần chủ chốt.
+
+## 8. Kế hoạch CHỐT (chủ ra lệnh «chốt kế hoạch để thực hiện đầy đủ toàn bộ», 24/10)
+
+Chủ chưa trả lời riêng Q1–Q5 nên **theo khuyến nghị đã ghi ở mục 4** (ghi nhận: chủ chốt kế hoạch theo khuyến nghị). Điều này đủ cho việc bề mặt; **không thay lời duyệt ADR** — mọi việc chạm tiền, quyền, dữ liệu vẫn cần chủ duyệt ADR (Hiến pháp N3) trước khi thi công.
+
+| Câu | Chốt |
+|---|---|
+| Q1 lọc «chưa phụ trách» | Lọc theo trạng thái đơn «chờ HDV nhận» (đã có), **không** mở hợp đồng `orders`↔`dispatch` mới |
+| Q2 tiền đón, hoa hồng | Tiền đón là khoản riêng trên đơn; sửa mức/hoa hồng chỉ người giữ `partner.commission.write` (Kế toán, Quản trị, Toàn quyền) — **chờ ADR** |
+| Q3 SĐT HDV cho tài xế | Có, chỉ chuyến mình chạy và trong ngày chạy — **chờ ADR (sửa ADR-0053)** |
+| Q4 đại lý tổ chức | Mỗi nhân viên một tài khoản riêng, thấy đơn của nhau trong tổ chức — **chờ ADR, lượt duyệt sau** |
+| Q5 đăng ký/Zalo | Quản trị vẫn tạo tài khoản; thêm ô «SĐT Zalo»; đăng nhập Zalo chờ Zalo OA — **chờ ADR** |
+| Q6 mức TA riêng đại lý | Làm khối chỉ-đọc trước (đã xong, commit 33c92b66); ADR 0138 chờ duyệt |
+
+### Thực hiện (ba phiên song song, không đụng cùng tệp; phiên này giữ tài liệu)
+1. **Lượt A (mã):** A1 ba bộ lọc nhanh danh sách đơn (còn công nợ, đã/chưa nhập kế toán, chờ HDV nhận) + gỡ ô lọc dịch vụ; A2 nhãn «Đã nhập kế toán» nổi bật; A3 nhắc «chưa chọn ngày» ở đơn nháp; ô ghi chú giờ đón nếu chưa có. Đỏ trước xanh sau, kiểm độc lập, kịch bản Chrome.
+2. **Bộ ADR lượt duyệt kế tiếp (chỉ tài liệu):** nháp ADR «tiền đón + sửa mức» và «SĐT HDV cho tài xế», cùng trang ghép với ADR 0138 (đã có) — tối đa 3 quyết định chạm tiền/quyền/dữ liệu một lượt; nháp «đại lý tổ chức» cho lượt sau.
+3. **Sổ công nợ (kiểm + test, không giao diện):** bài khoá «Σ số dư theo đối tác = Σ dòng nợ các đơn», rà `quyen-hoan.json`, soạn kế hoạch thi công cho ba phần đã duyệt chưa dựng (màn Sổ công nợ Kế toán, ADR-0081 đối tác xem sổ, ADR-0116 hoàn tiền sau giao). Hai màn sổ cần ảnh phác của chủ trước khi dựng.
+
+### Chưa thi công trong đợt này (cần chủ)
+Duyệt ADR 0138 + hai nháp mới; ảnh phác hai màn sổ; Zalo OA; chạy `audit-invariants --db remote`; day-len/trien-khai (lệnh do chủ chạy).
