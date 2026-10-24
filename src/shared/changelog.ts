@@ -12,6 +12,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Góp ý màn Hỗ trợ (kế hoạch docs/superpowers/specs/2026-10-24-phan-tich-gop-y-ho-tro-ke-hoach.md): YC-0013, 0015, 0016, 0018, 0020; ADR-0138, ADR-0139. Migration 0118.
+    version: "2.29",
+    date: "2026-10-25",
+    items: [
+      { kind: "moi", text: "Hồ sơ đại lý trong Danh bạ có mục «Hoa hồng hiện hành». Kế toán, Quản trị, Toàn quyền gắn được mức TA riêng cho từng đại lý ngay tại đây." },
+      { kind: "moi", text: "Danh sách đơn có bộ lọc «Chưa có người phụ trách»." },
+      { kind: "moi", text: "Tài xế công ty, trong ngày chạy, thấy số điện thoại người đi kèm chuyến và tên dịch vụ của từng nhóm khách." },
+      { kind: "doi", text: "Trang đơn: đơn chưa có ngày thì nút «Xác nhận đơn» bị khoá và có dòng nói vì sao." },
+      { kind: "doi", text: "Thẻ đơn: nhãn «Đã nhập phần mềm kế toán» nay có viền xanh, dễ nhận ra hơn." },
+    ],
+  },
+  {
     // Ba sửa nhỏ sau rà soát «Sổ đại lý đợt 2» (chủ duyệt 24/10; Ruling R-154…R-157 ở docs/superpowers/plans/2026-10-18-so-dai-ly-dot-2-thi-cong-nhat-ky.md). KHÔNG migration.
     // Số 2.28 là số TẠM (main đang ở 2.27) — phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
     version: "2.28",
