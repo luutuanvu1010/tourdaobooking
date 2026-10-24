@@ -3487,6 +3487,24 @@ test("R-PRC-1 (ADR-0117 lần 2): khoá chồng ngày có ĐÍCH MỨC — hai m
   assert.equal(violations(db, c), 2, "một loại mang hai mức cùng ngày");
 });
 
+test("R-PRC-1 (ADR-0138): bảng mức TA gắn RIÊNG — một hồ sơ hai mức riêng chồng ngày (trigger bị gỡ) → vi phạm; nối tiếp / hồ sơ khác → 0", () => {
+  const c = one("R-PRC-1");
+  const db = build();
+  mucTaSdl(db, "TA1");
+  mucTaSdl(db, "TA2");
+  const P = "pty-hs-rieng";
+  db.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'Hồ Sơ Riêng', 1, ?, ?)").run(P, T1, T1);
+  db.exec("DROP TRIGGER prc_party_tier_party_ok"); // bài chỉ về chồng ngày, không về loại được hưởng
+  const ganRiengSdl = (id: string, tier: string, tu: string, den: string | null = null, party = P) =>
+    db.prepare("INSERT INTO prc_party_tier (id, party_id, tier_code, valid_from_date, valid_to_date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(id, party, tier, tu, den, T1, T1);
+  ganRiengSdl("r-1", "TA1", "2026-01-01", "2026-06-30");
+  ganRiengSdl("r-2", "TA2", "2026-07-01"); // nối tiếp
+  assert.equal(violations(db, c), 0, "ca xanh");
+  db.exec("DROP TRIGGER prc_party_tier_overlap");
+  ganRiengSdl("r-x", "TA1", "2026-08-01"); // chồng r-2
+  assert.equal(violations(db, c), 1, "một hồ sơ hai mức riêng cùng ngày");
+});
+
 test("R-PRC-2 (ADR-0117 lần 2): dòng đích mức trỏ mức KHÔNG TỒN TẠI → vi phạm; mức đã TẮT mà dòng còn hiệu lực → 0 (tắt mức chỉ chặn thêm mới, dòng đang áp vẫn áp); dòng đã hết hạn → 0", () => {
   const c = one("R-PRC-2");
   const db = build();
@@ -3613,6 +3631,24 @@ test("R-PRC-5: dòng mức còn hiệu lực hôm nay theo hồ sơ mà hồ sơ
   mucSdl(db, { id: "m-3", party: "dl-2", scope: "SERVICE", catalog: "S1", tu: "2026-01-01", den: vnNgay(0) }); // hết hạn HÔM NAY — còn hiệu lực hôm nay
   dongVaiSdl(db, "dl-2", "TRAVEL_AGENCY"); // hồ sơ thôi hợp tác SAU khi mức đã ghi
   assert.equal(violations(db, c), 1, "ngày kết thúc = hôm nay vẫn còn hiệu lực; dòng bắt đầu ngày mai chưa tính");
+});
+
+test("R-PRC-5 (ADR-0138): mức TA gắn RIÊNG còn hiệu lực hôm nay trên hồ sơ đã thôi mọi vai được hưởng → cảnh báo; còn vai / gắn đã đóng / chưa tới ngày → 0", () => {
+  const c = one("R-PRC-5");
+  const db = build();
+  mucTaSdl(db, "TA2");
+  toChucSdl(db, "dl-r", "TRAVEL_AGENCY");
+  const ganRiengSdl = (id: string, tu: string, den: string | null = null) =>
+    db.prepare("INSERT INTO prc_party_tier (id, party_id, tier_code, valid_from_date, valid_to_date, created_at, updated_at) VALUES (?, 'dl-r', 'TA2', ?, ?, ?, ?)").run(id, tu, den, T1, T1);
+  ganRiengSdl("g-1", "2026-01-01", vnNgay(-1)); // đã đóng hôm qua
+  ganRiengSdl("g-2", vnNgay(1)); // bắt đầu ngày mai
+  assert.equal(violations(db, c), 0, "hồ sơ còn vai được hưởng");
+  dongVaiSdl(db, "dl-r", "TRAVEL_AGENCY");
+  assert.equal(violations(db, c), 0, "gắn đã đóng / chưa tới ngày: không tính");
+  db.exec("DROP TRIGGER prc_party_tier_overlap");
+  db.exec("DROP TRIGGER prc_party_tier_party_ok"); // gắn mới trên hồ sơ đã thôi vai chỉ đi được bằng SQL tay — đúng thứ kiểm này bắt
+  ganRiengSdl("g-3", "2026-02-01", vnNgay(0)); // hết hạn HÔM NAY — còn hiệu lực
+  assert.equal(violations(db, c), 1, "hồ sơ thôi vai mà mức riêng còn hiệu lực hôm nay");
 });
 
 test("R-PRC-6 (ADR-0117 lần 1): hồ sơ mang loại đối tác còn vai/quyền nội bộ, hoặc danh sách được hưởng chứa vai nội bộ / OTHER không nhãn → vi phạm; dữ liệu đi đường thật → 0", () => {

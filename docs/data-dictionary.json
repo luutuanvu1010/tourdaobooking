@@ -786,6 +786,12 @@
       "note": "gắn loại hồ sơ với mức TA theo ngày (ADR-0117 lần 2; migration 0096): chỉ thêm hoặc đóng một lần, mỗi loại tối đa một mức tại một ngày (prc_tier_overlap); loại phải nằm trong danh sách được hưởng còn bật (prc_tier_target), mức phải còn bật (prc_tier_inactive). Đổi mức = đóng gắn cũ, mở gắn mới"
     },
     {
+      "name": "prc_party_tier",
+      "module": "pricing",
+      "kind": "table",
+      "note": "mức TA gắn RIÊNG cho một hồ sơ đối tác theo ngày (ADR-0138; migration 0118): chỉ thêm hoặc đóng một lần, mỗi hồ sơ tối đa một mức riêng tại một ngày (prc_party_tier_overlap); hồ sơ phải đang mở vai thuộc loại được hưởng còn bật (prc_target_not_beneficiary, đọc v_pty_open_role), mức phải còn bật (prc_tier_inactive). Có gắn riêng thì `chonMuc` xét mức này ở bậc 10–12 và bỏ qua mức TA của loại"
+    },
+    {
       "name": "prc_commission_rule",
       "module": "pricing",
       "kind": "table",
@@ -1364,6 +1370,7 @@
     "prc_commission_rule_pax": { "rule_id": "N1", "adult_amount": "N1", "child_amount": "N1", "senior_amount": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "prc_rate_tier": { "code": "N1", "name": "N1", "name_key": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "prc_role_tier": { "id": "N1", "role_type_code": "N1", "tier_code": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "prc_party_tier": { "id": "N1", "party_id": "N1", "tier_code": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "prc_supply_term": { "id": "N1", "scope": "N1", "catalog_code": "N1", "group_code": "N1", "seller_party_id": "N1", "supplier_party_id": "N1", "cost_rate_bp": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_bank": { "code": "N1", "bin": "N1", "short_name": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
     "pty_bank_account": { "id": "N1", "party_id": "N1", "bank_code": "N1", "account_number": "N1", "account_name": "N1", "valid_from": "N1", "valid_to": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },

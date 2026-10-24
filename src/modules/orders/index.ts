@@ -289,7 +289,7 @@ async function tranGiamGiaNhap(db: D1Database, staff: PermissionHolder & { party
     // Dịch vụ chưa lưu không có id: khoá tạm theo thứ tự (chỉ để ghép bản chụp dự kiến với tiền của dòng, không ghi).
     const khoa = (i: number) => `dv-${i}`;
     const chup = chupDon({
-      nguoiHuong: bang.nguoiHuong, ngay: vnToday(new Date()), muc: bang.muc, gan: bang.gan, dieuKhoan: bang.dieuKhoan,
+      nguoiHuong: bang.nguoiHuong, ngay: vnToday(new Date()), muc: bang.muc, gan: bang.gan, ganRieng: bang.ganRieng, dieuKhoan: bang.dieuKhoan,
       dong: order.services.map((s, i) => ({ serviceId: khoa(i), catalogCode: s.catalogCode, groupCode: s.catalogCode ? (bang.nhom.get(s.catalogCode) ?? null) : null })),
     });
     const tien = order.services.map((s, i) => ({ id: khoa(i), ...tienChoHoaHong(s) }));
@@ -760,7 +760,7 @@ export async function phanThuongMaiCuaDon(db: D1Database, orderId: string): Prom
     const ngay = vnToday(new Date());
     const bang = await docBangChoChup(db, { bookerPartyId: don.bookerPartyId, catalogCodes: don.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : [])), ngay });
     chup = chupDon({
-      nguoiHuong: bang.nguoiHuong, ngay, muc: bang.muc, gan: bang.gan, dieuKhoan: bang.dieuKhoan,
+      nguoiHuong: bang.nguoiHuong, ngay, muc: bang.muc, gan: bang.gan, ganRieng: bang.ganRieng, dieuKhoan: bang.dieuKhoan,
       dong: don.services.map((s) => ({ serviceId: s.id, catalogCode: s.catalogCode, groupCode: s.catalogCode ? (bang.nhom.get(s.catalogCode) ?? null) : null })),
     });
   } else {
@@ -956,7 +956,7 @@ export const ordersModule: AppModule = {
       const ngay = vnToday(new Date(order.confirmedAt ?? order.createdAt));
       const bang = await docBangChoChup(env.DB, { bookerPartyId: order.bookerPartyId, catalogCodes: order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : [])), ngay });
       const chup = chupDon({
-        nguoiHuong: bang.nguoiHuong, ngay, muc: bang.muc, gan: bang.gan, dieuKhoan: bang.dieuKhoan,
+        nguoiHuong: bang.nguoiHuong, ngay, muc: bang.muc, gan: bang.gan, ganRieng: bang.ganRieng, dieuKhoan: bang.dieuKhoan,
         dong: order.services.map((s) => ({ serviceId: s.id, catalogCode: s.catalogCode, groupCode: s.catalogCode ? (bang.nhom.get(s.catalogCode) ?? null) : null })),
       });
       // Ruling R-P17 (người kiểm Task 6 m-1): bên đặt CHÍNH LÀ nhà cung cấp bán dòng đó ⇒ `chupDon` ra RULE_CONFLICT (nhánh `laNhaCungCap` của pricing) — cài mức không gỡ được,
@@ -1564,7 +1564,7 @@ export const ordersModule: AppModule = {
         const homNay = vnToday(new Date());
         const bang = await docBangChoChup(env.DB, { bookerPartyId: benMoi, catalogCodes: order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : [])), ngay: homNay });
         const chup = chupDon({
-          nguoiHuong: bang.nguoiHuong, ngay: homNay, muc: bang.muc, gan: bang.gan, dieuKhoan: bang.dieuKhoan,
+          nguoiHuong: bang.nguoiHuong, ngay: homNay, muc: bang.muc, gan: bang.gan, ganRieng: bang.ganRieng, dieuKhoan: bang.dieuKhoan,
           dong: order.services.map((s) => ({ serviceId: s.id, catalogCode: s.catalogCode, groupCode: s.catalogCode ? (bang.nhom.get(s.catalogCode) ?? null) : null })),
         });
         // Task 7 (đặc tả P7): bên đặt mới làm đơn có người hưởng mà giảm giá HIỆU LỰC (số của hàm phải thu `effectiveMoney`) > tổng hoa hồng theo bản chụp mới ⇒ từ chối đổi, nêu hai số.
@@ -1648,7 +1648,7 @@ export const ordersModule: AppModule = {
         // dịch vụ đọc từ `order` là số hiện hành (chưa có dòng điều chỉnh). Câu chụp lỗi ⇒ cả lô rơi (đơn vẫn nháp).
         const bang = order ? await docBangChoChup(env.DB, { bookerPartyId: order.bookerPartyId, catalogCodes: order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : [])), ngay: today }) : null;
         const chup = order && bang ? chupDon({
-          nguoiHuong: bang.nguoiHuong, ngay: today, muc: bang.muc, gan: bang.gan, dieuKhoan: bang.dieuKhoan,
+          nguoiHuong: bang.nguoiHuong, ngay: today, muc: bang.muc, gan: bang.gan, ganRieng: bang.ganRieng, dieuKhoan: bang.dieuKhoan,
           dong: order.services.map((s) => ({ serviceId: s.id, catalogCode: s.catalogCode, groupCode: s.catalogCode ? (bang.nhom.get(s.catalogCode) ?? null) : null })),
         }) : [];
         // Task 7 (ADR-0079 điều 8 gạch 2): R3 theo BẢN CHỤP VỪA TÍNH (chính các dòng sẽ chèn trong lô dưới) — đơn có người hưởng: trần = tổng hoa hồng (dòng thiếu mức tính 0);

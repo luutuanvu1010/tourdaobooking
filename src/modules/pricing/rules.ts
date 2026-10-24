@@ -45,8 +45,13 @@ export interface DongDieuKhoan {
 export type NguoiHuong = { loai: "NONE" } | { loai: "HUONG"; partyId: string; vai: readonly string[] } | { loai: "KHONG_HUONG"; partyId: string };
 /** Gắn loại↔mức TA theo ngày (ADR-0117 lần 2): loại `roleTypeCode` mang mức `tierCode` trong khoảng [validFrom, validTo]. */
 export interface GanLoaiMuc { roleTypeCode: string; tierCode: string; validFrom: string; validTo: string | null }
-/** Bậc thắng: 1–3 riêng đối tác, 4–6 riêng loại, 7–9 mức TA (mỗi nhóm ba: dịch vụ, nhóm, mọi dịch vụ). */
-export type BacMuc = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+/** ADR-0138: mức TA gắn RIÊNG cho một hồ sơ đối tác theo ngày (bảng `prc_party_tier`). */
+export interface GanRieng { partyId: string; tierCode: string; validFrom: string; validTo: string | null }
+/**
+ * Bậc thắng (mỗi nhóm ba: dịch vụ, nhóm, mọi dịch vụ): 1–3 riêng đối tác, 10–12 mức TA gắn riêng (ADR-0138 — đứng SAU 1–3, TRƯỚC 4–6; số 10–12 để giữ nghĩa
+ * các số cũ — bậc chỉ để hiển thị, không lưu), 4–6 riêng loại, 7–9 mức TA của loại.
+ */
+export type BacMuc = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 export type KetQuaMuc = { trangThai: "NONE" } | { trangThai: "SET"; dong: DongMuc; bac: BacMuc } | { trangThai: "MISSING"; lyDo: LyDoThieu };
 export type KetQuaDieuKhoan = { trangThai: "SET"; dong: DongDieuKhoan } | { trangThai: "MISSING" };
 
@@ -85,7 +90,9 @@ const theoThuTu = (a: DongMuc, b: DongMuc): number => (a.targetRoleCode ?? "").l
  * Bậc 1–3: riêng đối tác. Bậc 4–6: riêng loại. Bậc 7–9: dòng của các mức TA mà loại hồ sơ đang mang được gắn (`gan`) ở `ngay`; dòng riêng của loại (4–6) luôn thắng dòng TA.
  * Hai mức khác số ở cùng bậc (qua hai loại) ⇒ RULE_CONFLICT; cùng số thì không xung đột, dòng `id` nhỏ nhất đứng ra (xác định).
  */
-export function chonMuc(v: { nguoiHuong: NguoiHuong; catalogCode: string | null; groupCode: string | null; ngay: string; dong: readonly DongMuc[]; gan?: readonly GanLoaiMuc[] }): KetQuaMuc {
+export function chonMuc(v: {
+  nguoiHuong: NguoiHuong; catalogCode: string | null; groupCode: string | null; ngay: string; dong: readonly DongMuc[]; gan?: readonly GanLoaiMuc[]; ganRieng?: readonly GanRieng[];
+}): KetQuaMuc {
   if (v.nguoiHuong.loai === "NONE") return { trangThai: "NONE" };
   if (v.nguoiHuong.loai === "KHONG_HUONG") return { trangThai: "MISSING", lyDo: "BOOKER_NOT_BENEFICIARY" };
   if (v.catalogCode === null) return { trangThai: "MISSING", lyDo: "MANUAL_LINE" };
@@ -96,12 +103,21 @@ export function chonMuc(v: { nguoiHuong: NguoiHuong; catalogCode: string | null;
     const d = con.find((x) => x.targetPartyId === nh.partyId && khop(x, pv, code, v.groupCode));
     if (d) return { trangThai: "SET", dong: d, bac: (i + 1) as 1 | 2 | 3 };
   }
+  // ADR-0138: mức TA gắn riêng (tối đa một tại một ngày — CSDL chặn chồng) — đứng trước dòng riêng của loại; có gắn riêng thì mức TA của loại bị bỏ qua hẳn.
+  const mucRieng = (v.ganRieng ?? []).find((g) => g.partyId === nh.partyId && hieuLuc(g, v.ngay))?.tierCode ?? null;
+  if (mucRieng !== null) {
+    for (const [i, pv] of THU_TU.entries()) {
+      const d = con.find((x) => x.targetTierCode === mucRieng && khop(x, pv, code, v.groupCode));
+      if (d) return { trangThai: "SET", dong: d, bac: (i + 10) as 10 | 11 | 12 };
+    }
+  }
   for (const [i, pv] of THU_TU.entries()) {
     const ds = con.filter((x) => x.targetRoleCode !== null && nh.vai.includes(x.targetRoleCode) && khop(x, pv, code, v.groupCode));
     if (ds.length === 0) continue;
     if (ds.some((x) => !cungMuc(x, ds[0]!))) return { trangThai: "MISSING", lyDo: "RULE_CONFLICT" };
     return { trangThai: "SET", dong: ds[0]!, bac: (i + 4) as 4 | 5 | 6 };
   }
+  if (mucRieng !== null) return { trangThai: "MISSING", lyDo: "NO_RULE" };
   const muc = new Set((v.gan ?? []).filter((g) => nh.vai.includes(g.roleTypeCode) && hieuLuc(g, v.ngay)).map((g) => g.tierCode));
   if (muc.size > 0) {
     for (const [i, pv] of THU_TU.entries()) {
@@ -137,7 +153,9 @@ export interface DongDon { serviceId: string; catalogCode: string | null; groupC
  * `chonMuc`): typecheck chỉ bắt nơi gọi QUÊN hẳn tham số; truyền nhầm `gan: []` vẫn biên dịch. Thứ canh thật là các bài ở src/modules/pricing/muc-ta.test.ts — mỗi đường gọi
  * (xác nhận, đổi bên đặt, bản tính thử đơn nháp) có một ca đỏ khi mất `gan`.
  */
-export function chupDon(v: { nguoiHuong: NguoiHuong; ngay: string; dong: readonly DongDon[]; muc: readonly DongMuc[]; gan: readonly GanLoaiMuc[]; dieuKhoan: readonly DongDieuKhoan[] }): BanChup[] {
+export function chupDon(v: {
+  nguoiHuong: NguoiHuong; ngay: string; dong: readonly DongDon[]; muc: readonly DongMuc[]; gan: readonly GanLoaiMuc[]; ganRieng: readonly GanRieng[]; dieuKhoan: readonly DongDieuKhoan[];
+}): BanChup[] {
   const beneficiaryPartyId = v.nguoiHuong.loai === "NONE" ? null : v.nguoiHuong.partyId;
   return v.dong.map((d) => {
     const dk = chonDieuKhoan({ catalogCode: d.catalogCode, groupCode: d.groupCode, ngay: v.ngay, dong: v.dieuKhoan });
@@ -145,7 +163,7 @@ export function chupDon(v: { nguoiHuong: NguoiHuong; ngay: string; dong: readonl
       ? { status: "SET", termId: dk.dong.id, sellerPartyId: dk.dong.sellerPartyId, supplierPartyId: dk.dong.supplierPartyId, costRateBp: dk.dong.costRateBp }
       : { status: "MISSING" };
     const laNhaCungCap = v.nguoiHuong.loai === "HUONG" && dk.trangThai === "SET" && dk.dong.supplierPartyId === beneficiaryPartyId;
-    const m: KetQuaMuc = laNhaCungCap ? { trangThai: "MISSING", lyDo: "RULE_CONFLICT" } : chonMuc({ nguoiHuong: v.nguoiHuong, catalogCode: d.catalogCode, groupCode: d.groupCode, ngay: v.ngay, dong: v.muc, gan: v.gan });
+    const m: KetQuaMuc = laNhaCungCap ? { trangThai: "MISSING", lyDo: "RULE_CONFLICT" } : chonMuc({ nguoiHuong: v.nguoiHuong, catalogCode: d.catalogCode, groupCode: d.groupCode, ngay: v.ngay, dong: v.muc, gan: v.gan, ganRieng: v.ganRieng });
     const hoaHong: BanChup["hoaHong"] = m.trangThai === "NONE" ? { status: "NONE" }
       : m.trangThai === "MISSING" ? { status: "MISSING", reason: m.lyDo }
       : { status: "SET", kind: m.dong.kind, rateBp: m.dong.rateBp, perPax: m.dong.perPaxAmount, ruleId: m.dong.id, theoLoai: m.dong.theoLoai ?? null };
@@ -263,6 +281,15 @@ export function kiemThanGan(raw: unknown): Ket<{ roleTypeCode: string; tierCode:
   return { ok: true, value: { roleTypeCode: b.loai, tierCode: b.muc, ...kn.value } };
 }
 
+/** Thân `POST /api/pricing/ho-so/:id/muc-rieng` (ADR-0138): { muc, tuNgay, denNgay? } — hồ sơ lấy từ đường dẫn. */
+export function kiemThanGanRieng(raw: unknown): Ket<{ tierCode: string; validFrom: string; validTo: string | null }> {
+  const b = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  if (typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn mức TA." };
+  const kn = docKhoangNgay(b);
+  if (!kn.ok) return kn;
+  return { ok: true, value: { tierCode: b.muc, ...kn.value } };
+}
+
 export type ThanDieuKhoan = { scope: PhamVi; catalogCode: string | null; groupCode: string | null; sellerPartyId: string; costRateBp: number | null; validFrom: string; validTo: string | null; note: string | null };
 /** Thân `POST /api/pricing/cung-ung`: { phamVi, catalogCode?, groupCode?, nguoiBanPartyId, tyLeMuaBp?, tuNgay, denNgay?, ghiChu? }. Nhà cung cấp = người bán (máy chủ suy). */
 export function kiemThanDieuKhoan(raw: unknown): Ket<ThanDieuKhoan> {
@@ -307,8 +334,12 @@ export interface TomTatHoaHongHoSo {
   dongRiengLoai: number;
   /** Dòng riêng của chính hồ sơ (bậc 1–3): thắng tất cả. */
   dongRiengDoiTac: number;
+  /** ADR-0138: mức TA gắn riêng đang hiệu lực (null = không) — có thì mức theo loại bị bỏ qua, nên không còn «xung đột hai loại». */
+  mucRieng: { mucCode: string; tuNgay: string } | null;
 }
-export function tomTatHoaHongHoSo(v: { partyId: string; vaiMo: readonly string[]; vaiDuocHuong: ReadonlySet<string>; gan: readonly GanLoaiMuc[]; muc: readonly DongMuc[]; ngay: string }): TomTatHoaHongHoSo {
+export function tomTatHoaHongHoSo(v: {
+  partyId: string; vaiMo: readonly string[]; vaiDuocHuong: ReadonlySet<string>; gan: readonly GanLoaiMuc[]; ganRieng: readonly GanRieng[]; muc: readonly DongMuc[]; ngay: string;
+}): TomTatHoaHongHoSo {
   const loai = [...new Set(v.vaiMo)].filter((c) => v.vaiDuocHuong.has(c)).sort();
   const vai = loai.map((loaiCode) => {
     const g = v.gan.find((x) => x.roleTypeCode === loaiCode && hieuLuc(x, v.ngay));
@@ -316,8 +347,10 @@ export function tomTatHoaHongHoSo(v: { partyId: string; vaiMo: readonly string[]
   });
   const mucKhacNhau = new Set(vai.map((x) => x.mucCode).filter((c): c is string => c !== null));
   const dongCon = v.muc.filter((d) => hieuLuc(d, v.ngay));
+  const r = v.ganRieng.find((g) => g.partyId === v.partyId && hieuLuc(g, v.ngay));
   return {
-    laNguoiHuong: loai.length > 0, vai, xungDot: mucKhacNhau.size > 1,
+    laNguoiHuong: loai.length > 0, vai, xungDot: !r && mucKhacNhau.size > 1,
+    mucRieng: r ? { mucCode: r.tierCode, tuNgay: r.validFrom } : null,
     dongRiengLoai: dongCon.filter((d) => d.targetRoleCode !== null && loai.includes(d.targetRoleCode)).length,
     dongRiengDoiTac: dongCon.filter((d) => d.targetPartyId === v.partyId).length,
   };

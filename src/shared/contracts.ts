@@ -2691,7 +2691,7 @@ export interface SupplyTermListResponse { homNay: string; dong: SupplyTermDto[];
 export interface ThuTraResponse {
   ngay: string;
   nguoiHuong: { loai: "NONE" | "HUONG" | "KHONG_HUONG"; vai: string[] };
-  ketQua: { trangThai: "NONE" } | { trangThai: "SET"; bac: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9; muc: CommissionRuleDto } | { trangThai: "MISSING"; lyDo: string };
+  ketQua: { trangThai: "NONE" } | { trangThai: "SET"; bac: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12; muc: CommissionRuleDto } | { trangThai: "MISSING"; lyDo: string };
 }
 /**
  * Loại đối tác được hưởng hoa hồng (ADR-0117 lần 1). `coSan` = vai bên ngoài có từ đầu (không tắt / bật ở màn này); `dangBat` = CẢ HAI cờ (loại vai đang dùng VÀ dòng danh sách được hưởng
@@ -2718,6 +2718,8 @@ export interface HoaHongHoSoResponse {
   xungDot: boolean;
   dongRiengLoai: number;
   dongRiengDoiTac: number;
+  /** ADR-0138: mức TA gắn RIÊNG cho hồ sơ, đang hiệu lực hôm nay (null = không) — có thì mức theo loại bị bỏ qua cho hồ sơ này. `id` cho nút «Kết thúc». */
+  mucRieng: { id: string; muc: { code: string; ten: string; dangBat: boolean }; tuNgay: string; denNgay: string | null } | null;
 }
 export interface NguoiHuongTimResponse { ketQua: { partyId: string; ten: string; loai: "PERSON" | "ORGANIZATION" }[] }
 

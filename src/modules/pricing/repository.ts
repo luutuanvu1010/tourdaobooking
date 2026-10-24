@@ -12,6 +12,8 @@ export interface RuleRow {
 }
 export interface TierRow { code: string; name: string; active: number }
 export interface RoleTierRow { id: string; role_type_code: string; tier_code: string; valid_from_date: string; valid_to_date: string | null }
+/** ADR-0138 (migration 0118): mức TA gắn riêng cho một hồ sơ. */
+export interface PartyTierRow { id: string; party_id: string; tier_code: string; valid_from_date: string; valid_to_date: string | null }
 export interface TermRow {
   id: string; scope: "SERVICE" | "GROUP" | "ALL"; catalog_code: string | null; group_code: string | null; seller_party_id: string; supplier_party_id: string | null;
   cost_rate_bp: number | null; valid_from_date: string; valid_to_date: string | null; note: string | null; seller_name: string | null;
@@ -93,6 +95,16 @@ const DONG_RIENG_CHO_GAN = defineSql("pricing", "role_rules_for_tier_link",
      AND (r.target_role_code = ?1 OR r.target_role_code IN (SELECT o2.role_type_code FROM v_pty_open_role o1 JOIN v_pty_open_role o2 ON o2.party_id = o1.party_id WHERE o1.role_type_code = ?1))
      AND r.valid_from_date <= COALESCE(?3, '9999-12-31') AND COALESCE(r.valid_to_date, '9999-12-31') >= ?2
    ORDER BY r.target_role_code, r.valid_from_date, r.id`);
+// ADR-0138 (migration 0118): gắn mức RIÊNG của MỘT hồ sơ — mọi dòng (đang mở trước, rồi mới nhất). Ít dòng mỗi hồ sơ; lọc ngày ở `chonMuc` / `hieuLuc`.
+// KHÔNG lọc theo `prc_rate_tier.active` — như gắn theo loại (N-23).
+const COT_GAN_RIENG = "g.id, g.party_id, g.tier_code, g.valid_from_date, g.valid_to_date";
+const GAN_RIENG_HO_SO = defineSql("pricing", "party_tiers_of",
+  `SELECT ${COT_GAN_RIENG} FROM prc_party_tier g WHERE g.party_id = ?1 ORDER BY (g.valid_to_date IS NOT NULL), g.valid_from_date DESC, g.id`);
+const GAN_RIENG_ID = defineSql("pricing", "party_tier_by_id", `SELECT ${COT_GAN_RIENG} FROM prc_party_tier g WHERE g.id = ?1`);
+const GAN_RIENG_THEM = defineSql("pricing", "party_tier_insert",
+  `INSERT INTO prc_party_tier (id, party_id, tier_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?6, ?7)`);
+const GAN_RIENG_DONG = defineSql("pricing", "party_tier_close",
+  `UPDATE prc_party_tier SET valid_to_date = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND valid_to_date IS NULL`);
 const NHA_CUNG_CAP = defineSql("pricing", "suppliers",
   `SELECT l.id, l.display_name FROM v_pty_party_label l WHERE l.active = 1 AND EXISTS (SELECT 1 FROM v_pty_open_role r WHERE r.party_id = l.id AND r.role_type_code = 'SUPPLIER')
    ORDER BY l.display_name`);
@@ -138,5 +150,10 @@ export const roleTierById = (db: D1Database, id: string) => db.prepare(GAN_ID).b
 export const insertRoleTierStatement = (db: D1Database, id: string, v: { roleTypeCode: string; tierCode: string; validFrom: string; validTo: string | null }, at: string, by: string) =>
   db.prepare(GAN_THEM).bind(id, v.roleTypeCode, v.tierCode, v.validFrom, v.validTo, at, by);
 export const closeRoleTierStatement = (db: D1Database, id: string, den: string, at: string, by: string) => db.prepare(GAN_DONG).bind(id, den, at, by);
+export const partyTiersOf = async (db: D1Database, partyId: string) => (await db.prepare(GAN_RIENG_HO_SO).bind(partyId).all<PartyTierRow>()).results;
+export const partyTierById = (db: D1Database, id: string) => db.prepare(GAN_RIENG_ID).bind(id).first<PartyTierRow>();
+export const insertPartyTierStatement = (db: D1Database, id: string, v: { partyId: string; tierCode: string; validFrom: string; validTo: string | null }, at: string, by: string) =>
+  db.prepare(GAN_RIENG_THEM).bind(id, v.partyId, v.tierCode, v.validFrom, v.validTo, at, by);
+export const closePartyTierStatement = (db: D1Database, id: string, den: string, at: string, by: string) => db.prepare(GAN_RIENG_DONG).bind(id, den, at, by);
 export const roleRulesForTierLink = async (db: D1Database, roleTypeCode: string, tu: string, den: string | null) =>
   (await db.prepare(DONG_RIENG_CHO_GAN).bind(roleTypeCode, tu, den).all<RuleRow>()).results;

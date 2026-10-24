@@ -33,7 +33,7 @@ const DA_XAC_NHAN = TEP.cac_ca.filter((c) => c.xac_nhan.trang_thai === "da_xac_n
 const CHO = TEP.cac_ca.filter((c) => c.xac_nhan.trang_thai !== "da_xac_nhan");
 // SV-TA-*: ca vàng mức TA (ADR-0117 lần 2, N-18) — bảy dòng, 04 tách a / b; thêm 2026-10-15 ở trạng thái chờ xác nhận, không được lặng lẽ rơi khỏi sổ.
 // C-1…C-5: ca sổ cái của ADR-0079 (sổ đại lý đợt 2, Task 0) — thêm 2026-10-19 (Task 11) để một ca C bị xoá khỏi JSON làm bài đỏ.
-const MA_BAT_BUOC = ["A-1", "A-2", "A-3", "A-4", "A-5", "B-3", "SV-TA-01", "SV-TA-02", "SV-TA-03", "SV-TA-04a", "SV-TA-04b", "SV-TA-05", "SV-TA-06", "C-1", "C-2", "C-3", "C-4", "C-5"];
+const MA_BAT_BUOC = ["A-1", "A-2", "A-3", "A-4", "A-5", "B-3", "SV-TA-01", "SV-TA-02", "SV-TA-03", "SV-TA-04a", "SV-TA-04b", "SV-TA-05", "SV-TA-06", "SV-TA-07", "SV-TA-08", "C-1", "C-2", "C-3", "C-4", "C-5"];
 
 const laTienNguyen = (n: unknown): boolean => n === null || (typeof n === "number" && Number.isSafeInteger(n) && n >= 0);
 const so = (...x: (number | null)[]): x is number[] => x.every((v) => v !== null);
