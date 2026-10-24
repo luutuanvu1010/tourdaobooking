@@ -2046,6 +2046,10 @@ export interface CuocChiTietResponse {
     namSinh?: number;
     /** Suất người đi kèm (`CREW`): tên hướng dẫn viên (lời chủ 2026-10-01) — chỉ tên, mọi lúc; suất khách không có khoá này. */
     tenNguoiDiKem?: string;
+    /** ADR-0139: SĐT liên hệ chính trên hồ sơ người đi kèm — CHỈ tài xế công ty, trong ngày chạy, GET chi tiết; hồ sơ không có SĐT ⇒ vắng. */
+    sdtNguoiDiKem?: string;
+    /** ADR-0139: tên dịch vụ của chặng của suất KHÁCH — cùng điều kiện với `sdtNguoiDiKem`; không giá, không dịch vụ khác của đơn. */
+    tenDichVu?: string;
   }[];
   lienHe?: { maDon: string; tenLienHe: string; sdtLienHe: string }[];
   dieuKienConThieu: DieuKienConThieuDto[];

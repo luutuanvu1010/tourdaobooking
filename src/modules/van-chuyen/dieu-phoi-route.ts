@@ -2,6 +2,7 @@
 // tên khách (`hanhKhachChoChuyen`) do THÂN ROUTE đọc sau `can()` rồi truyền vào. Gồm: mã lỗi 409 từ lý do của luật thuần, chạy lô + đổi lỗi CSDL, dựng chi
 // tiết chuyến, chuỗi `detail` nhật ký (danh sách TRẮNG — mục 1.1), dựng điểm từ chặng (I40).
 import type { ChangChoChuyen, ChangLichChung, LienHeTaiXe } from "../orders";
+import { sdtChinhCuaHoSo } from "../parties";
 import type { ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiItemDto, GoiBaoChangDto, LenhChuyenLoiBody } from "../../shared/contracts";
 import { docGoiBao, goiBaoChang, nguoiBamGoiBao, type QuyenGoiBao } from "./goi-bao-lenh";
 import { kiemXuatBen, type KiemXuatBenVao } from "../../shared/dieu-phoi-kiem";
@@ -458,6 +459,20 @@ export async function cuocChiTiet(
   const lyDoNhan = new Map(c.lyDo.map((r) => [r.code, r.label]));
   if (trongNgay) for (const ch of hk) for (const n of ch.nguoi) ten.set(n.personKey, { fullName: n.fullName, birthYear: n.birthYear });
   const chiDuong = trongNgay && kemChiDuong ? new Map(nen.stops.map((s) => [s.id, chuoiDichCuaDiem(s)])) : null;
+  // ADR-0139: tài xế CÔNG TY (không vế hạn Từ chối) + trong ngày chạy + GET chi tiết (`kemChiDuong` chữ `true` CHỈ ở đó) — SĐT người đi kèm, tên dịch vụ.
+  let themCongTy: { sdtDiKem: Map<string, string>; tenDichVu: Map<string, string> } | null = null;
+  if (trongNgay && khung.han === undefined && kemChiDuong) {
+    const mo = nen.allocs.filter((a) => a.valid_to_at === null);
+    const crew = mo.filter((a) => a.kind === "CREW" && a.crew_party_id !== null);
+    const sdt = await sdtChinhCuaHoSo(db, [...new Set(crew.map((a) => a.crew_party_id!))]);
+    themCongTy = {
+      sdtDiKem: new Map(crew.flatMap((a) => (sdt.has(a.crew_party_id!) ? [[a.id, sdt.get(a.crew_party_id!)!] as [string, string]] : []))),
+      tenDichVu: new Map(mo.flatMap((a) => {
+        const ch = a.kind === "PASSENGER" && a.leg_id ? nc.changLich.get(a.leg_id) : undefined;
+        return ch ? [[a.id, ch.serviceName] as [string, string]] : [];
+      })),
+    };
+  }
   return cuocChiTietDto({
     trip: t, xe: c.xe.find((x) => x.id === t.vehicle_id), events: nen.events,
     diem: nen.stops.map((s) => diemChuyenDto(s, { allocs: nen.allocs, chang: nc.chang, stops: nen.stops, events: nen.events, nhan })),
@@ -467,6 +482,7 @@ export async function cuocChiTiet(
     khung,
     lyDoTuChoi: khung.tuChoiDuoc ? c.lyDo.filter((r) => r.reason_group === "TU_CHOI_CHUYEN") : [],
     sdtVanPhong: c.chinhSach?.office_phone ?? null,
+    themCongTy,
   });
 }
 /**

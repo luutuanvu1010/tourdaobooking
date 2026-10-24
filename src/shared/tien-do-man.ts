@@ -281,6 +281,20 @@ export function tenNguoiDiKemCuaChuyen(suat: readonly { tenNguoiDiKem?: string }
   return out;
 }
 
+/** ADR-0139: người đi kèm CÓ số gọi (khoá `sdtNguoiDiKem` chỉ tài xế công ty trong ngày chạy nhận) — theo thứ tự suất, không trùng tên; không số thì bỏ. */
+export function sdtNguoiDiKemCuaChuyen(suat: readonly { tenNguoiDiKem?: string; sdtNguoiDiKem?: string }[]): { ten: string; sdt: string }[] {
+  const out: { ten: string; sdt: string }[] = [];
+  for (const x of suat) if (x.tenNguoiDiKem && x.sdtNguoiDiKem && !out.some((o) => o.ten === x.tenNguoiDiKem)) out.push({ ten: x.tenNguoiDiKem, sdt: x.sdtNguoiDiKem });
+  return out;
+}
+
+/** ADR-0139: tên dịch vụ của các suất LÊN xe ở điểm `diemId` (khoá `tenDichVu` cùng điều kiện với SĐT người đi kèm) — không trùng, theo thứ tự suất. */
+export function dichVuTaiDiemDon(suat: readonly { diemLen: string | null; tenDichVu?: string }[], diemId: string): string[] {
+  const out: string[] = [];
+  for (const x of suat) if (x.diemLen === diemId && x.tenDichVu && !out.includes(x.tenDichVu)) out.push(x.tenDichVu);
+  return out;
+}
+
 /** Suất KHÁCH (bỏ người đi kèm `CREW`) — chỉ để ĐẾM / liệt kê khách; xét kết thúc chuyến thì dùng `ketThucDuoc` với MỌI suất. */
 export function chiSuatKhach<T extends { loai?: "PASSENGER" | "CREW" }>(suat: readonly T[]): T[] {
   return suat.filter((x) => x.loai !== "CREW");

@@ -850,6 +850,17 @@ const DOCS_FOR_MERGE = defineSql(
    WHERE d.party_id = ?1 ORDER BY d.created_at, d.id`,
 );
 const MERGED_FROM = defineSql("parties", "merged_from", "SELECT id, display_name, merged_at FROM pty_party WHERE merged_into_id = ?1 ORDER BY merged_at, id");
+// ADR-0139: SĐT liên hệ CHÍNH đang mở của một tập hồ sơ (mảng JSON ?1) — không SĐT đăng nhập (bảng staff), không số phụ.
+const SDT_CHINH_CUA_HO_SO = defineSql(
+  "parties",
+  "sdt_chinh_cua_ho_so",
+  `SELECT c.party_id, c.value FROM pty_contact_point c
+   WHERE c.party_id IN (SELECT value FROM json_each(?1)) AND c.contact_kind_code = 'PHONE' AND c.is_primary = 1 AND c.valid_to_date IS NULL`,
+);
+export async function sdtChinhCuaHoSo(db: D1Database, ids: readonly string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  return new Map((await db.prepare(SDT_CHINH_CUA_HO_SO).bind(JSON.stringify(ids)).all<{ party_id: string; value: string }>()).results.map((r) => [r.party_id, r.value]));
+}
 // Hồ sơ nghi trùng (Đ8) + hồ sơ khớp khi tạo tài khoản (Đ9): hồ sơ cá nhân đang dùng, chưa gộp; SĐT liên hệ đang mở của chúng.
 const PERSONS_FOR_MATCH = defineSql("parties", "persons_for_match", "SELECT id, display_name FROM pty_party WHERE party_kind = 'PERSON' AND active = 1 AND merged_into_id IS NULL AND NOT EXISTS (SELECT 1 FROM pty_erasure_request r WHERE r.party_id = pty_party.id AND r.status = 'DA_THUC_HIEN')"); // hồ sơ đã xoá dữ liệu mang tên dấu giữ chỗ chung, không đưa vào so khớp trùng (vòng sửa 1, m-4)
 const OPEN_PERSON_PHONES = defineSql(

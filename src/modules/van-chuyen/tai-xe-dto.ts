@@ -2,7 +2,8 @@
 // trắng. Họ tên + năm sinh khách, liên hệ (tên + SĐT người liên hệ của đơn), chuỗi đích "Chỉ đường" của điểm (ADR-0105 — chỉ GET chi tiết) CHỈ trong ngày
 // chạy — ngoài ngày chạy các khoá đó VẮNG MẶT. KHÔNG BAO GIỜ: tiền,
 // dịch vụ khác, ghi chú đơn, người lập, người phụ trách, số giấy tờ, hạn GPLX, khoá so sánh nơi (`L:…` / `T:…`), id người bấm, SĐT người bấm.
-// Tên người đi kèm (HDV — nhân viên, không phải khách): mọi lúc, chỉ tên.
+// Tên người đi kèm (HDV — nhân viên, không phải khách): mọi lúc, chỉ tên. ADR-0139: tài xế CÔNG TY trong ngày chạy, GET chi tiết — thêm SĐT người đi kèm
+// (số liên hệ chính của hồ sơ) và tên dịch vụ của suất khách; tài xế đối tác không bao giờ.
 // Kế hoạch A4 T3 (ADR-0053 D7.2, D8.6; G-A4-7, G-A4-17): "trong ngày chạy" nay là KHUNG XEM KHÁCH của người gọi (`KhungTaiXe` — một hàm `khungCuaNguoiGoi`).
 // Người có VẾ HẠN (`han !== undefined`) ngoài khung: `suat[].maDon` VẮNG MẶT; tài xế công ty giữ mã đơn mọi lúc. Khoá thêm: `tuChoiDuoc` (mọi tài xế),
 // `hanTuChoi` (chỉ vế hạn, có hạn), `chanTuChoi` (ADR-0113 Đ3 — chỉ khi chuyến còn hạn mà có khách chuyển vào), `thayKhachTu` (ngoài khung, mốc ở tương lai), `lyDoTuChoi` (chỉ khi `tuChoiDuoc`), `sdtVanPhong` (khi chính sách có số).
@@ -73,6 +74,8 @@ export function cuocChiTietDto(v: {
   /** Lý do Từ chối đang dùng (nhóm TU_CHOI_CHUYEN) — chỉ kèm khi `khung.tuChoiDuoc`. */
   lyDoTuChoi: readonly { code: string; label: string }[];
   sdtVanPhong: string | null;
+  /** ADR-0139: id suất → SĐT người đi kèm / tên dịch vụ — `null` trừ tài xế công ty, trong ngày chạy, GET chi tiết (route quyết, DTO chỉ chép). */
+  themCongTy: { sdtDiKem: ReadonlyMap<string, string>; tenDichVu: ReadonlyMap<string, string> } | null;
 }): CuocChiTietResponse {
   const t = v.trip;
   const anMaDon = v.khung.han !== undefined && !v.khung.trongKhung; // G-A4-7: mã đơn theo khung với người có vế hạn
@@ -100,6 +103,8 @@ export function cuocChiTietDto(v: {
       vanPhongBaoHuy: s.vanPhongBaoHuy === null ? null : { luc: s.vanPhongBaoHuy.luc, lyDoNhan: s.vanPhongBaoHuy.lyDoNhan }, // giờ + lý do, không người bấm
       ...(v.trongNgay && s.hoTen !== undefined && s.namSinh !== undefined ? { hoTen: s.hoTen, namSinh: s.namSinh } : {}),
       ...(s.tenNguoiDiKem !== undefined ? { tenNguoiDiKem: s.tenNguoiDiKem } : {}), // tên HDV đi kèm — mọi lúc, chỉ tên (lời chủ 2026-10-01; T-5)
+      ...(v.themCongTy?.sdtDiKem.has(s.id) ? { sdtNguoiDiKem: v.themCongTy.sdtDiKem.get(s.id)! } : {}), // ADR-0139
+      ...(v.themCongTy?.tenDichVu.has(s.id) ? { tenDichVu: v.themCongTy.tenDichVu.get(s.id)! } : {}), // ADR-0139
     })),
     ...(v.trongNgay && v.lienHe !== null
       ? { lienHe: v.lienHe.filter((x) => maDonCuaSuat.has(x.orderCode)).map((x) => ({ maDon: x.orderCode, tenLienHe: x.tenLienHe, sdtLienHe: x.sdtLienHe })) }
