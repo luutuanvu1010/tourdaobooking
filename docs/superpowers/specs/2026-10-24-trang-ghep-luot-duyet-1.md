@@ -1,49 +1,32 @@
-# Trang ghép — lượt duyệt 1 (góp ý Hỗ trợ, 24/10)
+# Trang ghép — các lượt duyệt góp ý Hỗ trợ (24/10, bản 2)
 
-> CLAUDE.md §9: lượt duyệt ≥ 2 quyết định phải có trang ghép; tối đa 3 quyết định chạm quyền/dữ liệu một lượt.
-> Lượt này gồm **hai** nháp: **0138** gắn mức TA riêng từng đại lý (`2026-10-24-de-xuat-adr-gan-muc-ta-rieng-tung-dai-ly.md`) và **0139** SĐT HDV + tên dịch vụ cho tài xế công ty (`2026-10-24-de-xuat-adr-sdt-hdv-cho-tai-xe.md`).
-> **Không** gồm: lớp giá đưa đón (YC-0014 vế tiền) — chờ nhánh đưa đón ADR-0118 vào bản chính, đặc tả đã chốt 14/10; đại lý tổ chức (0140) — lượt 2.
+> CLAUDE.md §9: lượt duyệt ≥ 2 quyết định phải có trang ghép; **tối đa 3 quyết định chạm quyền/dữ liệu một lượt**.
+> **Cách đếm** (theo tiền lệ ADR-0053 «ba quyết định chạm dữ liệu/quyền: D7, D8, D9 — đúng trần 3»): mỗi **điều D** chạm quyền hoặc dữ liệu tính là một; điều chỉ về giao diện không tính. Bản 1 của trang này đếm theo số ADR nên vượt trần mà không nói — đã sửa.
 
-## 1. Bảng chạm tới, mỗi bảng chứa loại thực thể nào
-
-| Bảng / view | Nháp | Chứa |
-|---|---|---|
-| `prc_party_tier` (MỚI) | 0138 | Chỉ «mức TA gắn cho một hồ sơ đối tác»; không tỷ lệ |
-| `prc_commission_rule`, `prc_rate_tier`, `prc_role_tier` | 0138 (đọc) | Không đổi cấu trúc |
-| Dữ liệu người phụ trách đơn (`dispatch`) | 0139 (đọc qua hàm hẹp / view mới) | Người phụ trách hiện hành của đơn |
-| Liên hệ nhân viên (SĐT HDV) | 0139 (đọc hẹp, trong route sau `can(`) | Chỉ hướng dẫn viên nội bộ |
-| DTO tài xế (`tai-xe-dto.ts`) | 0139 | Thêm hai khoá, chỉ cho `DRIVER`, trong ngày chạy |
-
-Hai nháp **không chạm cùng bảng**, không chạm cùng hàm tính tiền (0139 không có tiền).
-
-## 2. Dòng bản đồ quyền chạm tới
-
-| Ô quyền | Nháp | Áp cho | Thay đổi |
+| Lượt | Nháp | Điều chạm quyền / dữ liệu | Số |
 |---|---|---|---|
-| `partner.commission.view` | 0138 | Bán hàng, Kế toán, Quản trị, Toàn quyền | Không đổi; thấy thêm «mức riêng» |
-| `partner.commission.write` | 0138 | Kế toán, Quản trị, Toàn quyền (phương án D2-A) | Không đổi ô; thêm việc «gắn mức riêng» |
-| `trip.view` phạm vi `assigned` | 0139 | Tài xế công ty | Thấy thêm SĐT HDV + tên dịch vụ trong ngày chạy |
-| `trip.view` của `DRIVER_PARTNER` | 0139 | Tài xế đối tác | **Không đổi** (phương án A) |
+| **1** | **0139** SĐT người đi kèm + tên dịch vụ cho tài xế công ty (`2026-10-24-de-xuat-adr-sdt-hdv-cho-tai-xe.md`) | D1 (số của ai — dữ liệu cá nhân), D2 (ai thấy — quyền); D3 = phạm vi chữ của D1/D2 | 2 |
+| **2** | **0138** gắn mức TA riêng từng đại lý (`…-gan-muc-ta-rieng-tung-dai-ly.md`) | D1 (bảng mới + thứ tự bậc, sửa ADR-0117 điều 6 — dữ liệu, tiền), D2 (ai gắn — quyền); D3 giao diện | 2 |
+| **3** | **0140** đại lý tổ chức nhiều nhân viên (`…-dai-ly-to-chuc-nhieu-nhan-vien.md`) | D1 (bảng thành viên), D2 + D2b (phạm vi `org`, các ô cùng bảng), D2c (bật/tắt) — **phải tách thêm** khi soạn bản chính | ≥ 3 |
+| riêng | Lớp giá đưa đón (YC-0014 vế tiền) | Hướng chủ chốt 14/10; chỉ soạn sau khi nhánh đưa đón ADR-0118 vào bản chính | — |
 
-Không thêm mã quyền, không thêm giá trị phạm vi.
+Ba lượt **độc lập**: không chung bảng, không chung ô quyền, không chung hàm tính tiền ⇒ chủ duyệt theo thứ tự nào cũng được. Thứ tự khuyến nghị: 0139 (nhỏ, không tiền) → 0138 (tiền) → 0140 (cần chủ xác nhận có ca dùng thật).
 
-## 3. Cổng nào canh cửa nào
+## Lượt 1 — 0139
 
-- **Máy chủ:** 0138 — route ghi mới trong `pricing` (`can` + `holdsPartner`); `chonMuc` thêm bậc. 0139 — route `…/cuoc-cua-toi*` (chỉ chuyến đang lái, 404 khác) + hàm khung ngày chạy.
-- **CSDL:** 0138 — trigger chống chồng, hồ sơ phải là người hưởng, mức phải bật. 0139 — không có bảng mới.
-- **Giao diện (chỗ ẩn/hiện bị đổi nghĩa):** 0138 — khối «Hoa hồng hiện hành» trên hồ sơ (đã lên nhánh, chỉ đọc) sẽ có nút ghi cho người giữ `partner.commission.write`. 0139 — màn chi tiết cuốc của tài xế công ty hiện thêm hai dòng.
-- **Kiểm định kỳ:** 0138 thêm `R-PRC-…` (gắn riêng hợp lệ, không chồng). 0139 không có dữ liệu mới.
+1. **Bảng chạm tới:** không bảng mới. Đọc suất `CREW` của chuyến (`van-chuyen`, bảng của chính nó) và SĐT hồ sơ người đi kèm qua **hàm hẹp mới của `parties`** (cạnh `van-chuyen → parties` đã có). Nếu chủ chọn «người phụ trách đơn» thay vì «người đi kèm» thì **thêm một quyết định**: nới cạnh `van-chuyen → dispatch` hoặc hàm tiêm ở gốc lắp ráp — lúc đó lượt 1 thành 3 quyết định.
+2. **Ô quyền:** `trip.view` phạm vi `assigned` của `DRIVER` — thấy thêm trong ngày chạy. `DRIVER_PARTNER` không đổi (phương án A).
+3. **Cổng:** máy chủ — route `…/cuoc-cua-toi*` (chỉ chuyến đang lái, khác 404) + `trongNgayChay`; DTO một hàm khung, tách theo dấu «không có vế hạn» (tài xế công ty). Giao diện — màn chi tiết cuốc của tài xế công ty hiện thêm hai dòng (chỗ ẩn/hiện mới). Bài «số lạ»: tài xế đối tác không bao giờ có hai khoá mới.
 
-## 4. Ghép lại có lỗ không? (câu «bảng này nay chứa ai» — bài học F-01)
+## Lượt 2 — 0138
 
-- 0138 và 0139 không chia bảng, không chia ô quyền ⇒ không có tương tác chéo.
-- Rủi ro ghép duy nhất: cả hai đều thêm thứ **người dùng nhìn thấy mà trước đó không thấy** — 0138 lộ «đại lý A hưởng mức riêng» cho Bán hàng (đang xem được mọi mức qua «Thử tra», nên không mới); 0139 lộ SĐT nhân viên cho tài xế công ty (nhân viên với nhân viên).
+1. **Bảng:** `prc_party_tier` (MỚI) — chỉ «mức TA gắn cho một hồ sơ đối tác»; `prc_commission_rule`, `prc_rate_tier`, `prc_role_tier` không đổi cấu trúc.
+2. **Ô quyền:** `partner.commission.view` (Bán hàng, Kế toán, Quản trị, Toàn quyền) thấy thêm «mức riêng» — Bán hàng vốn đã xem mọi mức qua «Thử tra», nên không lộ mới; `partner.commission.write` (Kế toán, Quản trị, Toàn quyền — phương án A) thêm việc «gắn mức riêng». Không thêm ô, không thêm phạm vi.
+3. **Cổng:** máy chủ — route ghi mới trong `pricing` (`can` + `holdsPartner`); `chonMuc` thêm bậc, `ThuTraResponse.bac` mở rộng. CSDL — trigger chống chồng / người hưởng / mức bật. Giao diện — khối «Hoa hồng hiện hành» trên hồ sơ (đã có, chỉ đọc) **đổi nghĩa**: có nút ghi cho người giữ ô write. Kiểm định kỳ mới `R-PRC-…`.
+4. **Xây cạnh lỗ đang hở:** HC-4.2, TNV-G4 (gần vùng tiền, không cùng đường ghi).
 
-## 5. Thứ tự thi công đề xuất sau khi duyệt
+## Câu chủ cần trả lời
 
-1. 0139 (nhỏ, không tiền) → 2. 0138 (tiền: cần ca vàng sổ đại lý + kiểm độc lập). Mỗi nháp một lần phát hành.
-
-## 6. Câu chủ cần trả lời trong lượt này
-
-1. Duyệt 0138? Chọn D2: **A** (Kế toán, Quản trị, Toàn quyền gắn mức riêng) hay B (chỉ Toàn quyền)?
-2. Duyệt 0139? Chọn **A** (chỉ tài xế công ty) hay B (cả tài xế đối tác)?
+- **Lượt 1:** (a) SĐT của người **đi kèm chuyến** (khuyến nghị) hay **người phụ trách đơn**? (b) chỉ **tài xế công ty** (khuyến nghị) hay cả đối tác?
+- **Lượt 2:** duyệt 0138? Người gắn mức riêng: **Kế toán, Quản trị, Toàn quyền** (khuyến nghị) hay chỉ Toàn quyền?
+- **Lượt 3:** đại lý nào cần, mấy người? (để biết đã tới ngưỡng ADR-0014 điều 5 chưa)

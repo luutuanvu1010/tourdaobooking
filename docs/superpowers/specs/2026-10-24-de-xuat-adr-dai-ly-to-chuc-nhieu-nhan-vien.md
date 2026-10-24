@@ -17,6 +17,10 @@
 
 **D2 — Phạm vi xem.** Thêm giá trị phạm vi `org` («đơn của tổ chức mình») cho `order.view`, `contact.view` của cột `PARTNER`; đơn thuộc tổ chức = đơn có bên đặt là hồ sơ tổ chức đó. Lọc bằng SQL ở máy chủ (ADR-0014 điều 3). Hai đại lý khác nhau **không bao giờ** thấy đơn của nhau (bài «số lạ» kiểu toàn Nền tảng với hai tổ chức).
 
+**D2b — Các ô quyền khác cùng bảng `orders` của cột `PARTNER`** (bài học F-01 «bảng này nay chứa ai»): trang ghép lượt 2 phải có bảng từng ô — `order.view` (own → own hoặc org), `contact.view` (ownOrAssigned: vế `assigned` giữ hay mở?), `order.create` (any, bên đặt bị ép), các ô sửa / huỷ / thu tiền của Đối tác (giữ `own` hay mở theo tổ chức?), `money.view`. Khuyến nghị: chỉ mở **xem**; sửa / huỷ / thu tiền giữ `own`.
+
+**D2c — Bật / tắt lúc chạy.** ADR-0014 điều 5 (và dòng chốt kèm) đã hẹn ADR kế tiếp quyết **cả mô hình tổ chức lẫn cơ chế bật/tắt lúc chạy kèm nút bấm tuỳ chọn của Toàn quyền**. Khuyến nghị: bật theo **từng tổ chức** (mặc định tắt), Toàn quyền bật, có ngày hiệu lực.
+
 **D3 — Hoa hồng và công nợ.** Hoa hồng/công nợ ghi cho **hồ sơ tổ chức** (bên đặt), không cho từng nhân viên; nhân viên chỉ là người lập. Màn đối tác tự xem sổ (ADR-0081, đã duyệt chưa dựng) phải đọc theo tổ chức khi có — thứ tự thi công: ADR này **sau** ADR-0081.
 
 ## 3. Câu cho chủ (gom một lần)
@@ -31,4 +35,4 @@ Hai tài khoản cùng tổ chức thấy đơn của nhau; tài khoản tổ ch
 
 ## 5. Chưa kiểm
 
-Chưa đọc kỹ ADR-0010 điều 1 toàn văn, ADR-0081; chưa đếm production có tổ chức nào nhiều tài khoản; chưa rà `quyen-hoan.json`.
+ADR-0010 điều 1 đã bị ADR-0014 điều 5 thay (ngưỡng nêu ở đầu); điều 5 còn bị ADR-0098 sửa (tra trùng hồ sơ theo SĐT) — người soạn bản chính đọc lại cả ba. Chưa đọc toàn văn ADR-0081; chưa đếm production có tổ chức nào nhiều tài khoản; chưa rà `quyen-hoan.json`.
