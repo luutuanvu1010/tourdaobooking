@@ -28,3 +28,9 @@
 
 ## 4. Chưa kiểm
 Chưa đếm production có tổ chức nào nhiều tài khoản. Chưa đọc toàn văn ADR-0081 để biết «Sổ của tôi» đọc theo hồ sơ nào. Chưa thiết kế giao diện.
+
+## 5. Chủ trả lời (24/10, hộp chọn)
+- Ca dùng thật: «Chưa có, để sau». Việc chuyển vào `docs/BACKLOG.md` mục 44 (`BL-DAI-LY-TO-CHUC`).
+- Bản tách: «Chỉ giữ bản soạn» — không thi công, không soạn bản chính.
+- Kèm theo (ADR-0138): gộp hồ sơ khi hồ sơ phụ có mức TA riêng — «Giữ như hiện nay» (mức riêng nằm yên trên hồ sơ phụ, Kế toán tự gắn lại cho hồ sơ chính nếu cần; không đổi mã).
+- Số ADR: phiên `adr-luot-b` lấy số trống kế tiếp khi nộp (0138, 0139 đã dùng ở phiên phân tích góp ý).
