@@ -150,3 +150,11 @@ export function cauKhoaXacNhan(suaChuyen: boolean, suaKhach: boolean, suaSoKhach
   const ds = con.length === 1 ? con[0]! : `${con.slice(0, -1).join(", ")} và ${con[con.length - 1]}`;
   return `${goc} Còn sửa được ${ds}.`;
 }
+
+/**
+ * YC-0016 (24/10): đơn nháp lưu được khi chưa chọn ngày khởi hành, nhưng máy chủ chặn xác nhận (`repository.ts`, câu UPDATE xác nhận). Trang đơn khoá nút
+ * "Xác nhận đơn" và hiện câu này để người lập biết vì sao, thay vì bấm rồi mới gặp lỗi. Chỉ giải thích — máy chủ vẫn là nơi chặn.
+ */
+export function cauChuaCoNgay(services: readonly Pick<OrderServiceDto, "departDate">[]): string | null {
+  return services.some((s) => !s.departDate) ? "Chưa chọn ngày khởi hành — chưa xác nhận được. Bấm «Sửa» để chọn ngày." : null;
+}

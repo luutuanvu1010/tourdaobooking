@@ -131,9 +131,10 @@ export function orderCard(o: OrderCardData, opts: OrderCardOptions = {}): OrderC
     ? h("div", { class: "order-card-line3" }, icon("pin", 16), h("span", { class: "order-row-place" }, "Đón tại ", o.pickupPlace))
     : null;
 
-  // ADR-0060 A-12: nhãn "Đã nhập phần mềm kế toán" — một hàng riêng (dòng 2 không được xuống hàng), dùng lại khuôn dòng 3.
+  // ADR-0060 A-12: nhãn "Đã nhập phần mềm kế toán" — một hàng riêng (dòng 2 không được xuống hàng), dùng lại khuôn dòng 3. YC-0018 (24/10): thêm
+  // nền xanh nhạt + viền bo tròn (`nhap-kt-noi`) để Kế toán liếc là thấy — chỉ CSS, token màu có sẵn.
   const lineKt = o.nhapKeToan
-    ? h("div", { class: "order-card-line3 money-ok", "data-nhap-ke-toan": "" }, icon("doc-check", 16), h("span", { class: "order-row-place" }, NHAN_DA_NHAP))
+    ? h("div", { class: "order-card-line3 money-ok nhap-kt-noi", "data-nhap-ke-toan": "" }, icon("doc-check", 16), h("span", { class: "order-row-place" }, NHAN_DA_NHAP))
     : null;
 
   const link = h(
