@@ -459,7 +459,7 @@ const chup = (serviceId: string, o: { huong?: string | null; lyDo?: "BOOKER_NOT_
   hoaHong: o.lyDo ? { status: "MISSING", reason: o.lyDo } : o.huong === null ? { status: "NONE" } : { status: "SET", kind: "RATE", rateBp: 1000, perPax: null, ruleId: "m1" },
   cungUng: o.ncc ? { status: "SET", termId: "t", sellerPartyId: o.ncc, supplierPartyId: o.ncc, costRateBp: 8000 } : { status: "MISSING" },
 } as BanChup);
-const phan = (cs: BanChup[], o: { duKien?: boolean; chuaChup?: boolean } = {}) => ({ duKien: false, chuaChup: false, ...o, chup: cs, dichVu: cs.map((c, i) => ({ id: c.serviceId, thanhTien: (i + 1) * 100_000 })) });
+const phan = (cs: BanChup[], o: { duKien?: boolean; chuaChup?: boolean; giamGiaHieuLuc?: number } = {}) => ({ duKien: false, chuaChup: false, congTyChuId: CT, giamGiaHieuLuc: 0, ...o, chup: cs, dichVu: cs.map((c, i) => ({ id: c.serviceId, thanhTien: (i + 1) * 100_000 })) });
 
 test("benDatHuong / nhaCungCapCuaDon (đặc tả P4): đọc từ bản chụp; nháp, chưa chụp, khách lẻ, «không thuộc loại được hưởng», hai bên khác nhau ⇒ không có", () => {
   assert.equal(benDatHuong(phan([chup("a"), chup("b", { lyDo: "NO_RULE" })])), DAI_LY, "thiếu mức vẫn là bên đặt được hưởng");
@@ -473,6 +473,12 @@ test("benDatHuong / nhaCungCapCuaDon (đặc tả P4): đọc từ bản chụp;
   assert.deepEqual([...nhaCungCapCuaDon(phan([chup("a", { ncc: "ncc" })], { duKien: true }))], []);
   const tuBan = { ...chup("a"), cungUng: { status: "SET", termId: null, sellerPartyId: CT, supplierPartyId: null, costRateBp: null } } as BanChup;
   assert.deepEqual([...nhaCungCapCuaDon(phan([tuBan]))], [], "Tour Đảo tự bán: không phải nhà cung cấp");
+  // Ruling R-154 (B-5): phần của quầy SAU giảm giá — trừ phần Tour Đảo trước (dòng b 200.000), vượt mới trừ quầy; giảm ăn hết phần quầy ⇒ vẫn có mặt với số 0.
+  const ba = [chup("a", { ncc: "ncc" }), chup("b"), chup("c", { ncc: "ncc" })];
+  assert.deepEqual([...nhaCungCapCuaDon(phan(ba, { giamGiaHieuLuc: 150_000 }))], [["ncc", 400_000]], "giảm nằm gọn trong phần Tour Đảo");
+  assert.deepEqual([...nhaCungCapCuaDon(phan(ba, { giamGiaHieuLuc: 250_000 }))], [["ncc", 350_000]], "phần dư 50.000 trừ vào quầy");
+  assert.deepEqual([...nhaCungCapCuaDon(phan(ba, { giamGiaHieuLuc: 900_000 }))], [["ncc", 0]]);
+  assert.deepEqual([...nhaCungCapCuaDon({ ...phan(ba), congTyChuId: null })], [], "không đọc được công ty chủ ⇒ như biên nhận: mọi dòng vào phần Tour Đảo");
 });
 
 test("phanChuaThuNhaCungCap (đặc tả P4): trừ lần thu còn hiệu lực «thu cho» nhà cung cấp, kể cả lời khai đang chờ; bỏ lần thu đang bị thay", () => {

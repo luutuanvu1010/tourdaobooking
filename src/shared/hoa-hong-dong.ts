@@ -69,3 +69,26 @@ export function tinhDongDoiTac(c: BanChup, tien: { thanhTien: number; soKhachTin
   const giaVon = cu.status === "SET" && cu.supplierPartyId !== null && cu.costRateBp !== null ? giaVonDong({ costRateBp: cu.costRateBp, thanhTien: tien.thanhTien }) : null;
   return { serviceId: c.serviceId, thanhTien: tien.thanhTien, soKhachTinh: tien.soKhachTinh, hoaHong, giaDaiLy: hoaHong === null ? null : tien.thanhTien - hoaHong, giaVon };
 }
+
+/** Mức ghi tay của MỘT dòng (cùng dạng thân `hoaHong` của route ghi mức tay — `docThanGhiTay`; mức tay không tách theo loại khách). */
+export type MucGhiTay = { kieu: "RATE"; tyLeBp: number } | { kieu: "PER_PAX"; moiKhach: number };
+/**
+ * Sửa 5 sau rà soát «Sổ đại lý đợt 2» (chủ duyệt 24/10, Ruling R-156): Kế toán ghi mức tay cho dòng `serviceId` thì đại lý phải trả thêm cho công ty bao nhiêu — giảm giá
+ * hiệu lực của đơn trừ TỔNG hoa hồng SAU khi ghi (dòng ghi tay tính lại bằng `hoaHongDong`, các dòng khác giữ số máy chủ đã tính; dòng thiếu mức tính 0 như kiểm định kỳ
+ * R-ORD-DC1, R-73). Trả số chênh > 0, hoặc null khi không vượt / không có dòng đó. Chỉ để CẢNH BÁO trước khi lưu — không chặn (ADR-0079 điều 8).
+ */
+export function chenhGiamGiaSauGhiTay(v: {
+  dong: readonly { serviceId: string; thanhTien: number; soKhachTinh: number; hoaHong: number | null }[];
+  serviceId: string;
+  moi: MucGhiTay;
+  giamGiaHieuLuc: number;
+}): { tongHoaHong: number; chenh: number } | null {
+  const d = v.dong.find((x) => x.serviceId === v.serviceId);
+  if (!d) return null;
+  const dongMoi = hoaHongDong({
+    kind: v.moi.kieu, rateBp: v.moi.kieu === "RATE" ? v.moi.tyLeBp : null, perPaxAmount: v.moi.kieu === "PER_PAX" ? v.moi.moiKhach : null, thanhTien: d.thanhTien, soKhachTinh: d.soKhachTinh,
+  });
+  const tongHoaHong = v.dong.reduce((t, x) => t + (x.serviceId === v.serviceId ? dongMoi : (x.hoaHong ?? 0)), 0);
+  const chenh = v.giamGiaHieuLuc - tongHoaHong;
+  return chenh > 0 ? { tongHoaHong, chenh } : null;
+}

@@ -12,6 +12,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Ba sửa nhỏ sau rà soát «Sổ đại lý đợt 2» (chủ duyệt 24/10; Ruling R-154…R-157 ở docs/superpowers/plans/2026-10-18-so-dai-ly-dot-2-thi-cong-nhat-ky.md). KHÔNG migration.
+    // Số 2.28 là số TẠM (main đang ở 2.27) — phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "2.28",
+    date: "2026-10-24",
+    items: [
+      { kind: "sua", text: "Đơn có giảm giá: số tiền tối đa ghi được cho phần khách trả tại quầy nhà cung cấp nay tính sau giảm giá, bằng phần của quầy in trên biên nhận." },
+      { kind: "doi", text: "Tài khoản đối tác vốn không thấy ô «Phần tiền này cho»; nay Nền tảng cũng từ chối khoản thu gửi kèm ô này. Cần thì báo Kế toán ghi giúp." },
+      { kind: "moi", text: "Ghi mức hoa hồng tay: nếu mức mới làm tổng hoa hồng nhỏ hơn giảm giá của đơn, Nền tảng báo trước số đại lý sẽ phải trả thêm (vẫn lưu được)." },
+    ],
+  },
+  {
     // Nút «Từ chối đơn» (ADR-0030 điều 1, kế hoạch docs/superpowers/plans/2026-10-20-tu-choi-don-thi-cong.md) + hạn mức Từ chối (ADR-0032, kế hoạch
     // docs/superpowers/plans/2026-10-23-han-muc-tu-choi-thi-cong.md — phát hành CHUNG theo khuyến nghị Q-PH; CÓ migration *_han_muc_tu_choi.sql). Chạy npm run trien-khai
     // sau day-len (mã mới). Số 2.27 là số TẠM (main đang ở 2.26) — phiên phát hành kiểm lại số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.

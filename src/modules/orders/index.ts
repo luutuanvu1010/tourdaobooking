@@ -775,7 +775,7 @@ export async function phanThuongMaiCuaDon(db: D1Database, orderId: string): Prom
   }
   const cty = await ownerCompany(db);
   const ids = chup.flatMap((c) => [c.beneficiaryPartyId, ...(c.cungUng.status === "SET" ? [c.cungUng.sellerPartyId] : [])]).filter((x): x is string => x !== null);
-  return { duKien, chuaChup, chup, dichVu, ten: await tenHoSo(db, ids), congTyChuId: cty?.partyId ?? null, ghiTay };
+  return { duKien, chuaChup, chup, dichVu, ten: await tenHoSo(db, ids), congTyChuId: cty?.partyId ?? null, giamGiaHieuLuc: don.giamGiaHieuLuc, ghiTay };
 }
 
 export const ordersModule: AppModule = {

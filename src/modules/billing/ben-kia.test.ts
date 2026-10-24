@@ -396,12 +396,14 @@ test("«Thu cho ai»: SUPPLIER ⇒ luôn nhà cung cấp đó (lời khai chờ 
   const cauDoiTac = (await tien(w, id, PT)).lyDoChuaGiao?.cau ?? "";
   assert.match(cauDoiTac, /khách trả tại quầy nhà cung cấp/);
   assert.doesNotMatch(cauDoiTac, /i-resort/);
-  assert.equal((await thu(w, PT, id, mat(200_000, "toi", { thuChoNhaCungCapPartyId: NCC }))).status, 201);
+  // Sửa 3 sau rà soát 24/10 (Ruling R-155): tài khoản giữ quyền Đối tác không gửi «thu cho» ⇒ lễ tân báo, Kế toán ghi giúp (người thu = hồ sơ lễ tân, thu cho i-resort).
+  assert.equal((await thu(w, PT, id, mat(200_000, "toi", { thuChoNhaCungCapPartyId: NCC }))).status, 403);
+  assert.equal((await thu(w, KT, id, mat(200_000, { partyId: `pty-${PT}` }, { thuChoNhaCungCapPartyId: NCC }))).status, 201);
   assert.deepEqual(lanThu(w, cuoi(w, id)), { vai: "BOOKER", nguoi: `pty-${PT}`, cho: NCC });
   assert.equal((await thu(w, PT, id, mat(50_000, "toi"))).status, 201);
   assert.deepEqual(lanThu(w, cuoi(w, id)), { vai: "BOOKER", nguoi: `pty-${PT}`, cho: ct });
-  assert.equal((await thu(w, PT, id, mat(10_000, "toi", { thuChoNhaCungCapPartyId: `pty-${SALES}` }))).status, 400, "thu cho hồ sơ không bán dòng nào");
-  assert.equal((await thu(w, PT, id, mat(100_001, "toi", { thuChoNhaCungCapPartyId: NCC }))).status, 400, "thu cho nhà cung cấp quá phần chưa thu (600.000 − 300.000 − 200.000)");
+  assert.equal((await thu(w, HDV, id, mat(10_000, "toi", { thuChoNhaCungCapPartyId: `pty-${SALES}` }))).status, 400, "thu cho hồ sơ không bán dòng nào");
+  assert.equal((await thu(w, KT, id, mat(100_001, { partyId: `pty-${PT}` }, { thuChoNhaCungCapPartyId: NCC }))).status, 400, "thu cho nhà cung cấp quá phần chưa thu (600.000 − 300.000 − 200.000)");
   assert.equal((await thu(w, HDV, id, mat(10_000, { nhaCungCapPartyId: NCC }, { thuChoNhaCungCapPartyId: ct }))).status, 400, "quầy nhà cung cấp thu thì thu cho chính nhà cung cấp");
 });
 
@@ -450,6 +452,101 @@ test("Kế toán chọn hồ sơ: hồ sơ khách trên đơn khách lẻ ⇒ ST
   assert.equal(n(w, "SELECT count(*) AS n FROM bil_receipt_recon WHERE receipt_id = ?", r), 0, "Kế toán ghi thẳng: không lời khai");
   assert.equal(soDu(w, le.id, ct).get(NCC), 600_000, "giữ hộ ngay trên quầy nhà cung cấp");
   assert.equal((await thu(w, KT, le.id, mat(1, { partyId: NCC }))).status, 400, "đã thu đủ phần của nhà cung cấp");
+});
+
+test("Sửa 3 sau rà soát (Ruling R-155): tài khoản giữ quyền Đối tác gửi «thu cho» ⇒ 403 MỘT câu cho nhà cung cấp thật, hồ sơ khác, mã sai — không tên, không mã, không ghi gì; «tôi» vẫn được; Bán hàng / Kế toán vẫn dùng «thu cho»", async () => {
+  const { w, ct } = await setup();
+  const KTDT = "99999999-9999-4999-8999-999999999999";
+  seedStaff(w.sqlite, { id: KTDT, phone: "0900000013", name: "Hà Kế Toán Lai", perms: ["ACCOUNTING", "PARTNER"] });
+  const { id } = await donXacNhan(w, { owner: PT, dichVu: [VE_HT, VE_IR] });
+  const CAU = "Tài khoản có quyền Đối tác không chọn được «Phần tiền này cho» — báo Kế toán ghi giúp.";
+  const tuChoi = async (as: string, nguoiThu: unknown, thuCho: unknown, ten: string) => {
+    const truoc = n(w, "SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = ?", id);
+    const r = await thu(w, as, id, mat(1_000, nguoiThu, { thuChoNhaCungCapPartyId: thuCho }));
+    assert.equal(r.status, 403, `${ten}: ${r.text}`);
+    assert.equal(r.json.error.code, "forbidden", ten);
+    assert.equal(r.json.error.message, CAU, ten);
+    assert.doesNotMatch(r.text, /i-resort|pty-/, `${ten}: không tên, không mã hồ sơ`);
+    assert.equal(n(w, "SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = ?", id), truoc, `${ten}: không ghi khoản thu`);
+  };
+  await tuChoi(PT, "toi", NCC, "Đối tác, nhà cung cấp thật của đơn, số nhỏ (khe M-3)");
+  await tuChoi(PT, "toi", `pty-${SALES}`, "Đối tác, hồ sơ không bán dòng nào");
+  await tuChoi(PT, "toi", "không hợp lệ!", "Đối tác, mã sai dạng");
+  await tuChoi(PT, "toi", 12345, "Đối tác, không phải chuỗi");
+  await tuChoi(PT, "cong_ty", NCC, "Đối tác, Công ty thu + thu cho");
+  await tuChoi(KTDT, { partyId: NCC }, NCC, "tài khoản lai Kế toán + Đối tác");
+  assert.equal((await thu(w, PT, id, mat(100_000, "toi", { thuChoNhaCungCapPartyId: "" }))).status, 201, "ô trống = không chọn ⇒ «tôi» như cũ");
+  assert.deepEqual(lanThu(w, cuoi(w, id)), { vai: "BOOKER", nguoi: `pty-${PT}`, cho: ct });
+  assert.equal((await thu(w, PT, id, mat(100_000, "toi"))).status, 201, "Đối tác tự ghi «tôi»");
+  assert.equal((await thu(w, KTDT, id, mat(100_000, { nhaCungCapPartyId: NCC }))).status, 201, "tài khoản lai chọn người thu là quầy (không gửi «thu cho») vẫn như cũ");
+  const cuaSales = await donXacNhan(w, { dichVu: [VE_HT, VE_IR] });
+  assert.equal((await thu(w, SALES, cuaSales.id, mat(100_000, "toi", { thuChoNhaCungCapPartyId: NCC }))).status, 201, "Bán hàng thuần dùng «thu cho» trên đơn mình");
+  assert.deepEqual(lanThu(w, cuoi(w, cuaSales.id)), { vai: "STAFF", nguoi: `pty-${SALES}`, cho: NCC });
+  assert.equal((await thu(w, HDV, id, mat(100_000, "toi", { thuChoNhaCungCapPartyId: NCC }))).status, 201, "HDV phụ trách dùng «thu cho»");
+  assert.deepEqual(lanThu(w, cuoi(w, id)), { vai: "STAFF", nguoi: `pty-${HDV}`, cho: NCC });
+  assert.equal((await thu(w, KT, id, mat(100_000, { partyId: `pty-${PT}` }, { thuChoNhaCungCapPartyId: NCC }))).status, 201, "Kế toán ghi giúp");
+  assert.deepEqual(lanThu(w, cuoi(w, id)), { vai: "BOOKER", nguoi: `pty-${PT}`, cho: NCC });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+// Trần phần của quầy nhà cung cấp tính SAU giảm giá — cùng hàm chia với biên nhận (sửa sau rà soát 24/10, Ruling R-154; ADR-0078 ví dụ B-5; R-81)
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+const VE_IR = { ten: "Vé tắm bùn i-resort", catalog: "IRESORT", khach: 2, donGia: 300_000 };
+const VE_HT = { ten: "Vé Hòn Tằm", catalog: "HONTAM", khach: 1, donGia: 1_000_000 };
+/** Phần của quầy i-resort trên biên nhận: còn phải trả = tong − daTra (số máy chủ chia — `chiaPhanBienNhan`). */
+const conTaiQuay = async (w: W, id: string): Promise<number> => {
+  const r = await w.call("GET", `/api/orders/${id}/receipt`, { as: KT });
+  assert.equal(r.status, 200, r.text);
+  const p = (r.json.receipt.phan as { nguoiBan: string; tong: number; daTra: number }[]).find((x) => x.nguoiBan === "i-resort");
+  assert.ok(p, r.text);
+  return p.tong - p.daTra;
+};
+
+test("B-5 (a) ADR-0078: đơn chỉ vé i-resort 600.000 giảm 20.000 ⇒ quầy ghi 600.000 bị từ chối (nói 580.000 ₫), 580.000 được; biên nhận phần i-resort còn 0, không «trả dư»", async () => {
+  const { w } = await setup();
+  const { id } = await donXacNhan(w, { dichVu: [VE_IR], giam: 20_000 });
+  assert.equal(await conTaiQuay(w, id), 580_000, "hai nơi: trần = phần còn phải trả trên biên nhận");
+  const qua = await thu(w, KT, id, mat(600_000, { partyId: NCC }));
+  assert.equal(qua.status, 400, qua.text);
+  assert.match(qua.json.error.message, /580\.000 ₫/, "nói phần còn chưa thu sau giảm giá");
+  assert.doesNotMatch(qua.text, /480\.000|giá vốn|80%/, "không lộ giá vốn");
+  const khai = await thu(w, HDV, id, mat(580_001, { nhaCungCapPartyId: NCC }));
+  assert.equal(khai.status, 400, "lời khai của HDV cùng trần");
+  assert.equal((await thu(w, KT, id, mat(580_000, { partyId: NCC }))).status, 201);
+  assert.equal(await conTaiQuay(w, id), 0);
+  const bn = (await w.call("GET", `/api/orders/${id}/receipt`, { as: KT })).json.receipt;
+  assert.deepEqual([bn.daTra, bn.conLai], [580_000, 0], "không trả dư");
+});
+
+// GHIM HIỆN TRẠNG (người kiểm sau rà soát 24/10, I-1 — CHỜ CHỦ QUYẾT, Nợ ở sổ thi công): trần R-154 là trần CỦA RIÊNG QUẦY, chỉ trừ khoản «thu cho» chính quầy; biên nhận (R-82)
+// chuyển phần Tour Đảo thu dư sang quầy. Sau lễ tân 200.000 + quầy 380.000, Kế toán vẫn ghi được thêm 200.000 người thu là quầy (201) và biên nhận in trả dư 200.000.
+// Chủ quyết cho trần trừ cả phần Tour Đảo thu dư thì đổi assert «200.001 ⇒ 400» dưới đây.
+test("B-5 (b) ADR-0078: bên đặt tự thu trước 200.000 (thu cho Tour Đảo) ⇒ quầy vẫn còn trần 580.000; 380.000 được", async () => {
+  const { w } = await setup();
+  const { id } = await donXacNhan(w, { owner: PT, dichVu: [VE_IR], giam: 20_000 });
+  assert.equal((await thu(w, PT, id, mat(200_000, "toi"))).status, 201);
+  assert.equal(await conTaiQuay(w, id), 380_000, "biên nhận chuyển phần dư của Tour Đảo sang quầy");
+  assert.equal((await thu(w, HDV, id, mat(380_000, { nhaCungCapPartyId: NCC }))).status, 201);
+  assert.equal((await thu(w, KT, id, mat(200_001, { partyId: NCC }))).status, 400, "trần quầy còn 580.000 − 380.000 = 200.000");
+});
+
+test("đơn trộn Hòn Tằm 1.000.000 + i-resort 600.000 giảm 20.000 ⇒ giảm trừ vào phần Tour Đảo, trần quầy vẫn 600.000", async () => {
+  const { w } = await setup();
+  const { id } = await donXacNhan(w, { dichVu: [VE_HT, VE_IR], giam: 20_000 });
+  assert.equal(await conTaiQuay(w, id), 600_000);
+  assert.equal((await thu(w, KT, id, mat(600_001, { partyId: NCC }))).status, 400);
+  assert.equal((await thu(w, KT, id, mat(600_000, { partyId: NCC }))).status, 201);
+});
+
+test("giảm giá lớn hơn phần Tour Đảo (khách lẻ: Hòn Tằm 100.000 + i-resort 600.000, giảm 150.000) ⇒ phần dư 50.000 trừ vào quầy, trần 550.000 (cùng biên nhận)", async () => {
+  const { w } = await setup();
+  const { id } = await donXacNhan(w, { booker: null, dichVu: [{ ...VE_HT, donGia: 100_000 }, VE_IR], giam: 150_000 });
+  assert.equal(await conTaiQuay(w, id), 550_000);
+  const qua = await thu(w, KT, id, mat(550_001, { partyId: NCC }));
+  assert.equal(qua.status, 400, qua.text);
+  assert.match(qua.json.error.message, /550\.000 ₫/);
+  assert.equal((await thu(w, HDV, id, mat(550_000, "toi", { thuChoNhaCungCapPartyId: NCC }))).status, 201, "«thu cho» của HDV cùng trần");
+  assert.equal(await conTaiQuay(w, id), 0);
 });
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------

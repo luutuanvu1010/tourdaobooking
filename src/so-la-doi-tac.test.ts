@@ -465,7 +465,8 @@ test("Task 9 (5) — người kiểm Task 5: «thu cho» của tài khoản Đ�
   const khongPhai = await thuCho(DT_A, `pty-${SALES}`, 100_000);
   const vuot = await thuCho(DT_A, "pty-ncc", 600_001);
   const sai = await thuCho(DT_A, "không hợp lệ!", 100_000);
-  assert.deepEqual([khongPhai.status, vuot.status, sai.status], [400, 400, 400]);
+  // Sửa 3 sau rà soát 24/10 (Ruling R-155): nay 403 «không dùng thu cho» trước mọi kiểm khác — vẫn MỘT câu, không số, không tên.
+  assert.deepEqual([khongPhai.status, vuot.status, sai.status], [403, 403, 403]);
   assert.equal(khongPhai.json.error.message, vuot.json.error.message, "cùng một câu");
   assert.equal(sai.json.error.message, vuot.json.error.message);
   assert.doesNotMatch(vuot.text, /600\.000|nhà cung cấp/, vuot.text);

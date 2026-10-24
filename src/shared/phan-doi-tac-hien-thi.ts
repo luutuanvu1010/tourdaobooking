@@ -7,6 +7,7 @@
 // GHI CHÚ HỢP NHẤT: `docTyLeTay` / `docTienTay` / `MOI_KHACH_TOI_DA` KHÔNG còn bản riêng — chỉ là tên cũ trỏ về `docTyLePhanTram` / `docTienMoiKhach` / `MOI_KHACH_TOI_DA` của `so-dai-ly-nhap.ts` (một luật đọc ô, hai màn dùng).
 // Bài `docTyLeTay / docTienTay` ở phan-doi-tac-hien-thi.test.ts và bài nối `ghi-tay-nhap-noi.test.ts` (đối chiếu `kiemThanGhiTay` của máy chủ) giữ nguyên làm bài canh.
 import type { ThuongMaiDoiTacDto, ThuongMaiVanPhongDto } from "./contracts.ts";
+import { chenhGiamGiaSauGhiTay, type MucGhiTay } from "./hoa-hong-dong.ts";
 import { can, holdsPartner, type PermissionHolder } from "./permissions.ts";
 import { CAU_DON_BI_GIU, CAU_THIEU_MUC, NHAN_LY_DO_THIEU } from "./so-dai-ly-nhan.ts";
 import { MOI_KHACH_TOI_DA, docTienMoiKhach, docTyLePhanTram } from "./so-dai-ly-nhap.ts";
@@ -199,4 +200,33 @@ export function docThanGhiTay(f: FormGhiTay, congTyChuId: string | null): { ok: 
   else if (ly.length > LY_DO_TOI_DA) loi.push({ truong: "lyDo", message: `Lý do tối đa ${LY_DO_TOI_DA} ký tự.` });
   else if (hasLongDigitRun(ly)) loi.push({ truong: "lyDo", message: PHONE_IN_TEXT_MESSAGE });
   return loi.length === 0 ? { ok: true, body } : { ok: false, loi };
+}
+
+/**
+ * Sửa 5 sau rà soát «Sổ đại lý đợt 2» (chủ duyệt 24/10, Ruling R-156): câu CẢNH BÁO cạnh nút «Ghi mức» khi mức đang gõ làm tổng hoa hồng của đơn nhỏ hơn giảm giá đã áp
+ * (đại lý chịu giảm giá lớn hơn hoa hồng). KHÔNG chặn — máy chủ vẫn nhận. Số tính bằng `chenhGiamGiaSauGhiTay` (src/shared/hoa-hong-dong.ts — một công thức); dữ liệu là
+ * DTO văn phòng của màn thương mại (người mở được bảng ghi tay luôn thấy số hoa hồng) + `giamGiaHieuLuc` của đơn đang mở. null = không báo (Không đổi hoa hồng, ô chưa
+ * đúng dạng — lỗi ô tự nói, đơn không người hưởng, không vượt).
+ */
+export function canhBaoHaMucTay(v: {
+  dto: Pick<ThuongMaiVanPhongDto, "nguoiHuong"> & { dong: readonly { serviceId: string; thanhTien: number; soKhachTinh: number; hoaHong: number | null }[] };
+  serviceId: string;
+  form: Pick<FormGhiTay, "kieu" | "tyLe" | "moiKhach">;
+  giamGiaHieuLuc: number;
+  dinhDang: (n: number) => string;
+}): string | null {
+  if (!v.dto.nguoiHuong || v.form.kieu === "KHONG_DOI") return null;
+  let moi: MucGhiTay;
+  if (v.form.kieu === "RATE") {
+    const r = docTyLeTay(v.form.tyLe);
+    if (!r.ok) return null;
+    moi = { kieu: "RATE", tyLeBp: r.bp };
+  } else {
+    const r = docTienTay(v.form.moiKhach);
+    if (!r.ok) return null;
+    moi = { kieu: "PER_PAX", moiKhach: r.dong };
+  }
+  const k = chenhGiamGiaSauGhiTay({ dong: v.dto.dong, serviceId: v.serviceId, moi, giamGiaHieuLuc: v.giamGiaHieuLuc });
+  if (!k) return null;
+  return `Mức này làm tổng hoa hồng của đơn còn ${v.dinhDang(k.tongHoaHong)}, nhỏ hơn giảm giá đã áp cho đơn (${v.dinhDang(v.giamGiaHieuLuc)}); đại lý sẽ phải trả thêm cho công ty phần chênh ${v.dinhDang(k.chenh)}. Vẫn lưu được nếu đúng ý.`;
 }

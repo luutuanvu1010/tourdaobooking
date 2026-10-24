@@ -1,6 +1,7 @@
 // Luật THUẦN của biên nhận (module receipt — ADR-0024 đ1, ADR-0026 đ11; kế hoạch Task 8): dựng `ReceiptDto` theo DANH SÁCH TRẮNG — chép TỪNG trường được
 // phép, KHÔNG BAO GIỜ trải đối tượng nguồn (`...order`), nên thêm một trường bí mật vào đơn/sổ sau này không thể tự lọt ra biên nhận. Không I/O.
 import type { CompanyDto, OrderDetailDto, QrThanhToanDto, ReceiptDto, ReceiptPhanDto } from "../../shared/contracts.ts";
+import { chiaPhanNguoiBan, nguoiBanCuaDong } from "../../shared/chia-phan-nguoi-ban.ts";
 import type { BanChup } from "../../shared/hoa-hong-dong.ts";
 import { noiDungChuyenKhoan } from "../../shared/noi-dung-chuyen-khoan.ts";
 import { trangThaiHienThi } from "../../shared/order-status-label.ts";
@@ -39,29 +40,11 @@ const TOUR_DAO = "";
  */
 export function chiaPhanBienNhan(order: OrderDetailDto, tenCongTy: string, ban: NguoiBanChoBienNhan | null, tien: Pick<TienBienNhan, "daTra" | "theoThuCho">): ReceiptPhanDto[] {
   if (order.status === "cancelled") return [];
-  const nguoiBanCua = new Map<string, string>();
-  for (const c of ban?.chup ?? []) {
-    if (c.cungUng.status === "SET" && ban!.congTyChuId !== null && c.cungUng.sellerPartyId !== ban!.congTyChuId) nguoiBanCua.set(c.serviceId, c.cungUng.sellerPartyId);
-  }
-  const nhom = new Map<string, { dichVu: string[]; gross: number }>();
-  nhom.set(TOUR_DAO, { dichVu: [], gross: 0 }); // giữ chỗ đầu; bỏ đi nếu không dịch vụ nào của Tour Đảo
-  for (const s of order.services) {
-    const k = nguoiBanCua.get(s.id) ?? TOUR_DAO;
-    const g = nhom.get(k) ?? { dichVu: [], gross: 0 };
-    g.dichVu.push(s.name);
-    g.gross += s.items.reduce((t, it) => t + it.lineTotal, 0);
-    nhom.set(k, g);
-  }
-  if (nhom.get(TOUR_DAO)!.dichVu.length === 0) nhom.delete(TOUR_DAO);
-  const ds = [...nhom].map(([k, g]) => ({ k, dichVu: g.dichVu, gross: g.gross, giam: 0, tong: 0, da: 0 }));
+  // Nhóm theo người bán + giảm giá trừ vào phần Tour Đảo trước (R-81): MỘT hàm `chiaPhanNguoiBan` — billing dùng cùng hàm cho trần phần của quầy (Ruling R-154).
+  const chupCua = new Map((ban?.chup ?? []).map((c) => [c.serviceId, c]));
+  const ds = chiaPhanNguoiBan(order.services, (s) => nguoiBanCuaDong(chupCua.get(s.id), ban?.congTyChuId ?? null), (s) => s.items.reduce((t, it) => t + it.lineTotal, 0), order.giamGiaHieuLuc)
+    .map((p) => ({ k: p.nguoiBan ?? TOUR_DAO, dichVu: p.dong.map((s) => s.name), giam: p.giamGia, tong: p.tong, da: 0 }));
   if (ds.length === 0) return [];
-  // Giảm giá: Tour Đảo trước (R-81).
-  let giam = Math.max(0, order.giamGiaHieuLuc);
-  for (const p of ds) {
-    p.giam = Math.min(giam, p.gross);
-    giam -= p.giam;
-    p.tong = p.gross - p.giam;
-  }
   // Đã trả theo «thu cho ai» (R-82).
   const theo = tien.theoThuCho ?? new Map<string, number>();
   let tienNcc = 0;

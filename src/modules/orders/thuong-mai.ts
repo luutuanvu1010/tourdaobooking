@@ -67,6 +67,9 @@ export interface PhanThuongMai {
   dichVu: readonly { id: string; name: string; thanhTien: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[];
   ten: ReadonlyMap<string, string>;
   congTyChuId: string | null;
+  /** Giảm giá HIỆU LỰC của đơn (`OrderDto.giamGiaHieuLuc`, số do `effectiveMoney` trả — cùng số biên nhận in). Billing dùng để tính trần phần của quầy nhà cung cấp SAU giảm
+   *  giá bằng CÙNG hàm chia của biên nhận (`chiaPhanNguoiBan`, Ruling R-154). Không vào DTO thương mại (`dungThuongMai` chép theo danh sách trắng). */
+  giamGiaHieuLuc: number;
   /** Mã dịch vụ mà bản chụp hiện hành là bản GHI TAY (cột `source = 'MANUAL'`); vắng = không dòng nào. */
   ghiTay?: ReadonlySet<string>;
 }
