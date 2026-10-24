@@ -2,7 +2,17 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## Nút «Từ chối» + hạn mức Từ chối (ADR-0030 điều 1, ADR-0032; migration `0117_han_muc_tu_choi.sql` — số tạm; nhật ký thay đổi 2.27 — số tạm) — CHƯA PHÁT HÀNH — RUNBOOK (AI chuẩn bị, chủ chạy)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.28 ĐÃ LÊN PRODUCTION (gồm 2.27: nút «Từ chối» đơn — ADR-0030 điều 1 — và bộ đếm + hạn mức Từ chối — ADR-0032 kèm sửa đổi điều 5 ngày 24/10; và 2.28: sửa sổ đại lý của phiên khác) — migration `0117_han_muc_tu_choi` đã áp — triển khai 2026-10-24 (giờ chưa ghi)
+
+Ghi 24/10/2026 bằng lệnh chỉ đọc chủ chạy trên máy dự án, kết quả chủ dán vào chat (máy của phiên ghi bị proxy chặn `booking.tourdao.vn` và không có đăng nhập Cloudflare): `node scripts/kiem-phien-ban.mjs --sau-deploy` → «ĐẠT: production đang chạy đúng bản 2.28.»; `wrangler d1 migrations list tourdao-sales-db --remote` → «No migrations to apply!»; `node scripts/audit-invariants.mjs --db remote` → «Mọi bất biến đạt, 5 cảnh báo (D1 remote).»
+- Commit `main`: `ed174142`. Worker Version ID: **chưa ghi** (chủ chưa dán khối cuối của `trien-khai`).
+- **Kiểm định kỳ mới:** `R-DSP-4`, `R-DSP-5`, `R-DSP-6`, `R-DSP-7` đều ✓ — không có dòng nào trong khe giữa lúc áp migration và lúc deploy. Năm cảnh báo đều không thuộc việc này: lần thu người thu chưa rõ (22), `R-ORD-DC1w` (1), `R-VC-14` (7), `R-ORD-9` (1), `R-CTL-1` (5).
+- **Lần `trien-khai` đầu (24/10) dừng đúng:** e2e chính thức đỏ H5 (route Từ chối ghi hai lần một lệnh ở nhánh «chỉ đo vượt» và thua đua); chủ gõ `k`, chưa áp gì. Vá ở nhánh `va-tu-choi-ghi-mot-lan` theo phương án A chủ chọn (ADR-0032 sửa đổi điều 5, commit `187faa89`): nhật ký chạm hạn mức nằm trong chính lô Từ chối, không thêm route nào vào `GHI_NHIEU_LAN`. Người kiểm độc lập ĐẠT. Lần `trien-khai` thứ hai đi hết (e2e đủ bộ theo `trien-khai`; khối cuối chưa dán vào chat).
+- **Vì sao H5 lọt tới e2e chính thức:** bài harness không gửi `idempotency-key` nên không qua lớp vé; e2e bổ sung trên máy phiên (tắt Turnstile vì proxy) không chép bước đối chiếu H5 của `run.mjs`. Đã thêm bài H5 đi qua lớp vé (`src/modules/dispatch/han-muc-route.test.ts`) và bẫy ở `docs/CHANGE-GUIDE.md` z26.
+- **Hạn mức đang ở chế độ «Chỉ đo» 2/15** (dòng gieo): không ai bị chặn.
+- **Còn lại (chủ):** nghiệm thu bằng tay theo danh sách AI gửi trong chat 24/10; sau 1–2 tuần xem bảng số lần và quyết bật «Chặn» (bước 4 dưới). Hình thức ghi sửa đổi ADR-0032 tại chỗ (thay vì ADR mới) chờ chủ trả lời «giữ» / «tách». Nợ N-2 (một dòng đề xuất cho `web/CLAUDE.md`) để sau theo lời chủ.
+
+## Nút «Từ chối» + hạn mức Từ chối (ADR-0030 điều 1, ADR-0032; migration `0117_han_muc_tu_choi.sql`; nhật ký thay đổi 2.27) — ĐÃ PHÁT HÀNH 24/10 cùng bản 2.28 (xem mục trên) — RUNBOOK (giữ để tra)
 
 **Trạng thái (ghi 2026-10-23, người thi công hạn mức):** nhánh `han-muc-ke-hoach` (chứa cả mã nút Từ chối của nhánh `tu-choi-han-muc`), CHƯA gộp `main`, CHƯA kiểm độc lập (H13). Kế hoạch `docs/superpowers/plans/2026-10-23-han-muc-tu-choi-thi-cong.md`, sổ `…-thi-cong-nhat-ky.md`. Q-PH: chủ chốt phát hành CHUNG hai việc một lần (chat 2026-10-23 «… phát hành chung …»); kiểm độc lập ĐẠT CÓ ĐIỀU KIỆN, hai mục NÊN SỬA đã vá; chủ đã duyệt giao diện kèm đổi thứ tự nút thẻ «Đơn của tôi».
 
