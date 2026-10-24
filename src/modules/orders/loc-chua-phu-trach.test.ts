@@ -104,6 +104,9 @@ test("YC-0013: người không xem được MỌI đơn (HDV, Thực tập, Đ�
   for (const as of [ID.HDV, ID.INTERN, ID.PARTNER, ID.PF]) assert.equal((await ds(w, as, "phuTrach=chua")).status, 403, as);
   assert.equal((await ds(w, ID.SP, "phuTrach=chua")).status, 200, "lai Bán hàng + Đối tác: cùng ba ô của Trang chủ");
   assert.equal((await ds(w, ID.ACC, "phuTrach=co")).status, 400);
+  // 403 đứng TRƯỚC mọi 400 (người kiểm độc lập 24/10: đảo thứ tự thì không bài nào đỏ): người không đủ quyền gửi giá trị lạ hay tham số khác sai vẫn 403.
+  assert.equal((await ds(w, ID.HDV, "phuTrach=co")).status, 403, "giá trị lạ của người không xem mọi đơn");
+  assert.equal((await ds(w, ID.PARTNER, "phuTrach=chua&status=bay")).status, 403, "tham số khác sai của người không xem mọi đơn");
 });
 
 test("YC-0013: phân trang trên tập ĐÃ LỌC (limit/offset/hasMore đúng, mới lập trước)", async () => {
