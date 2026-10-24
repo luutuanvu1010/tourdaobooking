@@ -39,7 +39,7 @@ Hướng dẫn viên được khước từ tối đa **2 đơn liên tiếp**; 
 **4. Luật «mỗi tuần».** Đếm dòng `REFUSE` của P trong tuần dân sự VN hiện tại (thứ Hai 00:00 → Chủ nhật 24:00 giờ VN, hàm `vnWeekRange` sẵn có), kể từ `RESET` gần nhất nếu `RESET` nằm trong tuần. Chặn khi đã đủ «tối đa mỗi tuần» (mặc định **15**).
 
 **5. Thi hành trong một lô, không có lần từ chối «ma».** Câu chèn `REFUSE` là **câu đầu lô** của lệnh Từ chối (đúng cam kết của ADR-0030 điều 5), mang hai điều kiện: (a) chuỗi và đếm tuần còn dưới mức (khi chế độ là «chặn» và người gọi thuộc nhóm ở điều 2), (b) người gọi **đang có** dòng phụ trách mở của đơn đó. Câu đóng dòng phụ trách và câu nhật ký chạy sau, có `changes() > 0` (khuôn `src/modules/dispatch/repository.ts`). Câu chèn không chạy thì cả lô không đổi gì.
-   - Bị chặn vì hạn mức → **409** `refuse_limit`, câu cho người dùng: **«Bạn đã từ chối đủ số lần cho phép. Hãy gọi văn phòng.»** Ghi một dòng nhật ký `refuse_limit_hit` (chi tiết chỉ có số chuỗi / số tuần / mức đang áp, không tên, không SĐT; tên người bấm chỉ Toàn quyền thấy theo ADR-0131) — ghi ở lô riêng sau khi xác định lý do 409.
+   - Bị chặn vì hạn mức → **409** `refuse_limit`, câu cho người dùng: **«Bạn đã từ chối đủ số lần cho phép. Hãy gọi văn phòng.»** Ghi một dòng nhật ký `refuse_limit_hit` (chi tiết chỉ có số chuỗi / số tuần / mức đang áp, không tên, không SĐT; tên người bấm chỉ Toàn quyền thấy theo ADR-0131) — ghi ở lô riêng sau khi xác định lý do 409. *(Câu này đã được thay — xem «Sửa đổi 2026-10-24 — điều 5» bên dưới.)*
    - Thua đua (vừa bị đổi người) → 409 `stale` như ADR-0030.
    - **Lệch có chủ ý Hiến chương 5.1:** luật đếm nằm ở **điều kiện của câu ghi** (cùng lô, nguyên tử), không ở trigger, vì «ai bị giới hạn» phụ thuộc bộ quyền (bảng của module `staff`) mà trigger của `dispatch` không được đọc thẳng (5.3). Cùng loại lệch đã ghi ở ADR-0029 / ADR-0030 điều 4; ghi vào `docs/SYSTEM-DESIGN.md` §16. Gỡ khi có view công bố bộ quyền đọc được từ trigger.
 
@@ -59,6 +59,13 @@ Hướng dẫn viên được khước từ tối đa **2 đơn liên tiếp**; 
 **9. Giao diện hướng dẫn viên.** Hộp Từ chối hiện sẵn dòng nhỏ «Bạn còn được từ chối N đơn liên tiếp, M lần trong tuần này» khi chế độ là «Chặn» và người đó thuộc nhóm ở điều 2 (giả định bề mặt). Hết lượt thì nút Từ chối vẫn hiện nhưng bấm ra câu «Hãy gọi văn phòng» (chủ: hiện câu này **khi bấm**).
 
 **10. Bảng chọn người khi văn phòng giao đơn (Q3 kế hoạch nút Từ chối, chủ duyệt 23/10).** Dòng phụ dưới tên người được chọn: «đã từ chối đơn này lúc … — <lý do>», chỉ khi người đó từng Từ chối **chính đơn đang giao**. Nguồn là `dsp_release_event` (sổ nghiệp vụ của `dispatch`), **không** đọc nhật ký — ADR-0131 giữ nguyên. Ai thấy: người mở được bảng chọn người (đã có quyền giao đơn).
+
+## Sửa đổi 2026-10-24 — điều 5 (chủ dự án, trong chat)
+e2e chính thức lúc phát hành (24/10) đỏ bài H5 của lớp chống ghi trùng (ADR-0094 đ3; Hiến chương 1.2): route Từ chối ghi **hai lần** một lệnh ở nhánh «chỉ đo vượt mức» (lô Từ chối rồi lô nhật ký) và nhánh **thua đua** (lô Từ chối 0 dòng — vẫn bị đếm là một lần ghi — rồi lô nhật ký `refuse_limit_hit` «ở lô riêng» theo chữ điều 5). Điều phối trình ba phương án: (A) gộp nhật ký vào chính lô Từ chối; (B) bỏ nhật ký ở nhánh thua đua; (C) đưa route vào danh sách nợ `GHI_NHIEU_LAN`. Chủ trả lời nguyên văn: *«a»*.
+
+Thay câu cuối gạch đầu của điều 5 — nguyên văn: «— ghi ở lô riêng sau khi xác định lý do 409.» → mới: «— nếu lệnh bị chặn ngay ở bước đọc (trước lô) thì dòng nhật ký là lần ghi duy nhất của lệnh; nếu lô Từ chối đã chạy thì dòng nhật ký nằm **trong chính lô đó** (câu cuối, có điều kiện: lần Từ chối này không được ghi **và** người gọi vẫn đang phụ trách đơn). Ở nhánh thua đua, số chuỗi / số tuần ghi trong nhật ký là số đọc trước lô, kèm dấu «vượt lúc ghi». Nhật ký «chỉ đo» (điều 6) cũng nằm trong chính lô Từ chối. Mỗi lệnh Từ chối ghi tối đa **một** lần.»
+
+Mọi điều khác giữ nguyên.
 
 ## Điều không đổi
 - Văn phòng (người có quyền giao) **vẫn Giao** đơn cho người đã hết lượt; đơn thuộc về người đó ngay (Q-Q: *«Hệ thống tự gán ngay khi có người chủ động lựa chọn HDV đó»*).
