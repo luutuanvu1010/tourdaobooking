@@ -74,6 +74,24 @@ Nghĩa (điều phối đã trình):
 3. **N-1 = (b):** để thẻ hạn mức tự giải thích (mỗi chế độ một câu giải thích), KHÔNG thêm mục vào hướng dẫn Quản trị.
 4. **N-2 để sau** (giữ nợ — xem mục Nợ của sổ hạn mức).
 
+## Vá H5 — «route ghi > 1 lần mỗi lệnh» (e2e chính thức trên máy chủ dự án, 2026-10-24; nhánh `va-tu-choi-ghi-mot-lan` từ 9885b85d)
+
+**Nguyên nhân (đã xác minh):** lớp vé (`src/shared/lan-gui-boc.ts` `ghiLoNgay`) tăng `soLanGhi` cho MỖI lời gọi `batch` có câu ghi — KỂ CẢ lô ghi 0 dòng; router in `lan_gui_ghi_nhieu_lan` khi > 1 (`src/shared/router.ts` `ghiNhieuLan`), `tests/e2e/run.mjs` đối chiếu với `GHI_NHIEU_LAN`. Route Từ chối ghi HAI lần ở hai nhánh:
+- «Chỉ đo» vượt mức: lô Từ chối (thắng) + lô riêng `refuse_limit_hit` «chỉ đo» (G7 của kế hoạch);
+- thua đua rồi bị chặn (hết lượt giữa lúc đọc và lúc ghi — e2e HM-12 (a) hai lần Từ chối song song): lô Từ chối 0 dòng (vẫn bị đếm) + lô riêng `refuse_limit_hit` (đúng chữ ADR-0032 điều 5 «ghi ở lô riêng sau khi xác định lý do 409»).
+- «Chặn» vượt ở bước đọc: CHỈ lô nhật ký — một lần, hợp lệ.
+
+**Vì sao lọt:** bài harness không gửi `idempotency-key` nên không đi qua lớp vé; e2e BỔ SUNG (`scratchpad/e2e-offline/chay.mjs`) không chép bước đối chiếu H5 của `run.mjs` (đọc log Worker ở Local Explorer). Nay: bản sao `chay-h5.mjs` (scratchpad, không vào repo) có bước H5; bài harness H5 gửi lệnh CÓ vé và bắt `console.warn`.
+
+**Đã sửa (87aad4da):** câu nhật ký «chỉ đo» thành câu CUỐI của chính lô Từ chối (`refuseStatements` tham số `chiDo`, điều kiện `changes() > 0` sau nhật ký Từ chối). Đổi giả định G7 (bề mặt — ADR không nói lô nào cho «Chỉ đo»). Hệ quả: lô hỏng thì cả lô quay lại — bài «vá kiểm độc lập (1) «Chỉ đo»» viết lại: 500 và đơn CHƯA trả (không còn «đã trả mà báo lỗi»).
+- Bài mới (`han-muc-route.test.ts`): «H5: «Chỉ đo» vượt mức …» ĐỎ trước (`duong: 'POST /api/orders/:id/handler-refuse', so: 2`) → XANH; «H5: «Chỉ đo» KHÔNG vượt mức …», «H5: «Chặn» vượt mức ở bước đọc …» xanh (đã đúng); «H5: thua đua …» ĐỎ (`so: 2`) — để `todo`.
+
+**e2e bổ sung có bước H5** (`chay-h5.mjs`, `han-muc-tu-choi dispatch chong-ghi-trung`): trên bản 9885b85d (git archive) `✘ H5: route ghi > 1 lần mỗi lệnh mà không có tên trong GHI_NHIEU_LAN: POST /api/orders/:id/handler-refuse` (tái hiện đúng đỏ của e2e chính thức); sau 87aad4da VẪN ✘ với `2 lệnh ghi nhiều lần` — đúng nhánh thua đua (HM-12 (a) của `tests/e2e/han-muc-tu-choi.mjs` gửi song song). Ba kịch bản ✔; `audit-invariants --strict` thoát 0. Lưu ý: bảng log trả `1500 dòng` ở cả hai lần — có thể là trần của Local Explorer; nếu đúng là trần thì H5 có thể bỏ sót (chưa kiểm).
+
+Sau vá: `npm run typecheck` thoát 0; `npm run build:web` thoát 0; `npm test` thoát 0 — bước 1 `# tests 6068`, `# pass 6058`, `# fail 0`, `# todo 10` (một `todo` mới là bài thua đua H5); bước 2 `# pass 1`.
+
+**DỪNG — chờ chủ (nhánh thua đua):** giữ ghi một lần ở nhánh này buộc lệch ADR-0032 điều 5. Phương án: (A) gộp nhật ký thua đua vào CHÍNH lô Từ chối, điều kiện SQL «REFUSE của lệnh này không chèn VÀ người gọi vẫn đang phụ trách» (⇔ chỉ còn lý do hạn mức) — một lần ghi, lệch chữ «lô riêng», `detail` không có số chính xác lúc ghi (dùng số đọc trước lô + ghi «vượt lúc ghi») — khuyến nghị; (B) bỏ nhật ký ở nhánh thua đua (hiếm — hai lần Từ chối song song) — mất dấu vết lần chạm đó; (C) thêm route vào `GHI_NHIEU_LAN` có hạn — nới danh sách nợ, chủ duyệt.
+
 ## Ruling / lệch so với kế hoạch (người thi công — ghi để người kiểm xét)
 
 - **R-H1 (cột `updated_*`):** `src/architecture.test.ts` (ADR-0003) đòi `updated_at NOT NULL` + `updated_by TEXT NULL` ở mọi bảng không phải tra cứu ⇒ thêm hai cột vào `dsp_release_event` và `dsp_refuse_policy`, luôn bằng `created_*` (kế hoạch 2b ghi chú cuối đã dự liệu).
