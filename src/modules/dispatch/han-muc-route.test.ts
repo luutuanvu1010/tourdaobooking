@@ -447,18 +447,20 @@ const hongNhatKyCham = (w: any) =>
     throw new Error("D1_ERROR: giả lập hỏng lúc ghi nhật ký chạm hạn mức");
   });
 
-test("vá kiểm độc lập (1): «Chỉ đo» — lô Từ chối ĐÃ thắng mà ghi refuse_limit_hit ném lỗi → vẫn 200 {ok:true}, đơn đã trả, REFUSE có, không nhật ký chạm", async () => {
+test("vá kiểm độc lập (1) — sửa lại theo H5: «Chỉ đo» — nhật ký «chỉ đo» nằm TRONG lô Từ chối; lô đó hỏng thì KHÔNG nửa vời (500, đơn chưa trả, không REFUSE, không nhật ký)", async () => {
   const w = setup(); // dòng gieo = Chỉ đo 2/15
   for (let i = 0; i < 2; i++) assert.equal((await nhanVaTuChoi(w, FIELD)).r.status, 200);
   const id = await donCho(w);
   assert.equal((await nhan(w, id, FIELD)).status, 200);
-  hongNhatKyCham(w);
+  w.chenTruocLo((stmts: any[]) => stmts.some((x) => (x?.args ?? []).includes("refuse_limit_hit")), () => {
+    throw new Error("D1_ERROR: giả lập hỏng lô Từ chối có nhật ký chỉ đo");
+  });
   const r = await tuChoi(w, id, FIELD);
-  assert.equal(r.status, 200, r.text);
-  assert.deepEqual(r.json, { ok: true });
-  assert.deepEqual(moDong(w, id), [], "đơn đã trả");
-  assert.equal(soRefuse(w, FIELD), 3);
-  assert.equal(cham(w).length, 0, "lần ghi nhật ký hỏng thật");
+  assert.equal(r.status, 500, r.text);
+  assert.deepEqual(moDong(w, id), [`pty-${FIELD}`], "đơn CHƯA trả — không có trạng thái «đã trả mà báo lỗi»");
+  assert.equal(soRefuse(w, FIELD), 2);
+  assert.equal(cham(w).length, 0);
+  assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE order_id = ? AND action = 'order_handler_refused'", id)[0].n, 0);
 });
 
 test("vá kiểm độc lập (1): «Chặn» — ghi refuse_limit_hit ném lỗi → vẫn 409 refuse_limit đúng câu (không 500), dòng phụ trách còn mở", async () => {
@@ -473,4 +475,78 @@ test("vá kiểm độc lập (1): «Chặn» — ghi refuse_limit_hit ném lỗ
   assert.equal(r.json.error.code, "refuse_limit");
   assert.equal(r.json.error.message, CAU_HET);
   assert.deepEqual(moDong(w, id), [`pty-${FIELD}`]);
+});
+
+// ---- H5 (ADR-0094 đ3; e2e chính thức 2026-10-24 đỏ «route ghi > 1 lần mỗi lệnh»): route Từ chối ghi TỐI ĐA MỘT LẦN mỗi lệnh ----
+// Lớp vé (src/shared/lan-gui-boc.ts) đếm MỖI lời gọi batch có câu ghi (kể cả lô 0 dòng) và router in `lan_gui_ghi_nhieu_lan` khi > 1. Bài gửi lệnh CÓ VÉ
+// (`idempotency-key`, như web/api.ts) và bắt console.warn của đúng lệnh đó.
+async function soLanGhiCuaLenh(lenh: () => Promise<any>): Promise<{ r: any; nhieuLan: unknown[] }> {
+  const cu = console.warn;
+  const bat: unknown[] = [];
+  console.warn = (...a: unknown[]) => {
+    const s = String(a[0]);
+    if (s.includes("lan_gui_ghi_nhieu_lan")) bat.push(JSON.parse(s));
+    else cu(...a);
+  };
+  try {
+    return { r: await lenh(), nhieuLan: bat };
+  } finally {
+    console.warn = cu;
+  }
+}
+const tuChoiCoVe = (w: any, id: string, as: string, lyDo = "BAN_LICH") =>
+  w.call("POST", `/api/orders/${id}/handler-refuse`, { as, body: { lyDo }, headers: { "idempotency-key": crypto.randomUUID() } });
+
+test("H5: «Chỉ đo» vượt mức — lệnh Từ chối 200 ghi ĐÚNG MỘT lần (nhật ký «chỉ đo» nằm trong CHÍNH lô Từ chối)", async () => {
+  const w = setup();
+  for (let i = 0; i < 2; i++) assert.equal((await nhanVaTuChoi(w, FIELD)).r.status, 200);
+  const id = await donCho(w);
+  assert.equal((await nhan(w, id, FIELD)).status, 200);
+  const { r, nhieuLan } = await soLanGhiCuaLenh(() => tuChoiCoVe(w, id, FIELD));
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(nhieuLan, [], "không ghi nhiều lần");
+  assert.deepEqual(cham(w).map((x: any) => [x.order_id, x.detail]), [[id, "Liên tiếp 2/2 · tuần 2/15 · Chỉ đo (không chặn)"]]);
+  assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE order_id = ? AND action = 'order_handler_refused'", id)[0].n, 1);
+});
+
+test("H5: «Chỉ đo» KHÔNG vượt mức — không có dòng refuse_limit_hit (câu nhật ký chỉ đo không nằm trong lô)", async () => {
+  const w = setup();
+  const { r } = await nhanVaTuChoi(w, FIELD);
+  assert.equal(r.status, 200);
+  assert.equal(cham(w).length, 0);
+});
+
+test("H5: «Chặn» vượt mức ở bước đọc — 409 refuse_limit ghi ĐÚNG MỘT lần (chỉ dòng nhật ký, lô riêng)", async () => {
+  const w = setup();
+  datCaiDat(w, "BLOCK");
+  for (let i = 0; i < 2; i++) assert.equal((await nhanVaTuChoi(w, FIELD)).r.status, 200);
+  const id = await donCho(w);
+  assert.equal((await nhan(w, id, FIELD)).status, 200);
+  const { r, nhieuLan } = await soLanGhiCuaLenh(() => tuChoiCoVe(w, id, FIELD));
+  assert.equal(r.status, 409, r.text);
+  assert.deepEqual(nhieuLan, []);
+  assert.equal(cham(w).length, 1);
+});
+
+// CHỜ CHỦ (2026-10-24): nhánh thua đua hiện ghi HAI lần (lô Từ chối 0 dòng — lớp vé vẫn đếm — rồi lô riêng nhật ký, đúng chữ ADR-0032 điều 5 «ghi ở lô
+// riêng sau khi xác định lý do 409»). Giữ ghi một lần cần lệch ADR (gộp nhật ký vào lô có điều kiện, hoặc bỏ nhật ký ở nhánh này) — DỪNG, hỏi chủ. Bài để
+// `todo` (chạy, in kết quả, không làm đỏ npm test) tới khi chủ quyết; quyết xong thì bỏ `todo`.
+test("H5: thua đua (hết lượt giữa lúc đọc và lúc ghi) — 409 refuse_limit ghi ĐÚNG MỘT lần, vẫn có MỘT refuse_limit_hit", { todo: "chờ chủ quyết lệch ADR-0032 điều 5 ở nhánh thua đua" }, async () => {
+  const w = setup();
+  datCaiDat(w, "BLOCK");
+  assert.equal((await nhanVaTuChoi(w, FIELD)).r.status, 200);
+  const id = await donCho(w);
+  assert.equal((await nhan(w, id, FIELD)).status, 200);
+  const khac = await donCho(w);
+  w.chenTruocLo((stmts: any[]) => /INSERT INTO dsp_release_event[\s\S]*'REFUSE'/.test(stmts[0]?.sql ?? ""), () => {
+    const s = w.q("SELECT coalesce(max(seq), 0) + 1 s FROM dsp_release_event")[0].s;
+    const at = new Date().toISOString();
+    w.sqlite.prepare("INSERT INTO dsp_release_event (id, seq, party_id, order_id, kind_code, reason_code, occurred_at, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, 'REFUSE', 'OTHER', ?, ?, NULL, ?, NULL)")
+      .run(crypto.randomUUID(), s, `pty-${FIELD}`, khac, at, at, at);
+  });
+  const { r, nhieuLan } = await soLanGhiCuaLenh(() => tuChoiCoVe(w, id, FIELD));
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "refuse_limit");
+  assert.deepEqual(nhieuLan, [], "thua đua mà vẫn ghi hai lần");
+  assert.equal(cham(w).length, 1);
 });

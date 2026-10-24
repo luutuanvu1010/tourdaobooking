@@ -365,7 +365,9 @@ export const dispatchModule: AppModule = {
       }
       let kq: D1Result[];
       try {
-        kq = await env.DB.batch(refuseStatements(env.DB, { orderId, partyId: current.party_id, actorId: staff.id, at, lyDo: lyDo.ma, dauTuan, biGioiHan }));
+        // «Chỉ đo» lẽ ra bị chặn (ADR-0032 điều 6, G7): nhật ký đi CUỐI CHÍNH lô Từ chối (chỉ chèn khi lô thắng) — mỗi lệnh ghi MỘT lần (ADR-0094 đ3, H5).
+        const chiDo = quyetDinh === "do_vuot" ? moTaChamHanMuc(dem.cs, dem.dem) : null;
+        kq = await env.DB.batch(refuseStatements(env.DB, { orderId, partyId: current.party_id, actorId: staff.id, at, lyDo: lyDo.ma, dauTuan, biGioiHan, chiDo }));
       } catch (e) {
         if (isDeliveredLock(e)) return DA_GIAO(); // trigger 0044: đơn vừa Đã giao giữa lúc đọc và lúc ghi (cả lô đã quay lại)
         throw e;
@@ -379,8 +381,6 @@ export const dispatchModule: AppModule = {
         }
         return STALE();
       }
-      // «Chỉ đo» (ADR-0032 điều 6, G7): lẽ ra bị chặn ⇒ ghi nhật ký (lô riêng, theo số đã đọc trước lô), KHÔNG chặn.
-      if (quyetDinh === "do_vuot") await ghiChamHanMuc(env.DB, staff.id, orderId, at, dem);
       baoThayDoi({ orderId, thayDoi: "tu_choi", handlerTruoc: { coNguoi: true, staffId: staff.id } });
       return json({ ok: true } satisfies HandlerRefuseResponse);
     }),

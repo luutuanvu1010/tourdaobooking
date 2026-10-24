@@ -82,6 +82,11 @@ export interface Refusal {
   dauTuan: string;
   /** Người gọi thuộc nhóm bị hạn mức chặn (ADR-0032 điều 2 — `biGioiHanTuChoi` trên bộ quyền của phiên). */
   biGioiHan: boolean;
+  /**
+   * Chế độ «Chỉ đo» và số đọc trước lô cho thấy LẼ RA bị chặn (ADR-0032 điều 6): `detail` của dòng `refuse_limit_hit` «chỉ đo» — câu nhật ký đó đi CUỐI CHÍNH
+   * lô này (`changes() > 0` sau nhật ký Từ chối) để mỗi lệnh chỉ ghi MỘT lần (ADR-0094 đ3, H5; Hiến chương 1.2). Không có ⇒ null.
+   */
+  chiDo?: string | null;
 }
 
 /**
@@ -89,7 +94,8 @@ export interface Refusal {
  *  [0] CHÈN sự kiện REFUSE — CÂU CHỐT: chỉ chèn khi người gọi ĐANG có dòng phụ trách mở của đơn VÀ hạn mức không chặn (chế độ Chặn + người bị giới hạn +
  *      chuỗi/tuần đã đủ ⇒ không chèn). Không chèn ⇒ cả lô không đổi gì (không có lần Từ chối «ma»);
  *  [1] đóng dòng `HANDLE` đang mở MANG `party_id` của người gọi khi câu ngay trước đã chèn (`close_handler_sau_chot` — `… AND changes() > 0`);
- *  [2] nhật ký `order_handler_refused` (chỉ nhãn lý do) khi câu ngay trước đã đóng được.
+ *  [2] nhật ký `order_handler_refused` (chỉ nhãn lý do) khi câu ngay trước đã đóng được;
+ *  [3] (chỉ khi `chiDo`) nhật ký `refuse_limit_hit` «Chỉ đo (không chặn)» khi câu ngay trước đã chèn — cùng lô, để lệnh ghi đúng MỘT lần (H5).
  * KHÔNG có câu mở dòng mới: đơn về «Chờ nhận».
  */
 export function refuseStatements(db: D1Database, r: Refusal): D1PreparedStatement[] {
@@ -97,6 +103,7 @@ export function refuseStatements(db: D1Database, r: Refusal): D1PreparedStatemen
     chenTuChoiStatement(db, { id: crypto.randomUUID(), partyId: r.partyId, orderId: r.orderId, dauTuan: r.dauTuan, at: r.at, lyDo: r.lyDo, actorId: r.actorId, biGioiHan: r.biGioiHan }),
     closeHandlerSauChotStatement(db, r.orderId, r.partyId, r.at, r.actorId),
     auditStatement(db, { staffId: r.actorId, action: "order_handler_refused", at: r.at, orderId: r.orderId, detail: nhanLyDoTuChoi(r.lyDo) }, "changes() > 0"),
+    ...(r.chiDo ? [auditStatement(db, { staffId: r.actorId, action: "refuse_limit_hit", at: r.at, orderId: r.orderId, detail: r.chiDo }, "changes() > 0")] : []),
   ];
 }
 
