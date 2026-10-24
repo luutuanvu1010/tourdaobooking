@@ -998,7 +998,7 @@ export const ordersModule: AppModule = {
       return json({ chup } satisfies ChupBuResponse);
     }),
 
-    route("GET", "/api/orders", "orders", async ({ env, url, staff, myHandledOrderIds, nhapKeToanCuaDon }) => {
+    route("GET", "/api/orders", "orders", async ({ env, url, staff, myHandledOrderIds, nhapKeToanCuaDon, ordersWithHandler }) => {
       // BA NHÁNH LỌC (ADR-0030 S23-4, Review Focus 1), mỗi nhánh hỏi bảng quyền với ĐÚNG ngữ cảnh của tập đơn nó trả:
       //  (1) `can(order.view)` KHÔNG ngữ cảnh ("any" — SALES/ACCOUNTING/ADMIN/SUPER_ADMIN) → mọi đơn, không lọc;
       //  (2) "mình lập": `can(order.view, { ownerId: chính mình })` ("own" — PARTNER/INTERN) → đơn có người lập = chính mình;
@@ -1020,6 +1020,10 @@ export const ordersModule: AppModule = {
       // HDV, Thực tập, Đối tác gửi tham số → 403 (họ chỉ thấy nhãn trên thẻ đơn của mình). Đứng TRƯỚC mọi 400 của tham số.
       const locNhapTho = url.searchParams.get("nhapKeToan");
       if (locNhapTho !== null && !can(staff, "accounting.entry.view")) return error(403, "forbidden", "Tài khoản này không lọc được theo dấu nhập phần mềm kế toán.");
+      // Góp ý YC-0013: «Chưa có người phụ trách» — cùng nghĩa ô «Chưa phụ trách» của Trang chủ, nên chỉ người xem MỌI đơn (nhánh 1) dùng được; người khác
+      // gửi tham số → 403 (đứng TRƯỚC mọi 400). Tập «đang có người» hỏi qua `ordersWithHandler` (gốc lắp ráp nối vào dispatch), orders không đọc phân công.
+      const locPhuTrachTho = url.searchParams.get("phuTrach");
+      if (locPhuTrachTho !== null && !seesAll) return error(403, "forbidden", "Tài khoản này không lọc được theo người phụ trách.");
       // Bộ lọc nhiều điều kiện (góp ý T4): kiểm ở `docLocDon` (thuần) SAU mọi câu hỏi quyền; listOrders AND bộ lọc với phạm vi ở trên — không bao giờ nới.
       const loc = docLocDon(url.searchParams);
       if (!loc.ok) return error(400, "invalid_input", loc.message);
@@ -1033,6 +1037,8 @@ export const ordersModule: AppModule = {
         }
         locNhap = locNhapTho;
       }
+      if (locPhuTrachTho !== null && locPhuTrachTho !== "chua") return error(400, "invalid_input", "Bộ lọc người phụ trách không hợp lệ.");
+      const locChuaPhuTrach = locPhuTrachTho === "chua";
       // Nhãn "đã nhập" trên thẻ (A-12): ô xem hỏi theo TỪNG đơn — any; own (đơn mình lập); assigned (tập đơn đang phụ trách lấy MỘT lần mỗi request).
       const xemNhapMoi = can(staff, "accounting.entry.view");
       const xemNhapCuaMinh = can(staff, "accounting.entry.view", mine);
@@ -1040,9 +1046,14 @@ export const ordersModule: AppModule = {
       const phuTrach = handled || (!xemNhapMoi && xemNhapPhuTrach) ? await myHandledOrderIds() : null;
       // Đặc tả QR §4.3: chữ tìm chứa nội dung chuyển khoản (mã đơn bỏ gạch) ⇒ tìm theo mã đơn chuẩn; câu SQL không đổi (query-plan.test.mjs ghim nó).
       const qGo = (url.searchParams.get("q") ?? "").trim().slice(0, 100);
+      // «Chưa phụ trách» chỉ tính đơn nháp / đã xác nhận (như Trang chủ): không chọn trạng thái ⇒ hai trạng thái đó; chọn có «Đã huỷ» ⇒ bỏ «Đã huỷ».
+      const trangThaiLoc = locChuaPhuTrach
+        ? (loc.loc.trangThai.length ? loc.loc.trangThai.filter((t) => t !== "cancelled") : (["draft", "confirmed"] as const).slice())
+        : loc.loc.trangThai;
+      if (locChuaPhuTrach && trangThaiLoc.length === 0) return json({ orders: [], hasMore: false } satisfies OrderListResponse);
       const phamVi = {
         q: maDonTuNoiDung(qGo) ?? qGo,
-        loc: loc.loc,
+        loc: { ...loc.loc, trangThai: trangThaiLoc },
         ownerId: own ? staff.id : null,
         // Tập rỗng (chưa phụ trách đơn nào) = danh sách rỗng, KHÔNG phải "không lọc" (listOrders coi [] là "không đơn nào").
         orderIds: handled ? phuTrach : null,
@@ -1051,14 +1062,26 @@ export const ordersModule: AppModule = {
       const offset = intParam(url.searchParams.get("offset"), 0, 0, 100000);
       let result: Awaited<ReturnType<typeof listOrders>>;
       let daNhap: Set<string> | null = null;
-      if (locNhap !== null) {
-        // ADR-0060 điều 5 (2): tập ứng viên trong khoảng ngày (CÙNG phạm vi + bộ lọc) → hàm tiêm của billing → lọc + phân trang trên tập đã lọc.
+      if (locNhap !== null || locChuaPhuTrach) {
+        // ADR-0060 điều 5 (2): tập ứng viên (CÙNG phạm vi + bộ lọc) → hàm tiêm của module khác → lọc + phân trang trên tập đã lọc. Hai bộ lọc tiêm
+        // (dấu kế toán của billing, người phụ trách của dispatch) dùng chung một tập ứng viên và một trần.
         const ungVien = await listOrderIds(env.DB, phamVi, LOC_NHAP_TOI_DA_UNG_VIEN);
-        if (ungVien.length > LOC_NHAP_TOI_DA_UNG_VIEN) return error(400, "invalid_input", "Khoảng ngày có quá nhiều đơn để lọc theo nhập phần mềm kế toán — thu hẹp khoảng ngày.");
-        daNhap = await nhapKeToanCuaDon(ungVien);
-        if (daNhap === null) return error(503, "chua_san_sang", "Chưa lọc được theo nhập phần mềm kế toán. Thử lại sau.");
-        const set = daNhap;
-        const daLoc = ungVien.filter((id) => set.has(id) === (locNhap === "da"));
+        if (ungVien.length > LOC_NHAP_TOI_DA_UNG_VIEN) {
+          return error(400, "invalid_input", locNhap !== null
+            ? "Khoảng ngày có quá nhiều đơn để lọc theo nhập phần mềm kế toán — thu hẹp khoảng ngày."
+            : "Có quá nhiều đơn để lọc theo người phụ trách — chọn thêm khoảng ngày đi.");
+        }
+        let daLoc = ungVien;
+        if (locNhap !== null) {
+          daNhap = await nhapKeToanCuaDon(ungVien);
+          if (daNhap === null) return error(503, "chua_san_sang", "Chưa lọc được theo nhập phần mềm kế toán. Thử lại sau.");
+          const set = daNhap;
+          daLoc = daLoc.filter((id) => set.has(id) === (locNhap === "da"));
+        }
+        if (locChuaPhuTrach) {
+          const coNguoi = await ordersWithHandler(daLoc);
+          daLoc = daLoc.filter((id) => !coNguoi.has(id));
+        }
         const trang = daLoc.slice(offset, offset + limit);
         const r = await listOrders(env.DB, { ...phamVi, chiTrongIds: trang, limit, offset: 0 });
         result = { ...r, hasMore: daLoc.length > offset + limit };

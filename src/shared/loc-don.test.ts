@@ -154,3 +154,24 @@ test("ADR-0067 dsNguoiLapChon: bỏ chính người xem; gõ tìm không dấu v
   assert.deepEqual(dsNguoiLapChon(ds, TOI, "  LÊ hoa ").map((x) => x.id), ["b", "c"]);
   assert.deepEqual(dsNguoiLapChon(ds, TOI, "tôi").map((x) => x.id), [], "chính mình không nằm trong danh sách dưới");
 });
+
+// ---- Góp ý YC-0013 (24/10): «Chưa có người phụ trách» — phía màn (máy chủ đọc tham số `phuTrach=chua` ở route, chỉ người xem mọi đơn).
+test("YC-0013: phuTrach — tham số, chip, bỏ điều kiện, đếm số điều kiện", () => {
+  const loc: LocDonMan = { ...LOC_TRONG, phuTrach: "chua" };
+  assert.deepEqual(thamSoLocDon(loc, "me"), [["phuTrach", "chua"]]);
+  assert.deepEqual(chipLocDon(loc, new Map()), [{ khoa: "phuTrach", nhan: "Chưa có người phụ trách" }]);
+  assert.equal(soDieuKienLoc(loc), 1);
+  assert.deepEqual(boDieuKien(loc, "phuTrach"), LOC_TRONG);
+  assert.equal(LOC_TRONG.phuTrach, null);
+});
+
+test("YC-0013: bộ lọc đã nhớ giữ «Chưa có người phụ trách»; giá trị lạ → không lọc ô đó", () => {
+  assert.equal(docLocDaNho(JSON.stringify({ phuTrach: "chua" })).phuTrach, "chua");
+  assert.equal(docLocDaNho(JSON.stringify({ phuTrach: "co" })).phuTrach, null);
+  assert.equal(docLocDaNho(JSON.stringify({ trangThai: ["draft"] })).phuTrach, null, "bộ lọc nhớ từ bản cũ không có khoá");
+});
+
+test("YC-0013: người không xem mọi đơn — chotLocDon bỏ «Chưa có người phụ trách» (máy chủ 403 với họ)", () => {
+  assert.equal(chotLocDon({ ...LOC_TRONG, phuTrach: "chua" }, "me", false).phuTrach, null);
+  assert.equal(chotLocDon({ ...LOC_TRONG, phuTrach: "chua" }, "me", true).phuTrach, "chua");
+});

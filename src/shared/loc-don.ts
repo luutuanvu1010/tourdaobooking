@@ -59,11 +59,13 @@ export interface LocDonMan {
   nguoiLap: string | null;
   /** ADR-0060: "đã / chưa nhập phần mềm kế toán" — chỉ người có ô xem dấu không ngữ cảnh; bắt buộc kèm khoảng ngày (`kiemLocNhapKeToan`). */
   nhapKeToan: "da" | "chua" | null;
+  /** Góp ý YC-0013: "chua" = chỉ đơn chưa có người phụ trách (cùng nghĩa ô Trang chủ) — chỉ người xem mọi đơn; máy chủ 403 với người khác. */
+  phuTrach: "chua" | null;
 }
-export const LOC_TRONG: LocDonMan = { tu: null, den: null, dichVu: [], trangThai: [], nguoiLap: null, nhapKeToan: null };
+export const LOC_TRONG: LocDonMan = { tu: null, den: null, dichVu: [], trangThai: [], nguoiLap: null, nhapKeToan: null, phuTrach: null };
 /** Dấu "Đơn tôi lập" của bộ lọc nhớ từ bản ≤ 1.45 (`cuaToi: true`). Không khớp dạng mã tài khoản nên không bao giờ trùng một người thật. */
 export const NGUOI_LAP_TOI_CU = ":toi";
-export type KhoaDieuKien = "ngay" | "dichVu" | "trangThai" | "nguoiLap" | "nhapKeToan";
+export type KhoaDieuKien = "ngay" | "dichVu" | "trangThai" | "nguoiLap" | "nhapKeToan" | "phuTrach";
 
 /** ADR-0060 A-6 (cùng luật máy chủ): lọc theo dấu kế toán phải có Từ ngày + Đến ngày, tối đa 92 ngày tính cả hai đầu. null = hợp lệ. */
 export function kiemLocNhapKeToan(loc: Pick<LocDonMan, "tu" | "den" | "nhapKeToan">): string | null {
@@ -82,6 +84,7 @@ export function thamSoLocDon(loc: LocDonMan, toiId: string): [string, string][] 
   for (const t of loc.trangThai) p.push(["status", t]);
   if (loc.nguoiLap) p.push(["nguoiLap", loc.nguoiLap === NGUOI_LAP_TOI_CU ? toiId : loc.nguoiLap]);
   if (loc.nhapKeToan) p.push(["nhapKeToan", loc.nhapKeToan]);
+  if (loc.phuTrach) p.push(["phuTrach", loc.phuTrach]);
   return p;
 }
 
@@ -113,6 +116,7 @@ export function chipLocDon(
     out.push({ khoa: "nguoiLap", nhan: toi ? "Đơn tôi lập" : (nguoi.ten.get(loc.nguoiLap) ?? "Người lập đã chọn") });
   }
   if (loc.nhapKeToan) out.push({ khoa: "nhapKeToan", nhan: loc.nhapKeToan === "da" ? "Đã nhập PM kế toán" : "Chưa nhập PM kế toán" });
+  if (loc.phuTrach) out.push({ khoa: "phuTrach", nhan: "Chưa có người phụ trách" });
   return out;
 }
 
@@ -122,6 +126,7 @@ export function boDieuKien(loc: LocDonMan, khoa: KhoaDieuKien): LocDonMan {
   // Bỏ khoảng ngày thì bỏ luôn lọc dấu kế toán (không có khoảng ngày thì máy chủ từ chối lọc đó — A-6).
   if (khoa === "ngay") return { ...loc, tu: null, den: null, nhapKeToan: null };
   if (khoa === "nhapKeToan") return { ...loc, nhapKeToan: null };
+  if (khoa === "phuTrach") return { ...loc, phuTrach: null };
   if (khoa === "dichVu") return { ...loc, dichVu: [] };
   if (khoa === "trangThai") return { ...loc, trangThai: [] };
   return { ...loc, nguoiLap: null };
@@ -132,8 +137,8 @@ export function boDieuKien(loc: LocDonMan, khoa: KhoaDieuKien): LocDonMan {
  * hiện — thường là bộ nhớ của tài khoản khác trên cùng máy) → bỏ ô người lập. Máy chủ vẫn AND bộ lọc với phạm vi xem, đây chỉ để màn không lọc ngầm.
  */
 export function chotLocDon(loc: LocDonMan, toiId: string, xemMoiDon: boolean): LocDonMan {
+  if (!xemMoiDon && (loc.nguoiLap !== null || loc.phuTrach !== null)) return { ...loc, nguoiLap: null, phuTrach: null }; // hai ô chỉ người xem mọi đơn có
   if (loc.nguoiLap === null) return loc;
-  if (!xemMoiDon) return { ...loc, nguoiLap: null };
   return loc.nguoiLap === NGUOI_LAP_TOI_CU ? { ...loc, nguoiLap: toiId } : loc;
 }
 
@@ -178,7 +183,8 @@ export function docLocDaNho(raw: string | null): LocDonMan {
     const nhapKeToan = o.nhapKeToan === "da" || o.nhapKeToan === "chua" ? o.nhapKeToan : null;
     // Bản ≤ 1.45 nhớ "Đơn tôi lập" là `cuaToi: true` (chưa có khoá `nguoiLap`) → dấu NGUOI_LAP_TOI_CU, chốt thành mã chính mình ở `chotLocDon`.
     const nguoiLap = chuoi(o.nguoiLap) ?? (o.cuaToi === true ? NGUOI_LAP_TOI_CU : null);
-    const loc: LocDonMan = { tu: chuoi(o.tu), den: chuoi(o.den), dichVu, trangThai: trangThai as OrderStatus[], nguoiLap, nhapKeToan };
+    const phuTrach = o.phuTrach === "chua" ? "chua" : null;
+    const loc: LocDonMan = { tu: chuoi(o.tu), den: chuoi(o.den), dichVu, trangThai: trangThai as OrderStatus[], nguoiLap, nhapKeToan, phuTrach };
     return docLocDon(new URLSearchParams(thamSoLocDon(loc, "x"))).ok && kiemLocNhapKeToan(loc) === null ? loc : LOC_TRONG;
   } catch {
     return LOC_TRONG;
