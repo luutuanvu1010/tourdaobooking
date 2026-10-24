@@ -194,7 +194,7 @@ test("bất biến sổ: đơn bị huỷ có tiền đang giữ hộ — số d
   assert.equal((await thu(w, PT, id, mat(300_000, "toi"))).status, 201);
   await kiemBatBien(w, ct, "trước huỷ");
   const h = await w.call("POST", `/api/orders/${id}/status`, { as: SUPER, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
-  // Huỷ đơn đã có tiền có thể bị từ chối hoặc chấp nhận tuỳ luật hiện hành — bất biến phải đúng ở CẢ hai ngả.
-  assert.ok([200, 409].includes(h.status), h.text);
-  await kiemBatBien(w, ct, `sau huỷ (HTTP ${h.status})`);
+  assert.equal(h.status, 200, h.text); // luật hiện hành: huỷ được, tiền giữ hộ ở lại sổ (nếu luật đổi thành 409 thì bài đỏ để người sửa chọn lại ca)
+  const so = await kiemBatBien(w, ct, "sau huỷ");
+  assert.equal(so.get(`pty-${PT}`), 300_000, "đại lý vẫn giữ hộ 300.000 trên đơn đã huỷ");
 });

@@ -7,7 +7,7 @@
 
 ## 0. Điều đã có (đừng làm lại)
 
-- Bài khoá **«số dư theo bên = tổng dòng nợ»**: `src/modules/billing/so-du-bang-tong-dong-no.test.ts` (6 bài; phá thử `SUM`→`MAX` ở `balancesWithOwner` làm ca nhiều đơn cùng đại lý đỏ). Mọi phần dưới đây phải giữ bài này xanh.
+- Bài khoá **«số dư theo bên = tổng dòng nợ»** (chỉ canh phía ĐỌC: view và route; nếu mã GHI dòng nợ sai cả hai phía cùng sai — phần ghi do các bài `rules`/`ben-kia`/`sau-da-giao` và kiểm «mỗi đơn tự cân» trong chính bài gánh): `src/modules/billing/so-du-bang-tong-dong-no.test.ts` (6 bài; phá thử `SUM`→`MAX` ở `balancesWithOwner` làm ca nhiều đơn cùng đại lý đỏ). Mọi phần dưới đây phải giữ bài này xanh.
 - Route đọc cho Kế toán: `GET /api/ledger` (`soCongNo` → `soDu[]`, `choXacNhan[]`, `chuaRo[]`), `GET /api/ledger/ky`, `GET /api/ledger/coc*`. Chưa có **trang** nào dùng `soDu[]` làm màn «Sổ công nợ».
 - Hàm một nguồn: `phaiThuLucGiao` / `conLai` (billing), `soDuTheoBen` (`rules.ts`), view `v_bil_party_balance`.
 
@@ -17,11 +17,11 @@
 
 | Phần | Xây trên lỗ | Ghi chú |
 |---|---|---|
-| P1 Màn Sổ công nợ | **TNV-G4** (phần còn chờ Đ5d, Đ6a), **HC-4.2** (ADR-0115 đã giải phần lớn; chờ người kiểm đối chiếu rồi xoá mục) | Màn chỉ ĐỌC; không thêm đường ghi nên không làm lỗ rộng thêm. Cần chủ duyệt «xây trên lỗ» có ghi lý do hoặc chờ vá. |
+| P1 Màn Sổ công nợ | **TNV-G1** (đơn huỷ: «còn lại» đã vá bằng migration 0078–0079 nhưng mục còn mở trong sổ; màn hiển thị đơn huỷ), **TNV-G4** (phần còn chờ Đ5d, Đ6a), **HC-4.2** (ADR-0115 đã giải phần lớn; chờ người kiểm đối chiếu rồi xoá mục) | Màn chỉ ĐỌC; không thêm đường ghi nên không làm lỗ rộng thêm. Cần chủ duyệt «xây trên lỗ» có ghi lý do hoặc chờ vá. |
 | P2 ADR-0081 | **TNV-G3**, **TNV-G4** | Đọc sổ; số dư phía đối tác bám đúng các dòng đã được trigger bảo vệ. |
 | P3 ADR-0116 | **TNV-G3** (chính nó — chốt đóng), **TNV-G4** (Đ5d tin báo cùng hạ tầng) | Phần này là cái VÁ lỗ G3. Hạn mục G3 trong sổ: 2026-11-30 (đã gia hạn 17/10); nếu không kịp, chủ gia hạn bằng diff có lý do. |
 
-Hạn 2026-11-30 của G1/G3/G4/HC-4.2 và 2026-11-05 của HC-5.19 là **hạn thật** — quá hạn thì `npm test` đỏ. Kế hoạch này nên xong P3 trước 11-30 hoặc xin gia hạn sớm.
+**HC-5.19** (chưa diễn tập khôi phục): chủ từng đặt điều kiện «chỉ phát hành sau diễn tập khôi phục» cho sổ đại lý đợt 2; P3 có migration đổi trigger tiền nên cùng điều kiện — C5 phải nêu rõ. Hạn 2026-11-30 của G1/G3/G4/HC-4.2 và 2026-11-05 của nhánh hồ sơ riêng tư với HC-5.19 là **hạn thật** — quá hạn thì `npm test` đỏ. Kế hoạch này nên xong P3 trước 11-30 hoặc xin gia hạn sớm.
 
 **Vùng Mức TA (ADR-0117 lần 2, `prc_*`)** — chỗ còn hở/dựa vào kỷ luật, ghi lại để P1–P3 không vô tình đạp lên:
 1. «MỘT hàm chọn mức» (`chonMuc`) chỉ canh bằng kỷ luật/grep — `hoa-hong-mot-nguon.test.ts` canh nơi TÍNH TIỀN, không đếm số hàm chọn mức (`docs/SO-HANG-RAO.md`, dòng «`chonMuc` chín bậc»).
@@ -53,20 +53,21 @@ Hạn 2026-11-30 của G1/G3/G4/HC-4.2 và 2026-11-05 của HC-5.19 là **hạn 
 | C4 | **Xác nhận ca vàng mới** của ADR-0116 (`SV-PD-01…06`, số do AI đề xuất, cần Kế toán hoặc chủ xác nhận). | P3 nghiệm thu |
 | C5 | Duyệt «xây trên lỗ đang hở» cho P1–P3 (§1) hoặc xác nhận vá lỗ trước. | cả ba |
 | C6 | **Số migration**: kiểm lại ở **mọi nhánh** lúc bắt đầu (§6). Lúc viết: `main` cao nhất `0117`, nhánh `claude/user-feedback-analysis-3be3a7` có `0118`. | P3 |
+| C8 | **Quản trị có được thấy màn Sổ công nợ không?** Hôm nay `ledger.view` của Quản trị chỉ `own`; cho thấy toàn bộ là đổi quyền xem tiền. Khuyến nghị: không, giữ nguyên. | P1 |
 | C7 | Chạy `node scripts/audit-invariants.mjs --db remote` (chỉ đọc) để có bằng chứng thật cho `R-BIL-*` — chủ tự chạy (CLAUDE.md §8). | nghiệm thu P1–P3 |
 
 ## 4. Các task
 
-### P1 — Màn «Sổ công nợ theo đối tác» (Kế toán, Quản trị)
+### P1 — Màn «Sổ công nợ theo đối tác» (Kế toán, Toàn quyền)
 
-**Quyền:** dùng ô `ledger.view` hiện có (Kế toán `any`); **không ô mới, không migration**. Route `GET /api/ledger` đã có; cho phép thêm route đọc chi tiết theo bên **nếu cần** (cổng `office`, cùng ô) — hỏi chủ nếu thêm hợp đồng.
+**Quyền:** dùng ô `ledger.view` hiện có — theo `src/shared/permissions.ts` chỉ Kế toán và Toàn quyền là `any` (Quản trị chỉ `own`, nên **không thấy** màn này; có cho Quản trị thấy hay không là điểm C8 chờ chủ); **không ô mới, không migration**. Route `GET /api/ledger` đã có; cho phép thêm route đọc chi tiết theo bên **nếu cần** (cổng `office`, cùng ô) — hỏi chủ nếu thêm hợp đồng.
 
 **Tiêu chí nghiệm thu (viết trước khi làm):**
 1. Tổng các dòng `soDu[]` trên màn **bằng** tổng tính độc lập từ `bil_debt_line` (bài §0 giữ xanh; thêm một ca e2e chạm trang thật).
 2. Mỗi bên bấm vào thấy **danh sách đơn** của bên đó, tổng các đơn **bằng** số dư của bên (đẳng thức hiển thị được trên màn: «Σ đơn = số dư»).
 3. Dấu nhất quán với `balancesWithOwner`: dương = bên đó đang giữ/nợ công ty; âm = công ty nợ bên đó. Nhãn tiếng Việt, không mã trạng thái thô.
 4. Người không có `ledger.view any` (Bán hàng, HDV, Đối tác…) gọi route/mở trang → 403 / không thấy mục menu (**cả chỗ ẩn/hiện giao diện**, Bước ghép khi duyệt).
-5. Không dòng giá vốn/tỷ lệ nào lộ cho vai không được biết (Kế toán được biết; Quản trị: giữ như `ledger.view` hôm nay).
+5. Không dòng giá vốn/tỷ lệ nào lộ cho vai không được biết (Kế toán và Toàn quyền được biết; vai khác 403).
 6. Màn chỉ ĐỌC: không nút ghi, không route POST mới.
 7. `npm run typecheck`, `npm test`, kịch bản Chrome tương ứng (`web/CLAUDE.md`, có `AXE_JS`) xanh; trang mới khai `PAGES` (`src/shared/sw-policy.ts`) và `build:web`.
 
@@ -75,7 +76,7 @@ Hạn 2026-11-30 của G1/G3/G4/HC-4.2 và 2026-11-05 của HC-5.19 là **hạn 
 
 ### P2 — ADR-0081: Đối tác xem sổ của chính mình
 
-**Quyền:** **một ô mới** `ledger.partner.view` (PARTNER `own`, SUPER `any`, còn lại `none`); `ledger.view` cột PARTNER **giữ** `none`. Route `GET /api/ledger/doi-tac` (cổng `orders`, module `billing`). DTO mới `SoDoiTacResponse` dựng từng trường theo danh sách trắng (khuôn `ReceiptDto`). Thêm ô ⇒ bài «tập con quyền» nhân đôi (512 → 1024) — kiểm thời gian chạy. Không migration (ADR chưa ghi cột mới; nếu thi công cần chỉ số thì hỏi chủ).
+**Quyền:** **một ô mới** `ledger.partner.view` (PARTNER `own`, SUPER `any`, còn lại `none`); `ledger.view` cột PARTNER **giữ** `none`. Route `GET /api/ledger/doi-tac` (cổng `orders`, module `billing`). DTO mới `SoDoiTacResponse` dựng từng trường theo danh sách trắng (khuôn `ReceiptDto`). Thêm ô quyền ⇒ kiểm lại bài ghim tập con quyền và thời gian chạy `npm test`. Không migration (ADR chưa ghi cột mới; nếu thi công cần chỉ số thì hỏi chủ).
 
 **Tiêu chí nghiệm thu** (nguyên văn ADR-0081 «Tiêu chí nghiệm thu» + bổ sung):
 1. Ví dụ E-1, E-2, E-3 thành test route, khớp từng đồng.
