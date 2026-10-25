@@ -272,9 +272,8 @@ export function parseTrangThaiHangDoi(raw: string | null): { ok: true; value: st
   if (ds.length > FEEDBACK_STATUSES.length * 2 || !ds.every(isFeedbackStatus)) return { ok: false };
   return { ok: true, value: [...new Set(ds)].join(",") };
 }
-/** Tham số `q` của hàng đợi: vắng hoặc rỗng sau khi bỏ khoảng trắng = không tìm; quá 60 ký tự ⇒ lỗi. */
+/** Tham số `q` của hàng đợi: vắng hoặc rỗng sau khi bỏ khoảng trắng = không tìm; quá 60 ký tự ⇒ cắt còn 60 (đặc tả B2). */
 export function parseTimHangDoi(raw: string | null): { ok: true; value: string | null } | { ok: false } {
-  const q = (raw ?? "").trim();
-  if (q.length > HANG_DOI_Q_MAX) return { ok: false };
+  const q = (raw ?? "").trim().slice(0, HANG_DOI_Q_MAX);
   return { ok: true, value: q === "" ? null : q };
 }

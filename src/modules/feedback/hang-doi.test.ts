@@ -95,7 +95,10 @@ test("q lọc theo mã và tiêu đề; dem theo q; ký tự % _ trong q là ch�
   assert.equal((await w.call("GET", url("&q=%25"), { as: KT_TV })).json.tickets.length, 1, "% là chữ thường: chỉ khớp tiêu đề có dấu %, không khớp mọi dòng");
   assert.equal((await w.call("GET", url("&q=khong-co-chu-nay"), { as: KT_TV })).json.dem.tatCa, 0);
   assert.equal((await w.call("GET", url("&q=%20%20"), { as: KT_TV })).json.dem.tatCa, SO_PHIEU - 1, "q toàn khoảng trắng = không tìm");
-  assert.equal((await w.call("GET", url(`&q=${"a".repeat(61)}`), { as: KT_TV })).status, 400);
+  const dai = await w.call("GET", url(`&q=${"a".repeat(60)}${encodeURIComponent("khong-co-chu-nay")}`), { as: KT_TV });
+  assert.equal(dai.status, 200, "q dài hơn 60 ký tự bị cắt còn 60, không báo lỗi");
+  assert.equal(dai.json.dem.tatCa, (await w.call("GET", url(`&q=${"a".repeat(60)}`), { as: KT_TV })).json.dem.tatCa, "lọc theo 60 ký tự đầu");
+  assert.equal((await w.call("GET", url(`&q=${"a".repeat(61)}`), { as: KT_TV })).status, 200);
   assert.equal((await w.call("GET", url(`&q=${"a".repeat(60)}`), { as: KT_TV })).status, 200);
 });
 

@@ -187,9 +187,9 @@ test("parseTrangThaiHangDoi: vắng = mọi trạng thái; một mã, nhiều m�
   for (const x of ["", "NEW,", "NEW,LA", "new"]) assert.deepEqual(parseTrangThaiHangDoi(x), { ok: false });
 });
 
-test("parseTimHangDoi: bỏ khoảng trắng hai đầu, rỗng = không tìm, quá 60 ký tự ⇒ lỗi", () => {
+test("parseTimHangDoi: bỏ khoảng trắng hai đầu, rỗng = không tìm, quá 60 ký tự ⇒ cắt còn 60", () => {
   assert.deepEqual(parseTimHangDoi(null), { ok: true, value: null });
   assert.deepEqual(parseTimHangDoi("  YC-0007 "), { ok: true, value: "YC-0007" });
   assert.deepEqual(parseTimHangDoi("   "), { ok: true, value: null });
-  assert.deepEqual(parseTimHangDoi("a".repeat(61)), { ok: false });
+  assert.deepEqual(parseTimHangDoi("a".repeat(61)), { ok: true, value: "a".repeat(60) });
 });
