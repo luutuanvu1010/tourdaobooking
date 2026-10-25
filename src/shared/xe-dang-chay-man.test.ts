@@ -134,16 +134,19 @@ test("suatCuaKhach (V6 6.3 — D5b; nhãn đổi 25/10): chỉ trong ngày chạ
   assert.doesNotMatch(JSON.stringify(r), /Khách Có Tên|1990/);
   assert.equal(suatCuaKhach({ trongNgayChay: false, diem: d, suat } as never), null, "ngoài ngày chạy: không có tên để so — ẩn");
   assert.equal(suatCuaKhach({ trongNgayChay: true, diem: d, suat: [suat[1]] } as never), null, "đủ tên — ẩn");
+  const khongDiem = suatCuaKhach({ trongNgayChay: true, diem: d, suat: [s("n0", "p1", { diemLen: null }), s("a5", "p1")] } as never)!;
+  assert.deepEqual(khongDiem.dong.map((x) => [x.suatId, x.nhanNgan, x.nhan]), [["a5", "Điểm 1 · Khách 1", "Điểm 1 · Khách 1 · Khách sạn A"], ["n0", "Khách", "Khách"]], "suất khách không có điểm lên: nhãn «Khách» không số, đứng cuối");
 });
 
 test("suatCuaKhach + buocDiem (25/10 — một cách đếm trên một màn): nhãn ngắn của khối Suất của khách TRÙNG «Điểm M · Khách i» của dòng khách dưới thẻ điểm, theo từng suất (trạng thái lẫn lộn, id không theo thứ tự)", () => {
   const dd = [diem("p2", 2), diem("p1", 1, { trangThai: "ARRIVED" }), diem("t", 3, { loai: "DROPOFF" })];
   const ss = [
-    suat("z9", "p1", { trangThai: "DROPPED" }), suat("b2", "p2"), suat("a7", "p1"), suat("m3", "p1", { trangThai: "BOARDED", hoTen: "Khách Có Tên", namSinh: 1990 }),
-    suat("c1", "p2", { trangThai: "NO_SHOW" }), suat("k5", "p2"), suat("x0", "p1"),
+    suat("z9", "p1", { trangThai: "DROPPED" }), suat("k5", "p2"), suat("x0", "p1"), suat("a7", "p1"), suat("m3", "p1", { trangThai: "BOARDED", hoTen: "Khách Có Tên", namSinh: 1990 }),
+    suat("c1", "p2", { trangThai: "NO_SHOW" }), suat("b2", "p2"),
   ];
   const khoi = suatCuaKhach({ trongNgayChay: true, diem: dd, suat: ss as never })!;
-  assert.deepEqual(khoi.dong.map((x) => x.suatId), ["a7", "m3", "x0", "b2", "k5"], "theo thứ tự điểm rồi thứ tự dòng khách");
+  // Thứ tự máy chủ gửi KHÁC thứ tự chữ cái của id (id thật là UUID): sắp theo id thì ra a7, m3, x0 / b2, k5 — bài phải đỏ.
+  assert.deepEqual(khoi.dong.map((x) => x.suatId), ["x0", "a7", "m3", "k5", "b2"], "theo thứ tự điểm rồi thứ tự dòng khách");
   const the = new Map(buocDiem(dd, ss, "RUNNING", N).flatMap((b) => b.khach.map((k, i) => [k.suatId, `Điểm ${b.so} · Khách ${i + 1}`] as const)));
   for (const x of khoi.dong) assert.equal(x.nhanNgan, the.get(x.suatId), x.suatId);
 });

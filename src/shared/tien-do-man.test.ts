@@ -301,4 +301,7 @@ test("soKhachTaiDiem: «Khách i» theo điểm lên — thứ tự máy chủ g
   const so = soKhachTaiDiem(suat);
   assert.deepEqual([...so], [["z9", 1], ["b1", 1], ["a8", 2], ["c4", 3], ["m2", 2]]);
   for (const b of buocDiem(diem, suat, "RUNNING", "2026-09-30")) for (const k of b.khach) assert.equal(k.ten, `Khách ${so.get(k.suatId)}`, k.suatId);
+  const kem: SuatVao = { id: "k2", loai: "CREW", diemLen: "d1", diemXuong: null, trangThai: "WAITING", daDon: null, daTra: null };
+  const khongDiem: SuatVao = { ...s("n0", "d1", "d3", "WAITING"), diemLen: null };
+  assert.deepEqual([...soKhachTaiDiem([kem, khongDiem, s("a8", "d1", "d3", "WAITING")])], [["a8", 1]], "người đi kèm có điểm lên, khách không có điểm lên: không lấy số, không đẩy số của khách khác");
 });

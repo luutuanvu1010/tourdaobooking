@@ -24,7 +24,7 @@
 //   trang không đọc vị trí. Đọc lại GET sau lệnh hỏng → giữ chuỗi đích của lần GET trước (`giuChiDuong`).
 // - A4 T9 (ADR-0053 D7.2, D8; G-A4-16): chuyến CHƯA chạy của người có vế hạn (tài xế đối tác) — dải hạn Từ chối (`daiHanTuChoi`, src/shared/tu-choi-man.ts);
 //   nút "Từ chối chuyến" hiện CHỈ theo cờ máy chủ `tuChoiDuoc`; tấm Từ chối (lý do nhóm Từ chối chuyến, "Xác nhận từ chối"); quá hạn, hoặc (ADR-0113 Đ3) chuyến có khách chuyển từ xe khác sang (`chanTuChoi`) → dải cảnh báo + "Gọi văn phòng" (`tel:`,
-//   ẩn khi chưa có số); thẻ "thấy tên khách và mã đơn từ …" (`thayKhachTu`). Cờ `trongNgayChay` của DTO nay mang nghĩa "trong khung xem khách" (G-A4-6).
+//   ẩn khi chưa có số); thẻ "thấy tên khách … từ …" (`thayKhachTu`; chữ theo loại tài xế ở `cauThayKhach` từ 25/10). Cờ `trongNgayChay` của DTO nay mang nghĩa "trong khung xem khách" (G-A4-6).
 // - ADR-0111 (gói A5 T13; bản vẽ "Điều phối xe đang chạy" V8, V9): ô trip.transfer — "Nhờ xe khác đón" ở điểm đón chưa tới (đề nghị STOP), "Chuyển khách sang
 //   xe khác" cạnh "Kết thúc gián đoạn" (cứu hộ ONBOARD, có nơi gặp); thẻ đề nghị gửi đi (đếm ngược, Rút lại) và gửi tới (đếm ngược, Nhận / Không nhận). Đếm
 //   ngược theo `hanLuc` máy chủ gửi; hết giờ thì đọc lại danh sách. Thẻ không tên khách (LC-18). Chữ: src/shared/xe-dang-chay-man.ts.
@@ -836,7 +836,7 @@ function veDiemTruoc(r: CuocChiTietResponse): HTMLElement[] {
 // ---- A4 T9: Từ chối chuyến (ADR-0053 D8) -----------------------------------------------------------------------------------------------------------------
 /** Một lệnh Từ chối mỗi trang (cùng requestId khi bấm lại sau mất mạng — `taoLenh`). */
 const lenhTuChoi = taoLenh();
-/** Dải hạn Từ chối + thẻ "thấy khách từ …" của chuyến chưa chạy (chỉ người có vế hạn — máy chủ gửi `hanTuChoi` / `thayKhachTu`). */
+/** Dải hạn Từ chối (chỉ người có vế hạn — máy chủ gửi `hanTuChoi`) + thẻ "thấy khách từ …" của chuyến chưa chạy (máy chủ gửi `thayKhachTu` cho MỌI tài xế khi còn ngoài khung xem khách). */
 function khoiHanTuChoi(r: CuocChiTietResponse): Child[] {
   const homNay = vnToday(new Date());
   const d = daiHanTuChoi({ trangThai: r.chuyen.trangThai, tuChoiDuoc: r.tuChoiDuoc, hanTuChoi: r.hanTuChoi, sdtVanPhong: r.sdtVanPhong, chanTuChoi: r.chanTuChoi }, homNay);
