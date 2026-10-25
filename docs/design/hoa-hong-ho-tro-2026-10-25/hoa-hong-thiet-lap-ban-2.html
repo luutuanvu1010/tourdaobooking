@@ -1,0 +1,204 @@
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  .t{font-family:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--text-primary);line-height:1.5}
+  .t .lead{color:var(--text-secondary);font-size:14px;line-height:1.6;max-width:960px;margin:0 0 6px}
+  .t .later{font-size:11.5px;font-weight:600;padding:2px 7px;border-radius:999px;background:#eef2f7;color:#475569;margin-left:4px;white-space:nowrap;vertical-align:1px}
+  .t .lead b{color:var(--text-primary)}
+  .t .row{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;margin:18px 0 8px}
+  .t .col{flex:0 0 auto}
+  .t .step{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#fff;background:#0c4a6e;border-radius:999px;padding:3px 10px 3px 4px;margin:0 0 8px}
+  .t .step i{font-style:normal;background:#fff;color:#0c4a6e;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
+  .t .frame,.t .sheetw{--p:#0c4a6e;--ps:#082f49;--pt:#dcebf6;--tx:#0f172a;--mu:#475569;--ln:#e1e7ef;--alt:#f2f5f9;--sand:#fbe3b3;--sandt:#5a4109;--ok:#166534;--oks:#dcfce7;--dgr:#b01235;--dgs:#fde9ee;color:var(--tx);position:relative}
+  .t .frame{background:var(--alt);border:1px solid #cbd5e1;overflow:hidden;box-shadow:0 8px 28px rgba(15,23,42,.10)}
+  .t .desk{width:760px;border-radius:12px}
+  .t .sheetw{width:390px;border-radius:18px;background:#fff;border:1px solid #cbd5e1;box-shadow:0 16px 48px rgba(15,23,42,.18)}
+  .t .bar{background:#fff;border-bottom:1px solid var(--ln);padding:10px 14px;font-weight:600;color:var(--p);font-size:16px;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:56px}
+  .t .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid #cbd5e1;background:#fff;border-radius:8px;padding:0 14px;min-height:44px;font-size:15px;font-weight:500;color:var(--tx);white-space:nowrap;line-height:1.2}
+  .t .btn.pri{background:var(--p);border-color:var(--p);color:#fff}
+  .t .btn.sm{min-height:36px;padding:0 10px;font-size:13.5px}
+  .t .btn.ghost{border-color:transparent;color:var(--p);padding:0 4px}
+  .t .btn.full{width:100%;font-size:16px;font-weight:600;min-height:48px}
+  .t .tabs{display:flex;gap:4px;background:#fff;border-bottom:1px solid var(--ln);padding:0 12px}
+  .t .tab{min-height:44px;display:inline-flex;align-items:center;padding:0 12px;font-size:15px;color:var(--mu);border-bottom:2px solid transparent;margin-bottom:-1px}
+  .t .tab.on{color:var(--p);font-weight:600;border-color:var(--p)}
+  .t .pad{padding:12px 12px 14px}
+  .t .in{border:1px solid #cbd5e1;border-radius:8px;padding:0 12px;min-height:44px;font-size:16px;color:#64748b;background:#fff;display:flex;gap:8px;align-items:center;min-width:0;line-height:1.2}
+  .t .in b{color:var(--tx);font-weight:500}
+  .t .in .x{margin-left:auto;color:var(--mu);font-size:12px;white-space:nowrap}
+  .t .in.locked{background:#f7fafc;border-style:dashed}
+  .t .sec{font-size:11.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--mu);padding:8px 2px 6px;display:flex;justify-content:space-between;align-items:center}
+  .t .list{border:1px solid var(--ln);border-radius:10px;overflow:hidden;background:#fff}
+  .t .r{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--ln);min-height:52px}
+  .t .r:last-child{border-bottom:0}
+  .t .r .nm{flex:1;min-width:0;font-size:15px;line-height:1.3}
+  .t .r .nm small{display:block;color:var(--mu);font-size:13px;margin-top:2px}
+  .t .r .nm small b{font-weight:600;color:#334155}
+  .t .r .nm .goc{font-size:11.5px;color:#94a3b8;margin-left:6px;font-weight:500}
+  .t .pill{display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 8px;white-space:nowrap;line-height:1.4;vertical-align:1px}
+  .t .pill.set{background:var(--pt);color:var(--ps)}
+  .t .pill.ok{background:var(--oks);color:var(--ok)}
+  .t .pill.warn{background:var(--sand);color:var(--sandt)}
+  .t .pill.off{background:#eef2f7;color:#64748b}
+  .t table{width:100%;border-collapse:collapse;font-size:14px}
+  .t th{font-weight:600;color:var(--mu);font-size:12px;text-align:left;padding:6px 8px;border-bottom:1px solid var(--ln);white-space:nowrap}
+  .t td{padding:8px 8px;border-bottom:1px solid #eef2f7;vertical-align:middle;line-height:1.3}
+  .t tr:last-child td{border-bottom:0}
+  .t td.num{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .t td.act{text-align:right;white-space:nowrap}
+  .t td.mu{color:var(--mu);font-size:13px}
+  .t .pol{border:1px solid var(--ln);border-radius:10px;background:#fff;margin-bottom:10px;overflow:hidden}
+  .t .pol .ph{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--ln);background:#fafbfd}
+  .t .pol .ph .nm{flex:1;font-size:15px;font-weight:600}
+  .t .pol .ph .nm small{display:block;font-weight:400;color:var(--mu);font-size:13px;margin-top:2px}
+  .t .pol .pb{padding:6px 12px 10px}
+  .t .acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .t .hint{font-size:13px;color:var(--mu);margin:6px 0 0;line-height:1.45}
+  /* hộp trượt */
+  .t .sh-head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 10px;border-bottom:1px solid var(--ln)}
+  .t .sh-head h4{margin:0;font-size:18px;font-weight:600}
+  .t .sh-head span{color:var(--mu);font-size:18px;width:44px;text-align:right}
+  .t .sh-body{padding:14px 16px 6px}
+  .t .fld{margin-bottom:16px}
+  .t .fld label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+  .t .fld label small{font-weight:400;color:var(--mu)}
+  .t .seg{display:flex;border:1px solid #cbd5e1;border-radius:8px;overflow:hidden;margin-bottom:8px}
+  .t .seg span{flex:1;text-align:center;min-height:44px;display:flex;align-items:center;justify-content:center;font-size:14.5px;color:var(--mu);border-right:1px solid #cbd5e1;padding:0 6px}
+  .t .seg span:last-child{border-right:0}
+  .t .seg span.on{background:var(--pt);color:var(--ps);font-weight:600}
+  .t .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .t .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .t .three label{font-weight:500;font-size:13px}
+  .t .unit{margin-left:auto;color:var(--mu);font-size:14px}
+  .t .sw{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14.5px;padding:4px 0 10px;min-height:44px}
+  .t .tg{width:44px;height:26px;border-radius:999px;background:var(--p);position:relative;flex:0 0 auto}
+  .t .tg::after{content:"";position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff}
+  .t .prev{background:var(--alt);border-radius:8px;padding:10px 12px;font-size:14px;line-height:1.5;margin:4px 0 10px}
+  .t .prev b{color:var(--p)}
+  .t .warn{display:flex;gap:8px;background:var(--sand);color:var(--sandt);border-radius:8px;padding:10px 12px;font-size:13.5px;line-height:1.45;margin-bottom:10px}
+  .t .sh-foot{padding:10px 16px 16px;border-top:1px solid var(--ln);background:#fff}
+  .t .sh-foot .lnk{display:block;text-align:center;margin-top:10px;color:var(--mu);font-size:15px;min-height:44px;line-height:44px}
+  .t .cap{font-size:13px;line-height:1.55;color:var(--text-secondary);margin:8px 2px 0;max-width:760px}
+  .t .mk{position:absolute;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#c0392b;color:#fff;font-size:11.5px;font-weight:700;box-shadow:0 0 0 2px #fff;z-index:2}
+  .t .rel{position:relative}
+  .t .gl{max-width:960px;margin:26px 0 0;border-top:1px solid var(--border);padding-top:16px}
+  .t .gl h3{font-size:16px;margin:0 0 6px}
+  .t .gl p{font-size:14px;line-height:1.6;color:var(--text-secondary);margin:0 0 10px}
+  .t .mini{width:100%;max-width:960px;border-collapse:collapse;font-size:13.5px;margin-top:8px}
+  .t .mini th{text-align:left;font-size:12px;color:var(--text-secondary);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--border)}
+  .t .mini td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.45}
+  .t .mini td:first-child{color:var(--text-secondary)}
+  .t .old{color:#94a3b8;text-decoration:line-through}
+  .t .ok-tag{font-size:11.5px;font-weight:600;padding:2px 7px;border-radius:999px;background:#dcfce7;color:#166534;margin-left:4px;white-space:nowrap;vertical-align:1px}
+</style>
+
+<div class="t">
+<h2>Thẻ "Thiết lập" và hộp trượt "Thêm mức" (bản 2, sau kiểm)</h2>
+<p class="lead">Khác bản 1: chữ đã theo ba họ từ bạn chọn; dữ liệu minh hoạ nhất quán với bản vẽ thẻ "Mức đang áp dụng"; bỏ huy hiệu "Đang dùng" lặp ở mọi dòng (chỉ "Đã tắt" mới hiện); ghi "Loại gốc" ngay trên năm loại không tắt được; "Đổi / Ngừng" không hiện ở dòng chưa tới ngày; hộp trượt vẽ đúng cỡ chữ ô gõ 16 và nút 44.</p>
+
+<div class="row">
+  <div class="col">
+    <span class="step"><i>1</i>Máy tính · vùng nội dung 760 · thẻ "Thiết lập" · Kế toán</span>
+    <div class="frame desk">
+      <div class="bar"><span>Hoa hồng đối tác</span><span class="btn pri">＋ Thêm mức</span></div>
+      <div class="tabs"><span class="tab">Mức đang áp dụng</span><span class="tab on">Thiết lập</span></div>
+      <div class="pad">
+        <div class="sec rel"><span class="mk" style="left:-10px;top:6px">1</span><span>Loại đối tác được hưởng hoa hồng</span><span class="btn sm">＋ Thêm loại</span></div>
+        <div class="list">
+          <div class="r"><div class="nm">Công ty lữ hành<span class="goc">Loại gốc</span><small>Chính sách: <b>Đại lý cấp 1</b> · từ 15/10/2026</small></div></div>
+          <div class="r"><div class="nm">Lễ tân khách sạn<span class="goc">Loại gốc</span><small>Chưa áp dụng chính sách nào · <b>chỉ có mức riêng</b></small></div></div>
+          <div class="r"><div class="nm">Hướng dẫn viên độc lập<span class="goc">Loại gốc</span><small>Chưa áp dụng chính sách nào</small></div></div>
+          <div class="r"><div class="nm">Cộng tác viên<span class="goc">Loại gốc</span><small>Chưa áp dụng chính sách nào · chưa có mức</small></div></div>
+          <div class="r"><div class="nm">Tài xế taxi (giới thiệu khách)<span class="goc">Loại gốc</span><small>Chưa áp dụng chính sách nào</small></div></div>
+          <div class="r"><div class="nm">Lễ tân cấp ABDECC M<small>Chính sách: <b>Đại lý cấp 1</b> · từ 15/10/2026 · có 3 mức riêng</small></div><span class="btn sm">Tắt</span></div>
+          <div class="r"><div class="nm">Nhân viên spa <span class="pill off">Đã tắt</span><small>Hồ sơ đã xếp vào loại này vẫn giữ; không xếp thêm được</small></div><span class="btn sm">Bật</span></div>
+        </div>
+        <p class="hint" style="margin:6px 2px 14px">Xếp một đối tác vào loại: làm ở hồ sơ của đối tác trong Danh bạ (Quản trị, Toàn quyền).</p>
+
+        <div class="sec rel"><span class="mk" style="left:-10px;top:6px">2</span><span>Chính sách hoa hồng dùng chung</span><span class="btn sm">＋ Thêm chính sách</span></div>
+        <div class="pol">
+          <div class="ph"><div class="nm">Đại lý cấp 1<small>Đang áp dụng cho 2 loại: Công ty lữ hành, Lễ tân cấp ABDECC M</small></div><span class="btn sm">Tắt</span></div>
+          <div class="pb">
+            <table>
+              <tr><th>Dịch vụ</th><th>Mức</th><th>Hiệu lực</th><th></th><th></th></tr>
+              <tr><td>Tour 4 đảo Nha Trang</td><td class="num">15%</td><td>từ 15/10/2026</td><td><span class="pill ok">Đang áp dụng</span></td><td class="act"><span class="btn sm">Đổi</span> <span class="btn sm">Ngừng</span></td></tr>
+              <tr><td>Nhóm · Vinwonders</td><td class="num">7%</td><td>từ 01/11/2026</td><td><span class="pill warn">Sắp áp dụng</span></td><td class="act mu">chưa tới ngày</td></tr>
+              <tr><td>Tất cả dịch vụ</td><td class="num">5%</td><td>15/10 → hết 24/10/2026</td><td><span class="pill off">Đã ngừng</span></td><td class="act"></td></tr>
+            </table>
+            <div class="acts rel"><span class="mk" style="left:-22px;top:8px">3</span><span class="btn sm">＋ Thêm mức vào chính sách</span><span class="btn sm">Áp dụng cho loại…</span><span class="btn sm ghost" style="opacity:.55">Lịch sử áp dụng <span class="later">đợt sau</span></span></div>
+          </div>
+        </div>
+        <div class="pol">
+          <div class="ph"><div class="nm">Đại lý cấp 2<small>Chưa áp dụng cho loại nào · 1 đối tác dùng riêng (Du lịch Biển Xanh)</small></div><span class="btn sm">Tắt</span></div>
+          <div class="pb"><table><tr><th>Dịch vụ</th><th>Mức</th><th>Hiệu lực</th><th></th><th></th></tr><tr><td>Tour 4 đảo Nha Trang</td><td class="num">12%</td><td>từ 20/10/2026</td><td><span class="pill ok">Đang áp dụng</span></td><td class="act"><span class="btn sm">Đổi</span> <span class="btn sm">Ngừng</span></td></tr><tr><td>Nhóm · Vinwonders</td><td class="num">9%</td><td>từ 20/10/2026</td><td><span class="pill ok">Đang áp dụng</span></td><td class="act"><span class="btn sm">Đổi</span> <span class="btn sm">Ngừng</span></td></tr></table>
+          <div class="acts"><span class="btn sm">＋ Thêm mức vào chính sách</span><span class="btn sm">Áp dụng cho loại…</span></div></div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Tắt một chính sách thì các mức và các lần áp dụng đang có vẫn áp, chỉ không thêm mức, không áp dụng thêm được (luật đã có). "Áp dụng cho loại…" mở hộp chọn loại + ngày; mỗi loại chỉ theo một chính sách tại một ngày, muốn đổi thì dùng "Đổi chính sách" ở thẻ Mức đang áp dụng (một bước, máy chủ làm trọn gói).</p>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col">
+    <span class="step"><i>2</i>Hộp trượt "Thêm mức" · mở từ dòng "Lễ tân cấp ABDECC M" · rộng 390 ở điện thoại, tối đa 520 ở máy tính</span>
+    <div class="sheetw">
+      <div class="sh-head"><h4>Thêm mức hoa hồng</h4><span>✕</span></div>
+      <div class="sh-body">
+        <div class="fld rel"><span class="mk" style="left:-26px;top:-2px">4</span>
+          <label>Ai được hưởng</label>
+          <div class="seg"><span class="on">Loại đối tác</span><span>Một đối tác</span></div>
+          <div class="in locked"><b>Lễ tân cấp ABDECC M</b><span class="x">đổi</span></div>
+        </div>
+        <div class="fld">
+          <label>Dịch vụ</label>
+          <div class="seg"><span>Tất cả dịch vụ</span><span>Một nhóm</span><span class="on">Một dịch vụ</span></div>
+          <div class="in"><b>Tour 4 đảo Nha Trang</b><span class="x">TD4 · đổi</span></div>
+        </div>
+        <div class="fld">
+          <label>Cách tính</label>
+          <div class="seg"><span>Phần trăm</span><span class="on">Số tiền mỗi khách</span></div>
+          <div class="sw"><span>Tách theo loại khách</span><span class="tg"></span></div>
+          <div class="three">
+            <div><label>Người lớn</label><div class="in"><b>100.000</b><span class="unit">đ</span></div></div>
+            <div><label>Trẻ em</label><div class="in"><b>70.000</b><span class="unit">đ</span></div></div>
+            <div><label>Người cao tuổi</label><div class="in"><b>0</b><span class="unit">đ</span></div></div>
+          </div>
+          <p class="hint">Nhóm khách nào không trả hoa hồng thì ghi 0; ba ô đều phải điền. Em bé không tính hoa hồng. Dịch vụ tính theo lượt (phao chuối, dù bay): dùng số của người lớn cho mỗi lượt.</p>
+        </div>
+        <div class="fld">
+          <label>Hiệu lực</label>
+          <div class="two"><div class="in"><b>Từ 25/10/2026</b></div><div class="in">Đến <b>không thời hạn</b><span class="x">▾</span></div></div>
+        </div>
+        <div class="fld"><label>Ghi chú <small>không bắt buộc</small></label><div class="in">Lý do, người duyệt…</div></div>
+        <div class="prev rel"><span class="mk" style="left:-26px;top:8px">5</span>Sẽ tạo: <b>Lễ tân cấp ABDECC M</b> · Tour 4 đảo Nha Trang · <b>100.000đ / 70.000đ / 0đ mỗi khách</b> · từ 25/10/2026, không thời hạn.</div>
+        <div class="warn">⚠ Loại này đang theo chính sách Đại lý cấp 1. Mức riêng được ưu tiên hơn chính sách.</div>
+      </div>
+      <div class="sh-foot"><span class="btn pri full">Thêm mức</span><span class="lnk">Huỷ</span></div>
+    </div>
+    <p class="cap" style="max-width:390px">Mở từ dòng nào thì "Ai được hưởng" điền sẵn. Ô dịch vụ là một ô duy nhất: gõ để lọc rồi chọn. Câu "Sẽ tạo:" đọc lại toàn bộ lựa chọn trước khi bấm. Câu cảnh báo chỉ nhắc luật chung (mức riêng ưu tiên hơn chính sách), không tự tính mức nào thắng. Hộp "Đổi" dùng đúng khuôn này, thêm dòng "Mức cũ 15% sẽ ngừng, <b>đến hết 24/10/2026</b>".</p>
+  </div>
+</div>
+
+<div class="gl">
+  <h3>Ba họ từ đã chốt (chủ dự án chọn 25/10/2026) — lượt từ về hoa hồng của bảng từ</h3>
+  <table class="mini">
+    <tr><th>Chữ cũ (vào bảng từ, bị chặn)</th><th>Chữ mới</th><th>Ghi chú cho người thêm dòng bảng từ</th></tr>
+    <tr><td>Mức TA · mức TA</td><td><b>Chính sách hoa hồng</b> (trong câu: "chính sách Đại lý cấp 1", "chính sách riêng" khi áp dụng cho một đối tác)</td><td>Mẫu chặn: "Mức TA" / "mức TA"; không chặn "TA" đơn lẻ</td></tr>
+    <tr><td>Riêng của loại · dòng riêng</td><td><b>Mức riêng</b> ("mức riêng của loại …", "mức riêng của đối tác …")</td><td>"dòng riêng" đang dùng trong câu cảnh báo của máy chủ — sửa cùng đợt</td></tr>
+    <tr><td>Đóng mức · Đóng dòng · Kết thúc gắn · Đang áp · Sắp áp · Đã đóng</td><td><b>Ngừng</b> (nút) · <b>Đang áp dụng · Sắp áp dụng · Đã ngừng</b> · "Áp dụng chính sách cho loại"</td><td>Mẫu chặn phải hẹp: "đóng sổ", "khoá sổ tháng", "gắn loại cho hồ sơ" là nghĩa khác, không chặn</td></tr>
+  </table>
+  <h3 style="margin-top:22px">Chữ nhỏ tôi tự chọn (đổi lại được)</h3>
+  <table class="mini">
+    <tr><th>Chỗ</th><th>Hôm nay</th><th>Đề xuất</th><th>Vì sao</th></tr>
+    <tr><td>Nhãn người hưởng trong biểu mẫu</td><td><span class="old">Áp cho</span></td><td>Ai được hưởng</td><td>"Áp cho" vừa dùng cho người vừa dùng cho dịch vụ</td></tr>
+    <tr><td>Nhãn dịch vụ áp dụng</td><td><span class="old">Phạm vi</span></td><td>Dịch vụ: Tất cả dịch vụ / Một nhóm / Một dịch vụ</td><td>Đặt tên theo thứ người ta chọn</td></tr>
+    <tr><td>Cột nguồn của một mức</td><td><span class="old">Nguồn</span></td><td>Theo (đọc thành câu: "Theo chính sách Đại lý cấp 1")</td><td>Chữ đời thường</td></tr>
+    <tr><td>Kiểu mức</td><td><span class="old">Kiểu mức</span></td><td>Cách tính: Phần trăm / Số tiền mỗi khách</td><td>Câu hỏi thật là "tính kiểu gì"</td></tr>
+    <tr><td>Ngày</td><td><span class="old">Từ ngày / Đến ngày (không bắt buộc)</span></td><td>Hiệu lực: Từ … / Đến: không thời hạn ▾</td><td>Trống là một lựa chọn nhìn thấy được</td></tr>
+    <tr><td>Khối tra</td><td><span class="old">Thử tra</span></td><td>Tra nhanh</td><td>Kết quả là kết quả thật của máy chủ, không phải "thử"</td></tr>
+    <tr><td>Nguồn gốc loại</td><td><span class="old">Có sẵn / Do Kế toán thêm</span></td><td>chữ xám "Loại gốc" trên năm loại không tắt được; loại khác không nhãn</td><td>Người dùng chỉ cần biết làm gì được</td></tr>
+    <tr><td>Chữ "gắn"</td><td><span class="old">Gắn mức · Kết thúc gắn · gắn riêng · gắn loại cho hồ sơ</span></td><td>Áp dụng chính sách · Ngừng áp dụng · chính sách riêng · xếp đối tác vào loại</td><td>"Gắn" là chữ của người lập trình</td></tr>
+    <tr><td>Hộp Thêm mức, câu dưới ba ô tiền</td><td><span class="old">Hai ô sau bắt buộc điền; không trả thì gõ 0</span></td><td>Nhóm khách nào không trả hoa hồng thì ghi 0; ba ô đều phải điền. Em bé không tính.</td><td>Dễ hiểu; đúng quyết định 0133 điều 2</td></tr>
+  </table>
+</div>
+</div>

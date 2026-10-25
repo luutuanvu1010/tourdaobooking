@@ -1,0 +1,282 @@
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  .t{font-family:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--text-primary);line-height:1.5}
+  .t .lead{color:var(--text-secondary);font-size:14px;line-height:1.6;max-width:960px;margin:0 0 6px}
+  .t .lead b{color:var(--text-primary)}
+  .t .row{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;margin:18px 0 8px}
+  .t .col{flex:0 0 auto}
+  .t .step{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#fff;background:#0c4a6e;border-radius:999px;padding:3px 10px 3px 4px;margin:0 0 8px}
+  .t .step i{font-style:normal;background:#fff;color:#0c4a6e;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
+  .t .frame{--p:#0c4a6e;--ps:#082f49;--pt:#dcebf6;--tx:#0f172a;--mu:#475569;--ln:#e1e7ef;--alt:#f2f5f9;--sand:#fbe3b3;--sandt:#5a4109;--ok:#166534;--oks:#dcfce7;--dgr:#b01235;--dgs:#fde9ee;
+    color:var(--tx);background:var(--alt);border:1px solid #cbd5e1;overflow:hidden;box-shadow:0 8px 28px rgba(15,23,42,.10);position:relative}
+  .t .desk{width:760px;border-radius:12px}
+  .t .desk2{width:640px;border-radius:12px}
+  .t .phone{width:340px;border-radius:22px}
+  .t .bar{background:#fff;border-bottom:1px solid var(--ln);padding:10px 14px;font-weight:600;color:var(--p);font-size:16px;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:56px}
+  .t .bar small{font-weight:400;color:var(--mu);font-size:12.5px}
+  .t .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid #cbd5e1;background:#fff;border-radius:8px;padding:0 14px;min-height:44px;font-size:15px;font-weight:500;color:var(--tx);white-space:nowrap;line-height:1.2}
+  .t .btn.pri{background:var(--p);border-color:var(--p);color:#fff}
+  .t .btn.sm{min-height:36px;padding:0 10px;font-size:13.5px}
+  .t .btn.ghost{border-color:transparent;color:var(--p);padding:0 4px}
+  .t .tabs{display:flex;gap:4px;background:#fff;border-bottom:1px solid var(--ln);padding:0 12px;align-items:center}
+  .t .tab{min-height:44px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;font-size:15px;color:var(--mu);border-bottom:2px solid transparent;margin-bottom:-1px}
+  .t .tab.on{color:var(--p);font-weight:600;border-color:var(--p)}
+  .t .cnt{background:var(--dgr);color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:1px 6px;line-height:1.4}
+  .t .pad{padding:12px 12px 14px}
+  .t .in{border:1px solid #cbd5e1;border-radius:8px;padding:0 12px;min-height:44px;font-size:16px;color:#64748b;background:#fff;display:inline-flex;gap:8px;align-items:center;min-width:0;line-height:1.2}
+  .t .in b{color:var(--tx);font-weight:500;white-space:nowrap}
+  .t .in .x{margin-left:auto;color:var(--mu);font-size:12px}
+  .t .seg{display:inline-flex;border:1px solid #cbd5e1;border-radius:8px;overflow:hidden;background:#fff}
+  .t .seg span{min-height:44px;display:inline-flex;align-items:center;gap:6px;padding:0 10px;font-size:14px;color:var(--mu);border-right:1px solid #cbd5e1;white-space:nowrap}
+  .t .seg span:last-child{border-right:0}
+  .t .seg span.on{background:var(--pt);color:var(--ps);font-weight:600}
+  .t .seg span i{font-style:normal;font-size:11px;background:#e2e8f0;border-radius:999px;padding:0 6px;color:#334155}
+  .t .seg span.on i{background:#fff}
+  .t .pill{display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 8px;white-space:nowrap;line-height:1.4;vertical-align:1px}
+  .t .pill.moi{background:var(--sand);color:var(--sandt)}
+  .t .pill.xl{background:var(--pt);color:var(--ps)}
+  .t .pill.xong{background:var(--oks);color:var(--ok)}
+  .t .pill.khan{background:var(--dgs);color:var(--dgr);border:1px solid #f1c3cf}
+  .t .pill.cao{background:#fff;color:var(--sandt);border:1px solid #e9d3a4}
+  .t .pill.off{background:#eef2f7;color:#64748b}
+  .t .two{display:grid;grid-template-columns:320px 1fr;gap:12px;align-items:start}
+  .t .pane{background:#fff;border:1px solid var(--ln);border-radius:12px;overflow:hidden}
+  .t .pane .ph{padding:10px 12px;border-bottom:1px solid var(--ln);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .t .tk{display:flex;gap:10px;padding:10px 12px;border-bottom:1px solid var(--ln);align-items:flex-start;min-height:56px}
+  .t .tk:last-child{border-bottom:0}
+  .t .tk.on{background:#f7fafc;box-shadow:inset 3px 0 0 var(--p)}
+  .t .tk .nm{flex:1;min-width:0;font-size:14.5px;line-height:1.35}
+  .t .tk .nm .ti{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .t .tk .nm .ti b{font-weight:600}
+  .t .tk .nm .ti .dot{width:8px;height:8px;border-radius:50%;background:var(--dgr);flex:0 0 auto}
+  .t .tk .nm small{display:block;color:var(--mu);font-size:12.5px;margin-top:2px}
+  .t .tk .nm small b{color:#334155;font-weight:600}
+  .t .tk .rt{flex:0 0 auto;text-align:right;font-size:12px;color:var(--mu);display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+  .t .foot{padding:8px 12px;font-size:12.5px;color:var(--mu);border-top:1px solid var(--ln);background:#fafbfd}
+  /* luồng */
+  .t .th{display:flex;flex-direction:column;min-height:620px}
+  .t .thh{padding:10px 12px 8px;border-bottom:1px solid var(--ln);background:#fff}
+  .t .thh h4{margin:0 0 8px;font-size:15.5px;font-weight:600;line-height:1.3}
+  .t .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .t .chip{display:inline-flex;align-items:center;gap:5px;border:1px solid #cbd5e1;border-radius:999px;padding:0 11px;min-height:36px;font-size:13.5px;background:#fff;color:var(--tx);line-height:1.3}
+  .t .chip.pri{border-color:var(--p);background:var(--p);color:#fff;font-weight:600}
+  .t .chip .dl{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .t .meta{margin-top:8px;font-size:12.5px;color:var(--mu);display:flex;gap:10px;flex-wrap:wrap}
+  .t .meta b{color:var(--p);font-weight:500}
+  .t .det{margin-top:6px;font-size:12.5px;color:var(--mu);display:flex;gap:12px;flex-wrap:wrap;padding:8px 10px;background:var(--alt);border-radius:8px}
+  .t .det b{color:#334155;font-weight:500}
+  .t .msgs{flex:1;padding:12px;display:flex;flex-direction:column;gap:6px;background:#fafbfd}
+  .t .day{align-self:center;font-size:11.5px;color:var(--mu);background:#eef2f7;border-radius:999px;padding:2px 10px;margin:4px 0}
+  .t .ev{align-self:center;font-size:12.5px;color:var(--mu);margin:2px 0;text-align:center}
+  .t .ev b{color:#334155;font-weight:500}
+  .t .grp{display:flex;flex-direction:column;gap:3px;max-width:82%}
+  .t .grp.me{align-self:flex-end;align-items:flex-end}
+  .t .grp .who{font-size:12px;color:var(--mu);margin:4px 2px 0}
+  .t .bb{background:#fff;border:1px solid var(--ln);border-radius:14px;border-bottom-left-radius:4px;padding:8px 12px;font-size:14.5px;line-height:1.45}
+  .t .grp.me .bb{background:var(--pt);border-color:var(--pt);border-radius:14px;border-bottom-right-radius:4px}
+  .t .bb.nb{background:var(--sand);border:1px dashed #e9d3a4;border-radius:12px}
+  .t .bb.nb small{display:block;font-size:11.5px;color:var(--sandt);font-weight:600;margin-bottom:2px}
+  .t .comp{border-top:1px solid var(--ln);background:#fff;padding:10px 12px 12px}
+  .t .comp .mode{display:inline-flex;border:1px solid #cbd5e1;border-radius:8px;overflow:hidden;margin-bottom:8px}
+  .t .comp .mode span{min-height:36px;display:inline-flex;align-items:center;padding:0 10px;font-size:13.5px;color:var(--mu);border-right:1px solid #cbd5e1}
+  .t .comp .mode span:last-child{border-right:0}
+  .t .comp .mode span.on{background:var(--pt);color:var(--ps);font-weight:600}
+  .t .comp .box{display:flex;gap:8px;align-items:flex-end}
+  .t .comp .ta{flex:1;border:1px solid #cbd5e1;border-radius:10px;padding:11px 12px;font-size:16px;color:#94a3b8;min-height:44px;background:#fff}
+  .t .steps{display:flex;align-items:center;margin:6px 0 2px;flex-wrap:wrap;gap:4px 0}
+  .t .steps span{font-size:11.5px;color:var(--mu);display:flex;align-items:center;gap:4px}
+  .t .steps span::before{content:"";width:8px;height:8px;border-radius:50%;background:#cbd5e1;display:inline-block}
+  .t .steps span.done::before{background:var(--p)}
+  .t .steps span.now{color:var(--p);font-weight:600}
+  .t .steps span.now::before{background:var(--p);box-shadow:0 0 0 3px var(--pt)}
+  .t .steps span + span{margin-left:14px;position:relative}
+  .t .steps span + span::after{content:"";position:absolute;left:-13px;top:50%;width:11px;height:1px;background:#cbd5e1}
+  .t table{width:100%;border-collapse:collapse;font-size:14px;background:#fff}
+  .t th{font-weight:600;color:var(--mu);font-size:12px;text-align:left;padding:8px 10px;border-bottom:1px solid var(--ln);white-space:nowrap}
+  .t td{padding:9px 10px;border-bottom:1px solid #eef2f7;vertical-align:middle;line-height:1.35}
+  .t tr:last-child td{border-bottom:0}
+  .t td.act{text-align:right;white-space:nowrap}
+  .t .av{display:inline-flex;width:24px;height:24px;border-radius:50%;background:#f5a623;color:#fff;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-right:-6px;border:2px solid #fff;vertical-align:middle}
+  .t .av.b{background:var(--p)}
+  .t .sw{width:40px;height:24px;border-radius:999px;background:var(--p);position:relative;display:inline-block;vertical-align:middle}
+  .t .sw::after{content:"";position:absolute;right:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff}
+  .t .sw.off{background:#cbd5e1}.t .sw.off::after{right:auto;left:3px}
+  .t .tabbar{display:flex;justify-content:space-around;background:#fff;border-top:1px solid var(--ln);padding:8px 0 10px;font-size:11px;color:var(--mu);min-height:56px;align-items:center}
+  .t .fab{position:absolute;right:12px;background:var(--pt);color:var(--ps);border-radius:999px;padding:0 14px;min-height:44px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;box-shadow:0 4px 14px rgba(15,23,42,.18)}
+  .t .cap{font-size:13px;line-height:1.55;color:var(--text-secondary);margin:8px 2px 0;max-width:760px}
+  .t .mk{position:absolute;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#c0392b;color:#fff;font-size:11.5px;font-weight:700;box-shadow:0 0 0 2px #fff;z-index:2}
+  .t .rel{position:relative}
+  .t .calls{max-width:960px;font-size:14px;line-height:1.6;margin:22px 0 0;border-top:1px solid var(--border);padding-top:14px}
+  .t .calls h3{font-size:15px;margin:0 0 8px}
+  .t .calls ol{margin:0;padding-left:22px}.t .calls li{margin:6px 0}
+  .t .n{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#c0392b;color:#fff;font-size:11px;font-weight:700;margin-right:6px;vertical-align:1px}
+  .t .ok-tag{font-size:11.5px;font-weight:600;padding:2px 7px;border-radius:999px;background:#dcfce7;color:#166534;margin-left:4px;white-space:nowrap;vertical-align:1px}
+  .t .later{font-size:11.5px;font-weight:600;padding:2px 7px;border-radius:999px;background:#eef2f7;color:#475569;margin-left:4px;white-space:nowrap;vertical-align:1px}
+  .t .gl{max-width:960px;margin:26px 0 0;border-top:1px solid var(--border);padding-top:16px}
+  .t .gl h3{font-size:16px;margin:0 0 6px}
+  .t .mini{width:100%;max-width:960px;border-collapse:collapse;font-size:13.5px;margin-top:8px}
+  .t .mini th{text-align:left;font-size:12px;color:var(--text-secondary);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--border)}
+  .t .mini td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.45;background:transparent}
+  .t .mini td:first-child{color:var(--text-secondary)}
+  .t .old{color:#94a3b8;text-decoration:line-through}
+</style>
+
+<div class="t">
+<h2>Hỗ trợ — bố cục đề xuất (bản 2, sau kiểm)</h2>
+<p class="lead">Khác bản 1: vẽ đúng khổ <b>760</b> (vùng nội dung thật ở máy tính 1040), cột trái 320; đầu phiếu còn <b>ba chip</b> bấm được (trạng thái, ưu tiên, người xử lý) và một dòng chữ phụ (nhóm, đơn, chi tiết) nên không gãy hàng; luồng chỉ hiện <b>ba loại việc đã làm mà máy chủ đang lưu</b> (nhận việc, giao việc, chuyển nhóm); "Trả lời người gửi" thay "khách"; nút lọc "Tôi đang xử lý" thay "Của tôi"; thẻ "Việc của nhóm" và mục "Hướng dẫn" theo lựa chọn của bạn; dữ liệu minh hoạ nhất quán (nhận việc là tự sang Đã tiếp nhận); nút nổi "Trợ lý" và thanh tab được vẽ đúng chỗ; huy hiệu đếm dùng màu nguy hiểm đúng luật màu.</p>
+
+<div class="row">
+  <div class="col">
+    <span class="step"><i>1</i>Máy tính 1040 · vùng nội dung 760 · thành viên nhóm Kế toán (cũng là Trưởng nhóm)</span>
+    <div class="frame desk">
+      <div class="bar"><span>Hỗ trợ</span><span class="btn">＋ Gửi yêu cầu</span></div>
+      <div class="tabs"><span class="tab">Yêu cầu của tôi</span><span class="tab on">Việc của nhóm <span class="cnt">1</span></span></div>
+      <div class="pad">
+        <div class="two">
+          <!-- DANH SÁCH -->
+          <div class="pane rel">
+            <span class="mk" style="left:-10px;top:10px">1</span>
+            <div class="ph"><div class="in" style="flex:1"><b>Nhóm Kế toán</b><span class="x">▾</span></div></div>
+            <div class="ph" style="padding-top:6px"><div class="seg"><span class="on">Chưa ai nhận <i>1</i></span><span>Tôi đang xử lý <i>2</i></span><span>Tất cả</span></div></div>
+            <div class="ph" style="padding-top:6px"><div class="in"><b>Đang mở</b><span class="x">▾</span></div><div class="in" style="flex:1">⌕ Mã, tiêu đề, người gửi</div></div>
+            <div class="tk"><div class="nm"><div class="ti"><span class="dot"></span><b>Khách chuyển dư 500.000đ, xử lý sao?</b> <span class="pill cao">Cao</span></div><small>YC-0006 · Sales Hai · đơn TD-20261017-0003</small><small><span class="pill moi">Mới</span> · chưa ai nhận</small></div><div class="rt"><span>1 giờ trước</span><span class="btn sm">Nhận việc</span></div></div>
+            <div class="tk on"><div class="nm"><div class="ti"><b>Đơn này tính sai tiền cọc</b> <span class="pill khan">Khẩn</span></div><small>YC-0007 · Sales Một · đơn TD-20261017-0001</small><small><span class="pill xl">Đã tiếp nhận</span> · Kế Toán (tôi)</small></div><div class="rt"><span>5 phút trước</span></div></div>
+            <div class="tk"><div class="nm"><div class="ti">Xuất hoá đơn cho công ty Biển Xanh</div><small>YC-0004 · HDV Lan</small><small><span class="pill xl">Đang xử lý</span> · Kế Toán (tôi)</small></div><div class="rt"><span>hôm qua</span></div></div>
+            <div class="foot">Tuần này (20–26/10): 3 yêu cầu mới gửi tới nhóm</div>
+          </div>
+
+          <!-- LUỒNG -->
+          <div class="pane th rel">
+            <span class="mk" style="left:-10px;top:10px">2</span>
+            <div class="thh">
+              <h4>YC-0007 · Đơn này tính sai tiền cọc</h4>
+              <div class="chips">
+                <span class="chip"><span class="dl" style="background:#0c4a6e"></span>Đã tiếp nhận ▾</span>
+                <span class="chip"><span class="pill khan" style="padding:0 6px">Khẩn</span> ▾</span>
+                <span class="chip">Kế Toán (tôi) ▾</span>
+              </div>
+              <div class="meta"><span>Nhóm <b>Kế toán ▾</b></span><span>Đơn <b>TD-20261017-0001 ›</b></span><span><b>Chi tiết ▴</b></span></div>
+              <div class="det rel"><span class="mk" style="left:-24px;top:4px">3</span><span><b>Người gửi</b> Sales Một</span><span><b>Loại</b> Báo lỗi</span><span><b>Gửi lúc</b> 08:10 hôm nay</span><span><b>Từ trang</b> Đơn TD-20261017-0001</span><span><b>Thiết bị</b> Mac · Chrome 155 · bản 17/10 · <u>chuỗi gốc</u></span><span><b>Email báo nhóm</b> chưa gửi được</span></div>
+            </div>
+            <div class="msgs rel">
+              <span class="mk" style="right:-10px;top:60px">4</span>
+              <span class="day">Hôm nay, thứ sáu 17/10</span>
+              <div class="grp"><span class="who">Sales Một · 08:10</span><div class="bb">Tiền cọc hiện 0đ nhưng khách đã chuyển. Em gửi kèm đơn.</div></div>
+              <span class="ev"><b>Kế Toán</b> đã nhận việc · 08:12</span>
+              <div class="grp me"><span class="who">Kế Toán (tôi) · 08:13</span><div class="bb">Kế toán đã nhận, đang kiểm sổ.</div><div class="bb nb"><small>🔒 Ghi chú nội bộ — người gửi không thấy</small>Đối chiếu sao kê sáng nay, khoản 1.350.000đ lúc 07:52.</div></div>
+              <div class="grp"><span class="who">Sales Một · 08:20</span><div class="bb">Dạ, khách hỏi gấp vì chiều nay đi.</div></div>
+            </div>
+            <div class="comp rel">
+              <span class="mk" style="left:-10px;top:10px">5</span>
+              <div class="mode"><span class="on">Trả lời người gửi</span><span>Ghi chú nội bộ</span></div>
+              <div class="box"><div class="ta">Viết phản hồi…</div><span class="btn pri">Gửi</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Ở thẻ "Việc của nhóm", "Gửi yêu cầu" là nút viền vì không phải việc chính của người xử lý; nút chính của màn là "Nhận việc" (trên dòng chưa ai nhận) và "Gửi" trong ô trả lời. Chip nào người xem không có quyền thì vẫn hiện nhưng không bấm được, theo bảng quyền máy chủ trả về cùng phiếu. Dòng "Email báo nhóm chưa gửi được" giữ cho mọi người xử lý như hợp đồng hiện nay, chỉ chuyển từ danh sách vào Chi tiết.</p>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col">
+    <span class="step"><i>2</i>Điện thoại 390 · người gửi (Bán hàng, HDV, tài xế) · mở một yêu cầu</span>
+    <div class="frame phone">
+      <div class="bar"><span>‹ YC-0007</span><small>Kế toán · Báo lỗi</small></div>
+      <div class="thh">
+        <h4>Đơn này tính sai tiền cọc</h4>
+        <div class="steps"><span class="done">Mới</span><span class="now">Đã tiếp nhận</span><span>Đang xử lý</span><span>Đã xong</span></div>
+        <div class="meta"><span>Xử lý <b>Kế Toán</b></span><span>Đơn <b>TD-…-0001 ›</b></span><span><b>Chi tiết ▾</b></span></div>
+      </div>
+      <div class="msgs" style="min-height:280px">
+        <span class="day">Hôm nay</span>
+        <div class="grp me"><span class="who">Tôi · 08:10</span><div class="bb">Tiền cọc hiện 0đ nhưng khách đã chuyển. Em gửi kèm đơn.</div></div>
+        <span class="ev"><b>Kế Toán</b> đã nhận việc · 08:12</span>
+        <div class="grp"><span class="who">Kế Toán · 08:13</span><div class="bb">Kế toán đã nhận, đang kiểm sổ.</div></div>
+      </div>
+      <div class="comp"><div class="box"><div class="ta">Viết phản hồi…</div><span class="btn pri">Gửi</span></div></div>
+      <span class="fab" style="bottom:88px">💬 Trợ lý</span>
+    </div>
+    <p class="cap" style="max-width:340px">Khi mở một yêu cầu trên điện thoại, thanh tab đáy tắt (cơ chế có sẵn) để ô trả lời dính đáy và không bị bàn phím đè; nút "Trợ lý" được nâng lên trên ô trả lời. Người gửi không thấy ghi chú nội bộ, không có chip đổi trạng thái, nhưng thấy tiến độ và ai đang xử lý. Yêu cầu bị từ chối thì thanh bước thay bằng một dòng "Đã từ chối"; lý do nằm trong luồng, vì người xử lý phải viết lý do (gửi thành tin trả lời) ngay khi chọn Từ chối — không thêm trường dữ liệu.</p>
+  </div>
+
+  <div class="col">
+    <span class="step"><i>3</i>Điện thoại 390 · thành viên nhóm · thẻ "Việc của nhóm"</span>
+    <div class="frame phone">
+      <div class="bar"><span>‹ Hỗ trợ</span><span class="btn sm">＋ Gửi yêu cầu</span></div>
+      <div class="tabs" style="padding:0 8px"><span class="tab">Yêu cầu của tôi</span><span class="tab on">Việc của nhóm <span class="cnt">1</span></span></div>
+      <div class="pad">
+        <div class="seg" style="display:flex;margin-bottom:8px"><span class="on" style="flex:1;justify-content:center">Chưa nhận <i>1</i></span><span style="flex:1;justify-content:center">Tôi xử lý <i>2</i></span><span style="flex:1;justify-content:center">Tất cả</span></div>
+        <div class="pane">
+          <div class="tk"><div class="nm"><div class="ti"><span class="dot"></span><b>Khách chuyển dư 500.000đ, xử lý sao?</b> <span class="pill cao">Cao</span></div><small>YC-0006 · Sales Hai · 1 giờ trước</small><div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><small style="margin:0"><span class="pill moi">Mới</span> · chưa ai nhận</small><span class="btn sm">Nhận việc</span></div></div></div>
+          <div class="tk"><div class="nm"><div class="ti"><b>Đơn này tính sai tiền cọc</b> <span class="pill khan">Khẩn</span></div><small>YC-0007 · Sales Một · 5 phút trước</small><small><span class="pill xl">Đã tiếp nhận</span> · tôi</small></div></div>
+          <div class="tk"><div class="nm"><div class="ti">Xuất hoá đơn cho công ty Biển Xanh</div><small>YC-0004 · HDV Lan · hôm qua</small><small><span class="pill xl">Đang xử lý</span> · tôi</small></div></div>
+        </div>
+      </div>
+      <div class="tabbar"><span>Trang chủ</span><span>Đơn hàng</span><span style="color:#c0392b;font-weight:700;font-size:18px">＋</span><span>Tôi</span></div>
+      <span class="fab" style="bottom:70px">💬 Trợ lý</span>
+    </div>
+    <p class="cap" style="max-width:340px">Trên điện thoại ba nút lọc rút gọn thành "Chưa nhận · Tôi xử lý · Tất cả" để đứng vừa một hàng; thẻ bên cạnh vẫn ghi đủ "Yêu cầu của tôi". Một thẻ việc = ba dòng.</p>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col">
+    <span class="step"><i>4</i>Máy tính · Toàn quyền · thẻ "Nhóm hỗ trợ"</span>
+    <div class="frame desk2">
+      <div class="bar"><span>Hỗ trợ</span><span class="btn">＋ Gửi yêu cầu</span></div>
+      <div class="tabs"><span class="tab">Yêu cầu của tôi</span><span class="tab">Việc của nhóm</span><span class="tab on">Nhóm hỗ trợ</span></div>
+      <div class="pad">
+        <div class="pane rel">
+          <span class="mk" style="left:-10px;top:10px">6</span>
+          <table>
+            <tr><th>Nhóm</th><th>Phụ trách</th><th>Thành viên</th><th>Nhạy cảm</th><th></th></tr>
+            <tr><td><b>Kỹ thuật</b></td><td>Lỗi và đề xuất về Nền tảng</td><td><span class="pill moi">Chưa có thành viên</span></td><td><span class="sw off"></span></td><td class="act"><span class="btn sm">Sửa</span></td></tr>
+            <tr><td><b>Kế toán</b></td><td>Thu chi, công nợ, hoá đơn</td><td><span class="av b">KT</span><span class="av">SH</span>&nbsp;&nbsp; 2 · trưởng nhóm: Kế Toán</td><td><span class="sw"></span></td><td class="act"><span class="btn sm">Sửa</span></td></tr>
+            <tr><td><b>Nhân sự</b></td><td>Tài khoản, hồ sơ nhân viên, chế độ</td><td><span class="pill moi">Chưa có thành viên</span></td><td><span class="sw"></span></td><td class="act"><span class="btn sm">Sửa</span></td></tr>
+            <tr><td><b>Điều hành</b></td><td>Điều xe, lịch chuyến, việc vận hành hằng ngày</td><td><span class="pill moi">Chưa có thành viên</span></td><td><span class="sw off"></span></td><td class="act"><span class="btn sm">Sửa</span></td></tr>
+            <tr><td colspan="5" style="padding:10px"><span class="btn sm">＋ Thêm nhóm</span> <span style="font-size:12.5px;color:var(--mu);margin-left:8px">Nhóm đã ngưng: 0</span></td></tr>
+          </table>
+        </div>
+        <p class="cap" style="margin-top:8px">Nhạy cảm = email báo chung và nhật ký chỉ ghi mã yêu cầu, không ghi tiêu đề (đúng quyết định 0119). Gạt công tắc là lưu ngay và hiện "Đã lưu". Nhóm Kỹ thuật không ngưng được. Yêu cầu gửi vào nhóm chưa có thành viên chỉ Toàn quyền xử lý được, nên bảng báo thẳng.</p>
+      </div>
+    </div>
+    <p class="cap" style="max-width:640px">"Sửa" mở hộp trượt theo khuôn hộp "Thêm mức": tên, mô tả, công tắc nhạy cảm kèm lời giải thích, danh sách thành viên với nút "Trưởng nhóm ↔ Thành viên" và "Gỡ", ô thêm người (gõ tên để tìm; tài khoản bên ngoài không được liệt kê), nút "Ngưng nhóm" ở cuối. Hộp "Thêm nhóm" chỉ hỏi tên và mô tả; mã nhóm máy tự sinh từ tên.</p>
+  </div>
+</div>
+
+<div class="calls">
+  <h3>Các điểm đánh số</h3>
+  <ol>
+    <li><span class="n">1</span><b>Bảng việc của nhóm.</b> Mỗi dòng: tiêu đề (đậm + chấm đỏ khi có tin chưa đọc) kèm ưu tiên, mã · người gửi · đơn liên quan, trạng thái · ai đang lo, thời gian tương đối, nút "Nhận việc" trên dòng chưa ai nhận. Lọc mặc định "Đang mở". <span class="ok-tag">máy chủ làm kèm — đã duyệt 25/10</span>: hàng đợi nhận lọc nhiều trạng thái và trả số đếm cho ba nút lọc.</li>
+    <li><span class="n">2</span><b>Đầu phiếu gọn.</b> Ba chip bấm được: trạng thái (mở ra đúng các bước máy chủ cho phép chuyển), ưu tiên (chỉ người xử lý), người xử lý (Nhận việc / Giao cho…, theo quyền). Dòng phụ: nhóm (Trưởng nhóm bấm để chuyển nhóm, có ô lý do bắt buộc), đơn liên quan, Chi tiết.</li>
+    <li><span class="n">3</span><b>"Chi tiết" gập</b>: người gửi, loại, giờ gửi, từ trang nào, thiết bị tóm tắt (chuỗi gốc bốn dòng chỉ hiện khi bấm), tình trạng email báo nhóm.</li>
+    <li><span class="n">4</span><b>Luồng kể được câu chuyện</b>: mốc ngày, tin gom theo người, ghi chú nội bộ màu cát có khoá, và ba loại việc đã làm mà máy chủ đang lưu — <b>nhận việc, giao việc, chuyển nhóm</b> — thành dòng hệ thống đúng chỗ thời gian. <span class="ok-tag">đường đọc sự kiện — đã duyệt 25/10</span> <span class="later">đổi trạng thái / đổi ưu tiên: quyết định 0127 đã loại, để quyết định sau</span></li>
+    <li><span class="n">5</span><b>Ô trả lời dính đáy</b>, hai chế độ "Trả lời người gửi | Ghi chú nội bộ" thay ô tick nhỏ; chế độ ghi chú đổi màu ô sang cát. Người gửi trả lời một yêu cầu đã xong thì yêu cầu tự mở lại — có một dòng báo trước khi gửi.</li>
+    <li><span class="n">6</span><b>Nhóm hỗ trợ là bảng</b>, sửa trong hộp trượt. <span class="ok-tag">mã nhóm tự sinh — đã duyệt 25/10</span></li>
+    <li><span class="n">7</span><b>Hộp trượt "Gửi yêu cầu"</b> (chưa vẽ, mô tả trong bàn giao): nhóm nhận → loại → tiêu đề → đơn liên quan (chỉ đơn do mình lập, điền sẵn khi mở từ trang đơn của mình) → mô tả; giữ dòng "Sẽ đính kèm tự động: trang, phiên bản, thiết bị"; tài khoản bên ngoài chỉ thấy nhóm Kỹ thuật; lối vào từ thanh bên vẫn tự mở hộp.</li>
+  </ol>
+</div>
+
+<div class="gl">
+  <h3>Hai họ từ đã chốt (chủ dự án chọn 25/10/2026) — lượt từ thứ hai của bảng từ</h3>
+  <table class="mini">
+    <tr><th>Chữ cũ</th><th>Chữ mới</th><th>Ghi chú</th></tr>
+    <tr><td>Hàng đợi nhóm</td><td><b>Việc của nhóm</b></td><td>Cùng họ với "Việc của tôi", "Cuốc của tôi", "Yêu cầu của tôi"</td></tr>
+    <tr><td>Trợ giúp (trang hướng dẫn + nhật ký thay đổi)</td><td><b>Hướng dẫn</b></td><td>Tách khỏi "Hỗ trợ" (gửi yêu cầu cho người thật) và "Trợ lý" (máy trả lời); chấm đỏ "có bản mới" nằm ở "Hướng dẫn"</td></tr>
+  </table>
+  <h3 style="margin-top:22px">Chữ nhỏ tôi tự chọn (đổi lại được)</h3>
+  <table class="mini">
+    <tr><th>Chỗ</th><th>Hôm nay</th><th>Đề xuất</th><th>Vì sao</th></tr>
+    <tr><td>Đơn vị công việc</td><td>yêu cầu (giao diện) / phiếu (vài câu báo)</td><td>"yêu cầu" ở mọi chỗ người dùng thấy</td><td>"Phiếu vừa được chuyển sang nhóm khác", "Phiếu này không còn trong nhóm của bạn" đang lọt ra giao diện</td></tr>
+    <tr><td>Chế độ ô trả lời</td><td><span class="old">Trả lời khách gửi</span></td><td>Trả lời người gửi</td><td>"khách" trong công ty du lịch là khách đi tour</td></tr>
+    <tr><td>Nút lọc</td><td><span class="old">Của tôi</span></td><td>Tôi đang xử lý (điện thoại: Tôi xử lý)</td><td>Trùng chữ với thẻ "Yêu cầu của tôi"</td></tr>
+    <tr><td>Nút nhận</td><td>Nhận việc / Nhận việc cho tôi</td><td>Nhận việc</td><td>Một chữ ở cả danh sách lẫn luồng</td></tr>
+    <tr><td>Bộ lọc trạng thái mặc định</td><td>Mọi trạng thái</td><td>Đang mở</td><td>Việc đã xong không chen vào việc đang chờ</td></tr>
+    <tr><td>Thống kê tuần</td><td><span class="old">Tuần 2026-41 · Báo lỗi 1 · Đề xuất 0 · Câu hỏi 0</span></td><td>"Tuần này (20–26/10): 3 yêu cầu mới gửi tới nhóm" ở chân danh sách</td><td>Số tuần ISO không ai dùng; "đã xong" bỏ vì số hiện có không đo "xong trong tuần"</td></tr>
+    <tr><td>Thời gian</td><td>08:10 17/10/26</td><td>"5 phút trước", "1 giờ trước", "hôm qua", "20/10"; giờ đầy đủ trong Chi tiết</td><td>Danh sách cần biết "cũ bao lâu rồi"</td></tr>
+    <tr><td>Cột bảng nhóm</td><td><span class="old">Nhận việc gì · Chưa có ai xử lý</span></td><td>Phụ trách · Chưa có thành viên</td><td>Tiêu đề cột là danh từ; nói đúng sự thật</td></tr>
+  </table>
+</div>
+</div>
