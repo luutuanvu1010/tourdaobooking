@@ -537,7 +537,8 @@ export const pricingModule: AppModule = {
     }),
     // Tìm người hưởng theo tên cho form lập đơn (bên đặt là công ty lữ hành…) và trang Hoa hồng: người LẬP ĐƠN hoặc người ĐẶT MỨC (Kế toán), không phải tài khoản Đối tác (ADR-0141, cổng = `coTheTimDoiTac`). Chỉ id, tên, loại hồ sơ — không liên hệ.
     route("GET", "/api/pricing/nguoi-huong", "orders", async ({ env, url, staff }) => {
-      if (!coTheTimDoiTac(staff)) return FORBIDDEN();
+      // Hai vế cố ý trùng: `can(` trực tiếp để hàng rào route-write-guard (không thêm tên vào GUARDS) nhận ra cổng; `coTheTimDoiTac` để máy chủ và trang dùng chung một hàm (ADR-0141 Đ1).
+      if (!(can(staff, "order.create") || can(staff, "partner.commission.write")) || !coTheTimDoiTac(staff)) return FORBIDDEN();
       const q = (url.searchParams.get("q") ?? "").trim().slice(0, 60);
       // Câu SQL tự bọc '%' || ?1 || '%': đưa vào phần giữa của mauLikeChua (≤ 48 byte) để cả mẫu ≤ 50 byte (D1 từ chối quá giới hạn).
       const rows = await findBeneficiaries(env.DB, mauLikeChua(q).slice(1, -1));

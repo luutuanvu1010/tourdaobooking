@@ -143,7 +143,7 @@ test("coTheTimDoiTac giữ ĐÚNG cổng của route nguoi-huong (order.create h
   assert.equal(coTheTimDoiTac(ai("SUPER_ADMIN")), true);
   assert.equal(coTheTimDoiTac(ai("SALES", "PARTNER")), false, "tài khoản lai có quyền Đối tác bị route chặn");
   assert.equal(coTheTimDoiTac(ai("ACCOUNTING", "SALES")), true);
-  assert.equal(CAU_CHUA_TIM_DUOC_DOI_TAC, "Tài khoản của bạn chưa tìm được đối tác theo tên. Cần đặt mức riêng cho một đối tác thì nhờ Quản trị hoặc Toàn quyền.", "nói rõ phải làm gì (Ruling 26: chưa nới cổng, ghi nợ)");
+  assert.equal(CAU_CHUA_TIM_DUOC_DOI_TAC, "Tài khoản của bạn chưa tìm được đối tác theo tên. Cần đặt mức riêng cho một đối tác thì nhờ Quản trị hoặc Toàn quyền.", "nói rõ phải làm gì (câu cho tài khoản chưa qua cổng tìm đối tác; ADR-0141 đã nới cổng cho Kế toán)");
 });
 
 test("coTheTimDoiTac: Kế toán tìm được, Đối tác và lai thì không (ADR-0141)", () => {

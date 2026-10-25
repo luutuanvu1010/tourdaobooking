@@ -2,7 +2,7 @@
 //   GET  /api/pricing/hoa-hong            → CommissionRuleListResponse (mọi dòng mức, `vai` = các loại đối tác được hưởng);
 //   POST /api/pricing/hoa-hong            → thêm một mức (201);   POST /api/pricing/hoa-hong/:id/dong → { denNgay };
 //   GET  /api/pricing/thu-tra             → ThuTraResponse (mức nào thắng cho một đối tác + một dịch vụ + một ngày — máy chủ chọn, trang chỉ dịch ra lời);
-//   GET  /api/pricing/nguoi-huong?q=      → tìm đối tác theo tên (chỉ khi `coTheTimDoiTac`: route đó hỏi order.create).
+//   GET  /api/pricing/nguoi-huong?q=      → tìm đối tác theo tên (chỉ khi `coTheTimDoiTac`: route đó hỏi order.create hoặc partner.commission.write, ADR-0141).
 //   GET  /api/pricing/loai-doi-tac → LoaiDoiTacListResponse (mục «Loại đối tác», ADR-0117 lần 1); POST cùng đường (thêm loại, 201); POST …/:code/tat | /bat (đổi trạng thái loại do Kế toán thêm).
 //   GET  /api/pricing/muc-ta → MucTaListResponse (mục «Mức TA», ADR-0117 lần 2); POST cùng đường (thêm mức, 201); POST …/muc-ta/:code/tat | /bat; POST …/muc-ta/:code/dong (thêm một dòng
 //        cho mức, 201); POST …/muc-ta/gan (gắn loại↔mức theo ngày, 201 kèm `dongRieng` ⇒ cảnh báo vàng, không chặn); POST …/muc-ta/gan/:id/ket-thuc. Đóng một dòng của mức: route đóng dòng chung.
