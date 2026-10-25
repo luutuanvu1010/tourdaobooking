@@ -32,6 +32,7 @@
 - Lượt 1 đi trước, vì ADR-0135 đã duyệt đang chờ nó để phát hành cùng (chủ chọn phương án A ngày 19/10).
 - Trang này vẫn ghép đủ cả hai lượt, vì mục 5 (chỗ hai quyết định đụng nhau) phải đọc cùng một lúc. Bảng năm lượt nhỏ mà người soạn đề nghị trước đó không dùng nữa.
 - **Thời điểm chép sang `docs/adr/`:** ADR-0136 (gốc + bổ sung) chép khi lượt 1 đã duyệt; chính sách bán chép khi lượt 2 đã duyệt.
+- **Lượt 1 đã duyệt ngày 25/10** (nguyên văn: «Duyệt lượt 1 (ADR-0136 gốc + bản bổ sung 25/10) theo mọi khuyến nghị của người soạn, kể cả hai câu còn mở.»). Bản chép: `docs/adr/ADR-0136-buoc-xac-nhan-don-va-gui-don.md`. **Lượt 2 (chính sách bán) chờ chủ duyệt.**
 
 ## 1. Bảng bị chạm chứa những loại thực thể nào
 | Bảng | Hôm nay | Sau các lượt này |
