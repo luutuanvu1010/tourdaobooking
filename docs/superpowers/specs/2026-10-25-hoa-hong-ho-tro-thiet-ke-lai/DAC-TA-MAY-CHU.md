@@ -107,7 +107,7 @@ Mỗi hàng rào mới (cổng A1, câu chèn có điều kiện ở A3) phải 
 
 1. Kế toán tìm đối tác theo tên → 200; Đối tác / lai → 403; Bán hàng, Thực tập không đổi (đề xuất ADR mục 5).
 2. Tra theo loại trả bậc 4–9 và `theoLoai`; không bao giờ trả bậc 1–3 hay 10–12.
-3. «Đổi» dòng mức và gắn chính sách: thành công từ hôm nay và từ một ngày tương lai, dòng cũ ngừng đúng ngày liền trước; bị từ chối bằng câu tiếng Việt ở các điều kiện A3 (kể cả dòng sắp áp dụng); hai người bấm cùng lúc → đúng một dòng mới, người sau 409; «Đổi» từ một ngày tương lai mà chồng với một dòng sắp áp dụng khác cùng đích, cùng phạm vi → cả lô không ghi, câu chống chồng của `loiBang`, dòng cũ **không** bị đóng.
+3. «Đổi» dòng mức và gắn chính sách: thành công từ hôm nay và từ một ngày tương lai, dòng cũ ngừng đúng ngày liền trước; bị từ chối bằng câu tiếng Việt ở các điều kiện A3 (kể cả dòng sắp áp dụng); hai người bấm cùng lúc → đúng một dòng mới, người sau 409. (Ca «Đổi chồng một dòng sắp áp dụng khác» QA1 nêu không xảy ra được: dòng cũ đang mở nên trigger chống chồng đã bảo đảm không có dòng cùng đích, cùng phạm vi nào sau nó — người lập kế hoạch đã soát 25/10.)
 4. `GET /api/pricing/muc-ta` có `ganRieng`.
 5. Chi tiết và luồng làm mới của yêu cầu có `suKien` ba loại đúng thứ tự thời gian, tên đã đổi từ id, cho người xử lý; người gửi không xử lý (kể cả tài khoản bên ngoài) nhận `suKien` rỗng (theo Q2).
 6. Hàng đợi lọc nhiều trạng thái, tìm theo mã/tiêu đề, `dem` khớp danh sách khi > 50 yêu cầu.

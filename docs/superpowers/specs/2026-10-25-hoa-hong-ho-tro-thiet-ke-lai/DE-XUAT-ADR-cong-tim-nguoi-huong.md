@@ -39,6 +39,7 @@ Xem `TRANG-GHEP.md` cùng thư mục (lượt duyệt này có ba quyết địn
 1. Kế toán gọi `GET /api/pricing/nguoi-huong?q=<tên>` → 200 kèm kết quả; tài khoản Đối tác và tài khoản lai → 403; HDV, Tài xế, Nhân sự → 403 (bài hành vi trong `src/so-dai-ly-quyen-route.test.ts` hoặc e2e).
 2. Bán hàng và Thực tập vẫn dùng được ô «Đặt qua đối tác» trên form đơn (kịch bản form đơn xanh).
 3. Kế toán mở trang chi tiết đơn và form sửa đơn: **không** thấy ô «Đặt qua đối tác» (bài thuần cho `coODatQuaDoiTac` với quyền ACCOUNTING = false).
+3b. Hàng rào đã ghi sổ `src/modules/pricing/o-dat-qua-noi-cong.test.ts` (sổ hàng rào: «Ô «Đặt qua đối tác»… ⇔ cổng của route thật») hôm nay khẳng định «ô hiện ⇔ `nguoi-huong` trả 200». Sau Đ1 câu đó sai có chủ đích ở Kế toán. **Không nới** bài thành «⇒»: đổi vế phải thành «`nguoi-huong` trả 200 **và** giữ `order.create`», thêm ca có tên «Kế toán: route 200, ô ẩn», ghi lại ngày quan sát chặn thật ở dòng sổ hàng rào.
 4. Máy chủ và trang Hoa hồng dùng cùng một hàm cổng (bài thuần: `coTheTimDoiTac` cho đúng bảng ở Đ1 với cả mười quyền đứng một mình và các tổ hợp lai có PARTNER).
 5. Sửa cố ý hàm cổng (bỏ vế `partner.commission.write`) → bài 1 và bài 4 đỏ → hoàn nguyên (P16).
 6. Sửa `docs/SYSTEM-DESIGN.md` §9 dòng /hoa-hong (bỏ câu «route đó hỏi `order.create`, Kế toán chưa có… Ruling 26») và dòng route `nguoi-huong` ở §7.
