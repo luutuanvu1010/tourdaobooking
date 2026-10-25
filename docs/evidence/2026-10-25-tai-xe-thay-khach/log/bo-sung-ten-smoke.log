@@ -1,0 +1,6 @@
+✓ 1) 6.3 390 tài xế (chuyến hôm nay, chưa xuất bến): "Suất của khách" + "Thiếu tên 1"; hai dòng "Điểm 1 · Khách i · Sheraton Nha Trang" (Đã có tên / Chưa có tên), khối KHÔNG tên khách; dòng chưa tên trùng "Khách i" của dòng khách dưới điểm 1; link "Bổ sung tên" chỉ ở dòng chưa tên, axe không vi phạm critical/serious
+✓ 2) 6.4 "Bổ sung tên — Điểm 1 · Khách i": câu "Nhập tên cho khách chưa có tên trong đơn.", ô ≥ 16px; Lưu khi trống → câu lỗi tại chỗ, không gửi, axe không vi phạm critical/serious
+✓ 3) Nhập "Hành Khách Bổ Sung" / 1992 → Lưu → gửi ĐÚNG { suatId, fullName, birthYear, paxCode: null, requestId } → "Đã bổ sung tên khách"; khối ẩn (đủ tên); điều kiện "thiếu tên" không còn, axe không vi phạm critical/serious
+✓ 4) không lỗi console
+
+BO SUNG TEN SMOKE OK (4 bước)

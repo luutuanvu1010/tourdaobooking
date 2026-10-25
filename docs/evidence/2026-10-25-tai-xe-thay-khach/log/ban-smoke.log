@@ -1,0 +1,9 @@
+✓ 1) 390 Tài xế đối tác: “/” → /cuoc; bốn tab (Trang chủ, Cuốc của tôi, Báo bận của tôi, Tôi); không tràn ngang, axe không vi phạm critical/serious
+✓ 2) 390 TA còn hạn: dải hạn + nút “Từ chối chuyến” + thẻ thấy khách; TB quá hạn: “Gọi văn phòng” tel:, không nút Từ chối, axe không vi phạm critical/serious
+✓ 3) 390 Từ chối TA: chọn lý do → “Xác nhận từ chối” → /cuoc có dải “Đã từ chối chuyến …”; một lệnh POST
+✓ 4) 390 /ban: trùng TB → dải đỏ có liên kết TB; lưu khung ngày kia; rút khung thứ hai bằng dải hỏi lại, axe không vi phạm critical/serious
+✓ 5) 1040 Tài xế đối tác /ban: thanh bên có “Cuốc của tôi”, “Báo bận của tôi” (đang sáng), axe không vi phạm critical/serious
+✓ 6) 1040 Bán hàng: dải “Tài xế bận” (không lý do); ô Tài xế ghi “Bận”; lưu chuyến trùng → câu chặn dưới ô Tài xế; Chi tiết TA có lý do Từ chối, axe không vi phạm critical/serious
+✓ 7) 1040 Kế toán: Chi tiết TA có câu từ chối KHÔNG lý do; Điều phối xe không gọi /ban-tai-xe, không dải
+
+BAN SMOKE OK (7 bước)

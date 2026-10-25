@@ -186,16 +186,19 @@ try {
 
   await p.close();
   p = await env.as(d.CUONG.account, "/", MOB);
-  await b.step("3b", `5a 390, Q-L3-B phía "có tên": chuyến HÔM NAY (TH, tài xế Cường) — bấm "Xuất bến" → đang chạy: tên + năm sinh + liên hệ của đơn hiện${axeNote()}`, async () => {
+  await b.step("3b", `5a 390, Q-L3-B phía "có tên": chuyến HÔM NAY (TH, tài xế CÔNG TY Cường) — TRƯỚC khi chạy đã thấy tên + năm sinh + liên hệ, chưa có nút tiến độ (đề xuất 25/10); bấm "Xuất bến" → đang chạy: vẫn đủ${axeNote()}`, async () => {
     await p.send("Page.navigate", { url: `${env.base}/cuoc-chuyen?id=${TH.id}` });
     await p.waitFor(`!!document.querySelector('[data-action="xuat-ben"]') && location.search.includes('${TH.id}')`, "màn xuất bến TH");
-    // bản 1.39: chuyến HÔM NAY trước xuất bến — máy chủ ĐÃ gửi tên khách (trong ngày chạy) nhưng danh sách điểm trước xuất bến KHÔNG vẽ tên / SĐT / liên hệ
+    // Đề xuất 25/10 (chủ duyệt Q1 a): tài xế CÔNG TY, chuyến HÔM NAY chưa chạy — danh sách điểm VẼ tên + năm sinh + "Liên hệ" (trước đây máy chủ gửi mà màn không
+    // vẽ). Cùng chỗ sửa với bước 3b của docs/evidence/2026-09-29-adr-0049/kich-ban/cuoc-smoke.mjs.
     const cth = (await fetchTrang(p, "GET", `/api/van-chuyen/cuoc-cua-toi/${TH.id}`)).json; // VA: dùng phiên của trang (ADR-0075)
     assert.ok(cth.suat.some((x) => x.hoTen), "ca này phân biệt được: máy chủ có gửi tên khách");
     assert.ok((await p.ev("document.querySelectorAll('.dp-cc-diem .dp-run').length")) >= 2, "có danh sách điểm trước xuất bến");
-    const hTruoc = await html(p);
-    for (const x of [...TEN_OH, SDT_OH, SDT_OH.replace(/\s/g, ""), LIEN_HE_OH]) assert.ok(!hTruoc.includes(x), `trước xuất bến (hôm nay): không lộ ${x}`);
-    assert.equal(await p.ev("document.querySelectorAll('.dp-cc-diem .dp-khach, .dp-run-lien-he').length"), 0, "trước xuất bến: không khách từng người, không liên hệ");
+    assert.deepEqual((await p.ev(`[...document.querySelectorAll('.dp-cc-diem .dp-khach-ten')].map((x) => x.innerText)`)).sort(), TEN_OH, "trước khi chạy (hôm nay, tài xế công ty): có tên khách");
+    assert.deepEqual((await p.ev(`[...document.querySelectorAll('.dp-cc-diem .dp-khach-nam')].map((x) => x.innerText)`)).sort(), ["1990", "1991"], "trước khi chạy: có năm sinh");
+    assert.match(await p.ev(txt(".dp-cc-diem .dp-run-lien-he")), new RegExp(`^Liên hệ: ${LIEN_HE_OH} ${SDT_OH}$`));
+    assert.equal(await p.ev(`document.querySelector('.dp-cc-diem .dp-run-lien-he a').getAttribute('href')`), "tel:0903100299");
+    assert.equal(await p.ev("document.querySelectorAll('.dp-cc-diem .dp-khach-btn, .dp-cc-diem .dp-run-btn').length"), 0, "trước khi chạy: chưa có nút tiến độ");
     assert.deepEqual(await p.ev(`[...document.querySelectorAll('.dp-cond')].map((x) => x.innerText.replace(/\\s+/g, ' ').trim())`), ["✓ Đủ điều kiện xuất bến"]);
     await p.ev(click('[data-action="xuat-ben"]'));
     await p.waitFor(`!!document.querySelector('[data-action="xuat-ben-xac-nhan"]')`, "hộp xác nhận xuất bến TH"); // V1.3: cùng ngày → nút "Xuất bến"
