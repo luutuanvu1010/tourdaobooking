@@ -137,3 +137,18 @@ test("mức TA (ADR-0117 lần 2): 7 route mới — Tài xế công ty, Tài x�
   }
   assert.deepEqual(trangThai, ["200 xem mức TA", "201 tạo mức TA", "201 gắn loại vào mức", "201 thêm dòng cho mức", "200 kết thúc gắn", "200 tắt mức", "200 bật mức"]);
 });
+
+// Hoa hồng + Hỗ trợ PR 1, Task 4: route «Đổi mức» — Tài xế công ty, Tài xế đối tác, Nhân sự ⇒ 403 của cổng văn phòng, mức không đổi, không dòng mới; Kế toán tới logic (không 403/404/5xx).
+test("Đổi mức (POST …/hoa-hong/:id/doi): Tài xế công ty, Tài xế đối tác, Nhân sự ⇒ 403 cổng, không ghi gì; Kế toán tới logic", async () => {
+  const { w, mucId } = await dungThe();
+  const than = { kieu: "RATE", tyLeBp: 1200, tuNgay: "2099-01-01" };
+  const truoc = Number(w.q("SELECT count(*) AS n FROM prc_commission_rule")[0].n);
+  for (const [nhan, ai] of [["Tài xế công ty", TXC], ["Tài xế đối tác", TXDT], ["Nhân sự", NS]] as const) {
+    const r = await w.call("POST", `/api/pricing/hoa-hong/${mucId}/doi`, { as: ai, body: than });
+    assert.equal(r.status, 403, `${nhan}: ${r.text}`);
+    assert.equal(r.json.error.code, "forbidden", nhan);
+  }
+  assert.equal(Number(w.q("SELECT count(*) AS n FROM prc_commission_rule")[0].n), truoc, "không dòng mới");
+  const kt = await w.call("POST", `/api/pricing/hoa-hong/${mucId}/doi`, { as: KT, body: than });
+  assert.ok(kt.status !== 403 && kt.status !== 404 && kt.status < 500, `Kế toán: ${kt.status} ${kt.text}`);
+});

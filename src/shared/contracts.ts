@@ -2711,6 +2711,8 @@ export interface CommissionRuleDto {
   theoLoai: { nguoiLon: number; treEm: number; nguoiCaoTuoi: number } | null;
   tuNgay: string; denNgay: string | null; ghiChu: string | null; conHieuLuc: boolean;
 }
+/** «Đổi mức» một bước: dòng cũ (đã có ngày ngừng) và dòng mới. */
+export interface DoiMucResponse { cu: CommissionRuleDto; moi: CommissionRuleDto }
 export interface CommissionRuleListResponse { homNay: string; dong: CommissionRuleDto[]; vai: { code: string; ten: string }[] }
 export interface SupplyTermDto {
   id: string; phamVi: "SERVICE" | "GROUP" | "ALL"; catalogCode: string | null; groupCode: string | null; nguoiBan: { partyId: string; ten: string; laCongTy: boolean };

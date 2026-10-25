@@ -35,6 +35,17 @@ const MUC_PAX_THEM = defineSql("pricing", "rule_pax_insert",
   `INSERT INTO prc_commission_rule_pax (rule_id, adult_amount, child_amount, senior_amount, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6)`);
 const MUC_DONG = defineSql("pricing", "rule_close",
   `UPDATE prc_commission_rule SET valid_to_date = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND valid_to_date IS NULL`);
+// «Đổi mức» (một bước): dòng mới mang ĐÍCH (ba loại) + phạm vi của dòng cũ (nơi gọi truyền từ dòng đã đọc). Điều kiện `changes() > 0` = câu đóng ngay trước đã đóng được dòng cũ: nếu không,
+// `valid_from_date` thành NULL ⇒ vi phạm NOT NULL ⇒ cả lô bị huỷ (không dòng mới, không nhật ký) và route trả 409 `stale`. Dùng VALUES + CASE thay vì `INSERT … SELECT … WHERE changes() > 0`
+// vì dạng INSERT…SELECT vào bảng có con của module khác (ord_service_terms) bị `architecture.test.ts` tính là đọc xuyên module.
+const MUC_DOI_THEM = defineSql("pricing", "rule_change_insert",
+  `INSERT INTO prc_commission_rule (id, target_party_id, target_role_code, scope, catalog_code, group_code, kind, rate_bp, per_pax_amount, valid_from_date, valid_to_date, note,
+     created_at, created_by, updated_at, updated_by, target_tier_code)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, CASE WHEN changes() > 0 THEN ?10 END, ?11, ?12, ?13, ?14, ?13, ?14, ?15)`);
+// Dòng phụ theo loại khách của dòng mới: chỉ chèn khi dòng mới đã có (câu chèn dòng đứng ngay trước đã chạy).
+const MUC_DOI_PAX_THEM = defineSql("pricing", "rule_change_pax_insert",
+  `INSERT INTO prc_commission_rule_pax (rule_id, adult_amount, child_amount, senior_amount, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6 WHERE changes() > 0`);
 const DK_TAT_CA = defineSql("pricing", "terms_all",
   `SELECT ${COT_DK}, l.display_name AS seller_name FROM prc_supply_term t LEFT JOIN v_pty_party_label l ON l.id = t.seller_party_id
    ORDER BY (t.valid_to_date IS NOT NULL), t.valid_from_date DESC, t.id`);
@@ -118,6 +129,18 @@ export const insertRuleStatement = (db: D1Database, id: string, v: { targetParty
 /** Số tiền theo loại của dòng mức (ADR-0133), chèn SAU `insertRuleStatement` trong cùng lô: trigger bắt buộc người lớn = per_pax_amount của dòng. */
 export const insertRulePaxStatement = (db: D1Database, ruleId: string, t: { adult: number; child: number; senior: number }, at: string, by: string) =>
   db.prepare(MUC_PAX_THEM).bind(ruleId, t.adult, t.child, t.senior, at, by);
+/**
+ * Lô «Đổi mức»: [đóng dòng cũ hết `denNgayCu`, chèn dòng mới từ `v.validFrom` chép đích + phạm vi của dòng cũ, (dòng phụ theo loại)]. Nơi gọi nối nhật ký `changes() > 0` ngay sau.
+ * Dòng cũ đã đóng bằng đường khác ⇒ câu đóng `changes() = 0` ⇒ câu chèn làm cả lô lỗi (NOT NULL), không sinh dòng nào.
+ */
+export const cauDoiMuc = (db: D1Database, cuId: string, moiId: string, denNgayCu: string,
+  cu: { targetPartyId: string | null; targetRoleCode: string | null; targetTierCode: string | null; scope: string; catalogCode: string | null; groupCode: string | null },
+  v: { kind: string; rateBp: number | null; perPaxAmount: number | null; theoLoai?: { adult: number; child: number; senior: number } | null; validFrom: string; validTo: string | null; note: string | null },
+  at: string, by: string): D1PreparedStatement[] => [
+  db.prepare(MUC_DONG).bind(cuId, denNgayCu, at, by),
+  db.prepare(MUC_DOI_THEM).bind(moiId, cu.targetPartyId, cu.targetRoleCode, cu.scope, cu.catalogCode, cu.groupCode, v.kind, v.rateBp, v.perPaxAmount, v.validFrom, v.validTo, v.note, at, by, cu.targetTierCode),
+  ...(v.theoLoai ? [db.prepare(MUC_DOI_PAX_THEM).bind(moiId, v.theoLoai.adult, v.theoLoai.child, v.theoLoai.senior, at, by)] : []),
+];
 export const closeRuleStatement = (db: D1Database, id: string, den: string, at: string, by: string) => db.prepare(MUC_DONG).bind(id, den, at, by);
 export const allTerms = async (db: D1Database) => (await db.prepare(DK_TAT_CA).all<TermRow>()).results;
 export const termsOn = async (db: D1Database, ngay: string) => (await db.prepare(DK_NGAY).bind(ngay).all<TermRow>()).results;

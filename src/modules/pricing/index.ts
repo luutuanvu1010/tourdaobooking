@@ -3,17 +3,17 @@
 import { auditStatement } from "../audit";
 import { getEffectiveServices } from "../catalog";
 import { datHoatDongLoaiDoiTacStatement, kiemTenLoaiDoiTac, loaiVaiChiTiet, maLoaiDoiTac, ownerCompany, tenLoaiVai, themLoaiDoiTacStatement } from "../parties";
-import type { CommissionRuleDto, HoaHongHoSoResponse, CommissionRuleListResponse, GanLoaiMucDto, GanLoaiMucResponse, LoaiDoiTacDto, LoaiDoiTacListResponse, LoaiDoiTacResponse, MucTaDto, MucTaListResponse, MucTaResponse,
+import type { CommissionRuleDto, DoiMucResponse, HoaHongHoSoResponse, CommissionRuleListResponse, GanLoaiMucDto, GanLoaiMucResponse, LoaiDoiTacDto, LoaiDoiTacListResponse, LoaiDoiTacResponse, MucTaDto, MucTaListResponse, MucTaResponse,
   NguoiHuongTimResponse, SupplyTermDto, SupplyTermListResponse, ThuTraResponse } from "../../shared/contracts";
 import { error, json, mauLikeChua, kemLocation, readJson } from "../../shared/http";
 import { can, holdsPartner } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { CAU_X3_THUE_XE, NHAN_LY_DO_THIEU } from "../../shared/so-dai-ly-nhan";
 import { vnToday } from "../../shared/vn-date";
-import { allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRoleTierStatement, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, huongCuaHoSo, insertBeneficiaryStatement,
+import { cauDoiMuc, allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRoleTierStatement, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, huongCuaHoSo, insertBeneficiaryStatement,
   insertRateTierStatement, insertRoleTierStatement, insertRulePaxStatement, insertRuleStatement, insertTermStatement, isBeneficiary, openRolesOf, partyTiersOf, partyTierById, insertPartyTierStatement, closePartyTierStatement, rateTierByCode, rateTiers, roleRulesForTierLink, roleTierById, roleTiersAll,
   roleTiersOn, ruleById, rulesOn, setBeneficiaryActiveStatement, setRateTierActiveStatement, suppliers, termById, termsOn, type PartyTierRow, type RoleTierRow, type RuleRow, type TermRow, type TierRow } from "./repository";
-import { MA_RE, MUC_TA_RE, PARTY_RE, chonMuc, hieuLuc, tomTatHoaHongHoSo, kiemNgayDong, kiemThanDieuKhoan, kiemThanDongMucTa, kiemThanGan, kiemThanGanRieng, kiemThanMuc, kiemTenMucTa, laNgay, maMucTa, moTaMuc, nguoiHuongCua,
+import { MA_RE, MUC_TA_RE, PARTY_RE, chonMuc, cungMuc, hieuLuc, tomTatHoaHongHoSo, kiemDoi, kiemNgayDong, kiemThanDieuKhoan, kiemThanDoiMuc, kiemThanDongMucTa, kiemThanGan, kiemThanGanRieng, kiemThanMuc, kiemTenMucTa, laNgay, maMucTa, moTaMuc, nguoiHuongCua,
   type DongDieuKhoan, type DongMuc, type GanLoaiMuc, type GanRieng, type MucTheoLoai, type NguoiHuong } from "./rules";
 
 export { chupDon, soKhachTinhHoaHong, tinhDongDoiTac, type BanChup, type DongPhanDoiTac, type KieuMuc, type LyDoThieu, type NguoiHuong } from "./rules";
@@ -69,6 +69,7 @@ function loiBang(e: unknown): Response | null {
   if (/\bprc_tier_overlap:/.test(m)) return error(409, "prc_tier_overlap", "Loại này đã mang một mức TA trong khoảng ngày này — kết thúc gắn cũ trước.");
   if (/\bprc_tier_target:/.test(m)) return error(400, "invalid_input", "Loại đối tác này không nằm trong danh sách được hưởng hoa hồng hoặc đã tắt.");
   if (/\bprc_tier_inactive:/.test(m)) return error(409, "muc_tat", "Mức TA này đã tắt — bật lại trước khi gắn loại hay thêm dòng.");
+  if (/NOT NULL constraint failed: prc_commission_rule\.valid_from_date/.test(m)) return error(409, "stale", "Dòng này vừa được người khác ngừng hoặc đổi. Tải lại trang."); // câu chèn của Đổi mức: dòng cũ không còn đóng được
   if (/\bprc_append_only:/.test(m)) return error(409, "stale", "Dòng này vừa được người khác đóng — tải lại.");
   if (/FOREIGN KEY constraint failed/.test(m)) return error(400, "invalid_input", "Nhóm dịch vụ hoặc hồ sơ không có.");
   return null;
@@ -233,6 +234,33 @@ export const pricingModule: AppModule = {
       if (res instanceof Response) return res;
       if (dongDaDong(res)) return error(409, "stale", "Dòng mức vừa được đóng — tải lại.");
       return json({ dong: dtoMuc((await ruleById(env.DB, id))!, tenVai, vnToday(new Date())) });
+    }),
+    // «Đổi» một dòng mức đang áp dụng (đặc tả A3): ngừng dòng cũ hết ngày liền trước `tuNgay` và mở dòng mới (cùng đích, cùng phạm vi) trong MỘT lô. Thân chỉ mang phần mức + ngày + ghi chú.
+    route("POST", "/api/pricing/hoa-hong/:id/doi", "office", async ({ env, request, params, staff }) => {
+      if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();
+      const id = params.id!;
+      const row = PARTY_RE.test(id) ? await ruleById(env.DB, id) : null;
+      if (!row) return error(404, "not_found", "Không tìm thấy dòng mức.");
+      const body = await readJson(request);
+      const than = kiemThanDoiMuc(body);
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const homNay = vnToday(new Date());
+      const doi = kiemDoi({ cu: { validFrom: row.valid_from_date, validTo: row.valid_to_date }, tuNgay: than.value.validFrom, homNay });
+      if (!doi.ok) return error(400, "invalid_input", doi.error);
+      if (cungMuc(dongMuc(row), than.value)) return error(400, "invalid_input", "Mức mới giống hệt mức cũ.");
+      const tenVai = await tenLoaiVai(env.DB);
+      const at = new Date().toISOString();
+      const moiId = crypto.randomUUID();
+      const chiTiet = `đổi mức · dòng ${id} → ${moiId} · từ ${doi.tuNgay}`;
+      const res = await chayLo(env.DB, [
+        ...cauDoiMuc(env.DB, id, moiId, doi.denNgayCu, { targetPartyId: row.target_party_id, targetRoleCode: row.target_role_code, targetTierCode: row.target_tier_code, scope: row.scope, catalogCode: row.catalog_code, groupCode: row.group_code }, than.value, at, staff.id),
+        auditStatement(env.DB, { staffId: staff.id, action: "prc_commission_rule_closed", at, detail: chiTiet }, "changes() > 0"),
+        auditStatement(env.DB, { staffId: staff.id, action: "prc_commission_rule_added", at, detail: chiTiet }, "changes() > 0"),
+      ]);
+      if (res instanceof Response) return res;
+      if (dongDaDong(res)) return error(409, "stale", "Dòng này vừa được người khác ngừng hoặc đổi. Tải lại trang.");
+      const [cu, moi] = await Promise.all([ruleById(env.DB, id), ruleById(env.DB, moiId)]);
+      return json({ cu: dtoMuc(cu!, tenVai, homNay), moi: dtoMuc(moi!, tenVai, homNay) } satisfies DoiMucResponse);
     }),
     // ADR-0117 lần 1: loại đối tác là DỮ LIỆU. Thêm / tắt / bật do Kế toán, Quản trị, Toàn quyền (ô partner.commission.write); xem do ô partner.commission.view. Tên đi vào nhật ký (đã cấm
     // số điện thoại / email trong tên). Mã `LD_` + 8 chữ hoa do máy chủ sinh. Đường cố định trước đường có :code.
