@@ -29,3 +29,6 @@ Cho mỗi màn một khung "có dữ liệu" ở iPhone và máy tính sau khi c
 ## Còn chờ
 - Lượt 2 của Claude Design (chủ gửi tin trên rồi lưu lại vào đây hoặc thư mục mới cùng ngày).
 - Dựng màn **Sổ công nợ** (P1 của kế hoạch `docs/superpowers/plans/2026-10-24-so-cong-no-doi-tac-ke-hoach.md`) sau khi có lượt 2. Phần máy chủ (route chi tiết theo bên, nếu cần) làm được trước.
+
+## Lượt 2 (nhận 2026-10-25 08:31)
+Chép `So Cong No v2.dc.html` (= 2a), `So Cua Toi v2.dc.html` (= 2b) và bảng trình bày mới (đè bảng lượt 1; bảng mới vẫn chứa phần lượt 1). Đối chiếu mã bản vẽ với mười điểm yêu cầu (AI đọc mã, chưa nhìn hình): dòng chân Sổ công nợ nay cộng thật từ danh sách đơn và có trạng thái «Lệch … — báo Kế toán trưởng»; hai nhóm «Bên này đang giữ» / «Công ty nợ bên này»; «Đã huỷ — cọc còn giữ»; sắp xếp, «Xem thêm 50 bên», «Xem thêm» đơn; một ô tìm; iPhone gộp cảnh báo. Sổ của tôi: tháng 9 cuối kỳ 1.200.000 = tháng 10 đầu kỳ; bảng chọn tháng; «Đã khoá ngày 05/10»; câu giải nghĩa; nút (i); dòng nối «tính tới hôm nay»; không thấy %, giá vốn, nhà cung cấp. Có khung kiểm tên 40 ký tự và 1.250.000.000 ₫. **Bản dùng để dựng: 2a và 2b.**
