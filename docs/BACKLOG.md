@@ -527,3 +527,23 @@ Các việc khác từ cùng buổi xác nhận (đang chờ chủ quyết, chư
 - **Trạng thái:** `để sau` · Góp ý YC-0017 (20/10). Chủ chọn 24/10: «Chưa có đại lý cụ thể, để sau» và «Chỉ giữ bản soạn».
 - **Hồ sơ:** bản tách `docs/superpowers/specs/2026-10-24-de-xuat-adr-0140-ban-tach.md` (0140a thành viên + bên đặt về tổ chức; 0140b phạm vi xem theo tổ chức), trang ghép lượt 3 ở `2026-10-24-trang-ghep-luot-duyet-1.md`.
 - **Mở lại khi:** có ít nhất hai tài khoản của cùng một đại lý cần thấy chung đơn (ngưỡng ADR-0014 điều 5). Thứ tự khi mở: ADR-0081 dựng xong → soạn bản chính 0140a → 0140b. Số ADR lấy số trống kế tiếp lúc soạn, không giữ «0140».
+
+## 45. Góp ý màn Hỗ trợ — việc còn lại sau bản 2.29 / 2.30 (mã `BL-GOPY-HT-…`)
+
+Ghi 25/10 khi đóng phiên phân tích góp ý và ba phiên con (Lượt A, nháp ADR lượt B, sổ công nợ). Kế hoạch gốc: `docs/superpowers/specs/2026-10-24-phan-tich-gop-y-ho-tro-ke-hoach.md`.
+
+| Mã | Việc | Ở đâu | Chờ |
+|---|---|---|---|
+| BL-GOPY-HT-CON-NO | Lọc «Còn công nợ» ở danh sách đơn (YC-0013) — chưa làm. Không có view `v_bil_*` đủ (chỉ `v_bil_order_paid`, thiếu tổng, hoàn, cọc); cách theo khuôn ADR-0060 là hàm tiêm mới bọc `tienNhieuDon` của `billing` ⇒ hợp đồng mới giữa gốc lắp ráp, `orders`, `billing` | `src/modules/orders/index.ts` (GET `/api/orders`, cạnh lọc `nhapKeToan`) | Chủ quyết có thêm hàm tiêm không (phiên Lượt A dừng đúng chỗ này 24/10) |
+| BL-GOPY-HT-GHI-CHU-DON | Ô ghi chú giờ đón riêng (YC-0014 vế ghi chú) — chưa làm; cần cột mới trên chặng đón ⇒ migration | `ord_transfer_leg` | Chủ quyết |
+| BL-GOPY-HT-DUA-DON-0118 | Nhánh đưa đón ADR-0118 (`claude/tour-dao-booking-audit-bc6c77`, 23 lần lưu) chưa vào bản chính; xung đột chắc chắn ≥ 14 tệp | nhánh trên | Một phiên riêng sửa xung đột rồi chủ `day-len` (chủ đã quyết hướng này) |
+| BL-GOPY-HT-TIEN-DON | Tiền đón là khoản riêng trên đơn (YC-0014 vế tiền) — nháp `docs/superpowers/specs/2026-10-24-de-xuat-adr-tien-don-khoan-rieng.md`; mâu thuẫn chưa giải «ai đặt mức» (nháp: người giữ `partner.commission.write`; lời chủ 14/10: Quản trị) | nháp trên | Nhánh 0118 vào bản chính, rồi hỏi chủ; số ADR lấy số trống kế tiếp |
+| BL-GOPY-HT-SO-CONG-NO | Sổ công nợ P2 (ADR-0081, đối tác xem sổ — chủ chọn kiểu 1c) và P3 (ADR-0116) chưa làm; P1 (màn Kế toán) đã lên 2.30 | kế hoạch `docs/superpowers/plans/2026-10-24-so-cong-no-doi-tac-ke-hoach.md` (bản đã kiểm độc lập, khôi phục 25/10 vì lần gộp của phiên sổ công nợ giữ nhầm bản ngắn); quyết định chủ 25/10: `docs/superpowers/specs/2026-10-25-prompt-claude-design-hai-man-so.md` | Phiên mới theo kế hoạch |
+| BL-GOPY-HT-CHROME | Kịch bản Chrome chưa chạy cho: mục «Hoa hồng hiện hành» + nút mức riêng (`web/parties.ts` — `t2b-danh-ba-smoke`, `dot-a-smoke`, `giay-to-nguoi-smoke`), màn cuốc tài xế (`web/cuoc-chuyen.ts` — `cuoc-smoke`), màn Sổ công nợ (2.30) | `web/CLAUDE.md` bảng cuối | Dựa vào kỷ luật; chạy khi máy có Chrome + axe |
+| BL-GOPY-HT-SO-VANG-TA | Ca vàng `SV-TA-07`, `SV-TA-08` (mức TA gắn riêng, ADR-0138) còn `cho_xac_nhan` | `golden/so-cong-no-luot-2.json` | Kế toán xác nhận (AI không tự đánh dấu) |
+| BL-GOPY-HT-SDT-HDV | ADR-0139 chỉ hiện số liên hệ chính của hồ sơ trong Danh bạ (không bao giờ SĐT đăng nhập): HDV chưa có số ở Danh bạ thì tài xế không thấy số | Danh bạ | Quản trị bổ sung số |
+
+## 46. Câu đếm ngược bảo trì dễ đọc nhầm thành giờ đồng hồ (mã `BL-BAO-TRI-DEM-NGUOC`)
+
+- **Trạng thái:** `chờ chủ chọn chữ` · Thấy khi nghiệm thu 2.30 (25/10): trang đăng nhập hiện «Thời gian dự kiến hoàn tất là 18 giờ 30 phút 48 giây». Con số là thời gian CÒN LẠI (`maintenanceMessageParts` ở `src/shared/maintenance.ts`, câu có từ 21/9), nhưng đọc lướt dễ hiểu là «xong lúc 18:30».
+- **Phương án chữ để chủ chọn:** (a) «Dự kiến xong lúc 09:11 ngày 26/10 (còn 18 giờ 30 phút)» — rõ nhất; (b) «Dự kiến hoàn tất sau 18 giờ 30 phút 48 giây nữa»; (c) giữ nguyên. Chỉ đổi chữ giao diện (kèm bài kiểm của hàm), không đụng luật máy chủ tự tắt đúng giờ.

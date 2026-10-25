@@ -2,7 +2,16 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.29 ĐÃ LÊN PRODUCTION (góp ý màn Hỗ trợ: mức TA gắn riêng — ADR-0138; SĐT người đi kèm cho tài xế công ty — ADR-0139; lọc «Chưa có người phụ trách»; khoá «Xác nhận đơn» khi chưa có ngày; nhãn «Đã nhập phần mềm kế toán») — migration `0118_muc_ta_gan_rieng` đã áp — triển khai 2026-10-25 06:04
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.30 ĐÃ LÊN PRODUCTION (màn «Sổ công nợ» cho Kế toán / Toàn quyền — P1 của kế hoạch `docs/superpowers/plans/2026-10-24-so-cong-no-doi-tac-ke-hoach.md`; route chỉ đọc `GET /api/ledger/ben/:partyId`; mục menu gộp «Sổ công nợ & khoá sổ») — KHÔNG migration — triển khai 2026-10-25 14:30
+
+Ghi 25/10/2026 bằng lệnh CHỈ ĐỌC trên máy dự án (phiên phân tích góp ý; khối cuối của `trien-khai` 2.30 chạy ở phiên sổ công nợ, chưa ai dán vào đây):
+- Commit `main`: `a575f2d9`. Worker Version ID: `4aa1eff4-b089-44f4-8fd8-b7833cb98ce1` (`wrangler deployments list`, tạo 2026-10-25T07:30:42Z).
+- `node scripts/kiem-phien-ban.mjs --sau-deploy` → «ĐẠT: production đang chạy đúng bản 2.30.»; `wrangler d1 migrations list tourdao-sales-db --remote` → «No migrations to apply!»; `audit-invariants --db remote` → «Mọi bất biến đạt, 5 cảnh báo (D1 remote)».
+- e2e và điểm khôi phục Time Travel của lần này: **chưa ghi** (không thấy khối cuối; `trien-khai` chỉ đưa lên sau khi e2e xanh). Kịch bản Chrome cho màn Sổ công nợ: **chưa chạy** (phiên sổ công nợ tự báo).
+- Nghiệm thu chỉ đọc 25/10 14:47 giờ VN (phiên phân tích góp ý): `GET /api/auth/config` → bản 2.30 và **chế độ bảo trì đang bật** (tự tắt 26/10 09:11 giờ VN); tệp giao diện công khai `js/parties.js`, `js/orders.js`, `js/order.js`, `js/cuoc-chuyen.js`, `js/so-cong-no.js` có mã của tính năng 2.29 / 2.30. **Chưa nghiệm thu trên màn hình** (AI không đăng nhập; đang bảo trì): việc của chủ ở dòng dưới và dòng «Còn lại» của khối 2.29.
+- **Còn lại (chủ):** Kế toán mở «Sổ công nợ & khoá sổ» trên iPhone và máy tính, đối chiếu số dư vài bên với sổ tay.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 2.29 ĐÃ LÊN PRODUCTION (góp ý màn Hỗ trợ: mức TA gắn riêng — ADR-0138; SĐT người đi kèm cho tài xế công ty — ADR-0139; lọc «Chưa có người phụ trách»; khoá «Xác nhận đơn» khi chưa có ngày; nhãn «Đã nhập phần mềm kế toán») — migration `0118_muc_ta_gan_rieng` đã áp — triển khai 2026-10-25 06:04
 
 Khối cuối của `npm run trien-khai` (chủ chạy trên máy dự án, AI đọc từ Terminal của phiên):
 - Commit `main`: `17fb22d0`. Worker Version ID: `f930862c-c356-4f58-8ead-125a483eb525`.
