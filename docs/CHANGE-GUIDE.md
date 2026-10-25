@@ -635,6 +635,7 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 **Bẫy:**
 - **Lần phát hành đầu tiên mang trang Trợ giúp PHẢI là 1.4** (mục đầu nhắc tới trang Trợ giúp/nhật ký thay đổi). Cổng không bắt được nếu quên, vì production trước đó chưa báo số (coi là 1.0).
 - Trang Trợ giúp và chấm đỏ cập nhật sau deploy + một lần mở lại app (service worker stale-while-revalidate). "Đã xem" lưu theo từng máy (`localStorage` `td_help_seen`).
+- **Mục đầu đã MỚI HƠN production** (mục chờ «đi cùng lần phát hành sau» đã nằm sẵn trên `main`, ví dụ 2.31 ngày 25/10): GỘP các gạch của lần này vào mục đó (giữ số, sửa `date`), đừng thêm số mới. Cổng `kiem-phien-ban.mjs` qua sẵn nhờ mục chờ nên KHÔNG bắt được việc quên ghi gạch của mình — tự so mục đầu với những gì lần này mang lên trước khi chạy `trien-khai`.
 
 ### u. Vai & quyền (ADR-0018)
 
