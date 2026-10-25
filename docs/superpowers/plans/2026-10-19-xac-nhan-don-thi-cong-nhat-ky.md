@@ -2,11 +2,11 @@
 
 Sổ điều phối (P19: trạng thái sống ở đây, không trong trí nhớ phiên). Phiên đầu (19/10) dừng theo lệnh chủ: "phiên đã kéo dài quá lâu" → "đồng ý, làm bước 1 rồi dừng".
 
-## Trạng thái khi bàn giao (19/10)
+## Trạng thái khi bàn giao (19/10; cập nhật 25/10)
 
 | Đợt | Trạng thái |
 |---|---|
-| 0 — hồ sơ | Xong. Lượt 1 **chủ duyệt** ("duyệt lượt 1"): `docs/adr/ADR-0134-don-khong-don-khung-gio.md`, `docs/adr/ADR-0135-nhap-rieng-tu-khong-thu.md`. Lượt 2 (đề xuất ADR-0136 bước xác nhận, ADR-0137 thư + QR máy chủ) **chưa trình duyệt**: `docs/superpowers/specs/2026-10-19-xac-nhan-don/`. |
+| 0 — hồ sơ | Xong. Lượt 1 **chủ duyệt** ("duyệt lượt 1"): `docs/adr/ADR-0134-don-khong-don-khung-gio.md`, `docs/adr/ADR-0135-nhap-rieng-tu-khong-thu.md`. Lượt 2 của bộ 19/10 (`docs/superpowers/specs/2026-10-19-xac-nhan-don/`): **ADR-0136 đã duyệt 25/10** kèm bản bổ sung (xem hàng 3); đề xuất thư + QR (số tạm 0137) chưa trình, cần số mới. |
 | 1 — đón/không đón, khung giờ | **ĐÃ LÊN PRODUCTION bản 2.23 (19/10)**: kiểm độc lập ĐẠT có điều kiện, chuẩn bị phát hành (64 kịch bản Chrome, e2e trọn 70/70, tài liệu), chủ day-len + trien-khai; GET /api/auth/config trả version 2.23. Lịch sử: thi công **đã commit** (416a8388 migration, cb318faa máy chủ, dafd1d06 giao diện, 4bc6a1e6 e2e). Báo cáo cuối của trợ lý thi công và **kiểm độc lập chưa có** — xem mục "Việc kế tiếp". |
 | 2 — nháp riêng tư, không thu | Chưa làm. **Phát hành chung với Đợt 3** (chủ chọn A, đặc tả 5f). |
 | 3 — bước xác nhận | Chưa làm. **ADR-0136 chủ duyệt 25/10** (đề xuất gốc + bản bổ sung 25/10: cờ «cần xác nhận» theo dịch vụ hoặc nhóm, nút «Gửi đơn» của Đối tác, ô `order.submit`): `docs/adr/ADR-0136-buoc-xac-nhan-don-va-gui-don.md`. Kế hoạch phải sửa trước khi thi công — xem Ruling 25/10. |
@@ -21,7 +21,7 @@ Sổ điều phối (P19: trạng thái sống ở đây, không trong trí nh�
 - Đợt 2 không phát hành trước Đợt 3 (chủ chọn A, đặc tả 5f).
 - **25/10 — chủ duyệt ADR-0136**, nguyên văn: «Duyệt lượt 1 (ADR-0136 gốc + bản bổ sung 25/10) theo mọi khuyến nghị của người soạn, kể cả hai câu còn mở.» Bản chép: `docs/adr/ADR-0136-buoc-xac-nhan-don-va-gui-don.md`; bản bổ sung và trang ghép mới ở `docs/superpowers/specs/2026-10-25-chinh-sach-ban-va-gui-don/`. **Kế hoạch này viết trước bản bổ sung, nên phải sửa trước khi thi công Đợt 2 + 3:**
   - Task 3.1: `canXacNhan` đọc cờ theo ba bước của Đ1 (dòng dịch vụ → dòng nhóm hiện hành qua `v_ctl_service_group` → không cần), không chỉ tập mã dịch vụ.
-  - Task 3.2: migration 0115 đã bị dùng, lấy số kế tiếp sau khi kiểm mọi nhánh; `ord_service_confirm_flag` thêm phạm vi `SERVICE | GROUP` và giá trị cần / không cần; thêm ô `order.submit` (PARTNER `own`, SUPER_ADMIN `any`, còn lại `none`).
+  - Task 3.2: migration 0115 đã bị dùng, lấy số kế tiếp sau khi kiểm mọi nhánh; `ord_service_confirm_flag` thêm phạm vi `SERVICE | GROUP` (mã dịch vụ hoặc mã nhóm); cột `required` 0/1 kế hoạch đã có giữ làm giá trị cần / không cần (đừng thêm cột trùng), và giá trị «không cần» phải ghi được tường minh để dòng dịch vụ thắng dòng nhóm; thêm ô `order.submit` (PARTNER `own`, SUPER_ADMIN `any`, còn lại `none`).
   - Task 3.3: điều kiện «chưa có khoản thu» khi mở yêu cầu (hàm do gốc lắp ráp tiêm vào); route Gửi đơn (Đ13); luật 409 `partner_submit_required` ở `/status` và route Gửi xác nhận khi người lập giữ quyền Đối tác. Ca e2e (a) hôm nay mong Đối tác nhận `confirm_request_required` rồi tự gửi xác nhận; theo Đ13.5 Đối tác nhận `partner_submit_required` trước, và phải gửi bằng Gửi đơn.
   - Task 3.4: nút Gửi đơn ở form và trang đơn, hai câu báo nhánh A / B, Trợ giúp Đối tác.
   - Bài đỏ đo được và các e2e phải sửa: trang ghép 25/10 mục 6. Cổng «luật bán» trong Gửi đơn chỉ thêm khi ADR chính sách bán (lượt 2) đã duyệt.
