@@ -5,9 +5,9 @@
 // hoặc "Nhập nhầm" + ĐÚNG một chặng mới cùng chiều (luật ghép `ghepThayChang`, src/shared/thay-chang.ts) → MỘT lệnh mang đúng lý do đó, máy chủ đóng + thêm
 // cùng lô — dưới mốc 6 giờ thì cả lệnh bị chặn, chặng cũ còn nguyên (trước C14: bỏ được, thêm bị chặn ⇒ đơn mất chặng). Ca khác (bỏ hai thêm một, "Không cần
 // nữa", khác chiều) vẫn gửi lệnh rời. Người KHÔNG có ô đặt gấp: trước lệnh đầu, bảng kiểm mốc CẢ kế hoạch (`lenhChanMoc` — cùng luật `duoiMocKhiSua` của máy
-// chủ, mốc lấy từ chi tiết đơn); có lệnh chắc chắn bị chặn thì không gửi lệnh nào và báo ngay "… — cần Quản trị duyệt đặt gấp; chưa lưu gì." (máy chủ vẫn là
-// cổng thật). Lệnh hỏng thì DỪNG, báo lỗi; lệnh trước đó đã lưu (nút "Tải lại đơn" để xem bản mới). 409 `short_notice_required` → Quản trị / Toàn quyền
-// duyệt đặt gấp ngay trong bảng rồi gửi lại ĐÚNG lệnh đó (khuôn bảng "Sửa thông tin chuyến" — 07).
+// chủ, mốc lấy từ chi tiết đơn); có lệnh chắc chắn bị chặn thì không gửi lệnh nào và báo ngay "… — cần đặt gấp; chưa lưu gì." (máy chủ vẫn là
+// cổng thật). Lệnh hỏng thì DỪNG, báo lỗi; lệnh trước đó đã lưu (nút "Tải lại đơn" để xem bản mới). 409 `short_notice_required` → người có ô đặt gấp
+// (Bán hàng, Quản trị, Toàn quyền — ADR-0107) duyệt ngay trong bảng rồi gửi lại ĐÚNG lệnh đó kèm lý do (khuôn bảng "Sửa thông tin chuyến" — 07).
 import { ApiError, api, type Api, type Order } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { renderBanner } from "./banner";

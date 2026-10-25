@@ -5,7 +5,7 @@ import { DAU_DAT_GAP, GHI_CHU_DAT_GAP_TOI_DA, ghiDatGapNhatKy, isLyDoDatGap, typ
 import { kiemMocDat } from "../../shared/moc-toi-thieu";
 import { maskLongDigits } from "../../shared/text-guards";
 import type { AuditEntryDto, OrderDetailDto } from "../../shared/contracts";
-import type { DatGapWrite, LegDatGapRow } from "./chang-hanh-khach-repo";
+import type { DauChepNhap, LegDatGapRow } from "./chang-hanh-khach-repo";
 import type { ValidService } from "./service-rules";
 
 /** Thân đặt gấp `{ lyDo, ghiChu? }` (route đặt gấp; khoá `datGap` của lệnh sửa / thêm chặng): lý do thuộc `LY_DO_DAT_GAP`, ghi chú che dãy số ≤ 120. */
@@ -23,16 +23,19 @@ export function docDatGap(v: unknown): { ok: true; value: { lyDo: LyDoDatGap; gh
 const khoa = (catalogCode: string | null, viTri: number, l: Pick<ChangHopLe, "direction" | "pickupDate" | "pickupTime" | "pickupLocationId" | "pickupPlace" | "dropoffLocationId" | "dropoffPlace">) =>
   JSON.stringify([catalogCode, viTri, l.direction, l.pickupDate, l.pickupTime, l.pickupLocationId, l.pickupPlace, l.dropoffLocationId, l.dropoffPlace]);
 
-/** Năm cột dấu của một dòng CSDL (chép nguyên — không đổi người, lúc, số phút đã chụp). */
-export const datGapCuaDong = (r: LegDatGapRow): DatGapWrite =>
-  ({ lyDo: r.short_notice_reason, ghiChu: r.short_notice_note, by: r.short_notice_by, at: r.short_notice_at, phut: r.short_notice_lead_minutes });
+/**
+ * Năm cột dấu của một dòng CSDL (chép nguyên — không đổi người, lúc, số phút đã chụp). CHỖ DUY NHẤT dựng `DauChepNhap` (ADR-0107: ngoại lệ có tên của lưu lại
+ * đơn nháp không đi qua `xetDatGapSua`; bài tĩnh ở dat-gap-sat-gio.test.ts khoá chỗ ép kiểu).
+ */
+export const datGapCuaDong = (r: LegDatGapRow): DauChepNhap =>
+  ({ lyDo: r.short_notice_reason, ghiChu: r.short_notice_note, by: r.short_notice_by, at: r.short_notice_at, phut: r.short_notice_lead_minutes }) as DauChepNhap;
 
 /**
  * Q1 = (a) (chủ 29/9: "Còn, nếu không đổi giờ/nơi"): lưu lại đơn nháp xoá–chèn lại chặng — chặng MỚI khớp ĐÚNG MỘT chặng CŨ đã đặt gấp (cùng mã danh mục +
  * vị trí dịch vụ, chiều, ngày, giờ, nơi đón, nơi trả) thì mang năm cột dấu của chặng cũ. Không khớp, hoặc khớp nhiều hơn một (hai chặng cũ / mới giống hệt)
  * → KHÔNG mang (an toàn: phải đặt gấp lại). Giá trị lấy từ dòng CŨ trong CSDL, không bao giờ từ thân trình duyệt (TC-25). Trả khoá `"<i>|<j>"`.
  */
-export function chepDatGapNhap(cu: readonly LegDatGapRow[], moi: readonly ValidService[]): Map<string, DatGapWrite> {
+export function chepDatGapNhap(cu: readonly LegDatGapRow[], moi: readonly ValidService[]): Map<string, DauChepNhap> {
   const demCu = new Map<string, LegDatGapRow[]>();
   for (const r of cu) {
     const k = khoa(r.catalog_code, r.sort_order, {
@@ -46,7 +49,7 @@ export function chepDatGapNhap(cu: readonly LegDatGapRow[], moi: readonly ValidS
     const k = khoa(s.catalogCode, i, l);
     demMoi.set(k, [...(demMoi.get(k) ?? []), `${i}|${j}`]);
   }));
-  const out = new Map<string, DatGapWrite>();
+  const out = new Map<string, DauChepNhap>();
   for (const [k, viTri] of demMoi) {
     const dong = demCu.get(k);
     if (viTri.length === 1 && dong?.length === 1) out.set(viTri[0]!, datGapCuaDong(dong[0]!));
@@ -82,11 +85,12 @@ export function datGapTheoVai(order: OrderDetailDto, xemDu: boolean): OrderDetai
  */
 // ADR-0062 Đ2: hằng + hàm viết đoạn đuôi nằm ở src/shared/chang-dua-don.ts (hàm đọc tin bóc đúng đoạn này) — ở đây chỉ dùng lại.
 export { DAU_DAT_GAP, ghiDatGapNhatKy };
-export const DAT_GAP_RUT_GON = " · Đặt gấp — Quản trị đã duyệt";
+/** ADR-0107 mục 8: nhãn dấu "Điều chỉnh khẩn cấp"; người đóng dấu có thể là Bán hàng nên KHÔNG ghi "Quản trị" (sai sự thật). */
+export const DAT_GAP_RUT_GON = " · Điều chỉnh khẩn cấp (văn phòng)";
 /**
  * Lịch sử đơn theo vai (ruling R-P21 — áp lời chủ H4 / N-14, "Trả lời lần 12"): người KHÔNG có ô `order.leg.short_notice.view` (Đối tác, HDV, Thực tập)
- * thấy mọi dòng đặt gấp — dòng `order_leg_short_notice` và dòng có đoạn "đặt gấp: …" — chỉ là "Đặt gấp — Quản trị đã duyệt": bỏ nhãn lý do, người làm =
- * nhãn "Quản trị" (không tên, không id). Dòng khác giữ nguyên. Dựng dòng MỚI (không sửa mảng vào).
+ * thấy mọi dòng đặt gấp — dòng `order_leg_short_notice` và dòng có đoạn "đặt gấp: …" — chỉ là "Điều chỉnh khẩn cấp (văn phòng)": bỏ nhãn lý do, người
+ * làm = nhãn "Văn phòng" (không tên, không id — ADR-0107 mục 8). Dòng khác giữ nguyên. Dựng dòng MỚI (không sửa mảng vào).
  */
 export function lichSuTheoVai(history: readonly AuditEntryDto[], xemDu: boolean): AuditEntryDto[] {
   if (xemDu) return [...history];
@@ -94,6 +98,6 @@ export function lichSuTheoVai(history: readonly AuditEntryDto[], xemDu: boolean)
     const detail = e.detail ?? "";
     const i = detail.indexOf(DAU_DAT_GAP);
     if (e.action !== "order_leg_short_notice" && i < 0) return e;
-    return { action: e.action, staffId: null, staffName: "Quản trị", at: e.at, detail: `${i < 0 ? detail : detail.slice(0, i)}${DAT_GAP_RUT_GON}` };
+    return { action: e.action, staffId: null, staffName: "Văn phòng", at: e.at, detail: `${i < 0 ? detail : detail.slice(0, i)}${DAT_GAP_RUT_GON}` };
   });
 }

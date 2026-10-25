@@ -2,7 +2,7 @@
 // Người giữ quyền Đối tác (`holdsPartner` — kể cả tài khoản lai, "có quyền Đối tác là áp") chỉ thấy các hành động ở `LICH_SU_DOI_TAC_CHO_PHEP`, mỗi hành động kèm CÁCH
 // giữ chữ `detail`; mọi hành động còn lại ẩn. Đổi chiều so với cách cũ (lọc kiểu CHẶN: mỗi loại dòng nhật ký thêm sau tự lộ cho Đối tác).
 // Tên và mã người làm BỎ ở MỌI dòng trả cho Đối tác (ADR-0131 Quyết định 2, thay chỗ "giữ nguyên tên" của D-1): `staffId: null`, `staffName: ""` (hàm `anNguoiLam`),
-// kể cả dòng hệ thống và nhãn "Quản trị" của dòng đặt gấp.
+// kể cả dòng hệ thống và nhãn "Văn phòng" của dòng đặt gấp (ADR-0107 mục 8).
 // Ngoại lệ DUY NHẤT ngoài danh sách: dòng nhập phần mềm kế toán (`order_accounting_entry_*`) vẫn hiện cho tài khoản LAI có ô `accounting.entry.view` (ADR-0060 điều 3 (ii):
 // luật theo ô, không theo danh tính "Đối tác"; Đối tác thuần không có ô nên không thấy).
 // HÀNG RÀO MÁY: mọi hành động của `AUDIT_ACTIONS` phải nằm ở MỘT trong hai danh sách (`CHO_PHEP` hoặc `AN`) — thiếu thì `npm run typecheck` đỏ (kiểu `ChuaPhanLoai`
@@ -31,7 +31,7 @@ export const LICH_SU_DOI_TAC_CHO_PHEP = {
   order_leg_added: "giu", // chặng đưa đón: giờ / nơi của chính đơn (chữ tự do đã che dãy số — moTaChang)
   order_leg_updated: "giu",
   order_leg_closed: "giu",
-  order_leg_short_notice: "giu", // đã rút gọn trước đó theo R-P21 ("Đặt gấp — Quản trị đã duyệt", người làm = "Quản trị")
+  order_leg_short_notice: "giu", // đã rút gọn trước đó theo R-P21 ("Điều chỉnh khẩn cấp (văn phòng)", người làm = "Văn phòng" — ADR-0107)
   order_passenger_changed: "giu", // "thêm N, sửa N, huỷ N khách" — không tên, không năm sinh
   confirmed: "bo", // chữ cũ: lệch giá danh mục
   cancelled: "chi-nhom-huy",

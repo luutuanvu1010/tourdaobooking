@@ -32,7 +32,8 @@ function taiXeMoi(w: any): string {
 }
 /** Đơn ĐÃ XÁC NHẬN có cam kết xe riêng (chặng chiều đi, đón `gio` ngày `ngay`, trả ở bến). */
 // ADR-0128 Q2: `cx` = đơn đòi xe tối thiểu `cx` chỗ (R-CX — phá lệ được) thay cho xe riêng (R-XR — chặn cứng); xe thử 15 chỗ nên cx = 16 là vi phạm ngay từ một đơn.
-async function donXeRieng(w: any, v: { ngay?: string; gio: string; soNguoi?: number; cx?: number }) {
+// `datGap` (ADR-0107 — chỉ đặt gấp được chặng ĐANG dưới mốc): Quản trị đặt gấp khi đơn còn nháp, rồi mới xác nhận — `gio` phải dưới mốc.
+async function donXeRieng(w: any, v: { ngay?: string; gio: string; soNguoi?: number; cx?: number; datGap?: boolean }) {
   const soNguoi = v.soNguoi ?? 2;
   const r = await w.call("POST", "/api/orders", {
     as: SALES,
@@ -47,6 +48,7 @@ async function donXeRieng(w: any, v: { ngay?: string; gio: string; soNguoi?: num
   });
   assert.equal(r.status, 201, r.text);
   const o = r.json.order;
+  if (v.datGap) assert.equal((await w.call("POST", `/api/orders/${o.id}/legs/${o.services[0].legs[0].id}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } })).status, 200);
   assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
   return { id: o.id, code: o.orderCode, legId: o.services[0].legs[0].id };
 }
@@ -172,8 +174,7 @@ test("NT-1 (ADR-0104 Đ1 mục 0b, 0): cam kết số chỗ tối thiểu — ch
     const w = setup();
     const dau = await donXeRieng(w, { gio: "13:00", cx: 16 });
     const thuong = await donXeRieng(w, { gio: "13:00", cx: 16 });
-    const gap = await donXeRieng(w, { gio: "13:00", cx: 16 });
-    assert.equal((await w.call("POST", `/api/orders/${gap.id}/legs/${gap.legId}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } })).status, 200);
+    const gap = await donXeRieng(w, { gio: "11:30", cx: 16, datGap: true }); // ADR-0107: chặng đặt gấp phải đang dưới mốc (còn 330 phút)
     const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, bd: "11:00", kt: "15:00" });
     const c00 = await xep(w, SALES, t.chuyen.id, [{ legId: dau.legId, soSuat: 2 }], { phaLe: PL });
     assert.equal(c00.status, 409, c00.text);

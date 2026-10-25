@@ -126,7 +126,8 @@ export function setup(tuyChon = {}) {
 }
 
 /** Đơn ĐÃ XÁC NHẬN (Bán hàng) — `soNguoi` người lớn, một chặng chiều đi đón `gio` ngày `ngay` tại chữ tự do, trả ở bến (điểm danh mục); `ten` khách có tên
- * "Khách Dò Tìm <i>", năm sinh `namSinh` + i (mặc định 1990). */
+ * "Khách Dò Tìm <i>", năm sinh `namSinh` + i (mặc định 1990). `datGap: true` (ADR-0107 — chỉ đặt gấp được chặng ĐANG dưới mốc): Quản trị đặt gấp chặng bằng
+ * đường thật khi đơn còn NHÁP, rồi mới xác nhận — giờ đón phải dưới mốc lúc gọi (vd 11:30 với đồng hồ giả 06:00). */
 export async function don(w, v) {
   kiemGioTheoDongHo({ nhan: "don() (giờ đón)", ngay: v.ngay ?? NGAY, gio: v.gio ?? "13:00", mocPhut: mocPhutCua(w) });
   const soNguoi = v.soNguoi ?? 2;
@@ -145,6 +146,10 @@ export async function don(w, v) {
   });
   assert.equal(r.status, 201, r.text);
   const o = r.json.order;
+  if (v.datGap) {
+    const g = await w.call("POST", `/api/orders/${o.id}/legs/${o.services[0].legs[0].id}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } });
+    assert.equal(g.status, 200, g.text);
+  }
   const x = await w.call("POST", `/api/orders/${o.id}/status`, { as: SALES, body: { status: "confirmed" } });
   assert.equal(x.status, 200, x.text);
   return { id: o.id, code: o.orderCode, legId: o.services[0].legs[0].id };

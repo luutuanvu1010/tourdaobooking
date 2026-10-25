@@ -27,7 +27,7 @@ export const isLyDoDongChang = (v: unknown): v is LyDoDongChang => typeof v === 
 
 /**
  * Lý do ĐẶT GẤP một chặng dưới mốc tối thiểu (ADR-0049 D2; kế hoạch I26). Danh sách ĐÓNG ở mã (khuôn `LY_DO_DONG_CHANG`); CSDL (0040) chỉ giữ khuôn chữ
- * HOA. Chỉ Quản trị, Toàn quyền đặt gấp (ô `order.leg.short_notice`). Mã + nhãn theo BẢN VẼ của chủ (ruling R-P18 của điều phối 29/9 — thay giả định G-02;
+ * HOA. Bán hàng, Quản trị, Toàn quyền đặt gấp (ô `order.leg.short_notice` — ADR-0107), chỉ cho chặng đang dưới mốc. Mã + nhãn theo BẢN VẼ của chủ (ruling R-P18 của điều phối 29/9 — thay giả định G-02;
  * đổi TRƯỚC khi 0040 lên remote nên không có dữ liệu mang mã cũ).
  */
 export const LY_DO_DAT_GAP = {

@@ -20,10 +20,10 @@ const LEG = (l: any, over: Record<string, unknown> = {}) => ({
   pickupDate: l.pickupDate, pickupTime: l.pickupTime ?? "", pickupLocationId: l.pickupLocationId, pickupPlace: l.pickupPlace ?? "", dropoffLocationId: l.dropoffLocationId,
   dropoffPlace: l.dropoffPlace ?? "", ...over,
 });
-async function suaChang(w: any, as: string, orderId: string, over: Record<string, unknown>) {
+async function suaChang(w: any, as: string, orderId: string, over: Record<string, unknown>, datGap?: { lyDo: string }) {
   const o = await donXem(w, orderId);
   const l = o.services[0].legs[0];
-  const r = await w.call("PUT", `/api/orders/${orderId}/legs/${l.id}`, { as, body: { expectedUpdatedAt: l.updatedAt, leg: LEG(l, over) } });
+  const r = await w.call("PUT", `/api/orders/${orderId}/legs/${l.id}`, { as, body: { expectedUpdatedAt: l.updatedAt, leg: LEG(l, over), ...(datGap ? { datGap } : {}) } });
   assert.equal(r.status, 200, r.text);
   return l.id as string;
 }
@@ -207,9 +207,10 @@ test("màn hình khoá (gõ cửa THẬT qua gốc lắp ráp, fetch giả): s�
     const nguoiDuocGo = async () => { await w.choNen(); const r = goi.map((u) => u.split("/").pop()!).sort(); goi.length = 0; return r; };
     denGio("06:10");
 
-    await suaChang(w, ADM, a.don.id, { pickupTime: "13:30" });
+    // ADR-0107: chỉ đặt gấp được chặng ĐANG dưới mốc — Quản trị dời giờ đón VÀO dưới mốc (12:00, còn 350 phút) kèm lý do, để lệnh đặt gấp ở dưới hợp lệ.
+    await suaChang(w, ADM, a.don.id, { pickupTime: "12:00" }, { lyDo: "KHAC" });
     assert.deepEqual(await nguoiDuocGo(), [SALES, FIELD, DRIVER].sort(), "MQ-07 (Bán hàng, tài xế) + tin đơn đổi (HDV); không Quản trị (người sửa), Kế toán, tài xế khác, Đối tác");
-    // Lệnh SAU của cùng người trên cùng đơn, cũng báo "chuyen" nhưng KHÔNG ghi dòng đổi (đặt gấp — nhật ký order_leg_short_notice): không gõ cửa lại tin cũ.
+    // Lệnh SAU của cùng người trên cùng đơn, cũng báo "chuyen" nhưng KHÔNG ghi dòng đổi (đặt gấp lại — nhật ký order_leg_short_notice): không gõ cửa lại tin cũ.
     // Đồng hồ giả đứng yên giữa các request → tiến 1 phút (thật: mỗi request một mốc khác) — cố ý vẫn trong 2 phút để bài bắt cách "đọc dòng đổi trong cửa sổ thời gian".
     denGio("06:11");
     const legA = (await donXem(w, a.don.id)).services[0].legs[0].id;
@@ -241,7 +242,7 @@ test("màn hình khoá (gõ cửa THẬT qua gốc lắp ráp, fetch giả): s�
     assert.deepEqual(await nguoiDuocGo(), [], "số khách y nguyên → không dòng nhật ký → không gõ cửa");
     // Hai người trên cùng đơn trong CÙNG mốc (đồng hồ giả đứng yên — thật: hai request chồng nhau): lệnh không ghi dòng đổi của người này không gõ cửa
     // dòng đổi của người kia (câu doi_vua_ghi lọc đúng người làm).
-    await suaChang(w, ADM, a.don.id, { pickupTime: "14:00" });
+    await suaChang(w, ADM, a.don.id, { pickupTime: "14:00" }, { lyDo: "KHAC" }); // giờ cũ 12:00 dưới mốc → cần lý do (dấu bỏ vì 14:00 ngoài mốc)
     assert.deepEqual(await nguoiDuocGo(), [SALES, FIELD, DRIVER].sort(), "Quản trị sửa chặng lần nữa → như trên");
     const thu2 = await w.call("POST", `/api/orders/${a.don.id}/payments`, { as: FIELD, body: { soTien: 100000, hinhThuc: "CASH", nguoiThu: "cong_ty" } });
     assert.equal(thu2.status, 201, thu2.text);

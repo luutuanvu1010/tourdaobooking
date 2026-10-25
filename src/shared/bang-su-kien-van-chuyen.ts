@@ -310,7 +310,7 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
   {
     id: "sua-thong-tin-chuyen-don", ten: "Sửa thông tin chuyến của đơn (ngày đi, giờ đón — bảng cũ)", loai: "don_khong_dong_bo", trangThai: "co_ma",
     routes: [{ phuongThuc: "PUT", duongDan: "/api/orders/:id/trip", cong: "orders", o: "order.trip.edit", ngucanh: "ownerId+assigned", ai: O_SUA_CHUYEN_DON, ham: "updateTrip" }],
-    trangThaiChuyen: ["PLANNED"], vuot: [], luat: "đơn đã xác nhận đổi chặng dưới mốc → cần đặt gấp (Quản trị, Toàn quyền); chuyến chỉ hiện lý do giữ, người xếp xe bấm nút",
+    trangThaiChuyen: ["PLANNED"], vuot: [], luat: "đơn đã xác nhận đổi chặng dưới mốc → cần đặt gấp (Bán hàng, Quản trị, Toàn quyền — ADR-0107); chuyến chỉ hiện lý do giữ, người xếp xe bấm nút",
     bang: ["orders", "ord_transfer_leg", "audit_log"], suKien: null, nhatKy: null, nhatKyDon: ["trip_updated", "order_leg_updated"], lo: null, bao: "khong", tin: null,
     // G17 (việc 6, gộp 2a7973d4): mỗi chặng đổi ngày / giờ ghi thêm `order_leg_updated` (target = chặng, cùng lô, `changes() > 0`) → tin giờ hẹn MQ-07.
     tinDon: { nhom: "gio_hen", nhan: [{ ai: TX_LUC, loai: "gio_hen_tai_xe" }, { ai: LAP_VA_PHU_TRACH, loai: "gio_hen_goi_bao" }] },

@@ -50,8 +50,8 @@ test("lichSuNoiBo bỏ tên và mã người làm ở mọi dòng, kể cả dò
   assert.ok(!s.includes(TEN) && !s.includes("u1") && !s.includes("Hệ thống"));
 });
 
-test("dòng 'Quản trị' của đặt gấp cũng thành nhãn rỗng", () => {
-  const [e] = lichSuNoiBo([dong("order_leg_short_notice", "Đặt gấp — Quản trị đã duyệt", null, "Quản trị")], false);
+test("dòng 'Văn phòng' của đặt gấp cũng thành nhãn rỗng", () => {
+  const [e] = lichSuNoiBo([dong("order_leg_short_notice", "Chiều đi · Điều chỉnh khẩn cấp (văn phòng)", null, "Văn phòng")], false);
   assert.deepEqual([e.staffId, e.staffName], [null, ""]);
 });
 

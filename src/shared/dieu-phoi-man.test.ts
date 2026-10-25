@@ -36,7 +36,7 @@ test("gioHien: 'HH:MM' cùng ngày; khác ngày thêm 'dd/mm'", () => {
 });
 
 test("chipChang: nhãn tiếng Việt theo mã (quá mốc đỏ, sát mốc cát, đặt gấp, xếp một phần), 'Thiếu tên' khi chưa đủ tên — không lộ mã", () => {
-  assert.deepEqual(chipChang(chang({ nhan: ["QUA_MOC", "DAT_GAP"] })), [{ nhan: "Quá hạn chốt", tone: "danger" }, { nhan: "Đặt gấp", tone: "unit" }]);
+  assert.deepEqual(chipChang(chang({ nhan: ["QUA_MOC", "DAT_GAP"] })), [{ nhan: "Quá hạn chốt", tone: "danger" }, { nhan: "Điều chỉnh khẩn cấp", tone: "unit" }], "ADR-0107 mục 8: nhãn dấu trên lịch chung");
   assert.deepEqual(chipChang(chang({ nhan: ["SAT_MOC"], soNguoiCoTen: 1 })), [{ nhan: "Sắp tới hạn chốt", tone: "warn" }, { nhan: "Thiếu tên", tone: "warn" }]);
   assert.deepEqual(chipChang(chang({ nhan: ["XEP_MOT_PHAN", "CHUA_CHOT_GIO", "LA_MA"] })), [{ nhan: "Xếp một phần", tone: "warn" }, { nhan: "Chưa chốt giờ", tone: "muted" }]);
 });
@@ -103,6 +103,7 @@ test("viecCanXuLy: chuyến bị giữ (lý do + Ai xử lý theo NHAN_AI_XU_LY 
   assert.equal(v[5]!.tieuDe, "CX-3009-02 · TD-1");
   assert.ok(v.slice(5, 7).every((x) => x.hanhDong.length === 0), "không nút Gọi tài xế / Đã gọi báo");
   assert.deepEqual([v[7]!.tieuDe, v[7]!.hanhDong], ["TD-9 · đón 11:40", [{ nhan: "Xem đơn", kieu: "link", href: "/order?id=o9" }]]);
+  assert.equal(v[7]!.aiXuLy, "Bán hàng, Quản trị", "ADR-0107 mục 10: Bán hàng có ô order.leg.short_notice — tự đặt gấp được");
   assert.ok(!JSON.stringify(v).match(/[A-Z]{2,}_[A-Z]/), "không lộ mã");
   // Kế toán (không điều phối): không nút nào; Quản trị có ô quản lý xe → "Mở giấy tờ xe"; có ô điều chỉnh khẩn cấp (Bán hàng, Quản trị) → không dòng khoá.
   assert.ok(viecCanXuLy(L, { dieuPhoi: false, khanCap: false, quanLyXe: false }).every((x) => x.hanhDong.every((h) => h.kieu === "link" && h.href.startsWith("/order"))));

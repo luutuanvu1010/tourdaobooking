@@ -22,7 +22,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "order.create": ["any", "none", "any", "none", "any", "any", "any", "none", "none", "none"],
   "order.modify": ["ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none", "none"],
   "order.trip.edit": ["ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"],
-  "order.leg.short_notice": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0049 D3: ô MỚI — đặt gấp chặng dưới mốc 6 giờ; chỉ Quản trị, Toàn quyền
+  "order.leg.short_notice": ["any", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0049 D3: ô MỚI — đặt gấp chặng dưới mốc 6 giờ; ADR-0107 (i) NỚI có tên (Điều 9.4, chủ Q-3 a 8/10): + SALES any
   "order.leg.short_notice.view": ["any", "any", "any", "none", "none", "any", "none", "none", "none", "none"], // chủ H4/N-14 (29/9, Trả lời lần 12): ô MỚI — xem ĐỦ dấu đặt gấp; mã khác chỉ cờ
   "trip.view": ["any", "any", "any", "none", "none", "any", "none", "assigned", "assigned", "none"], // ADR-0049 D3: ô MỚI — DRIVER assigned (NỚI ghim DRIVER — ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2); ADR-0053 D7.1 (A4 T6): DRIVER_PARTNER assigned
   "trip.dispatch": ["any", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0049 D3: ô MỚI
@@ -363,7 +363,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "order.view": "none", "money.view": "none", "order.history.view": "none", "contact.view": "none", "order.create": "none", "order.modify": "none",
     "order.trip.edit": "none", "task.progress": "none", "order.money.edit": "none", "order.cancel": "none", "order.cancel.classify": "none", "deposit.refund.approve": "none", "deposit.transfer.approve": "none", "deposit.outside.record": "none", "dispatch.assign": "none", "dispatch.claim": "none",
     "order.passenger.write": "none", // ADR-0047 A2: tài xế KHÔNG đi qua ô này (đường ghi của tài xế, nếu có, do ADR lượt 2 quyết)
-    "order.leg.short_notice": "none", // ADR-0049 D3: đặt gấp chỉ Quản trị, Toàn quyền
+    "order.leg.short_notice": "none", // ADR-0049 D3 + ADR-0107: đặt gấp chỉ Bán hàng, Quản trị, Toàn quyền
     "order.leg.short_notice.view": "none", // chủ H4/N-14: tài xế không xem chi tiết đơn (không đổi)
     "order.service.manual": "none", // ADR-0061 điều 2: tài xế không nhập tay
     "dispatch.guides.view": "none", "dispatch.refuse": "none", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
@@ -583,11 +583,12 @@ test("ADR-0059: mọi mã quyền có trip.view = any thì có order.view = any 
   }
 });
 
-test("ADR-0049 D3: ô order.leg.short_notice CHỈ ADMIN + SUPER_ADMIN (any); mọi mã khác none", () => {
+// ADR-0107 (i) — NỚI có tên (Điều 9.4; chủ chọn Q-3 a ngày 2026-10-08): thêm SALES. Không phạm vi đơn ở ô này; bốn lệnh sửa / thêm / thay chặng và `PUT …/trip`
+// vẫn hỏi `order.trip.edit` (SALES ownOrAssigned) trước, nên Bán hàng chỉ kèm dấu cho đơn mình lập hoặc phụ trách — bài phạm vi ở dat-gap-sat-gio.test.ts.
+test("ADR-0049 D3 + ADR-0107 (i): ô order.leg.short_notice ĐÚNG SALES + ADMIN + SUPER_ADMIN (any); mọi mã khác none", () => {
   const co = PERMISSION_CODES.filter((p) => MATRIX["order.leg.short_notice"][p] !== "none");
-  assert.deepEqual(co, ["ADMIN", "SUPER_ADMIN"]);
-  assert.equal(MATRIX["order.leg.short_notice"].ADMIN, "any");
-  assert.equal(MATRIX["order.leg.short_notice"].SUPER_ADMIN, "any");
+  assert.deepEqual(co, ["SALES", "ADMIN", "SUPER_ADMIN"]);
+  for (const p of co) assert.equal(MATRIX["order.leg.short_notice"][p], "any", p);
 });
 
 // ADR-0060 (siết): ghi dấu "đã nhập phần mềm kế toán" CHỈ Kế toán + Toàn quyền (lời chủ — Quản trị KHÔNG); ô xem KHÔNG rộng hơn order.view ở mọi cột

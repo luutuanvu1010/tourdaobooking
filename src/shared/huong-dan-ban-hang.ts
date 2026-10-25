@@ -69,7 +69,7 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
 2. Bấm [[Xác nhận đơn]]. Hộp hỏi lại: sau khi xác nhận, dịch vụ và đơn giá bị khoá. Bấm đồng ý.
 3. Đơn chuyển sang [[Đã xác nhận]].
 
-Nền tảng chỉ cho xác nhận khi mỗi dịch vụ đã chọn Đón hoặc Không đón, có ngày khởi hành, ngày đó chưa qua và không quá 365 ngày tới, mỗi dịch vụ có khách, và không còn lượt đưa đón sát giờ chưa được duyệt (xem "Đơn sát giờ — Đặt gấp"). Thiếu thì Nền tảng báo [[Chưa đủ thông tin chuyến để xác nhận đơn.]] kèm từng dịch vụ và liên kết [[Sửa]].
+Nền tảng chỉ cho xác nhận khi mỗi dịch vụ đã chọn Đón hoặc Không đón, có ngày khởi hành, ngày đó chưa qua và không quá 365 ngày tới, mỗi dịch vụ có khách, và không còn lượt đưa đón sát giờ chưa đặt gấp (xem "Đơn sát giờ — Đặt gấp"). Thiếu thì Nền tảng báo [[Chưa đủ thông tin chuyến để xác nhận đơn.]] kèm từng dịch vụ và liên kết [[Sửa]].
 
 > Lưu ý: giờ đón chưa chốt vẫn xác nhận được, nhưng nên điền trước khi gửi khách.`,
     },
@@ -139,7 +139,7 @@ Mục "Giờ hẹn đổi — gọi báo khách" ở [[Cần xử lý]]: gọi k
 4. Nền tảng nhắc bản xác nhận đã gửi khách có thể lỗi thời → bấm [[Xem biên nhận]] và gửi lại ảnh mới.
 5. Tự gọi hoặc nhắn hướng dẫn viên phụ trách: họ chưa được tự báo khi giờ hoặc nơi đón đổi.
 
-> Lưu ý: nếu giờ đón mới đã qua hạn chốt, Nền tảng từ chối và chỉ Quản trị sửa được. Muốn đổi hồ sơ khách của đơn đã xác nhận thì bấm [[Đổi khách]].
+> Lưu ý: nếu giờ đón cũ hoặc mới đã qua hạn chốt, bảng mở khung [[Đặt gấp]]: chọn lý do rồi bấm [[Duyệt đặt gấp]]. Muốn đổi hồ sơ khách của đơn đã xác nhận thì bấm [[Đổi khách]].
 
 ### Khách đổi số người hoặc dịch vụ sau khi đã xác nhận
 
@@ -155,13 +155,11 @@ Nền tảng tự tính lại tiền (giảm giá giữ nguyên), ghi vào [[L�
 
 > Ví dụ: 10 giờ sáng khách gọi đặt đưa đón lúc 13 giờ cùng ngày.
 
-1. Lập đơn như thường. Khi giờ đón đã qua hạn chốt, cuối thẻ dịch vụ hiện dải vàng báo còn bao lâu tới giờ đón, kèm dòng [[Lưu nháp được. Xác nhận cần Quản trị duyệt đặt gấp.]]
-2. Bấm [[Lưu, chờ xác nhận]] như thường.
-3. Trên trang đơn, nút [[Xác nhận đơn]] bị khoá, kèm dòng [[Cần Quản trị duyệt đặt gấp]].
-4. Gọi Quản trị, đọc mã đơn. Quản trị mở đơn, bấm [[Đặt gấp]], chọn lý do, bấm [[Duyệt đặt gấp]].
-5. Lượt đó hiện nhãn "Đặt gấp". Lúc này bạn bấm [[Xác nhận đơn]].
+1. Lập đơn như thường. Khi giờ đón đã qua hạn chốt, cuối thẻ dịch vụ hiện dải vàng báo còn bao lâu tới giờ đón, kèm nút [[Đặt gấp]].
+2. Bấm [[Đặt gấp]], chọn lý do, bấm [[Duyệt đặt gấp]]. Nền tảng lưu đơn rồi đóng dấu cho lượt đó.
+3. Lượt đó mang nhãn "Điều chỉnh khẩn cấp". Lúc này bạn bấm [[Xác nhận đơn]].
 
-> Lưu ý: nếu sau khi Quản trị duyệt mà bạn sửa ngày, giờ hoặc nơi đón của lượt đó (khi đơn còn chờ xác nhận), dấu đặt gấp mất — phải nhờ duyệt lại. Bạn không tự bấm Đặt gấp được.
+> Lưu ý: chỉ đặt gấp được khi lượt đó thật sự đã qua hạn chốt. Sửa ngày, giờ hoặc nơi đón của lượt đã đặt gấp (khi đơn còn chờ xác nhận) thì dấu mất — đặt gấp lại nếu vẫn sát giờ.
 
 ### Thiếu thông tin chuyến
 
@@ -197,8 +195,7 @@ Huỷ được đơn chờ xác nhận lẫn đã xác nhận mà bạn lập ho
     },
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",
-      noiDung: `- Duyệt đặt gấp cho đơn sát giờ; sửa giờ đón sát giờ sau xác nhận → **Quản trị**.
-- Sửa, xác nhận, huỷ đơn người khác lập mà bạn không phụ trách → người lập đơn, người phụ trách, hoặc **Quản trị** (đơn đang [[Chờ nhận]] thì bạn tự bấm [[Nhận phụ trách]]).
+      noiDung: `- Sửa, xác nhận, huỷ đơn người khác lập mà bạn không phụ trách → người lập đơn, người phụ trách, hoặc **Quản trị** (đơn đang [[Chờ nhận]] thì bạn tự bấm [[Nhận phụ trách]]).
 - Sửa số khách sau khi đã xác nhận của đơn người khác lập → người lập đơn, **Kế toán** hoặc **Quản trị** (đơn bạn lập thì tự bấm [[Sửa số khách dịch vụ]]). Dịch vụ, giá → chưa sửa được, báo **Quản trị**.
 - Thêm, sửa dịch vụ và giá trong danh mục; dịch vụ "chưa có giá" → **Quản trị**.
 - Khách trả thêm: bấm [[Ghi khoản thu]] trên đơn bạn lập. Hoàn tiền, hoá đơn → **Kế toán**.
@@ -214,7 +211,7 @@ Chưa. Đơn mới lưu ở trạng thái [[Chờ xác nhận]]. Phải bấm [[
 
 ### Sao tôi không bấm được "Xác nhận đơn"?
 
-Hoặc có lượt đưa đón đã qua hạn chốt chưa được Quản trị duyệt (dòng [[Cần Quản trị duyệt đặt gấp]] hiện ngay dưới), hoặc thiếu thông tin chuyến (Nền tảng liệt kê từng dịch vụ kèm liên kết [[Sửa]]).
+Hoặc có lượt đưa đón đã qua hạn chốt chưa đặt gấp (dòng [[Đặt gấp xong thì xác nhận được.]] hiện ngay dưới; bấm [[Đặt gấp]] ở lượt đó), hoặc thiếu thông tin chuyến (Nền tảng liệt kê từng dịch vụ kèm liên kết [[Sửa]]).
 
 ### Sao tôi không thấy nút Sửa, Xác nhận, Huỷ?
 

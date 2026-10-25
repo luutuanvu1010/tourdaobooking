@@ -88,6 +88,15 @@ async function don(w: any, v: { ngay: string; gio: string; soNguoi?: number; ten
   const p = await w.call("GET", `/api/orders/${o.id}/passengers`, { as: SALES });
   return { id: o.id as string, code: o.orderCode as string, legId: o.services[0].legs[0].id as string, personKeys: (p.json.passengers as any[]).map((x) => x.personKey as string) };
 }
+/** ADR-0107 — chỉ đặt gấp được chặng ĐANG dưới mốc: đơn nháp có chặng đón sau `phut` phút (dưới mốc 360), Quản trị đặt gấp, rồi Bán hàng xác nhận. */
+async function donDatGap(w: any, phut: number, v: { noiDon?: { place?: string; locId?: string }; camKet?: { exclusiveVehicle?: boolean; minVehicleSeats?: number | null } } = {}) {
+  const d = await don(w, { ...vnSau(phut), ...v, xacNhan: false });
+  const g = await w.call("POST", `/api/orders/${d.id}/legs/${d.legId}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } });
+  assert.equal(g.status, 200, g.text);
+  const x = await w.call("POST", `/api/orders/${d.id}/status`, { as: SALES, body: { status: "confirmed" } });
+  assert.equal(x.status, 200, x.text);
+  return d;
+}
 async function taoChuyen(w: any, as: string, v: { xe: string; taiXe: string; batDau: { ngay: string; gio: string }; ketThuc?: { ngay: string; gio: string }; nghiPhaLe?: unknown }) {
   const bd = Date.parse(`${v.batDau.ngay}T${v.batDau.gio}:00+07:00`);
   const kt = v.ketThuc ?? (() => {
@@ -163,8 +172,7 @@ test("TC-42 / TC-31: xếp chặng ĐÃ ĐẶT GẤP vào chuyến trong 6 giờ
   const w = setup();
   const tx2 = taiXe(w, "Tài Xế Bình");
   const t = (await taoChuyen(w, SALES, { xe: xe(w), taiXe: taiXe(w, "Tài Xế An"), batDau: vnSau(120) })).json;
-  const d = await don(w, { ngay: inDays(1), gio: "23:00" });
-  assert.equal((await w.call("POST", `/api/orders/${d.id}/legs/${d.legId}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } })).status, 200);
+  const d = await donDatGap(w, 150);
   const r = await xep(w, SALES, t, [{ legId: d.legId, soSuat: 2 }]);
   assert.equal(r.status, 200, r.text);
   let c = r.json;
@@ -329,13 +337,12 @@ test("TC-51 cập nhật điểm theo đơn: đổi nơi đón sau khi xếp →
 test("TC-51: TRONG 6 giờ Bán hàng cập nhật điểm → 200 không cần phá lệ (DOI_DIEM_THEO_CHANG ngoài danh sách khoá)", async () => {
   const w = setup();
   const t = (await taoChuyen(w, SALES, { xe: xe(w), taiXe: taiXe(w, "Tài Xế An"), batDau: vnSau(120) })).json;
-  const d = await don(w, { ngay: inDays(1), gio: "23:00", noiDon: { place: "Sheraton" } });
-  assert.equal((await w.call("POST", `/api/orders/${d.id}/legs/${d.legId}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } })).status, 200);
+  const d = await donDatGap(w, 150, { noiDon: { place: "Sheraton" } });
   const c = (await xep(w, SALES, t, [{ legId: d.legId, soSuat: 2 }])).json;
   const o = (await w.call("GET", `/api/orders/${d.id}`, { as: ADM })).json.order;
   const l = o.services[0].legs[0];
-  // chặng xa hơn mốc (23:00 ngày mai) — Bán hàng sửa nơi đón được; dấu đặt gấp cũ bị bỏ (I16) nhưng chặng đã ở trên xe.
-  const sua = await w.call("PUT", `/api/orders/${d.id}/legs/${l.id}`, { as: SALES, body: { expectedUpdatedAt: l.updatedAt, leg: { pickupDate: l.pickupDate, pickupTime: l.pickupTime, pickupLocationId: null, pickupPlace: "Amiana", dropoffLocationId: LOC, dropoffPlace: "" } } });
+  // Chặng dưới mốc (ADR-0107: chỉ chặng đang dưới mốc mới đặt gấp được) — Bán hàng sửa nơi đón phải kèm lý do đặt gấp; dấu mới thay dấu cũ, chặng đã ở trên xe.
+  const sua = await w.call("PUT", `/api/orders/${d.id}/legs/${l.id}`, { as: SALES, body: { expectedUpdatedAt: l.updatedAt, leg: { pickupDate: l.pickupDate, pickupTime: l.pickupTime, pickupLocationId: null, pickupPlace: "Amiana", dropoffLocationId: LOC, dropoffPlace: "" }, datGap: { lyDo: "KHACH_DOAN_GOI_GAP" } } });
   assert.equal(sua.status, 200, sua.text);
   const cap = await w.call("POST", `/api/van-chuyen/chuyen/${t.chuyen.id}/cap-nhat-diem`, { as: SALES, body: { version: c.chuyen.version, requestId: uuid() } });
   assert.equal(cap.status, 200, cap.text);
@@ -612,9 +619,8 @@ test("Đợt 7 bài 6 (C6): xếp cần CẢ mốc lẫn cam kết — thiếu c
   const w = setup();
   const t = (await taoChuyen(w, SALES, { xe: xe(w), taiXe: taiXe(w, "Tài Xế An"), batDau: vnSau(120) })).json;
   // ADR-0128 Q2: xe riêng không phá lệ được → dùng số chỗ tối thiểu (A, B đều đòi ≥ 16 chỗ, xe 15; B làm khoá đổi). Cuối bài: xe riêng thì chặn cứng.
-  const a = await don(w, { ngay: inDays(1), gio: "23:00", camKet: { minVehicleSeats: 16 } });
+  const a = await donDatGap(w, 150, { camKet: { minVehicleSeats: 16 } });
   const b = await don(w, { ngay: inDays(1), gio: "23:00", camKet: { minVehicleSeats: 16 } });
-  assert.equal((await w.call("POST", `/api/orders/${a.id}/legs/${a.legId}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } })).status, 200);
   const x = await xep(w, SALES, t, [{ legId: a.legId, soSuat: 2 }], { camKetPhaLe: PL });
   assert.equal(x.status, 200, x.text);
   const c = x.json;
@@ -637,8 +643,7 @@ test("Đợt 7 bài 6 (C6): xếp cần CẢ mốc lẫn cam kết — thiếu c
   assert.match(nk, / · điều chỉnh khẩn cấp hạn chốt: Sự cố vận hành · điều chỉnh khẩn cấp cam kết: Khác · còn 1[12]\d phút$/);
   assert.doesNotMatch(nk, /phá lệ/);
   // ADR-0128 Q2: cùng thao tác với XE RIÊNG (đơn đặt gấp, xe riêng) — đủ cả hai cờ vẫn 409 chặn cứng, cột phá lệ giữ nguyên, không ghi sự kiện.
-  const rr = await don(w, { ngay: inDays(1), gio: "23:00", camKet: { exclusiveVehicle: true } });
-  assert.equal((await w.call("POST", `/api/orders/${rr.id}/legs/${rr.legId}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } })).status, 200);
+  const rr = await donDatGap(w, 150, { camKet: { exclusiveVehicle: true } });
   const ckCu = camKetCua(w, t.chuyen.id);
   const nSk = w.q("SELECT count(*) n FROM vc_trip_event")[0].n;
   const chan = await xep(w, ADM, ok.json, [{ legId: rr.legId, soSuat: 2 }], { phaLe: PL, camKetPhaLe: PL });

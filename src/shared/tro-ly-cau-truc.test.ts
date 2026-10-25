@@ -74,12 +74,13 @@ test("Đ2 kho (d): vai làm được / không làm được đúng MATRIX (dịc
   assert.match(tx, /Không làm được: [^\n]*xem đơn/);
   const bh = cauTruc("Vai trò Bán hàng làm được gì").chu;
   assert.match(bh, /Làm được: [^\n]*sửa, xác nhận, huỷ đơn \(phần của mình hoặc đang được giao\)/);
-  assert.match(bh, /Không làm được: [^\n]*duyệt Đặt gấp/);
+  // ADR-0107 (i) — NỚI có tên (chủ Q-3 a 8/10): Bán hàng tự đặt gấp — việc chuyển từ "Không làm được" sang "Làm được".
+  assert.match(bh, /Làm được: [^\n]*đặt gấp lượt đưa đón/);
   // task.progress, dispatch.guides.view, invoice.* hôm nay chỉ có trên bảng (docs/quyen-hoan.json) — trợ lý không được hứa.
   for (const d of CAU_TRUC) for (const op of ["dispatch.guides.view", "task.progress", "invoice.request", "invoice.issue"] as const) {
     assert.ok(!d.noiDung.includes(TEN_THAO_TAC[op].ten), `${d.tieuDe}: nhắc "${TEN_THAO_TAC[op].ten}" (ô chưa có máy chủ hỏi)`);
   }
-  assert.match(cauTruc("Việc: duyệt Đặt gấp").chu, /Ai làm được: Quản trị, Toàn quyền\./);
+  assert.match(cauTruc("Việc: đặt gấp lượt đưa đón").chu, /Ai làm được: Bán hàng, Quản trị, Toàn quyền\./);
 });
 
 // Kiểm độc lập 1/10 (I-1, I-2, I-3): ô "rộng trên bảng, hẹp ở máy chủ" — kho chỉ được nói điều máy chủ THỰC SỰ cho.

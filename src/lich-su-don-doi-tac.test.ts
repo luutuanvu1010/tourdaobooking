@@ -33,7 +33,7 @@ const CHO_PHEP: Record<string, "giu" | null | string> = {
   order_leg_added: "giu",
   order_leg_updated: "giu",
   order_leg_closed: "giu",
-  order_leg_short_notice: "Đặt gấp — Quản trị đã duyệt", // quy tắc R-P21 đã có từ trước (lichSuTheoVai): người làm là "Quản trị"
+  order_leg_short_notice: "Điều chỉnh khẩn cấp (văn phòng)", // quy tắc R-P21 (lichSuTheoVai), chữ theo ADR-0107 mục 8: người làm là "Văn phòng"
   order_passenger_changed: "giu",
   confirmed: null,
   cancelled: "Công ty huỷ", // chỉ nhãn NHÓM lý do huỷ (công khai sẵn ở khối cọc); câu tự do bị bỏ
@@ -138,7 +138,7 @@ test("D-1 (b) mọi hành động của audit-actions.ts: Đối tác (và tài 
     assert.deepEqual([...new Set(h.map((e) => e.action))].sort(), mongDoi, `${ten}: tập hành động phải đúng danh sách cho phép`);
     assert.equal(h.length, mongDoi.length, `${ten}: mỗi hành động một dòng`);
     for (const e of h) {
-      // ADR-0131 đ2: MỌI dòng trả cho Đối tác không tên, không mã người làm (kể cả dòng nhập kế toán của tài khoản lai và nhãn "Quản trị" của dòng đặt gấp).
+      // ADR-0131 đ2: MỌI dòng trả cho Đối tác không tên, không mã người làm (kể cả dòng nhập kế toán của tài khoản lai và nhãn "Văn phòng" của dòng đặt gấp).
       assert.deepEqual([e.staffId, e.staffName], [null, ""], `${ten}: ${e.action} còn người làm`);
       if (nhapKt.includes(e.action)) { assert.equal(e.detail, chiTietGieo(e.action as AuditAction), `${ten}: ${e.action} phải nguyên văn`); continue; }
       const cach = CHO_PHEP[e.action];

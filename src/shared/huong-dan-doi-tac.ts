@@ -92,7 +92,7 @@ Sau khi xác nhận, dịch vụ, số khách và tiền **bị khoá**.
 Nền tảng **không cho xác nhận** khi:
 - Có dịch vụ chưa chọn Đón hay Không đón. Nền tảng báo dịch vụ thứ mấy còn thiếu. Bấm [[Sửa]] để chọn.
 - Thiếu thông tin chuyến. Nền tảng báo "Chưa đủ thông tin chuyến để xác nhận đơn." và chỉ rõ dịch vụ còn thiếu. Bấm [[Sửa]] để bổ sung.
-- Giờ đón quá gần. Dưới nút có dòng "Cần Quản trị duyệt đặt gấp". Gọi văn phòng để Quản trị duyệt. Khi đã duyệt, đơn có nhãn "Đặt gấp — Quản trị đã duyệt" và bạn xác nhận được.
+- Giờ đón quá gần. Dưới nút có dòng [[Cần văn phòng đặt gấp]]. Gọi văn phòng (nhân viên bán hàng hoặc Quản trị) để đặt gấp. Khi đã đặt gấp, lượt đó có nhãn "Điều chỉnh khẩn cấp (văn phòng)" và bạn xác nhận được.
 - Đơn có giá khác giá bán lẻ hoặc có giảm giá. Nền tảng báo "Tài khoản đối tác dùng đúng giá bán lẻ theo danh mục; muốn giá khác, nhờ văn phòng."`,
     },
     {
@@ -146,7 +146,7 @@ Nền tảng ghi "Không tìm thấy dịch vụ nào khớp." Thử gõ ngắn 
 
 ### Khách đi gấp trong vài giờ tới
 
-Vẫn lập và lưu đơn được. Nhưng muốn xác nhận thì phải có Quản trị duyệt "Đặt gấp". Gọi văn phòng ngay sau khi lưu.`,
+Vẫn lập và lưu đơn được (dải vàng ghi [[Lưu nháp được. Xác nhận cần văn phòng đặt gấp.]]). Nhưng muốn xác nhận thì văn phòng phải bấm "Đặt gấp" cho lượt đó. Gọi văn phòng ngay sau khi lưu.`,
     },
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",
@@ -155,7 +155,7 @@ Vẫn lập và lưu đơn được. Nhưng muốn xác nhận thì phải có Q
 - Chọn hướng dẫn viên phụ trách: không. Nhờ văn phòng.
 - Sửa giờ đón, điểm đón, đổi khách sau khi xác nhận: không. Nhờ văn phòng.
 - Sửa số khách, tiền sau khi xác nhận: không. Nhờ văn phòng.
-- Duyệt "Đặt gấp": không. Nhờ Quản trị.
+- Bấm "Đặt gấp": không. Nhờ văn phòng (nhân viên bán hàng hoặc Quản trị).
 - Xem Danh bạ, Trang chủ của công ty: không.
 - Xin nhận lo một đơn, báo tiến độ tour (chưa có ở bản này).
 - Nhận tin gửi toàn công ty: không, chỉ nhân viên nội bộ nhận.`,

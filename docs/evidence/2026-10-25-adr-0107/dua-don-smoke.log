@@ -1,0 +1,21 @@
+BAT_DAU 17:01:27
+✓ 1) M6 (1040): chọn dịch vụ Hai chiều → tạo sẵn chiều đi + chiều về, câu ghi chú đúng bản vẽ, nơi trả gợi ý Ga cáp treo, giờ về 16:30; chọn nơi đón chiều đi → chiều về tự đảo, axe không vi phạm critical/serious
+✓ 2) M1 (1040): đổi ngày đi → 'Đã dời ngày đón của 2 lượt đưa đón theo ngày đi mới'; Gõ tự do → chữ trong ô + câu nhắc chỉ ghi địa chỉ; Sân bay → ô Số hiệu chuyến bay; thêm lượt thiếu nơi đón → Lưu báo 'Lượt 3: chưa có nơi đón.' và KHÔNG gửi; bỏ lượt
+✓ 3) M2 (1040): khối Hành khách dạng bảng trải ngang dưới hàng 'thẻ dịch vụ | Tóm tắt'; 4 khách; dòng năm sinh sai → 'Dòng 3: năm sinh phải từ 1906 đến 2026.'; 3/4 nhắc vàng; nhập khách thứ 4 → 4/4, axe không vi phạm critical/serious
+✓ 4) Lưu nháp: POST /api/orders có legs (không pickupTime/pickupPlace) và passengers; GET /api/orders/:id có 2 chặng đúng nơi; GET /passengers trả 4 (tiêu chí 1, 2, 3)
+✓ 5) M3 (1040, Bán hàng, đơn nháp): hai khối mới sau 'Khách hàng'; chặng không giờ → 'Chưa chốt giờ' + 'Cần giờ đón trước khi xếp xe'; 'Đơn nháp — sửa trong biểu mẫu đơn.'; thẻ dịch vụ KHÔNG còn dòng 'Đón'; 4/4 khách đã có tên; đủ nơi trả + đủ tên → KHÔNG cảnh báo dưới nút Xác nhận, axe không vi phạm critical/serious
+✓ 6) Tiêu chí 6: xác nhận đơn thiếu nơi trả + thiếu tên → câu hỏi kèm cảnh báo, xác nhận VẪN thành công, dải vàng 'Đã xác nhận đơn.' liệt kê hai câu
+✓ 7) M3 + M4 (1040, Bán hàng, đơn đã xác nhận): câu khoá theo vai; 'Sửa đưa đón' mở bảng — đổi nơi trả chiều đi, bỏ chiều về phải chọn lý do ('Chọn lý do bỏ chặng.'), Lưu → PUT /legs/:id + POST /legs/:id/close (tiêu chí 4), axe không vi phạm critical/serious
+✓ 7b) C14 (1040, Bán hàng): bỏ chiều đi với lý do 'Đổi sang chặng khác' + thêm chặng mới trong cùng lần Lưu → ĐÚNG MỘT lệnh POST /legs/:id/replace (reasonCode REPLACED), không gửi /close, không gửi POST /legs; đơn còn đúng chặng mới; lịch sử có 'bỏ — Đổi sang chặng khác'
+✓ 8) Sửa thông tin chuyến: không còn ô Giờ đón / Điểm đón; PUT /trip KHÔNG gửi pickupTime / pickupPlace (tiêu chí 20 kế hoạch ADR-0047)
+✓ 8b) M5 (1040): bảng 'Sửa danh sách hành khách' rộng 640px (token --w-sheet-hk), mỗi người một thẻ; 'Huỷ' đóng không gửi, axe không vi phạm critical/serious
+✓ 8c) M4 (390): bảng 'Sửa đưa đón' trượt từ đáy, không tràn ngang, chân 'Huỷ | Lưu', axe không vi phạm critical/serious
+✓ 9) M5 (390, Bán hàng): 'Sửa danh sách' mở bảng thẻ; 'Huỷ người' hỏi lại trong thẻ; thêm Lê Thị Hồng; Lưu → POST /passengers {them 1, huy 1}; 390 không tràn ngang, axe không vi phạm critical/serious
+✓ 9b) M6 (390): dịch vụ 'Một chiều' (mẫu TTB06) → chỉ tạo sẵn chiều đi, câu 'Đã tạo sẵn chiều đi theo dịch vụ — sửa hoặc bỏ nếu khác.'; thanh lưu dính đáy; không tràn ngang, axe không vi phạm critical/serious
+✓ 10) Form 390 (Bán hàng, sửa nháp): mở lại đơn nháp còn đủ chặng + 4 hành khách (dạng thẻ); thanh lưu dính đáy; không tràn ngang
+✓ 11) M3 (390, Kế toán): thấy hai khối, KHÔNG nút 'Sửa đưa đón' / 'Sửa danh sách', câu khoá không hứa sửa
+✓ 12) Tiêu chí 7 (390, Đối tác): form có chiều về → 'Số người chiều về' chỉ xem ('Cả đoàn' + 'Văn phòng điều chỉnh số người về'); khối Hành khách nhập được; API gửi paxOverride khác → 403; đơn đã xác nhận: có 'Sửa danh sách', KHÔNG 'Sửa đưa đón', câu khoá D5, axe không vi phạm critical/serious
+
+DUA DON SMOKE OK (16 bước)
+EXIT=0
+KET_THUC 17:02:10

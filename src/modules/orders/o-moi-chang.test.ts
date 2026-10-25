@@ -175,13 +175,16 @@ test("TC-F5 + Q-B (chủ 1/10 'Giữ dấu đặt gấp cũ'): chặng dưới m
   assert.equal(doiGio.json.error.code, "short_notice_required");
 });
 
-test("Q-B: chỉ đổi ô phụ mà thân CÓ datGap (Quản trị vừa duyệt) → ghi dấu MỚI (cờ giữ = 0); Bán hàng gửi datGap → 403", async () => {
+// ADR-0107 (i) — NỚI có tên (chủ Q-3 a 8/10): "Bán hàng gửi datGap → 403" thành "Bán hàng (đơn mình lập) kèm datGap → 200, dấu mới".
+test("Q-B: chỉ đổi ô phụ mà thân CÓ datGap → ghi dấu MỚI (cờ giữ = 0) — Quản trị, và Bán hàng đơn mình lập (ADR-0107)", async () => {
   const w = setup();
   const c = await donDuoiMoc(w);
-  assert.equal((await suaChang(w, c, SALES, di(c), { flightCode: "VN1553" }, { datGap: { lyDo: "CHUYEN_BAY_DOI_GIO" } })).status, 403);
   const r = await suaChang(w, c, ADM, di(c), { flightCode: "VN1553" }, { datGap: { lyDo: "CHUYEN_BAY_DOI_GIO" } });
   assert.equal(r.status, 200, r.text);
   assert.deepEqual(cot(w, di(c).id), { flight_code: "VN1553", pax_override: null, short_notice_reason: "CHUYEN_BAY_DOI_GIO" });
+  const ban = await suaChang(w, r.json.order, SALES, di(r.json.order), { flightCode: "VJ123" }, { datGap: { lyDo: "KHACH_DOAN_GOI_GAP" } });
+  assert.equal(ban.status, 200, ban.text);
+  assert.deepEqual(cot(w, di(c).id), { flight_code: "VJ123", pax_override: null, short_notice_reason: "KHACH_DOAN_GOI_GAP" });
 });
 
 test("TC-P7: chặng VỀ dưới mốc, Bán hàng chỉ đổi số người chiều về → 200, không đòi datGap, dấu cũ CÒN", async () => {

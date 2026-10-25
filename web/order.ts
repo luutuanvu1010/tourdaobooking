@@ -1389,7 +1389,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
   // Hướng dẫn viên LÀ người phụ trách mà không sửa được (order.modify FIELD = none) → câu riêng, không nói "người phụ trách đơn … mới được sửa" (`khongQuyenSuaText`).
   if (a.noPermission && !order.deliveredAt) btns.push(h("p", { class: "muted" }, khongQuyenSuaText({ ownerName: order.staffName, status: order.status, viewer: staff!, suaSoKhach: nguonSoKhach !== null })));
   if (a.edit) btns.push(h("a", { class: "btn", href: `/order-form?id=${encodeURIComponent(order.id)}` }, "Sửa"));
-  // Bản vẽ 7a / 7b: còn chặng phải đặt gấp → nút Xác nhận khoá + dòng nói vì sao (Bán hàng: "Cần Quản trị duyệt đặt gấp"; Quản trị: "Duyệt đặt gấp xong thì xác nhận được.").
+  // Bản vẽ 7a / 7b: còn chặng phải đặt gấp → nút Xác nhận khoá + dòng nói vì sao (`tomTatChanXacNhan` — người có ô đặt gấp: "Đặt gấp xong thì xác nhận được."; Đối tác, Thực tập: "Cần văn phòng đặt gấp").
   const chanXacNhan = a.confirm ? tomTatChanXacNhan(canDatGap, duocDatGap) : null;
   // YC-0016: đơn nháp chưa có ngày khởi hành — khoá nút và nói vì sao (máy chủ vẫn chặn).
   const chuaCoNgay = a.confirm ? cauChuaCoNgay(order.services) : null;

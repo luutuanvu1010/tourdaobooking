@@ -4,6 +4,7 @@
 > Mọi tên menu, trang, nút dưới đây lấy từ mã thật của bản 1.38. Điều chưa đối chiếu được với mã hay với thao tác thật ghi rõ **"chưa kiểm"**.
 > Lộ trình, trạng thái từng lượt, việc đang chặn: `docs/superpowers/specs/2026-09-29-van-chuyen-lo-trinh.md`.
 > Cập nhật 2/10: mục 2.3 và danh sách việc đã đối chiếu bản 1.65; các mục khác vẫn theo bản 1.38 — chưa rà lại.
+> Cập nhật 25/10 (ADR-0107, bản 2.31): Bán hàng tự bấm "Đặt gấp" được (cùng Quản trị, Toàn quyền); "Đặt gấp" chỉ dùng được khi lượt đưa đón thật sự đã qua hạn chốt; dấu hiện là "Điều chỉnh khẩn cấp — lý do — người HH:MM", Đối tác / Hướng dẫn viên / Thực tập chỉ thấy "Điều chỉnh khẩn cấp (văn phòng)". Các dòng về đặt gấp bên dưới đã sửa theo; chỗ nào còn lệch thì mã đúng.
 
 **Điều quan trọng nhất:** bản 1.38 đã chạy trên mạng thật, nhưng **chủ đã quyết chưa dùng Bảng điều phối cho chuyến thật** cho tới khi có màn nhập tên khách. Màn đó đã có từ bản 1.62; việc dùng Bảng điều phối cho chuyến thật đang chờ chủ quyết. Văn phòng vẫn điều xe như cũ. Riêng **quy tắc 6 giờ đã có hiệu lực ngay** với việc xác nhận đơn.
 
@@ -29,7 +30,7 @@ Nguồn quyết định: ADR-0128 và ADR-0129, chủ duyệt 17/10/2026 khi rà
 
 - **Một con số cho cả hai việc:** xác nhận đơn có giờ đón sát, và xếp / đổi xe / đổi tài xế / rút khách trên chuyến sắp chạy. Chủ chọn **30 phút** (trước đây 6 giờ).
 - **Ai đặt:** Quản trị và Toàn quyền, ở Vận chuyển › Chính sách điều phối. Quản trị chỉ thấy hai ô theo phút (mốc, cảnh báo sát mốc); Toàn quyền thấy đủ các ô, ghi theo giờ (gõ «0,5» hay «0.5» đều là 30 phút). Mốc không tắt được.
-- **Còn ít hơn mốc** trước giờ xuất bến: Bán hàng không thao tác thẳng được, phải bấm **«Điều chỉnh khẩn cấp»** kèm lý do; tài xế đang lái nhận tin báo. Xác nhận đơn có chặng dưới mốc vẫn cần Quản trị / Toàn quyền bấm **«Đặt gấp»**.
+- **Còn ít hơn mốc** trước giờ xuất bến: Bán hàng không thao tác thẳng được, phải bấm **«Điều chỉnh khẩn cấp»** kèm lý do; tài xế đang lái nhận tin báo. Xác nhận đơn có chặng dưới mốc vẫn cần bấm **«Đặt gấp»** trước (từ bản 2.31 Bán hàng tự bấm được, cùng Quản trị / Toàn quyền — ADR-0107).
 - Còn **đúng bằng** mốc là ngoài mốc (không bị chặn).
 
 ### 0.2 Xe riêng — không bao giờ ghép khách lẻ
@@ -99,7 +100,7 @@ Phân hệ Vận chuyển giúp công ty quản lý **xe và giấy tờ xe**, *
 | **Xếp / Rút / Chuyển** | Xếp: đưa khách của một chặng lên một chuyến (xếp ít hơn số khách là tách đoàn, phần còn lại ở cột "Chưa xếp"). Rút: đưa khách ra khỏi xe, về cột "Chưa xếp". Chuyển: đưa khách sang một chuyến khác cùng ngày. |
 | **Xuất bến** | Lúc xe lăn bánh. Chỉ xuất bến được khi chuyến **đạt đủ điều kiện xuất bến**. |
 | **"Giữ"** | Chuyến chưa đủ điều kiện thì bị giữ (không xuất bến được) và màn hình ghi rõ **lý do** + **ai xử lý** (Văn phòng / Quản trị / Toàn quyền). Ví dụ lý do: "Chưa đủ tên khách", "Chặng chưa có nơi trả", "Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm", "Khách trong xe không còn trong đơn — bấm Cập nhật khách theo đơn", "Xe thiếu hoặc hết hạn giấy tờ bắt buộc", "Tài xế chưa có giấy phép lái xe còn dùng được", "Giấy phép lái xe chưa ghi hạng", "Hạng bằng lái không đủ chở số chỗ của xe", "Chưa đủ thời gian nghỉ sau chuyến trước", "Vượt số chỗ của xe". Màn chi tiết chuyến gom các lý do thành bảy dòng kiểm: Giấy tờ xe, Giấy phép lái xe, Đủ tên khách, Không có đơn đã huỷ, Điểm khớp đơn, Đủ chỗ, Đủ giờ nghỉ. |
-| **Mốc 6 giờ và "Đặt gấp"** | Giờ đón cách bây giờ **dưới 6 giờ** thì đơn vẫn **lưu nháp** được, nhưng **muốn xác nhận** phải có Quản trị hoặc Toàn quyền bấm **"Đặt gấp"** cho chặng đó (chọn lý do: "Khách đoàn gọi gấp", "Chuyến bay đổi giờ", "Đơn bù cho khách bị lỡ chuyến", "Lý do khác"). Phía xếp xe: trong 6 giờ trước giờ xuất bến, chuyến bị **khoá** (không xếp thêm, không đổi xe / tài xế, không rút) trừ khi Quản trị **phá lệ** kèm lý do; khoá "dính" — dời giờ chuyến ra xa cũng không mở lại. Bán hàng vẫn tạo được chuyến mới trong 6 giờ, nhưng chỉ để xếp chặng đã "Đặt gấp". |
+| **Mốc 6 giờ và "Đặt gấp"** | Giờ đón cách bây giờ **dưới 6 giờ** thì đơn vẫn **lưu nháp** được, nhưng **muốn xác nhận** phải bấm **"Đặt gấp"** cho chặng đó — Bán hàng, Quản trị hoặc Toàn quyền (từ bản 2.31, ADR-0107; chặng còn xa thì không đặt gấp được) — (chọn lý do: "Khách đoàn gọi gấp", "Chuyến bay đổi giờ", "Đơn bù cho khách bị lỡ chuyến", "Lý do khác"). Phía xếp xe: trong 6 giờ trước giờ xuất bến, chuyến bị **khoá** (không xếp thêm, không đổi xe / tài xế, không rút) trừ khi Quản trị **phá lệ** kèm lý do; khoá "dính" — dời giờ chuyến ra xa cũng không mở lại. Bán hàng vẫn tạo được chuyến mới trong 6 giờ, nhưng chỉ để xếp chặng đã "Đặt gấp". |
 | **"Đã gọi báo"** | Khi giờ hẹn đón của một chặng **đổi sau khi đã xếp xe**, bảng điều phối hiện mục "Giờ hẹn đổi — gọi báo khách". Máy **không tự báo khách**; người phụ trách gọi khách rồi bấm "Đã gọi báo" (bấm nhầm thì "Bỏ đánh dấu"). |
 | **Chính sách điều phối** | Các con số cài đặt (chỉ Toàn quyền đổi): mốc tối thiểu (6 giờ), cảnh báo sát mốc (2 giờ), khoảng nghỉ tài xế giữa hai chuyến (30 phút), khai lùi tối đa khi văn phòng bấm thay (180 phút), công tắc "Phải đủ danh sách khách" (đang **bật**), "Phải có hợp đồng" (khoá tắt). Giá trị trong ngoặc là giá trị gieo sẵn lúc cài; giá trị đang dùng trên mạng thật **chưa kiểm**. Mỗi lần lưu là một bản mới, có hiệu lực ngay; bản cũ vào lịch sử. |
 | **Điều kiện xuất bến** | Giấy tờ bắt buộc phải còn hạn tới hết chuyến. Gieo sẵn cho mọi xe: **Kiểm định** và **Bảo hiểm trách nhiệm dân sự**. Chỉ thêm hoặc đóng, không sửa, không xoá. |
@@ -124,7 +125,7 @@ Trên máy tính, các mục nằm ở thanh bên, nhóm **QUẢN TRỊ › Vậ
 | **Loại giấy tờ người** (nhóm QUẢN TRỊ, ngoài mục Vận chuyển) | Danh mục loại giấy tờ của người + hạng giấy phép lái xe | Quản trị, Toàn quyền |
 | **Danh bạ** → hồ sơ người → mục **"Giấy tờ"** | Ghi giấy tờ của nhân viên, tài xế ("Thêm giấy tờ", "Xem đủ số") | Ghi và "Xem đủ số": Quản trị, Toàn quyền |
 | **Danh bạ** → hồ sơ tổ chức (vai "Nhà xe đối tác") → mục **"Người liên hệ, tài xế"** | Ghi nhà xe, tài xế thuộc nhà xe (quan hệ "Tài xế của") | Quản trị, Toàn quyền (chưa kiểm từng nút ở màn này) |
-| Trang đơn → khối dưới dịch vụ | Dải cảnh báo "dưới 6 giờ", nút **"Đặt gấp"**, nhãn "Đặt gấp — lý do — người duyệt" | Nút: Quản trị, Toàn quyền. Nhãn đủ: Bán hàng, Kế toán, Quản trị, Toàn quyền. Đối tác, Hướng dẫn viên, Thực tập chỉ thấy "Đặt gấp — Quản trị đã duyệt" |
+| Trang đơn → khối dưới dịch vụ | Dải cảnh báo "dưới 6 giờ", nút **"Đặt gấp"**, nhãn "Điều chỉnh khẩn cấp — lý do — người HH:MM" | Nút: Bán hàng, Quản trị, Toàn quyền (ADR-0107). Nhãn đủ: Bán hàng, Kế toán, Quản trị, Toàn quyền. Đối tác, Hướng dẫn viên, Thực tập chỉ thấy "Điều chỉnh khẩn cấp (văn phòng)" |
 | **Cuốc của tôi** | Chuyến mình lái, hai nhóm "Hôm nay" và "Ngày mai"; mở chuyến để bấm Xuất bến, Đã tới, Đã đón, Vắng, Đã trả, Kết thúc | Tài xế công ty (tài khoản chỉ tài xế: tab mở đầu; tài khoản vừa tài xế vừa văn phòng: mục ở thanh bên / trang Tôi) |
 | **Trang chủ của tài xế** | Lời chào, lối sang "Cuốc của tôi", "Giấy tờ của tôi" | Tài xế công ty, Tài xế đối tác |
 | Trang **Tôi** → **"Giấy tờ của tôi"** | Xem giấy tờ và hạn của chính mình, số bị che | Nhân viên nội bộ và tài xế; tài khoản mang quyền Đối tác thì không có mục này |
@@ -140,7 +141,7 @@ Trên máy tính, các mục nằm ở thanh bên, nhóm **QUẢN TRỊ › Vậ
 | Phá lệ (mốc 6 giờ, khoảng nghỉ) | không | không | có | có | không | không | không | không | không |
 | Bấm tiến độ (Xuất bến, Đã đón, …) | bấm thay | không | bấm thay | bấm thay | không | không | không | tự bấm, chuyến mình lái | không |
 | "Đã gọi báo" | đơn mình lập hoặc đang phụ trách | không | mọi chặng | mọi chặng | không | không | không | không | không |
-| Bấm "Đặt gấp" | không | không | có | có | không | không | không | không | không |
+| Bấm "Đặt gấp" (chỉ khi chặng thật sự dưới mốc — ADR-0107) | có (từ bản 2.31) | không | có | có | không | không | không | không | không |
 | Xe, giấy tờ xe, Sắp hết hạn | không | không | có | có | không | không | không | không | không |
 | Chính sách điều phối, Điều kiện xuất bến, số khách theo hạng bằng | không | không | **không** | có | không | không | không | không | không |
 | Lý do điều phối, loại giấy tờ | không | không | có | có | không | không | không | không | không |
@@ -188,8 +189,8 @@ Trên máy tính, các mục nằm ở thanh bên, nhóm **QUẢN TRỊ › Vậ
 **Đặt gấp**
 1. Mở đơn có dải cảnh báo "Giờ đón cách bây giờ … — …" (dưới mốc 6 giờ).
 2. Bấm **"Đặt gấp"** ở khối dưới dịch vụ → chọn **Lý do**, ghi **Ghi chú ngắn** (không bắt buộc) → **"Duyệt đặt gấp"**.
-3. Sau đó người lập đơn bấm **"Xác nhận đơn"** được. Trong form lập đơn, Quản trị có nút "Duyệt đặt gấp" ngay trên thẻ dịch vụ: máy **lưu nháp rồi đặt gấp**.
-4. Dấu "Đặt gấp" còn giữ nếu sau đó không đổi ngày, giờ, nơi đón, nơi trả; đổi thì mất, phải bấm lại. Đơn đã xác nhận mà chặng đã đặt gấp và đang dưới mốc: **chỉ Quản trị / Toàn quyền** sửa được đưa đón của chặng đó.
+3. Sau đó người lập đơn bấm **"Xác nhận đơn"** được. Trong form lập đơn, Bán hàng, Quản trị, Toàn quyền có nút "Duyệt đặt gấp" ngay trên thẻ dịch vụ: máy **lưu nháp rồi đặt gấp**.
+4. Dấu "Đặt gấp" còn giữ nếu sau đó không đổi ngày, giờ, nơi đón, nơi trả; đổi thì mất, phải bấm lại. Đơn đã xác nhận: sửa đưa đón của chặng đang dưới mốc (hoặc dời vào dưới mốc) phải kèm lý do đặt gấp — Bán hàng (đơn mình lập hoặc đang phụ trách), Quản trị, Toàn quyền; dời ra ngoài mốc thì chặng không còn mang dấu (ADR-0107).
 
 **Phá lệ**: khi xếp / rút / đổi xe / đổi tài xế trong vùng khoá 6 giờ, hộp hỏi hiện nút **"Phá lệ và xếp"** (hoặc "… và rút", "… và chuyển", "… và lưu", "… và huỷ") → chọn lý do. Việc phá lệ ghi vào nhật ký chuyến kèm tên người bấm.
 
@@ -201,10 +202,10 @@ Trên máy tính, các mục nằm ở thanh bên, nhóm **QUẢN TRỊ › Vậ
 
 ### 3.3 Bán hàng — lập đơn có giờ đón sát
 
-1. Lập đơn như cũ. Nếu giờ đón cách bây giờ dưới 6 giờ, cuối thẻ dịch vụ hiện dải cảnh báo; dòng nhắc "Lưu nháp được. Xác nhận cần Quản trị duyệt đặt gấp."
-2. Lưu nháp. Trên trang đơn, nút **"Xác nhận đơn"** bị khoá kèm dòng "Cần Quản trị duyệt đặt gấp".
-3. Nhờ Quản trị bấm **"Đặt gấp"** (mục 3.1). Xong thì bấm "Xác nhận đơn".
-4. Nếu sửa ngày / giờ / nơi của chặng đã đặt gấp trước khi xác nhận thì dấu mất, phải nhờ lại.
+1. Lập đơn như cũ. Nếu giờ đón cách bây giờ dưới 6 giờ, cuối thẻ dịch vụ hiện dải cảnh báo; dòng nhắc "Chọn lý do đặt gấp thì xác nhận và xếp xe được."
+2. Lưu nháp. Trên trang đơn, nút **"Xác nhận đơn"** bị khoá kèm dòng "Đặt gấp xong thì xác nhận được."
+3. Tự bấm **"Đặt gấp"** (cách bấm như mục 3.1 — từ bản 2.31 Bán hàng làm được, ADR-0107). Xong thì bấm "Xác nhận đơn".
+4. Nếu sửa ngày / giờ / nơi của chặng đã đặt gấp trước khi xác nhận thì dấu mất, phải bấm lại.
 
 ### 3.4 Văn phòng điều phối (Bán hàng, Quản trị, Toàn quyền)
 
@@ -254,7 +255,7 @@ Trên máy tính, các mục nằm ở thanh bên, nhóm **QUẢN TRỊ › Vậ
 - [ ] Mở **Điều kiện xuất bến**: đang áp Kiểm định + Bảo hiểm cho mọi xe.
 
 **Người dùng**
-- [ ] **Báo nhân viên quy tắc 6 giờ** (đã có hiệu lực): đơn đón dưới 6 giờ lưu nháp được, xác nhận cần Quản trị / Toàn quyền bấm "Đặt gấp". (Đã báo hay chưa: chưa kiểm.)
+- [ ] **Báo nhân viên quy tắc 6 giờ** (đã có hiệu lực): đơn đón dưới 6 giờ lưu nháp được, xác nhận cần bấm "Đặt gấp" trước (từ bản 2.31 Bán hàng tự bấm được — ADR-0107). (Đã báo hay chưa: chưa kiểm.)
 - [ ] Nhắc nhân viên: **chưa dùng Bảng điều phối cho chuyến thật**; văn phòng điều xe như cũ.
 - [ ] **Chế độ bảo trì đang BẬT tới 13:21 ngày 4/10**: chỉ số điện thoại trong danh sách cho phép vào được app. Người thử phải có trong danh sách, hoặc chủ tắt bảo trì trước.
 
@@ -278,10 +279,10 @@ Dùng **hai đơn**: đơn A có giờ đón cách bây giờ khoảng 3 giờ (
 | # | Bước | Kết quả mong đợi |
 |---|---|---|
 | 1 | Bán hàng lập đơn, giờ đón cách bây giờ khoảng 3 giờ, lưu nháp | Lưu được; thẻ dịch vụ có dải cảnh báo dưới mốc |
-| 2 | Mở đơn đó bằng Bán hàng | Nút "Xác nhận đơn" khoá, dòng "Cần Quản trị duyệt đặt gấp"; không có nút "Đặt gấp" |
-| 3 | Quản trị mở đơn → "Đặt gấp" → chọn lý do → "Duyệt đặt gấp" | Hiện nhãn "Đặt gấp — lý do — người duyệt"; báo "Đã duyệt đặt gấp: …" |
+| 2 | Mở đơn đó bằng Bán hàng | Nút "Xác nhận đơn" khoá, dòng "Đặt gấp xong thì xác nhận được."; CÓ nút "Đặt gấp" (từ bản 2.31) |
+| 3 | Bán hàng (hoặc Quản trị) mở đơn → "Đặt gấp" → chọn lý do → "Duyệt đặt gấp" | Hiện nhãn "Điều chỉnh khẩn cấp — lý do — người HH:MM"; báo "Đã duyệt đặt gấp: …" |
 | 4 | Bán hàng bấm "Xác nhận đơn" | Xác nhận được |
-| 5 | Mở đơn bằng tài khoản Đối tác / Hướng dẫn viên (nếu xem được đơn đó) | Chỉ thấy "Đặt gấp — Quản trị đã duyệt", không thấy lý do, người duyệt |
+| 5 | Mở đơn bằng tài khoản Đối tác / Hướng dẫn viên (nếu xem được đơn đó) | Chỉ thấy "Điều chỉnh khẩn cấp (văn phòng)", không thấy lý do, người duyệt |
 | 6 | Toàn quyền mở Chính sách điều phối (chỉ xem, không lưu) | Thấy các con số và "Lịch sử bản"; Quản trị mở thẳng trang này thì bị từ chối ("Chỉ Toàn quyền xem và đổi được…") |
 | 7 | Điều phối xe → "+ Chuyến mới" (xe, tài xế, giờ) → "Lưu chuyến"; xếp chặng của đơn đã xác nhận vào chuyến | Chuyến hiện trên dòng thời gian; khách rời cột "Chưa xếp" |
 | 8 | Mở chuyến đó | "Điều kiện xuất bến" có dòng "Đủ tên khách: Chưa đạt" (chưa có tên) và, với đơn lập từ 1.38, "Điểm khớp đơn: Chưa đạt" ("Chặng chưa có nơi trả") — chuyến bị **giữ**, ai xử lý: Văn phòng |

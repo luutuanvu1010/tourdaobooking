@@ -25,10 +25,10 @@ import {
 } from "./repository";
 import {
   legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, manualPolicy, manualPolicyInsert, slotPolicy, slotPolicyInsert, openLegsByOrders, orderContactRows, passengerRowsByOrders,
-  servicePaxByIds, servicePaxByOrder, passengerInsertDriver, nguoiDaLapDon, type DatGapWrite,
+  servicePaxByIds, servicePaxByOrder, passengerInsertDriver, nguoiDaLapDon, type DauChepNhap, type DauDatGapMoi,
 } from "./chang-hanh-khach-repo";
 import { khoaNoi } from "../../shared/khoa-noi";
-import { CHIEU_LABEL, LY_DO_DAT_GAP } from "../../shared/chang-dua-don";
+import { CHIEU_LABEL, LY_DO_DAT_GAP, type LyDoDatGap } from "../../shared/chang-dua-don";
 import { duoiMocKhiSua, nguongMocVn, type MocToiThieu } from "../../shared/moc-toi-thieu";
 import { canhBaoMocCua, chepDatGapNhap, docDatGap, ghiDatGapNhatKy, lichSuTheoVai } from "./dat-gap";
 import { dongHienHanh, kiemHanhKhach, soKhachDoan } from "../../shared/hanh-khach";
@@ -104,31 +104,44 @@ function oPhuNhap(
   if (g.vuot) return { ok: false, res: error(400, "invalid_input", g.vuot) };
   return { ok: true, value: { ...order, services: g.services } };
 }
-/** ADR-0049 D3: đặt gấp chặng dưới mốc — chỉ Quản trị, Toàn quyền (ô `order.leg.short_notice`). */
-const CANNOT_SHORT_NOTICE = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền được đặt gấp lượt đưa đón.");
+/** ADR-0049 D3 + ADR-0107 ý (i): đặt gấp chặng dưới mốc — Bán hàng, Quản trị, Toàn quyền (ô `order.leg.short_notice`). */
+const CANNOT_SHORT_NOTICE = () => error(403, "forbidden", "Bạn không có quyền đặt gấp lượt đưa đón.");
 /** Mốc tối thiểu chưa có (bảng chính sách rỗng / môi trường không tiêm) — CHẶN lệnh cần mốc, không đoán con số (I25). */
 const MOC_CHUA_CO = () => error(503, "moc_toi_thieu_chua_co", "Chưa có chính sách điều phối đang hiệu lực (hạn chốt trước giờ đón) — báo người phụ trách hệ thống.");
-/** I14 (Q3 chủ): sửa / thêm chặng đơn ĐÃ XÁC NHẬN dưới mốc cần Quản trị, Toàn quyền + lý do đặt gấp trong CHÍNH lệnh. */
-const SUA_DUOI_MOC = () =>
-  error(409, "short_notice_required", "Lượt đưa đón có giờ đón đã qua hạn chốt — chỉ Quản trị hoặc Toàn quyền sửa được, kèm lý do đặt gấp.");
+/** I14 (Q3 chủ): sửa / thêm / thay chặng đơn ĐÃ XÁC NHẬN dưới mốc cần lý do đặt gấp trong CHÍNH lệnh (ô `order.leg.short_notice` — ADR-0107: cả Bán hàng). */
+const SUA_DUOI_MOC = () => error(409, "short_notice_required", "Lượt đưa đón có giờ đón đã qua hạn chốt — cần kèm lý do đặt gấp.");
+/** ADR-0107 ý (ii): lệnh kèm lý do đặt gấp mà không chặng nào của lệnh dưới mốc (cũ lẫn mới) — kể cả Quản trị, Toàn quyền. Không ghi gì. */
+const KHONG_CAN_DAT_GAP = () => error(409, "short_notice_not_needed", "Lượt đưa đón chưa qua hạn chốt — không cần đặt gấp.");
 
 /**
- * Nhánh `datGap` của lệnh sửa / thêm chặng (ADR-0049 I14): thân CÓ khoá `datGap` → phải có ô `order.leg.short_notice` (403) và lý do hợp lệ (400) → dấu MỚI
- * (số phút = mốc hiện hành); VẮNG mà lệnh sửa dưới mốc → 409; vắng và không dưới mốc → null (nội dung đổi thì dấu cũ bỏ — I16).
+ * "Giấy đặt gấp" của một lệnh (ADR-0107 Hướng A): `lyDo` = lý do ĐÃ KIỂM của lệnh (đuôi nhật ký — đi theo LÝ DO, kể cả khi chặng không giữ dấu: G16); `dauCho`
+ * = dấu MỚI cho MỘT chặng theo giờ SAU lệnh của chính chặng đó — chỉ khi giờ đó dưới mốc lúc máy chủ nhận lệnh, không thì null (dấu cũ bỏ — I16; G15, G11).
+ */
+type GiayDatGap = { lyDo: LyDoDatGap | null; dauCho: (moi: { pickupDate: string | null; pickupTime: string | null } | null) => DauDatGapMoi | null };
+const KHONG_LY_DO: GiayDatGap = { lyDo: null, dauCho: () => null };
+
+/**
+ * MỘT chỗ canh đặt gấp (ADR-0049 I14 + ADR-0107 — năm cửa: nút Đặt gấp, sửa / thêm / thay chặng, `PUT …/trip`). `duoiMoc` = cổng của lệnh do nơi gọi tính
+ * bằng `duoiMocKhiSua` (nút: giờ hiện tại; sửa / thay: giờ cũ hoặc mới; thêm: giờ mới; `PUT …/trip`: một chặng bất kỳ của lệnh). Thân CÓ `datGap`: ô
+ * `order.leg.short_notice` (403) → lý do hợp lệ (400) → cổng sai → 409 `short_notice_not_needed`. VẮNG: cổng đúng → 409 `short_notice_required`; sai → không lý
+ * do, không dấu. CHỖ DUY NHẤT dựng dấu mới (`DauDatGapMoi`, số phút = mốc hiện hành) — bài tĩnh ở dat-gap-sat-gio.test.ts khoá chỗ ép kiểu.
  */
 function xetDatGapSua(
-  staff: PermissionHolder & { id: string }, body: Record<string, unknown> | null, duoiMoc: boolean, moc: MocToiThieu,
-): { ok: true; value: DatGapWrite | null } | { ok: false; res: Response } {
-  const raw = body && typeof body === "object" ? body.datGap : undefined;
-  if (raw === undefined || raw === null) return duoiMoc ? { ok: false, res: SUA_DUOI_MOC() } : { ok: true, value: null };
+  staff: PermissionHolder & { id: string }, body: unknown, duoiMoc: boolean, moc: MocToiThieu, nowMs: number,
+): { ok: true; value: GiayDatGap } | { ok: false; res: Response } {
+  const raw = body !== null && typeof body === "object" && !Array.isArray(body) ? (body as Record<string, unknown>).datGap : undefined;
+  if (raw === undefined || raw === null) return duoiMoc ? { ok: false, res: SUA_DUOI_MOC() } : { ok: true, value: KHONG_LY_DO };
   if (!can(staff, "order.leg.short_notice")) return { ok: false, res: CANNOT_SHORT_NOTICE() };
   const d = docDatGap(raw);
   if (!d.ok) return { ok: false, res: error(400, "invalid_input", d.message) };
-  return { ok: true, value: { lyDo: d.value.lyDo, ghiChu: d.value.ghiChu, by: staff.id, at: new Date().toISOString(), phut: moc.phut } };
+  if (!duoiMoc) return { ok: false, res: KHONG_CAN_DAT_GAP() };
+  const dau = { lyDo: d.value.lyDo, ghiChu: d.value.ghiChu, by: staff.id, at: new Date(nowMs).toISOString(), phut: moc.phut } as DauDatGapMoi;
+  return { ok: true, value: { lyDo: d.value.lyDo, dauCho: (moi) => (duoiMocKhiSua(null, moi, nowMs, moc.phut) ? dau : null) } };
 }
 /** Chủ H4 / N-14: người xem thấy ĐỦ dấu đặt gấp (lý do, người duyệt, lúc, ghi chú) hay chỉ cờ — MỘT câu hỏi bảng quyền cho mọi phản hồi chi tiết đơn. */
 const xemDuDatGap = (staff: PermissionHolder): boolean => can(staff, "order.leg.short_notice.view");
-const kemDatGap = (detail: string, d: DatGapWrite | null) => (d ? `${detail}${ghiDatGapNhatKy(LY_DO_DAT_GAP[d.lyDo as keyof typeof LY_DO_DAT_GAP])}` : detail);
+/** Đuôi nhật ký " · đặt gấp: <nhãn lý do>" (ADR-0062 — khuôn không đổi) theo LÝ DO của lệnh (G16), không theo dấu. */
+const kemDatGap = (detail: string, lyDo: LyDoDatGap | null) => (lyDo ? `${detail}${ghiDatGapNhatKy(LY_DO_DAT_GAP[lyDo])}` : detail);
 
 const BEN_DAT_DOI_TAC_CAM = () => error(403, "partner_booker_forbidden", "Đơn qua đại lý hoặc cộng tác viên do văn phòng lập hộ — tài khoản đối tác không chọn được bên đặt này.");
 
@@ -211,9 +224,10 @@ async function lenhSoNguoiVeNhap(db: D1Database, id: string, legId: string, requ
 }
 
 /**
- * Sửa chặng đơn ĐÃ XÁC NHẬN (ADR-0047 A1). ADR-0049 I14 (Q3 chủ): min(giờ cũ, giờ mới) dưới mốc → Quản trị, Toàn quyền + `datGap`; dấu cũ KHÔNG miễn. Không dấu
- * mới → dấu cũ bỏ (I16). Kế hoạch ô mới Task 3.4 (ADR-0055 C2, ADR-0054 D10.3): CHỈ đổi số hiệu / số người (`chiOPhu`) → không xét mốc; thân không có `datGap`
- * → GIỮ dấu đặt gấp cũ (chủ Q-B 1/10); thân có `datGap` (Quản trị vừa duyệt) → ghi dấu mới.
+ * Sửa chặng đơn ĐÃ XÁC NHẬN (ADR-0047 A1). ADR-0049 I14 (Q3 chủ): min(giờ cũ, giờ mới) dưới mốc → cần `datGap` (ô `order.leg.short_notice`); dấu cũ KHÔNG miễn.
+ * ADR-0107: dấu mới chỉ khi giờ MỚI dưới mốc (dời ra xa kèm lý do → 200, không dấu, nhật ký vẫn ghi lý do — G15, G16); không dấu mới → dấu cũ bỏ (I16).
+ * Kế hoạch ô mới Task 3.4 (ADR-0055 C2, ADR-0054 D10.3): CHỈ đổi số hiệu / số người (`chiOPhu`) mà thân không có `datGap` → không xét mốc, GIỮ dấu đặt gấp cũ
+ * (chủ Q-B 1/10); thân CÓ `datGap` → xét như mọi lệnh (giờ không đổi: dưới mốc → dấu mới; trên mốc → 409 `short_notice_not_needed`).
  */
 async function lenhSuaChang(
   db: D1Database, id: string, legId: string, request: Request, staff: PermissionHolder & { id: string }, status: OrderStatus, mocToiThieu: () => Promise<MocToiThieu | null>,
@@ -226,16 +240,17 @@ async function lenhSuaChang(
   if (plan.value.detail === null) return { sua: null };
   const coDatGap = body !== null && typeof body === "object" && body.datGap !== undefined && body.datGap !== null;
   const giuDatGap = plan.value.chiOPhu && !coDatGap;
-  let datGapMoi: DatGapWrite | null = null;
+  let giay = KHONG_LY_DO;
   if (!giuDatGap) {
     const moc = await mocToiThieu();
     if (!moc) return { res: MOC_CHUA_CO() };
-    const x = xetDatGapSua(staff, body, !plan.value.chiOPhu && duoiMocKhiSua(plan.value.cu, plan.value.fields, Date.now(), moc.phut), moc);
+    const nowMs = Date.now();
+    const x = xetDatGapSua(staff, body, duoiMocKhiSua(plan.value.cu, plan.value.fields, nowMs, moc.phut), moc, nowMs);
     if (!x.ok) return { res: x.res };
-    datGapMoi = x.value;
+    giay = x.value;
   }
   const { soNguoi, ...v } = plan.value;
-  return { sua: { kind: "update", ...v, detail: kemDatGap(plan.value.detail, datGapMoi), datGap: datGapMoi, giuDatGap }, ...(soNguoi ? { soNguoi } : {}) };
+  return { sua: { kind: "update", ...v, detail: kemDatGap(plan.value.detail, giay.lyDo), datGap: giay.dauCho(plan.value.fields), giuDatGap }, ...(soNguoi ? { soNguoi } : {}) };
 }
 
 /** Câu đầu lô sửa/đóng chặng không áp dụng: vì chặng vừa bị bỏ, đơn vừa huỷ, hay vì mốc chặng đã cũ? Đọc lại để trả đúng lý do. */
@@ -1252,7 +1267,7 @@ export const ordersModule: AppModule = {
       const coChang = placed.value.services.some((s) => s.legs.length > 0);
       const moc = coChang ? await mocToiThieu() : null;
       if (coChang && !moc) return MOC_CHUA_CO();
-      const datGapNhap = coChang ? chepDatGapNhap(await legDatGapByOrder(env.DB, id), placed.value.services) : new Map<string, DatGapWrite>();
+      const datGapNhap = coChang ? chepDatGapNhap(await legDatGapByOrder(env.DB, id), placed.value.services) : new Map<string, DauChepNhap>();
       // Q2 (chủ trả lời 2026-09-30 "Đưa cọc cũ về 0, ghi nhật ký"): nháp CŨ còn cọc ghi trên đơn mà tổng mới < cọc cũ → câu lưu nháp đưa cột cọc về 0 (số tiền
       // không mất — đã là khoản thu "chưa rõ" trong sổ của billing); ghi số cọc cũ vào dòng nhật ký `updated` (không SĐT).
       const cocCu = await cocCuNhap(env.DB, id);
@@ -1284,24 +1299,29 @@ export const ordersModule: AppModule = {
       const planned = keHoachChangTrip(stored, parsed.value.updates);
       const moTa = describeTripUpdates(stored, planned.updates) ?? (planned.ops.length ? "cập nhật chặng đưa đón" : null);
       if (moTa === null) return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse); // không đổi gì
-      // ADR-0049 I14: đơn ĐÃ XÁC NHẬN mà lệnh đổi / thêm chặng dưới mốc (min giờ cũ, giờ mới) → Quản trị, Toàn quyền + `datGap`. Chặng đổi mà không dấu mới →
-      // dấu cũ bỏ (I16). Đơn nháp: mốc xét lúc xác nhận; khoá `datGap` không dùng ở đây (dấu nháp đi qua route đặt gấp).
-      let datGap: DatGapWrite | null = null;
+      // ADR-0049 I14: đơn ĐÃ XÁC NHẬN mà lệnh đổi / thêm chặng dưới mốc (min giờ cũ, giờ mới) → cần `datGap` (ô `order.leg.short_notice`). ADR-0107 ý (ii), G11:
+      // thân kèm `datGap` mà không chặng nào của lệnh dưới mốc → 409 `short_notice_not_needed` (kể cả lệnh không đổi chặng nào); dấu xét TỪNG chặng theo giờ
+      // mới (`dauCho`) — chặng đổi mà không dấu mới → dấu cũ bỏ (I16); chặng lệnh không đụng giữ nguyên. Đơn nháp: mốc xét lúc xác nhận; khoá `datGap` không
+      // dùng ở đây (dấu nháp đi qua route đặt gấp).
+      let giay = KHONG_LY_DO;
       const doiChang = planned.ops.filter((op) => op.kind !== "close");
-      if (meta.status === "confirmed" && doiChang.length > 0) {
+      const coDatGap = tripBody !== null && typeof tripBody === "object" && tripBody.datGap !== undefined && tripBody.datGap !== null;
+      if (meta.status === "confirmed" && (doiChang.length > 0 || coDatGap)) {
         const moc = await mocToiThieu();
         if (!moc) return MOC_CHUA_CO();
         const cuTheoId = new Map(stored.flatMap((s) => s.legs).map((l) => [l.id, l] as const));
         const nowMs = Date.now();
         const duoi = doiChang.some((op) => (op.kind === "update" ? duoiMocKhiSua(cuTheoId.get(op.legId) ?? null, op.fields, nowMs, moc.phut) : duoiMocKhiSua(null, op.kind === "insert" ? op.leg : null, nowMs, moc.phut)));
-        const x = xetDatGapSua(staff, tripBody, duoi, moc);
+        const x = xetDatGapSua(staff, tripBody, duoi, moc, nowMs);
         if (!x.ok) return x.res;
-        datGap = x.value;
+        giay = x.value;
       }
-      const detail = kemDatGap(moTa, datGap);
+      const detail = kemDatGap(moTa, giay.lyDo);
       // G17: dòng `order_leg_updated` của chặng đổi ngày / giờ mang cùng đuôi đặt gấp như route sửa chặng (hàm đọc tin bóc đuôi — `bocDatGap`).
-      const ops = planned.ops.map((op) => (op.kind === "update" && op.nhatKy !== undefined ? { ...op, nhatKy: kemDatGap(op.nhatKy, datGap) } : op));
-      if (!(await updateTrip(env.DB, id, staff.id, planned.updates, parsed.value.expectedUpdatedAt, detail, ops, datGap))) {
+      const ops = planned.ops.map((op) =>
+        op.kind === "update" ? { ...op, datGap: giay.dauCho(op.fields), ...(op.nhatKy !== undefined ? { nhatKy: kemDatGap(op.nhatKy, giay.lyDo) } : {}) }
+          : op.kind === "insert" ? { ...op, datGap: giay.dauCho(op.leg) } : op);
+      if (!(await updateTrip(env.DB, id, staff.id, planned.updates, parsed.value.expectedUpdatedAt, detail, ops))) {
         const now = await getMeta(env.DB, id);
         return now?.status === "cancelled" ? CANCELLED() : STALE();
       }
@@ -1324,12 +1344,13 @@ export const ordersModule: AppModule = {
       const body = await readJson(request);
       const plan = await planAddLeg(env.DB, id, body, vnToday(new Date()));
       if (!plan.ok) return error(400, "invalid_input", plan.message);
-      // ADR-0049 I14: chặng MỚI dưới mốc → Quản trị, Toàn quyền + `datGap` (dấu ghi cùng dòng).
+      // ADR-0049 I14: chặng MỚI dưới mốc → cần `datGap` (dấu ghi cùng dòng); ADR-0107: chặng mới trên mốc kèm `datGap` → 409 `short_notice_not_needed`.
       const moc = await mocToiThieu();
       if (!moc) return MOC_CHUA_CO();
-      const x = xetDatGapSua(staff, body, duoiMocKhiSua(null, plan.value.leg, Date.now(), moc.phut), moc);
+      const nowMs = Date.now();
+      const x = xetDatGapSua(staff, body, duoiMocKhiSua(null, plan.value.leg, nowMs, moc.phut), moc, nowMs);
       if (!x.ok) return x.res;
-      if (!(await addLeg(env.DB, id, staff.id, { ...plan.value, detail: kemDatGap(plan.value.detail, x.value), datGap: x.value }))) {
+      if (!(await addLeg(env.DB, id, staff.id, { ...plan.value, detail: kemDatGap(plan.value.detail, x.value.lyDo), datGap: x.value.dauCho(plan.value.leg) }))) {
         const now = await getMeta(env.DB, id);
         return now?.status === "cancelled" ? CANCELLED() : STALE();
       }
@@ -1387,7 +1408,7 @@ export const ordersModule: AppModule = {
     // + thêm chặng mới cùng dịch vụ, cùng chiều, trong
     // MỘT lô và MỘT khoá lạc quan (mốc ĐƠN) — không còn cảnh bỏ được mà thêm bị chặn (đơn đã xác nhận còn 0 chặng). Ô, thứ tự từ chối như route thêm chặng.
     // Mốc 6 giờ (ADR-0049 D2, I14) xét như lệnh SỬA chặng — min(giờ chặng cũ, giờ chặng mới) — vì thay chặng thực chất là sửa chặng đó (người điều phối quyết
-    // 2026-10-08), TRƯỚC khi ghi: dưới mốc → 409 `short_notice_required` (Quản trị, Toàn quyền kèm `datGap` thì qua — dấu ghi lên chặng mới) và chặng cũ KHÔNG
+    // 2026-10-08), TRƯỚC khi ghi: dưới mốc → 409 `short_notice_required` (kèm `datGap` thì qua — dấu ghi lên chặng mới nếu giờ MỚI dưới mốc, ADR-0107) và chặng cũ KHÔNG
     // bị đóng. Lệnh BỎ chặng đứng riêng vẫn không có luật mốc. Phản hồi 200 `{ order }` như route sửa / bỏ chặng: lệnh đổi chặng của một đơn có sẵn, trả lại
     // chính đơn đó (không có tài nguyên mới để trỏ `Location`).
     route("POST", "/api/orders/:id/legs/:legId/replace", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi, mocToiThieu, dongBoChuyen }) => {
@@ -1406,10 +1427,11 @@ export const ordersModule: AppModule = {
       if (!plan.ok) return legFailure(plan);
       const moc = await mocToiThieu();
       if (!moc) return MOC_CHUA_CO();
-      const x = xetDatGapSua(staff, body, duoiMocKhiSua(plan.value.cu, plan.value.leg, Date.now(), moc.phut), moc);
+      const nowMs = Date.now();
+      const x = xetDatGapSua(staff, body, duoiMocKhiSua(plan.value.cu, plan.value.leg, nowMs, moc.phut), moc, nowMs);
       if (!x.ok) return x.res;
       // ADR-0104 Đ2 (điểm gọi 8): lô thay chặng (câu đơn đứng đầu; mã nhật ký = dòng `order_leg_closed`) + khúc chuyến của máy (đóng suất của chặng CŨ).
-      const soan = soanThayChang(env.DB, id, staff.id, { ...plan.value, detailThem: kemDatGap(plan.value.detailThem, x.value), datGap: x.value });
+      const soan = soanThayChang(env.DB, id, staff.id, { ...plan.value, detailThem: kemDatGap(plan.value.detailThem, x.value.lyDo), datGap: x.value.dauCho(plan.value.leg) });
       const dong = await dongBoChuyen({ orderId: id, auditIdDon: soan.auditId, bayGioMs: Date.now(), cauDon: soan.cau, sau: { trangThai: meta.status, changDong: [legId] } });
       const r = await chayLoNoiChuyen(env.DB, dong, thangCauDau);
       if (r.kq === "loi") return r.res;
@@ -1418,17 +1440,19 @@ export const ordersModule: AppModule = {
       return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))!, dongBoChuyen: r.dongBoChuyen } satisfies OrderResponse);
     }),
 
-    // ---- ĐẶT GẤP (ADR-0049 D2, D3; kế hoạch Task A10, TC-22, TC-25, TC-28): Quản trị / Toàn quyền đóng dấu "đặt gấp" lên MỘT chặng còn mở của đơn nháp
-    // hoặc đã xác nhận → chặng đó được xác nhận / xếp dưới mốc tối thiểu. Ô hỏi ĐẦU thân (403 trước 400). Số phút = mốc HIỆN HÀNH (chụp tại mốc — 5.6);
-    // mốc chưa có → 503. Ghi chú che dãy số, lưu trên chặng, KHÔNG vào nhật ký (I18). Nhật ký: mã đơn + chiều + nhãn lý do.
+    // ---- ĐẶT GẤP (ADR-0049 D2, D3; kế hoạch Task A10, TC-22, TC-25, TC-28; ADR-0107): Bán hàng / Quản trị / Toàn quyền đóng dấu "đặt gấp" lên MỘT chặng còn
+    // mở của đơn nháp hoặc đã xác nhận → chặng đó được xác nhận / xếp dưới mốc tối thiểu. Ô hỏi ĐẦU thân (403 trước 400). ADR-0107 ý (ii): chỉ chặng có giờ
+    // HIỆN TẠI dưới mốc (chưa chốt giờ hay còn xa → 409 `short_notice_not_needed`, kể cả Quản trị) — qua `xetDatGapSua` như bốn lệnh kia; câu ghi kèm đúng giờ đã
+    // xét. Số phút = mốc HIỆN HÀNH (chụp tại mốc — 5.6); mốc chưa có → 503. Ghi chú che dãy số, lưu trên chặng, KHÔNG vào nhật ký (I18). Nhật ký: mã đơn +
+    // chiều + nhãn lý do.
     route("POST", "/api/orders/:id/legs/:legId/short-notice", "orders", async ({ env, request, params, staff, baoThayDoi, mocToiThieu }) => {
       if (!can(staff, "order.leg.short_notice")) return CANNOT_SHORT_NOTICE();
       const id = params.id!;
       const legId = params.legId!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
-      const than = docDatGap(await readJson(request)); // MỘT bộ đọc với nhánh `datGap` của lệnh sửa chặng
+      const raw = await readJson(request);
+      const than = docDatGap(raw); // MỘT bộ đọc với nhánh `datGap` của lệnh sửa chặng
       if (!than.ok) return error(400, "invalid_input", than.message);
-      const { lyDo, ghiChu: ghiChuSach } = than.value;
       const [meta, moc] = await Promise.all([getMeta(env.DB, id), mocToiThieu()]);
       if (!meta) return NOT_FOUND();
       if (meta.deliveredAt) return DA_GIAO();
@@ -1438,11 +1462,16 @@ export const ordersModule: AppModule = {
       if (!leg) return LEG_NOT_FOUND();
       if (leg.closed_at) return LEG_CLOSED();
       if (!moc) return MOC_CHUA_CO();
-      const at = new Date().toISOString();
-      const detail = `${ref?.orderCode ?? ""} · ${CHIEU_LABEL[leg.direction]}${ghiDatGapNhatKy(LY_DO_DAT_GAP[lyDo])}`;
+      const gio = { pickupDate: leg.pickup_date, pickupTime: leg.pickup_time };
+      const nowMs = Date.now();
+      const x = xetDatGapSua(staff, { datGap: raw }, duoiMocKhiSua(null, gio, nowMs, moc.phut), moc, nowMs);
+      if (!x.ok) return x.res;
+      const dau = x.value.dauCho(gio);
+      if (!dau) return KHONG_CAN_DAT_GAP(); // không xảy ra: cùng giờ, cùng mốc, cùng lúc với cổng ở trên
+      const detail = `${ref?.orderCode ?? ""} · ${CHIEU_LABEL[leg.direction]}${ghiDatGapNhatKy(LY_DO_DAT_GAP[than.value.lyDo])}`;
       const results = await env.DB.batch([
-        legShortNotice(env.DB, legId, id, { lyDo, ghiChu: ghiChuSach, by: staff.id, at, phut: moc.phut }),
-        auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "order_leg_short_notice", at, detail }, "changes() > 0"),
+        legShortNotice(env.DB, legId, id, dau, gio),
+        auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "order_leg_short_notice", at: dau.at, detail }, "changes() > 0"),
       ]);
       if ((results[0]!.meta.changes ?? 0) === 0) return legRaced(env.DB, id, legId);
       baoThayDoi({ orderId: id, thayDoi: "chuyen" });
@@ -1690,7 +1719,7 @@ export const ordersModule: AppModule = {
           const duoi = canhBaoMocCua(stored.flatMap((s) => s.legs), daDatGap, nowMs, moc.phut);
           if (duoi.length > 0) {
             const legs = duoi.map((d) => ({ legId: d.legKey, phutConLai: d.phutConLai }));
-            const message = "Có lượt đưa đón mà giờ đón đã qua hạn chốt — cần Quản trị hoặc Toàn quyền đặt gấp trước khi xác nhận.";
+            const message = "Có lượt đưa đón mà giờ đón đã qua hạn chốt — cần đặt gấp trước khi xác nhận.";
             return json({ error: { code: "short_notice_required", message, legs } } satisfies ShortNoticeRequiredBody, 409);
           }
           return STALE(); // vừa có người sửa / bổ sung xong (kể cả khoá phiên bản `updated_at` của câu xác nhận) — tải lại rồi bấm lại

@@ -1,7 +1,7 @@
 // LỊCH SỬ ĐƠN CHO NGƯỜI NỘI BỘ — LỚP THUẦN, DANH SÁCH CHO PHÉP (ADR-0131 Quyết định 1–2; mẫu: `lich-su-doi-tac.ts`, lỗi D-1).
 // Người nội bộ KHÔNG giữ quyền đọc đủ nhật ký (chỉ Toàn quyền đọc đủ, ở trang Nhật ký) chỉ thấy các hành động ở `LICH_SU_NOI_BO_CHO_PHEP`, mỗi hành động kèm CÁCH giữ chữ
 // `detail` (dùng lại bốn cách của D-1: `giu`, `bo`, `chi-nhom-huy`, `cat-ly-do`); mọi hành động còn lại ẩn. MỌI dòng trả ra đều không tên, không mã người làm
-// (`anNguoiLam`: `staffId: null`, `staffName: ""`), kể cả dòng hệ thống và nhãn "Quản trị" của dòng đặt gấp.
+// (`anNguoiLam`: `staffId: null`, `staffName: ""`), kể cả dòng hệ thống và nhãn "Văn phòng" của dòng đặt gấp (ADR-0107 mục 8).
 // Ngoại lệ DUY NHẤT ngoài danh sách: dòng nhập phần mềm kế toán (`order_accounting_entry_*`) hiện khi người xem có ô `accounting.entry.view` của đơn (ADR-0060), đúng như
 // lớp Đối tác — vì thế hai mã này nằm ở `LICH_SU_NOI_BO_AN`, không ở `CHO_PHEP`.
 // Danh sách này chứa mọi thứ lớp Đối tác thấy (bài kiểm khoá) cộng nhóm "tiền của đơn trong sổ" (không gác thêm ô — ADR-0131 đ2b); khoá bằng bản chủ duyệt đặt trong
