@@ -2,7 +2,16 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.28 ĐÃ LÊN PRODUCTION (gồm 2.27: nút «Từ chối» đơn — ADR-0030 điều 1 — và bộ đếm + hạn mức Từ chối — ADR-0032 kèm sửa đổi điều 5 ngày 24/10; và 2.28: sửa sổ đại lý của phiên khác) — migration `0117_han_muc_tu_choi` đã áp — triển khai 2026-10-24 (giờ chưa ghi)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.29 ĐÃ LÊN PRODUCTION (góp ý màn Hỗ trợ: mức TA gắn riêng — ADR-0138; SĐT người đi kèm cho tài xế công ty — ADR-0139; lọc «Chưa có người phụ trách»; khoá «Xác nhận đơn» khi chưa có ngày; nhãn «Đã nhập phần mềm kế toán») — migration `0118_muc_ta_gan_rieng` đã áp — triển khai 2026-10-25 06:04
+
+Khối cuối của `npm run trien-khai` (chủ chạy trên máy dự án, AI đọc từ Terminal của phiên):
+- Commit `main`: `17fb22d0`. Worker Version ID: `f930862c-c356-4f58-8ead-125a483eb525`.
+- e2e: 72/72 kịch bản xanh. Cổng phiên bản trước và sau deploy: ĐẠT («production đang chạy đúng bản 2.29»).
+- Điểm khôi phục Time Travel trước khi áp: `00001879-00000000-0000510e-83b28fe21ffa01f07d67b3580a5cf1e3`.
+- `audit-invariants --db remote`: «Mọi bất biến đạt, 5 cảnh báo (D1 remote)»; `R-PRC-1`, `R-PRC-5` (mở rộng cho mức riêng) đều ✓.
+- **Còn lại (chủ):** thử trên iPhone màn hồ sơ đại lý (gắn / kết thúc mức riêng) và màn cuốc của tài xế công ty; Quản trị thêm SĐT vào Danh bạ cho HDV chưa có số; Kế toán xác nhận ca vàng SV-TA-07/08.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 2.28 ĐÃ LÊN PRODUCTION (gồm 2.27: nút «Từ chối» đơn — ADR-0030 điều 1 — và bộ đếm + hạn mức Từ chối — ADR-0032 kèm sửa đổi điều 5 ngày 24/10; và 2.28: sửa sổ đại lý của phiên khác) — migration `0117_han_muc_tu_choi` đã áp — triển khai 2026-10-24 (giờ chưa ghi)
 
 Ghi 24/10/2026 bằng lệnh chỉ đọc chủ chạy trên máy dự án, kết quả chủ dán vào chat (máy của phiên ghi bị proxy chặn `booking.tourdao.vn` và không có đăng nhập Cloudflare): `node scripts/kiem-phien-ban.mjs --sau-deploy` → «ĐẠT: production đang chạy đúng bản 2.28.»; `wrangler d1 migrations list tourdao-sales-db --remote` → «No migrations to apply!»; `node scripts/audit-invariants.mjs --db remote` → «Mọi bất biến đạt, 5 cảnh báo (D1 remote).»
 - Commit `main`: `ed174142`. Worker Version ID: **chưa ghi** (chủ chưa dán khối cuối của `trien-khai`).
