@@ -23,7 +23,7 @@ export interface TripSheetOptions {
   /** Nút "Tải lại đơn" trong banner (đơn đã đổi ở nơi khác): bảng đã đóng; nơi gọi tải lại đơn. */
   onReload: () => void;
   /**
-   * ADR-0049 I14 (chủ Q3): người giữ ô order.leg.short_notice (Quản trị, Toàn quyền). Lệnh sửa bị 409 `short_notice_required` (chặng dưới mốc) → bảng hiện khung
+   * ADR-0049 I14 (chủ Q3): người giữ ô order.leg.short_notice (Bán hàng, Quản trị, Toàn quyền — ADR-0107). Lệnh sửa bị 409 `short_notice_required` (chặng dưới mốc) → bảng hiện khung
    * "Đặt gấp" (lý do + ghi chú, khuôn bản vẽ 07 khung 7a) và gửi lại CÙNG lệnh kèm khoá `datGap`. Người khác chỉ thấy câu của máy chủ.
    */
   coDatGap?: boolean;
@@ -146,7 +146,7 @@ export function openTripSheet(o: TripSheetOptions, opener: HTMLElement): void {
         reloadPage: () => location.reload(),
       });
       bannerEl.scrollIntoView({ block: "nearest" });
-      // Chặng dưới mốc: Quản trị / Toàn quyền duyệt đặt gấp ngay trong bảng (gửi lại cùng lệnh kèm lý do).
+      // Chặng dưới mốc: người có ô đặt gấp duyệt ngay trong bảng (gửi lại cùng lệnh kèm lý do).
       if (khungDatGap && err instanceof ApiError && err.code === "short_notice_required" && !datGap) {
         replaceChildren(datGapEl, khungDatGap.root);
         datGapEl.hidden = false;

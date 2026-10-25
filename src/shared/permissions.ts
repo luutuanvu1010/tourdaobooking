@@ -92,11 +92,12 @@ export const MATRIX = {
   "order.create": row("any", "none", "any", "none", "any", "any", "any", "none", "none", "none"), // lập đơn (đơn mới luôn là của người lập)
   "order.modify": row("ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none", "none"), // sửa, xác nhận, huỷ đơn (ADR-0009: cả người phụ trách; ADR-0014: PARTNER của mình)
   "order.trip.edit": row("ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"), // thông tin vận hành sau xác nhận
-  // ADR-0049 D3: ĐẶT GẤP chặng dưới mốc tối thiểu (route POST /api/orders/:id/legs/:legId/short-notice + nhánh `datGap` của lệnh sửa chặng) — chỉ Quản trị,
-  // Toàn quyền (ĐP2, chủ Q3 29/9). Không phạm vi đơn: Quản trị duyệt đặt gấp cho mọi đơn.
-  "order.leg.short_notice": quanTri(),
+  // ADR-0049 D3: ĐẶT GẤP chặng dưới mốc tối thiểu (route POST /api/orders/:id/legs/:legId/short-notice + nhánh `datGap` của lệnh sửa / thêm / thay chặng và
+  // `PUT …/trip`). ADR-0107 ý (i) (accepted 2026-10-08 — NỚI có tên, Điều 9.4): Bán hàng, Quản trị, Toàn quyền. Không phạm vi đơn: đặt gấp cho mọi đơn; bốn
+  // lệnh sửa vẫn hỏi `order.trip.edit` theo phạm vi trước. Ý (ii): dấu chỉ ghi lên chặng ĐANG dưới mốc — canh ở `xetDatGapSua` (orders/index.ts), không ở ô này.
+  "order.leg.short_notice": row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
   // Chủ trả lời H4 / N-14 (29/9 tối, "Trả lời lần 12"): XEM ĐỦ dấu đặt gấp trên chi tiết đơn (mã + nhãn lý do, tên người duyệt, lúc duyệt, ghi chú đã che
-  // số) — văn phòng (Bán hàng, Kế toán, Quản trị, Toàn quyền). Mã khác xem được đơn (Đối tác, HDV, Thực tập) chỉ nhận cờ "đặt gấp — Quản trị đã duyệt"
+  // số) — văn phòng (Bán hàng, Kế toán, Quản trị, Toàn quyền). Mã khác xem được đơn (Đối tác, HDV, Thực tập) chỉ nhận cờ "Điều chỉnh khẩn cấp (văn phòng)"
   // (`legs[].datGap = { daDuyet: true }`). Không phạm vi đơn: phạm vi đã do order.view quyết. Hỏi ở `loadOrderView` qua `xemDuDatGap` (orders/index.ts).
   "order.leg.short_notice.view": row("any", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   "order.passenger.write": row("ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none", "none"), // ADR-0047 A2: nhập, sửa (dòng mới), huỷ dòng trong danh sách hành khách — bằng order.modify; tài xế không đi qua ô này

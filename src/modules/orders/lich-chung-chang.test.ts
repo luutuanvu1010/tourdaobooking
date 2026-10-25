@@ -21,6 +21,11 @@ const ADM = "33333333-3333-4333-8333-333333333333";
 const FIELD = "44444444-4444-4444-8444-444444444444";
 const LOC = "a941dd7d-faab-4098-9ab9-1df7fa6dd551";
 const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
+/** Ngày + giờ VN cách bây giờ `phut` phút (ADR-0107: chỉ đặt gấp được chặng ĐANG dưới mốc 360 phút). */
+const vnSau = (phut: number) => {
+  const iso = new Date(Date.now() + 7 * 3600e3 + phut * 60_000).toISOString();
+  return { ngay: iso.slice(0, 10), gio: iso.slice(11, 16) };
+};
 const D = inDays(3);
 const NOI_A = "Căn hộ 0905123456 Mường Thanh";
 const NOI_B = "Căn hộ 0905999999 Mường Thanh"; // chỉ khác dãy 8+ chữ số → chữ đã che GIỐNG NOI_A
@@ -35,12 +40,12 @@ function setup() {
 }
 const OUT = (place: string) => ({ direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: null, pickupPlace: place, dropoffLocationId: LOC, dropoffPlace: "" });
 const RET = { direction: "RETURN", pickupDate: inDays(4), pickupTime: "16:00", pickupLocationId: LOC, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "" };
-async function order(w: any, confirm: boolean, legs: unknown[], extra: Record<string, unknown> = {}) {
+async function order(w: any, confirm: boolean, legs: unknown[], extra: Record<string, unknown> = {}, ngayDi = D) {
   const r = await w.call("POST", "/api/orders", {
     as: SALES,
     body: {
       customerName: "Khách Dò Tìm Chủ Đơn", customerPhone: "0912345678", customerEmail: "do.tim@example.com", customerNote: "Ghi chú kín", paymentNote: "Tiền mặt",
-      services: [{ kind: "catalog", pickupChoice: (legs.length > 0 ? "DON" : "KHONG_DON"), catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D, legs }],
+      services: [{ kind: "catalog", pickupChoice: (legs.length > 0 ? "DON" : "KHONG_DON"), catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: ngayDi, legs }],
       passengers: [{ fullName: "Khách Dò Tìm Một", birthYear: 1911, paxCode: "adult" }], ...extra,
     },
   });
@@ -90,10 +95,12 @@ test("TC-20 lichChungChang: ĐÚNG các khoá của chặng (có khoaNoiDon / kh
 test("TC-20 [0050] hai nơi CHỈ khác ở dãy từ 8 chữ số: chữ đã che GIỐNG nhau nhưng hai khoá so sánh KHÁC nhau; cờ đặt gấp của chặng", async () => {
   const w = setup();
   const a = await order(w, true, [OUT(NOI_A)]);
-  const b = await order(w, false, [OUT(NOI_B)]);
+  // ADR-0107: chỉ đặt gấp được chặng ĐANG dưới mốc → chặng của b đón sau 150 phút (ngày gB); lịch đọc từ ngày gB tới D để có cả a lẫn b.
+  const gB = vnSau(150);
+  const b = await order(w, false, [{ ...OUT(NOI_B), pickupDate: gB.ngay, pickupTime: gB.gio }], {}, gB.ngay);
   assert.equal((await w.call("POST", `/api/orders/${b.id}/legs/${b.services[0].legs[0].id}/short-notice`, { as: ADM, body: { lyDo: "KHAC" } })).status, 200);
   assert.equal((await w.call("POST", `/api/orders/${b.id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
-  const kq = await lichChungChang(w.env.DB, D, D);
+  const kq = await lichChungChang(w.env.DB, gB.ngay, D);
   const ca = kq.chang.find((c: any) => c.orderId === a.id)!;
   const cb = kq.chang.find((c: any) => c.orderId === b.id)!;
   assert.equal(ca.noiDon, cb.noiDon, "chữ đã che giống nhau");

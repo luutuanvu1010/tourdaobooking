@@ -5,7 +5,7 @@ export const HD_QUAN_TRI: NhomHuongDan = {
   id: "quan-tri",
   tieuDe: "Quản trị",
   quyen: ["ADMIN", "SUPER_ADMIN"],
-  gioiThieu: "Bạn làm mọi việc của văn phòng, cộng thêm: sửa, ngưng, gán vai trò, hỗ trợ đăng nhập cho tài khoản nhân viên, Danh bạ, danh mục dịch vụ, địa điểm, xe và giấy tờ. Bạn duyệt Đặt gấp cho lượt đưa đón sát giờ và phá lệ khi điều xe.",
+  gioiThieu: "Bạn làm mọi việc của văn phòng, cộng thêm: sửa, ngưng, gán vai trò, hỗ trợ đăng nhập cho tài khoản nhân viên, Danh bạ, danh mục dịch vụ, địa điểm, xe và giấy tờ. Bạn đặt gấp lượt đưa đón sát giờ và phá lệ khi điều xe.",
   batDauNhanh: `1. Mở [[Quản lý tài khoản]], xem cột [[Đăng nhập gần nhất]] để biết ai đã vào.
 2. Nhân viên mới: Hành chính nhân sự tạo tài khoản; bạn gán vai trò, đặt lại PIN khi họ cần.
 3. Mở [[Dịch vụ & giá]], xem lần đồng bộ gần nhất với Google Sheet có lỗi không.
@@ -115,14 +115,13 @@ Người đang lo đơn tự trả bằng [[Từ chối đơn]]: đơn về Ch�
     },
     {
       tieuDe: "Đặt gấp (giờ đón đã qua hạn chốt)",
-      noiDung: `Đơn có giờ đón quá sát vẫn lưu nháp được, nhưng muốn xác nhận thì Quản trị phải duyệt Đặt gấp cho lượt đưa đón đó.
+      noiDung: `Đơn có giờ đón quá sát vẫn lưu nháp được, nhưng muốn xác nhận thì phải đặt gấp lượt đưa đón đó (nhân viên bán hàng cũng tự làm được). Lượt chưa qua hạn chốt thì không đặt gấp được.
 
-1. Mở đơn. Dưới dịch vụ có dải vàng báo giờ đón đã qua hạn chốt.
-2. Bấm [[Đặt gấp]].
-3. Chọn lý do: [[Khách đoàn gọi gấp]], [[Chuyến bay đổi giờ]], [[Đơn bù cho khách bị lỡ chuyến]] hoặc [[Lý do khác]]. Gõ [[Ghi chú ngắn]] nếu cần.
-4. Bấm [[Duyệt đặt gấp]]. Sau đó đơn xác nhận được.
+1. Mở đơn, bấm [[Đặt gấp]] ở dải vàng.
+2. Chọn lý do: [[Khách đoàn gọi gấp]], [[Chuyến bay đổi giờ]], [[Đơn bù cho khách bị lỡ chuyến]] hoặc [[Lý do khác]]. Gõ [[Ghi chú ngắn]] nếu cần.
+3. Bấm [[Duyệt đặt gấp]]. Sau đó đơn xác nhận được.
 
-Ở màn Tạo đơn, nút Đặt gấp hiện ngay trên thẻ dịch vụ; Nền tảng lưu nháp rồi mới đặt gấp. Trên Điều phối xe có mục [[Đơn nháp chờ duyệt đặt gấp]].`,
+Ở màn Tạo đơn, nút Đặt gấp ở thẻ dịch vụ; Nền tảng lưu nháp rồi mới đặt gấp. Trên Điều phối xe có mục [[Đơn nháp chờ duyệt đặt gấp]].`,
     },
     {
       tieuDe: "Xe và giấy tờ xe",
@@ -193,7 +192,7 @@ Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]
       noiDung: `- **Nhân viên không vào được Nền tảng**: xem dòng của họ. Bị khoá thì [[Mở khoá]]; có nhãn [[Ngưng]] thì hỏi lý do trước khi kích hoạt lại; quên PIN thì [[Đặt lại PIN]].
 - **Trang chủ báo Sheet đã đổi giá**: bấm vào, xem giá mới; đồng ý thì [[Bỏ ghi đè]], không thì [[Giữ ghi đè]].
 - **Đồng bộ báo lỗi**: vẫn dùng bản đã lưu. Kiểm tra Sheet, thử lại sau; vẫn lỗi thì báo ở Hỗ trợ.
-- **Nhân viên không xác nhận được đơn vì giờ đón sát**: duyệt [[Đặt gấp]].
+- **Nhân viên không xác nhận được đơn vì giờ đón sát**: bấm [[Đặt gấp]].
 - **Hai hồ sơ trùng trong Danh bạ**: [[Danh bạ]] → [[Hồ sơ nghi trùng]] → [[Gộp]].`,
     },
     {

@@ -22,15 +22,16 @@ test("cauMoc: câu của bản vẽ 07 ('Giờ đón cách bây giờ 4 giờ 10
   assert.equal(cauMoc(-41, 90), "Giờ đón đã qua — quá hạn chốt 1 giờ 30 phút");
 });
 
-test("nhanDatGap: văn phòng (khoá đủ) → 'Đặt gấp — lý do — người duyệt HH:MM' + ghi chú; chỉ cờ → 'Đặt gấp — Quản trị đã duyệt'; không tự lọc theo vai", () => {
+// ADR-0107 mục 8: nhãn của dấu là "Điều chỉnh khẩn cấp" (bỏ chữ "duyệt" — người đóng dấu có thể là chính Bán hàng lập đơn); chỉ cờ → "(văn phòng)".
+test("nhanDatGap: văn phòng (khoá đủ) → 'Điều chỉnh khẩn cấp — lý do — người HH:MM' + ghi chú; chỉ cờ → 'Điều chỉnh khẩn cấp (văn phòng)'; không tự lọc theo vai", () => {
   const du = { daDuyet: true as const, lyDo: "KHACH_DOAN_GOI_GAP", lyDoNhan: "Khách đoàn gọi gấp", nguoiDuyet: "Phạm Thu Hoa", luc: "2026-09-30T00:55:00.000Z", ghiChu: "Khách đoàn gọi lúc 07:40" };
-  assert.deepEqual(nhanDatGap(du, BAY_GIO), { chinh: "Đặt gấp — Khách đoàn gọi gấp — Phạm Thu Hoa duyệt 07:55", ghiChu: "Khách đoàn gọi lúc 07:40" });
+  assert.deepEqual(nhanDatGap(du, BAY_GIO), { chinh: "Điều chỉnh khẩn cấp — Khách đoàn gọi gấp — Phạm Thu Hoa 07:55", ghiChu: "Khách đoàn gọi lúc 07:40" });
   // Khác ngày: thêm ngày; khác năm: thêm năm.
-  assert.equal(nhanDatGap({ ...du, luc: "2026-09-29T09:10:00.000Z" }, BAY_GIO).chinh, "Đặt gấp — Khách đoàn gọi gấp — Phạm Thu Hoa duyệt 16:10 29/09");
-  assert.equal(nhanDatGap({ ...du, luc: "2025-12-31T09:10:00.000Z" }, BAY_GIO).chinh, "Đặt gấp — Khách đoàn gọi gấp — Phạm Thu Hoa duyệt 16:10 31/12/2025");
+  assert.equal(nhanDatGap({ ...du, luc: "2026-09-29T09:10:00.000Z" }, BAY_GIO).chinh, "Điều chỉnh khẩn cấp — Khách đoàn gọi gấp — Phạm Thu Hoa 16:10 29/09");
+  assert.equal(nhanDatGap({ ...du, luc: "2025-12-31T09:10:00.000Z" }, BAY_GIO).chinh, "Điều chỉnh khẩn cấp — Khách đoàn gọi gấp — Phạm Thu Hoa 16:10 31/12/2025");
   // Người duyệt không còn hồ sơ (null) → không đoán tên.
-  assert.equal(nhanDatGap({ ...du, nguoiDuyet: null, ghiChu: null }, BAY_GIO).chinh, "Đặt gấp — Khách đoàn gọi gấp — duyệt 07:55");
-  assert.deepEqual(nhanDatGap({ daDuyet: true }, BAY_GIO), { chinh: "Đặt gấp — Quản trị đã duyệt", ghiChu: null });
+  assert.equal(nhanDatGap({ ...du, nguoiDuyet: null, ghiChu: null }, BAY_GIO).chinh, "Điều chỉnh khẩn cấp — Khách đoàn gọi gấp — 07:55");
+  assert.deepEqual(nhanDatGap({ daDuyet: true }, BAY_GIO), { chinh: "Điều chỉnh khẩn cấp (văn phòng)", ghiChu: null });
   assert.doesNotMatch(nhanDatGap(du, BAY_GIO).chinh, /KHACH_DOAN/);
 });
 
@@ -50,8 +51,9 @@ test("changDuoiMoc: chỉ đơn NHÁP, chỉ chặng có giờ, chưa đặt g�
 test("tomTatChanXacNhan: khoá nút Xác nhận khi còn chặng cần đặt gấp — câu khác cho người được đặt gấp và người không", () => {
   assert.equal(tomTatChanXacNhan([], true), null);
   const c = [{ serviceId: "s1", tenDichVu: "x", legId: "l1", chieu: "Chiều đi", phutConLai: 250 }];
-  assert.equal(tomTatChanXacNhan(c, false), "Cần Quản trị duyệt đặt gấp");
-  assert.equal(tomTatChanXacNhan(c, true), "Duyệt đặt gấp xong thì xác nhận được.");
+  // ADR-0107 mục 9: không còn "chỉ Quản trị" — người không có ô (Đối tác, Thực tập) nhờ văn phòng (Bán hàng, Quản trị).
+  assert.equal(tomTatChanXacNhan(c, false), "Cần văn phòng đặt gấp");
+  assert.equal(tomTatChanXacNhan(c, true), "Đặt gấp xong thì xác nhận được.");
 });
 
 test("canhBaoChangForm + datGapGiuTrenForm: cảnh báo trên đơn CHƯA lưu (R-P15) — chặng giữ nguyên ngày / giờ / nơi của chặng đã đặt gấp thì không cảnh báo", () => {

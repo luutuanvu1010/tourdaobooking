@@ -39,8 +39,13 @@ const NAM = ["1911", "1922", "1933"];
 const SDT = "0905123456";
 const LOC = "a941dd7d-faab-4098-9ab9-1df7fa6dd551";
 const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
+/** Ngày + giờ VN cách bây giờ `phut` phút (ADR-0107: chỉ đặt gấp được chặng ĐANG dưới mốc 360 phút). */
+const vnSau = (phut: number) => {
+  const iso = new Date(Date.now() + 7 * 3600e3 + phut * 60_000).toISOString();
+  return { ngay: iso.slice(0, 10), gio: iso.slice(11, 16) };
+};
 const D = inDays(3);
-const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g;
+const UUID =/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g;
 
 test("họ tên, năm sinh hành khách chỉ rời máy chủ ở GET/POST /passengers: đủ tuyến, nhật ký sạch, màn khác sạch, Bảng tin chỉ id + loại", async () => {
   const w = world();
@@ -100,8 +105,10 @@ test("họ tên, năm sinh hành khách chỉ rời máy chủ ở GET/POST /pas
     },
     "POST /api/orders/:id/legs/:legId/short-notice": async () => {
       // ADR-0049 D3 (Toàn quyền giữ ô order.leg.short_notice): ghi chú đặt gấp chứa tên + SĐT — nhật ký chỉ mã đơn + chiều + NHÃN lý do (TC-28).
-      const l = (await doc()).services[0].legs.find((x: any) => x.direction === "OUT");
-      await goi("đặt gấp", "POST", `/api/orders/${id}/legs/${l.id}/short-notice`, SUP, { lyDo: "KHACH_DOAN_GOI_GAP", ghiChu: `${TEN[0]} gọi ${SDT}` }, 200);
+      // ADR-0107: chỉ đặt gấp được chặng ĐANG dưới mốc — chặng của đơn chính đón sau 3 ngày, nên ca này đặt gấp trên một đơn nháp riêng đón sau 150 phút.
+      const g = vnSau(150);
+      const sat = (await goi("lập nháp sát giờ", "POST", "/api/orders", SALES, { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc({ departDate: g.ngay, legs: [{ ...OUT, pickupDate: g.ngay, pickupTime: g.gio }] })] }, 201)).json.order;
+      await goi("đặt gấp", "POST", `/api/orders/${sat.id}/legs/${sat.services[0].legs[0].id}/short-notice`, SUP, { lyDo: "KHACH_DOAN_GOI_GAP", ghiChu: `${TEN[0]} gọi ${SDT}` }, 200);
     },
     "POST /api/orders/:id/legs/:legId/close": async () => {
       const l = (await doc()).services[0].legs.find((x: any) => x.direction === "RETURN");

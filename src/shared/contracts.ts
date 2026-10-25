@@ -512,7 +512,7 @@ export interface LegDto {
    */
   datGap: DatGapDto | null;
 }
-/** Cờ "đặt gấp — Quản trị đã duyệt" (mã không có ô xem đủ). */
+/** Cờ đặt gấp (mã không có ô xem đủ) — giao diện hiện "Điều chỉnh khẩn cấp (văn phòng)", không tên (ADR-0107 mục 8). */
 export interface DatGapCoDto { daDuyet: true }
 /** Dấu đặt gấp ĐỦ (văn phòng): mã + nhãn lý do, TÊN HIỂN THỊ người duyệt (không SĐT; null = tài khoản không còn hồ sơ), lúc duyệt (ISO UTC), ghi chú đã che số. */
 export interface DatGapDayDuDto { daDuyet: true; lyDo: string; lyDoNhan: string; nguoiDuyet: string | null; luc: string; ghiChu: string | null }

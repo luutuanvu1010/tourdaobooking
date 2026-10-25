@@ -43,14 +43,14 @@ export type Tone = "danger" | "warn" | "unit" | "muted" | "ok";
 const NHAN_CHANG: Readonly<Record<string, { nhan: string; tone: Tone }>> = {
   QUA_MOC: { nhan: "Quá hạn chốt", tone: "danger" },
   SAT_MOC: { nhan: "Sắp tới hạn chốt", tone: "warn" },
-  DAT_GAP: { nhan: "Đặt gấp", tone: "unit" },
+  DAT_GAP: { nhan: "Điều chỉnh khẩn cấp", tone: "unit" }, // ADR-0107 mục 8: nhãn của dấu (nút vẫn tên "Đặt gấp")
   XEP_MOT_PHAN: { nhan: "Xếp một phần", tone: "warn" },
   THUA_SUAT: { nhan: "Xếp thừa", tone: "danger" },
   CHUA_CHOT_GIO: { nhan: "Chưa chốt giờ", tone: "muted" },
   VANG: { nhan: "Có khách vắng", tone: "muted" },
   KHACH_HUY: { nhan: "Có khách huỷ", tone: "muted" },
 };
-/** Nhãn trên thẻ chặng (bản vẽ dp-chua-xep: "Quá mốc" đỏ, "Sát mốc" cát, "Đặt gấp", "Thiếu tên"). Mã lạ bị bỏ — không bao giờ hiện mã. */
+/** Nhãn trên thẻ chặng (bản vẽ dp-chua-xep: "Quá mốc" đỏ, "Sát mốc" cát, dấu đặt gấp — nay "Điều chỉnh khẩn cấp", "Thiếu tên"). Mã lạ bị bỏ — không bao giờ hiện mã. */
 export function chipChang(c: ChangLichDto): { nhan: string; tone: Tone }[] {
   const out = c.nhan.flatMap((m) => (NHAN_CHANG[m] ? [NHAN_CHANG[m]!] : []));
   if (c.soNguoiCoTen < c.soNguoi) out.push({ nhan: "Thiếu tên", tone: "warn" });
@@ -227,7 +227,7 @@ export function viecCanXuLy(l: LichChungResponse, co: { dieuPhoi: boolean; khanC
     const ngay = n.ngayDon === l.ngay ? "" : ` ${ngayNgan(n.ngayDon, l.ngay)}`;
     out.push({
       loai: "Đơn nháp chờ duyệt đặt gấp", tone: "navy", bieuTuong: "doc-check", tieuDe: `${n.maDon} · đón ${n.gioDon ?? "chưa chốt giờ"}${ngay}`, href: `/order?id=${encodeURIComponent(n.orderId)}`,
-      noiDung: "", aiXuLy: "Quản trị", khoa: null, hanhDong: [{ nhan: "Xem đơn", kieu: "link", href: `/order?id=${encodeURIComponent(n.orderId)}` }],
+      noiDung: "", aiXuLy: "Bán hàng, Quản trị", khoa: null, hanhDong: [{ nhan: "Xem đơn", kieu: "link", href: `/order?id=${encodeURIComponent(n.orderId)}` }], // ADR-0107 mục 10
     });
   }
   return out;

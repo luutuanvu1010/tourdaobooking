@@ -94,9 +94,14 @@ export function classifyOrderError(e: ErrorInput, ctx: ErrorContext): Banner {
     if (legs.length === 0) return banner("warning", fallback);
     const moc = ctx.mocPhut ?? null;
     const cau = (p: number) => (moc !== null ? cauMoc(p, moc) : p > 0 ? `giờ đón cách bây giờ ${nhanThoiLuong(p)}` : "giờ đón đã qua");
-    return banner("warning", "Còn lượt đưa đón quá hạn chốt — cần Quản trị duyệt đặt gấp trước khi xác nhận.", {
+    return banner("warning", "Còn lượt đưa đón quá hạn chốt — cần đặt gấp trước khi xác nhận.", {
       lines: legs.map((l) => ({ text: `${ctx.tenChang?.(l.legId) ?? "Lượt đưa đón"}: ${cau(l.phutConLai)}` })),
     });
+  }
+  // ADR-0107 ý (ii): lệnh kèm lý do đặt gấp mà chặng không dưới hạn chốt — thường vì giờ đón vừa đổi ở nơi khác (trang cũ). Không nằm trong LOI_409_KHONG_CU:
+  // trang đơn thêm nút "Tải lại đơn" như mọi 409 màn hình cũ.
+  if (e.status === 409 && e.code === "short_notice_not_needed") {
+    return banner("info", fallback, { lines: [{ text: "Giờ đón của lượt này có thể vừa đổi — tải lại đơn để xem bản mới." }] });
   }
   // ADR-0134 Đ2: dịch vụ chưa chọn Đón / Không đón (hoặc chọn không khớp lượt đưa đón) — câu máy chủ nêu "Dịch vụ thứ n"; cuộn tới đúng thẻ.
   if (e.status === 409 && e.code === "pickup_choice_required") {

@@ -19,6 +19,10 @@ const INTERN = "99999999-9999-4999-8999-999999999999";
 const LOC = "a941dd7d-faab-4098-9ab9-1df7fa6dd551";
 const TEN_DUYET = "Duyệt Viên Đánh Dấu";
 const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
+// ADR-0107 ý (ii): dấu chỉ ghi lên chặng ĐANG dưới mốc — chặng chiều đi gieo 2 giờ nữa (giờ VN, mốc thật 6 giờ), chặng về 18:00 ngày hôm sau (luôn xa).
+const G = new Date(Date.now() + 7 * 3600e3 + 120 * 60_000).toISOString();
+const NGAY_DI = G.slice(0, 10);
+const NGAY_VE = new Date(Date.parse(`${NGAY_DI}T00:00:00Z`) + 86400e3).toISOString().slice(0, 10);
 
 function setup() {
   const w = world();
@@ -34,14 +38,14 @@ function setup() {
 }
 const leg = (date: string, time: string) =>
   ({ direction: "OUT", pickupDate: date, pickupTime: time, pickupLocationId: null, pickupPlace: "Khách sạn Dò Tìm", dropoffLocationId: LOC, dropoffPlace: "" });
-const than = (extra: Record<string, unknown> = {}) => {
-  const d = inDays(2);
-  return {
-    customerName: "Khách Thử", customerPhone: "0912345678",
-    services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: d, legs: [leg(d, "05:00"), { ...leg(d, "18:00"), direction: "RETURN" }] }],
-    ...extra,
-  };
-};
+const than = (extra: Record<string, unknown> = {}) => ({
+  customerName: "Khách Thử", customerPhone: "0912345678",
+  services: [{
+    kind: "catalog", pickupChoice: "DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: NGAY_DI,
+    legs: [leg(NGAY_DI, G.slice(11, 16)), { ...leg(NGAY_VE, "18:00"), direction: "RETURN" }],
+  }],
+  ...extra,
+});
 async function nhap(w: any, as: string, extra: Record<string, unknown> = {}) {
   const r = await w.call("POST", "/api/orders", { as, body: than(extra) });
   assert.equal(r.status, 201, r.text);
@@ -109,19 +113,20 @@ test("H4/N-14: Đối tác và Thực tập (đơn tự lập) CHỈ thấy cờ
 
 // ---- R-P21 (điều phối 29/9 đêm — lỗ tìm thấy trước phát hành, áp lời chủ H4): khối LỊCH SỬ trên trang đơn -----------------------------------------------
 // Dòng nhật ký `order_leg_short_notice` (route đặt gấp) và dòng sửa / thêm chặng kèm `datGap` ("… · đặt gấp: <nhãn>") lộ lý do + tên người duyệt. Đối tác,
-// HDV, Thực tập: dòng đó chỉ còn "Đặt gấp — Quản trị đã duyệt", người làm = "Quản trị" (không tên, không id). Văn phòng giữ nguyên.
+// HDV, Thực tập: dòng đó chỉ còn "Điều chỉnh khẩn cấp (văn phòng)" (ADR-0107 mục 8), người làm = "Văn phòng" rồi lớp ADR-0131 làm rỗng. Văn phòng giữ nguyên.
 const lichSu = async (w: any, id: string, as: string) => {
   const r = await w.call("GET", `/api/orders/${id}`, { as });
   assert.equal(r.status, 200, r.text);
   return r.json.history as { action: string; staffId: string | null; staffName: string; detail: string | null }[];
 };
 function kiemLichSuCo(h: { action: string; staffId: string | null; staffName: string; detail: string | null }[], ai: string, tenMong = "") {
-  const dong = h.filter((e) => e.action === "order_leg_short_notice" || /đặt gấp/iu.test(e.detail ?? ""));
+  const dong = h.filter((e) => e.action === "order_leg_short_notice" || /đặt gấp|Điều chỉnh khẩn cấp/iu.test(e.detail ?? ""));
   assert.ok(dong.length > 0, `${ai}: chống bài rỗng — phải có dòng đặt gấp`);
   for (const e of dong) {
-    assert.equal(e.staffName, tenMong, `${ai}: người làm chỉ là nhãn "${tenMong}"`); // ADR-0131 đ2: người không qua `audit.view` (Đối tác, HDV, Thực tập) không thấy tên nào, kể cả nhãn "Quản trị"
+    assert.equal(e.staffName, tenMong, `${ai}: người làm chỉ là nhãn "${tenMong}"`); // ADR-0131 đ2: người không qua `audit.view` (Đối tác, HDV, Thực tập) không thấy tên nào, kể cả nhãn "Văn phòng"
     assert.equal(e.staffId, null, `${ai}: không lộ id người duyệt`);
-    assert.match(e.detail ?? "", /Đặt gấp — Quản trị đã duyệt/, `${ai}: ${e.detail}`);
+    assert.match(e.detail ?? "", / · Điều chỉnh khẩn cấp \(văn phòng\)$/, `${ai}: ${e.detail}`);
+    assert.doesNotMatch(e.detail ?? "", /Quản trị/, `${ai}: ADR-0107 — người đóng dấu có thể là Bán hàng, không ghi "Quản trị"`);
   }
   const txt = JSON.stringify(h);
   for (const lo of [TEN_DUYET, ADM, "Chuyến bay đổi giờ", "Khách đoàn gọi gấp", "CHUYEN_BAY_DOI_GIO", "Khách gọi"]) assert.ok(!txt.includes(lo), `${ai}: lịch sử lộ "${lo}"`);

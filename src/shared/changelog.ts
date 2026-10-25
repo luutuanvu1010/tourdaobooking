@@ -12,6 +12,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0107 (accepted 2026-10-08; kế hoạch docs/superpowers/plans/2026-10-25-adr-0107-dat-gap-ban-hang.md): Bán hàng tự đặt gấp; dấu chỉ ghi lên chặng đang dưới
+    // mốc, kể cả Quản trị (409 short_notice_not_needed); nhãn dấu "Điều chỉnh khẩn cấp". KHÔNG migration.
+    // Số 2.31 là số TẠM (main đang ở 2.30) — phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    version: "2.31",
+    date: "2026-10-26",
+    items: [
+      { kind: "doi", text: "Nhân viên bán hàng tự bấm «Đặt gấp» cho lượt đưa đón đã qua hạn chốt (kể cả đơn người khác lập), chọn lý do — không phải gọi Quản trị nữa." },
+      { kind: "doi", text: "«Đặt gấp» chỉ bấm được khi lượt đưa đón thật sự đã qua hạn chốt, với mọi người kể cả Quản trị. Lượt đã đặt gấp mà bị dời ra xa thì mất dấu." },
+      { kind: "doi", text: "Lượt đã đặt gấp nay mang nhãn «Điều chỉnh khẩn cấp»; Đối tác thấy «Điều chỉnh khẩn cấp (văn phòng)»." },
+    ],
+  },
+  {
     // Màn Sổ công nợ (P1 của docs/superpowers/plans/2026-10-24-so-cong-no-doi-tac-ke-hoach-thi-cong.md; bản vẽ 2a). Thêm route chỉ đọc GET /api/ledger/ben/:partyId. KHÔNG migration.
     version: "2.30",
     date: "2026-10-25",

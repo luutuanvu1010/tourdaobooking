@@ -130,13 +130,21 @@ void b;
 console.log("✓ lệnh tài xế: xayRaLuc → 400; xuất bến MAY_CHU; xuất bến sớm (trước ngày chạy) vẫn KHÔNG tên, liên hệ (Q-L3-B); đã tới; 'đã đón' lặp cùng requestId → một sự kiện; tài xế khác 404; kết thúc gián đoạn");
 
 // --- 4. TRONG ngày chạy (Q-L3-B, mục VỪA-1 của người kiểm độc lập 30/9): chuyến có ngày chạy = HÔM NAY (ngày VN), tài xế được xếp, bấm Xuất bến → GET chi
-// tiết CÓ họ tên, năm sinh, liên hệ. Giờ đón hôm nay 23:50 thường DƯỚI mốc tối thiểu → đi đúng đường nghiệp vụ: Quản trị đóng dấu "đặt gấp" lên chặng (route
-// short-notice), rồi mới xác nhận, xếp (ĐP2(ii): xếp chính chặng đặt gấp thì qua). Không đổi chính sách, không chèn SQL vào bảng đơn / chuyến. Chạy từ 23:40
-// giờ VN trở đi thì giờ chuyến hôm nay đã sát / qua → BỎ QUA ca này và in một dòng (không lách).
+// tiết CÓ họ tên, năm sinh, liên hệ. Đi đúng đường nghiệp vụ, không đổi chính sách, không chèn SQL vào bảng đơn / chuyến. ADR-0107 ý (ii): dấu "đặt gấp" chỉ
+// ghi lên chặng ĐANG dưới mốc. Chặng 23:50 đã dưới mốc (chạy tối) → Quản trị đóng dấu (route short-notice) rồi mới xác nhận, xếp (ĐP2(ii): xếp chính chặng
+// đặt gấp thì qua). Cả giờ xuất bến 23:40 còn ngoài mốc (chạy ban ngày) → bấm Đặt gấp nhận 409 `short_notice_not_needed`, xác nhận và xếp không cần dấu.
+// Ở giữa (chuyến 23:40 đã vào mốc mà chặng 23:50 chưa — khoảng 10 phút mỗi ngày, cộng 1 phút dư mỗi bên) và từ 23:40 giờ VN trở đi → BỎ QUA ca này, in một
+// dòng (không lách).
 const H = vnDate(0);
 const gioVnBayGio = new Date(Date.now() + 7 * 3600_000).toISOString().slice(11, 16);
+const mocE2e = (await call(SALES, "GET", "/api/orders/moc-toi-thieu")).body.mocToiThieuPhut;
+const phutToi = (gio) => (Date.parse(`${H}T${gio}:00+07:00`) - Date.now()) / 60_000;
+const changDuoiMoc = phutToi("23:50") < mocE2e - 1;
+const chuyenNgoaiMoc = phutToi("23:40") > mocE2e + 1;
 if (gioVnBayGio >= "23:40") {
   console.log(`- BỎ QUA ca trong ngày chạy: bây giờ ${gioVnBayGio} giờ VN, sát nửa đêm`);
+} else if (!changDuoiMoc && !chuyenNgoaiMoc) {
+  console.log(`- BỎ QUA ca trong ngày chạy: bây giờ ${gioVnBayGio} giờ VN — chuyến 23:40 đã vào hạn chốt mà chặng 23:50 chưa (ADR-0107: chưa dưới hạn chốt thì không đặt gấp)`);
 } else {
   // ADR-0105: nơi TRẢ là một địa điểm mới có địa chỉ (Quản trị tạo bằng route thật) → giá trị chuỗi đích đã biết trước.
   const DIA_CHI_E2E = `Số 5 Đường Chỉ Đường E2E ${duoi}`;
@@ -150,7 +158,8 @@ if (gioVnBayGio >= "23:40") {
   assert.equal(o.status, 201, JSON.stringify(o.body));
   const legId = o.body.order.services[0].legs[0].id;
   r = await call(ADMIN, "POST", `/api/orders/${o.body.order.id}/legs/${legId}/short-notice`, { lyDo: "KHACH_DOAN_GOI_GAP" });
-  assert.equal(r.status, 200, JSON.stringify(r.body));
+  if (changDuoiMoc) assert.equal(r.status, 200, JSON.stringify(r.body));
+  else assert.deepEqual([r.status, r.body.error?.code], [409, "short_notice_not_needed"], `ADR-0107: chặng còn ngoài mốc — ${JSON.stringify(r.body)}`);
   r = await call(SALES, "POST", `/api/orders/${o.body.order.id}/status`, { status: "confirmed" });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   let c = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId: await xe("C"), taiXePartyId: TX2.party, batDau: { ngay: H, gio: "23:40" }, ketThuc: { ngay: H, gio: "23:59" } });
@@ -177,5 +186,5 @@ if (gioVnBayGio >= "23:40") {
   assert.notEqual(traH.tenNoi, DIA_CHI_E2E, "tên nơi vẫn là tên điểm");
   r = await call(TX2.cookie, "POST", `/api/van-chuyen/cuoc-cua-toi/${idH}/ket-thuc-gian-doan`, { requestId: uuid(), lyDo: "GIAN_DOAN_KHAC" });
   assert.equal(r.status, 200, JSON.stringify(r.body));
-  console.log("✓ trong ngày chạy (ngày chạy = hôm nay, đặt gấp đúng đường, đã xuất bến): GET chi tiết có họ tên, năm sinh, liên hệ (Q-L3-B VỪA-1), chuỗi đích chỉ đường ở mọi điểm (địa chỉ danh mục / tên nơi) — phản hồi lệnh không có (ADR-0105)");
+  console.log("✓ trong ngày chạy (ngày chạy = hôm nay, đặt gấp chỉ khi chặng dưới mốc, đã xuất bến): GET chi tiết có họ tên, năm sinh, liên hệ (Q-L3-B VỪA-1), chuỗi đích chỉ đường ở mọi điểm (địa chỉ danh mục / tên nơi) — phản hồi lệnh không có (ADR-0105)");
 }

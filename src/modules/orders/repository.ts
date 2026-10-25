@@ -9,7 +9,7 @@ import { moTaDanhSachNhap, type HanhKhachHopLe } from "../../shared/hanh-khach";
 import {
   legCloseChecked, legCloseGuarded, legCloseReplaceChecked, legDeleteDraft, legFillDateOnConfirm, legInsert, legInsertGuarded, legPaxOverrideChecked, legUpdateChecked, legUpdateGuarded, openLegsByOrders,
   openLegsStatement, orderConfirm, orderTouch, orderTouchGuarded, passengerDeleteDraft, passengerInsert, passengerInsertGuarded, passengerVoidGuarded,
-  serviceMirrorUpdateGuarded, type DatGapWrite, type LegFields, type LegRow, type LegWrite, type OPhuGhi, type PassengerWrite, type ServicePaxRow,
+  serviceMirrorUpdateGuarded, type DauChepNhap, type DauDatGapMoi, type DauGhi, type LegFields, type LegRow, type LegWrite, type OPhuGhi, type PassengerWrite, type ServicePaxRow,
 } from "./chang-hanh-khach-repo";
 import type { LocDon } from "../../shared/loc-don";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
@@ -890,16 +890,19 @@ function serviceInserts(db: D1Database, orderId: string, services: ValidService[
 /** Dấu vết của chặng đang lưu (giữ `created_*` khi lưu nháp xoá–chèn lại cùng id) — theo id chặng. */
 export type LegMeta = ReadonlyMap<string, { createdAt: string; createdBy: string | null }>;
 
-/** Một thao tác trên chặng của `PUT /trip` tương thích (ADR-0047 R2c, R4e) — `service.ts:keHoachChangTrip` lập, `updateTrip` ghi. */
+/**
+ * Một thao tác trên chặng của `PUT /trip` tương thích (ADR-0047 R2c, R4e) — `service.ts:keHoachChangTrip` lập, `updateTrip` ghi. `datGap` (ADR-0107, G11): dấu
+ * MỚI của RIÊNG chặng này — route gắn `dauCho(giờ mới)` của `xetDatGapSua`; vắng / null = không dấu (dấu cũ của chặng đổi bị bỏ — I16).
+ */
 export type LegOp =
   /** `nhatKy` (G17): chữ dòng `order_leg_updated` khi ngày / giờ đón đổi (khuôn chặng, `keHoachChangTrip`; route nối đuôi đặt gấp) — vắng = không dòng chặng. */
-  | { kind: "update"; legId: string; fields: LegFields; nhatKy?: string }
-  | { kind: "insert"; serviceId: string; leg: ChangHopLe }
+  | { kind: "update"; legId: string; fields: LegFields; nhatKy?: string; datGap?: DauDatGapMoi | null }
+  | { kind: "insert"; serviceId: string; leg: ChangHopLe; datGap?: DauDatGapMoi | null }
   | { kind: "close"; legId: string; reason: LyDoDongChang };
 
 /** Giá trị ghi MỘT chặng (chặng mới sinh id mới; giữ `created_*` theo `meta` khi chèn lại cùng id). */
 function legWriteOf(
-  l: ChangHopLe, serviceId: string, orderId: string, staffId: string, at: string, meta: LegMeta = new Map(), datGap: DatGapWrite | null = null,
+  l: ChangHopLe, serviceId: string, orderId: string, staffId: string, at: string, meta: LegMeta = new Map(), datGap: DauGhi | null = null,
 ): LegWrite {
   const id = l.id ?? crypto.randomUUID();
   const m = meta.get(id);
@@ -919,7 +922,7 @@ function legWriteOf(
 /**
  * Dấu đặt gấp CHÉP khi lưu lại đơn nháp (ADR-0049 Q1 = (a)): khoá `"<vị trí dịch vụ>|<vị trí chặng>"` → năm cột ĐỌC TỪ CSDL (`chepDatGapNhap`, dat-gap.ts).
  */
-export type DatGapNhap = ReadonlyMap<string, DatGapWrite>;
+export type DatGapNhap = ReadonlyMap<string, DauChepNhap>;
 
 /** Giá trị ghi các chặng của mọi dịch vụ (id dịch vụ theo `serviceIds` của lần chèn này). */
 function legWrites(
@@ -1342,9 +1345,8 @@ export async function updateTrip(
   updates: { id: string; trip: ValidTrip }[],
   expectedUpdatedAt: string,
   detail: string,
+  /** Dấu đặt gấp đi theo TỪNG thao tác (`LegOp.datGap` — ADR-0107, G11); chặng đổi không dấu mới thì dấu cũ bỏ (I16). */
   legOps: readonly LegOp[] = [],
-  /** Dấu đặt gấp MỚI cho MỌI chặng đổi / thêm của lệnh này (nhánh `datGap`); null = bỏ dấu cũ của chặng đổi (I16). */
-  datGap: DatGapWrite | null = null,
 ): Promise<boolean> {
   const at = nextStamp(expectedUpdatedAt);
   const auditId = crypto.randomUUID();
@@ -1367,12 +1369,12 @@ export async function updateTrip(
     // còn mở — không câu mới đọc audit_log. Trần số câu của lô: bài `trip-chang.test.ts` (G17 điều kiện 4).
     ...legOps.flatMap((op) => {
       if (op.kind === "update") {
-        const sua = legUpdateGuarded(db, op.legId, orderId, op.fields, at, staffId, auditId, datGap);
+        const sua = legUpdateGuarded(db, op.legId, orderId, op.fields, at, staffId, auditId, op.datGap ?? null);
         if (op.nhatKy === undefined) return [sua];
         return [sua, auditStatement(db, { orderId, staffId, action: "order_leg_updated", targetType: "order", targetId: op.legId, at, detail: op.nhatKy }, "changes() > 0")];
       }
       if (op.kind === "close") return [legCloseGuarded(db, op.legId, orderId, op.reason, at, staffId, auditId)];
-      return [legInsertGuarded(db, legWriteOf(op.leg, op.serviceId, orderId, staffId, at, new Map(), datGap), auditId)];
+      return [legInsertGuarded(db, legWriteOf(op.leg, op.serviceId, orderId, staffId, at, new Map(), op.datGap ?? null), auditId)];
     }),
   ]);
   return (results[0]!.meta.changes ?? 0) > 0;
@@ -1436,7 +1438,7 @@ export async function addLeg(
   db: D1Database,
   orderId: string,
   staffId: string,
-  plan: { serviceId: string; leg: ChangHopLe; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null }; datGap?: DatGapWrite | null },
+  plan: { serviceId: string; leg: ChangHopLe; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null }; datGap?: DauDatGapMoi | null },
 ): Promise<boolean> {
   const at = nextStamp(plan.expected);
   const auditId = crypto.randomUUID();
@@ -1461,7 +1463,7 @@ export async function replaceLeg(
   staffId: string,
   plan: {
     legId: string; serviceId: string; leg: ChangHopLe; expected: string; reason: LyDoDongChang; detailDong: string; detailThem: string;
-    mirror: { pickupTime: string | null; pickupPlace: string | null }; datGap: DatGapWrite | null;
+    mirror: { pickupTime: string | null; pickupPlace: string | null }; datGap: DauDatGapMoi | null;
   },
 ): Promise<boolean> {
   return thangCauDau(await db.batch(soanThayChang(db, orderId, staffId, plan).cau));
@@ -1504,8 +1506,8 @@ export async function changeLeg(
   plan:
     | {
       kind: "update"; legId: string; serviceId: string; fields: LegFields; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null };
-      /** Dấu đặt gấp MỚI (nhánh `datGap`) hoặc null = bỏ dấu cũ (nội dung chặng đổi — I16). */
-      datGap: DatGapWrite | null;
+      /** Dấu đặt gấp MỚI (`dauCho` của `xetDatGapSua` — chỉ khi giờ SAU lệnh dưới mốc, ADR-0107) hoặc null = bỏ dấu cũ (nội dung chặng đổi — I16). */
+      datGap: DauDatGapMoi | null;
       /** Hai ô phụ sẽ ghi (khoá vắng = giữ). */
       oPhu?: OPhuGhi;
       /** Q-B (chủ 1/10): chỉ đổi ô phụ, thân không có `datGap` → GIỮ năm cột đặt gấp đang lưu. */

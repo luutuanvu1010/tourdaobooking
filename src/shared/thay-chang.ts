@@ -101,7 +101,10 @@ export function lenhChanMoc<T extends { xet: XetMoc }>(ds: readonly T[], mocPhut
   return ds.filter((l) => l.xet !== null && duoiMocKhiSua(l.xet.cu, l.xet.moi, bayGioMs, mocPhut));
 }
 
-/** Câu báo ngay ở bảng (không gửi lệnh nào): "Chặng Chiều đi · Tour đảo dưới mốc 6 giờ — cần Quản trị duyệt đặt gấp; chưa lưu gì." Tên chặng không lặp. */
+/**
+ * Câu báo ngay ở bảng (không gửi lệnh nào) cho người có `order.trip.edit` mà KHÔNG có ô đặt gấp — từ ADR-0107 không mã quyền nào như vậy (nhánh dự phòng):
+ * "Lượt Chiều đi · Tour đảo đã qua hạn chốt (6 giờ trước giờ đón) — cần đặt gấp; chưa lưu gì." Tên chặng không lặp.
+ */
 export function cauChanMoc(nhan: readonly string[], mocPhut: number): string {
-  return `Lượt ${[...new Set(nhan)].join(", ")} đã qua hạn chốt (${nhanThoiLuong(mocPhut)} trước giờ đón) — cần Quản trị duyệt đặt gấp; chưa lưu gì.`;
+  return `Lượt ${[...new Set(nhan)].join(", ")} đã qua hạn chốt (${nhanThoiLuong(mocPhut)} trước giờ đón) — cần đặt gấp; chưa lưu gì.`;
 }
