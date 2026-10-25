@@ -1,5 +1,5 @@
 // Dải chuyển nhanh giữa các trang anh em của mục gộp ("Xe & giấy tờ", "Giá & chi phí"). Thuần (không DOM). Tệp riêng, KHÔNG để trong muc-giao-dien.ts: tệp đó nằm trong
-// gói mọi trang (trần 96000 byte của bài src/goi-trang-nhe.test.ts); chỉ 5 trang xe / giá import tệp này (web/dai-trang-anh-em.ts).
+// gói mọi trang (trần 96000 byte của bài src/goi-trang-nhe.test.ts); chỉ 5 trang xe / giá và hai trang sổ (Sổ công nợ, Khoá sổ tháng) import tệp này (web/dai-trang-anh-em.ts).
 // Nguồn: trường `gom` của THANH_BEN + `coHien` — dải chỉ liệt kê trang người đó thấy, cùng bảng với thanh bên.
 import { THANH_BEN, TRANG, coHien, sangTai, type KhoaTrang } from "./muc-giao-dien.ts";
 import type { PermissionHolder } from "./permissions.ts";
@@ -10,6 +10,8 @@ const NHAN: Partial<Record<KhoaTrang, string>> = {
   sapHetHan: "Giấy tờ sắp hết hạn",
   bangGiaXe: "Bảng giá thuê xe",
   bangKeXe: "Bảng kê chi phí xe",
+  soCongNo: "Sổ công nợ",
+  khoaThang: "Khoá sổ tháng",
 };
 
 export interface TrangAnhEm {

@@ -104,6 +104,7 @@ const MIEN_200: Record<string, string> = {
   "/api/bang-tin": "bắt tay WebSocket: khung thử không có trạm Bảng tin (426/503); sự kiện phát đi chỉ 5 khoá (ADR-0022 điều 4), không chở tiền",
   "/api/van-chuyen/chuyen/:id/xe-nhan": "gói A5 (ADR-0111): chỉ 200 khi chuyến ĐANG CHẠY có tài xế (409 nếu không) — khung thử không dựng chuyến chạy cho bài này; phản hồi chỉ chở năm khoá XeNhanDto (mã chuyến, tên tài xế, chỗ trống, điểm sắp tới; không biển số, không khách, không tiền, không hoa hồng); thân 4xx vẫn được quét",
   "/api/van-chuyen/cuoc-cua-toi/:id/xe-nhan": "gói A5 (ADR-0111): như dòng trên, và chỉ tài xế đang lái chuyến mới gọi được (404 với người khác)",
+  "/api/ledger/ben/:partyId": "Sổ công nợ P1 (25/10): chi tiết MỘT bên chỉ có khi bên đó có dòng sổ — bài này không đưa đơn B tới «Đã giao» nên B và nhà cung cấp chưa có dòng hoa hồng / giá vốn ⇒ 404 cho người được xem, 403 cho người giữ quyền Đối tác; vẫn GỌI để thân được quét. 200 và nội dung kiểm ở src/modules/billing/so-cong-no-ben.test.ts",
   "/api/parties/:id/documents/:did/tep": "ADR-0123 (lát H-2 kho tệp): danh sách ảnh của MỘT dòng giấy tờ người — chỉ Toàn quyền; bài này không gieo giấy tờ + ảnh; DTO chỉ mã / loại / cỡ / mốc, không chở tiền; bangDien gọi bằng mã lạ nên thân 4xx vẫn được quét",
   "/api/parties/:id/documents/:did/tep/:tid": "ADR-0123: thân là byte ảnh / PDF giấy tờ (không phải JSON, không chở tiền) — chỉ Toàn quyền, cần tệp đã tải lên; bài này không gieo ảnh; bangDien gọi bằng mã lạ nên thân 4xx vẫn được quét",
   "/api/parties/xac-minh/:pid": "ADR-0125 (lát H-4): chi tiết MỘT phiếu tự khai đang chờ — cần phiếu gieo sẵn (bài này không gieo); DTO chỉ ngày sinh / địa chỉ / số che / cờ, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 vẫn được quét",
@@ -145,6 +146,8 @@ function bangDien(g: Gieo): Record<string, string[]> {
     "/api/orders/:id/han-muc-tu-choi": donB.map((id) => `/api/orders/${id}/han-muc-tu-choi`),
     "/api/orders/:id/tu-choi-truoc": donB.map((id) => `/api/orders/${id}/tu-choi-truoc`),
     "/api/staff/:id/roles": [`/api/staff/${DT_B}/roles`],
+    // Sổ công nợ P1 (25/10): chi tiết một bên — bên B (hoa hồng của B) và nhà cung cấp (giá vốn); chỉ Kế toán / Toàn quyền không giữ quyền Đối tác nhận 200.
+    "/api/ledger/ben/:partyId": [`/api/ledger/ben/${PTY_B}`, "/api/ledger/ben/pty-ncc"],
     "/api/feedback/:id": [`/api/feedback/${g.gopY}`],
     // ADR-0119 Việc 5b: hàng đợi MỘT nhóm (cần ?team) — nhóm Kỹ thuật giữ góp ý thử của B; Toàn quyền nhận 200.
     "/api/feedback/queue": ["/api/feedback/queue?team=fbk-team-ky-thuat"],

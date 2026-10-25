@@ -329,6 +329,8 @@ export const billingModule: AppModule = {
     // Mã bên lạ (không phải dạng mã hồ sơ) ⇒ 404 trước khi chạm CSDL; bên không có dòng sổ ⇒ 404.
     route("GET", "/api/ledger/ben/:partyId", "office", async ({ env, params, staff }) => {
       if (!can(staff, "ledger.view")) return FORBIDDEN_VIEW();
+      // Khuôn các route sổ khác (R-P18): tài khoản giữ quyền Đối tác (kể cả lai) không đọc sổ chi tiết của bên khác — chi tiết có hoa hồng / giá vốn từng đơn.
+      if (holdsPartner(staff)) return error(403, "forbidden", "Tài khoản có quyền Đối tác không xem được sổ công nợ của các bên.");
       const partyId = params.partyId ?? "";
       if (!/^[A-Za-z0-9-]{1,80}$/.test(partyId)) return error(404, "not_found", "Không tìm thấy bên này trong sổ.");
       const r = await soCongNoBen(env.DB, partyId);

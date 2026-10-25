@@ -143,6 +143,8 @@ test("đơn đã huỷ còn tiền giữ hộ ⇒ nhãn «Đã huỷ — cọc c
   const o = j.dangGiu.don.find((x: { orderId: string }) => x.orderId === a);
   assert.ok(o, JSON.stringify(j));
   assert.equal(o.trangThai, "Đã huỷ — cọc còn giữ");
+  assert.equal(o.daHuy, true);
+  assert.ok([...j.dangGiu.don, ...j.congTyNo.don].filter((x: { orderId: string }) => x.orderId !== a).every((x: { daHuy: boolean }) => x.daHuy === false));
   assert.equal(j.soDu, 140_000);
   assert.equal(j.lech, 0);
 });

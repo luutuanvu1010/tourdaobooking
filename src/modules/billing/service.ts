@@ -1063,7 +1063,7 @@ export async function soCongNoBen(db: D1Database, partyId: string): Promise<SoCo
   const nhom = nhomDonCuaBen(lines.map((l) => ({ orderId: l.order_id, maDon: l.order_code, ngay: l.occurred_date, debtorPartyId: l.debtor_party_id, creditorPartyId: l.creditor_party_id, amount: l.amount })), partyId, congTyId);
   const tt = new Map(trangThai.map((r) => [r.id, { status: r.status, deliveredAt: r.delivered_at, completedAt: r.completed_at }]));
   const dto = (benDangGiu: boolean) => (d: (typeof nhom.dangGiu)[number]) => ({
-    orderId: d.orderId, maDon: d.maDon, ngayGanNhat: d.ngayGanNhat, soTien: d.soTien, trangThai: nhanDonTrongSo(d.orderId ? tt.get(d.orderId) ?? null : null, benDangGiu),
+    orderId: d.orderId, maDon: d.maDon, ngayGanNhat: d.ngayGanNhat, soTien: d.soTien, daHuy: !!d.orderId && tt.get(d.orderId)?.status === "cancelled", trangThai: nhanDonTrongSo(d.orderId ? tt.get(d.orderId) ?? null : null, benDangGiu),
   });
   const congCacDon = nhom.x - nhom.y;
   return {

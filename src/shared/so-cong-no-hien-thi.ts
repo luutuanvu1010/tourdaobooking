@@ -10,7 +10,7 @@ export function nhanDonTrongSo(o: { status: OrderStatus; deliveredAt: string | n
   return trangThaiHienThi(o).nhan;
 }
 
-/** Câu số dư một bên bằng LỜI (không chỉ dấu ±): dương = bên đó đang giữ tiền của công ty; âm = công ty nợ bên đó. */
+/** Câu số dư một bên bằng LỜI (không chỉ dấu ±): dương = bên đó còn tiền chưa nộp về công ty; âm = công ty nợ bên đó. */
 export function cauSoDu(soDu: number, dinhDang: (n: number) => string): string {
   if (soDu > 0) return `Đang giữ ${dinhDang(soDu)}`;
   if (soDu < 0) return `Công ty nợ ${dinhDang(-soDu)}`;

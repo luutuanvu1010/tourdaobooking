@@ -12,6 +12,7 @@ import {
 import { ngayDayDu } from "../src/shared/vn-date";
 import { byId, h, replaceChildren } from "./dom";
 import { vnd } from "./format";
+import { ganDaiTrangAnhEm } from "./dai-trang-anh-em";
 import { initShell, showError } from "./shell";
 
 const errorEl = byId("error");
@@ -26,6 +27,7 @@ const timEl = byId<HTMLInputElement>("scn-tim");
 const xepEl = byId<HTMLSelectElement>("scn-xep");
 
 const staff = await initShell();
+ganDaiTrangAnhEm("/so-cong-no", staff); // mục gộp «Sổ công nợ & khoá sổ» (25/10): dải chuyển nhanh hai trang
 const reasonOf = (err: unknown): string => (err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
 const rong = (): boolean => window.matchMedia("(min-width: 1024px)").matches;
 
@@ -47,7 +49,7 @@ if (!can(staff, "ledger.view")) {
   timEl.addEventListener("input", () => { soBenHien = BEN_MOI_LAN; veDanhSach(); });
 
   function veCanhBao(s: Api.SoCongNoResponse): void {
-    const phan = [s.choXacNhan.length > 0 && `${s.choXacNhan.length} khoản chờ xác nhận`, s.chuaRo.length > 0 && `${s.chuaRo.length} khoản chưa rõ người thu`].filter(Boolean);
+    const phan = [s.choXacNhan.length > 0 && `${s.choXacNhan.length} khoản chờ xác nhận`, s.chuaRo.length > 0 && `${s.chuaRo.length} khoản chưa rõ người thu tiền`].filter(Boolean);
     replaceChildren(canhBaoEl, phan.length > 0 && h("a", { class: "alert warn scn-canh-bao", href: "/" }, `${phan.join(" · ")} — xử lý ở Trang chủ ›`));
   }
 
@@ -95,7 +97,7 @@ if (!can(staff, "ledger.view")) {
       h("h3", { class: "scn-nhom-dau" }, h("span", null, `${tieuDe} · ${n.don.length} đơn`), h("strong", null, vnd(n.tong))),
       h("ul", { class: "scn-don-ds" }, ...hien.map((d) => h("li", { class: "scn-don" },
         h("span", { class: "scn-don-ma" }, d.orderId ? h("a", { href: `/order?id=${encodeURIComponent(d.orderId)}` }, d.maDon ?? "—") : (d.maDon ?? "—")),
-        h("span", { class: d.trangThai.startsWith("Đã huỷ") ? "scn-don-tt scn-huy" : "scn-don-tt muted" }, d.trangThai),
+        h("span", { class: d.daHuy ? "scn-don-tt scn-huy" : "scn-don-tt muted" }, d.trangThai),
         h("span", { class: "scn-don-ngay muted" }, `Phát sinh ${ngayDayDu(d.ngayGanNhat)}`),
         h("strong", { class: "scn-don-tien" }, vnd(d.soTien))))),
       them);

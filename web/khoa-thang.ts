@@ -24,6 +24,7 @@ import {
 import { ngayDayDu } from "../src/shared/vn-date";
 import { byId, h, replaceChildren } from "./dom";
 import { vnd } from "./format";
+import { ganDaiTrangAnhEm } from "./dai-trang-anh-em";
 import { initShell, showError } from "./shell";
 
 const errorEl = byId("error");
@@ -35,6 +36,7 @@ const bangKiemEl = byId("ky-bang-kiem");
 const khuKhoaEl = byId("ky-khoa-khu");
 
 const staff = await initShell();
+ganDaiTrangAnhEm("/khoa-thang", staff); // mục gộp «Sổ công nợ & khoá sổ» (25/10): dải chuyển nhanh hai trang
 
 const reasonOf = (err: unknown): string => (err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
 

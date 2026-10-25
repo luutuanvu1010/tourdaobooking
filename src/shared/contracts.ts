@@ -2332,6 +2332,8 @@ export interface SoCongNoDonDto {
   /** Ngày phát sinh của dòng sổ gần nhất trên đơn (YYYY-MM-DD) — KHÔNG phải ngày đi (billing không đọc được ngày đi qua view công bố). */
   ngayGanNhat: string;
   soTien: number;
+  /** Đơn đã huỷ (trang tô màu dòng theo cờ này, không dò chữ nhãn). */
+  daHuy: boolean;
 }
 /**
  * `GET /api/ledger/ben/:partyId` (Kế toán, Toàn quyền — màn «Sổ công nợ» bản vẽ 2a): chi tiết một bên. MỌI số tính ở máy chủ. `soDu` đọc từ view số dư (cùng nguồn
