@@ -2319,6 +2319,31 @@ export interface SoCongNoResponse {
   chuaRo: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string }[];
 }
 
+/** Một đơn trong chi tiết một bên của màn «Sổ công nợ» — `soTien` luôn DƯƠNG, dấu nói bằng nhóm chứa nó; đơn cộng ra 0 không có mặt. */
+export interface SoCongNoDonDto {
+  /** null = dòng sổ không gắn đơn. */
+  orderId: string | null;
+  maDon: string | null;
+  /** Nhãn tiếng Việt (`trangThaiHienThi`; đơn huỷ còn tiền bên này giữ: «Đã huỷ — cọc còn giữ»). */
+  trangThai: string;
+  /** Ngày phát sinh của dòng sổ gần nhất trên đơn (YYYY-MM-DD) — KHÔNG phải ngày đi (billing không đọc được ngày đi qua view công bố). */
+  ngayGanNhat: string;
+  soTien: number;
+}
+/**
+ * `GET /api/ledger/ben/:partyId` (Kế toán, Toàn quyền — màn «Sổ công nợ» bản vẽ 2a): chi tiết một bên. MỌI số tính ở máy chủ. `soDu` đọc từ view số dư (cùng nguồn
+ * `SoCongNoResponse.soDu`); hai nhóm cộng từ từng dòng sổ (nguồn thứ hai) ⇒ `lech = soDu − congCacDon` khác 0 là dấu hiệu sổ có lỗi (màn hiện «Lệch …»).
+ */
+export interface SoCongNoBenResponse {
+  partyId: string;
+  ten: string;
+  soDu: number;
+  dangGiu: { don: SoCongNoDonDto[]; tong: number };
+  congTyNo: { don: SoCongNoDonDto[]; tong: number };
+  congCacDon: number;
+  lech: number;
+}
+
 /**
  * Điều chỉnh công nợ CẦN NGƯỜI THỨ HAI DUYỆT (ADR-0115 đợt 1; migration 0094). `POST /api/ledger/adjustments` lệnh `dieu_chinh` không đổi số dư ngay: trả 201
  * `TaoYeuCauDieuChinhResponse` (yêu cầu CHỜ DUYỆT). Trạng thái tính LÚC ĐỌC: `het_han` = quá 7 ngày kể từ lúc tạo mà chưa có quyết định (không bao giờ tự duyệt).

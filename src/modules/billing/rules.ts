@@ -747,6 +747,38 @@ export function soDuTheoBen(lines: readonly Pick<LineRow, "debtorPartyId" | "cre
   return out;
 }
 
+/**
+ * Chi tiết MỘT bên của màn «Sổ công nợ» (bản vẽ 2a): cộng từng dòng sổ theo đơn — CHỈ dòng giữa bên và công ty chủ (cùng bộ lọc với `soDuTheoBen` và view số dư),
+ * dương ⇒ nhóm «bên này đang giữ», âm ⇒ nhóm «công ty nợ bên này» (số tiền trả về luôn dương), đơn cộng ra 0 bị bỏ. `congCacDon` = X − Y. Thứ tự: số tiền lớn trước,
+ * rồi mã đơn. Không I/O; số dư so sánh (`lech`) do nơi gọi đưa từ nguồn KHÁC (view) để cờ lệch có nghĩa.
+ */
+export interface DongCuaBen { orderId: string | null; maDon: string | null; ngay: string; debtorPartyId: string; creditorPartyId: string; amount: number }
+export interface DonCuaBen { orderId: string | null; maDon: string | null; ngayGanNhat: string; soTien: number }
+export function nhomDonCuaBen(lines: readonly DongCuaBen[], partyId: string, congTyId: string): { dangGiu: DonCuaBen[]; congTyNo: DonCuaBen[]; x: number; y: number } {
+  const theoDon = new Map<string, { orderId: string | null; maDon: string | null; ngay: string; so: number }>();
+  for (const l of lines) {
+    const so = l.debtorPartyId === partyId && l.creditorPartyId === congTyId ? l.amount : l.creditorPartyId === partyId && l.debtorPartyId === congTyId ? -l.amount : 0;
+    if (so === 0) continue;
+    const k = l.orderId ?? "";
+    const cu = theoDon.get(k);
+    if (cu) {
+      cu.so += so;
+      if (l.ngay > cu.ngay) cu.ngay = l.ngay;
+    } else theoDon.set(k, { orderId: l.orderId, maDon: l.maDon, ngay: l.ngay, so });
+  }
+  const dangGiu: DonCuaBen[] = [];
+  const congTyNo: DonCuaBen[] = [];
+  for (const d of theoDon.values()) {
+    if (d.so === 0) continue;
+    (d.so > 0 ? dangGiu : congTyNo).push({ orderId: d.orderId, maDon: d.maDon, ngayGanNhat: d.ngay, soTien: Math.abs(d.so) });
+  }
+  const xep = (a: DonCuaBen, b: DonCuaBen) => b.soTien - a.soTien || String(a.maDon ?? "").localeCompare(String(b.maDon ?? ""));
+  dangGiu.sort(xep);
+  congTyNo.sort(xep);
+  const cong = (ds: DonCuaBen[]) => ds.reduce((t, d) => t + d.soTien, 0);
+  return { dangGiu, congTyNo, x: cong(dangGiu), y: cong(congTyNo) };
+}
+
 /** 1000000 → "1.000.000 ₫" (không phụ thuộc bảng ngôn ngữ của máy chạy). */
 export const dong = (n: number): string => `${String(Math.trunc(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".")} ₫`;
 const ngayVn = (iso: string): string => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;

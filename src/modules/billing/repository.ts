@@ -229,6 +229,26 @@ export async function orderOwners(db: D1Database, ids: readonly string[]): Promi
   return new Map((await db.prepare(ORDER_OWNERS).bind(JSON.stringify(ids)).all<{ id: string; staff_id: string }>()).results.map((r) => [r.id, r.staff_id]));
 }
 
+/** Số dư MỘT bên với công ty chủ — cùng view, cùng bộ lọc với `BALANCES_WITH_OWNER` (màn «Sổ công nợ», chi tiết một bên). */
+const BALANCE_OF_PARTY = defineSql(
+  "billing",
+  "balance_of_party",
+  `SELECT COALESCE(SUM(b.balance), 0) AS balance FROM v_bil_party_balance b WHERE b.party_id = ?1 AND b.counterparty_id = (SELECT party_id FROM v_pty_owner_company LIMIT 1)`,
+);
+export const balanceOfParty = async (db: D1Database, partyId: string): Promise<number> =>
+  (await db.prepare(BALANCE_OF_PARTY).bind(partyId).first<{ balance: number }>())?.balance ?? 0;
+
+/** Trạng thái các đơn có dòng sổ chạm bên ?1 (nhãn hiển thị ở chi tiết một bên). */
+const ORDER_STATES_OF_PARTY = defineSql(
+  "billing",
+  "order_states_of_party",
+  `SELECT s.id, s.status, s.delivered_at, s.completed_at FROM v_ord_order_state s
+   WHERE s.id IN (SELECT l.order_id FROM bil_debt_line l WHERE l.debtor_party_id = ?1 OR l.creditor_party_id = ?1)`,
+);
+export type OrderStateRow = { id: string; status: "draft" | "confirmed" | "cancelled"; delivered_at: string | null; completed_at: string | null };
+export const orderStatesOfParty = async (db: D1Database, partyId: string): Promise<OrderStateRow[]> =>
+  (await db.prepare(ORDER_STATES_OF_PARTY).bind(partyId).all<OrderStateRow>()).results;
+
 const ORDER_STATE = defineSql("billing", "order_state", `SELECT id, status, delivered_at, completed_at FROM v_ord_order_state WHERE id = ?1`);
 export const orderState = (db: D1Database, id: string) =>
   db.prepare(ORDER_STATE).bind(id).first<{ id: string; status: "draft" | "confirmed" | "cancelled"; delivered_at: string | null; completed_at: string | null }>();

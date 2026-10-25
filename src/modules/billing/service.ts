@@ -4,11 +4,12 @@ import { auditStatement } from "../audit";
 import { cauBaoVeNguoiPhuTrach } from "../dispatch";
 import { cauTriggerKhoa, kyCua, kyDaKhoaTu, ngayCuoiThang, thangDaKhoa, thangKhoaDuocKeTiep } from "../ky-so";
 import { datGiaoStatement, hoanThanhStatement, phaiThuNhieuDon, thongTinGiaoDon, type PhanThuongMai, type ThongTinGiaoDon } from "../orders";
-import type { CocDonDto, KySoResponse, LanThuDto, LanThuInput, LyDoGiuDonDto, OrderPaymentsResponse, SoCongNoResponse, SoCuaToiResponse } from "../../shared/contracts";
+import type { CocDonDto, KySoResponse, LanThuDto, LanThuInput, LyDoGiuDonDto, OrderPaymentsResponse, SoCongNoBenResponse, SoCongNoResponse, SoCuaToiResponse } from "../../shared/contracts";
+import { nhanDonTrongSo } from "../../shared/so-cong-no-hien-thi";
 import { UUID_RE, error, json } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
 import {
-  balancesAt, balancesWithOwner, bankTxnInsertStatement, bankTxnOfCode, bankTxnOfOrder, earliestLedgerMonth, lineById, lineIfPostingStatement, lineReversed, linesOfOrder, linesOfParty, linesOfReceipt, mocMaGiaoDich, orderOwners, orderState, ownerCompanyId, partyLabels,
+  balanceOfParty, balancesAt, balancesWithOwner, orderStatesOfParty, bankTxnInsertStatement, bankTxnOfCode, bankTxnOfOrder, earliestLedgerMonth, lineById, lineIfPostingStatement, lineReversed, linesOfOrder, linesOfParty, linesOfReceipt, mocMaGiaoDich, orderOwners, orderState, ownerCompanyId, partyLabels,
   pendingCompany, postingIfCompletedAtStatement, postingIfDeliveredAtStatement, postingIfReceiptStatement, postingPlainStatement, receiptAtDeliveryStatement,
   receiptBeforeDeliveredStatement, receiptById, reconInsertStatement, reconOfOrder, reconOfReceipt, type ReconDbRow, receiptRefundStatement, receiptReversalStatement, receiptsOfOrder, receiptsOfOrders, unknownReceipts, type LineDbRow,
   type NewLine, type NewReceipt, type ReceiptDbRow,
@@ -18,7 +19,7 @@ import { docGiaoDich, kiemMaGiaoDich, type GiaoDich } from "./ma-giao-dich";
 import { phaiThuLucGiao } from "./thay-lan-thu-repo";
 import {
   CAU_DA_NOP, LY_DO_DIEU_CHINH_TOI_THIEU, METHOD_CODES, benDatHuong, canDoiChieu, cumDoiChieu, nhaCungCapCuaDon, phanChuaThuNhaCungCap, soDuGiuHo, type PhanChoNguoiThu, cauLoiCsdlThuongMai, conLai, dongThuongMaiTu, khoanMoiDoiChieu, sinhPhieuDaGiao, tinhTrangThuongMai, type DoiChieuRow, type DongThuongMai, type TinhTrangThuongMai, dong, khoanChoXacNhan, kiemDaoLanThu, kiemDieuChinh, kiemHoanNguoiGiu, kiemQuyetToan, soDuCap, lyDoChuaGiaoDuoc, lyDoChuaHoanThanh, nhaCungCapTheoSo, type CheSoDu, ngayPhatSinh, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan, sinhDongXacNhanCongTy,
-  soDuTheoBen, LOAI_DONG_THUONG_MAI, type LineDraft, type LineRow, type MethodCode, type ReceiptRow, type SoTienDon,
+  soDuTheoBen, nhomDonCuaBen, LOAI_DONG_THUONG_MAI, type LineDraft, type LineRow, type MethodCode, type ReceiptRow, type SoTienDon,
 } from "./rules";
 
 export const MAX_SO_TIEN = 10_000_000_000;
@@ -1045,6 +1046,29 @@ export async function soCongNo(db: D1Database): Promise<SoCongNoResponse> {
       receiptId: r.receipt_id, orderId: r.order_id, maDon: r.order_code, soTien: r.amount, ngay: r.occurred_date, nguoiKhai: r.nguoi_khai ?? "—", loai: loaiCho(r.collector_role_code), benKia: r.ben_kia,
     })),
     chuaRo: chuaRo.map((r) => ({ receiptId: r.receipt_id, orderId: r.order_id, maDon: r.order_code, soTien: r.amount, ngay: r.occurred_date })),
+  };
+}
+
+/**
+ * Chi tiết MỘT bên của màn «Sổ công nợ» (bản vẽ 2a; kế hoạch 2026-10-24 P1). Hai nguồn độc lập: số dư từ view (`balanceOfParty`, cùng nguồn danh sách) và hai nhóm
+ * cộng từ từng dòng sổ (`nhomDonCuaBen`) ⇒ `lech` ≠ 0 là sổ có lỗi. null = không có bên này / bên không có dòng sổ nào (route trả 404).
+ */
+export async function soCongNoBen(db: D1Database, partyId: string): Promise<SoCongNoBenResponse | null> {
+  const congTyId = await ownerCompanyId(db);
+  if (!congTyId) return null;
+  const [lines, soDu, trangThai, nhan] = await Promise.all([linesOfParty(db, partyId), balanceOfParty(db, partyId), orderStatesOfParty(db, partyId), partyLabels(db, [partyId])]);
+  if (lines.length === 0 || !nhan.has(partyId)) return null;
+  const nhom = nhomDonCuaBen(lines.map((l) => ({ orderId: l.order_id, maDon: l.order_code, ngay: l.occurred_date, debtorPartyId: l.debtor_party_id, creditorPartyId: l.creditor_party_id, amount: l.amount })), partyId, congTyId);
+  const tt = new Map(trangThai.map((r) => [r.id, { status: r.status, deliveredAt: r.delivered_at, completedAt: r.completed_at }]));
+  const dto = (benDangGiu: boolean) => (d: (typeof nhom.dangGiu)[number]) => ({
+    orderId: d.orderId, maDon: d.maDon, ngayGanNhat: d.ngayGanNhat, soTien: d.soTien, trangThai: nhanDonTrongSo(d.orderId ? tt.get(d.orderId) ?? null : null, benDangGiu),
+  });
+  const congCacDon = nhom.x - nhom.y;
+  return {
+    partyId, ten: nhan.get(partyId)!.label, soDu,
+    dangGiu: { don: nhom.dangGiu.map(dto(true)), tong: nhom.x },
+    congTyNo: { don: nhom.congTyNo.map(dto(false)), tong: nhom.y },
+    congCacDon, lech: soDu - congCacDon,
   };
 }
 
