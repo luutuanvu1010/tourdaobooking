@@ -48,7 +48,7 @@ Thanh «＋ Thêm mức» dính đáy mang lớp `thanh-hanh-dong-cuoi` để n�
 
 ### B2. Dòng hệ thống
 
-Chỉ ba loại, lấy từ `suKien` (máy chủ B1), xen vào luồng theo `at`: «<nguoi> đã nhận việc», «<nguoi> giao cho <den>», «Chuyển sang nhóm <den>». Luồng tự làm mới thêm `suKien` mới cùng tin mới. Không hiện lý do chuyển nhóm ở dòng hệ thống (lý do là ghi chú nội bộ, máy chủ đã lọc).
+Chỉ ba loại, lấy từ `suKien` (máy chủ B1), xen vào luồng theo `at`: «<nguoi> đã nhận việc», «<nguoi> giao cho <den>», «Chuyển sang nhóm <den>». Luồng tự làm mới thêm `suKien` mới cùng tin mới. Không hiện lý do chuyển nhóm ở dòng hệ thống (lý do là ghi chú nội bộ, máy chủ đã lọc). Người gửi không xử lý phiếu **không** có dòng hệ thống (máy chủ trả `suKien` rỗng — mặc định an toàn, chờ chủ ở Q2); họ thấy «ai đang xử lý» ở đầu phiếu như bàn giao.
 
 ### B3. Từ chối phải có lý do (hai lệnh gọi, có thứ tự)
 
@@ -84,9 +84,10 @@ Bàn giao mục 9 (bảy tiêu chí) là tiêu chí nghiệm thu của đặc t�
 8. Hoa hồng: dòng đã có ngày ngừng (kể cả tương lai) không có Đổi/Ngừng; hộp Đổi không sửa được «Ai được hưởng» và «Dịch vụ».
 9. Hỗ trợ: từ chối khi bước đổi trạng thái lỗi rồi bấm lại ⇒ luồng có **đúng một** tin lý do.
 10. Hỗ trợ: đóng yêu cầu đang mở ở điện thoại ⇒ thanh tab hiện lại.
-11. Kịch bản Chrome ở bàn giao mục 8 được sửa có chủ đích và xanh; chạy có `AXE_JS` (thiếu biến là xanh giả một phần).
+11. Mọi bài và kịch bản ở bàn giao mục 8 được sửa có chủ đích và xanh — kế hoạch chép đủ danh sách tên, không viết chung «sửa có chủ đích»: kịch bản Chrome `so-dai-ly-smoke`, `loai-doi-tac-smoke`, `muc-ta-smoke`, `dot-c-smoke`, `v1-bao-tri`, `ve-ho-tro-smoke`, `ve-ho-tro-2a-smoke`, `help-smoke`, `trang-chu-smoke`, `quyen-thieu-quan-tri-smoke`; bài `hoa-hong-hien-thi`, `so-dai-ly-nhap`, `bang-tu-giao-dien`, `trang-chu-o`, `huong-dan`, `tro-ly`, `tro-ly-van-nghia`, `tests/e2e/pwa.mjs`, bộ sinh sơ đồ trang. (Bàn giao ghi `an-toan-quyen.test.ts` ở gốc `src/` — tệp không có ở đó; bài cùng tên ở `src/modules/audit/` không chạm pricing, QA1 25/10.) Kịch bản chạy có `AXE_JS` (thiếu biến là xanh giả một phần).
 
 ## F. Câu hỏi cho chủ (gom một lần)
 
 - **Q1 — Phạm vi đổi họ từ hiệu lực.** Chữ «Đang áp / Sắp áp / Đã đóng» còn ở bốn màn ngoài trang Hoa hồng, cùng nghĩa «hiệu lực theo ngày»: bảng giá xe, điều kiện cho xe chạy, hạn mức từ chối, người bán dịch vụ. (A, khuyến nghị) đổi chữ ở mọi màn cùng nghĩa — một nghĩa một chữ, bảng từ chặn toàn Nền tảng; chỉ đổi chữ, thêm khoảng bốn tệp vào PR (2). (B) chỉ đổi ở trang Hoa hồng và Danh bạ, mẫu chặn khớp riêng chữ của hoa hồng — gọn hơn nhưng hai trang dùng hai chữ cho cùng một việc.
+- **Q2 — Người gửi có thấy dòng «X đã nhận việc / giao cho / chuyển nhóm» không.** Dòng hệ thống mang cả người và nhóm **trước đó**; người gửi hôm nay chỉ thấy người và nhóm hiện tại, và đối tác bên ngoài chưa từng thấy tên nhóm nội bộ. (A, khuyến nghị — an toàn) người gửi không thấy dòng hệ thống, chỉ thấy «ai đang xử lý» ở đầu yêu cầu. (B) người gửi nội bộ thấy đủ, tài khoản bên ngoài không thấy. (C) mọi người gửi thấy đủ.
 - **Duyệt:** đặc tả giao diện, đặc tả máy chủ, đề xuất ADR (một lượt, ba quyết định — xem `TRANG-GHEP.md`).

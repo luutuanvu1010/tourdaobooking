@@ -40,9 +40,10 @@ Không bảng nào nhận thêm loại dữ liệu mới (không migration).
 | ô «Đặt qua đối tác» (form đơn, trang đơn) | `nguoi-huong` (nay rộng hơn) | — | `coODatQuaDoiTac` **giữ** `order.create` — chỗ dễ đổi nghĩa ngoài ý nếu gộp hàm; tiêu chí 3 của đề xuất ADR khoá lại |
 | «Đổi» dòng mức / gắn chính sách | `can(partner.commission.write) && !holdsPartner`; điều kiện ngày; câu chèn `WHERE changes() > 0` | `close_only`, chống chồng, `target_*` của 0090/0096/0097 | nút Đổi/Ngừng chỉ ở dòng đang áp dụng, bắt đầu trước hôm nay, chưa có ngày ngừng, và theo `can(partner.commission.write)` |
 | tra theo loại | `partner.commission.view && !holdsPartner`; loại phải đang được hưởng | — | danh sách loại hiện cho mọi người vào được trang |
-| sự kiện của yêu cầu | `quyenPhieu.doc` (404 nếu không) | bảng chỉ-thêm | dòng hệ thống trong luồng |
+| sự kiện của yêu cầu | `quyenPhieu.doc` (404 nếu không); chỉ người `xuLy` nhận `suKien`, người gửi nhận rỗng (Q2, mặc định an toàn) | bảng chỉ-thêm | dòng hệ thống trong luồng |
+| `ganRieng` (chính sách riêng theo đối tác) | `partner.commission.view && !holdsPartner` — Bán hàng cũng thấy tên đối tác có chính sách riêng; không lộ thêm vì Bán hàng đã thấy mọi dòng mức theo đối tác ở `GET /hoa-hong` | — | mục «Đối tác có mức riêng hoặc chính sách riêng» |
 | ghi chú nội bộ | `TIN_CHO_NGUOI_XEM` (không đổi) | — | chế độ «Ghi chú nội bộ» theo `perms.xuLy` |
 | `mailPending` | `q.xuLy` | — | dòng email báo nhóm trong «Chi tiết» — **đổi nghĩa:** thành viên nhóm nay thấy (trước chỉ Toàn quyền) |
 | tạo nhóm | `feedback.team.manage` | `NOT EXISTS code` | bảng «Nhóm hỗ trợ» chỉ Toàn quyền |
 
-**Điểm nghi ngờ phải có bài chạy thật:** (a) Kế toán mở trang đơn sau khi nới cổng — không có ô «Đặt qua đối tác»; (b) hai người bấm «Đổi» cùng dòng — đúng một dòng mới; (c) người gửi đọc `suKien` sau chuyển nhóm sang nhóm nhạy cảm — thấy tên nhóm (như `teamName` đã thấy), không thấy lý do.
+**Điểm nghi ngờ phải có bài chạy thật:** (a) Kế toán mở trang đơn sau khi nới cổng — không có ô «Đặt qua đối tác»; (b) hai người bấm «Đổi» cùng dòng — đúng một dòng mới; (c) người gửi — nhất là tài khoản bên ngoài — sau một lần chuyển nhóm và một lần giao lại: theo mặc định Q2 nhận `suKien` rỗng, không thấy tên người/nhóm cũ, không thấy lý do (QA1 25/10 bắt: sự kiện mang người và nhóm *trước đó*, nhiều hơn `assigneeName` / `teamName` hiện tại).
