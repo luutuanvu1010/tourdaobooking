@@ -112,8 +112,8 @@ const SU_KIEN = `SELECT e.id, e.type, e.at, COALESCE(a.label, '') AS actor_name,
      CASE e.type WHEN 'TEAM_CHANGED' THEN (SELECT n.name FROM fbk_team n WHERE n.id = e.from_value) ELSE (SELECT f.label FROM v_stf_staff_label f WHERE f.id = e.from_value) END AS from_name,
      CASE e.type WHEN 'TEAM_CHANGED' THEN (SELECT n.name FROM fbk_team n WHERE n.id = e.to_value) ELSE (SELECT f.label FROM v_stf_staff_label f WHERE f.id = e.to_value) END AS to_name
    FROM fbk_ticket_event e LEFT JOIN v_stf_staff_label a ON a.id = e.actor_id WHERE e.ticket_id = ?1`;
-const LIST_EVENTS = defineSql("feedback", "list_events", `${SU_KIEN} ORDER BY e.at, e.id`);
-const LIST_EVENTS_SINCE = defineSql("feedback", "list_events_since", `${SU_KIEN} AND e.at > ?2 ORDER BY e.at, e.id LIMIT ?3`);
+const LIST_EVENTS = defineSql("feedback", "list_events", `${SU_KIEN} ORDER BY e.at, e.rowid`);
+const LIST_EVENTS_SINCE = defineSql("feedback", "list_events_since", `${SU_KIEN} AND e.at > ?2 ORDER BY e.at, e.rowid LIMIT ?3`);
 // Hàng đợi MỘT nhóm (route GET /api/feedback/queue, sau quyenPhieu). Không chứa phiếu do chính người xem gửi (nằm ở "của tôi").
 // ?1 người xem, ?2 nhóm, ?3 trạng thái|NULL, ?4 loc (ALL|MINE|UNASSIGNED), ?5 limit, ?6 offset.
 // UNASSIGNED gồm cả phiếu có người giữ KHÔNG hợp lệ (nguoiGiuHopLe: khoá tài khoản, bị gỡ khỏi nhóm — coi như chưa ai nhận, ADR-0119 điều 8).
