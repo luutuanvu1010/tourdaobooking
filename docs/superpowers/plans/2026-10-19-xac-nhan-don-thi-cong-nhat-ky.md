@@ -7,7 +7,7 @@ Sổ điều phối (P19: trạng thái sống ở đây, không trong trí nh�
 | Đợt | Trạng thái |
 |---|---|
 | 0 — hồ sơ | Xong. Lượt 1 **chủ duyệt** ("duyệt lượt 1"): `docs/adr/ADR-0134-don-khong-don-khung-gio.md`, `docs/adr/ADR-0135-nhap-rieng-tu-khong-thu.md`. Lượt 2 (đề xuất ADR-0136 bước xác nhận, ADR-0137 thư + QR máy chủ) **chưa trình duyệt**: `docs/superpowers/specs/2026-10-19-xac-nhan-don/`. |
-| 1 — đón/không đón, khung giờ | Thi công **đã commit** (416a8388 migration, cb318faa máy chủ, dafd1d06 giao diện, 4bc6a1e6 e2e). Báo cáo cuối của trợ lý thi công và **kiểm độc lập chưa có** — xem mục "Việc kế tiếp". |
+| 1 — đón/không đón, khung giờ | **ĐÃ LÊN PRODUCTION bản 2.23 (19/10)**: kiểm độc lập ĐẠT có điều kiện, chuẩn bị phát hành (64 kịch bản Chrome, e2e trọn 70/70, tài liệu), chủ day-len + trien-khai; GET /api/auth/config trả version 2.23. Lịch sử: thi công **đã commit** (416a8388 migration, cb318faa máy chủ, dafd1d06 giao diện, 4bc6a1e6 e2e). Báo cáo cuối của trợ lý thi công và **kiểm độc lập chưa có** — xem mục "Việc kế tiếp". |
 | 2 — nháp riêng tư, không thu | Chưa làm. **Phát hành chung với Đợt 3** (chủ chọn A, đặc tả 5f). |
 | 3, 4 | Chưa làm; chờ duyệt lượt 2. |
 | 5 — Bảng điều khiển | Chưa làm; cần ảnh mẫu chủ duyệt trước. |
