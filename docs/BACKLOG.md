@@ -527,6 +527,7 @@ Các việc khác từ cùng buổi xác nhận (đang chờ chủ quyết, chư
 - **Trạng thái:** `để sau` · Góp ý YC-0017 (20/10). Chủ chọn 24/10: «Chưa có đại lý cụ thể, để sau» và «Chỉ giữ bản soạn».
 - **Hồ sơ:** bản tách `docs/superpowers/specs/2026-10-24-de-xuat-adr-0140-ban-tach.md` (0140a thành viên + bên đặt về tổ chức; 0140b phạm vi xem theo tổ chức), trang ghép lượt 3 ở `2026-10-24-trang-ghep-luot-duyet-1.md`.
 - **Mở lại khi:** có ít nhất hai tài khoản của cùng một đại lý cần thấy chung đơn (ngưỡng ADR-0014 điều 5). Thứ tự khi mở: ADR-0081 dựng xong → soạn bản chính 0140a → 0140b. Số ADR lấy số trống kế tiếp lúc soạn, không giữ «0140».
+- **Bản nháp song song (không gộp):** phiên nháp ADR lượt B soạn một bản khác, đã sửa theo người kiểm độc lập (cơ chế nới phạm vi xem), ở nhánh `claude/adr-luot-b-ed348e` lần lưu `23a1ae47`, tệp `docs/superpowers/specs/2026-10-24-gop-y-ho-tro-adr/de-xuat-adr-0141-dai-ly-to-chuc-nhieu-nhan-vien.md`. Nhánh chỉ có trên máy dự án (chưa lên GitHub). Đọc đối chiếu khi soạn bản chính 0140a / 0140b.
 
 ## 45. Góp ý màn Hỗ trợ — việc còn lại sau bản 2.29 / 2.30 (mã `BL-GOPY-HT-…`)
 
