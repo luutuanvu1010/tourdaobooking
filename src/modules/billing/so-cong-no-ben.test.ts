@@ -96,6 +96,10 @@ async function kichBan() {
 test("chi tiết một bên: với MỌI bên ở GET /api/ledger, cộng các đơn = số dư, không lệch; X − Y = cộng các đơn; nhóm đúng dấu", async () => {
   const { w } = await kichBan();
   const ds = await soCongNo(w);
+  const toan = (await w.call("GET", "/api/ledger", { as: KT })).json;
+  assert.equal(toan.tongDangGiu, ds.filter((p) => p.dangGiu > 0).reduce((t, p) => t + p.dangGiu, 0), "ô tổng «đang giữ» tính ở máy chủ");
+  assert.equal(toan.tongCongTyNo, ds.filter((p) => p.dangGiu < 0).reduce((t, p) => t - p.dangGiu, 0), "ô tổng «công ty nợ» tính ở máy chủ");
+  assert.ok(toan.tongDangGiu > 0, "chống bài rỗng");
   assert.ok(ds.length >= 3, `chống bài rỗng: ${JSON.stringify(ds)}`);
   for (const p of ds) {
     const r = await ben(w, p.partyId);
@@ -149,6 +153,9 @@ test("đơn đã đảo hết (cộng = 0) KHÔNG hiện trong nhóm nào", asyn
   const j = (await ben(w, `pty-${PT}`)).json;
   assert.ok(![...j.dangGiu.don, ...j.congTyNo.don].some((o: { orderId: string }) => o.orderId === a), "đơn số 0 bị ẩn");
   assert.deepEqual([j.soDu, j.lech], [-160_000, 0]);
+  const toan = (await w.call("GET", "/api/ledger", { as: KT })).json;
+  assert.ok(toan.tongCongTyNo >= 160_000, "ô tổng «công ty nợ» gồm 160.000 công ty nợ đại lý A");
+  assert.equal(toan.tongCongTyNo, (toan.soDu as { dangGiu: number }[]).filter((p) => p.dangGiu < 0).reduce((t, p) => t - p.dangGiu, 0));
 });
 
 test("quyền: Kế toán, Toàn quyền 200; Bán hàng, HDV, Quản trị, Thực tập, Đối tác 403 (hoặc cổng chặn) — không lộ số", async () => {

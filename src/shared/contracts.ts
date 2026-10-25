@@ -2314,6 +2314,9 @@ export interface SoCuaToiResponse {
 /** `GET /api/ledger` (Kế toán, Toàn quyền): số dư từng bên với công ty, khoản "Công ty thu" chờ xác nhận, khoản thu chưa rõ người thu. */
 export interface SoCongNoResponse {
   soDu: { partyId: string; ten: string; dangGiu: number }[];
+  /** Tổng các số dư DƯƠNG (các bên đang giữ tiền của công ty) và tổng độ lớn các số dư ÂM (công ty đang nợ) — tính ở máy chủ cho ba ô tổng của màn «Sổ công nợ». */
+  tongDangGiu: number;
+  tongCongTyNo: number;
   /** Khoản chờ xác nhận — `loai` / `benKia` như `CocListResponse.doiChieu` (ADR-0132). */
   choXacNhan: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string; nguoiKhai: string; loai: "cong_ty" | "ben_dat" | "nha_cung_cap"; benKia: string | null }[];
   chuaRo: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string }[];

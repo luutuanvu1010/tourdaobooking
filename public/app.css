@@ -825,6 +825,48 @@ button.xm-the { min-height: var(--tap-min); cursor: pointer; }
 .hs-giu-lai ul { margin: var(--s1) 0; padding-left: var(--s5); }
 #an-danh-phien .btn { min-height: var(--tap-min); }
 
+/* Sổ công nợ (web/so-cong-no.ts; kế hoạch 2026-10-24 P1; bản vẽ docs/design/so-cong-no-2026-10-25/ bản 2a): ba ô tổng, danh sách bên + ngăn chi tiết (máy tính rộng: hai cột;
+   hẹp: chi tiết thay danh sách), hai nhóm đơn có tổng phụ, dòng phép tính «Đang giữ − Công ty nợ = Số dư». Chỉ token; @media đặt trước dấu mốc app iPhone vì có px.
+   «Đang giữ» màu chủ đạo, «Công ty nợ» màu cát — luôn kèm CHỮ (không chỉ dựa vào màu). */
+.scn-tong { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s3); margin-bottom: var(--s4); }
+.scn-o-tong { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s3) var(--s4); background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--radius-md); min-width: 0; }
+.scn-o-tong strong { font-size: var(--fs-title); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.scn-canh-bao { display: block; text-decoration: none; }
+.scn-khung { display: grid; gap: var(--s4); align-items: start; }
+.scn-cong-cu { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s3); align-items: center; margin-bottom: var(--s3); }
+.scn-tim { flex: 1 1 14rem; min-width: 0; }
+.scn-tim input { width: 100%; min-height: var(--tap-min); font-size: var(--fs-field); }
+.scn-xep { display: inline-flex; align-items: center; gap: var(--s2); }
+.scn-xep select { min-height: var(--tap-min); font-size: var(--fs-field); }
+.scn-loc { display: flex; flex-wrap: wrap; gap: var(--s2); margin-bottom: var(--s3); }
+.scn-loc-nut { min-height: var(--tap-min); padding: 0 var(--s3); font: inherit; font-weight: var(--fw-bold); color: var(--c-primary); background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--radius-pill); cursor: pointer; }
+.scn-loc-nut[aria-pressed="true"] { color: var(--c-text-inverse); background: var(--c-primary); border-color: var(--c-primary); }
+.scn-ds, .scn-don-ds { margin: 0; padding: 0; list-style: none; }
+.scn-ben { display: flex; width: 100%; min-height: var(--tap-min); align-items: center; justify-content: space-between; gap: var(--s3); padding: var(--s3) var(--s2); font: inherit; text-align: left; color: var(--c-text); background: none; border: 0; border-bottom: 1px solid var(--c-line); cursor: pointer; }
+.scn-ben[aria-current="true"] { background: var(--c-primary-soft); }
+.scn-ben-ten { min-width: 0; overflow-wrap: anywhere; font-weight: var(--fw-bold); }
+.scn-so { flex: none; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.scn-giu { color: var(--c-primary); }
+.scn-no { color: var(--c-sand-text); }
+.scn-them { margin-top: var(--s3); width: 100%; min-height: var(--tap-min); }
+.scn-quay { margin-bottom: var(--s3); min-height: var(--tap-min); }
+.scn-ct-dau h2 { margin: 0; overflow-wrap: anywhere; }
+.scn-ct-so { margin: var(--s1) 0 var(--s4); font-size: var(--fs-h2); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
+.scn-nhom { margin-bottom: var(--s4); }
+.scn-nhom-dau { display: flex; justify-content: space-between; gap: var(--s3); margin: 0 0 var(--s2); padding-bottom: var(--s2); font-size: var(--fs-label); border-bottom: 2px solid var(--c-border); }
+.scn-nhom[data-nhom="dangGiu"] .scn-nhom-dau strong { color: var(--c-primary); }
+.scn-nhom[data-nhom="congTyNo"] .scn-nhom-dau strong { color: var(--c-sand-text); }
+.scn-don { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s1) var(--s3); padding: var(--s2) 0; border-bottom: 1px solid var(--c-line); }
+.scn-don-ma { font-weight: var(--fw-bold); }
+.scn-don-tien { grid-row: 1; grid-column: 2; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.scn-don-tt, .scn-don-ngay { grid-column: 1; font-size: var(--fs-label); }
+.scn-huy { color: var(--c-danger-text); font-weight: var(--fw-bold); }
+.scn-phep-tinh { position: sticky; bottom: 0; display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); padding: var(--s3); background: var(--c-surface-alt); border: 1px solid var(--c-border); border-radius: var(--radius-md); font-variant-numeric: tabular-nums; }
+.scn-phep-tinh strong { flex-basis: 100%; }
+.scn-phep-lech { background: var(--c-danger-soft); border-color: var(--c-danger-border); color: var(--c-danger-text); }
+@media (max-width: 720px) { .scn-tong { grid-template-columns: 1fr; gap: var(--s2); } .scn-o-tong { flex-direction: row; align-items: baseline; justify-content: space-between; padding: var(--s2) var(--s3); } .scn-o-tong strong { font-size: var(--fs-h2); } }
+@media (min-width: 1024px) { .scn-main { max-width: none; } .scn-khung { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); } .scn-ct-khu { position: sticky; top: var(--s4); } }
+
 /* ---------- app iPhone (PWA) — từ dấu mốc này đến cuối file: KHÔNG viết cứng màu/px, dùng token (tests/e2e/pwa.mjs kiểm) ---------- */
 /* trang "Tôi" */
 .narrow { max-width: var(--w-narrow); } /* thay cho style="max-width:420px" nội tuyến: mỗi style= nuôi thêm 'unsafe-inline' trong CSP (AUDIT-FINDINGS A14) */

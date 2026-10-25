@@ -1042,6 +1042,8 @@ export async function soCongNo(db: D1Database): Promise<SoCongNoResponse> {
   const [soDu, cho, chuaRo] = await Promise.all([balancesWithOwner(db), pendingCompany(db), unknownReceipts(db)]);
   return {
     soDu: soDu.map((r) => ({ partyId: r.party_id, ten: r.label ?? "—", dangGiu: r.balance })),
+    tongDangGiu: soDu.reduce((t, r) => t + (r.balance > 0 ? r.balance : 0), 0),
+    tongCongTyNo: soDu.reduce((t, r) => t + (r.balance < 0 ? -r.balance : 0), 0),
     choXacNhan: cho.map((r) => ({
       receiptId: r.receipt_id, orderId: r.order_id, maDon: r.order_code, soTien: r.amount, ngay: r.occurred_date, nguoiKhai: r.nguoi_khai ?? "—", loai: loaiCho(r.collector_role_code), benKia: r.ben_kia,
     })),
