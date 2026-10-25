@@ -43,6 +43,8 @@ Bài mới ở `src/modules/orders/dat-gap-sat-gio.test.ts` (chạy cả ứng d
 
 Dấu Quản trị đã đóng trước nhiều ngày trên production (trước ADR này) KHÔNG bị dọn: chúng còn miễn mốc lúc xếp cho tới khi chặng bị sửa (I16 bỏ dấu khi nội dung đổi). Đếm và dọn là việc riêng, cần chủ quyết (đọc D1 remote).
 
+**Chủ quyết 2026-10-25** (sau khi nhánh đã gộp `main`, trước triển khai; trả lời câu hỏi cuối phiên thi công): không đếm, không dọn — các dấu cũ giữ nguyên và chỉ mất khi chặng bị sửa (I16). Không hỏi lại.
+
 ## Kết quả thi công (2026-10-25, lời khai của người thi công — người kiểm độc lập ở mục sau)
 
 | Commit | Việc | Đỏ trước (đã thấy) |
