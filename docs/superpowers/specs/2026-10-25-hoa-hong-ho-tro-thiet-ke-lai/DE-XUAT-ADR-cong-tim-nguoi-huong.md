@@ -1,6 +1,6 @@
 # Đề xuất ADR — Kế toán tìm được đối tác theo tên ở trang Hoa hồng (nới cổng `GET /api/pricing/nguoi-huong`)
 
-**Trạng thái: đề xuất, chờ chủ duyệt.** AI soạn, không tự duyệt (N3). **Số ADR cấp lúc duyệt**: ngày 25/10 số lớn nhất ở mọi nhánh là 0139, còn nhãn tạm 0140/0141 đã có bản nháp khác dùng (`2026-10-24-de-xuat-adr-dai-ly-to-chuc-nhieu-nhan-vien.md`), nên bản này không mang nhãn số.
+**Trạng thái: đã duyệt 2026-10-25 thành `docs/adr/ADR-0141-ke-toan-tim-doi-tac-theo-ten.md`** (chủ: «duyệt đề xuất ADR»). Bản nháp giữ làm hồ sơ; ADR thắng nháp. Ghi chú lúc soạn — số ADR cấp lúc duyệt: ngày 25/10 số lớn nhất ở mọi nhánh là 0139, còn nhãn tạm 0140/0141 đã có bản nháp khác dùng (`2026-10-24-de-xuat-adr-dai-ly-to-chuc-nhieu-nhan-vien.md`), nên bản này không mang nhãn số.
 
 - **Ngày:** 2026-10-25. **Nguồn lời chủ:** `BAN-GIAO.md` mục 3 dòng ba — chủ bấm chọn «mở đường tìm đối tác theo tên cho người có quyền đặt mức» (25/10), rồi «ok duyệt» cả bản bàn giao trong đó có lựa chọn (a) «nới chứ không thay».
 - **Loại:** việc lớn (quyền). **Cửa:** hai chiều — chỉ đổi mã, không dữ liệu; hoàn tác bằng `wrangler rollback` hoặc một commit đảo.

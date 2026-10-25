@@ -6,7 +6,7 @@
 
 | # | Việc | Xong khi | Trạng thái |
 |---|---|---|---|
-| 0 | Chủ duyệt hai đặc tả + đề xuất ADR; cấp số ADR, chuyển vào `docs/adr/` | chủ nói «duyệt» | **chờ chủ** (25/10 chủ chọn «Chưa duyệt, để tôi đọc», rồi ra lệnh lập kế hoạch) |
+| 0 | Chủ duyệt hai đặc tả + đề xuất ADR; cấp số ADR, chuyển vào `docs/adr/` | chủ nói «duyệt» | ADR **xong**: ADR-0141 accepted 25/10 («duyệt đề xuất ADR»); hai đặc tả: chủ chọn cách thi công (coi là đồng ý làm, ruling R1b sổ SDD) |
 | 1 | PR 1 máy chủ (Task 1 chờ việc 0) | PR gộp + `trien-khai` + kiểm độc lập đạt | chưa làm |
 | 2 | PR 2 giao diện Hoa hồng + bảng từ lượt 3 | như trên + chủ duyệt ảnh | chưa làm |
 | 3 | PR 3 giao diện Hỗ trợ + bảng từ lượt 4 | như trên + chủ duyệt ảnh | chưa làm |
