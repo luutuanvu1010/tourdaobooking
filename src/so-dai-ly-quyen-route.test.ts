@@ -62,7 +62,7 @@ const muoiHaiRoute = (mucId: string, don: string, dv: string): [string, string, 
   ["pricing: xem điều khoản", "GET", "/api/pricing/cung-ung", "office", undefined],
   ["pricing: thêm điều khoản", "POST", "/api/pricing/cung-ung", "office", { phamVi: "SERVICE", catalogCode: "IRESORT", nguoiBanPartyId: "pty-ncc", tyLeMuaBp: 8000, tuNgay: "2026-10-01" }],
   ["pricing: đóng điều khoản", "POST", "/api/pricing/cung-ung/st-ncc/dong", "office", { denNgay: "2026-12-31" }],
-  ["pricing: tìm người hưởng", "GET", "/api/pricing/nguoi-huong?q=Đại", "orders", undefined], // người LẬP ĐƠN dùng (order.create): Kế toán không có ô này ⇒ ca "có răng" gọi bằng Bán hàng
+  ["pricing: tìm người hưởng", "GET", "/api/pricing/nguoi-huong?q=Đại", "orders", undefined], // người LẬP ĐƠN hoặc người ĐẶT MỨC dùng (ADR-0141: Kế toán cũng qua cổng); ca "có răng" vẫn gọi bằng Bán hàng
   ["orders: xem phần thương mại", "GET", `/api/orders/${don}/thuong-mai`, "orders", undefined],
   ["orders: ghi mức tay", "POST", `/api/orders/${don}/thuong-mai/${dv}`, "office", { lyDo: "thoả thuận miệng với CTV Lan", hoaHong: { kieu: "RATE", tyLeBp: 1500 } }],
   ["ledger: xem kỳ", "GET", "/api/ledger/ky", "office", undefined],
@@ -170,4 +170,18 @@ test("Đổi chính sách (POST …/muc-ta/gan/:id/doi): Tài xế công ty, Tà
   assert.equal(dem2(), truoc, "không gắn mới");
   const kt = await w.call("POST", `/api/pricing/muc-ta/gan/${gan.json.gan.id}/doi`, { as: KT, body: than });
   assert.ok(kt.status !== 403 && kt.status !== 404 && kt.status < 500, `Kế toán: ${kt.status} ${kt.text}`);
+});
+
+// ADR-0141: cổng GET /api/pricing/nguoi-huong nới cho Kế toán (partner.commission.write); Đối tác, tài khoản lai có Đối tác, HDV, Tài xế, Nhân sự vẫn bị chặn.
+test("tìm người hưởng (ADR-0141): Kế toán 200; Đối tác, lai Kế toán + Đối tác, HDV, Tài xế, Tài xế đối tác, Nhân sự ⇒ 403", async () => {
+  const { w } = await dungThe();
+  const them = (id: string, phone: string, perms: string[]) => seedStaff(w.sqlite, { id, phone, name: `Thử ${phone}`, perms });
+  const DT = "66666666-6666-4666-8666-666666666671", LAI = "66666666-6666-4666-8666-666666666672", HDV = "66666666-6666-4666-8666-666666666673";
+  them(DT, "0900000021", ["PARTNER"]); them(LAI, "0900000022", ["ACCOUNTING", "PARTNER"]); them(HDV, "0900000023", ["FIELD"]);
+  const ok = await w.call("GET", "/api/pricing/nguoi-huong?q=a", { as: KT });
+  assert.equal(ok.status, 200, ok.text);
+  for (const [nhan, as] of [["Đối tác", DT], ["lai Kế toán + Đối tác", LAI], ["HDV", HDV], ["Tài xế công ty", TXC], ["Tài xế đối tác", TXDT], ["Nhân sự", NS]] as const) {
+    const r = await w.call("GET", "/api/pricing/nguoi-huong?q=a", { as });
+    assert.equal(r.status, 403, `${nhan}: ${r.status} ${r.text}`);
+  }
 });

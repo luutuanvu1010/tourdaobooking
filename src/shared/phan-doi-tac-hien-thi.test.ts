@@ -11,6 +11,10 @@ import {
 const staff = (...permissions: PermissionCode[]) => ({ id: "s1", permissions });
 const AGENCY = { partyId: "pty-1", ten: "Đại lý Một" };
 
+test("coODatQuaDoiTac: Kế toán vẫn không có ô (ADR-0141 Đ2: chỉ nới cổng tìm đối tác, không nới ô trên form đơn)", () => {
+  assert.equal(coODatQuaDoiTac(staff("ACCOUNTING")), false);
+});
+
 test("coODatQuaDoiTac: người lập đơn KHÔNG giữ quyền Đối tác — mọi tài khoản lai SALES/ADMIN + PARTNER đều không thấy", () => {
   assert.equal(coODatQuaDoiTac(staff("SALES")), true);
   assert.equal(coODatQuaDoiTac(staff("ADMIN")), true);

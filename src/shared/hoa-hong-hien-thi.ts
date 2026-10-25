@@ -17,11 +17,11 @@ export const CAU_KHONG_CO_NGUOI_HUONG = "Không có người hưởng hoa hồng
 export const NHAN_CONG_TY = "Tour Đảo (công ty)";
 
 /**
- * Tìm đối tác theo tên (ô «Một đối tác», khối Thử tra) gọi `GET /api/pricing/nguoi-huong`, route đó hỏi `order.create` và chặn tài khoản có quyền Đối tác.
- * Hàm này giữ ĐÚNG cổng ấy để trang không hiện ô tìm mà máy chủ chắc chắn từ chối. Kế toán KHÔNG có `order.create` nên chưa tìm được — nếu chủ đổi cổng của route
- * thì đổi hàm này theo (một nơi).
+ * Tìm đối tác theo tên (ô «Một đối tác», khối Thử tra, và ô «Đặt qua đối tác» của form lập đơn) gọi `GET /api/pricing/nguoi-huong`; route đó gọi CHÍNH hàm này làm cổng
+ * (ADR-0141): người lập đơn (`order.create`) hoặc người đặt mức (`partner.commission.write`, tức Kế toán), và chặn tài khoản có quyền Đối tác. Máy chủ và trang dùng một hàm
+ * nên không lệch. Ô «Đặt qua đối tác» trên form lập đơn / trang đơn KHÔNG dùng hàm này mà dùng `coODatQuaDoiTac` (vẫn chỉ `order.create`).
  */
-export const coTheTimDoiTac = (s: PermissionHolder): boolean => can(s, "order.create") && !holdsPartner(s);
+export const coTheTimDoiTac = (s: PermissionHolder): boolean => (can(s, "order.create") || can(s, "partner.commission.write")) && !holdsPartner(s);
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
 // Bảng mức

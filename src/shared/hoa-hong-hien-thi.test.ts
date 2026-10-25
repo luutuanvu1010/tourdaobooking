@@ -136,15 +136,21 @@ test("người bán và tỷ lệ mua lại; dòng mặc định của công ty 
   assert.equal(CAU_DONG_DONG_MAC_DINH, "Đóng dòng mặc định thì dịch vụ chưa có điều khoản riêng sẽ thiếu người bán cho tới khi mở dòng mới. Vẫn đóng?");
 });
 
-test("coTheTimDoiTac giữ ĐÚNG cổng của route nguoi-huong (order.create, không giữ quyền Đối tác): Kế toán chưa tìm được", () => {
+test("coTheTimDoiTac giữ ĐÚNG cổng của route nguoi-huong (order.create hoặc partner.commission.write, không giữ quyền Đối tác)", () => {
   const ai = (...p: PermissionCode[]) => ({ id: "x", permissions: p }) as never;
   assert.equal(coTheTimDoiTac(ai("SALES")), true);
   assert.equal(coTheTimDoiTac(ai("ADMIN")), true);
   assert.equal(coTheTimDoiTac(ai("SUPER_ADMIN")), true);
-  assert.equal(coTheTimDoiTac(ai("ACCOUNTING")), false, "Kế toán không có order.create");
   assert.equal(coTheTimDoiTac(ai("SALES", "PARTNER")), false, "tài khoản lai có quyền Đối tác bị route chặn");
   assert.equal(coTheTimDoiTac(ai("ACCOUNTING", "SALES")), true);
   assert.equal(CAU_CHUA_TIM_DUOC_DOI_TAC, "Tài khoản của bạn chưa tìm được đối tác theo tên. Cần đặt mức riêng cho một đối tác thì nhờ Quản trị hoặc Toàn quyền.", "nói rõ phải làm gì (Ruling 26: chưa nới cổng, ghi nợ)");
+});
+
+test("coTheTimDoiTac: Kế toán tìm được, Đối tác và lai thì không (ADR-0141)", () => {
+  const ai = (...p: PermissionCode[]) => ({ id: "x", permissions: p }) as never;
+  for (const p of ["ACCOUNTING", "SALES", "INTERN", "ADMIN", "SUPER_ADMIN"] as const) assert.equal(coTheTimDoiTac(ai(p)), true, p);
+  for (const p of ["PARTNER", "FIELD", "HR", "DRIVER", "DRIVER_PARTNER"] as const) assert.equal(coTheTimDoiTac(ai(p)), false, p);
+  assert.equal(coTheTimDoiTac(ai("ACCOUNTING", "PARTNER")), false, "lai Kế toán + Đối tác");
 });
 
 test("ADR-0117: nhanLoaiDoiTac — nút Tắt / Bật chỉ ở loại do Kế toán thêm, theo cờ đang bật; loại có sẵn không có nút", () => {

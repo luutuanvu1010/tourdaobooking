@@ -6,6 +6,7 @@ import { datHoatDongLoaiDoiTacStatement, kiemTenLoaiDoiTac, loaiVaiChiTiet, maLo
 import type { CommissionRuleDto, DoiMucResponse, HoaHongHoSoResponse, CommissionRuleListResponse, GanLoaiMucDto, GanLoaiMucResponse, LoaiDoiTacDto, LoaiDoiTacListResponse, LoaiDoiTacResponse, MucTaDto, MucTaListResponse, MucTaResponse,
   NguoiHuongTimResponse, SupplyTermDto, SupplyTermListResponse, ThuTraResponse } from "../../shared/contracts";
 import { error, json, mauLikeChua, kemLocation, readJson } from "../../shared/http";
+import { coTheTimDoiTac } from "../../shared/hoa-hong-hien-thi";
 import { can, holdsPartner } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { CAU_X3_THUE_XE, NHAN_LY_DO_THIEU } from "../../shared/so-dai-ly-nhan";
@@ -534,9 +535,9 @@ export const pricingModule: AppModule = {
       if (dongDaDong(res)) return error(409, "stale", "Điều khoản vừa được đóng — tải lại.");
       return json({ dong: dtoDk((await termById(env.DB, id))!, cty?.partyId ?? null, vnToday(new Date())) });
     }),
-    // Tìm người hưởng theo tên cho form lập đơn (bên đặt là công ty lữ hành…): người LẬP ĐƠN (văn phòng), không phải tài khoản Đối tác. Chỉ id, tên, loại hồ sơ — không liên hệ.
+    // Tìm người hưởng theo tên cho form lập đơn (bên đặt là công ty lữ hành…) và trang Hoa hồng: người LẬP ĐƠN hoặc người ĐẶT MỨC (Kế toán), không phải tài khoản Đối tác (ADR-0141, cổng = `coTheTimDoiTac`). Chỉ id, tên, loại hồ sơ — không liên hệ.
     route("GET", "/api/pricing/nguoi-huong", "orders", async ({ env, url, staff }) => {
-      if (!can(staff, "order.create") || holdsPartner(staff)) return FORBIDDEN();
+      if (!coTheTimDoiTac(staff)) return FORBIDDEN();
       const q = (url.searchParams.get("q") ?? "").trim().slice(0, 60);
       // Câu SQL tự bọc '%' || ?1 || '%': đưa vào phần giữa của mauLikeChua (≤ 48 byte) để cả mẫu ≤ 50 byte (D1 từ chối quá giới hạn).
       const rows = await findBeneficiaries(env.DB, mauLikeChua(q).slice(1, -1));
