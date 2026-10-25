@@ -2,7 +2,8 @@
 // Từ chối chuyến trước hạn, Báo bận của tôi; văn phòng thấy dải "Tài xế bận", nhãn "Bận" ở ô Tài xế, khối "Tài xế đã từ chối". Thứ tự tài khoản (kho cookie
 // dùng chung): Tài xế đối tác → Bán hàng → Kế toán (trang của Kế toán mở sau cùng).
 //  1) 390 Tài xế đối tác: "/" → /cuoc; bốn tab Trang chủ / Cuốc của tôi / Báo bận của tôi / Tôi; không tràn ngang; axe.
-//  2) 390 chuyến TA (ngày mai 20:00, còn hạn): dải "Từ chối được tới …", nút "Từ chối chuyến", thẻ "thấy tên khách và mã đơn từ …"; chuyến TB (sau 3 giờ, đã
+//  2) 390 chuyến TA (ngày mai 20:00, còn hạn): dải "Từ chối được tới …", nút "Từ chối chuyến", thẻ "thấy tên khách và số liên hệ sau khi bấm “Cho xe chạy”, sớm
+//     nhất từ …" (đề xuất 25/10: bỏ lời hứa "mã đơn"); chuyến TB (sau 3 giờ, đã
 //     quá hạn 12 giờ): dải "Đã quá hạn từ chối", nút "Gọi văn phòng" (tel:), KHÔNG nút Từ chối; không mã thô; axe.
 //  3) 390 Từ chối TA: tấm chọn lý do → "Xác nhận từ chối" → /cuoc có dải "Đã từ chối chuyến <mã>"; đúng MỘT lệnh POST …/tu-choi.
 //  4) 390 /ban: khung trùng TB → dải đỏ có liên kết mở TB; khung ngày kia 08:00–12:00 → "Đã lưu khung bận"; khung thứ hai (ghi bằng phiên của trang) → rút
@@ -90,7 +91,7 @@ try {
       await p.waitFor("!!document.querySelector('[data-action=\"tu-choi\"]')", "nút Từ chối của TA", 12000);
       const tieuDe = await p.ev("[...document.querySelectorAll('.banner .banner-title')].map((x) => x.innerText.trim())");
       assert.ok(tieuDe.includes(`Từ chối được tới 08:00 ${ddmm(vnDate(1))}`), JSON.stringify(tieuDe));
-      assert.match((await p.ev(txt("[data-cau='thay-khach']"))) ?? "", /^Bạn thấy tên khách và mã đơn từ /);
+      assert.equal(await p.ev(txt("[data-cau='thay-khach']")), `Bạn thấy tên khách và số liên hệ sau khi bấm “Cho xe chạy”, sớm nhất từ 08:00 ${ddmm(vnDate(1))}.`);
       assert.equal(await p.ev(noCode), "", "không mã thô");
       assert.ok(await p.ev(noOverflowX), "không tràn ngang");
       await axe(p, "màn chuyến còn hạn từ chối 390");

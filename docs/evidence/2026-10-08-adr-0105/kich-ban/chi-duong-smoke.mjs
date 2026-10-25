@@ -116,7 +116,7 @@ try {
     h2: api.diem.find((x) => x.loai === "PICKUP" && x.tenNoi !== "Khách sạn Chỉ Đường Thử"),
     tra: api.diem.find((x) => x.loai === "DROPOFF"),
   });
-  await b.step("2", `390 iPhone, chuyến hôm nay TRƯỚC xuất bến: mọi điểm có "Google Maps" + "Apple Maps"; điểm đến = địa chỉ (H1) / tên đã che (H2) / tên bến tàu; chỉ tham số đích; _blank + noreferrer noopener; không tên / SĐT khách${axeNote()}`, async () => {
+  await b.step("2", `390 iPhone, chuyến hôm nay TRƯỚC xuất bến: mọi điểm có "Google Maps" + "Apple Maps"; điểm đến = địa chỉ (H1) / tên đã che (H2) / tên bến tàu; chỉ tham số đích; _blank + noreferrer noopener; liên kết bản đồ không mang tên / SĐT khách${axeNote()}`, async () => {
     await datUa(p, UA_IPHONE);
     await moLai(p, URL_TH, `!!document.querySelector('[data-action="xuat-ben"]') && document.querySelectorAll('.dp-cc-diem .dp-run').length >= 3`);
     api = (await fetchTrang(p, "GET", `/api/van-chuyen/cuoc-cua-toi/${TH.id}`)).json;

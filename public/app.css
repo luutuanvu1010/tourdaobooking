@@ -2881,6 +2881,10 @@ body:has(.buoc-thanh) .toast-vung { bottom: auto; top: calc(var(--toast-tren, va
 .dp-khach-nut { display: flex; gap: var(--s2); }
 .dp-khach-nut .dp-khach-btn { flex: 1; padding: 0 var(--s2); font-size: var(--fs-label); }
 .dp-khach-nut .dp-khach-btn[data-action="khach-huy"] { flex: 1.5; }
+/* Đề xuất 25/10 (Q2 a): "Trả: <nơi>" dưới tên khách khi chuyến có từ hai điểm trả — chỉ màn tài xế, qua móc phuKhach (vào hàng nút): một dòng riêng, đứng trước nút.
+   Không sửa luật gốc .dp-khach-nut (link "Điều chỉnh…" của màn văn phòng nằm ở hàng này). */
+.dp-khach-nut:has(> .dp-khach-tra) { flex-wrap: wrap; }
+.dp-khach-tra { order: -1; flex-basis: 100%; font-size: var(--fs-label); color: var(--c-text-muted); overflow-wrap: anywhere; }
 .dp-run-end { display: flex; flex-direction: column; gap: var(--s2); margin-top: var(--s2); }
 .dp-run-end .vc-btn { width: 100%; min-height: var(--h-field); font-size: var(--fs-vc-md); }
 .dp-run-end .dp-note { text-align: center; }

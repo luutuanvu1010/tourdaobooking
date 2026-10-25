@@ -1,0 +1,108 @@
+✓ 1) 4a 390 tài xế mở "/" → /cuoc: "Hôm nay" (trống) + "Ngày mai" (2 chuyến theo giờ) + "Ngày kia" (trống — góp ý T3); chuyến thiếu giấy xe "Bị giữ" + "(văn phòng lo)"; KHÔNG tên / SĐT khách; ba tab, axe không vi phạm critical/serious
+✗ 2) 6b 390 chuyến bị giữ: CHỈ điều kiện còn thiếu "(văn phòng lo)", không hạn giấy tờ; "Xuất bến" khoá + "Chưa xuất bến được — văn phòng đang lo."
+    AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'Chưa cho xe chạy được — văn phòng đang lo.'
+    - 'Chưa xuất bến được — văn phòng đang lo.'
+    
+        at file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:121:12
+        at async Object.step (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:113:3
+✗ 3) 6c → 5a 390, Q-L3-B phía "không tên": chuyến NGÀY MAI (T4) đủ điều kiện ("Đủ điều kiện xuất bến"), trước xuất bến KHÔNG tên khách; bấm "Xuất bến" (không ô giờ, thân không có xayRaLuc) = xuất bến SỚM → đang chạy nhưng màn hiện "Khách N", KHÔNG tên, năm sinh, liên hệ
+    AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+    +   '✓ Đủ điều kiện cho xe chạy'
+    -   '✓ Đủ điều kiện xuất bến'
+      ]
+    
+        at file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:130:12
+        at async Object.step (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:127:3
+✗ 3b) 5a 390, Q-L3-B phía "có tên": chuyến HÔM NAY (TH, tài xế CÔNG TY Cường) — TRƯỚC khi chạy đã thấy tên + năm sinh + liên hệ, chưa có nút tiến độ (đề xuất 25/10); bấm "Xuất bến" → đang chạy: vẫn đủ, axe không vi phạm critical/serious
+    AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+    +   '✓ Đủ điều kiện cho xe chạy'
+    -   '✓ Đủ điều kiện xuất bến'
+      ]
+    
+        at file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:202:12
+        at async Object.step (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:189:3
+✗ 4) 5a: "Đã tới" → khách có Đã đón / Vắng / Khách đã huỷ; "Đã đón" khách 1 → "Đã đón"; phản hồi lệnh không kèm liên hệ — màn GIỮ dòng liên hệ của lần tải
+    Error: hết giờ chờ: nút khách
+    document.querySelectorAll('.dp-khach-btn[data-action="don"]').length === 2
+        trang: 79A-444.44 · 25/10 23:00 · 2 khách 1 ĐÓN · HẸN 23:10 InterContinental Nha Trang Dịch vụ: Tour 4 đảo Nha Trang 2 khách Liên hệ: Khách Điều Phối Hôm Nay 0903 100 299 Chỉ đường Google Maps Apple Maps Hành Khách Hôm Nay 2 1991 Hành Khách Hôm Nay 1 1990 2 TRẢ Bến tàu du lịch Nha Trang 2 khách Chỉ đường Google Maps Apple Maps Điều kiện cho xe chạy Đạt hết ✓ Đủ điều kiện cho xe chạy
+        console: []
+        POST: []
+        at file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:235:13
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:234:5
+        at async Object.step (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:232:3
+✗ 5) mất mạng: bấm "Vắng" → dòng "Chưa gửi được" + "Bấm lại" + dải "Mất mạng — 1 thao tác chưa gửi được"; máy KHÔNG tự gửi lại; có mạng, bấm lại → "Vắng", CÙNG requestId
+    Error: hết giờ chờ: dòng chưa gửi được
+    !!document.querySelector('.dp-khach.is-cho [data-action="bam-lai"]')
+        at Object.waitFor (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:186:37)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:249:5
+        at async Object.step (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:245:3
+✗ 6) 5a: điểm trả "Đã trả" (tới điểm rồi trả khách trên xe) → "Kết thúc chuyến" mở → kết thúc; hộp "Kết thúc gián đoạn" có lý do nhóm Kết thúc gián đoạn, KHÔNG ô ghi chú
+    Error: hết giờ chờ: hộp gián đoạn
+    !!document.querySelector('[data-action="gian-doan-gui"]')
+        at Object.waitFor (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:186:37)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:265:5
+        at async Object.step (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:263:3
+✗ 7) 6d 1040 Bán hàng: "Xuất bến thay tài xế" → hộp: "Đạt đủ … điều kiện", "Ghi thay tài xế …", ô "Xảy ra lúc" mặc định lúc bấm + "Sớm nhất" của máy chủ; giờ ngoài khoảng → câu dưới ô; khai đúng "Sớm nhất" → gửi xayRaLuc, mốc xuất bến HAI giờ + "giờ do văn phòng khai", axe không vi phạm critical/serious
+    Error: hết giờ chờ: hộp khai giờ
+    !!document.querySelector('[data-action="khai-gio-gui"]')
+        at Object.waitFor (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:186:37)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:291:5
+        at async Object.step (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:288:3
+✗ 7b) 5c 1040 Bán hàng: nút ↑/↓ ở điểm chưa tới (4 nút, ↑ điểm đầu + ↓ điểm cuối khoá); bấm ↓ điểm đầu → POST /thu-tu thân chỉ requestId + diem (không xayRaLuc), thứ tự đảo, dải báo; bấm ↑ trả lại, axe không vi phạm critical/serious
+    Error: hết giờ chờ: 4 nút đổi thứ tự
+    document.querySelectorAll('.dp-run .dp-thu-tu').length === 4
+        at Object.waitFor (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:186:37)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:324:5
+        at async Object.step (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:323:3
+✗ 7c) 5c 1040: điểm trả vừa được ghi "Đã tới" bằng API, trang chưa tải lại → bấm ↓ ở điểm đón → "Chưa đổi được thứ tự điểm" + "Điểm đã tới hoặc đã bỏ qua…"; sau đó điểm đã tới không còn nút, điểm đón còn hai nút khoá
+    AssertionError [ERR_ASSERTION]: {"error":{"code":"chua_xuat_ben","message":"Xe chưa chạy — lệnh này chỉ dùng khi xe đang chạy (đổi thứ tự khi chưa chạy: sửa chuyến).","lyDo":[{"ma":"CHUYEN_KHONG_CON_LEN_KE_HOACH","loiNhan":"Chuyến đã chạy, đã kết thúc hoặc đã huỷ: CX-3010-01","aiXuLy":"VAN_PHONG","aiXuLyNhan":"Văn phòng"}]}}
+    
+    409 !== 200
+    
+        at file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:352:12
+        at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+        at async Object.step (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:347:3
+✗ 8b) Ruling 2/10 — văn phòng bấm thay người đi kèm (T1 đang chạy): dòng 'chưa lên xe' + nút 'Đã lên xe' → 'đang trên xe' + 'Đã xuống' → 'đã xuống', hết nút; dòng giải thích 'Kết thúc chuyến' nhắc người đi kèm
+    AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+    
+    false !== true
+    
+        at file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:363:12
+        at async Object.step (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:362:3
+✗ 8) 5c 1040 Bán hàng: chuyến đang chạy — "Đã tới" để nguyên giờ → thân KHÔNG có xayRaLuc (I34), mốc MỘT giờ; GA-55: sau lệnh tên khách vẫn hiện đúng
+    Error: hết giờ chờ: nút đã tới
+    !!document.querySelector('.dp-run [data-action="da-toi"]')
+        at Object.waitFor (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:186:37)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:374:5
+        at async Object.step (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:373:3
+✓ 9b) K2b T2: tài khoản DRIVER + SALES — trang đầu KHÔNG đổi (ở Trang chủ); thanh bên có "Cuốc của tôi" → mở /cuoc; điện thoại: trang Tôi có dòng "Cuốc của tôi", thanh tab KHÔNG thêm tab, ở /cuoc tab "Tôi" sáng
+✗ 9) Kế toán mở chuyến đang chạy: thấy điểm, mốc; KHÔNG nút bấm thay nào (ô trip.progress)
+    Error: hết giờ chờ: điểm dừng đang chạy
+    !!document.querySelector('.dp-run')
+        at Object.waitFor (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:186:37)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:422:5
+        at async Object.step (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/adr-luot-b-ed348e/docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/kich-ban/ui/cuoc-smoke-va.mjs:421:3
+✓ 10) không lỗi console ở mọi trang đã mở
+
+CUOC SMOKE: 3 ✓, 12 ✗: 2) 6b 390 chuyến bị giữ: CHỈ điều kiện còn thiếu "(văn phòng lo)", không hạn giấy tờ; "Xuất bến" khoá + "Chưa xuất bến được — văn phòng đang lo." | 3) 6c → 5a 390, Q-L3-B phía "không tên": chuyến NGÀY MAI (T4) đủ điều kiện ("Đủ điều kiện xuất bến"), trước xuất bến KHÔNG tên khách; bấm "Xuất bến" (không ô giờ, thân không có xayRaLuc) = xuất bến SỚM → đang chạy nhưng màn hiện "Khách N", KHÔNG tên, năm sinh, liên hệ | 3b) 5a 390, Q-L3-B phía "có tên": chuyến HÔM NAY (TH, tài xế CÔNG TY Cường) — TRƯỚC khi chạy đã thấy tên + năm sinh + liên hệ, chưa có nút tiến độ (đề xuất 25/10); bấm "Xuất bến" → đang chạy: vẫn đủ, axe không vi phạm critical/serious | 4) 5a: "Đã tới" → khách có Đã đón / Vắng / Khách đã huỷ; "Đã đón" khách 1 → "Đã đón"; phản hồi lệnh không kèm liên hệ — màn GIỮ dòng liên hệ của lần tải | 5) mất mạng: bấm "Vắng" → dòng "Chưa gửi được" + "Bấm lại" + dải "Mất mạng — 1 thao tác chưa gửi được"; máy KHÔNG tự gửi lại; có mạng, bấm lại → "Vắng", CÙNG requestId | 6) 5a: điểm trả "Đã trả" (tới điểm rồi trả khách trên xe) → "Kết thúc chuyến" mở → kết thúc; hộp "Kết thúc gián đoạn" có lý do nhóm Kết thúc gián đoạn, KHÔNG ô ghi chú | 7) 6d 1040 Bán hàng: "Xuất bến thay tài xế" → hộp: "Đạt đủ … điều kiện", "Ghi thay tài xế …", ô "Xảy ra lúc" mặc định lúc bấm + "Sớm nhất" của máy chủ; giờ ngoài khoảng → câu dưới ô; khai đúng "Sớm nhất" → gửi xayRaLuc, mốc xuất bến HAI giờ + "giờ do văn phòng khai", axe không vi phạm critical/serious | 7b) 5c 1040 Bán hàng: nút ↑/↓ ở điểm chưa tới (4 nút, ↑ điểm đầu + ↓ điểm cuối khoá); bấm ↓ điểm đầu → POST /thu-tu thân chỉ requestId + diem (không xayRaLuc), thứ tự đảo, dải báo; bấm ↑ trả lại, axe không vi phạm critical/serious | 7c) 5c 1040: điểm trả vừa được ghi "Đã tới" bằng API, trang chưa tải lại → bấm ↓ ở điểm đón → "Chưa đổi được thứ tự điểm" + "Điểm đã tới hoặc đã bỏ qua…"; sau đó điểm đã tới không còn nút, điểm đón còn hai nút khoá | 8b) Ruling 2/10 — văn phòng bấm thay người đi kèm (T1 đang chạy): dòng 'chưa lên xe' + nút 'Đã lên xe' → 'đang trên xe' + 'Đã xuống' → 'đã xuống', hết nút; dòng giải thích 'Kết thúc chuyến' nhắc người đi kèm | 8) 5c 1040 Bán hàng: chuyến đang chạy — "Đã tới" để nguyên giờ → thân KHÔNG có xayRaLuc (I34), mốc MỘT giờ; GA-55: sau lệnh tên khách vẫn hiện đúng | 9) Kế toán mở chuyến đang chạy: thấy điểm, mốc; KHÔNG nút bấm thay nào (ô trip.progress)

@@ -5,7 +5,7 @@
 import type { CapNhatDiemResponse, ChangLichDto, ChuyenTomTatDto, CuuHoResponse, DeNghiDto, GioVnDto, LichChungResponse, XeNhanDto } from "./contracts.ts";
 import { changChuaXep } from "./dieu-phoi-man.ts";
 import { CAU_NHAC_XE_DANG_CHAY } from "./dong-bo-chuyen-cau.ts";
-import type { DiemVao, SuatVao } from "./tien-do-man.ts";
+import { soKhachTaiDiem, type DiemVao, type SuatVao } from "./tien-do-man.ts";
 import { maskLongDigits } from "./text-guards.ts";
 import { msToVnLocal, ngayNgan } from "./vn-date.ts";
 
@@ -134,15 +134,20 @@ export function theCuuHo(r: CuuHoResponse): { tieuDe: string; chang: string[]; x
   return { tieuDe: n > 0 ? `Cứu hộ ${r.chuyenHong.ma} · ${n} khách cần chuyển` : `Cứu hộ ${r.chuyenHong.ma} · không còn khách cần chuyển`, chang, xe };
 }
 
-/** Một dòng "Suất của khách" (bản vẽ V6 6.3 — ADR-0052 D5b): KHÔNG tên khách — chỉ số suất, điểm lên, có tên hay chưa. */
+/** Một dòng "Suất của khách" (bản vẽ V6 6.3 — ADR-0052 D5b): KHÔNG tên khách — chỉ điểm lên, số khách ở điểm đó, có tên hay chưa. */
 export interface SuatTenDong {
   suatId: string;
+  /** "Điểm M · Khách i · nơi". */
   nhan: string;
+  /** "Điểm M · Khách i" — tiêu đề hộp "Bổ sung tên — …". */
+  nhanNgan: string;
   coTen: boolean;
 }
 /**
  * Khối "Suất của khách" ở màn tài xế: chỉ trong ngày chạy (ngoài ngày chạy DTO không có tên để biết ai thiếu) và chỉ khi còn suất khách CHƯA có tên. Suất
- * khách còn chờ / đang trên xe, xếp theo thứ tự điểm lên rồi id; "Suất N · Điểm M · nơi". Người đi kèm, suất đã xong không tính.
+ * khách còn chờ / đang trên xe, theo thứ tự điểm lên rồi thứ tự dòng khách; "Điểm M · Khách i · nơi". Người đi kèm, suất đã xong không tính.
+ * 25/10 (đề xuất tài xế thấy khách trước khi cho xe chạy): bỏ cách đếm "Suất N" trên cả chuyến — dòng khách dưới thẻ điểm hiện cùng màn và đếm "Khách i" THEO
+ * ĐIỂM, nên khối đếm đúng như thế (`soKhachTaiDiem`, một luật với `buocDiem`): khách chưa tên ở thẻ là "Khách 2" thì khối cũng ghi "Điểm M · Khách 2".
  */
 export function suatCuaKhach(r: {
   trongNgayChay: boolean;
@@ -151,13 +156,15 @@ export function suatCuaKhach(r: {
 }): { thieu: number; dong: SuatTenDong[] } | null {
   if (!r.trongNgayChay) return null;
   const diem = new Map(r.diem.map((d) => [d.id, d]));
+  const so = soKhachTaiDiem(r.suat);
   const thu = (id: string | null) => (id ? (diem.get(id)?.thuTu ?? 9999) : 9999);
   const ds = r.suat
     .filter((s) => s.loai === "PASSENGER" && (s.trangThai === "WAITING" || s.trangThai === "BOARDED"))
-    .sort((a, b) => thu(a.diemLen) - thu(b.diemLen) || a.id.localeCompare(b.id));
-  const dong = ds.map((s, i) => {
+    .sort((a, b) => thu(a.diemLen) - thu(b.diemLen) || (so.get(a.id) ?? 0) - (so.get(b.id) ?? 0) || a.id.localeCompare(b.id));
+  const dong = ds.map((s) => {
     const d = s.diemLen ? diem.get(s.diemLen) : undefined;
-    return { suatId: s.id, nhan: [`Suất ${i + 1}`, d ? `Điểm ${d.thuTu}` : null, d?.tenNoi ?? null].filter(Boolean).join(" · "), coTen: s.hoTen !== undefined };
+    const nhanNgan = [d ? `Điểm ${d.thuTu}` : null, so.has(s.id) ? `Khách ${so.get(s.id)}` : "Khách"].filter(Boolean).join(" · ");
+    return { suatId: s.id, nhan: [nhanNgan, d?.tenNoi ?? null].filter(Boolean).join(" · "), nhanNgan, coTen: s.hoTen !== undefined };
   });
   const thieu = dong.filter((x) => !x.coTen).length;
   return thieu > 0 ? { thieu, dong } : null;

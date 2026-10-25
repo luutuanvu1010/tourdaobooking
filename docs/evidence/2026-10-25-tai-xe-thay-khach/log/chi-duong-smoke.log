@@ -1,0 +1,10 @@
+✓ 1) 390 An: chuyến NGÀY MAI trước xuất bến KHÔNG nhóm Chỉ đường; xuất bến SỚM (Q-L3-B) vẫn không; GET không có khoá diaChiChiDuong
+✓ 2) 390 iPhone, chuyến hôm nay TRƯỚC xuất bến: mọi điểm có "Google Maps" + "Apple Maps"; điểm đến = địa chỉ (H1) / tên đã che (H2) / tên bến tàu; chỉ tham số đích; _blank + noreferrer noopener; liên kết bản đồ không mang tên / SĐT khách, axe không vi phạm critical/serious
+✓ 3) 390 iPhone: Xuất bến (hộp xác nhận) → đang chạy, nhóm còn đủ; "Đã tới" H1 → vẫn có; "Đã đón" hết khách H1 (điểm DONE) → điểm H1 hết nhóm, điểm khác còn
+✓ 4) 390 Android (đặt chuỗi nhận dạng Android, tải lại): mỗi nhóm còn lại CHỈ "Google Maps"
+✓ 5) 1040 (máy Mac / iPhone giả lập): bố cục máy tính, nhóm hai nút, không tràn ngang, axe không vi phạm critical/serious
+✓ 6) mất mạng: "Đã tới" H2 (có mạng) → tắt mạng, "Đã đón" một khách H2 (lệnh không tới máy chủ, dòng "Chưa gửi được") → nhóm của điểm chưa xong vẫn còn; có mạng, bấm lại
+✓ 7) "Đã đón" khách còn lại → "Đã trả" (hộp) → "Kết thúc chuyến" (hộp): chuyến đã kết thúc hôm nay (vẫn trong ngày chạy) → KHÔNG còn nhóm nào
+✓ 8) cả phiên: trang KHÔNG gọi miền google / apple nào; không lỗi console; không mã thô
+
+CHI DUONG SMOKE OK (8 bước)

@@ -1,0 +1,6 @@
+✓ 1) 390: tài xế mở "/" → /cuoc (Q5); tab Trang chủ /tai-xe: chào + ngày; khối cuốc xe là liên kết sang /cuoc; hai giấy gần hạn nhất đúng chip; số đủ không có trong DOM; điều hướng đúng ba mục, axe không vi phạm critical/serious
+✓ 2) 1040: tài xế mở "/" → /cuoc (Q5); tab Trang chủ /tai-xe: chào + ngày; khối cuốc xe là liên kết sang /cuoc; hai giấy gần hạn nhất đúng chip; số đủ không có trong DOM; điều hướng đúng ba mục, axe không vi phạm critical/serious
+✓ 3) tài xế chưa có giấy tờ: khối nói rõ “chưa có”, vẫn ba tab (điện thoại)
+✓ 4) tài khoản KHÔNG phải tài xế (Bán hàng) mở /tai-xe → quay về Trang chủ “/”
+
+TAI XE TRANG DAU SMOKE OK (4 bước)
